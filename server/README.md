@@ -33,9 +33,11 @@ ssh -p 2222 guest@localhost
 
 See [client-tui/README.md](../client-tui/README.md) for key bindings.
 
-## GUI client
+## GUI clients
 
-The Defold client lives in **[client-defold](../client-defold/)** (renamed from `client/`). Open that directory in Defold; see [client-defold/README.md](../client-defold/README.md) and [client-defold/BUILD.md](../client-defold/BUILD.md).
+**React Native (recommended for mobile):** **[client-react-native](../client-react-native/)** — Expo app for iOS/Android. See [client-react-native/README.md](../client-react-native/README.md).
+
+**Defold:** **[client-defold](../client-defold/)** (renamed from `client/`). Open that directory in Defold; see [client-defold/README.md](../client-defold/README.md) and [client-defold/BUILD.md](../client-defold/BUILD.md).
 
 ## Endpoints
 - `GET /healthz`

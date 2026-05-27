@@ -1,10 +1,11 @@
 # zolik
 
-Card game experiments — Go backend and two clients.
+Card game experiments — Go backend and three clients.
 
 ## Layout
 
 - `server/` — Žolíky game API (REST, WebSocket, MongoDB, embedded SSH TUI host)
+- `client-react-native/` — Expo mobile GUI client (primary GUI for iOS/Android)
 - `client-defold/` — Defold GUI client (renamed from `client/`; open this folder in Defold, not the repo root)
 - `client-tui/` — Text-only terminal client (Bubbletea + SSH)
 
