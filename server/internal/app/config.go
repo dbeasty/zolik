@@ -1,9 +1,12 @@
 package app
 
-import "os"
+import (
+	"os"
+	"strings"
+)
 
 type Config struct {
-	Env string
+	Env  string
 	Port string
 
 	MongoURI string
@@ -14,11 +17,18 @@ type Config struct {
 
 	RedisURL   string
 	InstanceID string
+
+	SSHEnabled      bool
+	SSHPort         string
+	SSHHostKeyPath  string
+	SSHAllowAllKeys bool
 }
 
 func LoadConfig() Config {
+	env := os.Getenv("APP_ENV")
+	local := env == "" || env == "local"
 	return Config{
-		Env: os.Getenv("APP_ENV"),
+		Env:  env,
 		Port: envOr("PORT", "8090"),
 
 		MongoURI: envOr("MONGO_URI", "mongodb://localhost:27017"),
@@ -29,6 +39,26 @@ func LoadConfig() Config {
 
 		RedisURL:   envOr("REDIS_URL", ""),
 		InstanceID: envOr("INSTANCE_ID", ""),
+
+		SSHEnabled:      envBool("SSH_ENABLED", local),
+		SSHPort:         envOr("SSH_PORT", "2222"),
+		SSHHostKeyPath:  envOr("SSH_HOST_KEY_PATH", ".ssh/zolik_host_key"),
+		SSHAllowAllKeys: envBool("SSH_ALLOW_ALL_KEYS", local),
+	}
+}
+
+func envBool(key string, fallback bool) bool {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return fallback
+	}
+	switch strings.ToLower(v) {
+	case "1", "true", "yes", "on":
+		return true
+	case "0", "false", "no", "off":
+		return false
+	default:
+		return fallback
 	}
 }
 

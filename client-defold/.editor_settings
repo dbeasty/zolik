@@ -1,0 +1,30 @@
+{
+  :code {
+    :breakpoints [
+    ]
+  }
+  :workflow {
+    :open-tabs [
+      [
+        [
+          "/README.md"
+          :html
+        ]
+        [
+          "/gui/app.gui"
+          :scene
+        ]
+      ]
+    ]
+    :recent-files [
+      [
+        "/README.md"
+        :html
+      ]
+      [
+        "/gui/app.gui"
+        :scene
+      ]
+    ]
+  }
+}

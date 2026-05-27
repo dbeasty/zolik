@@ -15,9 +15,11 @@ import (
 )
 
 type App struct {
-	cfg  Config
-	db   *db.Mongo
-	hub  *game.Hub
+	cfg     Config
+	db      *db.Mongo
+	hub     *game.Hub
+	manager *game.Manager
+	auth    *auth.Handlers
 }
 
 func New(cfg Config) (*App, error) {
@@ -43,12 +45,26 @@ func New(cfg Config) (*App, error) {
 		return nil, err
 	}
 
-	return &App{cfg: cfg, db: m, hub: hub}, nil
+	repo := game.NewRepository(m)
+	manager := game.NewManager(repo, hub)
+	authHandlers := auth.NewHandlers(m)
+
+	return &App{
+		cfg:     cfg,
+		db:      m,
+		hub:     hub,
+		manager: manager,
+		auth:    authHandlers,
+	}, nil
 }
 
-func (a *App) Hub() *game.Hub {
-	return a.hub
-}
+func (a *App) Config() Config { return a.cfg }
+
+func (a *App) Hub() *game.Hub { return a.hub }
+
+func (a *App) Manager() *game.Manager { return a.manager }
+
+func (a *App) Auth() *auth.Handlers { return a.auth }
 
 func (a *App) Close(ctx context.Context) error {
 	if a.hub != nil {
@@ -67,15 +83,13 @@ func (a *App) RegisterRoutes(r chi.Router) {
 		_, _ = w.Write([]byte("ok"))
 	})
 
-	repo := game.NewRepository(a.db)
-	manager := game.NewManager(repo, a.hub)
-	ws := game.NewWebSocketServer(manager)
+	ws := game.NewWebSocketServer(a.manager)
 	ws.RegisterRoutes(r, a.db)
 
-	authHandlers := auth.NewHandlers(a.db)
-	authHandlers.RegisterRoutes(r)
+	a.auth.RegisterRoutes(r)
 
-	gameRest := game.NewGameRestHandlers(repo, a.hub, manager)
+	repo := game.NewRepository(a.db)
+	gameRest := game.NewGameRestHandlers(repo, a.hub, a.manager)
 	gameRest.RegisterRoutes(r)
 
 	userHandlers := userrepo.NewHandlers(userrepo.NewRepository(a.db))
@@ -84,4 +98,3 @@ func (a *App) RegisterRoutes(r chi.Router) {
 	scoringHandlers := scoring.NewHandlers(a.db)
 	scoringHandlers.RegisterRoutes(r)
 }
-

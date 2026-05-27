@@ -1,5 +1,3 @@
-name: "root"
-scale_along_z: 0
 components {
   id: "appgui"
   component: "/gui/app.gui"

@@ -12,7 +12,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/joho/godotenv"
 
+	tuissH "zolik/client-tui/ssh"
 	"zolik/server/internal/app"
+	"zolik/server/internal/tuiauth"
 )
 
 func main() {
@@ -45,12 +47,36 @@ func main() {
 		}
 	}()
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var sshSrv *tuissH.Server
+	if cfg.SSHEnabled {
+		serverURL := "http://127.0.0.1:" + cfg.Port
+		var err error
+		sshSrv, err = tuissH.Start(ctx, tuissH.Config{
+			Addr:         tuissH.AddrFromPort(cfg.SSHPort),
+			HostKeyPath:  cfg.SSHHostKeyPath,
+			AllowAllKeys: cfg.SSHAllowAllKeys,
+		}, tuissH.Deps{
+			ServerURL: serverURL,
+			Auth:      &tuiauth.Adapter{Auth: a.Auth()},
+		})
+		if err != nil {
+			log.Fatalf("ssh server: %v", err)
+		}
+	}
+
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	<-stop
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	_ = srv.Shutdown(ctx)
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+	cancel()
+	if sshSrv != nil {
+		_ = sshSrv
+	}
+	_ = srv.Shutdown(shutdownCtx)
 }
 

@@ -51,5 +51,11 @@ func TestBuildGameStateMsg_OfferRedactionAndHands(t *testing.T) {
 	if msg2.CardCounts["p1"] != 2 {
 		t.Fatalf("expected p1 count 2, got %d", msg2.CardCounts["p1"])
 	}
+	if msg1.Status != "active" {
+		t.Fatalf("expected status active, got %q", msg1.Status)
+	}
+	if len(msg1.Players) != 2 {
+		t.Fatalf("expected 2 players in snapshot, got %d", len(msg1.Players))
+	}
 }
 

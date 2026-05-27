@@ -23,6 +23,20 @@ Redis is **not** used for login, registration, or guest sessions — only for `z
 
 Without `REDIS_URL`, the hub runs in **local-only** mode (fine for development).
 
+## Terminal client (SSH)
+
+When `SSH_ENABLED=true` (default in local), the server embeds **[client-tui](../client-tui/)** on port **2222**:
+
+```bash
+ssh -p 2222 guest@localhost
+```
+
+See [client-tui/README.md](../client-tui/README.md) for key bindings.
+
+## GUI client
+
+The Defold client lives in **[client-defold](../client-defold/)** (renamed from `client/`). Open that directory in Defold; see [client-defold/README.md](../client-defold/README.md) and [client-defold/BUILD.md](../client-defold/BUILD.md).
+
 ## Endpoints
 - `GET /healthz`
 - WebSocket: `ws://localhost:8090/ws/games/:id?token=<JWT>`
