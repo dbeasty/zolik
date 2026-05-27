@@ -1,0 +1,338 @@
+-- Playable lobby + in-game UI for Žolíky.
+
+local vmath = require("vmath")
+local api = require("game.scripts.api")
+local ws = require("game.scripts.ws_client")
+
+local state = {
+	screen = "lobby",
+	game_id = nil,
+	join_code = nil,
+	game = {},
+	selected = {},
+	guest_name = "Player",
+	join_input = "",
+	status = "Login as guest to begin",
+}
+
+local ui = {
+	buttons = {},
+	labels = {},
+	root = nil,
+}
+
+local function set_status(text)
+	state.status = text or ""
+	if ui.labels.status then
+		gui.set_text(ui.labels.status, state.status)
+	end
+end
+
+local function clear_ui()
+	for _, b in pairs(ui.buttons) do
+		if b.box then gui.delete_node(b.box) end
+		if b.label then gui.delete_node(b.label) end
+	end
+	ui.buttons = {}
+	for _, n in pairs(ui.labels) do
+		if n ~= ui.labels.status then
+			gui.delete_node(n)
+		end
+	end
+	ui.labels = {}
+end
+
+local function make_label(key, x, y, text, scale)
+	local n = gui.new_text_node(vmath.vector3(x, y, 0), text or "")
+	gui.set_parent(n, ui.root)
+	gui.set_font(n, hash("system_font"))
+	gui.set_scale(n, vmath.vector3(scale or 0.5, scale or 0.5, 1))
+	ui.labels[key] = n
+	return n
+end
+
+local function make_button(id, x, y, w, h, text, fn)
+	local box = gui.new_box_node(vmath.vector3(x, y, 0), vmath.vector3(w, h, 0))
+	gui.set_parent(box, ui.root)
+	gui.set_color(box, vmath.vector4(0.22, 0.42, 0.62, 1))
+	local label = gui.new_text_node(vmath.vector3(x, y - 4, 0), text)
+	gui.set_parent(label, ui.root)
+	gui.set_font(label, hash("system_font"))
+	gui.set_scale(label, vmath.vector3(0.45, 0.45, 1))
+	ui.buttons[box] = { id = id, fn = fn, label = label, box = box }
+	return box
+end
+
+local function rebuild_lobby()
+	clear_ui()
+	make_label("title", 480, 600, "Žolíky", 1.0)
+	ui.labels.status = make_label("status", 480, 560, state.status, 0.45)
+	make_label("hint", 480, 40, "Server: " .. api.base_url, 0.35)
+
+	make_button("guest", 200, 480, 200, 44, "Guest login", function()
+		set_status("Logging in…")
+		api.guest_login(state.guest_name, function(err)
+			if err then
+				set_status("Login failed: " .. tostring(err))
+				return
+			end
+			set_status("Logged in. Create or join a game.")
+		end)
+	end)
+
+	make_button("create", 480, 480, 200, 44, "Create game", function()
+		if not api.token then
+			set_status("Login first")
+			return
+		end
+		set_status("Creating game…")
+		api.create_game(function(err, data)
+			if err then
+				set_status(err)
+				return
+			end
+			state.game_id = data.gameId
+			state.join_code = data.joinCode
+			set_status("Created " .. state.join_code .. " — add AI and start")
+			rebuild_lobby()
+		end)
+	end)
+
+	make_button("join", 760, 480, 200, 44, "Join game", function()
+		if not api.token then
+			set_status("Login first")
+			return
+		end
+		local code = state.join_input
+		if code == "" then
+			set_status("Enter join code or game id")
+			return
+		end
+		set_status("Joining…")
+		api.join_game(code, function(err, data)
+			if err then
+				set_status(err)
+				return
+			end
+			state.game_id = data.gameId
+			set_status("Joined game " .. state.game_id)
+			rebuild_lobby()
+		end)
+	end)
+
+	make_button("join_cycle", 760, 420, 200, 36, "Join code: " .. (state.join_input ~= "" and state.join_input or "(tap)"), function()
+		local samples = { "ABC123", state.join_code or "", "paste-id" }
+		state.join_input = samples[((#state.join_input) % #samples) + 1]
+		rebuild_lobby()
+	end)
+
+	if state.game_id then
+		make_label("gid", 480, 430, "Game: " .. state.game_id, 0.4)
+		make_label("code", 480, 400, "Join code: " .. tostring(state.join_code), 0.4)
+		make_button("ai", 320, 340, 140, 40, "Add AI", function()
+			api.add_ai(state.game_id, "medium", function(err)
+				set_status(err or "AI added")
+			end)
+		end)
+		make_button("start", 480, 340, 140, 40, "Start", function()
+			api.start_game(state.game_id, function(err)
+				if err then
+					set_status(err)
+					return
+				end
+				connect_and_play()
+			end)
+		end)
+		make_button("play", 640, 340, 140, 40, "Connect WS", function()
+			connect_and_play()
+		end)
+	end
+end
+
+local function card_list(hand)
+	if not hand or #hand == 0 then
+		return "(empty hand)"
+	end
+	return table.concat(hand, "  ")
+end
+
+local function rebuild_game()
+	clear_ui()
+	local g = state.game
+	make_label("title", 480, 610, "Round " .. tostring(g.round or "?") .. "  Phase: " .. tostring(g.phase or "?"), 0.55)
+	ui.labels.status = make_label("status", 480, 580, state.status, 0.4)
+
+	local turn = g.currentTurn or "?"
+	local mine = api.player_id or "?"
+	make_label("turn", 480, 550, "Turn: " .. turn .. (turn == mine and " (you)" or ""), 0.45)
+
+	make_label("hand", 480, 500, "Hand: " .. card_list(g.myHand), 0.38)
+	make_label("discard", 480, 460, "Discard top: " .. top_discard(g.discardPile), 0.38)
+	make_label("scores", 480, 430, format_scores(g.totalScores), 0.35)
+	make_label("req", 480, 400, format_req(g.roundReqMet), 0.35)
+
+	local y = 340
+	if g.phase == "draw" and g.currentTurn == api.player_id then
+		make_button("draw_deck", 280, y, 160, 40, "Draw deck", function()
+			ws.send({ type = "draw_card", from = "deck" })
+		end)
+		make_button("draw_disc", 480, y, 160, 40, "Draw discard", function()
+			ws.send({ type = "draw_card", from = "discard" })
+		end)
+	end
+
+	if g.phase == "meld" and g.currentTurn == api.player_id then
+		make_button("meld", 280, y, 160, 40, "Lay meld (sel)", function()
+			local cards = selected_cards()
+			if #cards < 3 then
+				set_status("Select 3+ cards in hand list (tap cards)")
+				return
+			end
+			ws.send({ type = "lay_meld", cards = cards })
+			state.selected = {}
+		end)
+		make_button("discard", 480, y, 160, 40, "Discard (sel)", function()
+			local cards = selected_cards()
+			if #cards ~= 1 then
+				set_status("Select exactly 1 card to discard")
+				return
+			end
+			ws.send({ type = "discard", card = cards[1] })
+			state.selected = {}
+		end)
+	end
+
+	if g.phase == "offer" and g.offer then
+		make_label("offer", 480, y + 40, "Offered: " .. tostring(g.offer.card), 0.5)
+		make_button("accept", 320, y, 140, 40, "Accept", function()
+			ws.send({ type = "accept_offer" })
+		end)
+		make_button("decline", 520, y, 140, 40, "Decline", function()
+			ws.send({ type = "decline_offer" })
+		end)
+	end
+
+	-- Hand card toggles
+	local hand = g.myHand or {}
+	local start_x = 120
+	for i, card in ipairs(hand) do
+		local cx = start_x + ((i - 1) % 8) * 100
+		local cy = 120 - math.floor((i - 1) / 8) * 36
+		local sel = state.selected[card]
+		local label = (sel and "[*] " or "[ ] ") .. card
+		make_button("card_" .. card, cx, cy, 96, 30, label, function()
+			if state.selected[card] then
+				state.selected[card] = nil
+			else
+				state.selected[card] = true
+			end
+			rebuild_game()
+		end)
+	end
+
+	make_button("lobby", 860, 40, 120, 36, "Lobby", function()
+		ws.disconnect()
+		state.screen = "lobby"
+		rebuild_lobby()
+	end)
+end
+
+function top_discard(pile)
+	if not pile or #pile == 0 then
+		return "—"
+	end
+	return pile[#pile]
+end
+
+function format_scores(scores)
+	if not scores then return "Scores: —" end
+	local parts = {}
+	for pid, val in pairs(scores) do
+		table.insert(parts, pid:sub(1, 6) .. "=" .. tostring(val))
+	end
+	return "Scores: " .. table.concat(parts, "  ")
+end
+
+function format_req(req)
+	if not req then return "Round req: —" end
+	local parts = {}
+	for pid, met in pairs(req) do
+		table.insert(parts, pid:sub(1, 6) .. "=" .. (met and "yes" or "no"))
+	end
+	return "Round req met: " .. table.concat(parts, "  ")
+end
+
+function selected_cards()
+	local out = {}
+	for card, on in pairs(state.selected) do
+		if on then table.insert(out, card) end
+	end
+	return out
+end
+
+function apply_server_msg(msg)
+	if msg.type == "error" or msg.code then
+		set_status(tostring(msg.message or msg.code or "error"))
+		return
+	end
+	if msg.type == "game_state" then
+		state.game = msg
+		state.screen = "game"
+		rebuild_game()
+		return
+	end
+	-- Delta events — refresh labels; full state follows on game_state.
+	if msg.type == "round_ended" or msg.type == "game_ended" then
+		set_status(msg.type .. " winner=" .. tostring(msg.winnerId))
+	end
+	if msg.type == "game_suspended" then
+		set_status("Game suspended: " .. tostring(msg.reason))
+	end
+end
+
+function connect_and_play()
+	if not state.game_id or not api.token then
+		set_status("Need game id + login")
+		return
+	end
+	if not ws.available() then
+		set_status("Install extension-websocket (see README)")
+		return
+	end
+	local url = api.ws_url(state.game_id)
+	set_status("Connecting WS…")
+	ws.disconnect()
+	local ok, err = ws.connect(url, apply_server_msg, function()
+		set_status("Connected")
+	end, function()
+		set_status("Disconnected")
+	end)
+	if not ok then
+		set_status(err)
+	end
+end
+
+function init(self)
+	api.base_url = sys.get_config("zolik.base_url") or "http://127.0.0.1:8090"
+	ui.root = gui.get_node("root")
+	rebuild_lobby()
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("server_msg") then
+		apply_server_msg(message)
+	end
+end
+
+function on_input(self, action_id, action)
+	if action_id ~= hash("touch") or not action.pressed then
+		return
+	end
+	local pos = vmath.vector3(action.x, action.y, 0)
+	local picked = gui.pick_node(pos)
+	if not picked then return end
+	local b = ui.buttons[picked]
+	if b and b.fn then
+		b.fn()
+	end
+end

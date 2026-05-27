@@ -15,8 +15,9 @@ import (
 )
 
 type App struct {
-	cfg Config
-	db  *db.Mongo
+	cfg  Config
+	db   *db.Mongo
+	hub  *game.Hub
 }
 
 func New(cfg Config) (*App, error) {
@@ -35,10 +36,25 @@ func New(cfg Config) (*App, error) {
 		return nil, err
 	}
 
-	return &App{cfg: cfg, db: m}, nil
+	registry := game.NewConnRegistry()
+	hub, err := game.NewHub(registry, cfg.RedisURL)
+	if err != nil {
+		_ = m.Close(ctx)
+		return nil, err
+	}
+
+	return &App{cfg: cfg, db: m, hub: hub}, nil
+}
+
+func (a *App) Hub() *game.Hub {
+	return a.hub
 }
 
 func (a *App) Close(ctx context.Context) error {
+	if a.hub != nil {
+		_ = a.hub.Close()
+		a.hub = nil
+	}
 	if a.db != nil {
 		return a.db.Close(ctx)
 	}
@@ -51,16 +67,15 @@ func (a *App) RegisterRoutes(r chi.Router) {
 		_, _ = w.Write([]byte("ok"))
 	})
 
-	registry := game.NewConnRegistry()
 	repo := game.NewRepository(a.db)
-	manager := game.NewManager(repo, registry)
+	manager := game.NewManager(repo, a.hub)
 	ws := game.NewWebSocketServer(manager)
 	ws.RegisterRoutes(r, a.db)
 
 	authHandlers := auth.NewHandlers(a.db)
 	authHandlers.RegisterRoutes(r)
 
-	gameRest := game.NewGameRestHandlers(repo, registry, manager)
+	gameRest := game.NewGameRestHandlers(repo, a.hub, manager)
 	gameRest.RegisterRoutes(r)
 
 	userHandlers := userrepo.NewHandlers(userrepo.NewRepository(a.db))

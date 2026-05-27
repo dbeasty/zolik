@@ -104,28 +104,63 @@ func ValidateDeclineOffer(state GameState, playerID string) (GameState, error) {
 	return state, nil
 }
 
-func ValidateMeldAction(state GameState, playerID string, cards []string) (GameState, MeldValidation, error) {
+func ValidateMeldAction(state GameState, playerID string, cards []string) (GameState, string, MeldType, error) {
 	if state.Status != StatusActive {
-		return state, MeldValidation{}, RulesError{Code: ErrGameNotActive}
+		return state, "", "", RulesError{Code: ErrGameNotActive}
 	}
 	if state.Phase != PhaseMeld {
-		return state, MeldValidation{}, RulesError{Code: ErrWrongPhase}
+		return state, "", "", RulesError{Code: ErrWrongPhase}
 	}
 	if state.CurrentTurn != playerID {
-		return state, MeldValidation{}, RulesError{Code: ErrNotYourTurn}
+		return state, "", "", RulesError{Code: ErrNotYourTurn}
 	}
 
-	// ensure player holds all cards (multi-set)
 	if err := requireCardsInHand(state.Hands[playerID], cards); err != nil {
-		return state, MeldValidation{}, err
+		return state, "", "", err
 	}
 
 	mv, err := ValidateMeld(cards)
 	if err != nil {
-		return state, MeldValidation{}, err
+		return state, "", "", err
 	}
 
-	// Apply: remove from hand, append to melds.
+	if !MeldContributesTowardRequirement(state, playerID, mv.Type, len(cards)) {
+		return state, "", "", RulesError{
+			Code:    ErrMeldNoContribution,
+			Message: "meld does not advance round requirement",
+		}
+	}
+
+	// Dry-run to validate minimum meld / round requirement before mutating.
+	sim := cloneState(state)
+	sim.Hands[playerID] = removeCards(sim.Hands[playerID], cards)
+	if sim.Melds == nil {
+		sim.Melds = map[string][][]string{}
+	}
+	if sim.MeldMeta == nil {
+		sim.MeldMeta = map[string][]MeldInfo{}
+	}
+	sim.Melds[playerID] = append(sim.Melds[playerID], append([]string(nil), cards...))
+	nextID := sim.NextMeldSeq + 1
+	meldID := fmt.Sprintf("meld_%d", nextID)
+	sim.MeldMeta[playerID] = append(sim.MeldMeta[playerID], MeldInfo{
+		MeldID: meldID, Type: mv.Type, OwnerID: playerID,
+	})
+
+	if PlayerMeetsRoundRequirement(sim, playerID) {
+		if state.InitialMeldMinimum > 0 && !state.RoundReqMet[playerID] {
+			if PlayerInitialMeldNaturalValue(sim, playerID) < state.InitialMeldMinimum {
+				return state, "", "", RulesError{Code: ErrMeldBelowMinimum}
+			}
+		}
+	}
+
+	// Rounds 1–6 require a final discard to go out; cannot meld away every card.
+	if state.Round < 7 && len(sim.Hands[playerID]) == 0 {
+		return state, "", "", RulesError{Code: ErrInvalidMeld, Message: "must discard last card to go out before round 7"}
+	}
+
+	// Apply for real.
 	state.Hands[playerID] = removeCards(state.Hands[playerID], cards)
 	if state.Melds == nil {
 		state.Melds = map[string][][]string{}
@@ -134,23 +169,16 @@ func ValidateMeldAction(state GameState, playerID string, cards []string) (GameS
 		state.MeldMeta = map[string][]MeldInfo{}
 	}
 	state.Melds[playerID] = append(state.Melds[playerID], append([]string(nil), cards...))
-	state.NextMeldSeq++
-	meldID := fmt.Sprintf("meld_%d", state.NextMeldSeq)
+	state.NextMeldSeq = nextID
 	state.MeldMeta[playerID] = append(state.MeldMeta[playerID], MeldInfo{
 		MeldID: meldID, Type: mv.Type, OwnerID: playerID,
 	})
 
-	// Round requirement: only mark met when the table layout satisfies this round's pattern.
 	if PlayerMeetsRoundRequirement(state, playerID) {
-		if state.InitialMeldMinimum > 0 && !state.RoundReqMet[playerID] {
-			if PlayerInitialMeldNaturalValue(state, playerID) < state.InitialMeldMinimum {
-				return state, MeldValidation{}, RulesError{Code: ErrMeldBelowMinimum}
-			}
-		}
 		state.RoundReqMet[playerID] = true
 	}
 
-	return state, mv, nil
+	return state, meldID, mv.Type, nil
 }
 
 func ValidateLayOff(state GameState, playerID string, meldID string, card string) (GameState, error) {
@@ -179,6 +207,11 @@ func ValidateLayOff(state GameState, playerID string, meldID string, card string
 
 	state.Hands[playerID] = removeCards(state.Hands[playerID], []string{card})
 	state.Melds[owner][idx] = newMeld
+
+	if state.Round < 7 && len(state.Hands[playerID]) == 0 {
+		return state, RulesError{Code: ErrInvalidMeld, Message: "must discard last card to go out before round 7"}
+	}
+
 	return state, nil
 }
 

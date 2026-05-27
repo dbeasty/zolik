@@ -25,9 +25,9 @@ func baseActiveState(round int, playerID string) GameState {
 func TestRound1_RequiresTwoSets(t *testing.T) {
 	p := "p1"
 	st := baseActiveState(1, p)
-	st.Hands[p] = []string{"7H", "7D", "7C", "8H", "8D", "8C"}
+	st.Hands[p] = []string{"7H", "7D", "7C", "8H", "8D", "8C", "2S"}
 
-	st, _, err := ValidateMeldAction(st, p, []string{"7H", "7D", "7C"})
+	st, _, _, err := ValidateMeldAction(st, p, []string{"7H", "7D", "7C"})
 	if err != nil {
 		t.Fatalf("first set: %v", err)
 	}
@@ -35,7 +35,7 @@ func TestRound1_RequiresTwoSets(t *testing.T) {
 		t.Fatalf("round req should not be met after one set in round 1")
 	}
 
-	st, _, err = ValidateMeldAction(st, p, []string{"8H", "8D", "8C"})
+	st, _, _, err = ValidateMeldAction(st, p, []string{"8H", "8D", "8C"})
 	if err != nil {
 		t.Fatalf("second set: %v", err)
 	}
@@ -52,7 +52,7 @@ func TestRound2_RequiresSetAndRun(t *testing.T) {
 	// Use distinct cards for run (duplicate 7H would break set logic)
 	st.Hands[p] = []string{"7H", "7D", "7C", "5S", "6S", "7S", "8S", "9S"}
 
-	st, _, err := ValidateMeldAction(st, p, []string{"7H", "7D", "7C"})
+	st, _, _, err := ValidateMeldAction(st, p, []string{"7H", "7D", "7C"})
 	if err != nil {
 		t.Fatalf("set: %v", err)
 	}
@@ -60,7 +60,7 @@ func TestRound2_RequiresSetAndRun(t *testing.T) {
 		t.Fatalf("should not meet round 2 after set only")
 	}
 
-	st, _, err = ValidateMeldAction(st, p, []string{"5S", "6S", "7S", "8S"})
+	st, _, _, err = ValidateMeldAction(st, p, []string{"5S", "6S", "7S", "8S"})
 	if err != nil {
 		t.Fatalf("run: %v", err)
 	}
@@ -72,9 +72,9 @@ func TestRound2_RequiresSetAndRun(t *testing.T) {
 func TestRound3_RequiresTwoRuns(t *testing.T) {
 	p := "p1"
 	st := baseActiveState(3, p)
-	st.Hands[p] = []string{"5H", "6H", "7H", "8H", "5D", "6D", "7D", "8D"}
+	st.Hands[p] = []string{"5H", "6H", "7H", "8H", "5D", "6D", "7D", "8D", "2S"}
 
-	st, _, err := ValidateMeldAction(st, p, []string{"5H", "6H", "7H", "8H"})
+	st, _, _, err := ValidateMeldAction(st, p, []string{"5H", "6H", "7H", "8H"})
 	if err != nil {
 		t.Fatalf("run1: %v", err)
 	}
@@ -82,7 +82,7 @@ func TestRound3_RequiresTwoRuns(t *testing.T) {
 		t.Fatalf("round 3 needs two runs")
 	}
 
-	st, _, err = ValidateMeldAction(st, p, []string{"5D", "6D", "7D", "8D"})
+	st, _, _, err = ValidateMeldAction(st, p, []string{"5D", "6D", "7D", "8D"})
 	if err != nil {
 		t.Fatalf("run2: %v", err)
 	}
@@ -98,11 +98,11 @@ func TestInitialMeldMinimum_SumAcrossMelds(t *testing.T) {
 	st.Hands[p] = []string{"2H", "2D", "2C", "3H", "3D", "3C"}
 
 	// Two low sets (2+2+2=6 each = 12 total) — below 35.
-	st, _, err := ValidateMeldAction(st, p, []string{"2H", "2D", "2C"})
+	st, _, _, err := ValidateMeldAction(st, p, []string{"2H", "2D", "2C"})
 	if err != nil {
 		t.Fatalf("first meld: %v", err)
 	}
-	st, _, err = ValidateMeldAction(st, p, []string{"3H", "3D", "3C"})
+	st, _, _, err = ValidateMeldAction(st, p, []string{"3H", "3D", "3C"})
 	if err == nil {
 		t.Fatalf("expected meld below minimum when total natural < 35")
 	}
@@ -117,13 +117,13 @@ func TestInitialMeldMinimum_PassesWhenTotalEnough(t *testing.T) {
 	st := baseActiveState(1, p)
 	st.InitialMeldMinimum = 35
 	// K=10 each => 30 + Q set would work: use 7,8,9,T,J sets... simpler: three tens + one ten in second set
-	st.Hands[p] = []string{"KH", "KD", "KC", "QH", "QD", "QC"}
+	st.Hands[p] = []string{"KH", "KD", "KC", "QH", "QD", "QC", "2S"}
 
-	st, _, err := ValidateMeldAction(st, p, []string{"KH", "KD", "KC"})
+	st, _, _, err := ValidateMeldAction(st, p, []string{"KH", "KD", "KC"})
 	if err != nil {
 		t.Fatalf("first: %v", err)
 	}
-	st, _, err = ValidateMeldAction(st, p, []string{"QH", "QD", "QC"})
+	st, _, _, err = ValidateMeldAction(st, p, []string{"QH", "QD", "QC"})
 	if err != nil {
 		t.Fatalf("second: %v", err)
 	}
@@ -163,10 +163,11 @@ func TestRound7_GoOutViaMeldWithoutDiscard(t *testing.T) {
 	}
 	st.RoundReqMet[p] = false
 
-	next, err := ApplyAction(st, p, Action{Type: ActionLayMeld, Cards: []string{"5H", "6H", "7H", "8H"}})
+	outcome, err := ApplyAction(st, p, Action{Type: ActionLayMeld, Cards: []string{"5H", "6H", "7H", "8H"}})
 	if err != nil {
 		t.Fatalf("lay meld: %v", err)
 	}
+	next := outcome.State
 	if !next.RoundReqMet[p] {
 		t.Fatalf("expected round req met")
 	}
@@ -175,6 +176,9 @@ func TestRound7_GoOutViaMeldWithoutDiscard(t *testing.T) {
 	}
 	if next.Status != StatusCompleted {
 		t.Fatalf("expected game completed after round 7 go-out, got round=%d status=%s", next.Round, next.Status)
+	}
+	if next.WinnerID == "" && !next.IsDraw {
+		t.Fatalf("expected winner or draw after game end")
 	}
 }
 

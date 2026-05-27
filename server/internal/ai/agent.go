@@ -10,6 +10,7 @@ type VisibleState struct {
 
 	DiscardPile []string
 	Melds       map[string][][]string
+	MeldMeta    map[string][]rules.MeldInfo
 	RoundReqMet map[string]bool
 	TotalScores map[string]int
 

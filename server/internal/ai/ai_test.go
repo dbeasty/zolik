@@ -47,7 +47,7 @@ func TestHeuristicAgent_MeldLayOff_MeldFoundAndValid(t *testing.T) {
 		Round:       1,
 		CurrentTurn: aiID,
 		TurnOrder:   []string{aiID, "p2"},
-		Hands:       map[string][]string{aiID: {"7H", "7D", "7C"}, "p2": {}},
+		Hands:       map[string][]string{aiID: {"7H", "7D", "7C", "2H"}, "p2": {}},
 		DrawPile:    []string{"2H"},
 		DiscardPile: []string{},
 		RoundReqMet: map[string]bool{aiID: false, "p2": false},
@@ -63,11 +63,11 @@ func TestHeuristicAgent_MeldLayOff_MeldFoundAndValid(t *testing.T) {
 	}
 
 	action := agent.ChooseAction(visible, state.Hands[aiID])
-	next, err := rules.ApplyAction(state, aiID, action)
+	outcome, err := rules.ApplyAction(state, aiID, action)
 	if err != nil {
 		t.Fatalf("expected lay_meld to be valid, got err: %v", err)
 	}
-	if len(next.Melds[aiID]) != 1 {
+	if len(outcome.State.Melds[aiID]) != 1 {
 		t.Fatalf("expected exactly one meld laid")
 	}
 }
@@ -116,7 +116,7 @@ func TestHeuristicAgent_OfferAcceptMayBeValid(t *testing.T) {
 		Round:       1,
 		CurrentTurn: "p2", // currentTurn not required for accept offer in our rules
 		TurnOrder:   []string{"p2", aiID},
-		Hands:       map[string][]string{aiID: {"7H", "7D", "7C"}, "p2": {}},
+		Hands:       map[string][]string{aiID: {"7H", "7D", "7C", "2H"}, "p2": {}},
 		DrawPile:    []string{"2H"},
 		DiscardPile: []string{},
 		RoundReqMet: map[string]bool{aiID: false, "p2": false},

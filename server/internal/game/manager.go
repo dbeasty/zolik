@@ -16,16 +16,18 @@ import (
 
 type Manager struct {
 	repo     *Repository
+	hub      *Hub
 	registry *ConnRegistry
 
 	aiMu      sync.Mutex
 	aiRunning map[string]bool
 }
 
-func NewManager(repo *Repository, registry *ConnRegistry) *Manager {
+func NewManager(repo *Repository, hub *Hub) *Manager {
 	return &Manager{
 		repo:       repo,
-		registry:   registry,
+		hub:        hub,
+		registry:   hub.Registry(),
 		aiRunning: map[string]bool{},
 	}
 }
@@ -49,23 +51,24 @@ func (m *Manager) HandleAction(ctx context.Context, gameID, playerID string, in 
 	// Convert models.Game -> rules.GameState (and keep non-rules fields intact in models.Game).
 	rState := toRulesState(game)
 
-	nextRulesState, err := rules.ApplyAction(rState, playerID, rAction)
+	outcome, err := rules.ApplyAction(rState, playerID, rAction)
 	if err != nil {
+		if re, ok := err.(rules.RulesError); ok && re.Code == rules.ErrNoCardsLeft {
+			m.suspendNoCardsLeft(ctx, gameID, oid, game)
+		}
 		return err
 	}
 
 	// Apply mutated rules fields back to models.Game.
 	nextGame := game
-	fromRulesState(&nextGame, nextRulesState)
+	fromRulesState(&nextGame, outcome.State)
 
-	// Append action log (v1: minimal data; later phases can redact/private-share via replay projection).
-	nextGame.ActionLog = append(nextGame.ActionLog, models.Action{
-		Seq:       nextActionSeq(game.ActionLog),
-		Timestamp: time.Now().UTC(),
-		Type:      string(rAction.Type),
-		PlayerID:  playerID,
-		Data:      map[string]interface{}{},
-	})
+	appendEventsToActionLog(&nextGame, playerID, outcome.Events)
+
+	if nextGame.Status == string(rules.StatusCompleted) {
+		now := time.Now().UTC()
+		nextGame.CompletedAt = &now
+	}
 
 	// Persist with optimistic concurrency.
 	expectedVersion := game.Version
@@ -73,11 +76,11 @@ func (m *Manager) HandleAction(ctx context.Context, gameID, playerID string, in 
 		return err
 	}
 
-	// Broadcast updated personalised state.
-	for pid, conn := range m.registry.ForGame(gameID) {
-		msg := BuildGameStateMsg(nextGame, pid)
-		_ = conn.WriteJSON(msg)
-	}
+	recipients := BroadcastRecipients(nextGame)
+	m.broadcastEvents(gameID, playerID, outcome.Events, recipients)
+	m.hub.BroadcastGameState(gameID, recipients, func(pid string) interface{} {
+		return BuildGameStateMsg(nextGame, pid)
+	})
 
 	// If the next actor is an AI, run it.
 	m.RunAIIfNeeded(ctx, gameID)
@@ -120,6 +123,30 @@ func (m *Manager) SuspendOnDisconnect(ctx context.Context, gameID, playerID stri
 	})
 
 	_ = m.repo.UpdateWithVersion(ctx, oid, game.Version, game)
+}
+
+func (m *Manager) suspendNoCardsLeft(ctx context.Context, gameID string, oid bson.ObjectID, game models.Game) {
+	now := time.Now().UTC()
+	abandon := now.Add(24 * time.Hour)
+	game.Status = "suspended"
+	game.Phase = string(rules.PhaseSuspended)
+	game.SuspendedAt = &now
+	game.AbandonAt = &abandon
+	game.ActionLog = append(game.ActionLog, models.Action{
+		Seq:       nextActionSeq(game.ActionLog),
+		Timestamp: now,
+		Type:      "suspend",
+		PlayerID:  game.CurrentTurn,
+		Data:      map[string]interface{}{"reason": "no_cards_left"},
+	})
+	_ = m.repo.UpdateWithVersion(ctx, oid, game.Version, game)
+	recipients := BroadcastRecipients(game)
+	m.broadcastEvents(gameID, game.CurrentTurn, []rules.StateEvent{
+		{Type: "game_suspended", Data: map[string]interface{}{
+			"suspendedPlayerId": game.CurrentTurn,
+			"reason":            "no_cards_left",
+		}},
+	}, recipients)
 }
 
 func nextActionSeq(existing []models.Action) int {
@@ -188,6 +215,8 @@ func toRulesState(g models.Game) rules.GameState {
 		Offer:              offer,
 		RoundScores:        g.RoundScores,
 		TotalScores:        g.TotalScores,
+		WinnerID:           g.WinnerID,
+		IsDraw:             g.IsDraw,
 		NextMeldSeq:        g.NextMeldSeq,
 	}
 }
@@ -229,6 +258,8 @@ func fromRulesState(g *models.Game, rs rules.GameState) {
 	}
 
 	g.NextMeldSeq = rs.NextMeldSeq
+	g.WinnerID = rs.WinnerID
+	g.IsDraw = rs.IsDraw
 }
 
 // RunAIIfNeeded starts an AI loop for the given game if an AI player is expected to act.
@@ -310,12 +341,23 @@ func aiVisibleFromGame(game models.Game) ai.VisibleState {
 	if game.Offer != nil {
 		offer = &rules.DiscardOffer{Card: game.Offer.Card, OfferedTo: game.Offer.OfferedTo}
 	}
+	rMeldMeta := map[string][]rules.MeldInfo{}
+	for owner, infos := range game.MeldMeta {
+		for _, mi := range infos {
+			rMeldMeta[owner] = append(rMeldMeta[owner], rules.MeldInfo{
+				MeldID:  mi.MeldID,
+				Type:    rules.MeldType(mi.Type),
+				OwnerID: mi.OwnerID,
+			})
+		}
+	}
 	return ai.VisibleState{
 		Round:       game.Round,
 		Phase:       game.Phase,
 		CurrentTurn: game.CurrentTurn,
 		DiscardPile: game.DiscardPile,
 		Melds:       game.Melds,
+		MeldMeta:    rMeldMeta,
 		RoundReqMet: game.RoundReqMet,
 		TotalScores: game.TotalScores,
 		Offer:       offer,

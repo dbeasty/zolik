@@ -1,29 +1,38 @@
-# Žolíky Defold client (v1 scaffold)
+# Žolíky Defold client
 
-This folder contains the Defold client-side scripts for the Continental Rummy (Žolíky) project.
+Playable GUI client for the Continental Rummy server.
 
-## Server endpoints (expected)
-- WebSocket: `ws://<host>/ws/games/:id?token=<JWT>`
-- Auth + lobby:
-  - `POST /auth/guest`
-  - `POST /games`
-  - `POST /games/:id/join`
-  - `POST /games/:id/start`
-  - `POST /games/:id/add-ai`
-- Offline scoring:
-  - `POST /scoring-sessions`
-  - `GET /scoring-sessions/:id`
-  - `PATCH /scoring-sessions/:id`
+## Setup
 
-## Script entry points
-- `game/scripts/network.script` – WebSocket client + message send helpers
-- `game/scripts/game_state.script` – authoritative local store from server messages
-- `game/scripts/hud.script` – offer panel + error/suspension placeholders
-- `game/scripts/hand.script`, `table.script`, `card.script` – thin rendering placeholders
-- `game/scripts/lobby.script` – REST bootstrap + create/join/start/add-ai helpers
-- `game/scripts/scoring_table.script` – REST scoring session helpers
+1. Open **`client/`** in [Defold Editor](https://defold.com/).
+2. Fetch dependencies (**Project → Fetch Libraries**) so `extension-websocket` is installed (listed in `game.project`).
+3. Start the server (`server/docker compose up --build`).
+4. **Project → Build** and run (desktop or HTML5).
 
-## Notes
-This repo does not include fully authored `.gui` / `.collection` assets due to Defold Editor format complexity.
-You can wire the scripts into scenes and GUI nodes via Defold Editor, using the message types documented in the backend spec.
+## Configuration
 
+In **game.project** add custom properties (optional):
+
+| Property | Default | Purpose |
+|----------|---------|---------|
+| `zolik.base_url` | `http://127.0.0.1:8090` | REST + WebSocket host |
+
+For a second server instance (scale test), point HTML5/desktop builds at `http://127.0.0.1:8092` while Redis syncs game broadcasts.
+
+## Flow
+
+1. **Guest login** — obtains JWT (`userId` = token subject = your player id).
+2. **Create game** / **Join** (tap join code row to cycle demo codes; paste real join code in `game.project` config or extend UI).
+3. **Add AI** + **Start** (or **Connect WS** if already started).
+4. In-game: tap cards to select, **Draw**, **Lay meld**, **Discard**, **Accept/Decline** offer.
+
+## Architecture
+
+- `gui/app.gui` + `app.gui_script` — full UI (lobby + table).
+- `game/scripts/api.lua` — REST (`/auth/guest`, `/games`, …).
+- `game/scripts/ws_client.lua` — WebSocket actions.
+- Legacy scripts under `game/scripts/*.script` remain as reference hooks.
+
+## Multi-server note
+
+User accounts and JWTs stay in **MongoDB**. **Redis pub/sub** only mirrors WebSocket messages between app instances so players on different nodes still see updates. You do **not** need Redis for a single local server (leave `REDIS_URL` unset).

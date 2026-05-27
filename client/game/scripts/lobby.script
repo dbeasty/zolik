@@ -20,7 +20,7 @@ local function http_json(url, method, body, cb)
 end
 
 function init(self)
-	BASE_URL = sys.get_config("app.base_url") or "http://localhost:8080"
+	BASE_URL = sys.get_config("app.base_url") or "http://localhost:8090"
 	access_token = sys.get_config("app.access_token") or sys.get_save("access_token")
 end
 

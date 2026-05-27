@@ -6,7 +6,8 @@
 
 ## Defold editor
 - Open the Defold project at `client/`.
-- Ensure dependency `extension-websocket` is added (see `game.project`).
+- **Project → Fetch Libraries** (installs `extension-websocket` from `game.project`).
+- Main collection: `/main/main.collection` → GUI `/gui/app.gui`.
 - Build targets:
   - Desktop: Build in Defold Editor
   - HTML5: Bundle → HTML5

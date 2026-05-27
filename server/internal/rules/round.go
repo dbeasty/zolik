@@ -22,13 +22,14 @@ func EndRound(state GameState, winnerID string) (GameState, error) {
 		state.TotalScores = map[string]int{}
 	}
 
+	tableMelds := AllTableMelds(state)
 	roundScore := map[string]int{}
 	for _, pid := range state.TurnOrder {
 		if pid == winnerID {
 			roundScore[pid] = 0
 			continue
 		}
-		roundScore[pid] = HandPenaltyTotal(state.Hands[pid])
+		roundScore[pid] = HandPenaltyTotalWithMelds(state.Hands[pid], tableMelds)
 	}
 
 	for _, pid := range state.TurnOrder {
@@ -40,6 +41,9 @@ func EndRound(state GameState, winnerID string) (GameState, error) {
 	if state.Round >= 7 {
 		state.Status = StatusCompleted
 		state.Phase = Phase("completed")
+		winner, draw := DetermineGameWinner(state)
+		state.WinnerID = winner
+		state.IsDraw = draw
 		return state, nil
 	}
 

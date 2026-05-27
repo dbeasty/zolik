@@ -28,6 +28,10 @@ func main() {
 	r := chi.NewRouter()
 	a.RegisterRoutes(r)
 
+	if a.Hub() != nil {
+		log.Printf("ws hub ready (instance=%s, redis=%v)", a.Hub().InstanceID(), a.Hub().RedisEnabled())
+	}
+
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
 		Handler:           r,

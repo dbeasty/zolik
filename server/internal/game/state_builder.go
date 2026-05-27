@@ -16,6 +16,8 @@ type GameStateMsg struct {
 	Melds              map[string][][]string    `json:"melds"`
 	RoundReqMet        map[string]bool          `json:"roundReqMet"`
 	TotalScores        map[string]int           `json:"totalScores"`
+	WinnerID           string                   `json:"winnerId,omitempty"`
+	IsDraw             bool                     `json:"isDraw,omitempty"`
 	InitialMeldMinimum int                      `json:"initialMeldMinimum"`
 	Offer              *OfferMsg                 `json:"offer"`
 }
@@ -56,6 +58,8 @@ func BuildGameStateMsg(g models.Game, myPlayerID string) GameStateMsg {
 		Melds:              g.Melds,
 		RoundReqMet:        g.RoundReqMet,
 		TotalScores:        g.TotalScores,
+		WinnerID:           g.WinnerID,
+		IsDraw:             g.IsDraw,
 		InitialMeldMinimum: g.InitialMeldMinimum,
 		Offer:              offer,
 	}

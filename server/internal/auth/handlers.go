@@ -109,6 +109,7 @@ func (h *Handlers) guest(w http.ResponseWriter, req *http.Request) {
 		"accessToken":  accessToken,
 		"refreshToken": refreshToken,
 		"guestName":    guestName,
+		"userId":       refreshToken, // JWT subject; used as in-game player id
 	})
 }
 

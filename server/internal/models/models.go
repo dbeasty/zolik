@@ -24,6 +24,8 @@ type Game struct {
 	MeldMeta           map[string][]MeldInfo `bson:"meldMeta" json:"meldMeta"`
 	RoundScores        map[string][]int      `bson:"roundScores" json:"roundScores"`
 	TotalScores        map[string]int        `bson:"totalScores" json:"totalScores"`
+	WinnerID           string                `bson:"winnerId,omitempty" json:"winnerId,omitempty"`
+	IsDraw             bool                  `bson:"isDraw,omitempty" json:"isDraw,omitempty"`
 	RoundReqMet        map[string]bool       `bson:"roundReqMet" json:"roundReqMet"`
 	InitialMeldMinimum int                   `bson:"initialMeldMinimum" json:"initialMeldMinimum"`
 	Offer              *DiscardOffer         `bson:"offer" json:"offer"`

@@ -9,19 +9,51 @@ type ReplayResponse struct {
 	ActionLog []models.Action `json:"actionLog"`
 }
 
+var privateActionDataKeys = []string{
+	"card", "cards", "penaltyCard", "allHands", "meldId",
+}
+
 // RedactActionLogForPlayer returns an action log projection safe to send to the given player.
-// v1 rule: if the action is not by the player, remove any card-related data.
 func RedactActionLogForPlayer(actionLog []models.Action, playerID string) []models.Action {
 	out := make([]models.Action, 0, len(actionLog))
 	for _, a := range actionLog {
 		na := a
-		if a.PlayerID != playerID {
-			// redact all action data; v1 action log uses minimal data but keep safe anyway.
-			na.Data = map[string]interface{}{}
-		}
+		na.Data = redactActionData(a, playerID)
 		out = append(out, na)
 	}
 	return out
+}
+
+func redactActionData(a models.Action, viewerID string) map[string]interface{} {
+	if a.Data == nil {
+		return map[string]interface{}{}
+	}
+	data := map[string]interface{}{}
+	for k, v := range a.Data {
+		data[k] = v
+	}
+
+	switch a.Type {
+	case "draw_deck", "player_drew":
+		if a.PlayerID != viewerID {
+			delete(data, "card")
+		}
+	case "offer_made":
+		if offeredTo, ok := a.Data["offeredTo"].(string); ok && viewerID != offeredTo {
+			delete(data, "card")
+		}
+	case "round_ended":
+		if a.PlayerID != viewerID {
+			delete(data, "allHands")
+		}
+	default:
+		if a.PlayerID != viewerID {
+			for _, key := range privateActionDataKeys {
+				delete(data, key)
+			}
+		}
+	}
+	return data
 }
 
 func BuildReplayResponse(game models.Game, playerID string) ReplayResponse {

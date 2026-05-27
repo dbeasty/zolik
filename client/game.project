@@ -1,8 +1,31 @@
-description = "Žolíky (Continental Rummy) - Defold client scaffold"
-title = "Žolíky"
-version = "1.0.0"
+[project]
+title = Žolíky
+version = 1.0.0
+dependencies#0 = https://github.com/defold/extension-websocket/archive/master.zip
 
-# Dependency placeholder:
-# In Defold Editor, add extension-websocket:
-# https://github.com/defold/extension-websocket/archive/master.zip
+[bootstrap]
+main_collection = /main/main.collection
 
+[input]
+game_binding = /input/game.input_binding
+gamepads = /input/default.gamepadsc
+
+[display]
+width = 960
+height = 640
+high_dpi = 1
+
+[script]
+shared_state = 
+
+[android]
+input_method = HiddenInputField
+
+[ios]
+bundle_name = Zoliky
+
+[osx]
+bundle_name = Zoliky
+
+[html5]
+scale_mode = stretch

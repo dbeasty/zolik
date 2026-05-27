@@ -35,10 +35,14 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 	}
 	// 2) Meld phase: try to lay any valid meld if we haven't met round requirement.
 	if visible.Phase == string(rules.PhaseMeld) {
-		if !visible.RoundReqMet[visible.CurrentTurn] {
-			if meld, ok := findAnyValidMeld(hand); ok {
+		actor := visible.CurrentTurn
+		if !visible.RoundReqMet[actor] {
+			st := rulesStateForAI(visible, actor)
+			if meld, ok := findContributingMeld(st, actor, hand); ok {
 				return rules.Action{Type: rules.ActionLayMeld, Cards: meld}
 			}
+		} else if meld, ok := findAnyValidMeld(hand); ok && len(hand) > len(meld) {
+			return rules.Action{Type: rules.ActionLayMeld, Cards: meld}
 		}
 		// Otherwise discard.
 		return rules.Action{Type: rules.ActionDiscard, Card: pickWorstDiscard(hand)}
@@ -72,6 +76,59 @@ func (a *HeuristicAgent) chooseOfferAction(visible VisibleState, hand []string) 
 		}
 	}
 	return rules.Action{Type: rules.ActionDeclineOffer}
+}
+
+func rulesStateForAI(visible VisibleState, playerID string) rules.GameState {
+	return rules.GameState{
+		Round:       visible.Round,
+		RoundReqMet: visible.RoundReqMet,
+		Melds:       visible.Melds,
+		MeldMeta:    visible.MeldMeta,
+	}
+}
+
+func findContributingMeld(state rules.GameState, playerID string, hand []string) ([]string, bool) {
+	n := len(hand)
+	if n < 3 {
+		return nil, false
+	}
+	try := func(cand []string) ([]string, bool) {
+		mv, err := rules.ValidateMeld(cand)
+		if err != nil {
+			return nil, false
+		}
+		if !rules.MeldContributesTowardRequirement(state, playerID, mv.Type, len(cand)) {
+			return nil, false
+		}
+		if state.Round < 7 && len(hand) == len(cand) {
+			return nil, false
+		}
+		return cand, true
+	}
+	for i := 0; i < n; i++ {
+		for j := i + 1; j < n; j++ {
+			for k := j + 1; k < n; k++ {
+				if cand, ok := try([]string{hand[i], hand[j], hand[k]}); ok {
+					return cand, true
+				}
+			}
+		}
+	}
+	if n < 4 {
+		return nil, false
+	}
+	for i := 0; i < n; i++ {
+		for j := i + 1; j < n; j++ {
+			for k := j + 1; k < n; k++ {
+				for l := k + 1; l < n; l++ {
+					if cand, ok := try([]string{hand[i], hand[j], hand[k], hand[l]}); ok {
+						return cand, true
+					}
+				}
+			}
+		}
+	}
+	return nil, false
 }
 
 func findAnyValidMeld(hand []string) ([]string, bool) {

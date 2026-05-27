@@ -56,7 +56,7 @@ func (s *WebSocketServer) handleWS(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// Register connection.
-	prev := s.manager.registry.Add(gameID, playerID, conn)
+	prev := s.manager.hub.Registry().Add(gameID, playerID, conn)
 	if prev != nil {
 		_ = prev.Close()
 	}
@@ -71,12 +71,12 @@ func (s *WebSocketServer) handleWS(w http.ResponseWriter, req *http.Request) {
 	}
 	game, err := s.manager.repo.FindByID(ctx, oid)
 	if err == nil {
-		_ = conn.WriteJSON(BuildGameStateMsg(game, playerID))
+		s.manager.hub.WriteDirect(gameID, playerID, BuildGameStateMsg(game, playerID))
 	}
 
 	// Read loop.
 	defer func() {
-		s.manager.registry.Remove(gameID, playerID)
+		s.manager.hub.Registry().Remove(gameID, playerID)
 		_ = func() error {
 			s.manager.SuspendOnDisconnect(context.Background(), gameID, playerID, "disconnected")
 			return nil

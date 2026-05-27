@@ -19,12 +19,12 @@ import (
 
 type GameRestHandlers struct {
 	repo     *Repository
-	registry *ConnRegistry
+	hub      *Hub
 	manager  *Manager
 }
 
-func NewGameRestHandlers(repo *Repository, registry *ConnRegistry, manager *Manager) *GameRestHandlers {
-	return &GameRestHandlers{repo: repo, registry: registry, manager: manager}
+func NewGameRestHandlers(repo *Repository, hub *Hub, manager *Manager) *GameRestHandlers {
+	return &GameRestHandlers{repo: repo, hub: hub, manager: manager}
 }
 
 type CreateGameReq struct {
@@ -337,11 +337,9 @@ func (h *GameRestHandlers) startGame(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Broadcast initial state to any connected players.
-	for pid, conn := range h.registry.ForGame(gameIDHex) {
-		msg := BuildGameStateMsg(nextGame, pid)
-		_ = conn.WriteJSON(msg)
-	}
+	h.hub.BroadcastGameState(gameIDHex, BroadcastRecipients(nextGame), func(pid string) interface{} {
+		return BuildGameStateMsg(nextGame, pid)
+	})
 
 	// Trigger AI immediately if the first actor is an AI.
 	if h.manager != nil {

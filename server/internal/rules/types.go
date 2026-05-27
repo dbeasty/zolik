@@ -100,6 +100,9 @@ type GameState struct {
 	RoundScores map[string][]int
 	TotalScores map[string]int
 
+	WinnerID string
+	IsDraw   bool
+
 	NextMeldSeq int
 }
 
@@ -112,6 +115,7 @@ const (
 	ErrInvalidMeld       RulesErrorCode = "INVALID_MELD"
 	ErrRoundReqNotMet    RulesErrorCode = "ROUND_REQ_NOT_MET"
 	ErrMeldBelowMinimum  RulesErrorCode = "MELD_BELOW_MINIMUM"
+	ErrMeldNoContribution RulesErrorCode = "MELD_NO_CONTRIBUTION"
 	ErrTooManyWilds      RulesErrorCode = "TOO_MANY_WILDS"
 	ErrAdjacentWilds     RulesErrorCode = "ADJACENT_WILDS"
 	ErrAceBridge         RulesErrorCode = "ACE_BRIDGE"

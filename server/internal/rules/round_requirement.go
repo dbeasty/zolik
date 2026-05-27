@@ -71,12 +71,148 @@ func PlayerInitialMeldNaturalValue(state GameState, playerID string) int {
 	return total
 }
 
-// HandPenaltyTotal scores all cards remaining in a player's hand at round end.
-// Aces in hand count as wild (25) unless the caller supplies ace-as-natural hints later.
+// MeldContributesTowardRequirement reports whether a new qualifying meld moves the
+// player toward the current round's pattern before roundReqMet is set.
+func MeldContributesTowardRequirement(state GameState, playerID string, meldType MeldType, cardCount int) bool {
+	if state.RoundReqMet[playerID] {
+		return true
+	}
+	req := RoundRequirementFor(state.Round)
+	setsBefore, runsBefore := PlayerMeldCounts(state, playerID)
+
+	addsSet := meldType == MeldSet && cardCount >= 3
+	addsRun := meldType == MeldRun && cardCount >= 4
+	if !addsSet && !addsRun {
+		return false
+	}
+	if addsSet && setsBefore < req.Sets {
+		return true
+	}
+	if addsRun && runsBefore < req.Runs {
+		return true
+	}
+	return false
+}
+
+// AllTableMelds returns every meld currently on the table (all players).
+func AllTableMelds(state GameState) [][]string {
+	var out [][]string
+	for _, melds := range state.Melds {
+		for _, m := range melds {
+			out = append(out, append([]string(nil), m...))
+		}
+	}
+	return out
+}
+
+// HandPenaltyTotal scores leftover cards at round end.
+// Aces count as 1 when they sit in a natural run fragment in hand or can extend a table run.
 func HandPenaltyTotal(hand []string) int {
+	return HandPenaltyTotalWithMelds(hand, nil)
+}
+
+func HandPenaltyTotalWithMelds(hand []string, tableMelds [][]string) int {
 	sum := 0
 	for _, c := range hand {
-		sum += PenaltyPoints(c, false)
+		sum += handCardPenalty(c, hand, tableMelds)
 	}
 	return sum
+}
+
+func handCardPenalty(card string, hand []string, tableMelds [][]string) int {
+	if IsAce(card) {
+		if aceCountsAsNaturalInHand(card, hand) {
+			return 1
+		}
+		for _, meld := range tableMelds {
+			if aceExtendsRunAsNatural(card, meld) {
+				return 1
+			}
+		}
+		return 25
+	}
+	return PenaltyPoints(card, false)
+}
+
+func aceCountsAsNaturalInHand(ace string, hand []string) bool {
+	suit := CardSuit(ace)
+	has2, hasQ, hasK := false, false, false
+	for _, c := range hand {
+		if c == ace || IsJoker(c) {
+			continue
+		}
+		if IsAce(c) {
+			continue
+		}
+		if CardSuit(c) != suit {
+			continue
+		}
+		switch CardRank(c) {
+		case 0:
+			has2 = true
+		case 10:
+			hasQ = true
+		case 11:
+			hasK = true
+		}
+	}
+	if has2 {
+		return true
+	}
+	return hasQ && hasK
+}
+
+func minMaxRunRank(cards []string) (min, max int) {
+	min, max = 99, 0
+	for _, c := range cards {
+		if IsJoker(c) || IsAce(c) {
+			continue
+		}
+		r := cardToRunRank(c)
+		if r < 2 {
+			continue
+		}
+		if r < min {
+			min = r
+		}
+		if r > max {
+			max = r
+		}
+	}
+	return min, max
+}
+
+func aceExtendsRunAsNatural(ace string, meld []string) bool {
+	if len(meld) < 4 || !IsAce(ace) {
+		return false
+	}
+	if _, err := ValidateMeld(meld); err != nil {
+		return false
+	}
+	suit := CardSuit(ace)
+	minR, maxR := minMaxRunRank(meld)
+
+	try := func(extended []string, atEnd bool) bool {
+		if len(extended) != len(meld)+1 {
+			return false
+		}
+		mv, err := ValidateMeld(extended)
+		if err != nil || mv.Type != MeldRun {
+			return false
+		}
+		if mv.ResolvedSuit != "" && mv.ResolvedSuit != suit {
+			return false
+		}
+		if atEnd {
+			return maxR == 13 && extended[len(extended)-1] == ace
+		}
+		return minR == 2 && extended[0] == ace
+	}
+
+	appended := append(append([]string(nil), meld...), ace)
+	if try(appended, true) {
+		return true
+	}
+	prepended := append([]string{ace}, meld...)
+	return try(prepended, false)
 }
