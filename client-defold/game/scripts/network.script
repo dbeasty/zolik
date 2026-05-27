@@ -1,6 +1,10 @@
-local websocket = require("websocket")
+-- extension-websocket: use global `websocket` (see ws_client.lua).
 
 local M = {}
+
+local function ws()
+	return rawget(_G, "websocket")
+end
 
 local ws_connection = nil
 local reconnect_timer = nil
@@ -10,6 +14,10 @@ M.server_url = nil
 M.token = nil
 
 local function schedule_reconnect()
+	local websocket = ws()
+	if not websocket then
+		return
+	end
 	if reconnect_timer then
 		timer.cancel(reconnect_timer)
 		reconnect_timer = nil
@@ -34,7 +42,8 @@ local function schedule_reconnect()
 end
 
 local function connect()
-	if not M.server_url or not M.token then
+	local websocket = ws()
+	if not websocket or not M.server_url or not M.token then
 		return
 	end
 	local ws_url = M.server_url .. "?token=" .. M.token
@@ -53,7 +62,8 @@ local function connect()
 end
 
 local function send(payload)
-	if ws_connection then
+	local websocket = ws()
+	if ws_connection and websocket then
 		websocket.send(ws_connection, json.encode(payload))
 	end
 end

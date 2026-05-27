@@ -1,4 +1,5 @@
 script: "/gui/app.gui_script"
+adjust_reference: ADJUST_REFERENCE_DISABLED
 fonts {
   name: "system_font"
   font: "/builtins/fonts/default.font"
@@ -6,12 +7,12 @@ fonts {
 material: "/builtins/materials/gui.material"
 nodes {
   position {
-    x: 480.0
-    y: 320.0
+    x: 450.0
+    y: 400.0
   }
   size {
-    x: 960.0
-    y: 640.0
+    x: 900.0
+    y: 800.0
   }
   type: TYPE_BOX
   id: "root"

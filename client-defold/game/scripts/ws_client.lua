@@ -1,20 +1,22 @@
--- WebSocket wrapper (requires extension-websocket dependency).
+-- WebSocket wrapper (requires extension-websocket dependency in game.project).
+-- Native extensions expose a global `websocket` table; do not require("websocket") — bob looks for websocket.lua.
 
 local M = {}
 
-local websocket = nil
-pcall(function()
-	websocket = require("websocket")
-end)
+local function ws()
+	return rawget(_G, "websocket")
+end
 
 local conn = nil
 local on_message_cb = nil
 
 function M.available()
-	return websocket ~= nil
+	local api = ws()
+	return api ~= nil and api.connect ~= nil
 end
 
 function M.connect(url, on_message, on_connected, on_disconnected)
+	local websocket = ws()
 	if not websocket then
 		return false, "extension-websocket not installed"
 	end
@@ -37,12 +39,14 @@ function M.connect(url, on_message, on_connected, on_disconnected)
 end
 
 function M.send(payload)
+	local websocket = ws()
 	if conn and websocket then
 		websocket.send(conn, json.encode(payload))
 	end
 end
 
 function M.disconnect()
+	local websocket = ws()
 	if conn and websocket then
 		websocket.disconnect(conn)
 		conn = nil

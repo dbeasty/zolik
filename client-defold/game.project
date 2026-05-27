@@ -10,9 +10,10 @@ main_collection = /main/main.collectionc
 game_binding = /input/game.input_bindingc
 
 [display]
-width = 960
-height = 640
-high_dpi = 1
+width = 900
+height = 800
+high_dpi = 0
+clear_color = 0.12, 0.12, 0.14, 1
 
 [script]
 shared_state = 
@@ -28,3 +29,6 @@ bundle_name = Zoliky
 
 [html5]
 scale_mode = stretch
+
+[zolik]
+debug_gui = 1

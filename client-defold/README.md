@@ -12,6 +12,8 @@ Paths inside the game (bootstrap `/main/main.collection`, `/gui/app.gui`, etc.) 
 
 **Edit UI in Defold:** open **`gui/app.gui`**, not the collection scene view. **Fetch Libraries** may return quickly when the zip is already cached — see [BUILD.md](BUILD.md#fetch-libraries-finishes-instantly).
 
+**Cards:** there are no SVG or PNG card assets in this repo yet. The lobby and table are drawn with GUI boxes and text; in a round, each hand card is a light tile with the server’s card id as text. Illustrated faces would be a **GUI atlas** (PNG slices), not raw SVG — Defold does not import SVG as game textures.
+
 ## Prerequisites
 
 - **Docker Desktop** (or Docker + Compose v2) — runs the game server locally (no Go/Mongo on the host).
@@ -36,6 +38,7 @@ In **game.project** add custom properties (optional):
 | Property | Default | Purpose |
 |----------|---------|---------|
 | `zolik.base_url` | `http://127.0.0.1:8090` | REST + WebSocket host |
+| `zolik.debug_gui` | `1` | `1` = log `[zolik_gui]` lines to the Defold console / browser devtools; `0` = off |
 
 For a second server instance (scale test), point HTML5/desktop builds at `http://127.0.0.1:8092` while Redis syncs game broadcasts.
 

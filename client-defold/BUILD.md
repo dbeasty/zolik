@@ -97,6 +97,26 @@ Defold’s full message is usually: *“contains unrecognizable data. Could the 
 
 If it still fails: **Help → Show Logs** and search for `Unable to read resource` or `ParseException` on `/gui/app.gui`.
 
+### `the Lua module '/websocket.lua' can't be found` (macOS / desktop Build)
+
+You do **not** need to run an HTML5 **Bundle** first. Desktop **Build** and HTML5 **Bundle** are separate targets.
+
+This error usually means Lua used `require("websocket")`. **extension-websocket** is a native extension — it registers a global `websocket` table, not a `websocket.lua` file. Bob’s compiler then fails even if **Fetch Libraries** succeeded.
+
+1. **Project → Fetch Libraries** (dependency must appear under **Assets**).
+2. Use the global API (as in the [extension docs](https://defold.com/extension-websocket/)), not `require("websocket")`. This repo’s `game/scripts/ws_client.lua` follows that pattern.
+3. **Project → Build** again for macOS.
+
+### GUI looks black, clipped, or wrong size (desktop / Retina / Vulkan)
+
+The GUI **canvas** (`game.project` `[display]` + **`gui/app.gui`** `root`) is **900×800** so the default window is card-sized instead of spanning a multi-monitor logical width. Layout uses reference **960×640**: **`px(n) = n × min(900/960, 800/640)`**. **`FONT_BOOST`** is **`1.0`**. **`apply_gui_root_scale()`** compares **`window.get_size()`** to the design after dividing by **`window.get_display_scale()`** (backing-store vs logical pixels on Retina), only shrinks the root when **`s < 1`** (never scales up inside the scene — that clips).
+
+1. **`gui/app.gui`** — **`adjust_reference: ADJUST_REFERENCE_DISABLED`**, root **900×800** centered at **(450, 400)**. Do **not** use **`ADJUST_REFERENCE_PARENT`** with **`ADJUST_FIT`** on the root — on Retina, the parent size is ~2× the scene and the lobby clips / looks like the old tiny UI.
+2. **`gui/app.gui_script`** — **`gui.set_adjust_mode(ui.root, gui.ADJUST_NONE)`** in **`init`**; **`window.set_size(900, 800)`** via **`pcall`** on startup (desktop). There is **no** **`window.set_listener(WINDOW_EVENT_RESIZED)`** — on macOS it can spam resize events while dragging and fight the engine.
+3. **`[display] high_dpi`**: default **`0`**; try **`1`** after the layout looks correct.
+4. Logs: **`[zolik_gui] apply_gui_root_scale`** includes **`scene`** from **`gui.get_width()` / `gui.get_height()`** (expect **900×800**). **`render.*`** may stay **`nil`** in GUI scripts; use **`window.get_size`** (and **`display_scale`** when interpreting width).
+5. To silence logs: **`[zolik] debug_gui = 0`** in `game.project`.
+
 - **Edit screens:** double‑click **`gui/app.gui`** after the project is loaded correctly.
 - **Run the game:** **Project → Build** — you do not need to open collections in the scene view.
 
