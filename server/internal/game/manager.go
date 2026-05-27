@@ -1,0 +1,343 @@
+package game
+
+import (
+	"context"
+	"fmt"
+	"math/rand"
+	"sync"
+	"time"
+
+	"go.mongodb.org/mongo-driver/v2/bson"
+
+	"zolik/server/internal/ai"
+	"zolik/server/internal/models"
+	"zolik/server/internal/rules"
+)
+
+type Manager struct {
+	repo     *Repository
+	registry *ConnRegistry
+
+	aiMu      sync.Mutex
+	aiRunning map[string]bool
+}
+
+func NewManager(repo *Repository, registry *ConnRegistry) *Manager {
+	return &Manager{
+		repo:       repo,
+		registry:   registry,
+		aiRunning: map[string]bool{},
+	}
+}
+
+func (m *Manager) HandleAction(ctx context.Context, gameID, playerID string, in WSIncoming) error {
+	oid, err := bson.ObjectIDFromHex(gameID)
+	if err != nil {
+		return fmt.Errorf("invalid game id: %w", err)
+	}
+
+	rAction, err := toRulesAction(in)
+	if err != nil {
+		return err
+	}
+
+	game, err := m.repo.FindByID(ctx, oid)
+	if err != nil {
+		return err
+	}
+
+	// Convert models.Game -> rules.GameState (and keep non-rules fields intact in models.Game).
+	rState := toRulesState(game)
+
+	nextRulesState, err := rules.ApplyAction(rState, playerID, rAction)
+	if err != nil {
+		return err
+	}
+
+	// Apply mutated rules fields back to models.Game.
+	nextGame := game
+	fromRulesState(&nextGame, nextRulesState)
+
+	// Append action log (v1: minimal data; later phases can redact/private-share via replay projection).
+	nextGame.ActionLog = append(nextGame.ActionLog, models.Action{
+		Seq:       nextActionSeq(game.ActionLog),
+		Timestamp: time.Now().UTC(),
+		Type:      string(rAction.Type),
+		PlayerID:  playerID,
+		Data:      map[string]interface{}{},
+	})
+
+	// Persist with optimistic concurrency.
+	expectedVersion := game.Version
+	if err := m.repo.UpdateWithVersion(ctx, oid, expectedVersion, nextGame); err != nil {
+		return err
+	}
+
+	// Broadcast updated personalised state.
+	for pid, conn := range m.registry.ForGame(gameID) {
+		msg := BuildGameStateMsg(nextGame, pid)
+		_ = conn.WriteJSON(msg)
+	}
+
+	// If the next actor is an AI, run it.
+	m.RunAIIfNeeded(ctx, gameID)
+	return nil
+}
+
+// SuspendOnDisconnect suspends the game if the disconnected player is currently the active turn.
+// This matches the spec's "game immediately suspended" behaviour (simplified for v1).
+func (m *Manager) SuspendOnDisconnect(ctx context.Context, gameID, playerID string, reason string) {
+	oid, err := bson.ObjectIDFromHex(gameID)
+	if err != nil {
+		return
+	}
+
+	game, err := m.repo.FindByID(ctx, oid)
+	if err != nil {
+		return
+	}
+	if game.Status != "active" {
+		return
+	}
+	if game.CurrentTurn != playerID {
+		return
+	}
+
+	now := time.Now().UTC()
+	abandon := now.Add(24 * time.Hour)
+
+	game.Status = "suspended"
+	game.Phase = string(rules.PhaseSuspended)
+	game.SuspendedAt = &now
+	game.AbandonAt = &abandon
+
+	game.ActionLog = append(game.ActionLog, models.Action{
+		Seq:       nextActionSeq(game.ActionLog),
+		Timestamp: now,
+		Type:      "suspend",
+		PlayerID:  playerID,
+		Data:      map[string]interface{}{"reason": reason},
+	})
+
+	_ = m.repo.UpdateWithVersion(ctx, oid, game.Version, game)
+}
+
+func nextActionSeq(existing []models.Action) int {
+	seq := 0
+	for _, a := range existing {
+		if a.Seq > seq {
+			seq = a.Seq
+		}
+	}
+	return seq + 1
+}
+
+func toRulesAction(in WSIncoming) (rules.Action, error) {
+	switch in.Type {
+	case "draw_card":
+		return rules.Action{Type: rules.ActionDrawCard, DrawFrom: rules.DrawFrom(in.From)}, nil
+	case "accept_offer":
+		return rules.Action{Type: rules.ActionAcceptOffer}, nil
+	case "decline_offer":
+		return rules.Action{Type: rules.ActionDeclineOffer}, nil
+	case "lay_meld":
+		return rules.Action{Type: rules.ActionLayMeld, Cards: in.Cards}, nil
+	case "lay_off":
+		return rules.Action{Type: rules.ActionLayOff, MeldID: in.MeldID, Card: in.Card}, nil
+	case "discard":
+		return rules.Action{Type: rules.ActionDiscard, Card: in.Card}, nil
+	default:
+		return rules.Action{}, fmt.Errorf("unknown action type: %s", in.Type)
+	}
+}
+
+func toRulesState(g models.Game) rules.GameState {
+	// MeldMeta needs type conversion.
+	rMeldMeta := map[string][]rules.MeldInfo{}
+	for owner, infos := range g.MeldMeta {
+		for _, mi := range infos {
+			rMeldMeta[owner] = append(rMeldMeta[owner], rules.MeldInfo{
+				MeldID:  mi.MeldID,
+				Type:    rules.MeldType(mi.Type),
+				OwnerID: mi.OwnerID,
+			})
+		}
+	}
+
+	var offer *rules.DiscardOffer
+	if g.Offer != nil {
+		offer = &rules.DiscardOffer{Card: g.Offer.Card, OfferedTo: g.Offer.OfferedTo}
+	}
+
+	return rules.GameState{
+		Status:             rules.GameStatus(g.Status),
+		Round:              g.Round,
+		Phase:              rules.Phase(g.Phase),
+		Created:            g.CreatedAt,
+		CurrentTurn:        g.CurrentTurn,
+		TurnOrder:          g.TurnOrder,
+		DrawPile:           g.DrawPile,
+		DiscardPile:        g.DiscardPile,
+		ReshuffleCount:     g.ReshuffleCount,
+		DeckSeed:           g.DeckSeed,
+		Hands:              g.Hands,
+		Melds:              g.Melds,
+		MeldMeta:           rMeldMeta,
+		RoundReqMet:        g.RoundReqMet,
+		InitialMeldMinimum: g.InitialMeldMinimum,
+		Offer:              offer,
+		RoundScores:        g.RoundScores,
+		TotalScores:        g.TotalScores,
+		NextMeldSeq:        g.NextMeldSeq,
+	}
+}
+
+func fromRulesState(g *models.Game, rs rules.GameState) {
+	g.Status = string(rs.Status)
+	g.Round = rs.Round
+	g.Phase = string(rs.Phase)
+	g.CurrentTurn = rs.CurrentTurn
+	g.TurnOrder = rs.TurnOrder
+	g.DrawPile = rs.DrawPile
+	g.DiscardPile = rs.DiscardPile
+	g.ReshuffleCount = rs.ReshuffleCount
+	g.DeckSeed = rs.DeckSeed
+	g.Hands = rs.Hands
+	g.Melds = rs.Melds
+	g.RoundReqMet = rs.RoundReqMet
+	g.InitialMeldMinimum = rs.InitialMeldMinimum
+	g.RoundScores = rs.RoundScores
+	g.TotalScores = rs.TotalScores
+
+	// Offer
+	if rs.Offer != nil {
+		g.Offer = &models.DiscardOffer{Card: rs.Offer.Card, OfferedTo: rs.Offer.OfferedTo}
+	} else {
+		g.Offer = nil
+	}
+
+	// MeldMeta
+	g.MeldMeta = map[string][]models.MeldInfo{}
+	for owner, metas := range rs.MeldMeta {
+		for _, mi := range metas {
+			g.MeldMeta[owner] = append(g.MeldMeta[owner], models.MeldInfo{
+				MeldID:  mi.MeldID,
+				Type:    string(mi.Type),
+				OwnerID: mi.OwnerID,
+			})
+		}
+	}
+
+	g.NextMeldSeq = rs.NextMeldSeq
+}
+
+// RunAIIfNeeded starts an AI loop for the given game if an AI player is expected to act.
+// It will only start one loop per game at a time.
+func (m *Manager) RunAIIfNeeded(ctx context.Context, gameID string) {
+	m.aiMu.Lock()
+	if m.aiRunning[gameID] {
+		m.aiMu.Unlock()
+		return
+	}
+	m.aiRunning[gameID] = true
+	m.aiMu.Unlock()
+
+	go m.aiLoop(ctx, gameID)
+}
+
+func (m *Manager) aiLoop(ctx context.Context, gameID string) {
+	defer func() {
+		m.aiMu.Lock()
+		delete(m.aiRunning, gameID)
+		m.aiMu.Unlock()
+	}()
+
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	steps := 0
+	for steps < 10 {
+		steps++
+
+		oid, err := bson.ObjectIDFromHex(gameID)
+		if err != nil {
+			return
+		}
+		game, err := m.repo.FindByID(ctx, oid)
+		if err != nil {
+			return
+		}
+		if game.Status != "active" {
+			return
+		}
+
+		actorID := game.CurrentTurn
+		if game.Phase == string(rules.PhaseOffer) && game.Offer != nil {
+			actorID = game.Offer.OfferedTo
+		}
+		if actorID == "" {
+			return
+		}
+
+		aiPlayer := findAIPlayer(game.Players, actorID)
+		if aiPlayer == nil {
+			return
+		}
+
+		delayMs := 500 + rnd.Intn(1500)
+		time.Sleep(time.Duration(delayMs) * time.Millisecond)
+
+		visible := aiVisibleFromGame(game)
+		agent := ai.NewHeuristicAgent(aiPlayer.AIDifficulty)
+		chosen := agent.ChooseAction(visible, game.Hands[actorID])
+
+		// Translate chosen rules action to WSIncoming and apply it through the usual path.
+		in := rulesActionToWSIncoming(chosen)
+		_ = m.HandleAction(ctx, gameID, actorID, in)
+	}
+}
+
+func findAIPlayer(players []models.Player, id string) *models.Player {
+	for i := range players {
+		if players[i].ID == id && players[i].IsAI {
+			return &players[i]
+		}
+	}
+	return nil
+}
+
+func aiVisibleFromGame(game models.Game) ai.VisibleState {
+	var offer *rules.DiscardOffer
+	if game.Offer != nil {
+		offer = &rules.DiscardOffer{Card: game.Offer.Card, OfferedTo: game.Offer.OfferedTo}
+	}
+	return ai.VisibleState{
+		Round:       game.Round,
+		Phase:       game.Phase,
+		CurrentTurn: game.CurrentTurn,
+		DiscardPile: game.DiscardPile,
+		Melds:       game.Melds,
+		RoundReqMet: game.RoundReqMet,
+		TotalScores: game.TotalScores,
+		Offer:       offer,
+	}
+}
+
+func rulesActionToWSIncoming(a rules.Action) WSIncoming {
+	switch a.Type {
+	case rules.ActionDrawCard:
+		return WSIncoming{Type: "draw_card", From: string(a.DrawFrom)}
+	case rules.ActionAcceptOffer:
+		return WSIncoming{Type: "accept_offer"}
+	case rules.ActionDeclineOffer:
+		return WSIncoming{Type: "decline_offer"}
+	case rules.ActionLayMeld:
+		return WSIncoming{Type: "lay_meld", Cards: a.Cards}
+	case rules.ActionLayOff:
+		return WSIncoming{Type: "lay_off", MeldID: a.MeldID, Card: a.Card}
+	case rules.ActionDiscard:
+		return WSIncoming{Type: "discard", Card: a.Card}
+	default:
+		return WSIncoming{Type: string(a.Type)}
+	}
+}
+

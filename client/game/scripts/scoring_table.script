@@ -1,0 +1,44 @@
+local M = {}
+
+local BASE_URL = nil
+local access_token = nil
+local session_id = nil
+
+function init(self)
+	BASE_URL = sys.get_config("app.base_url") or "http://localhost:8080"
+	access_token = sys.get_config("app.access_token") or sys.get_save("access_token")
+end
+
+local function auth_headers()
+	if access_token then
+		return { ["Authorization"] = "Bearer " .. access_token, ["Content-Type"] = "application/json" }
+	end
+	return { ["Content-Type"] = "application/json" }
+end
+
+function M.createSession(players)
+	http.request(BASE_URL .. "/scoring-sessions", "POST", function(self2, id, response)
+		local data = json.decode(response.response)
+		session_id = data.sessionId
+		msg.post("/ui#scores", "render_scorecard", data)
+	end, auth_headers(), json.encode({ players = players }))
+end
+
+function M.updateRound(round, scores)
+	if not session_id then return end
+	http.request(BASE_URL .. "/scoring-sessions/" .. session_id, "PATCH", function(self2, id, response)
+		local data = json.decode(response.response)
+		msg.post("/ui#scores", "render_scorecard", data)
+	end, auth_headers(), json.encode({ round = round, scoresArr = scores }))
+end
+
+function M.getSession()
+	if not session_id then return end
+	http.request(BASE_URL .. "/scoring-sessions/" .. session_id, "GET", function(self2, id, response)
+		local data = json.decode(response.response)
+		msg.post("/ui#scores", "render_scorecard", data)
+	end, auth_headers())
+end
+
+return M
+

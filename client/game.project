@@ -1,0 +1,8 @@
+description = "Žolíky (Continental Rummy) - Defold client scaffold"
+title = "Žolíky"
+version = "1.0.0"
+
+# Dependency placeholder:
+# In Defold Editor, add extension-websocket:
+# https://github.com/defold/extension-websocket/archive/master.zip
+

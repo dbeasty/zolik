@@ -1,0 +1,60 @@
+local M = {}
+
+local BASE_URL = nil
+local access_token = nil
+
+local function auth_headers()
+	if not access_token then return {} end
+	return { ["Authorization"] = "Bearer " .. access_token, ["Content-Type"] = "application/json" }
+end
+
+local function json_body(t)
+	return json.encode(t or {})
+end
+
+local function http_json(url, method, body, cb)
+	local headers = { ["Content-Type"] = "application/json" }
+	local hdr2 = auth_headers()
+	for k,v in pairs(hdr2) do headers[k] = v end
+	http.request(url, method, cb, headers, json_body(body))
+end
+
+function init(self)
+	BASE_URL = sys.get_config("app.base_url") or "http://localhost:8080"
+	access_token = sys.get_config("app.access_token") or sys.get_save("access_token")
+end
+
+function M.loginAsGuest(guestName)
+	http.request(BASE_URL .. "/auth/guest", "POST", function(self2, id, response)
+		local data = json.decode(response.response)
+		access_token = data.accessToken
+		sys.save("access_token", access_token)
+		msg.post("login#status", "set_text", { text = "Logged in as guest" })
+	end, { ["Content-Type"] = "application/json" }, json_body({ guestName = guestName }))
+end
+
+function M.createGame(initialMeldMinimum)
+	http_json(BASE_URL .. "/games", "POST", { initialMeldMinimum = initialMeldMinimum }, function(self2, id, response)
+		local data = json.decode(response.response)
+		msg.post("/game#network", "connect_to_game", { gameId = data.gameId, joinCode = data.joinCode })
+	end)
+end
+
+function M.joinGame(gameIdOrJoinCode)
+	http_json(BASE_URL .. "/games/" .. gameIdOrJoinCode .. "/join", "POST", {}, function()
+	end)
+end
+
+function M.startGame(gameId)
+	http_json(BASE_URL .. "/games/" .. gameId .. "/start", "POST", {}, function()
+		-- Start WebSocket connection once server state is live.
+	end)
+end
+
+function M.addAI(gameId, difficulty)
+	http_json(BASE_URL .. "/games/" .. gameId .. "/add-ai", "POST", { difficulty = difficulty }, function()
+	end)
+end
+
+return M
+
