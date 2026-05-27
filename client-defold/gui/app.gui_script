@@ -1,6 +1,6 @@
 -- Playable lobby + in-game UI for Žolíky.
 
-local vmath = require("vmath")
+-- vmath is a Defold built-in (no require needed in GUI scripts)
 local api = require("game.scripts.api")
 local ws = require("game.scripts.ws_client")
 

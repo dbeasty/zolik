@@ -1,6 +1,8 @@
 # Žolíky Defold build notes (v1)
 
-Repo path: **`client-defold/`** (formerly `client/`). Headless builds use that directory, e.g. `bob.jar build client-defold --platform wasm-web --output client-defold/build`. Defold paths in `game.project` (e.g. `/main/main.collection`) are unchanged.
+Repo path: **`client-defold/`** (formerly `client/`). Headless builds use that directory, e.g. `bob.jar build client-defold --platform wasm-web --output client-defold/build`.
+
+**Important:** In `game.project`, resource paths must end with **`c`** (compiled-resource convention). Bob strips the last character when resolving, so `/main/main.collection` becomes `/main/main.collectio` and fails. Use e.g. `main_collection = /main/main.collectionc` and `game_binding = /input/game.input_bindingc`.
 
 ## Prerequisites
 
@@ -102,7 +104,7 @@ If it still fails: **Help → Show Logs** and search for `Unable to read resourc
 
 1. **Open the correct project root** — **File → Open Project** → `client-defold/` (contains `game.project` and `main/`). Not the repo root `zolik/`.
 2. **Confirm the asset exists** — **Assets** should list `main/main.collection`. If `main/` is missing, `git pull` the `client-defold/` tree (old top-level `client/` was renamed).
-3. **Check `game.project`** — `[bootstrap]` → `main_collection = /main/main.collection`.
+3. **Check `game.project`** — `[bootstrap]` → `main_collection = /main/main.collectionc` (note the trailing **`c`**).
 4. **Reload** — **Project → Reload Project**, or quit Defold and reopen `client-defold/`.
 
 ## Reconnect/orientation testing checklist
