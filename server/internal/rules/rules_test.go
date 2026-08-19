@@ -9,6 +9,24 @@ func TestValidateSet_WildRatio(t *testing.T) {
 	}
 }
 
+func TestValidateSet_DuplicateSuitRejected(t *testing.T) {
+	// Even with two physical decks in play, a single set may not reuse a suit.
+	_, err := validateSet([]string{"5D", "5C", "5C"})
+	if err == nil {
+		t.Fatalf("expected error for duplicate suit within a set")
+	}
+}
+
+func TestValidateSet_DistinctSuitsAllowed(t *testing.T) {
+	mv, err := validateSet([]string{"5D", "5C", "5H"})
+	if err != nil {
+		t.Fatalf("expected valid set, got %v", err)
+	}
+	if mv.Type != MeldSet {
+		t.Fatalf("expected set")
+	}
+}
+
 func TestValidateRun_AdjacentWildsRejected(t *testing.T) {
 	// Ranks 4 and 7 with two consecutive gap fillers (both wild) => invalid.
 	_, err := validateRun([]string{"4H", "7H", "JOKER1", "JOKER2"})

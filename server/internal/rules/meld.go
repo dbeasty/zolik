@@ -111,10 +111,19 @@ func validateSet(cards []string) (MeldValidation, error) {
 	}
 
 	targetRank := naturals[0][0]
+	seenSuits := map[string]bool{naturals[0][1:]: true}
 	for _, c := range naturals[1:] {
 		if len(c) < 1 || c[0] != targetRank {
 			return MeldValidation{}, RulesError{Code: ErrInvalidMeld}
 		}
+		suit := c[1:]
+		if seenSuits[suit] {
+			// A set may only use one card of each suit (per rank), even when
+			// two physical decks are in play — a repeated suit means the
+			// second copy belongs to a different set, not this one.
+			return MeldValidation{}, RulesError{Code: ErrInvalidMeld}
+		}
+		seenSuits[suit] = true
 	}
 
 	naturalValue := 0
