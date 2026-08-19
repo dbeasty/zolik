@@ -37,6 +37,45 @@ func TestHeuristicAgent_DrawActionAllowed(t *testing.T) {
 	}
 }
 
+// Regression test: when DiscardDrawMinRound locks the discard pile for the
+// current round, the agent must not pick draw-from-discard (the server
+// would reject it with DISCARD_LOCKED, and the old heuristic always
+// preferred discard whenever the pile was non-empty regardless of the lock).
+func TestHeuristicAgent_DrawAction_RespectsDiscardLock(t *testing.T) {
+	agent := NewHeuristicAgent("medium")
+	aiID := "ai1"
+
+	state := rules.GameState{
+		Status:              rules.StatusActive,
+		Phase:               rules.PhaseDraw,
+		Round:               2,
+		CurrentTurn:         aiID,
+		TurnOrder:           []string{aiID, "p2"},
+		Hands:               map[string][]string{aiID: {}, "p2": {}},
+		DrawPile:            []string{"2H"},
+		DiscardPile:         []string{"7H"},
+		RoundReqMet:         map[string]bool{aiID: false, "p2": false},
+		DiscardDrawMinRound: 3,
+	}
+
+	visible := VisibleState{
+		Round:               state.Round,
+		Phase:               string(state.Phase),
+		CurrentTurn:         state.CurrentTurn,
+		DiscardPile:         state.DiscardPile,
+		RoundReqMet:         state.RoundReqMet,
+		DiscardDrawMinRound: state.DiscardDrawMinRound,
+	}
+
+	action := agent.ChooseAction(visible, state.Hands[aiID])
+	if action.DrawFrom == rules.DrawFromDiscard {
+		t.Fatalf("expected agent to avoid the locked discard pile, got action: %+v", action)
+	}
+	if _, err := rules.ApplyAction(state, aiID, action); err != nil {
+		t.Fatalf("expected fallback draw action %+v to be valid, got err: %v", action, err)
+	}
+}
+
 func TestHeuristicAgent_MeldLayOff_MeldFoundAndValid(t *testing.T) {
 	agent := NewHeuristicAgent("medium")
 	aiID := "ai1"

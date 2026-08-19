@@ -135,22 +135,24 @@ export default function GameScreen() {
     );
   } else if (isMyTurn) {
     if (phase === 'draw') {
-      actions.push(
-        {
-          label: 'Draw deck',
-          onPress: () => {
-            send({ type: 'draw_card', from: 'deck' });
-            clearSelect();
-          },
+      actions.push({
+        label: 'Draw deck',
+        onPress: () => {
+          send({ type: 'draw_card', from: 'deck' });
+          clearSelect();
         },
-        {
+      });
+      const discardLocked =
+        state.discardDrawMinRound > 1 && state.round < state.discardDrawMinRound;
+      if (!discardLocked) {
+        actions.push({
           label: 'Take discard',
           onPress: () => {
             send({ type: 'draw_card', from: 'discard' });
             clearSelect();
           },
-        },
-      );
+        });
+      }
     }
     if (phase === 'meld') {
       const cards = selectedCards(hand, selected);
@@ -211,7 +213,12 @@ export default function GameScreen() {
 
         <MeldTable state={state} myUserId={userId} />
 
-        <Text style={[shared.status, { marginTop: 8 }]}>Discard pile</Text>
+        <Text style={[shared.status, { marginTop: 8 }]}>
+          Discard pile
+          {state.discardDrawMinRound > 1 && state.round < state.discardDrawMinRound
+            ? ` (pickup locked until round ${state.discardDrawMinRound})`
+            : ''}
+        </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           {topDiscard ? <CardView card={topDiscard} /> : <Text style={shared.status}>Empty</Text>}
         </View>

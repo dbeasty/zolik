@@ -115,3 +115,60 @@ func TestEndRound_ScoringAndAdvance(t *testing.T) {
 	}
 }
 
+func TestValidateDraw_DiscardLockedBeforeMinRound(t *testing.T) {
+	st := GameState{
+		Status:              StatusActive,
+		Phase:               PhaseDraw,
+		Round:               2,
+		DrawPile:            []string{"2H"},
+		DiscardPile:         []string{"7H"},
+		Hands:               map[string][]string{"p1": {}},
+		CurrentTurn:         "p1",
+		DiscardDrawMinRound: 3,
+	}
+	_, _, _, err := ValidateDraw(st, "p1", DrawFromDiscard)
+	if err == nil {
+		t.Fatalf("expected discard draw to be locked before round 3")
+	}
+	re, ok := err.(RulesError)
+	if !ok || re.Code != ErrDiscardLocked {
+		t.Fatalf("expected ErrDiscardLocked got %#v", err)
+	}
+	// Drawing from the deck must still work while discard is locked.
+	if _, _, _, err := ValidateDraw(st, "p1", DrawFromDeck); err != nil {
+		t.Fatalf("expected deck draw to succeed, got %v", err)
+	}
+}
+
+func TestValidateDraw_DiscardAllowedAtMinRound(t *testing.T) {
+	st := GameState{
+		Status:              StatusActive,
+		Phase:               PhaseDraw,
+		Round:               3,
+		DrawPile:            []string{"2H"},
+		DiscardPile:         []string{"7H"},
+		Hands:               map[string][]string{"p1": {}},
+		CurrentTurn:         "p1",
+		DiscardDrawMinRound: 3,
+	}
+	if _, _, _, err := ValidateDraw(st, "p1", DrawFromDiscard); err != nil {
+		t.Fatalf("expected discard draw to be allowed at round 3, got %v", err)
+	}
+}
+
+func TestValidateDraw_DiscardUnrestrictedByDefault(t *testing.T) {
+	st := GameState{
+		Status:      StatusActive,
+		Phase:       PhaseDraw,
+		Round:       1,
+		DrawPile:    []string{"2H"},
+		DiscardPile: []string{"7H"},
+		Hands:       map[string][]string{"p1": {}},
+		CurrentTurn: "p1",
+		// DiscardDrawMinRound left at its zero value.
+	}
+	if _, _, _, err := ValidateDraw(st, "p1", DrawFromDiscard); err != nil {
+		t.Fatalf("expected discard draw to be unrestricted by default, got %v", err)
+	}
+}
+

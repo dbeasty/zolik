@@ -9,6 +9,7 @@ import { colors, shared } from '@/src/theme';
 
 const DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
 const MELD_MINS = [0, 35, 50];
+const DISCARD_LOCK_ROUNDS = [1, 2, 3];
 
 export default function CreateLobbyScreen() {
   const { client, session } = useSession();
@@ -17,6 +18,7 @@ export default function CreateLobbyScreen() {
   const [players, setPlayers] = useState<LobbyPlayer[]>([]);
   const [aiDiff, setAiDiff] = useState<(typeof DIFFICULTIES)[number]>('medium');
   const [initialMin, setInitialMin] = useState(35);
+  const [discardLockRound, setDiscardLockRound] = useState(1);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(true);
 
@@ -29,6 +31,8 @@ export default function CreateLobbyScreen() {
     try {
       const info = await client.getLobby(gameId);
       setPlayers(info.players);
+      if (info.initialMeldMinimum != null) setInitialMin(info.initialMeldMinimum);
+      if (info.discardDrawMinRound != null) setDiscardLockRound(info.discardDrawMinRound);
       if (info.status === 'active') {
         router.replace(`/game/${gameId}`);
       }
@@ -87,9 +91,26 @@ export default function CreateLobbyScreen() {
     }
   }
 
-  function cycleMeldMin() {
+  async function cycleMeldMin() {
     const idx = MELD_MINS.indexOf(initialMin);
-    setInitialMin(MELD_MINS[(idx + 1) % MELD_MINS.length]);
+    const next = MELD_MINS[(idx + 1) % MELD_MINS.length];
+    setInitialMin(next);
+    try {
+      await client.updateGameSettings(gameId, { initialMeldMinimum: next || 35 });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Update failed');
+    }
+  }
+
+  async function cycleDiscardLock() {
+    const idx = DISCARD_LOCK_ROUNDS.indexOf(discardLockRound);
+    const next = DISCARD_LOCK_ROUNDS[(idx + 1) % DISCARD_LOCK_ROUNDS.length];
+    setDiscardLockRound(next);
+    try {
+      await client.updateGameSettings(gameId, { discardDrawMinRound: next });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Update failed');
+    }
   }
 
   if (busy) {
@@ -125,13 +146,20 @@ export default function CreateLobbyScreen() {
             </Pressable>
           ))}
         </View>
-        <Pressable style={[shared.button, shared.buttonSecondary]} onPress={cycleMeldMin}>
-          <Text style={shared.buttonTextSecondary}>
-            Initial meld minimum: {initialMin || 'default'}
-          </Text>
-        </Pressable>
         {isHost ? (
           <>
+            <Pressable style={[shared.button, shared.buttonSecondary]} onPress={cycleMeldMin}>
+              <Text style={shared.buttonTextSecondary}>
+                Initial meld minimum: {initialMin || 'default'}
+              </Text>
+            </Pressable>
+            <Pressable style={[shared.button, shared.buttonSecondary]} onPress={cycleDiscardLock}>
+              <Text style={shared.buttonTextSecondary}>
+                {discardLockRound > 1
+                  ? `Discard pile pickup: locked until round ${discardLockRound}`
+                  : 'Discard pile pickup: unlocked from round 1'}
+              </Text>
+            </Pressable>
             <Pressable style={shared.button} onPress={addAI}>
               <Text style={shared.buttonText}>Add AI</Text>
             </Pressable>
@@ -146,7 +174,15 @@ export default function CreateLobbyScreen() {
             </Pressable>
           </>
         ) : (
-          <Text style={shared.status}>Waiting for host to start…</Text>
+          <>
+            <Text style={shared.status}>Initial meld minimum: {initialMin || 'default'}</Text>
+            <Text style={shared.status}>
+              {discardLockRound > 1
+                ? `Discard pile pickup: locked until round ${discardLockRound}`
+                : 'Discard pile pickup: unlocked from round 1'}
+            </Text>
+            <Text style={shared.status}>Waiting for host to start…</Text>
+          </>
         )}
       </View>
     </Screen>

@@ -47,9 +47,10 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 		// Otherwise discard.
 		return rules.Action{Type: rules.ActionDiscard, Card: pickWorstDiscard(hand)}
 	}
-	// 3) Draw phase: prefer discard if available, else deck.
+	// 3) Draw phase: prefer discard if available and allowed this round, else deck.
 	if visible.Phase == string(rules.PhaseDraw) {
-		if len(visible.DiscardPile) > 0 {
+		discardLocked := visible.DiscardDrawMinRound > 1 && visible.Round < visible.DiscardDrawMinRound
+		if len(visible.DiscardPile) > 0 && !discardLocked {
 			return rules.Action{Type: rules.ActionDrawCard, DrawFrom: rules.DrawFromDiscard}
 		}
 		return rules.Action{Type: rules.ActionDrawCard, DrawFrom: rules.DrawFromDeck}

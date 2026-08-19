@@ -17,6 +17,7 @@ export type GameState = {
   winnerId?: string;
   isDraw?: boolean;
   initialMeldMinimum: number;
+  discardDrawMinRound: number;
   offer?: Offer;
 };
 
@@ -43,6 +44,9 @@ export type LobbyGame = {
   phase: string;
   currentTurn: string;
   players: LobbyPlayer[];
+  hostId?: string;
+  initialMeldMinimum?: number;
+  discardDrawMinRound?: number;
   discardPileTop?: unknown;
 };
 

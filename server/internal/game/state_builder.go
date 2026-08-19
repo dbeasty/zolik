@@ -35,6 +35,7 @@ type GameStateMsg struct {
 	WinnerID           string                   `json:"winnerId,omitempty"`
 	IsDraw             bool                     `json:"isDraw,omitempty"`
 	InitialMeldMinimum int                      `json:"initialMeldMinimum"`
+	DiscardDrawMinRound int                     `json:"discardDrawMinRound"`
 	Offer              *OfferMsg                 `json:"offer"`
 }
 
@@ -100,6 +101,7 @@ func BuildGameStateMsg(g models.Game, myPlayerID string) GameStateMsg {
 		WinnerID:           g.WinnerID,
 		IsDraw:             g.IsDraw,
 		InitialMeldMinimum: g.InitialMeldMinimum,
+		DiscardDrawMinRound: g.DiscardDrawMinRound,
 		Offer:              offer,
 	}
 }

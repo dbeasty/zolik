@@ -28,6 +28,7 @@ type Game struct {
 	IsDraw             bool                  `bson:"isDraw,omitempty" json:"isDraw,omitempty"`
 	RoundReqMet        map[string]bool       `bson:"roundReqMet" json:"roundReqMet"`
 	InitialMeldMinimum int                   `bson:"initialMeldMinimum" json:"initialMeldMinimum"`
+	DiscardDrawMinRound int                  `bson:"discardDrawMinRound" json:"discardDrawMinRound"`
 	Offer              *DiscardOffer         `bson:"offer" json:"offer"`
 	Players            []Player              `bson:"players" json:"players"`
 	ActionLog          []Action              `bson:"actionLog" json:"-"`

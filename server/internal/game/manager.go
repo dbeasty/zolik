@@ -213,6 +213,7 @@ func toRulesState(g models.Game) rules.GameState {
 		MeldMeta:           rMeldMeta,
 		RoundReqMet:        g.RoundReqMet,
 		InitialMeldMinimum: g.InitialMeldMinimum,
+		DiscardDrawMinRound: g.DiscardDrawMinRound,
 		Offer:              offer,
 		RoundScores:        g.RoundScores,
 		TotalScores:        g.TotalScores,
@@ -236,6 +237,7 @@ func fromRulesState(g *models.Game, rs rules.GameState) {
 	g.Melds = rs.Melds
 	g.RoundReqMet = rs.RoundReqMet
 	g.InitialMeldMinimum = rs.InitialMeldMinimum
+	g.DiscardDrawMinRound = rs.DiscardDrawMinRound
 	g.RoundScores = rs.RoundScores
 	g.TotalScores = rs.TotalScores
 
@@ -397,6 +399,7 @@ func aiVisibleFromGame(game models.Game) ai.VisibleState {
 		RoundReqMet:        game.RoundReqMet,
 		TotalScores:        game.TotalScores,
 		InitialMeldMinimum: game.InitialMeldMinimum,
+		DiscardDrawMinRound: game.DiscardDrawMinRound,
 		Offer:              offer,
 	}
 }

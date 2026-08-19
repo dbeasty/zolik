@@ -117,12 +117,30 @@ export class ZolikClient {
     this.onTokensUpdated?.(data.accessToken, data.refreshToken);
   }
 
-  async createGame(initialMeldMin?: number): Promise<{ gameId: string; joinCode: string }> {
+  async createGame(
+    initialMeldMin?: number,
+    discardDrawMinRound?: number,
+  ): Promise<{ gameId: string; joinCode: string }> {
     const body: Record<string, number> = {};
     if (initialMeldMin != null && initialMeldMin > 0) {
       body.initialMeldMinimum = initialMeldMin;
     }
+    if (discardDrawMinRound != null && discardDrawMinRound > 1) {
+      body.discardDrawMinRound = discardDrawMinRound;
+    }
     return this.post('/games', body, true);
+  }
+
+  async updateGameSettings(
+    idOrCode: string,
+    settings: { initialMeldMinimum?: number; discardDrawMinRound?: number },
+  ): Promise<void> {
+    await this.request(
+      'PATCH',
+      `/games/${encodeURIComponent(idOrCode)}/settings`,
+      settings,
+      true,
+    );
   }
 
   async joinGame(idOrCode: string): Promise<string> {

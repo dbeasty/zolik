@@ -14,6 +14,7 @@ type VisibleState struct {
 	RoundReqMet        map[string]bool
 	TotalScores        map[string]int
 	InitialMeldMinimum int
+	DiscardDrawMinRound int
 
 	Offer *rules.DiscardOffer
 }

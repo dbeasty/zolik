@@ -91,6 +91,10 @@ type GameState struct {
 
 	RoundReqMet        map[string]bool
 	InitialMeldMinimum int
+	// DiscardDrawMinRound gates the "draw from discard pile" action: 0 or 1
+	// means no restriction (allowed from round 1); N>1 means players can't
+	// draw from discard until round N (they can still draw from the deck).
+	DiscardDrawMinRound int
 
 	Offer *DiscardOffer
 
@@ -122,6 +126,7 @@ const (
 	ErrNotOfferRecipient RulesErrorCode = "NOT_OFFER_RECIPIENT"
 	ErrNoActiveOffer     RulesErrorCode = "NO_ACTIVE_OFFER"
 	ErrDiscardPileEmpty  RulesErrorCode = "DISCARD_PILE_EMPTY"
+	ErrDiscardLocked     RulesErrorCode = "DISCARD_LOCKED"
 	ErrGameSuspended     RulesErrorCode = "GAME_SUSPENDED"
 	ErrGameNotActive     RulesErrorCode = "GAME_NOT_ACTIVE"
 

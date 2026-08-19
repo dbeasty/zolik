@@ -28,7 +28,8 @@ func NewGameRestHandlers(repo *Repository, hub *Hub, manager *Manager) *GameRest
 }
 
 type CreateGameReq struct {
-	InitialMeldMinimum *int `json:"initialMeldMinimum,omitempty"`
+	InitialMeldMinimum  *int `json:"initialMeldMinimum,omitempty"`
+	DiscardDrawMinRound *int `json:"discardDrawMinRound,omitempty"`
 }
 
 type AddAIReq struct {
@@ -39,9 +40,59 @@ func (h *GameRestHandlers) RegisterRoutes(r chi.Router) {
 	r.Get("/games/{id}", h.getGame)
 	r.With(auth.AuthMiddleware).Post("/games", h.createGame)
 	r.With(auth.AuthMiddleware).Post("/games/{id}/join", h.joinGame)
+	r.With(auth.AuthMiddleware).Patch("/games/{id}/settings", h.updateSettings)
 	r.With(auth.AuthMiddleware).Post("/games/{id}/start", h.startGame)
 	r.With(auth.AuthMiddleware).Post("/games/{id}/add-ai", h.addAI)
 	r.With(auth.AuthMiddleware).Get("/games/{id}/replay", h.replayGame)
+}
+
+// updateSettings lets the host adjust pre-start options (initial meld
+// minimum, discard-pickup round gate) while the game is still in the lobby.
+func (h *GameRestHandlers) updateSettings(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	idOrJoin := chi.URLParam(req, "id")
+
+	g, _, err := h.repo.ParseGameIDOrJoin(ctx, idOrJoin)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	if g.Status != "lobby" {
+		http.Error(w, "game not in lobby", http.StatusBadRequest)
+		return
+	}
+	if g.HostID != uc.UserID {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	var body CreateGameReq
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	if body.InitialMeldMinimum != nil {
+		g.InitialMeldMinimum = *body.InitialMeldMinimum
+	}
+	if body.DiscardDrawMinRound != nil {
+		g.DiscardDrawMinRound = *body.DiscardDrawMinRound
+	}
+
+	if err := h.repo.UpdateWithVersion(ctx, g.ID, g.Version, g); err != nil {
+		http.Error(w, err.Error(), http.StatusConflict)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"initialMeldMinimum":  g.InitialMeldMinimum,
+		"discardDrawMinRound": g.DiscardDrawMinRound,
+	})
 }
 
 func (h *GameRestHandlers) createGame(w http.ResponseWriter, req *http.Request) {
@@ -58,6 +109,10 @@ func (h *GameRestHandlers) createGame(w http.ResponseWriter, req *http.Request) 
 	initial := 35
 	if body.InitialMeldMinimum != nil {
 		initial = *body.InitialMeldMinimum
+	}
+	discardMinRound := 1
+	if body.DiscardDrawMinRound != nil {
+		discardMinRound = *body.DiscardDrawMinRound
 	}
 
 	gameID := bson.NewObjectID()
@@ -91,6 +146,7 @@ func (h *GameRestHandlers) createGame(w http.ResponseWriter, req *http.Request) 
 		MeldMeta:         map[string][]models.MeldInfo{},
 		RoundReqMet:      map[string]bool{p.ID: false},
 		InitialMeldMinimum: initial,
+		DiscardDrawMinRound: discardMinRound,
 		Offer:            nil,
 		Players:          []models.Player{p},
 		ActionLog:        []models.Action{},
@@ -137,12 +193,15 @@ func (h *GameRestHandlers) getGame(w http.ResponseWriter, req *http.Request) {
 	}
 
 	_ = json.NewEncoder(w).Encode(map[string]any{
-		"id":            g.ID.Hex(),
-		"status":        g.Status,
-		"round":         g.Round,
-		"phase":         g.Phase,
-		"currentTurn":   g.CurrentTurn,
-		"players":       players,
+		"id":                  g.ID.Hex(),
+		"status":              g.Status,
+		"round":               g.Round,
+		"phase":               g.Phase,
+		"currentTurn":         g.CurrentTurn,
+		"players":             players,
+		"hostId":              g.HostID,
+		"initialMeldMinimum":  g.InitialMeldMinimum,
+		"discardDrawMinRound": g.DiscardDrawMinRound,
 		"discardPileTop": func() any {
 			if len(g.DiscardPile) == 0 {
 				return nil
@@ -270,6 +329,7 @@ func (h *GameRestHandlers) startGame(w http.ResponseWriter, req *http.Request) {
 		MeldMeta:            map[string][]rules.MeldInfo{},
 		RoundReqMet:         map[string]bool{},
 		InitialMeldMinimum: g.InitialMeldMinimum,
+		DiscardDrawMinRound: g.DiscardDrawMinRound,
 		Offer:               nil,
 		DeckSeed:            seed,
 		RoundScores:         map[string][]int{},
@@ -325,6 +385,7 @@ func (h *GameRestHandlers) startGame(w http.ResponseWriter, req *http.Request) {
 	}
 	nextGame.RoundReqMet = rState.RoundReqMet
 	nextGame.InitialMeldMinimum = rState.InitialMeldMinimum
+	nextGame.DiscardDrawMinRound = rState.DiscardDrawMinRound
 	nextGame.Offer = nil
 	nextGame.RoundScores = rState.RoundScores
 	nextGame.TotalScores = rState.TotalScores
