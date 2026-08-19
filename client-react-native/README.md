@@ -1,6 +1,6 @@
 # Žolíky — React Native client (Expo)
 
-Mobile and desktop GUI client for the Žolíky server. Uses the same REST + WebSocket API as [client-tui](../client-tui/) and [client-defold](../client-defold/).
+Mobile and desktop GUI client for the Žolíky server. Uses the same REST + WebSocket API as [client-tui](../client-tui/).
 
 ## Prerequisites
 

@@ -164,7 +164,7 @@ func (h *Handlers) patch(w http.ResponseWriter, req *http.Request) {
 }
 
 func (h *Handlers) export(w http.ResponseWriter, req *http.Request) {
-	// v1 stub: return JSON that the Defold client can share/print.
+	// v1 stub: return JSON that a client can share/print.
 	ctx := req.Context()
 	idStr := chi.URLParam(req, "id")
 	oid, err := bson.ObjectIDFromHex(idStr)

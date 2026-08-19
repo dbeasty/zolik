@@ -35,9 +35,7 @@ See [client-tui/README.md](../client-tui/README.md) for key bindings.
 
 ## GUI clients
 
-**React Native (recommended for mobile):** **[client-react-native](../client-react-native/)** — Expo app for iOS/Android. See [client-react-native/README.md](../client-react-native/README.md).
-
-**Defold:** **[client-defold](../client-defold/)** (renamed from `client/`). Open that directory in Defold; see [client-defold/README.md](../client-defold/README.md) and [client-defold/BUILD.md](../client-defold/BUILD.md).
+**React Native (primary GUI):** **[client-react-native](../client-react-native/)** — Expo app for web/iOS/Android. See [client-react-native/README.md](../client-react-native/README.md).
 
 ## Endpoints
 - `GET /healthz`

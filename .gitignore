@@ -31,9 +31,5 @@ go.work.sum
 .idea/
 .vscode/
 
-# Defold editor/build artifacts
-client-defold/build/
-client-defold/.internal/
-
 # SSH host key (generated locally)
 .ssh/

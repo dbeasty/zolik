@@ -23,6 +23,12 @@ export function useGameSocket({
   const stateRef = useRef<GameState | null>(null);
   const onRoundEndRef = useRef(onRoundEnd);
   const onGameEndRef = useRef(onGameEnd);
+  // The server broadcasts round_ended/game_ended before the game_state carrying
+  // the post-round totals, so the callbacks fire off the *next* game_state
+  // (which has the updated totalScores/round) rather than the stale one
+  // captured at the moment the event arrived.
+  const pendingRoundEndRef = useRef<WSEnvelope | null>(null);
+  const pendingGameEndRef = useRef<WSEnvelope | null>(null);
 
   onRoundEndRef.current = onRoundEnd;
   onGameEndRef.current = onGameEnd;
@@ -30,6 +36,8 @@ export function useGameSocket({
   const connect = useCallback(() => {
     if (!gameId || !enabled) return;
     wsRef.current?.close();
+    pendingRoundEndRef.current = null;
+    pendingGameEndRef.current = null;
     setStatus('Connecting…');
     const url = apiClient.wsUrl(gameId);
     const ws = new WebSocket(url);
@@ -49,14 +57,22 @@ export function useGameSocket({
           stateRef.current = st;
           setState(st);
           setStatus('');
+          if (pendingGameEndRef.current) {
+            const data = pendingGameEndRef.current;
+            pendingGameEndRef.current = null;
+            pendingRoundEndRef.current = null;
+            onGameEndRef.current?.(data, st);
+          } else if (pendingRoundEndRef.current) {
+            const data = pendingRoundEndRef.current;
+            pendingRoundEndRef.current = null;
+            onRoundEndRef.current?.(data, st);
+          }
         } else if (t === 'error') {
           setStatus(`✗ ${String(envelope.message ?? 'Error')}`);
         } else if (t === 'round_ended') {
-          const prev = stateRef.current;
-          if (prev) onRoundEndRef.current?.(envelope, prev);
+          pendingRoundEndRef.current = envelope;
         } else if (t === 'game_ended') {
-          const prev = stateRef.current;
-          if (prev) onGameEndRef.current?.(envelope, prev);
+          pendingGameEndRef.current = envelope;
         } else if (t === 'reshuffle') {
           setStatus('Deck recycled');
         } else if (t === 'game_suspended') {

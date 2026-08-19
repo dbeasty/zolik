@@ -1,6 +1,6 @@
 # Žolíky — text-only client (client-tui)
 
-SSH terminal UI for playing Žolíky. Connects to the same REST + WebSocket API as the Defold client.
+SSH terminal UI for playing Žolíky. Connects to the same REST + WebSocket API as the React Native client.
 
 ## How it runs
 

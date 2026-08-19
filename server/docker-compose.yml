@@ -41,7 +41,7 @@ services:
       PORT: "8090"
       SSH_ENABLED: "true"
       SSH_PORT: "2222"
-      SSH_HOST_KEY_PATH: /tmp/zolik_host_key
+      SSH_HOST_KEY_PATH: /tmp/zolik-ssh/zolik_host_key
       SSH_ALLOW_ALL_KEYS: "true"
     ports:
       - "8090:8090"

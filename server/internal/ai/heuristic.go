@@ -80,10 +80,11 @@ func (a *HeuristicAgent) chooseOfferAction(visible VisibleState, hand []string) 
 
 func rulesStateForAI(visible VisibleState, playerID string) rules.GameState {
 	return rules.GameState{
-		Round:       visible.Round,
-		RoundReqMet: visible.RoundReqMet,
-		Melds:       visible.Melds,
-		MeldMeta:    visible.MeldMeta,
+		Round:              visible.Round,
+		RoundReqMet:        visible.RoundReqMet,
+		Melds:              visible.Melds,
+		MeldMeta:           visible.MeldMeta,
+		InitialMeldMinimum: visible.InitialMeldMinimum,
 	}
 }
 
@@ -102,6 +103,22 @@ func findContributingMeld(state rules.GameState, playerID string, hand []string)
 		}
 		if state.Round < 7 && len(hand) == len(cand) {
 			return nil, false
+		}
+		// Mirror the server's initial-meld-minimum dry run: if laying this
+		// meld would complete the round requirement, the player's total
+		// natural meld value this round must already clear the minimum.
+		// Otherwise the server rejects it and the AI must not retry it.
+		sim := cloneStateForAI(state)
+		sim.Melds[playerID] = append(append([][]string(nil), sim.Melds[playerID]...), cand)
+		sim.MeldMeta[playerID] = append(append([]rules.MeldInfo(nil), sim.MeldMeta[playerID]...), rules.MeldInfo{
+			MeldID: "sim", Type: mv.Type, OwnerID: playerID,
+		})
+		if rules.PlayerMeetsRoundRequirement(sim, playerID) {
+			if state.InitialMeldMinimum > 0 && !state.RoundReqMet[playerID] {
+				if rules.PlayerInitialMeldNaturalValue(sim, playerID) < state.InitialMeldMinimum {
+					return nil, false
+				}
+			}
 		}
 		return cand, true
 	}
@@ -129,6 +146,20 @@ func findContributingMeld(state rules.GameState, playerID string, hand []string)
 		}
 	}
 	return nil, false
+}
+
+func cloneStateForAI(state rules.GameState) rules.GameState {
+	melds := map[string][][]string{}
+	for owner, ms := range state.Melds {
+		melds[owner] = append([][]string(nil), ms...)
+	}
+	meta := map[string][]rules.MeldInfo{}
+	for owner, mi := range state.MeldMeta {
+		meta[owner] = append([]rules.MeldInfo(nil), mi...)
+	}
+	state.Melds = melds
+	state.MeldMeta = meta
+	return state
 }
 
 func findAnyValidMeld(hand []string) ([]string, bool) {
@@ -165,6 +196,12 @@ func findAnyValidMeld(hand []string) ([]string, bool) {
 		}
 	}
 	return nil, false
+}
+
+// PickWorstDiscard exposes pickWorstDiscard for callers that need an emergency
+// fallback discard outside of ChooseAction (e.g. when a chosen action was rejected).
+func PickWorstDiscard(hand []string) string {
+	return pickWorstDiscard(hand)
 }
 
 func pickWorstDiscard(hand []string) string {

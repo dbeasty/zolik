@@ -3,6 +3,7 @@ package game
 import (
 	"context"
 	"fmt"
+	"log"
 	"math/rand"
 	"sync"
 	"time"
@@ -285,8 +286,18 @@ func (m *Manager) aiLoop(ctx context.Context, gameID string) {
 
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 
+	// steps bounds the whole chain of AI sub-actions across however many AI
+	// players act in a row before control returns to a human (or the game
+	// ends); it exists only as a runaway-loop safety net, not a turn limiter,
+	// since a single AI turn can legitimately take several sub-actions
+	// (draw, multiple lay_melds, discard) and several AI players can be
+	// chained back to back.
 	steps := 0
-	for steps < 10 {
+	const maxSteps = 200
+	lastActor := ""
+	actorStall := 0
+	const maxActorStall = 20
+	for steps < maxSteps {
 		steps++
 
 		oid, err := bson.ObjectIDFromHex(gameID)
@@ -314,6 +325,17 @@ func (m *Manager) aiLoop(ctx context.Context, gameID string) {
 			return
 		}
 
+		if actorID == lastActor {
+			actorStall++
+			if actorStall > maxActorStall {
+				log.Printf("ai loop aborting: actor=%s made no progress after %d actions", actorID, actorStall)
+				return
+			}
+		} else {
+			lastActor = actorID
+			actorStall = 0
+		}
+
 		delayMs := 500 + rnd.Intn(1500)
 		time.Sleep(time.Duration(delayMs) * time.Millisecond)
 
@@ -323,7 +345,21 @@ func (m *Manager) aiLoop(ctx context.Context, gameID string) {
 
 		// Translate chosen rules action to WSIncoming and apply it through the usual path.
 		in := rulesActionToWSIncoming(chosen)
-		_ = m.HandleAction(ctx, gameID, actorID, in)
+		if err := m.HandleAction(ctx, gameID, actorID, in); err != nil {
+			log.Printf("ai action rejected: actor=%s type=%s err=%v", actorID, in.Type, err)
+			// Defense in depth: a rejected lay_meld/lay_off must not be retried
+			// verbatim (the agent would pick the same losing move again and
+			// burn the whole step budget without ever ending its turn). Fall
+			// back to discarding the worst card so the turn always progresses.
+			if in.Type == "lay_meld" || in.Type == "lay_off" {
+				if hand := game.Hands[actorID]; len(hand) > 0 {
+					fallback := WSIncoming{Type: "discard", Card: ai.PickWorstDiscard(hand)}
+					if err := m.HandleAction(ctx, gameID, actorID, fallback); err != nil {
+						log.Printf("ai fallback discard rejected: actor=%s err=%v", actorID, err)
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -352,15 +388,16 @@ func aiVisibleFromGame(game models.Game) ai.VisibleState {
 		}
 	}
 	return ai.VisibleState{
-		Round:       game.Round,
-		Phase:       game.Phase,
-		CurrentTurn: game.CurrentTurn,
-		DiscardPile: game.DiscardPile,
-		Melds:       game.Melds,
-		MeldMeta:    rMeldMeta,
-		RoundReqMet: game.RoundReqMet,
-		TotalScores: game.TotalScores,
-		Offer:       offer,
+		Round:              game.Round,
+		Phase:              game.Phase,
+		CurrentTurn:        game.CurrentTurn,
+		DiscardPile:        game.DiscardPile,
+		Melds:              game.Melds,
+		MeldMeta:           rMeldMeta,
+		RoundReqMet:        game.RoundReqMet,
+		TotalScores:        game.TotalScores,
+		InitialMeldMinimum: game.InitialMeldMinimum,
+		Offer:              offer,
 	}
 }
 

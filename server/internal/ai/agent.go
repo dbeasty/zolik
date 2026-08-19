@@ -8,11 +8,12 @@ type VisibleState struct {
 	Phase       string
 	CurrentTurn string
 
-	DiscardPile []string
-	Melds       map[string][][]string
-	MeldMeta    map[string][]rules.MeldInfo
-	RoundReqMet map[string]bool
-	TotalScores map[string]int
+	DiscardPile        []string
+	Melds              map[string][][]string
+	MeldMeta           map[string][]rules.MeldInfo
+	RoundReqMet        map[string]bool
+	TotalScores        map[string]int
+	InitialMeldMinimum int
 
 	Offer *rules.DiscardOffer
 }
