@@ -42,8 +42,17 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 			if combo, ok := findInitialMeldPlan(st, actor, hand); ok && len(combo) > 0 {
 				return rules.Action{Type: rules.ActionLayMeld, Cards: combo[0]}
 			}
-		} else if meld, ok := findAnyValidMeld(hand); ok && len(hand) > len(meld) {
-			return rules.Action{Type: rules.ActionLayMeld, Cards: meld}
+		} else {
+			// Already down: shed cards one at a time onto any table meld
+			// (own or another player's) before trying a brand-new meld —
+			// otherwise a hand with no full new meld left in it can never
+			// shrink to zero and the round never ends.
+			if meldID, card, ok := findLayOff(visible.MeldMeta, visible.Melds, hand, visible.Round); ok {
+				return rules.Action{Type: rules.ActionLayOff, MeldID: meldID, Card: card}
+			}
+			if meld, ok := findAnyValidMeld(hand); ok && len(hand) > len(meld) {
+				return rules.Action{Type: rules.ActionLayMeld, Cards: meld}
+			}
 		}
 		// Otherwise discard.
 		return rules.Action{Type: rules.ActionDiscard, Card: pickWorstDiscard(hand)}
@@ -229,6 +238,31 @@ func removeAtIndices(hand []string, idx ...int) []string {
 		out = append(out, c)
 	}
 	return out
+}
+
+// findLayOff looks for a card in hand that can extend any table meld (own
+// or another player's). Skips a lay-off that would empty the hand before
+// round 7, since the server requires going out via discard until then.
+func findLayOff(meldMeta map[string][]rules.MeldInfo, melds map[string][][]string, hand []string, round int) (meldID string, card string, ok bool) {
+	if round < 7 && len(hand) == 1 {
+		return "", "", false
+	}
+	for owner, metas := range meldMeta {
+		ownerMelds := melds[owner]
+		for i, mi := range metas {
+			if i >= len(ownerMelds) {
+				continue
+			}
+			existing := ownerMelds[i]
+			for _, c := range hand {
+				cand := append(append([]string(nil), existing...), c)
+				if _, err := rules.ValidateMeld(cand); err == nil {
+					return mi.MeldID, c, true
+				}
+			}
+		}
+	}
+	return "", "", false
 }
 
 func findAnyValidMeld(hand []string) ([]string, bool) {
