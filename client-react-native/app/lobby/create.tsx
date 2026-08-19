@@ -11,6 +11,8 @@ const DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
 const MELD_MINS = [0, 35, 50, 70];
 const DISCARD_LOCK_ROUNDS = [0, 1, 2, 3];
 const LAST_PROFILE_KEY = 'zolik_last_rules_profile';
+const LAST_MELD_MIN_KEY = 'zolik_last_meld_min';
+const LAST_DISCARD_LOCK_ROUND_KEY = 'zolik_last_discard_lock_round';
 
 const PROFILES: { value: RulesProfile; label: string }[] = [
   { value: 'continental', label: 'Continental' },
@@ -20,6 +22,16 @@ const PROFILES: { value: RulesProfile; label: string }[] = [
 async function loadLastProfile(): Promise<RulesProfile> {
   const stored = await storage.getItem(LAST_PROFILE_KEY);
   return stored === 'continental' || stored === 'zolik_classic' ? stored : 'zolik_classic';
+}
+
+async function loadLastNumericSetting(
+  key: string,
+  allowed: readonly number[],
+): Promise<number | undefined> {
+  const stored = await storage.getItem(key);
+  if (stored == null) return undefined;
+  const parsed = Number(stored);
+  return allowed.includes(parsed) ? parsed : undefined;
 }
 
 const PROFILE_RULES_TITLE: Record<string, string> = {
@@ -66,9 +78,20 @@ export default function CreateLobbyScreen() {
     (async () => {
       try {
         const lastProfile = await loadLastProfile();
+        const lastMeldMin = await loadLastNumericSetting(LAST_MELD_MIN_KEY, MELD_MINS);
+        const lastDiscardLockRound = await loadLastNumericSetting(
+          LAST_DISCARD_LOCK_ROUND_KEY,
+          DISCARD_LOCK_ROUNDS,
+        );
         if (cancelled) return;
         setProfile(lastProfile);
-        const { gameId: id, joinCode: code } = await client.createGame(lastProfile);
+        if (lastMeldMin != null) setInitialMin(lastMeldMin);
+        if (lastDiscardLockRound != null) setDiscardLockRound(lastDiscardLockRound);
+        const { gameId: id, joinCode: code } = await client.createGame(
+          lastProfile,
+          lastMeldMin,
+          lastDiscardLockRound,
+        );
         if (cancelled) return;
         setGameId(id);
         setJoinCode(code);
@@ -134,6 +157,7 @@ export default function CreateLobbyScreen() {
     setInitialMin(next);
     try {
       await client.updateGameSettings(gameId, { initialMeldMinimum: next });
+      await storage.setItem(LAST_MELD_MIN_KEY, String(next));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Update failed');
     }
@@ -145,6 +169,7 @@ export default function CreateLobbyScreen() {
     setDiscardLockRound(next);
     try {
       await client.updateGameSettings(gameId, { discardDrawMinRound: next });
+      await storage.setItem(LAST_DISCARD_LOCK_ROUND_KEY, String(next));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Update failed');
     }
