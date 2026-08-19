@@ -62,8 +62,8 @@ func (h *Handlers) create(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
-	if len(body.Players) < 4 || len(body.Players) > 8 {
-		http.Error(w, "players must be 4..8", http.StatusBadRequest)
+	if len(body.Players) < 2 || len(body.Players) > 8 {
+		http.Error(w, "players must be 2..8", http.StatusBadRequest)
 		return
 	}
 	now := time.Now().UTC()

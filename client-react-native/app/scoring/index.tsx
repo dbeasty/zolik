@@ -21,8 +21,8 @@ export default function ScoringScreen() {
       .split(',')
       .map((n) => n.trim())
       .filter(Boolean);
-    if (names.length < 4 || names.length > 8) {
-      setError('Enter 4–8 comma-separated player names');
+    if (names.length < 2 || names.length > 8) {
+      setError('Enter 2–8 comma-separated player names');
       return;
     }
     try {

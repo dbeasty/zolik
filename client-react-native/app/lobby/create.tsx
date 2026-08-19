@@ -138,10 +138,10 @@ export default function CreateLobbyScreen() {
             <Pressable
               style={shared.button}
               onPress={startGame}
-              disabled={players.length < 4}
+              disabled={players.length < 2}
             >
               <Text style={shared.buttonText}>
-                Start game {players.length < 4 ? `(need ${4 - players.length} more)` : ''}
+                Start game {players.length < 2 ? `(need ${2 - players.length} more)` : ''}
               </Text>
             </Pressable>
           </>

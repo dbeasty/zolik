@@ -8,7 +8,7 @@ import (
 
 func DeckCountForPlayers(players int) int {
 	switch players {
-	case 4:
+	case 2, 3, 4:
 		return 2
 	case 5, 6:
 		return 3

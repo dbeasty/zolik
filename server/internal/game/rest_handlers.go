@@ -238,8 +238,8 @@ func (h *GameRestHandlers) startGame(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
-	if len(g.Players) < 4 {
-		http.Error(w, "need at least 4 players", http.StatusBadRequest)
+	if len(g.Players) < 2 {
+		http.Error(w, "need at least 2 players", http.StatusBadRequest)
 		return
 	}
 
