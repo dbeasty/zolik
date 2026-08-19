@@ -7,6 +7,7 @@ import React, {
   useMemo,
   useState,
 } from 'react';
+import { Platform } from 'react-native';
 
 import { apiClient } from '@/src/api/client';
 import type { PlayerSession } from '@/src/api/types';
@@ -26,16 +27,42 @@ type SessionContextValue = {
 
 const SessionContext = createContext<SessionContextValue | null>(null);
 
+// expo-secure-store has no web implementation; fall back to localStorage
+// there (it's not encrypted, but this only ever holds JWTs, same as any
+// other browser-based session token).
+const storage = {
+  async getItem(key: string): Promise<string | null> {
+    if (Platform.OS === 'web') {
+      return typeof localStorage !== 'undefined' ? localStorage.getItem(key) : null;
+    }
+    return SecureStore.getItemAsync(key);
+  },
+  async setItem(key: string, value: string): Promise<void> {
+    if (Platform.OS === 'web') {
+      if (typeof localStorage !== 'undefined') localStorage.setItem(key, value);
+      return;
+    }
+    await SecureStore.setItemAsync(key, value);
+  },
+  async deleteItem(key: string): Promise<void> {
+    if (Platform.OS === 'web') {
+      if (typeof localStorage !== 'undefined') localStorage.removeItem(key);
+      return;
+    }
+    await SecureStore.deleteItemAsync(key);
+  },
+};
+
 async function persistSession(session: PlayerSession | null) {
   if (session) {
-    await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(session));
+    await storage.setItem(SESSION_KEY, JSON.stringify(session));
   } else {
-    await SecureStore.deleteItemAsync(SESSION_KEY);
+    await storage.deleteItem(SESSION_KEY);
   }
 }
 
 async function loadSession(): Promise<PlayerSession | null> {
-  const raw = await SecureStore.getItemAsync(SESSION_KEY);
+  const raw = await storage.getItem(SESSION_KEY);
   if (!raw) return null;
   try {
     return JSON.parse(raw) as PlayerSession;

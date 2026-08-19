@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
 	"github.com/joho/godotenv"
 
 	tuissH "zolik/client-tui/ssh"
@@ -28,6 +29,16 @@ func main() {
 	defer a.Close(context.Background())
 
 	r := chi.NewRouter()
+	// Bearer-token auth (no cookies), so a wide-open CORS policy carries no
+	// CSRF risk here and keeps every client origin (web, LAN devices, etc.)
+	// working without per-deployment configuration.
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		AllowCredentials: false,
+		MaxAge:           300,
+	}))
 	a.RegisterRoutes(r)
 
 	if a.Hub() != nil {
