@@ -211,7 +211,7 @@ func (m gameModel) handleWS(raw []byte) (gameModel, tea.Cmd) {
 	case "error":
 		msg, _ := envelope["message"].(string)
 		m.status = "✗ " + msg
-	case "round_ended":
+	case "deal_ended":
 		m.roundData = envelope
 		m.root.screen = ScreenRoundEnd
 		m.root.roundEnd = newRoundEndModel(m.root)
@@ -309,9 +309,9 @@ func (m gameModel) view(width, height int) string {
 	compact := render.UseCompact(width)
 	var b strings.Builder
 
-	roundLbl := roundRequirementLabel(m.state.Round)
-	header := fmt.Sprintf("ŽOLÍKY │ Round %d of 7: %s │ Deck: %d │ ",
-		m.state.Round, roundLbl, m.state.DeckCount)
+	roundLbl := roundRequirementLabel(m.state.Game)
+	header := fmt.Sprintf("ŽOLÍKY │ Game %d of 7: %s │ Round %d │ Deck: %d │ ",
+		m.state.Game, roundLbl, m.state.Round, m.state.DeckCount)
 	if m.state.CurrentTurn == m.root.session.UserID {
 		header += "Your turn"
 	} else {

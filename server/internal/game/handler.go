@@ -14,7 +14,7 @@ import (
 )
 
 type WebSocketServer struct {
-	manager *Manager
+	manager  *Manager
 	upgrader websocket.Upgrader
 }
 
@@ -109,4 +109,3 @@ func (s *WebSocketServer) handleWS(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 }
-

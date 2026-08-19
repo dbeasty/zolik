@@ -186,7 +186,7 @@ export default function GameScreen() {
   useEffect(() => {
     setLocalHand((prev) => reconcileHandOrder(prev, state?.myHand ?? []));
     setSelected(new Set());
-  }, [state?.myHand, state?.phase, state?.round]);
+  }, [state?.myHand, state?.phase, state?.game]);
 
   // Flashes the discard pile whenever a new card lands on top, so a
   // drag-drop (or button/tap discard) gets a visible "yes, that landed"
@@ -270,7 +270,7 @@ export default function GameScreen() {
   }
 
   const topDiscard = state.discardPile[state.discardPile.length - 1];
-  const header = `Round ${state.round}: ${roundRequirementLabel(state.round)} · Deck ${state.deckCount}`;
+  const header = `Game ${state.game}: ${roundRequirementLabel(state.game)} · Round ${state.round} · Deck ${state.deckCount}`;
   const turnLabel = isMyTurn
     ? 'Your turn'
     : (() => {

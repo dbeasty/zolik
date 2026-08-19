@@ -4,9 +4,9 @@ import (
 	"fmt"
 )
 
-func EndRound(state GameState, winnerID string) (GameState, error) {
-	if state.Round < 1 {
-		return state, RulesError{Code: ErrInvalidMeld, Message: "invalid round"}
+func EndGame(state GameState, winnerID string) (GameState, error) {
+	if state.GameNumber < 1 {
+		return state, RulesError{Code: ErrInvalidMeld, Message: "invalid game"}
 	}
 	if state.TurnOrder == nil {
 		return state, RulesError{Code: ErrInvalidMeld, Message: "missing turn order"}
@@ -15,30 +15,30 @@ func EndRound(state GameState, winnerID string) (GameState, error) {
 		return state, RulesError{Code: ErrInvalidMeld, Message: "missing hands"}
 	}
 
-	if state.RoundScores == nil {
-		state.RoundScores = map[string][]int{}
+	if state.GameScores == nil {
+		state.GameScores = map[string][]int{}
 	}
 	if state.TotalScores == nil {
 		state.TotalScores = map[string]int{}
 	}
 
 	tableMelds := AllTableMelds(state)
-	roundScore := map[string]int{}
+	gameScore := map[string]int{}
 	for _, pid := range state.TurnOrder {
 		if pid == winnerID {
-			roundScore[pid] = 0
+			gameScore[pid] = 0
 			continue
 		}
-		roundScore[pid] = HandPenaltyTotalWithMelds(state.Hands[pid], tableMelds)
+		gameScore[pid] = HandPenaltyTotalWithMelds(state.Hands[pid], tableMelds)
 	}
 
 	for _, pid := range state.TurnOrder {
-		state.RoundScores[pid] = append(state.RoundScores[pid], roundScore[pid])
-		state.TotalScores[pid] += roundScore[pid]
+		state.GameScores[pid] = append(state.GameScores[pid], gameScore[pid])
+		state.TotalScores[pid] += gameScore[pid]
 	}
 
-	// Advance or end game.
-	if state.Round >= 7 {
+	// Advance or end the match.
+	if state.GameNumber >= 7 {
 		state.Status = StatusCompleted
 		state.Phase = Phase("completed")
 		winner, draw := DetermineGameWinner(state)
@@ -47,17 +47,19 @@ func EndRound(state GameState, winnerID string) (GameState, error) {
 		return state, nil
 	}
 
-	return StartNextRound(state, winnerID)
+	return StartNextGame(state, winnerID)
 }
 
-func StartNextRound(state GameState, nextTurnID string) (GameState, error) {
-	state.Round++
+func StartNextGame(state GameState, nextTurnID string) (GameState, error) {
+	state.GameNumber++
+	state.Round = 1
+	state.DealStarterID = nextTurnID
 	state.Phase = PhaseDraw
 	state.ReshuffleCount = 0
 	state.DiscardPile = nil
 	state.DrawPile = nil
 
-	// Reset per-round state.
+	// Reset per-game state.
 	state.Melds = map[string][][]string{}
 	state.MeldMeta = map[string][]MeldInfo{}
 	state.RoundReqMet = map[string]bool{}
@@ -73,7 +75,7 @@ func StartNextRound(state GameState, nextTurnID string) (GameState, error) {
 
 	// Build new deck & deal.
 	deck := BuildDeck(len(state.TurnOrder))
-	seed := state.DeckSeed + int64(state.Round)*9973
+	seed := state.DeckSeed + int64(state.GameNumber)*9973
 	state.DrawPile = Shuffle(deck, seed)
 
 	// Deal 12.
@@ -97,6 +99,5 @@ func StartNextRound(state GameState, nextTurnID string) (GameState, error) {
 }
 
 func (s GameState) String() string {
-	return fmt.Sprintf("round=%d phase=%s turn=%s", s.Round, s.Phase, s.CurrentTurn)
+	return fmt.Sprintf("game=%d round=%d phase=%s turn=%s", s.GameNumber, s.Round, s.Phase, s.CurrentTurn)
 }
-

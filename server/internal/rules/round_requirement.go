@@ -7,8 +7,10 @@ type RoundRequirement struct {
 	Runs int
 }
 
-func RoundRequirementFor(round int) RoundRequirement {
-	switch round {
+// RoundRequirementFor returns the initial-meld pattern for the given deal
+// (GameNumber 1-7) — fixed for the whole deal, evaluated against RoundReqMet.
+func RoundRequirementFor(gameNumber int) RoundRequirement {
+	switch gameNumber {
 	case 1:
 		return RoundRequirement{Sets: 2, Runs: 0}
 	case 2:
@@ -28,7 +30,7 @@ func RoundRequirementFor(round int) RoundRequirement {
 	}
 }
 
-// PlayerMeldCounts returns qualifying sets and runs the player has laid this round.
+// PlayerMeldCounts returns qualifying sets and runs the player has laid this game.
 func PlayerMeldCounts(state GameState, playerID string) (sets, runs int) {
 	metas := state.MeldMeta[playerID]
 	melds := state.Melds[playerID]
@@ -52,12 +54,12 @@ func PlayerMeldCounts(state GameState, playerID string) (sets, runs int) {
 
 // PlayerMeetsRoundRequirement reports whether the player has the required melds on table.
 func PlayerMeetsRoundRequirement(state GameState, playerID string) bool {
-	req := RoundRequirementFor(state.Round)
+	req := RoundRequirementFor(state.GameNumber)
 	sets, runs := PlayerMeldCounts(state, playerID)
 	return sets >= req.Sets && runs >= req.Runs
 }
 
-// PlayerInitialMeldNaturalValue sums natural card values across all melds the player laid this round.
+// PlayerInitialMeldNaturalValue sums natural card values across all melds the player laid this game.
 func PlayerInitialMeldNaturalValue(state GameState, playerID string) int {
 	total := 0
 	melds := state.Melds[playerID]
@@ -72,12 +74,12 @@ func PlayerInitialMeldNaturalValue(state GameState, playerID string) int {
 }
 
 // MeldContributesTowardRequirement reports whether a new qualifying meld moves the
-// player toward the current round's pattern before roundReqMet is set.
+// player toward the current deal's pattern before RoundReqMet is set.
 func MeldContributesTowardRequirement(state GameState, playerID string, meldType MeldType, cardCount int) bool {
 	if state.RoundReqMet[playerID] {
 		return true
 	}
-	req := RoundRequirementFor(state.Round)
+	req := RoundRequirementFor(state.GameNumber)
 	setsBefore, runsBefore := PlayerMeldCounts(state, playerID)
 
 	addsSet := meldType == MeldSet && cardCount >= 3

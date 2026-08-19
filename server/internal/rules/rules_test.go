@@ -98,35 +98,35 @@ func TestEnsureDrawPile_EmptyBothErrors(t *testing.T) {
 	}
 }
 
-func TestEndRound_ScoringAndAdvance(t *testing.T) {
+func TestEndGame_ScoringAndAdvance(t *testing.T) {
 	st := GameState{
 		Status:      StatusActive,
-		Round:       1,
+		GameNumber:  1,
 		Phase:       PhaseDiscard,
 		TurnOrder:   []string{"p1", "p2"},
 		Hands:       map[string][]string{"p1": {"KH"}, "p2": {}},
 		RoundReqMet: map[string]bool{"p1": true, "p2": false},
 		DeckSeed:    123,
-		RoundScores: map[string][]int{"p1": {}, "p2": {}},
+		GameScores:  map[string][]int{"p1": {}, "p2": {}},
 		TotalScores: map[string]int{"p1": 0, "p2": 0},
 	}
 
-	next, err := EndRound(st, "p2")
+	next, err := EndGame(st, "p2")
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
-	if next.Round != 2 {
-		t.Fatalf("expected round=2 got %d", next.Round)
+	if next.GameNumber != 2 {
+		t.Fatalf("expected game=2 got %d", next.GameNumber)
 	}
 	if next.Status != StatusActive {
 		t.Fatalf("expected active status")
 	}
 	// p2 went out, so p2 score = 0; p1 has KH remaining => 10 points.
-	if len(next.RoundScores["p1"]) != 1 || next.RoundScores["p1"][0] != 10 {
-		t.Fatalf("expected p1 round score 10 got %#v", next.RoundScores["p1"])
+	if len(next.GameScores["p1"]) != 1 || next.GameScores["p1"][0] != 10 {
+		t.Fatalf("expected p1 game score 10 got %#v", next.GameScores["p1"])
 	}
-	if len(next.RoundScores["p2"]) != 1 || next.RoundScores["p2"][0] != 0 {
-		t.Fatalf("expected p2 round score 0 got %#v", next.RoundScores["p2"])
+	if len(next.GameScores["p2"]) != 1 || next.GameScores["p2"][0] != 0 {
+		t.Fatalf("expected p2 game score 0 got %#v", next.GameScores["p2"])
 	}
 	if next.TotalScores["p1"] != 10 {
 		t.Fatalf("expected total score 10 got %d", next.TotalScores["p1"])
@@ -312,7 +312,7 @@ func TestValidateMeldAction_UsingPendingDiscardCardClearsObligation(t *testing.T
 	st := GameState{
 		Status:                      StatusActive,
 		Phase:                       PhaseMeld,
-		Round:                       1,
+		GameNumber:                  1,
 		CurrentTurn:                 "p1",
 		TurnOrder:                   []string{"p1", "p2"},
 		Hands:                       map[string][]string{"p1": {"9S", "9D", "9C", "KH", "KD", "KC"}, "p2": {}},
@@ -367,4 +367,3 @@ func TestValidateLayOff_AllowedOnceOwnRoundReqMet(t *testing.T) {
 		t.Fatalf("expected lay-off to succeed once p1 has met their own round requirement, got %v", err)
 	}
 }
-

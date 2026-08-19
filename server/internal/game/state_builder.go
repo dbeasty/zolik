@@ -17,26 +17,27 @@ type MeldMetaMsg struct {
 }
 
 type GameStateMsg struct {
-	Type               string                     `json:"type"`
-	Status             string                     `json:"status"`
-	Round              int                        `json:"round"`
-	Phase              string                     `json:"phase"`
-	CurrentTurn        string                     `json:"currentTurn"`
-	MyHand             []string                  `json:"myHand"`
-	DiscardPile        []string                  `json:"discardPile"`
-	DeckCount          int                        `json:"deckCount"`
-	ReshuffleCount     int                        `json:"reshuffleCount"`
-	CardCounts         map[string]int           `json:"cardCounts"`
-	Melds              map[string][][]string    `json:"melds"`
-	MeldMeta           map[string][]MeldMetaMsg `json:"meldMeta"`
-	Players            []PlayerMsg              `json:"players"`
-	RoundReqMet        map[string]bool          `json:"roundReqMet"`
-	TotalScores        map[string]int           `json:"totalScores"`
-	WinnerID           string                   `json:"winnerId,omitempty"`
-	IsDraw             bool                     `json:"isDraw,omitempty"`
-	InitialMeldMinimum int                      `json:"initialMeldMinimum"`
-	DiscardDrawMinRound int                     `json:"discardDrawMinRound"`
-	DiscardDrawnCardPendingMeld string         `json:"discardDrawnCardPendingMeld,omitempty"`
+	Type                        string                   `json:"type"`
+	Status                      string                   `json:"status"`
+	Game                        int                      `json:"game"`
+	Round                       int                      `json:"round"`
+	Phase                       string                   `json:"phase"`
+	CurrentTurn                 string                   `json:"currentTurn"`
+	MyHand                      []string                 `json:"myHand"`
+	DiscardPile                 []string                 `json:"discardPile"`
+	DeckCount                   int                      `json:"deckCount"`
+	ReshuffleCount              int                      `json:"reshuffleCount"`
+	CardCounts                  map[string]int           `json:"cardCounts"`
+	Melds                       map[string][][]string    `json:"melds"`
+	MeldMeta                    map[string][]MeldMetaMsg `json:"meldMeta"`
+	Players                     []PlayerMsg              `json:"players"`
+	RoundReqMet                 map[string]bool          `json:"roundReqMet"`
+	TotalScores                 map[string]int           `json:"totalScores"`
+	WinnerID                    string                   `json:"winnerId,omitempty"`
+	IsDraw                      bool                     `json:"isDraw,omitempty"`
+	InitialMeldMinimum          int                      `json:"initialMeldMinimum"`
+	DiscardDrawMinRound         int                      `json:"discardDrawMinRound"`
+	DiscardDrawnCardPendingMeld string                   `json:"discardDrawnCardPendingMeld,omitempty"`
 }
 
 func BuildGameStateMsg(g models.Game, myPlayerID string) GameStateMsg {
@@ -79,26 +80,26 @@ func BuildGameStateMsg(g models.Game, myPlayerID string) GameStateMsg {
 
 	phaseStr := g.Phase
 	return GameStateMsg{
-		Type:               "game_state",
-		Status:             g.Status,
-		Round:              g.Round,
-		Phase:              phaseStr,
-		CurrentTurn:        g.CurrentTurn,
-		MyHand:             myHand,
-		DiscardPile:        g.DiscardPile,
-		DeckCount:          len(g.DrawPile),
-		ReshuffleCount:     g.ReshuffleCount,
-		CardCounts:         cardCounts,
-		Melds:              g.Melds,
-		MeldMeta:           meldMeta,
-		Players:            players,
-		RoundReqMet:        g.RoundReqMet,
-		TotalScores:        g.TotalScores,
-		WinnerID:           g.WinnerID,
-		IsDraw:             g.IsDraw,
-		InitialMeldMinimum: g.InitialMeldMinimum,
-		DiscardDrawMinRound: g.DiscardDrawMinRound,
+		Type:                        "game_state",
+		Status:                      g.Status,
+		Game:                        g.GameNumber,
+		Round:                       g.Round,
+		Phase:                       phaseStr,
+		CurrentTurn:                 g.CurrentTurn,
+		MyHand:                      myHand,
+		DiscardPile:                 g.DiscardPile,
+		DeckCount:                   len(g.DrawPile),
+		ReshuffleCount:              g.ReshuffleCount,
+		CardCounts:                  cardCounts,
+		Melds:                       g.Melds,
+		MeldMeta:                    meldMeta,
+		Players:                     players,
+		RoundReqMet:                 g.RoundReqMet,
+		TotalScores:                 g.TotalScores,
+		WinnerID:                    g.WinnerID,
+		IsDraw:                      g.IsDraw,
+		InitialMeldMinimum:          g.InitialMeldMinimum,
+		DiscardDrawMinRound:         g.DiscardDrawMinRound,
 		DiscardDrawnCardPendingMeld: pendingMeldCard,
 	}
 }
-

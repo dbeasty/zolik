@@ -2,7 +2,7 @@ package rules
 
 import "testing"
 
-func TestMeldNoContribution_Round1RejectsRun(t *testing.T) {
+func TestMeldNoContribution_Game1RejectsRun(t *testing.T) {
 	p := "p1"
 	st := baseActiveState(1, p)
 	st.Hands[p] = []string{"5H", "6H", "7H", "8H", "2S"}
@@ -17,7 +17,7 @@ func TestMeldNoContribution_Round1RejectsRun(t *testing.T) {
 	}
 }
 
-func TestMeldNoContribution_Round2RejectsExtraRun(t *testing.T) {
+func TestMeldNoContribution_Game2RejectsExtraRun(t *testing.T) {
 	p := "p1"
 	st := baseActiveState(2, p)
 	st.Hands[p] = []string{"5S", "6S", "7S", "8S", "2C"}

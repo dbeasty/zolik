@@ -11,16 +11,16 @@ import (
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/v2/bson"
 
-	"zolik/server/internal/auth"
 	"zolik/server/internal/ai"
-	"zolik/server/internal/rules"
+	"zolik/server/internal/auth"
 	"zolik/server/internal/models"
+	"zolik/server/internal/rules"
 )
 
 type GameRestHandlers struct {
-	repo     *Repository
-	hub      *Hub
-	manager  *Manager
+	repo    *Repository
+	hub     *Hub
+	manager *Manager
 }
 
 func NewGameRestHandlers(repo *Repository, hub *Hub, manager *Manager) *GameRestHandlers {
@@ -133,29 +133,29 @@ func (h *GameRestHandlers) createGame(w http.ResponseWriter, req *http.Request) 
 	}
 
 	g := models.Game{
-		ID:                gameID,
-		Status:           "lobby",
-		Round:            0,
-		Phase:            "",
-		JoinCode:         joinCode,
-		HostID:           uc.UserID,
-		CurrentTurn:      "",
-		TurnOrder:        []string{p.ID},
-		ReshuffleCount:   0,
-		Hands:            map[string][]string{},
-		Melds:            map[string][][]string{},
-		MeldMeta:         map[string][]models.MeldInfo{},
-		RoundReqMet:      map[string]bool{p.ID: false},
-		InitialMeldMinimum: initial,
+		ID:                  gameID,
+		Status:              "lobby",
+		GameNumber:          0,
+		Phase:               "",
+		JoinCode:            joinCode,
+		HostID:              uc.UserID,
+		CurrentTurn:         "",
+		TurnOrder:           []string{p.ID},
+		ReshuffleCount:      0,
+		Hands:               map[string][]string{},
+		Melds:               map[string][][]string{},
+		MeldMeta:            map[string][]models.MeldInfo{},
+		RoundReqMet:         map[string]bool{p.ID: false},
+		InitialMeldMinimum:  initial,
 		DiscardDrawMinRound: discardMinRound,
-		Players:          []models.Player{p},
-		ActionLog:        []models.Action{},
-		DeckSeed:         rules.NewShuffleSeed(),
-		Version:          1,
-		CreatedAt:        time.Now().UTC(),
-		TotalScores:      map[string]int{p.ID: 0},
-		RoundScores:     map[string][]int{p.ID: {}},
-		NextMeldSeq:       0,
+		Players:             []models.Player{p},
+		ActionLog:           []models.Action{},
+		DeckSeed:            rules.NewShuffleSeed(),
+		Version:             1,
+		CreatedAt:           time.Now().UTC(),
+		TotalScores:         map[string]int{p.ID: 0},
+		GameScores:          map[string][]int{p.ID: {}},
+		NextMeldSeq:         0,
 	}
 
 	// Insert lobby into Mongo.
@@ -183,9 +183,9 @@ func (h *GameRestHandlers) getGame(w http.ResponseWriter, req *http.Request) {
 	}
 
 	type playerPublic struct {
-		ID    string `json:"id"`
-		Name  string `json:"name"`
-		IsAI  bool   `json:"isAI"`
+		ID   string `json:"id"`
+		Name string `json:"name"`
+		IsAI bool   `json:"isAI"`
 	}
 	players := make([]playerPublic, 0, len(g.Players))
 	for _, p := range g.Players {
@@ -195,6 +195,7 @@ func (h *GameRestHandlers) getGame(w http.ResponseWriter, req *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"id":                  g.ID.Hex(),
 		"status":              g.Status,
+		"game":                g.GameNumber,
 		"round":               g.Round,
 		"phase":               g.Phase,
 		"currentTurn":         g.CurrentTurn,
@@ -242,9 +243,9 @@ func (h *GameRestHandlers) joinGame(w http.ResponseWriter, req *http.Request) {
 	}
 
 	p := models.Player{
-		ID:    uc.UserID,
-		Name:  uc.Username,
-		IsAI:  false,
+		ID:   uc.UserID,
+		Name: uc.Username,
+		IsAI: false,
 		UserID: func() string {
 			if uc.IsGuest {
 				return ""
@@ -313,14 +314,16 @@ func (h *GameRestHandlers) startGame(w http.ResponseWriter, req *http.Request) {
 		g.DeckSeed = seed
 	}
 
-	// Create initial round state.
+	// Create initial deal state.
 	rState := rules.GameState{
 		Status:              rules.StatusActive,
-		Round:               1,
+		GameNumber:          1,
 		Phase:               rules.PhaseDraw,
 		Created:             time.Now().UTC(),
 		CurrentTurn:         turnOrder[0],
 		TurnOrder:           turnOrder,
+		DealStarterID:       turnOrder[0],
+		Round:               1,
 		DrawPile:            nil,
 		DiscardPile:         nil,
 		ReshuffleCount:      0,
@@ -328,16 +331,16 @@ func (h *GameRestHandlers) startGame(w http.ResponseWriter, req *http.Request) {
 		Melds:               map[string][][]string{},
 		MeldMeta:            map[string][]rules.MeldInfo{},
 		RoundReqMet:         map[string]bool{},
-		InitialMeldMinimum: g.InitialMeldMinimum,
+		InitialMeldMinimum:  g.InitialMeldMinimum,
 		DiscardDrawMinRound: g.DiscardDrawMinRound,
 		DeckSeed:            seed,
-		RoundScores:         map[string][]int{},
+		GameScores:          map[string][]int{},
 		TotalScores:         map[string]int{},
 		NextMeldSeq:         0,
 	}
 
 	deck := rules.BuildDeck(len(turnOrder))
-	rState.DrawPile = rules.Shuffle(deck, seed+int64(rState.Round)*9973)
+	rState.DrawPile = rules.Shuffle(deck, seed+int64(rState.GameNumber)*9973)
 	var err2 error
 	rState, err2 = rules.Deal12(rState)
 	if err2 != nil {
@@ -355,17 +358,19 @@ func (h *GameRestHandlers) startGame(w http.ResponseWriter, req *http.Request) {
 	for _, pid := range turnOrder {
 		rState.RoundReqMet[pid] = false
 		rState.Melds[pid] = nil
-		rState.RoundScores[pid] = []int{}
+		rState.GameScores[pid] = []int{}
 		rState.TotalScores[pid] = 0
 	}
 
 	// Persist into lobby game document.
 	nextGame := g
 	nextGame.Status = string(rState.Status)
-	nextGame.Round = rState.Round
+	nextGame.GameNumber = rState.GameNumber
 	nextGame.Phase = string(rState.Phase)
 	nextGame.CurrentTurn = rState.CurrentTurn
 	nextGame.TurnOrder = rState.TurnOrder
+	nextGame.DealStarterID = rState.DealStarterID
+	nextGame.Round = rState.Round
 	nextGame.DrawPile = rState.DrawPile
 	nextGame.DiscardPile = rState.DiscardPile
 	nextGame.ReshuffleCount = rState.ReshuffleCount
@@ -387,7 +392,7 @@ func (h *GameRestHandlers) startGame(w http.ResponseWriter, req *http.Request) {
 	nextGame.DiscardDrawMinRound = rState.DiscardDrawMinRound
 	nextGame.MeldsLaidThisTurn = rState.MeldsLaidThisTurn
 	nextGame.DiscardDrawnCardPendingMeld = rState.DiscardDrawnCardPendingMeld
-	nextGame.RoundScores = rState.RoundScores
+	nextGame.GameScores = rState.GameScores
 	nextGame.TotalScores = rState.TotalScores
 	nextGame.DeckSeed = rState.DeckSeed
 	nextGame.NextMeldSeq = rState.NextMeldSeq
@@ -532,4 +537,3 @@ func randomJoinCode(n int) string {
 	}
 	return string(out)
 }
-

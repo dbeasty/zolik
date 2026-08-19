@@ -43,4 +43,3 @@ func NaturalCardValue(card string, aceAsNatural bool) int {
 	}
 	return PenaltyPoints(card, true)
 }
-

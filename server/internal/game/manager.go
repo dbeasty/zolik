@@ -26,9 +26,9 @@ type Manager struct {
 
 func NewManager(repo *Repository, hub *Hub) *Manager {
 	return &Manager{
-		repo:       repo,
-		hub:        hub,
-		registry:   hub.Registry(),
+		repo:      repo,
+		hub:       hub,
+		registry:  hub.Registry(),
 		aiRunning: map[string]bool{},
 	}
 }
@@ -241,38 +241,42 @@ func toRulesState(g models.Game) rules.GameState {
 	}
 
 	return rules.GameState{
-		Status:             rules.GameStatus(g.Status),
-		Round:              g.Round,
-		Phase:              rules.Phase(g.Phase),
-		Created:            g.CreatedAt,
-		CurrentTurn:        g.CurrentTurn,
-		TurnOrder:          g.TurnOrder,
-		DrawPile:           g.DrawPile,
-		DiscardPile:        g.DiscardPile,
-		ReshuffleCount:     g.ReshuffleCount,
-		DeckSeed:           g.DeckSeed,
-		Hands:              g.Hands,
-		Melds:              g.Melds,
-		MeldMeta:           rMeldMeta,
-		RoundReqMet:        g.RoundReqMet,
-		InitialMeldMinimum: g.InitialMeldMinimum,
-		DiscardDrawMinRound: g.DiscardDrawMinRound,
-		MeldsLaidThisTurn:  g.MeldsLaidThisTurn,
+		Status:                      rules.GameStatus(g.Status),
+		GameNumber:                  g.GameNumber,
+		Phase:                       rules.Phase(g.Phase),
+		Created:                     g.CreatedAt,
+		CurrentTurn:                 g.CurrentTurn,
+		TurnOrder:                   g.TurnOrder,
+		DealStarterID:               g.DealStarterID,
+		Round:                       g.Round,
+		DrawPile:                    g.DrawPile,
+		DiscardPile:                 g.DiscardPile,
+		ReshuffleCount:              g.ReshuffleCount,
+		DeckSeed:                    g.DeckSeed,
+		Hands:                       g.Hands,
+		Melds:                       g.Melds,
+		MeldMeta:                    rMeldMeta,
+		RoundReqMet:                 g.RoundReqMet,
+		InitialMeldMinimum:          g.InitialMeldMinimum,
+		DiscardDrawMinRound:         g.DiscardDrawMinRound,
+		MeldsLaidThisTurn:           g.MeldsLaidThisTurn,
 		DiscardDrawnCardPendingMeld: g.DiscardDrawnCardPendingMeld,
-		RoundScores:        g.RoundScores,
-		TotalScores:        g.TotalScores,
-		WinnerID:           g.WinnerID,
-		IsDraw:             g.IsDraw,
-		NextMeldSeq:        g.NextMeldSeq,
+		GameScores:                  g.GameScores,
+		TotalScores:                 g.TotalScores,
+		WinnerID:                    g.WinnerID,
+		IsDraw:                      g.IsDraw,
+		NextMeldSeq:                 g.NextMeldSeq,
 	}
 }
 
 func fromRulesState(g *models.Game, rs rules.GameState) {
 	g.Status = string(rs.Status)
-	g.Round = rs.Round
+	g.GameNumber = rs.GameNumber
 	g.Phase = string(rs.Phase)
 	g.CurrentTurn = rs.CurrentTurn
 	g.TurnOrder = rs.TurnOrder
+	g.DealStarterID = rs.DealStarterID
+	g.Round = rs.Round
 	g.DrawPile = rs.DrawPile
 	g.DiscardPile = rs.DiscardPile
 	g.ReshuffleCount = rs.ReshuffleCount
@@ -284,7 +288,7 @@ func fromRulesState(g *models.Game, rs rules.GameState) {
 	g.DiscardDrawMinRound = rs.DiscardDrawMinRound
 	g.MeldsLaidThisTurn = rs.MeldsLaidThisTurn
 	g.DiscardDrawnCardPendingMeld = rs.DiscardDrawnCardPendingMeld
-	g.RoundScores = rs.RoundScores
+	g.GameScores = rs.GameScores
 	g.TotalScores = rs.TotalScores
 
 	// MeldMeta
@@ -422,15 +426,16 @@ func aiVisibleFromGame(game models.Game) ai.VisibleState {
 		}
 	}
 	return ai.VisibleState{
-		Round:              game.Round,
-		Phase:              game.Phase,
-		CurrentTurn:        game.CurrentTurn,
-		DiscardPile:        game.DiscardPile,
-		Melds:              game.Melds,
-		MeldMeta:           rMeldMeta,
-		RoundReqMet:        game.RoundReqMet,
-		TotalScores:        game.TotalScores,
-		InitialMeldMinimum: game.InitialMeldMinimum,
+		GameNumber:          game.GameNumber,
+		Round:               game.Round,
+		Phase:               game.Phase,
+		CurrentTurn:         game.CurrentTurn,
+		DiscardPile:         game.DiscardPile,
+		Melds:               game.Melds,
+		MeldMeta:            rMeldMeta,
+		RoundReqMet:         game.RoundReqMet,
+		TotalScores:         game.TotalScores,
+		InitialMeldMinimum:  game.InitialMeldMinimum,
 		DiscardDrawMinRound: game.DiscardDrawMinRound,
 	}
 }
@@ -449,4 +454,3 @@ func rulesActionToWSIncoming(a rules.Action) WSIncoming {
 		return WSIncoming{Type: string(a.Type)}
 	}
 }
-

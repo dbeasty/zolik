@@ -28,4 +28,3 @@ func TestToRulesAction_MappingDiscard(t *testing.T) {
 		t.Fatalf("expected card KH")
 	}
 }
-

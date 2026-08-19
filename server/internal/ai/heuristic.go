@@ -15,13 +15,13 @@ var AINames = map[string][]string{
 
 type HeuristicAgent struct {
 	difficulty string
-	rnd         *rand.Rand
+	rnd        *rand.Rand
 }
 
 func NewHeuristicAgent(difficulty string) *HeuristicAgent {
 	return &HeuristicAgent{
 		difficulty: difficulty,
-		rnd:         rand.New(rand.NewSource(time.Now().UnixNano())),
+		rnd:        rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
@@ -46,8 +46,8 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 			// Already down: shed cards one at a time onto any table meld
 			// (own or another player's) before trying a brand-new meld —
 			// otherwise a hand with no full new meld left in it can never
-			// shrink to zero and the round never ends.
-			if meldID, card, ok := findLayOff(visible.MeldMeta, visible.Melds, hand, visible.Round); ok {
+			// shrink to zero and the deal never ends.
+			if meldID, card, ok := findLayOff(visible.MeldMeta, visible.Melds, hand, visible.GameNumber); ok {
 				return rules.Action{Type: rules.ActionLayOff, MeldID: meldID, Card: card}
 			}
 			if meld, ok := findAnyValidMeld(hand); ok && len(hand) > len(meld) {
@@ -88,7 +88,7 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 
 func rulesStateForAI(visible VisibleState, playerID string) rules.GameState {
 	return rules.GameState{
-		Round:              visible.Round,
+		GameNumber:         visible.GameNumber,
 		RoundReqMet:        visible.RoundReqMet,
 		Melds:              visible.Melds,
 		MeldMeta:           visible.MeldMeta,
@@ -113,7 +113,7 @@ func findInitialMeldPlan(state rules.GameState, playerID string, hand []string) 
 // obligates melding that exact card this turn) is actually going to work
 // before committing to the draw.
 func findInitialMeldPlanRequiring(state rules.GameState, playerID string, hand []string, mustInclude string) ([][]string, bool) {
-	req := rules.RoundRequirementFor(state.Round)
+	req := rules.RoundRequirementFor(state.GameNumber)
 	setsBefore, runsBefore := rules.PlayerMeldCounts(state, playerID)
 	needSets := req.Sets - setsBefore
 	needRuns := req.Runs - runsBefore
@@ -138,7 +138,7 @@ func findInitialMeldPlanRequiring(state rules.GameState, playerID string, hand [
 	if !ok {
 		return nil, false
 	}
-	if state.Round < 7 {
+	if state.GameNumber < 7 {
 		used := 0
 		for _, m := range combo {
 			used += len(m)
@@ -242,9 +242,9 @@ func removeAtIndices(hand []string, idx ...int) []string {
 
 // findLayOff looks for a card in hand that can extend any table meld (own
 // or another player's). Skips a lay-off that would empty the hand before
-// round 7, since the server requires going out via discard until then.
-func findLayOff(meldMeta map[string][]rules.MeldInfo, melds map[string][][]string, hand []string, round int) (meldID string, card string, ok bool) {
-	if round < 7 && len(hand) == 1 {
+// game 7, since the server requires going out via discard until then.
+func findLayOff(meldMeta map[string][]rules.MeldInfo, melds map[string][][]string, hand []string, gameNumber int) (meldID string, card string, ok bool) {
+	if gameNumber < 7 && len(hand) == 1 {
 		return "", "", false
 	}
 	for owner, metas := range meldMeta {
@@ -322,4 +322,3 @@ func pickWorstDiscard(hand []string) string {
 	}
 	return worst
 }
-

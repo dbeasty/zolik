@@ -1,6 +1,9 @@
 export type GameState = {
   type: string;
   status: string;
+  /** Which deal of the match this is (1-7); drives the initial-meld pattern. */
+  game: number;
+  /** Laps around the table within the current deal; gates discardDrawMinRound. */
   round: number;
   phase: string;
   currentTurn: string;
@@ -36,6 +39,7 @@ export type Player = {
 export type LobbyGame = {
   id: string;
   status: string;
+  game: number;
   round: number;
   phase: string;
   currentTurn: string;

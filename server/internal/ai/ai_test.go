@@ -87,7 +87,7 @@ func TestHeuristicAgent_MeldLayOff_MeldFoundAndValid(t *testing.T) {
 	state := rules.GameState{
 		Status:      rules.StatusActive,
 		Phase:       rules.PhaseMeld,
-		Round:       1,
+		GameNumber:  1,
 		CurrentTurn: aiID,
 		TurnOrder:   []string{aiID, "p2"},
 		Hands:       map[string][]string{aiID: {"7H", "7D", "7C", "2H", "2D", "2C", "9S"}, "p2": {}},
@@ -99,7 +99,7 @@ func TestHeuristicAgent_MeldLayOff_MeldFoundAndValid(t *testing.T) {
 	}
 
 	visible := VisibleState{
-		Round:       state.Round,
+		GameNumber:  state.GameNumber,
 		Phase:       string(state.Phase),
 		CurrentTurn: state.CurrentTurn,
 		RoundReqMet: state.RoundReqMet,
@@ -125,26 +125,26 @@ func TestHeuristicAgent_WontStartMeldItCannotFinish(t *testing.T) {
 	aiID := "ai1"
 
 	state := rules.GameState{
-		Status:              rules.StatusActive,
-		Phase:               rules.PhaseMeld,
-		Round:               1,
-		CurrentTurn:         aiID,
-		TurnOrder:           []string{aiID, "p2"},
-		Hands:               map[string][]string{aiID: {"2H", "2D", "2C", "9S", "5H"}, "p2": {}},
-		DrawPile:            []string{"3H"},
-		DiscardPile:         []string{},
-		RoundReqMet:         map[string]bool{aiID: false, "p2": false},
-		InitialMeldMinimum:  35,
-		RoundScores:         map[string][]int{aiID: {}},
-		TotalScores:         map[string]int{aiID: 0},
+		Status:             rules.StatusActive,
+		Phase:              rules.PhaseMeld,
+		GameNumber:         1,
+		CurrentTurn:        aiID,
+		TurnOrder:          []string{aiID, "p2"},
+		Hands:              map[string][]string{aiID: {"2H", "2D", "2C", "9S", "5H"}, "p2": {}},
+		DrawPile:           []string{"3H"},
+		DiscardPile:        []string{},
+		RoundReqMet:        map[string]bool{aiID: false, "p2": false},
+		InitialMeldMinimum: 35,
+		GameScores:         map[string][]int{aiID: {}},
+		TotalScores:        map[string]int{aiID: 0},
 	}
 
 	visible := VisibleState{
-		Round:               state.Round,
-		Phase:               string(state.Phase),
-		CurrentTurn:         state.CurrentTurn,
-		RoundReqMet:         state.RoundReqMet,
-		InitialMeldMinimum:  state.InitialMeldMinimum,
+		GameNumber:         state.GameNumber,
+		Phase:              string(state.Phase),
+		CurrentTurn:        state.CurrentTurn,
+		RoundReqMet:        state.RoundReqMet,
+		InitialMeldMinimum: state.InitialMeldMinimum,
 	}
 
 	action := agent.ChooseAction(visible, state.Hands[aiID])
@@ -161,23 +161,23 @@ func TestHeuristicAgent_DiscardAllowedWhenRoundReqMet(t *testing.T) {
 	aiID := "ai1"
 
 	state := rules.GameState{
-		Status:      rules.StatusActive,
-		Phase:       rules.PhaseMeld,
-		Round:       1,
-		CurrentTurn: aiID,
-		TurnOrder:   []string{aiID},
-		Hands:       map[string][]string{aiID: {"KH"}},
-		DrawPile:    []string{"2H"},
-		DiscardPile: []string{},
-		RoundReqMet: map[string]bool{aiID: true},
+		Status:             rules.StatusActive,
+		Phase:              rules.PhaseMeld,
+		GameNumber:         1,
+		CurrentTurn:        aiID,
+		TurnOrder:          []string{aiID},
+		Hands:              map[string][]string{aiID: {"KH"}},
+		DrawPile:           []string{"2H"},
+		DiscardPile:        []string{},
+		RoundReqMet:        map[string]bool{aiID: true},
 		InitialMeldMinimum: 0,
-		DeckSeed:          1,
-		RoundScores:      map[string][]int{aiID: {}},
-		TotalScores:      map[string]int{aiID: 0},
+		DeckSeed:           1,
+		GameScores:         map[string][]int{aiID: {}},
+		TotalScores:        map[string]int{aiID: 0},
 	}
 
 	visible := VisibleState{
-		Round:       state.Round,
+		GameNumber:  state.GameNumber,
 		Phase:       string(state.Phase),
 		CurrentTurn: state.CurrentTurn,
 		RoundReqMet: state.RoundReqMet,
@@ -204,7 +204,7 @@ func TestHeuristicAgent_MeldBelowMinimum_FallsBackToDiscard(t *testing.T) {
 	state := rules.GameState{
 		Status:      rules.StatusActive,
 		Phase:       rules.PhaseMeld,
-		Round:       1,
+		GameNumber:  1,
 		CurrentTurn: aiID,
 		TurnOrder:   []string{aiID, "p2"},
 		Hands:       map[string][]string{aiID: {"2H", "2D", "2C", "9S"}, "p2": {}},
@@ -217,12 +217,12 @@ func TestHeuristicAgent_MeldBelowMinimum_FallsBackToDiscard(t *testing.T) {
 		RoundReqMet:        map[string]bool{aiID: false, "p2": false},
 		InitialMeldMinimum: 35, // 3H+3D+3C (9) + 2H+2D+2C (6) = 15, below minimum
 		DeckSeed:           1,
-		RoundScores:        map[string][]int{aiID: {}},
+		GameScores:         map[string][]int{aiID: {}},
 		TotalScores:        map[string]int{aiID: 0},
 	}
 
 	visible := VisibleState{
-		Round:              state.Round,
+		GameNumber:         state.GameNumber,
 		Phase:              string(state.Phase),
 		CurrentTurn:        state.CurrentTurn,
 		Melds:              state.Melds,
@@ -248,7 +248,7 @@ func TestHeuristicAgent_TakesDiscardWhenItCompletesTheInitialMeld(t *testing.T) 
 	aiID := "ai1"
 
 	visible := VisibleState{
-		Round:               1, // needs 2 sets
+		GameNumber:          1, // needs 2 sets
 		Phase:               string(rules.PhaseDraw),
 		CurrentTurn:         aiID,
 		DiscardPile:         []string{"9C"},
@@ -271,7 +271,7 @@ func TestHeuristicAgent_SkipsDiscardWhenItWontCompleteTheInitialMeld(t *testing.
 	aiID := "ai1"
 
 	visible := VisibleState{
-		Round:               1, // needs 2 sets
+		GameNumber:          1, // needs 2 sets
 		Phase:               string(rules.PhaseDraw),
 		CurrentTurn:         aiID,
 		DiscardPile:         []string{"KC"},
@@ -286,4 +286,3 @@ func TestHeuristicAgent_SkipsDiscardWhenItWontCompleteTheInitialMeld(t *testing.
 		t.Fatalf("expected agent to prefer the deck when the discard card can't be melded this turn, got: %+v", action)
 	}
 }
-

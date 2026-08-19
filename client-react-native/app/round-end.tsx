@@ -10,7 +10,7 @@ export default function RoundEndScreen() {
 
   if (!roundEnd) {
     return (
-      <Screen title="Round complete">
+      <Screen title="Deal complete">
         <Pressable onPress={() => router.replace('/')}>
           <Text style={shared.status}>Back to menu</Text>
         </Pressable>
@@ -23,7 +23,7 @@ export default function RoundEndScreen() {
   const winner = state.players.find((p) => p.id === winnerId);
 
   return (
-    <Screen title={`Round ${state.round} complete`} scroll>
+    <Screen title={`Game ${state.game}: deal complete`} scroll>
       {winner ? (
         <Text style={{ color: colors.text, fontSize: 16, marginBottom: 12 }}>
           {winner.name} went out!

@@ -5,8 +5,14 @@ import "time"
 // ApplyAction validates and applies an action to game state.
 // Pure: no DB/network/IO. Any persistence/broadcast is the caller's responsibility.
 func ApplyAction(state GameState, playerID string, action Action) (ApplyOutcome, error) {
+	if state.GameNumber == 0 {
+		state.GameNumber = 1
+	}
 	if state.Round == 0 {
 		state.Round = 1
+	}
+	if state.DealStarterID == "" && len(state.TurnOrder) > 0 {
+		state.DealStarterID = state.TurnOrder[0]
 	}
 	if state.RoundReqMet == nil {
 		state.RoundReqMet = map[string]bool{}
@@ -65,8 +71,8 @@ func ApplyAction(state GameState, playerID string, action Action) (ApplyOutcome,
 			"cards":    action.Cards,
 			"meldType": string(meldType),
 		}))
-		if ns.Round == 7 && ns.RoundReqMet[playerID] && len(ns.Hands[playerID]) == 0 {
-			return endRoundWithEvents(ns, playerID)
+		if ns.GameNumber == 7 && ns.RoundReqMet[playerID] && len(ns.Hands[playerID]) == 0 {
+			return endGameWithEvents(ns, playerID)
 		}
 		return ApplyOutcome{State: ns, Events: events}, nil
 
@@ -80,8 +86,8 @@ func ApplyAction(state GameState, playerID string, action Action) (ApplyOutcome,
 			"meldId":   action.MeldID,
 			"card":     action.Card,
 		}))
-		if ns.Round == 7 && ns.RoundReqMet[playerID] && len(ns.Hands[playerID]) == 0 {
-			return endRoundWithEvents(ns, playerID)
+		if ns.GameNumber == 7 && ns.RoundReqMet[playerID] && len(ns.Hands[playerID]) == 0 {
+			return endGameWithEvents(ns, playerID)
 		}
 		return ApplyOutcome{State: ns, Events: events}, nil
 
@@ -95,7 +101,7 @@ func ApplyAction(state GameState, playerID string, action Action) (ApplyOutcome,
 			"card":     action.Card,
 		}))
 		if goOut {
-			return endRoundWithEvents(ns, playerID)
+			return endGameWithEvents(ns, playerID)
 		}
 		return ApplyOutcome{State: ns, Events: events}, nil
 
@@ -104,17 +110,17 @@ func ApplyAction(state GameState, playerID string, action Action) (ApplyOutcome,
 	}
 }
 
-func endRoundWithEvents(state GameState, winnerID string) (ApplyOutcome, error) {
-	endedRound := state.Round
+func endGameWithEvents(state GameState, winnerID string) (ApplyOutcome, error) {
+	endedGame := state.GameNumber
 	handsAtEnd := allHandsForLog(state)
-	ns, err := EndRound(state, winnerID)
+	ns, err := EndGame(state, winnerID)
 	if err != nil {
 		return ApplyOutcome{State: state}, err
 	}
-	events := []StateEvent{ev("round_ended", map[string]interface{}{
+	events := []StateEvent{ev("deal_ended", map[string]interface{}{
 		"winnerId": winnerID,
-		"round":    endedRound,
-		"scores":   lastRoundScores(ns),
+		"game":     endedGame,
+		"scores":   lastGameScores(ns),
 		"allHands": handsAtEnd,
 	})}
 	if ns.Status == StatusCompleted {

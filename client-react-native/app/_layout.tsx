@@ -38,7 +38,7 @@ export default function RootLayout() {
                 name="game/[gameId]"
                 options={{ title: 'Game', headerBackVisible: false }}
               />
-              <Stack.Screen name="round-end" options={{ title: 'Round complete' }} />
+              <Stack.Screen name="round-end" options={{ title: 'Deal complete' }} />
               <Stack.Screen name="game-end" options={{ title: 'Game complete' }} />
               <Stack.Screen name="scoring/index" options={{ title: 'Score table' }} />
               <Stack.Screen name="stats" options={{ title: 'Stats' }} />

@@ -1,24 +1,30 @@
 package api
 
 type GameState struct {
-	Type               string              `json:"type"`
-	Status             string              `json:"status"`
-	Round              int                 `json:"round"`
-	Phase              string              `json:"phase"`
-	CurrentTurn        string              `json:"currentTurn"`
-	MyHand             []string            `json:"myHand"`
-	DiscardPile        []string            `json:"discardPile"`
-	DeckCount          int                 `json:"deckCount"`
-	ReshuffleCount     int                 `json:"reshuffleCount"`
-	CardCounts         map[string]int      `json:"cardCounts"`
-	Melds              map[string][][]string `json:"melds"`
-	MeldMeta           map[string][]MeldMeta `json:"meldMeta"`
-	Players            []Player            `json:"players"`
-	RoundReqMet        map[string]bool     `json:"roundReqMet"`
-	TotalScores        map[string]int      `json:"totalScores"`
-	WinnerID           string              `json:"winnerId"`
-	IsDraw             bool                `json:"isDraw"`
-	InitialMeldMinimum int                 `json:"initialMeldMinimum"`
+	Type   string `json:"type"`
+	Status string `json:"status"`
+	// Game is which deal of the match this is (1-7); drives the
+	// initial-meld pattern (see roundRequirementLabel).
+	Game int `json:"game"`
+	// Round is laps around the table within the current deal; gates
+	// DiscardDrawMinRound below.
+	Round               int                    `json:"round"`
+	Phase               string                 `json:"phase"`
+	CurrentTurn         string                 `json:"currentTurn"`
+	MyHand              []string               `json:"myHand"`
+	DiscardPile         []string               `json:"discardPile"`
+	DeckCount           int                    `json:"deckCount"`
+	ReshuffleCount      int                    `json:"reshuffleCount"`
+	CardCounts          map[string]int         `json:"cardCounts"`
+	Melds               map[string][][]string  `json:"melds"`
+	MeldMeta            map[string][]MeldMeta  `json:"meldMeta"`
+	Players             []Player               `json:"players"`
+	RoundReqMet         map[string]bool        `json:"roundReqMet"`
+	TotalScores         map[string]int         `json:"totalScores"`
+	WinnerID            string                 `json:"winnerId"`
+	IsDraw              bool                   `json:"isDraw"`
+	InitialMeldMinimum  int                    `json:"initialMeldMinimum"`
+	DiscardDrawMinRound int                    `json:"discardDrawMinRound"`
 }
 
 type MeldMeta struct {
@@ -34,13 +40,14 @@ type Player struct {
 }
 
 type LobbyGame struct {
-	ID             string         `json:"id"`
-	Status         string         `json:"status"`
-	Round          int            `json:"round"`
-	Phase          string         `json:"phase"`
-	CurrentTurn    string         `json:"currentTurn"`
-	Players        []LobbyPlayer  `json:"players"`
-	DiscardPileTop any            `json:"discardPileTop"`
+	ID             string        `json:"id"`
+	Status         string        `json:"status"`
+	Game           int           `json:"game"`
+	Round          int           `json:"round"`
+	Phase          string        `json:"phase"`
+	CurrentTurn    string        `json:"currentTurn"`
+	Players        []LobbyPlayer `json:"players"`
+	DiscardPileTop any           `json:"discardPileTop"`
 }
 
 type LobbyPlayer struct {

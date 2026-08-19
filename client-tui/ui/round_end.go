@@ -43,9 +43,9 @@ func (m roundEndModel) view(width, height int) string {
 			}
 		}
 	}
-	round := m.state.Round
+	game := m.state.Game
 	var b strings.Builder
-	b.WriteString(render.HeaderBar.Render(fmt.Sprintf("ROUND %d COMPLETE", round)) + "\n\n")
+	b.WriteString(render.HeaderBar.Render(fmt.Sprintf("GAME %d: DEAL COMPLETE", game)) + "\n\n")
 	if winner != "" {
 		b.WriteString(fmt.Sprintf("Winner: %s went out!\n\n", winner))
 	}

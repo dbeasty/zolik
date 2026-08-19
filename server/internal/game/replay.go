@@ -5,7 +5,7 @@ import (
 )
 
 type ReplayResponse struct {
-	GameState GameStateMsg   `json:"gameState"`
+	GameState GameStateMsg    `json:"gameState"`
 	ActionLog []models.Action `json:"actionLog"`
 }
 
@@ -38,7 +38,7 @@ func redactActionData(a models.Action, viewerID string) map[string]interface{} {
 		if a.PlayerID != viewerID {
 			delete(data, "card")
 		}
-	case "round_ended":
+	case "deal_ended":
 		if a.PlayerID != viewerID {
 			delete(data, "allHands")
 		}
@@ -58,4 +58,3 @@ func BuildReplayResponse(game models.Game, playerID string) ReplayResponse {
 		ActionLog: RedactActionLogForPlayer(game.ActionLog, playerID),
 	}
 }
-

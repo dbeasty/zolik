@@ -63,13 +63,21 @@ type Action struct {
 }
 
 type GameState struct {
-	Status  GameStatus
-	Round   int
-	Phase   Phase
-	Created time.Time
+	Status GameStatus
+	// GameNumber is which deal of the match this is (1-7). One GameNumber
+	// runs from deal through someone going out; it drives the
+	// RoundRequirementFor() Sets/Runs pattern and the match ends once
+	// GameNumber reaches 7 and that deal finishes.
+	GameNumber int
+	Phase      Phase
+	Created    time.Time
 
 	CurrentTurn string
 	TurnOrder   []string
+	// DealStarterID is whoever acted first in the current GameNumber. Used to
+	// detect when play has come back around to them, i.e. a full lap of the
+	// table (see Round below).
+	DealStarterID string
 
 	DrawPile       []string
 	DiscardPile    []string // top = last element
@@ -83,9 +91,15 @@ type GameState struct {
 
 	RoundReqMet        map[string]bool
 	InitialMeldMinimum int
+	// Round counts full laps around the table within the current GameNumber:
+	// it starts at 1 when a deal begins and increments each time play comes
+	// back around to DealStarterID. Distinct from GameNumber (which deal),
+	// this is what gates DiscardDrawMinRound below.
+	Round int
 	// DiscardDrawMinRound gates the "draw from discard pile" action: 0 or 1
-	// means no restriction (allowed from round 1); N>1 means players can't
-	// draw from discard until round N (they can still draw from the deck).
+	// means no restriction (allowed from the first lap); N>1 means players
+	// can't draw from discard until Round N (they can still draw from the
+	// deck).
 	DiscardDrawMinRound int
 	// MeldsLaidThisTurn counts lay_meld actions the current turn's actor has
 	// made toward their (not-yet-met) initial round requirement since their
@@ -106,7 +120,7 @@ type GameState struct {
 	DeckSeed int64
 
 	// Scoring
-	RoundScores map[string][]int
+	GameScores  map[string][]int
 	TotalScores map[string]int
 
 	WinnerID string
@@ -118,22 +132,22 @@ type GameState struct {
 type RulesErrorCode string
 
 const (
-	ErrNotYourTurn       RulesErrorCode = "NOT_YOUR_TURN"
-	ErrWrongPhase        RulesErrorCode = "WRONG_PHASE"
-	ErrCardNotInHand     RulesErrorCode = "CARD_NOT_IN_HAND"
-	ErrInvalidMeld       RulesErrorCode = "INVALID_MELD"
-	ErrRoundReqNotMet    RulesErrorCode = "ROUND_REQ_NOT_MET"
-	ErrMeldBelowMinimum  RulesErrorCode = "MELD_BELOW_MINIMUM"
-	ErrMeldNoContribution RulesErrorCode = "MELD_NO_CONTRIBUTION"
-	ErrTooManyWilds      RulesErrorCode = "TOO_MANY_WILDS"
-	ErrAdjacentWilds     RulesErrorCode = "ADJACENT_WILDS"
-	ErrAceBridge         RulesErrorCode = "ACE_BRIDGE"
-	ErrDiscardPileEmpty  RulesErrorCode = "DISCARD_PILE_EMPTY"
-	ErrDiscardLocked     RulesErrorCode = "DISCARD_LOCKED"
+	ErrNotYourTurn           RulesErrorCode = "NOT_YOUR_TURN"
+	ErrWrongPhase            RulesErrorCode = "WRONG_PHASE"
+	ErrCardNotInHand         RulesErrorCode = "CARD_NOT_IN_HAND"
+	ErrInvalidMeld           RulesErrorCode = "INVALID_MELD"
+	ErrRoundReqNotMet        RulesErrorCode = "ROUND_REQ_NOT_MET"
+	ErrMeldBelowMinimum      RulesErrorCode = "MELD_BELOW_MINIMUM"
+	ErrMeldNoContribution    RulesErrorCode = "MELD_NO_CONTRIBUTION"
+	ErrTooManyWilds          RulesErrorCode = "TOO_MANY_WILDS"
+	ErrAdjacentWilds         RulesErrorCode = "ADJACENT_WILDS"
+	ErrAceBridge             RulesErrorCode = "ACE_BRIDGE"
+	ErrDiscardPileEmpty      RulesErrorCode = "DISCARD_PILE_EMPTY"
+	ErrDiscardLocked         RulesErrorCode = "DISCARD_LOCKED"
 	ErrIncompleteInitialMeld RulesErrorCode = "INCOMPLETE_INITIAL_MELD"
 	ErrDiscardCardNotMelded  RulesErrorCode = "DISCARD_CARD_NOT_MELDED"
-	ErrGameSuspended     RulesErrorCode = "GAME_SUSPENDED"
-	ErrGameNotActive     RulesErrorCode = "GAME_NOT_ACTIVE"
+	ErrGameSuspended         RulesErrorCode = "GAME_SUSPENDED"
+	ErrGameNotActive         RulesErrorCode = "GAME_NOT_ACTIVE"
 
 	// Not in spec list; required by your decision for empty deck+discard.
 	ErrNoCardsLeft RulesErrorCode = "NO_CARDS_LEFT"
@@ -150,4 +164,3 @@ func (e RulesError) Error() string {
 	}
 	return string(e.Code)
 }
-

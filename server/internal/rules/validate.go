@@ -112,9 +112,9 @@ func ValidateMeldAction(state GameState, playerID string, cards []string) (GameS
 		}
 	}
 
-	// Rounds 1–6 require a final discard to go out; cannot meld away every card.
-	if state.Round < 7 && len(sim.Hands[playerID]) == 0 {
-		return state, "", "", RulesError{Code: ErrInvalidMeld, Message: "must discard last card to go out before round 7"}
+	// Games 1–6 require a final discard to go out; cannot meld away every card.
+	if state.GameNumber < 7 && len(sim.Hands[playerID]) == 0 {
+		return state, "", "", RulesError{Code: ErrInvalidMeld, Message: "must discard last card to go out before game 7"}
 	}
 
 	// Apply for real.
@@ -186,8 +186,8 @@ func ValidateLayOff(state GameState, playerID string, meldID string, card string
 	state.Hands[playerID] = removeCards(state.Hands[playerID], []string{card})
 	state.Melds[owner][idx] = newMeld
 
-	if state.Round < 7 && len(state.Hands[playerID]) == 0 {
-		return state, RulesError{Code: ErrInvalidMeld, Message: "must discard last card to go out before round 7"}
+	if state.GameNumber < 7 && len(state.Hands[playerID]) == 0 {
+		return state, RulesError{Code: ErrInvalidMeld, Message: "must discard last card to go out before game 7"}
 	}
 
 	return state, nil
@@ -207,7 +207,7 @@ func ValidateDiscard(state GameState, playerID string, card string) (GameState, 
 		return state, false, err
 	}
 	// A player who started laying melds toward their (still unmet) initial
-	// round requirement this turn must finish it before ending their turn —
+	// game requirement this turn must finish it before ending their turn —
 	// no leaving a lone partial meld on the table across turns.
 	if state.MeldsLaidThisTurn > 0 && !state.RoundReqMet[playerID] {
 		return state, false, RulesError{
@@ -227,7 +227,7 @@ func ValidateDiscard(state GameState, playerID string, card string) (GameState, 
 	state.Hands[playerID] = removeCards(state.Hands[playerID], []string{card})
 	state.DiscardPile = append(state.DiscardPile, card)
 
-	// Go-out check: if hand empty after discard, must have met round requirement.
+	// Go-out check: if hand empty after discard, must have met the game requirement.
 	if len(state.Hands[playerID]) == 0 {
 		if !state.RoundReqMet[playerID] {
 			return state, false, RulesError{Code: ErrRoundReqNotMet}
@@ -236,8 +236,12 @@ func ValidateDiscard(state GameState, playerID string, card string) (GameState, 
 	}
 
 	// Pass the turn to the next player, who draws from the deck or the
-	// discard pile like any other turn.
+	// discard pile like any other turn. If play comes back around to
+	// whoever started this deal, a full lap of the table has completed.
 	next := nextPlayer(state.TurnOrder, playerID)
+	if next == state.DealStarterID {
+		state.Round++
+	}
 	state.Phase = PhaseDraw
 	state.CurrentTurn = next
 
@@ -315,4 +319,3 @@ func findMeldByID(state GameState, meldID string) (owner string, idx int) {
 	}
 	return "", -1
 }
-

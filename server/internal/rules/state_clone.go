@@ -26,9 +26,9 @@ func cloneState(s GameState) GameState {
 	for k, v := range s.RoundReqMet {
 		out.RoundReqMet[k] = v
 	}
-	out.RoundScores = map[string][]int{}
-	for k, v := range s.RoundScores {
-		out.RoundScores[k] = append([]int(nil), v...)
+	out.GameScores = map[string][]int{}
+	for k, v := range s.GameScores {
+		out.GameScores[k] = append([]int(nil), v...)
 	}
 	out.TotalScores = map[string]int{}
 	for k, v := range s.TotalScores {

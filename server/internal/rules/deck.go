@@ -73,4 +73,3 @@ func Deal12(state GameState) (GameState, error) {
 	}
 	return state, nil
 }
-

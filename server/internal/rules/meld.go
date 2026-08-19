@@ -47,13 +47,13 @@ func IsWild(card string) bool {
 }
 
 type MeldValidation struct {
-	Type          MeldType
-	AceAsNatural  map[string]int // count of aces treated as natural (card string -> count)
-	NaturalValue  int            // sum of natural card values (wild=0, ace natural=1)
-	NaturalCount  int
-	WildCount     int
-	ResolvedRun   []int  // ranks, using 1 for A-low, 14 for A-high, 2..13 otherwise
-	ResolvedSuit  string // suit for run
+	Type         MeldType
+	AceAsNatural map[string]int // count of aces treated as natural (card string -> count)
+	NaturalValue int            // sum of natural card values (wild=0, ace natural=1)
+	NaturalCount int
+	WildCount    int
+	ResolvedRun  []int  // ranks, using 1 for A-low, 14 for A-high, 2..13 otherwise
+	ResolvedSuit string // suit for run
 }
 
 func ValidateMeld(cards []string) (MeldValidation, error) {
@@ -406,4 +406,3 @@ func cardToRunRank(card string) int {
 	}
 	return -1
 }
-

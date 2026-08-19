@@ -76,4 +76,3 @@ func (r *ConnRegistry) ForGame(gameID string) map[string]WSConn {
 	}
 	return out
 }
-

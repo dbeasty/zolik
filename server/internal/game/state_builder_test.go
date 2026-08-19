@@ -8,17 +8,17 @@ import (
 
 func TestBuildGameStateMsg_Hands(t *testing.T) {
 	g := models.Game{
-		Status:         "active",
-		Round:          1,
-		Phase:          "draw",
-		CurrentTurn:    "p1",
-		TurnOrder:      []string{"p1", "p2"},
-		DiscardPile:    []string{"7H"},
-		ReshuffleCount: 2,
+		Status:             "active",
+		Round:              1,
+		Phase:              "draw",
+		CurrentTurn:        "p1",
+		TurnOrder:          []string{"p1", "p2"},
+		DiscardPile:        []string{"7H"},
+		ReshuffleCount:     2,
 		InitialMeldMinimum: 35,
-		Melds:          map[string][][]string{},
-		RoundReqMet:    map[string]bool{"p1": false, "p2": false},
-		TotalScores:    map[string]int{"p1": 10, "p2": 5},
+		Melds:              map[string][][]string{},
+		RoundReqMet:        map[string]bool{"p1": false, "p2": false},
+		TotalScores:        map[string]int{"p1": 10, "p2": 5},
 		Players: []models.Player{
 			{ID: "p1", Name: "A"},
 			{ID: "p2", Name: "B"},
@@ -51,4 +51,3 @@ func TestBuildGameStateMsg_Hands(t *testing.T) {
 		t.Fatalf("expected 2 players in snapshot, got %d", len(msg1.Players))
 	}
 }
-

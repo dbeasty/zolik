@@ -2,10 +2,10 @@ package rules
 
 import "testing"
 
-func baseActiveState(round int, playerID string) GameState {
+func baseActiveState(gameNumber int, playerID string) GameState {
 	return GameState{
 		Status:             StatusActive,
-		Round:              round,
+		GameNumber:         gameNumber,
 		Phase:              PhaseMeld,
 		CurrentTurn:        playerID,
 		TurnOrder:          []string{playerID, "p2"},
@@ -17,12 +17,12 @@ func baseActiveState(round int, playerID string) GameState {
 		DrawPile:           []string{"2C"},
 		DiscardPile:        []string{},
 		DeckSeed:           42,
-		RoundScores:        map[string][]int{playerID: {}, "p2": {}},
+		GameScores:         map[string][]int{playerID: {}, "p2": {}},
 		TotalScores:        map[string]int{playerID: 0, "p2": 0},
 	}
 }
 
-func TestRound1_RequiresTwoSets(t *testing.T) {
+func TestGame1_RequiresTwoSets(t *testing.T) {
 	p := "p1"
 	st := baseActiveState(1, p)
 	st.Hands[p] = []string{"7H", "7D", "7C", "8H", "8D", "8C", "2S"}
@@ -44,7 +44,7 @@ func TestRound1_RequiresTwoSets(t *testing.T) {
 	}
 }
 
-func TestRound2_RequiresSetAndRun(t *testing.T) {
+func TestGame2_RequiresSetAndRun(t *testing.T) {
 	p := "p1"
 	st := baseActiveState(2, p)
 	st.Hands[p] = []string{"7H", "7D", "7C", "5H", "6H", "7H2", "8H"}
@@ -69,7 +69,7 @@ func TestRound2_RequiresSetAndRun(t *testing.T) {
 	}
 }
 
-func TestRound3_RequiresTwoRuns(t *testing.T) {
+func TestGame3_RequiresTwoRuns(t *testing.T) {
 	p := "p1"
 	st := baseActiveState(3, p)
 	st.Hands[p] = []string{"5H", "6H", "7H", "8H", "5D", "6D", "7D", "8D", "2S"}
@@ -148,7 +148,7 @@ func TestGoOut_BlockedWithoutRoundReq(t *testing.T) {
 	}
 }
 
-func TestRound7_GoOutViaMeldWithoutDiscard(t *testing.T) {
+func TestGame7_GoOutViaMeldWithoutDiscard(t *testing.T) {
 	p := "p1"
 	st := baseActiveState(7, p)
 	st.Hands[p] = []string{"5H", "6H", "7H", "8H"}
@@ -169,13 +169,13 @@ func TestRound7_GoOutViaMeldWithoutDiscard(t *testing.T) {
 	}
 	next := outcome.State
 	if !next.RoundReqMet[p] {
-		t.Fatalf("expected round req met")
+		t.Fatalf("expected game req met")
 	}
 	if len(next.Hands[p]) != 0 {
 		t.Fatalf("expected empty hand after going out")
 	}
 	if next.Status != StatusCompleted {
-		t.Fatalf("expected game completed after round 7 go-out, got round=%d status=%s", next.Round, next.Status)
+		t.Fatalf("expected match completed after game 7 go-out, got game=%d status=%s", next.GameNumber, next.Status)
 	}
 	if next.WinnerID == "" && !next.IsDraw {
 		t.Fatalf("expected winner or draw after game end")
@@ -216,9 +216,9 @@ func TestReshuffle_ShufflesDiscardIntoDraw(t *testing.T) {
 	}
 }
 
-func TestRoundRequirementFor_AllSevenRounds(t *testing.T) {
+func TestRoundRequirementFor_AllSevenGames(t *testing.T) {
 	cases := []struct {
-		round      int
+		game       int
 		sets, runs int
 	}{
 		{1, 2, 0},
@@ -230,9 +230,9 @@ func TestRoundRequirementFor_AllSevenRounds(t *testing.T) {
 		{7, 0, 3},
 	}
 	for _, tc := range cases {
-		req := RoundRequirementFor(tc.round)
+		req := RoundRequirementFor(tc.game)
 		if req.Sets != tc.sets || req.Runs != tc.runs {
-			t.Fatalf("round %d: got sets=%d runs=%d want %d/%d", tc.round, req.Sets, req.Runs, tc.sets, tc.runs)
+			t.Fatalf("game %d: got sets=%d runs=%d want %d/%d", tc.game, req.Sets, req.Runs, tc.sets, tc.runs)
 		}
 	}
 }

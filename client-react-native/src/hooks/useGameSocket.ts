@@ -23,9 +23,9 @@ export function useGameSocket({
   const stateRef = useRef<GameState | null>(null);
   const onRoundEndRef = useRef(onRoundEnd);
   const onGameEndRef = useRef(onGameEnd);
-  // The server broadcasts round_ended/game_ended before the game_state carrying
-  // the post-round totals, so the callbacks fire off the *next* game_state
-  // (which has the updated totalScores/round) rather than the stale one
+  // The server broadcasts deal_ended/game_ended before the game_state carrying
+  // the post-deal totals, so the callbacks fire off the *next* game_state
+  // (which has the updated totalScores/game) rather than the stale one
   // captured at the moment the event arrived.
   const pendingRoundEndRef = useRef<WSEnvelope | null>(null);
   const pendingGameEndRef = useRef<WSEnvelope | null>(null);
@@ -69,7 +69,7 @@ export function useGameSocket({
           }
         } else if (t === 'error') {
           setStatus(`✗ ${String(envelope.message ?? 'Error')}`);
-        } else if (t === 'round_ended') {
+        } else if (t === 'deal_ended') {
           pendingRoundEndRef.current = envelope;
         } else if (t === 'game_ended') {
           pendingGameEndRef.current = envelope;
