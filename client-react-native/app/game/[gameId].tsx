@@ -230,18 +230,16 @@ export default function GameScreen() {
 
         <MeldTable state={state} myUserId={userId} />
 
-        <Text style={[shared.status, { marginTop: 8 }]}>
-          Discard pile
-          {state.discardDrawMinRound > 1 && state.round < state.discardDrawMinRound
-            ? ` (pickup locked until round ${state.discardDrawMinRound})`
-            : ''}
-        </Text>
-        <View
-          ref={discardZoneRef}
-          onLayout={measureDiscardZone}
-          style={{ flexDirection: 'row', alignItems: 'center' }}
-        >
-          {topDiscard ? <CardView card={topDiscard} /> : <Text style={shared.status}>Empty</Text>}
+        <View ref={discardZoneRef} onLayout={measureDiscardZone} style={{ paddingVertical: 4 }}>
+          <Text style={[shared.status, { marginTop: 8 }]}>
+            Discard pile
+            {state.discardDrawMinRound > 1 && state.round < state.discardDrawMinRound
+              ? ` (pickup locked until round ${state.discardDrawMinRound})`
+              : ''}
+          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {topDiscard ? <CardView card={topDiscard} /> : <Text style={shared.status}>Empty</Text>}
+          </View>
         </View>
 
         <View
