@@ -157,9 +157,9 @@ func TestContinental_MinRunSizeStillFour(t *testing.T) {
 	}
 }
 
-func TestResolveProfile_UnknownFallsBackToContinental(t *testing.T) {
-	if ResolveProfile("something-made-up") != ProfileContinental {
-		t.Fatal("unknown profile name should resolve to ProfileContinental")
+func TestResolveProfile_UnknownFallsBackToZolikClassic(t *testing.T) {
+	if ResolveProfile("something-made-up") != ProfileZolikClassic {
+		t.Fatal("unknown profile name should resolve to ProfileZolikClassic")
 	}
 }
 

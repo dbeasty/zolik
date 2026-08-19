@@ -38,16 +38,16 @@ var ProfileZolikClassic = RulesConfig{
 	TargetScore:            200,
 }
 
-// ResolveProfile returns the named base profile, or ProfileContinental for
-// an unknown/empty name (safe default, matches legacy behavior).
+// ResolveProfile returns the named base profile, or ProfileZolikClassic for
+// an unknown/empty name (the default ruleset).
 func ResolveProfile(name string) RulesConfig {
 	switch name {
-	case "zolik_classic":
+	case "continental":
+		return ProfileContinental
+	case "zolik_classic", "":
 		return ProfileZolikClassic
-	case "continental", "":
-		return ProfileContinental
 	default:
-		return ProfileContinental
+		return ProfileZolikClassic
 	}
 }
 

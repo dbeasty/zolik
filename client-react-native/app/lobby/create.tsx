@@ -3,18 +3,24 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
 import { Screen } from '@/src/components/Screen';
-import { useSession } from '@/src/context/SessionContext';
+import { storage, useSession } from '@/src/context/SessionContext';
 import type { LobbyPlayer, RulesProfile } from '@/src/api/types';
 import { colors, shared } from '@/src/theme';
 
 const DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
 const MELD_MINS = [0, 35, 50, 70];
 const DISCARD_LOCK_ROUNDS = [0, 1, 2, 3];
+const LAST_PROFILE_KEY = 'zolik_last_rules_profile';
 
 const PROFILES: { value: RulesProfile; label: string }[] = [
   { value: 'continental', label: 'Continental' },
   { value: 'zolik_classic', label: 'Žolík Classic' },
 ];
+
+async function loadLastProfile(): Promise<RulesProfile> {
+  const stored = await storage.getItem(LAST_PROFILE_KEY);
+  return stored === 'continental' || stored === 'zolik_classic' ? stored : 'zolik_classic';
+}
 
 const PROFILE_RULES_TITLE: Record<string, string> = {
   continental: 'Continental Rummy rules',
@@ -28,7 +34,7 @@ export default function CreateLobbyScreen() {
   const [joinCode, setJoinCode] = useState('');
   const [players, setPlayers] = useState<LobbyPlayer[]>([]);
   const [aiDiff, setAiDiff] = useState<(typeof DIFFICULTIES)[number]>('medium');
-  const [profile, setProfile] = useState<RulesProfile>('continental');
+  const [profile, setProfile] = useState<RulesProfile>('zolik_classic');
   const [initialMin, setInitialMin] = useState(35);
   // Continental Rummy: discard-pile pickup only opens up from round 3.
   const [discardLockRound, setDiscardLockRound] = useState(3);
@@ -59,7 +65,10 @@ export default function CreateLobbyScreen() {
     let cancelled = false;
     (async () => {
       try {
-        const { gameId: id, joinCode: code } = await client.createGame(profile);
+        const lastProfile = await loadLastProfile();
+        if (cancelled) return;
+        setProfile(lastProfile);
+        const { gameId: id, joinCode: code } = await client.createGame(lastProfile);
         if (cancelled) return;
         setGameId(id);
         setJoinCode(code);
@@ -109,6 +118,7 @@ export default function CreateLobbyScreen() {
     setProfile(next);
     try {
       await client.updateGameSettings(gameId, { rulesProfile: next });
+      await storage.setItem(LAST_PROFILE_KEY, next);
       // The server resets initialMeldMinimum/discardDrawMinRound to the new
       // profile's defaults — pick those up on the next poll rather than
       // guessing them here.

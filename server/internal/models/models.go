@@ -20,7 +20,7 @@ type Game struct {
 	TurnOrder   []string `bson:"turnOrder" json:"turnOrder"`
 	// RulesProfile names the resolved ruleset this game runs under — see
 	// rules.ResolveProfile. Set at lobby creation; empty/unknown defaults to
-	// "continental".
+	// "zolik_classic".
 	RulesProfile string `bson:"rulesProfile" json:"rulesProfile"`
 	// DealStarterID/Round are new fields (fresh bson keys, so old documents
 	// simply default to "" / 0 until their next deal) — see

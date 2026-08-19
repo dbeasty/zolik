@@ -30,7 +30,7 @@ const SessionContext = createContext<SessionContextValue | null>(null);
 // expo-secure-store has no web implementation; fall back to localStorage
 // there (it's not encrypted, but this only ever holds JWTs, same as any
 // other browser-based session token).
-const storage = {
+export const storage = {
   async getItem(key: string): Promise<string | null> {
     if (Platform.OS === 'web') {
       return typeof localStorage !== 'undefined' ? localStorage.getItem(key) : null;

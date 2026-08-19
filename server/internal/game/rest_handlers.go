@@ -29,7 +29,7 @@ func NewGameRestHandlers(repo *Repository, hub *Hub, manager *Manager) *GameRest
 
 type CreateGameReq struct {
 	// RulesProfile selects the base ruleset ("continental" | "zolik_classic").
-	// Empty defaults to "continental". The two fields below, when present,
+	// Empty defaults to "zolik_classic". The two fields below, when present,
 	// override that profile's defaults — the "custom house rules" path.
 	RulesProfile        *string `json:"rulesProfile,omitempty"`
 	InitialMeldMinimum  *int    `json:"initialMeldMinimum,omitempty"`
@@ -119,7 +119,7 @@ func (h *GameRestHandlers) createGame(w http.ResponseWriter, req *http.Request) 
 	var body CreateGameReq
 	_ = json.NewDecoder(req.Body).Decode(&body)
 
-	profile := "continental"
+	profile := "zolik_classic"
 	if body.RulesProfile != nil {
 		profile = *body.RulesProfile
 	}
