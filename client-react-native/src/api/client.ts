@@ -136,7 +136,6 @@ export class ZolikClient {
     settings: {
       initialMeldMinimum?: number;
       discardDrawMinRound?: number;
-      deckDrawMinRound?: number;
     },
   ): Promise<void> {
     await this.request(

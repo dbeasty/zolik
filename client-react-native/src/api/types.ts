@@ -18,7 +18,6 @@ export type GameState = {
   isDraw?: boolean;
   initialMeldMinimum: number;
   discardDrawMinRound: number;
-  deckDrawMinRound: number;
   offer?: Offer;
 };
 
@@ -48,7 +47,6 @@ export type LobbyGame = {
   hostId?: string;
   initialMeldMinimum?: number;
   discardDrawMinRound?: number;
-  deckDrawMinRound?: number;
   discardPileTop?: unknown;
 };
 

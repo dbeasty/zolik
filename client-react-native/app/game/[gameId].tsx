@@ -151,8 +151,7 @@ export default function GameScreen() {
   }
 
   const topDiscard = state.discardPile[state.discardPile.length - 1];
-  const deckLocked = state.deckDrawMinRound > 1 && state.round < state.deckDrawMinRound;
-  const header = `Round ${state.round}: ${roundRequirementLabel(state.round)} · Deck ${state.deckCount}${deckLocked ? ` (locked until round ${state.deckDrawMinRound})` : ''}`;
+  const header = `Round ${state.round}: ${roundRequirementLabel(state.round)} · Deck ${state.deckCount}`;
   const turnLabel = isMyTurn
     ? 'Your turn'
     : (() => {
@@ -169,27 +168,16 @@ export default function GameScreen() {
     );
   } else if (isMyTurn) {
     if (phase === 'draw') {
-      // Mirrors the server's deadlock-safety fallback: if both locks ever
-      // overlap on the same round, whichever source is actually usable
-      // stays available rather than leaving no legal draw action at all.
-      const discardHasCards = state.discardPile.length > 0;
-      const discardNominallyLocked =
+      actions.push({
+        label: 'Draw deck',
+        onPress: () => {
+          send({ type: 'draw_card', from: 'deck' });
+          clearSelect();
+        },
+      });
+      const discardLocked =
         state.discardDrawMinRound > 1 && state.round < state.discardDrawMinRound;
-      const deckNominallyLocked = state.deckDrawMinRound > 1 && state.round < state.deckDrawMinRound;
-      const discardDrawAvailable = discardHasCards && !discardNominallyLocked;
-      const deckAllowed = !deckNominallyLocked || !discardDrawAvailable;
-      const discardAllowed = discardHasCards && (!discardNominallyLocked || deckNominallyLocked);
-
-      if (deckAllowed) {
-        actions.push({
-          label: 'Draw deck',
-          onPress: () => {
-            send({ type: 'draw_card', from: 'deck' });
-            clearSelect();
-          },
-        });
-      }
-      if (discardAllowed) {
+      if (!discardLocked) {
         actions.push({
           label: 'Take discard',
           onPress: () => {

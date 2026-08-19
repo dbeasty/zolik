@@ -10,7 +10,6 @@ import { colors, shared } from '@/src/theme';
 const DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
 const MELD_MINS = [35, 50, 70];
 const DISCARD_LOCK_ROUNDS = [1, 2, 3];
-const DECK_LOCK_ROUNDS = [1, 2, 3];
 
 export default function CreateLobbyScreen() {
   const { client, session } = useSession();
@@ -21,7 +20,6 @@ export default function CreateLobbyScreen() {
   const [initialMin, setInitialMin] = useState(35);
   // Continental Rummy: discard-pile pickup only opens up from round 3.
   const [discardLockRound, setDiscardLockRound] = useState(3);
-  const [deckLockRound, setDeckLockRound] = useState(1);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(true);
 
@@ -36,7 +34,6 @@ export default function CreateLobbyScreen() {
       setPlayers(info.players);
       if (info.initialMeldMinimum != null) setInitialMin(info.initialMeldMinimum);
       if (info.discardDrawMinRound != null) setDiscardLockRound(info.discardDrawMinRound);
-      if (info.deckDrawMinRound != null) setDeckLockRound(info.deckDrawMinRound);
       if (info.status === 'active') {
         router.replace(`/game/${gameId}`);
       }
@@ -116,17 +113,6 @@ export default function CreateLobbyScreen() {
     }
   }
 
-  async function cycleDeckLock() {
-    const idx = DECK_LOCK_ROUNDS.indexOf(deckLockRound);
-    const next = DECK_LOCK_ROUNDS[(idx + 1) % DECK_LOCK_ROUNDS.length];
-    setDeckLockRound(next);
-    try {
-      await client.updateGameSettings(gameId, { deckDrawMinRound: next });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Update failed');
-    }
-  }
-
   if (busy) {
     return (
       <Screen title="New game">
@@ -170,11 +156,6 @@ export default function CreateLobbyScreen() {
               label="Discard pickup"
               value={`R${discardLockRound}`}
               onPress={isHost ? cycleDiscardLock : undefined}
-            />
-            <RuleChip
-              label="Deck draw"
-              value={`R${deckLockRound}`}
-              onPress={isHost ? cycleDeckLock : undefined}
             />
           </View>
         </View>
