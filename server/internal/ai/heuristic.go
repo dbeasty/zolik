@@ -56,7 +56,21 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 	if visible.Phase == string(rules.PhaseDraw) {
 		discardLocked := visible.DiscardDrawMinRound > 1 && visible.Round < visible.DiscardDrawMinRound
 		if len(visible.DiscardPile) > 0 && !discardLocked {
-			return rules.Action{Type: rules.ActionDrawCard, DrawFrom: rules.DrawFromDiscard}
+			actor := visible.CurrentTurn
+			if visible.RoundReqMet[actor] {
+				// Already down: a discard pickup is unrestricted.
+				return rules.Action{Type: rules.ActionDrawCard, DrawFrom: rules.DrawFromDiscard}
+			}
+			// Not yet down: picking up the discard obligates laying that
+			// exact card into the initial meld this turn (server-enforced).
+			// Only take it if a full plan using it actually exists —
+			// otherwise take the deck instead, which carries no obligation.
+			st := rulesStateForAI(visible, actor)
+			topDiscard := visible.DiscardPile[len(visible.DiscardPile)-1]
+			candidateHand := append(append([]string(nil), hand...), topDiscard)
+			if _, ok := findInitialMeldPlanRequiring(st, actor, candidateHand, topDiscard); ok {
+				return rules.Action{Type: rules.ActionDrawCard, DrawFrom: rules.DrawFromDiscard}
+			}
 		}
 		return rules.Action{Type: rules.ActionDrawCard, DrawFrom: rules.DrawFromDeck}
 	}
@@ -102,6 +116,15 @@ func rulesStateForAI(visible VisibleState, playerID string) rules.GameState {
 // ChooseAction calls), but only ever starts if a full plan already exists,
 // so the server's "must finish what you start" rule never strands it.
 func findInitialMeldPlan(state rules.GameState, playerID string, hand []string) ([][]string, bool) {
+	return findInitialMeldPlanRequiring(state, playerID, hand, "")
+}
+
+// findInitialMeldPlanRequiring is findInitialMeldPlan, but when mustInclude
+// is non-empty, only returns a plan that actually uses that specific card in
+// one of its melds — used to check whether picking up a discard card (which
+// obligates melding that exact card this turn) is actually going to work
+// before committing to the draw.
+func findInitialMeldPlanRequiring(state rules.GameState, playerID string, hand []string, mustInclude string) ([][]string, bool) {
 	req := rules.RoundRequirementFor(state.Round)
 	setsBefore, runsBefore := rules.PlayerMeldCounts(state, playerID)
 	needSets := req.Sets - setsBefore
@@ -122,7 +145,8 @@ func findInitialMeldPlan(state rules.GameState, playerID string, hand []string) 
 	alreadyValue := rules.PlayerInitialMeldNaturalValue(state, playerID)
 
 	budget := &searchBudget{remaining: 200000}
-	combo, ok := searchMeldCombo(hand, needSets, needRuns, alreadyValue, minValue, budget)
+	satisfied := mustInclude == ""
+	combo, ok := searchMeldCombo(hand, needSets, needRuns, alreadyValue, minValue, satisfied, mustInclude, budget)
 	if !ok {
 		return nil, false
 	}
@@ -141,9 +165,24 @@ func findInitialMeldPlan(state rules.GameState, playerID string, hand []string) 
 
 type searchBudget struct{ remaining int }
 
-func searchMeldCombo(hand []string, needSets, needRuns, valueSoFar, minValue int, budget *searchBudget) ([][]string, bool) {
+func containsCard(cards []string, card string) bool {
+	for _, c := range cards {
+		if c == card {
+			return true
+		}
+	}
+	return false
+}
+
+func searchMeldCombo(
+	hand []string,
+	needSets, needRuns, valueSoFar, minValue int,
+	satisfied bool,
+	mustInclude string,
+	budget *searchBudget,
+) ([][]string, bool) {
 	if needSets == 0 && needRuns == 0 {
-		if valueSoFar >= minValue {
+		if valueSoFar >= minValue && satisfied {
 			return [][]string{}, true
 		}
 		return nil, false
@@ -163,7 +202,8 @@ func searchMeldCombo(hand []string, needSets, needRuns, valueSoFar, minValue int
 						continue
 					}
 					rest := removeAtIndices(hand, i, j, k)
-					if combo, ok := searchMeldCombo(rest, needSets-1, needRuns, valueSoFar+mv.NaturalValue, minValue, budget); ok {
+					candSatisfied := satisfied || containsCard(cand, mustInclude)
+					if combo, ok := searchMeldCombo(rest, needSets-1, needRuns, valueSoFar+mv.NaturalValue, minValue, candSatisfied, mustInclude, budget); ok {
 						return append([][]string{cand}, combo...), true
 					}
 				}
@@ -185,7 +225,8 @@ func searchMeldCombo(hand []string, needSets, needRuns, valueSoFar, minValue int
 							continue
 						}
 						rest := removeAtIndices(hand, i, j, k, l)
-						if combo, ok := searchMeldCombo(rest, needSets, needRuns-1, valueSoFar+mv.NaturalValue, minValue, budget); ok {
+						candSatisfied := satisfied || containsCard(cand, mustInclude)
+						if combo, ok := searchMeldCombo(rest, needSets, needRuns-1, valueSoFar+mv.NaturalValue, minValue, candSatisfied, mustInclude, budget); ok {
 							return append([][]string{cand}, combo...), true
 						}
 					}

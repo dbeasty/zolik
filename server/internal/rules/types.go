@@ -102,6 +102,14 @@ type GameState struct {
 	// either complete it or... they must complete it — see ValidateDiscard.
 	// Reset to 0 whenever a player's turn begins (draw, or accept-offer).
 	MeldsLaidThisTurn int
+	// DiscardDrawnCardPendingMeld: when a player draws from the discard pile
+	// while they haven't yet met their round requirement, that specific
+	// card must be laid down as part of completing their initial meld this
+	// turn — it can't just be picked up and held. Holds the card string
+	// while that obligation is outstanding, "" once satisfied (the card was
+	// used in a lay_meld) or moot (round requirement already met). Reset
+	// whenever a turn begins.
+	DiscardDrawnCardPendingMeld string
 
 	Offer *DiscardOffer
 
@@ -135,6 +143,7 @@ const (
 	ErrDiscardPileEmpty  RulesErrorCode = "DISCARD_PILE_EMPTY"
 	ErrDiscardLocked     RulesErrorCode = "DISCARD_LOCKED"
 	ErrIncompleteInitialMeld RulesErrorCode = "INCOMPLETE_INITIAL_MELD"
+	ErrDiscardCardNotMelded  RulesErrorCode = "DISCARD_CARD_NOT_MELDED"
 	ErrGameSuspended     RulesErrorCode = "GAME_SUSPENDED"
 	ErrGameNotActive     RulesErrorCode = "GAME_NOT_ACTIVE"
 

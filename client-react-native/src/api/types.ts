@@ -18,6 +18,7 @@ export type GameState = {
   isDraw?: boolean;
   initialMeldMinimum: number;
   discardDrawMinRound: number;
+  discardDrawnCardPendingMeld?: string;
   offer?: Offer;
 };
 

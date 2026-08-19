@@ -139,10 +139,14 @@ export default function CreateLobbyScreen() {
           {DIFFICULTIES.map((d) => (
             <Pressable
               key={d}
-              style={[shared.button, shared.buttonSecondary, { flex: 1, marginBottom: 0 }]}
+              style={[
+                shared.button,
+                d === aiDiff ? null : shared.buttonSecondary,
+                { flex: 1, marginBottom: 0 },
+              ]}
               onPress={() => setAiDiff(d)}
             >
-              <Text style={shared.buttonTextSecondary}>{d}</Text>
+              <Text style={d === aiDiff ? shared.buttonText : shared.buttonTextSecondary}>{d}</Text>
             </Pressable>
           ))}
         </View>

@@ -33,6 +33,7 @@ func ValidateDraw(state GameState, playerID string, from DrawFrom) (GameState, s
 		state.Hands[playerID] = append(state.Hands[playerID], card)
 		state.Phase = PhaseMeld
 		state.MeldsLaidThisTurn = 0
+		state.DiscardDrawnCardPendingMeld = ""
 		return state, card, nil, nil
 
 	case DrawFromDiscard:
@@ -47,6 +48,14 @@ func ValidateDraw(state GameState, playerID string, from DrawFrom) (GameState, s
 		state.Hands[playerID] = append(state.Hands[playerID], card)
 		state.Phase = PhaseMeld
 		state.MeldsLaidThisTurn = 0
+		// Before a player has gone down, a discard-pile pickup obligates
+		// them to lay that exact card into their initial meld this turn —
+		// see ValidateDiscard. Once already down it's a free card.
+		if !state.RoundReqMet[playerID] {
+			state.DiscardDrawnCardPendingMeld = card
+		} else {
+			state.DiscardDrawnCardPendingMeld = ""
+		}
 		return state, card, nil, nil
 	default:
 		return state, "", nil, fmt.Errorf("unknown draw source")
@@ -86,6 +95,7 @@ func ValidateAcceptOffer(state GameState, playerID string) (GameState, string, s
 	state.CurrentTurn = playerID
 	state.Phase = PhaseMeld
 	state.MeldsLaidThisTurn = 0
+	state.DiscardDrawnCardPendingMeld = ""
 
 	return state, offeredCard, penalty, nil
 }
@@ -188,6 +198,14 @@ func ValidateMeldAction(state GameState, playerID string, cards []string) (GameS
 	if !wasReqMet {
 		state.MeldsLaidThisTurn++
 	}
+	if state.DiscardDrawnCardPendingMeld != "" {
+		for _, c := range cards {
+			if c == state.DiscardDrawnCardPendingMeld {
+				state.DiscardDrawnCardPendingMeld = ""
+				break
+			}
+		}
+	}
 
 	return state, meldID, mv.Type, nil
 }
@@ -201,6 +219,16 @@ func ValidateLayOff(state GameState, playerID string, meldID string, card string
 	}
 	if state.CurrentTurn != playerID {
 		return state, RulesError{Code: ErrNotYourTurn}
+	}
+	// A player can only lay off (onto their own or another player's melds)
+	// once they've laid their own initial meld — before that, any card they
+	// draw must go toward completing their own combination, not extending
+	// someone else's.
+	if !state.RoundReqMet[playerID] {
+		return state, RulesError{
+			Code:    ErrRoundReqNotMet,
+			Message: "lay your own initial meld before laying off on any meld",
+		}
 	}
 	if err := requireCardsInHand(state.Hands[playerID], []string{card}); err != nil {
 		return state, err
@@ -246,6 +274,14 @@ func ValidateDiscard(state GameState, playerID string, card string) (GameState, 
 		return state, false, RulesError{
 			Code:    ErrIncompleteInitialMeld,
 			Message: "finish laying your full initial meld combination (all required sets/runs, total value met) before you can discard",
+		}
+	}
+	// A discard-pile pickup made before going down obligates the player to
+	// lay that card into their initial meld this turn.
+	if state.DiscardDrawnCardPendingMeld != "" && !state.RoundReqMet[playerID] {
+		return state, false, RulesError{
+			Code:    ErrDiscardCardNotMelded,
+			Message: "the card you picked up from the discard pile must go into your initial meld before you can discard",
 		}
 	}
 

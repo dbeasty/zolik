@@ -227,3 +227,126 @@ func TestValidateDiscard_AllowedOnceRoundReqMet(t *testing.T) {
 	}
 }
 
+func TestValidateDraw_DiscardPickupSetsPendingMeldBeforeGoingDown(t *testing.T) {
+	st := GameState{
+		Status:      StatusActive,
+		Phase:       PhaseDraw,
+		Round:       3,
+		DrawPile:    []string{"2H"},
+		DiscardPile: []string{"9S"},
+		Hands:       map[string][]string{"p1": {}},
+		CurrentTurn: "p1",
+		RoundReqMet: map[string]bool{"p1": false},
+	}
+	ns, card, _, err := ValidateDraw(st, "p1", DrawFromDiscard)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if card != "9S" || ns.DiscardDrawnCardPendingMeld != "9S" {
+		t.Fatalf("expected pending-meld obligation on 9S, got card=%q pending=%q", card, ns.DiscardDrawnCardPendingMeld)
+	}
+}
+
+func TestValidateDraw_DiscardPickupNoObligationOnceDown(t *testing.T) {
+	st := GameState{
+		Status:      StatusActive,
+		Phase:       PhaseDraw,
+		Round:       3,
+		DrawPile:    []string{"2H"},
+		DiscardPile: []string{"9S"},
+		Hands:       map[string][]string{"p1": {}},
+		CurrentTurn: "p1",
+		RoundReqMet: map[string]bool{"p1": true},
+	}
+	ns, _, _, err := ValidateDraw(st, "p1", DrawFromDiscard)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if ns.DiscardDrawnCardPendingMeld != "" {
+		t.Fatalf("expected no pending obligation once already down, got %q", ns.DiscardDrawnCardPendingMeld)
+	}
+}
+
+func TestValidateDiscard_BlocksWhenPickedUpDiscardCardStillUnmelded(t *testing.T) {
+	st := GameState{
+		Status:                      StatusActive,
+		Phase:                       PhaseMeld,
+		Round:                       3,
+		CurrentTurn:                 "p1",
+		Hands:                       map[string][]string{"p1": {"9S", "4D"}},
+		DiscardPile:                 []string{},
+		RoundReqMet:                 map[string]bool{"p1": false},
+		DiscardDrawnCardPendingMeld: "9S",
+	}
+	// Trying to discard a *different* card while 9S (the discard pickup)
+	// remains unmelded must be rejected.
+	_, _, err := ValidateDiscard(st, "p1", "4D")
+	if err == nil {
+		t.Fatalf("expected discard to be blocked while the picked-up card is unmelded")
+	}
+	re, ok := err.(RulesError)
+	if !ok || re.Code != ErrDiscardCardNotMelded {
+		t.Fatalf("expected ErrDiscardCardNotMelded, got %#v", err)
+	}
+}
+
+func TestValidateMeldAction_UsingPendingDiscardCardClearsObligation(t *testing.T) {
+	st := GameState{
+		Status:                      StatusActive,
+		Phase:                       PhaseMeld,
+		Round:                       1,
+		CurrentTurn:                 "p1",
+		TurnOrder:                   []string{"p1", "p2"},
+		Hands:                       map[string][]string{"p1": {"9S", "9D", "9C", "KH", "KD", "KC"}, "p2": {}},
+		Melds:                       map[string][][]string{},
+		MeldMeta:                    map[string][]MeldInfo{},
+		RoundReqMet:                 map[string]bool{"p1": false, "p2": false},
+		InitialMeldMinimum:          0,
+		DiscardDrawnCardPendingMeld: "9S",
+	}
+	ns, _, _, err := ValidateMeldAction(st, "p1", []string{"9S", "9D", "9C"})
+	if err != nil {
+		t.Fatalf("unexpected err laying the meld containing the pending card: %v", err)
+	}
+	if ns.DiscardDrawnCardPendingMeld != "" {
+		t.Fatalf("expected pending obligation cleared after melding 9S, got %q", ns.DiscardDrawnCardPendingMeld)
+	}
+}
+
+func TestValidateLayOff_BlockedBeforeOwnRoundReqMet(t *testing.T) {
+	st := GameState{
+		Status:      StatusActive,
+		Phase:       PhaseMeld,
+		Round:       1,
+		CurrentTurn: "p1",
+		Hands:       map[string][]string{"p1": {"7H"}},
+		Melds:       map[string][][]string{"p2": {{"7D", "7C", "7S"}}},
+		MeldMeta:    map[string][]MeldInfo{"p2": {{MeldID: "meld_1", Type: MeldSet, OwnerID: "p2"}}},
+		RoundReqMet: map[string]bool{"p1": false, "p2": true},
+	}
+	_, err := ValidateLayOff(st, "p1", "meld_1", "7H")
+	if err == nil {
+		t.Fatalf("expected lay-off to be blocked before p1 has met their own round requirement")
+	}
+	re, ok := err.(RulesError)
+	if !ok || re.Code != ErrRoundReqNotMet {
+		t.Fatalf("expected ErrRoundReqNotMet, got %#v", err)
+	}
+}
+
+func TestValidateLayOff_AllowedOnceOwnRoundReqMet(t *testing.T) {
+	st := GameState{
+		Status:      StatusActive,
+		Phase:       PhaseMeld,
+		Round:       1,
+		CurrentTurn: "p1",
+		Hands:       map[string][]string{"p1": {"7H", "4D"}},
+		Melds:       map[string][][]string{"p2": {{"7D", "7C", "7S"}}},
+		MeldMeta:    map[string][]MeldInfo{"p2": {{MeldID: "meld_1", Type: MeldSet, OwnerID: "p2"}}},
+		RoundReqMet: map[string]bool{"p1": true, "p2": true},
+	}
+	if _, err := ValidateLayOff(st, "p1", "meld_1", "7H"); err != nil {
+		t.Fatalf("expected lay-off to succeed once p1 has met their own round requirement, got %v", err)
+	}
+}
+

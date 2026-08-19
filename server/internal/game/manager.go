@@ -215,6 +215,7 @@ func toRulesState(g models.Game) rules.GameState {
 		InitialMeldMinimum: g.InitialMeldMinimum,
 		DiscardDrawMinRound: g.DiscardDrawMinRound,
 		MeldsLaidThisTurn:  g.MeldsLaidThisTurn,
+		DiscardDrawnCardPendingMeld: g.DiscardDrawnCardPendingMeld,
 		Offer:              offer,
 		RoundScores:        g.RoundScores,
 		TotalScores:        g.TotalScores,
@@ -240,6 +241,7 @@ func fromRulesState(g *models.Game, rs rules.GameState) {
 	g.InitialMeldMinimum = rs.InitialMeldMinimum
 	g.DiscardDrawMinRound = rs.DiscardDrawMinRound
 	g.MeldsLaidThisTurn = rs.MeldsLaidThisTurn
+	g.DiscardDrawnCardPendingMeld = rs.DiscardDrawnCardPendingMeld
 	g.RoundScores = rs.RoundScores
 	g.TotalScores = rs.TotalScores
 

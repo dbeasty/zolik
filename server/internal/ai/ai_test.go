@@ -240,6 +240,53 @@ func TestHeuristicAgent_MeldBelowMinimum_FallsBackToDiscard(t *testing.T) {
 	}
 }
 
+// Before going down, picking up the discard obligates melding that exact
+// card this turn. The agent should only take it when a full initial-meld
+// plan using it actually exists in the resulting hand.
+func TestHeuristicAgent_TakesDiscardWhenItCompletesTheInitialMeld(t *testing.T) {
+	agent := NewHeuristicAgent("medium")
+	aiID := "ai1"
+
+	visible := VisibleState{
+		Round:               1, // needs 2 sets
+		Phase:               string(rules.PhaseDraw),
+		CurrentTurn:         aiID,
+		DiscardPile:         []string{"9C"},
+		RoundReqMet:         map[string]bool{aiID: false},
+		InitialMeldMinimum:  0,
+		DiscardDrawMinRound: 0,
+	}
+	// Includes a spare card (2C) so melding both sets still leaves a card to
+	// discard afterward (required before round 7).
+	hand := []string{"9S", "9D", "5H", "5D", "5C", "2C"}
+
+	action := agent.ChooseAction(visible, hand)
+	if action.Type != rules.ActionDrawCard || action.DrawFrom != rules.DrawFromDiscard {
+		t.Fatalf("expected agent to take the discard that completes its initial meld, got: %+v", action)
+	}
+}
+
+func TestHeuristicAgent_SkipsDiscardWhenItWontCompleteTheInitialMeld(t *testing.T) {
+	agent := NewHeuristicAgent("medium")
+	aiID := "ai1"
+
+	visible := VisibleState{
+		Round:               1, // needs 2 sets
+		Phase:               string(rules.PhaseDraw),
+		CurrentTurn:         aiID,
+		DiscardPile:         []string{"KC"},
+		RoundReqMet:         map[string]bool{aiID: false},
+		InitialMeldMinimum:  0,
+		DiscardDrawMinRound: 0,
+	}
+	hand := []string{"9S", "9D", "2H", "3H", "4H"}
+
+	action := agent.ChooseAction(visible, hand)
+	if action.Type != rules.ActionDrawCard || action.DrawFrom != rules.DrawFromDeck {
+		t.Fatalf("expected agent to prefer the deck when the discard card can't be melded this turn, got: %+v", action)
+	}
+}
+
 func TestHeuristicAgent_OfferAcceptMayBeValid(t *testing.T) {
 	agent := NewHeuristicAgent("medium")
 	aiID := "ai1"

@@ -36,6 +36,7 @@ type GameStateMsg struct {
 	IsDraw             bool                     `json:"isDraw,omitempty"`
 	InitialMeldMinimum int                      `json:"initialMeldMinimum"`
 	DiscardDrawMinRound int                     `json:"discardDrawMinRound"`
+	DiscardDrawnCardPendingMeld string         `json:"discardDrawnCardPendingMeld,omitempty"`
 	Offer              *OfferMsg                 `json:"offer"`
 }
 
@@ -60,6 +61,11 @@ func BuildGameStateMsg(g models.Game, myPlayerID string) GameStateMsg {
 	var offer *OfferMsg
 	if g.Offer != nil && g.Offer.OfferedTo == myPlayerID {
 		offer = &OfferMsg{Card: g.Offer.Card}
+	}
+
+	var pendingMeldCard string
+	if g.CurrentTurn == myPlayerID {
+		pendingMeldCard = g.DiscardDrawnCardPendingMeld
 	}
 
 	players := make([]PlayerMsg, 0, len(g.Players))
@@ -102,6 +108,7 @@ func BuildGameStateMsg(g models.Game, myPlayerID string) GameStateMsg {
 		IsDraw:             g.IsDraw,
 		InitialMeldMinimum: g.InitialMeldMinimum,
 		DiscardDrawMinRound: g.DiscardDrawMinRound,
+		DiscardDrawnCardPendingMeld: pendingMeldCard,
 		Offer:              offer,
 	}
 }
