@@ -30,6 +30,7 @@ func NewGameRestHandlers(repo *Repository, hub *Hub, manager *Manager) *GameRest
 type CreateGameReq struct {
 	InitialMeldMinimum  *int `json:"initialMeldMinimum,omitempty"`
 	DiscardDrawMinRound *int `json:"discardDrawMinRound,omitempty"`
+	DeckDrawMinRound    *int `json:"deckDrawMinRound,omitempty"`
 }
 
 type AddAIReq struct {
@@ -82,6 +83,9 @@ func (h *GameRestHandlers) updateSettings(w http.ResponseWriter, req *http.Reque
 	if body.DiscardDrawMinRound != nil {
 		g.DiscardDrawMinRound = *body.DiscardDrawMinRound
 	}
+	if body.DeckDrawMinRound != nil {
+		g.DeckDrawMinRound = *body.DeckDrawMinRound
+	}
 
 	if err := h.repo.UpdateWithVersion(ctx, g.ID, g.Version, g); err != nil {
 		http.Error(w, err.Error(), http.StatusConflict)
@@ -92,6 +96,7 @@ func (h *GameRestHandlers) updateSettings(w http.ResponseWriter, req *http.Reque
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"initialMeldMinimum":  g.InitialMeldMinimum,
 		"discardDrawMinRound": g.DiscardDrawMinRound,
+		"deckDrawMinRound":    g.DeckDrawMinRound,
 	})
 }
 
@@ -113,6 +118,10 @@ func (h *GameRestHandlers) createGame(w http.ResponseWriter, req *http.Request) 
 	discardMinRound := 1
 	if body.DiscardDrawMinRound != nil {
 		discardMinRound = *body.DiscardDrawMinRound
+	}
+	deckMinRound := 1
+	if body.DeckDrawMinRound != nil {
+		deckMinRound = *body.DeckDrawMinRound
 	}
 
 	gameID := bson.NewObjectID()
@@ -147,6 +156,7 @@ func (h *GameRestHandlers) createGame(w http.ResponseWriter, req *http.Request) 
 		RoundReqMet:      map[string]bool{p.ID: false},
 		InitialMeldMinimum: initial,
 		DiscardDrawMinRound: discardMinRound,
+		DeckDrawMinRound:   deckMinRound,
 		Offer:            nil,
 		Players:          []models.Player{p},
 		ActionLog:        []models.Action{},
@@ -202,6 +212,7 @@ func (h *GameRestHandlers) getGame(w http.ResponseWriter, req *http.Request) {
 		"hostId":              g.HostID,
 		"initialMeldMinimum":  g.InitialMeldMinimum,
 		"discardDrawMinRound": g.DiscardDrawMinRound,
+		"deckDrawMinRound":    g.DeckDrawMinRound,
 		"discardPileTop": func() any {
 			if len(g.DiscardPile) == 0 {
 				return nil
@@ -330,6 +341,7 @@ func (h *GameRestHandlers) startGame(w http.ResponseWriter, req *http.Request) {
 		RoundReqMet:         map[string]bool{},
 		InitialMeldMinimum: g.InitialMeldMinimum,
 		DiscardDrawMinRound: g.DiscardDrawMinRound,
+		DeckDrawMinRound:    g.DeckDrawMinRound,
 		Offer:               nil,
 		DeckSeed:            seed,
 		RoundScores:         map[string][]int{},
@@ -386,6 +398,7 @@ func (h *GameRestHandlers) startGame(w http.ResponseWriter, req *http.Request) {
 	nextGame.RoundReqMet = rState.RoundReqMet
 	nextGame.InitialMeldMinimum = rState.InitialMeldMinimum
 	nextGame.DiscardDrawMinRound = rState.DiscardDrawMinRound
+	nextGame.DeckDrawMinRound = rState.DeckDrawMinRound
 	nextGame.MeldsLaidThisTurn = rState.MeldsLaidThisTurn
 	nextGame.Offer = nil
 	nextGame.RoundScores = rState.RoundScores

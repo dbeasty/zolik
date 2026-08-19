@@ -15,6 +15,7 @@ type VisibleState struct {
 	TotalScores        map[string]int
 	InitialMeldMinimum int
 	DiscardDrawMinRound int
+	DeckDrawMinRound   int
 
 	Offer *rules.DiscardOffer
 }

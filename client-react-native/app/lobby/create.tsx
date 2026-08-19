@@ -10,6 +10,7 @@ import { colors, shared } from '@/src/theme';
 const DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
 const MELD_MINS = [0, 35, 50];
 const DISCARD_LOCK_ROUNDS = [1, 2, 3];
+const DECK_LOCK_ROUNDS = [1, 2, 3];
 
 export default function CreateLobbyScreen() {
   const { client, session } = useSession();
@@ -19,6 +20,7 @@ export default function CreateLobbyScreen() {
   const [aiDiff, setAiDiff] = useState<(typeof DIFFICULTIES)[number]>('medium');
   const [initialMin, setInitialMin] = useState(35);
   const [discardLockRound, setDiscardLockRound] = useState(1);
+  const [deckLockRound, setDeckLockRound] = useState(1);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(true);
 
@@ -33,6 +35,7 @@ export default function CreateLobbyScreen() {
       setPlayers(info.players);
       if (info.initialMeldMinimum != null) setInitialMin(info.initialMeldMinimum);
       if (info.discardDrawMinRound != null) setDiscardLockRound(info.discardDrawMinRound);
+      if (info.deckDrawMinRound != null) setDeckLockRound(info.deckDrawMinRound);
       if (info.status === 'active') {
         router.replace(`/game/${gameId}`);
       }
@@ -113,6 +116,17 @@ export default function CreateLobbyScreen() {
     }
   }
 
+  async function cycleDeckLock() {
+    const idx = DECK_LOCK_ROUNDS.indexOf(deckLockRound);
+    const next = DECK_LOCK_ROUNDS[(idx + 1) % DECK_LOCK_ROUNDS.length];
+    setDeckLockRound(next);
+    try {
+      await client.updateGameSettings(gameId, { deckDrawMinRound: next });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Update failed');
+    }
+  }
+
   if (busy) {
     return (
       <Screen title="New game">
@@ -160,6 +174,13 @@ export default function CreateLobbyScreen() {
                   : 'Discard pile pickup: unlocked from round 1'}
               </Text>
             </Pressable>
+            <Pressable style={[shared.button, shared.buttonSecondary]} onPress={cycleDeckLock}>
+              <Text style={shared.buttonTextSecondary}>
+                {deckLockRound > 1
+                  ? `Deck draw: locked until round ${deckLockRound}`
+                  : 'Deck draw: unlocked from round 1'}
+              </Text>
+            </Pressable>
             <Pressable style={shared.button} onPress={addAI}>
               <Text style={shared.buttonText}>Add AI</Text>
             </Pressable>
@@ -180,6 +201,11 @@ export default function CreateLobbyScreen() {
               {discardLockRound > 1
                 ? `Discard pile pickup: locked until round ${discardLockRound}`
                 : 'Discard pile pickup: unlocked from round 1'}
+            </Text>
+            <Text style={shared.status}>
+              {deckLockRound > 1
+                ? `Deck draw: locked until round ${deckLockRound}`
+                : 'Deck draw: unlocked from round 1'}
             </Text>
             <Text style={shared.status}>Waiting for host to start…</Text>
           </>

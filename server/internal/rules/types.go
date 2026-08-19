@@ -95,6 +95,12 @@ type GameState struct {
 	// means no restriction (allowed from round 1); N>1 means players can't
 	// draw from discard until round N (they can still draw from the deck).
 	DiscardDrawMinRound int
+	// DeckDrawMinRound mirrors DiscardDrawMinRound for the deck: 0 or 1
+	// means unrestricted; N>1 means players can't draw from the deck until
+	// round N. If both locks would ever leave a round with no legal draw
+	// source at all, the deck lock yields (see ValidateDraw) rather than
+	// deadlocking the game.
+	DeckDrawMinRound int
 	// MeldsLaidThisTurn counts lay_meld actions the current turn's actor has
 	// made toward their (not-yet-met) initial round requirement since their
 	// turn began. A player who has started but not finished their initial
@@ -134,6 +140,7 @@ const (
 	ErrNoActiveOffer     RulesErrorCode = "NO_ACTIVE_OFFER"
 	ErrDiscardPileEmpty  RulesErrorCode = "DISCARD_PILE_EMPTY"
 	ErrDiscardLocked     RulesErrorCode = "DISCARD_LOCKED"
+	ErrDeckLocked        RulesErrorCode = "DECK_LOCKED"
 	ErrIncompleteInitialMeld RulesErrorCode = "INCOMPLETE_INITIAL_MELD"
 	ErrGameSuspended     RulesErrorCode = "GAME_SUSPENDED"
 	ErrGameNotActive     RulesErrorCode = "GAME_NOT_ACTIVE"

@@ -21,6 +21,14 @@ func ValidateDraw(state GameState, playerID string, from DrawFrom) (GameState, s
 
 	switch from {
 	case DrawFromDeck:
+		if state.DeckDrawMinRound > 1 && state.Round < state.DeckDrawMinRound {
+			// Deadlock safety: if discard draw isn't actually available right
+			// now either (empty pile or itself locked), let the deck through
+			// regardless — a turn must always have a legal way to draw.
+			if discardDrawAvailable(state) {
+				return state, "", nil, RulesError{Code: ErrDeckLocked}
+			}
+		}
 		state, err := ensureDrawPile(state)
 		if err != nil {
 			return state, "", nil, err
@@ -37,7 +45,11 @@ func ValidateDraw(state GameState, playerID string, from DrawFrom) (GameState, s
 
 	case DrawFromDiscard:
 		if state.DiscardDrawMinRound > 1 && state.Round < state.DiscardDrawMinRound {
-			return state, "", nil, RulesError{Code: ErrDiscardLocked}
+			// Same deadlock safety as the deck lock, mirrored: if the deck
+			// truly can't be drawn from either, let discard through.
+			if state.DeckDrawMinRound <= 1 || state.Round >= state.DeckDrawMinRound {
+				return state, "", nil, RulesError{Code: ErrDiscardLocked}
+			}
 		}
 		if len(state.DiscardPile) == 0 {
 			return state, "", nil, RulesError{Code: ErrDiscardPileEmpty}
@@ -269,6 +281,11 @@ func ValidateDiscard(state GameState, playerID string, card string) (GameState, 
 	state.CurrentTurn = next
 
 	return state, false, nil
+}
+
+func discardDrawAvailable(state GameState) bool {
+	locked := state.DiscardDrawMinRound > 1 && state.Round < state.DiscardDrawMinRound
+	return len(state.DiscardPile) > 0 && !locked
 }
 
 func ensureDrawPile(state GameState) (GameState, error) {

@@ -133,7 +133,11 @@ export class ZolikClient {
 
   async updateGameSettings(
     idOrCode: string,
-    settings: { initialMeldMinimum?: number; discardDrawMinRound?: number },
+    settings: {
+      initialMeldMinimum?: number;
+      discardDrawMinRound?: number;
+      deckDrawMinRound?: number;
+    },
   ): Promise<void> {
     await this.request(
       'PATCH',
