@@ -20,6 +20,10 @@ export type DropZone = { x: number; y: number; width: number; height: number };
 export type DragPreview = {
   x: SharedValue<number>;
   y: SharedValue<number>;
+  // Where within the card it was grabbed, so the overlay stays glued to the
+  // finger/cursor at that same point instead of re-centering itself on it.
+  offsetX: SharedValue<number>;
+  offsetY: SharedValue<number>;
   active: SharedValue<boolean>;
   draggingIndex: SharedValue<number>;
 };
@@ -27,9 +31,11 @@ export type DragPreview = {
 export function useDragPreview(): DragPreview {
   const x = useSharedValue(0);
   const y = useSharedValue(0);
+  const offsetX = useSharedValue(0);
+  const offsetY = useSharedValue(0);
   const active = useSharedValue(false);
   const draggingIndex = useSharedValue(-1);
-  return { x, y, active, draggingIndex };
+  return { x, y, offsetX, offsetY, active, draggingIndex };
 }
 
 type Props = {
@@ -38,13 +44,22 @@ type Props = {
   onToggle: (index: number) => void;
   onReorder: (newOrder: string[]) => void;
   onDoubleTap?: (index: number) => void;
-  // Called on every render with the current screen-space rect of a drop
-  // target (e.g. the discard pile). Returning null disables drop detection.
-  getDropZone?: () => DropZone | null;
+  // Measures the discard pile's current screen-space rect and reports it
+  // via callback. Measured live at drag-end time (rather than read from a
+  // value cached on scroll/layout) so it reflects the real current layout.
+  // Reporting null disables drop detection.
+  measureDropZone?: (cb: (zone: DropZone | null) => void) => void;
   onDropOnZone?: (index: number) => void;
+  // Same idea for table melds a dragged card can be laid off onto.
+  measureMeldZones?: (cb: (zones: { meldId: string; zone: DropZone }[]) => void) => void;
+  onDropOnMeld?: (index: number, meldId: string) => void;
   onDragCardChange?: (card: string | null) => void;
   dragPreview: DragPreview;
   compact?: boolean;
+  // When true, a single tap discards the card directly instead of toggling
+  // selection — used during the discard phase, where selecting a card only
+  // ever leads to discarding it anyway.
+  tapToDiscard?: boolean;
 };
 
 const CARD_WIDTH = 52;
@@ -62,11 +77,14 @@ export function HandRow({
   onToggle,
   onReorder,
   onDoubleTap,
-  getDropZone,
+  measureDropZone,
   onDropOnZone,
+  measureMeldZones,
+  onDropOnMeld,
   onDragCardChange,
   dragPreview,
   compact,
+  tapToDiscard,
 }: Props) {
   const slot = (compact ? CARD_WIDTH_COMPACT : CARD_WIDTH) + CARD_MARGIN;
 
@@ -83,10 +101,13 @@ export function HandRow({
           compact={compact}
           onToggle={onToggle}
           onDoubleTap={onDoubleTap}
-          getDropZone={getDropZone}
+          measureDropZone={measureDropZone}
           onDropOnZone={onDropOnZone}
+          measureMeldZones={measureMeldZones}
+          onDropOnMeld={onDropOnMeld}
           onDragCardChange={onDragCardChange}
           dragPreview={dragPreview}
+          tapToDiscard={tapToDiscard}
           onDrop={(from, to) => onReorder(moveCardToIndex(cards, from, to))}
         />
       ))}
@@ -104,10 +125,13 @@ function DraggableCard({
   compact,
   onToggle,
   onDoubleTap,
-  getDropZone,
+  measureDropZone,
   onDropOnZone,
+  measureMeldZones,
+  onDropOnMeld,
   onDragCardChange,
   dragPreview,
+  tapToDiscard,
   onDrop,
 }: {
   card: string;
@@ -118,10 +142,13 @@ function DraggableCard({
   compact?: boolean;
   onToggle: (index: number) => void;
   onDoubleTap?: (index: number) => void;
-  getDropZone?: () => DropZone | null;
+  measureDropZone?: (cb: (zone: DropZone | null) => void) => void;
   onDropOnZone?: (index: number) => void;
+  measureMeldZones?: (cb: (zones: { meldId: string; zone: DropZone }[]) => void) => void;
+  onDropOnMeld?: (index: number, meldId: string) => void;
   onDragCardChange?: (card: string | null) => void;
   dragPreview: DragPreview;
+  tapToDiscard?: boolean;
   onDrop: (from: number, to: number) => void;
 }) {
   const lastTapAt = useRef(0);
@@ -131,6 +158,13 @@ function DraggableCard({
   // with a plain RN Pressable underneath turned out not to be reliable).
   // Two taps within the window count as one discard, not two toggles.
   function handleTap() {
+    // During the discard phase a single tap discards outright — there's no
+    // other reason to select a card there, so making the player double-tap
+    // (or select-then-press-Discard) was just extra friction.
+    if (tapToDiscard) {
+      if (onDoubleTap) onDoubleTap(index);
+      return;
+    }
     const now = Date.now();
     if (now - lastTapAt.current < DOUBLE_TAP_MS) {
       lastTapAt.current = 0;
@@ -149,18 +183,73 @@ function DraggableCard({
     onDragCardChange?.(card);
   }
 
-  function handleDragEnd(translationX: number, absoluteX: number, absoluteY: number) {
-    onDragCardChange?.(null);
-    const zone = getDropZone?.();
-    if (zone && onDropOnZone && pointInZone(absoluteX, absoluteY, zone)) {
-      onDropOnZone(index);
-      return;
-    }
-    const deltaSlots = Math.round(translationX / slot);
+  // Round-to-nearest-slot flips as soon as translationX crosses half a
+  // slot's width (~29px) — barely past the pan gesture's 10px activation
+  // distance. That gap was small enough that an ordinary tap with a little
+  // hand tremor or trackpad drift would swap the card into the next slot.
+  // Require clearing most of a slot before committing to a move; anything
+  // short of that snaps back to where the card started.
+  const REORDER_COMMIT_RATIO = 0.75;
+
+  function reorder(translationX: number) {
+    const slots = translationX / slot;
+    const deltaSlots =
+      Math.abs(slots) < REORDER_COMMIT_RATIO
+        ? 0
+        : Math.sign(slots) * Math.round(Math.abs(slots) - (REORDER_COMMIT_RATIO - 0.5));
     const target = Math.max(0, Math.min(count - 1, index + deltaSlots));
     if (target !== index) {
       onDrop(index, target);
     }
+  }
+
+  function tryDropOnMeld(translationX: number, absoluteX: number, absoluteY: number) {
+    if (!measureMeldZones) {
+      reorder(translationX);
+      return;
+    }
+    measureMeldZones((zones) => {
+      const hit = zones.find(({ zone }) => pointInZone(absoluteX, absoluteY, zone));
+      if (hit && onDropOnMeld) {
+        onDropOnMeld(index, hit.meldId);
+      } else {
+        reorder(translationX);
+      }
+    });
+  }
+
+  // A fast, short flick upward reads as "discard" even if the card never
+  // reaches the discard pile's on-screen rect — asking players to drag all
+  // the way there felt heavier than it needed to be.
+  const QUICK_SWIPE_UP_DISTANCE = 40;
+  const QUICK_SWIPE_UP_VELOCITY = -600;
+
+  // Zones are measured live (not read from a value cached on scroll/layout
+  // events) so a drop always sees the current on-screen position, even if
+  // the page scrolled or the layout shifted since the last such event.
+  function handleDragEnd(
+    translationX: number,
+    translationY: number,
+    velocityY: number,
+    absoluteX: number,
+    absoluteY: number,
+  ) {
+    onDragCardChange?.(null);
+    if (onDropOnZone && translationY < -QUICK_SWIPE_UP_DISTANCE && velocityY < QUICK_SWIPE_UP_VELOCITY) {
+      onDropOnZone(index);
+      return;
+    }
+    if (!measureDropZone) {
+      tryDropOnMeld(translationX, absoluteX, absoluteY);
+      return;
+    }
+    measureDropZone((zone) => {
+      if (zone && onDropOnZone && pointInZone(absoluteX, absoluteY, zone)) {
+        onDropOnZone(index);
+      } else {
+        tryDropOnMeld(translationX, absoluteX, absoluteY);
+      }
+    });
   }
 
   const pan = Gesture.Pan()
@@ -168,6 +257,11 @@ function DraggableCard({
     .onStart((e) => {
       dragPreview.draggingIndex.value = index;
       dragPreview.active.value = true;
+      // Keep the card glued to the exact point it was grabbed at, instead
+      // of re-centering itself under the cursor — otherwise the card jumps
+      // on pickup and the grab point drifts relative to the card as you drag.
+      dragPreview.offsetX.value = e.x;
+      dragPreview.offsetY.value = e.y;
       dragPreview.x.value = e.absoluteX;
       dragPreview.y.value = e.absoluteY;
       runOnJS(handleDragStart)();
@@ -177,7 +271,7 @@ function DraggableCard({
       dragPreview.y.value = e.absoluteY;
     })
     .onEnd((e) => {
-      runOnJS(handleDragEnd)(e.translationX, e.absoluteX, e.absoluteY);
+      runOnJS(handleDragEnd)(e.translationX, e.translationY, e.velocityY, e.absoluteX, e.absoluteY);
     })
     .onFinalize(() => {
       dragPreview.active.value = false;
@@ -188,6 +282,7 @@ function DraggableCard({
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: dragPreview.draggingIndex.value === index ? 0.3 : 1,
+    cursor: (dragPreview.draggingIndex.value === index ? 'grabbing' : 'grab') as string,
   }));
 
   return (
