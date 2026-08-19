@@ -1,10 +1,10 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { ActionBar } from '@/src/components/ActionBar';
 import { CardView } from '@/src/components/CardView';
-import { HandRow } from '@/src/components/HandRow';
+import { HandRow, type DropZone } from '@/src/components/HandRow';
 import { MeldTable } from '@/src/components/MeldTable';
 import { Screen } from '@/src/components/Screen';
 import { useGameFlow } from '@/src/context/GameFlowContext';
@@ -42,6 +42,14 @@ export default function GameScreen() {
   const { setRoundEnd, setGameEnd } = useGameFlow();
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [localHand, setLocalHand] = useState<string[] | null>(null);
+  const discardZoneRef = useRef<View>(null);
+  const discardZone = useRef<DropZone | null>(null);
+
+  function measureDiscardZone() {
+    discardZoneRef.current?.measureInWindow((x, y, width, height) => {
+      discardZone.current = { x, y, width, height };
+    });
+  }
 
   const onRoundEnd = useCallback(
     (data: WSEnvelope, state: GameState) => {
@@ -106,7 +114,7 @@ export default function GameScreen() {
     setSelected(new Set());
   }
 
-  function handleDoubleTapDiscard(index: number) {
+  function discardCardAt(index: number) {
     if (!state || !isMyTurn || state.offer) return;
     if (phase !== 'discard' && phase !== 'meld') return;
     const card = hand[index];
@@ -202,7 +210,7 @@ export default function GameScreen() {
 
   return (
     <Screen>
-      <ScrollView>
+      <ScrollView onScroll={measureDiscardZone} scrollEventThrottle={100}>
         <Text style={shared.title}>{header}</Text>
         <Text style={[shared.status, { color: isMyTurn ? colors.success : colors.muted }]}>
           {turnLabel} · {phase}
@@ -228,7 +236,11 @@ export default function GameScreen() {
             ? ` (pickup locked until round ${state.discardDrawMinRound})`
             : ''}
         </Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <View
+          ref={discardZoneRef}
+          onLayout={measureDiscardZone}
+          style={{ flexDirection: 'row', alignItems: 'center' }}
+        >
           {topDiscard ? <CardView card={topDiscard} /> : <Text style={shared.status}>Empty</Text>}
         </View>
 
@@ -245,15 +257,18 @@ export default function GameScreen() {
             <Text style={{ color: colors.accent }}>Auto-organize</Text>
           </Pressable>
         </View>
-        <Text style={shared.status}>Drag a card to reorder your hand.</Text>
+        <Text style={shared.status}>
+          Drag a card to reorder, drag onto the discard pile or double-tap to discard.
+        </Text>
         <HandRow
           cards={hand}
           selected={selected}
           onToggle={toggleSelect}
           onReorder={(newOrder) => setLocalHand(newOrder)}
-          onDoubleTap={handleDoubleTapDiscard}
+          onDoubleTap={discardCardAt}
+          getDropZone={() => discardZone.current}
+          onDropOnZone={discardCardAt}
         />
-        <Text style={shared.status}>Double-tap a card to discard it.</Text>
 
         {actions.length > 0 ? <ActionBar actions={actions} /> : null}
 
