@@ -95,6 +95,13 @@ type GameState struct {
 	// means no restriction (allowed from round 1); N>1 means players can't
 	// draw from discard until round N (they can still draw from the deck).
 	DiscardDrawMinRound int
+	// MeldsLaidThisTurn counts lay_meld actions the current turn's actor has
+	// made toward their (not-yet-met) initial round requirement since their
+	// turn began. A player who has started but not finished their initial
+	// meld combination this turn cannot discard (end their turn) until they
+	// either complete it or... they must complete it — see ValidateDiscard.
+	// Reset to 0 whenever a player's turn begins (draw, or accept-offer).
+	MeldsLaidThisTurn int
 
 	Offer *DiscardOffer
 
@@ -127,6 +134,7 @@ const (
 	ErrNoActiveOffer     RulesErrorCode = "NO_ACTIVE_OFFER"
 	ErrDiscardPileEmpty  RulesErrorCode = "DISCARD_PILE_EMPTY"
 	ErrDiscardLocked     RulesErrorCode = "DISCARD_LOCKED"
+	ErrIncompleteInitialMeld RulesErrorCode = "INCOMPLETE_INITIAL_MELD"
 	ErrGameSuspended     RulesErrorCode = "GAME_SUSPENDED"
 	ErrGameNotActive     RulesErrorCode = "GAME_NOT_ACTIVE"
 

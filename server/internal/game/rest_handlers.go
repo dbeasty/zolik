@@ -386,6 +386,7 @@ func (h *GameRestHandlers) startGame(w http.ResponseWriter, req *http.Request) {
 	nextGame.RoundReqMet = rState.RoundReqMet
 	nextGame.InitialMeldMinimum = rState.InitialMeldMinimum
 	nextGame.DiscardDrawMinRound = rState.DiscardDrawMinRound
+	nextGame.MeldsLaidThisTurn = rState.MeldsLaidThisTurn
 	nextGame.Offer = nil
 	nextGame.RoundScores = rState.RoundScores
 	nextGame.TotalScores = rState.TotalScores

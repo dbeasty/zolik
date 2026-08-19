@@ -33,13 +33,18 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 	if visible.Phase == string(rules.PhaseOffer) && visible.Offer != nil {
 		return a.chooseOfferAction(visible, hand)
 	}
-	// 2) Meld phase: try to lay any valid meld if we haven't met round requirement.
+	// 2) Meld phase: only start laying toward the round requirement if the
+	// current hand can complete it entirely (pattern + minimum value) this
+	// turn — a player who starts but can't finish gets stuck (the server
+	// won't let them discard until they finish), so never begin unless a
+	// full plan exists. Re-derived fresh each call so it naturally picks up
+	// where a previous meld this turn left off.
 	if visible.Phase == string(rules.PhaseMeld) {
 		actor := visible.CurrentTurn
 		if !visible.RoundReqMet[actor] {
 			st := rulesStateForAI(visible, actor)
-			if meld, ok := findContributingMeld(st, actor, hand); ok {
-				return rules.Action{Type: rules.ActionLayMeld, Cards: meld}
+			if combo, ok := findInitialMeldPlan(st, actor, hand); ok && len(combo) > 0 {
+				return rules.Action{Type: rules.ActionLayMeld, Cards: combo[0]}
 			}
 		} else if meld, ok := findAnyValidMeld(hand); ok && len(hand) > len(meld) {
 			return rules.Action{Type: rules.ActionLayMeld, Cards: meld}
@@ -89,58 +94,100 @@ func rulesStateForAI(visible VisibleState, playerID string) rules.GameState {
 	}
 }
 
-func findContributingMeld(state rules.GameState, playerID string, hand []string) ([]string, bool) {
+// findInitialMeldPlan looks for a full decomposition of the player's hand
+// that completes their remaining round requirement (accounting for any
+// sets/runs they've already laid, e.g. earlier this same turn) with total
+// natural value at least the round's minimum. It returns the melds to lay,
+// in order — the caller lays them one at a time (across successive
+// ChooseAction calls), but only ever starts if a full plan already exists,
+// so the server's "must finish what you start" rule never strands it.
+func findInitialMeldPlan(state rules.GameState, playerID string, hand []string) ([][]string, bool) {
+	req := rules.RoundRequirementFor(state.Round)
+	setsBefore, runsBefore := rules.PlayerMeldCounts(state, playerID)
+	needSets := req.Sets - setsBefore
+	needRuns := req.Runs - runsBefore
+	if needSets < 0 {
+		needSets = 0
+	}
+	if needRuns < 0 {
+		needRuns = 0
+	}
+	if needSets == 0 && needRuns == 0 {
+		return nil, false
+	}
+	minValue := 0
+	if state.InitialMeldMinimum > 0 {
+		minValue = state.InitialMeldMinimum
+	}
+	alreadyValue := rules.PlayerInitialMeldNaturalValue(state, playerID)
+
+	budget := &searchBudget{remaining: 200000}
+	combo, ok := searchMeldCombo(hand, needSets, needRuns, alreadyValue, minValue, budget)
+	if !ok {
+		return nil, false
+	}
+	if state.Round < 7 {
+		used := 0
+		for _, m := range combo {
+			used += len(m)
+		}
+		if len(hand)-used < 1 {
+			// Would meld away the entire hand with no card left to discard.
+			return nil, false
+		}
+	}
+	return combo, true
+}
+
+type searchBudget struct{ remaining int }
+
+func searchMeldCombo(hand []string, needSets, needRuns, valueSoFar, minValue int, budget *searchBudget) ([][]string, bool) {
+	if needSets == 0 && needRuns == 0 {
+		if valueSoFar >= minValue {
+			return [][]string{}, true
+		}
+		return nil, false
+	}
 	n := len(hand)
-	if n < 3 {
-		return nil, false
-	}
-	try := func(cand []string) ([]string, bool) {
-		mv, err := rules.ValidateMeld(cand)
-		if err != nil {
-			return nil, false
-		}
-		if !rules.MeldContributesTowardRequirement(state, playerID, mv.Type, len(cand)) {
-			return nil, false
-		}
-		if state.Round < 7 && len(hand) == len(cand) {
-			return nil, false
-		}
-		// Mirror the server's initial-meld-minimum dry run: if laying this
-		// meld would complete the round requirement, the player's total
-		// natural meld value this round must already clear the minimum.
-		// Otherwise the server rejects it and the AI must not retry it.
-		sim := cloneStateForAI(state)
-		sim.Melds[playerID] = append(append([][]string(nil), sim.Melds[playerID]...), cand)
-		sim.MeldMeta[playerID] = append(append([]rules.MeldInfo(nil), sim.MeldMeta[playerID]...), rules.MeldInfo{
-			MeldID: "sim", Type: mv.Type, OwnerID: playerID,
-		})
-		if rules.PlayerMeetsRoundRequirement(sim, playerID) {
-			if state.InitialMeldMinimum > 0 && !state.RoundReqMet[playerID] {
-				if rules.PlayerInitialMeldNaturalValue(sim, playerID) < state.InitialMeldMinimum {
-					return nil, false
-				}
-			}
-		}
-		return cand, true
-	}
-	for i := 0; i < n; i++ {
-		for j := i + 1; j < n; j++ {
-			for k := j + 1; k < n; k++ {
-				if cand, ok := try([]string{hand[i], hand[j], hand[k]}); ok {
-					return cand, true
+	if needSets > 0 && n >= 3 {
+		for i := 0; i < n; i++ {
+			for j := i + 1; j < n; j++ {
+				for k := j + 1; k < n; k++ {
+					if budget.remaining <= 0 {
+						return nil, false
+					}
+					budget.remaining--
+					cand := []string{hand[i], hand[j], hand[k]}
+					mv, err := rules.ValidateMeld(cand)
+					if err != nil || mv.Type != rules.MeldSet {
+						continue
+					}
+					rest := removeAtIndices(hand, i, j, k)
+					if combo, ok := searchMeldCombo(rest, needSets-1, needRuns, valueSoFar+mv.NaturalValue, minValue, budget); ok {
+						return append([][]string{cand}, combo...), true
+					}
 				}
 			}
 		}
 	}
-	if n < 4 {
-		return nil, false
-	}
-	for i := 0; i < n; i++ {
-		for j := i + 1; j < n; j++ {
-			for k := j + 1; k < n; k++ {
-				for l := k + 1; l < n; l++ {
-					if cand, ok := try([]string{hand[i], hand[j], hand[k], hand[l]}); ok {
-						return cand, true
+	if needRuns > 0 && n >= 4 {
+		for i := 0; i < n; i++ {
+			for j := i + 1; j < n; j++ {
+				for k := j + 1; k < n; k++ {
+					for l := k + 1; l < n; l++ {
+						if budget.remaining <= 0 {
+							return nil, false
+						}
+						budget.remaining--
+						cand := []string{hand[i], hand[j], hand[k], hand[l]}
+						mv, err := rules.ValidateMeld(cand)
+						if err != nil || mv.Type != rules.MeldRun {
+							continue
+						}
+						rest := removeAtIndices(hand, i, j, k, l)
+						if combo, ok := searchMeldCombo(rest, needSets, needRuns-1, valueSoFar+mv.NaturalValue, minValue, budget); ok {
+							return append([][]string{cand}, combo...), true
+						}
 					}
 				}
 			}
@@ -149,18 +196,19 @@ func findContributingMeld(state rules.GameState, playerID string, hand []string)
 	return nil, false
 }
 
-func cloneStateForAI(state rules.GameState) rules.GameState {
-	melds := map[string][][]string{}
-	for owner, ms := range state.Melds {
-		melds[owner] = append([][]string(nil), ms...)
+func removeAtIndices(hand []string, idx ...int) []string {
+	skip := make(map[int]bool, len(idx))
+	for _, i := range idx {
+		skip[i] = true
 	}
-	meta := map[string][]rules.MeldInfo{}
-	for owner, mi := range state.MeldMeta {
-		meta[owner] = append([]rules.MeldInfo(nil), mi...)
+	out := make([]string, 0, len(hand)-len(idx))
+	for i, c := range hand {
+		if skip[i] {
+			continue
+		}
+		out = append(out, c)
 	}
-	state.Melds = melds
-	state.MeldMeta = meta
-	return state
+	return out
 }
 
 func findAnyValidMeld(hand []string) ([]string, bool) {

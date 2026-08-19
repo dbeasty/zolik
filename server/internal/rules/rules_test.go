@@ -172,3 +172,58 @@ func TestValidateDraw_DiscardUnrestrictedByDefault(t *testing.T) {
 	}
 }
 
+func TestValidateDiscard_BlocksIncompleteInitialMeld(t *testing.T) {
+	st := GameState{
+		Status:            StatusActive,
+		Phase:             PhaseMeld,
+		Round:             1,
+		CurrentTurn:       "p1",
+		Hands:             map[string][]string{"p1": {"9S"}},
+		DiscardPile:       []string{},
+		RoundReqMet:       map[string]bool{"p1": false},
+		MeldsLaidThisTurn: 1,
+	}
+	_, _, err := ValidateDiscard(st, "p1", "9S")
+	if err == nil {
+		t.Fatalf("expected discard to be blocked with an incomplete initial meld")
+	}
+	re, ok := err.(RulesError)
+	if !ok || re.Code != ErrIncompleteInitialMeld {
+		t.Fatalf("expected ErrIncompleteInitialMeld, got %#v", err)
+	}
+}
+
+func TestValidateDiscard_AllowedWithNoMeldsLaidThisTurn(t *testing.T) {
+	st := GameState{
+		Status:            StatusActive,
+		Phase:             PhaseMeld,
+		Round:             1,
+		CurrentTurn:       "p1",
+		TurnOrder:         []string{"p1", "p2"},
+		Hands:             map[string][]string{"p1": {"9S", "4D"}, "p2": {}},
+		DiscardPile:       []string{},
+		RoundReqMet:       map[string]bool{"p1": false, "p2": false},
+		MeldsLaidThisTurn: 0,
+	}
+	if _, _, err := ValidateDiscard(st, "p1", "9S"); err != nil {
+		t.Fatalf("expected discard with no melds laid this turn to succeed, got %v", err)
+	}
+}
+
+func TestValidateDiscard_AllowedOnceRoundReqMet(t *testing.T) {
+	st := GameState{
+		Status:            StatusActive,
+		Phase:             PhaseMeld,
+		Round:             1,
+		CurrentTurn:       "p1",
+		TurnOrder:         []string{"p1", "p2"},
+		Hands:             map[string][]string{"p1": {"9S"}, "p2": {}},
+		DiscardPile:       []string{},
+		RoundReqMet:       map[string]bool{"p1": true, "p2": false},
+		MeldsLaidThisTurn: 2,
+	}
+	if _, _, err := ValidateDiscard(st, "p1", "9S"); err != nil {
+		t.Fatalf("expected discard to succeed once round requirement is met, got %v", err)
+	}
+}
+

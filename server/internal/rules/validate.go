@@ -32,6 +32,7 @@ func ValidateDraw(state GameState, playerID string, from DrawFrom) (GameState, s
 		state.DrawPile = state.DrawPile[:len(state.DrawPile)-1]
 		state.Hands[playerID] = append(state.Hands[playerID], card)
 		state.Phase = PhaseMeld
+		state.MeldsLaidThisTurn = 0
 		return state, card, nil, nil
 
 	case DrawFromDiscard:
@@ -45,6 +46,7 @@ func ValidateDraw(state GameState, playerID string, from DrawFrom) (GameState, s
 		state.DiscardPile = state.DiscardPile[:len(state.DiscardPile)-1]
 		state.Hands[playerID] = append(state.Hands[playerID], card)
 		state.Phase = PhaseMeld
+		state.MeldsLaidThisTurn = 0
 		return state, card, nil, nil
 	default:
 		return state, "", nil, fmt.Errorf("unknown draw source")
@@ -83,6 +85,7 @@ func ValidateAcceptOffer(state GameState, playerID string) (GameState, string, s
 	state.Offer = nil
 	state.CurrentTurn = playerID
 	state.Phase = PhaseMeld
+	state.MeldsLaidThisTurn = 0
 
 	return state, offeredCard, penalty, nil
 }
@@ -121,6 +124,8 @@ func ValidateMeldAction(state GameState, playerID string, cards []string) (GameS
 	if err := requireCardsInHand(state.Hands[playerID], cards); err != nil {
 		return state, "", "", err
 	}
+
+	wasReqMet := state.RoundReqMet[playerID]
 
 	mv, err := ValidateMeld(cards)
 	if err != nil {
@@ -180,6 +185,9 @@ func ValidateMeldAction(state GameState, playerID string, cards []string) (GameS
 	if PlayerMeetsRoundRequirement(state, playerID) {
 		state.RoundReqMet[playerID] = true
 	}
+	if !wasReqMet {
+		state.MeldsLaidThisTurn++
+	}
 
 	return state, meldID, mv.Type, nil
 }
@@ -230,6 +238,15 @@ func ValidateDiscard(state GameState, playerID string, card string) (GameState, 
 	}
 	if err := requireCardsInHand(state.Hands[playerID], []string{card}); err != nil {
 		return state, false, err
+	}
+	// A player who started laying melds toward their (still unmet) initial
+	// round requirement this turn must finish it before ending their turn —
+	// no leaving a lone partial meld on the table across turns.
+	if state.MeldsLaidThisTurn > 0 && !state.RoundReqMet[playerID] {
+		return state, false, RulesError{
+			Code:    ErrIncompleteInitialMeld,
+			Message: "finish laying your full initial meld combination (all required sets/runs, total value met) before you can discard",
+		}
 	}
 
 	state.Hands[playerID] = removeCards(state.Hands[playerID], []string{card})

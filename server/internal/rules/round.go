@@ -63,6 +63,7 @@ func StartNextRound(state GameState, nextTurnID string) (GameState, error) {
 	state.MeldMeta = map[string][]MeldInfo{}
 	state.RoundReqMet = map[string]bool{}
 	state.NextMeldSeq = 0
+	state.MeldsLaidThisTurn = 0
 
 	for _, pid := range state.TurnOrder {
 		state.Hands[pid] = nil

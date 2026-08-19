@@ -80,13 +80,17 @@ func TestHeuristicAgent_MeldLayOff_MeldFoundAndValid(t *testing.T) {
 	agent := NewHeuristicAgent("medium")
 	aiID := "ai1"
 
+	// Round 1 needs 2 sets; the hand holds material for both, so the agent
+	// should find a full plan and lay the first meld of it. (A hand with
+	// only one set's worth of cards would no longer meld at all — see
+	// TestHeuristicAgent_WontStartMeldItCannotFinish.)
 	state := rules.GameState{
 		Status:      rules.StatusActive,
 		Phase:       rules.PhaseMeld,
 		Round:       1,
 		CurrentTurn: aiID,
 		TurnOrder:   []string{aiID, "p2"},
-		Hands:       map[string][]string{aiID: {"7H", "7D", "7C", "2H"}, "p2": {}},
+		Hands:       map[string][]string{aiID: {"7H", "7D", "7C", "2H", "2D", "2C", "9S"}, "p2": {}},
 		DrawPile:    []string{"2H"},
 		DiscardPile: []string{},
 		RoundReqMet: map[string]bool{aiID: false, "p2": false},
@@ -108,6 +112,47 @@ func TestHeuristicAgent_MeldLayOff_MeldFoundAndValid(t *testing.T) {
 	}
 	if len(outcome.State.Melds[aiID]) != 1 {
 		t.Fatalf("expected exactly one meld laid")
+	}
+}
+
+// Regression test for the "Rita melded with only three twos" report: round 1
+// needs 2 sets, but the hand only holds material for 1. The agent must not
+// start a meld it can't finish this turn (the server won't let it discard
+// afterward until it does) — it should discard instead and wait for a hand
+// that can complete the full requirement in one turn.
+func TestHeuristicAgent_WontStartMeldItCannotFinish(t *testing.T) {
+	agent := NewHeuristicAgent("medium")
+	aiID := "ai1"
+
+	state := rules.GameState{
+		Status:              rules.StatusActive,
+		Phase:               rules.PhaseMeld,
+		Round:               1,
+		CurrentTurn:         aiID,
+		TurnOrder:           []string{aiID, "p2"},
+		Hands:               map[string][]string{aiID: {"2H", "2D", "2C", "9S", "5H"}, "p2": {}},
+		DrawPile:            []string{"3H"},
+		DiscardPile:         []string{},
+		RoundReqMet:         map[string]bool{aiID: false, "p2": false},
+		InitialMeldMinimum:  35,
+		RoundScores:         map[string][]int{aiID: {}},
+		TotalScores:         map[string]int{aiID: 0},
+	}
+
+	visible := VisibleState{
+		Round:               state.Round,
+		Phase:               string(state.Phase),
+		CurrentTurn:         state.CurrentTurn,
+		RoundReqMet:         state.RoundReqMet,
+		InitialMeldMinimum:  state.InitialMeldMinimum,
+	}
+
+	action := agent.ChooseAction(visible, state.Hands[aiID])
+	if action.Type == rules.ActionLayMeld {
+		t.Fatalf("expected agent to avoid starting an unfinishable meld, got: %+v", action)
+	}
+	if action.Type != rules.ActionDiscard {
+		t.Fatalf("expected discard, got: %+v", action)
 	}
 }
 
