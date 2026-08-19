@@ -36,6 +36,7 @@ type Game struct {
 	NextMeldSeq        int                   `bson:"nextMeldSeq" json:"nextMeldSeq"`
 	SuspendedAt        *time.Time            `bson:"suspendedAt" json:"suspendedAt,omitempty"`
 	AbandonAt          *time.Time            `bson:"abandonAt" json:"abandonAt,omitempty"`
+	PreSuspendPhase    string                `bson:"preSuspendPhase,omitempty" json:"-"`
 	CreatedAt          time.Time             `bson:"createdAt" json:"createdAt"`
 	CompletedAt        *time.Time            `bson:"completedAt" json:"completedAt,omitempty"`
 	Version            int64                 `bson:"version" json:"-"`

@@ -110,6 +110,7 @@ func (m *Manager) SuspendOnDisconnect(ctx context.Context, gameID, playerID stri
 	now := time.Now().UTC()
 	abandon := now.Add(24 * time.Hour)
 
+	game.PreSuspendPhase = game.Phase
 	game.Status = "suspended"
 	game.Phase = string(rules.PhaseSuspended)
 	game.SuspendedAt = &now
@@ -124,6 +125,57 @@ func (m *Manager) SuspendOnDisconnect(ctx context.Context, gameID, playerID stri
 	})
 
 	_ = m.repo.UpdateWithVersion(ctx, oid, game.Version, game)
+
+	recipients := BroadcastRecipients(game)
+	m.hub.BroadcastGameState(gameID, recipients, func(pid string) interface{} {
+		return BuildGameStateMsg(game, pid)
+	})
+}
+
+// ResumeIfReturning un-suspends a game that was suspended because the
+// current-turn player disconnected, once that same player reconnects.
+// Games suspended for other reasons (e.g. suspendNoCardsLeft, which has no
+// PreSuspendPhase set) are left alone.
+func (m *Manager) ResumeIfReturning(ctx context.Context, gameID, playerID string) {
+	oid, err := bson.ObjectIDFromHex(gameID)
+	if err != nil {
+		return
+	}
+
+	game, err := m.repo.FindByID(ctx, oid)
+	if err != nil {
+		return
+	}
+	if game.Status != "suspended" || game.PreSuspendPhase == "" {
+		return
+	}
+	if game.CurrentTurn != playerID {
+		return
+	}
+
+	now := time.Now().UTC()
+	game.Status = "active"
+	game.Phase = game.PreSuspendPhase
+	game.PreSuspendPhase = ""
+	game.SuspendedAt = nil
+	game.AbandonAt = nil
+
+	game.ActionLog = append(game.ActionLog, models.Action{
+		Seq:       nextActionSeq(game.ActionLog),
+		Timestamp: now,
+		Type:      "resume",
+		PlayerID:  playerID,
+		Data:      map[string]interface{}{"reason": "reconnected"},
+	})
+
+	if err := m.repo.UpdateWithVersion(ctx, oid, game.Version, game); err != nil {
+		return
+	}
+
+	recipients := BroadcastRecipients(game)
+	m.hub.BroadcastGameState(gameID, recipients, func(pid string) interface{} {
+		return BuildGameStateMsg(game, pid)
+	})
 }
 
 func (m *Manager) suspendNoCardsLeft(ctx context.Context, gameID string, oid bson.ObjectID, game models.Game) {
