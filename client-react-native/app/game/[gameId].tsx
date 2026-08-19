@@ -240,14 +240,15 @@ export default function GameScreen() {
   // no-oping here — a card dropped on the discard pile or a meld should
   // always visibly do *something*, even if that's "not allowed right now".
   function discardCardAt(index: number) {
-    if (!state || !isMyTurn || state.offer) return;
+    if (!state || !isMyTurn) return;
+    if (phase !== 'discard' && phase !== 'meld') return;
     const card = hand[index];
     if (!card) return;
     send({ type: 'discard', card });
     clearSelect();
   }
 
-  const canLayOff = !!state && isMyTurn && !state.offer;
+  const canLayOff = !!state && isMyTurn;
 
   function layOffCardAt(index: number, meldId: string) {
     if (!canLayOff) return;
@@ -278,7 +279,7 @@ export default function GameScreen() {
       })();
 
   const discardLocked = state.discardDrawMinRound > 1 && state.round < state.discardDrawMinRound;
-  const canDrawDeck = isMyTurn && !state.offer && phase === 'draw';
+  const canDrawDeck = isMyTurn && phase === 'draw';
   const canTakeDiscard = canDrawDeck && !discardLocked && !!topDiscard;
 
   function drawFromDeck() {
@@ -295,19 +296,12 @@ export default function GameScreen() {
 
   const actions: { label: string; onPress: () => void; disabled?: boolean }[] = [];
 
-  if (state.offer && isMyTurn) {
-    actions.push(
-      { label: 'Accept offer', onPress: () => send({ type: 'accept_offer' }) },
-      { label: 'Decline', onPress: () => send({ type: 'decline_offer' }) },
-    );
-  } else {
-    // Always visible (grayed out rather than hidden) so it's obvious *why*
-    // you can't draw right now — wrong phase, not your turn, or the
-    // discard pile is locked — instead of the action just disappearing.
-    actions.push({ label: 'Draw deck', onPress: drawFromDeck, disabled: !canDrawDeck });
-    actions.push({ label: 'Take discard', onPress: takeDiscard, disabled: !canTakeDiscard });
-  }
-  if (isMyTurn && !state.offer) {
+  // Always visible (grayed out rather than hidden) so it's obvious *why*
+  // you can't draw right now — wrong phase, not your turn, or the
+  // discard pile is locked — instead of the action just disappearing.
+  actions.push({ label: 'Draw deck', onPress: drawFromDeck, disabled: !canDrawDeck });
+  actions.push({ label: 'Take discard', onPress: takeDiscard, disabled: !canTakeDiscard });
+  if (isMyTurn) {
     if (phase === 'meld') {
       const cards = selectedCards(hand, selected);
       if (cards.length >= 1) {
@@ -440,7 +434,7 @@ export default function GameScreen() {
           onDropOnMeld={layOffCardAt}
           onDragCardChange={setDraggedCard}
           dragPreview={dragPreview}
-          tapToDiscard={isMyTurn && !state.offer && phase === 'discard'}
+          tapToDiscard={isMyTurn && phase === 'discard'}
         />
 
         {actions.length > 0 ? <ActionBar actions={actions} /> : null}

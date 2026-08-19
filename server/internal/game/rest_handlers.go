@@ -148,7 +148,6 @@ func (h *GameRestHandlers) createGame(w http.ResponseWriter, req *http.Request) 
 		RoundReqMet:      map[string]bool{p.ID: false},
 		InitialMeldMinimum: initial,
 		DiscardDrawMinRound: discardMinRound,
-		Offer:            nil,
 		Players:          []models.Player{p},
 		ActionLog:        []models.Action{},
 		DeckSeed:         rules.NewShuffleSeed(),
@@ -331,7 +330,6 @@ func (h *GameRestHandlers) startGame(w http.ResponseWriter, req *http.Request) {
 		RoundReqMet:         map[string]bool{},
 		InitialMeldMinimum: g.InitialMeldMinimum,
 		DiscardDrawMinRound: g.DiscardDrawMinRound,
-		Offer:               nil,
 		DeckSeed:            seed,
 		RoundScores:         map[string][]int{},
 		TotalScores:         map[string]int{},
@@ -389,7 +387,6 @@ func (h *GameRestHandlers) startGame(w http.ResponseWriter, req *http.Request) {
 	nextGame.DiscardDrawMinRound = rState.DiscardDrawMinRound
 	nextGame.MeldsLaidThisTurn = rState.MeldsLaidThisTurn
 	nextGame.DiscardDrawnCardPendingMeld = rState.DiscardDrawnCardPendingMeld
-	nextGame.Offer = nil
 	nextGame.RoundScores = rState.RoundScores
 	nextGame.TotalScores = rState.TotalScores
 	nextGame.DeckSeed = rState.DeckSeed

@@ -37,11 +37,6 @@ type GameStateMsg struct {
 	InitialMeldMinimum int                      `json:"initialMeldMinimum"`
 	DiscardDrawMinRound int                     `json:"discardDrawMinRound"`
 	DiscardDrawnCardPendingMeld string         `json:"discardDrawnCardPendingMeld,omitempty"`
-	Offer              *OfferMsg                 `json:"offer"`
-}
-
-type OfferMsg struct {
-	Card string `json:"card"`
 }
 
 func BuildGameStateMsg(g models.Game, myPlayerID string) GameStateMsg {
@@ -56,11 +51,6 @@ func BuildGameStateMsg(g models.Game, myPlayerID string) GameStateMsg {
 	var myHand []string
 	if g.Hands != nil {
 		myHand = g.Hands[myPlayerID]
-	}
-
-	var offer *OfferMsg
-	if g.Offer != nil && g.Offer.OfferedTo == myPlayerID {
-		offer = &OfferMsg{Card: g.Offer.Card}
 	}
 
 	var pendingMeldCard string
@@ -109,7 +99,6 @@ func BuildGameStateMsg(g models.Game, myPlayerID string) GameStateMsg {
 		InitialMeldMinimum: g.InitialMeldMinimum,
 		DiscardDrawMinRound: g.DiscardDrawMinRound,
 		DiscardDrawnCardPendingMeld: pendingMeldCard,
-		Offer:              offer,
 	}
 }
 

@@ -19,7 +19,6 @@ type GameState struct {
 	WinnerID           string              `json:"winnerId"`
 	IsDraw             bool                `json:"isDraw"`
 	InitialMeldMinimum int                 `json:"initialMeldMinimum"`
-	Offer              *Offer              `json:"offer"`
 }
 
 type MeldMeta struct {
@@ -32,10 +31,6 @@ type Player struct {
 	Name         string `json:"name"`
 	IsAI         bool   `json:"isAI"`
 	AIDifficulty string `json:"aiDifficulty,omitempty"`
-}
-
-type Offer struct {
-	Card string `json:"card"`
 }
 
 type LobbyGame struct {

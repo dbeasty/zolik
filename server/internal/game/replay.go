@@ -10,7 +10,7 @@ type ReplayResponse struct {
 }
 
 var privateActionDataKeys = []string{
-	"card", "cards", "penaltyCard", "allHands", "meldId",
+	"card", "cards", "allHands", "meldId",
 }
 
 // RedactActionLogForPlayer returns an action log projection safe to send to the given player.
@@ -36,10 +36,6 @@ func redactActionData(a models.Action, viewerID string) map[string]interface{} {
 	switch a.Type {
 	case "draw_deck", "player_drew":
 		if a.PlayerID != viewerID {
-			delete(data, "card")
-		}
-	case "offer_made":
-		if offeredTo, ok := a.Data["offeredTo"].(string); ok && viewerID != offeredTo {
 			delete(data, "card")
 		}
 	case "round_ended":

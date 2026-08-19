@@ -53,7 +53,6 @@ func EndRound(state GameState, winnerID string) (GameState, error) {
 func StartNextRound(state GameState, nextTurnID string) (GameState, error) {
 	state.Round++
 	state.Phase = PhaseDraw
-	state.Offer = nil
 	state.ReshuffleCount = 0
 	state.DiscardPile = nil
 	state.DrawPile = nil

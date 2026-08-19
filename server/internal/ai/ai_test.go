@@ -287,39 +287,3 @@ func TestHeuristicAgent_SkipsDiscardWhenItWontCompleteTheInitialMeld(t *testing.
 	}
 }
 
-func TestHeuristicAgent_OfferAcceptMayBeValid(t *testing.T) {
-	agent := NewHeuristicAgent("medium")
-	aiID := "ai1"
-
-	state := rules.GameState{
-		Status:      rules.StatusActive,
-		Phase:       rules.PhaseOffer,
-		Round:       1,
-		CurrentTurn: "p2", // currentTurn not required for accept offer in our rules
-		TurnOrder:   []string{"p2", aiID},
-		Hands:       map[string][]string{aiID: {"7H", "7D", "7C", "2H"}, "p2": {}},
-		DrawPile:    []string{"2H"},
-		DiscardPile: []string{},
-		RoundReqMet: map[string]bool{aiID: false, "p2": false},
-		Offer:        &rules.DiscardOffer{Card: "7S", OfferedTo: aiID},
-		InitialMeldMinimum: 0,
-		DeckSeed:          1,
-		RoundScores:      map[string][]int{aiID: {}, "p2": {}},
-		TotalScores:      map[string]int{aiID: 0, "p2": 0},
-	}
-
-	visible := VisibleState{
-		Round:       state.Round,
-		Phase:       string(state.Phase),
-		CurrentTurn: state.CurrentTurn,
-		RoundReqMet: state.RoundReqMet,
-		Offer:       state.Offer,
-	}
-
-	action := agent.ChooseAction(visible, state.Hands[aiID])
-	_, err := rules.ApplyAction(state, aiID, action)
-	if err != nil {
-		t.Fatalf("expected offer action to be valid, got err: %v", err)
-	}
-}
-

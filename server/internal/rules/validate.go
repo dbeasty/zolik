@@ -15,9 +15,6 @@ func ValidateDraw(state GameState, playerID string, from DrawFrom) (GameState, s
 	if state.CurrentTurn != playerID {
 		return state, "", nil, RulesError{Code: ErrNotYourTurn}
 	}
-	if state.Offer != nil {
-		return state, "", nil, RulesError{Code: ErrWrongPhase, Message: "offer active"}
-	}
 
 	switch from {
 	case DrawFromDeck:
@@ -60,64 +57,6 @@ func ValidateDraw(state GameState, playerID string, from DrawFrom) (GameState, s
 	default:
 		return state, "", nil, fmt.Errorf("unknown draw source")
 	}
-}
-
-func ValidateAcceptOffer(state GameState, playerID string) (GameState, string, string, error) {
-	if state.Status != StatusActive {
-		return state, "", "", RulesError{Code: ErrGameNotActive}
-	}
-	if state.Phase != PhaseOffer {
-		return state, "", "", RulesError{Code: ErrWrongPhase}
-	}
-	if state.Offer == nil {
-		return state, "", "", RulesError{Code: ErrNoActiveOffer}
-	}
-	if state.Offer.OfferedTo != playerID {
-		return state, "", "", RulesError{Code: ErrNotOfferRecipient}
-	}
-
-	offeredCard := state.Offer.Card
-	state.Hands[playerID] = append(state.Hands[playerID], offeredCard)
-
-	// penalty draw from deck
-	state, err := ensureDrawPile(state)
-	if err != nil {
-		return state, "", "", err
-	}
-	if len(state.DrawPile) == 0 {
-		return state, "", "", RulesError{Code: ErrNoCardsLeft}
-	}
-	penalty := state.DrawPile[len(state.DrawPile)-1]
-	state.DrawPile = state.DrawPile[:len(state.DrawPile)-1]
-	state.Hands[playerID] = append(state.Hands[playerID], penalty)
-
-	state.Offer = nil
-	state.CurrentTurn = playerID
-	state.Phase = PhaseMeld
-	state.MeldsLaidThisTurn = 0
-	state.DiscardDrawnCardPendingMeld = ""
-
-	return state, offeredCard, penalty, nil
-}
-
-func ValidateDeclineOffer(state GameState, playerID string) (GameState, error) {
-	if state.Status != StatusActive {
-		return state, RulesError{Code: ErrGameNotActive}
-	}
-	if state.Phase != PhaseOffer {
-		return state, RulesError{Code: ErrWrongPhase}
-	}
-	if state.Offer == nil {
-		return state, RulesError{Code: ErrNoActiveOffer}
-	}
-	if state.Offer.OfferedTo != playerID {
-		return state, RulesError{Code: ErrNotOfferRecipient}
-	}
-
-	state.Offer = nil
-	state.CurrentTurn = playerID
-	state.Phase = PhaseDraw
-	return state, nil
 }
 
 func ValidateMeldAction(state GameState, playerID string, cards []string) (GameState, string, MeldType, error) {
@@ -293,15 +232,13 @@ func ValidateDiscard(state GameState, playerID string, card string) (GameState, 
 		if !state.RoundReqMet[playerID] {
 			return state, false, RulesError{Code: ErrRoundReqNotMet}
 		}
-		// Round ends immediately; offer is not created.
-		state.Offer = nil
 		return state, true, nil
 	}
 
-	// Create offer for next player; only the offeree may respond.
+	// Pass the turn to the next player, who draws from the deck or the
+	// discard pile like any other turn.
 	next := nextPlayer(state.TurnOrder, playerID)
-	state.Offer = &DiscardOffer{Card: card, OfferedTo: next}
-	state.Phase = PhaseOffer
+	state.Phase = PhaseDraw
 	state.CurrentTurn = next
 
 	return state, false, nil

@@ -122,15 +122,6 @@ func (m gameModel) update(msg tea.Msg) (gameModel, tea.Cmd) {
 		return m, nil
 	}
 
-	if m.state.Offer != nil {
-		switch key.String() {
-		case "a", "A":
-			return m, m.send(api.WSAction{Type: "accept_offer"})
-		case "d", "x", "D", "X":
-			return m, m.send(api.WSAction{Type: "decline_offer"})
-		}
-	}
-
 	if m.layoffPick {
 		r := key.String()
 		if len(r) == 1 && r[0] >= 'a' && r[0] <= 'z' {
@@ -301,10 +292,6 @@ func (m gameModel) runCommand(line string) {
 		_ = m.send(api.WSAction{Type: "draw_card", From: "deck"})()
 	case "take":
 		_ = m.send(api.WSAction{Type: "draw_card", From: "discard"})()
-	case "accept":
-		_ = m.send(api.WSAction{Type: "accept_offer"})()
-	case "decline":
-		_ = m.send(api.WSAction{Type: "decline_offer"})()
 	case "help":
 		m.status = "Keys: arrows, space, M meld, L layoff, D discard, G draw, T take, : commands"
 	case "sort":
@@ -384,11 +371,6 @@ func (m gameModel) view(width, height int) string {
 	} else {
 		b.WriteString("Discard: " + render.RenderCard(top, false, false) + "\n")
 		b.WriteString(fmt.Sprintf("Draw: %s × %d\n", render.RenderCardBack(), m.state.DeckCount))
-	}
-
-	if m.state.Offer != nil {
-		b.WriteString("\n" + render.Box.Render("DISCARD OFFERED — [A]ccept [D]ecline\nCard: "+
-			render.RenderCard(m.state.Offer.Card, false, false)) + "\n")
 	}
 
 	b.WriteString("\n" + render.SectionLabel.Render("YOUR HAND") + "\n")

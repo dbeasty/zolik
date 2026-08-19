@@ -60,10 +60,6 @@ func eventPayloadForPlayer(ev rules.StateEvent, viewerID, actorID string) map[st
 		if viewerID != actorID {
 			delete(payload, "card")
 		}
-	case "offer_made":
-		if offeredTo, ok := ev.Data["offeredTo"].(string); ok && viewerID != offeredTo {
-			delete(payload, "card")
-		}
 	}
 	return payload
 }

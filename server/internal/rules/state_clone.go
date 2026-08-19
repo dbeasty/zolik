@@ -34,9 +34,5 @@ func cloneState(s GameState) GameState {
 	for k, v := range s.TotalScores {
 		out.TotalScores[k] = v
 	}
-	if s.Offer != nil {
-		o := *s.Offer
-		out.Offer = &o
-	}
 	return out
 }

@@ -10,7 +10,6 @@ const (
 	PhaseDraw      Phase = "draw"
 	PhaseMeld      Phase = "meld"
 	PhaseDiscard   Phase = "discard"
-	PhaseOffer     Phase = "offer"
 	PhaseSuspended Phase = "suspended"
 )
 
@@ -23,11 +22,6 @@ const (
 	StatusCompleted GameStatus = "completed"
 	StatusAbandoned GameStatus = "abandoned"
 )
-
-type DiscardOffer struct {
-	Card      string
-	OfferedTo string
-}
 
 type MeldType string
 
@@ -45,12 +39,10 @@ type MeldInfo struct {
 type ActionType string
 
 const (
-	ActionDrawCard     ActionType = "draw_card"
-	ActionAcceptOffer  ActionType = "accept_offer"
-	ActionDeclineOffer ActionType = "decline_offer"
-	ActionLayMeld      ActionType = "lay_meld"
-	ActionLayOff       ActionType = "lay_off"
-	ActionDiscard      ActionType = "discard"
+	ActionDrawCard ActionType = "draw_card"
+	ActionLayMeld  ActionType = "lay_meld"
+	ActionLayOff   ActionType = "lay_off"
+	ActionDiscard  ActionType = "discard"
 )
 
 type DrawFrom string
@@ -100,7 +92,7 @@ type GameState struct {
 	// turn began. A player who has started but not finished their initial
 	// meld combination this turn cannot discard (end their turn) until they
 	// either complete it or... they must complete it — see ValidateDiscard.
-	// Reset to 0 whenever a player's turn begins (draw, or accept-offer).
+	// Reset to 0 whenever a player's turn begins.
 	MeldsLaidThisTurn int
 	// DiscardDrawnCardPendingMeld: when a player draws from the discard pile
 	// while they haven't yet met their round requirement, that specific
@@ -110,8 +102,6 @@ type GameState struct {
 	// used in a lay_meld) or moot (round requirement already met). Reset
 	// whenever a turn begins.
 	DiscardDrawnCardPendingMeld string
-
-	Offer *DiscardOffer
 
 	DeckSeed int64
 
@@ -138,8 +128,6 @@ const (
 	ErrTooManyWilds      RulesErrorCode = "TOO_MANY_WILDS"
 	ErrAdjacentWilds     RulesErrorCode = "ADJACENT_WILDS"
 	ErrAceBridge         RulesErrorCode = "ACE_BRIDGE"
-	ErrNotOfferRecipient RulesErrorCode = "NOT_OFFER_RECIPIENT"
-	ErrNoActiveOffer     RulesErrorCode = "NO_ACTIVE_OFFER"
 	ErrDiscardPileEmpty  RulesErrorCode = "DISCARD_PILE_EMPTY"
 	ErrDiscardLocked     RulesErrorCode = "DISCARD_LOCKED"
 	ErrIncompleteInitialMeld RulesErrorCode = "INCOMPLETE_INITIAL_MELD"
