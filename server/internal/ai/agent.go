@@ -15,8 +15,6 @@ type VisibleState struct {
 	TotalScores        map[string]int
 	InitialMeldMinimum int
 	DiscardDrawMinRound int
-
-	Offer *rules.DiscardOffer
 }
 
 type Agent interface {

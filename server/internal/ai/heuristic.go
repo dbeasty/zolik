@@ -29,11 +29,7 @@ func (a *HeuristicAgent) Difficulty() string { return a.difficulty }
 
 func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules.Action {
 	// Priority order (simplified v1):
-	// 1) Offer: accept only if it helps us lay any valid meld next.
-	if visible.Phase == string(rules.PhaseOffer) && visible.Offer != nil {
-		return a.chooseOfferAction(visible, hand)
-	}
-	// 2) Meld phase: only start laying toward the round requirement if the
+	// 1) Meld phase: only start laying toward the round requirement if the
 	// current hand can complete it entirely (pattern + minimum value) this
 	// turn — a player who starts but can't finish gets stuck (the server
 	// won't let them discard until they finish), so never begin unless a
@@ -52,7 +48,7 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 		// Otherwise discard.
 		return rules.Action{Type: rules.ActionDiscard, Card: pickWorstDiscard(hand)}
 	}
-	// 3) Draw phase: prefer discard if available and allowed this round, else deck.
+	// 2) Draw phase: prefer discard if available and allowed this round, else deck.
 	if visible.Phase == string(rules.PhaseDraw) {
 		discardLocked := visible.DiscardDrawMinRound > 1 && visible.Round < visible.DiscardDrawMinRound
 		if len(visible.DiscardPile) > 0 && !discardLocked {
@@ -79,23 +75,6 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 		return rules.Action{Type: rules.ActionDiscard, Card: pickWorstDiscard(hand)}
 	}
 	return rules.Action{Type: rules.ActionDiscard, Card: ""}
-}
-
-func (a *HeuristicAgent) chooseOfferAction(visible VisibleState, hand []string) rules.Action {
-	// Accept if adding offered card + one random penalty card could enable a meld.
-	// v1 simplification: accept if we can lay a meld with current hand + offered card.
-	candidate := append([]string(nil), hand...)
-	candidate = append(candidate, visible.Offer.Card)
-	if len(candidate) >= 3 {
-		if _, ok := findAnyValidMeld(candidate); ok {
-			// easy makes intentional suboptimal choices sometimes.
-			if a.difficulty == "easy" && a.rnd.Intn(100) < 30 {
-				return rules.Action{Type: rules.ActionDeclineOffer}
-			}
-			return rules.Action{Type: rules.ActionAcceptOffer}
-		}
-	}
-	return rules.Action{Type: rules.ActionDeclineOffer}
 }
 
 func rulesStateForAI(visible VisibleState, playerID string) rules.GameState {

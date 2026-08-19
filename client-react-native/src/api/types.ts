@@ -19,7 +19,6 @@ export type GameState = {
   initialMeldMinimum: number;
   discardDrawMinRound: number;
   discardDrawnCardPendingMeld?: string;
-  offer?: Offer;
 };
 
 export type MeldMeta = {
@@ -32,10 +31,6 @@ export type Player = {
   name: string;
   isAI: boolean;
   aiDifficulty?: string;
-};
-
-export type Offer = {
-  card: string;
 };
 
 export type LobbyGame = {

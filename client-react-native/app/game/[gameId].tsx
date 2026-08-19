@@ -131,7 +131,7 @@ export default function GameScreen() {
   }
 
   function discardCardAt(index: number) {
-    if (!state || !isMyTurn || state.offer) return;
+    if (!state || !isMyTurn) return;
     if (phase !== 'discard' && phase !== 'meld') return;
     const card = hand[index];
     if (!card) return;
@@ -161,12 +161,7 @@ export default function GameScreen() {
 
   const actions: { label: string; onPress: () => void; disabled?: boolean }[] = [];
 
-  if (state.offer && isMyTurn) {
-    actions.push(
-      { label: 'Accept offer', onPress: () => send({ type: 'accept_offer' }) },
-      { label: 'Decline', onPress: () => send({ type: 'decline_offer' }) },
-    );
-  } else if (isMyTurn) {
+  if (isMyTurn) {
     if (phase === 'draw') {
       actions.push({
         label: 'Draw deck',

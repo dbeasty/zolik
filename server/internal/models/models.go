@@ -31,7 +31,6 @@ type Game struct {
 	DiscardDrawMinRound int                  `bson:"discardDrawMinRound" json:"discardDrawMinRound"`
 	MeldsLaidThisTurn  int                   `bson:"meldsLaidThisTurn" json:"-"`
 	DiscardDrawnCardPendingMeld string        `bson:"discardDrawnCardPendingMeld" json:"-"`
-	Offer              *DiscardOffer         `bson:"offer" json:"offer"`
 	Players            []Player              `bson:"players" json:"players"`
 	ActionLog          []Action              `bson:"actionLog" json:"-"`
 	NextMeldSeq        int                   `bson:"nextMeldSeq" json:"nextMeldSeq"`
@@ -49,11 +48,6 @@ type Player struct {
 	AIDifficulty string `bson:"aiDifficulty" json:"aiDifficulty,omitempty"`
 	ConnectionID string `bson:"connectionId" json:"connectionId,omitempty"`
 	UserID       string `bson:"userId" json:"userId,omitempty"`
-}
-
-type DiscardOffer struct {
-	Card      string `bson:"card" json:"card"`
-	OfferedTo string `bson:"offeredTo" json:"offeredTo"`
 }
 
 type MeldInfo struct {

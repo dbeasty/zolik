@@ -164,10 +164,6 @@ func toRulesAction(in WSIncoming) (rules.Action, error) {
 	switch in.Type {
 	case "draw_card":
 		return rules.Action{Type: rules.ActionDrawCard, DrawFrom: rules.DrawFrom(in.From)}, nil
-	case "accept_offer":
-		return rules.Action{Type: rules.ActionAcceptOffer}, nil
-	case "decline_offer":
-		return rules.Action{Type: rules.ActionDeclineOffer}, nil
 	case "lay_meld":
 		return rules.Action{Type: rules.ActionLayMeld, Cards: in.Cards}, nil
 	case "lay_off":
@@ -192,11 +188,6 @@ func toRulesState(g models.Game) rules.GameState {
 		}
 	}
 
-	var offer *rules.DiscardOffer
-	if g.Offer != nil {
-		offer = &rules.DiscardOffer{Card: g.Offer.Card, OfferedTo: g.Offer.OfferedTo}
-	}
-
 	return rules.GameState{
 		Status:             rules.GameStatus(g.Status),
 		Round:              g.Round,
@@ -216,7 +207,6 @@ func toRulesState(g models.Game) rules.GameState {
 		DiscardDrawMinRound: g.DiscardDrawMinRound,
 		MeldsLaidThisTurn:  g.MeldsLaidThisTurn,
 		DiscardDrawnCardPendingMeld: g.DiscardDrawnCardPendingMeld,
-		Offer:              offer,
 		RoundScores:        g.RoundScores,
 		TotalScores:        g.TotalScores,
 		WinnerID:           g.WinnerID,
@@ -244,13 +234,6 @@ func fromRulesState(g *models.Game, rs rules.GameState) {
 	g.DiscardDrawnCardPendingMeld = rs.DiscardDrawnCardPendingMeld
 	g.RoundScores = rs.RoundScores
 	g.TotalScores = rs.TotalScores
-
-	// Offer
-	if rs.Offer != nil {
-		g.Offer = &models.DiscardOffer{Card: rs.Offer.Card, OfferedTo: rs.Offer.OfferedTo}
-	} else {
-		g.Offer = nil
-	}
 
 	// MeldMeta
 	g.MeldMeta = map[string][]models.MeldInfo{}
@@ -319,9 +302,6 @@ func (m *Manager) aiLoop(ctx context.Context, gameID string) {
 		}
 
 		actorID := game.CurrentTurn
-		if game.Phase == string(rules.PhaseOffer) && game.Offer != nil {
-			actorID = game.Offer.OfferedTo
-		}
 		if actorID == "" {
 			return
 		}
@@ -379,10 +359,6 @@ func findAIPlayer(players []models.Player, id string) *models.Player {
 }
 
 func aiVisibleFromGame(game models.Game) ai.VisibleState {
-	var offer *rules.DiscardOffer
-	if game.Offer != nil {
-		offer = &rules.DiscardOffer{Card: game.Offer.Card, OfferedTo: game.Offer.OfferedTo}
-	}
 	rMeldMeta := map[string][]rules.MeldInfo{}
 	for owner, infos := range game.MeldMeta {
 		for _, mi := range infos {
@@ -404,7 +380,6 @@ func aiVisibleFromGame(game models.Game) ai.VisibleState {
 		TotalScores:        game.TotalScores,
 		InitialMeldMinimum: game.InitialMeldMinimum,
 		DiscardDrawMinRound: game.DiscardDrawMinRound,
-		Offer:              offer,
 	}
 }
 
@@ -412,10 +387,6 @@ func rulesActionToWSIncoming(a rules.Action) WSIncoming {
 	switch a.Type {
 	case rules.ActionDrawCard:
 		return WSIncoming{Type: "draw_card", From: string(a.DrawFrom)}
-	case rules.ActionAcceptOffer:
-		return WSIncoming{Type: "accept_offer"}
-	case rules.ActionDeclineOffer:
-		return WSIncoming{Type: "decline_offer"}
 	case rules.ActionLayMeld:
 		return WSIncoming{Type: "lay_meld", Cards: a.Cards}
 	case rules.ActionLayOff:

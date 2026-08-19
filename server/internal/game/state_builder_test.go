@@ -6,7 +6,7 @@ import (
 	"zolik/server/internal/models"
 )
 
-func TestBuildGameStateMsg_OfferRedactionAndHands(t *testing.T) {
+func TestBuildGameStateMsg_Hands(t *testing.T) {
 	g := models.Game{
 		Status:         "active",
 		Round:          1,
@@ -27,13 +27,9 @@ func TestBuildGameStateMsg_OfferRedactionAndHands(t *testing.T) {
 			"p1": {"2H", "3H"},
 			"p2": {"4H"},
 		},
-		Offer: &models.DiscardOffer{Card: "KH", OfferedTo: "p2"},
 	}
 
 	msg1 := BuildGameStateMsg(g, "p1")
-	if msg1.Offer != nil {
-		t.Fatalf("expected offer redacted for non-offeree")
-	}
 	if len(msg1.MyHand) != 2 {
 		t.Fatalf("expected my hand size 2, got %d", len(msg1.MyHand))
 	}
@@ -42,9 +38,6 @@ func TestBuildGameStateMsg_OfferRedactionAndHands(t *testing.T) {
 	}
 
 	msg2 := BuildGameStateMsg(g, "p2")
-	if msg2.Offer == nil || msg2.Offer.Card != "KH" {
-		t.Fatalf("expected offer present for offeree")
-	}
 	if len(msg2.MyHand) != 1 {
 		t.Fatalf("expected my hand size 1, got %d", len(msg2.MyHand))
 	}

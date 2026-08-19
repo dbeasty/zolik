@@ -97,39 +97,6 @@ func ApplyAction(state GameState, playerID string, action Action) (ApplyOutcome,
 		if goOut {
 			return endRoundWithEvents(ns, playerID)
 		}
-		if ns.Offer != nil {
-			events = append(events, ev("offer_made", map[string]interface{}{
-				"card":      ns.Offer.Card,
-				"offeredTo": ns.Offer.OfferedTo,
-			}))
-		}
-		return ApplyOutcome{State: ns, Events: events}, nil
-
-	case ActionAcceptOffer:
-		ns, offered, penalty, err := ValidateAcceptOffer(state, playerID)
-		if err != nil {
-			return ApplyOutcome{State: state}, err
-		}
-		events = append(events,
-			ev("offer_accepted", map[string]interface{}{"playerId": playerID}),
-			ev("offer_resolved", map[string]interface{}{"accepted": true, "playerId": playerID}),
-			ev("draw_discard", map[string]interface{}{
-				"playerId":    playerID,
-				"card":        offered,
-				"penaltyCard": penalty,
-			}),
-		)
-		return ApplyOutcome{State: ns, Events: events}, nil
-
-	case ActionDeclineOffer:
-		ns, err := ValidateDeclineOffer(state, playerID)
-		if err != nil {
-			return ApplyOutcome{State: state}, err
-		}
-		events = append(events,
-			ev("offer_declined", map[string]interface{}{"playerId": playerID}),
-			ev("offer_resolved", map[string]interface{}{"accepted": false, "playerId": playerID}),
-		)
 		return ApplyOutcome{State: ns, Events: events}, nil
 
 	default:
