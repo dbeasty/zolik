@@ -43,6 +43,7 @@ type Game struct {
 	DiscardDrawMinRound         int                   `bson:"discardDrawMinRound" json:"discardDrawMinRound"`
 	MeldsLaidThisTurn           int                   `bson:"meldsLaidThisTurn" json:"-"`
 	DiscardDrawnCardPendingMeld string                `bson:"discardDrawnCardPendingMeld" json:"-"`
+	DiscardDrawnCards           []string              `bson:"discardDrawnCards" json:"-"`
 	Players                     []Player              `bson:"players" json:"players"`
 	ActionLog                   []Action              `bson:"actionLog" json:"-"`
 	NextMeldSeq                 int                   `bson:"nextMeldSeq" json:"nextMeldSeq"`

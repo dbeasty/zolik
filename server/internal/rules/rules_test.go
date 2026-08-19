@@ -442,3 +442,116 @@ func TestValidateLayOff_AllowedOnceOwnRoundReqMet(t *testing.T) {
 		t.Fatalf("expected lay-off to succeed once p1 has met their own round requirement, got %v", err)
 	}
 }
+
+func TestValidateUndoDrawDiscard_ReturnsCardAndReopensDraw(t *testing.T) {
+	st := GameState{
+		Status:      StatusActive,
+		Phase:       PhaseDraw,
+		Round:       1,
+		DrawPile:    []string{"2H"},
+		DiscardPile: []string{"9S"},
+		Hands:       map[string][]string{"p1": {}},
+		CurrentTurn: "p1",
+		RoundReqMet: map[string]bool{"p1": false},
+	}
+	ns, card, _, err := ValidateDraw(st, "p1", DrawFromDiscard, "")
+	if err != nil {
+		t.Fatalf("unexpected err drawing: %v", err)
+	}
+	if card != "9S" {
+		t.Fatalf("expected to draw 9S, got %q", card)
+	}
+
+	ns, err = ValidateUndoDrawDiscard(ns, "p1")
+	if err != nil {
+		t.Fatalf("unexpected err undoing draw: %v", err)
+	}
+	if ns.Phase != PhaseDraw {
+		t.Fatalf("expected phase back to draw, got %v", ns.Phase)
+	}
+	if len(ns.Hands["p1"]) != 0 {
+		t.Fatalf("expected 9S removed from hand, got %v", ns.Hands["p1"])
+	}
+	if len(ns.DiscardPile) != 1 || ns.DiscardPile[0] != "9S" {
+		t.Fatalf("expected 9S back on the discard pile, got %v", ns.DiscardPile)
+	}
+	if ns.DiscardDrawnCardPendingMeld != "" {
+		t.Fatalf("expected pending-meld obligation cleared, got %q", ns.DiscardDrawnCardPendingMeld)
+	}
+	if len(ns.DiscardDrawnCards) != 0 {
+		t.Fatalf("expected DiscardDrawnCards cleared, got %v", ns.DiscardDrawnCards)
+	}
+
+	// The player should now be able to draw again, e.g. from the deck.
+	if _, _, _, err := ValidateDraw(ns, "p1", DrawFromDeck, ""); err != nil {
+		t.Fatalf("expected to be able to draw again after undo, got %v", err)
+	}
+}
+
+func TestValidateUndoDrawDiscard_NothingToUndoAfterDeckDraw(t *testing.T) {
+	st := GameState{
+		Status:      StatusActive,
+		Phase:       PhaseDraw,
+		Round:       1,
+		DrawPile:    []string{"2H"},
+		DiscardPile: []string{"9S"},
+		Hands:       map[string][]string{"p1": {}},
+		CurrentTurn: "p1",
+	}
+	ns, _, _, err := ValidateDraw(st, "p1", DrawFromDeck, "")
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	_, err = ValidateUndoDrawDiscard(ns, "p1")
+	if err == nil {
+		t.Fatalf("expected error undoing a deck draw")
+	}
+	re, ok := err.(RulesError)
+	if !ok || re.Code != ErrNothingToUndo {
+		t.Fatalf("expected ErrNothingToUndo, got %#v", err)
+	}
+}
+
+func TestValidateUndoDrawDiscard_UnavailableAfterLayingMeld(t *testing.T) {
+	st := GameState{
+		Status:      StatusActive,
+		Phase:       PhaseDraw,
+		Round:       1,
+		DrawPile:    []string{"2H"},
+		DiscardPile: []string{"9S"},
+		Hands:       map[string][]string{"p1": {"9H", "9D", "2C"}},
+		CurrentTurn: "p1",
+		RoundReqMet: map[string]bool{"p1": true},
+	}
+	ns, _, _, err := ValidateDraw(st, "p1", DrawFromDiscard, "")
+	if err != nil {
+		t.Fatalf("unexpected err drawing: %v", err)
+	}
+	ns, _, _, err = ValidateMeldAction(ns, "p1", []string{"9H", "9D", "9S"})
+	if err != nil {
+		t.Fatalf("unexpected err melding: %v", err)
+	}
+	if _, err := ValidateUndoDrawDiscard(ns, "p1"); err == nil {
+		t.Fatalf("expected undo to be unavailable once the drawn card has been melded")
+	}
+}
+
+func TestValidateUndoDrawDiscard_WrongPlayerOrPhaseRejected(t *testing.T) {
+	st := GameState{
+		Status:      StatusActive,
+		Phase:       PhaseDraw,
+		Round:       1,
+		DrawPile:    []string{"2H"},
+		DiscardPile: []string{"9S"},
+		Hands:       map[string][]string{"p1": {}},
+		CurrentTurn: "p1",
+		RoundReqMet: map[string]bool{"p1": false},
+	}
+	ns, _, _, err := ValidateDraw(st, "p1", DrawFromDiscard, "")
+	if err != nil {
+		t.Fatalf("unexpected err drawing: %v", err)
+	}
+	if _, err := ValidateUndoDrawDiscard(ns, "p2"); err == nil {
+		t.Fatalf("expected error when a different player tries to undo")
+	}
+}

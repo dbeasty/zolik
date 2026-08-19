@@ -43,10 +43,11 @@ type MeldInfo struct {
 type ActionType string
 
 const (
-	ActionDrawCard ActionType = "draw_card"
-	ActionLayMeld  ActionType = "lay_meld"
-	ActionLayOff   ActionType = "lay_off"
-	ActionDiscard  ActionType = "discard"
+	ActionDrawCard        ActionType = "draw_card"
+	ActionLayMeld         ActionType = "lay_meld"
+	ActionLayOff          ActionType = "lay_off"
+	ActionDiscard         ActionType = "discard"
+	ActionUndoDrawDiscard ActionType = "undo_draw_discard"
 )
 
 type DrawFrom string
@@ -128,6 +129,14 @@ type GameState struct {
 	// used in a lay_meld) or moot (round requirement already met). Reset
 	// whenever a turn begins.
 	DiscardDrawnCardPendingMeld string
+	// DiscardDrawnCards holds the card(s) just taken from the discard pile
+	// this turn, in their original pile order, so ValidateUndoDrawDiscard
+	// can put them back and let the player draw again. Set on a discard-pile
+	// pickup, cleared to nil once anything else happens this turn (a
+	// lay_meld, a lay_off, or a fresh draw) — undo is only available in the
+	// window right after the pickup, before the drawn cards could have
+	// scattered into melds.
+	DiscardDrawnCards []string
 
 	DeckSeed int64
 
@@ -162,6 +171,7 @@ const (
 	ErrGameNotActive         RulesErrorCode = "GAME_NOT_ACTIVE"
 	ErrJokerDiscard          RulesErrorCode = "JOKER_DISCARD_FORBIDDEN"
 	ErrBreaksCleanRun        RulesErrorCode = "BREAKS_CLEAN_RUN"
+	ErrNothingToUndo         RulesErrorCode = "NOTHING_TO_UNDO"
 
 	// Not in spec list; required by your decision for empty deck+discard.
 	ErrNoCardsLeft RulesErrorCode = "NO_CARDS_LEFT"

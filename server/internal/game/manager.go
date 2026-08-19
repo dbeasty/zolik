@@ -222,6 +222,8 @@ func toRulesAction(in WSIncoming) (rules.Action, error) {
 		return rules.Action{Type: rules.ActionLayOff, MeldID: in.MeldID, Card: in.Card}, nil
 	case "discard":
 		return rules.Action{Type: rules.ActionDiscard, Card: in.Card}, nil
+	case "undo_draw_discard":
+		return rules.Action{Type: rules.ActionUndoDrawDiscard}, nil
 	default:
 		return rules.Action{}, fmt.Errorf("unknown action type: %s", in.Type)
 	}
@@ -263,6 +265,7 @@ func toRulesState(g models.Game) rules.GameState {
 		DiscardDrawMinRound:         g.DiscardDrawMinRound,
 		MeldsLaidThisTurn:           g.MeldsLaidThisTurn,
 		DiscardDrawnCardPendingMeld: g.DiscardDrawnCardPendingMeld,
+		DiscardDrawnCards:           g.DiscardDrawnCards,
 		GameScores:                  g.GameScores,
 		TotalScores:                 g.TotalScores,
 		WinnerID:                    g.WinnerID,
@@ -290,6 +293,7 @@ func fromRulesState(g *models.Game, rs rules.GameState) {
 	g.DiscardDrawMinRound = rs.DiscardDrawMinRound
 	g.MeldsLaidThisTurn = rs.MeldsLaidThisTurn
 	g.DiscardDrawnCardPendingMeld = rs.DiscardDrawnCardPendingMeld
+	g.DiscardDrawnCards = rs.DiscardDrawnCards
 	g.GameScores = rs.GameScores
 	g.TotalScores = rs.TotalScores
 

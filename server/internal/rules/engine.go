@@ -60,6 +60,16 @@ func ApplyAction(state GameState, playerID string, action Action) (ApplyOutcome,
 		}
 		return ApplyOutcome{State: ns, Events: events}, nil
 
+	case ActionUndoDrawDiscard:
+		ns, err := ValidateUndoDrawDiscard(state, playerID)
+		if err != nil {
+			return ApplyOutcome{State: state}, err
+		}
+		events = append(events, ev("undo_draw_discard", map[string]interface{}{
+			"playerId": playerID,
+		}))
+		return ApplyOutcome{State: ns, Events: events}, nil
+
 	case ActionLayMeld:
 		ns, meldID, meldType, err := ValidateMeldAction(state, playerID, action.Cards)
 		if err != nil {

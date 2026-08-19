@@ -36,6 +36,7 @@ func ValidateDraw(state GameState, playerID string, from DrawFrom, targetCard st
 		state.Phase = PhaseMeld
 		state.MeldsLaidThisTurn = 0
 		state.DiscardDrawnCardPendingMeld = ""
+		state.DiscardDrawnCards = nil
 		return state, card, nil, nil
 
 	case DrawFromDiscard:
@@ -66,6 +67,7 @@ func ValidateDraw(state GameState, playerID string, from DrawFrom, targetCard st
 		state.Hands[playerID] = append(state.Hands[playerID], taken...)
 		state.Phase = PhaseMeld
 		state.MeldsLaidThisTurn = 0
+		state.DiscardDrawnCards = taken
 		// Before a player has gone down, a discard-pile pickup obligates
 		// them to lay the requested (bottom-most taken) card into their
 		// initial meld this turn — see ValidateDiscard. Once already down
@@ -80,6 +82,42 @@ func ValidateDraw(state GameState, playerID string, from DrawFrom, targetCard st
 	default:
 		return state, "", nil, fmt.Errorf("unknown draw source")
 	}
+}
+
+// ValidateUndoDrawDiscard reverses a same-turn discard-pile pickup: it
+// returns the taken card(s) to the top of the discard pile, in their
+// original order, and puts the player back in the draw phase so they can
+// draw again — from the deck, or a different card off the discard pile.
+// Only available in the window right after the pickup, before any
+// lay_meld/lay_off this turn has had a chance to use the drawn card(s).
+func ValidateUndoDrawDiscard(state GameState, playerID string) (GameState, error) {
+	if state.Status != StatusActive {
+		return state, RulesError{Code: ErrGameNotActive}
+	}
+	if state.Phase == PhaseSuspended || state.Status == StatusSuspended {
+		return state, RulesError{Code: ErrGameSuspended}
+	}
+	if state.CurrentTurn != playerID {
+		return state, RulesError{Code: ErrNotYourTurn}
+	}
+	if state.Phase != PhaseMeld {
+		return state, RulesError{Code: ErrWrongPhase}
+	}
+	if len(state.DiscardDrawnCards) == 0 {
+		return state, RulesError{Code: ErrNothingToUndo}
+	}
+	if err := requireCardsInHand(state.Hands[playerID], state.DiscardDrawnCards); err != nil {
+		return state, err
+	}
+
+	state.Hands[playerID] = removeCards(state.Hands[playerID], state.DiscardDrawnCards)
+	state.DiscardPile = append(state.DiscardPile, state.DiscardDrawnCards...)
+	state.DiscardDrawnCards = nil
+	state.DiscardDrawnCardPendingMeld = ""
+	state.MeldsLaidThisTurn = 0
+	state.Phase = PhaseDraw
+
+	return state, nil
 }
 
 func ValidateMeldAction(state GameState, playerID string, cards []string) (GameState, string, MeldType, error) {
@@ -181,6 +219,9 @@ func ValidateMeldAction(state GameState, playerID string, cards []string) (GameS
 			}
 		}
 	}
+	// Once a meld has been laid this turn, the discard-pile pickup (if any)
+	// can no longer be cleanly undone.
+	state.DiscardDrawnCards = nil
 
 	return state, meldID, mv.Type, nil
 }
@@ -233,6 +274,9 @@ func ValidateLayOff(state GameState, playerID string, meldID string, card string
 		metas[idx].Type = mv.Type
 		metas[idx].WildCount = mv.WildCount
 	}
+	// Once a lay-off has happened this turn, the discard-pile pickup (if
+	// any) can no longer be cleanly undone.
+	state.DiscardDrawnCards = nil
 
 	if !cfg.IsFinalDeal(state.GameNumber) && len(state.Hands[playerID]) == 0 {
 		return state, RulesError{Code: ErrInvalidMeld, Message: "must discard your last card to go out"}

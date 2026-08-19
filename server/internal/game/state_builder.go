@@ -38,6 +38,7 @@ type GameStateMsg struct {
 	InitialMeldMinimum          int                      `json:"initialMeldMinimum"`
 	DiscardDrawMinRound         int                      `json:"discardDrawMinRound"`
 	DiscardDrawnCardPendingMeld string                   `json:"discardDrawnCardPendingMeld,omitempty"`
+	CanUndoDiscardDraw          bool                     `json:"canUndoDiscardDraw,omitempty"`
 	RulesProfile                string                   `json:"rulesProfile"`
 }
 
@@ -56,8 +57,10 @@ func BuildGameStateMsg(g models.Game, myPlayerID string) GameStateMsg {
 	}
 
 	var pendingMeldCard string
+	var canUndoDiscardDraw bool
 	if g.CurrentTurn == myPlayerID {
 		pendingMeldCard = g.DiscardDrawnCardPendingMeld
+		canUndoDiscardDraw = len(g.DiscardDrawnCards) > 0
 	}
 
 	players := make([]PlayerMsg, 0, len(g.Players))
@@ -102,6 +105,7 @@ func BuildGameStateMsg(g models.Game, myPlayerID string) GameStateMsg {
 		InitialMeldMinimum:          g.InitialMeldMinimum,
 		DiscardDrawMinRound:         g.DiscardDrawMinRound,
 		DiscardDrawnCardPendingMeld: pendingMeldCard,
+		CanUndoDiscardDraw:          canUndoDiscardDraw,
 		RulesProfile:                g.RulesProfile,
 	}
 }
