@@ -50,7 +50,7 @@ type Props = {
 const CARD_WIDTH = 52;
 const CARD_WIDTH_COMPACT = 44;
 const CARD_MARGIN = 6;
-const DOUBLE_TAP_MS = 350;
+const DOUBLE_TAP_MS = 400;
 
 function pointInZone(x: number, y: number, zone: DropZone): boolean {
   return x >= zone.x && x <= zone.x + zone.width && y >= zone.y && y <= zone.y + zone.height;
@@ -126,12 +126,11 @@ function DraggableCard({
 }) {
   const lastTapAt = useRef(0);
 
-  // Plain RN Pressable (via CardView's onPress) handles taps — it's the
-  // same touchable every other button in this app uses, unlike
-  // gesture-handler's own Tap gesture which wasn't registering reliably.
-  // Double-tap is just JS timing on top of it: two presses within the
-  // window count as one discard, not two toggles.
-  function handlePress() {
+  // Manual JS timing on top of a single gesture-handler Tap (the same
+  // gesture system as the pan below, which is proven to work — mixing it
+  // with a plain RN Pressable underneath turned out not to be reliable).
+  // Two taps within the window count as one discard, not two toggles.
+  function handleTap() {
     const now = Date.now();
     if (now - lastTapAt.current < DOUBLE_TAP_MS) {
       lastTapAt.current = 0;
@@ -141,6 +140,10 @@ function DraggableCard({
     lastTapAt.current = now;
     onToggle(index);
   }
+
+  const tap = Gesture.Tap().onEnd((_e, success) => {
+    if (success) runOnJS(handleTap)();
+  });
 
   function handleDragStart() {
     onDragCardChange?.(card);
@@ -160,8 +163,6 @@ function DraggableCard({
     }
   }
 
-  // minDistance means a plain tap never engages the pan, so it always falls
-  // through to the Pressable underneath.
   const pan = Gesture.Pan()
     .minDistance(10)
     .onStart((e) => {
@@ -183,14 +184,18 @@ function DraggableCard({
       dragPreview.draggingIndex.value = -1;
     });
 
+  const gesture = Gesture.Race(pan, tap);
+
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: dragPreview.draggingIndex.value === index ? 0.3 : 1,
   }));
 
   return (
-    <GestureDetector gesture={pan}>
-      <Animated.View style={animatedStyle}>
-        <CardView card={card} selected={selected} compact={compact} onPress={handlePress} />
+    <GestureDetector gesture={gesture}>
+      {/* userSelect: none stops a rapid double-tap from being swallowed by
+          the browser's native "select this text" double-click behavior. */}
+      <Animated.View style={[animatedStyle, { userSelect: 'none' } as object]}>
+        <CardView card={card} selected={selected} compact={compact} />
       </Animated.View>
     </GestureDetector>
   );
