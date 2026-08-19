@@ -115,7 +115,8 @@ func (h *GameRestHandlers) createGame(w http.ResponseWriter, req *http.Request) 
 	if body.InitialMeldMinimum != nil {
 		initial = *body.InitialMeldMinimum
 	}
-	discardMinRound := 1
+	// Continental Rummy: discard-pile pickup only opens up from round 3.
+	discardMinRound := 3
 	if body.DiscardDrawMinRound != nil {
 		discardMinRound = *body.DiscardDrawMinRound
 	}

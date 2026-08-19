@@ -8,7 +8,7 @@ import type { LobbyPlayer } from '@/src/api/types';
 import { colors, shared } from '@/src/theme';
 
 const DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
-const MELD_MINS = [0, 35, 50];
+const MELD_MINS = [35, 50, 70];
 const DISCARD_LOCK_ROUNDS = [1, 2, 3];
 const DECK_LOCK_ROUNDS = [1, 2, 3];
 
@@ -19,7 +19,8 @@ export default function CreateLobbyScreen() {
   const [players, setPlayers] = useState<LobbyPlayer[]>([]);
   const [aiDiff, setAiDiff] = useState<(typeof DIFFICULTIES)[number]>('medium');
   const [initialMin, setInitialMin] = useState(35);
-  const [discardLockRound, setDiscardLockRound] = useState(1);
+  // Continental Rummy: discard-pile pickup only opens up from round 3.
+  const [discardLockRound, setDiscardLockRound] = useState(3);
   const [deckLockRound, setDeckLockRound] = useState(1);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(true);
@@ -48,8 +49,7 @@ export default function CreateLobbyScreen() {
     let cancelled = false;
     (async () => {
       try {
-        const min = initialMin > 0 ? initialMin : undefined;
-        const { gameId: id, joinCode: code } = await client.createGame(min);
+        const { gameId: id, joinCode: code } = await client.createGame(initialMin);
         if (cancelled) return;
         setGameId(id);
         setJoinCode(code);
@@ -99,7 +99,7 @@ export default function CreateLobbyScreen() {
     const next = MELD_MINS[(idx + 1) % MELD_MINS.length];
     setInitialMin(next);
     try {
-      await client.updateGameSettings(gameId, { initialMeldMinimum: next || 35 });
+      await client.updateGameSettings(gameId, { initialMeldMinimum: next });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Update failed');
     }
@@ -160,27 +160,27 @@ export default function CreateLobbyScreen() {
             </Pressable>
           ))}
         </View>
+        <View style={[shared.card, { marginTop: 8, paddingVertical: 12 }]}>
+          <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14, marginBottom: 10 }}>
+            Continental Rummy rules
+          </Text>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <RuleChip label="Meld value" value={String(initialMin)} onPress={isHost ? cycleMeldMin : undefined} />
+            <RuleChip
+              label="Discard pickup"
+              value={`R${discardLockRound}`}
+              onPress={isHost ? cycleDiscardLock : undefined}
+            />
+            <RuleChip
+              label="Deck draw"
+              value={`R${deckLockRound}`}
+              onPress={isHost ? cycleDeckLock : undefined}
+            />
+          </View>
+        </View>
+
         {isHost ? (
           <>
-            <Pressable style={[shared.button, shared.buttonSecondary]} onPress={cycleMeldMin}>
-              <Text style={shared.buttonTextSecondary}>
-                Initial meld minimum: {initialMin || 'default'}
-              </Text>
-            </Pressable>
-            <Pressable style={[shared.button, shared.buttonSecondary]} onPress={cycleDiscardLock}>
-              <Text style={shared.buttonTextSecondary}>
-                {discardLockRound > 1
-                  ? `Discard pile pickup: locked until round ${discardLockRound}`
-                  : 'Discard pile pickup: unlocked from round 1'}
-              </Text>
-            </Pressable>
-            <Pressable style={[shared.button, shared.buttonSecondary]} onPress={cycleDeckLock}>
-              <Text style={shared.buttonTextSecondary}>
-                {deckLockRound > 1
-                  ? `Deck draw: locked until round ${deckLockRound}`
-                  : 'Deck draw: unlocked from round 1'}
-              </Text>
-            </Pressable>
             <Pressable style={shared.button} onPress={addAI}>
               <Text style={shared.buttonText}>Add AI</Text>
             </Pressable>
@@ -195,22 +195,42 @@ export default function CreateLobbyScreen() {
             </Pressable>
           </>
         ) : (
-          <>
-            <Text style={shared.status}>Initial meld minimum: {initialMin || 'default'}</Text>
-            <Text style={shared.status}>
-              {discardLockRound > 1
-                ? `Discard pile pickup: locked until round ${discardLockRound}`
-                : 'Discard pile pickup: unlocked from round 1'}
-            </Text>
-            <Text style={shared.status}>
-              {deckLockRound > 1
-                ? `Deck draw: locked until round ${deckLockRound}`
-                : 'Deck draw: unlocked from round 1'}
-            </Text>
-            <Text style={shared.status}>Waiting for host to start…</Text>
-          </>
+          <Text style={shared.status}>Waiting for host to start…</Text>
         )}
       </View>
     </Screen>
+  );
+}
+
+function RuleChip({
+  label,
+  value,
+  onPress,
+}: {
+  label: string;
+  value: string;
+  onPress?: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      style={{
+        flex: 1,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderRadius: 8,
+        paddingVertical: 8,
+        paddingHorizontal: 6,
+        alignItems: 'center',
+        opacity: onPress ? 1 : 0.7,
+      }}
+    >
+      <Text style={{ color: colors.muted, fontSize: 11 }}>{label}</Text>
+      <Text style={{ color: colors.text, fontSize: 15, fontWeight: '700', marginTop: 2 }}>
+        {value}
+      </Text>
+    </Pressable>
   );
 }
