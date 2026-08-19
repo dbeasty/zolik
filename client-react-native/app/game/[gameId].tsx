@@ -106,6 +106,15 @@ export default function GameScreen() {
     setSelected(new Set());
   }
 
+  function handleDoubleTapDiscard(index: number) {
+    if (!state || !isMyTurn || state.offer) return;
+    if (phase !== 'discard' && phase !== 'meld') return;
+    const card = hand[index];
+    if (!card) return;
+    send({ type: 'discard', card });
+    clearSelect();
+  }
+
   if (!state) {
     return (
       <Screen title="Game">
@@ -242,13 +251,17 @@ export default function GameScreen() {
           selected={selected}
           onToggle={toggleSelect}
           onReorder={(newOrder) => setLocalHand(newOrder)}
+          onDoubleTap={handleDoubleTapDiscard}
         />
+        <Text style={shared.status}>Double-tap a card to discard it.</Text>
 
         {actions.length > 0 ? <ActionBar actions={actions} /> : null}
 
-        <Pressable style={[shared.button, shared.buttonSecondary, { marginTop: 16 }]} onPress={reconnect}>
-          <Text style={shared.buttonTextSecondary}>Reconnect</Text>
-        </Pressable>
+        {!connected ? (
+          <Pressable style={[shared.button, shared.buttonSecondary, { marginTop: 16 }]} onPress={reconnect}>
+            <Text style={shared.buttonTextSecondary}>Reconnect</Text>
+          </Pressable>
+        ) : null}
       </ScrollView>
     </Screen>
   );
