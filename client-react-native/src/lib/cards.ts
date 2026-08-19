@@ -143,14 +143,16 @@ export function autoOrganizeHand(cards: string[]): string[] {
   return [...groups.flatMap((g) => g.cards), ...jokers];
 }
 
-// moveCard moves the card at `from` so it lands immediately before the card
-// currently at `to` (in the original array's indexing).
-export function moveCard(cards: string[], from: number, to: number): string[] {
+// moveCardToIndex moves the card at `from` so it ends up sitting at index
+// `to` in the resulting array (i.e. `to` is a final position, not an
+// "insert before" reference) — the semantics a drag gesture wants: drop a
+// card N slots over and it lands in slot N.
+export function moveCardToIndex(cards: string[], from: number, to: number): string[] {
   if (from === to) return cards;
   const copy = [...cards];
   const [item] = copy.splice(from, 1);
-  const insertAt = from < to ? to - 1 : to;
-  copy.splice(insertAt, 0, item);
+  const clamped = Math.max(0, Math.min(copy.length, to));
+  copy.splice(clamped, 0, item);
   return copy;
 }
 

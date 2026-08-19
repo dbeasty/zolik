@@ -11,7 +11,7 @@ import { useGameFlow } from '@/src/context/GameFlowContext';
 import { useSession } from '@/src/context/SessionContext';
 import { useGameSocket } from '@/src/hooks/useGameSocket';
 import type { GameState, WSEnvelope } from '@/src/api/types';
-import { autoOrganizeHand, moveCard, roundRequirementLabel } from '@/src/lib/cards';
+import { autoOrganizeHand, roundRequirementLabel } from '@/src/lib/cards';
 import { colors, shared } from '@/src/theme';
 
 function selectedCards(hand: string[], selected: Set<number>): string[] {
@@ -42,8 +42,6 @@ export default function GameScreen() {
   const { setRoundEnd, setGameEnd } = useGameFlow();
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [localHand, setLocalHand] = useState<string[] | null>(null);
-  const [reorderMode, setReorderMode] = useState(false);
-  const [reorderPick, setReorderPick] = useState<number | null>(null);
 
   const onRoundEnd = useCallback(
     (data: WSEnvelope, state: GameState) => {
@@ -73,7 +71,6 @@ export default function GameScreen() {
   useEffect(() => {
     setLocalHand((prev) => reconcileHandOrder(prev, state?.myHand ?? []));
     setSelected(new Set());
-    setReorderPick(null);
   }, [state?.myHand, state?.phase, state?.round]);
   const isMyTurn = state?.currentTurn === userId;
   const phase = state?.phase ?? '';
@@ -107,27 +104,6 @@ export default function GameScreen() {
 
   function clearSelect() {
     setSelected(new Set());
-  }
-
-  function handleCardTap(index: number) {
-    if (!reorderMode) {
-      toggleSelect(index);
-      return;
-    }
-    if (reorderPick === null) {
-      setReorderPick(index);
-    } else if (reorderPick === index) {
-      setReorderPick(null);
-    } else {
-      setLocalHand(moveCard(hand, reorderPick, index));
-      setReorderPick(null);
-    }
-  }
-
-  function toggleReorderMode() {
-    setReorderMode((prev) => !prev);
-    setReorderPick(null);
-    clearSelect();
   }
 
   if (!state) {
@@ -249,33 +225,16 @@ export default function GameScreen() {
           }}
         >
           <Text style={shared.status}>Your hand ({hand.length})</Text>
-          <View style={{ flexDirection: 'row', gap: 16 }}>
-            <Pressable
-              onPress={() => {
-                setLocalHand(autoOrganizeHand(hand));
-                setReorderPick(null);
-              }}
-            >
-              <Text style={{ color: colors.accent }}>Auto-organize</Text>
-            </Pressable>
-            <Pressable onPress={toggleReorderMode}>
-              <Text style={{ color: reorderMode ? colors.success : colors.accent }}>
-                {reorderMode ? 'Done' : 'Reorder'}
-              </Text>
-            </Pressable>
-          </View>
+          <Pressable onPress={() => setLocalHand(autoOrganizeHand(hand))}>
+            <Text style={{ color: colors.accent }}>Auto-organize</Text>
+          </Pressable>
         </View>
-        {reorderMode ? (
-          <Text style={shared.status}>
-            {reorderPick === null
-              ? 'Tap a card to pick it up.'
-              : 'Tap where to place it.'}
-          </Text>
-        ) : null}
+        <Text style={shared.status}>Drag a card to reorder your hand.</Text>
         <HandRow
           cards={hand}
-          selected={reorderMode ? (reorderPick === null ? new Set<number>() : new Set([reorderPick])) : selected}
-          onToggle={handleCardTap}
+          selected={selected}
+          onToggle={toggleSelect}
+          onReorder={(newOrder) => setLocalHand(newOrder)}
         />
 
         {actions.length > 0 ? <ActionBar actions={actions} /> : null}

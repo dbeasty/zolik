@@ -1,4 +1,4 @@
-import { autoOrganizeHand, cardSuit, displayRank, moveCard, parseCard } from '@/src/lib/cards';
+import { autoOrganizeHand, cardSuit, displayRank, moveCardToIndex, parseCard } from '@/src/lib/cards';
 
 describe('cards', () => {
   it('parses standard cards', () => {
@@ -59,16 +59,24 @@ describe('autoOrganizeHand', () => {
   });
 });
 
-describe('moveCard', () => {
-  it('moves a card earlier in the array', () => {
-    expect(moveCard(['A', 'B', 'C', 'D'], 2, 0)).toEqual(['C', 'A', 'B', 'D']);
+describe('moveCardToIndex', () => {
+  it('moves a card earlier and it lands exactly at the target index', () => {
+    const out = moveCardToIndex(['A', 'B', 'C', 'D'], 2, 0);
+    expect(out).toEqual(['C', 'A', 'B', 'D']);
+    expect(out.indexOf('C')).toBe(0);
   });
 
-  it('moves a card later, landing just before the target', () => {
-    expect(moveCard(['A', 'B', 'C', 'D'], 0, 2)).toEqual(['B', 'A', 'C', 'D']);
+  it('moves a card later and it lands exactly at the target index', () => {
+    const out = moveCardToIndex(['A', 'B', 'C', 'D'], 0, 2);
+    expect(out).toEqual(['B', 'C', 'A', 'D']);
+    expect(out.indexOf('A')).toBe(2);
+  });
+
+  it('clamps an out-of-range target to the end', () => {
+    expect(moveCardToIndex(['A', 'B', 'C'], 0, 99)).toEqual(['B', 'C', 'A']);
   });
 
   it('is a no-op when from equals to', () => {
-    expect(moveCard(['A', 'B', 'C'], 1, 1)).toEqual(['A', 'B', 'C']);
+    expect(moveCardToIndex(['A', 'B', 'C'], 1, 1)).toEqual(['A', 'B', 'C']);
   });
 });
