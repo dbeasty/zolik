@@ -22,6 +22,7 @@ func EndGame(state GameState, winnerID string) (GameState, error) {
 		state.TotalScores = map[string]int{}
 	}
 
+	cfg := effectiveRules(state)
 	tableMelds := AllTableMelds(state)
 	gameScore := map[string]int{}
 	for _, pid := range state.TurnOrder {
@@ -29,7 +30,7 @@ func EndGame(state GameState, winnerID string) (GameState, error) {
 			gameScore[pid] = 0
 			continue
 		}
-		gameScore[pid] = HandPenaltyTotalWithMelds(state.Hands[pid], tableMelds)
+		gameScore[pid] = HandPenaltyTotalWithMelds(state.Hands[pid], tableMelds, cfg)
 	}
 
 	for _, pid := range state.TurnOrder {
@@ -38,7 +39,7 @@ func EndGame(state GameState, winnerID string) (GameState, error) {
 	}
 
 	// Advance or end the match.
-	if state.GameNumber >= 7 {
+	if matchIsOver(state, cfg) {
 		state.Status = StatusCompleted
 		state.Phase = Phase("completed")
 		winner, draw := DetermineGameWinner(state)
@@ -48,6 +49,22 @@ func EndGame(state GameState, winnerID string) (GameState, error) {
 	}
 
 	return StartNextGame(state, winnerID)
+}
+
+// matchIsOver checks the current profile's match-end condition after a deal
+// has just finished scoring (state.TotalScores already updated).
+func matchIsOver(state GameState, cfg RulesConfig) bool {
+	switch cfg.MatchEndMode {
+	case MatchEndAtScore:
+		for _, pid := range state.TurnOrder {
+			if state.TotalScores[pid] >= cfg.TargetScore {
+				return true
+			}
+		}
+		return false
+	default: // MatchEndAfterDeals
+		return state.GameNumber >= cfg.FixedDealCount
+	}
 }
 
 func StartNextGame(state GameState, nextTurnID string) (GameState, error) {
@@ -73,14 +90,15 @@ func StartNextGame(state GameState, nextTurnID string) (GameState, error) {
 		state.Melds[pid] = nil
 	}
 
+	cfg := effectiveRules(state)
+
 	// Build new deck & deal.
 	deck := BuildDeck(len(state.TurnOrder))
 	seed := state.DeckSeed + int64(state.GameNumber)*9973
 	state.DrawPile = Shuffle(deck, seed)
 
-	// Deal 12.
 	var err error
-	state, err = Deal12(state)
+	state, err = DealHand(state, cfg)
 	if err != nil {
 		return state, err
 	}

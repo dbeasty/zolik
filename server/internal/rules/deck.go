@@ -51,9 +51,15 @@ func NewShuffleSeed() int64 {
 	return time.Now().UnixNano()
 }
 
-func Deal12(state GameState) (GameState, error) {
+// DealHand deals cfg.DealSize cards to each player (0/unset falls back to 12,
+// Continental's historical deal size).
+func DealHand(state GameState, cfg RulesConfig) (GameState, error) {
 	if len(state.TurnOrder) == 0 {
 		return state, fmt.Errorf("no turn order")
+	}
+	dealSize := cfg.DealSize
+	if dealSize == 0 {
+		dealSize = 12
 	}
 	if state.Hands == nil {
 		state.Hands = map[string][]string{}
@@ -61,7 +67,7 @@ func Deal12(state GameState) (GameState, error) {
 	for _, pid := range state.TurnOrder {
 		state.Hands[pid] = nil
 	}
-	for i := 0; i < 12; i++ {
+	for i := 0; i < dealSize; i++ {
 		for _, pid := range state.TurnOrder {
 			if len(state.DrawPile) == 0 {
 				return state, RulesError{Code: ErrNoCardsLeft, Message: "draw pile exhausted during deal"}

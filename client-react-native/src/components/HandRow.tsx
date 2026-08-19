@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector, ScrollView } from 'react-native-gesture-handler';
 import Animated, {
@@ -53,6 +53,10 @@ type Props = {
   // Same idea for table melds a dragged card can be laid off onto.
   measureMeldZones?: (cb: (zones: { meldId: string; zone: DropZone }[]) => void) => void;
   onDropOnMeld?: (index: number, meldId: string) => void;
+  // Same idea again for the "build a new meld" staging area — dropping a
+  // card there just selects it (same effect as tapping it).
+  measureStagingZone?: (cb: (zone: DropZone | null) => void) => void;
+  onDropOnStaging?: (index: number) => void;
   onDragCardChange?: (card: string | null) => void;
   dragPreview: DragPreview;
   compact?: boolean;
@@ -60,6 +64,9 @@ type Props = {
   // selection — used during the discard phase, where selecting a card only
   // ever leads to discarding it anyway.
   tapToDiscard?: boolean;
+  // Card value just picked up from the deck/discard pile this turn — every
+  // card matching it gets the "just drawn" ring (see CardView).
+  justDrawnCard?: string | null;
 };
 
 const CARD_WIDTH = 52;
@@ -81,10 +88,13 @@ export function HandRow({
   onDropOnZone,
   measureMeldZones,
   onDropOnMeld,
+  measureStagingZone,
+  onDropOnStaging,
   onDragCardChange,
   dragPreview,
   compact,
   tapToDiscard,
+  justDrawnCard,
 }: Props) {
   const slot = (compact ? CARD_WIDTH_COMPACT : CARD_WIDTH) + CARD_MARGIN;
 
@@ -98,6 +108,7 @@ export function HandRow({
           count={cards.length}
           slot={slot}
           selected={selected.has(i)}
+          justDrawn={c === justDrawnCard}
           compact={compact}
           onToggle={onToggle}
           onDoubleTap={onDoubleTap}
@@ -105,6 +116,8 @@ export function HandRow({
           onDropOnZone={onDropOnZone}
           measureMeldZones={measureMeldZones}
           onDropOnMeld={onDropOnMeld}
+          measureStagingZone={measureStagingZone}
+          onDropOnStaging={onDropOnStaging}
           onDragCardChange={onDragCardChange}
           dragPreview={dragPreview}
           tapToDiscard={tapToDiscard}
@@ -122,6 +135,7 @@ function DraggableCard({
   count,
   slot,
   selected,
+  justDrawn,
   compact,
   onToggle,
   onDoubleTap,
@@ -129,6 +143,8 @@ function DraggableCard({
   onDropOnZone,
   measureMeldZones,
   onDropOnMeld,
+  measureStagingZone,
+  onDropOnStaging,
   onDragCardChange,
   dragPreview,
   tapToDiscard,
@@ -139,6 +155,7 @@ function DraggableCard({
   count: number;
   slot: number;
   selected: boolean;
+  justDrawn?: boolean;
   compact?: boolean;
   onToggle: (index: number) => void;
   onDoubleTap?: (index: number) => void;
@@ -146,12 +163,29 @@ function DraggableCard({
   onDropOnZone?: (index: number) => void;
   measureMeldZones?: (cb: (zones: { meldId: string; zone: DropZone }[]) => void) => void;
   onDropOnMeld?: (index: number, meldId: string) => void;
+  measureStagingZone?: (cb: (zone: DropZone | null) => void) => void;
+  onDropOnStaging?: (index: number) => void;
   onDragCardChange?: (card: string | null) => void;
   dragPreview: DragPreview;
   tapToDiscard?: boolean;
   onDrop: (from: number, to: number) => void;
 }) {
   const lastTapAt = useRef(0);
+  // A staged card is pulled out of the hand array entirely (see
+  // visibleHand in the game screen), so firing onToggle immediately on the
+  // first tap would unmount this exact component before a following second
+  // tap could ever reach it — the double-tap-to-discard gesture would just
+  // silently become "select this card, then select whatever slid into its
+  // place." Holding the toggle until the double-tap window closes without a
+  // second tap arriving keeps that gesture reliable regardless of what the
+  // single-tap path does to the layout.
+  const pendingToggle = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (pendingToggle.current) clearTimeout(pendingToggle.current);
+    };
+  }, []);
 
   // Manual JS timing on top of a single gesture-handler Tap (the same
   // gesture system as the pan below, which is proven to work — mixing it
@@ -168,11 +202,18 @@ function DraggableCard({
     const now = Date.now();
     if (now - lastTapAt.current < DOUBLE_TAP_MS) {
       lastTapAt.current = 0;
+      if (pendingToggle.current) {
+        clearTimeout(pendingToggle.current);
+        pendingToggle.current = null;
+      }
       if (onDoubleTap) onDoubleTap(index);
       return;
     }
     lastTapAt.current = now;
-    onToggle(index);
+    pendingToggle.current = setTimeout(() => {
+      pendingToggle.current = null;
+      onToggle(index);
+    }, DOUBLE_TAP_MS);
   }
 
   const tap = Gesture.Tap().onEnd((_e, success) => {
@@ -203,9 +244,26 @@ function DraggableCard({
     }
   }
 
+  function tryDropOnStaging(translationX: number, absoluteX: number, absoluteY: number) {
+    if (!measureStagingZone) {
+      reorder(translationX);
+      return;
+    }
+    measureStagingZone((zone) => {
+      if (zone && onDropOnStaging && pointInZone(absoluteX, absoluteY, zone)) {
+        onDropOnStaging(index);
+      } else {
+        reorder(translationX);
+      }
+    });
+  }
+
+  // Checked in order: an existing table meld (lay off — the higher-stakes
+  // action once you're down) before the new-meld staging area (just
+  // selecting a card, same effect as tapping it).
   function tryDropOnMeld(translationX: number, absoluteX: number, absoluteY: number) {
     if (!measureMeldZones) {
-      reorder(translationX);
+      tryDropOnStaging(translationX, absoluteX, absoluteY);
       return;
     }
     measureMeldZones((zones) => {
@@ -213,7 +271,7 @@ function DraggableCard({
       if (hit && onDropOnMeld) {
         onDropOnMeld(index, hit.meldId);
       } else {
-        reorder(translationX);
+        tryDropOnStaging(translationX, absoluteX, absoluteY);
       }
     });
   }
@@ -290,7 +348,7 @@ function DraggableCard({
       {/* userSelect: none stops a rapid double-tap from being swallowed by
           the browser's native "select this text" double-click behavior. */}
       <Animated.View style={[animatedStyle, { userSelect: 'none' } as object]}>
-        <CardView card={card} selected={selected} compact={compact} />
+        <CardView card={card} selected={selected} justDrawn={justDrawn} compact={compact} />
       </Animated.View>
     </GestureDetector>
   );

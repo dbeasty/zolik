@@ -55,7 +55,7 @@ func TestMeldContributes_AllowedAfterRoundReqMet(t *testing.T) {
 
 func TestHandPenalty_AceNaturalInHandFragment(t *testing.T) {
 	hand := []string{"AS", "2S", "KH"}
-	got := HandPenaltyTotal(hand)
+	got := HandPenaltyTotal(hand, ProfileContinental)
 	// AS=1 (with 2S), 2S=2, KH=10
 	if got != 13 {
 		t.Fatalf("expected ace low fragment scoring, got %d", got)
@@ -65,7 +65,7 @@ func TestHandPenalty_AceNaturalInHandFragment(t *testing.T) {
 func TestHandPenalty_AceExtendsTableRun(t *testing.T) {
 	hand := []string{"AH"}
 	melds := [][]string{{"TH", "JH", "QH", "KH"}}
-	got := HandPenaltyTotalWithMelds(hand, melds)
+	got := HandPenaltyTotalWithMelds(hand, melds, ProfileContinental)
 	if got != 1 {
 		t.Fatalf("expected ace extending run = 1, got %d", got)
 	}

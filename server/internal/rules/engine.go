@@ -29,7 +29,7 @@ func ApplyAction(state GameState, playerID string, action Action) (ApplyOutcome,
 	switch action.Type {
 	case ActionDrawCard:
 		beforeReshuffle := state.ReshuffleCount
-		ns, card, _, err := ValidateDraw(state, playerID, action.DrawFrom)
+		ns, card, _, err := ValidateDraw(state, playerID, action.DrawFrom, action.Card)
 		if err != nil {
 			return ApplyOutcome{State: state}, err
 		}
@@ -120,7 +120,7 @@ func endGameWithEvents(state GameState, winnerID string) (ApplyOutcome, error) {
 	events := []StateEvent{ev("deal_ended", map[string]interface{}{
 		"winnerId": winnerID,
 		"game":     endedGame,
-		"scores":   lastGameScores(ns),
+		"scores":   lastRoundScores(ns),
 		"allHands": handsAtEnd,
 	})}
 	if ns.Status == StatusCompleted {

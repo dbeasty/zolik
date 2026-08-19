@@ -286,3 +286,23 @@ func TestHeuristicAgent_SkipsDiscardWhenItWontCompleteTheInitialMeld(t *testing.
 		t.Fatalf("expected agent to prefer the deck when the discard card can't be melded this turn, got: %+v", action)
 	}
 }
+
+func TestFindLayOffKeepsTheOnlyCleanRunClean(t *testing.T) {
+	cfg := rules.ProfileZolikClassic
+	melds := map[string][][]string{"p1": {{"5C", "6C", "7C", "8C"}}}
+	meta := map[string][]rules.MeldInfo{
+		"p1": {{MeldID: "meld_1", Type: rules.MeldRun, OwnerID: "p1", WildCount: 0}},
+	}
+
+	// A joker is the only card that fits — the AI must decline rather than
+	// dirty the clean run that put it down.
+	if meldID, card, ok := findLayOff(meta, melds, []string{"JOKER1", "2S"}, cfg, 1); ok {
+		t.Fatalf("expected no lay-off, got %s onto %s", card, meldID)
+	}
+
+	// A natural extension is still taken.
+	_, card, ok := findLayOff(meta, melds, []string{"9C", "2S"}, cfg, 1)
+	if !ok || card != "9C" {
+		t.Fatalf("expected 9C to extend the run, got %q ok=%v", card, ok)
+	}
+}

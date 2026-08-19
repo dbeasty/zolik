@@ -233,15 +233,17 @@ func toRulesState(g models.Game) rules.GameState {
 	for owner, infos := range g.MeldMeta {
 		for _, mi := range infos {
 			rMeldMeta[owner] = append(rMeldMeta[owner], rules.MeldInfo{
-				MeldID:  mi.MeldID,
-				Type:    rules.MeldType(mi.Type),
-				OwnerID: mi.OwnerID,
+				MeldID:    mi.MeldID,
+				Type:      rules.MeldType(mi.Type),
+				OwnerID:   mi.OwnerID,
+				WildCount: mi.WildCount,
 			})
 		}
 	}
 
 	return rules.GameState{
 		Status:                      rules.GameStatus(g.Status),
+		Rules:                       rules.ResolveProfile(g.RulesProfile),
 		GameNumber:                  g.GameNumber,
 		Phase:                       rules.Phase(g.Phase),
 		Created:                     g.CreatedAt,
@@ -296,9 +298,10 @@ func fromRulesState(g *models.Game, rs rules.GameState) {
 	for owner, metas := range rs.MeldMeta {
 		for _, mi := range metas {
 			g.MeldMeta[owner] = append(g.MeldMeta[owner], models.MeldInfo{
-				MeldID:  mi.MeldID,
-				Type:    string(mi.Type),
-				OwnerID: mi.OwnerID,
+				MeldID:    mi.MeldID,
+				Type:      string(mi.Type),
+				OwnerID:   mi.OwnerID,
+				WildCount: mi.WildCount,
 			})
 		}
 	}
@@ -395,7 +398,9 @@ func (m *Manager) aiLoop(ctx context.Context, gameID string) {
 			// back to discarding the worst card so the turn always progresses.
 			if in.Type == "lay_meld" || in.Type == "lay_off" {
 				if hand := game.Hands[actorID]; len(hand) > 0 {
-					fallback := WSIncoming{Type: "discard", Card: ai.PickWorstDiscard(hand)}
+					cfg := rules.ResolveProfile(game.RulesProfile)
+					canDiscardJoker := len(hand) == 1 && game.RoundReqMet[actorID]
+					fallback := WSIncoming{Type: "discard", Card: ai.PickWorstDiscard(hand, cfg, canDiscardJoker)}
 					if err := m.HandleAction(ctx, gameID, actorID, fallback); err != nil {
 						log.Printf("ai fallback discard rejected: actor=%s err=%v", actorID, err)
 					}
@@ -419,9 +424,10 @@ func aiVisibleFromGame(game models.Game) ai.VisibleState {
 	for owner, infos := range game.MeldMeta {
 		for _, mi := range infos {
 			rMeldMeta[owner] = append(rMeldMeta[owner], rules.MeldInfo{
-				MeldID:  mi.MeldID,
-				Type:    rules.MeldType(mi.Type),
-				OwnerID: mi.OwnerID,
+				MeldID:    mi.MeldID,
+				Type:      rules.MeldType(mi.Type),
+				OwnerID:   mi.OwnerID,
+				WildCount: mi.WildCount,
 			})
 		}
 	}
@@ -437,6 +443,7 @@ func aiVisibleFromGame(game models.Game) ai.VisibleState {
 		TotalScores:         game.TotalScores,
 		InitialMeldMinimum:  game.InitialMeldMinimum,
 		DiscardDrawMinRound: game.DiscardDrawMinRound,
+		Rules:               rules.ResolveProfile(game.RulesProfile),
 	}
 }
 

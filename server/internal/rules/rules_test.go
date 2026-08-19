@@ -3,7 +3,7 @@ package rules
 import "testing"
 
 func TestValidateSet_WildRatio(t *testing.T) {
-	_, err := validateSet([]string{"7H", "JOKER1", "JOKER2"})
+	_, err := validateSet([]string{"7H", "JOKER1", "JOKER2"}, 3)
 	if err == nil {
 		t.Fatalf("expected too many wilds error")
 	}
@@ -11,14 +11,14 @@ func TestValidateSet_WildRatio(t *testing.T) {
 
 func TestValidateSet_DuplicateSuitRejected(t *testing.T) {
 	// Even with two physical decks in play, a single set may not reuse a suit.
-	_, err := validateSet([]string{"5D", "5C", "5C"})
+	_, err := validateSet([]string{"5D", "5C", "5C"}, 3)
 	if err == nil {
 		t.Fatalf("expected error for duplicate suit within a set")
 	}
 }
 
 func TestValidateSet_DistinctSuitsAllowed(t *testing.T) {
-	mv, err := validateSet([]string{"5D", "5C", "5H"})
+	mv, err := validateSet([]string{"5D", "5C", "5H"}, 3)
 	if err != nil {
 		t.Fatalf("expected valid set, got %v", err)
 	}
@@ -27,9 +27,84 @@ func TestValidateSet_DistinctSuitsAllowed(t *testing.T) {
 	}
 }
 
+func TestValidateSet_AceIsNotWild(t *testing.T) {
+	// Two natural queens plus an ace is not "three queens" — an ace is a
+	// real rank, not a stand-in for a third queen. Only jokers are wild
+	// in a set.
+	_, err := validateSet([]string{"QH", "QD", "AC"}, 3)
+	if err == nil {
+		t.Fatalf("expected error: an ace cannot substitute for a third queen in a set")
+	}
+}
+
+func TestValidateSet_JokerStillWild(t *testing.T) {
+	mv, err := validateSet([]string{"QH", "QD", "JOKER1"}, 3)
+	if err != nil {
+		t.Fatalf("expected joker to complete the set, got %v", err)
+	}
+	if mv.WildCount != 1 {
+		t.Fatalf("expected WildCount 1, got %d", mv.WildCount)
+	}
+}
+
+func TestOrderMeldForDisplay_RunSortsAscending(t *testing.T) {
+	cards := []string{"6H", "8H", "7H"}
+	mv, err := validateRun(cards, 3)
+	if err != nil {
+		t.Fatalf("expected valid run, got %v", err)
+	}
+	got := OrderMeldForDisplay(cards, mv)
+	want := []string{"6H", "7H", "8H"}
+	if len(got) != len(want) {
+		t.Fatalf("expected %v, got %v", want, got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("expected %v, got %v", want, got)
+		}
+	}
+}
+
+func TestValidateMeldAction_StoresRunInSortedOrder(t *testing.T) {
+	p := "p1"
+	st := baseActiveState(2, p) // Game 2: one set, one run — a run contributes.
+	st.Hands[p] = []string{"6H", "9H", "8H", "7H", "2S"}
+
+	st, meldID, _, err := ValidateMeldAction(st, p, []string{"6H", "9H", "8H", "7H"})
+	if err != nil {
+		t.Fatalf("expected valid meld, got %v", err)
+	}
+	_ = meldID
+	got := st.Melds[p][0]
+	want := []string{"6H", "7H", "8H", "9H"}
+	if len(got) != len(want) {
+		t.Fatalf("expected %v, got %v", want, got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("expected run stored in sorted order %v, got %v", want, got)
+		}
+	}
+}
+
+func TestOrderMeldForDisplay_SetSortsBySuit(t *testing.T) {
+	cards := []string{"QS", "QD", "QH"}
+	mv, err := validateSet(cards, 3)
+	if err != nil {
+		t.Fatalf("expected valid set, got %v", err)
+	}
+	got := OrderMeldForDisplay(cards, mv)
+	want := []string{"QD", "QH", "QS"}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("expected %v, got %v", want, got)
+		}
+	}
+}
+
 func TestValidateRun_AdjacentWildsRejected(t *testing.T) {
 	// Ranks 4 and 7 with two consecutive gap fillers (both wild) => invalid.
-	_, err := validateRun([]string{"4H", "7H", "JOKER1", "JOKER2"})
+	_, err := validateRun([]string{"4H", "7H", "JOKER1", "JOKER2"}, 4)
 	if err == nil {
 		t.Fatalf("expected error for invalid run")
 	}
@@ -40,7 +115,7 @@ func TestValidateRun_AdjacentWildsRejected(t *testing.T) {
 
 func TestValidateRun_AceHighAllowed(t *testing.T) {
 	// Q-K-A in suit + wildcard filling J => J-Q-K-A (len 4)
-	mv, err := validateRun([]string{"QH", "KH", "AH", "JOKER1"})
+	mv, err := validateRun([]string{"QH", "KH", "AH", "JOKER1"}, 4)
 	if err != nil {
 		t.Fatalf("expected valid run, got %v", err)
 	}
@@ -51,7 +126,7 @@ func TestValidateRun_AceHighAllowed(t *testing.T) {
 
 func TestValidateRun_AceBridgeRejected(t *testing.T) {
 	// K-A-2 bridge is invalid (cannot wrap).
-	_, err := validateRun([]string{"KH", "AH", "2H", "3H"})
+	_, err := validateRun([]string{"KH", "AH", "2H", "3H"}, 4)
 	if err == nil {
 		t.Fatalf("expected ace bridge rejection")
 	}
@@ -67,7 +142,7 @@ func TestEnsureDrawPile_ReshuffleAndCount(t *testing.T) {
 		Hands:          map[string][]string{"p1": {}},
 		CurrentTurn:    "p1",
 	}
-	ns, _, _, err := ValidateDraw(st, "p1", DrawFromDeck)
+	ns, _, _, err := ValidateDraw(st, "p1", DrawFromDeck, "")
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
@@ -88,7 +163,7 @@ func TestEnsureDrawPile_EmptyBothErrors(t *testing.T) {
 		Hands:       map[string][]string{"p1": {}},
 		CurrentTurn: "p1",
 	}
-	_, _, _, err := ValidateDraw(st, "p1", DrawFromDeck)
+	_, _, _, err := ValidateDraw(st, "p1", DrawFromDeck, "")
 	if err == nil {
 		t.Fatalf("expected error")
 	}
@@ -144,7 +219,7 @@ func TestValidateDraw_DiscardLockedBeforeMinRound(t *testing.T) {
 		CurrentTurn:         "p1",
 		DiscardDrawMinRound: 3,
 	}
-	_, _, _, err := ValidateDraw(st, "p1", DrawFromDiscard)
+	_, _, _, err := ValidateDraw(st, "p1", DrawFromDiscard, "")
 	if err == nil {
 		t.Fatalf("expected discard draw to be locked before round 3")
 	}
@@ -153,7 +228,7 @@ func TestValidateDraw_DiscardLockedBeforeMinRound(t *testing.T) {
 		t.Fatalf("expected ErrDiscardLocked got %#v", err)
 	}
 	// Drawing from the deck must still work while discard is locked.
-	if _, _, _, err := ValidateDraw(st, "p1", DrawFromDeck); err != nil {
+	if _, _, _, err := ValidateDraw(st, "p1", DrawFromDeck, ""); err != nil {
 		t.Fatalf("expected deck draw to succeed, got %v", err)
 	}
 }
@@ -169,7 +244,7 @@ func TestValidateDraw_DiscardAllowedAtMinRound(t *testing.T) {
 		CurrentTurn:         "p1",
 		DiscardDrawMinRound: 3,
 	}
-	if _, _, _, err := ValidateDraw(st, "p1", DrawFromDiscard); err != nil {
+	if _, _, _, err := ValidateDraw(st, "p1", DrawFromDiscard, ""); err != nil {
 		t.Fatalf("expected discard draw to be allowed at round 3, got %v", err)
 	}
 }
@@ -185,7 +260,7 @@ func TestValidateDraw_DiscardUnrestrictedByDefault(t *testing.T) {
 		CurrentTurn: "p1",
 		// DiscardDrawMinRound left at its zero value.
 	}
-	if _, _, _, err := ValidateDraw(st, "p1", DrawFromDiscard); err != nil {
+	if _, _, _, err := ValidateDraw(st, "p1", DrawFromDiscard, ""); err != nil {
 		t.Fatalf("expected discard draw to be unrestricted by default, got %v", err)
 	}
 }
@@ -256,7 +331,7 @@ func TestValidateDraw_DiscardPickupSetsPendingMeldBeforeGoingDown(t *testing.T) 
 		CurrentTurn: "p1",
 		RoundReqMet: map[string]bool{"p1": false},
 	}
-	ns, card, _, err := ValidateDraw(st, "p1", DrawFromDiscard)
+	ns, card, _, err := ValidateDraw(st, "p1", DrawFromDiscard, "")
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
@@ -276,7 +351,7 @@ func TestValidateDraw_DiscardPickupNoObligationOnceDown(t *testing.T) {
 		CurrentTurn: "p1",
 		RoundReqMet: map[string]bool{"p1": true},
 	}
-	ns, _, _, err := ValidateDraw(st, "p1", DrawFromDiscard)
+	ns, _, _, err := ValidateDraw(st, "p1", DrawFromDiscard, "")
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}

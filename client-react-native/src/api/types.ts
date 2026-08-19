@@ -22,7 +22,11 @@ export type GameState = {
   initialMeldMinimum: number;
   discardDrawMinRound: number;
   discardDrawnCardPendingMeld?: string;
+  rulesProfile?: RulesProfile;
 };
+
+/** "continental" | "zolik_classic" | "custom" — see server rules.RulesConfig. */
+export type RulesProfile = 'continental' | 'zolik_classic' | 'custom';
 
 export type MeldMeta = {
   meldId: string;
@@ -45,6 +49,7 @@ export type LobbyGame = {
   currentTurn: string;
   players: LobbyPlayer[];
   hostId?: string;
+  rulesProfile?: RulesProfile;
   initialMeldMinimum?: number;
   discardDrawMinRound?: number;
   discardPileTop?: unknown;

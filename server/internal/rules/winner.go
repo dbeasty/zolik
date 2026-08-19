@@ -1,35 +1,35 @@
 package rules
 
-// GamesWonByPlayer counts deals where the player had the uniquely lowest penalty score.
-func GamesWonByPlayer(state GameState) map[string]int {
+// RoundsWonByPlayer counts rounds where the player had the uniquely lowest penalty score.
+func RoundsWonByPlayer(state GameState) map[string]int {
 	wins := map[string]int{}
 	for _, pid := range state.TurnOrder {
 		wins[pid] = 0
 	}
-	maxGames := 0
+	maxRounds := 0
 	for _, pid := range state.TurnOrder {
-		if n := len(state.GameScores[pid]); n > maxGames {
-			maxGames = n
+		if n := len(state.GameScores[pid]); n > maxRounds {
+			maxRounds = n
 		}
 	}
-	for g := 0; g < maxGames; g++ {
+	for r := 0; r < maxRounds; r++ {
 		minScore := int(^uint(0) >> 1)
 		for _, pid := range state.TurnOrder {
 			scores := state.GameScores[pid]
-			if g >= len(scores) {
+			if r >= len(scores) {
 				continue
 			}
-			if scores[g] < minScore {
-				minScore = scores[g]
+			if scores[r] < minScore {
+				minScore = scores[r]
 			}
 		}
 		winners := []string{}
 		for _, pid := range state.TurnOrder {
 			scores := state.GameScores[pid]
-			if g >= len(scores) {
+			if r >= len(scores) {
 				continue
 			}
-			if scores[g] == minScore {
+			if scores[r] == minScore {
 				winners = append(winners, pid)
 			}
 		}
@@ -40,13 +40,13 @@ func GamesWonByPlayer(state GameState) map[string]int {
 	return wins
 }
 
-// DetermineGameWinner picks the match winner after 7 deals: lowest total score;
-// tiebreak: fewest deals won; still tied => draw.
+// DetermineGameWinner picks the winner after 7 rounds: lowest total score;
+// tiebreak: fewest rounds won; still tied => draw.
 func DetermineGameWinner(state GameState) (winnerID string, isDraw bool) {
 	if len(state.TurnOrder) == 0 {
 		return "", true
 	}
-	gamesWon := GamesWonByPlayer(state)
+	roundsWon := RoundsWonByPlayer(state)
 
 	minTotal := int(^uint(0) >> 1)
 	for _, pid := range state.TurnOrder {
@@ -64,16 +64,16 @@ func DetermineGameWinner(state GameState) (winnerID string, isDraw bool) {
 		return candidates[0], false
 	}
 
-	// Tiebreak: fewest deals won (lower is better in continental rummy scoring).
+	// Tiebreak: fewest rounds won (lower is better in continental rummy scoring).
 	best := candidates[0]
 	for _, pid := range candidates[1:] {
-		if gamesWon[pid] < gamesWon[best] {
+		if roundsWon[pid] < roundsWon[best] {
 			best = pid
 		}
 	}
 	stillTied := false
 	for _, pid := range candidates {
-		if pid != best && gamesWon[pid] == gamesWon[best] {
+		if pid != best && roundsWon[pid] == roundsWon[best] {
 			stillTied = true
 			break
 		}
@@ -84,7 +84,7 @@ func DetermineGameWinner(state GameState) (winnerID string, isDraw bool) {
 	return best, false
 }
 
-func lastGameScores(state GameState) map[string]int {
+func lastRoundScores(state GameState) map[string]int {
 	out := map[string]int{}
 	for _, pid := range state.TurnOrder {
 		scores := state.GameScores[pid]

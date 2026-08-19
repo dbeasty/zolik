@@ -38,6 +38,7 @@ type GameStateMsg struct {
 	InitialMeldMinimum          int                      `json:"initialMeldMinimum"`
 	DiscardDrawMinRound         int                      `json:"discardDrawMinRound"`
 	DiscardDrawnCardPendingMeld string                   `json:"discardDrawnCardPendingMeld,omitempty"`
+	RulesProfile                string                   `json:"rulesProfile"`
 }
 
 func BuildGameStateMsg(g models.Game, myPlayerID string) GameStateMsg {
@@ -101,5 +102,6 @@ func BuildGameStateMsg(g models.Game, myPlayerID string) GameStateMsg {
 		InitialMeldMinimum:          g.InitialMeldMinimum,
 		DiscardDrawMinRound:         g.DiscardDrawMinRound,
 		DiscardDrawnCardPendingMeld: pendingMeldCard,
+		RulesProfile:                g.RulesProfile,
 	}
 }

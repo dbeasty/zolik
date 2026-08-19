@@ -2,7 +2,11 @@ package rules
 
 import "fmt"
 
-func ValidateDraw(state GameState, playerID string, from DrawFrom) (GameState, string, *string, error) {
+// ValidateDraw draws a card for playerID. targetCard is only meaningful for
+// DrawFromDiscard under DiscardPickupAnyFromPile: it names which pile card to
+// take, along with every card stacked above it (empty targetCard = top card,
+// which is also all that DiscardPickupTopOnly ever allows).
+func ValidateDraw(state GameState, playerID string, from DrawFrom, targetCard string) (GameState, string, *string, error) {
 	if state.Status != StatusActive {
 		return state, "", nil, RulesError{Code: ErrGameNotActive}
 	}
@@ -15,6 +19,7 @@ func ValidateDraw(state GameState, playerID string, from DrawFrom) (GameState, s
 	if state.CurrentTurn != playerID {
 		return state, "", nil, RulesError{Code: ErrNotYourTurn}
 	}
+	cfg := effectiveRules(state)
 
 	switch from {
 	case DrawFromDeck:
@@ -40,20 +45,38 @@ func ValidateDraw(state GameState, playerID string, from DrawFrom) (GameState, s
 		if len(state.DiscardPile) == 0 {
 			return state, "", nil, RulesError{Code: ErrDiscardPileEmpty}
 		}
-		card := state.DiscardPile[len(state.DiscardPile)-1]
-		state.DiscardPile = state.DiscardPile[:len(state.DiscardPile)-1]
-		state.Hands[playerID] = append(state.Hands[playerID], card)
+
+		takeFrom := len(state.DiscardPile) - 1 // index of the top card by default
+		if cfg.DiscardPickupMode == DiscardPickupAnyFromPile && targetCard != "" {
+			idx := -1
+			for i, c := range state.DiscardPile {
+				if c == targetCard {
+					idx = i
+					break
+				}
+			}
+			if idx == -1 {
+				return state, "", nil, RulesError{Code: ErrDiscardPileEmpty, Message: "requested card not in discard pile"}
+			}
+			takeFrom = idx
+		}
+
+		taken := append([]string(nil), state.DiscardPile[takeFrom:]...)
+		state.DiscardPile = state.DiscardPile[:takeFrom]
+		state.Hands[playerID] = append(state.Hands[playerID], taken...)
 		state.Phase = PhaseMeld
 		state.MeldsLaidThisTurn = 0
 		// Before a player has gone down, a discard-pile pickup obligates
-		// them to lay that exact card into their initial meld this turn —
-		// see ValidateDiscard. Once already down it's a free card.
+		// them to lay the requested (bottom-most taken) card into their
+		// initial meld this turn — see ValidateDiscard. Once already down
+		// it's a free pickup.
+		primary := taken[0]
 		if !state.RoundReqMet[playerID] {
-			state.DiscardDrawnCardPendingMeld = card
+			state.DiscardDrawnCardPendingMeld = primary
 		} else {
 			state.DiscardDrawnCardPendingMeld = ""
 		}
-		return state, card, nil, nil
+		return state, primary, nil, nil
 	default:
 		return state, "", nil, fmt.Errorf("unknown draw source")
 	}
@@ -75,13 +98,18 @@ func ValidateMeldAction(state GameState, playerID string, cards []string) (GameS
 	}
 
 	wasReqMet := state.RoundReqMet[playerID]
+	cfg := effectiveRules(state)
 
-	mv, err := ValidateMeld(cards)
+	mv, err := ValidateMeld(cards, cfg)
 	if err != nil {
 		return state, "", "", err
 	}
+	// Store the meld in its sorted, canonical order (e.g. a run played as
+	// 6-8-7 is stored — and so displayed — as 6-7-8) rather than whatever
+	// order the cards were selected in.
+	orderedCards := OrderMeldForDisplay(cards, mv)
 
-	if !MeldContributesTowardRequirement(state, playerID, mv.Type, len(cards)) {
+	if !MeldContributesTowardRequirement(state, playerID, mv.Type, len(cards), mv.WildCount) {
 		return state, "", "", RulesError{
 			Code:    ErrMeldNoContribution,
 			Message: "meld does not advance round requirement",
@@ -97,24 +125,32 @@ func ValidateMeldAction(state GameState, playerID string, cards []string) (GameS
 	if sim.MeldMeta == nil {
 		sim.MeldMeta = map[string][]MeldInfo{}
 	}
-	sim.Melds[playerID] = append(sim.Melds[playerID], append([]string(nil), cards...))
+	sim.Melds[playerID] = append(sim.Melds[playerID], append([]string(nil), orderedCards...))
 	nextID := sim.NextMeldSeq + 1
 	meldID := fmt.Sprintf("meld_%d", nextID)
 	sim.MeldMeta[playerID] = append(sim.MeldMeta[playerID], MeldInfo{
-		MeldID: meldID, Type: mv.Type, OwnerID: playerID,
+		MeldID: meldID, Type: mv.Type, OwnerID: playerID, WildCount: mv.WildCount,
 	})
 
 	if PlayerMeetsRoundRequirement(sim, playerID) {
 		if state.InitialMeldMinimum > 0 && !state.RoundReqMet[playerID] {
-			if PlayerInitialMeldNaturalValue(sim, playerID) < state.InitialMeldMinimum {
-				return state, "", "", RulesError{Code: ErrMeldBelowMinimum}
+			if got := PlayerInitialMeldNaturalValue(sim, playerID); got < state.InitialMeldMinimum {
+				return state, "", "", RulesError{
+					Code: ErrMeldBelowMinimum,
+					Message: fmt.Sprintf(
+						"your melds are worth %d points so far, but this table requires %d+ to go down",
+						got, state.InitialMeldMinimum,
+					),
+				}
 			}
 		}
 	}
 
-	// Games 1–6 require a final discard to go out; cannot meld away every card.
-	if state.GameNumber < 7 && len(sim.Hands[playerID]) == 0 {
-		return state, "", "", RulesError{Code: ErrInvalidMeld, Message: "must discard last card to go out before game 7"}
+	// A profile's non-final deals require a final discard to go out; cannot
+	// meld away every card (Žolík Classic never has a "final deal", so this
+	// applies to every one of its deals — see RulesConfig.IsFinalDeal).
+	if !cfg.IsFinalDeal(state.GameNumber) && len(sim.Hands[playerID]) == 0 {
+		return state, "", "", RulesError{Code: ErrInvalidMeld, Message: "must discard your last card to go out"}
 	}
 
 	// Apply for real.
@@ -125,10 +161,10 @@ func ValidateMeldAction(state GameState, playerID string, cards []string) (GameS
 	if state.MeldMeta == nil {
 		state.MeldMeta = map[string][]MeldInfo{}
 	}
-	state.Melds[playerID] = append(state.Melds[playerID], append([]string(nil), cards...))
+	state.Melds[playerID] = append(state.Melds[playerID], append([]string(nil), orderedCards...))
 	state.NextMeldSeq = nextID
 	state.MeldMeta[playerID] = append(state.MeldMeta[playerID], MeldInfo{
-		MeldID: meldID, Type: mv.Type, OwnerID: playerID,
+		MeldID: meldID, Type: mv.Type, OwnerID: playerID, WildCount: mv.WildCount,
 	})
 
 	if PlayerMeetsRoundRequirement(state, playerID) {
@@ -175,19 +211,31 @@ func ValidateLayOff(state GameState, playerID string, meldID string, card string
 
 	owner, idx := findMeldByID(state, meldID)
 	if owner == "" {
-		return state, RulesError{Code: ErrInvalidMeld}
+		return state, RulesError{Code: ErrInvalidMeld, Message: "that meld no longer exists on the table"}
 	}
 
+	cfg := effectiveRules(state)
 	newMeld := append(append([]string(nil), state.Melds[owner][idx]...), card)
-	if _, err := ValidateMeld(newMeld); err != nil {
+	mv, err := ValidateMeld(newMeld, cfg)
+	if err != nil {
 		return state, err
+	}
+	if LayOffBreaksCleanRun(cfg, state.GameNumber, state.Melds[owner], idx, card) {
+		return state, RulesError{
+			Code:    ErrBreaksCleanRun,
+			Message: "that run has to stay joker-free — start a separate meld instead",
+		}
 	}
 
 	state.Hands[playerID] = removeCards(state.Hands[playerID], []string{card})
-	state.Melds[owner][idx] = newMeld
+	state.Melds[owner][idx] = OrderMeldForDisplay(newMeld, mv)
+	if metas := state.MeldMeta[owner]; idx < len(metas) {
+		metas[idx].Type = mv.Type
+		metas[idx].WildCount = mv.WildCount
+	}
 
-	if state.GameNumber < 7 && len(state.Hands[playerID]) == 0 {
-		return state, RulesError{Code: ErrInvalidMeld, Message: "must discard last card to go out before game 7"}
+	if !cfg.IsFinalDeal(state.GameNumber) && len(state.Hands[playerID]) == 0 {
+		return state, RulesError{Code: ErrInvalidMeld, Message: "must discard your last card to go out"}
 	}
 
 	return state, nil
@@ -206,10 +254,30 @@ func ValidateDiscard(state GameState, playerID string, card string) (GameState, 
 	if err := requireCardsInHand(state.Hands[playerID], []string{card}); err != nil {
 		return state, false, err
 	}
+	cfg := effectiveRules(state)
+	if cfg.JokerDiscardRestricted && IsJoker(card) {
+		// A joker can never be discarded — except as the exact card that
+		// empties an already-down player's hand, ending the deal for them.
+		goesOut := len(state.Hands[playerID]) == 1 && state.RoundReqMet[playerID]
+		if !goesOut {
+			return state, false, RulesError{
+				Code:    ErrJokerDiscard,
+				Message: "a joker can't be discarded unless it's the card that ends the hand",
+			}
+		}
+	}
 	// A player who started laying melds toward their (still unmet) initial
 	// game requirement this turn must finish it before ending their turn —
-	// no leaving a lone partial meld on the table across turns.
-	if state.MeldsLaidThisTurn > 0 && !state.RoundReqMet[playerID] {
+	// no leaving a lone partial meld on the table across turns. Only
+	// meaningful under a rotating/quota contract (Continental: e.g. "lay
+	// both required sets, not just one"), where a meld you've already laid
+	// is inherently partial progress toward a fixed count. A non-rotating
+	// profile (Žolík Classic) has no such count — every lay_meld is already
+	// a complete, standalone meld, and its clean-run requirement can only
+	// ever be met by a clean run specifically, never by laying more sets —
+	// so this block would leave a player who laid a set (but holds no
+	// clean run this turn) unable to ever discard again.
+	if cfg.FixedDealCount > 0 && state.MeldsLaidThisTurn > 0 && !state.RoundReqMet[playerID] {
 		return state, false, RulesError{
 			Code:    ErrIncompleteInitialMeld,
 			Message: "finish laying your full initial meld combination (all required sets/runs, total value met) before you can discard",

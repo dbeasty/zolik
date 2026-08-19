@@ -18,6 +18,10 @@ type Game struct {
 	HostID      string   `bson:"hostId" json:"hostId,omitempty"`
 	CurrentTurn string   `bson:"currentTurn" json:"currentTurn"`
 	TurnOrder   []string `bson:"turnOrder" json:"turnOrder"`
+	// RulesProfile names the resolved ruleset this game runs under — see
+	// rules.ResolveProfile. Set at lobby creation; empty/unknown defaults to
+	// "continental".
+	RulesProfile string `bson:"rulesProfile" json:"rulesProfile"`
 	// DealStarterID/Round are new fields (fresh bson keys, so old documents
 	// simply default to "" / 0 until their next deal) — see
 	// rules.GameState.DealStarterID / Round for what they represent.
@@ -60,9 +64,10 @@ type Player struct {
 }
 
 type MeldInfo struct {
-	MeldID  string `bson:"meldId" json:"meldId"`
-	Type    string `bson:"type" json:"type"`
-	OwnerID string `bson:"ownerId" json:"ownerId"`
+	MeldID    string `bson:"meldId" json:"meldId"`
+	Type      string `bson:"type" json:"type"`
+	OwnerID   string `bson:"ownerId" json:"ownerId"`
+	WildCount int    `bson:"wildCount" json:"wildCount"`
 }
 
 type Action struct {

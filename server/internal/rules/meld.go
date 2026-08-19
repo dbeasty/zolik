@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 )
@@ -56,14 +57,40 @@ type MeldValidation struct {
 	ResolvedSuit string // suit for run
 }
 
-func ValidateMeld(cards []string) (MeldValidation, error) {
-	if v, err := validateSet(cards); err == nil {
-		return v, nil
+// ValidateMeld validates cards against the given RulesConfig's minimum set
+// and run sizes. Callers without a live GameState (e.g. AI search) may pass
+// any RulesConfig — ProfileContinental for the historical 3/4 minimums.
+func ValidateMeld(cards []string, cfg RulesConfig) (MeldValidation, error) {
+	minSet := cfg.MinSetSize
+	if minSet == 0 {
+		minSet = 3
 	}
-	if v, err := validateRun(cards); err == nil {
-		return v, nil
+	minRun := cfg.MinRunSize
+	if minRun == 0 {
+		minRun = 4
 	}
-	return MeldValidation{}, RulesError{Code: ErrInvalidMeld}
+	setV, setErr := validateSet(cards, minSet)
+	if setErr == nil {
+		return setV, nil
+	}
+	runV, runErr := validateRun(cards, minRun)
+	if runErr == nil {
+		return runV, nil
+	}
+	// Neither a set nor a run: surface whichever failure is more specific
+	// (a distinct error code, or at least a message) over the generic
+	// catch-all below, so the player sees the real reason instead of a
+	// bare "invalid meld".
+	if re, ok := setErr.(RulesError); ok && (re.Code != ErrInvalidMeld || re.Message != "") {
+		return MeldValidation{}, setErr
+	}
+	if re, ok := runErr.(RulesError); ok && (re.Code != ErrInvalidMeld || re.Message != "") {
+		return MeldValidation{}, runErr
+	}
+	return MeldValidation{}, RulesError{
+		Code:    ErrInvalidMeld,
+		Message: "these cards don't form a valid set (same rank, different suits) or run (consecutive ranks, same suit)",
+	}
 }
 
 func ValidateMeldValue(cards []string, aceAsNatural map[string]int) int {
@@ -89,39 +116,54 @@ func ValidateMeldValue(cards []string, aceAsNatural map[string]int) int {
 	return sum
 }
 
-func validateSet(cards []string) (MeldValidation, error) {
-	if len(cards) < 3 {
-		return MeldValidation{}, RulesError{Code: ErrInvalidMeld}
+func validateSet(cards []string, minSetSize int) (MeldValidation, error) {
+	if len(cards) < minSetSize {
+		return MeldValidation{}, RulesError{
+			Code:    ErrInvalidMeld,
+			Message: fmt.Sprintf("a set needs at least %d cards", minSetSize),
+		}
 	}
 
 	var naturals []string
 	wildCount := 0
 	for _, c := range cards {
-		if IsJoker(c) || IsAce(c) {
+		// Only jokers are wild in a set. An ace is a real rank ("A"), not a
+		// stand-in for another rank — otherwise two natural queens plus an
+		// ace would pass as "three queens" without a genuine third queen.
+		if IsJoker(c) {
 			wildCount++
 			continue
 		}
 		naturals = append(naturals, c)
 	}
 	if len(naturals) == 0 {
-		return MeldValidation{}, RulesError{Code: ErrInvalidMeld}
+		return MeldValidation{}, RulesError{
+			Code:    ErrInvalidMeld,
+			Message: "a set needs at least one natural (non-joker) card to establish its rank",
+		}
 	}
 	if wildCount > len(naturals) {
-		return MeldValidation{}, RulesError{Code: ErrTooManyWilds}
+		return MeldValidation{}, RulesError{Code: ErrTooManyWilds, Message: "a set can't have more jokers than natural cards"}
 	}
 
 	targetRank := naturals[0][0]
 	seenSuits := map[string]bool{naturals[0][1:]: true}
 	for _, c := range naturals[1:] {
 		if len(c) < 1 || c[0] != targetRank {
-			return MeldValidation{}, RulesError{Code: ErrInvalidMeld}
+			return MeldValidation{}, RulesError{
+				Code:    ErrInvalidMeld,
+				Message: "all cards in a set must share the same rank",
+			}
 		}
 		suit := c[1:]
 		if seenSuits[suit] {
 			// A set may only use one card of each suit (per rank), even when
 			// two physical decks are in play — a repeated suit means the
 			// second copy belongs to a different set, not this one.
-			return MeldValidation{}, RulesError{Code: ErrInvalidMeld}
+			return MeldValidation{}, RulesError{
+				Code:    ErrInvalidMeld,
+				Message: "a set can't have two cards of the same suit",
+			}
 		}
 		seenSuits[suit] = true
 	}
@@ -140,9 +182,12 @@ func validateSet(cards []string) (MeldValidation, error) {
 	}, nil
 }
 
-func validateRun(cards []string) (MeldValidation, error) {
-	if len(cards) < 4 {
-		return MeldValidation{}, RulesError{Code: ErrInvalidMeld}
+func validateRun(cards []string, minRunSize int) (MeldValidation, error) {
+	if len(cards) < minRunSize {
+		return MeldValidation{}, RulesError{
+			Code:    ErrInvalidMeld,
+			Message: fmt.Sprintf("a run needs at least %d cards", minRunSize),
+		}
 	}
 
 	// Separate jokers, aces (flex), and fixed naturals.
@@ -162,7 +207,10 @@ func validateRun(cards []string) (MeldValidation, error) {
 	}
 
 	if len(fixed) == 0 && len(aces) == 0 {
-		return MeldValidation{}, RulesError{Code: ErrInvalidMeld}
+		return MeldValidation{}, RulesError{
+			Code:    ErrInvalidMeld,
+			Message: "a run can't be made entirely of jokers",
+		}
 	}
 
 	// Determine suit from the first fixed natural; if no fixed, from first ace (only if treated natural).
@@ -171,7 +219,10 @@ func validateRun(cards []string) (MeldValidation, error) {
 		runSuit = CardSuit(fixed[0])
 		for _, c := range fixed[1:] {
 			if CardSuit(c) != runSuit {
-				return MeldValidation{}, RulesError{Code: ErrInvalidMeld}
+				return MeldValidation{}, RulesError{
+					Code:    ErrInvalidMeld,
+					Message: "all cards in a run must share the same suit",
+				}
 			}
 		}
 	}
@@ -181,7 +232,10 @@ func validateRun(cards []string) (MeldValidation, error) {
 	for _, c := range fixed {
 		r := cardToRunRank(c)
 		if r < 2 || r > 13 {
-			return MeldValidation{}, RulesError{Code: ErrInvalidMeld}
+			return MeldValidation{}, RulesError{
+				Code:    ErrInvalidMeld,
+				Message: fmt.Sprintf("%q is not a recognized card rank for a run", c),
+			}
 		}
 		fixedRanks = append(fixedRanks, r)
 	}
@@ -189,11 +243,17 @@ func validateRun(cards []string) (MeldValidation, error) {
 	for i := 1; i < len(fixedRanks); i++ {
 		if fixedRanks[i] == fixedRanks[i-1] {
 			// Duplicate natural rank (same suit) cannot exist in a strict run.
-			return MeldValidation{}, RulesError{Code: ErrInvalidMeld}
+			return MeldValidation{}, RulesError{
+				Code:    ErrInvalidMeld,
+				Message: "a run can't repeat the same rank twice",
+			}
 		}
 	}
 	if hasAceBridge(fixedRanks) {
-		return MeldValidation{}, RulesError{Code: ErrAceBridge}
+		return MeldValidation{}, RulesError{
+			Code:    ErrAceBridge,
+			Message: "a run can't bridge from a low card (A-3) to a high card (J-K) around the corner",
+		}
 	}
 
 	L := len(cards)
@@ -358,7 +418,10 @@ tryStart:
 		}, nil
 	}
 
-	return MeldValidation{}, RulesError{Code: ErrInvalidMeld}
+	return MeldValidation{}, RulesError{
+		Code:    ErrInvalidMeld,
+		Message: "these cards don't fit into one consecutive run of the same suit (check for too many wild cards or two wilds in a row)",
+	}
 }
 
 func containsInt(hay []int, needle int) bool {
@@ -405,4 +468,84 @@ func cardToRunRank(card string) int {
 		}
 	}
 	return -1
+}
+
+// OrderMeldForDisplay returns cards rearranged into a stable, readable
+// order for storage/display — callers should persist this order rather
+// than whatever order the cards were selected/played in, so a meld a
+// player laid as e.g. 6-8-7 always shows as the sorted run 6-7-8 on the
+// table. Sets sort naturals by suit (jokers last); runs are rebuilt in
+// ascending rank order using mv's already-validated slot assignment.
+func OrderMeldForDisplay(cards []string, mv MeldValidation) []string {
+	switch mv.Type {
+	case MeldSet:
+		return orderSetForDisplay(cards)
+	case MeldRun:
+		return orderRunForDisplay(cards, mv)
+	default:
+		return cards
+	}
+}
+
+func orderSetForDisplay(cards []string) []string {
+	out := append([]string(nil), cards...)
+	sort.SliceStable(out, func(i, j int) bool {
+		ji, jj := IsJoker(out[i]), IsJoker(out[j])
+		if ji != jj {
+			return jj // naturals before jokers
+		}
+		if ji {
+			return false
+		}
+		return CardSuit(out[i]) < CardSuit(out[j])
+	})
+	return out
+}
+
+// orderRunForDisplay walks mv.ResolvedRun (already ascending) and, for each
+// rank slot, picks the specific card that fills it: a fixed natural at that
+// rank, an ace assigned as a natural endpoint (rank 1 or 14), or otherwise a
+// wildcard (joker/flex ace) filling a gap.
+func orderRunForDisplay(cards []string, mv MeldValidation) []string {
+	if len(mv.ResolvedRun) == 0 {
+		return cards
+	}
+	remaining := append([]string(nil), cards...)
+	take := func(pred func(string) bool) string {
+		for i, c := range remaining {
+			if pred(c) {
+				remaining = append(remaining[:i], remaining[i+1:]...)
+				return c
+			}
+		}
+		return ""
+	}
+
+	out := make([]string, 0, len(cards))
+	for _, pos := range mv.ResolvedRun {
+		var picked string
+		if pos == 1 || pos == 14 {
+			picked = take(func(c string) bool {
+				return IsAce(c) && mv.AceAsNatural[c] > 0
+			})
+		}
+		if picked == "" {
+			picked = take(func(c string) bool {
+				return !IsJoker(c) && !IsAce(c) && cardToRunRank(c) == pos
+			})
+		}
+		if picked == "" {
+			picked = take(func(c string) bool { return IsJoker(c) })
+		}
+		if picked == "" {
+			picked = take(func(c string) bool { return IsAce(c) })
+		}
+		if picked != "" {
+			out = append(out, picked)
+		}
+	}
+	// Any leftovers (shouldn't normally happen once validated) go at the end
+	// rather than being silently dropped.
+	out = append(out, remaining...)
+	return out
 }

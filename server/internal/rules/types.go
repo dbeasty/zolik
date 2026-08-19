@@ -34,6 +34,10 @@ type MeldInfo struct {
 	MeldID  string
 	Type    MeldType
 	OwnerID string
+	// WildCount is how many jokers/flex-aces the meld currently uses — 0
+	// means "clean" (see RulesConfig.StaticContract.RequireCleanRun). It is
+	// re-derived whenever the meld grows, so a lay-off cannot leave it stale.
+	WildCount int
 }
 
 type ActionType string
@@ -59,11 +63,19 @@ type Action struct {
 
 	Cards  []string // for lay_meld
 	MeldID string   // for lay_off
-	Card   string   // for lay_off, discard
+	// Card is used for lay_off, discard, and (only under
+	// DiscardPickupAnyFromPile) to name which discard-pile card a
+	// draw_card{from:"discard"} action targets — empty means "the top card".
+	Card string
 }
 
 type GameState struct {
 	Status GameStatus
+	// Rules is the fully-resolved ruleset this game runs under. Always
+	// concrete on a persisted/started game; zero-value here falls back to
+	// ProfileContinental via effectiveRules(state) so older callers/tests
+	// that construct a GameState without setting it keep working.
+	Rules RulesConfig
 	// GameNumber is which deal of the match this is (1-7). One GameNumber
 	// runs from deal through someone going out; it drives the
 	// RoundRequirementFor() Sets/Runs pattern and the match ends once
@@ -148,6 +160,8 @@ const (
 	ErrDiscardCardNotMelded  RulesErrorCode = "DISCARD_CARD_NOT_MELDED"
 	ErrGameSuspended         RulesErrorCode = "GAME_SUSPENDED"
 	ErrGameNotActive         RulesErrorCode = "GAME_NOT_ACTIVE"
+	ErrJokerDiscard          RulesErrorCode = "JOKER_DISCARD_FORBIDDEN"
+	ErrBreaksCleanRun        RulesErrorCode = "BREAKS_CLEAN_RUN"
 
 	// Not in spec list; required by your decision for empty deck+discard.
 	ErrNoCardsLeft RulesErrorCode = "NO_CARDS_LEFT"

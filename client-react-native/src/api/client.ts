@@ -3,6 +3,7 @@ import type {
   GameState,
   LobbyGame,
   PlayerSession,
+  RulesProfile,
   WSAction,
 } from '@/src/api/types';
 
@@ -118,14 +119,18 @@ export class ZolikClient {
   }
 
   async createGame(
+    rulesProfile?: RulesProfile,
     initialMeldMin?: number,
     discardDrawMinRound?: number,
   ): Promise<{ gameId: string; joinCode: string }> {
-    const body: Record<string, number> = {};
-    if (initialMeldMin != null && initialMeldMin > 0) {
+    const body: Record<string, number | string> = {};
+    if (rulesProfile) {
+      body.rulesProfile = rulesProfile;
+    }
+    if (initialMeldMin != null && initialMeldMin >= 0) {
       body.initialMeldMinimum = initialMeldMin;
     }
-    if (discardDrawMinRound != null && discardDrawMinRound > 1) {
+    if (discardDrawMinRound != null && discardDrawMinRound >= 0) {
       body.discardDrawMinRound = discardDrawMinRound;
     }
     return this.post('/games', body, true);
@@ -134,6 +139,7 @@ export class ZolikClient {
   async updateGameSettings(
     idOrCode: string,
     settings: {
+      rulesProfile?: RulesProfile;
       initialMeldMinimum?: number;
       discardDrawMinRound?: number;
     },

@@ -6,23 +6,33 @@ import { colors } from '@/src/theme';
 type Props = {
   card: string;
   selected?: boolean;
+  // Marks the card(s) just picked up from the deck or discard pile this
+  // turn, so it's obvious which card is new — independent of `selected`
+  // (a drawn card can be both, e.g. right after tapping it to stage a meld).
+  justDrawn?: boolean;
   onPress?: () => void;
   compact?: boolean;
 };
 
-export function CardView({ card, selected, onPress, compact }: Props) {
+export function CardView({ card, selected, justDrawn, onPress, compact }: Props) {
   const d = parseCard(card);
   const content = (
-    <View
-      style={[
-        styles.card,
-        compact && styles.compact,
-        selected && styles.selected,
-        d.isJoker && styles.joker,
-      ]}
-    >
-      <Text style={[styles.rank, d.isRed && styles.red]}>{d.rank}</Text>
-      <Text style={[styles.suit, d.isRed && styles.red]}>{d.suitSymbol}</Text>
+    // Ring wrapper is always present at a fixed size (border color just
+    // toggles transparent<->success) so highlighting a card never nudges
+    // its neighbors' layout — a card that shifts mid-gesture is exactly
+    // what broke double-tap-to-discard before this was fixed.
+    <View style={[styles.ring, justDrawn && styles.justDrawnRing]}>
+      <View
+        style={[
+          styles.card,
+          compact && styles.compact,
+          selected && styles.selected,
+          d.isJoker && styles.joker,
+        ]}
+      >
+        <Text style={[styles.rank, d.isRed && styles.red]}>{d.rank}</Text>
+        <Text style={[styles.suit, d.isRed && styles.red]}>{d.suitSymbol}</Text>
+      </View>
     </View>
   );
   if (onPress) {
@@ -36,6 +46,15 @@ export function CardView({ card, selected, onPress, compact }: Props) {
 }
 
 const styles = StyleSheet.create({
+  ring: {
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    padding: 1,
+  },
+  justDrawnRing: {
+    borderColor: colors.success,
+  },
   card: {
     width: 52,
     height: 72,

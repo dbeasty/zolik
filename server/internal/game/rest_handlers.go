@@ -28,8 +28,12 @@ func NewGameRestHandlers(repo *Repository, hub *Hub, manager *Manager) *GameRest
 }
 
 type CreateGameReq struct {
-	InitialMeldMinimum  *int `json:"initialMeldMinimum,omitempty"`
-	DiscardDrawMinRound *int `json:"discardDrawMinRound,omitempty"`
+	// RulesProfile selects the base ruleset ("continental" | "zolik_classic").
+	// Empty defaults to "continental". The two fields below, when present,
+	// override that profile's defaults — the "custom house rules" path.
+	RulesProfile        *string `json:"rulesProfile,omitempty"`
+	InitialMeldMinimum  *int    `json:"initialMeldMinimum,omitempty"`
+	DiscardDrawMinRound *int    `json:"discardDrawMinRound,omitempty"`
 }
 
 type AddAIReq struct {
@@ -76,6 +80,14 @@ func (h *GameRestHandlers) updateSettings(w http.ResponseWriter, req *http.Reque
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
+	if body.RulesProfile != nil {
+		g.RulesProfile = *body.RulesProfile
+		// Switching profile resets the two legacy knobs to that profile's
+		// defaults, unless this same request also overrides them below.
+		cfg := rules.ResolveProfile(g.RulesProfile)
+		g.InitialMeldMinimum = cfg.InitialMeldMinimum
+		g.DiscardDrawMinRound = cfg.DiscardDrawMinRound
+	}
 	if body.InitialMeldMinimum != nil {
 		g.InitialMeldMinimum = *body.InitialMeldMinimum
 	}
@@ -90,6 +102,7 @@ func (h *GameRestHandlers) updateSettings(w http.ResponseWriter, req *http.Reque
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]any{
+		"rulesProfile":         g.RulesProfile,
 		"initialMeldMinimum":  g.InitialMeldMinimum,
 		"discardDrawMinRound": g.DiscardDrawMinRound,
 	})
@@ -106,12 +119,17 @@ func (h *GameRestHandlers) createGame(w http.ResponseWriter, req *http.Request) 
 	var body CreateGameReq
 	_ = json.NewDecoder(req.Body).Decode(&body)
 
-	initial := 35
+	profile := "continental"
+	if body.RulesProfile != nil {
+		profile = *body.RulesProfile
+	}
+	cfg := rules.ResolveProfile(profile)
+
+	initial := cfg.InitialMeldMinimum
 	if body.InitialMeldMinimum != nil {
 		initial = *body.InitialMeldMinimum
 	}
-	// Continental Rummy: discard-pile pickup only opens up from round 3.
-	discardMinRound := 3
+	discardMinRound := cfg.DiscardDrawMinRound
 	if body.DiscardDrawMinRound != nil {
 		discardMinRound = *body.DiscardDrawMinRound
 	}
@@ -135,6 +153,7 @@ func (h *GameRestHandlers) createGame(w http.ResponseWriter, req *http.Request) 
 	g := models.Game{
 		ID:                  gameID,
 		Status:              "lobby",
+		RulesProfile:        profile,
 		GameNumber:          0,
 		Phase:               "",
 		JoinCode:            joinCode,
@@ -201,6 +220,7 @@ func (h *GameRestHandlers) getGame(w http.ResponseWriter, req *http.Request) {
 		"currentTurn":         g.CurrentTurn,
 		"players":             players,
 		"hostId":              g.HostID,
+		"rulesProfile":        g.RulesProfile,
 		"initialMeldMinimum":  g.InitialMeldMinimum,
 		"discardDrawMinRound": g.DiscardDrawMinRound,
 		"discardPileTop": func() any {
@@ -314,9 +334,12 @@ func (h *GameRestHandlers) startGame(w http.ResponseWriter, req *http.Request) {
 		g.DeckSeed = seed
 	}
 
+	cfg := rules.ResolveProfile(g.RulesProfile)
+
 	// Create initial deal state.
 	rState := rules.GameState{
 		Status:              rules.StatusActive,
+		Rules:               cfg,
 		GameNumber:          1,
 		Phase:               rules.PhaseDraw,
 		Created:             time.Now().UTC(),
@@ -342,7 +365,7 @@ func (h *GameRestHandlers) startGame(w http.ResponseWriter, req *http.Request) {
 	deck := rules.BuildDeck(len(turnOrder))
 	rState.DrawPile = rules.Shuffle(deck, seed+int64(rState.GameNumber)*9973)
 	var err2 error
-	rState, err2 = rules.Deal12(rState)
+	rState, err2 = rules.DealHand(rState, cfg)
 	if err2 != nil {
 		http.Error(w, err2.Error(), http.StatusInternalServerError)
 		return

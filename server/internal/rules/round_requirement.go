@@ -1,37 +1,9 @@
 package rules
 
-// RoundRequirement describes how many qualifying sets (3+) and runs (4+) a player
-// must have on the table before they can go out in a given round.
-type RoundRequirement struct {
-	Sets int
-	Runs int
-}
-
-// RoundRequirementFor returns the initial-meld pattern for the given deal
-// (GameNumber 1-7) — fixed for the whole deal, evaluated against RoundReqMet.
-func RoundRequirementFor(gameNumber int) RoundRequirement {
-	switch gameNumber {
-	case 1:
-		return RoundRequirement{Sets: 2, Runs: 0}
-	case 2:
-		return RoundRequirement{Sets: 1, Runs: 1}
-	case 3:
-		return RoundRequirement{Sets: 0, Runs: 2}
-	case 4:
-		return RoundRequirement{Sets: 3, Runs: 0}
-	case 5:
-		return RoundRequirement{Sets: 2, Runs: 1}
-	case 6:
-		return RoundRequirement{Sets: 1, Runs: 2}
-	case 7:
-		return RoundRequirement{Sets: 0, Runs: 3}
-	default:
-		return RoundRequirement{}
-	}
-}
-
-// PlayerMeldCounts returns qualifying sets and runs the player has laid this game.
-func PlayerMeldCounts(state GameState, playerID string) (sets, runs int) {
+// PlayerMeldCounts returns qualifying sets and runs the player has laid this
+// game, and whether at least one of those runs is "clean" (zero wild cards).
+func PlayerMeldCounts(state GameState, playerID string) (sets, runs int, hasCleanRun bool) {
+	cfg := effectiveRules(state)
 	metas := state.MeldMeta[playerID]
 	melds := state.Melds[playerID]
 	for i, mi := range metas {
@@ -40,31 +12,92 @@ func PlayerMeldCounts(state GameState, playerID string) (sets, runs int) {
 		}
 		switch mi.Type {
 		case MeldSet:
-			if len(melds[i]) >= 3 {
+			if len(melds[i]) >= cfg.MinSetSize {
 				sets++
 			}
 		case MeldRun:
-			if len(melds[i]) >= 4 {
+			if len(melds[i]) >= cfg.MinRunSize {
 				runs++
+				if meldWildCount(melds[i], mi, cfg) == 0 {
+					hasCleanRun = true
+				}
 			}
 		}
 	}
-	return sets, runs
+	return sets, runs, hasCleanRun
+}
+
+// meldWildCount re-derives a meld's wild count from the cards on the table,
+// falling back to the recorded count only if the meld no longer validates.
+// Melds grow through lay-offs, so the count captured when the meld was laid
+// is not necessarily the count it has now.
+func meldWildCount(cards []string, mi MeldInfo, cfg RulesConfig) int {
+	if mv, err := ValidateMeld(cards, cfg); err == nil {
+		return mv.WildCount
+	}
+	return mi.WildCount
+}
+
+// IsCleanRun reports whether cards form a qualifying joker-free run.
+func IsCleanRun(cards []string, cfg RulesConfig) bool {
+	if len(cards) < cfg.MinRunSize {
+		return false
+	}
+	mv, err := ValidateMeld(cards, cfg)
+	return err == nil && mv.Type == MeldRun && mv.WildCount == 0
+}
+
+// LayOffBreaksCleanRun reports whether adding card to the owner's meld at idx
+// would strip that owner of the joker-free run their contract requires — the
+// clean run that let them go down must stay clean, so a joker has to start a
+// separate meld instead of extending it.
+func LayOffBreaksCleanRun(cfg RulesConfig, gameNumber int, melds [][]string, idx int, card string) bool {
+	if !cfg.ContractFor(gameNumber).RequireCleanRun {
+		return false
+	}
+	if idx < 0 || idx >= len(melds) {
+		return false
+	}
+	if !IsCleanRun(melds[idx], cfg) {
+		return false
+	}
+	extended := append(append([]string(nil), melds[idx]...), card)
+	if IsCleanRun(extended, cfg) {
+		return false
+	}
+	// The extension dirties this run; allowed only if another clean run remains.
+	for i, m := range melds {
+		if i == idx {
+			continue
+		}
+		if IsCleanRun(m, cfg) {
+			return false
+		}
+	}
+	return true
 }
 
 // PlayerMeetsRoundRequirement reports whether the player has the required melds on table.
 func PlayerMeetsRoundRequirement(state GameState, playerID string) bool {
-	req := RoundRequirementFor(state.GameNumber)
-	sets, runs := PlayerMeldCounts(state, playerID)
-	return sets >= req.Sets && runs >= req.Runs
+	cfg := effectiveRules(state)
+	req := cfg.ContractFor(state.GameNumber)
+	sets, runs, hasCleanRun := PlayerMeldCounts(state, playerID)
+	if sets < req.Sets || runs < req.Runs {
+		return false
+	}
+	if req.RequireCleanRun && !hasCleanRun {
+		return false
+	}
+	return true
 }
 
 // PlayerInitialMeldNaturalValue sums natural card values across all melds the player laid this game.
 func PlayerInitialMeldNaturalValue(state GameState, playerID string) int {
+	cfg := effectiveRules(state)
 	total := 0
 	melds := state.Melds[playerID]
 	for _, cards := range melds {
-		mv, err := ValidateMeld(cards)
+		mv, err := ValidateMeld(cards, cfg)
 		if err != nil {
 			continue
 		}
@@ -75,18 +108,29 @@ func PlayerInitialMeldNaturalValue(state GameState, playerID string) int {
 
 // MeldContributesTowardRequirement reports whether a new qualifying meld moves the
 // player toward the current deal's pattern before RoundReqMet is set.
-func MeldContributesTowardRequirement(state GameState, playerID string, meldType MeldType, cardCount int) bool {
+// wildCount is the wild-card count of the meld being laid (0 = clean run).
+func MeldContributesTowardRequirement(state GameState, playerID string, meldType MeldType, cardCount int, wildCount int) bool {
 	if state.RoundReqMet[playerID] {
 		return true
 	}
-	req := RoundRequirementFor(state.GameNumber)
-	setsBefore, runsBefore := PlayerMeldCounts(state, playerID)
+	cfg := effectiveRules(state)
+	req := cfg.ContractFor(state.GameNumber)
+	setsBefore, runsBefore, _ := PlayerMeldCounts(state, playerID)
 
-	addsSet := meldType == MeldSet && cardCount >= 3
-	addsRun := meldType == MeldRun && cardCount >= 4
+	addsSet := meldType == MeldSet && cardCount >= cfg.MinSetSize
+	addsRun := meldType == MeldRun && cardCount >= cfg.MinRunSize
 	if !addsSet && !addsRun {
 		return false
 	}
+
+	if cfg.FixedDealCount == 0 {
+		// A non-rotating profile (e.g. Žolík Classic) has no per-type count
+		// quota at all — every valid meld may be laid freely at any time.
+		// The only thing gating "down" status is PlayerMeetsRoundRequirement
+		// (e.g. its clean-run rule), not what gets laid along the way.
+		return true
+	}
+
 	if addsSet && setsBefore < req.Sets {
 		return true
 	}
@@ -109,25 +153,25 @@ func AllTableMelds(state GameState) [][]string {
 
 // HandPenaltyTotal scores leftover cards at round end.
 // Aces count as 1 when they sit in a natural run fragment in hand or can extend a table run.
-func HandPenaltyTotal(hand []string) int {
-	return HandPenaltyTotalWithMelds(hand, nil)
+func HandPenaltyTotal(hand []string, cfg RulesConfig) int {
+	return HandPenaltyTotalWithMelds(hand, nil, cfg)
 }
 
-func HandPenaltyTotalWithMelds(hand []string, tableMelds [][]string) int {
+func HandPenaltyTotalWithMelds(hand []string, tableMelds [][]string, cfg RulesConfig) int {
 	sum := 0
 	for _, c := range hand {
-		sum += handCardPenalty(c, hand, tableMelds)
+		sum += handCardPenalty(c, hand, tableMelds, cfg)
 	}
 	return sum
 }
 
-func handCardPenalty(card string, hand []string, tableMelds [][]string) int {
+func handCardPenalty(card string, hand []string, tableMelds [][]string, cfg RulesConfig) int {
 	if IsAce(card) {
 		if aceCountsAsNaturalInHand(card, hand) {
 			return 1
 		}
 		for _, meld := range tableMelds {
-			if aceExtendsRunAsNatural(card, meld) {
+			if aceExtendsRunAsNatural(card, meld, cfg) {
 				return 1
 			}
 		}
@@ -184,11 +228,15 @@ func minMaxRunRank(cards []string) (min, max int) {
 	return min, max
 }
 
-func aceExtendsRunAsNatural(ace string, meld []string) bool {
-	if len(meld) < 4 || !IsAce(ace) {
+func aceExtendsRunAsNatural(ace string, meld []string, cfg RulesConfig) bool {
+	minRun := cfg.MinRunSize
+	if minRun == 0 {
+		minRun = 4
+	}
+	if len(meld) < minRun || !IsAce(ace) {
 		return false
 	}
-	if _, err := ValidateMeld(meld); err != nil {
+	if _, err := ValidateMeld(meld, cfg); err != nil {
 		return false
 	}
 	suit := CardSuit(ace)
@@ -198,7 +246,7 @@ func aceExtendsRunAsNatural(ace string, meld []string) bool {
 		if len(extended) != len(meld)+1 {
 			return false
 		}
-		mv, err := ValidateMeld(extended)
+		mv, err := ValidateMeld(extended, cfg)
 		if err != nil || mv.Type != MeldRun {
 			return false
 		}

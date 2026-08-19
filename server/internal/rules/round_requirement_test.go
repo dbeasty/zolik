@@ -230,7 +230,7 @@ func TestRoundRequirementFor_AllSevenGames(t *testing.T) {
 		{7, 0, 3},
 	}
 	for _, tc := range cases {
-		req := RoundRequirementFor(tc.game)
+		req := ProfileContinental.ContractFor(tc.game)
 		if req.Sets != tc.sets || req.Runs != tc.runs {
 			t.Fatalf("game %d: got sets=%d runs=%d want %d/%d", tc.game, req.Sets, req.Runs, tc.sets, tc.runs)
 		}

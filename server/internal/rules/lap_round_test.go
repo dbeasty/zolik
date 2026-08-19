@@ -118,7 +118,7 @@ func TestDiscardDrawMinRound_GatesOnLapRoundNotGameNumber(t *testing.T) {
 	st.DrawPile = []string{"2C"}
 	st.DiscardPile = []string{"7H"}
 
-	_, _, _, err := ValidateDraw(st, "p1", DrawFromDiscard)
+	_, _, _, err := ValidateDraw(st, "p1", DrawFromDiscard, "")
 	re, ok := err.(RulesError)
 	if !ok || re.Code != ErrDiscardLocked {
 		t.Fatalf("expected ErrDiscardLocked while lap Round < DiscardDrawMinRound, got %#v", err)

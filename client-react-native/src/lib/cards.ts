@@ -169,3 +169,65 @@ export function roundRequirementLabel(round: number): string {
   ];
   return labels[round] ?? `Round ${round}`;
 }
+
+/**
+ * Header label for the current deal. Continental has a fixed per-deal
+ * contract (roundRequirementLabel); Žolík Classic and any other non-rotating
+ * profile has no such contract — going down just requires one joker-free
+ * run — so the header skips the contract phrase entirely.
+ */
+export function dealHeaderLabel(rulesProfile: string | undefined, game: number): string {
+  if (rulesProfile === 'zolik_classic') {
+    return `Deal ${game}`;
+  }
+  return `Game ${game}: ${roundRequirementLabel(game)}`;
+}
+
+/** Short human name for a rules profile, for display next to the deal header. */
+export function profileDisplayName(rulesProfile: string | undefined): string {
+  if (rulesProfile === 'zolik_classic') return 'Žolík Classic';
+  if (rulesProfile === 'continental') return 'Continental Rummy';
+  return rulesProfile ? 'Custom house rules' : 'Continental Rummy';
+}
+
+/**
+ * Full rule breakdown for the in-game "Rules" panel. Mirrors the base
+ * profile constants in server/internal/rules/profiles.go (deal size, run/set
+ * minimums, discard pickup mode, joker rule) plus this table's live
+ * overrides (meld-value floor, discard-lock round) which the server already
+ * sends per game.
+ */
+export function rulesSummaryLines(
+  rulesProfile: string | undefined,
+  game: number,
+  initialMeldMinimum: number,
+  discardDrawMinRound: number,
+): { label: string; value: string }[] {
+  const isZolik = rulesProfile === 'zolik_classic';
+  const lines = [
+    { label: 'Variation', value: profileDisplayName(rulesProfile) },
+    { label: 'Deal size', value: isZolik ? '13 cards' : '12 cards' },
+    { label: 'Minimum run length', value: isZolik ? '3 cards' : '4 cards' },
+    {
+      label: 'To go down',
+      value: isZolik
+        ? 'Any mix of sets/runs, including all runs — at least one run must be joker-free'
+        : roundRequirementLabel(game),
+    },
+    {
+      label: 'Meld value floor',
+      value: initialMeldMinimum > 0 ? `${initialMeldMinimum}+ points on your first meld(s)` : 'Off',
+    },
+    {
+      label: 'Discard pickup',
+      value:
+        discardDrawMinRound > 1
+          ? `Top card only, locked until round ${discardDrawMinRound}`
+          : isZolik
+            ? 'Any card in the pile (and everything stacked above it)'
+            : 'Top card only',
+    },
+    { label: 'Jokers', value: 'Can never be discarded, except as the card that ends your hand' },
+  ];
+  return lines;
+}

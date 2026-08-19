@@ -4,12 +4,23 @@ import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
-import type { LobbyPlayer } from '@/src/api/types';
+import type { LobbyPlayer, RulesProfile } from '@/src/api/types';
 import { colors, shared } from '@/src/theme';
 
 const DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
-const MELD_MINS = [35, 50, 70];
-const DISCARD_LOCK_ROUNDS = [1, 2, 3];
+const MELD_MINS = [0, 35, 50, 70];
+const DISCARD_LOCK_ROUNDS = [0, 1, 2, 3];
+
+const PROFILES: { value: RulesProfile; label: string }[] = [
+  { value: 'continental', label: 'Continental' },
+  { value: 'zolik_classic', label: 'Žolík Classic' },
+];
+
+const PROFILE_RULES_TITLE: Record<string, string> = {
+  continental: 'Continental Rummy rules',
+  zolik_classic: 'Žolík Classic rules',
+  custom: 'Custom house rules',
+};
 
 export default function CreateLobbyScreen() {
   const { client, session } = useSession();
@@ -17,6 +28,7 @@ export default function CreateLobbyScreen() {
   const [joinCode, setJoinCode] = useState('');
   const [players, setPlayers] = useState<LobbyPlayer[]>([]);
   const [aiDiff, setAiDiff] = useState<(typeof DIFFICULTIES)[number]>('medium');
+  const [profile, setProfile] = useState<RulesProfile>('continental');
   const [initialMin, setInitialMin] = useState(35);
   // Continental Rummy: discard-pile pickup only opens up from round 3.
   const [discardLockRound, setDiscardLockRound] = useState(3);
@@ -32,6 +44,7 @@ export default function CreateLobbyScreen() {
     try {
       const info = await client.getLobby(gameId);
       setPlayers(info.players);
+      if (info.rulesProfile != null) setProfile(info.rulesProfile);
       if (info.initialMeldMinimum != null) setInitialMin(info.initialMeldMinimum);
       if (info.discardDrawMinRound != null) setDiscardLockRound(info.discardDrawMinRound);
       if (info.status === 'active') {
@@ -46,7 +59,7 @@ export default function CreateLobbyScreen() {
     let cancelled = false;
     (async () => {
       try {
-        const { gameId: id, joinCode: code } = await client.createGame(initialMin);
+        const { gameId: id, joinCode: code } = await client.createGame(profile);
         if (cancelled) return;
         setGameId(id);
         setJoinCode(code);
@@ -88,6 +101,20 @@ export default function CreateLobbyScreen() {
       await poll();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Start failed');
+    }
+  }
+
+  async function selectProfile(next: RulesProfile) {
+    if (next === profile) return;
+    setProfile(next);
+    try {
+      await client.updateGameSettings(gameId, { rulesProfile: next });
+      // The server resets initialMeldMinimum/discardDrawMinRound to the new
+      // profile's defaults — pick those up on the next poll rather than
+      // guessing them here.
+      await poll();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Update failed');
     }
   }
 
@@ -134,6 +161,26 @@ export default function CreateLobbyScreen() {
       ))}
 
       <View style={{ marginTop: 16 }}>
+        <Text style={shared.status}>Rules: {PROFILES.find((p) => p.value === profile)?.label ?? profile}</Text>
+        <View style={{ flexDirection: 'row', gap: 8, marginVertical: 8 }}>
+          {PROFILES.map((p) => (
+            <Pressable
+              key={p.value}
+              style={[
+                shared.button,
+                p.value === profile ? null : shared.buttonSecondary,
+                { flex: 1, marginBottom: 0 },
+              ]}
+              disabled={!isHost}
+              onPress={() => selectProfile(p.value)}
+            >
+              <Text style={p.value === profile ? shared.buttonText : shared.buttonTextSecondary}>
+                {p.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+
         <Text style={shared.status}>AI difficulty: {aiDiff}</Text>
         <View style={{ flexDirection: 'row', gap: 8, marginVertical: 8 }}>
           {DIFFICULTIES.map((d) => (
@@ -152,16 +199,27 @@ export default function CreateLobbyScreen() {
         </View>
         <View style={[shared.card, { marginTop: 8, paddingVertical: 12 }]}>
           <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14, marginBottom: 10 }}>
-            Continental Rummy rules
+            {PROFILE_RULES_TITLE[profile] ?? 'House rules'}
           </Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
-            <RuleChip label="Meld value" value={String(initialMin)} onPress={isHost ? cycleMeldMin : undefined} />
+            <RuleChip
+              label="Meld value"
+              value={initialMin > 0 ? String(initialMin) : 'off'}
+              onPress={isHost ? cycleMeldMin : undefined}
+            />
             <RuleChip
               label="Discard pickup"
-              value={`R${discardLockRound}`}
+              value={discardLockRound > 1 ? `R${discardLockRound}` : 'open'}
               onPress={isHost ? cycleDiscardLock : undefined}
             />
           </View>
+          {profile === 'zolik_classic' ? (
+            <Text style={{ color: colors.muted, fontSize: 11, marginTop: 8 }}>
+              13-card deal · 3+ card runs · any card may be taken from the discard pile · at least
+              one joker-free run required to go down · a joker can only be discarded to end the
+              hand.
+            </Text>
+          ) : null}
         </View>
 
         {isHost ? (

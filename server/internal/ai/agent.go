@@ -19,6 +19,10 @@ type VisibleState struct {
 	TotalScores         map[string]int
 	InitialMeldMinimum  int
 	DiscardDrawMinRound int
+	// Rules is the game's resolved ruleset — see rules.RulesConfig. Agents
+	// must use this instead of any hardcoded set/run size or contract
+	// assumption so they behave correctly under every profile.
+	Rules rules.RulesConfig
 }
 
 type Agent interface {

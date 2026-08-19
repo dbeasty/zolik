@@ -1,0 +1,294 @@
+import { forwardRef } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { runOnJS, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+
+import { CardView } from '@/src/components/CardView';
+import { colors, shared } from '@/src/theme';
+
+export type StagingGroup = {
+  entries: { index: number; card: string }[];
+};
+
+type Props = {
+  groups: StagingGroup[];
+  // Paired with the hand index each card came from (not just the card
+  // string) so removing the right one works even when the hand holds
+  // duplicate cards, e.g. from a second physical deck.
+  onRemove: (index: number) => void;
+  // Reorders the cards within one staged group — positions within that
+  // group's entries array, not hand indices, since that's what determines
+  // the order the group is eventually sent to the server as `lay_meld`
+  // (which matters for a run, where order is the whole point).
+  onReorderGroup: (groupIndex: number, from: number, to: number) => void;
+  onCancelGroup: (groupIndex: number) => void;
+  onAddGroup: () => void;
+  canAddGroup: boolean;
+  onLayAll: () => void;
+  canLayAll: boolean;
+  layCount: number;
+};
+
+// Drop target for building a new meld: drag cards here (or tap them in your
+// hand — either path lands in the parent's `groups` state) to stage a
+// group. A hand that needs, say, a run *and* a set laid down in the same
+// turn doesn't have to finish one before starting the other — "+ Add
+// another run or set" opens a second box so both can be built side by
+// side, each with its own Cancel. One "Lay meld" button at the bottom lays
+// every group that currently has cards in it, in one tap.
+//
+// Minimized to a single thin line whenever nothing is staged at all: the
+// full box (hint text + Cancel + Add + Lay meld) is tall, and since this
+// area only exists during the meld phase, its full height would appear the
+// instant you draw and vanish the instant you discard — a visible jump on
+// every single turn even when you never touch it. Shrinking the empty
+// state keeps that per-turn appearance/disappearance small; growing to the
+// full box only happens as the direct result of actually staging a card,
+// which is expected motion, not a surprise one. Safe from the double-tap-
+// to-discard regression this used to cause: expansion only follows the
+// same deferred toggle in HandRow that already waits out the double-tap
+// window before doing anything, or a drag-drop, which has no double-tap
+// ambiguity to begin with.
+export const MeldStagingArea = forwardRef<View, Props>(function MeldStagingArea(
+  {
+    groups,
+    onRemove,
+    onReorderGroup,
+    onCancelGroup,
+    onAddGroup,
+    canAddGroup,
+    onLayAll,
+    canLayAll,
+    layCount,
+  },
+  ref,
+) {
+  const allEmpty = groups.every((g) => g.entries.length === 0);
+
+  if (allEmpty) {
+    return (
+      <View ref={ref} style={styles.minimized}>
+        <Text style={styles.minimizedHint}>
+          Drag a card here, or select cards below and tap "+ Add to meld", to build a meld
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View ref={ref} style={styles.box}>
+      {groups.map((group, i) => (
+        <GroupBox
+          key={i}
+          index={i}
+          showLabel={groups.length > 1}
+          entries={group.entries}
+          onRemove={onRemove}
+          onReorder={(from, to) => onReorderGroup(i, from, to)}
+          onCancel={() => onCancelGroup(i)}
+        />
+      ))}
+      <Pressable
+        style={[shared.button, shared.buttonSecondary, styles.addButton, !canAddGroup && styles.disabled]}
+        onPress={onAddGroup}
+        disabled={!canAddGroup}
+      >
+        <Text style={shared.buttonTextSecondary}>+ Add another run or set</Text>
+      </Pressable>
+      <Pressable
+        style={[shared.button, styles.layAllButton, !canLayAll && styles.disabled]}
+        onPress={onLayAll}
+        disabled={!canLayAll}
+      >
+        <Text style={shared.buttonText}>Lay meld{layCount > 0 ? ` (${layCount})` : ''}</Text>
+      </Pressable>
+    </View>
+  );
+});
+
+// The card row is *always* rendered, just with placeholder content when
+// empty — never conditionally mounted/unmounted — so a group's height
+// never changes as cards are added or removed within it. A height change
+// here shifts the hand row below it, which used to break double-tap-to-
+// discard: the second tap would land on whatever card ended up under the
+// finger after the reflow, not the one that was actually double-tapped.
+function GroupBox({
+  index,
+  showLabel,
+  entries,
+  onRemove,
+  onReorder,
+  onCancel,
+}: {
+  index: number;
+  showLabel: boolean;
+  entries: { index: number; card: string }[];
+  onRemove: (index: number) => void;
+  onReorder: (from: number, to: number) => void;
+  onCancel: () => void;
+}) {
+  const empty = entries.length === 0;
+  return (
+    <View style={index > 0 ? styles.groupSpacing : undefined}>
+      {showLabel ? <Text style={styles.groupLabel}>Run/set {index + 1}</Text> : null}
+      <View style={styles.cardRow}>
+        {empty ? (
+          <Text style={styles.hint}>Drag cards here — or select them below — to build a meld</Text>
+        ) : (
+          entries.map(({ index: handIndex, card }, position) => (
+            <DraggableStagedCard
+              key={`${card}-${handIndex}`}
+              card={card}
+              position={position}
+              count={entries.length}
+              onReorder={onReorder}
+              onRemove={() => onRemove(handIndex)}
+            />
+          ))
+        )}
+      </View>
+      <Pressable
+        style={[shared.button, shared.buttonSecondary, styles.cancelButton, empty && styles.disabled]}
+        onPress={onCancel}
+        disabled={empty}
+      >
+        <Text style={shared.buttonTextSecondary}>Cancel</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+const STAGE_CARD_WIDTH = 52;
+const STAGE_CARD_MARGIN = 6;
+const STAGE_SLOT = STAGE_CARD_WIDTH + STAGE_CARD_MARGIN;
+// Same "clear most of a slot before committing" threshold HandRow uses for
+// hand reordering — small enough that an ordinary tap doesn't misfire as a
+// reorder, large enough that a deliberate drag still commits well before
+// the finger reaches the neighboring card's center.
+const REORDER_COMMIT_RATIO = 0.75;
+
+// A staged card within a run/set: tap removes it (back to hand), drag left
+// or right reorders it within its own group. Order matters here in a way it
+// doesn't in the hand — a run is laid down in the order these cards are
+// sent, so being able to fix "6,5,7" into "5,6,7" without canceling and
+// restarting the whole group is the point.
+function DraggableStagedCard({
+  card,
+  position,
+  count,
+  onReorder,
+  onRemove,
+}: {
+  card: string;
+  position: number;
+  count: number;
+  onReorder: (from: number, to: number) => void;
+  onRemove: () => void;
+}) {
+  const dragging = useSharedValue(false);
+
+  function commit(translationX: number) {
+    const slots = translationX / STAGE_SLOT;
+    const deltaSlots =
+      Math.abs(slots) < REORDER_COMMIT_RATIO
+        ? 0
+        : Math.sign(slots) * Math.round(Math.abs(slots) - (REORDER_COMMIT_RATIO - 0.5));
+    const target = Math.max(0, Math.min(count - 1, position + deltaSlots));
+    if (target !== position) onReorder(position, target);
+  }
+
+  const pan = Gesture.Pan()
+    .minDistance(10)
+    .onStart(() => {
+      dragging.value = true;
+    })
+    .onEnd((e) => {
+      runOnJS(commit)(e.translationX);
+    })
+    .onFinalize(() => {
+      dragging.value = false;
+    });
+
+  const tap = Gesture.Tap().onEnd((_e, success) => {
+    if (success) runOnJS(onRemove)();
+  });
+
+  const gesture = Gesture.Race(pan, tap);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: dragging.value ? 0.3 : 1,
+    cursor: (dragging.value ? 'grabbing' : 'grab') as string,
+  }));
+
+  return (
+    <GestureDetector gesture={gesture}>
+      <Animated.View style={[animatedStyle, { userSelect: 'none' } as object]}>
+        <CardView card={card} />
+      </Animated.View>
+    </GestureDetector>
+  );
+}
+
+const styles = StyleSheet.create({
+  minimized: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderStyle: 'dashed',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    marginTop: 8,
+  },
+  minimizedHint: {
+    color: colors.muted,
+    fontSize: 11,
+    textAlign: 'center',
+  },
+  box: {
+    borderWidth: 2,
+    borderColor: colors.accentDim,
+    borderStyle: 'dashed',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+  },
+  groupSpacing: {
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  groupLabel: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  cardRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 72,
+  },
+  hint: {
+    color: colors.muted,
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  cancelButton: {
+    marginTop: 10,
+    marginBottom: 0,
+  },
+  addButton: {
+    marginTop: 12,
+    marginBottom: 0,
+  },
+  layAllButton: {
+    marginTop: 10,
+    marginBottom: 0,
+  },
+  disabled: {
+    opacity: 0.4,
+  },
+});

@@ -28,6 +28,7 @@ func NewHeuristicAgent(difficulty string) *HeuristicAgent {
 func (a *HeuristicAgent) Difficulty() string { return a.difficulty }
 
 func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules.Action {
+	visible.Rules = rules.ResolveConfig(visible.Rules)
 	// Priority order (simplified v1):
 	// 1) Meld phase: only start laying toward the round requirement if the
 	// current hand can complete it entirely (pattern + minimum value) this
@@ -47,15 +48,16 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 			// (own or another player's) before trying a brand-new meld —
 			// otherwise a hand with no full new meld left in it can never
 			// shrink to zero and the deal never ends.
-			if meldID, card, ok := findLayOff(visible.MeldMeta, visible.Melds, hand, visible.GameNumber); ok {
+			if meldID, card, ok := findLayOff(visible.MeldMeta, visible.Melds, hand, visible.Rules, visible.GameNumber); ok {
 				return rules.Action{Type: rules.ActionLayOff, MeldID: meldID, Card: card}
 			}
-			if meld, ok := findAnyValidMeld(hand); ok && len(hand) > len(meld) {
+			if meld, ok := findAnyValidMeld(hand, visible.Rules); ok && len(hand) > len(meld) {
 				return rules.Action{Type: rules.ActionLayMeld, Cards: meld}
 			}
 		}
 		// Otherwise discard.
-		return rules.Action{Type: rules.ActionDiscard, Card: pickWorstDiscard(hand)}
+		canDiscardJoker := len(hand) == 1 && visible.RoundReqMet[actor]
+		return rules.Action{Type: rules.ActionDiscard, Card: pickWorstDiscard(hand, visible.Rules, canDiscardJoker)}
 	}
 	// 2) Draw phase: prefer discard if available and allowed this round, else deck.
 	if visible.Phase == string(rules.PhaseDraw) {
@@ -81,19 +83,56 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 	}
 	// Fallback: discard.
 	if len(hand) > 0 {
-		return rules.Action{Type: rules.ActionDiscard, Card: pickWorstDiscard(hand)}
+		canDiscardJoker := len(hand) == 1 && visible.RoundReqMet[visible.CurrentTurn]
+		return rules.Action{Type: rules.ActionDiscard, Card: pickWorstDiscard(hand, visible.Rules, canDiscardJoker)}
 	}
 	return rules.Action{Type: rules.ActionDiscard, Card: ""}
 }
 
 func rulesStateForAI(visible VisibleState, playerID string) rules.GameState {
 	return rules.GameState{
+		Rules:              visible.Rules,
 		GameNumber:         visible.GameNumber,
 		RoundReqMet:        visible.RoundReqMet,
 		Melds:              visible.Melds,
 		MeldMeta:           visible.MeldMeta,
 		InitialMeldMinimum: visible.InitialMeldMinimum,
 	}
+}
+
+// combinations returns every k-length subset of items, as index tuples
+// materialized into card slices. Used so the meld search works under any
+// profile's MinSetSize/MinRunSize instead of hardcoding 3/4.
+func combinations(items []string, k int) [][]string {
+	n := len(items)
+	if k <= 0 || k > n {
+		return nil
+	}
+	var out [][]string
+	idx := make([]int, k)
+	for i := range idx {
+		idx[i] = i
+	}
+	for {
+		cand := make([]string, k)
+		for i, v := range idx {
+			cand[i] = items[v]
+		}
+		out = append(out, cand)
+
+		i := k - 1
+		for i >= 0 && idx[i] == n-k+i {
+			i--
+		}
+		if i < 0 {
+			break
+		}
+		idx[i]++
+		for j := i + 1; j < k; j++ {
+			idx[j] = idx[j-1] + 1
+		}
+	}
+	return out
 }
 
 // findInitialMeldPlan looks for a full decomposition of the player's hand
@@ -113,8 +152,9 @@ func findInitialMeldPlan(state rules.GameState, playerID string, hand []string) 
 // obligates melding that exact card this turn) is actually going to work
 // before committing to the draw.
 func findInitialMeldPlanRequiring(state rules.GameState, playerID string, hand []string, mustInclude string) ([][]string, bool) {
-	req := rules.RoundRequirementFor(state.GameNumber)
-	setsBefore, runsBefore := rules.PlayerMeldCounts(state, playerID)
+	cfg := state.Rules
+	req := cfg.ContractFor(state.GameNumber)
+	setsBefore, runsBefore, hasCleanRun := rules.PlayerMeldCounts(state, playerID)
 	needSets := req.Sets - setsBefore
 	needRuns := req.Runs - runsBefore
 	if needSets < 0 {
@@ -123,7 +163,8 @@ func findInitialMeldPlanRequiring(state rules.GameState, playerID string, hand [
 	if needRuns < 0 {
 		needRuns = 0
 	}
-	if needSets == 0 && needRuns == 0 {
+	needCleanRun := req.RequireCleanRun && !hasCleanRun
+	if needSets == 0 && needRuns == 0 && !needCleanRun {
 		return nil, false
 	}
 	minValue := 0
@@ -134,11 +175,11 @@ func findInitialMeldPlanRequiring(state rules.GameState, playerID string, hand [
 
 	budget := &searchBudget{remaining: 200000}
 	satisfied := mustInclude == ""
-	combo, ok := searchMeldCombo(hand, needSets, needRuns, alreadyValue, minValue, satisfied, mustInclude, budget)
+	combo, ok := searchMeldCombo(hand, cfg, needSets, needRuns, needCleanRun, alreadyValue, minValue, satisfied, mustInclude, budget)
 	if !ok {
 		return nil, false
 	}
-	if state.GameNumber < 7 {
+	if !cfg.IsFinalDeal(state.GameNumber) {
 		used := 0
 		for _, m := range combo {
 			used += len(m)
@@ -164,87 +205,98 @@ func containsCard(cards []string, card string) bool {
 
 func searchMeldCombo(
 	hand []string,
-	needSets, needRuns, valueSoFar, minValue int,
+	cfg rules.RulesConfig,
+	needSets, needRuns int,
+	needCleanRun bool,
+	valueSoFar, minValue int,
 	satisfied bool,
 	mustInclude string,
 	budget *searchBudget,
 ) ([][]string, bool) {
-	if needSets == 0 && needRuns == 0 {
+	if needSets == 0 && needRuns == 0 && !needCleanRun {
 		if valueSoFar >= minValue && satisfied {
 			return [][]string{}, true
 		}
 		return nil, false
 	}
 	n := len(hand)
-	if needSets > 0 && n >= 3 {
-		for i := 0; i < n; i++ {
-			for j := i + 1; j < n; j++ {
-				for k := j + 1; k < n; k++ {
-					if budget.remaining <= 0 {
-						return nil, false
-					}
-					budget.remaining--
-					cand := []string{hand[i], hand[j], hand[k]}
-					mv, err := rules.ValidateMeld(cand)
-					if err != nil || mv.Type != rules.MeldSet {
-						continue
-					}
-					rest := removeAtIndices(hand, i, j, k)
-					candSatisfied := satisfied || containsCard(cand, mustInclude)
-					if combo, ok := searchMeldCombo(rest, needSets-1, needRuns, valueSoFar+mv.NaturalValue, minValue, candSatisfied, mustInclude, budget); ok {
-						return append([][]string{cand}, combo...), true
-					}
-				}
+	minSet := cfg.MinSetSize
+	if minSet == 0 {
+		minSet = 3
+	}
+	minRun := cfg.MinRunSize
+	if minRun == 0 {
+		minRun = 4
+	}
+	if needSets > 0 && n >= minSet {
+		for _, cand := range combinations(hand, minSet) {
+			if budget.remaining <= 0 {
+				return nil, false
+			}
+			budget.remaining--
+			mv, err := rules.ValidateMeld(cand, cfg)
+			if err != nil || mv.Type != rules.MeldSet {
+				continue
+			}
+			rest := removeCardsOnce(hand, cand)
+			candSatisfied := satisfied || containsCard(cand, mustInclude)
+			if combo, ok := searchMeldCombo(rest, cfg, needSets-1, needRuns, needCleanRun, valueSoFar+mv.NaturalValue, minValue, candSatisfied, mustInclude, budget); ok {
+				return append([][]string{cand}, combo...), true
 			}
 		}
 	}
-	if needRuns > 0 && n >= 4 {
-		for i := 0; i < n; i++ {
-			for j := i + 1; j < n; j++ {
-				for k := j + 1; k < n; k++ {
-					for l := k + 1; l < n; l++ {
-						if budget.remaining <= 0 {
-							return nil, false
-						}
-						budget.remaining--
-						cand := []string{hand[i], hand[j], hand[k], hand[l]}
-						mv, err := rules.ValidateMeld(cand)
-						if err != nil || mv.Type != rules.MeldRun {
-							continue
-						}
-						rest := removeAtIndices(hand, i, j, k, l)
-						candSatisfied := satisfied || containsCard(cand, mustInclude)
-						if combo, ok := searchMeldCombo(rest, needSets, needRuns-1, valueSoFar+mv.NaturalValue, minValue, candSatisfied, mustInclude, budget); ok {
-							return append([][]string{cand}, combo...), true
-						}
-					}
-				}
+	if (needRuns > 0 || needCleanRun) && n >= minRun {
+		for _, cand := range combinations(hand, minRun) {
+			if budget.remaining <= 0 {
+				return nil, false
+			}
+			budget.remaining--
+			mv, err := rules.ValidateMeld(cand, cfg)
+			if err != nil || mv.Type != rules.MeldRun {
+				continue
+			}
+			rest := removeCardsOnce(hand, cand)
+			candSatisfied := satisfied || containsCard(cand, mustInclude)
+			nextNeedRuns := needRuns
+			if nextNeedRuns > 0 {
+				nextNeedRuns--
+			}
+			nextNeedCleanRun := needCleanRun && mv.WildCount > 0 // still need one if this run wasn't clean
+			if combo, ok := searchMeldCombo(rest, cfg, needSets, nextNeedRuns, nextNeedCleanRun, valueSoFar+mv.NaturalValue, minValue, candSatisfied, mustInclude, budget); ok {
+				return append([][]string{cand}, combo...), true
 			}
 		}
 	}
 	return nil, false
 }
 
-func removeAtIndices(hand []string, idx ...int) []string {
-	skip := make(map[int]bool, len(idx))
-	for _, i := range idx {
-		skip[i] = true
-	}
-	out := make([]string, 0, len(hand)-len(idx))
-	for i, c := range hand {
-		if skip[i] {
-			continue
+// removeCardsOnce removes exactly one occurrence of each card in remove from
+// hand (order-preserving), matching removeAtIndices' semantics but keyed off
+// a variable-length candidate slice instead of fixed index arguments.
+func removeCardsOnce(hand []string, remove []string) []string {
+	toRemove := append([]string(nil), remove...)
+	out := make([]string, 0, len(hand)-len(remove))
+	for _, c := range hand {
+		removed := false
+		for i, r := range toRemove {
+			if r == c {
+				toRemove = append(toRemove[:i], toRemove[i+1:]...)
+				removed = true
+				break
+			}
 		}
-		out = append(out, c)
+		if !removed {
+			out = append(out, c)
+		}
 	}
 	return out
 }
 
 // findLayOff looks for a card in hand that can extend any table meld (own
-// or another player's). Skips a lay-off that would empty the hand before
-// game 7, since the server requires going out via discard until then.
-func findLayOff(meldMeta map[string][]rules.MeldInfo, melds map[string][][]string, hand []string, gameNumber int) (meldID string, card string, ok bool) {
-	if gameNumber < 7 && len(hand) == 1 {
+// or another player's). Skips a lay-off that would empty the hand on a deal
+// that requires a final discard to go out (see RulesConfig.IsFinalDeal).
+func findLayOff(meldMeta map[string][]rules.MeldInfo, melds map[string][][]string, hand []string, cfg rules.RulesConfig, gameNumber int) (meldID string, card string, ok bool) {
+	if !cfg.IsFinalDeal(gameNumber) && len(hand) == 1 {
 		return "", "", false
 	}
 	for owner, metas := range meldMeta {
@@ -256,45 +308,42 @@ func findLayOff(meldMeta map[string][]rules.MeldInfo, melds map[string][][]strin
 			existing := ownerMelds[i]
 			for _, c := range hand {
 				cand := append(append([]string(nil), existing...), c)
-				if _, err := rules.ValidateMeld(cand); err == nil {
-					return mi.MeldID, c, true
+				if _, err := rules.ValidateMeld(cand, cfg); err != nil {
+					continue
 				}
+				// Never dirty the owner's only clean run with a wild — the
+				// server rejects it, and the card belongs in its own meld.
+				if rules.LayOffBreaksCleanRun(cfg, gameNumber, ownerMelds, i, c) {
+					continue
+				}
+				return mi.MeldID, c, true
 			}
 		}
 	}
 	return "", "", false
 }
 
-func findAnyValidMeld(hand []string) ([]string, bool) {
-	// Brute-force subsets of size 3 (set) and 4 (run) to find the first valid meld.
-	n := len(hand)
-	if n < 3 {
-		return nil, false
+func findAnyValidMeld(hand []string, cfg rules.RulesConfig) ([]string, bool) {
+	minSet := cfg.MinSetSize
+	if minSet == 0 {
+		minSet = 3
 	}
-	// size 3
-	for i := 0; i < n; i++ {
-		for j := i + 1; j < n; j++ {
-			for k := j + 1; k < n; k++ {
-				cand := []string{hand[i], hand[j], hand[k]}
-				if _, err := rules.ValidateMeld(cand); err == nil {
-					return cand, true
-				}
+	minRun := cfg.MinRunSize
+	if minRun == 0 {
+		minRun = 4
+	}
+	n := len(hand)
+	if n >= minSet {
+		for _, cand := range combinations(hand, minSet) {
+			if _, err := rules.ValidateMeld(cand, cfg); err == nil {
+				return cand, true
 			}
 		}
 	}
-	// size 4
-	if n < 4 {
-		return nil, false
-	}
-	for i := 0; i < n; i++ {
-		for j := i + 1; j < n; j++ {
-			for k := j + 1; k < n; k++ {
-				for l := k + 1; l < n; l++ {
-					cand := []string{hand[i], hand[j], hand[k], hand[l]}
-					if _, err := rules.ValidateMeld(cand); err == nil {
-						return cand, true
-					}
-				}
+	if n >= minRun {
+		for _, cand := range combinations(hand, minRun) {
+			if _, err := rules.ValidateMeld(cand, cfg); err == nil {
+				return cand, true
 			}
 		}
 	}
@@ -303,22 +352,38 @@ func findAnyValidMeld(hand []string) ([]string, bool) {
 
 // PickWorstDiscard exposes pickWorstDiscard for callers that need an emergency
 // fallback discard outside of ChooseAction (e.g. when a chosen action was rejected).
-func PickWorstDiscard(hand []string) string {
-	return pickWorstDiscard(hand)
+func PickWorstDiscard(hand []string, cfg rules.RulesConfig, canDiscardJoker bool) string {
+	return pickWorstDiscard(hand, cfg, canDiscardJoker)
 }
 
-func pickWorstDiscard(hand []string) string {
+// pickWorstDiscard picks the highest-penalty card, but a joker is the
+// highest-penalty card there is (rules.PenaltyPoints: 50) — under a profile
+// with JokerDiscardRestricted, blindly picking it produces a discard the
+// server always rejects, and the caller has no fallback, so the AI loop
+// just retries the same illegal move until it gives up (made no progress).
+// canDiscardJoker mirrors the server's own exception: true only when this
+// would be the player's last card and they're already down.
+func pickWorstDiscard(hand []string, cfg rules.RulesConfig, canDiscardJoker bool) string {
 	if len(hand) == 0 {
 		return ""
 	}
-	worst := hand[0]
-	worstPts := rules.PenaltyPoints(worst, false)
-	for _, c := range hand[1:] {
+	allowJoker := canDiscardJoker || !cfg.JokerDiscardRestricted
+	worst := ""
+	worstPts := -1
+	for _, c := range hand {
+		if !allowJoker && rules.IsJoker(c) {
+			continue
+		}
 		pts := rules.PenaltyPoints(c, false)
 		if pts > worstPts {
 			worst = c
 			worstPts = pts
 		}
+	}
+	if worst == "" {
+		// Every card is a forbidden joker (pathological, but has to return
+		// something) — the caller/server is left to reject it.
+		return hand[0]
 	}
 	return worst
 }
