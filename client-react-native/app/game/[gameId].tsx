@@ -1,10 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
 import { ActionBar } from '@/src/components/ActionBar';
 import { CardView } from '@/src/components/CardView';
-import { HandRow, type DropZone } from '@/src/components/HandRow';
+import { HandRow, useDragPreview, type DropZone } from '@/src/components/HandRow';
 import { MeldTable } from '@/src/components/MeldTable';
 import { Screen } from '@/src/components/Screen';
 import { useGameFlow } from '@/src/context/GameFlowContext';
@@ -44,12 +45,27 @@ export default function GameScreen() {
   const [localHand, setLocalHand] = useState<string[] | null>(null);
   const discardZoneRef = useRef<View>(null);
   const discardZone = useRef<DropZone | null>(null);
+  const dragPreview = useDragPreview();
+  const [draggedCard, setDraggedCard] = useState<string | null>(null);
 
   function measureDiscardZone() {
     discardZoneRef.current?.measureInWindow((x, y, width, height) => {
       discardZone.current = { x, y, width, height };
     });
   }
+
+  // Floats above the whole screen (outside the scrolling hand row, which
+  // would otherwise clip it) and tracks the finger during a drag so the
+  // dragged card visibly sits on top of the discard pile instead of being
+  // hidden behind it.
+  const dragOverlayStyle = useAnimatedStyle(() => ({
+    position: 'absolute',
+    left: dragPreview.x.value - 26,
+    top: dragPreview.y.value - 36,
+    opacity: dragPreview.active.value ? 1 : 0,
+    zIndex: 1000,
+    elevation: 1000,
+  }));
 
   const onRoundEnd = useCallback(
     (data: WSEnvelope, state: GameState) => {
@@ -266,6 +282,8 @@ export default function GameScreen() {
           onDoubleTap={discardCardAt}
           getDropZone={() => discardZone.current}
           onDropOnZone={discardCardAt}
+          onDragCardChange={setDraggedCard}
+          dragPreview={dragPreview}
         />
 
         {actions.length > 0 ? <ActionBar actions={actions} /> : null}
@@ -276,6 +294,9 @@ export default function GameScreen() {
           </Pressable>
         ) : null}
       </ScrollView>
+      <Animated.View style={dragOverlayStyle} pointerEvents="none">
+        {draggedCard ? <CardView card={draggedCard} /> : null}
+      </Animated.View>
     </Screen>
   );
 }

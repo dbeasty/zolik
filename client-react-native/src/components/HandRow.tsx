@@ -5,13 +5,32 @@ import Animated, {
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
+  type SharedValue,
 } from 'react-native-reanimated';
 
 import { CardView } from '@/src/components/CardView';
 import { moveCardToIndex } from '@/src/lib/cards';
 
 export type DropZone = { x: number; y: number; width: number; height: number };
+
+// Shared drag-preview state, owned by the screen that renders HandRow so it
+// can also render the floating overlay outside HandRow's own ScrollView
+// (which would otherwise clip the dragged card instead of letting it float
+// over other content like the discard pile).
+export type DragPreview = {
+  x: SharedValue<number>;
+  y: SharedValue<number>;
+  active: SharedValue<boolean>;
+  draggingIndex: SharedValue<number>;
+};
+
+export function useDragPreview(): DragPreview {
+  const x = useSharedValue(0);
+  const y = useSharedValue(0);
+  const active = useSharedValue(false);
+  const draggingIndex = useSharedValue(-1);
+  return { x, y, active, draggingIndex };
+}
 
 type Props = {
   cards: string[];
@@ -23,6 +42,8 @@ type Props = {
   // target (e.g. the discard pile). Returning null disables drop detection.
   getDropZone?: () => DropZone | null;
   onDropOnZone?: (index: number) => void;
+  onDragCardChange?: (card: string | null) => void;
+  dragPreview: DragPreview;
   compact?: boolean;
 };
 
@@ -43,6 +64,8 @@ export function HandRow({
   onDoubleTap,
   getDropZone,
   onDropOnZone,
+  onDragCardChange,
+  dragPreview,
   compact,
 }: Props) {
   const slot = (compact ? CARD_WIDTH_COMPACT : CARD_WIDTH) + CARD_MARGIN;
@@ -62,6 +85,8 @@ export function HandRow({
           onDoubleTap={onDoubleTap}
           getDropZone={getDropZone}
           onDropOnZone={onDropOnZone}
+          onDragCardChange={onDragCardChange}
+          dragPreview={dragPreview}
           onDrop={(from, to) => onReorder(moveCardToIndex(cards, from, to))}
         />
       ))}
@@ -81,6 +106,8 @@ function DraggableCard({
   onDoubleTap,
   getDropZone,
   onDropOnZone,
+  onDragCardChange,
+  dragPreview,
   onDrop,
 }: {
   card: string;
@@ -93,11 +120,10 @@ function DraggableCard({
   onDoubleTap?: (index: number) => void;
   getDropZone?: () => DropZone | null;
   onDropOnZone?: (index: number) => void;
+  onDragCardChange?: (card: string | null) => void;
+  dragPreview: DragPreview;
   onDrop: (from: number, to: number) => void;
 }) {
-  const translateX = useSharedValue(0);
-  const translateY = useSharedValue(0);
-  const dragging = useSharedValue(false);
   const lastTapAt = useRef(0);
 
   // Plain RN Pressable (via CardView's onPress) handles taps — it's the
@@ -116,7 +142,12 @@ function DraggableCard({
     onToggle(index);
   }
 
+  function handleDragStart() {
+    onDragCardChange?.(card);
+  }
+
   function handleDragEnd(translationX: number, absoluteX: number, absoluteY: number) {
+    onDragCardChange?.(null);
     const zone = getDropZone?.();
     if (zone && onDropOnZone && pointInZone(absoluteX, absoluteY, zone)) {
       onDropOnZone(index);
@@ -133,26 +164,27 @@ function DraggableCard({
   // through to the Pressable underneath.
   const pan = Gesture.Pan()
     .minDistance(10)
-    .onStart(() => {
-      dragging.value = true;
+    .onStart((e) => {
+      dragPreview.draggingIndex.value = index;
+      dragPreview.active.value = true;
+      dragPreview.x.value = e.absoluteX;
+      dragPreview.y.value = e.absoluteY;
+      runOnJS(handleDragStart)();
     })
     .onUpdate((e) => {
-      translateX.value = e.translationX;
-      translateY.value = e.translationY;
+      dragPreview.x.value = e.absoluteX;
+      dragPreview.y.value = e.absoluteY;
     })
     .onEnd((e) => {
       runOnJS(handleDragEnd)(e.translationX, e.absoluteX, e.absoluteY);
     })
     .onFinalize(() => {
-      translateX.value = withSpring(0, { damping: 20, stiffness: 300 });
-      translateY.value = withSpring(0, { damping: 20, stiffness: 300 });
-      dragging.value = false;
+      dragPreview.active.value = false;
+      dragPreview.draggingIndex.value = -1;
     });
 
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }, { translateY: translateY.value }],
-    zIndex: dragging.value ? 10 : 0,
-    opacity: dragging.value ? 0.9 : 1,
+    opacity: dragPreview.draggingIndex.value === index ? 0.3 : 1,
   }));
 
   return (
