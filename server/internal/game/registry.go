@@ -31,19 +31,25 @@ func (r *ConnRegistry) Add(gameID, playerID string, conn WSConn) (prev WSConn) {
 	return prev
 }
 
-func (r *ConnRegistry) Remove(gameID, playerID string) {
+// RemoveIfCurrent removes the registered connection for playerID only if it
+// is still exactly conn. If the player has since reconnected (a newer conn
+// replaced this one via Add), this is a no-op and returns false — the caller
+// should not treat that as a real disconnect (e.g. should not suspend the
+// game), since the player is in fact still connected via the newer conn.
+func (r *ConnRegistry) RemoveIfCurrent(gameID, playerID string, conn WSConn) bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.conns[gameID] == nil {
-		return
+		return false
 	}
-	if c := r.conns[gameID][playerID]; c != nil {
-		_ = c.Close()
+	if r.conns[gameID][playerID] != conn {
+		return false
 	}
 	delete(r.conns[gameID], playerID)
 	if len(r.conns[gameID]) == 0 {
 		delete(r.conns, gameID)
 	}
+	return true
 }
 
 func (r *ConnRegistry) WriteJSON(gameID, playerID string, payload interface{}) bool {

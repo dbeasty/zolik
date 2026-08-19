@@ -69,6 +69,8 @@ func (s *WebSocketServer) handleWS(w http.ResponseWriter, req *http.Request) {
 		_ = conn.Close()
 		return
 	}
+	s.manager.ResumeIfReturning(ctx, gameID, playerID)
+
 	game, err := s.manager.repo.FindByID(ctx, oid)
 	if err == nil {
 		s.manager.hub.WriteDirect(gameID, playerID, BuildGameStateMsg(game, playerID))
@@ -76,11 +78,13 @@ func (s *WebSocketServer) handleWS(w http.ResponseWriter, req *http.Request) {
 
 	// Read loop.
 	defer func() {
-		s.manager.hub.Registry().Remove(gameID, playerID)
-		_ = func() error {
+		// Only treat this as a real disconnect (and suspend the game) if this
+		// connection is still the one registered for the player — if they've
+		// already reconnected on a newer conn, RemoveIfCurrent is a no-op and
+		// we must not tear down or suspend the newer, live connection.
+		if s.manager.hub.Registry().RemoveIfCurrent(gameID, playerID, conn) {
 			s.manager.SuspendOnDisconnect(context.Background(), gameID, playerID, "disconnected")
-			return nil
-		}()
+		}
 	}()
 	for {
 		_, data, err := conn.ReadMessage()
