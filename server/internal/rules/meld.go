@@ -386,9 +386,18 @@ tryStart:
 			naturalSlots[14] = true
 		}
 
+		// Unlike jokers, an ace is a specific physical card with a real,
+		// fixed suit — it can only stand in for rank 1 or rank 14 of its
+		// own suit (handled above as aceAsNatural). An ace that isn't used
+		// as a natural endpoint can't fill some other gap in the run
+		// (that would let e.g. a wrong-suited ace pass as a wild filler),
+		// so this window doesn't fit and we try the next one.
+		if len(aces) > len(aceAsNatural) {
+			continue tryStart
+		}
+
 		naturalCount := len(fixedRanks) + len(aceAsNatural)
-		// Treat remaining aces as wild.
-		wildCount := len(jokers) + (len(aces) - len(aceAsNatural))
+		wildCount := len(jokers)
 
 		if wildCount > naturalCount {
 			continue tryStart
