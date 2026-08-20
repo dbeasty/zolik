@@ -416,6 +416,7 @@ func (h *GameRestHandlers) startGame(w http.ResponseWriter, req *http.Request) {
 	nextGame.MeldsLaidThisTurn = rState.MeldsLaidThisTurn
 	nextGame.DiscardDrawnCardPendingMeld = rState.DiscardDrawnCardPendingMeld
 	nextGame.DiscardDrawnCards = rState.DiscardDrawnCards
+	nextGame.LastLayOff = nil
 	nextGame.GameScores = rState.GameScores
 	nextGame.TotalScores = rState.TotalScores
 	nextGame.DeckSeed = rState.DeckSeed

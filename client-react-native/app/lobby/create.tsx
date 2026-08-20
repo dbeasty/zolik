@@ -216,7 +216,9 @@ export default function CreateLobbyScreen() {
           ))}
         </View>
 
-        <Text style={shared.status}>AI difficulty: {aiDiff}</Text>
+        <Text style={shared.status}>
+          AI difficulty: {aiDiff.charAt(0).toUpperCase() + aiDiff.slice(1)}
+        </Text>
         <View style={{ flexDirection: 'row', gap: 8, marginVertical: 8 }}>
           {DIFFICULTIES.map((d) => (
             <Pressable
@@ -228,7 +230,9 @@ export default function CreateLobbyScreen() {
               ]}
               onPress={() => setAiDiff(d)}
             >
-              <Text style={d === aiDiff ? shared.buttonText : shared.buttonTextSecondary}>{d}</Text>
+              <Text style={d === aiDiff ? shared.buttonText : shared.buttonTextSecondary}>
+                {d.charAt(0).toUpperCase() + d.slice(1)}
+              </Text>
             </Pressable>
           ))}
         </View>
@@ -239,12 +243,12 @@ export default function CreateLobbyScreen() {
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <RuleChip
               label="Meld value"
-              value={initialMin > 0 ? String(initialMin) : 'off'}
+              value={initialMin > 0 ? String(initialMin) : 'Off'}
               onPress={isHost ? cycleMeldMin : undefined}
             />
             <RuleChip
               label="Discard pickup"
-              value={discardLockRound > 1 ? `R${discardLockRound}` : 'open'}
+              value={discardLockRound > 1 ? `Round ${discardLockRound}` : 'Open'}
               onPress={isHost ? cycleDiscardLock : undefined}
             />
           </View>

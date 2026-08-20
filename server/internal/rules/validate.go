@@ -37,6 +37,7 @@ func ValidateDraw(state GameState, playerID string, from DrawFrom, targetCard st
 		state.MeldsLaidThisTurn = 0
 		state.DiscardDrawnCardPendingMeld = ""
 		state.DiscardDrawnCards = nil
+		state.LastLayOff = nil
 		return state, card, nil, nil
 
 	case DrawFromDiscard:
@@ -68,6 +69,7 @@ func ValidateDraw(state GameState, playerID string, from DrawFrom, targetCard st
 		state.Phase = PhaseMeld
 		state.MeldsLaidThisTurn = 0
 		state.DiscardDrawnCards = taken
+		state.LastLayOff = nil
 		// Before a player has gone down, a discard-pile pickup obligates
 		// them to lay the requested (bottom-most taken) card into their
 		// initial meld this turn — see ValidateDiscard. Once already down
@@ -222,11 +224,12 @@ func ValidateMeldAction(state GameState, playerID string, cards []string) (GameS
 	// Once a meld has been laid this turn, the discard-pile pickup (if any)
 	// can no longer be cleanly undone.
 	state.DiscardDrawnCards = nil
+	state.LastLayOff = nil
 
 	return state, meldID, mv.Type, nil
 }
 
-func ValidateLayOff(state GameState, playerID string, meldID string, cards []string) (GameState, error) {
+func ValidateLayOff(state GameState, playerID string, meldID string, cards []string, position string) (GameState, error) {
 	if state.Status != StatusActive {
 		return state, RulesError{Code: ErrGameNotActive}
 	}
@@ -259,16 +262,60 @@ func ValidateLayOff(state GameState, playerID string, meldID string, cards []str
 	}
 
 	cfg := effectiveRules(state)
-	newMeld := append(append([]string(nil), state.Melds[owner][idx]...), cards...)
+	prevCards := state.Melds[owner][idx]
+	newMeld := append(append([]string(nil), prevCards...), cards...)
 	mv, err := ValidateMeld(newMeld, cfg)
 	if err != nil {
 		return state, err
+	}
+	// Position is a drag-and-drop UX hint: "front" or "end" names which
+	// side of the run the player dropped the card(s) onto, so that side is
+	// the one that actually has to grow. Without this, a card dropped on
+	// the left edge of a run could silently resolve onto the right edge
+	// instead (whichever placement uses fewer wilds) — deterministic to the
+	// server, but not to a player who watched their card land somewhere
+	// they didn't drop it. Sets have no directionality, so position is
+	// ignored for them.
+	if position == "front" || position == "end" {
+		if mv.Type == MeldRun {
+			// minRunSize is forced to 1 here — prevCards is an existing
+			// on-table run, already validated at its real size when it was
+			// laid; this call only wants its resolved rank range, not
+			// another length check that could reject a run shorter than
+			// the current table's minimum (e.g. after a rules change, or
+			// in tests that construct a short meld directly).
+			if oldMV, oldErr := validateRun(prevCards, 1); oldErr == nil &&
+				len(oldMV.ResolvedRun) > 0 && len(mv.ResolvedRun) > 0 {
+				oldMin, oldMax := oldMV.ResolvedRun[0], oldMV.ResolvedRun[len(oldMV.ResolvedRun)-1]
+				newMin, newMax := mv.ResolvedRun[0], mv.ResolvedRun[len(mv.ResolvedRun)-1]
+				growsFront := newMin < oldMin
+				growsEnd := newMax > oldMax
+				wrongEnd := false
+				switch position {
+				case "front":
+					wrongEnd = !growsFront || growsEnd
+				case "end":
+					wrongEnd = !growsEnd || growsFront
+				}
+				if wrongEnd {
+					return state, RulesError{
+						Code:    ErrWrongRunEnd,
+						Message: "that card extends the other end of the run — try dropping it there instead",
+					}
+				}
+			}
+		}
 	}
 	if LayOffBreaksCleanRun(cfg, state.GameNumber, state.Melds[owner], idx, cards) {
 		return state, RulesError{
 			Code:    ErrBreaksCleanRun,
 			Message: "that run has to stay joker-free — start a separate meld instead",
 		}
+	}
+
+	prevMeta := MeldInfo{}
+	if metas := state.MeldMeta[owner]; idx < len(metas) {
+		prevMeta = metas[idx]
 	}
 
 	state.Hands[playerID] = removeCards(state.Hands[playerID], cards)
@@ -280,10 +327,54 @@ func ValidateLayOff(state GameState, playerID string, meldID string, cards []str
 	// Once a lay-off has happened this turn, the discard-pile pickup (if
 	// any) can no longer be cleanly undone.
 	state.DiscardDrawnCards = nil
+	state.LastLayOff = &LayOffSnapshot{
+		PlayerID:  playerID,
+		MeldID:    meldID,
+		PrevCards: append([]string(nil), prevCards...),
+		PrevMeta:  prevMeta,
+		Cards:     append([]string(nil), cards...),
+	}
 
 	if !cfg.IsFinalDeal(state.GameNumber) && len(state.Hands[playerID]) == 0 {
 		return state, RulesError{Code: ErrInvalidMeld, Message: "must discard your last card to go out"}
 	}
+
+	return state, nil
+}
+
+// ValidateUndoLayOff reverses the most recent lay_off this turn: the card(s)
+// go back to the player's hand and the meld reverts to exactly what it held
+// before. Only available in the window right after that lay_off, before
+// anything else this turn (a fresh draw, a lay_meld, a swap_joker, or
+// another lay_off) has had a chance to build on top of it.
+func ValidateUndoLayOff(state GameState, playerID string) (GameState, error) {
+	if state.Status != StatusActive {
+		return state, RulesError{Code: ErrGameNotActive}
+	}
+	if state.Phase == PhaseSuspended || state.Status == StatusSuspended {
+		return state, RulesError{Code: ErrGameSuspended}
+	}
+	if state.CurrentTurn != playerID {
+		return state, RulesError{Code: ErrNotYourTurn}
+	}
+	if state.Phase != PhaseMeld {
+		return state, RulesError{Code: ErrWrongPhase}
+	}
+	snap := state.LastLayOff
+	if snap == nil || snap.PlayerID != playerID {
+		return state, RulesError{Code: ErrNothingToUndo}
+	}
+	owner, idx := findMeldByID(state, snap.MeldID)
+	if owner == "" {
+		return state, RulesError{Code: ErrNothingToUndo, Message: "that meld no longer exists on the table"}
+	}
+
+	state.Hands[playerID] = append(append([]string(nil), state.Hands[playerID]...), snap.Cards...)
+	state.Melds[owner][idx] = append([]string(nil), snap.PrevCards...)
+	if metas := state.MeldMeta[owner]; idx < len(metas) {
+		metas[idx] = snap.PrevMeta
+	}
+	state.LastLayOff = nil
 
 	return state, nil
 }
@@ -359,6 +450,7 @@ func ValidateSwapJoker(state GameState, playerID string, meldID string, card str
 	// Swapping a joker never changes hand size, so it can never be the move
 	// that empties a hand — unlike lay_meld/lay_off, no go-out check here.
 	state.DiscardDrawnCards = nil
+	state.LastLayOff = nil
 
 	return state, nil
 }

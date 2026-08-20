@@ -5,7 +5,14 @@ import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanima
 
 import { ActionBar } from '@/src/components/ActionBar';
 import { CardView } from '@/src/components/CardView';
-import { HandRow, useDragPreview, type DropZone } from '@/src/components/HandRow';
+import {
+  HandRow,
+  pointInZone,
+  useDragPreview,
+  type DropZone,
+  type MeldHoverTarget,
+  type MeldZone,
+} from '@/src/components/HandRow';
 import { MeldStagingArea, type StagingGroup } from '@/src/components/MeldStagingArea';
 import { MeldTable } from '@/src/components/MeldTable';
 import { Screen } from '@/src/components/Screen';
@@ -139,8 +146,35 @@ export default function GameScreen() {
   const overlayOriginY = useSharedValue(0);
   const dragPreview = useDragPreview();
   const [draggedCard, setDraggedCard] = useState<string | null>(null);
+  // Which meld (and which end of it) a card being dragged is currently
+  // over — live drag feedback, distinct from the drop-time check in
+  // onDropOnMeld below. Cleared whenever the drag ends (see
+  // onDragCardChange).
+  const [hoverTarget, setHoverTarget] = useState<MeldHoverTarget>(null);
+  const lastHoverCheckAtRef = useRef(0);
+  // Throttled rather than run on every pan frame — a live highlight only
+  // needs to feel immediate, not literally hit 60fps, and each check costs
+  // one measureInWindow round trip per table meld.
+  const HOVER_CHECK_INTERVAL_MS = 60;
+  function handleDragHover(absoluteX: number, absoluteY: number) {
+    const now = Date.now();
+    if (now - lastHoverCheckAtRef.current < HOVER_CHECK_INTERVAL_MS) return;
+    lastHoverCheckAtRef.current = now;
+    measureMeldZones((zones) => {
+      const hit = zones.find(({ zone }) => pointInZone(absoluteX, absoluteY, zone));
+      if (!hit || hit.type !== 'run') {
+        setHoverTarget(hit ? { meldId: hit.meldId, position: 'front' } : null);
+        return;
+      }
+      const position = absoluteX < hit.zone.x + hit.zone.width / 2 ? 'front' : 'end';
+      setHoverTarget({ meldId: hit.meldId, position });
+    });
+  }
   const [discardFlash, setDiscardFlash] = useState(false);
   const prevTopDiscardRef = useRef<string | undefined>(undefined);
+  // Tracks the (game, phase, sorted-hand) tuple the staging groups were
+  // last reset for — see the effect below.
+  const resetKeyRef = useRef<string>('');
   const [justDrawnCard, setJustDrawnCard] = useState<string | null>(null);
   const [rulesModalOpen, setRulesModalOpen] = useState(false);
   const prevHandRef = useRef<{ game: number | undefined; hand: string[] }>({
@@ -167,17 +201,29 @@ export default function GameScreen() {
     stagingZoneRef.current.measureInWindow((x, y, width, height) => cb({ x, y, width, height }));
   }
 
-  function measureMeldZones(cb: (zones: { meldId: string; zone: DropZone }[]) => void) {
+  // Looks up a meld's type (run/set) across every player's meldMeta —
+  // needed so a dragged card's drop zone can tell whether front/end
+  // splitting even applies (only runs have ends).
+  function meldTypeById(meldId: string): 'run' | 'set' | undefined {
+    if (!state) return undefined;
+    for (const p of state.players) {
+      const meta = (state.meldMeta[p.id] ?? []).find((m) => m.meldId === meldId);
+      if (meta) return meta.type as 'run' | 'set';
+    }
+    return undefined;
+  }
+
+  function measureMeldZones(cb: (zones: MeldZone[]) => void) {
     const entries = canLayOff ? Array.from(meldViewRefs.current.entries()) : [];
     if (entries.length === 0) {
       cb([]);
       return;
     }
-    const results: { meldId: string; zone: DropZone }[] = [];
+    const results: MeldZone[] = [];
     let remaining = entries.length;
     entries.forEach(([meldId, el]) => {
       el.measureInWindow((x, y, width, height) => {
-        results.push({ meldId, zone: { x, y, width, height } });
+        results.push({ meldId, zone: { x, y, width, height }, type: meldTypeById(meldId) });
         remaining -= 1;
         if (remaining === 0) cb(results);
       });
@@ -240,10 +286,21 @@ export default function GameScreen() {
   const hand = localHand ?? state?.myHand ?? [];
   const userId = session?.userId ?? '';
 
+  // The server sends a fresh `myHand` array on every broadcast — including
+  // ones that have nothing to do with you (an opponent/AI's move) — so a
+  // new array *reference* doesn't mean your hand actually changed. Resetting
+  // in-progress meld staging on every such broadcast made the staging area
+  // appear to "refresh" out from under you mid-build. Only reset when the
+  // hand's contents (or phase/round) actually changed.
   useEffect(() => {
-    setLocalHand((prev) => reconcileHandOrder(prev, state?.myHand ?? []));
-    setGroups([[]]);
-    setSelectedForMeld(new Set());
+    const newHand = state?.myHand ?? [];
+    setLocalHand((prev) => reconcileHandOrder(prev, newHand));
+    const key = `${state?.game ?? ''}|${state?.phase ?? ''}|${[...newHand].sort().join(',')}`;
+    if (key !== resetKeyRef.current) {
+      resetKeyRef.current = key;
+      setGroups([[]]);
+      setSelectedForMeld(new Set());
+    }
   }, [state?.myHand, state?.phase, state?.game]);
 
   // Tracks the card(s) just drawn from the deck/discard pile so they can be
@@ -381,7 +438,7 @@ export default function GameScreen() {
   const canLayOff = !!state && isMyTurn && phase === 'meld' && !!state.roundReqMet[userId];
   const canBuildMeld = !!state && isMyTurn && phase === 'meld';
 
-  function layOffCardAt(index: number, meldId: string) {
+  function layOffCardAt(index: number, meldId: string, position: 'front' | 'end') {
     if (!canLayOff) return;
     const card = hand[index];
     if (!card) return;
@@ -391,7 +448,11 @@ export default function GameScreen() {
     // joker's own slot is a distinct, less common intent with its own
     // explicit "Swap joker here" button (see swapJokerOnto) rather than
     // being guessed from the drop target.
-    send({ type: 'lay_off', meldId, card });
+    //
+    // Which half of the meld the card was dropped on tells the server
+    // which end of a run it has to extend — a set has no ends, so the
+    // server just ignores this for sets.
+    send({ type: 'lay_off', meldId, card, position });
     clearSelect();
   }
 
@@ -505,16 +566,30 @@ export default function GameScreen() {
   // per-meld "Lay off here" / "Swap joker here" buttons to show.
   const meldSelectedCards = phase === 'meld' ? selectedCards(hand, selectedForMeld) : [];
 
-  function layOffOnto(meldId: string) {
+  function layOffOnto(meldId: string, position?: 'front' | 'end') {
     if (meldSelectedCards.length === 0) return;
-    send({ type: 'lay_off', meldId, cards: meldSelectedCards });
+    send({ type: 'lay_off', meldId, cards: meldSelectedCards, position });
     clearSelect();
+  }
+
+  function undoLastLayOff() {
+    if (!state?.canUndoLayOff) return;
+    send({ type: 'undo_lay_off' });
   }
 
   function swapJokerOnto(meldId: string) {
     if (meldSelectedCards.length !== 1) return;
     send({ type: 'swap_joker', meldId, card: meldSelectedCards[0] });
     clearSelect();
+  }
+
+  // Only shown while the undo window is actually open (right after a
+  // lay-off, before anything else this turn has built on top of it) — not
+  // a permanently-visible-but-disabled button like Draw/Take discard,
+  // since "undo" only makes sense as a direct reaction to the lay-off that
+  // just happened.
+  if (state?.canUndoLayOff) {
+    actions.push({ label: 'Undo lay-off', onPress: undoLastLayOff });
   }
 
   if (isMyTurn) {
@@ -584,6 +659,7 @@ export default function GameScreen() {
           state={state}
           myUserId={userId}
           onMeldRef={registerMeldRef}
+          hoverTarget={hoverTarget}
           selectedCards={meldSelectedCards}
           canLayOff={canLayOff}
           onLayOff={layOffOnto}
@@ -673,10 +749,14 @@ export default function GameScreen() {
           measureDropZone={measureDropZone}
           onDropOnZone={(vi) => discardCardAt(visibleToFullIndex[vi])}
           measureMeldZones={measureMeldZones}
-          onDropOnMeld={(vi, meldId) => layOffCardAt(visibleToFullIndex[vi], meldId)}
+          onDropOnMeld={(vi, meldId, position) => layOffCardAt(visibleToFullIndex[vi], meldId, position)}
           measureStagingZone={measureStagingZone}
           onDropOnStaging={(vi) => stageCard(visibleToFullIndex[vi])}
-          onDragCardChange={setDraggedCard}
+          onDragCardChange={(card) => {
+            setDraggedCard(card);
+            if (!card) setHoverTarget(null);
+          }}
+          onDragHover={handleDragHover}
           justDrawnCard={justDrawnCard}
           dragPreview={dragPreview}
           tapToDiscard={isMyTurn && phase === 'discard'}

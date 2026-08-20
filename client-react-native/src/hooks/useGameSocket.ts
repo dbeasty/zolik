@@ -23,6 +23,12 @@ export function useGameSocket({
   const stateRef = useRef<GameState | null>(null);
   const onRoundEndRef = useRef(onRoundEnd);
   const onGameEndRef = useRef(onGameEnd);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+  const stableTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Set on unmount / manual reconnect so a delayed auto-reconnect from a
+  // superseded connect() call doesn't fire after the hook is done with it.
+  const closingRef = useRef(false);
   // The server broadcasts deal_ended/game_ended before the game_state carrying
   // the post-deal totals, so the callbacks fire off the *next* game_state
   // (which has the updated totalScores/game) rather than the stale one
@@ -35,6 +41,11 @@ export function useGameSocket({
 
   const connect = useCallback(() => {
     if (!gameId || !enabled) return;
+    closingRef.current = false;
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
     wsRef.current?.close();
     pendingRoundEndRef.current = null;
     pendingGameEndRef.current = null;
@@ -44,6 +55,15 @@ export function useGameSocket({
     wsRef.current = ws;
 
     ws.onopen = () => {
+      // Only reset the backoff once the connection has held up for a few
+      // seconds — if something keeps killing the socket right after it
+      // opens (a flapping connection), resetting on every open would keep
+      // retrying every ~1s forever instead of backing off.
+      if (stableTimerRef.current) clearTimeout(stableTimerRef.current);
+      stableTimerRef.current = setTimeout(() => {
+        stableTimerRef.current = null;
+        reconnectAttemptsRef.current = 0;
+      }, 3000);
       setConnected(true);
       setStatus('Connected');
     };
@@ -90,15 +110,39 @@ export function useGameSocket({
 
     ws.onclose = () => {
       setConnected(false);
-      if (wsRef.current === ws) {
-        setStatus('Disconnected');
+      if (stableTimerRef.current) {
+        clearTimeout(stableTimerRef.current);
+        stableTimerRef.current = null;
       }
+      if (wsRef.current !== ws) return;
+      setStatus('Disconnected');
+      if (closingRef.current) return;
+      // Auto-recover from dropped connections (server restart, network
+      // blip, tab backgrounding) so opponent/AI turns that happen while
+      // disconnected show up as soon as the socket comes back, instead of
+      // leaving the player stuck until they notice and hit Reconnect.
+      const attempt = reconnectAttemptsRef.current;
+      reconnectAttemptsRef.current = attempt + 1;
+      const delayMs = Math.min(1000 * 2 ** attempt, 10000);
+      reconnectTimerRef.current = setTimeout(() => {
+        reconnectTimerRef.current = null;
+        connect();
+      }, delayMs);
     };
   }, [gameId, enabled]);
 
   useEffect(() => {
     connect();
     return () => {
+      closingRef.current = true;
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      if (stableTimerRef.current) {
+        clearTimeout(stableTimerRef.current);
+        stableTimerRef.current = null;
+      }
       wsRef.current?.close();
       wsRef.current = null;
     };

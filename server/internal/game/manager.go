@@ -219,15 +219,53 @@ func toRulesAction(in WSIncoming) (rules.Action, error) {
 	case "lay_meld":
 		return rules.Action{Type: rules.ActionLayMeld, Cards: in.Cards}, nil
 	case "lay_off":
-		return rules.Action{Type: rules.ActionLayOff, MeldID: in.MeldID, Card: in.Card, Cards: in.Cards}, nil
+		return rules.Action{Type: rules.ActionLayOff, MeldID: in.MeldID, Card: in.Card, Cards: in.Cards, Position: in.Position}, nil
 	case "swap_joker":
 		return rules.Action{Type: rules.ActionSwapJoker, MeldID: in.MeldID, Card: in.Card}, nil
 	case "discard":
 		return rules.Action{Type: rules.ActionDiscard, Card: in.Card}, nil
 	case "undo_draw_discard":
 		return rules.Action{Type: rules.ActionUndoDrawDiscard}, nil
+	case "undo_lay_off":
+		return rules.Action{Type: rules.ActionUndoLayOff}, nil
 	default:
 		return rules.Action{}, fmt.Errorf("unknown action type: %s", in.Type)
+	}
+}
+
+func toRulesLayOffSnapshot(s *models.LayOffSnapshot) *rules.LayOffSnapshot {
+	if s == nil {
+		return nil
+	}
+	return &rules.LayOffSnapshot{
+		PlayerID:  s.PlayerID,
+		MeldID:    s.MeldID,
+		PrevCards: s.PrevCards,
+		PrevMeta: rules.MeldInfo{
+			MeldID:    s.PrevMeta.MeldID,
+			Type:      rules.MeldType(s.PrevMeta.Type),
+			OwnerID:   s.PrevMeta.OwnerID,
+			WildCount: s.PrevMeta.WildCount,
+		},
+		Cards: s.Cards,
+	}
+}
+
+func fromRulesLayOffSnapshot(s *rules.LayOffSnapshot) *models.LayOffSnapshot {
+	if s == nil {
+		return nil
+	}
+	return &models.LayOffSnapshot{
+		PlayerID:  s.PlayerID,
+		MeldID:    s.MeldID,
+		PrevCards: s.PrevCards,
+		PrevMeta: models.MeldInfo{
+			MeldID:    s.PrevMeta.MeldID,
+			Type:      string(s.PrevMeta.Type),
+			OwnerID:   s.PrevMeta.OwnerID,
+			WildCount: s.PrevMeta.WildCount,
+		},
+		Cards: s.Cards,
 	}
 }
 
@@ -268,6 +306,7 @@ func toRulesState(g models.Game) rules.GameState {
 		MeldsLaidThisTurn:           g.MeldsLaidThisTurn,
 		DiscardDrawnCardPendingMeld: g.DiscardDrawnCardPendingMeld,
 		DiscardDrawnCards:           g.DiscardDrawnCards,
+		LastLayOff:                  toRulesLayOffSnapshot(g.LastLayOff),
 		GameScores:                  g.GameScores,
 		TotalScores:                 g.TotalScores,
 		WinnerID:                    g.WinnerID,
@@ -296,6 +335,7 @@ func fromRulesState(g *models.Game, rs rules.GameState) {
 	g.MeldsLaidThisTurn = rs.MeldsLaidThisTurn
 	g.DiscardDrawnCardPendingMeld = rs.DiscardDrawnCardPendingMeld
 	g.DiscardDrawnCards = rs.DiscardDrawnCards
+	g.LastLayOff = fromRulesLayOffSnapshot(rs.LastLayOff)
 	g.GameScores = rs.GameScores
 	g.TotalScores = rs.TotalScores
 

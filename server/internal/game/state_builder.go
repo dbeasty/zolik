@@ -39,6 +39,7 @@ type GameStateMsg struct {
 	DiscardDrawMinRound         int                      `json:"discardDrawMinRound"`
 	DiscardDrawnCardPendingMeld string                   `json:"discardDrawnCardPendingMeld,omitempty"`
 	CanUndoDiscardDraw          bool                     `json:"canUndoDiscardDraw,omitempty"`
+	CanUndoLayOff               bool                     `json:"canUndoLayOff,omitempty"`
 	RulesProfile                string                   `json:"rulesProfile"`
 }
 
@@ -58,9 +59,11 @@ func BuildGameStateMsg(g models.Game, myPlayerID string) GameStateMsg {
 
 	var pendingMeldCard string
 	var canUndoDiscardDraw bool
+	var canUndoLayOff bool
 	if g.CurrentTurn == myPlayerID {
 		pendingMeldCard = g.DiscardDrawnCardPendingMeld
 		canUndoDiscardDraw = len(g.DiscardDrawnCards) > 0
+		canUndoLayOff = g.LastLayOff != nil && g.LastLayOff.PlayerID == myPlayerID
 	}
 
 	players := make([]PlayerMsg, 0, len(g.Players))
@@ -106,6 +109,7 @@ func BuildGameStateMsg(g models.Game, myPlayerID string) GameStateMsg {
 		DiscardDrawMinRound:         g.DiscardDrawMinRound,
 		DiscardDrawnCardPendingMeld: pendingMeldCard,
 		CanUndoDiscardDraw:          canUndoDiscardDraw,
+		CanUndoLayOff:               canUndoLayOff,
 		RulesProfile:                g.RulesProfile,
 	}
 }

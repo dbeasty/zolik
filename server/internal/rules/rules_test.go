@@ -158,7 +158,7 @@ func TestValidateLayOff_MismatchedSuitAceRejected(t *testing.T) {
 		MeldMeta:    map[string][]MeldInfo{"p1": {{MeldID: "meld_1", Type: MeldRun, OwnerID: "p1"}}},
 		RoundReqMet: map[string]bool{"p1": true},
 	}
-	if _, err := ValidateLayOff(st, "p1", "meld_1", []string{"AD"}); err == nil {
+	if _, err := ValidateLayOff(st, "p1", "meld_1", []string{"AD"}, ""); err == nil {
 		t.Fatalf("expected A♦ lay-off onto a clubs run to be rejected")
 	}
 }
@@ -448,7 +448,7 @@ func TestValidateLayOff_BlockedBeforeOwnRoundReqMet(t *testing.T) {
 		MeldMeta:    map[string][]MeldInfo{"p2": {{MeldID: "meld_1", Type: MeldSet, OwnerID: "p2"}}},
 		RoundReqMet: map[string]bool{"p1": false, "p2": true},
 	}
-	_, err := ValidateLayOff(st, "p1", "meld_1", []string{"7H"})
+	_, err := ValidateLayOff(st, "p1", "meld_1", []string{"7H"}, "")
 	if err == nil {
 		t.Fatalf("expected lay-off to be blocked before p1 has met their own round requirement")
 	}
@@ -469,7 +469,7 @@ func TestValidateLayOff_AllowedOnceOwnRoundReqMet(t *testing.T) {
 		MeldMeta:    map[string][]MeldInfo{"p2": {{MeldID: "meld_1", Type: MeldSet, OwnerID: "p2"}}},
 		RoundReqMet: map[string]bool{"p1": true, "p2": true},
 	}
-	if _, err := ValidateLayOff(st, "p1", "meld_1", []string{"7H"}); err != nil {
+	if _, err := ValidateLayOff(st, "p1", "meld_1", []string{"7H"}, ""); err != nil {
 		t.Fatalf("expected lay-off to succeed once p1 has met their own round requirement, got %v", err)
 	}
 }
@@ -485,7 +485,7 @@ func TestValidateLayOff_MultiCardInOneAction(t *testing.T) {
 		MeldMeta:    map[string][]MeldInfo{"p2": {{MeldID: "meld_1", Type: MeldRun, OwnerID: "p2"}}},
 		RoundReqMet: map[string]bool{"p1": true, "p2": true},
 	}
-	ns, err := ValidateLayOff(st, "p1", "meld_1", []string{"8C", "9C"})
+	ns, err := ValidateLayOff(st, "p1", "meld_1", []string{"8C", "9C"}, "")
 	if err != nil {
 		t.Fatalf("expected multi-card lay-off to succeed, got %v", err)
 	}
@@ -495,6 +495,88 @@ func TestValidateLayOff_MultiCardInOneAction(t *testing.T) {
 	if len(ns.Hands["p1"]) != 1 || ns.Hands["p1"][0] != "2S" {
 		t.Fatalf("expected only the laid-off cards removed from hand, got %v", ns.Hands["p1"])
 	}
+}
+
+func TestValidateLayOff_PositionMustMatchTheRequestedRunEnd(t *testing.T) {
+	base := func() GameState {
+		return GameState{
+			Status:      StatusActive,
+			Phase:       PhaseMeld,
+			Round:       1,
+			CurrentTurn: "p1",
+			Hands:       map[string][]string{"p1": {"4C", "8C"}},
+			Melds:       map[string][][]string{"p2": {{"5C", "6C", "7C"}}},
+			MeldMeta:    map[string][]MeldInfo{"p2": {{MeldID: "meld_1", Type: MeldRun, OwnerID: "p2"}}},
+			RoundReqMet: map[string]bool{"p1": true, "p2": true},
+		}
+	}
+
+	// 4C only fits at the front (before 5C) — asking for "front" succeeds.
+	if _, err := ValidateLayOff(base(), "p1", "meld_1", []string{"4C"}, "front"); err != nil {
+		t.Fatalf("expected front lay-off of 4C to succeed, got %v", err)
+	}
+	// Asking for "end" when the card only fits at the front should be rejected.
+	if _, err := ValidateLayOff(base(), "p1", "meld_1", []string{"4C"}, "end"); err == nil {
+		t.Fatalf("expected end lay-off of 4C to be rejected")
+	} else if re, ok := err.(RulesError); !ok || re.Code != ErrWrongRunEnd {
+		t.Fatalf("expected ErrWrongRunEnd, got %v", err)
+	}
+	// 8C only fits at the end — the mirror case.
+	if _, err := ValidateLayOff(base(), "p1", "meld_1", []string{"8C"}, "end"); err != nil {
+		t.Fatalf("expected end lay-off of 8C to succeed, got %v", err)
+	}
+	if _, err := ValidateLayOff(base(), "p1", "meld_1", []string{"8C"}, "front"); err == nil {
+		t.Fatalf("expected front lay-off of 8C to be rejected")
+	}
+}
+
+func TestValidateUndoLayOff_RevertsMeldAndReturnsCardToHand(t *testing.T) {
+	st := GameState{
+		Status:      StatusActive,
+		Phase:       PhaseMeld,
+		Round:       1,
+		CurrentTurn: "p1",
+		Hands:       map[string][]string{"p1": {"8C", "2S"}},
+		Melds:       map[string][][]string{"p2": {{"5C", "6C", "7C"}}},
+		MeldMeta:    map[string][]MeldInfo{"p2": {{MeldID: "meld_1", Type: MeldRun, OwnerID: "p2"}}},
+		RoundReqMet: map[string]bool{"p1": true, "p2": true},
+	}
+
+	if _, err := ValidateUndoLayOff(st, "p1"); err == nil {
+		t.Fatalf("expected nothing to undo before any lay-off happened")
+	}
+
+	ns, err := ValidateLayOff(st, "p1", "meld_1", []string{"8C"}, "")
+	if err != nil {
+		t.Fatalf("lay-off failed: %v", err)
+	}
+
+	undone, err := ValidateUndoLayOff(ns, "p1")
+	if err != nil {
+		t.Fatalf("expected undo to succeed, got %v", err)
+	}
+	if got := undone.Melds["p2"][0]; len(got) != 3 {
+		t.Fatalf("expected the run to revert to 3 cards, got %v", got)
+	}
+	if got := undone.Hands["p1"]; len(got) != 2 || !containsCard(got, "8C") {
+		t.Fatalf("expected 8C back in hand, got %v", got)
+	}
+	if undone.LastLayOff != nil {
+		t.Fatalf("expected the undo window to close after undoing")
+	}
+
+	if _, err := ValidateUndoLayOff(undone, "p1"); err == nil {
+		t.Fatalf("expected a second undo to fail, nothing left to undo")
+	}
+}
+
+func containsCard(hand []string, card string) bool {
+	for _, c := range hand {
+		if c == card {
+			return true
+		}
+	}
+	return false
 }
 
 func TestValidateSwapJoker_RunReplacesJokerAndReturnsItToHand(t *testing.T) {

@@ -91,7 +91,7 @@ func ApplyAction(state GameState, playerID string, action Action) (ApplyOutcome,
 		if len(cards) == 0 && action.Card != "" {
 			cards = []string{action.Card}
 		}
-		ns, err := ValidateLayOff(state, playerID, action.MeldID, cards)
+		ns, err := ValidateLayOff(state, playerID, action.MeldID, cards, action.Position)
 		if err != nil {
 			return ApplyOutcome{State: state}, err
 		}
@@ -104,6 +104,16 @@ func ApplyAction(state GameState, playerID string, action Action) (ApplyOutcome,
 		if ns.GameNumber == 7 && ns.RoundReqMet[playerID] && len(ns.Hands[playerID]) == 0 {
 			return endGameWithEvents(ns, playerID)
 		}
+		return ApplyOutcome{State: ns, Events: events}, nil
+
+	case ActionUndoLayOff:
+		ns, err := ValidateUndoLayOff(state, playerID)
+		if err != nil {
+			return ApplyOutcome{State: state}, err
+		}
+		events = append(events, ev("undo_lay_off", map[string]interface{}{
+			"playerId": playerID,
+		}))
 		return ApplyOutcome{State: ns, Events: events}, nil
 
 	case ActionSwapJoker:

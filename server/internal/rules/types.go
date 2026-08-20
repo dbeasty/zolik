@@ -30,6 +30,16 @@ const (
 	MeldRun MeldType = "run"
 )
 
+// LayOffSnapshot holds what a lay_off needs to be undone: the meld's exact
+// prior contents/meta and the cards it took from the player's hand.
+type LayOffSnapshot struct {
+	PlayerID  string
+	MeldID    string
+	PrevCards []string
+	PrevMeta  MeldInfo
+	Cards     []string
+}
+
 type MeldInfo struct {
 	MeldID  string
 	Type    MeldType
@@ -49,6 +59,7 @@ const (
 	ActionSwapJoker       ActionType = "swap_joker"
 	ActionDiscard         ActionType = "discard"
 	ActionUndoDrawDiscard ActionType = "undo_draw_discard"
+	ActionUndoLayOff      ActionType = "undo_lay_off"
 )
 
 type DrawFrom string
@@ -73,6 +84,12 @@ type Action struct {
 	// DiscardPickupAnyFromPile) to name which discard-pile card a
 	// draw_card{from:"discard"} action targets — empty means "the top card".
 	Card string
+	// Position is an optional lay_off hint for run melds: "front" or "end"
+	// names which side of the run the dropped card(s) must extend, so a
+	// drag onto one specific end of a run does what it visually looks like
+	// instead of the server silently picking whichever placement uses the
+	// fewest wilds. Empty means "either end" (sets always ignore it).
+	Position string
 }
 
 type GameState struct {
@@ -143,6 +160,13 @@ type GameState struct {
 	// scattered into melds.
 	DiscardDrawnCards []string
 
+	// LastLayOff snapshots the most recent lay_off this turn so
+	// ValidateUndoLayOff can revert it — cleared whenever anything else
+	// happens this turn (a fresh draw, a lay_meld, a swap_joker, or another
+	// lay_off, which replaces it with its own snapshot). Mirrors
+	// DiscardDrawnCards' same-turn undo window.
+	LastLayOff *LayOffSnapshot
+
 	DeckSeed int64
 
 	// Scoring
@@ -179,6 +203,7 @@ const (
 	ErrNothingToUndo         RulesErrorCode = "NOTHING_TO_UNDO"
 	ErrNoJokerInMeld         RulesErrorCode = "NO_JOKER_IN_MELD"
 	ErrJokerSwapMismatch     RulesErrorCode = "JOKER_SWAP_MISMATCH"
+	ErrWrongRunEnd           RulesErrorCode = "WRONG_RUN_END"
 
 	// Not in spec list; required by your decision for empty deck+discard.
 	ErrNoCardsLeft RulesErrorCode = "NO_CARDS_LEFT"

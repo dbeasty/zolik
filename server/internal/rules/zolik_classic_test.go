@@ -181,13 +181,13 @@ func TestZolikClassic_LayOffCannotDirtyTheOnlyCleanRun(t *testing.T) {
 	}
 
 	// Extending it with a natural is fine — the run stays clean.
-	st, err = ValidateLayOff(st, p, meldID, []string{"8C"})
+	st, err = ValidateLayOff(st, p, meldID, []string{"8C"}, "")
 	if err != nil {
 		t.Fatalf("laying off a natural onto a clean run should be allowed: %v", err)
 	}
 
 	// Extending it with a joker is not: it would leave no clean run behind.
-	_, err = ValidateLayOff(st, p, meldID, []string{"JOKER1"})
+	_, err = ValidateLayOff(st, p, meldID, []string{"JOKER1"}, "")
 	re, ok := err.(RulesError)
 	if !ok || re.Code != ErrBreaksCleanRun {
 		t.Fatalf("expected BREAKS_CLEAN_RUN when a joker would dirty the only clean run, got %#v", err)
@@ -215,7 +215,7 @@ func TestZolikClassic_LayOffNaturalAceExtendsRunAceHighWithoutGoingWild(t *testi
 		t.Fatalf("clean run should be a valid meld: %v", err)
 	}
 
-	st, err = ValidateLayOff(st, p, meldID, []string{"AD"})
+	st, err = ValidateLayOff(st, p, meldID, []string{"AD"}, "")
 	if err != nil {
 		t.Fatalf("laying a natural ace onto J-Q-K to make it ace-high should be allowed: %v", err)
 	}
@@ -249,7 +249,7 @@ func TestZolikClassic_LayOffJokerAllowedOnceAnotherCleanRunExists(t *testing.T) 
 		t.Fatalf("second clean run: %v", err)
 	}
 
-	st, err = ValidateLayOff(st, p, meldID, []string{"JOKER1"})
+	st, err = ValidateLayOff(st, p, meldID, []string{"JOKER1"}, "")
 	if err != nil {
 		t.Fatalf("a joker may dirty one run while another clean run remains: %v", err)
 	}

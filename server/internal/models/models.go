@@ -44,6 +44,7 @@ type Game struct {
 	MeldsLaidThisTurn           int                   `bson:"meldsLaidThisTurn" json:"-"`
 	DiscardDrawnCardPendingMeld string                `bson:"discardDrawnCardPendingMeld" json:"-"`
 	DiscardDrawnCards           []string              `bson:"discardDrawnCards" json:"-"`
+	LastLayOff                  *LayOffSnapshot       `bson:"lastLayOff,omitempty" json:"-"`
 	Players                     []Player              `bson:"players" json:"players"`
 	ActionLog                   []Action              `bson:"actionLog" json:"-"`
 	NextMeldSeq                 int                   `bson:"nextMeldSeq" json:"nextMeldSeq"`
@@ -69,6 +70,16 @@ type MeldInfo struct {
 	Type      string `bson:"type" json:"type"`
 	OwnerID   string `bson:"ownerId" json:"ownerId"`
 	WildCount int    `bson:"wildCount" json:"wildCount"`
+}
+
+// LayOffSnapshot mirrors rules.LayOffSnapshot for persistence — see there
+// for what it's used for.
+type LayOffSnapshot struct {
+	PlayerID  string   `bson:"playerId" json:"-"`
+	MeldID    string   `bson:"meldId" json:"-"`
+	PrevCards []string `bson:"prevCards" json:"-"`
+	PrevMeta  MeldInfo `bson:"prevMeta" json:"-"`
+	Cards     []string `bson:"cards" json:"-"`
 }
 
 type Action struct {

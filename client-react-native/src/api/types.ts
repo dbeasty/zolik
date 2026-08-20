@@ -22,6 +22,8 @@ export type GameState = {
   initialMeldMinimum: number;
   discardDrawMinRound: number;
   discardDrawnCardPendingMeld?: string;
+  canUndoDiscardDraw?: boolean;
+  canUndoLayOff?: boolean;
   rulesProfile?: RulesProfile;
 };
 
@@ -67,6 +69,8 @@ export type WSAction = {
   cards?: string[];
   meldId?: string;
   card?: string;
+  /** lay_off only: which end of a run the dropped card(s) must extend. */
+  position?: 'front' | 'end';
 };
 
 export type PlayerSession = {

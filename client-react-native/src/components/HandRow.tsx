@@ -13,6 +13,10 @@ import { moveCardToIndex } from '@/src/lib/cards';
 
 export type DropZone = { x: number; y: number; width: number; height: number };
 
+export type MeldZone = { meldId: string; zone: DropZone; type?: 'run' | 'set' };
+
+export type MeldHoverTarget = { meldId: string; position: 'front' | 'end' } | null;
+
 // Shared drag-preview state, owned by the screen that renders HandRow so it
 // can also render the floating overlay outside HandRow's own ScrollView
 // (which would otherwise clip the dragged card instead of letting it float
@@ -57,13 +61,18 @@ type Props = {
   measureDropZone?: (cb: (zone: DropZone | null) => void) => void;
   onDropOnZone?: (index: number) => void;
   // Same idea for table melds a dragged card can be laid off onto.
-  measureMeldZones?: (cb: (zones: { meldId: string; zone: DropZone }[]) => void) => void;
-  onDropOnMeld?: (index: number, meldId: string) => void;
+  measureMeldZones?: (cb: (zones: MeldZone[]) => void) => void;
+  onDropOnMeld?: (index: number, meldId: string, position: 'front' | 'end') => void;
   // Same idea again for the "build a new meld" staging area — dropping a
   // card there just selects it (same effect as tapping it).
   measureStagingZone?: (cb: (zone: DropZone | null) => void) => void;
   onDropOnStaging?: (index: number) => void;
   onDragCardChange?: (card: string | null) => void;
+  // Fires (throttled, on the JS thread) as the finger moves during a drag,
+  // so the screen can live-highlight whichever meld — and which end of it —
+  // is currently under the finger. Absent means "no live highlight", not an
+  // error; dropping still works purely from handleDragEnd's own zone check.
+  onDragHover?: (absoluteX: number, absoluteY: number) => void;
   dragPreview: DragPreview;
   compact?: boolean;
   // When true, a single tap discards the card directly instead of toggling
@@ -80,8 +89,16 @@ const CARD_WIDTH_COMPACT = 44;
 const CARD_MARGIN = 6;
 const DOUBLE_TAP_MS = 400;
 
-function pointInZone(x: number, y: number, zone: DropZone): boolean {
+export function pointInZone(x: number, y: number, zone: DropZone): boolean {
   return x >= zone.x && x <= zone.x + zone.width && y >= zone.y && y <= zone.y + zone.height;
+}
+
+// Which half of a meld's rect a point falls in — the left half means
+// "extend the front (low) end of the run", the right half "extend the end
+// (high) end". Runs render their cards left-to-right in ascending rank (see
+// OrderMeldForDisplay server-side), so this lines up with what's on screen.
+export function zonePosition(x: number, zone: DropZone): 'front' | 'end' {
+  return x < zone.x + zone.width / 2 ? 'front' : 'end';
 }
 
 export function HandRow({
@@ -98,6 +115,7 @@ export function HandRow({
   measureStagingZone,
   onDropOnStaging,
   onDragCardChange,
+  onDragHover,
   dragPreview,
   compact,
   tapToDiscard,
@@ -127,6 +145,7 @@ export function HandRow({
           measureStagingZone={measureStagingZone}
           onDropOnStaging={onDropOnStaging}
           onDragCardChange={onDragCardChange}
+          onDragHover={onDragHover}
           dragPreview={dragPreview}
           tapToDiscard={tapToDiscard}
           onDrop={(from, to) => onReorder(moveCardToIndex(cards, from, to))}
@@ -155,6 +174,7 @@ function DraggableCard({
   measureStagingZone,
   onDropOnStaging,
   onDragCardChange,
+  onDragHover,
   dragPreview,
   tapToDiscard,
   onDrop,
@@ -171,11 +191,12 @@ function DraggableCard({
   onDoubleTap?: (index: number) => void;
   measureDropZone?: (cb: (zone: DropZone | null) => void) => void;
   onDropOnZone?: (index: number) => void;
-  measureMeldZones?: (cb: (zones: { meldId: string; zone: DropZone }[]) => void) => void;
-  onDropOnMeld?: (index: number, meldId: string) => void;
+  measureMeldZones?: (cb: (zones: MeldZone[]) => void) => void;
+  onDropOnMeld?: (index: number, meldId: string, position: 'front' | 'end') => void;
   measureStagingZone?: (cb: (zone: DropZone | null) => void) => void;
   onDropOnStaging?: (index: number) => void;
   onDragCardChange?: (card: string | null) => void;
+  onDragHover?: (absoluteX: number, absoluteY: number) => void;
   dragPreview: DragPreview;
   tapToDiscard?: boolean;
   onDrop: (from: number, to: number) => void;
@@ -302,7 +323,7 @@ function DraggableCard({
     measureMeldZones((zones) => {
       const hit = zones.find(({ zone }) => pointInZone(absoluteX, absoluteY, zone));
       if (hit && onDropOnMeld) {
-        onDropOnMeld(index, hit.meldId);
+        onDropOnMeld(index, hit.meldId, zonePosition(absoluteX, hit.zone));
       } else {
         tryDropOnStaging(translationX, absoluteX, absoluteY);
       }
@@ -360,6 +381,7 @@ function DraggableCard({
     .onUpdate((e) => {
       dragPreview.x.value = e.absoluteX;
       dragPreview.y.value = e.absoluteY;
+      if (onDragHover) runOnJS(onDragHover)(e.absoluteX, e.absoluteY);
     })
     .onEnd((e) => {
       runOnJS(handleDragEnd)(e.translationX, e.translationY, e.velocityY, e.absoluteX, e.absoluteY);
