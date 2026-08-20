@@ -10,32 +10,63 @@ type WSConn interface {
 	Close() error
 }
 
+// syncConn serializes all writes to one underlying connection. gorilla's
+// websocket.Conn allows only one concurrent writer — without this, a
+// broadcast (hub/registry path, e.g. from another player's action or the AI
+// loop) and this connection's own read-loop writing a direct error response
+// (handler.go, e.g. a rejected lay_meld) can race on the same socket. The
+// loser's write is not queued or retried, so a symptom looks like a
+// game_state or error message that silently never arrives — e.g. a batch of
+// several lay_meld calls where one is quietly dropped with no error shown.
+type syncConn struct {
+	mu   sync.Mutex
+	conn WSConn
+}
+
+func (c *syncConn) WriteJSON(v interface{}) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.conn.WriteJSON(v)
+}
+
+func (c *syncConn) Close() error {
+	return c.conn.Close()
+}
+
 type ConnRegistry struct {
 	mu    sync.RWMutex
-	conns map[string]map[string]WSConn // gameId -> playerId -> conn
+	conns map[string]map[string]*syncConn // gameId -> playerId -> conn
 }
 
 func NewConnRegistry() *ConnRegistry {
-	return &ConnRegistry{conns: map[string]map[string]WSConn{}}
+	return &ConnRegistry{conns: map[string]map[string]*syncConn{}}
 }
 
-func (r *ConnRegistry) Add(gameID, playerID string, conn WSConn) (prev WSConn) {
+// Add registers conn for playerID and returns a write-serializing wrapper
+// around it — callers must use the returned WSConn (not the raw conn they
+// passed in) for any further direct writes and for RemoveIfCurrent, so those
+// writes share the same lock as broadcasts routed through this registry.
+func (r *ConnRegistry) Add(gameID, playerID string, conn WSConn) (wrapped WSConn, prev WSConn) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	if r.conns[gameID] == nil {
-		r.conns[gameID] = map[string]WSConn{}
+		r.conns[gameID] = map[string]*syncConn{}
 	}
-	prev = r.conns[gameID][playerID]
-	r.conns[gameID][playerID] = conn
-	return prev
+	if p := r.conns[gameID][playerID]; p != nil {
+		prev = p
+	}
+	sc := &syncConn{conn: conn}
+	r.conns[gameID][playerID] = sc
+	return sc, prev
 }
 
 // RemoveIfCurrent removes the registered connection for playerID only if it
-// is still exactly conn. If the player has since reconnected (a newer conn
-// replaced this one via Add), this is a no-op and returns false — the caller
-// should not treat that as a real disconnect (e.g. should not suspend the
-// game), since the player is in fact still connected via the newer conn.
+// is still exactly conn (the wrapped WSConn returned by Add). If the player
+// has since reconnected (a newer conn replaced this one via Add), this is a
+// no-op and returns false — the caller should not treat that as a real
+// disconnect (e.g. should not suspend the game), since the player is in fact
+// still connected via the newer conn.
 func (r *ConnRegistry) RemoveIfCurrent(gameID, playerID string, conn WSConn) bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()

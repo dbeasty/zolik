@@ -55,8 +55,12 @@ func (s *WebSocketServer) handleWS(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Register connection.
-	prev := s.manager.hub.Registry().Add(gameID, playerID, conn)
+	// Register connection. wsConn wraps conn with a write mutex shared with
+	// the broadcast path (hub/registry) — every write to this connection,
+	// whether a broadcast or this read loop's own direct error response,
+	// must go through wsConn, since gorilla's websocket.Conn does not allow
+	// concurrent writers and an unsynchronized write can silently vanish.
+	wsConn, prev := s.manager.hub.Registry().Add(gameID, playerID, conn)
 	if prev != nil {
 		_ = prev.Close()
 	}
@@ -82,7 +86,7 @@ func (s *WebSocketServer) handleWS(w http.ResponseWriter, req *http.Request) {
 		// connection is still the one registered for the player — if they've
 		// already reconnected on a newer conn, RemoveIfCurrent is a no-op and
 		// we must not tear down or suspend the newer, live connection.
-		if s.manager.hub.Registry().RemoveIfCurrent(gameID, playerID, conn) {
+		if s.manager.hub.Registry().RemoveIfCurrent(gameID, playerID, wsConn) {
 			s.manager.SuspendOnDisconnect(context.Background(), gameID, playerID, "disconnected")
 		}
 	}()
@@ -93,7 +97,7 @@ func (s *WebSocketServer) handleWS(w http.ResponseWriter, req *http.Request) {
 		}
 		var in WSIncoming
 		if err := json.Unmarshal(data, &in); err != nil {
-			_ = conn.WriteJSON(map[string]any{
+			_ = wsConn.WriteJSON(map[string]any{
 				"type":    "error",
 				"code":    "BAD_JSON",
 				"message": err.Error(),
@@ -101,7 +105,7 @@ func (s *WebSocketServer) handleWS(w http.ResponseWriter, req *http.Request) {
 			continue
 		}
 		if err := s.manager.HandleAction(ctx, gameID, playerID, in); err != nil {
-			_ = conn.WriteJSON(map[string]any{
+			_ = wsConn.WriteJSON(map[string]any{
 				"type":    "error",
 				"code":    "RULES_ERROR",
 				"message": err.Error(),

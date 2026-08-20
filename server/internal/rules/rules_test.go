@@ -132,6 +132,37 @@ func TestValidateRun_AceBridgeRejected(t *testing.T) {
 	}
 }
 
+func TestValidateRun_MismatchedSuitAceNotWild(t *testing.T) {
+	// Reproduces a live-game bug: a 4C-5C-JOKER1 run (clubs) let A♦ fill the
+	// wild slot as though it were an interchangeable filler, even though an
+	// ace can only ever be a natural rank-1/rank-14 endpoint of its own
+	// suit — never a stand-in for some other rank, and never in a suit that
+	// doesn't match the rest of the run.
+	_, err := validateRun([]string{"4C", "5C", "JOKER1", "AD"}, 3)
+	if err == nil {
+		t.Fatalf("expected mismatched-suit ace to be rejected, not treated as a wild filler")
+	}
+}
+
+func TestValidateLayOff_MismatchedSuitAceRejected(t *testing.T) {
+	// Same bug, exercised through the full lay-off path: an AI laid A♦ off
+	// onto its own 4C-5C-JOKER1 run in a live game, which should never have
+	// been accepted.
+	st := GameState{
+		Status:      StatusActive,
+		Phase:       PhaseMeld,
+		Round:       1,
+		CurrentTurn: "p1",
+		Hands:       map[string][]string{"p1": {"AD"}},
+		Melds:       map[string][][]string{"p1": {{"4C", "5C", "JOKER1"}}},
+		MeldMeta:    map[string][]MeldInfo{"p1": {{MeldID: "meld_1", Type: MeldRun, OwnerID: "p1"}}},
+		RoundReqMet: map[string]bool{"p1": true},
+	}
+	if _, err := ValidateLayOff(st, "p1", "meld_1", []string{"AD"}); err == nil {
+		t.Fatalf("expected A♦ lay-off onto a clubs run to be rejected")
+	}
+}
+
 func TestEnsureDrawPile_ReshuffleAndCount(t *testing.T) {
 	st := GameState{
 		Status:         StatusActive,
