@@ -12,7 +12,12 @@ type VisibleState struct {
 	Phase       string
 	CurrentTurn string
 
-	DiscardPile         []string
+	DiscardPile []string
+	// PlayerDiscards is each player's discard history this game, oldest
+	// first, derived from the action log. Lets an agent avoid re-offering
+	// a rank/suit a player has already passed on, and avoid feeding cards
+	// into melds already on the table.
+	PlayerDiscards      map[string][]string
 	Melds               map[string][][]string
 	MeldMeta            map[string][]rules.MeldInfo
 	RoundReqMet         map[string]bool

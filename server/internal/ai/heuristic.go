@@ -57,7 +57,7 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 		}
 		// Otherwise discard.
 		canDiscardJoker := len(hand) == 1 && visible.RoundReqMet[actor]
-		return rules.Action{Type: rules.ActionDiscard, Card: pickWorstDiscard(hand, visible.Rules, canDiscardJoker)}
+		return rules.Action{Type: rules.ActionDiscard, Card: pickSmartDiscard(hand, visible, actor, a.difficulty, canDiscardJoker)}
 	}
 	// 2) Draw phase: prefer discard if available and allowed this round, else deck.
 	if visible.Phase == string(rules.PhaseDraw) {
@@ -84,7 +84,7 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 	// Fallback: discard.
 	if len(hand) > 0 {
 		canDiscardJoker := len(hand) == 1 && visible.RoundReqMet[visible.CurrentTurn]
-		return rules.Action{Type: rules.ActionDiscard, Card: pickWorstDiscard(hand, visible.Rules, canDiscardJoker)}
+		return rules.Action{Type: rules.ActionDiscard, Card: pickSmartDiscard(hand, visible, visible.CurrentTurn, a.difficulty, canDiscardJoker)}
 	}
 	return rules.Action{Type: rules.ActionDiscard, Card: ""}
 }
@@ -348,6 +348,109 @@ func findAnyValidMeld(hand []string, cfg rules.RulesConfig) ([]string, bool) {
 		}
 	}
 	return nil, false
+}
+
+// pickSmartDiscard is pickWorstDiscard made meld-aware. "easy" AIs keep the
+// old blind behavior (highest penalty points, full stop). "medium" and
+// "hard" first drop any candidate that would let *any* player extend a meld
+// already on the table — the single biggest source of "the AI just fed me
+// my run" complaints, since findLayOff already claims such cards for the
+// AI's own hand before reaching this fallback, so anything still here that
+// fits a live meld is pure gift to an opponent. "hard" additionally prefers,
+// among the safe candidates, a card whose rank someone has already
+// discarded this game: if a player passed on that rank before, they're
+// unlikely to want it now, which is the same "read the discards" signal a
+// careful human opponent would use.
+func pickSmartDiscard(hand []string, visible VisibleState, actor string, difficulty string, canDiscardJoker bool) string {
+	cfg := visible.Rules
+	if difficulty == "easy" || len(hand) == 0 {
+		return pickWorstDiscard(hand, cfg, canDiscardJoker)
+	}
+	allowJoker := canDiscardJoker || !cfg.JokerDiscardRestricted
+
+	var cands []discardCandidate
+	for _, c := range hand {
+		if !allowJoker && rules.IsJoker(c) {
+			continue
+		}
+		cands = append(cands, discardCandidate{
+			card:       c,
+			pts:        rules.PenaltyPoints(c, false),
+			dangerous:  extendsAnyLiveMeld(c, visible.Melds, cfg, visible.GameNumber),
+			seenBefore: difficulty == "hard" && rankAlreadyDiscardedByOthers(c, visible.PlayerDiscards, actor),
+		})
+	}
+	if len(cands) == 0 {
+		// Every card is a forbidden joker (pathological, but has to return
+		// something) — the caller/server is left to reject it.
+		return hand[0]
+	}
+	best := cands[0]
+	for _, c := range cands[1:] {
+		if smarterDiscardBetter(c, best) {
+			best = c
+		}
+	}
+	return best.card
+}
+
+type discardCandidate struct {
+	card       string
+	pts        int
+	dangerous  bool
+	seenBefore bool
+}
+
+// smarterDiscardBetter orders candidates: safe (doesn't feed a live meld)
+// beats dangerous; then, same as the plain worst-card heuristic, higher
+// penalty points win (shed the costliest card first); an already-passed-on
+// rank only breaks an exact points tie, so the history signal fine-tunes
+// which equally-costly card to let go of rather than overriding the basic
+// "get rid of the expensive card" goal.
+func smarterDiscardBetter(c, best discardCandidate) bool {
+	if c.dangerous != best.dangerous {
+		return !c.dangerous
+	}
+	if c.pts != best.pts {
+		return c.pts > best.pts
+	}
+	return c.seenBefore && !best.seenBefore
+}
+
+// extendsAnyLiveMeld reports whether card can be laid off onto any meld
+// currently on the table (any owner) — i.e. discarding it hands the next
+// player a free lay-off.
+func extendsAnyLiveMeld(card string, melds map[string][][]string, cfg rules.RulesConfig, gameNumber int) bool {
+	for _, ownerMelds := range melds {
+		for i, existing := range ownerMelds {
+			cand := append(append([]string(nil), existing...), card)
+			if _, err := rules.ValidateMeld(cand, cfg); err != nil {
+				continue
+			}
+			if rules.LayOffBreaksCleanRun(cfg, gameNumber, ownerMelds, i, []string{card}) {
+				continue
+			}
+			return true
+		}
+	}
+	return false
+}
+
+// rankAlreadyDiscardedByOthers reports whether some player other than actor
+// has already discarded a card of the same rank this game.
+func rankAlreadyDiscardedByOthers(card string, playerDiscards map[string][]string, actor string) bool {
+	rank := rules.CardRank(card)
+	for player, discards := range playerDiscards {
+		if player == actor {
+			continue
+		}
+		for _, d := range discards {
+			if rules.CardRank(d) == rank {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // PickWorstDiscard exposes pickWorstDiscard for callers that need an emergency

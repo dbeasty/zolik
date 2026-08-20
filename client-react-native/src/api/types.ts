@@ -24,6 +24,7 @@ export type GameState = {
   discardDrawnCardPendingMeld?: string;
   canUndoDiscardDraw?: boolean;
   canUndoLayOff?: boolean;
+  canUndoLayMeld?: boolean;
   rulesProfile?: RulesProfile;
 };
 

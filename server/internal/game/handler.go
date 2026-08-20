@@ -3,6 +3,7 @@ package game
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -62,7 +63,10 @@ func (s *WebSocketServer) handleWS(w http.ResponseWriter, req *http.Request) {
 	// concurrent writers and an unsynchronized write can silently vanish.
 	wsConn, prev := s.manager.hub.Registry().Add(gameID, playerID, conn)
 	if prev != nil {
+		log.Printf("game=%s player=%s ws connect: replacing existing connection", gameID, playerID)
 		_ = prev.Close()
+	} else {
+		log.Printf("game=%s player=%s ws connect: new connection", gameID, playerID)
 	}
 
 	// Send initial personalised state.
@@ -87,16 +91,21 @@ func (s *WebSocketServer) handleWS(w http.ResponseWriter, req *http.Request) {
 		// already reconnected on a newer conn, RemoveIfCurrent is a no-op and
 		// we must not tear down or suspend the newer, live connection.
 		if s.manager.hub.Registry().RemoveIfCurrent(gameID, playerID, wsConn) {
+			log.Printf("game=%s player=%s ws disconnect: suspending (this was the live connection)", gameID, playerID)
 			s.manager.SuspendOnDisconnect(context.Background(), gameID, playerID, "disconnected")
+		} else {
+			log.Printf("game=%s player=%s ws disconnect: superseded by a newer connection, not suspending", gameID, playerID)
 		}
 	}()
 	for {
 		_, data, err := conn.ReadMessage()
 		if err != nil {
+			log.Printf("game=%s player=%s ws read loop ending: %v", gameID, playerID, err)
 			break
 		}
 		var in WSIncoming
 		if err := json.Unmarshal(data, &in); err != nil {
+			log.Printf("game=%s player=%s ws bad json: %v raw=%s", gameID, playerID, err, data)
 			_ = wsConn.WriteJSON(map[string]any{
 				"type":    "error",
 				"code":    "BAD_JSON",

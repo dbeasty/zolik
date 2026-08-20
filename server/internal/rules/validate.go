@@ -38,6 +38,7 @@ func ValidateDraw(state GameState, playerID string, from DrawFrom, targetCard st
 		state.DiscardDrawnCardPendingMeld = ""
 		state.DiscardDrawnCards = nil
 		state.LastLayOff = nil
+		state.LastMeldLaid = nil
 		return state, card, nil, nil
 
 	case DrawFromDiscard:
@@ -70,6 +71,7 @@ func ValidateDraw(state GameState, playerID string, from DrawFrom, targetCard st
 		state.MeldsLaidThisTurn = 0
 		state.DiscardDrawnCards = taken
 		state.LastLayOff = nil
+		state.LastMeldLaid = nil
 		// Before a player has gone down, a discard-pile pickup obligates
 		// them to lay the requested (bottom-most taken) card into their
 		// initial meld this turn — see ValidateDiscard. Once already down
@@ -138,6 +140,8 @@ func ValidateMeldAction(state GameState, playerID string, cards []string) (GameS
 	}
 
 	wasReqMet := state.RoundReqMet[playerID]
+	prevMeldsLaidThisTurn := state.MeldsLaidThisTurn
+	prevDiscardDrawnCardPendingMeld := state.DiscardDrawnCardPendingMeld
 	cfg := effectiveRules(state)
 
 	mv, err := ValidateMeld(cards, cfg)
@@ -156,7 +160,9 @@ func ValidateMeldAction(state GameState, playerID string, cards []string) (GameS
 		}
 	}
 
-	// Dry-run to validate minimum meld / round requirement before mutating.
+	// Dry-run only to check the "must discard your last card to go out"
+	// rule below — the minimum-value floor is no longer checked here (see
+	// the RoundReqMet assignment after the real apply, below).
 	sim := cloneState(state)
 	sim.Hands[playerID] = removeCards(sim.Hands[playerID], cards)
 	if sim.Melds == nil {
@@ -171,20 +177,6 @@ func ValidateMeldAction(state GameState, playerID string, cards []string) (GameS
 	sim.MeldMeta[playerID] = append(sim.MeldMeta[playerID], MeldInfo{
 		MeldID: meldID, Type: mv.Type, OwnerID: playerID, WildCount: mv.WildCount,
 	})
-
-	if PlayerMeetsRoundRequirement(sim, playerID) {
-		if state.InitialMeldMinimum > 0 && !state.RoundReqMet[playerID] {
-			if got := PlayerInitialMeldNaturalValue(sim, playerID); got < state.InitialMeldMinimum {
-				return state, "", "", RulesError{
-					Code: ErrMeldBelowMinimum,
-					Message: fmt.Sprintf(
-						"your melds are worth %d points so far, but this table requires %d+ to go down",
-						got, state.InitialMeldMinimum,
-					),
-				}
-			}
-		}
-	}
 
 	// A profile's non-final deals require a final discard to go out; cannot
 	// meld away every card (Žolík Classic never has a "final deal", so this
@@ -207,8 +199,19 @@ func ValidateMeldAction(state GameState, playerID string, cards []string) (GameS
 		MeldID: meldID, Type: mv.Type, OwnerID: playerID, WildCount: mv.WildCount,
 	})
 
+	// A meld can always be laid onto the table (subject to the checks above);
+	// whether it actually puts the player "down" depends on both the shape
+	// requirement (sets/runs/clean run) and, if configured, the point-value
+	// floor summed across every meld the player has laid so far — checked
+	// together here, on the real post-apply state, so that a shape-complete
+	// but under-value combination doesn't lock the player out of laying a
+	// later meld to top up the total (e.g. two clean runs of 27 and 21
+	// points: the first alone already satisfies "at least one clean run",
+	// but neither meld alone clears a 35-point floor — only their sum does).
 	if PlayerMeetsRoundRequirement(state, playerID) {
-		state.RoundReqMet[playerID] = true
+		if state.InitialMeldMinimum <= 0 || PlayerInitialMeldNaturalValue(state, playerID) >= state.InitialMeldMinimum {
+			state.RoundReqMet[playerID] = true
+		}
 	}
 	if !wasReqMet {
 		state.MeldsLaidThisTurn++
@@ -225,8 +228,58 @@ func ValidateMeldAction(state GameState, playerID string, cards []string) (GameS
 	// can no longer be cleanly undone.
 	state.DiscardDrawnCards = nil
 	state.LastLayOff = nil
+	state.LastMeldLaid = &MeldLaidSnapshot{
+		PlayerID:                        playerID,
+		MeldID:                          meldID,
+		Cards:                           append([]string(nil), orderedCards...),
+		PrevRoundReqMet:                 wasReqMet,
+		PrevMeldsLaidThisTurn:           prevMeldsLaidThisTurn,
+		PrevDiscardDrawnCardPendingMeld: prevDiscardDrawnCardPendingMeld,
+	}
 
 	return state, meldID, mv.Type, nil
+}
+
+// ValidateUndoLayMeld reverses the most recent brand-new lay_meld this turn:
+// the meld comes off the table, its cards go back to the player's hand, and
+// RoundReqMet/MeldsLaidThisTurn/DiscardDrawnCardPendingMeld all revert to
+// exactly what they were beforehand. Only available in the window right
+// after that lay_meld, before anything else this turn (a fresh draw, a
+// lay_off, a swap_joker, or another lay_meld) has had a chance to build on
+// top of it.
+func ValidateUndoLayMeld(state GameState, playerID string) (GameState, error) {
+	if state.Status != StatusActive {
+		return state, RulesError{Code: ErrGameNotActive}
+	}
+	if state.Phase == PhaseSuspended || state.Status == StatusSuspended {
+		return state, RulesError{Code: ErrGameSuspended}
+	}
+	if state.CurrentTurn != playerID {
+		return state, RulesError{Code: ErrNotYourTurn}
+	}
+	if state.Phase != PhaseMeld {
+		return state, RulesError{Code: ErrWrongPhase}
+	}
+	snap := state.LastMeldLaid
+	if snap == nil || snap.PlayerID != playerID {
+		return state, RulesError{Code: ErrNothingToUndo}
+	}
+	owner, idx := findMeldByID(state, snap.MeldID)
+	if owner == "" {
+		return state, RulesError{Code: ErrNothingToUndo, Message: "that meld no longer exists on the table"}
+	}
+
+	state.Hands[playerID] = append(append([]string(nil), state.Hands[playerID]...), snap.Cards...)
+	state.Melds[owner] = append(append([][]string(nil), state.Melds[owner][:idx]...), state.Melds[owner][idx+1:]...)
+	if metas := state.MeldMeta[owner]; idx < len(metas) {
+		state.MeldMeta[owner] = append(append([]MeldInfo(nil), metas[:idx]...), metas[idx+1:]...)
+	}
+	state.RoundReqMet[playerID] = snap.PrevRoundReqMet
+	state.MeldsLaidThisTurn = snap.PrevMeldsLaidThisTurn
+	state.DiscardDrawnCardPendingMeld = snap.PrevDiscardDrawnCardPendingMeld
+	state.LastMeldLaid = nil
+
+	return state, nil
 }
 
 func ValidateLayOff(state GameState, playerID string, meldID string, cards []string, position string) (GameState, error) {
@@ -327,6 +380,7 @@ func ValidateLayOff(state GameState, playerID string, meldID string, cards []str
 	// Once a lay-off has happened this turn, the discard-pile pickup (if
 	// any) can no longer be cleanly undone.
 	state.DiscardDrawnCards = nil
+	state.LastMeldLaid = nil
 	state.LastLayOff = &LayOffSnapshot{
 		PlayerID:  playerID,
 		MeldID:    meldID,
@@ -451,6 +505,7 @@ func ValidateSwapJoker(state GameState, playerID string, meldID string, card str
 	// that empties a hand — unlike lay_meld/lay_off, no go-out check here.
 	state.DiscardDrawnCards = nil
 	state.LastLayOff = nil
+	state.LastMeldLaid = nil
 
 	return state, nil
 }

@@ -306,3 +306,55 @@ func TestFindLayOffKeepsTheOnlyCleanRunClean(t *testing.T) {
 		t.Fatalf("expected 9C to extend the run, got %q ok=%v", card, ok)
 	}
 }
+
+func TestPickSmartDiscard_EasyStillDiscardsBlindly(t *testing.T) {
+	cfg := rules.ProfileZolikClassic
+	visible := VisibleState{
+		Rules: cfg,
+		Melds: map[string][][]string{"opponent": {{"5C", "6C", "7C", "8C"}}},
+	}
+	// 9C extends the opponent's run and is also the higher-penalty card, so
+	// even the safety-blind "easy" difficulty happens to pick it here.
+	got := pickSmartDiscard([]string{"9C", "2H"}, visible, "ai1", "easy", false)
+	if got != "9C" {
+		t.Fatalf("expected easy AI to discard the highest-penalty card 9C, got %q", got)
+	}
+}
+
+func TestPickSmartDiscard_MediumAvoidsFeedingLiveMeld(t *testing.T) {
+	cfg := rules.ProfileZolikClassic
+	visible := VisibleState{
+		Rules: cfg,
+		Melds: map[string][][]string{"opponent": {{"5C", "6C", "7C", "8C"}}},
+	}
+	// 9C (9 pts) extends the opponent's run; 2H (2 pts) is a dead card. A
+	// blind highest-points discard would hand over 9C — medium must not.
+	got := pickSmartDiscard([]string{"9C", "2H"}, visible, "ai1", "medium", false)
+	if got != "2H" {
+		t.Fatalf("expected medium AI to avoid feeding the live run, got %q", got)
+	}
+}
+
+func TestPickSmartDiscard_HardBreaksPointsTiesTowardAlreadyDiscardedRank(t *testing.T) {
+	cfg := rules.ProfileZolikClassic
+	visible := VisibleState{
+		Rules: cfg,
+		PlayerDiscards: map[string][]string{
+			"human": {"QD"},
+		},
+	}
+	// KH and QC are both safe (no live melds on the table) and tie on
+	// points (face cards are all worth 10). The human already discarded a
+	// queen (QD), so hard should let go of the other queen rather than a
+	// fresh, never-seen king.
+	got := pickSmartDiscard([]string{"KH", "QC"}, visible, "ai1", "hard", false)
+	if got != "QC" {
+		t.Fatalf("expected hard AI to break the points tie toward the already-discarded rank QC, got %q", got)
+	}
+
+	// Medium ignores discard history entirely — a tie stays a tie, resolved
+	// by iteration order, but it must not blow up or panic.
+	if got := pickSmartDiscard([]string{"KH", "QC"}, visible, "ai1", "medium", false); got != "KH" && got != "QC" {
+		t.Fatalf("expected one of the tied cards from medium, got %q", got)
+	}
+}

@@ -108,9 +108,6 @@ func TestValidateRun_AdjacentWildsRejected(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected error for invalid run")
 	}
-	if err == nil {
-		t.Fatalf("expected error for invalid run")
-	}
 }
 
 func TestValidateRun_AceHighAllowed(t *testing.T) {
@@ -567,6 +564,98 @@ func TestValidateUndoLayOff_RevertsMeldAndReturnsCardToHand(t *testing.T) {
 
 	if _, err := ValidateUndoLayOff(undone, "p1"); err == nil {
 		t.Fatalf("expected a second undo to fail, nothing left to undo")
+	}
+}
+
+func TestValidateUndoLayMeld_RevertsMeldAndReturnsCardsToHand(t *testing.T) {
+	st := GameState{
+		Status:             StatusActive,
+		Rules:              ProfileZolikClassic,
+		Phase:              PhaseMeld,
+		GameNumber:         1,
+		Round:              1,
+		CurrentTurn:        "p1",
+		TurnOrder:          []string{"p1", "p2"},
+		Hands:              map[string][]string{"p1": {"5H", "6H", "7H", "2S"}, "p2": {}},
+		Melds:              map[string][][]string{},
+		MeldMeta:           map[string][]MeldInfo{},
+		RoundReqMet:        map[string]bool{"p1": false, "p2": false},
+		InitialMeldMinimum: 0,
+	}
+
+	if _, err := ValidateUndoLayMeld(st, "p1"); err == nil {
+		t.Fatalf("expected nothing to undo before any meld was laid")
+	}
+
+	ns, meldID, _, err := ValidateMeldAction(st, "p1", []string{"5H", "6H", "7H"})
+	if err != nil {
+		t.Fatalf("lay_meld failed: %v", err)
+	}
+	if !ns.RoundReqMet["p1"] {
+		t.Fatalf("expected p1 to be down after laying the required clean run")
+	}
+
+	undone, err := ValidateUndoLayMeld(ns, "p1")
+	if err != nil {
+		t.Fatalf("expected undo to succeed, got %v", err)
+	}
+	if got := undone.Melds["p1"]; len(got) != 0 {
+		t.Fatalf("expected the meld removed from the table, got %v", got)
+	}
+	if got := undone.Hands["p1"]; len(got) != 4 || !containsCard(got, "5H") || !containsCard(got, "6H") || !containsCard(got, "7H") {
+		t.Fatalf("expected all three cards back in hand, got %v", got)
+	}
+	if undone.RoundReqMet["p1"] {
+		t.Fatalf("expected RoundReqMet to revert to false, since it was false before this meld")
+	}
+	if undone.LastMeldLaid != nil {
+		t.Fatalf("expected the undo window to close after undoing")
+	}
+	if _, idx := findMeldByID(undone, meldID); idx != -1 {
+		t.Fatalf("expected the meld to no longer be findable by id after undo")
+	}
+
+	if _, err := ValidateUndoLayMeld(undone, "p1"); err == nil {
+		t.Fatalf("expected a second undo to fail, nothing left to undo")
+	}
+}
+
+func TestValidateUndoLayMeld_OnlyMostRecentMeldIsUndoable(t *testing.T) {
+	st := GameState{
+		Status:             StatusActive,
+		Rules:              ProfileZolikClassic,
+		Phase:              PhaseMeld,
+		GameNumber:         1,
+		Round:              1,
+		CurrentTurn:        "p1",
+		TurnOrder:          []string{"p1", "p2"},
+		Hands:              map[string][]string{"p1": {"5H", "6H", "7H", "2S", "2D", "2C", "9S"}, "p2": {}},
+		Melds:              map[string][][]string{},
+		MeldMeta:           map[string][]MeldInfo{},
+		RoundReqMet:        map[string]bool{"p1": false, "p2": false},
+		InitialMeldMinimum: 0,
+	}
+
+	// First meld doesn't complete shape by itself for a set (only a clean
+	// run counts toward zolik_classic's requirement), so it lays freely.
+	ns, firstMeldID, _, err := ValidateMeldAction(st, "p1", []string{"2S", "2D", "2C"})
+	if err != nil {
+		t.Fatalf("first lay_meld failed: %v", err)
+	}
+	// Second meld (the clean run) is the one that puts p1 down — only it
+	// should be in the undo window now, mirroring ValidateUndoLayOff.
+	ns, _, _, err = ValidateMeldAction(ns, "p1", []string{"5H", "6H", "7H"})
+	if err != nil {
+		t.Fatalf("second lay_meld failed: %v", err)
+	}
+
+	if _, err := ValidateUndoLayMeld(ns, "p1"); err != nil {
+		t.Fatalf("expected the second (most recent) meld to be undoable, got %v", err)
+	}
+	// findMeldByID confirms the first meld is untouched by the (would-be)
+	// undo target — it's still on the table under its original id.
+	if owner, idx := findMeldByID(ns, firstMeldID); owner == "" || idx == -1 {
+		t.Fatalf("expected the first meld to remain on the table, unaffected by the undo window")
 	}
 }
 

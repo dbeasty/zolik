@@ -40,6 +40,20 @@ type LayOffSnapshot struct {
 	Cards     []string
 }
 
+// MeldLaidSnapshot holds what a lay_meld needs to be undone: the brand-new
+// meld it created plus everything else that lay_meld call may have changed
+// (going down for the first time, consuming the discard-pickup obligation,
+// or advancing MeldsLaidThisTurn) so undoing it restores state exactly as it
+// was beforehand — not just "cards back in hand."
+type MeldLaidSnapshot struct {
+	PlayerID                        string
+	MeldID                          string
+	Cards                           []string
+	PrevRoundReqMet                 bool
+	PrevMeldsLaidThisTurn           int
+	PrevDiscardDrawnCardPendingMeld string
+}
+
 type MeldInfo struct {
 	MeldID  string
 	Type    MeldType
@@ -60,6 +74,7 @@ const (
 	ActionDiscard         ActionType = "discard"
 	ActionUndoDrawDiscard ActionType = "undo_draw_discard"
 	ActionUndoLayOff      ActionType = "undo_lay_off"
+	ActionUndoLayMeld     ActionType = "undo_lay_meld"
 )
 
 type DrawFrom string
@@ -166,6 +181,15 @@ type GameState struct {
 	// lay_off, which replaces it with its own snapshot). Mirrors
 	// DiscardDrawnCards' same-turn undo window.
 	LastLayOff *LayOffSnapshot
+
+	// LastMeldLaid snapshots the most recent brand-new lay_meld this turn so
+	// ValidateUndoLayMeld can revert it — cleared whenever anything else
+	// happens this turn (a fresh draw, a lay_off, a swap_joker, or another
+	// lay_meld, which replaces it with its own snapshot). Same same-turn
+	// undo window as LastLayOff/DiscardDrawnCards: available only in the
+	// window right after that lay_meld, before anything else has had a
+	// chance to build on top of it.
+	LastMeldLaid *MeldLaidSnapshot
 
 	DeckSeed int64
 

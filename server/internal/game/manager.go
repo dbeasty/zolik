@@ -46,6 +46,7 @@ func (m *Manager) HandleAction(ctx context.Context, gameID, playerID string, in 
 
 	game, err := m.repo.FindByID(ctx, oid)
 	if err != nil {
+		log.Printf("game=%s player=%s action=%s FindByID error: %v", gameID, playerID, in.Type, err)
 		return err
 	}
 
@@ -54,6 +55,7 @@ func (m *Manager) HandleAction(ctx context.Context, gameID, playerID string, in 
 
 	outcome, err := rules.ApplyAction(rState, playerID, rAction)
 	if err != nil {
+		log.Printf("game=%s player=%s action=%s version=%d phase=%s turn=%s rejected: %v", gameID, playerID, in.Type, game.Version, game.Phase, game.CurrentTurn, err)
 		if re, ok := err.(rules.RulesError); ok && re.Code == rules.ErrNoCardsLeft {
 			m.suspendNoCardsLeft(ctx, gameID, oid, game)
 		}
@@ -74,8 +76,10 @@ func (m *Manager) HandleAction(ctx context.Context, gameID, playerID string, in 
 	// Persist with optimistic concurrency.
 	expectedVersion := game.Version
 	if err := m.repo.UpdateWithVersion(ctx, oid, expectedVersion, nextGame); err != nil {
+		log.Printf("game=%s player=%s action=%s expectedVersion=%d UpdateWithVersion error (likely concurrent write): %v", gameID, playerID, in.Type, expectedVersion, err)
 		return err
 	}
+	log.Printf("game=%s player=%s action=%s version=%d->%d applied", gameID, playerID, in.Type, expectedVersion, expectedVersion+1)
 
 	recipients := BroadcastRecipients(nextGame)
 	m.broadcastEvents(gameID, playerID, outcome.Events, recipients)
@@ -93,17 +97,21 @@ func (m *Manager) HandleAction(ctx context.Context, gameID, playerID string, in 
 func (m *Manager) SuspendOnDisconnect(ctx context.Context, gameID, playerID string, reason string) {
 	oid, err := bson.ObjectIDFromHex(gameID)
 	if err != nil {
+		log.Printf("game=%s player=%s SuspendOnDisconnect: invalid game id: %v", gameID, playerID, err)
 		return
 	}
 
 	game, err := m.repo.FindByID(ctx, oid)
 	if err != nil {
+		log.Printf("game=%s player=%s SuspendOnDisconnect: FindByID error: %v", gameID, playerID, err)
 		return
 	}
 	if game.Status != "active" {
+		log.Printf("game=%s player=%s SuspendOnDisconnect: skipped, status=%s (not active)", gameID, playerID, game.Status)
 		return
 	}
 	if game.CurrentTurn != playerID {
+		log.Printf("game=%s player=%s SuspendOnDisconnect: skipped, currentTurn=%s", gameID, playerID, game.CurrentTurn)
 		return
 	}
 
@@ -124,7 +132,11 @@ func (m *Manager) SuspendOnDisconnect(ctx context.Context, gameID, playerID stri
 		Data:      map[string]interface{}{"reason": reason},
 	})
 
-	_ = m.repo.UpdateWithVersion(ctx, oid, game.Version, game)
+	if err := m.repo.UpdateWithVersion(ctx, oid, game.Version, game); err != nil {
+		log.Printf("game=%s player=%s SuspendOnDisconnect: UpdateWithVersion(version=%d) error: %v", gameID, playerID, game.Version, err)
+		return
+	}
+	log.Printf("game=%s player=%s SuspendOnDisconnect: suspended (reason=%s)", gameID, playerID, reason)
 
 	recipients := BroadcastRecipients(game)
 	m.hub.BroadcastGameState(gameID, recipients, func(pid string) interface{} {
@@ -139,17 +151,21 @@ func (m *Manager) SuspendOnDisconnect(ctx context.Context, gameID, playerID stri
 func (m *Manager) ResumeIfReturning(ctx context.Context, gameID, playerID string) {
 	oid, err := bson.ObjectIDFromHex(gameID)
 	if err != nil {
+		log.Printf("game=%s player=%s ResumeIfReturning: invalid game id: %v", gameID, playerID, err)
 		return
 	}
 
 	game, err := m.repo.FindByID(ctx, oid)
 	if err != nil {
+		log.Printf("game=%s player=%s ResumeIfReturning: FindByID error: %v", gameID, playerID, err)
 		return
 	}
 	if game.Status != "suspended" || game.PreSuspendPhase == "" {
+		log.Printf("game=%s player=%s ResumeIfReturning: skipped, status=%s preSuspendPhase=%q", gameID, playerID, game.Status, game.PreSuspendPhase)
 		return
 	}
 	if game.CurrentTurn != playerID {
+		log.Printf("game=%s player=%s ResumeIfReturning: skipped, currentTurn=%s", gameID, playerID, game.CurrentTurn)
 		return
 	}
 
@@ -169,8 +185,10 @@ func (m *Manager) ResumeIfReturning(ctx context.Context, gameID, playerID string
 	})
 
 	if err := m.repo.UpdateWithVersion(ctx, oid, game.Version, game); err != nil {
+		log.Printf("game=%s player=%s ResumeIfReturning: UpdateWithVersion(version=%d) error: %v", gameID, playerID, game.Version, err)
 		return
 	}
+	log.Printf("game=%s player=%s ResumeIfReturning: resumed", gameID, playerID)
 
 	recipients := BroadcastRecipients(game)
 	m.hub.BroadcastGameState(gameID, recipients, func(pid string) interface{} {
@@ -192,7 +210,11 @@ func (m *Manager) suspendNoCardsLeft(ctx context.Context, gameID string, oid bso
 		PlayerID:  game.CurrentTurn,
 		Data:      map[string]interface{}{"reason": "no_cards_left"},
 	})
-	_ = m.repo.UpdateWithVersion(ctx, oid, game.Version, game)
+	if err := m.repo.UpdateWithVersion(ctx, oid, game.Version, game); err != nil {
+		log.Printf("game=%s player=%s suspendNoCardsLeft: UpdateWithVersion(version=%d) error: %v", gameID, game.CurrentTurn, game.Version, err)
+		return
+	}
+	log.Printf("game=%s player=%s suspendNoCardsLeft: suspended", gameID, game.CurrentTurn)
 	recipients := BroadcastRecipients(game)
 	m.broadcastEvents(gameID, game.CurrentTurn, []rules.StateEvent{
 		{Type: "game_suspended", Data: map[string]interface{}{
@@ -228,6 +250,8 @@ func toRulesAction(in WSIncoming) (rules.Action, error) {
 		return rules.Action{Type: rules.ActionUndoDrawDiscard}, nil
 	case "undo_lay_off":
 		return rules.Action{Type: rules.ActionUndoLayOff}, nil
+	case "undo_lay_meld":
+		return rules.Action{Type: rules.ActionUndoLayMeld}, nil
 	default:
 		return rules.Action{}, fmt.Errorf("unknown action type: %s", in.Type)
 	}
@@ -269,6 +293,34 @@ func fromRulesLayOffSnapshot(s *rules.LayOffSnapshot) *models.LayOffSnapshot {
 	}
 }
 
+func toRulesMeldLaidSnapshot(s *models.MeldLaidSnapshot) *rules.MeldLaidSnapshot {
+	if s == nil {
+		return nil
+	}
+	return &rules.MeldLaidSnapshot{
+		PlayerID:                        s.PlayerID,
+		MeldID:                          s.MeldID,
+		Cards:                           s.Cards,
+		PrevRoundReqMet:                 s.PrevRoundReqMet,
+		PrevMeldsLaidThisTurn:           s.PrevMeldsLaidThisTurn,
+		PrevDiscardDrawnCardPendingMeld: s.PrevDiscardDrawnCardPendingMeld,
+	}
+}
+
+func fromRulesMeldLaidSnapshot(s *rules.MeldLaidSnapshot) *models.MeldLaidSnapshot {
+	if s == nil {
+		return nil
+	}
+	return &models.MeldLaidSnapshot{
+		PlayerID:                        s.PlayerID,
+		MeldID:                          s.MeldID,
+		Cards:                           s.Cards,
+		PrevRoundReqMet:                 s.PrevRoundReqMet,
+		PrevMeldsLaidThisTurn:           s.PrevMeldsLaidThisTurn,
+		PrevDiscardDrawnCardPendingMeld: s.PrevDiscardDrawnCardPendingMeld,
+	}
+}
+
 func toRulesState(g models.Game) rules.GameState {
 	// MeldMeta needs type conversion.
 	rMeldMeta := map[string][]rules.MeldInfo{}
@@ -307,6 +359,7 @@ func toRulesState(g models.Game) rules.GameState {
 		DiscardDrawnCardPendingMeld: g.DiscardDrawnCardPendingMeld,
 		DiscardDrawnCards:           g.DiscardDrawnCards,
 		LastLayOff:                  toRulesLayOffSnapshot(g.LastLayOff),
+		LastMeldLaid:                toRulesMeldLaidSnapshot(g.LastMeldLaid),
 		GameScores:                  g.GameScores,
 		TotalScores:                 g.TotalScores,
 		WinnerID:                    g.WinnerID,
@@ -336,6 +389,7 @@ func fromRulesState(g *models.Game, rs rules.GameState) {
 	g.DiscardDrawnCardPendingMeld = rs.DiscardDrawnCardPendingMeld
 	g.DiscardDrawnCards = rs.DiscardDrawnCards
 	g.LastLayOff = fromRulesLayOffSnapshot(rs.LastLayOff)
+	g.LastMeldLaid = fromRulesMeldLaidSnapshot(rs.LastMeldLaid)
 	g.GameScores = rs.GameScores
 	g.TotalScores = rs.TotalScores
 
@@ -477,12 +531,24 @@ func aiVisibleFromGame(game models.Game) ai.VisibleState {
 			})
 		}
 	}
+	playerDiscards := map[string][]string{}
+	for _, act := range game.ActionLog {
+		if act.Type != "player_discarded" {
+			continue
+		}
+		card, ok := act.Data["card"].(string)
+		if !ok || card == "" {
+			continue
+		}
+		playerDiscards[act.PlayerID] = append(playerDiscards[act.PlayerID], card)
+	}
 	return ai.VisibleState{
 		GameNumber:          game.GameNumber,
 		Round:               game.Round,
 		Phase:               game.Phase,
 		CurrentTurn:         game.CurrentTurn,
 		DiscardPile:         game.DiscardPile,
+		PlayerDiscards:      playerDiscards,
 		Melds:               game.Melds,
 		MeldMeta:            rMeldMeta,
 		RoundReqMet:         game.RoundReqMet,

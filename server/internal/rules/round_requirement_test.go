@@ -95,20 +95,53 @@ func TestInitialMeldMinimum_SumAcrossMelds(t *testing.T) {
 	p := "p1"
 	st := baseActiveState(1, p)
 	st.InitialMeldMinimum = 35
-	st.Hands[p] = []string{"2H", "2D", "2C", "3H", "3D", "3C"}
+	st.Hands[p] = []string{"2H", "2D", "2C", "3H", "3D", "3C", "9S"}
 
-	// Two low sets (2+2+2=6 each = 12 total) — below 35.
+	// Two low sets (2+2+2=6 each = 12 total) — below 35. Both melds must
+	// still be layable (a shape-complete but under-value combination isn't
+	// rejected outright — see ValidateMeldAction) but the player must not be
+	// marked down since the sum never clears the floor.
 	st, _, _, err := ValidateMeldAction(st, p, []string{"2H", "2D", "2C"})
 	if err != nil {
 		t.Fatalf("first meld: %v", err)
 	}
 	st, _, _, err = ValidateMeldAction(st, p, []string{"3H", "3D", "3C"})
-	if err == nil {
-		t.Fatalf("expected meld below minimum when total natural < 35")
+	if err != nil {
+		t.Fatalf("second meld: %v", err)
 	}
-	re, ok := err.(RulesError)
-	if !ok || re.Code != ErrMeldBelowMinimum {
-		t.Fatalf("expected ErrMeldBelowMinimum got %v", err)
+	if st.RoundReqMet[p] {
+		t.Fatalf("player should not be down: melds total 12 points, below the 35 floor")
+	}
+}
+
+// TestInitialMeldMinimum_TwoCleanRunsCombineTowardFloor reproduces a
+// reported bug: zolik_classic's "down" shape requirement is
+// just "at least one clean run" (Sets:0, Runs:0, RequireCleanRun:true), so a
+// single clean run alone already satisfies the shape check. Laying a second
+// clean run must still add its value toward the floor instead of each meld
+// being judged alone and rejected in isolation (e.g. Q-K-A = 21 points,
+// 8-9-10 = 27 points — neither clears 35 alone, but together they total 48).
+func TestInitialMeldMinimum_TwoCleanRunsCombineTowardFloor(t *testing.T) {
+	p := "p1"
+	st := baseActiveState(1, p)
+	st.Rules = ProfileZolikClassic
+	st.InitialMeldMinimum = 35
+	st.Hands[p] = []string{"QH", "KH", "AH", "8H", "9H", "TH", "9S"}
+
+	st, _, _, err := ValidateMeldAction(st, p, []string{"8H", "9H", "TH"})
+	if err != nil {
+		t.Fatalf("first run (8-9-10, 27 points): %v", err)
+	}
+	if st.RoundReqMet[p] {
+		t.Fatalf("27 points alone should not be enough to go down")
+	}
+
+	st, _, _, err = ValidateMeldAction(st, p, []string{"QH", "KH", "AH"})
+	if err != nil {
+		t.Fatalf("second run (Q-K-A, 21 points): %v", err)
+	}
+	if !st.RoundReqMet[p] {
+		t.Fatalf("27+21=48 points across both runs should clear the 35 floor")
 	}
 }
 
