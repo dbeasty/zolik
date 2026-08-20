@@ -361,7 +361,12 @@ export default function GameScreen() {
   }
 
   // Commits every selected card into the group currently being built, in
-  // hand order, in one go.
+  // hand order, in one go. If the last group already has cards in it, this
+  // selection is a separate meld the player is building next — starting a
+  // fresh group automatically (rather than merging into the last one)
+  // avoids silently mixing two unrelated runs/sets together when the
+  // player selects cards for a second meld without first tapping "+ Add
+  // another run or set".
   function addSelectedToMeld() {
     if (selectedForMeld.size === 0) return;
     const indices = Array.from(selectedForMeld).sort((a, b) => a - b);
@@ -369,7 +374,8 @@ export default function GameScreen() {
     if (cards.length === 0) return;
     setGroups((prev) => {
       const next = prev.map((g) => [...g]);
-      next[next.length - 1].push(...cards);
+      if (next[next.length - 1].length > 0) next.push([...cards]);
+      else next[next.length - 1].push(...cards);
       return next;
     });
     setSelectedForMeld(new Set());
