@@ -219,7 +219,9 @@ func toRulesAction(in WSIncoming) (rules.Action, error) {
 	case "lay_meld":
 		return rules.Action{Type: rules.ActionLayMeld, Cards: in.Cards}, nil
 	case "lay_off":
-		return rules.Action{Type: rules.ActionLayOff, MeldID: in.MeldID, Card: in.Card}, nil
+		return rules.Action{Type: rules.ActionLayOff, MeldID: in.MeldID, Card: in.Card, Cards: in.Cards}, nil
+	case "swap_joker":
+		return rules.Action{Type: rules.ActionSwapJoker, MeldID: in.MeldID, Card: in.Card}, nil
 	case "discard":
 		return rules.Action{Type: rules.ActionDiscard, Card: in.Card}, nil
 	case "undo_draw_discard":
@@ -458,7 +460,9 @@ func rulesActionToWSIncoming(a rules.Action) WSIncoming {
 	case rules.ActionLayMeld:
 		return WSIncoming{Type: "lay_meld", Cards: a.Cards}
 	case rules.ActionLayOff:
-		return WSIncoming{Type: "lay_off", MeldID: a.MeldID, Card: a.Card}
+		return WSIncoming{Type: "lay_off", MeldID: a.MeldID, Card: a.Card, Cards: a.Cards}
+	case rules.ActionSwapJoker:
+		return WSIncoming{Type: "swap_joker", MeldID: a.MeldID, Card: a.Card}
 	case rules.ActionDiscard:
 		return WSIncoming{Type: "discard", Card: a.Card}
 	default:

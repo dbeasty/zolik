@@ -46,6 +46,7 @@ const (
 	ActionDrawCard        ActionType = "draw_card"
 	ActionLayMeld         ActionType = "lay_meld"
 	ActionLayOff          ActionType = "lay_off"
+	ActionSwapJoker       ActionType = "swap_joker"
 	ActionDiscard         ActionType = "discard"
 	ActionUndoDrawDiscard ActionType = "undo_draw_discard"
 )
@@ -62,9 +63,13 @@ type Action struct {
 
 	DrawFrom DrawFrom
 
-	Cards  []string // for lay_meld
-	MeldID string   // for lay_off
-	// Card is used for lay_off, discard, and (only under
+	// Cards is used for lay_meld, and for lay_off to add more than one card
+	// to the same meld in a single action (a single-card lay_off may use
+	// Card instead; Cards takes precedence when both are set).
+	Cards  []string
+	MeldID string // for lay_off, swap_joker
+	// Card is used for lay_off (single-card form), discard, swap_joker (the
+	// natural replacement card from hand), and (only under
 	// DiscardPickupAnyFromPile) to name which discard-pile card a
 	// draw_card{from:"discard"} action targets — empty means "the top card".
 	Card string
@@ -172,6 +177,8 @@ const (
 	ErrJokerDiscard          RulesErrorCode = "JOKER_DISCARD_FORBIDDEN"
 	ErrBreaksCleanRun        RulesErrorCode = "BREAKS_CLEAN_RUN"
 	ErrNothingToUndo         RulesErrorCode = "NOTHING_TO_UNDO"
+	ErrNoJokerInMeld         RulesErrorCode = "NO_JOKER_IN_MELD"
+	ErrJokerSwapMismatch     RulesErrorCode = "JOKER_SWAP_MISMATCH"
 
 	// Not in spec list; required by your decision for empty deck+discard.
 	ErrNoCardsLeft RulesErrorCode = "NO_CARDS_LEFT"

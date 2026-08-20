@@ -313,7 +313,7 @@ func findLayOff(meldMeta map[string][]rules.MeldInfo, melds map[string][][]strin
 				}
 				// Never dirty the owner's only clean run with a wild — the
 				// server rejects it, and the card belongs in its own meld.
-				if rules.LayOffBreaksCleanRun(cfg, gameNumber, ownerMelds, i, c) {
+				if rules.LayOffBreaksCleanRun(cfg, gameNumber, ownerMelds, i, []string{c}) {
 					continue
 				}
 				return mi.MeldID, c, true

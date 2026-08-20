@@ -226,7 +226,7 @@ func ValidateMeldAction(state GameState, playerID string, cards []string) (GameS
 	return state, meldID, mv.Type, nil
 }
 
-func ValidateLayOff(state GameState, playerID string, meldID string, card string) (GameState, error) {
+func ValidateLayOff(state GameState, playerID string, meldID string, cards []string) (GameState, error) {
 	if state.Status != StatusActive {
 		return state, RulesError{Code: ErrGameNotActive}
 	}
@@ -235,6 +235,9 @@ func ValidateLayOff(state GameState, playerID string, meldID string, card string
 	}
 	if state.CurrentTurn != playerID {
 		return state, RulesError{Code: ErrNotYourTurn}
+	}
+	if len(cards) == 0 {
+		return state, RulesError{Code: ErrInvalidMeld, Message: "no cards to lay off"}
 	}
 	// A player can only lay off (onto their own or another player's melds)
 	// once they've laid their own initial meld — before that, any card they
@@ -246,7 +249,7 @@ func ValidateLayOff(state GameState, playerID string, meldID string, card string
 			Message: "lay your own initial meld before laying off on any meld",
 		}
 	}
-	if err := requireCardsInHand(state.Hands[playerID], []string{card}); err != nil {
+	if err := requireCardsInHand(state.Hands[playerID], cards); err != nil {
 		return state, err
 	}
 
@@ -256,19 +259,19 @@ func ValidateLayOff(state GameState, playerID string, meldID string, card string
 	}
 
 	cfg := effectiveRules(state)
-	newMeld := append(append([]string(nil), state.Melds[owner][idx]...), card)
+	newMeld := append(append([]string(nil), state.Melds[owner][idx]...), cards...)
 	mv, err := ValidateMeld(newMeld, cfg)
 	if err != nil {
 		return state, err
 	}
-	if LayOffBreaksCleanRun(cfg, state.GameNumber, state.Melds[owner], idx, card) {
+	if LayOffBreaksCleanRun(cfg, state.GameNumber, state.Melds[owner], idx, cards) {
 		return state, RulesError{
 			Code:    ErrBreaksCleanRun,
 			Message: "that run has to stay joker-free — start a separate meld instead",
 		}
 	}
 
-	state.Hands[playerID] = removeCards(state.Hands[playerID], []string{card})
+	state.Hands[playerID] = removeCards(state.Hands[playerID], cards)
 	state.Melds[owner][idx] = OrderMeldForDisplay(newMeld, mv)
 	if metas := state.MeldMeta[owner]; idx < len(metas) {
 		metas[idx].Type = mv.Type
@@ -281,6 +284,81 @@ func ValidateLayOff(state GameState, playerID string, meldID string, card string
 	if !cfg.IsFinalDeal(state.GameNumber) && len(state.Hands[playerID]) == 0 {
 		return state, RulesError{Code: ErrInvalidMeld, Message: "must discard your last card to go out"}
 	}
+
+	return state, nil
+}
+
+// ValidateSwapJoker replaces a joker sitting in an existing meld with the
+// exact natural card it stands in for, moving the joker into playerID's
+// hand. Applies to both runs (the joker fills a specific rank/suit gap) and
+// sets (the joker fills a specific rank, any suit not already present) —
+// re-validating the meld with the joker removed and the natural card added
+// is enough to confirm the natural card genuinely occupies the joker's slot,
+// since any other placement would either duplicate a rank/suit already on
+// the table or fail to form a contiguous run.
+func ValidateSwapJoker(state GameState, playerID string, meldID string, card string) (GameState, error) {
+	if state.Status != StatusActive {
+		return state, RulesError{Code: ErrGameNotActive}
+	}
+	if state.Phase != PhaseMeld {
+		return state, RulesError{Code: ErrWrongPhase}
+	}
+	if state.CurrentTurn != playerID {
+		return state, RulesError{Code: ErrNotYourTurn}
+	}
+	if IsJoker(card) {
+		return state, RulesError{Code: ErrJokerSwapMismatch, Message: "the replacement card must be a natural card, not a joker"}
+	}
+	if err := requireCardsInHand(state.Hands[playerID], []string{card}); err != nil {
+		return state, err
+	}
+
+	owner, idx := findMeldByID(state, meldID)
+	if owner == "" {
+		return state, RulesError{Code: ErrInvalidMeld, Message: "that meld no longer exists on the table"}
+	}
+	meld := state.Melds[owner][idx]
+
+	jokerPos := -1
+	for i, c := range meld {
+		if IsJoker(c) {
+			jokerPos = i
+			break
+		}
+	}
+	if jokerPos == -1 {
+		return state, RulesError{Code: ErrNoJokerInMeld, Message: "that meld has no joker to swap out"}
+	}
+	joker := meld[jokerPos]
+
+	replaced := append(append([]string(nil), meld[:jokerPos]...), meld[jokerPos+1:]...)
+	replaced = append(replaced, card)
+
+	cfg := effectiveRules(state)
+	mv, err := ValidateMeld(replaced, cfg)
+	if err != nil {
+		return state, RulesError{
+			Code:    ErrJokerSwapMismatch,
+			Message: "that card doesn't take the joker's exact place in this meld",
+		}
+	}
+	if meta := state.MeldMeta[owner]; idx < len(meta) && mv.Type != meta[idx].Type {
+		return state, RulesError{
+			Code:    ErrJokerSwapMismatch,
+			Message: "that card doesn't take the joker's exact place in this meld",
+		}
+	}
+
+	state.Hands[playerID] = removeCards(state.Hands[playerID], []string{card})
+	state.Hands[playerID] = append(state.Hands[playerID], joker)
+	state.Melds[owner][idx] = OrderMeldForDisplay(replaced, mv)
+	if metas := state.MeldMeta[owner]; idx < len(metas) {
+		metas[idx].Type = mv.Type
+		metas[idx].WildCount = mv.WildCount
+	}
+	// Swapping a joker never changes hand size, so it can never be the move
+	// that empties a hand — unlike lay_meld/lay_off, no go-out check here.
+	state.DiscardDrawnCards = nil
 
 	return state, nil
 }

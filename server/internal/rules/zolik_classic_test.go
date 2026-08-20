@@ -181,13 +181,13 @@ func TestZolikClassic_LayOffCannotDirtyTheOnlyCleanRun(t *testing.T) {
 	}
 
 	// Extending it with a natural is fine — the run stays clean.
-	st, err = ValidateLayOff(st, p, meldID, "8C")
+	st, err = ValidateLayOff(st, p, meldID, []string{"8C"})
 	if err != nil {
 		t.Fatalf("laying off a natural onto a clean run should be allowed: %v", err)
 	}
 
 	// Extending it with a joker is not: it would leave no clean run behind.
-	_, err = ValidateLayOff(st, p, meldID, "JOKER1")
+	_, err = ValidateLayOff(st, p, meldID, []string{"JOKER1"})
 	re, ok := err.(RulesError)
 	if !ok || re.Code != ErrBreaksCleanRun {
 		t.Fatalf("expected BREAKS_CLEAN_RUN when a joker would dirty the only clean run, got %#v", err)
@@ -197,6 +197,41 @@ func TestZolikClassic_LayOffCannotDirtyTheOnlyCleanRun(t *testing.T) {
 	// recorded when each meld was first laid.
 	if _, _, hasCleanRun := PlayerMeldCounts(st, p); !hasCleanRun {
 		t.Fatal("5C-6C-7C-8C is still on the table and still clean")
+	}
+}
+
+// Reproduces a reported bug: laying a natural ace onto J-Q-K to extend the
+// run ace-high (J-Q-K-A) was being mis-resolved as a 10-J-Q-K window with
+// the ace standing in as a wild for the missing 10 — a valid but needlessly
+// wild resolution that wrongly dirtied an otherwise clean run. The natural,
+// wild-free ace-high resolution must win whenever both are possible.
+func TestZolikClassic_LayOffNaturalAceExtendsRunAceHighWithoutGoingWild(t *testing.T) {
+	p := "p1"
+	st := classicState(p)
+	st.Hands[p] = []string{"JD", "QD", "KD", "AD", "2S"}
+
+	st, meldID, _, err := ValidateMeldAction(st, p, []string{"JD", "QD", "KD"})
+	if err != nil {
+		t.Fatalf("clean run should be a valid meld: %v", err)
+	}
+
+	st, err = ValidateLayOff(st, p, meldID, []string{"AD"})
+	if err != nil {
+		t.Fatalf("laying a natural ace onto J-Q-K to make it ace-high should be allowed: %v", err)
+	}
+
+	got := st.Melds[p][0]
+	want := []string{"JD", "QD", "KD", "AD"}
+	if len(got) != len(want) {
+		t.Fatalf("expected the run to grow to %v, got %v", want, got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("expected the run to grow to %v, got %v", want, got)
+		}
+	}
+	if meta := st.MeldMeta[p][0]; meta.WildCount != 0 {
+		t.Fatalf("expected the ace to resolve naturally (WildCount 0), got %d", meta.WildCount)
 	}
 }
 
@@ -214,7 +249,7 @@ func TestZolikClassic_LayOffJokerAllowedOnceAnotherCleanRunExists(t *testing.T) 
 		t.Fatalf("second clean run: %v", err)
 	}
 
-	st, err = ValidateLayOff(st, p, meldID, "JOKER1")
+	st, err = ValidateLayOff(st, p, meldID, []string{"JOKER1"})
 	if err != nil {
 		t.Fatalf("a joker may dirty one run while another clean run remains: %v", err)
 	}

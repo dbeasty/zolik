@@ -265,6 +265,7 @@ func validateRun(cards []string, minRunSize int) (MeldValidation, error) {
 	}
 
 	aceAsNatural := map[string]int{}
+	var best *MeldValidation
 
 tryStart:
 	for _, start := range starts {
@@ -407,15 +408,27 @@ tryStart:
 
 		naturalValue := ValidateMeldValue(cards, aceAsNatural)
 
-		return MeldValidation{
+		candidate := MeldValidation{
 			Type:         MeldRun,
 			AceAsNatural: aceAsNatural,
 			NaturalValue: naturalValue,
 			NaturalCount: naturalCount,
 			WildCount:    wildCount,
-			ResolvedRun:  positions,
+			ResolvedRun:  append([]int(nil), positions...),
 			ResolvedSuit: runSuit,
-		}, nil
+		}
+		// Several windows can fit the same fixed cards (e.g. J-Q-K plus one
+		// flex ace could sit at 10-J-Q-K with the ace wild, or J-Q-K-A with
+		// the ace natural) — prefer the one that spends the fewest wilds,
+		// since a flex ace should always resolve to its natural endpoint
+		// over standing in for an unrelated rank when both are possible.
+		if best == nil || candidate.WildCount < best.WildCount {
+			best = &candidate
+		}
+	}
+
+	if best != nil {
+		return *best, nil
 	}
 
 	return MeldValidation{}, RulesError{

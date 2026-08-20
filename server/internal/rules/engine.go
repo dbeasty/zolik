@@ -87,18 +87,35 @@ func ApplyAction(state GameState, playerID string, action Action) (ApplyOutcome,
 		return ApplyOutcome{State: ns, Events: events}, nil
 
 	case ActionLayOff:
-		ns, err := ValidateLayOff(state, playerID, action.MeldID, action.Card)
+		cards := action.Cards
+		if len(cards) == 0 && action.Card != "" {
+			cards = []string{action.Card}
+		}
+		ns, err := ValidateLayOff(state, playerID, action.MeldID, cards)
 		if err != nil {
 			return ApplyOutcome{State: state}, err
 		}
 		events = append(events, ev("card_laid_off", map[string]interface{}{
 			"playerId": playerID,
 			"meldId":   action.MeldID,
-			"card":     action.Card,
+			"card":     cards[0],
+			"cards":    cards,
 		}))
 		if ns.GameNumber == 7 && ns.RoundReqMet[playerID] && len(ns.Hands[playerID]) == 0 {
 			return endGameWithEvents(ns, playerID)
 		}
+		return ApplyOutcome{State: ns, Events: events}, nil
+
+	case ActionSwapJoker:
+		ns, err := ValidateSwapJoker(state, playerID, action.MeldID, action.Card)
+		if err != nil {
+			return ApplyOutcome{State: state}, err
+		}
+		events = append(events, ev("joker_swapped", map[string]interface{}{
+			"playerId": playerID,
+			"meldId":   action.MeldID,
+			"card":     action.Card,
+		}))
 		return ApplyOutcome{State: ns, Events: events}, nil
 
 	case ActionDiscard:

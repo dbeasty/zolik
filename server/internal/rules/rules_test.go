@@ -417,7 +417,7 @@ func TestValidateLayOff_BlockedBeforeOwnRoundReqMet(t *testing.T) {
 		MeldMeta:    map[string][]MeldInfo{"p2": {{MeldID: "meld_1", Type: MeldSet, OwnerID: "p2"}}},
 		RoundReqMet: map[string]bool{"p1": false, "p2": true},
 	}
-	_, err := ValidateLayOff(st, "p1", "meld_1", "7H")
+	_, err := ValidateLayOff(st, "p1", "meld_1", []string{"7H"})
 	if err == nil {
 		t.Fatalf("expected lay-off to be blocked before p1 has met their own round requirement")
 	}
@@ -438,8 +438,131 @@ func TestValidateLayOff_AllowedOnceOwnRoundReqMet(t *testing.T) {
 		MeldMeta:    map[string][]MeldInfo{"p2": {{MeldID: "meld_1", Type: MeldSet, OwnerID: "p2"}}},
 		RoundReqMet: map[string]bool{"p1": true, "p2": true},
 	}
-	if _, err := ValidateLayOff(st, "p1", "meld_1", "7H"); err != nil {
+	if _, err := ValidateLayOff(st, "p1", "meld_1", []string{"7H"}); err != nil {
 		t.Fatalf("expected lay-off to succeed once p1 has met their own round requirement, got %v", err)
+	}
+}
+
+func TestValidateLayOff_MultiCardInOneAction(t *testing.T) {
+	st := GameState{
+		Status:      StatusActive,
+		Phase:       PhaseMeld,
+		Round:       1,
+		CurrentTurn: "p1",
+		Hands:       map[string][]string{"p1": {"8C", "9C", "2S"}},
+		Melds:       map[string][][]string{"p2": {{"5C", "6C", "7C"}}},
+		MeldMeta:    map[string][]MeldInfo{"p2": {{MeldID: "meld_1", Type: MeldRun, OwnerID: "p2"}}},
+		RoundReqMet: map[string]bool{"p1": true, "p2": true},
+	}
+	ns, err := ValidateLayOff(st, "p1", "meld_1", []string{"8C", "9C"})
+	if err != nil {
+		t.Fatalf("expected multi-card lay-off to succeed, got %v", err)
+	}
+	if got := len(ns.Melds["p2"][0]); got != 5 {
+		t.Fatalf("expected the run to grow by both cards, got %d cards: %v", got, ns.Melds["p2"][0])
+	}
+	if len(ns.Hands["p1"]) != 1 || ns.Hands["p1"][0] != "2S" {
+		t.Fatalf("expected only the laid-off cards removed from hand, got %v", ns.Hands["p1"])
+	}
+}
+
+func TestValidateSwapJoker_RunReplacesJokerAndReturnsItToHand(t *testing.T) {
+	st := GameState{
+		Status:      StatusActive,
+		Phase:       PhaseMeld,
+		Round:       1,
+		CurrentTurn: "p1",
+		Hands:       map[string][]string{"p1": {"7C"}},
+		Melds:       map[string][][]string{"p2": {{"5C", "6C", "JOKER1", "8C"}}},
+		MeldMeta:    map[string][]MeldInfo{"p2": {{MeldID: "meld_1", Type: MeldRun, OwnerID: "p2", WildCount: 1}}},
+		RoundReqMet: map[string]bool{"p1": false, "p2": true},
+	}
+	ns, err := ValidateSwapJoker(st, "p1", "meld_1", "7C")
+	if err != nil {
+		t.Fatalf("expected swap to succeed, got %v", err)
+	}
+	if got := ns.Melds["p2"][0]; len(got) != 4 || got[2] != "7C" {
+		t.Fatalf("expected 7C to fill the joker's slot, got %v", got)
+	}
+	found := false
+	for _, c := range ns.Hands["p1"] {
+		if c == "JOKER1" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected the joker to land in p1's hand, got %v", ns.Hands["p1"])
+	}
+	if len(ns.Hands["p1"]) != 1 {
+		t.Fatalf("expected hand size unchanged (one card out, one in), got %v", ns.Hands["p1"])
+	}
+	if meta := ns.MeldMeta["p2"][0]; meta.WildCount != 0 {
+		t.Fatalf("expected wild count to drop to 0, got %d", meta.WildCount)
+	}
+}
+
+func TestValidateSwapJoker_SetReplacesJokerWithMatchingRank(t *testing.T) {
+	st := GameState{
+		Status:      StatusActive,
+		Phase:       PhaseMeld,
+		Round:       1,
+		CurrentTurn: "p1",
+		Hands:       map[string][]string{"p1": {"9H"}},
+		Melds:       map[string][][]string{"p2": {{"9C", "9D", "JOKER2"}}},
+		MeldMeta:    map[string][]MeldInfo{"p2": {{MeldID: "meld_1", Type: MeldSet, OwnerID: "p2", WildCount: 1}}},
+		RoundReqMet: map[string]bool{"p1": false, "p2": true},
+	}
+	ns, err := ValidateSwapJoker(st, "p1", "meld_1", "9H")
+	if err != nil {
+		t.Fatalf("expected swap to succeed, got %v", err)
+	}
+	if got := ns.Melds["p2"][0]; len(got) != 3 {
+		t.Fatalf("expected set to keep 3 cards, got %v", got)
+	}
+	if meta := ns.MeldMeta["p2"][0]; meta.WildCount != 0 {
+		t.Fatalf("expected wild count to drop to 0, got %d", meta.WildCount)
+	}
+}
+
+func TestValidateSwapJoker_WrongCardRejected(t *testing.T) {
+	st := GameState{
+		Status:      StatusActive,
+		Phase:       PhaseMeld,
+		Round:       1,
+		CurrentTurn: "p1",
+		Hands:       map[string][]string{"p1": {"2H"}},
+		Melds:       map[string][][]string{"p2": {{"5C", "6C", "JOKER1", "8C"}}},
+		MeldMeta:    map[string][]MeldInfo{"p2": {{MeldID: "meld_1", Type: MeldRun, OwnerID: "p2", WildCount: 1}}},
+		RoundReqMet: map[string]bool{"p1": false, "p2": true},
+	}
+	_, err := ValidateSwapJoker(st, "p1", "meld_1", "2H")
+	if err == nil {
+		t.Fatalf("expected an unrelated card to be rejected")
+	}
+	re, ok := err.(RulesError)
+	if !ok || re.Code != ErrJokerSwapMismatch {
+		t.Fatalf("expected JOKER_SWAP_MISMATCH, got %#v", err)
+	}
+}
+
+func TestValidateSwapJoker_NoJokerInMeldRejected(t *testing.T) {
+	st := GameState{
+		Status:      StatusActive,
+		Phase:       PhaseMeld,
+		Round:       1,
+		CurrentTurn: "p1",
+		Hands:       map[string][]string{"p1": {"9C"}},
+		Melds:       map[string][][]string{"p2": {{"5C", "6C", "7C"}}},
+		MeldMeta:    map[string][]MeldInfo{"p2": {{MeldID: "meld_1", Type: MeldRun, OwnerID: "p2"}}},
+		RoundReqMet: map[string]bool{"p1": false, "p2": true},
+	}
+	_, err := ValidateSwapJoker(st, "p1", "meld_1", "9C")
+	if err == nil {
+		t.Fatalf("expected error: meld has no joker to swap")
+	}
+	re, ok := err.(RulesError)
+	if !ok || re.Code != ErrNoJokerInMeld {
+		t.Fatalf("expected NO_JOKER_IN_MELD, got %#v", err)
 	}
 }
 

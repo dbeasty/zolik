@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
@@ -289,24 +289,6 @@ export default function GameScreen() {
     if (!isMyTurn) setJustDrawnCard(null);
   }, [isMyTurn]);
 
-  const meldTargets = useMemo(() => {
-    if (!state?.meldMeta) return [];
-    const out: { meldId: string; label: string; owner: string }[] = [];
-    let i = 0;
-    const letters = 'abcdefghijklmnopqrstuvwxyz';
-    for (const [owner, metas] of Object.entries(state.meldMeta)) {
-      for (const meta of metas) {
-        out.push({
-          meldId: meta.meldId,
-          label: letters[i] ?? String(i),
-          owner,
-        });
-        i++;
-      }
-    }
-    return out;
-  }, [state?.meldMeta]);
-
   // Moves a card straight into the group currently being built — used by
   // drag-to-stage (dropping onto the staging area) and by "+ Add to meld"
   // for each selected card. Skips the select step entirely.
@@ -408,7 +390,9 @@ export default function GameScreen() {
     clearSelect();
   }
 
-  const canLayOff = !!state && isMyTurn;
+  // Lay-off is a post-"down" action: you can only extend melds (yours or
+  // anyone else's) once you've met your own round requirement this deal.
+  const canLayOff = !!state && isMyTurn && phase === 'meld' && !!state.roundReqMet[userId];
   const canBuildMeld = !!state && isMyTurn && phase === 'meld';
 
   function layOffCardAt(index: number, meldId: string) {
@@ -524,21 +508,24 @@ export default function GameScreen() {
   // discard pile is locked — instead of the action just disappearing.
   actions.push({ label: 'Draw deck', onPress: drawFromDeck, disabled: !canDrawDeck });
   actions.push({ label: 'Take discard', onPress: takeDiscard, disabled: !canTakeDiscard });
+  // Cards currently selected for a meld action — hoisted out of the
+  // per-phase block below because MeldTable also needs it, to decide which
+  // per-meld "Lay off here" / "Swap joker here" buttons to show.
+  const meldSelectedCards = phase === 'meld' ? selectedCards(hand, selectedForMeld) : [];
+
+  function layOffOnto(meldId: string) {
+    if (meldSelectedCards.length === 0) return;
+    send({ type: 'lay_off', meldId, cards: meldSelectedCards });
+    clearSelect();
+  }
+
+  function swapJokerOnto(meldId: string) {
+    if (meldSelectedCards.length !== 1) return;
+    send({ type: 'swap_joker', meldId, card: meldSelectedCards[0] });
+    clearSelect();
+  }
+
   if (isMyTurn) {
-    if (phase === 'meld') {
-      const cards = selectedCards(hand, selectedForMeld);
-      if (cards.length === 1 && meldTargets.length > 0 && state.roundReqMet[userId]) {
-        meldTargets.slice(0, 6).forEach((m) => {
-          actions.push({
-            label: `Lay off on ${m.label}`,
-            onPress: () => {
-              send({ type: 'lay_off', meldId: m.meldId, card: cards[0] });
-              clearSelect();
-            },
-          });
-        });
-      }
-    }
     if (phase === 'discard') {
       const cards = selectedCards(hand, allStaged);
       if (cards.length === 1) {
@@ -601,7 +588,15 @@ export default function GameScreen() {
             </Text>
           ))}
 
-        <MeldTable state={state} myUserId={userId} onMeldRef={registerMeldRef} />
+        <MeldTable
+          state={state}
+          myUserId={userId}
+          onMeldRef={registerMeldRef}
+          selectedCards={meldSelectedCards}
+          canLayOff={canLayOff}
+          onLayOff={layOffOnto}
+          onSwapJoker={swapJokerOnto}
+        />
 
         {canBuildMeld ? (
           <MeldStagingArea

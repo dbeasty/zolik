@@ -26,6 +26,7 @@ type gameModel struct {
 	cmdInput   textinput.Model
 	spinner    spinner.Model
 	layoffPick bool
+	swapPick   bool
 	meldLabels map[string]string // meldId -> letter
 	roundData  map[string]any
 }
@@ -128,12 +129,27 @@ func (m gameModel) update(msg tea.Msg) (gameModel, tea.Cmd) {
 			for id, letter := range m.meldLabels {
 				if letter == r {
 					cards := selectedCards(m.state.MyHand, m.selected)
-					if len(cards) == 1 {
-						return m, m.send(api.WSAction{Type: "lay_off", MeldID: id, Card: cards[0]})
+					if len(cards) > 0 {
+						return m, m.send(api.WSAction{Type: "lay_off", MeldID: id, Cards: cards})
 					}
 				}
 			}
 			m.layoffPick = false
+		}
+	}
+
+	if m.swapPick {
+		r := key.String()
+		if len(r) == 1 && r[0] >= 'a' && r[0] <= 'z' {
+			for id, letter := range m.meldLabels {
+				if letter == r {
+					cards := selectedCards(m.state.MyHand, m.selected)
+					if len(cards) == 1 {
+						return m, m.send(api.WSAction{Type: "swap_joker", MeldID: id, Card: cards[0]})
+					}
+				}
+			}
+			m.swapPick = false
 		}
 	}
 
@@ -162,10 +178,17 @@ func (m gameModel) update(msg tea.Msg) (gameModel, tea.Cmd) {
 		}
 	case "l", "L":
 		cards := selectedCards(m.state.MyHand, m.selected)
-		if len(cards) == 1 {
+		if len(cards) > 0 {
 			m.layoffPick = true
 			m.buildMeldLabels()
 			m.status = "Pick meld letter for lay-off"
+		}
+	case "j":
+		cards := selectedCards(m.state.MyHand, m.selected)
+		if len(cards) == 1 {
+			m.swapPick = true
+			m.buildMeldLabels()
+			m.status = "Pick meld letter to swap joker for " + cards[0]
 		}
 	case "d", "D":
 		cards := selectedCards(m.state.MyHand, m.selected)
@@ -293,7 +316,7 @@ func (m gameModel) runCommand(line string) {
 	case "take":
 		_ = m.send(api.WSAction{Type: "draw_card", From: "discard"})()
 	case "help":
-		m.status = "Keys: arrows, space, M meld, L layoff, D discard, G draw, T take, : commands"
+		m.status = "Keys: arrows, space, M meld, L layoff, J swap joker, D discard, G draw, T take, : commands"
 	case "sort":
 		if len(parts) < 2 {
 			return
