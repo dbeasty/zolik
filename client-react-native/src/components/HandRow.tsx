@@ -41,7 +41,13 @@ export function useDragPreview(): DragPreview {
 type Props = {
   cards: string[];
   selected: Set<number>;
-  onToggle: (index: number) => void;
+  // Plain tap: stages the card straight into the meld-building pane, same
+  // destination a drag-drop onto the staging area reaches.
+  onTapCard: (index: number) => void;
+  // Long-press: toggles the card's gold-ring selection used for the
+  // lay-off / swap-joker flow (see MeldTable) — a separate gesture from tap
+  // since tap is now an immediate action, not a selection.
+  onLongPress?: (index: number) => void;
   onReorder: (newOrder: string[]) => void;
   onDoubleTap?: (index: number) => void;
   // Measures the discard pile's current screen-space rect and reports it
@@ -81,7 +87,8 @@ function pointInZone(x: number, y: number, zone: DropZone): boolean {
 export function HandRow({
   cards,
   selected,
-  onToggle,
+  onTapCard,
+  onLongPress,
   onReorder,
   onDoubleTap,
   measureDropZone,
@@ -110,7 +117,8 @@ export function HandRow({
           selected={selected.has(i)}
           justDrawn={c === justDrawnCard}
           compact={compact}
-          onToggle={onToggle}
+          onTapCard={onTapCard}
+          onLongPress={onLongPress}
           onDoubleTap={onDoubleTap}
           measureDropZone={measureDropZone}
           onDropOnZone={onDropOnZone}
@@ -137,7 +145,8 @@ function DraggableCard({
   selected,
   justDrawn,
   compact,
-  onToggle,
+  onTapCard,
+  onLongPress,
   onDoubleTap,
   measureDropZone,
   onDropOnZone,
@@ -157,7 +166,8 @@ function DraggableCard({
   selected: boolean;
   justDrawn?: boolean;
   compact?: boolean;
-  onToggle: (index: number) => void;
+  onTapCard: (index: number) => void;
+  onLongPress?: (index: number) => void;
   onDoubleTap?: (index: number) => void;
   measureDropZone?: (cb: (zone: DropZone | null) => void) => void;
   onDropOnZone?: (index: number) => void;
@@ -172,11 +182,11 @@ function DraggableCard({
 }) {
   const lastTapAt = useRef(0);
   // A staged card is pulled out of the hand array entirely (see
-  // visibleHand in the game screen), so firing onToggle immediately on the
+  // visibleHand in the game screen), so firing onTapCard immediately on the
   // first tap would unmount this exact component before a following second
   // tap could ever reach it — the double-tap-to-discard gesture would just
-  // silently become "select this card, then select whatever slid into its
-  // place." Holding the toggle until the double-tap window closes without a
+  // silently become "stage this card, then select whatever slid into its
+  // place." Holding the stage until the double-tap window closes without a
   // second tap arriving keeps that gesture reliable regardless of what the
   // single-tap path does to the layout.
   const pendingToggle = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -190,11 +200,11 @@ function DraggableCard({
   // Manual JS timing on top of a single gesture-handler Tap (the same
   // gesture system as the pan below, which is proven to work — mixing it
   // with a plain RN Pressable underneath turned out not to be reliable).
-  // Two taps within the window count as one discard, not two toggles.
+  // Two taps within the window count as one discard, not one stage.
   function handleTap() {
     // During the discard phase a single tap discards outright — there's no
-    // other reason to select a card there, so making the player double-tap
-    // (or select-then-press-Discard) was just extra friction.
+    // other reason to tap a card there, so making the player double-tap
+    // was just extra friction.
     if (tapToDiscard) {
       if (onDoubleTap) onDoubleTap(index);
       return;
@@ -212,13 +222,36 @@ function DraggableCard({
     lastTapAt.current = now;
     pendingToggle.current = setTimeout(() => {
       pendingToggle.current = null;
-      onToggle(index);
+      onTapCard(index);
     }, DOUBLE_TAP_MS);
   }
 
   const tap = Gesture.Tap().onEnd((_e, success) => {
     if (success) runOnJS(handleTap)();
   });
+
+  // Holding a card selects it (gold ring) for the lay-off/swap-joker flow
+  // instead of staging it — a distinct, deliberate gesture from a plain
+  // tap so the two don't collide. Cancels the pending tap-stage timer (and
+  // any double-tap-discard window) so a long-press never also fires a stage
+  // once the finger lifts.
+  function handleLongPress() {
+    if (!onLongPress) return;
+    lastTapAt.current = 0;
+    if (pendingToggle.current) {
+      clearTimeout(pendingToggle.current);
+      pendingToggle.current = null;
+    }
+    onLongPress(index);
+  }
+
+  const longPress = Gesture.LongPress()
+    .minDuration(350)
+    .maxDistance(10)
+    .onStart(() => {
+      if (tapToDiscard) return;
+      runOnJS(handleLongPress)();
+    });
 
   function handleDragStart() {
     onDragCardChange?.(card);
@@ -336,7 +369,7 @@ function DraggableCard({
       dragPreview.draggingIndex.value = -1;
     });
 
-  const gesture = Gesture.Race(pan, tap);
+  const gesture = Gesture.Race(pan, longPress, tap);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: dragPreview.draggingIndex.value === index ? 0.3 : 1,

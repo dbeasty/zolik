@@ -124,6 +124,11 @@ export default function GameScreen() {
   // in here stays visible in the hand row (with the gold ring) until "+ Add
   // to meld" moves it into `groups`. Dragging a card straight onto the
   // staging area skips this and stages it immediately (see stageCard).
+  // Selected via long-press only — tapping a card stages it straight into
+  // the meld-building pane (see stageCard), so this set no longer feeds
+  // that flow. It now exists purely to pick cards for the per-meld "Lay off
+  // here" / "Swap joker here" buttons in MeldTable, which need a multi-card
+  // selection step before the player picks which table meld to apply it to.
   const [selectedForMeld, setSelectedForMeld] = useState<Set<number>>(new Set());
   const [localHand, setLocalHand] = useState<string[] | null>(null);
   const discardZoneRef = useRef<View>(null);
@@ -290,8 +295,9 @@ export default function GameScreen() {
   }, [isMyTurn]);
 
   // Moves a card straight into the group currently being built — used by
-  // drag-to-stage (dropping onto the staging area) and by "+ Add to meld"
-  // for each selected card. Skips the select step entirely.
+  // both drag-to-stage (dropping onto the staging area) and a plain tap on
+  // a hand card, so tapping and dragging behave the same way: the card
+  // leaves the hand immediately, no separate select-then-commit step.
   function stageCard(index: number) {
     // Melding is only a thing between your draw and your discard — before
     // you've drawn there's nothing to meld with yet.
@@ -327,11 +333,12 @@ export default function GameScreen() {
     });
   }
 
-  // Tapping a hand card only selects it (gold ring) — it stays in the hand
-  // row until "+ Add to meld" commits the selection. Without this guard a
-  // tap would still visibly select the card even though no staging area
-  // exists to act on it, which reads as melding being available when it
-  // isn't.
+  // Long-press only (see HandRow's long-press gesture) — selects a card
+  // with the gold ring for the *lay-off* / *swap joker* flow: pick one or
+  // more cards this way, then tap a table meld's "Lay off here" or "Swap
+  // joker here" button (see layOffOnto/swapJokerOnto below). A plain tap no
+  // longer selects; it stages straight into the new-meld pane instead (see
+  // stageCard).
   function toggleHandSelect(index: number) {
     if (!canBuildMeld) return;
     setSelectedForMeld((prev) => {
@@ -340,27 +347,6 @@ export default function GameScreen() {
       else next.add(index);
       return next;
     });
-  }
-
-  // Commits every selected card into the group currently being built, in
-  // hand order, in one go. If the last group already has cards in it, this
-  // selection is a separate meld the player is building next — starting a
-  // fresh group automatically (rather than merging into the last one)
-  // avoids silently mixing two unrelated runs/sets together when the
-  // player selects cards for a second meld without first tapping "+ Add
-  // another run or set".
-  function addSelectedToMeld() {
-    if (selectedForMeld.size === 0) return;
-    const indices = Array.from(selectedForMeld).sort((a, b) => a - b);
-    const cards = indices.map((i) => hand[i]).filter((c): c is string => !!c);
-    if (cards.length === 0) return;
-    setGroups((prev) => {
-      const next = prev.map((g) => [...g]);
-      if (next[next.length - 1].length > 0) next.push([...cards]);
-      else next[next.length - 1].push(...cards);
-      return next;
-    });
-    setSelectedForMeld(new Set());
   }
 
   function reorderGroup(groupIndex: number, from: number, to: number) {
@@ -399,6 +385,12 @@ export default function GameScreen() {
     if (!canLayOff) return;
     const card = hand[index];
     if (!card) return;
+    // Dropping a card onto a meld always means "lay this off/extend the
+    // meld" — even when the meld holds a joker, e.g. dropping a J onto a
+    // Q-JOKER-A run to extend it to J-Q-JOKER-A. Swapping a card into the
+    // joker's own slot is a distinct, less common intent with its own
+    // explicit "Swap joker here" button (see swapJokerOnto) rather than
+    // being guessed from the drop target.
     send({ type: 'lay_off', meldId, card });
     clearSelect();
   }
@@ -662,26 +654,17 @@ export default function GameScreen() {
           </Pressable>
         </View>
         <Text style={shared.status}>
-          Drag a card to reorder, onto the discard pile to discard, onto a table meld to lay off,
-          or into the meld area to stage it directly. Or tap cards to select them, then tap "+ Add
-          to meld" below. Drag a staged card within its run or set to reorder it. Lay as many
-          melds as you like before discarding to end your turn.
+          Tap or drag a card to add it to the meld you're building — either lands it in the meld
+          area below. Drag a card onto the discard pile to discard, or onto a table meld to lay it
+          off. Long-press one or more cards to select them for laying off or swapping a joker via
+          the buttons under a table meld. Drag a staged card within its run or set to reorder it.
+          Lay as many melds as you like before discarding to end your turn.
         </Text>
-        {canBuildMeld ? (
-          <Pressable
-            style={[shared.button, selectedForMeld.size === 0 && pileStyles.pileDisabled]}
-            onPress={addSelectedToMeld}
-            disabled={selectedForMeld.size === 0}
-          >
-            <Text style={shared.buttonText}>
-              + Add to meld{selectedForMeld.size > 0 ? ` (${selectedForMeld.size})` : ''}
-            </Text>
-          </Pressable>
-        ) : null}
         <HandRow
           cards={visibleHand}
           selected={visibleSelected}
-          onToggle={(vi) => toggleHandSelect(visibleToFullIndex[vi])}
+          onTapCard={(vi) => stageCard(visibleToFullIndex[vi])}
+          onLongPress={(vi) => toggleHandSelect(visibleToFullIndex[vi])}
           onReorder={(newVisibleOrder) => {
             const stagedCards = hand.filter((_, i) => allStaged.has(i));
             setLocalHand([...newVisibleOrder, ...stagedCards]);

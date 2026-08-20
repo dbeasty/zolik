@@ -1,7 +1,12 @@
 import { forwardRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { runOnJS, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 
 import { CardView } from '@/src/components/CardView';
 import { colors, shared } from '@/src/theme';
@@ -68,9 +73,7 @@ export const MeldStagingArea = forwardRef<View, Props>(function MeldStagingArea(
   if (allEmpty) {
     return (
       <View ref={ref} style={styles.minimized}>
-        <Text style={styles.minimizedHint}>
-          Drag a card here, or select cards below and tap "+ Add to meld", to build a meld
-        </Text>
+        <Text style={styles.minimizedHint}>Tap or drag a card from your hand to build a meld</Text>
       </View>
     );
   }
@@ -186,6 +189,11 @@ function DraggableStagedCard({
   onRemove: () => void;
 }) {
   const dragging = useSharedValue(false);
+  // Follows the finger live during the drag (translateX in on-screen
+  // pixels), rather than only fading the card and waiting for release to
+  // show anything — a plain opacity dim with no motion read as "did this
+  // even register?" until the drop landed.
+  const translateX = useSharedValue(0);
 
   function commit(translationX: number) {
     const slots = translationX / STAGE_SLOT;
@@ -202,11 +210,15 @@ function DraggableStagedCard({
     .onStart(() => {
       dragging.value = true;
     })
+    .onUpdate((e) => {
+      translateX.value = e.translationX;
+    })
     .onEnd((e) => {
       runOnJS(commit)(e.translationX);
     })
     .onFinalize(() => {
       dragging.value = false;
+      translateX.value = withSpring(0, { damping: 16, stiffness: 220 });
     });
 
   const tap = Gesture.Tap().onEnd((_e, success) => {
@@ -216,8 +228,19 @@ function DraggableStagedCard({
   const gesture = Gesture.Race(pan, tap);
 
   const animatedStyle = useAnimatedStyle(() => ({
-    opacity: dragging.value ? 0.3 : 1,
+    opacity: dragging.value ? 0.85 : 1,
     cursor: (dragging.value ? 'grabbing' : 'grab') as string,
+    transform: [
+      { translateX: translateX.value },
+      { translateY: dragging.value ? -6 : 0 },
+      { scale: dragging.value ? 1.08 : 1 },
+    ],
+    zIndex: dragging.value ? 10 : 0,
+    shadowColor: '#000',
+    shadowOpacity: dragging.value ? 0.35 : 0,
+    shadowRadius: dragging.value ? 6 : 0,
+    shadowOffset: { width: 0, height: dragging.value ? 3 : 0 },
+    elevation: dragging.value ? 6 : 0,
   }));
 
   return (
