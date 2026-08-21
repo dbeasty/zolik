@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -37,6 +37,17 @@ type Props = {
   onLayAll: () => void;
   canLayAll: boolean;
   layCount: number;
+  // Lets the parent screen measure each group's card-row rect, so a
+  // dragged hand card's drop position (not just "somewhere in the staging
+  // area") can be resolved to a specific group + index within it — see
+  // measureGroupRowZones in the game screen.
+  onGroupRowRef?: (groupIndex: number, el: View | null) => void;
+  // Which group + position within it a card being dragged is currently
+  // over — drawn as a thin marker between the two cards it would land
+  // between (or at an end), the same "show me where before I let go" cue
+  // MeldTable's run front/end markers give table melds. Null means no drag
+  // in progress, or it's not over any group right now.
+  insertHover?: { groupIndex: number; pos: number } | null;
 };
 
 // Drop target for building a new meld: drag cards here (or tap them in your
@@ -71,6 +82,8 @@ export const MeldStagingArea = forwardRef<View, Props>(function MeldStagingArea(
     onLayAll,
     canLayAll,
     layCount,
+    onGroupRowRef,
+    insertHover,
   },
   ref,
 ) {
@@ -96,6 +109,8 @@ export const MeldStagingArea = forwardRef<View, Props>(function MeldStagingArea(
           onRemove={onRemove}
           onReorder={(from, to) => onReorderGroup(i, from, to)}
           onCancel={() => onCancelGroup(i)}
+          onRowRef={onGroupRowRef}
+          hoverPos={insertHover?.groupIndex === i ? insertHover.pos : null}
         />
       ))}
       <Pressable
@@ -131,6 +146,8 @@ function GroupBox({
   onRemove,
   onReorder,
   onCancel,
+  onRowRef,
+  hoverPos,
 }: {
   index: number;
   showLabel: boolean;
@@ -138,26 +155,45 @@ function GroupBox({
   onRemove: (index: number) => void;
   onReorder: (from: number, to: number) => void;
   onCancel: () => void;
+  onRowRef?: (groupIndex: number, el: View | null) => void;
+  hoverPos?: number | null;
 }) {
   const empty = entries.length === 0;
+  // Interleaves an insert marker at hoverPos (before the entry at that
+  // position, or trailing if hoverPos === entries.length) rather than
+  // conditionally rendering it via a ternary — there can be a marker
+  // before *and* the cards still need their own keys, so building the
+  // child list explicitly is clearer than nesting fragments per-position.
+  const rowChildren: ReactNode[] = [];
+  if (!empty) {
+    entries.forEach(({ index: handIndex, card }, position) => {
+      if (hoverPos === position) {
+        rowChildren.push(<View key={`marker-${position}`} style={styles.insertMarker} />);
+      }
+      rowChildren.push(
+        <DraggableStagedCard
+          key={`${card}-${handIndex}`}
+          card={card}
+          position={position}
+          count={entries.length}
+          onReorder={onReorder}
+          onRemove={() => onRemove(handIndex)}
+          testID={`staged-card-${index}-${position}`}
+        />,
+      );
+    });
+    if (hoverPos === entries.length) {
+      rowChildren.push(<View key="marker-end" style={styles.insertMarker} />);
+    }
+  }
   return (
     <View style={index > 0 ? styles.groupSpacing : undefined}>
       {showLabel ? <Text style={styles.groupLabel}>Run/set {index + 1}</Text> : null}
-      <View style={styles.cardRow}>
+      <View style={styles.cardRow} ref={(el) => onRowRef?.(index, el)}>
         {empty ? (
           <Text style={styles.hint}>Drag cards here — or select them below — to build a meld</Text>
         ) : (
-          entries.map(({ index: handIndex, card }, position) => (
-            <DraggableStagedCard
-              key={`${card}-${handIndex}`}
-              card={card}
-              position={position}
-              count={entries.length}
-              onReorder={onReorder}
-              onRemove={() => onRemove(handIndex)}
-              testID={`staged-card-${index}-${position}`}
-            />
-          ))
+          rowChildren
         )}
       </View>
       <Pressable
@@ -311,6 +347,13 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 12,
     textAlign: 'center',
+  },
+  insertMarker: {
+    width: 3,
+    borderRadius: 2,
+    marginHorizontal: 2,
+    alignSelf: 'stretch',
+    backgroundColor: colors.gold,
   },
   cancelButton: {
     marginTop: 10,

@@ -145,6 +145,10 @@ export default function GameScreen() {
   const discardZoneRef = useRef<View>(null);
   const stagingZoneRef = useRef<View>(null);
   const meldViewRefs = useRef<Map<string, View>>(new Map());
+  // Keyed by group index rather than meld ID — a staging group has no
+  // stable ID of its own, just its position in `groups` (see
+  // measureGroupRowZones below).
+  const groupRowRefs = useRef<Map<number, View>>(new Map());
   const overlayRootRef = useRef<View>(null);
   const overlayOriginX = useSharedValue(0);
   const overlayOriginY = useSharedValue(0);
@@ -155,6 +159,14 @@ export default function GameScreen() {
   // onDropOnMeld below. Cleared whenever the drag ends (see
   // onDragCardChange).
   const [hoverTarget, setHoverTarget] = useState<MeldHoverTarget>(null);
+  // Same idea as hoverTarget, but for the staging area: which group and
+  // which position within it a card being dragged is currently over — see
+  // handleDragHover and MeldStagingArea's insertHover prop. Cleared
+  // whenever the drag ends (see onDragCardChange).
+  const [stagingInsertHover, setStagingInsertHover] = useState<{
+    groupIndex: number;
+    pos: number;
+  } | null>(null);
   // Meld that just received a successful lay-off — flashed green briefly so
   // the drop reads as "landed" rather than the card just silently
   // disappearing once the server confirms it. Set when we send lay_off,
@@ -177,12 +189,31 @@ export default function GameScreen() {
     lastHoverCheckAtRef.current = now;
     measureMeldZones((zones) => {
       const hit = zones.find(({ zone }) => pointInZone(absoluteX, absoluteY, zone));
-      if (!hit || hit.type !== 'run') {
-        setHoverTarget(hit ? { meldId: hit.meldId, position: 'front' } : null);
+      if (hit) {
+        setStagingInsertHover(null);
+        if (hit.type !== 'run') {
+          setHoverTarget({ meldId: hit.meldId, position: 'front' });
+          return;
+        }
+        const position = absoluteX < hit.zone.x + hit.zone.width / 2 ? 'front' : 'end';
+        setHoverTarget({ meldId: hit.meldId, position });
         return;
       }
-      const position = absoluteX < hit.zone.x + hit.zone.width / 2 ? 'front' : 'end';
-      setHoverTarget({ meldId: hit.meldId, position });
+      setHoverTarget(null);
+      // Not over any table meld — check the staging area next, so the
+      // player sees exactly where a card would land within the group
+      // they're dragging over (not just "somewhere in this box").
+      measureGroupRowZones((zones2) => {
+        const ghit = zones2.find(({ zone }) => pointInZone(absoluteX, absoluteY, zone));
+        if (!ghit) {
+          setStagingInsertHover(null);
+          return;
+        }
+        setStagingInsertHover({
+          groupIndex: ghit.groupIndex,
+          pos: computeInsertIndex(absoluteX, ghit.zone, ghit.count),
+        });
+      });
     });
   }
   const [discardFlash, setDiscardFlash] = useState(false);
@@ -214,6 +245,51 @@ export default function GameScreen() {
       return;
     }
     stagingZoneRef.current.measureInWindow((x, y, width, height) => cb({ x, y, width, height }));
+  }
+
+  // Per-group card-row rects within the staging area — lets a dropped card
+  // resolve to a specific group and position within it, rather than always
+  // landing at the end of whichever group happens to be last (see
+  // stageCardsAt). Mirrors measureMeldZones' shape/approach.
+  function measureGroupRowZones(
+    cb: (zones: { groupIndex: number; zone: DropZone; count: number }[]) => void,
+  ) {
+    const entries = canBuildMeld ? Array.from(groupRowRefs.current.entries()) : [];
+    if (entries.length === 0) {
+      cb([]);
+      return;
+    }
+    const results: { groupIndex: number; zone: DropZone; count: number }[] = [];
+    let remaining = entries.length;
+    entries.forEach(([groupIndex, el]) => {
+      el.measureInWindow((x, y, width, height) => {
+        results.push({
+          groupIndex,
+          zone: { x, y, width, height },
+          count: groups[groupIndex]?.length ?? 0,
+        });
+        remaining -= 1;
+        if (remaining === 0) cb(results);
+      });
+    });
+  }
+
+  function registerGroupRowRef(groupIndex: number, el: View | null) {
+    if (el) groupRowRefs.current.set(groupIndex, el);
+    else groupRowRefs.current.delete(groupIndex);
+  }
+
+  // A group's row lays its cards out left-to-right, so the fraction of the
+  // row's width a drop point falls at maps directly to "insert before the
+  // card at this index" — 0 cards clamps to index 0, count cards clamps to
+  // "append at the end". Approximate (the row is center-justified, so with
+  // few cards there's blank space at both edges included in the fraction)
+  // rather than measuring each individual card's rect, which is a good
+  // enough trade for how much simpler it keeps the drop handling.
+  function computeInsertIndex(x: number, zone: DropZone, count: number): number {
+    if (count === 0) return 0;
+    const fraction = (x - zone.x) / zone.width;
+    return Math.max(0, Math.min(count, Math.round(fraction * count)));
   }
 
   // Looks up a meld's type (run/set) across every player's meldMeta —
@@ -367,29 +443,37 @@ export default function GameScreen() {
     if (!isMyTurn) setJustDrawnCard(null);
   }, [isMyTurn]);
 
-  // Moves a card straight into the group currently being built — reached by
-  // dragging a hand card onto the staging area (see onDropOnStaging below).
-  function stageCard(index: number) {
+  // Moves one or more cards straight into the group currently being built,
+  // inserted at insertPos rather than always appended at the end — reached
+  // by dragging a hand card onto the staging area (see onDropOnStaging
+  // below), which resolves the drop point to this exact (groupIndex,
+  // insertPos) via measureGroupRowZones/computeInsertIndex. `indices` holds
+  // more than one hand index when the dragged card was part of a
+  // multi-card selection (see onDropOnStaging), so a whole selection can be
+  // staged together in one drag instead of one card at a time.
+  function stageCardsAt(indices: number[], groupIndex: number, insertPos: number) {
     // Melding is only a thing between your draw and your discard — before
     // you've drawn there's nothing to meld with yet.
     if (!canBuildMeld) return;
-    const card = hand[index];
-    if (!card) return;
+    const cards = indices.map((i) => hand[i]).filter((c): c is string => !!c);
+    if (cards.length === 0) return;
     setGroups((prev) => {
       const next = prev.map((g) => [...g]);
-      next[next.length - 1].push(card);
+      const gi = Math.max(0, Math.min(next.length - 1, groupIndex));
+      const pos = Math.max(0, Math.min(next[gi].length, insertPos));
+      next[gi].splice(pos, 0, ...cards);
       return next;
     });
     setSelectedForMeld((prev) => {
-      if (!prev.has(index)) return prev;
+      if (indices.every((i) => !prev.has(i))) return prev;
       const next = new Set(prev);
-      next.delete(index);
+      indices.forEach((i) => next.delete(i));
       return next;
     });
   }
 
   // Pulls a card back out of whichever staged group it's in (tapping a
-  // staged card in the meld area) — the reverse of stageCard.
+  // staged card in the meld area) — the reverse of stageCardsAt.
   function unstageCard(index: number) {
     const card = hand[index];
     if (!card) return;
@@ -631,32 +715,13 @@ export default function GameScreen() {
     clearSelect();
   }
 
-  // Only shown while the undo window is actually open (right after a
-  // lay-off, before anything else this turn has built on top of it) — not
-  // a permanently-visible-but-disabled button like Draw/Take discard,
-  // since "undo" only makes sense as a direct reaction to the lay-off that
-  // just happened.
-  if (state?.canUndoLayOff) {
-    actions.push({ label: 'Undo lay-off', onPress: undoLastLayOff });
-  }
-  // Same reasoning: only shown right after taking the discard, before any
-  // other action this turn has been taken — lets a player back out and draw
-  // from the deck instead if the discard card turns out not to be meldable.
+  // Undo is only offered for taking the discard pile card — the game's
+  // actual rule is that you can back out of that pickup and draw from the
+  // deck instead, before anything else this turn has happened. Lay-off,
+  // meld, and whole-turn undo remain implemented server-side but aren't
+  // surfaced in this UI since they're not legal undos in this game.
   if (state?.canUndoDiscardDraw) {
     actions.push({ label: 'Undo take discard', onPress: undoTakeDiscard });
-  }
-  // Same reasoning as the lay-off undo above: only shown while the window
-  // is actually open (right after a lay_meld, before anything else this
-  // turn has built on top of it) — undoing only makes sense as a direct
-  // reaction to the meld that just landed on the table.
-  if (state?.canUndoLayMeld) {
-    actions.push({ label: 'Undo meld', onPress: undoLastMeld });
-  }
-  // Always available (rather than tied to the most recent action alone)
-  // once anything has happened since the draw — the general-purpose "start
-  // this turn's melding over" escape hatch, valid any time before discard.
-  if (state?.canUndoTurn) {
-    actions.push({ label: 'Undo turn', onPress: undoTurn });
   }
 
   if (isMyTurn) {
@@ -748,6 +813,8 @@ export default function GameScreen() {
             onLayAll={layAllGroups}
             canLayAll={nonEmptyGroups.length > 0}
             layCount={nonEmptyGroups.length}
+            onGroupRowRef={registerGroupRowRef}
+            insertHover={stagingInsertHover}
           />
         ) : null}
 
@@ -846,10 +913,44 @@ export default function GameScreen() {
             }
           }}
           measureStagingZone={measureStagingZone}
-          onDropOnStaging={(vi) => stageCard(visibleToFullIndex[vi])}
+          onDropOnStaging={(vi, absoluteX, absoluteY) => {
+            const fullIndex = visibleToFullIndex[vi];
+            // Same "drag one of several selected cards to move the whole
+            // selection together" rule as onDropOnMeld above.
+            const indices =
+              selectedForMeld.has(fullIndex) && meldSelectedCards.length > 1
+                ? Array.from(selectedForMeld)
+                : [fullIndex];
+            measureGroupRowZones((zones) => {
+              if (zones.length === 0) {
+                // The staging area is still in its collapsed "minimized"
+                // state (nothing staged yet at all) — MeldStagingArea
+                // doesn't render any group row to measure until there's at
+                // least one staged card, so there's nothing to hit-test
+                // against yet. The only group that can possibly exist here
+                // is group 0, empty.
+                stageCardsAt(indices, 0, 0);
+                return;
+              }
+              const hit = zones.find(({ zone }) => pointInZone(absoluteX, absoluteY, zone));
+              // Landed inside the staging box (HandRow already checked
+              // that via measureStagingZone) but not over any specific
+              // group's row — over the Cancel/Add/Lay meld buttons, say.
+              // Falls back to the last group, appended at the end: the
+              // same behavior this always had before drop position was
+              // tracked at all.
+              const lastGroup = zones.reduce((a, b) => (b.groupIndex > a.groupIndex ? b : a));
+              const target = hit ?? lastGroup;
+              const insertPos = hit ? computeInsertIndex(absoluteX, target.zone, target.count) : target.count;
+              stageCardsAt(indices, target.groupIndex, insertPos);
+            });
+          }}
           onDragCardChange={(card) => {
             setDraggedCard(card);
-            if (!card) setHoverTarget(null);
+            if (!card) {
+              setHoverTarget(null);
+              setStagingInsertHover(null);
+            }
           }}
           onDragHover={handleDragHover}
           justDrawnCard={justDrawnCard}

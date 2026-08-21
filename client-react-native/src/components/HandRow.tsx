@@ -61,10 +61,12 @@ type Props = {
   // Same idea for table melds a dragged card can be laid off onto.
   measureMeldZones?: (cb: (zones: MeldZone[]) => void) => void;
   onDropOnMeld?: (index: number, meldId: string, position: 'front' | 'end') => void;
-  // Same idea again for the "build a new meld" staging area — dropping a
-  // card there just selects it (same effect as tapping it).
+  // Same idea again for the "build a new meld" staging area. absoluteX/Y
+  // are passed through (rather than resolved to a position here) so the
+  // caller can work out which group and which position within it the card
+  // was actually dropped on, instead of always appending to the end.
   measureStagingZone?: (cb: (zone: DropZone | null) => void) => void;
-  onDropOnStaging?: (index: number) => void;
+  onDropOnStaging?: (index: number, absoluteX: number, absoluteY: number) => void;
   onDragCardChange?: (card: string | null) => void;
   // Fires (throttled, on the JS thread) as the finger moves during a drag,
   // so the screen can live-highlight whichever meld — and which end of it —
@@ -176,7 +178,7 @@ function DraggableCard({
   measureMeldZones?: (cb: (zones: MeldZone[]) => void) => void;
   onDropOnMeld?: (index: number, meldId: string, position: 'front' | 'end') => void;
   measureStagingZone?: (cb: (zone: DropZone | null) => void) => void;
-  onDropOnStaging?: (index: number) => void;
+  onDropOnStaging?: (index: number, absoluteX: number, absoluteY: number) => void;
   onDragCardChange?: (card: string | null) => void;
   onDragHover?: (absoluteX: number, absoluteY: number) => void;
   dragPreview: DragPreview;
@@ -240,7 +242,7 @@ function DraggableCard({
     }
     measureStagingZone((zone) => {
       if (zone && onDropOnStaging && pointInZone(absoluteX, absoluteY, zone)) {
-        onDropOnStaging(index);
+        onDropOnStaging(index, absoluteX, absoluteY);
       } else {
         fallback();
       }
