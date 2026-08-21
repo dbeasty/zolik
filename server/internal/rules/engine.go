@@ -82,7 +82,12 @@ func ApplyAction(state GameState, playerID string, action Action) (ApplyOutcome,
 			"meldType": string(meldType),
 		}))
 		if ns.GameNumber == 7 && ns.RoundReqMet[playerID] && len(ns.Hands[playerID]) == 0 {
-			return endGameWithEvents(ns, playerID)
+			outcome, err := endGameWithEvents(ns, playerID)
+			if err != nil {
+				return outcome, err
+			}
+			outcome.Events = append(events, outcome.Events...)
+			return outcome, nil
 		}
 		return ApplyOutcome{State: ns, Events: events}, nil
 
@@ -102,7 +107,12 @@ func ApplyAction(state GameState, playerID string, action Action) (ApplyOutcome,
 			"cards":    cards,
 		}))
 		if ns.GameNumber == 7 && ns.RoundReqMet[playerID] && len(ns.Hands[playerID]) == 0 {
-			return endGameWithEvents(ns, playerID)
+			outcome, err := endGameWithEvents(ns, playerID)
+			if err != nil {
+				return outcome, err
+			}
+			outcome.Events = append(events, outcome.Events...)
+			return outcome, nil
 		}
 		return ApplyOutcome{State: ns, Events: events}, nil
 
@@ -158,7 +168,12 @@ func ApplyAction(state GameState, playerID string, action Action) (ApplyOutcome,
 			"card":     action.Card,
 		}))
 		if goOut {
-			return endGameWithEvents(ns, playerID)
+			outcome, err := endGameWithEvents(ns, playerID)
+			if err != nil {
+				return outcome, err
+			}
+			outcome.Events = append(events, outcome.Events...)
+			return outcome, nil
 		}
 		return ApplyOutcome{State: ns, Events: events}, nil
 

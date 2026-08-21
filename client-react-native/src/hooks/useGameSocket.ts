@@ -18,6 +18,10 @@ export function useGameSocket({
 }: UseGameSocketOptions) {
   const [state, setState] = useState<GameState | null>(null);
   const [status, setStatus] = useState('Connecting…');
+  // Distinguishes rule-violation/connection errors (rendered as a prominent
+  // banner) from benign connection status ("Connected", "Deck recycled")
+  // which shares the same `status` string channel but shouldn't look alarming.
+  const [statusIsError, setStatusIsError] = useState(false);
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const stateRef = useRef<GameState | null>(null);
@@ -50,6 +54,7 @@ export function useGameSocket({
     pendingRoundEndRef.current = null;
     pendingGameEndRef.current = null;
     setStatus('Connecting…');
+    setStatusIsError(false);
     const url = apiClient.wsUrl(gameId);
     const ws = new WebSocket(url);
     wsRef.current = ws;
@@ -66,6 +71,7 @@ export function useGameSocket({
       }, 3000);
       setConnected(true);
       setStatus('Connected');
+      setStatusIsError(false);
     };
 
     ws.onmessage = (ev) => {
@@ -77,6 +83,7 @@ export function useGameSocket({
           stateRef.current = st;
           setState(st);
           setStatus('');
+          setStatusIsError(false);
           if (pendingGameEndRef.current) {
             const data = pendingGameEndRef.current;
             pendingGameEndRef.current = null;
@@ -88,23 +95,28 @@ export function useGameSocket({
             onRoundEndRef.current?.(data, st);
           }
         } else if (t === 'error') {
-          setStatus(`✗ ${String(envelope.message ?? 'Error')}`);
+          setStatus(String(envelope.message ?? 'Something went wrong'));
+          setStatusIsError(true);
         } else if (t === 'deal_ended') {
           pendingRoundEndRef.current = envelope;
         } else if (t === 'game_ended') {
           pendingGameEndRef.current = envelope;
         } else if (t === 'reshuffle') {
           setStatus('Deck recycled');
+          setStatusIsError(false);
         } else if (t === 'game_suspended') {
           setStatus('Game suspended');
+          setStatusIsError(false);
         }
       } catch {
-        setStatus('✗ Bad message from server');
+        setStatus('Bad message from server');
+        setStatusIsError(true);
       }
     };
 
     ws.onerror = () => {
-      setStatus('✗ Connection error');
+      setStatus('Connection error');
+      setStatusIsError(true);
       setConnected(false);
     };
 
@@ -116,6 +128,7 @@ export function useGameSocket({
       }
       if (wsRef.current !== ws) return;
       setStatus('Disconnected');
+      setStatusIsError(false);
       if (closingRef.current) return;
       // Auto-recover from dropped connections (server restart, network
       // blip, tab backgrounding) so opponent/AI turns that happen while
@@ -151,7 +164,8 @@ export function useGameSocket({
   const send = useCallback((action: WSAction) => {
     const ws = wsRef.current;
     if (!ws || ws.readyState !== WebSocket.OPEN) {
-      setStatus('✗ Not connected');
+      setStatus('Not connected');
+      setStatusIsError(true);
       return;
     }
     apiClient.sendWS(ws, action);
@@ -161,5 +175,5 @@ export function useGameSocket({
     connect();
   }, [connect]);
 
-  return { state, status, connected, send, reconnect, setState };
+  return { state, status, statusIsError, connected, send, reconnect, setState };
 }

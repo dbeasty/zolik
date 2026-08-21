@@ -310,10 +310,16 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 10,
     marginTop: 8,
+    // At least as tall as a dragged card (CardView is 72px) so the drop
+    // target is never smaller than the thing being dropped onto it — the
+    // old thin single-line strip made it easy to miss on both touch and
+    // mouse drags.
+    minHeight: 80,
+    justifyContent: 'center',
   },
   minimizedHint: {
     color: colors.muted,
-    fontSize: 11,
+    fontSize: 12,
     textAlign: 'center',
   },
   box: {

@@ -80,4 +80,30 @@ export const shared = StyleSheet.create({
     fontSize: 13,
     marginTop: 8,
   },
+  // A more prominent callout for rule violations (invalid meld, joker
+  // discard, etc.) than plain `error` text — sits right under the turn/phase
+  // status line so the "why" is impossible to miss.
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    backgroundColor: 'rgba(248, 113, 113, 0.12)',
+    borderWidth: 1,
+    borderColor: colors.danger,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    marginTop: 8,
+  },
+  errorBannerIcon: {
+    color: colors.danger,
+    fontSize: 15,
+    lineHeight: 18,
+  },
+  errorBannerText: {
+    color: colors.danger,
+    fontSize: 13,
+    lineHeight: 18,
+    flex: 1,
+  },
 });

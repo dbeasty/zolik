@@ -659,7 +659,10 @@ func ValidateDiscard(state GameState, playerID string, card string) (GameState, 
 	// Go-out check: if hand empty after discard, must have met the game requirement.
 	if len(state.Hands[playerID]) == 0 {
 		if !state.RoundReqMet[playerID] {
-			return state, false, RulesError{Code: ErrRoundReqNotMet}
+			return state, false, RulesError{
+				Code:    ErrRoundReqNotMet,
+				Message: "that would empty your hand, but you still haven't met this round's meld requirement — lay it down first",
+			}
 		}
 		return state, true, nil
 	}

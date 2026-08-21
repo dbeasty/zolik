@@ -17,6 +17,7 @@ import { MeldStagingArea, type StagingGroup } from '@/src/components/MeldStaging
 import { MeldTable } from '@/src/components/MeldTable';
 import { Screen } from '@/src/components/Screen';
 import { useGameFlow } from '@/src/context/GameFlowContext';
+import { storage } from '@/src/context/SessionContext';
 import { useSession } from '@/src/context/SessionContext';
 import { useDropPulseStyle } from '@/src/hooks/useDropPulse';
 import { useGameSocket } from '@/src/hooks/useGameSocket';
@@ -38,7 +39,6 @@ const pileStyles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 2,
     borderColor: colors.border,
-    marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -74,6 +74,92 @@ const pileStyles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
+  // Permanent bordered box around the table melds + staging area, always
+  // rendered at a fixed spot near the top — mirrors the deck/discard boxes
+  // below so nothing in the "board" portion of the screen appears,
+  // disappears, or resizes the surrounding layout as the game state
+  // changes.
+  meldBox: {
+    borderWidth: 2,
+    borderColor: colors.border,
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 8,
+  },
+  meldBoxLabel: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  meldBoxEmpty: {
+    color: colors.muted,
+    fontSize: 12,
+    textAlign: 'center',
+    paddingVertical: 8,
+  },
+  // Deck and discard pile now sit in their own separate bordered rectangles
+  // side by side, rather than sharing one loose row.
+  pilesRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 8,
+  },
+  pileBox: {
+    borderWidth: 2,
+    borderColor: colors.border,
+    borderRadius: 10,
+    padding: 10,
+    alignItems: 'center',
+  },
+  pileBoxLabel: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  handInfoBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  handInfoToggle: {
+    color: colors.accent,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  // Same box shape/height whether or not there's an error, so filling in
+  // or clearing the status text never changes the row's footprint — only
+  // the border/background swap for the error state.
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    backgroundColor: 'transparent',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    marginTop: 8,
+  },
+  statusRowError: {
+    backgroundColor: 'rgba(248, 113, 113, 0.12)',
+    borderColor: colors.danger,
+  },
+  statusRowText: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 18,
+    flex: 1,
+  },
 });
 
 function selectedCards(hand: string[], selected: Set<number>): string[] {
@@ -102,9 +188,10 @@ function resolveGroupIndices(hand: string[], groups: string[][]): number[][] {
   });
 }
 
-// Keeps the player's custom card order stable across draws/discards: cards
-// still in hand keep their relative position, cards no longer in hand
-// (discarded/melded) drop out, and newly received cards are appended.
+// Keeps the player's custom card order stable across draws/discards/
+// reconnects: cards still in hand keep their relative position, cards no
+// longer in hand (discarded/melded) drop out, and newly received cards are
+// placed at the front (left) of the hand.
 function reconcileHandOrder(customOrder: string[] | null, serverHand: string[]): string[] | null {
   if (!customOrder) return null;
   const remaining = [...serverHand];
@@ -116,7 +203,11 @@ function reconcileHandOrder(customOrder: string[] | null, serverHand: string[]):
       remaining.splice(idx, 1);
     }
   }
-  return [...kept, ...remaining];
+  return [...remaining, ...kept];
+}
+
+function handOrderStorageKey(gameId: string, userId: string): string {
+  return `zolik_hand_order_${gameId}_${userId}`;
 }
 
 export default function GameScreen() {
@@ -142,6 +233,12 @@ export default function GameScreen() {
   // stageCard/layOffCardAt/discardCardAt.
   const [selectedForMeld, setSelectedForMeld] = useState<Set<number>>(new Set());
   const [localHand, setLocalHand] = useState<string[] | null>(null);
+  // Custom hand order (auto-organize or manual drag) loaded from disk, so it
+  // survives a reconnect that remounts this screen (app restart/reload) —
+  // not just the in-memory reconciliation the effect below already does for
+  // ordinary draws/discards within a single mount. `undefined` means "not
+  // loaded yet"; `null` means "loaded, nothing was saved".
+  const persistedHandOrderRef = useRef<string[] | null | undefined>(undefined);
   const discardZoneRef = useRef<View>(null);
   const stagingZoneRef = useRef<View>(null);
   const meldViewRefs = useRef<Map<string, View>>(new Map());
@@ -223,6 +320,11 @@ export default function GameScreen() {
   const resetKeyRef = useRef<string>('');
   const [justDrawnCard, setJustDrawnCard] = useState<string | null>(null);
   const [rulesModalOpen, setRulesModalOpen] = useState(false);
+  // Collapsed by default so the "Your hand (N)" label + how-to-play text —
+  // whose content/length changes with phase — never pushes the hand row
+  // around during ordinary play. Only an explicit tap expands it, which is
+  // expected motion rather than a surprise one.
+  const [handInfoOpen, setHandInfoOpen] = useState(false);
   const prevHandRef = useRef<{ game: number | undefined; hand: string[] }>({
     game: undefined,
     hand: [],
@@ -231,12 +333,28 @@ export default function GameScreen() {
   // Measured live at drag-end time (see HandRow) rather than cached from
   // scroll/layout events, so a drop always sees the current on-screen rect
   // even if the layout shifted since the last such event fired.
+  // Grows a measured rect by `margin` on every side before it's used for hit
+  // testing — a drop that lands just outside the visible box (a finger
+  // slightly overshooting a small target, e.g. the minimized staging strip)
+  // still counts, rather than requiring pixel-perfect aim.
+  function inflateZone(zone: DropZone, margin: number): DropZone {
+    return {
+      x: zone.x - margin,
+      y: zone.y - margin,
+      width: zone.width + margin * 2,
+      height: zone.height + margin * 2,
+    };
+  }
+  const DROP_ZONE_HIT_SLOP = 24;
+
   function measureDropZone(cb: (zone: DropZone | null) => void) {
     if (!discardZoneRef.current) {
       cb(null);
       return;
     }
-    discardZoneRef.current.measureInWindow((x, y, width, height) => cb({ x, y, width, height }));
+    discardZoneRef.current.measureInWindow((x, y, width, height) =>
+      cb(inflateZone({ x, y, width, height }, DROP_ZONE_HIT_SLOP)),
+    );
   }
 
   function measureStagingZone(cb: (zone: DropZone | null) => void) {
@@ -244,7 +362,9 @@ export default function GameScreen() {
       cb(null);
       return;
     }
-    stagingZoneRef.current.measureInWindow((x, y, width, height) => cb({ x, y, width, height }));
+    stagingZoneRef.current.measureInWindow((x, y, width, height) =>
+      cb(inflateZone({ x, y, width, height }, DROP_ZONE_HIT_SLOP)),
+    );
   }
 
   // Per-group card-row rects within the staging area — lets a dropped card
@@ -314,7 +434,11 @@ export default function GameScreen() {
     let remaining = entries.length;
     entries.forEach(([meldId, el]) => {
       el.measureInWindow((x, y, width, height) => {
-        results.push({ meldId, zone: { x, y, width, height }, type: meldTypeById(meldId) });
+        results.push({
+          meldId,
+          zone: inflateZone({ x, y, width, height }, DROP_ZONE_HIT_SLOP),
+          type: meldTypeById(meldId),
+        });
         remaining -= 1;
         if (remaining === 0) cb(results);
       });
@@ -363,12 +487,15 @@ export default function GameScreen() {
   const onGameEnd = useCallback(
     (data: WSEnvelope, state: GameState) => {
       setGameEnd({ data, state });
+      if (id && session?.userId) {
+        storage.deleteItem(handOrderStorageKey(id, session.userId)).catch(() => {});
+      }
       router.push('/game-end');
     },
-    [setGameEnd],
+    [setGameEnd, id, session?.userId],
   );
 
-  const { state, status, connected, send, reconnect } = useGameSocket({
+  const { state, status, statusIsError, connected, send } = useGameSocket({
     gameId: id,
     onRoundEnd,
     onGameEnd,
@@ -376,6 +503,34 @@ export default function GameScreen() {
 
   const hand = localHand ?? state?.myHand ?? [];
   const userId = session?.userId ?? '';
+
+  // Loads any previously saved custom hand order for this game+player as
+  // soon as we know who's asking, so a remounted screen (app relaunch, or
+  // navigating away and back) picks the saved arrangement back up instead of
+  // falling back to raw server/deal order. Runs once per game+user.
+  useEffect(() => {
+    if (!id || !userId) return;
+    let cancelled = false;
+    storage.getItem(handOrderStorageKey(id, userId)).then((raw) => {
+      if (cancelled) return;
+      let parsed: string[] | null = null;
+      if (raw) {
+        try {
+          const arr = JSON.parse(raw);
+          if (Array.isArray(arr)) parsed = arr;
+        } catch {
+          parsed = null;
+        }
+      }
+      persistedHandOrderRef.current = parsed;
+      if (parsed) {
+        setLocalHand((prev) => prev ?? reconcileHandOrder(parsed, state?.myHand ?? parsed));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, userId]);
 
   // The server sends a fresh `myHand` array on every broadcast — including
   // ones that have nothing to do with you (an opponent/AI's move) — so a
@@ -385,7 +540,10 @@ export default function GameScreen() {
   // hand's contents (or phase/round) actually changed.
   useEffect(() => {
     const newHand = state?.myHand ?? [];
-    setLocalHand((prev) => reconcileHandOrder(prev, newHand));
+    setLocalHand((prev) => {
+      const base = prev ?? persistedHandOrderRef.current ?? null;
+      return reconcileHandOrder(base, newHand);
+    });
     const key = `${state?.game ?? ''}|${state?.phase ?? ''}|${[...newHand].sort().join(',')}`;
     if (key !== resetKeyRef.current) {
       resetKeyRef.current = key;
@@ -393,6 +551,14 @@ export default function GameScreen() {
       setSelectedForMeld(new Set());
     }
   }, [state?.myHand, state?.phase, state?.game]);
+
+  // Persists the current custom hand order (auto-organize or manual drag) to
+  // disk so it survives a reconnect that remounts this screen — e.g. an app
+  // restart, not just a WebSocket drop within the same mount.
+  useEffect(() => {
+    if (!id || !userId || !localHand) return;
+    storage.setItem(handOrderStorageKey(id, userId), JSON.stringify(localHand)).catch(() => {});
+  }, [id, userId, localHand]);
 
   // Tracks the card(s) just drawn from the deck/discard pile so they can be
   // highlighted in the hand — a multiset diff against the previous server
@@ -565,14 +731,12 @@ export default function GameScreen() {
     return (
       <Screen title="Game">
         <Text style={shared.status}>{status || 'Loading game…'}</Text>
-        <Pressable style={shared.button} onPress={reconnect}>
-          <Text style={shared.buttonText}>Reconnect</Text>
-        </Pressable>
-        <Pressable
-          style={[shared.button, shared.buttonSecondary, { marginTop: 8 }]}
-          onPress={() => router.replace('/lobby/create')}
-        >
-          <Text style={shared.buttonTextSecondary}>Start a new game</Text>
+        {/* The socket already auto-reconnects with backoff (see
+            useGameSocket) — a manual "Reconnect" button here would just
+            race that retry, so the only action worth offering is bailing
+            out to start over. */}
+        <Pressable style={shared.button} onPress={() => router.replace('/lobby/create')}>
+          <Text style={shared.buttonText}>Start a new game</Text>
         </Pressable>
       </Screen>
     );
@@ -584,6 +748,7 @@ export default function GameScreen() {
   // rules.snapshotTurnMeld for the bug this guards against.
   const discardPileSafe = state.discardPile ?? [];
   const topDiscard = discardPileSafe[discardPileSafe.length - 1];
+  const anyMelds = state.players.some((p) => (state.melds[p.id] ?? []).length > 0);
   const header = `${dealHeaderLabel(state.rulesProfile, state.game)} · Round ${state.round} · Deck ${state.deckCount}`;
   const turnLabel = isMyTurn
     ? 'Your turn'
@@ -758,6 +923,23 @@ export default function GameScreen() {
               </Text>
               <Text style={shared.title}>{header}</Text>
             </View>
+            {/* Always available at the top, not just once you've gone
+                offline — the socket already auto-reconnects on its own, so
+                the one thing worth a dedicated escape hatch is bailing out
+                to a fresh game, not retrying the connection by hand. */}
+            <Pressable
+              onPress={() => router.replace('/lobby/create')}
+              style={{
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 8,
+                paddingVertical: 6,
+                paddingHorizontal: 10,
+                marginRight: 8,
+              }}
+            >
+              <Text style={{ color: colors.text, fontSize: 12, fontWeight: '600' }}>New game</Text>
+            </Pressable>
             <Pressable
               onPress={() => setRulesModalOpen(true)}
               style={{
@@ -773,9 +955,18 @@ export default function GameScreen() {
           </View>
         <Text style={[shared.status, { color: isMyTurn ? colors.success : colors.muted }]}>
           {turnLabel} · {phase}
-          {!connected ? ' · offline' : ''}
+          {!connected ? ' · reconnecting…' : ''}
         </Text>
-        {status ? <Text style={shared.error}>{status}</Text> : null}
+        {/* Always mounted at a fixed height (whether or not there's
+            anything to say) so a status appearing/clearing (Connected,
+            Deck recycled, a rule error, ...) never grows/shrinks the
+            layout and shoves everything below it up and down. */}
+        <View style={[pileStyles.statusRow, statusIsError && pileStyles.statusRowError]}>
+          {statusIsError ? <Text style={shared.errorBannerIcon}>⚠</Text> : null}
+          <Text style={statusIsError ? shared.errorBannerText : pileStyles.statusRowText}>
+            {status || ' '}
+          </Text>
+        </View>
 
         <Text style={[shared.status, { marginTop: 8 }]}>Opponents</Text>
         {state.players
@@ -787,36 +978,43 @@ export default function GameScreen() {
             </Text>
           ))}
 
-        <MeldTable
-          state={state}
-          myUserId={userId}
-          onMeldRef={registerMeldRef}
-          hoverTarget={hoverTarget}
-          dragActive={canLayOff && draggedCard !== null}
-          flashMeldId={flashMeldId}
-          selectedCards={meldSelectedCards}
-          canLayOff={canLayOff}
-          onLayOff={layOffOnto}
-          onSwapJoker={swapJokerOnto}
-        />
+        <View style={pileStyles.meldBox}>
+          <Text style={pileStyles.meldBoxLabel}>MELDS</Text>
+          {anyMelds ? (
+            <MeldTable
+              state={state}
+              myUserId={userId}
+              onMeldRef={registerMeldRef}
+              hoverTarget={hoverTarget}
+              dragActive={canLayOff && draggedCard !== null}
+              flashMeldId={flashMeldId}
+              selectedCards={meldSelectedCards}
+              canLayOff={canLayOff}
+              onLayOff={layOffOnto}
+              onSwapJoker={swapJokerOnto}
+            />
+          ) : (
+            <Text style={pileStyles.meldBoxEmpty}>No melds on the table yet</Text>
+          )}
 
-        {canBuildMeld ? (
-          <MeldStagingArea
-            ref={stagingZoneRef}
-            groups={stagingGroups}
-            dragActive={draggedCard !== null}
-            onRemove={unstageCard}
-            onReorderGroup={reorderGroup}
-            onCancelGroup={cancelGroup}
-            onAddGroup={addGroup}
-            canAddGroup={canAddGroup}
-            onLayAll={layAllGroups}
-            canLayAll={nonEmptyGroups.length > 0}
-            layCount={nonEmptyGroups.length}
-            onGroupRowRef={registerGroupRowRef}
-            insertHover={stagingInsertHover}
-          />
-        ) : null}
+          {canBuildMeld ? (
+            <MeldStagingArea
+              ref={stagingZoneRef}
+              groups={stagingGroups}
+              dragActive={draggedCard !== null}
+              onRemove={unstageCard}
+              onReorderGroup={reorderGroup}
+              onCancelGroup={cancelGroup}
+              onAddGroup={addGroup}
+              canAddGroup={canAddGroup}
+              onLayAll={layAllGroups}
+              canLayAll={nonEmptyGroups.length > 0}
+              layCount={nonEmptyGroups.length}
+              onGroupRowRef={registerGroupRowRef}
+              insertHover={stagingInsertHover}
+            />
+          ) : null}
+        </View>
 
         {isMyTurn && state.discardDrawnCardPendingMeld ? (
           <Text style={[shared.error, { marginTop: 8 }]}>
@@ -825,19 +1023,14 @@ export default function GameScreen() {
           </Text>
         ) : null}
 
-        <Animated.View
-          testID="discard-zone"
-          ref={discardZoneRef}
-          style={[
-            { paddingVertical: 4, borderWidth: 2, borderColor: 'transparent', borderRadius: 8 },
-            draggedCard !== null && canDiscardNow ? discardPulseStyle : undefined,
-          ]}
-        >
-          <Text style={[shared.status, { marginTop: 8 }]}>
-            Deck ({state.deckCount}) · Discard pile
-            {discardLocked ? ` (pickup locked until round ${state.discardDrawMinRound})` : ''}
-          </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        {/* Constant, always-visible action bar — what to do right now (draw,
+            take discard, discard, undo) — placed directly above the deck/
+            discard piles it mostly acts on. */}
+        <ActionBar actions={actions} />
+
+        <View style={pileStyles.pilesRow}>
+          <View style={pileStyles.pileBox}>
+            <Text style={pileStyles.pileBoxLabel}>Draw pile</Text>
             <Pressable
               testID="deck-pile"
               onPress={drawFromDeck}
@@ -850,6 +1043,21 @@ export default function GameScreen() {
             >
               <Text style={pileStyles.deckBackText}>{state.deckCount}</Text>
             </Pressable>
+          </View>
+
+          <Animated.View
+            testID="discard-zone"
+            ref={discardZoneRef}
+            style={[
+              pileStyles.pileBox,
+              { flex: 1 },
+              draggedCard !== null && canDiscardNow ? discardPulseStyle : undefined,
+            ]}
+          >
+            <Text style={pileStyles.pileBoxLabel}>
+              Discard pile
+              {discardLocked ? ` (locked until round ${state.discardDrawMinRound})` : ''}
+            </Text>
             {topDiscard ? (
               <View style={[pileStyles.discardWrap, discardFlash && pileStyles.discardWrapFlash]}>
                 {discardFlash ? <Text style={pileStyles.discardFlashLabel}>✓ Added</Text> : null}
@@ -862,32 +1070,30 @@ export default function GameScreen() {
             ) : (
               <Text style={shared.status}>Empty</Text>
             )}
-          </View>
-        </Animated.View>
-
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginTop: 12,
-          }}
-        >
-          <Text style={shared.status}>Your hand ({hand.length})</Text>
-          <Pressable onPress={() => setLocalHand(autoOrganizeHand(hand))}>
-            <Text style={{ color: colors.accent }}>Auto-organize</Text>
-          </Pressable>
+          </Animated.View>
         </View>
-        <Text style={shared.status}>
-          {canBuildMeld
-            ? 'Drag a card anywhere: onto the discard pile to discard it, onto the box below to ' +
-              'start a new meld, or onto a table meld to lay it off (glowing outlines show where ' +
-              "it can land). Tap one or more cards to select them (gold ring) first if you'd " +
-              'rather use the "Lay off here" / "Swap joker here" buttons, or to drag several off ' +
-              'together. Drag a staged card within its run or set to reorder it.'
-            : 'Drag a card onto the discard pile to discard it, or flick it upward. Drag it onto ' +
-              'a table meld to lay it off.'}
-        </Text>
+
+        <Pressable style={pileStyles.handInfoBar} onPress={() => setHandInfoOpen((v) => !v)}>
+          <Text style={shared.status}>Your hand ({hand.length})</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Pressable onPress={() => setLocalHand(autoOrganizeHand(hand))} hitSlop={8}>
+              <Text style={{ color: colors.accent }}>Auto-organize</Text>
+            </Pressable>
+            <Text style={pileStyles.handInfoToggle}>{handInfoOpen ? '▾ Hide help' : '▸ How to play'}</Text>
+          </View>
+        </Pressable>
+        {handInfoOpen ? (
+          <Text style={shared.status}>
+            {canBuildMeld
+              ? 'Drag a card anywhere: onto the discard pile to discard it, onto the box above to ' +
+                'start a new meld, or onto a table meld to lay it off (glowing outlines show where ' +
+                "it can land). Tap one or more cards to select them (gold ring) first if you'd " +
+                'rather use the "Lay off here" / "Swap joker here" buttons, or to drag several off ' +
+                'together. Drag a staged card within its run or set to reorder it.'
+              : 'Drag a card onto the discard pile to discard it, or flick it upward. Drag it onto ' +
+                'a table meld to lay it off.'}
+          </Text>
+        ) : null}
         <HandRow
           cards={visibleHand}
           selected={visibleSelected}
@@ -957,21 +1163,6 @@ export default function GameScreen() {
           dragPreview={dragPreview}
         />
 
-        {actions.length > 0 ? <ActionBar actions={actions} /> : null}
-
-        {!connected ? (
-          <View style={{ flexDirection: 'row', marginTop: 16, gap: 8 }}>
-            <Pressable style={[shared.button, shared.buttonSecondary, { flex: 1 }]} onPress={reconnect}>
-              <Text style={shared.buttonTextSecondary}>Reconnect</Text>
-            </Pressable>
-            <Pressable
-              style={[shared.button, shared.buttonSecondary, { flex: 1 }]}
-              onPress={() => router.replace('/lobby/create')}
-            >
-              <Text style={shared.buttonTextSecondary}>Start a new game</Text>
-            </Pressable>
-          </View>
-        ) : null}
         </ScrollView>
       </Screen>
       <Animated.View style={dragOverlayStyle} pointerEvents="none">

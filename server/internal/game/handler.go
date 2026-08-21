@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/websocket"
@@ -12,7 +13,32 @@ import (
 
 	"zolik/server/internal/auth"
 	"zolik/server/internal/db"
+	"zolik/server/internal/rules"
 )
+
+// Idle mobile connections (backgrounded app, cellular NAT boxes, corporate
+// proxies) get silently killed well under a minute in the worst cases, with
+// neither side finding out until the next write fails. Pinging on an
+// interval shorter than any of those timeouts keeps the connection alive
+// end-to-end and lets the server notice a truly dead peer (missed pong)
+// quickly, instead of the client having to rely on TCP eventually erroring
+// out and reconnecting from scratch.
+const (
+	pingInterval = 25 * time.Second
+	pongWait     = 60 * time.Second
+)
+
+// pingableConn adapts gorilla's *websocket.Conn — which has no plain
+// Ping() error method, only WriteControl — to the WSConn interface, so the
+// keepalive ticker in handleWS can go through the same registry wrapper
+// (and its write mutex) as every other write to this socket.
+type pingableConn struct {
+	*websocket.Conn
+}
+
+func (c pingableConn) Ping() error {
+	return c.WriteControl(websocket.PingMessage, nil, time.Now().Add(10*time.Second))
+}
 
 type WebSocketServer struct {
 	manager  *Manager
@@ -56,12 +82,23 @@ func (s *WebSocketServer) handleWS(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// A read deadline that only the pong handler pushes back out keeps the
+	// connection alive as long as pongs keep arriving, and lets a truly
+	// dead peer (network gone, app killed outright) get noticed and torn
+	// down within pongWait instead of hanging around forever.
+	conn.SetReadDeadline(time.Now().Add(pongWait))
+	conn.SetPongHandler(func(string) error {
+		conn.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
+
 	// Register connection. wsConn wraps conn with a write mutex shared with
 	// the broadcast path (hub/registry) — every write to this connection,
-	// whether a broadcast or this read loop's own direct error response,
-	// must go through wsConn, since gorilla's websocket.Conn does not allow
-	// concurrent writers and an unsynchronized write can silently vanish.
-	wsConn, prev := s.manager.hub.Registry().Add(gameID, playerID, conn)
+	// whether a broadcast, a ping, or this read loop's own direct error
+	// response, must go through wsConn, since gorilla's websocket.Conn does
+	// not allow concurrent writers and an unsynchronized write can silently
+	// vanish.
+	wsConn, prev := s.manager.hub.Registry().Add(gameID, playerID, pingableConn{conn})
 	if prev != nil {
 		log.Printf("game=%s player=%s ws connect: replacing existing connection", gameID, playerID)
 		_ = prev.Close()
@@ -83,6 +120,27 @@ func (s *WebSocketServer) handleWS(w http.ResponseWriter, req *http.Request) {
 	if err == nil {
 		s.manager.hub.WriteDirect(gameID, playerID, BuildGameStateMsg(game, playerID))
 	}
+
+	// Keeps the connection alive end-to-end (past idle mobile-NAT and proxy
+	// timeouts) and gets a truly dead peer noticed via a missed pong,
+	// rather than waiting on TCP to eventually error out. Stops as soon as
+	// the read loop below exits for any reason.
+	pingDone := make(chan struct{})
+	defer close(pingDone)
+	go func() {
+		ticker := time.NewTicker(pingInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				if err := wsConn.Ping(); err != nil {
+					return
+				}
+			case <-pingDone:
+				return
+			}
+		}
+	}()
 
 	// Read loop.
 	defer func() {
@@ -114,10 +172,22 @@ func (s *WebSocketServer) handleWS(w http.ResponseWriter, req *http.Request) {
 			continue
 		}
 		if err := s.manager.HandleAction(ctx, gameID, playerID, in); err != nil {
+			// Unwrap RulesError so the client gets the plain, human-readable
+			// explanation (e.g. "a joker can't be discarded unless it's the
+			// card that ends the hand") plus its specific code, rather than
+			// the Go-flavoured "INVALID_MELD: ..." string from Error().
+			code := "RULES_ERROR"
+			message := err.Error()
+			if re, ok := err.(rules.RulesError); ok {
+				code = string(re.Code)
+				if re.Message != "" {
+					message = re.Message
+				}
+			}
 			_ = wsConn.WriteJSON(map[string]any{
 				"type":    "error",
-				"code":    "RULES_ERROR",
-				"message": err.Error(),
+				"code":    code,
+				"message": message,
 			})
 		}
 	}
