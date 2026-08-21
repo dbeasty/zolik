@@ -23,6 +23,14 @@ async function loadLastProfile(): Promise<RulesProfile> {
   return stored === 'continental' || stored === 'zolik_classic' ? stored : 'zolik_classic';
 }
 
+// Meld-min/discard-lock preferences are remembered per rules profile — each
+// profile has its own sensible default (e.g. 35/round-3 for Continental, 0/0
+// for Žolík Classic), so a value picked while playing one profile must never
+// leak into a freshly created game under a different profile.
+function scopedKey(key: string, profile: RulesProfile): string {
+  return `${key}:${profile}`;
+}
+
 async function loadLastNumericSetting(
   key: string,
   allowed: readonly number[],
@@ -81,9 +89,12 @@ export default function CreateLobbyScreen() {
     (async () => {
       try {
         const lastProfile = await loadLastProfile();
-        const lastMeldMin = await loadLastNumericSetting(LAST_MELD_MIN_KEY, meldMins);
+        const lastMeldMin = await loadLastNumericSetting(
+          scopedKey(LAST_MELD_MIN_KEY, lastProfile),
+          meldMins,
+        );
         const lastDiscardLockRound = await loadLastNumericSetting(
-          LAST_DISCARD_LOCK_ROUND_KEY,
+          scopedKey(LAST_DISCARD_LOCK_ROUND_KEY, lastProfile),
           discardLockRounds,
         );
         if (cancelled) return;
@@ -160,7 +171,7 @@ export default function CreateLobbyScreen() {
     setInitialMin(next);
     try {
       await client.updateGameSettings(gameId, { initialMeldMinimum: next });
-      await storage.setItem(LAST_MELD_MIN_KEY, String(next));
+      await storage.setItem(scopedKey(LAST_MELD_MIN_KEY, profile), String(next));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Update failed');
     }
@@ -172,7 +183,7 @@ export default function CreateLobbyScreen() {
     setDiscardLockRound(next);
     try {
       await client.updateGameSettings(gameId, { discardDrawMinRound: next });
-      await storage.setItem(LAST_DISCARD_LOCK_ROUND_KEY, String(next));
+      await storage.setItem(scopedKey(LAST_DISCARD_LOCK_ROUND_KEY, profile), String(next));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Update failed');
     }
