@@ -89,7 +89,7 @@ func (a *App) RegisterRoutes(r chi.Router) {
 	a.auth.RegisterRoutes(r)
 
 	repo := game.NewRepository(a.db)
-	gameRest := game.NewGameRestHandlers(repo, a.hub, a.manager)
+	gameRest := game.NewGameRestHandlers(repo, a.hub, a.manager, a.cfg.TestEndpointsEnabled)
 	gameRest.RegisterRoutes(r)
 
 	userHandlers := userrepo.NewHandlers(userrepo.NewRepository(a.db))

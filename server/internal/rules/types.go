@@ -54,6 +54,24 @@ type MeldLaidSnapshot struct {
 	PrevDiscardDrawnCardPendingMeld string
 }
 
+// TurnMeldSnapshot captures everything a player's meld phase can touch, taken
+// right after they draw, so ValidateUndoTurn can roll the whole phase back to
+// that point no matter how many lay_meld/lay_off/swap_joker actions (and their
+// own individual undos) happened since — a single "always available" undo
+// distinct from the last-action-only LastLayOff/LastMeldLaid snapshots above.
+type TurnMeldSnapshot struct {
+	PlayerID                    string
+	Hands                       map[string][]string
+	Melds                       map[string][][]string
+	MeldMeta                    map[string][]MeldInfo
+	RoundReqMet                 bool
+	MeldsLaidThisTurn           int
+	DiscardDrawnCardPendingMeld string
+	DiscardDrawnCards           []string
+	DiscardPile                 []string
+	NextMeldSeq                 int
+}
+
 type MeldInfo struct {
 	MeldID  string
 	Type    MeldType
@@ -75,6 +93,7 @@ const (
 	ActionUndoDrawDiscard ActionType = "undo_draw_discard"
 	ActionUndoLayOff      ActionType = "undo_lay_off"
 	ActionUndoLayMeld     ActionType = "undo_lay_meld"
+	ActionUndoTurn        ActionType = "undo_turn"
 )
 
 type DrawFrom string
@@ -190,6 +209,12 @@ type GameState struct {
 	// window right after that lay_meld, before anything else has had a
 	// chance to build on top of it.
 	LastMeldLaid *MeldLaidSnapshot
+
+	// TurnMeldSnapshot snapshots the whole meld phase's starting point (right
+	// after the player's draw) so ValidateUndoTurn can revert everything done
+	// since — every meld, lay-off, and joker swap this turn — in one action,
+	// any time before discard. Set on each draw, cleared once the turn ends.
+	TurnMeldSnapshot *TurnMeldSnapshot
 
 	DeckSeed int64
 

@@ -10,18 +10,29 @@ type Props = {
   // turn, so it's obvious which card is new — independent of `selected`
   // (a drawn card can be both, e.g. right after tapping it to stage a meld).
   justDrawn?: boolean;
+  // The floating copy of a card currently being dragged — a distinct ring
+  // color from justDrawn/selected so "this is what my finger is holding
+  // right now" reads as its own state, not a reused one.
+  dragging?: boolean;
   onPress?: () => void;
   compact?: boolean;
+  // Passed straight through to the outer wrapper (data-testid on web) — set
+  // by the caller, which knows the card's context (hand index, staged
+  // group, table meld), since CardView itself doesn't.
+  testID?: string;
 };
 
-export function CardView({ card, selected, justDrawn, onPress, compact }: Props) {
+export function CardView({ card, selected, justDrawn, dragging, onPress, compact, testID }: Props) {
   const d = parseCard(card);
   const content = (
     // Ring wrapper is always present at a fixed size (border color just
-    // toggles transparent<->success) so highlighting a card never nudges
-    // its neighbors' layout — a card that shifts mid-gesture is exactly
-    // what broke double-tap-to-discard before this was fixed.
-    <View style={[styles.ring, justDrawn && styles.justDrawnRing]}>
+    // toggles transparent<->success/accent) so highlighting a card never
+    // nudges its neighbors' layout — a card that shifts mid-gesture is
+    // exactly what broke double-tap-to-discard before this was fixed.
+    <View
+      testID={testID}
+      style={[styles.ring, justDrawn && styles.justDrawnRing, dragging && styles.draggingRing]}
+    >
       <View
         style={[
           styles.card,
@@ -54,6 +65,9 @@ const styles = StyleSheet.create({
   },
   justDrawnRing: {
     borderColor: colors.success,
+  },
+  draggingRing: {
+    borderColor: colors.accent,
   },
   card: {
     width: 52,

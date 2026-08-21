@@ -21,10 +21,13 @@ type GameRestHandlers struct {
 	repo    *Repository
 	hub     *Hub
 	manager *Manager
+	// testEndpoints gates debugState — see its doc comment and
+	// app.Config.TestEndpointsEnabled.
+	testEndpoints bool
 }
 
-func NewGameRestHandlers(repo *Repository, hub *Hub, manager *Manager) *GameRestHandlers {
-	return &GameRestHandlers{repo: repo, hub: hub, manager: manager}
+func NewGameRestHandlers(repo *Repository, hub *Hub, manager *Manager, testEndpoints bool) *GameRestHandlers {
+	return &GameRestHandlers{repo: repo, hub: hub, manager: manager, testEndpoints: testEndpoints}
 }
 
 type CreateGameReq struct {
@@ -48,6 +51,9 @@ func (h *GameRestHandlers) RegisterRoutes(r chi.Router) {
 	r.With(auth.AuthMiddleware).Post("/games/{id}/start", h.startGame)
 	r.With(auth.AuthMiddleware).Post("/games/{id}/add-ai", h.addAI)
 	r.With(auth.AuthMiddleware).Get("/games/{id}/replay", h.replayGame)
+	if h.testEndpoints {
+		r.With(auth.AuthMiddleware).Post("/games/{id}/debug-state", h.debugState)
+	}
 }
 
 // updateSettings lets the host adjust pre-start options (initial meld
@@ -102,7 +108,7 @@ func (h *GameRestHandlers) updateSettings(w http.ResponseWriter, req *http.Reque
 
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]any{
-		"rulesProfile":         g.RulesProfile,
+		"rulesProfile":        g.RulesProfile,
 		"initialMeldMinimum":  g.InitialMeldMinimum,
 		"discardDrawMinRound": g.DiscardDrawMinRound,
 	})
@@ -546,6 +552,120 @@ func (h *GameRestHandlers) addAI(w http.ResponseWriter, req *http.Request) {
 		"gameId":   gameIDHex,
 		"addedAI":  true,
 		"playerId": p.ID,
+	})
+}
+
+// DebugStateReq is a partial patch applied straight to a game document,
+// bypassing rules validation entirely — see debugState.
+type DebugStateReq struct {
+	Phase       *string             `json:"phase,omitempty"`
+	CurrentTurn *string             `json:"currentTurn,omitempty"`
+	Hands       map[string][]string `json:"hands,omitempty"`
+	// Melds maps playerID -> list of card groups. Each group is validated
+	// with the game's own rules profile (same ValidateMeld the real
+	// lay_meld action uses) so a seeded table can't silently be nonsense —
+	// its MeldInfo (type, meldId) is derived from that validation rather
+	// than accepted from the request, so it's always consistent with what
+	// ValidateLayOff/ValidateSwapJoker expect to find.
+	Melds                       map[string][][]string `json:"melds,omitempty"`
+	DiscardPile                 []string              `json:"discardPile,omitempty"`
+	RoundReqMet                 map[string]bool       `json:"roundReqMet,omitempty"`
+	DiscardDrawnCardPendingMeld *string               `json:"discardDrawnCardPendingMeld,omitempty"`
+}
+
+// debugState lets an e2e test put a game into an arbitrary mid-round state
+// in one call — specific hands, melds already on the table, whose turn it
+// is — instead of driving a full deal turn-by-turn over WebSocket just to
+// reach the UI state under test. Only registered at all when
+// app.Config.TestEndpointsEnabled is set (see RegisterRoutes); never
+// reachable in a deployment that doesn't opt in.
+func (h *GameRestHandlers) debugState(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	idOrJoin := chi.URLParam(req, "id")
+
+	g, gameIDHex, err := h.repo.ParseGameIDOrJoin(ctx, idOrJoin)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	isPlayer := false
+	for _, p := range g.Players {
+		if p.ID == uc.UserID {
+			isPlayer = true
+			break
+		}
+	}
+	if !isPlayer {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	var body DebugStateReq
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+
+	nextGame := g
+	if body.Phase != nil {
+		nextGame.Phase = *body.Phase
+	}
+	if body.CurrentTurn != nil {
+		nextGame.CurrentTurn = *body.CurrentTurn
+	}
+	if body.Hands != nil {
+		nextGame.Hands = body.Hands
+	}
+	if body.DiscardPile != nil {
+		nextGame.DiscardPile = body.DiscardPile
+	}
+	if body.RoundReqMet != nil {
+		nextGame.RoundReqMet = body.RoundReqMet
+	}
+	if body.DiscardDrawnCardPendingMeld != nil {
+		nextGame.DiscardDrawnCardPendingMeld = *body.DiscardDrawnCardPendingMeld
+	}
+	if body.Melds != nil {
+		cfg := rules.ResolveProfile(g.RulesProfile)
+		melds := map[string][][]string{}
+		meldMeta := map[string][]models.MeldInfo{}
+		for owner, groups := range body.Melds {
+			for idx, cards := range groups {
+				mv, err := rules.ValidateMeld(cards, cfg)
+				if err != nil {
+					http.Error(w, fmt.Sprintf("melds[%s][%d]: %v", owner, idx, err), http.StatusBadRequest)
+					return
+				}
+				melds[owner] = append(melds[owner], cards)
+				meldMeta[owner] = append(meldMeta[owner], models.MeldInfo{
+					MeldID:    fmt.Sprintf("%s-t%d", owner, idx),
+					Type:      string(mv.Type),
+					OwnerID:   owner,
+					WildCount: mv.WildCount,
+				})
+			}
+		}
+		nextGame.Melds = melds
+		nextGame.MeldMeta = meldMeta
+	}
+
+	if err := h.repo.UpdateWithVersion(ctx, g.ID, g.Version, nextGame); err != nil {
+		http.Error(w, err.Error(), http.StatusConflict)
+		return
+	}
+
+	h.hub.BroadcastGameState(gameIDHex, BroadcastRecipients(nextGame), func(pid string) interface{} {
+		return BuildGameStateMsg(nextGame, pid)
+	})
+
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"gameId":   gameIDHex,
+		"meldMeta": nextGame.MeldMeta,
 	})
 }
 

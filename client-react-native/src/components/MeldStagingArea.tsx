@@ -9,6 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { CardView } from '@/src/components/CardView';
+import { useDropPulseStyle } from '@/src/hooks/useDropPulse';
 import { colors, shared } from '@/src/theme';
 
 export type StagingGroup = {
@@ -17,6 +18,10 @@ export type StagingGroup = {
 
 type Props = {
   groups: StagingGroup[];
+  // True for the whole span a hand card is being dragged, so this area
+  // pulses as an eligible drop target the moment the drag starts — the same
+  // "you can drop it here" cue MeldTable gives table melds.
+  dragActive?: boolean;
   // Paired with the hand index each card came from (not just the card
   // string) so removing the right one works even when the hand holds
   // duplicate cards, e.g. from a second physical deck.
@@ -57,6 +62,7 @@ type Props = {
 export const MeldStagingArea = forwardRef<View, Props>(function MeldStagingArea(
   {
     groups,
+    dragActive,
     onRemove,
     onReorderGroup,
     onCancelGroup,
@@ -69,17 +75,18 @@ export const MeldStagingArea = forwardRef<View, Props>(function MeldStagingArea(
   ref,
 ) {
   const allEmpty = groups.every((g) => g.entries.length === 0);
+  const pulseStyle = useDropPulseStyle(!!dragActive);
 
   if (allEmpty) {
     return (
-      <View ref={ref} style={styles.minimized}>
-        <Text style={styles.minimizedHint}>Tap or drag a card from your hand to build a meld</Text>
-      </View>
+      <Animated.View testID="staging-zone" ref={ref} style={[styles.minimized, dragActive && pulseStyle]}>
+        <Text style={styles.minimizedHint}>Drag a card from your hand here to build a meld</Text>
+      </Animated.View>
     );
   }
 
   return (
-    <View ref={ref} style={styles.box}>
+    <Animated.View testID="staging-zone" ref={ref} style={[styles.box, dragActive && pulseStyle]}>
       {groups.map((group, i) => (
         <GroupBox
           key={i}
@@ -92,6 +99,7 @@ export const MeldStagingArea = forwardRef<View, Props>(function MeldStagingArea(
         />
       ))}
       <Pressable
+        testID="add-group-button"
         style={[shared.button, shared.buttonSecondary, styles.addButton, !canAddGroup && styles.disabled]}
         onPress={onAddGroup}
         disabled={!canAddGroup}
@@ -99,13 +107,14 @@ export const MeldStagingArea = forwardRef<View, Props>(function MeldStagingArea(
         <Text style={shared.buttonTextSecondary}>+ Add another run or set</Text>
       </Pressable>
       <Pressable
+        testID="lay-all-button"
         style={[shared.button, styles.layAllButton, !canLayAll && styles.disabled]}
         onPress={onLayAll}
         disabled={!canLayAll}
       >
         <Text style={shared.buttonText}>Lay meld{layCount > 0 ? ` (${layCount})` : ''}</Text>
       </Pressable>
-    </View>
+    </Animated.View>
   );
 });
 
@@ -146,11 +155,13 @@ function GroupBox({
               count={entries.length}
               onReorder={onReorder}
               onRemove={() => onRemove(handIndex)}
+              testID={`staged-card-${index}-${position}`}
             />
           ))
         )}
       </View>
       <Pressable
+        testID={`cancel-group-${index}`}
         style={[shared.button, shared.buttonSecondary, styles.cancelButton, empty && styles.disabled]}
         onPress={onCancel}
         disabled={empty}
@@ -181,12 +192,14 @@ function DraggableStagedCard({
   count,
   onReorder,
   onRemove,
+  testID,
 }: {
   card: string;
   position: number;
   count: number;
   onReorder: (from: number, to: number) => void;
   onRemove: () => void;
+  testID?: string;
 }) {
   const dragging = useSharedValue(false);
   // Follows the finger live during the drag (translateX in on-screen
@@ -246,7 +259,7 @@ function DraggableStagedCard({
   return (
     <GestureDetector gesture={gesture}>
       <Animated.View style={[animatedStyle, { userSelect: 'none' } as object]}>
-        <CardView card={card} />
+        <CardView card={card} testID={testID} />
       </Animated.View>
     </GestureDetector>
   );

@@ -41,6 +41,7 @@ type GameStateMsg struct {
 	CanUndoDiscardDraw          bool                     `json:"canUndoDiscardDraw,omitempty"`
 	CanUndoLayOff               bool                     `json:"canUndoLayOff,omitempty"`
 	CanUndoLayMeld              bool                     `json:"canUndoLayMeld,omitempty"`
+	CanUndoTurn                 bool                     `json:"canUndoTurn,omitempty"`
 	RulesProfile                string                   `json:"rulesProfile"`
 }
 
@@ -62,11 +63,17 @@ func BuildGameStateMsg(g models.Game, myPlayerID string) GameStateMsg {
 	var canUndoDiscardDraw bool
 	var canUndoLayOff bool
 	var canUndoLayMeld bool
+	var canUndoTurn bool
 	if g.CurrentTurn == myPlayerID {
 		pendingMeldCard = g.DiscardDrawnCardPendingMeld
 		canUndoDiscardDraw = len(g.DiscardDrawnCards) > 0
 		canUndoLayOff = g.LastLayOff != nil && g.LastLayOff.PlayerID == myPlayerID
 		canUndoLayMeld = g.LastMeldLaid != nil && g.LastMeldLaid.PlayerID == myPlayerID
+		// Available any time this player's turn has a snapshot to fall back
+		// to, independent of whether the single most-recent action also
+		// happens to still be undoable on its own (e.g. after a swap_joker,
+		// which isn't individually undoable but is still covered here).
+		canUndoTurn = g.TurnMeldSnapshot != nil && g.TurnMeldSnapshot.PlayerID == myPlayerID
 	}
 
 	players := make([]PlayerMsg, 0, len(g.Players))
@@ -114,6 +121,7 @@ func BuildGameStateMsg(g models.Game, myPlayerID string) GameStateMsg {
 		CanUndoDiscardDraw:          canUndoDiscardDraw,
 		CanUndoLayOff:               canUndoLayOff,
 		CanUndoLayMeld:              canUndoLayMeld,
+		CanUndoTurn:                 canUndoTurn,
 		RulesProfile:                g.RulesProfile,
 	}
 }

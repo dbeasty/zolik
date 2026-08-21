@@ -1,4 +1,3 @@
-import { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector, ScrollView } from 'react-native-gesture-handler';
 import Animated, {
@@ -45,15 +44,14 @@ export function useDragPreview(): DragPreview {
 type Props = {
   cards: string[];
   selected: Set<number>;
-  // Plain tap: stages the card straight into the meld-building pane, same
-  // destination a drag-drop onto the staging area reaches.
+  // Every real action (discard, stage into a new meld, lay off, swap a
+  // joker) happens by dragging a card onto its target — see the various
+  // onDropOn* callbacks below. A plain tap is the one non-drag gesture left:
+  // it just toggles the card's gold-ring selection, used to build a
+  // multi-card lay-off/swap-joker before dragging one of the selected cards
+  // onto a table meld (see MeldTable).
   onTapCard: (index: number) => void;
-  // Long-press: toggles the card's gold-ring selection used for the
-  // lay-off / swap-joker flow (see MeldTable) — a separate gesture from tap
-  // since tap is now an immediate action, not a selection.
-  onLongPress?: (index: number) => void;
   onReorder: (newOrder: string[]) => void;
-  onDoubleTap?: (index: number) => void;
   // Measures the discard pile's current screen-space rect and reports it
   // via callback. Measured live at drag-end time (rather than read from a
   // value cached on scroll/layout) so it reflects the real current layout.
@@ -75,10 +73,6 @@ type Props = {
   onDragHover?: (absoluteX: number, absoluteY: number) => void;
   dragPreview: DragPreview;
   compact?: boolean;
-  // When true, a single tap discards the card directly instead of toggling
-  // selection — used during the discard phase, where selecting a card only
-  // ever leads to discarding it anyway.
-  tapToDiscard?: boolean;
   // Card value just picked up from the deck/discard pile this turn — every
   // card matching it gets the "just drawn" ring (see CardView).
   justDrawnCard?: string | null;
@@ -87,7 +81,6 @@ type Props = {
 const CARD_WIDTH = 52;
 const CARD_WIDTH_COMPACT = 44;
 const CARD_MARGIN = 6;
-const DOUBLE_TAP_MS = 400;
 
 export function pointInZone(x: number, y: number, zone: DropZone): boolean {
   return x >= zone.x && x <= zone.x + zone.width && y >= zone.y && y <= zone.y + zone.height;
@@ -105,9 +98,7 @@ export function HandRow({
   cards,
   selected,
   onTapCard,
-  onLongPress,
   onReorder,
-  onDoubleTap,
   measureDropZone,
   onDropOnZone,
   measureMeldZones,
@@ -118,7 +109,6 @@ export function HandRow({
   onDragHover,
   dragPreview,
   compact,
-  tapToDiscard,
   justDrawnCard,
 }: Props) {
   const slot = (compact ? CARD_WIDTH_COMPACT : CARD_WIDTH) + CARD_MARGIN;
@@ -136,8 +126,6 @@ export function HandRow({
           justDrawn={c === justDrawnCard}
           compact={compact}
           onTapCard={onTapCard}
-          onLongPress={onLongPress}
-          onDoubleTap={onDoubleTap}
           measureDropZone={measureDropZone}
           onDropOnZone={onDropOnZone}
           measureMeldZones={measureMeldZones}
@@ -147,7 +135,6 @@ export function HandRow({
           onDragCardChange={onDragCardChange}
           onDragHover={onDragHover}
           dragPreview={dragPreview}
-          tapToDiscard={tapToDiscard}
           onDrop={(from, to) => onReorder(moveCardToIndex(cards, from, to))}
         />
       ))}
@@ -165,8 +152,6 @@ function DraggableCard({
   justDrawn,
   compact,
   onTapCard,
-  onLongPress,
-  onDoubleTap,
   measureDropZone,
   onDropOnZone,
   measureMeldZones,
@@ -176,7 +161,6 @@ function DraggableCard({
   onDragCardChange,
   onDragHover,
   dragPreview,
-  tapToDiscard,
   onDrop,
 }: {
   card: string;
@@ -187,8 +171,6 @@ function DraggableCard({
   justDrawn?: boolean;
   compact?: boolean;
   onTapCard: (index: number) => void;
-  onLongPress?: (index: number) => void;
-  onDoubleTap?: (index: number) => void;
   measureDropZone?: (cb: (zone: DropZone | null) => void) => void;
   onDropOnZone?: (index: number) => void;
   measureMeldZones?: (cb: (zones: MeldZone[]) => void) => void;
@@ -198,81 +180,14 @@ function DraggableCard({
   onDragCardChange?: (card: string | null) => void;
   onDragHover?: (absoluteX: number, absoluteY: number) => void;
   dragPreview: DragPreview;
-  tapToDiscard?: boolean;
   onDrop: (from: number, to: number) => void;
 }) {
-  const lastTapAt = useRef(0);
-  // A staged card is pulled out of the hand array entirely (see
-  // visibleHand in the game screen), so firing onTapCard immediately on the
-  // first tap would unmount this exact component before a following second
-  // tap could ever reach it — the double-tap-to-discard gesture would just
-  // silently become "stage this card, then select whatever slid into its
-  // place." Holding the stage until the double-tap window closes without a
-  // second tap arriving keeps that gesture reliable regardless of what the
-  // single-tap path does to the layout.
-  const pendingToggle = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (pendingToggle.current) clearTimeout(pendingToggle.current);
-    };
-  }, []);
-
-  // Manual JS timing on top of a single gesture-handler Tap (the same
-  // gesture system as the pan below, which is proven to work — mixing it
-  // with a plain RN Pressable underneath turned out not to be reliable).
-  // Two taps within the window count as one discard, not one stage.
-  function handleTap() {
-    // During the discard phase a single tap discards outright — there's no
-    // other reason to tap a card there, so making the player double-tap
-    // was just extra friction.
-    if (tapToDiscard) {
-      if (onDoubleTap) onDoubleTap(index);
-      return;
-    }
-    const now = Date.now();
-    if (now - lastTapAt.current < DOUBLE_TAP_MS) {
-      lastTapAt.current = 0;
-      if (pendingToggle.current) {
-        clearTimeout(pendingToggle.current);
-        pendingToggle.current = null;
-      }
-      if (onDoubleTap) onDoubleTap(index);
-      return;
-    }
-    lastTapAt.current = now;
-    pendingToggle.current = setTimeout(() => {
-      pendingToggle.current = null;
-      onTapCard(index);
-    }, DOUBLE_TAP_MS);
-  }
-
+  // A plain tap just toggles selection — no double-tap/long-press timing
+  // games needed since nothing else competes with tap for this gesture
+  // anymore (every action is a drag; see the module doc comment on Props).
   const tap = Gesture.Tap().onEnd((_e, success) => {
-    if (success) runOnJS(handleTap)();
+    if (success) runOnJS(onTapCard)(index);
   });
-
-  // Holding a card selects it (gold ring) for the lay-off/swap-joker flow
-  // instead of staging it — a distinct, deliberate gesture from a plain
-  // tap so the two don't collide. Cancels the pending tap-stage timer (and
-  // any double-tap-discard window) so a long-press never also fires a stage
-  // once the finger lifts.
-  function handleLongPress() {
-    if (!onLongPress) return;
-    lastTapAt.current = 0;
-    if (pendingToggle.current) {
-      clearTimeout(pendingToggle.current);
-      pendingToggle.current = null;
-    }
-    onLongPress(index);
-  }
-
-  const longPress = Gesture.LongPress()
-    .minDuration(350)
-    .maxDistance(10)
-    .onStart(() => {
-      if (tapToDiscard) return;
-      runOnJS(handleLongPress)();
-    });
 
   function handleDragStart() {
     onDragCardChange?.(card);
@@ -298,16 +213,36 @@ function DraggableCard({
     }
   }
 
-  function tryDropOnStaging(translationX: number, absoluteX: number, absoluteY: number) {
+  // A fast, short flick upward reads as "discard" even if the card never
+  // reaches the discard pile's on-screen rect — asking players to drag all
+  // the way there felt heavier than it needed to be. Only the *last*
+  // resort, though: checked after every real drop zone (discard pile,
+  // table melds, staging area) has already come up empty. The staging area
+  // and table melds both sit above the hand row in this layout, so an
+  // ordinary deliberate drag up into either of them is also, incidentally,
+  // a fast upward motion — checking this first would silently reroute that
+  // drag into a discard instead of the meld action the player was aiming
+  // for, wherever their finger actually let go.
+  const QUICK_SWIPE_UP_DISTANCE = 40;
+  const QUICK_SWIPE_UP_VELOCITY = -600;
+
+  function tryDropOnStaging(translationX: number, translationY: number, velocityY: number, absoluteX: number, absoluteY: number) {
+    function fallback() {
+      if (onDropOnZone && translationY < -QUICK_SWIPE_UP_DISTANCE && velocityY < QUICK_SWIPE_UP_VELOCITY) {
+        onDropOnZone(index);
+      } else {
+        reorder(translationX);
+      }
+    }
     if (!measureStagingZone) {
-      reorder(translationX);
+      fallback();
       return;
     }
     measureStagingZone((zone) => {
       if (zone && onDropOnStaging && pointInZone(absoluteX, absoluteY, zone)) {
         onDropOnStaging(index);
       } else {
-        reorder(translationX);
+        fallback();
       }
     });
   }
@@ -315,9 +250,15 @@ function DraggableCard({
   // Checked in order: an existing table meld (lay off — the higher-stakes
   // action once you're down) before the new-meld staging area (just
   // selecting a card, same effect as tapping it).
-  function tryDropOnMeld(translationX: number, absoluteX: number, absoluteY: number) {
+  function tryDropOnMeld(
+    translationX: number,
+    translationY: number,
+    velocityY: number,
+    absoluteX: number,
+    absoluteY: number,
+  ) {
     if (!measureMeldZones) {
-      tryDropOnStaging(translationX, absoluteX, absoluteY);
+      tryDropOnStaging(translationX, translationY, velocityY, absoluteX, absoluteY);
       return;
     }
     measureMeldZones((zones) => {
@@ -325,20 +266,18 @@ function DraggableCard({
       if (hit && onDropOnMeld) {
         onDropOnMeld(index, hit.meldId, zonePosition(absoluteX, hit.zone));
       } else {
-        tryDropOnStaging(translationX, absoluteX, absoluteY);
+        tryDropOnStaging(translationX, translationY, velocityY, absoluteX, absoluteY);
       }
     });
   }
 
-  // A fast, short flick upward reads as "discard" even if the card never
-  // reaches the discard pile's on-screen rect — asking players to drag all
-  // the way there felt heavier than it needed to be.
-  const QUICK_SWIPE_UP_DISTANCE = 40;
-  const QUICK_SWIPE_UP_VELOCITY = -600;
-
   // Zones are measured live (not read from a value cached on scroll/layout
   // events) so a drop always sees the current on-screen position, even if
-  // the page scrolled or the layout shifted since the last such event.
+  // the page scrolled or the layout shifted since the last such event. The
+  // discard pile's own rect is still checked directly (rather than folded
+  // into the quick-swipe fallback) since it's a real, aimable target same as
+  // a meld or the staging area — the swipe-up shortcut only kicks in once
+  // none of the real drop zones matched, see tryDropOnStaging.
   function handleDragEnd(
     translationX: number,
     translationY: number,
@@ -347,19 +286,15 @@ function DraggableCard({
     absoluteY: number,
   ) {
     onDragCardChange?.(null);
-    if (onDropOnZone && translationY < -QUICK_SWIPE_UP_DISTANCE && velocityY < QUICK_SWIPE_UP_VELOCITY) {
-      onDropOnZone(index);
-      return;
-    }
     if (!measureDropZone) {
-      tryDropOnMeld(translationX, absoluteX, absoluteY);
+      tryDropOnMeld(translationX, translationY, velocityY, absoluteX, absoluteY);
       return;
     }
     measureDropZone((zone) => {
       if (zone && onDropOnZone && pointInZone(absoluteX, absoluteY, zone)) {
         onDropOnZone(index);
       } else {
-        tryDropOnMeld(translationX, absoluteX, absoluteY);
+        tryDropOnMeld(translationX, translationY, velocityY, absoluteX, absoluteY);
       }
     });
   }
@@ -391,7 +326,7 @@ function DraggableCard({
       dragPreview.draggingIndex.value = -1;
     });
 
-  const gesture = Gesture.Race(pan, longPress, tap);
+  const gesture = Gesture.Race(pan, tap);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: dragPreview.draggingIndex.value === index ? 0.3 : 1,
@@ -400,10 +335,16 @@ function DraggableCard({
 
   return (
     <GestureDetector gesture={gesture}>
-      {/* userSelect: none stops a rapid double-tap from being swallowed by
-          the browser's native "select this text" double-click behavior. */}
+      {/* userSelect: none stops a quick tap from being swallowed by the
+          browser's native "select this text" behavior. */}
       <Animated.View style={[animatedStyle, { userSelect: 'none' } as object]}>
-        <CardView card={card} selected={selected} justDrawn={justDrawn} compact={compact} />
+        <CardView
+          card={card}
+          selected={selected}
+          justDrawn={justDrawn}
+          compact={compact}
+          testID={`hand-card-${index}`}
+        />
       </Animated.View>
     </GestureDetector>
   );

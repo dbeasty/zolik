@@ -22,6 +22,14 @@ type Config struct {
 	SSHPort         string
 	SSHHostKeyPath  string
 	SSHAllowAllKeys bool
+
+	// TestEndpointsEnabled gates /games/{id}/debug-state, which writes a
+	// game's phase/hands/melds/turn directly into Mongo, bypassing rules
+	// validation — lets e2e tests jump straight into a specific mid-round
+	// UI state instead of playing a full deal turn-by-turn. Defaults on for
+	// local dev (same as SSHAllowAllKeys) but must be explicitly opted into
+	// anywhere APP_ENV is set.
+	TestEndpointsEnabled bool
 }
 
 func LoadConfig() Config {
@@ -44,6 +52,8 @@ func LoadConfig() Config {
 		SSHPort:         envOr("SSH_PORT", "2222"),
 		SSHHostKeyPath:  envOr("SSH_HOST_KEY_PATH", ".ssh/zolik_host_key"),
 		SSHAllowAllKeys: envBool("SSH_ALLOW_ALL_KEYS", local),
+
+		TestEndpointsEnabled: envBool("ENABLE_TEST_ENDPOINTS", local),
 	}
 }
 
@@ -68,4 +78,3 @@ func envOr(key, fallback string) string {
 	}
 	return fallback
 }
-

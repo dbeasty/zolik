@@ -55,11 +55,14 @@ func (m *Manager) HandleAction(ctx context.Context, gameID, playerID string, in 
 
 	outcome, err := rules.ApplyAction(rState, playerID, rAction)
 	if err != nil {
-		log.Printf("game=%s player=%s action=%s version=%d phase=%s turn=%s rejected: %v", gameID, playerID, in.Type, game.Version, game.Phase, game.CurrentTurn, err)
+		log.Printf("game=%s player=%s action=%s card=%q hand=%v version=%d phase=%s turn=%s rejected: %v", gameID, playerID, in.Type, rAction.Card, game.Hands[playerID], game.Version, game.Phase, game.CurrentTurn, err)
 		if re, ok := err.(rules.RulesError); ok && re.Code == rules.ErrNoCardsLeft {
 			m.suspendNoCardsLeft(ctx, gameID, oid, game)
 		}
 		return err
+	}
+	if rAction.Type == rules.ActionDiscard {
+		log.Printf("game=%s player=%s discard card=%q handBefore=%v handAfter=%v", gameID, playerID, rAction.Card, game.Hands[playerID], outcome.State.Hands[playerID])
 	}
 
 	// Apply mutated rules fields back to models.Game.
@@ -252,6 +255,8 @@ func toRulesAction(in WSIncoming) (rules.Action, error) {
 		return rules.Action{Type: rules.ActionUndoLayOff}, nil
 	case "undo_lay_meld":
 		return rules.Action{Type: rules.ActionUndoLayMeld}, nil
+	case "undo_turn":
+		return rules.Action{Type: rules.ActionUndoTurn}, nil
 	default:
 		return rules.Action{}, fmt.Errorf("unknown action type: %s", in.Type)
 	}
@@ -321,6 +326,64 @@ func fromRulesMeldLaidSnapshot(s *rules.MeldLaidSnapshot) *models.MeldLaidSnapsh
 	}
 }
 
+func toRulesTurnMeldSnapshot(s *models.TurnMeldSnapshot) *rules.TurnMeldSnapshot {
+	if s == nil {
+		return nil
+	}
+	meldMeta := map[string][]rules.MeldInfo{}
+	for owner, infos := range s.MeldMeta {
+		for _, mi := range infos {
+			meldMeta[owner] = append(meldMeta[owner], rules.MeldInfo{
+				MeldID:    mi.MeldID,
+				Type:      rules.MeldType(mi.Type),
+				OwnerID:   mi.OwnerID,
+				WildCount: mi.WildCount,
+			})
+		}
+	}
+	return &rules.TurnMeldSnapshot{
+		PlayerID:                    s.PlayerID,
+		Hands:                       s.Hands,
+		Melds:                       s.Melds,
+		MeldMeta:                    meldMeta,
+		RoundReqMet:                 s.RoundReqMet,
+		MeldsLaidThisTurn:           s.MeldsLaidThisTurn,
+		DiscardDrawnCardPendingMeld: s.DiscardDrawnCardPendingMeld,
+		DiscardDrawnCards:           s.DiscardDrawnCards,
+		DiscardPile:                 s.DiscardPile,
+		NextMeldSeq:                 s.NextMeldSeq,
+	}
+}
+
+func fromRulesTurnMeldSnapshot(s *rules.TurnMeldSnapshot) *models.TurnMeldSnapshot {
+	if s == nil {
+		return nil
+	}
+	meldMeta := map[string][]models.MeldInfo{}
+	for owner, infos := range s.MeldMeta {
+		for _, mi := range infos {
+			meldMeta[owner] = append(meldMeta[owner], models.MeldInfo{
+				MeldID:    mi.MeldID,
+				Type:      string(mi.Type),
+				OwnerID:   mi.OwnerID,
+				WildCount: mi.WildCount,
+			})
+		}
+	}
+	return &models.TurnMeldSnapshot{
+		PlayerID:                    s.PlayerID,
+		Hands:                       s.Hands,
+		Melds:                       s.Melds,
+		MeldMeta:                    meldMeta,
+		RoundReqMet:                 s.RoundReqMet,
+		MeldsLaidThisTurn:           s.MeldsLaidThisTurn,
+		DiscardDrawnCardPendingMeld: s.DiscardDrawnCardPendingMeld,
+		DiscardDrawnCards:           s.DiscardDrawnCards,
+		DiscardPile:                 s.DiscardPile,
+		NextMeldSeq:                 s.NextMeldSeq,
+	}
+}
+
 func toRulesState(g models.Game) rules.GameState {
 	// MeldMeta needs type conversion.
 	rMeldMeta := map[string][]rules.MeldInfo{}
@@ -360,6 +423,7 @@ func toRulesState(g models.Game) rules.GameState {
 		DiscardDrawnCards:           g.DiscardDrawnCards,
 		LastLayOff:                  toRulesLayOffSnapshot(g.LastLayOff),
 		LastMeldLaid:                toRulesMeldLaidSnapshot(g.LastMeldLaid),
+		TurnMeldSnapshot:            toRulesTurnMeldSnapshot(g.TurnMeldSnapshot),
 		GameScores:                  g.GameScores,
 		TotalScores:                 g.TotalScores,
 		WinnerID:                    g.WinnerID,
@@ -390,6 +454,7 @@ func fromRulesState(g *models.Game, rs rules.GameState) {
 	g.DiscardDrawnCards = rs.DiscardDrawnCards
 	g.LastLayOff = fromRulesLayOffSnapshot(rs.LastLayOff)
 	g.LastMeldLaid = fromRulesMeldLaidSnapshot(rs.LastMeldLaid)
+	g.TurnMeldSnapshot = fromRulesTurnMeldSnapshot(rs.TurnMeldSnapshot)
 	g.GameScores = rs.GameScores
 	g.TotalScores = rs.TotalScores
 
@@ -486,12 +551,14 @@ func (m *Manager) aiLoop(ctx context.Context, gameID string) {
 
 		visible := aiVisibleFromGame(game)
 		agent := ai.NewHeuristicAgent(aiPlayer.AIDifficulty)
-		chosen := agent.ChooseAction(visible, game.Hands[actorID])
+		handSnapshot := append([]string(nil), game.Hands[actorID]...)
+		chosen := agent.ChooseAction(visible, handSnapshot)
+		log.Printf("ai decision: game=%s actor=%s difficulty=%s phase=%s hand=%v chosen=%+v", gameID, actorID, aiPlayer.AIDifficulty, game.Phase, handSnapshot, chosen)
 
 		// Translate chosen rules action to WSIncoming and apply it through the usual path.
 		in := rulesActionToWSIncoming(chosen)
 		if err := m.HandleAction(ctx, gameID, actorID, in); err != nil {
-			log.Printf("ai action rejected: actor=%s type=%s err=%v", actorID, in.Type, err)
+			log.Printf("ai action rejected: game=%s actor=%s type=%s card=%q hand=%v err=%v", gameID, actorID, in.Type, in.Card, handSnapshot, err)
 			// Defense in depth: a rejected lay_meld/lay_off must not be retried
 			// verbatim (the agent would pick the same losing move again and
 			// burn the whole step budget without ever ending its turn). Fall
@@ -500,9 +567,11 @@ func (m *Manager) aiLoop(ctx context.Context, gameID string) {
 				if hand := game.Hands[actorID]; len(hand) > 0 {
 					cfg := rules.ResolveProfile(game.RulesProfile)
 					canDiscardJoker := len(hand) == 1 && game.RoundReqMet[actorID]
-					fallback := WSIncoming{Type: "discard", Card: ai.PickWorstDiscard(hand, cfg, canDiscardJoker)}
+					fallbackCard := ai.PickWorstDiscard(hand, cfg, canDiscardJoker)
+					fallback := WSIncoming{Type: "discard", Card: fallbackCard}
+					log.Printf("ai fallback discard: game=%s actor=%s card=%q hand=%v", gameID, actorID, fallbackCard, hand)
 					if err := m.HandleAction(ctx, gameID, actorID, fallback); err != nil {
-						log.Printf("ai fallback discard rejected: actor=%s err=%v", actorID, err)
+						log.Printf("ai fallback discard rejected: game=%s actor=%s card=%q hand=%v err=%v", gameID, actorID, fallbackCard, hand, err)
 					}
 				}
 			}

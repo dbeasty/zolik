@@ -126,6 +126,16 @@ func ApplyAction(state GameState, playerID string, action Action) (ApplyOutcome,
 		}))
 		return ApplyOutcome{State: ns, Events: events}, nil
 
+	case ActionUndoTurn:
+		ns, err := ValidateUndoTurn(state, playerID)
+		if err != nil {
+			return ApplyOutcome{State: state}, err
+		}
+		events = append(events, ev("undo_turn", map[string]interface{}{
+			"playerId": playerID,
+		}))
+		return ApplyOutcome{State: ns, Events: events}, nil
+
 	case ActionSwapJoker:
 		ns, err := ValidateSwapJoker(state, playerID, action.MeldID, action.Card)
 		if err != nil {

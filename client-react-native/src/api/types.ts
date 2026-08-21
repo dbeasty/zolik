@@ -25,6 +25,7 @@ export type GameState = {
   canUndoDiscardDraw?: boolean;
   canUndoLayOff?: boolean;
   canUndoLayMeld?: boolean;
+  canUndoTurn?: boolean;
   rulesProfile?: RulesProfile;
 };
 

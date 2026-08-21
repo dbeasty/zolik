@@ -39,6 +39,7 @@ func ValidateDraw(state GameState, playerID string, from DrawFrom, targetCard st
 		state.DiscardDrawnCards = nil
 		state.LastLayOff = nil
 		state.LastMeldLaid = nil
+		state.TurnMeldSnapshot = snapshotTurnMeld(state, playerID)
 		return state, card, nil, nil
 
 	case DrawFromDiscard:
@@ -82,6 +83,7 @@ func ValidateDraw(state GameState, playerID string, from DrawFrom, targetCard st
 		} else {
 			state.DiscardDrawnCardPendingMeld = ""
 		}
+		state.TurnMeldSnapshot = snapshotTurnMeld(state, playerID)
 		return state, primary, nil, nil
 	default:
 		return state, "", nil, fmt.Errorf("unknown draw source")
@@ -278,6 +280,93 @@ func ValidateUndoLayMeld(state GameState, playerID string) (GameState, error) {
 	state.MeldsLaidThisTurn = snap.PrevMeldsLaidThisTurn
 	state.DiscardDrawnCardPendingMeld = snap.PrevDiscardDrawnCardPendingMeld
 	state.LastMeldLaid = nil
+
+	return state, nil
+}
+
+// snapshotTurnMeld deep-copies everything a meld phase can touch (hands,
+// melds/meta of every player, the discard pile, and the current player's
+// round-requirement/turn bookkeeping) so ValidateUndoTurn can restore it
+// exactly, regardless of how many actions build on top of it before then.
+func snapshotTurnMeld(state GameState, playerID string) *TurnMeldSnapshot {
+	hands := map[string][]string{}
+	for k, v := range state.Hands {
+		hands[k] = append([]string(nil), v...)
+	}
+	melds := map[string][][]string{}
+	for k, ms := range state.Melds {
+		for _, m := range ms {
+			melds[k] = append(melds[k], append([]string(nil), m...))
+		}
+	}
+	meldMeta := map[string][]MeldInfo{}
+	for k, metas := range state.MeldMeta {
+		meldMeta[k] = append([]MeldInfo(nil), metas...)
+	}
+	return &TurnMeldSnapshot{
+		PlayerID:                    playerID,
+		Hands:                       hands,
+		Melds:                       melds,
+		MeldMeta:                    meldMeta,
+		RoundReqMet:                 state.RoundReqMet[playerID],
+		MeldsLaidThisTurn:           state.MeldsLaidThisTurn,
+		DiscardDrawnCardPendingMeld: state.DiscardDrawnCardPendingMeld,
+		DiscardDrawnCards:           append([]string(nil), state.DiscardDrawnCards...),
+		// Not append([]string(nil), ...): appending zero elements to a nil
+		// slice returns nil, not an empty slice — harmless everywhere else,
+		// but DiscardPile round-trips to the client as JSON, where a nil
+		// slice serializes to `null` instead of `[]`. The client indexes it
+		// unconditionally (state.discardPile[state.discardPile.length - 1])
+		// expecting an array, so restoring a nil discard pile via undo_turn
+		// (e.g. right after the discard pile's last card was just picked
+		// up) crashed the whole game screen. make() is never nil, even at
+		// length 0.
+		DiscardPile: append(make([]string, 0, len(state.DiscardPile)), state.DiscardPile...),
+		NextMeldSeq: state.NextMeldSeq,
+	}
+}
+
+// ValidateUndoTurn reverts every meld/lay-off/joker-swap action taken since
+// this player's draw, restoring hands, table melds, the discard pile, and
+// round-requirement bookkeeping to exactly how they were right after the
+// draw. Unlike ValidateUndoLayOff/ValidateUndoLayMeld (which only reach back
+// one action), this is available any time during the meld phase, however
+// many actions have piled up since — the snapshot itself only advances on
+// the next draw, never on the actions being undone.
+func ValidateUndoTurn(state GameState, playerID string) (GameState, error) {
+	if state.Status != StatusActive {
+		return state, RulesError{Code: ErrGameNotActive}
+	}
+	if state.Phase == PhaseSuspended || state.Status == StatusSuspended {
+		return state, RulesError{Code: ErrGameSuspended}
+	}
+	if state.CurrentTurn != playerID {
+		return state, RulesError{Code: ErrNotYourTurn}
+	}
+	if state.Phase != PhaseMeld {
+		return state, RulesError{Code: ErrWrongPhase}
+	}
+	snap := state.TurnMeldSnapshot
+	if snap == nil || snap.PlayerID != playerID {
+		return state, RulesError{Code: ErrNothingToUndo}
+	}
+
+	state.Hands = snap.Hands
+	state.Melds = snap.Melds
+	state.MeldMeta = snap.MeldMeta
+	state.RoundReqMet[playerID] = snap.RoundReqMet
+	state.MeldsLaidThisTurn = snap.MeldsLaidThisTurn
+	state.DiscardDrawnCardPendingMeld = snap.DiscardDrawnCardPendingMeld
+	state.DiscardDrawnCards = snap.DiscardDrawnCards
+	state.DiscardPile = snap.DiscardPile
+	state.NextMeldSeq = snap.NextMeldSeq
+	state.LastLayOff = nil
+	state.LastMeldLaid = nil
+	// Re-snapshot the just-restored state rather than reusing snap directly:
+	// keeps TurnMeldSnapshot's map/slice fields independent copies so a
+	// second undo_turn later this same turn can't alias state this undo just
+	// wrote into the live GameState.
+	state.TurnMeldSnapshot = snapshotTurnMeld(state, playerID)
 
 	return state, nil
 }
@@ -563,6 +652,9 @@ func ValidateDiscard(state GameState, playerID string, card string) (GameState, 
 
 	state.Hands[playerID] = removeCards(state.Hands[playerID], []string{card})
 	state.DiscardPile = append(state.DiscardPile, card)
+	// The meld phase is over now that the discard's landed — the whole-turn
+	// undo only makes sense before that point.
+	state.TurnMeldSnapshot = nil
 
 	// Go-out check: if hand empty after discard, must have met the game requirement.
 	if len(state.Hands[playerID]) == 0 {

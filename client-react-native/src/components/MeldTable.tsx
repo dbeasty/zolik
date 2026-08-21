@@ -1,8 +1,10 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { CardView } from '@/src/components/CardView';
 import type { MeldHoverTarget } from '@/src/components/HandRow';
 import type { GameState } from '@/src/api/types';
+import { useDropPulseStyle } from '@/src/hooks/useDropPulse';
 import { colors, shared } from '@/src/theme';
 
 type Props = {
@@ -14,6 +16,14 @@ type Props = {
   // Which meld (and which end of it, for a run) is currently under a card
   // being dragged — live feedback while dragging, not just at drop.
   hoverTarget?: MeldHoverTarget;
+  // True for the whole span a hand card is being dragged while lay-off is
+  // legal at all — every meld pulses gently as an eligible drop target as
+  // soon as the drag starts, not just the one directly under the finger
+  // (that stronger, solid highlight still comes from hoverTarget).
+  dragActive?: boolean;
+  // Meld a card was just successfully laid off onto — flashed briefly so
+  // the drop reads as "landed" instead of silently disappearing.
+  flashMeldId?: string | null;
   // Cards currently selected in hand — drives which of the two per-meld
   // action buttons below are eligible to show at all.
   selectedCards: string[];
@@ -26,11 +36,45 @@ type Props = {
   onSwapJoker: (meldId: string) => void;
 };
 
+function MeldRow({
+  refCb,
+  testID,
+  isHovered,
+  dragActive,
+  isFlashing,
+  children,
+}: {
+  refCb?: (el: View | null) => void;
+  testID?: string;
+  isHovered: boolean;
+  dragActive: boolean;
+  isFlashing: boolean;
+  children: React.ReactNode;
+}) {
+  const pulseStyle = useDropPulseStyle(dragActive && !isHovered);
+  return (
+    <Animated.View
+      ref={refCb}
+      testID={testID}
+      style={[
+        styles.meldRow,
+        dragActive && !isHovered ? pulseStyle : null,
+        isHovered && styles.meldRowHovered,
+        isFlashing && styles.meldRowFlash,
+      ]}
+    >
+      {children}
+    </Animated.View>
+  );
+}
+
 export function MeldTable({
   state,
   myUserId,
   onMeldRef,
   hoverTarget,
+  dragActive,
+  flashMeldId,
   selectedCards,
   canLayOff,
   onLayOff,
@@ -62,10 +106,13 @@ export function MeldTable({
               const hoverFront = isHovered && hoverTarget?.position === 'front';
               const hoverEnd = isHovered && hoverTarget?.position === 'end';
               return (
-                <View
+                <MeldRow
                   key={meldId}
-                  style={[styles.meldRow, isHovered && styles.meldRowHovered]}
-                  ref={(el) => onMeldRef?.(meldId, el)}
+                  refCb={(el) => onMeldRef?.(meldId, el)}
+                  testID={`meld-row-${meldId}`}
+                  isHovered={isHovered}
+                  dragActive={!!dragActive}
+                  isFlashing={flashMeldId === meldId}
                 >
                   <Text style={styles.meldId}>
                     {meldId} ({meta?.type ?? '?'})
@@ -75,7 +122,7 @@ export function MeldTable({
                       <View style={[styles.insertMarker, hoverFront && styles.insertMarkerActive]} />
                     ) : null}
                     {cards.map((c, i) => (
-                      <CardView key={`${c}-${i}`} card={c} compact />
+                      <CardView key={`${c}-${i}`} card={c} compact testID={`meld-card-${meldId}-${i}`} />
                     ))}
                     {isRun ? (
                       <View style={[styles.insertMarker, hoverEnd && styles.insertMarkerActive]} />
@@ -87,12 +134,14 @@ export function MeldTable({
                         isRun ? (
                           <>
                             <Pressable
+                              testID={`lay-off-front-${meldId}`}
                               style={[shared.button, shared.buttonSecondary, styles.meldActionButton]}
                               onPress={() => onLayOff(meldId, 'front')}
                             >
                               <Text style={shared.buttonTextSecondary}>◀ Front</Text>
                             </Pressable>
                             <Pressable
+                              testID={`lay-off-end-${meldId}`}
                               style={[shared.button, shared.buttonSecondary, styles.meldActionButton]}
                               onPress={() => onLayOff(meldId, 'end')}
                             >
@@ -101,6 +150,7 @@ export function MeldTable({
                           </>
                         ) : (
                           <Pressable
+                            testID={`lay-off-${meldId}`}
                             style={[shared.button, shared.buttonSecondary, styles.meldActionButton]}
                             onPress={() => onLayOff(meldId)}
                           >
@@ -114,6 +164,7 @@ export function MeldTable({
                       ) : null}
                       {hasJoker && showSwapJoker ? (
                         <Pressable
+                          testID={`swap-joker-${meldId}`}
                           style={[shared.button, shared.buttonSecondary, styles.meldActionButton]}
                           onPress={() => onSwapJoker(meldId)}
                         >
@@ -122,7 +173,7 @@ export function MeldTable({
                       ) : null}
                     </View>
                   ) : null}
-                </View>
+                </MeldRow>
               );
             })}
           </View>
@@ -160,6 +211,10 @@ const styles = StyleSheet.create({
   meldRowHovered: {
     borderColor: colors.gold,
     backgroundColor: 'rgba(234, 179, 8, 0.1)',
+  },
+  meldRowFlash: {
+    borderColor: colors.success,
+    backgroundColor: 'rgba(34, 197, 94, 0.18)',
   },
   insertMarker: {
     width: 3,

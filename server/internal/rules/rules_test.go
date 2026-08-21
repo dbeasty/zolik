@@ -659,6 +659,89 @@ func TestValidateUndoLayMeld_OnlyMostRecentMeldIsUndoable(t *testing.T) {
 	}
 }
 
+func TestValidateUndoTurn_RevertsEverySinceDrawEvenAfterMultipleActions(t *testing.T) {
+	st := GameState{
+		Status:             StatusActive,
+		Rules:              ProfileZolikClassic,
+		Phase:              PhaseDraw,
+		GameNumber:         1,
+		Round:              1,
+		CurrentTurn:        "p1",
+		TurnOrder:          []string{"p1", "p2"},
+		DrawPile:           []string{"8H"},
+		Hands:              map[string][]string{"p1": {"5H", "6H", "7H", "2S", "2D", "2C", "3S"}, "p2": {}},
+		Melds:              map[string][][]string{},
+		MeldMeta:           map[string][]MeldInfo{},
+		RoundReqMet:        map[string]bool{"p1": false, "p2": false},
+		InitialMeldMinimum: 0,
+	}
+
+	if _, err := ValidateUndoTurn(st, "p1"); err == nil {
+		t.Fatalf("expected nothing to undo before a draw started the meld phase")
+	}
+
+	afterDraw, _, _, err := ValidateDraw(st, "p1", DrawFromDeck, "")
+	if err != nil {
+		t.Fatalf("draw failed: %v", err)
+	}
+	postDrawHand := append([]string(nil), afterDraw.Hands["p1"]...)
+
+	// Two melds and a lay-off, so undoing the first meld alone (the
+	// last-action-only undo) is no longer possible — only undo_turn can
+	// still get back to the start of the meld phase.
+	ns, _, _, err := ValidateMeldAction(afterDraw, "p1", []string{"2S", "2D", "2C"})
+	if err != nil {
+		t.Fatalf("first lay_meld failed: %v", err)
+	}
+	ns, _, _, err = ValidateMeldAction(ns, "p1", []string{"5H", "6H", "7H"})
+	if err != nil {
+		t.Fatalf("second lay_meld failed: %v", err)
+	}
+	ns, err = ValidateLayOff(ns, "p1", findMeldIDByOwnerIndex(ns, "p1", 1), []string{"8H"}, "end")
+	if err != nil {
+		t.Fatalf("lay_off failed: %v", err)
+	}
+	if ns.LastMeldLaid != nil {
+		t.Fatalf("expected the single-step meld undo window to already be closed by the lay_off")
+	}
+
+	undone, err := ValidateUndoTurn(ns, "p1")
+	if err != nil {
+		t.Fatalf("expected undo_turn to succeed, got %v", err)
+	}
+	if got := undone.Hands["p1"]; len(got) != len(postDrawHand) {
+		t.Fatalf("expected hand restored to its post-draw contents, got %v want %v", got, postDrawHand)
+	}
+	for _, c := range postDrawHand {
+		if !containsCard(undone.Hands["p1"], c) {
+			t.Fatalf("expected %s back in hand after undo_turn, got %v", c, undone.Hands["p1"])
+		}
+	}
+	if len(undone.Melds["p1"]) != 0 {
+		t.Fatalf("expected both melds removed from the table, got %v", undone.Melds["p1"])
+	}
+	if undone.RoundReqMet["p1"] {
+		t.Fatalf("expected RoundReqMet to revert to false")
+	}
+	if undone.MeldsLaidThisTurn != 0 {
+		t.Fatalf("expected MeldsLaidThisTurn to revert to 0, got %d", undone.MeldsLaidThisTurn)
+	}
+
+	// The undo window itself stays open (it's not a one-shot like the
+	// single-action undos) — the player can keep melding and undo_turn
+	// again, any number of times, up until they discard.
+	if _, err := ValidateUndoTurn(undone, "p1"); err != nil {
+		t.Fatalf("expected undo_turn to remain available, got %v", err)
+	}
+}
+
+func findMeldIDByOwnerIndex(state GameState, owner string, idx int) string {
+	if metas := state.MeldMeta[owner]; idx < len(metas) {
+		return metas[idx].MeldID
+	}
+	return ""
+}
+
 func containsCard(hand []string, card string) bool {
 	for _, c := range hand {
 		if c == card {

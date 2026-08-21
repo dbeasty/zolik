@@ -46,6 +46,7 @@ type Game struct {
 	DiscardDrawnCards           []string              `bson:"discardDrawnCards" json:"-"`
 	LastLayOff                  *LayOffSnapshot       `bson:"lastLayOff,omitempty" json:"-"`
 	LastMeldLaid                *MeldLaidSnapshot     `bson:"lastMeldLaid,omitempty" json:"-"`
+	TurnMeldSnapshot            *TurnMeldSnapshot     `bson:"turnMeldSnapshot,omitempty" json:"-"`
 	Players                     []Player              `bson:"players" json:"players"`
 	ActionLog                   []Action              `bson:"actionLog" json:"-"`
 	NextMeldSeq                 int                   `bson:"nextMeldSeq" json:"nextMeldSeq"`
@@ -92,6 +93,21 @@ type MeldLaidSnapshot struct {
 	PrevRoundReqMet                 bool     `bson:"prevRoundReqMet" json:"-"`
 	PrevMeldsLaidThisTurn           int      `bson:"prevMeldsLaidThisTurn" json:"-"`
 	PrevDiscardDrawnCardPendingMeld string   `bson:"prevDiscardDrawnCardPendingMeld" json:"-"`
+}
+
+// TurnMeldSnapshot mirrors rules.TurnMeldSnapshot for persistence — see there
+// for what it's used for.
+type TurnMeldSnapshot struct {
+	PlayerID                    string                `bson:"playerId" json:"-"`
+	Hands                       map[string][]string   `bson:"hands" json:"-"`
+	Melds                       map[string][][]string `bson:"melds" json:"-"`
+	MeldMeta                    map[string][]MeldInfo `bson:"meldMeta" json:"-"`
+	RoundReqMet                 bool                  `bson:"roundReqMet" json:"-"`
+	MeldsLaidThisTurn           int                   `bson:"meldsLaidThisTurn" json:"-"`
+	DiscardDrawnCardPendingMeld string                `bson:"discardDrawnCardPendingMeld" json:"-"`
+	DiscardDrawnCards           []string              `bson:"discardDrawnCards" json:"-"`
+	DiscardPile                 []string              `bson:"discardPile" json:"-"`
+	NextMeldSeq                 int                   `bson:"nextMeldSeq" json:"-"`
 }
 
 type Action struct {

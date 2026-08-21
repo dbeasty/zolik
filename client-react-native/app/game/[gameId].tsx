@@ -18,6 +18,7 @@ import { MeldTable } from '@/src/components/MeldTable';
 import { Screen } from '@/src/components/Screen';
 import { useGameFlow } from '@/src/context/GameFlowContext';
 import { useSession } from '@/src/context/SessionContext';
+import { useDropPulseStyle } from '@/src/hooks/useDropPulse';
 import { useGameSocket } from '@/src/hooks/useGameSocket';
 import type { GameState, WSEnvelope } from '@/src/api/types';
 import {
@@ -131,19 +132,15 @@ export default function GameScreen() {
   // in here stays visible in the hand row (with the gold ring) until "+ Add
   // to meld" moves it into `groups`. Dragging a card straight onto the
   // staging area skips this and stages it immediately (see stageCard).
-  // Selected via long-press only — tapping a card stages it straight into
-  // the meld-building pane (see stageCard), so this set no longer feeds
-  // that flow. It now exists purely to pick cards for the per-meld "Lay off
-  // here" / "Swap joker here" buttons in MeldTable, which need a multi-card
-  // selection step before the player picks which table meld to apply it to.
+  // A plain tap on a hand card toggles this — the gold-ring selection used
+  // to pick one or more cards for the per-meld "Lay off here" / "Swap joker
+  // here" buttons in MeldTable (a card in here still shows in the hand row;
+  // dragging one of the selected cards onto a meld lays off the whole
+  // selection together, see onDropOnMeld below). Every other meld action
+  // (staging a new meld, laying off a single unselected card, discarding)
+  // happens by dragging the card straight to its target instead — see
+  // stageCard/layOffCardAt/discardCardAt.
   const [selectedForMeld, setSelectedForMeld] = useState<Set<number>>(new Set());
-  // Off by default: a plain tap on a hand card discards it outright (same
-  // as the discard-phase tap-to-discard gesture). Toggled on via the
-  // "Meld" action button, which switches taps over to selecting/staging
-  // cards for a meld instead — see the `tapToDiscard` prop passed to
-  // HandRow below. Kept distinct from canBuildMeld so the meld button can
-  // stay off by default even while melding is available.
-  const [meldMode, setMeldMode] = useState(false);
   const [localHand, setLocalHand] = useState<string[] | null>(null);
   const discardZoneRef = useRef<View>(null);
   const stagingZoneRef = useRef<View>(null);
@@ -158,6 +155,17 @@ export default function GameScreen() {
   // onDropOnMeld below. Cleared whenever the drag ends (see
   // onDragCardChange).
   const [hoverTarget, setHoverTarget] = useState<MeldHoverTarget>(null);
+  // Meld that just received a successful lay-off — flashed green briefly so
+  // the drop reads as "landed" rather than the card just silently
+  // disappearing once the server confirms it. Set when we send lay_off,
+  // cleared automatically after a short delay (see the effect below).
+  const [flashMeldId, setFlashMeldId] = useState<string | null>(null);
+  const flashMeldTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function flashMeld(meldId: string) {
+    setFlashMeldId(meldId);
+    if (flashMeldTimeoutRef.current) clearTimeout(flashMeldTimeoutRef.current);
+    flashMeldTimeoutRef.current = setTimeout(() => setFlashMeldId(null), 600);
+  }
   const lastHoverCheckAtRef = useRef(0);
   // Throttled rather than run on every pan frame — a live highlight only
   // needs to feel immediate, not literally hit 60fps, and each check costs
@@ -307,7 +315,6 @@ export default function GameScreen() {
       resetKeyRef.current = key;
       setGroups([[]]);
       setSelectedForMeld(new Set());
-      setMeldMode(false);
     }
   }, [state?.myHand, state?.phase, state?.game]);
 
@@ -342,7 +349,8 @@ export default function GameScreen() {
   // drag-drop (or button/tap discard) gets a visible "yes, that landed"
   // confirmation instead of the pile just silently changing.
   useEffect(() => {
-    const top = state?.discardPile[state.discardPile.length - 1];
+    const discardPile = state?.discardPile ?? [];
+    const top = discardPile[discardPile.length - 1];
     if (prevTopDiscardRef.current !== undefined && top && top !== prevTopDiscardRef.current) {
       setDiscardFlash(true);
       const t = setTimeout(() => setDiscardFlash(false), 800);
@@ -359,16 +367,12 @@ export default function GameScreen() {
     if (!isMyTurn) setJustDrawnCard(null);
   }, [isMyTurn]);
 
-  // Moves a card straight into the group currently being built — used by
-  // both drag-to-stage (dropping onto the staging area) and a plain tap on
-  // a hand card, so tapping and dragging behave the same way: the card
-  // leaves the hand immediately, no separate select-then-commit step.
+  // Moves a card straight into the group currently being built — reached by
+  // dragging a hand card onto the staging area (see onDropOnStaging below).
   function stageCard(index: number) {
     // Melding is only a thing between your draw and your discard — before
-    // you've drawn there's nothing to meld with yet. And even then, a tap
-    // only stages a card once meld mode is switched on (see meldMode) —
-    // otherwise a tap is a discard (see the tapToDiscard prop below).
-    if (!canBuildMeld || !meldMode) return;
+    // you've drawn there's nothing to meld with yet.
+    if (!canBuildMeld) return;
     const card = hand[index];
     if (!card) return;
     setGroups((prev) => {
@@ -400,14 +404,13 @@ export default function GameScreen() {
     });
   }
 
-  // Long-press only (see HandRow's long-press gesture) — selects a card
-  // with the gold ring for the *lay-off* / *swap joker* flow: pick one or
-  // more cards this way, then tap a table meld's "Lay off here" or "Swap
-  // joker here" button (see layOffOnto/swapJokerOnto below). A plain tap no
-  // longer selects; it stages straight into the new-meld pane instead (see
-  // stageCard).
+  // A plain tap on a hand card — selects it with the gold ring for the
+  // *lay-off* / *swap joker* flow: pick one or more cards this way, then
+  // either tap a table meld's "Lay off here" / "Swap joker here" button, or
+  // drag one of the selected cards straight onto the meld (see
+  // layOffOnto/swapJokerOnto/onDropOnMeld below).
   function toggleHandSelect(index: number) {
-    if (!canBuildMeld || !meldMode) return;
+    if (!canBuildMeld) return;
     setSelectedForMeld((prev) => {
       const next = new Set(prev);
       if (next.has(index)) next.delete(index);
@@ -447,6 +450,13 @@ export default function GameScreen() {
   // anyone else's) once you've met your own round requirement this deal.
   const canLayOff = !!state && isMyTurn && phase === 'meld' && !!state.roundReqMet[userId];
   const canBuildMeld = !!state && isMyTurn && phase === 'meld';
+  // Mirrors discardCardAt's own guard — used to decide whether the discard
+  // pile pulses as a valid drop target while a card is being dragged.
+  const canDiscardNow = !!state && isMyTurn && (phase === 'discard' || phase === 'meld');
+  // Hook, so it has to run unconditionally on every render (including the
+  // "loading" render before `state` exists below) — same reason the drag
+  // overlay's shared values are declared up top instead of inside the JSX.
+  const discardPulseStyle = useDropPulseStyle(draggedCard !== null && canDiscardNow);
 
   function layOffCardAt(index: number, meldId: string, position: 'front' | 'end') {
     if (!canLayOff) return;
@@ -463,6 +473,7 @@ export default function GameScreen() {
     // which end of a run it has to extend — a set has no ends, so the
     // server just ignores this for sets.
     send({ type: 'lay_off', meldId, card, position });
+    flashMeld(meldId);
     clearSelect();
   }
 
@@ -483,7 +494,12 @@ export default function GameScreen() {
     );
   }
 
-  const topDiscard = state.discardPile[state.discardPile.length - 1];
+  // Defends against a null discardPile from the server (a nil Go slice
+  // serializes to JSON `null`, not `[]`) rather than assuming the array is
+  // always present — see the DiscardPile comment in
+  // rules.snapshotTurnMeld for the bug this guards against.
+  const discardPileSafe = state.discardPile ?? [];
+  const topDiscard = discardPileSafe[discardPileSafe.length - 1];
   const header = `${dealHeaderLabel(state.rulesProfile, state.game)} · Round ${state.round} · Deck ${state.deckCount}`;
   const turnLabel = isMyTurn
     ? 'Your turn'
@@ -506,11 +522,6 @@ export default function GameScreen() {
     if (!canTakeDiscard) return;
     send({ type: 'draw_card', from: 'discard' });
     clearSelect();
-    // A card taken from the discard pile must go into your initial meld
-    // before you can discard (see discardDrawnCardPendingMeld below), so
-    // jump straight into meld mode instead of leaving the player to notice
-    // the banner and flip the Meld toggle themselves.
-    setMeldMode(true);
   }
 
   const resolvedGroups = resolveGroupIndices(hand, groups);
@@ -581,15 +592,10 @@ export default function GameScreen() {
   // per-meld "Lay off here" / "Swap joker here" buttons to show.
   const meldSelectedCards = phase === 'meld' ? selectedCards(hand, selectedForMeld) : [];
 
-  // Whenever melding is available at all, surface an explicit "Meld" toggle
-  // rather than always stealing the plain tap gesture for it — off by
-  // default a tap just discards (see the tapToDiscard prop on HandRow),
-  // and switching this on is what turns taps into meld-card selection
-  // instead. Pulses (via ActionBar's `active` styling) while on so it's
-  // obvious taps in the hand won't discard right now.
   function layOffOnto(meldId: string, position?: 'front' | 'end') {
     if (meldSelectedCards.length === 0) return;
     send({ type: 'lay_off', meldId, cards: meldSelectedCards, position });
+    flashMeld(meldId);
     clearSelect();
   }
 
@@ -606,6 +612,17 @@ export default function GameScreen() {
   function undoTakeDiscard() {
     if (!state?.canUndoDiscardDraw) return;
     send({ type: 'undo_draw_discard' });
+  }
+
+  // Unlike the single-step undos below (which only reach back one action),
+  // this reverts every meld/lay-off/joker-swap made since the draw that
+  // started this turn's meld phase — the always-available fallback for
+  // "get back to a known state before I discard," no matter how many
+  // actions have piled up since.
+  function undoTurn() {
+    if (!state?.canUndoTurn) return;
+    send({ type: 'undo_turn' });
+    clearSelect();
   }
 
   function swapJokerOnto(meldId: string) {
@@ -634,6 +651,12 @@ export default function GameScreen() {
   // reaction to the meld that just landed on the table.
   if (state?.canUndoLayMeld) {
     actions.push({ label: 'Undo meld', onPress: undoLastMeld });
+  }
+  // Always available (rather than tied to the most recent action alone)
+  // once anything has happened since the draw — the general-purpose "start
+  // this turn's melding over" escape hatch, valid any time before discard.
+  if (state?.canUndoTurn) {
+    actions.push({ label: 'Undo turn', onPress: undoTurn });
   }
 
   if (isMyTurn) {
@@ -704,6 +727,8 @@ export default function GameScreen() {
           myUserId={userId}
           onMeldRef={registerMeldRef}
           hoverTarget={hoverTarget}
+          dragActive={canLayOff && draggedCard !== null}
+          flashMeldId={flashMeldId}
           selectedCards={meldSelectedCards}
           canLayOff={canLayOff}
           onLayOff={layOffOnto}
@@ -714,6 +739,7 @@ export default function GameScreen() {
           <MeldStagingArea
             ref={stagingZoneRef}
             groups={stagingGroups}
+            dragActive={draggedCard !== null}
             onRemove={unstageCard}
             onReorderGroup={reorderGroup}
             onCancelGroup={cancelGroup}
@@ -725,18 +751,6 @@ export default function GameScreen() {
           />
         ) : null}
 
-        {canBuildMeld ? (
-          <ActionBar
-            actions={[
-              {
-                label: meldMode ? 'Melding… (tap to finish)' : 'Meld',
-                onPress: () => setMeldMode((prev) => !prev),
-                active: meldMode,
-              },
-            ]}
-          />
-        ) : null}
-
         {isMyTurn && state.discardDrawnCardPendingMeld ? (
           <Text style={[shared.error, { marginTop: 8 }]}>
             You picked up {state.discardDrawnCardPendingMeld} from the discard pile — it must go
@@ -744,13 +758,21 @@ export default function GameScreen() {
           </Text>
         ) : null}
 
-        <View ref={discardZoneRef} style={{ paddingVertical: 4 }}>
+        <Animated.View
+          testID="discard-zone"
+          ref={discardZoneRef}
+          style={[
+            { paddingVertical: 4, borderWidth: 2, borderColor: 'transparent', borderRadius: 8 },
+            draggedCard !== null && canDiscardNow ? discardPulseStyle : undefined,
+          ]}
+        >
           <Text style={[shared.status, { marginTop: 8 }]}>
             Deck ({state.deckCount}) · Discard pile
             {discardLocked ? ` (pickup locked until round ${state.discardDrawMinRound})` : ''}
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Pressable
+              testID="deck-pile"
               onPress={drawFromDeck}
               disabled={!canDrawDeck}
               style={({ pressed }) => [
@@ -764,13 +786,17 @@ export default function GameScreen() {
             {topDiscard ? (
               <View style={[pileStyles.discardWrap, discardFlash && pileStyles.discardWrapFlash]}>
                 {discardFlash ? <Text style={pileStyles.discardFlashLabel}>✓ Added</Text> : null}
-                <CardView card={topDiscard} onPress={canTakeDiscard ? takeDiscard : undefined} />
+                <CardView
+                  card={topDiscard}
+                  onPress={canTakeDiscard ? takeDiscard : undefined}
+                  testID="discard-top-card"
+                />
               </View>
             ) : (
               <Text style={shared.status}>Empty</Text>
             )}
           </View>
-        </View>
+        </Animated.View>
 
         <View
           style={{
@@ -786,34 +812,33 @@ export default function GameScreen() {
           </Pressable>
         </View>
         <Text style={shared.status}>
-          {canBuildMeld && meldMode
-            ? "Melding — tap or drag a card to add it to the meld you're building, or long-press " +
-              'one or more cards to select them for laying off onto a table meld (or swapping a ' +
-              "joker). Tap the Meld button again when you're done to go back to tap-to-discard."
-            : 'Tap a card to discard it, or drag it onto a table meld to lay it off. Tap Meld ' +
-              'first if you want to build a new meld instead — taps then select cards for it ' +
-              "rather than discarding them. Drag a staged card within its run or set to reorder it."}
+          {canBuildMeld
+            ? 'Drag a card anywhere: onto the discard pile to discard it, onto the box below to ' +
+              'start a new meld, or onto a table meld to lay it off (glowing outlines show where ' +
+              "it can land). Tap one or more cards to select them (gold ring) first if you'd " +
+              'rather use the "Lay off here" / "Swap joker here" buttons, or to drag several off ' +
+              'together. Drag a staged card within its run or set to reorder it.'
+            : 'Drag a card onto the discard pile to discard it, or flick it upward. Drag it onto ' +
+              'a table meld to lay it off.'}
         </Text>
         <HandRow
           cards={visibleHand}
           selected={visibleSelected}
-          onTapCard={(vi) => stageCard(visibleToFullIndex[vi])}
-          onLongPress={(vi) => toggleHandSelect(visibleToFullIndex[vi])}
+          onTapCard={(vi) => toggleHandSelect(visibleToFullIndex[vi])}
           onReorder={(newVisibleOrder) => {
             const stagedCards = hand.filter((_, i) => allStaged.has(i));
             setLocalHand([...newVisibleOrder, ...stagedCards]);
           }}
-          onDoubleTap={(vi) => discardCardAt(visibleToFullIndex[vi])}
           measureDropZone={measureDropZone}
           onDropOnZone={(vi) => discardCardAt(visibleToFullIndex[vi])}
           measureMeldZones={measureMeldZones}
           onDropOnMeld={(vi, meldId, position) => {
             const fullIndex = visibleToFullIndex[vi];
-            // Dragging a card that's part of a multi-card long-press
-            // selection lays off the whole selection together (matching the
-            // "Lay off N here" button) — not just the one card that was
-            // physically dragged. Dragging an unselected card (the common
-            // case: no selection at all) still lays off just that card.
+            // Dragging a card that's part of a multi-card selection lays off
+            // the whole selection together (matching the "Lay off N here"
+            // button) — not just the one card that was physically dragged.
+            // Dragging an unselected card (the common case: no selection at
+            // all) still lays off just that card.
             if (selectedForMeld.has(fullIndex) && meldSelectedCards.length > 1) {
               layOffOnto(meldId, position);
             } else {
@@ -829,7 +854,6 @@ export default function GameScreen() {
           onDragHover={handleDragHover}
           justDrawnCard={justDrawnCard}
           dragPreview={dragPreview}
-          tapToDiscard={isMyTurn && (phase === 'discard' || (phase === 'meld' && !meldMode))}
         />
 
         {actions.length > 0 ? <ActionBar actions={actions} /> : null}
@@ -850,7 +874,7 @@ export default function GameScreen() {
         </ScrollView>
       </Screen>
       <Animated.View style={dragOverlayStyle} pointerEvents="none">
-        {draggedCard ? <CardView card={draggedCard} /> : null}
+        {draggedCard ? <CardView card={draggedCard} dragging testID="drag-overlay-card" /> : null}
       </Animated.View>
       <Modal
         visible={rulesModalOpen}
