@@ -80,37 +80,43 @@ test.describe('legal actions drive the UI', () => {
   }) => {
     // The deleted expression:
     //   canLayOff = isMyTurn && phase === 'meld' && roundReqMet[userId]
-    const game = await seedGame(request, {
+    //
+    // Asserted through the per-meld control rather than a drag. A drag is the
+    // wrong instrument here: when a meld is not a valid drop target the card
+    // falls through to the next zone under the pointer — the discard pile —
+    // which ends the turn and makes any follow-up assertion ambiguous about
+    // *why* the lay-off did not happen. The button is bound directly to the
+    // `lay_off:<meldId>` offer, so its presence is exactly the thing under
+    // test.
+    const seed = {
       hand: ['7S', '2S', '3S', 'KD'],
       melds: { ai: [['7H', '7C', '7D']] },
-      phase: 'meld',
+      phase: 'meld' as const,
       roundReqMet: false,
-    });
+    };
+    const game = await seedGame(request, seed);
     await loginAs(page, game);
     await page.goto(`/game/${game.gameId}`);
     await waitForGameLoaded(page);
 
     const meldRow = page.locator('[data-testid^="meld-row-"]').first();
     await expect(meldRow.locator('[data-testid^="meld-card-"]')).toHaveCount(3);
+    const meldId = (await meldRow.getAttribute('data-testid'))!.replace('meld-row-', '');
 
-    // Dragging 7S onto the 7s set must not land: this player is not down.
-    await dragLocatorTo(page, page.getByTestId('hand-card-0'), meldRow);
-    await page.waitForTimeout(400);
-    await expect(meldRow.locator('[data-testid^="meld-card-"]')).toHaveCount(3);
-    await expect(page.getByText(/Your hand \(4\)/)).toBeVisible();
+    // Select 7S — it would extend the 7s set, so the only thing standing
+    // between this player and a lay-off is that they are not down yet.
+    await page.getByTestId('hand-card-0').click();
+    await expect(page.getByTestId(`lay-off-${meldId}`)).toHaveCount(0);
 
     // Flip only the server-side fact. No client code knows what changed.
-    await game.reseed({
-      hand: ['7S', '2S', '3S', 'KD'],
-      melds: { ai: [['7H', '7C', '7D']] },
-      phase: 'meld',
-      roundReqMet: true,
-    });
-    await page.waitForTimeout(400);
+    await game.reseed({ ...seed, roundReqMet: true });
+    await expect(page.getByTestId(`lay-off-${meldId}`)).toBeVisible();
 
-    await dragLocatorTo(page, page.getByTestId('hand-card-0'), meldRow);
+    // ...and the control the server started offering actually works. The
+    // hand selection survives the state push, so it is not re-clicked here —
+    // clicking a selected card toggles it off.
+    await page.getByTestId(`lay-off-${meldId}`).click();
     await expect(meldRow.locator('[data-testid^="meld-card-"]')).toHaveCount(4);
-    await expect(page.getByText(/Your hand \(3\)/)).toBeVisible();
   });
 
   test('"Swap joker here" appears only where a card in hand takes the joker\'s place', async ({

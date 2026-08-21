@@ -40,3 +40,8 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# A dev-only symlink to the main checkout node_modules, used to run tsc/jest
+# from a worktree without a second install. The trailing-slash rule above
+# does not match a symlink.
+node_modules

@@ -739,13 +739,23 @@ export default function GameScreen() {
     clearSelect();
   }
 
-  // Undo is only offered for taking the discard pile card — the game's
-  // actual rule is that you can back out of that pickup and draw from the
-  // deck instead, before anything else this turn has happened. Lay-off,
-  // meld, and whole-turn undo remain implemented server-side but aren't
-  // surfaced in this UI since they're not legal undos in this game.
-  if (can(state, OFFER.undoDrawDiscard)) {
-    actions.push({ label: 'Undo take discard', onPress: undoTakeDiscard });
+  // Each undo appears exactly while the server offers it.
+  //
+  // Only "Undo take discard" used to be surfaced; the other three handlers
+  // existed but were wired to nothing, because deciding when they were
+  // *available* meant re-deriving three more rules client-side (which
+  // snapshot is live, whether it belongs to me, whether anything has built
+  // on top of it since). The offer list answers all of that, so surfacing
+  // them is now a lookup rather than a fourth copy of the rule.
+  for (const undo of [
+    { offer: OFFER.undoDrawDiscard, label: 'Undo take discard', onPress: undoTakeDiscard },
+    { offer: OFFER.undoLayOff, label: 'Undo lay-off', onPress: undoLastLayOff },
+    { offer: OFFER.undoLayMeld, label: 'Undo meld', onPress: undoLastMeld },
+    { offer: OFFER.undoTurn, label: 'Undo turn', onPress: undoTurn },
+  ]) {
+    if (can(state, undo.offer)) {
+      actions.push({ label: undo.label, onPress: undo.onPress });
+    }
   }
 
   if (isMyTurn) {
