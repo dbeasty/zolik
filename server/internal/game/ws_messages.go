@@ -15,6 +15,12 @@ type WSIncoming struct {
 	// Optional: nil means "first matching card", same as before this field
 	// existed.
 	CardIndex *int `json:"cardIndex,omitempty"`
+	// ToSeq (request_takeback) names the RawActionLog turn to revert to —
+	// the state right after that turn is restored, undoing everything
+	// after it in the current deal.
+	ToSeq int `json:"toSeq,omitempty"`
+	// Approve (respond_takeback) is the responding player's decision.
+	Approve bool `json:"approve,omitempty"`
 }
 
 func DecodeIncoming(data []byte) (WSIncoming, error) {

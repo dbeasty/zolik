@@ -69,7 +69,18 @@ func (m *Manager) HandleAction(ctx context.Context, gameID, playerID string, in 
 	nextGame := game
 	fromRulesState(&nextGame, outcome.State)
 
-	appendEventsToActionLog(&nextGame, playerID, outcome.Events)
+	turnSeq := appendRawAction(&nextGame, playerID, rAction)
+	appendEventsToActionLog(&nextGame, playerID, turnSeq, outcome.Events)
+
+	// A new deal (GameNumber advanced) started as part of this action
+	// (ActionLayMeld/ActionLayOff/ActionDiscard going out -> EndGame ->
+	// StartNextGame, all inside rules.ApplyAction) — nextGame now reflects
+	// that new deal's post-deal, pre-action state, so it's the replay
+	// anchor for whatever happens in it. This action itself (the one that
+	// ended the old deal) stays out of the new deal's replay range.
+	if outcome.State.GameNumber != rState.GameNumber {
+		nextGame.DealInitialState = captureDealSnapshot(nextGame, turnSeq)
+	}
 
 	if nextGame.Status == string(rules.StatusCompleted) {
 		now := time.Now().UTC()

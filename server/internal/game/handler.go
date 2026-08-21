@@ -171,6 +171,22 @@ func (s *WebSocketServer) handleWS(w http.ResponseWriter, req *http.Request) {
 			})
 			continue
 		}
+		if in.Type == "request_takeback" || in.Type == "respond_takeback" {
+			var err error
+			if in.Type == "request_takeback" {
+				err = s.manager.RequestTakeback(ctx, gameID, playerID, in.ToSeq)
+			} else {
+				err = s.manager.RespondTakeback(ctx, gameID, playerID, in.Approve)
+			}
+			if err != nil {
+				_ = wsConn.WriteJSON(map[string]any{
+					"type":    "error",
+					"code":    "TAKEBACK_ERROR",
+					"message": err.Error(),
+				})
+			}
+			continue
+		}
 		if err := s.manager.HandleAction(ctx, gameID, playerID, in); err != nil {
 			// Unwrap RulesError so the client gets the plain, human-readable
 			// explanation (e.g. "a joker can't be discarded unless it's the

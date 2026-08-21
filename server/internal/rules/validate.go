@@ -420,6 +420,19 @@ func ValidateLayOff(state GameState, playerID string, meldID string, cards []str
 	// ignored for them.
 	if position == "front" || position == "end" {
 		if mv.Type == MeldRun {
+			// A card that could equally extend either end of the run (e.g.
+			// a joker) resolves ambiguously by wild count alone. Re-resolve
+			// preferring the end the player actually dropped on, so a
+			// correct "end" drop doesn't get silently reinterpreted as
+			// extending the front and then rejected below for "growing the
+			// wrong end".
+			minRun := cfg.MinRunSize
+			if minRun == 0 {
+				minRun = 4
+			}
+			if reMV, reErr := validateRun(newMeld, minRun, position == "end"); reErr == nil {
+				mv = reMV
+			}
 			// minRunSize is forced to 1 here — prevCards is an existing
 			// on-table run, already validated at its real size when it was
 			// laid; this call only wants its resolved rank range, not

@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Dimensions, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
 import { ActionBar } from '@/src/components/ActionBar';
@@ -33,6 +33,7 @@ import {
   profileDisplayName,
   rulesSummaryLines,
 } from '@/src/lib/cards';
+import { formatLogEntry, logger, type LogEntry } from '@/src/lib/logger';
 import { colors, shared } from '@/src/theme';
 
 const pileStyles = StyleSheet.create({
@@ -83,12 +84,31 @@ const pileStyles = StyleSheet.create({
   },
   // Deck and discard pile now sit in their own separate bordered rectangles
   // side by side, rather than sharing one loose row.
+  // Piles sit on the left, the action buttons fill the remaining space on
+  // the right — side by side rather than the buttons stacking below.
+  pilesActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 24,
+    marginTop: 8,
+  },
   pilesRow: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 8,
   },
+  // Matches the total footprint the discard card ends up with once its own
+  // discardWrap (border 2 + padding 3) and CardView's inner ring (border 2
+  // + padding 1) are added — 8px of inset on every side — so the deck pile
+  // card lines up with the discard pile card instead of sitting higher.
+  drawCardInset: {
+    padding: 8,
+  },
+  // Draw pile and discard pile are the same fixed width now, rather than
+  // the discard box stretching (flex: 1) to fill the rest of the row —
+  // that used to make the discard pile look much bigger than the draw
+  // pile even though the cards inside are the same size.
   pileBox: {
+    width: 140,
     borderWidth: 2,
     borderColor: colors.border,
     borderRadius: 10,
@@ -352,6 +372,8 @@ export default function GameScreen() {
   const resetKeyRef = useRef<string>('');
   const [justDrawnCard, setJustDrawnCard] = useState<string | null>(null);
   const [rulesModalOpen, setRulesModalOpen] = useState(false);
+  const [logsModalOpen, setLogsModalOpen] = useState(false);
+  const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   // Collapsed by default so the "Your hand (N)" label + how-to-play text —
   // whose content/length changes with phase — never pushes the hand row
   // around during ordinary play. Only an explicit tap expands it, which is
@@ -565,6 +587,15 @@ export default function GameScreen() {
   // tell apart from another copy sitting elsewhere in the hand.
   const handServerIndices = mapDisplayToServerIndices(hand, state?.myHand ?? []);
   const userId = session?.userId ?? '';
+
+  // Live-updates the in-app log viewer (opened via the "Logs" button) while
+  // it's on screen, so it's useful for watching a move fail in real time —
+  // not just for reading back what already happened.
+  useEffect(() => {
+    if (!logsModalOpen) return;
+    setLogEntries(logger.getEntries());
+    return logger.subscribe(() => setLogEntries(logger.getEntries()));
+  }, [logsModalOpen]);
 
   // Loads any previously saved custom hand order for this game+player as
   // soon as we know who's asking, so a remounted screen (app relaunch, or
@@ -1047,9 +1078,22 @@ export default function GameScreen() {
                 borderRadius: 8,
                 paddingVertical: 6,
                 paddingHorizontal: 10,
+                marginRight: 8,
               }}
             >
               <Text style={{ color: colors.text, fontSize: 12, fontWeight: '600' }}>Rules</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setLogsModalOpen(true)}
+              style={{
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 8,
+                paddingVertical: 6,
+                paddingHorizontal: 10,
+              }}
+            >
+              <Text style={{ color: colors.text, fontSize: 12, fontWeight: '600' }}>Logs</Text>
             </Pressable>
           </View>
         <Text style={[shared.status, { color: isMyTurn ? colors.success : colors.muted }]}>
@@ -1134,50 +1178,55 @@ export default function GameScreen() {
           </Text>
         </View>
 
-        {/* Constant, always-visible action bar — what to do right now (draw,
-            take discard, discard, undo) — placed directly above the deck/
-            discard piles it mostly acts on. */}
-        <ActionBar actions={actions} />
-
-        <View style={pileStyles.pilesRow}>
-          <View style={pileStyles.pileBox}>
-            <Text style={pileStyles.pileBoxLabel}>Draw pile</Text>
-            <DeckPile
-              count={state.deckCount}
-              canDraw={canDrawDeck}
-              onDraw={drawFromDeck}
-              measureHandZone={measureHandZone}
-              dragPreview={deckDragPreview}
-              flip={deckFlip}
-            />
-          </View>
-
-          <Animated.View
-            testID="discard-zone"
-            ref={discardZoneRef}
-            style={[
-              pileStyles.pileBox,
-              { flex: 1 },
-              draggedCard !== null && canDiscardNow ? discardPulseStyle : undefined,
-            ]}
-          >
-            <Text style={pileStyles.pileBoxLabel}>
-              Discard pile
-              {discardLocked ? ` (locked until round ${state.discardDrawMinRound})` : ''}
-            </Text>
-            {topDiscard ? (
-              <View style={[pileStyles.discardWrap, discardFlash && pileStyles.discardWrapFlash]}>
-                {discardFlash ? <Text style={pileStyles.discardFlashLabel}>✓ Added</Text> : null}
-                <CardView
-                  card={topDiscard}
-                  onPress={canTakeDiscard ? takeDiscard : undefined}
-                  testID="discard-top-card"
+        <View style={pileStyles.pilesActionsRow}>
+          <View style={pileStyles.pilesRow}>
+            <View style={pileStyles.pileBox}>
+              <Text style={pileStyles.pileBoxLabel}>Draw pile</Text>
+              <View style={pileStyles.drawCardInset}>
+                <DeckPile
+                  count={state.deckCount}
+                  canDraw={canDrawDeck}
+                  onDraw={drawFromDeck}
+                  measureHandZone={measureHandZone}
+                  dragPreview={deckDragPreview}
+                  flip={deckFlip}
                 />
               </View>
-            ) : (
-              <Text style={shared.status}>Empty</Text>
-            )}
-          </Animated.View>
+            </View>
+
+            <Animated.View
+              testID="discard-zone"
+              ref={discardZoneRef}
+              style={[
+                pileStyles.pileBox,
+                draggedCard !== null && canDiscardNow ? discardPulseStyle : undefined,
+              ]}
+            >
+              <Text style={pileStyles.pileBoxLabel}>
+                Discard pile
+                {discardLocked ? ` (locked until round ${state.discardDrawMinRound})` : ''}
+              </Text>
+              {topDiscard ? (
+                <View style={[pileStyles.discardWrap, discardFlash && pileStyles.discardWrapFlash]}>
+                  {discardFlash ? <Text style={pileStyles.discardFlashLabel}>✓ Added</Text> : null}
+                  <CardView
+                    card={topDiscard}
+                    onPress={canTakeDiscard ? takeDiscard : undefined}
+                    testID="discard-top-card"
+                  />
+                </View>
+              ) : (
+                <Text style={shared.status}>Empty</Text>
+              )}
+            </Animated.View>
+          </View>
+
+          {/* Always-visible action bar — what to do right now (draw, take
+              discard, discard, undo) — placed beside the piles it mostly
+              acts on rather than below them. */}
+          <View style={{ flex: 1 }}>
+            <ActionBar actions={actions} />
+          </View>
         </View>
 
         <Pressable style={pileStyles.handInfoBar} onPress={() => setHandInfoOpen((v) => !v)}>
@@ -1190,15 +1239,19 @@ export default function GameScreen() {
           </View>
         </Pressable>
         {handInfoOpen ? (
+          // Fixed wording regardless of canBuildMeld (whose turn/phase it
+          // is) — that flips constantly mid-game, and swapping in a
+          // shorter message while this panel was open used to change its
+          // height out from under the hand row below it, making the whole
+          // hand jump position with no action from the player. The full
+          // instructions are still accurate even when melding isn't
+          // available right now (those buttons are just disabled then).
           <Text style={shared.status}>
-            {canBuildMeld
-              ? 'Drag a card anywhere: onto the discard pile to discard it, onto the box above to ' +
-                'start a new meld, or onto a table meld to lay it off (glowing outlines show where ' +
-                "it can land). Tap one or more cards to select them (gold ring) first if you'd " +
-                'rather use the "Lay off here" / "Swap joker here" buttons, or to drag several off ' +
-                'together. Drag a staged card within its run or set to reorder it.'
-              : 'Drag a card onto the discard pile to discard it, or flick it upward. Drag it onto ' +
-                'a table meld to lay it off.'}
+            Drag a card anywhere: onto the discard pile to discard it, onto the box above to start
+            a new meld, or onto a table meld to lay it off (glowing outlines show where it can
+            land). Tap one or more cards to select them (gold ring) first if you'd rather use the
+            "Lay off here" / "Swap joker here" buttons, or to drag several off together. Drag a
+            staged card within its run or set to reorder it.
           </Text>
         ) : null}
         <View ref={handRowZoneRef}>
@@ -1323,6 +1376,72 @@ export default function GameScreen() {
             >
               <Text style={shared.buttonText}>Close</Text>
             </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+      <Modal
+        visible={logsModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLogsModalOpen(false)}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 24 }}
+          onPress={() => setLogsModalOpen(false)}
+        >
+          <Pressable
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: colors.border,
+              padding: 16,
+              maxHeight: '80%',
+            }}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16, marginBottom: 12 }}>
+              Debug log
+            </Text>
+            <ScrollView style={{ maxHeight: 360 }}>
+              {logEntries.length === 0 ? (
+                <Text style={{ color: colors.muted, fontSize: 12 }}>No log entries yet.</Text>
+              ) : (
+                logEntries
+                  .slice()
+                  .reverse()
+                  .map((entry, i) => (
+                    <Text
+                      key={`${entry.ts}-${i}`}
+                      style={{
+                        color: entry.level === 'error' ? colors.danger : entry.level === 'warn' ? colors.accent : colors.text,
+                        fontSize: 11,
+                        fontFamily: 'monospace',
+                        marginBottom: 4,
+                      }}
+                    >
+                      {formatLogEntry(entry)}
+                    </Text>
+                  ))
+              )}
+            </ScrollView>
+            <View style={{ flexDirection: 'row', marginTop: 12 }}>
+              <Pressable
+                style={[shared.button, { flex: 1, marginRight: 8 }]}
+                onPress={() => {
+                  const text = logger.formatAll();
+                  Share.share({ message: text || 'No log entries yet.' }).catch(() => {});
+                }}
+              >
+                <Text style={shared.buttonText}>Share</Text>
+              </Pressable>
+              <Pressable
+                style={[shared.button, { flex: 1 }]}
+                onPress={() => setLogsModalOpen(false)}
+              >
+                <Text style={shared.buttonText}>Close</Text>
+              </Pressable>
+            </View>
           </Pressable>
         </Pressable>
       </Modal>

@@ -49,13 +49,26 @@ type Game struct {
 	TurnMeldSnapshot            *TurnMeldSnapshot     `bson:"turnMeldSnapshot,omitempty" json:"-"`
 	Players                     []Player              `bson:"players" json:"players"`
 	ActionLog                   []Action              `bson:"actionLog" json:"-"`
-	NextMeldSeq                 int                   `bson:"nextMeldSeq" json:"nextMeldSeq"`
-	SuspendedAt                 *time.Time            `bson:"suspendedAt" json:"suspendedAt,omitempty"`
-	AbandonAt                   *time.Time            `bson:"abandonAt" json:"abandonAt,omitempty"`
-	PreSuspendPhase             string                `bson:"preSuspendPhase,omitempty" json:"-"`
-	CreatedAt                   time.Time             `bson:"createdAt" json:"createdAt"`
-	CompletedAt                 *time.Time            `bson:"completedAt" json:"completedAt,omitempty"`
-	Version                     int64                 `bson:"version" json:"-"`
+	// RawActionLog mirrors ActionLog but stores the raw player input (one
+	// entry per accepted player action, vs. ActionLog's one-or-more derived
+	// StateEvents per action) so a stored game can be replayed through
+	// rules.ReplayActions — see DealInitialState and game.RespondTakeback.
+	RawActionLog []RawAction `bson:"rawActionLog,omitempty" json:"-"`
+	// DealInitialState snapshots rules state immediately after the current
+	// deal (GameNumber) was dealt, before any player action — the
+	// deterministic replay anchor for takeback and log verification. Reset
+	// every time a new deal begins.
+	DealInitialState *DealSnapshot `bson:"dealInitialState,omitempty" json:"-"`
+	// PendingTakeback is set while a takeback request awaits the other
+	// active players' approval; nil otherwise.
+	PendingTakeback *TakebackRequest `bson:"pendingTakeback,omitempty" json:"pendingTakeback,omitempty"`
+	NextMeldSeq     int              `bson:"nextMeldSeq" json:"nextMeldSeq"`
+	SuspendedAt     *time.Time       `bson:"suspendedAt" json:"suspendedAt,omitempty"`
+	AbandonAt       *time.Time       `bson:"abandonAt" json:"abandonAt,omitempty"`
+	PreSuspendPhase string           `bson:"preSuspendPhase,omitempty" json:"-"`
+	CreatedAt       time.Time        `bson:"createdAt" json:"createdAt"`
+	CompletedAt     *time.Time       `bson:"completedAt" json:"completedAt,omitempty"`
+	Version         int64            `bson:"version" json:"-"`
 }
 
 type Player struct {
@@ -116,6 +129,74 @@ type Action struct {
 	Type      string                 `bson:"type" json:"type"`
 	PlayerID  string                 `bson:"playerId" json:"playerId"`
 	Data      map[string]interface{} `bson:"data" json:"data"`
+	// TurnSeq is the Seq of the RawAction that produced this event (a single
+	// player action can emit several events, e.g. a reshuffling draw), so a
+	// takeback can drop every Action with TurnSeq beyond the target turn.
+	// Zero for synthetic entries with no player input (suspend/resume).
+	TurnSeq int `bson:"turnSeq,omitempty" json:"-"`
+}
+
+// ActionInput is the raw player action that produced a RawAction log entry
+// — enough to reconstruct a rules.Action and replay it via
+// rules.ReplayActions. Mirrors rules.Action's fields as plain data so
+// models stays independent of the rules package.
+type ActionInput struct {
+	Type      string   `bson:"type"`
+	DrawFrom  string   `bson:"drawFrom,omitempty"`
+	Cards     []string `bson:"cards,omitempty"`
+	MeldID    string   `bson:"meldId,omitempty"`
+	Card      string   `bson:"card,omitempty"`
+	CardIndex *int     `bson:"cardIndex,omitempty"`
+	Position  string   `bson:"position,omitempty"`
+}
+
+// RawAction is one accepted player action, stored verbatim so the game can
+// be replayed later (log verification, AI training data, takeback).
+type RawAction struct {
+	Seq       int         `bson:"seq" json:"seq"`
+	Timestamp time.Time   `bson:"timestamp" json:"timestamp"`
+	PlayerID  string      `bson:"playerId" json:"playerId"`
+	Input     ActionInput `bson:"input" json:"input"`
+}
+
+// DealSnapshot is the rules-relevant game state captured immediately after
+// a deal, before any player action — the deterministic starting point a
+// takeback (or any other replay) applies RawActionLog entries against.
+// SinceSeq is the RawActionLog Seq in effect when the snapshot was taken
+// (0 for a fresh deal with no actions yet), so replay knows which
+// RawActionLog entries belong to this deal.
+type DealSnapshot struct {
+	GameNumber          int                   `bson:"gameNumber"`
+	SinceSeq            int                   `bson:"sinceSeq"`
+	Phase               string                `bson:"phase"`
+	CurrentTurn         string                `bson:"currentTurn"`
+	TurnOrder           []string              `bson:"turnOrder"`
+	DealStarterID       string                `bson:"dealStarterId"`
+	Round               int                   `bson:"round"`
+	DrawPile            []string              `bson:"drawPile"`
+	DiscardPile         []string              `bson:"discardPile"`
+	ReshuffleCount      int                   `bson:"reshuffleCount"`
+	DeckSeed            int64                 `bson:"deckSeed"`
+	Hands               map[string][]string   `bson:"hands"`
+	Melds               map[string][][]string `bson:"melds"`
+	MeldMeta            map[string][]MeldInfo `bson:"meldMeta"`
+	RoundReqMet         map[string]bool       `bson:"roundReqMet"`
+	InitialMeldMinimum  int                   `bson:"initialMeldMinimum"`
+	DiscardDrawMinRound int                   `bson:"discardDrawMinRound"`
+	GameScores          map[string][]int      `bson:"gameScores"`
+	TotalScores         map[string]int        `bson:"totalScores"`
+	NextMeldSeq         int                   `bson:"nextMeldSeq"`
+}
+
+// TakebackRequest tracks a pending "undo back to RawAction Seq ToSeq"
+// proposal awaiting the rest of the active players' consent. Approvals
+// holds one entry per active (non-AI) player who has responded true;
+// AI players auto-approve and are never added here (see game.RequestTakeback).
+type TakebackRequest struct {
+	RequesterID string          `bson:"requesterId" json:"requesterId"`
+	ToSeq       int             `bson:"toSeq" json:"toSeq"`
+	Approvals   map[string]bool `bson:"approvals" json:"approvals"`
+	CreatedAt   time.Time       `bson:"createdAt" json:"createdAt"`
 }
 
 type User struct {

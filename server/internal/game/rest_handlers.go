@@ -445,6 +445,7 @@ func (h *GameRestHandlers) startGame(w http.ResponseWriter, req *http.Request) {
 	nextGame.DeckSeed = rState.DeckSeed
 	nextGame.NextMeldSeq = rState.NextMeldSeq
 	nextGame.Version = g.Version
+	nextGame.DealInitialState = captureDealSnapshot(nextGame, 0)
 
 	if err := h.repo.UpdateWithVersion(ctx, g.ID, g.Version, nextGame); err != nil {
 		http.Error(w, err.Error(), http.StatusConflict)
