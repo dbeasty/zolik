@@ -571,3 +571,51 @@ func orderRunForDisplay(cards []string, mv MeldValidation) []string {
 	out = append(out, remaining...)
 	return out
 }
+
+// runGrowthSides reports which end(s) of an existing run a submission would
+// extend: "front" (a lower rank than the run's current low), "end" (a higher
+// rank than its current high), or both.
+//
+// known is false when the question cannot be answered — prevCards does not
+// resolve as a run at all, or either side has no resolved rank window. The
+// caller must then impose no end constraint, since it has nothing to
+// constrain against.
+//
+// Shared by ValidateLayOff (which rejects a drop on the wrong end) and by
+// LegalActions (which tells the client which ends are droppable) so the two
+// can never give a player different answers.
+func runGrowthSides(prevCards []string, mv MeldValidation) (sides []string, known bool) {
+	// minRunSize is forced to 1: prevCards is an existing on-table run,
+	// already validated at its real size when it was laid. This call wants
+	// only its resolved rank range, not another length check that could
+	// reject a run shorter than the current table minimum.
+	oldMV, err := validateRun(prevCards, 1)
+	if err != nil || len(oldMV.ResolvedRun) == 0 || len(mv.ResolvedRun) == 0 {
+		return nil, false
+	}
+	oldMin, oldMax := oldMV.ResolvedRun[0], oldMV.ResolvedRun[len(oldMV.ResolvedRun)-1]
+	newMin, newMax := mv.ResolvedRun[0], mv.ResolvedRun[len(mv.ResolvedRun)-1]
+	growsFront := newMin < oldMin
+	growsEnd := newMax > oldMax
+
+	// A submission that would grow both ends at once matches neither
+	// "front" nor "end", so naming either one is wrong — the caller gets an
+	// empty (but known) list, meaning "legal, but do not send a position".
+	switch {
+	case growsFront && !growsEnd:
+		return []string{"front"}, true
+	case growsEnd && !growsFront:
+		return []string{"end"}, true
+	default:
+		return nil, true
+	}
+}
+
+func containsString(hay []string, needle string) bool {
+	for _, s := range hay {
+		if s == needle {
+			return true
+		}
+	}
+	return false
+}

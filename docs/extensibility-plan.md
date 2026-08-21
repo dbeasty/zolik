@@ -1,0 +1,228 @@
+# Extensibility Plan — task-level execution
+
+Companion to [`architecture.md`](./architecture.md). That document argues *what* should change
+and *why*; this one is the build order — the concrete tasks, the file-level surface each touches,
+the tests that prove it, and the exit criterion that says a phase is done.
+
+- **Baseline:** `main` @ `8cb3ab5`
+- **Goal:** the same engine runs a different card game behind a different UI, and rules stop
+  being re-implemented in three clients.
+- **Non-goal (for now):** a plugin/WASM module boundary, third-party game authors, predictive
+  client rendering. See `architecture.md` §9 open decisions.
+
+---
+
+## 0. The one rule this plan enforces
+
+> **Every rule-derived fact is computed once, on the server, inside the ruleset — and shipped.
+> A client that has to *derive* a rule is a bug.**
+
+Everything below is an application of that sentence. The measure of progress is not how much new
+abstraction exists; it is how many rows disappear from `architecture.md` §6's leak table.
+
+Three distinct kinds of leak, which need three different fixes:
+
+| Leak class | Example today | Fix | Phase |
+|---|---|---|---|
+| **Legality** — "may I?" re-derived in UI | `canLayOff = isMyTurn && phase==='meld' && roundReqMet[me]` | ship the legal-action list | 1 |
+| **Configuration** — a profile's constants re-typed in the client | `rulesSummaryLines()`'s `isZolik ? '13 cards' : '12 cards'` | ship the resolved ruleset | 1 |
+| **Presentation** — rule *text*, labels, i18n | `roundRequirementLabel()`'s 7-deal contract table | ship message keys from a module descriptor | 2 |
+
+---
+
+## Phase 0 — Repair the config split brain ✅ done
+
+Shipped in `8cb3ab5`. See `architecture.md` §8 and §10. Summary: the resolved `RulesConfig` is
+frozen onto the match document and is the single home for a rule value.
+
+---
+
+## Phase 1 — The server answers "what may I do?" ⬅ this phase
+
+**Thesis.** `GameStateMsg` today ships *facts* and no *affordances*, so each client re-derives
+legality. Phase 1 makes affordances a server output. It touches no persistence, no action
+vocabulary, and no turn model, so it is safe to ship on its own and is independently valuable
+even if Phases 2–4 never happen.
+
+### 1.1 `rules.LegalActions` — new file `server/internal/rules/offers.go`
+
+```go
+func LegalActions(state GameState, playerID string) []ActionOffer
+```
+
+Pure, no I/O, same package as the validators. Returns the **complete** offer set every time —
+disabled offers included, each carrying a `WhyNot` error code — because "greyed out with a
+reason" is a UI requirement, and an omitted offer is indistinguishable from a client bug.
+
+Offer identity is stable and content-addressable so a client can diff across pushes:
+
+| Offer ID | Verb | Source | Target |
+|---|---|---|---|
+| `draw:deck` | `draw` | `deck` | — |
+| `draw:discard` | `draw` | `discard_pile` (eligible pile cards) | — |
+| `lay_meld` | `lay_meld` | `hand`, `minCards`…`maxCards` | table |
+| `lay_off:<meldId>` | `lay_off` | `hand` (eligible cards + per-card run ends) | that meld |
+| `swap_joker:<meldId>` | `swap_joker` | `hand` (cards that fit the joker's slot) | that meld |
+| `discard` | `discard` | `hand` (legally discardable cards) | `discard_pile` |
+| `undo:draw_discard` `undo:lay_off` `undo:lay_meld` `undo:turn` | `undo` | — | — |
+
+**Anti-drift construction — the load-bearing design decision.** Coarse gating (is this verb
+available at all, and if not, why) is produced by *probing the real validator* against a cloned
+state and reading back its `RulesError`. `LegalActions` therefore cannot disagree with
+`ApplyAction`: it *is* `ApplyAction`'s answer. It never re-states a rule in a second place, which
+is precisely the failure mode this whole plan exists to end.
+
+Fine-grained per-card eligibility (which hand cards may extend *this* meld) uses the pure,
+state-free helpers the AI already uses — `ValidateMeld`, `LayOffBreaksCleanRun`, `IsJoker` — so
+no state clone is needed per card.
+
+**Cost control.** Per-card eligibility is computed only for the player whose turn it is; every
+other viewer gets the offer set with `Enabled: false` / `WhyNot: NOT_YOUR_TURN` and no card
+lists. Worst case per broadcast is therefore one player × (hand × table melds) pure meld
+validations, and coarse probes are bounded at roughly a dozen state clones. Guarded by a
+benchmark (`BenchmarkLegalActions`), not by hope.
+
+**Deliberate limit.** `placements` lists cards legal *on their own*. A multi-card lay-off or a
+meld shape is not enumerated — `architecture.md` §9's offer-explosion risk — so offers describe
+*shapes*, and the server still validates the concrete submission on arrival. Authority stays
+with `ApplyAction`; offers are a rendering input, never a permission grant.
+
+### 1.2 Share the run-end resolution
+
+`ValidateLayOff` computes whether a card grows a run's front or end. The offer's `positions`
+hint needs the same answer. Extract `runGrowthSides(prevCards, newCards)` and call it from
+both — one implementation, not two that agree today and drift tomorrow.
+
+### 1.3 Ship the resolved ruleset and the current contract
+
+Add to `GameStateMsg`:
+
+- `rules` — the resolved `RulesConfig` (public; contains no hidden information).
+- `contract` — `cfg.ContractFor(gameNumber)`, i.e. the sets/runs/clean-run requirement *for this
+  deal*, resolved. Kills the client-side contract tables.
+- `legalActions` — the offer list from 1.1.
+
+The legacy scalars (`initialMeldMinimum`, `discardDrawMinRound`) and the four `canUndo*` booleans
+stay on the wire for compatibility, but are **derived from the new fields** rather than computed
+independently, and are marked deprecated. One implementation, two spellings.
+
+### 1.4 Client adoption — delete, don't sync
+
+| Client site | Deleted | Replaced by |
+|---|---|---|
+| `app/game/[gameId].tsx` `canLayOff` | legality expression | `offer('lay_off:*').enabled` |
+| `app/game/[gameId].tsx` `discardLocked` | legality expression | `offer('draw:discard').whyNot === 'DISCARD_LOCKED'` |
+| `app/game/[gameId].tsx` `canTakeDiscard` / `canDrawDeck` | legality expressions | the two `draw:*` offers |
+| `app/game/[gameId].tsx` `canDiscardNow` | legality expression | `offer('discard').enabled` |
+| the four `state.canUndo*` reads | ad-hoc flags | `offer('undo:*').enabled` |
+| `MeldTable.tsx` `startsWith('JOKER')` | legality guess | `offer('swap_joker:<id>')` presence |
+| `cards.ts` `rulesSummaryLines()` profile table | duplicated profiles | `state.rules` field reads |
+| `cards.ts` / TUI `roundRequirementLabel()` | duplicated contract table | `state.contract` |
+
+New client module `src/lib/offers.ts` (RN) and `ui/offers.go` (TUI): pure lookup helpers over the
+offer list. They contain **no rule knowledge** — that is the acceptance test for the file.
+
+`approximateNaturalValue()` (TUI) is a live readout of what the *currently selected* cards are
+worth, i.e. a preview of a submission the server has not seen. It cannot be a pushed fact and is
+explicitly deferred to Phase 2 (see 2.3).
+
+### 1.5 Tests
+
+| Level | What it proves | Where |
+|---|---|---|
+| Unit — rules | Every offer's `enabled`/`whyNot` matches what `ApplyAction` actually does, across both shipped profiles and a custom third | `rules/offers_test.go` |
+| Unit — **agreement (the important one)** | For a corpus of states × players × candidate actions, `LegalActions` and `ApplyAction` never disagree. This is the test that makes drift impossible rather than merely unlikely | `rules/offers_agreement_test.go` |
+| Unit — wire | `BuildGameStateMsg` emits offers per viewer; hidden information does not leak through them; legacy flags equal their offer counterparts | `game/legal_actions_test.go` |
+| Unit — RN | `offers.ts` lookups; `rulesSummaryLines` reads config, not a profile name | `src/lib/offers.test.ts`, `cards.test.ts` |
+| Unit — TUI | offer-driven gating helpers | `client-tui/ui/offers_test.go` |
+| Bench | offer computation stays cheap enough for every broadcast | `rules/offers_bench_test.go` |
+| **E2E** | the real browser UI enables/disables the real controls from real server offers | `e2e/tests/legal-actions.spec.ts` |
+
+### Exit criterion
+
+`grep` for a rule expression in either client returns nothing outside the offer-lookup modules;
+both clients pass their suites; the e2e suite drives lay-off, discard-lock and undo affordances
+purely from offers. Eight rows leave §6's leak table.
+
+---
+
+## Phase 2 — The module descriptor and the view model
+
+**Thesis.** Phase 1 removes derived *legality*. Phase 2 removes derived *text and shape*.
+
+### 2.1 `ModuleDescriptor`
+
+`id`, `displayKey`, player range, and the **option schema** (name, type, allowed values, default,
+label key). The create-lobby screen renders whatever the descriptor declares, so
+`MELD_MINS = [0,35,50,70]` and `DISCARD_LOCK_ROUNDS` stop being client constants and adding a
+knob becomes a server-only change.
+
+### 2.2 Message keys, then a locale bundle
+
+Every rule string the server ships becomes a key plus params (`contract.two_sets_of_3`,
+`{n: 3}`), never a rendered English sentence. Clients own a bundle; Czech becomes possible in the
+same move. `WhyNot` already ships as a `RulesErrorCode` in Phase 1, which is the same shape — so
+Phase 2 is extending an established pattern, not inventing one.
+
+### 2.3 Submission previews
+
+Generalises the TUI's `approximateNaturalValue` and the RN staging area's local validity guess:
+the client sends a *candidate* (`preview` frame), the server answers with validity, natural
+value, and the meld type it would resolve to. Removes the last duplicated scoring table. Cheap
+because the engine's validators are already pure.
+
+### 2.4 `ViewModel` alongside `GameStateMsg`
+
+Zones / groups / prompts / header facts, per `architecture.md` §7.3, emitted from the same state.
+Migrate the RN client zone by zone with the old message still flowing; the TUI follows. Hidden-
+information filtering moves out of `BuildGameStateMsg` and becomes a module responsibility —
+the only layer that knows what is secret *in that game*.
+
+### Exit criterion
+
+§6's leak table is empty. A Czech locale bundle renders the whole game. `GameStateMsg` has no
+readers left in the RN client.
+
+---
+
+## Phase 3 — Extract the runtime from the game
+
+**Thesis.** Everything above works with one hardcoded game. Phase 3 makes the runtime not know
+which game it is running.
+
+1. Define `GameModule` (`architecture.md` §7.2). Register today's `rules` package as module
+   `"zolik"`. **Sketch Prší against the interface before writing it** — an interface designed
+   against one game fits exactly one game.
+2. Split `models.Game` into a generic `Match` envelope + an opaque module-owned `state`
+   sub-document. Deletes `toRulesState`/`fromRulesState` and its whole forgot-to-map-a-field bug
+   class. One-shot migration of existing documents.
+3. Make `Manager`/`Hub`/repository generic over the opaque blob.
+4. Move `ai.Agent` under the module; the runtime only knows how to *drive* an agent.
+5. Version the action log per module so old replays stay readable.
+
+**Test strategy:** the rules tests are untouched (they call the engine directly). A golden replay
+over a recorded match's action log proves the runtime swap changed no behaviour — this is the
+acceptance test for the whole phase.
+
+---
+
+## Phase 4 — Falsify the abstraction with a second module
+
+Implement **Prší** (Czech Mau-Mau): shedding, not melding; no draw/meld/discard phase triple;
+suit-and-rank matching; special-card effects. Chosen because it shares almost no vocabulary with
+rummy — which is the point. If it needs no client change beyond assets, the abstraction holds.
+
+Take the cheap AI wins from `architecture.md` §5.6 in the same phase (variable-length meld
+enumeration, joker swap), now that `Agent` is module-scoped.
+
+---
+
+## Sequencing and the stop point
+
+Phases 1 and 2 deliver the stated goal — genuine rules/UI separation and a swappable UI — and
+need no module abstraction at all. **Phase 3 only pays off if a genuinely different game is
+actually coming.** If the roadmap is "more rummy variants", stop after Phase 2 and spend the
+remaining effort on `RulesConfig` knobs and profiles, which is already cheap.
+
+The decision point is the end of Phase 2, and it is the same open decision as
+`architecture.md` §9.1. Nothing in Phases 1–2 is wasted either way.

@@ -420,30 +420,14 @@ func ValidateLayOff(state GameState, playerID string, meldID string, cards []str
 	// ignored for them.
 	if position == "front" || position == "end" {
 		if mv.Type == MeldRun {
-			// minRunSize is forced to 1 here — prevCards is an existing
-			// on-table run, already validated at its real size when it was
-			// laid; this call only wants its resolved rank range, not
-			// another length check that could reject a run shorter than
-			// the current table's minimum (e.g. after a rules change, or
-			// in tests that construct a short meld directly).
-			if oldMV, oldErr := validateRun(prevCards, 1); oldErr == nil &&
-				len(oldMV.ResolvedRun) > 0 && len(mv.ResolvedRun) > 0 {
-				oldMin, oldMax := oldMV.ResolvedRun[0], oldMV.ResolvedRun[len(oldMV.ResolvedRun)-1]
-				newMin, newMax := mv.ResolvedRun[0], mv.ResolvedRun[len(mv.ResolvedRun)-1]
-				growsFront := newMin < oldMin
-				growsEnd := newMax > oldMax
-				wrongEnd := false
-				switch position {
-				case "front":
-					wrongEnd = !growsFront || growsEnd
-				case "end":
-					wrongEnd = !growsEnd || growsFront
-				}
-				if wrongEnd {
-					return state, RulesError{
-						Code:    ErrWrongRunEnd,
-						Message: "that card extends the other end of the run — try dropping it there instead",
-					}
+			// Which end this submission actually grows is resolved by the
+			// shared helper LegalActions also uses to build its per-card
+			// "front"/"end" drop hints — so the hint a client renders and
+			// the check the server enforces can never disagree.
+			if sides, known := runGrowthSides(prevCards, mv); known && !containsString(sides, position) {
+				return state, RulesError{
+					Code:    ErrWrongRunEnd,
+					Message: "that card extends the other end of the run — try dropping it there instead",
 				}
 			}
 		}
