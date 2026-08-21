@@ -5,6 +5,8 @@ import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanima
 
 import { ActionBar } from '@/src/components/ActionBar';
 import { CardView } from '@/src/components/CardView';
+import { DeckDragOverlay } from '@/src/components/DeckDragOverlay';
+import { DeckPile } from '@/src/components/DeckPile';
 import {
   HandRow,
   pointInZone,
@@ -33,27 +35,6 @@ import {
 import { colors, shared } from '@/src/theme';
 
 const pileStyles = StyleSheet.create({
-  deckBack: {
-    width: 52,
-    height: 72,
-    backgroundColor: colors.accentDim,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deckBackText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  pileDisabled: {
-    opacity: 0.4,
-  },
-  pressed: {
-    opacity: 0.85,
-  },
   discardWrap: {
     position: 'relative',
     borderRadius: 8,
@@ -252,6 +233,13 @@ export default function GameScreen() {
   const overlayOriginX = useSharedValue(0);
   const overlayOriginY = useSharedValue(0);
   const dragPreview = useDragPreview();
+  // Deck-drag gets its own DragPreview/flip rather than reusing `dragPreview`
+  // above — that one is keyed to `draggedCard` (a hand card) for the card
+  // overlay below; conflating the two would mean a deck drag's `active`
+  // toggling also affects hand-drag bookkeeping it has nothing to do with.
+  const deckDragPreview = useDragPreview();
+  const deckFlip = useSharedValue(0);
+  const handRowZoneRef = useRef<View>(null);
   const [draggedCard, setDraggedCard] = useState<string | null>(null);
   // Which meld (and which end of it) a card being dragged is currently
   // over — live drag feedback, distinct from the drop-time check in
@@ -357,6 +345,17 @@ export default function GameScreen() {
     discardZoneRef.current.measureInWindow((x, y, width, height) =>
       cb(inflateZone({ x, y, width, height }, DROP_ZONE_HIT_SLOP)),
     );
+  }
+
+  // Used by the deck pile's drag-to-draw gesture: the drop target and the
+  // flip animation's vertical range both need the hand row's live rect, not
+  // one measured back when it was last laid out.
+  function measureHandZone(cb: (zone: DropZone | null) => void) {
+    if (!handRowZoneRef.current) {
+      cb(null);
+      return;
+    }
+    handRowZoneRef.current.measureInWindow((x, y, width, height) => cb({ x, y, width, height }));
   }
 
   function measureStagingZone(cb: (zone: DropZone | null) => void) {
@@ -1068,18 +1067,14 @@ export default function GameScreen() {
         <View style={pileStyles.pilesRow}>
           <View style={pileStyles.pileBox}>
             <Text style={pileStyles.pileBoxLabel}>Draw pile</Text>
-            <Pressable
-              testID="deck-pile"
-              onPress={drawFromDeck}
-              disabled={!canDrawDeck}
-              style={({ pressed }) => [
-                pileStyles.deckBack,
-                !canDrawDeck && pileStyles.pileDisabled,
-                pressed && canDrawDeck && pileStyles.pressed,
-              ]}
-            >
-              <Text style={pileStyles.deckBackText}>{state.deckCount}</Text>
-            </Pressable>
+            <DeckPile
+              count={state.deckCount}
+              canDraw={canDrawDeck}
+              onDraw={drawFromDeck}
+              measureHandZone={measureHandZone}
+              dragPreview={deckDragPreview}
+              flip={deckFlip}
+            />
           </View>
 
           <Animated.View
@@ -1131,80 +1126,88 @@ export default function GameScreen() {
                 'a table meld to lay it off.'}
           </Text>
         ) : null}
-        <HandRow
-          cards={visibleHand}
-          selected={visibleSelected}
-          onTapCard={(vi) => toggleHandSelect(visibleToFullIndex[vi])}
-          onReorder={(newVisibleOrder) => {
-            const stagedCards = hand.filter((_, i) => allStaged.has(i));
-            setLocalHand([...newVisibleOrder, ...stagedCards]);
-          }}
-          measureDropZone={measureDropZone}
-          onDropOnZone={(vi) => discardCardAt(visibleToFullIndex[vi])}
-          measureMeldZones={measureMeldZones}
-          onDropOnMeld={(vi, meldId, position) => {
-            const fullIndex = visibleToFullIndex[vi];
-            // Dragging a card that's part of a multi-card selection lays off
-            // the whole selection together (matching the "Lay off N here"
-            // button) — not just the one card that was physically dragged.
-            // Dragging an unselected card (the common case: no selection at
-            // all) still lays off just that card.
-            if (selectedForMeld.has(fullIndex) && meldSelectedCards.length > 1) {
-              layOffOnto(meldId, position);
-            } else {
-              layOffCardAt(fullIndex, meldId, position);
-            }
-          }}
-          measureStagingZone={measureStagingZone}
-          onDropOnStaging={(vi, absoluteX, absoluteY) => {
-            const fullIndex = visibleToFullIndex[vi];
-            // Same "drag one of several selected cards to move the whole
-            // selection together" rule as onDropOnMeld above.
-            const indices =
-              selectedForMeld.has(fullIndex) && meldSelectedCards.length > 1
-                ? Array.from(selectedForMeld)
-                : [fullIndex];
-            measureGroupRowZones((zones) => {
-              if (zones.length === 0) {
-                // The staging area is still in its collapsed "minimized"
-                // state (nothing staged yet at all) — MeldStagingArea
-                // doesn't render any group row to measure until there's at
-                // least one staged card, so there's nothing to hit-test
-                // against yet. The only group that can possibly exist here
-                // is group 0, empty.
-                stageCardsAt(indices, 0, 0);
-                return;
+        <View ref={handRowZoneRef}>
+          <HandRow
+            cards={visibleHand}
+            selected={visibleSelected}
+            onTapCard={(vi) => toggleHandSelect(visibleToFullIndex[vi])}
+            onReorder={(newVisibleOrder) => {
+              const stagedCards = hand.filter((_, i) => allStaged.has(i));
+              setLocalHand([...newVisibleOrder, ...stagedCards]);
+            }}
+            measureDropZone={measureDropZone}
+            onDropOnZone={(vi) => discardCardAt(visibleToFullIndex[vi])}
+            measureMeldZones={measureMeldZones}
+            onDropOnMeld={(vi, meldId, position) => {
+              const fullIndex = visibleToFullIndex[vi];
+              // Dragging a card that's part of a multi-card selection lays off
+              // the whole selection together (matching the "Lay off N here"
+              // button) — not just the one card that was physically dragged.
+              // Dragging an unselected card (the common case: no selection at
+              // all) still lays off just that card.
+              if (selectedForMeld.has(fullIndex) && meldSelectedCards.length > 1) {
+                layOffOnto(meldId, position);
+              } else {
+                layOffCardAt(fullIndex, meldId, position);
               }
-              const hit = zones.find(({ zone }) => pointInZone(absoluteX, absoluteY, zone));
-              // Landed inside the staging box (HandRow already checked
-              // that via measureStagingZone) but not over any specific
-              // group's row — over the Cancel/Add/Lay meld buttons, say.
-              // Falls back to the last group, appended at the end: the
-              // same behavior this always had before drop position was
-              // tracked at all.
-              const lastGroup = zones.reduce((a, b) => (b.groupIndex > a.groupIndex ? b : a));
-              const target = hit ?? lastGroup;
-              const insertPos = hit ? computeInsertIndex(absoluteX, target.zone, target.count) : target.count;
-              stageCardsAt(indices, target.groupIndex, insertPos);
-            });
-          }}
-          onDragCardChange={(card) => {
-            setDraggedCard(card);
-            if (!card) {
-              setHoverTarget(null);
-              setStagingInsertHover(null);
-            }
-          }}
-          onDragHover={handleDragHover}
-          justDrawnCard={justDrawnCard}
-          dragPreview={dragPreview}
-        />
+            }}
+            measureStagingZone={measureStagingZone}
+            onDropOnStaging={(vi, absoluteX, absoluteY) => {
+              const fullIndex = visibleToFullIndex[vi];
+              // Same "drag one of several selected cards to move the whole
+              // selection together" rule as onDropOnMeld above.
+              const indices =
+                selectedForMeld.has(fullIndex) && meldSelectedCards.length > 1
+                  ? Array.from(selectedForMeld)
+                  : [fullIndex];
+              measureGroupRowZones((zones) => {
+                if (zones.length === 0) {
+                  // The staging area is still in its collapsed "minimized"
+                  // state (nothing staged yet at all) — MeldStagingArea
+                  // doesn't render any group row to measure until there's at
+                  // least one staged card, so there's nothing to hit-test
+                  // against yet. The only group that can possibly exist here
+                  // is group 0, empty.
+                  stageCardsAt(indices, 0, 0);
+                  return;
+                }
+                const hit = zones.find(({ zone }) => pointInZone(absoluteX, absoluteY, zone));
+                // Landed inside the staging box (HandRow already checked
+                // that via measureStagingZone) but not over any specific
+                // group's row — over the Cancel/Add/Lay meld buttons, say.
+                // Falls back to the last group, appended at the end: the
+                // same behavior this always had before drop position was
+                // tracked at all.
+                const lastGroup = zones.reduce((a, b) => (b.groupIndex > a.groupIndex ? b : a));
+                const target = hit ?? lastGroup;
+                const insertPos = hit ? computeInsertIndex(absoluteX, target.zone, target.count) : target.count;
+                stageCardsAt(indices, target.groupIndex, insertPos);
+              });
+            }}
+            onDragCardChange={(card) => {
+              setDraggedCard(card);
+              if (!card) {
+                setHoverTarget(null);
+                setStagingInsertHover(null);
+              }
+            }}
+            onDragHover={handleDragHover}
+            justDrawnCard={justDrawnCard}
+            dragPreview={dragPreview}
+          />
+        </View>
 
         </ScrollView>
       </Screen>
       <Animated.View style={dragOverlayStyle} pointerEvents="none">
         {draggedCard ? <CardView card={draggedCard} dragging testID="drag-overlay-card" /> : null}
       </Animated.View>
+      <DeckDragOverlay
+        dragPreview={deckDragPreview}
+        originX={overlayOriginX}
+        originY={overlayOriginY}
+        flip={deckFlip}
+      />
       <Modal
         visible={rulesModalOpen}
         transparent
