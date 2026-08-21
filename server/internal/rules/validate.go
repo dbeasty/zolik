@@ -43,7 +43,7 @@ func ValidateDraw(state GameState, playerID string, from DrawFrom, targetCard st
 		return state, card, nil, nil
 
 	case DrawFromDiscard:
-		if state.DiscardDrawMinRound > 1 && state.Round < state.DiscardDrawMinRound {
+		if IsDiscardLocked(state.Round, state.DiscardDrawMinRound) {
 			return state, "", nil, RulesError{Code: ErrDiscardLocked}
 		}
 		if len(state.DiscardPile) == 0 {

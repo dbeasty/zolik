@@ -3,13 +3,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
 import { Screen } from '@/src/components/Screen';
+import { useRulesConfig } from '@/src/context/RulesConfigContext';
 import { storage, useSession } from '@/src/context/SessionContext';
 import type { LobbyPlayer, RulesProfile } from '@/src/api/types';
 import { colors, shared } from '@/src/theme';
 
 const DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
-const MELD_MINS = [0, 35, 50, 70];
-const DISCARD_LOCK_ROUNDS = [0, 1, 2, 3];
 const LAST_PROFILE_KEY = 'zolik_last_rules_profile';
 const LAST_MELD_MIN_KEY = 'zolik_last_meld_min';
 const LAST_DISCARD_LOCK_ROUND_KEY = 'zolik_last_discard_lock_round';
@@ -42,6 +41,10 @@ const PROFILE_RULES_TITLE: Record<string, string> = {
 
 export default function CreateLobbyScreen() {
   const { client, session } = useSession();
+  const rulesInfo = useRulesConfig();
+  // "0" is a UI-only "off" choice, prepended to the server's real options.
+  const meldMins = [0, ...rulesInfo.initialMeldMinOptions];
+  const discardLockRounds = [0, ...rulesInfo.discardDrawMinRoundOptions];
   const [gameId, setGameId] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [players, setPlayers] = useState<LobbyPlayer[]>([]);
@@ -78,10 +81,10 @@ export default function CreateLobbyScreen() {
     (async () => {
       try {
         const lastProfile = await loadLastProfile();
-        const lastMeldMin = await loadLastNumericSetting(LAST_MELD_MIN_KEY, MELD_MINS);
+        const lastMeldMin = await loadLastNumericSetting(LAST_MELD_MIN_KEY, meldMins);
         const lastDiscardLockRound = await loadLastNumericSetting(
           LAST_DISCARD_LOCK_ROUND_KEY,
-          DISCARD_LOCK_ROUNDS,
+          discardLockRounds,
         );
         if (cancelled) return;
         setProfile(lastProfile);
@@ -152,8 +155,8 @@ export default function CreateLobbyScreen() {
   }
 
   async function cycleMeldMin() {
-    const idx = MELD_MINS.indexOf(initialMin);
-    const next = MELD_MINS[(idx + 1) % MELD_MINS.length];
+    const idx = meldMins.indexOf(initialMin);
+    const next = meldMins[(idx + 1) % meldMins.length];
     setInitialMin(next);
     try {
       await client.updateGameSettings(gameId, { initialMeldMinimum: next });
@@ -164,8 +167,8 @@ export default function CreateLobbyScreen() {
   }
 
   async function cycleDiscardLock() {
-    const idx = DISCARD_LOCK_ROUNDS.indexOf(discardLockRound);
-    const next = DISCARD_LOCK_ROUNDS[(idx + 1) % DISCARD_LOCK_ROUNDS.length];
+    const idx = discardLockRounds.indexOf(discardLockRound);
+    const next = discardLockRounds[(idx + 1) % discardLockRounds.length];
     setDiscardLockRound(next);
     try {
       await client.updateGameSettings(gameId, { discardDrawMinRound: next });
@@ -186,7 +189,7 @@ export default function CreateLobbyScreen() {
   return (
     <Screen title="Lobby" subtitle={joinCode ? `Join code: ${joinCode}` : undefined} scroll>
       {error ? <Text style={shared.error}>{error}</Text> : null}
-      <Text style={shared.status}>Players ({players.length}/8)</Text>
+      <Text style={shared.status}>Players ({players.length}/{rulesInfo.maxPlayers})</Text>
       {players.map((p, i) => (
         <Text key={p.id} style={{ color: colors.text, marginBottom: 4 }}>
           {i + 1}. {p.name}

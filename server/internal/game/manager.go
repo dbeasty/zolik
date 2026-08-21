@@ -119,7 +119,7 @@ func (m *Manager) SuspendOnDisconnect(ctx context.Context, gameID, playerID stri
 	}
 
 	now := time.Now().UTC()
-	abandon := now.Add(24 * time.Hour)
+	abandon := now.Add(rules.AbandonWindow)
 
 	game.PreSuspendPhase = game.Phase
 	game.Status = "suspended"
@@ -201,7 +201,7 @@ func (m *Manager) ResumeIfReturning(ctx context.Context, gameID, playerID string
 
 func (m *Manager) suspendNoCardsLeft(ctx context.Context, gameID string, oid bson.ObjectID, game models.Game) {
 	now := time.Now().UTC()
-	abandon := now.Add(24 * time.Hour)
+	abandon := now.Add(rules.AbandonWindow)
 	game.Status = "suspended"
 	game.Phase = string(rules.PhaseSuspended)
 	game.SuspendedAt = &now

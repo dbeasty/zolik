@@ -779,7 +779,7 @@ export default function GameScreen() {
         return p ? `${p.name}'s turn` : 'Waiting…';
       })();
 
-  const discardLocked = state.discardDrawMinRound > 1 && state.round < state.discardDrawMinRound;
+  const discardLocked = state.discardLocked;
   const canDrawDeck = isMyTurn && phase === 'draw';
   const canTakeDiscard = canDrawDeck && !discardLocked && !!topDiscard;
 

@@ -44,6 +44,7 @@ type AddAIReq struct {
 }
 
 func (h *GameRestHandlers) RegisterRoutes(r chi.Router) {
+	r.Get("/rules", h.getRules)
 	r.Get("/games/{id}", h.getGame)
 	r.With(auth.AuthMiddleware).Post("/games", h.createGame)
 	r.With(auth.AuthMiddleware).Post("/games/{id}/join", h.joinGame)
@@ -197,6 +198,22 @@ func (h *GameRestHandlers) createGame(w http.ResponseWriter, req *http.Request) 
 	})
 }
 
+// getRules exposes the table/lobby constants and options the client would
+// otherwise have to hardcode a second copy of (min/max players, the
+// selectable initial-meld-minimum and discard-lock-round values, and each
+// profile's defaults for those two).
+func (h *GameRestHandlers) getRules(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"minPlayers":                 rules.MinPlayers,
+		"maxPlayers":                 rules.MaxPlayers,
+		"initialMeldMinOptions":      rules.InitialMeldMinOptions,
+		"discardDrawMinRoundOptions": rules.DiscardDrawMinRoundOptions,
+		"defaultInitialMeldMinimum":  rules.ProfileContinental.InitialMeldMinimum,
+		"defaultDiscardDrawMinRound": rules.ProfileContinental.DiscardDrawMinRound,
+	})
+}
+
 func (h *GameRestHandlers) getGame(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 	idOrJoin := chi.URLParam(req, "id")
@@ -263,7 +280,7 @@ func (h *GameRestHandlers) joinGame(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 	}
-	if len(g.Players) >= 8 {
+	if len(g.Players) >= rules.MaxPlayers {
 		http.Error(w, "lobby full", http.StatusBadRequest)
 		return
 	}
@@ -324,7 +341,7 @@ func (h *GameRestHandlers) startGame(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
-	if len(g.Players) < 2 {
+	if len(g.Players) < rules.MinPlayers {
 		http.Error(w, "need at least 2 players", http.StatusBadRequest)
 		return
 	}
@@ -499,7 +516,7 @@ func (h *GameRestHandlers) addAI(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
-	if len(g.Players) >= 8 {
+	if len(g.Players) >= rules.MaxPlayers {
 		http.Error(w, "lobby full", http.StatusBadRequest)
 		return
 	}

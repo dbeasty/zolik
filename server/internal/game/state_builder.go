@@ -2,6 +2,7 @@ package game
 
 import (
 	"zolik/server/internal/models"
+	"zolik/server/internal/rules"
 )
 
 type PlayerMsg struct {
@@ -37,6 +38,7 @@ type GameStateMsg struct {
 	IsDraw                      bool                     `json:"isDraw,omitempty"`
 	InitialMeldMinimum          int                      `json:"initialMeldMinimum"`
 	DiscardDrawMinRound         int                      `json:"discardDrawMinRound"`
+	DiscardLocked               bool                     `json:"discardLocked"`
 	DiscardDrawnCardPendingMeld string                   `json:"discardDrawnCardPendingMeld,omitempty"`
 	CanUndoDiscardDraw          bool                     `json:"canUndoDiscardDraw,omitempty"`
 	CanUndoLayOff               bool                     `json:"canUndoLayOff,omitempty"`
@@ -117,6 +119,7 @@ func BuildGameStateMsg(g models.Game, myPlayerID string) GameStateMsg {
 		IsDraw:                      g.IsDraw,
 		InitialMeldMinimum:          g.InitialMeldMinimum,
 		DiscardDrawMinRound:         g.DiscardDrawMinRound,
+		DiscardLocked:               rules.IsDiscardLocked(g.Round, g.DiscardDrawMinRound),
 		DiscardDrawnCardPendingMeld: pendingMeldCard,
 		CanUndoDiscardDraw:          canUndoDiscardDraw,
 		CanUndoLayOff:               canUndoLayOff,
