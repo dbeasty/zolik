@@ -209,6 +209,12 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   meldRow: {
+    // Without this, the row stretches to the full width of `owner` (the
+    // default cross-axis behavior for a column flex child) instead of
+    // hugging its cards — which throws off zonePosition's front/end split
+    // in HandRow (computed from this view's own measured width), making a
+    // drop right on the last visible card register as the wrong end.
+    alignSelf: 'flex-start',
     marginBottom: 3,
     borderWidth: 2,
     borderColor: 'transparent',

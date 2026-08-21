@@ -303,6 +303,17 @@ export default function GameScreen() {
     if (flashMeldTimeoutRef.current) clearTimeout(flashMeldTimeoutRef.current);
     flashMeldTimeoutRef.current = setTimeout(() => setFlashMeldId(null), 600);
   }
+  // Guards against a stray hover highlight surviving the drag that produced
+  // it: handleDragHover's measureMeldZones/measureGroupRowZones round trips
+  // are async, and HandRow clears drag state (and hoverTarget along with
+  // it, via onDragCardChange(null)) synchronously the instant the gesture
+  // ends — before those in-flight callbacks resolve. A late one that still
+  // wins the race after clearDragState can re-set hoverTarget with no drag
+  // left to clear it, stranding a meld highlighted forever with no card
+  // ever laid off. Set true in onDragCardChange when a drag starts, false
+  // when it ends; the async callbacks below check it before touching
+  // hoverTarget/stagingInsertHover.
+  const dragActiveRef = useRef(false);
   const lastHoverCheckAtRef = useRef(0);
   // Throttled rather than run on every pan frame — a live highlight only
   // needs to feel immediate, not literally hit 60fps, and each check costs
@@ -337,6 +348,7 @@ export default function GameScreen() {
     lastHoverCheckAtRef.current = now;
     handleAutoScroll(absoluteY);
     measureMeldZones((zones) => {
+      if (!dragActiveRef.current) return;
       const hit = closestZone(absoluteX, absoluteY, zones);
       if (hit) {
         setStagingInsertHover(null);
@@ -353,6 +365,7 @@ export default function GameScreen() {
       // player sees exactly where a card would land within the group
       // they're dragging over (not just "somewhere in this box").
       measureGroupRowZones((zones2) => {
+        if (!dragActiveRef.current) return;
         const ghit = zones2.find(({ zone }) => pointInZone(absoluteX, absoluteY, zone));
         if (!ghit) {
           setStagingInsertHover(null);
@@ -1313,6 +1326,7 @@ export default function GameScreen() {
               });
             }}
             onDragCardChange={(card) => {
+              dragActiveRef.current = !!card;
               setDraggedCard(card);
               if (!card) {
                 setHoverTarget(null);

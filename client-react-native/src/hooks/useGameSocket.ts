@@ -136,7 +136,10 @@ export function useGameSocket({
     };
 
     ws.onerror = () => {
-      logger.error('ws', 'socket_error');
+      // Not fatal on its own — onclose fires right after and drives the
+      // auto-reconnect, so logging at 'error' here would pop a disruptive
+      // LogBox red screen on every routine reconnect attempt.
+      logger.warn('ws', 'socket_error');
       setStatus('Connection error');
       setStatusIsError(true);
       setConnected(false);
