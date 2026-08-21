@@ -91,6 +91,69 @@ type ContractMsg struct {
 	RequireCleanRun bool `json:"requireCleanRun"`
 }
 
+func buildRulesMsg(cfg rules.RulesConfig) RulesMsg {
+	cfg = rules.ResolveConfig(cfg)
+	return RulesMsg{
+		Profile:                cfg.Profile,
+		DealSize:               cfg.DealSize,
+		MinSetSize:             cfg.MinSetSize,
+		MinRunSize:             cfg.MinRunSize,
+		InitialMeldMinimum:     cfg.InitialMeldMinimum,
+		DiscardDrawMinRound:    cfg.DiscardDrawMinRound,
+		DiscardPickupMode:      string(cfg.DiscardPickupMode),
+		JokerDiscardRestricted: cfg.JokerDiscardRestricted,
+		FixedDealCount:         cfg.FixedDealCount,
+		MatchEndMode:           string(cfg.MatchEndMode),
+		TargetScore:            cfg.TargetScore,
+	}
+}
+
+// ModuleDescriptorMsg is the wire form of rules.Descriptor() — what this game
+// is, who may play it, which variations it ships, and what a lobby may
+// configure. A client renders its whole new-game form from this, so adding a
+// rule knob or a third variation becomes a server-only change.
+type ModuleDescriptorMsg struct {
+	ID         string             `json:"id"`
+	Label      string             `json:"label"`
+	MinPlayers int                `json:"minPlayers"`
+	MaxPlayers int                `json:"maxPlayers"`
+	Profiles   []ProfileSpecMsg   `json:"profiles"`
+	Options    []rules.OptionSpec `json:"options"`
+}
+
+// ProfileSpecMsg carries each variation's fully-resolved ruleset alongside its
+// name, so a lobby can describe a profile it has never heard of using the same
+// summary renderer the in-game rules panel already uses.
+type ProfileSpecMsg struct {
+	ID    string   `json:"id"`
+	Label string   `json:"label"`
+	Rules RulesMsg `json:"rules"`
+	// Contract is what this profile asks for on its first deal — enough for a
+	// lobby to say "to go down: two sets" without owning the rotation table.
+	Contract ContractMsg `json:"contract"`
+}
+
+// BuildModuleDescriptorMsg maps the module's self-description onto the wire.
+func BuildModuleDescriptorMsg() ModuleDescriptorMsg {
+	d := rules.Descriptor()
+	profiles := make([]ProfileSpecMsg, 0, len(d.Profiles))
+	for _, p := range d.Profiles {
+		c := p.Contract()
+		profiles = append(profiles, ProfileSpecMsg{
+			ID: p.ID, Label: p.Label, Rules: buildRulesMsg(p.Rules),
+			Contract: ContractMsg{Sets: c.Sets, Runs: c.Runs, RequireCleanRun: c.RequireCleanRun},
+		})
+	}
+	return ModuleDescriptorMsg{
+		ID:         d.ID,
+		Label:      d.Label,
+		MinPlayers: d.MinPlayers,
+		MaxPlayers: d.MaxPlayers,
+		Profiles:   profiles,
+		Options:    d.Options,
+	}
+}
+
 func BuildGameStateMsg(g models.Game, myPlayerID string) GameStateMsg {
 	cardCounts := map[string]int{}
 	for _, p := range g.Players {
@@ -171,19 +234,7 @@ func BuildGameStateMsg(g models.Game, myPlayerID string) GameStateMsg {
 		RulesProfile:                g.RulesProfile,
 
 		LegalActions: offers,
-		Rules: RulesMsg{
-			Profile:                cfg.Profile,
-			DealSize:               cfg.DealSize,
-			MinSetSize:             cfg.MinSetSize,
-			MinRunSize:             cfg.MinRunSize,
-			InitialMeldMinimum:     cfg.InitialMeldMinimum,
-			DiscardDrawMinRound:    cfg.DiscardDrawMinRound,
-			DiscardPickupMode:      string(cfg.DiscardPickupMode),
-			JokerDiscardRestricted: cfg.JokerDiscardRestricted,
-			FixedDealCount:         cfg.FixedDealCount,
-			MatchEndMode:           string(cfg.MatchEndMode),
-			TargetScore:            cfg.TargetScore,
-		},
+		Rules:        buildRulesMsg(cfg),
 		Contract: ContractMsg{
 			Sets:            contract.Sets,
 			Runs:            contract.Runs,

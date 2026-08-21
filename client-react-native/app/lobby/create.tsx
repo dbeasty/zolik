@@ -4,41 +4,33 @@ import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
 import { Screen } from '@/src/components/Screen';
 import { storage, useSession } from '@/src/context/SessionContext';
-import type { LobbyPlayer, RulesProfile } from '@/src/api/types';
+import type { LobbyPlayer, ModuleDescriptor, OptionSpec } from '@/src/api/types';
+import { rulesSummaryLines } from '@/src/lib/cards';
+import type { OptionValues } from '@/src/lib/lobbyOptions';
+import {
+  defaultsFor,
+  labelFor,
+  lastOptionKey,
+  nextChoice,
+  restoreChoice,
+} from '@/src/lib/lobbyOptions';
 import { colors, shared } from '@/src/theme';
 
+/**
+ * The new-game lobby, rendered from the module descriptor the server serves at
+ * GET /module.
+ *
+ * This screen used to own four separate copies of rule knowledge: the list of
+ * variations, the option space (`MELD_MINS = [0, 35, 50, 70]`,
+ * `DISCARD_LOCK_ROUNDS = [0, 1, 2, 3]`), a table of display names, and a
+ * hand-written paragraph restating one profile's constants. Adding a knob or a
+ * third variation meant editing all of it, and a value the server would reject
+ * looked perfectly selectable. Now every one of those comes off the descriptor
+ * — see docs/extensibility-plan.md Phase 2.1.
+ */
+
 const DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
-const MELD_MINS = [0, 35, 50, 70];
-const DISCARD_LOCK_ROUNDS = [0, 1, 2, 3];
 const LAST_PROFILE_KEY = 'zolik_last_rules_profile';
-const LAST_MELD_MIN_KEY = 'zolik_last_meld_min';
-const LAST_DISCARD_LOCK_ROUND_KEY = 'zolik_last_discard_lock_round';
-
-const PROFILES: { value: RulesProfile; label: string }[] = [
-  { value: 'continental', label: 'Continental' },
-  { value: 'zolik_classic', label: 'Žolík Classic' },
-];
-
-async function loadLastProfile(): Promise<RulesProfile> {
-  const stored = await storage.getItem(LAST_PROFILE_KEY);
-  return stored === 'continental' || stored === 'zolik_classic' ? stored : 'zolik_classic';
-}
-
-async function loadLastNumericSetting(
-  key: string,
-  allowed: readonly number[],
-): Promise<number | undefined> {
-  const stored = await storage.getItem(key);
-  if (stored == null) return undefined;
-  const parsed = Number(stored);
-  return allowed.includes(parsed) ? parsed : undefined;
-}
-
-const PROFILE_RULES_TITLE: Record<string, string> = {
-  continental: 'Continental Rummy rules',
-  zolik_classic: 'Žolík Classic rules',
-  custom: 'Custom house rules',
-};
 
 export default function CreateLobbyScreen() {
   const { client, session } = useSession();
@@ -46,25 +38,34 @@ export default function CreateLobbyScreen() {
   const [joinCode, setJoinCode] = useState('');
   const [players, setPlayers] = useState<LobbyPlayer[]>([]);
   const [aiDiff, setAiDiff] = useState<(typeof DIFFICULTIES)[number]>('medium');
-  const [profile, setProfile] = useState<RulesProfile>('zolik_classic');
-  const [initialMin, setInitialMin] = useState(35);
-  // Continental Rummy: discard-pile pickup only opens up from round 3.
-  const [discardLockRound, setDiscardLockRound] = useState(3);
+  const [descriptor, setDescriptor] = useState<ModuleDescriptor | null>(null);
+  const [profileId, setProfileId] = useState('');
+  const [options, setOptions] = useState<OptionValues>({});
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(true);
 
   const isHost = Boolean(
     session?.userId && players.length > 0 && players[0].id === session.userId,
   );
+  const profile = descriptor?.profiles.find((p) => p.id === profileId);
+  const minPlayers = descriptor?.minPlayers ?? 2;
 
   const poll = useCallback(async () => {
     if (!gameId) return;
     try {
       const info = await client.getLobby(gameId);
       setPlayers(info.players);
-      if (info.rulesProfile != null) setProfile(info.rulesProfile);
-      if (info.initialMeldMinimum != null) setInitialMin(info.initialMeldMinimum);
-      if (info.discardDrawMinRound != null) setDiscardLockRound(info.discardDrawMinRound);
+      if (info.rulesProfile != null) setProfileId(info.rulesProfile);
+      // The lobby endpoint reports what the server actually resolved, which is
+      // the authority — a rejected or clamped value corrects itself here
+      // rather than lingering in the UI.
+      setOptions((prev) => ({
+        ...prev,
+        ...(info.initialMeldMinimum != null ? { initialMeldMinimum: info.initialMeldMinimum } : {}),
+        ...(info.discardDrawMinRound != null
+          ? { discardDrawMinRound: info.discardDrawMinRound }
+          : {}),
+      }));
       if (info.status === 'active') {
         router.replace(`/game/${gameId}`);
       }
@@ -77,21 +78,28 @@ export default function CreateLobbyScreen() {
     let cancelled = false;
     (async () => {
       try {
-        const lastProfile = await loadLastProfile();
-        const lastMeldMin = await loadLastNumericSetting(LAST_MELD_MIN_KEY, MELD_MINS);
-        const lastDiscardLockRound = await loadLastNumericSetting(
-          LAST_DISCARD_LOCK_ROUND_KEY,
-          DISCARD_LOCK_ROUNDS,
-        );
+        const desc = await client.getModuleDescriptor();
         if (cancelled) return;
-        setProfile(lastProfile);
-        if (lastMeldMin != null) setInitialMin(lastMeldMin);
-        if (lastDiscardLockRound != null) setDiscardLockRound(lastDiscardLockRound);
-        const { gameId: id, joinCode: code } = await client.createGame(
-          lastProfile,
-          lastMeldMin,
-          lastDiscardLockRound,
-        );
+        setDescriptor(desc);
+
+        // Restore the host's last choices, but only where the server still
+        // declares them: a variation or a value that has been retired must not
+        // resurrect itself from this device's storage.
+        const storedProfile = await storage.getItem(LAST_PROFILE_KEY);
+        const chosen =
+          desc.profiles.find((p) => p.id === storedProfile) ?? desc.profiles[0];
+
+        const values = defaultsFor(chosen, desc.options);
+        for (const o of desc.options) {
+          const restored = restoreChoice(o, await storage.getItem(lastOptionKey(o.name)));
+          if (restored != null) values[o.name] = restored;
+        }
+        if (cancelled) return;
+
+        setProfileId(chosen?.id ?? '');
+        setOptions(values);
+
+        const { gameId: id, joinCode: code } = await client.createGame(chosen?.id, values);
         if (cancelled) return;
         setGameId(id);
         setJoinCode(code);
@@ -136,40 +144,28 @@ export default function CreateLobbyScreen() {
     }
   }
 
-  async function selectProfile(next: RulesProfile) {
-    if (next === profile) return;
-    setProfile(next);
+  async function selectProfile(next: string) {
+    if (next === profileId || !descriptor) return;
+    setProfileId(next);
+    // Switching variation resets every knob to that profile's own defaults —
+    // server-side, and mirrored here so the chips do not show the previous
+    // profile's numbers until the next poll lands.
+    setOptions(defaultsFor(descriptor.profiles.find((p) => p.id === next), descriptor.options));
     try {
       await client.updateGameSettings(gameId, { rulesProfile: next });
       await storage.setItem(LAST_PROFILE_KEY, next);
-      // The server resets initialMeldMinimum/discardDrawMinRound to the new
-      // profile's defaults — pick those up on the next poll rather than
-      // guessing them here.
       await poll();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Update failed');
     }
   }
 
-  async function cycleMeldMin() {
-    const idx = MELD_MINS.indexOf(initialMin);
-    const next = MELD_MINS[(idx + 1) % MELD_MINS.length];
-    setInitialMin(next);
+  async function cycleOption(option: OptionSpec) {
+    const next = nextChoice(option, options[option.name]);
+    setOptions((prev) => ({ ...prev, [option.name]: next }));
     try {
-      await client.updateGameSettings(gameId, { initialMeldMinimum: next });
-      await storage.setItem(LAST_MELD_MIN_KEY, String(next));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Update failed');
-    }
-  }
-
-  async function cycleDiscardLock() {
-    const idx = DISCARD_LOCK_ROUNDS.indexOf(discardLockRound);
-    const next = DISCARD_LOCK_ROUNDS[(idx + 1) % DISCARD_LOCK_ROUNDS.length];
-    setDiscardLockRound(next);
-    try {
-      await client.updateGameSettings(gameId, { discardDrawMinRound: next });
-      await storage.setItem(LAST_DISCARD_LOCK_ROUND_KEY, String(next));
+      await client.updateGameSettings(gameId, { [option.name]: next });
+      await storage.setItem(lastOptionKey(option.name), String(next));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Update failed');
     }
@@ -183,10 +179,17 @@ export default function CreateLobbyScreen() {
     );
   }
 
+  // The ruleset as it currently stands: the profile's defaults with this
+  // lobby's overrides on top. Rendered by the same summary function the
+  // in-game rules panel uses, so the lobby and the table never disagree.
+  const previewRules = profile ? { ...profile.rules, ...options } : undefined;
+
   return (
     <Screen title="Lobby" subtitle={joinCode ? `Join code: ${joinCode}` : undefined} scroll>
       {error ? <Text style={shared.error}>{error}</Text> : null}
-      <Text style={shared.status}>Players ({players.length}/8)</Text>
+      <Text style={shared.status}>
+        Players ({players.length}/{descriptor?.maxPlayers ?? 8})
+      </Text>
       {players.map((p, i) => (
         <Text key={p.id} style={{ color: colors.text, marginBottom: 4 }}>
           {i + 1}. {p.name}
@@ -196,20 +199,21 @@ export default function CreateLobbyScreen() {
       ))}
 
       <View style={{ marginTop: 16 }}>
-        <Text style={shared.status}>Rules: {PROFILES.find((p) => p.value === profile)?.label ?? profile}</Text>
+        <Text style={shared.status}>Rules: {profile?.label ?? profileId}</Text>
         <View style={{ flexDirection: 'row', gap: 8, marginVertical: 8 }}>
-          {PROFILES.map((p) => (
+          {(descriptor?.profiles ?? []).map((p) => (
             <Pressable
-              key={p.value}
+              key={p.id}
+              testID={`profile-${p.id}`}
               style={[
                 shared.button,
-                p.value === profile ? null : shared.buttonSecondary,
+                p.id === profileId ? null : shared.buttonSecondary,
                 { flex: 1, marginBottom: 0 },
               ]}
               disabled={!isHost}
-              onPress={() => selectProfile(p.value)}
+              onPress={() => selectProfile(p.id)}
             >
-              <Text style={p.value === profile ? shared.buttonText : shared.buttonTextSecondary}>
+              <Text style={p.id === profileId ? shared.buttonText : shared.buttonTextSecondary}>
                 {p.label}
               </Text>
             </Pressable>
@@ -236,29 +240,32 @@ export default function CreateLobbyScreen() {
             </Pressable>
           ))}
         </View>
+
         <View style={[shared.card, { marginTop: 8, paddingVertical: 12 }]}>
           <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14, marginBottom: 10 }}>
-            {PROFILE_RULES_TITLE[profile] ?? 'House rules'}
+            {profile ? `${profile.label} rules` : 'House rules'}
           </Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
-            <RuleChip
-              label="Meld value"
-              value={initialMin > 0 ? String(initialMin) : 'Off'}
-              onPress={isHost ? cycleMeldMin : undefined}
-            />
-            <RuleChip
-              label="Discard pickup"
-              value={discardLockRound > 1 ? `Round ${discardLockRound}` : 'Open'}
-              onPress={isHost ? cycleDiscardLock : undefined}
-            />
+            {(descriptor?.options ?? []).map((o) => (
+              <RuleChip
+                key={o.name}
+                testID={`option-${o.name}`}
+                label={o.label}
+                value={labelFor(o, options[o.name])}
+                onPress={isHost ? () => cycleOption(o) : undefined}
+              />
+            ))}
           </View>
-          {profile === 'zolik_classic' ? (
-            <Text style={{ color: colors.muted, fontSize: 11, marginTop: 8 }}>
-              13-card deal · 3+ card runs · any card may be taken from the discard pile · at least
-              one joker-free run required to go down · a joker can only be discarded to end the
-              hand.
-            </Text>
-          ) : null}
+          {previewRules
+            ? rulesSummaryLines(previewRules, profile?.contract).map((line) => (
+                <Text
+                  key={line.label}
+                  style={{ color: colors.muted, fontSize: 11, marginTop: 6 }}
+                >
+                  {line.label}: {line.value}
+                </Text>
+              ))
+            : null}
         </View>
 
         {isHost ? (
@@ -269,10 +276,11 @@ export default function CreateLobbyScreen() {
             <Pressable
               style={shared.button}
               onPress={startGame}
-              disabled={players.length < 2}
+              disabled={players.length < minPlayers}
             >
               <Text style={shared.buttonText}>
-                Start game {players.length < 2 ? `(need ${2 - players.length} more)` : ''}
+                Start game{' '}
+                {players.length < minPlayers ? `(need ${minPlayers - players.length} more)` : ''}
               </Text>
             </Pressable>
           </>
@@ -288,13 +296,16 @@ function RuleChip({
   label,
   value,
   onPress,
+  testID,
 }: {
   label: string;
   value: string;
   onPress?: () => void;
+  testID?: string;
 }) {
   return (
     <Pressable
+      testID={testID}
       onPress={onPress}
       disabled={!onPress}
       style={{

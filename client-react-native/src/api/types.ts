@@ -101,6 +101,54 @@ export type Contract = {
   requireCleanRun: boolean;
 };
 
+/**
+ * The game module's self-description, served by GET /module.
+ *
+ * A client renders its whole new-game form from this rather than carrying its
+ * own copy of the option space (which used to live in the lobby screen as
+ * `MELD_MINS = [0, 35, 50, 70]` and `DISCARD_LOCK_ROUNDS = [0, 1, 2, 3]`, next
+ * to a hardcoded profile list). Adding a knob or a variation is now a
+ * server-only change — see docs/extensibility-plan.md Phase 2.1.
+ */
+export type ModuleDescriptor = {
+  id: string;
+  label: string;
+  minPlayers: number;
+  maxPlayers: number;
+  profiles: ProfileSpec[];
+  options: OptionSpec[];
+};
+
+/** One shipped variation, with the ruleset it starts from already resolved. */
+export type ProfileSpec = {
+  id: string;
+  label: string;
+  rules: ResolvedRules;
+  /** What this variation asks for to go down on its first deal. */
+  contract: Contract;
+};
+
+export type OptionSpec = {
+  /** Matches the JSON field the client sends back on create/settings. */
+  name: string;
+  type: 'enum_int' | string;
+  label: string;
+  help?: string;
+  choices: OptionChoice[];
+};
+
+export type OptionChoice = {
+  value: number;
+  label: string;
+};
+
+/**
+ * Lobby option values keyed by the descriptor's option names. Deliberately
+ * open: the set of knobs is declared by the server, so enumerating them here
+ * would reintroduce exactly the duplication Phase 2.1 removed.
+ */
+export type GameOptions = Record<string, number | undefined>;
+
 /** "continental" | "zolik_classic" | "custom" — see server rules.RulesConfig. */
 export type RulesProfile = 'continental' | 'zolik_classic' | 'custom';
 

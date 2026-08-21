@@ -44,6 +44,10 @@ type AddAIReq struct {
 }
 
 func (h *GameRestHandlers) RegisterRoutes(r chi.Router) {
+	// The module's self-description: what a lobby may configure. Public and
+	// static, so no auth and no game id — a client fetches it once to render
+	// its new-game form (see docs/extensibility-plan.md Phase 2.1).
+	r.Get("/module", h.moduleDescriptor)
 	r.Get("/games/{id}", h.getGame)
 	r.With(auth.AuthMiddleware).Post("/games", h.createGame)
 	r.With(auth.AuthMiddleware).Post("/games/{id}/join", h.joinGame)
@@ -54,6 +58,27 @@ func (h *GameRestHandlers) RegisterRoutes(r chi.Router) {
 	if h.testEndpoints {
 		r.With(auth.AuthMiddleware).Post("/games/{id}/debug-state", h.debugState)
 	}
+}
+
+// moduleDescriptor serves the module's self-description: player range, the
+// variations it ships (each with its fully-resolved ruleset) and the options a
+// lobby may set. Static and public — a client fetches it once and renders its
+// whole new-game form from it, so a new knob or variation needs no client
+// change at all.
+func (h *GameRestHandlers) moduleDescriptor(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(BuildModuleDescriptorMsg())
+}
+
+// validateOptionReq holds the descriptor to its word: a value the schema does
+// not declare is rejected here rather than quietly accepted. Without this the
+// option space would be advertised by the server but enforced only by whichever
+// client happened to render the right controls.
+func validateOptionReq(body CreateGameReq) error {
+	return rules.ValidateOptions(map[string]*int{
+		rules.OptInitialMeldMinimum:  body.InitialMeldMinimum,
+		rules.OptDiscardDrawMinRound: body.DiscardDrawMinRound,
+	})
 }
 
 // updateSettings lets the host adjust pre-start options (initial meld
@@ -94,6 +119,10 @@ func (h *GameRestHandlers) updateSettings(w http.ResponseWriter, req *http.Reque
 		g.RulesProfile = *body.RulesProfile
 		cfg = rules.ResolveProfile(g.RulesProfile)
 	}
+	if err := validateOptionReq(body); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	cfg = applyRuleOverrides(cfg, body.InitialMeldMinimum, body.DiscardDrawMinRound)
 	setGameRules(&g, cfg)
 
@@ -124,6 +153,10 @@ func (h *GameRestHandlers) createGame(w http.ResponseWriter, req *http.Request) 
 	profile := "zolik_classic"
 	if body.RulesProfile != nil {
 		profile = *body.RulesProfile
+	}
+	if err := validateOptionReq(body); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 	// Resolve the ruleset once, here, and freeze it onto the document (see
 	// setGameRules) — it is never re-derived from the profile name again.

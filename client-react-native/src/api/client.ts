@@ -1,9 +1,10 @@
 import { ZOLIK_BASE_URL } from '@/src/config';
 import type {
+  GameOptions,
   GameState,
   LobbyGame,
+  ModuleDescriptor,
   PlayerSession,
-  RulesProfile,
   WSAction,
 } from '@/src/api/types';
 
@@ -118,31 +119,30 @@ export class ZolikClient {
     this.onTokensUpdated?.(data.accessToken, data.refreshToken);
   }
 
+  /**
+   * Options are keyed by the names the module descriptor declares, not by a
+   * fixed argument list — adding a knob server-side needs no change here. The
+   * server validates every value against the same schema it advertised
+   * (rules.ValidateOptions), so an unknown name or an undeclared value is a
+   * 400 rather than a silently ignored field.
+   */
   async createGame(
-    rulesProfile?: RulesProfile,
-    initialMeldMin?: number,
-    discardDrawMinRound?: number,
+    rulesProfile?: string,
+    options: GameOptions = {},
   ): Promise<{ gameId: string; joinCode: string }> {
     const body: Record<string, number | string> = {};
     if (rulesProfile) {
       body.rulesProfile = rulesProfile;
     }
-    if (initialMeldMin != null && initialMeldMin >= 0) {
-      body.initialMeldMinimum = initialMeldMin;
-    }
-    if (discardDrawMinRound != null && discardDrawMinRound >= 0) {
-      body.discardDrawMinRound = discardDrawMinRound;
+    for (const [name, value] of Object.entries(options)) {
+      if (typeof value === 'number' && value >= 0) body[name] = value;
     }
     return this.post('/games', body, true);
   }
 
   async updateGameSettings(
     idOrCode: string,
-    settings: {
-      rulesProfile?: RulesProfile;
-      initialMeldMinimum?: number;
-      discardDrawMinRound?: number;
-    },
+    settings: Record<string, number | string | undefined>,
   ): Promise<void> {
     await this.request(
       'PATCH',
@@ -175,6 +175,16 @@ export class ZolikClient {
 
   async getLobby(idOrCode: string): Promise<LobbyGame> {
     return this.get(`/games/${encodeURIComponent(idOrCode)}`, false);
+  }
+
+  /**
+   * The module's self-description: which variations exist, what each one's
+   * ruleset is, and which options a lobby may set. Fetched instead of
+   * hardcoded, so a new variation or knob needs no client change — see
+   * docs/extensibility-plan.md Phase 2.1.
+   */
+  async getModuleDescriptor(): Promise<ModuleDescriptor> {
+    return this.get('/module', false);
   }
 
   async getMe(): Promise<{ id: string; username?: string }> {
