@@ -5,6 +5,7 @@ import { CardView } from '@/src/components/CardView';
 import type { MeldHoverTarget } from '@/src/components/HandRow';
 import type { GameState } from '@/src/api/types';
 import { useDropPulseStyle } from '@/src/hooks/useDropPulse';
+import { canLayOffOnto, canSwapJokerOn } from '@/src/lib/offers';
 import { colors, shared } from '@/src/theme';
 
 type Props = {
@@ -27,8 +28,10 @@ type Props = {
   // Cards currently selected in hand — drives which of the two per-meld
   // action buttons below are eligible to show at all.
   selectedCards: string[];
-  // Gates the "Lay off" button: your turn, meld phase, and you've already
-  // met your own round requirement (lay-off is a post-"down" action).
+  // Gates the "Lay off" buttons across the whole table. Per-meld
+  // eligibility is read from the server's offer list instead (see
+  // src/lib/offers.ts) — this stays only to hide the buttons entirely when
+  // no meld anywhere is accepting a lay-off.
   canLayOff: boolean;
   // For a run meld, position tells the server which end the selected
   // card(s) should extend — omitted for a set, which has no ends.
@@ -84,8 +87,8 @@ export function MeldTable({
   const anyMelds = players.some((p) => (state.melds[p.id] ?? []).length > 0);
   if (!anyMelds) return null;
 
-  const showLayOff = canLayOff && selectedCards.length >= 1;
-  const showSwapJoker = selectedCards.length === 1 && !selectedCards[0].startsWith('JOKER');
+  const anySelected = selectedCards.length >= 1;
+  const oneSelected = selectedCards.length === 1;
 
   return (
     <View style={styles.wrap}>
@@ -101,7 +104,13 @@ export function MeldTable({
               const meta = metas[idx];
               const meldId = meta?.meldId ?? `m${idx}`;
               const isRun = meta?.type === 'run';
-              const hasJoker = cards.some((c) => c.startsWith('JOKER'));
+              // Whether this meld will take a lay-off or a joker swap right
+              // now is the server's call, per meld. It used to be guessed
+              // here from `cards.some(c => c.startsWith('JOKER'))`, which
+              // offered "Swap joker here" on melds where no card in hand
+              // could actually take the joker's place.
+              const offersLayOff = canLayOffOnto(state, meldId);
+              const offersSwap = canSwapJokerOn(state, meldId);
               const isHovered = hoverTarget?.meldId === meldId;
               const hoverFront = isHovered && hoverTarget?.position === 'front';
               const hoverEnd = isHovered && hoverTarget?.position === 'end';
@@ -128,9 +137,9 @@ export function MeldTable({
                       <View style={[styles.insertMarker, hoverEnd && styles.insertMarkerActive]} />
                     ) : null}
                   </View>
-                  {showLayOff || (hasJoker && showSwapJoker) ? (
+                  {(offersLayOff && anySelected) || (offersSwap && oneSelected) ? (
                     <View style={styles.meldActions}>
-                      {showLayOff ? (
+                      {offersLayOff && anySelected ? (
                         isRun ? (
                           <>
                             <Pressable
@@ -162,7 +171,7 @@ export function MeldTable({
                           </Pressable>
                         )
                       ) : null}
-                      {hasJoker && showSwapJoker ? (
+                      {offersSwap && oneSelected ? (
                         <Pressable
                           testID={`swap-joker-${meldId}`}
                           style={[shared.button, shared.buttonSecondary, styles.meldActionButton]}

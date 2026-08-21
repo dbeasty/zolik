@@ -28,6 +28,17 @@ import {
   profileDisplayName,
   rulesSummaryLines,
 } from '@/src/lib/cards';
+import {
+  OFFER,
+  can,
+  canLayOffAnywhere,
+  canLayOffOnto,
+  canSwapJokerOn,
+  layOffOfferId,
+  positionsForCard,
+  whyNot,
+} from '@/src/lib/offers';
+import { reasonText } from '@/src/lib/messages';
 import { colors, shared } from '@/src/theme';
 
 const pileStyles = StyleSheet.create({
@@ -530,13 +541,14 @@ export default function GameScreen() {
     clearSelect();
   }
 
-  // Lay-off is a post-"down" action: you can only extend melds (yours or
-  // anyone else's) once you've met your own round requirement this deal.
-  const canLayOff = !!state && isMyTurn && phase === 'meld' && !!state.roundReqMet[userId];
-  const canBuildMeld = !!state && isMyTurn && phase === 'meld';
-  // Mirrors discardCardAt's own guard — used to decide whether the discard
-  // pile pulses as a valid drop target while a card is being dragged.
-  const canDiscardNow = !!state && isMyTurn && (phase === 'discard' || phase === 'meld');
+  // Every "may I?" below is the server's answer, read out of the offer list
+  // it sends with each state push — not a rule re-derived here. The
+  // expressions these replaced (isMyTurn && phase === 'meld' &&
+  // roundReqMet[userId], and friends) were copies of server logic that had
+  // to be kept in sync by hand. See src/lib/offers.ts.
+  const canLayOff = canLayOffAnywhere(state);
+  const canBuildMeld = can(state, OFFER.layMeld);
+  const canDiscardNow = can(state, OFFER.discard);
   // Hook, so it has to run unconditionally on every render (including the
   // "loading" render before `state` exists below) — same reason the drag
   // overlay's shared values are declared up top instead of inside the JSX.
@@ -556,7 +568,16 @@ export default function GameScreen() {
     // Which half of the meld the card was dropped on tells the server
     // which end of a run it has to extend — a set has no ends, so the
     // server just ignores this for sets.
-    send({ type: 'lay_off', meldId, card, position });
+    //
+    // The server also tells us, per card, which end(s) it will actually
+    // accept. When it named exactly one, honour that rather than the drop
+    // side: dropping a card on the end it cannot extend used to bounce with
+    // WRONG_RUN_END even though the move was legal at the other end. When it
+    // named none, send no position at all and let the server place it.
+    const allowed = positionsForCard(state, meldId, card);
+    const resolved =
+      allowed.length === 1 ? (allowed[0] as 'front' | 'end') : allowed.includes(position) ? position : undefined;
+    send(resolved ? { type: 'lay_off', meldId, card, position: resolved } : { type: 'lay_off', meldId, card });
     flashMeld(meldId);
     clearSelect();
   }
@@ -584,7 +605,7 @@ export default function GameScreen() {
   // rules.snapshotTurnMeld for the bug this guards against.
   const discardPileSafe = state.discardPile ?? [];
   const topDiscard = discardPileSafe[discardPileSafe.length - 1];
-  const header = `${dealHeaderLabel(state.rulesProfile, state.game)} · Round ${state.round} · Deck ${state.deckCount}`;
+  const header = `${dealHeaderLabel(state.rules, state.contract, state.game)} · Round ${state.round} · Deck ${state.deckCount}`;
   const turnLabel = isMyTurn
     ? 'Your turn'
     : (() => {
@@ -592,9 +613,12 @@ export default function GameScreen() {
         return p ? `${p.name}'s turn` : 'Waiting…';
       })();
 
-  const discardLocked = state.discardDrawMinRound > 1 && state.round < state.discardDrawMinRound;
-  const canDrawDeck = isMyTurn && phase === 'draw';
-  const canTakeDiscard = canDrawDeck && !discardLocked && !!topDiscard;
+  const canDrawDeck = can(state, OFFER.drawDeck);
+  const canTakeDiscard = can(state, OFFER.drawDiscard);
+  // The engine's own reason the pile can't be drawn from, rendered as text —
+  // it used to be the client re-deriving `discardDrawMinRound > 1 && round <
+  // discardDrawMinRound`, which meant a new lock rule needed a client edit.
+  const discardBlockedReason = reasonText(whyNot(state, OFFER.drawDiscard));
 
   function drawFromDeck() {
     if (!canDrawDeck) return;
@@ -684,17 +708,17 @@ export default function GameScreen() {
   }
 
   function undoLastLayOff() {
-    if (!state?.canUndoLayOff) return;
+    if (!can(state, OFFER.undoLayOff)) return;
     send({ type: 'undo_lay_off' });
   }
 
   function undoLastMeld() {
-    if (!state?.canUndoLayMeld) return;
+    if (!can(state, OFFER.undoLayMeld)) return;
     send({ type: 'undo_lay_meld' });
   }
 
   function undoTakeDiscard() {
-    if (!state?.canUndoDiscardDraw) return;
+    if (!can(state, OFFER.undoDrawDiscard)) return;
     send({ type: 'undo_draw_discard' });
   }
 
@@ -704,7 +728,7 @@ export default function GameScreen() {
   // "get back to a known state before I discard," no matter how many
   // actions have piled up since.
   function undoTurn() {
-    if (!state?.canUndoTurn) return;
+    if (!can(state, OFFER.undoTurn)) return;
     send({ type: 'undo_turn' });
     clearSelect();
   }
@@ -720,7 +744,7 @@ export default function GameScreen() {
   // deck instead, before anything else this turn has happened. Lay-off,
   // meld, and whole-turn undo remain implemented server-side but aren't
   // surfaced in this UI since they're not legal undos in this game.
-  if (state?.canUndoDiscardDraw) {
+  if (can(state, OFFER.undoDrawDiscard)) {
     actions.push({ label: 'Undo take discard', onPress: undoTakeDiscard });
   }
 
@@ -835,7 +859,7 @@ export default function GameScreen() {
         >
           <Text style={[shared.status, { marginTop: 8 }]}>
             Deck ({state.deckCount}) · Discard pile
-            {discardLocked ? ` (pickup locked until round ${state.discardDrawMinRound})` : ''}
+            {discardBlockedReason ? ` — ${discardBlockedReason}` : ''}
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Pressable
@@ -1000,12 +1024,7 @@ export default function GameScreen() {
             <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16, marginBottom: 12 }}>
               {profileDisplayName(state.rulesProfile)} rules
             </Text>
-            {rulesSummaryLines(
-              state.rulesProfile,
-              state.game,
-              state.initialMeldMinimum,
-              state.discardDrawMinRound,
-            ).map((line) => (
+            {rulesSummaryLines(state.rules, state.contract).map((line) => (
               <View key={line.label} style={{ marginBottom: 8 }}>
                 <Text style={{ color: colors.muted, fontSize: 11 }}>{line.label}</Text>
                 <Text style={{ color: colors.text, fontSize: 13 }}>{line.value}</Text>

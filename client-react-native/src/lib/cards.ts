@@ -1,3 +1,5 @@
+import type { Contract, ResolvedRules } from '@/src/api/types';
+
 export type CardDisplay = {
   rank: string;
   suitSymbol: string;
@@ -156,31 +158,53 @@ export function moveCardToIndex(cards: string[], from: number, to: number): stri
   return copy;
 }
 
-export function roundRequirementLabel(round: number): string {
-  const labels = [
-    '',
-    'Two sets',
-    'One set, one run',
-    'Two runs',
-    'Three sets',
-    'Two sets, one run',
-    'One set, two runs',
-    'Three runs',
-  ];
-  return labels[round] ?? `Round ${round}`;
+/**
+ * Describes a contract the *server* resolved, rather than looking one up by
+ * deal number. The deal-to-contract table used to live here, duplicating
+ * server/internal/rules/profiles.go; a profile with a different rotation
+ * silently rendered the wrong requirement. Now the shape arrives on the wire
+ * and this only puts words around it.
+ */
+export function contractLabel(contract: Contract | undefined): string {
+  if (!contract) return '';
+  const parts: string[] = [];
+  if (contract.sets > 0) parts.push(countLabel(contract.sets, 'set'));
+  if (contract.runs > 0) parts.push(countLabel(contract.runs, 'run'));
+  if (parts.length === 0) {
+    return contract.requireCleanRun
+      ? 'Any mix of sets and runs — at least one run must be joker-free'
+      : 'Any valid meld';
+  }
+  const base = parts.join(', ');
+  return contract.requireCleanRun ? `${base} — one run must be joker-free` : base;
+}
+
+function countLabel(n: number, noun: string): string {
+  const words = ['zero', 'one', 'two', 'three', 'four', 'five'];
+  const word = words[n] ?? String(n);
+  return `${word.charAt(0).toUpperCase()}${word.slice(1)} ${noun}${n === 1 ? '' : 's'}`;
 }
 
 /**
- * Header label for the current deal. Continental has a fixed per-deal
- * contract (roundRequirementLabel); Žolík Classic and any other non-rotating
- * profile has no such contract — going down just requires one joker-free
- * run — so the header skips the contract phrase entirely.
+ * Header label for the current deal.
+ *
+ * A fixed-length match (`fixedDealCount > 0`) counts its deals and names the
+ * contract for this one; a score-limited match just re-deals until someone
+ * crosses the target, so naming a deal count there would be wrong. Both facts
+ * come from the ruleset the server sent — no profile name is consulted, which
+ * is what lets a third profile render correctly with no client change.
  */
-export function dealHeaderLabel(rulesProfile: string | undefined, game: number): string {
-  if (rulesProfile === 'zolik_classic') {
+export function dealHeaderLabel(
+  rules: ResolvedRules | undefined,
+  contract: Contract | undefined,
+  game: number,
+): string {
+  if (!rules || rules.fixedDealCount <= 0) {
     return `Deal ${game}`;
   }
-  return `Game ${game}: ${roundRequirementLabel(game)}`;
+  const label = contractLabel(contract);
+  const of = `Game ${game} of ${rules.fixedDealCount}`;
+  return label ? `${of}: ${label}` : of;
 }
 
 /** Short human name for a rules profile, for display next to the deal header. */
@@ -191,43 +215,56 @@ export function profileDisplayName(rulesProfile: string | undefined): string {
 }
 
 /**
- * Full rule breakdown for the in-game "Rules" panel. Mirrors the base
- * profile constants in server/internal/rules/profiles.go (deal size, run/set
- * minimums, discard pickup mode, joker rule) plus this table's live
- * overrides (meld-value floor, discard-lock round) which the server already
- * sends per game.
+ * Full rule breakdown for the in-game "Rules" panel.
+ *
+ * Every value below is read off the ruleset the server resolved for *this*
+ * game. It used to be a second copy of server/internal/rules/profiles.go
+ * keyed on the profile name, which meant a house-rule override or a new
+ * profile displayed one thing while the engine enforced another.
  */
 export function rulesSummaryLines(
-  rulesProfile: string | undefined,
-  game: number,
-  initialMeldMinimum: number,
-  discardDrawMinRound: number,
+  rules: ResolvedRules | undefined,
+  contract: Contract | undefined,
 ): { label: string; value: string }[] {
-  const isZolik = rulesProfile === 'zolik_classic';
+  if (!rules) return [];
   const lines = [
-    { label: 'Variation', value: profileDisplayName(rulesProfile) },
-    { label: 'Deal size', value: isZolik ? '13 cards' : '12 cards' },
-    { label: 'Minimum run length', value: isZolik ? '3 cards' : '4 cards' },
-    {
-      label: 'To go down',
-      value: isZolik
-        ? 'Any mix of sets/runs, including all runs — at least one run must be joker-free'
-        : roundRequirementLabel(game),
-    },
+    { label: 'Variation', value: profileDisplayName(rules.profile) },
+    { label: 'Deal size', value: `${rules.dealSize} cards` },
+    { label: 'Minimum set size', value: `${rules.minSetSize} cards` },
+    { label: 'Minimum run length', value: `${rules.minRunSize} cards` },
+    { label: 'To go down', value: contractLabel(contract) || 'Any valid meld' },
     {
       label: 'Meld value floor',
-      value: initialMeldMinimum > 0 ? `${initialMeldMinimum}+ points on your first meld(s)` : 'Off',
-    },
-    {
-      label: 'Discard pickup',
       value:
-        discardDrawMinRound > 1
-          ? `Top card only, locked until round ${discardDrawMinRound}`
-          : isZolik
-            ? 'Any card in the pile (and everything stacked above it)'
-            : 'Top card only',
+        rules.initialMeldMinimum > 0
+          ? `${rules.initialMeldMinimum}+ points on your first meld(s)`
+          : 'Off',
     },
-    { label: 'Jokers', value: 'Can never be discarded, except as the card that ends your hand' },
+    { label: 'Discard pickup', value: discardPickupSummary(rules) },
+    {
+      label: 'Jokers',
+      value: rules.jokerDiscardRestricted
+        ? 'Can never be discarded, except as the card that ends your hand'
+        : 'Can be discarded freely',
+    },
+    { label: 'Match ends', value: matchEndSummary(rules) },
   ];
   return lines;
+}
+
+function discardPickupSummary(rules: ResolvedRules): string {
+  const scope =
+    rules.discardPickupMode === 'any_from_pile'
+      ? 'Any card in the pile (and everything stacked above it)'
+      : 'Top card only';
+  return rules.discardDrawMinRound > 1
+    ? `${scope}, locked until round ${rules.discardDrawMinRound}`
+    : scope;
+}
+
+function matchEndSummary(rules: ResolvedRules): string {
+  if (rules.matchEndMode === 'at_score') {
+    return `First to ${rules.targetScore} points`;
+  }
+  return rules.fixedDealCount > 0 ? `After ${rules.fixedDealCount} deals` : 'When a deal ends';
 }
