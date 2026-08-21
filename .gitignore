@@ -39,3 +39,8 @@ e2e/.cache/
 
 # SSH host key (generated locally)
 .ssh/
+
+# Defold build output and editor cache (no source lives here yet)
+client-defold/build/
+client-defold/.internal/
+client-defold/wasm-web/
