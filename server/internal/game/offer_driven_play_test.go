@@ -307,11 +307,14 @@ func newSeededGame(t *testing.T, cfg rules.RulesConfig, seed int64) models.Game 
 // than hiding behind a single loose bound:
 //
 //   - zolik_classic: whole deals finish, and the match reaches a winner.
-//   - continental: players get *down* — they navigate the two-set/one-run
-//     contract and the 35-point floor from offers alone. They rarely go out,
-//     because this driver proposes melds by naive shape-matching and is a
-//     poor Žolíky player; that is a limitation of the 40-line test client,
-//     not of the offer list. The AI in internal/ai is what plays well.
+//   - continental: nobody gets down at all — clearing a 35-point floor with
+//     two melds in one turn is beyond this driver's naive shape-matching, so
+//     wantGoDown is false there and says so, rather than hiding behind a
+//     loose bound. That is a limitation of the 40-line test client, not of
+//     the offer list; internal/ai plays Continental via a real search. What
+//     Continental contributes here is the harder offer surface: it is the
+//     profile that produces the incomplete-initial-meld dead end, and so the
+//     one that exercises the undo recovery in chooseAction's step 5.
 //
 // The strongest assertion is not any of these: it is that playDeal fails the
 // test the instant an offered action is refused, or the offers leave the

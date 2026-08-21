@@ -152,9 +152,12 @@ Delivered as planned, with three deviations worth recording.
 `game/offer_driven_play_test.go` plays whole games with a client that may read the offer list and
 nothing else, through the real wire path, and fails the moment an offered action is refused or the
 offers leave the player on turn with nothing to do. Under `zolik_classic` it plays matches to
-completion. Under `continental` it gets players *down* but rarely out — a limitation of a 40-line
-shape-matching test client, not of the offers, and the test says so rather than asserting a bound
-that hides it.
+completion. Under `continental` no player ever gets down: clearing a 35-point floor with two melds
+laid in a single turn is beyond a 40-line shape-matcher, and the test asserts that honestly
+(`wantGoDown` is false there) rather than hiding it behind a loose bound. That is a limitation of
+the test client, not of the offers — `internal/ai` is what plays Continental well, via a real
+search. What Continental does contribute is the harder offer surface: it is the profile that
+produces the incomplete-initial-meld dead end below.
 
 That test also found the one branch worth calling out: under a rotating contract, laying one set of
 a required two leaves a player unable to discard. The client is not told that rule and does not
