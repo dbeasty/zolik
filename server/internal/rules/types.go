@@ -158,18 +158,17 @@ type GameState struct {
 	Melds    map[string][][]string
 	MeldMeta map[string][]MeldInfo // ownerId -> []MeldInfo aligned with Melds[ownerId] index
 
-	RoundReqMet        map[string]bool
-	InitialMeldMinimum int
+	RoundReqMet map[string]bool
 	// Round counts full laps around the table within the current GameNumber:
 	// it starts at 1 when a deal begins and increments each time play comes
 	// back around to DealStarterID. Distinct from GameNumber (which deal),
-	// this is what gates DiscardDrawMinRound below.
+	// this is what gates Rules.DiscardDrawMinRound.
+	//
+	// Note there is deliberately no InitialMeldMinimum/DiscardDrawMinRound
+	// field here: those are rules, and rules live in Rules above. They used to
+	// be duplicated onto GameState, which meant the engine read one copy while
+	// callers configured the other — see Rules' doc comment.
 	Round int
-	// DiscardDrawMinRound gates the "draw from discard pile" action: 0 or 1
-	// means no restriction (allowed from the first lap); N>1 means players
-	// can't draw from discard until Round N (they can still draw from the
-	// deck).
-	DiscardDrawMinRound int
 	// MeldsLaidThisTurn counts lay_meld actions the current turn's actor has
 	// made toward their (not-yet-met) initial round requirement since their
 	// turn began. A player who has started but not finished their initial

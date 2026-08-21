@@ -6,7 +6,7 @@ func TestDetermineGameWinner_LowestTotal(t *testing.T) {
 	st := GameState{
 		TurnOrder:   []string{"a", "b"},
 		TotalScores: map[string]int{"a": 120, "b": 95},
-		GameScores: map[string][]int{"a": {10, 20}, "b": {5, 15}},
+		GameScores:  map[string][]int{"a": {10, 20}, "b": {5, 15}},
 	}
 	w, draw := DetermineGameWinner(st)
 	if draw || w != "b" {
@@ -16,7 +16,7 @@ func TestDetermineGameWinner_LowestTotal(t *testing.T) {
 
 func TestDetermineGameWinner_TiebreakFewestRoundsWon(t *testing.T) {
 	st := GameState{
-		TurnOrder: []string{"a", "b"},
+		TurnOrder:   []string{"a", "b"},
 		TotalScores: map[string]int{"a": 100, "b": 100},
 		GameScores: map[string][]int{
 			"a": {10, 20, 30, 40}, // won rounds 0,1,2,3 at min? simplify: a wins more rounds
@@ -87,7 +87,6 @@ func TestValidateMeldAction_CannotEmptyHandBeforeRound7(t *testing.T) {
 	p := "p1"
 	st := baseActiveState(1, p)
 	st.Hands[p] = []string{"7H", "7D", "7C"}
-	st.InitialMeldMinimum = 0
 	_, _, _, err := ValidateMeldAction(st, p, []string{"7H", "7D", "7C"})
 	if err == nil {
 		t.Fatalf("expected error when melding entire hand in round 1")

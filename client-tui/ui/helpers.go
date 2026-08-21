@@ -5,6 +5,18 @@ import (
 	"strings"
 )
 
+// dealHeaderLabel describes the current deal for the header bar. Only
+// Continental runs a fixed seven-deal match where each deal carries its own
+// required combination; Žolík Classic (and any other non-rotating profile)
+// keeps re-dealing until someone crosses the target score, so naming a deal
+// count or a contract there would be wrong on both halves.
+func dealHeaderLabel(rulesProfile string, game int) string {
+	if rulesProfile == "continental" {
+		return fmt.Sprintf("Game %d of 7: %s", game, roundRequirementLabel(game))
+	}
+	return fmt.Sprintf("Deal %d", game)
+}
+
 func roundRequirementLabel(round int) string {
 	switch round {
 	case 1:

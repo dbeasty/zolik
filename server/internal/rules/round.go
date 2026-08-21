@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"time"
 )
 
 func EndGame(state GameState, winnerID string) (GameState, error) {
@@ -67,7 +68,46 @@ func matchIsOver(state GameState, cfg RulesConfig) bool {
 	}
 }
 
+// StartMatch builds the opening state for a brand-new match: deal 1, turn
+// order as given, first player to act leading. It is the counterpart to
+// StartNextGame (which advances an in-progress match to its next deal) and
+// both funnel through dealNewGame, so there is exactly one implementation of
+// "shuffle, deal, turn the first discard, reset per-deal state". Callers must
+// not hand-roll this — that is how the two paths drifted apart before.
+func StartMatch(cfg RulesConfig, turnOrder []string, seed int64) (GameState, error) {
+	if len(turnOrder) == 0 {
+		return GameState{}, fmt.Errorf("no turn order")
+	}
+	state := GameState{
+		Status:      StatusActive,
+		Rules:       ResolveConfig(cfg),
+		GameNumber:  0, // dealNewGame increments to 1
+		Created:     time.Now().UTC(),
+		TurnOrder:   append([]string(nil), turnOrder...),
+		DeckSeed:    seed,
+		Hands:       map[string][]string{},
+		Melds:       map[string][][]string{},
+		MeldMeta:    map[string][]MeldInfo{},
+		RoundReqMet: map[string]bool{},
+		GameScores:  map[string][]int{},
+		TotalScores: map[string]int{},
+	}
+	for _, pid := range turnOrder {
+		state.GameScores[pid] = []int{}
+		state.TotalScores[pid] = 0
+	}
+	return dealNewGame(state, turnOrder[0])
+}
+
 func StartNextGame(state GameState, nextTurnID string) (GameState, error) {
+	return dealNewGame(state, nextTurnID)
+}
+
+// dealNewGame advances state to its next deal: bumps the deal counter, wipes
+// everything that is per-deal, then shuffles a fresh deck, deals every hand
+// and turns the first discard. nextTurnID both leads the deal and becomes its
+// DealStarterID (the marker the lap counter compares against).
+func dealNewGame(state GameState, nextTurnID string) (GameState, error) {
 	state.GameNumber++
 	state.Round = 1
 	state.DealStarterID = nextTurnID
@@ -84,7 +124,13 @@ func StartNextGame(state GameState, nextTurnID string) (GameState, error) {
 	state.MeldsLaidThisTurn = 0
 	state.DiscardDrawnCardPendingMeld = ""
 	state.DiscardDrawnCards = nil
+	state.LastLayOff = nil
+	state.LastMeldLaid = nil
+	state.TurnMeldSnapshot = nil
 
+	if state.Hands == nil {
+		state.Hands = map[string][]string{}
+	}
 	for _, pid := range state.TurnOrder {
 		state.Hands[pid] = nil
 		state.RoundReqMet[pid] = false

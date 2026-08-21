@@ -96,6 +96,10 @@ func BuildGameStateMsg(g models.Game, myPlayerID string) GameStateMsg {
 	}
 
 	phaseStr := g.Phase
+	// Rule values on the wire come from the game's resolved ruleset, not the
+	// legacy scalar columns, so a document written before the ruleset was
+	// persisted still reports the same numbers the engine is enforcing.
+	cfg := GameRules(g)
 	return GameStateMsg{
 		Type:                        "game_state",
 		Status:                      g.Status,
@@ -115,8 +119,8 @@ func BuildGameStateMsg(g models.Game, myPlayerID string) GameStateMsg {
 		TotalScores:                 g.TotalScores,
 		WinnerID:                    g.WinnerID,
 		IsDraw:                      g.IsDraw,
-		InitialMeldMinimum:          g.InitialMeldMinimum,
-		DiscardDrawMinRound:         g.DiscardDrawMinRound,
+		InitialMeldMinimum:          cfg.InitialMeldMinimum,
+		DiscardDrawMinRound:         cfg.DiscardDrawMinRound,
 		DiscardDrawnCardPendingMeld: pendingMeldCard,
 		CanUndoDiscardDraw:          canUndoDiscardDraw,
 		CanUndoLayOff:               canUndoLayOff,

@@ -81,7 +81,11 @@ func ApplyAction(state GameState, playerID string, action Action) (ApplyOutcome,
 			"cards":    action.Cards,
 			"meldType": string(meldType),
 		}))
-		if ns.GameNumber == 7 && ns.RoundReqMet[playerID] && len(ns.Hands[playerID]) == 0 {
+		// Melding/laying off away the last card only ends the deal on a
+		// profile's final deal — every other deal requires a closing discard
+		// (ValidateMeldAction/ValidateLayOff reject an emptying play there),
+		// so this must ask the ruleset rather than assume Continental's deal 7.
+		if effectiveRules(ns).IsFinalDeal(ns.GameNumber) && ns.RoundReqMet[playerID] && len(ns.Hands[playerID]) == 0 {
 			return endGameWithEvents(ns, playerID)
 		}
 		return ApplyOutcome{State: ns, Events: events}, nil
@@ -101,7 +105,11 @@ func ApplyAction(state GameState, playerID string, action Action) (ApplyOutcome,
 			"card":     cards[0],
 			"cards":    cards,
 		}))
-		if ns.GameNumber == 7 && ns.RoundReqMet[playerID] && len(ns.Hands[playerID]) == 0 {
+		// Melding/laying off away the last card only ends the deal on a
+		// profile's final deal — every other deal requires a closing discard
+		// (ValidateMeldAction/ValidateLayOff reject an emptying play there),
+		// so this must ask the ruleset rather than assume Continental's deal 7.
+		if effectiveRules(ns).IsFinalDeal(ns.GameNumber) && ns.RoundReqMet[playerID] && len(ns.Hands[playerID]) == 0 {
 			return endGameWithEvents(ns, playerID)
 		}
 		return ApplyOutcome{State: ns, Events: events}, nil

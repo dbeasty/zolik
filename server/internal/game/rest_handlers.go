@@ -86,20 +86,16 @@ func (h *GameRestHandlers) updateSettings(w http.ResponseWriter, req *http.Reque
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
+	// Start from the game's current ruleset, or from the newly-chosen
+	// profile's defaults when the host switches variation — switching resets
+	// every knob, then this same request's explicit overrides go back on top.
+	cfg := GameRules(g)
 	if body.RulesProfile != nil {
 		g.RulesProfile = *body.RulesProfile
-		// Switching profile resets the two legacy knobs to that profile's
-		// defaults, unless this same request also overrides them below.
-		cfg := rules.ResolveProfile(g.RulesProfile)
-		g.InitialMeldMinimum = cfg.InitialMeldMinimum
-		g.DiscardDrawMinRound = cfg.DiscardDrawMinRound
+		cfg = rules.ResolveProfile(g.RulesProfile)
 	}
-	if body.InitialMeldMinimum != nil {
-		g.InitialMeldMinimum = *body.InitialMeldMinimum
-	}
-	if body.DiscardDrawMinRound != nil {
-		g.DiscardDrawMinRound = *body.DiscardDrawMinRound
-	}
+	cfg = applyRuleOverrides(cfg, body.InitialMeldMinimum, body.DiscardDrawMinRound)
+	setGameRules(&g, cfg)
 
 	if err := h.repo.UpdateWithVersion(ctx, g.ID, g.Version, g); err != nil {
 		http.Error(w, err.Error(), http.StatusConflict)
@@ -109,8 +105,8 @@ func (h *GameRestHandlers) updateSettings(w http.ResponseWriter, req *http.Reque
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"rulesProfile":        g.RulesProfile,
-		"initialMeldMinimum":  g.InitialMeldMinimum,
-		"discardDrawMinRound": g.DiscardDrawMinRound,
+		"initialMeldMinimum":  cfg.InitialMeldMinimum,
+		"discardDrawMinRound": cfg.DiscardDrawMinRound,
 	})
 }
 
@@ -129,16 +125,9 @@ func (h *GameRestHandlers) createGame(w http.ResponseWriter, req *http.Request) 
 	if body.RulesProfile != nil {
 		profile = *body.RulesProfile
 	}
-	cfg := rules.ResolveProfile(profile)
-
-	initial := cfg.InitialMeldMinimum
-	if body.InitialMeldMinimum != nil {
-		initial = *body.InitialMeldMinimum
-	}
-	discardMinRound := cfg.DiscardDrawMinRound
-	if body.DiscardDrawMinRound != nil {
-		discardMinRound = *body.DiscardDrawMinRound
-	}
+	// Resolve the ruleset once, here, and freeze it onto the document (see
+	// setGameRules) — it is never re-derived from the profile name again.
+	cfg := applyRuleOverrides(rules.ResolveProfile(profile), body.InitialMeldMinimum, body.DiscardDrawMinRound)
 
 	gameID := bson.NewObjectID()
 	joinCode := randomJoinCode(6)
@@ -157,31 +146,31 @@ func (h *GameRestHandlers) createGame(w http.ResponseWriter, req *http.Request) 
 	}
 
 	g := models.Game{
-		ID:                  gameID,
-		Status:              "lobby",
-		RulesProfile:        profile,
-		GameNumber:          0,
-		Phase:               "",
-		JoinCode:            joinCode,
-		HostID:              uc.UserID,
-		CurrentTurn:         "",
-		TurnOrder:           []string{p.ID},
-		ReshuffleCount:      0,
-		Hands:               map[string][]string{},
-		Melds:               map[string][][]string{},
-		MeldMeta:            map[string][]models.MeldInfo{},
-		RoundReqMet:         map[string]bool{p.ID: false},
-		InitialMeldMinimum:  initial,
-		DiscardDrawMinRound: discardMinRound,
-		Players:             []models.Player{p},
-		ActionLog:           []models.Action{},
-		DeckSeed:            rules.NewShuffleSeed(),
-		Version:             1,
-		CreatedAt:           time.Now().UTC(),
-		TotalScores:         map[string]int{p.ID: 0},
-		GameScores:          map[string][]int{p.ID: {}},
-		NextMeldSeq:         0,
+		ID:             gameID,
+		Status:         "lobby",
+		RulesProfile:   profile,
+		GameNumber:     0,
+		Phase:          "",
+		JoinCode:       joinCode,
+		HostID:         uc.UserID,
+		CurrentTurn:    "",
+		TurnOrder:      []string{p.ID},
+		ReshuffleCount: 0,
+		Hands:          map[string][]string{},
+		Melds:          map[string][][]string{},
+		MeldMeta:       map[string][]models.MeldInfo{},
+		RoundReqMet:    map[string]bool{p.ID: false},
+		Players:        []models.Player{p},
+		ActionLog:      []models.Action{},
+		DeckSeed:       rules.NewShuffleSeed(),
+		Version:        1,
+		CreatedAt:      time.Now().UTC(),
+		TotalScores:    map[string]int{p.ID: 0},
+		GameScores:     map[string][]int{p.ID: {}},
+		NextMeldSeq:    0,
 	}
+
+	setGameRules(&g, cfg)
 
 	// Insert lobby into Mongo.
 	created, err := h.repo.Insert(ctx, g)
@@ -217,6 +206,10 @@ func (h *GameRestHandlers) getGame(w http.ResponseWriter, req *http.Request) {
 		players = append(players, playerPublic{ID: p.ID, Name: p.Name, IsAI: p.IsAI})
 	}
 
+	// Rule values come from the game's resolved ruleset, not the legacy
+	// scalar columns, so the lobby always shows what will actually be enforced.
+	cfg := GameRules(g)
+
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"id":                  g.ID.Hex(),
 		"status":              g.Status,
@@ -227,8 +220,8 @@ func (h *GameRestHandlers) getGame(w http.ResponseWriter, req *http.Request) {
 		"players":             players,
 		"hostId":              g.HostID,
 		"rulesProfile":        g.RulesProfile,
-		"initialMeldMinimum":  g.InitialMeldMinimum,
-		"discardDrawMinRound": g.DiscardDrawMinRound,
+		"initialMeldMinimum":  cfg.InitialMeldMinimum,
+		"discardDrawMinRound": cfg.DiscardDrawMinRound,
 		"discardPileTop": func() any {
 			if len(g.DiscardPile) == 0 {
 				return nil
@@ -340,93 +333,21 @@ func (h *GameRestHandlers) startGame(w http.ResponseWriter, req *http.Request) {
 		g.DeckSeed = seed
 	}
 
-	cfg := rules.ResolveProfile(g.RulesProfile)
+	cfg := GameRules(g)
 
-	// Create initial deal state.
-	rState := rules.GameState{
-		Status:              rules.StatusActive,
-		Rules:               cfg,
-		GameNumber:          1,
-		Phase:               rules.PhaseDraw,
-		Created:             time.Now().UTC(),
-		CurrentTurn:         turnOrder[0],
-		TurnOrder:           turnOrder,
-		DealStarterID:       turnOrder[0],
-		Round:               1,
-		DrawPile:            nil,
-		DiscardPile:         nil,
-		ReshuffleCount:      0,
-		Hands:               map[string][]string{},
-		Melds:               map[string][][]string{},
-		MeldMeta:            map[string][]rules.MeldInfo{},
-		RoundReqMet:         map[string]bool{},
-		InitialMeldMinimum:  g.InitialMeldMinimum,
-		DiscardDrawMinRound: g.DiscardDrawMinRound,
-		DeckSeed:            seed,
-		GameScores:          map[string][]int{},
-		TotalScores:         map[string]int{},
-		NextMeldSeq:         0,
-	}
-
-	deck := rules.BuildDeck(len(turnOrder))
-	rState.DrawPile = rules.Shuffle(deck, seed+int64(rState.GameNumber)*9973)
-	var err2 error
-	rState, err2 = rules.DealHand(rState, cfg)
-	if err2 != nil {
-		http.Error(w, err2.Error(), http.StatusInternalServerError)
+	// One implementation of "shuffle, deal, turn the first discard" for both
+	// the opening deal and every later one — this used to be hand-rolled here
+	// with a slightly different field set (MeldMeta built without WildCount)
+	// and had to be kept in sync with rules.StartNextGame by hand.
+	rState, err := rules.StartMatch(cfg, turnOrder, seed)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
-	}
-	if len(rState.DrawPile) == 0 {
-		http.Error(w, "no cards for discard init", http.StatusInternalServerError)
-		return
-	}
-	top := rState.DrawPile[len(rState.DrawPile)-1]
-	rState.DrawPile = rState.DrawPile[:len(rState.DrawPile)-1]
-	rState.DiscardPile = []string{top}
-	// Initialize per-player meld/req maps.
-	for _, pid := range turnOrder {
-		rState.RoundReqMet[pid] = false
-		rState.Melds[pid] = nil
-		rState.GameScores[pid] = []int{}
-		rState.TotalScores[pid] = 0
 	}
 
 	// Persist into lobby game document.
 	nextGame := g
-	nextGame.Status = string(rState.Status)
-	nextGame.GameNumber = rState.GameNumber
-	nextGame.Phase = string(rState.Phase)
-	nextGame.CurrentTurn = rState.CurrentTurn
-	nextGame.TurnOrder = rState.TurnOrder
-	nextGame.DealStarterID = rState.DealStarterID
-	nextGame.Round = rState.Round
-	nextGame.DrawPile = rState.DrawPile
-	nextGame.DiscardPile = rState.DiscardPile
-	nextGame.ReshuffleCount = rState.ReshuffleCount
-	nextGame.Hands = rState.Hands
-	nextGame.Melds = rState.Melds
-	// Convert meld meta
-	nextGame.MeldMeta = map[string][]models.MeldInfo{}
-	for owner, metas := range rState.MeldMeta {
-		for _, mi := range metas {
-			nextGame.MeldMeta[owner] = append(nextGame.MeldMeta[owner], models.MeldInfo{
-				MeldID:  mi.MeldID,
-				Type:    string(mi.Type),
-				OwnerID: mi.OwnerID,
-			})
-		}
-	}
-	nextGame.RoundReqMet = rState.RoundReqMet
-	nextGame.InitialMeldMinimum = rState.InitialMeldMinimum
-	nextGame.DiscardDrawMinRound = rState.DiscardDrawMinRound
-	nextGame.MeldsLaidThisTurn = rState.MeldsLaidThisTurn
-	nextGame.DiscardDrawnCardPendingMeld = rState.DiscardDrawnCardPendingMeld
-	nextGame.DiscardDrawnCards = rState.DiscardDrawnCards
-	nextGame.LastLayOff = nil
-	nextGame.GameScores = rState.GameScores
-	nextGame.TotalScores = rState.TotalScores
-	nextGame.DeckSeed = rState.DeckSeed
-	nextGame.NextMeldSeq = rState.NextMeldSeq
+	fromRulesState(&nextGame, rState)
 	nextGame.Version = g.Version
 
 	if err := h.repo.UpdateWithVersion(ctx, g.ID, g.Version, nextGame); err != nil {

@@ -4,22 +4,21 @@ import "testing"
 
 func classicState(playerID string) GameState {
 	return GameState{
-		Status:             StatusActive,
-		Rules:              ProfileZolikClassic,
-		GameNumber:         1,
-		Phase:              PhaseMeld,
-		CurrentTurn:        playerID,
-		TurnOrder:          []string{playerID, "p2"},
-		Hands:              map[string][]string{playerID: {}, "p2": {}},
-		Melds:              map[string][][]string{},
-		MeldMeta:           map[string][]MeldInfo{},
-		RoundReqMet:        map[string]bool{playerID: false, "p2": false},
-		InitialMeldMinimum: ProfileZolikClassic.InitialMeldMinimum,
-		DrawPile:           []string{"2C"},
-		DiscardPile:        []string{},
-		DeckSeed:           42,
-		GameScores:         map[string][]int{playerID: {}, "p2": {}},
-		TotalScores:        map[string]int{playerID: 0, "p2": 0},
+		Status:      StatusActive,
+		Rules:       ProfileZolikClassic,
+		GameNumber:  1,
+		Phase:       PhaseMeld,
+		CurrentTurn: playerID,
+		TurnOrder:   []string{playerID, "p2"},
+		Hands:       map[string][]string{playerID: {}, "p2": {}},
+		Melds:       map[string][][]string{},
+		MeldMeta:    map[string][]MeldInfo{},
+		RoundReqMet: map[string]bool{playerID: false, "p2": false},
+		DrawPile:    []string{"2C"},
+		DiscardPile: []string{},
+		DeckSeed:    42,
+		GameScores:  map[string][]int{playerID: {}, "p2": {}},
+		TotalScores: map[string]int{playerID: 0, "p2": 0},
 	}
 }
 
