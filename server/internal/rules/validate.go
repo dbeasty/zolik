@@ -43,7 +43,7 @@ func ValidateDraw(state GameState, playerID string, from DrawFrom, targetCard st
 		return state, card, nil, nil
 
 	case DrawFromDiscard:
-		if state.DiscardDrawMinRound > 1 && state.Round < state.DiscardDrawMinRound {
+		if cfg.DiscardDrawMinRound > 1 && state.Round < cfg.DiscardDrawMinRound {
 			return state, "", nil, RulesError{Code: ErrDiscardLocked}
 		}
 		if len(state.DiscardPile) == 0 {
@@ -211,7 +211,7 @@ func ValidateMeldAction(state GameState, playerID string, cards []string) (GameS
 	// points: the first alone already satisfies "at least one clean run",
 	// but neither meld alone clears a 35-point floor — only their sum does).
 	if PlayerMeetsRoundRequirement(state, playerID) {
-		if state.InitialMeldMinimum <= 0 || PlayerInitialMeldNaturalValue(state, playerID) >= state.InitialMeldMinimum {
+		if cfg.InitialMeldMinimum <= 0 || PlayerInitialMeldNaturalValue(state, playerID) >= cfg.InitialMeldMinimum {
 			state.RoundReqMet[playerID] = true
 		}
 	}

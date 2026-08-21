@@ -22,40 +22,53 @@ type Game struct {
 	// rules.ResolveProfile. Set at lobby creation; empty/unknown defaults to
 	// "zolik_classic".
 	RulesProfile string `bson:"rulesProfile" json:"rulesProfile"`
+	// Rules is the fully-resolved ruleset this game runs under, frozen at
+	// creation — see rules.RulesConfig. It is persisted (rather than
+	// re-derived from RulesProfile on every load) so that per-game house-rule
+	// overrides survive a reload, and so that editing a shipped profile
+	// constant can never retroactively change the rules of a game already in
+	// progress. Nil only on documents written before this field existed;
+	// toRulesState migrates those from RulesProfile plus the two legacy
+	// scalar columns below.
+	Rules *RulesConfig `bson:"rules,omitempty" json:"-"`
 	// DealStarterID/Round are new fields (fresh bson keys, so old documents
 	// simply default to "" / 0 until their next deal) — see
 	// rules.GameState.DealStarterID / Round for what they represent.
-	DealStarterID               string                `bson:"dealStarterId" json:"-"`
-	Round                       int                   `bson:"tableRound" json:"round"`
-	DrawPile                    []string              `bson:"drawPile" json:"-"`
-	DiscardPile                 []string              `bson:"discardPile" json:"discardPile"`
-	ReshuffleCount              int                   `bson:"reshuffleCount" json:"reshuffleCount"`
-	DeckSeed                    int64                 `bson:"deckSeed" json:"deckSeed"`
-	Hands                       map[string][]string   `bson:"hands" json:"-"`
-	Melds                       map[string][][]string `bson:"melds" json:"melds"`
-	MeldMeta                    map[string][]MeldInfo `bson:"meldMeta" json:"meldMeta"`
-	GameScores                  map[string][]int      `bson:"roundScores" json:"gameScores"`
-	TotalScores                 map[string]int        `bson:"totalScores" json:"totalScores"`
-	WinnerID                    string                `bson:"winnerId,omitempty" json:"winnerId,omitempty"`
-	IsDraw                      bool                  `bson:"isDraw,omitempty" json:"isDraw,omitempty"`
-	RoundReqMet                 map[string]bool       `bson:"roundReqMet" json:"roundReqMet"`
-	InitialMeldMinimum          int                   `bson:"initialMeldMinimum" json:"initialMeldMinimum"`
-	DiscardDrawMinRound         int                   `bson:"discardDrawMinRound" json:"discardDrawMinRound"`
-	MeldsLaidThisTurn           int                   `bson:"meldsLaidThisTurn" json:"-"`
-	DiscardDrawnCardPendingMeld string                `bson:"discardDrawnCardPendingMeld" json:"-"`
-	DiscardDrawnCards           []string              `bson:"discardDrawnCards" json:"-"`
-	LastLayOff                  *LayOffSnapshot       `bson:"lastLayOff,omitempty" json:"-"`
-	LastMeldLaid                *MeldLaidSnapshot     `bson:"lastMeldLaid,omitempty" json:"-"`
-	TurnMeldSnapshot            *TurnMeldSnapshot     `bson:"turnMeldSnapshot,omitempty" json:"-"`
-	Players                     []Player              `bson:"players" json:"players"`
-	ActionLog                   []Action              `bson:"actionLog" json:"-"`
-	NextMeldSeq                 int                   `bson:"nextMeldSeq" json:"nextMeldSeq"`
-	SuspendedAt                 *time.Time            `bson:"suspendedAt" json:"suspendedAt,omitempty"`
-	AbandonAt                   *time.Time            `bson:"abandonAt" json:"abandonAt,omitempty"`
-	PreSuspendPhase             string                `bson:"preSuspendPhase,omitempty" json:"-"`
-	CreatedAt                   time.Time             `bson:"createdAt" json:"createdAt"`
-	CompletedAt                 *time.Time            `bson:"completedAt" json:"completedAt,omitempty"`
-	Version                     int64                 `bson:"version" json:"-"`
+	DealStarterID  string                `bson:"dealStarterId" json:"-"`
+	Round          int                   `bson:"tableRound" json:"round"`
+	DrawPile       []string              `bson:"drawPile" json:"-"`
+	DiscardPile    []string              `bson:"discardPile" json:"discardPile"`
+	ReshuffleCount int                   `bson:"reshuffleCount" json:"reshuffleCount"`
+	DeckSeed       int64                 `bson:"deckSeed" json:"deckSeed"`
+	Hands          map[string][]string   `bson:"hands" json:"-"`
+	Melds          map[string][][]string `bson:"melds" json:"melds"`
+	MeldMeta       map[string][]MeldInfo `bson:"meldMeta" json:"meldMeta"`
+	GameScores     map[string][]int      `bson:"roundScores" json:"gameScores"`
+	TotalScores    map[string]int        `bson:"totalScores" json:"totalScores"`
+	WinnerID       string                `bson:"winnerId,omitempty" json:"winnerId,omitempty"`
+	IsDraw         bool                  `bson:"isDraw,omitempty" json:"isDraw,omitempty"`
+	RoundReqMet    map[string]bool       `bson:"roundReqMet" json:"roundReqMet"`
+	// InitialMeldMinimum/DiscardDrawMinRound are legacy columns kept only so
+	// pre-Rules documents can still be migrated on load (see Rules above).
+	// Live reads and writes go through Rules; these are mirrored on save so a
+	// rollback to an older server build still finds sane values.
+	InitialMeldMinimum          int               `bson:"initialMeldMinimum" json:"initialMeldMinimum"`
+	DiscardDrawMinRound         int               `bson:"discardDrawMinRound" json:"discardDrawMinRound"`
+	MeldsLaidThisTurn           int               `bson:"meldsLaidThisTurn" json:"-"`
+	DiscardDrawnCardPendingMeld string            `bson:"discardDrawnCardPendingMeld" json:"-"`
+	DiscardDrawnCards           []string          `bson:"discardDrawnCards" json:"-"`
+	LastLayOff                  *LayOffSnapshot   `bson:"lastLayOff,omitempty" json:"-"`
+	LastMeldLaid                *MeldLaidSnapshot `bson:"lastMeldLaid,omitempty" json:"-"`
+	TurnMeldSnapshot            *TurnMeldSnapshot `bson:"turnMeldSnapshot,omitempty" json:"-"`
+	Players                     []Player          `bson:"players" json:"players"`
+	ActionLog                   []Action          `bson:"actionLog" json:"-"`
+	NextMeldSeq                 int               `bson:"nextMeldSeq" json:"nextMeldSeq"`
+	SuspendedAt                 *time.Time        `bson:"suspendedAt" json:"suspendedAt,omitempty"`
+	AbandonAt                   *time.Time        `bson:"abandonAt" json:"abandonAt,omitempty"`
+	PreSuspendPhase             string            `bson:"preSuspendPhase,omitempty" json:"-"`
+	CreatedAt                   time.Time         `bson:"createdAt" json:"createdAt"`
+	CompletedAt                 *time.Time        `bson:"completedAt" json:"completedAt,omitempty"`
+	Version                     int64             `bson:"version" json:"-"`
 }
 
 type Player struct {
@@ -108,6 +121,36 @@ type TurnMeldSnapshot struct {
 	DiscardDrawnCards           []string              `bson:"discardDrawnCards" json:"-"`
 	DiscardPile                 []string              `bson:"discardPile" json:"-"`
 	NextMeldSeq                 int                   `bson:"nextMeldSeq" json:"-"`
+}
+
+// RulesConfig mirrors rules.RulesConfig for persistence. Every field of the
+// engine's config is stored, so a game's ruleset is reconstructed exactly as
+// it was resolved at creation rather than re-derived from a profile name.
+type RulesConfig struct {
+	Profile string `bson:"profile" json:"profile"`
+
+	DealSize   int `bson:"dealSize" json:"dealSize"`
+	MinSetSize int `bson:"minSetSize" json:"minSetSize"`
+	MinRunSize int `bson:"minRunSize" json:"minRunSize"`
+
+	InitialMeldMinimum  int `bson:"initialMeldMinimum" json:"initialMeldMinimum"`
+	DiscardDrawMinRound int `bson:"discardDrawMinRound" json:"discardDrawMinRound"`
+
+	DiscardPickupMode      string `bson:"discardPickupMode" json:"discardPickupMode"`
+	JokerDiscardRestricted bool   `bson:"jokerDiscardRestricted" json:"jokerDiscardRestricted"`
+
+	FixedDealCount int                 `bson:"fixedDealCount" json:"fixedDealCount"`
+	StaticContract ContractRequirement `bson:"staticContract" json:"staticContract"`
+
+	MatchEndMode string `bson:"matchEndMode" json:"matchEndMode"`
+	TargetScore  int    `bson:"targetScore" json:"targetScore"`
+}
+
+// ContractRequirement mirrors rules.ContractRequirement for persistence.
+type ContractRequirement struct {
+	Sets            int  `bson:"sets" json:"sets"`
+	Runs            int  `bson:"runs" json:"runs"`
+	RequireCleanRun bool `bson:"requireCleanRun" json:"requireCleanRun"`
 }
 
 type Action struct {

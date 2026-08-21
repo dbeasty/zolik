@@ -1,8 +1,7 @@
 package ai
 
 import (
-	"math/rand"
-	"time"
+	"sort"
 
 	"zolik/server/internal/rules"
 )
@@ -13,16 +12,19 @@ var AINames = map[string][]string{
 	"hard":   {"Master Miroslav", "Shark Soňa", "Iron Ivan", "Relentless Radka"},
 }
 
+// HeuristicAgent picks moves from fixed heuristics with no randomness: the
+// same VisibleState and hand always produce the same action. That is
+// deliberate — it makes the agent's behaviour reproducible in tests and in bug
+// reports. (It previously carried a wall-clock-seeded *rand.Rand that no
+// decision ever read, which implied a variability that was never there.) The
+// only jitter a player perceives is the "thinking" delay, which belongs to the
+// game loop that drives the agent, not to the agent itself.
 type HeuristicAgent struct {
 	difficulty string
-	rnd        *rand.Rand
 }
 
 func NewHeuristicAgent(difficulty string) *HeuristicAgent {
-	return &HeuristicAgent{
-		difficulty: difficulty,
-		rnd:        rand.New(rand.NewSource(time.Now().UnixNano())),
-	}
+	return &HeuristicAgent{difficulty: difficulty}
 }
 
 func (a *HeuristicAgent) Difficulty() string { return a.difficulty }
@@ -61,7 +63,7 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 	}
 	// 2) Draw phase: prefer discard if available and allowed this round, else deck.
 	if visible.Phase == string(rules.PhaseDraw) {
-		discardLocked := visible.DiscardDrawMinRound > 1 && visible.Round < visible.DiscardDrawMinRound
+		discardLocked := visible.Rules.DiscardDrawMinRound > 1 && visible.Round < visible.Rules.DiscardDrawMinRound
 		if len(visible.DiscardPile) > 0 && !discardLocked {
 			actor := visible.CurrentTurn
 			if visible.RoundReqMet[actor] {
@@ -91,12 +93,11 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 
 func rulesStateForAI(visible VisibleState, playerID string) rules.GameState {
 	return rules.GameState{
-		Rules:              visible.Rules,
-		GameNumber:         visible.GameNumber,
-		RoundReqMet:        visible.RoundReqMet,
-		Melds:              visible.Melds,
-		MeldMeta:           visible.MeldMeta,
-		InitialMeldMinimum: visible.InitialMeldMinimum,
+		Rules:       visible.Rules,
+		GameNumber:  visible.GameNumber,
+		RoundReqMet: visible.RoundReqMet,
+		Melds:       visible.Melds,
+		MeldMeta:    visible.MeldMeta,
 	}
 }
 
@@ -168,8 +169,8 @@ func findInitialMeldPlanRequiring(state rules.GameState, playerID string, hand [
 		return nil, false
 	}
 	minValue := 0
-	if state.InitialMeldMinimum > 0 {
-		minValue = state.InitialMeldMinimum
+	if cfg.InitialMeldMinimum > 0 {
+		minValue = cfg.InitialMeldMinimum
 	}
 	alreadyValue := rules.PlayerInitialMeldNaturalValue(state, playerID)
 
@@ -299,7 +300,11 @@ func findLayOff(meldMeta map[string][]rules.MeldInfo, melds map[string][][]strin
 	if !cfg.IsFinalDeal(gameNumber) && len(hand) == 1 {
 		return "", "", false
 	}
-	for owner, metas := range meldMeta {
+	// Owners are visited in a fixed order: ranging a map directly made which
+	// meld the agent extended depend on Go's randomised map iteration, so the
+	// same position could produce different play on different runs.
+	for _, owner := range sortedOwners(meldMeta) {
+		metas := meldMeta[owner]
 		ownerMelds := melds[owner]
 		for i, mi := range metas {
 			if i >= len(ownerMelds) {
@@ -421,7 +426,11 @@ func smarterDiscardBetter(c, best discardCandidate) bool {
 // currently on the table (any owner) — i.e. discarding it hands the next
 // player a free lay-off.
 func extendsAnyLiveMeld(card string, melds map[string][][]string, cfg rules.RulesConfig, gameNumber int) bool {
-	for _, ownerMelds := range melds {
+	// Order-independent in principle (this only asks "does any meld take it?"),
+	// but iterated in a fixed order anyway so that a future early-return or
+	// scoring change here can't reintroduce map-order-dependent play.
+	for _, owner := range sortedMeldOwners(melds) {
+		ownerMelds := melds[owner]
 		for i, existing := range ownerMelds {
 			cand := append(append([]string(nil), existing...), card)
 			if _, err := rules.ValidateMeld(cand, cfg); err != nil {
@@ -434,6 +443,26 @@ func extendsAnyLiveMeld(card string, melds map[string][][]string, cfg rules.Rule
 		}
 	}
 	return false
+}
+
+// sortedOwners returns meld owners in a stable order, so meld search never
+// depends on Go's randomised map iteration.
+func sortedOwners(meldMeta map[string][]rules.MeldInfo) []string {
+	out := make([]string, 0, len(meldMeta))
+	for owner := range meldMeta {
+		out = append(out, owner)
+	}
+	sort.Strings(out)
+	return out
+}
+
+func sortedMeldOwners(melds map[string][][]string) []string {
+	out := make([]string, 0, len(melds))
+	for owner := range melds {
+		out = append(out, owner)
+	}
+	sort.Strings(out)
+	return out
 }
 
 // rankAlreadyDiscardedByOthers reports whether some player other than actor

@@ -4,21 +4,21 @@ import "testing"
 
 func baseActiveState(gameNumber int, playerID string) GameState {
 	return GameState{
-		Status:             StatusActive,
-		GameNumber:         gameNumber,
-		Phase:              PhaseMeld,
-		CurrentTurn:        playerID,
-		TurnOrder:          []string{playerID, "p2"},
-		Hands:              map[string][]string{playerID: {}, "p2": {}},
-		Melds:              map[string][][]string{},
-		MeldMeta:           map[string][]MeldInfo{},
-		RoundReqMet:        map[string]bool{playerID: false, "p2": false},
-		InitialMeldMinimum: 0,
-		DrawPile:           []string{"2C"},
-		DiscardPile:        []string{},
-		DeckSeed:           42,
-		GameScores:         map[string][]int{playerID: {}, "p2": {}},
-		TotalScores:        map[string]int{playerID: 0, "p2": 0},
+		Status:      StatusActive,
+		Rules:       continentalNoFloor(),
+		GameNumber:  gameNumber,
+		Phase:       PhaseMeld,
+		CurrentTurn: playerID,
+		TurnOrder:   []string{playerID, "p2"},
+		Hands:       map[string][]string{playerID: {}, "p2": {}},
+		Melds:       map[string][][]string{},
+		MeldMeta:    map[string][]MeldInfo{},
+		RoundReqMet: map[string]bool{playerID: false, "p2": false},
+		DrawPile:    []string{"2C"},
+		DiscardPile: []string{},
+		DeckSeed:    42,
+		GameScores:  map[string][]int{playerID: {}, "p2": {}},
+		TotalScores: map[string]int{playerID: 0, "p2": 0},
 	}
 }
 
@@ -94,7 +94,7 @@ func TestGame3_RequiresTwoRuns(t *testing.T) {
 func TestInitialMeldMinimum_SumAcrossMelds(t *testing.T) {
 	p := "p1"
 	st := baseActiveState(1, p)
-	st.InitialMeldMinimum = 35
+	st.Rules.InitialMeldMinimum = 35
 	st.Hands[p] = []string{"2H", "2D", "2C", "3H", "3D", "3C", "9S"}
 
 	// Two low sets (2+2+2=6 each = 12 total) — below 35. Both melds must
@@ -125,7 +125,7 @@ func TestInitialMeldMinimum_TwoCleanRunsCombineTowardFloor(t *testing.T) {
 	p := "p1"
 	st := baseActiveState(1, p)
 	st.Rules = ProfileZolikClassic
-	st.InitialMeldMinimum = 35
+	st.Rules.InitialMeldMinimum = 35
 	st.Hands[p] = []string{"QH", "KH", "AH", "8H", "9H", "TH", "9S"}
 
 	st, _, _, err := ValidateMeldAction(st, p, []string{"8H", "9H", "TH"})
@@ -148,7 +148,7 @@ func TestInitialMeldMinimum_TwoCleanRunsCombineTowardFloor(t *testing.T) {
 func TestInitialMeldMinimum_PassesWhenTotalEnough(t *testing.T) {
 	p := "p1"
 	st := baseActiveState(1, p)
-	st.InitialMeldMinimum = 35
+	st.Rules.InitialMeldMinimum = 35
 	// K=10 each => 30 + Q set would work: use 7,8,9,T,J sets... simpler: three tens + one ten in second set
 	st.Hands[p] = []string{"KH", "KD", "KC", "QH", "QD", "QC", "2S"}
 

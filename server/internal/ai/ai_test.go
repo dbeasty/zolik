@@ -46,25 +46,25 @@ func TestHeuristicAgent_DrawAction_RespectsDiscardLock(t *testing.T) {
 	aiID := "ai1"
 
 	state := rules.GameState{
-		Status:              rules.StatusActive,
-		Phase:               rules.PhaseDraw,
-		Round:               2,
-		CurrentTurn:         aiID,
-		TurnOrder:           []string{aiID, "p2"},
-		Hands:               map[string][]string{aiID: {}, "p2": {}},
-		DrawPile:            []string{"2H"},
-		DiscardPile:         []string{"7H"},
-		RoundReqMet:         map[string]bool{aiID: false, "p2": false},
-		DiscardDrawMinRound: 3,
+		Status:      rules.StatusActive,
+		Phase:       rules.PhaseDraw,
+		Round:       2,
+		CurrentTurn: aiID,
+		TurnOrder:   []string{aiID, "p2"},
+		Hands:       map[string][]string{aiID: {}, "p2": {}},
+		DrawPile:    []string{"2H"},
+		DiscardPile: []string{"7H"},
+		RoundReqMet: map[string]bool{aiID: false, "p2": false},
+		Rules:       rules.ProfileContinental, // locks pickup until lap round 3
 	}
 
 	visible := VisibleState{
-		Round:               state.Round,
-		Phase:               string(state.Phase),
-		CurrentTurn:         state.CurrentTurn,
-		DiscardPile:         state.DiscardPile,
-		RoundReqMet:         state.RoundReqMet,
-		DiscardDrawMinRound: state.DiscardDrawMinRound,
+		Round:       state.Round,
+		Phase:       string(state.Phase),
+		CurrentTurn: state.CurrentTurn,
+		DiscardPile: state.DiscardPile,
+		RoundReqMet: state.RoundReqMet,
+		Rules:       state.Rules,
 	}
 
 	action := agent.ChooseAction(visible, state.Hands[aiID])
@@ -94,8 +94,8 @@ func TestHeuristicAgent_MeldLayOff_MeldFoundAndValid(t *testing.T) {
 		DrawPile:    []string{"2H"},
 		DiscardPile: []string{},
 		RoundReqMet: map[string]bool{aiID: false, "p2": false},
-		// disable initial meld minimum in this unit test
-		InitialMeldMinimum: 0,
+		// no meld-value floor in this unit test
+		Rules: continentalNoFloor(),
 	}
 
 	visible := VisibleState{
@@ -103,6 +103,7 @@ func TestHeuristicAgent_MeldLayOff_MeldFoundAndValid(t *testing.T) {
 		Phase:       string(state.Phase),
 		CurrentTurn: state.CurrentTurn,
 		RoundReqMet: state.RoundReqMet,
+		Rules:       state.Rules,
 	}
 
 	action := agent.ChooseAction(visible, state.Hands[aiID])
@@ -125,26 +126,26 @@ func TestHeuristicAgent_WontStartMeldItCannotFinish(t *testing.T) {
 	aiID := "ai1"
 
 	state := rules.GameState{
-		Status:             rules.StatusActive,
-		Phase:              rules.PhaseMeld,
-		GameNumber:         1,
-		CurrentTurn:        aiID,
-		TurnOrder:          []string{aiID, "p2"},
-		Hands:              map[string][]string{aiID: {"2H", "2D", "2C", "9S", "5H"}, "p2": {}},
-		DrawPile:           []string{"3H"},
-		DiscardPile:        []string{},
-		RoundReqMet:        map[string]bool{aiID: false, "p2": false},
-		InitialMeldMinimum: 35,
-		GameScores:         map[string][]int{aiID: {}},
-		TotalScores:        map[string]int{aiID: 0},
+		Status:      rules.StatusActive,
+		Phase:       rules.PhaseMeld,
+		GameNumber:  1,
+		CurrentTurn: aiID,
+		TurnOrder:   []string{aiID, "p2"},
+		Hands:       map[string][]string{aiID: {"2H", "2D", "2C", "9S", "5H"}, "p2": {}},
+		DrawPile:    []string{"3H"},
+		DiscardPile: []string{},
+		RoundReqMet: map[string]bool{aiID: false, "p2": false},
+		Rules:       rules.ProfileContinental, // 35-point meld floor
+		GameScores:  map[string][]int{aiID: {}},
+		TotalScores: map[string]int{aiID: 0},
 	}
 
 	visible := VisibleState{
-		GameNumber:         state.GameNumber,
-		Phase:              string(state.Phase),
-		CurrentTurn:        state.CurrentTurn,
-		RoundReqMet:        state.RoundReqMet,
-		InitialMeldMinimum: state.InitialMeldMinimum,
+		GameNumber:  state.GameNumber,
+		Phase:       string(state.Phase),
+		CurrentTurn: state.CurrentTurn,
+		RoundReqMet: state.RoundReqMet,
+		Rules:       state.Rules,
 	}
 
 	action := agent.ChooseAction(visible, state.Hands[aiID])
@@ -161,19 +162,19 @@ func TestHeuristicAgent_DiscardAllowedWhenRoundReqMet(t *testing.T) {
 	aiID := "ai1"
 
 	state := rules.GameState{
-		Status:             rules.StatusActive,
-		Phase:              rules.PhaseMeld,
-		GameNumber:         1,
-		CurrentTurn:        aiID,
-		TurnOrder:          []string{aiID},
-		Hands:              map[string][]string{aiID: {"KH"}},
-		DrawPile:           []string{"2H"},
-		DiscardPile:        []string{},
-		RoundReqMet:        map[string]bool{aiID: true},
-		InitialMeldMinimum: 0,
-		DeckSeed:           1,
-		GameScores:         map[string][]int{aiID: {}},
-		TotalScores:        map[string]int{aiID: 0},
+		Status:      rules.StatusActive,
+		Phase:       rules.PhaseMeld,
+		GameNumber:  1,
+		CurrentTurn: aiID,
+		TurnOrder:   []string{aiID},
+		Hands:       map[string][]string{aiID: {"KH"}},
+		DrawPile:    []string{"2H"},
+		DiscardPile: []string{},
+		RoundReqMet: map[string]bool{aiID: true},
+		Rules:       continentalNoFloor(),
+		DeckSeed:    1,
+		GameScores:  map[string][]int{aiID: {}},
+		TotalScores: map[string]int{aiID: 0},
 	}
 
 	visible := VisibleState{
@@ -181,6 +182,7 @@ func TestHeuristicAgent_DiscardAllowedWhenRoundReqMet(t *testing.T) {
 		Phase:       string(state.Phase),
 		CurrentTurn: state.CurrentTurn,
 		RoundReqMet: state.RoundReqMet,
+		Rules:       state.Rules,
 	}
 
 	action := agent.ChooseAction(visible, state.Hands[aiID])
@@ -214,21 +216,22 @@ func TestHeuristicAgent_MeldBelowMinimum_FallsBackToDiscard(t *testing.T) {
 		MeldMeta: map[string][]rules.MeldInfo{
 			aiID: {{MeldID: "meld_1", Type: rules.MeldSet, OwnerID: aiID}},
 		},
-		RoundReqMet:        map[string]bool{aiID: false, "p2": false},
-		InitialMeldMinimum: 35, // 3H+3D+3C (9) + 2H+2D+2C (6) = 15, below minimum
-		DeckSeed:           1,
-		GameScores:         map[string][]int{aiID: {}},
-		TotalScores:        map[string]int{aiID: 0},
+		RoundReqMet: map[string]bool{aiID: false, "p2": false},
+		// 35-point floor: 3H+3D+3C (9) + 2H+2D+2C (6) = 15, below minimum
+		Rules:       rules.ProfileContinental,
+		DeckSeed:    1,
+		GameScores:  map[string][]int{aiID: {}},
+		TotalScores: map[string]int{aiID: 0},
 	}
 
 	visible := VisibleState{
-		GameNumber:         state.GameNumber,
-		Phase:              string(state.Phase),
-		CurrentTurn:        state.CurrentTurn,
-		Melds:              state.Melds,
-		MeldMeta:           state.MeldMeta,
-		RoundReqMet:        state.RoundReqMet,
-		InitialMeldMinimum: state.InitialMeldMinimum,
+		GameNumber:  state.GameNumber,
+		Phase:       string(state.Phase),
+		CurrentTurn: state.CurrentTurn,
+		Melds:       state.Melds,
+		MeldMeta:    state.MeldMeta,
+		RoundReqMet: state.RoundReqMet,
+		Rules:       state.Rules,
 	}
 
 	action := agent.ChooseAction(visible, state.Hands[aiID])
@@ -248,13 +251,15 @@ func TestHeuristicAgent_TakesDiscardWhenItCompletesTheInitialMeld(t *testing.T) 
 	aiID := "ai1"
 
 	visible := VisibleState{
-		GameNumber:          1, // needs 2 sets
-		Phase:               string(rules.PhaseDraw),
-		CurrentTurn:         aiID,
-		DiscardPile:         []string{"9C"},
-		RoundReqMet:         map[string]bool{aiID: false},
-		InitialMeldMinimum:  0,
-		DiscardDrawMinRound: 0,
+		GameNumber:  1, // needs 2 sets
+		Phase:       string(rules.PhaseDraw),
+		CurrentTurn: aiID,
+		DiscardPile: []string{"9C"},
+		RoundReqMet: map[string]bool{aiID: false},
+		// Continental's deal-1 contract (two sets) with no meld-value floor
+		// and no discard-pickup round gate, so the draw choice is the only
+		// thing under test.
+		Rules: openContinental(),
 	}
 	// Includes a spare card (2C) so melding both sets still leaves a card to
 	// discard afterward (required before round 7).
@@ -271,13 +276,15 @@ func TestHeuristicAgent_SkipsDiscardWhenItWontCompleteTheInitialMeld(t *testing.
 	aiID := "ai1"
 
 	visible := VisibleState{
-		GameNumber:          1, // needs 2 sets
-		Phase:               string(rules.PhaseDraw),
-		CurrentTurn:         aiID,
-		DiscardPile:         []string{"KC"},
-		RoundReqMet:         map[string]bool{aiID: false},
-		InitialMeldMinimum:  0,
-		DiscardDrawMinRound: 0,
+		GameNumber:  1, // needs 2 sets
+		Phase:       string(rules.PhaseDraw),
+		CurrentTurn: aiID,
+		DiscardPile: []string{"KC"},
+		RoundReqMet: map[string]bool{aiID: false},
+		// Continental's deal-1 contract (two sets) with no meld-value floor
+		// and no discard-pickup round gate, so the draw choice is the only
+		// thing under test.
+		Rules: openContinental(),
 	}
 	hand := []string{"9S", "9D", "2H", "3H", "4H"}
 

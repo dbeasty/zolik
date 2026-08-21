@@ -113,7 +113,7 @@ func TestDiscardDrawMinRound_GatesOnLapRoundNotGameNumber(t *testing.T) {
 	st := lapTestState([]string{"p1", "p2"}, "p1")
 	st.GameNumber = 6
 	st.Round = 1
-	st.DiscardDrawMinRound = 3
+	st.Rules = ProfileContinental // locks discard pickup until lap round 3
 	st.Phase = PhaseDraw
 	st.DrawPile = []string{"2C"}
 	st.DiscardPile = []string{"7H"}

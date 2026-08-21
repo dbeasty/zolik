@@ -238,14 +238,14 @@ func TestEndGame_ScoringAndAdvance(t *testing.T) {
 
 func TestValidateDraw_DiscardLockedBeforeMinRound(t *testing.T) {
 	st := GameState{
-		Status:              StatusActive,
-		Phase:               PhaseDraw,
-		Round:               2,
-		DrawPile:            []string{"2H"},
-		DiscardPile:         []string{"7H"},
-		Hands:               map[string][]string{"p1": {}},
-		CurrentTurn:         "p1",
-		DiscardDrawMinRound: 3,
+		Status:      StatusActive,
+		Phase:       PhaseDraw,
+		Round:       2,
+		DrawPile:    []string{"2H"},
+		DiscardPile: []string{"7H"},
+		Hands:       map[string][]string{"p1": {}},
+		CurrentTurn: "p1",
+		Rules:       ProfileContinental, // locks pickup until lap round 3
 	}
 	_, _, _, err := ValidateDraw(st, "p1", DrawFromDiscard, "")
 	if err == nil {
@@ -263,14 +263,14 @@ func TestValidateDraw_DiscardLockedBeforeMinRound(t *testing.T) {
 
 func TestValidateDraw_DiscardAllowedAtMinRound(t *testing.T) {
 	st := GameState{
-		Status:              StatusActive,
-		Phase:               PhaseDraw,
-		Round:               3,
-		DrawPile:            []string{"2H"},
-		DiscardPile:         []string{"7H"},
-		Hands:               map[string][]string{"p1": {}},
-		CurrentTurn:         "p1",
-		DiscardDrawMinRound: 3,
+		Status:      StatusActive,
+		Phase:       PhaseDraw,
+		Round:       3,
+		DrawPile:    []string{"2H"},
+		DiscardPile: []string{"7H"},
+		Hands:       map[string][]string{"p1": {}},
+		CurrentTurn: "p1",
+		Rules:       ProfileContinental, // locks pickup until lap round 3
 	}
 	if _, _, _, err := ValidateDraw(st, "p1", DrawFromDiscard, ""); err != nil {
 		t.Fatalf("expected discard draw to be allowed at round 3, got %v", err)
@@ -286,7 +286,8 @@ func TestValidateDraw_DiscardUnrestrictedByDefault(t *testing.T) {
 		DiscardPile: []string{"7H"},
 		Hands:       map[string][]string{"p1": {}},
 		CurrentTurn: "p1",
-		// DiscardDrawMinRound left at its zero value.
+		// zolik_classic places no round gate on discard pickup.
+		Rules: ProfileZolikClassic,
 	}
 	if _, _, _, err := ValidateDraw(st, "p1", DrawFromDiscard, ""); err != nil {
 		t.Fatalf("expected discard draw to be unrestricted by default, got %v", err)
@@ -422,7 +423,6 @@ func TestValidateMeldAction_UsingPendingDiscardCardClearsObligation(t *testing.T
 		Melds:                       map[string][][]string{},
 		MeldMeta:                    map[string][]MeldInfo{},
 		RoundReqMet:                 map[string]bool{"p1": false, "p2": false},
-		InitialMeldMinimum:          0,
 		DiscardDrawnCardPendingMeld: "9S",
 	}
 	ns, _, _, err := ValidateMeldAction(st, "p1", []string{"9S", "9D", "9C"})
@@ -569,18 +569,17 @@ func TestValidateUndoLayOff_RevertsMeldAndReturnsCardToHand(t *testing.T) {
 
 func TestValidateUndoLayMeld_RevertsMeldAndReturnsCardsToHand(t *testing.T) {
 	st := GameState{
-		Status:             StatusActive,
-		Rules:              ProfileZolikClassic,
-		Phase:              PhaseMeld,
-		GameNumber:         1,
-		Round:              1,
-		CurrentTurn:        "p1",
-		TurnOrder:          []string{"p1", "p2"},
-		Hands:              map[string][]string{"p1": {"5H", "6H", "7H", "2S"}, "p2": {}},
-		Melds:              map[string][][]string{},
-		MeldMeta:           map[string][]MeldInfo{},
-		RoundReqMet:        map[string]bool{"p1": false, "p2": false},
-		InitialMeldMinimum: 0,
+		Status:      StatusActive,
+		Rules:       ProfileZolikClassic,
+		Phase:       PhaseMeld,
+		GameNumber:  1,
+		Round:       1,
+		CurrentTurn: "p1",
+		TurnOrder:   []string{"p1", "p2"},
+		Hands:       map[string][]string{"p1": {"5H", "6H", "7H", "2S"}, "p2": {}},
+		Melds:       map[string][][]string{},
+		MeldMeta:    map[string][]MeldInfo{},
+		RoundReqMet: map[string]bool{"p1": false, "p2": false},
 	}
 
 	if _, err := ValidateUndoLayMeld(st, "p1"); err == nil {
@@ -622,18 +621,17 @@ func TestValidateUndoLayMeld_RevertsMeldAndReturnsCardsToHand(t *testing.T) {
 
 func TestValidateUndoLayMeld_OnlyMostRecentMeldIsUndoable(t *testing.T) {
 	st := GameState{
-		Status:             StatusActive,
-		Rules:              ProfileZolikClassic,
-		Phase:              PhaseMeld,
-		GameNumber:         1,
-		Round:              1,
-		CurrentTurn:        "p1",
-		TurnOrder:          []string{"p1", "p2"},
-		Hands:              map[string][]string{"p1": {"5H", "6H", "7H", "2S", "2D", "2C", "9S"}, "p2": {}},
-		Melds:              map[string][][]string{},
-		MeldMeta:           map[string][]MeldInfo{},
-		RoundReqMet:        map[string]bool{"p1": false, "p2": false},
-		InitialMeldMinimum: 0,
+		Status:      StatusActive,
+		Rules:       ProfileZolikClassic,
+		Phase:       PhaseMeld,
+		GameNumber:  1,
+		Round:       1,
+		CurrentTurn: "p1",
+		TurnOrder:   []string{"p1", "p2"},
+		Hands:       map[string][]string{"p1": {"5H", "6H", "7H", "2S", "2D", "2C", "9S"}, "p2": {}},
+		Melds:       map[string][][]string{},
+		MeldMeta:    map[string][]MeldInfo{},
+		RoundReqMet: map[string]bool{"p1": false, "p2": false},
 	}
 
 	// First meld doesn't complete shape by itself for a set (only a clean
@@ -661,19 +659,18 @@ func TestValidateUndoLayMeld_OnlyMostRecentMeldIsUndoable(t *testing.T) {
 
 func TestValidateUndoTurn_RevertsEverySinceDrawEvenAfterMultipleActions(t *testing.T) {
 	st := GameState{
-		Status:             StatusActive,
-		Rules:              ProfileZolikClassic,
-		Phase:              PhaseDraw,
-		GameNumber:         1,
-		Round:              1,
-		CurrentTurn:        "p1",
-		TurnOrder:          []string{"p1", "p2"},
-		DrawPile:           []string{"8H"},
-		Hands:              map[string][]string{"p1": {"5H", "6H", "7H", "2S", "2D", "2C", "3S"}, "p2": {}},
-		Melds:              map[string][][]string{},
-		MeldMeta:           map[string][]MeldInfo{},
-		RoundReqMet:        map[string]bool{"p1": false, "p2": false},
-		InitialMeldMinimum: 0,
+		Status:      StatusActive,
+		Rules:       ProfileZolikClassic,
+		Phase:       PhaseDraw,
+		GameNumber:  1,
+		Round:       1,
+		CurrentTurn: "p1",
+		TurnOrder:   []string{"p1", "p2"},
+		DrawPile:    []string{"8H"},
+		Hands:       map[string][]string{"p1": {"5H", "6H", "7H", "2S", "2D", "2C", "3S"}, "p2": {}},
+		Melds:       map[string][][]string{},
+		MeldMeta:    map[string][]MeldInfo{},
+		RoundReqMet: map[string]bool{"p1": false, "p2": false},
 	}
 
 	if _, err := ValidateUndoTurn(st, "p1"); err == nil {
@@ -853,7 +850,10 @@ func TestValidateSwapJoker_NoJokerInMeldRejected(t *testing.T) {
 
 func TestValidateUndoDrawDiscard_ReturnsCardAndReopensDraw(t *testing.T) {
 	st := GameState{
-		Status:      StatusActive,
+		Status: StatusActive,
+		// zolik_classic: pickup is open from lap round 1, so these tests
+		// exercise the undo window itself rather than the round gate.
+		Rules:       ProfileZolikClassic,
 		Phase:       PhaseDraw,
 		Round:       1,
 		DrawPile:    []string{"2H"},
@@ -922,7 +922,9 @@ func TestValidateUndoDrawDiscard_NothingToUndoAfterDeckDraw(t *testing.T) {
 
 func TestValidateUndoDrawDiscard_UnavailableAfterLayingMeld(t *testing.T) {
 	st := GameState{
-		Status:      StatusActive,
+		Status: StatusActive,
+		// zolik_classic: pickup is open from lap round 1.
+		Rules:       ProfileZolikClassic,
 		Phase:       PhaseDraw,
 		Round:       1,
 		DrawPile:    []string{"2H"},
@@ -946,7 +948,10 @@ func TestValidateUndoDrawDiscard_UnavailableAfterLayingMeld(t *testing.T) {
 
 func TestValidateUndoDrawDiscard_WrongPlayerOrPhaseRejected(t *testing.T) {
 	st := GameState{
-		Status:      StatusActive,
+		Status: StatusActive,
+		// zolik_classic: pickup is open from lap round 1, so these tests
+		// exercise the undo window itself rather than the round gate.
+		Rules:       ProfileZolikClassic,
 		Phase:       PhaseDraw,
 		Round:       1,
 		DrawPile:    []string{"2H"},

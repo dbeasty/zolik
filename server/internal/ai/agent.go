@@ -17,16 +17,17 @@ type VisibleState struct {
 	// first, derived from the action log. Lets an agent avoid re-offering
 	// a rank/suit a player has already passed on, and avoid feeding cards
 	// into melds already on the table.
-	PlayerDiscards      map[string][]string
-	Melds               map[string][][]string
-	MeldMeta            map[string][]rules.MeldInfo
-	RoundReqMet         map[string]bool
-	TotalScores         map[string]int
-	InitialMeldMinimum  int
-	DiscardDrawMinRound int
+	PlayerDiscards map[string][]string
+	Melds          map[string][][]string
+	MeldMeta       map[string][]rules.MeldInfo
+	RoundReqMet    map[string]bool
+	TotalScores    map[string]int
 	// Rules is the game's resolved ruleset — see rules.RulesConfig. Agents
-	// must use this instead of any hardcoded set/run size or contract
-	// assumption so they behave correctly under every profile.
+	// must use this instead of any hardcoded set/run size, meld-value floor,
+	// discard-lock round or contract assumption so they behave correctly
+	// under every profile. It is the single source for all of those; there
+	// are deliberately no InitialMeldMinimum/DiscardDrawMinRound fields
+	// alongside it to drift out of sync with it.
 	Rules rules.RulesConfig
 }
 

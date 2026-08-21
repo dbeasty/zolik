@@ -240,7 +240,12 @@ func nextActionSeq(existing []models.Action) int {
 func toRulesAction(in WSIncoming) (rules.Action, error) {
 	switch in.Type {
 	case "draw_card":
-		return rules.Action{Type: rules.ActionDrawCard, DrawFrom: rules.DrawFrom(in.From)}, nil
+		// Card names which discard-pile card to take under
+		// DiscardPickupAnyFromPile (empty = the top one, which is all
+		// DiscardPickupTopOnly ever allows). Dropping it here made
+		// ValidateDraw's targetCard unreachable from any client, so
+		// zolik_classic's "take from anywhere in the pile" rule was dead.
+		return rules.Action{Type: rules.ActionDrawCard, DrawFrom: rules.DrawFrom(in.From), Card: in.Card}, nil
 	case "lay_meld":
 		return rules.Action{Type: rules.ActionLayMeld, Cards: in.Cards}, nil
 	case "lay_off":
@@ -400,7 +405,7 @@ func toRulesState(g models.Game) rules.GameState {
 
 	return rules.GameState{
 		Status:                      rules.GameStatus(g.Status),
-		Rules:                       rules.ResolveProfile(g.RulesProfile),
+		Rules:                       GameRules(g),
 		GameNumber:                  g.GameNumber,
 		Phase:                       rules.Phase(g.Phase),
 		Created:                     g.CreatedAt,
@@ -416,8 +421,6 @@ func toRulesState(g models.Game) rules.GameState {
 		Melds:                       g.Melds,
 		MeldMeta:                    rMeldMeta,
 		RoundReqMet:                 g.RoundReqMet,
-		InitialMeldMinimum:          g.InitialMeldMinimum,
-		DiscardDrawMinRound:         g.DiscardDrawMinRound,
 		MeldsLaidThisTurn:           g.MeldsLaidThisTurn,
 		DiscardDrawnCardPendingMeld: g.DiscardDrawnCardPendingMeld,
 		DiscardDrawnCards:           g.DiscardDrawnCards,
@@ -447,8 +450,19 @@ func fromRulesState(g *models.Game, rs rules.GameState) {
 	g.Hands = rs.Hands
 	g.Melds = rs.Melds
 	g.RoundReqMet = rs.RoundReqMet
-	g.InitialMeldMinimum = rs.InitialMeldMinimum
-	g.DiscardDrawMinRound = rs.DiscardDrawMinRound
+	// The ruleset is persisted with the game rather than re-derived from the
+	// profile name on load, so house-rule overrides survive a reload and an
+	// edit to a shipped profile constant can't change a game already running.
+	// The two legacy scalar columns are kept mirrored for older readers.
+	// RulesProfile is deliberately NOT rewritten here: it is lobby metadata
+	// naming the variation the host picked, and the clients key their rule
+	// summaries off it. An unrecognised name resolves to the default ruleset
+	// without being renamed, so a game labelled "custom house rules" in the
+	// lobby doesn't silently relabel itself on the first action.
+	cfg := rules.ResolveConfig(rs.Rules)
+	g.Rules = fromRulesConfig(cfg)
+	g.InitialMeldMinimum = cfg.InitialMeldMinimum
+	g.DiscardDrawMinRound = cfg.DiscardDrawMinRound
 	g.MeldsLaidThisTurn = rs.MeldsLaidThisTurn
 	g.DiscardDrawnCardPendingMeld = rs.DiscardDrawnCardPendingMeld
 	g.DiscardDrawnCards = rs.DiscardDrawnCards
@@ -565,7 +579,7 @@ func (m *Manager) aiLoop(ctx context.Context, gameID string) {
 			// back to discarding the worst card so the turn always progresses.
 			if in.Type == "lay_meld" || in.Type == "lay_off" {
 				if hand := game.Hands[actorID]; len(hand) > 0 {
-					cfg := rules.ResolveProfile(game.RulesProfile)
+					cfg := GameRules(game)
 					canDiscardJoker := len(hand) == 1 && game.RoundReqMet[actorID]
 					fallbackCard := ai.PickWorstDiscard(hand, cfg, canDiscardJoker)
 					fallback := WSIncoming{Type: "discard", Card: fallbackCard}
@@ -612,26 +626,24 @@ func aiVisibleFromGame(game models.Game) ai.VisibleState {
 		playerDiscards[act.PlayerID] = append(playerDiscards[act.PlayerID], card)
 	}
 	return ai.VisibleState{
-		GameNumber:          game.GameNumber,
-		Round:               game.Round,
-		Phase:               game.Phase,
-		CurrentTurn:         game.CurrentTurn,
-		DiscardPile:         game.DiscardPile,
-		PlayerDiscards:      playerDiscards,
-		Melds:               game.Melds,
-		MeldMeta:            rMeldMeta,
-		RoundReqMet:         game.RoundReqMet,
-		TotalScores:         game.TotalScores,
-		InitialMeldMinimum:  game.InitialMeldMinimum,
-		DiscardDrawMinRound: game.DiscardDrawMinRound,
-		Rules:               rules.ResolveProfile(game.RulesProfile),
+		GameNumber:     game.GameNumber,
+		Round:          game.Round,
+		Phase:          game.Phase,
+		CurrentTurn:    game.CurrentTurn,
+		DiscardPile:    game.DiscardPile,
+		PlayerDiscards: playerDiscards,
+		Melds:          game.Melds,
+		MeldMeta:       rMeldMeta,
+		RoundReqMet:    game.RoundReqMet,
+		TotalScores:    game.TotalScores,
+		Rules:          GameRules(game),
 	}
 }
 
 func rulesActionToWSIncoming(a rules.Action) WSIncoming {
 	switch a.Type {
 	case rules.ActionDrawCard:
-		return WSIncoming{Type: "draw_card", From: string(a.DrawFrom)}
+		return WSIncoming{Type: "draw_card", From: string(a.DrawFrom), Card: a.Card}
 	case rules.ActionLayMeld:
 		return WSIncoming{Type: "lay_meld", Cards: a.Cards}
 	case rules.ActionLayOff:
