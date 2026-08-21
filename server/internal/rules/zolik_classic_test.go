@@ -96,7 +96,7 @@ func TestZolikClassic_JokerCannotBeDiscarded(t *testing.T) {
 	st.Phase = PhaseDiscard
 	st.Hands[p] = []string{"JOKER1", "5H"}
 
-	_, _, err := ValidateDiscard(st, p, "JOKER1")
+	_, _, err := ValidateDiscard(st, p, "JOKER1", nil)
 	if err == nil {
 		t.Fatal("expected joker discard to be rejected")
 	}
@@ -113,7 +113,7 @@ func TestZolikClassic_JokerCanEndTheHand(t *testing.T) {
 	st.RoundReqMet[p] = true
 	st.Hands[p] = []string{"JOKER1"}
 
-	_, goOut, err := ValidateDiscard(st, p, "JOKER1")
+	_, goOut, err := ValidateDiscard(st, p, "JOKER1", nil)
 	if err != nil {
 		t.Fatalf("expected the winning joker discard to be accepted: %v", err)
 	}
@@ -131,7 +131,7 @@ func TestZolikClassic_JokerCannotSneakOutWithoutBeingDown(t *testing.T) {
 	st.Phase = PhaseDiscard
 	st.Hands[p] = []string{"JOKER1"}
 
-	_, _, err := ValidateDiscard(st, p, "JOKER1")
+	_, _, err := ValidateDiscard(st, p, "JOKER1", nil)
 	if err == nil {
 		t.Fatal("expected joker discard to still be rejected when not down")
 	}
@@ -277,7 +277,7 @@ func TestZolikClassic_CanDiscardAfterLayingASetWithoutCleanRun(t *testing.T) {
 		t.Fatal("a set must not satisfy the clean-run requirement")
 	}
 
-	if _, _, err := ValidateDiscard(st, p, "2S"); err != nil {
+	if _, _, err := ValidateDiscard(st, p, "2S", nil); err != nil {
 		t.Fatalf("expected discard to be allowed after laying a set with no clean run available, got: %v", err)
 	}
 }

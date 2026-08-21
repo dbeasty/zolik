@@ -304,13 +304,35 @@ func TestValidateDiscard_BlocksIncompleteInitialMeld(t *testing.T) {
 		RoundReqMet:       map[string]bool{"p1": false},
 		MeldsLaidThisTurn: 1,
 	}
-	_, _, err := ValidateDiscard(st, "p1", "9S")
+	_, _, err := ValidateDiscard(st, "p1", "9S", nil)
 	if err == nil {
 		t.Fatalf("expected discard to be blocked with an incomplete initial meld")
 	}
 	re, ok := err.(RulesError)
 	if !ok || re.Code != ErrIncompleteInitialMeld {
 		t.Fatalf("expected ErrIncompleteInitialMeld, got %#v", err)
+	}
+}
+
+func TestValidateDiscard_DuplicateValueUsesCardIndex(t *testing.T) {
+	st := GameState{
+		Status:            StatusActive,
+		Phase:             PhaseDiscard,
+		Round:             1,
+		CurrentTurn:       "p1",
+		TurnOrder:         []string{"p1", "p2"},
+		Hands:             map[string][]string{"p1": {"9S", "4D", "9S"}, "p2": {}},
+		DiscardPile:       []string{},
+		RoundReqMet:       map[string]bool{"p1": false, "p2": false},
+		MeldsLaidThisTurn: 0,
+	}
+	idx := 2
+	ns, _, err := ValidateDiscard(st, "p1", "9S", &idx)
+	if err != nil {
+		t.Fatalf("expected discard to succeed, got %v", err)
+	}
+	if got := ns.Hands["p1"]; len(got) != 2 || got[0] != "9S" || got[1] != "4D" {
+		t.Fatalf("expected the 9S at index 2 to be removed (leaving the one at index 0), got %v", got)
 	}
 }
 
@@ -326,7 +348,7 @@ func TestValidateDiscard_AllowedWithNoMeldsLaidThisTurn(t *testing.T) {
 		RoundReqMet:       map[string]bool{"p1": false, "p2": false},
 		MeldsLaidThisTurn: 0,
 	}
-	if _, _, err := ValidateDiscard(st, "p1", "9S"); err != nil {
+	if _, _, err := ValidateDiscard(st, "p1", "9S", nil); err != nil {
 		t.Fatalf("expected discard with no melds laid this turn to succeed, got %v", err)
 	}
 }
@@ -343,7 +365,7 @@ func TestValidateDiscard_AllowedOnceRoundReqMet(t *testing.T) {
 		RoundReqMet:       map[string]bool{"p1": true, "p2": false},
 		MeldsLaidThisTurn: 2,
 	}
-	if _, _, err := ValidateDiscard(st, "p1", "9S"); err != nil {
+	if _, _, err := ValidateDiscard(st, "p1", "9S", nil); err != nil {
 		t.Fatalf("expected discard to succeed once round requirement is met, got %v", err)
 	}
 }
@@ -401,7 +423,7 @@ func TestValidateDiscard_BlocksWhenPickedUpDiscardCardStillUnmelded(t *testing.T
 	}
 	// Trying to discard a *different* card while 9S (the discard pickup)
 	// remains unmelded must be rejected.
-	_, _, err := ValidateDiscard(st, "p1", "4D")
+	_, _, err := ValidateDiscard(st, "p1", "4D", nil)
 	if err == nil {
 		t.Fatalf("expected discard to be blocked while the picked-up card is unmelded")
 	}
@@ -848,6 +870,43 @@ func TestValidateSwapJoker_NoJokerInMeldRejected(t *testing.T) {
 	re, ok := err.(RulesError)
 	if !ok || re.Code != ErrNoJokerInMeld {
 		t.Fatalf("expected NO_JOKER_IN_MELD, got %#v", err)
+	}
+}
+
+// A single card dragged onto a meld normally means "lay it off," but when it
+// only fits by filling the gap a joker is already occupying (e.g. the "6" in
+// a 5-JOKER-7 run), lay-off's append-to-an-end logic can never place it —
+// ApplyAction should fall back to a joker swap instead of just rejecting the
+// drop, matching what the explicit "Swap joker here" button would have done.
+func TestApplyAction_LayOffFallsBackToJokerSwapWhenCardOnlyFitsTheGap(t *testing.T) {
+	st := GameState{
+		Status:      StatusActive,
+		Phase:       PhaseMeld,
+		Round:       1,
+		CurrentTurn: "p1",
+		Hands:       map[string][]string{"p1": {"6C", "2D"}},
+		Melds:       map[string][][]string{"p2": {{"5C", "JOKER1", "7C"}}},
+		MeldMeta:    map[string][]MeldInfo{"p2": {{MeldID: "meld_1", Type: MeldRun, OwnerID: "p2", WildCount: 1}}},
+		RoundReqMet: map[string]bool{"p1": true, "p2": true},
+	}
+	outcome, err := ApplyAction(st, "p1", Action{Type: ActionLayOff, MeldID: "meld_1", Card: "6C"})
+	if err != nil {
+		t.Fatalf("expected the drop to fall back to a joker swap, got error: %v", err)
+	}
+	if got := outcome.State.Melds["p2"][0]; len(got) != 3 || !containsCard(got, "6C") {
+		t.Fatalf("expected 6C to fill the joker's slot, got %v", got)
+	}
+	if !containsCard(outcome.State.Hands["p1"], "JOKER1") {
+		t.Fatalf("expected the joker to land in p1's hand, got %v", outcome.State.Hands["p1"])
+	}
+	foundSwapEvent := false
+	for _, e := range outcome.Events {
+		if e.Type == "joker_swapped" {
+			foundSwapEvent = true
+		}
+	}
+	if !foundSwapEvent {
+		t.Fatalf("expected a joker_swapped event, got %v", outcome.Events)
 	}
 }
 

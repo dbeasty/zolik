@@ -599,7 +599,7 @@ func ValidateSwapJoker(state GameState, playerID string, meldID string, card str
 	return state, nil
 }
 
-func ValidateDiscard(state GameState, playerID string, card string) (GameState, bool, error) {
+func ValidateDiscard(state GameState, playerID string, card string, cardIndex *int) (GameState, bool, error) {
 	if state.Status != StatusActive {
 		return state, false, RulesError{Code: ErrGameNotActive}
 	}
@@ -650,7 +650,7 @@ func ValidateDiscard(state GameState, playerID string, card string) (GameState, 
 		}
 	}
 
-	state.Hands[playerID] = removeCards(state.Hands[playerID], []string{card})
+	state.Hands[playerID] = removeCardAt(state.Hands[playerID], card, cardIndex)
 	state.DiscardPile = append(state.DiscardPile, card)
 	// The meld phase is over now that the discard's landed — the whole-turn
 	// undo only makes sense before that point.
@@ -711,6 +711,22 @@ func requireCardsInHand(hand []string, want []string) error {
 		counts[w]--
 	}
 	return nil
+}
+
+// removeCardAt removes a single named card from hand. When idx points at a
+// slot that actually holds that value, that exact slot is removed — needed
+// because two decks are in play, so a hand can hold two physical cards with
+// the same value and only the caller (who knows which one the player picked)
+// can tell them apart. A nil/out-of-range/mismatched idx falls back to
+// removing the first matching value, same as the old value-only behavior.
+func removeCardAt(hand []string, card string, idx *int) []string {
+	if idx != nil && *idx >= 0 && *idx < len(hand) && hand[*idx] == card {
+		out := make([]string, 0, len(hand)-1)
+		out = append(out, hand[:*idx]...)
+		out = append(out, hand[*idx+1:]...)
+		return out
+	}
+	return removeCards(hand, []string{card})
 }
 
 func removeCards(hand []string, remove []string) []string {

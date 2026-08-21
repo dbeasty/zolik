@@ -82,6 +82,12 @@ export type WSAction = {
   cards?: string[];
   meldId?: string;
   card?: string;
+  /**
+   * discard only: which of `card`'s server hand slots this is, so a
+   * duplicate value (two decks in play) is disambiguated by position
+   * rather than value alone.
+   */
+  cardIndex?: number;
   /** lay_off only: which end of a run the dropped card(s) must extend. */
   position?: 'front' | 'end';
 };

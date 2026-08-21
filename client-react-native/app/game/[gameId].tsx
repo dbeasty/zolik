@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
 import { ActionBar } from '@/src/components/ActionBar';
@@ -9,6 +9,7 @@ import { DeckDragOverlay } from '@/src/components/DeckDragOverlay';
 import { DeckPile } from '@/src/components/DeckPile';
 import {
   HandRow,
+  closestZone,
   pointInZone,
   useDragPreview,
   type DropZone,
@@ -65,20 +66,20 @@ const pileStyles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.border,
     borderRadius: 10,
-    padding: 10,
-    marginTop: 8,
+    padding: 8,
+    marginTop: 6,
   },
   meldBoxLabel: {
     color: colors.muted,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   meldBoxEmpty: {
     color: colors.muted,
     fontSize: 12,
     textAlign: 'center',
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
   // Deck and discard pile now sit in their own separate bordered rectangles
   // side by side, rather than sharing one loose row.
@@ -189,6 +190,23 @@ function reconcileHandOrder(customOrder: string[] | null, serverHand: string[]):
   return [...remaining, ...kept];
 }
 
+// Maps a displayed hand order back onto the server's own `myHand` array
+// (which two decks in play can hold duplicate values in — e.g. two "9S"s),
+// so an action naming a specific displayed card can also say *which* of two
+// same-value server slots it means. Mirrors reconcileHandOrder's own
+// first-unclaimed-match greedy algorithm so the mapping stays consistent
+// with whatever's actually on screen; `displayOrder` is normally `hand`
+// itself (already reconciled), which this happens to be idempotent over.
+function mapDisplayToServerIndices(displayOrder: string[], serverHand: string[]): number[] {
+  const used = new Array(serverHand.length).fill(false);
+  return displayOrder.map((c) => {
+    const idx = serverHand.findIndex((v, i) => v === c && !used[i]);
+    if (idx === -1) return -1;
+    used[idx] = true;
+    return idx;
+  });
+}
+
 function handOrderStorageKey(gameId: string, userId: string): string {
   return `zolik_hand_order_${gameId}_${userId}`;
 }
@@ -270,12 +288,36 @@ export default function GameScreen() {
   // needs to feel immediate, not literally hit 60fps, and each check costs
   // one measureInWindow round trip per table meld.
   const HOVER_CHECK_INTERVAL_MS = 60;
+  // Outer page ScrollView — melds/staging area sit near the top, the hand
+  // row near the bottom, and with several melds down (or a tall keyboard/
+  // small screen) both can't be on screen at once. Dragging a card toward
+  // either edge auto-scrolls the page so the far end is reachable without
+  // letting go mid-drag. scrollOffsetYRef mirrors the live scroll position
+  // (via onScroll below) since scrollTo takes an absolute offset, not a
+  // relative delta.
+  const outerScrollRef = useRef<ScrollView>(null);
+  const scrollOffsetYRef = useRef(0);
+  const AUTO_SCROLL_EDGE = 90;
+  const AUTO_SCROLL_MAX_STEP = 16;
+  function handleAutoScroll(absoluteY: number) {
+    const screenHeight = Dimensions.get('window').height;
+    let delta = 0;
+    if (absoluteY < AUTO_SCROLL_EDGE) {
+      delta = -AUTO_SCROLL_MAX_STEP * (1 - absoluteY / AUTO_SCROLL_EDGE);
+    } else if (absoluteY > screenHeight - AUTO_SCROLL_EDGE) {
+      delta = AUTO_SCROLL_MAX_STEP * (1 - (screenHeight - absoluteY) / AUTO_SCROLL_EDGE);
+    }
+    if (delta === 0) return;
+    const nextY = Math.max(0, scrollOffsetYRef.current + delta);
+    outerScrollRef.current?.scrollTo({ y: nextY, animated: false });
+  }
   function handleDragHover(absoluteX: number, absoluteY: number) {
     const now = Date.now();
     if (now - lastHoverCheckAtRef.current < HOVER_CHECK_INTERVAL_MS) return;
     lastHoverCheckAtRef.current = now;
+    handleAutoScroll(absoluteY);
     measureMeldZones((zones) => {
-      const hit = zones.find(({ zone }) => pointInZone(absoluteX, absoluteY, zone));
+      const hit = closestZone(absoluteX, absoluteY, zones);
       if (hit) {
         setStagingInsertHover(null);
         if (hit.type !== 'run') {
@@ -328,14 +370,27 @@ export default function GameScreen() {
   // slightly overshooting a small target, e.g. the minimized staging strip)
   // still counts, rather than requiring pixel-perfect aim.
   function inflateZone(zone: DropZone, margin: number): DropZone {
+    return inflateZoneXY(zone, margin, margin);
+  }
+  function inflateZoneXY(zone: DropZone, marginX: number, marginY: number): DropZone {
     return {
-      x: zone.x - margin,
-      y: zone.y - margin,
-      width: zone.width + margin * 2,
-      height: zone.height + margin * 2,
+      x: zone.x - marginX,
+      y: zone.y - marginY,
+      width: zone.width + marginX * 2,
+      height: zone.height + marginY * 2,
     };
   }
   const DROP_ZONE_HIT_SLOP = 24;
+  // Table meld rows now sit close together (tightened up to keep the melds
+  // area compact — see meldRow spacing in MeldTable), so a generous vertical
+  // slop here would make neighboring melds' hit zones swallow each other.
+  // Horizontal slop stays generous (rows are as wide as the screen, so
+  // there's no neighbor to collide with sideways); vertical slop is small
+  // enough to stay forgiving without bleeding far into the next row —
+  // closestZone (see HandRow) still resolves any remaining overlap by
+  // picking whichever meld's center the drop actually landed nearest.
+  const MELD_HIT_SLOP_X = 28;
+  const MELD_HIT_SLOP_Y = 10;
 
   function measureDropZone(cb: (zone: DropZone | null) => void) {
     if (!discardZoneRef.current) {
@@ -437,7 +492,7 @@ export default function GameScreen() {
       el.measureInWindow((x, y, width, height) => {
         results.push({
           meldId,
-          zone: inflateZone({ x, y, width, height }, DROP_ZONE_HIT_SLOP),
+          zone: inflateZoneXY({ x, y, width, height }, MELD_HIT_SLOP_X, MELD_HIT_SLOP_Y),
           type: meldTypeById(meldId),
         });
         remaining -= 1;
@@ -503,6 +558,12 @@ export default function GameScreen() {
   });
 
   const hand = localHand ?? state?.myHand ?? [];
+  // hand[i]'s slot in state.myHand (the server's own hand array) — see
+  // mapDisplayToServerIndices. Needed so discarding a duplicate-value card
+  // (two decks in play) tells the server which physical instance was
+  // dropped rather than just its value, which the server can't otherwise
+  // tell apart from another copy sitting elsewhere in the hand.
+  const handServerIndices = mapDisplayToServerIndices(hand, state?.myHand ?? []);
   const userId = session?.userId ?? '';
 
   // Loads any previously saved custom hand order for this game+player as
@@ -693,7 +754,8 @@ export default function GameScreen() {
     if (phase !== 'discard' && phase !== 'meld') return;
     const card = hand[index];
     if (!card) return;
-    send({ type: 'discard', card });
+    const cardIndex = handServerIndices[index];
+    send({ type: 'discard', card, cardIndex: cardIndex >= 0 ? cardIndex : undefined });
     clearSelect();
   }
 
@@ -918,11 +980,17 @@ export default function GameScreen() {
   });
 
   const discardSelectedCards = isMyTurn && phase === 'discard' ? selectedCards(hand, allStaged) : [];
+  const discardSelectedIndex = isMyTurn && phase === 'discard' ? [...allStaged][0] : undefined;
   actions.push({
     label: 'Discard',
     onPress: () => {
-      if (discardSelectedCards.length !== 1) return;
-      send({ type: 'discard', card: discardSelectedCards[0] });
+      if (discardSelectedCards.length !== 1 || discardSelectedIndex === undefined) return;
+      const cardIndex = handServerIndices[discardSelectedIndex];
+      send({
+        type: 'discard',
+        card: discardSelectedCards[0],
+        cardIndex: cardIndex >= 0 ? cardIndex : undefined,
+      });
       clearSelect();
     },
     disabled: discardSelectedCards.length !== 1,
@@ -939,7 +1007,14 @@ export default function GameScreen() {
     // and no longer tracks the cursor.
     <View ref={overlayRootRef} style={{ flex: 1 }} onLayout={measureOverlayOrigin}>
       <Screen>
-        <ScrollView>
+        <ScrollView
+          testID="game-scroll-view"
+          ref={outerScrollRef}
+          onScroll={(e) => {
+            scrollOffsetYRef.current = e.nativeEvent.contentOffset.y;
+          }}
+          scrollEventThrottle={32}
+        >
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View style={{ flex: 1 }}>
               <Text style={{ color: colors.accent, fontSize: 12, fontWeight: '700' }}>

@@ -172,7 +172,7 @@ func TestGoOut_BlockedWithoutRoundReq(t *testing.T) {
 	st.Hands[p] = []string{"KH"}
 	st.RoundReqMet[p] = false
 
-	_, goOut, err := ValidateDiscard(st, p, "KH")
+	_, goOut, err := ValidateDiscard(st, p, "KH", nil)
 	if err == nil && goOut {
 		t.Fatalf("expected cannot go out without round req")
 	}

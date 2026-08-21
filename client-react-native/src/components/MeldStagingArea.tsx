@@ -83,6 +83,14 @@ export const MeldStagingArea = forwardRef<View, Props>(function MeldStagingArea(
   ref,
 ) {
   const pulseStyle = useDropPulseStyle(!!dragActive);
+  // The common case is a single staged group, so its Cancel lives in the
+  // shared bottom row alongside Add/Lay meld (one row, three buttons) rather
+  // than under its own card row — the multi-group case (building a run and
+  // a set at once) is rare enough that those extra groups get a compact
+  // inline Cancel next to their label instead, and the shared row's Cancel
+  // then targets the last group.
+  const lastIndex = groups.length - 1;
+  const lastEmpty = lastIndex < 0 || groups[lastIndex].entries.length === 0;
 
   return (
     <Animated.View testID="staging-zone" ref={ref} style={[styles.box, dragActive && pulseStyle]}>
@@ -91,6 +99,7 @@ export const MeldStagingArea = forwardRef<View, Props>(function MeldStagingArea(
           key={i}
           index={i}
           showLabel={groups.length > 1}
+          showInlineCancel={groups.length > 1 && i !== lastIndex}
           entries={group.entries}
           onRemove={onRemove}
           onReorder={(from, to) => onReorderGroup(i, from, to)}
@@ -99,22 +108,34 @@ export const MeldStagingArea = forwardRef<View, Props>(function MeldStagingArea(
           hoverPos={insertHover?.groupIndex === i ? insertHover.pos : null}
         />
       ))}
-      <Pressable
-        testID="add-group-button"
-        style={[shared.button, shared.buttonSecondary, styles.addButton, !canAddGroup && styles.disabled]}
-        onPress={onAddGroup}
-        disabled={!canAddGroup}
-      >
-        <Text style={shared.buttonTextSecondary}>+ Add another run or set</Text>
-      </Pressable>
-      <Pressable
-        testID="lay-all-button"
-        style={[shared.button, styles.layAllButton, !canLayAll && styles.disabled]}
-        onPress={onLayAll}
-        disabled={!canLayAll}
-      >
-        <Text style={shared.buttonText}>Lay meld{layCount > 0 ? ` (${layCount})` : ''}</Text>
-      </Pressable>
+      <View style={styles.actionRow}>
+        <Pressable
+          testID={`cancel-group-${lastIndex < 0 ? 0 : lastIndex}`}
+          style={[shared.button, shared.buttonSecondary, styles.actionButton, lastEmpty && styles.disabled]}
+          onPress={() => onCancelGroup(lastIndex < 0 ? 0 : lastIndex)}
+          disabled={lastEmpty}
+        >
+          <Text style={shared.buttonTextSecondary}>Cancel</Text>
+        </Pressable>
+        <Pressable
+          testID="add-group-button"
+          style={[shared.button, shared.buttonSecondary, styles.actionButton, !canAddGroup && styles.disabled]}
+          onPress={onAddGroup}
+          disabled={!canAddGroup}
+        >
+          <Text style={shared.buttonTextSecondary} numberOfLines={1}>
+            + Add run/set
+          </Text>
+        </Pressable>
+        <Pressable
+          testID="lay-all-button"
+          style={[shared.button, styles.actionButton, !canLayAll && styles.disabled]}
+          onPress={onLayAll}
+          disabled={!canLayAll}
+        >
+          <Text style={shared.buttonText}>Lay meld{layCount > 0 ? ` (${layCount})` : ''}</Text>
+        </Pressable>
+      </View>
     </Animated.View>
   );
 });
@@ -128,6 +149,7 @@ export const MeldStagingArea = forwardRef<View, Props>(function MeldStagingArea(
 function GroupBox({
   index,
   showLabel,
+  showInlineCancel,
   entries,
   onRemove,
   onReorder,
@@ -137,6 +159,11 @@ function GroupBox({
 }: {
   index: number;
   showLabel: boolean;
+  // Only true for a non-last group while two-plus are staged at once (e.g.
+  // a run *and* a set built together) — its Cancel can't live in the shared
+  // bottom row since that row only ever targets the last group, so it gets
+  // a compact one inline next to its own label instead.
+  showInlineCancel: boolean;
   entries: { index: number; card: string }[];
   onRemove: (index: number) => void;
   onReorder: (from: number, to: number) => void;
@@ -174,7 +201,21 @@ function GroupBox({
   }
   return (
     <View style={index > 0 ? styles.groupSpacing : undefined}>
-      {showLabel ? <Text style={styles.groupLabel}>Run/set {index + 1}</Text> : null}
+      {showLabel ? (
+        <View style={styles.groupHeader}>
+          <Text style={styles.groupLabel}>Run/set {index + 1}</Text>
+          {showInlineCancel ? (
+            <Pressable
+              testID={`cancel-group-${index}`}
+              onPress={onCancel}
+              disabled={empty}
+              hitSlop={6}
+            >
+              <Text style={[styles.inlineCancel, empty && styles.disabled]}>Cancel</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
       <View style={styles.cardRow} ref={(el) => onRowRef?.(index, el)}>
         {empty ? (
           <Text style={styles.hint}>Drag cards here — or select them below — to build a meld</Text>
@@ -182,14 +223,6 @@ function GroupBox({
           rowChildren
         )}
       </View>
-      <Pressable
-        testID={`cancel-group-${index}`}
-        style={[shared.button, shared.buttonSecondary, styles.cancelButton, empty && styles.disabled]}
-        onPress={onCancel}
-        disabled={empty}
-      >
-        <Text style={shared.buttonTextSecondary}>Cancel</Text>
-      </Pressable>
     </View>
   );
 }
@@ -293,27 +326,37 @@ const styles = StyleSheet.create({
     borderColor: colors.accentDim,
     borderStyle: 'dashed',
     borderRadius: 10,
-    padding: 12,
-    marginTop: 8,
+    padding: 10,
+    marginTop: 6,
   },
   groupSpacing: {
-    marginTop: 14,
-    paddingTop: 14,
+    marginTop: 10,
+    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: colors.border,
+  },
+  groupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
   },
   groupLabel: {
     color: colors.muted,
     fontSize: 11,
     fontWeight: '700',
-    marginBottom: 6,
+  },
+  inlineCancel: {
+    color: colors.accent,
+    fontSize: 12,
+    fontWeight: '600',
   },
   cardRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 72,
+    minHeight: 60,
   },
   hint: {
     color: colors.muted,
@@ -327,17 +370,15 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     backgroundColor: colors.gold,
   },
-  cancelButton: {
-    marginTop: 10,
-    marginBottom: 0,
+  actionRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
   },
-  addButton: {
-    marginTop: 12,
+  actionButton: {
+    flex: 1,
     marginBottom: 0,
-  },
-  layAllButton: {
-    marginTop: 10,
-    marginBottom: 0,
+    paddingHorizontal: 4,
   },
   disabled: {
     opacity: 0.4,

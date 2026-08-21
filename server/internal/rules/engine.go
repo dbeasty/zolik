@@ -96,6 +96,29 @@ func ApplyAction(state GameState, playerID string, action Action) (ApplyOutcome,
 		if len(cards) == 0 && action.Card != "" {
 			cards = []string{action.Card}
 		}
+		// A single natural card dropped onto a meld that holds a joker is
+		// tried as a joker swap first, ahead of an ordinary lay-off. Two
+		// reasons: a set happily accepts a redundant natural alongside the
+		// joker it duplicates (lay-off would silently "succeed" while
+		// leaving the joker stuck — no error to react to), and a run can
+		// often satisfy a gap-filling card by re-resolving the wild onto a
+		// different end instead of releasing it. Both leave the player
+		// unable to reclaim a joker they clearly meant to take back, which
+		// is exactly what dragging the exact matching card onto the meld
+		// (rather than using the explicit "Swap joker here" button) is
+		// this drag-and-drop shortcut for. Only single-card drops qualify —
+		// a multi-card lay-off is unambiguous and shouldn't silently become
+		// something else.
+		if len(cards) == 1 && !IsJoker(cards[0]) {
+			if swapNs, swapErr := ValidateSwapJoker(state, playerID, action.MeldID, cards[0]); swapErr == nil {
+				events = append(events, ev("joker_swapped", map[string]interface{}{
+					"playerId": playerID,
+					"meldId":   action.MeldID,
+					"card":     cards[0],
+				}))
+				return ApplyOutcome{State: swapNs, Events: events}, nil
+			}
+		}
 		ns, err := ValidateLayOff(state, playerID, action.MeldID, cards, action.Position)
 		if err != nil {
 			return ApplyOutcome{State: state}, err
@@ -159,7 +182,7 @@ func ApplyAction(state GameState, playerID string, action Action) (ApplyOutcome,
 		return ApplyOutcome{State: ns, Events: events}, nil
 
 	case ActionDiscard:
-		ns, goOut, err := ValidateDiscard(state, playerID, action.Card)
+		ns, goOut, err := ValidateDiscard(state, playerID, action.Card, action.CardIndex)
 		if err != nil {
 			return ApplyOutcome{State: state}, err
 		}

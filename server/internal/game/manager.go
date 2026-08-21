@@ -248,7 +248,7 @@ func toRulesAction(in WSIncoming) (rules.Action, error) {
 	case "swap_joker":
 		return rules.Action{Type: rules.ActionSwapJoker, MeldID: in.MeldID, Card: in.Card}, nil
 	case "discard":
-		return rules.Action{Type: rules.ActionDiscard, Card: in.Card}, nil
+		return rules.Action{Type: rules.ActionDiscard, Card: in.Card, CardIndex: in.CardIndex}, nil
 	case "undo_draw_discard":
 		return rules.Action{Type: rules.ActionUndoDrawDiscard}, nil
 	case "undo_lay_off":
