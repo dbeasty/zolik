@@ -1,0 +1,204 @@
+package ui
+
+import (
+	"os"
+	"regexp"
+	"strings"
+	"testing"
+
+	"zolik/client-tui/api"
+)
+
+func stateWith(offers ...api.ActionOffer) api.GameState {
+	// Only LegalActions is populated: the point of these lookups is that they
+	// read nothing else. If one ever starts consulting Phase or RoundReqMet,
+	// these tests keep passing but the invariant test at the bottom fails.
+	return api.GameState{LegalActions: offers}
+}
+
+func TestCan_ReadsTheServersAnswer(t *testing.T) {
+	s := stateWith(
+		api.ActionOffer{ID: OfferDrawDeck, Verb: "draw", Enabled: true},
+		api.ActionOffer{ID: OfferDrawDiscard, Verb: "draw", Enabled: false, WhyNot: "DISCARD_LOCKED"},
+	)
+	if !can(s, OfferDrawDeck) {
+		t.Error("an enabled offer should be reported as available")
+	}
+	if can(s, OfferDrawDiscard) {
+		t.Error("a disabled offer should not be reported as available")
+	}
+	if got := whyNot(s, OfferDrawDiscard); got != "DISCARD_LOCKED" {
+		t.Errorf("whyNot = %q, want DISCARD_LOCKED", got)
+	}
+	if got := whyNot(s, OfferDrawDeck); got != "" {
+		t.Errorf("an enabled offer should carry no reason, got %q", got)
+	}
+}
+
+func TestCan_UnknownAndMissingOffersAreUnavailable(t *testing.T) {
+	// The case that actually happens: this client built after Phase 1,
+	// talking to a server built before it. An inert control beats one that
+	// sends an action the server will reject.
+	if can(api.GameState{}, OfferDiscard) {
+		t.Error("a state with no offer list should offer nothing")
+	}
+	if can(stateWith(), OfferDiscard) {
+		t.Error("an offer the server never sent should not be available")
+	}
+	if got := eligibleCards(stateWith(), OfferDiscard); got != nil {
+		t.Errorf("eligibleCards on a missing offer = %v, want nil", got)
+	}
+}
+
+func TestLayOff_AnsweredPerMeldNotTableWide(t *testing.T) {
+	s := stateWith(
+		api.ActionOffer{
+			ID: layOffOfferID("meld_1"), Verb: "lay_off", Enabled: true,
+			Source: &api.Selector{Zone: "hand", Cards: []string{"4H", "9H"}, Placements: []api.Placement{
+				{Card: "4H", Positions: []string{"front"}},
+				{Card: "9H", Positions: []string{"end"}},
+			}},
+			Target: &api.Selector{Zone: "meld", MeldID: "meld_1"},
+		},
+		api.ActionOffer{
+			ID: layOffOfferID("meld_2"), Verb: "lay_off", Enabled: false, WhyNot: "INVALID_MELD",
+			Target: &api.Selector{Zone: "meld", MeldID: "meld_2"},
+		},
+	)
+	if !canLayOffOnto(s, "meld_1") {
+		t.Error("meld_1 accepts a lay-off")
+	}
+	if canLayOffOnto(s, "meld_2") {
+		t.Error("meld_2 accepts nothing in hand and should not be offered")
+	}
+	if !canLayOffAnywhere(s) {
+		t.Error("the table as a whole is still accepting a lay-off")
+	}
+
+	if got := positionsForCard(s, "meld_1", "4H"); len(got) != 1 || got[0] != "front" {
+		t.Errorf("4H positions = %v, want [front]", got)
+	}
+	if got := positionsForCard(s, "meld_1", "KS"); got != nil {
+		t.Errorf("a card the server did not offer should have no positions, got %v", got)
+	}
+}
+
+func TestCanLayOffAnywhere_FalseWhenEveryMeldRefuses(t *testing.T) {
+	s := stateWith(api.ActionOffer{
+		ID: layOffOfferID("meld_1"), Verb: "lay_off", Enabled: false, WhyNot: "ROUND_REQ_NOT_MET",
+	})
+	if canLayOffAnywhere(s) {
+		t.Error("no meld is accepting a lay-off")
+	}
+}
+
+func TestSwapJoker_OfferedOnlyWhereTheServerOffersIt(t *testing.T) {
+	s := stateWith(
+		api.ActionOffer{
+			ID: swapJokerOfferID("meld_3"), Verb: "swap_joker", Enabled: true,
+			Source: &api.Selector{Zone: "hand", Cards: []string{"4S"}},
+		},
+		api.ActionOffer{
+			ID: swapJokerOfferID("meld_1"), Verb: "swap_joker", Enabled: false, WhyNot: "NO_JOKER_IN_MELD",
+		},
+	)
+	if !canSwapJokerOn(s, "meld_3") {
+		t.Error("meld_3 has a joker a card in hand can replace")
+	}
+	if canSwapJokerOn(s, "meld_1") {
+		t.Error("meld_1 has no swappable joker")
+	}
+	if got := eligibleCards(s, swapJokerOfferID("meld_3")); len(got) != 1 || got[0] != "4S" {
+		t.Errorf("swap cards = %v, want [4S]", got)
+	}
+}
+
+func TestReasonText_NeverLeaksARawCode(t *testing.T) {
+	if got := reasonText("DISCARD_LOCKED", ""); got != "discard pickup is locked for now" {
+		t.Errorf("got %q", got)
+	}
+	// A code this client has not been taught must fall back, not print
+	// SCREAMING_SNAKE at the player.
+	if got := reasonText("SOME_FUTURE_CODE", "not available"); got != "not available" {
+		t.Errorf("got %q, want the fallback", got)
+	}
+	if got := reasonText("", "fine"); got != "fine" {
+		t.Errorf("got %q, want the fallback", got)
+	}
+}
+
+func TestAvailableMovesLine(t *testing.T) {
+	t.Run("lists what the server offers", func(t *testing.T) {
+		s := stateWith(
+			api.ActionOffer{ID: OfferDrawDeck, Verb: "draw", Enabled: true},
+			api.ActionOffer{ID: OfferDrawDiscard, Verb: "draw", Enabled: false, WhyNot: "DISCARD_LOCKED"},
+			api.ActionOffer{ID: OfferLayMeld, Verb: "lay_meld", Enabled: false, WhyNot: "WRONG_PHASE"},
+			api.ActionOffer{ID: OfferDiscard, Verb: "discard", Enabled: false, WhyNot: "WRONG_PHASE"},
+		)
+		got := availableMovesLine(s)
+		if !strings.Contains(got, "draw") {
+			t.Errorf("expected the available move to be listed: %q", got)
+		}
+		if strings.Contains(got, "take discard") {
+			t.Errorf("a locked pickup should not be listed as available: %q", got)
+		}
+	})
+
+	t.Run("explains an empty move list", func(t *testing.T) {
+		s := stateWith(
+			api.ActionOffer{ID: OfferDrawDeck, Verb: "draw", Enabled: false, WhyNot: "NOT_YOUR_TURN"},
+			api.ActionOffer{ID: OfferDiscard, Verb: "discard", Enabled: false, WhyNot: "NOT_YOUR_TURN"},
+		)
+		got := availableMovesLine(s)
+		if !strings.Contains(got, "not your turn") {
+			t.Errorf("expected the engine's reason to be surfaced: %q", got)
+		}
+	})
+
+	t.Run("renders nothing at all without an offer list", func(t *testing.T) {
+		if got := availableMovesLine(api.GameState{}); got != "" {
+			t.Errorf("want an empty line against a pre-Phase-1 server, got %q", got)
+		}
+	})
+}
+
+// TestOffersFileHoldsNoRuleKnowledge is the acceptance test for this module.
+// It exists to end the drift caused by clients re-deriving rules; if a rule
+// expression creeps back in, the drift starts over — so assert its absence
+// directly rather than trusting review.
+func TestOffersFileHoldsNoRuleKnowledge(t *testing.T) {
+	src, err := os.ReadFile("offers.go")
+	if err != nil {
+		t.Fatalf("read offers.go: %v", err)
+	}
+	// Strip comments: they legitimately discuss the rules this file avoids
+	// implementing, and the reasonMessages table legitimately names the
+	// engine's error codes.
+	var body strings.Builder
+	for _, line := range strings.Split(string(src), "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "//") {
+			continue
+		}
+		if strings.Contains(line, `":`) && strings.Contains(line, `",`) {
+			continue // a reasonMessages entry: a code plus its wording
+		}
+		body.WriteString(line + "\n")
+	}
+
+	for _, forbidden := range []struct {
+		what    string
+		pattern string
+	}{
+		{"a phase comparison", `(Phase|phase)\s*==`},
+		{"roundReqMet", `RoundReqMet`},
+		{"a profile name", `zolik_classic|continental`},
+		{"a joker literal", `JOKER`},
+		{"a card rank table", `"[2-9TJQKA][HDSC]"`},
+	} {
+		if regexp.MustCompile(forbidden.pattern).MatchString(body.String()) {
+			t.Errorf("offers.go contains %s — rule knowledge belongs on the server, "+
+				"as a new field on the offer", forbidden.what)
+		}
+	}
+}

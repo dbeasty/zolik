@@ -333,7 +333,7 @@ func (m gameModel) view(width, height int) string {
 	var b strings.Builder
 
 	header := fmt.Sprintf("ŽOLÍKY │ %s │ Round %d │ Deck: %d │ ",
-		dealHeaderLabel(m.state.RulesProfile, m.state.Game), m.state.Round, m.state.DeckCount)
+		dealHeaderLabel(m.state.Rules, m.state.Contract, m.state.Game), m.state.Round, m.state.DeckCount)
 	if m.state.CurrentTurn == m.root.session.UserID {
 		header += "Your turn"
 	} else {
@@ -403,15 +403,19 @@ func (m gameModel) view(width, height int) string {
 		b.WriteString(render.RenderHandWithNumbers(m.state.MyHand, sel) + "\n")
 	}
 
-	if m.state.InitialMeldMinimum > 0 && !m.state.RoundReqMet[m.root.session.UserID] {
+	if m.state.Rules.InitialMeldMinimum > 0 && !m.state.RoundReqMet[m.root.session.UserID] {
 		cards := selectedCards(m.state.MyHand, m.selected)
 		nv := approximateNaturalValue(cards)
-		ok := nv >= m.state.InitialMeldMinimum
+		ok := nv >= m.state.Rules.InitialMeldMinimum
 		flag := "✗"
 		if ok {
 			flag = "✓"
 		}
-		b.WriteString(fmt.Sprintf("Natural value: %d (min %d) %s\n", nv, m.state.InitialMeldMinimum, flag))
+		b.WriteString(fmt.Sprintf("Natural value: %d (min %d) %s\n", nv, m.state.Rules.InitialMeldMinimum, flag))
+	}
+
+	if moves := availableMovesLine(m.state); moves != "" {
+		b.WriteString(moves + "\n")
 	}
 
 	refs := make([]playerRef, 0, len(m.state.Players))

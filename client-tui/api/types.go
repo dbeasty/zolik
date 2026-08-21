@@ -26,9 +26,73 @@ type GameState struct {
 	InitialMeldMinimum  int                   `json:"initialMeldMinimum"`
 	DiscardDrawMinRound int                   `json:"discardDrawMinRound"`
 	// RulesProfile names the variation this game runs ("continental" |
-	// "zolik_classic"). Needed to label the deal correctly: only Continental
-	// has a fixed seven-deal match with a per-deal contract.
+	// "zolik_classic"). Display only — never switch behaviour on it; read
+	// Rules and Contract below instead, so a profile this client has never
+	// heard of still renders correctly.
 	RulesProfile string `json:"rulesProfile"`
+
+	// LegalActions is what this player may do right now, decided by the
+	// server's ruleset. Read it through ui/offers.go rather than re-deriving
+	// legality from the fields above — see docs/extensibility-plan.md Phase 1.
+	LegalActions []ActionOffer `json:"legalActions"`
+	// Rules is the game's fully-resolved ruleset.
+	Rules ResolvedRules `json:"rules"`
+	// Contract is what a player must lay down to go down on this deal. It
+	// replaces the copy of the Continental contract table this client used
+	// to carry in ui/helpers.go.
+	Contract Contract `json:"contract"`
+}
+
+// ActionOffer mirrors the server's rules.ActionOffer.
+type ActionOffer struct {
+	ID      string `json:"id"`
+	Verb    string `json:"verb"`
+	Enabled bool   `json:"enabled"`
+	// WhyNot is the engine's error code for a disabled offer — a stable
+	// key, not a sentence, so the wording stays owned by the client.
+	WhyNot string    `json:"whyNot"`
+	Source *Selector `json:"source"`
+	Target *Selector `json:"target"`
+}
+
+type Selector struct {
+	Zone       string      `json:"zone"`
+	OwnerID    string      `json:"ownerId"`
+	MeldID     string      `json:"meldId"`
+	Cards      []string    `json:"cards"`
+	Placements []Placement `json:"placements"`
+	MinCards   int         `json:"minCards"`
+	MaxCards   int         `json:"maxCards"`
+}
+
+// Placement is one card an offer accepts, plus which end(s) of a run it may
+// extend. No positions means "send no position hint".
+type Placement struct {
+	Card      string   `json:"card"`
+	Positions []string `json:"positions"`
+}
+
+// ResolvedRules mirrors the server's RulesMsg — the ruleset this game
+// actually runs under, rather than constants re-typed per profile name.
+type ResolvedRules struct {
+	Profile                string `json:"profile"`
+	DealSize               int    `json:"dealSize"`
+	MinSetSize             int    `json:"minSetSize"`
+	MinRunSize             int    `json:"minRunSize"`
+	InitialMeldMinimum     int    `json:"initialMeldMinimum"`
+	DiscardDrawMinRound    int    `json:"discardDrawMinRound"`
+	DiscardPickupMode      string `json:"discardPickupMode"`
+	JokerDiscardRestricted bool   `json:"jokerDiscardRestricted"`
+	FixedDealCount         int    `json:"fixedDealCount"`
+	MatchEndMode           string `json:"matchEndMode"`
+	TargetScore            int    `json:"targetScore"`
+}
+
+// Contract is the sets/runs/clean-run combination required to go down.
+type Contract struct {
+	Sets            int  `json:"sets"`
+	Runs            int  `json:"runs"`
+	RequireCleanRun bool `json:"requireCleanRun"`
 }
 
 type MeldMeta struct {
