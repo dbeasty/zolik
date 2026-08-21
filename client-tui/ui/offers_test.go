@@ -162,6 +162,76 @@ func TestAvailableMovesLine(t *testing.T) {
 	})
 }
 
+func TestPreviewLine(t *testing.T) {
+	t.Run("renders nothing with no selection", func(t *testing.T) {
+		if got := previewLine(nil); got != "" {
+			t.Errorf("want empty, got %q", got)
+		}
+		if got := previewLine(&api.MeldPreview{}); got != "" {
+			t.Errorf("want empty for an empty selection, got %q", got)
+		}
+	})
+
+	t.Run("reports the shape and value the server computed", func(t *testing.T) {
+		got := previewLine(&api.MeldPreview{
+			Cards: []string{"QH", "QD", "QC"}, Valid: true, Type: "set",
+			NaturalValue: 30, Playable: true,
+		})
+		if !strings.Contains(got, "set") || !strings.Contains(got, "30") {
+			t.Errorf("want the shape and value, got %q", got)
+		}
+	})
+
+	t.Run("flags the floor against the server figure", func(t *testing.T) {
+		short := previewLine(&api.MeldPreview{
+			Cards: []string{"QH", "QD", "QC"}, Valid: true, Type: "set",
+			NaturalValue: 30, InitialMeldMinimum: 50, MeetsMinimum: false, Playable: true,
+		})
+		if !strings.Contains(short, "min 50") || !strings.Contains(short, "✗") {
+			t.Errorf("want a failing floor flag, got %q", short)
+		}
+		ok := previewLine(&api.MeldPreview{
+			Cards: []string{"QH", "QD", "QC"}, Valid: true, Type: "set",
+			NaturalValue: 30, InitialMeldMinimum: 25, MeetsMinimum: true, Playable: true,
+		})
+		if !strings.Contains(ok, "✓") {
+			t.Errorf("want a passing floor flag, got %q", ok)
+		}
+	})
+
+	t.Run("omits the floor entirely when there is none", func(t *testing.T) {
+		got := previewLine(&api.MeldPreview{
+			Cards: []string{"QH"}, NaturalValue: 10, InitialMeldMinimum: 0, Playable: false,
+			WhyNot: "INVALID_MELD", WhyNotPlayable: "INVALID_MELD",
+		})
+		if strings.Contains(got, "min") {
+			t.Errorf("no floor configured, so none should be shown: %q", got)
+		}
+	})
+
+	t.Run("does not state the same problem twice", func(t *testing.T) {
+		// An invalid selection is unplayable *because* it is invalid. Saying
+		// so in both halves of the line reads as two separate faults.
+		got := previewLine(&api.MeldPreview{
+			Cards: []string{"QH", "5H"}, Valid: false, NaturalValue: 15,
+			WhyNot: "INVALID_MELD", Playable: false, WhyNotPlayable: "INVALID_MELD",
+		})
+		if strings.Count(got, reasonMessages["INVALID_MELD"]) > 1 {
+			t.Errorf("reason stated twice: %q", got)
+		}
+	})
+
+	t.Run("explains a valid meld that still cannot be played", func(t *testing.T) {
+		got := previewLine(&api.MeldPreview{
+			Cards: []string{"QH", "QD", "QC"}, Valid: true, Type: "set", NaturalValue: 30,
+			Playable: false, WhyNotPlayable: "NOT_YOUR_TURN",
+		})
+		if !strings.Contains(got, reasonMessages["NOT_YOUR_TURN"]) {
+			t.Errorf("want the playability reason, got %q", got)
+		}
+	})
+}
+
 // TestOffersFileHoldsNoRuleKnowledge is the acceptance test for this module.
 // It exists to end the drift caused by clients re-deriving rules; if a rule
 // expression creeps back in, the drift starts over — so assert its absence

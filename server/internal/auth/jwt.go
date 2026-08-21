@@ -115,4 +115,3 @@ func CreateRefreshToken() (string, error) {
 	// 32 bytes -> 64 hex chars.
 	return NewRandomToken(32)
 }
-

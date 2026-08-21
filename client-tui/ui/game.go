@@ -29,6 +29,10 @@ type gameModel struct {
 	swapPick   bool
 	meldLabels map[string]string // meldId -> letter
 	roundData  map[string]any
+	// preview is the server's verdict on the current selection, refreshed
+	// whenever it changes. nil means nothing selected (or nothing answered
+	// yet) — this client no longer prices a selection itself.
+	preview *api.MeldPreview
 }
 
 func newGameModel(root *Root) gameModel {
@@ -170,6 +174,7 @@ func (m gameModel) update(msg tea.Msg) (gameModel, tea.Cmd) {
 	case " ":
 		if len(m.state.MyHand) > 0 {
 			m.selected[m.cursor] = !m.selected[m.cursor]
+			return m, m.requestPreview()
 		}
 	case "m", "M":
 		cards := selectedCards(m.state.MyHand, m.selected)
@@ -207,11 +212,13 @@ func (m gameModel) update(msg tea.Msg) (gameModel, tea.Cmd) {
 				if idx < len(m.state.MyHand) {
 					m.selected[idx] = !m.selected[idx]
 					m.cursor = idx
+					return m, m.requestPreview()
 				}
 			}
 			if d == '0' && len(m.state.MyHand) >= 10 {
 				m.selected[9] = !m.selected[9]
 				m.cursor = 9
+				return m, m.requestPreview()
 			}
 		}
 	}
@@ -230,6 +237,13 @@ func (m gameModel) handleWS(raw []byte) (gameModel, tea.Cmd) {
 		if err := json.Unmarshal(raw, &st); err == nil {
 			m.state = st
 			m.selected = map[int]bool{}
+			// The selection is gone, so the preview describing it is stale.
+			m.preview = nil
+		}
+	case "meld_preview":
+		var pv api.MeldPreview
+		if err := json.Unmarshal(raw, &pv); err == nil {
+			m.preview = &pv
 		}
 	case "error":
 		msg, _ := envelope["message"].(string)
@@ -254,6 +268,17 @@ func (m gameModel) handleWS(raw []byte) (gameModel, tea.Cmd) {
 		}
 	}
 	return m, nil
+}
+
+// requestPreview asks the server what the current selection would be worth.
+// Read-only: the server neither persists nor broadcasts a preview, so this is
+// safe to fire on every keystroke that changes the selection.
+func (m gameModel) requestPreview() tea.Cmd {
+	cards := selectedCards(m.state.MyHand, m.selected)
+	if len(cards) == 0 {
+		return nil
+	}
+	return m.send(api.WSAction{Type: "preview_meld", Cards: cards})
 }
 
 func (m gameModel) send(action api.WSAction) tea.Cmd {
@@ -403,15 +428,8 @@ func (m gameModel) view(width, height int) string {
 		b.WriteString(render.RenderHandWithNumbers(m.state.MyHand, sel) + "\n")
 	}
 
-	if m.state.Rules.InitialMeldMinimum > 0 && !m.state.RoundReqMet[m.root.session.UserID] {
-		cards := selectedCards(m.state.MyHand, m.selected)
-		nv := approximateNaturalValue(cards)
-		ok := nv >= m.state.Rules.InitialMeldMinimum
-		flag := "✗"
-		if ok {
-			flag = "✓"
-		}
-		b.WriteString(fmt.Sprintf("Natural value: %d (min %d) %s\n", nv, m.state.Rules.InitialMeldMinimum, flag))
+	if line := previewLine(m.preview); line != "" {
+		b.WriteString(line + "\n")
 	}
 
 	if moves := availableMovesLine(m.state); moves != "" {

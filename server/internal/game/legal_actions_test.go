@@ -289,3 +289,63 @@ func TestBuildGameStateMsg_OffersSerializeForTheClient(t *testing.T) {
 		t.Error("expected a meld-targeted offer to carry its meldId over the wire")
 	}
 }
+
+// TestMeldPreviewMsg_DoesNotCollideWithTheEnvelopeType guards a bug that fails
+// silently.
+//
+// MeldPreviewMsg embeds rules.MeldPreview and adds its own Type field for the
+// frame name. Both once marshalled to "type"; Go resolves that collision by
+// depth, so the envelope won and the meld kind vanished from the JSON with no
+// error anywhere — the client simply never learned whether it had a set or a
+// run.
+func TestMeldPreviewMsg_DoesNotCollideWithTheEnvelopeType(t *testing.T) {
+	g := offerGame(nil)
+	msg := MeldPreviewMsg{
+		Type:        "meld_preview",
+		MeldPreview: rules.PreviewMeld(toRulesState(g), "p1", []string{"KS", "KD", "KH"}),
+	}
+	raw, err := json.Marshal(msg)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+
+	var decoded map[string]any
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if decoded["type"] != "meld_preview" {
+		t.Errorf("type = %v, want meld_preview", decoded["type"])
+	}
+	if !msg.Valid {
+		t.Fatalf("fixture should be a valid set, got %+v", msg.MeldPreview)
+	}
+	if got := decoded["meldType"]; got != "set" {
+		t.Errorf("meldType = %v, want set — the meld kind must survive alongside the frame name", got)
+	}
+}
+
+// TestPreviewOverTheWire_MatchesTheEngine is the wire-level half of the
+// preview's anti-drift guarantee: whatever a client is told about a candidate,
+// laying exactly those cards must do exactly that.
+func TestPreviewOverTheWire_MatchesTheEngine(t *testing.T) {
+	for _, cards := range [][]string{
+		{"KS", "KD", "KH"},
+		{"4H", "9H"},
+		{"4H"},
+		nil,
+	} {
+		g := offerGame(nil)
+		preview := rules.PreviewMeld(toRulesState(g), "p1", cards)
+
+		action, err := toRulesAction(WSIncoming{Type: "lay_meld", Cards: cards})
+		if err != nil {
+			t.Fatalf("wire cannot carry lay_meld %v: %v", cards, err)
+		}
+		_, applyErr := rules.ApplyAction(toRulesState(cloneGame(g)), "p1", action)
+
+		if preview.Playable != (applyErr == nil) {
+			t.Errorf("cards %v: preview says playable=%v, engine says %v",
+				cards, preview.Playable, applyErr)
+		}
+	}
+}

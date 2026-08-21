@@ -10,14 +10,14 @@ import (
 )
 
 type scoreTableModel struct {
-	root     *Root
-	players  []string
-	session  string
-	round    int
-	input    string
-	typing   bool
-	export   string
-	errMsg   string
+	root    *Root
+	players []string
+	session string
+	round   int
+	input   string
+	typing  bool
+	export  string
+	errMsg  string
 }
 
 func newScoreTableModel(root *Root) scoreTableModel {

@@ -102,6 +102,29 @@ export type Contract = {
 };
 
 /**
+ * The server's verdict on a candidate meld, in reply to a `preview_meld`
+ * frame. Read-only: nothing is persisted or broadcast.
+ *
+ * `valid` answers "are these a meld?"; `playable` answers "may I lay them
+ * now?" — a valid set is unplayable on someone else's turn, and saying which
+ * is more useful than one greyed-out button. `whyNotPlayable` is always
+ * populated when `playable` is false, so a caller reads one field.
+ */
+export type MeldPreview = {
+  type: string;
+  cards: string[];
+  valid: boolean;
+  meldType?: string;
+  naturalValue: number;
+  wildCount: number;
+  whyNot?: string;
+  playable: boolean;
+  whyNotPlayable?: string;
+  initialMeldMinimum: number;
+  meetsMinimum: boolean;
+};
+
+/**
  * The game module's self-description, served by GET /module.
  *
  * A client renders its whole new-game form from this rather than carrying its

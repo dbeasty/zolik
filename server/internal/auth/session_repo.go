@@ -47,4 +47,3 @@ func (r *SessionRepository) DeleteByToken(ctx context.Context, token string) err
 	_, err := r.coll.DeleteOne(ctx, bson.M{"token": token})
 	return err
 }
-

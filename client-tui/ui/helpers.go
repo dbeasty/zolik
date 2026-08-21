@@ -63,28 +63,6 @@ func playerName(players []struct {
 	return id
 }
 
-func approximateNaturalValue(cards []string) int {
-	total := 0
-	for _, c := range cards {
-		if strings.HasPrefix(c, "JOKER") {
-			continue
-		}
-		if len(c) < 1 {
-			continue
-		}
-		r := c[0]
-		switch r {
-		case 'A':
-			total += 1
-		case 'K', 'Q', 'J', 'T':
-			total += 10
-		case '2', '3', '4', '5', '6', '7', '8', '9':
-			total += int(r - '0')
-		}
-	}
-	return total
-}
-
 func formatScores(totals map[string]int, players []playerRef) string {
 	var parts []string
 	for _, p := range players {

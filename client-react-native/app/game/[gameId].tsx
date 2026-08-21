@@ -20,7 +20,7 @@ import { useGameFlow } from '@/src/context/GameFlowContext';
 import { useSession } from '@/src/context/SessionContext';
 import { useDropPulseStyle } from '@/src/hooks/useDropPulse';
 import { useGameSocket } from '@/src/hooks/useGameSocket';
-import type { GameState, WSEnvelope } from '@/src/api/types';
+import type { GameState, MeldPreview, WSEnvelope } from '@/src/api/types';
 import {
   autoOrganizeHand,
   dealHeaderLabel,
@@ -86,6 +86,38 @@ const pileStyles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+
+/**
+ * Renders the server's verdict on the staged cards.
+ *
+ * Returns undefined while the answer in hand describes a *different*
+ * selection — the reply is a round trip behind the keystroke, and showing
+ * "valid run, 27 points" against cards the player has since changed is worse
+ * than showing nothing for a moment.
+ *
+ * Contains no rule knowledge: every fact here was computed by
+ * rules.PreviewMeld.
+ */
+function describePreview(preview: MeldPreview | null, expectKey: string): string | undefined {
+  if (!preview || preview.cards.join(',') !== expectKey) return undefined;
+
+  const shape = preview.valid
+    ? `Valid ${preview.meldType ?? 'meld'}`
+    : reasonText(preview.whyNot, 'Not a meld yet');
+  let line = `${shape} · ${preview.naturalValue} points`;
+  if (preview.initialMeldMinimum > 0) {
+    line += preview.meetsMinimum
+      ? ` (meets ${preview.initialMeldMinimum} ✓)`
+      : ` (needs ${preview.initialMeldMinimum} ✗)`;
+  }
+  // Only add a playability reason when the cards *are* a meld — otherwise the
+  // shape half already said it, and repeating it reads as two problems.
+  if (preview.valid && !preview.playable) {
+    const why = reasonText(preview.whyNotPlayable, '');
+    if (why) line += ` — ${why}`;
+  }
+  return line;
+}
 
 function selectedCards(hand: string[], selected: Set<number>): string[] {
   return hand.filter((_, i) => selected.has(i));
@@ -379,13 +411,35 @@ export default function GameScreen() {
     [setGameEnd],
   );
 
-  const { state, status, connected, send, reconnect } = useGameSocket({
+  const { state, status, connected, send, reconnect, preview, setPreview } = useGameSocket({
     gameId: id,
     onRoundEnd,
     onGameEnd,
   });
 
   const hand = localHand ?? state?.myHand ?? [];
+
+  // Ask the server what the first staged group would be worth. Read-only —
+  // the server neither persists nor broadcasts a preview — so it is safe to
+  // re-ask on every change. Previewing one group rather than all of them
+  // keeps the answer unambiguous: a "27 points, valid run" that silently
+  // referred to a different box than the one being edited would be worse than
+  // no readout. See docs/extensibility-plan.md Phase 2.3.
+  //
+  // Declared up here, above the `if (!state)` early return below, because it
+  // is a hook: it has to run on every render including the loading one, for
+  // the same reason the drag overlay's shared values are declared up top.
+  const previewKey = resolveGroupIndices(hand, groups)
+    .find((g) => g.length > 0)
+    ?.map((i) => hand[i])
+    .join(',') ?? '';
+  useEffect(() => {
+    if (!previewKey) {
+      setPreview(null);
+      return;
+    }
+    send({ type: 'preview_meld', cards: previewKey.split(',') });
+  }, [previewKey, send, setPreview]);
   const userId = session?.userId ?? '';
 
   // The server sends a fresh `myHand` array on every broadcast — including
@@ -638,6 +692,8 @@ export default function GameScreen() {
   }));
   const allStaged = new Set(resolvedGroups.flat());
 
+  const previewText = previewKey ? describePreview(preview, previewKey) : undefined;
+
   // A card moved into the meld area comes out of the hand entirely — only
   // Cancel (see cancelGroup) puts it back — so the hand row only ever shows
   // what's still actually in your hand to play with. HandRow only knows
@@ -836,6 +892,7 @@ export default function GameScreen() {
 
         {canBuildMeld ? (
           <MeldStagingArea
+            previewText={previewText}
             ref={stagingZoneRef}
             groups={stagingGroups}
             dragActive={draggedCard !== null}

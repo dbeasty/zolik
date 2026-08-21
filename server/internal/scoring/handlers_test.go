@@ -29,4 +29,3 @@ func TestBuildGetResp_TieDrawWhenRoundsWonEqual(t *testing.T) {
 		t.Fatalf("expected draw (nil winner) got %#v", *resp.Winner)
 	}
 }
-

@@ -37,6 +37,11 @@ type Props = {
   onLayAll: () => void;
   canLayAll: boolean;
   layCount: number;
+  // The server's verdict on what is staged: whether it is a meld, what it is
+  // worth, and whether it clears the initial-meld floor. Computed by the
+  // engine (rules.PreviewMeld) and pushed here, never guessed locally — see
+  // docs/extensibility-plan.md Phase 2.3.
+  previewText?: string;
   // Lets the parent screen measure each group's card-row rect, so a
   // dragged hand card's drop position (not just "somewhere in the staging
   // area") can be resolved to a specific group + index within it — see
@@ -82,6 +87,7 @@ export const MeldStagingArea = forwardRef<View, Props>(function MeldStagingArea(
     onLayAll,
     canLayAll,
     layCount,
+    previewText,
     onGroupRowRef,
     insertHover,
   },
@@ -121,6 +127,11 @@ export const MeldStagingArea = forwardRef<View, Props>(function MeldStagingArea(
       >
         <Text style={shared.buttonTextSecondary}>+ Add another run or set</Text>
       </Pressable>
+      {previewText ? (
+        <Text testID="staging-preview" style={styles.preview}>
+          {previewText}
+        </Text>
+      ) : null}
       <Pressable
         testID="lay-all-button"
         style={[shared.button, styles.layAllButton, !canLayAll && styles.disabled]}
@@ -362,6 +373,12 @@ const styles = StyleSheet.create({
   addButton: {
     marginTop: 12,
     marginBottom: 0,
+  },
+  preview: {
+    color: colors.muted,
+    fontSize: 12,
+    marginBottom: 6,
+    textAlign: 'center',
   },
   layAllButton: {
     marginTop: 10,

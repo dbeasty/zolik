@@ -28,24 +28,24 @@ type createReq struct {
 }
 
 type patchReq struct {
-	Round int            `json:"round"`  // 1..7
-	Scores map[string]int `json:"scores,omitempty"`
-	ScoresArr []int       `json:"scoresArr,omitempty"`
+	Round     int            `json:"round"` // 1..7
+	Scores    map[string]int `json:"scores,omitempty"`
+	ScoresArr []int          `json:"scoresArr,omitempty"`
 }
 
 type playerOut struct {
-	Name       string `json:"name"`
-	Scores     []int  `json:"scores"`
-	Total      int     `json:"total"`
-	RoundsWon  int     `json:"roundsWon"`
+	Name      string `json:"name"`
+	Scores    []int  `json:"scores"`
+	Total     int    `json:"total"`
+	RoundsWon int    `json:"roundsWon"`
 }
 
 type getResp struct {
 	ID        bson.ObjectID `json:"id"`
-	Players   []playerOut        `json:"players"`
-	Winner    *string            `json:"winner,omitempty"`
-	CreatedAt time.Time          `json:"createdAt"`
-	UpdatedAt time.Time          `json:"updatedAt"`
+	Players   []playerOut   `json:"players"`
+	Winner    *string       `json:"winner,omitempty"`
+	CreatedAt time.Time     `json:"createdAt"`
+	UpdatedAt time.Time     `json:"updatedAt"`
 }
 
 func (h *Handlers) RegisterRoutes(r chi.Router) {
@@ -79,7 +79,7 @@ func (h *Handlers) create(w http.ResponseWriter, req *http.Request) {
 	s := ScoringSession{
 		ID:        bson.NewObjectID(),
 		OwnerUser: "",
-		Players:  players,
+		Players:   players,
 		Rounds:    7,
 		CreatedAt: now,
 		UpdatedAt: now,
@@ -269,4 +269,3 @@ func buildGetResp(s ScoringSession) getResp {
 		UpdatedAt: s.UpdatedAt,
 	}
 }
-

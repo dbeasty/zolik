@@ -3,11 +3,11 @@ package db
 import "go.mongodb.org/mongo-driver/v2/mongo"
 
 type Collections struct {
-	Games       *mongo.Collection
-	Users       *mongo.Collection
-	Statistics  *mongo.Collection
-	Sessions    *mongo.Collection
-	Scoring     *mongo.Collection
+	Games      *mongo.Collection
+	Users      *mongo.Collection
+	Statistics *mongo.Collection
+	Sessions   *mongo.Collection
+	Scoring    *mongo.Collection
 }
 
 func (m *Mongo) Collections() Collections {
@@ -19,4 +19,3 @@ func (m *Mongo) Collections() Collections {
 		Scoring:    m.DB.Collection("scoring_sessions"),
 	}
 }
-

@@ -70,5 +70,3 @@ func (r *Repository) FindStatistics(ctx context.Context, userID bson.ObjectID) (
 	err := r.stats.FindOne(ctx, bson.M{"userId": userID}).Decode(&s)
 	return s, err
 }
-
-

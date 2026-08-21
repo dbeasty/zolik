@@ -84,4 +84,3 @@ func (m *Mongo) EnsureIndexes(ctx context.Context) error {
 
 	return nil
 }
-

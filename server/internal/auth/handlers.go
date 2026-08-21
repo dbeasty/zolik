@@ -324,4 +324,3 @@ func (h *Handlers) logout(w http.ResponseWriter, req *http.Request) {
 	}
 	_ = json.NewEncoder(w).Encode(map[string]any{"loggedOut": true})
 }
-

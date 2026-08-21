@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { apiClient } from '@/src/api/client';
-import type { GameState, WSAction, WSEnvelope } from '@/src/api/types';
+import type { GameState, MeldPreview, WSAction, WSEnvelope } from '@/src/api/types';
 
 type UseGameSocketOptions = {
   gameId: string;
@@ -17,6 +17,10 @@ export function useGameSocket({
   onGameEnd,
 }: UseGameSocketOptions) {
   const [state, setState] = useState<GameState | null>(null);
+  // The server's verdict on the cards currently staged. Read-only and
+  // per-connection: a preview is never persisted or broadcast, so it is
+  // cleared whenever fresh state arrives and the staged selection is gone.
+  const [preview, setPreview] = useState<MeldPreview | null>(null);
   const [status, setStatus] = useState('Connecting…');
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
@@ -76,6 +80,7 @@ export function useGameSocket({
           const st = envelope as unknown as GameState;
           stateRef.current = st;
           setState(st);
+          setPreview(null);
           setStatus('');
           if (pendingGameEndRef.current) {
             const data = pendingGameEndRef.current;
@@ -87,6 +92,8 @@ export function useGameSocket({
             pendingRoundEndRef.current = null;
             onRoundEndRef.current?.(data, st);
           }
+        } else if (t === 'meld_preview') {
+          setPreview(envelope as unknown as MeldPreview);
         } else if (t === 'error') {
           setStatus(`✗ ${String(envelope.message ?? 'Error')}`);
         } else if (t === 'deal_ended') {
@@ -161,5 +168,5 @@ export function useGameSocket({
     connect();
   }, [connect]);
 
-  return { state, status, connected, send, reconnect, setState };
+  return { state, status, connected, send, reconnect, setState, preview, setPreview };
 }

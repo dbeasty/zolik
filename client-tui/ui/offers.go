@@ -222,3 +222,43 @@ func availableMovesLine(state api.GameState) string {
 	}
 	return "MOVES │ none — " + reason
 }
+
+// previewLine renders the server's verdict on the current selection: what it
+// would be, what it is worth, and whether it clears the initial-meld floor.
+//
+// This replaces approximateNaturalValue, which was a second copy of the card
+// scoring table (server/internal/rules/scoring.go) kept in this client purely
+// to render this one line. It disagreed with the server about aces, and the
+// only way to notice was to lay the meld and be refused.
+func previewLine(p *api.MeldPreview) string {
+	if p == nil || len(p.Cards) == 0 {
+		return ""
+	}
+	shape := "not a meld"
+	if p.Valid {
+		shape = p.Type
+		if p.WildCount > 0 {
+			shape = fmt.Sprintf("%s, %d wild", shape, p.WildCount)
+		}
+	} else if reason := reasonText(p.WhyNot, ""); reason != "" {
+		shape = reason
+	}
+
+	line := fmt.Sprintf("SELECTION │ %s · %d pts", shape, p.NaturalValue)
+	if p.InitialMeldMinimum > 0 {
+		flag := "✗"
+		if p.MeetsMinimum {
+			flag = "✓"
+		}
+		line += fmt.Sprintf(" (min %d %s)", p.InitialMeldMinimum, flag)
+	}
+	// Only append a playability reason when the cards *are* a meld. When they
+	// are not, the shape half of the line already said so, and repeating it
+	// after a dash reads as two separate problems.
+	if !p.Playable && p.Valid {
+		if reason := reasonText(p.WhyNotPlayable, ""); reason != "" {
+			line += " — " + reason
+		}
+	}
+	return line
+}

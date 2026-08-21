@@ -11,4 +11,3 @@ func TestSubjectFromToken_DevFallback(t *testing.T) {
 		t.Fatalf("expected player123 got %s", subj)
 	}
 }
-

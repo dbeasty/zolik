@@ -131,3 +131,24 @@ type WSAction struct {
 	MeldID string   `json:"meldId,omitempty"`
 	Card   string   `json:"card,omitempty"`
 }
+
+// MeldPreview is the server's answer to a preview_meld frame: what the
+// currently selected cards would be if played. It replaces this client's own
+// card-scoring table (the old approximateNaturalValue), so the number shown
+// while choosing is computed by the same code that judges the submission —
+// see server/internal/rules/preview.go.
+type MeldPreview struct {
+	Cards []string `json:"cards"`
+	Valid bool     `json:"valid"`
+	// Type is the meld kind ("set"/"run"). Keyed meldType, not type: the
+	// envelope's own type field carries the frame name.
+	Type           string `json:"meldType"`
+	NaturalValue   int    `json:"naturalValue"`
+	WildCount      int    `json:"wildCount"`
+	WhyNot         string `json:"whyNot"`
+	Playable       bool   `json:"playable"`
+	WhyNotPlayable string `json:"whyNotPlayable"`
+
+	InitialMeldMinimum int  `json:"initialMeldMinimum"`
+	MeetsMinimum       bool `json:"meetsMinimum"`
+}

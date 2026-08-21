@@ -12,6 +12,7 @@ import (
 
 	"zolik/server/internal/auth"
 	"zolik/server/internal/db"
+	"zolik/server/internal/rules"
 )
 
 type WebSocketServer struct {
@@ -113,6 +114,17 @@ func (s *WebSocketServer) handleWS(w http.ResponseWriter, req *http.Request) {
 			})
 			continue
 		}
+		// A preview changes nothing: it answers "what would this be worth?"
+		// for a candidate the player is still assembling. It goes straight
+		// back to the asking connection rather than through HandleAction, so
+		// it never persists, never broadcasts and never touches the action
+		// log. See rules.PreviewMeld.
+		if in.Type == "preview_meld" {
+			if err := s.writeMeldPreview(ctx, wsConn, oid, playerID, in.Cards); err != nil {
+				log.Printf("game=%s player=%s preview failed: %v", gameID, playerID, err)
+			}
+			continue
+		}
 		if err := s.manager.HandleAction(ctx, gameID, playerID, in); err != nil {
 			_ = wsConn.WriteJSON(map[string]any{
 				"type":    "error",
@@ -121,4 +133,27 @@ func (s *WebSocketServer) handleWS(w http.ResponseWriter, req *http.Request) {
 			})
 		}
 	}
+}
+
+// MeldPreviewMsg is the reply to a preview_meld frame: what the candidate
+// cards would be if played. Read-only — nothing is persisted or broadcast.
+type MeldPreviewMsg struct {
+	Type string `json:"type"`
+	rules.MeldPreview
+}
+
+// writeMeldPreview answers one preview request on the asking connection.
+//
+// It reloads the game rather than trusting anything cached, because a preview
+// is only useful if it reflects the state the submission would actually hit —
+// an opponent's lay-off can change what the player's own candidate is worth.
+func (s *WebSocketServer) writeMeldPreview(
+	ctx context.Context, wsConn WSConn, oid bson.ObjectID, playerID string, cards []string,
+) error {
+	game, err := s.manager.repo.FindByID(ctx, oid)
+	if err != nil {
+		return err
+	}
+	preview := rules.PreviewMeld(toRulesState(game), playerID, cards)
+	return wsConn.WriteJSON(MeldPreviewMsg{Type: "meld_preview", MeldPreview: preview})
 }

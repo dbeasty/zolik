@@ -69,8 +69,8 @@ func (h *Handlers) me(w http.ResponseWriter, req *http.Request) {
 }
 
 type patchMeReq struct {
-	Username     *string           `json:"username,omitempty"`
-	Preferences  *models.UserPreferences `json:"preferences,omitempty"`
+	Username    *string                 `json:"username,omitempty"`
+	Preferences *models.UserPreferences `json:"preferences,omitempty"`
 }
 
 func (h *Handlers) patchMe(w http.ResponseWriter, req *http.Request) {
@@ -171,4 +171,3 @@ func (h *Handlers) leaderboard(w http.ResponseWriter, req *http.Request) {
 	}
 	_ = json.NewEncoder(w).Encode(out)
 }
-
