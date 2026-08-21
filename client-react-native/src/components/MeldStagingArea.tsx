@@ -58,18 +58,13 @@ type Props = {
 // side, each with its own Cancel. One "Lay meld" button at the bottom lays
 // every group that currently has cards in it, in one tap.
 //
-// Minimized to a single thin line whenever nothing is staged at all: the
-// full box (hint text + Cancel + Add + Lay meld) is tall, and since this
-// area only exists during the meld phase, its full height would appear the
-// instant you draw and vanish the instant you discard — a visible jump on
-// every single turn even when you never touch it. Shrinking the empty
-// state keeps that per-turn appearance/disappearance small; growing to the
-// full box only happens as the direct result of actually staging a card,
-// which is expected motion, not a surprise one. Safe from the double-tap-
-// to-discard regression this used to cause: expansion only follows the
-// same deferred toggle in HandRow that already waits out the double-tap
-// window before doing anything, or a drag-drop, which has no double-tap
-// ambiguity to begin with.
+// Always rendered at this same full shape (hint text + Cancel + Add + Lay
+// meld, all present but disabled when empty) rather than collapsing to a
+// thin strip when nothing is staged — a size/shape that changes based on
+// content moves every drop target below it while a drag is in flight,
+// which makes aiming a drop nondeterministic. Buttons disable via opacity
+// instead of unmounting, the same treatment the rest of this screen's
+// controls (Draw deck, Take discard, ...) already use.
 export const MeldStagingArea = forwardRef<View, Props>(function MeldStagingArea(
   {
     groups,
@@ -87,16 +82,7 @@ export const MeldStagingArea = forwardRef<View, Props>(function MeldStagingArea(
   },
   ref,
 ) {
-  const allEmpty = groups.every((g) => g.entries.length === 0);
   const pulseStyle = useDropPulseStyle(!!dragActive);
-
-  if (allEmpty) {
-    return (
-      <Animated.View testID="staging-zone" ref={ref} style={[styles.minimized, dragActive && pulseStyle]}>
-        <Text style={styles.minimizedHint}>Drag a card from your hand here to build a meld</Text>
-      </Animated.View>
-    );
-  }
 
   return (
     <Animated.View testID="staging-zone" ref={ref} style={[styles.box, dragActive && pulseStyle]}>
@@ -302,26 +288,6 @@ function DraggableStagedCard({
 }
 
 const styles = StyleSheet.create({
-  minimized: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderStyle: 'dashed',
-    borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    marginTop: 8,
-    // At least as tall as a dragged card (CardView is 72px) so the drop
-    // target is never smaller than the thing being dropped onto it — the
-    // old thin single-line strip made it easy to miss on both touch and
-    // mouse drags.
-    minHeight: 80,
-    justifyContent: 'center',
-  },
-  minimizedHint: {
-    color: colors.muted,
-    fontSize: 12,
-    textAlign: 'center',
-  },
   box: {
     borderWidth: 2,
     borderColor: colors.accentDim,

@@ -1,4 +1,11 @@
-import { autoOrganizeHand, cardSuit, displayRank, moveCardToIndex, parseCard } from '@/src/lib/cards';
+import {
+  autoOrganizeHand,
+  cardSuit,
+  displayRank,
+  isViableMeld,
+  moveCardToIndex,
+  parseCard,
+} from '@/src/lib/cards';
 
 describe('cards', () => {
   it('parses standard cards', () => {
@@ -78,5 +85,45 @@ describe('moveCardToIndex', () => {
 
   it('is a no-op when from equals to', () => {
     expect(moveCardToIndex(['A', 'B', 'C'], 1, 1)).toEqual(['A', 'B', 'C']);
+  });
+});
+
+describe('isViableMeld', () => {
+  it('accepts a three-of-a-kind set', () => {
+    expect(isViableMeld(['7H', '7C', '7D'], 4)).toBe(true);
+  });
+
+  it('rejects a set with a duplicate suit', () => {
+    expect(isViableMeld(['7H', '7H', '7D'], 4)).toBe(false);
+  });
+
+  it('accepts a joker filling out a set', () => {
+    expect(isViableMeld(['7H', '7C', 'JOKER1'], 4)).toBe(true);
+  });
+
+  it('accepts a same-suit consecutive run at the profile minimum', () => {
+    expect(isViableMeld(['2S', '3S', '4S'], 3)).toBe(true);
+    expect(isViableMeld(['2S', '3S', '4S'], 4)).toBe(false);
+  });
+
+  it('accepts a joker filling a gap in a run', () => {
+    expect(isViableMeld(['2S', 'JOKER1', '4S'], 3)).toBe(true);
+  });
+
+  it('accepts an ace as either the low or high end of a run', () => {
+    expect(isViableMeld(['AS', '2S', '3S'], 3)).toBe(true);
+    expect(isViableMeld(['QS', 'KS', 'AS'], 3)).toBe(true);
+  });
+
+  it('rejects a partial run shorter than the profile minimum', () => {
+    expect(isViableMeld(['2S', '3S'], 3)).toBe(false);
+  });
+
+  it('rejects cards that are neither a set nor a run', () => {
+    expect(isViableMeld(['2S', '3S', '9H'], 3)).toBe(false);
+  });
+
+  it('rejects more jokers than natural cards', () => {
+    expect(isViableMeld(['7H', 'JOKER1', 'JOKER2'], 3)).toBe(false);
   });
 });

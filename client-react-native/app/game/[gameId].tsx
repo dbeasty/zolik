@@ -25,6 +25,7 @@ import type { GameState, WSEnvelope } from '@/src/api/types';
 import {
   autoOrganizeHand,
   dealHeaderLabel,
+  isViableMeld,
   moveCardToIndex,
   profileDisplayName,
   rulesSummaryLines,
@@ -110,6 +111,7 @@ const pileStyles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 10,
     padding: 10,
+    paddingBottom: 22,
     alignItems: 'center',
   },
   pileBoxLabel: {
@@ -708,6 +710,26 @@ export default function GameScreen() {
   // overlay's shared values are declared up top instead of inside the JSX.
   const discardPulseStyle = useDropPulseStyle(draggedCard !== null && canDiscardNow);
 
+  // Minimum run length mirrors the server's per-profile rule (see
+  // rulesSummaryLines) — Žolík Classic allows 3-card runs, everything else
+  // needs 4.
+  const minRunLength = state?.rulesProfile === 'zolik_classic' ? 3 : 4;
+
+  // The moment the group currently being built already reads as a complete
+  // set or run, open the next box automatically — so a hand with two melds
+  // to lay doesn't need a manual "+ Add another run or set" tap in between.
+  // Runs once per group: right after this appends the empty tail, the tail
+  // itself is what's now last and it's empty, so the check below no-ops
+  // (returns the same array reference, so React doesn't even re-render).
+  useEffect(() => {
+    if (!canBuildMeld) return;
+    setGroups((prev) => {
+      const tail = prev[prev.length - 1];
+      if (!tail || tail.length === 0 || !isViableMeld(tail, minRunLength)) return prev;
+      return [...prev, []];
+    });
+  }, [groups, canBuildMeld, minRunLength]);
+
   function layOffCardAt(index: number, meldId: string, position: 'front' | 'end') {
     if (!canLayOff) return;
     const card = hand[index];
@@ -880,29 +902,32 @@ export default function GameScreen() {
     clearSelect();
   }
 
+  // Always pushed (grayed out rather than omitted) so the action bar's
+  // button count — and everything laid out below it — never changes as
+  // these become/stop being available mid-turn; see the disabled-not-
+  // unmounted pattern used throughout this screen.
+  //
   // Undo is only offered for taking the discard pile card — the game's
   // actual rule is that you can back out of that pickup and draw from the
   // deck instead, before anything else this turn has happened. Lay-off,
   // meld, and whole-turn undo remain implemented server-side but aren't
   // surfaced in this UI since they're not legal undos in this game.
-  if (state?.canUndoDiscardDraw) {
-    actions.push({ label: 'Undo take discard', onPress: undoTakeDiscard });
-  }
+  actions.push({
+    label: 'Undo take discard',
+    onPress: undoTakeDiscard,
+    disabled: !state?.canUndoDiscardDraw,
+  });
 
-  if (isMyTurn) {
-    if (phase === 'discard') {
-      const cards = selectedCards(hand, allStaged);
-      if (cards.length === 1) {
-        actions.push({
-          label: 'Discard',
-          onPress: () => {
-            send({ type: 'discard', card: cards[0] });
-            clearSelect();
-          },
-        });
-      }
-    }
-  }
+  const discardSelectedCards = isMyTurn && phase === 'discard' ? selectedCards(hand, allStaged) : [];
+  actions.push({
+    label: 'Discard',
+    onPress: () => {
+      if (discardSelectedCards.length !== 1) return;
+      send({ type: 'discard', card: discardSelectedCards[0] });
+      clearSelect();
+    },
+    disabled: discardSelectedCards.length !== 1,
+  });
 
   return (
     // The drag overlay's position:absolute left/top comes from the
@@ -997,31 +1022,43 @@ export default function GameScreen() {
             <Text style={pileStyles.meldBoxEmpty}>No melds on the table yet</Text>
           )}
 
-          {canBuildMeld ? (
-            <MeldStagingArea
-              ref={stagingZoneRef}
-              groups={stagingGroups}
-              dragActive={draggedCard !== null}
-              onRemove={unstageCard}
-              onReorderGroup={reorderGroup}
-              onCancelGroup={cancelGroup}
-              onAddGroup={addGroup}
-              canAddGroup={canAddGroup}
-              onLayAll={layAllGroups}
-              canLayAll={nonEmptyGroups.length > 0}
-              layCount={nonEmptyGroups.length}
-              onGroupRowRef={registerGroupRowRef}
-              insertHover={stagingInsertHover}
-            />
-          ) : null}
+          {/* Always mounted (not just during the meld phase) so the boxes
+              below it — the pending-meld warning, action bar, deck/discard
+              piles — never jump position as the phase changes; its own
+              buttons disable instead of unmounting for the same reason
+              (see the comment in MeldStagingArea itself). */}
+          <MeldStagingArea
+            ref={stagingZoneRef}
+            groups={stagingGroups}
+            dragActive={canBuildMeld && draggedCard !== null}
+            onRemove={unstageCard}
+            onReorderGroup={reorderGroup}
+            onCancelGroup={cancelGroup}
+            onAddGroup={addGroup}
+            canAddGroup={canBuildMeld && canAddGroup}
+            onLayAll={layAllGroups}
+            canLayAll={canBuildMeld && nonEmptyGroups.length > 0}
+            layCount={nonEmptyGroups.length}
+            onGroupRowRef={registerGroupRowRef}
+            insertHover={stagingInsertHover}
+          />
         </View>
 
-        {isMyTurn && state.discardDrawnCardPendingMeld ? (
-          <Text style={[shared.error, { marginTop: 8 }]}>
-            You picked up {state.discardDrawnCardPendingMeld} from the discard pile — it must go
-            into your initial meld before you can discard.
+        {/* Always mounted at a fixed height (same treatment as statusRow
+            above) so the action bar and piles below never shift position
+            as this warning comes and goes mid-turn. */}
+        <View
+          style={[
+            pileStyles.statusRow,
+            isMyTurn && state.discardDrawnCardPendingMeld ? pileStyles.statusRowError : undefined,
+          ]}
+        >
+          <Text style={isMyTurn && state.discardDrawnCardPendingMeld ? shared.errorBannerText : pileStyles.statusRowText}>
+            {isMyTurn && state.discardDrawnCardPendingMeld
+              ? `You picked up ${state.discardDrawnCardPendingMeld} from the discard pile — it must go into your initial meld before you can discard.`
+              : ' '}
           </Text>
-        ) : null}
+        </View>
 
         {/* Constant, always-visible action bar — what to do right now (draw,
             take discard, discard, undo) — placed directly above the deck/
