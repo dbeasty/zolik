@@ -332,9 +332,8 @@ func (m gameModel) view(width, height int) string {
 	compact := render.UseCompact(width)
 	var b strings.Builder
 
-	roundLbl := roundRequirementLabel(m.state.Game)
-	header := fmt.Sprintf("ŽOLÍKY │ Game %d of 7: %s │ Round %d │ Deck: %d │ ",
-		m.state.Game, roundLbl, m.state.Round, m.state.DeckCount)
+	header := fmt.Sprintf("ŽOLÍKY │ %s │ Round %d │ Deck: %d │ ",
+		dealHeaderLabel(m.state.RulesProfile, m.state.Game), m.state.Round, m.state.DeckCount)
 	if m.state.CurrentTurn == m.root.session.UserID {
 		header += "Your turn"
 	} else {

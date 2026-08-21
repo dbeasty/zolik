@@ -8,23 +8,27 @@ type GameState struct {
 	Game int `json:"game"`
 	// Round is laps around the table within the current deal; gates
 	// DiscardDrawMinRound below.
-	Round               int                    `json:"round"`
-	Phase               string                 `json:"phase"`
-	CurrentTurn         string                 `json:"currentTurn"`
-	MyHand              []string               `json:"myHand"`
-	DiscardPile         []string               `json:"discardPile"`
-	DeckCount           int                    `json:"deckCount"`
-	ReshuffleCount      int                    `json:"reshuffleCount"`
-	CardCounts          map[string]int         `json:"cardCounts"`
-	Melds               map[string][][]string  `json:"melds"`
-	MeldMeta            map[string][]MeldMeta  `json:"meldMeta"`
-	Players             []Player               `json:"players"`
-	RoundReqMet         map[string]bool        `json:"roundReqMet"`
-	TotalScores         map[string]int         `json:"totalScores"`
-	WinnerID            string                 `json:"winnerId"`
-	IsDraw              bool                   `json:"isDraw"`
-	InitialMeldMinimum  int                    `json:"initialMeldMinimum"`
-	DiscardDrawMinRound int                    `json:"discardDrawMinRound"`
+	Round               int                   `json:"round"`
+	Phase               string                `json:"phase"`
+	CurrentTurn         string                `json:"currentTurn"`
+	MyHand              []string              `json:"myHand"`
+	DiscardPile         []string              `json:"discardPile"`
+	DeckCount           int                   `json:"deckCount"`
+	ReshuffleCount      int                   `json:"reshuffleCount"`
+	CardCounts          map[string]int        `json:"cardCounts"`
+	Melds               map[string][][]string `json:"melds"`
+	MeldMeta            map[string][]MeldMeta `json:"meldMeta"`
+	Players             []Player              `json:"players"`
+	RoundReqMet         map[string]bool       `json:"roundReqMet"`
+	TotalScores         map[string]int        `json:"totalScores"`
+	WinnerID            string                `json:"winnerId"`
+	IsDraw              bool                  `json:"isDraw"`
+	InitialMeldMinimum  int                   `json:"initialMeldMinimum"`
+	DiscardDrawMinRound int                   `json:"discardDrawMinRound"`
+	// RulesProfile names the variation this game runs ("continental" |
+	// "zolik_classic"). Needed to label the deal correctly: only Continental
+	// has a fixed seven-deal match with a per-deal contract.
+	RulesProfile string `json:"rulesProfile"`
 }
 
 type MeldMeta struct {
