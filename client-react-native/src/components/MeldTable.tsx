@@ -126,15 +126,14 @@ export function MeldTable({
                     {meldId} ({meta?.type ?? '?'})
                   </Text>
                   <View style={styles.cards}>
-                    {isRun ? (
-                      <View style={[styles.insertMarker, hoverFront && styles.insertMarkerActive]} />
-                    ) : null}
+                    {/* Rendered for every meld, not just runs — a set's marker just
+                        never goes active — so a run's cards aren't indented past a
+                        set's by the marker's width and every row's cards line up. */}
+                    <View style={[styles.insertMarker, hoverFront && styles.insertMarkerActive]} />
                     {cards.map((c, i) => (
                       <CardView key={`${c}-${i}`} card={c} compact testID={`meld-card-${meldId}-${i}`} />
                     ))}
-                    {isRun ? (
-                      <View style={[styles.insertMarker, hoverEnd && styles.insertMarkerActive]} />
-                    ) : null}
+                    <View style={[styles.insertMarker, hoverEnd && styles.insertMarkerActive]} />
                   </View>
                   {showLayOff || (hasJoker && showSwapJoker) ? (
                     <View style={styles.meldActions}>
