@@ -37,7 +37,7 @@ frozen onto the match document and is the single home for a rule value.
 
 ---
 
-## Phase 1 — The server answers "what may I do?" ⬅ this phase
+## Phase 1 — The server answers "what may I do?" ✅ done
 
 **Thesis.** `GameStateMsg` today ships *facts* and no *affordances*, so each client re-derives
 legality. Phase 1 makes affordances a server output. It touches no persistence, no action
@@ -143,6 +143,47 @@ explicitly deferred to Phase 2 (see 2.3).
 `grep` for a rule expression in either client returns nothing outside the offer-lookup modules;
 both clients pass their suites; the e2e suite drives lay-off, discard-lock and undo affordances
 purely from offers. Eight rows leave §6's leak table.
+
+### 1.6 Outcome
+
+Delivered as planned, with three deviations worth recording.
+
+**The offer list turned out to be *sufficient*, not just correct — and that is testable.**
+`game/offer_driven_play_test.go` plays whole games with a client that may read the offer list and
+nothing else, through the real wire path, and fails the moment an offered action is refused or the
+offers leave the player on turn with nothing to do. Under `zolik_classic` it plays matches to
+completion. Under `continental` it gets players *down* but rarely out — a limitation of a 40-line
+shape-matching test client, not of the offers, and the test says so rather than asserting a bound
+that hides it.
+
+That test also found the one branch worth calling out: under a rotating contract, laying one set of
+a required two leaves a player unable to discard. The client is not told that rule and does not
+need to be — it can see `discard` is off and `undo:turn` is on, which is enough to recover. The
+offer list is not only describing what is legal, it is describing the way out of a dead end.
+
+**Two things were split out that the plan had lumped together.** The error-code *wording* went to
+`src/lib/messages.ts` / `reasonMessages` rather than living in the offer-lookup modules — caught by
+the no-rule-knowledge test, which is exactly the sort of thing it exists to catch, and it leaves
+Phase 2's locale bundle a single file to replace. And `runGrowthSides` returns a `known` flag, not
+just a side list: "cannot determine which end" and "grows both ends" are different answers, and
+collapsing them would have made the client send a position the validator rejects.
+
+**A hazard this work created, now guarded.** `toRulesState` hands the engine the match document's
+own maps and slices by reference, and the validators mutate in place. Computing offers means
+dry-running actions, so `BuildGameStateMsg` became the one read-only-looking function on the read
+path that could corrupt a document just by rendering it. The probes clone;
+`TestBuildGameStateMsg_DoesNotMutateTheGame` is what keeps them cloning. (This aliasing is
+pre-existing and is what Phase 3's envelope/state split removes properly.)
+
+**Two behaviour fixes fell out** rather than being coded: lay-off now honours the per-card run end
+the server will accept (dropping on the other end used to bounce with `WRONG_RUN_END` even when the
+move was legal), and "Swap joker here" is offered only where a card in hand actually takes that
+joker's place.
+
+**Left on §6's leak table**, deliberately: `approximateNaturalValue` (TUI) and the RN staging
+area's local validity guess. Both price a submission the server has not seen, so they need Phase
+2's preview round-trip (2.3), not the offer list. Both clients still hold their own card-string
+parsers and rank ordering — presentation-adjacent, and Phase 2/§7.1's job.
 
 ---
 

@@ -13,9 +13,26 @@ export type SeedGameOptions = {
   // Whose turn it is — defaults to the human player.
   currentTurn?: 'me' | 'ai';
   discardPile?: string[];
-  // Whether the human has already met their round requirement — gates
-  // lay-off in the UI (MeldTable's canLayOff).
+  // Whether the human has already met their round requirement — gates the
+  // lay-off offers the server sends.
   roundReqMet?: boolean;
+};
+
+/**
+ * Options fixed when the game is created, before any state is seeded.
+ *
+ * Separate from SeedGameOptions because the ruleset is frozen onto the
+ * document at creation (see rules.RulesConfig and game.setGameRules) and
+ * cannot be changed by debug-state afterwards — which is the whole point of
+ * persisting it.
+ */
+export type CreateGameOptions = {
+  // "continental" | "zolik_classic" (the server's default). Continental
+  // locks the discard pile until table round 3, which is how a spec reaches
+  // that affordance without playing three laps first.
+  rulesProfile?: string;
+  initialMeldMinimum?: number;
+  discardDrawMinRound?: number;
 };
 
 export type SeededGame = {
@@ -36,7 +53,11 @@ export type SeededGame = {
 // the server has ENABLE_TEST_ENDPOINTS/local dev on). This is what makes
 // specs fast: no need to play a full deal turn-by-turn just to reach the
 // state a UI interaction test actually wants to exercise.
-export async function seedGame(request: APIRequestContext, opts: SeedGameOptions): Promise<SeededGame> {
+export async function seedGame(
+  request: APIRequestContext,
+  opts: SeedGameOptions,
+  create: CreateGameOptions = {},
+): Promise<SeededGame> {
   const guestName = `e2e-${Math.random().toString(36).slice(2, 10)}`;
   const guestRes = await request.post(`${API_BASE}/auth/guest`, { data: { guestName } });
   if (!guestRes.ok()) throw new Error(`guest login failed: ${guestRes.status()} ${await guestRes.text()}`);
@@ -46,7 +67,7 @@ export async function seedGame(request: APIRequestContext, opts: SeedGameOptions
 
   const gameRes = await request.post(`${API_BASE}/games`, {
     headers: { Authorization: `Bearer ${token}` },
-    data: {},
+    data: create,
   });
   if (!gameRes.ok()) throw new Error(`create game failed: ${gameRes.status()} ${await gameRes.text()}`);
   const { gameId } = await gameRes.json();

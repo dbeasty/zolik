@@ -7,7 +7,8 @@ different UI.
 - **Baseline:** `main` @ `6152d9a`
 - **Scope read:** `server/internal`, `client-react-native/src`, `client-tui` (~16k LOC)
 - **Test state:** `go test ./...` green (89 rules, 16 AI, 24 game, 4 TUI, plus auth/scoring); RN Jest green
-- **Status:** every defect in §10 has been fixed; Phase 0 of the migration plan is complete
+- **Status:** every defect in §10 has been fixed; Phases 0 and 1 of the migration plan are complete
+- **Detailed build order:** [`extensibility-plan.md`](./extensibility-plan.md)
 
 ---
 
@@ -365,15 +366,15 @@ a rule that can drift from the first.
 
 | Location | Duplicated rule knowledge | Class |
 |---|---|---|
-| `client-tui/ui/helpers.go` `roundRequirementLabel()` | the full 7-deal Continental contract table, re-typed as English strings | duplicated table |
-| `client-tui/ui/helpers.go` `approximateNaturalValue()` | a second card-scoring table, for the live "natural value" readout | duplicated scoring |
-| ~~`client-tui/ui/game.go`~~ | `"Game %d of 7"` hardcoded in the header. **Fixed** — now `dealHeaderLabel(profile, game)`, mirroring the RN client. Still a *duplicated* label, so it stays on this list until §7.5 moves rule text into the module descriptor | duplicated table |
-| `client-react-native/src/lib/cards.ts` `rulesSummaryLines()` | deal size 12/13, min run 3/4, pickup modes, joker rule — the profile table restated in TypeScript | duplicated profiles |
-| `…/cards.ts` `parseCard`, `rankOrder`, `autoOrganizeHand` | card string encoding, rank ordering, what "set material" and "consecutive run" mean | presentation-adjacent |
-| `app/game/[gameId].tsx:448` | `canLayOff = isMyTurn && phase==='meld' && roundReqMet[me]` — the lay-off precondition re-derived client-side | legality in UI |
-| `app/game/[gameId].tsx:495` | `discardLocked = discardDrawMinRound > 1 && round < discardDrawMinRound` — same expression as `validate.go:45` | legality in UI |
-| `MeldTable.tsx` | `c.startsWith('JOKER')` to decide whether to offer "Swap joker here" | legality in UI |
-| `app/lobby/create.tsx` | `MELD_MINS = [0,35,50,70]`, `DISCARD_LOCK_ROUNDS = [0,1,2,3]` — the option space of a rule, as a client constant | config schema in UI |
+| ~~`client-tui/ui/helpers.go` `roundRequirementLabel()`~~ | **Fixed.** Deleted — the header reads the `contract` the server resolved for this deal | — |
+| `client-tui/ui/helpers.go` `approximateNaturalValue()` | a second card-scoring table, for the live "natural value" readout | duplicated scoring — prices an unsent selection, so it needs Phase 2.3's preview, not an offer |
+| ~~`client-tui/ui/game.go`~~ | **Fixed.** `dealHeaderLabel` now takes the resolved ruleset, not a profile name: a match with no fixed deal count no longer claims one, and a five-deal profile labels correctly | — |
+| ~~`client-react-native/src/lib/cards.ts` `rulesSummaryLines()`~~ | **Fixed.** Reads `state.rules` field by field; a test renders a profile no client code has heard of | — |
+| `…/cards.ts` `parseCard`, `rankOrder`, `autoOrganizeHand` | card string encoding, rank ordering, what "set material" and "consecutive run" mean | presentation-adjacent — §7.1 |
+| ~~`app/game/[gameId].tsx` `canLayOff`~~ | **Fixed.** Reads the per-meld `lay_off:<id>` offers — which are also *stricter*, since the server disables a meld nothing in hand fits | — |
+| ~~`app/game/[gameId].tsx` `discardLocked`~~ | **Fixed.** Reads `draw:discard`'s `enabled`/`whyNot`; the reason is rendered from the engine's own code | — |
+| ~~`MeldTable.tsx`~~ | **Fixed.** Reads the per-meld `swap_joker:<id>` offer, so the control appears only where a card in hand takes that joker's place | — |
+| `app/lobby/create.tsx` | `MELD_MINS = [0,35,50,70]`, `DISCARD_LOCK_ROUNDS = [0,1,2,3]` — the option space of a rule, as a client constant | config schema in UI — §7.5 / Phase 2.1 |
 | `client-tui/internal/render/cards.go` | card parsing and suit symbols — a third implementation of the encoding | presentation-adjacent |
 
 ### The root cause is the wire format, not the clients
@@ -387,6 +388,15 @@ generalising.
 
 The generalisation is the core proposal of §7: **ship the legal action list.** Then "which
 button is enabled" stops being a rules question the client answers and becomes a lookup.
+
+> **Shipped in Phase 1.** `GameStateMsg.legalActions` now carries the full offer set — every
+> affordance, enabled or not, each disabled one with the engine's own reason. The three
+> `canUndo*` booleans survive on the wire for older client builds but are *read back out of the
+> offer list* rather than recomputed, so they are a second spelling rather than a second
+> implementation. Both clients gained a pure-lookup module (`src/lib/offers.ts`,
+> `client-tui/ui/offers.go`) whose defining property — it holds no rule knowledge at all — is
+> asserted by a test that greps its own source. That test is what caught the error-message
+> wording sitting in the wrong file.
 
 ### Two more structural blockers
 
@@ -573,17 +583,23 @@ Delivered, along with the rest of §10:
 This unblocks adding a third profile: a house-rule override now survives a reload, and editing a
 shipped profile constant can no longer change a game already in progress.
 
-### Phase 1 — Ship `legalActions` alongside today's state — *next*
+### Phase 1 — Ship `legalActions` alongside today's state ✅ **done**
 
-Add `LegalActions(state, player) []ActionOffer` to the rules package and append it to
-`GameStateMsg`. Change nothing else. Then convert clients one control at a time — start with the
-three `canUndo*` flags, then `canLayOff`, then `discardLocked` — deleting the local derivation as
-each is replaced.
+`rules.LegalActions(state, player) []ActionOffer` now ships on every `GameStateMsg`, along with
+the resolved ruleset and the current deal's contract. Both clients read it; the local derivations
+are deleted, not synced.
 
-This phase alone removes most of §6's leak table and is independently valuable even if the rest
-is never built.
+The construction is what matters: every enabled/disabled decision is produced by *probing the real
+validator* against a cloned state and reading back its `RulesError`, so `LegalActions` cannot
+disagree with `ApplyAction` — it is not a second opinion, it is `ApplyAction`'s own answer asked in
+advance. `rules/offers_agreement_test.go` cross-checks the two across a corpus of states, both
+players and every concrete action, and a companion test asserts the corpus actually reaches every
+verb and every `whyNot` code so the agreement cannot pass vacuously.
 
-### Phase 2 — Ship `ViewModel` alongside `GameStateMsg`
+See [`extensibility-plan.md`](./extensibility-plan.md) §1 for the full task breakdown, what was
+found along the way, and what was deliberately left for Phase 2.
+
+### Phase 2 — Ship `ViewModel` alongside `GameStateMsg` — *next*
 
 Emit both from the same state; keep the old message for the TUI while the RN client migrates zone
 by zone. Move the profile rule text and contract labels into `ModuleDescriptor` as message keys,

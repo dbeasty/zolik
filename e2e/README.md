@@ -72,6 +72,28 @@ npx playwright test
   area or a table meld (both of which sit above the hand row) got
   silently rerouted into a discard instead. Caught by this suite.
 
+## What `legal-actions.spec.ts` covers
+
+It is the browser end of the legal-action work in
+`docs/extensibility-plan.md` Phase 1. The Go suites already prove the offers
+are correct (`server/internal/rules/offers_agreement_test.go` cross-checks
+every offer against `ApplyAction`) and sufficient
+(`server/internal/game/offer_driven_play_test.go` plays whole games with a
+client that reads nothing else). What only a real browser can prove is the
+last link: that the controls a player actually sees are driven by those
+offers, so a rule change on the server changes the UI with no client edit.
+
+Its load-bearing pair is the two discard-pile tests. Same screen, same
+client code, one game created under `continental` (which locks pickup until
+table round 3) and one under `zolik_classic` (which does not) — the UI tells
+them apart with no client-side rule, which is the entire claim. The second
+test is what stops the first from passing on a merely broken screen.
+
+`seedGame`'s third argument selects the ruleset. It has to be set at
+creation time, because the resolved ruleset is frozen onto the document then
+(see `rules.RulesConfig` and `game.setGameRules`) and `debug-state` cannot
+change it afterwards — which is the point of persisting it.
+
 ## Debug-state and card-supply conservation
 
 `debug-state` bypasses `rules` validation entirely and writes hands/melds
