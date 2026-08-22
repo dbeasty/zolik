@@ -10,8 +10,12 @@ import (
 	"zolik/server/internal/auth"
 	"zolik/server/internal/db"
 	"zolik/server/internal/game"
+	"zolik/server/internal/match"
+	"zolik/server/internal/module"
+	"zolik/server/internal/prsi"
 	"zolik/server/internal/scoring"
 	userrepo "zolik/server/internal/user"
+	"zolik/server/internal/zolikmod"
 )
 
 type App struct {
@@ -97,4 +101,12 @@ func (a *App) RegisterRoutes(r chi.Router) {
 
 	scoringHandlers := scoring.NewHandlers(a.db)
 	scoringHandlers.RegisterRoutes(r)
+
+	// The module runtime, mounted alongside the Žolíky path rather than
+	// replacing it. Every phase of this migration ships the new shape next to
+	// the old and retires the old only once nothing reads it — the existing
+	// game routes, documents and clients are untouched by this.
+	modules := module.NewRegistry(zolikmod.New(), prsi.New())
+	matchMgr := match.NewManager(match.NewRepository(a.db), modules, a.hub)
+	match.NewHandlers(matchMgr).RegisterRoutes(r)
 }

@@ -28,15 +28,19 @@ const (
 	pongWait     = 60 * time.Second
 )
 
-// pingableConn adapts gorilla's *websocket.Conn — which has no plain
+// PingableConn adapts gorilla's *websocket.Conn — which has no plain
 // Ping() error method, only WriteControl — to the WSConn interface, so the
 // keepalive ticker in handleWS can go through the same registry wrapper
 // (and its write mutex) as every other write to this socket.
-type pingableConn struct {
+//
+// Exported because the module runtime (internal/match) registers connections
+// with the same Hub and needs the same adapter; a second copy of it would be
+// a second place to get the control-frame deadline wrong.
+type PingableConn struct {
 	*websocket.Conn
 }
 
-func (c pingableConn) Ping() error {
+func (c PingableConn) Ping() error {
 	return c.WriteControl(websocket.PingMessage, nil, time.Now().Add(10*time.Second))
 }
 
@@ -98,7 +102,7 @@ func (s *WebSocketServer) handleWS(w http.ResponseWriter, req *http.Request) {
 	// response, must go through wsConn, since gorilla's websocket.Conn does
 	// not allow concurrent writers and an unsynchronized write can silently
 	// vanish.
-	wsConn, prev := s.manager.hub.Registry().Add(gameID, playerID, pingableConn{conn})
+	wsConn, prev := s.manager.hub.Registry().Add(gameID, playerID, PingableConn{conn})
 	if prev != nil {
 		log.Printf("game=%s player=%s ws connect: replacing existing connection", gameID, playerID)
 		_ = prev.Close()
