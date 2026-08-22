@@ -251,7 +251,7 @@ been throwaway work. `module.ViewModel` is that deliverable.
 
 ---
 
-## Phase 3 — Extract the runtime from the game — *interface done, persistence pending*
+## Phase 3 — Extract the runtime from the game ✅ done
 
 **Thesis.** Everything above works with one hardcoded game. Phase 3 makes the runtime not know
 which game it is running.
@@ -270,23 +270,43 @@ which game it is running.
 over a recorded match's action log proves the runtime swap changed no behaviour — this is the
 acceptance test for the whole phase.
 
-### 3.x Outcome — the interface exists; persistence does not use it yet
+### 3.x Outcome
 
 `internal/module` defines the contract; `internal/zolikmod` adapts the existing rules engine to
 it as an **adapter, not a rewrite** — `internal/rules` is the mature, heavily-tested part of this
 codebase and reshaping it to fit a new interface would have risked exactly the behaviour the
 interface exists to preserve.
 
-**What is deliberately not done:** the live `Manager`/`Hub`/Mongo path still calls the rules
-package directly. Splitting `models.Game` into envelope + opaque state, and making the manager
-generic over it, is the remaining half and is a separate, riskier change against a working
-product with a freshly merged trunk. Everything above it is in place and tested, so that step is
-now mechanical rather than exploratory.
+`models.Match` is the generic envelope and `internal/match` is the runtime that hosts it, mounted
+at `/modules`, `/matches` and `/ws/matches`. It mirrors `internal/game`'s shape deliberately —
+load, apply, persist under a version check, broadcast per viewer — because those are *runtime*
+properties, not rummy ones. What changed is the middle: the game-specific step is a call into
+whichever module owns the match, and per-viewer filtering moved into the module, since only the
+module knows what is secret in its own game.
+
+**Shipped alongside, not instead of.** The existing Žolíky routes, documents and clients are
+untouched, and `matches` is a separate collection from `games`. Migrating the rummy documents is
+a one-shot script worth running once the module path is the live one — see the remaining work
+below.
 
 **A property that came for free.** Behind an opaque blob, `Apply` decodes a fresh value, so it
 cannot mutate its caller's state. The rummy engine mutates in place and needed a regression test
 to stop a read-only-looking function corrupting a document; that hazard cannot exist through the
 module interface, and both modules are now pinned to it.
+
+**Proven end to end**, not just in memory: `e2e/tests/match-runtime.spec.ts` seats two human
+players on two real WebSockets and plays a whole Prší match to a winner, choosing every move from
+the offer list alone, then checks the database agrees with what the sockets reported. It also
+asserts through the real serialisation that a viewer never receives another player's cards.
+
+### What is left
+
+| Remaining | Why it was not done here |
+|---|---|
+| Migrate `games` documents into `matches` | A one-shot script, only worth running once the module path is the live one. Nothing depends on it yet. |
+| Retire `GameStateMsg` and the `game` package | It still serves the shipped RN and TUI clients. Both would need to move to the generic `match_state` shape first. |
+| A generic client shell | The RN client renders Žolíky specifically. A shell that renders `ViewModel` zones and offer buttons would let it play Prší with no new screen — the last claim in `architecture.md` §7.7 still untested in a browser. |
+| Module-scoped agents | `ai.HeuristicAgent` is a rummy player behind a rummy interface. `/matches/{id}/add-bot` seats a body but does not drive it. |
 
 ---
 

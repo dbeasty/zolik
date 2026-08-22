@@ -7,8 +7,8 @@ different UI.
 - **Baseline:** `main` @ `6152d9a`
 - **Scope read:** `server/internal`, `client-react-native/src`, `client-tui` (~16k LOC)
 - **Test state:** `go test ./...` green (89 rules, 16 AI, 24 game, 4 TUI, plus auth/scoring); RN Jest green
-- **Status:** every defect in §10 has been fixed. Phases 0–2 are complete, Phase 4 is complete,
-  and Phase 3's module contract exists with its persistence half still pending — see the plan
+- **Status:** every defect in §10 has been fixed; Phases 0–4 of the migration plan are complete.
+  Two games now run behind one runtime — see [`extensibility-plan.md`](./extensibility-plan.md)
 - **Detailed build order:** [`extensibility-plan.md`](./extensibility-plan.md)
 
 ---
@@ -606,7 +606,7 @@ Emit both from the same state; keep the old message for the TUI while the RN cli
 by zone. Move the profile rule text and contract labels into `ModuleDescriptor` as message keys,
 and add a locale bundle — the point at which a Czech UI becomes possible.
 
-### Phase 3 — Extract the runtime from the game — *interface done, persistence pending*
+### Phase 3 — Extract the runtime from the game ✅ **done**
 
 Introduce `GameModule`, register today's rules package as module `"zolik"`, and make
 `Manager`/`Hub`/repository generic over the opaque state blob. Split `models.Game` into envelope
