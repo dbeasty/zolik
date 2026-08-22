@@ -62,12 +62,21 @@ export async function flickUp(page: Page, from: Locator) {
   await page.mouse.move(x, y);
   await page.mouse.down();
   // Same load-bearing pause as dragPointTo (see its comment) so the pan
-  // gesture activates at all — then one large, fast upward jump with no
-  // settle pause before mouseup, so gesture-handler's velocity sample (taken
-  // from the last couple of pointermove events) reads as fast/upward enough
-  // to clear QUICK_SWIPE_UP_DISTANCE/VELOCITY.
+  // gesture activates at all — then a fast upward sweep with no settle pause
+  // before mouseup, so gesture-handler's velocity sample (taken from the last
+  // couple of pointermove events) reads as fast/upward enough to clear
+  // QUICK_SWIPE_UP_DISTANCE/VELOCITY.
+  //
+  // The step count is load-bearing too, and in the opposite direction to what
+  // you would expect: with `steps: 2` the jump is so abrupt that
+  // gesture-handler's web pointer manager never registers it as movement at
+  // all and *cancels* the gesture, so onEnd never fires and handleDragEnd is
+  // called with zeroed translation and velocity — a flick that reads as
+  // having gone nowhere. Measured: steps 2 → ty=0 vy=0; steps 6 → ty=-167
+  // vy=-4811; steps 10 → ty=-180 vy=-2419. Ten is comfortably inside the
+  // window at both ends.
   await page.waitForTimeout(200);
-  await page.mouse.move(x, y - 200, { steps: 2 });
+  await page.mouse.move(x, y - 200, { steps: 10 });
   await page.mouse.up();
   await page.waitForTimeout(400);
 }

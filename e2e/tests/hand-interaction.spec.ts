@@ -17,6 +17,12 @@ test.describe('hand reordering', () => {
     await expect(page.getByTestId('hand-card-0')).toContainText('2');
 
     const card = page.getByTestId('hand-card-0');
+    // Scroll first, then measure. page.mouse takes *viewport* coordinates
+    // while boundingBox() returns document ones, and the hand row sits below
+    // the fold on a 720px-tall viewport — so measuring first aims the pointer
+    // at empty space off-screen and no drag ever starts. Same rule the drag
+    // helpers follow; see e2e/README.md.
+    await card.scrollIntoViewIfNeeded();
     const box = (await card.boundingBox())!;
     // Slide right by ~3 slots (each ~70px including margin) — comfortably
     // past REORDER_COMMIT_RATIO so it lands a few positions over, not back
@@ -72,6 +78,8 @@ test.describe('drop-target highlight', () => {
 
     const staging = page.getByTestId('staging-zone');
     const card = page.getByTestId('hand-card-0');
+    // Scroll before measuring — see the note in the reordering test above.
+    await card.scrollIntoViewIfNeeded();
     const cardBox = (await card.boundingBox())!;
 
     const borderBefore = await staging.evaluate((el) => getComputedStyle(el).borderColor);

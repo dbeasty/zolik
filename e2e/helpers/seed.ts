@@ -102,6 +102,35 @@ export async function seedGame(
       data: body,
     });
     if (!res.ok()) throw new Error(`debug-state failed: ${res.status()} ${await res.text()}`);
+
+    await settle(body.currentTurn, body.phase);
+  }
+
+  /**
+   * Waits until the server actually reports the state we just wrote.
+   *
+   * Seeding races the AI. `start` deals a real game, and if the AI holds the
+   * opening turn its loop is already running when debug-state lands — so it
+   * can apply an action *after* our write and move the turn on, leaving the
+   * test looking at a board it never asked for. It is intermittent by nature,
+   * which made it show up as an occasional unexplained failure in whichever
+   * spec happened to lose the race rather than as a reproducible bug.
+   *
+   * Polling until the served state matches closes it for every spec at once,
+   * and costs nothing when there was no race (the first read already matches).
+   */
+  async function settle(wantTurn: string, wantPhase: string) {
+    for (let i = 0; i < 40; i++) {
+      const res = await request.get(`${API_BASE}/games/${gameId}`);
+      if (res.ok()) {
+        const info = await res.json();
+        if (info.currentTurn === wantTurn && info.phase === wantPhase) return;
+      }
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    throw new Error(
+      `debug-state never settled: expected turn=${wantTurn} phase=${wantPhase} within 2s`,
+    );
   }
 
   await reseed(opts);
