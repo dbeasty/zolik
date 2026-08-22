@@ -7,7 +7,8 @@ different UI.
 - **Baseline:** `main` @ `6152d9a`
 - **Scope read:** `server/internal`, `client-react-native/src`, `client-tui` (~16k LOC)
 - **Test state:** `go test ./...` green (89 rules, 16 AI, 24 game, 4 TUI, plus auth/scoring); RN Jest green
-- **Status:** every defect in §10 has been fixed; Phases 0 and 1 of the migration plan are complete
+- **Status:** every defect in §10 has been fixed. Phases 0–2 are complete, Phase 4 is complete,
+  and Phase 3's module contract exists with its persistence half still pending — see the plan
 - **Detailed build order:** [`extensibility-plan.md`](./extensibility-plan.md)
 
 ---
@@ -599,13 +600,13 @@ verb and every `whyNot` code so the agreement cannot pass vacuously.
 See [`extensibility-plan.md`](./extensibility-plan.md) §1 for the full task breakdown, what was
 found along the way, and what was deliberately left for Phase 2.
 
-### Phase 2 — Ship `ViewModel` alongside `GameStateMsg` — *next*
+### Phase 2 — Ship `ViewModel` alongside `GameStateMsg` ✅ **done** (2.4 folded into Phase 3)
 
 Emit both from the same state; keep the old message for the TUI while the RN client migrates zone
 by zone. Move the profile rule text and contract labels into `ModuleDescriptor` as message keys,
 and add a locale bundle — the point at which a Czech UI becomes possible.
 
-### Phase 3 — Extract the runtime from the game
+### Phase 3 — Extract the runtime from the game — *interface done, persistence pending*
 
 Introduce `GameModule`, register today's rules package as module `"zolik"`, and make
 `Manager`/`Hub`/repository generic over the opaque state blob. Split `models.Game` into envelope
@@ -616,7 +617,7 @@ Test strategy: the 80 existing rules tests are untouched (they call the engine d
 golden replay over the action log of a recorded match proves the runtime swap changed no
 behaviour.
 
-### Phase 4 — Prove it with a second module
+### Phase 4 — Prove it with a second module ✅ **done**
 
 Implement a deliberately different, small game — Prší (Czech Mau-Mau) is the right choice:
 shedding rather than melding, no draw/meld/discard phases, suit-and-rank matching, special-card
@@ -647,9 +648,12 @@ remaining effort on `RulesConfig` knobs instead.
 
 **Open decisions**
 
-1. **How different is "completely different"?** If the answer is "other rummies plus maybe Prší",
-   Phase 3 is optional. If it is "a card game platform", it is mandatory and should start earlier.
-   This single decision sets the plan's scope.
+1. ~~**How different is "completely different"?**~~ **Answered by building it.** Prší now runs
+   behind the same module contract as Žolíky, and a driver that reads only the offer list plays
+   both. The interface bent in exactly three places, all recorded in the plan's §4.x — an offer
+   parameter that is not a card, an action naming its offer, and a variation that is a name
+   rather than a number. None of them were visible from rummy alone, which is the argument for
+   having written the second game before fixing the interface.
 2. **Do modules load in-process or out?** In-process Go packages (proposed) are simplest. A
    plugin/WASM boundary would let third parties add games at a large cost in complexity.
    Recommend in-process until there is a second author.

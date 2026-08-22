@@ -190,7 +190,7 @@ parsers and rank ordering — presentation-adjacent, and Phase 2/§7.1's job.
 
 ---
 
-## Phase 2 — The module descriptor and the view model
+## Phase 2 — The module descriptor and the view model ✅ done (2.1–2.3), 2.4 folded into Phase 3
 
 **Thesis.** Phase 1 removes derived *legality*. Phase 2 removes derived *text and shape*.
 
@@ -227,9 +227,31 @@ the only layer that knows what is secret *in that game*.
 §6's leak table is empty. A Czech locale bundle renders the whole game. `GameStateMsg` has no
 readers left in the RN client.
 
+### 2.x Outcome
+
+**2.1 (descriptor) and 2.2 (message keys) shipped.** `GET /module` declares the module and the
+lobby renders from it; `rules.ValidateOptions` makes the declaration authoritative rather than
+decorative, so a value the schema does not list is a 400 on both create and settings. Message
+keys arrived with a working Czech bundle — the seam is real, not theoretical: a whole second
+language turned out to be a client-only change with no server edit.
+
+Two things the translation forced, which are worth keeping in mind for any further locale:
+counts are whole phrases per count rather than a number glued to a pluralised noun (Czech
+inflects the noun: *Jedna skupina* / *Dvě skupiny* / *Tři skupiny*), and lookup degrades
+locale → English → caller fallback → key, because an untranslated string is a bad day and a
+blank control is a bug report.
+
+**2.3 (submission previews) shipped** and removed the last duplicated scoring table. It reports
+`valid` and `playable` separately on purpose — a valid set is unplayable on someone else's turn,
+and saying which is more useful than one greyed-out control.
+
+**2.4 (ViewModel) was folded into Phase 3** rather than built twice. The module contract needed a
+`View` method anyway, and building a second view shape against `GameStateMsg` first would have
+been throwaway work. `module.ViewModel` is that deliverable.
+
 ---
 
-## Phase 3 — Extract the runtime from the game
+## Phase 3 — Extract the runtime from the game — *interface done, persistence pending*
 
 **Thesis.** Everything above works with one hardcoded game. Phase 3 makes the runtime not know
 which game it is running.
@@ -248,9 +270,27 @@ which game it is running.
 over a recorded match's action log proves the runtime swap changed no behaviour — this is the
 acceptance test for the whole phase.
 
+### 3.x Outcome — the interface exists; persistence does not use it yet
+
+`internal/module` defines the contract; `internal/zolikmod` adapts the existing rules engine to
+it as an **adapter, not a rewrite** — `internal/rules` is the mature, heavily-tested part of this
+codebase and reshaping it to fit a new interface would have risked exactly the behaviour the
+interface exists to preserve.
+
+**What is deliberately not done:** the live `Manager`/`Hub`/Mongo path still calls the rules
+package directly. Splitting `models.Game` into envelope + opaque state, and making the manager
+generic over it, is the remaining half and is a separate, riskier change against a working
+product with a freshly merged trunk. Everything above it is in place and tested, so that step is
+now mechanical rather than exploratory.
+
+**A property that came for free.** Behind an opaque blob, `Apply` decodes a fresh value, so it
+cannot mutate its caller's state. The rummy engine mutates in place and needed a regression test
+to stop a read-only-looking function corrupting a document; that hazard cannot exist through the
+module interface, and both modules are now pinned to it.
+
 ---
 
-## Phase 4 — Falsify the abstraction with a second module
+## Phase 4 — Falsify the abstraction with a second module ✅ done
 
 Implement **Prší** (Czech Mau-Mau): shedding, not melding; no draw/meld/discard phase triple;
 suit-and-rank matching; special-card effects. Chosen because it shares almost no vocabulary with
@@ -258,6 +298,35 @@ rummy — which is the point. If it needs no client change beyond assets, the ab
 
 Take the cheap AI wins from `architecture.md` §5.6 in the same phase (variable-length meld
 enumeration, joker swap), now that `Agent` is module-scoped.
+
+### 4.x Outcome — the abstraction held, and bent in three places
+
+`internal/prsi` implements Prší: 32 cards, no melds, no phase triple, no contract, and cards with
+effects (a 7 makes the next player draw two and stacks; an Ace skips; a Queen is wild and names
+the suit that follows).
+
+**The proof** is `module.PlayWithOffers`: a driver that may read a module's offer list and nothing
+else — it never decodes `State`, never names a rank, a suit, a meld or a phase — handed both
+games. It plays Prší to a winner on every seed tried, exercising all three verbs, and takes real
+turns in Žolíky without ever being refused an action it was offered.
+
+It cannot go *out* in Žolíky, and that is the documented limit rather than a surprise: going out
+needs a contract assembled from a meld *shape*, which the offer protocol deliberately does not
+enumerate (see §1.1's offer-explosion note). A UI shell has a human supplying that shape; the
+driver does not.
+
+**Where the interface bent** — each of these is a thing rummy alone would never have asked for,
+which is why the second game had to exist before the interface was fixed:
+
+| What Prší needed | Why rummy never asked | Result |
+|---|---|---|
+| An offer parameter that is not a card | Playing a Queen names the suit that follows — a choice with no card to drag and no zone to drop on. Every rummy action's input is cards. | `module.ParamSpec` |
+| An action naming the offer it came from | Žolíky has two draws sharing the verb `draw`; the verb alone cannot say which. Surfaced building the *adapter*, not Prší. | `Action.OfferID` |
+| A variation that is a name, not a number | An int-keyed options map has nowhere to put a profile name. | `MatchConfig{Variation, Options}` |
+
+**Where it did not bend:** zones/groups described a rummy table and a shedding pile without
+change; hidden-information filtering moved into `View` cleanly for both; and the descriptor shape
+expressed a game with *none* of Žolíky's knobs simply by declaring none.
 
 ---
 
