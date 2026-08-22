@@ -118,6 +118,12 @@ type Action struct {
 	// DiscardPickupAnyFromPile) to name which discard-pile card a
 	// draw_card{from:"discard"} action targets — empty means "the top card".
 	Card string
+	// CardIndex disambiguates which physical card Card names when the hand
+	// holds a duplicate value (two decks in play) — the hand-slot index the
+	// caller believes Card sits at. Currently only consulted by discard.
+	// nil (or out-of-range / non-matching) falls back to removing the first
+	// matching value, same as before this field existed.
+	CardIndex *int
 	// Position is an optional lay_off hint for run melds: "front" or "end"
 	// names which side of the run the dropped card(s) must extend, so a
 	// drag onto one specific end of a run does what it visually looks like

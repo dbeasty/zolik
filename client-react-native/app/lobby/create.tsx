@@ -91,7 +91,7 @@ export default function CreateLobbyScreen() {
 
         const values = defaultsFor(chosen, desc.options);
         for (const o of desc.options) {
-          const restored = restoreChoice(o, await storage.getItem(lastOptionKey(o.name)));
+          const restored = restoreChoice(o, await storage.getItem(lastOptionKey(o.name, chosen.id)));
           if (restored != null) values[o.name] = restored;
         }
         if (cancelled) return;
@@ -165,7 +165,7 @@ export default function CreateLobbyScreen() {
     setOptions((prev) => ({ ...prev, [option.name]: next }));
     try {
       await client.updateGameSettings(gameId, { [option.name]: next });
-      await storage.setItem(lastOptionKey(option.name), String(next));
+      await storage.setItem(lastOptionKey(option.name, profileId), String(next));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Update failed');
     }

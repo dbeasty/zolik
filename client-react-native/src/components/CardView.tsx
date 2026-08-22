@@ -41,7 +41,7 @@ export function CardView({ card, selected, justDrawn, dragging, onPress, compact
           d.isJoker && styles.joker,
         ]}
       >
-        <Text style={[styles.rank, d.isRed && styles.red]}>{d.rank}</Text>
+        <Text style={[styles.rank, d.isJoker && styles.jokerRank, d.isRed && styles.red]}>{d.rank}</Text>
         <Text style={[styles.suit, d.isRed && styles.red]}>{d.suitSymbol}</Text>
       </View>
     </View>
@@ -98,6 +98,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#1e293b',
+  },
+  // "JKR" is 3 characters vs. 1-2 for every other rank, so it needs its own
+  // (smaller) size to stay inside the card instead of overflowing the edge.
+  jokerRank: {
+    fontSize: 11,
   },
   suit: {
     fontSize: 18,

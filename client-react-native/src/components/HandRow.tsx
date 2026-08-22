@@ -88,6 +88,31 @@ export function pointInZone(x: number, y: number, zone: DropZone): boolean {
   return x >= zone.x && x <= zone.x + zone.width && y >= zone.y && y <= zone.y + zone.height;
 }
 
+// Table melds sit close together (especially once several are stacked
+// under one owner), so their hit-tested zones — each padded out from its
+// visual rect to make aiming forgiving — commonly overlap a neighbor's.
+// Picking the *first* zone a point falls in (array order) then silently
+// resolves a drop meant for meld B onto meld A whenever their padding
+// overlaps near the boundary. Picking the one whose unpadded center is
+// nearest the point instead disambiguates by "which meld is this actually
+// closest to", which matches what the player sees, regardless of how much
+// the padding overlaps.
+export function closestZone<T extends { zone: DropZone }>(x: number, y: number, zones: T[]): T | null {
+  let best: T | null = null;
+  let bestDist = Infinity;
+  for (const z of zones) {
+    if (!pointInZone(x, y, z.zone)) continue;
+    const cx = z.zone.x + z.zone.width / 2;
+    const cy = z.zone.y + z.zone.height / 2;
+    const dist = (x - cx) ** 2 + (y - cy) ** 2;
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = z;
+    }
+  }
+  return best;
+}
+
 // Which half of a meld's rect a point falls in — the left half means
 // "extend the front (low) end of the run", the right half "extend the end
 // (high) end". Runs render their cards left-to-right in ascending rank (see
@@ -195,6 +220,10 @@ function DraggableCard({
     onDragCardChange?.(card);
   }
 
+  function clearDragState() {
+    onDragCardChange?.(null);
+  }
+
   // Round-to-nearest-slot flips as soon as translationX crosses half a
   // slot's width (~29px) — barely past the pan gesture's 10px activation
   // distance. That gap was small enough that an ordinary tap with a little
@@ -264,7 +293,7 @@ function DraggableCard({
       return;
     }
     measureMeldZones((zones) => {
-      const hit = zones.find(({ zone }) => pointInZone(absoluteX, absoluteY, zone));
+      const hit = closestZone(absoluteX, absoluteY, zones);
       if (hit && onDropOnMeld) {
         onDropOnMeld(index, hit.meldId, zonePosition(absoluteX, hit.zone));
       } else {
@@ -301,9 +330,18 @@ function DraggableCard({
     });
   }
 
+  // Set synchronously inside onStart/onEnd's worklets (not via runOnJS —
+  // see onFinalize below for why the ordering matters) so onFinalize can
+  // tell whether the gesture ever actually got moving, and whether onEnd
+  // ran, before it fires.
+  const dragStarted = useSharedValue(false);
+  const dragEnded = useSharedValue(false);
+
   const pan = Gesture.Pan()
     .minDistance(10)
     .onStart((e) => {
+      dragStarted.value = true;
+      dragEnded.value = false;
       dragPreview.draggingIndex.value = index;
       dragPreview.active.value = true;
       // Keep the card glued to the exact point it was grabbed at, instead
@@ -321,11 +359,38 @@ function DraggableCard({
       if (onDragHover) runOnJS(onDragHover)(e.absoluteX, e.absoluteY);
     })
     .onEnd((e) => {
+      dragEnded.value = true;
       runOnJS(handleDragEnd)(e.translationX, e.translationY, e.velocityY, e.absoluteX, e.absoluteY);
     })
     .onFinalize(() => {
       dragPreview.active.value = false;
       dragPreview.draggingIndex.value = -1;
+      // onEnd only fires when the pan gesture is recognized as a genuine
+      // release — react-native-gesture-handler's web pointer manager can
+      // fail to emit it and cancel the gesture instead if the pointer sits
+      // still for a beat before lifting, which is completely ordinary human
+      // behavior when carefully aiming a drag at a small target (confirmed
+      // via e2e: a drag that pauses ~150ms before release over a table meld
+      // silently never sends the lay_off). Cancelled means handleDragEnd
+      // (the actual drop resolution — discard/meld/staging — and the
+      // onDragCardChange(null) that clears the hover highlights) never
+      // runs at all, so both the drop and the highlight get stranded.
+      // onFinalize always runs, success or cancel, so recover here using
+      // dragPreview.x/y — continuously updated on every onUpdate, so it
+      // still holds wherever the finger last was — with translation/
+      // velocity zeroed (only affects the reorder/quick-swipe fallback,
+      // which a cancelled gesture has no reliable numbers for anyway).
+      // Gated on dragStarted too: onFinalize also fires for a gesture that
+      // never activated at all (lost the Race to tap, or never even
+      // reached onStart) — dragPreview.x/y would still be whatever the
+      // *previous* drag on this card left them at (or 0,0 if there's never
+      // been one), so firing the fallback unconditionally could resolve a
+      // drop against a stale or bogus position instead of just no-oping.
+      if (dragStarted.value && !dragEnded.value) {
+        runOnJS(handleDragEnd)(0, 0, 0, dragPreview.x.value, dragPreview.y.value);
+      }
+      dragStarted.value = false;
+      runOnJS(clearDragState)();
     });
 
   const gesture = Gesture.Race(pan, tap);

@@ -172,7 +172,7 @@ func TestGoOut_BlockedWithoutRoundReq(t *testing.T) {
 	st.Hands[p] = []string{"KH"}
 	st.RoundReqMet[p] = false
 
-	_, goOut, err := ValidateDiscard(st, p, "KH")
+	_, goOut, err := ValidateDiscard(st, p, "KH", nil)
 	if err == nil && goOut {
 		t.Fatalf("expected cannot go out without round req")
 	}
@@ -212,6 +212,87 @@ func TestGame7_GoOutViaMeldWithoutDiscard(t *testing.T) {
 	}
 	if next.WinnerID == "" && !next.IsDraw {
 		t.Fatalf("expected winner or draw after game end")
+	}
+	// The meld that actually emptied the hand must still show up in the
+	// action log, not just its deal_ended/game_ended consequence — see
+	// endGameWithEvents callers in engine.go.
+	if len(outcome.Events) == 0 || outcome.Events[0].Type != "meld_played" {
+		t.Fatalf("expected meld_played to be the first emitted event, got %#v", outcome.Events)
+	}
+	sawDealEnded := false
+	for _, e := range outcome.Events[1:] {
+		if e.Type == "meld_played" {
+			t.Fatalf("meld_played should only be emitted once, got %#v", outcome.Events)
+		}
+		if e.Type == "deal_ended" {
+			sawDealEnded = true
+		}
+	}
+	if !sawDealEnded {
+		t.Fatalf("expected deal_ended after meld_played, got %#v", outcome.Events)
+	}
+}
+
+// TestGoOut_ViaDiscard_EmitsDiscardEventBeforeDealEnded guards against a
+// regression where the winning discard's own event was dropped from the
+// action log: ApplyAction built a "player_discarded" event, then on the
+// goOut path returned endGameWithEvents' fresh events slice instead of
+// prepending to it, silently losing the discard event (state was still
+// mutated correctly — only the log/broadcast lost the action).
+func TestGoOut_ViaDiscard_EmitsDiscardEventBeforeDealEnded(t *testing.T) {
+	p := "p1"
+	st := baseActiveState(1, p)
+	st.Phase = PhaseMeld
+	st.Hands[p] = []string{"9S"}
+	st.RoundReqMet[p] = true
+
+	outcome, err := ApplyAction(st, p, Action{Type: ActionDiscard, Card: "9S"})
+	if err != nil {
+		t.Fatalf("discard: %v", err)
+	}
+	if len(outcome.Events) == 0 || outcome.Events[0].Type != "player_discarded" {
+		t.Fatalf("expected player_discarded to be the first emitted event, got %#v", outcome.Events)
+	}
+	if outcome.Events[0].Data["card"] != "9S" {
+		t.Fatalf("expected discarded card 9S in event data, got %#v", outcome.Events[0].Data)
+	}
+	sawDealEnded := false
+	for _, e := range outcome.Events[1:] {
+		if e.Type == "deal_ended" {
+			sawDealEnded = true
+		}
+	}
+	if !sawDealEnded {
+		t.Fatalf("expected deal_ended after player_discarded, got %#v", outcome.Events)
+	}
+}
+
+// TestGoOut_ViaLayOff_EmitsLayoffEventBeforeDealEnded is the ActionLayOff
+// analogue of TestGoOut_ViaDiscard_EmitsDiscardEventBeforeDealEnded — same
+// dropped-event bug, different action type (game 7's discard-free go-out).
+func TestGoOut_ViaLayOff_EmitsLayoffEventBeforeDealEnded(t *testing.T) {
+	p := "p1"
+	st := baseActiveState(7, p)
+	st.Hands[p] = []string{"9H"}
+	st.RoundReqMet[p] = true
+	st.Melds[p] = [][]string{{"5H", "6H", "7H", "8H"}}
+	st.MeldMeta[p] = []MeldInfo{{MeldID: "m1", Type: MeldRun, OwnerID: p}}
+
+	outcome, err := ApplyAction(st, p, Action{Type: ActionLayOff, MeldID: "m1", Card: "9H"})
+	if err != nil {
+		t.Fatalf("lay off: %v", err)
+	}
+	if len(outcome.Events) == 0 || outcome.Events[0].Type != "card_laid_off" {
+		t.Fatalf("expected card_laid_off to be the first emitted event, got %#v", outcome.Events)
+	}
+	sawDealEnded := false
+	for _, e := range outcome.Events[1:] {
+		if e.Type == "deal_ended" {
+			sawDealEnded = true
+		}
+	}
+	if !sawDealEnded {
+		t.Fatalf("expected deal_ended after card_laid_off, got %#v", outcome.Events)
 	}
 }
 

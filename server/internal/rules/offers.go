@@ -440,17 +440,57 @@ func layOffPlacements(state GameState, cfg RulesConfig, playerID string, m table
 		}
 		p := Placement{Card: c}
 		if mv.Type == MeldRun {
-			// Empty Positions means "legal, but send no position hint" —
-			// either the end could not be resolved, or the card would grow
-			// both ends at once, in which case naming either end is what
-			// ValidateLayOff rejects. Same helper, same answer.
-			if sides, known := runGrowthSides(m.Cards, mv); known {
-				p.Positions = sides
-			}
+			p.Positions = droppableEnds(m.Cards, extended, cfg)
 		}
 		out = append(out, p)
 	}
 	return out
+}
+
+// droppableEnds lists which ends of an existing run a submission may be
+// dropped on.
+//
+// It asks the question the way ValidateLayOff answers it, once per end,
+// rather than resolving the run once and reading off the result. Two reasons,
+// both found by TestLegalActions_RunEndHintsMatchTheValidator:
+//
+//   - The validator re-resolves the run *preferring the end dropped on*, so a
+//     wild card is legal at the front and at the end even though any single
+//     resolution names only one.
+//   - When the ends cannot be resolved at all the validator imposes no
+//     constraint and accepts either end, so "unresolvable" means droppable,
+//     not undroppable.
+//
+// An empty result means "legal, but send no position hint" — the submission
+// grows both ends at once, which is exactly what naming either one would get
+// rejected for.
+func droppableEnds(prevCards, submission []string, cfg RulesConfig) []string {
+	minRun := cfg.MinRunSize
+	if minRun == 0 {
+		minRun = 4
+	}
+	var sides []string
+	for _, position := range []string{"front", "end"} {
+		mv, err := validateRun(submission, minRun, position == "end")
+		if err != nil {
+			continue
+		}
+		resolved, known := runGrowthSides(prevCards, mv)
+		if known && !containsString(resolved, position) {
+			continue // the validator would reject this end
+		}
+		sides = append(sides, position)
+	}
+	// Growing both ends at once is rejected whichever end is named, so offer
+	// no hint at all rather than one the server will refuse.
+	if len(sides) == 2 {
+		if mv, err := validateRun(submission, minRun); err == nil {
+			if resolved, known := runGrowthSides(prevCards, mv); known && len(resolved) == 0 {
+				return nil
+			}
+		}
+	}
+	return sides
 }
 
 func swapJokerOffer(state GameState, playerID string, m tableMeld, active bool) ActionOffer {

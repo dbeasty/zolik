@@ -1,4 +1,10 @@
-import { autoOrganizeHand, cardSuit, displayRank, moveCardToIndex, parseCard } from '@/src/lib/cards';
+import {
+  autoOrganizeHand,
+  cardSuit,
+  displayRank,
+  moveCardToIndex,
+  parseCard,
+} from '@/src/lib/cards';
 
 describe('cards', () => {
   it('parses standard cards', () => {
@@ -80,3 +86,4 @@ describe('moveCardToIndex', () => {
     expect(moveCardToIndex(['A', 'B', 'C'], 1, 1)).toEqual(['A', 'B', 'C']);
   });
 });
+

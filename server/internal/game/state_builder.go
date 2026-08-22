@@ -38,6 +38,7 @@ type GameStateMsg struct {
 	IsDraw                      bool                     `json:"isDraw,omitempty"`
 	InitialMeldMinimum          int                      `json:"initialMeldMinimum"`
 	DiscardDrawMinRound         int                      `json:"discardDrawMinRound"`
+	DiscardLocked               bool                     `json:"discardLocked"`
 	DiscardDrawnCardPendingMeld string                   `json:"discardDrawnCardPendingMeld,omitempty"`
 	RulesProfile                string                   `json:"rulesProfile"`
 
@@ -183,6 +184,13 @@ func BuildGameStateMsg(g models.Game, myPlayerID string) GameStateMsg {
 		o := rules.FindOffer(offers, id)
 		return o != nil && o.Enabled
 	}
+	offerWhyNot := func(id string) rules.RulesErrorCode {
+		o := rules.FindOffer(offers, id)
+		if o == nil || o.Enabled {
+			return ""
+		}
+		return o.WhyNot
+	}
 
 	players := make([]PlayerMsg, 0, len(g.Players))
 	for _, p := range g.Players {
@@ -210,26 +218,30 @@ func BuildGameStateMsg(g models.Game, myPlayerID string) GameStateMsg {
 	cfg := GameRules(g)
 	contract := cfg.ContractFor(g.GameNumber)
 	return GameStateMsg{
-		Type:                        "game_state",
-		Status:                      g.Status,
-		Game:                        g.GameNumber,
-		Round:                       g.Round,
-		Phase:                       phaseStr,
-		CurrentTurn:                 g.CurrentTurn,
-		MyHand:                      myHand,
-		DiscardPile:                 g.DiscardPile,
-		DeckCount:                   len(g.DrawPile),
-		ReshuffleCount:              g.ReshuffleCount,
-		CardCounts:                  cardCounts,
-		Melds:                       g.Melds,
-		MeldMeta:                    meldMeta,
-		Players:                     players,
-		RoundReqMet:                 g.RoundReqMet,
-		TotalScores:                 g.TotalScores,
-		WinnerID:                    g.WinnerID,
-		IsDraw:                      g.IsDraw,
-		InitialMeldMinimum:          cfg.InitialMeldMinimum,
-		DiscardDrawMinRound:         cfg.DiscardDrawMinRound,
+		Type:                "game_state",
+		Status:              g.Status,
+		Game:                g.GameNumber,
+		Round:               g.Round,
+		Phase:               phaseStr,
+		CurrentTurn:         g.CurrentTurn,
+		MyHand:              myHand,
+		DiscardPile:         g.DiscardPile,
+		DeckCount:           len(g.DrawPile),
+		ReshuffleCount:      g.ReshuffleCount,
+		CardCounts:          cardCounts,
+		Melds:               g.Melds,
+		MeldMeta:            meldMeta,
+		Players:             players,
+		RoundReqMet:         g.RoundReqMet,
+		TotalScores:         g.TotalScores,
+		WinnerID:            g.WinnerID,
+		IsDraw:              g.IsDraw,
+		InitialMeldMinimum:  cfg.InitialMeldMinimum,
+		DiscardDrawMinRound: cfg.DiscardDrawMinRound,
+		// Read back out of the offer list rather than recomputed, exactly like
+		// the canUndo* flags below: it is the same fact draw:discard already
+		// carries, kept as a second spelling for clients that predate offers.
+		DiscardLocked:               offerWhyNot(rules.OfferDrawDiscard) == rules.ErrDiscardLocked,
 		DiscardDrawnCardPendingMeld: pendingMeldCard,
 		RulesProfile:                g.RulesProfile,
 

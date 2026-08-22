@@ -1,5 +1,30 @@
 package rules
 
+import "time"
+
+// Table/lobby constants — the single source of truth for values that used to
+// be duplicated as literals across game/rest_handlers.go and game/manager.go.
+const (
+	MinPlayers = 2
+	MaxPlayers = 8
+
+	// AbandonWindow is how long a suspended game (e.g. every player
+	// disconnected, or a claim was never made) stays claimable before it's
+	// treated as abandoned.
+	AbandonWindow = 24 * time.Hour
+)
+
+// The selectable values a lobby may set are declared by the module
+// descriptor (see descriptor.go), which also carries their labels and is what
+// clients render from. They deliberately do not exist as a second list here.
+
+// IsDiscardLocked reports whether drawing from the discard pile is currently
+// disallowed for the given table round under the game's configured
+// discard-lock round (DiscardDrawMinRound: 0 or 1 means no restriction).
+func IsDiscardLocked(round, discardDrawMinRound int) bool {
+	return discardDrawMinRound > 1 && round < discardDrawMinRound
+}
+
 // DiscardPickupMode controls which cards a player may take from the discard
 // pile on their draw.
 type DiscardPickupMode string

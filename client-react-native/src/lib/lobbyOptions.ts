@@ -67,5 +67,15 @@ export function restoreChoice(option: OptionSpec, stored: string | null): number
   return option.choices.some((c) => c.value === parsed) ? parsed : undefined;
 }
 
-/** Storage key for one option's last value. Derived, never enumerated. */
-export const lastOptionKey = (name: string) => `zolik_last_opt_${name}`;
+/**
+ * Storage key for one option's last value, scoped to the variation it was
+ * chosen under.
+ *
+ * Derived from the option name, never enumerated — and per profile, because
+ * each variation has its own sensible default (Continental starts at a
+ * 35-point floor with pickup locked to round 3; Žolík Classic at neither), so
+ * a value picked under one must not resurface in a game created under
+ * another.
+ */
+export const lastOptionKey = (name: string, profileId: string) =>
+  `zolik_last_opt_${name}:${profileId}`;

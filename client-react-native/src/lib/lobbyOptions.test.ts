@@ -133,8 +133,18 @@ describe('restoreChoice', () => {
 
 describe('lastOptionKey', () => {
   it('derives a distinct key per option', () => {
-    expect(lastOptionKey('initialMeldMinimum')).not.toBe(lastOptionKey('discardDrawMinRound'));
-    expect(lastOptionKey('wildcardCount')).toContain('wildcardCount');
+    expect(lastOptionKey('initialMeldMinimum', 'continental')).not.toBe(
+      lastOptionKey('discardDrawMinRound', 'continental'),
+    );
+    expect(lastOptionKey('wildcardCount', 'continental')).toContain('wildcardCount');
+  });
+
+  it('scopes the key per variation', () => {
+    // Each variation has its own sensible defaults, so a value chosen under
+    // one must not resurface in a game created under another.
+    expect(lastOptionKey('initialMeldMinimum', 'continental')).not.toBe(
+      lastOptionKey('initialMeldMinimum', 'zolik_classic'),
+    );
   });
 });
 

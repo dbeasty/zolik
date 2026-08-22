@@ -16,6 +16,12 @@ type Props = {
   actions: Action[];
 };
 
+// A stable handle per button, derived from its label rather than enumerated,
+// so tests can assert a control's enabled/disabled state without depending on
+// how react-native-web happens to map Pressable onto an accessible name.
+export const actionTestID = (label: string) =>
+  `action-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
+
 export function ActionBar({ actions }: Props) {
   return (
     <View style={styles.row}>
@@ -25,6 +31,7 @@ export function ActionBar({ actions }: Props) {
         ) : (
           <Pressable
             key={a.label}
+            testID={actionTestID(a.label)}
             style={[shared.button, styles.btn, a.disabled && styles.disabled]}
             onPress={a.onPress}
             disabled={a.disabled}
@@ -68,9 +75,10 @@ const styles = StyleSheet.create({
   },
   btn: {
     flex: 1,
-    minWidth: '45%',
+    minWidth: '40%',
+    maxWidth: 90,
     marginBottom: 0,
-    paddingVertical: 10,
+    paddingVertical: 6,
   },
   disabled: {
     opacity: 0.4,

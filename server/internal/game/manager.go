@@ -69,7 +69,18 @@ func (m *Manager) HandleAction(ctx context.Context, gameID, playerID string, in 
 	nextGame := game
 	fromRulesState(&nextGame, outcome.State)
 
-	appendEventsToActionLog(&nextGame, playerID, outcome.Events)
+	turnSeq := appendRawAction(&nextGame, playerID, rAction)
+	appendEventsToActionLog(&nextGame, playerID, turnSeq, outcome.Events)
+
+	// A new deal (GameNumber advanced) started as part of this action
+	// (ActionLayMeld/ActionLayOff/ActionDiscard going out -> EndGame ->
+	// StartNextGame, all inside rules.ApplyAction) — nextGame now reflects
+	// that new deal's post-deal, pre-action state, so it's the replay
+	// anchor for whatever happens in it. This action itself (the one that
+	// ended the old deal) stays out of the new deal's replay range.
+	if outcome.State.GameNumber != rState.GameNumber {
+		nextGame.DealInitialState = captureDealSnapshot(nextGame, turnSeq)
+	}
 
 	if nextGame.Status == string(rules.StatusCompleted) {
 		now := time.Now().UTC()
@@ -119,7 +130,7 @@ func (m *Manager) SuspendOnDisconnect(ctx context.Context, gameID, playerID stri
 	}
 
 	now := time.Now().UTC()
-	abandon := now.Add(24 * time.Hour)
+	abandon := now.Add(rules.AbandonWindow)
 
 	game.PreSuspendPhase = game.Phase
 	game.Status = "suspended"
@@ -201,7 +212,7 @@ func (m *Manager) ResumeIfReturning(ctx context.Context, gameID, playerID string
 
 func (m *Manager) suspendNoCardsLeft(ctx context.Context, gameID string, oid bson.ObjectID, game models.Game) {
 	now := time.Now().UTC()
-	abandon := now.Add(24 * time.Hour)
+	abandon := now.Add(rules.AbandonWindow)
 	game.Status = "suspended"
 	game.Phase = string(rules.PhaseSuspended)
 	game.SuspendedAt = &now
@@ -253,7 +264,7 @@ func toRulesAction(in WSIncoming) (rules.Action, error) {
 	case "swap_joker":
 		return rules.Action{Type: rules.ActionSwapJoker, MeldID: in.MeldID, Card: in.Card}, nil
 	case "discard":
-		return rules.Action{Type: rules.ActionDiscard, Card: in.Card}, nil
+		return rules.Action{Type: rules.ActionDiscard, Card: in.Card, CardIndex: in.CardIndex}, nil
 	case "undo_draw_discard":
 		return rules.Action{Type: rules.ActionUndoDrawDiscard}, nil
 	case "undo_lay_off":

@@ -133,6 +133,17 @@ func TestLegalActions_RunEndHintsMatchTheValidator(t *testing.T) {
 					continue
 				}
 				for _, p := range o.Source.Placements {
+					// A single natural card dropped on a meld holding a joker
+					// is reinterpreted by ApplyAction as a joker swap, before
+					// the lay-off path (and so before any run-end check) is
+					// reached. For those cards the position is simply never
+					// consulted, so there is no hint to agree or disagree
+					// with — see the ActionLayOff case in engine.go.
+					if _, swapErr := ValidateSwapJoker(
+						cloneState(sc.state), pid, o.Target.MeldID, p.Card,
+					); swapErr == nil && !IsJoker(p.Card) {
+						continue
+					}
 					for _, pos := range []string{"front", "end"} {
 						_, err := ApplyAction(cloneState(sc.state), pid, Action{
 							Type: ActionLayOff, MeldID: o.Target.MeldID,

@@ -162,19 +162,32 @@ test.describe('legal actions drive the UI', () => {
     await page.goto(`/game/${game.gameId}`);
     await waitForGameLoaded(page);
 
-    // Nothing has happened yet, so nothing is undoable.
-    await expect(page.getByText('Undo take discard')).toHaveCount(0);
+    // The undo buttons are always present and inert when unavailable, so the
+    // action bar's button count never shifts mid-turn.
+    //
+    // Inertness is asserted by *behaviour* rather than by a disabled
+    // attribute: react-native-web renders Pressable as a div and handles
+    // disabled in its own press logic, so there is no attribute for Playwright
+    // to read. Clicking and observing nothing happen is both
+    // implementation-agnostic and what a player would actually experience.
+    const undoTakeDiscard = page.getByTestId('action-undo-take-discard');
+    await expect(undoTakeDiscard).toBeVisible();
+    await undoTakeDiscard.click();
+    await page.waitForTimeout(300);
+    await expect(page.getByText(/Your hand \(4\)/)).toBeVisible();
 
     await page.getByTestId('discard-top-card').click();
     await expect(page.getByText(/Your hand \(5\)/)).toBeVisible();
 
-    // The pickup opened the window; the control is now offered.
-    await expect(page.getByText('Undo take discard')).toBeVisible();
-
-    await page.getByText('Undo take discard').click();
+    // The pickup opened the window, so now the same button does something.
+    await undoTakeDiscard.click();
     await expect(page.getByText(/Your hand \(4\)/)).toBeVisible();
-    // ...and closed again once used.
-    await expect(page.getByText('Undo take discard')).toHaveCount(0);
+
+    // ...and goes inert again once used: clicking a second time must not
+    // unwind anything further.
+    await undoTakeDiscard.click();
+    await page.waitForTimeout(300);
+    await expect(page.getByText(/Your hand \(4\)/)).toBeVisible();
   });
 
   test('the rules panel reports the ruleset the server resolved', async ({ page, request }) => {

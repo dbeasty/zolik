@@ -48,6 +48,9 @@ func (h *GameRestHandlers) RegisterRoutes(r chi.Router) {
 	// static, so no auth and no game id — a client fetches it once to render
 	// its new-game form (see docs/extensibility-plan.md Phase 2.1).
 	r.Get("/module", h.moduleDescriptor)
+	// Deprecated: a strict subset of /module, kept for callers that predate
+	// the descriptor. Projected from it rather than computed separately.
+	r.Get("/rules", h.getRules)
 	r.Get("/games/{id}", h.getGame)
 	r.With(auth.AuthMiddleware).Post("/games", h.createGame)
 	r.With(auth.AuthMiddleware).Post("/games/{id}/join", h.joinGame)
@@ -219,6 +222,38 @@ func (h *GameRestHandlers) createGame(w http.ResponseWriter, req *http.Request) 
 	})
 }
 
+// getRules exposes the table/lobby constants and options the client would
+// otherwise have to hardcode a second copy of (min/max players, the
+// selectable initial-meld-minimum and discard-lock-round values, and each
+// profile's defaults for those two).
+// getRules is the pre-descriptor shape of the same information, projected
+// from rules.Descriptor() so the two can never disagree about what a lobby may
+// set. Deprecated: new clients read /module, which also carries each
+// variation's resolved ruleset and every label.
+func (h *GameRestHandlers) getRules(w http.ResponseWriter, _ *http.Request) {
+	d := rules.Descriptor()
+	values := func(name string) []int {
+		spec := d.Option(name)
+		if spec == nil {
+			return nil
+		}
+		out := make([]int, 0, len(spec.Choices))
+		for _, c := range spec.Choices {
+			out = append(out, c.Value)
+		}
+		return out
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"minPlayers":                 d.MinPlayers,
+		"maxPlayers":                 d.MaxPlayers,
+		"initialMeldMinOptions":      values(rules.OptInitialMeldMinimum),
+		"discardDrawMinRoundOptions": values(rules.OptDiscardDrawMinRound),
+		"defaultInitialMeldMinimum":  rules.ProfileContinental.InitialMeldMinimum,
+		"defaultDiscardDrawMinRound": rules.ProfileContinental.DiscardDrawMinRound,
+	})
+}
+
 func (h *GameRestHandlers) getGame(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 	idOrJoin := chi.URLParam(req, "id")
@@ -289,7 +324,7 @@ func (h *GameRestHandlers) joinGame(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 	}
-	if len(g.Players) >= 8 {
+	if len(g.Players) >= rules.MaxPlayers {
 		http.Error(w, "lobby full", http.StatusBadRequest)
 		return
 	}
@@ -350,7 +385,7 @@ func (h *GameRestHandlers) startGame(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
-	if len(g.Players) < 2 {
+	if len(g.Players) < rules.MinPlayers {
 		http.Error(w, "need at least 2 players", http.StatusBadRequest)
 		return
 	}
@@ -382,6 +417,7 @@ func (h *GameRestHandlers) startGame(w http.ResponseWriter, req *http.Request) {
 	nextGame := g
 	fromRulesState(&nextGame, rState)
 	nextGame.Version = g.Version
+	nextGame.DealInitialState = captureDealSnapshot(nextGame, 0)
 
 	if err := h.repo.UpdateWithVersion(ctx, g.ID, g.Version, nextGame); err != nil {
 		http.Error(w, err.Error(), http.StatusConflict)
@@ -453,7 +489,7 @@ func (h *GameRestHandlers) addAI(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
-	if len(g.Players) >= 8 {
+	if len(g.Players) >= rules.MaxPlayers {
 		http.Error(w, "lobby full", http.StatusBadRequest)
 		return
 	}

@@ -8,7 +8,7 @@ func discardOnce(t *testing.T, st GameState, playerID string) GameState {
 	t.Helper()
 	st.CurrentTurn = playerID
 	st.Phase = PhaseMeld
-	ns, _, err := ValidateDiscard(st, playerID, st.Hands[playerID][0])
+	ns, _, err := ValidateDiscard(st, playerID, st.Hands[playerID][0], nil)
 	if err != nil {
 		t.Fatalf("discard by %s: unexpected err: %v", playerID, err)
 	}

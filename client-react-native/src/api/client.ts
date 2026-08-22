@@ -1,10 +1,11 @@
 import { ZOLIK_BASE_URL } from '@/src/config';
 import type {
-  GameOptions,
   GameState,
+  GameOptions,
   LobbyGame,
   ModuleDescriptor,
   PlayerSession,
+  RulesInfo,
   WSAction,
 } from '@/src/api/types';
 
@@ -175,6 +176,14 @@ export class ZolikClient {
 
   async getLobby(idOrCode: string): Promise<LobbyGame> {
     return this.get(`/games/${encodeURIComponent(idOrCode)}`, false);
+  }
+
+  /**
+   * @deprecated a strict subset of getModuleDescriptor(). Kept for callers
+   * that predate the descriptor; the server projects it from the same source.
+   */
+  async getRules(): Promise<RulesInfo> {
+    return this.get('/rules', false);
   }
 
   /**

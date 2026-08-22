@@ -182,7 +182,13 @@ func validateSet(cards []string, minSetSize int) (MeldValidation, error) {
 	}, nil
 }
 
-func validateRun(cards []string, minRunSize int) (MeldValidation, error) {
+// preferHighStart, when set true (pass a single true), breaks ties between
+// equally-valid windows (same WildCount) in favor of the highest start rank
+// instead of the lowest. Lay-offs use this to resolve a run the same
+// direction the player actually dropped their card, rather than always
+// defaulting to the window that extends the front.
+func validateRun(cards []string, minRunSize int, preferHighStart ...bool) (MeldValidation, error) {
+	preferHigh := len(preferHighStart) > 0 && preferHighStart[0]
 	if len(cards) < minRunSize {
 		return MeldValidation{}, RulesError{
 			Code:    ErrInvalidMeld,
@@ -431,7 +437,8 @@ tryStart:
 		// the ace natural) — prefer the one that spends the fewest wilds,
 		// since a flex ace should always resolve to its natural endpoint
 		// over standing in for an unrelated rank when both are possible.
-		if best == nil || candidate.WildCount < best.WildCount {
+		if best == nil || candidate.WildCount < best.WildCount ||
+			(preferHigh && candidate.WildCount == best.WildCount) {
 			best = &candidate
 		}
 	}

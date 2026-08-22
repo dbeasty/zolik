@@ -43,7 +43,10 @@ func ValidateDraw(state GameState, playerID string, from DrawFrom, targetCard st
 		return state, card, nil, nil
 
 	case DrawFromDiscard:
-		if cfg.DiscardDrawMinRound > 1 && state.Round < cfg.DiscardDrawMinRound {
+		// The extracted helper, fed from the resolved ruleset: the duplicate
+		// GameState.DiscardDrawMinRound field it used to read no longer
+		// exists — RulesConfig is the only home for a rule value.
+		if IsDiscardLocked(state.Round, cfg.DiscardDrawMinRound) {
 			return state, "", nil, RulesError{Code: ErrDiscardLocked}
 		}
 		if len(state.DiscardPile) == 0 {
@@ -420,10 +423,23 @@ func ValidateLayOff(state GameState, playerID string, meldID string, cards []str
 	// ignored for them.
 	if position == "front" || position == "end" {
 		if mv.Type == MeldRun {
-			// Which end this submission actually grows is resolved by the
-			// shared helper LegalActions also uses to build its per-card
-			// "front"/"end" drop hints — so the hint a client renders and
-			// the check the server enforces can never disagree.
+			// A card that could equally extend either end of the run (e.g.
+			// a joker) resolves ambiguously by wild count alone. Re-resolve
+			// preferring the end the player actually dropped on, so a
+			// correct "end" drop doesn't get silently reinterpreted as
+			// extending the front and then rejected below for "growing the
+			// wrong end".
+			minRun := cfg.MinRunSize
+			if minRun == 0 {
+				minRun = 4
+			}
+			if reMV, reErr := validateRun(newMeld, minRun, position == "end"); reErr == nil {
+				mv = reMV
+			}
+			// Which end this submission actually grows is then resolved by
+			// the shared helper LegalActions also uses to build its per-card
+			// "front"/"end" drop hints — so the hint a client renders and the
+			// check the server enforces can never disagree.
 			if sides, known := runGrowthSides(prevCards, mv); known && !containsString(sides, position) {
 				return state, RulesError{
 					Code:    ErrWrongRunEnd,
@@ -583,7 +599,7 @@ func ValidateSwapJoker(state GameState, playerID string, meldID string, card str
 	return state, nil
 }
 
-func ValidateDiscard(state GameState, playerID string, card string) (GameState, bool, error) {
+func ValidateDiscard(state GameState, playerID string, card string, cardIndex *int) (GameState, bool, error) {
 	if state.Status != StatusActive {
 		return state, false, RulesError{Code: ErrGameNotActive}
 	}
@@ -634,7 +650,7 @@ func ValidateDiscard(state GameState, playerID string, card string) (GameState, 
 		}
 	}
 
-	state.Hands[playerID] = removeCards(state.Hands[playerID], []string{card})
+	state.Hands[playerID] = removeCardAt(state.Hands[playerID], card, cardIndex)
 	state.DiscardPile = append(state.DiscardPile, card)
 	// The meld phase is over now that the discard's landed — the whole-turn
 	// undo only makes sense before that point.
@@ -643,7 +659,10 @@ func ValidateDiscard(state GameState, playerID string, card string) (GameState, 
 	// Go-out check: if hand empty after discard, must have met the game requirement.
 	if len(state.Hands[playerID]) == 0 {
 		if !state.RoundReqMet[playerID] {
-			return state, false, RulesError{Code: ErrRoundReqNotMet}
+			return state, false, RulesError{
+				Code:    ErrRoundReqNotMet,
+				Message: "that would empty your hand, but you still haven't met this round's meld requirement — lay it down first",
+			}
 		}
 		return state, true, nil
 	}
@@ -692,6 +711,22 @@ func requireCardsInHand(hand []string, want []string) error {
 		counts[w]--
 	}
 	return nil
+}
+
+// removeCardAt removes a single named card from hand. When idx points at a
+// slot that actually holds that value, that exact slot is removed — needed
+// because two decks are in play, so a hand can hold two physical cards with
+// the same value and only the caller (who knows which one the player picked)
+// can tell them apart. A nil/out-of-range/mismatched idx falls back to
+// removing the first matching value, same as the old value-only behavior.
+func removeCardAt(hand []string, card string, idx *int) []string {
+	if idx != nil && *idx >= 0 && *idx < len(hand) && hand[*idx] == card {
+		out := make([]string, 0, len(hand)-1)
+		out = append(out, hand[:*idx]...)
+		out = append(out, hand[*idx+1:]...)
+		return out
+	}
+	return removeCards(hand, []string{card})
 }
 
 func removeCards(hand []string, remove []string) []string {

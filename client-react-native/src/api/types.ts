@@ -37,6 +37,8 @@ export type GameState = {
   initialMeldMinimum: number;
   /** @deprecated derived from `rules.discardDrawMinRound`. */
   discardDrawMinRound: number;
+  /** @deprecated read the `draw:discard` offer's `whyNot`. */
+  discardLocked?: boolean;
   /** @deprecated read the `undo:*` offers. */
   canUndoDiscardDraw?: boolean;
   /** @deprecated read the `undo:*` offers. */
@@ -172,6 +174,22 @@ export type OptionChoice = {
  */
 export type GameOptions = Record<string, number | undefined>;
 
+/**
+ * Response shape of GET /rules.
+ *
+ * @deprecated a strict subset of ModuleDescriptor (GET /module), which also
+ * carries each variation's resolved ruleset and every label. The server
+ * projects this from the descriptor, so the two cannot disagree.
+ */
+export type RulesInfo = {
+  minPlayers: number;
+  maxPlayers: number;
+  initialMeldMinOptions: number[];
+  discardDrawMinRoundOptions: number[];
+  defaultInitialMeldMinimum: number;
+  defaultDiscardDrawMinRound: number;
+};
+
 /** "continental" | "zolik_classic" | "custom" — see server rules.RulesConfig. */
 export type RulesProfile = 'continental' | 'zolik_classic' | 'custom';
 
@@ -214,6 +232,12 @@ export type WSAction = {
   cards?: string[];
   meldId?: string;
   card?: string;
+  /**
+   * discard only: which of `card`'s server hand slots this is, so a
+   * duplicate value (two decks in play) is disambiguated by position
+   * rather than value alone.
+   */
+  cardIndex?: number;
   /** lay_off only: which end of a run the dropped card(s) must extend. */
   position?: 'front' | 'end';
 };

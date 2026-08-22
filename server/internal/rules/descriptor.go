@@ -122,8 +122,8 @@ func Descriptor() ModuleDescriptor {
 	return ModuleDescriptor{
 		ID:         "zolik",
 		Label:      "Žolíky",
-		MinPlayers: 2,
-		MaxPlayers: 8,
+		MinPlayers: MinPlayers,
+		MaxPlayers: MaxPlayers,
 		Profiles: []ProfileSpec{
 			{ID: "zolik_classic", Label: "Žolík Classic", Rules: ProfileZolikClassic},
 			{ID: "continental", Label: "Continental", Rules: ProfileContinental},
