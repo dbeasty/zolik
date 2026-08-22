@@ -17,7 +17,7 @@ import { MeldStagingArea, type StagingGroup } from '@/src/components/MeldStaging
 import { MeldTable } from '@/src/components/MeldTable';
 import { Screen } from '@/src/components/Screen';
 import { useGameFlow } from '@/src/context/GameFlowContext';
-import { useSession } from '@/src/context/SessionContext';
+import { storage, useSession } from '@/src/context/SessionContext';
 import { useDropPulseStyle } from '@/src/hooks/useDropPulse';
 import { useGameSocket } from '@/src/hooks/useGameSocket';
 import type { GameState, MeldPreview, WSEnvelope } from '@/src/api/types';
@@ -38,7 +38,7 @@ import {
   positionsForCard,
   whyNot,
 } from '@/src/lib/offers';
-import { reasonText } from '@/src/lib/messages';
+import { LOCALES, getLocale, reasonText, setLocale, t, type Locale } from '@/src/lib/i18n';
 import { colors, shared } from '@/src/theme';
 
 const pileStyles = StyleSheet.create({
@@ -102,19 +102,27 @@ function describePreview(preview: MeldPreview | null, expectKey: string): string
   if (!preview || preview.cards.join(',') !== expectKey) return undefined;
 
   const shape = preview.valid
-    ? `Valid ${preview.meldType ?? 'meld'}`
-    : reasonText(preview.whyNot, 'Not a meld yet');
-  let line = `${shape} · ${preview.naturalValue} points`;
+    ? t(
+        preview.meldType === 'set'
+          ? 'preview.validSet'
+          : preview.meldType === 'run'
+            ? 'preview.validRun'
+            : 'preview.validMeld',
+      )
+    : reasonText(preview.whyNot, t('preview.notYet'));
+
+  let line = t('preview.points', { shape, n: preview.naturalValue });
   if (preview.initialMeldMinimum > 0) {
-    line += preview.meetsMinimum
-      ? ` (meets ${preview.initialMeldMinimum} ✓)`
-      : ` (needs ${preview.initialMeldMinimum} ✗)`;
+    line = t(preview.meetsMinimum ? 'preview.meetsFloor' : 'preview.needsFloor', {
+      line,
+      n: preview.initialMeldMinimum,
+    });
   }
   // Only add a playability reason when the cards *are* a meld — otherwise the
   // shape half already said it, and repeating it reads as two problems.
   if (preview.valid && !preview.playable) {
     const why = reasonText(preview.whyNotPlayable, '');
-    if (why) line += ` — ${why}`;
+    if (why) line = t('preview.becauseOf', { line, reason: why });
   }
   return line;
 }
@@ -214,6 +222,14 @@ export default function GameScreen() {
   // the drop reads as "landed" rather than the card just silently
   // disappearing once the server confirms it. Set when we send lay_off,
   // cleared automatically after a short delay (see the effect below).
+  // Mirrors the module-level locale so a switch re-renders. The bundle itself
+  // is module state (every t() call reads it); this is only the trigger.
+  const [locale, setLocaleState] = useState<Locale>(getLocale());
+  function chooseLocale(next: Locale) {
+    setLocale(next);
+    setLocaleState(next);
+    void storage.setItem('zolik_locale', next);
+  }
   const [flashMeldId, setFlashMeldId] = useState<string | null>(null);
   const flashMeldTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   function flashMeld(meldId: string) {
@@ -1097,6 +1113,24 @@ export default function GameScreen() {
                 <Text style={{ color: colors.text, fontSize: 13 }}>{line.value}</Text>
               </View>
             ))}
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 4, marginBottom: 8 }}>
+              {LOCALES.map((l) => (
+                <Pressable
+                  key={l.id}
+                  testID={`locale-${l.id}`}
+                  style={[
+                    shared.button,
+                    l.id === locale ? null : shared.buttonSecondary,
+                    { flex: 1, marginBottom: 0 },
+                  ]}
+                  onPress={() => chooseLocale(l.id)}
+                >
+                  <Text style={l.id === locale ? shared.buttonText : shared.buttonTextSecondary}>
+                    {l.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
             <Pressable
               style={[shared.button, { marginTop: 8 }]}
               onPress={() => setRulesModalOpen(false)}

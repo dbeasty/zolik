@@ -10,6 +10,7 @@ import React, {
 import { Platform } from 'react-native';
 
 import { apiClient } from '@/src/api/client';
+import { setLocale } from '@/src/lib/i18n';
 import type { PlayerSession } from '@/src/api/types';
 
 const SESSION_KEY = 'zolik_session';
@@ -85,6 +86,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         await persistSession(updated);
       });
     }
+  }, []);
+
+  // Restore the chosen locale before anything renders, so the first paint is
+  // already in the player's language rather than flashing English first.
+  useEffect(() => {
+    storage.getItem('zolik_locale').then((saved) => {
+      if (saved === 'en' || saved === 'cs') setLocale(saved);
+    });
   }, []);
 
   useEffect(() => {

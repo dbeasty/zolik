@@ -1,4 +1,5 @@
 import type { Contract, ResolvedRules } from '@/src/api/types';
+import { countLabel, t } from '@/src/lib/i18n';
 
 export type CardDisplay = {
   rank: string;
@@ -168,21 +169,13 @@ export function moveCardToIndex(cards: string[], from: number, to: number): stri
 export function contractLabel(contract: Contract | undefined): string {
   if (!contract) return '';
   const parts: string[] = [];
-  if (contract.sets > 0) parts.push(countLabel(contract.sets, 'set'));
-  if (contract.runs > 0) parts.push(countLabel(contract.runs, 'run'));
+  if (contract.sets > 0) parts.push(countLabel(contract.sets, 'sets'));
+  if (contract.runs > 0) parts.push(countLabel(contract.runs, 'runs'));
   if (parts.length === 0) {
-    return contract.requireCleanRun
-      ? 'Any mix of sets and runs — at least one run must be joker-free'
-      : 'Any valid meld';
+    return contract.requireCleanRun ? t('contract.cleanRunOnly') : t('contract.any');
   }
   const base = parts.join(', ');
-  return contract.requireCleanRun ? `${base} — one run must be joker-free` : base;
-}
-
-function countLabel(n: number, noun: string): string {
-  const words = ['zero', 'one', 'two', 'three', 'four', 'five'];
-  const word = words[n] ?? String(n);
-  return `${word.charAt(0).toUpperCase()}${word.slice(1)} ${noun}${n === 1 ? '' : 's'}`;
+  return contract.requireCleanRun ? t('contract.cleanRunSuffix', { base }) : base;
 }
 
 /**
@@ -200,11 +193,11 @@ export function dealHeaderLabel(
   game: number,
 ): string {
   if (!rules || rules.fixedDealCount <= 0) {
-    return `Deal ${game}`;
+    return t('header.deal', { n: game });
   }
-  const label = contractLabel(contract);
-  const of = `Game ${game} of ${rules.fixedDealCount}`;
-  return label ? `${of}: ${label}` : of;
+  const contractText = contractLabel(contract);
+  const params = { n: game, total: rules.fixedDealCount, contract: contractText };
+  return contractText ? t('header.gameOfWithContract', params) : t('header.gameOf', params);
 }
 
 /** Short human name for a rules profile, for display next to the deal header. */
@@ -228,26 +221,26 @@ export function rulesSummaryLines(
 ): { label: string; value: string }[] {
   if (!rules) return [];
   const lines = [
-    { label: 'Variation', value: profileDisplayName(rules.profile) },
-    { label: 'Deal size', value: `${rules.dealSize} cards` },
-    { label: 'Minimum set size', value: `${rules.minSetSize} cards` },
-    { label: 'Minimum run length', value: `${rules.minRunSize} cards` },
-    { label: 'To go down', value: contractLabel(contract) || 'Any valid meld' },
+    { label: t('rules.variation'), value: profileDisplayName(rules.profile) },
+    { label: t('rules.dealSize'), value: t('rules.cards', { n: rules.dealSize }) },
+    { label: t('rules.minSetSize'), value: t('rules.cards', { n: rules.minSetSize }) },
+    { label: t('rules.minRunSize'), value: t('rules.cards', { n: rules.minRunSize }) },
+    { label: t('rules.toGoDown'), value: contractLabel(contract) || t('contract.any') },
     {
-      label: 'Meld value floor',
+      label: t('rules.meldFloor'),
       value:
         rules.initialMeldMinimum > 0
-          ? `${rules.initialMeldMinimum}+ points on your first meld(s)`
-          : 'Off',
+          ? t('rules.floorPoints', { n: rules.initialMeldMinimum })
+          : t('rules.floorOff'),
     },
-    { label: 'Discard pickup', value: discardPickupSummary(rules) },
+    { label: t('rules.discardPickup'), value: discardPickupSummary(rules) },
     {
-      label: 'Jokers',
+      label: t('rules.jokers'),
       value: rules.jokerDiscardRestricted
-        ? 'Can never be discarded, except as the card that ends your hand'
-        : 'Can be discarded freely',
+        ? t('rules.jokersRestricted')
+        : t('rules.jokersFree'),
     },
-    { label: 'Match ends', value: matchEndSummary(rules) },
+    { label: t('rules.matchEnds'), value: matchEndSummary(rules) },
   ];
   return lines;
 }
@@ -255,16 +248,18 @@ export function rulesSummaryLines(
 function discardPickupSummary(rules: ResolvedRules): string {
   const scope =
     rules.discardPickupMode === 'any_from_pile'
-      ? 'Any card in the pile (and everything stacked above it)'
-      : 'Top card only';
+      ? t('rules.pickupAnyFromPile')
+      : t('rules.pickupTopOnly');
   return rules.discardDrawMinRound > 1
-    ? `${scope}, locked until round ${rules.discardDrawMinRound}`
+    ? t('rules.pickupLocked', { scope, n: rules.discardDrawMinRound })
     : scope;
 }
 
 function matchEndSummary(rules: ResolvedRules): string {
   if (rules.matchEndMode === 'at_score') {
-    return `First to ${rules.targetScore} points`;
+    return t('rules.endsAtScore', { n: rules.targetScore });
   }
-  return rules.fixedDealCount > 0 ? `After ${rules.fixedDealCount} deals` : 'When a deal ends';
+  return rules.fixedDealCount > 0
+    ? t('rules.endsAfterDeals', { n: rules.fixedDealCount })
+    : t('rules.endsOnDeal');
 }
