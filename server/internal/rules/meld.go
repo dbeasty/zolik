@@ -50,7 +50,7 @@ func IsWild(card string) bool {
 type MeldValidation struct {
 	Type         MeldType
 	AceAsNatural map[string]int // count of aces treated as natural (card string -> count)
-	NaturalValue int            // sum of natural card values (wild=0; ace: AceRunLowValue at a run's bottom, AceMeldValue in a set or at a run's top)
+	NaturalValue int            // what the meld is worth toward the initial-meld floor: every card priced by the rank it plays, a wild included (ace: AceRunLowValue at a run's bottom, AceMeldValue in a set or at a run's top)
 	NaturalCount int
 	WildCount    int
 	ResolvedRun  []int  // ranks, using 1 for A-low, 14 for A-high, 2..13 otherwise
@@ -93,30 +93,40 @@ func ValidateMeld(cards []string, cfg RulesConfig) (MeldValidation, error) {
 	}
 }
 
-// runNaturalValue totals a run's natural card value.
+// runRankValue is what one slot of a run is worth, named by the resolved rank
+// that sits in it (1 for A-low, 14 for A-high, 2..13 otherwise).
 //
-// A run uses at most one ace at each end, and the two are not worth the same:
-// the low ace occupies rank 1 and counts AceRunLowValue, while the high ace
-// is the real ace sitting above the king and counts AceMeldValue. Which ends
-// are in play is the caller's answer (validateRun's needLow/needHigh),
-// because only the resolved rank window knows it — the card string "AC"
-// looks identical either way.
+// The rank is the whole answer, because a wild is worth exactly the card it
+// stands in for. So the slot is priced the same whether the real card or a
+// joker occupies it, and the two ace slots keep their different values — the
+// low ace at rank 1 is worth AceRunLowValue, the high ace above the king is
+// worth AceMeldValue — whichever card is filling them.
+func runRankValue(rank int) int {
+	switch {
+	case rank == 1:
+		return AceRunLowValue
+	case rank == 14:
+		return AceMeldValue
+	case rank >= 10 && rank <= 13:
+		return 10
+	case rank >= 2 && rank <= 9:
+		return rank
+	}
+	return 0
+}
+
+// runValue totals what a run contributes toward the initial-meld floor, from
+// its resolved rank window alone.
 //
-// Any other ace among the cards is a wild filler and contributes nothing,
-// the same as a joker.
-func runNaturalValue(cards []string, aceLow, aceHigh bool) int {
+// The cards themselves need not be consulted: the window already says which
+// rank sits in every slot, and a joker filling one is worth that rank. Which
+// end an ace occupies — the one thing the card string "AC" cannot tell you,
+// since it looks identical at rank 1 and rank 14 — is likewise a property of
+// the window, so reading the value off it keeps the two facts from drifting.
+func runValue(positions []int) int {
 	sum := 0
-	for _, c := range cards {
-		if IsJoker(c) || IsAce(c) {
-			continue
-		}
-		sum += NaturalCardValue(c, true)
-	}
-	if aceLow {
-		sum += AceRunLowValue
-	}
-	if aceHigh {
-		sum += AceMeldValue
+	for _, p := range positions {
+		sum += runRankValue(p)
 	}
 	return sum
 }
@@ -173,10 +183,11 @@ func validateSet(cards []string, minSetSize int) (MeldValidation, error) {
 		seenSuits[suit] = true
 	}
 
-	naturalValue := 0
-	for _, c := range naturals {
-		naturalValue += NaturalSetCardValue(c)
-	}
+	// Every card in a set is the same rank, so every card is worth the same —
+	// including the jokers, which stand in for that rank and are priced as it.
+	// naturals[0] names the rank for all of them.
+	cardValue := NaturalSetCardValue(naturals[0])
+	naturalValue := cardValue * (len(naturals) + wildCount)
 
 	return MeldValidation{
 		Type:         MeldSet,
@@ -192,8 +203,15 @@ func validateSet(cards []string, minSetSize int) (MeldValidation, error) {
 // instead of the lowest. Lay-offs use this to resolve a run the same
 // direction the player actually dropped their card, rather than always
 // defaulting to the window that extends the front.
+//
+// Passing it at all — true or false — says a drop position was expressed, and
+// that outranks the value preference below. The player pointed at an end of
+// the run; resolving the other one because it happens to score higher would
+// be the engine overruling them, which is exactly what Action.Position exists
+// to prevent.
 func validateRun(cards []string, minRunSize int, preferHighStart ...bool) (MeldValidation, error) {
-	preferHigh := len(preferHighStart) > 0 && preferHighStart[0]
+	positionGiven := len(preferHighStart) > 0
+	preferHigh := positionGiven && preferHighStart[0]
 	if len(cards) < minRunSize {
 		return MeldValidation{}, RulesError{
 			Code:    ErrInvalidMeld,
@@ -277,7 +295,6 @@ func validateRun(cards []string, minRunSize int, preferHighStart ...bool) (MeldV
 
 	aceAsNatural := map[string]int{}
 	var best *MeldValidation
-	bestWildAceSlot := false
 
 tryStart:
 	for _, start := range starts {
@@ -324,15 +341,18 @@ tryStart:
 			runSuit = CardSuit(aces[0])
 		}
 
-		// A joker is wild in the ace slots too. A suited ace is preferred
-		// there — it is the natural card for the slot and carries its full
-		// value — but when the cards hold no such ace the slot is not
-		// special: leave it to the wild accounting below, exactly like any
-		// other gap. Refusing the whole window instead is what made
-		// Q♠-K♠-JOKER resolve as J♠-Q♠-K♠, the joker standing in for the
-		// jack because the ace behind the king was the one rank it was not
-		// allowed to be; and what made a 2-through-K run plus a joker
-		// unlayable outright, with no window left for it to fit.
+		// A joker is wild in the ace slots too. A suited ace claims one first,
+		// since it is the real card for the slot, but when the cards hold no
+		// such ace the slot is not special: leave it to the wild accounting
+		// below, exactly like any other gap. Refusing the whole window
+		// instead is what made Q♠-K♠-JOKER resolve as J♠-Q♠-K♠, the joker
+		// standing in for the jack because the ace behind the king was the
+		// one rank it was not allowed to be; and what made Q♠-K♠ plus two
+		// jokers unlayable outright rather than read as J-Q-K-A.
+		//
+		// Either way the slot is worth the same, since a joker carries the
+		// value of the card it replaces — see runRankValue, which prices a
+		// slot by its rank and never asks what is sitting in it.
 		spentAce := make([]bool, len(aces))
 		takeSuitedAce := func() string {
 			for i, a := range aces {
@@ -348,14 +368,11 @@ tryStart:
 		// Assign specific ace cards as natural where one is available.
 		aceAsNatural = map[string]int{}
 		acesPlaced := 0
-		needLow := 0
-		needHigh := 0
 		if aceLow {
 			if a := takeSuitedAce(); a != "" {
 				aceAsNatural[a]++
 				acesPlaced++
 				naturalSlots[1] = true
-				needLow = 1
 			}
 		}
 		if aceHigh {
@@ -363,7 +380,6 @@ tryStart:
 				aceAsNatural[a]++
 				acesPlaced++
 				naturalSlots[14] = true
-				needHigh = 1
 			}
 		}
 
@@ -400,47 +416,46 @@ tryStart:
 			continue tryStart
 		}
 
-		naturalValue := runNaturalValue(cards, needLow > 0, needHigh > 0)
-
 		candidate := MeldValidation{
 			Type:         MeldRun,
 			AceAsNatural: aceAsNatural,
-			NaturalValue: naturalValue,
+			NaturalValue: runValue(positions),
 			NaturalCount: naturalCount,
 			WildCount:    wildCount,
 			ResolvedRun:  append([]int(nil), positions...),
 			ResolvedSuit: runSuit,
 		}
-		// A wild sitting in an ace slot is legal but a last resort. It buys
-		// nothing — a wild is worth the same 0 wherever it sits — and it
-		// spends the one rank that cannot be extended past, so J♠-Q♠-K♠
-		// (wild as the jack) is strictly better than Q♠-K♠-A♠ (wild as the
-		// ace) for the same cards: both are worth 20, but only the first
-		// leaves both ends of the run open.
-		wildAceSlot := (aceLow && needLow == 0) || (aceHigh && needHigh == 0)
 
 		// Several windows can fit the same fixed cards (e.g. J-Q-K plus one
 		// flex ace could sit at 10-J-Q-K with the ace wild, or J-Q-K-A with
 		// the ace natural) — prefer the one that spends the fewest wilds,
 		// since a flex ace should always resolve to its natural endpoint
 		// over standing in for an unrelated rank when both are possible.
+		//
+		// Among windows that spend the same wilds, prefer the one worth more.
+		// This is what puts a lone joker behind the king rather than in front
+		// of the queen: Q♠-K♠ plus a joker fits at J-Q-K and at Q-K-A alike,
+		// but the joker is worth the card it replaces, so the ace slot makes
+		// it 35 against the jack slot's 30 — the difference between clearing
+		// a 35-point floor and sitting just under it.
+		//
+		// A caller that named a drop position is asked first, though: the
+		// player pointed at an end, and value is a guess at what they wanted
+		// where position is a statement of it. With no position given the
+		// lowest window still wins an exact tie, as it always has.
 		switch {
 		case best == nil:
 			best = &candidate
-			bestWildAceSlot = wildAceSlot
 		case candidate.WildCount != best.WildCount:
 			if candidate.WildCount < best.WildCount {
 				best = &candidate
-				bestWildAceSlot = wildAceSlot
 			}
-		case wildAceSlot != bestWildAceSlot:
-			if !wildAceSlot {
+		case positionGiven:
+			if preferHigh {
 				best = &candidate
-				bestWildAceSlot = wildAceSlot
 			}
-		case preferHigh:
+		case candidate.NaturalValue > best.NaturalValue:
 			best = &candidate
-			bestWildAceSlot = wildAceSlot
 		}
 	}
 

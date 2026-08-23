@@ -30,8 +30,8 @@ type MeldPreview struct {
 	// Go resolves that collision by depth, so the shallower envelope field
 	// wins and the meld type would vanish from the JSON silently.
 	Type MeldType `json:"meldType,omitempty"`
-	// NaturalValue is the meld's natural point total, the figure an
-	// initial-meld floor is measured against. Wild cards contribute 0.
+	// NaturalValue is the meld's point total, the figure an initial-meld
+	// floor is measured against. A wild counts as the card it stands in for.
 	NaturalValue int `json:"naturalValue"`
 	WildCount    int `json:"wildCount"`
 	// WhyNot is the engine's reason this is not a legal meld — empty when
@@ -127,6 +127,14 @@ func PreviewMeld(state GameState, playerID string, cards []string) MeldPreview {
 //     run (Q-K-A);
 //   - anything else reads as the low endpoint, the conservative guess.
 //
+// A joker is worth the card it replaces, and an incomplete selection has not
+// said which card that is either. It is estimated at the highest value already
+// in the selection, on the grounds that a joker is being held to complete
+// *these* cards: exactly right for a set, where every card scores the same,
+// and within a rank or two for a run, where the joker lands next to what is
+// already there. A selection of nothing but jokers has no company to read and
+// scores 0.
+//
 // Guessing wrong only mis-states a readout that is explicitly an estimate —
 // the moment the selection becomes a valid meld, ValidateMeld's own figure
 // replaces this one.
@@ -144,16 +152,25 @@ func looseNaturalValue(cards []string) int {
 	}
 
 	total := 0
+	jokers := 0
+	best := 0
 	for _, c := range cards {
-		if IsAce(c) {
-			if aces >= 2 || kingSuits[CardSuit(c)] {
-				total += AceMeldValue
-			} else {
-				total += AceRunLowValue
-			}
+		if IsJoker(c) {
+			jokers++
 			continue
 		}
-		total += NaturalCardValue(c, true)
+		v := NaturalCardValue(c, true)
+		if IsAce(c) {
+			if aces >= 2 || kingSuits[CardSuit(c)] {
+				v = AceMeldValue
+			} else {
+				v = AceRunLowValue
+			}
+		}
+		if v > best {
+			best = v
+		}
+		total += v
 	}
-	return total
+	return total + jokers*best
 }

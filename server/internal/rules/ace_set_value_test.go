@@ -21,7 +21,7 @@ func TestAceScoresAsARealAceExceptAtARunsBottom(t *testing.T) {
 		// Sets: every ace is a real ace.
 		{"three aces", []string{"AC", "AH", "AS"}, 3 * AceMeldValue, MeldSet},
 		{"four aces", []string{"AC", "AD", "AH", "AS"}, 4 * AceMeldValue, MeldSet},
-		{"a joker in an ace set contributes nothing", []string{"AC", "AH", "JOKER1"}, 2 * AceMeldValue, MeldSet},
+		{"a joker in an ace set is an ace", []string{"AC", "AH", "JOKER1"}, 3 * AceMeldValue, MeldSet},
 		{"three 2s, for contrast", []string{"2C", "2D", "2S"}, 6, MeldSet},
 		{"three queens, unchanged", []string{"QC", "QD", "QS"}, 30, MeldSet},
 
@@ -54,24 +54,51 @@ func TestAceScoresAsARealAceExceptAtARunsBottom(t *testing.T) {
 	}
 }
 
-// runNaturalValue is asked directly for the one combination validateRun can
-// reach but no realistic hand does — both ends taken by an ace — so the two
-// values are pinned as additive rather than one overwriting the other.
-func TestRunNaturalValueScoresEachAceEndOnce(t *testing.T) {
-	cards := []string{"AD", "2D", "3D", "KD", "AD"}
-	naturals := 2 + 3 + 10
-	if got, want := runNaturalValue(cards, true, true), naturals+AceRunLowValue+AceMeldValue; got != want {
-		t.Errorf("both ends = %d, want %d", got, want)
+// A run is priced by its resolved rank window, so the two ace slots are asked
+// for directly here — including the one combination validateRun can reach but
+// no realistic hand does, both ends taken by an ace — to pin them as additive
+// rather than one overwriting the other.
+func TestRunValueScoresEachAceEndOnce(t *testing.T) {
+	if got, want := runRankValue(1), AceRunLowValue; got != want {
+		t.Errorf("rank 1 = %d, want %d", got, want)
 	}
-	if got, want := runNaturalValue(cards, true, false), naturals+AceRunLowValue; got != want {
-		t.Errorf("low end only = %d, want %d", got, want)
+	if got, want := runRankValue(14), AceMeldValue; got != want {
+		t.Errorf("rank 14 = %d, want %d", got, want)
 	}
-	if got, want := runNaturalValue(cards, false, true), naturals+AceMeldValue; got != want {
-		t.Errorf("high end only = %d, want %d", got, want)
+	// A-2-3 … K-A, the full 14-slot window: both ace ends, counted once each.
+	full := make([]int, 0, 14)
+	for r := 1; r <= 14; r++ {
+		full = append(full, r)
 	}
-	// An ace not used at either end is a wild filler, worth nothing.
-	if got, want := runNaturalValue(cards, false, false), naturals; got != want {
-		t.Errorf("neither end = %d, want %d", got, want)
+	want := AceRunLowValue + (2 + 3 + 4 + 5 + 6 + 7 + 8 + 9) + 4*10 + AceMeldValue
+	if got := runValue(full); got != want {
+		t.Errorf("A-through-A = %d, want %d", got, want)
+	}
+}
+
+// A wild is worth the card it stands in for, so a run's value depends only on
+// which ranks it spans — never on how many of those ranks are jokers.
+func TestRunValueIgnoresWhetherASlotIsWild(t *testing.T) {
+	cfg := ResolveConfig(ProfileZolikClassic)
+	for _, tc := range []struct {
+		name  string
+		cards []string
+	}{
+		// Pinned at both ends by the 10 and the king, so there is only one
+		// window and the joker's slot cannot shift under the comparison.
+		{"all natural", []string{"TC", "JC", "QC", "KC"}},
+		{"joker as the jack", []string{"TC", "JOKER1", "QC", "KC"}},
+		{"joker as the queen", []string{"TC", "JC", "JOKER1", "KC"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			mv, err := ValidateMeld(tc.cards, cfg)
+			if err != nil {
+				t.Fatalf("ValidateMeld(%v): %v", tc.cards, err)
+			}
+			if mv.NaturalValue != 40 {
+				t.Errorf("naturalValue = %d, want 40", mv.NaturalValue)
+			}
+		})
 	}
 }
 

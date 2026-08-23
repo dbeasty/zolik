@@ -47,6 +47,19 @@ const (
 	AceRunLowValue = 1
 )
 
+// A wild is worth the card it stands in for.
+//
+// This is why neither of the helpers below can price a joker on its own: the
+// card string "JOKER1" says nothing about which rank it is playing. Only the
+// meld knows — a set's rank is shared by every card in it, and a run's slot is
+// named by the resolved rank window — so both callers price a joker from the
+// meld's own shape (validateSet's cardValue, runRankValue for a run) and never
+// ask these helpers about one.
+//
+// The alternative, scoring every wild 0, made the floors the lobby offers
+// unreachable for the hands most able to fill them: J♠-Q♠ plus a joker behind
+// the king is the ace-high run Q-K-A, plainly worth 35, and counted 20.
+
 // NaturalSetCardValue is NaturalCardValue for a card melded in a set, where
 // an ace scores as the real card it is rather than as a run's low endpoint.
 func NaturalSetCardValue(card string) int {
@@ -60,10 +73,9 @@ func NaturalSetCardValue(card string) int {
 }
 
 func NaturalCardValue(card string, aceAsNatural bool) int {
-	// Natural-value is used only for initial meld minimum checks.
-	// Wild cards contribute 0. The ace cases have their own helpers —
-	// NaturalSetCardValue for a set, runNaturalValue for a run's two ends —
-	// so the bare 1 here is only ever the low endpoint.
+	// Used only for initial meld minimum checks. The ace cases have their own
+	// helpers — NaturalSetCardValue for a set, runRankValue for a run's slots
+	// — so the bare 1 here is only ever the low endpoint.
 	if IsJoker(card) {
 		return 0
 	}

@@ -154,27 +154,33 @@ func TestValidateRun_JokerFillsAceSlot(t *testing.T) {
 			if mv.WildCount != 2 {
 				t.Fatalf("expected 2 wilds, got %d", mv.WildCount)
 			}
-			// A joker in the ace slot is still a wild: it contributes 0
-			// toward the initial-meld floor, exactly as it would anywhere
-			// else in the run.
-			if mv.NaturalValue != runNaturalValue(tc.cards, false, false) {
-				t.Fatalf("joker in an ace slot should score as a wild, got %d", mv.NaturalValue)
+			// A joker in an ace slot is worth the ace it stands in for.
+			if mv.NaturalValue != runValue(tc.want) {
+				t.Fatalf("naturalValue = %d, want %d", mv.NaturalValue, runValue(tc.want))
 			}
 		})
 	}
 }
 
-// Being allowed in an ace slot does not make it the preferred reading. A wild
-// is worth the same 0 at every rank, so spending one on an ace — the one rank
-// nothing extends past — only closes an end of the run for nothing.
-func TestValidateRun_WildAceSlotIsLastResort(t *testing.T) {
+// Between two windows that fit the same cards for the same wilds, the more
+// valuable one wins — which is what puts a lone joker behind the king rather
+// than in front of the queen, since it is worth the card it replaces.
+//
+// This is the bug as a player meets it: an AI laid Q♠-K♠-JOKER, a 35-point
+// ace-high run that clears the 35 floor, and the engine rewrote it as the
+// 30-point J♠-Q♠-K♠ and left the player short.
+func TestValidateRun_PrefersTheMoreValuableWindow(t *testing.T) {
 	cases := []struct {
-		name  string
-		cards []string
-		want  []int
+		name      string
+		cards     []string
+		want      []int
+		wantValue int
 	}{
-		{"joker takes the jack, not the ace behind the king", []string{"QS", "KS", "JOKER1"}, []int{11, 12, 13}},
-		{"joker takes the four, not the ace below the two", []string{"2S", "3S", "JOKER1"}, []int{2, 3, 4}},
+		{"joker goes behind the king, as the ace", []string{"QS", "KS", "JOKER1"}, []int{12, 13, 14}, 10 + 10 + AceMeldValue},
+		// The low ace is the one place the ace is cheap (AceRunLowValue),
+		// so at the bottom of a run the same preference points the other
+		// way: 2-3-4 is worth 9, A-2-3 only 6.
+		{"joker takes the four, not the ace below the two", []string{"2S", "3S", "JOKER1"}, []int{2, 3, 4}, 9},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -183,7 +189,10 @@ func TestValidateRun_WildAceSlotIsLastResort(t *testing.T) {
 				t.Fatalf("expected valid run, got %v", err)
 			}
 			if !reflect.DeepEqual(mv.ResolvedRun, tc.want) {
-				t.Fatalf("resolved %v, want %v — both ends should stay open", mv.ResolvedRun, tc.want)
+				t.Fatalf("resolved %v, want %v", mv.ResolvedRun, tc.want)
+			}
+			if mv.NaturalValue != tc.wantValue {
+				t.Fatalf("naturalValue = %d, want %d", mv.NaturalValue, tc.wantValue)
 			}
 		})
 	}
@@ -199,7 +208,7 @@ func TestValidateRun_RealAcePreferredOverJokerInAceSlot(t *testing.T) {
 	if mv.AceAsNatural["AH"] != 1 {
 		t.Fatalf("A♥ should hold rank 14 naturally, got %v", mv.AceAsNatural)
 	}
-	want := 2*10 + AceMeldValue // Q + K + the natural ace; the joker is the jack
+	want := 3*10 + AceMeldValue // J-Q-K-A: the joker is the jack, worth 10
 	if mv.NaturalValue != want {
 		t.Fatalf("natural value %d, want %d", mv.NaturalValue, want)
 	}

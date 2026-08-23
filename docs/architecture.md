@@ -153,18 +153,28 @@ the engine reads a rule from anywhere else, and a knob added here is automatical
   Toward the initial-meld floor it is worth `rules.AceMeldValue` (15) wherever it is played as
   the real, highest card — in a set (A-A-A), or at the *top* of a run (Q-K-A) — and only
   `rules.AceRunLowValue` (1) at the *bottom* of a run (A-2-3), the low-ace convention. Which end
-  a run's ace occupies is known solely to the resolved rank window (`validateRun`'s
-  `needLow`/`needHigh`), since the card string is identical either way; `runNaturalValue` takes
-  those two booleans rather than trying to re-derive it. Scoring every natural ace 1 made three
-  aces worth 3 points — less than three 2s — and Q-K-A worth 21 instead of 35, putting every
-  floor the lobby offers (35/50/70) out of reach for a hand built on aces.
+  a run's ace occupies is known solely to the resolved rank window, since the card string is
+  identical either way — which is why `runValue` reads a run's worth off that window rather than
+  off the cards. Scoring every natural ace 1 made three aces worth 3 points — less than three
+  2s — and Q-K-A worth 21 instead of 35, putting every floor the lobby offers (35/50/70) out of
+  reach for a hand built on aces.
+- **A wild is worth the card it replaces.** A joker melded as the 8 of a 7-8-9 run counts 8;
+  behind a king, where it is the ace, it counts `AceMeldValue`. So a meld's worth is a property
+  of its *shape*, not of which slots happen to hold real cards: `runRankValue` prices a run slot
+  by its resolved rank and never asks what is sitting in it, and a set prices every card — jokers
+  included — at its single shared rank. Wilds used to count 0, which made a joker the one card
+  whose position on the table changed nothing, and put `Q♠-K♠`+joker at 20 against a 35 floor
+  when it is plainly the 35-point ace-high run the player laid.
 - **A joker may be an ace.** The rank-1 and rank-14 slots used to demand a *real* suited ace, so
   any window reaching them was discarded before the wild accounting saw it — the ace was the one
   rank a joker could not stand in for, and `Q♠-K♠` + two jokers was rejected outright rather than
-  read as `J-Q-K-A`. Those slots now take a wild like any other gap. They are a last resort
-  though, and the tie-break says so: a wild is worth 0 at every rank, so spending one on an ace —
-  the one rank nothing extends past — only closes an end of the run for nothing. `Q♠-K♠`+joker
-  therefore still resolves `J-Q-K` (both ends open), not `Q-K-A`.
+  read as `J-Q-K-A`. Those slots now take a wild like any other gap.
+- **Window tie-breaks, in order.** Fewest wilds first, so a flex ace resolves to its natural
+  endpoint over standing in for an unrelated rank. Then the drop position, when a caller named
+  one — `Action.Position` is the player stating which end they meant, and an engine that
+  resolved the other end because it scored better would be overruling them. Then the higher
+  value, which is what finally puts a lone joker *behind* the king (`Q-K-A`, 35) rather than in
+  front of the queen (`J-Q-K`, 30). Then the lowest window, as always.
 - **Same-turn undo windows.** `DiscardDrawnCards`, `LastLayOff`, `LastMeldLaid` let a player
   reverse the last pickup / lay-off / meld, each cleared as soon as anything else happens that
   turn. Derived flags are restored too, not just the cards.
