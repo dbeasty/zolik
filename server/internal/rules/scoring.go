@@ -29,34 +29,41 @@ func PenaltyPoints(card string, aceAsNatural bool) int {
 	return 0
 }
 
-// AceMeldValueInSet is what an ace melded in a set contributes toward the
-// initial-meld floor.
+// An ace's contribution toward the initial-meld floor depends on how it is
+// being used, and only one of the three ways is worth a single point.
 //
-// An ace in a *run* is a positional card — it occupies rank 1 or rank 14 of
-// its suit and is worth 1, the low-ace convention (see NaturalCardValue). An
-// ace in a *set* is nothing of the sort: it is a real ace, the highest card
-// in the game, and scoring it 1 made three aces worth 3 points — less than
-// three 2s, and short of every meld floor the lobby offers. validateSet's own
-// comment already says an ace there "is a real rank, not a stand-in for
-// another rank"; this is that statement applied to its value.
-const AceMeldValueInSet = 15
+//   - AceMeldValue: the ace played as the real, highest card in the game —
+//     in a set (A-A-A), or at the top of a run (Q-K-A).
+//   - AceRunLowValue: the ace played as rank 1, the bottom of a run
+//     (A-2-3). The low-ace convention, and the only place 1 is right.
+//
+// Scoring every natural ace 1 made a set of three aces worth 3 points — less
+// than three 2s — and Q-K-A worth 21 instead of 35, which put the meld floors
+// the lobby offers (35/50/70) out of reach for any hand built on aces.
+// validateSet's own comment already says an ace there "is a real rank, not a
+// stand-in for another rank"; these are that statement applied to its value.
+const (
+	AceMeldValue   = 15
+	AceRunLowValue = 1
+)
 
 // NaturalSetCardValue is NaturalCardValue for a card melded in a set, where
-// an ace scores as the real card it is rather than as a run endpoint.
+// an ace scores as the real card it is rather than as a run's low endpoint.
 func NaturalSetCardValue(card string) int {
 	if IsJoker(card) {
 		return 0
 	}
 	if IsAce(card) {
-		return AceMeldValueInSet
+		return AceMeldValue
 	}
 	return PenaltyPoints(card, true)
 }
 
 func NaturalCardValue(card string, aceAsNatural bool) int {
 	// Natural-value is used only for initial meld minimum checks.
-	// Wild cards contribute 0. For an ace filling a run endpoint it
-	// contributes 1; for an ace melded in a set see NaturalSetCardValue.
+	// Wild cards contribute 0. The ace cases have their own helpers —
+	// NaturalSetCardValue for a set, runNaturalValue for a run's two ends —
+	// so the bare 1 here is only ever the low endpoint.
 	if IsJoker(card) {
 		return 0
 	}

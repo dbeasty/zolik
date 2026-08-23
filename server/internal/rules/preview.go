@@ -117,26 +117,40 @@ func PreviewMeld(state GameState, playerID string, cards []string) MeldPreview {
 // looseNaturalValue totals a selection that is not (yet) a valid meld, so the
 // running readout still means something while a player is picking cards.
 //
-// An ace is worth 1 at a run endpoint but AceMeldValueInSet in a set, and an
-// incomplete selection has not committed to either. It is guessed from the
-// company the ace keeps: two or more aces can only be heading for a set (a
-// run holds at most one ace of a suit), while a lone ace among other ranks
-// reads as a run endpoint. Guessing wrong only mis-states a readout that is
-// explicitly an estimate — the moment the selection becomes a valid meld,
-// ValidateMeld's own figure replaces this one.
+// An ace is worth AceMeldValue as a set member or a run's top card, but only
+// AceRunLowValue at a run's bottom, and an incomplete selection has not
+// committed to any of them. It is guessed from the company the ace keeps:
+//
+//   - two or more aces can only be heading for a set (a run holds at most one
+//     ace per end, and never two of the same suit);
+//   - a lone ace alongside a king of its own suit is heading for the top of a
+//     run (Q-K-A);
+//   - anything else reads as the low endpoint, the conservative guess.
+//
+// Guessing wrong only mis-states a readout that is explicitly an estimate —
+// the moment the selection becomes a valid meld, ValidateMeld's own figure
+// replaces this one.
 func looseNaturalValue(cards []string) int {
 	aces := 0
+	kingSuits := map[string]bool{}
 	for _, c := range cards {
 		if IsAce(c) {
 			aces++
+			continue
+		}
+		if !IsJoker(c) && CardRank(c) == 11 { // king
+			kingSuits[CardSuit(c)] = true
 		}
 	}
-	headingForAceSet := aces >= 2
 
 	total := 0
 	for _, c := range cards {
-		if IsAce(c) && headingForAceSet {
-			total += AceMeldValueInSet
+		if IsAce(c) {
+			if aces >= 2 || kingSuits[CardSuit(c)] {
+				total += AceMeldValue
+			} else {
+				total += AceRunLowValue
+			}
 			continue
 		}
 		total += NaturalCardValue(c, true)

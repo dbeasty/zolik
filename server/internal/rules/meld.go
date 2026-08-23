@@ -50,7 +50,7 @@ func IsWild(card string) bool {
 type MeldValidation struct {
 	Type         MeldType
 	AceAsNatural map[string]int // count of aces treated as natural (card string -> count)
-	NaturalValue int            // sum of natural card values (wild=0; ace: 1 at a run endpoint, AceMeldValueInSet in a set)
+	NaturalValue int            // sum of natural card values (wild=0; ace: AceRunLowValue at a run's bottom, AceMeldValue in a set or at a run's top)
 	NaturalCount int
 	WildCount    int
 	ResolvedRun  []int  // ranks, using 1 for A-low, 14 for A-high, 2..13 otherwise
@@ -93,25 +93,30 @@ func ValidateMeld(cards []string, cfg RulesConfig) (MeldValidation, error) {
 	}
 }
 
-func ValidateMeldValue(cards []string, aceAsNatural map[string]int) int {
+// runNaturalValue totals a run's natural card value.
+//
+// A run uses at most one ace at each end, and the two are not worth the same:
+// the low ace occupies rank 1 and counts AceRunLowValue, while the high ace
+// is the real ace sitting above the king and counts AceMeldValue. Which ends
+// are in play is the caller's answer (validateRun's needLow/needHigh),
+// because only the resolved rank window knows it — the card string "AC"
+// looks identical either way.
+//
+// Any other ace among the cards is a wild filler and contributes nothing,
+// the same as a joker.
+func runNaturalValue(cards []string, aceLow, aceHigh bool) int {
 	sum := 0
-	aceNaturalUsed := func(card string) bool {
-		if aceAsNatural == nil {
-			return false
-		}
-		return aceAsNatural[card] > 0
-	}
 	for _, c := range cards {
-		if IsJoker(c) {
-			continue
-		}
-		if IsAce(c) {
-			if aceNaturalUsed(c) {
-				sum += 1
-			}
+		if IsJoker(c) || IsAce(c) {
 			continue
 		}
 		sum += NaturalCardValue(c, true)
+	}
+	if aceLow {
+		sum += AceRunLowValue
+	}
+	if aceHigh {
+		sum += AceMeldValue
 	}
 	return sum
 }
@@ -421,7 +426,7 @@ tryStart:
 			continue tryStart
 		}
 
-		naturalValue := ValidateMeldValue(cards, aceAsNatural)
+		naturalValue := runNaturalValue(cards, needLow > 0, needHigh > 0)
 
 		candidate := MeldValidation{
 			Type:         MeldRun,
