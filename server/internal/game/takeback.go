@@ -128,7 +128,7 @@ func (m *Manager) maybeApplyTakeback(ctx context.Context, gameID string) error {
 		return m.repo.UpdateWithVersion(ctx, oid, game.Version, game)
 	}
 
-	initialState := dealSnapshotToRulesState(*game.DealInitialState, game.RulesProfile)
+	initialState := dealSnapshotToRulesState(*game.DealInitialState, GameRules(game))
 	var toReplay []rules.LoggedAction
 	for _, ra := range game.RawActionLog {
 		if ra.Seq <= game.DealInitialState.SinceSeq || ra.Seq > pending.ToSeq {
