@@ -208,8 +208,36 @@ export class ZolikClient {
     return this.get('/users/me/history', true);
   }
 
-  async getLeaderboard(): Promise<unknown> {
-    return this.get('/leaderboard', false);
+  /** Paged match history, newest first. Pass the previous page's
+   *  `nextBefore` as `before` to fetch the next one. */
+  async getMatches(opts: { before?: string; limit?: number } = {}): Promise<unknown> {
+    return this.get(`/users/me/matches${queryString(opts)}`, true);
+  }
+
+  /** This player's record against each opponent they have faced, bots
+   *  included — a bot keeps a lifetime record just as a person does. */
+  async getHeadToHead(): Promise<unknown> {
+    return this.get('/users/me/head-to-head', true);
+  }
+
+  /** `scope` picks which record ranks: 'overall' | 'vs_humans' | 'vs_ai'.
+   *  `kind` defaults to human players; pass 'ai' for the bot standings. */
+  async getLeaderboard(
+    opts: { scope?: string; kind?: string; minMatches?: number; limit?: number } = {},
+  ): Promise<unknown> {
+    return this.get(`/leaderboard${queryString(opts)}`, false);
+  }
+
+  /** Standings for one match, running or finished. With `lifetime`, each row
+   *  also carries that player's career record — who you are up against. */
+  async getScoreboard(idOrCode: string, lifetime = false): Promise<unknown> {
+    const suffix = lifetime ? '?lifetime=1' : '';
+    return this.get(`/games/${encodeURIComponent(idOrCode)}/scoreboard${suffix}`, false);
+  }
+
+  /** The recorded result of a finished match. 404 until the match completes. */
+  async getMatchResult(gameId: string): Promise<unknown> {
+    return this.get(`/matches/${encodeURIComponent(gameId)}`, false);
   }
 
   async createScoringSession(players: string[]): Promise<string> {
@@ -314,6 +342,18 @@ export class ZolikClient {
     }
     return JSON.parse(text) as T;
   }
+}
+
+/** Builds a `?a=1&b=2` suffix, dropping empty values and returning '' when
+ *  nothing is set. Hand-rolled rather than using URLSearchParams, whose React
+ *  Native polyfill implements only part of the interface. */
+function queryString(params: Record<string, string | number | undefined>): string {
+  const parts: string[] = [];
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === '') continue;
+    parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
+  }
+  return parts.length ? `?${parts.join('&')}` : '';
 }
 
 export const apiClient = new ZolikClient();

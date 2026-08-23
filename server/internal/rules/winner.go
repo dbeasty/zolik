@@ -2,20 +2,29 @@ package rules
 
 // RoundsWonByPlayer counts rounds where the player had the uniquely lowest penalty score.
 func RoundsWonByPlayer(state GameState) map[string]int {
+	return DealsWonByPlayer(state.TurnOrder, state.GameScores)
+}
+
+// DealsWonByPlayer is the raw form of RoundsWonByPlayer: it takes only the two
+// fields the count actually depends on, so callers outside the engine — match
+// recording, live scoreboards — can compute the same number without
+// assembling a whole GameState. A deal is won only by the player whose penalty
+// was *uniquely* lowest; a tie for the lowest score awards it to nobody.
+func DealsWonByPlayer(turnOrder []string, gameScores map[string][]int) map[string]int {
 	wins := map[string]int{}
-	for _, pid := range state.TurnOrder {
+	for _, pid := range turnOrder {
 		wins[pid] = 0
 	}
 	maxRounds := 0
-	for _, pid := range state.TurnOrder {
-		if n := len(state.GameScores[pid]); n > maxRounds {
+	for _, pid := range turnOrder {
+		if n := len(gameScores[pid]); n > maxRounds {
 			maxRounds = n
 		}
 	}
 	for r := 0; r < maxRounds; r++ {
 		minScore := int(^uint(0) >> 1)
-		for _, pid := range state.TurnOrder {
-			scores := state.GameScores[pid]
+		for _, pid := range turnOrder {
+			scores := gameScores[pid]
 			if r >= len(scores) {
 				continue
 			}
@@ -24,8 +33,8 @@ func RoundsWonByPlayer(state GameState) map[string]int {
 			}
 		}
 		winners := []string{}
-		for _, pid := range state.TurnOrder {
-			scores := state.GameScores[pid]
+		for _, pid := range turnOrder {
+			scores := gameScores[pid]
 			if r >= len(scores) {
 				continue
 			}
@@ -43,20 +52,28 @@ func RoundsWonByPlayer(state GameState) map[string]int {
 // DetermineGameWinner picks the winner after 7 rounds: lowest total score;
 // tiebreak: fewest rounds won; still tied => draw.
 func DetermineGameWinner(state GameState) (winnerID string, isDraw bool) {
-	if len(state.TurnOrder) == 0 {
+	return DetermineMatchWinner(state.TurnOrder, state.TotalScores, state.GameScores)
+}
+
+// DetermineMatchWinner is the raw form of DetermineGameWinner, taking the three
+// fields the decision depends on. Kept separate so a scoreboard can show who is
+// *currently* ahead in an unfinished match using the very rule that will decide
+// it, rather than a lookalike reimplementation that drifts.
+func DetermineMatchWinner(turnOrder []string, totalScores map[string]int, gameScores map[string][]int) (winnerID string, isDraw bool) {
+	if len(turnOrder) == 0 {
 		return "", true
 	}
-	roundsWon := RoundsWonByPlayer(state)
+	roundsWon := DealsWonByPlayer(turnOrder, gameScores)
 
 	minTotal := int(^uint(0) >> 1)
-	for _, pid := range state.TurnOrder {
-		if state.TotalScores[pid] < minTotal {
-			minTotal = state.TotalScores[pid]
+	for _, pid := range turnOrder {
+		if totalScores[pid] < minTotal {
+			minTotal = totalScores[pid]
 		}
 	}
 	candidates := []string{}
-	for _, pid := range state.TurnOrder {
-		if state.TotalScores[pid] == minTotal {
+	for _, pid := range turnOrder {
+		if totalScores[pid] == minTotal {
 			candidates = append(candidates, pid)
 		}
 	}

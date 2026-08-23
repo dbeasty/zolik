@@ -241,6 +241,8 @@ func BuildGameStateMsg(g models.Game, myPlayerID string) GameStateMsg {
 		// Read back out of the offer list rather than recomputed, exactly like
 		// the canUndo* flags below: it is the same fact draw:discard already
 		// carries, kept as a second spelling for clients that predate offers.
+		// (main derived this from the ruleset directly; going through the
+		// offers keeps one source of truth now that they exist.)
 		DiscardLocked:               offerWhyNot(rules.OfferDrawDiscard) == rules.ErrDiscardLocked,
 		DiscardDrawnCardPendingMeld: pendingMeldCard,
 		RulesProfile:                g.RulesProfile,

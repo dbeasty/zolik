@@ -156,6 +156,13 @@ func copyIntSliceMap(m map[string][]int) map[string][]int {
 // yet): scratch/undo state (LastLayOff, LastMeldLaid, TurnMeldSnapshot,
 // DiscardDrawnCard*, MeldsLaidThisTurn) and Status/WinnerID/IsDraw, which
 // only change on match completion and never occur mid-replay here.
+// cfg is the game's own resolved ruleset (GameRules), not a profile name:
+// re-deriving the config from the profile would quietly drop any tunable the
+// game was actually started with, replaying the deal under profile defaults
+// instead. Only InitialMeldMinimum and DiscardDrawMinRound are configurable
+// today — so the two agree in practice — but the moment a profile grows
+// another knob, a name-based rebuild starts lying and takeback silently
+// replays under the wrong rules.
 func dealSnapshotToRulesState(s models.DealSnapshot, cfg rules.RulesConfig) rules.GameState {
 	rMeldMeta := map[string][]rules.MeldInfo{}
 	for owner, infos := range s.MeldMeta {
@@ -170,10 +177,9 @@ func dealSnapshotToRulesState(s models.DealSnapshot, cfg rules.RulesConfig) rule
 	}
 	return rules.GameState{
 		Status: rules.StatusActive,
-		// The game's own resolved ruleset, passed in by the caller — never
-		// re-derived from the profile name, which would silently discard a
-		// house-rule override and make a replay diverge from the game it is
-		// replaying. See game.GameRules.
+		// Passed in by the caller, never re-derived (see the doc comment).
+		// ResolveConfig guards the zero value, the same way every other
+		// entry point into the engine does.
 		Rules:          rules.ResolveConfig(cfg),
 		GameNumber:     s.GameNumber,
 		Phase:          rules.Phase(s.Phase),

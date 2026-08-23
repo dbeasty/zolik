@@ -43,7 +43,7 @@ func ValidateDraw(state GameState, playerID string, from DrawFrom, targetCard st
 		return state, card, nil, nil
 
 	case DrawFromDiscard:
-		// The extracted helper, fed from the resolved ruleset: the duplicate
+		// The shared helper, fed from the resolved ruleset: the duplicate
 		// GameState.DiscardDrawMinRound field it used to read no longer
 		// exists — RulesConfig is the only home for a rule value.
 		if IsDiscardLocked(state.Round, cfg.DiscardDrawMinRound) {

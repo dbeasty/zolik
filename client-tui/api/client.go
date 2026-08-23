@@ -186,6 +186,27 @@ func (c *Client) GetStats() (map[string]any, error) {
 	return out, nil
 }
 
+// GetScoreboard returns the standings of one match — running or finished. It
+// needs no authentication and works on a join code as well as an ID, matching
+// the lobby endpoint.
+func (c *Client) GetScoreboard(idOrCode string) (map[string]any, error) {
+	var out map[string]any
+	if err := c.getJSON("/games/"+url.PathEscape(idOrCode)+"/scoreboard", &out, false); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// GetHeadToHead returns this player's record against each opponent they have
+// faced, bots included.
+func (c *Client) GetHeadToHead() (map[string]any, error) {
+	var out map[string]any
+	if err := c.getJSON("/users/me/head-to-head", &out, true); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *Client) postJSON(path string, body any, out any, auth bool) error {
 	var buf bytes.Buffer
 	if body != nil {

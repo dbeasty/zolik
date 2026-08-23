@@ -18,7 +18,6 @@ import (
 
 type Handlers struct {
 	users       *mongo.Collection
-	statistics  *mongo.Collection
 	sessionRepo *SessionRepository
 }
 
@@ -26,7 +25,6 @@ func NewHandlers(m *db.Mongo) *Handlers {
 	c := m.Collections()
 	return &Handlers{
 		users:       c.Users,
-		statistics:  c.Statistics,
 		sessionRepo: NewSessionRepository(m),
 	}
 }
@@ -44,11 +42,10 @@ func (h *Handlers) createUser(ctx context.Context, u models.User) (models.User, 
 	if oid, ok := res.InsertedID.(bson.ObjectID); ok {
 		u.ID = oid
 	}
-	_, _ = h.statistics.UpdateOne(ctx,
-		bson.M{"userId": u.ID},
-		bson.M{"$setOnInsert": models.Statistics{UserID: u.ID}},
-		nil,
-	)
+	// No statistics row is seeded here. A lifetime record is created the
+	// first time the player finishes a match (see stats.Recorder), so an
+	// account that has never played simply has none — which the stats
+	// endpoint renders as a zeroed record rather than a 404.
 	return u, nil
 }
 
