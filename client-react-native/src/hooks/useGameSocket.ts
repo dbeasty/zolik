@@ -4,6 +4,13 @@ import { apiClient } from '@/src/api/client';
 import type { GameState, MeldPreview, WSAction, WSEnvelope } from '@/src/api/types';
 import { logger } from '@/src/lib/logger';
 
+/**
+ * What the server did with one action sent via sendAwait: `ok` means the
+ * action was accepted and `state` is the game_state it produced; otherwise
+ * `message` is the server's own rejection text (or a connection failure).
+ */
+export type SendResult = { ok: true; state: GameState } | { ok: false; message: string };
+
 type UseGameSocketOptions = {
   gameId: string;
   enabled?: boolean;
@@ -44,6 +51,22 @@ export function useGameSocket({
   // captured at the moment the event arrived.
   const pendingRoundEndRef = useRef<WSEnvelope | null>(null);
   const pendingGameEndRef = useRef<WSEnvelope | null>(null);
+  // Set while a sendAwait() is in flight: the next game_state (the server
+  // accepted it) or error (it did not) settles it. Only ever one at a time —
+  // sendAwait's callers are sequential, and the server processes one action
+  // per connection at a time.
+  const waiterRef = useRef<{
+    resolve: (r: SendResult) => void;
+    timer: ReturnType<typeof setTimeout>;
+  } | null>(null);
+
+  const settle = useCallback((result: SendResult) => {
+    const waiter = waiterRef.current;
+    if (!waiter) return;
+    waiterRef.current = null;
+    clearTimeout(waiter.timer);
+    waiter.resolve(result);
+  }, []);
 
   onRoundEndRef.current = onRoundEnd;
   onGameEndRef.current = onGameEnd;
@@ -99,6 +122,7 @@ export function useGameSocket({
           setState(st);
           setStatus('');
           setStatusIsError(false);
+          settle({ ok: true, state: st });
           if (pendingGameEndRef.current) {
             const data = pendingGameEndRef.current;
             pendingGameEndRef.current = null;
@@ -115,6 +139,7 @@ export function useGameSocket({
           logger.warn('ws', 'server_error', { message: envelope.message });
           setStatus(String(envelope.message ?? 'Something went wrong'));
           setStatusIsError(true);
+          settle({ ok: false, message: String(envelope.message ?? 'Something went wrong') });
         } else if (t === 'deal_ended') {
           logger.info('ws', 'deal_ended');
           pendingRoundEndRef.current = envelope;
@@ -172,6 +197,10 @@ export function useGameSocket({
       // timer out from under its replacement (which would stop the backoff
       // from ever resetting).
       if (wsRef.current !== ws) return;
+      // Placed below the staleness guard on purpose: a superseded socket
+      // closing is routine bookkeeping and must not resolve a wait that
+      // belongs to the socket that replaced it.
+      settle({ ok: false, message: 'Lost the connection before the server answered' });
       setConnected(false);
       if (stableTimerRef.current) {
         clearTimeout(stableTimerRef.current);
@@ -192,7 +221,7 @@ export function useGameSocket({
         connect();
       }, delayMs);
     };
-  }, [gameId, enabled]);
+  }, [gameId, enabled, settle]);
 
   useEffect(() => {
     connect();
@@ -231,9 +260,67 @@ export function useGameSocket({
     apiClient.sendWS(ws, action);
   }, []);
 
+  /**
+   * Sends an action and waits for the server's verdict on it — the next
+   * game_state (accepted) or error (rejected).
+   *
+   * The socket is otherwise fire-and-forget, which is fine for a move whose
+   * only failure mode is a banner. It is not fine when one move's outcome
+   * decides whether a *second* one should be sent at all: laying a staged
+   * meld before discarding (see layPendingMeldsThenDiscard in the game
+   * screen) must not throw the discard after a meld the server refused.
+   *
+   * Safe because the server only broadcasts in response to an action, and
+   * during your own turn every action is yours — nothing else can slip a
+   * game_state in between. A timeout resolves as a failure rather than
+   * hanging, so a caller never ends up stuck mid-sequence.
+   */
+  const sendAwait = useCallback(
+    (action: WSAction, timeoutMs = 5000): Promise<SendResult> => {
+      const ws = wsRef.current;
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        logger.warn('move', 'blocked', { type: action.type, reason: 'not_connected' });
+        setStatus('Not connected');
+        setStatusIsError(true);
+        return Promise.resolve({ ok: false, message: 'Not connected' });
+      }
+      // A previous wait that never settled must not swallow this one's answer.
+      settle({ ok: false, message: 'Superseded by a newer action' });
+      return new Promise<SendResult>((resolve) => {
+        waiterRef.current = {
+          resolve,
+          timer: setTimeout(
+            () => settle({ ok: false, message: 'The server did not answer in time' }),
+            timeoutMs,
+          ),
+        };
+        send(action);
+      });
+    },
+    [send, settle],
+  );
+
+  /** Raises a message in the same banner the server's own errors use. */
+  const notify = useCallback((message: string, isError = true) => {
+    setStatus(message);
+    setStatusIsError(isError);
+  }, []);
+
   const reconnect = useCallback(() => {
     connect();
   }, [connect]);
 
-  return { state, status, statusIsError, connected, send, reconnect, setState, preview, setPreview };
+  return {
+    state,
+    status,
+    statusIsError,
+    connected,
+    send,
+    sendAwait,
+    notify,
+    reconnect,
+    setState,
+    preview,
+    setPreview,
+  };
 }

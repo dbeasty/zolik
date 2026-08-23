@@ -147,7 +147,17 @@ export const MeldStagingArea = forwardRef<View, Props>(function MeldStagingArea(
         </Pressable>
         <Pressable
           testID="lay-all-button"
-          style={[shared.button, styles.actionButton, !canLayAll && styles.disabled]}
+          // Enabled is a *lighter* blue than the resting primary, not just
+          // the same blue at full opacity: disabled dims to 0.4, and a dimmed
+          // blue on this dark background still reads as "a blue button", so
+          // the moment a card is staged the button has to visibly brighten
+          // for "you can lay this now" to land.
+          style={[
+            shared.button,
+            styles.actionButton,
+            styles.layBase,
+            canLayAll ? styles.layReady : styles.disabled,
+          ]}
           onPress={onLayAll}
           disabled={!canLayAll}
         >
@@ -406,5 +416,17 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.4,
+  },
+  // The border is carried in both states (transparent when disabled) so the
+  // button's height never changes as it enables — a row that grows by 2px
+  // mid-drag moves every drop target below it, which is the same reason
+  // nothing in this box unmounts when it empties.
+  layBase: {
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  layReady: {
+    backgroundColor: colors.accentBright,
+    borderColor: colors.accentEdge,
   },
 });

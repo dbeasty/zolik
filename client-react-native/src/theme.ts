@@ -8,6 +8,13 @@ export const colors = {
   muted: '#8b9cb3',
   accent: '#3d8bfd',
   accentDim: '#2563c4',
+  // Brighter than `accent`, for a primary button that has just become
+  // usable — "Lay meld" the moment something is staged. A disabled button
+  // is the same blue at 0.4 opacity, which on this dark background reads as
+  // "a blue button" either way; lifting the enabled one to a visibly
+  // lighter blue is what makes the state change obvious at a glance.
+  accentBright: '#60a5fa',
+  accentEdge: '#93c5fd',
   danger: '#f87171',
   success: '#4ade80',
   gold: '#fbbf24',

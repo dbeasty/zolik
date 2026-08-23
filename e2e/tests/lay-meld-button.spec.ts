@@ -30,10 +30,19 @@ test.describe('lay meld button', () => {
     await page.goto(`/game/${game.gameId}`);
     await waitForGameLoaded(page);
 
+    const lay = page.getByTestId('lay-all-button');
+    // Nothing staged: the resting primary blue, dimmed.
+    await expect(lay).toBeVisible();
+    await expect(lay).toHaveCSS('opacity', '0.4');
+
     await stage(page, 3);
 
-    const lay = page.getByTestId('lay-all-button');
-    await expect(lay).toBeVisible();
+    // Something to lay: undimmed *and* a visibly lighter blue. The colour
+    // change is the point — a dimmed blue on this dark background still
+    // reads as "a blue button", so opacity alone didn't tell the player the
+    // button had come alive.
+    await expect(lay).toHaveCSS('opacity', '1');
+    await expect(lay).toHaveCSS('background-color', 'rgb(96, 165, 250)');
     await lay.click();
     await expect(page.getByText('TABLE MELDS')).toBeVisible();
   });

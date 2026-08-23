@@ -119,6 +119,12 @@ const en: Record<string, string> = {
   'preview.needsFloor': '{line} (needs {n} ✗)',
   'preview.becauseOf': '{line} — {reason}',
 
+  // --- discard -------------------------------------------------------------
+  // A discard with a meld staged lays that meld first; this is what the
+  // player is told when the server refuses it and the whole move is rolled
+  // back. {reason} is the engine's own words for the refusal.
+  'discard.meldRejected': '{reason} — nothing was discarded, your cards are still staged.',
+
 };
 
 // Czech. Present to prove the seam is real rather than theoretical: if a
@@ -196,6 +202,8 @@ const cs: Record<string, string> = {
   'preview.meetsFloor': '{line} (splňuje {n} ✓)',
   'preview.needsFloor': '{line} (potřebuje {n} ✗)',
   'preview.becauseOf': '{line} — {reason}',
+
+  'discard.meldRejected': '{reason} — nic se neodhodilo, karty máš pořád připravené.',
 
 };
 

@@ -47,6 +47,19 @@ import { LOCALES, getLocale, reasonText, setLocale, t, type Locale } from '@/src
 import { formatLogEntry, logger, type LogEntry } from '@/src/lib/logger';
 import { colors, shared } from '@/src/theme';
 
+// The identity the staging area is reset against: staged groups survive a
+// broadcast that didn't actually change your hand (an opponent's move sends
+// you a fresh myHand array either way), and are dropped when it did. Shared
+// by the reset effect and the rollback in layPendingMeldsThenDiscard, which
+// has to name the exact state its restored groups belong to.
+function stagingResetKey(
+  game: number | undefined,
+  phase: string | undefined,
+  hand: string[],
+): string {
+  return `${game ?? ''}|${phase ?? ''}|${[...hand].sort().join(',')}`;
+}
+
 const pileStyles = StyleSheet.create({
   discardWrap: {
     position: 'relative',
@@ -455,6 +468,13 @@ export default function GameScreen() {
   // Tracks the (game, phase, sorted-hand) tuple the staging groups were
   // last reset for — see the effect below.
   const resetKeyRef = useRef<string>('');
+  // Staging to hand back when a discard's auto-lay is rolled back, plus the
+  // reset key of the state it belongs to. See the reset effect below.
+  const restoreGroupsRef = useRef<{ key: string; groups: string[][] } | null>(null);
+  // Set while the lay-then-discard sequence below is mid-flight (each step is
+  // a server round trip), so a second drop onto the discard pile can't start
+  // a competing one.
+  const discardBusyRef = useRef(false);
   const [justDrawnCard, setJustDrawnCard] = useState<string | null>(null);
   const [rulesModalOpen, setRulesModalOpen] = useState(false);
   const [logsModalOpen, setLogsModalOpen] = useState(false);
@@ -658,7 +678,18 @@ export default function GameScreen() {
     [setGameEnd, id, session?.userId],
   );
 
-  const { state, status, statusIsError, connected, send, reconnect, preview, setPreview } = useGameSocket({
+  const {
+    state,
+    status,
+    statusIsError,
+    connected,
+    send,
+    sendAwait,
+    notify,
+    reconnect,
+    preview,
+    setPreview,
+  } = useGameSocket({
     gameId: id,
     onRoundEnd,
     onGameEnd,
@@ -746,10 +777,17 @@ export default function GameScreen() {
       const base = prev ?? persistedHandOrderRef.current ?? null;
       return reconcileHandOrder(base, newHand);
     });
-    const key = `${state?.game ?? ''}|${state?.phase ?? ''}|${[...newHand].sort().join(',')}`;
+    const key = stagingResetKey(state?.game, state?.phase, newHand);
     if (key !== resetKeyRef.current) {
       resetKeyRef.current = key;
-      setGroups([[]]);
+      // A rolled-back auto-lay (see layPendingMeldsThenDiscard) puts the
+      // player's cards back in hand, which lands here as "the hand changed"
+      // — the one case where the groups must come *back* rather than be
+      // wiped. The restore names the state it belongs to, so a later,
+      // unrelated hand change never resurrects it.
+      const restore = restoreGroupsRef.current;
+      restoreGroupsRef.current = null;
+      setGroups(restore && restore.key === key ? restore.groups : [[]]);
       setSelectedForMeld(new Set());
     }
   }, [state?.myHand, state?.phase, state?.game]);
@@ -894,9 +932,68 @@ export default function GameScreen() {
     if (phase !== 'discard' && phase !== 'meld') return;
     const card = hand[index];
     if (!card) return;
-    const cardIndex = handServerIndices[index];
-    send({ type: 'discard', card, cardIndex: cardIndex >= 0 ? cardIndex : undefined });
-    clearSelect();
+    void layPendingMeldsThenDiscard(card, handServerIndices[index]);
+  }
+
+  /**
+   * Discards `card`, laying whatever is staged in the meld area first.
+   *
+   * A discard ends the turn, so anything still sitting in the staging area
+   * when one happens was never going to be laid — it used to be silently
+   * swept back into the hand by clearSelect(), losing a meld the player had
+   * already built. Laying it first is what they meant by dropping the card.
+   *
+   * All-or-nothing: if the server refuses a staged group, melds that already
+   * landed are undone, the staging is handed back exactly as it was, and the
+   * discard is never sent — so a rejected meld costs the player nothing
+   * rather than costing them their turn.
+   */
+  async function layPendingMeldsThenDiscard(card: string, serverCardIndex: number) {
+    if (discardBusyRef.current) return;
+    const discard = (cardIndex: number) => {
+      send({ type: 'discard', card, cardIndex: cardIndex >= 0 ? cardIndex : undefined });
+      clearSelect();
+    };
+    const pending = groups.filter((g) => g.length > 0);
+    if (pending.length === 0) {
+      discard(serverCardIndex);
+      return;
+    }
+    discardBusyRef.current = true;
+    try {
+      let laid = 0;
+      let latest: GameState | null = null;
+      for (const cards of pending) {
+        const res = await sendAwait({ type: 'lay_meld', cards });
+        if (res.ok) {
+          laid += 1;
+          latest = res.state;
+          continue;
+        }
+        let rolledBack: GameState | null = null;
+        for (let i = 0; i < laid; i++) {
+          const undone = await sendAwait({ type: 'undo_lay_meld' });
+          if (!undone.ok) break;
+          rolledBack = undone.state;
+        }
+        if (rolledBack) {
+          restoreGroupsRef.current = {
+            key: stagingResetKey(rolledBack.game, rolledBack.phase, rolledBack.myHand ?? []),
+            groups: pending,
+          };
+          setGroups(pending);
+        }
+        notify(t('discard.meldRejected', { reason: res.message }));
+        return;
+      }
+      // Every meld that just landed shifted the server's hand array, so the
+      // index captured before them no longer points at this card. The card
+      // itself is what the discard is really about; re-find it in the hand
+      // the server just sent back.
+      discard(latest ? (latest.myHand ?? []).indexOf(card) : serverCardIndex);
+    } finally {
+      discardBusyRef.current = false;
+    }
   }
 
   // Every "may I?" below is the server's answer, read out of the offer list
@@ -1425,7 +1522,9 @@ export default function GameScreen() {
             a new meld, or onto a table meld to lay it off (glowing outlines show where it can
             land). Tap one or more cards to select them (gold ring) first if you'd rather use the
             "Lay off here" / "Swap joker here" buttons, or to drag several off together. Drag a
-            staged card within its run or set to reorder it.
+            staged card within its run or set to reorder it. Discarding with a meld still staged
+            lays that meld down first — if the meld isn't legal, nothing is discarded and your
+            cards stay staged.
           </Text>
         ) : null}
         <View ref={handRowZoneRef}>
