@@ -147,9 +147,12 @@ the engine reads a rule from anywhere else, and a knob added here is automatical
 
 ### Mechanics worth preserving
 
-- **Ace duality.** An ace is natural at rank 1 or 14 of its own suit (worth 1); anywhere else a
-  wild worth 25 in hand. `validateRun` enumerates every candidate rank window and prefers the
-  placement spending the fewest wilds, so `J-Q-K-A` beats `10-J-Q-K` + wild ace.
+- **Ace duality.** In a *run* an ace is natural at rank 1 or 14 of its own suit (worth 1);
+  anywhere else a wild worth 25 in hand. `validateRun` enumerates every candidate rank window
+  and prefers the placement spending the fewest wilds, so `J-Q-K-A` beats `10-J-Q-K` + wild ace.
+  In a *set* it is neither: it is a real ace, worth `rules.AceMeldValueInSet` (15) toward the
+  initial-meld floor. Scoring it 1 there made three aces worth 3 points — less than three 2s —
+  and put every floor the lobby offers (35/50/70) out of reach for a hand built on aces.
 - **Same-turn undo windows.** `DiscardDrawnCards`, `LastLayOff`, `LastMeldLaid` let a player
   reverse the last pickup / lay-off / meld, each cleared as soon as anything else happens that
   turn. Derived flags are restored too, not just the cards.

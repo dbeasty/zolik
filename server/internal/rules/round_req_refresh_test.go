@@ -2,43 +2,46 @@ package rules
 
 import "testing"
 
-// The state game 6a8aa17f… reached: the human laid a clean run, a set of four
-// aces and a set of 5s (14 + 4 + 15 = 33 natural points, just under the
-// 35-point floor), so RoundReqMet stayed false. The AI then laid its 5H onto
-// the human's set of 5s, taking the human's table value to 38 — past the
-// floor — but nothing re-derived the flag, and the human spent the rest of
-// the deal unable to lay off onto any meld, their own or anyone else's.
+// wedgedGameState is the shape game 6a8aa17f… was found in: a player whose
+// table plainly satisfies everything needed to be down, carrying a
+// RoundReqMet flag that says otherwise because nothing re-derived it when an
+// opponent's lay-off grew their meld past the point floor.
+//
+// Deliberately ace-free. The real game's melds included a set of aces, whose
+// value is its own rule question (see TestAceInASetScoresAsARealAce) — this
+// fixture exists to pin the *flag* behaviour, so its arithmetic is kept
+// independent of that: a clean run worth 14 plus a set of 6s worth 18 or 24
+// straddles the 35-point floor either side of one lay-off.
 func wedgedGameState() GameState {
 	cfg := ProfileZolikClassic
 	cfg.InitialMeldMinimum = 35
 	return GameState{
 		Status: StatusActive, Rules: cfg, GameNumber: 3, Phase: PhaseMeld,
 		CurrentTurn: "human", TurnOrder: []string{"human", "ai"}, Round: 15,
-		Hands: map[string][]string{"human": {"7D", "5C", "JOKER1"}, "ai": {"2C", "5H"}},
+		Hands: map[string][]string{"human": {"JC", "7D", "JOKER1"}, "ai": {"6S", "2C"}},
 		Melds: map[string][][]string{
-			"ai":    {{"6C", "7C", "8C", "9C"}},
-			"human": {{"2D", "3D", "4D", "5D"}, {"AC", "AD", "AH", "AS"}, {"5C", "5D", "5H", "5S"}},
+			"ai":    {{"7C", "8C", "9C", "TC"}},
+			"human": {{"2D", "3D", "4D", "5D"}, {"6C", "6D", "6H", "6S"}},
 		},
 		MeldMeta: map[string][]MeldInfo{
 			"ai": {{MeldID: "meld_2", Type: MeldRun, OwnerID: "ai"}},
 			"human": {
 				{MeldID: "meld_3", Type: MeldRun, OwnerID: "human"},
 				{MeldID: "meld_4", Type: MeldSet, OwnerID: "human"},
-				{MeldID: "meld_5", Type: MeldSet, OwnerID: "human"},
 			},
 		},
 		RoundReqMet: map[string]bool{"human": false, "ai": true},
-		NextMeldSeq: 5,
+		NextMeldSeq: 4,
 		DrawPile:    []string{"KD", "QS"},
 		DiscardPile: []string{"9H"},
 	}
 }
 
-// beforeTheAILaidOff rewinds the human's set of 5s to the three cards it held
-// before the AI extended it: 33 natural points, correctly not down.
+// beforeTheAILaidOff rewinds the human's set of 6s to the three cards it held
+// before the AI extended it: 32 points, short of the floor, correctly not down.
 func beforeTheAILaidOff() GameState {
 	st := wedgedGameState()
-	st.Melds["human"][2] = []string{"5C", "5D", "5S"}
+	st.Melds["human"][1] = []string{"6C", "6D", "6H"}
 	st.CurrentTurn = "ai"
 	return st
 }
@@ -48,14 +51,14 @@ func beforeTheAILaidOff() GameState {
 // or the point floor.
 func TestLayOffRefreshesOwnerRoundReqMet(t *testing.T) {
 	st := beforeTheAILaidOff()
-	if got := PlayerInitialMeldNaturalValue(st, "human"); got != 33 {
-		t.Fatalf("setup: human table value = %d, want 33", got)
+	if got := PlayerInitialMeldNaturalValue(st, "human"); got != 32 {
+		t.Fatalf("setup: human table value = %d, want 32", got)
 	}
 	if st.RoundReqMet["human"] {
-		t.Fatal("setup: human should not be down at 33 points")
+		t.Fatal("setup: human should not be down at 32 points")
 	}
 
-	next, err := ValidateLayOff(st, "ai", "meld_5", []string{"5H"}, "")
+	next, err := ValidateLayOff(st, "ai", "meld_4", []string{"6S"}, "")
 	if err != nil {
 		t.Fatalf("AI lay-off onto the human's set: %v", err)
 	}
@@ -80,7 +83,7 @@ func TestWedgedPlayerQualifiesAndCanLayOff(t *testing.T) {
 	}
 
 	st.RoundReqMet["human"] = true
-	if _, err := ValidateLayOff(st, "human", "meld_2", []string{"5C"}, "front"); err != nil {
+	if _, err := ValidateLayOff(st, "human", "meld_2", []string{"JC"}, "end"); err != nil {
 		t.Fatalf("lay-off onto the opponent's run: %v", err)
 	}
 }
@@ -88,7 +91,7 @@ func TestWedgedPlayerQualifiesAndCanLayOff(t *testing.T) {
 // Undoing a lay-off that put the meld's owner down has to take that back too,
 // or a lay-off and its undo hand an opponent a free trip down.
 func TestUndoLayOffRestoresOwnerRoundReqMet(t *testing.T) {
-	next, err := ValidateLayOff(beforeTheAILaidOff(), "ai", "meld_5", []string{"5H"}, "")
+	next, err := ValidateLayOff(beforeTheAILaidOff(), "ai", "meld_4", []string{"6S"}, "")
 	if err != nil {
 		t.Fatalf("lay-off: %v", err)
 	}
@@ -115,7 +118,7 @@ func TestUndoTurnRestoresEveryPlayersRoundReqMet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("draw: %v", err)
 	}
-	afterLayOff, err := ValidateLayOff(drawn, "ai", "meld_5", []string{"5H"}, "")
+	afterLayOff, err := ValidateLayOff(drawn, "ai", "meld_4", []string{"6S"}, "")
 	if err != nil {
 		t.Fatalf("lay-off: %v", err)
 	}
@@ -147,7 +150,7 @@ func TestApplyActionHealsAStaleRoundReqMetMidTurn(t *testing.T) {
 	}
 
 	out, err := ApplyAction(st, "human", Action{
-		Type: ActionLayOff, MeldID: "meld_2", Cards: []string{"5C"}, Position: "front",
+		Type: ActionLayOff, MeldID: "meld_2", Cards: []string{"JC"}, Position: "end",
 	})
 	if err != nil {
 		t.Fatalf("lay-off mid-turn with a stale flag: %v", err)
@@ -186,7 +189,7 @@ func TestDrawHealsAStaleRoundReqMet(t *testing.T) {
 	if !out.State.RoundReqMet["human"] {
 		t.Fatal("drawing should have healed the stale flag")
 	}
-	if _, err := ValidateLayOff(out.State, "human", "meld_2", []string{"5C"}, "front"); err != nil {
+	if _, err := ValidateLayOff(out.State, "human", "meld_2", []string{"JC"}, "end"); err != nil {
 		t.Errorf("lay-off onto the opponent's run still refused: %v", err)
 	}
 }
@@ -194,11 +197,10 @@ func TestDrawHealsAStaleRoundReqMet(t *testing.T) {
 // A player who is genuinely short of the point floor is told so, rather than
 // being told to lay an initial meld that is already on the table.
 func TestNotDownErrorNamesThePointFloor(t *testing.T) {
-	st := wedgedGameState()
-	// Back to 33 points: short of the 35 floor, contract otherwise met.
-	st.Melds["human"][2] = []string{"5C", "5D", "5S"}
+	st := beforeTheAILaidOff() // 32 points against a 35 floor.
+	st.CurrentTurn = "human"
 
-	_, err := ValidateLayOff(st, "human", "meld_2", []string{"5C"}, "front")
+	_, err := ValidateLayOff(st, "human", "meld_2", []string{"JC"}, "end")
 	re, ok := err.(RulesError)
 	if !ok {
 		t.Fatalf("want RulesError, got %#v", err)
@@ -211,7 +213,7 @@ func TestNotDownErrorNamesThePointFloor(t *testing.T) {
 	bare := wedgedGameState()
 	bare.Melds["human"] = nil
 	bare.MeldMeta["human"] = nil
-	_, err = ValidateLayOff(bare, "human", "meld_2", []string{"5C"}, "front")
+	_, err = ValidateLayOff(bare, "human", "meld_2", []string{"JC"}, "end")
 	if re, ok := err.(RulesError); !ok || re.Code != ErrRoundReqNotMet {
 		t.Errorf("with no melds laid, want %q, got %#v", ErrRoundReqNotMet, err)
 	}

@@ -117,13 +117,28 @@ func PreviewMeld(state GameState, playerID string, cards []string) MeldPreview {
 // looseNaturalValue totals a selection that is not (yet) a valid meld, so the
 // running readout still means something while a player is picking cards.
 //
-// Aces are counted at their in-run value of 1 rather than 25: a selection
-// being assembled is far more likely to be heading for a run than to be an
-// ace used as a wild, and the figure exists to be compared against the
-// initial-meld floor, which only ever counts naturals.
+// An ace is worth 1 at a run endpoint but AceMeldValueInSet in a set, and an
+// incomplete selection has not committed to either. It is guessed from the
+// company the ace keeps: two or more aces can only be heading for a set (a
+// run holds at most one ace of a suit), while a lone ace among other ranks
+// reads as a run endpoint. Guessing wrong only mis-states a readout that is
+// explicitly an estimate — the moment the selection becomes a valid meld,
+// ValidateMeld's own figure replaces this one.
 func looseNaturalValue(cards []string) int {
+	aces := 0
+	for _, c := range cards {
+		if IsAce(c) {
+			aces++
+		}
+	}
+	headingForAceSet := aces >= 2
+
 	total := 0
 	for _, c := range cards {
+		if IsAce(c) && headingForAceSet {
+			total += AceMeldValueInSet
+			continue
+		}
 		total += NaturalCardValue(c, true)
 	}
 	return total
