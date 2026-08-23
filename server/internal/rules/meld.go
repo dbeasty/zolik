@@ -81,16 +81,57 @@ func ValidateMeld(cards []string, cfg RulesConfig) (MeldValidation, error) {
 	// (a distinct error code, or at least a message) over the generic
 	// catch-all below, so the player sees the real reason instead of a
 	// bare "invalid meld".
-	if re, ok := setErr.(RulesError); ok && (re.Code != ErrInvalidMeld || re.Message != "") {
-		return MeldValidation{}, setErr
+	//
+	// Which of the two failures to prefer is decided by the shape the cards
+	// were reaching for, not by a fixed order. validateSet almost always
+	// comes back with a message, so preferring it unconditionally meant a
+	// same-suit sequence that failed as a run was reported as "all cards in
+	// a set must share the same rank" — a complaint about a meld the player
+	// was never building, which hides the actual reason their run was
+	// refused.
+	first, second := setErr, runErr
+	if looksLikeRunAttempt(cards) {
+		first, second = runErr, setErr
 	}
-	if re, ok := runErr.(RulesError); ok && (re.Code != ErrInvalidMeld || re.Message != "") {
-		return MeldValidation{}, runErr
+	if re, ok := first.(RulesError); ok && (re.Code != ErrInvalidMeld || re.Message != "") {
+		return MeldValidation{}, first
+	}
+	if re, ok := second.(RulesError); ok && (re.Code != ErrInvalidMeld || re.Message != "") {
+		return MeldValidation{}, second
 	}
 	return MeldValidation{}, RulesError{
 		Code:    ErrInvalidMeld,
 		Message: "these cards don't form a valid set (same rank, different suits) or run (consecutive ranks, same suit)",
 	}
+}
+
+// looksLikeRunAttempt reports whether these cards read as a run in progress
+// rather than a set in progress: every natural card shares one suit and they
+// are not all the same rank. It only picks which validator's complaint to
+// show the player — never whether the meld is legal.
+func looksLikeRunAttempt(cards []string) bool {
+	suit := ""
+	rank := ""
+	naturals := 0
+	mixedRanks := false
+	for _, c := range cards {
+		if IsJoker(c) {
+			continue
+		}
+		s := CardSuit(c)
+		if naturals == 0 {
+			suit, rank = s, c[:1]
+		} else {
+			if s != suit {
+				return false
+			}
+			if c[:1] != rank {
+				mixedRanks = true
+			}
+		}
+		naturals++
+	}
+	return naturals >= 2 && mixedRanks
 }
 
 // runRankValue is what one slot of a run is worth, named by the resolved rank
@@ -257,6 +298,8 @@ func validateRun(cards []string, minRunSize int, preferHighStart ...bool) (MeldV
 	}
 
 	// Convert fixed ranks to 2..13 (A handled separately).
+	L := len(cards)
+
 	fixedRanks := make([]int, 0, len(fixed))
 	for _, c := range fixed {
 		r := cardToRunRank(c)
@@ -278,14 +321,12 @@ func validateRun(cards []string, minRunSize int, preferHighStart ...bool) (MeldV
 			}
 		}
 	}
-	if hasAceBridge(fixedRanks) {
+	if hasAceBridge(fixedRanks, L) {
 		return MeldValidation{}, RulesError{
 			Code:    ErrAceBridge,
 			Message: "a run can't bridge from a low card (A-3) to a high card (J-K) around the corner",
 		}
 	}
-
-	L := len(cards)
 
 	// Candidate start ranks in 1..(14-L+1). 14 represents Ace-high endpoint.
 	var starts []int
@@ -478,8 +519,26 @@ func containsInt(hay []int, needle int) bool {
 	return false
 }
 
-// hasAceBridge detects naturals that cannot belong to one consecutive run (e.g. K and 2 same suit).
-func hasAceBridge(fixedRanks []int) bool {
+// hasAceBridge detects naturals that cannot belong to one consecutive run
+// because reaching from the low one to the high one would have to wrap around
+// the corner through the ace (e.g. K and 2 of the same suit).
+//
+// Holding both a low natural (A-3) and a high natural (J-K) is not by itself a
+// bridge: a long enough run reaches from one to the other the honest way, up
+// through the middle of the suit. 2-3-4-5-6-7-8-9-10-J is ten cards spanning
+// ten ranks and perfectly legal, and a run that has grown that far keeps
+// growing into Q and K. So the question is whether the naturals fit inside one
+// window of runLen consecutive ranks; only when they demonstrably do not is
+// wrapping the only way to explain them, and only then is this the player's
+// real problem. fixedRanks must be sorted ascending.
+func hasAceBridge(fixedRanks []int, runLen int) bool {
+	if len(fixedRanks) == 0 {
+		return false
+	}
+	span := fixedRanks[len(fixedRanks)-1] - fixedRanks[0] + 1
+	if span <= runLen {
+		return false
+	}
 	hasLow := false
 	hasHigh := false
 	for _, r := range fixedRanks {
