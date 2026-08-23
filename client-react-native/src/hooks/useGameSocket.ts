@@ -143,6 +143,12 @@ export function useGameSocket({
     };
 
     ws.onerror = () => {
+      // A superseded socket (one connect() already replaced) must not report
+      // on behalf of the live one: its failure says nothing about the
+      // connection the player actually has, and flipping `connected` here
+      // would strand the UI on "reconnecting…" over a healthy socket, since
+      // only a fresh onopen ever sets it back.
+      if (wsRef.current !== ws) return;
       // Not fatal on its own — onclose fires right after and drives the
       // auto-reconnect, so logging at 'error' here would pop a disruptive
       // LogBox red screen on every routine reconnect attempt.
@@ -155,14 +161,22 @@ export function useGameSocket({
     ws.onclose = () => {
       logger.warn('ws', 'closed', {
         deliberate: closingRef.current,
+        stale: wsRef.current !== ws,
         nextAttempt: closingRef.current ? undefined : reconnectAttemptsRef.current + 1,
       });
+      // Everything below belongs to the *live* socket. A superseded one
+      // closing is expected bookkeeping from a connect() that already moved
+      // on, so it must not clear `connected` (nothing would set it back
+      // true short of another reconnect, pinning the UI on "reconnecting…"
+      // over a working socket) and must not clear the stable-connection
+      // timer out from under its replacement (which would stop the backoff
+      // from ever resetting).
+      if (wsRef.current !== ws) return;
       setConnected(false);
       if (stableTimerRef.current) {
         clearTimeout(stableTimerRef.current);
         stableTimerRef.current = null;
       }
-      if (wsRef.current !== ws) return;
       setStatus('Disconnected');
       setStatusIsError(false);
       if (closingRef.current) return;

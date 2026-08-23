@@ -39,7 +39,17 @@ export default function RoundEndScreen() {
         style={[shared.button, { marginTop: 24 }]}
         onPress={() => {
           setRoundEnd(null);
-          router.replace(`/game/${gameId}`);
+          // *Return* to the game screen rather than mounting a new one. This
+          // screen was pushed on top of the game (see onRoundEnd in
+          // app/game/[gameId].tsx), so that screen is still mounted below,
+          // still holding its WebSocket. A `replace` here swaps out only this
+          // entry and leaves a second, stacked game screen mounted — and since
+          // the server permits one connection per player per game and evicts
+          // the older one (server/internal/game/handler.go), the two screens
+          // then evict each other and auto-reconnect forever, leaving the
+          // visible one stuck on "reconnecting…". dismissTo pops back to the
+          // existing screen, falling back to a replace if there isn't one.
+          router.dismissTo(`/game/${gameId}`);
         }}
       >
         <Text style={shared.buttonText}>Continue</Text>
