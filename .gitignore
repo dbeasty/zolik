@@ -44,3 +44,6 @@ e2e/.cache/
 client-defold/build/
 client-defold/.internal/
 client-defold/wasm-web/
+
+# Claude Code worktrees (local scratch checkouts, incl. their node_modules)
+.claude/worktrees/
