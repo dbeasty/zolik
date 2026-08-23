@@ -277,6 +277,7 @@ func validateRun(cards []string, minRunSize int, preferHighStart ...bool) (MeldV
 
 	aceAsNatural := map[string]int{}
 	var best *MeldValidation
+	bestWildAceSlot := false
 
 tryStart:
 	for _, start := range starts {
@@ -308,32 +309,10 @@ tryStart:
 			naturalSlots[r] = true
 		}
 
-		// Decide if we can treat some aces as natural endpoints.
-		// Ace natural is only permitted at rank 1 or 14 positions, and only if suit matches runSuit (when suit is known).
-		aceNaturalNeeded := 0
+		// Decide which cards fill the ace slots. An ace is natural only at
+		// rank 1 or 14, and only in the run's own suit.
 		aceLow := containsInt(positions, 1)
 		aceHigh := containsInt(positions, 14)
-
-		usableLowAces := 0
-		usableHighAces := 0
-		for _, a := range aces {
-			if runSuit != "" && CardSuit(a) != runSuit {
-				continue
-			}
-			if aceLow {
-				usableLowAces++
-			}
-			if aceHigh {
-				usableHighAces++
-			}
-		}
-
-		if aceLow {
-			aceNaturalNeeded++
-		}
-		if aceHigh {
-			aceNaturalNeeded++
-		}
 
 		// If suit unknown (no fixed naturals), we must select a suit by requiring at least one natural ace to establish suit.
 		// If the run has no fixed naturals, we require the aces used as natural endpoints to share a suit.
@@ -341,60 +320,51 @@ tryStart:
 			if !(aceLow || aceHigh) {
 				continue tryStart
 			}
-			// Choose suit from the first ace; ensure we can supply needed endpoints with that suit.
-			suit := CardSuit(aces[0])
-			runSuit = suit
-			usableLowAces = 0
-			usableHighAces = 0
-			for _, a := range aces {
-				if CardSuit(a) != suit {
-					continue
-				}
-				if aceLow {
-					usableLowAces++
-				}
-				if aceHigh {
-					usableHighAces++
-				}
-			}
+			// Choose suit from the first ace; a joker can't name a suit.
+			runSuit = CardSuit(aces[0])
 		}
 
+		// A joker is wild in the ace slots too. A suited ace is preferred
+		// there — it is the natural card for the slot and carries its full
+		// value — but when the cards hold no such ace the slot is not
+		// special: leave it to the wild accounting below, exactly like any
+		// other gap. Refusing the whole window instead is what made
+		// Q♠-K♠-JOKER resolve as J♠-Q♠-K♠, the joker standing in for the
+		// jack because the ace behind the king was the one rank it was not
+		// allowed to be; and what made a 2-through-K run plus a joker
+		// unlayable outright, with no window left for it to fit.
+		spentAce := make([]bool, len(aces))
+		takeSuitedAce := func() string {
+			for i, a := range aces {
+				if spentAce[i] || CardSuit(a) != runSuit {
+					continue
+				}
+				spentAce[i] = true
+				return a
+			}
+			return ""
+		}
+
+		// Assign specific ace cards as natural where one is available.
+		aceAsNatural = map[string]int{}
+		acesPlaced := 0
 		needLow := 0
 		needHigh := 0
 		if aceLow {
-			needLow = 1
+			if a := takeSuitedAce(); a != "" {
+				aceAsNatural[a]++
+				acesPlaced++
+				naturalSlots[1] = true
+				needLow = 1
+			}
 		}
 		if aceHigh {
-			needHigh = 1
-		}
-
-		if needLow > 0 && usableLowAces == 0 {
-			continue tryStart
-		}
-		if needHigh > 0 && usableHighAces == 0 {
-			continue tryStart
-		}
-
-		// Assign specific ace cards as natural if needed.
-		aceAsNatural = map[string]int{}
-		if needLow > 0 {
-			for _, a := range aces {
-				if CardSuit(a) == runSuit {
-					aceAsNatural[a]++
-					break
-				}
+			if a := takeSuitedAce(); a != "" {
+				aceAsNatural[a]++
+				acesPlaced++
+				naturalSlots[14] = true
+				needHigh = 1
 			}
-			naturalSlots[1] = true
-		}
-		if needHigh > 0 {
-			for _, a := range aces {
-				if CardSuit(a) == runSuit {
-					// Prefer a different physical ace if possible (but representation duplicates, so this is best-effort).
-					aceAsNatural[a]++
-					break
-				}
-			}
-			naturalSlots[14] = true
 		}
 
 		// Unlike jokers, an ace is a specific physical card with a real,
@@ -403,11 +373,15 @@ tryStart:
 		// as a natural endpoint can't fill some other gap in the run
 		// (that would let e.g. a wrong-suited ace pass as a wild filler),
 		// so this window doesn't fit and we try the next one.
-		if len(aces) > len(aceAsNatural) {
+		//
+		// Counted by physical card, not by distinct card string: two decks
+		// can put two A♠ in one hand, and a run holding both ace ends spends
+		// both, which a map keyed by "AS" cannot tell from spending one twice.
+		if len(aces) > acesPlaced {
 			continue tryStart
 		}
 
-		naturalCount := len(fixedRanks) + len(aceAsNatural)
+		naturalCount := len(fixedRanks) + acesPlaced
 		wildCount := len(jokers)
 
 		if wildCount > naturalCount {
@@ -437,14 +411,36 @@ tryStart:
 			ResolvedRun:  append([]int(nil), positions...),
 			ResolvedSuit: runSuit,
 		}
+		// A wild sitting in an ace slot is legal but a last resort. It buys
+		// nothing — a wild is worth the same 0 wherever it sits — and it
+		// spends the one rank that cannot be extended past, so J♠-Q♠-K♠
+		// (wild as the jack) is strictly better than Q♠-K♠-A♠ (wild as the
+		// ace) for the same cards: both are worth 20, but only the first
+		// leaves both ends of the run open.
+		wildAceSlot := (aceLow && needLow == 0) || (aceHigh && needHigh == 0)
+
 		// Several windows can fit the same fixed cards (e.g. J-Q-K plus one
 		// flex ace could sit at 10-J-Q-K with the ace wild, or J-Q-K-A with
 		// the ace natural) — prefer the one that spends the fewest wilds,
 		// since a flex ace should always resolve to its natural endpoint
 		// over standing in for an unrelated rank when both are possible.
-		if best == nil || candidate.WildCount < best.WildCount ||
-			(preferHigh && candidate.WildCount == best.WildCount) {
+		switch {
+		case best == nil:
 			best = &candidate
+			bestWildAceSlot = wildAceSlot
+		case candidate.WildCount != best.WildCount:
+			if candidate.WildCount < best.WildCount {
+				best = &candidate
+				bestWildAceSlot = wildAceSlot
+			}
+		case wildAceSlot != bestWildAceSlot:
+			if !wildAceSlot {
+				best = &candidate
+				bestWildAceSlot = wildAceSlot
+			}
+		case preferHigh:
+			best = &candidate
+			bestWildAceSlot = wildAceSlot
 		}
 	}
 

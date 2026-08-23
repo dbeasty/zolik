@@ -1,6 +1,9 @@
 package rules
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 func TestValidateSet_WildRatio(t *testing.T) {
 	_, err := validateSet([]string{"7H", "JOKER1", "JOKER2"}, 3)
@@ -118,6 +121,87 @@ func TestValidateRun_AceHighAllowed(t *testing.T) {
 	}
 	if mv.Type != MeldRun {
 		t.Fatalf("expected run")
+	}
+}
+
+// A joker may stand in for the ace at either end of a run. It used to be the
+// one rank a joker could not be: the endpoint slots demanded a real ace of
+// the run's suit, so any window reaching rank 1 or rank 14 was discarded
+// before the wild accounting ever saw it.
+func TestValidateRun_JokerFillsAceSlot(t *testing.T) {
+	cases := []struct {
+		name  string
+		cards []string
+		want  []int // resolved rank window
+	}{
+		// J-Q-K-A, with jokers as the jack and the ace. The only window that
+		// fits: sliding down to 10-J-Q-K puts both jokers side by side at
+		// ranks 10 and 11, which the adjacent-wild rule forbids.
+		{"joker as the high ace", []string{"QS", "KS", "JOKER1", "JOKER2"}, []int{11, 12, 13, 14}},
+		// The mirror image at the bottom: A-2-3-4, jokers as the ace and the
+		// four, since 2-3-4-5 would sit both jokers at ranks 4 and 5.
+		{"joker as the low ace", []string{"2S", "3S", "JOKER1", "JOKER2"}, []int{1, 2, 3, 4}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			mv, err := validateRun(tc.cards, 3)
+			if err != nil {
+				t.Fatalf("expected valid run, got %v", err)
+			}
+			if !reflect.DeepEqual(mv.ResolvedRun, tc.want) {
+				t.Fatalf("resolved %v, want %v", mv.ResolvedRun, tc.want)
+			}
+			if mv.WildCount != 2 {
+				t.Fatalf("expected 2 wilds, got %d", mv.WildCount)
+			}
+			// A joker in the ace slot is still a wild: it contributes 0
+			// toward the initial-meld floor, exactly as it would anywhere
+			// else in the run.
+			if mv.NaturalValue != runNaturalValue(tc.cards, false, false) {
+				t.Fatalf("joker in an ace slot should score as a wild, got %d", mv.NaturalValue)
+			}
+		})
+	}
+}
+
+// Being allowed in an ace slot does not make it the preferred reading. A wild
+// is worth the same 0 at every rank, so spending one on an ace — the one rank
+// nothing extends past — only closes an end of the run for nothing.
+func TestValidateRun_WildAceSlotIsLastResort(t *testing.T) {
+	cases := []struct {
+		name  string
+		cards []string
+		want  []int
+	}{
+		{"joker takes the jack, not the ace behind the king", []string{"QS", "KS", "JOKER1"}, []int{11, 12, 13}},
+		{"joker takes the four, not the ace below the two", []string{"2S", "3S", "JOKER1"}, []int{2, 3, 4}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			mv, err := validateRun(tc.cards, 3)
+			if err != nil {
+				t.Fatalf("expected valid run, got %v", err)
+			}
+			if !reflect.DeepEqual(mv.ResolvedRun, tc.want) {
+				t.Fatalf("resolved %v, want %v — both ends should stay open", mv.ResolvedRun, tc.want)
+			}
+		})
+	}
+}
+
+// A real ace still beats a joker for the slot it is natural in: the ace is
+// worth AceMeldValue there, the joker 0.
+func TestValidateRun_RealAcePreferredOverJokerInAceSlot(t *testing.T) {
+	mv, err := validateRun([]string{"QH", "KH", "AH", "JOKER1"}, 4)
+	if err != nil {
+		t.Fatalf("expected valid run, got %v", err)
+	}
+	if mv.AceAsNatural["AH"] != 1 {
+		t.Fatalf("A♥ should hold rank 14 naturally, got %v", mv.AceAsNatural)
+	}
+	want := 2*10 + AceMeldValue // Q + K + the natural ace; the joker is the jack
+	if mv.NaturalValue != want {
+		t.Fatalf("natural value %d, want %d", mv.NaturalValue, want)
 	}
 }
 

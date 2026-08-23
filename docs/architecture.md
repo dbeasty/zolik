@@ -158,6 +158,13 @@ the engine reads a rule from anywhere else, and a knob added here is automatical
   those two booleans rather than trying to re-derive it. Scoring every natural ace 1 made three
   aces worth 3 points — less than three 2s — and Q-K-A worth 21 instead of 35, putting every
   floor the lobby offers (35/50/70) out of reach for a hand built on aces.
+- **A joker may be an ace.** The rank-1 and rank-14 slots used to demand a *real* suited ace, so
+  any window reaching them was discarded before the wild accounting saw it — the ace was the one
+  rank a joker could not stand in for, and `Q♠-K♠` + two jokers was rejected outright rather than
+  read as `J-Q-K-A`. Those slots now take a wild like any other gap. They are a last resort
+  though, and the tie-break says so: a wild is worth 0 at every rank, so spending one on an ace —
+  the one rank nothing extends past — only closes an end of the run for nothing. `Q♠-K♠`+joker
+  therefore still resolves `J-Q-K` (both ends open), not `Q-K-A`.
 - **Same-turn undo windows.** `DiscardDrawnCards`, `LastLayOff`, `LastMeldLaid` let a player
   reverse the last pickup / lay-off / meld, each cleared as soon as anything else happens that
   turn. Derived flags are restored too, not just the cards.
