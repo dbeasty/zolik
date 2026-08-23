@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { apiClient } from '@/src/api/client';
 import type { GameState, WSAction, WSEnvelope } from '@/src/api/types';
+import { logger } from '@/src/lib/logger';
 
 type UseGameSocketOptions = {
   gameId: string;
@@ -18,6 +19,10 @@ export function useGameSocket({
 }: UseGameSocketOptions) {
   const [state, setState] = useState<GameState | null>(null);
   const [status, setStatus] = useState('Connecting…');
+  // Distinguishes rule-violation/connection errors (rendered as a prominent
+  // banner) from benign connection status ("Connected", "Deck recycled")
+  // which shares the same `status` string channel but shouldn't look alarming.
+  const [statusIsError, setStatusIsError] = useState(false);
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const stateRef = useRef<GameState | null>(null);
@@ -50,11 +55,15 @@ export function useGameSocket({
     pendingRoundEndRef.current = null;
     pendingGameEndRef.current = null;
     setStatus('Connecting…');
+    setStatusIsError(false);
+    logger.setContext({ gameId, userId: apiClient.userId });
+    logger.info('ws', 'connecting', { attempt: reconnectAttemptsRef.current });
     const url = apiClient.wsUrl(gameId);
     const ws = new WebSocket(url);
     wsRef.current = ws;
 
     ws.onopen = () => {
+      logger.info('ws', 'open');
       // Only reset the backoff once the connection has held up for a few
       // seconds — if something keeps killing the socket right after it
       // opens (a flapping connection), resetting on every open would keep
@@ -66,6 +75,7 @@ export function useGameSocket({
       }, 3000);
       setConnected(true);
       setStatus('Connected');
+      setStatusIsError(false);
     };
 
     ws.onmessage = (ev) => {
@@ -74,9 +84,16 @@ export function useGameSocket({
         const t = envelope.type;
         if (t === 'game_state') {
           const st = envelope as unknown as GameState;
+          logger.debug('ws', 'game_state', {
+            phase: st.phase,
+            turn: st.currentTurn,
+            deal: st.game,
+            round: st.round,
+          });
           stateRef.current = st;
           setState(st);
           setStatus('');
+          setStatusIsError(false);
           if (pendingGameEndRef.current) {
             const data = pendingGameEndRef.current;
             pendingGameEndRef.current = null;
@@ -88,27 +105,51 @@ export function useGameSocket({
             onRoundEndRef.current?.(data, st);
           }
         } else if (t === 'error') {
-          setStatus(`✗ ${String(envelope.message ?? 'Error')}`);
+          logger.warn('ws', 'server_error', { message: envelope.message });
+          setStatus(String(envelope.message ?? 'Something went wrong'));
+          setStatusIsError(true);
         } else if (t === 'deal_ended') {
+          logger.info('ws', 'deal_ended');
           pendingRoundEndRef.current = envelope;
         } else if (t === 'game_ended') {
+          logger.info('ws', 'game_ended');
           pendingGameEndRef.current = envelope;
         } else if (t === 'reshuffle') {
+          logger.info('ws', 'reshuffle');
           setStatus('Deck recycled');
+          setStatusIsError(false);
         } else if (t === 'game_suspended') {
+          logger.info('ws', 'game_suspended');
           setStatus('Game suspended');
+          setStatusIsError(false);
+        } else {
+          logger.debug('ws', 'event', { type: t });
         }
-      } catch {
-        setStatus('✗ Bad message from server');
+      } catch (err) {
+        logger.error('ws', 'parse_failed', {
+          raw: String(ev.data).slice(0, 200),
+          err: String(err),
+        });
+        setStatus('Bad message from server');
+        setStatusIsError(true);
       }
     };
 
     ws.onerror = () => {
-      setStatus('✗ Connection error');
+      // Not fatal on its own — onclose fires right after and drives the
+      // auto-reconnect, so logging at 'error' here would pop a disruptive
+      // LogBox red screen on every routine reconnect attempt.
+      logger.warn('ws', 'socket_error');
+      setStatus('Connection error');
+      setStatusIsError(true);
       setConnected(false);
     };
 
     ws.onclose = () => {
+      logger.warn('ws', 'closed', {
+        deliberate: closingRef.current,
+        nextAttempt: closingRef.current ? undefined : reconnectAttemptsRef.current + 1,
+      });
       setConnected(false);
       if (stableTimerRef.current) {
         clearTimeout(stableTimerRef.current);
@@ -116,6 +157,7 @@ export function useGameSocket({
       }
       if (wsRef.current !== ws) return;
       setStatus('Disconnected');
+      setStatusIsError(false);
       if (closingRef.current) return;
       // Auto-recover from dropped connections (server restart, network
       // blip, tab backgrounding) so opponent/AI turns that happen while
@@ -151,9 +193,20 @@ export function useGameSocket({
   const send = useCallback((action: WSAction) => {
     const ws = wsRef.current;
     if (!ws || ws.readyState !== WebSocket.OPEN) {
-      setStatus('✗ Not connected');
+      logger.warn('move', 'blocked', { type: action.type, reason: 'not_connected' });
+      setStatus('Not connected');
+      setStatusIsError(true);
       return;
     }
+    logger.info('move', 'send', {
+      type: action.type,
+      card: action.card,
+      cards: action.cards,
+      cardIndex: action.cardIndex,
+      meldId: action.meldId,
+      from: action.from,
+      position: action.position,
+    });
     apiClient.sendWS(ws, action);
   }, []);
 
@@ -161,5 +214,5 @@ export function useGameSocket({
     connect();
   }, [connect]);
 
-  return { state, status, connected, send, reconnect, setState };
+  return { state, status, statusIsError, connected, send, reconnect, setState };
 }

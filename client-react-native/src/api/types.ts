@@ -21,6 +21,7 @@ export type GameState = {
   isDraw?: boolean;
   initialMeldMinimum: number;
   discardDrawMinRound: number;
+  discardLocked: boolean;
   discardDrawnCardPendingMeld?: string;
   canUndoDiscardDraw?: boolean;
   canUndoLayOff?: boolean;
@@ -31,6 +32,16 @@ export type GameState = {
 
 /** "continental" | "zolik_classic" | "custom" — see server rules.RulesConfig. */
 export type RulesProfile = 'continental' | 'zolik_classic' | 'custom';
+
+/** Response shape of GET /rules — see server rules.MinPlayers etc. */
+export type RulesInfo = {
+  minPlayers: number;
+  maxPlayers: number;
+  initialMeldMinOptions: number[];
+  discardDrawMinRoundOptions: number[];
+  defaultInitialMeldMinimum: number;
+  defaultDiscardDrawMinRound: number;
+};
 
 export type MeldMeta = {
   meldId: string;
@@ -71,6 +82,12 @@ export type WSAction = {
   cards?: string[];
   meldId?: string;
   card?: string;
+  /**
+   * discard only: which of `card`'s server hand slots this is, so a
+   * duplicate value (two decks in play) is disambiguated by position
+   * rather than value alone.
+   */
+  cardIndex?: number;
   /** lay_off only: which end of a run the dropped card(s) must extend. */
   position?: 'front' | 'end';
 };

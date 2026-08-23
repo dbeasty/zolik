@@ -91,7 +91,10 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 	}
 	// 2) Draw phase: prefer discard if available and allowed this round, else deck.
 	if visible.Phase == string(rules.PhaseDraw) {
-		discardLocked := visible.Rules.DiscardDrawMinRound > 1 && visible.Round < visible.Rules.DiscardDrawMinRound
+		// origin/main's shared helper, reading the lock round off the
+		// resolved ruleset: VisibleState deliberately no longer carries its
+		// own DiscardDrawMinRound copy to drift out of sync with Rules.
+		discardLocked := rules.IsDiscardLocked(visible.Round, visible.Rules.DiscardDrawMinRound)
 		if len(visible.DiscardPile) > 0 && !discardLocked {
 			actor := visible.CurrentTurn
 			topDiscard := visible.DiscardPile[len(visible.DiscardPile)-1]

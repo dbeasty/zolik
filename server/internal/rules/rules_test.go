@@ -305,13 +305,35 @@ func TestValidateDiscard_BlocksIncompleteInitialMeld(t *testing.T) {
 		RoundReqMet:       map[string]bool{"p1": false},
 		MeldsLaidThisTurn: 1,
 	}
-	_, _, err := ValidateDiscard(st, "p1", "9S")
+	_, _, err := ValidateDiscard(st, "p1", "9S", nil)
 	if err == nil {
 		t.Fatalf("expected discard to be blocked with an incomplete initial meld")
 	}
 	re, ok := err.(RulesError)
 	if !ok || re.Code != ErrIncompleteInitialMeld {
 		t.Fatalf("expected ErrIncompleteInitialMeld, got %#v", err)
+	}
+}
+
+func TestValidateDiscard_DuplicateValueUsesCardIndex(t *testing.T) {
+	st := GameState{
+		Status:            StatusActive,
+		Phase:             PhaseDiscard,
+		Round:             1,
+		CurrentTurn:       "p1",
+		TurnOrder:         []string{"p1", "p2"},
+		Hands:             map[string][]string{"p1": {"9S", "4D", "9S"}, "p2": {}},
+		DiscardPile:       []string{},
+		RoundReqMet:       map[string]bool{"p1": false, "p2": false},
+		MeldsLaidThisTurn: 0,
+	}
+	idx := 2
+	ns, _, err := ValidateDiscard(st, "p1", "9S", &idx)
+	if err != nil {
+		t.Fatalf("expected discard to succeed, got %v", err)
+	}
+	if got := ns.Hands["p1"]; len(got) != 2 || got[0] != "9S" || got[1] != "4D" {
+		t.Fatalf("expected the 9S at index 2 to be removed (leaving the one at index 0), got %v", got)
 	}
 }
 
@@ -327,7 +349,7 @@ func TestValidateDiscard_AllowedWithNoMeldsLaidThisTurn(t *testing.T) {
 		RoundReqMet:       map[string]bool{"p1": false, "p2": false},
 		MeldsLaidThisTurn: 0,
 	}
-	if _, _, err := ValidateDiscard(st, "p1", "9S"); err != nil {
+	if _, _, err := ValidateDiscard(st, "p1", "9S", nil); err != nil {
 		t.Fatalf("expected discard with no melds laid this turn to succeed, got %v", err)
 	}
 }
@@ -344,7 +366,7 @@ func TestValidateDiscard_AllowedOnceRoundReqMet(t *testing.T) {
 		RoundReqMet:       map[string]bool{"p1": true, "p2": false},
 		MeldsLaidThisTurn: 2,
 	}
-	if _, _, err := ValidateDiscard(st, "p1", "9S"); err != nil {
+	if _, _, err := ValidateDiscard(st, "p1", "9S", nil); err != nil {
 		t.Fatalf("expected discard to succeed once round requirement is met, got %v", err)
 	}
 }
@@ -402,7 +424,7 @@ func TestValidateDiscard_BlocksWhenPickedUpDiscardCardStillUnmelded(t *testing.T
 	}
 	// Trying to discard a *different* card while 9S (the discard pickup)
 	// remains unmelded must be rejected.
-	_, _, err := ValidateDiscard(st, "p1", "4D")
+	_, _, err := ValidateDiscard(st, "p1", "4D", nil)
 	if err == nil {
 		t.Fatalf("expected discard to be blocked while the picked-up card is unmelded")
 	}
@@ -524,6 +546,55 @@ func TestValidateLayOff_PositionMustMatchTheRequestedRunEnd(t *testing.T) {
 	}
 	if _, err := ValidateLayOff(base(), "p1", "meld_1", []string{"8C"}, "front"); err == nil {
 		t.Fatalf("expected front lay-off of 8C to be rejected")
+	}
+}
+
+func TestValidateLayOff_AmbiguousJokerRespectsDroppedEnd(t *testing.T) {
+	// A joker laid off onto a 5-6-7 run could equally fill rank 4 (front) or
+	// rank 8 (end) — same wild count either way. Regression test: this used
+	// to always resolve to the front window, so dropping on "end" was
+	// rejected with ErrWrongRunEnd even though the drop was valid.
+	base := func() GameState {
+		return GameState{
+			Status:      StatusActive,
+			Phase:       PhaseMeld,
+			Round:       1,
+			CurrentTurn: "p1",
+			Hands:       map[string][]string{"p1": {"JOKER1", "2D"}},
+			Melds:       map[string][][]string{"p2": {{"5C", "6C", "7C"}}},
+			MeldMeta:    map[string][]MeldInfo{"p2": {{MeldID: "meld_1", Type: MeldRun, OwnerID: "p2"}}},
+			RoundReqMet: map[string]bool{"p1": true, "p2": true},
+		}
+	}
+
+	st, err := ValidateLayOff(base(), "p1", "meld_1", []string{"JOKER1"}, "end")
+	if err != nil {
+		t.Fatalf("expected end lay-off of joker to succeed, got %v", err)
+	}
+	got := st.Melds["p2"][0]
+	want := []string{"5C", "6C", "7C", "JOKER1"}
+	if len(got) != len(want) {
+		t.Fatalf("expected %v, got %v", want, got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("expected joker appended at the end %v, got %v", want, got)
+		}
+	}
+
+	st2, err := ValidateLayOff(base(), "p1", "meld_1", []string{"JOKER1"}, "front")
+	if err != nil {
+		t.Fatalf("expected front lay-off of joker to succeed, got %v", err)
+	}
+	got2 := st2.Melds["p2"][0]
+	want2 := []string{"JOKER1", "5C", "6C", "7C"}
+	if len(got2) != len(want2) {
+		t.Fatalf("expected %v, got %v", want2, got2)
+	}
+	for i := range want2 {
+		if got2[i] != want2[i] {
+			t.Fatalf("expected joker prepended at the front %v, got %v", want2, got2)
+		}
 	}
 }
 
@@ -845,6 +916,66 @@ func TestValidateSwapJoker_NoJokerInMeldRejected(t *testing.T) {
 	re, ok := err.(RulesError)
 	if !ok || re.Code != ErrNoJokerInMeld {
 		t.Fatalf("expected NO_JOKER_IN_MELD, got %#v", err)
+	}
+}
+
+// Dragging the exact natural card a joker in a meld stands in for should
+// reclaim the joker (a swap), not just pad the meld with a redundant card
+// and leave the joker stuck — which is what plain lay-off would otherwise do
+// silently (no error, since a set happily accepts naturals >= wilds), even
+// though the player's evident intent was to take the joker back.
+func TestApplyAction_LayOffPrefersJokerSwapOverRedundantSetAdd(t *testing.T) {
+	st := GameState{
+		Status:      StatusActive,
+		Phase:       PhaseMeld,
+		Round:       1,
+		CurrentTurn: "p1",
+		Hands:       map[string][]string{"p1": {"9H", "2D"}},
+		Melds:       map[string][][]string{"p2": {{"9C", "9D", "JOKER2"}}},
+		MeldMeta:    map[string][]MeldInfo{"p2": {{MeldID: "meld_1", Type: MeldSet, OwnerID: "p2", WildCount: 1}}},
+		RoundReqMet: map[string]bool{"p1": true, "p2": true},
+	}
+	outcome, err := ApplyAction(st, "p1", Action{Type: ActionLayOff, MeldID: "meld_1", Card: "9H"})
+	if err != nil {
+		t.Fatalf("expected the drop to resolve as a joker swap, got error: %v", err)
+	}
+	if got := outcome.State.Melds["p2"][0]; len(got) != 3 || !containsCard(got, "9H") {
+		t.Fatalf("expected 9H to take the joker's slot without padding the set, got %v", got)
+	}
+	if !containsCard(outcome.State.Hands["p1"], "JOKER2") {
+		t.Fatalf("expected the joker to land in p1's hand, got %v", outcome.State.Hands["p1"])
+	}
+	foundSwapEvent := false
+	for _, e := range outcome.Events {
+		if e.Type == "joker_swapped" {
+			foundSwapEvent = true
+		}
+	}
+	if !foundSwapEvent {
+		t.Fatalf("expected a joker_swapped event, got %v", outcome.Events)
+	}
+}
+
+// When the card doesn't fit the joker's own slot but is a perfectly ordinary
+// extension of the meld, lay-off still goes through as before — the swap
+// attempt is tried first but fails harmlessly and falls through.
+func TestApplyAction_LayOffStillWorksWhenNoJokerSwapApplies(t *testing.T) {
+	st := GameState{
+		Status:      StatusActive,
+		Phase:       PhaseMeld,
+		Round:       1,
+		CurrentTurn: "p1",
+		Hands:       map[string][]string{"p1": {"9C", "2D"}},
+		Melds:       map[string][][]string{"p2": {{"9H", "9D"}}},
+		MeldMeta:    map[string][]MeldInfo{"p2": {{MeldID: "meld_1", Type: MeldSet, OwnerID: "p2"}}},
+		RoundReqMet: map[string]bool{"p1": true, "p2": true},
+	}
+	outcome, err := ApplyAction(st, "p1", Action{Type: ActionLayOff, MeldID: "meld_1", Card: "9C"})
+	if err != nil {
+		t.Fatalf("expected a normal lay-off to succeed, got error: %v", err)
+	}
+	if got := outcome.State.Melds["p2"][0]; len(got) != 3 || !containsCard(got, "9C") {
+		t.Fatalf("expected 9C added to the set, got %v", got)
 	}
 }
 

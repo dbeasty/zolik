@@ -46,7 +46,7 @@ export function cardSuit(card: string): string {
   return card[card.length - 1];
 }
 
-function rankOrder(card: string): number {
+export function rankOrder(card: string): number {
   if (card.startsWith('JOKER')) return 100;
   const r = displayRank(card);
   const order: Record<string, number> = {
@@ -154,6 +154,50 @@ export function moveCardToIndex(cards: string[], from: number, to: number): stri
   const clamped = Math.max(0, Math.min(copy.length, to));
   copy.splice(clamped, 0, item);
   return copy;
+}
+
+// Client-side mirror of the server's ValidateMeld (server/internal/rules/meld.go)
+// used only to decide when a staged group already reads as a complete meld —
+// e.g. to auto-open the next staging box — never to gate what's actually sent
+// to lay_meld, which the server validates for real. So it deliberately skips
+// the server's rarer edge cases (adjacent-wild runs, ace-bridge windows):
+// getting those wrong here just means the box doesn't auto-open a beat early,
+// not a rules violation.
+export function isViableMeld(cards: string[], minRunLength: number): boolean {
+  if (cards.length < 3) return false;
+  return isViableSet(cards) || isViableRun(cards, minRunLength);
+}
+
+function isViableSet(cards: string[]): boolean {
+  const jokers = cards.filter((c) => c.startsWith('JOKER'));
+  const naturals = cards.filter((c) => !c.startsWith('JOKER'));
+  if (naturals.length === 0 || jokers.length > naturals.length) return false;
+  const rank = displayRank(naturals[0]);
+  if (!naturals.every((c) => displayRank(c) === rank)) return false;
+  const suits = naturals.map(cardSuit);
+  return new Set(suits).size === suits.length;
+}
+
+function isViableRun(cards: string[], minRunLength: number): boolean {
+  if (cards.length < minRunLength) return false;
+  const jokers = cards.filter((c) => c.startsWith('JOKER'));
+  const naturals = cards.filter((c) => !c.startsWith('JOKER'));
+  if (naturals.length === 0 || jokers.length > naturals.length) return false;
+  const suits = new Set(naturals.map(cardSuit));
+  if (suits.size !== 1) return false;
+  const hasAce = naturals.some((c) => displayRank(c) === 'A');
+  // Aces are flex — low (rankOrder's 1) or high (14) — same as the server's
+  // run resolution, so e.g. Q-K-A is recognized alongside A-2-3.
+  const aceValues = hasAce ? [1, 14] : [1];
+  for (const aceValue of aceValues) {
+    const ranks = naturals.map((c) => (displayRank(c) === 'A' ? aceValue : rankOrder(c)));
+    if (new Set(ranks).size !== ranks.length) continue;
+    const span = Math.max(...ranks) - Math.min(...ranks) + 1;
+    // Every card in the group has to be part of the run — the jokers must
+    // exactly fill the gaps within the naturals' span, no leftovers.
+    if (span === cards.length) return true;
+  }
+  return false;
 }
 
 export function roundRequirementLabel(round: number): string {

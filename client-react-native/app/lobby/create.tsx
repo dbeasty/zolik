@@ -3,13 +3,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
 import { Screen } from '@/src/components/Screen';
+import { useRulesConfig } from '@/src/context/RulesConfigContext';
 import { storage, useSession } from '@/src/context/SessionContext';
 import type { LobbyPlayer, RulesProfile } from '@/src/api/types';
 import { colors, shared } from '@/src/theme';
 
 const DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
-const MELD_MINS = [0, 35, 50, 70];
-const DISCARD_LOCK_ROUNDS = [0, 1, 2, 3];
 const LAST_PROFILE_KEY = 'zolik_last_rules_profile';
 const LAST_MELD_MIN_KEY = 'zolik_last_meld_min';
 const LAST_DISCARD_LOCK_ROUND_KEY = 'zolik_last_discard_lock_round';
@@ -22,6 +21,14 @@ const PROFILES: { value: RulesProfile; label: string }[] = [
 async function loadLastProfile(): Promise<RulesProfile> {
   const stored = await storage.getItem(LAST_PROFILE_KEY);
   return stored === 'continental' || stored === 'zolik_classic' ? stored : 'zolik_classic';
+}
+
+// Meld-min/discard-lock preferences are remembered per rules profile — each
+// profile has its own sensible default (e.g. 35/round-3 for Continental, 0/0
+// for Žolík Classic), so a value picked while playing one profile must never
+// leak into a freshly created game under a different profile.
+function scopedKey(key: string, profile: RulesProfile): string {
+  return `${key}:${profile}`;
 }
 
 async function loadLastNumericSetting(
@@ -42,6 +49,10 @@ const PROFILE_RULES_TITLE: Record<string, string> = {
 
 export default function CreateLobbyScreen() {
   const { client, session } = useSession();
+  const rulesInfo = useRulesConfig();
+  // "0" is a UI-only "off" choice, prepended to the server's real options.
+  const meldMins = [0, ...rulesInfo.initialMeldMinOptions];
+  const discardLockRounds = [0, ...rulesInfo.discardDrawMinRoundOptions];
   const [gameId, setGameId] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [players, setPlayers] = useState<LobbyPlayer[]>([]);
@@ -78,10 +89,13 @@ export default function CreateLobbyScreen() {
     (async () => {
       try {
         const lastProfile = await loadLastProfile();
-        const lastMeldMin = await loadLastNumericSetting(LAST_MELD_MIN_KEY, MELD_MINS);
+        const lastMeldMin = await loadLastNumericSetting(
+          scopedKey(LAST_MELD_MIN_KEY, lastProfile),
+          meldMins,
+        );
         const lastDiscardLockRound = await loadLastNumericSetting(
-          LAST_DISCARD_LOCK_ROUND_KEY,
-          DISCARD_LOCK_ROUNDS,
+          scopedKey(LAST_DISCARD_LOCK_ROUND_KEY, lastProfile),
+          discardLockRounds,
         );
         if (cancelled) return;
         setProfile(lastProfile);
@@ -152,24 +166,24 @@ export default function CreateLobbyScreen() {
   }
 
   async function cycleMeldMin() {
-    const idx = MELD_MINS.indexOf(initialMin);
-    const next = MELD_MINS[(idx + 1) % MELD_MINS.length];
+    const idx = meldMins.indexOf(initialMin);
+    const next = meldMins[(idx + 1) % meldMins.length];
     setInitialMin(next);
     try {
       await client.updateGameSettings(gameId, { initialMeldMinimum: next });
-      await storage.setItem(LAST_MELD_MIN_KEY, String(next));
+      await storage.setItem(scopedKey(LAST_MELD_MIN_KEY, profile), String(next));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Update failed');
     }
   }
 
   async function cycleDiscardLock() {
-    const idx = DISCARD_LOCK_ROUNDS.indexOf(discardLockRound);
-    const next = DISCARD_LOCK_ROUNDS[(idx + 1) % DISCARD_LOCK_ROUNDS.length];
+    const idx = discardLockRounds.indexOf(discardLockRound);
+    const next = discardLockRounds[(idx + 1) % discardLockRounds.length];
     setDiscardLockRound(next);
     try {
       await client.updateGameSettings(gameId, { discardDrawMinRound: next });
-      await storage.setItem(LAST_DISCARD_LOCK_ROUND_KEY, String(next));
+      await storage.setItem(scopedKey(LAST_DISCARD_LOCK_ROUND_KEY, profile), String(next));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Update failed');
     }
@@ -186,7 +200,7 @@ export default function CreateLobbyScreen() {
   return (
     <Screen title="Lobby" subtitle={joinCode ? `Join code: ${joinCode}` : undefined} scroll>
       {error ? <Text style={shared.error}>{error}</Text> : null}
-      <Text style={shared.status}>Players ({players.length}/8)</Text>
+      <Text style={shared.status}>Players ({players.length}/{rulesInfo.maxPlayers})</Text>
       {players.map((p, i) => (
         <Text key={p.id} style={{ color: colors.text, marginBottom: 4 }}>
           {i + 1}. {p.name}
