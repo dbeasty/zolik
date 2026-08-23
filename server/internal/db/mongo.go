@@ -66,10 +66,22 @@ func (m *Mongo) EnsureIndexes(ctx context.Context) error {
 		return err
 	}
 
-	// statistics
-	if _, err := c.Statistics.Indexes().CreateMany(ctx, []mongo.IndexModel{
-		{Keys: bson.D{{Key: "userId", Value: 1}}, Options: options.Index().SetUnique(true)},
-		{Keys: bson.D{{Key: "gamesWon", Value: -1}}},
+	// match_results — the unique gameId index is load-bearing, not just an
+	// optimisation: it is what makes recording a finished match idempotent,
+	// so a retried or concurrently-observed completion writes one record
+	// instead of double-counting every participant's lifetime statistics.
+	if _, err := c.MatchResults.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{Keys: bson.D{{Key: "gameId", Value: 1}}, Options: options.Index().SetUnique(true)},
+		{Keys: bson.D{{Key: "subjectKeys", Value: 1}, {Key: "completedAt", Value: -1}}},
+		{Keys: bson.D{{Key: "completedAt", Value: -1}}},
+	}); err != nil {
+		return err
+	}
+
+	// player_stats
+	if _, err := c.PlayerStats.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{Keys: bson.D{{Key: "subjectKey", Value: 1}}, Options: options.Index().SetUnique(true)},
+		{Keys: bson.D{{Key: "subject.kind", Value: 1}, {Key: "overall.wins", Value: -1}}},
 	}); err != nil {
 		return err
 	}

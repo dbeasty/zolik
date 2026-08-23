@@ -15,10 +15,25 @@ import (
 	"zolik/server/internal/rules"
 )
 
+// MatchRecorder is notified when a match finishes, so its result can be
+// recorded and folded into lifetime statistics. It is an interface held here
+// rather than a direct dependency on internal/stats because that package reads
+// this one's GameRules; keeping the arrow one-way avoids an import cycle and
+// leaves the manager testable without a database.
+type MatchRecorder interface {
+	// RecordMatchAsync must not block the action that completed the match,
+	// and must not fail it: a bookkeeping problem is never a reason to reject
+	// a legal move.
+	RecordMatchAsync(g models.Game, cfg rules.RulesConfig)
+}
+
 type Manager struct {
 	repo     *Repository
 	hub      *Hub
 	registry *ConnRegistry
+	// recorder is optional; nil simply means no statistics are kept, which is
+	// what the tests and any statistics-free deployment run with.
+	recorder MatchRecorder
 
 	aiMu      sync.Mutex
 	aiRunning map[string]bool
@@ -32,6 +47,11 @@ func NewManager(repo *Repository, hub *Hub) *Manager {
 		aiRunning: map[string]bool{},
 	}
 }
+
+// SetMatchRecorder attaches the statistics recorder. Wired by the app rather
+// than passed to NewManager so that the recorder, which needs a database, is
+// not a construction-time requirement for a manager.
+func (m *Manager) SetMatchRecorder(r MatchRecorder) { m.recorder = r }
 
 func (m *Manager) HandleAction(ctx context.Context, gameID, playerID string, in WSIncoming) error {
 	oid, err := bson.ObjectIDFromHex(gameID)
@@ -83,6 +103,13 @@ func (m *Manager) HandleAction(ctx context.Context, gameID, playerID string, in 
 		return err
 	}
 	log.Printf("game=%s player=%s action=%s version=%d->%d applied", gameID, playerID, in.Type, expectedVersion, expectedVersion+1)
+
+	// Record the finished match only once the write above has succeeded, so a
+	// match that lost the version race — and therefore never happened as far
+	// as the database is concerned — is never counted.
+	if nextGame.Status == string(rules.StatusCompleted) && m.recorder != nil {
+		m.recorder.RecordMatchAsync(nextGame, GameRules(nextGame))
+	}
 
 	recipients := BroadcastRecipients(nextGame)
 	m.broadcastEvents(gameID, playerID, outcome.Events, recipients)

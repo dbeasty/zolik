@@ -15,19 +15,23 @@ import (
 	"zolik/server/internal/auth"
 	"zolik/server/internal/models"
 	"zolik/server/internal/rules"
+	"zolik/server/internal/stats"
 )
 
 type GameRestHandlers struct {
 	repo    *Repository
 	hub     *Hub
 	manager *Manager
+	// stats is optional; when nil the scoreboard simply omits the lifetime
+	// records it would otherwise attach.
+	stats *stats.Repository
 	// testEndpoints gates debugState — see its doc comment and
 	// app.Config.TestEndpointsEnabled.
 	testEndpoints bool
 }
 
-func NewGameRestHandlers(repo *Repository, hub *Hub, manager *Manager, testEndpoints bool) *GameRestHandlers {
-	return &GameRestHandlers{repo: repo, hub: hub, manager: manager, testEndpoints: testEndpoints}
+func NewGameRestHandlers(repo *Repository, hub *Hub, manager *Manager, statsRepo *stats.Repository, testEndpoints bool) *GameRestHandlers {
+	return &GameRestHandlers{repo: repo, hub: hub, manager: manager, stats: statsRepo, testEndpoints: testEndpoints}
 }
 
 type CreateGameReq struct {
@@ -45,6 +49,7 @@ type AddAIReq struct {
 
 func (h *GameRestHandlers) RegisterRoutes(r chi.Router) {
 	r.Get("/games/{id}", h.getGame)
+	r.Get("/games/{id}/scoreboard", h.scoreboard)
 	r.With(auth.AuthMiddleware).Post("/games", h.createGame)
 	r.With(auth.AuthMiddleware).Post("/games/{id}/join", h.joinGame)
 	r.With(auth.AuthMiddleware).Patch("/games/{id}/settings", h.updateSettings)

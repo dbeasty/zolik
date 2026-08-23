@@ -177,29 +177,11 @@ type UserPreferences struct {
 	CardStyle string `bson:"cardStyle" json:"cardStyle"`
 }
 
-type Statistics struct {
-	ID                   bson.ObjectID `bson:"_id,omitempty" json:"id"`
-	UserID               bson.ObjectID `bson:"userId" json:"userId"`
-	GamesPlayed          int           `bson:"gamesPlayed" json:"gamesPlayed"`
-	GamesWon             int           `bson:"gamesWon" json:"gamesWon"`
-	RoundsPlayed         int           `bson:"roundsPlayed" json:"roundsPlayed"`
-	RoundsWon            int           `bson:"roundsWon" json:"roundsWon"`
-	TotalPenaltyScore    int           `bson:"totalPenaltyScore" json:"totalPenaltyScore"`
-	AverageScorePerRound float64       `bson:"averageScorePerRound" json:"averageScorePerRound"`
-	BestGame             int           `bson:"bestGame" json:"bestGame"`
-	LongestWinStreak     int           `bson:"longestWinStreak" json:"longestWinStreak"`
-	CurrentStreak        int           `bson:"currentStreak" json:"currentStreak"`
-	GoOutCount           int           `bson:"goOutCount" json:"goOutCount"`
-	MatchHistory         []MatchRef    `bson:"matchHistory" json:"matchHistory"`
-}
-
-type MatchRef struct {
-	GameID    bson.ObjectID `bson:"gameId" json:"gameId"`
-	Date      time.Time     `bson:"date" json:"date"`
-	FinalRank int           `bson:"finalRank" json:"finalRank"`
-	Score     int           `bson:"score" json:"score"`
-	Players   int           `bson:"players" json:"players"`
-}
+// Statistics and MatchRef used to live here: a per-user counters document
+// seeded at registration and read by the stats endpoint, but never written by
+// anything. Lifetime records now live in internal/stats, keyed by a subject
+// that covers registered users and AI difficulties alike, and are derived
+// from the immutable match records written when a match completes.
 
 type Session struct {
 	ID        bson.ObjectID `bson:"_id,omitempty" json:"id"`

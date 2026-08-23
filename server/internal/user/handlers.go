@@ -3,7 +3,6 @@ package user
 import (
 	"encoding/json"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -21,11 +20,10 @@ func NewHandlers(repo *Repository) *Handlers {
 }
 
 func (h *Handlers) RegisterRoutes(r chi.Router) {
-	r.Get("/leaderboard", h.leaderboard)
+	// /leaderboard, /users/me/stats and /users/me/history live in
+	// internal/stats, which owns the match records they are computed from.
 	r.With(auth.AuthMiddleware).Get("/users/me", h.me)
 	r.With(auth.AuthMiddleware).Patch("/users/me", h.patchMe)
-	r.With(auth.AuthMiddleware).Get("/users/me/stats", h.meStats)
-	r.With(auth.AuthMiddleware).Get("/users/me/history", h.meHistory)
 }
 
 func hctx(req *http.Request) (auth.UserContext, bool) {
@@ -106,69 +104,3 @@ func (h *Handlers) patchMe(w http.ResponseWriter, req *http.Request) {
 	}
 	_ = json.NewEncoder(w).Encode(map[string]any{"updated": true})
 }
-
-func (h *Handlers) meStats(w http.ResponseWriter, req *http.Request) {
-	uc, ok := h.requireUser(w, req)
-	if !ok {
-		return
-	}
-	oid, err := bson.ObjectIDFromHex(uc.UserID)
-	if err != nil {
-		http.Error(w, "invalid user id", http.StatusBadRequest)
-		return
-	}
-	s, err := h.repo.FindStatistics(req.Context(), oid)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-	_ = json.NewEncoder(w).Encode(s)
-}
-
-func (h *Handlers) meHistory(w http.ResponseWriter, req *http.Request) {
-	uc, ok := h.requireUser(w, req)
-	if !ok {
-		return
-	}
-	oid, err := bson.ObjectIDFromHex(uc.UserID)
-	if err != nil {
-		http.Error(w, "invalid user id", http.StatusBadRequest)
-		return
-	}
-	s, err := h.repo.FindStatistics(req.Context(), oid)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-	// v1: unpaginated.
-	_ = json.NewEncoder(w).Encode(map[string]any{"matchHistory": s.MatchHistory, "updatedAt": time.Now().UTC()})
-}
-
-func (h *Handlers) leaderboard(w http.ResponseWriter, req *http.Request) {
-	// v1 leaderboard: requires auth middleware only if you want to restrict; here it's public.
-	// If we can't compute usernames efficiently, just return statistics rows.
-	cursor, err := h.repo.stats.Find(req.Context(), bson.M{})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer cursor.Close(req.Context())
-
-	var out []models.Statistics
-	_ = cursor.All(req.Context(), &out)
-	// Sort by gamesWon desc then gamesPlayed desc.
-	// v1: do a simple in-memory sort.
-	for i := 0; i < len(out); i++ {
-		for j := i + 1; j < len(out); j++ {
-			a, b := out[i], out[j]
-			if b.GamesWon > a.GamesWon {
-				out[i], out[j] = out[j], out[i]
-			}
-		}
-	}
-	if len(out) > 20 {
-		out = out[:20]
-	}
-	_ = json.NewEncoder(w).Encode(out)
-}
-

@@ -1,10 +1,8 @@
 package ui
 
 import (
-	"fmt"
-
-	"github.com/charmbracelet/lipgloss"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 
 	"zolik/client-tui/api"
 )
@@ -21,13 +19,13 @@ const (
 )
 
 type Root struct {
-	screen     Screen
-	width      int
-	height     int
-	renderer   *lipgloss.Renderer
-	serverURL  string
-	session    PlayerSession
-	api        *api.Client
+	screen    Screen
+	width     int
+	height    int
+	renderer  *lipgloss.Renderer
+	serverURL string
+	session   PlayerSession
+	api       *api.Client
 
 	menu       menuModel
 	lobby      lobbyModel
@@ -85,7 +83,7 @@ func (r *Root) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.err != "" {
 			r.menu.statsText = "✗ " + msg.err
 		} else {
-			r.menu.statsText = fmt.Sprintf("Games: %v  Won: %v", msg.data["gamesPlayed"], msg.data["gamesWon"])
+			r.menu.statsText = formatLifetimeStats(msg.data)
 		}
 		return r, nil
 	case scoreErrMsg:

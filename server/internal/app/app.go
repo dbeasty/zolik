@@ -11,6 +11,7 @@ import (
 	"zolik/server/internal/db"
 	"zolik/server/internal/game"
 	"zolik/server/internal/scoring"
+	"zolik/server/internal/stats"
 	userrepo "zolik/server/internal/user"
 )
 
@@ -47,6 +48,12 @@ func New(cfg Config) (*App, error) {
 
 	repo := game.NewRepository(m)
 	manager := game.NewManager(repo, hub)
+	// The recorder turns each completed match into a permanent record plus
+	// the lifetime updates derived from it. Injected rather than constructed
+	// inside the manager so the game package never has to import stats — see
+	// game.MatchRecorder.
+	statsRepo := stats.NewRepository(m)
+	manager.SetMatchRecorder(stats.NewRecorder(statsRepo))
 	authHandlers := auth.NewHandlers(m)
 
 	return &App{
@@ -88,8 +95,10 @@ func (a *App) RegisterRoutes(r chi.Router) {
 
 	a.auth.RegisterRoutes(r)
 
+	statsRepo := stats.NewRepository(a.db)
+
 	repo := game.NewRepository(a.db)
-	gameRest := game.NewGameRestHandlers(repo, a.hub, a.manager, a.cfg.TestEndpointsEnabled)
+	gameRest := game.NewGameRestHandlers(repo, a.hub, a.manager, statsRepo, a.cfg.TestEndpointsEnabled)
 	gameRest.RegisterRoutes(r)
 
 	userHandlers := userrepo.NewHandlers(userrepo.NewRepository(a.db))
@@ -97,4 +106,7 @@ func (a *App) RegisterRoutes(r chi.Router) {
 
 	scoringHandlers := scoring.NewHandlers(a.db)
 	scoringHandlers.RegisterRoutes(r)
+
+	statsHandlers := stats.NewHandlers(statsRepo)
+	statsHandlers.RegisterRoutes(r)
 }

@@ -13,12 +13,11 @@ import (
 
 type Repository struct {
 	users *mongo.Collection
-	stats *mongo.Collection
 }
 
 func NewRepository(m *db.Mongo) *Repository {
 	c := m.Collections()
-	return &Repository{users: c.Users, stats: c.Statistics}
+	return &Repository{users: c.Users}
 }
 
 func (r *Repository) CreateUser(ctx context.Context, u models.User) (models.User, error) {
@@ -55,20 +54,3 @@ func (r *Repository) UpdateByID(ctx context.Context, id bson.ObjectID, update bs
 	_, err := r.users.UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": update})
 	return err
 }
-
-func (r *Repository) EnsureStats(ctx context.Context, userID bson.ObjectID) error {
-	_, err := r.stats.UpdateOne(ctx,
-		bson.M{"userId": userID},
-		bson.M{"$setOnInsert": models.Statistics{UserID: userID}},
-		nil,
-	)
-	return err
-}
-
-func (r *Repository) FindStatistics(ctx context.Context, userID bson.ObjectID) (models.Statistics, error) {
-	var s models.Statistics
-	err := r.stats.FindOne(ctx, bson.M{"userId": userID}).Decode(&s)
-	return s, err
-}
-
-

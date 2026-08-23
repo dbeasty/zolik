@@ -76,6 +76,7 @@ through `internal/game`.
 | `server/internal/models` | Mongo document shapes | Rummy-only |
 | `server/internal/{auth,user,db,app,tuiauth}` | JWT, guest sessions, repositories, wiring, SSH bridge | Generic |
 | `server/internal/scoring` | Standalone pen-and-paper scorepad (unrelated to live games) | 7-round assumption |
+| `server/internal/stats` | Match records, lifetime aggregates, scoreboards, leaderboards | Generic |
 | `client-react-native` | Expo Router screens, drag-and-drop table, meld staging | Rummy-only |
 | `client-tui` | Bubbletea screens, ASCII card renderer, SSH server | Rummy-only |
 
@@ -537,6 +538,11 @@ owns. That deletes the `toRulesState`/`fromRulesState` pair and its whole class 
 forgot-to-map-a-field bug. Existing Žolíky documents migrate by moving today's rummy columns
 under `state` — a one-shot script, since the runtime never reads inside that blob.
 
+`internal/stats` is already on the far side of that split. It reads `models.Game` only through
+`BuildScoreboard`, which touches nothing but turn order, per-deal scores, the roster and the
+action log — all envelope fields, none of them rummy-specific. When the envelope arrives, the
+statistics subsystem follows it rather than the module.
+
 ### 7.7 What each client becomes
 
 | Client | Keeps | Loses |
@@ -692,3 +698,60 @@ label logic.
 The remaining gap is unchanged: no test drives `Manager.HandleAction` end to end (it needs a
 Mongo repository), and the RN client's coverage is still just `cards.test.ts` plus the Playwright
 e2e suite. Phase 1's `LegalActions` is the natural place to add the first true cross-layer test.
+
+---
+
+## 11. Match records and lifetime statistics
+
+Two collections, and the direction between them matters:
+
+| Collection | Written | Shape |
+|---|---|---|
+| `match_results` | once, when a game reaches `completed` | immutable: final standings, roster, ruleset, composition |
+| `player_stats` | on every match, per participant | lifetime aggregates, derived from the above |
+
+The aggregates are a **cache** of the records, never the reverse. A wrong average can be rebuilt
+by replaying `match_results`; a lost record cannot be recovered from an average. That is why
+recording inserts the record first and only then folds it into the aggregates: whoever loses the
+unique-`gameId` race stops before touching a counter, which is what makes a retried or
+concurrently-observed completion idempotent instead of a double count.
+
+### The subject — who a statistic belongs to
+
+A seat is held by one of three things, and lifetime statistics need an identity that spans all
+three. `stats.Subject` supplies it:
+
+| Kind | Key | Durable? | Why |
+|---|---|---|---|
+| user | `user:<oid>` | yes | the account is the identity |
+| ai | `ai:<difficulty>` | yes | bot *instance* IDs are minted per lobby, so aggregating on them would produce a new one-match "player" every game. Difficulty is what is stable, and what anyone actually wants a number for |
+| guest | — | no | a guest name is claimed per session and two people can hold the same one; a durable record keyed on it would merge strangers |
+
+A guest still appears in the match record and still counts as a human opponent in everyone
+else's split — they simply carry no record of their own.
+
+Bots keeping a record on the same footing as people is deliberate, and it is what makes the
+feature symmetric. "You are 4–11 against hard" comes out of the same data as any player rivalry,
+and the AI's own aggregate win rate becomes a tuning signal that costs nothing extra to collect.
+
+### The splits
+
+`vsHumans` and `vsAI` **overlap** rather than partition: a mixed table counts in both, because
+the question worth answering is "was a person involved", not "was the table pure". Alongside
+them the record keeps per-difficulty, per-profile and per-table-size buckets, plus a head-to-head
+map decided *pairwise on final total* — so in a four-player match the players who came third and
+fourth still have a meaningful record against each other.
+
+Per-profile buckets exist because a Continental total and a Žolíky total are not the same
+currency: one is seven deals of penalty, the other is a race to 200. Averaging them would produce
+a number that means nothing.
+
+### One scoring path, live and final
+
+`BuildScoreboard` is pure, and serves both the running table and the permanent record. During
+play it names a provisional leader with `rules.DetermineMatchWinner` — the very rule that will
+settle the match — and once complete it takes the winner off the document rather than
+recomputing it, so a record can never disagree with the match the players watched end. The
+`rules` helpers it calls (`DealsWonByPlayer`, `DetermineMatchWinner`) are the raw forms of the
+engine's own functions, taking just the fields the decision depends on, so there is no second
+implementation of "who is winning" to drift.
