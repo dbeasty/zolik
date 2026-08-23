@@ -53,16 +53,24 @@ func (m *Manager) HandleAction(ctx context.Context, gameID, playerID string, in 
 	// Convert models.Game -> rules.GameState (and keep non-rules fields intact in models.Game).
 	rState := toRulesState(game)
 
+	// Taken before the call rather than read back after it. ApplyAction now
+	// copies the state it is handed, but toRulesState still passes this
+	// models.Game's own Hands map straight through, so what these logs
+	// report stays correct here at the point of use instead of resting on
+	// that copy staying in place. Reading it afterwards used to print the
+	// post-action hand, which made every "handBefore" below identical to
+	// handAfter and the line useless for seeing which card actually left.
+	handBefore := append([]string(nil), game.Hands[playerID]...)
 	outcome, err := rules.ApplyAction(rState, playerID, rAction)
 	if err != nil {
-		log.Printf("game=%s player=%s action=%s card=%q hand=%v version=%d phase=%s turn=%s rejected: %v", gameID, playerID, in.Type, rAction.Card, game.Hands[playerID], game.Version, game.Phase, game.CurrentTurn, err)
+		log.Printf("game=%s player=%s action=%s card=%q hand=%v version=%d phase=%s turn=%s rejected: %v", gameID, playerID, in.Type, rAction.Card, handBefore, game.Version, game.Phase, game.CurrentTurn, err)
 		if re, ok := err.(rules.RulesError); ok && re.Code == rules.ErrNoCardsLeft {
 			m.suspendNoCardsLeft(ctx, gameID, oid, game)
 		}
 		return err
 	}
 	if rAction.Type == rules.ActionDiscard {
-		log.Printf("game=%s player=%s discard card=%q handBefore=%v handAfter=%v", gameID, playerID, rAction.Card, game.Hands[playerID], outcome.State.Hands[playerID])
+		log.Printf("game=%s player=%s discard card=%q handBefore=%v handAfter=%v", gameID, playerID, rAction.Card, handBefore, outcome.State.Hands[playerID])
 	}
 
 	// Apply mutated rules fields back to models.Game.

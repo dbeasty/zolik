@@ -5,6 +5,15 @@ import "time"
 // ApplyAction validates and applies an action to game state.
 // Pure: no DB/network/IO. Any persistence/broadcast is the caller's responsibility.
 func ApplyAction(state GameState, playerID string, action Action) (ApplyOutcome, error) {
+	// Work on our own copy. GameState's maps and slices are reference types,
+	// so the caller's state aliases ours: every Validate* below assigns into
+	// state.Hands[playerID] and friends, which without this would reach back
+	// through and mutate the caller's `state` in place — including on the
+	// error paths, which return the state they were handed as if untouched.
+	// Callers reasonably read their pre-action state after calling (the
+	// server logged a discard's handBefore that way and always printed the
+	// post-discard hand), and one error path persists it.
+	state = cloneState(state)
 	if state.GameNumber == 0 {
 		state.GameNumber = 1
 	}
