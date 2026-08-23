@@ -1275,6 +1275,7 @@ export default function GameScreen() {
               onMeldRef={registerMeldRef}
               hoverTarget={hoverTarget}
               dragActive={canLayOff && draggedCard !== null}
+              draggedCard={canLayOff ? draggedCard : null}
               flashMeldId={flashMeldId}
               selectedCards={meldSelectedCards}
               canLayOff={canLayOff}

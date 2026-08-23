@@ -5,7 +5,13 @@ import { CardView } from '@/src/components/CardView';
 import type { MeldHoverTarget } from '@/src/components/HandRow';
 import type { GameState } from '@/src/api/types';
 import { useDropPulseStyle } from '@/src/hooks/useDropPulse';
-import { canLayOffOnto, canSwapJokerOn } from '@/src/lib/offers';
+import {
+  canLayOffOnto,
+  canSwapJokerOn,
+  layOffOfferId,
+  offersCard,
+  positionsForCard,
+} from '@/src/lib/offers';
 import { colors, shared } from '@/src/theme';
 
 type Props = {
@@ -22,6 +28,12 @@ type Props = {
   // soon as the drag starts, not just the one directly under the finger
   // (that stronger, solid highlight still comes from hoverTarget).
   dragActive?: boolean;
+  // The card currently being dragged, if any. With it, "eligible" narrows
+  // from "this meld takes lay-offs" to "this meld takes *this card*", which
+  // is what the player actually needs to know mid-drag: the server already
+  // ships the per-card placements (see offers.ts), so a meld that would
+  // bounce the drop can say so before the player lets go rather than after.
+  draggedCard?: string | null;
   // Meld a card was just successfully laid off onto — flashed briefly so
   // the drop reads as "landed" instead of silently disappearing.
   flashMeldId?: string | null;
@@ -46,6 +58,7 @@ function MeldRow({
   dragActive,
   isFlashing,
   layoffable,
+  willReject,
   children,
 }: {
   refCb?: (el: View | null) => void;
@@ -58,6 +71,11 @@ function MeldRow({
   // "you can add to this" even before a drag starts, not just the stronger
   // pulse/hover cues that only appear mid-drag.
   layoffable: boolean;
+  // The finger is over this meld but the card being dragged does not fit it.
+  // Drawn in the refusal colour instead of the inviting gold, so "this drop
+  // will bounce" is visible before the player lets go — the drop itself is
+  // still attempted, since the server is the authority on whether it lands.
+  willReject: boolean;
   children: React.ReactNode;
 }) {
   const pulseStyle = useDropPulseStyle(dragActive && !isHovered);
@@ -69,7 +87,7 @@ function MeldRow({
         styles.meldRow,
         layoffable && !isHovered && !isFlashing && styles.meldRowLayoffable,
         dragActive && !isHovered ? pulseStyle : null,
-        isHovered && styles.meldRowHovered,
+        isHovered && (willReject ? styles.meldRowRejects : styles.meldRowHovered),
         isFlashing && styles.meldRowFlash,
       ]}
     >
@@ -84,6 +102,7 @@ export function MeldTable({
   onMeldRef,
   hoverTarget,
   dragActive,
+  draggedCard,
   flashMeldId,
   selectedCards,
   canLayOff,
@@ -119,17 +138,45 @@ export function MeldTable({
               const offersLayOff = canLayOffOnto(state, meldId);
               const offersSwap = canSwapJokerOn(state, meldId);
               const isHovered = hoverTarget?.meldId === meldId;
-              const hoverFront = isHovered && hoverTarget?.position === 'front';
-              const hoverEnd = isHovered && hoverTarget?.position === 'end';
+              // Mid-drag, "eligible" means this meld takes *the dragged
+              // card*; with no drag in progress it falls back to the
+              // meld-level answer that drives the standing dashed border.
+              // A joker is exempt: dropping one onto a meld holding a joker
+              // is the swap gesture, which the lay-off placements say
+              // nothing about.
+              const takesDraggedCard = draggedCard
+                ? offersCard(state, layOffOfferId(meldId), draggedCard) ||
+                  canSwapJokerOn(state, meldId)
+                : offersLayOff;
+              const willReject = !!draggedCard && !takesDraggedCard;
+              // Which end(s) the server will actually accept this card at.
+              // Empty means "no position hint" — either a set, or a card the
+              // server takes at either end — so both markers stay eligible
+              // and the geometric hover decides.
+              const validEnds = draggedCard ? positionsForCard(state, meldId, draggedCard) : [];
+              const endAllowed = (side: 'front' | 'end') =>
+                !willReject && (validEnds.length === 0 || validEnds.includes(side));
+              // When the card fits exactly one end, light that end whichever
+              // half of the meld the finger is over: the drop would be
+              // rejected with WRONG_RUN_END otherwise, and showing the end
+              // it will really land on is the more useful cue.
+              const forcedEnd = validEnds.length === 1 ? validEnds[0] : undefined;
+              const markedSide = forcedEnd ?? hoverTarget?.position;
+              const hoverFront = isHovered && markedSide === 'front' && endAllowed('front');
+              const hoverEnd = isHovered && markedSide === 'end' && endAllowed('end');
               return (
                 <MeldRow
                   key={meldId}
                   refCb={(el) => onMeldRef?.(meldId, el)}
                   testID={`meld-row-${meldId}`}
                   isHovered={isHovered}
-                  dragActive={!!dragActive}
+                  // Only melds that would take the dragged card pulse, so
+                  // the eligible targets stand out from the rest of the
+                  // table instead of every meld pulsing alike.
+                  dragActive={!!dragActive && takesDraggedCard}
                   isFlashing={flashMeldId === meldId}
-                  layoffable={canLayOff}
+                  layoffable={canLayOff && takesDraggedCard}
+                  willReject={willReject}
                 >
                   <Text style={styles.meldId}>
                     {meldId} ({meta?.type ?? '?'})
@@ -237,6 +284,10 @@ const styles = StyleSheet.create({
   meldRowHovered: {
     borderColor: colors.gold,
     backgroundColor: 'rgba(234, 179, 8, 0.1)',
+  },
+  meldRowRejects: {
+    borderColor: colors.danger,
+    backgroundColor: 'rgba(248, 113, 113, 0.12)',
   },
   meldRowFlash: {
     borderColor: colors.success,
