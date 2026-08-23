@@ -2,8 +2,10 @@ import type { ActionOffer, GameState } from '@/src/api/types';
 import {
   OFFER,
   can,
+  canDropOnMeldAnywhere,
   canLayOffAnywhere,
   canLayOffOnto,
+  canSwapJokerAnywhere,
   canSwapJokerOn,
   eligibleCards,
   jokerSwapCards,
@@ -138,6 +140,54 @@ describe('joker swap', () => {
     // is that a meld without a usable swap simply is not offered.
     expect(canSwapJokerOn(s, 'meld_1')).toBe(false);
     expect(jokerSwapCards(s, 'meld_1')).toEqual([]);
+  });
+
+  // The live case this exists for: the run 8-9-[JKR as T]-J-Q-K with the T
+  // in hand takes no lay-off at either end, so a drop zone gated on lay-off
+  // alone never even measured the meld and the drag did nothing at all.
+  it('makes a meld a drop target when only the swap is on offer', () => {
+    const swapOnly = stateWith([
+      {
+        id: layOffOfferId('meld_1'),
+        verb: 'lay_off',
+        enabled: false,
+        whyNot: 'INVALID_MELD',
+        target: { zone: 'meld', meldId: 'meld_1' },
+      },
+      {
+        id: swapJokerOfferId('meld_1'),
+        verb: 'swap_joker',
+        enabled: true,
+        source: { zone: 'hand', cards: ['TH'] },
+        target: { zone: 'meld', meldId: 'meld_1' },
+      },
+    ]);
+    expect(canLayOffAnywhere(swapOnly)).toBe(false);
+    expect(canSwapJokerAnywhere(swapOnly)).toBe(true);
+    expect(canDropOnMeldAnywhere(swapOnly)).toBe(true);
+    // ...and the drop knows which of the two verbs to send.
+    expect(offersCard(swapOnly, layOffOfferId('meld_1'), 'TH')).toBe(false);
+    expect(offersCard(swapOnly, swapJokerOfferId('meld_1'), 'TH')).toBe(true);
+  });
+
+  it('is not a drop target when neither verb is on offer', () => {
+    const neither = stateWith([
+      {
+        id: layOffOfferId('meld_1'),
+        verb: 'lay_off',
+        enabled: false,
+        whyNot: 'ROUND_REQ_NOT_MET',
+        target: { zone: 'meld', meldId: 'meld_1' },
+      },
+      {
+        id: swapJokerOfferId('meld_1'),
+        verb: 'swap_joker',
+        enabled: false,
+        whyNot: 'ROUND_REQ_NOT_MET',
+        target: { zone: 'meld', meldId: 'meld_1' },
+      },
+    ]);
+    expect(canDropOnMeldAnywhere(neither)).toBe(false);
   });
 });
 

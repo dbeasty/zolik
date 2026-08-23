@@ -40,11 +40,11 @@ type Props = {
   // Cards currently selected in hand — drives which of the two per-meld
   // action buttons below are eligible to show at all.
   selectedCards: string[];
-  // Gates the "Lay off" buttons across the whole table. Per-meld
-  // eligibility is read from the server's offer list instead (see
-  // src/lib/offers.ts) — this stays only to hide the buttons entirely when
-  // no meld anywhere is accepting a lay-off.
-  canLayOff: boolean;
+  // Whether any meld anywhere is accepting a drop at all — a lay-off or a
+  // joker swap. Per-meld eligibility is read from the server's offer list
+  // instead (see src/lib/offers.ts); this only decides whether the standing
+  // "you can drop on these" dashed border is drawn.
+  canDrop: boolean;
   // For a run meld, position tells the server which end the selected
   // card(s) should extend — omitted for a set, which has no ends.
   onLayOff: (meldId: string, position?: 'front' | 'end') => void;
@@ -57,7 +57,7 @@ function MeldRow({
   isHovered,
   dragActive,
   isFlashing,
-  layoffable,
+  droppable,
   willReject,
   children,
 }: {
@@ -66,11 +66,12 @@ function MeldRow({
   isHovered: boolean;
   dragActive: boolean;
   isFlashing: boolean;
-  // True whenever lay-off is legal at all (your turn, meld phase, round
-  // requirement met) — drawn as a standing dashed border so a meld reads as
-  // "you can add to this" even before a drag starts, not just the stronger
+  // True whenever dropping a card on a meld is legal at all (your turn, meld
+  // phase, and something in hand that some meld would take as a lay-off or a
+  // joker swap) — drawn as a standing dashed border so a meld reads as "you
+  // can add to this" even before a drag starts, not just the stronger
   // pulse/hover cues that only appear mid-drag.
-  layoffable: boolean;
+  droppable: boolean;
   // The finger is over this meld but the card being dragged does not fit it.
   // Drawn in the refusal colour instead of the inviting gold, so "this drop
   // will bounce" is visible before the player lets go — the drop itself is
@@ -85,7 +86,7 @@ function MeldRow({
       testID={testID}
       style={[
         styles.meldRow,
-        layoffable && !isHovered && !isFlashing && styles.meldRowLayoffable,
+        droppable && !isHovered && !isFlashing && styles.meldRowLayoffable,
         dragActive && !isHovered ? pulseStyle : null,
         isHovered && (willReject ? styles.meldRowRejects : styles.meldRowHovered),
         isFlashing && styles.meldRowFlash,
@@ -105,7 +106,7 @@ export function MeldTable({
   draggedCard,
   flashMeldId,
   selectedCards,
-  canLayOff,
+  canDrop,
   onLayOff,
   onSwapJoker,
 }: Props) {
@@ -175,7 +176,7 @@ export function MeldTable({
                   // table instead of every meld pulsing alike.
                   dragActive={!!dragActive && takesDraggedCard}
                   isFlashing={flashMeldId === meldId}
-                  layoffable={canLayOff && takesDraggedCard}
+                  droppable={canDrop && takesDraggedCard}
                   willReject={willReject}
                 >
                   <Text style={styles.meldId}>

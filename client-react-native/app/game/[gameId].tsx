@@ -34,10 +34,12 @@ import {
 import {
   OFFER,
   can,
-  canLayOffAnywhere,
+  canDropOnMeldAnywhere,
   canLayOffOnto,
   canSwapJokerOn,
   layOffOfferId,
+  offersCard,
+  swapJokerOfferId,
   positionsForCard,
   whyNot,
 } from '@/src/lib/offers';
@@ -586,7 +588,7 @@ export default function GameScreen() {
   }
 
   function measureMeldZones(cb: (zones: MeldZone[]) => void) {
-    const entries = canLayOff ? Array.from(meldViewRefs.current.entries()) : [];
+    const entries = canDropOnMeld ? Array.from(meldViewRefs.current.entries()) : [];
     if (entries.length === 0) {
       cb([]);
       return;
@@ -902,7 +904,11 @@ export default function GameScreen() {
   // expressions these replaced (isMyTurn && phase === 'meld' &&
   // roundReqMet[userId], and friends) were copies of server logic that had
   // to be kept in sync by hand. See src/lib/offers.ts.
-  const canLayOff = canLayOffAnywhere(state);
+  // A meld is a live drop target when it would take the dragged card *either*
+  // way — a lay-off or a joker swap. Asking about lay-off alone left a table
+  // whose only playable move was a swap with no drop zones measured at all,
+  // so the card was dragged onto the meld and simply nothing happened.
+  const canDropOnMeld = canDropOnMeldAnywhere(state);
   const canBuildMeld = can(state, OFFER.layMeld);
   const canDiscardNow = can(state, OFFER.discard);
   // Hook, so it has to run unconditionally on every render (including the
@@ -938,15 +944,31 @@ export default function GameScreen() {
   }, [groups, canBuildMeld, stagedTailIsMeld]);
 
   function layOffCardAt(index: number, meldId: string, position: 'front' | 'end') {
-    if (!canLayOff) return;
+    if (!canDropOnMeld) return;
     const card = hand[index];
     if (!card) return;
-    // Dropping a card onto a meld always means "lay this off/extend the
+    // Dropping a card onto a meld normally means "lay this off/extend the
     // meld" — even when the meld holds a joker, e.g. dropping a J onto a
-    // Q-JOKER-A run to extend it to J-Q-JOKER-A. Swapping a card into the
-    // joker's own slot is a distinct, less common intent with its own
-    // explicit "Swap joker here" button (see swapJokerOnto) rather than
-    // being guessed from the drop target.
+    // Q-JOKER-A run to extend it to J-Q-JOKER-A, which the server resolves
+    // as a swap by itself when the card fits the joker's own slot.
+    //
+    // But when this meld will *only* take the card as a joker swap — the run
+    // 8-9-[JKR as T]-J-Q-K with the T in hand takes no lay-off at either end
+    // — that is what the drop has to send, and it is what the player plainly
+    // meant by dragging that exact card onto that exact meld. Sending
+    // lay_off there used to bounce off the server with INVALID_MELD, so the
+    // one gesture that should reclaim a joker was the one that couldn't.
+    // Which of the two applies is read from the server's offer list, not
+    // re-derived here.
+    if (
+      !offersCard(state, layOffOfferId(meldId), card) &&
+      offersCard(state, swapJokerOfferId(meldId), card)
+    ) {
+      send({ type: 'swap_joker', meldId, card });
+      flashMeld(meldId);
+      clearSelect();
+      return;
+    }
     //
     // Which half of the meld the card was dropped on tells the server
     // which end of a run it has to extend — a set has no ends, so the
@@ -1274,11 +1296,11 @@ export default function GameScreen() {
               myUserId={userId}
               onMeldRef={registerMeldRef}
               hoverTarget={hoverTarget}
-              dragActive={canLayOff && draggedCard !== null}
-              draggedCard={canLayOff ? draggedCard : null}
+              dragActive={canDropOnMeld && draggedCard !== null}
+              draggedCard={canDropOnMeld ? draggedCard : null}
               flashMeldId={flashMeldId}
               selectedCards={meldSelectedCards}
-              canLayOff={canLayOff}
+              canDrop={canDropOnMeld}
               onLayOff={layOffOnto}
               onSwapJoker={swapJokerOnto}
             />

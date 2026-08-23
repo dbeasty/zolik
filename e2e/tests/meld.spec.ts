@@ -236,4 +236,61 @@ test.describe('swap joker', () => {
     await expect(meldRow.getByText('JKR')).not.toBeVisible();
     await expect(page.getByText('JKR')).toBeVisible();
   });
+  // Reported live (game 6a8a940102b43b43b9512844): the AI held the heart run
+  // 8-9-T-J-Q-K with jokers standing in for the 8H and the TH, the player
+  // held the real TH, dragged it onto that meld — and nothing happened at
+  // all. No joker, no error, no move.
+  //
+  // Two jokers is what makes the shape bite, and why this needs its own
+  // spec rather than a tweak to the one above. With a single joker the
+  // server can usually take the card as a plain lay-off instead (it
+  // re-resolves the wild onto a free end and drops the natural into the
+  // vacated slot), so the meld is a lay-off target and the drop lands
+  // either way. Here it cannot: the second joker leaves no end to re-resolve
+  // onto, so lay-off is refused outright (INVALID_MELD) and the swap is the
+  // only thing this meld will take.
+  //
+  // The screen used to measure a meld as a drop target only while *some*
+  // lay-off was legal somewhere on the table, so a table like this had no
+  // drop zones at all and the drag resolved onto nothing. The "Swap joker
+  // here" button path (tested above) kept working throughout, which is why
+  // the bug read as "sometimes the swap just doesn't happen."
+  test('dragging the natural card onto a swap-only meld reclaims the joker', async ({
+    page,
+    request,
+  }) => {
+    const game = await seedGame(request, {
+      // The run reads 8-9-T-J-Q-K with the 8H and the TH both played as
+      // jokers. Nothing in hand extends it (its ends want a 7H or an AH),
+      // so the only move this meld offers is handing back a joker.
+      hand: ['TH', '2S', '3S', 'KD'],
+      melds: { ai: [['JOKER1', '9H', 'JOKER2', 'JH', 'QH', 'KH']] },
+      phase: 'meld',
+      roundReqMet: true,
+    });
+    await loginAs(page, game);
+    await page.goto(`/game/${game.gameId}`);
+    await waitForGameLoaded(page);
+
+    const meldRow = page.locator('[data-testid^="meld-row-"]').first();
+    const meldCards = meldRow.locator('[data-testid^="meld-card-"]');
+    await expect(meldCards).toHaveCount(6);
+    await expect(meldCards.filter({ hasText: 'JKR' })).toHaveCount(2);
+
+    // No tap-to-select first: the drag alone has to carry the intent, which
+    // is how a player actually reaches for a joker.
+    await dragLocatorTo(page, page.getByTestId('hand-card-0'), meldRow);
+
+    // One joker has left the meld for the hand. The meld keeps its six cards
+    // and the hand its four — a swap trades one card for one — so the counts
+    // alone would not notice this move at all; what changed is *which* cards
+    // sit where.
+    await expect(meldCards).toHaveCount(6);
+    await expect(meldCards.filter({ hasText: 'JKR' })).toHaveCount(1);
+    await expect(meldCards.filter({ hasText: '10' })).toHaveCount(1);
+    await expect(page.getByText('Your hand (4)')).toBeVisible();
+    await expect(page.locator('[data-testid^="hand-card-"]').filter({ hasText: 'JKR' })).toHaveCount(
+      1,
+    );
+  });
 });

@@ -86,6 +86,26 @@ export function canLayOffAnywhere(state: GameState | null): boolean {
   return (state?.legalActions ?? []).some((o) => o.verb === 'lay_off' && o.enabled);
 }
 
+/** Whether any meld on the table is currently accepting a joker swap. */
+export function canSwapJokerAnywhere(state: GameState | null): boolean {
+  return (state?.legalActions ?? []).some((o) => o.verb === 'swap_joker' && o.enabled);
+}
+
+/**
+ * Whether a card dragged onto a meld would land at all — either as a lay-off
+ * or as a joker swap.
+ *
+ * The two have to be asked together because they are genuinely independent:
+ * the run 8-9-[JKR as T]-J-Q-K takes no lay-off from a hand holding the T
+ * (both ends are unrelated ranks) while still offering that exact T as a
+ * joker swap. Gating the meld drop zones on lay-off alone made a table like
+ * that inert — the card was dragged onto the meld and nothing happened at
+ * all, no move, no error.
+ */
+export function canDropOnMeldAnywhere(state: GameState | null): boolean {
+  return canLayOffAnywhere(state) || canSwapJokerAnywhere(state);
+}
+
 /**
  * Whether *this* meld will accept a lay-off right now.
  *
