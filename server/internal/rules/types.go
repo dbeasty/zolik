@@ -236,8 +236,15 @@ type GameState struct {
 type RulesErrorCode string
 
 const (
-	ErrNotYourTurn           RulesErrorCode = "NOT_YOUR_TURN"
-	ErrWrongPhase            RulesErrorCode = "WRONG_PHASE"
+	ErrNotYourTurn RulesErrorCode = "NOT_YOUR_TURN"
+	ErrWrongPhase  RulesErrorCode = "WRONG_PHASE"
+	// ErrMustDrawFirst is the specific case of ErrWrongPhase that players
+	// actually hit: trying to meld at the start of your turn, before drawing.
+	// "Not available right now" is true but tells them nothing; naming the
+	// missing step is the difference between a dead control and an
+	// instruction — and it is a rule, so it belongs here rather than being
+	// inferred by a client from the phase.
+	ErrMustDrawFirst         RulesErrorCode = "MUST_DRAW_FIRST"
 	ErrCardNotInHand         RulesErrorCode = "CARD_NOT_IN_HAND"
 	ErrInvalidMeld           RulesErrorCode = "INVALID_MELD"
 	ErrRoundReqNotMet        RulesErrorCode = "ROUND_REQ_NOT_MET"

@@ -1014,6 +1014,13 @@ export default function GameScreen() {
   const allStaged = new Set(resolvedGroups.flat());
 
   const previewText = previewKey ? describePreview(preview, previewKey) : undefined;
+  // Why the staging area is inert, when it is. Cards cannot be staged at all
+  // until the server offers a meld (see stageCardsAt), so without this the box
+  // invites a drag, silently swallows it, and leaves "Lay meld" greyed out
+  // with nothing said — the exact failure the offer list exists to remove.
+  const meldUnavailableReason = canBuildMeld
+    ? undefined
+    : reasonText(whyNot(state, OFFER.layMeld));
 
   // A card moved into the meld area comes out of the hand entirely — only
   // Cancel (see cancelGroup) puts it back — so the hand row only ever shows
@@ -1272,6 +1279,7 @@ export default function GameScreen() {
               (see the comment in MeldStagingArea itself). */}
           <MeldStagingArea
             previewText={previewText}
+            unavailableReason={meldUnavailableReason}
             ref={stagingZoneRef}
             groups={stagingGroups}
             dragActive={canBuildMeld && draggedCard !== null}

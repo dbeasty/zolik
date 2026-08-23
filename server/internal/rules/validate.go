@@ -134,6 +134,12 @@ func ValidateMeldAction(state GameState, playerID string, cards []string) (GameS
 		return state, "", "", RulesError{Code: ErrGameNotActive}
 	}
 	if state.Phase != PhaseMeld {
+		// Distinguish the one case a player runs into constantly — melding
+		// before drawing — from every other wrong phase, so the UI can say
+		// what to do instead of only that something is unavailable.
+		if state.Phase == PhaseDraw && state.CurrentTurn == playerID {
+			return state, "", "", RulesError{Code: ErrMustDrawFirst}
+		}
 		return state, "", "", RulesError{Code: ErrWrongPhase}
 	}
 	if state.CurrentTurn != playerID {

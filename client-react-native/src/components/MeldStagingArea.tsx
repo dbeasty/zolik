@@ -42,6 +42,12 @@ type Props = {
   // engine (rules.PreviewMeld) and pushed here, never guessed locally — see
   // docs/extensibility-plan.md Phase 2.3.
   previewText?: string;
+  // Why melding is unavailable right now, in the engine's own words — empty
+  // when it is available. Without this the box is simply inert: it still
+  // invites you to drag cards in, silently drops them, and leaves "Lay meld"
+  // greyed out with no reason, which is the exact failure the offer list
+  // exists to remove.
+  unavailableReason?: string;
   // Lets the parent screen measure each group's card-row rect, so a
   // dragged hand card's drop position (not just "somewhere in the staging
   // area") can be resolved to a specific group + index within it — see
@@ -83,6 +89,7 @@ export const MeldStagingArea = forwardRef<View, Props>(function MeldStagingArea(
     canLayAll,
     layCount,
     previewText,
+    unavailableReason,
     onGroupRowRef,
     insertHover,
   },
@@ -114,9 +121,9 @@ export const MeldStagingArea = forwardRef<View, Props>(function MeldStagingArea(
           hoverPos={insertHover?.groupIndex === i ? insertHover.pos : null}
         />
       ))}
-      {previewText ? (
+      {previewText || unavailableReason ? (
         <Text testID="staging-preview" style={styles.preview}>
-          {previewText}
+          {previewText || unavailableReason}
         </Text>
       ) : null}
       <View style={styles.actionRow}>

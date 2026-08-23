@@ -110,6 +110,7 @@ func positionsForCard(state api.GameState, meldID, card string) []string {
 var reasonMessages = map[string]string{
 	"NOT_YOUR_TURN":           "not your turn",
 	"WRONG_PHASE":             "not available right now",
+	"MUST_DRAW_FIRST":         "draw a card before melding",
 	"GAME_SUSPENDED":          "the game is paused",
 	"GAME_NOT_ACTIVE":         "the game is not running",
 	"DISCARD_LOCKED":          "discard pickup is locked for now",

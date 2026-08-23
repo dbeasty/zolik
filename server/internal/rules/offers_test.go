@@ -206,6 +206,38 @@ func TestLegalActions_DiscardLockIsReportedAsSuch(t *testing.T) {
 	}
 }
 
+func TestLegalActions_MeldBeforeDrawingSaysToDrawFirst(t *testing.T) {
+	// The reported confusion: a player tries to build a meld at the start of
+	// their turn, the staging area does nothing, and nothing on screen says
+	// why. "Not available right now" is true but useless — the actionable fact
+	// is that they have not drawn, and that is a rule, so the engine says it.
+	s := offerFixture(func(s *GameState) { s.Phase = PhaseDraw })
+	o := FindOffer(LegalActions(s, "p1"), OfferLayMeld)
+	if o.Enabled {
+		t.Fatal("melding before drawing should not be offered")
+	}
+	if o.WhyNot != ErrMustDrawFirst {
+		t.Errorf("whyNot = %s, want %s", o.WhyNot, ErrMustDrawFirst)
+	}
+}
+
+func TestLegalActions_WrongPhaseStaysGenericWhenItIsNotYourTurn(t *testing.T) {
+	// The specific code is only right for the player who is actually on turn
+	// and yet to draw. Telling someone who cannot act at all to "draw a card
+	// first" would be worse than the generic message it replaced.
+	s := offerFixture(func(s *GameState) {
+		s.Phase = PhaseDraw
+		s.CurrentTurn = "p2"
+	})
+	o := FindOffer(LegalActions(s, "p1"), OfferLayMeld)
+	if o.Enabled {
+		t.Fatal("melding on someone else's turn should not be offered")
+	}
+	if o.WhyNot == ErrMustDrawFirst {
+		t.Errorf("whyNot = %s, but it is not this player's turn to draw", o.WhyNot)
+	}
+}
+
 func TestLegalActions_PileCardsFollowThePickupMode(t *testing.T) {
 	// A profile knob, answered by the server rather than by a client
 	// switching on the profile *name*: top_only offers the top card,

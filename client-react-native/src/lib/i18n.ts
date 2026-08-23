@@ -39,6 +39,7 @@ const en: Record<string, string> = {
   // --- engine error codes (rules.RulesErrorCode) ---------------------------
   'err.NOT_YOUR_TURN': "It's not your turn",
   'err.WRONG_PHASE': 'Not available right now',
+  'err.MUST_DRAW_FIRST': 'Draw a card before melding',
   'err.GAME_SUSPENDED': 'The game is paused',
   'err.GAME_NOT_ACTIVE': 'The game is not running',
   'err.DISCARD_LOCKED': 'The discard pile is locked for now',
@@ -125,6 +126,7 @@ const en: Record<string, string> = {
 const cs: Record<string, string> = {
   'err.NOT_YOUR_TURN': 'Nejsi na řadě',
   'err.WRONG_PHASE': 'Teď to nejde',
+  'err.MUST_DRAW_FIRST': 'Nejdřív si lízni kartu',
   'err.GAME_SUSPENDED': 'Hra je pozastavena',
   'err.GAME_NOT_ACTIVE': 'Hra neběží',
   'err.DISCARD_LOCKED': 'Odhazovací balíček je zatím zamčený',
