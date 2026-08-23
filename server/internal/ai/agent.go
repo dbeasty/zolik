@@ -29,6 +29,12 @@ type VisibleState struct {
 	// are deliberately no InitialMeldMinimum/DiscardDrawMinRound fields
 	// alongside it to drift out of sync with it.
 	Rules rules.RulesConfig
+	// DiscardTakenCard is the card the current player took off the discard
+	// pile this turn, if any — see rules.GameState.DiscardTakenCard. The
+	// engine will not accept it back as this turn's discard, so an agent
+	// that ignores it can talk itself into a hand it has no legal move out
+	// of. Empty when the turn's draw came from the deck.
+	DiscardTakenCard string
 }
 
 type Agent interface {

@@ -73,16 +73,24 @@ func (m *Manager) HandleAction(ctx context.Context, gameID, playerID string, in 
 	// Convert models.Game -> rules.GameState (and keep non-rules fields intact in models.Game).
 	rState := toRulesState(game)
 
+	// Taken before the call rather than read back after it. ApplyAction now
+	// copies the state it is handed, but toRulesState still passes this
+	// models.Game's own Hands map straight through, so what these logs
+	// report stays correct here at the point of use instead of resting on
+	// that copy staying in place. Reading it afterwards used to print the
+	// post-action hand, which made every "handBefore" below identical to
+	// handAfter and the line useless for seeing which card actually left.
+	handBefore := append([]string(nil), game.Hands[playerID]...)
 	outcome, err := rules.ApplyAction(rState, playerID, rAction)
 	if err != nil {
-		log.Printf("game=%s player=%s action=%s card=%q hand=%v version=%d phase=%s turn=%s rejected: %v", gameID, playerID, in.Type, rAction.Card, game.Hands[playerID], game.Version, game.Phase, game.CurrentTurn, err)
+		log.Printf("game=%s player=%s action=%s card=%q hand=%v version=%d phase=%s turn=%s rejected: %v", gameID, playerID, in.Type, rAction.Card, handBefore, game.Version, game.Phase, game.CurrentTurn, err)
 		if re, ok := err.(rules.RulesError); ok && re.Code == rules.ErrNoCardsLeft {
 			m.suspendNoCardsLeft(ctx, gameID, oid, game)
 		}
 		return err
 	}
 	if rAction.Type == rules.ActionDiscard {
-		log.Printf("game=%s player=%s discard card=%q handBefore=%v handAfter=%v", gameID, playerID, rAction.Card, game.Hands[playerID], outcome.State.Hands[playerID])
+		log.Printf("game=%s player=%s discard card=%q handBefore=%v handAfter=%v", gameID, playerID, rAction.Card, handBefore, outcome.State.Hands[playerID])
 	}
 
 	// Apply mutated rules fields back to models.Game.
@@ -319,7 +327,8 @@ func toRulesLayOffSnapshot(s *models.LayOffSnapshot) *rules.LayOffSnapshot {
 			OwnerID:   s.PrevMeta.OwnerID,
 			WildCount: s.PrevMeta.WildCount,
 		},
-		Cards: s.Cards,
+		Cards:                s.Cards,
+		PrevDiscardTakenCard: s.PrevDiscardTakenCard,
 	}
 }
 
@@ -337,7 +346,8 @@ func fromRulesLayOffSnapshot(s *rules.LayOffSnapshot) *models.LayOffSnapshot {
 			OwnerID:   s.PrevMeta.OwnerID,
 			WildCount: s.PrevMeta.WildCount,
 		},
-		Cards: s.Cards,
+		Cards:                s.Cards,
+		PrevDiscardTakenCard: s.PrevDiscardTakenCard,
 	}
 }
 
@@ -352,6 +362,7 @@ func toRulesMeldLaidSnapshot(s *models.MeldLaidSnapshot) *rules.MeldLaidSnapshot
 		PrevRoundReqMet:                 s.PrevRoundReqMet,
 		PrevMeldsLaidThisTurn:           s.PrevMeldsLaidThisTurn,
 		PrevDiscardDrawnCardPendingMeld: s.PrevDiscardDrawnCardPendingMeld,
+		PrevDiscardTakenCard:            s.PrevDiscardTakenCard,
 	}
 }
 
@@ -366,6 +377,7 @@ func fromRulesMeldLaidSnapshot(s *rules.MeldLaidSnapshot) *models.MeldLaidSnapsh
 		PrevRoundReqMet:                 s.PrevRoundReqMet,
 		PrevMeldsLaidThisTurn:           s.PrevMeldsLaidThisTurn,
 		PrevDiscardDrawnCardPendingMeld: s.PrevDiscardDrawnCardPendingMeld,
+		PrevDiscardTakenCard:            s.PrevDiscardTakenCard,
 	}
 }
 
@@ -392,6 +404,7 @@ func toRulesTurnMeldSnapshot(s *models.TurnMeldSnapshot) *rules.TurnMeldSnapshot
 		RoundReqMet:                 s.RoundReqMet,
 		MeldsLaidThisTurn:           s.MeldsLaidThisTurn,
 		DiscardDrawnCardPendingMeld: s.DiscardDrawnCardPendingMeld,
+		DiscardTakenCard:            s.DiscardTakenCard,
 		DiscardDrawnCards:           s.DiscardDrawnCards,
 		DiscardPile:                 s.DiscardPile,
 		NextMeldSeq:                 s.NextMeldSeq,
@@ -421,6 +434,7 @@ func fromRulesTurnMeldSnapshot(s *rules.TurnMeldSnapshot) *models.TurnMeldSnapsh
 		RoundReqMet:                 s.RoundReqMet,
 		MeldsLaidThisTurn:           s.MeldsLaidThisTurn,
 		DiscardDrawnCardPendingMeld: s.DiscardDrawnCardPendingMeld,
+		DiscardTakenCard:            s.DiscardTakenCard,
 		DiscardDrawnCards:           s.DiscardDrawnCards,
 		DiscardPile:                 s.DiscardPile,
 		NextMeldSeq:                 s.NextMeldSeq,
@@ -461,6 +475,7 @@ func toRulesState(g models.Game) rules.GameState {
 		RoundReqMet:                 g.RoundReqMet,
 		MeldsLaidThisTurn:           g.MeldsLaidThisTurn,
 		DiscardDrawnCardPendingMeld: g.DiscardDrawnCardPendingMeld,
+		DiscardTakenCard:            g.DiscardTakenCard,
 		DiscardDrawnCards:           g.DiscardDrawnCards,
 		LastLayOff:                  toRulesLayOffSnapshot(g.LastLayOff),
 		LastMeldLaid:                toRulesMeldLaidSnapshot(g.LastMeldLaid),
@@ -503,6 +518,7 @@ func fromRulesState(g *models.Game, rs rules.GameState) {
 	g.DiscardDrawMinRound = cfg.DiscardDrawMinRound
 	g.MeldsLaidThisTurn = rs.MeldsLaidThisTurn
 	g.DiscardDrawnCardPendingMeld = rs.DiscardDrawnCardPendingMeld
+	g.DiscardTakenCard = rs.DiscardTakenCard
 	g.DiscardDrawnCards = rs.DiscardDrawnCards
 	g.LastLayOff = fromRulesLayOffSnapshot(rs.LastLayOff)
 	g.LastMeldLaid = fromRulesMeldLaidSnapshot(rs.LastMeldLaid)
@@ -619,7 +635,7 @@ func (m *Manager) aiLoop(ctx context.Context, gameID string) {
 				if hand := game.Hands[actorID]; len(hand) > 0 {
 					cfg := GameRules(game)
 					canDiscardJoker := len(hand) == 1 && game.RoundReqMet[actorID]
-					fallbackCard := ai.PickWorstDiscard(hand, cfg, canDiscardJoker)
+					fallbackCard := ai.PickWorstDiscard(hand, cfg, canDiscardJoker, game.DiscardTakenCard)
 					fallback := WSIncoming{Type: "discard", Card: fallbackCard}
 					log.Printf("ai fallback discard: game=%s actor=%s card=%q hand=%v", gameID, actorID, fallbackCard, hand)
 					if err := m.HandleAction(ctx, gameID, actorID, fallback); err != nil {
@@ -675,6 +691,8 @@ func aiVisibleFromGame(game models.Game) ai.VisibleState {
 		RoundReqMet:    game.RoundReqMet,
 		TotalScores:    game.TotalScores,
 		Rules:          GameRules(game),
+
+		DiscardTakenCard: game.DiscardTakenCard,
 	}
 }
 

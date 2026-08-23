@@ -56,6 +56,7 @@ type Game struct {
 	DiscardDrawMinRound         int               `bson:"discardDrawMinRound" json:"discardDrawMinRound"`
 	MeldsLaidThisTurn           int               `bson:"meldsLaidThisTurn" json:"-"`
 	DiscardDrawnCardPendingMeld string            `bson:"discardDrawnCardPendingMeld" json:"-"`
+	DiscardTakenCard            string            `bson:"discardTakenCard" json:"-"`
 	DiscardDrawnCards           []string          `bson:"discardDrawnCards" json:"-"`
 	LastLayOff                  *LayOffSnapshot   `bson:"lastLayOff,omitempty" json:"-"`
 	LastMeldLaid                *MeldLaidSnapshot `bson:"lastMeldLaid,omitempty" json:"-"`
@@ -108,6 +109,8 @@ type LayOffSnapshot struct {
 	PrevCards []string `bson:"prevCards" json:"-"`
 	PrevMeta  MeldInfo `bson:"prevMeta" json:"-"`
 	Cards     []string `bson:"cards" json:"-"`
+
+	PrevDiscardTakenCard string `bson:"prevDiscardTakenCard" json:"-"`
 }
 
 // MeldLaidSnapshot mirrors rules.MeldLaidSnapshot for persistence — see
@@ -119,6 +122,7 @@ type MeldLaidSnapshot struct {
 	PrevRoundReqMet                 bool     `bson:"prevRoundReqMet" json:"-"`
 	PrevMeldsLaidThisTurn           int      `bson:"prevMeldsLaidThisTurn" json:"-"`
 	PrevDiscardDrawnCardPendingMeld string   `bson:"prevDiscardDrawnCardPendingMeld" json:"-"`
+	PrevDiscardTakenCard            string   `bson:"prevDiscardTakenCard" json:"-"`
 }
 
 // TurnMeldSnapshot mirrors rules.TurnMeldSnapshot for persistence — see there
@@ -131,6 +135,7 @@ type TurnMeldSnapshot struct {
 	RoundReqMet                 bool                  `bson:"roundReqMet" json:"-"`
 	MeldsLaidThisTurn           int                   `bson:"meldsLaidThisTurn" json:"-"`
 	DiscardDrawnCardPendingMeld string                `bson:"discardDrawnCardPendingMeld" json:"-"`
+	DiscardTakenCard            string                `bson:"discardTakenCard" json:"-"`
 	DiscardDrawnCards           []string              `bson:"discardDrawnCards" json:"-"`
 	DiscardPile                 []string              `bson:"discardPile" json:"-"`
 	NextMeldSeq                 int                   `bson:"nextMeldSeq" json:"-"`
