@@ -31,16 +31,22 @@ export class ZolikClient {
   refreshToken = '';
   userId = '';
   private onTokensUpdated?: (access: string, refresh: string) => void;
+  private onSessionExpired?: () => void;
 
   constructor(baseUrl: string = ZOLIK_BASE_URL) {
     this.baseUrl = baseUrl.replace(/\/$/, '');
   }
 
-  bindSession(session: PlayerSession, onUpdate?: (access: string, refresh: string) => void) {
+  bindSession(
+    session: PlayerSession,
+    onUpdate?: (access: string, refresh: string) => void,
+    onExpired?: () => void,
+  ) {
     this.accessToken = session.accessToken;
     this.refreshToken = session.refreshToken;
     this.userId = session.userId;
     this.onTokensUpdated = onUpdate;
+    this.onSessionExpired = onExpired;
   }
 
   wsUrl(gameId: string): string {
@@ -330,7 +336,20 @@ export class ZolikClient {
       body: body != null ? JSON.stringify(body) : undefined,
     });
     if (res.status === 401 && auth && this.refreshToken && !retried) {
-      await this.refreshTokens();
+      try {
+        await this.refreshTokens();
+      } catch {
+        // The stored refresh token is gone for good: expired and reaped by the
+        // sessions TTL index, rotated away, or issued by a database we are no
+        // longer talking to. Letting it sit in storage wedges the app forever,
+        // since every reload restores it and replays this same failure. Drop it
+        // and surface a session-expired error the UI can route back to sign-in.
+        this.accessToken = '';
+        this.refreshToken = '';
+        this.userId = '';
+        this.onSessionExpired?.();
+        throw new ApiError('session expired, please sign in again', 401);
+      }
       return this.request<T>(method, path, body, auth, true);
     }
     const text = await res.text();

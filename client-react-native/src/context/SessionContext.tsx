@@ -76,17 +76,31 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSessionState] = useState<PlayerSession | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // The server has already rejected these credentials, so clear them from state
+  // and storage. Without this the rejected token is restored on the next boot
+  // and every authenticated call keeps failing the same way.
+  const expireSession = useCallback(async () => {
+    setSessionState(null);
+    await persistSession(null);
+  }, []);
+
   const applySession = useCallback(async (s: PlayerSession | null) => {
     setSessionState(s);
     await persistSession(s);
     if (s) {
-      apiClient.bindSession(s, async (access, refresh) => {
-        const updated = { ...s, accessToken: access, refreshToken: refresh };
-        setSessionState(updated);
-        await persistSession(updated);
-      });
+      apiClient.bindSession(
+        s,
+        async (access, refresh) => {
+          const updated = { ...s, accessToken: access, refreshToken: refresh };
+          setSessionState(updated);
+          await persistSession(updated);
+        },
+        () => {
+          void expireSession();
+        },
+      );
     }
-  }, []);
+  }, [expireSession]);
 
   // Restore the chosen locale before anything renders, so the first paint is
   // already in the player's language rather than flashing English first.
@@ -100,11 +114,17 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     loadSession()
       .then((s) => {
         if (s) {
-          apiClient.bindSession(s, async (access, refresh) => {
-            const updated = { ...s, accessToken: access, refreshToken: refresh };
-            setSessionState(updated);
-            await persistSession(updated);
-          });
+          apiClient.bindSession(
+            s,
+            async (access, refresh) => {
+              const updated = { ...s, accessToken: access, refreshToken: refresh };
+              setSessionState(updated);
+              await persistSession(updated);
+            },
+            () => {
+              void expireSession();
+            },
+          );
           setSessionState(s);
         }
       })
