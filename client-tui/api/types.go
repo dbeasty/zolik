@@ -151,4 +151,8 @@ type MeldPreview struct {
 
 	InitialMeldMinimum int  `json:"initialMeldMinimum"`
 	MeetsMinimum       bool `json:"meetsMinimum"`
+	// AlreadyLaidValue is what the player has already laid this deal, which
+	// counts toward the floor alongside the selection. 0 when there is no
+	// floor, and also 0 against a server predating the field.
+	AlreadyLaidValue int `json:"alreadyLaidValue"`
 }

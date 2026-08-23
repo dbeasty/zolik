@@ -124,6 +124,28 @@ func TestPreviewMeld_MeasuresTheFloorAcrossEverythingLaid(t *testing.T) {
 	if !together.MeetsMinimum {
 		t.Errorf("26 already laid plus 30 should clear a 50-point floor, got %+v", together)
 	}
+	// The two halves of that sum are both reported, so a client can show the
+	// addition rather than the candidate's value alone against the floor.
+	if together.AlreadyLaidValue != 26 {
+		t.Errorf("already laid = %d, want the 26 on the table", together.AlreadyLaidValue)
+	}
+	if alone.AlreadyLaidValue != 0 {
+		t.Errorf("nothing laid yet, so already laid = %d, want 0", alone.AlreadyLaidValue)
+	}
+}
+
+func TestPreviewMeld_NoFloorReportsNothingLaid(t *testing.T) {
+	// With no floor the figure is counting toward nothing, so it stays 0
+	// rather than inviting a client to render an addition that means nothing.
+	s := previewFixture(func(s *GameState) {
+		s.Melds["p1"] = [][]string{{"5H", "6H", "7H", "8H"}}
+		s.MeldMeta["p1"] = []MeldInfo{{MeldID: "meld_1", Type: MeldRun, OwnerID: "p1"}}
+		s.NextMeldSeq = 1
+		s.Hands["p1"] = []string{"QH", "QD", "QC", "2D"}
+	})
+	if p := PreviewMeld(s, "p1", []string{"QH", "QD", "QC"}); p.AlreadyLaidValue != 0 {
+		t.Errorf("already laid = %d, want 0 with no floor in force", p.AlreadyLaidValue)
+	}
 }
 
 func TestPreviewMeld_NoFloorAlwaysMeetsIt(t *testing.T) {

@@ -51,6 +51,13 @@ type MeldPreview struct {
 	// this candidate. 0 means no floor.
 	InitialMeldMinimum int  `json:"initialMeldMinimum"`
 	MeetsMinimum       bool `json:"meetsMinimum"`
+	// AlreadyLaidValue is the natural value the player has already put on the
+	// table this deal — the other half of the sum MeetsMinimum reports on.
+	// Without it a client can only show the candidate's own value, so a
+	// 30-point set under a 35-point floor reads as "30, needs 35" whether the
+	// player is 5 points short or already well past it. Always 0 when there
+	// is no floor, since nothing is being counted toward one.
+	AlreadyLaidValue int `json:"alreadyLaidValue"`
 }
 
 // PreviewMeld evaluates a candidate meld for playerID without changing
@@ -101,7 +108,8 @@ func PreviewMeld(state GameState, playerID string, cards []string) MeldPreview {
 	if cfg.InitialMeldMinimum <= 0 {
 		out.MeetsMinimum = true
 	} else {
-		out.MeetsMinimum = PlayerInitialMeldNaturalValue(state, playerID)+out.NaturalValue >= cfg.InitialMeldMinimum
+		out.AlreadyLaidValue = PlayerInitialMeldNaturalValue(state, playerID)
+		out.MeetsMinimum = out.AlreadyLaidValue+out.NaturalValue >= cfg.InitialMeldMinimum
 	}
 	return out
 }

@@ -245,7 +245,15 @@ func previewLine(p *api.MeldPreview) string {
 		shape = reason
 	}
 
-	line := fmt.Sprintf("SELECTION │ %s · %d pts", shape, p.NaturalValue)
+	// The floor is measured across the whole table, so showing the selection's
+	// value alone next to it invites the wrong subtraction: "30 pts (min 35)"
+	// looks 5 short even when 26 are already laid. Spell the sum out whenever
+	// there is something already on the table to add.
+	value := fmt.Sprintf("%d pts", p.NaturalValue)
+	if p.AlreadyLaidValue > 0 {
+		value = fmt.Sprintf("%d + %d laid = %d pts", p.NaturalValue, p.AlreadyLaidValue, p.NaturalValue+p.AlreadyLaidValue)
+	}
+	line := fmt.Sprintf("SELECTION │ %s · %s", shape, value)
 	if p.InitialMeldMinimum > 0 {
 		flag := "✗"
 		if p.MeetsMinimum {

@@ -199,7 +199,20 @@ function describePreview(preview: MeldPreview | null, expectKey: string): string
       )
     : reasonText(preview.whyNot, t('preview.notYet'));
 
-  let line = t('preview.points', { shape, n: preview.naturalValue });
+  // The floor counts everything already on the table, not this selection
+  // alone, so quoting the selection's value beside it reads as a shortfall
+  // that may not exist: "30 points (needs 35)" with 26 already laid is a
+  // legal play the player is being talked out of. Show the addition instead.
+  const laid = preview.alreadyLaidValue ?? 0;
+  let line =
+    laid > 0
+      ? t('preview.pointsWithLaid', {
+          shape,
+          n: preview.naturalValue,
+          laid,
+          total: preview.naturalValue + laid,
+        })
+      : t('preview.points', { shape, n: preview.naturalValue });
   if (preview.initialMeldMinimum > 0) {
     line = t(preview.meetsMinimum ? 'preview.meetsFloor' : 'preview.needsFloor', {
       line,

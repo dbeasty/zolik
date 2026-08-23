@@ -124,6 +124,13 @@ export type MeldPreview = {
   whyNotPlayable?: string;
   initialMeldMinimum: number;
   meetsMinimum: boolean;
+  /**
+   * What this player has already laid this deal. The floor is measured
+   * against this plus `naturalValue`, so a line quoting `naturalValue` alone
+   * against `initialMeldMinimum` misstates how far short the player is.
+   * 0 when there is no floor.
+   */
+  alreadyLaidValue: number;
 };
 
 /**

@@ -199,6 +199,33 @@ func TestPreviewLine(t *testing.T) {
 		}
 	})
 
+	t.Run("shows the sum when part of the total is already on the table", func(t *testing.T) {
+		// 30 against a 50-point floor is short on its own but clears it with
+		// 26 already laid. The line has to show the addition, or it reads as
+		// a refusal of a legal play.
+		got := previewLine(&api.MeldPreview{
+			Cards: []string{"QH", "QD", "QC"}, Valid: true, Type: "set",
+			NaturalValue: 30, AlreadyLaidValue: 26, InitialMeldMinimum: 50,
+			MeetsMinimum: true, Playable: true,
+		})
+		if !strings.Contains(got, "30 + 26 laid = 56 pts") {
+			t.Errorf("want the addition spelled out, got %q", got)
+		}
+		if !strings.Contains(got, "min 50 ✓") {
+			t.Errorf("want the floor still flagged, got %q", got)
+		}
+	})
+
+	t.Run("omits the addition when nothing is laid yet", func(t *testing.T) {
+		got := previewLine(&api.MeldPreview{
+			Cards: []string{"QH", "QD", "QC"}, Valid: true, Type: "set",
+			NaturalValue: 30, AlreadyLaidValue: 0, InitialMeldMinimum: 50, Playable: true,
+		})
+		if !strings.Contains(got, "30 pts") || strings.Contains(got, "laid") {
+			t.Errorf("want a plain value with nothing on the table, got %q", got)
+		}
+	})
+
 	t.Run("omits the floor entirely when there is none", func(t *testing.T) {
 		got := previewLine(&api.MeldPreview{
 			Cards: []string{"QH"}, NaturalValue: 10, InitialMeldMinimum: 0, Playable: false,
