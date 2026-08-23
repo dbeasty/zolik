@@ -38,6 +38,12 @@ type LayOffSnapshot struct {
 	PrevCards []string
 	PrevMeta  MeldInfo
 	Cards     []string
+	// PrevDiscardTakenCard restores GameState.DiscardTakenCard, which this
+	// lay_off may have spent by putting that card on the table. Without it,
+	// undoing the lay_off would hand the card back with no marker attached
+	// and reopen the take-it-and-give-it-straight-back loop the marker
+	// exists to close.
+	PrevDiscardTakenCard string
 }
 
 // MeldLaidSnapshot holds what a lay_meld needs to be undone: the brand-new
@@ -52,6 +58,7 @@ type MeldLaidSnapshot struct {
 	PrevRoundReqMet                 bool
 	PrevMeldsLaidThisTurn           int
 	PrevDiscardDrawnCardPendingMeld string
+	PrevDiscardTakenCard            string
 }
 
 // TurnMeldSnapshot captures everything a player's meld phase can touch, taken
@@ -67,6 +74,7 @@ type TurnMeldSnapshot struct {
 	RoundReqMet                 bool
 	MeldsLaidThisTurn           int
 	DiscardDrawnCardPendingMeld string
+	DiscardTakenCard            string
 	DiscardDrawnCards           []string
 	DiscardPile                 []string
 	NextMeldSeq                 int
@@ -190,6 +198,26 @@ type GameState struct {
 	// used in a lay_meld) or moot (round requirement already met). Reset
 	// whenever a turn begins.
 	DiscardDrawnCardPendingMeld string
+	// DiscardTakenCard is the card this player specifically asked for when
+	// they took from the discard pile this turn — the same card
+	// DiscardDrawnCardPendingMeld tracks, but kept regardless of whether
+	// they are down. It exists to stop a card being taken and handed
+	// straight back on the same turn, which is a null move: the state after
+	// it is the state before it, so a table of players all doing it never
+	// progresses (observed live — one QH circulated between a player and an
+	// agent while the deck still held dozens of cards). The obligation
+	// field can't do this job on its own because it is deliberately empty
+	// for a player who is already down, and DiscardDrawnCards can't either
+	// because that one is cleared the moment anything else happens this
+	// turn, to close the undo window.
+	//
+	// Cleared when the card leaves the hand legitimately (into a lay_meld,
+	// a lay_off or a joker swap), when the pickup is undone, when the
+	// player draws from the deck instead, and when the turn ends. Only the
+	// requested card is tracked: under DiscardPickupAnyFromPile a pickup
+	// also sweeps up every card above it, and those carry no obligation and
+	// no null-move risk (that turn is a net gain of cards, not a no-op).
+	DiscardTakenCard string
 	// DiscardDrawnCards holds the card(s) just taken from the discard pile
 	// this turn, in their original pile order, so ValidateUndoDrawDiscard
 	// can put them back and let the player draw again. Set on a discard-pile
@@ -250,6 +278,7 @@ const (
 	ErrDiscardLocked         RulesErrorCode = "DISCARD_LOCKED"
 	ErrIncompleteInitialMeld RulesErrorCode = "INCOMPLETE_INITIAL_MELD"
 	ErrDiscardCardNotMelded  RulesErrorCode = "DISCARD_CARD_NOT_MELDED"
+	ErrDiscardTakenCard      RulesErrorCode = "DISCARD_TAKEN_CARD_FORBIDDEN"
 	ErrGameSuspended         RulesErrorCode = "GAME_SUSPENDED"
 	ErrGameNotActive         RulesErrorCode = "GAME_NOT_ACTIVE"
 	ErrJokerDiscard          RulesErrorCode = "JOKER_DISCARD_FORBIDDEN"

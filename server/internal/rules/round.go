@@ -123,6 +123,7 @@ func dealNewGame(state GameState, nextTurnID string) (GameState, error) {
 	state.NextMeldSeq = 0
 	state.MeldsLaidThisTurn = 0
 	state.DiscardDrawnCardPendingMeld = ""
+	state.DiscardTakenCard = ""
 	state.DiscardDrawnCards = nil
 	state.LastLayOff = nil
 	state.LastMeldLaid = nil

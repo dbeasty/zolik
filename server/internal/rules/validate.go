@@ -36,6 +36,7 @@ func ValidateDraw(state GameState, playerID string, from DrawFrom, targetCard st
 		state.Phase = PhaseMeld
 		state.MeldsLaidThisTurn = 0
 		state.DiscardDrawnCardPendingMeld = ""
+		state.DiscardTakenCard = ""
 		state.DiscardDrawnCards = nil
 		state.LastLayOff = nil
 		state.LastMeldLaid = nil
@@ -86,6 +87,10 @@ func ValidateDraw(state GameState, playerID string, from DrawFrom, targetCard st
 		} else {
 			state.DiscardDrawnCardPendingMeld = ""
 		}
+		// Tracked whether or not they're down: a down player owes nothing to
+		// their initial meld, but still may not simply hand the card back
+		// this turn — see GameState.DiscardTakenCard.
+		state.DiscardTakenCard = primary
 		state.TurnMeldSnapshot = snapshotTurnMeld(state, playerID)
 		return state, primary, nil, nil
 	default:
@@ -123,6 +128,7 @@ func ValidateUndoDrawDiscard(state GameState, playerID string) (GameState, error
 	state.DiscardPile = append(state.DiscardPile, state.DiscardDrawnCards...)
 	state.DiscardDrawnCards = nil
 	state.DiscardDrawnCardPendingMeld = ""
+	state.DiscardTakenCard = ""
 	state.MeldsLaidThisTurn = 0
 	state.Phase = PhaseDraw
 
@@ -147,6 +153,7 @@ func ValidateMeldAction(state GameState, playerID string, cards []string) (GameS
 	wasReqMet := state.RoundReqMet[playerID]
 	prevMeldsLaidThisTurn := state.MeldsLaidThisTurn
 	prevDiscardDrawnCardPendingMeld := state.DiscardDrawnCardPendingMeld
+	prevDiscardTakenCard := state.DiscardTakenCard
 	cfg := effectiveRules(state)
 
 	mv, err := ValidateMeld(cards, cfg)
@@ -229,6 +236,7 @@ func ValidateMeldAction(state GameState, playerID string, cards []string) (GameS
 			}
 		}
 	}
+	state.DiscardTakenCard = clearIfSpent(state.DiscardTakenCard, cards)
 	// Once a meld has been laid this turn, the discard-pile pickup (if any)
 	// can no longer be cleanly undone.
 	state.DiscardDrawnCards = nil
@@ -240,6 +248,7 @@ func ValidateMeldAction(state GameState, playerID string, cards []string) (GameS
 		PrevRoundReqMet:                 wasReqMet,
 		PrevMeldsLaidThisTurn:           prevMeldsLaidThisTurn,
 		PrevDiscardDrawnCardPendingMeld: prevDiscardDrawnCardPendingMeld,
+		PrevDiscardTakenCard:            prevDiscardTakenCard,
 	}
 
 	return state, meldID, mv.Type, nil
@@ -282,6 +291,7 @@ func ValidateUndoLayMeld(state GameState, playerID string) (GameState, error) {
 	state.RoundReqMet[playerID] = snap.PrevRoundReqMet
 	state.MeldsLaidThisTurn = snap.PrevMeldsLaidThisTurn
 	state.DiscardDrawnCardPendingMeld = snap.PrevDiscardDrawnCardPendingMeld
+	state.DiscardTakenCard = snap.PrevDiscardTakenCard
 	state.LastMeldLaid = nil
 
 	return state, nil
@@ -314,6 +324,7 @@ func snapshotTurnMeld(state GameState, playerID string) *TurnMeldSnapshot {
 		RoundReqMet:                 state.RoundReqMet[playerID],
 		MeldsLaidThisTurn:           state.MeldsLaidThisTurn,
 		DiscardDrawnCardPendingMeld: state.DiscardDrawnCardPendingMeld,
+		DiscardTakenCard:            state.DiscardTakenCard,
 		DiscardDrawnCards:           append([]string(nil), state.DiscardDrawnCards...),
 		// Not append([]string(nil), ...): appending zero elements to a nil
 		// slice returns nil, not an empty slice — harmless everywhere else,
@@ -360,6 +371,7 @@ func ValidateUndoTurn(state GameState, playerID string) (GameState, error) {
 	state.RoundReqMet[playerID] = snap.RoundReqMet
 	state.MeldsLaidThisTurn = snap.MeldsLaidThisTurn
 	state.DiscardDrawnCardPendingMeld = snap.DiscardDrawnCardPendingMeld
+	state.DiscardTakenCard = snap.DiscardTakenCard
 	state.DiscardDrawnCards = snap.DiscardDrawnCards
 	state.DiscardPile = snap.DiscardPile
 	state.NextMeldSeq = snap.NextMeldSeq
@@ -476,6 +488,8 @@ func ValidateLayOff(state GameState, playerID string, meldID string, cards []str
 		prevMeta = metas[idx]
 	}
 
+	prevDiscardTakenCard := state.DiscardTakenCard
+	state.DiscardTakenCard = clearIfSpent(state.DiscardTakenCard, cards)
 	state.Hands[playerID] = removeCards(state.Hands[playerID], cards)
 	state.Melds[owner][idx] = OrderMeldForDisplay(newMeld, mv)
 	if metas := state.MeldMeta[owner]; idx < len(metas) {
@@ -492,6 +506,8 @@ func ValidateLayOff(state GameState, playerID string, meldID string, cards []str
 		PrevCards: append([]string(nil), prevCards...),
 		PrevMeta:  prevMeta,
 		Cards:     append([]string(nil), cards...),
+
+		PrevDiscardTakenCard: prevDiscardTakenCard,
 	}
 
 	if !cfg.IsFinalDeal(state.GameNumber) && len(state.Hands[playerID]) == 0 {
@@ -529,6 +545,7 @@ func ValidateUndoLayOff(state GameState, playerID string) (GameState, error) {
 	}
 
 	state.Hands[playerID] = append(append([]string(nil), state.Hands[playerID]...), snap.Cards...)
+	state.DiscardTakenCard = snap.PrevDiscardTakenCard
 	state.Melds[owner][idx] = append([]string(nil), snap.PrevCards...)
 	if metas := state.MeldMeta[owner]; idx < len(metas) {
 		metas[idx] = snap.PrevMeta
@@ -599,6 +616,7 @@ func ValidateSwapJoker(state GameState, playerID string, meldID string, card str
 		}
 	}
 
+	state.DiscardTakenCard = clearIfSpent(state.DiscardTakenCard, []string{card})
 	state.Hands[playerID] = removeCards(state.Hands[playerID], []string{card})
 	state.Hands[playerID] = append(state.Hands[playerID], joker)
 	state.Melds[owner][idx] = OrderMeldForDisplay(replaced, mv)
@@ -665,9 +683,27 @@ func ValidateDiscard(state GameState, playerID string, card string, cardIndex *i
 			Message: "the card you picked up from the discard pile must go into your initial meld before you can discard",
 		}
 	}
+	// The card taken off the discard pile this turn can't simply go back on
+	// it. For a player who isn't down the gate above already covers this
+	// (that card owes the initial meld), but a down player's pickup carries
+	// no obligation, and returning it unused undoes the entire turn: the
+	// pile, the hand and the deck all end up exactly as they started, so a
+	// table can pass one card round in a circle indefinitely while the deck
+	// still holds most of its cards. Taking a card commits you to it for
+	// the turn — play it or keep it.
+	if state.DiscardTakenCard != "" && card == state.DiscardTakenCard &&
+		hasOtherDiscardableCard(state.Hands[playerID], state.DiscardTakenCard, cfg) {
+		return state, false, RulesError{
+			Code:    ErrDiscardTakenCard,
+			Message: "you can't discard the card you just took from the discard pile — play it or keep it this turn",
+		}
+	}
 
 	state.Hands[playerID] = removeCardAt(state.Hands[playerID], card, cardIndex)
 	state.DiscardPile = append(state.DiscardPile, card)
+	// The marker is scoped to the turn that took the card, and this discard
+	// ends that turn.
+	state.DiscardTakenCard = ""
 	// The meld phase is over now that the discard's landed — the whole-turn
 	// undo only makes sense before that point.
 	state.TurnMeldSnapshot = nil
@@ -743,6 +779,45 @@ func removeCardAt(hand []string, card string, idx *int) []string {
 		return out
 	}
 	return removeCards(hand, []string{card})
+}
+
+// hasOtherDiscardableCard reports whether the hand holds some card, other
+// than the one just taken off the discard pile, that the rules would let its
+// owner discard. It guards the taken-card ban so the ban can only ever
+// remove a *choice*, never the last legal move: a player who laid off down
+// to nothing but the card they took (or to that card plus undiscardable
+// jokers) is allowed to shed it and end their turn rather than sit wedged
+// with the whole table stuck behind them. Handing back the only card you
+// hold is not the null move the ban is aimed at, either — the turn still
+// shrinks the hand that reached it.
+func hasOtherDiscardableCard(hand []string, taken string, cfg RulesConfig) bool {
+	for _, c := range hand {
+		if c == taken {
+			continue
+		}
+		if cfg.JokerDiscardRestricted && IsJoker(c) {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+// clearIfSpent blanks a single-card marker once that card turns up among
+// cards that have just left the hand for the table. Value comparison is
+// enough even though two decks put duplicates in play: if the marked card
+// and its twin are interchangeable in hand, then whichever one went to the
+// table, the hand that remains is identical either way.
+func clearIfSpent(marker string, spent []string) string {
+	if marker == "" {
+		return ""
+	}
+	for _, c := range spent {
+		if c == marker {
+			return ""
+		}
+	}
+	return marker
 }
 
 func removeCards(hand []string, remove []string) []string {

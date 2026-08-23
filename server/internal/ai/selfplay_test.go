@@ -36,6 +36,8 @@ func visibleFor(st rules.GameState, playerDiscards map[string][]string) VisibleS
 		RoundReqMet:    st.RoundReqMet,
 		TotalScores:    st.TotalScores,
 		Rules:          st.Rules,
+
+		DiscardTakenCard: st.DiscardTakenCard,
 	}
 }
 
@@ -70,7 +72,7 @@ func playDeal(t *testing.T, cfg rules.RulesConfig, seed int64, players []string,
 			// Mirror the server's fallback so one rejection doesn't wedge the sim.
 			fallback := rules.Action{
 				Type: rules.ActionDiscard,
-				Card: PickWorstDiscard(st.Hands[actor], cfg, len(st.Hands[actor]) == 1 && st.RoundReqMet[actor]),
+				Card: PickWorstDiscard(st.Hands[actor], cfg, len(st.Hands[actor]) == 1 && st.RoundReqMet[actor], st.DiscardTakenCard),
 			}
 			outcome, err = rules.ApplyAction(st, actor, fallback)
 			if err != nil {

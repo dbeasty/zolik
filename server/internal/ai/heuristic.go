@@ -414,29 +414,44 @@ func findAnyValidMeld(hand []string, cfg rules.RulesConfig) ([]string, bool) {
 func pickSmartDiscard(hand []string, visible VisibleState, actor string, difficulty string, canDiscardJoker bool) string {
 	cfg := visible.Rules
 	if len(hand) == 0 {
-		return pickWorstDiscard(hand, cfg, canDiscardJoker)
+		return pickWorstDiscard(hand, cfg, canDiscardJoker, visible.DiscardTakenCard)
 	}
 	allowJoker := canDiscardJoker || !cfg.JokerDiscardRestricted
 	ownMeld := meldMaterialPositions(hand, cfg)
 
+	// The engine refuses to take this turn's discard-pile pickup straight
+	// back (rules.ErrDiscardTakenCard) while the hand holds anything else it
+	// could legally shed — taking a card commits you to it for the turn.
+	// Both halves of that are mirrored here: skip the taken card while other
+	// candidates exist, then stop skipping it if that leaves nothing, so the
+	// agent still names the move the engine would actually accept instead of
+	// stalling on a rejection it can't diagnose.
 	var cands []discardCandidate
-	for i, c := range hand {
-		if !allowJoker && rules.IsJoker(c) {
-			continue
+	for _, banTaken := range [2]bool{true, false} {
+		for i, c := range hand {
+			if !allowJoker && rules.IsJoker(c) {
+				continue
+			}
+			if banTaken && visible.DiscardTakenCard != "" && c == visible.DiscardTakenCard {
+				continue
+			}
+			cands = append(cands, discardCandidate{
+				card: c,
+				pts:  rules.PenaltyPoints(c, false),
+				// Keeping a meld you are holding is not a difficulty setting —
+				// an agent that breaks up its own finished set every turn never
+				// gets one onto the table at all, which reads as "the AI doesn't
+				// meld" rather than as a beatable opponent. Every difficulty
+				// protects its own melds; what separates them is reading the
+				// table (dangerous) and the discard history (seenBefore).
+				ownMeld:    ownMeld[i],
+				dangerous:  difficulty != "easy" && extendsAnyLiveMeld(c, visible.Melds, cfg, visible.GameNumber),
+				seenBefore: difficulty == "hard" && rankAlreadyDiscardedByOthers(c, visible.PlayerDiscards, actor),
+			})
 		}
-		cands = append(cands, discardCandidate{
-			card: c,
-			pts:  rules.PenaltyPoints(c, false),
-			// Keeping a meld you are holding is not a difficulty setting —
-			// an agent that breaks up its own finished set every turn never
-			// gets one onto the table at all, which reads as "the AI doesn't
-			// meld" rather than as a beatable opponent. Every difficulty
-			// protects its own melds; what separates them is reading the
-			// table (dangerous) and the discard history (seenBefore).
-			ownMeld:    ownMeld[i],
-			dangerous:  difficulty != "easy" && extendsAnyLiveMeld(c, visible.Melds, cfg, visible.GameNumber),
-			seenBefore: difficulty == "hard" && rankAlreadyDiscardedByOthers(c, visible.PlayerDiscards, actor),
-		})
+		if len(cands) > 0 {
+			break
+		}
 	}
 	if len(cands) == 0 {
 		// Every card is a forbidden joker (pathological, but has to return
@@ -662,8 +677,8 @@ func rankAlreadyDiscardedByOthers(card string, playerDiscards map[string][]strin
 
 // PickWorstDiscard exposes pickWorstDiscard for callers that need an emergency
 // fallback discard outside of ChooseAction (e.g. when a chosen action was rejected).
-func PickWorstDiscard(hand []string, cfg rules.RulesConfig, canDiscardJoker bool) string {
-	return pickWorstDiscard(hand, cfg, canDiscardJoker)
+func PickWorstDiscard(hand []string, cfg rules.RulesConfig, canDiscardJoker bool, takenCard string) string {
+	return pickWorstDiscard(hand, cfg, canDiscardJoker, takenCard)
 }
 
 // pickWorstDiscard picks the highest-penalty card, but a joker is the
@@ -673,21 +688,36 @@ func PickWorstDiscard(hand []string, cfg rules.RulesConfig, canDiscardJoker bool
 // just retries the same illegal move until it gives up (made no progress).
 // canDiscardJoker mirrors the server's own exception: true only when this
 // would be the player's last card and they're already down.
-func pickWorstDiscard(hand []string, cfg rules.RulesConfig, canDiscardJoker bool) string {
+//
+// takenCard mirrors the other exception the engine enforces: the card taken
+// off the discard pile this turn can't go straight back on it while anything
+// else in hand is legally discardable (rules.ErrDiscardTakenCard). This is a
+// fallback used precisely when the agent's real choice was already rejected,
+// so naming a second card the server also refuses leaves the turn — and the
+// deal — stuck. Pass "" when the turn's draw came from the deck.
+func pickWorstDiscard(hand []string, cfg rules.RulesConfig, canDiscardJoker bool, takenCard string) string {
 	if len(hand) == 0 {
 		return ""
 	}
 	allowJoker := canDiscardJoker || !cfg.JokerDiscardRestricted
 	worst := ""
 	worstPts := -1
-	for _, c := range hand {
-		if !allowJoker && rules.IsJoker(c) {
-			continue
+	for _, banTaken := range [2]bool{true, false} {
+		for _, c := range hand {
+			if !allowJoker && rules.IsJoker(c) {
+				continue
+			}
+			if banTaken && takenCard != "" && c == takenCard {
+				continue
+			}
+			pts := rules.PenaltyPoints(c, false)
+			if pts > worstPts {
+				worst = c
+				worstPts = pts
+			}
 		}
-		pts := rules.PenaltyPoints(c, false)
-		if pts > worstPts {
-			worst = c
-			worstPts = pts
+		if worst != "" {
+			break
 		}
 	}
 	if worst == "" {
