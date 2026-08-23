@@ -3,7 +3,9 @@ services:
     image: mongo:7
     restart: unless-stopped
     ports:
-      - "27017:27017"
+      # Host-side only (Compass/mongosh). Services reach mongo at mongo:27017 on the
+      # compose network, so this can be anything free; 27018 dodges a local mongo on 27017.
+      - "27018:27017"
     volumes:
       - mongo_data:/data/db
 
@@ -60,6 +62,10 @@ services:
     environment:
       REDIS_URL: redis://redis:6379/0
       PORT: "8092"
+      # Only `app` hosts the SSH TUI (it publishes 2222). Without this, APP_ENV=local
+      # defaults SSH_ENABLED=true and SSHHostKeyPath to the relative ".ssh/zolik_host_key",
+      # which this distroless nonroot image cannot create at WORKDIR / -> log.Fatalf -> restart loop.
+      SSH_ENABLED: "false"
     ports:
       - "8092:8092"
 
