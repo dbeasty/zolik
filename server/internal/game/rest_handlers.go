@@ -229,13 +229,21 @@ func (h *GameRestHandlers) createGame(w http.ResponseWriter, req *http.Request) 
 
 // getRules exposes the table/lobby constants and options the client would
 // otherwise have to hardcode a second copy of (min/max players, the
-// selectable initial-meld-minimum and discard-lock-round values, and each
+// selectable initial-meld-minimum and discard-lock-round values, and a
 // profile's defaults for those two).
 // getRules is the pre-descriptor shape of the same information, projected
 // from rules.Descriptor() so the two can never disagree about what a lobby may
 // set. Deprecated: new clients read /module, which also carries each
 // variation's resolved ruleset and every label.
-func (h *GameRestHandlers) getRules(w http.ResponseWriter, _ *http.Request) {
+//
+// The response shape carries one pair of defaults, not one per variation, so
+// which variation it describes has to be asked for: ?profile=<id> names it,
+// and an absent or unknown value keeps answering for Continental, which is
+// what this endpoint has always returned. Reading the values off the named
+// profile rather than a hardcoded reference to one is what stops a lobby
+// prefilled from here handing Žolík Classic a 35-point floor it does not
+// default to.
+func (h *GameRestHandlers) getRules(w http.ResponseWriter, req *http.Request) {
 	d := rules.Descriptor()
 	values := func(name string) []int {
 		spec := d.Option(name)
@@ -248,14 +256,18 @@ func (h *GameRestHandlers) getRules(w http.ResponseWriter, _ *http.Request) {
 		}
 		return out
 	}
+	defaults := rules.ProfileContinental
+	if p := d.Profile(req.URL.Query().Get("profile")); p != nil {
+		defaults = p.Rules
+	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"minPlayers":                 d.MinPlayers,
 		"maxPlayers":                 d.MaxPlayers,
 		"initialMeldMinOptions":      values(rules.OptInitialMeldMinimum),
 		"discardDrawMinRoundOptions": values(rules.OptDiscardDrawMinRound),
-		"defaultInitialMeldMinimum":  rules.ProfileContinental.InitialMeldMinimum,
-		"defaultDiscardDrawMinRound": rules.ProfileContinental.DiscardDrawMinRound,
+		"defaultInitialMeldMinimum":  defaults.InitialMeldMinimum,
+		"defaultDiscardDrawMinRound": defaults.DiscardDrawMinRound,
 	})
 }
 

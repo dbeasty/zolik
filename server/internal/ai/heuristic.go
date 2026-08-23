@@ -55,7 +55,17 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 			// allowed to lay — and eventually discarded them away — because
 			// the plan search only ever looks for what the contract still
 			// needs, which under this profile is never a set.
-			if visible.Rules.FixedDealCount == 0 {
+			//
+			// "No per-type quota" is not "no requirement": the point floor
+			// (InitialMeldMinimum) is a separate, host-settable knob, and a
+			// Žolík Classic table may well carry one. While it is unmet,
+			// laying a meld the plan search did not ask for is pure loss —
+			// it cannot bring the player down, it spends cards a qualifying
+			// combination might have needed, and it hands every opponent a
+			// lay-off target. So this shortcut is only open once the floor
+			// is behind us; until then the plan search above is the only
+			// thing allowed to put cards on the table.
+			if visible.Rules.FixedDealCount == 0 && initialMeldFloorMet(st, actor, visible.Rules) {
 				if meld, ok := findAnyValidMeld(hand, visible.Rules); ok {
 					rest := removeCardsOnce(hand, meld)
 					// A player who is not down cannot go out (ValidateDiscard
@@ -218,14 +228,20 @@ func findInitialMeldPlanRequiring(state rules.GameState, playerID string, hand [
 		needRuns = 0
 	}
 	needCleanRun := req.RequireCleanRun && !hasCleanRun
-	if needSets == 0 && needRuns == 0 && !needCleanRun {
-		return nil, false
-	}
 	minValue := 0
 	if cfg.InitialMeldMinimum > 0 {
 		minValue = cfg.InitialMeldMinimum
 	}
 	alreadyValue := rules.PlayerInitialMeldNaturalValue(state, playerID)
+	// Nothing left to plan only when the shape is complete *and* the point
+	// floor is already covered *and* no particular card has to be placed.
+	// Meeting the shape alone is not the end of the search: the floor is
+	// summed across every meld the player lays (see the RoundReqMet
+	// assignment in rules.ValidateMeldAction), so a contract-complete but
+	// under-value position still needs more melds to top the total up.
+	if needSets == 0 && needRuns == 0 && !needCleanRun && alreadyValue >= minValue && mustInclude == "" {
+		return nil, false
+	}
 
 	budget := &searchBudget{remaining: 200000}
 	satisfied := mustInclude == ""
@@ -248,6 +264,31 @@ func findInitialMeldPlanRequiring(state rules.GameState, playerID string, hand [
 
 type searchBudget struct{ remaining int }
 
+// initialMeldFloorMet reports whether the player has already laid enough
+// natural value to clear the deal's point floor — trivially true when the
+// table sets no floor at all (InitialMeldMinimum 0, e.g. stock Žolík
+// Classic). It reads the same total the engine checks in
+// rules.ValidateMeldAction, so the agent and the server agree on where the
+// player stands.
+func initialMeldFloorMet(state rules.GameState, playerID string, cfg rules.RulesConfig) bool {
+	if cfg.InitialMeldMinimum <= 0 {
+		return true
+	}
+	return rules.PlayerInitialMeldNaturalValue(state, playerID) >= cfg.InitialMeldMinimum
+}
+
+// maxNaturalValue is the most natural value any collection of melds built
+// from these cards could be worth: every card's own natural value, with a
+// wild joker worth 0 and an ace worth its best case of 1. An upper bound,
+// used only to prune a search that cannot reach the floor.
+func maxNaturalValue(cards []string) int {
+	sum := 0
+	for _, c := range cards {
+		sum += rules.NaturalCardValue(c, true)
+	}
+	return sum
+}
+
 func containsCard(cards []string, card string) bool {
 	for _, c := range cards {
 		if c == card {
@@ -267,15 +308,35 @@ func searchMeldCombo(
 	mustInclude string,
 	budget *searchBudget,
 ) ([][]string, bool) {
-	if needSets == 0 && needRuns == 0 && !needCleanRun {
-		if valueSoFar >= minValue && satisfied {
-			return [][]string{}, true
-		}
+	shapeDone := needSets == 0 && needRuns == 0 && !needCleanRun
+	if shapeDone && valueSoFar >= minValue && satisfied {
+		return [][]string{}, true
+	}
+	// Prune: melding every remaining card still leaves the total short of
+	// the floor, so no arrangement of what is left can succeed. Sound
+	// because a meld's NaturalValue is exactly the sum of its cards'
+	// natural values (rules.ValidateMeldValue), and an ace counts at most 1.
+	if valueSoFar+maxNaturalValue(hand) < minValue {
 		return nil, false
 	}
 	n := len(hand)
 	minSet, minRun := meldSizes(cfg)
-	if needSets > 0 && n >= minSet {
+	// Once the contract's shape is complete the search is no longer after a
+	// particular kind of meld — it is topping the natural-value total up to
+	// the floor (or still looking for somewhere to place mustInclude), and
+	// either kind of meld does that. Before then, each branch is entered
+	// only if the contract still wants what it lays.
+	//
+	// Topping up is only on the table under a profile with no per-type quota.
+	// The predicate is FixedDealCount == 0 because that is exactly the
+	// condition rules.MeldContributesTowardRequirement short-circuits on: a
+	// fixed-contract profile (Continental) rejects any meld past the quota
+	// with MELD_NO_CONTRIBUTION, so planning one would only get the action
+	// bounced and strand the turn.
+	canTopUp := shapeDone && cfg.FixedDealCount == 0
+	wantSet := needSets > 0 || canTopUp
+	wantRun := needRuns > 0 || needCleanRun || canTopUp
+	if wantSet && n >= minSet {
 		for _, cand := range combinations(hand, minSet) {
 			if budget.remaining <= 0 {
 				return nil, false
@@ -287,12 +348,16 @@ func searchMeldCombo(
 			}
 			rest := removeCardsOnce(hand, cand)
 			candSatisfied := satisfied || containsCard(cand, mustInclude)
-			if combo, ok := searchMeldCombo(rest, cfg, needSets-1, needRuns, needCleanRun, valueSoFar+mv.NaturalValue, minValue, candSatisfied, mustInclude, budget); ok {
+			nextNeedSets := needSets
+			if nextNeedSets > 0 {
+				nextNeedSets--
+			}
+			if combo, ok := searchMeldCombo(rest, cfg, nextNeedSets, needRuns, needCleanRun, valueSoFar+mv.NaturalValue, minValue, candSatisfied, mustInclude, budget); ok {
 				return append([][]string{cand}, combo...), true
 			}
 		}
 	}
-	if (needRuns > 0 || needCleanRun) && n >= minRun {
+	if wantRun && n >= minRun {
 		for _, cand := range combinations(hand, minRun) {
 			if budget.remaining <= 0 {
 				return nil, false

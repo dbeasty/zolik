@@ -18,6 +18,11 @@ type selfPlayResult struct {
 	stalled    bool
 	lastErr    error
 	rejections int
+	// strandedLays counts turns that ended with cards laid but the player
+	// still short of the table's initial-meld point floor — the shape of
+	// the "Karel laid A-2-3 against a 35-point floor" report.
+	strandedLays  int
+	firstStranded error
 }
 
 // visibleFor mirrors game.aiVisibleFromGame: it is the exact snapshot the
@@ -51,6 +56,7 @@ func playDeal(t *testing.T, cfg rules.RulesConfig, seed int64, players []string,
 	}
 	agent := NewHeuristicAgent(difficulty)
 	playerDiscards := map[string][]string{}
+	laidWhileShort := map[string]bool{}
 	res := selfPlayResult{}
 	prevTurn := ""
 
@@ -81,18 +87,48 @@ func playDeal(t *testing.T, cfg rules.RulesConfig, seed int64, players []string,
 			}
 			action = fallback
 		}
+		// A deal that ends inside this outcome has already re-dealt: the
+		// table is cleared and everyone's down status reset, so nothing in
+		// outcome.State describes the deal the action was taken in.
+		dealEnded := false
+		for _, e := range outcome.Events {
+			if e.Type == "deal_ended" {
+				dealEnded = true
+			}
+		}
 		switch action.Type {
 		case rules.ActionLayMeld:
 			res.melds++
+			// Cards went down while the player was still short of the
+			// table's point floor. Legitimate mid-plan (the floor is summed
+			// across melds, so 27 + 21 clears 35), but only if the rest of
+			// the plan lands this turn — see the discard case below.
+			if !st.RoundReqMet[actor] && cfg.InitialMeldMinimum > 0 {
+				laidWhileShort[actor] = true
+			}
 		case rules.ActionLayOff:
 			res.layOffs++
 		case rules.ActionDiscard:
 			playerDiscards[actor] = append(playerDiscards[actor], action.Card)
-		}
-		for _, e := range outcome.Events {
-			if e.Type == "deal_ended" {
-				res.deals++
+			// The discard ends the turn. Anything laid this turn that did
+			// not bring the player down is stranded on the table: it cannot
+			// make them down, it spent cards a qualifying combination might
+			// have wanted, and it is a lay-off target for every opponent.
+			if laidWhileShort[actor] && !dealEnded && !outcome.State.RoundReqMet[actor] {
+				res.strandedLays++
+				if res.firstStranded == nil {
+					res.firstStranded = fmt.Errorf("%s finished a turn having laid melds %v while still short of the %d-point floor",
+						actor, outcome.State.Melds[actor], cfg.InitialMeldMinimum)
+				}
 			}
+			delete(laidWhileShort, actor)
+		}
+		if dealEnded {
+			res.deals++
+			// A new deal clears the table and everyone's down status, so
+			// mid-plan state from the deal just finished says nothing about
+			// the next one.
+			laidWhileShort = map[string]bool{}
 		}
 		st = outcome.State
 	}
@@ -112,10 +148,27 @@ func playDeal(t *testing.T, cfg rules.RulesConfig, seed int64, players []string,
 // of bug, so this asserts the two properties that matter — melds reach the
 // table, and deals actually end.
 func TestSelfPlay_AIMakesProgress(t *testing.T) {
-	profiles := []rules.RulesConfig{rules.ProfileZolikClassic, rules.ProfileContinental}
-	for _, cfg := range profiles {
-		cfg := cfg
-		t.Run(cfg.Profile, func(t *testing.T) {
+	// A shipped profile is not the only thing a table can run: the lobby
+	// lets the host layer house rules on top, and the combinations are what
+	// reach real players. Žolík Classic under a 35-point floor is the
+	// configuration of game 6a8aa17ff767a3c62209d475, where the agent laid
+	// A-2-3 (6 points) it could never come down with — a bug both shipped
+	// profiles hid, since one has no floor and the other has no free melds.
+	zolikFloored := rules.ProfileZolikClassic
+	zolikFloored.InitialMeldMinimum = 35
+	zolikFloored.DiscardDrawMinRound = 3
+
+	profiles := []struct {
+		name string
+		cfg  rules.RulesConfig
+	}{
+		{"zolik_classic", rules.ProfileZolikClassic},
+		{"zolik_classic+floor35", zolikFloored},
+		{"continental", rules.ProfileContinental},
+	}
+	for _, p := range profiles {
+		cfg := p.cfg
+		t.Run(p.name, func(t *testing.T) {
 			// Whole matches against the real engine are not cheap; -short
 			// keeps a representative slice for the fast path.
 			runs := 20
@@ -136,15 +189,19 @@ func TestSelfPlay_AIMakesProgress(t *testing.T) {
 				if r.stalled {
 					t.Errorf("seed %d: the agents wedged — no legal action left: %v", seed, r.lastErr)
 				}
+				if r.strandedLays > 0 {
+					t.Errorf("seed %d: %d turn(s) ended with cards laid but the player still short of the floor: %v",
+						seed, r.strandedLays, r.firstStranded)
+				}
 				t.Logf("seed %d: melds=%d layoffs=%d deals=%d turns=%d rejections=%d lastErr=%v",
 					seed, r.melds, r.layOffs, r.deals, r.turns, r.rejections, r.lastErr)
 			}
 			t.Logf("%s: %d/%d runs melded (%d melds), %d/%d runs finished a deal (%d deals)",
-				cfg.Profile, runsWithAMeld, runs, totalMelds, runsThatDealt, runs, totalDeals)
+				p.name, runsWithAMeld, runs, totalMelds, runsThatDealt, runs, totalDeals)
 
 			if runsWithAMeld < runs {
 				t.Errorf("%s: %d of %d runs never put a single meld on the table",
-					cfg.Profile, runs-runsWithAMeld, runs)
+					p.name, runs-runsWithAMeld, runs)
 			}
 			// The livelock guard. Before the discard-pickup fix this was
 			// zero across every seed of both profiles: the agents drew and
@@ -154,7 +211,7 @@ func TestSelfPlay_AIMakesProgress(t *testing.T) {
 			// the bug.
 			if runsThatDealt*2 < runs {
 				t.Errorf("%s: only %d of %d runs finished a deal — the agents are not converging on going out",
-					cfg.Profile, runsThatDealt, runs)
+					p.name, runsThatDealt, runs)
 			}
 		})
 	}
