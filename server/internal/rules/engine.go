@@ -32,6 +32,22 @@ func ApplyAction(state GameState, playerID string, action Action) (ApplyOutcome,
 	if state.Created.IsZero() {
 		state.Created = time.Now().UTC()
 	}
+	// Heal a stale down-status before anything reads it. Every route that
+	// changes a player's melds re-derives this itself now, so a game played
+	// entirely on this build has nothing here to fix — but one already in
+	// progress when that was not true carries a flag frozen at whatever its
+	// last lay_meld computed, and its owner stays locked out of laying off
+	// for the rest of the deal.
+	//
+	// This sits at the entry point rather than inside any one validator
+	// because that is the only place that runs before *every* gate reading
+	// the flag — a lay_off's round-requirement check, a discard's go-out
+	// check, a draw's pickup obligation. Putting it in ValidateDraw alone
+	// left a player who had already drawn still wedged for the rest of that
+	// turn, which is exactly the state game 6a8aa17f… was sitting in. It
+	// also reaches the offer list for free, since probe() calls straight
+	// back into ApplyAction.
+	refreshRoundReqMet(state, playerID)
 
 	var events []StateEvent
 

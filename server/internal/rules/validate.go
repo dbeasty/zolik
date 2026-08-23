@@ -20,16 +20,6 @@ func ValidateDraw(state GameState, playerID string, from DrawFrom, targetCard st
 		return state, "", nil, RulesError{Code: ErrNotYourTurn}
 	}
 	cfg := effectiveRules(state)
-	// Heal a stale flag at the top of the turn. Every route that changes a
-	// player's melds now re-derives this itself, so in a game played
-	// entirely on this build there is nothing here to fix — but a game
-	// already in progress when that was not true carries a flag frozen at
-	// whatever its last lay_meld computed, and its owner would stay locked
-	// out of laying off for the rest of the deal with no action able to
-	// recover it. Runs before the snapshot below so undo_turn restores the
-	// healed value, and before the discard-pickup obligation is assigned,
-	// which turns on exactly this flag.
-	refreshRoundReqMet(state, playerID)
 
 	switch from {
 	case DrawFromDeck:

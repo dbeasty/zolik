@@ -133,23 +133,60 @@ func TestUndoTurnRestoresEveryPlayersRoundReqMet(t *testing.T) {
 }
 
 // A game persisted by a build that never re-derived the flag carries it
-// frozen. Drawing heals it, so an in-progress game recovers on the wedged
-// player's next turn instead of staying locked out for the rest of the deal.
-func TestDrawHealsAStaleRoundReqMet(t *testing.T) {
-	st := wedgedGameState()
-	st.Phase = PhaseDraw
+// frozen. ApplyAction heals it before any gate reads it, so such a game
+// recovers on the wedged player's very next action.
+//
+// The heal has to sit at the entry point, not in ValidateDraw: game
+// 6a8aa17f… was suspended mid-turn with the player already drawn and in the
+// meld phase, where a draw-time heal never runs. Their next action is the
+// lay_off itself, and it has to work.
+func TestApplyActionHealsAStaleRoundReqMetMidTurn(t *testing.T) {
+	st := wedgedGameState() // PhaseMeld: the player has already drawn.
 	if st.RoundReqMet["human"] {
 		t.Fatal("setup: the flag should start stale-false")
 	}
 
-	drawn, _, _, err := ValidateDraw(st, "human", DrawFromDeck, "")
+	out, err := ApplyAction(st, "human", Action{
+		Type: ActionLayOff, MeldID: "meld_2", Cards: []string{"5C"}, Position: "front",
+	})
+	if err != nil {
+		t.Fatalf("lay-off mid-turn with a stale flag: %v", err)
+	}
+	if !out.State.RoundReqMet["human"] {
+		t.Error("the stale flag should have been healed")
+	}
+}
+
+// The offer list has to agree, or the client renders every meld as an inert
+// drop target however willing the engine is underneath.
+func TestOffersEnabledForAStaleRoundReqMet(t *testing.T) {
+	st := wedgedGameState()
+	for _, o := range LegalActions(st, "human") {
+		if o.ID != LayOffOfferID("meld_2") {
+			continue
+		}
+		if !o.Enabled {
+			t.Fatalf("lay_off:meld_2 offer disabled with whyNot=%q", o.WhyNot)
+		}
+		return
+	}
+	t.Fatal("no lay_off offer for meld_2")
+}
+
+// Drawing heals too — the same entry point serves the player who reconnects
+// at the top of their turn rather than mid-way through it.
+func TestDrawHealsAStaleRoundReqMet(t *testing.T) {
+	st := wedgedGameState()
+	st.Phase = PhaseDraw
+
+	out, err := ApplyAction(st, "human", Action{Type: ActionDrawCard, DrawFrom: DrawFromDeck})
 	if err != nil {
 		t.Fatalf("draw: %v", err)
 	}
-	if !drawn.RoundReqMet["human"] {
+	if !out.State.RoundReqMet["human"] {
 		t.Fatal("drawing should have healed the stale flag")
 	}
-	if _, err := ValidateLayOff(drawn, "human", "meld_2", []string{"5C"}, "front"); err != nil {
+	if _, err := ValidateLayOff(out.State, "human", "meld_2", []string{"5C"}, "front"); err != nil {
 		t.Errorf("lay-off onto the opponent's run still refused: %v", err)
 	}
 }
