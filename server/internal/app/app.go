@@ -88,37 +88,57 @@ func (a *App) Close(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) RegisterRoutes(r chi.Router) {
-	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("ok"))
-	})
+// routeGroup is one package's worth of routes, named so a failure can say
+// which one lost.
+type routeGroup struct {
+	name     string
+	register func(chi.Router)
+}
 
-	ws := game.NewWebSocketServer(a.manager)
-	ws.RegisterRoutes(r, a.db)
-
-	a.auth.RegisterRoutes(r)
-
+// routeGroups is every group of routes this server exposes.
+//
+// A list rather than a run of inline calls so a test can mount each group on a
+// router of its own and check it still appears in the combined table. chi keys
+// a path segment on its position, not on the placeholder's name, so
+// /matches/{id} and /matches/{gameId} are one route to it: registering both
+// leaves only whichever came last, with no panic and no warning. That is
+// exactly what happened between the module runtime and the stats handlers, and
+// nothing but the browser suite noticed.
+func (a *App) routeGroups() []routeGroup {
 	statsRepo := stats.NewRepository(a.db)
+	gameRest := game.NewGameRestHandlers(
+		game.NewRepository(a.db), a.hub, a.manager, statsRepo, a.cfg.TestEndpointsEnabled,
+	)
 
-	repo := game.NewRepository(a.db)
-	gameRest := game.NewGameRestHandlers(repo, a.hub, a.manager, statsRepo, a.cfg.TestEndpointsEnabled)
-	gameRest.RegisterRoutes(r)
+	return []routeGroup{
+		{"health", func(r chi.Router) {
+			r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte("ok"))
+			})
+		}},
+		{"ws", func(r chi.Router) {
+			game.NewWebSocketServer(a.manager).RegisterRoutes(r, a.db)
+		}},
+		{"auth", a.auth.RegisterRoutes},
+		{"game", gameRest.RegisterRoutes},
+		{"user", userrepo.NewHandlers(userrepo.NewRepository(a.db)).RegisterRoutes},
+		{"scoring", scoring.NewHandlers(a.db).RegisterRoutes},
+		// The module runtime, mounted alongside the Žolíky path rather than
+		// replacing it. Every phase of this migration ships the new shape next
+		// to the old and retires the old only once nothing reads it — the
+		// existing game routes, documents and clients are untouched by this.
+		{"match", func(r chi.Router) {
+			modules := module.NewRegistry(zolikmod.New(), prsi.New())
+			matchMgr := match.NewManager(match.NewRepository(a.db), modules, a.hub)
+			match.NewHandlers(matchMgr).RegisterRoutes(r)
+		}},
+		{"stats", stats.NewHandlers(statsRepo).RegisterRoutes},
+	}
+}
 
-	userHandlers := userrepo.NewHandlers(userrepo.NewRepository(a.db))
-	userHandlers.RegisterRoutes(r)
-
-	scoringHandlers := scoring.NewHandlers(a.db)
-	scoringHandlers.RegisterRoutes(r)
-
-	// The module runtime, mounted alongside the Žolíky path rather than
-	// replacing it. Every phase of this migration ships the new shape next to
-	// the old and retires the old only once nothing reads it — the existing
-	// game routes, documents and clients are untouched by this.
-	modules := module.NewRegistry(zolikmod.New(), prsi.New())
-	matchMgr := match.NewManager(match.NewRepository(a.db), modules, a.hub)
-	match.NewHandlers(matchMgr).RegisterRoutes(r)
-
-	statsHandlers := stats.NewHandlers(statsRepo)
-	statsHandlers.RegisterRoutes(r)
+func (a *App) RegisterRoutes(r chi.Router) {
+	for _, g := range a.routeGroups() {
+		g.register(r)
+	}
 }

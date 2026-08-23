@@ -23,7 +23,13 @@ func NewHandlers(repo *Repository) *Handlers { return &Handlers{repo: repo} }
 func (h *Handlers) RegisterRoutes(r chi.Router) {
 	r.Get("/leaderboard", h.leaderboard)
 	r.Get("/stats/ai", h.aiStats)
-	r.Get("/matches/{gameId}", h.matchByGame)
+	// Keyed on a *game* id, and it lives under /games for that reason: the
+	// module runtime owns /matches/{id} (see internal/match), and chi keys a
+	// path segment on its position, not on the placeholder's name — so the
+	// two registrations were the same route, and whichever registered last
+	// silently swallowed the other. This one is a recorded result for a
+	// Žolíky game, the sibling of /games/{id}/scoreboard, so it belongs here.
+	r.Get("/games/{gameId}/result", h.matchByGame)
 	r.With(auth.AuthMiddleware).Get("/users/me/stats", h.meStats)
 	r.With(auth.AuthMiddleware).Get("/users/me/matches", h.meMatches)
 	// history is the older name for the same list, kept so shipped clients

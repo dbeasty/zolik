@@ -243,7 +243,7 @@ export class ZolikClient {
 
   /** The recorded result of a finished match. 404 until the match completes. */
   async getMatchResult(gameId: string): Promise<unknown> {
-    return this.get(`/matches/${encodeURIComponent(gameId)}`, false);
+    return this.get(`/games/${encodeURIComponent(gameId)}/result`, false);
   }
 
   async createScoringSession(players: string[]): Promise<string> {

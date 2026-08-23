@@ -194,6 +194,18 @@ test.describe('module runtime', () => {
         const seats = await Promise.all(tokens.map(open));
         for (const s of seats) await settle(s);
 
+        // How many cards a seat was dealt, read off the opening board rather
+        // than assumed — the biggest hand zone, since every seat is dealt the
+        // same number and the runtime reports a count even for hands it will
+        // not show. Used below as the floor on how many cards must be played
+        // for anyone to win; nothing here needs to know what that number is.
+        const dealt = Math.max(
+          ...(latest(seats[0])?.view?.zones ?? [])
+            .filter((z: any) => z.kind === 'hand')
+            .map((z: any) => z.count ?? 0),
+          0,
+        );
+
         const verbs: Record<string, number> = {};
         let moves = 0;
         let status = 'active';
@@ -247,6 +259,7 @@ test.describe('module runtime', () => {
         for (const s of seats) s.ws.close();
         return {
           moves,
+          dealt,
           verbs,
           errors,
           status: final.status ?? status,
@@ -262,8 +275,16 @@ test.describe('module runtime', () => {
     expect(result.moves).toBeGreaterThan(5);
     expect(result.status).toBe('completed');
     expect(result.winnerId).not.toBe('');
-    // And the moves were varied: this is a real game, not a draw loop.
-    expect(Object.keys(result.verbs).length).toBeGreaterThan(1);
+    // And cards really left hands: this is a game played out, not a draw loop.
+    //
+    // Asserted on how many cards were played rather than on how many *distinct*
+    // verbs came up. Whether a given deal ever forces a draw or a pass is
+    // shuffle luck — measured, about one deal in forty ends on plays alone, and
+    // that deal used to fail here for being too lucky. Whereas nobody can win
+    // without emptying the hand they were dealt, so the winner alone accounts
+    // for `dealt` plays in every game, however it falls.
+    expect(result.dealt).toBeGreaterThan(0);
+    expect(result.verbs.play_card ?? 0).toBeGreaterThanOrEqual(result.dealt);
 
     // The database agrees with what the sockets reported.
     const persisted = await (await request.get(`${API_BASE}/matches/${matchId}`)).json();
