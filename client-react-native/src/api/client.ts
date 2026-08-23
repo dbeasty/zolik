@@ -3,6 +3,7 @@ import type {
   GameState,
   LobbyGame,
   PlayerSession,
+  RulesInfo,
   RulesProfile,
   WSAction,
 } from '@/src/api/types';
@@ -175,6 +176,10 @@ export class ZolikClient {
 
   async getLobby(idOrCode: string): Promise<LobbyGame> {
     return this.get(`/games/${encodeURIComponent(idOrCode)}`, false);
+  }
+
+  async getRules(): Promise<RulesInfo> {
+    return this.get('/rules', false);
   }
 
   async getMe(): Promise<{ id: string; username?: string }> {

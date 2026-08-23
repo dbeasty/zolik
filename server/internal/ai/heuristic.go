@@ -45,6 +45,34 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 			if combo, ok := findInitialMeldPlan(st, actor, hand); ok && len(combo) > 0 {
 				return rules.Action{Type: rules.ActionLayMeld, Cards: combo[0]}
 			}
+			// A profile with no per-type quota (FixedDealCount == 0, e.g.
+			// Žolík Classic) lets any complete meld go down at any time:
+			// MeldContributesTowardRequirement short-circuits to true, and
+			// ValidateDiscard deliberately skips its "finish what you
+			// started" gate there, so laying one cannot strand the turn.
+			// Only the contract itself (e.g. a clean run) decides who is
+			// down. Without this the agent held finished sets it was
+			// allowed to lay — and eventually discarded them away — because
+			// the plan search only ever looks for what the contract still
+			// needs, which under this profile is never a set.
+			if visible.Rules.FixedDealCount == 0 {
+				if meld, ok := findAnyValidMeld(hand, visible.Rules); ok {
+					rest := removeCardsOnce(hand, meld)
+					// A player who is not down cannot go out (ValidateDiscard
+					// only lets a player end the deal once RoundReqMet), so
+					// emptying the hand buys nothing and costs everything:
+					// meld away the cards the outstanding contract still
+					// needs and it can never be completed this deal. Keep
+					// enough material for it, plus one card to discard.
+					// This is also what keeps the agent clear of the engine's
+					// one true dead end — a hand of nothing but jokers, which
+					// can be neither melded nor discarded nor passed on.
+					need := contractCardsStillNeeded(st, actor)
+					if len(rest) >= need+1 && handCanStillDiscard(rest, visible.Rules, false) {
+						return rules.Action{Type: rules.ActionLayMeld, Cards: meld}
+					}
+				}
+			}
 		} else {
 			// Already down: shed cards one at a time onto any table meld
 			// (own or another player's) before trying a brand-new meld —
@@ -53,7 +81,7 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 			if meldID, card, ok := findLayOff(visible.MeldMeta, visible.Melds, hand, visible.Rules, visible.GameNumber); ok {
 				return rules.Action{Type: rules.ActionLayOff, MeldID: meldID, Card: card}
 			}
-			if meld, ok := findAnyValidMeld(hand, visible.Rules); ok && len(hand) > len(meld) {
+			if meld, ok := findAnyValidMeld(hand, visible.Rules); ok && len(hand) > len(meld) && handCanStillDiscard(removeCardsOnce(hand, meld), visible.Rules, visible.RoundReqMet[actor]) {
 				return rules.Action{Type: rules.ActionLayMeld, Cards: meld}
 			}
 		}
@@ -63,19 +91,32 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 	}
 	// 2) Draw phase: prefer discard if available and allowed this round, else deck.
 	if visible.Phase == string(rules.PhaseDraw) {
-		discardLocked := visible.Rules.DiscardDrawMinRound > 1 && visible.Round < visible.Rules.DiscardDrawMinRound
+		// origin/main's shared helper, reading the lock round off the
+		// resolved ruleset: VisibleState deliberately no longer carries its
+		// own DiscardDrawMinRound copy to drift out of sync with Rules.
+		discardLocked := rules.IsDiscardLocked(visible.Round, visible.Rules.DiscardDrawMinRound)
 		if len(visible.DiscardPile) > 0 && !discardLocked {
 			actor := visible.CurrentTurn
+			topDiscard := visible.DiscardPile[len(visible.DiscardPile)-1]
 			if visible.RoundReqMet[actor] {
-				// Already down: a discard pickup is unrestricted.
-				return rules.Action{Type: rules.ActionDrawCard, DrawFrom: rules.DrawFromDiscard}
+				// Already down: the pickup is unrestricted by the rules, but
+				// "allowed" is not "useful". Taking a card the agent cannot
+				// place means pickSmartDiscard names that same card the worst
+				// in hand and throws it straight back next phase. With every
+				// agent down, one useless card then circulates forever — no
+				// melds, no lay-offs, nobody going out — while the deck still
+				// holds dozens of untouched cards. Only take it when it
+				// actually lands somewhere.
+				if discardPickupUseful(topDiscard, hand, visible) {
+					return rules.Action{Type: rules.ActionDrawCard, DrawFrom: rules.DrawFromDiscard}
+				}
+				return rules.Action{Type: rules.ActionDrawCard, DrawFrom: rules.DrawFromDeck}
 			}
 			// Not yet down: picking up the discard obligates laying that
 			// exact card into the initial meld this turn (server-enforced).
 			// Only take it if a full plan using it actually exists —
 			// otherwise take the deck instead, which carries no obligation.
 			st := rulesStateForAI(visible, actor)
-			topDiscard := visible.DiscardPile[len(visible.DiscardPile)-1]
 			candidateHand := append(append([]string(nil), hand...), topDiscard)
 			if _, ok := findInitialMeldPlanRequiring(st, actor, candidateHand, topDiscard); ok {
 				return rules.Action{Type: rules.ActionDrawCard, DrawFrom: rules.DrawFromDiscard}
@@ -105,21 +146,33 @@ func rulesStateForAI(visible VisibleState, playerID string) rules.GameState {
 // materialized into card slices. Used so the meld search works under any
 // profile's MinSetSize/MinRunSize instead of hardcoding 3/4.
 func combinations(items []string, k int) [][]string {
-	n := len(items)
-	if k <= 0 || k > n {
-		return nil
-	}
-	var out [][]string
-	idx := make([]int, k)
-	for i := range idx {
-		idx[i] = i
-	}
-	for {
+	idxs := indexCombinations(len(items), k)
+	out := make([][]string, 0, len(idxs))
+	for _, idx := range idxs {
 		cand := make([]string, k)
 		for i, v := range idx {
 			cand[i] = items[v]
 		}
 		out = append(out, cand)
+	}
+	return out
+}
+
+// indexCombinations returns every k-length subset of [0,n) as index tuples.
+// Callers that need to know *which positions* a candidate came from (rather
+// than just the cards) use this directly — duplicate cards are common in a
+// two-deck game, so positions, not values, are what identify a card.
+func indexCombinations(n, k int) [][]int {
+	if k <= 0 || k > n {
+		return nil
+	}
+	var out [][]int
+	idx := make([]int, k)
+	for i := range idx {
+		idx[i] = i
+	}
+	for {
+		out = append(out, append([]int(nil), idx...))
 
 		i := k - 1
 		for i >= 0 && idx[i] == n-k+i {
@@ -221,14 +274,7 @@ func searchMeldCombo(
 		return nil, false
 	}
 	n := len(hand)
-	minSet := cfg.MinSetSize
-	if minSet == 0 {
-		minSet = 3
-	}
-	minRun := cfg.MinRunSize
-	if minRun == 0 {
-		minRun = 4
-	}
+	minSet, minRun := meldSizes(cfg)
 	if needSets > 0 && n >= minSet {
 		for _, cand := range combinations(hand, minSet) {
 			if budget.remaining <= 0 {
@@ -321,6 +367,12 @@ func findLayOff(meldMeta map[string][]rules.MeldInfo, melds map[string][][]strin
 				if rules.LayOffBreaksCleanRun(cfg, gameNumber, ownerMelds, i, []string{c}) {
 					continue
 				}
+				// Never shed the last card the player could legally discard.
+				// ValidateLayOff refuses a lay-off from a player who is not
+				// down (ROUND_REQ_NOT_MET), so reaching here means they are.
+				if !handCanStillDiscard(removeCardsOnce(hand, []string{c}), cfg, true) {
+					continue
+				}
 				return mi.MeldID, c, true
 			}
 		}
@@ -329,14 +381,7 @@ func findLayOff(meldMeta map[string][]rules.MeldInfo, melds map[string][][]strin
 }
 
 func findAnyValidMeld(hand []string, cfg rules.RulesConfig) ([]string, bool) {
-	minSet := cfg.MinSetSize
-	if minSet == 0 {
-		minSet = 3
-	}
-	minRun := cfg.MinRunSize
-	if minRun == 0 {
-		minRun = 4
-	}
+	minSet, minRun := meldSizes(cfg)
 	n := len(hand)
 	if n >= minSet {
 		for _, cand := range combinations(hand, minSet) {
@@ -368,20 +413,28 @@ func findAnyValidMeld(hand []string, cfg rules.RulesConfig) ([]string, bool) {
 // careful human opponent would use.
 func pickSmartDiscard(hand []string, visible VisibleState, actor string, difficulty string, canDiscardJoker bool) string {
 	cfg := visible.Rules
-	if difficulty == "easy" || len(hand) == 0 {
+	if len(hand) == 0 {
 		return pickWorstDiscard(hand, cfg, canDiscardJoker)
 	}
 	allowJoker := canDiscardJoker || !cfg.JokerDiscardRestricted
+	ownMeld := meldMaterialPositions(hand, cfg)
 
 	var cands []discardCandidate
-	for _, c := range hand {
+	for i, c := range hand {
 		if !allowJoker && rules.IsJoker(c) {
 			continue
 		}
 		cands = append(cands, discardCandidate{
-			card:       c,
-			pts:        rules.PenaltyPoints(c, false),
-			dangerous:  extendsAnyLiveMeld(c, visible.Melds, cfg, visible.GameNumber),
+			card: c,
+			pts:  rules.PenaltyPoints(c, false),
+			// Keeping a meld you are holding is not a difficulty setting —
+			// an agent that breaks up its own finished set every turn never
+			// gets one onto the table at all, which reads as "the AI doesn't
+			// meld" rather than as a beatable opponent. Every difficulty
+			// protects its own melds; what separates them is reading the
+			// table (dangerous) and the discard history (seenBefore).
+			ownMeld:    ownMeld[i],
+			dangerous:  difficulty != "easy" && extendsAnyLiveMeld(c, visible.Melds, cfg, visible.GameNumber),
 			seenBefore: difficulty == "hard" && rankAlreadyDiscardedByOthers(c, visible.PlayerDiscards, actor),
 		})
 	}
@@ -402,17 +455,30 @@ func pickSmartDiscard(hand []string, visible VisibleState, actor string, difficu
 type discardCandidate struct {
 	card       string
 	pts        int
+	ownMeld    bool
 	dangerous  bool
 	seenBefore bool
 }
 
-// smarterDiscardBetter orders candidates: safe (doesn't feed a live meld)
-// beats dangerous; then, same as the plain worst-card heuristic, higher
-// penalty points win (shed the costliest card first); an already-passed-on
-// rank only breaks an exact points tie, so the history signal fine-tunes
-// which equally-costly card to let go of rather than overriding the basic
-// "get rid of the expensive card" goal.
+// smarterDiscardBetter orders candidates:
+//
+//  1. a card that isn't part of a finished meld in hand beats one that is.
+//     This outranks everything else because meld material is the whole
+//     point of the hand: face cards are simultaneously the highest-penalty
+//     cards and the likeliest set material, so a points-first ordering
+//     dismantled a ready-to-lay set of kings one card per turn and the
+//     agent never got it onto the table. Denying an opponent a single
+//     lay-off is worth much less than keeping your own meld intact.
+//  2. safe (doesn't feed a live meld) beats dangerous.
+//  3. then, same as the plain worst-card heuristic, higher penalty points
+//     win (shed the costliest card first).
+//  4. an already-passed-on rank only breaks an exact points tie, so the
+//     history signal fine-tunes which equally-costly card to let go of
+//     rather than overriding the basic "get rid of the expensive card" goal.
 func smarterDiscardBetter(c, best discardCandidate) bool {
+	if c.ownMeld != best.ownMeld {
+		return !c.ownMeld
+	}
 	if c.dangerous != best.dangerous {
 		return !c.dangerous
 	}
@@ -420,6 +486,118 @@ func smarterDiscardBetter(c, best discardCandidate) bool {
 		return c.pts > best.pts
 	}
 	return c.seenBefore && !best.seenBefore
+}
+
+// meldSizes returns the profile's minimum set and run lengths, defaulting a
+// zero-value config to the classic 3/4 rather than letting a 0 through.
+func meldSizes(cfg rules.RulesConfig) (minSet, minRun int) {
+	minSet, minRun = cfg.MinSetSize, cfg.MinRunSize
+	if minSet == 0 {
+		minSet = 3
+	}
+	if minRun == 0 {
+		minRun = 4
+	}
+	return minSet, minRun
+}
+
+// contractCardsStillNeeded is the smallest number of cards from hand that
+// could still satisfy the player's outstanding contract, given what they
+// have already laid. Used to stop a not-yet-down agent melding away the very
+// material it still owes.
+func contractCardsStillNeeded(state rules.GameState, playerID string) int {
+	cfg := rules.ResolveConfig(state.Rules)
+	req := cfg.ContractFor(state.GameNumber)
+	setsBefore, runsBefore, hasCleanRun := rules.PlayerMeldCounts(state, playerID)
+	minSet, minRun := meldSizes(cfg)
+
+	need := 0
+	if n := req.Sets - setsBefore; n > 0 {
+		need += n * minSet
+	}
+	runsNeeded := req.Runs - runsBefore
+	if runsNeeded < 0 {
+		runsNeeded = 0
+	}
+	// A clean-run requirement costs a run's worth of cards unless a run is
+	// already owed (that one can be the clean one) or already satisfied.
+	if req.RequireCleanRun && !hasCleanRun && runsNeeded == 0 {
+		runsNeeded = 1
+	}
+	return need + runsNeeded*minRun
+}
+
+// handCanStillDiscard reports whether the player would still have a legal
+// discard left after shedding cards down to rest.
+//
+// Under JokerDiscardRestricted (ValidateDiscard) a joker may be discarded
+// only as the exact card that empties an *already-down* player's hand. So a
+// hand of nothing but jokers has no legal move at all — it cannot be melded,
+// cannot be discarded, and the engine has no "pass" — with the single
+// exception of one joker held by a player who is down, which is their
+// go-out discard. An agent that melds or lays off its last natural card
+// walks into that dead end and wedges the deal for the whole table, so
+// every play that sheds cards has to check this first.
+func handCanStillDiscard(rest []string, cfg rules.RulesConfig, down bool) bool {
+	if len(rest) == 0 {
+		return true // melded out; nothing left to discard
+	}
+	if !cfg.JokerDiscardRestricted {
+		return true
+	}
+	for _, c := range rest {
+		if !rules.IsJoker(c) {
+			return true
+		}
+	}
+	// Jokers only: legal exactly when a lone joker is the discard that ends
+	// the hand, which the engine allows only once the player is down.
+	return len(rest) == 1 && down
+}
+
+// discardPickupUseful reports whether a player who is already down has
+// anywhere to put the top discard: onto a meld already on the table, or
+// into a new meld it completes with cards already in hand. Anything else is
+// a card the agent would immediately discard again.
+func discardPickupUseful(card string, hand []string, visible VisibleState) bool {
+	cfg := visible.Rules
+	if extendsAnyLiveMeld(card, visible.Melds, cfg, visible.GameNumber) {
+		return true
+	}
+	combined := append(append([]string(nil), hand...), card)
+	return meldMaterialPositions(combined, cfg)[len(combined)-1]
+}
+
+// meldMaterialPositions marks each position in hand that takes part in at
+// least one complete, valid meld formable from the hand as it stands. It is
+// keyed by position rather than by card because a two-deck game deals
+// duplicates (two 5C are different cards holding different jobs).
+//
+// Deliberately only *complete* melds count. Protecting partial material
+// (pairs, two-thirds of a run) would freeze most of the hand and leave the
+// agent nothing safe to discard.
+func meldMaterialPositions(hand []string, cfg rules.RulesConfig) []bool {
+	out := make([]bool, len(hand))
+	minSet, minRun := meldSizes(cfg)
+	sizes := []int{minSet}
+	if minRun != minSet {
+		sizes = append(sizes, minRun)
+	}
+	for _, k := range sizes {
+		for _, idx := range indexCombinations(len(hand), k) {
+			cand := make([]string, k)
+			for i, v := range idx {
+				cand[i] = hand[v]
+			}
+			if _, err := rules.ValidateMeld(cand, cfg); err != nil {
+				continue
+			}
+			for _, v := range idx {
+				out[v] = true
+			}
+		}
+	}
+	return out
 }
 
 // extendsAnyLiveMeld reports whether card can be laid off onto any meld

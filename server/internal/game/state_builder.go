@@ -2,6 +2,7 @@ package game
 
 import (
 	"zolik/server/internal/models"
+	"zolik/server/internal/rules"
 )
 
 type PlayerMsg struct {
@@ -37,6 +38,7 @@ type GameStateMsg struct {
 	IsDraw                      bool                     `json:"isDraw,omitempty"`
 	InitialMeldMinimum          int                      `json:"initialMeldMinimum"`
 	DiscardDrawMinRound         int                      `json:"discardDrawMinRound"`
+	DiscardLocked               bool                     `json:"discardLocked"`
 	DiscardDrawnCardPendingMeld string                   `json:"discardDrawnCardPendingMeld,omitempty"`
 	CanUndoDiscardDraw          bool                     `json:"canUndoDiscardDraw,omitempty"`
 	CanUndoLayOff               bool                     `json:"canUndoLayOff,omitempty"`
@@ -101,26 +103,30 @@ func BuildGameStateMsg(g models.Game, myPlayerID string) GameStateMsg {
 	// persisted still reports the same numbers the engine is enforcing.
 	cfg := GameRules(g)
 	return GameStateMsg{
-		Type:                        "game_state",
-		Status:                      g.Status,
-		Game:                        g.GameNumber,
-		Round:                       g.Round,
-		Phase:                       phaseStr,
-		CurrentTurn:                 g.CurrentTurn,
-		MyHand:                      myHand,
-		DiscardPile:                 g.DiscardPile,
-		DeckCount:                   len(g.DrawPile),
-		ReshuffleCount:              g.ReshuffleCount,
-		CardCounts:                  cardCounts,
-		Melds:                       g.Melds,
-		MeldMeta:                    meldMeta,
-		Players:                     players,
-		RoundReqMet:                 g.RoundReqMet,
-		TotalScores:                 g.TotalScores,
-		WinnerID:                    g.WinnerID,
-		IsDraw:                      g.IsDraw,
-		InitialMeldMinimum:          cfg.InitialMeldMinimum,
-		DiscardDrawMinRound:         cfg.DiscardDrawMinRound,
+		Type:                "game_state",
+		Status:              g.Status,
+		Game:                g.GameNumber,
+		Round:               g.Round,
+		Phase:               phaseStr,
+		CurrentTurn:         g.CurrentTurn,
+		MyHand:              myHand,
+		DiscardPile:         g.DiscardPile,
+		DeckCount:           len(g.DrawPile),
+		ReshuffleCount:      g.ReshuffleCount,
+		CardCounts:          cardCounts,
+		Melds:               g.Melds,
+		MeldMeta:            meldMeta,
+		Players:             players,
+		RoundReqMet:         g.RoundReqMet,
+		TotalScores:         g.TotalScores,
+		WinnerID:            g.WinnerID,
+		IsDraw:              g.IsDraw,
+		InitialMeldMinimum:  cfg.InitialMeldMinimum,
+		DiscardDrawMinRound: cfg.DiscardDrawMinRound,
+		// origin/main's new wire field, but derived from the resolved
+		// ruleset like its two neighbours above rather than from the legacy
+		// scalar columns, so it agrees with what the engine enforces.
+		DiscardLocked:               rules.IsDiscardLocked(g.Round, cfg.DiscardDrawMinRound),
 		DiscardDrawnCardPendingMeld: pendingMeldCard,
 		CanUndoDiscardDraw:          canUndoDiscardDraw,
 		CanUndoLayOff:               canUndoLayOff,

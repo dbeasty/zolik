@@ -44,6 +44,52 @@ test.describe('building a new meld by drag', () => {
     await expect(page.getByTestId('staged-card-0-0')).not.toBeVisible();
   });
 
+  test('staging a set and a run as two separate groups lays both down in one "Lay meld" tap', async ({
+    page,
+    request,
+  }) => {
+    const game = await seedGame(request, {
+      hand: ['7H', '7C', '7D', '2S', '3S', '4S', '9C', 'KD'],
+      phase: 'meld',
+    });
+    await loginAs(page, game);
+    await page.goto(`/game/${game.gameId}`);
+    await waitForGameLoaded(page);
+
+    const staging = page.getByTestId('staging-zone');
+    // First group: the three 7s (a set). Card 0 keeps re-landing at index 0
+    // as each staged card leaves the visible hand row.
+    await dragLocatorTo(page, page.getByTestId('hand-card-0'), staging);
+    await dragLocatorTo(page, page.getByTestId('hand-card-0'), staging);
+    await dragLocatorTo(page, page.getByTestId('hand-card-0'), staging);
+    await expect(page.getByTestId('staged-card-0-2')).toBeVisible();
+
+    // Open a second group box, then stage the 2S/3S/4S run into it — with
+    // group 0 already full, a drop anywhere in the staging box (not over a
+    // specific group row) falls back to the last group, which is now the
+    // freshly-added empty one.
+    await page.getByTestId('add-group-button').click();
+    await dragLocatorTo(page, page.getByTestId('hand-card-0'), staging);
+    await dragLocatorTo(page, page.getByTestId('hand-card-0'), staging);
+    await dragLocatorTo(page, page.getByTestId('hand-card-0'), staging);
+    await expect(page.getByTestId('staged-card-1-2')).toBeVisible();
+
+    // Both groups still just client-side staging — nothing has left the
+    // hand server-side yet.
+    await expect(page.getByText('Your hand (8)')).toBeVisible();
+
+    const layButton = page.getByTestId('lay-all-button');
+    await expect(layButton).toBeEnabled();
+    await expect(layButton).toContainText('Lay meld (2)');
+    await layButton.click();
+
+    // Both groups laid down together: 6 cards left the hand, and two melds
+    // show up under "TABLE MELDS".
+    await expect(page.getByText('Your hand (2)')).toBeVisible();
+    await expect(page.locator('[data-testid^="meld-row-"]')).toHaveCount(2);
+    await expect(page.getByTestId('staged-card-0-0')).not.toBeVisible();
+  });
+
   test('Cancel on a staged group returns its cards to the hand', async ({ page, request }) => {
     const game = await seedGame(request, {
       hand: ['7H', '7C', '7D', '2S', '3S', '4S', '9C', 'KD'],
@@ -100,11 +146,16 @@ test.describe('laying off onto a table meld by drag', () => {
     await waitForGameLoaded(page);
 
     const meldRow = page.locator('[data-testid^="meld-row-"]').first();
+    // Raw page.mouse coordinates don't auto-scroll like locator actions do
+    // (see dragLocatorTo in helpers/drag.ts) — scroll the card into view
+    // before reading either box's position, so both are measured in their
+    // final, settled scroll position.
+    const card = page.getByTestId('hand-card-0');
+    await card.scrollIntoViewIfNeeded();
     const meldBox = (await meldRow.boundingBox())!;
     // Aim at the left edge of the row so it reads as "front".
     const frontTarget = { x: meldBox.x + 10, y: meldBox.y + meldBox.height / 2 };
 
-    const card = page.getByTestId('hand-card-0');
     const cardBox = (await card.boundingBox())!;
     await page.mouse.move(cardBox.x + cardBox.width / 2, cardBox.y + cardBox.height / 2);
     await page.mouse.down();

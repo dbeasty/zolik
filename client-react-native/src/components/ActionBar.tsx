@@ -68,9 +68,10 @@ const styles = StyleSheet.create({
   },
   btn: {
     flex: 1,
-    minWidth: '45%',
+    minWidth: '40%',
+    maxWidth: 90,
     marginBottom: 0,
-    paddingVertical: 10,
+    paddingVertical: 6,
   },
   disabled: {
     opacity: 0.4,

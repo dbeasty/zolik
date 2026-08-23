@@ -67,3 +67,5 @@ func (f *fakeConn) WriteJSON(v interface{}) error {
 }
 
 func (f *fakeConn) Close() error { return nil }
+
+func (f *fakeConn) Ping() error { return nil }

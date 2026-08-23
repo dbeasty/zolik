@@ -42,6 +42,7 @@ function MeldRow({
   isHovered,
   dragActive,
   isFlashing,
+  layoffable,
   children,
 }: {
   refCb?: (el: View | null) => void;
@@ -49,6 +50,11 @@ function MeldRow({
   isHovered: boolean;
   dragActive: boolean;
   isFlashing: boolean;
+  // True whenever lay-off is legal at all (your turn, meld phase, round
+  // requirement met) — drawn as a standing dashed border so a meld reads as
+  // "you can add to this" even before a drag starts, not just the stronger
+  // pulse/hover cues that only appear mid-drag.
+  layoffable: boolean;
   children: React.ReactNode;
 }) {
   const pulseStyle = useDropPulseStyle(dragActive && !isHovered);
@@ -58,6 +64,7 @@ function MeldRow({
       testID={testID}
       style={[
         styles.meldRow,
+        layoffable && !isHovered && !isFlashing && styles.meldRowLayoffable,
         dragActive && !isHovered ? pulseStyle : null,
         isHovered && styles.meldRowHovered,
         isFlashing && styles.meldRowFlash,
@@ -113,20 +120,20 @@ export function MeldTable({
                   isHovered={isHovered}
                   dragActive={!!dragActive}
                   isFlashing={flashMeldId === meldId}
+                  layoffable={canLayOff}
                 >
                   <Text style={styles.meldId}>
                     {meldId} ({meta?.type ?? '?'})
                   </Text>
                   <View style={styles.cards}>
-                    {isRun ? (
-                      <View style={[styles.insertMarker, hoverFront && styles.insertMarkerActive]} />
-                    ) : null}
+                    {/* Rendered for every meld, not just runs — a set's marker just
+                        never goes active — so a run's cards aren't indented past a
+                        set's by the marker's width and every row's cards line up. */}
+                    <View style={[styles.insertMarker, hoverFront && styles.insertMarkerActive]} />
                     {cards.map((c, i) => (
                       <CardView key={`${c}-${i}`} card={c} compact testID={`meld-card-${meldId}-${i}`} />
                     ))}
-                    {isRun ? (
-                      <View style={[styles.insertMarker, hoverEnd && styles.insertMarkerActive]} />
-                    ) : null}
+                    <View style={[styles.insertMarker, hoverEnd && styles.insertMarkerActive]} />
                   </View>
                   {showLayOff || (hasJoker && showSwapJoker) ? (
                     <View style={styles.meldActions}>
@@ -185,28 +192,38 @@ export function MeldTable({
 
 const styles = StyleSheet.create({
   wrap: {
-    marginVertical: 8,
+    marginVertical: 4,
   },
   label: {
     color: colors.muted,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
-    marginBottom: 6,
+    marginBottom: 3,
   },
   owner: {
-    marginBottom: 8,
+    marginBottom: 4,
   },
   ownerName: {
     color: colors.text,
-    fontSize: 13,
-    marginBottom: 4,
+    fontSize: 12,
+    marginBottom: 2,
   },
   meldRow: {
-    marginBottom: 6,
+    // Without this, the row stretches to the full width of `owner` (the
+    // default cross-axis behavior for a column flex child) instead of
+    // hugging its cards — which throws off zonePosition's front/end split
+    // in HandRow (computed from this view's own measured width), making a
+    // drop right on the last visible card register as the wrong end.
+    alignSelf: 'flex-start',
+    marginBottom: 3,
     borderWidth: 2,
     borderColor: 'transparent',
     borderRadius: 8,
-    padding: 4,
+    padding: 3,
+  },
+  meldRowLayoffable: {
+    borderColor: colors.accentDim,
+    borderStyle: 'dashed',
   },
   meldRowHovered: {
     borderColor: colors.gold,
@@ -228,18 +245,18 @@ const styles = StyleSheet.create({
   },
   meldActions: {
     flexDirection: 'row',
-    marginTop: 4,
+    marginTop: 3,
   },
   meldActionButton: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    marginRight: 8,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    marginRight: 6,
     marginBottom: 0,
   },
   meldId: {
     color: colors.muted,
-    fontSize: 11,
-    marginBottom: 2,
+    fontSize: 10,
+    marginBottom: 1,
   },
   cards: {
     flexDirection: 'row',

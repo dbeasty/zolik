@@ -8,6 +8,7 @@ import (
 type WSConn interface {
 	WriteJSON(v interface{}) error
 	Close() error
+	Ping() error
 }
 
 // syncConn serializes all writes to one underlying connection. gorilla's
@@ -31,6 +32,12 @@ func (c *syncConn) WriteJSON(v interface{}) error {
 
 func (c *syncConn) Close() error {
 	return c.conn.Close()
+}
+
+func (c *syncConn) Ping() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.conn.Ping()
 }
 
 type ConnRegistry struct {
