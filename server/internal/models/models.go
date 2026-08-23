@@ -111,6 +111,7 @@ type LayOffSnapshot struct {
 	Cards     []string `bson:"cards" json:"-"`
 
 	PrevDiscardTakenCard string `bson:"prevDiscardTakenCard" json:"-"`
+	PrevOwnerReqMet      bool   `bson:"prevOwnerReqMet" json:"-"`
 }
 
 // MeldLaidSnapshot mirrors rules.MeldLaidSnapshot for persistence — see
@@ -133,6 +134,7 @@ type TurnMeldSnapshot struct {
 	Melds                       map[string][][]string `bson:"melds" json:"-"`
 	MeldMeta                    map[string][]MeldInfo `bson:"meldMeta" json:"-"`
 	RoundReqMet                 bool                  `bson:"roundReqMet" json:"-"`
+	AllRoundReqMet              map[string]bool       `bson:"allRoundReqMet,omitempty" json:"-"`
 	MeldsLaidThisTurn           int                   `bson:"meldsLaidThisTurn" json:"-"`
 	DiscardDrawnCardPendingMeld string                `bson:"discardDrawnCardPendingMeld" json:"-"`
 	DiscardTakenCard            string                `bson:"discardTakenCard" json:"-"`

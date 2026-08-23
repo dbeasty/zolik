@@ -386,8 +386,12 @@ func layOffOffer(state GameState, cfg RulesConfig, playerID string, m tableMeld,
 	// or the meld would be emptied) says nothing about the verb: the offer
 	// stays available and its placement list is what is empty.
 	switch code {
+	// ErrMeldBelowMinimum is deliberately not in this list: it is now raised
+	// by the round-requirement gate (see notDownError), where it means the
+	// player may not lay off at all — a verb-level refusal, not a complaint
+	// about the probe card.
 	case "", ErrInvalidMeld, ErrTooManyWilds, ErrAdjacentWilds, ErrAceBridge,
-		ErrBreaksCleanRun, ErrWrongRunEnd, ErrMeldBelowMinimum:
+		ErrBreaksCleanRun, ErrWrongRunEnd:
 		o.Enabled = true
 	default:
 		o.Enabled = false

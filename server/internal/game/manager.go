@@ -329,6 +329,7 @@ func toRulesLayOffSnapshot(s *models.LayOffSnapshot) *rules.LayOffSnapshot {
 		},
 		Cards:                s.Cards,
 		PrevDiscardTakenCard: s.PrevDiscardTakenCard,
+		PrevOwnerReqMet:      s.PrevOwnerReqMet,
 	}
 }
 
@@ -348,6 +349,7 @@ func fromRulesLayOffSnapshot(s *rules.LayOffSnapshot) *models.LayOffSnapshot {
 		},
 		Cards:                s.Cards,
 		PrevDiscardTakenCard: s.PrevDiscardTakenCard,
+		PrevOwnerReqMet:      s.PrevOwnerReqMet,
 	}
 }
 
@@ -402,6 +404,7 @@ func toRulesTurnMeldSnapshot(s *models.TurnMeldSnapshot) *rules.TurnMeldSnapshot
 		Melds:                       s.Melds,
 		MeldMeta:                    meldMeta,
 		RoundReqMet:                 s.RoundReqMet,
+		AllRoundReqMet:              s.AllRoundReqMet,
 		MeldsLaidThisTurn:           s.MeldsLaidThisTurn,
 		DiscardDrawnCardPendingMeld: s.DiscardDrawnCardPendingMeld,
 		DiscardTakenCard:            s.DiscardTakenCard,
@@ -432,6 +435,7 @@ func fromRulesTurnMeldSnapshot(s *rules.TurnMeldSnapshot) *models.TurnMeldSnapsh
 		Melds:                       s.Melds,
 		MeldMeta:                    meldMeta,
 		RoundReqMet:                 s.RoundReqMet,
+		AllRoundReqMet:              s.AllRoundReqMet,
 		MeldsLaidThisTurn:           s.MeldsLaidThisTurn,
 		DiscardDrawnCardPendingMeld: s.DiscardDrawnCardPendingMeld,
 		DiscardTakenCard:            s.DiscardTakenCard,

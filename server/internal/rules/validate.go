@@ -20,6 +20,16 @@ func ValidateDraw(state GameState, playerID string, from DrawFrom, targetCard st
 		return state, "", nil, RulesError{Code: ErrNotYourTurn}
 	}
 	cfg := effectiveRules(state)
+	// Heal a stale flag at the top of the turn. Every route that changes a
+	// player's melds now re-derives this itself, so in a game played
+	// entirely on this build there is nothing here to fix — but a game
+	// already in progress when that was not true carries a flag frozen at
+	// whatever its last lay_meld computed, and its owner would stay locked
+	// out of laying off for the rest of the deal with no action able to
+	// recover it. Runs before the snapshot below so undo_turn restores the
+	// healed value, and before the discard-pickup obligation is assigned,
+	// which turns on exactly this flag.
+	refreshRoundReqMet(state, playerID)
 
 	switch from {
 	case DrawFromDeck:
@@ -226,11 +236,7 @@ func ValidateMeldAction(state GameState, playerID string, cards []string) (GameS
 	// later meld to top up the total (e.g. two clean runs of 27 and 21
 	// points: the first alone already satisfies "at least one clean run",
 	// but neither meld alone clears a 35-point floor — only their sum does).
-	if PlayerMeetsRoundRequirement(state, playerID) {
-		if cfg.InitialMeldMinimum <= 0 || PlayerInitialMeldNaturalValue(state, playerID) >= cfg.InitialMeldMinimum {
-			state.RoundReqMet[playerID] = true
-		}
-	}
+	refreshRoundReqMet(state, playerID)
 	if !wasReqMet {
 		state.MeldsLaidThisTurn++
 	}
@@ -322,12 +328,17 @@ func snapshotTurnMeld(state GameState, playerID string) *TurnMeldSnapshot {
 	for k, metas := range state.MeldMeta {
 		meldMeta[k] = append([]MeldInfo(nil), metas...)
 	}
+	roundReqMet := map[string]bool{}
+	for k, v := range state.RoundReqMet {
+		roundReqMet[k] = v
+	}
 	return &TurnMeldSnapshot{
 		PlayerID:                    playerID,
 		Hands:                       hands,
 		Melds:                       melds,
 		MeldMeta:                    meldMeta,
 		RoundReqMet:                 state.RoundReqMet[playerID],
+		AllRoundReqMet:              roundReqMet,
 		MeldsLaidThisTurn:           state.MeldsLaidThisTurn,
 		DiscardDrawnCardPendingMeld: state.DiscardDrawnCardPendingMeld,
 		DiscardTakenCard:            state.DiscardTakenCard,
@@ -374,7 +385,17 @@ func ValidateUndoTurn(state GameState, playerID string) (GameState, error) {
 	state.Hands = snap.Hands
 	state.Melds = snap.Melds
 	state.MeldMeta = snap.MeldMeta
-	state.RoundReqMet[playerID] = snap.RoundReqMet
+	// Every player's flag, not just the acting player's: a lay_off or joker
+	// swap this turn may have put the meld's owner down. Falls back to the
+	// acting player alone for a snapshot written before AllRoundReqMet
+	// existed, which is exactly what that build would have restored.
+	if len(snap.AllRoundReqMet) > 0 {
+		for pid, met := range snap.AllRoundReqMet {
+			state.RoundReqMet[pid] = met
+		}
+	} else {
+		state.RoundReqMet[playerID] = snap.RoundReqMet
+	}
 	state.MeldsLaidThisTurn = snap.MeldsLaidThisTurn
 	state.DiscardDrawnCardPendingMeld = snap.DiscardDrawnCardPendingMeld
 	state.DiscardTakenCard = snap.DiscardTakenCard
@@ -410,10 +431,7 @@ func ValidateLayOff(state GameState, playerID string, meldID string, cards []str
 	// draw must go toward completing their own combination, not extending
 	// someone else's.
 	if !state.RoundReqMet[playerID] {
-		return state, RulesError{
-			Code:    ErrRoundReqNotMet,
-			Message: "lay your own initial meld before laying off on any meld",
-		}
+		return state, notDownError(state, playerID)
 	}
 	if err := requireCardsInHand(state.Hands[playerID], cards); err != nil {
 		return state, err
@@ -486,6 +504,13 @@ func ValidateLayOff(state GameState, playerID string, meldID string, cards []str
 		metas[idx].Type = mv.Type
 		metas[idx].WildCount = mv.WildCount
 	}
+	// The meld just grew. If it belongs to a player who was not down yet,
+	// those extra cards can be what finally satisfies their contract or
+	// lifts them over the point floor, so re-derive it rather than leaving
+	// the flag as ValidateLayMeld last left it.
+	prevOwnerReqMet := state.RoundReqMet[owner]
+	refreshRoundReqMet(state, owner)
+
 	// Once a lay-off has happened this turn, the discard-pile pickup (if
 	// any) can no longer be cleanly undone.
 	state.DiscardDrawnCards = nil
@@ -498,6 +523,7 @@ func ValidateLayOff(state GameState, playerID string, meldID string, cards []str
 		Cards:     append([]string(nil), cards...),
 
 		PrevDiscardTakenCard: prevDiscardTakenCard,
+		PrevOwnerReqMet:      prevOwnerReqMet,
 	}
 
 	if !cfg.IsFinalDeal(state.GameNumber) && len(state.Hands[playerID]) == 0 {
@@ -539,6 +565,11 @@ func ValidateUndoLayOff(state GameState, playerID string) (GameState, error) {
 	state.Melds[owner][idx] = append([]string(nil), snap.PrevCards...)
 	if metas := state.MeldMeta[owner]; idx < len(metas) {
 		metas[idx] = snap.PrevMeta
+	}
+	// The meld is back to its prior size, so the owner's down-status has to
+	// go back with it — see LayOffSnapshot.PrevOwnerReqMet.
+	if state.RoundReqMet != nil {
+		state.RoundReqMet[owner] = snap.PrevOwnerReqMet
 	}
 	state.LastLayOff = nil
 
@@ -614,6 +645,10 @@ func ValidateSwapJoker(state GameState, playerID string, meldID string, card str
 		metas[idx].Type = mv.Type
 		metas[idx].WildCount = mv.WildCount
 	}
+	// Taking a joker out of a run can turn it into the joker-free run the
+	// owner's contract requires, so the same re-derivation a lay-off needs
+	// applies here too.
+	refreshRoundReqMet(state, owner)
 	// Swapping a joker never changes hand size, so it can never be the move
 	// that empties a hand — unlike lay_meld/lay_off, no go-out check here.
 	state.DiscardDrawnCards = nil
@@ -836,6 +871,38 @@ func nextPlayer(order []string, current string) string {
 		}
 	}
 	return order[0]
+}
+
+// notDownError says why playerID is not down yet, distinguishing the two
+// quite different reasons a player can be short.
+//
+// Telling a player who has two sets and a clean run on the table to "lay your
+// own initial meld first" is simply false, and it is the message that used to
+// come back when what they were actually short of was the initial-meld point
+// floor — leaving them re-reading a table that already showed everything the
+// message asked for. MELD_BELOW_MINIMUM names the real obstacle and carries
+// how far short they are.
+func notDownError(state GameState, playerID string) RulesError {
+	cfg := effectiveRules(state)
+	// Only once something is actually on the table: a player who has laid
+	// nothing is short of the initial meld itself, whatever the arithmetic
+	// says, and "lay it down first" is the honest instruction there.
+	if len(state.Melds[playerID]) > 0 &&
+		cfg.InitialMeldMinimum > 0 && PlayerMeetsRoundRequirement(state, playerID) {
+		have := PlayerInitialMeldNaturalValue(state, playerID)
+		if short := cfg.InitialMeldMinimum - have; short > 0 {
+			return RulesError{
+				Code: ErrMeldBelowMinimum,
+				Message: fmt.Sprintf(
+					"your melds are worth %d points, %d short of the %d needed to go down",
+					have, short, cfg.InitialMeldMinimum),
+			}
+		}
+	}
+	return RulesError{
+		Code:    ErrRoundReqNotMet,
+		Message: "lay your own initial meld before laying off on any meld",
+	}
 }
 
 func findMeldByID(state GameState, meldID string) (owner string, idx int) {

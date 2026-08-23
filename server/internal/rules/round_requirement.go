@@ -91,6 +91,48 @@ func PlayerMeetsRoundRequirement(state GameState, playerID string) bool {
 	return true
 }
 
+// PlayerIsDown re-derives, from nothing but the table, whether playerID has
+// satisfied everything needed to be "down": the deal's contract (sets/runs
+// and, where configured, a joker-free run) and the initial-meld point floor.
+//
+// This is the single definition of down-ness. GameState.RoundReqMet caches
+// its answer, and every place that can change a player's laid melds has to
+// keep that cache honest — see refreshRoundReqMet.
+func PlayerIsDown(state GameState, playerID string) bool {
+	if !PlayerMeetsRoundRequirement(state, playerID) {
+		return false
+	}
+	cfg := effectiveRules(state)
+	return cfg.InitialMeldMinimum <= 0 ||
+		PlayerInitialMeldNaturalValue(state, playerID) >= cfg.InitialMeldMinimum
+}
+
+// refreshRoundReqMet brings RoundReqMet[ownerID] back in line with the table
+// after ownerID's melds changed.
+//
+// RoundReqMet used to be written in exactly one place — ValidateLayMeld — as
+// if a player's own lay_meld were the only thing that could ever change their
+// melds. It isn't: a lay_off grows a meld (and any down player may lay off
+// onto *anyone's* meld, including one belonging to a player who is not down
+// yet), and a joker swap can turn a wild-carrying run into a joker-free one.
+// Either can be the event that finally satisfies the contract or lifts the
+// player over the point floor, and neither used to re-derive the flag. The
+// player was then locked out of laying off for the rest of the deal — the
+// engine refusing with ROUND_REQ_NOT_MET while the table plainly showed the
+// requirement met — with no way back, since only a further lay_meld would
+// have recomputed it and a player with no meldable cards left has none.
+//
+// Monotonic on purpose: going down is permanent for the deal, so this only
+// ever sets the flag. Nothing here may take a player back up.
+func refreshRoundReqMet(state GameState, ownerID string) {
+	if state.RoundReqMet == nil || state.RoundReqMet[ownerID] {
+		return
+	}
+	if PlayerIsDown(state, ownerID) {
+		state.RoundReqMet[ownerID] = true
+	}
+}
+
 // PlayerInitialMeldNaturalValue sums natural card values across all melds the player laid this game.
 func PlayerInitialMeldNaturalValue(state GameState, playerID string) int {
 	cfg := effectiveRules(state)

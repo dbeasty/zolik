@@ -44,6 +44,12 @@ type LayOffSnapshot struct {
 	// and reopen the take-it-and-give-it-straight-back loop the marker
 	// exists to close.
 	PrevDiscardTakenCard string
+	// PrevOwnerReqMet restores the meld owner's RoundReqMet. A lay-off can
+	// put the *owner* down (their meld grew past the contract or the point
+	// floor) even when the owner is not the player laying off, so undoing
+	// it has to take that back too — otherwise a lay-off and its undo leave
+	// an opponent permanently down for free.
+	PrevOwnerReqMet bool
 }
 
 // MeldLaidSnapshot holds what a lay_meld needs to be undone: the brand-new
@@ -67,11 +73,19 @@ type MeldLaidSnapshot struct {
 // own individual undos) happened since — a single "always available" undo
 // distinct from the last-action-only LastLayOff/LastMeldLaid snapshots above.
 type TurnMeldSnapshot struct {
-	PlayerID                    string
-	Hands                       map[string][]string
-	Melds                       map[string][][]string
-	MeldMeta                    map[string][]MeldInfo
-	RoundReqMet                 bool
+	PlayerID string
+	Hands    map[string][]string
+	Melds    map[string][][]string
+	MeldMeta map[string][]MeldInfo
+	// RoundReqMet is the acting player's own down-status. Kept as-is so a
+	// snapshot persisted by an older build still restores that much.
+	RoundReqMet bool
+	// AllRoundReqMet is every player's down-status. A lay_off or a joker
+	// swap during this turn can put the *meld's owner* down, who need not
+	// be the acting player, so rolling the turn back has to roll their flag
+	// back too — the single bool above cannot express that. Nil on a
+	// snapshot written before this field existed; see ValidateUndoTurn.
+	AllRoundReqMet              map[string]bool
 	MeldsLaidThisTurn           int
 	DiscardDrawnCardPendingMeld string
 	DiscardTakenCard            string

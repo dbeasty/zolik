@@ -117,6 +117,7 @@ var reasonMessages = map[string]string{
 	"DISCARD_PILE_EMPTY":      "the discard pile is empty",
 	"NO_CARDS_LEFT":           "no cards left to draw",
 	"ROUND_REQ_NOT_MET":       "lay your own initial meld first",
+	"MELD_BELOW_MINIMUM":      "your melds are still short of the points needed to go down",
 	"INCOMPLETE_INITIAL_MELD": "finish your initial meld first",
 	"DISCARD_CARD_NOT_MELDED": "the card you picked up must go into your meld",
 	"JOKER_DISCARD_FORBIDDEN": "a joker can't be discarded",
