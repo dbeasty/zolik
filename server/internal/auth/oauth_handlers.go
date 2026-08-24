@@ -90,11 +90,11 @@ func (h *Handlers) oauthStart(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if flow.State, err = NewRandomToken(32); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		internalError(w, "oauthStart", err)
 		return
 	}
 	if flow.Nonce, err = NewRandomToken(16); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		internalError(w, "oauthStart", err)
 		return
 	}
 
@@ -105,7 +105,7 @@ func (h *Handlers) oauthStart(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	if err := h.store.InsertFlow(ctx, flow); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		internalError(w, "oauthStart", err)
 		return
 	}
 
@@ -343,7 +343,7 @@ func (h *Handlers) completeSignIn(w http.ResponseWriter, req *http.Request, clai
 
 	tokens, err := h.issueUserSession(ctx, result.User)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		internalError(w, "completeSignIn", err)
 		return
 	}
 	out["accessToken"] = tokens.AccessToken
@@ -418,4 +418,16 @@ func appleFormName(raw string) string {
 func writeJSON(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(v)
+}
+
+// internalError logs the real error server-side and responds with a generic
+// 500. http.Error(w, err.Error(), ...) alone leaves no trace in the server
+// log — the only place the failure is visible is a client that happened to
+// be looking, and a raw internal error string in the response body is
+// exactly the kind of detail (stack-adjacent, implementation-specific) that
+// should never reach a caller anyway. Every "something went wrong on our
+// end" response in this package should go through here.
+func internalError(w http.ResponseWriter, route string, err error) {
+	log.Printf("auth: %s: %v", route, err)
+	http.Error(w, "internal server error", http.StatusInternalServerError)
 }

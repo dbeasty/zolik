@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/big"
 	"net/http"
 	"time"
@@ -249,7 +250,7 @@ func (h *GameRestHandlers) createGame(w http.ResponseWriter, req *http.Request) 
 	// Insert lobby into Mongo.
 	created, err := h.repo.Insert(ctx, g)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		internalError(w, "createGame", err)
 		return
 	}
 	_ = created
@@ -392,6 +393,16 @@ func (h *GameRestHandlers) joinGame(w http.ResponseWriter, req *http.Request) {
 // seating someone they picked up from the waiting room) so the capacity
 // check and the per-map initialisation a fresh seat needs exist in exactly
 // one place.
+// internalError logs the real error server-side and responds with a generic
+// 500 — see the identical helper in internal/auth for why: http.Error alone
+// leaves no trace in the server log, and a raw internal error string in the
+// response body is exactly the kind of implementation detail a caller should
+// never see.
+func internalError(w http.ResponseWriter, route string, err error) {
+	log.Printf("game: %s: %v", route, err)
+	http.Error(w, "internal server error", http.StatusInternalServerError)
+}
+
 func seatPlayer(g *models.Game, id, name, userID, guestID string) error {
 	if len(g.Players) >= rules.MaxPlayers {
 		return fmt.Errorf("lobby full")
@@ -556,7 +567,7 @@ func (h *GameRestHandlers) startGame(w http.ResponseWriter, req *http.Request) {
 	// and had to be kept in sync with rules.StartNextGame by hand.
 	rState, err := rules.StartMatch(cfg, turnOrder, seed)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		internalError(w, "startGame", err)
 		return
 	}
 

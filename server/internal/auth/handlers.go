@@ -193,7 +193,7 @@ func (h *Handlers) guest(w http.ResponseWriter, req *http.Request) {
 
 	tokens, err := h.GuestSessionWithID(ctx, body.GuestName, body.GuestID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		internalError(w, "guest", err)
 		return
 	}
 
@@ -290,7 +290,7 @@ func (h *Handlers) listIdentities(w http.ResponseWriter, req *http.Request) {
 	}
 	ids, err := h.accounts.Identities(req.Context(), uc.UserID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		internalError(w, "listIdentities", err)
 		return
 	}
 	writeJSON(w, map[string]any{"identities": ids})
@@ -356,7 +356,7 @@ func (h *Handlers) claimGuest(w http.ResponseWriter, req *http.Request) {
 	}
 	claimed, err := h.accounts.ClaimGuest(ctx, session.GuestID, u)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		internalError(w, "claimGuest", err)
 		return
 	}
 	// The guest session is retired: its history now belongs to the account,
@@ -399,7 +399,7 @@ func (h *Handlers) register(w http.ResponseWriter, req *http.Request) {
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), 12)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		internalError(w, "register", err)
 		return
 	}
 
@@ -426,13 +426,13 @@ func (h *Handlers) register(w http.ResponseWriter, req *http.Request) {
 		Subject:     created.ID.Hex(),
 		DisplayName: created.Username,
 	}); err != nil && !errors.Is(err, ErrIdentityTaken) {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		internalError(w, "register", err)
 		return
 	}
 
 	tokens, err := h.issueUserSession(ctx, created)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		internalError(w, "register", err)
 		return
 	}
 	writeJSON(w, map[string]any{
@@ -469,7 +469,7 @@ func (h *Handlers) login(w http.ResponseWriter, req *http.Request) {
 
 	tokens, err := h.issueUserSession(ctx, u)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		internalError(w, "login", err)
 		return
 	}
 	writeJSON(w, map[string]any{
@@ -507,7 +507,7 @@ func (h *Handlers) refresh(w http.ResponseWriter, req *http.Request) {
 
 	newRefresh, err := CreateRefreshToken()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		internalError(w, "refresh", err)
 		return
 	}
 	now := time.Now().UTC()
@@ -522,7 +522,7 @@ func (h *Handlers) refresh(w http.ResponseWriter, req *http.Request) {
 		CreatedAt: now,
 		ExpiresAt: now.Add(refreshTokenTTL),
 	}); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		internalError(w, "refresh", err)
 		return
 	}
 
@@ -539,7 +539,7 @@ func (h *Handlers) refresh(w http.ResponseWriter, req *http.Request) {
 			// the session gains a durable identity rather than staying
 			// unattributable forever.
 			if subject, err = NewRandomToken(16); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				internalError(w, "refresh", err)
 				return
 			}
 			_ = h.sessionRepo.SetGuestID(ctx, newRefresh, subject)
@@ -548,7 +548,7 @@ func (h *Handlers) refresh(w http.ResponseWriter, req *http.Request) {
 
 	accessToken, err := CreateAccessToken(subject, s.GuestName, isGuest, ttl)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		internalError(w, "refresh", err)
 		return
 	}
 	writeJSON(w, map[string]any{
