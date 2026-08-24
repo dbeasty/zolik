@@ -11,6 +11,7 @@ import (
 	"unicode"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 
 	"zolik/server/internal/identity"
 	"zolik/server/internal/models"
@@ -119,7 +120,7 @@ func (a *Accounts) SignIn(ctx context.Context, claims identity.Claims, opts Sign
 // deleted underneath us), and looping on it would turn a data problem into a
 // request that never returns.
 func (a *Accounts) resolve(ctx context.Context, claims identity.Claims, opts SignInOptions, attempt int) (SignInResult, error) {
-	if attempt > 2 {
+	if attempt > 8 {
 		return SignInResult{}, fmt.Errorf("could not resolve identity %s/%s after %d attempts",
 			claims.Provider, claims.Subject, attempt)
 	}
@@ -151,6 +152,18 @@ func (a *Accounts) resolve(ctx context.Context, claims identity.Claims, opts Sig
 	// The identity is new: find the account it should attach to, or make one.
 	owner, created, err := a.ownerFor(ctx, claims, opts)
 	if err != nil {
+		if mongo.IsDuplicateKeyError(err) {
+			// Lost a race to even create the account backing this identity —
+			// a concurrent racer for the *same* identity claimed the
+			// username or (verified) email first, and createUser has already
+			// exhausted its own retries picking a free username. The winner
+			// is presumably about to attach their identity (or just did);
+			// re-resolving either finds it now or hits this same collision
+			// again, which converges once they finish — see the ErrIdentityTaken
+			// case below, which this mirrors for the account-creation half of
+			// the same race.
+			return a.resolve(ctx, claims, opts, attempt+1)
+		}
 		return SignInResult{}, err
 	}
 
@@ -208,26 +221,48 @@ func (a *Accounts) ownerFor(ctx context.Context, claims identity.Claims, opts Si
 	return u, true, err
 }
 
+// createUser inserts a brand-new account.
+//
+// uniqueUsername's availability check is a read, and the insert that follows
+// it is a separate write — the classic check-then-act gap, and one that
+// concurrent first sign-ins for the same identity open wide: every racer
+// suggests the same base name, all of them see it free, and only the first
+// insert actually claims it. Rather than fail the rest with a raw duplicate
+// key error, a losing insert re-picks a name (now correctly seeing the
+// winner's as taken) and tries again, bounded so a genuinely broken database
+// cannot loop forever.
 func (a *Accounts) createUser(ctx context.Context, claims identity.Claims) (models.User, error) {
-	username, err := a.uniqueUsername(ctx, suggestUsername(claims))
-	if err != nil {
-		return models.User{}, err
+	base := suggestUsername(claims)
+	var lastErr error
+	for attempt := 0; attempt < 5; attempt++ {
+		username, err := a.uniqueUsername(ctx, base)
+		if err != nil {
+			return models.User{}, err
+		}
+		u := models.User{
+			Username:      username,
+			Email:         claims.Email,
+			EmailVerified: claims.EmailVerified && claims.Email != "",
+			AuthProvider:  claims.Provider,
+			AvatarURL:     claims.Picture,
+			Preferences: models.UserPreferences{
+				Language:  "en",
+				CardStyle: "classic",
+			},
+		}
+		// No lifetime statistics row is seeded: a record is created the first
+		// time the player finishes a match, and an account that has never
+		// played simply has none, which the stats endpoint renders as zeroes.
+		created, err := a.store.InsertUser(ctx, u)
+		if err == nil {
+			return created, nil
+		}
+		if !mongo.IsDuplicateKeyError(err) {
+			return models.User{}, err
+		}
+		lastErr = err
 	}
-	u := models.User{
-		Username:      username,
-		Email:         claims.Email,
-		EmailVerified: claims.EmailVerified && claims.Email != "",
-		AuthProvider:  claims.Provider,
-		AvatarURL:     claims.Picture,
-		Preferences: models.UserPreferences{
-			Language:  "en",
-			CardStyle: "classic",
-		},
-	}
-	// No lifetime statistics row is seeded: a record is created the first time
-	// the player finishes a match, and an account that has never played simply
-	// has none, which the stats endpoint renders as zeroes.
-	return a.store.InsertUser(ctx, u)
+	return models.User{}, fmt.Errorf("could not create an account after retrying past username collisions: %w", lastErr)
 }
 
 // touchUser keeps the account's denormalised contact details in step with what
