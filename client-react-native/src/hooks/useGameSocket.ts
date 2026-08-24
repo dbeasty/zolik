@@ -59,6 +59,12 @@ export function useGameSocket({
     resolve: (r: SendResult) => void;
     timer: ReturnType<typeof setTimeout>;
   } | null>(null);
+  // Set by send() and cleared by the first game_state/error that answers it,
+  // so every move logs how long the server (plus the network round trip)
+  // actually took — the number to compare against the perf: line the server
+  // itself logs for the same action, to tell "the server was slow" apart
+  // from "something between here and there was slow".
+  const pendingSendRef = useRef<{ type: string; sentAt: number } | null>(null);
 
   const settle = useCallback((result: SendResult) => {
     const waiter = waiterRef.current;
@@ -105,11 +111,23 @@ export function useGameSocket({
       setStatusIsError(false);
     };
 
+    // Pops the in-flight send (if any) and logs how long it took the server
+    // to answer. Only ever called from the game_state/error branches below —
+    // the same two outcomes that settle() resolves a sendAwait() with.
+    const resolvePendingSend = () => {
+      const pending = pendingSendRef.current;
+      if (!pending) return;
+      pendingSendRef.current = null;
+      const ms = Math.round(performance.now() - pending.sentAt);
+      logger.info('perf', 'round_trip', { type: pending.type, ms });
+    };
+
     ws.onmessage = (ev) => {
       try {
         const envelope = JSON.parse(String(ev.data)) as WSEnvelope;
         const t = envelope.type;
         if (t === 'game_state') {
+          resolvePendingSend();
           const st = envelope as unknown as GameState;
           setPreview(null);
           logger.debug('ws', 'game_state', {
@@ -136,6 +154,7 @@ export function useGameSocket({
         } else if (t === 'meld_preview') {
           setPreview(envelope as unknown as MeldPreview);
         } else if (t === 'error') {
+          resolvePendingSend();
           logger.warn('ws', 'server_error', { message: envelope.message });
           setStatus(String(envelope.message ?? 'Something went wrong'));
           setStatusIsError(true);
@@ -257,6 +276,7 @@ export function useGameSocket({
       from: action.from,
       position: action.position,
     });
+    pendingSendRef.current = { type: action.type, sentAt: performance.now() };
     apiClient.sendWS(ws, action);
   }, []);
 

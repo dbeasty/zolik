@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { GameFlowProvider } from '@/src/context/GameFlowContext';
 import { RulesConfigProvider } from '@/src/context/RulesConfigContext';
 import { SessionProvider } from '@/src/context/SessionContext';
+import { startPerfMonitor } from '@/src/lib/perfMonitor';
 import { colors } from '@/src/theme';
 
 export { ErrorBoundary } from 'expo-router';
@@ -16,6 +17,7 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   useEffect(() => {
     SplashScreen.hideAsync();
+    startPerfMonitor();
   }, []);
 
   return (

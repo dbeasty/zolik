@@ -53,7 +53,15 @@ func NewManager(repo *Repository, hub *Hub) *Manager {
 // not a construction-time requirement for a manager.
 func (m *Manager) SetMatchRecorder(r MatchRecorder) { m.recorder = r }
 
+// perfThreshold is how long HandleAction's own work (excluding the AI loop,
+// which runs in its own goroutine) may take before a "slow" line calls it
+// out. Set low enough to catch a sluggish DB or a lock contention spike on a
+// dev machine, high enough that ordinary Mongo round-trips (a few ms locally)
+// don't spam the log.
+const perfThreshold = 150 * time.Millisecond
+
 func (m *Manager) HandleAction(ctx context.Context, gameID, playerID string, in WSIncoming) error {
+	start := time.Now()
 	oid, err := bson.ObjectIDFromHex(gameID)
 	if err != nil {
 		return fmt.Errorf("invalid game id: %w", err)
@@ -64,7 +72,9 @@ func (m *Manager) HandleAction(ctx context.Context, gameID, playerID string, in 
 		return err
 	}
 
+	tFind := time.Now()
 	game, err := m.repo.FindByID(ctx, oid)
+	findMs := time.Since(tFind).Milliseconds()
 	if err != nil {
 		log.Printf("game=%s player=%s action=%s FindByID error: %v", gameID, playerID, in.Type, err)
 		return err
@@ -81,9 +91,11 @@ func (m *Manager) HandleAction(ctx context.Context, gameID, playerID string, in 
 	// post-action hand, which made every "handBefore" below identical to
 	// handAfter and the line useless for seeing which card actually left.
 	handBefore := append([]string(nil), game.Hands[playerID]...)
+	tApply := time.Now()
 	outcome, err := rules.ApplyAction(rState, playerID, rAction)
+	applyMs := time.Since(tApply).Milliseconds()
 	if err != nil {
-		log.Printf("game=%s player=%s action=%s card=%q hand=%v version=%d phase=%s turn=%s rejected: %v", gameID, playerID, in.Type, rAction.Card, handBefore, game.Version, game.Phase, game.CurrentTurn, err)
+		log.Printf("game=%s player=%s action=%s card=%q hand=%v version=%d phase=%s turn=%s rejected: %v perf: find=%dms apply=%dms total=%dms", gameID, playerID, in.Type, rAction.Card, handBefore, game.Version, game.Phase, game.CurrentTurn, err, findMs, applyMs, time.Since(start).Milliseconds())
 		if re, ok := err.(rules.RulesError); ok && re.Code == rules.ErrNoCardsLeft {
 			m.suspendNoCardsLeft(ctx, gameID, oid, game)
 		}
@@ -117,11 +129,12 @@ func (m *Manager) HandleAction(ctx context.Context, gameID, playerID string, in 
 
 	// Persist with optimistic concurrency.
 	expectedVersion := game.Version
+	tSave := time.Now()
 	if err := m.repo.UpdateWithVersion(ctx, oid, expectedVersion, nextGame); err != nil {
 		log.Printf("game=%s player=%s action=%s expectedVersion=%d UpdateWithVersion error (likely concurrent write): %v", gameID, playerID, in.Type, expectedVersion, err)
 		return err
 	}
-	log.Printf("game=%s player=%s action=%s version=%d->%d applied", gameID, playerID, in.Type, expectedVersion, expectedVersion+1)
+	saveMs := time.Since(tSave).Milliseconds()
 
 	// Record the finished match only once the write above has succeeded, so a
 	// match that lost the version race — and therefore never happened as far
@@ -130,11 +143,21 @@ func (m *Manager) HandleAction(ctx context.Context, gameID, playerID string, in 
 		m.recorder.RecordMatchAsync(nextGame, GameRules(nextGame))
 	}
 
+	tBroadcast := time.Now()
 	recipients := BroadcastRecipients(nextGame)
 	m.broadcastEvents(gameID, playerID, outcome.Events, recipients)
 	m.hub.BroadcastGameState(gameID, recipients, func(pid string) interface{} {
 		return BuildGameStateMsg(nextGame, pid)
 	})
+	broadcastMs := time.Since(tBroadcast).Milliseconds()
+
+	totalMs := time.Since(start).Milliseconds()
+	logLine := fmt.Sprintf("game=%s player=%s action=%s version=%d->%d applied perf: find=%dms apply=%dms save=%dms broadcast=%dms total=%dms", gameID, playerID, in.Type, expectedVersion, expectedVersion+1, findMs, applyMs, saveMs, broadcastMs, totalMs)
+	if time.Duration(totalMs)*time.Millisecond >= perfThreshold {
+		log.Printf("SLOW %s", logLine)
+	} else {
+		log.Printf("%s", logLine)
+	}
 
 	// If the next actor is an AI, run it.
 	m.RunAIIfNeeded(ctx, gameID)

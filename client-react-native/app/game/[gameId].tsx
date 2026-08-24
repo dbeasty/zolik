@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Profiler, useCallback, useEffect, useRef, useState, type ProfilerOnRenderCallback } from 'react';
 import { Dimensions, Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
@@ -307,6 +307,18 @@ function mapDisplayToServerIndices(displayOrder: string[], serverHand: string[])
 function handOrderStorageKey(gameId: string, userId: string): string {
   return `zolik_hand_order_${gameId}_${userId}`;
 }
+
+// Anything at or above this is long enough for a click/drag to read as
+// sluggish rather than instant — roughly two dropped frames at 60fps.
+// Logged rather than silently eaten so a slow re-render (as opposed to a
+// slow server round trip, which useGameSocket logs separately) shows up in
+// the same place.
+const RENDER_WARN_MS = 32;
+
+const onGameScreenRender: ProfilerOnRenderCallback = (id, phase, actualDuration) => {
+  if (actualDuration < RENDER_WARN_MS) return;
+  logger.warn('perf', 'slow_render', { phase, ms: Math.round(actualDuration) });
+};
 
 export default function GameScreen() {
   const { gameId } = useLocalSearchParams<{ gameId: string }>();
@@ -1297,14 +1309,15 @@ export default function GameScreen() {
   });
 
   return (
-    // The drag overlay's position:absolute left/top comes from the
-    // gesture's window-relative absoluteX/absoluteY, but this View sits
-    // below the Stack navigator's header (and Screen's own padding), not
-    // at the window origin. measureOverlayOrigin (called on layout, since
-    // the header's presence/height isn't known upfront) tells the overlay
-    // style how far this box is offset from the window so it can subtract
-    // that out — otherwise the dragged card renders header-height too low
-    // and no longer tracks the cursor.
+    <Profiler id="game" onRender={onGameScreenRender}>
+    {/* The drag overlay's position:absolute left/top comes from the
+        gesture's window-relative absoluteX/absoluteY, but this View sits
+        below the Stack navigator's header (and Screen's own padding), not
+        at the window origin. measureOverlayOrigin (called on layout, since
+        the header's presence/height isn't known upfront) tells the overlay
+        style how far this box is offset from the window so it can subtract
+        that out — otherwise the dragged card renders header-height too low
+        and no longer tracks the cursor. */}
     <View ref={overlayRootRef} style={{ flex: 1 }} onLayout={measureOverlayOrigin}>
       <Screen>
         <ScrollView
@@ -1738,5 +1751,6 @@ export default function GameScreen() {
         </Pressable>
       </Modal>
     </View>
+    </Profiler>
   );
 }
