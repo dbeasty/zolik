@@ -34,7 +34,17 @@ type App struct {
 }
 
 func New(cfg Config) (*App, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// Covers Mongo connect + EnsureIndexes + the lobby waiting room's Redis
+	// ping. 30s rather than a tighter figure gives real headroom for a cold
+	// start — Mongo initializing an empty data volume for the first time, or
+	// a container runtime under load — where the connection itself succeeds
+	// within a couple of seconds but the very first ping/index-build calls
+	// land before mongod has fully warmed up. docker-compose.yml's own
+	// healthchecks (condition: service_healthy) are the primary defense
+	// against starting this too early at all; this is the fallback for
+	// running outside Compose (`go run ./cmd/server` against a Mongo that
+	// happens to still be starting).
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	m, err := db.Connect(ctx, db.Config{

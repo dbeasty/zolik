@@ -18,6 +18,7 @@ import { colors, shared } from '@/src/theme';
 export default function AccountScreen() {
   const {
     session,
+    loading,
     account,
     providers,
     claimableMatches,
@@ -29,6 +30,14 @@ export default function AccountScreen() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+
+  if (loading) {
+    return (
+      <Screen title="Account">
+        <ActivityIndicator color={colors.accent} />
+      </Screen>
+    );
+  }
 
   if (!session || session.isGuest) {
     return (

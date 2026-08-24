@@ -344,36 +344,48 @@ function WaitingPlayersPanel({
   disabled: boolean;
 }) {
   const available = waiting.filter((p) => !seatedIds.includes(p.playerId));
-  if (available.length === 0) return null;
 
   return (
-    <View style={[shared.card, { marginBottom: 12 }]}>
+    <View style={[shared.card, { marginBottom: 12 }]} testID="waiting-players-panel">
       <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14, marginBottom: 10 }}>
         Waiting to play ({available.length})
       </Text>
-      {available.map((p) => (
-        <View
-          key={p.playerId}
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 8,
-          }}
-        >
-          <Text style={{ color: colors.text }}>
-            {p.username}
-            {p.isGuest ? ' (guest)' : ''}
-          </Text>
-          <Pressable
-            style={[shared.button, { marginBottom: 0, paddingVertical: 8, paddingHorizontal: 14 }]}
-            onPress={() => onInvite(p.playerId)}
-            disabled={disabled || invitingId !== ''}
+      {available.length === 0 ? (
+        // Rendered explicitly rather than hiding the whole panel: a host
+        // seeing nothing here should be able to tell "no one is waiting
+        // right now" from "this feature is broken" at a glance, especially
+        // when comparing notes with someone on a second device who insists
+        // they're in the waiting room.
+        <Text style={shared.status}>
+          No one is waiting right now. Anyone who opens "Find players" will show up here.
+        </Text>
+      ) : (
+        available.map((p) => (
+          <View
+            key={p.playerId}
+            testID={`waiting-player-${p.playerId}`}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 8,
+            }}
           >
-            <Text style={shared.buttonText}>{invitingId === p.playerId ? '…' : 'Invite'}</Text>
-          </Pressable>
-        </View>
-      ))}
+            <Text style={{ color: colors.text }}>
+              {p.username}
+              {p.isGuest ? ' (guest)' : ''}
+            </Text>
+            <Pressable
+              testID={`invite-${p.playerId}`}
+              style={[shared.button, { marginBottom: 0, paddingVertical: 8, paddingHorizontal: 14 }]}
+              onPress={() => onInvite(p.playerId)}
+              disabled={disabled || invitingId !== ''}
+            >
+              <Text style={shared.buttonText}>{invitingId === p.playerId ? '…' : 'Invite'}</Text>
+            </Pressable>
+          </View>
+        ))
+      )}
     </View>
   );
 }

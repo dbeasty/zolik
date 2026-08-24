@@ -75,14 +75,14 @@ export default function JoinLobbyScreen() {
           </Pressable>
         </>
       ) : (
-        <View>
+        <View testID="lobby-joined">
           <Text style={shared.status}>Joined — waiting for host to start</Text>
           {error ? <Text style={shared.error}>{error}</Text> : null}
           <Text style={[shared.status, { marginTop: 12 }]}>
             Players ({players.length}/8)
           </Text>
           {players.map((p, i) => (
-            <Text key={p.id} style={{ color: colors.text, marginBottom: 4 }}>
+            <Text key={p.id} testID={`lobby-player-${p.id}`} style={{ color: colors.text, marginBottom: 4 }}>
               {i + 1}. {p.name}
               {p.isAI ? ' 🤖' : ''}
             </Text>
