@@ -146,6 +146,77 @@ export function autoOrganizeHand(cards: string[]): string[] {
   return [...groups.flatMap((g) => g.cards), ...jokers];
 }
 
+function isJoker(card: string): boolean {
+  return card.startsWith('JOKER');
+}
+
+// insertCardIntoHand slots a newly arrived card (a draw, or a card handed back
+// after a rolled-back lay) into the place it belongs in a hand the player has
+// already arranged, instead of dropping it at one edge and leaving them to
+// drag it home. It only moves the one card: everything already in the hand
+// keeps its relative order, so a manual arrangement survives a draw.
+//
+// "Where it belongs" is decided by the same rules autoOrganizeHand uses —
+// same-rank cards cluster (and outrank a run, exactly as they do there), a
+// same-suit neighbour rank extends the run, jokers go to the tail — so that
+// hitting Auto-organize right after a draw doesn't shuffle the card somewhere
+// else again. Anything related to nothing lands at its own rank.
+export function insertCardIntoHand(hand: string[], card: string): string[] {
+  const out = [...hand];
+  out.splice(handInsertIndex(hand, card), 0, card);
+  return out;
+}
+
+function handInsertIndex(hand: string[], card: string): number {
+  if (isJoker(card)) return hand.length;
+  // Jokers sit at the tail and belong to no cluster, so nothing is ever
+  // placed past them.
+  const firstJoker = hand.findIndex(isJoker);
+  const end = firstJoker === -1 ? hand.length : firstJoker;
+
+  const rank = rankOrder(card);
+  const suit = cardSuit(card);
+
+  const sameRank: number[] = [];
+  for (let i = 0; i < end; i++) {
+    if (!isJoker(hand[i]) && rankOrder(hand[i]) === rank) sameRank.push(i);
+  }
+
+  // A same-rank partner wins over a run the card could extend, because that
+  // is the call autoOrganizeHand makes too (any rank held twice becomes a
+  // cluster, and singles alone are gathered into runs). Deciding it
+  // differently here would mean the card visibly hopped the moment the player
+  // hit Auto-organize.
+  if (sameRank.length > 0) {
+    // Into the cluster, in the alphabetical-by-suit order autoOrganizeHand
+    // sorts a cluster into.
+    const before = sameRank.find((i) => cardSuit(hand[i]).localeCompare(suit) > 0);
+    return before ?? sameRank[sameRank.length - 1] + 1;
+  }
+
+  // Runs read low-to-high left-to-right, so sit just past the card one rank
+  // below (the last copy of it, with two decks in play) or just before the
+  // card one rank above.
+  for (let i = end - 1; i >= 0; i--) {
+    if (!isJoker(hand[i]) && cardSuit(hand[i]) === suit && rankOrder(hand[i]) === rank - 1) {
+      return i + 1;
+    }
+  }
+  for (let i = 0; i < end; i++) {
+    if (!isJoker(hand[i]) && cardSuit(hand[i]) === suit && rankOrder(hand[i]) === rank + 1) {
+      return i;
+    }
+  }
+
+  // Related to nothing in hand: fall in at its own rank. No card of this rank
+  // is in the hand at all here (that would have been the cluster case), so
+  // this can't cut a cluster or a run in half.
+  for (let i = 0; i < end; i++) {
+    if (!isJoker(hand[i]) && rankOrder(hand[i]) > rank) return i;
+  }
+  return end;
+}
+
 // moveCardToIndex moves the card at `from` so it ends up sitting at index
 // `to` in the resulting array (i.e. `to` is a final position, not an
 // "insert before" reference) — the semantics a drag gesture wants: drop a

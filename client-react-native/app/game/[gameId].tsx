@@ -27,6 +27,7 @@ import type { GameState, MeldPreview, WSEnvelope } from '@/src/api/types';
 import {
   autoOrganizeHand,
   dealHeaderLabel,
+  insertCardIntoHand,
   moveCardToIndex,
   profileDisplayName,
   rulesSummaryLines,
@@ -272,7 +273,10 @@ function resolveGroupIndices(hand: string[], groups: string[][]): number[][] {
 // Keeps the player's custom card order stable across draws/discards/
 // reconnects: cards still in hand keep their relative position, cards no
 // longer in hand (discarded/melded) drop out, and newly received cards are
-// placed at the front (left) of the hand.
+// slotted into the place they belong (see insertCardIntoHand) rather than
+// piled up at one edge. A drawn card used to land at the far left of a hand
+// the player had just arranged, so every draw meant dragging it home — or
+// re-organizing the whole hand — before it read as part of anything.
 function reconcileHandOrder(customOrder: string[] | null, serverHand: string[]): string[] | null {
   if (!customOrder) return null;
   const remaining = [...serverHand];
@@ -284,7 +288,11 @@ function reconcileHandOrder(customOrder: string[] | null, serverHand: string[]):
       remaining.splice(idx, 1);
     }
   }
-  return [...remaining, ...kept];
+  // Nothing of the old arrangement survived, so there's no arrangement to
+  // slot anything into: this is a fresh deal, not a draw. Deal order stands
+  // until the player arranges it (or hits Auto-organize) themselves.
+  if (kept.length === 0) return remaining;
+  return remaining.reduce(insertCardIntoHand, kept);
 }
 
 // Maps a displayed hand order back onto the server's own `myHand` array
@@ -1503,7 +1511,14 @@ export default function GameScreen() {
         <Pressable style={pileStyles.handInfoBar} onPress={() => setHandInfoOpen((v) => !v)}>
           <Text style={shared.status}>Your hand ({hand.length})</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <Pressable onPress={() => setLocalHand(autoOrganizeHand(hand))} hitSlop={8}>
+            {/* Organizes whatever the hand is *now*, read inside the state
+                updater rather than from the render that drew this button: a
+                card drawn in the same tick as the tap would otherwise be
+                organized around and then re-appear, unplaced. */}
+            <Pressable
+              onPress={() => setLocalHand((prev) => autoOrganizeHand(prev ?? state.myHand ?? []))}
+              hitSlop={8}
+            >
               <Text style={{ color: colors.accent }}>Auto-organize</Text>
             </Pressable>
             <Text style={pileStyles.handInfoToggle}>{handInfoOpen ? '▾ Hide help' : '▸ How to play'}</Text>

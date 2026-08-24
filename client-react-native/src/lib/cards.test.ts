@@ -2,6 +2,7 @@ import {
   autoOrganizeHand,
   cardSuit,
   displayRank,
+  insertCardIntoHand,
   moveCardToIndex,
   parseCard,
 } from '@/src/lib/cards';
@@ -87,3 +88,110 @@ describe('moveCardToIndex', () => {
   });
 });
 
+
+describe('insertCardIntoHand', () => {
+  it('slots a drawn card onto the end of the run it extends', () => {
+    expect(insertCardIntoHand(['4H', '5H', '6H', '9C', 'KD'], '7H')).toEqual([
+      '4H',
+      '5H',
+      '6H',
+      '7H',
+      '9C',
+      'KD',
+    ]);
+  });
+
+  it('slots a drawn card into the gap it bridges in a broken run', () => {
+    expect(insertCardIntoHand(['4H', '5H', '7H', '8H'], '6H')).toEqual([
+      '4H',
+      '5H',
+      '6H',
+      '7H',
+      '8H',
+    ]);
+  });
+
+  it('slots a drawn card in front of the run when it extends the low end', () => {
+    expect(insertCardIntoHand(['5H', '6H', '7H', 'KD'], '4H')).toEqual([
+      '4H',
+      '5H',
+      '6H',
+      '7H',
+      'KD',
+    ]);
+  });
+
+  it('joins its rank cluster in suit order', () => {
+    expect(insertCardIntoHand(['2H', '9C', '9H', 'KD'], '9D')).toEqual([
+      '2H',
+      '9C',
+      '9D',
+      '9H',
+      'KD',
+    ]);
+  });
+
+  it('puts a card with both a run and a rank partner where organizing would', () => {
+    // Same call autoOrganizeHand makes: the rank partner clusters, and here
+    // that happens to leave the run reading in order anyway.
+    expect(insertCardIntoHand(['5H', '6H', '7S', 'KD'], '7H')).toEqual([
+      '5H',
+      '6H',
+      '7H',
+      '7S',
+      'KD',
+    ]);
+  });
+
+  it('joins the rank cluster rather than a run fragment', () => {
+    // 8C-8D-8S is a meld; 8S-9S is a run fragment of two.
+    expect(insertCardIntoHand(['8C', '8D', '9S', 'KD'], '8S')).toEqual([
+      '8C',
+      '8D',
+      '8S',
+      '9S',
+      'KD',
+    ]);
+  });
+
+  it('falls in at its own rank when it is related to nothing', () => {
+    expect(insertCardIntoHand(['3C', '5H', '6H', '7H', 'KD'], '9D')).toEqual([
+      '3C',
+      '5H',
+      '6H',
+      '7H',
+      '9D',
+      'KD',
+    ]);
+  });
+
+  it('keeps jokers at the tail, and never places a card past them', () => {
+    expect(insertCardIntoHand(['3C', 'QD', 'JOKER1'], 'JOKER2')).toEqual([
+      '3C',
+      'QD',
+      'JOKER1',
+      'JOKER2',
+    ]);
+    expect(insertCardIntoHand(['3C', 'JOKER1'], 'KD')).toEqual(['3C', 'KD', 'JOKER1']);
+  });
+
+  it('leaves every other card in the order the player put it in', () => {
+    // A deliberately un-sorted (hand-dragged) arrangement: only the new card
+    // moves, the rest keep their relative order.
+    const arranged = ['KD', '3C', '5H', '6H', 'QS', '9C'];
+    const out = insertCardIntoHand(arranged, '7H');
+    expect(out.filter((c) => c !== '7H')).toEqual(arranged);
+    expect(out.indexOf('7H')).toBe(out.indexOf('6H') + 1);
+  });
+
+  it('agrees with autoOrganizeHand on where a drawn card goes', () => {
+    // Includes 9S, which both extends the spade run and has two rank
+    // partners — the case the two could most easily disagree on.
+    const hand = ['2C', '5S', '6S', '7S', '8S', '9C', '9H', 'QD'];
+    for (const drawn of ['9S', '4S', 'TS', 'JOKER1', 'KH', '2S', '9D']) {
+      const organized = autoOrganizeHand(hand);
+      const inserted = insertCardIntoHand(organized, drawn);
+      expect(inserted).toEqual(autoOrganizeHand([...hand, drawn]));
+    }
+  });
+});

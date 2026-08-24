@@ -397,7 +397,7 @@ a rule that can drift from the first.
 | `client-tui/ui/helpers.go` `approximateNaturalValue()` | a second card-scoring table, for the live "natural value" readout | duplicated scoring — prices an unsent selection, so it needs Phase 2.3's preview, not an offer |
 | ~~`client-tui/ui/game.go`~~ | **Fixed.** `dealHeaderLabel` now takes the resolved ruleset, not a profile name: a match with no fixed deal count no longer claims one, and a five-deal profile labels correctly | — |
 | ~~`client-react-native/src/lib/cards.ts` `rulesSummaryLines()`~~ | **Fixed.** Reads `state.rules` field by field; a test renders a profile no client code has heard of | — |
-| `…/cards.ts` `parseCard`, `rankOrder`, `autoOrganizeHand` | card string encoding, rank ordering, what "set material" and "consecutive run" mean | presentation-adjacent — §7.1 |
+| `…/cards.ts` `parseCard`, `rankOrder`, `autoOrganizeHand`, `insertCardIntoHand` | card string encoding, rank ordering, what "set material" and "consecutive run" mean | presentation-adjacent — §7.1 |
 | ~~`app/game/[gameId].tsx` `canLayOff`~~ | **Fixed.** Reads the per-meld `lay_off:<id>` offers — which are also *stricter*, since the server disables a meld nothing in hand fits | — |
 | ~~`app/game/[gameId].tsx` `discardLocked`~~ | **Fixed.** Reads `draw:discard`'s `enabled`/`whyNot`; the reason is rendered from the engine's own code | — |
 | ~~`MeldTable.tsx`~~ | **Fixed.** Reads the per-meld `swap_joker:<id>` offer, so the control appears only where a card in hand takes that joker's place | — |
