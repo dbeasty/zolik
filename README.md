@@ -18,7 +18,13 @@ being edited.
 - `client-tui/` — text-only terminal client (Bubbletea + SSH)
 - `e2e/` — Playwright specs that drive the real server and the real web build
 
-See each directory's README for setup and run instructions.
+```sh
+./scripts/dev-stack.sh up     # server + web client, on ports beside your dev ones
+./scripts/dev-stack.sh test   # every suite: Go, terminal client, RN, e2e
+```
+
+See [`docs/testing-this-branch.md`](docs/testing-this-branch.md) for what to
+look at, and each directory's README for setup details.
 
 ## How a game is added
 

@@ -32,7 +32,7 @@ async function lastEmailCode(request: import('@playwright/test').APIRequestConte
 }
 
 test.describe('guest sign-in', () => {
-  test('continuing as a guest signs in and lands in a new game lobby', async ({ page }) => {
+  test('continuing as a guest signs in and lands in the game picker', async ({ page }) => {
     await page.goto('/');
     await page.getByText('Continue as guest', { exact: true }).click();
 
@@ -40,8 +40,10 @@ test.describe('guest sign-in', () => {
     await page.getByPlaceholder('Display name').fill(name);
     await page.getByText('Continue', { exact: true }).click();
 
-    // guest.tsx routes straight into a freshly created lobby on success.
-    await expect(page).toHaveURL(/\/lobby\/create/, { timeout: 10_000 });
+    // guest.tsx routes straight into the picker on success. It used to route
+    // into a freshly created Žolíky lobby, because there was one game and
+    // nothing to choose; now there are four and choosing is the first step.
+    await expect(page).toHaveURL(/\/lobby\/games/, { timeout: 10_000 });
 
     await page.goto('/');
     await expect(page.getByText(`Playing as ${name}`)).toBeVisible({ timeout: 10_000 });
@@ -189,7 +191,7 @@ test.describe('guest-to-account claiming, through the UI', () => {
     const guestName = 'e2e-claimguest-' + Math.random().toString(36).slice(2, 8);
     await page.getByPlaceholder('Display name').fill(guestName);
     await page.getByText('Continue', { exact: true }).click();
-    await expect(page).toHaveURL(/\/lobby\/create/, { timeout: 10_000 });
+    await expect(page).toHaveURL(/\/lobby\/games/, { timeout: 10_000 });
 
     // No finished match exists yet for this guest, so the claim on sign-in
     // is expected to move zero matches — what this test actually proves is

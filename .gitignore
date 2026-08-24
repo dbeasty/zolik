@@ -51,3 +51,4 @@ client-defold/wasm-web/
 
 # Claude Code worktrees (local scratch checkouts, incl. their node_modules)
 .claude/worktrees/
+.dev-stack/
