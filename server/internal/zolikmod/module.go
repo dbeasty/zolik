@@ -212,6 +212,12 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		out = append(out, module.ActionOffer{
 			ID: o.ID, Verb: string(o.Verb), Enabled: o.Enabled, WhyNot: string(o.WhyNot),
 			Source: toSelector(o.Source), Target: toSelector(o.Target),
+			// Laying a meld is the one thing here a person has to compose. The
+			// offer lists which cards are eligible but not which *combination*
+			// of them is a run or a set, because enumerating rummy shapes is
+			// the offer explosion extensibility-plan.md §1.1 refuses. Saying so
+			// explicitly is new: a client used to have to infer it.
+			Composite: o.Verb == rules.VerbLayMeld,
 		})
 	}
 	return out, nil
@@ -293,6 +299,27 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 		vm.Zones = append(vm.Zones, z)
 	}
 
+	// The seats. Žolíky's are the plainest of the four modules — a hand size,
+	// a score and whose turn it is — but emitting them is what lets one shell
+	// draw a rummy table and a poker table with the same code.
+	for _, p := range gs.TurnOrder {
+		seat := module.Seat{
+			PlayerID: p,
+			Active:   gs.CurrentTurn == p && gs.Status == rules.StatusActive,
+			Facts: []module.Fact{{
+				LabelKey: "seat.cards", Value: fmt.Sprint(len(gs.Hands[p])),
+				Params: map[string]any{"n": len(gs.Hands[p])},
+			}},
+		}
+		// Whether this player has met the deal's contract is the one piece of
+		// per-seat state a rummy table shows that a hand count does not, and
+		// it is public.
+		if gs.RoundReqMet[p] {
+			seat.LabelKeys = append(seat.LabelKeys, "zolik.seat.contractMet")
+		}
+		vm.Seats = append(vm.Seats, seat)
+	}
+
 	cfg := rules.ResolveConfig(gs.Rules)
 	vm.Header = []module.Fact{
 		{LabelKey: "header.deal", Params: map[string]any{"n": gs.GameNumber}},
@@ -324,10 +351,17 @@ func cardViews(cards []string) []module.CardView {
 }
 
 // Finished reports whether the match is over.
-func (m *Module) Finished(raw module.State) (bool, string, error) {
+//
+// Žolíky always has exactly one winner; the list is the shared shape, not a
+// hint that rummy might one day have two.
+func (m *Module) Finished(raw module.State) (bool, []string, error) {
 	s, err := decode(raw)
 	if err != nil {
-		return false, "", err
+		return false, nil, err
 	}
-	return s.Rules.Status == rules.StatusCompleted, s.Rules.WinnerID, nil
+	done := s.Rules.Status == rules.StatusCompleted
+	if !done || s.Rules.WinnerID == "" {
+		return done, nil, nil
+	}
+	return true, []string{s.Rules.WinnerID}, nil
 }

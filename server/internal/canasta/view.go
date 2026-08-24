@@ -189,6 +189,34 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 		}
 	}
 
+	// The seats. Canasta's numbers belong to a partnership rather than a
+	// player, so each seat carries its side's score and canasta count — which
+	// is exactly the sort of thing that had nowhere to go before Seats existed
+	// and had to be smuggled through Status facts.
+	for _, p := range s.TurnOrder {
+		t := s.team(p)
+		seat := module.Seat{
+			PlayerID: p,
+			Active:   s.Current == p && s.Status == "active",
+			Facts: []module.Fact{
+				{LabelKey: "seat.cards", Value: strconv.Itoa(len(s.Hands[p])),
+					Params: map[string]any{"n": len(s.Hands[p])}},
+			},
+		}
+		if t != nil {
+			seat.Facts = append(seat.Facts,
+				module.Fact{LabelKey: "canasta.seat.teamScore", Value: strconv.Itoa(t.Score),
+					Params: map[string]any{"team": t.ID, "score": t.Score}},
+				module.Fact{LabelKey: "canasta.seat.canastas", Value: strconv.Itoa(t.canastas()),
+					Params: map[string]any{"n": t.canastas()}},
+			)
+			if !t.HasMelded {
+				seat.LabelKeys = append(seat.LabelKeys, "canasta.seat.notOpened")
+			}
+		}
+		vm.Seats = append(vm.Seats, seat)
+	}
+
 	vm.Header = []module.Fact{
 		{LabelKey: "header.deck", Value: strconv.Itoa(len(s.DrawPile))},
 		{LabelKey: "header.deal", Value: strconv.Itoa(s.DealNumber + 1)},

@@ -934,17 +934,22 @@ func TestFinishedReportsTheWinningPartnership(t *testing.T) {
 	if code != "" {
 		t.Fatalf("going out refused: %s", code)
 	}
-	done, winner, err := New().Finished(next)
+	done, winners, err := New().Finished(next)
 	if err != nil {
 		t.Fatalf("Finished: %v", err)
 	}
 	if !done {
 		t.Fatal("the match should be over")
 	}
-	// One id, because the envelope has one field — the partnership's first
-	// seat, with the standings on the ViewModel.
-	if winner != "p1" {
-		t.Errorf("winner is %q, want p1", winner)
+	// The whole partnership, not one of its two players. This used to return a
+	// single id with a comment saying that was the wrong shape; Hold'em's split
+	// pots made fixing it unavoidable, and the fix landed here first.
+	if len(winners) != 2 {
+		t.Fatalf("winners are %v, want both members of the winning partnership", winners)
+	}
+	got := map[string]bool{winners[0]: true, winners[1]: true}
+	if !got["p1"] || !got["p3"] {
+		t.Errorf("winners are %v, want p1 and p3", winners)
 	}
 	vm, err := New().View(next, "p1")
 	if err != nil {

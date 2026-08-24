@@ -98,6 +98,20 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 		},
 	)
 
+	// The seats. Prší needs almost nothing here — a card count and whose turn
+	// it is — which is the point: a game with no chips, no score and no
+	// partnerships declares none of them, exactly as it declares no options.
+	for _, p := range s.TurnOrder {
+		vm.Seats = append(vm.Seats, module.Seat{
+			PlayerID: p,
+			Active:   s.Current == p && s.Status == "active",
+			Facts: []module.Fact{{
+				LabelKey: "seat.cards", Value: strconv.Itoa(len(s.Hands[p])),
+				Params: map[string]any{"n": len(s.Hands[p])},
+			}},
+		})
+	}
+
 	vm.Header = []module.Fact{
 		{LabelKey: "header.deck", Value: strconv.Itoa(len(s.DrawPile))},
 	}

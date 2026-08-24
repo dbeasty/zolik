@@ -48,12 +48,12 @@ func TestGameAgnosticDriver_PlaysPrsiToCompletion(t *testing.T) {
 			}
 			if res.Finished {
 				completed++
-				if res.WinnerID == "" {
+				if len(res.Winners) == 0 {
 					t.Error("finished with no winner")
 				}
 			}
-			t.Logf("seed %d: %d actions, finished=%v winner=%s verbs=%v",
-				seed, res.Actions, res.Finished, res.WinnerID, res.Verbs)
+			t.Logf("seed %d: %d actions, finished=%v winner=%v verbs=%v",
+				seed, res.Actions, res.Finished, res.Winners, res.Verbs)
 		})
 	}
 

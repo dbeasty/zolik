@@ -168,10 +168,18 @@ func (m *Manager) HandleAction(ctx context.Context, idOrCode, playerID string, a
 	match.State = next
 	match.ActionLog = append(match.ActionLog, logEntry(len(match.ActionLog)+1, playerID, a))
 
-	if done, winner, err := mod.Finished(next); err == nil && done {
+	if done, winners, err := mod.Finished(next); err == nil && done {
 		now := time.Now().UTC()
 		match.Status = "completed"
-		match.WinnerID = winner
+		match.Winners = winners
+		// WinnerID stays on the document and the wire as the first winner, so
+		// every client written against a single-winner match keeps working. It
+		// is derived from Winners rather than computed separately: one
+		// implementation, two spellings.
+		match.WinnerID = ""
+		if len(winners) > 0 {
+			match.WinnerID = winners[0]
+		}
 		match.EndedAt = &now
 	}
 

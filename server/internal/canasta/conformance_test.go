@@ -78,7 +78,7 @@ func TestOfferDrivenPlayFinishesAMatch(t *testing.T) {
 					t.Fatalf("seed %d: match did not finish in %d actions (verbs=%v)",
 						seed, res.Actions, res.Verbs)
 				}
-				if res.WinnerID == "" {
+				if len(res.Winners) == 0 {
 					t.Fatalf("seed %d: finished with no winner", seed)
 				}
 

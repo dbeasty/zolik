@@ -739,15 +739,17 @@ func endDeal(s *GameState, wentOut string, concealed bool, exhausted bool) []mod
 
 // Finished reports whether the match is over and who won.
 //
-// One winner id because the envelope has one field, and Canasta is won by a
-// partnership: this returns that partnership's first seat, with the full
-// per-team scoreboard on the ViewModel where a UI reads it. It is the one
-// place the module interface fits this game imperfectly, and `winners []string`
-// would be the honest shape — recorded rather than papered over.
-func (m *Module) Finished(raw module.State) (bool, string, error) {
+// The whole winning partnership, now that the interface can say so. This used
+// to return the partnership's first seat and note in a comment that
+// `winners []string` was the honest shape; Hold'em's split pots made that
+// change unavoidable and it landed here first.
+func (m *Module) Finished(raw module.State) (bool, []string, error) {
 	s, err := decode(raw)
 	if err != nil {
-		return false, "", err
+		return false, nil, err
 	}
-	return s.Status == "completed", s.WinnerID, nil
+	if s.Status != "completed" || s.WinnerTeam < 0 || s.WinnerTeam >= len(s.Teams) {
+		return s.Status == "completed", nil, nil
+	}
+	return true, append([]string(nil), s.Teams[s.WinnerTeam].Players...), nil
 }

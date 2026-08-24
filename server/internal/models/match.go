@@ -45,7 +45,15 @@ type Match struct {
 	// by ModuleID so an old replay stays readable by the module that wrote it.
 	ActionLog []MatchAction `bson:"actionLog,omitempty" json:"-"`
 
-	Seed      int64      `bson:"seed" json:"-"`
+	Seed int64 `bson:"seed" json:"-"`
+	// Winners is every player who won. More than one is a real outcome — a
+	// Canasta partnership, a split poker pot — and was the first place the
+	// module interface was visibly the wrong shape rather than merely
+	// unfamiliar with a game.
+	Winners []string `bson:"winners,omitempty" json:"winners,omitempty"`
+	// WinnerID is Winners[0], kept on the document and the wire so anything
+	// written against a single-winner match keeps working. Derived, never
+	// computed independently.
 	WinnerID  string     `bson:"winnerId,omitempty" json:"winnerId,omitempty"`
 	CreatedAt time.Time  `bson:"createdAt" json:"createdAt"`
 	StartedAt *time.Time `bson:"startedAt,omitempty" json:"startedAt,omitempty"`

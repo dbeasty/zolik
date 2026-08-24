@@ -11,6 +11,7 @@ import (
 	"zolik/server/internal/canasta"
 	"zolik/server/internal/db"
 	"zolik/server/internal/game"
+	"zolik/server/internal/holdem"
 	"zolik/server/internal/match"
 	"zolik/server/internal/module"
 	"zolik/server/internal/prsi"
@@ -130,7 +131,7 @@ func (a *App) routeGroups() []routeGroup {
 		// to the old and retires the old only once nothing reads it — the
 		// existing game routes, documents and clients are untouched by this.
 		{"match", func(r chi.Router) {
-			modules := module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New())
+			modules := module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New())
 			matchMgr := match.NewManager(match.NewRepository(a.db), modules, a.hub)
 			match.NewHandlers(matchMgr).RegisterRoutes(r)
 		}},

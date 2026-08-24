@@ -175,12 +175,49 @@ type Fact struct {
 	Params   map[string]any `json:"params,omitempty"`
 }
 
+// Seat is one player as the board shows them.
+//
+// Added for Hold'em, which is the first game whose board carries numbers that
+// are not cards: a stack, the chips you have pushed forward this street,
+// whether you have folded or are all in. None of that fits a Zone, because
+// none of it is a card.
+//
+// It earns its place beyond poker, though, which is why it is a first-class
+// field rather than a poker escape hatch. Canasta puts partnership standings
+// here, Prší the size of a hand, Žolíky whose turn it is. And Active means a
+// client no longer has to work out whose turn it is by scanning everyone's
+// offers for an enabled one — which worked, and was a strange way to learn
+// something the module knew all along.
+type Seat struct {
+	PlayerID string `json:"playerId"`
+	// Active marks the player the module is waiting on.
+	Active bool `json:"active,omitempty"`
+	// LabelKeys mark states a client should show against the seat
+	// ("seat.dealer", "seat.folded", "seat.allIn"). Keys, never text.
+	LabelKeys []string `json:"labelKeys,omitempty"`
+	// Facts are the module's own numbers for this seat — chips, score,
+	// canastas. Pre-resolved by the module, rendered by the client,
+	// interpreted by neither.
+	Facts []Fact `json:"facts,omitempty"`
+}
+
 // ViewModel is the whole board as one viewer sees it.
 type ViewModel struct {
 	Zones   []Zone `json:"zones"`
+	Seats   []Seat `json:"seats,omitempty"`
 	Header  []Fact `json:"header,omitempty"`
 	Status  []Fact `json:"status,omitempty"`
 	Prompts []Fact `json:"prompts,omitempty"`
+}
+
+// SeatOf returns the seat for this player, or nil.
+func (v ViewModel) SeatOf(playerID string) *Seat {
+	for i := range v.Seats {
+		if v.Seats[i].PlayerID == playerID {
+			return &v.Seats[i]
+		}
+	}
+	return nil
 }
 
 // --- affordances -----------------------------------------------------------
@@ -216,21 +253,54 @@ type Selector struct {
 	MaxCards int `json:"maxCards,omitempty"`
 }
 
+// ParamKind is the shape of a non-card input.
+type ParamKind string
+
+const (
+	// ParamKindChoice: one value from a declared list. The original kind, and
+	// the zero value, so an offer written before kinds existed still means
+	// this.
+	ParamKindChoice ParamKind = "choice"
+	// ParamKindInt: a whole number inside a declared range.
+	ParamKindInt ParamKind = "int"
+)
+
 // ParamSpec declares a non-card input an offer needs.
 //
 // This is the field Prší added. Playing a Queen changes the suit in play, and
 // the player must say which — a choice with no card to drag and no zone to
 // drop on. A rummy-only design would never have grown it, which is precisely
 // why the second game had to be written before the interface was fixed.
+//
+// Hold'em then bent it a second time, in the way the first bend did not
+// anticipate: "raise to how much" is a *number*, drawn from a range the engine
+// computes (the minimum legal raise up to the player's whole stack), not one of
+// a handful of named options. Enumerating a no-limit betting range is the
+// offer-explosion problem in its purest form — a thousand offers for a thousand
+// chips — so the range is declared and the engine still validates the concrete
+// submission on arrival.
 type ParamSpec struct {
 	// Name is the key the client sends back in Action.Params.
 	Name string `json:"name"`
+	// Kind says how to render and validate this input. Empty means
+	// ParamKindChoice, so nothing that predates this field changed meaning.
+	Kind ParamKind `json:"kind,omitempty"`
 	// LabelKey names the prompt; Choices are the allowed values, each with
 	// its own key. Keys, not sentences — the wording is the client's.
 	LabelKey string        `json:"labelKey"`
 	Choices  []ParamChoice `json:"choices,omitempty"`
+
+	// Min, Max and Step describe a ParamKindInt's range, inclusive. Step is the
+	// granularity a control should move in; zero means one.
+	Min  int `json:"min,omitempty"`
+	Max  int `json:"max,omitempty"`
+	Step int `json:"step,omitempty"`
+	// Default is the value a control should start on — the minimum legal
+	// raise, say, rather than an arbitrary end of the range.
+	Default int `json:"default,omitempty"`
 }
 
+// ParamChoice is one selectable value of a ParamKindChoice.
 type ParamChoice struct {
 	Value    string `json:"value"`
 	LabelKey string `json:"labelKey"`
@@ -251,6 +321,32 @@ type ActionOffer struct {
 	Source *Selector   `json:"source,omitempty"`
 	Target *Selector   `json:"target,omitempty"`
 	Params []ParamSpec `json:"params,omitempty"`
+
+	// Facts are things worth showing *on the control itself* — what this move
+	// costs, what it is worth. Output, not input: Params is what the player
+	// supplies, Facts is what the engine already knows.
+	//
+	// Hold'em is what asked for it. "Call" is a button whose whole meaning is
+	// the number on it, and a client that had to work out that the number is
+	// the highest bet minus its own would be deriving a rule again — the one
+	// thing this protocol exists to stop.
+	Facts []Fact `json:"facts,omitempty"`
+
+	// Composite marks an offer whose concrete submission this list does not
+	// enumerate: a *combination* a person has to compose, from a set of cards
+	// the offer does list.
+	//
+	// It exists because one game genuinely cannot be enumerated. A Žolíky meld
+	// is a run or a set of a shape the offer protocol deliberately refuses to
+	// expand (extensibility-plan.md §1.1's offer-explosion note), whereas a
+	// Canasta meld is n cards of one rank and ships as exact cards. Both are
+	// "lay_meld"; only one can be pressed like a button.
+	//
+	// Before this field the difference was implicit — a client could infer it
+	// from MinCards not matching the card list — and inferring is precisely
+	// what this protocol exists to stop clients doing. A shell renders a
+	// composite offer as a selection, a bot skips it, and neither has to guess.
+	Composite bool `json:"composite,omitempty"`
 }
 
 // FindOffer returns the offer with this ID, or nil.
@@ -289,5 +385,14 @@ type GameModule interface {
 	LegalActions(s State, playerID string) ([]ActionOffer, error)
 
 	// Finished reports whether the match is over and who won.
-	Finished(s State) (done bool, winnerID string, err error)
+	//
+	// Winners is a list because a match can genuinely have more than one. Two
+	// games in a row said so: Canasta is won by a *partnership*, and returning
+	// one of its two players was the first place this interface was visibly
+	// the wrong shape rather than merely unfamiliar. Hold'em then made it
+	// unavoidable — a split pot has no single winner in any sense at all.
+	//
+	// An unfinished match returns nil. A finished one returns at least one id,
+	// in no significant order.
+	Finished(s State) (done bool, winners []string, err error)
 }

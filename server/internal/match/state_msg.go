@@ -22,7 +22,11 @@ type MatchStateMsg struct {
 	Status    string `json:"status"`
 	JoinCode  string `json:"joinCode,omitempty"`
 	HostID    string `json:"hostId,omitempty"`
-	WinnerID  string `json:"winnerId,omitempty"`
+	// WinnerID is the first winner; Winners is all of them. Both ship, because
+	// a partnership and a split pot each have more than one and a client
+	// written before that was true should not break.
+	WinnerID string   `json:"winnerId,omitempty"`
+	Winners  []string `json:"winners,omitempty"`
 
 	Players []PlayerMsg `json:"players"`
 	// View is the board as this viewer may see it — the only place hidden
@@ -53,6 +57,7 @@ func (m *Manager) BuildStateMsg(match models.Match, viewerID string) MatchStateM
 		JoinCode:  match.JoinCode,
 		HostID:    match.HostID,
 		WinnerID:  match.WinnerID,
+		Winners:   match.Winners,
 		// Never nil: these round-trip to JSON, and a nil slice serialises to
 		// `null`, which every client then has to guard before indexing.
 		LegalActions: []module.ActionOffer{},
