@@ -171,3 +171,81 @@ replacement has been driven to completion in a browser.
 
 Each phase is committed and verified on its own, so stopping after any of them leaves the
 codebase better than it found it.
+
+---
+
+## Outcome
+
+Phases 5–7 shipped as planned. Phase 8 shipped up to its destructive step, which is left as a
+decision rather than taken as a default — see below.
+
+### The finding that reframed Phase 8
+
+Reading the two paths closely turned up something §0's table got wrong: **there are not two
+rummy engines.** `game.Manager` and `zolikmod` both apply moves with `rules.ApplyAction` on a
+`rules.GameState`. What is duplicated between the Žolíky path and the module path is
+*persistence and transport* — two documents, two wire shapes, two route sets — not two
+implementations of the rules.
+
+That matters, because the dangerous kind of duplication, where two copies of a rule drift
+apart, cannot happen here. Retiring the legacy path is cleanup with a real payoff, but it is
+not a correctness fix and it does not need rushing.
+
+### What each phase cost the interface
+
+Poker bent it in four places, plus a fifth that fell out of writing the shared contract test:
+
+| Change | Why nothing before it asked |
+|---|---|
+| `ParamSpec.Kind` + range | Every prior input was a card or a short list; a no-limit raise is a number |
+| `Finished` → `winners []string` | A split pot has no single winner; Canasta's partnership had already shown the seam |
+| `ViewModel.Seats` | Chips, bets, folded, all-in — none are cards, so none fit a Zone |
+| `ActionOffer.Facts` | "Call 40" is a button whose whole meaning is its number |
+| `ActionOffer.Composite` | A Žolíky meld shape and a Canasta meld are both `lay_meld`; only one is pressable |
+
+What did *not* bend is as informative: zones, groups, hidden-information filtering, the
+descriptor and the option vocabulary all expressed a betting game without changing.
+
+### Measured
+
+| | |
+|---|---|
+| Games on one runtime | 4 — Žolíky, Prší, Canasta, Hold'em |
+| Shared contract tests, run against every game | 8 |
+| Bot moves accepted / refused, all four games | 730 / 0 |
+| Client tests | 101, including the shell's "knows no game" grep |
+| e2e | 74, including one screen playing four games in a browser |
+
+### Two bugs the new tests caught that the old ones could not
+
+**Hold'em skipped the first player of every betting street.** The offer-driven driver could not
+see it — a driver plays whoever it is offered a move, so a wrong turn order looks like a
+different but valid game. `Seat.Active` made the module state its own claim, and the shared
+contract test checked it against the offers.
+
+**The shell's e2e was passing without pressing anything.** Its selector matched the scrolling
+container as well as the buttons inside it, and it counted clicks rather than progress.
+Asserting that the *server's* board had moved turned three green tests red, correctly.
+
+## What is left, and the decision inside it
+
+`cmd/migrate-games` moves the documents, and `internal/game/module_equivalence_test.go` proves a
+migrated game presents the same offers, the same legality and the same result from the same
+move. So the remaining step is small and evidenced:
+
+> Serve `/games/*` and `/ws/games/*` from `match.Manager`, with `GameStateMsg` produced from the
+> module's state, then delete `game.Manager`, `game.Repository`, `state_builder.go`,
+> `takeback.go` and `models.Game`.
+
+It stops here because it carries a product question this refactor should not answer by itself:
+
+- The shipped RN client has a **bespoke 1,756-line Žolíky screen** — drag and drop, staging,
+  joker swaps. The generic shell plays Žolíky, but it is a generic shell. Retiring
+  `GameStateMsg` means either keeping a compatibility adapter for that screen indefinitely, or
+  accepting the generic one in its place.
+- The TUI reads the same shape.
+- Sixty e2e tests seed through `POST /games/{id}/debug-state`, which writes rummy columns
+  directly and would need a module-state equivalent.
+
+None of that is hard. All of it is a decision about what the Žolíky *product* should look like
+afterwards, which is why it stops with the evidence in place rather than choosing for the owner.
