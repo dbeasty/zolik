@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"log"
 	"net/smtp"
+	"regexp"
 	"strings"
+	"sync"
 )
 
 // Mail is one outbound message.
@@ -125,4 +127,45 @@ func (s *SMTPMailer) Send(ctx context.Context, m Mail) error {
 
 func stripCRLF(s string) string {
 	return strings.NewReplacer("\r", "", "\n", "").Replace(s)
+}
+
+// CapturingMailer wraps another Mailer and additionally remembers the code
+// from the most recent mail sent to each address, so it can be read back
+// through GET /auth/dev/last-code — see Handlers.devLastCode.
+//
+// This exists purely to make the passwordless flow *testable* end to end
+// without a real inbox: a browser-driven test can request a code and has no
+// way to "read the terminal" LogMailer writes to. It is wired in only when
+// app.Config.TestEndpointsEnabled is set (see app.go and the same gate
+// game.GameRestHandlers' debugState uses) — a real deployment never
+// constructs one, so a live sign-in code is never held in process memory
+// outside of local/e2e use.
+type CapturingMailer struct {
+	underlying Mailer
+
+	mu   sync.Mutex
+	last map[string]string // normalised address -> code
+}
+
+func NewCapturingMailer(underlying Mailer) *CapturingMailer {
+	return &CapturingMailer{underlying: underlying, last: map[string]string{}}
+}
+
+var sixDigitCode = regexp.MustCompile(`\b(\d{6})\b`)
+
+func (m *CapturingMailer) Send(ctx context.Context, mail Mail) error {
+	if code := sixDigitCode.FindStringSubmatch(mail.Text); code != nil {
+		m.mu.Lock()
+		m.last[NormalizeEmail(mail.To)] = code[1]
+		m.mu.Unlock()
+	}
+	return m.underlying.Send(ctx, mail)
+}
+
+// LastCode returns the most recently mailed code for an address, if any.
+func (m *CapturingMailer) LastCode(email string) (string, bool) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	code, ok := m.last[NormalizeEmail(email)]
+	return code, ok
 }

@@ -99,10 +99,11 @@ func New(cfg Config) (*App, error) {
 		Mailer:    mailer,
 		// The claimer is injected for the same reason the match recorder is:
 		// stats imports auth for its middleware, so auth cannot import stats.
-		Claimer:           stats.NewClaimer(statsRepo),
-		PublicBaseURL:     cfg.PublicBaseURL,
-		AllowedReturnURLs: cfg.AllowedReturnURLs,
-		AppName:           "Žolíky",
+		Claimer:              stats.NewClaimer(statsRepo),
+		PublicBaseURL:        cfg.PublicBaseURL,
+		AllowedReturnURLs:    cfg.AllowedReturnURLs,
+		AppName:              "Žolíky",
+		TestEndpointsEnabled: cfg.TestEndpointsEnabled,
 	})
 
 	return &App{

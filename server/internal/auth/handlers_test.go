@@ -95,13 +95,14 @@ func newTestHarness(t *testing.T) *testHarness {
 	statsRepo := stats.NewRepository(m)
 
 	h := auth.NewHandlers(auth.Deps{
-		Mongo:             m,
-		Providers:         identity.NewRegistry(oidc.provider(t)),
-		Mailer:            mailer,
-		Claimer:           stats.NewClaimer(statsRepo),
-		PublicBaseURL:     "http://test.local",
-		AllowedReturnURLs: []string{"app://return"},
-		AppName:           "TestApp",
+		Mongo:                m,
+		Providers:            identity.NewRegistry(oidc.provider(t)),
+		Mailer:               mailer,
+		Claimer:              stats.NewClaimer(statsRepo),
+		PublicBaseURL:        "http://test.local",
+		AllowedReturnURLs:    []string{"app://return"},
+		AppName:              "TestApp",
+		TestEndpointsEnabled: true,
 	})
 
 	r := chi.NewRouter()
@@ -501,6 +502,77 @@ func TestEmailStartDoesNotRevealWhetherTheAddressHasAnAccount(t *testing.T) {
 	if knownRes.status != unknownRes.status || knownRes.raw != unknownRes.raw {
 		t.Errorf("responses differ between a known and unknown address:\n  known:   %d %s\n  unknown: %d %s",
 			knownRes.status, knownRes.raw, unknownRes.status, unknownRes.raw)
+	}
+}
+
+func TestDevLastCodeReturnsWhatWasActuallyMailed(t *testing.T) {
+	h := newTestHarness(t)
+	email := "dev-endpoint@example.com"
+	h.do(http.MethodPost, "/auth/email/start", "", map[string]any{"email": email})
+	wantCode := h.mailer.lastCodeFor(t, email)
+
+	res := h.do(http.MethodGet, "/auth/dev/last-code?email="+email, "", nil)
+	if res.status != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", res.status, res.raw)
+	}
+	if res.str("code") != wantCode {
+		t.Errorf("code = %q, want the code actually mailed (%q)", res.str("code"), wantCode)
+	}
+
+	// The dev endpoint doesn't consume the code — it's a read of what the
+	// mailer sent, not a substitute redemption path. The real code must
+	// still work through the real verify endpoint afterwards.
+	verify := h.do(http.MethodPost, "/auth/email/verify", "", map[string]any{"email": email, "code": wantCode})
+	if verify.status != http.StatusOK {
+		t.Fatalf("verify after reading the dev code: status %d body %s", verify.status, verify.raw)
+	}
+}
+
+func TestDevLastCode404sForAnAddressWithNoMailSent(t *testing.T) {
+	h := newTestHarness(t)
+	res := h.do(http.MethodGet, "/auth/dev/last-code?email=never-mailed@example.com", "", nil)
+	if res.status != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404 for an address nothing was ever sent to", res.status)
+	}
+}
+
+func TestDevLastCodeIsUnavailableWhenTestEndpointsAreOff(t *testing.T) {
+	// Mirrors debugState's own gating test in spirit: a deployment that never
+	// opted into test endpoints must not expose a way to read live sign-in
+	// codes back out of the server.
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	client, err := mongo.Connect(options.Client().ApplyURI(testMongoURI()))
+	if err != nil {
+		t.Skipf("could not build a mongo client: %v", err)
+	}
+	if err := client.Ping(ctx, nil); err != nil {
+		t.Skipf("mongo unreachable: %v", err)
+	}
+	m := &db.Mongo{Client: client, DB: client.Database(fmt.Sprintf("zolik_authtest_gated_%d", time.Now().UnixNano()))}
+	if err := m.EnsureIndexes(ctx); err != nil {
+		t.Fatalf("ensuring indexes: %v", err)
+	}
+	t.Cleanup(func() {
+		dropCtx, dropCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer dropCancel()
+		_ = m.DB.Drop(dropCtx)
+		_ = client.Disconnect(dropCtx)
+	})
+
+	mailer := &capturingMailer{}
+	h := auth.NewHandlers(auth.Deps{Mongo: m, Mailer: mailer, AppName: "Gated"})
+	r := chi.NewRouter()
+	h.RegisterRoutes(r)
+	srv := httptest.NewServer(r)
+	t.Cleanup(srv.Close)
+
+	local := &testHarness{t: t, server: srv, mailer: mailer}
+	local.do(http.MethodPost, "/auth/email/start", "", map[string]any{"email": "gated@example.com"})
+
+	res := local.do(http.MethodGet, "/auth/dev/last-code?email=gated@example.com", "", nil)
+	if res.status != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404 — the route must not even be reachable", res.status)
 	}
 }
 

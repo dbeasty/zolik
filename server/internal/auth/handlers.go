@@ -48,6 +48,11 @@ type Deps struct {
 	AllowedReturnURLs []string
 	// AppName appears in the sign-in email.
 	AppName string
+	// TestEndpointsEnabled gates /auth/dev/last-code, the same way
+	// app.Config.TestEndpointsEnabled gates game's debugState — see
+	// devLastCode's doc comment. Off by default; a real deployment should
+	// never set this.
+	TestEndpointsEnabled bool
 }
 
 type Handlers struct {
@@ -60,6 +65,12 @@ type Handlers struct {
 
 	publicBaseURL     string
 	allowedReturnURLs []string
+
+	testEndpoints bool
+	// devMailer is non-nil only when TestEndpointsEnabled is set — see
+	// CapturingMailer's doc comment for why this must never exist outside
+	// local/e2e use.
+	devMailer *CapturingMailer
 }
 
 func NewHandlers(d Deps) *Handlers {
@@ -73,6 +84,11 @@ func NewHandlers(d Deps) *Handlers {
 	if mailer == nil {
 		mailer = LogMailer{}
 	}
+	var devMailer *CapturingMailer
+	if d.TestEndpointsEnabled {
+		devMailer = NewCapturingMailer(mailer)
+		mailer = devMailer
+	}
 	return &Handlers{
 		users:             c.Users,
 		sessionRepo:       NewSessionRepository(d.Mongo),
@@ -82,6 +98,8 @@ func NewHandlers(d Deps) *Handlers {
 		providers:         providers,
 		publicBaseURL:     d.PublicBaseURL,
 		allowedReturnURLs: d.AllowedReturnURLs,
+		testEndpoints:     d.TestEndpointsEnabled,
+		devMailer:         devMailer,
 	}
 }
 
@@ -119,6 +137,30 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 
 	r.Post("/auth/refresh", h.refresh)
 	r.Post("/auth/logout", h.logout)
+
+	if h.testEndpoints {
+		r.Get("/auth/dev/last-code", h.devLastCode)
+	}
+}
+
+// devLastCode returns the most recently mailed sign-in code for an address —
+// the passwordless-email equivalent of game's debugState: a way for an
+// automated test to complete a flow that, for a real user, requires reading
+// an actual inbox. Only mounted when TestEndpointsEnabled is set (default on
+// for local dev, same as ENABLE_TEST_ENDPOINTS elsewhere; must be explicitly
+// opted into anywhere APP_ENV is set) — see devMailer.
+func (h *Handlers) devLastCode(w http.ResponseWriter, req *http.Request) {
+	email := NormalizeEmail(req.URL.Query().Get("email"))
+	if email == "" || h.devMailer == nil {
+		http.Error(w, "no code available", http.StatusNotFound)
+		return
+	}
+	code, ok := h.devMailer.LastCode(email)
+	if !ok {
+		http.Error(w, "no code available", http.StatusNotFound)
+		return
+	}
+	writeJSON(w, map[string]any{"code": code})
 }
 
 // listProviders tells a client which sign-in methods this deployment offers,
