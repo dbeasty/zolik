@@ -18,13 +18,14 @@ import (
 	"zolik/server/internal/scoring"
 	"zolik/server/internal/stats"
 	userrepo "zolik/server/internal/user"
+	"zolik/server/internal/ws"
 	"zolik/server/internal/zolikmod"
 )
 
 type App struct {
 	cfg     Config
 	db      *db.Mongo
-	hub     *game.Hub
+	hub     *ws.Hub
 	manager *game.Manager
 	auth    *auth.Handlers
 }
@@ -45,8 +46,8 @@ func New(cfg Config) (*App, error) {
 		return nil, err
 	}
 
-	registry := game.NewConnRegistry()
-	hub, err := game.NewHub(registry, cfg.RedisURL)
+	registry := ws.NewConnRegistry()
+	hub, err := ws.NewHub(registry, cfg.RedisURL)
 	if err != nil {
 		_ = m.Close(ctx)
 		return nil, err
@@ -73,7 +74,7 @@ func New(cfg Config) (*App, error) {
 
 func (a *App) Config() Config { return a.cfg }
 
-func (a *App) Hub() *game.Hub { return a.hub }
+func (a *App) Hub() *ws.Hub { return a.hub }
 
 func (a *App) Manager() *game.Manager { return a.manager }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"time"
+	"zolik/server/internal/ws"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 
@@ -188,9 +189,9 @@ func (m *Manager) broadcastToAll(gameID string, recipients []string, payload map
 	if len(recipients) == 0 {
 		return
 	}
-	msgs := make([]PlayerMessage, 0, len(recipients))
+	msgs := make([]ws.PlayerMessage, 0, len(recipients))
 	for _, pid := range recipients {
-		msgs = append(msgs, PlayerMessage{PlayerID: pid, Payload: payload})
+		msgs = append(msgs, ws.PlayerMessage{PlayerID: pid, Payload: payload})
 	}
 	m.hub.Publish(gameID, msgs)
 }

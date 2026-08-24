@@ -11,6 +11,7 @@ import (
 	"zolik/server/internal/auth"
 	"zolik/server/internal/db"
 	"zolik/server/internal/game"
+	"zolik/server/internal/ws"
 )
 
 // TestRouteGroupsSurviveMounting checks that no group of routes silently
@@ -107,7 +108,7 @@ func offlineApp(t *testing.T) *App {
 	t.Cleanup(func() { _ = client.Disconnect(t.Context()) })
 	m := &db.Mongo{Client: client, DB: client.Database("route_test")}
 
-	hub, err := game.NewHub(game.NewConnRegistry(), "")
+	hub, err := ws.NewHub(ws.NewConnRegistry(), "")
 	if err != nil {
 		t.Fatalf("building a hub: %v", err)
 	}

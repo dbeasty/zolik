@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"sync"
 	"time"
+	"zolik/server/internal/ws"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 
@@ -29,8 +30,8 @@ type MatchRecorder interface {
 
 type Manager struct {
 	repo     *Repository
-	hub      *Hub
-	registry *ConnRegistry
+	hub      *ws.Hub
+	registry *ws.ConnRegistry
 	// recorder is optional; nil simply means no statistics are kept, which is
 	// what the tests and any statistics-free deployment run with.
 	recorder MatchRecorder
@@ -39,7 +40,7 @@ type Manager struct {
 	aiRunning map[string]bool
 }
 
-func NewManager(repo *Repository, hub *Hub) *Manager {
+func NewManager(repo *Repository, hub *ws.Hub) *Manager {
 	return &Manager{
 		repo:      repo,
 		hub:       hub,

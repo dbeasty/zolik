@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"zolik/server/internal/game"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
+	"zolik/server/internal/ws"
 )
 
 // Manager is the single write path for module-hosted matches.
@@ -23,7 +23,7 @@ import (
 type Manager struct {
 	repo     *Repository
 	registry *module.Registry
-	hub      *game.Hub
+	hub      *ws.Hub
 
 	// botMu guards botRunning, which is one flag per match saying a bot loop
 	// is already driving it. Without it, every human action would start a
@@ -32,13 +32,13 @@ type Manager struct {
 	botRunning map[string]bool
 }
 
-func NewManager(repo *Repository, registry *module.Registry, hub *game.Hub) *Manager {
+func NewManager(repo *Repository, registry *module.Registry, hub *ws.Hub) *Manager {
 	return &Manager{repo: repo, registry: registry, hub: hub}
 }
 
 func (m *Manager) Registry() *module.Registry { return m.registry }
 func (m *Manager) Repo() *Repository          { return m.repo }
-func (m *Manager) Hub() *game.Hub             { return m.hub }
+func (m *Manager) Hub() *ws.Hub               { return m.hub }
 
 // Create opens a lobby for a module.
 func (m *Manager) Create(ctx context.Context, moduleID string, cfg module.MatchConfig, host models.Player) (models.Match, error) {

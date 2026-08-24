@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"zolik/server/internal/ws"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/websocket"
@@ -27,22 +28,6 @@ const (
 	pingInterval = 25 * time.Second
 	pongWait     = 60 * time.Second
 )
-
-// PingableConn adapts gorilla's *websocket.Conn — which has no plain
-// Ping() error method, only WriteControl — to the WSConn interface, so the
-// keepalive ticker in handleWS can go through the same registry wrapper
-// (and its write mutex) as every other write to this socket.
-//
-// Exported because the module runtime (internal/match) registers connections
-// with the same Hub and needs the same adapter; a second copy of it would be
-// a second place to get the control-frame deadline wrong.
-type PingableConn struct {
-	*websocket.Conn
-}
-
-func (c PingableConn) Ping() error {
-	return c.WriteControl(websocket.PingMessage, nil, time.Now().Add(10*time.Second))
-}
 
 type WebSocketServer struct {
 	manager  *Manager
@@ -102,7 +87,7 @@ func (s *WebSocketServer) handleWS(w http.ResponseWriter, req *http.Request) {
 	// response, must go through wsConn, since gorilla's websocket.Conn does
 	// not allow concurrent writers and an unsynchronized write can silently
 	// vanish.
-	wsConn, prev := s.manager.hub.Registry().Add(gameID, playerID, PingableConn{conn})
+	wsConn, prev := s.manager.hub.Registry().Add(gameID, playerID, ws.PingableConn{Conn: conn})
 	if prev != nil {
 		log.Printf("game=%s player=%s ws connect: replacing existing connection", gameID, playerID)
 		_ = prev.Close()
@@ -239,7 +224,7 @@ type MeldPreviewMsg struct {
 // is only useful if it reflects the state the submission would actually hit —
 // an opponent's lay-off can change what the player's own candidate is worth.
 func (s *WebSocketServer) writeMeldPreview(
-	ctx context.Context, wsConn WSConn, oid bson.ObjectID, playerID string, cards []string,
+	ctx context.Context, wsConn ws.WSConn, oid bson.ObjectID, playerID string, cards []string,
 ) error {
 	game, err := s.manager.repo.FindByID(ctx, oid)
 	if err != nil {

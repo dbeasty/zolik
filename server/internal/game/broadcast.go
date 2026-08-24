@@ -3,6 +3,7 @@ package game
 import (
 	"zolik/server/internal/models"
 	"zolik/server/internal/rules"
+	"zolik/server/internal/ws"
 )
 
 // BroadcastRecipients returns every player id that should receive WS payloads for this game.
@@ -29,13 +30,13 @@ func (m *Manager) broadcastEvents(gameID, actorID string, events []rules.StateEv
 		return
 	}
 	for _, ev := range events {
-		msgs := make([]PlayerMessage, 0, len(recipients))
+		msgs := make([]ws.PlayerMessage, 0, len(recipients))
 		for _, pid := range recipients {
 			payload := eventPayloadForPlayer(ev, pid, actorID)
 			if payload == nil {
 				continue
 			}
-			msgs = append(msgs, PlayerMessage{PlayerID: pid, Payload: payload})
+			msgs = append(msgs, ws.PlayerMessage{PlayerID: pid, Payload: payload})
 		}
 		if len(msgs) > 0 {
 			m.hub.Publish(gameID, msgs)

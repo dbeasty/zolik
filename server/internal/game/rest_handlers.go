@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"net/http"
 	"time"
+	"zolik/server/internal/ws"
 
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -20,7 +21,7 @@ import (
 
 type GameRestHandlers struct {
 	repo    *Repository
-	hub     *Hub
+	hub     *ws.Hub
 	manager *Manager
 	// stats is optional; when nil the scoreboard simply omits the lifetime
 	// records it would otherwise attach.
@@ -30,7 +31,7 @@ type GameRestHandlers struct {
 	testEndpoints bool
 }
 
-func NewGameRestHandlers(repo *Repository, hub *Hub, manager *Manager, statsRepo *stats.Repository, testEndpoints bool) *GameRestHandlers {
+func NewGameRestHandlers(repo *Repository, hub *ws.Hub, manager *Manager, statsRepo *stats.Repository, testEndpoints bool) *GameRestHandlers {
 	return &GameRestHandlers{repo: repo, hub: hub, manager: manager, stats: statsRepo, testEndpoints: testEndpoints}
 }
 

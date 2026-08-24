@@ -1,7 +1,10 @@
-package game
+package ws
 
 import (
 	"sync"
+	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 // WSConn is the subset of gorilla/websocket used by the game hub.
@@ -113,4 +116,21 @@ func (r *ConnRegistry) ForGame(gameID string) map[string]WSConn {
 		out[pid] = c
 	}
 	return out
+}
+
+// PingableConn adapts gorilla's *websocket.Conn — which has no plain
+// Ping() error method, only WriteControl — to the WSConn interface, so a
+// keepalive ticker goes through the same registry wrapper (and its write
+// mutex) as every other write to this socket.
+//
+// It lives here, beside the registry it is registered with, rather than in
+// whichever handler happened to need it first — every game's socket handler
+// needs the same adapter, and a second copy of it would be a second place to
+// get the control-frame deadline wrong.
+type PingableConn struct {
+	*websocket.Conn
+}
+
+func (c PingableConn) Ping() error {
+	return c.WriteControl(websocket.PingMessage, nil, time.Now().Add(10*time.Second))
 }

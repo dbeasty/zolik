@@ -11,9 +11,9 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 
 	"zolik/server/internal/auth"
-	"zolik/server/internal/game"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
+	"zolik/server/internal/ws"
 )
 
 // Handlers expose the generic runtime over HTTP and WebSocket.
@@ -184,7 +184,7 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "upgrade failed", http.StatusBadRequest)
 		return
 	}
-	wsConn, prev := h.manager.Hub().Registry().Add(matchID, playerID, game.PingableConn{Conn: conn})
+	wsConn, prev := h.manager.Hub().Registry().Add(matchID, playerID, ws.PingableConn{Conn: conn})
 	if prev != nil {
 		_ = prev.Close()
 	}
