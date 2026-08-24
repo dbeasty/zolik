@@ -42,7 +42,11 @@ test.describe('lay meld button', () => {
     // reads as "a blue button", so opacity alone didn't tell the player the
     // button had come alive.
     await expect(lay).toHaveCSS('opacity', '1');
-    await expect(lay).toHaveCSS('background-color', 'rgb(96, 165, 250)');
+    // `colors.accentButton` (#7ab8ff). This assertion pins a hex the theme
+    // owns, so lightening the button in dc54f25 broke it without anything in
+    // that commit looking wrong — the value here was left on the old #60a5fa,
+    // which no longer exists anywhere in the client.
+    await expect(lay).toHaveCSS('background-color', 'rgb(122, 184, 255)');
     await lay.click();
     await expect(page.getByText('TABLE MELDS')).toBeVisible();
   });

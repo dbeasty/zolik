@@ -37,6 +37,13 @@ export default function RootLayout() {
                 <Stack.Screen name="auth/register" options={{ title: 'Register' }} />
                 <Stack.Screen name="auth/guest" options={{ title: 'Guest' }} />
                 <Stack.Screen name="lobby/create" options={{ title: 'New game' }} />
+                {/* The generic path: a picker rendered from /modules, and one
+                    screen that plays whatever it starts. */}
+                <Stack.Screen name="lobby/games" options={{ title: 'Games' }} />
+                <Stack.Screen
+                  name="match/[matchId]"
+                  options={{ title: 'Match', headerBackVisible: true }}
+                />
                 <Stack.Screen name="lobby/join" options={{ title: 'Join game' }} />
                 <Stack.Screen
                   name="game/[gameId]"

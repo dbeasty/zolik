@@ -35,6 +35,10 @@ go.work.sum
 e2e/node_modules/
 e2e/test-results/
 e2e/playwright-report/
+# Playwright writes these wherever it is invoked from; running it outside e2e/
+# by mistake should not leave a tracked file behind.
+test-results/
+playwright-report/
 e2e/.cache/
 
 # SSH host key (generated locally)
