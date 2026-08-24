@@ -73,6 +73,17 @@ export default function MainMenu() {
           }}
         />
         <MenuButton
+          label="Find players"
+          secondary
+          onPress={() => {
+            if (!session) {
+              router.push('/auth/guest');
+              return;
+            }
+            router.push('/lobby/waiting-room');
+          }}
+        />
+        <MenuButton
           label="Offline score table"
           secondary
           onPress={() => router.push('/scoring')}

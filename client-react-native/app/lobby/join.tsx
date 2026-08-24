@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 
@@ -9,11 +9,16 @@ import { colors, shared } from '@/src/theme';
 
 export default function JoinLobbyScreen() {
   const { client } = useSession();
+  // A host's invite lands the player here with the game already decided —
+  // they were seated server-side the moment the host picked them, so there
+  // is no code to type and nothing left to do but watch the lobby fill up,
+  // same as anyone who joined by code.
+  const { gameId: invitedGameId } = useLocalSearchParams<{ gameId?: string }>();
   const [code, setCode] = useState('');
-  const [gameId, setGameId] = useState('');
+  const [gameId, setGameId] = useState(invitedGameId ?? '');
   const [players, setPlayers] = useState<LobbyPlayer[]>([]);
   const [error, setError] = useState('');
-  const [joined, setJoined] = useState(false);
+  const [joined, setJoined] = useState(Boolean(invitedGameId));
 
   const poll = useCallback(async () => {
     if (!gameId) return;

@@ -1,6 +1,7 @@
 package game
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
@@ -18,6 +19,23 @@ import (
 	"zolik/server/internal/stats"
 )
 
+// WaitingLookup answers whether a player is currently in the waiting-room
+// pool, and lets them be picked up out of it. Satisfied by *lobby.Store —
+// named here as a narrow, primitive-typed interface rather than importing
+// internal/lobby directly, because lobby already imports this package for
+// its WebSocket transport (Hub, ConnRegistry); importing it back here would
+// cycle. See app.go, which wires the concrete *lobby.Store in.
+type WaitingLookup interface {
+	// IsWaiting reports the display details of a waiting player, so an
+	// invite can build their seat without a second round trip to whatever
+	// store lobby uses.
+	IsWaiting(ctx context.Context, playerID string) (name string, isGuest bool, ok bool)
+	// Pickup removes a player from the pool, reporting whether they were
+	// actually present. Called only after they've been seated — a failed
+	// seat attempt must leave them waiting, not silently drop them.
+	Pickup(ctx context.Context, playerID string) bool
+}
+
 type GameRestHandlers struct {
 	repo    *Repository
 	hub     *Hub
@@ -25,13 +43,28 @@ type GameRestHandlers struct {
 	// stats is optional; when nil the scoreboard simply omits the lifetime
 	// records it would otherwise attach.
 	stats *stats.Repository
+	// waiting is optional; when nil, inviting a waiting player is simply
+	// unavailable (the route still exists but 503s) — a deployment can run
+	// the game server without the lobby package wired in.
+	waiting WaitingLookup
+	// waitingRoom is the Hub room a picked-up player's own connection is
+	// registered under, so they can be notified there — see lobby.RoomID,
+	// injected as a plain string for the same import-cycle reason as
+	// WaitingLookup above.
+	waitingRoom string
 	// testEndpoints gates debugState — see its doc comment and
 	// app.Config.TestEndpointsEnabled.
 	testEndpoints bool
 }
 
-func NewGameRestHandlers(repo *Repository, hub *Hub, manager *Manager, statsRepo *stats.Repository, testEndpoints bool) *GameRestHandlers {
-	return &GameRestHandlers{repo: repo, hub: hub, manager: manager, stats: statsRepo, testEndpoints: testEndpoints}
+func NewGameRestHandlers(
+	repo *Repository, hub *Hub, manager *Manager, statsRepo *stats.Repository,
+	waiting WaitingLookup, waitingRoom string, testEndpoints bool,
+) *GameRestHandlers {
+	return &GameRestHandlers{
+		repo: repo, hub: hub, manager: manager, stats: statsRepo,
+		waiting: waiting, waitingRoom: waitingRoom, testEndpoints: testEndpoints,
+	}
 }
 
 type CreateGameReq struct {
@@ -59,6 +92,7 @@ func (h *GameRestHandlers) RegisterRoutes(r chi.Router) {
 	r.Get("/games/{id}/scoreboard", h.scoreboard)
 	r.With(auth.AuthMiddleware).Post("/games", h.createGame)
 	r.With(auth.AuthMiddleware).Post("/games/{id}/join", h.joinGame)
+	r.With(auth.AuthMiddleware).Post("/games/{id}/invite", h.invitePlayer)
 	r.With(auth.AuthMiddleware).Patch("/games/{id}/settings", h.updateSettings)
 	r.With(auth.AuthMiddleware).Post("/games/{id}/start", h.startGame)
 	r.With(auth.AuthMiddleware).Post("/games/{id}/add-ai", h.addAI)
@@ -340,22 +374,38 @@ func (h *GameRestHandlers) joinGame(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 	}
-	if len(g.Players) >= rules.MaxPlayers {
-		http.Error(w, "lobby full", http.StatusBadRequest)
+	if err := seatPlayer(&g, uc.UserID, uc.Username, uc.PlayerUserID(), uc.PlayerGuestID()); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	if err := h.repo.UpdateWithVersion(ctx, g.ID, g.Version, g); err != nil {
+		http.Error(w, err.Error(), http.StatusConflict)
+		return
+	}
+
+	_ = json.NewEncoder(w).Encode(map[string]any{"gameId": gameIDHex, "joined": true, "playerCount": len(g.Players)})
+}
+
+// seatPlayer appends one human seat to a lobby game, mutating g in place.
+// Shared by joinGame (a player seating themself) and invitePlayer (a host
+// seating someone they picked up from the waiting room) so the capacity
+// check and the per-map initialisation a fresh seat needs exist in exactly
+// one place.
+func seatPlayer(g *models.Game, id, name, userID, guestID string) error {
+	if len(g.Players) >= rules.MaxPlayers {
+		return fmt.Errorf("lobby full")
+	}
 	p := models.Player{
-		ID:   uc.UserID,
-		Name: uc.Username,
+		ID:   id,
+		Name: name,
 		IsAI: false,
 		// Exactly one of these is set — a seat is held by an account or by a
 		// device's guest identity. The guest id is what lets this match be
 		// re-attributed if the player signs up later.
-		UserID:  uc.PlayerUserID(),
-		GuestID: uc.PlayerGuestID(),
+		UserID:  userID,
+		GuestID: guestID,
 	}
-
 	g.Players = append(g.Players, p)
 	g.TurnOrder = append(g.TurnOrder, p.ID)
 	if g.RoundReqMet == nil {
@@ -368,13 +418,95 @@ func (h *GameRestHandlers) joinGame(w http.ResponseWriter, req *http.Request) {
 	if g.Melds == nil {
 		g.Melds = map[string][][]string{}
 	}
+	return nil
+}
 
+type inviteReq struct {
+	PlayerID string `json:"playerId"`
+}
+
+// invitePlayer lets the host seat someone straight out of the waiting room,
+// without either side needing a join code. It is the "pick them up" half of
+// the waiting room: the room says who's available, this is what acts on it.
+//
+// Gated to the host, same as startGame — it's the host's lobby being built,
+// and letting any seated player invite on their behalf would make the
+// waiting room's membership something two people could fight over.
+func (h *GameRestHandlers) invitePlayer(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	if h.waiting == nil {
+		http.Error(w, "the waiting room is not available on this deployment", http.StatusServiceUnavailable)
+		return
+	}
+
+	var body inviteReq
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil || body.PlayerID == "" {
+		http.Error(w, "playerId required", http.StatusBadRequest)
+		return
+	}
+
+	idOrJoin := chi.URLParam(req, "id")
+	g, gameIDHex, err := h.repo.ParseGameIDOrJoin(ctx, idOrJoin)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	if g.HostID != uc.UserID {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+	if g.Status != "lobby" {
+		http.Error(w, "game not in lobby", http.StatusBadRequest)
+		return
+	}
+	for _, p := range g.Players {
+		if p.ID == body.PlayerID {
+			_ = json.NewEncoder(w).Encode(map[string]any{"gameId": gameIDHex, "alreadyJoined": true})
+			return
+		}
+	}
+
+	// Re-checked here rather than trusted from whatever snapshot the host's
+	// client last polled: the target may have left, been picked up
+	// elsewhere, or disconnected in the meantime, and this is the only
+	// point that gets to decide whether they're still actually available.
+	name, isGuest, stillWaiting := h.waiting.IsWaiting(ctx, body.PlayerID)
+	if !stillWaiting {
+		http.Error(w, "that player is no longer waiting", http.StatusConflict)
+		return
+	}
+
+	userID, guestID := body.PlayerID, ""
+	if isGuest {
+		userID, guestID = "", body.PlayerID
+	}
+	if err := seatPlayer(&g, body.PlayerID, name, userID, guestID); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	if err := h.repo.UpdateWithVersion(ctx, g.ID, g.Version, g); err != nil {
 		http.Error(w, err.Error(), http.StatusConflict)
 		return
 	}
 
-	_ = json.NewEncoder(w).Encode(map[string]any{"gameId": gameIDHex, "joined": true, "playerCount": len(g.Players)})
+	// The seat is now committed; only now does the player actually leave the
+	// pool. Picking up before the seat was confirmed would risk losing them
+	// from the waiting room over a write that then failed.
+	h.waiting.Pickup(ctx, body.PlayerID)
+	if h.hub != nil && h.waitingRoom != "" {
+		h.hub.WriteDirect(h.waitingRoom, body.PlayerID, map[string]any{
+			"type":     "lobby_invited",
+			"gameId":   gameIDHex,
+			"joinCode": g.JoinCode,
+		})
+	}
+
+	_ = json.NewEncoder(w).Encode(map[string]any{"gameId": gameIDHex, "invited": true, "playerCount": len(g.Players)})
 }
 
 func (h *GameRestHandlers) startGame(w http.ResponseWriter, req *http.Request) {

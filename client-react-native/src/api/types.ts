@@ -233,6 +233,22 @@ export type LobbyPlayer = {
   isAI: boolean;
 };
 
+/** One human player currently waiting in the lobby to be picked up into a
+ *  game — see GET /lobby/waiting and WS /ws/lobby. */
+export type WaitingPlayer = {
+  playerId: string;
+  username: string;
+  isGuest: boolean;
+  joinedAt: string;
+};
+
+/** A push on the /ws/lobby socket. 'lobby_waiting' is the current pool,
+ *  broadcast whenever it changes; 'lobby_invited' is personal — it means a
+ *  host just seated this player directly into their game. */
+export type LobbyWSMessage =
+  | { type: 'lobby_waiting'; players: WaitingPlayer[] }
+  | { type: 'lobby_invited'; gameId: string; joinCode: string };
+
 export type WSAction = {
   type: string;
   from?: string;

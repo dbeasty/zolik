@@ -11,6 +11,7 @@ import (
 	"zolik/server/internal/db"
 	"zolik/server/internal/game"
 	"zolik/server/internal/identity"
+	"zolik/server/internal/lobby"
 	"zolik/server/internal/match"
 	"zolik/server/internal/module"
 	"zolik/server/internal/prsi"
@@ -26,6 +27,10 @@ type App struct {
 	hub     *game.Hub
 	manager *game.Manager
 	auth    *auth.Handlers
+	// waitingRoom is the pool of human players waiting to be picked up into
+	// a game — see internal/lobby. Rides the same Hub as game rooms do, so
+	// it needs no database of its own and no separate scaling story.
+	waitingRoom *lobby.Store
 }
 
 func New(cfg Config) (*App, error) {
@@ -46,6 +51,15 @@ func New(cfg Config) (*App, error) {
 
 	registry := game.NewConnRegistry()
 	hub, err := game.NewHub(registry, cfg.RedisURL)
+	if err != nil {
+		_ = m.Close(ctx)
+		return nil, err
+	}
+
+	// The waiting room shares the game hub's Redis (or its local-only
+	// fallback) rather than dialling a second connection — same instance,
+	// same trade-off, same "fine for development without it" story.
+	waitingRoom, err := lobby.NewStore(cfg.RedisURL)
 	if err != nil {
 		_ = m.Close(ctx)
 		return nil, err
@@ -82,11 +96,12 @@ func New(cfg Config) (*App, error) {
 	})
 
 	return &App{
-		cfg:     cfg,
-		db:      m,
-		hub:     hub,
-		manager: manager,
-		auth:    authHandlers,
+		cfg:         cfg,
+		db:          m,
+		hub:         hub,
+		manager:     manager,
+		auth:        authHandlers,
+		waitingRoom: waitingRoom,
 	}, nil
 }
 
@@ -102,6 +117,10 @@ func (a *App) Close(ctx context.Context) error {
 	if a.hub != nil {
 		_ = a.hub.Close()
 		a.hub = nil
+	}
+	if a.waitingRoom != nil {
+		_ = a.waitingRoom.Close()
+		a.waitingRoom = nil
 	}
 	if a.db != nil {
 		return a.db.Close(ctx)
@@ -127,8 +146,10 @@ type routeGroup struct {
 // nothing but the browser suite noticed.
 func (a *App) routeGroups() []routeGroup {
 	statsRepo := stats.NewRepository(a.db)
+	lobbyHandlers := lobby.NewHandlers(a.hub, a.waitingRoom)
 	gameRest := game.NewGameRestHandlers(
-		game.NewRepository(a.db), a.hub, a.manager, statsRepo, a.cfg.TestEndpointsEnabled,
+		game.NewRepository(a.db), a.hub, a.manager, statsRepo,
+		a.waitingRoom, lobby.RoomID, a.cfg.TestEndpointsEnabled,
 	)
 
 	return []routeGroup{
@@ -143,6 +164,7 @@ func (a *App) routeGroups() []routeGroup {
 		}},
 		{"auth", a.auth.RegisterRoutes},
 		{"game", gameRest.RegisterRoutes},
+		{"lobby", lobbyHandlers.RegisterRoutes},
 		{"user", userrepo.NewHandlers(userrepo.NewRepository(a.db), auth.NewStore(a.db)).RegisterRoutes},
 		{"scoring", scoring.NewHandlers(a.db).RegisterRoutes},
 		// The module runtime, mounted alongside the Žolíky path rather than

@@ -10,6 +10,7 @@ import type {
   PlayerSession,
   RulesInfo,
   SignInOutcome,
+  WaitingPlayer,
   WSAction,
 } from '@/src/api/types';
 
@@ -68,6 +69,30 @@ export class ZolikClient {
     const scheme = u.protocol === 'https:' ? 'wss' : 'ws';
     const token = encodeURIComponent(this.accessToken);
     return `${scheme}://${u.host}/ws/games/${encodeURIComponent(gameId)}?token=${token}`;
+  }
+
+  /** The waiting room's socket: connecting to it *is* "I'm waiting to be
+   *  picked up" — there is nothing else to negotiate on open. */
+  lobbyWsUrl(): string {
+    const u = new URL(this.baseUrl);
+    const scheme = u.protocol === 'https:' ? 'wss' : 'ws';
+    const token = encodeURIComponent(this.accessToken);
+    return `${scheme}://${u.host}/ws/lobby?token=${token}`;
+  }
+
+  /** A snapshot of who's currently waiting, for a host browsing whom to
+   *  invite. Polled rather than streamed — the host's one socket is
+   *  usually already spent on their own game's room. */
+  async getWaitingLobby(): Promise<WaitingPlayer[]> {
+    const data = await this.get<{ players: WaitingPlayer[] }>('/lobby/waiting', true);
+    return data.players ?? [];
+  }
+
+  /** Seats a specific waiting player directly into this lobby, no join code
+   *  needed. Host-only; the server re-checks the target is still actually
+   *  waiting before seating them. */
+  async invitePlayer(idOrJoin: string, playerId: string): Promise<{ alreadyJoined?: boolean }> {
+    return this.post(`/games/${encodeURIComponent(idOrJoin)}/invite`, { playerId }, true);
   }
 
   /**
