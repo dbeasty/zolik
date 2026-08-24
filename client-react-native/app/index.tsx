@@ -52,17 +52,17 @@ export default function MainMenu() {
 
       <View style={{ marginTop: 16 }}>
         <MenuButton
-          label="New game"
+          label="Play"
           onPress={() => {
             if (!session) {
               router.push('/auth/guest');
               return;
             }
-            router.push('/lobby/create');
+            router.push('/lobby/games');
           }}
         />
         <MenuButton
-          label="Join game"
+          label="Join a table"
           secondary
           onPress={() => {
             if (!session) {

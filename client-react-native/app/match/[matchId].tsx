@@ -9,7 +9,6 @@ import { ZoneView } from '@/src/components/match/ZoneView';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { useMatchSocket } from '@/src/hooks/useMatchSocket';
-import { ZOLIK_BASE_URL } from '@/src/config';
 import { reasonText } from '@/src/lib/i18n';
 import { factText, label, playerName } from '@/src/lib/labels';
 import { colors } from '@/src/theme';
@@ -29,22 +28,19 @@ import { colors } from '@/src/theme';
  * keys to look up. `e2e/tests/generic-shell.spec.ts` plays three different
  * games through it to prove the claim rather than assert it.
  *
- * Compare `game/[gameId].tsx`, which is 1,756 lines and plays exactly one game.
- * The difference is not effort; it is that the rules moved to the server.
+ * It replaced a 1,756-line screen that played exactly one game. The difference
+ * was not effort; it was that the rules had moved to the server, and a screen
+ * that derives nothing needs far less of itself.
  */
 export default function MatchScreen() {
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
-  const { session } = useSession();
+  const { session, client } = useSession();
   const [selected, setSelected] = useState<string[]>([]);
 
   const url = useMemo(() => {
     if (!matchId || !session?.accessToken) return null;
-    const u = new URL(ZOLIK_BASE_URL);
-    const scheme = u.protocol === 'https:' ? 'wss' : 'ws';
-    return `${scheme}://${u.host}/ws/matches/${encodeURIComponent(String(matchId))}?token=${encodeURIComponent(
-      session.accessToken,
-    )}`;
-  }, [matchId, session?.accessToken]);
+    return client.matchSocketUrl(String(matchId));
+  }, [client, matchId, session?.accessToken]);
 
   const { state, error, connected, send, clearError } = useMatchSocket(url);
   const viewerId = session?.userId ?? '';

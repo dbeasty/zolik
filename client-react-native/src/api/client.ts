@@ -1,13 +1,6 @@
 import { ZOLIK_BASE_URL } from '@/src/config';
-import type {
-  GameState,
-  GameOptions,
-  LobbyGame,
-  ModuleDescriptor,
-  PlayerSession,
-  RulesInfo,
-  WSAction,
-} from '@/src/api/types';
+import type { MatchModule, MatchState } from '@/src/api/matchTypes';
+import type { PlayerSession } from '@/src/api/types';
 
 export class ApiError extends Error {
   constructor(
@@ -47,13 +40,6 @@ export class ZolikClient {
     this.userId = session.userId;
     this.onTokensUpdated = onUpdate;
     this.onSessionExpired = onExpired;
-  }
-
-  wsUrl(gameId: string): string {
-    const u = new URL(this.baseUrl);
-    const scheme = u.protocol === 'https:' ? 'wss' : 'ws';
-    const token = encodeURIComponent(this.accessToken);
-    return `${scheme}://${u.host}/ws/games/${encodeURIComponent(gameId)}?token=${token}`;
   }
 
   async guestLogin(name: string): Promise<PlayerSession> {
@@ -126,80 +112,59 @@ export class ZolikClient {
     this.onTokensUpdated?.(data.accessToken, data.refreshToken);
   }
 
-  /**
-   * Options are keyed by the names the module descriptor declares, not by a
-   * fixed argument list — adding a knob server-side needs no change here. The
-   * server validates every value against the same schema it advertised
-   * (rules.ValidateOptions), so an unknown name or an undeclared value is a
-   * 400 rather than a silently ignored field.
-   */
-  async createGame(
-    rulesProfile?: string,
-    options: GameOptions = {},
-  ): Promise<{ gameId: string; joinCode: string }> {
-    const body: Record<string, number | string> = {};
-    if (rulesProfile) {
-      body.rulesProfile = rulesProfile;
-    }
-    for (const [name, value] of Object.entries(options)) {
-      if (typeof value === 'number' && value >= 0) body[name] = value;
-    }
-    return this.post('/games', body, true);
+  // --- matches -------------------------------------------------------------
+  //
+  // Six methods, none of which names a game. What they replaced —
+  // createGame/updateGameSettings/joinGame/addAI/startGame/getLobby/getRules/
+  // getModuleDescriptor/getScoreboard, plus a WebSocket URL builder and a
+  // typed rummy action sender — was the same six ideas with rummy baked into
+  // each one.
+
+  /** Every game this server hosts, and what each one lets a lobby set. */
+  async modules(): Promise<MatchModule[]> {
+    const body = await this.get<{ modules: MatchModule[] }>('/modules', false);
+    return body.modules ?? [];
   }
 
-  async updateGameSettings(
-    idOrCode: string,
-    settings: Record<string, number | string | undefined>,
-  ): Promise<void> {
-    await this.request(
-      'PATCH',
-      `/games/${encodeURIComponent(idOrCode)}/settings`,
-      settings,
+  async createMatch(
+    moduleId: string,
+    variation?: string,
+    options: Record<string, number> = {},
+  ): Promise<{ matchId: string; joinCode: string }> {
+    return this.post('/matches', { moduleId, variation, options }, true);
+  }
+
+  /** Joins by match id or by the short code a host reads out. */
+  async joinMatch(idOrCode: string): Promise<string> {
+    const data = await this.post<{ matchId: string }>(
+      `/matches/${encodeURIComponent(idOrCode)}/join`,
+      null,
       true,
     );
+    return data.matchId;
   }
 
-  async joinGame(idOrCode: string): Promise<string> {
-    const data = await this.post<{ gameId: string }>(
-      `/games/${encodeURIComponent(idOrCode)}/join`,
-      {},
-      true,
-    );
-    return data.gameId;
+  async addBot(idOrCode: string): Promise<{ playerId: string }> {
+    return this.post(`/matches/${encodeURIComponent(idOrCode)}/add-bot`, null, true);
   }
 
-  async addAI(idOrCode: string, difficulty: string): Promise<void> {
-    await this.post(
-      `/games/${encodeURIComponent(idOrCode)}/add-ai`,
-      { difficulty },
-      true,
-    );
+  async startMatch(idOrCode: string): Promise<void> {
+    await this.post(`/matches/${encodeURIComponent(idOrCode)}/start`, null, true);
   }
 
-  async startGame(idOrCode: string): Promise<void> {
-    await this.post(`/games/${encodeURIComponent(idOrCode)}/start`, {}, true);
+  /** A viewer's state over plain HTTP; the socket is the live path. */
+  async getMatch(idOrCode: string, as?: string): Promise<MatchState> {
+    const q = as ? `?as=${encodeURIComponent(as)}` : '';
+    return this.get(`/matches/${encodeURIComponent(idOrCode)}${q}`, false);
   }
 
-  async getLobby(idOrCode: string): Promise<LobbyGame> {
-    return this.get(`/games/${encodeURIComponent(idOrCode)}`, false);
-  }
-
-  /**
-   * @deprecated a strict subset of getModuleDescriptor(). Kept for callers
-   * that predate the descriptor; the server projects it from the same source.
-   */
-  async getRules(): Promise<RulesInfo> {
-    return this.get('/rules', false);
-  }
-
-  /**
-   * The module's self-description: which variations exist, what each one's
-   * ruleset is, and which options a lobby may set. Fetched instead of
-   * hardcoded, so a new variation or knob needs no client change — see
-   * docs/extensibility-plan.md Phase 2.1.
-   */
-  async getModuleDescriptor(): Promise<ModuleDescriptor> {
-    return this.get('/module', false);
+  /** The socket that carries actions in and per-viewer state out. */
+  matchSocketUrl(matchId: string): string {
+    const u = new URL(this.baseUrl);
+    const scheme = u.protocol === 'https:' ? 'wss' : 'ws';
+    return `${scheme}://${u.host}/ws/matches/${encodeURIComponent(matchId)}?token=${encodeURIComponent(
+      this.accessToken,
+    )}`;
   }
 
   async getMe(): Promise<{ id: string; username?: string }> {
@@ -234,17 +199,7 @@ export class ZolikClient {
     return this.get(`/leaderboard${queryString(opts)}`, false);
   }
 
-  /** Standings for one match, running or finished. With `lifetime`, each row
-   *  also carries that player's career record — who you are up against. */
-  async getScoreboard(idOrCode: string, lifetime = false): Promise<unknown> {
-    const suffix = lifetime ? '?lifetime=1' : '';
-    return this.get(`/games/${encodeURIComponent(idOrCode)}/scoreboard${suffix}`, false);
-  }
 
-  /** The recorded result of a finished match. 404 until the match completes. */
-  async getMatchResult(gameId: string): Promise<unknown> {
-    return this.get(`/games/${encodeURIComponent(gameId)}/result`, false);
-  }
 
   async createScoringSession(players: string[]): Promise<string> {
     const data = await this.post<{ id: string }>(
@@ -276,10 +231,6 @@ export class ZolikClient {
       throw new ApiError(text || `HTTP ${res.status}`, res.status);
     }
     return text;
-  }
-
-  sendWS(ws: WebSocket, action: WSAction): void {
-    ws.send(JSON.stringify(action));
   }
 
   private toSession(username: string, isGuest: boolean): PlayerSession {

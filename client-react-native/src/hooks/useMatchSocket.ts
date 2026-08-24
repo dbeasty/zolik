@@ -5,8 +5,8 @@ import type { MatchAction, MatchState } from '@/src/api/matchTypes';
 /**
  * The socket for a module-hosted match.
  *
- * Deliberately much smaller than `useGameSocket`, and the difference is the
- * protocol rather than the effort: there is one message type to handle
+ * Deliberately small, and the reason is the protocol rather than the effort:
+ * there is one message type to handle
  * (`match_state`) and nothing to merge, because the server sends the whole
  * board every time already filtered for this viewer. There is no local
  * projection to keep in step, so there is no way for one to drift.
