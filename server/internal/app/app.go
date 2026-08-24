@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"zolik/server/internal/auth"
+	"zolik/server/internal/canasta"
 	"zolik/server/internal/db"
 	"zolik/server/internal/game"
 	"zolik/server/internal/match"
@@ -129,7 +130,7 @@ func (a *App) routeGroups() []routeGroup {
 		// to the old and retires the old only once nothing reads it — the
 		// existing game routes, documents and clients are untouched by this.
 		{"match", func(r chi.Router) {
-			modules := module.NewRegistry(zolikmod.New(), prsi.New())
+			modules := module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New())
 			matchMgr := match.NewManager(match.NewRepository(a.db), modules, a.hub)
 			match.NewHandlers(matchMgr).RegisterRoutes(r)
 		}},

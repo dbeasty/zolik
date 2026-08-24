@@ -8,8 +8,10 @@ different UI.
 - **Scope read:** `server/internal`, `client-react-native/src`, `client-tui` (~16k LOC)
 - **Test state:** `go test ./...` green (89 rules, 16 AI, 24 game, 4 TUI, plus auth/scoring); RN Jest green
 - **Status:** every defect in §10 has been fixed; Phases 0–4 of the migration plan are complete.
-  Two games now run behind one runtime — see [`extensibility-plan.md`](./extensibility-plan.md)
+  Three games now run behind one runtime — see [`extensibility-plan.md`](./extensibility-plan.md)
 - **Detailed build order:** [`extensibility-plan.md`](./extensibility-plan.md)
+- **Third module:** [`canasta-plan.md`](./canasta-plan.md). Note that it falsifies §1's
+  prediction below: Canasta is named there as the *configuration* case, and it is not one.
 
 ---
 

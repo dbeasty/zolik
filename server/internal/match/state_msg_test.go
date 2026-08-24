@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"zolik/server/internal/canasta"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
 	"zolik/server/internal/prsi"
@@ -15,7 +16,7 @@ import (
 // projection, because it is the one place a runtime bug could leak cards.
 
 func registry() *module.Registry {
-	return module.NewRegistry(zolikmod.New(), prsi.New())
+	return module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New())
 }
 
 func dealt(t *testing.T, moduleID string, playerIDs ...string) (*Manager, models.Match) {
@@ -43,7 +44,7 @@ func dealt(t *testing.T, moduleID string, playerIDs ...string) (*Manager, models
 func TestBuildStateMsg_ProjectsPerViewer(t *testing.T) {
 	// The security-relevant term, checked for every hosted module rather than
 	// trusted per game: a viewer must never receive another player's cards.
-	for _, moduleID := range []string{"zolik", "prsi"} {
+	for _, moduleID := range []string{"zolik", "prsi", "canasta"} {
 		t.Run(moduleID, func(t *testing.T) {
 			m, match := dealt(t, moduleID, "p1", "p2")
 

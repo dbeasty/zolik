@@ -102,3 +102,26 @@ also sitting in an AI's meld — real 2-deck games have duplicates anyway
 (see `rules.DeckCountForPlayers`). It does still run `rules.ValidateMeld`
 on any melds you seed, so a nonsense meld (e.g. three different ranks)
 gets rejected with a 400 rather than silently corrupting state.
+
+## What `canasta.spec.ts` covers
+
+The browser end of the third game module (`docs/canasta-plan.md`). Like
+`match-runtime.spec.ts` it drives the API and a real WebSocket rather than
+the web UI, because the RN client renders Žolíky specifically and the
+generic shell that would render Canasta is still unbuilt — so there is no
+screen to click yet.
+
+Its load-bearing test is the play-through. Two real players on two real
+sockets play a whole match to a winner, choosing every move from the offer
+list alone: it reads `minCards` cards from the front of the list an offer
+says it will accept, and never names a rank, a meld or a rule. That is the
+claim Žolíky *cannot* make — going out there needs a meld shape the offer
+protocol deliberately does not enumerate (`extensibility-plan.md` §1.1) — and
+it works here because a Canasta meld is n cards of one rank, so the server
+can ship exact cards instead of a shape.
+
+It runs against a plain server with no extra setup: `debug-state` is a
+Žolíky-only endpoint and this suite does not use it. Matches are created
+with `targetScore: 500`, the short target the descriptor declares precisely
+so a match can be watched to completion in a test rather than over fifteen
+deals.
