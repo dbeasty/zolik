@@ -30,7 +30,7 @@ func (m menuModel) update(msg tea.Msg) (menuModel, tea.Cmd) {
 	case "1":
 		m.root.screen = ScreenLobby
 		m.root.lobby = newLobbyModel(m.root)
-		m.root.lobby.mode = lobbyCreate
+		m.root.lobby.mode = lobbyPick
 	case "2":
 		m.root.screen = ScreenLobby
 		m.root.lobby = newLobbyModel(m.root)
@@ -73,8 +73,8 @@ func (m menuModel) view(width, height int) string {
 
 	var b strings.Builder
 	b.WriteString(render.Box.Render(title + "\n" + logo + "\n\n"))
-	b.WriteString("  [1] New Game\n")
-	b.WriteString("  [2] Join Game\n")
+	b.WriteString("  [1] Play\n")
+	b.WriteString("  [2] Join a Table\n")
 	b.WriteString("  [3] Score Table (offline)\n")
 	b.WriteString("  [4] View Stats\n")
 	b.WriteString("  [Q] Quit\n\n")

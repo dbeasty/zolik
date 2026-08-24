@@ -8,244 +8,280 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"zolik/client-tui/api"
-	"zolik/client-tui/internal/render"
 )
+
+// Opening or joining a table.
+//
+// The picker is rendered from /modules, so adding a game is a server-only
+// change here too: register a module and it appears in this list with its
+// variations and its player range. What this replaced hard-coded one game and
+// one knob — the create screen's only setting was a rummy initial-meld
+// minimum.
 
 type lobbyMode int
 
 const (
-	lobbyCreate lobbyMode = iota
-	lobbyJoin
+	lobbyPick lobbyMode = iota // choosing which game to open
+	lobbyWait                  // opened or joined, waiting to start
+	lobbyJoin                  // typing a join code
 )
 
 type lobbyModel struct {
-	root       *Root
-	mode       lobbyMode
-	gameID     string
-	joinCode   string
-	input      string
-	typing     bool
-	players    []api.LobbyPlayer
-	errMsg     string
-	initialMin int
-	aiDiff     string
-	hostID     string
+	root    *Root
+	mode    lobbyMode
+	matchID string
+
+	modules []api.Module
+	cursor  int
+	// variation is which ruleset is picked for the highlighted module.
+	variation map[string]int
+
+	joinCode string
+	input    string
+	players  []api.Player
+	hostID   string
+	status   string
+	errMsg   string
 }
 
 func newLobbyModel(root *Root) lobbyModel {
-	return lobbyModel{
-		root:   root,
-		aiDiff: "medium",
-	}
+	return lobbyModel{root: root, variation: map[string]int{}}
 }
+
+type lobbyModulesMsg struct{ modules []api.Module }
+type lobbyErrMsg struct{ err string }
+type lobbyCreatedMsg struct{ matchID, joinCode string }
+type lobbyStateMsg struct{ state api.MatchState }
+type lobbyTickMsg struct{}
 
 func (m lobbyModel) Init() tea.Cmd {
-	if m.mode == lobbyCreate {
-		return m.createGame()
+	if m.mode == lobbyJoin {
+		return nil
 	}
-	return nil
+	return m.loadModules()
 }
 
-func (m lobbyModel) createGame() tea.Cmd {
+func (m lobbyModel) loadModules() tea.Cmd {
 	return func() tea.Msg {
-		min := m.initialMin
-		var p *int
-		if min > 0 {
-			p = &min
-		}
-		id, code, err := m.root.api.CreateGame(p)
+		mods, err := m.root.api.Modules()
 		if err != nil {
 			return lobbyErrMsg{err: err.Error()}
 		}
-		return lobbyCreatedMsg{gameID: id, joinCode: code}
+		return lobbyModulesMsg{modules: mods}
 	}
 }
 
-type lobbyCreatedMsg struct {
-	gameID   string
-	joinCode string
+func (m lobbyModel) create(mod api.Module, variation string) tea.Cmd {
+	return func() tea.Msg {
+		id, code, err := m.root.api.CreateMatch(mod.ID, variation, nil)
+		if err != nil {
+			return lobbyErrMsg{err: err.Error()}
+		}
+		// Fill the table to the module's own minimum, then start. The client
+		// does not know what that number is for any particular game.
+		for i := 1; i < mod.MinPlayers; i++ {
+			if err := m.root.api.AddBot(id); err != nil {
+				return lobbyErrMsg{err: err.Error()}
+			}
+		}
+		if err := m.root.api.StartMatch(id); err != nil {
+			return lobbyErrMsg{err: err.Error()}
+		}
+		return lobbyCreatedMsg{matchID: id, joinCode: code}
+	}
 }
 
-type lobbyErrMsg struct {
-	err string
+func (m lobbyModel) join(code string) tea.Cmd {
+	return func() tea.Msg {
+		id, err := m.root.api.JoinMatch(code)
+		if err != nil {
+			return lobbyErrMsg{err: err.Error()}
+		}
+		return lobbyCreatedMsg{matchID: id}
+	}
 }
 
-type lobbyTickMsg struct {
-	info api.LobbyGame
-	err  string
+func (m lobbyModel) poll() tea.Cmd {
+	id := m.matchID
+	return func() tea.Msg {
+		time.Sleep(1500 * time.Millisecond)
+		s, err := m.root.api.GetMatch(id)
+		if err != nil {
+			return lobbyErrMsg{err: err.Error()}
+		}
+		return lobbyStateMsg{state: s}
+	}
 }
 
 func (m lobbyModel) update(msg tea.Msg) (lobbyModel, tea.Cmd) {
 	switch msg := msg.(type) {
-	case lobbyCreatedMsg:
-		m.gameID = msg.gameID
-		m.joinCode = msg.joinCode
-		m.hostID = m.root.session.UserID
-		return m, tea.Batch(m.pollLobby(), tea.Every(time.Second, func(t time.Time) tea.Msg {
-			return pollTickMsg{}
-		}))
+	case lobbyModulesMsg:
+		m.modules = msg.modules
+		return m, nil
+
 	case lobbyErrMsg:
 		m.errMsg = msg.err
 		return m, nil
-	case pollTickMsg:
-		if m.gameID == "" {
-			return m, nil
-		}
-		return m, m.pollLobby()
-	case lobbyTickMsg:
-		if msg.err != "" {
-			m.errMsg = msg.err
-			return m, nil
-		}
-		m.players = msg.info.Players
-		if msg.info.Status == "active" {
-			m.root.screen = ScreenGame
-			m.root.game = newGameModel(m.root)
-			m.root.game.gameID = m.gameID
-			return m, m.root.game.Init()
-		}
-		return m, nil
-	}
 
-	key, ok := msg.(tea.KeyMsg)
-	if !ok {
-		return m, nil
-	}
-	if m.typing {
-		switch key.String() {
-		case "enter":
-			m.typing = false
-			if m.mode == lobbyJoin && m.input != "" {
-				return m, m.joinCodeCmd(m.input)
+	case lobbyCreatedMsg:
+		m.matchID, m.joinCode, m.mode, m.errMsg = msg.matchID, msg.joinCode, lobbyWait, ""
+		return m, m.poll()
+
+	case lobbyStateMsg:
+		m.players = msg.state.Players
+		m.hostID = msg.state.HostID
+		if msg.state.Status != "lobby" {
+			// Started. Everything from here is the match screen's job.
+			m.root.match = newMatchModel(m.root)
+			m.root.match.matchID = m.matchID
+			ws, err := m.root.api.DialWS(m.matchID)
+			if err != nil {
+				m.errMsg = err.Error()
+				return m, nil
 			}
+			m.root.match.ws = ws
+			m.root.screen = ScreenMatch
+			return m, m.root.match.Init()
+		}
+		return m, m.poll()
+
+	case tea.KeyMsg:
+		return m.key(msg)
+	}
+	return m, nil
+}
+
+func (m lobbyModel) key(msg tea.KeyMsg) (lobbyModel, tea.Cmd) {
+	switch m.mode {
+	case lobbyJoin:
+		switch msg.String() {
+		case "esc":
+			m.root.screen = ScreenMainMenu
+			return m, nil
+		case "enter":
+			if strings.TrimSpace(m.input) == "" {
+				m.errMsg = "enter a join code"
+				return m, nil
+			}
+			return m, m.join(strings.TrimSpace(m.input))
 		case "backspace":
 			if len(m.input) > 0 {
 				m.input = m.input[:len(m.input)-1]
 			}
-		case "esc":
-			m.typing = false
+			return m, nil
 		default:
-			if len(key.Runes) > 0 {
-				m.input += string(key.Runes)
+			if len(msg.String()) == 1 {
+				m.input += strings.ToUpper(msg.String())
 			}
+			return m, nil
+		}
+
+	case lobbyWait:
+		if msg.String() == "esc" || msg.String() == "q" {
+			m.root.screen = ScreenMainMenu
 		}
 		return m, nil
-	}
 
-	switch key.String() {
-	case "esc", "q":
-		m.root.screen = ScreenMainMenu
-	case "j":
-		if m.mode == lobbyJoin {
-			m.typing = true
-			m.input = ""
-		}
-	case "a":
-		if m.gameID != "" && m.hostID == m.root.session.UserID {
-			return m, m.addAI()
-		}
-	case "s":
-		if m.gameID != "" && m.hostID == m.root.session.UserID {
-			return m, m.startGame()
-		}
-	case "i":
-		switch m.initialMin {
-		case 0:
-			m.initialMin = 35
-		case 35:
-			m.initialMin = 50
-		default:
-			m.initialMin = 0
-		}
-	case "e", "m", "h":
-		switch key.String() {
-		case "e":
-			m.aiDiff = "easy"
-		case "m":
-			m.aiDiff = "medium"
-		case "h":
-			m.aiDiff = "hard"
+	default: // lobbyPick
+		switch msg.String() {
+		case "esc", "q":
+			m.root.screen = ScreenMainMenu
+			return m, nil
+		case "up", "k":
+			if m.cursor > 0 {
+				m.cursor--
+			}
+			return m, nil
+		case "down", "j":
+			if m.cursor < len(m.modules)-1 {
+				m.cursor++
+			}
+			return m, nil
+		case "left", "h", "right", "l":
+			// Cycle this module's shipped rulesets.
+			if mod, ok := m.selected(); ok && len(mod.Variations) > 1 {
+				d := 1
+				if msg.String() == "left" || msg.String() == "h" {
+					d = len(mod.Variations) - 1
+				}
+				m.variation[mod.ID] = (m.variation[mod.ID] + d) % len(mod.Variations)
+			}
+			return m, nil
+		case "enter":
+			mod, ok := m.selected()
+			if !ok {
+				return m, nil
+			}
+			v := ""
+			if len(mod.Variations) > 0 {
+				v = mod.Variations[m.variation[mod.ID]].ID
+			}
+			m.status = "opening a table…"
+			return m, m.create(mod, v)
 		}
 	}
 	return m, nil
 }
 
-type pollTickMsg struct{}
-
-func (m lobbyModel) pollLobby() tea.Cmd {
-	return func() tea.Msg {
-		info, err := m.root.api.GetLobby(m.gameID)
-		if err != nil {
-			return lobbyTickMsg{err: err.Error()}
-		}
-		return lobbyTickMsg{info: info}
+func (m lobbyModel) selected() (api.Module, bool) {
+	if m.cursor < 0 || m.cursor >= len(m.modules) {
+		return api.Module{}, false
 	}
-}
-
-func (m lobbyModel) joinCodeCmd(code string) tea.Cmd {
-	return func() tea.Msg {
-		id, err := m.root.api.JoinGame(code)
-		if err != nil {
-			return lobbyErrMsg{err: err.Error()}
-		}
-		return lobbyCreatedMsg{gameID: id, joinCode: strings.ToUpper(code)}
-	}
-}
-
-func (m lobbyModel) addAI() tea.Cmd {
-	return func() tea.Msg {
-		if err := m.root.api.AddAI(m.gameID, m.aiDiff); err != nil {
-			return lobbyErrMsg{err: err.Error()}
-		}
-		return pollTickMsg{}
-	}
-}
-
-func (m lobbyModel) startGame() tea.Cmd {
-	return func() tea.Msg {
-		if err := m.root.api.StartGame(m.gameID); err != nil {
-			return lobbyErrMsg{err: err.Error()}
-		}
-		return pollTickMsg{}
-	}
+	return m.modules[m.cursor], true
 }
 
 func (m lobbyModel) view(width, height int) string {
-	title := "NEW GAME LOBBY"
-	if m.mode == lobbyJoin {
-		title = "JOIN GAME"
-	}
 	var b strings.Builder
-	b.WriteString(render.HeaderBar.Render(title) + "\n")
-	if m.joinCode != "" {
-		b.WriteString(fmt.Sprintf("Join code: %s\n", m.joinCode))
+
+	switch m.mode {
+	case lobbyJoin:
+		b.WriteString(titleStyle.Render("Join a table") + "\n\n")
+		b.WriteString("Join code: " + m.input + "_\n")
+
+	case lobbyWait:
+		b.WriteString(titleStyle.Render("Waiting to start") + "\n\n")
+		if m.joinCode != "" {
+			b.WriteString("Join code: " + titleStyle.Render(m.joinCode) + "\n\n")
+		}
+		b.WriteString(mutedStyle.Render(fmt.Sprintf("Players (%d)", len(m.players))) + "\n")
+		for i, p := range m.players {
+			bot := ""
+			if p.IsAI {
+				bot = " (bot)"
+			}
+			host := ""
+			if p.ID == m.hostID {
+				host = " ★"
+			}
+			b.WriteString(fmt.Sprintf("  %d. %s%s%s\n", i+1, p.Name, bot, host))
+		}
+
+	default:
+		b.WriteString(titleStyle.Render("Games") + "\n")
+		b.WriteString(mutedStyle.Render("Everything this server can host") + "\n\n")
+		for i, mod := range m.modules {
+			marker := "  "
+			if i == m.cursor {
+				marker = "> "
+			}
+			line := fmt.Sprintf("%s%-16s %d–%d players", marker, mod.Label, mod.MinPlayers, mod.MaxPlayers)
+			if len(mod.Variations) > 0 {
+				line += "   [" + mod.Variations[m.variation[mod.ID]].Label + "]"
+			}
+			if i == m.cursor {
+				b.WriteString(offerOnStyle.Render(line) + "\n")
+			} else {
+				b.WriteString(offerOffStyle.Render(line) + "\n")
+			}
+		}
+		b.WriteString(mutedStyle.Render("\n↑/↓ choose · ←/→ ruleset · enter play against bots · q back"))
+	}
+
+	if m.status != "" {
+		b.WriteString("\n" + mutedStyle.Render(m.status))
 	}
 	if m.errMsg != "" {
-		b.WriteString(render.StatusErr.Render("✗ "+m.errMsg) + "\n")
+		b.WriteString("\n" + errStyle.Render(m.errMsg))
 	}
-	b.WriteString(fmt.Sprintf("\nPlayers (%d/8):\n", len(m.players)))
-	for i, p := range m.players {
-		line := fmt.Sprintf("  %d. %s", i+1, p.Name)
-		if p.ID == m.root.session.UserID {
-			line += " (you)"
-		}
-		if p.ID == m.hostID {
-			line += " — host"
-		}
-		if p.IsAI {
-			line += " 🤖"
-		}
-		b.WriteString(line + "\n")
-	}
-	b.WriteString("\n[A] Add AI   Difficulty: " + m.aiDiff + "  (E/M/H keys)\n")
-	b.WriteString(fmt.Sprintf("[I] Initial meld minimum: %d\n", m.initialMin))
-	b.WriteString("[S] Start game (min 4 players, host only)\n")
-	if m.mode == lobbyJoin {
-		b.WriteString("[J] Enter join code\n")
-		if m.typing {
-			b.WriteString("Code: " + m.input + "_\n")
-		}
-	}
-	b.WriteString("[ESC] Back to menu\n")
-	return render.Box.Render(b.String())
+	return b.String()
 }

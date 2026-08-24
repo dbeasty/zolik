@@ -52,8 +52,11 @@ func recordLine(v any) string {
 		matches,
 		numField(t, "wins"), numField(t, "losses"), numField(t, "draws"),
 		floatField(t, "winRate")*100)
-	if d := floatField(t, "avgPenaltyPerDeal"); d > 0 {
-		out += fmt.Sprintf(" · %.0f pts/deal", d)
+	// The module's own measure, whatever it counts. A deal-level average used
+	// to go here, and described rummy: a game with no deals had nothing to put
+	// in it.
+	if d := floatField(t, "avgScore"); d != 0 {
+		out += fmt.Sprintf(" · %.0f avg", d)
 	}
 	return out
 }
