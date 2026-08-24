@@ -8,6 +8,13 @@ export const colors = {
   muted: '#8b9cb3',
   accent: '#3d8bfd',
   accentDim: '#2563c4',
+  // Primary buttons sit on a very dark background, where a mid blue reads as
+  // "there is a button here" rather than "this button is live". They use this
+  // lighter blue instead, with dark text (`onAccent`) — white on a blue this
+  // light is under 3:1, dark text on it is ~9:1. Disabled is the same fill at
+  // 0.4 opacity, so enabled/disabled stays an obvious brightness step.
+  accentButton: '#7ab8ff',
+  onAccent: '#0b1220',
   danger: '#f87171',
   success: '#4ade80',
   gold: '#fbbf24',
@@ -41,7 +48,7 @@ export const shared = StyleSheet.create({
     marginBottom: 12,
   },
   button: {
-    backgroundColor: colors.accent,
+    backgroundColor: colors.accentButton,
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 10,
@@ -54,7 +61,7 @@ export const shared = StyleSheet.create({
     borderColor: colors.border,
   },
   buttonText: {
-    color: '#fff',
+    color: colors.onAccent,
     fontSize: 16,
     fontWeight: '600',
   },
