@@ -1274,8 +1274,13 @@ export default function GameScreen() {
     actions.push({ label: undo.label, onPress: undo.onPress, disabled: !can(state, undo.offer) });
   }
 
-  const discardSelectedCards = isMyTurn && phase === 'discard' ? selectedCards(hand, allStaged) : [];
-  const discardSelectedIndex = isMyTurn && phase === 'discard' ? [...allStaged][0] : undefined;
+  // Mirrors discardCardAt's own phase guard — the server only ever reports
+  // phase 'meld' once you've drawn (see PhaseDiscard in the Go engine,
+  // which production code never assigns), so gating this on phase ===
+  // 'discard' alone made the button permanently disabled/no-op.
+  const canDiscardFromActionBar = isMyTurn && (phase === 'discard' || phase === 'meld');
+  const discardSelectedCards = canDiscardFromActionBar ? selectedCards(hand, allStaged) : [];
+  const discardSelectedIndex = canDiscardFromActionBar ? [...allStaged][0] : undefined;
   actions.push({
     label: 'Discard',
     onPress: () => {
