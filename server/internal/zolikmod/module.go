@@ -365,3 +365,28 @@ func (m *Module) Finished(raw module.State) (bool, []string, error) {
 	}
 	return true, []string{s.Rules.WinnerID}, nil
 }
+
+// Standings ranks by penalty score, lowest first — rummy is a game you try to
+// score *little* at, which is why the score is negated before ranking rather
+// than the ranking growing a direction.
+func (m *Module) Standings(raw module.State) ([]module.Standing, error) {
+	s, err := decode(raw)
+	if err != nil {
+		return nil, err
+	}
+	return module.RankByScore(s.Rules.TurnOrder, func(id string) int {
+		return -handPenalty(s.Rules, id)
+	}, "zolik.unit.penalty"), nil
+}
+
+// handPenalty is what this player is currently holding, in points. It is the
+// live version of what the scoreboard settles at the end of a deal.
+func handPenalty(gs rules.GameState, playerID string) int {
+	total := 0
+	for _, c := range gs.Hands[playerID] {
+		// Aces score as wild here: a card left in hand is a penalty, and an
+		// ace only counts as one when it is doing work inside a run.
+		total += rules.PenaltyPoints(c, false)
+	}
+	return total
+}

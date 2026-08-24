@@ -105,9 +105,10 @@ func (h *Handlers) joinMatch(w http.ResponseWriter, req *http.Request) {
 
 // addBot seats a non-human player.
 //
-// It is deliberately not an *agent*: driving one is module-scoped work the
-// plan puts alongside the second module's own AI, and seating a body is enough
-// for a two-player game to start while that lands.
+// It used to seat a body that never moved, because driving one was rummy-only
+// work living in the rummy runtime. It now seats an opponent that plays: the
+// runtime drives every bot from the module's own offer list (see bots.go), so
+// this works for a game nobody has written yet.
 func (h *Handlers) addBot(w http.ResponseWriter, req *http.Request) {
 	if _, ok := auth.GetUserContext(req); !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -190,9 +191,14 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 	defer h.manager.Hub().Registry().RemoveIfCurrent(matchID, playerID, wsConn)
 
 	ctx := context.Background()
+	// Arriving may be a *return*: a match this player's disconnection paused
+	// resumes the moment they are back, before they are sent anything.
+	h.manager.ResumeIfReturning(ctx, matchID, playerID)
 	if m, err := h.manager.Repo().FindByID(ctx, oid); err == nil {
 		h.manager.Hub().WriteDirect(matchID, playerID, h.manager.BuildStateMsg(m, playerID))
 	}
+	// And leaving pauses the table, but only if it was waiting on them.
+	defer h.manager.SuspendOnDisconnect(context.WithoutCancel(ctx), matchID, playerID, "socket closed")
 
 	for {
 		_, data, err := conn.ReadMessage()

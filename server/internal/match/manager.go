@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"zolik/server/internal/game"
@@ -23,6 +24,12 @@ type Manager struct {
 	repo     *Repository
 	registry *module.Registry
 	hub      *game.Hub
+
+	// botMu guards botRunning, which is one flag per match saying a bot loop
+	// is already driving it. Without it, every human action would start a
+	// second loop and the bots would race each other.
+	botMu      sync.Mutex
+	botRunning map[string]bool
 }
 
 func NewManager(repo *Repository, registry *module.Registry, hub *game.Hub) *Manager {
@@ -138,6 +145,9 @@ func (m *Manager) Start(ctx context.Context, idOrCode string) (models.Match, err
 	}
 	match.Version++
 	m.Broadcast(match)
+	// A bot may be first to act — in Hold'em it usually is, since the blinds
+	// decide the order rather than who created the lobby.
+	m.RunBotsIfNeeded(context.WithoutCancel(ctx), match.ID.Hex())
 	return match, nil
 }
 
@@ -191,6 +201,15 @@ func (m *Manager) HandleAction(ctx context.Context, idOrCode, playerID string, a
 
 	m.Broadcast(match)
 	m.publishEvents(match, events)
+
+	// Whoever is on turn now might be a bot. The loop is a no-op when it is
+	// not, and refuses to start twice for the same match, so calling it after
+	// every action is both correct and cheap.
+	//
+	// WithoutCancel because the loop outlives the request that triggered it:
+	// the human's HTTP call or socket frame is finished, and the bots' turns
+	// are not.
+	m.RunBotsIfNeeded(context.WithoutCancel(ctx), match.ID.Hex())
 	return nil
 }
 

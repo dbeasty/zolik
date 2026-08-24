@@ -303,3 +303,28 @@ func topOnly(s *GameState) []string {
 	}
 	return nil
 }
+
+// Bot is how Canasta wants a vacant seat played: build the table first, take
+// the pile when it is offered, and discard only because a turn has to end.
+//
+// module.OfferBot is enough here where it would not be for Žolíky, because a
+// Canasta meld ships as exact cards rather than a shape to solve — the same
+// property that lets the conformance driver play this game to a winner.
+func (m *Module) Bot() module.Bot {
+	return module.OfferBot(VerbLayMeld, VerbLayOff, VerbTakePile, VerbDraw, VerbDiscard)
+}
+
+// Standings ranks by partnership score, so both members of a side share a rank
+// — which is the case that made module.Standing allow ties in the first place.
+func (m *Module) Standings(raw module.State) ([]module.Standing, error) {
+	s, err := decode(raw)
+	if err != nil {
+		return nil, err
+	}
+	return module.RankByScore(s.TurnOrder, func(id string) int {
+		if t := s.team(id); t != nil {
+			return t.Score
+		}
+		return 0
+	}, "canasta.unit.points"), nil
+}

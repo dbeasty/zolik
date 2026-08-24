@@ -34,6 +34,12 @@ type MatchStateMsg struct {
 	View module.ViewModel `json:"view"`
 	// LegalActions is what this viewer may do right now.
 	LegalActions []module.ActionOffer `json:"legalActions"`
+	// Standings is the scoreboard, in a shape no game owns — so one screen can
+	// show who is ahead at rummy, canasta and poker without knowing what any of
+	// those measure.
+	Standings []module.Standing `json:"standings,omitempty"`
+	// SuspendedPlayer names the seat a paused match is waiting for.
+	SuspendedPlayer string `json:"suspendedPlayer,omitempty"`
 }
 
 type PlayerMsg struct {
@@ -49,15 +55,16 @@ type PlayerMsg struct {
 // the game owning it has done anything.
 func (m *Manager) BuildStateMsg(match models.Match, viewerID string) MatchStateMsg {
 	msg := MatchStateMsg{
-		Type:      "match_state",
-		MatchID:   match.ID.Hex(),
-		ModuleID:  match.ModuleID,
-		Variation: match.Variation,
-		Status:    match.Status,
-		JoinCode:  match.JoinCode,
-		HostID:    match.HostID,
-		WinnerID:  match.WinnerID,
-		Winners:   match.Winners,
+		Type:            "match_state",
+		MatchID:         match.ID.Hex(),
+		ModuleID:        match.ModuleID,
+		Variation:       match.Variation,
+		Status:          match.Status,
+		JoinCode:        match.JoinCode,
+		HostID:          match.HostID,
+		WinnerID:        match.WinnerID,
+		Winners:         match.Winners,
+		SuspendedPlayer: match.SuspendedPlayer,
 		// Never nil: these round-trip to JSON, and a nil slice serialises to
 		// `null`, which every client then has to guard before indexing.
 		LegalActions: []module.ActionOffer{},
@@ -76,6 +83,7 @@ func (m *Manager) BuildStateMsg(match models.Match, viewerID string) MatchStateM
 	if offers, err := mod.LegalActions(match.State, viewerID); err == nil && offers != nil {
 		msg.LegalActions = offers
 	}
+	msg.Standings = module.StandingsFor(mod, match.State)
 	return msg
 }
 

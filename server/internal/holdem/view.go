@@ -248,3 +248,29 @@ func cardViews(cards []string) []module.CardView {
 	}
 	return out
 }
+
+// Bot is how Hold'em wants a vacant seat played.
+//
+// Calling before raising and folding last makes a calling station: a real, and
+// really bad, poker player. It is deliberately not dressed up as more than
+// that — a bot that reads only the offer list cannot see its own cards' worth,
+// and pretending otherwise would hide the fact that this game is the one most
+// wanting a module.Botted implementation of its own.
+func (m *Module) Bot() module.Bot {
+	return module.OfferBot(VerbCall, VerbCheck, VerbRaise, VerbFold)
+}
+
+// Standings ranks the table by chips, which is the only measure poker has.
+func (m *Module) Standings(raw module.State) ([]module.Standing, error) {
+	s, err := decode(raw)
+	if err != nil {
+		return nil, err
+	}
+	order := make([]string, 0, len(s.Seats))
+	stacks := map[string]int{}
+	for i := range s.Seats {
+		order = append(order, s.Seats[i].PlayerID)
+		stacks[s.Seats[i].PlayerID] = s.Seats[i].Stack
+	}
+	return module.RankByScore(order, func(id string) int { return stacks[id] }, "holdem.unit.chips"), nil
+}

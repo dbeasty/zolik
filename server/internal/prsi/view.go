@@ -156,3 +156,25 @@ func topOnly(s *GameState) []string {
 	}
 	return nil
 }
+
+// Bot is how Prší wants a vacant seat played: try to shed a card, take a skip
+// if one is owed, and draw only when there is nothing else. That preference is
+// a taste, not a rule — the offers decide what is legal.
+func (m *Module) Bot() module.Bot {
+	return module.OfferBot(VerbPlay, VerbPass, VerbDraw)
+}
+
+// Standings ranks by cards left, fewest first — which is both the state of the
+// race mid-deal and the result at the end of it, since the winner is whoever
+// reaches zero.
+func (m *Module) Standings(raw module.State) ([]module.Standing, error) {
+	s, err := decode(raw)
+	if err != nil {
+		return nil, err
+	}
+	// Negated, because RankByScore ranks highest-first and here fewer is
+	// better. Doing it this way rather than adding a direction flag keeps one
+	// ranking implementation with one tie rule.
+	return module.RankByScore(s.TurnOrder,
+		func(id string) int { return -len(s.Hands[id]) }, "prsi.unit.cardsLeft"), nil
+}

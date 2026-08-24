@@ -396,6 +396,80 @@ func TestEveryModuleStateSurvivesARoundTrip(t *testing.T) {
 	}
 }
 
+// TestEveryModuleKeepsAScoreboard — one screen shows who is ahead at rummy,
+// canasta and poker, so every module has to answer the question in the same
+// shape even though none of them measure the same thing.
+func TestEveryModuleKeepsAScoreboard(t *testing.T) {
+	for _, g := range allModules() {
+		t.Run(g.name, func(t *testing.T) {
+			state, err := g.mod.NewMatch(g.cfg, g.players, 17)
+			if err != nil {
+				t.Fatalf("NewMatch: %v", err)
+			}
+			standings := module.StandingsFor(g.mod, state)
+			if len(standings) != len(g.players) {
+				t.Fatalf("%d standings for %d players", len(standings), len(g.players))
+			}
+
+			seen := map[string]bool{}
+			for _, s := range standings {
+				if s.PlayerID == "" {
+					t.Error("a standing names nobody")
+				}
+				if seen[s.PlayerID] {
+					t.Errorf("%q appears twice", s.PlayerID)
+				}
+				seen[s.PlayerID] = true
+				if s.Rank < 1 {
+					t.Errorf("%q has rank %d", s.PlayerID, s.Rank)
+				}
+				if s.LabelKey == "" {
+					t.Errorf("%q's score has no unit; a client cannot label it", s.PlayerID)
+				}
+			}
+			// Ranks must be ordered and start at 1, or a scoreboard renders in
+			// the wrong order.
+			if standings[0].Rank != 1 {
+				t.Errorf("the first row has rank %d, want 1", standings[0].Rank)
+			}
+			for i := 1; i < len(standings); i++ {
+				if standings[i].Rank < standings[i-1].Rank {
+					t.Errorf("ranks go backwards: %+v", standings)
+				}
+				if standings[i].Score > standings[i-1].Score {
+					t.Errorf("scores are not sorted: %+v", standings)
+				}
+			}
+		})
+	}
+}
+
+// TestTiesShareARank is the property Canasta and poker both need: a partnership
+// and a split pot are two players who genuinely came first.
+func TestTiesShareARank(t *testing.T) {
+	got := module.RankByScore([]string{"a", "b", "c"},
+		func(id string) int {
+			if id == "c" {
+				return 1
+			}
+			return 5
+		}, "unit")
+
+	if got[0].Rank != 1 || got[1].Rank != 1 {
+		t.Errorf("level players got ranks %d and %d, want both 1", got[0].Rank, got[1].Rank)
+	}
+	if !got[0].Won || !got[1].Won {
+		t.Error("both level leaders should be marked as winning")
+	}
+	// The next rank skips, as places do: two firsts and then a third.
+	if got[2].Rank != 3 {
+		t.Errorf("the third player has rank %d, want 3", got[2].Rank)
+	}
+	if got[2].Won {
+		t.Error("the trailing player should not be marked as winning")
+	}
+}
+
 // TestNumericParametersAreUsable checks the protocol addition poker forced, at
 // the level any client would meet it: a declared range has to be one a control
 // can render and a submission can satisfy.

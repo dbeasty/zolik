@@ -29,7 +29,10 @@
 // database, and its whole class of forgot-to-map-a-field bug.
 package module
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"sort"
+)
 
 // State is a module's own game state, opaque to everything outside it.
 //
@@ -347,6 +350,69 @@ type ActionOffer struct {
 	// what this protocol exists to stop clients doing. A shell renders a
 	// composite offer as a selection, a bot skips it, and neither has to guess.
 	Composite bool `json:"composite,omitempty"`
+}
+
+// Standing is one player's place in a match, in a shape no game owns.
+//
+// Rank is 1-based and ties share a rank, because ties are real: a Canasta
+// partnership's two members share first place and a split poker pot leaves two
+// seats level. Score is the module's own number — points, chips, deals won —
+// and LabelKey says which, so a client can put a unit on it without knowing
+// what game it is showing.
+type Standing struct {
+	PlayerID string `json:"playerId"`
+	Rank     int    `json:"rank"`
+	Score    int    `json:"score"`
+	Won      bool   `json:"won"`
+	// LabelKey names what Score measures ("holdem.unit.chips").
+	LabelKey string `json:"labelKey,omitempty"`
+	// Facts are anything else worth putting in a row of a scoreboard.
+	Facts []Fact `json:"facts,omitempty"`
+}
+
+// Ranked is implemented by a module that can produce a scoreboard.
+//
+// Optional, and every module here implements it — but optional on purpose: a
+// game where "who is ahead" is not a meaningful question mid-match should be
+// able to decline rather than invent a number.
+type Ranked interface {
+	Standings(s State) ([]Standing, error)
+}
+
+// StandingsFor returns a module's scoreboard, or nil if it does not keep one.
+func StandingsFor(m GameModule, s State) []Standing {
+	r, ok := m.(Ranked)
+	if !ok {
+		return nil
+	}
+	out, err := r.Standings(s)
+	if err != nil {
+		return nil
+	}
+	return out
+}
+
+// RankByScore turns per-player scores into standings, highest first.
+//
+// Shared because every module that has a score wants exactly this, ties
+// included, and four copies of a ranking loop is four chances to handle a tie
+// differently.
+func RankByScore(order []string, score func(string) int, labelKey string) []Standing {
+	out := make([]Standing, 0, len(order))
+	for _, id := range order {
+		out = append(out, Standing{PlayerID: id, Score: score(id), LabelKey: labelKey})
+	}
+	sort.SliceStable(out, func(i, j int) bool { return out[i].Score > out[j].Score })
+
+	for i := range out {
+		if i > 0 && out[i].Score == out[i-1].Score {
+			out[i].Rank = out[i-1].Rank
+		} else {
+			out[i].Rank = i + 1
+		}
+		out[i].Won = out[i].Rank == 1
+	}
+	return out
 }
 
 // FindOffer returns the offer with this ID, or nil.

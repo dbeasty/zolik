@@ -59,6 +59,17 @@ type Match struct {
 	StartedAt *time.Time `bson:"startedAt,omitempty" json:"startedAt,omitempty"`
 	EndedAt   *time.Time `bson:"endedAt,omitempty" json:"endedAt,omitempty"`
 
+	// Suspension: the table is waiting for a player whose socket dropped.
+	//
+	// Purely envelope state. The rummy document had to remember which phase it
+	// interrupted, because suspension was mixed into the same state machine as
+	// drawing and melding; here the module's own state is untouched and there
+	// is nothing to restore — which is a small, concrete example of what the
+	// opaque-state split bought.
+	SuspendedAt     *time.Time `bson:"suspendedAt,omitempty" json:"suspendedAt,omitempty"`
+	AbandonAt       *time.Time `bson:"abandonAt,omitempty" json:"abandonAt,omitempty"`
+	SuspendedPlayer string     `bson:"suspendedPlayer,omitempty" json:"suspendedPlayer,omitempty"`
+
 	// Version drives the same optimistic-concurrency scheme Game uses: a
 	// filtered replace that fails if someone else wrote first.
 	Version int64 `bson:"version" json:"-"`
