@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 
@@ -8,17 +8,22 @@ import { useSession } from '@/src/context/SessionContext';
 import { colors, shared } from '@/src/theme';
 
 /**
- * Joining a table somebody else opened.
+ * Joining a table somebody else opened, by code or by invitation.
  *
  * Identical for every game, because there is nothing game-specific about
  * waiting in a lobby: a code, a roster, and a host who starts it. The version
  * this replaces polled a Žolíky game and jumped to the Žolíky screen; this one
- * polls a match and jumps to the screen that plays all of them.
+ * polls a match and hands over to the one screen that plays all of them.
  */
 export default function JoinMatchScreen() {
   const { client } = useSession();
+  // A host's invite lands the player here with the match already decided —
+  // they were seated server-side the moment the host picked them, so there is
+  // no code to type and nothing left to do but watch the table fill up, same
+  // as anyone who joined by code.
+  const { matchId: invitedMatchId } = useLocalSearchParams<{ matchId?: string }>();
   const [code, setCode] = useState('');
-  const [matchId, setMatchId] = useState('');
+  const [matchId, setMatchId] = useState(invitedMatchId ?? '');
   const [state, setState] = useState<MatchState | null>(null);
   const [error, setError] = useState('');
 
@@ -77,7 +82,7 @@ export default function JoinMatchScreen() {
 
   return (
     <Screen title="Waiting for the host" scroll>
-      <Text testID="join-waiting" style={shared.status}>
+      <Text testID="lobby-joined" style={shared.status}>
         Joined {state?.moduleId ? `a game of ${state.moduleId}` : 'the table'} — waiting to start
       </Text>
       {error ? <Text style={shared.error}>{error}</Text> : null}
@@ -86,10 +91,12 @@ export default function JoinMatchScreen() {
         Players ({state?.players.length ?? 0})
       </Text>
       {(state?.players ?? []).map((p, i) => (
-        <Text key={p.id} testID={`lobby-player-${p.id}`} style={{ color: colors.text, marginBottom: 4 }}>
-          {i + 1}. {p.name}
-          {p.isAI ? ' 🤖' : ''}
-        </Text>
+        <View key={p.id} testID={`lobby-player-${p.id}`}>
+          <Text style={{ color: colors.text, marginBottom: 4 }}>
+            {i + 1}. {p.name}
+            {p.isAI ? ' 🤖' : ''}
+          </Text>
+        </View>
       ))}
     </Screen>
   );

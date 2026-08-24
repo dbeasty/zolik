@@ -8,6 +8,19 @@ services:
       - "27018:27017"
     volumes:
       - mongo_data:/data/db
+    # Without this, `depends_on: [mongo]` below only waits for the *container*
+    # to start, not for mongod to actually accept connections — on a cold
+    # `docker compose up --build` (fresh volume, image just built) app can
+    # win that race and fail its one startup connection attempt with
+    # "context deadline exceeded" before mongod is ready. `restart:
+    # unless-stopped` masks it by quietly recovering a few seconds later, but
+    # it logs like a real failure in the meantime. `condition:
+    # service_healthy` below makes Compose actually wait.
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ping:1})"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
 
   mongo-express:
     image: mongo-express:1
@@ -27,6 +40,11 @@ services:
     restart: unless-stopped
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
 
   app:
     build:
@@ -34,8 +52,10 @@ services:
       dockerfile: server/Dockerfile
     restart: unless-stopped
     depends_on:
-      - mongo
-      - redis
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     env_file:
       - .env
     environment:
@@ -55,8 +75,10 @@ services:
       dockerfile: server/Dockerfile
     restart: unless-stopped
     depends_on:
-      - mongo
-      - redis
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     env_file:
       - .env
     environment:

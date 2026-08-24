@@ -90,6 +90,44 @@ func (m *Mongo) EnsureIndexes(ctx context.Context) error {
 	if _, err := c.Sessions.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{Keys: bson.D{{Key: "token", Value: 1}}, Options: options.Index().SetUnique(true)},
 		{Keys: bson.D{{Key: "expiresAt", Value: 1}}, Options: options.Index().SetExpireAfterSeconds(0)},
+		// Guest sessions are looked up by guest id when a signed-in account
+		// claims a device's play history.
+		{Keys: bson.D{{Key: "guestId", Value: 1}}, Options: options.Index().SetSparse(true)},
+	}); err != nil {
+		return err
+	}
+
+	// identities — the unique (provider, subject) index is the load-bearing
+	// one. It is not an optimisation: it is the only thing that makes "this
+	// Google account belongs to exactly one user here" true under concurrent
+	// first sign-ins, where two requests can both find no existing identity
+	// and both try to create one. The loser gets a duplicate-key error and
+	// re-reads, instead of quietly minting a second account for the same
+	// person — which would strand half their statistics.
+	if _, err := c.Identities.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys:    bson.D{{Key: "provider", Value: 1}, {Key: "subject", Value: 1}},
+			Options: options.Index().SetUnique(true),
+		},
+		{Keys: bson.D{{Key: "userId", Value: 1}}},
+	}); err != nil {
+		return err
+	}
+
+	// login_codes — TTL on expiresAt is what retires spent codes, so nothing
+	// has to sweep them and a forgotten code cannot be redeemed a week later.
+	if _, err := c.LoginCodes.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{Keys: bson.D{{Key: "email", Value: 1}, {Key: "createdAt", Value: -1}}},
+		{Keys: bson.D{{Key: "expiresAt", Value: 1}}, Options: options.Index().SetExpireAfterSeconds(0)},
+	}); err != nil {
+		return err
+	}
+
+	// oauth_flows
+	if _, err := c.OAuthFlows.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{Keys: bson.D{{Key: "state", Value: 1}}, Options: options.Index().SetUnique(true)},
+		{Keys: bson.D{{Key: "exchangeCode", Value: 1}}, Options: options.Index().SetSparse(true)},
+		{Keys: bson.D{{Key: "expiresAt", Value: 1}}, Options: options.Index().SetExpireAfterSeconds(0)},
 	}); err != nil {
 		return err
 	}

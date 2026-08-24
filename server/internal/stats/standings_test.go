@@ -38,6 +38,11 @@ func testMatch(t *testing.T, roster []string, scores []int, status string, winne
 			p.IsAI, p.AIDifficulty = true, spec[3:]
 		case len(spec) > 5 && spec[:5] == "user:":
 			p.UserID = spec[5:]
+		case len(spec) > 6 && spec[:6] == "guest:":
+			// A guest on a device that has a durable guest id — the shape that
+			// can later be claimed by an account.
+			p.GuestID = spec[6:]
+		default: // guest with no device id: not AI, nothing to attribute to
 		}
 		m.Players = append(m.Players, p)
 		m.TurnOrder = append(m.TurnOrder, pid)

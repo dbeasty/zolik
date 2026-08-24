@@ -29,6 +29,12 @@ type Manager struct {
 	// what the tests and any statistics-free deployment run with.
 	recorder Recorder
 
+	// waiting is the pool a host may seat a player out of, and waitingRoom is
+	// the socket room a pick-up notification goes to. Both optional: without
+	// them, invites report themselves unavailable and nothing else changes.
+	waiting     WaitingLookup
+	waitingRoom string
+
 	// botMu guards botRunning, which is one flag per match saying a bot loop
 	// is already driving it. Without it, every human action would start a
 	// second loop and the bots would race each other.
@@ -54,6 +60,91 @@ type Recorder interface {
 
 // SetRecorder attaches statistics recording. Optional.
 func (m *Manager) SetRecorder(r Recorder) { m.recorder = r }
+
+// WaitingLookup answers whether a player is currently in the waiting-room
+// pool, and lets them be picked up out of it. Satisfied by *lobby.Store.
+//
+// Named here as a narrow, primitive-typed interface rather than importing
+// internal/lobby, so the runtime never learns what a waiting room is — the
+// same reason the statistics recorder is an interface. (It was originally
+// written this way to avoid an import cycle, which no longer exists now the
+// socket hub lives in internal/ws; the narrowness is worth keeping on its own
+// merits.)
+type WaitingLookup interface {
+	// IsWaiting reports the display details of a waiting player, so an invite
+	// can build their seat without a second round trip.
+	IsWaiting(ctx context.Context, playerID string) (name string, isGuest bool, ok bool)
+	// Pickup removes a player from the pool, reporting whether they were
+	// actually present. Called only after they have been seated — a failed
+	// seat attempt must leave them waiting, not silently drop them.
+	Pickup(ctx context.Context, playerID string) bool
+}
+
+// SetWaitingRoom attaches the pool a host may invite from, and the socket room
+// a pick-up notification is delivered on. Optional: without it, invites are
+// unavailable and every other path is unaffected.
+func (m *Manager) SetWaitingRoom(w WaitingLookup, roomID string) {
+	m.waiting, m.waitingRoom = w, roomID
+}
+
+// Invite seats a specific waiting player, without a join code.
+//
+// The order matters and is the same as the version this replaces: the seat is
+// committed first, and only then does the player leave the pool. Picking up
+// before the seat was confirmed would risk losing them from the waiting room
+// over a write that then failed.
+func (m *Manager) Invite(ctx context.Context, idOrCode, hostID, playerID string) (models.Match, bool, error) {
+	if m.waiting == nil {
+		return models.Match{}, false, module.Error{Code: "WAITING_ROOM_UNAVAILABLE"}
+	}
+	match, err := m.repo.Resolve(ctx, idOrCode)
+	if err != nil {
+		return models.Match{}, false, err
+	}
+	if match.HostID != hostID {
+		return models.Match{}, false, module.Error{Code: "NOT_THE_HOST"}
+	}
+	if match.Status != "lobby" {
+		return models.Match{}, false, module.Error{Code: "MATCH_ALREADY_STARTED"}
+	}
+	for _, p := range match.Players {
+		if p.ID == playerID {
+			// Idempotent: inviting somebody already at the table is a no-op,
+			// not an error. A host double-tapping is not a mistake worth a 400.
+			return match, true, nil
+		}
+	}
+
+	// Re-checked here rather than trusted from whatever snapshot the host's
+	// client last polled: the target may have left, been picked up elsewhere,
+	// or disconnected in the meantime, and this is the only point that gets to
+	// decide whether they are still actually available.
+	name, isGuest, stillWaiting := m.waiting.IsWaiting(ctx, playerID)
+	if !stillWaiting {
+		return models.Match{}, false, module.Error{Code: "NO_LONGER_WAITING"}
+	}
+
+	seat := models.Player{ID: playerID, Name: name}
+	if isGuest {
+		seat.GuestID = playerID
+	} else {
+		seat.UserID = playerID
+	}
+	next, err := m.Join(ctx, match.ID.Hex(), seat)
+	if err != nil {
+		return models.Match{}, false, err
+	}
+
+	m.waiting.Pickup(ctx, playerID)
+	if m.hub != nil && m.waitingRoom != "" {
+		m.hub.WriteDirect(m.waitingRoom, playerID, map[string]any{
+			"type":     "lobby_invited",
+			"matchId":  next.ID.Hex(),
+			"joinCode": next.JoinCode,
+		})
+	}
+	return next, false, nil
+}
 
 func NewManager(repo *Repository, registry *module.Registry, hub *ws.Hub) *Manager {
 	return &Manager{repo: repo, registry: registry, hub: hub}

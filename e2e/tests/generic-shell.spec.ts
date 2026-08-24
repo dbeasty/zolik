@@ -317,7 +317,7 @@ test.describe('the legacy path is gone', () => {
     await page.getByTestId('join-code').fill(joinCode);
     await page.getByTestId('join-submit').click();
 
-    await expect(page.getByTestId('join-waiting')).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId('lobby-joined')).toBeVisible({ timeout: 20_000 });
     await expect(page.getByTestId(`lobby-player-${joiner.userId}`)).toBeVisible();
 
     // The host starts it, and the joiner's lobby hands over to the shell by

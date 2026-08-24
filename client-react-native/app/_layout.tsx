@@ -29,18 +29,29 @@ export default function RootLayout() {
           }}
         >
           <Stack.Screen name="index" options={{ title: 'Zolik' }} />
+
+          {/* Signing in. The provider list is fetched, so enabling Apple or
+              Microsoft server-side lights up a button with no app change. */}
           <Stack.Screen name="auth/login" options={{ title: 'Sign in' }} />
-          <Stack.Screen name="auth/register" options={{ title: 'Register' }} />
+          <Stack.Screen name="auth/email" options={{ title: 'Email sign-in' }} />
+          <Stack.Screen name="auth/callback" options={{ title: 'Signing in', headerShown: false }} />
+          <Stack.Screen name="auth/username-login" options={{ title: 'Sign in with username' }} />
+          <Stack.Screen name="auth/register" options={{ title: 'Legacy account' }} />
           <Stack.Screen name="auth/guest" options={{ title: 'Guest' }} />
-          {/* The whole gameplay path: a picker rendered from /modules, and one
-              screen that plays whatever it starts. There is no per-game screen
-              any more, and adding a game adds no route here. */}
+          <Stack.Screen name="account" options={{ title: 'Account' }} />
+
+          {/* The whole gameplay path: a picker rendered from /modules, a
+              waiting room, and one screen that plays whatever it starts.
+              There is no per-game screen any more, and adding a game adds no
+              route here. */}
           <Stack.Screen name="lobby/games" options={{ title: 'Games' }} />
+          <Stack.Screen name="lobby/table" options={{ title: 'Your table' }} />
           <Stack.Screen name="lobby/join" options={{ title: 'Join a table' }} />
           <Stack.Screen
             name="match/[matchId]"
             options={{ title: 'Match', headerBackVisible: true }}
           />
+
           <Stack.Screen name="scoring/index" options={{ title: 'Score table' }} />
           <Stack.Screen name="stats" options={{ title: 'Stats' }} />
         </Stack>

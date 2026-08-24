@@ -86,6 +86,66 @@ func (r *Repository) ListMatchesForSubject(ctx context.Context, key string, befo
 	return out, nil
 }
 
+// EachMatchForSubject walks every match a subject played, oldest first,
+// calling fn once per record.
+//
+// Oldest-first and streaming are both deliberate. Order matters because the
+// aggregates it feeds are order-dependent (streaks, first match, best/worst),
+// and streaming matters because this walks a subject's entire history rather
+// than a page of it — loading a heavy player's several thousand match records
+// into one slice to fold them would be a needless spike. A callback that
+// returns an error stops the walk and surfaces it.
+func (r *Repository) EachMatchForSubject(ctx context.Context, key string, fn func(MatchResult) error) error {
+	if key == "" {
+		return nil
+	}
+	opts := options.Find().SetSort(bson.D{{Key: "completedAt", Value: 1}, {Key: "_id", Value: 1}})
+	cur, err := r.matches.Find(ctx, bson.M{"subjectKeys": key}, opts)
+	if err != nil {
+		return err
+	}
+	defer cur.Close(ctx)
+
+	for cur.Next(ctx) {
+		var m MatchResult
+		if err := cur.Decode(&m); err != nil {
+			return err
+		}
+		if err := fn(m); err != nil {
+			return err
+		}
+	}
+	return cur.Err()
+}
+
+// CountMatchesForSubject counts a subject's finished matches.
+func (r *Repository) CountMatchesForSubject(ctx context.Context, key string) (int, error) {
+	if key == "" {
+		return 0, nil
+	}
+	n, err := r.matches.CountDocuments(ctx, bson.M{"subjectKeys": key})
+	return int(n), err
+}
+
+// ReplaceMatchAttribution rewrites only the two fields that say *who* played a
+// match, leaving the rest of the immutable record untouched.
+//
+// The match record is otherwise append-only, and this is the single sanctioned
+// exception: when a guest claims an account, the games are the same games and
+// only the identity behind a seat changes. Writing the two fields rather than
+// replacing the document keeps that promise narrow and auditable — no other
+// code path can use this to edit a score.
+func (r *Repository) ReplaceMatchAttribution(ctx context.Context, m MatchResult) error {
+	_, err := r.matches.UpdateOne(ctx,
+		bson.M{"_id": m.ID},
+		bson.M{"$set": bson.M{
+			"participants": m.Participants,
+			"subjectKeys":  m.SubjectKeys,
+		}},
+	)
+	return err
+}
+
 // FindPlayerStats returns a subject's lifetime record, or ErrNotFound when the
 // subject has not finished a match yet. Callers that want a renderable zero
 // record should use ZeroStats.

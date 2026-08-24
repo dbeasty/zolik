@@ -93,21 +93,26 @@ export default function GamesScreen() {
         if (!created.ok) throw new Error(await created.text());
         const { matchId } = (await created.json()) as { matchId: string };
 
-        if (withBot) {
-          // Enough bots to reach the module's own minimum. The screen does not
-          // know what that number is for any particular game.
-          for (let i = 1; i < mod.minPlayers; i++) {
-            await fetch(`${ZOLIK_BASE_URL}/matches/${matchId}/add-bot`, {
-              method: 'POST',
-              headers: auth,
-            });
-          }
-          const started = await fetch(`${ZOLIK_BASE_URL}/matches/${matchId}/start`, {
+        if (!withBot) {
+          // Open the table and let the host fill it: invite someone out of the
+          // waiting room, add bots, then deal.
+          router.push(`/lobby/table?matchId=${encodeURIComponent(matchId)}`);
+          return;
+        }
+
+        // Enough bots to reach the module's own minimum. The screen does not
+        // know what that number is for any particular game.
+        for (let i = 1; i < mod.minPlayers; i++) {
+          await fetch(`${ZOLIK_BASE_URL}/matches/${matchId}/add-bot`, {
             method: 'POST',
             headers: auth,
           });
-          if (!started.ok) throw new Error(await started.text());
         }
+        const started = await fetch(`${ZOLIK_BASE_URL}/matches/${matchId}/start`, {
+          method: 'POST',
+          headers: auth,
+        });
+        if (!started.ok) throw new Error(await started.text());
         router.push(`/match/${matchId}`);
       } catch (e) {
         setError(String(e));

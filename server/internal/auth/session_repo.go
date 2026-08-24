@@ -43,6 +43,17 @@ func (r *SessionRepository) FindByToken(ctx context.Context, token string) (mode
 	return s, err
 }
 
+// SetGuestID attaches a durable guest identity to a session that predates
+// them, so a guest who has been playing since before this existed gains one on
+// their next refresh rather than staying unattributable forever.
+func (r *SessionRepository) SetGuestID(ctx context.Context, token, guestID string) error {
+	_, err := r.coll.UpdateOne(ctx,
+		bson.M{"token": token},
+		bson.M{"$set": bson.M{"guestId": guestID}},
+	)
+	return err
+}
+
 func (r *SessionRepository) DeleteByToken(ctx context.Context, token string) error {
 	_, err := r.coll.DeleteOne(ctx, bson.M{"token": token})
 	return err

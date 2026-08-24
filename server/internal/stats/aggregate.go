@@ -181,9 +181,12 @@ func addTo(m map[string]Tally, key string, seat Standing, isDraw bool) map[strin
 func applyHeadToHead(h map[string]HeadToHead, seat Standing, opponents []Standing, at time.Time) map[string]HeadToHead {
 	for _, o := range opponents {
 		key := o.Subject.Key()
-		if key == "" || key == seat.Subject.Key() {
-			// Guests have no durable identity, and a subject facing itself
-			// (two bots of one difficulty) would only record a wash.
+		if !o.Subject.Durable() || key == seat.Subject.Key() {
+			// Guests have no durable identity — their key exists only so
+			// their own matches can be found and claimed, and a head-to-head
+			// row against a device rather than a person would merge whoever
+			// shares that device. A subject facing itself (two bots of one
+			// difficulty) would only record a wash.
 			continue
 		}
 		if h == nil {

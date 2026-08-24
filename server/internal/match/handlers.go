@@ -50,6 +50,9 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/join", h.joinMatch)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/start", h.startMatch)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/add-bot", h.addBot)
+	// Seat a specific player out of the waiting room, instead of reading a
+	// join code out to them.
+	r.With(auth.AuthMiddleware).Post("/matches/{id}/invite", h.invite)
 	r.Get("/ws/matches/{id}", h.handleWS)
 
 	if h.testEndpoints {
@@ -153,9 +156,14 @@ func (h *Handlers) createMatch(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	host := models.Player{ID: uc.UserID, Name: uc.Username}
-	if !uc.IsGuest {
-		host.UserID = uc.UserID
+	// PlayerUserID/PlayerGuestID set exactly one of the two, which is what
+	// makes a guest's play attributable to their device and therefore
+	// claimable onto an account they create later.
+	host := models.Player{
+		ID:      uc.UserID,
+		Name:    uc.Username,
+		UserID:  uc.PlayerUserID(),
+		GuestID: uc.PlayerGuestID(),
 	}
 	m, err := h.manager.Create(req.Context(), body.ModuleID,
 		module.MatchConfig{Variation: body.Variation, Options: body.Options}, host)
@@ -172,7 +180,12 @@ func (h *Handlers) joinMatch(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	p := models.Player{ID: uc.UserID, Name: uc.Username}
+	p := models.Player{
+		ID:      uc.UserID,
+		Name:    uc.Username,
+		UserID:  uc.PlayerUserID(),
+		GuestID: uc.PlayerGuestID(),
+	}
 	m, err := h.manager.Join(req.Context(), chi.URLParam(req, "id"), p)
 	if err != nil {
 		writeModuleError(w, err)
@@ -208,6 +221,39 @@ func (h *Handlers) addBot(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	writeJSON(w, map[string]any{"playerId": bot.ID})
+}
+
+// invite seats a player the host picked out of the waiting room.
+//
+// The alternative to reading a join code out loud. Everything about who is
+// still available is decided in the manager, at the moment of seating — this
+// handler only carries the request.
+func (h *Handlers) invite(w http.ResponseWriter, req *http.Request) {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	var body struct {
+		PlayerID string `json:"playerId"`
+	}
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil || body.PlayerID == "" {
+		http.Error(w, "playerId required", http.StatusBadRequest)
+		return
+	}
+
+	m, already, err := h.manager.Invite(req.Context(), chi.URLParam(req, "id"), uc.UserID, body.PlayerID)
+	if err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	if already {
+		writeJSON(w, map[string]any{"matchId": m.ID.Hex(), "alreadyJoined": true})
+		return
+	}
+	writeJSON(w, map[string]any{
+		"matchId": m.ID.Hex(), "invited": true, "playerCount": len(m.Players),
+	})
 }
 
 func (h *Handlers) startMatch(w http.ResponseWriter, req *http.Request) {
@@ -315,6 +361,14 @@ func writeModuleError(w http.ResponseWriter, err error) {
 	switch code {
 	case "UNKNOWN_MODULE", "UNKNOWN_VARIATION":
 		status = http.StatusNotFound
+	case "NOT_THE_HOST":
+		status = http.StatusForbidden
+	case "NO_LONGER_WAITING", "MATCH_FULL":
+		// A conflict rather than a bad request: the caller did nothing wrong,
+		// the world moved under them.
+		status = http.StatusConflict
+	case "WAITING_ROOM_UNAVAILABLE":
+		status = http.StatusServiceUnavailable
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
