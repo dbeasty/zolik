@@ -1,11 +1,15 @@
 import { ZOLIK_BASE_URL } from '@/src/config';
 import type {
+  AccountProfile,
+  AuthProvider,
   GameState,
   GameOptions,
+  LinkedIdentity,
   LobbyGame,
   ModuleDescriptor,
   PlayerSession,
   RulesInfo,
+  SignInOutcome,
   WSAction,
 } from '@/src/api/types';
 
@@ -23,6 +27,16 @@ type TokenHolder = {
   accessToken: string;
   refreshToken: string;
   onTokensUpdated?: (access: string, refresh: string) => void;
+};
+
+/** The shape every sign-in endpoint answers with, whichever door was used. */
+type SignInResponse = {
+  accessToken: string;
+  refreshToken: string;
+  userId: string;
+  username: string;
+  created?: boolean;
+  claimedMatches?: number;
 };
 
 export class ZolikClient {
@@ -56,23 +70,131 @@ export class ZolikClient {
     return `${scheme}://${u.host}/ws/games/${encodeURIComponent(gameId)}?token=${token}`;
   }
 
-  async guestLogin(name: string): Promise<PlayerSession> {
+  /**
+   * Starts a guest session, reusing this device's guest identity when it has
+   * one.
+   *
+   * Passing the existing id back is what keeps a guest's play attributable to
+   * one device across sessions, and therefore what makes it claimable when
+   * they eventually sign in. Without it every launch would look like a new
+   * person and the history would be unreachable.
+   */
+  async guestLogin(name: string, guestId?: string): Promise<PlayerSession> {
     const data = await this.post<{
       accessToken: string;
       refreshToken: string;
       guestName: string;
+      guestId: string;
       userId: string;
-    }>('/auth/guest', { guestName: name || 'Player' }, false);
+      claimableMatches?: number;
+    }>('/auth/guest', { guestName: name || 'Player', guestId: guestId || undefined }, false);
     this.accessToken = data.accessToken;
     this.refreshToken = data.refreshToken;
-    this.userId = data.userId || data.refreshToken;
+    this.userId = data.userId || data.guestId;
     return {
       accessToken: data.accessToken,
       refreshToken: data.refreshToken,
       userId: this.userId,
       username: data.guestName || name || 'Guest',
       isGuest: true,
+      guestId: data.guestId,
+      claimableMatches: data.claimableMatches ?? 0,
     };
+  }
+
+  /** The sign-in methods this deployment offers. */
+  async getAuthProviders(): Promise<AuthProvider[]> {
+    const data = await this.get<{ providers: AuthProvider[] }>('/auth/providers', false);
+    return data.providers ?? [];
+  }
+
+  /** Mails a one-time code. Says nothing about whether the address has an
+   *  account here — that would make the endpoint a membership oracle. */
+  async startEmailSignIn(email: string): Promise<void> {
+    await this.post('/auth/email/start', { email }, false);
+  }
+
+  /**
+   * Redeems a mailed code.
+   *
+   * Sent with the current session's Authorization header when there is one, so
+   * a guest signing in has their play history claimed as part of the same
+   * call rather than needing a second, racier round trip.
+   */
+  async verifyEmailCode(email: string, code: string): Promise<SignInOutcome> {
+    return this.toOutcome(
+      await this.post<SignInResponse>('/auth/email/verify', { email, code }, true),
+    );
+  }
+
+  /**
+   * Asks the server to begin a browser sign-in and returns the URL to open.
+   *
+   * A POST rather than opening a URL directly, so the current session travels
+   * in a header instead of a query string — that header is what tells the
+   * server whether this is a guest upgrade, a link, or a plain sign-in.
+   */
+  async startOAuth(
+    provider: string,
+    returnTo: string,
+    link = false,
+  ): Promise<{ authorizationUrl: string; returnTo: string }> {
+    return this.post(
+      `/auth/oauth/${encodeURIComponent(provider)}/start`,
+      { returnTo, link },
+      true,
+    );
+  }
+
+  /** Swaps the one-time code from the callback for real tokens. */
+  async exchangeOAuthCode(code: string): Promise<SignInOutcome> {
+    return this.toOutcome(await this.post<SignInResponse>('/auth/oauth/exchange', { code }, false));
+  }
+
+  /** Signs in with an ID token from a native SDK (Google Sign-In, Sign in
+   *  with Apple, MSAL) — no browser involved. */
+  async signInWithIdToken(
+    provider: string,
+    idToken: string,
+    opts: { nonce?: string; link?: boolean } = {},
+  ): Promise<SignInOutcome> {
+    return this.toOutcome(
+      await this.post<SignInResponse>(
+        `/auth/oauth/${encodeURIComponent(provider)}/token`,
+        { idToken, nonce: opts.nonce, link: opts.link },
+        true,
+      ),
+    );
+  }
+
+  /**
+   * Moves this device's guest play onto the signed-in account.
+   *
+   * Takes the guest *refresh token* rather than the guest id, because the id
+   * travels in game state and match records — possession of the session is
+   * what actually distinguishes the owner of that history.
+   */
+  async claimGuestHistory(guestRefreshToken: string): Promise<number> {
+    const data = await this.post<{ claimedMatches: number }>(
+      '/auth/claim-guest',
+      { guestRefreshToken },
+      true,
+    );
+    return data.claimedMatches ?? 0;
+  }
+
+  /** What this guest session stands to keep by signing in. */
+  async getGuestSummary(): Promise<{ guestId: string; claimableMatches: number }> {
+    return this.get('/auth/guest-summary', true);
+  }
+
+  async getIdentities(): Promise<LinkedIdentity[]> {
+    const data = await this.get<{ identities: LinkedIdentity[] }>('/auth/identities', true);
+    return data.identities ?? [];
+  }
+
+  async unlinkIdentity(provider: string): Promise<void> {
+    await this.request('DELETE', `/auth/identities/${encodeURIComponent(provider)}`, undefined, true);
   }
 
   async register(username: string, password: string, email?: string): Promise<PlayerSession> {
@@ -202,8 +324,16 @@ export class ZolikClient {
     return this.get('/module', false);
   }
 
-  async getMe(): Promise<{ id: string; username?: string }> {
+  async getMe(): Promise<AccountProfile> {
     return this.get('/users/me', true);
+  }
+
+  /** Renames the account or updates its preferences. */
+  async updateMe(patch: {
+    username?: string;
+    preferences?: { language?: string; cardStyle?: string };
+  }): Promise<void> {
+    await this.request('PATCH', '/users/me', patch, true);
   }
 
   async getStats(): Promise<Record<string, unknown>> {
@@ -280,6 +410,25 @@ export class ZolikClient {
 
   sendWS(ws: WebSocket, action: WSAction): void {
     ws.send(JSON.stringify(action));
+  }
+
+  /** Adopts a completed sign-in as the current session. One place, so every
+   *  sign-in path leaves the client in the same state. */
+  private toOutcome(data: SignInResponse): SignInOutcome {
+    this.accessToken = data.accessToken;
+    this.refreshToken = data.refreshToken;
+    this.userId = data.userId;
+    return {
+      session: {
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+        userId: data.userId,
+        username: data.username,
+        isGuest: false,
+      },
+      claimedMatches: data.claimedMatches ?? 0,
+      created: data.created ?? false,
+    };
   }
 
   private toSession(username: string, isGuest: boolean): PlayerSession {

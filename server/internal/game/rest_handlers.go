@@ -178,12 +178,11 @@ func (h *GameRestHandlers) createGame(w http.ResponseWriter, req *http.Request) 
 		ID:   uc.UserID,
 		Name: uc.Username,
 		IsAI: false,
-		UserID: func() string {
-			if uc.IsGuest {
-				return ""
-			}
-			return uc.UserID
-		}(),
+		// Exactly one of these is set — a seat is held by an account or by a
+		// device's guest identity. The guest id is what lets this match be
+		// re-attributed if the player signs up later.
+		UserID:  uc.PlayerUserID(),
+		GuestID: uc.PlayerGuestID(),
 	}
 
 	g := models.Game{
@@ -350,12 +349,11 @@ func (h *GameRestHandlers) joinGame(w http.ResponseWriter, req *http.Request) {
 		ID:   uc.UserID,
 		Name: uc.Username,
 		IsAI: false,
-		UserID: func() string {
-			if uc.IsGuest {
-				return ""
-			}
-			return uc.UserID
-		}(),
+		// Exactly one of these is set — a seat is held by an account or by a
+		// device's guest identity. The guest id is what lets this match be
+		// re-attributed if the player signs up later.
+		UserID:  uc.PlayerUserID(),
+		GuestID: uc.PlayerGuestID(),
 	}
 
 	g.Players = append(g.Players, p)

@@ -3,7 +3,9 @@ package auth
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -13,58 +15,133 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 
 	"zolik/server/internal/db"
+	"zolik/server/internal/identity"
 	"zolik/server/internal/models"
 )
+
+// Token lifetimes. A guest's access token is long-lived because a guest has no
+// way to sign back in: expiring it would end their game and lose the device's
+// play history along with it. A real account refreshes often, since it can.
+const (
+	accessTokenTTL      = 15 * time.Minute
+	guestAccessTokenTTL = 7 * 24 * time.Hour
+	refreshTokenTTL     = 30 * 24 * time.Hour
+)
+
+// Deps is everything the auth handlers need from the outside.
+type Deps struct {
+	Mongo *db.Mongo
+	// Providers is the configured set of external sign-in methods. An empty
+	// registry is fine — the server then offers guest and email sign-in only,
+	// and the clients render exactly that.
+	Providers *identity.Registry
+	// Mailer delivers one-time sign-in codes.
+	Mailer Mailer
+	// Claimer moves a guest's play history onto an account. Optional; without
+	// one, sign-in works and history simply is not claimed.
+	Claimer GuestClaimer
+	// PublicBaseURL is this server's externally reachable base, used to build
+	// the OAuth redirect URI that providers must have registered.
+	PublicBaseURL string
+	// AllowedReturnURLs are the prefixes a browser flow may return to. The
+	// first is the default when a client sends none.
+	AllowedReturnURLs []string
+	// AppName appears in the sign-in email.
+	AppName string
+}
 
 type Handlers struct {
 	users       *mongo.Collection
 	sessionRepo *SessionRepository
+	store       *Store
+	accounts    *Accounts
+	email       *EmailAuth
+	providers   *identity.Registry
+
+	publicBaseURL     string
+	allowedReturnURLs []string
 }
 
-func NewHandlers(m *db.Mongo) *Handlers {
-	c := m.Collections()
+func NewHandlers(d Deps) *Handlers {
+	c := d.Mongo.Collections()
+	store := NewStore(d.Mongo)
+	providers := d.Providers
+	if providers == nil {
+		providers = identity.NewRegistry()
+	}
+	var mailer Mailer = d.Mailer
+	if mailer == nil {
+		mailer = LogMailer{}
+	}
 	return &Handlers{
-		users:       c.Users,
-		sessionRepo: NewSessionRepository(m),
+		users:             c.Users,
+		sessionRepo:       NewSessionRepository(d.Mongo),
+		store:             store,
+		accounts:          NewAccounts(store, d.Claimer),
+		email:             NewEmailAuth(store, mailer, d.AppName),
+		providers:         providers,
+		publicBaseURL:     d.PublicBaseURL,
+		allowedReturnURLs: d.AllowedReturnURLs,
 	}
-}
-
-func (h *Handlers) createUser(ctx context.Context, u models.User) (models.User, error) {
-	now := time.Now().UTC()
-	if u.CreatedAt.IsZero() {
-		u.CreatedAt = now
-	}
-	u.LastSeenAt = now
-	res, err := h.users.InsertOne(ctx, u)
-	if err != nil {
-		return models.User{}, err
-	}
-	if oid, ok := res.InsertedID.(bson.ObjectID); ok {
-		u.ID = oid
-	}
-	// No statistics row is seeded here. A lifetime record is created the
-	// first time the player finishes a match (see stats.Recorder), so an
-	// account that has never played simply has none — which the stats
-	// endpoint renders as a zeroed record rather than a 404.
-	return u, nil
-}
-
-func (h *Handlers) findUserByUsername(ctx context.Context, username string) (models.User, error) {
-	var u models.User
-	err := h.users.FindOne(ctx, bson.M{"username": username}).Decode(&u)
-	return u, err
 }
 
 func (h *Handlers) RegisterRoutes(r chi.Router) {
+	r.Get("/auth/providers", h.listProviders)
+
 	r.Post("/auth/guest", h.guest)
+
+	// Passwordless email sign-in. Verification takes an optional Authorization
+	// header: when it carries a guest token, the guest's play history is
+	// claimed as part of signing in.
+	r.Post("/auth/email/start", h.emailStart)
+	r.With(OptionalAuthMiddleware).Post("/auth/email/verify", h.emailVerify)
+
+	// Browser redirect flow. Start and the native-token endpoint both take an
+	// optional Authorization header, for the same reason.
+	r.With(OptionalAuthMiddleware).Post("/auth/oauth/{provider}/start", h.oauthStart)
+	r.Get("/auth/oauth/{provider}/callback", h.oauthCallback)
+	// Apple posts its callback as a form when name/email scopes are requested.
+	r.Post("/auth/oauth/{provider}/callback", h.oauthCallback)
+	r.Post("/auth/oauth/exchange", h.oauthExchange)
+	r.With(OptionalAuthMiddleware).Post("/auth/oauth/{provider}/token", h.oauthNativeToken)
+
+	// Account maintenance.
+	r.With(AuthMiddleware).Get("/auth/identities", h.listIdentities)
+	r.With(AuthMiddleware).Delete("/auth/identities/{provider}", h.unlinkIdentity)
+	r.With(AuthMiddleware).Post("/auth/claim-guest", h.claimGuest)
+	r.With(AuthMiddleware).Get("/auth/guest-summary", h.guestSummary)
+
+	// Legacy username/password. Kept because the SSH/TUI client can neither
+	// open a browser nor receive mail, so it has no other way in. New accounts
+	// should use the flows above; nothing here grows.
 	r.Post("/auth/register", h.register)
 	r.Post("/auth/login", h.login)
+
 	r.Post("/auth/refresh", h.refresh)
 	r.Post("/auth/logout", h.logout)
 }
 
+// listProviders tells a client which sign-in methods this deployment offers,
+// so the sign-in screen is built from server configuration rather than from a
+// list compiled into each client. Enabling Apple later lights up the button
+// everywhere without shipping a new app build.
+func (h *Handlers) listProviders(w http.ResponseWriter, _ *http.Request) {
+	methods := []identity.Descriptor{
+		{ID: "guest", DisplayName: "Play as guest", Kind: "guest"},
+		{ID: models.IdentityProviderEmail, DisplayName: "Email", Kind: "email"},
+	}
+	methods = append(methods, h.providers.Descriptors()...)
+	writeJSON(w, map[string]any{"providers": methods})
+}
+
+// --- guest ---
+
 type guestReq struct {
 	GuestName string `json:"guestName,omitempty"`
+	// GuestID is the device's existing guest identity, sent back on every
+	// subsequent guest sign-in so the same device keeps one identity and its
+	// play history keeps accumulating in one place. Absent on first run.
+	GuestID string `json:"guestId,omitempty"`
 }
 
 func (h *Handlers) guest(w http.ResponseWriter, req *http.Request) {
@@ -72,42 +149,192 @@ func (h *Handlers) guest(w http.ResponseWriter, req *http.Request) {
 	var body guestReq
 	_ = json.NewDecoder(req.Body).Decode(&body)
 
-	guestName := body.GuestName
-	if guestName == "" {
-		guestName = "Guest"
-	}
-
-	refreshToken, err := CreateRefreshToken()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	now := time.Now().UTC()
-	expiresAt := now.Add(30 * 24 * time.Hour)
-
-	if err := h.sessionRepo.CreateSession(ctx, models.Session{
-		Token:     refreshToken,
-		GuestName: guestName,
-		UserID:    "",
-		CreatedAt: now,
-		ExpiresAt: expiresAt,
-	}); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	accessToken, err := CreateAccessToken(refreshToken, guestName, true, 7*24*time.Hour)
+	tokens, err := h.GuestSessionWithID(ctx, body.GuestName, body.GuestID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	_ = json.NewEncoder(w).Encode(map[string]any{
-		"accessToken":  accessToken,
-		"refreshToken": refreshToken,
-		"guestName":    guestName,
-		"userId":       refreshToken, // JWT subject; used as in-game player id
+	writeJSON(w, map[string]any{
+		"accessToken":  tokens.AccessToken,
+		"refreshToken": tokens.RefreshToken,
+		"guestName":    tokens.Username,
+		"guestId":      tokens.GuestID,
+		"userId":       tokens.UserID,
+		"isGuest":      true,
+		// How many finished matches are already recorded against this device,
+		// so the client can offer "sign in to keep your N games" with a real
+		// number instead of a vague promise.
+		"claimableMatches": h.accounts.GuestMatchCount(ctx, tokens.GuestID),
 	})
+}
+
+// guestSummary reports what a guest stands to keep by signing in. Authenticated
+// as the guest, so the guest id never has to be supplied — and cannot be
+// guessed at — by the caller.
+func (h *Handlers) guestSummary(w http.ResponseWriter, req *http.Request) {
+	uc, _ := GetUserContext(req)
+	if !uc.IsGuest {
+		http.Error(w, "not a guest session", http.StatusBadRequest)
+		return
+	}
+	writeJSON(w, map[string]any{
+		"guestId":          uc.UserID,
+		"claimableMatches": h.accounts.GuestMatchCount(req.Context(), uc.UserID),
+	})
+}
+
+// --- passwordless email ---
+
+type emailStartReq struct {
+	Email string `json:"email"`
+}
+
+func (h *Handlers) emailStart(w http.ResponseWriter, req *http.Request) {
+	var body emailStartReq
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	err := h.email.StartSignIn(req.Context(), body.Email, clientIP(req))
+	switch {
+	case errors.Is(err, ErrTooManyCodes):
+		http.Error(w, "too many codes requested for that address — try again shortly", http.StatusTooManyRequests)
+		return
+	case err != nil:
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	// The response says nothing about whether that address has an account,
+	// which would otherwise make this endpoint a membership oracle.
+	writeJSON(w, map[string]any{"sent": true, "expiresInSeconds": int(codeTTL.Seconds())})
+}
+
+type emailVerifyReq struct {
+	Email string `json:"email"`
+	Code  string `json:"code"`
+}
+
+func (h *Handlers) emailVerify(w http.ResponseWriter, req *http.Request) {
+	var body emailVerifyReq
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	claims, err := h.email.VerifyCode(req.Context(), body.Email, body.Code)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	opts := SignInOptions{}
+	if uc, ok := GetUserContext(req); ok {
+		if uc.IsGuest {
+			opts.GuestID = uc.UserID
+		} else {
+			opts.LinkToUserID = uc.UserID
+		}
+	}
+	h.completeSignIn(w, req, claims, opts, models.IdentityProviderEmail)
+}
+
+// --- account maintenance ---
+
+func (h *Handlers) listIdentities(w http.ResponseWriter, req *http.Request) {
+	uc, _ := GetUserContext(req)
+	if uc.IsGuest {
+		http.Error(w, "guests have no linked accounts", http.StatusForbidden)
+		return
+	}
+	ids, err := h.accounts.Identities(req.Context(), uc.UserID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, map[string]any{"identities": ids})
+}
+
+func (h *Handlers) unlinkIdentity(w http.ResponseWriter, req *http.Request) {
+	uc, _ := GetUserContext(req)
+	if uc.IsGuest {
+		http.Error(w, "guests have no linked accounts", http.StatusForbidden)
+		return
+	}
+	err := h.accounts.Unlink(req.Context(), uc.UserID, chi.URLParam(req, "provider"))
+	switch {
+	case errors.Is(err, ErrNotFound):
+		http.Error(w, "no such linked account", http.StatusNotFound)
+	case err != nil:
+		// The "last way in" refusal lands here, and its message is written to
+		// be shown to the player as-is.
+		http.Error(w, err.Error(), http.StatusConflict)
+	default:
+		writeJSON(w, map[string]any{"unlinked": true})
+	}
+}
+
+type claimGuestReq struct {
+	// GuestRefreshToken is the guest session's refresh token, which is proof
+	// that this device really is that guest.
+	//
+	// The guest id alone would not do: it travels in match records and in
+	// game state, so treating it as a claim ticket would let anyone who has
+	// seen one walk off with somebody else's history. Possession of the
+	// session is the thing that actually distinguishes the owner.
+	GuestRefreshToken string `json:"guestRefreshToken"`
+}
+
+// claimGuest absorbs a device's guest play history into the signed-in account.
+//
+// This is the "I signed in first and only then remembered my old games" path;
+// the common case is handled inline by whichever sign-in the person used.
+func (h *Handlers) claimGuest(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+	uc, _ := GetUserContext(req)
+	if uc.IsGuest {
+		http.Error(w, "sign in with an account first", http.StatusForbidden)
+		return
+	}
+
+	var body claimGuestReq
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil || body.GuestRefreshToken == "" {
+		http.Error(w, "guestRefreshToken required", http.StatusBadRequest)
+		return
+	}
+	session, err := h.sessionRepo.FindByToken(ctx, body.GuestRefreshToken)
+	if err != nil || session.GuestID == "" {
+		http.Error(w, "that guest session is not valid", http.StatusUnauthorized)
+		return
+	}
+
+	u, err := h.store.FindUserByID(ctx, uc.UserID)
+	if err != nil {
+		http.Error(w, "unknown account", http.StatusUnauthorized)
+		return
+	}
+	claimed, err := h.accounts.ClaimGuest(ctx, session.GuestID, u)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// The guest session is retired: its history now belongs to the account,
+	// and leaving it usable would let the device keep playing as a guest whose
+	// results land nowhere.
+	_ = h.sessionRepo.DeleteByToken(ctx, body.GuestRefreshToken)
+
+	writeJSON(w, map[string]any{"claimedMatches": claimed})
+}
+
+// --- legacy username/password ---
+
+func (h *Handlers) createUser(ctx context.Context, u models.User) (models.User, error) {
+	return h.store.InsertUser(ctx, u)
+}
+
+func (h *Handlers) findUserByUsername(ctx context.Context, username string) (models.User, error) {
+	var u models.User
+	err := h.users.FindOne(ctx, bson.M{"username": username}).Decode(&u)
+	return u, err
 }
 
 type registerReq struct {
@@ -134,57 +361,44 @@ func (h *Handlers) register(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	u := models.User{
+	created, err := h.createUser(ctx, models.User{
 		Username:     body.Username,
-		Email:        body.Email,
+		Email:        NormalizeEmail(body.Email),
 		PasswordHash: string(hash),
-		AuthProvider: "local",
+		AuthProvider: models.IdentityProviderLocal,
 		Preferences: models.UserPreferences{
 			Language:  "en",
 			CardStyle: "classic",
 		},
-	}
-
-	u.CreatedAt = time.Now().UTC()
-	u.LastSeenAt = time.Now().UTC()
-
-	created, err := h.createUser(ctx, u)
+	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	_ = created
+	// The password itself is the identity's proof, so the identity row records
+	// only that this account has a local login — which is what stops Unlink
+	// from stranding somebody whose password is their only way in.
+	if _, err := h.store.InsertIdentity(ctx, models.Identity{
+		UserID:      created.ID.Hex(),
+		Provider:    models.IdentityProviderLocal,
+		Subject:     created.ID.Hex(),
+		DisplayName: created.Username,
+	}); err != nil && !errors.Is(err, ErrIdentityTaken) {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-	// Create refresh session.
-	refreshToken, err := CreateRefreshToken()
+	tokens, err := h.issueUserSession(ctx, created)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	now := time.Now().UTC()
-	expiresAt := now.Add(30 * 24 * time.Hour)
-
-	// Persist refresh token.
-	if err := h.sessionRepo.CreateSession(ctx, models.Session{
-		Token:     refreshToken,
-		GuestName: body.Username,
-		UserID:    created.ID.Hex(),
-		CreatedAt: now,
-		ExpiresAt: expiresAt,
-	}); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	accessToken, err := CreateAccessToken(created.ID.Hex(), created.Username, false, 15*time.Minute)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	_ = json.NewEncoder(w).Encode(map[string]any{
-		"accessToken":  accessToken,
-		"refreshToken": refreshToken,
+	writeJSON(w, map[string]any{
+		"accessToken":  tokens.AccessToken,
+		"refreshToken": tokens.RefreshToken,
+		"userId":       tokens.UserID,
+		"username":     tokens.Username,
+		"isGuest":      false,
 	})
 }
 
@@ -205,41 +419,27 @@ func (h *Handlers) login(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "invalid credentials", http.StatusUnauthorized)
 		return
 	}
-	if err := bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(body.Password)); err != nil {
+	if u.PasswordHash == "" ||
+		bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(body.Password)) != nil {
 		http.Error(w, "invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
-	refreshToken, err := CreateRefreshToken()
+	tokens, err := h.issueUserSession(ctx, u)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	now := time.Now().UTC()
-	expiresAt := now.Add(30 * 24 * time.Hour)
-
-	if err := h.sessionRepo.CreateSession(ctx, models.Session{
-		Token:     refreshToken,
-		GuestName: u.Username,
-		UserID:    u.ID.Hex(),
-		CreatedAt: now,
-		ExpiresAt: expiresAt,
-	}); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	accessToken, err := CreateAccessToken(u.ID.Hex(), u.Username, false, 15*time.Minute)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	_ = json.NewEncoder(w).Encode(map[string]any{
-		"accessToken":  accessToken,
-		"refreshToken": refreshToken,
+	writeJSON(w, map[string]any{
+		"accessToken":  tokens.AccessToken,
+		"refreshToken": tokens.RefreshToken,
+		"userId":       tokens.UserID,
+		"username":     tokens.Username,
+		"isGuest":      false,
 	})
 }
+
+// --- session lifecycle ---
 
 type refreshReq struct {
 	RefreshToken string `json:"refreshToken"`
@@ -269,31 +469,39 @@ func (h *Handlers) refresh(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	now := time.Now().UTC()
-	newExpiresAt := now.Add(30 * 24 * time.Hour)
 
-	// Rotate: delete old and insert new.
+	// Rotate: retire the old token and issue a new one.
 	_ = h.sessionRepo.DeleteByToken(ctx, body.RefreshToken)
 	if err := h.sessionRepo.CreateSession(ctx, models.Session{
 		Token:     newRefresh,
 		GuestName: s.GuestName,
 		UserID:    s.UserID,
+		GuestID:   s.GuestID,
 		CreatedAt: now,
-		ExpiresAt: newExpiresAt,
+		ExpiresAt: now.Add(refreshTokenTTL),
 	}); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// subject = userId for registered, token itself for guest
-	subject := s.UserID
-	isGuest := subject == ""
+	// The subject is the account for a registered player and the *guest id*
+	// for a guest — never the refresh token, which rotates. A rotating subject
+	// used to change the player's in-game id mid-session and made their play
+	// impossible to attribute afterwards.
+	subject, isGuest := s.UserID, s.UserID == ""
+	ttl := accessTokenTTL
 	if isGuest {
-		subject = newRefresh
-	}
-
-	ttl := 15 * time.Minute
-	if isGuest {
-		ttl = 7 * 24 * time.Hour
+		subject, ttl = s.GuestID, guestAccessTokenTTL
+		if subject == "" {
+			// A guest session from before guest ids existed. Mint one now so
+			// the session gains a durable identity rather than staying
+			// unattributable forever.
+			if subject, err = NewRandomToken(16); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			_ = h.sessionRepo.SetGuestID(ctx, newRefresh, subject)
+		}
 	}
 
 	accessToken, err := CreateAccessToken(subject, s.GuestName, isGuest, ttl)
@@ -301,10 +509,11 @@ func (h *Handlers) refresh(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	writeJSON(w, map[string]any{
 		"accessToken":  accessToken,
 		"refreshToken": newRefresh,
+		"userId":       subject,
+		"isGuest":      isGuest,
 	})
 }
 
@@ -319,5 +528,22 @@ func (h *Handlers) logout(w http.ResponseWriter, req *http.Request) {
 	if body.RefreshToken != "" {
 		_ = h.sessionRepo.DeleteByToken(ctx, body.RefreshToken)
 	}
-	_ = json.NewEncoder(w).Encode(map[string]any{"loggedOut": true})
+	writeJSON(w, map[string]any{"loggedOut": true})
+}
+
+// clientIP is best-effort, for abuse investigation only. It trusts
+// X-Forwarded-For, which is fine for that purpose and would not be for
+// anything security-relevant — nothing here makes a decision on it.
+func clientIP(req *http.Request) string {
+	if fwd := req.Header.Get("X-Forwarded-For"); fwd != "" {
+		if first, _, ok := strings.Cut(fwd, ","); ok {
+			return strings.TrimSpace(first)
+		}
+		return strings.TrimSpace(fwd)
+	}
+	host, _, ok := strings.Cut(req.RemoteAddr, ":")
+	if !ok {
+		return req.RemoteAddr
+	}
+	return host
 }

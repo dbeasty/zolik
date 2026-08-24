@@ -81,16 +81,24 @@ export default function MainMenu() {
 
         {session ? (
           <>
+            {session.isGuest ? (
+              <MenuButton
+                label="Sign in to keep your stats"
+                secondary
+                onPress={() => router.push('/auth/login')}
+              />
+            ) : (
+              <MenuButton label="Account" secondary onPress={() => router.push('/account')} />
+            )}
             <MenuButton label="Sign out" secondary onPress={() => logout()} />
           </>
         ) : (
           <>
-            <MenuButton label="Continue as guest" onPress={() => router.push('/auth/guest')} />
-            <MenuButton label="Sign in" secondary onPress={() => router.push('/auth/login')} />
+            <MenuButton label="Sign in" onPress={() => router.push('/auth/login')} />
             <MenuButton
-              label="Create account"
+              label="Continue as guest"
               secondary
-              onPress={() => router.push('/auth/register')}
+              onPress={() => router.push('/auth/guest')}
             />
           </>
         )}

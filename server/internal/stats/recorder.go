@@ -56,8 +56,11 @@ func (r *Recorder) RecordMatch(ctx context.Context, g models.Game, cfg rules.Rul
 	var firstErr error
 	for _, seat := range m.Participants {
 		key := seat.Subject.Key()
-		if key == "" {
-			continue // guest: no durable identity to credit
+		if !seat.Subject.Durable() {
+			// Guest: the match record carries their key so the game can be
+			// found (and claimed on sign-up), but no lifetime record is
+			// created for a per-device identity.
+			continue
 		}
 		if err := r.applySeat(ctx, m, seat, key); err != nil && firstErr == nil {
 			firstErr = err

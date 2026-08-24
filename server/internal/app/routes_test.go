@@ -117,6 +117,6 @@ func offlineApp(t *testing.T) *App {
 		db:      m,
 		hub:     hub,
 		manager: game.NewManager(game.NewRepository(m), hub),
-		auth:    auth.NewHandlers(m),
+		auth:    auth.NewHandlers(auth.Deps{Mongo: m}),
 	}
 }

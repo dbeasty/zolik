@@ -10,6 +10,7 @@ import (
 	"zolik/server/internal/auth"
 	"zolik/server/internal/db"
 	"zolik/server/internal/game"
+	"zolik/server/internal/identity"
 	"zolik/server/internal/match"
 	"zolik/server/internal/module"
 	"zolik/server/internal/prsi"
@@ -58,7 +59,27 @@ func New(cfg Config) (*App, error) {
 	// game.MatchRecorder.
 	statsRepo := stats.NewRepository(m)
 	manager.SetMatchRecorder(stats.NewRecorder(statsRepo))
-	authHandlers := auth.NewHandlers(m)
+
+	// Mail is resolved at startup rather than at first use: a deployment that
+	// offers email sign-in but cannot send mail should fail to start, not fail
+	// silently for the first player who tries it.
+	mailer, err := auth.NewMailer(cfg.SMTP, cfg.Env == "" || cfg.Env == "local")
+	if err != nil {
+		_ = m.Close(ctx)
+		return nil, err
+	}
+
+	authHandlers := auth.NewHandlers(auth.Deps{
+		Mongo:     m,
+		Providers: identity.FromConfig(cfg.Identity),
+		Mailer:    mailer,
+		// The claimer is injected for the same reason the match recorder is:
+		// stats imports auth for its middleware, so auth cannot import stats.
+		Claimer:           stats.NewClaimer(statsRepo),
+		PublicBaseURL:     cfg.PublicBaseURL,
+		AllowedReturnURLs: cfg.AllowedReturnURLs,
+		AppName:           "Žolíky",
+	})
 
 	return &App{
 		cfg:     cfg,
@@ -122,7 +143,7 @@ func (a *App) routeGroups() []routeGroup {
 		}},
 		{"auth", a.auth.RegisterRoutes},
 		{"game", gameRest.RegisterRoutes},
-		{"user", userrepo.NewHandlers(userrepo.NewRepository(a.db)).RegisterRoutes},
+		{"user", userrepo.NewHandlers(userrepo.NewRepository(a.db), auth.NewStore(a.db)).RegisterRoutes},
 		{"scoring", scoring.NewHandlers(a.db).RegisterRoutes},
 		// The module runtime, mounted alongside the Žolíky path rather than
 		// replacing it. Every phase of this migration ships the new shape next

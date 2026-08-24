@@ -255,6 +255,61 @@ export type PlayerSession = {
   userId: string;
   username: string;
   isGuest: boolean;
+  /**
+   * The device's durable guest identity, present on guest sessions.
+   *
+   * Stored separately from the session and deliberately *not* cleared on sign
+   * out: it is what the server attributes guest play to, so keeping it is what
+   * makes "play now, sign in later, keep your statistics" work. It is not a
+   * credential and grants no access to any account.
+   */
+  guestId?: string;
+  /** Matches recorded against this device's guest id that an account could
+   *  still absorb. Drives the "sign in to keep your N games" prompt. */
+  claimableMatches?: number;
+};
+
+/** One way of signing in, as advertised by the server.
+ *
+ *  The list is fetched rather than hardcoded so enabling Apple or Microsoft
+ *  server-side lights up the button without shipping a new app build. */
+export type AuthProvider = {
+  id: string;
+  displayName: string;
+  /** 'guest' needs no input, 'email' collects an address, 'oauth' opens the
+   *  provider in a browser. */
+  kind: 'guest' | 'email' | 'oauth';
+};
+
+/** A sign-in method attached to the signed-in account. */
+export type LinkedIdentity = {
+  provider: string;
+  email?: string;
+  displayName?: string;
+  linkedAt: string;
+  lastLoginAt?: string;
+};
+
+/** The signed-in account, as /users/me reports it. */
+export type AccountProfile = {
+  id: string;
+  username: string;
+  email?: string;
+  emailVerified: boolean;
+  avatarUrl?: string;
+  createdAt: string;
+  identities: LinkedIdentity[];
+  hasPassword: boolean;
+  prefs?: { language?: string; cardStyle?: string };
+};
+
+/** What a completed sign-in returns, whichever door it came through. */
+export type SignInOutcome = {
+  session: PlayerSession;
+  /** How many guest matches were absorbed into the account. */
+  claimedMatches: number;
+  /** True when the sign-in created a brand-new account. */
+  created: boolean;
 };
 
 export type WSEnvelope = Record<string, unknown> & { type: string };
