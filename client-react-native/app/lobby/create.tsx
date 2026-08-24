@@ -4,7 +4,7 @@ import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
 import { Screen } from '@/src/components/Screen';
 import { storage, useSession } from '@/src/context/SessionContext';
-import type { LobbyPlayer, ModuleDescriptor, OptionSpec } from '@/src/api/types';
+import type { LobbyPlayer, ModuleDescriptor, OptionSpec, WaitingPlayer } from '@/src/api/types';
 import { rulesSummaryLines } from '@/src/lib/cards';
 import type { OptionValues } from '@/src/lib/lobbyOptions';
 import {
@@ -37,6 +37,8 @@ export default function CreateLobbyScreen() {
   const [gameId, setGameId] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [players, setPlayers] = useState<LobbyPlayer[]>([]);
+  const [waitingPlayers, setWaitingPlayers] = useState<WaitingPlayer[]>([]);
+  const [invitingId, setInvitingId] = useState('');
   const [aiDiff, setAiDiff] = useState<(typeof DIFFICULTIES)[number]>('medium');
   const [descriptor, setDescriptor] = useState<ModuleDescriptor | null>(null);
   const [profileId, setProfileId] = useState('');
@@ -72,7 +74,30 @@ export default function CreateLobbyScreen() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Poll failed');
     }
+    // Best-effort: a host who can't currently see the waiting room should
+    // still get everything else this poll does. Only the host's screen
+    // renders this list, but it costs nothing to keep it warm regardless of
+    // whether isHost has settled yet on this render.
+    try {
+      setWaitingPlayers(await client.getWaitingLobby());
+    } catch {
+      /* the waiting room is optional infrastructure — its absence should
+         never block the rest of the lobby from working */
+    }
   }, [client, gameId]);
+
+  async function invite(playerId: string) {
+    setInvitingId(playerId);
+    setError('');
+    try {
+      await client.invitePlayer(gameId, playerId);
+      await poll();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Invite failed');
+    } finally {
+      setInvitingId('');
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -270,6 +295,13 @@ export default function CreateLobbyScreen() {
 
         {isHost ? (
           <>
+            <WaitingPlayersPanel
+              waiting={waitingPlayers}
+              seatedIds={players.map((p) => p.id)}
+              invitingId={invitingId}
+              onInvite={invite}
+              disabled={players.length >= (descriptor?.maxPlayers ?? 8)}
+            />
             <Pressable style={shared.button} onPress={addAI}>
               <Text style={shared.buttonText}>Add AI</Text>
             </Pressable>
@@ -289,6 +321,72 @@ export default function CreateLobbyScreen() {
         )}
       </View>
     </Screen>
+  );
+}
+
+/**
+ * The host's view into the waiting room: people who are available right now
+ * and can be seated with one tap, no join code involved. Deliberately not
+ * shown for a non-host — invite is a host-only action (see the server's own
+ * gating), so a player who can't use it has no reason to see who's waiting.
+ */
+function WaitingPlayersPanel({
+  waiting,
+  seatedIds,
+  invitingId,
+  onInvite,
+  disabled,
+}: {
+  waiting: WaitingPlayer[];
+  seatedIds: string[];
+  invitingId: string;
+  onInvite: (playerId: string) => void;
+  disabled: boolean;
+}) {
+  const available = waiting.filter((p) => !seatedIds.includes(p.playerId));
+
+  return (
+    <View style={[shared.card, { marginBottom: 12 }]} testID="waiting-players-panel">
+      <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14, marginBottom: 10 }}>
+        Waiting to play ({available.length})
+      </Text>
+      {available.length === 0 ? (
+        // Rendered explicitly rather than hiding the whole panel: a host
+        // seeing nothing here should be able to tell "no one is waiting
+        // right now" from "this feature is broken" at a glance, especially
+        // when comparing notes with someone on a second device who insists
+        // they're in the waiting room.
+        <Text style={shared.status}>
+          No one is waiting right now. Anyone who opens "Find players" will show up here.
+        </Text>
+      ) : (
+        available.map((p) => (
+          <View
+            key={p.playerId}
+            testID={`waiting-player-${p.playerId}`}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 8,
+            }}
+          >
+            <Text style={{ color: colors.text }}>
+              {p.username}
+              {p.isGuest ? ' (guest)' : ''}
+            </Text>
+            <Pressable
+              testID={`invite-${p.playerId}`}
+              style={[shared.button, { marginBottom: 0, paddingVertical: 8, paddingHorizontal: 14 }]}
+              onPress={() => onInvite(p.playerId)}
+              disabled={disabled || invitingId !== ''}
+            >
+              <Text style={shared.buttonText}>{invitingId === p.playerId ? '…' : 'Invite'}</Text>
+            </Pressable>
+          </View>
+        ))
+      )}
+    </View>
   );
 }
 

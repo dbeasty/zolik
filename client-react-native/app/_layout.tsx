@@ -34,8 +34,12 @@ export default function RootLayout() {
             >
                 <Stack.Screen name="index" options={{ title: 'Žolíky' }} />
                 <Stack.Screen name="auth/login" options={{ title: 'Sign in' }} />
-                <Stack.Screen name="auth/register" options={{ title: 'Register' }} />
+                <Stack.Screen name="auth/email" options={{ title: 'Email sign-in' }} />
+                <Stack.Screen name="auth/callback" options={{ title: 'Signing in', headerShown: false }} />
+                <Stack.Screen name="auth/username-login" options={{ title: 'Sign in with username' }} />
+                <Stack.Screen name="auth/register" options={{ title: 'Legacy account' }} />
                 <Stack.Screen name="auth/guest" options={{ title: 'Guest' }} />
+                <Stack.Screen name="account" options={{ title: 'Account' }} />
                 <Stack.Screen name="lobby/create" options={{ title: 'New game' }} />
                 <Stack.Screen name="lobby/join" options={{ title: 'Join game' }} />
                 <Stack.Screen

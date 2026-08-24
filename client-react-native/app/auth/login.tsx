@@ -1,53 +1,76 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, Text, TextInput } from 'react-native';
+import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
 
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
-import { shared } from '@/src/theme';
+import { claimPrompt, orderProviders, providerButtonLabel } from '@/src/lib/auth';
+import { shared, colors } from '@/src/theme';
 
+/**
+ * The sign-in screen.
+ *
+ * Buttons are built from `providers`, which the session context fetches from
+ * `/auth/providers` — nothing here names a provider. Turning Google on for a
+ * deployment, or adding Apple later, lights up a button here with no app
+ * change, which is the whole point of the server-driven provider list.
+ */
 export default function LoginScreen() {
-  const { login } = useSession();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const { providers, signInWithProvider, claimableMatches } = useSession();
   const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [busyProvider, setBusyProvider] = useState<string | null>(null);
 
-  async function submit() {
-    setBusy(true);
+  async function signIn(providerId: string) {
+    setBusyProvider(providerId);
     setError('');
     try {
-      await login(username.trim(), password);
-      router.replace('/');
+      const outcome = await signInWithProvider(providerId);
+      if (outcome) router.replace('/');
+      // null means the person closed the browser — stay on this screen.
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Login failed');
+      setError(e instanceof Error ? e.message : 'Sign-in failed');
     } finally {
-      setBusy(false);
+      setBusyProvider(null);
     }
   }
 
+  const oauthProviders = orderProviders(providers).filter((p) => p.kind === 'oauth');
+  const hint = claimPrompt(claimableMatches);
+
   return (
-    <Screen title="Sign in" scroll>
-      <TextInput
-        style={shared.input}
-        placeholder="Username"
-        placeholderTextColor="#8b9cb3"
-        autoCapitalize="none"
-        value={username}
-        onChangeText={setUsername}
-      />
-      <TextInput
-        style={shared.input}
-        placeholder="Password"
-        placeholderTextColor="#8b9cb3"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-      {error ? <Text style={shared.error}>{error}</Text> : null}
-      <Pressable style={shared.button} onPress={submit} disabled={busy}>
-        <Text style={shared.buttonText}>{busy ? '…' : 'Sign in'}</Text>
+    <Screen title="Sign in" subtitle="Keep your statistics across devices" scroll>
+      {hint ? <Text style={[shared.status, { marginBottom: 16 }]}>{hint}</Text> : null}
+
+      {oauthProviders.map((p) => (
+        <Pressable
+          key={p.id}
+          style={shared.button}
+          onPress={() => signIn(p.id)}
+          disabled={busyProvider !== null}
+        >
+          {busyProvider === p.id ? (
+            <ActivityIndicator color={colors.text} />
+          ) : (
+            <Text style={shared.buttonText}>{providerButtonLabel(p)}</Text>
+          )}
+        </Pressable>
+      ))}
+
+      <Pressable
+        style={shared.buttonSecondary}
+        onPress={() => router.push('/auth/email')}
+        disabled={busyProvider !== null}
+      >
+        <Text style={shared.buttonTextSecondary}>Continue with email</Text>
       </Pressable>
+
+      {error ? <Text style={shared.error}>{error}</Text> : null}
+
+      <View style={{ marginTop: 24 }}>
+        <Pressable onPress={() => router.push('/auth/username-login')}>
+          <Text style={shared.status}>Sign in with a username instead</Text>
+        </Pressable>
+      </View>
     </Screen>
   );
 }

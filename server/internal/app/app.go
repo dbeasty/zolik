@@ -10,6 +10,8 @@ import (
 	"zolik/server/internal/auth"
 	"zolik/server/internal/db"
 	"zolik/server/internal/game"
+	"zolik/server/internal/identity"
+	"zolik/server/internal/lobby"
 	"zolik/server/internal/match"
 	"zolik/server/internal/module"
 	"zolik/server/internal/prsi"
@@ -25,10 +27,24 @@ type App struct {
 	hub     *game.Hub
 	manager *game.Manager
 	auth    *auth.Handlers
+	// waitingRoom is the pool of human players waiting to be picked up into
+	// a game — see internal/lobby. Rides the same Hub as game rooms do, so
+	// it needs no database of its own and no separate scaling story.
+	waitingRoom *lobby.Store
 }
 
 func New(cfg Config) (*App, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// Covers Mongo connect + EnsureIndexes + the lobby waiting room's Redis
+	// ping. 30s rather than a tighter figure gives real headroom for a cold
+	// start — Mongo initializing an empty data volume for the first time, or
+	// a container runtime under load — where the connection itself succeeds
+	// within a couple of seconds but the very first ping/index-build calls
+	// land before mongod has fully warmed up. docker-compose.yml's own
+	// healthchecks (condition: service_healthy) are the primary defense
+	// against starting this too early at all; this is the fallback for
+	// running outside Compose (`go run ./cmd/server` against a Mongo that
+	// happens to still be starting).
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	m, err := db.Connect(ctx, db.Config{
@@ -50,6 +66,15 @@ func New(cfg Config) (*App, error) {
 		return nil, err
 	}
 
+	// The waiting room shares the game hub's Redis (or its local-only
+	// fallback) rather than dialling a second connection — same instance,
+	// same trade-off, same "fine for development without it" story.
+	waitingRoom, err := lobby.NewStore(cfg.RedisURL)
+	if err != nil {
+		_ = m.Close(ctx)
+		return nil, err
+	}
+
 	repo := game.NewRepository(m)
 	manager := game.NewManager(repo, hub)
 	// The recorder turns each completed match into a permanent record plus
@@ -58,14 +83,36 @@ func New(cfg Config) (*App, error) {
 	// game.MatchRecorder.
 	statsRepo := stats.NewRepository(m)
 	manager.SetMatchRecorder(stats.NewRecorder(statsRepo))
-	authHandlers := auth.NewHandlers(m)
+
+	// Mail is resolved at startup rather than at first use: a deployment that
+	// offers email sign-in but cannot send mail should fail to start, not fail
+	// silently for the first player who tries it.
+	mailer, err := auth.NewMailer(cfg.SMTP, cfg.Env == "" || cfg.Env == "local")
+	if err != nil {
+		_ = m.Close(ctx)
+		return nil, err
+	}
+
+	authHandlers := auth.NewHandlers(auth.Deps{
+		Mongo:     m,
+		Providers: identity.FromConfig(cfg.Identity),
+		Mailer:    mailer,
+		// The claimer is injected for the same reason the match recorder is:
+		// stats imports auth for its middleware, so auth cannot import stats.
+		Claimer:              stats.NewClaimer(statsRepo),
+		PublicBaseURL:        cfg.PublicBaseURL,
+		AllowedReturnURLs:    cfg.AllowedReturnURLs,
+		AppName:              "Žolíky",
+		TestEndpointsEnabled: cfg.TestEndpointsEnabled,
+	})
 
 	return &App{
-		cfg:     cfg,
-		db:      m,
-		hub:     hub,
-		manager: manager,
-		auth:    authHandlers,
+		cfg:         cfg,
+		db:          m,
+		hub:         hub,
+		manager:     manager,
+		auth:        authHandlers,
+		waitingRoom: waitingRoom,
 	}, nil
 }
 
@@ -81,6 +128,10 @@ func (a *App) Close(ctx context.Context) error {
 	if a.hub != nil {
 		_ = a.hub.Close()
 		a.hub = nil
+	}
+	if a.waitingRoom != nil {
+		_ = a.waitingRoom.Close()
+		a.waitingRoom = nil
 	}
 	if a.db != nil {
 		return a.db.Close(ctx)
@@ -106,8 +157,10 @@ type routeGroup struct {
 // nothing but the browser suite noticed.
 func (a *App) routeGroups() []routeGroup {
 	statsRepo := stats.NewRepository(a.db)
+	lobbyHandlers := lobby.NewHandlers(a.hub, a.waitingRoom)
 	gameRest := game.NewGameRestHandlers(
-		game.NewRepository(a.db), a.hub, a.manager, statsRepo, a.cfg.TestEndpointsEnabled,
+		game.NewRepository(a.db), a.hub, a.manager, statsRepo,
+		a.waitingRoom, lobby.RoomID, a.cfg.TestEndpointsEnabled,
 	)
 
 	return []routeGroup{
@@ -122,7 +175,8 @@ func (a *App) routeGroups() []routeGroup {
 		}},
 		{"auth", a.auth.RegisterRoutes},
 		{"game", gameRest.RegisterRoutes},
-		{"user", userrepo.NewHandlers(userrepo.NewRepository(a.db)).RegisterRoutes},
+		{"lobby", lobbyHandlers.RegisterRoutes},
+		{"user", userrepo.NewHandlers(userrepo.NewRepository(a.db), auth.NewStore(a.db)).RegisterRoutes},
 		{"scoring", scoring.NewHandlers(a.db).RegisterRoutes},
 		// The module runtime, mounted alongside the Žolíky path rather than
 		// replacing it. Every phase of this migration ships the new shape next

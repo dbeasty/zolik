@@ -18,6 +18,16 @@ type Collections struct {
 	// the old per-user Statistics collection.
 	MatchResults *mongo.Collection
 	PlayerStats  *mongo.Collection
+	// Identities maps an external identity (Google subject, verified email,
+	// claimed guest id) onto an account. Separate from Users so the
+	// (provider, subject) unique index can do the work of guaranteeing that
+	// one identity never attaches to two accounts — see models.Identity.
+	Identities *mongo.Collection
+	// LoginCodes holds the one-time codes mailed for passwordless email
+	// sign-in, and OAuthFlows the in-flight browser redirects. Both are
+	// short-lived and TTL-swept.
+	LoginCodes *mongo.Collection
+	OAuthFlows *mongo.Collection
 }
 
 func (m *Mongo) Collections() Collections {
@@ -29,5 +39,8 @@ func (m *Mongo) Collections() Collections {
 		Scoring:      m.DB.Collection("scoring_sessions"),
 		MatchResults: m.DB.Collection("match_results"),
 		PlayerStats:  m.DB.Collection("player_stats"),
+		Identities:   m.DB.Collection("identities"),
+		LoginCodes:   m.DB.Collection("login_codes"),
+		OAuthFlows:   m.DB.Collection("oauth_flows"),
 	}
 }
