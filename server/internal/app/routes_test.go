@@ -10,7 +10,6 @@ import (
 
 	"zolik/server/internal/auth"
 	"zolik/server/internal/db"
-	"zolik/server/internal/game"
 	"zolik/server/internal/ws"
 )
 
@@ -68,8 +67,9 @@ func TestMatchRuntimeOwnsMatchesPath(t *testing.T) {
 	}
 
 	for _, want := range []string{
-		"GET /matches/{id}",          // the module runtime's live match
-		"GET /games/{gameId}/result", // the recorded result of a finished game
+		"GET /matches/{id}",             // the runtime's live match
+		"GET /matches/{matchId}/result", // the recorded result of a finished match
+		"POST /matches/{id}/join",       // and the runtime's own sub-routes
 	} {
 		if !got[want] {
 			t.Errorf("route %q is not reachable", want)
@@ -115,9 +115,8 @@ func offlineApp(t *testing.T) *App {
 	t.Cleanup(func() { _ = hub.Close() })
 
 	return &App{
-		db:      m,
-		hub:     hub,
-		manager: game.NewManager(game.NewRepository(m), hub),
-		auth:    auth.NewHandlers(m),
+		db:   m,
+		hub:  hub,
+		auth: auth.NewHandlers(m),
 	}
 }

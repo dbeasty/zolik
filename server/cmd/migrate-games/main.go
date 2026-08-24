@@ -30,7 +30,7 @@ import (
 
 	"zolik/server/internal/app"
 	"zolik/server/internal/db"
-	"zolik/server/internal/game"
+	"zolik/server/internal/legacy"
 )
 
 func main() {
@@ -63,7 +63,7 @@ func main() {
 		return
 	}
 
-	migrated, skipped, err := game.MigrateGames(ctx, m.DB)
+	migrated, skipped, err := legacy.MigrateGames(ctx, m.DB)
 	if err != nil {
 		log.Fatalf("migrate (after %d migrated, %d skipped): %v", migrated, skipped, err)
 	}

@@ -11,7 +11,7 @@ import (
 // BuildMatchResult turns a completed scoreboard into the permanent record.
 // Pure — the timestamps are passed in rather than read from the clock, so the
 // result is reproducible and testable.
-func BuildMatchResult(sb Scoreboard, gameID bson.ObjectID, startedAt, completedAt, now time.Time) MatchResult {
+func BuildMatchResult(sb Scoreboard, matchID bson.ObjectID, startedAt, completedAt, now time.Time) MatchResult {
 	keys := map[string]bool{}
 	for _, s := range sb.Standings {
 		if k := s.Subject.Key(); k != "" {
@@ -30,19 +30,16 @@ func BuildMatchResult(sb Scoreboard, gameID bson.ObjectID, startedAt, completedA
 	}
 
 	return MatchResult{
-		GameID:          gameID,
-		RulesProfile:    sb.RulesProfile,
-		MatchEndMode:    sb.MatchEndMode,
-		TargetScore:     sb.TargetScore,
-		DealCount:       sb.DealCount,
+		MatchID:         matchID,
+		ModuleID:        sb.ModuleID,
+		Variation:       sb.Variation,
 		StartedAt:       startedAt,
 		CompletedAt:     completedAt,
 		DurationSeconds: duration,
-		DealsPlayed:     sb.DealsPlayed,
 		Composition:     sb.Composition,
 		Participants:    sb.Standings,
 		SubjectKeys:     flat,
-		WinnerPlayerID:  sb.WinnerID,
+		Winners:         sb.Winners,
 		IsDraw:          sb.IsDraw,
 		RecordedAt:      now,
 	}
@@ -80,8 +77,10 @@ func ApplyMatch(ps PlayerStats, m MatchResult, seat Standing, now time.Time) Pla
 	for _, diff := range opponentAIDifficulties(opponents) {
 		ps.ByAIDifficulty = addTo(ps.ByAIDifficulty, diff, seat, m.IsDraw)
 	}
-	if m.RulesProfile != "" {
-		ps.ByProfile = addTo(ps.ByProfile, m.RulesProfile, seat, m.IsDraw)
+	// Per game, not per rummy profile: "how do I do at poker versus canasta"
+	// is the question this split can now answer.
+	if m.ModuleID != "" {
+		ps.ByModule = addTo(ps.ByModule, m.ModuleID, seat, m.IsDraw)
 	}
 	ps.ByPlayerCount = addTo(ps.ByPlayerCount, strconv.Itoa(m.Composition.Players), seat, m.IsDraw)
 
@@ -97,13 +96,14 @@ func ApplyMatch(ps PlayerStats, m MatchResult, seat Standing, now time.Time) Pla
 	}
 
 	ps.RecentMatches = prependRecent(ps.RecentMatches, MatchRef{
-		MatchID:       m.ID,
-		GameID:        m.GameID,
+		RecordID:      m.ID,
+		MatchID:       m.MatchID,
 		PlayedAt:      m.CompletedAt,
-		RulesProfile:  m.RulesProfile,
+		ModuleID:      m.ModuleID,
+		Variation:     m.Variation,
 		Players:       m.Composition.Players,
 		Rank:          seat.Rank,
-		Total:         seat.Total,
+		Score:         seat.Score,
 		Won:           seat.Won,
 		Drew:          m.IsDraw && seat.Drew,
 		Outcome:       outcomeOf(seat, m.IsDraw),
@@ -174,9 +174,10 @@ func addTo(m map[string]Tally, key string, seat Standing, isDraw bool) map[strin
 }
 
 // applyHeadToHead records the pairwise result against every durable opponent.
-// "Ahead" is decided on final total rather than on who won the match, so in a
+// "Ahead" is decided on final score rather than on who won the match, so in a
 // four-player game the two players who finished third and fourth still get a
-// meaningful record against each other.
+// meaningful record against each other. Higher is better in every module, so
+// the comparison reads the way it looks.
 func applyHeadToHead(h map[string]HeadToHead, seat Standing, opponents []Standing, at time.Time) map[string]HeadToHead {
 	for _, o := range opponents {
 		key := o.Subject.Key()
@@ -192,15 +193,15 @@ func applyHeadToHead(h map[string]HeadToHead, seat Standing, opponents []Standin
 		rec.Subject = o.Subject
 		rec.Matches++
 		switch {
-		case seat.Total < o.Total:
+		case seat.Score > o.Score:
 			rec.Ahead++
-		case seat.Total > o.Total:
+		case seat.Score < o.Score:
 			rec.Behind++
 		default:
 			rec.Level++
 		}
-		rec.PointsFor += seat.Total
-		rec.PointsAgainst += o.Total
+		rec.ScoreFor += seat.Score
+		rec.ScoreAgainst += o.Score
 		if at.After(rec.LastPlayedAt) {
 			rec.LastPlayedAt = at
 		}

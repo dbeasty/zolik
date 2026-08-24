@@ -5,19 +5,48 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
-
-	"zolik/server/internal/rules"
 )
 
 var testClock = time.Date(2026, 8, 22, 12, 0, 0, 0, time.UTC)
 
 // recordMatch runs a roster and its scores all the way through the pipeline a
-// finished game takes: scoreboard, then permanent record.
+// finished match takes: scoreboard, then permanent record.
+//
+// The per-deal figures are rummy *penalties*, lowest wins, which is how these
+// tests were written and is the clearest way to say "5 is a good result and 50
+// is a bad one". They are converted to the module's higher-is-better score by
+// negating — which is exactly what zolikmod does, so the conversion under test
+// is the real one rather than a test-only convention.
 func recordMatch(t *testing.T, roster []string, dealScores [][]int) MatchResult {
 	t.Helper()
-	g := testGame(t, roster, dealScores, string(rules.StatusCompleted))
-	sb := BuildScoreboard(g, classic())
-	m := BuildMatchResult(sb, g.ID, testClock.Add(-time.Hour), testClock, testClock)
+
+	scores := make([]int, len(dealScores))
+	for i, deals := range dealScores {
+		penalty := 0
+		for _, d := range deals {
+			penalty += d
+		}
+		scores[i] = -penalty
+	}
+
+	// The engine's winner: every seat holding the best score. More than one is
+	// a draw, which is what equal penalties mean.
+	best := scores[0]
+	for _, s := range scores {
+		if s > best {
+			best = s
+		}
+	}
+	var winners []string
+	for i, s := range scores {
+		if s == best {
+			winners = append(winners, "p"+string(rune('0'+i)))
+		}
+	}
+
+	match, standings := testMatch(t, roster, scores, "completed", winners...)
+	sb := BuildScoreboard(match, standings)
+	m := BuildMatchResult(sb, match.ID, testClock.Add(-time.Hour), testClock, testClock)
 	m.ID = bson.NewObjectID()
 	return m
 }
@@ -176,15 +205,16 @@ func TestHeadToHeadIsPairwiseNotMatchWinner(t *testing.T) {
 	if got := ps.HeadToHead["user:winner"].Behind; got != 1 {
 		t.Errorf("behind winner = %d, want 1", got)
 	}
-	if got := ps.HeadToHead["user:rival"].PointsAgainst; got != 20 {
-		t.Errorf("points against rival = %d, want 20", got)
+	// Scores are the negated penalties, so "ahead" is the larger number.
+	if got := ps.HeadToHead["user:rival"].ScoreAgainst; got != -20 {
+		t.Errorf("score against rival = %d, want -20", got)
 	}
-	if got := ps.HeadToHead["user:rival"].PointsFor; got != 10 {
-		t.Errorf("points for = %d, want 10", got)
+	if got := ps.HeadToHead["user:rival"].ScoreFor; got != -10 {
+		t.Errorf("score for = %d, want -10", got)
 	}
 }
 
-func TestRankAndPenaltiesAccumulate(t *testing.T) {
+func TestRankAndScoresAccumulate(t *testing.T) {
 	subject := Subject{Kind: SubjectUser, ID: "me"}
 	ps := ZeroStats(subject)
 
@@ -196,14 +226,12 @@ func TestRankAndPenaltiesAccumulate(t *testing.T) {
 	if o.Matches != 2 || o.Wins != 1 || o.Losses != 1 {
 		t.Fatalf("record = %d matches / %dW %dL, want 2 / 1W 1L", o.Matches, o.Wins, o.Losses)
 	}
-	if o.PenaltyPoints != 45 {
-		t.Errorf("penaltyPoints = %d, want 45", o.PenaltyPoints)
+	if o.ScoreSum != -45 {
+		t.Errorf("scoreSum = %d, want -45 (a 5 and a 40 in penalties)", o.ScoreSum)
 	}
-	if o.DealsPlayed != 3 {
-		t.Errorf("dealsPlayed = %d, want 3", o.DealsPlayed)
-	}
-	if o.BestMatchTotal != 5 || o.WorstMatchTotal != 40 {
-		t.Errorf("best/worst = %d/%d, want 5/40", o.BestMatchTotal, o.WorstMatchTotal)
+	// Best is the *highest* score, which is the smallest penalty.
+	if o.BestScore != -5 || o.WorstScore != -40 {
+		t.Errorf("best/worst = %d/%d, want -5/-40", o.BestScore, o.WorstScore)
 	}
 	if o.RankSum != 3 {
 		t.Errorf("rankSum = %d, want 3 (1st then 2nd)", o.RankSum)
@@ -216,15 +244,15 @@ func TestRankAndPenaltiesAccumulate(t *testing.T) {
 	if v.AvgRank != 1.5 {
 		t.Errorf("avgRank = %v, want 1.5", v.AvgRank)
 	}
-	if v.AvgPenaltyPerDeal != 15 {
-		t.Errorf("avgPenaltyPerDeal = %v, want 15", v.AvgPenaltyPerDeal)
+	if v.AvgScore != -22.5 {
+		t.Errorf("avgScore = %v, want -22.5", v.AvgScore)
 	}
 }
 
 // An empty tally must not present a placeholder best score as a real one.
 func TestEmptyTallyReportsNoBestOrWorst(t *testing.T) {
 	v := Tally{}.View()
-	if v.BestMatchTotal != nil || v.WorstMatchTotal != nil {
+	if v.BestScore != nil || v.WorstScore != nil {
 		t.Error("a player with no matches has no best or worst score")
 	}
 	if v.WinRate != 0 || v.AvgRank != 0 {
@@ -286,9 +314,10 @@ func TestRecentMatchesAreNewestFirstAndCapped(t *testing.T) {
 	if len(ps.RecentMatches) != recentMatchesKept {
 		t.Fatalf("recent matches = %d, want capped at %d", len(ps.RecentMatches), recentMatchesKept)
 	}
-	// The newest entry is the last one applied, whose total was the highest i.
-	if got := ps.RecentMatches[0].Total; got != recentMatchesKept+4 {
-		t.Errorf("newest recent match total = %d, want %d", got, recentMatchesKept+4)
+	// The newest entry is the last one applied, whose penalty was the highest
+	// i — and so whose score is the most negative.
+	if got := ps.RecentMatches[0].Score; got != -(recentMatchesKept + 4) {
+		t.Errorf("newest recent match score = %d, want %d", got, -(recentMatchesKept + 4))
 	}
 	if ps.RecentMatches[0].Outcome != "win" {
 		t.Errorf("outcome = %q, want win", ps.RecentMatches[0].Outcome)
@@ -301,12 +330,14 @@ func TestRecentMatchesAreNewestFirstAndCapped(t *testing.T) {
 	}
 }
 
-func TestPerProfileAndTableSizeBuckets(t *testing.T) {
+func TestPerModuleAndTableSizeBuckets(t *testing.T) {
 	m := recordMatch(t, []string{"user:me", "user:b", "ai:easy"}, [][]int{{5}, {10}, {20}})
 	ps := applyOne(t, ZeroStats(Subject{Kind: SubjectUser, ID: "me"}), m, "user:me")
 
-	if got := ps.ByProfile["zolik_classic"].Matches; got != 1 {
-		t.Errorf("byProfile[zolik_classic] = %d, want 1", got)
+	// Keyed by game, not by rummy profile: "how do I do at poker versus
+	// canasta" is the question this split can now answer.
+	if got := ps.ByModule["zolik"].Matches; got != 1 {
+		t.Errorf("byModule[zolik] = %d, want 1", got)
 	}
 	if got := ps.ByPlayerCount["3"].Matches; got != 1 {
 		t.Errorf("byPlayerCount[3] = %d, want 1", got)

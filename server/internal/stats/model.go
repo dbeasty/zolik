@@ -16,14 +16,14 @@ import (
 // candidates for expiry; the record has to outlive them.
 type MatchResult struct {
 	ID bson.ObjectID `bson:"_id,omitempty" json:"id"`
-	// GameID carries a unique index: recording is idempotent, so a retried or
+	// MatchID carries a unique index: recording is idempotent, so a retried or
 	// concurrent completion writes one record, not two.
-	GameID bson.ObjectID `bson:"gameId" json:"gameId"`
+	MatchID bson.ObjectID `bson:"matchId" json:"matchId"`
 
-	RulesProfile string `bson:"rulesProfile" json:"rulesProfile"`
-	MatchEndMode string `bson:"matchEndMode" json:"matchEndMode"`
-	TargetScore  int    `bson:"targetScore,omitempty" json:"targetScore,omitempty"`
-	DealCount    int    `bson:"dealCount,omitempty" json:"dealCount,omitempty"`
+	// ModuleID and Variation are which game this was. They replace
+	// `rulesProfile`, which could only ever name a rummy ruleset.
+	ModuleID  string `bson:"moduleId" json:"moduleId"`
+	Variation string `bson:"variation,omitempty" json:"variation,omitempty"`
 
 	StartedAt   time.Time `bson:"startedAt" json:"startedAt"`
 	CompletedAt time.Time `bson:"completedAt" json:"completedAt"`
@@ -32,7 +32,6 @@ type MatchResult struct {
 	// this take" figure, not a measure of playing time.
 	DurationSeconds int `bson:"durationSeconds" json:"durationSeconds"`
 
-	DealsPlayed int         `bson:"dealsPlayed" json:"dealsPlayed"`
 	Composition Composition `bson:"composition" json:"composition"`
 
 	// Participants is the final standings, best-ranked first.
@@ -42,8 +41,10 @@ type MatchResult struct {
 	// instead of a scan into the participants array.
 	SubjectKeys []string `bson:"subjectKeys" json:"subjectKeys"`
 
-	WinnerPlayerID string `bson:"winnerPlayerId,omitempty" json:"winnerPlayerId,omitempty"`
-	IsDraw         bool   `bson:"isDraw,omitempty" json:"isDraw,omitempty"`
+	// Winners is everyone who won: one player usually, a whole partnership in
+	// Canasta, several seats when a fixed-length match ends level.
+	Winners []string `bson:"winners,omitempty" json:"winners,omitempty"`
+	IsDraw  bool     `bson:"isDraw,omitempty" json:"isDraw,omitempty"`
 
 	RecordedAt time.Time `bson:"recordedAt" json:"recordedAt"`
 }
@@ -61,25 +62,25 @@ type Tally struct {
 	Losses  int `bson:"losses" json:"losses"`
 	Draws   int `bson:"draws" json:"draws"`
 
-	DealsPlayed int `bson:"dealsPlayed" json:"dealsPlayed"`
-	DealsWon    int `bson:"dealsWon" json:"dealsWon"`
-	// GoOuts counts deals ended by emptying the hand — the thing a player is
-	// actually trying to do, and a better skill signal than match wins alone
-	// in a format where one bad deal can sink a good match.
-	GoOuts int `bson:"goOuts" json:"goOuts"`
-
-	// PenaltyPoints is the total penalty accrued across all deals. Lower is
-	// better; combined with DealsPlayed it gives the average penalty per deal.
-	PenaltyPoints int `bson:"penaltyPoints" json:"penaltyPoints"`
+	// ScoreSum totals the module's own measure across every match, always
+	// oriented so higher is better.
+	//
+	// Deal-level counters used to live here — deals played, deals won,
+	// go-outs, penalty points — and every one of them described rummy. A game
+	// with no deals had nothing to put in them, which is why statistics
+	// existed for Žolíky and for nothing else.
+	ScoreSum int `bson:"scoreSum" json:"scoreSum"`
 	// RankSum over Matches gives the average finishing position, which is the
 	// only cross-table-size comparable placing figure (winning a 2-player
 	// match is not the same achievement as winning a 6-player one).
 	RankSum int `bson:"rankSum" json:"rankSum"`
 
-	// BestMatchTotal is the lowest match total ever posted and WorstMatchTotal
-	// the highest. Both are only meaningful when Matches > 0.
-	BestMatchTotal  int `bson:"bestMatchTotal" json:"bestMatchTotal"`
-	WorstMatchTotal int `bson:"worstMatchTotal" json:"worstMatchTotal"`
+	// BestScore is the highest score ever posted and WorstScore the lowest.
+	// Both are only meaningful when Matches > 0. They used to be the other way
+	// round because rummy is scored downwards; every module now reports
+	// higher-is-better, so these read the way the words do.
+	BestScore  int `bson:"bestScore" json:"bestScore"`
+	WorstScore int `bson:"worstScore" json:"worstScore"`
 }
 
 // TallyView is a Tally plus the figures derived from it. Derived values are
@@ -87,13 +88,11 @@ type Tally struct {
 // require rewriting history.
 type TallyView struct {
 	Tally
-	WinRate            float64 `json:"winRate"`
-	DealWinRate        float64 `json:"dealWinRate"`
-	AvgPenaltyPerDeal  float64 `json:"avgPenaltyPerDeal"`
-	AvgPenaltyPerMatch float64 `json:"avgPenaltyPerMatch"`
-	AvgRank            float64 `json:"avgRank"`
-	BestMatchTotal     *int    `json:"bestMatchTotal"`
-	WorstMatchTotal    *int    `json:"worstMatchTotal"`
+	WinRate    float64 `json:"winRate"`
+	AvgScore   float64 `json:"avgScore"`
+	AvgRank    float64 `json:"avgRank"`
+	BestScore  *int    `json:"bestScore"`
+	WorstScore *int    `json:"worstScore"`
 }
 
 // View expands a Tally with its derived figures. Rates are 0 when there is
@@ -103,14 +102,10 @@ func (t Tally) View() TallyView {
 	v := TallyView{Tally: t}
 	if t.Matches > 0 {
 		v.WinRate = float64(t.Wins) / float64(t.Matches)
-		v.AvgPenaltyPerMatch = float64(t.PenaltyPoints) / float64(t.Matches)
+		v.AvgScore = float64(t.ScoreSum) / float64(t.Matches)
 		v.AvgRank = float64(t.RankSum) / float64(t.Matches)
-		best, worst := t.BestMatchTotal, t.WorstMatchTotal
-		v.BestMatchTotal, v.WorstMatchTotal = &best, &worst
-	}
-	if t.DealsPlayed > 0 {
-		v.DealWinRate = float64(t.DealsWon) / float64(t.DealsPlayed)
-		v.AvgPenaltyPerDeal = float64(t.PenaltyPoints) / float64(t.DealsPlayed)
+		best, worst := t.BestScore, t.WorstScore
+		v.BestScore, v.WorstScore = &best, &worst
 	}
 	return v
 }
@@ -127,16 +122,13 @@ func (t *Tally) Add(s Standing, isDraw bool) {
 	default:
 		t.Losses++
 	}
-	t.DealsPlayed += len(s.DealScores)
-	t.DealsWon += s.DealsWon
-	t.GoOuts += s.GoOuts
-	t.PenaltyPoints += s.Total
+	t.ScoreSum += s.Score
 	t.RankSum += s.Rank
-	if first || s.Total < t.BestMatchTotal {
-		t.BestMatchTotal = s.Total
+	if first || s.Score > t.BestScore {
+		t.BestScore = s.Score
 	}
-	if first || s.Total > t.WorstMatchTotal {
-		t.WorstMatchTotal = s.Total
+	if first || s.Score < t.WorstScore {
+		t.WorstScore = s.Score
 	}
 }
 
@@ -150,25 +142,28 @@ type HeadToHead struct {
 	Ahead   int `bson:"ahead" json:"ahead"`
 	Behind  int `bson:"behind" json:"behind"`
 	Level   int `bson:"level" json:"level"`
-	// PointsFor and PointsAgainst are the two sides' accumulated penalties
-	// across those matches. Lower is better, so PointsFor below
-	// PointsAgainst is the good direction.
-	PointsFor     int       `bson:"pointsFor" json:"pointsFor"`
-	PointsAgainst int       `bson:"pointsAgainst" json:"pointsAgainst"`
-	LastPlayedAt  time.Time `bson:"lastPlayedAt" json:"lastPlayedAt"`
+	// ScoreFor and ScoreAgainst are the two sides' accumulated scores across
+	// those matches, in whatever the module measures. Higher is better, so
+	// ScoreFor above ScoreAgainst is the good direction — the opposite of what
+	// these meant when they were rummy penalties.
+	ScoreFor     int       `bson:"scoreFor" json:"scoreFor"`
+	ScoreAgainst int       `bson:"scoreAgainst" json:"scoreAgainst"`
+	LastPlayedAt time.Time `bson:"lastPlayedAt" json:"lastPlayedAt"`
 }
 
 // MatchRef is a compact pointer to a played match, for a recent-form list.
 type MatchRef struct {
-	MatchID      bson.ObjectID `bson:"matchId" json:"matchId"`
-	GameID       bson.ObjectID `bson:"gameId" json:"gameId"`
-	PlayedAt     time.Time     `bson:"playedAt" json:"playedAt"`
-	RulesProfile string        `bson:"rulesProfile" json:"rulesProfile"`
-	Players      int           `bson:"players" json:"players"`
-	Rank         int           `bson:"rank" json:"rank"`
-	Total        int           `bson:"total" json:"total"`
-	Won          bool          `bson:"won" json:"won"`
-	Drew         bool          `bson:"drew" json:"drew"`
+	// RecordID is the match_results row; MatchID is the match it recorded.
+	RecordID  bson.ObjectID `bson:"recordId" json:"recordId"`
+	MatchID   bson.ObjectID `bson:"matchId" json:"matchId"`
+	PlayedAt  time.Time     `bson:"playedAt" json:"playedAt"`
+	ModuleID  string        `bson:"moduleId" json:"moduleId"`
+	Variation string        `bson:"variation,omitempty" json:"variation,omitempty"`
+	Players   int           `bson:"players" json:"players"`
+	Rank      int           `bson:"rank" json:"rank"`
+	Score     int           `bson:"score" json:"score"`
+	Won       bool          `bson:"won" json:"won"`
+	Drew      bool          `bson:"drew" json:"drew"`
 	// Outcome is "win" | "loss" | "draw", denormalised so a recent-form strip
 	// needs no logic to render.
 	Outcome string `bson:"outcome" json:"outcome"`
@@ -208,9 +203,11 @@ type PlayerStats struct {
 	// ByAIDifficulty is keyed by the difficulty of an *opponent* bot, so a
 	// table with an easy and a hard bot counts once under each.
 	ByAIDifficulty map[string]Tally `bson:"byAIDifficulty,omitempty" json:"byAIDifficulty,omitempty"`
-	// ByProfile is keyed by rules profile, since a Continental total and a
-	// Žolíky total are not the same currency and averaging them is meaningless.
-	ByProfile map[string]Tally `bson:"byProfile,omitempty" json:"byProfile,omitempty"`
+	// ByModule is keyed by game. A Canasta total and a poker stack are not
+	// comparable numbers, so a lifetime average across both would be noise —
+	// this split is what keeps each game's figures meaningful. It replaces a
+	// per-rummy-profile split, which could only ever describe one game.
+	ByModule map[string]Tally `bson:"byModule,omitempty" json:"byModule,omitempty"`
 	// ByPlayerCount is keyed by the table size as a decimal string ("2".."8"),
 	// because BSON map keys must be strings.
 	ByPlayerCount map[string]Tally `bson:"byPlayerCount,omitempty" json:"byPlayerCount,omitempty"`

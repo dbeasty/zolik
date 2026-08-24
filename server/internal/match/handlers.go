@@ -24,11 +24,15 @@ import (
 type Handlers struct {
 	manager  *Manager
 	upgrader websocket.Upgrader
+	// testEndpoints enables the dev-only state seeder. Off outside local
+	// development, because it writes game state without validating it.
+	testEndpoints bool
 }
 
-func NewHandlers(m *Manager) *Handlers {
+func NewHandlers(m *Manager, testEndpoints bool) *Handlers {
 	return &Handlers{
-		manager: m,
+		manager:       m,
+		testEndpoints: testEndpoints,
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
@@ -47,6 +51,80 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/start", h.startMatch)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/add-bot", h.addBot)
 	r.Get("/ws/matches/{id}", h.handleWS)
+
+	if h.testEndpoints {
+		r.With(auth.AuthMiddleware).Post("/matches/{id}/debug-state", h.debugState)
+	}
+}
+
+// debugState replaces a match's state wholesale, so a test can start from the
+// position it wants to exercise instead of playing there turn by turn.
+//
+// Its predecessor took hands, melds, a phase and a discard pile — twenty-odd
+// rummy fields, and a second place that had to learn a new one whenever the
+// engine grew a field. This takes the module's own state verbatim and writes
+// the bytes. It works for every game because it understands none of them, and
+// a module that adds a field needs no change here.
+//
+// Dev-only, and it bypasses every rule: whatever is written is what the game
+// becomes. That is the point, and the reason it is behind a flag.
+func (h *Handlers) debugState(w http.ResponseWriter, req *http.Request) {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	ctx := req.Context()
+	m, err := h.manager.Repo().Resolve(ctx, chi.URLParam(req, "id"))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	// Only somebody at the table may seed it, even in development: a debug
+	// hatch that any caller can reach into is an authorisation bug waiting to
+	// be shipped by an accidental flag.
+	if playerByID(m.Players, uc.UserID) == nil {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	var body struct {
+		State  json.RawMessage `json:"state"`
+		Status string          `json:"status,omitempty"`
+	}
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	if len(body.State) == 0 {
+		http.Error(w, "state is required", http.StatusBadRequest)
+		return
+	}
+	// Round-tripped through the module before it is stored, so a malformed
+	// blob is a 400 here rather than a panic on the next broadcast.
+	mod := h.manager.Registry().Get(m.ModuleID)
+	if mod == nil {
+		writeModuleError(w, module.Error{Code: "UNKNOWN_MODULE", Message: m.ModuleID})
+		return
+	}
+	if _, err := mod.View(module.State(body.State), uc.UserID); err != nil {
+		http.Error(w, "state is not valid for module "+m.ModuleID+": "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	expected := m.Version
+	m.State = module.State(body.State)
+	if body.Status != "" {
+		m.Status = body.Status
+	}
+	if err := h.manager.Repo().UpdateWithVersion(ctx, m.ID, expected, m); err != nil {
+		http.Error(w, err.Error(), http.StatusConflict)
+		return
+	}
+	m.Version = expected + 1
+
+	h.manager.Broadcast(m)
+	writeJSON(w, map[string]any{"matchId": m.ID.Hex(), "status": m.Status})
 }
 
 func (h *Handlers) listModules(w http.ResponseWriter, _ *http.Request) {

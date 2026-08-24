@@ -10,7 +10,6 @@ import (
 	"zolik/server/internal/auth"
 	"zolik/server/internal/canasta"
 	"zolik/server/internal/db"
-	"zolik/server/internal/game"
 	"zolik/server/internal/holdem"
 	"zolik/server/internal/match"
 	"zolik/server/internal/module"
@@ -23,11 +22,10 @@ import (
 )
 
 type App struct {
-	cfg     Config
-	db      *db.Mongo
-	hub     *ws.Hub
-	manager *game.Manager
-	auth    *auth.Handlers
+	cfg  Config
+	db   *db.Mongo
+	hub  *ws.Hub
+	auth *auth.Handlers
 }
 
 func New(cfg Config) (*App, error) {
@@ -53,30 +51,19 @@ func New(cfg Config) (*App, error) {
 		return nil, err
 	}
 
-	repo := game.NewRepository(m)
-	manager := game.NewManager(repo, hub)
-	// The recorder turns each completed match into a permanent record plus
-	// the lifetime updates derived from it. Injected rather than constructed
-	// inside the manager so the game package never has to import stats — see
-	// game.MatchRecorder.
-	statsRepo := stats.NewRepository(m)
-	manager.SetMatchRecorder(stats.NewRecorder(statsRepo))
 	authHandlers := auth.NewHandlers(m)
 
 	return &App{
-		cfg:     cfg,
-		db:      m,
-		hub:     hub,
-		manager: manager,
-		auth:    authHandlers,
+		cfg:  cfg,
+		db:   m,
+		hub:  hub,
+		auth: authHandlers,
 	}, nil
 }
 
 func (a *App) Config() Config { return a.cfg }
 
 func (a *App) Hub() *ws.Hub { return a.hub }
-
-func (a *App) Manager() *game.Manager { return a.manager }
 
 func (a *App) Auth() *auth.Handlers { return a.auth }
 
@@ -109,9 +96,16 @@ type routeGroup struct {
 // nothing but the browser suite noticed.
 func (a *App) routeGroups() []routeGroup {
 	statsRepo := stats.NewRepository(a.db)
-	gameRest := game.NewGameRestHandlers(
-		game.NewRepository(a.db), a.hub, a.manager, statsRepo, a.cfg.TestEndpointsEnabled,
-	)
+
+	// One runtime, hosting every game. The registry is the only place a game
+	// is named: register a module and it appears in /modules, in the lobby's
+	// picker, and on the one screen that plays all of them.
+	modules := module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New())
+	matchMgr := match.NewManager(match.NewRepository(a.db), modules, a.hub)
+	// The recorder turns each completed match into a permanent record plus the
+	// lifetime updates derived from it. Injected rather than constructed
+	// inside the manager, so the runtime never has to import stats.
+	matchMgr.SetRecorder(stats.NewRecorder(statsRepo))
 
 	return []routeGroup{
 		{"health", func(r chi.Router) {
@@ -120,21 +114,14 @@ func (a *App) routeGroups() []routeGroup {
 				_, _ = w.Write([]byte("ok"))
 			})
 		}},
-		{"ws", func(r chi.Router) {
-			game.NewWebSocketServer(a.manager).RegisterRoutes(r, a.db)
-		}},
 		{"auth", a.auth.RegisterRoutes},
-		{"game", gameRest.RegisterRoutes},
 		{"user", userrepo.NewHandlers(userrepo.NewRepository(a.db)).RegisterRoutes},
 		{"scoring", scoring.NewHandlers(a.db).RegisterRoutes},
-		// The module runtime, mounted alongside the Žolíky path rather than
-		// replacing it. Every phase of this migration ships the new shape next
-		// to the old and retires the old only once nothing reads it — the
-		// existing game routes, documents and clients are untouched by this.
+		// The runtime, and now the only gameplay path there is. It replaced
+		// the Žolíky-specific one rather than sitting beside it: /games, its
+		// documents, its socket and its 24-field wire message are gone.
 		{"match", func(r chi.Router) {
-			modules := module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New())
-			matchMgr := match.NewManager(match.NewRepository(a.db), modules, a.hub)
-			match.NewHandlers(matchMgr).RegisterRoutes(r)
+			match.NewHandlers(matchMgr, a.cfg.TestEndpointsEnabled).RegisterRoutes(r)
 		}},
 		{"stats", stats.NewHandlers(statsRepo).RegisterRoutes},
 	}

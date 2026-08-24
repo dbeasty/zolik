@@ -25,12 +25,35 @@ type Manager struct {
 	registry *module.Registry
 	hub      *ws.Hub
 
+	// recorder is optional; nil simply means no statistics are kept, which is
+	// what the tests and any statistics-free deployment run with.
+	recorder Recorder
+
 	// botMu guards botRunning, which is one flag per match saying a bot loop
 	// is already driving it. Without it, every human action would start a
 	// second loop and the bots would race each other.
 	botMu      sync.Mutex
 	botRunning map[string]bool
 }
+
+// Recorder is notified when a match finishes, so its result can be recorded
+// and folded into lifetime statistics.
+//
+// An interface held here rather than a direct dependency on internal/stats,
+// which keeps the arrow one-way and leaves the runtime testable without a
+// database. It takes the module's own standings because only the module knows
+// how its game is scored — which is what makes statistics work for every game
+// rather than only for the one whose arithmetic the stats package used to
+// hard-code.
+type Recorder interface {
+	// RecordMatchAsync must not block the action that completed the match,
+	// and must not fail it: a bookkeeping problem is never a reason to reject
+	// a legal move.
+	RecordMatchAsync(m models.Match, standings []module.Standing)
+}
+
+// SetRecorder attaches statistics recording. Optional.
+func (m *Manager) SetRecorder(r Recorder) { m.recorder = r }
 
 func NewManager(repo *Repository, registry *module.Registry, hub *ws.Hub) *Manager {
 	return &Manager{repo: repo, registry: registry, hub: hub}
@@ -201,6 +224,14 @@ func (m *Manager) HandleAction(ctx context.Context, idOrCode, playerID string, a
 
 	m.Broadcast(match)
 	m.publishEvents(match, events)
+
+	// A finished match becomes a permanent record. Asynchronous and after the
+	// broadcast on purpose: the player who just won should see the final board
+	// without waiting on bookkeeping, and a bookkeeping failure must never
+	// fail the move that won.
+	if match.Status == "completed" && m.recorder != nil {
+		m.recorder.RecordMatchAsync(match, module.StandingsFor(mod, match.State))
+	}
 
 	// Whoever is on turn now might be a bot. The loop is a no-op when it is
 	// not, and refuses to start twice for the same match, so calling it after
