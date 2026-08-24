@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"zolik/server/internal/models"
 	"zolik/server/internal/module"
 	"zolik/server/internal/rules"
 )
@@ -389,4 +390,37 @@ func handPenalty(gs rules.GameState, playerID string) int {
 		total += rules.PenaltyPoints(c, false)
 	}
 	return total
+}
+
+// StateFromRules wraps an existing rummy state as module state.
+//
+// The one entry point for putting a game the module did not deal into the
+// module's hands — used by the `games` → `matches` migration, which has a
+// rummy state read out of a legacy document and needs it in the shape the
+// runtime persists.
+//
+// It exists here rather than in the migration so the matchState shape stays
+// this package's business: a migration that constructed the JSON itself would
+// be a second definition of this module's state, and would drift the first
+// time a field is added.
+func StateFromRules(gs rules.GameState, players []models.Player) (module.State, error) {
+	refs := make([]module.PlayerRef, 0, len(players))
+	for _, p := range players {
+		refs = append(refs, module.PlayerRef{ID: p.ID, Name: p.Name, IsAI: p.IsAI})
+	}
+	return encode(&matchState{Rules: gs, Players: refs})
+}
+
+// RulesStateOf reads the rummy state back out of module state.
+//
+// The inverse of StateFromRules, for the migration's equivalence test: the one
+// legitimate way to look inside this module's state from outside it, so a test
+// can compare a migrated game against the document it came from without
+// hand-parsing the JSON and inventing a third definition of the shape.
+func RulesStateOf(raw module.State) (rules.GameState, error) {
+	s, err := decode(raw)
+	if err != nil {
+		return rules.GameState{}, err
+	}
+	return s.Rules, nil
 }

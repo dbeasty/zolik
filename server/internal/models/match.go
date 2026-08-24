@@ -73,6 +73,12 @@ type Match struct {
 	// Version drives the same optimistic-concurrency scheme Game uses: a
 	// filtered replace that fails if someone else wrote first.
 	Version int64 `bson:"version" json:"-"`
+
+	// MigratedFrom is the `games` document this match was converted from, when
+	// it was. It makes the migration idempotent — a re-run skips anything
+	// already carrying it — and leaves a trail back to the original if a
+	// migrated match ever looks wrong.
+	MigratedFrom bson.ObjectID `bson:"migratedFrom,omitempty" json:"-"`
 }
 
 // MatchAction is one accepted move, stored verbatim.
