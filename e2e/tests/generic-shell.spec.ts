@@ -294,3 +294,167 @@ test.describe('one shell, every game', () => {
     await expect(page.getByTestId('action-bar')).toBeVisible();
   });
 });
+
+test.describe('the legacy path is gone', () => {
+  test('a second player joins by code and lands on the same screen', async ({ page, request }) => {
+    // The join flow is the one part of the lobby that is not "open a table
+    // against bots", and it is new: it used to poll a Žolíky game and jump to
+    // the Žolíky screen. Now it polls a match and hands over to the one screen.
+    test.setTimeout(120_000);
+
+    const host = await guest(request);
+    const created = await request.post(`${API_BASE}/matches`, {
+      headers: { Authorization: `Bearer ${host.accessToken}` },
+      data: { moduleId: 'prsi' },
+    });
+    expect(created.ok(), await created.text()).toBeTruthy();
+    const { matchId, joinCode } = await created.json();
+    expect(joinCode, 'a table should have a code to read out').toBeTruthy();
+
+    const joiner = await guest(request);
+    await signIn(page, joiner);
+    await page.goto('/lobby/join');
+    await page.getByTestId('join-code').fill(joinCode);
+    await page.getByTestId('join-submit').click();
+
+    await expect(page.getByTestId('join-waiting')).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId(`lobby-player-${joiner.userId}`)).toBeVisible();
+
+    // The host starts it, and the joiner's lobby hands over to the shell by
+    // itself — no per-game screen to choose between.
+    const started = await request.post(`${API_BASE}/matches/${matchId}/start`, {
+      headers: { Authorization: `Bearer ${host.accessToken}` },
+    });
+    expect(started.ok(), await started.text()).toBeTruthy();
+
+    await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('match-module')).toHaveText(/prsi/);
+  });
+
+  test('the retired endpoints are actually retired', async ({ request }) => {
+    // The point of the deletion, checked rather than assumed. These are the
+    // routes the bespoke client used; nothing answers on them now.
+    const host = await guest(request);
+    const auth = { Authorization: `Bearer ${host.accessToken}` };
+
+    for (const [method, path, why] of [
+      ['POST', '/games', 'creating a rummy game'],
+      ['GET', '/games/abc123', 'reading one'],
+      ['GET', '/rules', 'the rummy ruleset endpoint'],
+      ['GET', '/module', 'the single-module descriptor, replaced by /modules'],
+    ] as const) {
+      const res =
+        method === 'POST'
+          ? await request.post(`${API_BASE}${path}`, { headers: auth, data: {} })
+          : await request.get(`${API_BASE}${path}`);
+      expect(res.status(), `${method} ${path} (${why}) should be gone`).toBe(404);
+    }
+
+    // And what replaced them answers, for four games.
+    const modules = await request.get(`${API_BASE}/modules`);
+    expect(modules.ok()).toBeTruthy();
+    const ids = (await modules.json()).modules.map((m: { id: string }) => m.id);
+    expect(ids).toEqual(expect.arrayContaining(['zolik', 'prsi', 'canasta', 'holdem']));
+  });
+
+  test('a finished match is recorded, whatever game it was', async ({ page, request }) => {
+    // Statistics used to be rummy arithmetic, so only Žolíky had any. This is
+    // the end-to-end proof that is no longer true: play a whole Prší match out
+    // over real sockets and ask the server for its recorded result.
+    test.setTimeout(180_000);
+
+    const a = await guest(request);
+    const b = await guest(request);
+    const created = await request.post(`${API_BASE}/matches`, {
+      headers: { Authorization: `Bearer ${a.accessToken}` },
+      data: { moduleId: 'prsi' },
+    });
+    expect(created.ok(), await created.text()).toBeTruthy();
+    const { matchId } = await created.json();
+    await request.post(`${API_BASE}/matches/${matchId}/join`, {
+      headers: { Authorization: `Bearer ${b.accessToken}` },
+    });
+    await request.post(`${API_BASE}/matches/${matchId}/start`, {
+      headers: { Authorization: `Bearer ${a.accessToken}` },
+    });
+
+    const wsBase = API_BASE.replace(/^http/, 'ws');
+    const status = await page.evaluate(
+      async ({ wsBase, matchId, tokens }) => {
+        const open = async (token: string) => {
+          const ws = new WebSocket(`${wsBase}/ws/matches/${matchId}?token=${encodeURIComponent(token)}`);
+          const inbox: any[] = [];
+          await new Promise<void>((resolve, reject) => {
+            ws.onopen = () => resolve();
+            ws.onerror = () => reject(new Error('socket failed'));
+            setTimeout(() => reject(new Error('open timed out')), 10000);
+          });
+          ws.onmessage = (ev) => inbox.push(JSON.parse(String(ev.data)));
+          return { ws, inbox };
+        };
+        const latest = (s: any) => {
+          for (let i = s.inbox.length - 1; i >= 0; i--) {
+            if (s.inbox[i].type === 'match_state') return s.inbox[i];
+          }
+          return null;
+        };
+
+        const seats = await Promise.all(tokens.map(open));
+        for (let i = 0; i < 100 && !seats.every(latest); i++) {
+          await new Promise((r) => setTimeout(r, 50));
+        }
+
+        let last = 'active';
+        for (let step = 0; step < 500; step++) {
+          const idx = seats.findIndex((s) => (latest(s)?.legalActions ?? []).some((o: any) => o.enabled));
+          if (idx === -1) break;
+          const st = latest(seats[idx]);
+          last = st.status;
+          if (last !== 'active') break;
+
+          const o = st.legalActions.filter((x: any) => x.enabled)[0];
+          const action: any = { offerId: o.id, verb: o.verb };
+          if (o.source?.minCards && (o.source?.cards ?? []).length >= o.source.minCards) {
+            action.cards = o.source.cards.slice(0, o.source.minCards);
+          }
+          for (const p of o.params ?? []) {
+            action.params = { ...(action.params ?? {}), [p.name]: p.choices?.[0]?.value ?? String(p.min ?? 0) };
+          }
+          const before = seats.map((s) => s.inbox.length);
+          seats[idx].ws.send(JSON.stringify(action));
+          for (let i = 0; i < 120; i++) {
+            if (seats.every((s, k) => s.inbox.length > before[k])) break;
+            await new Promise((r) => setTimeout(r, 20));
+          }
+        }
+        const final = seats.map(latest).find((s) => s);
+        for (const s of seats) s.ws.close();
+        return final?.status ?? last;
+      },
+      { wsBase, matchId, tokens: [a.accessToken, b.accessToken] },
+    );
+
+    expect(status).toBe('completed');
+
+    // Recording is asynchronous by design — the player who just won should not
+    // wait on bookkeeping — so give it a moment.
+    let body: any = null;
+    for (let i = 0; i < 40; i++) {
+      const res = await request.get(`${API_BASE}/matches/${matchId}/result`);
+      if (res.ok()) {
+        body = await res.json();
+        break;
+      }
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    expect(body, 'a finished match should be recorded').toBeTruthy();
+    expect(body.moduleId).toBe('prsi');
+    expect((body.participants ?? []).length).toBe(2);
+    // The scoreboard is in the shape no game owns: a rank and a score with a
+    // unit, whatever the game measures.
+    for (const p of body.participants) {
+      expect(p.rank).toBeGreaterThanOrEqual(1);
+      expect(p.playerId).toBeTruthy();
+    }
+  });
+});

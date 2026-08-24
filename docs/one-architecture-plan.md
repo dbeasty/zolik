@@ -227,25 +227,65 @@ contract test checked it against the offers.
 container as well as the buttons inside it, and it counted clicks rather than progress.
 Asserting that the *server's* board had moved turned three green tests red, correctly.
 
-## What is left, and the decision inside it
+## Phase 8, done
 
-`cmd/migrate-games` moves the documents, and `internal/game/module_equivalence_test.go` proves a
-migrated game presents the same offers, the same legality and the same result from the same
-move. So the remaining step is small and evidenced:
+The decision this stopped on — keep a compatibility adapter for the bespoke Žolíky screen, or
+accept the generic one in its place — was made: **the generic shell is the architecture.** The
+Žolíky-specific path was deleted rather than adapted.
 
-> Serve `/games/*` and `/ws/games/*` from `match.Manager`, with `GameStateMsg` produced from the
-> module's state, then delete `game.Manager`, `game.Repository`, `state_builder.go`,
-> `takeback.go` and `models.Game`.
+### What went
 
-It stops here because it carries a product question this refactor should not answer by itself:
+| | Lines removed |
+|---|---|
+| `internal/game` — Manager, Repository, state_builder, takeback, replay, REST, WebSocket, `GameStateMsg` | ~4,700 |
+| `models.Game` and its satellites (models.go went from ~280 lines to 47) | ~800 |
+| The RN client's game screen, hand row, staging area, meld table, deck pile, drag overlay, action bar, socket hook, two contexts, offer helpers, create form, deal-end and match-end screens | ~5,700 |
+| The TUI's rummy table, offer helpers, deal-end and match-end screens | ~1,750 |
+| Twelve e2e specs driving the deleted screen, and their seeding helpers | ~1,900 |
 
-- The shipped RN client has a **bespoke 1,756-line Žolíky screen** — drag and drop, staging,
-  joker swaps. The generic shell plays Žolíky, but it is a generic shell. Retiring
-  `GameStateMsg` means either keeping a compatibility adapter for that screen indefinitely, or
-  accepting the generic one in its place.
-- The TUI reads the same shape.
-- Sixty e2e tests seed through `POST /games/{id}/debug-state`, which writes rummy columns
-  directly and would need a module-state equivalent.
+### What replaced it
 
-None of that is hard. All of it is a decision about what the Žolíky *product* should look like
-afterwards, which is why it stops with the evidence in place rather than choosing for the owner.
+Nothing, mostly — that is the point. The four games already ran on the runtime; deleting the
+second path removed a duplicate, not a capability. Three things were genuinely built:
+
+- **Statistics, ported rather than dropped.** They were rummy arithmetic — penalty totals where
+  lower is better, deals won, go-outs read out of an action log — which is why only Žolíky had
+  any. They now record what a module reports through `module.Standing`, so Canasta and poker
+  have lifetime records, head-to-head and leaderboards for the first time. The per-profile split
+  became per-module, which is a question worth asking where the old one could only name a rummy
+  ruleset.
+- **A generic `debug-state`.** Its predecessor took twenty-odd rummy fields and had to learn a
+  new one whenever the engine grew a field. This one takes the module's own state blob and
+  writes the bytes, so it works for every game because it understands none of them.
+- **A terminal client that plays every game.** Five rummy screens became one that draws whatever
+  zones the server sends; 3,251 lines became 2,534, and went from one game to four.
+
+### What was deliberately kept
+
+- `internal/legacy` — the old document shape and its thirty-field mapping, so `cmd/migrate-games`
+  can still read a `games` collection. A migration that cannot decode the old shape is not a
+  migration. Nothing in the running server imports it, and it can be deleted once no deployment
+  has that collection left.
+- The i18n bundle, rummy keys included. Message keys are the one rummy-shaped thing that
+  *should* live in a client: the server ships keys and the wording is ours, which is what made a
+  Czech UI a client-only change.
+- `internal/render` in the TUI, and `parseCard` in the RN client. Knowing that "TD" is the ten of
+  diamonds is a fact about a *deck*, not about a game.
+- The offline score table. It is a pen-and-paper scorepad with no server game behind it, so it
+  was never part of the path being retired — deleting it in passing would have been removing a
+  working feature under cover of a refactor.
+
+### The table from §0, now
+
+| | Žolíky | Prší | Canasta | Hold'em |
+|---|---|---|---|---|
+| Engine entry point | `match.Manager` | `match.Manager` | `match.Manager` | `match.Manager` |
+| Persisted as | `models.Match` | `models.Match` | `models.Match` | `models.Match` |
+| Routes | `/matches/*` | `/matches/*` | `/matches/*` | `/matches/*` |
+| Wire shape | `match_state` | `match_state` | `match_state` | `match_state` |
+| Bots | real, and they play | ✓ | ✓ | ✓ |
+| Disconnect handling | ✓ | ✓ | ✓ | ✓ |
+| Stats recorded | ✓ | ✓ | ✓ | ✓ |
+| Client | the shell | the shell | the shell | the shell |
+
+One column, four times.

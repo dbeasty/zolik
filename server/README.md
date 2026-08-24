@@ -38,10 +38,28 @@ See [client-tui/README.md](../client-tui/README.md) for key bindings.
 **React Native (primary GUI):** **[client-react-native](../client-react-native/)** — Expo app for web/iOS/Android. See [client-react-native/README.md](../client-react-native/README.md).
 
 ## Endpoints
+
+There is one gameplay path, and it does not name a game. `/games/*` and
+`ws://…/ws/games/:id` are gone, along with the 24-field `GameStateMsg` they
+carried; `cmd/migrate-games` moves any documents left behind.
+
 - `GET /healthz`
-- WebSocket: `ws://localhost:8090/ws/games/:id?token=<JWT>`
+- WebSocket: `ws://localhost:8090/ws/matches/:id?token=<JWT>` — carries
+  `module.Action` in and a per-viewer `match_state` out
 - REST:
   - Auth: `/auth/guest`, `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`
-  - Games: `/games`, `/games/:id`, `/games/:id/join`, `/games/:id/start`, `/games/:id/add-ai`, `/games/:id/replay`
-  - Offline scoring: `/scoring-sessions/*`
+  - Games hosted: `GET /modules` — every module's self-description, which is
+    what a lobby renders its picker and its new-match form from
+  - Matches: `POST /matches`, `GET /matches/:id`, `/matches/:id/join`,
+    `/matches/:id/start`, `/matches/:id/add-bot`
+  - Statistics: `/users/me/stats`, `/users/me/matches`, `/users/me/head-to-head`,
+    `/leaderboard`, `GET /matches/:id/result`
+  - Offline scoring: `/scoring-sessions/*` (a pen-and-paper scorepad, unrelated
+    to hosted matches)
+
+Dev-only, when `APP_ENV` is unset or `local`:
+
+- `POST /matches/:id/debug-state` — replaces a match's state with the module's
+  own state blob, so a test can start from the position it wants. It bypasses
+  every rule by design.
 
