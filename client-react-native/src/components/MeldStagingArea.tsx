@@ -106,7 +106,7 @@ export const MeldStagingArea = forwardRef<View, Props>(function MeldStagingArea(
   const lastEmpty = lastIndex < 0 || groups[lastIndex].entries.length === 0;
 
   return (
-    <Animated.View testID="staging-zone" ref={ref} style={[styles.box, dragActive && pulseStyle]}>
+    <Animated.View testID="staging-zone" ref={ref} style={[styles.box, pulseStyle]}>
       {groups.map((group, i) => (
         <GroupBox
           key={i}

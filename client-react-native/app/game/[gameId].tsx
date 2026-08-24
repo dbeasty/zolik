@@ -1486,10 +1486,7 @@ export default function GameScreen() {
             <Animated.View
               testID="discard-zone"
               ref={discardZoneRef}
-              style={[
-                pileStyles.pileBox,
-                draggedCard !== null && canDiscardNow ? discardPulseStyle : undefined,
-              ]}
+              style={[pileStyles.pileBox, discardPulseStyle]}
             >
               <Text style={pileStyles.pileBoxLabel}>
                 Discard pile

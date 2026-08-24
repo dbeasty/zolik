@@ -87,7 +87,7 @@ function MeldRow({
       style={[
         styles.meldRow,
         droppable && !isHovered && !isFlashing && styles.meldRowLayoffable,
-        dragActive && !isHovered ? pulseStyle : null,
+        pulseStyle,
         isHovered && (willReject ? styles.meldRowRejects : styles.meldRowHovered),
         isFlashing && styles.meldRowFlash,
       ]}
