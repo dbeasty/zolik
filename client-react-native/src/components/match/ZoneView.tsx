@@ -172,7 +172,7 @@ export function ZoneView({
                         key={`${g.id}-${c}-${i}`}
                         style={i > 0 && !groupOpen && styles.stackedOverlap}
                       >
-                        <CardView card={c} compact />
+                        <CardView card={c} compact stacked={!groupOpen} />
                       </View>
                     ))}
                   </View>

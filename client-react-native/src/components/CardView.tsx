@@ -35,13 +35,18 @@ type Props = {
   dragging?: boolean;
   onPress?: () => void;
   compact?: boolean;
+  // A card in a stacked meld shows only its top corner — the rest is under
+  // the next card in the pile. The rank and suit need to share that corner
+  // side by side, rather than the rank on top and the suit centered below,
+  // or the suit is exactly what the overlap crops off.
+  stacked?: boolean;
   // Passed straight through to the outer wrapper (data-testid on web) — set
   // by the caller, which knows the card's context (hand index, staged
   // group, table meld), since CardView itself doesn't.
   testID?: string;
 };
 
-export function CardView({ card, selected, justDrawn, dragging, onPress, compact, testID }: Props) {
+export function CardView({ card, selected, justDrawn, dragging, onPress, compact, stacked, testID }: Props) {
   const d = parseCard(card);
   const content = (
     // Ring wrapper is always present at a fixed size (border color just
@@ -73,8 +78,21 @@ export function CardView({ card, selected, justDrawn, dragging, onPress, compact
           d.isJoker && styles.joker,
         ]}
       >
-        <Text style={[styles.rank, d.isJoker && styles.jokerRank, d.isRed && styles.red]}>{d.rank}</Text>
-        <Text style={[styles.suit, d.isRed && styles.red]}>{d.suitSymbol}</Text>
+        {stacked ? (
+          <View style={styles.corner}>
+            <Text style={[styles.rank, d.isJoker && styles.jokerRank, d.isRed && styles.red]}>
+              {d.rank}
+            </Text>
+            <Text style={[styles.suitInline, d.isRed && styles.red]}>{d.suitSymbol}</Text>
+          </View>
+        ) : (
+          <>
+            <Text style={[styles.rank, d.isJoker && styles.jokerRank, d.isRed && styles.red]}>
+              {d.rank}
+            </Text>
+            <Text style={[styles.suit, d.isRed && styles.red]}>{d.suitSymbol}</Text>
+          </>
+        )}
       </View>
     </View>
   );
@@ -139,6 +157,15 @@ const styles = StyleSheet.create({
   suit: {
     fontSize: 18,
     alignSelf: 'center',
+    color: '#1e293b',
+  },
+  corner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  suitInline: {
+    fontSize: 14,
     color: '#1e293b',
   },
   red: {
