@@ -82,6 +82,15 @@ export function ZoneView({
   const shown = foldable && !open ? cards.slice(-1) : cards;
   const buried = cards.length - shown.length;
 
+  /** Which melds the player has tapped open, to see past the stacked corners. */
+  const [expandedGroups, setExpandedGroups] = useState<ReadonlySet<string>>(new Set());
+  const toggleGroup = (id: string) =>
+    setExpandedGroups((was) => {
+      const next = new Set(was);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
   return (
     <View
       ref={(n) => registerDrop?.(zoneId, n as unknown as Measurable | null)}
@@ -125,6 +134,7 @@ export function ZoneView({
             const groupId = groupElementId(g.id);
             const groupLive = activeDrops?.has(groupId) ?? false;
             const groupPressable = pressableDrops?.has(groupId) ?? false;
+            const groupOpen = expandedGroups.has(g.id);
             return (
               <View
                 key={g.id}
@@ -144,14 +154,29 @@ export function ZoneView({
                     group at a glance; the last card sits in full. This also
                     narrows the group box itself, so several fit side by
                     side (see styles.groups) instead of each claiming a full
-                    row the way a horizontal fan did. */}
-                <View style={styles.stackedCards}>
-                  {g.cards.map((c, i) => (
-                    <View key={`${g.id}-${c}-${i}`} style={i > 0 && styles.stackedOverlap}>
-                      <CardView card={c} compact />
-                    </View>
-                  ))}
-                </View>
+                    row the way a horizontal fan did. Tapping the meld undoes
+                    the overlap so every card shows in full — that tap is
+                    disabled while the meld is a live drop target, so it
+                    never steals a press meant to resolve the drop. */}
+                <Pressable
+                  disabled={groupPressable}
+                  onPress={() => toggleGroup(g.id)}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: groupOpen }}
+                  accessibilityLabel={groupOpen ? 'Collapse this meld' : 'Show all cards in this meld'}
+                  testID={`group-toggle-${g.id}`}
+                >
+                  <View style={styles.stackedCards}>
+                    {g.cards.map((c, i) => (
+                      <View
+                        key={`${g.id}-${c}-${i}`}
+                        style={i > 0 && !groupOpen && styles.stackedOverlap}
+                      >
+                        <CardView card={c} compact />
+                      </View>
+                    ))}
+                  </View>
+                </Pressable>
                 {(g.badgeKeys ?? []).map((b) => (
                   <Text key={b} style={styles.badge}>
                     {label(b)}
