@@ -59,7 +59,7 @@ type testHarness struct {
 	server  *httptest.Server
 	handler *auth.Handlers
 	mongo   *db.Mongo
-	stats   *stats.Repository
+	stats   stats.Repository
 	mailer  *capturingMailer
 	oidc    *fakeOIDC
 }
@@ -95,7 +95,8 @@ func newTestHarness(t *testing.T) *testHarness {
 	statsRepo := stats.NewRepository(m)
 
 	h := auth.NewHandlers(auth.Deps{
-		Mongo:                m,
+		Store:                auth.NewStore(m),
+		Sessions:             auth.NewSessionRepository(m),
 		Providers:            identity.NewRegistry(oidc.provider(t)),
 		Mailer:               mailer,
 		Claimer:              stats.NewClaimer(statsRepo),
@@ -565,7 +566,7 @@ func TestDevLastCodeIsUnavailableWhenTestEndpointsAreOff(t *testing.T) {
 	})
 
 	mailer := &capturingMailer{}
-	h := auth.NewHandlers(auth.Deps{Mongo: m, Mailer: mailer, AppName: "Gated"})
+	h := auth.NewHandlers(auth.Deps{Store: auth.NewStore(m), Sessions: auth.NewSessionRepository(m), Mailer: mailer, AppName: "Gated"})
 	r := chi.NewRouter()
 	h.RegisterRoutes(r)
 	srv := httptest.NewServer(r)
@@ -932,6 +933,65 @@ func TestLegacyRegisterRejectsADuplicateUsername(t *testing.T) {
 	res := h.do(http.MethodPost, "/auth/register", "", map[string]any{"username": "dupe", "password": "bbbbbbbb"})
 	if res.status == http.StatusOK {
 		t.Fatal("registering an already-taken username succeeded")
+	}
+}
+
+// TestLoginSessionAuthenticatesTheSSHTUIPath exercises Handlers.LoginSession
+// directly — the entry point internal/tuiauth calls, since the SSH/TUI client
+// can neither open a browser nor read mail. It is a separate method from the
+// HTTP /auth/login handler (its own lookup, its own bcrypt check), so a
+// passing HTTP round trip does not exercise it — this covers it on its own.
+func TestLoginSessionAuthenticatesTheSSHTUIPath(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+
+	reg := h.do(http.MethodPost, "/auth/register", "", map[string]any{
+		"username": "tuiplayer", "password": "correct horse battery staple",
+	})
+	if reg.status != http.StatusOK {
+		t.Fatalf("register: status %d body %s", reg.status, reg.raw)
+	}
+
+	tokens, err := h.handler.LoginSession(ctx, "tuiplayer", "correct horse battery staple")
+	if err != nil {
+		t.Fatalf("LoginSession with the right password: %v", err)
+	}
+	if tokens.UserID != reg.str("userId") {
+		t.Errorf("LoginSession userId = %s, want the registered account %s", tokens.UserID, reg.str("userId"))
+	}
+	if tokens.AccessToken == "" || tokens.RefreshToken == "" {
+		t.Error("LoginSession returned an empty token")
+	}
+
+	if _, err := h.handler.LoginSession(ctx, "tuiplayer", "wrong"); err == nil {
+		t.Error("LoginSession with the wrong password succeeded")
+	}
+	if _, err := h.handler.LoginSession(ctx, "no-such-user", "whatever"); err == nil {
+		t.Error("LoginSession for an unknown username succeeded")
+	}
+}
+
+// TestLoginSessionRejectsAProviderOnlyAccount covers the account shape
+// LoginSession itself calls out as needing distinct handling: one created via
+// an OAuth/email provider, which has no password hash at all. It must be
+// refused plainly rather than compared against an empty hash.
+func TestLoginSessionRejectsAProviderOnlyAccount(t *testing.T) {
+	h := newTestHarness(t)
+	ctx := context.Background()
+
+	u, err := auth.NewStore(h.mongo).InsertUser(ctx, models.User{
+		Username:     "provideronly",
+		AuthProvider: models.IdentityProviderEmail,
+	})
+	if err != nil {
+		t.Fatalf("seeding a provider-only user: %v", err)
+	}
+	if u.PasswordHash != "" {
+		t.Fatalf("seeded user unexpectedly has a password hash")
+	}
+
+	if _, err := h.handler.LoginSession(ctx, "provideronly", "anything"); err == nil {
+		t.Error("LoginSession succeeded against an account with no password")
 	}
 }
 

@@ -15,10 +15,10 @@ import (
 )
 
 type Handlers struct {
-	repo *Repository
+	repo Repository
 }
 
-func NewHandlers(repo *Repository) *Handlers { return &Handlers{repo: repo} }
+func NewHandlers(repo Repository) *Handlers { return &Handlers{repo: repo} }
 
 func (h *Handlers) RegisterRoutes(r chi.Router) {
 	r.Get("/leaderboard", h.leaderboard)

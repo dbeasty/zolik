@@ -13,10 +13,10 @@ import (
 // Recorder turns a finished game into a permanent match record plus the
 // lifetime updates derived from it.
 type Recorder struct {
-	repo *Repository
+	repo Repository
 }
 
-func NewRecorder(repo *Repository) *Recorder { return &Recorder{repo: repo} }
+func NewRecorder(repo Repository) *Recorder { return &Recorder{repo: repo} }
 
 // RecordMatch writes the record for a completed match and folds it into every
 // durable participant's lifetime statistics.

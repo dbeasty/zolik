@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -11,10 +10,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/go-chi/chi/v5"
-	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo"
 
-	"zolik/server/internal/db"
 	"zolik/server/internal/identity"
 	"zolik/server/internal/models"
 )
@@ -30,7 +26,10 @@ const (
 
 // Deps is everything the auth handlers need from the outside.
 type Deps struct {
-	Mongo *db.Mongo
+	// Store is the persistence behind accounts and their identities.
+	Store Store
+	// Sessions is the persistence behind refresh-token sessions.
+	Sessions SessionRepository
 	// Providers is the configured set of external sign-in methods. An empty
 	// registry is fine — the server then offers guest and email sign-in only,
 	// and the clients render exactly that.
@@ -56,9 +55,8 @@ type Deps struct {
 }
 
 type Handlers struct {
-	users       *mongo.Collection
-	sessionRepo *SessionRepository
-	store       *Store
+	sessionRepo SessionRepository
+	store       Store
 	accounts    *Accounts
 	email       *EmailAuth
 	providers   *identity.Registry
@@ -74,8 +72,6 @@ type Handlers struct {
 }
 
 func NewHandlers(d Deps) *Handlers {
-	c := d.Mongo.Collections()
-	store := NewStore(d.Mongo)
 	providers := d.Providers
 	if providers == nil {
 		providers = identity.NewRegistry()
@@ -90,11 +86,10 @@ func NewHandlers(d Deps) *Handlers {
 		mailer = devMailer
 	}
 	return &Handlers{
-		users:             c.Users,
-		sessionRepo:       NewSessionRepository(d.Mongo),
-		store:             store,
-		accounts:          NewAccounts(store, d.Claimer),
-		email:             NewEmailAuth(store, mailer, d.AppName),
+		sessionRepo:       d.Sessions,
+		store:             d.Store,
+		accounts:          NewAccounts(d.Store, d.Claimer),
+		email:             NewEmailAuth(d.Store, mailer, d.AppName),
 		providers:         providers,
 		publicBaseURL:     d.PublicBaseURL,
 		allowedReturnURLs: d.AllowedReturnURLs,
@@ -369,16 +364,6 @@ func (h *Handlers) claimGuest(w http.ResponseWriter, req *http.Request) {
 
 // --- legacy username/password ---
 
-func (h *Handlers) createUser(ctx context.Context, u models.User) (models.User, error) {
-	return h.store.InsertUser(ctx, u)
-}
-
-func (h *Handlers) findUserByUsername(ctx context.Context, username string) (models.User, error) {
-	var u models.User
-	err := h.users.FindOne(ctx, bson.M{"username": username}).Decode(&u)
-	return u, err
-}
-
 type registerReq struct {
 	Username string `json:"username"`
 	Email    string `json:"email,omitempty"`
@@ -403,7 +388,7 @@ func (h *Handlers) register(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	created, err := h.createUser(ctx, models.User{
+	created, err := h.store.InsertUser(ctx, models.User{
 		Username:     body.Username,
 		Email:        NormalizeEmail(body.Email),
 		PasswordHash: string(hash),
@@ -456,7 +441,7 @@ func (h *Handlers) login(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
-	u, err := h.findUserByUsername(ctx, body.Username)
+	u, err := h.store.FindUserByUsername(ctx, body.Username)
 	if err != nil {
 		http.Error(w, "invalid credentials", http.StatusUnauthorized)
 		return

@@ -39,11 +39,11 @@ type GuestClaimer interface {
 // a future Apple button) goes through it, so those three answers cannot start
 // differing per provider.
 type Accounts struct {
-	store   *Store
+	store   Store
 	claimer GuestClaimer
 }
 
-func NewAccounts(store *Store, claimer GuestClaimer) *Accounts {
+func NewAccounts(store Store, claimer GuestClaimer) *Accounts {
 	return &Accounts{store: store, claimer: claimer}
 }
 

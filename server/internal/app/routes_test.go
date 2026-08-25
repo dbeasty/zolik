@@ -11,12 +11,14 @@ import (
 	"zolik/server/internal/auth"
 	"zolik/server/internal/db"
 	"zolik/server/internal/lobby"
+	"zolik/server/internal/stats"
+	userrepo "zolik/server/internal/user"
 	"zolik/server/internal/ws"
 )
 
 // mustWaitingRoom builds a local-only waiting room. No Redis, which is the
 // supported single-instance mode, so this needs nothing running.
-func mustWaitingRoom(t *testing.T) *lobby.Store {
+func mustWaitingRoom(t *testing.T) lobby.Store {
 	t.Helper()
 	s, err := lobby.NewStore("")
 	if err != nil {
@@ -128,12 +130,18 @@ func offlineApp(t *testing.T) *App {
 	t.Cleanup(func() { _ = hub.Close() })
 
 	return &App{
-		db:   m,
-		hub:  hub,
-		auth: auth.NewHandlers(auth.Deps{Mongo: m}),
+		db:  m,
+		hub: hub,
+		auth: auth.NewHandlers(auth.Deps{
+			Store:    auth.NewStore(m),
+			Sessions: auth.NewSessionRepository(m),
+		}),
 		// The waiting room is part of the route table now: /lobby/waiting and
 		// the invite path both need it, and a nil store would panic on mount
 		// rather than fail a test with something readable.
 		waitingRoom: mustWaitingRoom(t),
+		statsRepo:   stats.NewRepository(m),
+		userRepo:    userrepo.NewRepository(m),
+		authStore:   auth.NewStore(m),
 	}
 }

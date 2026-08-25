@@ -26,11 +26,11 @@ const (
 // Handlers serves the waiting room's WebSocket and its REST snapshot.
 type Handlers struct {
 	hub      *ws.Hub
-	store    *Store
+	store    Store
 	upgrader websocket.Upgrader
 }
 
-func NewHandlers(hub *ws.Hub, store *Store) *Handlers {
+func NewHandlers(hub *ws.Hub, store Store) *Handlers {
 	return &Handlers{
 		hub:   hub,
 		store: store,
