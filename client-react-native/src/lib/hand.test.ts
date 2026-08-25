@@ -1,5 +1,6 @@
 import {
   applySavedOrder,
+  arrangeAuto,
   arrangeSlots,
   cardsForSelection,
   insertionAtPoint,
@@ -77,6 +78,55 @@ describe('arrangeSlots', () => {
 
   it('empties out when the hand does', () => {
     expect(arrangeSlots(slots('AS'), [], minter())).toEqual([]);
+  });
+});
+
+describe('arrangeAuto', () => {
+  it('clusters same-rank duplicates together', () => {
+    const held = slots('9H', '2H', '9D', '9C', '4S');
+
+    const out = arrangeAuto(held).map((s) => s.card);
+
+    // 9H/9D/9C form a multiples cluster keyed by rank 9, so they stay
+    // contiguous even though 2 and 4 sort lower/between them by rank alone.
+    const nineIdx = [out.indexOf('9H'), out.indexOf('9D'), out.indexOf('9C')].sort((a, b) => a - b);
+    expect(nineIdx[2] - nineIdx[0]).toBe(2);
+    // Lower-ranked singles (2, 4) sort ahead of the rank-9 cluster.
+    expect(out.indexOf('2H')).toBeLessThan(nineIdx[0]);
+    expect(out.indexOf('4S')).toBeLessThan(nineIdx[0]);
+  });
+
+  it('clusters same-suit consecutive runs together', () => {
+    const out = arrangeAuto(slots('5H', '2C', '6H', '7H', '9S')).map((s) => s.card);
+
+    const runIdx = [out.indexOf('5H'), out.indexOf('6H'), out.indexOf('7H')];
+    expect(runIdx).toEqual([...runIdx].sort((a, b) => a - b));
+    expect(runIdx[2] - runIdx[0]).toBe(2);
+  });
+
+  it('orders clusters low to high, ace low, and keeps jokers last', () => {
+    const out = arrangeAuto(slots('KS', 'JOKER1', '3H', '3D', 'AC')).map((s) => s.card);
+
+    // 3H/3D are a multiples cluster sorted before KS; suit ordering within
+    // the cluster is alphabetical (D before H). Ace sorts below everything.
+    expect(out).toEqual(['AC', '3D', '3H', 'KS', 'JOKER1']);
+  });
+
+  it('is a permutation of the slots handed in, not a re-minting of them', () => {
+    const held = slots('9H', '2H', '9D', '9C', '4S', 'JOKER1', '5H', '6H', '7H');
+
+    const out = arrangeAuto(held);
+
+    expect(out.map((s) => s.id).sort()).toEqual(held.map((s) => s.id).sort());
+  });
+
+  it('keeps two identical cards as two slots, not merged into one', () => {
+    const held = slots('7H', '7H', '2C');
+
+    const out = arrangeAuto(held);
+
+    expect(out.map((s) => s.card).sort()).toEqual(['2C', '7H', '7H']);
+    expect(new Set(out.map((s) => s.id)).size).toBe(3);
   });
 });
 

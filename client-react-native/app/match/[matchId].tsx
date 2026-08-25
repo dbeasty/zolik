@@ -69,7 +69,7 @@ export default function MatchScreen() {
   const myHands = mine.filter((z) => z.kind === 'hand');
   // Keyed by match, so an arrangement is remembered across a reload but never
   // carried into a different deal, where it would mean nothing.
-  const { slotsFor, move } = useHandOrder(myHands, matchId ? String(matchId) : undefined);
+  const { slotsFor, move, arrange } = useHandOrder(myHands, matchId ? String(matchId) : undefined);
 
   const heldSlots = myHands.flatMap((z) => slotsFor(z.id));
 
@@ -362,6 +362,7 @@ export default function MatchScreen() {
               selected={selected}
               onToggle={toggleSlot}
               onMove={(from, to) => move(z.id, from, to)}
+              onAutoArrange={() => arrange(z.id)}
               onDragStart={(index) => beginDrag(z.id, index)}
               onDragMove={moveDrag}
               onDragEnd={endDrag}

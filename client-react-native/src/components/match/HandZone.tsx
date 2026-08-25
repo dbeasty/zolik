@@ -1,5 +1,5 @@
 import { Fragment, memo, useCallback, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 
@@ -57,6 +57,8 @@ type Props = {
   selected: ReadonlySet<string>;
   onToggle: (slotId: string) => void;
   onMove: (from: number, to: number) => void;
+  /** Tidy the hand into rank order, likely melds held together. */
+  onAutoArrange?: () => void;
   /** A drag began on the card at this index. */
   onDragStart?: (index: number) => void;
   /** The card moved, in window coordinates. */
@@ -79,6 +81,7 @@ export function HandZone({
   selected,
   onToggle,
   onMove,
+  onAutoArrange,
   onDragStart,
   onDragMove,
   onDragEnd,
@@ -312,9 +315,18 @@ export function HandZone({
     <View style={styles.zone} testID={`zone-${zone.id}`}>
       <View style={styles.headerRow}>
         <Text style={styles.title}>{title}</Text>
-        <Text style={styles.count} testID={`zone-count-${zone.id}`}>
-          {zone.count}
-        </Text>
+        <View style={styles.headerRight}>
+          {onAutoArrange && slots.length > 1 ? (
+            <Pressable onPress={onAutoArrange} hitSlop={8}>
+              <Text style={styles.autoArrange} testID={`hand-auto-arrange-${zone.id}`}>
+                Auto-arrange
+              </Text>
+            </Pressable>
+          ) : null}
+          <Text style={styles.count} testID={`zone-count-${zone.id}`}>
+            {zone.count}
+          </Text>
+        </View>
       </View>
 
       <View
@@ -546,6 +558,8 @@ const styles = StyleSheet.create({
   },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title: { color: colors.muted, fontSize: 12, fontWeight: '700' },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  autoArrange: { color: colors.accent, fontSize: 12, fontWeight: '600' },
   count: { color: colors.muted, fontSize: 12 },
   cards: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 6 },
   hint: { color: colors.muted, fontSize: 10, marginTop: 6, fontStyle: 'italic' },

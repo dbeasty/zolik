@@ -26,6 +26,8 @@
  * and a submission still travels as card strings.
  */
 
+import { cardSuit, displayRank } from '@/src/lib/cards';
+
 export type Slot = {
   /** Stable for as long as this physical card stays in the hand. */
   id: string;
@@ -92,6 +94,108 @@ export function moveSlot<T>(items: T[], from: number, to: number): T[] {
   const [moved] = out.splice(from, 1);
   out.splice(target, 0, moved);
   return out;
+}
+
+/** Ace-low rank order, the one thing a shell may know about a card without
+ * knowing a rule: it's a fact about the deck, not about any game's play. */
+function rankOrder(card: string): number {
+  if (card.startsWith('JOKER')) return 100;
+  const order: Record<string, number> = {
+    A: 1,
+    '2': 2,
+    '3': 3,
+    '4': 4,
+    '5': 5,
+    '6': 6,
+    '7': 7,
+    '8': 8,
+    '9': 9,
+    '10': 10,
+    J: 11,
+    Q: 12,
+    K: 13,
+  };
+  return order[displayRank(card)] ?? 50;
+}
+
+/**
+ * One-tap tidying: low to high, with likely meld material held together.
+ *
+ * Same-rank duplicates (set material) cluster together, same-suit
+ * consecutive-rank cards (run material) cluster together, and each cluster is
+ * placed by its lowest rank — so a hand a player has not touched yet already
+ * reads as "here is what you could lay" rather than as an arbitrary sort.
+ * Jokers are wild and don't belong to any one cluster, so they sit together
+ * at the end.
+ *
+ * A permutation of the slots handed in, never a new one: the point of a slot
+ * is that it survives being moved, and an auto-arrange a player doesn't like
+ * should undo the same way a manual drag does.
+ */
+export function arrangeAuto(slots: Slot[]): Slot[] {
+  const jokers = slots.filter((s) => s.card.startsWith('JOKER'));
+  const nonJokers = slots.filter((s) => !s.card.startsWith('JOKER'));
+
+  const rankCounts = new Map<string, number>();
+  for (const s of nonJokers) {
+    const r = displayRank(s.card);
+    rankCounts.set(r, (rankCounts.get(r) ?? 0) + 1);
+  }
+
+  const multiples: Slot[] = [];
+  const singles: Slot[] = [];
+  for (const s of nonJokers) {
+    if ((rankCounts.get(displayRank(s.card)) ?? 0) >= 2) multiples.push(s);
+    else singles.push(s);
+  }
+
+  const multipleGroups = new Map<string, Slot[]>();
+  for (const s of multiples) {
+    const r = displayRank(s.card);
+    const arr = multipleGroups.get(r) ?? [];
+    arr.push(s);
+    multipleGroups.set(r, arr);
+  }
+  for (const arr of multipleGroups.values()) {
+    arr.sort((a, b) => cardSuit(a.card).localeCompare(cardSuit(b.card)));
+  }
+
+  const bySuit = new Map<string, Slot[]>();
+  for (const s of singles) {
+    const suit = cardSuit(s.card);
+    const arr = bySuit.get(suit) ?? [];
+    arr.push(s);
+    bySuit.set(suit, arr);
+  }
+
+  const groups: { key: number; slots: Slot[] }[] = [];
+
+  for (const arr of bySuit.values()) {
+    arr.sort((a, b) => rankOrder(a.card) - rankOrder(b.card));
+    let run: Slot[] = [];
+    const flush = () => {
+      if (run.length === 0) return;
+      groups.push({ key: rankOrder(run[0].card), slots: run });
+      run = [];
+    };
+    for (const s of arr) {
+      if (run.length === 0 || rankOrder(s.card) === rankOrder(run[run.length - 1].card) + 1) {
+        run.push(s);
+      } else {
+        flush();
+        run.push(s);
+      }
+    }
+    flush();
+  }
+
+  for (const arr of multipleGroups.values()) {
+    groups.push({ key: rankOrder(arr[0].card), slots: arr });
+  }
+
+  groups.sort((a, b) => a.key - b.key);
+
+  return [...groups.flatMap((g) => g.slots), ...jokers];
 }
 
 /**
