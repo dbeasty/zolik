@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { Zone } from '@/src/api/matchTypes';
 import { CardView } from '@/src/components/CardView';
@@ -32,6 +33,8 @@ type Props = {
   selected?: string[];
   onPressCard?: (card: string, index: number) => void;
   compact?: boolean;
+  /** Sized to its contents, so small zones can sit beside each other. */
+  inline?: boolean;
   /** Publishes this zone and its groups as places a card may be dropped. */
   registerDrop?: (elementId: string, node: Measurable | null) => void;
   /** Element ids that would accept the card currently being dragged. */
@@ -45,6 +48,7 @@ export function ZoneView({
   selected,
   onPressCard,
   compact,
+  inline,
   registerDrop,
   activeDrops,
   hoveredDrop,
@@ -53,17 +57,52 @@ export function ZoneView({
   const zoneId = zoneElementId(zone.id);
   const zoneLive = activeDrops?.has(zoneId) ?? false;
 
+  const cards = zone.cards ?? [];
+  /**
+   * A pile is about its top card; the rest is history.
+   *
+   * Only some games send the rest at all — a Canasta or Prší discard pile
+   * arrives as a single card, because in those games what is underneath is not
+   * public. Where the whole pile *is* sent, showing all of it turns a small
+   * zone into a wall of cards that pushes the rest of the board off screen, so
+   * it is folded down to the top card and can be opened.
+   */
+  const foldable = zone.kind === 'pile' && cards.length > 1;
+  const [open, setOpen] = useState(false);
+  const shown = foldable && !open ? cards.slice(-1) : cards;
+  const buried = cards.length - shown.length;
+
   return (
     <View
       ref={(n) => registerDrop?.(zoneId, n as unknown as Measurable | null)}
-      style={[styles.zone, zoneLive && styles.live, hoveredDrop === zoneId && styles.hovered]}
+      style={[
+        styles.zone,
+        inline && styles.inline,
+        zoneLive && styles.live,
+        hoveredDrop === zoneId && styles.hovered,
+      ]}
       testID={`zone-${zone.id}`}
     >
       <View style={styles.headerRow}>
         <Text style={styles.title}>{title}</Text>
-        <Text style={styles.count} testID={`zone-count-${zone.id}`}>
-          {zone.count}
-        </Text>
+        {foldable ? (
+          <Pressable
+            testID={`zone-toggle-${zone.id}`}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: open }}
+            accessibilityLabel={open ? `Hide the rest of ${title}` : `Show all of ${title}`}
+            onPress={() => setOpen((was) => !was)}
+            style={styles.toggle}
+          >
+            <Text style={styles.toggleText} testID={`zone-count-${zone.id}`}>
+              {open ? `${zone.count} ▴` : `${zone.count} ▾`}
+            </Text>
+          </Pressable>
+        ) : (
+          <Text style={styles.count} testID={`zone-count-${zone.id}`}>
+            {zone.count}
+          </Text>
+        )}
       </View>
 
       {zone.kind === 'stack' ? <StackBack count={zone.count} /> : null}
@@ -102,14 +141,16 @@ export function ZoneView({
         </View>
       ) : (
         <View style={styles.cards}>
-          {(zone.cards ?? []).map((c, i) => (
+          {/* Indices are into the whole pile, not into what is on screen, so a
+              card keeps the same name whether the pile is open or folded. */}
+          {shown.map((c, i) => (
             <CardView
-              key={`${zone.id}-${c.card}-${i}`}
+              key={`${zone.id}-${c.card}-${buried + i}`}
               card={c.card}
               compact={compact}
               selected={selected?.includes(c.card)}
-              onPress={onPressCard ? () => onPressCard(c.card, i) : undefined}
-              testID={`card-${zone.id}-${i}`}
+              onPress={onPressCard ? () => onPressCard(c.card, buried + i) : undefined}
+              testID={`card-${zone.id}-${buried + i}`}
             />
           ))}
         </View>
@@ -154,6 +195,14 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title: { color: colors.muted, fontSize: 12, fontWeight: '700' },
   count: { color: colors.muted, fontSize: 12 },
+  // Wide enough to be worth aiming at, since it is the only way to look under
+  // the top card.
+  toggle: { paddingHorizontal: 6, paddingVertical: 2, marginLeft: 8 },
+  toggleText: { color: colors.accentButton, fontSize: 12, fontWeight: '700' },
+  // A zone that sizes to its contents rather than filling the row. The draw
+  // and discard piles are a couple of cards wide and belong side by side; only
+  // a hand or a spread earns a line of its own.
+  inline: { flexGrow: 0, flexShrink: 0, marginBottom: 0, minWidth: 96 },
   cards: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 6 },
   groups: { gap: 6, marginTop: 4 },
   group: {

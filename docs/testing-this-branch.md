@@ -37,6 +37,14 @@ a poker board — laid out from zones, seats and offers the server pushes.
 - The bots move on their own — that is the runtime driving them from the same
   offer list, not per-game AI.
 
+**The table.** The draw pile and the discard pile sit side by side, each only
+as wide as it needs to be, and the discard pile shows just its top card with a
+count you can press to look underneath. Both come from a zone's *kind* rather
+than from which game it is: small zones (a stack, a pile) share a line, wide
+ones (a hand, a spread of melds) get their own. Prší and Canasta send only the
+top of their discard pile — what is under it is not public in those games — so
+there is nothing to unfold and no control offering to.
+
 **Playing a card by dragging it.** Pick a card up and the places it may go
 light up — the discard pile, a meld it extends, the table. Drop it on one and
 the move is sent. Drop it on nothing and it goes back where it came from.

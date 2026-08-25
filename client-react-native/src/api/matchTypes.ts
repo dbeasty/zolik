@@ -29,6 +29,13 @@ export type Group = {
   badgeKeys?: string[];
 };
 
+/**
+ * What sort of place a zone is, which is all the shell needs to lay it out.
+ *
+ * `pile` cards are ordered bottom to top, so the *last* one is the top card —
+ * the one a discard pile is really about. A module may send the whole pile or
+ * only its top; that is a choice about what is public, not about what is drawn.
+ */
 export type ZoneKind = 'hand' | 'stack' | 'pile' | 'spread';
 
 /**

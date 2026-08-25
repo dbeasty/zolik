@@ -301,10 +301,26 @@ function Section({
   hoveredDrop?: string | null;
 }) {
   if (!zones.length) return null;
+
+  // Side by side if a zone is small, on its own line if it is wide — decided
+  // by kind, which is the one thing the shell is allowed to know. A stack and
+  // a pile are a couple of cards across and look absurd each occupying a full
+  // row; a hand or a spread of melds needs the width. No game is named, so a
+  // game added tomorrow is laid out by the same rule.
+  const beside = zones.filter((z) => z.kind === 'stack' || z.kind === 'pile');
+  const stacked = zones.filter((z) => z.kind !== 'stack' && z.kind !== 'pile');
+
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      {zones.map((z) => (
+      {beside.length > 0 ? (
+        <View style={styles.beside} testID={`section-beside-${title.toLowerCase()}`}>
+          {beside.map((z) => (
+            <ZoneView key={z.id} zone={z} compact={compact} inline {...drops} />
+          ))}
+        </View>
+      ) : null}
+      {stacked.map((z) => (
         <ZoneView key={z.id} zone={z} compact={compact} {...drops} />
       ))}
     </View>
@@ -321,6 +337,7 @@ const styles = StyleSheet.create({
   prompt: { color: colors.gold, fontSize: 13, marginTop: 6 },
   warn: { color: colors.danger, fontSize: 13, marginTop: 6 },
   section: { marginTop: 10 },
+  beside: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 8, marginBottom: 8 },
   sectionTitle: { color: colors.muted, fontSize: 11, fontWeight: '700', marginBottom: 4 },
   mine: { marginTop: 10 },
   error: { color: colors.danger, fontSize: 13, marginVertical: 6 },

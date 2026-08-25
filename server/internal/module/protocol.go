@@ -134,6 +134,11 @@ const (
 	// ZoneStack: a face-down pile where only the count matters (a draw pile).
 	ZoneStack ZoneKind = "stack"
 	// ZonePile: a face-up pile where the top card matters (a discard pile).
+	//
+	// Cards are ordered bottom to top, so the *last* one is the top card. A
+	// module may send the whole pile or only the top; an interface shows the
+	// top and lets a player look under it, so sending the rest is a choice
+	// about what is public rather than about what is drawn.
 	ZonePile ZoneKind = "pile"
 	// ZoneSpread: cards laid out side by side, in groups (melds, tricks).
 	ZoneSpread ZoneKind = "spread"
