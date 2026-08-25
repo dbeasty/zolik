@@ -2,17 +2,18 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { ActionOffer, MatchAction, ParamSpec } from '@/src/api/matchTypes';
-import { defaultParam, isOneTap, submissionFor } from '@/src/api/matchTypes';
+import { defaultParam, isOneTap, offerGroupKey, offerMatchesSelection, submissionFor } from '@/src/api/matchTypes';
 import { factText, label } from '@/src/lib/labels';
 import { reasonText } from '@/src/lib/i18n';
 import { colors } from '@/src/theme';
 
 /**
- * One control per offer.
+ * One control per offer — or, when several offers share a label and each
+ * names an existing target of its own, one control for all of them.
  *
  * This is where the whole protocol pays off. The server says what may be done,
- * with what, and why not — so this file decides nothing. It has three jobs and
- * no fourth:
+ * with what, and why not — so this file decides nothing. It has four jobs and
+ * no fifth:
  *
  *  1. Press an offer the server fully enumerated (Canasta's melds ship exact
  *     cards, so they are buttons).
@@ -20,6 +21,12 @@ import { colors } from '@/src/theme';
  *     offer whose combination only a person can compose, or a value for a
  *     declared parameter.
  *  3. Show the engine's own reason on anything disabled.
+ *  4. Fold offers that are really "the same move, a different target" into
+ *     one control, so their count tracks how many *kinds* of move are on
+ *     offer rather than how many targets happen to be on the board. Pressing
+ *     it sends the one target the current selection resolves to; short of
+ *     that, it hands off to whoever is pointing at targets on the board (see
+ *     `onAmbiguous`) rather than guessing.
  *
  * There is no rule in it. That is the acceptance test, and the reason this
  * file mentions no rank, suit, meld, blind or pot.
@@ -32,9 +39,16 @@ type Props = {
   onSend: (action: MatchAction) => void;
   /** Called when an offer consumed the current selection. */
   onConsumeSelection: () => void;
+  /**
+   * A folded control was pressed but the current selection does not settle
+   * which of its targets was meant — zero of them fit it, or more than one
+   * does. Told which group, by the same key `offerGroupKey` computes, so
+   * whoever renders the board can point at that group's own targets.
+   */
+  onAmbiguous?: (groupKey: string) => void;
 };
 
-export function OfferBar({ offers, selectedCards, onSend, onConsumeSelection }: Props) {
+export function OfferBar({ offers, selectedCards, onSend, onConsumeSelection, onAmbiguous }: Props) {
   // Parameter values in progress, keyed by offer id then parameter name. Only
   // an offer the player is actively configuring has an entry.
   const [params, setParams] = useState<Record<string, Record<string, string>>>({});
@@ -54,6 +68,27 @@ export function OfferBar({ offers, selectedCards, onSend, onConsumeSelection }: 
     setParams((prev) => ({ ...prev, [offer.id]: {} }));
   };
 
+  // Only offers that name an existing target of their own (`target.meldId`)
+  // are folded — that field is what makes several offers of the same shape
+  // distinct targets on the board rather than distinct kinds of move, and it
+  // is the one thing this file already reads off `target` nowhere else, so
+  // folding introduces no new assumption about what the field means. A group
+  // of one is rendered exactly like an ordinary offer below; only a group of
+  // more than one is ever folded into a shared control.
+  const groups = new Map<string, ActionOffer[]>();
+  for (const offer of offers) {
+    if (!offer.target?.meldId) continue;
+    const key = offerGroupKey(offer);
+    const list = groups.get(key) ?? [];
+    list.push(offer);
+    groups.set(key, list);
+  }
+  const foldedIds = new Set<string>();
+  for (const list of groups.values()) {
+    if (list.length > 1) list.forEach((o) => foldedIds.add(o.id));
+  }
+  const renderedGroups = new Set<string>();
+
   return (
     <ScrollView
       horizontal
@@ -62,6 +97,21 @@ export function OfferBar({ offers, selectedCards, onSend, onConsumeSelection }: 
       testID="action-bar"
     >
       {offers.map((offer) => {
+        if (foldedIds.has(offer.id)) {
+          const key = offerGroupKey(offer);
+          if (renderedGroups.has(key)) return null;
+          renderedGroups.add(key);
+          return (
+            <FoldedOffer
+              key={key}
+              groupKey={key}
+              group={groups.get(key) ?? []}
+              selectedCards={selectedCards}
+              onResolve={send}
+              onAmbiguous={onAmbiguous}
+            />
+          );
+        }
         const ready = isReady(offer, selectedCards, params[offer.id]);
         return (
           <View key={offer.id} style={styles.slot}>
@@ -113,6 +163,62 @@ export function OfferBar({ offers, selectedCards, onSend, onConsumeSelection }: 
         );
       })}
     </ScrollView>
+  );
+}
+
+/**
+ * A control standing in for a whole group of offers that share a label and
+ * each name a different target of their own — the reason two or more of them
+ * would otherwise be on screen reading the same word.
+ *
+ * A press either goes straight through — the selection settles which of the
+ * group's targets was meant, the same way a lone offer of the same shape
+ * would settle it — or, when it does not, hands the choice to `onAmbiguous`
+ * rather than guessing at a target this file has no way to show.
+ */
+function FoldedOffer({
+  groupKey,
+  group,
+  selectedCards,
+  onResolve,
+  onAmbiguous,
+}: {
+  groupKey: string;
+  group: ActionOffer[];
+  selectedCards: string[];
+  onResolve: (offer: ActionOffer) => void;
+  onAmbiguous?: (groupKey: string) => void;
+}) {
+  const first = group[0];
+  const enabledCount = group.filter((o) => o.enabled).length;
+  const settled = group.filter((o) => offerMatchesSelection(o, selectedCards));
+  const disabled = enabledCount === 0;
+
+  const press = () => {
+    if (settled.length === 1) {
+      onResolve(settled[0]);
+      return;
+    }
+    onAmbiguous?.(groupKey);
+  };
+
+  return (
+    <View style={styles.slot}>
+      <Pressable
+        testID={`offer-group:${groupKey}`}
+        accessibilityState={{ disabled }}
+        disabled={disabled}
+        onPress={press}
+        style={[styles.button, disabled && styles.disabled]}
+      >
+        <Text style={styles.buttonText}>{label(first.labelKey ?? `verb.${first.verb}`) || first.verb}</Text>
+      </Pressable>
+      {!disabled && settled.length !== 1 ? (
+        <Text testID={`needs-group:${groupKey}`} style={styles.hint}>
+          more than one place this could go — pick on the board
+        </Text>
+      ) : null}
+    </View>
   );
 }
 

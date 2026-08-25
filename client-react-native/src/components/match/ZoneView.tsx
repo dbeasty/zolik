@@ -41,6 +41,14 @@ type Props = {
   activeDrops?: ReadonlySet<string>;
   /** The one the pointer is over right now. */
   hoveredDrop?: string | null;
+  /**
+   * Element ids that may be resolved with a press rather than a drag —
+   * standing in for a drag when what to send has already been chosen and only
+   * where it goes is still open. Disjoint in practice from a live drag: this
+   * is populated between drags, not during one.
+   */
+  pressableDrops?: ReadonlySet<string>;
+  onPressDrop?: (elementId: string, pageX: number) => void;
 };
 
 export function ZoneView({
@@ -52,6 +60,8 @@ export function ZoneView({
   registerDrop,
   activeDrops,
   hoveredDrop,
+  pressableDrops,
+  onPressDrop,
 }: Props) {
   const title = label(zone.labelKey) || zone.id;
   const zoneId = zoneElementId(zone.id);
@@ -114,6 +124,7 @@ export function ZoneView({
           {(zone.groups ?? []).map((g) => {
             const groupId = groupElementId(g.id);
             const groupLive = activeDrops?.has(groupId) ?? false;
+            const groupPressable = pressableDrops?.has(groupId) ?? false;
             return (
               <View
                 key={g.id}
@@ -135,6 +146,16 @@ export function ZoneView({
                     {label(b)}
                   </Text>
                 ))}
+                {/* Stands in for a drag once what to send is already chosen —
+                    a target lit up this way, and not by a card in flight, is
+                    one a press can resolve as well as a drop can. */}
+                {groupPressable ? (
+                  <Pressable
+                    testID={`group-press-${g.id}`}
+                    style={StyleSheet.absoluteFill}
+                    onPress={(e) => onPressDrop?.(groupId, e.nativeEvent.pageX)}
+                  />
+                ) : null}
               </View>
             );
           })}

@@ -272,3 +272,26 @@ export function isOneTap(offer: ActionOffer): boolean {
   if (need === 0) return true;
   return (offer.source?.cards ?? []).length >= need;
 }
+
+/**
+ * The key that ties several offers together as "the same control, aimed at
+ * different targets" — same verb, same label, different `target.meldId`. A
+ * module that names two same-verb offers distinctly (Žolíky's two draws) is
+ * unaffected: they get different keys and are never folded into one.
+ */
+export function offerGroupKey(offer: ActionOffer): string {
+  return offer.labelKey ?? `verb.${offer.verb}`;
+}
+
+/**
+ * Whether the current selection, on its own, says this is the one member of
+ * its group that was meant — without a person having to pick a target by
+ * hand. Mirrors what a press would actually send: some of the selection is
+ * among this offer's own eligible cards, or nothing is selected and this
+ * offer needs no choice at all to go.
+ */
+export function offerMatchesSelection(offer: ActionOffer, selected: string[]): boolean {
+  if (!offer.enabled) return false;
+  if (selected.length === 0) return isOneTap(offer);
+  return (offer.source?.cards ?? []).some((c) => selected.includes(c));
+}
