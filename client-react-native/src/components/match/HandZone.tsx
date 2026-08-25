@@ -1,11 +1,11 @@
-import { useCallback, useRef, useState } from 'react';
+import { Fragment, useCallback, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 
 import type { Zone } from '@/src/api/matchTypes';
-import { CardView } from '@/src/components/CardView';
-import { slotAtPoint, type Rect, type Slot } from '@/src/lib/hand';
+import { CARD_METRICS, CardView } from '@/src/components/CardView';
+import { insertionAtPoint, moveTargetFor, type Rect, type Slot } from '@/src/lib/hand';
 import { label } from '@/src/lib/labels';
 import { colors } from '@/src/theme';
 
@@ -74,10 +74,10 @@ export function HandZone({
   const measured = useRef(false);
 
   const heldRef = useRef<number | null>(null);
-  const targetRef = useRef<number | null>(null);
+  const insertRef = useRef<number | null>(null);
   const lastPoint = useRef({ x: 0, y: 0 });
   const [held, setHeld] = useState<number | null>(null);
-  const [target, setTarget] = useState<number | null>(null);
+  const [insertion, setInsertion] = useState<number | null>(null);
 
   // Mirrors of things that change while a drag is in flight. The gesture's
   // callbacks are handed to the UI thread once; reading these through a ref
@@ -93,12 +93,24 @@ export function HandZone({
   const startRef = useRef(onDragStart);
   startRef.current = onDragStart;
 
-  // Called at touch-down rather than when a drag activates: `measureInWindow`
-  // answers on a later tick, and by the time a pointer has moved far enough to
-  // start a drag the answers are in. Until they are, `measured` is false and
-  // the fan refuses to guess — a drag too fast to measure leaves the card
-  // where it was instead of flinging it somewhere arbitrary.
+  /**
+   * Reads where the cards are, at touch-down.
+   *
+   * Touch-down rather than when the drag activates, because
+   * `measureInWindow` answers on a later tick and by the time a pointer has
+   * moved far enough to start a drag the answers are in. Until they are,
+   * `measured` is false and the fan refuses to guess.
+   *
+   * Never *during* a drag, which is what the guard is for. The gap that opens
+   * up to show where the card will land is itself a layout change, so it
+   * retriggers this — and re-measuring mid-drag would mean testing the pointer
+   * against positions the gap had just moved, so opening a gap would change
+   * where the gap belongs. The fan would squirm away from the pointer. Holding
+   * the pre-drag positions for the whole gesture is what makes it steady: the
+   * card lands where it looked like it would when you picked it up.
+   */
   const measure = useCallback(() => {
+    if (heldRef.current !== null) return;
     cardRefs.current.slice(0, slots.length).forEach((ref, i) => {
       ref?.measureInWindow((x, y, width, height) => {
         rects.current[i] = { x, y, width, height };
@@ -120,15 +132,15 @@ export function HandZone({
       if (heldRef.current === null || !measured.current) return;
 
       // Over the board, the card is going somewhere rather than moving along
-      // the fan, so the reorder indicator gets out of the way — two answers to
-      // "where does this land?" on screen at once is one too many.
+      // the fan, so the gap closes — two answers to "where does this land?" on
+      // screen at once is one too many.
       const at = outsideRef.current
         ? null
-        : slotAtPoint(rects.current.slice(0, slots.length), { x: absoluteX, y: absoluteY });
+        : insertionAtPoint(rects.current.slice(0, slots.length), { x: absoluteX, y: absoluteY });
       // Only a change is worth a render; a pan reports every pointer move.
-      if (at !== targetRef.current) {
-        targetRef.current = at;
-        setTarget(at);
+      if (at !== insertRef.current) {
+        insertRef.current = at;
+        setInsertion(at);
       }
     },
     [slots.length],
@@ -159,19 +171,22 @@ export function HandZone({
 
   const release = useCallback(() => {
     const from = heldRef.current;
-    const to = targetRef.current;
+    const gap = insertRef.current;
     const { x, y } = lastPoint.current;
     heldRef.current = null;
-    targetRef.current = null;
+    insertRef.current = null;
     setHeld(null);
-    setTarget(null);
+    setInsertion(null);
 
     // The board gets first refusal. Only a card nothing wanted is a card being
     // moved along the fan — and only if it was let go of over the fan.
     const taken = endRef.current?.(x, y) ?? false;
     if (taken) return;
     if (!withinFan(x, y)) return;
-    if (from !== null && to !== null && from !== to) onMove(from, to);
+    if (from === null || gap === null) return;
+
+    const to = moveTargetFor(from, gap);
+    if (to !== from) onMove(from, to);
   }, [onMove, withinFan]);
 
   const title = label(zone.labelKey) || zone.id;
@@ -187,26 +202,31 @@ export function HandZone({
 
       <View style={styles.cards} testID={`hand-${zone.id}`} onLayout={measure}>
         {slots.map((slot, index) => (
-          <DraggableCard
-            key={slot.id}
-            index={index}
-            slot={slot}
-            count={slots.length}
-            selected={selected.has(slot.id)}
-            held={held === index}
-            isTarget={held !== null && held !== index && target === index}
-            testID={`card-${zone.id}-${index}`}
-            bindRef={(node) => {
-              cardRefs.current[index] = node;
-            }}
-            onToggle={onToggle}
-            onTouch={measure}
-            onPickUp={pickUp}
-            onHover={hover}
-            onRelease={release}
-            onMove={onMove}
-          />
+          <Fragment key={slot.id}>
+            {insertion === index ? <DropGap /> : null}
+            <DraggableCard
+              index={index}
+              slot={slot}
+              count={slots.length}
+              selected={selected.has(slot.id)}
+              held={held === index}
+              testID={`card-${zone.id}-${index}`}
+              bindRef={(node) => {
+                cardRefs.current[index] = node;
+              }}
+              onToggle={onToggle}
+              onTouch={measure}
+              onPickUp={pickUp}
+              onHover={hover}
+              onRelease={release}
+              onMove={onMove}
+            />
+          </Fragment>
         ))}
+        {/* The gap past the last card. It is a separate line rather than part
+            of the loop because there is one more gap than there are cards, and
+            that last one is the only way to say "put it at the end". */}
+        {insertion === slots.length ? <DropGap /> : null}
       </View>
 
       {slots.length > 1 ? (
@@ -218,13 +238,28 @@ export function HandZone({
   );
 }
 
+/**
+ * The space a dragged card would drop into.
+ *
+ * Exactly a card wide, and built from the same metrics a card is, so that the
+ * cards it pushes apart move by precisely one card and not by nearly one.
+ */
+function DropGap() {
+  return (
+    <View style={styles.slot} testID="hand-drop-gap">
+      <View style={styles.gapRing}>
+        <View style={styles.gapCard} />
+      </View>
+    </View>
+  );
+}
+
 type CardProps = {
   index: number;
   slot: Slot;
   count: number;
   selected: boolean;
   held: boolean;
-  isTarget: boolean;
   testID: string;
   bindRef: (node: Measurable | null) => void;
   onToggle: (slotId: string) => void;
@@ -242,7 +277,6 @@ function DraggableCard({
   count,
   selected,
   held,
-  isTarget,
   testID,
   bindRef,
   onToggle,
@@ -319,7 +353,7 @@ function DraggableCard({
     <GestureDetector gesture={pan}>
       <Animated.View
         ref={bindRef as never}
-        style={[style, styles.slot, held && styles.lifted, isTarget && styles.target]}
+        style={[style, styles.slot, held && styles.lifted]}
         // The same move, for anyone not using a pointer. A drag is not an
         // affordance a screen reader can offer, so the two directions are
         // published as actions instead.
@@ -367,22 +401,31 @@ const styles = StyleSheet.create({
   cards: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 6 },
   hint: { color: colors.muted, fontSize: 10, marginTop: 6, fontStyle: 'italic' },
   lifted: { zIndex: 20, opacity: 0.92 },
-  // The border is always here and always this wide, and only its colour
-  // changes — the same discipline CardView's own ring keeps, for the same
-  // reason. Adding a border on hover instead would resize that card and shift
-  // every card after it *during* the drag, moving the very measurements the
-  // drop is tested against: the fan squirms away from the pointer and the
-  // card lands somewhere nobody aimed at.
+  // The wrapper every card and every gap sits in, so the two are the same size
+  // to the pixel. Its border is always here and always this wide — only its
+  // colour ever changes, the same discipline CardView's own ring keeps.
   slot: {
     borderRadius: 8,
-    borderWidth: 2,
+    borderWidth: CARD_METRICS.ringBorder,
     borderColor: 'transparent',
   },
-  // Where the held card will land. Drawn on the card being displaced rather
-  // than as a bar between cards, because the fan wraps and a gap between two
-  // cards on different rows has no obvious place to put a bar.
-  target: {
-    borderColor: colors.gold,
+  gapRing: {
+    borderRadius: 8,
+    borderWidth: CARD_METRICS.ringBorder,
+    borderColor: 'transparent',
+    padding: CARD_METRICS.ringPadding,
+  },
+  gapCard: {
+    width: CARD_METRICS.width,
+    height: CARD_METRICS.height,
+    marginRight: CARD_METRICS.gap,
+    borderRadius: 6,
+    borderWidth: 2,
     borderStyle: 'dashed',
+    borderColor: colors.gold,
+    // A wash rather than a fill. Filled in solid it read as a *card* sitting
+    // in the fan, which is the one thing it is not — it is the space the card
+    // in your hand is about to occupy, and it should look like space.
+    backgroundColor: 'rgba(251, 191, 36, 0.14)',
   },
 });

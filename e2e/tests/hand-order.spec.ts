@@ -1,6 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 
-import { dragLocatorTo, handCards } from '../helpers/drag';
+import { dragLocatorTo, dragPointTo, handCards } from '../helpers/drag';
 import { API_BASE } from '../helpers/env';
 
 /**
@@ -74,6 +74,28 @@ async function serverHand(request: Ctx, matchId: string, userId: string): Promis
 
 const card = (page: Page, i: number) => page.locator('[data-testid^="card-hand:"]').nth(i);
 
+/**
+ * Drops a card into the gap on one side of another card.
+ *
+ * A card lands *between* two cards rather than on one, so which half of the
+ * target the pointer is in decides which of its two gaps is meant. Aiming at
+ * the dead centre — which is all `dragLocatorTo` can express — is the one
+ * ambiguous spot, so a test that means "put this first" has to say so by
+ * aiming at the left of the first card, the same way a person would.
+ */
+async function dragToEdge(page: Page, from: Locator, to: Locator, side: 'before' | 'after') {
+  await from.scrollIntoViewIfNeeded();
+  const a = await from.boundingBox();
+  const b = await to.boundingBox();
+  if (!a || !b) throw new Error('drag needs both boxes');
+
+  await dragPointTo(
+    page,
+    { x: a.x + a.width / 2, y: a.y + a.height / 2 },
+    { x: side === 'before' ? b.x + b.width * 0.15 : b.x + b.width * 0.85, y: b.y + b.height / 2 },
+  );
+}
+
 test.describe('arranging your hand', () => {
   test('a card dragged along the hand lands where it was dropped, and takes nothing with it', async ({
     page,
@@ -110,7 +132,7 @@ test.describe('arranging your hand', () => {
     await openMatch(page, host, matchId);
 
     const before = await handCards(page);
-    await dragLocatorTo(page, card(page, 5), card(page, 0));
+    await dragToEdge(page, card(page, 5), card(page, 0), 'before');
 
     const arranged = await handCards(page);
     expect(arranged[0]).toBe(before[5]);
@@ -130,6 +152,52 @@ test.describe('arranging your hand', () => {
     expect(later.filter((c) => arranged.includes(c))).toEqual(
       arranged.filter((c) => later.includes(c)),
     );
+  });
+
+  test('a card can be dropped past the end of the fan, and lands last', async ({
+    page,
+    request,
+  }) => {
+    const { matchId, host } = await tableWithBots(request, 'zolik', 2);
+    await openMatch(page, host, matchId);
+
+    const before = await handCards(page);
+    const last = await card(page, before.length - 1).boundingBox();
+    const first = await card(page, 0).boundingBox();
+    if (!last || !first) throw new Error('no boxes');
+
+    // Past the right-hand edge of the last card. There is one more gap than
+    // there are cards, and this is the extra one — the position that simply
+    // does not exist if a drop is thought of as landing *on* a card, which is
+    // why the end of the fan used to be unreachable.
+    await dragPointTo(
+      page,
+      { x: first.x + first.width / 2, y: first.y + first.height / 2 },
+      { x: last.x + last.width + 16, y: last.y + last.height / 2 },
+    );
+
+    const after = await handCards(page);
+    expect(after[after.length - 1]).toBe(before[0]);
+    expect(after).toEqual([...before.slice(1), before[0]]);
+  });
+
+  test('a card put down where it was picked up stays where it was', async ({ page, request }) => {
+    const { matchId, host } = await tableWithBots(request, 'zolik', 2);
+    await openMatch(page, host, matchId);
+
+    const before = await handCards(page);
+    const box = await card(page, 3).boundingBox();
+    if (!box) throw new Error('no box');
+
+    // Both gaps either side of a card mean "leave it alone", so a small wobble
+    // that never really goes anywhere must not nudge it one place sideways.
+    await dragPointTo(
+      page,
+      { x: box.x + box.width / 2, y: box.y + box.height / 2 },
+      { x: box.x + box.width * 0.75, y: box.y + box.height / 2 },
+    );
+
+    expect(await handCards(page)).toEqual(before);
   });
 
   test('rearranging is not a move: the server never hears about it', async ({ page, request }) => {

@@ -1,7 +1,9 @@
 import {
   arrangeSlots,
   cardsForSelection,
+  insertionAtPoint,
   moveSlot,
+  moveTargetFor,
   pruneSelection,
   slotAtPoint,
   slotsForDrag,
@@ -143,6 +145,56 @@ describe('slotAtPoint', () => {
   it('admits it does not know before anything has been measured', () => {
     expect(slotAtPoint([undefined, undefined], { x: 10, y: 10 })).toBeNull();
     expect(slotAtPoint([], { x: 10, y: 10 })).toBeNull();
+  });
+});
+
+describe('insertionAtPoint', () => {
+  const row = [
+    { x: 0, y: 0, width: 40, height: 60 },
+    { x: 44, y: 0, width: 40, height: 60 },
+    { x: 88, y: 0, width: 40, height: 60 },
+  ];
+
+  it('reads the half of a card the pointer is in', () => {
+    expect(insertionAtPoint(row, { x: 50, y: 30 })).toBe(1); // left half of card 1
+    expect(insertionAtPoint(row, { x: 78, y: 30 })).toBe(2); // right half of card 1
+  });
+
+  it('can name the gap after the last card', () => {
+    // The position that does not exist if you count cards instead of gaps —
+    // and without it the end of the fan cannot be dragged to at all.
+    expect(insertionAtPoint(row, { x: 500, y: 30 })).toBe(3);
+  });
+
+  it('can name the gap before the first card', () => {
+    expect(insertionAtPoint(row, { x: -200, y: 30 })).toBe(0);
+  });
+
+  it('admits it does not know before anything has been measured', () => {
+    expect(insertionAtPoint([], { x: 10, y: 10 })).toBeNull();
+  });
+});
+
+describe('moveTargetFor', () => {
+  it('accounts for the dragged card no longer being in the way', () => {
+    // Cards [a,b,c,d]. Dragging a into the gap between c and d is gap 3, and
+    // once a is lifted out that gap is index 2.
+    expect(moveTargetFor(0, 3)).toBe(2);
+  });
+
+  it('leaves a leftward move alone, since nothing to its left has shifted', () => {
+    expect(moveTargetFor(3, 1)).toBe(1);
+  });
+
+  it('treats both gaps either side of the card as staying put', () => {
+    // Letting go mid-wobble must not nudge the card one place sideways.
+    expect(moveTargetFor(2, 2)).toBe(2);
+    expect(moveTargetFor(2, 3)).toBe(2);
+  });
+
+  it('reaches the far end', () => {
+    // Four cards, dragging the first to the gap past the last: index 3.
+    expect(moveTargetFor(0, 4)).toBe(3);
   });
 });
 

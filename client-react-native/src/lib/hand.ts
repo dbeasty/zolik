@@ -159,6 +159,45 @@ export function slotsForDrag(
   return slots.filter((s) => selected.has(s.id));
 }
 
+/**
+ * Which *gap* between cards a pointer is nearest — 0 to n, not 0 to n-1.
+ *
+ * A card does not land "on" another card, it lands between two of them, and
+ * there is one more gap than there are cards. That extra one matters: without
+ * it there is no way to say "after the last card", so the right-hand end of
+ * the fan is unreachable by dragging.
+ *
+ * Which side of a card a gap is on comes from which half of it the pointer is
+ * in, so aiming just left of a card means "before this one" — the same way
+ * dropping into a list of anything else behaves.
+ */
+export function insertionAtPoint(
+  rects: (Rect | undefined)[],
+  point: { x: number; y: number },
+): number | null {
+  const nearest = slotAtPoint(rects, point);
+  if (nearest === null) return null;
+  const r = rects[nearest];
+  if (!r) return null;
+  return point.x < r.x + r.width / 2 ? nearest : nearest + 1;
+}
+
+/**
+ * The index `moveSlot` needs to land a card in a given gap.
+ *
+ * The two count differently and it is worth being explicit about why: a gap is
+ * a position in the row *as it is now*, while `moveSlot`'s index is where the
+ * card ends up *after it has been lifted out*. Everything to the right of where
+ * it came from has closed up by one by then.
+ *
+ * The two gaps either side of the card being dragged both mean "leave it where
+ * it is", which is what makes letting go mid-wobble a no-op rather than a
+ * one-place nudge.
+ */
+export function moveTargetFor(from: number, insertion: number): number {
+  return insertion > from ? insertion - 1 : insertion;
+}
+
 /** The cards a set of selected slots stands for, in the order they are held. */
 export function cardsForSelection(slots: Slot[], selected: ReadonlySet<string>): string[] {
   return slots.filter((s) => selected.has(s.id)).map((s) => s.card);
