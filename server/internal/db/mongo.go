@@ -70,8 +70,12 @@ func (m *Mongo) EnsureIndexes(ctx context.Context) error {
 	// optimisation: it is what makes recording a finished match idempotent,
 	// so a retried or concurrently-observed completion writes one record
 	// instead of double-counting every participant's lifetime statistics.
+	// Sparse (same treatment as email above): a record from before the
+	// module runtime existed has no matchId at all, only the legacy gameId,
+	// and a plain unique index rejects a second such record as a duplicate
+	// null rather than recognising it has nothing to be unique *about*.
 	if _, err := c.MatchResults.Indexes().CreateMany(ctx, []mongo.IndexModel{
-		{Keys: bson.D{{Key: "matchId", Value: 1}}, Options: options.Index().SetUnique(true)},
+		{Keys: bson.D{{Key: "matchId", Value: 1}}, Options: options.Index().SetSparse(true).SetUnique(true)},
 		{Keys: bson.D{{Key: "subjectKeys", Value: 1}, {Key: "completedAt", Value: -1}}},
 		{Keys: bson.D{{Key: "completedAt", Value: -1}}},
 	}); err != nil {

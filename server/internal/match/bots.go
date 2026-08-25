@@ -35,6 +35,14 @@ const (
 	// botMaxStall is how many consecutive actions one seat may take without
 	// the turn moving on before the loop gives up on it.
 	botMaxStall = 30
+	// botActTimeout bounds how long a module's Bot.Act may take to decide a
+	// single move. Reproduced live: a zolikmod match sat with a bot on turn
+	// and zero bot actions recorded for the rest of the session, with no
+	// error and none of botMaxStall's own stall log — heuristicBot.Act runs
+	// a real combinatorial search (internal/ai's initial-meld planner) with
+	// no way to be cancelled, so a slow or wedged search previously blocked
+	// this seat's turn forever rather than merely stalling it.
+	botActTimeout = 5 * time.Second
 )
 
 // RunBotsIfNeeded starts the bot loop for a match, unless it is already
@@ -106,7 +114,7 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 		if err != nil {
 			return
 		}
-		action, ok := module.BotFor(mod).Act(match.State, actor, offers)
+		action, ok := actWithTimeout(mod, match.State, actor, offers, botActTimeout)
 		if !ok {
 			// The module's own bot had no answer. Fall back to the offer list,
 			// which is the one thing every module is guaranteed to produce.
@@ -135,6 +143,39 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 				return
 			}
 		}
+	}
+}
+
+// actWithTimeout bounds a module's Bot.Act to a wall-clock budget instead of
+// trusting it to return promptly. Act takes no context and offers no
+// cooperative way to cancel it, so a call that blows the budget is treated
+// exactly like "the bot had no answer" — the one outcome every caller here
+// already knows how to recover from via the illegal-move fallback below —
+// rather than left to hang the turn. The call itself is abandoned, not
+// killed: Go cannot force a goroutine to stop, so a bot that truly never
+// returns leaks one goroutine per occurrence instead of wedging the match.
+func actWithTimeout(
+	mod module.GameModule,
+	state module.State,
+	actor string,
+	offers []module.ActionOffer,
+	timeout time.Duration,
+) (module.Action, bool) {
+	type result struct {
+		action module.Action
+		ok     bool
+	}
+	ch := make(chan result, 1)
+	go func() {
+		action, ok := module.BotFor(mod).Act(state, actor, offers)
+		ch <- result{action, ok}
+	}()
+	select {
+	case r := <-ch:
+		return r.action, r.ok
+	case <-time.After(timeout):
+		log.Printf("bot loop: seat=%s Bot.Act exceeded %s, falling back to offer list", actor, timeout)
+		return module.Action{}, false
 	}
 }
 
