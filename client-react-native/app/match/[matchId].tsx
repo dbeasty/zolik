@@ -3,7 +3,7 @@ import { useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { Zone } from '@/src/api/matchTypes';
-import { POSITION_PARAM, submissionFor } from '@/src/api/matchTypes';
+import { POSITION_PARAM, offerGroupKey, submissionFor } from '@/src/api/matchTypes';
 import { HandZone } from '@/src/components/match/HandZone';
 import { OfferBar } from '@/src/components/match/OfferBar';
 import { SeatStrip } from '@/src/components/match/SeatStrip';
@@ -13,7 +13,7 @@ import { useSession } from '@/src/context/SessionContext';
 import { useDropRegistry, type Measurable } from '@/src/hooks/useDropRegistry';
 import { useHandOrder } from '@/src/hooks/useHandOrder';
 import { useMatchSocket } from '@/src/hooks/useMatchSocket';
-import { dropSpotsFor, positionAt } from '@/src/lib/drops';
+import { dropSpotsFor, groupElementId, positionAt, type DropSpot } from '@/src/lib/drops';
 import { cardsForSelection, pruneSelection, slotsForDrag } from '@/src/lib/hand';
 import { reasonText } from '@/src/lib/i18n';
 import { factText, label, playerName } from '@/src/lib/labels';
@@ -81,6 +81,12 @@ export default function MatchScreen() {
   const dragRef = useRef<{ slotIds: string[]; cards: string[] } | null>(null);
   const [drag, setDrag] = useState<{ cards: string[] } | null>(null);
   const [hoveredDrop, setHoveredDrop] = useState<string | null>(null);
+  // A folded control in the offer bar was pressed but the current selection
+  // does not say which of its targets was meant. Rather than guess, the
+  // targets it could still mean light up the same way a drag lights them up,
+  // and a press on one finishes the job a drag would have — see
+  // `onAmbiguous`/`pressDrop` below.
+  const [pendingGroupKey, setPendingGroupKey] = useState<string | null>(null);
 
   if (!state) {
     return (
@@ -95,13 +101,19 @@ export default function MatchScreen() {
   // Selection is by *slot*, not by card string. With two decks in play a hand
   // can hold two identical strings, and selecting by string could neither
   // light up the copy that was tapped nor put both of them in one meld.
-  const toggleSlot = (slotId: string) =>
+  const toggleSlot = (slotId: string) => {
+    // Whatever a folded control's press was waiting on was computed for the
+    // selection as it stood a moment ago; changing it here means starting
+    // that choice over rather than resolving it against a selection that has
+    // since moved on.
+    setPendingGroupKey(null);
     setSelected((prev) => {
       const next = pruneSelection(heldSlots, prev);
       if (next.has(slotId)) next.delete(slotId);
       else next.add(slotId);
       return next;
     });
+  };
 
   const selectedCards = cardsForSelection(heldSlots, selected);
 
@@ -113,7 +125,28 @@ export default function MatchScreen() {
   // and where it lands *is* a drop target.
   const spotsFor = (cards: string[]) => dropSpotsFor(state.legalActions, cards);
   const liveSpots = drag ? spotsFor(drag.cards) : [];
-  const activeDrops = new Set(liveSpots.map((s) => s.elementId));
+
+  // The same lookup, aimed at a folded control's own offers instead of a card
+  // in flight — recomputed from the live offer list on every render rather
+  // than captured at the moment of the press, so a target that stopped being
+  // legal mid-choice simply stops lighting up instead of a stale one staying
+  // pressable.
+  const pendingOffers = pendingGroupKey
+    ? state.legalActions.filter((o) => o.enabled && o.target?.meldId && offerGroupKey(o) === pendingGroupKey)
+    : [];
+  // `dropSpotsFor` answers "where may *these cards* be let go", which is
+  // exactly wrong when nothing is selected — every one of a folded control's
+  // enabled, already-one-tap-ready offers is still a live target then, cards
+  // or no cards, the same as a lone offer of the same shape would be.
+  const pendingSpots: DropSpot[] =
+    selectedCards.length > 0
+      ? dropSpotsFor(pendingOffers, selectedCards)
+      : pendingOffers.flatMap((o) =>
+          o.target?.meldId ? [{ offerId: o.id, elementId: groupElementId(o.target.meldId), ready: true }] : [],
+        );
+
+  const activeDrops = new Set([...liveSpots, ...pendingSpots].map((s) => s.elementId));
+  const pressableDrops = new Set(pendingSpots.map((s) => s.elementId));
 
   const beginDrag = (zoneId: string, index: number) => {
     const carried = slotsForDrag(slotsFor(zoneId), selected, index);
@@ -172,10 +205,39 @@ export default function MatchScreen() {
     return true;
   };
 
+  // The press equivalent of `endDrag`, for a target lit up by `pendingSpots`
+  // rather than by a card in flight. `pageX` stands in for the gesture's own
+  // x — the one thing a tap still supplies that a plain press otherwise
+  // would not — so a target with a choice of two positions reads a press on
+  // its left half the same way it would read a drop there.
+  const pressDrop = (elementId: string, pageX: number) => {
+    const spot = pendingSpots.find((s) => s.elementId === elementId);
+    if (!spot) return;
+    const offer = state.legalActions.find((o) => o.id === spot.offerId);
+    if (!offer) return;
+
+    // An empty selection has to travel as `undefined`, not `[]` — an offer
+    // built with no cards named falls back to its own one-tap default, the
+    // same way a bare press on a lone offer of the same shape already does;
+    // an empty array is a *chosen* zero, and settles on nothing at all.
+    const action = submissionFor(offer, { cards: selectedCards.length ? selectedCards : undefined });
+    if (!action) return;
+
+    const rect = drops.rectFor(elementId);
+    const position = rect ? positionAt(spot.positions, pageX, rect) : spot.positions?.[0];
+    if (position) action.params = { ...(action.params ?? {}), [POSITION_PARAM]: position };
+
+    send(action);
+    setSelected(new Set());
+    setPendingGroupKey(null);
+  };
+
   const dropProps = {
     registerDrop: (id: string, node: Measurable | null) => drops.register(id, node),
     activeDrops,
     hoveredDrop,
+    pressableDrops,
+    onPressDrop: pressDrop,
   };
 
   return (
@@ -253,6 +315,12 @@ export default function MatchScreen() {
           selectedCards={selectedCards}
           onSend={send}
           onConsumeSelection={() => setSelected(new Set())}
+          onAmbiguous={(groupKey) => {
+            setPendingGroupKey(groupKey);
+            // The board is inside a scroll view, so a target's position as of
+            // the last drag is not necessarily where it is now either.
+            drops.measure();
+          }}
         />
         {!canAct && state.status === 'active' ? (
           <Text testID="match-waiting" style={styles.muted}>
@@ -299,6 +367,8 @@ function Section({
   registerDrop?: (id: string, node: Measurable | null) => void;
   activeDrops?: ReadonlySet<string>;
   hoveredDrop?: string | null;
+  pressableDrops?: ReadonlySet<string>;
+  onPressDrop?: (elementId: string, pageX: number) => void;
 }) {
   if (!zones.length) return null;
 
