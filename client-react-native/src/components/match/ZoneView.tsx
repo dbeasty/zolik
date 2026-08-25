@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { Zone } from '@/src/api/matchTypes';
-import { CardView } from '@/src/components/CardView';
+import { CARD_METRICS, CardView } from '@/src/components/CardView';
 import type { Measurable } from '@/src/hooks/useDropRegistry';
 import { groupElementId, zoneElementId } from '@/src/lib/drops';
 import { label } from '@/src/lib/labels';
@@ -124,7 +124,7 @@ export function ZoneView({
         )}
       </View>
 
-      {zone.kind === 'stack' ? <StackBack count={zone.count} /> : null}
+      {zone.kind === 'stack' ? <StackBack count={zone.count} compact={compact} /> : null}
 
       {/* Groups first: a spread's cards belong to its groups, and rendering
           both would show every card twice. */}
@@ -230,15 +230,29 @@ export function ZoneView({
   );
 }
 
-/** A face-down pile: the count is the only thing that matters about it. */
-function StackBack({ count }: { count: number }) {
+/**
+ * A face-down pile: the count is the only thing that matters about it.
+ *
+ * Sized to match the ring-wrapped card it sits beside exactly — the discard
+ * pile beside it shows a real CardView, ring and all, and a guessed box here
+ * drifted out of sync with that the moment either one's metrics changed.
+ */
+function StackBack({ count, compact }: { count: number; compact?: boolean }) {
   if (count <= 0) return <Text style={styles.hidden}>empty</Text>;
   return (
-    <View style={styles.back}>
+    <View style={[styles.back, compact ? styles.backCompact : styles.backFull]}>
       <Text style={styles.backText}>{count}</Text>
     </View>
   );
 }
+
+const ringBorderAndPadding = 2 * (CARD_METRICS.ringPadding + CARD_METRICS.ringBorder);
+// A standalone card's ring is sized to its content, which includes the
+// card's own trailing gap (there for spacing in a fanned hand) even when
+// nothing follows it — so matching the ring's true rendered width means
+// counting that gap too, not just the ring's own border and padding.
+const ringOuterWidth = ringBorderAndPadding + CARD_METRICS.gap;
+const ringOuterHeight = ringBorderAndPadding;
 
 const styles = StyleSheet.create({
   zone: {
@@ -292,14 +306,20 @@ const styles = StyleSheet.create({
   dropHere: { color: colors.gold, fontSize: 11, marginTop: 6, fontStyle: 'italic' },
   back: {
     marginTop: 6,
-    width: 44,
-    height: 62,
     borderRadius: 6,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.accentDim,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  backCompact: {
+    width: CARD_METRICS.compactWidth + ringOuterWidth,
+    height: CARD_METRICS.compactHeight + ringOuterHeight,
+  },
+  backFull: {
+    width: CARD_METRICS.width + ringOuterWidth,
+    height: CARD_METRICS.height + ringOuterHeight,
   },
   backText: { color: colors.text, fontWeight: '700' },
 });
