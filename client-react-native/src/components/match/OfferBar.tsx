@@ -72,7 +72,12 @@ export function OfferBar({ offers, selectedCards, onSend, onConsumeSelection }: 
               onPress={() => send(offer)}
               style={[styles.button, (!offer.enabled || !ready) && styles.disabled]}
             >
-              <Text style={styles.buttonText}>{label(`verb.${offer.verb}`) || offer.verb}</Text>
+              {/* The offer's own label if it has one, because a verb cannot
+                  always tell two controls apart; otherwise the verb, which
+                  covers most offers. */}
+              <Text style={styles.buttonText}>
+                {label(offer.labelKey ?? `verb.${offer.verb}`) || offer.verb}
+              </Text>
               {/* What the move costs, pushed by the server rather than worked
                   out here — "Call 40" is a button whose meaning is its number. */}
               {(offer.facts ?? []).map((f, i) => (

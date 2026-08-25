@@ -212,6 +212,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	for _, o := range src {
 		out = append(out, module.ActionOffer{
 			ID: o.ID, Verb: string(o.Verb), Enabled: o.Enabled, WhyNot: string(o.WhyNot),
+			LabelKey: o.LabelKey, Facts: toFacts(o.Facts),
 			Source: toSelector(o.Source, playerID), Target: toSelector(o.Target, playerID),
 			// Laying a meld is the one thing here a person has to compose. The
 			// offer lists which cards are eligible but not which *combination*
@@ -235,6 +236,19 @@ const (
 
 func handZoneID(playerID string) string  { return "hand:" + playerID }
 func meldsZoneID(playerID string) string { return "melds:" + playerID }
+
+// toFacts carries the engine's control captions across unchanged — they are
+// keys and values, so there is nothing to translate.
+func toFacts(in []rules.OfferFact) []module.Fact {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make([]module.Fact, 0, len(in))
+	for _, f := range in {
+		out = append(out, module.Fact{LabelKey: f.LabelKey, Value: f.Value})
+	}
+	return out
+}
 
 func toSelector(s *rules.Selector, playerID string) *module.Selector {
 	if s == nil {

@@ -79,6 +79,13 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 			continue // the engine disagrees; it is the authority, not this list
 		}
 		o := module.ActionOffer{ID: pileOfferID(opt), Verb: VerbTakePile, Enabled: ok, WhyNot: why}
+		// Several captures can be legal at once and they are different moves;
+		// labelled only by the verb they would be a row of identical buttons.
+		if opt.MeldID != "" {
+			o.LabelKey = "verb.takePileOntoMeld"
+		} else {
+			o.LabelKey = "verb.takePileFromHand"
+		}
 		if opt.MeldID != "" {
 			o.Source = &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID}
 			o.Target = &module.Selector{Zone: module.ToMeld, MeldID: opt.MeldID, ZoneID: meldsZoneID(t.ID)}
@@ -113,6 +120,9 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		}
 		offers = append(offers, module.ActionOffer{
 			ID: OfferLayMeld + ":" + c.Rank, Verb: VerbLayMeld, Enabled: true,
+			// One of these per meldable rank, so the rank is what tells them
+			// apart on screen.
+			Facts: []module.Fact{{LabelKey: "canasta.offer.rank", Value: c.Rank}},
 			Source: &module.Selector{
 				Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID),
 				Cards: c.Cards, MinCards: len(c.Cards), MaxCards: len(c.Cards),
@@ -127,6 +137,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		if ok, _ := probe(m, raw, playerID, module.Action{Verb: VerbLayMeld, Cards: bt}); ok {
 			offers = append(offers, module.ActionOffer{
 				ID: OfferLayMeld + ":" + rankThree, Verb: VerbLayMeld, Enabled: true,
+				Facts: []module.Fact{{LabelKey: "canasta.offer.rank", Value: rankThree}},
 				Source: &module.Selector{
 					Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID),
 					Cards: bt, MinCards: len(bt), MaxCards: len(bt),
@@ -156,7 +167,12 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	for i := range t.Melds {
 		mm := t.Melds[i]
 		eligible := layOffCards(hand, &mm)
-		o := module.ActionOffer{ID: "lay_off:" + mm.ID, Verb: VerbLayOff}
+		// One per meld the partnership has down, told apart by the rank each
+		// one is built on.
+		o := module.ActionOffer{
+			ID: "lay_off:" + mm.ID, Verb: VerbLayOff,
+			Facts: []module.Fact{{LabelKey: "canasta.offer.rank", Value: mm.Rank}},
+		}
 		var probeCards []string
 		if len(eligible) > 0 {
 			probeCards = eligible[:1]

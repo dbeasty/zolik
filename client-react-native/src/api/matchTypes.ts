@@ -130,6 +130,15 @@ export type ActionOffer = {
   verb: string;
   enabled: boolean;
   whyNot?: string;
+  /**
+   * Names this control when the verb cannot.
+   *
+   * A control is labelled from its verb, which works until a module offers two
+   * of the same verb at once — Žolíky draws from the deck and from the discard
+   * pile, both "draw" — and then a player is looking at two buttons that say
+   * the same word and do different things. A key, never a sentence.
+   */
+  labelKey?: string;
   source?: Selector;
   target?: Selector;
   params?: ParamSpec[];

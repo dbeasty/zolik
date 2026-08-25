@@ -157,6 +157,92 @@ func TestEveryModuleHidesOtherPlayersCards(t *testing.T) {
 	}
 }
 
+// TestOffersOnScreenTogetherCanBeToldApart — two live controls that read the
+// same and do different things.
+//
+// A client labels a control from its verb, which is fine until a module offers
+// the same verb twice at once: Žolíky draws from the deck and from the discard
+// pile, Canasta offers a meld per rank and a capture per way of capturing. The
+// player sees a row of identical buttons and has to guess. Nothing else catches
+// it — every offer is individually correct, and the collision only exists on
+// screen.
+//
+// An offer may distinguish itself by its LabelKey or by the Facts printed on
+// it; what it may not do is be identical to another one that is live at the
+// same moment.
+func TestOffersOnScreenTogetherCanBeToldApart(t *testing.T) {
+	for _, g := range allModules() {
+		t.Run(g.name, func(t *testing.T) {
+			state, err := g.mod.NewMatch(g.cfg, g.players, 5)
+			if err != nil {
+				t.Fatalf("NewMatch: %v", err)
+			}
+
+			// Over several turns, because most collisions need a position a
+			// deal has to be played into — a partnership has to have melded
+			// before there are two lay-offs to confuse.
+			for turn := 0; turn < 12; turn++ {
+				for _, viewer := range g.players {
+					offers, err := g.mod.LegalActions(state, viewer.ID)
+					if err != nil {
+						t.Fatalf("LegalActions: %v", err)
+					}
+					seen := map[string]string{}
+					for _, o := range offers {
+						// Disabled ones count too. They stay on screen with
+						// their reason — that is the whole point of sending
+						// them — so four greyed-out buttons all reading "Undo"
+						// are just as much a guess as four live ones.
+						caption := o.LabelKey
+						if caption == "" {
+							caption = o.Verb
+						}
+						for _, f := range o.Facts {
+							caption += "|" + f.LabelKey + "=" + f.Value
+						}
+						if first, clash := seen[caption]; clash {
+							t.Errorf("offers %q and %q both read %q for %s — a player sees two identical controls",
+								first, o.ID, caption, viewer.ID)
+						}
+						seen[caption] = o.ID
+					}
+				}
+
+				next, done, err := stepAnyPlayer(g.mod, state, g.players)
+				if err != nil || done {
+					break
+				}
+				state = next
+			}
+		})
+	}
+}
+
+// stepAnyPlayer plays one move for whoever has one, so a test can walk a deal
+// forward without knowing whose turn it is or what the move means.
+func stepAnyPlayer(m module.GameModule, state module.State, players []module.PlayerRef) (module.State, bool, error) {
+	for _, p := range players {
+		offers, err := m.LegalActions(state, p.ID)
+		if err != nil {
+			return state, false, err
+		}
+		action, ok := module.ChooseAction(offers, nil)
+		if !ok {
+			continue
+		}
+		next, _, err := m.Apply(state, p.ID, action)
+		if err != nil {
+			return state, false, err
+		}
+		over, _, err := m.Finished(next)
+		if err != nil {
+			return state, false, err
+		}
+		return next, over, nil
+	}
+	return state, true, nil
+}
+
 // TestEveryOfferLandsSomewhereThatIsDrawn — an offer that names a zone id no
 // zone has is a place to drop a card that a player can never hit.
 //

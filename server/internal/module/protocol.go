@@ -353,6 +353,18 @@ type ActionOffer struct {
 	// WhyNot is a stable error code, never a sentence.
 	WhyNot string `json:"whyNot,omitempty"`
 
+	// LabelKey names this control when the verb cannot.
+	//
+	// A client labels a control from its verb, which works right up until a
+	// module offers two of the same verb at once — and then a player is looking
+	// at two buttons that say the same word and do different things. Žolíky
+	// draws from the deck and from the discard pile, both "draw"; Canasta offers
+	// a meld per rank and a capture per way of capturing.
+	//
+	// A key, never a sentence, like every other label in this protocol. Empty
+	// means "the verb says it well enough", which is true of most offers.
+	LabelKey string `json:"labelKey,omitempty"`
+
 	Source *Selector   `json:"source,omitempty"`
 	Target *Selector   `json:"target,omitempty"`
 	Params []ParamSpec `json:"params,omitempty"`
