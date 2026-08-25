@@ -295,3 +295,16 @@ export function offerMatchesSelection(offer: ActionOffer, selected: string[]): b
   if (selected.length === 0) return isOneTap(offer);
   return (offer.source?.cards ?? []).some((c) => selected.includes(c));
 }
+
+/**
+ * Which of `selected` this offer would actually take. An offer that
+ * enumerates its cards (Canasta's melds) only takes those; a composite offer
+ * with no list bounds a shape rather than a combination — a Žolíky meld, any
+ * card in hand may go into it. Mirrors `dropSpotsFor` in `drops.ts`, which
+ * matches the same offers against a drag rather than a tap-selection.
+ */
+export function eligibleCards(offer: ActionOffer, selected: string[]): string[] {
+  const allowed = offer.source?.cards;
+  if (allowed && allowed.length > 0) return selected.filter((c) => allowed.includes(c));
+  return selected;
+}
