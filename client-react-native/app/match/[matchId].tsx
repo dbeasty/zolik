@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { Zone } from '@/src/api/matchTypes';
 import { POSITION_PARAM, offerGroupKey, submissionFor } from '@/src/api/matchTypes';
@@ -87,6 +87,10 @@ export default function MatchScreen() {
   // and a press on one finishes the job a drag would have — see
   // `onAmbiguous`/`pressDrop` below.
   const [pendingGroupKey, setPendingGroupKey] = useState<string | null>(null);
+  // Whether a tap on the status dot has opened its explanation — declared
+  // before the `!state` early return below so hook order stays fixed
+  // whether or not the socket has delivered a state yet.
+  const [statusExplainerOpen, setStatusExplainerOpen] = useState(false);
 
   if (!state) {
     return (
@@ -240,6 +244,18 @@ export default function MatchScreen() {
     onPressDrop: pressDrop,
   };
 
+  // What the status dot means, in the same words the line it replaced used
+  // to say. Red is the one case a player needs to notice — everything else
+  // (active, completed) is green, since "simple red or green" was the ask,
+  // not a status per state value.
+  const statusOk = state.status !== 'suspended';
+  const statusExplainer =
+    state.status === 'suspended'
+      ? `Paused — waiting for ${playerName(state.players, state.suspendedPlayer ?? '')} to reconnect.`
+      : state.status === 'completed'
+        ? 'This match has finished.'
+        : 'Match in progress — everything is connected and moving normally.';
+
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.body} testID="match-screen">
@@ -260,16 +276,30 @@ export default function MatchScreen() {
                 {factText(f)}
               </Text>
             ))}
+            {/* A dot, not a line of text that appears and disappears — the
+                match status used to show up as a "Paused — waiting for X"
+                line that only existed while suspended, which shoved
+                everything below it down and back up again as that toggled.
+                This is always mounted, so nothing below it ever jumps; the
+                colour is the at-a-glance signal, and a tap gets the same
+                explanation the old line gave, on demand instead of by
+                surprise. */}
+            <Pressable
+              testID="match-status-dot"
+              onPress={() => setStatusExplainerOpen((v) => !v)}
+              hitSlop={8}
+            >
+              <View style={[styles.statusDot, statusOk ? styles.statusDotOk : styles.statusDotBad]} />
+            </Pressable>
           </View>
+        ) : null}
+        {statusExplainerOpen ? (
+          <Text testID="match-status-explainer" style={styles.statusExplainer}>
+            {statusExplainer}
+          </Text>
         ) : null}
 
         <SeatStrip seats={view.seats ?? []} players={state.players} viewerId={viewerId} />
-
-        {state.status === 'suspended' ? (
-          <Text testID="match-suspended" style={styles.warn}>
-            Paused — waiting for {playerName(state.players, state.suspendedPlayer ?? '')}
-          </Text>
-        ) : null}
 
         {(view.prompts ?? []).map((f, i) => (
           <Text key={`prompt-${i}`} testID={`prompt-${i}`} style={styles.prompt}>
@@ -277,56 +307,74 @@ export default function MatchScreen() {
           </Text>
         ))}
 
-        <Section title="Table" zones={shared} {...dropProps} />
-        <Section title="Opponents" zones={others} compact {...dropProps} />
-
-        <View style={styles.mine}>
-          {mine.map((z) =>
-            z.kind === 'hand' ? (
-              <HandZone
-                key={z.id}
-                zone={z}
-                slots={slotsFor(z.id)}
-                selected={selected}
-                onToggle={toggleSlot}
-                onMove={(from, to) => move(z.id, from, to)}
-                onDragStart={(index) => beginDrag(z.id, index)}
-                onDragMove={moveDrag}
-                onDragEnd={endDrag}
-                externalTarget={hoveredDrop}
-              />
-            ) : (
-              <ZoneView key={z.id} zone={z} {...dropProps} />
-            ),
-          )}
+        {/* Buttons sit beside the piles rather than below them, sharing that
+            band of the screen instead of costing it a full-width row of
+            their own — OfferBar already scrolls horizontally, so a narrow
+            column here just means an earlier scroll, never a clipped or
+            wrapped button. */}
+        <View style={styles.tableRow}>
+          <Section title="Table" zones={shared} {...dropProps} />
+          <View style={styles.offerBarWrap}>
+            {error ? (
+              <Text testID="match-error" style={styles.error} onPress={clearError}>
+                {reasonText(error.code, error.code)}
+              </Text>
+            ) : null}
+            {/* Disabled offers stay on screen with their reason. An offer
+                that vanished when it became illegal would be
+                indistinguishable from a bug, which is why the server sends
+                the whole set every time. */}
+            <OfferBar
+              offers={state.legalActions}
+              selectedCards={selectedCards}
+              onSend={send}
+              onConsumeSelection={() => setSelected(new Set())}
+              onAmbiguous={(groupKey) => {
+                setPendingGroupKey(groupKey);
+                // The board is inside a scroll view, so a target's position
+                // as of the last drag is not necessarily where it is now
+                // either.
+                drops.measure();
+              }}
+            />
+            {!canAct && state.status === 'active' ? (
+              <Text testID="match-waiting" style={styles.muted}>
+                Waiting for another player…
+              </Text>
+            ) : null}
+          </View>
         </View>
 
-        {error ? (
-          <Text testID="match-error" style={styles.error} onPress={clearError}>
-            {reasonText(error.code, error.code)}
-          </Text>
-        ) : null}
+        {/* Your hand first — it's what your thumb is on every turn — with
+            everyone's melds (yours and the opponents') below it rather than
+            above, so reaching your cards never means scrolling past a wall
+            of board state first. */}
+        <View style={styles.mine}>
+          {myHands.map((z) => (
+            <HandZone
+              key={z.id}
+              zone={z}
+              slots={slotsFor(z.id)}
+              selected={selected}
+              onToggle={toggleSlot}
+              onMove={(from, to) => move(z.id, from, to)}
+              onDragStart={(index) => beginDrag(z.id, index)}
+              onDragMove={moveDrag}
+              onDragEnd={endDrag}
+              externalTarget={hoveredDrop}
+            />
+          ))}
+        </View>
 
-        {/* Disabled offers stay on screen with their reason. An offer that
-            vanished when it became illegal would be indistinguishable from a
-            bug, which is why the server sends the whole set every time. */}
-        <OfferBar
-          offers={state.legalActions}
-          selectedCards={selectedCards}
-          onSend={send}
-          onConsumeSelection={() => setSelected(new Set())}
-          onAmbiguous={(groupKey) => {
-            setPendingGroupKey(groupKey);
-            // The board is inside a scroll view, so a target's position as of
-            // the last drag is not necessarily where it is now either.
-            drops.measure();
-          }}
-        />
-        {!canAct && state.status === 'active' ? (
-          <Text testID="match-waiting" style={styles.muted}>
-            Waiting for another player…
-          </Text>
-        ) : null}
+        <View style={styles.mine}>
+          {mine
+            .filter((z) => z.kind !== 'hand')
+            .map((z) => (
+              <ZoneView key={z.id} zone={z} {...dropProps} />
+            ))}
+        </View>
+
+        <Section title="Opponents" zones={others} compact {...dropProps} />
 
         {(state.standings ?? []).length > 0 ? (
           <View style={styles.standings} testID="match-standings">
@@ -403,9 +451,18 @@ const styles = StyleSheet.create({
   module: { color: colors.text, fontWeight: '700', fontSize: 16 },
   status: { color: colors.muted, fontSize: 12 },
   facts: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 2 },
+  tableRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  // minWidth: 0 lets OfferBar's horizontal ScrollView actually shrink to
+  // whatever room is left beside the piles instead of overflowing its row —
+  // a flex child's default min-width is its content width, which for a
+  // scrollable row of buttons is unbounded.
+  offerBarWrap: { flex: 1, minWidth: 0, marginTop: 18 },
   fact: { color: colors.muted, fontSize: 12 },
+  statusDot: { width: 10, height: 10, borderRadius: 5, marginTop: 1 },
+  statusDotOk: { backgroundColor: colors.success },
+  statusDotBad: { backgroundColor: colors.danger },
+  statusExplainer: { color: colors.muted, fontSize: 12, marginTop: 4 },
   prompt: { color: colors.gold, fontSize: 13, marginTop: 6 },
-  warn: { color: colors.danger, fontSize: 13, marginTop: 6 },
   section: { marginTop: 10 },
   beside: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 8, marginBottom: 8 },
   sectionTitle: { color: colors.muted, fontSize: 11, fontWeight: '700', marginBottom: 4 },
