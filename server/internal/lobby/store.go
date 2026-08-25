@@ -62,7 +62,29 @@ type Entry struct {
 	lastSeen time.Time
 }
 
-// Store tracks who is currently waiting.
+// Store tracks who is currently waiting. The Redis-backed implementation is
+// the only one today; the interface exists for the same reason every other
+// repository in this codebase has one — so a consumer never has to know
+// which backend is behind it.
+type Store interface {
+	// Join registers a player as waiting, replacing any prior entry for them.
+	Join(ctx context.Context, e Entry)
+	// Heartbeat refreshes a waiting player's staleness clock.
+	Heartbeat(ctx context.Context, playerID string)
+	// Leave removes a player from the waiting pool.
+	Leave(ctx context.Context, playerID string)
+	// Pickup removes a player exactly as Leave does, but reports whether they
+	// were actually present.
+	Pickup(ctx context.Context, playerID string) bool
+	// IsWaiting reports whether a player is currently in the pool, and if
+	// so, the display details a game seat is built from.
+	IsWaiting(ctx context.Context, playerID string) (name string, isGuest bool, ok bool)
+	// List returns everyone currently waiting, oldest first.
+	List(ctx context.Context) []Entry
+	Close() error
+}
+
+// redisStore is the only implementation of Store.
 //
 // Every instance keeps its own connections' entries locally (authoritative
 // for who *this* instance can reach directly). When Redis is configured,
@@ -71,7 +93,7 @@ type Entry struct {
 // for broadcast, applied to presence. Without Redis (local dev, the
 // documented "local-only" mode), List simply reports what this instance
 // knows, which is everyone, since there is only one instance.
-type Store struct {
+type redisStore struct {
 	mu    sync.RWMutex
 	local map[string]Entry // playerID -> entry, this instance's connections
 
@@ -81,8 +103,8 @@ type Store struct {
 // NewStore builds a Store. redisURL empty means local-only, matching
 // game.NewHub's own fallback — this package never requires more
 // infrastructure than the game hub it rides on.
-func NewStore(redisURL string) (*Store, error) {
-	s := &Store{local: map[string]Entry{}}
+func NewStore(redisURL string) (Store, error) {
+	s := &redisStore{local: map[string]Entry{}}
 	if redisURL == "" {
 		return s, nil
 	}
@@ -97,7 +119,9 @@ func NewStore(redisURL string) (*Store, error) {
 	return s, nil
 }
 
-func (s *Store) Close() error {
+var _ Store = (*redisStore)(nil)
+
+func (s *redisStore) Close() error {
 	if s.redis != nil {
 		return s.redis.Close()
 	}
@@ -115,7 +139,7 @@ type redisRecord struct {
 
 // Join registers a player as waiting, replacing any prior entry for them
 // (a reconnect resets JoinedAt rather than resuming the old one).
-func (s *Store) Join(ctx context.Context, e Entry) {
+func (s *redisStore) Join(ctx context.Context, e Entry) {
 	e.JoinedAt = time.Now().UTC()
 	e.lastSeen = e.JoinedAt
 
@@ -129,7 +153,7 @@ func (s *Store) Join(ctx context.Context, e Entry) {
 // Heartbeat refreshes a waiting player's staleness clock. A no-op if they
 // are not currently registered locally (they disconnected on this instance
 // already, and heartbeat loses the race — Leave is what actually matters).
-func (s *Store) Heartbeat(ctx context.Context, playerID string) {
+func (s *redisStore) Heartbeat(ctx context.Context, playerID string) {
 	s.mu.Lock()
 	e, ok := s.local[playerID]
 	if ok {
@@ -143,7 +167,7 @@ func (s *Store) Heartbeat(ctx context.Context, playerID string) {
 }
 
 // Leave removes a player from the waiting pool.
-func (s *Store) Leave(ctx context.Context, playerID string) {
+func (s *redisStore) Leave(ctx context.Context, playerID string) {
 	s.mu.Lock()
 	delete(s.local, playerID)
 	s.mu.Unlock()
@@ -159,7 +183,7 @@ func (s *Store) Leave(ctx context.Context, playerID string) {
 // were actually present — the distinction an invite needs, since inviting
 // someone who has already left (or was never here) must fail rather than
 // silently seat a name nobody chose.
-func (s *Store) Pickup(ctx context.Context, playerID string) bool {
+func (s *redisStore) Pickup(ctx context.Context, playerID string) bool {
 	s.mu.Lock()
 	_, wasLocal := s.local[playerID]
 	delete(s.local, playerID)
@@ -181,7 +205,7 @@ func (s *Store) Pickup(ctx context.Context, playerID string) bool {
 
 // IsWaiting reports whether a player is currently in the pool, and if so,
 // the display details a game seat is built from.
-func (s *Store) IsWaiting(ctx context.Context, playerID string) (name string, isGuest bool, ok bool) {
+func (s *redisStore) IsWaiting(ctx context.Context, playerID string) (name string, isGuest bool, ok bool) {
 	// When Redis is configured it is the cross-instance source of truth, and
 	// it must be consulted rather than this instance's own local map:
 	// Pickup or Leave called against a *different* instance (the common case
@@ -202,7 +226,7 @@ func (s *Store) IsWaiting(ctx context.Context, playerID string) (name string, is
 	return e.Username, e.IsGuest, true
 }
 
-func (s *Store) isWaitingRedis(ctx context.Context, playerID string) (name string, isGuest bool, ok bool) {
+func (s *redisStore) isWaitingRedis(ctx context.Context, playerID string) (name string, isGuest bool, ok bool) {
 	raw, err := s.redis.HGet(ctx, redisKey, playerID).Result()
 	if err != nil {
 		return "", false, false
@@ -219,7 +243,7 @@ func (s *Store) isWaitingRedis(ctx context.Context, playerID string) (name strin
 
 // List returns everyone currently waiting, oldest first — the order a
 // "who's been here longest" queue reads naturally in.
-func (s *Store) List(ctx context.Context) []Entry {
+func (s *redisStore) List(ctx context.Context) []Entry {
 	if s.redis == nil {
 		return s.localSnapshot()
 	}
@@ -248,7 +272,7 @@ func (s *Store) List(ctx context.Context) []Entry {
 	return out
 }
 
-func (s *Store) localSnapshot() []Entry {
+func (s *redisStore) localSnapshot() []Entry {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	out := make([]Entry, 0, len(s.local))
@@ -263,7 +287,7 @@ func sortByJoinedAt(entries []Entry) {
 	sort.Slice(entries, func(i, j int) bool { return entries[i].JoinedAt.Before(entries[j].JoinedAt) })
 }
 
-func (s *Store) mirror(ctx context.Context, e Entry) {
+func (s *redisStore) mirror(ctx context.Context, e Entry) {
 	if s.redis == nil {
 		return
 	}

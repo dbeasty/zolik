@@ -23,15 +23,33 @@ import (
 // ErrVersionConflict is returned when someone else wrote first.
 var ErrVersionConflict = fmt.Errorf("version conflict")
 
-type Repository struct {
+// Repository is the persistence behind matches. The Mongo-backed
+// implementation is the only one today; the interface exists so a future
+// backend can be swapped in behind it without touching any consumer.
+type Repository interface {
+	Insert(ctx context.Context, m models.Match) (models.Match, error)
+	FindByID(ctx context.Context, id bson.ObjectID) (models.Match, error)
+	FindByJoinCode(ctx context.Context, code string) (models.Match, error)
+	// Resolve accepts either an object id or a join code, so a URL can carry
+	// whichever the player has.
+	Resolve(ctx context.Context, idOrCode string) (models.Match, error)
+	// UpdateWithVersion replaces the document only if its version is
+	// unchanged. A whole match is one document, so load → apply → store is
+	// safe without transactions as long as a concurrent writer loses.
+	UpdateWithVersion(ctx context.Context, id bson.ObjectID, expected int64, next models.Match) error
+}
+
+type mongoRepository struct {
 	coll *mongo.Collection
 }
 
-func NewRepository(m *db.Mongo) *Repository {
-	return &Repository{coll: m.Collections().Matches}
+func NewRepository(m *db.Mongo) Repository {
+	return &mongoRepository{coll: m.Collections().Matches}
 }
 
-func (r *Repository) Insert(ctx context.Context, m models.Match) (models.Match, error) {
+var _ Repository = (*mongoRepository)(nil)
+
+func (r *mongoRepository) Insert(ctx context.Context, m models.Match) (models.Match, error) {
 	if m.CreatedAt.IsZero() {
 		m.CreatedAt = time.Now().UTC()
 	}
@@ -46,7 +64,7 @@ func (r *Repository) Insert(ctx context.Context, m models.Match) (models.Match, 
 	return m, nil
 }
 
-func (r *Repository) FindByID(ctx context.Context, id bson.ObjectID) (models.Match, error) {
+func (r *mongoRepository) FindByID(ctx context.Context, id bson.ObjectID) (models.Match, error) {
 	var m models.Match
 	if err := r.coll.FindOne(ctx, bson.M{"_id": id}).Decode(&m); err != nil {
 		return models.Match{}, err
@@ -54,7 +72,7 @@ func (r *Repository) FindByID(ctx context.Context, id bson.ObjectID) (models.Mat
 	return m, nil
 }
 
-func (r *Repository) FindByJoinCode(ctx context.Context, code string) (models.Match, error) {
+func (r *mongoRepository) FindByJoinCode(ctx context.Context, code string) (models.Match, error) {
 	var m models.Match
 	if err := r.coll.FindOne(ctx, bson.M{"joinCode": code}).Decode(&m); err != nil {
 		return models.Match{}, err
@@ -64,19 +82,14 @@ func (r *Repository) FindByJoinCode(ctx context.Context, code string) (models.Ma
 
 // Resolve accepts either an object id or a join code, so a URL can carry
 // whichever the player has.
-func (r *Repository) Resolve(ctx context.Context, idOrCode string) (models.Match, error) {
+func (r *mongoRepository) Resolve(ctx context.Context, idOrCode string) (models.Match, error) {
 	if oid, err := bson.ObjectIDFromHex(idOrCode); err == nil {
 		return r.FindByID(ctx, oid)
 	}
 	return r.FindByJoinCode(ctx, idOrCode)
 }
 
-// UpdateWithVersion replaces the document only if its version is unchanged.
-//
-// The same optimistic-concurrency scheme internal/game uses, and for the same
-// reason: a whole match is one document, so load → apply → store is safe
-// without transactions as long as a concurrent writer loses.
-func (r *Repository) UpdateWithVersion(ctx context.Context, id bson.ObjectID, expected int64, next models.Match) error {
+func (r *mongoRepository) UpdateWithVersion(ctx context.Context, id bson.ObjectID, expected int64, next models.Match) error {
 	next.Version = expected + 1
 	res, err := r.coll.ReplaceOne(ctx,
 		bson.M{"_id": id, "version": expected}, next,

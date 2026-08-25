@@ -18,17 +18,17 @@ import (
 //
 // An interface rather than a concrete dependency so this package keeps knowing
 // nothing about how identities are proven — it renders the list, it does not
-// interpret it. Satisfied by *auth.Store.
+// interpret it. Satisfied by auth.Store.
 type IdentityLister interface {
 	ListIdentities(ctx context.Context, userID string) ([]models.Identity, error)
 }
 
 type Handlers struct {
-	repo       *Repository
+	repo       Repository
 	identities IdentityLister
 }
 
-func NewHandlers(repo *Repository, identities IdentityLister) *Handlers {
+func NewHandlers(repo Repository, identities IdentityLister) *Handlers {
 	return &Handlers{repo: repo, identities: identities}
 }
 

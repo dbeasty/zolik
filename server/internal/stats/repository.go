@@ -22,20 +22,57 @@ var ErrAlreadyRecorded = errors.New("match already recorded")
 // ErrNotFound is returned when a match or lifetime record does not exist.
 var ErrNotFound = errors.New("not found")
 
-type Repository struct {
+// Repository is the persistence behind match records and lifetime player
+// stats. The Mongo-backed implementation is the only one today; the
+// interface exists so a future backend can be swapped in behind it without
+// touching any consumer.
+type Repository interface {
+	// InsertMatch writes the permanent match record, returning
+	// ErrAlreadyRecorded if one already exists for this match. The caller
+	// must treat that as a signal to skip aggregation, since the aggregates
+	// for this match are already in.
+	InsertMatch(ctx context.Context, m MatchResult) (MatchResult, error)
+	FindMatchByMatchID(ctx context.Context, matchID bson.ObjectID) (MatchResult, error)
+	// ListMatchesForSubject pages a subject's match history, newest first.
+	// before is the completedAt of the last row of the previous page; a zero
+	// value starts at the top.
+	ListMatchesForSubject(ctx context.Context, key string, before time.Time, limit int) ([]MatchResult, error)
+	// EachMatchForSubject walks every match a subject played, oldest first,
+	// calling fn once per record. A callback that returns an error stops the
+	// walk and surfaces it.
+	EachMatchForSubject(ctx context.Context, key string, fn func(MatchResult) error) error
+	// CountMatchesForSubject counts a subject's finished matches.
+	CountMatchesForSubject(ctx context.Context, key string) (int, error)
+	// ReplaceMatchAttribution rewrites only the two fields that say *who*
+	// played a match, leaving the rest of the immutable record untouched —
+	// the single sanctioned exception to the record being append-only, used
+	// when a guest claims an account.
+	ReplaceMatchAttribution(ctx context.Context, m MatchResult) error
+	// FindPlayerStats returns a subject's lifetime record, or ErrNotFound
+	// when the subject has not finished a match yet.
+	FindPlayerStats(ctx context.Context, key string) (PlayerStats, error)
+	// FindManyPlayerStats fetches several lifetime records at once, keyed by
+	// subject key. Missing subjects are simply absent from the map.
+	FindManyPlayerStats(ctx context.Context, keys []string) (map[string]PlayerStats, error)
+	// UpsertPlayerStats writes a subject's lifetime record, creating it on
+	// first use.
+	UpsertPlayerStats(ctx context.Context, ps PlayerStats) error
+	Leaderboard(ctx context.Context, q LeaderboardQuery) ([]LeaderboardRow, error)
+}
+
+type mongoRepository struct {
 	matches *mongo.Collection
 	players *mongo.Collection
 }
 
-func NewRepository(m *db.Mongo) *Repository {
+func NewRepository(m *db.Mongo) Repository {
 	c := m.Collections()
-	return &Repository{matches: c.MatchResults, players: c.PlayerStats}
+	return &mongoRepository{matches: c.MatchResults, players: c.PlayerStats}
 }
 
-// InsertMatch writes the permanent match record, returning ErrAlreadyRecorded
-// if one already exists for this match. The caller must treat that as a signal
-// to skip aggregation, since the aggregates for this match are already in.
-func (r *Repository) InsertMatch(ctx context.Context, m MatchResult) (MatchResult, error) {
+var _ Repository = (*mongoRepository)(nil)
+
+func (r *mongoRepository) InsertMatch(ctx context.Context, m MatchResult) (MatchResult, error) {
 	if m.ID.IsZero() {
 		m.ID = bson.NewObjectID()
 	}
@@ -48,7 +85,7 @@ func (r *Repository) InsertMatch(ctx context.Context, m MatchResult) (MatchResul
 	return m, nil
 }
 
-func (r *Repository) FindMatchByMatchID(ctx context.Context, matchID bson.ObjectID) (MatchResult, error) {
+func (r *mongoRepository) FindMatchByMatchID(ctx context.Context, matchID bson.ObjectID) (MatchResult, error) {
 	var m MatchResult
 	err := r.matches.FindOne(ctx, bson.M{"matchId": matchID}).Decode(&m)
 	if errors.Is(err, mongo.ErrNoDocuments) {
@@ -61,7 +98,7 @@ func (r *Repository) FindMatchByMatchID(ctx context.Context, matchID bson.Object
 // is the completedAt of the last row of the previous page; a zero value starts
 // at the top. Keyset paging rather than skip/limit, so a match recorded
 // mid-scroll cannot make the reader skip or repeat a row.
-func (r *Repository) ListMatchesForSubject(ctx context.Context, key string, before time.Time, limit int) ([]MatchResult, error) {
+func (r *mongoRepository) ListMatchesForSubject(ctx context.Context, key string, before time.Time, limit int) ([]MatchResult, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 25
 	}
@@ -95,7 +132,7 @@ func (r *Repository) ListMatchesForSubject(ctx context.Context, key string, befo
 // than a page of it — loading a heavy player's several thousand match records
 // into one slice to fold them would be a needless spike. A callback that
 // returns an error stops the walk and surfaces it.
-func (r *Repository) EachMatchForSubject(ctx context.Context, key string, fn func(MatchResult) error) error {
+func (r *mongoRepository) EachMatchForSubject(ctx context.Context, key string, fn func(MatchResult) error) error {
 	if key == "" {
 		return nil
 	}
@@ -119,7 +156,7 @@ func (r *Repository) EachMatchForSubject(ctx context.Context, key string, fn fun
 }
 
 // CountMatchesForSubject counts a subject's finished matches.
-func (r *Repository) CountMatchesForSubject(ctx context.Context, key string) (int, error) {
+func (r *mongoRepository) CountMatchesForSubject(ctx context.Context, key string) (int, error) {
 	if key == "" {
 		return 0, nil
 	}
@@ -135,7 +172,7 @@ func (r *Repository) CountMatchesForSubject(ctx context.Context, key string) (in
 // only the identity behind a seat changes. Writing the two fields rather than
 // replacing the document keeps that promise narrow and auditable — no other
 // code path can use this to edit a score.
-func (r *Repository) ReplaceMatchAttribution(ctx context.Context, m MatchResult) error {
+func (r *mongoRepository) ReplaceMatchAttribution(ctx context.Context, m MatchResult) error {
 	_, err := r.matches.UpdateOne(ctx,
 		bson.M{"_id": m.ID},
 		bson.M{"$set": bson.M{
@@ -149,7 +186,7 @@ func (r *Repository) ReplaceMatchAttribution(ctx context.Context, m MatchResult)
 // FindPlayerStats returns a subject's lifetime record, or ErrNotFound when the
 // subject has not finished a match yet. Callers that want a renderable zero
 // record should use ZeroStats.
-func (r *Repository) FindPlayerStats(ctx context.Context, key string) (PlayerStats, error) {
+func (r *mongoRepository) FindPlayerStats(ctx context.Context, key string) (PlayerStats, error) {
 	var ps PlayerStats
 	err := r.players.FindOne(ctx, bson.M{"subjectKey": key}).Decode(&ps)
 	if errors.Is(err, mongo.ErrNoDocuments) {
@@ -162,7 +199,7 @@ func (r *Repository) FindPlayerStats(ctx context.Context, key string) (PlayerSta
 // subject key. Missing subjects are simply absent from the map — this backs
 // the "who am I sitting with" panel, where a first-timer at the table is
 // normal and must not fail the whole request.
-func (r *Repository) FindManyPlayerStats(ctx context.Context, keys []string) (map[string]PlayerStats, error) {
+func (r *mongoRepository) FindManyPlayerStats(ctx context.Context, keys []string) (map[string]PlayerStats, error) {
 	out := map[string]PlayerStats{}
 	if len(keys) == 0 {
 		return out, nil
@@ -187,7 +224,7 @@ func (r *Repository) FindManyPlayerStats(ctx context.Context, keys []string) (ma
 // use. Replace rather than $inc because the aggregation is a pure function of
 // the loaded record plus the match (see ApplyMatch) — expressing streaks and
 // best/worst as update operators would put that logic in two places.
-func (r *Repository) UpsertPlayerStats(ctx context.Context, ps PlayerStats) error {
+func (r *mongoRepository) UpsertPlayerStats(ctx context.Context, ps PlayerStats) error {
 	ps.ID = bson.ObjectID{}
 	_, err := r.players.ReplaceOne(ctx,
 		bson.M{"subjectKey": ps.SubjectKey},
@@ -230,7 +267,7 @@ type LeaderboardRow struct {
 // This is fine at the scale a card game reaches; if the player table ever
 // outgrows it, the fix is a stored, denormalised sort key per scope rather
 // than a more elaborate query.
-func (r *Repository) Leaderboard(ctx context.Context, q LeaderboardQuery) ([]LeaderboardRow, error) {
+func (r *mongoRepository) Leaderboard(ctx context.Context, q LeaderboardQuery) ([]LeaderboardRow, error) {
 	kind := q.Kind
 	if kind == "" {
 		kind = SubjectUser

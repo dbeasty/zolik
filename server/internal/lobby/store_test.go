@@ -23,20 +23,26 @@ func testRedisURL() string {
 // newRedisBackedStore builds a Store against the real dev Redis and cleans up
 // only the one hash key this package owns afterwards — never a broader flush,
 // since that instance may be shared with other running services.
-func newRedisBackedStore(t *testing.T) *Store {
+//
+// Returns the concrete *redisStore, not the Store interface: a couple of
+// tests below reach into the unexported redis field directly, to seed or
+// inspect a record without going through the package's own read/write path
+// — that white-box access needs the concrete type.
+func newRedisBackedStore(t *testing.T) *redisStore {
 	t.Helper()
 	s, err := NewStore(testRedisURL())
 	if err != nil {
 		t.Skipf("no reachable redis at %s (set ZOLIK_TEST_REDIS_URL, or start the dev compose stack): %v",
 			testRedisURL(), err)
 	}
+	rs := s.(*redisStore)
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
-		_ = s.redis.Del(ctx, redisKey).Err()
-		_ = s.Close()
+		_ = rs.redis.Del(ctx, redisKey).Err()
+		_ = rs.Close()
 	})
-	return s
+	return rs
 }
 
 func TestLocalOnlyStoreTracksPresenceWithNoRedis(t *testing.T) {

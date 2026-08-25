@@ -54,13 +54,13 @@ var ErrInvalidCode = errors.New("that code is not valid — request a new one")
 
 // EmailAuth issues and redeems one-time sign-in codes.
 type EmailAuth struct {
-	store  *Store
+	store  Store
 	mailer Mailer
 	// appName is the product name used in the mail body.
 	appName string
 }
 
-func NewEmailAuth(store *Store, mailer Mailer, appName string) *EmailAuth {
+func NewEmailAuth(store Store, mailer Mailer, appName string) *EmailAuth {
 	if appName == "" {
 		appName = "Žolíky"
 	}

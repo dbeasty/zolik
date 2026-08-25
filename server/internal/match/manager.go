@@ -21,7 +21,7 @@ import (
 // worth keeping (optimistic concurrency, per-viewer projection, one writer per
 // socket) are runtime properties, not rummy ones.
 type Manager struct {
-	repo     *Repository
+	repo     Repository
 	registry *module.Registry
 	hub      *ws.Hub
 
@@ -146,12 +146,12 @@ func (m *Manager) Invite(ctx context.Context, idOrCode, hostID, playerID string)
 	return next, false, nil
 }
 
-func NewManager(repo *Repository, registry *module.Registry, hub *ws.Hub) *Manager {
+func NewManager(repo Repository, registry *module.Registry, hub *ws.Hub) *Manager {
 	return &Manager{repo: repo, registry: registry, hub: hub}
 }
 
 func (m *Manager) Registry() *module.Registry { return m.registry }
-func (m *Manager) Repo() *Repository          { return m.repo }
+func (m *Manager) Repo() Repository           { return m.repo }
 func (m *Manager) Hub() *ws.Hub               { return m.hub }
 
 // Create opens a lobby for a module.

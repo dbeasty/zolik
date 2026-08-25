@@ -124,7 +124,7 @@ func (h *Handlers) issueUserSession(ctx context.Context, u models.User) (Session
 // LoginSession authenticates a legacy username/password account. It stays for
 // the SSH/TUI client, which can neither open a browser nor read mail.
 func (h *Handlers) LoginSession(ctx context.Context, username, password string) (SessionTokens, error) {
-	u, err := h.findUserByUsername(ctx, username)
+	u, err := h.store.FindUserByUsername(ctx, username)
 	if err != nil {
 		return SessionTokens{}, err
 	}

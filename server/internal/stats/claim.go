@@ -24,10 +24,10 @@ import (
 // it through a narrow interface, the same way the game manager reaches the
 // Recorder.
 type Claimer struct {
-	repo *Repository
+	repo Repository
 }
 
-func NewClaimer(repo *Repository) *Claimer { return &Claimer{repo: repo} }
+func NewClaimer(repo Repository) *Claimer { return &Claimer{repo: repo} }
 
 // ClaimGuestHistory re-attributes every match the given guest id played to the
 // given user, then rebuilds that user's lifetime record from scratch.

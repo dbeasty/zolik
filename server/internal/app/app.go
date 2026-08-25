@@ -31,7 +31,14 @@ type App struct {
 	// waitingRoom is the pool of human players waiting to be picked up into
 	// a match — see internal/lobby. Rides the same Hub as match rooms do, so
 	// it needs no database of its own and no separate scaling story.
-	waitingRoom *lobby.Store
+	waitingRoom lobby.Store
+	// statsRepo, userRepo and authStore are built once here rather than
+	// re-constructed per route group — a repository handle is cheap to hold,
+	// and building it twice was never anything but two names for the same
+	// backend.
+	statsRepo stats.Repository
+	userRepo  userrepo.Repository
+	authStore auth.Store
 }
 
 func New(cfg Config) (*App, error) {
@@ -77,6 +84,10 @@ func New(cfg Config) (*App, error) {
 	}
 
 	statsRepo := stats.NewRepository(m)
+	userRepo := userrepo.NewRepository(m)
+	// Built once and shared: auth.Handlers and the user route group both need
+	// it, and a repository handle has no reason to exist twice.
+	authStore := auth.NewStore(m)
 
 	// Mail is resolved at startup rather than at first use: a deployment that
 	// offers email sign-in but cannot send mail should fail to start, not fail
@@ -88,7 +99,8 @@ func New(cfg Config) (*App, error) {
 	}
 
 	authHandlers := auth.NewHandlers(auth.Deps{
-		Mongo:     m,
+		Store:     authStore,
+		Sessions:  auth.NewSessionRepository(m),
 		Providers: identity.FromConfig(cfg.Identity),
 		Mailer:    mailer,
 		// The claimer is injected for the same reason the match recorder is:
@@ -106,6 +118,9 @@ func New(cfg Config) (*App, error) {
 		hub:         hub,
 		auth:        authHandlers,
 		waitingRoom: waitingRoom,
+		statsRepo:   statsRepo,
+		userRepo:    userRepo,
+		authStore:   authStore,
 	}, nil
 }
 
@@ -147,8 +162,6 @@ type routeGroup struct {
 // exactly what happened between the module runtime and the stats handlers, and
 // nothing but the browser suite noticed.
 func (a *App) routeGroups() []routeGroup {
-	statsRepo := stats.NewRepository(a.db)
-
 	// One runtime, hosting every game. The registry is the only place a game
 	// is named: register a module and it appears in /modules, in the lobby's
 	// picker, and on the one screen that plays all of them.
@@ -157,7 +170,7 @@ func (a *App) routeGroups() []routeGroup {
 	// The recorder turns each completed match into a permanent record plus the
 	// lifetime updates derived from it. Injected rather than constructed
 	// inside the manager, so the runtime never has to import stats.
-	matchMgr.SetRecorder(stats.NewRecorder(statsRepo))
+	matchMgr.SetRecorder(stats.NewRecorder(a.statsRepo))
 	// And the waiting room, so a host can seat a specific player out of the
 	// pool. Wired through a narrow interface rather than an import, so the
 	// runtime does not learn what a waiting room is.
@@ -174,7 +187,7 @@ func (a *App) routeGroups() []routeGroup {
 		}},
 		{"auth", a.auth.RegisterRoutes},
 		{"lobby", lobbyHandlers.RegisterRoutes},
-		{"user", userrepo.NewHandlers(userrepo.NewRepository(a.db), auth.NewStore(a.db)).RegisterRoutes},
+		{"user", userrepo.NewHandlers(a.userRepo, a.authStore).RegisterRoutes},
 		{"scoring", scoring.NewHandlers(a.db).RegisterRoutes},
 		// The runtime, and now the only gameplay path there is. It replaced
 		// the Žolíky-specific one rather than sitting beside it: /games, its
@@ -182,7 +195,7 @@ func (a *App) routeGroups() []routeGroup {
 		{"match", func(r chi.Router) {
 			match.NewHandlers(matchMgr, a.cfg.TestEndpointsEnabled).RegisterRoutes(r)
 		}},
-		{"stats", stats.NewHandlers(statsRepo).RegisterRoutes},
+		{"stats", stats.NewHandlers(a.statsRepo).RegisterRoutes},
 	}
 }
 
