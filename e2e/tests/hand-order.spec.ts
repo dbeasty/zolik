@@ -75,6 +75,40 @@ async function serverHand(request: Ctx, matchId: string, userId: string): Promis
 const card = (page: Page, i: number) => page.locator('[data-testid^="card-hand:"]').nth(i);
 
 /**
+ * Where every box in the hand sits, except one being carried by the pointer.
+ *
+ * "Settled" means still part of the layout: a card that has been picked up is
+ * positioned absolutely and follows the pointer, so it is excluded — what is
+ * being described here is the shape of the row it left behind, which is what
+ * has to stay put.
+ */
+async function settledBoxes(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    // A card's test id is on its ring, a few levels inside the box the layout
+    // actually positions — so "is this one being carried?" has to be asked of
+    // its ancestors, up to the row itself, rather than of the tagged element.
+    const floating = (el: Element) => {
+      let node: Element | null = el;
+      while (node && !(node as HTMLElement).dataset?.testid?.startsWith('hand-')) {
+        if (getComputedStyle(node as HTMLElement).position === 'absolute') return true;
+        node = node.parentElement;
+      }
+      return false;
+    };
+
+    return Array.from(
+      document.querySelectorAll('[data-testid^="card-hand:"], [data-testid="hand-drop-gap"]'),
+    )
+      .filter((el) => !floating(el))
+      .map((el) => {
+        const r = el.getBoundingClientRect();
+        return `${Math.round(r.x)},${Math.round(r.y)},${Math.round(r.width)}`;
+      })
+      .sort();
+  });
+}
+
+/**
  * Drops a card into the gap on one side of another card.
  *
  * A card lands *between* two cards rather than on one, so which half of the
@@ -198,6 +232,140 @@ test.describe('arranging your hand', () => {
     );
 
     expect(await handCards(page)).toEqual(before);
+  });
+
+  test('a card dropped in the empty space at the end of the hand lands last', async ({
+    page,
+    request,
+  }) => {
+    const { matchId, host } = await tableWithBots(request, 'zolik', 2);
+    await openMatch(page, host, matchId);
+
+    const before = await handCards(page);
+    const row = await page.getByTestId(`hand-hand:${host.userId}`).boundingBox();
+    const first = await card(page, 0).boundingBox();
+    if (!row || !first) throw new Error('no boxes');
+
+    // The obvious way to say "put this at the end": drop it in the empty
+    // space to the right of the last card. That space is a long way past the
+    // last card — the row runs the width of the screen — and judging "is this
+    // still the hand?" by where the *cards* are meant it fell outside, so the
+    // card sprang back and the end of the fan could not be reached by hand,
+    // however well the gaps themselves worked.
+    await dragPointTo(
+      page,
+      { x: first.x + first.width / 2, y: first.y + first.height / 2 },
+      { x: row.x + row.width - 8, y: row.y + row.height / 2 },
+    );
+
+    expect(await handCards(page)).toEqual([...before.slice(1), before[0]]);
+  });
+
+  test('the row keeps its shape while a card is being dragged', async ({ page, request }) => {
+    const { matchId, host } = await tableWithBots(request, 'zolik', 2);
+    await openMatch(page, host, matchId);
+    await handCards(page);
+
+    const settledBefore = await settledBoxes(page);
+    expect(settledBefore.length).toBeGreaterThan(4);
+
+    const from = await card(page, 0).boundingBox();
+    const over = await card(page, 4).boundingBox();
+    if (!from || !over) throw new Error('no boxes');
+
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(200);
+    await page.mouse.move(over.x, over.y + over.height / 2, { steps: 10 });
+    await page.waitForTimeout(150);
+    await page.mouse.move(over.x + over.width * 0.8, over.y + over.height / 2, { steps: 10 });
+    await page.waitForTimeout(300);
+
+    try {
+      // The gap is open, so this is a real drag and not a no-op.
+      await expect(page.getByTestId('hand-drop-gap')).toBeVisible();
+
+      // The invariant the whole thing rests on: a picked-up card leaves the
+      // layout and the gap stands in for it, so the row holds the same boxes
+      // in the same places as before. The pointer is hit-tested against
+      // positions measured once at pick-up, and this is what makes that
+      // legitimate.
+      //
+      // Getting it wrong is not subtle once seen: leaving the dragged card in
+      // the layout *and* inserting a gap made the row one card wider, shifted
+      // everything right of the gap, and left the gap sitting a full card away
+      // from the pointer.
+      expect(await settledBoxes(page)).toEqual(settledBefore);
+    } finally {
+      await page.mouse.up();
+      await page.waitForTimeout(300);
+    }
+  });
+
+  test('the gap opens next to the pointer, however far the card is dragged', async ({
+    page,
+    request,
+  }) => {
+    const { matchId, host } = await tableWithBots(request, 'zolik', 2);
+    await openMatch(page, host, matchId);
+    const shown = await handCards(page);
+
+    // The positions the row's boxes occupy, before anything is picked up.
+    // Every one of them stays put for the whole drag, so the gap must always
+    // be sitting in one of them — and specifically in one of the two the
+    // pointer is between.
+    const columns = (await settledBoxes(page))
+      .map((b) => Number(b.split(',')[0]))
+      .sort((a, b) => a - b);
+
+    const from = await card(page, 0).boundingBox();
+    if (!from) throw new Error('no box');
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(200);
+
+    try {
+      // Checked at increasing distances, because a drift of one fixed card
+      // width reads as "it is following me, badly" close up and as "it has
+      // stopped following me" entirely by the far end of the fan.
+      for (const index of [2, 4, shown.length - 1]) {
+        const target = await card(page, index).boundingBox();
+        if (!target) throw new Error('no box');
+        const x = target.x + target.width * 0.8;
+        await page.mouse.move(x, target.y + target.height / 2, { steps: 10 });
+        await page.waitForTimeout(250);
+
+        const gap = await page.getByTestId('hand-drop-gap').boundingBox();
+        expect(gap, `no gap while over card ${index}`).toBeTruthy();
+
+        // The column the pointer is in, and the one after it: dropping on the
+        // right of a card means "after this one", so either is a truthful
+        // answer. Anything further away is the gap having come adrift.
+        const here = columns.findIndex((c, i) => x >= c && (i === columns.length - 1 || x < columns[i + 1]));
+        const allowed = [columns[here], columns[Math.min(here + 1, columns.length - 1)]];
+        expect(
+          allowed,
+          `gap at ${Math.round(gap!.x)} while pointing at ${Math.round(x)}, expected one of ${allowed}`,
+        ).toContain(Math.round(gap!.x));
+      }
+    } finally {
+      await page.mouse.up();
+      await page.waitForTimeout(300);
+    }
+  });
+
+  test('a card dragged from the end into the middle lands there', async ({ page, request }) => {
+    const { matchId, host } = await tableWithBots(request, 'zolik', 2);
+    await openMatch(page, host, matchId);
+
+    const before = await handCards(page);
+    const last = before.length - 1;
+    await dragToEdge(page, card(page, last), card(page, 3), 'before');
+
+    const after = await handCards(page);
+    const expected = [...before.slice(0, last)];
+    expected.splice(3, 0, before[last]);
+    expect(after).toEqual(expected);
   });
 
   test('rearranging is not a move: the server never hears about it', async ({ page, request }) => {

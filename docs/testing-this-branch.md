@@ -58,10 +58,12 @@ together. Drop cards on a target that wants more than you are holding — a rumm
 meld needs three — and they stay picked instead, until the offer's own button
 has enough to light up.
 
-**Rearranging your hand.** Drag a card along the fan and it moves; a dashed ring
-shows where it will land. Then wait for a bot to move — the arrangement stays
-put, which is the part that needed building, since the server re-pushes the
-whole board after every move and does so in its own order.
+**Rearranging your hand.** Drag a card along the fan and the cards part: a
+card-sized dashed gap opens where it will land, and follows the pointer for the
+length of the drag. Drop it in the empty space to the right of the last card to
+put it at the end. Then wait for a bot to move — the arrangement stays put,
+which is the part that needed building, since the server re-pushes the whole
+board after every move and does so in its own order.
 
 Worth trying in more than one game: no module knows the feature exists. How a
 player likes their cards laid out is not a fact about the game, so it never
