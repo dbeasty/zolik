@@ -2,7 +2,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 
 import type { ActionOffer } from '@/src/api/matchTypes';
-import { defaultParam, isOneTap, submissionFor } from '@/src/api/matchTypes';
+import { defaultParam, eligibleCards, isOneTap, submissionFor } from '@/src/api/matchTypes';
 import { humanise, factText } from '@/src/lib/labels';
 
 /**
@@ -185,6 +185,28 @@ describe('isOneTap', () => {
         params: [{ name: 'n', kind: 'int', labelKey: 'k', min: 1, max: 9 }],
       }),
     ).toBe(false);
+  });
+});
+
+describe('eligibleCards', () => {
+  it('takes the whole selection for a composite offer with no enumerated list', () => {
+    // A rummy meld shape (Žolíky, or Canasta's own compose-it-yourself
+    // fallback): the offer bounds the shape with minCards/maxCards and lists
+    // no cards, so any card the player selected is a candidate — this is the
+    // case that left the "lay meld" button permanently disabled.
+    const offer: ActionOffer = {
+      id: 'lay_meld', verb: 'lay_meld', enabled: true, composite: true,
+      source: { zone: 'hand', minCards: 3, maxCards: 13 },
+    };
+    expect(eligibleCards(offer, ['3H', '3S', '3D'])).toEqual(['3H', '3S', '3D']);
+  });
+
+  it('filters against the list for an offer that enumerates its cards', () => {
+    const offer: ActionOffer = {
+      id: 'discard', verb: 'discard', enabled: true,
+      source: { zone: 'hand', cards: ['7H', '9S'], minCards: 1, maxCards: 1 },
+    };
+    expect(eligibleCards(offer, ['7H', 'KD'])).toEqual(['7H']);
   });
 });
 

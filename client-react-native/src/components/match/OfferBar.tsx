@@ -2,7 +2,14 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { ActionOffer, MatchAction, ParamSpec } from '@/src/api/matchTypes';
-import { defaultParam, isOneTap, offerGroupKey, offerMatchesSelection, submissionFor } from '@/src/api/matchTypes';
+import {
+  defaultParam,
+  eligibleCards,
+  isOneTap,
+  offerGroupKey,
+  offerMatchesSelection,
+  submissionFor,
+} from '@/src/api/matchTypes';
 import { factText, label } from '@/src/lib/labels';
 import { reasonText } from '@/src/lib/i18n';
 import { colors } from '@/src/theme';
@@ -302,8 +309,7 @@ function ParamControl({
 
 /** Which cards to send: the player's selection when they have one. */
 function pickCards(offer: ActionOffer, selected: string[]): string[] | undefined {
-  const allowed = offer.source?.cards ?? [];
-  const mine = selected.filter((c) => allowed.includes(c));
+  const mine = eligibleCards(offer, selected);
   if (mine.length) return mine;
   return undefined;
 }
@@ -317,8 +323,7 @@ function isReady(
   if (!offer.enabled) return false;
   if (offer.composite) {
     const need = offer.source?.minCards ?? 1;
-    const allowed = offer.source?.cards ?? [];
-    return selected.filter((c) => allowed.includes(c)).length >= need;
+    return eligibleCards(offer, selected).length >= need;
   }
   if ((offer.params ?? []).length > 0) {
     return (offer.params ?? []).every((p) => (chosen?.[p.name] ?? defaultParam(p)) !== undefined);
