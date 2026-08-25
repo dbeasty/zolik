@@ -80,14 +80,14 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		}
 		o := module.ActionOffer{ID: pileOfferID(opt), Verb: VerbTakePile, Enabled: ok, WhyNot: why}
 		if opt.MeldID != "" {
-			o.Source = &module.Selector{Zone: module.FromDiscardPile}
-			o.Target = &module.Selector{Zone: module.ToMeld, MeldID: opt.MeldID}
+			o.Source = &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID}
+			o.Target = &module.Selector{Zone: module.ToMeld, MeldID: opt.MeldID, ZoneID: meldsZoneID(t.ID)}
 		} else {
 			o.Source = &module.Selector{
-				Zone: module.FromHand, OwnerID: playerID,
+				Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID),
 				Cards: opt.Cards, MinCards: len(opt.Cards), MaxCards: len(opt.Cards),
 			}
-			o.Target = &module.Selector{Zone: module.FromDiscardPile}
+			o.Target = &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID}
 		}
 		offers = append(offers, o)
 		took++
@@ -99,7 +99,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		o.Enabled, o.WhyNot = probe(m, raw, playerID, module.Action{
 			Verb: VerbTakePile, Cards: plausibleCapture(s, playerID),
 		})
-		o.Source = &module.Selector{Zone: module.FromDiscardPile}
+		o.Source = &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID}
 		offers = append(offers, o)
 	}
 
@@ -114,10 +114,10 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		offers = append(offers, module.ActionOffer{
 			ID: OfferLayMeld + ":" + c.Rank, Verb: VerbLayMeld, Enabled: true,
 			Source: &module.Selector{
-				Zone: module.FromHand, OwnerID: playerID,
+				Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID),
 				Cards: c.Cards, MinCards: len(c.Cards), MaxCards: len(c.Cards),
 			},
-			Target: &module.Selector{Zone: module.ToTable},
+			Target: &module.Selector{Zone: module.ToTable, ZoneID: meldsZoneID(t.ID)},
 		})
 		laid++
 	}
@@ -128,10 +128,10 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 			offers = append(offers, module.ActionOffer{
 				ID: OfferLayMeld + ":" + rankThree, Verb: VerbLayMeld, Enabled: true,
 				Source: &module.Selector{
-					Zone: module.FromHand, OwnerID: playerID,
+					Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID),
 					Cards: bt, MinCards: len(bt), MaxCards: len(bt),
 				},
-				Target: &module.Selector{Zone: module.ToTable},
+				Target: &module.Selector{Zone: module.ToTable, ZoneID: meldsZoneID(t.ID)},
 			})
 			laid++
 		}
@@ -142,10 +142,10 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 			Verb: VerbLayMeld, Cards: plausibleMeld(hand, t),
 		})
 		o.Source = &module.Selector{
-			Zone: module.FromHand, OwnerID: playerID,
+			Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID),
 			MinCards: minMeldSize, MaxCards: canastaSize,
 		}
-		o.Target = &module.Selector{Zone: module.ToTable}
+		o.Target = &module.Selector{Zone: module.ToTable, ZoneID: meldsZoneID(t.ID)}
 		offers = append(offers, o)
 	}
 
@@ -168,10 +168,10 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 			eligible = nil
 		}
 		o.Source = &module.Selector{
-			Zone: module.FromHand, OwnerID: playerID,
+			Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID),
 			Cards: eligible, MinCards: 1, MaxCards: canastaSize - len(mm.Cards),
 		}
-		o.Target = &module.Selector{Zone: module.ToMeld, MeldID: mm.ID}
+		o.Target = &module.Selector{Zone: module.ToMeld, MeldID: mm.ID, ZoneID: meldsZoneID(t.ID)}
 		offers = append(offers, o)
 	}
 
@@ -193,7 +193,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		Zone: module.FromHand, OwnerID: playerID,
 		Cards: discardable, MinCards: 1, MaxCards: 1,
 	}
-	discard.Target = &module.Selector{Zone: module.FromDiscardPile}
+	discard.Target = &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID}
 	offers = append(offers, discard)
 
 	return offers, nil

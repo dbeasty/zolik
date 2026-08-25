@@ -157,6 +157,65 @@ func TestEveryModuleHidesOtherPlayersCards(t *testing.T) {
 	}
 }
 
+// TestEveryOfferLandsSomewhereThatIsDrawn — an offer that names a zone id no
+// zone has is a place to drop a card that a player can never hit.
+//
+// Nothing at runtime notices: the move still works from a button, the id is
+// just a string nobody resolves, and the only symptom is a drop target that
+// silently refuses. That makes it exactly the sort of thing to check here
+// rather than discover in a browser. The same goes for a target meld id with
+// no group drawn under it.
+//
+// Deliberately checked against the *viewer's own* view, since that is the one
+// a client hit-tests against, and against a real dealt position rather than a
+// constructed one.
+func TestEveryOfferLandsSomewhereThatIsDrawn(t *testing.T) {
+	for _, g := range allModules() {
+		t.Run(g.name, func(t *testing.T) {
+			state, err := g.mod.NewMatch(g.cfg, g.players, 11)
+			if err != nil {
+				t.Fatalf("NewMatch: %v", err)
+			}
+			for _, viewer := range g.players {
+				vm, err := g.mod.View(state, viewer.ID)
+				if err != nil {
+					t.Fatalf("View: %v", err)
+				}
+				zones := map[string]bool{}
+				groups := map[string]bool{}
+				for _, z := range vm.Zones {
+					zones[z.ID] = true
+					for _, gr := range z.Groups {
+						groups[gr.ID] = true
+					}
+				}
+
+				offers, err := g.mod.LegalActions(state, viewer.ID)
+				if err != nil {
+					t.Fatalf("LegalActions: %v", err)
+				}
+				for _, o := range offers {
+					for label, sel := range map[string]*module.Selector{
+						"source": o.Source, "target": o.Target,
+					} {
+						if sel == nil {
+							continue
+						}
+						if sel.ZoneID != "" && !zones[sel.ZoneID] {
+							t.Errorf("offer %q %s names zone %q, which %s's view does not draw",
+								o.ID, label, sel.ZoneID, viewer.ID)
+						}
+						if sel.MeldID != "" && !groups[sel.MeldID] {
+							t.Errorf("offer %q %s names meld %q, which %s's view does not draw",
+								o.ID, label, sel.MeldID, viewer.ID)
+						}
+					}
+				}
+			}
+		})
+	}
+}
+
 // TestEveryModuleAgreesWithItsOwnOffers — an enabled offer the engine then
 // refuses is a control that does nothing, and no client-side check would catch
 // it. Every module is held to this, on positions that really occur.

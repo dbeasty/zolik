@@ -69,9 +69,13 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 	vm := module.ViewModel{}
 
 	// The viewer's own hand, face up.
+	//
+	// (Zone ids come from the helpers below rather than being written out, so
+	// the offers can point at the same strings — an offer naming a zone id no
+	// zone has is a drop target nobody can hit.)
 	own := s.Hands[viewerID]
 	vm.Zones = append(vm.Zones, module.Zone{
-		ID: "hand:" + viewerID, Kind: module.ZoneHand, OwnerID: viewerID,
+		ID: handZoneID(viewerID), Kind: module.ZoneHand, OwnerID: viewerID,
 		LabelKey: "zone.yourHand", Cards: cardViews(own), Count: len(own),
 	})
 
@@ -82,18 +86,18 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 			continue
 		}
 		vm.Zones = append(vm.Zones, module.Zone{
-			ID: "hand:" + p, Kind: module.ZoneHand, OwnerID: p,
+			ID: handZoneID(p), Kind: module.ZoneHand, OwnerID: p,
 			LabelKey: "zone.opponentHand", Count: len(s.Hands[p]),
 		})
 	}
 
 	vm.Zones = append(vm.Zones,
 		module.Zone{
-			ID: "draw", Kind: module.ZoneStack, LabelKey: "zone.drawPile",
+			ID: drawZoneID, Kind: module.ZoneStack, LabelKey: "zone.drawPile",
 			Count: len(s.DrawPile),
 		},
 		module.Zone{
-			ID: "discard", Kind: module.ZonePile, LabelKey: "zone.discardPile",
+			ID: discardZoneID, Kind: module.ZonePile, LabelKey: "zone.discardPile",
 			Cards: cardViews(topOnly(s)), Count: len(s.DiscardPile),
 		},
 	)

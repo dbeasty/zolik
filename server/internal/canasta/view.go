@@ -133,7 +133,7 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 
 	own := s.Hands[viewerID]
 	vm.Zones = append(vm.Zones, module.Zone{
-		ID: "hand:" + viewerID, Kind: module.ZoneHand, OwnerID: viewerID,
+		ID: handZoneID(viewerID), Kind: module.ZoneHand, OwnerID: viewerID,
 		LabelKey: "zone.yourHand", Cards: cardViews(own), Count: len(own),
 	})
 	for _, p := range s.TurnOrder {
@@ -141,18 +141,18 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 			continue
 		}
 		vm.Zones = append(vm.Zones, module.Zone{
-			ID: "hand:" + p, Kind: module.ZoneHand, OwnerID: p,
+			ID: handZoneID(p), Kind: module.ZoneHand, OwnerID: p,
 			LabelKey: "zone.opponentHand", Count: len(s.Hands[p]),
 		})
 	}
 
 	vm.Zones = append(vm.Zones,
 		module.Zone{
-			ID: "draw", Kind: module.ZoneStack, LabelKey: "zone.drawPile",
+			ID: drawZoneID, Kind: module.ZoneStack, LabelKey: "zone.drawPile",
 			Count: len(s.DrawPile),
 		},
 		module.Zone{
-			ID: "discard", Kind: module.ZonePile, LabelKey: "zone.discardPile",
+			ID: discardZoneID, Kind: module.ZonePile, LabelKey: "zone.discardPile",
 			Cards: cardViews(topOnly(s)), Count: len(s.DiscardPile),
 		},
 	)
@@ -163,7 +163,7 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 	for i := range s.Teams {
 		t := &s.Teams[i]
 		z := module.Zone{
-			ID: "melds:t" + strconv.Itoa(t.ID), Kind: module.ZoneSpread,
+			ID: meldsZoneID(t.ID), Kind: module.ZoneSpread,
 			LabelKey: "zone.teamMelds", Count: 0,
 		}
 		for _, mm := range t.Melds {
@@ -182,7 +182,7 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 
 		if len(t.RedThrees) > 0 {
 			vm.Zones = append(vm.Zones, module.Zone{
-				ID: "redThrees:t" + strconv.Itoa(t.ID), Kind: module.ZoneSpread,
+				ID: redThreesZoneID(t.ID), Kind: module.ZoneSpread,
 				LabelKey: "zone.redThrees",
 				Cards:    cardViews(t.RedThrees), Count: len(t.RedThrees),
 			})

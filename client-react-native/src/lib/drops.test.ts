@@ -1,0 +1,198 @@
+import type { ActionOffer } from '@/src/api/matchTypes';
+
+import { dropSpotsFor, positionAt, spotAt } from './drops';
+
+/**
+ * The offer shapes below are the ones the four modules really emit — a Prší
+ * play, a Žolíky discard, lay-off and meld-shape, a Canasta enumerated meld —
+ * rather than invented ones, since the whole claim being tested is that no
+ * game needed to be taught about dragging.
+ */
+
+const playCard: ActionOffer = {
+  id: 'play_card',
+  verb: 'play_card',
+  enabled: true,
+  source: { zone: 'hand', ownerId: 'me', zoneId: 'hand:me', cards: ['7H', '9S'], minCards: 1, maxCards: 1 },
+  target: { zone: 'discard_pile', zoneId: 'discard' },
+};
+
+const discard: ActionOffer = {
+  id: 'discard',
+  verb: 'discard',
+  enabled: true,
+  source: { zone: 'hand', ownerId: 'me', zoneId: 'hand:me', cards: ['7H', '9S', 'KD'], minCards: 1, maxCards: 1 },
+  target: { zone: 'discard_pile', zoneId: 'discard' },
+};
+
+/** A rummy lay-off: the run may be extended at either end by a 6D. */
+const layOff: ActionOffer = {
+  id: 'lay_off:meld_0',
+  verb: 'lay_off',
+  enabled: true,
+  source: {
+    zone: 'hand',
+    ownerId: 'me',
+    zoneId: 'hand:me',
+    cards: ['6D', 'TD'],
+    placements: [
+      { card: '6D', positions: ['front', 'end'] },
+      { card: 'TD', positions: ['end'] },
+    ],
+    minCards: 1,
+    maxCards: 8,
+  },
+  target: { zone: 'meld', ownerId: 'me', meldId: 'meld_0', zoneId: 'melds:me' },
+};
+
+/** A rummy meld: a shape, not a list — any card may go in, three at least. */
+const layMeld: ActionOffer = {
+  id: 'lay_meld',
+  verb: 'lay_meld',
+  enabled: true,
+  composite: true,
+  source: { zone: 'hand', ownerId: 'me', zoneId: 'hand:me', minCards: 3, maxCards: 13 },
+  target: { zone: 'table', zoneId: 'melds:me' },
+};
+
+/** Drawing: a button. Nothing is dragged onto it. */
+const draw: ActionOffer = {
+  id: 'draw:deck',
+  verb: 'draw',
+  enabled: true,
+  source: { zone: 'deck', zoneId: 'draw' },
+  target: { zone: 'hand', ownerId: 'me', zoneId: 'hand:me' },
+};
+
+describe('dropSpotsFor', () => {
+  it('offers the discard pile for a card the discard offer accepts', () => {
+    const spots = dropSpotsFor([discard], ['KD']);
+
+    expect(spots).toEqual([{ offerId: 'discard', elementId: 'zone-discard', ready: true }]);
+  });
+
+  it('offers nothing for a card the offer does not list', () => {
+    // The engine already decided 2C is not discardable. Not offering a place
+    // to drop it is the same fact, shown rather than stated.
+    expect(dropSpotsFor([discard], ['2C'])).toEqual([]);
+  });
+
+  it('ignores a disabled offer', () => {
+    expect(dropSpotsFor([{ ...discard, enabled: false }], ['KD'])).toEqual([]);
+  });
+
+  it('ignores an offer that takes no cards, so a deck is not a drop target', () => {
+    expect(dropSpotsFor([draw], ['KD'])).toEqual([]);
+  });
+
+  it('ignores an offer that says nowhere it lands', () => {
+    const nowhere: ActionOffer = { ...discard, target: { zone: 'discard_pile' } };
+
+    expect(dropSpotsFor([nowhere], ['KD'])).toEqual([]);
+  });
+
+  it('addresses a meld by its group, not by the zone it sits in', () => {
+    const spots = dropSpotsFor([layOff], ['6D']);
+
+    // The zone holds every meld the player has; the drop has to mean *this*
+    // one, and a group is rendered under its own id.
+    expect(spots[0].elementId).toBe('group-meld_0');
+  });
+
+  it('carries the ends a single card may extend', () => {
+    expect(dropSpotsFor([layOff], ['6D'])[0].positions).toEqual(['front', 'end']);
+    expect(dropSpotsFor([layOff], ['TD'])[0].positions).toEqual(['end']);
+  });
+
+  it('offers no position when more than one card is being dragged', () => {
+    // Two cards do not go at one end each; the module decides, and naming an
+    // end for a submission that grows the run in both directions is what it
+    // would reject.
+    expect(dropSpotsFor([layOff], ['6D', 'TD'])[0].positions).toBeUndefined();
+  });
+
+  it('marks a drop that completes the move ready, and one that only adds not', () => {
+    // A rummy meld needs three cards. Dropping one on the table cannot send
+    // it, so the drop stages the card instead and the button lights up later.
+    expect(dropSpotsFor([layMeld], ['KD'])[0].ready).toBe(false);
+    expect(dropSpotsFor([layMeld], ['KD', 'KH', 'KS'])[0].ready).toBe(true);
+  });
+
+  it('accepts any card into an offer that bounds a shape rather than listing cards', () => {
+    expect(dropSpotsFor([layMeld], ['2C'])).toHaveLength(1);
+  });
+
+  it('refuses more cards than the offer will take', () => {
+    expect(dropSpotsFor([discard], ['KD', '7H'])).toEqual([]);
+  });
+
+  it('counts duplicates rather than just membership', () => {
+    // Two decks are in play: an offer listing one 7H accepts one 7H, not two.
+    const oneSeven: ActionOffer = {
+      ...layOff,
+      source: { ...layOff.source!, cards: ['7H'], placements: undefined, minCards: 1, maxCards: 4 },
+    };
+
+    expect(dropSpotsFor([oneSeven], ['7H'])).toHaveLength(1);
+    expect(dropSpotsFor([oneSeven], ['7H', '7H'])).toEqual([]);
+  });
+
+  it('offers every place one card may go at once', () => {
+    // A 6D that both extends a run and could be discarded gets two lit
+    // targets, and the player picks by where they let go.
+    const discardable6D: ActionOffer = {
+      ...discard,
+      source: { ...discard.source!, cards: ['7H', '9S', 'KD', '6D'] },
+    };
+
+    const spots = dropSpotsFor([discardable6D, layOff], ['6D']);
+
+    expect(spots.map((s) => s.elementId)).toEqual(['zone-discard', 'group-meld_0']);
+  });
+
+  it('has nothing to say about an empty drag', () => {
+    expect(dropSpotsFor([discard, layOff], [])).toEqual([]);
+  });
+
+  it('works the same for a game it has never been told about', () => {
+    // Prší shares no rule with rummy — no melds, no discarding as a separate
+    // act — and needs no branch here.
+    expect(dropSpotsFor([playCard], ['7H'])).toEqual([
+      { offerId: 'play_card', elementId: 'zone-discard', ready: true },
+    ]);
+  });
+});
+
+describe('spotAt', () => {
+  it('finds the spot for an element, and says nothing for one that has none', () => {
+    const spots = dropSpotsFor([discard, layOff], ['6D']);
+
+    expect(spotAt(spots, 'group-meld_0')?.offerId).toBe('lay_off:meld_0');
+    expect(spotAt(spots, 'zone-melds:me')).toBeUndefined();
+  });
+});
+
+describe('positionAt', () => {
+  const rect = { x: 100, width: 200 };
+
+  it('splits a two-ended target down the middle', () => {
+    expect(positionAt(['front', 'end'], 140, rect)).toBe('front');
+    expect(positionAt(['front', 'end'], 260, rect)).toBe('end');
+  });
+
+  it('takes the only position when there is only one', () => {
+    expect(positionAt(['end'], 110, rect)).toBe('end');
+  });
+
+  it('clamps a drop past either edge', () => {
+    expect(positionAt(['front', 'end'], -500, rect)).toBe('front');
+    expect(positionAt(['front', 'end'], 5000, rect)).toBe('end');
+  });
+
+  it('says nothing when the offer gave no positions', () => {
+    // Which is the module saying "send no position" — the submission grows
+    // both ends at once, and naming either is what would be rejected.
+    expect(positionAt(undefined, 140, rect)).toBeUndefined();
+    expect(positionAt([], 140, rect)).toBeUndefined();
+  });
+});

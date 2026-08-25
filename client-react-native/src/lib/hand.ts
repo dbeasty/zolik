@@ -137,6 +137,28 @@ export function slotAtPoint(
   return best;
 }
 
+/**
+ * The cards a drag starting on one slot carries.
+ *
+ * Dragging a card that is already selected takes the whole selection with it,
+ * which is how three cards become one meld in a single gesture. Dragging an
+ * unselected card takes only that card — and deliberately does not clear the
+ * selection, since a drag that is refused should leave the table as it found
+ * it. The rule matters because the alternative, "always drag the selection",
+ * makes a selection left over from an abandoned move ride silently along with
+ * the next card anyone picks up.
+ */
+export function slotsForDrag(
+  slots: Slot[],
+  selected: ReadonlySet<string>,
+  index: number,
+): Slot[] {
+  const picked = slots[index];
+  if (!picked) return [];
+  if (!selected.has(picked.id)) return [picked];
+  return slots.filter((s) => selected.has(s.id));
+}
+
 /** The cards a set of selected slots stands for, in the order they are held. */
 export function cardsForSelection(slots: Slot[], selected: ReadonlySet<string>): string[] {
   return slots.filter((s) => selected.has(s.id)).map((s) => s.card);

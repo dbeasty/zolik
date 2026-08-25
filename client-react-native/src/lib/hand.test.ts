@@ -4,6 +4,7 @@ import {
   moveSlot,
   pruneSelection,
   slotAtPoint,
+  slotsForDrag,
   type Slot,
 } from './hand';
 
@@ -165,6 +166,44 @@ describe('cardsForSelection', () => {
     const held = slots('KD', '7H', 'AS');
 
     expect(cardsForSelection(held, new Set([held[2].id, held[0].id]))).toEqual(['KD', 'AS']);
+  });
+});
+
+describe('slotsForDrag', () => {
+  it('carries only the card picked up when it is not part of the selection', () => {
+    const held = slots('KD', '7H', 'AS');
+    const chosen = new Set([held[0].id, held[2].id]);
+
+    // The selection is left over from something else; picking up an
+    // unselected card must not quietly take it along.
+    expect(slotsForDrag(held, chosen, 1)).toEqual([held[1]]);
+  });
+
+  it('carries the whole selection when the card picked up is part of it', () => {
+    const held = slots('KD', '7H', 'AS');
+    const chosen = new Set([held[0].id, held[2].id]);
+
+    // Three cards into one meld in a single gesture is the reason this rule
+    // exists at all.
+    expect(slotsForDrag(held, chosen, 2)).toEqual([held[0], held[2]]);
+  });
+
+  it('carries selected cards in held order, not in the order they were picked', () => {
+    const held = slots('KD', '7H', 'AS');
+    const chosen = new Set([held[2].id, held[0].id]);
+
+    expect(slotsForDrag(held, chosen, 0).map((s) => s.card)).toEqual(['KD', 'AS']);
+  });
+
+  it('carries both copies when a selected pair is picked up', () => {
+    const held = slots('7H', '7H', 'KD');
+    const chosen = new Set([held[0].id, held[1].id]);
+
+    expect(slotsForDrag(held, chosen, 1).map((s) => s.card)).toEqual(['7H', '7H']);
+  });
+
+  it('carries nothing from an index that is not there', () => {
+    expect(slotsForDrag(slots('AS'), new Set(), 4)).toEqual([]);
   });
 });
 

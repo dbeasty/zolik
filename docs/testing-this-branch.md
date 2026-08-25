@@ -37,7 +37,28 @@ a poker board — laid out from zones, seats and offers the server pushes.
 - The bots move on their own — that is the runtime driving them from the same
   offer list, not per-game AI.
 
-**Rearranging your hand.** Drag a card sideways and it moves; a dashed ring
+**Playing a card by dragging it.** Pick a card up and the places it may go
+light up — the discard pile, a meld it extends, the table. Drop it on one and
+the move is sent. Drop it on nothing and it goes back where it came from.
+
+The whole of that is read off the offer list: an offer says which cards it
+takes, where it lands, and — for a card that could go at either end of a run —
+which ends are legal. So it works in every game, and a game added tomorrow gets
+it without the client being touched. Two things worth trying, because they are
+the ones that look like they must be hard-coded and are not:
+
+- In Canasta, drag a card onto one meld of several. It joins that one. The
+  spread and the meld inside it are both drop targets; the smaller wins.
+- Anywhere, pick up a card the engine will not take right now. Nothing lights
+  up, and letting go does nothing — the same refusal the greyed-out button
+  gives, shown rather than stated.
+
+Select several cards first and drag one of them, and the whole selection goes
+together. Drop cards on a target that wants more than you are holding — a rummy
+meld needs three — and they stay picked instead, until the offer's own button
+has enough to light up.
+
+**Rearranging your hand.** Drag a card along the fan and it moves; a dashed ring
 shows where it will land. Then wait for a bot to move — the arrangement stays
 put, which is the part that needed building, since the server re-pushes the
 whole board after every move and does so in its own order.

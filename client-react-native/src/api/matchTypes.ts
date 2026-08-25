@@ -78,12 +78,35 @@ export type ParamSpec = {
   default?: number;
 };
 
+/**
+ * One card an offer accepts, and where in the target it may go.
+ *
+ * `positions` is ordered to match the rendered order of the target group's
+ * cards, so a drop on the left half means the first entry and the right half
+ * the last — without this side knowing what either name means. A chosen
+ * position is submitted under {@link POSITION_PARAM}.
+ */
+export type Placement = { card: string; positions?: string[] };
+
+/** The parameter a chosen {@link Placement} position travels back under. */
+export const POSITION_PARAM = 'position';
+
 export type Selector = {
+  /** What sort of place this is: a hand, a deck, a discard pile, a meld. */
   zone: string;
   ownerId?: string;
   meldId?: string;
+  /**
+   * The *rendered* zone — the same string as a `Zone.id` in the view — where
+   * `zone` alone only says what sort of place it is. It is what makes a drop
+   * target addressable: which zone a move lands on is a fact about the game,
+   * so the server answers it rather than this side guessing from the verb.
+   *
+   * `meldId` addresses a group inside a zone and is enough on its own.
+   */
+  zoneId?: string;
   cards?: string[];
-  placements?: { card: string; positions?: string[] }[];
+  placements?: Placement[];
   minCards?: number;
   maxCards?: number;
 };

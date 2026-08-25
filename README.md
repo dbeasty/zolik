@@ -36,6 +36,11 @@ may see, and lists the *offers* that viewer may take. It is registered in
 Everything else belongs to the runtime and is written once: persistence, the
 socket, turn order, bots, reconnection, statistics and both user interfaces.
 
+Drag-and-drop comes with it, and is the sharpest test of the idea: an offer
+already says which cards it takes and where they land, so the places a held
+card may be dropped are a filter over the offer list rather than anything a
+client knows. Say where a move lands and it can be dragged.
+
 The one rule the design enforces:
 
 > Every rule-derived fact is computed once, on the server, inside the module —

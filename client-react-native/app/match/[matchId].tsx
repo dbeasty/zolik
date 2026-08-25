@@ -1,17 +1,20 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { Zone } from '@/src/api/matchTypes';
+import { POSITION_PARAM, submissionFor } from '@/src/api/matchTypes';
 import { HandZone } from '@/src/components/match/HandZone';
 import { OfferBar } from '@/src/components/match/OfferBar';
 import { SeatStrip } from '@/src/components/match/SeatStrip';
 import { ZoneView } from '@/src/components/match/ZoneView';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
+import { useDropRegistry, type Measurable } from '@/src/hooks/useDropRegistry';
 import { useHandOrder } from '@/src/hooks/useHandOrder';
 import { useMatchSocket } from '@/src/hooks/useMatchSocket';
-import { cardsForSelection, pruneSelection } from '@/src/lib/hand';
+import { dropSpotsFor, positionAt } from '@/src/lib/drops';
+import { cardsForSelection, pruneSelection, slotsForDrag } from '@/src/lib/hand';
 import { reasonText } from '@/src/lib/i18n';
 import { factText, label, playerName } from '@/src/lib/labels';
 import { colors } from '@/src/theme';
@@ -68,6 +71,15 @@ export default function MatchScreen() {
 
   const heldSlots = myHands.flatMap((z) => slotsFor(z.id));
 
+  // Dragging a card somewhere. `drag` renders the highlights; `dragRef` is the
+  // same thing readable synchronously, because the first pointer move can
+  // arrive before the state that started the drag has been committed, and a
+  // drag whose first frames land nowhere reads as an unresponsive one.
+  const drops = useDropRegistry();
+  const dragRef = useRef<{ slotIds: string[]; cards: string[] } | null>(null);
+  const [drag, setDrag] = useState<{ cards: string[] } | null>(null);
+  const [hoveredDrop, setHoveredDrop] = useState<string | null>(null);
+
   if (!state) {
     return (
       <Screen>
@@ -92,6 +104,77 @@ export default function MatchScreen() {
   const selectedCards = cardsForSelection(heldSlots, selected);
 
   const canAct = state.legalActions.some((o) => o.enabled);
+
+  // Everywhere the cards in flight could be let go of. Derived from the offer
+  // list on every drag, which is why a game added tomorrow gets drag and drop
+  // without this screen being edited: an offer that says which cards it takes
+  // and where it lands *is* a drop target.
+  const spotsFor = (cards: string[]) => dropSpotsFor(state.legalActions, cards);
+  const liveSpots = drag ? spotsFor(drag.cards) : [];
+  const activeDrops = new Set(liveSpots.map((s) => s.elementId));
+
+  const beginDrag = (zoneId: string, index: number) => {
+    const carried = slotsForDrag(slotsFor(zoneId), selected, index);
+    if (!carried.length) return;
+
+    const cards = carried.map((s) => s.card);
+    dragRef.current = { slotIds: carried.map((s) => s.id), cards };
+    setDrag({ cards });
+    // The board is inside a scroll view, so where a meld was during the last
+    // drag is not where it is now.
+    drops.measure();
+  };
+
+  const moveDrag = (x: number, y: number) => {
+    const current = dragRef.current;
+    if (!current) return;
+    const over = drops.hit(x, y, spotsFor(current.cards).map((s) => s.elementId));
+    setHoveredDrop((prev) => (prev === over ? prev : over));
+  };
+
+  const endDrag = (x: number, y: number): boolean => {
+    const current = dragRef.current;
+    dragRef.current = null;
+    setDrag(null);
+    setHoveredDrop(null);
+    if (!current) return false;
+
+    const spots = spotsFor(current.cards);
+    const over = drops.hit(x, y, spots.map((s) => s.elementId));
+    const spot = spots.find((s) => s.elementId === over);
+    if (!spot) return false;
+
+    const offer = state.legalActions.find((o) => o.id === spot.offerId);
+    if (!offer) return false;
+
+    // Dropped somewhere that wants more cards than are in flight — a rummy
+    // meld needs three. Keep them rather than sending a fragment the server
+    // would refuse: they stay selected, so dropping the next one adds to them
+    // and the offer's own button lights up when it has enough.
+    if (!spot.ready) {
+      setSelected((prev) => new Set([...prev, ...current.slotIds]));
+      return true;
+    }
+
+    const action = submissionFor(offer, { cards: current.cards });
+    if (!action) return false;
+
+    // Which end of a run this landed on, when the offer said there was a
+    // choice. Decided by where in the target the pointer was, which is the
+    // one thing only the gesture knows.
+    const position = positionAt(spot.positions, x, drops.rectFor(over!) ?? { x: 0, width: 0 });
+    if (position) action.params = { ...(action.params ?? {}), [POSITION_PARAM]: position };
+
+    send(action);
+    setSelected(new Set());
+    return true;
+  };
+
+  const dropProps = {
+    registerDrop: (id: string, node: Measurable | null) => drops.register(id, node),
+    activeDrops,
+    hoveredDrop,
+  };
 
   return (
     <Screen>
@@ -130,8 +213,8 @@ export default function MatchScreen() {
           </Text>
         ))}
 
-        <Section title="Table" zones={shared} />
-        <Section title="Opponents" zones={others} compact />
+        <Section title="Table" zones={shared} {...dropProps} />
+        <Section title="Opponents" zones={others} compact {...dropProps} />
 
         <View style={styles.mine}>
           {mine.map((z) =>
@@ -143,9 +226,13 @@ export default function MatchScreen() {
                 selected={selected}
                 onToggle={toggleSlot}
                 onMove={(from, to) => move(z.id, from, to)}
+                onDragStart={(index) => beginDrag(z.id, index)}
+                onDragMove={moveDrag}
+                onDragEnd={endDrag}
+                externalTarget={hoveredDrop}
               />
             ) : (
-              <ZoneView key={z.id} zone={z} />
+              <ZoneView key={z.id} zone={z} {...dropProps} />
             ),
           )}
         </View>
@@ -198,13 +285,25 @@ export default function MatchScreen() {
   );
 }
 
-function Section({ title, zones, compact }: { title: string; zones: Zone[]; compact?: boolean }) {
+function Section({
+  title,
+  zones,
+  compact,
+  ...drops
+}: {
+  title: string;
+  zones: Zone[];
+  compact?: boolean;
+  registerDrop?: (id: string, node: Measurable | null) => void;
+  activeDrops?: ReadonlySet<string>;
+  hoveredDrop?: string | null;
+}) {
   if (!zones.length) return null;
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
       {zones.map((z) => (
-        <ZoneView key={z.id} zone={z} compact={compact} />
+        <ZoneView key={z.id} zone={z} compact={compact} {...drops} />
       ))}
     </View>
   );

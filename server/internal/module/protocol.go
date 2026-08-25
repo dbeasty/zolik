@@ -238,16 +238,43 @@ const (
 
 // Placement is one card an offer accepts, plus any positional hint (which end
 // of a run it may extend). Empty Positions means "send no position".
+//
+// Positions are listed in the order the group's own cards are rendered, so a
+// client can map "dropped on the left half" to the first entry and "the right
+// half" to the last without knowing what either one means. A chosen position
+// travels back in Action.Params under the key "position".
 type Placement struct {
 	Card      string   `json:"card"`
 	Positions []string `json:"positions,omitempty"`
 }
 
+// PositionParam is the parameter a chosen Placement position is submitted
+// under. Named here rather than in any module so that a client can honour a
+// placement hint generically, the same way it renders a declared ParamSpec.
+const PositionParam = "position"
+
 // Selector describes where an offer's cards come from, or where they land.
 type Selector struct {
+	// Zone says what kind of place this is, in the abstract: a hand, a deck, a
+	// discard pile, a meld, the table.
 	Zone    SelectorZone `json:"zone"`
 	OwnerID string       `json:"ownerId,omitempty"`
 	MeldID  string       `json:"meldId,omitempty"`
+
+	// ZoneID names the *rendered* zone — the same string as the matching
+	// Zone.ID in the view — where Zone alone only says what sort of place it
+	// is. The two are deliberately not the same string: a game may render two
+	// discard piles, and "discard_pile" cannot say which.
+	//
+	// It exists so an interface can offer a place to drop a card. Which zone a
+	// move lands on is a fact about the game, so the module answers it; a
+	// client that had to guess from the verb, or from a convention like
+	// "discard_pile means the zone called discard", would be deriving a rule.
+	//
+	// MeldID addresses a group inside a zone and is enough on its own, since
+	// groups are rendered under their own ids. Set ZoneID when a drop lands on
+	// a whole zone.
+	ZoneID string `json:"zoneId,omitempty"`
 
 	Cards      []string    `json:"cards,omitempty"`
 	Placements []Placement `json:"placements,omitempty"`

@@ -2,6 +2,8 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import type { Zone } from '@/src/api/matchTypes';
 import { CardView } from '@/src/components/CardView';
+import type { Measurable } from '@/src/hooks/useDropRegistry';
+import { groupElementId, zoneElementId } from '@/src/lib/drops';
 import { label } from '@/src/lib/labels';
 import { colors } from '@/src/theme';
 
@@ -17,6 +19,11 @@ import { colors } from '@/src/theme';
  * A hidden zone arrives with a count and no cards. That is the whole anti-cheat
  * surface and it needs no cooperation from this file — there is nothing to
  * leak, because nothing was sent.
+ *
+ * It is also where a dragged card can be let go of. Zones and the groups
+ * inside them register themselves as drop regions under the ids the offers
+ * name them by, and light up when the card in hand is one they would take.
+ * This file decides none of that — it is told which of its ids are live.
  */
 
 type Props = {
@@ -25,13 +32,33 @@ type Props = {
   selected?: string[];
   onPressCard?: (card: string, index: number) => void;
   compact?: boolean;
+  /** Publishes this zone and its groups as places a card may be dropped. */
+  registerDrop?: (elementId: string, node: Measurable | null) => void;
+  /** Element ids that would accept the card currently being dragged. */
+  activeDrops?: ReadonlySet<string>;
+  /** The one the pointer is over right now. */
+  hoveredDrop?: string | null;
 };
 
-export function ZoneView({ zone, selected, onPressCard, compact }: Props) {
+export function ZoneView({
+  zone,
+  selected,
+  onPressCard,
+  compact,
+  registerDrop,
+  activeDrops,
+  hoveredDrop,
+}: Props) {
   const title = label(zone.labelKey) || zone.id;
+  const zoneId = zoneElementId(zone.id);
+  const zoneLive = activeDrops?.has(zoneId) ?? false;
 
   return (
-    <View style={styles.zone} testID={`zone-${zone.id}`}>
+    <View
+      ref={(n) => registerDrop?.(zoneId, n as unknown as Measurable | null)}
+      style={[styles.zone, zoneLive && styles.live, hoveredDrop === zoneId && styles.hovered]}
+      testID={`zone-${zone.id}`}
+    >
       <View style={styles.headerRow}>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.count} testID={`zone-count-${zone.id}`}>
@@ -45,20 +72,33 @@ export function ZoneView({ zone, selected, onPressCard, compact }: Props) {
           both would show every card twice. */}
       {(zone.groups ?? []).length > 0 ? (
         <View style={styles.groups}>
-          {(zone.groups ?? []).map((g) => (
-            <View key={g.id} style={styles.group} testID={`group-${g.id}`}>
-              <View style={styles.cards}>
-                {g.cards.map((c, i) => (
-                  <CardView key={`${g.id}-${c}-${i}`} card={c} compact />
+          {(zone.groups ?? []).map((g) => {
+            const groupId = groupElementId(g.id);
+            const groupLive = activeDrops?.has(groupId) ?? false;
+            return (
+              <View
+                key={g.id}
+                ref={(n) => registerDrop?.(groupId, n as unknown as Measurable | null)}
+                style={[
+                  styles.group,
+                  groupLive && styles.live,
+                  hoveredDrop === groupId && styles.hovered,
+                ]}
+                testID={`group-${g.id}`}
+              >
+                <View style={styles.cards}>
+                  {g.cards.map((c, i) => (
+                    <CardView key={`${g.id}-${c}-${i}`} card={c} compact />
+                  ))}
+                </View>
+                {(g.badgeKeys ?? []).map((b) => (
+                  <Text key={b} style={styles.badge}>
+                    {label(b)}
+                  </Text>
                 ))}
               </View>
-              {(g.badgeKeys ?? []).map((b) => (
-                <Text key={b} style={styles.badge}>
-                  {label(b)}
-                </Text>
-              ))}
-            </View>
-          ))}
+            );
+          })}
         </View>
       ) : (
         <View style={styles.cards}>
@@ -79,6 +119,14 @@ export function ZoneView({ zone, selected, onPressCard, compact }: Props) {
           pile whose contents are not in play. Saying so beats an empty box. */}
       {zone.count > 0 && !(zone.cards ?? []).length && !(zone.groups ?? []).length && zone.kind !== 'stack' ? (
         <Text style={styles.hidden}>{zone.count} hidden</Text>
+      ) : null}
+
+      {/* An empty spread that can be dropped on says so, because otherwise the
+          first meld of the game has an invisible target. */}
+      {zoneLive && !(zone.cards ?? []).length && !(zone.groups ?? []).length ? (
+        <Text style={styles.dropHere} testID={`drop-here-${zone.id}`}>
+          Drop here
+        </Text>
       ) : null}
     </View>
   );
@@ -114,8 +162,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 4,
   },
+  // Only the border colour changes, never its width: a region that grew when
+  // it lit up would move every region after it in the middle of the drag,
+  // which moves the very measurements the drop is tested against.
+  live: { borderColor: colors.accent },
+  hovered: { borderColor: colors.gold, backgroundColor: colors.accentDim },
   badge: { color: colors.gold, fontSize: 10, marginTop: 2 },
   hidden: { color: colors.muted, fontSize: 11, marginTop: 6, fontStyle: 'italic' },
+  dropHere: { color: colors.gold, fontSize: 11, marginTop: 6, fontStyle: 'italic' },
   back: {
     marginTop: 6,
     width: 44,

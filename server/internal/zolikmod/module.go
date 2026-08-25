@@ -212,7 +212,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	for _, o := range src {
 		out = append(out, module.ActionOffer{
 			ID: o.ID, Verb: string(o.Verb), Enabled: o.Enabled, WhyNot: string(o.WhyNot),
-			Source: toSelector(o.Source), Target: toSelector(o.Target),
+			Source: toSelector(o.Source, playerID), Target: toSelector(o.Target, playerID),
 			// Laying a meld is the one thing here a person has to compose. The
 			// offer lists which cards are eligible but not which *combination*
 			// of them is a run or a set, because enumerating rummy shapes is
@@ -224,18 +224,63 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	return out, nil
 }
 
-func toSelector(s *rules.Selector) *module.Selector {
+// The ids View renders zones under. They are named here, next to the mapping
+// that hands them out to offers, because an offer that points at a zone id no
+// zone has is a drop target a player can never hit — and nothing else would
+// notice.
+const (
+	drawZoneID    = "draw"
+	discardZoneID = "discard"
+)
+
+func handZoneID(playerID string) string  { return "hand:" + playerID }
+func meldsZoneID(playerID string) string { return "melds:" + playerID }
+
+func toSelector(s *rules.Selector, playerID string) *module.Selector {
 	if s == nil {
 		return nil
 	}
 	out := &module.Selector{
 		Zone: module.SelectorZone(s.Zone), OwnerID: s.OwnerID, MeldID: s.MeldID,
-		Cards: s.Cards, MinCards: s.MinCards, MaxCards: s.MaxCards,
+		ZoneID: zoneIDFor(s, playerID),
+		Cards:  s.Cards, MinCards: s.MinCards, MaxCards: s.MaxCards,
 	}
 	for _, p := range s.Placements {
 		out.Placements = append(out.Placements, module.Placement{Card: p.Card, Positions: p.Positions})
 	}
 	return out
+}
+
+// zoneIDFor resolves the abstract zone an engine selector names into the
+// rendered zone a person can actually drop a card on.
+//
+// The engine says "discard_pile" because that is what the rule is about; the
+// board has a zone called "discard" because that is what is drawn. Translating
+// between the two is exactly the sort of thing that belongs in this adapter
+// and nowhere else — a client doing it would be guessing at a rule, and doing
+// it in the engine would give the rules a view to know about.
+func zoneIDFor(s *rules.Selector, playerID string) string {
+	switch s.Zone {
+	case rules.ZoneHand:
+		if s.OwnerID == "" {
+			return ""
+		}
+		return handZoneID(s.OwnerID)
+	case rules.ZoneDeck:
+		return drawZoneID
+	case rules.ZoneDiscardPile:
+		return discardZoneID
+	case rules.ZoneMeld:
+		if s.OwnerID == "" {
+			return ""
+		}
+		return meldsZoneID(s.OwnerID)
+	case rules.ZoneTable:
+		// A meld is laid down into the layer's own spread, which is why this
+		// is the one case that needs to know whose offers these are.
+		return meldsZoneID(playerID)
+	}
+	return ""
 }
 
 // View renders the rummy board in generic zones.
@@ -253,7 +298,7 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 
 	own := gs.Hands[viewerID]
 	vm.Zones = append(vm.Zones, module.Zone{
-		ID: "hand:" + viewerID, Kind: module.ZoneHand, OwnerID: viewerID,
+		ID: handZoneID(viewerID), Kind: module.ZoneHand, OwnerID: viewerID,
 		LabelKey: "zone.yourHand", Cards: cardViews(own), Count: len(own),
 	})
 	for _, p := range gs.TurnOrder {
@@ -261,15 +306,15 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 			continue
 		}
 		vm.Zones = append(vm.Zones, module.Zone{
-			ID: "hand:" + p, Kind: module.ZoneHand, OwnerID: p,
+			ID: handZoneID(p), Kind: module.ZoneHand, OwnerID: p,
 			LabelKey: "zone.opponentHand", Count: len(gs.Hands[p]),
 		})
 	}
 
 	vm.Zones = append(vm.Zones,
-		module.Zone{ID: "draw", Kind: module.ZoneStack, LabelKey: "zone.drawPile", Count: len(gs.DrawPile)},
+		module.Zone{ID: drawZoneID, Kind: module.ZoneStack, LabelKey: "zone.drawPile", Count: len(gs.DrawPile)},
 		module.Zone{
-			ID: "discard", Kind: module.ZonePile, LabelKey: "zone.discardPile",
+			ID: discardZoneID, Kind: module.ZonePile, LabelKey: "zone.discardPile",
 			Cards: cardViews(gs.DiscardPile), Count: len(gs.DiscardPile),
 		},
 	)
@@ -278,11 +323,15 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 	// use for tricks, and a climbing game for played combinations.
 	for _, p := range gs.TurnOrder {
 		melds := gs.Melds[p]
-		if len(melds) == 0 {
+		// An opponent with nothing down gets no empty box, but the viewer
+		// always gets theirs: laying a meld targets it, and a target that is
+		// not drawn until after the first meld is a place to drop a card that
+		// only appears once you no longer need it.
+		if len(melds) == 0 && p != viewerID {
 			continue
 		}
 		z := module.Zone{
-			ID: "melds:" + p, Kind: module.ZoneSpread, OwnerID: p, LabelKey: "zone.melds",
+			ID: meldsZoneID(p), Kind: module.ZoneSpread, OwnerID: p, LabelKey: "zone.melds",
 		}
 		metas := gs.MeldMeta[p]
 		for i, cards := range melds {

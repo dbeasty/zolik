@@ -41,10 +41,10 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		play.Enabled, play.WhyNot = m.probeFirst(raw, playerID, s.Hands[playerID])
 	}
 	play.Source = &module.Selector{
-		Zone: module.FromHand, OwnerID: playerID,
+		Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID),
 		Cards: playable, MinCards: 1, MaxCards: 1,
 	}
-	play.Target = &module.Selector{Zone: module.FromDiscardPile}
+	play.Target = &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID}
 	// The wild's suit choice. Declared only when a wild is actually among the
 	// playable cards, so a client never renders a suit picker it cannot use.
 	if containsWild(playable) {
@@ -55,8 +55,8 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	// --- draw ----------------------------------------------------------------
 	draw := module.ActionOffer{ID: OfferDraw, Verb: VerbDraw}
 	draw.Enabled, draw.WhyNot = probe(m, raw, playerID, module.Action{Verb: VerbDraw})
-	draw.Source = &module.Selector{Zone: module.FromDeck}
-	draw.Target = &module.Selector{Zone: module.FromHand, OwnerID: playerID}
+	draw.Source = &module.Selector{Zone: module.FromDeck, ZoneID: drawZoneID}
+	draw.Target = &module.Selector{Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID)}
 	offers = append(offers, draw)
 
 	// --- take a skip ---------------------------------------------------------

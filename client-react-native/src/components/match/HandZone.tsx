@@ -10,18 +10,22 @@ import { label } from '@/src/lib/labels';
 import { colors } from '@/src/theme';
 
 /**
- * The viewer's own hand: the one zone on the board they may rearrange.
+ * The viewer's own hand: the one zone on the board they may rearrange, and the
+ * one a drag starts from.
  *
- * Everything else the shell draws is the server's business — a discard pile is
- * in the order it was discarded and a meld is in the order it was laid. The
- * order of the cards *in your hand*, though, is nobody's business but yours,
- * which is why this is the only zone that is interactive in this way, and why
- * no module was changed to add it. Every game gets it because no game owns it.
+ * The order of the cards *in your hand* is nobody's business but yours, which
+ * is why this is the only zone that can be rearranged, and why no module was
+ * changed to add it. Every game gets it because no game owns it.
+ *
+ * A drag out of the hand is a different thing from a drag within it, and this
+ * component deliberately does not know which one is happening: it reports
+ * where the pointer is, and the screen — which can see the whole board and the
+ * offers — says whether the card was let go of somewhere that wanted it. Only
+ * if nothing did does the drag mean "move this card along the fan".
  *
  * It knows no more about the cards than `ZoneView` does. It cannot sort by
  * rank or group by suit, because doing either would mean deciding what a rank
- * or a suit is, and that is the line this client does not cross. It moves the
- * card a person picked up to the place they dropped it.
+ * or a suit is, and that is the line this client does not cross.
  */
 
 type Props = {
@@ -30,11 +34,31 @@ type Props = {
   selected: ReadonlySet<string>;
   onToggle: (slotId: string) => void;
   onMove: (from: number, to: number) => void;
+  /** A drag began on the card at this index. */
+  onDragStart?: (index: number) => void;
+  /** The pointer moved, in window coordinates. */
+  onDragMove?: (x: number, y: number) => void;
+  /** Let go of. Returns true if something on the board took the card. */
+  onDragEnd?: (x: number, y: number) => boolean;
+  /** Set while the pointer is over a drop target outside the hand. */
+  externalTarget?: string | null;
 };
 
-type Measurable = { measureInWindow: (cb: (x: number, y: number, w: number, h: number) => void) => void };
+type Measurable = {
+  measureInWindow: (cb: (x: number, y: number, w: number, h: number) => void) => void;
+};
 
-export function HandZone({ zone, slots, selected, onToggle, onMove }: Props) {
+export function HandZone({
+  zone,
+  slots,
+  selected,
+  onToggle,
+  onMove,
+  onDragStart,
+  onDragMove,
+  onDragEnd,
+  externalTarget,
+}: Props) {
   const cardRefs = useRef<(Measurable | null)[]>([]);
 
   // Where each card is *on screen*, which is the same space a gesture reports
@@ -51,8 +75,23 @@ export function HandZone({ zone, slots, selected, onToggle, onMove }: Props) {
 
   const heldRef = useRef<number | null>(null);
   const targetRef = useRef<number | null>(null);
+  const lastPoint = useRef({ x: 0, y: 0 });
   const [held, setHeld] = useState<number | null>(null);
   const [target, setTarget] = useState<number | null>(null);
+
+  // Mirrors of things that change while a drag is in flight. The gesture's
+  // callbacks are handed to the UI thread once; reading these through a ref
+  // rather than closing over the props keeps a mid-drag re-render — and the
+  // parent re-renders on every pointer move, to light up targets — from
+  // leaving the gesture holding a stale copy.
+  const outsideRef = useRef<string | null>(null);
+  outsideRef.current = externalTarget ?? null;
+  const moveRef = useRef(onDragMove);
+  moveRef.current = onDragMove;
+  const endRef = useRef(onDragEnd);
+  endRef.current = onDragEnd;
+  const startRef = useRef(onDragStart);
+  startRef.current = onDragStart;
 
   // Called at touch-down rather than when a drag activates: `measureInWindow`
   // answers on a later tick, and by the time a pointer has moved far enough to
@@ -71,12 +110,21 @@ export function HandZone({ zone, slots, selected, onToggle, onMove }: Props) {
   const pickUp = useCallback((index: number) => {
     heldRef.current = index;
     setHeld(index);
+    startRef.current?.(index);
   }, []);
 
   const hover = useCallback(
     (absoluteX: number, absoluteY: number) => {
+      lastPoint.current = { x: absoluteX, y: absoluteY };
+      moveRef.current?.(absoluteX, absoluteY);
       if (heldRef.current === null || !measured.current) return;
-      const at = slotAtPoint(rects.current.slice(0, slots.length), { x: absoluteX, y: absoluteY });
+
+      // Over the board, the card is going somewhere rather than moving along
+      // the fan, so the reorder indicator gets out of the way — two answers to
+      // "where does this land?" on screen at once is one too many.
+      const at = outsideRef.current
+        ? null
+        : slotAtPoint(rects.current.slice(0, slots.length), { x: absoluteX, y: absoluteY });
       // Only a change is worth a render; a pan reports every pointer move.
       if (at !== targetRef.current) {
         targetRef.current = at;
@@ -86,15 +134,45 @@ export function HandZone({ zone, slots, selected, onToggle, onMove }: Props) {
     [slots.length],
   );
 
+  /**
+   * Whether a point is over the fan at all.
+   *
+   * What this prevents: a card dragged onto the table and refused — because
+   * the engine will not take it yet — falling through to "move it along the
+   * fan" and rearranging the hand as a consolation prize. A card let go of
+   * over nothing belongs back where it came from, which is what a real table
+   * does too.
+   */
+  const withinFan = useCallback(
+    (x: number, y: number) => {
+      const live = rects.current.slice(0, slots.length).filter(Boolean);
+      if (!live.length) return false;
+      const slop = 40;
+      const left = Math.min(...live.map((r) => r.x)) - slop;
+      const right = Math.max(...live.map((r) => r.x + r.width)) + slop;
+      const top = Math.min(...live.map((r) => r.y)) - slop;
+      const bottom = Math.max(...live.map((r) => r.y + r.height)) + slop;
+      return x >= left && x <= right && y >= top && y <= bottom;
+    },
+    [slots.length],
+  );
+
   const release = useCallback(() => {
     const from = heldRef.current;
     const to = targetRef.current;
+    const { x, y } = lastPoint.current;
     heldRef.current = null;
     targetRef.current = null;
     setHeld(null);
     setTarget(null);
+
+    // The board gets first refusal. Only a card nothing wanted is a card being
+    // moved along the fan — and only if it was let go of over the fan.
+    const taken = endRef.current?.(x, y) ?? false;
+    if (taken) return;
+    if (!withinFan(x, y)) return;
     if (from !== null && to !== null && from !== to) onMove(from, to);
-  }, [onMove]);
+  }, [onMove, withinFan]);
 
   const title = label(zone.labelKey) || zone.id;
 
@@ -133,7 +211,7 @@ export function HandZone({ zone, slots, selected, onToggle, onMove }: Props) {
 
       {slots.length > 1 ? (
         <Text style={styles.hint} testID={`hand-hint-${zone.id}`}>
-          Drag a card sideways to rearrange your hand
+          Drag a card along the fan to rearrange it, or onto the board to play it
         </Text>
       ) : null}
     </View>
@@ -188,22 +266,28 @@ function DraggableCard({
   const dragged = useSharedValue(false);
 
   const pan = Gesture.Pan()
-    // Sideways starts a drag, downwards scrolls the page. The hand fans
-    // horizontally, so a sideways drag cannot have been meant for the
-    // vertical scroll view this sits inside, and a vertical one almost
-    // certainly was — handing that case straight to the scroll view is what
-    // keeps the board reachable from a hand that fills the bottom of a phone.
+    // Any direction, once the pointer has genuinely moved. The threshold is
+    // only there so that a tap with a shaky finger stays a tap.
     //
-    // Once a drag has started neither threshold applies any more, so moving a
-    // card down onto the second row of a wrapped fan works: go sideways
-    // first, then wherever you like.
+    // An earlier version activated on sideways movement and handed vertical
+    // movement to the scroll view this sits inside, on the reasoning that the
+    // fan is horizontal so a sideways drag must have meant the fan. That was
+    // true while the only thing a drag could do was rearrange the hand. It
+    // stopped being true the moment a card could be dropped on the board,
+    // because the board is *above* the hand: reserving vertical movement for
+    // scrolling silently cancelled every drag aimed at the table, which is the
+    // main thing a person drags a card for.
+    //
+    // The cost is that a touch starting on a card no longer scrolls the page.
+    // It is the right way round — a card let go of over nothing goes back
+    // where it came from, so a scroll misread as a drag costs nothing, while a
+    // drag misread as a scroll costs the whole feature.
     //
     // Deliberately *not* `activateAfterLongPress`. It reads like it would add
-    // a press-and-hold way in alongside these, and it does the opposite — it
-    // gates activation on the hold, so the sideways threshold stops working
-    // and a normal quick drag does nothing at all, silently.
-    .activeOffsetX([-12, 12])
-    .failOffsetY([-24, 24])
+    // a press-and-hold way in alongside a movement threshold, and it does the
+    // opposite — it gates activation on the hold, so the movement threshold
+    // stops working and a normal quick drag does nothing at all, silently.
+    .minDistance(10)
     // Fires on touch-down whether or not this ever becomes a drag, which is
     // what gets the cards measured in time to be useful.
     .onBegin(() => {
