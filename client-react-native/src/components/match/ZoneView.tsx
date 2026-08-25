@@ -6,7 +6,7 @@ import { CardView } from '@/src/components/CardView';
 import type { Measurable } from '@/src/hooks/useDropRegistry';
 import { groupElementId, zoneElementId } from '@/src/lib/drops';
 import { label } from '@/src/lib/labels';
-import { colors } from '@/src/theme';
+import { colors, dropArmed } from '@/src/theme';
 
 /**
  * One area of the board, laid out by its *kind* rather than its meaning.
@@ -258,9 +258,10 @@ const styles = StyleSheet.create({
   },
   // Only the border colour changes, never its width: a region that grew when
   // it lit up would move every region after it in the middle of the drag,
-  // which moves the very measurements the drop is tested against.
+  // which moves the very measurements the drop is tested against. dropArmed
+  // keeps to that too — it only touches colour, style and fill.
   live: { borderColor: colors.accent },
-  hovered: { borderColor: colors.gold, backgroundColor: colors.accentDim },
+  hovered: dropArmed,
   badge: { color: colors.gold, fontSize: 10, marginTop: 2 },
   hidden: { color: colors.muted, fontSize: 11, marginTop: 6, fontStyle: 'italic' },
   dropHere: { color: colors.gold, fontSize: 11, marginTop: 6, fontStyle: 'italic' },

@@ -22,6 +22,17 @@ export const colors = {
   cardBorder: '#cbd5e1',
 };
 
+// The exact spot a dragged card will land, drawn identically everywhere a
+// card can be dropped — the hand's own reorder gap and every meld or zone on
+// the board — so "this is where it goes" reads the same regardless of what
+// kind of space it is. A wash rather than a solid fill: filled in solid it
+// reads as a card already sitting there, which is the one thing it is not.
+export const dropArmed = {
+  borderStyle: 'dashed' as const,
+  borderColor: colors.gold,
+  backgroundColor: 'rgba(251, 191, 36, 0.14)',
+};
+
 export const shared = StyleSheet.create({
   screen: {
     flex: 1,
