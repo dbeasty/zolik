@@ -5,7 +5,8 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { Zone } from '@/src/api/matchTypes';
 import { POSITION_PARAM, offerGroupKey, submissionFor } from '@/src/api/matchTypes';
 import { HandZone } from '@/src/components/match/HandZone';
-import { OfferBar } from '@/src/components/match/OfferBar';
+import { OfferBar, OfferGlance } from '@/src/components/match/OfferBar';
+import { Panel } from '@/src/components/match/Panel';
 import { SeatStrip } from '@/src/components/match/SeatStrip';
 import { ZoneView } from '@/src/components/match/ZoneView';
 import { Screen } from '@/src/components/Screen';
@@ -13,10 +14,13 @@ import { useSession } from '@/src/context/SessionContext';
 import { useDropRegistry, type Measurable } from '@/src/hooks/useDropRegistry';
 import { useHandOrder } from '@/src/hooks/useHandOrder';
 import { useMatchSocket } from '@/src/hooks/useMatchSocket';
+import { useMetrics } from '@/src/hooks/useMetrics';
+import { usePanelState } from '@/src/hooks/usePanelState';
+import { drawableZones } from '@/src/lib/board';
 import { dropSpotsFor, groupElementId, positionAt, type DropSpot } from '@/src/lib/drops';
 import { cardsForSelection, pruneSelection, slotsForDrag } from '@/src/lib/hand';
 import { reasonText } from '@/src/lib/i18n';
-import { factText, playerName } from '@/src/lib/labels';
+import { factText, label, playerName } from '@/src/lib/labels';
 import { colors } from '@/src/theme';
 
 /**
@@ -37,11 +41,20 @@ import { colors } from '@/src/theme';
  * It replaced a 1,756-line screen that played exactly one game. The difference
  * was not effort; it was that the rules had moved to the server, and a screen
  * that derives nothing needs far less of itself.
+ *
+ * Every region below is drawn inside a `Panel`, which is what gives a player
+ * a minimize control on each one for free, and what makes a phone-width
+ * layout — controls that wrap onto more than one line, a spread named by
+ * whose it is instead of a bare "Melds", nothing drawn for a hand nobody can
+ * see — one change to the pieces this file already assembles rather than a
+ * second screen.
  */
 export default function MatchScreen() {
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const { session, client } = useSession();
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
+  const metrics = useMetrics();
+  const panels = usePanelState(matchId ? String(matchId) : undefined);
 
   const url = useMemo(() => {
     if (!matchId || !session?.accessToken) return null;
@@ -59,8 +72,6 @@ export default function MatchScreen() {
   // thumb is, everyone else's go up top. Which zone is yours is a field the
   // server sets.
   const mine = zones.filter((z) => z.ownerId === viewerId);
-  const shared = zones.filter((z) => !z.ownerId);
-  const others = zones.filter((z) => z.ownerId && z.ownerId !== viewerId);
 
   // A hand is the only zone anyone may rearrange, and `hand` is a kind every
   // module already declares — so this reaches all four games without naming
@@ -130,27 +141,59 @@ export default function MatchScreen() {
   const spotsFor = (cards: string[]) => dropSpotsFor(state.legalActions, cards);
   const liveSpots = drag ? spotsFor(drag.cards) : [];
 
-  // The same lookup, aimed at a folded control's own offers instead of a card
-  // in flight — recomputed from the live offer list on every render rather
-  // than captured at the moment of the press, so a target that stopped being
-  // legal mid-choice simply stops lighting up instead of a stale one staying
-  // pressable.
-  const pendingOffers = pendingGroupKey
-    ? state.legalActions.filter((o) => o.enabled && o.target?.meldId && offerGroupKey(o) === pendingGroupKey)
-    : [];
+  // A card in hand is a card looking for somewhere to go. Every enabled offer
+  // that would take the current selection is a live target — the same set a
+  // drag would light up, offered to a tap as well: dragging a card across a
+  // scrolling board to reach a meld below the fold is a poor way to play on a
+  // phone, and it is the whole reason an opponent's meld could look
+  // unreachable even though the offer to lay off onto it was right there.
+  //
+  // `pendingGroupKey`, when set, narrows this to one folded control's own
+  // targets — pressing it said which *kind* of move was meant, and only
+  // which target is still open (see `onAmbiguous` below). Unset — a card was
+  // simply tapped, no control pressed — every enabled offer is a candidate,
+  // recomputed on every render rather than captured at selection time, so a
+  // target that stopped being legal mid-choice simply stops lighting up
+  // instead of a stale one staying pressable.
+  const pendingCandidates = state.legalActions.filter(
+    (o) => o.enabled && (!pendingGroupKey || (o.target?.meldId && offerGroupKey(o) === pendingGroupKey)),
+  );
   // `dropSpotsFor` answers "where may *these cards* be let go", which is
   // exactly wrong when nothing is selected — every one of a folded control's
   // enabled, already-one-tap-ready offers is still a live target then, cards
-  // or no cards, the same as a lone offer of the same shape would be.
+  // or no cards, the same as a lone offer of the same shape would be. With
+  // nothing selected and no folded control pressed, nothing is pending.
   const pendingSpots: DropSpot[] =
     selectedCards.length > 0
-      ? dropSpotsFor(pendingOffers, selectedCards)
-      : pendingOffers.flatMap((o) =>
-          o.target?.meldId ? [{ offerId: o.id, elementId: groupElementId(o.target.meldId), ready: true }] : [],
-        );
+      ? dropSpotsFor(pendingCandidates, selectedCards)
+      : pendingGroupKey
+        ? pendingCandidates.flatMap((o) =>
+            o.target?.meldId ? [{ offerId: o.id, elementId: groupElementId(o.target.meldId), ready: true }] : [],
+          )
+        : [];
 
   const activeDrops = new Set([...liveSpots, ...pendingSpots].map((s) => s.elementId));
   const pressableDrops = new Set(pendingSpots.map((s) => s.elementId));
+
+  // What's worth putting on screen at all — a hidden zone with a count and no
+  // cards says nothing the seat strip hasn't already said, unless it's the
+  // viewer's own, or a target the card in flight could land on right now.
+  const visible = drawableZones(zones, viewerId, activeDrops);
+
+  // Every spread, whoever's it is, in one row — a rummy meld, a canasta
+  // partnership's melds, a poker board. Kept apart from the piles and stacks
+  // below only by `kind`, never by whose it is or which game sent it.
+  const spreadZones = visible.filter((z) => z.kind === 'spread');
+  const mySpreads = spreadZones.filter((z) => z.ownerId === viewerId);
+  const otherSpreads = spreadZones.filter((z) => z.ownerId !== viewerId);
+  const orderedSpreads = [...mySpreads, ...otherSpreads];
+
+  const tableZones = visible.filter((z) => !z.ownerId && z.kind !== 'spread');
+  // Whatever is left: an opponent zone that isn't a spread — a hand revealed
+  // at a showdown, say — or a kind this shell has never seen. The fallback
+  // that keeps a game this screen wasn't written against from losing content
+  // silently.
+  const otherZones = visible.filter((z) => z.ownerId && z.ownerId !== viewerId && z.kind !== 'spread');
 
   const beginDrag = (zoneId: string, index: number) => {
     const carried = slotsForDrag(slotsFor(zoneId), selected, index);
@@ -244,6 +287,15 @@ export default function MatchScreen() {
     onPressDrop: pressDrop,
   };
 
+  // A stable id for remembering whether a zone's own panel is put away —
+  // shared by every place this screen draws one.
+  const panelIdFor = (zoneId: string) => `zone:${zoneId}`;
+  const zonePanelProps = (zoneId: string) => ({
+    panelId: panelIdFor(zoneId),
+    minimized: panels.isMinimized(panelIdFor(zoneId)),
+    onToggleMinimized: () => panels.toggle(panelIdFor(zoneId)),
+  });
+
   // What the status dot means, in the same words the line it replaced used
   // to say. Red is the one case a player needs to notice — everything else
   // (active, completed) is green, since "simple red or green" was the ask,
@@ -303,6 +355,7 @@ export default function MatchScreen() {
           players={state.players}
           viewerId={viewerId}
           standings={state.standings}
+          {...zonePanelProps('seats')}
         />
 
         {(view.prompts ?? []).map((f, i) => (
@@ -311,14 +364,27 @@ export default function MatchScreen() {
           </Text>
         ))}
 
-        {/* Buttons sit beside the piles rather than below them, sharing that
-            band of the screen instead of costing it a full-width row of
-            their own — OfferBar already scrolls horizontally, so a narrow
-            column here just means an earlier scroll, never a clipped or
-            wrapped button. */}
-        <View style={styles.tableRow}>
-          <Section title="Table" zones={shared} compact {...dropProps} />
-          <View style={styles.offerBarWrap}>
+        {/* Buttons sit beside the piles on a wide screen, sharing that band
+            rather than costing it a full-width row of their own; on a narrow
+            one there isn't a band wide enough to share, so they stack —
+            each control still gets its own row inside its own panel instead
+            of running off the edge behind an invisible scrollbar. */}
+        <View style={[styles.tableRow, metrics.narrow && styles.tableRowNarrow]}>
+          <Section
+            title="Table"
+            zones={tableZones}
+            compact
+            {...zonePanelProps('section:table')}
+            panelPropsFor={zonePanelProps}
+            {...dropProps}
+          />
+          <Panel
+            {...zonePanelProps('controls')}
+            title="Controls"
+            testID="controls-panel"
+            style={!metrics.narrow && styles.controlsPanel}
+            summary={<OfferGlance offers={state.legalActions} testID="controls-summary" />}
+          >
             {error ? (
               <Text testID="match-error" style={styles.error} onPress={clearError}>
                 {reasonText(error.code, error.code)}
@@ -346,7 +412,7 @@ export default function MatchScreen() {
                 Waiting for another player…
               </Text>
             ) : null}
-          </View>
+          </Panel>
         </View>
 
         {/* Your hand first — it's what your thumb is on every turn — with
@@ -367,19 +433,38 @@ export default function MatchScreen() {
               onDragMove={moveDrag}
               onDragEnd={endDrag}
               externalTarget={hoveredDrop}
+              {...zonePanelProps(z.id)}
             />
           ))}
         </View>
 
-        <View style={styles.mine}>
-          {mine
-            .filter((z) => z.kind !== 'hand')
-            .map((z) => (
-              <ZoneView key={z.id} zone={z} {...dropProps} />
+        {/* Every spread on the board, whoever's it is, sharing a wrapping
+            row instead of each claiming a full-width line — named by its
+            owner where the server sent one, so two or more players' melds
+            read as whose they are at a glance rather than an anonymous
+            stack of "Melds". */}
+        {orderedSpreads.length > 0 ? (
+          <View style={styles.spreads} testID="section-spreads">
+            {orderedSpreads.map((z) => (
+              <ZoneView
+                key={z.id}
+                zone={z}
+                title={z.ownerId ? playerName(state.players, z.ownerId) + (z.ownerId === viewerId ? ' (you)' : '') : undefined}
+                {...zonePanelProps(z.id)}
+                {...dropProps}
+              />
             ))}
-        </View>
+          </View>
+        ) : null}
 
-        <Section title="Opponents" zones={others} compact {...dropProps} />
+        <Section
+          title="Opponents"
+          zones={otherZones}
+          compact
+          {...zonePanelProps('section:opponents')}
+          panelPropsFor={zonePanelProps}
+          {...dropProps}
+        />
 
         {(view.status ?? []).map((f, i) => (
           <Text key={`status-${i}`} testID={`status-${i}`} style={styles.muted}>
@@ -395,11 +480,19 @@ function Section({
   title,
   zones,
   compact,
+  panelId,
+  minimized,
+  onToggleMinimized,
+  panelPropsFor,
   ...drops
 }: {
   title: string;
   zones: Zone[];
   compact?: boolean;
+  panelId: string;
+  minimized: boolean;
+  onToggleMinimized: () => void;
+  panelPropsFor: (zoneId: string) => { panelId: string; minimized: boolean; onToggleMinimized: () => void };
   registerDrop?: (id: string, node: Measurable | null) => void;
   activeDrops?: ReadonlySet<string>;
   hoveredDrop?: string | null;
@@ -417,19 +510,35 @@ function Section({
   const stacked = zones.filter((z) => z.kind !== 'stack' && z.kind !== 'pile');
 
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+    <Panel
+      panelId={panelId}
+      title={title}
+      minimized={minimized}
+      onToggleMinimized={onToggleMinimized}
+      testID={`section-${title.toLowerCase()}`}
+      style={styles.section}
+      summary={
+        <View style={styles.sectionSummary}>
+          {zones.map((z, i) => (
+            <Text key={z.id} style={styles.sectionSummaryText} numberOfLines={1}>
+              {label(z.labelKey) || z.id} {z.count}
+              {i < zones.length - 1 ? ' · ' : ''}
+            </Text>
+          ))}
+        </View>
+      }
+    >
       {beside.length > 0 ? (
         <View style={styles.beside} testID={`section-beside-${title.toLowerCase()}`}>
           {beside.map((z) => (
-            <ZoneView key={z.id} zone={z} compact={compact} inline {...drops} />
+            <ZoneView key={z.id} zone={z} compact={compact} inline nested {...panelPropsFor(z.id)} {...drops} />
           ))}
         </View>
       ) : null}
       {stacked.map((z) => (
-        <ZoneView key={z.id} zone={z} compact={compact} {...drops} />
+        <ZoneView key={z.id} zone={z} compact={compact} nested {...panelPropsFor(z.id)} {...drops} />
       ))}
-    </View>
+    </Panel>
   );
 }
 
@@ -441,11 +550,14 @@ const styles = StyleSheet.create({
   status: { color: colors.muted, fontSize: 12 },
   facts: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 2 },
   tableRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  // minWidth: 0 lets OfferBar's horizontal ScrollView actually shrink to
-  // whatever room is left beside the piles instead of overflowing its row —
-  // a flex child's default min-width is its content width, which for a
-  // scrollable row of buttons is unbounded.
-  offerBarWrap: { flex: 1, minWidth: 0, marginTop: 18 },
+  // A phone doesn't have a band wide enough to share between the piles and
+  // the controls, so they stack instead of sitting side by side.
+  tableRowNarrow: { flexDirection: 'column' },
+  // Takes whatever room is left beside the piles rather than shrinking to its
+  // content width — minWidth: 0 is what actually lets it shrink below that
+  // content width in the first place, which is what makes the controls wrap
+  // onto more than one line instead of overflowing the row.
+  controlsPanel: { flex: 1, minWidth: 0 },
   fact: { color: colors.muted, fontSize: 12 },
   statusDot: { width: 10, height: 10, borderRadius: 5, marginTop: 1 },
   statusDotOk: { backgroundColor: colors.success },
@@ -453,9 +565,16 @@ const styles = StyleSheet.create({
   statusExplainer: { color: colors.muted, fontSize: 12, marginTop: 4 },
   prompt: { color: colors.gold, fontSize: 13, marginTop: 6 },
   section: { marginTop: 10 },
+  sectionSummary: { flexDirection: 'row', flexShrink: 1, minWidth: 0 },
+  sectionSummaryText: { color: colors.muted, fontSize: 12 },
   beside: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 8, marginBottom: 8 },
-  sectionTitle: { color: colors.muted, fontSize: 11, fontWeight: '700', marginBottom: 4 },
   mine: { marginTop: 10 },
+  // Two or more to a row rather than each claiming a full-width line — see
+  // the comment above where this is used. alignItems: flex-start keeps each
+  // panel sized to its own content instead of the row's default stretch,
+  // which would size every panel in a row to match its tallest neighbour —
+  // and make a minimized panel look exactly as tall as an open one beside it.
+  spreads: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 8, marginTop: 10 },
   error: { color: colors.danger, fontSize: 13, marginVertical: 6 },
   muted: { color: colors.muted, fontSize: 12, marginTop: 6 },
 });

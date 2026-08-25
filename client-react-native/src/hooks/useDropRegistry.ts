@@ -38,13 +38,30 @@ export function useDropRegistry() {
     else nodes.current.delete(id);
   }, []);
 
-  const measure = useCallback(() => {
+  const measurePass = useCallback(() => {
     nodes.current.forEach((node, id) => {
       node.measureInWindow((x, y, width, height) => {
         rects.current.set(id, { x, y, width, height });
       });
     });
   }, []);
+
+  const measure = useCallback(() => {
+    measurePass();
+    // A panel that just became a live drop target opens regardless of
+    // whether it was minimized (see `Panel`'s `forceOpen`), but that state
+    // change and this measure both fire from the same gesture callback,
+    // before React has committed and laid the panel back out — so the first
+    // pass can catch it still collapsed. One more pass, deferred to the next
+    // frame, catches the rect the first pass missed. Idempotent and cheap
+    // enough to run unconditionally rather than trying to guess whether
+    // anything actually opened.
+    const raf =
+      typeof requestAnimationFrame === 'function'
+        ? requestAnimationFrame
+        : (cb: () => void) => setTimeout(cb, 0);
+    raf(measurePass);
+  }, [measurePass]);
 
   const rectFor = useCallback((id: string) => rects.current.get(id), []);
 

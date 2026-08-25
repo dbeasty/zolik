@@ -8,6 +8,53 @@ From `server/`:
 - `cp .env.example .env` (adjust secrets as needed)
 - `docker compose up --build`
 
+## Full stack with the web client
+
+Docker only runs the backend (`app`, `app2`, Mongo, Redis, mongo-express) — there
+is no web page on any of those ports. To actually play in a browser, start the
+[client-react-native](../client-react-native/) web build separately, pointed at
+the Docker API.
+
+**Start**
+
+```bash
+cd server
+docker compose up -d --build   # app :8090, app2 :8092, mongo :27018, redis :6379, mongo-express :8081
+
+cd ../client-react-native
+EXPO_PUBLIC_ZOLIK_BASE_URL=http://localhost:8090 npx expo start --web --port 8114
+```
+
+Open **http://localhost:8114** and press **Play**.
+
+**Stop**
+
+```bash
+# Ctrl-C the expo process, then:
+cd server
+docker compose down            # add -v to also wipe the Mongo/Redis volumes
+```
+
+### Troubleshooting
+
+- **`address already in use` on 8090/8092`** — something else is already
+  listening, often a stray `go run` server left over from an earlier session.
+  Find it with `lsof -nP -iTCP:8090 -sTCP:LISTEN` and stop it before
+  `docker compose up`.
+- **`app`/`app2` crash-loop with `IndexKeySpecsConflict` or
+  `DuplicateKey ... matchId_1`** — an existing `mongo_data` volume predates the
+  unique (non-sparse) `matchId` index on `match_results`. A fresh volume is
+  unaffected; an older one needs the stale index dropped and any leftover
+  `matchId: null` rows cleared, then the app containers restarted so they
+  rebuild the index:
+  ```bash
+  docker compose exec mongo mongosh --quiet zolik --eval 'db.match_results.dropIndex("matchId_1")'
+  docker compose exec mongo mongosh --quiet zolik --eval 'db.match_results.deleteMany({matchId: null})'
+  docker compose restart app app2
+  ```
+  Or, if that volume's data doesn't matter, `docker compose down -v` wipes it
+  and starts clean instead.
+
 ## Scaling (multiple app instances)
 
 | Store | Purpose |

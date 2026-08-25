@@ -1,11 +1,15 @@
-import { Fragment, memo, useCallback, useMemo, useRef, useState } from 'react';
+import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 
 import type { Zone } from '@/src/api/matchTypes';
-import { CARD_METRICS, CardView } from '@/src/components/CardView';
+import { CardGlance } from '@/src/components/match/CardGlance';
+import { CardView } from '@/src/components/CardView';
+import { Panel } from '@/src/components/match/Panel';
+import { useMetrics } from '@/src/hooks/useMetrics';
 import { insertionAtPoint, moveTargetFor, type Rect, type Slot } from '@/src/lib/hand';
+import type { Metrics } from '@/src/lib/layout';
 import { label } from '@/src/lib/labels';
 import { colors, dropArmed } from '@/src/theme';
 
@@ -67,6 +71,10 @@ type Props = {
   onDragEnd?: (x: number, y: number) => boolean;
   /** Set while the card is over a drop target outside the hand. */
   externalTarget?: string | null;
+  /** Stable id for remembering whether this panel is put away. Omit for a panel that may not be minimized. */
+  panelId?: string;
+  minimized?: boolean;
+  onToggleMinimized?: () => void;
 };
 
 type Measurable = {
@@ -86,6 +94,9 @@ export function HandZone({
   onDragMove,
   onDragEnd,
   externalTarget,
+  panelId,
+  minimized,
+  onToggleMinimized,
 }: Props) {
   const rowRef = useRef<Measurable | null>(null);
   const cardRefs = useRef<(Measurable | null)[]>([]);
@@ -116,6 +127,20 @@ export function HandZone({
   const [held, setHeld] = useState<number | null>(null);
   const [insertion, setInsertion] = useState<number | null>(null);
   const [offset, setOffset] = useState<Offset | null>(null);
+
+  // Minimizing unmounts the fan (see the `Panel` this returns), which takes
+  // every `DraggableCard` and its gesture with it — the minimize control
+  // lives in the header, not the fan, so there is no real way to reach it
+  // mid-gesture, but a held card left in this state would come back stuck to
+  // the pointer if that ever changed. Belt and braces, cheaply.
+  useEffect(() => {
+    if (!minimized) return;
+    heldRef.current = null;
+    insertRef.current = null;
+    setHeld(null);
+    setInsertion(null);
+    setOffset(null);
+  }, [minimized]);
 
   // Mirrors of things that change while a drag is in flight. The gesture's
   // callbacks are handed over once; reading these through a ref rather than
@@ -300,6 +325,11 @@ export function HandZone({
   }, []);
 
   const title = label(zone.labelKey) || zone.id;
+  const metrics = useMetrics();
+  // Recomputed only when the card's own size changes — a resize or a device
+  // rotation — never on a pointer move, which is what keeps `DraggableCard`'s
+  // memo intact through a drag (see the comment on it below).
+  const styles = useMemo(() => handStyles(metrics), [metrics]);
 
   // A card can only be lifted clear of the layout if we know where it was, and
   // until then it stays in the flow and no gap is drawn — a drag that started
@@ -312,23 +342,25 @@ export function HandZone({
   const gapIndex = lifted && held !== null ? insertion ?? held : null;
 
   return (
-    <View style={styles.zone} testID={`zone-${zone.id}`}>
-      <View style={styles.headerRow}>
-        <Text style={styles.title}>{title}</Text>
-        <View style={styles.headerRight}>
-          {onAutoArrange && slots.length > 1 ? (
-            <Pressable onPress={onAutoArrange} hitSlop={8}>
-              <Text style={styles.autoArrange} testID={`hand-auto-arrange-${zone.id}`}>
-                Auto-arrange
-              </Text>
-            </Pressable>
-          ) : null}
-          <Text style={styles.count} testID={`zone-count-${zone.id}`}>
-            {zone.count}
-          </Text>
-        </View>
-      </View>
-
+    <Panel
+      panelId={panelId}
+      title={title}
+      minimized={minimized}
+      onToggleMinimized={onToggleMinimized}
+      testID={`zone-${zone.id}`}
+      count={zone.count}
+      countTestID={`zone-count-${zone.id}`}
+      summary={<CardGlance cards={slots.map((s) => s.card)} max={8} testID={`zone-summary-${zone.id}`} />}
+      accessory={
+        onAutoArrange && slots.length > 1 ? (
+          <Pressable onPress={onAutoArrange} hitSlop={8}>
+            <Text style={styles.autoArrange} testID={`hand-auto-arrange-${zone.id}`}>
+              Auto-arrange
+            </Text>
+          </Pressable>
+        ) : undefined
+      }
+    >
       <View
         ref={(n) => {
           rowRef.current = n as unknown as Measurable | null;
@@ -349,7 +381,7 @@ export function HandZone({
             all. Turning boxes on and off changes only their style. */}
         {slots.map((slot, index) => (
           <Fragment key={slot.id}>
-            <DropGap active={gapIndex === index} />
+            <DropGap active={gapIndex === index} styles={styles} />
             <DraggableCard
               index={index}
               slot={slot}
@@ -374,10 +406,11 @@ export function HandZone({
               onRelease={release}
               onMove={stableMove}
               consumedByDrag={consumedByDrag}
+              styles={styles}
             />
           </Fragment>
         ))}
-        <DropGap active={gapIndex === slots.length} />
+        <DropGap active={gapIndex === slots.length} styles={styles} />
       </View>
 
       {slots.length > 1 ? (
@@ -385,7 +418,7 @@ export function HandZone({
           Drag a card along the fan to rearrange it, or onto the board to play it
         </Text>
       ) : null}
-    </View>
+    </Panel>
   );
 }
 
@@ -401,7 +434,7 @@ export function HandZone({
  * nothing. They exist all the time so that opening a gap never adds or moves
  * an element.
  */
-function DropGap({ active }: { active: boolean }) {
+function DropGap({ active, styles }: { active: boolean; styles: HandStyles }) {
   return (
     <View style={[styles.slot, !active && styles.gapHidden]}>
       {/* The test id goes on the ring rather than the outer box, because that
@@ -434,6 +467,7 @@ type CardProps = {
   onRelease: () => void;
   onMove: (from: number, to: number) => void;
   consumedByDrag: () => boolean;
+  styles: HandStyles;
 };
 
 /**
@@ -460,6 +494,7 @@ const DraggableCard = memo(function DraggableCard({
   onRelease,
   onMove,
   consumedByDrag,
+  styles,
 }: CardProps) {
   const pan = Gesture.Pan()
     // Any direction, once the pointer has genuinely moved. The threshold is
@@ -513,7 +548,7 @@ const DraggableCard = memo(function DraggableCard({
     <GestureDetector gesture={pan}>
       <View
         ref={(n) => bindRef(n as unknown as Measurable | null)}
-        style={[styles.slot, pinned, held && styles.lifted, carried]}
+        style={[styles.slot, pinned, held && styles.lifted, selected && !held && styles.raised, carried]}
         // The same move, for anyone not using a pointer. A drag is not an
         // affordance a screen reader can offer, so the two directions are
         // published as actions instead.
@@ -547,44 +582,47 @@ const DraggableCard = memo(function DraggableCard({
   );
 });
 
-const styles = StyleSheet.create({
-  zone: {
-    backgroundColor: colors.surface,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 8,
-    marginBottom: 8,
-  },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { color: colors.muted, fontSize: 12, fontWeight: '700' },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  autoArrange: { color: colors.accent, fontSize: 12, fontWeight: '600' },
-  count: { color: colors.muted, fontSize: 12 },
-  cards: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 6 },
-  hint: { color: colors.muted, fontSize: 10, marginTop: 6, fontStyle: 'italic' },
-  lifted: { zIndex: 20, opacity: 0.92 },
-  // The wrapper every card and every gap sits in, so the two are the same size
-  // to the pixel. Its border is always here and always this wide — only its
-  // colour ever changes, the same discipline CardView's own ring keeps.
-  slot: {
-    borderRadius: 8,
-    borderWidth: CARD_METRICS.ringBorder,
-    borderColor: 'transparent',
-  },
-  gapHidden: { display: 'none' },
-  gapRing: {
-    borderRadius: 8,
-    borderWidth: CARD_METRICS.ringBorder,
-    borderColor: 'transparent',
-    padding: CARD_METRICS.ringPadding,
-  },
-  gapCard: {
-    width: CARD_METRICS.width,
-    height: CARD_METRICS.height,
-    marginRight: CARD_METRICS.gap,
-    borderRadius: 6,
-    borderWidth: 2,
-    ...dropArmed,
-  },
-});
+/**
+ * Every size-dependent style the hand and its cards need, recomputed only
+ * when `metrics` itself changes (see the `useMemo` in `HandZone`) — which is
+ * what keeps `DraggableCard`'s memo intact through an entire drag: the same
+ * `styles` object reference is handed to every card on every pointer move.
+ */
+function handStyles(m: Metrics) {
+  return StyleSheet.create({
+    autoArrange: { color: colors.accent, fontSize: m.panel.bodyFont, fontWeight: '600' },
+    cards: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 6 },
+    hint: { color: colors.muted, fontSize: Math.max(9, m.panel.bodyFont - 2), marginTop: 6, fontStyle: 'italic' },
+    lifted: { zIndex: 20, opacity: 0.92 },
+    // Pulled up out of the fan rather than left flush with its neighbours, so
+    // the card about to be played reads at a glance instead of needing its
+    // border colour picked out from a row of a dozen others. `zIndex` keeps it
+    // drawn over the cards it now overlaps at the top edge.
+    raised: { transform: [{ translateY: -10 }], zIndex: 10 },
+    // The wrapper every card and every gap sits in, so the two are the same size
+    // to the pixel. Its border is always here and always this wide — only its
+    // colour ever changes, the same discipline CardView's own ring keeps.
+    slot: {
+      borderRadius: 8,
+      borderWidth: m.card.ringBorder,
+      borderColor: 'transparent',
+    },
+    gapHidden: { display: 'none' },
+    gapRing: {
+      borderRadius: 8,
+      borderWidth: m.card.ringBorder,
+      borderColor: 'transparent',
+      padding: m.card.ringPadding,
+    },
+    gapCard: {
+      width: m.card.width,
+      height: m.card.height,
+      marginRight: m.card.gap,
+      borderRadius: 6,
+      borderWidth: 2,
+      ...dropArmed,
+    },
+  });
+}
+
+type HandStyles = ReturnType<typeof handStyles>;

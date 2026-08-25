@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { ActionOffer, MatchAction, ParamSpec } from '@/src/api/matchTypes';
 import {
@@ -10,6 +10,8 @@ import {
   offerMatchesSelection,
   submissionFor,
 } from '@/src/api/matchTypes';
+import { useMetrics } from '@/src/hooks/useMetrics';
+import type { Metrics } from '@/src/lib/layout';
 import { factText, label } from '@/src/lib/labels';
 import { reasonText } from '@/src/lib/i18n';
 import { colors } from '@/src/theme';
@@ -56,6 +58,9 @@ type Props = {
 };
 
 export function OfferBar({ offers, selectedCards, onSend, onConsumeSelection, onAmbiguous }: Props) {
+  const metrics = useMetrics();
+  const styles = useMemo(() => offerBarStyles(metrics), [metrics]);
+
   // Parameter values in progress, keyed by offer id then parameter name. Only
   // an offer the player is actively configuring has an entry.
   const [params, setParams] = useState<Record<string, Record<string, string>>>({});
@@ -97,12 +102,7 @@ export function OfferBar({ offers, selectedCards, onSend, onConsumeSelection, on
   const renderedGroups = new Set<string>();
 
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.bar}
-      testID="action-bar"
-    >
+    <View style={styles.bar} testID="action-bar">
       {offers.map((offer) => {
         if (foldedIds.has(offer.id)) {
           const key = offerGroupKey(offer);
@@ -116,6 +116,7 @@ export function OfferBar({ offers, selectedCards, onSend, onConsumeSelection, on
               selectedCards={selectedCards}
               onResolve={send}
               onAmbiguous={onAmbiguous}
+              styles={styles}
             />
           );
         }
@@ -145,7 +146,7 @@ export function OfferBar({ offers, selectedCards, onSend, onConsumeSelection, on
             </Pressable>
 
             {!offer.enabled && offer.whyNot ? (
-              <Text testID={`why-${offer.id}`} style={styles.why}>
+              <Text testID={`why-${offer.id}`} style={styles.why} numberOfLines={2}>
                 {reasonText(offer.whyNot, offer.whyNot)}
               </Text>
             ) : null}
@@ -169,7 +170,47 @@ export function OfferBar({ offers, selectedCards, onSend, onConsumeSelection, on
           </View>
         );
       })}
-    </ScrollView>
+    </View>
+  );
+}
+
+/**
+ * A tiny, non-interactive row of what's currently pressable — built for a
+ * collapsed `Controls` panel's rail, the same way `CardGlance` stands in for
+ * a minimized hand. One pill per distinct label, so three targets folded
+ * into one "Lay off" control above read as the one kind of move here too,
+ * not three identical pills; disabled offers are left off, since a reason
+ * nobody can read yet on a collapsed rail is not worth the room.
+ */
+export function OfferGlance({ offers, max = 4, testID = 'offer-glance' }: { offers: ActionOffer[]; max?: number; testID?: string }) {
+  const metrics = useMetrics();
+  const styles = useMemo(() => offerBarStyles(metrics), [metrics]);
+
+  const seen = new Set<string>();
+  const distinct: ActionOffer[] = [];
+  for (const o of offers) {
+    if (!o.enabled) continue;
+    const key = offerGroupKey(o);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    distinct.push(o);
+  }
+  if (!distinct.length) return null;
+
+  const shown = distinct.slice(0, max);
+  const rest = distinct.length - shown.length;
+
+  return (
+    <View style={styles.glanceRow} testID={testID}>
+      {shown.map((o) => (
+        <View key={o.id} style={styles.glancePill}>
+          <Text style={styles.glancePillText} numberOfLines={1}>
+            {label(o.labelKey ?? `verb.${o.verb}`) || o.verb}
+          </Text>
+        </View>
+      ))}
+      {rest > 0 ? <Text style={styles.glanceTail}>+{rest}</Text> : null}
+    </View>
   );
 }
 
@@ -189,17 +230,40 @@ function FoldedOffer({
   selectedCards,
   onResolve,
   onAmbiguous,
+  styles,
 }: {
   groupKey: string;
   group: ActionOffer[];
   selectedCards: string[];
   onResolve: (offer: ActionOffer) => void;
   onAmbiguous?: (groupKey: string) => void;
+  styles: OfferBarStyles;
 }) {
   const first = group[0];
   const enabledCount = group.filter((o) => o.enabled).length;
   const settled = group.filter((o) => offerMatchesSelection(o, selectedCards));
   const disabled = enabledCount === 0;
+
+  // The engine's own reason, same as a lone offer already shows — a folded
+  // control disabled with nothing next to it reads as broken, not as "not
+  // yet", and every member disabled for the same reason (the common case: a
+  // rule gating the verb, not any one target) deserves exactly the sentence a
+  // lone offer of the same shape would show.
+  const reasonCounts = new Map<string, number>();
+  for (const o of group) {
+    if (o.enabled || !o.whyNot) continue;
+    reasonCounts.set(o.whyNot, (reasonCounts.get(o.whyNot) ?? 0) + 1);
+  }
+  let sharedReason: string | undefined;
+  let bestCount = 0;
+  for (const [reason, count] of reasonCounts) {
+    // Ties keep the first reason found, i.e. the group's own order — as good
+    // a tiebreak as any when the targets disagree about why.
+    if (count > bestCount) {
+      bestCount = count;
+      sharedReason = reason;
+    }
+  }
 
   const press = () => {
     if (settled.length === 1) {
@@ -220,6 +284,13 @@ function FoldedOffer({
       >
         <Text style={styles.buttonText}>{label(first.labelKey ?? `verb.${first.verb}`) || first.verb}</Text>
       </Pressable>
+
+      {disabled && sharedReason ? (
+        <Text testID={`why-group:${groupKey}`} style={styles.why} numberOfLines={2}>
+          {reasonText(sharedReason, sharedReason)}
+        </Text>
+      ) : null}
+
       {!disabled && settled.length !== 1 ? (
         <Text testID={`needs-group:${groupKey}`} style={styles.hint}>
           more than one place this could go — pick on the board
@@ -246,6 +317,9 @@ function ParamControl({
   value: string;
   onChange: (v: string) => void;
 }) {
+  const metrics = useMetrics();
+  const styles = useMemo(() => offerBarStyles(metrics), [metrics]);
+
   if (spec.kind === 'int') {
     const min = spec.min ?? 0;
     const max = spec.max ?? min;
@@ -331,43 +405,71 @@ function isReady(
   return isOneTap(offer);
 }
 
-const styles = StyleSheet.create({
-  bar: { gap: 8, paddingVertical: 6, alignItems: 'flex-start' },
-  slot: { minWidth: 92 },
-  button: {
-    backgroundColor: colors.accentButton,
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-  },
-  disabled: { opacity: 0.4 },
-  buttonText: { color: colors.onAccent, fontWeight: '700', fontSize: 13 },
-  buttonFact: { color: colors.onAccent, fontSize: 11, marginTop: 2 },
-  why: { color: colors.muted, fontSize: 10, marginTop: 3, maxWidth: 130 },
-  hint: { color: colors.gold, fontSize: 10, marginTop: 3 },
-  param: { marginTop: 6 },
-  paramLabel: { color: colors.muted, fontSize: 10 },
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-  stepButton: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  stepText: { color: colors.text, fontSize: 12, fontWeight: '700' },
-  paramValue: { color: colors.text, fontSize: 13, fontWeight: '700', minWidth: 44, textAlign: 'center' },
-  choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 2 },
-  choice: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  choiceOn: { borderColor: colors.accent, backgroundColor: colors.accentDim },
-  choiceText: { color: colors.text, fontSize: 12 },
-});
+/**
+ * Every control's sizing, as a function of the screen — recomputed once per
+ * resize and shared by `OfferBar`, `FoldedOffer` and `ParamControl` so a
+ * control never disagrees with its own slot about how wide it may be.
+ */
+function offerBarStyles(m: Metrics) {
+  return StyleSheet.create({
+    // A row that wraps rather than scrolls: a control that doesn't fit the
+    // current line moves to the next one instead of sliding off screen behind
+    // a scrollbar nothing hints is there.
+    bar: { flexDirection: 'row', flexWrap: 'wrap', gap: m.panel.gap, alignItems: 'flex-start' },
+    slot: { minWidth: m.buttonMinWidth, maxWidth: '100%', flexShrink: 1 },
+    button: {
+      backgroundColor: colors.accentButton,
+      borderRadius: 8,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      alignItems: 'center',
+    },
+    disabled: { opacity: 0.4 },
+    buttonText: { color: colors.onAccent, fontWeight: '700', fontSize: m.panel.bodyFont + 1 },
+    buttonFact: { color: colors.onAccent, fontSize: m.panel.bodyFont - 1, marginTop: 2 },
+    why: { color: colors.muted, fontSize: m.panel.bodyFont - 2, marginTop: 3, maxWidth: m.buttonMinWidth + 40 },
+    hint: { color: colors.gold, fontSize: m.panel.bodyFont - 2, marginTop: 3 },
+    param: { marginTop: 6 },
+    paramLabel: { color: colors.muted, fontSize: m.panel.bodyFont - 2 },
+    stepper: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+    stepButton: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 6,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+    },
+    stepText: { color: colors.text, fontSize: m.panel.bodyFont, fontWeight: '700' },
+    paramValue: {
+      color: colors.text,
+      fontSize: m.panel.bodyFont + 1,
+      fontWeight: '700',
+      minWidth: 44,
+      textAlign: 'center',
+    },
+    choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 2 },
+    choice: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 6,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+    },
+    choiceOn: { borderColor: colors.accent, backgroundColor: colors.accentDim },
+    choiceText: { color: colors.text, fontSize: m.panel.bodyFont },
+    glanceRow: { flexDirection: 'row', flexShrink: 1, minWidth: 0, gap: 6, alignItems: 'center', overflow: 'hidden' },
+    glancePill: {
+      flexShrink: 0,
+      backgroundColor: colors.accentButton,
+      borderRadius: 6,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+    },
+    glancePillText: { color: colors.onAccent, fontSize: m.panel.bodyFont - 1, fontWeight: '700' },
+    glanceTail: { color: colors.muted, fontSize: m.panel.bodyFont - 1, flexShrink: 0 },
+  });
+}
+
+type OfferBarStyles = ReturnType<typeof offerBarStyles>;
