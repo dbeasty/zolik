@@ -317,7 +317,7 @@ export default function MatchScreen() {
             column here just means an earlier scroll, never a clipped or
             wrapped button. */}
         <View style={styles.tableRow}>
-          <Section title="Table" zones={shared} {...dropProps} />
+          <Section title="Table" zones={shared} compact {...dropProps} />
           <View style={styles.offerBarWrap}>
             {error ? (
               <Text testID="match-error" style={styles.error} onPress={clearError}>
