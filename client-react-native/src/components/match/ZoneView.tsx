@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { Zone } from '@/src/api/matchTypes';
-import { CARD_METRICS, CardView } from '@/src/components/CardView';
-import type { Measurable } from '@/src/hooks/useDropRegistry';
+import { CardGlance } from '@/src/components/match/CardGlance';
+import { CardView } from '@/src/components/CardView';
+import { Panel, type Measurable } from '@/src/components/match/Panel';
+import { useMetrics } from '@/src/hooks/useMetrics';
 import { groupElementId, zoneElementId } from '@/src/lib/drops';
+import type { Metrics } from '@/src/lib/layout';
 import { label } from '@/src/lib/labels';
 import { colors, dropArmed } from '@/src/theme';
 
@@ -19,12 +22,19 @@ import { colors, dropArmed } from '@/src/theme';
  *
  * A hidden zone arrives with a count and no cards. That is the whole anti-cheat
  * surface and it needs no cooperation from this file — there is nothing to
- * leak, because nothing was sent.
+ * leak, because nothing was sent. (Whether such a zone is drawn at all is
+ * decided upstream, by `drawableZones` in `src/lib/board.ts` — this file just
+ * renders whatever it's handed.)
  *
  * It is also where a dragged card can be let go of. Zones and the groups
  * inside them register themselves as drop regions under the ids the offers
  * name them by, and light up when the card in hand is one they would take.
  * This file decides none of that — it is told which of its ids are live.
+ *
+ * Drawn inside a `Panel`, which is what gives every zone a minimize control
+ * for free. A panel that is a live drop target is held open regardless of
+ * whether the player minimized it — see `forceOpen` below — because a target
+ * a preference can hide is a target a player can lose a card into.
  */
 
 type Props = {
@@ -35,6 +45,16 @@ type Props = {
   compact?: boolean;
   /** Sized to its contents, so small zones can sit beside each other. */
   inline?: boolean;
+  /** A softer look for a panel drawn inside another panel — see `Panel`'s own `nested`. */
+  nested?: boolean;
+  /** Names this panel by something other than the zone's own label — an owner's name, typically. */
+  title?: string;
+  /** A second line under `title` — falls back to the zone's own label when `title` is supplied. */
+  subtitle?: string;
+  /** Stable id for remembering whether this panel is put away. Omit for a panel that may not be minimized. */
+  panelId?: string;
+  minimized?: boolean;
+  onToggleMinimized?: () => void;
   /** Publishes this zone and its groups as places a card may be dropped. */
   registerDrop?: (elementId: string, node: Measurable | null) => void;
   /** Element ids that would accept the card currently being dragged. */
@@ -57,13 +77,25 @@ export function ZoneView({
   onPressCard,
   compact,
   inline,
+  nested,
+  title: titleOverride,
+  subtitle: subtitleOverride,
+  panelId,
+  minimized,
+  onToggleMinimized,
   registerDrop,
   activeDrops,
   hoveredDrop,
   pressableDrops,
   onPressDrop,
 }: Props) {
-  const title = label(zone.labelKey) || zone.id;
+  const metrics = useMetrics();
+  const styles = useMemo(() => zoneStyles(metrics), [metrics]);
+
+  const zoneLabel = label(zone.labelKey) || zone.id;
+  const title = titleOverride || zoneLabel;
+  const subtitle = titleOverride ? subtitleOverride ?? zoneLabel : subtitleOverride;
+
   const zoneId = zoneElementId(zone.id);
   const zoneLive = activeDrops?.has(zoneId) ?? false;
 
@@ -91,44 +123,94 @@ export function ZoneView({
       return next;
     });
 
+  // A minimized panel still has to open for a drag aimed at it, or at one of
+  // its own groups — a target a preference can hide is a target a card can be
+  // lost into.
+  const groupsLive = (zone.groups ?? []).some((g) => {
+    const gid = groupElementId(g.id);
+    return (activeDrops?.has(gid) ?? false) || (pressableDrops?.has(gid) ?? false);
+  });
+  const forceOpen = zoneLive || groupsLive;
+
+  // Stands in for a drag once what to send is already chosen and only where
+  // it goes is still open — the same thing a group's own press overlay does,
+  // but for an offer that names the whole zone rather than one group inside
+  // it (composing a brand-new meld on an empty spread; discarding onto a
+  // pile). Rendered first among the zone's real content, so a group's own
+  // overlay — painted after, and so on top — still wins a tap inside it: the
+  // zone-wide target only ever catches what no group claimed.
+  const zonePressable = pressableDrops?.has(zoneId) ?? false;
+
+  // What a put-away panel says about itself on its collapsed header — kind
+  // decides the shape, same as it decides the layout above. A stack needs
+  // none of this: its count is the whole of what it ever shows, open or not.
+  const groups = zone.groups ?? [];
+  const summary =
+    zone.kind === 'pile' && cards.length
+      ? <CardGlance cards={[cards[cards.length - 1].card]} max={1} testID={`zone-summary-${zone.id}`} />
+      : zone.kind === 'spread' && groups.length
+        ? (
+            <View style={styles.summaryRow} testID={`zone-summary-${zone.id}`}>
+              <Text style={styles.summaryCount}>{groups.length}</Text>
+              <CardGlance cards={groups.map((g) => g.cards[g.cards.length - 1])} max={4} />
+            </View>
+          )
+        : zone.kind === 'hand' && cards.length
+          ? <CardGlance cards={cards.map((c) => c.card)} max={6} testID={`zone-summary-${zone.id}`} />
+          : undefined;
+
   return (
-    <View
-      ref={(n) => registerDrop?.(zoneId, n as unknown as Measurable | null)}
-      style={[
-        styles.zone,
-        inline && styles.inline,
-        zoneLive && styles.live,
-        hoveredDrop === zoneId && styles.hovered,
-      ]}
+    <Panel
+      panelId={panelId}
+      title={title}
+      subtitle={subtitle}
+      inline={inline}
+      nested={nested}
+      live={zoneLive}
+      hovered={hoveredDrop === zoneId}
+      minimized={minimized}
+      onToggleMinimized={onToggleMinimized}
+      forceOpen={forceOpen}
       testID={`zone-${zone.id}`}
-    >
-      <View style={styles.headerRow}>
-        <Text style={styles.title}>{title}</Text>
-        {foldable ? (
+      innerRef={(n) => registerDrop?.(zoneId, n)}
+      count={foldable ? undefined : zone.count}
+      countTestID={foldable ? undefined : `zone-count-${zone.id}`}
+      summary={summary}
+      accessory={
+        foldable ? (
+          // A bordered badge with an outline chevron — visually its own
+          // thing, not a second copy of the minimize control's solid ▾/▸
+          // sitting right next to it. Two adjacent triangles meaning two
+          // different things was a coin flip for whoever was looking at it.
           <Pressable
             testID={`zone-toggle-${zone.id}`}
             accessibilityRole="button"
             accessibilityState={{ expanded: open }}
-            accessibilityLabel={open ? `Hide the rest of ${title}` : `Show all of ${title}`}
+            accessibilityLabel={open ? `Hide the rest of ${zoneLabel}` : `Show all of ${zoneLabel}`}
             onPress={() => setOpen((was) => !was)}
             style={styles.toggle}
           >
             <Text style={styles.toggleText} testID={`zone-count-${zone.id}`}>
-              {open ? `${zone.count} ▴` : `${zone.count} ▾`}
+              {zone.count} {open ? '⌃' : '⌄'}
             </Text>
           </Pressable>
-        ) : (
-          <Text style={styles.count} testID={`zone-count-${zone.id}`}>
-            {zone.count}
-          </Text>
-        )}
-      </View>
+        ) : undefined
+      }
+    >
+      <View style={styles.content}>
+        {zonePressable ? (
+          <Pressable
+            testID={`zone-press-${zone.id}`}
+            style={StyleSheet.absoluteFill}
+            onPress={(e) => onPressDrop?.(zoneId, e.nativeEvent.pageX)}
+          />
+        ) : null}
 
-      {zone.kind === 'stack' ? <StackBack count={zone.count} compact={compact} /> : null}
+        {zone.kind === 'stack' ? <StackBack count={zone.count} compact={compact} metrics={metrics} /> : null}
 
-      {/* Groups first: a spread's cards belong to its groups, and rendering
+        {/* Groups first: a spread's cards belong to its groups, and rendering
           both would show every card twice. */}
-      {(zone.groups ?? []).length > 0 ? (
+        {(zone.groups ?? []).length > 0 ? (
         <View style={styles.groups}>
           {(zone.groups ?? []).map((g) => {
             const groupId = groupElementId(g.id);
@@ -163,7 +245,7 @@ export function ZoneView({
                   onPress={() => toggleGroup(g.id)}
                   accessibilityRole="button"
                   accessibilityState={{ expanded: groupOpen }}
-                  accessibilityLabel={groupOpen ? 'Collapse this meld' : 'Show all cards in this meld'}
+                  accessibilityLabel={groupOpen ? 'Collapse this group' : 'Show all cards in this group'}
                   testID={`group-toggle-${g.id}`}
                 >
                   <View style={styles.stackedCards}>
@@ -221,12 +303,13 @@ export function ZoneView({
 
       {/* An empty spread that can be dropped on says so, because otherwise the
           first meld of the game has an invisible target. */}
-      {zoneLive && !(zone.cards ?? []).length && !(zone.groups ?? []).length ? (
-        <Text style={styles.dropHere} testID={`drop-here-${zone.id}`}>
-          Drop here
-        </Text>
-      ) : null}
-    </View>
+        {zoneLive && !(zone.cards ?? []).length && !(zone.groups ?? []).length ? (
+          <Text style={styles.dropHere} testID={`drop-here-${zone.id}`}>
+            Drop here
+          </Text>
+        ) : null}
+      </View>
+    </Panel>
   );
 }
 
@@ -237,7 +320,8 @@ export function ZoneView({
  * pile beside it shows a real CardView, ring and all, and a guessed box here
  * drifted out of sync with that the moment either one's metrics changed.
  */
-function StackBack({ count, compact }: { count: number; compact?: boolean }) {
+function StackBack({ count, compact, metrics }: { count: number; compact?: boolean; metrics: Metrics }) {
+  const styles = useMemo(() => zoneStyles(metrics), [metrics]);
   if (count <= 0) return <Text style={styles.hidden}>empty</Text>;
   return (
     <View style={[styles.back, compact ? styles.backCompact : styles.backFull]}>
@@ -246,80 +330,78 @@ function StackBack({ count, compact }: { count: number; compact?: boolean }) {
   );
 }
 
-const ringBorderAndPadding = 2 * (CARD_METRICS.ringPadding + CARD_METRICS.ringBorder);
-// A standalone card's ring is sized to its content, which includes the
-// card's own trailing gap (there for spacing in a fanned hand) even when
-// nothing follows it — so matching the ring's true rendered width means
-// counting that gap too, not just the ring's own border and padding.
-const ringOuterWidth = ringBorderAndPadding + CARD_METRICS.gap;
-const ringOuterHeight = ringBorderAndPadding;
+function zoneStyles(m: Metrics) {
+  const ringBorderAndPadding = 2 * (m.card.ringPadding + m.card.ringBorder);
+  // A standalone card's ring is sized to its content, which includes the
+  // card's own trailing gap (there for spacing in a fanned hand) even when
+  // nothing follows it — so matching the ring's true rendered width means
+  // counting that gap too, not just the ring's own border and padding.
+  const ringOuterWidth = ringBorderAndPadding + m.card.gap;
+  const ringOuterHeight = ringBorderAndPadding;
 
-const styles = StyleSheet.create({
-  zone: {
-    backgroundColor: colors.surface,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 8,
-    marginBottom: 8,
-  },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { color: colors.muted, fontSize: 12, fontWeight: '700' },
-  count: { color: colors.muted, fontSize: 12 },
-  // Wide enough to be worth aiming at, since it is the only way to look under
-  // the top card.
-  toggle: { paddingHorizontal: 6, paddingVertical: 2, marginLeft: 8 },
-  toggleText: { color: colors.accentButton, fontSize: 12, fontWeight: '700' },
-  // A zone that sizes to its contents rather than filling the row. The draw
-  // and discard piles are a couple of cards wide and belong side by side; only
-  // a hand or a spread earns a line of its own.
-  inline: { flexGrow: 0, flexShrink: 0, marginBottom: 0, minWidth: 96 },
-  cards: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 6 },
-  // A vertical stack instead of cards.row's horizontal fan — see the comment
-  // where this is used. alignItems keeps the column hugging the cards'
-  // width instead of stretching to the group box's, which matters once
-  // groups sit side by side (below) rather than each spanning full width.
-  stackedCards: { flexDirection: 'column', alignItems: 'flex-start', marginTop: 6 },
-  // Pulls every card but the first up into the one above it, leaving just
-  // its top corner (rank + suit) showing. Tuned to a compact CardView's
-  // rendered height (60 + the ring's own border/padding) minus enough room
-  // for that corner to stay legible.
-  stackedOverlap: { marginTop: -40 },
-  // Row + wrap rather than one meld per line: stackedCards narrows each
-  // group to about one card's width, so several now fit across before
-  // wrapping instead of each claiming a full-width row on its own.
-  groups: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
-  group: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    padding: 4,
-  },
-  // Only the border colour changes, never its width: a region that grew when
-  // it lit up would move every region after it in the middle of the drag,
-  // which moves the very measurements the drop is tested against. dropArmed
-  // keeps to that too — it only touches colour, style and fill.
-  live: { borderColor: colors.accent },
-  hovered: dropArmed,
-  badge: { color: colors.gold, fontSize: 10, marginTop: 2 },
-  hidden: { color: colors.muted, fontSize: 11, marginTop: 6, fontStyle: 'italic' },
-  dropHere: { color: colors.gold, fontSize: 11, marginTop: 6, fontStyle: 'italic' },
-  back: {
-    marginTop: 6,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.accentDim,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backCompact: {
-    width: CARD_METRICS.compactWidth + ringOuterWidth,
-    height: CARD_METRICS.compactHeight + ringOuterHeight,
-  },
-  backFull: {
-    width: CARD_METRICS.width + ringOuterWidth,
-    height: CARD_METRICS.height + ringOuterHeight,
-  },
-  backText: { color: colors.text, fontWeight: '700' },
-});
+  return StyleSheet.create({
+    // Wide enough to be worth aiming at, since it is the only way to look under
+    // the top card.
+    toggle: {
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    // Wraps everything but the header, so a zone-wide press overlay
+    // (`zone-press-<id>`) fills exactly this and never the header above it —
+    // the minimize chevron and the pile's own show-all toggle live there and
+    // must stay reachable even while the zone is a live target.
+    content: { position: 'relative' },
+    summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1, minWidth: 0 },
+    summaryCount: { color: colors.muted, fontSize: m.panel.bodyFont },
+    toggleText: { color: colors.accentButton, fontSize: m.panel.bodyFont, fontWeight: '700' },
+    cards: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 6 },
+    // A vertical stack instead of cards.row's horizontal fan — see the comment
+    // where this is used. alignItems keeps the column hugging the cards'
+    // width instead of stretching to the group box's, which matters once
+    // groups sit side by side (below) rather than each spanning full width.
+    stackedCards: { flexDirection: 'column', alignItems: 'flex-start', marginTop: 6 },
+    // Pulls every card but the first up into the one above it, leaving just
+    // its top corner (rank + suit) showing.
+    stackedOverlap: { marginTop: -(m.card.compactHeight + ringOuterHeight - m.stackedCorner) },
+    // Row + wrap rather than one meld per line: stackedCards narrows each
+    // group to about one card's width, so several now fit across before
+    // wrapping instead of each claiming a full-width row on its own.
+    groups: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
+    group: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 8,
+      padding: 4,
+    },
+    // Only the border colour changes, never its width: a region that grew when
+    // it lit up would move every region after it in the middle of the drag,
+    // which moves the very measurements the drop is tested against. dropArmed
+    // keeps to that too — it only touches colour, style and fill.
+    live: { borderColor: colors.accent },
+    hovered: dropArmed,
+    badge: { color: colors.gold, fontSize: 10, marginTop: 2 },
+    hidden: { color: colors.muted, fontSize: 11, marginTop: 6, fontStyle: 'italic' },
+    dropHere: { color: colors.gold, fontSize: 11, marginTop: 6, fontStyle: 'italic' },
+    back: {
+      marginTop: 6,
+      borderRadius: 6,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.accentDim,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    backCompact: {
+      width: m.card.compactWidth + ringOuterWidth,
+      height: m.card.compactHeight + ringOuterHeight,
+    },
+    backFull: {
+      width: m.card.width + ringOuterWidth,
+      height: m.card.height + ringOuterHeight,
+    },
+    backText: { color: colors.text, fontWeight: '700' },
+  });
+}

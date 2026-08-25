@@ -24,9 +24,13 @@ const SHELL_FILES = [
   'src/components/match/OfferBar.tsx',
   'src/components/match/SeatStrip.tsx',
   'src/components/match/ZoneView.tsx',
+  'src/components/match/Panel.tsx',
   'src/hooks/useMatchSocket.ts',
   'src/api/matchTypes.ts',
   'src/lib/labels.ts',
+  'src/lib/layout.ts',
+  'src/lib/board.ts',
+  'src/components/match/CardGlance.tsx',
 ];
 
 // Nouns and verbs that belong to one game. If any of these appears in the
@@ -80,7 +84,7 @@ describe('the generic shell knows no game', () => {
   it('covers every file the shell is made of', () => {
     // A guard on the guard: adding a shell file without adding it here would
     // silently exempt it.
-    expect(SHELL_FILES.length).toBeGreaterThanOrEqual(8);
+    expect(SHELL_FILES.length).toBeGreaterThanOrEqual(12);
   });
 });
 

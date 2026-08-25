@@ -1,21 +1,22 @@
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { useMetrics } from '@/src/hooks/useMetrics';
 import { parseCard } from '@/src/lib/cards';
+import type { CardMetrics } from '@/src/lib/layout';
 import { colors } from '@/src/theme';
 
 /**
- * How much room a card takes.
- *
- * Exported because the hand draws a gap the exact size of a card, to show
- * where a dragged one will land, and a gap that is nearly card-sized is worse
- * than no gap at all — the cards visibly shuffle by a few pixels as it moves.
+ * How much room a card takes, at scale 1 — the size the sizes in
+ * `src/lib/layout.ts` are derived from. Exported because a couple of call
+ * sites need the *unscaled* metric for something other than drawing a card
+ * (see `useDropRegistry`'s HIT_SLOP comment); anything that draws needs the
+ * scaled numbers from `useMetrics().card` instead, not this.
  */
 export const CARD_METRICS = {
   width: 52,
   height: 72,
-  /** Space after each card, part of what a slot occupies. */
   gap: 6,
-  /** The ring drawn around every card, whether or not it is coloured in. */
   ringPadding: 1,
   ringBorder: 2,
   compactWidth: 44,
@@ -46,8 +47,71 @@ type Props = {
   testID?: string;
 };
 
+/** Every dimension a card's own render needs, computed once per card size. */
+function cardStyles(m: CardMetrics) {
+  return StyleSheet.create({
+    ring: {
+      borderRadius: 8,
+      borderWidth: m.ringBorder,
+      borderColor: 'transparent',
+      padding: m.ringPadding,
+    },
+    justDrawnRing: { borderColor: colors.success },
+    draggingRing: { borderColor: colors.accent },
+    card: {
+      width: m.width,
+      height: m.height,
+      backgroundColor: colors.cardBg,
+      borderRadius: 6,
+      borderWidth: 2,
+      borderColor: colors.cardBorder,
+      padding: 4,
+      marginRight: m.gap,
+      justifyContent: 'space-between',
+    },
+    compact: {
+      width: m.compactWidth,
+      height: m.compactHeight,
+    },
+    selected: {
+      borderColor: colors.gold,
+      backgroundColor: '#fffbeb',
+    },
+    joker: { backgroundColor: '#fef3c7' },
+    pressed: { opacity: 0.85 },
+    rank: {
+      fontSize: m.rankFont,
+      fontWeight: '700',
+      color: '#1e293b',
+    },
+    // "JKR" is 3 characters vs. 1-2 for every other rank, so it needs its own
+    // (smaller) size to stay inside the card instead of overflowing the edge.
+    jokerRank: { fontSize: m.jokerRankFont },
+    suit: {
+      fontSize: m.suitFont,
+      alignSelf: 'center',
+      color: '#1e293b',
+    },
+    corner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 2,
+    },
+    suitInline: {
+      fontSize: m.suitInlineFont,
+      color: '#1e293b',
+    },
+    red: { color: '#dc2626' },
+  });
+}
+
 export function CardView({ card, selected, justDrawn, dragging, onPress, compact, stacked, testID }: Props) {
+  const metrics = useMetrics();
   const d = parseCard(card);
+  // Recomputed only when the card's own size changes (a resize, or a device
+  // rotation) — every other render of a card reuses the same style objects.
+  const styles = useMemo(() => cardStyles(metrics.card), [metrics.card]);
+
   const content = (
     // Ring wrapper is always present at a fixed size (border color just
     // toggles transparent<->success/accent) so highlighting a card never
@@ -105,70 +169,3 @@ export function CardView({ card, selected, justDrawn, dragging, onPress, compact
   }
   return content;
 }
-
-const styles = StyleSheet.create({
-  ring: {
-    borderRadius: 8,
-    borderWidth: CARD_METRICS.ringBorder,
-    borderColor: 'transparent',
-    padding: CARD_METRICS.ringPadding,
-  },
-  justDrawnRing: {
-    borderColor: colors.success,
-  },
-  draggingRing: {
-    borderColor: colors.accent,
-  },
-  card: {
-    width: CARD_METRICS.width,
-    height: CARD_METRICS.height,
-    backgroundColor: colors.cardBg,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: colors.cardBorder,
-    padding: 4,
-    marginRight: CARD_METRICS.gap,
-    justifyContent: 'space-between',
-  },
-  compact: {
-    width: CARD_METRICS.compactWidth,
-    height: CARD_METRICS.compactHeight,
-  },
-  selected: {
-    borderColor: colors.gold,
-    backgroundColor: '#fffbeb',
-  },
-  joker: {
-    backgroundColor: '#fef3c7',
-  },
-  pressed: {
-    opacity: 0.85,
-  },
-  rank: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1e293b',
-  },
-  // "JKR" is 3 characters vs. 1-2 for every other rank, so it needs its own
-  // (smaller) size to stay inside the card instead of overflowing the edge.
-  jokerRank: {
-    fontSize: 11,
-  },
-  suit: {
-    fontSize: 18,
-    alignSelf: 'center',
-    color: '#1e293b',
-  },
-  corner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  suitInline: {
-    fontSize: 14,
-    color: '#1e293b',
-  },
-  red: {
-    color: '#dc2626',
-  },
-});
