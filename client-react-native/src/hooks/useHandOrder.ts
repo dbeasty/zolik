@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { Zone } from '@/src/api/matchTypes';
-import { applySavedOrder, arrangeSlots, moveSlot, type Slot } from '@/src/lib/hand';
+import { applySavedOrder, arrangeAuto, arrangeSlots, moveSlot, type Slot } from '@/src/lib/hand';
 import { loadHandOrder, saveHandOrder } from '@/src/lib/handOrderStore';
 
 /**
@@ -145,5 +145,9 @@ export function useHandOrder(zones: Zone[], matchId?: string) {
     setOrder((prev) => ({ ...prev, [zoneId]: moveSlot(prev[zoneId] ?? [], from, to) }));
   }, []);
 
-  return { slotsFor, move };
+  const arrange = useCallback((zoneId: string) => {
+    setOrder((prev) => ({ ...prev, [zoneId]: arrangeAuto(prev[zoneId] ?? []) }));
+  }, []);
+
+  return { slotsFor, move, arrange };
 }

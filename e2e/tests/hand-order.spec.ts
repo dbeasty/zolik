@@ -534,6 +534,40 @@ test.describe('arranging your hand', () => {
       .toBe(arranged.join(','));
   });
 
+  test('Auto-arrange tidies the hand without moving anything to the server', async ({
+    page,
+    request,
+  }) => {
+    const { matchId, host } = await tableWithBots(request, 'zolik', 2);
+    await openMatch(page, host, matchId);
+
+    // Scramble it first, so a no-op auto-arrange (the hand already happened
+    // to be tidy) can't pass this test by accident.
+    await dragLocatorTo(page, card(page, 0), card(page, 3));
+    const scrambled = await handCards(page);
+    const serverBefore = await serverHand(request, matchId, host.userId);
+
+    await page.getByTestId(`hand-auto-arrange-hand:${host.userId}`).click();
+
+    const tidied = await handCards(page);
+    expect(tidied).not.toEqual(scrambled);
+    // Same cards, just reordered — a tidy that lost or duplicated one would
+    // be a far worse bug than a merely unwelcome arrangement.
+    expect([...tidied].sort()).toEqual([...scrambled].sort());
+
+    // A view preference, exactly like a manual drag: the server's own copy of
+    // the hand never moves.
+    const serverAfter = await serverHand(request, matchId, host.userId);
+    expect(serverAfter).toEqual(serverBefore);
+
+    // And it is remembered the same way a manual arrangement is.
+    await page.reload();
+    await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
+    await expect
+      .poll(async () => (await handCards(page)).join(','), { timeout: 15_000 })
+      .toBe(tidied.join(','));
+  });
+
   test('rearranging is not a move: the server never hears about it', async ({ page, request }) => {
     const { matchId, host } = await tableWithBots(request, 'zolik', 2);
     await openMatch(page, host, matchId);
