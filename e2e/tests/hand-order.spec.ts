@@ -119,6 +119,29 @@ async function settledBoxes(page: Page): Promise<string[]> {
 }
 
 /**
+ * The card currently being carried, if any — the one lifted out of the layout.
+ *
+ * Found by asking which card is positioned absolutely rather than by index,
+ * because that is the definition of "the one in your hand right now".
+ */
+async function carriedBox(page: Page) {
+  return page.evaluate(() => {
+    const floating = (el: Element) => {
+      let node: Element | null = el;
+      while (node && !(node as HTMLElement).dataset?.testid?.startsWith('hand-')) {
+        if (getComputedStyle(node as HTMLElement).position === 'absolute') return true;
+        node = node.parentElement;
+      }
+      return false;
+    };
+    const el = Array.from(document.querySelectorAll('[data-testid^="card-hand:"]')).find(floating);
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { x: r.x, y: r.y, width: r.width, height: r.height };
+  });
+}
+
+/**
  * Drops a card into the gap on one side of another card.
  *
  * A card lands *between* two cards rather than on one, so which half of the
@@ -269,6 +292,41 @@ test.describe('arranging your hand', () => {
     );
 
     expect(await handCards(page)).toEqual([...before.slice(1), before[0]]);
+  });
+
+  test('the card being dragged goes where the pointer goes', async ({ page, request }) => {
+    const { matchId, host } = await tableWithBots(request, 'zolik', 2);
+    await openMatch(page, host, matchId);
+    await handCards(page);
+
+    const from = await card(page, 0).boundingBox();
+    if (!from) throw new Error('no box');
+    const grabX = from.x + from.width / 2;
+    const grabY = from.y + from.height / 2;
+
+    await page.mouse.move(grabX, grabY);
+    await page.mouse.down();
+    await page.waitForTimeout(200);
+
+    try {
+      // The plainest thing a drag has to do, and the one nothing here checked.
+      // Every other test in this file watches the *gap*, so all of them passed
+      // while the card sat motionless at the place it was picked up — the gap
+      // tracking the pointer away from a card that never moved is what "they
+      // diverge, and worse the further you go" actually was.
+      for (const travelled of [120, 340, 620]) {
+        await page.mouse.move(grabX + travelled, grabY, { steps: 10 });
+        await page.waitForTimeout(200);
+
+        const carried = await carriedBox(page);
+        expect(carried, `nothing was lifted out after ${travelled}px`).toBeTruthy();
+        const drift = Math.abs(carried!.x + carried!.width / 2 - (grabX + travelled));
+        expect(drift, `card is ${Math.round(drift)}px from the pointer`).toBeLessThan(6);
+      }
+    } finally {
+      await page.mouse.up();
+      await page.waitForTimeout(300);
+    }
   });
 
   test('the row keeps its shape while a card is being dragged', async ({ page, request }) => {
