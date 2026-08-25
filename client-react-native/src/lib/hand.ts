@@ -160,6 +160,39 @@ export function slotsForDrag(
 }
 
 /**
+ * Puts slots back into an order recorded earlier.
+ *
+ * Used when a hand comes back — a reload, or returning to a match — where the
+ * cards are the same cards but the slots holding them are freshly minted, so
+ * the arrangement can only be remembered as card names. Matching is by
+ * multiset, like everything else here, so a remembered pair is still a pair.
+ *
+ * Anything the record does not account for keeps its place at the end rather
+ * than being dropped: a hand that has moved on since the order was written is
+ * still mostly in the order its owner left it.
+ */
+export function applySavedOrder(slots: Slot[], saved: string[]): Slot[] {
+  const byCard = new Map<string, Slot[]>();
+  for (const slot of slots) {
+    const held = byCard.get(slot.card);
+    if (held) held.push(slot);
+    else byCard.set(slot.card, [slot]);
+  }
+
+  const placed: Slot[] = [];
+  const used = new Set<string>();
+  for (const card of saved) {
+    const next = byCard.get(card)?.shift();
+    if (next) {
+      placed.push(next);
+      used.add(next.id);
+    }
+  }
+  for (const slot of slots) if (!used.has(slot.id)) placed.push(slot);
+  return placed;
+}
+
+/**
  * Which *gap* between cards a pointer is nearest — 0 to n, not 0 to n-1.
  *
  * A card does not land "on" another card, it lands between two of them, and

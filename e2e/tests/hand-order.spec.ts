@@ -22,12 +22,22 @@ import { API_BASE } from '../helpers/env';
 
 type Ctx = import('@playwright/test').APIRequestContext;
 
-async function tableWithBots(request: Ctx, moduleId: string, seats: number) {
-  const res = await request.post(`${API_BASE}/auth/guest`, {
-    data: { guestName: `hand-${Math.random().toString(36).slice(2, 10)}` },
-  });
-  expect(res.ok(), await res.text()).toBeTruthy();
-  const host = await res.json();
+/**
+ * Deals a match against bots.
+ *
+ * `as` seats an existing player instead of a fresh guest, which is what lets a
+ * test put the *same* person at two tables — the only way to ask whether one
+ * table's arrangement leaks into the other's.
+ */
+async function tableWithBots(request: Ctx, moduleId: string, seats: number, as?: any) {
+  let host = as;
+  if (!host) {
+    const res = await request.post(`${API_BASE}/auth/guest`, {
+      data: { guestName: `hand-${Math.random().toString(36).slice(2, 10)}` },
+    });
+    expect(res.ok(), await res.text()).toBeTruthy();
+    host = await res.json();
+  }
   const auth = { Authorization: `Bearer ${host.accessToken}` };
 
   const created = await request.post(`${API_BASE}/matches`, {
@@ -354,6 +364,50 @@ test.describe('arranging your hand', () => {
     }
   });
 
+  test('the gap follows the card, not the pointer, when a card is picked up off-centre', async ({
+    page,
+    request,
+  }) => {
+    const { matchId, host } = await tableWithBots(request, 'zolik', 2);
+    await openMatch(page, host, matchId);
+    await handCards(page);
+
+    const source = await card(page, 0).boundingBox();
+    const column = await card(page, 5).boundingBox();
+    if (!source || !column) throw new Error('no boxes');
+
+    // Picked up near its left edge, which is the whole point: a card keeps
+    // the grip it was taken by, so from here on the pointer is most of a card
+    // to the left of the card itself. Every other test in this file grabs a
+    // card dead centre, where the two coincide — which is exactly why they
+    // all passed while the gap was visibly in the wrong place.
+    const grabX = source.x + source.width * 0.15;
+    const grabY = source.y + source.height / 2;
+
+    // Carry it until the *card's centre* is just right of column 5's centre.
+    const wanted = column.x + column.width * 0.6;
+    const travelled = wanted - (source.x + source.width / 2);
+
+    await page.mouse.move(grabX, grabY);
+    await page.mouse.down();
+    await page.waitForTimeout(200);
+    await page.mouse.move(grabX + travelled / 2, grabY, { steps: 10 });
+    await page.waitForTimeout(150);
+    await page.mouse.move(grabX + travelled, grabY, { steps: 15 });
+    await page.waitForTimeout(300);
+
+    try {
+      const gap = await page.getByTestId('hand-drop-gap').boundingBox();
+      expect(gap).toBeTruthy();
+      // Under the card. Following the pointer instead would put it a whole
+      // column to the left, which is the divergence this exists to catch.
+      expect(Math.round(gap!.x)).toBe(Math.round(column.x));
+    } finally {
+      await page.mouse.up();
+      await page.waitForTimeout(300);
+    }
+  });
+
   test('a card dragged from the end into the middle lands there', async ({ page, request }) => {
     const { matchId, host } = await tableWithBots(request, 'zolik', 2);
     await openMatch(page, host, matchId);
@@ -366,6 +420,60 @@ test.describe('arranging your hand', () => {
     const expected = [...before.slice(0, last)];
     expected.splice(3, 0, before[last]);
     expect(after).toEqual(expected);
+  });
+
+  test('an arrangement survives a reload', async ({ page, request }) => {
+    const { matchId, host } = await tableWithBots(request, 'zolik', 2);
+    await openMatch(page, host, matchId);
+
+    const before = await handCards(page);
+    await dragLocatorTo(page, card(page, 0), card(page, 4));
+    const arranged = await handCards(page);
+    expect(arranged).not.toEqual(before);
+
+    // The whole point of arranging a hand is that it stays arranged. Held only
+    // in the screen's memory, it lasted exactly as long as the screen did —
+    // and coming back to a match to find the cards in the module's order again
+    // is the same annoyance as never having arranged them.
+    await page.reload();
+    await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
+
+    await expect
+      .poll(async () => (await handCards(page)).join(','), { timeout: 15_000 })
+      .toBe(arranged.join(','));
+  });
+
+  test('an arrangement belongs to its own match and does not follow you', async ({
+    page,
+    request,
+  }) => {
+    const first = await tableWithBots(request, 'zolik', 2);
+    await openMatch(page, first.host, first.matchId);
+    await dragLocatorTo(page, card(page, 0), card(page, 4));
+    const arranged = await handCards(page);
+
+    // A second table for the same player. Its hand is a different hand, so the
+    // order recorded for the first has nothing to say about it — and a stored
+    // arrangement applied across matches would be a rearrangement nobody asked
+    // for, on cards that only coincidentally have the same names.
+    const second = await tableWithBots(request, 'zolik', 2, first.host);
+    await page.goto(`/match/${second.matchId}`);
+    await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
+
+    const shown = await handCards(page);
+    const served = await serverHand(request, second.matchId, first.host.userId);
+    expect(shown).toHaveLength(served.length);
+    expect(shown).not.toEqual(arranged);
+
+    // Untouched means exactly the order the server dealt it in.
+    expect(shown.length).toBe(served.length);
+
+    // And the first table still remembers its own.
+    await page.goto(`/match/${first.matchId}`);
+    await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
+    await expect
+      .poll(async () => (await handCards(page)).join(','), { timeout: 15_000 })
+      .toBe(arranged.join(','));
   });
 
   test('rearranging is not a move: the server never hears about it', async ({ page, request }) => {

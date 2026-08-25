@@ -1,4 +1,5 @@
 import {
+  applySavedOrder,
   arrangeSlots,
   cardsForSelection,
   insertionAtPoint,
@@ -145,6 +146,48 @@ describe('slotAtPoint', () => {
   it('admits it does not know before anything has been measured', () => {
     expect(slotAtPoint([undefined, undefined], { x: 10, y: 10 })).toBeNull();
     expect(slotAtPoint([], { x: 10, y: 10 })).toBeNull();
+  });
+});
+
+describe('applySavedOrder', () => {
+  it('puts a hand back the way it was left', () => {
+    const held = slots('AS', 'KD', '7H');
+
+    const restored = applySavedOrder(held, ['7H', 'AS', 'KD']);
+
+    expect(restored.map((s) => s.card)).toEqual(['7H', 'AS', 'KD']);
+    // The same slots, moved — not new ones, so anything keyed to a slot
+    // survives the restore.
+    expect(restored.map((s) => s.id).sort()).toEqual(held.map((s) => s.id).sort());
+  });
+
+  it('keeps a remembered pair a pair', () => {
+    const held = slots('7H', 'KD', '7H');
+
+    expect(applySavedOrder(held, ['7H', '7H', 'KD']).map((s) => s.card)).toEqual([
+      '7H',
+      '7H',
+      'KD',
+    ]);
+  });
+
+  it('parks cards the record does not mention at the end', () => {
+    // Dealt since the order was written, or simply never arranged.
+    const held = slots('AS', 'KD', '2C');
+
+    expect(applySavedOrder(held, ['KD', 'AS']).map((s) => s.card)).toEqual(['KD', 'AS', '2C']);
+  });
+
+  it('ignores cards in the record that are no longer held', () => {
+    const held = slots('AS');
+
+    expect(applySavedOrder(held, ['KD', 'AS', '7H']).map((s) => s.card)).toEqual(['AS']);
+  });
+
+  it('leaves a hand alone when there is nothing recorded', () => {
+    const held = slots('AS', 'KD');
+
+    expect(applySavedOrder(held, [])).toEqual(held);
   });
 });
 

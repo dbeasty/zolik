@@ -59,11 +59,16 @@ meld needs three — and they stay picked instead, until the offer's own button
 has enough to light up.
 
 **Rearranging your hand.** Drag a card along the fan and the cards part: a
-card-sized dashed gap opens where it will land, and follows the pointer for the
-length of the drag. Drop it in the empty space to the right of the last card to
+card-sized dashed gap opens where it will land, under the card itself however
+you picked it up. Drop it in the empty space to the right of the last card to
 put it at the end. Then wait for a bot to move — the arrangement stays put,
 which is the part that needed building, since the server re-pushes the whole
 board after every move and does so in its own order.
+
+It also survives a reload: rearrange a hand, refresh the page, and the cards
+come back the way you left them. Stored on the device and keyed by match, so a
+different deal is never rearranged on your behalf, and the server is still
+never told.
 
 Worth trying in more than one game: no module knows the feature exists. How a
 player likes their cards laid out is not a fact about the game, so it never

@@ -146,18 +146,40 @@ export function HandZone({
     startRef.current?.(index);
   }, []);
 
+  /**
+   * The pointer moved. Everything downstream is told where the *card* is, not
+   * where the pointer is.
+   *
+   * Those are not the same place, and using the pointer was a mistake worth
+   * naming. A card is picked up wherever it happened to be touched, and it
+   * keeps that grip for the whole drag, so a card grabbed near its left edge
+   * is drawn most of a card-width to the right of the pointer. The gap opened
+   * under the pointer, which meant the card and the space it was about to drop
+   * into were visibly not in the same place — and the harder you looked at the
+   * card, the more wrong the gap seemed.
+   *
+   * Since the thing being moved is the card, the card is what decides where it
+   * lands. Its centre is where it was picked up from plus how far the gesture
+   * has travelled, which is exactly what the eye is following.
+   */
   const hover = useCallback(
-    (absoluteX: number, absoluteY: number) => {
-      lastPoint.current = { x: absoluteX, y: absoluteY };
-      moveRef.current?.(absoluteX, absoluteY);
-      if (heldRef.current === null || !measured.current) return;
+    (absoluteX: number, absoluteY: number, dx: number, dy: number) => {
+      const index = heldRef.current;
+      const base = index === null ? undefined : rects.current[index];
+      const point = base
+        ? { x: base.x + base.width / 2 + dx, y: base.y + base.height / 2 + dy }
+        : { x: absoluteX, y: absoluteY };
+
+      lastPoint.current = point;
+      moveRef.current?.(point.x, point.y);
+      if (index === null || !measured.current) return;
 
       // Over the board, the card is going somewhere rather than moving along
       // the fan, so the gap goes back to where the card came from — two
       // answers to "where does this land?" on screen at once is one too many.
       const at = outsideRef.current
         ? null
-        : insertionAtPoint(rects.current.slice(0, slots.length), { x: absoluteX, y: absoluteY });
+        : insertionAtPoint(rects.current.slice(0, slots.length), point);
       // Only a change is worth a render; a pan reports every pointer move.
       if (at !== insertRef.current) {
         insertRef.current = at;
@@ -347,7 +369,7 @@ type CardProps = {
   /** Touch-down, before the drag has activated — early enough to measure. */
   onTouch: () => void;
   onPickUp: (index: number) => void;
-  onHover: (absoluteX: number, absoluteY: number) => void;
+  onHover: (absoluteX: number, absoluteY: number, dx: number, dy: number) => void;
   onRelease: () => void;
   onMove: (from: number, to: number) => void;
 };
@@ -370,6 +392,19 @@ function DraggableCard({
 }: CardProps) {
   const tx = useSharedValue(0);
   const ty = useSharedValue(0);
+
+  // Where the finger went down, so that how far the card has moved can be
+  // measured from there.
+  //
+  // Not `translationX`, which looks like the same number and is not: it is
+  // measured from where the gesture *activated*, and activation is deliberately
+  // held back until the pointer has moved far enough to prove it is a drag and
+  // not a tap. Every one of those threshold pixels is missing from it, so a
+  // card drawn by the translation sits a fixed distance behind the finger for
+  // the whole drag — and anything worked out from where the card is inherits
+  // the same lag.
+  const startX = useSharedValue(0);
+  const startY = useSharedValue(0);
 
   // Set the moment the pan activates, so the press that ends a drag cannot
   // also be read as a tap that selects the card. Gesture-handler normally
@@ -406,7 +441,9 @@ function DraggableCard({
     .minDistance(10)
     // Fires on touch-down whether or not this ever becomes a drag, which is
     // what gets the row and its cards measured in time to be useful.
-    .onBegin(() => {
+    .onBegin((e) => {
+      startX.value = e.absoluteX;
+      startY.value = e.absoluteY;
       runOnJS(onTouch)();
     })
     .onStart(() => {
@@ -414,9 +451,15 @@ function DraggableCard({
       runOnJS(onPickUp)(index);
     })
     .onUpdate((e) => {
-      tx.value = e.translationX;
-      ty.value = e.translationY;
-      runOnJS(onHover)(e.absoluteX, e.absoluteY);
+      // Measured from touch-down, so the card sits under the finger exactly
+      // where it was taken hold of, with no threshold quietly subtracted.
+      const dx = e.absoluteX - startX.value;
+      const dy = e.absoluteY - startY.value;
+      tx.value = dx;
+      ty.value = dy;
+      // Passed on as well as the pointer, because where the card is — which
+      // is what decides where it lands — is where it started plus this.
+      runOnJS(onHover)(e.absoluteX, e.absoluteY, dx, dy);
     })
     // onFinalize rather than onEnd: onEnd does not fire when a gesture is
     // cancelled, and a drag abandoned mid-flight must still put the card down

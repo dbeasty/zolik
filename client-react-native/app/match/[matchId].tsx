@@ -67,7 +67,9 @@ export default function MatchScreen() {
   // one. Computed before the connecting-early-return below, because it feeds
   // a hook and hooks may not be conditional.
   const myHands = mine.filter((z) => z.kind === 'hand');
-  const { slotsFor, move } = useHandOrder(myHands);
+  // Keyed by match, so an arrangement is remembered across a reload but never
+  // carried into a different deal, where it would mean nothing.
+  const { slotsFor, move } = useHandOrder(myHands, matchId ? String(matchId) : undefined);
 
   const heldSlots = myHands.flatMap((z) => slotsFor(z.id));
 
