@@ -10,8 +10,21 @@ import (
 
 	"zolik/server/internal/auth"
 	"zolik/server/internal/db"
-	"zolik/server/internal/game"
+	"zolik/server/internal/lobby"
+	"zolik/server/internal/ws"
 )
+
+// mustWaitingRoom builds a local-only waiting room. No Redis, which is the
+// supported single-instance mode, so this needs nothing running.
+func mustWaitingRoom(t *testing.T) *lobby.Store {
+	t.Helper()
+	s, err := lobby.NewStore("")
+	if err != nil {
+		t.Fatalf("building a waiting room: %v", err)
+	}
+	t.Cleanup(func() { _ = s.Close() })
+	return s
+}
 
 // TestRouteGroupsSurviveMounting checks that no group of routes silently
 // swallows another's.
@@ -67,8 +80,9 @@ func TestMatchRuntimeOwnsMatchesPath(t *testing.T) {
 	}
 
 	for _, want := range []string{
-		"GET /matches/{id}",          // the module runtime's live match
-		"GET /games/{gameId}/result", // the recorded result of a finished game
+		"GET /matches/{id}",             // the runtime's live match
+		"GET /matches/{matchId}/result", // the recorded result of a finished match
+		"POST /matches/{id}/join",       // and the runtime's own sub-routes
 	} {
 		if !got[want] {
 			t.Errorf("route %q is not reachable", want)
@@ -107,16 +121,19 @@ func offlineApp(t *testing.T) *App {
 	t.Cleanup(func() { _ = client.Disconnect(t.Context()) })
 	m := &db.Mongo{Client: client, DB: client.Database("route_test")}
 
-	hub, err := game.NewHub(game.NewConnRegistry(), "")
+	hub, err := ws.NewHub(ws.NewConnRegistry(), "")
 	if err != nil {
 		t.Fatalf("building a hub: %v", err)
 	}
 	t.Cleanup(func() { _ = hub.Close() })
 
 	return &App{
-		db:      m,
-		hub:     hub,
-		manager: game.NewManager(game.NewRepository(m), hub),
-		auth:    auth.NewHandlers(auth.Deps{Mongo: m}),
+		db:   m,
+		hub:  hub,
+		auth: auth.NewHandlers(auth.Deps{Mongo: m}),
+		// The waiting room is part of the route table now: /lobby/waiting and
+		// the invite path both need it, and a nil store would panic on mount
+		// rather than fail a test with something readable.
+		waitingRoom: mustWaitingRoom(t),
 	}
 }

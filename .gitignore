@@ -35,6 +35,10 @@ go.work.sum
 e2e/node_modules/
 e2e/test-results/
 e2e/playwright-report/
+# Playwright writes these wherever it is invoked from; running it outside e2e/
+# by mistake should not leave a tracked file behind.
+test-results/
+playwright-report/
 e2e/.cache/
 
 # SSH host key (generated locally)
@@ -47,3 +51,4 @@ client-defold/wasm-web/
 
 # Claude Code worktrees (local scratch checkouts, incl. their node_modules)
 .claude/worktrees/
+.dev-stack/

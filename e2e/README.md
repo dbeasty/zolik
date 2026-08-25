@@ -1,11 +1,7 @@
 # E2E tests
 
 Playwright specs that drive the real web build (`expo start --web`) against a
-real Go server + Mongo, and seed each test straight into the mid-round UI
-state it actually wants to exercise via a dev-only REST endpoint —
-`POST /games/{id}/debug-state` — instead of playing a full deal turn-by-turn
-over WebSocket every time. See `server/internal/game/rest_handlers.go`'s
-`debugState` and `helpers/seed.ts`.
+real Go server and Mongo.
 
 ## One-time setup
 
@@ -21,10 +17,8 @@ You need three things running:
 
 1. **Mongo + Redis** (already provided by `server/docker-compose.yml` in
    dev — `docker compose up -d mongo redis` from `server/`).
-2. **The Go server**, with test endpoints enabled (on by default when
-   `APP_ENV` is unset/`local`) and pointed at whatever Mongo/Redis you're
-   using — pick a port and DB name that won't collide with a real dev
-   server you might also have running:
+2. **The Go server**, pointed at whatever Mongo/Redis you're using — pick a
+   port and DB name that won't collide with a real dev server:
 
    ```sh
    cd server
@@ -48,57 +42,59 @@ ZOLIK_E2E_WEB_BASE=http://127.0.0.1:8100 \
 npx playwright test
 ```
 
-(Those two env vars default to exactly those values — see
-`helpers/env.ts` — so if you used the ports above you can drop them.)
+(Those two env vars default to exactly those values — see `helpers/env.ts` — so
+if you used the ports above you can drop them.)
 
-## Why the drags look the way they do
+> **Run it from `e2e/`.** Playwright resolves its config from the working
+> directory, and invoking it from the repository root silently runs without
+> this project's config — the specs then fail with "did not expect
+> test.describe() to be called here" rather than anything useful.
 
-`helpers/drag.ts` has the load-bearing details, empirically discovered:
+> **Start the server detached, not with a foreground `go run` you background.**
+> A `go run` child that gets reaped mid-suite produces a wall of
+> `ECONNREFUSED` failures that look exactly like a code regression and are not.
+> `go build -o /tmp/zolik-server ./cmd/server && nohup /tmp/zolik-server &` is
+> the reliable shape.
 
-- **A drag needs a pause right after `mouse.down()`, before any
-  movement.** Without it, react-native-gesture-handler's web pointer
-  manager never recognizes the pan gesture at all — the card just silently
-  snaps back on `mouse.up()`, no error anywhere.
-- **Raw `page.mouse` coordinates don't auto-scroll** the way locator
-  actions (`.click()`, etc.) do. Staging a card grows the staging box,
-  which can push the hand row below the fold — always
-  `scrollIntoViewIfNeeded()` the drag source right before reading its
-  `boundingBox()`.
-- **The quick-swipe-up-to-discard shortcut is checked last**, only once
-  every real drop zone (discard pile, table melds, staging area) has
-  already come up empty — see the comment on `tryDropOnStaging` in
-  `client-react-native/src/components/HandRow.tsx`. This *used* to be
-  checked first, which meant any fast drag upward toward the staging
-  area or a table meld (both of which sit above the hand row) got
-  silently rerouted into a discard instead. Caught by this suite.
+## What the suites cover
 
-## What `legal-actions.spec.ts` covers
+There are four, and none of them names a rule of any game.
 
-It is the browser end of the legal-action work in
-`docs/extensibility-plan.md` Phase 1. The Go suites already prove the offers
-are correct (`server/internal/rules/offers_agreement_test.go` cross-checks
-every offer against `ApplyAction`) and sufficient
-(`server/internal/game/offer_driven_play_test.go` plays whole games with a
-client that reads nothing else). What only a real browser can prove is the
-last link: that the controls a player actually sees are driven by those
-offers, so a rule change on the server changes the UI with no client edit.
+- **`generic-shell.spec.ts`** — the load-bearing one. It drives
+  `app/match/[matchId].tsx` through Prší, Canasta, Hold'em and Žolíky, clicking
+  the controls a person would and never the same control twice by name. It also
+  proves the numeric control poker added appears only where a game asks for a
+  number, that a disabled control shows the engine's own reason, that the lobby
+  renders from `/modules`, that joining by code works, and that the retired
+  `/games/*` endpoints really are gone.
+- **`bots.spec.ts`** — that `add-bot` produces an opponent that *plays*, in all
+  four games. Its assertion is that the turn **comes back** after the human uses
+  theirs; checking that a human has moves at the start proves nothing, because
+  the deal usually puts them first.
+- **`canasta.spec.ts`** — a whole Canasta match played to a winner over real
+  WebSockets, plus partnerships and hidden information through the real
+  serialisation.
+- **`match-runtime.spec.ts`** — the runtime itself: persistence, per-viewer
+  projection, refusals, and unknown modules.
 
-Its load-bearing pair is the two discard-pile tests. Same screen, same
-client code, one game created under `continental` (which locks pickup until
-table round 3) and one under `zolik_classic` (which does not) — the UI tells
-them apart with no client-side rule, which is the entire claim. The second
-test is what stops the first from passing on a merely broken screen.
+### Two ways these tests have passed while proving nothing
 
-`seedGame`'s third argument selects the ruleset. It has to be set at
-creation time, because the resolved ruleset is frozen onto the document then
-(see `rules.RulesConfig` and `game.setGameRules`) and `debug-state` cannot
-change it afterwards — which is the point of persisting it.
+Both were found and fixed; both are worth knowing about before writing another.
 
-## Debug-state and card-supply conservation
+**Counting clicks instead of progress.** The shell spec used to assert that it
+had pressed something. A click on a dead control counts just as well, so it now
+reads the match back over HTTP and requires the *server's* board to have moved.
 
-`debug-state` bypasses `rules` validation entirely and writes hands/melds
-directly, so it doesn't care whether a card you put in the human's hand is
-also sitting in an AI's meld — real 2-deck games have duplicates anyway
-(see `rules.DeckCountForPlayers`). It does still run `rules.ValidateMeld`
-on any melds you seed, so a nonsense meld (e.g. three different ranks)
-gets rejected with a 400 rather than silently corrupting state.
+**A selector that matched the container.** `[data-testid^="offer-"]` also
+matched the scrolling bar the offer buttons live in, so every "move" was a click
+on a div. The bar is `action-bar` now. Fixing it turned three green tests red,
+correctly.
+
+## What is no longer here
+
+Twelve specs drove the bespoke Žolíky screen — drag-to-meld, staging, joker
+swaps, undo, auto-scroll — and seeded themselves through a rummy-shaped
+`POST /games/{id}/debug-state`. Both the screen and the endpoint are gone. The
+generic equivalent, `POST /matches/{id}/debug-state`, takes the module's own
+state blob and is available for a spec that needs to start from a specific
+position; none currently does, because playing against a bot is cheap.

@@ -29,7 +29,7 @@ func TestFormatLifetimeStats_NoMatchesYet(t *testing.T) {
 func TestFormatLifetimeStats_SeparatesHumanAndAIRecords(t *testing.T) {
 	got := formatLifetimeStats(decode(t, `{
 		"gamesPlayed": 10,
-		"overall":  {"matches":10,"wins":6,"losses":3,"draws":1,"winRate":0.6,"avgPenaltyPerDeal":42.4},
+		"overall":  {"matches":10,"wins":6,"losses":3,"draws":1,"winRate":0.6,"avgScore":42.4},
 		"vsHumans": {"matches":4,"wins":1,"losses":3,"draws":0,"winRate":0.25},
 		"vsAI":     {"matches":6,"wins":5,"losses":0,"draws":1,"winRate":0.8333},
 		"byAIDifficulty": {

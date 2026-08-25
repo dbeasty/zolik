@@ -399,19 +399,23 @@ func (h *testHarness) seedGuestMatch(guestID string) {
 	now := time.Now().UTC()
 	guestKey := (stats.Subject{Kind: stats.SubjectGuest, ID: guestID}).Key()
 	m := stats.MatchResult{
-		GameID:       bson.NewObjectID(),
-		RulesProfile: "zolik_classic",
-		StartedAt:    now.Add(-time.Hour),
-		CompletedAt:  now,
-		DealsPlayed:  1,
-		Composition:  stats.Composition{Players: 2, Guests: 1, AIs: 1, AIDifficulties: []string{"easy"}},
+		MatchID:     bson.NewObjectID(),
+		ModuleID:    "zolik",
+		Variation:   "zolik_classic",
+		StartedAt:   now.Add(-time.Hour),
+		CompletedAt: now,
+		Composition: stats.Composition{Players: 2, Guests: 1, AIs: 1, AIDifficulties: []string{"easy"}},
+		// Scores are the module's own measure, oriented so higher is better —
+		// which for rummy is the negated penalty. Claiming does not care what
+		// the number means, but the record has to be the shape production
+		// writes or this would be testing a fiction.
 		Participants: []stats.Standing{
-			{PlayerID: "p0", Subject: stats.Subject{Kind: stats.SubjectGuest, ID: guestID, Name: "Guest"}, Name: "Guest", Total: 5, Rank: 1, Won: true},
-			{PlayerID: "p1", Subject: stats.Subject{Kind: stats.SubjectAI, ID: "easy", Name: "Bot"}, Name: "Bot", Total: 40, Rank: 2},
+			{PlayerID: "p0", Subject: stats.Subject{Kind: stats.SubjectGuest, ID: guestID, Name: "Guest"}, Name: "Guest", Score: -5, Rank: 1, Won: true},
+			{PlayerID: "p1", Subject: stats.Subject{Kind: stats.SubjectAI, ID: "easy", Name: "Bot"}, Name: "Bot", Score: -40, Rank: 2},
 		},
-		SubjectKeys:    []string{guestKey, "ai:easy"},
-		WinnerPlayerID: "p0",
-		RecordedAt:     now,
+		SubjectKeys: []string{guestKey, "ai:easy"},
+		Winners:     []string{"p0"},
+		RecordedAt:  now,
 	}
 	if _, err := h.stats.InsertMatch(context.Background(), m); err != nil {
 		h.t.Fatalf("seeding a guest match: %v", err)

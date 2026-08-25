@@ -39,18 +39,35 @@ See [client-tui/README.md](../client-tui/README.md) for key bindings.
 **React Native (primary GUI):** **[client-react-native](../client-react-native/)** — Expo app for web/iOS/Android. See [client-react-native/README.md](../client-react-native/README.md).
 
 ## Endpoints
+
+There is one gameplay path, and it does not name a game. `/games/*` and
+`ws://…/ws/games/:id` are gone, along with the 24-field `GameStateMsg` they
+carried; `cmd/migrate-games` moves any documents left behind.
+
 - `GET /healthz`
-- WebSocket: `ws://localhost:8090/ws/games/:id?token=<JWT>`
+- WebSocket: `ws://localhost:8090/ws/matches/:id?token=<JWT>` — carries
+  `module.Action` in and a per-viewer `match_state` out
 - REST:
   - Auth: `/auth/providers`, `/auth/guest`, `/auth/email/start`, `/auth/email/verify`,
     `/auth/oauth/:provider/start`, `/auth/oauth/:provider/callback`, `/auth/oauth/exchange`,
     `/auth/oauth/:provider/token`, `/auth/identities`, `/auth/claim-guest`, `/auth/guest-summary`,
     `/auth/refresh`, `/auth/logout` — see [User management](#user-management) below.
     Legacy: `/auth/register`, `/auth/login` (username/password, kept for the SSH/TUI client).
-  - Games: `/games`, `/games/:id`, `/games/:id/join`, `/games/:id/invite`, `/games/:id/start`,
-    `/games/:id/add-ai`, `/games/:id/replay` — see [Waiting room](#waiting-room) below for `/invite`.
+  - Games hosted: `GET /modules` — every module's self-description, which is what a lobby
+    renders its picker and its new-match form from
+  - Matches: `POST /matches`, `GET /matches/:id`, `/matches/:id/join`, `/matches/:id/start`,
+    `/matches/:id/add-bot`, `/matches/:id/invite` — see [Waiting room](#waiting-room) below
+    for `/invite`
   - Waiting room: `/lobby/waiting`, and WebSocket `ws://localhost:8090/ws/lobby?token=<JWT>`
-  - Offline scoring: `/scoring-sessions/*`
+  - Statistics: `/users/me/stats`, `/users/me/matches`, `/users/me/head-to-head`,
+    `/leaderboard`, `GET /matches/:id/result`
+  - Offline scoring: `/scoring-sessions/*` (a pen-and-paper scorepad, unrelated to hosted
+    matches)
+
+Dev-only, when `APP_ENV` is unset or `local`:
+
+- `POST /matches/:id/debug-state` — replaces a match's state with the module's own state blob,
+  so a test can start from the position it wants. It bypasses every rule by design.
 
 ## Waiting room
 
@@ -58,14 +75,14 @@ A second, lighter lobby concept sits above a specific game's: the pool of human 
 simply available to play, visible to any host looking to pick someone up directly instead of
 sharing a join code (`internal/lobby`). Connecting to `/ws/lobby` *is* the request to wait — there
 is nothing else to negotiate — and the connection doubles as how a picked-up player is notified
-(`{"type":"lobby_invited",...}`) the moment a host seats them via `POST /games/:id/invite`.
+(`{"type":"lobby_invited",...}`) the moment a host seats them via `POST /matches/:id/invite`.
 
-It rides the same Hub and ConnRegistry the per-game WebSocket rooms use (a reserved room id,
+It rides the same Hub and ConnRegistry the per-match WebSocket rooms use (a reserved room id,
 `lobby.RoomID`), so it gets the existing local-write-plus-Redis-fanout broadcast path for free
-rather than needing a transport of its own. `internal/game` never imports `internal/lobby` — the
-dependency runs the other way (lobby imports game for the transport), so `/invite` reaches the
-waiting room through a narrow, primitive-typed `game.WaitingLookup` interface that `*lobby.Store`
-happens to satisfy, wired together in `app.go`.
+rather than needing a transport of its own. Both it and the runtime take that transport from
+`internal/ws`, so neither imports the other: `/invite` reaches the waiting room through a
+narrow, primitive-typed `match.WaitingLookup` interface that `*lobby.Store` happens to satisfy,
+wired together in `app.go`. The runtime never learns what a waiting room is.
 
 ## User management
 

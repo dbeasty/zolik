@@ -1,27 +1,29 @@
-import { Locator, Page, expect } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
-// react-native-gesture-handler's web pointer manager needs real, spaced-out
-// pointer events to recognize a pan gesture — firing mousedown/mousemove/
-// mouseup back-to-back in the same tick (Playwright's default) makes the
-// drag never activate at all (the card silently snaps back, no error). A
-// short pause after each step is enough for its RAF-driven tracking to
-// register the gesture; the small settle pause after mouseup lets the
-// resulting WS round-trip (drop -> server action -> broadcast -> re-render)
-// land before the caller asserts on the result.
+/**
+ * Pointer drags that react-native-gesture-handler actually recognizes.
+ *
+ * Both of the pauses below are load-bearing, and neither is documented
+ * behaviour of gesture-handler's web pointer manager — they were found by
+ * watching drags silently do nothing. This file is kept as the one place that
+ * knowledge lives, so the next spec that needs a drag does not rediscover it.
+ */
+
+/**
+ * Drags the centre of one element onto the centre of another.
+ *
+ * Both boxes are measured *after* scrolling the source into view, and in that
+ * settled position: scrolling the target into view afterwards could move the
+ * source again on a page too short to show both at once, which produces a drag
+ * that starts from wherever the source used to be.
+ */
 export async function dragLocatorTo(page: Page, from: Locator, to: Locator) {
-  // Raw page.mouse coordinates don't auto-scroll like locator actions
-  // (.click(), etc.) do — staging a card grows the staging box, which can
-  // push the hand row below the fold, so without this a drag that worked
-  // for the first card silently targets blank scrolled-out space for the
-  // second. Scroll the source into view, then re-measure *both* boxes in
-  // that settled scroll position (scrolling `to` into view next could
-  // otherwise move `from` again if the page isn't tall enough to fit both
-  // at once).
   await from.scrollIntoViewIfNeeded();
   const fromBox = await from.boundingBox();
   const toBox = await to.boundingBox();
   if (!fromBox) throw new Error('drag source has no bounding box (not visible?)');
   if (!toBox) throw new Error('drag target has no bounding box (not visible?)');
+
   await dragPointTo(
     page,
     { x: fromBox.x + fromBox.width / 2, y: fromBox.y + fromBox.height / 2 },
@@ -36,57 +38,35 @@ export async function dragPointTo(
 ) {
   await page.mouse.move(from.x, from.y);
   await page.mouse.down();
-  // The pause after mousedown (before any movement at all) is load-bearing
-  // — without it the pan gesture never activates at all, no error, the
-  // card just silently snaps back on mouseup. Verified empirically; not
-  // documented behavior of gesture-handler's web pointer manager.
+
+  // The pause after mousedown, before any movement at all, is load-bearing:
+  // without it the pan gesture never activates, with no error — the card just
+  // silently snaps back on mouseup. Playwright fires the whole sequence in one
+  // tick by default, and gesture-handler's RAF-driven tracking needs real,
+  // spaced-out pointer events to see a gesture at all.
+  //
+  // It is also deliberately shorter than the hand's long-press threshold, so a
+  // horizontal drag here exercises the same immediate sideways activation a
+  // person gets rather than quietly falling through to the press-and-hold
+  // path.
   await page.waitForTimeout(200);
+
+  // Moving in two stages with interpolated steps, rather than jumping: an
+  // abrupt jump reads as no movement at all and cancels the gesture.
   const midX = from.x + (to.x - from.x) / 2;
   const midY = from.y + (to.y - from.y) / 2;
   await page.mouse.move(midX, midY, { steps: 10 });
   await page.waitForTimeout(150);
   await page.mouse.move(to.x, to.y, { steps: 15 });
   await page.waitForTimeout(200);
+
   await page.mouse.up();
   await page.waitForTimeout(400);
 }
 
-// A fast short upward flick — HandRow's QUICK_SWIPE_UP_DISTANCE/VELOCITY
-// shortcut for discarding without aiming at the discard pile.
-export async function flickUp(page: Page, from: Locator) {
-  await from.scrollIntoViewIfNeeded();
-  const box = await from.boundingBox();
-  if (!box) throw new Error('flick source has no bounding box');
-  const x = box.x + box.width / 2;
-  const y = box.y + box.height / 2;
-  await page.mouse.move(x, y);
-  await page.mouse.down();
-  // Same load-bearing pause as dragPointTo (see its comment) so the pan
-  // gesture activates at all — then a fast upward sweep with no settle pause
-  // before mouseup, so gesture-handler's velocity sample (taken from the last
-  // couple of pointermove events) reads as fast/upward enough to clear
-  // QUICK_SWIPE_UP_DISTANCE/VELOCITY.
-  //
-  // The step count is load-bearing too, and in the opposite direction to what
-  // you would expect: with `steps: 2` the jump is so abrupt that
-  // gesture-handler's web pointer manager never registers it as movement at
-  // all and *cancels* the gesture, so onEnd never fires and handleDragEnd is
-  // called with zeroed translation and velocity — a flick that reads as
-  // having gone nowhere. Measured: steps 2 → ty=0 vy=0; steps 6 → ty=-167
-  // vy=-4811; steps 10 → ty=-180 vy=-2419. Ten is comfortably inside the
-  // window at both ends.
-  await page.waitForTimeout(200);
-  await page.mouse.move(x, y - 200, { steps: 10 });
-  await page.mouse.up();
-  await page.waitForTimeout(400);
-}
-
-// Waits past the app's own WS connect/reconnect race (the very first
-// connect attempt can lose to the session token not being bound to
-// apiClient yet — the app's own backoff-retry already recovers from this in
-// production; tests just need to wait it out instead of hitting a stale
-// "Loading game…" screen).
-export async function waitForGameLoaded(page: Page) {
-  await expect(page.getByTestId('hand-card-0')).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByText('offline')).not.toBeVisible();
+/** The cards of the viewer's own hand, left to right, as they read on screen. */
+export async function handCards(page: Page): Promise<string[]> {
+  const cards = page.locator('[data-testid^="card-hand:"]');
+  await expect(cards.first()).toBeVisible({ timeout: 20_000 });
+  return (await cards.allTextContents()).map((t) => t.replace(/\s+/g, ''));
 }

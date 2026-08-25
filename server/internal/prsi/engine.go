@@ -241,12 +241,20 @@ func (s *GameState) drawOne() (string, bool) {
 }
 
 // Finished reports whether the match is over.
-func (m *Module) Finished(raw module.State) (bool, string, error) {
+//
+// A list of winners, of which Prší always produces exactly one: shedding your
+// last card is a thing only one player can do first. The signature is shared
+// because Canasta is won by a partnership and a poker pot can be split, and one
+// interface beats three spellings of the same idea.
+func (m *Module) Finished(raw module.State) (bool, []string, error) {
 	s, err := decode(raw)
 	if err != nil {
-		return false, "", err
+		return false, nil, err
 	}
-	return s.Status == "completed", s.WinnerID, nil
+	if s.Status != "completed" || s.WinnerID == "" {
+		return s.Status == "completed", nil, nil
+	}
+	return true, []string{s.WinnerID}, nil
 }
 
 func isSuit(s string) bool {

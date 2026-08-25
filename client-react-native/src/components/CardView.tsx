@@ -3,6 +3,25 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { parseCard } from '@/src/lib/cards';
 import { colors } from '@/src/theme';
 
+/**
+ * How much room a card takes.
+ *
+ * Exported because the hand draws a gap the exact size of a card, to show
+ * where a dragged one will land, and a gap that is nearly card-sized is worse
+ * than no gap at all — the cards visibly shuffle by a few pixels as it moves.
+ */
+export const CARD_METRICS = {
+  width: 52,
+  height: 72,
+  /** Space after each card, part of what a slot occupies. */
+  gap: 6,
+  /** The ring drawn around every card, whether or not it is coloured in. */
+  ringPadding: 1,
+  ringBorder: 2,
+  compactWidth: 44,
+  compactHeight: 60,
+};
+
 type Props = {
   card: string;
   selected?: boolean;
@@ -31,6 +50,19 @@ export function CardView({ card, selected, justDrawn, dragging, onPress, compact
     // exactly what broke double-tap-to-discard before this was fixed.
     <View
       testID={testID}
+      // Selectedness said out loud rather than only drawn. A gold border is
+      // invisible to a screen reader, and it is also the only evidence a test
+      // could otherwise check — which would mean asserting on a hex colour,
+      // and those change for design reasons that have nothing to do with
+      // whether the card is picked.
+      //
+      // `aria-selected` rather than `accessibilityState={{selected}}`: React
+      // Native has taken the aria spelling since 0.71 and maps it back to
+      // accessibilityState on iOS and Android, while react-native-web forwards
+      // it to the DOM. The older spelling reaches native but this version of
+      // react-native-web drops it, so it would leave the web build silently
+      // saying nothing.
+      aria-selected={!!selected}
       style={[styles.ring, justDrawn && styles.justDrawnRing, dragging && styles.draggingRing]}
     >
       <View
@@ -59,9 +91,9 @@ export function CardView({ card, selected, justDrawn, dragging, onPress, compact
 const styles = StyleSheet.create({
   ring: {
     borderRadius: 8,
-    borderWidth: 2,
+    borderWidth: CARD_METRICS.ringBorder,
     borderColor: 'transparent',
-    padding: 1,
+    padding: CARD_METRICS.ringPadding,
   },
   justDrawnRing: {
     borderColor: colors.success,
@@ -70,19 +102,19 @@ const styles = StyleSheet.create({
     borderColor: colors.accent,
   },
   card: {
-    width: 52,
-    height: 72,
+    width: CARD_METRICS.width,
+    height: CARD_METRICS.height,
     backgroundColor: colors.cardBg,
     borderRadius: 6,
     borderWidth: 2,
     borderColor: colors.cardBorder,
     padding: 4,
-    marginRight: 6,
+    marginRight: CARD_METRICS.gap,
     justifyContent: 'space-between',
   },
   compact: {
-    width: 44,
-    height: 60,
+    width: CARD_METRICS.compactWidth,
+    height: CARD_METRICS.compactHeight,
   },
   selected: {
     borderColor: colors.gold,

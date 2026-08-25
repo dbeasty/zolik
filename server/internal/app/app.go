@@ -8,8 +8,9 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"zolik/server/internal/auth"
+	"zolik/server/internal/canasta"
 	"zolik/server/internal/db"
-	"zolik/server/internal/game"
+	"zolik/server/internal/holdem"
 	"zolik/server/internal/identity"
 	"zolik/server/internal/lobby"
 	"zolik/server/internal/match"
@@ -18,17 +19,17 @@ import (
 	"zolik/server/internal/scoring"
 	"zolik/server/internal/stats"
 	userrepo "zolik/server/internal/user"
+	"zolik/server/internal/ws"
 	"zolik/server/internal/zolikmod"
 )
 
 type App struct {
-	cfg     Config
-	db      *db.Mongo
-	hub     *game.Hub
-	manager *game.Manager
-	auth    *auth.Handlers
+	cfg  Config
+	db   *db.Mongo
+	hub  *ws.Hub
+	auth *auth.Handlers
 	// waitingRoom is the pool of human players waiting to be picked up into
-	// a game — see internal/lobby. Rides the same Hub as game rooms do, so
+	// a match — see internal/lobby. Rides the same Hub as match rooms do, so
 	// it needs no database of its own and no separate scaling story.
 	waitingRoom *lobby.Store
 }
@@ -59,30 +60,23 @@ func New(cfg Config) (*App, error) {
 		return nil, err
 	}
 
-	registry := game.NewConnRegistry()
-	hub, err := game.NewHub(registry, cfg.RedisURL)
+	registry := ws.NewConnRegistry()
+	hub, err := ws.NewHub(registry, cfg.RedisURL)
 	if err != nil {
 		_ = m.Close(ctx)
 		return nil, err
 	}
 
-	// The waiting room shares the game hub's Redis (or its local-only
-	// fallback) rather than dialling a second connection — same instance,
-	// same trade-off, same "fine for development without it" story.
+	// The waiting room shares the hub's Redis (or its local-only fallback)
+	// rather than dialling a second connection — same instance, same
+	// trade-off, same "fine for development without it" story.
 	waitingRoom, err := lobby.NewStore(cfg.RedisURL)
 	if err != nil {
 		_ = m.Close(ctx)
 		return nil, err
 	}
 
-	repo := game.NewRepository(m)
-	manager := game.NewManager(repo, hub)
-	// The recorder turns each completed match into a permanent record plus
-	// the lifetime updates derived from it. Injected rather than constructed
-	// inside the manager so the game package never has to import stats — see
-	// game.MatchRecorder.
 	statsRepo := stats.NewRepository(m)
-	manager.SetMatchRecorder(stats.NewRecorder(statsRepo))
 
 	// Mail is resolved at startup rather than at first use: a deployment that
 	// offers email sign-in but cannot send mail should fail to start, not fail
@@ -110,7 +104,6 @@ func New(cfg Config) (*App, error) {
 		cfg:         cfg,
 		db:          m,
 		hub:         hub,
-		manager:     manager,
 		auth:        authHandlers,
 		waitingRoom: waitingRoom,
 	}, nil
@@ -118,9 +111,7 @@ func New(cfg Config) (*App, error) {
 
 func (a *App) Config() Config { return a.cfg }
 
-func (a *App) Hub() *game.Hub { return a.hub }
-
-func (a *App) Manager() *game.Manager { return a.manager }
+func (a *App) Hub() *ws.Hub { return a.hub }
 
 func (a *App) Auth() *auth.Handlers { return a.auth }
 
@@ -157,11 +148,22 @@ type routeGroup struct {
 // nothing but the browser suite noticed.
 func (a *App) routeGroups() []routeGroup {
 	statsRepo := stats.NewRepository(a.db)
+
+	// One runtime, hosting every game. The registry is the only place a game
+	// is named: register a module and it appears in /modules, in the lobby's
+	// picker, and on the one screen that plays all of them.
+	modules := module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New())
+	matchMgr := match.NewManager(match.NewRepository(a.db), modules, a.hub)
+	// The recorder turns each completed match into a permanent record plus the
+	// lifetime updates derived from it. Injected rather than constructed
+	// inside the manager, so the runtime never has to import stats.
+	matchMgr.SetRecorder(stats.NewRecorder(statsRepo))
+	// And the waiting room, so a host can seat a specific player out of the
+	// pool. Wired through a narrow interface rather than an import, so the
+	// runtime does not learn what a waiting room is.
+	matchMgr.SetWaitingRoom(a.waitingRoom, lobby.RoomID)
+
 	lobbyHandlers := lobby.NewHandlers(a.hub, a.waitingRoom)
-	gameRest := game.NewGameRestHandlers(
-		game.NewRepository(a.db), a.hub, a.manager, statsRepo,
-		a.waitingRoom, lobby.RoomID, a.cfg.TestEndpointsEnabled,
-	)
 
 	return []routeGroup{
 		{"health", func(r chi.Router) {
@@ -170,22 +172,15 @@ func (a *App) routeGroups() []routeGroup {
 				_, _ = w.Write([]byte("ok"))
 			})
 		}},
-		{"ws", func(r chi.Router) {
-			game.NewWebSocketServer(a.manager).RegisterRoutes(r, a.db)
-		}},
 		{"auth", a.auth.RegisterRoutes},
-		{"game", gameRest.RegisterRoutes},
 		{"lobby", lobbyHandlers.RegisterRoutes},
 		{"user", userrepo.NewHandlers(userrepo.NewRepository(a.db), auth.NewStore(a.db)).RegisterRoutes},
 		{"scoring", scoring.NewHandlers(a.db).RegisterRoutes},
-		// The module runtime, mounted alongside the Žolíky path rather than
-		// replacing it. Every phase of this migration ships the new shape next
-		// to the old and retires the old only once nothing reads it — the
-		// existing game routes, documents and clients are untouched by this.
+		// The runtime, and now the only gameplay path there is. It replaced
+		// the Žolíky-specific one rather than sitting beside it: /games, its
+		// documents, its socket and its 24-field wire message are gone.
 		{"match", func(r chi.Router) {
-			modules := module.NewRegistry(zolikmod.New(), prsi.New())
-			matchMgr := match.NewManager(match.NewRepository(a.db), modules, a.hub)
-			match.NewHandlers(matchMgr).RegisterRoutes(r)
+			match.NewHandlers(matchMgr, a.cfg.TestEndpointsEnabled).RegisterRoutes(r)
 		}},
 		{"stats", stats.NewHandlers(statsRepo).RegisterRoutes},
 	}

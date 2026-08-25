@@ -75,50 +75,77 @@ func (c *Client) loadSubjectFromToken() error {
 	return nil
 }
 
-func (c *Client) CreateGame(initialMeldMin *int) (gameID, joinCode string, err error) {
-	body := map[string]any{}
-	if initialMeldMin != nil {
-		body["initialMeldMinimum"] = *initialMeldMin
+// --- matches ---------------------------------------------------------------
+//
+// Six methods, none of which names a game. What they replaced —
+// CreateGame/JoinGame/AddAI/StartGame/GetLobby/GetScoreboard plus a rummy
+// action sender — was the same six ideas with rummy baked into each one, down
+// to CreateGame taking an initial-meld minimum as its only argument.
+
+// Modules lists every game this server hosts.
+func (c *Client) Modules() ([]Module, error) {
+	var resp struct {
+		Modules []Module `json:"modules"`
+	}
+	if err := c.getJSON("/modules", &resp, false); err != nil {
+		return nil, err
+	}
+	return resp.Modules, nil
+}
+
+func (c *Client) CreateMatch(moduleID, variation string, options map[string]int) (matchID, joinCode string, err error) {
+	body := map[string]any{"moduleId": moduleID}
+	if variation != "" {
+		body["variation"] = variation
+	}
+	if len(options) > 0 {
+		body["options"] = options
 	}
 	var resp struct {
-		GameID   string `json:"gameId"`
+		MatchID  string `json:"matchId"`
 		JoinCode string `json:"joinCode"`
 	}
-	if err := c.postJSON("/games", body, &resp, true); err != nil {
+	if err := c.postJSON("/matches", body, &resp, true); err != nil {
 		return "", "", err
 	}
-	return resp.GameID, resp.JoinCode, nil
+	return resp.MatchID, resp.JoinCode, nil
 }
 
-func (c *Client) JoinGame(idOrCode string) (string, error) {
+// JoinMatch joins by match id or by the short code a host reads out.
+func (c *Client) JoinMatch(idOrCode string) (string, error) {
 	var resp struct {
-		GameID string `json:"gameId"`
+		MatchID string `json:"matchId"`
 	}
-	if err := c.postJSON("/games/"+url.PathEscape(idOrCode)+"/join", nil, &resp, true); err != nil {
+	if err := c.postJSON("/matches/"+url.PathEscape(idOrCode)+"/join", nil, &resp, true); err != nil {
 		return "", err
 	}
-	return resp.GameID, nil
+	return resp.MatchID, nil
 }
 
-func (c *Client) AddAI(idOrCode, difficulty string) error {
-	return c.postJSON("/games/"+url.PathEscape(idOrCode)+"/add-ai", map[string]string{
-		"difficulty": difficulty,
-	}, &struct{}{}, true)
+// AddBot seats an opponent. The runtime drives it from the module's own offer
+// list, so this works for a game nobody has written yet.
+func (c *Client) AddBot(idOrCode string) error {
+	return c.postJSON("/matches/"+url.PathEscape(idOrCode)+"/add-bot", nil, &struct{}{}, true)
 }
 
-func (c *Client) StartGame(idOrCode string) error {
-	return c.postJSON("/games/"+url.PathEscape(idOrCode)+"/start", nil, &struct{}{}, true)
+func (c *Client) StartMatch(idOrCode string) error {
+	return c.postJSON("/matches/"+url.PathEscape(idOrCode)+"/start", nil, &struct{}{}, true)
 }
 
-func (c *Client) GetLobby(idOrCode string) (LobbyGame, error) {
-	var g LobbyGame
-	if err := c.getJSON("/games/"+url.PathEscape(idOrCode), &g, false); err != nil {
-		return LobbyGame{}, err
+// GetMatch reads a viewer's state over plain HTTP; the socket is the live path.
+func (c *Client) GetMatch(idOrCode string) (MatchState, error) {
+	var m MatchState
+	q := ""
+	if c.UserID != "" {
+		q = "?as=" + url.QueryEscape(c.UserID)
 	}
-	return g, nil
+	if err := c.getJSON("/matches/"+url.PathEscape(idOrCode)+q, &m, false); err != nil {
+		return MatchState{}, err
+	}
+	return m, nil
 }
 
-func (c *Client) DialWS(gameID string) (*websocket.Conn, error) {
+func (c *Client) DialWS(matchID string) (*websocket.Conn, error) {
 	u, err := url.Parse(c.BaseURL)
 	if err != nil {
 		return nil, err
@@ -127,12 +154,12 @@ func (c *Client) DialWS(gameID string) (*websocket.Conn, error) {
 	if u.Scheme == "https" {
 		scheme = "wss"
 	}
-	wsURL := fmt.Sprintf("%s://%s/ws/games/%s?token=%s", scheme, u.Host, gameID, url.QueryEscape(c.Token))
+	wsURL := fmt.Sprintf("%s://%s/ws/matches/%s?token=%s", scheme, u.Host, matchID, url.QueryEscape(c.Token))
 	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
 	return conn, err
 }
 
-func (c *Client) SendWS(conn *websocket.Conn, action WSAction) error {
+func (c *Client) SendWS(conn *websocket.Conn, action Action) error {
 	return conn.WriteJSON(action)
 }
 
@@ -189,14 +216,6 @@ func (c *Client) GetStats() (map[string]any, error) {
 // GetScoreboard returns the standings of one match — running or finished. It
 // needs no authentication and works on a join code as well as an ID, matching
 // the lobby endpoint.
-func (c *Client) GetScoreboard(idOrCode string) (map[string]any, error) {
-	var out map[string]any
-	if err := c.getJSON("/games/"+url.PathEscape(idOrCode)+"/scoreboard", &out, false); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // GetHeadToHead returns this player's record against each opponent they have
 // faced, bots included.
 func (c *Client) GetHeadToHead() (map[string]any, error) {

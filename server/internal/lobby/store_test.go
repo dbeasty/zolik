@@ -116,6 +116,16 @@ func TestPickupReportsWhetherThePlayerWasActuallyPresent(t *testing.T) {
 	}
 }
 
+// listContains reports whether a player appears in a pool snapshot.
+func listContains(entries []Entry, playerID string) bool {
+	for _, e := range entries {
+		if e.PlayerID == playerID {
+			return true
+		}
+	}
+	return false
+}
+
 // TestRedisMirroringMakesPresenceVisibleAcrossInstances is the property the
 // whole Redis-backed half of Store exists for: two Store values that never
 // talk to each other directly — modelling two server instances — must still
@@ -137,9 +147,16 @@ func TestRedisMirroringMakesPresenceVisibleAcrossInstances(t *testing.T) {
 	if !ok || name != "Alice" {
 		t.Fatalf("instanceB.IsWaiting(cross-1) = (%q, %v), want (Alice, true)", name, ok)
 	}
-	list := instanceB.List(ctx)
-	if len(list) != 1 || list[0].PlayerID != "cross-1" {
-		t.Fatalf("instanceB.List() = %v, want just cross-1", list)
+	// Present in the list, rather than the *only* thing in it.
+	//
+	// The store deliberately owns one shared Redis hash so that every instance
+	// sees one pool — which means a developer's own running server, pointed at
+	// the same dev Redis, legitimately appears here too. Asserting the pool
+	// held exactly one entry made this test pass or fail on whether anything
+	// else happened to be running, which is a property of the machine and not
+	// of the code.
+	if !listContains(instanceB.List(ctx), "cross-1") {
+		t.Fatalf("instanceB.List() = %v, want it to contain cross-1", instanceB.List(ctx))
 	}
 
 	// Picking up from instanceB (the host's request landed on a different

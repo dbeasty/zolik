@@ -1,11 +1,11 @@
 // Package lobby is the waiting room: the place a human player sits, visible
 // to everyone else, until someone picks them up into a game. It is
-// deliberately separate from a specific game's lobby (internal/game's
-// "players sitting at one table before it starts") — this is the pool a
-// host draws *from*, one level up.
+// deliberately separate from a specific match's lobby ("players sitting at
+// one table before it starts") — this is the pool a host draws *from*, one
+// level up.
 //
-// Presence here rides the same WebSocket transport internal/game already
-// built (Hub, ConnRegistry, the ping/pong keepalive) rather than a new one:
+// Presence here rides the same WebSocket transport internal/ws already
+// provides (Hub, ConnRegistry, the ping/pong keepalive) rather than a new one:
 // a waiting player is simply a connection registered under one reserved
 // room id, so the existing local-write-plus-Redis-fanout broadcast path
 // works for the waiting room for free, on the same multi-instance

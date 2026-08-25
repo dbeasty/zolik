@@ -3,6 +3,7 @@ package module
 import (
 	"fmt"
 	"sort"
+	"strconv"
 )
 
 // A game-agnostic driver that plays any module using only its offer list.
@@ -21,7 +22,10 @@ import (
 type DriverResult struct {
 	Actions  int
 	Finished bool
-	WinnerID string
+	// Winners is every player the module named — one for a shedding or rummy
+	// game, a whole partnership for Canasta, and possibly several for a poker
+	// match that ended level.
+	Winners []string
 	// Verbs counts how many times each verb was played, so a caller can
 	// assert that a run actually exercised the game rather than drawing in
 	// circles.
@@ -54,12 +58,12 @@ func PlayWithOffers(m GameModule, state State, players []PlayerRef, opts DriverO
 	}
 
 	for step := 0; step < opts.MaxActions; step++ {
-		done, winner, err := m.Finished(state)
+		done, winners, err := m.Finished(state)
 		if err != nil {
 			return state, res, fmt.Errorf("step %d: Finished: %w", step, err)
 		}
 		if done {
-			res.Finished, res.WinnerID = true, winner
+			res.Finished, res.Winners = true, winners
 			return state, res, nil
 		}
 
@@ -76,7 +80,7 @@ func PlayWithOffers(m GameModule, state State, players []PlayerRef, opts DriverO
 			return state, res, fmt.Errorf("step %d: no offers at all for the player on turn (%s)", step, actor)
 		}
 
-		a, ok := chooseAction(offers, opts.Prefer)
+		a, ok := ChooseAction(offers, opts.Prefer)
 		if !ok {
 			return state, res, fmt.Errorf("step %d: offers left %s with nothing to do:\n%s",
 				step, actor, DescribeOffers(offers))
@@ -96,9 +100,9 @@ func PlayWithOffers(m GameModule, state State, players []PlayerRef, opts DriverO
 		}
 	}
 
-	done, winner, err := m.Finished(state)
+	done, winners, err := m.Finished(state)
 	if err == nil {
-		res.Finished, res.WinnerID = done, winner
+		res.Finished, res.Winners = done, winners
 	}
 	return state, res, nil
 }
@@ -134,59 +138,110 @@ func whoseTurn(m GameModule, state State, players []PlayerRef) (string, error) {
 	}
 }
 
-// chooseAction picks a move from the offers alone.
+// ChooseAction picks a move from the offers alone.
 //
 // Preference order is a UI choice, not a rule: a client may reasonably prefer
 // playing to drawing. Every branch is gated on an offer the module marked
 // enabled, and the concrete input comes from that offer's own selector and
 // parameter declarations.
-func chooseAction(offers []ActionOffer, prefer []string) (Action, bool) {
-	try := func(o *ActionOffer) (Action, bool) {
-		if o == nil || !o.Enabled {
-			return Action{}, false
-		}
-		a := Action{OfferID: o.ID, Verb: o.Verb}
-		// If the offer wants cards, take the first it says it will accept.
-		if o.Source != nil && o.Source.MinCards > 0 {
-			if len(o.Source.Cards) == 0 {
-				return Action{}, false // enabled but nothing concrete to send
-			}
-			a.Cards = []string{o.Source.Cards[0]}
-		}
-		if o.Target != nil && o.Target.MeldID != "" {
-			a.Target = o.Target.MeldID
-		}
-		// Fill any declared parameter from its own first choice. The driver
-		// has no idea what "suit" means; it only knows the offer declared a
-		// parameter and listed what is allowed.
-		for _, p := range o.Params {
-			if len(p.Choices) == 0 {
-				return Action{}, false
-			}
-			if a.Params == nil {
-				a.Params = map[string]string{}
-			}
-			a.Params[p.Name] = p.Choices[0].Value
-		}
-		return a, true
-	}
-
+//
+// Exported because it is not only test apparatus: the runtime drives AI seats
+// with it, which is how a module gets a playable opponent the day it is
+// registered, with no AI of its own.
+func ChooseAction(offers []ActionOffer, prefer []string) (Action, bool) {
 	for _, verb := range prefer {
 		for i := range offers {
 			if offers[i].Verb != verb {
 				continue
 			}
-			if a, ok := try(&offers[i]); ok {
+			if a, ok := SubmissionFor(offers[i]); ok {
 				return a, true
 			}
 		}
 	}
 	for i := range offers {
-		if a, ok := try(&offers[i]); ok {
+		if a, ok := SubmissionFor(offers[i]); ok {
 			return a, true
 		}
 	}
 	return Action{}, false
+}
+
+// SubmissionFor builds the concrete action an offer describes, using only what
+// the offer itself declares.
+//
+// This is the whole discipline a UI shell — or a bot, or this driver — is held
+// to, in one function: cards from the offer's own selector, the target it
+// names, and a value for every parameter it declares. Nothing here knows what a
+// suit, a meld or a raise is.
+//
+// Reports false when the offer is enabled but describes no submission anything
+// could send, which is a module bug and worth surfacing as one.
+func SubmissionFor(o ActionOffer) (Action, bool) {
+	if !o.Enabled {
+		return Action{}, false
+	}
+	// A composite offer is a combination only a person can compose — a rummy
+	// meld shape. The module says so rather than leaving it to be inferred, so
+	// this can decline honestly instead of submitting an illegal fragment.
+	if o.Composite {
+		return Action{}, false
+	}
+	a := Action{OfferID: o.ID, Verb: o.Verb}
+
+	// If the offer wants cards, take as many as it says it needs, from the
+	// front of the list it says it will accept.
+	//
+	// As many, not one: an offer that ships a concrete combination — Canasta's
+	// melds, where a candidate is n cards of a single rank — declares MinCards
+	// equal to that combination's size and orders the list so the prefix is the
+	// combination. Sending only the first card would submit an illegal fragment
+	// of a legal move. Modules whose offers take a single card set MinCards to
+	// 1 and are unaffected.
+	if o.Source != nil && o.Source.MinCards > 0 {
+		if len(o.Source.Cards) < o.Source.MinCards {
+			return Action{}, false
+		}
+		a.Cards = append([]string(nil), o.Source.Cards[:o.Source.MinCards]...)
+	}
+	if o.Target != nil && o.Target.MeldID != "" {
+		a.Target = o.Target.MeldID
+	}
+
+	for _, p := range o.Params {
+		v, ok := defaultParam(p)
+		if !ok {
+			return Action{}, false
+		}
+		if a.Params == nil {
+			a.Params = map[string]string{}
+		}
+		a.Params[p.Name] = v
+	}
+	return a, true
+}
+
+// defaultParam picks a legal value for a declared parameter.
+//
+// For a choice, the first one; for a number, the offer's own default, or the
+// bottom of its range. Deliberately the *smallest* legal number rather than
+// anything cleverer: in poker that is the minimum raise, which is a real move
+// and not a reckless one, and choosing a value the module did not sanction
+// would make this a player with opinions rather than a reader of offers.
+func defaultParam(p ParamSpec) (string, bool) {
+	switch p.Kind {
+	case ParamKindInt:
+		v := p.Default
+		if v < p.Min || v > p.Max {
+			v = p.Min
+		}
+		return strconv.Itoa(v), true
+	default:
+		if len(p.Choices) == 0 {
+			return "", false
+		}
+		return p.Choices[0].Value, true
+	}
 }
 
 // DescribeOffers renders an offer list for a failure message.

@@ -1,0 +1,581 @@
+import { Fragment, memo, useCallback, useMemo, useRef, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
+
+import type { Zone } from '@/src/api/matchTypes';
+import { CARD_METRICS, CardView } from '@/src/components/CardView';
+import { insertionAtPoint, moveTargetFor, type Rect, type Slot } from '@/src/lib/hand';
+import { label } from '@/src/lib/labels';
+import { colors } from '@/src/theme';
+
+/**
+ * The viewer's own hand: the one zone on the board they may rearrange, and the
+ * one a drag starts from.
+ *
+ * The order of the cards *in your hand* is nobody's business but yours, which
+ * is why this is the only zone that can be rearranged, and why no module was
+ * changed to add it. Every game gets it because no game owns it.
+ *
+ * A drag out of the hand is a different thing from a drag within it, and this
+ * component deliberately does not know which one is happening: it reports
+ * where the card is, and the screen — which can see the whole board and the
+ * offers — says whether it was let go of somewhere that wanted it. Only if
+ * nothing did does the drag mean "move this card along the fan".
+ *
+ * ## The row never changes shape while a card is being dragged
+ *
+ * A picked-up card leaves the layout entirely — it is drawn floating, at an
+ * offset read once when it was picked up — and the gap showing where it will
+ * land takes its place. So the row always holds exactly as many boxes as there
+ * are cards, all the same size, in the same positions as before the drag
+ * started. Moving the gap changes which box holds which card and nothing else.
+ *
+ * That is what makes it safe to hit-test against positions measured once, at
+ * pick-up, and never re-read: the positions genuinely have not changed.
+ *
+ * ## The card is moved by React state, not by an animated style
+ *
+ * The obvious way to carry a dragged card is a Reanimated shared value driving
+ * a transform, which keeps it off the render path entirely. It does not work
+ * here: on this web build the animated style is applied once, with its initial
+ * value, and never updated again. Measured directly in a browser — the shared
+ * value changed, and the element's transform stayed `translateX(0px)` for the
+ * whole drag, even when set from outside the gesture.
+ *
+ * The symptom was a card that never moved while the gap went on tracking the
+ * pointer, so the two grew further apart the further the drag went. It reads
+ * as the gap drifting; it was the card standing still.
+ *
+ * So the offset is ordinary state. The hand re-renders as it moves, which for
+ * a dozen cards is nothing, and it demonstrably works.
+ */
+
+type Props = {
+  zone: Zone;
+  slots: Slot[];
+  selected: ReadonlySet<string>;
+  onToggle: (slotId: string) => void;
+  onMove: (from: number, to: number) => void;
+  /** A drag began on the card at this index. */
+  onDragStart?: (index: number) => void;
+  /** The card moved, in window coordinates. */
+  onDragMove?: (x: number, y: number) => void;
+  /** Let go of. Returns true if something on the board took the card. */
+  onDragEnd?: (x: number, y: number) => boolean;
+  /** Set while the card is over a drop target outside the hand. */
+  externalTarget?: string | null;
+};
+
+type Measurable = {
+  measureInWindow: (cb: (x: number, y: number, w: number, h: number) => void) => void;
+};
+
+type Offset = { dx: number; dy: number };
+
+export function HandZone({
+  zone,
+  slots,
+  selected,
+  onToggle,
+  onMove,
+  onDragStart,
+  onDragMove,
+  onDragEnd,
+  externalTarget,
+}: Props) {
+  const rowRef = useRef<Measurable | null>(null);
+  const cardRefs = useRef<(Measurable | null)[]>([]);
+
+  // Where the row and each card are *on screen*, which is the same space a
+  // gesture reports its pointer in — and the reason these are measured rather
+  // than taken from `onLayout`. The two platforms disagree about what
+  // `onLayout` means: on iOS and Android it is relative to the parent, and on
+  // react-native-web it comes back in page coordinates. Comparing either one
+  // against a pointer position happens to work on exactly one of them, which
+  // is a bug that only shows up on the platform you did not test.
+  //
+  // Refs, not state: these are read during a gesture and must never render.
+  const rects = useRef<Rect[]>([]);
+  const rowRect = useRef<Rect | null>(null);
+  const measured = useRef(false);
+
+  const heldRef = useRef<number | null>(null);
+  const insertRef = useRef<number | null>(null);
+  const lastPoint = useRef({ x: 0, y: 0 });
+  // Where the finger went down. Not the gesture's own `translation`, which is
+  // measured from where it *activated* — and activation is held back until the
+  // pointer has moved far enough to prove it is a drag and not a tap, so every
+  // one of those threshold pixels is missing from it.
+  const startPoint = useRef({ x: 0, y: 0 });
+  const draggedRef = useRef(false);
+
+  const [held, setHeld] = useState<number | null>(null);
+  const [insertion, setInsertion] = useState<number | null>(null);
+  const [offset, setOffset] = useState<Offset | null>(null);
+
+  // Mirrors of things that change while a drag is in flight. The gesture's
+  // callbacks are handed over once; reading these through a ref rather than
+  // closing over the props keeps a mid-drag re-render — and the parent
+  // re-renders on every move, to light up targets — from leaving the gesture
+  // holding a stale copy.
+  const outsideRef = useRef<string | null>(null);
+  outsideRef.current = externalTarget ?? null;
+  const moveRef = useRef(onDragMove);
+  moveRef.current = onDragMove;
+  const endRef = useRef(onDragEnd);
+  endRef.current = onDragEnd;
+  const startRef = useRef(onDragStart);
+  startRef.current = onDragStart;
+
+  /**
+   * Reads where the row and its cards are, at touch-down.
+   *
+   * Touch-down rather than when the drag activates, because `measureInWindow`
+   * answers on a later tick and by the time a pointer has moved far enough to
+   * start a drag the answers are in. Until they are, `measured` is false and
+   * the fan refuses to guess.
+   *
+   * Never *during* a drag, which is what the guard is for. The row keeps its
+   * shape for the whole gesture, so there is nothing to re-read; taking a
+   * second look could only introduce error.
+   */
+  const measure = useCallback(() => {
+    if (heldRef.current !== null) return;
+    rowRef.current?.measureInWindow((x, y, width, height) => {
+      rowRect.current = { x, y, width, height };
+    });
+    cardRefs.current.slice(0, slots.length).forEach((ref, i) => {
+      ref?.measureInWindow((x, y, width, height) => {
+        rects.current[i] = { x, y, width, height };
+        measured.current = true;
+      });
+    });
+  }, [slots.length]);
+
+  const touchDown = useCallback(
+    (x: number, y: number) => {
+      startPoint.current = { x, y };
+      measure();
+    },
+    [measure],
+  );
+
+  const pickUp = useCallback((index: number) => {
+    heldRef.current = index;
+    draggedRef.current = true;
+    setHeld(index);
+    setOffset({ dx: 0, dy: 0 });
+    startRef.current?.(index);
+  }, []);
+
+  /**
+   * The pointer moved. Everything downstream is told where the *card* is, not
+   * where the pointer is.
+   *
+   * Those are not the same place. A card is picked up wherever it happened to
+   * be touched and keeps that grip, so one taken near its left edge is drawn
+   * most of a card-width to the right of the pointer. Opening the gap under
+   * the pointer put the card and the space it was about to drop into visibly
+   * apart. Since the thing being moved is the card, the card decides where it
+   * lands.
+   */
+  const hover = useCallback(
+    (absoluteX: number, absoluteY: number) => {
+      const index = heldRef.current;
+      const dx = absoluteX - startPoint.current.x;
+      const dy = absoluteY - startPoint.current.y;
+      if (index !== null) setOffset({ dx, dy });
+
+      const base = index === null ? undefined : rects.current[index];
+      const point = base
+        ? { x: base.x + base.width / 2 + dx, y: base.y + base.height / 2 + dy }
+        : { x: absoluteX, y: absoluteY };
+
+      lastPoint.current = point;
+      moveRef.current?.(point.x, point.y);
+      if (index === null || !measured.current) return;
+
+      // Over the board, the card is going somewhere rather than moving along
+      // the fan, so the gap goes back to where the card came from — two
+      // answers to "where does this land?" on screen at once is one too many.
+      const at = outsideRef.current
+        ? null
+        : insertionAtPoint(rects.current.slice(0, slots.length), point);
+      if (at !== insertRef.current) {
+        insertRef.current = at;
+        setInsertion(at);
+      }
+    },
+    [slots.length],
+  );
+
+  /**
+   * Whether a point counts as "in the hand".
+   *
+   * Measured against the row rather than against the cards in it: the row runs
+   * the whole width of the screen while the cards may fill a third of it, and
+   * the empty space to the right of the last card looks exactly like part of
+   * your hand. Judging by the cards meant that dropping a card there — the
+   * obvious way to say "put this at the end" — fell outside and was silently
+   * refused.
+   */
+  const withinFan = useCallback(
+    (x: number, y: number) => {
+      const slop = 32;
+      const row = rowRect.current;
+      if (row) {
+        return (
+          x >= row.x - slop &&
+          x <= row.x + row.width + slop &&
+          y >= row.y - slop &&
+          y <= row.y + row.height + slop
+        );
+      }
+      const live = rects.current.slice(0, slots.length).filter(Boolean);
+      if (!live.length) return false;
+      const left = Math.min(...live.map((r) => r.x)) - slop;
+      const right = Math.max(...live.map((r) => r.x + r.width)) + slop;
+      const top = Math.min(...live.map((r) => r.y)) - slop;
+      const bottom = Math.max(...live.map((r) => r.y + r.height)) + slop;
+      return x >= left && x <= right && y >= top && y <= bottom;
+    },
+    [slots.length],
+  );
+
+  const release = useCallback(() => {
+    const from = heldRef.current;
+    const gap = insertRef.current;
+    const { x, y } = lastPoint.current;
+    heldRef.current = null;
+    insertRef.current = null;
+    setHeld(null);
+    setInsertion(null);
+    setOffset(null);
+
+    // The board gets first refusal. Only a card nothing wanted is a card being
+    // moved along the fan — and only if it was let go of over the fan.
+    const taken = endRef.current?.(x, y) ?? false;
+    if (taken) return;
+    if (!withinFan(x, y)) return;
+    if (from === null || gap === null) return;
+
+    const to = moveTargetFor(from, gap);
+    if (to !== from) onMove(from, to);
+  }, [onMove, withinFan]);
+
+  /** Was that press the end of a drag? If so it is not also a tap. */
+  const consumedByDrag = useCallback(() => {
+    if (!draggedRef.current) return false;
+    draggedRef.current = false;
+    return true;
+  }, []);
+
+  // Stable handles for everything a card is handed, so that `DraggableCard`'s
+  // memo can actually hold. The dragged card's offset changes on every pointer
+  // move and the whole hand re-renders with it; without this, every other card
+  // re-renders too, for a dozen or more cards, mid-gesture. A callback rebuilt
+  // each render is enough on its own to defeat the memo, which is why these go
+  // through refs rather than being passed straight down.
+  const toggleRef = useRef(onToggle);
+  toggleRef.current = onToggle;
+  const moveHandlerRef = useRef(onMove);
+  moveHandlerRef.current = onMove;
+  const stableToggle = useCallback((slotId: string) => toggleRef.current(slotId), []);
+  const stableMove = useCallback((from: number, to: number) => moveHandlerRef.current(from, to), []);
+
+  const binders = useRef(new Map<number, (node: Measurable | null) => void>());
+  const binderFor = useCallback((index: number) => {
+    let fn = binders.current.get(index);
+    if (!fn) {
+      fn = (node: Measurable | null) => {
+        cardRefs.current[index] = node;
+      };
+      binders.current.set(index, fn);
+    }
+    return fn;
+  }, []);
+
+  const title = label(zone.labelKey) || zone.id;
+
+  // A card can only be lifted clear of the layout if we know where it was, and
+  // until then it stays in the flow and no gap is drawn — a drag that started
+  // before the measurements landed still works, it just has no preview.
+  const lifted = held !== null && !!rects.current[held] && !!rowRect.current;
+  // Which gap is open, counted the way `insertionAtPoint` counts: gap i sits
+  // before card i, and gap n is past the last card. While the card is out over
+  // the board it rests at the card's own position, so the row keeps its shape
+  // there too.
+  const gapIndex = lifted && held !== null ? insertion ?? held : null;
+
+  return (
+    <View style={styles.zone} testID={`zone-${zone.id}`}>
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.count} testID={`zone-count-${zone.id}`}>
+          {zone.count}
+        </Text>
+      </View>
+
+      <View
+        ref={(n) => {
+          rowRef.current = n as unknown as Measurable | null;
+        }}
+        style={styles.cards}
+        testID={`hand-${zone.id}`}
+        onLayout={measure}
+      >
+        {/* Every element here keeps its place in the tree for the whole life
+            of the hand: a gap before each card and one after the last, all but
+            one of them taking up no room. Nothing is ever inserted, removed or
+            reordered while a card is being dragged.
+
+            That is not tidiness, it is the difference between working and not.
+            An earlier version moved the dragged card to the end of the list so
+            it would draw on top — which moves its node — and gesture-handler
+            lost the pointer it had captured, so drags silently did nothing at
+            all. Turning boxes on and off changes only their style. */}
+        {slots.map((slot, index) => (
+          <Fragment key={slot.id}>
+            <DropGap active={gapIndex === index} />
+            <DraggableCard
+              index={index}
+              slot={slot}
+              count={slots.length}
+              selected={selected.has(slot.id)}
+              held={held === index}
+              offset={held === index ? offset : null}
+              floatingAt={
+                lifted && index === held && rowRect.current && rects.current[index]
+                  ? {
+                      left: rects.current[index]!.x - rowRect.current.x,
+                      top: rects.current[index]!.y - rowRect.current.y,
+                    }
+                  : null
+              }
+              testID={`card-${zone.id}-${index}`}
+              bindRef={binderFor(index)}
+              onToggle={stableToggle}
+              onTouch={touchDown}
+              onPickUp={pickUp}
+              onHover={hover}
+              onRelease={release}
+              onMove={stableMove}
+              consumedByDrag={consumedByDrag}
+            />
+          </Fragment>
+        ))}
+        <DropGap active={gapIndex === slots.length} />
+      </View>
+
+      {slots.length > 1 ? (
+        <Text style={styles.hint} testID={`hand-hint-${zone.id}`}>
+          Drag a card along the fan to rearrange it, or onto the board to play it
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+/**
+ * The space a dragged card would drop into.
+ *
+ * Exactly a card wide, and built from the same metrics a card is, so that the
+ * cards it stands among sit where they always sat.
+ *
+ * There is one of these before every card and one after the last, and all but
+ * at most one are `display: 'none'` — which takes them out of the layout
+ * entirely, gaps between flex children included, so an inactive one costs
+ * nothing. They exist all the time so that opening a gap never adds or moves
+ * an element.
+ */
+function DropGap({ active }: { active: boolean }) {
+  return (
+    <View style={[styles.slot, !active && styles.gapHidden]}>
+      {/* The test id goes on the ring rather than the outer box, because that
+          is where CardView puts a card's — so a gap and a card can be measured
+          against each other and come out the same size. */}
+      <View style={styles.gapRing} testID={active ? 'hand-drop-gap' : undefined}>
+        <View style={styles.gapCard} />
+      </View>
+    </View>
+  );
+}
+
+type CardProps = {
+  index: number;
+  slot: Slot;
+  count: number;
+  selected: boolean;
+  held: boolean;
+  /** How far this card has been carried, while it is being carried. */
+  offset: Offset | null;
+  /** Where to pin it once it has left the layout, relative to the row. */
+  floatingAt: { left: number; top: number } | null;
+  testID: string;
+  bindRef: (node: Measurable | null) => void;
+  onToggle: (slotId: string) => void;
+  /** Touch-down, before the drag has activated — early enough to measure. */
+  onTouch: (x: number, y: number) => void;
+  onPickUp: (index: number) => void;
+  onHover: (absoluteX: number, absoluteY: number) => void;
+  onRelease: () => void;
+  onMove: (from: number, to: number) => void;
+  consumedByDrag: () => boolean;
+};
+
+/**
+ * One card in the fan.
+ *
+ * Memoised, because the hand re-renders on every pointer move to carry the one
+ * card being dragged, and the other twelve have not changed. Everything it is
+ * given is either a primitive or held stable by the hand above.
+ */
+const DraggableCard = memo(function DraggableCard({
+  index,
+  slot,
+  count,
+  selected,
+  held,
+  offset,
+  floatingAt,
+  testID,
+  bindRef,
+  onToggle,
+  onTouch,
+  onPickUp,
+  onHover,
+  onRelease,
+  onMove,
+  consumedByDrag,
+}: CardProps) {
+  const pan = Gesture.Pan()
+    // Any direction, once the pointer has genuinely moved. The threshold is
+    // only there so that a tap with a shaky finger stays a tap.
+    //
+    // An earlier version activated on sideways movement and handed vertical
+    // movement to the scroll view this sits inside, on the reasoning that the
+    // fan is horizontal so a sideways drag must have meant the fan. That was
+    // true while the only thing a drag could do was rearrange the hand. It
+    // stopped being true the moment a card could be dropped on the board,
+    // because the board is *above* the hand: reserving vertical movement for
+    // scrolling silently cancelled every drag aimed at the table.
+    //
+    // Deliberately *not* `activateAfterLongPress`. It reads like it would add
+    // a press-and-hold way in alongside a movement threshold, and it does the
+    // opposite — it gates activation on the hold, so the movement threshold
+    // stops working and a normal quick drag does nothing at all, silently.
+    .minDistance(10)
+    // Fires on touch-down whether or not this ever becomes a drag, which is
+    // what gets the row and its cards measured in time to be useful, and what
+    // records where the finger actually went down.
+    .onBegin((e) => {
+      runOnJS(onTouch)(e.absoluteX, e.absoluteY);
+    })
+    .onStart(() => {
+      runOnJS(onPickUp)(index);
+    })
+    .onUpdate((e) => {
+      runOnJS(onHover)(e.absoluteX, e.absoluteY);
+    })
+    // onFinalize rather than onEnd: onEnd does not fire when a gesture is
+    // cancelled, and a drag abandoned mid-flight must still put the card down
+    // rather than leave it stuck to the pointer.
+    .onFinalize(() => {
+      runOnJS(onRelease)();
+    });
+
+  const carried = useMemo(
+    () => (offset ? { transform: [{ translateX: offset.dx }, { translateY: offset.dy }] } : null),
+    [offset?.dx, offset?.dy],
+  );
+  const pinned = useMemo(
+    () =>
+      floatingAt
+        ? { position: 'absolute' as const, left: floatingAt.left, top: floatingAt.top }
+        : null,
+    [floatingAt?.left, floatingAt?.top],
+  );
+
+  return (
+    <GestureDetector gesture={pan}>
+      <View
+        ref={(n) => bindRef(n as unknown as Measurable | null)}
+        style={[styles.slot, pinned, held && styles.lifted, carried]}
+        // The same move, for anyone not using a pointer. A drag is not an
+        // affordance a screen reader can offer, so the two directions are
+        // published as actions instead.
+        accessible
+        accessibilityLabel={slot.card}
+        accessibilityActions={[
+          { name: 'moveLeft', label: 'Move left' },
+          { name: 'moveRight', label: 'Move right' },
+        ]}
+        onAccessibilityAction={(e) => {
+          if (e.nativeEvent.actionName === 'moveLeft') onMove(index, Math.max(0, index - 1));
+          if (e.nativeEvent.actionName === 'moveRight') onMove(index, Math.min(count - 1, index + 1));
+        }}
+      >
+        <CardView
+          card={slot.card}
+          selected={selected}
+          dragging={held}
+          testID={testID}
+          onPress={() => {
+            // A press that ended a drag is not also a tap. Gesture-handler
+            // normally cancels the child responder for us; this is the belt to
+            // those braces, because a drag that silently toggled selection
+            // would be maddening.
+            if (consumedByDrag()) return;
+            onToggle(slot.id);
+          }}
+        />
+      </View>
+    </GestureDetector>
+  );
+});
+
+const styles = StyleSheet.create({
+  zone: {
+    backgroundColor: colors.surface,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 8,
+    marginBottom: 8,
+  },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  title: { color: colors.muted, fontSize: 12, fontWeight: '700' },
+  count: { color: colors.muted, fontSize: 12 },
+  cards: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 6 },
+  hint: { color: colors.muted, fontSize: 10, marginTop: 6, fontStyle: 'italic' },
+  lifted: { zIndex: 20, opacity: 0.92 },
+  // The wrapper every card and every gap sits in, so the two are the same size
+  // to the pixel. Its border is always here and always this wide — only its
+  // colour ever changes, the same discipline CardView's own ring keeps.
+  slot: {
+    borderRadius: 8,
+    borderWidth: CARD_METRICS.ringBorder,
+    borderColor: 'transparent',
+  },
+  gapHidden: { display: 'none' },
+  gapRing: {
+    borderRadius: 8,
+    borderWidth: CARD_METRICS.ringBorder,
+    borderColor: 'transparent',
+    padding: CARD_METRICS.ringPadding,
+  },
+  gapCard: {
+    width: CARD_METRICS.width,
+    height: CARD_METRICS.height,
+    marginRight: CARD_METRICS.gap,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: colors.gold,
+    // A wash rather than a fill. Filled in solid it read as a *card* sitting
+    // in the fan, which is the one thing it is not — it is the space the card
+    // in your hand is about to occupy, and it should look like space.
+    backgroundColor: 'rgba(251, 191, 36, 0.14)',
+  },
+});

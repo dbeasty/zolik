@@ -69,9 +69,13 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 	vm := module.ViewModel{}
 
 	// The viewer's own hand, face up.
+	//
+	// (Zone ids come from the helpers below rather than being written out, so
+	// the offers can point at the same strings — an offer naming a zone id no
+	// zone has is a drop target nobody can hit.)
 	own := s.Hands[viewerID]
 	vm.Zones = append(vm.Zones, module.Zone{
-		ID: "hand:" + viewerID, Kind: module.ZoneHand, OwnerID: viewerID,
+		ID: handZoneID(viewerID), Kind: module.ZoneHand, OwnerID: viewerID,
 		LabelKey: "zone.yourHand", Cards: cardViews(own), Count: len(own),
 	})
 
@@ -82,21 +86,35 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 			continue
 		}
 		vm.Zones = append(vm.Zones, module.Zone{
-			ID: "hand:" + p, Kind: module.ZoneHand, OwnerID: p,
+			ID: handZoneID(p), Kind: module.ZoneHand, OwnerID: p,
 			LabelKey: "zone.opponentHand", Count: len(s.Hands[p]),
 		})
 	}
 
 	vm.Zones = append(vm.Zones,
 		module.Zone{
-			ID: "draw", Kind: module.ZoneStack, LabelKey: "zone.drawPile",
+			ID: drawZoneID, Kind: module.ZoneStack, LabelKey: "zone.drawPile",
 			Count: len(s.DrawPile),
 		},
 		module.Zone{
-			ID: "discard", Kind: module.ZonePile, LabelKey: "zone.discardPile",
+			ID: discardZoneID, Kind: module.ZonePile, LabelKey: "zone.discardPile",
 			Cards: cardViews(topOnly(s)), Count: len(s.DiscardPile),
 		},
 	)
+
+	// The seats. Prší needs almost nothing here — a card count and whose turn
+	// it is — which is the point: a game with no chips, no score and no
+	// partnerships declares none of them, exactly as it declares no options.
+	for _, p := range s.TurnOrder {
+		vm.Seats = append(vm.Seats, module.Seat{
+			PlayerID: p,
+			Active:   s.Current == p && s.Status == "active",
+			Facts: []module.Fact{{
+				LabelKey: "seat.cards", Value: strconv.Itoa(len(s.Hands[p])),
+				Params: map[string]any{"n": len(s.Hands[p])},
+			}},
+		})
+	}
 
 	vm.Header = []module.Fact{
 		{LabelKey: "header.deck", Value: strconv.Itoa(len(s.DrawPile))},
@@ -141,4 +159,26 @@ func topOnly(s *GameState) []string {
 		return []string{t}
 	}
 	return nil
+}
+
+// Bot is how Prší wants a vacant seat played: try to shed a card, take a skip
+// if one is owed, and draw only when there is nothing else. That preference is
+// a taste, not a rule — the offers decide what is legal.
+func (m *Module) Bot() module.Bot {
+	return module.OfferBot(VerbPlay, VerbPass, VerbDraw)
+}
+
+// Standings ranks by cards left, fewest first — which is both the state of the
+// race mid-deal and the result at the end of it, since the winner is whoever
+// reaches zero.
+func (m *Module) Standings(raw module.State) ([]module.Standing, error) {
+	s, err := decode(raw)
+	if err != nil {
+		return nil, err
+	}
+	// Negated, because RankByScore ranks highest-first and here fewer is
+	// better. Doing it this way rather than adding a direction flag keeps one
+	// ranking implementation with one tie rule.
+	return module.RankByScore(s.TurnOrder,
+		func(id string) int { return -len(s.Hands[id]) }, "prsi.unit.cardsLeft"), nil
 }

@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"zolik/server/internal/models"
 	"zolik/server/internal/module"
 	"zolik/server/internal/rules"
 )
@@ -211,24 +212,89 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	for _, o := range src {
 		out = append(out, module.ActionOffer{
 			ID: o.ID, Verb: string(o.Verb), Enabled: o.Enabled, WhyNot: string(o.WhyNot),
-			Source: toSelector(o.Source), Target: toSelector(o.Target),
+			LabelKey: o.LabelKey, Facts: toFacts(o.Facts),
+			Source: toSelector(o.Source, playerID), Target: toSelector(o.Target, playerID),
+			// Laying a meld is the one thing here a person has to compose. The
+			// offer lists which cards are eligible but not which *combination*
+			// of them is a run or a set, because enumerating rummy shapes is
+			// the offer explosion extensibility-plan.md §1.1 refuses. Saying so
+			// explicitly is new: a client used to have to infer it.
+			Composite: o.Verb == rules.VerbLayMeld,
 		})
 	}
 	return out, nil
 }
 
-func toSelector(s *rules.Selector) *module.Selector {
+// The ids View renders zones under. They are named here, next to the mapping
+// that hands them out to offers, because an offer that points at a zone id no
+// zone has is a drop target a player can never hit — and nothing else would
+// notice.
+const (
+	drawZoneID    = "draw"
+	discardZoneID = "discard"
+)
+
+func handZoneID(playerID string) string  { return "hand:" + playerID }
+func meldsZoneID(playerID string) string { return "melds:" + playerID }
+
+// toFacts carries the engine's control captions across unchanged — they are
+// keys and values, so there is nothing to translate.
+func toFacts(in []rules.OfferFact) []module.Fact {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make([]module.Fact, 0, len(in))
+	for _, f := range in {
+		out = append(out, module.Fact{LabelKey: f.LabelKey, Value: f.Value})
+	}
+	return out
+}
+
+func toSelector(s *rules.Selector, playerID string) *module.Selector {
 	if s == nil {
 		return nil
 	}
 	out := &module.Selector{
 		Zone: module.SelectorZone(s.Zone), OwnerID: s.OwnerID, MeldID: s.MeldID,
-		Cards: s.Cards, MinCards: s.MinCards, MaxCards: s.MaxCards,
+		ZoneID: zoneIDFor(s, playerID),
+		Cards:  s.Cards, MinCards: s.MinCards, MaxCards: s.MaxCards,
 	}
 	for _, p := range s.Placements {
 		out.Placements = append(out.Placements, module.Placement{Card: p.Card, Positions: p.Positions})
 	}
 	return out
+}
+
+// zoneIDFor resolves the abstract zone an engine selector names into the
+// rendered zone a person can actually drop a card on.
+//
+// The engine says "discard_pile" because that is what the rule is about; the
+// board has a zone called "discard" because that is what is drawn. Translating
+// between the two is exactly the sort of thing that belongs in this adapter
+// and nowhere else — a client doing it would be guessing at a rule, and doing
+// it in the engine would give the rules a view to know about.
+func zoneIDFor(s *rules.Selector, playerID string) string {
+	switch s.Zone {
+	case rules.ZoneHand:
+		if s.OwnerID == "" {
+			return ""
+		}
+		return handZoneID(s.OwnerID)
+	case rules.ZoneDeck:
+		return drawZoneID
+	case rules.ZoneDiscardPile:
+		return discardZoneID
+	case rules.ZoneMeld:
+		if s.OwnerID == "" {
+			return ""
+		}
+		return meldsZoneID(s.OwnerID)
+	case rules.ZoneTable:
+		// A meld is laid down into the layer's own spread, which is why this
+		// is the one case that needs to know whose offers these are.
+		return meldsZoneID(playerID)
+	}
+	return ""
 }
 
 // View renders the rummy board in generic zones.
@@ -246,7 +312,7 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 
 	own := gs.Hands[viewerID]
 	vm.Zones = append(vm.Zones, module.Zone{
-		ID: "hand:" + viewerID, Kind: module.ZoneHand, OwnerID: viewerID,
+		ID: handZoneID(viewerID), Kind: module.ZoneHand, OwnerID: viewerID,
 		LabelKey: "zone.yourHand", Cards: cardViews(own), Count: len(own),
 	})
 	for _, p := range gs.TurnOrder {
@@ -254,15 +320,15 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 			continue
 		}
 		vm.Zones = append(vm.Zones, module.Zone{
-			ID: "hand:" + p, Kind: module.ZoneHand, OwnerID: p,
+			ID: handZoneID(p), Kind: module.ZoneHand, OwnerID: p,
 			LabelKey: "zone.opponentHand", Count: len(gs.Hands[p]),
 		})
 	}
 
 	vm.Zones = append(vm.Zones,
-		module.Zone{ID: "draw", Kind: module.ZoneStack, LabelKey: "zone.drawPile", Count: len(gs.DrawPile)},
+		module.Zone{ID: drawZoneID, Kind: module.ZoneStack, LabelKey: "zone.drawPile", Count: len(gs.DrawPile)},
 		module.Zone{
-			ID: "discard", Kind: module.ZonePile, LabelKey: "zone.discardPile",
+			ID: discardZoneID, Kind: module.ZonePile, LabelKey: "zone.discardPile",
 			Cards: cardViews(gs.DiscardPile), Count: len(gs.DiscardPile),
 		},
 	)
@@ -271,11 +337,15 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 	// use for tricks, and a climbing game for played combinations.
 	for _, p := range gs.TurnOrder {
 		melds := gs.Melds[p]
-		if len(melds) == 0 {
+		// An opponent with nothing down gets no empty box, but the viewer
+		// always gets theirs: laying a meld targets it, and a target that is
+		// not drawn until after the first meld is a place to drop a card that
+		// only appears once you no longer need it.
+		if len(melds) == 0 && p != viewerID {
 			continue
 		}
 		z := module.Zone{
-			ID: "melds:" + p, Kind: module.ZoneSpread, OwnerID: p, LabelKey: "zone.melds",
+			ID: meldsZoneID(p), Kind: module.ZoneSpread, OwnerID: p, LabelKey: "zone.melds",
 		}
 		metas := gs.MeldMeta[p]
 		for i, cards := range melds {
@@ -291,6 +361,27 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 			z.Count += len(cards)
 		}
 		vm.Zones = append(vm.Zones, z)
+	}
+
+	// The seats. Žolíky's are the plainest of the four modules — a hand size,
+	// a score and whose turn it is — but emitting them is what lets one shell
+	// draw a rummy table and a poker table with the same code.
+	for _, p := range gs.TurnOrder {
+		seat := module.Seat{
+			PlayerID: p,
+			Active:   gs.CurrentTurn == p && gs.Status == rules.StatusActive,
+			Facts: []module.Fact{{
+				LabelKey: "seat.cards", Value: fmt.Sprint(len(gs.Hands[p])),
+				Params: map[string]any{"n": len(gs.Hands[p])},
+			}},
+		}
+		// Whether this player has met the deal's contract is the one piece of
+		// per-seat state a rummy table shows that a hand count does not, and
+		// it is public.
+		if gs.RoundReqMet[p] {
+			seat.LabelKeys = append(seat.LabelKeys, "zolik.seat.contractMet")
+		}
+		vm.Seats = append(vm.Seats, seat)
 	}
 
 	cfg := rules.ResolveConfig(gs.Rules)
@@ -324,10 +415,75 @@ func cardViews(cards []string) []module.CardView {
 }
 
 // Finished reports whether the match is over.
-func (m *Module) Finished(raw module.State) (bool, string, error) {
+//
+// Žolíky always has exactly one winner; the list is the shared shape, not a
+// hint that rummy might one day have two.
+func (m *Module) Finished(raw module.State) (bool, []string, error) {
 	s, err := decode(raw)
 	if err != nil {
-		return false, "", err
+		return false, nil, err
 	}
-	return s.Rules.Status == rules.StatusCompleted, s.Rules.WinnerID, nil
+	done := s.Rules.Status == rules.StatusCompleted
+	if !done || s.Rules.WinnerID == "" {
+		return done, nil, nil
+	}
+	return true, []string{s.Rules.WinnerID}, nil
+}
+
+// Standings ranks by penalty score, lowest first — rummy is a game you try to
+// score *little* at, which is why the score is negated before ranking rather
+// than the ranking growing a direction.
+func (m *Module) Standings(raw module.State) ([]module.Standing, error) {
+	s, err := decode(raw)
+	if err != nil {
+		return nil, err
+	}
+	return module.RankByScore(s.Rules.TurnOrder, func(id string) int {
+		return -handPenalty(s.Rules, id)
+	}, "zolik.unit.penalty"), nil
+}
+
+// handPenalty is what this player is currently holding, in points. It is the
+// live version of what the scoreboard settles at the end of a deal.
+func handPenalty(gs rules.GameState, playerID string) int {
+	total := 0
+	for _, c := range gs.Hands[playerID] {
+		// Aces score as wild here: a card left in hand is a penalty, and an
+		// ace only counts as one when it is doing work inside a run.
+		total += rules.PenaltyPoints(c, false)
+	}
+	return total
+}
+
+// StateFromRules wraps an existing rummy state as module state.
+//
+// The one entry point for putting a game the module did not deal into the
+// module's hands — used by the `games` → `matches` migration, which has a
+// rummy state read out of a legacy document and needs it in the shape the
+// runtime persists.
+//
+// It exists here rather than in the migration so the matchState shape stays
+// this package's business: a migration that constructed the JSON itself would
+// be a second definition of this module's state, and would drift the first
+// time a field is added.
+func StateFromRules(gs rules.GameState, players []models.Player) (module.State, error) {
+	refs := make([]module.PlayerRef, 0, len(players))
+	for _, p := range players {
+		refs = append(refs, module.PlayerRef{ID: p.ID, Name: p.Name, IsAI: p.IsAI})
+	}
+	return encode(&matchState{Rules: gs, Players: refs})
+}
+
+// RulesStateOf reads the rummy state back out of module state.
+//
+// The inverse of StateFromRules, for the migration's equivalence test: the one
+// legitimate way to look inside this module's state from outside it, so a test
+// can compare a migrated game against the document it came from without
+// hand-parsing the JSON and inventing a third definition of the shape.
+func RulesStateOf(raw module.State) (rules.GameState, error) {
+	s, err := decode(raw)
+	if err != nil {
+		return rules.GameState{}, err
+	}
+	return s.Rules, nil
 }

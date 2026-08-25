@@ -28,8 +28,8 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	// path segment on its position, not on the placeholder's name — so the
 	// two registrations were the same route, and whichever registered last
 	// silently swallowed the other. This one is a recorded result for a
-	// Žolíky game, the sibling of /games/{id}/scoreboard, so it belongs here.
-	r.Get("/games/{gameId}/result", h.matchByGame)
+	// a match, so it belongs here rather than on the runtime.
+	r.Get("/matches/{matchId}/result", h.matchResult)
 	r.With(auth.AuthMiddleware).Get("/users/me/stats", h.meStats)
 	r.With(auth.AuthMiddleware).Get("/users/me/matches", h.meMatches)
 	// history is the older name for the same list, kept so shipped clients
@@ -75,7 +75,7 @@ type statsResponse struct {
 	VsAI     TallyView `json:"vsAI"`
 
 	ByAIDifficulty map[string]TallyView `json:"byAIDifficulty"`
-	ByProfile      map[string]TallyView `json:"byProfile"`
+	ByModule       map[string]TallyView `json:"byModule"`
 	ByPlayerCount  map[string]TallyView `json:"byPlayerCount"`
 
 	CurrentStreak     int `json:"currentStreak"`
@@ -98,7 +98,7 @@ func buildStatsResponse(ps PlayerStats) statsResponse {
 		VsHumans:          ps.VsHumans.View(),
 		VsAI:              ps.VsAI.View(),
 		ByAIDifficulty:    viewMap(ps.ByAIDifficulty),
-		ByProfile:         viewMap(ps.ByProfile),
+		ByModule:          viewMap(ps.ByModule),
 		ByPlayerCount:     viewMap(ps.ByPlayerCount),
 		CurrentStreak:     ps.CurrentStreak,
 		LongestWinStreak:  ps.LongestWinStreak,
@@ -190,9 +190,9 @@ type headToHeadRow struct {
 	HeadToHead
 	// AheadRate is the share of shared matches finished ahead of them.
 	AheadRate float64 `json:"aheadRate"`
-	// PointsMargin is negative when this player scores fewer penalty points
+	// ScoreMargin is negative when this player scores fewer penalty points
 	// than the opponent — which, in a low-score-wins game, is the good side.
-	PointsMargin int `json:"pointsMargin"`
+	ScoreMargin int `json:"pointsMargin"`
 }
 
 func (h *Handlers) meHeadToHead(w http.ResponseWriter, req *http.Request) {
@@ -211,8 +211,8 @@ func (h *Handlers) meHeadToHead(w http.ResponseWriter, req *http.Request) {
 	rows := make([]headToHeadRow, 0, len(ps.HeadToHead))
 	for _, rec := range ps.HeadToHead {
 		row := headToHeadRow{
-			HeadToHead:   rec,
-			PointsMargin: rec.PointsFor - rec.PointsAgainst,
+			HeadToHead:  rec,
+			ScoreMargin: rec.ScoreFor - rec.ScoreAgainst,
 		}
 		if rec.Matches > 0 {
 			row.AheadRate = float64(rec.Ahead) / float64(rec.Matches)
@@ -296,17 +296,17 @@ func difficultyOrder(d string) int {
 	}
 }
 
-func (h *Handlers) matchByGame(w http.ResponseWriter, req *http.Request) {
-	oid, err := bson.ObjectIDFromHex(chi.URLParam(req, "gameId"))
+func (h *Handlers) matchResult(w http.ResponseWriter, req *http.Request) {
+	oid, err := bson.ObjectIDFromHex(chi.URLParam(req, "matchId"))
 	if err != nil {
-		http.Error(w, "invalid game id", http.StatusBadRequest)
+		http.Error(w, "invalid match id", http.StatusBadRequest)
 		return
 	}
-	m, err := h.repo.FindMatchByGameID(req.Context(), oid)
+	m, err := h.repo.FindMatchByMatchID(req.Context(), oid)
 	if errors.Is(err, ErrNotFound) {
 		// Either the match is still running or it predates recording. The
-		// live scoreboard at /games/{id}/scoreboard answers for both.
-		http.Error(w, "no recorded result for this game", http.StatusNotFound)
+		// live standings on match_state answer for both.
+		http.Error(w, "no recorded result for this match", http.StatusNotFound)
 		return
 	}
 	if err != nil {

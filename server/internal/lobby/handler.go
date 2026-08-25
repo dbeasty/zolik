@@ -11,11 +11,11 @@ import (
 	"github.com/gorilla/websocket"
 
 	"zolik/server/internal/auth"
-	"zolik/server/internal/game"
+	"zolik/server/internal/ws"
 )
 
-// Idle-connection handling mirrors internal/game/handler.go's WebSocket
-// server exactly (same intervals, same PingableConn adapter, same
+// Idle-connection handling mirrors the match runtime's WebSocket server
+// exactly (same intervals, same PingableConn adapter, same
 // registry-wrapped-write discipline) — this is the same kind of connection,
 // just registered under a different room, so it earns the same care.
 const (
@@ -25,12 +25,12 @@ const (
 
 // Handlers serves the waiting room's WebSocket and its REST snapshot.
 type Handlers struct {
-	hub      *game.Hub
+	hub      *ws.Hub
 	store    *Store
 	upgrader websocket.Upgrader
 }
 
-func NewHandlers(hub *game.Hub, store *Store) *Handlers {
+func NewHandlers(hub *ws.Hub, store *Store) *Handlers {
 	return &Handlers{
 		hub:   hub,
 		store: store,
@@ -45,8 +45,7 @@ func NewHandlers(hub *game.Hub, store *Store) *Handlers {
 func (h *Handlers) RegisterRoutes(r chi.Router) {
 	// A snapshot for a host browsing who to invite — a poll, not a socket,
 	// since the host is likely already spending their one WebSocket
-	// connection on their own game's room (internal/game/handler.go), not
-	// this one.
+	// connection on their own match's room, not this one.
 	r.With(auth.AuthMiddleware).Get("/lobby/waiting", h.waiting)
 	r.Get("/ws/lobby", h.handleWS)
 }
@@ -88,7 +87,7 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 		return nil
 	})
 
-	wsConn, prev := h.hub.Registry().Add(RoomID, playerID, game.PingableConn{Conn: conn})
+	wsConn, prev := h.hub.Registry().Add(RoomID, playerID, ws.PingableConn{Conn: conn})
 	if prev != nil {
 		log.Printf("lobby player=%s ws connect: replacing existing connection", playerID)
 		_ = prev.Close()
@@ -152,10 +151,10 @@ func (h *Handlers) broadcastWaitingList(ctx context.Context) {
 	if len(entries) == 0 {
 		return
 	}
-	msgs := make([]game.PlayerMessage, 0, len(entries))
+	msgs := make([]ws.PlayerMessage, 0, len(entries))
 	payload := map[string]any{"type": "lobby_waiting", "players": entries}
 	for _, e := range entries {
-		msgs = append(msgs, game.PlayerMessage{PlayerID: e.PlayerID, Payload: payload})
+		msgs = append(msgs, ws.PlayerMessage{PlayerID: e.PlayerID, Payload: payload})
 	}
 	h.hub.Publish(RoomID, msgs)
 }

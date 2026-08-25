@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"zolik/server/internal/models"
-	"zolik/server/internal/rules"
+	"zolik/server/internal/module"
 )
 
 // Recorder turns a finished game into a permanent match record plus the
@@ -18,26 +18,29 @@ type Recorder struct {
 
 func NewRecorder(repo *Repository) *Recorder { return &Recorder{repo: repo} }
 
-// RecordMatch writes the record for a completed game and folds it into every
-// durable participant's lifetime statistics. cfg is the game's resolved
-// ruleset (game.GameRules), passed in so this package never has to duplicate
-// that resolution.
+// RecordMatch writes the record for a completed match and folds it into every
+// durable participant's lifetime statistics.
+//
+// standings are the module's own final placings, passed in rather than derived
+// here: only the module knows how its game is scored, and a second opinion in
+// this package would be a second implementation of "who won". That is also
+// what makes this work for every game rather than only for rummy.
 //
 // It returns ErrAlreadyRecorded if the match was already recorded, which is a
 // normal outcome under retry and not worth logging as a failure.
-func (r *Recorder) RecordMatch(ctx context.Context, g models.Game, cfg rules.RulesConfig) (MatchResult, error) {
-	if g.Status != string(rules.StatusCompleted) {
-		return MatchResult{}, errors.New("game is not completed")
+func (r *Recorder) RecordMatch(ctx context.Context, m0 models.Match, standings []module.Standing) (MatchResult, error) {
+	if m0.Status != "completed" {
+		return MatchResult{}, errors.New("match is not completed")
 	}
 
 	completedAt := time.Now().UTC()
-	if g.CompletedAt != nil {
-		completedAt = *g.CompletedAt
+	if m0.EndedAt != nil {
+		completedAt = *m0.EndedAt
 	}
-	sb := BuildScoreboard(g, cfg)
-	m := BuildMatchResult(sb, g.ID, g.CreatedAt, completedAt, time.Now().UTC())
+	sb := BuildScoreboard(m0, standings)
+	m := BuildMatchResult(sb, m0.ID, m0.CreatedAt, completedAt, time.Now().UTC())
 
-	// The record goes in first, and its unique gameId index is what makes the
+	// The record goes in first, and its unique matchId index is what makes the
 	// whole operation safe to retry: whoever loses that race stops here and
 	// does not touch any aggregate.
 	m, err := r.repo.InsertMatch(ctx, m)
@@ -89,16 +92,16 @@ func (r *Recorder) applySeat(ctx context.Context, m MatchResult, seat Standing, 
 // The context is deliberately detached from the caller's — the request or
 // socket that carried the winning move is usually gone microseconds later, and
 // a cancelled write would lose the record.
-func (r *Recorder) RecordMatchAsync(g models.Game, cfg rules.RulesConfig) {
+func (r *Recorder) RecordMatchAsync(m models.Match, standings []module.Standing) {
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
 
-		if _, err := r.RecordMatch(ctx, g, cfg); err != nil {
+		if _, err := r.RecordMatch(ctx, m, standings); err != nil {
 			if errors.Is(err, ErrAlreadyRecorded) {
 				return
 			}
-			log.Printf("game=%s stats: recording match failed: %v", g.ID.Hex(), err)
+			log.Printf("match=%s stats: recording failed: %v", m.ID.Hex(), err)
 		}
 	}()
 }

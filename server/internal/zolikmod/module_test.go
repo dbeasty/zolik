@@ -76,8 +76,8 @@ func TestOneDriverPlaysBothGames(t *testing.T) {
 			if g.mustFinish && !res.Finished {
 				t.Errorf("expected the driver to reach a winner, got %d actions", res.Actions)
 			}
-			t.Logf("%s: %d actions, finished=%v winner=%q verbs=%v",
-				g.name, res.Actions, res.Finished, res.WinnerID, res.Verbs)
+			t.Logf("%s: %d actions, finished=%v winner=%v verbs=%v",
+				g.name, res.Actions, res.Finished, res.Winners, res.Verbs)
 		})
 	}
 }

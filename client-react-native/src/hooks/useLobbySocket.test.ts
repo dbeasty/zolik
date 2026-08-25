@@ -54,7 +54,7 @@ type Probe = {
   status: LobbyConnectionStatus;
   attempts: number;
   retryNow: () => void;
-  invited: { gameId: string; joinCode: string } | null;
+  invited: { matchId: string; joinCode: string } | null;
 };
 
 // A module-level component reference, reused across updates, so toggling
@@ -62,8 +62,8 @@ type Probe = {
 // unmount-and-remount of a fresh anonymous component — the two look similar
 // on the surface but exercise different code paths in the hook.
 function ProbeComponent({ on, probe }: { on: boolean; probe: Probe }) {
-  const { players, status, attempts, retryNow } = useLobbySocket(on, (gameId, joinCode) => {
-    probe.invited = { gameId, joinCode };
+  const { players, status, attempts, retryNow } = useLobbySocket(on, (matchId, joinCode) => {
+    probe.invited = { matchId, joinCode };
   });
   probe.players = players;
   probe.status = status;
@@ -167,9 +167,9 @@ describe('useLobbySocket', () => {
       }),
     );
 
-    act(() => ws.fireMessage({ type: 'lobby_invited', gameId: 'game-9', joinCode: 'ABC123' }));
+    act(() => ws.fireMessage({ type: 'lobby_invited', matchId: 'match-9', joinCode: 'ABC123' }));
 
-    expect(probe.invited).toEqual({ gameId: 'game-9', joinCode: 'ABC123' });
+    expect(probe.invited).toEqual({ matchId: 'match-9', joinCode: 'ABC123' });
     expect(probe.players).toHaveLength(1); // unrelated state, must not be clobbered
   });
 

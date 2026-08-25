@@ -9,14 +9,20 @@ import (
 	"zolik/client-tui/api"
 )
 
+// The terminal client's screens.
+//
+// Three, where there used to be six. `ScreenGame`, `ScreenRoundEnd` and
+// `ScreenGameEnd` were rummy screens — a table with melds on it, a deal
+// summary, a match summary — and all three collapsed into one `ScreenMatch`
+// that draws whatever zones the server sends. `ScreenScoreTable` went too: it
+// showed a rummy scorepad, and standings now arrive on every match's state.
+
 type Screen int
 
 const (
 	ScreenMainMenu Screen = iota
 	ScreenLobby
-	ScreenGame
-	ScreenRoundEnd
-	ScreenGameEnd
+	ScreenMatch
 	ScreenScoreTable
 )
 
@@ -31,9 +37,7 @@ type Root struct {
 
 	menu       menuModel
 	lobby      lobbyModel
-	game       gameModel
-	roundEnd   roundEndModel
-	gameEnd    gameEndModel
+	match      matchModel
 	scoreTable scoreTableModel
 
 	status string
@@ -50,9 +54,7 @@ func NewRoot(_ any, serverURL string, sess PlayerSession) *Root {
 	}
 	r.menu = newMenuModel(r)
 	r.lobby = newLobbyModel(r)
-	r.game = newGameModel(r)
-	r.roundEnd = newRoundEndModel(r)
-	r.gameEnd = newGameEndModel(r)
+	r.match = newMatchModel(r)
 	r.scoreTable = newScoreTableModel(r)
 	return r
 }
@@ -65,8 +67,8 @@ func (r *Root) Init() tea.Cmd {
 	switch r.screen {
 	case ScreenLobby:
 		return r.lobby.Init()
-	case ScreenGame:
-		return r.game.Init()
+	case ScreenMatch:
+		return r.match.Init()
 	default:
 		return r.menu.Init()
 	}
@@ -85,7 +87,8 @@ func (r *Root) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.err != "" {
 			r.menu.statsText = "✗ " + msg.err
 		} else {
-			r.menu.statsText = fmt.Sprintf("Games: %v  Won: %v", msg.data["gamesPlayed"], msg.data["gamesWon"])
+			r.menu.statsText = fmt.Sprintf("Matches: %v  Won: %v",
+				msg.data["matches"], msg.data["wins"])
 		}
 		return r, nil
 	case scoreErrMsg:
@@ -107,12 +110,8 @@ func (r *Root) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		r.menu, cmd = r.menu.update(msg)
 	case ScreenLobby:
 		r.lobby, cmd = r.lobby.update(msg)
-	case ScreenGame:
-		r.game, cmd = r.game.update(msg)
-	case ScreenRoundEnd:
-		r.roundEnd, cmd = r.roundEnd.update(msg)
-	case ScreenGameEnd:
-		r.gameEnd, cmd = r.gameEnd.update(msg)
+	case ScreenMatch:
+		r.match, cmd = r.match.update(msg)
 	case ScreenScoreTable:
 		r.scoreTable, cmd = r.scoreTable.update(msg)
 	}
@@ -124,12 +123,8 @@ func (r *Root) View() string {
 	switch r.screen {
 	case ScreenLobby:
 		body = r.lobby.view(r.width, r.height)
-	case ScreenGame:
-		body = r.game.view(r.width, r.height)
-	case ScreenRoundEnd:
-		body = r.roundEnd.view(r.width, r.height)
-	case ScreenGameEnd:
-		body = r.gameEnd.view(r.width, r.height)
+	case ScreenMatch:
+		body = r.match.view(r.width, r.height)
 	case ScreenScoreTable:
 		body = r.scoreTable.view(r.width, r.height)
 	default:

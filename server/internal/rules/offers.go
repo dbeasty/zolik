@@ -1,6 +1,9 @@
 package rules
 
-import "sort"
+import (
+	"sort"
+	"strconv"
+)
 
 // This file answers "what may this player do right now?" as data, so no
 // client ever has to work it out from raw state.
@@ -111,8 +114,26 @@ type ActionOffer struct {
 	// the server (see Phase 2 of the extensibility plan).
 	WhyNot RulesErrorCode `json:"whyNot,omitempty"`
 
+	// LabelKey names the control when the verb cannot tell two offers apart.
+	// This engine offers "draw" twice — from the deck and from the discard
+	// pile — and labelled by verb alone they are two buttons reading the same
+	// word and doing different things. A key, never a sentence.
+	LabelKey string `json:"labelKey,omitempty"`
+
+	// Facts are printed on the control itself. Here they say *which* meld an
+	// offer acts on: there is one lay-off and one joker swap per meld on the
+	// table, and without saying which they are a row of identical buttons.
+	Facts []OfferFact `json:"facts,omitempty"`
+
 	Source *Selector `json:"source,omitempty"`
 	Target *Selector `json:"target,omitempty"`
+}
+
+// OfferFact is a labelled value shown on a control. A key and a value, never
+// a sentence, like every other label this engine emits.
+type OfferFact struct {
+	LabelKey string `json:"labelKey"`
+	Value    string `json:"value,omitempty"`
 }
 
 // LegalActions returns every offer this module can present to playerID in
@@ -133,7 +154,7 @@ func LegalActions(state GameState, playerID string) []ActionOffer {
 	offers := make([]ActionOffer, 0, 10+2*countMelds(state))
 
 	// --- draw -------------------------------------------------------------
-	deckOffer := ActionOffer{ID: OfferDrawDeck, Verb: VerbDraw}
+	deckOffer := ActionOffer{ID: OfferDrawDeck, Verb: VerbDraw, LabelKey: "verb.drawFromDeck"}
 	deckOffer.Enabled, deckOffer.WhyNot = probe(state, playerID, Action{
 		Type: ActionDrawCard, DrawFrom: DrawFromDeck,
 	})
@@ -141,7 +162,7 @@ func LegalActions(state GameState, playerID string) []ActionOffer {
 	deckOffer.Target = &Selector{Zone: ZoneHand, OwnerID: playerID}
 	offers = append(offers, deckOffer)
 
-	discardDraw := ActionOffer{ID: OfferDrawDiscard, Verb: VerbDraw}
+	discardDraw := ActionOffer{ID: OfferDrawDiscard, Verb: VerbDraw, LabelKey: "verb.takeFromDiscard"}
 	discardDraw.Enabled, discardDraw.WhyNot = probe(state, playerID, Action{
 		Type: ActionDrawCard, DrawFrom: DrawFromDiscard,
 	})
@@ -193,16 +214,21 @@ func LegalActions(state GameState, playerID string) []ActionOffer {
 	offers = append(offers, discard)
 
 	// --- undo -------------------------------------------------------------
+	//
+	// Four of them, each undoing a different thing, so each says which — as
+	// one row of buttons all reading "Undo" they are a guess rather than a
+	// choice, whether or not they happen to be available.
 	for _, u := range []struct {
-		id string
-		at ActionType
+		id    string
+		at    ActionType
+		label string
 	}{
-		{OfferUndoDrawDiscard, ActionUndoDrawDiscard},
-		{OfferUndoLayOff, ActionUndoLayOff},
-		{OfferUndoLayMeld, ActionUndoLayMeld},
-		{OfferUndoTurn, ActionUndoTurn},
+		{OfferUndoDrawDiscard, ActionUndoDrawDiscard, "verb.undoDraw"},
+		{OfferUndoLayOff, ActionUndoLayOff, "verb.undoLayOff"},
+		{OfferUndoLayMeld, ActionUndoLayMeld, "verb.undoMeld"},
+		{OfferUndoTurn, ActionUndoTurn, "verb.undoTurn"},
 	} {
-		o := ActionOffer{ID: u.id, Verb: VerbUndo}
+		o := ActionOffer{ID: u.id, Verb: VerbUndo, LabelKey: u.label}
 		o.Enabled, o.WhyNot = probe(state, playerID, Action{Type: u.at})
 		offers = append(offers, o)
 	}
@@ -366,7 +392,10 @@ func countMelds(state GameState) int {
 }
 
 func layOffOffer(state GameState, cfg RulesConfig, playerID string, m tableMeld, active bool) ActionOffer {
-	o := ActionOffer{ID: LayOffOfferID(m.MeldID), Verb: VerbLayOff}
+	o := ActionOffer{
+		ID: LayOffOfferID(m.MeldID), Verb: VerbLayOff,
+		Facts: []OfferFact{{LabelKey: "zolik.offer.meld", Value: strconv.Itoa(m.Index + 1)}},
+	}
 	o.Target = &Selector{Zone: ZoneMeld, OwnerID: m.OwnerID, MeldID: m.MeldID}
 
 	// Gate the verb by probing with a card that is in hand, so the probe
@@ -498,7 +527,10 @@ func droppableEnds(prevCards, submission []string, cfg RulesConfig) []string {
 }
 
 func swapJokerOffer(state GameState, playerID string, m tableMeld, active bool) ActionOffer {
-	o := ActionOffer{ID: SwapJokerOfferID(m.MeldID), Verb: VerbSwapJoker}
+	o := ActionOffer{
+		ID: SwapJokerOfferID(m.MeldID), Verb: VerbSwapJoker,
+		Facts: []OfferFact{{LabelKey: "zolik.offer.meld", Value: strconv.Itoa(m.Index + 1)}},
+	}
 	o.Target = &Selector{Zone: ZoneMeld, OwnerID: m.OwnerID, MeldID: m.MeldID}
 	o.Source = &Selector{Zone: ZoneHand, OwnerID: playerID, MinCards: 1, MaxCards: 1}
 

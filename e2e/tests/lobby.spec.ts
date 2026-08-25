@@ -25,6 +25,24 @@ async function becomeAvailable(page: Page) {
   await expect(page.getByTestId('waiting-status-open')).toBeVisible({ timeout: 15_000 });
 }
 
+/**
+ * Opens a table as the host: pick a game, then "Open a table" rather than
+ * "Play against bots".
+ *
+ * Choosing the game is now a step, because there is more than one. The screen
+ * this replaces created a Žolíky game and nothing else, so a host had nothing
+ * to choose — which is exactly the assumption the picker exists to remove.
+ * Prší is used here only because *some* module has to be; nothing below cares
+ * which, and the waiting room does not know a game exists.
+ */
+async function openATable(page: Page) {
+  await page.goto('/lobby/games');
+  await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 20_000 });
+  await page.getByTestId('play-friends-prsi').click();
+  await expect(page.getByTestId('table-screen')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId('waiting-players-panel')).toBeVisible({ timeout: 15_000 });
+}
+
 test.describe('the waiting room', () => {
   test('a waiting player is visible to the host, and inviting them seats and notifies them', async ({
     browser,
@@ -47,9 +65,9 @@ test.describe('the waiting room', () => {
       // anything the host does — that toggle *is* the whole action.
       await becomeAvailable(waiterPage);
 
-      // The host creates a game, exactly as any host would.
-      await hostPage.goto('/lobby/create');
-      await expect(hostPage.getByTestId('waiting-players-panel')).toBeVisible({ timeout: 15_000 });
+      // The host opens a table, exactly as any host would: pick a game, then
+      // "Open a table" rather than "Play against bots".
+      await openATable(hostPage);
 
       // The waiting player shows up on the host's screen without either side
       // having exchanged a join code — the waiting-list poll (2s) is the
@@ -88,7 +106,7 @@ test.describe('the waiting room', () => {
   // The server-side refusal to invite someone who is no longer actually
   // waiting is covered directly at the Go layer
   // (TestInviteIsRefusedWhenTheTargetHasStoppedWaiting in
-  // server/internal/game/invite_test.go). What this spec checks is the half
+  // server/internal/match/invite_test.go). What this spec checks is the half
   // that only a real browser can prove: that leaving genuinely disappears
   // the player from a host's live view within one poll, rather than leaving
   // a stale, inviteable-looking row behind — covering both ways a person
@@ -109,7 +127,7 @@ test.describe('the waiting room', () => {
 
       await becomeAvailable(waiterPage);
 
-      await hostPage.goto('/lobby/create');
+      await openATable(hostPage);
       await expect(
         hostPage.getByTestId(`waiting-player-${waiter.userId}`),
       ).toBeVisible({ timeout: 10_000 });
@@ -151,7 +169,7 @@ test.describe('the waiting room', () => {
 
       await becomeAvailable(waiterPage);
 
-      await hostPage.goto('/lobby/create');
+      await openATable(hostPage);
       await expect(
         hostPage.getByTestId(`waiting-player-${waiter.userId}`),
       ).toBeVisible({ timeout: 10_000 });

@@ -14,8 +14,8 @@ import (
 )
 
 // ErrAlreadyRecorded is returned when a match has already been written. It is
-// an expected outcome, not a failure: two servers can observe the same game
-// completing, and the unique index on gameId is what makes the second one a
+// an expected outcome, not a failure: two servers can observe the same match
+// completing, and the unique index on matchId is what makes the second one a
 // no-op instead of a double count.
 var ErrAlreadyRecorded = errors.New("match already recorded")
 
@@ -33,7 +33,7 @@ func NewRepository(m *db.Mongo) *Repository {
 }
 
 // InsertMatch writes the permanent match record, returning ErrAlreadyRecorded
-// if one already exists for this game. The caller must treat that as a signal
+// if one already exists for this match. The caller must treat that as a signal
 // to skip aggregation, since the aggregates for this match are already in.
 func (r *Repository) InsertMatch(ctx context.Context, m MatchResult) (MatchResult, error) {
 	if m.ID.IsZero() {
@@ -48,9 +48,9 @@ func (r *Repository) InsertMatch(ctx context.Context, m MatchResult) (MatchResul
 	return m, nil
 }
 
-func (r *Repository) FindMatchByGameID(ctx context.Context, gameID bson.ObjectID) (MatchResult, error) {
+func (r *Repository) FindMatchByMatchID(ctx context.Context, matchID bson.ObjectID) (MatchResult, error) {
 	var m MatchResult
-	err := r.matches.FindOne(ctx, bson.M{"gameId": gameID}).Decode(&m)
+	err := r.matches.FindOne(ctx, bson.M{"matchId": matchID}).Decode(&m)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return MatchResult{}, ErrNotFound
 	}
@@ -274,10 +274,13 @@ func (r *Repository) Leaderboard(ctx context.Context, q LeaderboardQuery) ([]Lea
 		if aw != bw {
 			return aw > bw
 		}
-		ap := float64(a.t.PenaltyPoints) / float64(a.t.Matches)
-		bp := float64(b.t.PenaltyPoints) / float64(b.t.Matches)
-		if ap != bp {
-			return ap < bp
+		// Average score breaks a tie on wins. Higher is better in every
+		// module, which is the opposite of what this compared when the only
+		// game was scored in penalties.
+		as := float64(a.t.ScoreSum) / float64(a.t.Matches)
+		bs := float64(b.t.ScoreSum) / float64(b.t.Matches)
+		if as != bs {
+			return as > bs
 		}
 		return a.ps.SubjectKey < b.ps.SubjectKey
 	})

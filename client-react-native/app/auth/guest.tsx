@@ -17,7 +17,7 @@ export default function GuestScreen() {
     setError('');
     try {
       await guestLogin(name.trim() || 'Player');
-      router.replace('/lobby/create');
+      router.replace('/lobby/games');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Login failed');
     } finally {

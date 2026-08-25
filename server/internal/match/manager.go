@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
-	"zolik/server/internal/game"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
+	"zolik/server/internal/ws"
 )
 
 // Manager is the single write path for module-hosted matches.
@@ -22,16 +23,136 @@ import (
 type Manager struct {
 	repo     *Repository
 	registry *module.Registry
-	hub      *game.Hub
+	hub      *ws.Hub
+
+	// recorder is optional; nil simply means no statistics are kept, which is
+	// what the tests and any statistics-free deployment run with.
+	recorder Recorder
+
+	// waiting is the pool a host may seat a player out of, and waitingRoom is
+	// the socket room a pick-up notification goes to. Both optional: without
+	// them, invites report themselves unavailable and nothing else changes.
+	waiting     WaitingLookup
+	waitingRoom string
+
+	// botMu guards botRunning, which is one flag per match saying a bot loop
+	// is already driving it. Without it, every human action would start a
+	// second loop and the bots would race each other.
+	botMu      sync.Mutex
+	botRunning map[string]bool
 }
 
-func NewManager(repo *Repository, registry *module.Registry, hub *game.Hub) *Manager {
+// Recorder is notified when a match finishes, so its result can be recorded
+// and folded into lifetime statistics.
+//
+// An interface held here rather than a direct dependency on internal/stats,
+// which keeps the arrow one-way and leaves the runtime testable without a
+// database. It takes the module's own standings because only the module knows
+// how its game is scored — which is what makes statistics work for every game
+// rather than only for the one whose arithmetic the stats package used to
+// hard-code.
+type Recorder interface {
+	// RecordMatchAsync must not block the action that completed the match,
+	// and must not fail it: a bookkeeping problem is never a reason to reject
+	// a legal move.
+	RecordMatchAsync(m models.Match, standings []module.Standing)
+}
+
+// SetRecorder attaches statistics recording. Optional.
+func (m *Manager) SetRecorder(r Recorder) { m.recorder = r }
+
+// WaitingLookup answers whether a player is currently in the waiting-room
+// pool, and lets them be picked up out of it. Satisfied by *lobby.Store.
+//
+// Named here as a narrow, primitive-typed interface rather than importing
+// internal/lobby, so the runtime never learns what a waiting room is — the
+// same reason the statistics recorder is an interface. (It was originally
+// written this way to avoid an import cycle, which no longer exists now the
+// socket hub lives in internal/ws; the narrowness is worth keeping on its own
+// merits.)
+type WaitingLookup interface {
+	// IsWaiting reports the display details of a waiting player, so an invite
+	// can build their seat without a second round trip.
+	IsWaiting(ctx context.Context, playerID string) (name string, isGuest bool, ok bool)
+	// Pickup removes a player from the pool, reporting whether they were
+	// actually present. Called only after they have been seated — a failed
+	// seat attempt must leave them waiting, not silently drop them.
+	Pickup(ctx context.Context, playerID string) bool
+}
+
+// SetWaitingRoom attaches the pool a host may invite from, and the socket room
+// a pick-up notification is delivered on. Optional: without it, invites are
+// unavailable and every other path is unaffected.
+func (m *Manager) SetWaitingRoom(w WaitingLookup, roomID string) {
+	m.waiting, m.waitingRoom = w, roomID
+}
+
+// Invite seats a specific waiting player, without a join code.
+//
+// The order matters and is the same as the version this replaces: the seat is
+// committed first, and only then does the player leave the pool. Picking up
+// before the seat was confirmed would risk losing them from the waiting room
+// over a write that then failed.
+func (m *Manager) Invite(ctx context.Context, idOrCode, hostID, playerID string) (models.Match, bool, error) {
+	if m.waiting == nil {
+		return models.Match{}, false, module.Error{Code: "WAITING_ROOM_UNAVAILABLE"}
+	}
+	match, err := m.repo.Resolve(ctx, idOrCode)
+	if err != nil {
+		return models.Match{}, false, err
+	}
+	if match.HostID != hostID {
+		return models.Match{}, false, module.Error{Code: "NOT_THE_HOST"}
+	}
+	if match.Status != "lobby" {
+		return models.Match{}, false, module.Error{Code: "MATCH_ALREADY_STARTED"}
+	}
+	for _, p := range match.Players {
+		if p.ID == playerID {
+			// Idempotent: inviting somebody already at the table is a no-op,
+			// not an error. A host double-tapping is not a mistake worth a 400.
+			return match, true, nil
+		}
+	}
+
+	// Re-checked here rather than trusted from whatever snapshot the host's
+	// client last polled: the target may have left, been picked up elsewhere,
+	// or disconnected in the meantime, and this is the only point that gets to
+	// decide whether they are still actually available.
+	name, isGuest, stillWaiting := m.waiting.IsWaiting(ctx, playerID)
+	if !stillWaiting {
+		return models.Match{}, false, module.Error{Code: "NO_LONGER_WAITING"}
+	}
+
+	seat := models.Player{ID: playerID, Name: name}
+	if isGuest {
+		seat.GuestID = playerID
+	} else {
+		seat.UserID = playerID
+	}
+	next, err := m.Join(ctx, match.ID.Hex(), seat)
+	if err != nil {
+		return models.Match{}, false, err
+	}
+
+	m.waiting.Pickup(ctx, playerID)
+	if m.hub != nil && m.waitingRoom != "" {
+		m.hub.WriteDirect(m.waitingRoom, playerID, map[string]any{
+			"type":     "lobby_invited",
+			"matchId":  next.ID.Hex(),
+			"joinCode": next.JoinCode,
+		})
+	}
+	return next, false, nil
+}
+
+func NewManager(repo *Repository, registry *module.Registry, hub *ws.Hub) *Manager {
 	return &Manager{repo: repo, registry: registry, hub: hub}
 }
 
 func (m *Manager) Registry() *module.Registry { return m.registry }
 func (m *Manager) Repo() *Repository          { return m.repo }
-func (m *Manager) Hub() *game.Hub             { return m.hub }
+func (m *Manager) Hub() *ws.Hub               { return m.hub }
 
 // Create opens a lobby for a module.
 func (m *Manager) Create(ctx context.Context, moduleID string, cfg module.MatchConfig, host models.Player) (models.Match, error) {
@@ -138,6 +259,9 @@ func (m *Manager) Start(ctx context.Context, idOrCode string) (models.Match, err
 	}
 	match.Version++
 	m.Broadcast(match)
+	// A bot may be first to act — in Hold'em it usually is, since the blinds
+	// decide the order rather than who created the lobby.
+	m.RunBotsIfNeeded(context.WithoutCancel(ctx), match.ID.Hex())
 	return match, nil
 }
 
@@ -168,10 +292,18 @@ func (m *Manager) HandleAction(ctx context.Context, idOrCode, playerID string, a
 	match.State = next
 	match.ActionLog = append(match.ActionLog, logEntry(len(match.ActionLog)+1, playerID, a))
 
-	if done, winner, err := mod.Finished(next); err == nil && done {
+	if done, winners, err := mod.Finished(next); err == nil && done {
 		now := time.Now().UTC()
 		match.Status = "completed"
-		match.WinnerID = winner
+		match.Winners = winners
+		// WinnerID stays on the document and the wire as the first winner, so
+		// every client written against a single-winner match keeps working. It
+		// is derived from Winners rather than computed separately: one
+		// implementation, two spellings.
+		match.WinnerID = ""
+		if len(winners) > 0 {
+			match.WinnerID = winners[0]
+		}
 		match.EndedAt = &now
 	}
 
@@ -183,6 +315,23 @@ func (m *Manager) HandleAction(ctx context.Context, idOrCode, playerID string, a
 
 	m.Broadcast(match)
 	m.publishEvents(match, events)
+
+	// A finished match becomes a permanent record. Asynchronous and after the
+	// broadcast on purpose: the player who just won should see the final board
+	// without waiting on bookkeeping, and a bookkeeping failure must never
+	// fail the move that won.
+	if match.Status == "completed" && m.recorder != nil {
+		m.recorder.RecordMatchAsync(match, module.StandingsFor(mod, match.State))
+	}
+
+	// Whoever is on turn now might be a bot. The loop is a no-op when it is
+	// not, and refuses to start twice for the same match, so calling it after
+	// every action is both correct and cheap.
+	//
+	// WithoutCancel because the loop outlives the request that triggered it:
+	// the human's HTTP call or socket frame is finished, and the bots' turns
+	// are not.
+	m.RunBotsIfNeeded(context.WithoutCancel(ctx), match.ID.Hex())
 	return nil
 }
 
