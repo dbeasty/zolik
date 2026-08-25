@@ -16,7 +16,7 @@ import { useMatchSocket } from '@/src/hooks/useMatchSocket';
 import { dropSpotsFor, groupElementId, positionAt, type DropSpot } from '@/src/lib/drops';
 import { cardsForSelection, pruneSelection, slotsForDrag } from '@/src/lib/hand';
 import { reasonText } from '@/src/lib/i18n';
-import { factText, label, playerName } from '@/src/lib/labels';
+import { factText, playerName } from '@/src/lib/labels';
 import { colors } from '@/src/theme';
 
 /**
@@ -264,9 +264,23 @@ export default function MatchScreen() {
             {state.moduleId}
             {state.variation ? ` · ${state.variation}` : ''}
           </Text>
-          <Text testID="match-status" style={styles.status}>
-            {state.status}
-          </Text>
+          {/* Text and dot as one unit — the colour is the at-a-glance signal,
+              the word next to it is the same fact spelled out, and a tap gets
+              the fuller explanation the old standalone status line gave, on
+              demand instead of by surprise. Always mounted here rather than
+              inside the (optional) header-facts row below, so it never
+              disappears when a module sends no header facts. */}
+          <Pressable
+            testID="match-status-dot"
+            onPress={() => setStatusExplainerOpen((v) => !v)}
+            hitSlop={8}
+            style={styles.statusGroup}
+          >
+            <Text testID="match-status" style={styles.status}>
+              {state.status}
+            </Text>
+            <View style={[styles.statusDot, statusOk ? styles.statusDotOk : styles.statusDotBad]} />
+          </Pressable>
         </View>
 
         {(view.header ?? []).length > 0 ? (
@@ -276,21 +290,6 @@ export default function MatchScreen() {
                 {factText(f)}
               </Text>
             ))}
-            {/* A dot, not a line of text that appears and disappears — the
-                match status used to show up as a "Paused — waiting for X"
-                line that only existed while suspended, which shoved
-                everything below it down and back up again as that toggled.
-                This is always mounted, so nothing below it ever jumps; the
-                colour is the at-a-glance signal, and a tap gets the same
-                explanation the old line gave, on demand instead of by
-                surprise. */}
-            <Pressable
-              testID="match-status-dot"
-              onPress={() => setStatusExplainerOpen((v) => !v)}
-              hitSlop={8}
-            >
-              <View style={[styles.statusDot, statusOk ? styles.statusDotOk : styles.statusDotBad]} />
-            </Pressable>
           </View>
         ) : null}
         {statusExplainerOpen ? (
@@ -299,7 +298,12 @@ export default function MatchScreen() {
           </Text>
         ) : null}
 
-        <SeatStrip seats={view.seats ?? []} players={state.players} viewerId={viewerId} />
+        <SeatStrip
+          seats={view.seats ?? []}
+          players={state.players}
+          viewerId={viewerId}
+          standings={state.standings}
+        />
 
         {(view.prompts ?? []).map((f, i) => (
           <Text key={`prompt-${i}`} testID={`prompt-${i}`} style={styles.prompt}>
@@ -376,23 +380,6 @@ export default function MatchScreen() {
 
         <Section title="Opponents" zones={others} compact {...dropProps} />
 
-        {(state.standings ?? []).length > 0 ? (
-          <View style={styles.standings} testID="match-standings">
-            <Text style={styles.sectionTitle}>Standings</Text>
-            {(state.standings ?? []).map((s) => (
-              <View key={s.playerId} style={styles.standingRow} testID={`standing-${s.playerId}`}>
-                <Text style={styles.standingRank}>{s.rank}</Text>
-                <Text style={styles.standingName} numberOfLines={1}>
-                  {playerName(state.players, s.playerId)}
-                </Text>
-                <Text style={styles.standingScore}>
-                  {s.score} {label(s.labelKey)}
-                </Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
-
         {(view.status ?? []).map((f, i) => (
           <Text key={`status-${i}`} testID={`status-${i}`} style={styles.muted}>
             {factText(f)}
@@ -449,6 +436,7 @@ const styles = StyleSheet.create({
   body: { paddingBottom: 40, gap: 4 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   module: { color: colors.text, fontWeight: '700', fontSize: 16 },
+  statusGroup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   status: { color: colors.muted, fontSize: 12 },
   facts: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 2 },
   tableRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
@@ -469,9 +457,4 @@ const styles = StyleSheet.create({
   mine: { marginTop: 10 },
   error: { color: colors.danger, fontSize: 13, marginVertical: 6 },
   muted: { color: colors.muted, fontSize: 12, marginTop: 6 },
-  standings: { marginTop: 14 },
-  standingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 2 },
-  standingRank: { color: colors.muted, width: 18, fontSize: 12 },
-  standingName: { color: colors.text, flex: 1, fontSize: 13 },
-  standingScore: { color: colors.muted, fontSize: 12 },
 });
