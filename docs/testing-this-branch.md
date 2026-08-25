@@ -37,6 +37,21 @@ a poker board — laid out from zones, seats and offers the server pushes.
 - The bots move on their own — that is the runtime driving them from the same
   offer list, not per-game AI.
 
+**Rearranging your hand.** Drag a card sideways and it moves; a dashed ring
+shows where it will land. Then wait for a bot to move — the arrangement stays
+put, which is the part that needed building, since the server re-pushes the
+whole board after every move and does so in its own order.
+
+Worth trying in more than one game: no module knows the feature exists. How a
+player likes their cards laid out is not a fact about the game, so it never
+reaches the server — `GET /matches/{id}?as={you}` returns the same hand in the
+same order before and after a drag.
+
+Two decks are in play in Žolíky and Canasta, so a hand often holds the same card
+twice. Tap one of a pair: it lights up and its twin does not, and both can be
+picked for one meld. Selecting by card name could do neither, which is why
+selection is by position now.
+
 **The waiting room, which needs two browsers.** In window A press *Find
 players*. In window B: *Play* → *Open a table* → window A's player appears in
 the panel → *Invite* → window A jumps straight into the table with no code

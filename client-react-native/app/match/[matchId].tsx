@@ -3,12 +3,15 @@ import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { Zone } from '@/src/api/matchTypes';
+import { HandZone } from '@/src/components/match/HandZone';
 import { OfferBar } from '@/src/components/match/OfferBar';
 import { SeatStrip } from '@/src/components/match/SeatStrip';
 import { ZoneView } from '@/src/components/match/ZoneView';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
+import { useHandOrder } from '@/src/hooks/useHandOrder';
 import { useMatchSocket } from '@/src/hooks/useMatchSocket';
+import { cardsForSelection, pruneSelection } from '@/src/lib/hand';
 import { reasonText } from '@/src/lib/i18n';
 import { factText, label, playerName } from '@/src/lib/labels';
 import { colors } from '@/src/theme';
@@ -35,7 +38,7 @@ import { colors } from '@/src/theme';
 export default function MatchScreen() {
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const { session, client } = useSession();
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
 
   const url = useMemo(() => {
     if (!matchId || !session?.accessToken) return null;
@@ -44,6 +47,26 @@ export default function MatchScreen() {
 
   const { state, error, connected, send, clearError } = useMatchSocket(url);
   const viewerId = session?.userId ?? '';
+
+  const view = state?.view ?? { zones: [] };
+  const zones = view.zones ?? [];
+
+  // The one piece of layout judgement in the file, and it is about *ownership*
+  // rather than about any game: your own cards go at the bottom where your
+  // thumb is, everyone else's go up top. Which zone is yours is a field the
+  // server sets.
+  const mine = zones.filter((z) => z.ownerId === viewerId);
+  const shared = zones.filter((z) => !z.ownerId);
+  const others = zones.filter((z) => z.ownerId && z.ownerId !== viewerId);
+
+  // A hand is the only zone anyone may rearrange, and `hand` is a kind every
+  // module already declares — so this reaches all four games without naming
+  // one. Computed before the connecting-early-return below, because it feeds
+  // a hook and hooks may not be conditional.
+  const myHands = mine.filter((z) => z.kind === 'hand');
+  const { slotsFor, move } = useHandOrder(myHands);
+
+  const heldSlots = myHands.flatMap((z) => slotsFor(z.id));
 
   if (!state) {
     return (
@@ -55,21 +78,18 @@ export default function MatchScreen() {
     );
   }
 
-  const view = state.view ?? { zones: [] };
-  const zones = view.zones ?? [];
+  // Selection is by *slot*, not by card string. With two decks in play a hand
+  // can hold two identical strings, and selecting by string could neither
+  // light up the copy that was tapped nor put both of them in one meld.
+  const toggleSlot = (slotId: string) =>
+    setSelected((prev) => {
+      const next = pruneSelection(heldSlots, prev);
+      if (next.has(slotId)) next.delete(slotId);
+      else next.add(slotId);
+      return next;
+    });
 
-  // The one piece of layout judgement in the file, and it is about *ownership*
-  // rather than about any game: your own cards go at the bottom where your
-  // thumb is, everyone else's go up top. Which zone is yours is a field the
-  // server sets.
-  const mine = zones.filter((z) => z.ownerId === viewerId);
-  const shared = zones.filter((z) => !z.ownerId);
-  const others = zones.filter((z) => z.ownerId && z.ownerId !== viewerId);
-
-  const toggleCard = (card: string) =>
-    setSelected((prev) =>
-      prev.includes(card) ? prev.filter((c) => c !== card) : [...prev, card],
-    );
+  const selectedCards = cardsForSelection(heldSlots, selected);
 
   const canAct = state.legalActions.some((o) => o.enabled);
 
@@ -114,14 +134,20 @@ export default function MatchScreen() {
         <Section title="Opponents" zones={others} compact />
 
         <View style={styles.mine}>
-          {mine.map((z) => (
-            <ZoneView
-              key={z.id}
-              zone={z}
-              selected={selected}
-              onPressCard={(card) => toggleCard(card)}
-            />
-          ))}
+          {mine.map((z) =>
+            z.kind === 'hand' ? (
+              <HandZone
+                key={z.id}
+                zone={z}
+                slots={slotsFor(z.id)}
+                selected={selected}
+                onToggle={toggleSlot}
+                onMove={(from, to) => move(z.id, from, to)}
+              />
+            ) : (
+              <ZoneView key={z.id} zone={z} />
+            ),
+          )}
         </View>
 
         {error ? (
@@ -135,9 +161,9 @@ export default function MatchScreen() {
             bug, which is why the server sends the whole set every time. */}
         <OfferBar
           offers={state.legalActions}
-          selectedCards={selected}
+          selectedCards={selectedCards}
           onSend={send}
-          onConsumeSelection={() => setSelected([])}
+          onConsumeSelection={() => setSelected(new Set())}
         />
         {!canAct && state.status === 'active' ? (
           <Text testID="match-waiting" style={styles.muted}>

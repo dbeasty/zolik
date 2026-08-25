@@ -31,6 +31,19 @@ export function CardView({ card, selected, justDrawn, dragging, onPress, compact
     // exactly what broke double-tap-to-discard before this was fixed.
     <View
       testID={testID}
+      // Selectedness said out loud rather than only drawn. A gold border is
+      // invisible to a screen reader, and it is also the only evidence a test
+      // could otherwise check — which would mean asserting on a hex colour,
+      // and those change for design reasons that have nothing to do with
+      // whether the card is picked.
+      //
+      // `aria-selected` rather than `accessibilityState={{selected}}`: React
+      // Native has taken the aria spelling since 0.71 and maps it back to
+      // accessibilityState on iOS and Android, while react-native-web forwards
+      // it to the DOM. The older spelling reaches native but this version of
+      // react-native-web drops it, so it would leave the web build silently
+      // saying nothing.
+      aria-selected={!!selected}
       style={[styles.ring, justDrawn && styles.justDrawnRing, dragging && styles.draggingRing]}
     >
       <View
