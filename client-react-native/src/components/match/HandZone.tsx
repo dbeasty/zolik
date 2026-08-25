@@ -7,7 +7,7 @@ import type { Zone } from '@/src/api/matchTypes';
 import { CARD_METRICS, CardView } from '@/src/components/CardView';
 import { insertionAtPoint, moveTargetFor, type Rect, type Slot } from '@/src/lib/hand';
 import { label } from '@/src/lib/labels';
-import { colors } from '@/src/theme';
+import { colors, dropArmed } from '@/src/theme';
 
 /**
  * The viewer's own hand: the one zone on the board they may rearrange, and the
@@ -571,11 +571,6 @@ const styles = StyleSheet.create({
     marginRight: CARD_METRICS.gap,
     borderRadius: 6,
     borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: colors.gold,
-    // A wash rather than a fill. Filled in solid it read as a *card* sitting
-    // in the fan, which is the one thing it is not — it is the space the card
-    // in your hand is about to occupy, and it should look like space.
-    backgroundColor: 'rgba(251, 191, 36, 0.14)',
+    ...dropArmed,
   },
 });
