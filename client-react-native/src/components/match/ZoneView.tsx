@@ -136,9 +136,20 @@ export function ZoneView({
                 ]}
                 testID={`group-${g.id}`}
               >
-                <View style={styles.cards}>
+                {/* Stacked, not fanned — a meld's cards overlap top to
+                    bottom instead of spreading left to right, so a run of
+                    seven costs one card's width instead of seven. Every
+                    card but the last shows only its top corner (rank and
+                    suit are both up there), which is enough to read the
+                    group at a glance; the last card sits in full. This also
+                    narrows the group box itself, so several fit side by
+                    side (see styles.groups) instead of each claiming a full
+                    row the way a horizontal fan did. */}
+                <View style={styles.stackedCards}>
                   {g.cards.map((c, i) => (
-                    <CardView key={`${g.id}-${c}-${i}`} card={c} compact />
+                    <View key={`${g.id}-${c}-${i}`} style={i > 0 && styles.stackedOverlap}>
+                      <CardView card={c} compact />
+                    </View>
                   ))}
                 </View>
                 {(g.badgeKeys ?? []).map((b) => (
@@ -225,7 +236,20 @@ const styles = StyleSheet.create({
   // a hand or a spread earns a line of its own.
   inline: { flexGrow: 0, flexShrink: 0, marginBottom: 0, minWidth: 96 },
   cards: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 6 },
-  groups: { gap: 6, marginTop: 4 },
+  // A vertical stack instead of cards.row's horizontal fan — see the comment
+  // where this is used. alignItems keeps the column hugging the cards'
+  // width instead of stretching to the group box's, which matters once
+  // groups sit side by side (below) rather than each spanning full width.
+  stackedCards: { flexDirection: 'column', alignItems: 'flex-start', marginTop: 6 },
+  // Pulls every card but the first up into the one above it, leaving just
+  // its top corner (rank + suit) showing. Tuned to a compact CardView's
+  // rendered height (60 + the ring's own border/padding) minus enough room
+  // for that corner to stay legible.
+  stackedOverlap: { marginTop: -40 },
+  // Row + wrap rather than one meld per line: stackedCards narrows each
+  // group to about one card's width, so several now fit across before
+  // wrapping instead of each claiming a full-width row on its own.
+  groups: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
   group: {
     borderWidth: 1,
     borderColor: colors.border,
