@@ -1,0 +1,248 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f6f7f9;
+  --panel: #ffffff;
+  --ink: #14171c;
+  --muted: #5c6472;
+  --line: #dfe3ea;
+  --accent: #2f6feb;
+  --danger: #c1382c;
+  --bar: #2f6feb;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14171c;
+    --panel: #1c2029;
+    --ink: #e8eaee;
+    --muted: #9aa3b2;
+    --line: #2d3340;
+    --accent: #6f9dff;
+    --danger: #ef6a5c;
+    --bar: #6f9dff;
+  }
+}
+
+* { box-sizing: border-box; }
+
+/* The console hides and shows nearly everything through the `hidden`
+   attribute, and any `display` rule below outranks the user-agent's
+   `[hidden] { display: none }` — a plain `form { display: flex }` is enough to
+   leave a hidden form on screen. This keeps `hidden` meaning hidden. */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  padding: 24px;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+h1 { font-size: 20px; margin: 0; }
+h2 { font-size: 16px; margin: 0; }
+h3 { font-size: 16px; margin: 0 0 8px; }
+
+#app { max-width: 1040px; margin: 0 auto; }
+
+.muted { color: var(--muted); }
+
+.error, .notice {
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 0 0 16px;
+}
+.error {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+}
+.notice {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.bar-right { display: flex; align-items: center; gap: 12px; }
+
+section { margin-bottom: 32px; }
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 24px;
+}
+.center { max-width: 380px; margin: 64px auto; }
+.center h1 { margin-bottom: 8px; }
+
+form { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+label { font-size: 13px; color: var(--muted); }
+
+input, select {
+  font: inherit;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+input:focus-visible, select:focus-visible, button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  padding: 8px 12px;
+}
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:disabled { opacity: 0.5; cursor: default; }
+form > button[type="submit"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+button.link {
+  border: none;
+  background: none;
+  color: var(--accent);
+  padding: 4px;
+}
+button.danger { border-color: var(--danger); color: var(--danger); }
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+.tile {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.tile-value { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
+.tile-label { font-size: 13px; color: var(--muted); }
+
+.chart {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 160px;
+  overflow-x: auto;
+}
+.chart-col {
+  flex: 1 1 8px;
+  min-width: 6px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+}
+.chart-bar {
+  background: var(--bar);
+  border-radius: 3px 3px 0 0;
+  min-height: 2px;
+}
+
+.modules { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.chip {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 13px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+th, td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+th { font-size: 13px; color: var(--muted); font-weight: 600; }
+tbody tr:last-child td { border-bottom: none; }
+td.actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.name { font-weight: 600; }
+.sub { font-size: 13px; color: var(--muted); }
+.badge {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 1px 7px;
+  margin-left: 6px;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.modal-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 440px;
+  width: 100%;
+}
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.secret {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  margin-top: 8px;
+  word-break: break-all;
+  user-select: all;
+}

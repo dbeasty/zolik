@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Žolíky admin</title>
+    <link rel="stylesheet" href="/admin/styles.css" />
+  </head>
+  <body>
+    <main id="app">
+      <section id="signin" class="card center" hidden>
+        <h1>Žolíky admin</h1>
+        <p class="muted">Sign in with an administrator's email address. A one-time code is sent to it.</p>
+        <form id="email-form">
+          <label for="email">Email</label>
+          <input id="email" type="email" autocomplete="email" required />
+          <button type="submit">Send code</button>
+        </form>
+        <form id="code-form" hidden>
+          <label for="code">Code sent to <span id="code-target"></span></label>
+          <input id="code" inputmode="numeric" autocomplete="one-time-code" required />
+          <button type="submit">Sign in</button>
+          <button type="button" id="code-back" class="link">Use a different address</button>
+        </form>
+        <p id="signin-error" class="error" hidden></p>
+      </section>
+
+      <div id="console" hidden>
+        <header class="bar">
+          <h1>Žolíky admin</h1>
+          <div class="bar-right">
+            <span id="whoami" class="muted"></span>
+            <button id="signout" class="link">Sign out</button>
+          </div>
+        </header>
+
+        <p id="error" class="error" hidden></p>
+
+        <section>
+          <h2>Overview</h2>
+          <div id="tiles" class="tiles"></div>
+        </section>
+
+        <section>
+          <div class="section-head">
+            <h2>Matches per day</h2>
+            <select id="days" aria-label="Time range">
+              <option value="14">Last 14 days</option>
+              <option value="30" selected>Last 30 days</option>
+              <option value="90">Last 90 days</option>
+            </select>
+          </div>
+          <div id="chart" class="chart"></div>
+          <div id="modules" class="modules"></div>
+        </section>
+
+        <section>
+          <div class="section-head">
+            <h2>Users</h2>
+            <input id="search" type="search" placeholder="Search name or email" aria-label="Search users" />
+          </div>
+          <table id="users">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Sign-in</th>
+                <th>Created</th>
+                <th>Last seen</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div class="pager">
+            <button id="prev">Previous</button>
+            <span id="page-info" class="muted"></span>
+            <button id="next">Next</button>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <div id="modal" class="modal" hidden>
+      <div class="modal-card">
+        <h3 id="modal-title"></h3>
+        <p id="modal-body"></p>
+        <div id="modal-extra"></div>
+        <div class="modal-actions">
+          <button id="modal-cancel">Cancel</button>
+          <button id="modal-confirm" class="danger">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="/admin/app.js"></script>
+  </body>
+</html>

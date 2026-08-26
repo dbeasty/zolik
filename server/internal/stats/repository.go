@@ -58,6 +58,9 @@ type Repository interface {
 	// first use.
 	UpsertPlayerStats(ctx context.Context, ps PlayerStats) error
 	Leaderboard(ctx context.Context, q LeaderboardQuery) ([]LeaderboardRow, error)
+	// UsageSummary aggregates the match record over the last `days` calendar
+	// days, for the admin overview — see usage.go.
+	UsageSummary(ctx context.Context, days int) (Usage, error)
 }
 
 type mongoRepository struct {

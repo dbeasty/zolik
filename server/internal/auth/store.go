@@ -41,6 +41,12 @@ type Store interface {
 	ListIdentities(ctx context.Context, userID string) ([]models.Identity, error)
 	// DeleteIdentity removes one identity from an account.
 	DeleteIdentity(ctx context.Context, userID, provider string) error
+	// DeleteIdentitiesForUser removes every identity attached to an account,
+	// returning how many went. Deleting an account without this would strand
+	// the identities: their (provider, subject) unique index would still point
+	// at an account that no longer exists, and the person behind them could
+	// never sign in again — not even to make a fresh account.
+	DeleteIdentitiesForUser(ctx context.Context, userID string) (int64, error)
 	// TouchIdentity records a successful sign-in and refreshes the
 	// provider's snapshot of the person's address and name.
 	TouchIdentity(ctx context.Context, id bson.ObjectID, email, displayName string) error
@@ -166,6 +172,17 @@ func (s *mongoStore) DeleteIdentity(ctx context.Context, userID, provider string
 		return ErrNotFound
 	}
 	return nil
+}
+
+// DeleteIdentitiesForUser removes every identity attached to an account.
+// Unlike DeleteIdentity, finding none is not an error: an account created by
+// the legacy username/password path has no identity documents at all.
+func (s *mongoStore) DeleteIdentitiesForUser(ctx context.Context, userID string) (int64, error) {
+	res, err := s.identities.DeleteMany(ctx, bson.M{"userId": userID})
+	if err != nil {
+		return 0, err
+	}
+	return res.DeletedCount, nil
 }
 
 // TouchIdentity records a successful sign-in and refreshes the provider's

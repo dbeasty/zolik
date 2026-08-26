@@ -158,3 +158,31 @@ otherwise a *verified* email match attaches the new identity to an existing acco
 account is created. Linking a second provider to an already-signed-in account, and unlinking one
 (never the last), are handled the same way regardless of which provider is involved.
 
+## Admin console
+
+`/admin` is an operator's console served by the server itself (`internal/admin`) — a single embedded
+page, no build step and no second artifact to keep in step with the API. It lists accounts, resets a
+password, revokes sessions, deletes an account, and shows usage: accounts and activity, matches per
+day and per game, open sessions, and this instance's live connections.
+
+Who gets in is an allow-list of addresses in the environment, not a flag on the user document:
+
+```sh
+ADMIN_EMAILS=you@example.com,someone@example.com
+```
+
+**Unset means nobody gets in.** That default is deliberate — an admin API that opens up when
+unconfigured is a far worse failure than one that is unreachable. A caller must also be signed in
+with a *verified* address on the list, so claiming an administrator's address at sign-up gains
+nothing. Because membership lives in configuration, there is no bootstrap problem, removing an
+address takes effect on the very next request, and nothing the running system exposes can grant it.
+
+Two things the console deliberately does not do. Deleting an account removes it along with its
+identities and sessions, but **keeps its match records** — those are the immutable history every
+other player's statistics are derived from, so deleting them would quietly rewrite opponents'
+records too. And a generated password is shown exactly once and stored only as a bcrypt hash;
+there is no way to read it back afterwards.
+
+Sign-in uses the ordinary emailed-code flow, so locally (no `SMTP_HOST`) the code is written to the
+server log rather than mailed.
+

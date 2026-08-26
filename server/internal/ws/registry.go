@@ -118,6 +118,38 @@ func (r *ConnRegistry) ForGame(gameID string) map[string]WSConn {
 	return out
 }
 
+// Totals reports how many rooms currently hold at least one connection, and
+// how many connections there are across all of them.
+//
+// Rooms, not games: the lobby's waiting room rides this registry under a
+// reserved id of its own (see lobby.RoomID), so a caller that wants a count of
+// *matches* has to subtract it — CountRoom is what that is for.
+//
+// This is per-process: it counts sockets held by *this* instance, not by the
+// fleet. With more than one instance behind a load balancer the figure is a
+// share of the whole, which is why the admin overview labels it as this
+// instance's rather than as the total.
+func (r *ConnRegistry) Totals() (rooms, conns int) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	for _, players := range r.conns {
+		if len(players) == 0 {
+			continue
+		}
+		rooms++
+		conns += len(players)
+	}
+	return rooms, conns
+}
+
+// CountRoom reports how many connections one room holds.
+func (r *ConnRegistry) CountRoom(roomID string) int {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return len(r.conns[roomID])
+}
+
 // PingableConn adapts gorilla's *websocket.Conn — which has no plain
 // Ping() error method, only WriteControl — to the WSConn interface, so a
 // keepalive ticker goes through the same registry wrapper (and its write

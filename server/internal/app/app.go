@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"zolik/server/internal/admin"
 	"zolik/server/internal/auth"
 	"zolik/server/internal/canasta"
 	"zolik/server/internal/db"
@@ -36,9 +37,10 @@ type App struct {
 	// re-constructed per route group — a repository handle is cheap to hold,
 	// and building it twice was never anything but two names for the same
 	// backend.
-	statsRepo stats.Repository
-	userRepo  userrepo.Repository
-	authStore auth.Store
+	statsRepo   stats.Repository
+	userRepo    userrepo.Repository
+	authStore   auth.Store
+	sessionRepo auth.SessionRepository
 }
 
 func New(cfg Config) (*App, error) {
@@ -88,6 +90,7 @@ func New(cfg Config) (*App, error) {
 	// Built once and shared: auth.Handlers and the user route group both need
 	// it, and a repository handle has no reason to exist twice.
 	authStore := auth.NewStore(m)
+	sessionRepo := auth.NewSessionRepository(m)
 
 	// Mail is resolved at startup rather than at first use: a deployment that
 	// offers email sign-in but cannot send mail should fail to start, not fail
@@ -100,7 +103,7 @@ func New(cfg Config) (*App, error) {
 
 	authHandlers := auth.NewHandlers(auth.Deps{
 		Store:     authStore,
-		Sessions:  auth.NewSessionRepository(m),
+		Sessions:  sessionRepo,
 		Providers: identity.FromConfig(cfg.Identity),
 		Mailer:    mailer,
 		// The claimer is injected for the same reason the match recorder is:
@@ -121,6 +124,7 @@ func New(cfg Config) (*App, error) {
 		statsRepo:   statsRepo,
 		userRepo:    userRepo,
 		authStore:   authStore,
+		sessionRepo: sessionRepo,
 	}, nil
 }
 
@@ -196,6 +200,19 @@ func (a *App) routeGroups() []routeGroup {
 			match.NewHandlers(matchMgr, a.cfg.TestEndpointsEnabled).RegisterRoutes(r)
 		}},
 		{"stats", stats.NewHandlers(a.statsRepo).RegisterRoutes},
+		// The operator's console and the API behind it. Registered
+		// unconditionally: with no ADMIN_EMAILS configured the guard rejects
+		// every request, which is a better failure than a route table that
+		// changes shape depending on the environment.
+		{"admin", admin.NewHandlers(admin.Deps{
+			Guard:         admin.NewGuard(a.userRepo, a.cfg.AdminEmails),
+			Users:         a.userRepo,
+			Identities:    a.authStore,
+			Sessions:      a.sessionRepo,
+			Usage:         a.statsRepo,
+			Live:          a.hub.Registry(),
+			WaitingRoomID: lobby.RoomID,
+		}).RegisterRoutes},
 	}
 }
 

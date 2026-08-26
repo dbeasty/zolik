@@ -46,6 +46,13 @@ type Config struct {
 	// environment refuses to start rather than silently swallowing them.
 	SMTP auth.SMTPConfig
 
+	// AdminEmails are the addresses allowed into the admin console at /admin.
+	// Membership lives in configuration rather than on the user document so
+	// there is no bootstrap problem and nothing the running system exposes can
+	// grant it — see admin.NewGuard. Empty means the console rejects everyone,
+	// which is the right default for a deployment that has not configured it.
+	AdminEmails []string
+
 	// TestEndpointsEnabled gates /games/{id}/debug-state, which writes a
 	// game's phase/hands/melds/turn directly into Mongo, bypassing rules
 	// validation — lets e2e tests jump straight into a specific mid-round
@@ -115,6 +122,8 @@ func LoadConfig() Config {
 			From:     os.Getenv("SMTP_FROM"),
 			FromName: envOr("SMTP_FROM_NAME", "Žolíky"),
 		},
+
+		AdminEmails: envList("ADMIN_EMAILS", nil),
 
 		TestEndpointsEnabled: envBool("ENABLE_TEST_ENDPOINTS", local),
 	}
