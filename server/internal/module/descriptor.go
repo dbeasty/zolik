@@ -20,6 +20,55 @@ type OptionChoice struct {
 	Label string `json:"label"`
 }
 
+// The two values of a yes/no option carried over an int-valued protocol.
+//
+// module has its own pair rather than borrowing rules' because module must not
+// import a game. The Žolíky adapter maps between the two, which is what an
+// adapter is for.
+const (
+	OptOff = 0
+	OptOn  = 1
+)
+
+// BoolOpt encodes a yes/no as the option value for it.
+func BoolOpt(on bool) int {
+	if on {
+		return OptOn
+	}
+	return OptOff
+}
+
+// OptPauseBetweenRounds decides whether a match stops at the end of a round to
+// show what the round did.
+//
+// Declared here rather than three times because it is one setting with one name
+// on the wire, and a client renders the control from the descriptor without
+// knowing which game it is configuring. What differs per game is only the
+// default — and it differs a lot. A Canasta deal ends in a six-part settlement
+// that the next deal wipes off the table, so not stopping makes it unreadable;
+// a poker match is fifty hands of four actions each, so stopping after every one
+// makes it unplayable.
+const OptPauseBetweenRounds = "pauseBetweenRounds"
+
+// PauseOption is the ready-made spec a module drops into its descriptor.
+func PauseOption() OptionSpec {
+	return OptionSpec{
+		Name:  OptPauseBetweenRounds,
+		Type:  OptionEnumInt,
+		Label: "Pause between rounds",
+		Help:  "Stop at the end of each round to show the scores, and go on when everyone is ready.",
+		Choices: []OptionChoice{
+			{Value: OptOn, Label: "Pause"},
+			{Value: OptOff, Label: "Play straight on"},
+		},
+	}
+}
+
+// PauseBetweenRounds reads the option, against the module's own default.
+func (c MatchConfig) PauseBetweenRounds(dflt bool) bool {
+	return c.Opt(OptPauseBetweenRounds, BoolOpt(dflt)) == OptOn
+}
+
 // OptionSpec declares one knob a lobby may set.
 type OptionSpec struct {
 	// Name is the key the client sends back, so a client can drive the whole
