@@ -79,6 +79,31 @@ export function arrangeSlots(
 }
 
 /**
+ * Which slots in `next` were not in `previous` — but only when nothing left
+ * the hand in the same beat.
+ *
+ * A card arriving alone, with everything already held still there, is the
+ * shape of picking one up: the moment a player most wants to see which card
+ * that was, since it's the one thing in the fan they didn't have a second
+ * ago. A card arriving *alongside* others leaving — the whole hand turning
+ * over between deals — looks like the same "new id in the fan" from this
+ * function's point of view, so it is deliberately excluded rather than
+ * guessed at: nothing here says which zone this is or when a deal happens.
+ *
+ * An empty `previous` returns nothing for the same reason: the very first
+ * hand a player is dealt is every one of its cards "arriving" at once, and
+ * none of them is a card anyone picked up.
+ */
+export function justArrived(previous: Slot[], next: Slot[]): string[] {
+  if (previous.length === 0) return [];
+  const previousIds = new Set(previous.map((s) => s.id));
+  const gained = next.filter((s) => !previousIds.has(s.id));
+  if (gained.length === 0) return [];
+  if (next.length - gained.length !== previous.length) return [];
+  return gained.map((s) => s.id);
+}
+
+/**
  * Moves one item to another position, returning a new array.
  *
  * `to` is the index the item should end up at once it has been lifted out,
