@@ -18,8 +18,14 @@ type Config struct {
 	JWTAccessSecret  string
 	JWTRefreshSecret string
 
-	RedisURL   string
-	InstanceID string
+	RedisURL string
+	// RedisOptional marks a RedisURL that was defaulted rather than asked for.
+	// A default that turns out to be unreachable falls back to running
+	// local-only; a URL someone deliberately set is a hard startup failure,
+	// because a production Redis being down must not degrade quietly into a
+	// single-instance server that still looks healthy.
+	RedisOptional bool
+	InstanceID    string
 
 	SSHEnabled      bool
 	SSHPort         string
@@ -71,6 +77,7 @@ func LoadConfig() Config {
 	env := os.Getenv("APP_ENV")
 	local := env == "" || env == "local"
 	publicBaseURL := envOr("PUBLIC_BASE_URL", "http://localhost:"+envOr("PORT", "8090"))
+	redisURL, redisOptional := redisConfig(local)
 	return Config{
 		Env:  env,
 		Port: envOr("PORT", "8090"),
@@ -81,10 +88,14 @@ func LoadConfig() Config {
 		JWTAccessSecret:  envOr("JWT_ACCESS_SECRET", "dev_access_secret_change_me"),
 		JWTRefreshSecret: envOr("JWT_REFRESH_SECRET", "dev_refresh_secret_change_me"),
 
-		RedisURL:   envOr("REDIS_URL", ""),
-		InstanceID: envOr("INSTANCE_ID", ""),
+		RedisURL:      redisURL,
+		RedisOptional: redisOptional,
+		InstanceID:    envOr("INSTANCE_ID", ""),
 
-		SSHEnabled:      envBool("SSH_ENABLED", local),
+		// The SSH terminal client is opt-in. It binds a second port, and a
+		// developer running a second server on the same machine got a bind
+		// failure they had not asked for from a feature they were not using.
+		SSHEnabled:      envBool("SSH_ENABLED", false),
 		SSHPort:         envOr("SSH_PORT", "2222"),
 		SSHHostKeyPath:  envOr("SSH_HOST_KEY_PATH", ".ssh/zolik_host_key"),
 		SSHAllowAllKeys: envBool("SSH_ALLOW_ALL_KEYS", local),
@@ -138,6 +149,33 @@ func providerConfig(prefix string) identity.ProviderConfig {
 		// must be accepted alongside the server's.
 		ExtraAudiences: envList("OAUTH_"+prefix+"_EXTRA_AUDIENCES", nil),
 	}
+}
+
+// localRedisURL is the address a development Redis is reached at when nothing
+// says otherwise — matching the port docker-compose.yml publishes.
+const localRedisURL = "redis://localhost:6379/0"
+
+// redisConfig resolves REDIS_URL, reporting whether the result was a default.
+//
+// Three cases, distinguished by LookupEnv rather than by emptiness, so that
+// setting the variable to nothing stays a way to say "no Redis":
+//
+//   - set and non-empty: use it, and require it. Someone asked for this.
+//   - set and empty: run local-only. The explicit opt-out.
+//   - unset, locally: try the local default, but do not insist on it.
+//
+// Outside local development an unset variable still means no Redis: a
+// deployment that wants pub/sub across instances has to say where, and
+// guessing localhost there would be a guess about someone else's network.
+func redisConfig(local bool) (url string, optional bool) {
+	raw, set := os.LookupEnv("REDIS_URL")
+	if set {
+		return strings.TrimSpace(raw), false
+	}
+	if local {
+		return localRedisURL, true
+	}
+	return "", false
 }
 
 // envList reads a comma-separated variable, dropping blanks.

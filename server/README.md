@@ -71,9 +71,27 @@ Redis is **not** used for login, registration, or guest sessions — only for `z
 
 Without `REDIS_URL`, the hub runs in **local-only** mode (fine for development).
 
+### How `REDIS_URL` resolves
+
+Resolution turns on whether the variable is *set*, not on whether it is empty:
+
+| `REDIS_URL` | Result |
+| --- | --- |
+| unset, locally | tries `redis://localhost:6379/0`; **falls back to local-only if nothing answers** |
+| unset, `APP_ENV` set | no Redis — a deployment has to say where its Redis is |
+| set to a value | required: if it cannot be reached, the server **refuses to start** |
+| set to empty | no Redis — the explicit opt-out |
+
+So `go run ./cmd/server` picks up a running Redis on its own and still starts on a machine without
+one. The asymmetry is deliberate: a URL somebody configured must never be downgraded silently, because
+a deployment serving as a lone instance while believing it is clustered fails far worse than one that
+refuses to boot.
+
 ## Terminal client (SSH)
 
-When `SSH_ENABLED=true` (default in local), the server embeds **[client-tui](../client-tui/)** on port **2222**:
+`SSH_ENABLED=true` embeds **[client-tui](../client-tui/)** on port **2222**. It is **off by default** —
+it binds a second port, and a second server started on one machine would otherwise fail to bind it
+for a feature that server was not being used for.
 
 ```bash
 ssh -p 2222 guest@localhost

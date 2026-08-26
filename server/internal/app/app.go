@@ -2,10 +2,12 @@ package app
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/redis/go-redis/v9"
 
 	"zolik/server/internal/admin"
 	"zolik/server/internal/auth"
@@ -69,8 +71,14 @@ func New(cfg Config) (*App, error) {
 		return nil, err
 	}
 
+	// Resolved once, before either consumer is built. The hub and the waiting
+	// room are documented as sharing one Redis instance, so deciding this
+	// separately in each would let them disagree — a hub gossiping across
+	// instances while the waiting room quietly kept its pool to itself.
+	redisURL := resolveRedisURL(ctx, cfg)
+
 	registry := ws.NewConnRegistry()
-	hub, err := ws.NewHub(registry, cfg.RedisURL)
+	hub, err := ws.NewHub(registry, redisURL)
 	if err != nil {
 		_ = m.Close(ctx)
 		return nil, err
@@ -79,7 +87,7 @@ func New(cfg Config) (*App, error) {
 	// The waiting room shares the hub's Redis (or its local-only fallback)
 	// rather than dialling a second connection — same instance, same
 	// trade-off, same "fine for development without it" story.
-	waitingRoom, err := lobby.NewStore(cfg.RedisURL)
+	waitingRoom, err := lobby.NewStore(redisURL)
 	if err != nil {
 		_ = m.Close(ctx)
 		return nil, err
@@ -126,6 +134,38 @@ func New(cfg Config) (*App, error) {
 		authStore:   authStore,
 		sessionRepo: sessionRepo,
 	}, nil
+}
+
+// resolveRedisURL decides which Redis, if any, this process will use.
+//
+// An optional URL — one this process guessed rather than was told (see
+// Config.RedisOptional) — is probed, and dropped if nothing answers, so that
+// `go run ./cmd/server` works on a machine with no Redis while still picking
+// one up automatically when it is there. A URL that was configured is returned
+// untouched even if it is unreachable, leaving the consumers to fail startup
+// on it: a deployment that asked for Redis and cannot have it is broken, and
+// should say so rather than come up quietly as a single instance.
+func resolveRedisURL(ctx context.Context, cfg Config) string {
+	if cfg.RedisURL == "" || !cfg.RedisOptional {
+		return cfg.RedisURL
+	}
+	if err := redisReachable(ctx, cfg.RedisURL); err != nil {
+		log.Printf("redis at %s is unreachable (%v) — continuing local-only; set REDIS_URL to require it", cfg.RedisURL, err)
+		return ""
+	}
+	return cfg.RedisURL
+}
+
+// redisReachable dials a Redis URL and lets it go again, so an optional
+// default can be tested without either consumer having to be built first.
+func redisReachable(ctx context.Context, url string) error {
+	opt, err := redis.ParseURL(url)
+	if err != nil {
+		return err
+	}
+	client := redis.NewClient(opt)
+	defer func() { _ = client.Close() }()
+	return client.Ping(ctx).Err()
 }
 
 func (a *App) Config() Config { return a.cfg }
