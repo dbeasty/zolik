@@ -19,6 +19,11 @@ import { colors } from '@/src/theme';
  * The same is true of the options below it: `MELD_MINS` and
  * `DISCARD_LOCK_ROUNDS` were once client constants, which meant adding a knob
  * meant editing a client. Here the form is whatever the module declares.
+ *
+ * The bot count is the one control on this screen that is not a module option,
+ * and deliberately so: how many seats a table has is not a house rule any game
+ * declares, it is the descriptor's own player range. So the picker is built
+ * from that range, and a game registered tomorrow gets the right one.
  */
 export default function GamesScreen() {
   const { session } = useSession();
@@ -30,6 +35,11 @@ export default function GamesScreen() {
   // seeded from the variation's own declared defaults.
   const [variation, setVariation] = useState<Record<string, string>>({});
   const [options, setOptions] = useState<Record<string, Record<string, number>>>({});
+  // How many bots "Play against bots" seats, per module. Held here rather
+  // than derived at the click, because it is a choice the host makes before
+  // pressing anything — and, like everything else on this screen, its range
+  // comes from the module's own descriptor.
+  const [bots, setBots] = useState<Record<string, number>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -42,15 +52,18 @@ export default function GamesScreen() {
 
         const v: Record<string, string> = {};
         const o: Record<string, Record<string, number>> = {};
+        const b: Record<string, number> = {};
         for (const m of body.modules ?? []) {
           const first = m.variations?.[0];
           if (first) {
             v[m.id] = first.id;
             o[m.id] = { ...(first.defaults ?? {}) };
           }
+          b[m.id] = botCount(m);
         }
         setVariation(v);
         setOptions(o);
+        setBots(b);
       } catch (e) {
         if (!cancelled) setError(String(e));
       }
@@ -100,9 +113,12 @@ export default function GamesScreen() {
           return;
         }
 
-        // Enough bots to reach the module's own minimum. The screen does not
-        // know what that number is for any particular game.
-        for (let i = 1; i < mod.minPlayers; i++) {
+        // As many bots as the host asked for, clamped to the seats this
+        // module actually has. The screen still does not know what a legal
+        // table is for any particular game — the descriptor does, and the
+        // clamp is the only thing reading it.
+        const seats = botCount(mod, bots[mod.id]);
+        for (let i = 0; i < seats; i++) {
           await fetch(`${ZOLIK_BASE_URL}/matches/${matchId}/add-bot`, {
             method: 'POST',
             headers: auth,
@@ -120,7 +136,7 @@ export default function GamesScreen() {
         setBusy('');
       }
     },
-    [session, variation, options],
+    [session, variation, options, bots],
   );
 
   if (!modules.length && !error) {
@@ -199,6 +215,27 @@ export default function GamesScreen() {
               </View>
             ))}
 
+            {botChoices(mod).length > 1 ? (
+              <View style={styles.option}>
+                <Text style={styles.optionLabel}>Bots</Text>
+                <View style={styles.row}>
+                  {botChoices(mod).map((n) => {
+                    const on = botCount(mod, bots[mod.id]) === n;
+                    return (
+                      <Pressable
+                        key={n}
+                        testID={`bots-${mod.id}-${n}`}
+                        onPress={() => setBots((prev) => ({ ...prev, [mod.id]: n }))}
+                        style={[styles.pill, on && styles.pillOn]}
+                      >
+                        <Text style={styles.pillText}>{n}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            ) : null}
+
             <View style={styles.actions}>
               <Pressable
                 testID={`play-bots-${mod.id}`}
@@ -206,7 +243,11 @@ export default function GamesScreen() {
                 onPress={() => start(mod, true)}
                 style={[styles.button, busy === mod.id && styles.buttonBusy]}
               >
-                <Text style={styles.buttonText}>Play against bots</Text>
+                <Text style={styles.buttonText}>
+                  {botCount(mod, bots[mod.id]) === 1
+                    ? 'Play against a bot'
+                    : `Play against ${botCount(mod, bots[mod.id])} bots`}
+                </Text>
               </Pressable>
               <Pressable
                 testID={`play-friends-${mod.id}`}
@@ -222,6 +263,32 @@ export default function GamesScreen() {
       </ScrollView>
     </Screen>
   );
+}
+
+/**
+ * The bot counts a module can be opened with: enough to reach its minimum
+ * table at the low end, one short of its maximum at the high end — because
+ * one of the seats is the host's.
+ */
+function botChoices(mod: MatchModule): number[] {
+  const out: number[] = [];
+  for (let n = Math.max(1, mod.minPlayers - 1); n <= Math.max(1, mod.maxPlayers - 1); n++) {
+    out.push(n);
+  }
+  return out;
+}
+
+/**
+ * How many bots to seat: what the host picked, clamped to the range above.
+ * A clamp rather than a plain read, so a count left over from a module list
+ * that reloaded — or a game whose range moved under it — can never post a
+ * seat the server is going to refuse.
+ */
+function botCount(mod: MatchModule, picked?: number): number {
+  const choices = botChoices(mod);
+  const lo = choices[0];
+  const hi = choices[choices.length - 1];
+  return Math.min(hi, Math.max(lo, picked ?? lo));
 }
 
 const styles = StyleSheet.create({
