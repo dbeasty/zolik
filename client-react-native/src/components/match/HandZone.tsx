@@ -350,7 +350,17 @@ export function HandZone({
       testID={`zone-${zone.id}`}
       count={zone.count}
       countTestID={`zone-count-${zone.id}`}
-      summary={<CardGlance cards={slots.map((s) => s.card)} max={8} testID={`zone-summary-${zone.id}`} />}
+      // Capped only on a narrow screen, where the header has no room to
+      // spare. On a wide one the collapsed hand sits in a full-width row with
+      // space to say the whole thing, so there's no reason to fold most of a
+      // 13-card hand behind a "+5" that a wider screen never needed.
+      summary={
+        <CardGlance
+          cards={slots.map((s) => s.card)}
+          max={metrics.narrow ? 8 : slots.length}
+          testID={`zone-summary-${zone.id}`}
+        />
+      }
       accessory={
         onAutoArrange && slots.length > 1 ? (
           <Pressable onPress={onAutoArrange} hitSlop={8}>
