@@ -14,7 +14,6 @@ import { useSession } from '@/src/context/SessionContext';
 import { useDropRegistry, type Measurable } from '@/src/hooks/useDropRegistry';
 import { useHandOrder } from '@/src/hooks/useHandOrder';
 import { useMatchSocket } from '@/src/hooks/useMatchSocket';
-import { useMetrics } from '@/src/hooks/useMetrics';
 import { usePanelState } from '@/src/hooks/usePanelState';
 import { drawableZones } from '@/src/lib/board';
 import { dropSpotsFor, groupElementId, positionAt, type DropSpot } from '@/src/lib/drops';
@@ -53,7 +52,6 @@ export default function MatchScreen() {
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const { session, client } = useSession();
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
-  const metrics = useMetrics();
   const panels = usePanelState(matchId ? String(matchId) : undefined);
 
   const url = useMemo(() => {
@@ -374,77 +372,26 @@ export default function MatchScreen() {
           </Text>
         ))}
 
-        {/* Buttons sit beside the piles on a wide screen, sharing that band
-            rather than costing it a full-width row of their own; on a narrow
-            one there isn't a band wide enough to share, so they stack —
-            each control still gets its own row inside its own panel instead
-            of running off the edge behind an invisible scrollbar. */}
-        <View style={[styles.tableRow, metrics.narrow && styles.tableRowNarrow]}>
-          <Section
-            title="Table"
-            zones={tableZones}
-            compact
-            {...zonePanelProps('section:table')}
-            panelPropsFor={zonePanelProps}
-            {...dropProps}
-          />
-          <Panel
-            {...zonePanelProps('controls')}
-            title="Controls"
-            testID="controls-panel"
-            style={!metrics.narrow && styles.controlsPanel}
-            summary={
-              <OfferGlance
-                offers={state.legalActions}
-                selectedCards={selectedCards}
-                onSend={send}
-                onConsumeSelection={() => setSelected(new Set())}
-                onAmbiguous={(groupKey) => {
-                  setPendingGroupKey(groupKey);
-                  drops.measure();
-                }}
-                testID="controls-summary"
-              />
-            }
-          >
-            {/* The engine's own sentence stands in for a code this build has
-                no translation for — it is at least a sentence, where the bare
-                code reads as a crash. A code we do know still wins, so a
-                translated message never regresses to English. */}
-            {error ? (
-              <Text testID="match-error" style={styles.error} onPress={clearError}>
-                {reasonText(error.code, error.message || error.code)}
-              </Text>
-            ) : null}
-            {/* Disabled offers stay on screen with their reason. An offer
-                that vanished when it became illegal would be
-                indistinguishable from a bug, which is why the server sends
-                the whole set every time. */}
-            <OfferBar
-              offers={state.legalActions}
-              selectedCards={selectedCards}
-              onSend={send}
-              onConsumeSelection={() => setSelected(new Set())}
-              onAmbiguous={(groupKey) => {
-                setPendingGroupKey(groupKey);
-                // The board is inside a scroll view, so a target's position
-                // as of the last drag is not necessarily where it is now
-                // either.
-                drops.measure();
-              }}
-            />
-            {!canAct && state.status === 'active' ? (
-              <Text testID="match-waiting" style={styles.muted}>
-                Waiting for another player…
-              </Text>
-            ) : null}
-          </Panel>
-        </View>
+        {/* The piles and stacks everyone draws from and discards to. A
+            full-width row of its own now that the controls have moved down
+            under the hand — the zones inside it are a couple of cards wide
+            and sit side by side in there, so it costs far less height than
+            a full-width row suggests. */}
+        <Section
+          title="Table"
+          zones={tableZones}
+          compact
+          {...zonePanelProps('section:table')}
+          panelPropsFor={zonePanelProps}
+          {...dropProps}
+        />
 
-        {/* Your hand first — it's what your thumb is on every turn — with
-            everyone's melds (yours and the opponents') below it rather than
-            above, so reaching your cards never means scrolling past a wall
-            of board state first. */}
+        {/* Your hand, then the controls that act on it, as one pair — it's
+            what your thumb is on every turn, and choosing a card and
+            spending it should not be at two ends of the screen. Everyone's
+            melds (yours and the opponents') go below the pair rather than
+            above it, so reaching your cards never means scrolling past a
+            wall of board state first. */}
         {/* Raised onto the drag layer for as long as a card is in flight, so
             the card being carried is drawn over the melds and the opponents
             below it rather than sliced in half by the first panel edge it
@@ -469,6 +416,68 @@ export default function MatchScreen() {
             />
           ))}
         </View>
+
+        {/* Directly under your hand, at every screen width. Every control
+            here acts on the cards picked just above it, and a bar up beside
+            the piles meant looking in one place to choose and another to
+            act — with the whole hand in between, which on a phone is most
+            of the screen. Under the hand rather than over it because that
+            is the edge a thumb is already resting on.
+
+            The cost is that the piles no longer have a neighbour to share
+            their band with on a wide screen. Worth paying: that band was
+            shared at the price of putting every button a full hand away
+            from the cards it spends. */}
+        <Panel
+          {...zonePanelProps('controls')}
+          title="Controls"
+          testID="controls-panel"
+          summary={
+            <OfferGlance
+              offers={state.legalActions}
+              selectedCards={selectedCards}
+              onSend={send}
+              onConsumeSelection={() => setSelected(new Set())}
+              onAmbiguous={(groupKey) => {
+                setPendingGroupKey(groupKey);
+                drops.measure();
+              }}
+              testID="controls-summary"
+            />
+          }
+        >
+          {/* The engine's own sentence stands in for a code this build has
+              no translation for — it is at least a sentence, where the bare
+              code reads as a crash. A code we do know still wins, so a
+              translated message never regresses to English. */}
+          {error ? (
+            <Text testID="match-error" style={styles.error} onPress={clearError}>
+              {reasonText(error.code, error.message || error.code)}
+            </Text>
+          ) : null}
+          {/* Disabled offers stay on screen with their reason. An offer
+              that vanished when it became illegal would be
+              indistinguishable from a bug, which is why the server sends
+              the whole set every time. */}
+          <OfferBar
+            offers={state.legalActions}
+            selectedCards={selectedCards}
+            onSend={send}
+            onConsumeSelection={() => setSelected(new Set())}
+            onAmbiguous={(groupKey) => {
+              setPendingGroupKey(groupKey);
+              // The board is inside a scroll view, so a target's position
+              // as of the last drag is not necessarily where it is now
+              // either.
+              drops.measure();
+            }}
+          />
+          {!canAct && state.status === 'active' ? (
+            <Text testID="match-waiting" style={styles.muted}>
+              Waiting for another player…
+            </Text>
+          ) : null}
+        </Panel>
 
         {/* Every spread on the board, whoever's it is, sharing a wrapping
             row instead of each claiming a full-width line — named by its
@@ -581,15 +590,6 @@ const styles = StyleSheet.create({
   statusGroup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   status: { color: colors.muted, fontSize: 12 },
   facts: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 2 },
-  tableRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  // A phone doesn't have a band wide enough to share between the piles and
-  // the controls, so they stack instead of sitting side by side.
-  tableRowNarrow: { flexDirection: 'column' },
-  // Takes whatever room is left beside the piles rather than shrinking to its
-  // content width — minWidth: 0 is what actually lets it shrink below that
-  // content width in the first place, which is what makes the controls wrap
-  // onto more than one line instead of overflowing the row.
-  controlsPanel: { flex: 1, minWidth: 0 },
   fact: { color: colors.muted, fontSize: 12 },
   statusDot: { width: 10, height: 10, borderRadius: 5, marginTop: 1 },
   statusDotOk: { backgroundColor: colors.success },
