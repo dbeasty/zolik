@@ -275,6 +275,16 @@ type GameState struct {
 	// Scoring
 	GameScores  map[string][]int
 	TotalScores map[string]int
+	// DealWinners is who went out in each deal, oldest first, parallel to the
+	// per-player GameScores arrays.
+	//
+	// It has to be recorded rather than recovered, because a deal's winner is
+	// not derivable from the scores: EndGame gives the go-out zero, and
+	// HandPenaltyTotalWithMelds can also return zero for a non-winner whose
+	// whole hand lays off. An empty string is a deal that ended with nobody
+	// named — and so is a deal played before this field existed, which is why
+	// a reader must treat the two the same.
+	DealWinners []string
 
 	WinnerID string
 	IsDraw   bool

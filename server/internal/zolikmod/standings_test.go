@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"zolik/server/internal/module"
-	"zolik/server/internal/rules"
 	"zolik/server/internal/zolikmod"
 )
 
@@ -168,5 +167,3 @@ func playToTheEnd(t *testing.T, mod module.GameModule, players []module.PlayerRe
 	t.Logf("seed %d: the bots did not finish a match; skipping this seed", seed)
 	return state, nil, false
 }
-
-var _ = rules.StatusCompleted

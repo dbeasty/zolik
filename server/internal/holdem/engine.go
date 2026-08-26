@@ -415,6 +415,7 @@ func endHand(s *GameState) []module.Event {
 	s.Pot = 0
 	s.LastHand = &res
 	s.Current = -1
+	s.Hands = append(s.Hands, summarise(s, res))
 
 	events := []module.Event{{Type: "hand_ended", Data: map[string]any{
 		"handNumber": res.HandNumber, "pots": len(res.Pots),
@@ -534,4 +535,42 @@ func (m *Module) Finished(raw module.State) (bool, []string, error) {
 		return false, nil, nil
 	}
 	return true, append([]string(nil), s.Winners...), nil
+}
+
+// summarise reduces a finished hand to what outlives it. Stacks is read after
+// the pot has been distributed, so it is what each seat is actually sitting on
+// going into the next hand.
+func summarise(s *GameState, res HandResult) HandSummary {
+	sum := HandSummary{
+		Number:      res.HandNumber,
+		Uncontested: res.Uncontested,
+		Deltas:      map[string]int{},
+		Stacks:      map[string]int{},
+	}
+	seen := map[string]bool{}
+	for _, p := range res.Pots {
+		sum.Pot += p.Amount
+		for _, w := range p.Winners {
+			if !seen[w] {
+				seen[w] = true
+				sum.Winners = append(sum.Winners, w)
+			}
+		}
+	}
+	// The net move, which is not HandResult.Deltas.
+	//
+	// That field is what the pot *paid* a seat: it is measured against the
+	// stack after the street's bets were already swept away, so a player who
+	// called 40 and lost shows a delta of zero. What a round table needs is how
+	// the stack actually moved, which is the winnings less everything put in —
+	// and Committed still holds that here, because startHand has not run yet
+	// and is where it is cleared.
+	for i := range s.Seats {
+		pid := s.Seats[i].PlayerID
+		sum.Stacks[pid] = s.Seats[i].Stack
+		if net := res.Deltas[pid] - s.Seats[i].Committed; net != 0 {
+			sum.Deltas[pid] = net
+		}
+	}
+	return sum
 }

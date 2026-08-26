@@ -210,6 +210,15 @@ type GameState struct {
 
 	// LastDeal is how the previous deal scored, for a scoreboard.
 	LastDeal *DealResult `json:"lastDeal,omitempty"`
+	// Deals is every deal that has been scored, oldest first.
+	//
+	// LastDeal is kept beside it rather than replaced by it: the board shows
+	// one deal's settlement and the history shows all of them, and a reader of
+	// either should not have to know about the other. Empty for a match that
+	// was already in flight when this field arrived, which is why the round
+	// numbers here are the deal's own and not a renumbering from one — a gap is
+	// better read as a gap than papered over.
+	Deals []DealResult `json:"deals,omitempty"`
 
 	WinnerTeam int    `json:"winnerTeam"`
 	WinnerID   string `json:"winnerId,omitempty"`

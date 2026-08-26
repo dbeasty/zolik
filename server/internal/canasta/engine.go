@@ -703,6 +703,7 @@ func advanceTurn(s *GameState) []module.Event {
 func endDeal(s *GameState, wentOut string, concealed bool, exhausted bool) []module.Event {
 	res := scoreDeal(s, wentOut, concealed, exhausted)
 	s.LastDeal = &res
+	s.Deals = append(s.Deals, res)
 
 	events := []module.Event{{Type: "deal_ended", Data: map[string]any{
 		"dealNumber": res.DealNumber,

@@ -38,6 +38,9 @@ func EndGame(state GameState, winnerID string) (GameState, error) {
 		state.GameScores[pid] = append(state.GameScores[pid], gameScore[pid])
 		state.TotalScores[pid] += gameScore[pid]
 	}
+	// Recorded alongside the scores because it cannot be read back out of
+	// them — see GameState.DealWinners.
+	state.DealWinners = append(state.DealWinners, winnerID)
 
 	// Advance or end the match.
 	if matchIsOver(state, cfg) {
