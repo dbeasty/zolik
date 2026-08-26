@@ -219,6 +219,14 @@ type GameState struct {
 	// numbers here are the deal's own and not a renumbering from one — a gap is
 	// better read as a gap than papered over.
 	Deals []DealResult `json:"deals,omitempty"`
+	// Break is the pause between deals, and Pause whether this table takes one.
+	//
+	// Pause is resolved once, at NewMatch, and never re-read from the lobby's
+	// options afterwards — which is what lets a match already in flight when
+	// this shipped play out under the rules it was dealt under, with no
+	// migration at all.
+	Pause bool                `json:"pause,omitempty"`
+	Break module.Intermission `json:"break,omitempty"`
 
 	WinnerTeam int    `json:"winnerTeam"`
 	WinnerID   string `json:"winnerId,omitempty"`

@@ -55,9 +55,10 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					{LabelKey: "holdem.rules.lastPlayerStanding"},
 				},
 				Defaults: map[string]int{
-					OptStartingStack: variations["freezeout"].startingStack,
-					OptBigBlind:      variations["freezeout"].bigBlind,
-					OptHandLimit:     variations["freezeout"].handLimit,
+					OptStartingStack:             variations["freezeout"].startingStack,
+					OptBigBlind:                  variations["freezeout"].bigBlind,
+					OptHandLimit:                 variations["freezeout"].handLimit,
+					module.OptPauseBetweenRounds: module.OptOff,
 				},
 			},
 			{
@@ -68,13 +69,15 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					{LabelKey: "holdem.rules.mostChipsWins"},
 				},
 				Defaults: map[string]int{
-					OptStartingStack: variations["timed"].startingStack,
-					OptBigBlind:      variations["timed"].bigBlind,
-					OptHandLimit:     variations["timed"].handLimit,
+					OptStartingStack:             variations["timed"].startingStack,
+					OptBigBlind:                  variations["timed"].bigBlind,
+					OptHandLimit:                 variations["timed"].handLimit,
+					module.OptPauseBetweenRounds: module.OptOff,
 				},
 			},
 		},
 		Options: []module.OptionSpec{
+			module.PauseOption(),
 			{
 				Name:  OptStartingStack,
 				Type:  module.OptionEnumInt,
@@ -160,7 +163,8 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 		st := &s.Seats[i]
 		seat := module.Seat{
 			PlayerID: st.PlayerID,
-			Active:   s.Current == i && s.Status == "active",
+			Active: s.Break.Open && !s.Break.Ready[s.Seats[i].PlayerID] ||
+				s.Current == i && s.Status == "active",
 			Facts: []module.Fact{
 				{LabelKey: "holdem.seat.stack", Value: strconv.Itoa(st.Stack),
 					Params: map[string]any{"chips": st.Stack}},

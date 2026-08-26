@@ -17,7 +17,12 @@ func (m *Module) Rounds(raw module.State) (module.RoundLog, error) {
 		return module.RoundLog{}, err
 	}
 
-	log := module.RoundLog{LabelKey: "holdem.round.hand", Rounds: []module.RoundResult{}}
+	log := module.RoundLog{
+		LabelKey:   "holdem.round.hand",
+		Rounds:     []module.RoundResult{},
+		Paused:     s.Break.Open,
+		WaitingFor: s.Break.Waiting(order(s)),
+	}
 	for _, h := range s.Hands {
 		r := module.RoundResult{
 			Number:  h.Number,

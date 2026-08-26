@@ -38,6 +38,13 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		return nil, err
 	}
 
+	// Between deals the only thing anybody may do is agree to go on, and the
+	// control for it is an ordinary offer — which is what lets every bot and
+	// the conformance driver press it without knowing intermissions exist.
+	if s.Break.Open {
+		return s.Break.Offers(s.TurnOrder, playerID), nil
+	}
+
 	// Cost control, the same bargain the rummy engine strikes: only the player
 	// on turn gets per-card enumeration. Everyone else gets the shape of the
 	// offer set with no lists to build, which is what keeps this cheap enough

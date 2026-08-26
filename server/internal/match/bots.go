@@ -78,13 +78,19 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 			return
 		}
 
-		actor := module.ActiveSeat(mod, match.State, viewerFor(match), refsOf(match))
+		// The first bot among the seats being waited on, rather than whichever
+		// seat happens to be first.
+		//
+		// For almost all of a match those are the same thing, because there is
+		// only ever one seat to wait on. Between rounds there are several, and
+		// taking only the first would mean a bot behind a human in the seat
+		// order never readied until that human had — leaving the table on a
+		// human's click to do work that has nothing to do with them, and
+		// leaving a window where this loop unwinds just as that click lands and
+		// nothing restarts it.
+		actor := firstBot(module.AwaitedSeats(mod, match.State, viewerFor(match), refsOf(match)), match.Players)
 		if actor == "" {
-			return
-		}
-		seat := playerByID(match.Players, actor)
-		if seat == nil || !seat.IsAI {
-			return // a human is on turn; nothing for this loop to do
+			return // nobody awaited, or nobody awaited is a bot
 		}
 
 		if actor == lastActor {
@@ -136,6 +142,16 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 			}
 		}
 	}
+}
+
+// firstBot picks the first awaited seat that nobody is sitting at.
+func firstBot(awaited []string, players []models.Player) string {
+	for _, id := range awaited {
+		if p := playerByID(players, id); p != nil && p.IsAI {
+			return id
+		}
+	}
+	return ""
 }
 
 func sameAction(a, b module.Action) bool {

@@ -429,12 +429,42 @@ func TestEveryModuleSeatsItsPlayers(t *testing.T) {
 						active = append(active, seat.PlayerID)
 					}
 				}
-				if len(active) != 1 {
-					t.Fatalf("step %d: %d seats are active, want exactly one (%v)", step, len(active), active)
+				// The invariant the runtime actually depends on: a live match
+				// is waiting on somebody, and the seats it is waiting on are
+				// the seats it is offering moves to.
+				//
+				// This used to demand exactly one active seat, which held right
+				// up until a match stopped between rounds and waited on
+				// everybody at once. "The awaited set equals the enabled set"
+				// is the stronger claim and the one the bot loop, the
+				// suspension path and the offer driver are each built on.
+				if len(active) == 0 {
+					t.Fatalf("step %d: a live match is waiting on nobody", step)
+				}
+				enabledSeats := map[string]bool{}
+				for _, p := range g.players {
+					offers, err := g.mod.LegalActions(state, p.ID)
+					if err != nil {
+						t.Fatalf("LegalActions(%s): %v", p.ID, err)
+					}
+					for _, o := range offers {
+						if o.Enabled {
+							enabledSeats[p.ID] = true
+							break
+						}
+					}
+				}
+				for _, id := range active {
+					if !enabledSeats[id] {
+						t.Fatalf("step %d: seat %q is marked active but is offered nothing", step, id)
+					}
+				}
+				for id := range enabledSeats {
+					if !contains(active, id) {
+						t.Fatalf("step %d: seat %q is offered a move but is not marked active", step, id)
+					}
 				}
 
-				// And the seat the module says is active is the one it is
-				// actually offering moves to.
 				offers, err := g.mod.LegalActions(state, active[0])
 				if err != nil {
 					t.Fatalf("LegalActions: %v", err)
@@ -992,4 +1022,145 @@ func playOut(t *testing.T, g hosted) module.State {
 		t.Fatalf("did not finish in %d actions", res.Actions)
 	}
 	return final
+}
+
+func contains(ids []string, id string) bool {
+	for _, x := range ids {
+		if x == id {
+			return true
+		}
+	}
+	return false
+}
+
+// TestAPausingGameStillPlaysItselfOut — the whole claim that an intermission is
+// an ordinary turn rather than a new primitive.
+//
+// The driver has never heard of a round, an intermission or the continue verb.
+// It reads offers and presses one. If a game that stops between every round
+// still plays to a finish under it, and the verb shows up in the tally, then
+// the pause needed nothing taught to anything: not to this driver, not to a
+// bot, not to a client.
+func TestAPausingGameStillPlaysItselfOut(t *testing.T) {
+	for _, g := range allModules() {
+		if !g.rounds || !g.finishes || !pauses(g.mod) {
+			continue
+		}
+		t.Run(g.name, func(t *testing.T) {
+			cfg := g.cfg
+			if cfg.Options == nil {
+				cfg.Options = module.Options{}
+			}
+			// Ask for the pause explicitly rather than relying on this game's
+			// default, so the test says what it is testing.
+			cfg.Options[module.OptPauseBetweenRounds] = module.OptOn
+
+			state, err := g.mod.NewMatch(cfg, g.players, 5)
+			if err != nil {
+				t.Fatalf("NewMatch: %v", err)
+			}
+			final, res, err := module.PlayWithOffers(g.mod, state, g.players, module.DriverOptions{
+				MaxActions: 8000, Prefer: g.prefer,
+			})
+			if err != nil {
+				t.Fatalf("%v", err)
+			}
+			if !res.Finished {
+				t.Fatalf("a pausing match did not finish in %d actions", res.Actions)
+			}
+
+			log := module.RoundsFor(g.mod, final)
+			if log == nil || len(log.Rounds) < 2 {
+				t.Skip("this match had no round to pause between")
+			}
+			if res.Verbs[module.VerbContinue] == 0 {
+				t.Errorf("%d rounds were played and nobody ever agreed to go on — the table never paused",
+					len(log.Rounds))
+			}
+		})
+	}
+}
+
+// TestAPausedTableSaysSo — a client puts a results screen up because the module
+// says the table is paused, never because it noticed the controls went quiet.
+// So the module has to say it, and say who it is waiting on.
+func TestAPausedTableSaysSo(t *testing.T) {
+	for _, g := range allModules() {
+		if !g.rounds || !g.finishes || !pauses(g.mod) {
+			continue
+		}
+		t.Run(g.name, func(t *testing.T) {
+			cfg := g.cfg
+			if cfg.Options == nil {
+				cfg.Options = module.Options{}
+			}
+			cfg.Options[module.OptPauseBetweenRounds] = module.OptOn
+
+			state, err := g.mod.NewMatch(cfg, g.players, 5)
+			if err != nil {
+				t.Fatalf("NewMatch: %v", err)
+			}
+
+			paused := false
+			for step := 0; step < 8000; step++ {
+				if done, _, err := g.mod.Finished(state); err != nil || done {
+					break
+				}
+				if log := module.RoundsFor(g.mod, state); log != nil && log.Paused {
+					paused = true
+					if len(log.WaitingFor) == 0 {
+						t.Fatalf("step %d: the table is paused and waiting for nobody", step)
+					}
+					// Everyone it is waiting on is offered the way to go on,
+					// and nobody else is offered anything at all.
+					for _, p := range g.players {
+						offers, err := g.mod.LegalActions(state, p.ID)
+						if err != nil {
+							t.Fatalf("LegalActions: %v", err)
+						}
+						enabled := false
+						for _, o := range offers {
+							if o.Enabled {
+								enabled = true
+								if o.Verb != module.VerbContinue {
+									t.Errorf("a paused table offers %q", o.Verb)
+								}
+							}
+						}
+						if want := contains(log.WaitingFor, p.ID); enabled != want {
+							t.Errorf("step %d: %s enabled=%v, waitingFor says %v",
+								step, p.ID, enabled, want)
+						}
+					}
+				}
+				actor := module.ActiveSeat(g.mod, state, g.players[0].ID, g.players)
+				if actor == "" {
+					break
+				}
+				offers, err := g.mod.LegalActions(state, actor)
+				if err != nil {
+					break
+				}
+				a, ok := module.ChooseAction(offers, g.prefer)
+				if !ok {
+					break
+				}
+				next, _, err := g.mod.Apply(state, actor, a)
+				if err != nil {
+					break
+				}
+				state = next
+			}
+			if !paused {
+				t.Error("a game asked to pause between rounds never reported a pause")
+			}
+		})
+	}
+}
+
+// pauses reports a module offering the pause as a table setting at all. A game
+// that does not declare the option is not expected to honour it — asking it to
+// would be asserting a setting it never advertised.
+func pauses(m module.GameModule) bool {
+	return m.Descriptor().Option(module.OptPauseBetweenRounds) != nil
 }

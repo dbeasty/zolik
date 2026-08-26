@@ -18,7 +18,12 @@ func (m *Module) Rounds(raw module.State) (module.RoundLog, error) {
 		return module.RoundLog{}, err
 	}
 
-	log := module.RoundLog{LabelKey: "canasta.round.deal", Rounds: []module.RoundResult{}}
+	log := module.RoundLog{
+		LabelKey:   "canasta.round.deal",
+		Rounds:     []module.RoundResult{},
+		Paused:     s.Break.Open,
+		WaitingFor: s.Break.Waiting(s.TurnOrder),
+	}
 	for _, d := range s.Deals {
 		// DealNumber counts from zero and scoreDeal stamps it before endDeal
 		// increments it, while the header renders it plus one. Add the same one

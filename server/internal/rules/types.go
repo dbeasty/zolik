@@ -7,10 +7,13 @@ import (
 type Phase string
 
 const (
-	PhaseDraw      Phase = "draw"
-	PhaseMeld      Phase = "meld"
-	PhaseDiscard   Phase = "discard"
-	PhaseSuspended Phase = "suspended"
+	PhaseDraw Phase = "draw"
+	// PhaseIntermission: the deal has been scored and the table is waiting to
+	// be told to deal the next one.
+	PhaseIntermission Phase = "intermission"
+	PhaseMeld         Phase = "meld"
+	PhaseDiscard      Phase = "discard"
+	PhaseSuspended    Phase = "suspended"
 )
 
 type GameStatus string
@@ -285,6 +288,8 @@ type GameState struct {
 	// named — and so is a deal played before this field existed, which is why
 	// a reader must treat the two the same.
 	DealWinners []string
+	// PendingDealStarter is who leads the deal the table is paused before.
+	PendingDealStarter string `json:"pendingDealStarter,omitempty"`
 
 	WinnerID string
 	IsDraw   bool

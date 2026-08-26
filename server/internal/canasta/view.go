@@ -57,9 +57,10 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					{LabelKey: "canasta.rules.oneCanastaToGoOut"},
 				},
 				Defaults: map[string]int{
-					OptHandSize:        variations["classic"].handSize,
-					OptTargetScore:     variations["classic"].targetScore,
-					OptCanastasToGoOut: variations["classic"].canastasToGoOut,
+					OptHandSize:                  variations["classic"].handSize,
+					OptTargetScore:               variations["classic"].targetScore,
+					OptCanastasToGoOut:           variations["classic"].canastasToGoOut,
+					module.OptPauseBetweenRounds: module.OptOn,
 				},
 			},
 			{
@@ -72,13 +73,15 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					{LabelKey: "canasta.rules.twoCanastasToGoOut"},
 				},
 				Defaults: map[string]int{
-					OptHandSize:        variations["modern_american"].handSize,
-					OptTargetScore:     variations["modern_american"].targetScore,
-					OptCanastasToGoOut: variations["modern_american"].canastasToGoOut,
+					OptHandSize:                  variations["modern_american"].handSize,
+					OptTargetScore:               variations["modern_american"].targetScore,
+					OptCanastasToGoOut:           variations["modern_american"].canastasToGoOut,
+					module.OptPauseBetweenRounds: module.OptOn,
 				},
 			},
 		},
 		Options: []module.OptionSpec{
+			module.PauseOption(),
 			{
 				Name:  OptHandSize,
 				Type:  module.OptionEnumInt,
@@ -197,7 +200,7 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 		t := s.team(p)
 		seat := module.Seat{
 			PlayerID: p,
-			Active:   s.Current == p && s.Status == "active",
+			Active:   s.Break.Open && !s.Break.Ready[p] || s.Current == p && s.Status == "active",
 			Facts: []module.Fact{
 				{LabelKey: "seat.cards", Value: strconv.Itoa(len(s.Hands[p])),
 					Params: map[string]any{"n": len(s.Hands[p])}},
@@ -219,7 +222,12 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 
 	vm.Header = []module.Fact{
 		{LabelKey: "header.deck", Value: strconv.Itoa(len(s.DrawPile))},
-		{LabelKey: "header.deal", Value: strconv.Itoa(s.DealNumber + 1)},
+		// The count goes in the params, not only in Value: the bundle words this
+		// one as "Deal {n}", so a fact carrying the number as a bare value left
+		// the placeholder on screen — the header read "Deal (n)". Value stays
+		// for a client that reads it.
+		{LabelKey: "header.deal", Value: strconv.Itoa(s.DealNumber + 1),
+			Params: map[string]any{"n": s.DealNumber + 1}},
 		{LabelKey: "header.target", Value: strconv.Itoa(s.TargetScore)},
 	}
 	if s.Frozen {

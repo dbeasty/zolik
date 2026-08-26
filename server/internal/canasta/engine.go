@@ -24,6 +24,11 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 		Hands:     map[string][]string{},
 		TeamOf:    map[string]int{},
 		Seed:      seed,
+		// On by default here. A deal's settlement has six components, the swing
+		// is routinely in the thousands, and dealNew clears every meld off the
+		// table the moment the next deal starts — so not stopping is what makes
+		// the score unreadable rather than merely brisk.
+		Pause: cfg.PauseBetweenRounds(true),
 	}
 	for _, p := range players {
 		s.Players = append(s.Players, p.ID)
@@ -145,6 +150,26 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 	if s.Status != "active" {
 		return raw, nil, errCode(ErrGameNotActive)
 	}
+
+	// Between deals there is no player on turn, so the turn check below cannot
+	// stand in for "may you do this" — module.Intermission.Mark does it
+	// instead, and refuses a stranger and a second press with codes of its own.
+	if s.Break.Open {
+		if a.Verb != module.VerbContinue {
+			return raw, nil, errCode(ErrGameNotActive)
+		}
+		if err := s.Break.Mark(s.TurnOrder, playerID); err != nil {
+			return raw, nil, err
+		}
+		var events []module.Event
+		if s.Break.Settled(s.TurnOrder) {
+			s.Break.Close()
+			events = nextDeal(s)
+		}
+		out, err := encode(s)
+		return out, events, err
+	}
+
 	if s.Current != playerID {
 		return raw, nil, errCode(ErrNotYourTurn)
 	}
@@ -723,6 +748,22 @@ func endDeal(s *GameState, wentOut string, concealed bool, exhausted bool) []mod
 		}})
 	}
 
+	if s.Pause {
+		// Stop here and wait for the table. The board stays exactly as it
+		// ended, which is the point: the melds and the caught cards that the
+		// settlement is made of are still there to be looked at.
+		s.Break.Begin(res.DealNumber + 1)
+		s.Current = ""
+		s.Phase = ""
+		return events
+	}
+	return append(events, nextDeal(s)...)
+}
+
+// nextDeal advances to the deal after the one just scored. It is the tail of
+// endDeal, split off so that resuming from an intermission and never pausing at
+// all take the same path rather than two that can drift.
+func nextDeal(s *GameState) []module.Event {
 	s.DealNumber++
 	s.Dealer = (s.Dealer + 1) % len(s.TurnOrder)
 	if err := dealNew(s); err != nil {
@@ -731,11 +772,11 @@ func endDeal(s *GameState, wentOut string, concealed bool, exhausted bool) []mod
 		s.Status = "completed"
 		s.WinnerTeam = -1
 		s.Current = ""
-		return append(events, module.Event{Type: "match_ended", Data: map[string]any{"error": err.Error()}})
+		return []module.Event{{Type: "match_ended", Data: map[string]any{"error": err.Error()}}}
 	}
-	return append(events, module.Event{Type: "deal_started", Data: map[string]any{
+	return []module.Event{{Type: "deal_started", Data: map[string]any{
 		"dealNumber": s.DealNumber,
-	}})
+	}}}
 }
 
 // Finished reports whether the match is over and who won.

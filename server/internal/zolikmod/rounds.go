@@ -25,7 +25,12 @@ func (m *Module) Rounds(raw module.State) (module.RoundLog, error) {
 	gs := s.Rules
 	cfg := gs.Rules
 
-	log := module.RoundLog{LabelKey: "zolik.round.deal", Rounds: []module.RoundResult{}}
+	log := module.RoundLog{
+		LabelKey:   "zolik.round.deal",
+		Rounds:     []module.RoundResult{},
+		Paused:     s.Break.Open,
+		WaitingFor: s.Break.Waiting(gs.TurnOrder),
+	}
 
 	// Deals are only complete once every seat has been scored for them, which
 	// is what the shortest score array says. A deal in progress is the board,

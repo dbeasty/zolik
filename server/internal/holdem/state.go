@@ -142,9 +142,17 @@ type GameState struct {
 	// every single action; a fifty-hand match would pay for the whole showdown
 	// history on every fold. LastHand keeps the rich version for the one hand a
 	// screen is actually looking at.
-	Hands   []HandSummary `json:"hands,omitempty"`
-	Winners []string      `json:"winners,omitempty"`
-	Seed    int64         `json:"seed"`
+	Hands []HandSummary `json:"hands,omitempty"`
+	// Pause is whether this table stops between hands, and Break the pause
+	// itself. Off by default: a hand is four to ten actions and a freezeout can
+	// be a hundred hands, so stopping after each one is the poker equivalent of
+	// confirming every card. The hand-by-hand table at the *end* is what a
+	// poker player actually wants, and that costs no pause at all.
+	Pause bool                `json:"pause,omitempty"`
+	Break module.Intermission `json:"break,omitempty"`
+
+	Winners []string `json:"winners,omitempty"`
+	Seed    int64    `json:"seed"`
 }
 
 // HandResult is how one hand finished, kept so a client can show a showdown

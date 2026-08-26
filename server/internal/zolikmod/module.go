@@ -37,6 +37,10 @@ var _ module.GameModule = (*Module)(nil)
 type matchState struct {
 	Rules   rules.GameState    `json:"rules"`
 	Players []module.PlayerRef `json:"players"`
+	// Break is the pause between deals. The engine says the table has stopped
+	// — it sets its own intermission phase — and the adapter owns the ready-up,
+	// because "who has agreed to go on" is protocol vocabulary and not rummy's.
+	Break module.Intermission `json:"break,omitempty"`
 }
 
 func decode(raw module.State) (*matchState, error) {
@@ -72,9 +76,14 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 				rules.OptInitialMeldMinimum:  cfg.InitialMeldMinimum,
 				rules.OptDiscardDrawMinRound: cfg.DiscardDrawMinRound,
 				rules.OptRequireCleanRun:     rules.BoolOpt(cfg.ContractFor(1).RequireCleanRun),
+				module.OptPauseBetweenRounds: module.OptOn,
 			},
 		})
 	}
+	// Declared here rather than in the rummy descriptor: pausing between deals
+	// is a property of how a match is presented, which the runtime owns, and
+	// the engine's own option list stays about rules.
+	out.Options = append(out.Options, module.PauseOption())
 	for _, o := range d.Options {
 		spec := module.OptionSpec{
 			Name: o.Name, Type: module.OptionType(o.Type), Label: o.Label, Help: o.Help,
@@ -101,6 +110,7 @@ func resolveConfig(mc module.MatchConfig) rules.RulesConfig {
 	cfg.StaticContract.RequireCleanRun = mc.Opt(
 		rules.OptRequireCleanRun, rules.BoolOpt(cfg.StaticContract.RequireCleanRun),
 	) == rules.OptOn
+	cfg.PauseBetweenDeals = mc.PauseBetweenRounds(true)
 	return cfg
 }
 
@@ -131,6 +141,28 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 	if err != nil {
 		return raw, nil, err
 	}
+	// Between deals the engine has no turn to check an actor against, so the
+	// intermission does it: it refuses a stranger, and a second press, with
+	// codes of its own.
+	if s.Break.Open {
+		if a.Verb != module.VerbContinue {
+			return raw, nil, module.Error{Code: "GAME_NOT_ACTIVE", Message: a.Verb}
+		}
+		if err := s.Break.Mark(s.Rules.TurnOrder, playerID); err != nil {
+			return raw, nil, err
+		}
+		if s.Break.Settled(s.Rules.TurnOrder) {
+			s.Break.Close()
+			gs, err := rules.ResumeAfterIntermission(s.Rules)
+			if err != nil {
+				return raw, nil, err
+			}
+			s.Rules = gs
+		}
+		next, err := encode(s)
+		return next, nil, err
+	}
+
 	act, err := toRulesAction(a)
 	if err != nil {
 		return raw, nil, err
@@ -144,6 +176,10 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 		return raw, nil, module.Error{Code: string(codeOf(err)), Message: err.Error()}
 	}
 	s.Rules = out.State
+	// The engine stopped between deals; the adapter opens the ready-up.
+	if s.Rules.Phase == rules.PhaseIntermission && !s.Break.Open {
+		s.Break.Begin(s.Rules.GameNumber + 1)
+	}
 	next, err := encode(s)
 	if err != nil {
 		return raw, nil, err
@@ -221,6 +257,13 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	if err != nil {
 		return nil, err
 	}
+	// Between deals the only thing anybody may do is agree to go on, and the
+	// control for it is an ordinary offer — which is what lets the runtime's
+	// bot loop ready a seat without knowing intermissions exist.
+	if s.Break.Open {
+		return s.Break.Offers(s.Rules.TurnOrder, playerID), nil
+	}
+
 	src := rules.LegalActions(s.Rules, playerID)
 	out := make([]module.ActionOffer, 0, len(src))
 	for _, o := range src {
@@ -383,7 +426,8 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 	for _, p := range gs.TurnOrder {
 		seat := module.Seat{
 			PlayerID: p,
-			Active:   gs.CurrentTurn == p && gs.Status == rules.StatusActive,
+			Active: s.Break.Open && !s.Break.Ready[p] ||
+				gs.CurrentTurn == p && gs.Status == rules.StatusActive,
 			Facts: []module.Fact{{
 				LabelKey: "seat.cards", Value: fmt.Sprint(len(gs.Hands[p])),
 				Params: map[string]any{"n": len(gs.Hands[p])},

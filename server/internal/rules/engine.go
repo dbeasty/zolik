@@ -249,9 +249,19 @@ func ApplyAction(state GameState, playerID string, action Action) (ApplyOutcome,
 func endGameWithEvents(state GameState, winnerID string) (ApplyOutcome, error) {
 	endedGame := state.GameNumber
 	handsAtEnd := allHandsForLog(state)
-	ns, err := EndGame(state, winnerID)
+	ns, over, err := ScoreDeal(state, winnerID)
 	if err != nil {
 		return ApplyOutcome{State: state}, err
+	}
+	switch {
+	case over:
+		// Nothing to pause before; the match is finished.
+	case effectiveRules(ns).PauseBetweenDeals:
+		ns = PauseAfterDeal(ns, winnerID)
+	default:
+		if ns, err = StartNextGame(ns, winnerID); err != nil {
+			return ApplyOutcome{State: state}, err
+		}
 	}
 	events := []StateEvent{ev("deal_ended", map[string]interface{}{
 		"winnerId": winnerID,

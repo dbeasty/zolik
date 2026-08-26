@@ -231,16 +231,24 @@ func TestActiveSeatMatchesTheOffers(t *testing.T) {
 				if !enabled {
 					t.Fatalf("step %d: %q is the active seat but is offered nothing", step, actor)
 				}
-				// And nobody else is.
+				// And nobody outside the awaited set is offered anything.
+				//
+				// This used to say "nobody else", full stop, which was true for
+				// as long as a match could only ever wait on one seat. Between
+				// rounds it waits on everyone who has not yet said to go on, so
+				// the claim worth keeping is the one the bot loop relies on:
+				// the seats being waited on and the seats with something to do
+				// are the same seats.
+				awaited := module.AwaitedSeats(tc.mod, state, tc.players[0].ID, tc.players)
 				for _, p := range tc.players {
-					if p.ID == actor {
+					if awaits(awaited, p.ID) {
 						continue
 					}
 					other, _ := tc.mod.LegalActions(state, p.ID)
 					for _, o := range other {
 						if o.Enabled {
-							t.Fatalf("step %d: %q is offered %q while %q is the active seat",
-								step, p.ID, o.ID, actor)
+							t.Fatalf("step %d: %q is offered %q while the table waits on %v",
+								step, p.ID, o.ID, awaited)
 						}
 					}
 				}
@@ -256,5 +264,79 @@ func TestActiveSeatMatchesTheOffers(t *testing.T) {
 				state = next
 			}
 		})
+	}
+}
+
+// TestBotsReadyUpThroughAnIntermission — a table of nothing but bots plays a
+// pausing game to its end.
+//
+// The direct regression test for the change that made this possible. The bot
+// loop used to ask for *the* active seat and stop the moment it was not a bot's,
+// which is fine while a match waits on one seat at a time and wrong the instant
+// it waits on several: a bot sitting behind another seat in the order would
+// never ready until that seat had, and there is a window where the loop unwinds
+// just as somebody's click lands and nothing starts it again.
+func TestBotsReadyUpThroughAnIntermission(t *testing.T) {
+	reg := module.NewRegistry(canasta.New())
+	mod := reg.Get("canasta")
+
+	players := []module.PlayerRef{{ID: "b1", Name: "b1", IsAI: true}, {ID: "b2", Name: "b2", IsAI: true}}
+	cfg := module.MatchConfig{Options: module.Options{
+		"targetScore":                500,
+		module.OptPauseBetweenRounds: module.OptOn,
+	}}
+	state, err := mod.NewMatch(cfg, players, 4)
+	if err != nil {
+		t.Fatalf("NewMatch: %v", err)
+	}
+
+	bot := module.BotFor(mod)
+	pauses, finished := 0, false
+	for step := 0; step < 8000; step++ {
+		if done, _, err := mod.Finished(state); err != nil {
+			t.Fatalf("Finished: %v", err)
+		} else if done {
+			finished = true
+			break
+		}
+
+		// The loop's own rule: the first awaited seat that is a bot's.
+		awaited := module.AwaitedSeats(mod, state, players[0].ID, players)
+		if len(awaited) == 0 {
+			t.Fatalf("step %d: a live match is waiting on nobody", step)
+		}
+		if len(awaited) > 1 {
+			pauses++
+		}
+		actor := awaited[0]
+
+		offers, err := mod.LegalActions(state, actor)
+		if err != nil {
+			t.Fatalf("LegalActions: %v", err)
+		}
+		action, ok := bot.Act(state, actor, offers)
+		if !ok {
+			if action, ok = module.ChooseAction(offers, nil); !ok {
+				t.Fatalf("step %d: %s has no legal move", step, actor)
+			}
+		}
+		next, _, err := mod.Apply(state, actor, action)
+		if err != nil {
+			fallback, ok := module.ChooseAction(offers, nil)
+			if !ok {
+				t.Fatalf("step %d: refused (%v) with no fallback", step, err)
+			}
+			if next, _, err = mod.Apply(state, actor, fallback); err != nil {
+				t.Fatalf("step %d: fallback refused too: %v", step, err)
+			}
+		}
+		state = next
+	}
+
+	if !finished {
+		t.Fatal("a table of bots did not finish a pausing match")
+	}
+	if pauses == 0 {
+		t.Error("the match never waited on more than one seat, so it never actually paused")
 	}
 }
