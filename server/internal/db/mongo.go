@@ -132,5 +132,17 @@ func (m *Mongo) EnsureIndexes(ctx context.Context) error {
 		return err
 	}
 
+	// feedback — read newest-first and filtered by triage state, and counted
+	// per reporter by the submission throttle. Deliberately no TTL: a bug
+	// report is kept until somebody has dealt with it.
+	if _, err := c.Feedback.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{Keys: bson.D{{Key: "createdAt", Value: -1}}},
+		{Keys: bson.D{{Key: "status", Value: 1}, {Key: "createdAt", Value: -1}}},
+		{Keys: bson.D{{Key: "userId", Value: 1}, {Key: "createdAt", Value: -1}}, Options: options.Index().SetSparse(true)},
+		{Keys: bson.D{{Key: "guestId", Value: 1}, {Key: "createdAt", Value: -1}}, Options: options.Index().SetSparse(true)},
+	}); err != nil {
+		return err
+	}
+
 	return nil
 }

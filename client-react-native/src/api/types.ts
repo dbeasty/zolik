@@ -92,5 +92,21 @@ export type SignInOutcome = {
   created: boolean;
 };
 
+/** What a player can label a report as. */
+export type FeedbackKind = 'bug' | 'idea' | 'other';
+
+/**
+ * A report on its way out. Build and platform are filled in by the API client,
+ * so only what the player actually typed lives here.
+ */
+export type FeedbackReport = {
+  kind: FeedbackKind;
+  message: string;
+  /** Optional, and unverified — somewhere to write back, nothing more. */
+  contactEmail?: string;
+  /** Set when the report was started from inside a match. */
+  matchId?: string;
+};
+
 /** Any framed message off a socket, before it is narrowed by `type`. */
 export type WSEnvelope = Record<string, unknown> & { type: string };

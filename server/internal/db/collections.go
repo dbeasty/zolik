@@ -28,6 +28,10 @@ type Collections struct {
 	// short-lived and TTL-swept.
 	LoginCodes *mongo.Collection
 	OAuthFlows *mongo.Collection
+	// Feedback holds bug reports and suggestions sent from the clients. Kept
+	// as its own collection rather than hung off a user, because most of it
+	// arrives from guests — who have no account document to hang it on.
+	Feedback *mongo.Collection
 }
 
 func (m *Mongo) Collections() Collections {
@@ -42,5 +46,6 @@ func (m *Mongo) Collections() Collections {
 		Identities:   m.DB.Collection("identities"),
 		LoginCodes:   m.DB.Collection("login_codes"),
 		OAuthFlows:   m.DB.Collection("oauth_flows"),
+		Feedback:     m.DB.Collection("feedback"),
 	}
 }

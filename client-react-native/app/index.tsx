@@ -84,6 +84,9 @@ export default function MainMenu() {
           onPress={() => router.push('/scoring')}
         />
         <MenuButton label="Stats & leaderboard" secondary onPress={() => router.push('/stats')} />
+        {/* Outside the session branch below on purpose: a guest hitting a bug
+            is the commonest reporter there is. */}
+        <MenuButton label="Send feedback" secondary onPress={() => router.push('/feedback')} />
 
         {session ? (
           <>

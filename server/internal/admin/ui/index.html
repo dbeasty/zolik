@@ -56,6 +56,27 @@
 
         <section>
           <div class="section-head">
+            <h2>Feedback</h2>
+            <div class="filters">
+              <div id="status-filters" class="chipset" role="group" aria-label="Filter by status"></div>
+              <select id="kind-filter" aria-label="Filter by kind">
+                <option value="">All kinds</option>
+                <option value="bug">Bugs</option>
+                <option value="idea">Ideas</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div id="reports" class="reports"></div>
+          <div class="pager">
+            <button id="reports-prev">Previous</button>
+            <span id="reports-page-info" class="muted"></span>
+            <button id="reports-next">Next</button>
+          </div>
+        </section>
+
+        <section>
+          <div class="section-head">
             <h2>Users</h2>
             <input id="search" type="search" placeholder="Search name or email" aria-label="Search users" />
           </div>

@@ -13,6 +13,7 @@ import (
 	"zolik/server/internal/auth"
 	"zolik/server/internal/canasta"
 	"zolik/server/internal/db"
+	"zolik/server/internal/feedback"
 	"zolik/server/internal/holdem"
 	"zolik/server/internal/identity"
 	"zolik/server/internal/lobby"
@@ -39,10 +40,11 @@ type App struct {
 	// re-constructed per route group — a repository handle is cheap to hold,
 	// and building it twice was never anything but two names for the same
 	// backend.
-	statsRepo   stats.Repository
-	userRepo    userrepo.Repository
-	authStore   auth.Store
-	sessionRepo auth.SessionRepository
+	statsRepo    stats.Repository
+	userRepo     userrepo.Repository
+	authStore    auth.Store
+	sessionRepo  auth.SessionRepository
+	feedbackRepo feedback.Repository
 }
 
 func New(cfg Config) (*App, error) {
@@ -99,6 +101,7 @@ func New(cfg Config) (*App, error) {
 	// it, and a repository handle has no reason to exist twice.
 	authStore := auth.NewStore(m)
 	sessionRepo := auth.NewSessionRepository(m)
+	feedbackRepo := feedback.NewRepository(m)
 
 	// Mail is resolved at startup rather than at first use: a deployment that
 	// offers email sign-in but cannot send mail should fail to start, not fail
@@ -124,15 +127,16 @@ func New(cfg Config) (*App, error) {
 	})
 
 	return &App{
-		cfg:         cfg,
-		db:          m,
-		hub:         hub,
-		auth:        authHandlers,
-		waitingRoom: waitingRoom,
-		statsRepo:   statsRepo,
-		userRepo:    userRepo,
-		authStore:   authStore,
-		sessionRepo: sessionRepo,
+		cfg:          cfg,
+		db:           m,
+		hub:          hub,
+		auth:         authHandlers,
+		waitingRoom:  waitingRoom,
+		statsRepo:    statsRepo,
+		userRepo:     userRepo,
+		authStore:    authStore,
+		sessionRepo:  sessionRepo,
+		feedbackRepo: feedbackRepo,
 	}, nil
 }
 
@@ -240,6 +244,9 @@ func (a *App) routeGroups() []routeGroup {
 			match.NewHandlers(matchMgr, a.cfg.TestEndpointsEnabled).RegisterRoutes(r)
 		}},
 		{"stats", stats.NewHandlers(a.statsRepo).RegisterRoutes},
+		// Reports from players. Its one public route takes optional auth, so
+		// a guest — who most reporters are — can send one.
+		{"feedback", feedback.NewHandlers(a.feedbackRepo).RegisterRoutes},
 		// The operator's console and the API behind it. Registered
 		// unconditionally: with no ADMIN_EMAILS configured the guard rejects
 		// every request, which is a better failure than a route table that
@@ -251,6 +258,7 @@ func (a *App) routeGroups() []routeGroup {
 			Sessions:      a.sessionRepo,
 			Usage:         a.statsRepo,
 			Live:          a.hub.Registry(),
+			Feedback:      a.feedbackRepo,
 			WaitingRoomID: lobby.RoomID,
 		}).RegisterRoutes},
 	}

@@ -16,6 +16,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"zolik/server/internal/auth"
+	"zolik/server/internal/feedback"
 	"zolik/server/internal/models"
 	"zolik/server/internal/stats"
 	userrepo "zolik/server/internal/user"
@@ -119,6 +120,40 @@ func (f fakeLive) CountRoom(roomID string) int {
 
 const testWaitingRoom = "__lobby__"
 
+type fakeFeedback struct {
+	reports []feedback.Report
+	updates map[string]bson.M
+	deleted []string
+	lastQ   feedback.Query
+}
+
+func (f *fakeFeedback) List(_ context.Context, q feedback.Query) ([]feedback.Report, error) {
+	f.lastQ = q
+	return f.reports, nil
+}
+
+func (f *fakeFeedback) Count(_ context.Context, q feedback.Query) (int64, error) {
+	f.lastQ = q
+	return int64(len(f.reports)), nil
+}
+
+func (f *fakeFeedback) CountByStatus(context.Context) (map[string]int64, error) {
+	return map[string]int64{feedback.StatusNew: 2, feedback.StatusOpen: 1, feedback.StatusResolved: 0}, nil
+}
+
+func (f *fakeFeedback) Update(_ context.Context, id bson.ObjectID, set bson.M) error {
+	if f.updates == nil {
+		f.updates = map[string]bson.M{}
+	}
+	f.updates[id.Hex()] = set
+	return nil
+}
+
+func (f *fakeFeedback) Delete(_ context.Context, id bson.ObjectID) error {
+	f.deleted = append(f.deleted, id.Hex())
+	return nil
+}
+
 /* ------------------------------------------------------------------ harness */
 
 type harness struct {
@@ -127,6 +162,7 @@ type harness struct {
 	identities *fakeIdentities
 	sessions   *fakeSessions
 	live       *fakeLive
+	feedback   *fakeFeedback
 	admin      models.User
 	other      models.User
 }
@@ -154,6 +190,7 @@ func newHarness(t *testing.T, adminEmails ...string) *harness {
 		adminEmails = []string{"boss@example.com"}
 	}
 	live := &fakeLive{}
+	reports := &fakeFeedback{}
 	h := NewHandlers(Deps{
 		Guard:         NewGuard(users, adminEmails),
 		Users:         users,
@@ -161,14 +198,15 @@ func newHarness(t *testing.T, adminEmails ...string) *harness {
 		Sessions:      sessions,
 		Usage:         fakeUsage{},
 		Live:          live,
+		Feedback:      reports,
 		WaitingRoomID: testWaitingRoom,
 	})
 	r := chi.NewRouter()
 	h.RegisterRoutes(r)
 
 	return &harness{
-		router: r, users: users, identities: identities,
-		sessions: sessions, live: live, admin: adminUser, other: other,
+		router: r, users: users, identities: identities, sessions: sessions,
+		live: live, feedback: reports, admin: adminUser, other: other,
 	}
 }
 
@@ -451,6 +489,97 @@ func TestWaitingRoomIsNotCountedAsAMatch(t *testing.T) {
 				t.Errorf("instanceConnections = %d, want %d", got, tc.wantConnections)
 			}
 		})
+	}
+}
+
+/* -------------------------------------------------------------- feedback */
+
+func TestFeedbackRequiresAdmin(t *testing.T) {
+	h := newHarness(t)
+	for _, tc := range []struct {
+		method, path string
+	}{
+		{"GET", "/admin/api/feedback"},
+		{"PATCH", "/admin/api/feedback/" + bson.NewObjectID().Hex()},
+		{"DELETE", "/admin/api/feedback/" + bson.NewObjectID().Hex()},
+	} {
+		if rec := h.as(t, h.other, tc.method, tc.path, `{}`); rec.Code != http.StatusForbidden {
+			t.Errorf("%s %s: got %d, want 403", tc.method, tc.path, rec.Code)
+		}
+	}
+}
+
+func TestFeedbackListPassesFiltersThrough(t *testing.T) {
+	h := newHarness(t)
+	rec := h.as(t, h.admin, "GET", "/admin/api/feedback?status=open&kind=bug&limit=5&skip=10", "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("got %d, want 200 (%s)", rec.Code, rec.Body.String())
+	}
+
+	got := h.feedback.lastQ
+	want := feedback.Query{Status: "open", Kind: "bug", Limit: 5, Skip: 10}
+	if got != want {
+		t.Errorf("query = %+v, want %+v", got, want)
+	}
+	if _, ok := decode(t, rec)["counts"]; !ok {
+		t.Error("the response carries no per-status counts for the filter labels")
+	}
+}
+
+// An unrecognised filter must be refused, not ignored. Quietly returning
+// everything would read to the operator as "nothing matches" — the opposite of
+// what actually happened.
+func TestUnknownFeedbackFilterIsRefused(t *testing.T) {
+	h := newHarness(t)
+	for _, path := range []string{
+		"/admin/api/feedback?status=banana",
+		"/admin/api/feedback?kind=banana",
+	} {
+		if rec := h.as(t, h.admin, "GET", path, ""); rec.Code != http.StatusBadRequest {
+			t.Errorf("%s: got %d, want 400", path, rec.Code)
+		}
+	}
+}
+
+func TestFeedbackTriage(t *testing.T) {
+	h := newHarness(t)
+	id := bson.NewObjectID().Hex()
+
+	rec := h.as(t, h.admin, "PATCH", "/admin/api/feedback/"+id, `{"status":"resolved","note":"fixed in 1.1"}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("got %d, want 200 (%s)", rec.Code, rec.Body.String())
+	}
+	set := h.feedback.updates[id]
+	if set["status"] != feedback.StatusResolved {
+		t.Errorf("status = %v, want resolved", set["status"])
+	}
+	if set["note"] != "fixed in 1.1" {
+		t.Errorf("note = %v, want the submitted note", set["note"])
+	}
+}
+
+func TestFeedbackRejectsUnknownStatus(t *testing.T) {
+	h := newHarness(t)
+	id := bson.NewObjectID().Hex()
+
+	rec := h.as(t, h.admin, "PATCH", "/admin/api/feedback/"+id, `{"status":"banana"}`)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("got %d, want 400", rec.Code)
+	}
+	if _, written := h.feedback.updates[id]; written {
+		t.Error("a rejected status still reached the repository")
+	}
+}
+
+func TestFeedbackDelete(t *testing.T) {
+	h := newHarness(t)
+	id := bson.NewObjectID().Hex()
+
+	if rec := h.as(t, h.admin, "DELETE", "/admin/api/feedback/"+id, ""); rec.Code != http.StatusOK {
+		t.Fatalf("got %d, want 200", rec.Code)
+	}
+	if len(h.feedback.deleted) != 1 || h.feedback.deleted[0] != id {
+		t.Errorf("deleted = %v, want [%s]", h.feedback.deleted, id)
 	}
 }
 

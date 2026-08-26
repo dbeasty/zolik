@@ -3,6 +3,7 @@ package admin
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"zolik/server/internal/auth"
+	"zolik/server/internal/feedback"
 	"zolik/server/internal/models"
 	"zolik/server/internal/stats"
 	userrepo "zolik/server/internal/user"
@@ -52,6 +54,15 @@ type Live interface {
 	CountRoom(roomID string) int
 }
 
+// Feedback is the slice of the report repository the console triages with.
+type Feedback interface {
+	List(ctx context.Context, q feedback.Query) ([]feedback.Report, error)
+	Count(ctx context.Context, q feedback.Query) (int64, error)
+	CountByStatus(ctx context.Context) (map[string]int64, error)
+	Update(ctx context.Context, id bson.ObjectID, set bson.M) error
+	Delete(ctx context.Context, id bson.ObjectID) error
+}
+
 type Deps struct {
 	Guard      *Guard
 	Users      Users
@@ -59,6 +70,7 @@ type Deps struct {
 	Sessions   Sessions
 	Usage      Usage
 	Live       Live
+	Feedback   Feedback
 	// WaitingRoomID is the reserved room the lobby's waiting players occupy.
 	// It shares the connection registry with real matches, so without it the
 	// overview reports an idle server as having a game in progress. Injected
@@ -88,6 +100,9 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 			r.Delete("/users/{id}", h.deleteUser)
 			r.Post("/users/{id}/password", h.setPassword)
 			r.Post("/users/{id}/revoke-sessions", h.revokeSessions)
+			r.Get("/feedback", h.listFeedback)
+			r.Patch("/feedback/{id}", h.patchFeedback)
+			r.Delete("/feedback/{id}", h.deleteFeedback)
 		})
 		r.Handle("/", ui)
 		r.Handle("/*", ui)
@@ -350,6 +365,112 @@ func (h *Handlers) setPassword(w http.ResponseWriter, r *http.Request) {
 		res["password"] = password
 	}
 	writeJSON(w, res)
+}
+
+/* ------------------------------------------------------------------ feedback */
+
+func (h *Handlers) listFeedback(w http.ResponseWriter, r *http.Request) {
+	q := feedback.Query{
+		Status: strings.TrimSpace(r.URL.Query().Get("status")),
+		Kind:   strings.TrimSpace(r.URL.Query().Get("kind")),
+	}
+	// An unrecognised filter is refused rather than ignored. Silently
+	// returning everything would read to the operator as "no reports match",
+	// which is the opposite of the truth.
+	if q.Status != "" && !feedback.ValidStatus(q.Status) {
+		http.Error(w, "unknown status", http.StatusBadRequest)
+		return
+	}
+	if q.Kind != "" && !feedback.ValidKind(q.Kind) {
+		http.Error(w, "unknown kind", http.StatusBadRequest)
+		return
+	}
+	if v, err := strconv.Atoi(r.URL.Query().Get("limit")); err == nil {
+		q.Limit = v
+	}
+	if v, err := strconv.Atoi(r.URL.Query().Get("skip")); err == nil {
+		q.Skip = v
+	}
+
+	ctx := r.Context()
+	reports, err := h.deps.Feedback.List(ctx, q)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	total, err := h.deps.Feedback.Count(ctx, q)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	counts, err := h.deps.Feedback.CountByStatus(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, map[string]any{"reports": reports, "total": total, "counts": counts})
+}
+
+type patchFeedbackReq struct {
+	Status *string `json:"status,omitempty"`
+	Note   *string `json:"note,omitempty"`
+}
+
+func (h *Handlers) patchFeedback(w http.ResponseWriter, r *http.Request) {
+	id, err := bson.ObjectIDFromHex(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "invalid report id", http.StatusBadRequest)
+		return
+	}
+	var body patchFeedbackReq
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+
+	set := bson.M{}
+	if body.Status != nil {
+		status := strings.TrimSpace(*body.Status)
+		if !feedback.ValidStatus(status) {
+			http.Error(w, "unknown status", http.StatusBadRequest)
+			return
+		}
+		set["status"] = status
+	}
+	if body.Note != nil {
+		set["note"] = strings.TrimSpace(*body.Note)
+	}
+	if len(set) == 0 {
+		writeJSON(w, map[string]any{"updated": false})
+		return
+	}
+
+	if err := h.deps.Feedback.Update(r.Context(), id, set); err != nil {
+		if errors.Is(err, feedback.ErrNotFound) {
+			http.Error(w, "no such report", http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, map[string]any{"updated": true})
+}
+
+func (h *Handlers) deleteFeedback(w http.ResponseWriter, r *http.Request) {
+	id, err := bson.ObjectIDFromHex(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "invalid report id", http.StatusBadRequest)
+		return
+	}
+	if err := h.deps.Feedback.Delete(r.Context(), id); err != nil {
+		if errors.Is(err, feedback.ErrNotFound) {
+			http.Error(w, "no such report", http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, map[string]any{"deleted": true})
 }
 
 func (h *Handlers) revokeSessions(w http.ResponseWriter, r *http.Request) {

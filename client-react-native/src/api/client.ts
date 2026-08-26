@@ -1,8 +1,9 @@
-import { ZOLIK_BASE_URL } from '@/src/config';
+import { APP_PLATFORM, APP_VERSION, ZOLIK_BASE_URL } from '@/src/config';
 import type { MatchModule, MatchState } from '@/src/api/matchTypes';
 import type {
   AccountProfile,
   AuthProvider,
+  FeedbackReport,
   LinkedIdentity,
   PlayerSession,
   SignInOutcome,
@@ -119,6 +120,26 @@ export class ZolikClient {
   async getAuthProviders(): Promise<AuthProvider[]> {
     const data = await this.get<{ providers: AuthProvider[] }>('/auth/providers', false);
     return data.providers ?? [];
+  }
+
+  /**
+   * Sends a bug report or suggestion.
+   *
+   * Sent with the session's Authorization header when there is one, but the
+   * endpoint accepts an anonymous report too — most players never sign in, and
+   * requiring an account would lose exactly the reports worth reading. Whatever
+   * session is presented is recorded, so a signed-in report can be followed up.
+   */
+  async submitFeedback(report: FeedbackReport): Promise<{ id: string }> {
+    return this.post<{ id: string }>(
+      '/feedback',
+      {
+        ...report,
+        appVersion: APP_VERSION,
+        platform: APP_PLATFORM,
+      },
+      true,
+    );
   }
 
   /** Mails a one-time code. Says nothing about whether the address has an

@@ -58,6 +58,7 @@ export default function RootLayout() {
 
             <Stack.Screen name="scoring/index" options={{ title: 'Score table' }} />
             <Stack.Screen name="stats" options={{ title: 'Stats' }} />
+            <Stack.Screen name="feedback" options={{ title: 'Send feedback' }} />
           </Stack>
         </SessionProvider>
       </MetricsProvider>

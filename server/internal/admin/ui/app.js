@@ -10,7 +10,25 @@ const REFRESH_KEY = "zolik_admin_refresh";
 const PAGE_SIZE = 25;
 
 const el = (id) => document.getElementById(id);
-const state = { search: "", skip: 0, total: 0, days: 30 };
+const state = {
+  search: "",
+  skip: 0,
+  total: 0,
+  days: 30,
+  // Feedback opens on the untriaged queue, because that is the only reason to
+  // come looking at it.
+  reportStatus: "new",
+  reportKind: "",
+  reportSkip: 0,
+  reportTotal: 0,
+};
+
+const STATUS_FILTERS = [
+  { value: "new", label: "New" },
+  { value: "open", label: "Open" },
+  { value: "resolved", label: "Resolved" },
+  { value: "", label: "All" },
+];
 
 /* ------------------------------------------------------------------ tokens */
 
@@ -300,6 +318,154 @@ async function loadUsers() {
   el("next").disabled = state.skip + PAGE_SIZE >= res.total;
 }
 
+/* ----------------------------------------------------------------- feedback */
+
+const fmtWhen = (iso) => {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString();
+};
+
+function tag(text) {
+  const t = document.createElement("span");
+  t.className = "tag";
+  t.textContent = text;
+  return t;
+}
+
+function renderStatusFilters(counts) {
+  const box = el("status-filters");
+  box.replaceChildren();
+  for (const filter of STATUS_FILTERS) {
+    const b = document.createElement("button");
+    const n = filter.value ? counts?.[filter.value] : undefined;
+    b.textContent = n === undefined ? filter.label : `${filter.label} ${n}`;
+    // aria-pressed rather than a class, so the selected filter is announced
+    // rather than only coloured.
+    b.setAttribute("aria-pressed", String(state.reportStatus === filter.value));
+    b.addEventListener("click", () => {
+      state.reportStatus = filter.value;
+      state.reportSkip = 0;
+      loadReports().catch((err) => showError(err.message));
+    });
+    box.append(b);
+  }
+}
+
+function reportCard(report) {
+  const card = document.createElement("div");
+  card.className = "report";
+  card.dataset.status = report.status;
+
+  const head = document.createElement("div");
+  head.className = "report-head";
+
+  const left = document.createElement("div");
+  const kind = document.createElement("span");
+  kind.className = "kind";
+  kind.dataset.kind = report.kind;
+  kind.textContent = report.kind;
+  const who = document.createElement("span");
+  who.className = "report-who";
+  const name = report.username || (report.guestId ? "a guest" : "someone signed out");
+  who.textContent = ` ${name} · ${fmtWhen(report.createdAt)}`;
+  left.append(kind, who);
+
+  const status = document.createElement("span");
+  status.className = "report-who";
+  status.textContent = report.status;
+  head.append(left, status);
+
+  const message = document.createElement("p");
+  message.className = "report-message";
+  message.textContent = report.message;
+
+  const context = document.createElement("div");
+  context.className = "report-context";
+  if (report.appVersion) context.append(tag(`v${report.appVersion}`));
+  if (report.platform) context.append(tag(report.platform));
+  if (report.matchId) context.append(tag(`match ${report.matchId}`));
+  if (report.contactEmail) context.append(tag(`reply to ${report.contactEmail}`));
+
+  const actions = document.createElement("div");
+  actions.className = "report-actions";
+
+  const note = document.createElement("input");
+  note.className = "report-note";
+  note.placeholder = "Note to self";
+  note.value = report.note || "";
+  note.setAttribute("aria-label", "Note");
+
+  const save = async (patch) => {
+    await api(`/admin/api/feedback/${report.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    await loadReports();
+  };
+
+  actions.append(note);
+  if (report.status !== "open") {
+    actions.append(actionButton("Open", "", () => save({ status: "open", note: note.value })));
+  }
+  if (report.status !== "resolved") {
+    actions.append(actionButton("Resolve", "", () => save({ status: "resolved", note: note.value })));
+  } else {
+    actions.append(actionButton("Reopen", "", () => save({ status: "new", note: note.value })));
+  }
+  actions.append(actionButton("Save note", "", () => save({ note: note.value })));
+  actions.append(
+    actionButton("Delete", "danger", () =>
+      openModal({
+        title: "Delete report",
+        body: "Delete this report permanently? Use this for spam — resolving is what you want for a report you have dealt with.",
+        confirmLabel: "Delete permanently",
+        danger: true,
+        onOk: async () => {
+          await api(`/admin/api/feedback/${report.id}`, { method: "DELETE" });
+          closeModal();
+          await loadReports();
+        },
+      })
+    )
+  );
+
+  card.append(head, message);
+  if (context.childElementCount) card.append(context);
+  card.append(actions);
+  return card;
+}
+
+async function loadReports() {
+  const params = new URLSearchParams({
+    limit: String(PAGE_SIZE),
+    skip: String(state.reportSkip),
+  });
+  if (state.reportStatus) params.set("status", state.reportStatus);
+  if (state.reportKind) params.set("kind", state.reportKind);
+
+  const res = await api(`/admin/api/feedback?${params}`);
+  state.reportTotal = res.total;
+  renderStatusFilters(res.counts);
+
+  const box = el("reports");
+  box.replaceChildren();
+  if (res.reports.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "muted";
+    empty.textContent = "Nothing here.";
+    box.append(empty);
+  } else {
+    for (const report of res.reports) box.append(reportCard(report));
+  }
+
+  const from = res.total === 0 ? 0 : state.reportSkip + 1;
+  const to = Math.min(state.reportSkip + PAGE_SIZE, res.total);
+  el("reports-page-info").textContent = `${from}–${to} of ${res.total}`;
+  el("reports-prev").disabled = state.reportSkip === 0;
+  el("reports-next").disabled = state.reportSkip + PAGE_SIZE >= res.total;
+}
+
 /* -------------------------------------------------------------------- modal */
 
 let onConfirm = null;
@@ -424,11 +590,27 @@ el("next").addEventListener("click", () => {
   loadUsers().catch((err) => showError(err.message));
 });
 
+el("kind-filter").addEventListener("change", (e) => {
+  state.reportKind = e.target.value;
+  state.reportSkip = 0;
+  loadReports().catch((err) => showError(err.message));
+});
+
+el("reports-prev").addEventListener("click", () => {
+  state.reportSkip = Math.max(0, state.reportSkip - PAGE_SIZE);
+  loadReports().catch((err) => showError(err.message));
+});
+
+el("reports-next").addEventListener("click", () => {
+  state.reportSkip += PAGE_SIZE;
+  loadReports().catch((err) => showError(err.message));
+});
+
 /* --------------------------------------------------------------------- boot */
 
 async function refresh() {
   clearError();
-  await Promise.all([loadUsage(), loadUsers()]);
+  await Promise.all([loadUsage(), loadReports(), loadUsers()]);
 }
 
 async function start() {

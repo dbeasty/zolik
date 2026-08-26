@@ -204,3 +204,21 @@ there is no way to read it back afterwards.
 Sign-in uses the ordinary emailed-code flow, so locally (no `SMTP_HOST`) the code is written to the
 server log rather than mailed.
 
+### Feedback
+
+`POST /feedback` takes a bug report or suggestion from a client (`internal/feedback`); the console's
+Feedback section is where they are read and triaged. Reports move `new → open → resolved`, carry an
+operator-only note, and can be deleted outright — that last one is for spam, since resolving is what
+you want for a report you have actually dealt with.
+
+The endpoint takes **optional** auth rather than requiring it. Most players never sign in, so
+demanding an account first would lose exactly the reports most worth reading; whatever session *is*
+presented gets recorded, so a signed-in report can be traced back. Being open is also why it is
+throttled, at 10 reports per reporter per hour — a stuck client retrying in a loop would otherwise
+fill the collection with no malice involved.
+
+A report denormalises its author (username plus the account or guest id) rather than referencing a
+user document, for two reasons: guests have no document to reference, and a report has to outlive its
+author being deleted. `contactEmail` is supplied by the reporter and is **not** verified — it is
+somewhere to write back, and nothing may treat it as proof of identity.
+
