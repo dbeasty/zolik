@@ -196,58 +196,6 @@ func TestAnonymousReportsAreThrottledToo(t *testing.T) {
 	}
 }
 
-// One address running out of allowance must not silence everybody else.
-func TestTheAnonymousCeilingIsPerAddress(t *testing.T) {
-	limiter := newAnonLimiter(time.Hour, 2)
-	now := time.Now()
-
-	for i := 0; i < 2; i++ {
-		if !limiter.allow("10.0.0.1", now) {
-			t.Fatalf("attempt %d from the first address was refused early", i+1)
-		}
-	}
-	if limiter.allow("10.0.0.1", now) {
-		t.Error("the first address went over its ceiling")
-	}
-	if !limiter.allow("10.0.0.2", now) {
-		t.Error("a second address was throttled by the first address's history")
-	}
-}
-
-// Allowance has to come back, or one busy hour bans a player for good.
-func TestTheAnonymousCeilingExpires(t *testing.T) {
-	limiter := newAnonLimiter(time.Hour, 1)
-	start := time.Now()
-
-	if !limiter.allow("10.0.0.1", start) {
-		t.Fatal("the first attempt was refused")
-	}
-	if limiter.allow("10.0.0.1", start.Add(time.Minute)) {
-		t.Error("a second attempt inside the window was allowed")
-	}
-	if !limiter.allow("10.0.0.1", start.Add(time.Hour+time.Minute)) {
-		t.Error("the allowance never came back after the window passed")
-	}
-}
-
-func TestClientIPPrefersTheForwardedChainsFirstEntry(t *testing.T) {
-	req := httptest.NewRequest("POST", "/feedback", nil)
-	req.RemoteAddr = "10.9.9.9:5555"
-	if got := clientIP(req); got != "10.9.9.9" {
-		t.Errorf("with no header: got %q, want 10.9.9.9", got)
-	}
-
-	req.Header.Set("X-Forwarded-For", "203.0.113.7, 70.41.3.18")
-	if got := clientIP(req); got != "203.0.113.7" {
-		t.Errorf("with a chain: got %q, want 203.0.113.7", got)
-	}
-
-	req.Header.Set("X-Forwarded-For", "203.0.113.9")
-	if got := clientIP(req); got != "203.0.113.9" {
-		t.Errorf("with a single entry: got %q, want 203.0.113.9", got)
-	}
-}
-
 func TestJustUnderTheThrottleStillGoesThrough(t *testing.T) {
 	repo := &fakeRepo{recent: perReporterLimit - 1}
 	rec := submit(t, newRouter(repo), `{"kind":"bug","message":"once more"}`, tokenFor(t, "subject-1", false))

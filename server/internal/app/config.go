@@ -59,6 +59,20 @@ type Config struct {
 	// which is the right default for a deployment that has not configured it.
 	AdminEmails []string
 
+	// AdminUsername and AdminPasswordHash are the console's second door: a
+	// sign-in that needs no working mail, for the deployment that has none or
+	// whose mail has just broken — which is exactly when someone needs to get
+	// in. Both must be set or the door does not exist; there is deliberately
+	// no built-in default, since a shipped default credential is a credential
+	// everybody already has.
+	//
+	// Only ever the bcrypt hash: a plaintext password in the environment
+	// shows up in shell history, process listings, `docker inspect` and any
+	// log that dumps the environment. Generate it with
+	// `go run ./cmd/adminpass`.
+	AdminUsername     string
+	AdminPasswordHash string
+
 	// TestEndpointsEnabled gates /games/{id}/debug-state, which writes a
 	// game's phase/hands/melds/turn directly into Mongo, bypassing rules
 	// validation — lets e2e tests jump straight into a specific mid-round
@@ -134,7 +148,9 @@ func LoadConfig() Config {
 			FromName: envOr("SMTP_FROM_NAME", "Žolíky"),
 		},
 
-		AdminEmails: envList("ADMIN_EMAILS", nil),
+		AdminEmails:       envList("ADMIN_EMAILS", nil),
+		AdminUsername:     os.Getenv("ADMIN_USERNAME"),
+		AdminPasswordHash: os.Getenv("ADMIN_PASSWORD_HASH"),
 
 		TestEndpointsEnabled: envBool("ENABLE_TEST_ENDPOINTS", local),
 	}

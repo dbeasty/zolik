@@ -94,6 +94,21 @@ section { margin-bottom: 32px; }
 .center { max-width: 380px; margin: 64px auto; }
 .center h1 { margin-bottom: 8px; }
 
+/* Separates the two sign-in doors when a deployment offers both. */
+.or {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0 0;
+  font-size: 13px;
+}
+.or::before, .or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
 form { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
 label { font-size: 13px; color: var(--muted); }
 

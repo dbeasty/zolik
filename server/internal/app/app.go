@@ -252,7 +252,10 @@ func (a *App) routeGroups() []routeGroup {
 		// every request, which is a better failure than a route table that
 		// changes shape depending on the environment.
 		{"admin", admin.NewHandlers(admin.Deps{
-			Guard:         admin.NewGuard(a.userRepo, a.cfg.AdminEmails),
+			Guard: admin.NewGuard(a.userRepo, a.cfg.AdminEmails, admin.PasswordLogin{
+				Username: a.cfg.AdminUsername,
+				Hash:     a.cfg.AdminPasswordHash,
+			}),
 			Users:         a.userRepo,
 			Identities:    a.authStore,
 			Sessions:      a.sessionRepo,

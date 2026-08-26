@@ -10,8 +10,21 @@
     <main id="app">
       <section id="signin" class="card center" hidden>
         <h1>Žolíky admin</h1>
-        <p class="muted">Sign in with an administrator's email address. A one-time code is sent to it.</p>
-        <form id="email-form">
+
+        <form id="password-form" hidden>
+          <label for="admin-username">Username</label>
+          <input id="admin-username" autocomplete="username" required />
+          <label for="admin-password">Password</label>
+          <input id="admin-password" type="password" autocomplete="current-password" required />
+          <button type="submit">Sign in</button>
+        </form>
+
+        <p id="signin-or" class="muted or" hidden>or</p>
+
+        <p id="email-intro" class="muted" hidden>
+          Sign in with an administrator's email address. A one-time code is sent to it.
+        </p>
+        <form id="email-form" hidden>
           <label for="email">Email</label>
           <input id="email" type="email" autocomplete="email" required />
           <button type="submit">Send code</button>

@@ -41,7 +41,15 @@ const tokens = {
   },
   set(access, refresh) {
     localStorage.setItem(ACCESS_KEY, access);
-    if (refresh) localStorage.setItem(REFRESH_KEY, refresh);
+    // A console sign-in has no refresh token, and any left over from a
+    // previous email sign-in must go with it — otherwise a 401 on the console
+    // token would refresh into a *player* token and quietly swap which
+    // administrator this tab is.
+    if (refresh) {
+      localStorage.setItem(REFRESH_KEY, refresh);
+    } else {
+      localStorage.removeItem(REFRESH_KEY);
+    }
   },
   clear() {
     localStorage.removeItem(ACCESS_KEY);
@@ -86,9 +94,10 @@ async function api(path, options = {}, retry = true) {
     }
   }
   if (res.status === 401 || res.status === 403) {
-    // 403 is the guard's answer for "signed in, but not an administrator". It
-    // is not a session problem, so it must not silently bounce to sign-in.
-    throw await readError(res, "That account is not an administrator.");
+    // The guard answers both of these with a bare "forbidden", which tells an
+    // operator nothing. Say what it actually means rather than passing the
+    // wire text through.
+    throw new Error("That account is not an administrator here.");
   }
   if (!res.ok) throw await readError(res);
   return res.json();
@@ -114,12 +123,33 @@ function clearError() {
 
 /* ------------------------------------------------------------------ sign in */
 
-function signOut() {
+// showSignIn reveals only the doors this deployment actually has, so an
+// operator is never shown a form that cannot possibly work.
+async function showSignIn() {
   tokens.clear();
   el("console").hidden = true;
   el("signin").hidden = false;
   el("code-form").hidden = true;
-  el("email-form").hidden = false;
+
+  let methods = { password: false, email: true };
+  try {
+    methods = await (await fetch("/admin/api/methods")).json();
+  } catch {
+    // If even this cannot be reached the server is down, and the email form
+    // is the better thing to be looking at than a blank card.
+  }
+  el("password-form").hidden = !methods.password;
+  el("email-form").hidden = !methods.email;
+  el("email-intro").hidden = !methods.email;
+  el("signin-or").hidden = !(methods.password && methods.email);
+
+  if (!methods.password && !methods.email) {
+    signinError("No administrator is configured on this server.");
+  }
+}
+
+function signOut() {
+  showSignIn().catch(() => {});
 }
 
 function signinError(message) {
@@ -127,6 +157,24 @@ function signinError(message) {
   box.textContent = message;
   box.hidden = false;
 }
+
+el("password-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  el("signin-error").hidden = true;
+  try {
+    const res = await post("/admin/api/login", {
+      username: el("admin-username").value,
+      password: el("admin-password").value,
+    });
+    // No refresh token: a console sign-in is a single long-lived token, so
+    // there is nothing to rotate. See consoleTokenTTL on the server.
+    tokens.set(res.token, "");
+    el("admin-password").value = "";
+    await start(true);
+  } catch (err) {
+    signinError(err.message);
+  }
+});
 
 el("email-form").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -158,7 +206,7 @@ el("code-form").addEventListener("submit", async (e) => {
       code: el("code").value.trim(),
     });
     tokens.set(res.accessToken, res.refreshToken);
-    await start();
+    await start(true);
   } catch (err) {
     signinError(err.message);
   }
@@ -613,9 +661,16 @@ async function refresh() {
   await Promise.all([loadUsage(), loadReports(), loadUsers()]);
 }
 
-async function start() {
+// start proves the stored token belongs to an administrator by using it.
+//
+// justSignedIn separates the two ways of getting here. Arriving with a token
+// that has simply expired is ordinary, and greeting an operator with a red
+// error for it would be noise — they just need the form. A token that was
+// rejected moments after they typed a password is something they have to be
+// told about.
+async function start(justSignedIn = false) {
   if (!tokens.access) {
-    signOut();
+    await showSignIn();
     return;
   }
   try {
@@ -625,10 +680,8 @@ async function start() {
     el("console").hidden = false;
     await refresh();
   } catch (err) {
-    // Reaching /session at all is what proves the token belongs to an
-    // administrator, so any failure here belongs on the sign-in screen.
-    signOut();
-    signinError(err.message);
+    await showSignIn();
+    if (justSignedIn) signinError(err.message);
   }
 }
 

@@ -93,16 +93,25 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 		// in this order makes that the obvious reading rather than a fact you
 		// have to know about chi.
 		r.Route("/api", func(r chi.Router) {
-			r.Use(auth.AuthMiddleware, h.deps.Guard.Require)
-			r.Get("/session", h.session)
-			r.Get("/usage", h.usage)
-			r.Get("/users", h.listUsers)
-			r.Delete("/users/{id}", h.deleteUser)
-			r.Post("/users/{id}/password", h.setPassword)
-			r.Post("/users/{id}/revoke-sessions", h.revokeSessions)
-			r.Get("/feedback", h.listFeedback)
-			r.Patch("/feedback/{id}", h.patchFeedback)
-			r.Delete("/feedback/{id}", h.deleteFeedback)
+			// Public: signing in is by definition what someone with no token
+			// does. It is throttled per address — see login.go.
+			r.Post("/login", h.login)
+			// Whether a password sign-in exists at all, so the console knows
+			// which forms to offer without probing /login.
+			r.Get("/methods", h.methods)
+
+			r.Group(func(r chi.Router) {
+				r.Use(h.deps.Guard.Require)
+				r.Get("/session", h.session)
+				r.Get("/usage", h.usage)
+				r.Get("/users", h.listUsers)
+				r.Delete("/users/{id}", h.deleteUser)
+				r.Post("/users/{id}/password", h.setPassword)
+				r.Post("/users/{id}/revoke-sessions", h.revokeSessions)
+				r.Get("/feedback", h.listFeedback)
+				r.Patch("/feedback/{id}", h.patchFeedback)
+				r.Delete("/feedback/{id}", h.deleteFeedback)
+			})
 		})
 		r.Handle("/", ui)
 		r.Handle("/*", ui)
@@ -114,11 +123,30 @@ func writeJSON(w http.ResponseWriter, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
-// session tells the UI who it is signed in as. It carries no data of its own —
+// methods tells the console which sign-in forms to offer. It is public
+// because it has to be — it is read before anyone is signed in — and says only
+// whether each door exists, never anything about who may come through it.
+func (h *Handlers) methods(w http.ResponseWriter, _ *http.Request) {
+	g := h.deps.Guard
+	writeJSON(w, map[string]any{
+		"password": g.password.Enabled(),
+		"email":    len(g.admins) > 0,
+	})
+}
+
+// session tells the UI who it is signed in as. It carries little of its own —
 // reaching it at all is the answer, since the guard rejects everyone else.
 func (h *Handlers) session(w http.ResponseWriter, r *http.Request) {
-	u, _ := Caller(r)
-	writeJSON(w, map[string]any{"id": u.ID.Hex(), "username": u.Username, "email": u.Email})
+	a, _ := Caller(r)
+	res := map[string]any{
+		"username":    a.Username,
+		"email":       a.Email,
+		"viaPassword": a.ViaPassword,
+	}
+	if !a.User.ID.IsZero() {
+		res["id"] = a.User.ID.Hex()
+	}
+	writeJSON(w, res)
 }
 
 func (h *Handlers) usage(w http.ResponseWriter, r *http.Request) {
@@ -269,8 +297,9 @@ func (h *Handlers) deleteUser(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	caller, _ := Caller(r)
-	if target.ID == caller.ID {
+	// A password administrator has no account of their own, so there is
+	// nothing for them to delete by accident and the zero id never matches.
+	if caller, _ := Caller(r); !caller.User.ID.IsZero() && target.ID == caller.User.ID {
 		// Deleting the account you are signed in as would revoke the sessions
 		// mid-request and leave the allow-list pointing at nothing.
 		http.Error(w, "you cannot delete your own account", http.StatusConflict)

@@ -167,7 +167,28 @@ type harness struct {
 	other      models.User
 }
 
+// testPassword is what the harness's password login accepts. A fixture, not a
+// credential: it guards nothing outside this file.
+const testPassword = "console-password-1"
+
+// hashFor bcrypts at the minimum cost, because these tests hash on nearly
+// every case and cost 12 would make the package take minutes.
+func hashFor(t *testing.T, password string) string {
+	t.Helper()
+	h, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
+	if err != nil {
+		t.Fatalf("hashing: %v", err)
+	}
+	return string(h)
+}
+
 func newHarness(t *testing.T, adminEmails ...string) *harness {
+	t.Helper()
+	return newHarnessWith(t, PasswordLogin{}, adminEmails...)
+}
+
+// newHarnessWith builds a console with a password login configured as well.
+func newHarnessWith(t *testing.T, passwordLogin PasswordLogin, adminEmails ...string) *harness {
 	t.Helper()
 	t.Setenv("JWT_ACCESS_SECRET", "test_secret")
 
@@ -192,7 +213,7 @@ func newHarness(t *testing.T, adminEmails ...string) *harness {
 	live := &fakeLive{}
 	reports := &fakeFeedback{}
 	h := NewHandlers(Deps{
-		Guard:         NewGuard(users, adminEmails),
+		Guard:         NewGuard(users, adminEmails, passwordLogin),
 		Users:         users,
 		Identities:    identities,
 		Sessions:      sessions,

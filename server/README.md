@@ -204,6 +204,39 @@ there is no way to read it back afterwards.
 Sign-in uses the ordinary emailed-code flow, so locally (no `SMTP_HOST`) the code is written to the
 server log rather than mailed.
 
+### Signing in without working email
+
+The allow-list needs mail delivery — signing in there means receiving a code — and "the console is
+unreachable" and "mail is broken" are conditions that like to occur together. So there is a second
+door that depends on nothing:
+
+```sh
+ADMIN_USERNAME=operator
+ADMIN_PASSWORD_HASH=$2a$12$....
+```
+
+Both must be set or the door does not exist, and there is deliberately **no built-in default** — a
+shipped default credential is a credential everybody already has. Configure neither door and the
+console rejects everyone, which remains the right posture for a deployment that has not thought
+about it.
+
+Only ever the hash goes in configuration. Generate it without the password touching your shell
+history or `ps`:
+
+```bash
+read -rs PW && printf '%s' "$PW" | go run ./cmd/adminpass; unset PW
+```
+
+A few properties worth knowing. The console token is signed with a key derived from the password
+hash, so **changing the password signs every console session out** and there is no separate secret to
+manage. That key is necessarily different from the player-token secret, so a console token is not a
+player token and cannot be traded for one in either direction. Sign-in attempts are throttled per
+address, and a wrong username and a wrong password give byte-identical refusals — saying which half
+was wrong would confirm a guessed username.
+
+This password has no email recovery behind it and is the whole of what stands between the internet
+and an endpoint that deletes accounts. Treat it accordingly: long, unique, in a password manager.
+
 ### Feedback
 
 `POST /feedback` takes a bug report or suggestion from a client (`internal/feedback`); the console's

@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"zolik/server/internal/auth"
+	"zolik/server/internal/ratelimit"
 )
 
 // perReporterWindow and perReporterLimit throttle submissions.
@@ -29,12 +30,12 @@ const tooManyReports = "you have sent a lot of reports just now — please try a
 type Handlers struct {
 	repo Repository
 	// anon covers reports that arrive with no session, which the repository's
-	// per-reporter count cannot see — see throttle.go.
-	anon *anonLimiter
+	// per-reporter count cannot see.
+	anon *ratelimit.Limiter
 }
 
 func NewHandlers(repo Repository) *Handlers {
-	return &Handlers{repo: repo, anon: newAnonLimiter(perReporterWindow, perReporterLimit)}
+	return &Handlers{repo: repo, anon: ratelimit.New(perReporterWindow, perReporterLimit)}
 }
 
 func (h *Handlers) RegisterRoutes(r chi.Router) {
@@ -107,7 +108,7 @@ func (h *Handlers) submit(w http.ResponseWriter, req *http.Request) {
 	// and instances. A reporter with no session at all has nothing to count,
 	// so those fall back to an in-process ceiling keyed by address.
 	if report.UserID == "" && report.GuestID == "" {
-		if !h.anon.allow(clientIP(req), now) {
+		if !h.anon.Allow(ratelimit.ClientIP(req), now) {
 			http.Error(w, tooManyReports, http.StatusTooManyRequests)
 			return
 		}
