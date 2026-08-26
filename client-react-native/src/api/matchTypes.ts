@@ -170,6 +170,8 @@ export type MatchState = {
   moduleId: string;
   variation?: string;
   status: 'lobby' | 'active' | 'completed' | 'suspended' | string;
+  /** What the lobby chose, echoed back — enough to set the same table again. */
+  options?: Record<string, number>;
   joinCode?: string;
   hostId?: string;
   winnerId?: string;

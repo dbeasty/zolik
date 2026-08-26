@@ -279,11 +279,28 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 	}
 	if s.Status == "completed" {
 		vm.Status = append(vm.Status, module.Fact{
+			// The winner travels as a list in Params as well as a bare id in
+			// Value: one seat's win, a partnership's and a split pot's are the
+			// same sentence to a client, and every module saying it the same
+			// way is what lets there be one sentence rather than one per game.
 			LabelKey: "status.winner", Value: s.WinnerID,
-			Params: map[string]any{"team": s.WinnerTeam},
+			Params: map[string]any{"team": s.WinnerTeam, "winners": winnerIDs(s)},
 		})
 	}
 	return vm, nil
+}
+
+// winnerIDs is everyone who won, which in a partnership game is a team rather
+// than a player. Reads the same fields `Finished` reads, so the sentence on
+// screen and the match's recorded result can never name different people.
+func winnerIDs(s *GameState) []string {
+	if s.WinnerTeam >= 0 && s.WinnerTeam < len(s.Teams) {
+		return append([]string(nil), s.Teams[s.WinnerTeam].Players...)
+	}
+	if s.WinnerID == "" {
+		return nil
+	}
+	return []string{s.WinnerID}
 }
 
 func cardViews(cards []string) []module.CardView {

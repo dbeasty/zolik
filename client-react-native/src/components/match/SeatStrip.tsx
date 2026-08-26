@@ -83,7 +83,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
 
         {(seat.facts ?? []).map((f, i) => (
           <Text key={`${f.labelKey}-${i}`} style={styles.fact}>
-            {factText(f)}
+            {factText(f, players)}
           </Text>
         ))}
       </View>
@@ -106,7 +106,11 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
             // seat's own first fact says (a card count, a stack size). Either
             // way it's a value the open tile already shows, read off the
             // same fields rather than a second, cheaper copy of them.
-            const status = standing ? String(standing.score) : seat.facts?.[0] ? factText(seat.facts[0]) : undefined;
+            const status = standing
+              ? String(standing.score)
+              : seat.facts?.[0]
+                ? factText(seat.facts[0], players)
+                : undefined;
             return (
               <View
                 key={seat.playerId}
