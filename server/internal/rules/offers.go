@@ -162,6 +162,24 @@ func LegalActions(state GameState, playerID string) []ActionOffer {
 	deckOffer.Target = &Selector{Zone: ZoneHand, OwnerID: playerID}
 	offers = append(offers, deckOffer)
 
+	// --- discard ------------------------------------------------------------
+	// Built here, right behind the deck draw, rather than after every meld and
+	// lay-off control below: the two ends of an ordinary turn — take a card,
+	// get rid of one — belong next to each other on screen, not separated by
+	// a run of controls most turns never touch.
+	discard := ActionOffer{ID: OfferDiscard, Verb: VerbDiscard}
+	// Probed with a real card so the joker restriction and the
+	// incomplete-initial-meld/pending-pickup obligations are all exercised;
+	// falls back to a phase-only probe for an empty hand.
+	discard.Enabled, discard.WhyNot = probeDiscard(state, playerID, hand)
+	dsrc := &Selector{Zone: ZoneHand, OwnerID: playerID, MinCards: 1, MaxCards: 1}
+	if active {
+		dsrc.Cards = discardableCards(state, playerID, hand)
+	}
+	discard.Source = dsrc
+	discard.Target = &Selector{Zone: ZoneDiscardPile}
+	offers = append(offers, discard)
+
 	discardDraw := ActionOffer{ID: OfferDrawDiscard, Verb: VerbDraw, LabelKey: "verb.takeFromDiscard"}
 	discardDraw.Enabled, discardDraw.WhyNot = probe(state, playerID, Action{
 		Type: ActionDrawCard, DrawFrom: DrawFromDiscard,
@@ -198,20 +216,6 @@ func LegalActions(state GameState, playerID string) []ActionOffer {
 		offers = append(offers, layOffOffer(state, cfg, playerID, m, active))
 		offers = append(offers, swapJokerOffer(state, playerID, m, active))
 	}
-
-	// --- discard ----------------------------------------------------------
-	discard := ActionOffer{ID: OfferDiscard, Verb: VerbDiscard}
-	// Probed with a real card so the joker restriction and the
-	// incomplete-initial-meld/pending-pickup obligations are all exercised;
-	// falls back to a phase-only probe for an empty hand.
-	discard.Enabled, discard.WhyNot = probeDiscard(state, playerID, hand)
-	dsrc := &Selector{Zone: ZoneHand, OwnerID: playerID, MinCards: 1, MaxCards: 1}
-	if active {
-		dsrc.Cards = discardableCards(state, playerID, hand)
-	}
-	discard.Source = dsrc
-	discard.Target = &Selector{Zone: ZoneDiscardPile}
-	offers = append(offers, discard)
 
 	// --- undo -------------------------------------------------------------
 	//

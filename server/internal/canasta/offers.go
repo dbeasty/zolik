@@ -66,6 +66,31 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	draw.Target = &module.Selector{Zone: module.FromHand, OwnerID: playerID}
 	offers = append(offers, draw)
 
+	// --- discard ---------------------------------------------------------------
+	// Built here, right behind the draw, rather than after every capture and
+	// meld control below: the two ends of an ordinary turn — take a card, get
+	// rid of one — belong next to each other on screen, not separated by a run
+	// of controls most turns never touch.
+	discard := module.ActionOffer{ID: OfferDiscard, Verb: VerbDiscard}
+	discardable := discardableCards(m, raw, s, playerID)
+	if len(discardable) > 0 {
+		discard.Enabled = true
+	} else {
+		var first []string
+		if len(hand) > 0 {
+			first = hand[:1]
+		}
+		discard.Enabled, discard.WhyNot = probe(m, raw, playerID, module.Action{
+			Verb: VerbDiscard, Cards: first,
+		})
+	}
+	discard.Source = &module.Selector{
+		Zone: module.FromHand, OwnerID: playerID,
+		Cards: discardable, MinCards: 1, MaxCards: 1,
+	}
+	discard.Target = &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID}
+	offers = append(offers, discard)
+
 	// --- take the pile -------------------------------------------------------
 	//
 	// One offer per legal capture, each carrying the exact cards that make it
@@ -190,27 +215,6 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		o.Target = &module.Selector{Zone: module.ToMeld, MeldID: mm.ID, ZoneID: meldsZoneID(t.ID)}
 		offers = append(offers, o)
 	}
-
-	// --- discard -------------------------------------------------------------
-	discard := module.ActionOffer{ID: OfferDiscard, Verb: VerbDiscard}
-	discardable := discardableCards(m, raw, s, playerID)
-	if len(discardable) > 0 {
-		discard.Enabled = true
-	} else {
-		var first []string
-		if len(hand) > 0 {
-			first = hand[:1]
-		}
-		discard.Enabled, discard.WhyNot = probe(m, raw, playerID, module.Action{
-			Verb: VerbDiscard, Cards: first,
-		})
-	}
-	discard.Source = &module.Selector{
-		Zone: module.FromHand, OwnerID: playerID,
-		Cards: discardable, MinCards: 1, MaxCards: 1,
-	}
-	discard.Target = &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID}
-	offers = append(offers, discard)
 
 	return offers, nil
 }

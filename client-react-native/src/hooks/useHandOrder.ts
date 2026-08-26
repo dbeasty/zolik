@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { Zone } from '@/src/api/matchTypes';
-import { applySavedOrder, arrangeAuto, arrangeSlots, moveSlot, type Slot } from '@/src/lib/hand';
+import { applySavedOrder, arrangeAuto, arrangeSlots, justArrived, moveSlot, type Slot } from '@/src/lib/hand';
 import { loadHandOrder, saveHandOrder } from '@/src/lib/handOrderStore';
 
 /**
@@ -65,6 +65,12 @@ export function useHandOrder(zones: Zone[], matchId?: string) {
     return applySavedOrder(slots, stored);
   }, []);
 
+  // Slot ids that arrived this push without anything else leaving — see
+  // `justArrived` for exactly what that does and doesn't cover. A fresh
+  // identity each time there's a batch worth announcing, which is what lets
+  // an effect elsewhere key off it rather than polling.
+  const [autoSelectIds, setAutoSelectIds] = useState<string[]>([]);
+
   if (signature !== lastSignature) {
     // React's documented way to adjust state when props change: set it during
     // render, and it re-renders before committing anything to the screen. The
@@ -72,11 +78,21 @@ export function useHandOrder(zones: Zone[], matchId?: string) {
     // server's order before correcting itself, which reads as a flicker in
     // the player's hand after every opponent move.
     setLastSignature(signature);
-    setOrder((prev) => {
-      const next: Record<string, Slot[]> = {};
-      for (const zone of zones) next[zone.id] = reconcile(zone, prev[zone.id] ?? []);
-      return next;
-    });
+    // Read directly off `order` rather than through `setOrder`'s own updater:
+    // `reconcile` mints a fresh id for every new slot it sees, so calling it
+    // twice over the same push — once here, once inside an updater — would
+    // mint two different ids for the same card and leave `drawn` naming ones
+    // that never make it into state.
+    const next: Record<string, Slot[]> = {};
+    const drawn: string[] = [];
+    for (const zone of zones) {
+      const previousSlots = order[zone.id] ?? [];
+      const slots = reconcile(zone, previousSlots);
+      next[zone.id] = slots;
+      drawn.push(...justArrived(previousSlots, slots));
+    }
+    setOrder(next);
+    if (drawn.length) setAutoSelectIds(drawn);
   }
 
   // Nothing is written until what was already stored has been read, or the
@@ -149,5 +165,5 @@ export function useHandOrder(zones: Zone[], matchId?: string) {
     setOrder((prev) => ({ ...prev, [zoneId]: arrangeAuto(prev[zoneId] ?? []) }));
   }, []);
 
-  return { slotsFor, move, arrange };
+  return { slotsFor, move, arrange, autoSelectIds };
 }
