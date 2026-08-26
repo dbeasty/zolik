@@ -7,6 +7,7 @@ Mobile and desktop GUI client for the Žolíky server. Uses the same REST + WebS
 - Node.js 20+
 - [Expo CLI](https://docs.expo.dev/) (`npx expo`)
 - Running backend: from `server/`, `docker compose up` (default `http://127.0.0.1:8090`)
+- Note: The Expo web dev server runs on port 8091 (port 8090 is occupied by Docker)
 
 ## Setup
 
@@ -15,10 +16,10 @@ cd client-react-native
 cp .env.example .env
 # Edit EXPO_PUBLIC_ZOLIK_BASE_URL for your platform (see below)
 npm install
-npx expo start
+EXPO_PUBLIC_ZOLIK_BASE_URL=http://localhost:8090 npx expo start --web
 ```
 
-Press `i` for iOS Simulator, `a` for Android Emulator, or scan the QR code for Expo Go on a physical device.
+The Expo web dev server will run on port 8091. Press `w` to open in browser, `i` for iOS Simulator, `a` for Android Emulator, or scan the QR code for Expo Go on a physical device.
 
 ### API URL by platform
 

@@ -192,6 +192,24 @@ export type MatchAction = {
   params?: Record<string, string>;
 };
 
+/** One titled group of a game's written rules ("Setup", "How a match ends"). */
+export type RuleSection = {
+  titleKey: string;
+  items: Fact[];
+};
+
+/**
+ * A module's written rules, as `/modules/{id}/rules` reports them — resolved
+ * against the variation and options a lobby actually chose, so the sentences
+ * describe the table being looked at rather than a module's defaults.
+ */
+export type ModuleRules = {
+  moduleId: string;
+  variation?: string;
+  options?: Record<string, number>;
+  sections: RuleSection[];
+};
+
 /** A module's self-description, as `/modules` reports it. */
 export type MatchModule = {
   id: string;

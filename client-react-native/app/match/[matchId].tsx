@@ -412,10 +412,26 @@ export default function MatchScreen() {
     <Screen>
       <ScrollView contentContainerStyle={styles.body} testID="match-screen">
         <View style={styles.headerRow}>
-          <Text testID="match-module" style={styles.module}>
-            {state.moduleId}
-            {state.variation ? ` · ${state.variation}` : ''}
-          </Text>
+          <View style={styles.moduleGroup}>
+            <Text testID="match-module" style={styles.module}>
+              {state.moduleId}
+              {state.variation ? ` · ${state.variation}` : ''}
+            </Text>
+            <Pressable
+              testID="match-rules"
+              onPress={() =>
+                // One continuous template literal — see the matching comment
+                // in app/lobby/games.tsx for why a `+` chain fails to typecheck
+                // against expo-router's typed routes.
+                router.push(
+                  `/rules?moduleId=${encodeURIComponent(state.moduleId)}&variation=${encodeURIComponent(state.variation ?? '')}&options=${encodeURIComponent(JSON.stringify(state.options ?? {}))}`,
+                )
+              }
+              hitSlop={8}
+            >
+              <Text style={styles.rulesLink}>Rules</Text>
+            </Pressable>
+          </View>
           {/* Text and dot as one unit — the colour is the at-a-glance signal,
               the word next to it is the same fact spelled out, and a tap gets
               the fuller explanation the old standalone status line gave, on
@@ -720,7 +736,9 @@ function Section({
 const styles = StyleSheet.create({
   body: { paddingBottom: 40, gap: 4 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  moduleGroup: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   module: { color: colors.text, fontWeight: '700', fontSize: 16 },
+  rulesLink: { color: colors.accent, fontSize: 12, fontWeight: '700' },
   statusGroup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   status: { color: colors.muted, fontSize: 12 },
   facts: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 2 },

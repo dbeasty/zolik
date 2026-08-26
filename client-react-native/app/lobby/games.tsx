@@ -158,12 +158,32 @@ export default function GamesScreen() {
 
         {modules.map((mod) => (
           <View key={mod.id} style={styles.card} testID={`module-${mod.id}`}>
-            <Text style={styles.name}>{mod.label}</Text>
-            <Text style={styles.meta}>
-              {mod.minPlayers === mod.maxPlayers
-                ? `${mod.minPlayers} players`
-                : `${mod.minPlayers}–${mod.maxPlayers} players`}
-            </Text>
+            <View style={styles.headerRow}>
+              <View>
+                <Text style={styles.name}>{mod.label}</Text>
+                <Text style={styles.meta}>
+                  {mod.minPlayers === mod.maxPlayers
+                    ? `${mod.minPlayers} players`
+                    : `${mod.minPlayers}–${mod.maxPlayers} players`}
+                </Text>
+              </View>
+              <Pressable
+                testID={`rules-${mod.id}`}
+                onPress={() =>
+                  // One continuous template literal, not a concatenation:
+                  // expo-router's typed routes validate an href against its
+                  // known route patterns via a template-literal type, which
+                  // only sees through an actual template literal — a `+`
+                  // chain of them infers as plain `string` and fails to typecheck.
+                  router.push(
+                    `/rules?moduleId=${encodeURIComponent(mod.id)}&variation=${encodeURIComponent(variation[mod.id] ?? '')}&options=${encodeURIComponent(JSON.stringify(options[mod.id] ?? {}))}`,
+                  )
+                }
+                style={styles.rulesLink}
+              >
+                <Text style={styles.rulesLinkText}>Rules</Text>
+              </Pressable>
+            </View>
 
             {(mod.variations ?? []).length > 1 ? (
               <View style={styles.row}>
@@ -300,8 +320,17 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 12,
   },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   name: { color: colors.text, fontSize: 18, fontWeight: '700' },
   meta: { color: colors.muted, fontSize: 12, marginTop: 2 },
+  rulesLink: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  rulesLinkText: { color: colors.accent, fontSize: 12, fontWeight: '700' },
   summary: { color: colors.muted, fontSize: 12, marginTop: 2 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
   option: { marginTop: 8 },

@@ -51,6 +51,7 @@ export default function RootLayout() {
             <Stack.Screen name="lobby/games" options={{ title: 'Games' }} />
             <Stack.Screen name="lobby/table" options={{ title: 'Your table' }} />
             <Stack.Screen name="lobby/join" options={{ title: 'Join a table' }} />
+            <Stack.Screen name="rules" options={{ title: 'Rules' }} />
             <Stack.Screen
               name="match/[matchId]"
               options={{ title: 'Match', headerBackVisible: true }}
