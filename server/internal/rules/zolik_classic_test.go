@@ -1,6 +1,9 @@
 package rules
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func classicState(playerID string) GameState {
 	return GameState{
@@ -258,12 +261,18 @@ func TestZolikClassic_LayOffJokerAllowedOnceAnotherCleanRunExists(t *testing.T) 
 	}
 }
 
-// Reproduces the reported bug: laying a set (freely allowed under Classic's
-// no-count contract) used to trip Continental's "finish your initial meld
-// before discarding" block — but a set can never satisfy the clean-run
-// requirement no matter how many more you lay, so a player without a clean
-// run in hand this turn could never discard again.
-func TestZolikClassic_CanDiscardAfterLayingASetWithoutCleanRun(t *testing.T) {
+// A lay-down that does not satisfy the contract cannot simply be walked away
+// from at the end of the turn — the player must finish it or take it back.
+//
+// This reverses an earlier decision. Laying a set is freely allowed under
+// Classic's no-count contract, and the "finish your initial meld before
+// discarding" block used to be skipped here on the grounds that no number of
+// sets can ever satisfy the clean-run requirement, so a player without a
+// clean run in hand would be stuck. The exemption is what produced the
+// reported bug: melds on the table, not down, every lay-off refused for the
+// rest of the deal, and nothing saying a run was what was missing. Undo is
+// the way out, not a discard that abandons a half-finished lay-down.
+func TestZolikClassic_CannotDiscardAfterLayingASetWithoutCleanRun(t *testing.T) {
 	p := "p1"
 	st := classicState(p)
 	st.Hands[p] = []string{"7H", "7D", "7C", "2S", "3D"}
@@ -276,7 +285,83 @@ func TestZolikClassic_CanDiscardAfterLayingASetWithoutCleanRun(t *testing.T) {
 		t.Fatal("a set must not satisfy the clean-run requirement")
 	}
 
+	_, _, err = ValidateDiscard(st, p, "2S", nil)
+	re, ok := err.(RulesError)
+	if !ok || re.Code != ErrIncompleteInitialMeld {
+		t.Fatalf("expected INCOMPLETE_INITIAL_MELD, got %#v", err)
+	}
+	// And it says what is missing, rather than that a rule exists.
+	if !strings.Contains(re.Message, "joker-free run") {
+		t.Fatalf("the refusal should name the clean run, got %q", re.Message)
+	}
+}
+
+// The way out of the position above: take the meld back, then discard. This
+// is what makes the gate a rule rather than a dead end, so it is pinned.
+func TestZolikClassic_UndoingTheLayDownFreesTheDiscard(t *testing.T) {
+	p := "p1"
+	st := classicState(p)
+	st.Hands[p] = []string{"7H", "7D", "7C", "2S", "3D"}
+
+	st, _, _, err := ValidateMeldAction(st, p, []string{"7H", "7D", "7C"})
+	if err != nil {
+		t.Fatalf("set should be a valid meld: %v", err)
+	}
+
+	st, err = ValidateUndoLayMeld(st, p)
+	if err != nil {
+		t.Fatalf("the meld just laid must be undoable: %v", err)
+	}
 	if _, _, err := ValidateDiscard(st, p, "2S", nil); err != nil {
-		t.Fatalf("expected discard to be allowed after laying a set with no clean run available, got: %v", err)
+		t.Fatalf("discard should be allowed once the lay-down is taken back: %v", err)
+	}
+}
+
+// Undoing the whole turn is the escape when more than one meld was laid —
+// undo:lay_meld only returns the most recent, so it alone is not enough.
+func TestZolikClassic_UndoTurnFreesTheDiscardAfterTwoMelds(t *testing.T) {
+	p := "p1"
+	st := classicState(p)
+	st.Hands[p] = []string{"7H", "7D", "7C", "8H", "8D", "8C", "2S"}
+	st.Phase = PhaseDraw
+	st, _, _, err := ValidateDraw(st, p, DrawFromDeck, "")
+	if err != nil {
+		t.Fatalf("draw: %v", err)
+	}
+	for _, m := range [][]string{{"7H", "7D", "7C"}, {"8H", "8D", "8C"}} {
+		if st, _, _, err = ValidateMeldAction(st, p, m); err != nil {
+			t.Fatalf("laying %v: %v", m, err)
+		}
+	}
+	if _, _, err := ValidateDiscard(st, p, "2S", nil); err == nil {
+		t.Fatal("two sets and no clean run must not be discardable")
+	}
+
+	st, err = ValidateUndoTurn(st, p)
+	if err != nil {
+		t.Fatalf("undo turn must be available: %v", err)
+	}
+	if st.MeldsLaidThisTurn != 0 {
+		t.Fatalf("undo turn should clear the turn's melds, got %d", st.MeldsLaidThisTurn)
+	}
+}
+
+// The clean-run rule is a house rule, and a table may turn it off. With it
+// off, sets alone bring a player down and the lay-down gate is satisfied.
+func TestZolikClassic_CleanRunRequirementCanBeTurnedOff(t *testing.T) {
+	p := "p1"
+	st := classicState(p)
+	st.Rules.StaticContract.RequireCleanRun = false
+	st.Hands[p] = []string{"7H", "7D", "7C", "2S", "3D"}
+
+	st, _, _, err := ValidateMeldAction(st, p, []string{"7H", "7D", "7C"})
+	if err != nil {
+		t.Fatalf("set should be a valid meld: %v", err)
+	}
+	if !st.RoundReqMet[p] {
+		t.Fatal("with the clean-run rule off, a set should bring the player down")
+	}
+	if _, _, err := ValidateDiscard(st, p, "2S", nil); err != nil {
+		t.Fatalf("a down player may discard: %v", err)
 	}
 }

@@ -100,9 +100,23 @@ type RulesConfig struct {
 }
 
 // ContractFor returns the required combination for the given deal number.
+//
+// The clean-run rule is carried across from StaticContract even when a
+// rotating profile supplies the sets/runs counts. It is a house rule about
+// what "down" means, not part of any deal's combination, so it has to survive
+// a profile whose contract changes from deal to deal — otherwise the knob
+// that configures it (OptRequireCleanRun) would silently do nothing on
+// Continental, which is worse than not offering it.
+//
+// StaticContract stays its home rather than a field of its own on
+// RulesConfig: a resolved RulesConfig is persisted with every in-flight game,
+// and moving the flag would have every stored Žolík Classic match come back
+// with the zero value and quietly lose the rule mid-match.
 func (c RulesConfig) ContractFor(dealNumber int) ContractRequirement {
 	if c.FixedDealCount > 0 {
-		return continentalContractFor(dealNumber)
+		req := continentalContractFor(dealNumber)
+		req.RequireCleanRun = c.StaticContract.RequireCleanRun
+		return req
 	}
 	return c.StaticContract
 }
