@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { Zone } from '@/src/api/matchTypes';
@@ -80,9 +80,19 @@ export default function MatchScreen() {
   const myHands = mine.filter((z) => z.kind === 'hand');
   // Keyed by match, so an arrangement is remembered across a reload but never
   // carried into a different deal, where it would mean nothing.
-  const { slotsFor, move, arrange } = useHandOrder(myHands, matchId ? String(matchId) : undefined);
+  const { slotsFor, move, arrange, autoSelectIds } = useHandOrder(myHands, matchId ? String(matchId) : undefined);
 
   const heldSlots = myHands.flatMap((z) => slotsFor(z.id));
+
+  // A card that just arrived in hand, with nothing else about it changing, is
+  // the one thing in the fan a player didn't have a moment ago — see
+  // `justArrived` in `src/lib/hand.ts` for exactly what that does and doesn't
+  // cover. Landing it selected means whatever's about to leave the hand is
+  // already picked, rather than making a player go find it among a dozen
+  // others first.
+  useEffect(() => {
+    if (autoSelectIds.length) setSelected(new Set(autoSelectIds));
+  }, [autoSelectIds]);
 
   // Dragging a card somewhere. `drag` renders the highlights; `dragRef` is the
   // same thing readable synchronously, because the first pointer move can
@@ -383,7 +393,19 @@ export default function MatchScreen() {
             title="Controls"
             testID="controls-panel"
             style={!metrics.narrow && styles.controlsPanel}
-            summary={<OfferGlance offers={state.legalActions} testID="controls-summary" />}
+            summary={
+              <OfferGlance
+                offers={state.legalActions}
+                selectedCards={selectedCards}
+                onSend={send}
+                onConsumeSelection={() => setSelected(new Set())}
+                onAmbiguous={(groupKey) => {
+                  setPendingGroupKey(groupKey);
+                  drops.measure();
+                }}
+                testID="controls-summary"
+              />
+            }
           >
             {error ? (
               <Text testID="match-error" style={styles.error} onPress={clearError}>

@@ -4,6 +4,7 @@ import {
   arrangeSlots,
   cardsForSelection,
   insertionAtPoint,
+  justArrived,
   moveSlot,
   moveTargetFor,
   pruneSelection,
@@ -78,6 +79,54 @@ describe('arrangeSlots', () => {
 
   it('empties out when the hand does', () => {
     expect(arrangeSlots(slots('AS'), [], minter())).toEqual([]);
+  });
+});
+
+describe('justArrived', () => {
+  it('names a card that arrived with nothing else leaving', () => {
+    const before = slots('KD', '7H', 'AS');
+    const after = arrangeSlots(before, ['KD', '7H', 'AS', '2C'], minter('drawn'));
+
+    expect(justArrived(before, after)).toEqual([after[3].id]);
+  });
+
+  it('names every card of a multi-card pickup, not just one', () => {
+    const before = slots('KD', '7H');
+    const after = arrangeSlots(before, ['KD', '7H', 'AS', '2C', '9S'], minter('drawn'));
+
+    expect(justArrived(before, after).sort()).toEqual(
+      [after[2].id, after[3].id, after[4].id].sort(),
+    );
+  });
+
+  it('names nothing when the hand is unchanged', () => {
+    const before = slots('KD', '7H', 'AS');
+    const after = arrangeSlots(before, ['AS', 'KD', '7H'], minter());
+
+    expect(justArrived(before, after)).toEqual([]);
+  });
+
+  it('names nothing for the very first hand a player is dealt', () => {
+    const after = arrangeSlots([], ['KD', '7H', 'AS'], minter());
+
+    expect(justArrived([], after)).toEqual([]);
+  });
+
+  it('names nothing when a card also left in the same push', () => {
+    // A card played and a card drawn in the same reconcile looks, id for id,
+    // exactly like a fresh deal turning the hand over — this function has no
+    // way to tell those apart, so it stays quiet on both rather than guess.
+    const before = slots('KD', '7H', 'AS');
+    const after = arrangeSlots(before, ['KD', '7H', '2C'], minter('drawn'));
+
+    expect(justArrived(before, after)).toEqual([]);
+  });
+
+  it('names nothing when a whole new hand replaces the old one', () => {
+    const before = slots('KD', '7H', 'AS');
+    const after = arrangeSlots(before, ['4C', '9S', '10D'], minter('deal'));
+
+    expect(justArrived(before, after)).toEqual([]);
   });
 });
 
