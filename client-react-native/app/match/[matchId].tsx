@@ -21,7 +21,7 @@ import { dropSpotsFor, groupElementId, positionAt, type DropSpot } from '@/src/l
 import { cardsForSelection, pruneSelection, slotsForDrag } from '@/src/lib/hand';
 import { reasonText } from '@/src/lib/i18n';
 import { factText, label, playerName } from '@/src/lib/labels';
-import { colors } from '@/src/theme';
+import { colors, dragLayer } from '@/src/theme';
 
 /**
  * One screen, every game.
@@ -441,7 +441,13 @@ export default function MatchScreen() {
             everyone's melds (yours and the opponents') below it rather than
             above, so reaching your cards never means scrolling past a wall
             of board state first. */}
-        <View style={styles.mine}>
+        {/* Raised onto the drag layer for as long as a card is in flight, so
+            the card being carried is drawn over the melds and the opponents
+            below it rather than sliced in half by the first panel edge it
+            crosses. The hand keeps hold of the card it is carrying (moving
+            its node would lose the gesture), so lifting the card means
+            lifting the hand — see `dragLayer`. */}
+        <View style={[styles.mine, !!drag && dragLayer]}>
           {myHands.map((z) => (
             <HandZone
               key={z.id}

@@ -9,29 +9,59 @@ import { expect, type Locator, type Page } from '@playwright/test';
  * knowledge lives, so the next spec that needs a drag does not rediscover it.
  */
 
+/** Drags the centre of one element onto the centre of another, and lets go. */
+export async function dragLocatorTo(page: Page, from: Locator, to: Locator) {
+  await carryLocatorOver(page, from, to);
+  await release(page);
+}
+
 /**
- * Drags the centre of one element onto the centre of another.
+ * Everything `dragLocatorTo` does except letting go: the pointer is left down,
+ * over the centre of `to`, with the card still in flight. Returns that point.
+ *
+ * For the assertions that are only true *during* a drag — where the carried
+ * card is drawn, and what it is drawn over — which a completed drag has
+ * already thrown away by the time it can be looked at. Callers must `release`
+ * after, or the next thing the page does inherits a stuck pointer.
  *
  * Both boxes are measured *after* scrolling the source into view, and in that
  * settled position: scrolling the target into view afterwards could move the
  * source again on a page too short to show both at once, which produces a drag
  * that starts from wherever the source used to be.
  */
-export async function dragLocatorTo(page: Page, from: Locator, to: Locator) {
+export async function carryLocatorOver(page: Page, from: Locator, to: Locator) {
   await from.scrollIntoViewIfNeeded();
   const fromBox = await from.boundingBox();
   const toBox = await to.boundingBox();
   if (!fromBox) throw new Error('drag source has no bounding box (not visible?)');
   if (!toBox) throw new Error('drag target has no bounding box (not visible?)');
 
-  await dragPointTo(
+  const target = { x: toBox.x + toBox.width / 2, y: toBox.y + toBox.height / 2 };
+  await carryPointOver(
     page,
     { x: fromBox.x + fromBox.width / 2, y: fromBox.y + fromBox.height / 2 },
-    { x: toBox.x + toBox.width / 2, y: toBox.y + toBox.height / 2 },
+    target,
   );
+  return target;
 }
 
 export async function dragPointTo(
+  page: Page,
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+) {
+  await carryPointOver(page, from, to);
+  await release(page);
+}
+
+/** Lets go of whatever `carry*` picked up, and waits for the board to settle. */
+export async function release(page: Page) {
+  await page.mouse.up();
+  await page.waitForTimeout(400);
+}
+
+/** As `carryLocatorOver`, between two raw points. */
+export async function carryPointOver(
   page: Page,
   from: { x: number; y: number },
   to: { x: number; y: number },
@@ -59,9 +89,6 @@ export async function dragPointTo(
   await page.waitForTimeout(150);
   await page.mouse.move(to.x, to.y, { steps: 15 });
   await page.waitForTimeout(200);
-
-  await page.mouse.up();
-  await page.waitForTimeout(400);
 }
 
 /** The cards of the viewer's own hand, left to right, as they read on screen. */
