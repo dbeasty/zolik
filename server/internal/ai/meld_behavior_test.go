@@ -103,14 +103,18 @@ func TestPickSmartDiscard_AllCardsAreMeldMaterial(t *testing.T) {
 	}
 }
 
-// TestHeuristicAgent_LaysAFreeSetUnderAnUnquotaedProfile: under Žolík
-// Classic the contract is "one clean run" and nothing else, so
-// findInitialMeldPlan only ever searched for runs. A finished set of kings
-// in hand was therefore never laid — even though ValidateMeldAction accepts
-// it (MeldContributesTowardRequirement short-circuits to true when
-// FixedDealCount == 0) and ValidateDiscard deliberately lets the player
-// discard afterwards. The agent simply left points in its hand.
-func TestHeuristicAgent_LaysAFreeSetUnderAnUnquotaedProfile(t *testing.T) {
+// The agent must NOT lay a meld that cannot bring it down, even where the
+// engine would accept the meld itself.
+//
+// This reverses TestHeuristicAgent_LaysAFreeSetUnderAnUnquotaedProfile. Under
+// Žolík Classic the contract is "one clean run" and nothing else, so a
+// finished set of kings is layable (MeldContributesTowardRequirement
+// short-circuits to true when FixedDealCount == 0) but cannot satisfy the
+// contract. Laying it used to be free, because ValidateDiscard skipped its
+// "finish what you started" gate for this profile. That gate now applies
+// everywhere, so laying the set would leave the agent unable to end its turn
+// — holding the set is the correct play, not a missed opportunity.
+func TestHeuristicAgent_HoldsAMeldItCannotGoDownWith(t *testing.T) {
 	agent := NewHeuristicAgent("medium")
 	aiID := "ai1"
 
@@ -122,9 +126,7 @@ func TestHeuristicAgent_LaysAFreeSetUnderAnUnquotaedProfile(t *testing.T) {
 		CurrentTurn: aiID,
 		TurnOrder:   []string{aiID, "p2"},
 		// A set of kings plus junk, and no clean run anywhere in the hand,
-		// so the contract itself stays unmet this turn. The hand is left
-		// comfortably bigger than the outstanding contract needs, so the
-		// "don't meld away your contract material" guard doesn't apply.
+		// so the contract cannot be met this turn however the hand is cut.
 		Hands:       map[string][]string{aiID: {"KD", "KH", "KS", "2H", "7C", "9D", "4S", "8H"}, "p2": {}},
 		DrawPile:    []string{"4S"},
 		DiscardPile: []string{},
@@ -144,20 +146,64 @@ func TestHeuristicAgent_LaysAFreeSetUnderAnUnquotaedProfile(t *testing.T) {
 	}
 
 	action := agent.ChooseAction(visible, state.Hands[aiID])
+	if action.Type == rules.ActionLayMeld {
+		t.Fatalf("the agent laid a meld it cannot go down with, stranding its turn: %+v", action)
+	}
+	// Whatever it chose instead has to actually be playable — the point is a
+	// finishable turn, not merely the absence of a meld.
+	if _, err := rules.ApplyAction(state, aiID, action); err != nil {
+		t.Fatalf("the engine rejected the action the agent chose: %v", err)
+	}
+}
+
+// With the clean-run house rule turned off, the same set *does* bring the
+// agent down — so it lays it. The behaviour is driven by the rule, not by a
+// blanket refusal to lay sets.
+func TestHeuristicAgent_LaysTheSetOnceTheCleanRunRuleIsOff(t *testing.T) {
+	agent := NewHeuristicAgent("medium")
+	aiID := "ai1"
+
+	cfg := rules.ProfileZolikClassic
+	cfg.StaticContract.RequireCleanRun = false
+
+	state := rules.GameState{
+		Status:      rules.StatusActive,
+		Phase:       rules.PhaseMeld,
+		GameNumber:  1,
+		Round:       1,
+		CurrentTurn: aiID,
+		TurnOrder:   []string{aiID, "p2"},
+		Hands:       map[string][]string{aiID: {"KD", "KH", "KS", "2H", "7C", "9D", "4S", "8H"}, "p2": {}},
+		DrawPile:    []string{"4S"},
+		DiscardPile: []string{},
+		RoundReqMet: map[string]bool{aiID: false, "p2": false},
+		Rules:       cfg,
+		GameScores:  map[string][]int{aiID: {}},
+		TotalScores: map[string]int{aiID: 0},
+	}
+
+	visible := VisibleState{
+		GameNumber:  state.GameNumber,
+		Round:       state.Round,
+		Phase:       string(state.Phase),
+		CurrentTurn: state.CurrentTurn,
+		RoundReqMet: state.RoundReqMet,
+		Rules:       state.Rules,
+	}
+
+	action := agent.ChooseAction(visible, state.Hands[aiID])
 	if action.Type != rules.ActionLayMeld {
-		t.Fatalf("expected the agent to lay its free set of kings, got %+v", action)
+		t.Fatalf("expected the agent to lay its set of kings, got %+v", action)
 	}
 	outcome, err := rules.ApplyAction(state, aiID, action)
 	if err != nil {
 		t.Fatalf("the engine rejected the meld the agent chose: %v", err)
 	}
-	if len(outcome.State.Melds[aiID]) != 1 {
-		t.Fatalf("expected one meld on the table, got %v", outcome.State.Melds[aiID])
+	if !outcome.State.RoundReqMet[aiID] {
+		t.Fatal("the set should have brought the agent down with the clean-run rule off")
 	}
-	// And the turn must still be finishable: laying a non-contract meld
-	// under this profile may not strand the player in the meld phase.
 	if _, err := rules.ApplyAction(outcome.State, aiID, rules.Action{Type: rules.ActionDiscard, Card: "2H"}); err != nil {
-		t.Fatalf("agent got stranded — could not discard after laying the free set: %v", err)
+		t.Fatalf("a down agent must be able to discard: %v", err)
 	}
 }
 

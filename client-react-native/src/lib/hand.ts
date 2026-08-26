@@ -371,3 +371,35 @@ export function pruneSelection(slots: Slot[], selected: ReadonlySet<string>): Se
   for (const s of slots) if (selected.has(s.id)) live.add(s.id);
   return live;
 }
+
+/**
+ * What tapping one card does to the selection.
+ *
+ * Normally a toggle: taps accumulate, because gathering several cards is how
+ * a meld gets built.
+ *
+ * The exception is a `provisional` selection — one the *app* made rather than
+ * the player, which today means the card that just arrived in hand landing
+ * ready to play. Touching a *different* card then replaces it rather than
+ * joining it. Without that, the commonest turn there is goes wrong: the drawn
+ * card is already picked, the player taps the card they actually mean to
+ * play, and now two are picked — so an offer that takes exactly one (a
+ * discard, a lay-off) matches neither, nothing lights up, and nothing says
+ * the cure is to go and unpick a card they never picked.
+ *
+ * Tapping the provisional card itself still just clears it. That is a player
+ * saying "not that one", and it should mean what it says rather than being
+ * swallowed as "start again from that one".
+ */
+export function toggleSelection(
+  slots: Slot[],
+  selected: ReadonlySet<string>,
+  slotId: string,
+  opts: { provisional?: boolean } = {},
+): Set<string> {
+  const next = pruneSelection(slots, selected);
+  if (opts.provisional && !next.has(slotId)) return new Set([slotId]);
+  if (next.has(slotId)) next.delete(slotId);
+  else next.add(slotId);
+  return next;
+}

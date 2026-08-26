@@ -1,5 +1,5 @@
 import type { Fact } from '@/src/api/matchTypes';
-import { t } from '@/src/lib/i18n';
+import { messageTemplate, t } from '@/src/lib/i18n';
 
 /**
  * Rendering the server's message keys, including ones this build has never
@@ -35,17 +35,74 @@ export function label(key: string | undefined, params?: Record<string, unknown>)
   return t(key, params as Record<string, string | number> | undefined, humanise(key));
 }
 
+/** Anyone the server may have named by id rather than by name. */
+export type Named = { id: string; name: string };
+
+/**
+ * A string shaped like a message key — `a.b`, `holdem.hand.twoPair`.
+ *
+ * Nothing else a module puts in a fact looks like this: card codes, streets,
+ * scores and names have no dots in them. So it is safe to treat a value of
+ * this shape as another key to look up, which is what lets a module name one
+ * of its own concepts inside a fact instead of shipping a word.
+ */
+const KEY_SHAPED = /^[a-z][A-Za-z0-9]*(\.[A-Za-z0-9]+)+$/;
+
+/** Whether wording places values of its own, rather than just naming a thing. */
+const PLACES_ITS_OWN = /\{\w+\}/;
+
+/**
+ * One token the server sent, as a reader should see it.
+ *
+ * Two kinds of token reach a client opaque: a player id, which means nothing
+ * without the match's own player list, and another message key. Both are the
+ * same idea — the server names things in its own stable vocabulary and the
+ * client turns that into words — so both are resolved in one place, and a
+ * list of either becomes a list of names.
+ */
+function tokenText(value: unknown, players: Named[]): string {
+  if (Array.isArray(value)) return value.map((v) => tokenText(v, players)).join(', ');
+  if (typeof value !== 'string') return String(value);
+  const player = players.find((p) => p.id === value);
+  if (player) return player.name;
+  return KEY_SHAPED.test(value) ? label(value) : value;
+}
+
+function resolveParams(
+  params: Record<string, unknown> | undefined,
+  players: Named[],
+): Record<string, string> | undefined {
+  if (!params) return undefined;
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(params)) out[k] = tokenText(v, players);
+  return out;
+}
+
 /**
  * A fact as one line of text.
  *
- * The value goes after the label, which reads correctly for every fact any of
- * the four modules currently sends ("Pot 120", "Deck 43", "Stack 980") and is
- * the shape a label key is written for.
+ * A fact has three parts and this composes them in the one order that reads:
+ * its key names the thing, its params say which and how much, and its value is
+ * the number or token it carries. Pass the match's players and any id among
+ * those params becomes a name — without them a fact whose whole meaning is
+ * *whose* renders as a line with the subject missing ("Winner", "Waiting
+ * for"), which is what it did before this took the list.
+ *
+ * Where the bundle has wording that places values itself, that wording is the
+ * whole line: it has already said everything the fact carries, including the
+ * value under `{value}`, and appending the value after it would say it twice.
+ * A key with no wording of its own — most of them, rendered by `humanise` —
+ * takes the value after it, which is what reads correctly for every plain fact
+ * any of the four modules sends ("Deck 43", "Stack 980").
  */
-export function factText(f: Fact): string {
-  const name = label(f.labelKey, f.params);
-  if (f.value === undefined || f.value === '') return name;
-  return `${name} ${f.value}`;
+export function factText(f: Fact, players: Named[] = []): string {
+  const params = resolveParams(f.params, players);
+  const value =
+    f.value === undefined || f.value === '' ? undefined : tokenText(f.value, players);
+  const name = label(f.labelKey, value === undefined ? params : { ...params, value });
+  const wording = f.labelKey ? messageTemplate(f.labelKey) : undefined;
+  if (wording && PLACES_ITS_OWN.test(wording)) return name;
+  return value === undefined ? name : `${name} ${value}`;
 }
 
 /**

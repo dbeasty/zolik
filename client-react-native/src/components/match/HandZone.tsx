@@ -11,7 +11,7 @@ import { useMetrics } from '@/src/hooks/useMetrics';
 import { insertionAtPoint, moveTargetFor, type Rect, type Slot } from '@/src/lib/hand';
 import type { Metrics } from '@/src/lib/layout';
 import { label } from '@/src/lib/labels';
-import { colors, dropArmed } from '@/src/theme';
+import { colors, dragLayer, dropArmed } from '@/src/theme';
 
 /**
  * The viewer's own hand: the one zone on the board they may rearrange, and the
@@ -341,8 +341,16 @@ export function HandZone({
   // there too.
   const gapIndex = lifted && held !== null ? insertion ?? held : null;
 
+  // The hand and the row inside it ride up onto the drag layer with the card
+  // they are carrying (see `dragLayer`), so a card taken down onto a meld is
+  // drawn over the meld rather than behind it. Only while a card is actually
+  // held: a hand permanently above the board would put its own edge over
+  // every panel below it for no reason.
+  const carrying = held !== null;
+
   return (
     <Panel
+      style={carrying && dragLayer}
       panelId={panelId}
       title={title}
       minimized={minimized}
@@ -350,7 +358,17 @@ export function HandZone({
       testID={`zone-${zone.id}`}
       count={zone.count}
       countTestID={`zone-count-${zone.id}`}
-      summary={<CardGlance cards={slots.map((s) => s.card)} max={8} testID={`zone-summary-${zone.id}`} />}
+      // Capped only on a narrow screen, where the header has no room to
+      // spare. On a wide one the collapsed hand sits in a full-width row with
+      // space to say the whole thing, so there's no reason to fold most of a
+      // 13-card hand behind a "+5" that a wider screen never needed.
+      summary={
+        <CardGlance
+          cards={slots.map((s) => s.card)}
+          max={metrics.narrow ? 8 : slots.length}
+          testID={`zone-summary-${zone.id}`}
+        />
+      }
       accessory={
         onAutoArrange && slots.length > 1 ? (
           <Pressable onPress={onAutoArrange} hitSlop={8}>
@@ -365,7 +383,7 @@ export function HandZone({
         ref={(n) => {
           rowRef.current = n as unknown as Measurable | null;
         }}
-        style={styles.cards}
+        style={[styles.cards, carrying && dragLayer]}
         testID={`hand-${zone.id}`}
         onLayout={measure}
       >

@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { handCards } from '../helpers/drag';
 import { API_BASE } from '../helpers/env';
+import { selectOnly } from '../helpers/hand';
 
 /**
  * Playing a card by selecting it, then tapping where it goes.
@@ -154,13 +155,20 @@ test.describe('playing a card by tapping instead of dragging', () => {
     const eligible = (offer.source?.cards ?? []) as string[];
     const before = await serverHand(request, matchId, host.userId);
     const meldsBefore = await meldGroups(request, matchId, host.userId);
-    const index = before.findIndex((c) => eligible.includes(c));
-    expect(index).toBeGreaterThanOrEqual(0);
-    const dragged = before[index];
+    const dragged = before.find((c) => eligible.includes(c));
+    expect(dragged, 'the hand holds a card this lay-off accepts').toBeTruthy();
 
-    // Select it — a tap, not a drag.
-    await card(page, index).click();
-    await expect(card(page, index)).toHaveAttribute('aria-selected', 'true');
+    // Select it — a tap, not a drag — and *only* it.
+    //
+    // Both halves matter, and this used to do neither. Clicking the n-th card
+    // on screen where n was an index into the server's hand clicked a
+    // different card entirely, because the fan is in the player's own order,
+    // not the server's. And the card drawn on the way here is already
+    // selected, so a plain tap would have left two cards picked — an offer
+    // that accepts one of them accepts neither pair, and the target this test
+    // is about would stay dark for a reason that has nothing to do with what
+    // it is testing.
+    await selectOnly(page, [dragged!]);
 
     // Its own target lights up as a pressable overlay...
     const group = page.getByTestId(`group-${meldId}`);

@@ -25,6 +25,11 @@ Then open **http://127.0.0.1:8114** and press **Play**.
 Žolíky, Prší, Canasta and Texas Hold'em are all there with their own variations
 and options; nothing in the client names any of them.
 
+**You choose the table.** Each game carries a *Bots* row, offering every count
+its own player range allows — one to five for Prší, one to eight for Hold'em —
+so a quick game is no longer always a two-hander. The terminal client has the
+same control on `+`/`−`.
+
 **One screen plays all four.** Pick any game → *Play against bots*. The same
 screen renders a rummy table, a shedding pile, a canasta partnership's melds and
 a poker board — laid out from zones, seats and offers the server pushes.

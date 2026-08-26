@@ -46,7 +46,8 @@ const en: Record<string, string> = {
   'err.DISCARD_PILE_EMPTY': 'The discard pile is empty',
   'err.NO_CARDS_LEFT': 'No cards left to draw',
   'err.ROUND_REQ_NOT_MET': 'Lay your own initial meld first',
-  'err.INCOMPLETE_INITIAL_MELD': 'Finish your initial meld first',
+  'err.NEED_CLEAN_RUN': 'You need a joker-free run on the table before you count as down',
+  'err.INCOMPLETE_INITIAL_MELD': 'Finish your lay-down, or undo it, before you discard',
   'err.DISCARD_CARD_NOT_MELDED': 'The card you picked up must go into your meld',
   'err.JOKER_DISCARD_FORBIDDEN': "A joker can't be discarded",
   'err.NOTHING_TO_UNDO': 'Nothing to undo',
@@ -125,6 +126,20 @@ const en: Record<string, string> = {
   // back. {reason} is the engine's own words for the refusal.
   'discard.meldRejected': '{reason} — nothing was discarded, your cards are still staged.',
 
+  // --- what a module says happened -----------------------------------------
+  // The first module-sent keys in this bundle, and deliberately few. Anything
+  // a module sends is still legible without an entry here — `humanise` turns
+  // `holdem.seat.stack` into "Stack" — so a key earns a line only when that
+  // fallback loses something. These do: what each of them means lives in its
+  // *params* (who won, how much, whose cards), and a key on its own has
+  // nowhere to put them. Without the entry the player read "Winner", full
+  // stop, at the end of a match they had just won.
+  'status.winner': 'Won by {winners}',
+  'holdem.status.pot': '{winners} won {amount} with {hand}',
+  'holdem.status.potUncontested': '{winners} won {amount} — everyone else folded',
+  'holdem.status.shown': '{playerId} showed {value}',
+  'holdem.prompt.waitingFor': 'Waiting for {playerId}',
+
 };
 
 // Czech. Present to prove the seam is real rather than theoretical: if a
@@ -140,7 +155,8 @@ const cs: Record<string, string> = {
   'err.DISCARD_PILE_EMPTY': 'Odhazovací balíček je prázdný',
   'err.NO_CARDS_LEFT': 'Už nezbývají žádné karty',
   'err.ROUND_REQ_NOT_MET': 'Nejdřív vylož vlastní první kombinaci',
-  'err.INCOMPLETE_INITIAL_MELD': 'Dokonči nejdřív svou první kombinaci',
+  'err.NEED_CLEAN_RUN': 'Než budeš dole, musíš mít na stole čistou postupku bez žolíka',
+  'err.INCOMPLETE_INITIAL_MELD': 'Dokonči výklad, nebo ho vrať zpět, než odhodíš',
   'err.DISCARD_CARD_NOT_MELDED': 'Vzatá karta musí jít do tvé kombinace',
   'err.JOKER_DISCARD_FORBIDDEN': 'Žolíka nelze odhodit',
   'err.NOTHING_TO_UNDO': 'Není co vrátit',
@@ -205,6 +221,15 @@ const cs: Record<string, string> = {
 
   'discard.meldRejected': '{reason} — nic se neodhodilo, karty máš pořád připravené.',
 
+  // Wording that names no verb, because a Czech verb agrees with the gender of
+  // whoever did it and a player id carries no gender. "Vítěz: Anna" is right
+  // where "Vyhrál Anna" is wrong.
+  'status.winner': 'Vítěz: {winners}',
+  'holdem.status.pot': 'Bank {amount} bere {winners} — {hand}',
+  'holdem.status.potUncontested': 'Bank {amount} bere {winners} — ostatní složili',
+  'holdem.status.shown': 'Karty hráče {playerId}: {value}',
+  'holdem.prompt.waitingFor': 'Čeká se na hráče {playerId}',
+
 };
 
 export const BUNDLES: Record<Locale, Record<string, string>> = { en, cs };
@@ -226,9 +251,20 @@ export function getLocale(): Locale {
  * untranslated string degrades to a readable one rather than to nothing.
  */
 export function t(key: string, params?: Params, fallback?: string): string {
-  const template =
-    BUNDLES[currentLocale]?.[key] ?? BUNDLES.en[key] ?? fallback ?? key;
-  return interpolate(template, params);
+  return interpolate(messageTemplate(key) ?? fallback ?? key, params);
+}
+
+/**
+ * The wording a key would use, or undefined for a key no bundle knows.
+ *
+ * Exported so a caller can tell "this key has words of its own" from "this key
+ * is about to be rendered by its own shape". The difference matters to
+ * whoever is composing a line out of more than the key alone — see `factText`,
+ * where a phrase that already places its own values must not have another one
+ * appended after it.
+ */
+export function messageTemplate(key: string): string | undefined {
+  return BUNDLES[currentLocale]?.[key] ?? BUNDLES.en[key];
 }
 
 function interpolate(template: string, params?: Params): string {

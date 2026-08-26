@@ -45,42 +45,24 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 			if combo, ok := findInitialMeldPlan(st, actor, hand); ok && len(combo) > 0 {
 				return rules.Action{Type: rules.ActionLayMeld, Cards: combo[0]}
 			}
-			// A profile with no per-type quota (FixedDealCount == 0, e.g.
-			// Žolík Classic) lets any complete meld go down at any time:
-			// MeldContributesTowardRequirement short-circuits to true, and
-			// ValidateDiscard deliberately skips its "finish what you
-			// started" gate there, so laying one cannot strand the turn.
-			// Only the contract itself (e.g. a clean run) decides who is
-			// down. Without this the agent held finished sets it was
-			// allowed to lay — and eventually discarded them away — because
-			// the plan search only ever looks for what the contract still
-			// needs, which under this profile is never a set.
+			// The plan search only looks for what the contract still *needs*,
+			// so it finds nothing at a table whose contract asks for nothing
+			// (Žolík Classic with the clean-run house rule turned off, say) —
+			// and the agent would then never lay a first meld at all. The
+			// fallback covers exactly that: a meld the plan did not ask for is
+			// worth laying if it brings the player down on its own.
 			//
-			// "No per-type quota" is not "no requirement": the point floor
-			// (InitialMeldMinimum) is a separate, host-settable knob, and a
-			// Žolík Classic table may well carry one. While it is unmet,
-			// laying a meld the plan search did not ask for is pure loss —
-			// it cannot bring the player down, it spends cards a qualifying
-			// combination might have needed, and it hands every opponent a
-			// lay-off target. So this shortcut is only open once the floor
-			// is behind us; until then the plan search above is the only
-			// thing allowed to put cards on the table.
-			if visible.Rules.FixedDealCount == 0 && initialMeldFloorMet(st, actor, visible.Rules) {
-				if meld, ok := findAnyValidMeld(hand, visible.Rules); ok {
-					rest := removeCardsOnce(hand, meld)
-					// A player who is not down cannot go out (ValidateDiscard
-					// only lets a player end the deal once RoundReqMet), so
-					// emptying the hand buys nothing and costs everything:
-					// meld away the cards the outstanding contract still
-					// needs and it can never be completed this deal. Keep
-					// enough material for it, plus one card to discard.
-					// This is also what keeps the agent clear of the engine's
-					// one true dead end — a hand of nothing but jokers, which
-					// can be neither melded nor discarded nor passed on.
-					need := contractCardsStillNeeded(st, actor)
-					if len(rest) >= need+1 && handCanStillDiscard(rest, visible.Rules, false) {
-						return rules.Action{Type: rules.ActionLayMeld, Cards: meld}
-					}
+			// The old fallback laid *any* valid meld here, for profiles with no
+			// per-type quota, on the grounds that ValidateDiscard skipped its
+			// "finish what you started" gate for them so laying a spare set
+			// could not strand the turn. That gate now applies everywhere, and
+			// laying a meld that cannot complete the contract costs the turn.
+			// Holding such a set is the correct play, not a missed gain.
+			if meld, ok := findAnyValidMeld(hand, visible.Rules); ok {
+				rest := removeCardsOnce(hand, meld)
+				if len(rest) >= 1 && handCanStillDiscard(rest, visible.Rules, true) &&
+					meldWouldBringDown(visible, actor, meld) {
+					return rules.Action{Type: rules.ActionLayMeld, Cards: meld}
 				}
 			}
 		} else {
@@ -263,19 +245,6 @@ func findInitialMeldPlanRequiring(state rules.GameState, playerID string, hand [
 }
 
 type searchBudget struct{ remaining int }
-
-// initialMeldFloorMet reports whether the player has already laid enough
-// natural value to clear the deal's point floor — trivially true when the
-// table sets no floor at all (InitialMeldMinimum 0, e.g. stock Žolík
-// Classic). It reads the same total the engine checks in
-// rules.ValidateMeldAction, so the agent and the server agree on where the
-// player stands.
-func initialMeldFloorMet(state rules.GameState, playerID string, cfg rules.RulesConfig) bool {
-	if cfg.InitialMeldMinimum <= 0 {
-		return true
-	}
-	return rules.PlayerInitialMeldNaturalValue(state, playerID) >= cfg.InitialMeldMinimum
-}
 
 // maxNaturalValue is the most natural value any collection of melds built
 // from these cards could be worth: every card's own natural value, with a
@@ -581,30 +550,34 @@ func meldSizes(cfg rules.RulesConfig) (minSet, minRun int) {
 	return minSet, minRun
 }
 
-// contractCardsStillNeeded is the smallest number of cards from hand that
-// could still satisfy the player's outstanding contract, given what they
-// have already laid. Used to stop a not-yet-down agent melding away the very
-// material it still owes.
-func contractCardsStillNeeded(state rules.GameState, playerID string) int {
-	cfg := rules.ResolveConfig(state.Rules)
-	req := cfg.ContractFor(state.GameNumber)
-	setsBefore, runsBefore, hasCleanRun := rules.PlayerMeldCounts(state, playerID)
-	minSet, minRun := meldSizes(cfg)
-
-	need := 0
-	if n := req.Sets - setsBefore; n > 0 {
-		need += n * minSet
+// meldWouldBringDown reports whether laying these cards would leave the
+// player down — the same question ValidateDiscard's gate asks when the turn
+// is ended. Answered by putting the meld on a *copy* of the table and asking
+// rules.PlayerIsDown, so what "down" means is never restated here and the
+// real table is never touched (VisibleState hands its maps out by reference).
+func meldWouldBringDown(visible VisibleState, playerID string, meld []string) bool {
+	mv, err := rules.ValidateMeld(meld, visible.Rules)
+	if err != nil {
+		return false
 	}
-	runsNeeded := req.Runs - runsBefore
-	if runsNeeded < 0 {
-		runsNeeded = 0
+	melds := map[string][][]string{}
+	for k, ms := range visible.Melds {
+		melds[k] = append([][]string(nil), ms...)
 	}
-	// A clean-run requirement costs a run's worth of cards unless a run is
-	// already owed (that one can be the clean one) or already satisfied.
-	if req.RequireCleanRun && !hasCleanRun && runsNeeded == 0 {
-		runsNeeded = 1
+	metas := map[string][]rules.MeldInfo{}
+	for k, ms := range visible.MeldMeta {
+		metas[k] = append([]rules.MeldInfo(nil), ms...)
 	}
-	return need + runsNeeded*minRun
+	melds[playerID] = append(melds[playerID], append([]string(nil), meld...))
+	metas[playerID] = append(metas[playerID], rules.MeldInfo{
+		Type: mv.Type, OwnerID: playerID, WildCount: mv.WildCount,
+	})
+	return rules.PlayerIsDown(rules.GameState{
+		Rules:      visible.Rules,
+		GameNumber: visible.GameNumber,
+		Melds:      melds,
+		MeldMeta:   metas,
+	}, playerID)
 }
 
 // handCanStillDiscard reports whether the player would still have a legal

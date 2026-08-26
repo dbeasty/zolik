@@ -10,6 +10,7 @@ import {
   pruneSelection,
   slotAtPoint,
   slotsForDrag,
+  toggleSelection,
   type Slot,
 } from './hand';
 
@@ -409,5 +410,78 @@ describe('pruneSelection', () => {
     const left = pruneSelection([held[1]], chosen);
 
     expect(left).toEqual(new Set([held[1].id]));
+  });
+});
+
+describe('toggleSelection', () => {
+  it('accumulates, so several cards can be gathered into one meld', () => {
+    const held = slots('AS', 'KD', 'QC');
+
+    const one = toggleSelection(held, new Set(), held[0].id);
+    const two = toggleSelection(held, one, held[1].id);
+
+    expect(two).toEqual(new Set([held[0].id, held[1].id]));
+  });
+
+  it('unpicks a card that was already picked', () => {
+    const held = slots('AS', 'KD');
+    const both = new Set([held[0].id, held[1].id]);
+
+    expect(toggleSelection(held, both, held[0].id)).toEqual(new Set([held[1].id]));
+  });
+
+  it('forgets a card that has left the hand while something was picked', () => {
+    const held = slots('AS', 'KD');
+    const chosen = new Set([held[0].id, held[1].id]);
+
+    // AS is gone; picking KD's neighbour must not resurrect it.
+    expect(toggleSelection([held[1]], chosen, held[1].id)).toEqual(new Set());
+  });
+
+  // The rule that keeps the commonest turn in the game working. A drawn card
+  // arrives already picked; the player then taps the card they actually mean
+  // to play. If both stayed picked, an offer that takes exactly one — a
+  // discard, a lay-off — would match neither and nothing would light up.
+  describe('when the selection is the app’s own pick, not the player’s', () => {
+    it('is replaced by the first other card the player touches', () => {
+      const held = slots('AS', 'KD', 'QC');
+      const drawn = new Set([held[0].id]);
+
+      const after = toggleSelection(held, drawn, held[1].id, { provisional: true });
+
+      expect(after).toEqual(new Set([held[1].id]));
+    });
+
+    it('still just unpicks when the player taps that very card', () => {
+      const held = slots('AS', 'KD');
+      const drawn = new Set([held[0].id]);
+
+      // "Not that one" has to mean what it says, rather than being swallowed
+      // as "start again from that one".
+      const after = toggleSelection(held, drawn, held[0].id, { provisional: true });
+
+      expect(after).toEqual(new Set());
+    });
+
+    it('replaces the whole pick, however many cards it named', () => {
+      const held = slots('AS', 'KD', 'QC');
+      const auto = new Set([held[0].id, held[1].id]);
+
+      expect(toggleSelection(held, auto, held[2].id, { provisional: true })).toEqual(
+        new Set([held[2].id]),
+      );
+    });
+
+    it('accumulates again once the selection is the player’s own', () => {
+      const held = slots('AS', 'KD', 'QC');
+      const drawn = new Set([held[0].id]);
+
+      // The screen clears the provisional flag after any tap, so the second
+      // tap arrives without it — and behaves like an ordinary one.
+      const first = toggleSelection(held, drawn, held[1].id, { provisional: true });
+      const second = toggleSelection(held, first, held[2].id);
+
+      expect(second).toEqual(new Set([held[1].id, held[2].id]));
+    });
   });
 });

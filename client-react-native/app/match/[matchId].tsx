@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -14,14 +14,13 @@ import { useSession } from '@/src/context/SessionContext';
 import { useDropRegistry, type Measurable } from '@/src/hooks/useDropRegistry';
 import { useHandOrder } from '@/src/hooks/useHandOrder';
 import { useMatchSocket } from '@/src/hooks/useMatchSocket';
-import { useMetrics } from '@/src/hooks/useMetrics';
 import { usePanelState } from '@/src/hooks/usePanelState';
 import { drawableZones } from '@/src/lib/board';
 import { dropSpotsFor, groupElementId, positionAt, type DropSpot } from '@/src/lib/drops';
-import { cardsForSelection, pruneSelection, slotsForDrag } from '@/src/lib/hand';
+import { cardsForSelection, slotsForDrag, toggleSelection } from '@/src/lib/hand';
 import { reasonText } from '@/src/lib/i18n';
 import { factText, label, playerName } from '@/src/lib/labels';
-import { colors } from '@/src/theme';
+import { colors, dragLayer } from '@/src/theme';
 
 /**
  * One screen, every game.
@@ -53,7 +52,9 @@ export default function MatchScreen() {
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const { session, client } = useSession();
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
-  const metrics = useMetrics();
+  // Whether what is currently selected was picked by the *app* rather than by
+  // the player — see the auto-select effect below and `toggleSlot`.
+  const [selectionIsAuto, setSelectionIsAuto] = useState(false);
   const panels = usePanelState(matchId ? String(matchId) : undefined);
 
   const url = useMemo(() => {
@@ -90,8 +91,15 @@ export default function MatchScreen() {
   // cover. Landing it selected means whatever's about to leave the hand is
   // already picked, rather than making a player go find it among a dozen
   // others first.
+  //
+  // Flagged as the app's pick rather than the player's, which is what lets
+  // the next card they touch replace it instead of joining it — see
+  // `toggleSlot`.
   useEffect(() => {
-    if (autoSelectIds.length) setSelected(new Set(autoSelectIds));
+    if (autoSelectIds.length) {
+      setSelected(new Set(autoSelectIds));
+      setSelectionIsAuto(true);
+    }
   }, [autoSelectIds]);
 
   // Dragging a card somewhere. `drag` renders the highlights; `dragRef` is the
@@ -112,6 +120,10 @@ export default function MatchScreen() {
   // before the `!state` early return below so hook order stays fixed
   // whether or not the socket has delivered a state yet.
   const [statusExplainerOpen, setStatusExplainerOpen] = useState(false);
+  // Setting up the same table again, and whatever went wrong trying — declared
+  // up here for the same reason: hooks may not be conditional.
+  const [startingAgain, setStartingAgain] = useState(false);
+  const [againError, setAgainError] = useState('');
 
   if (!state) {
     return (
@@ -123,6 +135,14 @@ export default function MatchScreen() {
     );
   }
 
+  // Nothing selected, and nothing provisionally selected either — a fresh
+  // start for whatever the player does next. Used everywhere a selection is
+  // spent, so the auto-pick flag can never outlive the cards it described.
+  const clearSelection = () => {
+    setSelected(new Set());
+    setSelectionIsAuto(false);
+  };
+
   // Selection is by *slot*, not by card string. With two decks in play a hand
   // can hold two identical strings, and selecting by string could neither
   // light up the copy that was tapped nor put both of them in one meld.
@@ -132,12 +152,13 @@ export default function MatchScreen() {
     // that choice over rather than resolving it against a selection that has
     // since moved on.
     setPendingGroupKey(null);
-    setSelected((prev) => {
-      const next = pruneSelection(heldSlots, prev);
-      if (next.has(slotId)) next.delete(slotId);
-      else next.add(slotId);
-      return next;
-    });
+    // `provisional` is what makes a tap on some *other* card replace the
+    // app's own pick rather than join it — see `toggleSelection`.
+    setSelected((prev) => toggleSelection(heldSlots, prev, slotId, { provisional: selectionIsAuto }));
+    // Whatever that did, the selection is now the player's own, so further
+    // taps accumulate normally — that is how several cards are gathered into
+    // one meld.
+    setSelectionIsAuto(false);
   };
 
   const selectedCards = cardsForSelection(heldSlots, selected);
@@ -206,7 +227,18 @@ export default function MatchScreen() {
   const otherZones = visible.filter((z) => z.ownerId && z.ownerId !== viewerId && z.kind !== 'spread');
 
   const beginDrag = (zoneId: string, index: number) => {
-    const carried = slotsForDrag(slotsFor(zoneId), selected, index);
+    const slots = slotsFor(zoneId);
+    // Picking a card up is as much "I mean this one" as tapping it, so the
+    // same rule applies: a provisional selection the player didn't make is
+    // dropped the moment they take hold of something else. It would
+    // otherwise survive the drag and get merged back in by the staging
+    // branch of `endDrag`, putting a card they never chose into the next
+    // thing they try to play.
+    const picked = slots[index];
+    if (picked && selectionIsAuto && !selected.has(picked.id)) setSelected(new Set());
+    setSelectionIsAuto(false);
+
+    const carried = slotsForDrag(slots, selected, index);
     if (!carried.length) return;
 
     const cards = carried.map((s) => s.card);
@@ -258,7 +290,7 @@ export default function MatchScreen() {
     if (position) action.params = { ...(action.params ?? {}), [POSITION_PARAM]: position };
 
     send(action);
-    setSelected(new Set());
+    clearSelection();
     return true;
   };
 
@@ -285,7 +317,7 @@ export default function MatchScreen() {
     if (position) action.params = { ...(action.params ?? {}), [POSITION_PARAM]: position };
 
     send(action);
-    setSelected(new Set());
+    clearSelection();
     setPendingGroupKey(null);
   };
 
@@ -297,6 +329,30 @@ export default function MatchScreen() {
     onPressDrop: pressDrop,
   };
 
+  // The same table again: same game, same variation, the same numbers the
+  // lobby chose, and a bot for every bot that was in this one. The options
+  // come back from the server on the state message, so "again" means the table
+  // that was actually played rather than whatever the defaults happen to be.
+  const playAgain = async () => {
+    setStartingAgain(true);
+    setAgainError('');
+    try {
+      const { matchId: next } = await client.createMatch(
+        state.moduleId,
+        state.variation,
+        state.options ?? {},
+      );
+      for (const p of state.players) {
+        if (p.isAI) await client.addBot(next);
+      }
+      await client.startMatch(next);
+      router.replace(`/match/${next}`);
+    } catch (e) {
+      setAgainError(String(e));
+      setStartingAgain(false);
+    }
+  };
+
   // A stable id for remembering whether a zone's own panel is put away —
   // shared by every place this screen draws one.
   const panelIdFor = (zoneId: string) => `zone:${zoneId}`;
@@ -305,6 +361,40 @@ export default function MatchScreen() {
     minimized: panels.isMinimized(panelIdFor(zoneId)),
     onToggleMinimized: () => panels.toggle(panelIdFor(zoneId)),
   });
+
+  // How the match ended, in the one vocabulary every game shares: who the
+  // server says won.
+  //
+  // This exists because a finished match used to look exactly like a stuck
+  // one. The board stayed on the last position, every control greyed out with
+  // the engine's "the game is not running" beside it, and the only thing that
+  // changed was a twelve-pixel word next to a dot that stayed green — so a
+  // player whose own last move ended the match reported it as a hang, which is
+  // the correct reading of a screen that says nothing.
+  //
+  // Read off the match envelope rather than the module's own status facts,
+  // because that is the field every module fills: two of the four send no
+  // end-of-match fact at all, and this has to be right for the next one too.
+  // Naming yourself "you" is the only judgement in it, and it is about who is
+  // reading rather than about what was played.
+  const winners = state.winners ?? (state.winnerId ? [state.winnerId] : []);
+  const iWon = winners.includes(viewerId);
+  const winnerNames = winners.map((id) => (id === viewerId ? 'you' : playerName(state.players, id)));
+  const outcome =
+    winners.length === 0
+      ? 'Nobody won.'
+      : winners.length === 1
+        ? iWon
+          ? 'You won.'
+          : `${winnerNames[0]} won.`
+        : `Won by ${winnerNames.join(', ')}.`;
+
+  // Offering the same table again only where this screen can actually set one
+  // up: every other seat was a bot, so the same match is one create-and-start
+  // away. A table with other people in it is a lobby's job, and pretending
+  // otherwise would fail at the point of pressing.
+  const againstBotsAlone =
+    state.players.length > 1 && state.players.every((p) => p.isAI || p.id === viewerId);
 
   // What the status dot means, in the same words the line it replaced used
   // to say. Red is the one case a player needs to notice — everything else
@@ -349,7 +439,7 @@ export default function MatchScreen() {
           <View style={styles.facts} testID="match-header">
             {(view.header ?? []).map((f, i) => (
               <Text key={`${f.labelKey}-${i}`} style={styles.fact}>
-                {factText(f)}
+                {factText(f, state.players)}
               </Text>
             ))}
           </View>
@@ -358,6 +448,48 @@ export default function MatchScreen() {
           <Text testID="match-status-explainer" style={styles.statusExplainer}>
             {statusExplainer}
           </Text>
+        ) : null}
+
+        {/* The end of a match, said plainly and where the eye already is —
+            above the board rather than under it, because the board below is
+            the position that ended and a player arrives at this banner from
+            the move they just made. */}
+        {state.status === 'completed' ? (
+          <View style={[styles.over, iWon && styles.overWon]} testID="match-over">
+            <Text testID="match-over-title" style={styles.overTitle}>
+              Match over
+            </Text>
+            <Text testID="match-over-outcome" style={styles.overOutcome}>
+              {outcome}
+            </Text>
+            <View style={styles.overActions}>
+              {againstBotsAlone ? (
+                <Pressable
+                  testID="match-over-again"
+                  accessibilityState={{ disabled: startingAgain }}
+                  disabled={startingAgain}
+                  onPress={playAgain}
+                  style={[styles.overButton, startingAgain && styles.overButtonBusy]}
+                >
+                  <Text style={styles.overButtonText}>
+                    {startingAgain ? 'Setting up…' : 'Play again'}
+                  </Text>
+                </Pressable>
+              ) : null}
+              <Pressable
+                testID="match-over-leave"
+                onPress={() => router.replace('/lobby/games')}
+                style={styles.overButtonQuiet}
+              >
+                <Text style={styles.overButtonQuietText}>Back to games</Text>
+              </Pressable>
+            </View>
+            {againError ? (
+              <Text testID="match-over-error" style={styles.overError}>
+                {againError}
+              </Text>
+            ) : null}
+          </View>
         ) : null}
 
         <SeatStrip
@@ -370,78 +502,37 @@ export default function MatchScreen() {
 
         {(view.prompts ?? []).map((f, i) => (
           <Text key={`prompt-${i}`} testID={`prompt-${i}`} style={styles.prompt}>
-            {factText(f)}
+            {factText(f, state.players)}
           </Text>
         ))}
 
-        {/* Buttons sit beside the piles on a wide screen, sharing that band
-            rather than costing it a full-width row of their own; on a narrow
-            one there isn't a band wide enough to share, so they stack —
-            each control still gets its own row inside its own panel instead
-            of running off the edge behind an invisible scrollbar. */}
-        <View style={[styles.tableRow, metrics.narrow && styles.tableRowNarrow]}>
-          <Section
-            title="Table"
-            zones={tableZones}
-            compact
-            {...zonePanelProps('section:table')}
-            panelPropsFor={zonePanelProps}
-            {...dropProps}
-          />
-          <Panel
-            {...zonePanelProps('controls')}
-            title="Controls"
-            testID="controls-panel"
-            style={!metrics.narrow && styles.controlsPanel}
-            summary={
-              <OfferGlance
-                offers={state.legalActions}
-                selectedCards={selectedCards}
-                onSend={send}
-                onConsumeSelection={() => setSelected(new Set())}
-                onAmbiguous={(groupKey) => {
-                  setPendingGroupKey(groupKey);
-                  drops.measure();
-                }}
-                testID="controls-summary"
-              />
-            }
-          >
-            {error ? (
-              <Text testID="match-error" style={styles.error} onPress={clearError}>
-                {reasonText(error.code, error.code)}
-              </Text>
-            ) : null}
-            {/* Disabled offers stay on screen with their reason. An offer
-                that vanished when it became illegal would be
-                indistinguishable from a bug, which is why the server sends
-                the whole set every time. */}
-            <OfferBar
-              offers={state.legalActions}
-              selectedCards={selectedCards}
-              onSend={send}
-              onConsumeSelection={() => setSelected(new Set())}
-              onAmbiguous={(groupKey) => {
-                setPendingGroupKey(groupKey);
-                // The board is inside a scroll view, so a target's position
-                // as of the last drag is not necessarily where it is now
-                // either.
-                drops.measure();
-              }}
-            />
-            {!canAct && state.status === 'active' ? (
-              <Text testID="match-waiting" style={styles.muted}>
-                Waiting for another player…
-              </Text>
-            ) : null}
-          </Panel>
-        </View>
+        {/* The piles and stacks everyone draws from and discards to. A
+            full-width row of its own now that the controls have moved down
+            under the hand — the zones inside it are a couple of cards wide
+            and sit side by side in there, so it costs far less height than
+            a full-width row suggests. */}
+        <Section
+          title="Table"
+          zones={tableZones}
+          compact
+          {...zonePanelProps('section:table')}
+          panelPropsFor={zonePanelProps}
+          {...dropProps}
+        />
 
-        {/* Your hand first — it's what your thumb is on every turn — with
-            everyone's melds (yours and the opponents') below it rather than
-            above, so reaching your cards never means scrolling past a wall
-            of board state first. */}
-        <View style={styles.mine}>
+        {/* Your hand, then the controls that act on it, as one pair — it's
+            what your thumb is on every turn, and choosing a card and
+            spending it should not be at two ends of the screen. Everyone's
+            melds (yours and the opponents') go below the pair rather than
+            above it, so reaching your cards never means scrolling past a
+            wall of board state first. */}
+        {/* Raised onto the drag layer for as long as a card is in flight, so
+            the card being carried is drawn over the melds and the opponents
+            below it rather than sliced in half by the first panel edge it
+            crosses. The hand keeps hold of the card it is carrying (moving
+            its node would lose the gesture), so lifting the card means
+            lifting the hand — see `dragLayer`. */}
+        <View style={[styles.mine, !!drag && dragLayer]}>
           {myHands.map((z) => (
             <HandZone
               key={z.id}
@@ -459,6 +550,68 @@ export default function MatchScreen() {
             />
           ))}
         </View>
+
+        {/* Directly under your hand, at every screen width. Every control
+            here acts on the cards picked just above it, and a bar up beside
+            the piles meant looking in one place to choose and another to
+            act — with the whole hand in between, which on a phone is most
+            of the screen. Under the hand rather than over it because that
+            is the edge a thumb is already resting on.
+
+            The cost is that the piles no longer have a neighbour to share
+            their band with on a wide screen. Worth paying: that band was
+            shared at the price of putting every button a full hand away
+            from the cards it spends. */}
+        <Panel
+          {...zonePanelProps('controls')}
+          title="Controls"
+          testID="controls-panel"
+          summary={
+            <OfferGlance
+              offers={state.legalActions}
+              selectedCards={selectedCards}
+              onSend={send}
+              onConsumeSelection={clearSelection}
+              onAmbiguous={(groupKey) => {
+                setPendingGroupKey(groupKey);
+                drops.measure();
+              }}
+              testID="controls-summary"
+            />
+          }
+        >
+          {/* The engine's own sentence stands in for a code this build has
+              no translation for — it is at least a sentence, where the bare
+              code reads as a crash. A code we do know still wins, so a
+              translated message never regresses to English. */}
+          {error ? (
+            <Text testID="match-error" style={styles.error} onPress={clearError}>
+              {reasonText(error.code, error.message || error.code)}
+            </Text>
+          ) : null}
+          {/* Disabled offers stay on screen with their reason. An offer
+              that vanished when it became illegal would be
+              indistinguishable from a bug, which is why the server sends
+              the whole set every time. */}
+          <OfferBar
+            offers={state.legalActions}
+            selectedCards={selectedCards}
+            onSend={send}
+            onConsumeSelection={clearSelection}
+            onAmbiguous={(groupKey) => {
+              setPendingGroupKey(groupKey);
+              // The board is inside a scroll view, so a target's position
+              // as of the last drag is not necessarily where it is now
+              // either.
+              drops.measure();
+            }}
+          />
+          {!canAct && state.status === 'active' ? (
+            <Text testID="match-waiting" style={styles.muted}>
+              Waiting for another player…
+            </Text>
+          ) : null}
+        </Panel>
 
         {/* Every spread on the board, whoever's it is, sharing a wrapping
             row instead of each claiming a full-width line — named by its
@@ -490,7 +643,7 @@ export default function MatchScreen() {
 
         {(view.status ?? []).map((f, i) => (
           <Text key={`status-${i}`} testID={`status-${i}`} style={styles.muted}>
-            {factText(f)}
+            {factText(f, state.players)}
           </Text>
         ))}
       </ScrollView>
@@ -571,15 +724,6 @@ const styles = StyleSheet.create({
   statusGroup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   status: { color: colors.muted, fontSize: 12 },
   facts: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 2 },
-  tableRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  // A phone doesn't have a band wide enough to share between the piles and
-  // the controls, so they stack instead of sitting side by side.
-  tableRowNarrow: { flexDirection: 'column' },
-  // Takes whatever room is left beside the piles rather than shrinking to its
-  // content width — minWidth: 0 is what actually lets it shrink below that
-  // content width in the first place, which is what makes the controls wrap
-  // onto more than one line instead of overflowing the row.
-  controlsPanel: { flex: 1, minWidth: 0 },
   fact: { color: colors.muted, fontSize: 12 },
   statusDot: { width: 10, height: 10, borderRadius: 5, marginTop: 1 },
   statusDotOk: { backgroundColor: colors.success },
@@ -599,4 +743,43 @@ const styles = StyleSheet.create({
   spreads: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 8, marginTop: 10 },
   error: { color: colors.danger, fontSize: 13, marginVertical: 6 },
   muted: { color: colors.muted, fontSize: 12, marginTop: 6 },
+
+  // The end of a match, built like the rule-violation banner in `shared`: a
+  // tinted box with a border of its own, because the thing it has to beat is
+  // being mistaken for nothing having happened. Green only when the reader
+  // won — a coloured congratulation on a loss is worse than a plain box.
+  over: {
+    backgroundColor: 'rgba(61, 139, 253, 0.10)',
+    borderWidth: 1,
+    borderColor: colors.accent,
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+    gap: 6,
+  },
+  overWon: {
+    backgroundColor: 'rgba(74, 222, 128, 0.12)',
+    borderColor: colors.success,
+  },
+  overTitle: { color: colors.text, fontSize: 15, fontWeight: '700' },
+  overOutcome: { color: colors.text, fontSize: 14 },
+  overActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  overButton: {
+    backgroundColor: colors.accentButton,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  overButtonBusy: { opacity: 0.4 },
+  overButtonText: { color: colors.onAccent, fontSize: 14, fontWeight: '600' },
+  overButtonQuiet: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  overButtonQuietText: { color: colors.text, fontSize: 14, fontWeight: '600' },
+  overError: { color: colors.danger, fontSize: 12 },
 });

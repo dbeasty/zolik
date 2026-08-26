@@ -205,8 +205,16 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 	// game: cards turned face up at a showdown are turned face up for everyone.
 	if s.LastHand != nil {
 		for _, p := range s.LastHand.Pots {
+			// A pot nobody contested has no hand to name — the winner never
+			// showed one. Its own key rather than the same key with an empty
+			// "hand" in it, because a client renders a key into a sentence and
+			// a sentence with a hole in it reads as a bug.
+			key := "holdem.status.pot"
+			if p.LabelKey == "" {
+				key = "holdem.status.potUncontested"
+			}
 			vm.Status = append(vm.Status, module.Fact{
-				LabelKey: "holdem.status.pot", Value: strconv.Itoa(p.Amount),
+				LabelKey: key, Value: strconv.Itoa(p.Amount),
 				Params: map[string]any{
 					"winners": p.Winners, "hand": p.LabelKey, "amount": p.Amount,
 				},

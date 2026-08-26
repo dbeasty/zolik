@@ -224,4 +224,65 @@ describe('labels', () => {
   it('puts a value after its label', () => {
     expect(factText({ labelKey: 'header.deck', value: '43' })).toContain('43');
   });
+
+  /**
+   * A fact whose meaning is in its params.
+   *
+   * The bug these are written from: a match ended and the screen said
+   * "Winner", with no name after it. The key alone cannot say who — the
+   * players are in `params.winners`, as ids the client has to look up — so a
+   * key rendered without the match's own player list loses the only part of
+   * the sentence that mattered.
+   */
+  const players = [
+    { id: 'u-1', name: 'Dj Player' },
+    { id: 'bot:KE', name: 'Bot KE' },
+  ];
+
+  it('names the players a fact is about', () => {
+    expect(factText({ labelKey: 'status.winner', params: { winners: ['u-1'] } }, players)).toBe(
+      'Won by Dj Player',
+    );
+  });
+
+  it('names all of them when more than one won', () => {
+    expect(
+      factText({ labelKey: 'status.winner', params: { winners: ['u-1', 'bot:KE'] } }, players),
+    ).toBe('Won by Dj Player, Bot KE');
+  });
+
+  it('says nothing twice when the wording already placed the value', () => {
+    const line = factText(
+      {
+        labelKey: 'holdem.status.pot',
+        value: '30',
+        params: { winners: ['bot:KE'], amount: 30, hand: 'holdem.hand.twoPair' },
+      },
+      players,
+    );
+    expect(line).toBe('Bot KE won 30 with Two pair');
+    expect(line).not.toMatch(/30.*30/);
+  });
+
+  it('renders a value that is itself a message key as words', () => {
+    expect(
+      factText({ labelKey: 'holdem.status.shown', value: 'holdem.hand.fullHouse', params: { playerId: 'u-1' } }, players),
+    ).toBe('Dj Player showed Full house');
+  });
+
+  it('leaves a value that is not a key or a player alone', () => {
+    expect(factText({ labelKey: 'holdem.header.blinds', value: '10/20' }, players)).toBe(
+      'Blinds 10/20',
+    );
+  });
+
+  it('falls back to the id for someone the match does not list', () => {
+    expect(factText({ labelKey: 'status.winner', params: { winners: ['ghost'] } }, players)).toBe(
+      'Won by ghost',
+    );
+  });
+
+  it('renders a fact with no players to hand exactly as it did before', () => {
+    expect(factText({ labelKey: 'holdem.seat.stack', value: '980' })).toBe('Stack 980');
+  });
 });

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { dragLocatorTo, handCards } from '../helpers/drag';
+import { carryLocatorOver, dragLocatorTo, handCards, release } from '../helpers/drag';
 import { API_BASE } from '../helpers/env';
 
 /**
@@ -293,6 +293,46 @@ test.describe('dropping a card on the board', () => {
     for (const [id, cards] of Object.entries(meldsBefore)) {
       if (id === meldId) continue;
       expect(after[id]).toEqual(cards);
+    }
+  });
+
+  test('a card carried down onto a meld is drawn over it, not behind it', async ({
+    page,
+    request,
+  }) => {
+    const { matchId, host } = await tableWithBots(request, 'zolik');
+    await openMatch(page, host, matchId);
+    await handCards(page);
+
+    // A dragged card never leaves the hand it came from — moving its node
+    // mid-gesture loses the pointer — so it is painted inside the hand's own
+    // box, and every panel drawn after the hand is a panel that can paint over
+    // it. The melds are the first one a card carried downward crosses, and a
+    // card sliced in half by that panel's edge was exactly the symptom.
+    const melds = page
+      .getByTestId('section-spreads')
+      .locator('[data-testid^="zone-melds"]')
+      .first();
+    await expect(melds).toBeVisible();
+
+    const over = await carryLocatorOver(page, card(page, 0), melds);
+    try {
+      // What is painted where the card now is. Asserted through the page's own
+      // hit-testing rather than by reading `zIndex` off anything: a stacking
+      // order is the product of the whole ancestor chain, and a test that read
+      // one number off one box would have passed against the broken build —
+      // the card already carried `zIndex: 20` while it went behind the meld.
+      const showing = await page.evaluate(
+        ([x, y]) => {
+          const el = document.elementFromPoint(x as number, y as number);
+          const card = el?.closest('[data-testid^="card-hand:"]');
+          return card?.getAttribute('data-testid') ?? el?.getAttribute('data-testid') ?? '(nothing)';
+        },
+        [over.x, over.y],
+      );
+      expect(showing).toMatch(/^card-hand:/);
+    } finally {
+      await release(page);
     }
   });
 
