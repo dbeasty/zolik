@@ -168,3 +168,25 @@ export function positionAt(
   const index = Math.floor(share * positions.length);
   return positions[Math.max(0, Math.min(index, positions.length - 1))];
 }
+
+/**
+ * Whether some enabled offer that actually takes cards is ready to send
+ * these right now — not merely compatible with them eventually, which a
+ * fresh meld-in-progress always is (`fits` has no opinion on a selection
+ * still short of an offer's minimum), and not an offer with no opinion on
+ * any selection at all (a draw, an undo — see `fits`), which every selection
+ * trivially "fits" by never objecting to one.
+ *
+ * Built for the one place selecting a second card has to guess what the
+ * first was for: a card that just arrived in hand lands pre-picked, so a
+ * second tap either joins it (this says yes — a multi-card lay-off is ready
+ * the moment two eligible cards are both picked) or was meant to replace it
+ * (this says no — an unfinished meld or a full hand isn't a reason to keep
+ * the first pick around).
+ */
+export function someOfferReady(offers: ActionOffer[], cards: string[]): boolean {
+  return offers.some((o) => {
+    const need = o.source?.minCards ?? 0;
+    return o.enabled && need > 0 && cards.length >= need && fits(o, cards).ok;
+  });
+}

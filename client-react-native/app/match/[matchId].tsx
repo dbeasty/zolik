@@ -16,7 +16,7 @@ import { useHandOrder } from '@/src/hooks/useHandOrder';
 import { useMatchSocket } from '@/src/hooks/useMatchSocket';
 import { usePanelState } from '@/src/hooks/usePanelState';
 import { drawableZones } from '@/src/lib/board';
-import { dropSpotsFor, groupElementId, positionAt, type DropSpot } from '@/src/lib/drops';
+import { dropSpotsFor, groupElementId, positionAt, someOfferReady, type DropSpot } from '@/src/lib/drops';
 import { cardsForSelection, slotsForDrag, toggleSelection } from '@/src/lib/hand';
 import { reasonText } from '@/src/lib/i18n';
 import { factText, label, playerName } from '@/src/lib/labels';
@@ -170,9 +170,19 @@ export default function MatchScreen() {
     // that choice over rather than resolving it against a selection that has
     // since moved on.
     setPendingGroupKey(null);
-    // `provisional` is what makes a tap on some *other* card replace the
-    // app's own pick rather than join it — see `toggleSelection`.
-    setSelected((prev) => toggleSelection(heldSlots, prev, slotId, { provisional: selectionIsAuto }));
+    setSelected((prev) => {
+      // `provisional` is what makes a tap on some *other* card replace the
+      // app's own pick rather than join it — see `toggleSelection` — but
+      // only when joining goes nowhere. A multi-card lay-off is exactly a
+      // second tap meant to join the drawn card, not replace it, so try
+      // joining first and fall back to replacing only when no offer would
+      // take the two together.
+      if (selectionIsAuto && !prev.has(slotId)) {
+        const joined = toggleSelection(heldSlots, prev, slotId, { provisional: false });
+        if (someOfferReady(state.legalActions, cardsForSelection(heldSlots, joined))) return joined;
+      }
+      return toggleSelection(heldSlots, prev, slotId, { provisional: selectionIsAuto });
+    });
     // Whatever that did, the selection is now the player's own, so further
     // taps accumulate normally — that is how several cards are gathered into
     // one meld.
@@ -275,16 +285,25 @@ export default function MatchScreen() {
   const beginDrag = (zoneId: string, index: number) => {
     const slots = slotsFor(zoneId);
     // Picking a card up is as much "I mean this one" as tapping it, so the
-    // same rule applies: a provisional selection the player didn't make is
-    // dropped the moment they take hold of something else. It would
-    // otherwise survive the drag and get merged back in by the staging
+    // same rule applies as `toggleSlot`: a provisional selection the player
+    // didn't make joins the card just picked up when some offer would take
+    // the two together — a multi-card lay-off dragged straight off the
+    // drawn card — and is otherwise dropped, the same as before, rather
+    // than surviving the drag and getting merged back in by the staging
     // branch of `endDrag`, putting a card they never chose into the next
     // thing they try to play.
     const picked = slots[index];
-    if (picked && selectionIsAuto && !selected.has(picked.id)) setSelected(new Set());
+    let dragSelection = selected;
+    if (picked && selectionIsAuto && !selected.has(picked.id)) {
+      const joined = new Set([...selected, picked.id]);
+      dragSelection = someOfferReady(state.legalActions, cardsForSelection(heldSlots, joined))
+        ? joined
+        : new Set<string>();
+      setSelected(dragSelection);
+    }
     setSelectionIsAuto(false);
 
-    const carried = slotsForDrag(slots, selected, index);
+    const carried = slotsForDrag(slots, dragSelection, index);
     if (!carried.length) return;
 
     const cards = carried.map((s) => s.card);
