@@ -114,3 +114,17 @@ export function factText(f: Fact, players: Named[] = []): string {
 export function playerName(players: { id: string; name: string }[], id: string): string {
   return players.find((p) => p.id === id)?.name || id;
 }
+
+/**
+ * The number to print for a standing.
+ *
+ * One definition, because there are two fields and only one of them is meant
+ * for a person. `score` is oriented so higher is always better — that is what
+ * lets the server rank four different games and keep one lifetime average per
+ * player without knowing which way any of them counts. Rummy counts downwards,
+ * so its score arrives negated, and a scoreboard that printed it read
+ * "-29 Penalty" at a player who had 29 penalty points.
+ */
+export function shownScore(s: { score: number; shown?: number }): number {
+  return s.shown ?? s.score;
+}

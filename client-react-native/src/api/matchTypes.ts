@@ -157,6 +157,15 @@ export type Standing = {
   playerId: string;
   rank: number;
   score: number;
+  /**
+   * The number to print, when that is not `score`.
+   *
+   * `score` is oriented higher-is-better so the server can rank and record it
+   * without a sense of direction, which carries a rummy penalty of 247 as
+   * -247. Printing that shows the player the arithmetic. Use
+   * `shownScore(standing)` rather than reading either field directly.
+   */
+  shown?: number;
   won?: boolean;
   labelKey?: string;
   facts?: Fact[];

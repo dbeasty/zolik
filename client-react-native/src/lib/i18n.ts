@@ -221,6 +221,12 @@ const en: Record<string, string> = {
   'holdem.status.shown': '{playerId} showed {value}',
   'holdem.prompt.waitingFor': 'Waiting for {playerId}',
 
+  // How a rummy scoreboard was ordered. Both earn a line for the same reason
+  // as the keys above: the number lives in the params, and `humanise` would
+  // render "Deals Won" with nothing after it.
+  'zolik.standing.dealsWon': 'Deals won {n}',
+  'zolik.standing.inHand': 'In hand {n}',
+
 };
 
 // Czech. Present to prove the seam is real rather than theoretical: if a
@@ -380,6 +386,8 @@ const cs: Record<string, string> = {
   'holdem.status.potUncontested': 'Bank {amount} bere {winners} — ostatní složili',
   'holdem.status.shown': 'Karty hráče {playerId}: {value}',
   'holdem.prompt.waitingFor': 'Čeká se na hráče {playerId}',
+  'zolik.standing.dealsWon': 'Vyhraných kol {n}',
+  'zolik.standing.inHand': 'V ruce {n}',
 
 };
 

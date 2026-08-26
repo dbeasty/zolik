@@ -733,3 +733,82 @@ func TestNumericParametersAreUsable(t *testing.T) {
 		t.Error("no numeric parameter was ever offered; the addition is untested")
 	}
 }
+
+// TestTheScoreboardAgreesWithTheWinner — a module that names a winner and a
+// module that ranks the players are the same module, and they have to agree.
+//
+// Žolíky is why this exists. Its scoreboard ranked players by the cards they
+// were *holding when the match ended* rather than by their score across the
+// deals, so the row at the top of the table was not necessarily the player the
+// engine had just declared the winner — and the runtime recorded that row's
+// score as the player's result for the whole match. Nothing failed. The number
+// was simply wrong, everywhere it was used, for as long as it existed.
+//
+// Stated as "every winner has rank 1" rather than "rank 1 is the winner"
+// because a draw is real: several seats can share the top rank, and a module
+// that ends level names all of them.
+func TestTheScoreboardAgreesWithTheWinner(t *testing.T) {
+	for _, g := range allModules() {
+		if !g.finishes {
+			continue // driven to a finish in the module's own suite instead
+		}
+		t.Run(g.name, func(t *testing.T) {
+			state, err := g.mod.NewMatch(g.cfg, g.players, 5)
+			if err != nil {
+				t.Fatalf("NewMatch: %v", err)
+			}
+			final, res, err := module.PlayWithOffers(g.mod, state, g.players, module.DriverOptions{
+				MaxActions: 8000, Prefer: g.prefer,
+			})
+			if err != nil {
+				t.Fatalf("%v", err)
+			}
+			if !res.Finished {
+				t.Fatalf("did not finish in %d actions", res.Actions)
+			}
+			assertScoreboardAgrees(t, g.mod, final, res.Winners)
+		})
+	}
+}
+
+// assertScoreboardAgrees is the check itself, exported to the modules that
+// cannot be driven by offers alone and must play themselves to a finish.
+func assertScoreboardAgrees(t *testing.T, mod module.GameModule, final module.State, winners []string) {
+	t.Helper()
+
+	standings := module.StandingsFor(mod, final)
+	if len(standings) == 0 {
+		return // a module that keeps no scoreboard has nothing to disagree with
+	}
+
+	byID := map[string]module.Standing{}
+	for _, s := range standings {
+		byID[s.PlayerID] = s
+	}
+	for _, w := range winners {
+		s, ok := byID[w]
+		if !ok {
+			t.Errorf("the engine named %q the winner and the scoreboard does not list them", w)
+			continue
+		}
+		if s.Rank != 1 {
+			t.Errorf("the engine named %q the winner and the scoreboard ranks them %d (score %d)",
+				w, s.Rank, s.Score)
+		}
+		if !s.Won {
+			t.Errorf("the engine named %q the winner and the scoreboard does not mark them won", w)
+		}
+	}
+
+	// And the other way: nobody sits at the top of a finished scoreboard
+	// without the engine having named them.
+	won := map[string]bool{}
+	for _, w := range winners {
+		won[w] = true
+	}
+	for _, s := range standings {
+		if s.Rank == 1 && len(winners) > 0 && !won[s.PlayerID] {
+			t.Errorf("the scoreboard ranks %q first and the engine did not name them a winner", s.PlayerID)
+		}
+	}
+}
