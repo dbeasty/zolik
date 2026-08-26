@@ -17,7 +17,7 @@ import { useMatchSocket } from '@/src/hooks/useMatchSocket';
 import { usePanelState } from '@/src/hooks/usePanelState';
 import { drawableZones } from '@/src/lib/board';
 import { dropSpotsFor, groupElementId, positionAt, type DropSpot } from '@/src/lib/drops';
-import { cardsForSelection, pruneSelection, slotsForDrag } from '@/src/lib/hand';
+import { cardsForSelection, slotsForDrag, toggleSelection } from '@/src/lib/hand';
 import { reasonText } from '@/src/lib/i18n';
 import { factText, label, playerName } from '@/src/lib/labels';
 import { colors, dragLayer } from '@/src/theme';
@@ -52,6 +52,9 @@ export default function MatchScreen() {
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const { session, client } = useSession();
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
+  // Whether what is currently selected was picked by the *app* rather than by
+  // the player — see the auto-select effect below and `toggleSlot`.
+  const [selectionIsAuto, setSelectionIsAuto] = useState(false);
   const panels = usePanelState(matchId ? String(matchId) : undefined);
 
   const url = useMemo(() => {
@@ -88,8 +91,15 @@ export default function MatchScreen() {
   // cover. Landing it selected means whatever's about to leave the hand is
   // already picked, rather than making a player go find it among a dozen
   // others first.
+  //
+  // Flagged as the app's pick rather than the player's, which is what lets
+  // the next card they touch replace it instead of joining it — see
+  // `toggleSlot`.
   useEffect(() => {
-    if (autoSelectIds.length) setSelected(new Set(autoSelectIds));
+    if (autoSelectIds.length) {
+      setSelected(new Set(autoSelectIds));
+      setSelectionIsAuto(true);
+    }
   }, [autoSelectIds]);
 
   // Dragging a card somewhere. `drag` renders the highlights; `dragRef` is the
@@ -121,6 +131,14 @@ export default function MatchScreen() {
     );
   }
 
+  // Nothing selected, and nothing provisionally selected either — a fresh
+  // start for whatever the player does next. Used everywhere a selection is
+  // spent, so the auto-pick flag can never outlive the cards it described.
+  const clearSelection = () => {
+    setSelected(new Set());
+    setSelectionIsAuto(false);
+  };
+
   // Selection is by *slot*, not by card string. With two decks in play a hand
   // can hold two identical strings, and selecting by string could neither
   // light up the copy that was tapped nor put both of them in one meld.
@@ -130,12 +148,13 @@ export default function MatchScreen() {
     // that choice over rather than resolving it against a selection that has
     // since moved on.
     setPendingGroupKey(null);
-    setSelected((prev) => {
-      const next = pruneSelection(heldSlots, prev);
-      if (next.has(slotId)) next.delete(slotId);
-      else next.add(slotId);
-      return next;
-    });
+    // `provisional` is what makes a tap on some *other* card replace the
+    // app's own pick rather than join it — see `toggleSelection`.
+    setSelected((prev) => toggleSelection(heldSlots, prev, slotId, { provisional: selectionIsAuto }));
+    // Whatever that did, the selection is now the player's own, so further
+    // taps accumulate normally — that is how several cards are gathered into
+    // one meld.
+    setSelectionIsAuto(false);
   };
 
   const selectedCards = cardsForSelection(heldSlots, selected);
@@ -204,7 +223,18 @@ export default function MatchScreen() {
   const otherZones = visible.filter((z) => z.ownerId && z.ownerId !== viewerId && z.kind !== 'spread');
 
   const beginDrag = (zoneId: string, index: number) => {
-    const carried = slotsForDrag(slotsFor(zoneId), selected, index);
+    const slots = slotsFor(zoneId);
+    // Picking a card up is as much "I mean this one" as tapping it, so the
+    // same rule applies: a provisional selection the player didn't make is
+    // dropped the moment they take hold of something else. It would
+    // otherwise survive the drag and get merged back in by the staging
+    // branch of `endDrag`, putting a card they never chose into the next
+    // thing they try to play.
+    const picked = slots[index];
+    if (picked && selectionIsAuto && !selected.has(picked.id)) setSelected(new Set());
+    setSelectionIsAuto(false);
+
+    const carried = slotsForDrag(slots, selected, index);
     if (!carried.length) return;
 
     const cards = carried.map((s) => s.card);
@@ -256,7 +286,7 @@ export default function MatchScreen() {
     if (position) action.params = { ...(action.params ?? {}), [POSITION_PARAM]: position };
 
     send(action);
-    setSelected(new Set());
+    clearSelection();
     return true;
   };
 
@@ -283,7 +313,7 @@ export default function MatchScreen() {
     if (position) action.params = { ...(action.params ?? {}), [POSITION_PARAM]: position };
 
     send(action);
-    setSelected(new Set());
+    clearSelection();
     setPendingGroupKey(null);
   };
 
@@ -437,7 +467,7 @@ export default function MatchScreen() {
               offers={state.legalActions}
               selectedCards={selectedCards}
               onSend={send}
-              onConsumeSelection={() => setSelected(new Set())}
+              onConsumeSelection={clearSelection}
               onAmbiguous={(groupKey) => {
                 setPendingGroupKey(groupKey);
                 drops.measure();
@@ -463,7 +493,7 @@ export default function MatchScreen() {
             offers={state.legalActions}
             selectedCards={selectedCards}
             onSend={send}
-            onConsumeSelection={() => setSelected(new Set())}
+            onConsumeSelection={clearSelection}
             onAmbiguous={(groupKey) => {
               setPendingGroupKey(groupKey);
               // The board is inside a scroll view, so a target's position
