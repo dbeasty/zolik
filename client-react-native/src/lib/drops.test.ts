@@ -1,6 +1,6 @@
 import type { ActionOffer } from '@/src/api/matchTypes';
 
-import { dropSpotsFor, fits, positionAt, spotAt } from './drops';
+import { dropSpotsFor, fits, positionAt, someOfferReady, spotAt } from './drops';
 
 /**
  * The offer shapes below are the ones the four modules really emit — a Prší
@@ -240,5 +240,41 @@ describe('positionAt', () => {
     // both ends at once, and naming either is what would be rejected.
     expect(positionAt(undefined, 140, rect)).toBeUndefined();
     expect(positionAt([], 140, rect)).toBeUndefined();
+  });
+});
+
+describe('someOfferReady', () => {
+  // Regression: a card that just arrived in hand lands pre-selected, and a
+  // second tap used to *replace* that pick outright rather than ever join
+  // it — even when the two together were exactly a multi-card lay-off ready
+  // to send. `someOfferReady` is the test the match screen now runs before
+  // deciding which of those a second tap means.
+  it('is ready once two eligible cards are both picked for a multi-card lay-off', () => {
+    expect(someOfferReady([layOff], ['6D', 'TD'])).toBe(true);
+  });
+
+  it('is not ready for a meld still short of its minimum', () => {
+    // Two cards headed for a fresh meld "fit" it (see `fits`'s own test
+    // above) but are not enough to send — nothing is ready yet, so a second
+    // tap here should still replace the first pick, not join it.
+    expect(someOfferReady([layMeld], ['2C', '2D'])).toBe(false);
+  });
+
+  it('is ready once a meld reaches its minimum', () => {
+    expect(someOfferReady([layMeld], ['2C', '2D', '2H'])).toBe(true);
+  });
+
+  it('ignores an offer with no opinion on the selection, not just any offer', () => {
+    // A draw (or an undo) takes no cards and "fits" everything trivially —
+    // that must not count as some *other* offer being ready for these cards.
+    expect(someOfferReady([draw], ['6D', 'TD'])).toBe(false);
+  });
+
+  it('ignores a disabled offer even if it would otherwise be ready', () => {
+    expect(someOfferReady([{ ...layOff, enabled: false }], ['6D', 'TD'])).toBe(false);
+  });
+
+  it('is ready when only one offer among several actually takes the cards', () => {
+    expect(someOfferReady([draw, layMeld, layOff], ['6D', 'TD'])).toBe(true);
   });
 });
