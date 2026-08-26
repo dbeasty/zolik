@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { dragLocatorTo, handCards } from '../helpers/drag';
 import { API_BASE } from '../helpers/env';
+import { clearHandSelection } from '../helpers/hand';
 
 /**
  * The board on a phone.
@@ -171,6 +172,15 @@ test.describe('the board on a phone', () => {
     await expect(page.locator('[data-testid^="card-hand:"]')).toHaveCount(before.length + 1, {
       timeout: 10_000,
     });
+
+    // The drawn card lands *selected*, and a selected card lights up
+    // everywhere it could go — including this very panel, which is then held
+    // open as a live target and cannot be minimized at all. That is the panel
+    // rule working (a drop target may never be hidden by a preference), but
+    // it leaves nothing minimized to test, so put the selection down first.
+    // Without this the toggle below reads "▾" and the whole point of the test
+    // is lost.
+    await clearHandSelection(page);
 
     const panelId = `zone:melds:${host.userId}`;
     await page.getByTestId(`panel-toggle-${panelId}`).click();
