@@ -716,6 +716,31 @@ func ValidateSwapJoker(state GameState, playerID string, meldID string, card str
 	return state, nil
 }
 
+// jokerDiscardIsOnlyMove reports whether playerID's hand is nothing but
+// jokers with nowhere to go: no non-joker card to discard instead, and no
+// lay-off possible for any of them (which, before the player has gone down,
+// includes every meld — lay-off is refused outright until then).
+//
+// A new meld is never in question here: validateSet demands at least one
+// natural to name the rank, so an all-joker hand can never lay one down.
+func jokerDiscardIsOnlyMove(state GameState, playerID string) bool {
+	hand := state.Hands[playerID]
+	for _, c := range hand {
+		if !IsJoker(c) {
+			return false
+		}
+	}
+	if !state.RoundReqMet[playerID] {
+		return true
+	}
+	for _, m := range tableMelds(state) {
+		if ok, _ := probe(state, playerID, Action{Type: ActionLayOff, MeldID: m.MeldID, Card: hand[0]}); ok {
+			return false
+		}
+	}
+	return true
+}
+
 func ValidateDiscard(state GameState, playerID string, card string, cardIndex *int) (GameState, bool, error) {
 	if state.Status != StatusActive {
 		return state, false, RulesError{Code: ErrGameNotActive}
@@ -732,9 +757,15 @@ func ValidateDiscard(state GameState, playerID string, card string, cardIndex *i
 	cfg := effectiveRules(state)
 	if cfg.JokerDiscardRestricted && IsJoker(card) {
 		// A joker can never be discarded — except as the exact card that
-		// empties an already-down player's hand, ending the deal for them.
+		// empties an already-down player's hand, ending the deal for them, or
+		// as the player's genuinely only legal move. An all-joker hand can
+		// never form a new meld (a set needs a natural to name its rank), so
+		// once every table meld is either full or out of reach, refusing this
+		// discard would leave the player with nothing they can legally do for
+		// the rest of the deal — the dead end dont-let-a-turn-end-in-a-dead-
+		// position exists to avoid.
 		goesOut := len(state.Hands[playerID]) == 1 && state.RoundReqMet[playerID]
-		if !goesOut {
+		if !goesOut && !jokerDiscardIsOnlyMove(state, playerID) {
 			return state, false, RulesError{
 				Code:    ErrJokerDiscard,
 				Message: "a joker can't be discarded unless it's the card that ends the hand",
