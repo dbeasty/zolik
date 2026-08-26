@@ -61,6 +61,30 @@ type Scoreboard struct {
 
 	Standings   []Standing  `bson:"standings" json:"standings"`
 	Composition Composition `bson:"composition" json:"composition"`
+
+	// Rounds is the module's round history, reduced to arithmetic.
+	Rounds        []RoundRecord `bson:"rounds,omitempty" json:"rounds,omitempty"`
+	RoundLabelKey string        `bson:"roundLabelKey,omitempty" json:"roundLabelKey,omitempty"`
+}
+
+// roundRecords reduces a module's round log to what a permanent row keeps: the
+// numbers, and who took each round. Every label and every fact is dropped — see
+// RoundRecord for why a stored row must not carry a locale bundle's params.
+func roundRecords(log *module.RoundLog) []RoundRecord {
+	if log == nil || len(log.Rounds) == 0 {
+		return nil
+	}
+	out := make([]RoundRecord, 0, len(log.Rounds))
+	for _, r := range log.Rounds {
+		rec := RoundRecord{Number: r.Number, Winners: append([]string(nil), r.Winners...)}
+		for _, sc := range r.Scores {
+			rec.Scores = append(rec.Scores, RoundScore{
+				PlayerID: sc.PlayerID, Delta: sc.Delta, Total: sc.Total,
+			})
+		}
+		out = append(out, rec)
+	}
+	return out
 }
 
 // Composition summarises who is at the table. Storing it on the match record
@@ -80,7 +104,8 @@ type Composition struct {
 // Pure: no I/O, no clock, and it mutates neither argument. It computes no
 // placing of its own — the module ranked the players, and a second opinion
 // here would be a second implementation of "who is winning".
-func BuildScoreboard(m models.Match, standings []module.Standing) Scoreboard {
+func BuildScoreboard(m models.Match, out module.Outcome) Scoreboard {
+	standings := out.Standings
 	sb := Scoreboard{
 		MatchID:   m.ID.Hex(),
 		ModuleID:  m.ModuleID,
@@ -133,6 +158,10 @@ func BuildScoreboard(m models.Match, standings []module.Standing) Scoreboard {
 	})
 
 	sb.Composition = compositionOf(m)
+	sb.Rounds = roundRecords(out.Rounds)
+	if out.Rounds != nil {
+		sb.RoundLabelKey = out.Rounds.LabelKey
+	}
 	return sb
 }
 

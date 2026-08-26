@@ -59,7 +59,7 @@ func testMatch(t *testing.T, roster []string, scores []int, status string, winne
 // implementation of "who is winning".
 func TestScoreboardRecordsTheModuleRanking(t *testing.T) {
 	m, standings := testMatch(t, []string{"user:a", "user:b", "user:c"}, []int{10, 30, 20}, "completed", "p1")
-	sb := BuildScoreboard(m, standings)
+	sb := BuildScoreboard(m, module.Outcome{Standings: standings})
 
 	if len(sb.Standings) != 3 {
 		t.Fatalf("%d standings, want 3", len(sb.Standings))
@@ -87,7 +87,7 @@ func TestWinnerComesFromTheEngineNotTheRanking(t *testing.T) {
 	// a contrived case: Canasta's partnership and poker's last-player-standing
 	// both settle on something other than "most points right now".
 	m, standings := testMatch(t, []string{"user:a", "user:b"}, []int{10, 30}, "completed", "p0")
-	sb := BuildScoreboard(m, standings)
+	sb := BuildScoreboard(m, module.Outcome{Standings: standings})
 
 	won := map[string]bool{}
 	for _, s := range sb.Standings {
@@ -106,7 +106,7 @@ func TestWinnerComesFromTheEngineNotTheRanking(t *testing.T) {
 // also recorded as a draw here: both members share first place.
 func TestMoreThanOneWinnerIsADraw(t *testing.T) {
 	m, standings := testMatch(t, []string{"user:a", "user:b"}, []int{20, 20}, "completed", "p0", "p1")
-	sb := BuildScoreboard(m, standings)
+	sb := BuildScoreboard(m, module.Outcome{Standings: standings})
 
 	if !sb.IsDraw {
 		t.Error("two winners should read as a draw")
@@ -125,7 +125,7 @@ func TestMoreThanOneWinnerIsADraw(t *testing.T) {
 // without claiming anyone has won.
 func TestInProgressMatchNamesNoWinner(t *testing.T) {
 	m, standings := testMatch(t, []string{"user:a", "user:b"}, []int{10, 30}, "active")
-	sb := BuildScoreboard(m, standings)
+	sb := BuildScoreboard(m, module.Outcome{Standings: standings})
 
 	if sb.Complete {
 		t.Error("an active match is not complete")
@@ -146,7 +146,7 @@ func TestScoreboardClassifiesEverySeat(t *testing.T) {
 	m, standings := testMatch(t,
 		[]string{"user:alice", "guest:bob", "ai:hard", "ai:hard"},
 		[]int{40, 30, 20, 10}, "completed", "p0")
-	sb := BuildScoreboard(m, standings)
+	sb := BuildScoreboard(m, module.Outcome{Standings: standings})
 
 	c := sb.Composition
 	if c.Players != 4 || c.Users != 1 || c.Guests != 1 || c.AIs != 2 {
@@ -179,7 +179,7 @@ func TestScoreboardClassifiesEverySeat(t *testing.T) {
 // only the module can say.
 func TestScoreUnitTravels(t *testing.T) {
 	m, standings := testMatch(t, []string{"user:a", "user:b"}, []int{1, 2}, "completed", "p1")
-	sb := BuildScoreboard(m, standings)
+	sb := BuildScoreboard(m, module.Outcome{Standings: standings})
 	for _, s := range sb.Standings {
 		if s.ScoreLabelKey == "" {
 			t.Errorf("%s's score has no unit", s.PlayerID)
@@ -192,8 +192,8 @@ func TestScoreUnitTravels(t *testing.T) {
 func TestTiedSeatsKeepAStableOrder(t *testing.T) {
 	m, standings := testMatch(t, []string{"user:a", "user:b", "user:c"}, []int{20, 20, 10}, "active")
 
-	first := BuildScoreboard(m, standings).Standings
-	second := BuildScoreboard(m, standings).Standings
+	first := BuildScoreboard(m, module.Outcome{Standings: standings}).Standings
+	second := BuildScoreboard(m, module.Outcome{Standings: standings}).Standings
 	for i := range first {
 		if first[i].PlayerID != second[i].PlayerID {
 			t.Fatalf("order changed between reads: %v then %v", first, second)
@@ -217,7 +217,7 @@ func TestScoreboardWorksForAGameWithNoDeals(t *testing.T) {
 		standings[i].LabelKey = "holdem.unit.chips"
 	}
 
-	sb := BuildScoreboard(m, standings)
+	sb := BuildScoreboard(m, module.Outcome{Standings: standings})
 	if sb.ModuleID != "holdem" {
 		t.Errorf("module is %q", sb.ModuleID)
 	}

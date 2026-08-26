@@ -47,15 +47,15 @@ type Manager struct {
 //
 // An interface held here rather than a direct dependency on internal/stats,
 // which keeps the arrow one-way and leaves the runtime testable without a
-// database. It takes the module's own standings because only the module knows
-// how its game is scored — which is what makes statistics work for every game
-// rather than only for the one whose arithmetic the stats package used to
-// hard-code.
+// database. It takes the module's own outcome — its standings and its round
+// history — because only the module knows how its game is scored, which is what
+// makes statistics work for every game rather than only for the one whose
+// arithmetic the stats package used to hard-code.
 type Recorder interface {
 	// RecordMatchAsync must not block the action that completed the match,
 	// and must not fail it: a bookkeeping problem is never a reason to reject
 	// a legal move.
-	RecordMatchAsync(m models.Match, standings []module.Standing)
+	RecordMatchAsync(m models.Match, out module.Outcome)
 }
 
 // SetRecorder attaches statistics recording. Optional.
@@ -321,7 +321,7 @@ func (m *Manager) HandleAction(ctx context.Context, idOrCode, playerID string, a
 	// without waiting on bookkeeping, and a bookkeeping failure must never
 	// fail the move that won.
 	if match.Status == "completed" && m.recorder != nil {
-		m.recorder.RecordMatchAsync(match, module.StandingsFor(mod, match.State))
+		m.recorder.RecordMatchAsync(match, module.OutcomeOf(mod, match.State))
 	}
 
 	// Whoever is on turn now might be a bot. The loop is a no-op when it is

@@ -46,7 +46,45 @@ type MatchResult struct {
 	Winners []string `bson:"winners,omitempty" json:"winners,omitempty"`
 	IsDraw  bool     `bson:"isDraw,omitempty" json:"isDraw,omitempty"`
 
+	// Rounds is how the match got to that result, round by round, when the
+	// module kept a history. Nil for a game with no rounds, and nil on every
+	// row written before this field existed — a reader must treat "absent" as
+	// "not recorded" rather than "no rounds".
+	//
+	// Nothing derived reads it, and that is a rule rather than an observation.
+	// The lifetime aggregates are rebuilt from these rows by
+	// Claimer.RebuildPlayerStats, so a tally that counted anything in here
+	// would rebuild a pre-Rounds row differently from how it was folded in
+	// live. Rounds is here to be read back by a person, never to be counted.
+	Rounds        []RoundRecord `bson:"rounds,omitempty" json:"rounds,omitempty"`
+	RoundLabelKey string        `bson:"roundLabelKey,omitempty" json:"roundLabelKey,omitempty"`
+
 	RecordedAt time.Time `bson:"recordedAt" json:"recordedAt"`
+}
+
+// RoundRecord is one round of a recorded match.
+//
+// Its own type rather than module.RoundResult, for the same reason Standing is
+// its own type rather than module.Standing: this is a permanent row, written in
+// BSON, that has to still parse years from now. A module's facts carry a
+// map[string]any of whatever a client's locale bundle needed on the day the
+// round was played, which is exactly the sort of thing a permanent record must
+// not store. The arithmetic is kept; the presentation is dropped.
+type RoundRecord struct {
+	Number  int      `bson:"number" json:"number"`
+	Winners []string `bson:"winners,omitempty" json:"winners,omitempty"`
+	// Scores is keyed by PlayerID — the seat id inside this match — and never
+	// by subject key, which is what lets a guest claim their history without
+	// this table having to be rewritten alongside the participants.
+	Scores []RoundScore `bson:"scores" json:"scores"`
+}
+
+// RoundScore is one seat's movement in one round, higher-is-better like every
+// other score here.
+type RoundScore struct {
+	PlayerID string `bson:"playerId" json:"playerId"`
+	Delta    int    `bson:"delta" json:"delta"`
+	Total    int    `bson:"total" json:"total"`
 }
 
 // Tally is one bucket of lifetime counters. The same shape is reused for the

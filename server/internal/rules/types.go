@@ -289,7 +289,11 @@ type GameState struct {
 	// a reader must treat the two the same.
 	DealWinners []string
 	// PendingDealStarter is who leads the deal the table is paused before.
-	PendingDealStarter string `json:"pendingDealStarter,omitempty"`
+	//
+	// Remembered rather than worked out again on resume: who leads the next
+	// deal is decided by who went out of this one, and that is gone the moment
+	// the table is dealt again.
+	PendingDealStarter string
 
 	WinnerID string
 	IsDraw   bool
