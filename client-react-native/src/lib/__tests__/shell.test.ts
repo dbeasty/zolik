@@ -2,7 +2,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 
 import type { ActionOffer } from '@/src/api/matchTypes';
-import { defaultParam, eligibleCards, isOneTap, submissionFor } from '@/src/api/matchTypes';
+import { defaultParam, isOneTap, submissionFor } from '@/src/api/matchTypes';
 import { humanise, factText } from '@/src/lib/labels';
 
 /**
@@ -150,6 +150,44 @@ describe('submissionFor', () => {
     };
     expect(submissionFor(offer)?.params).toEqual({ pick: 'a' });
   });
+
+  it('refuses a selection bigger than the offer will take, rather than trimming it', () => {
+    // The bug this replaces: a discard takes one card, and picking two used
+    // to silently discard whichever one a `slice` happened to keep — the
+    // other stayed selected, looking chosen, when it had already been spent.
+    const offer: ActionOffer = {
+      id: 'discard', verb: 'discard', enabled: true,
+      source: { zone: 'hand', cards: ['7H', '9S', 'KD'], minCards: 1, maxCards: 1 },
+    };
+    expect(submissionFor(offer, { cards: ['7H', '9S'] })).toBeNull();
+  });
+
+  it('sends the one card chosen when the offer lists several candidates', () => {
+    const offer: ActionOffer = {
+      id: 'discard', verb: 'discard', enabled: true,
+      source: { zone: 'hand', cards: ['7H', '9S', 'KD'], minCards: 1, maxCards: 1 },
+    };
+    expect(submissionFor(offer, { cards: ['9S'] })?.cards).toEqual(['9S']);
+  });
+
+  it('falls back to the offer own list when nothing was chosen and there is only one candidate', () => {
+    const offer: ActionOffer = {
+      id: 'lay_off:m', verb: 'lay_off', enabled: true,
+      source: { zone: 'hand', cards: ['6D'], minCards: 1, maxCards: 8 },
+    };
+    expect(submissionFor(offer)?.cards).toEqual(['6D']);
+  });
+
+  it('refuses to guess among several candidates when nothing was chosen', () => {
+    // The other half of the same bug: a lay-off with two cards that both fit
+    // the same meld used to send the first of the two the moment the control
+    // was pressed, with no selection at all — the player never said which.
+    const offer: ActionOffer = {
+      id: 'lay_off:m', verb: 'lay_off', enabled: true,
+      source: { zone: 'hand', cards: ['6D', '6S'], minCards: 1, maxCards: 8 },
+    };
+    expect(submissionFor(offer)).toBeNull();
+  });
 });
 
 describe('defaultParam', () => {
@@ -190,27 +228,18 @@ describe('isOneTap', () => {
       }),
     ).toBe(false);
   });
-});
 
-describe('eligibleCards', () => {
-  it('takes the whole selection for a composite offer with no enumerated list', () => {
-    // A rummy meld shape (Žolíky, or Canasta's own compose-it-yourself
-    // fallback): the offer bounds the shape with minCards/maxCards and lists
-    // no cards, so any card the player selected is a candidate — this is the
-    // case that left the "lay meld" button permanently disabled.
-    const offer: ActionOffer = {
-      id: 'lay_meld', verb: 'lay_meld', enabled: true, composite: true,
-      source: { zone: 'hand', minCards: 3, maxCards: 13 },
-    };
-    expect(eligibleCards(offer, ['3H', '3S', '3D'])).toEqual(['3H', '3S', '3D']);
-  });
-
-  it('filters against the list for an offer that enumerates its cards', () => {
-    const offer: ActionOffer = {
-      id: 'discard', verb: 'discard', enabled: true,
-      source: { zone: 'hand', cards: ['7H', '9S'], minCards: 1, maxCards: 1 },
-    };
-    expect(eligibleCards(offer, ['7H', 'KD'])).toEqual(['7H']);
+  it('is false when the offer names more candidates than it needs', () => {
+    // A lay-off with two cards that both fit the same meld enumerates a list
+    // at least as long as `minCards`, but which of the two goes is a choice
+    // only a person can make — a plain `>=` here used to read that as "the
+    // server enumerated the whole submission" and let the first one go.
+    expect(
+      isOneTap({
+        id: 'lay_off:m', verb: 'lay_off', enabled: true,
+        source: { zone: 'hand', cards: ['6D', '6S'], minCards: 1, maxCards: 8 },
+      }),
+    ).toBe(false);
   });
 });
 

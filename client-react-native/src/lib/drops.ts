@@ -58,6 +58,43 @@ function coveredBy(wanted: string[], available: string[]): boolean {
   return true;
 }
 
+/** Why a set of cards is not ones this offer could ever send. */
+export type Fit =
+  | { ok: true }
+  | { ok: false; labelKey: string; params?: Record<string, string | number> };
+
+/**
+ * Whether these particular cards are ones this offer could ever be sent
+ * with — enough of a card, not too many, and (when the offer enumerates its
+ * own candidates) only cards on that list. Says nothing about whether there
+ * are *enough of them yet*: a drag still gathering cards for a rummy meld and
+ * a button that needs a person to finish choosing both ask that separately,
+ * because a drag is allowed to stage a partial answer where a button is not.
+ *
+ * An offer that takes no cards at all (a draw, an undo) has no opinion on any
+ * selection — it is not this offer's business what else happens to be picked.
+ */
+export function fits(offer: ActionOffer, cards: string[]): Fit {
+  const need = offer.source?.minCards ?? 0;
+  if (need === 0) return { ok: true };
+
+  const max = offer.source?.maxCards ?? need;
+  if (cards.length > max) {
+    return max === 1
+      ? { ok: false, labelKey: 'sel.tooMany.1' }
+      : { ok: false, labelKey: 'sel.tooMany.n', params: { n: max } };
+  }
+
+  const placements = placementsOf(offer);
+  const enumerated = placements.length > 0 ? placements.map((p) => p.card) : offer.source?.cards;
+  // No list at all means the offer bounds a shape rather than listing
+  // combinations — a rummy meld — and any card in hand may go into it.
+  if (enumerated && enumerated.length > 0 && !coveredBy(cards, enumerated)) {
+    return { ok: false, labelKey: 'sel.notThese' };
+  }
+  return { ok: true };
+}
+
 /**
  * Every place the cards currently being dragged may be let go of.
  *
@@ -86,15 +123,9 @@ export function dropSpotsFor(offers: ActionOffer[], cards: string[]): DropSpot[]
     const need = offer.source?.minCards ?? 0;
     if (need === 0) continue;
 
-    const max = offer.source?.maxCards ?? need;
-    if (cards.length > max) continue;
+    if (!fits(offer, cards).ok) continue;
 
     const placements = placementsOf(offer);
-    const enumerated = placements.length > 0 ? placements.map((p) => p.card) : offer.source?.cards;
-    // No list at all means the offer bounds a shape rather than listing
-    // combinations — a rummy meld — and any card in hand may go into it.
-    if (enumerated && enumerated.length > 0 && !coveredBy(cards, enumerated)) continue;
-
     const spot: DropSpot = { offerId: offer.id, elementId, ready: cards.length >= need };
     if (cards.length === 1) {
       const p = placements.find((x) => x.card === cards[0]);
@@ -111,23 +142,29 @@ export function spotAt(spots: DropSpot[], elementId: string): DropSpot | undefin
 }
 
 /**
- * Which of several legal positions a drop at `x` means.
+ * Which of several legal positions a drop at `y` means.
  *
  * The list is in rendered order, so this is just "which slice of the target
- * did the pointer land in" — left half of a two-ended run is the first entry,
- * right half the last. It never has to know that those are the low and high
- * ends of a run, which is the whole point.
+ * did the pointer land in" — the top of a two-ended run's group is the first
+ * entry, the bottom the last. It never has to know those are the low and
+ * high ends of a run, which is the whole point.
+ *
+ * Vertical, not horizontal: a group is drawn as a stack overlapping top to
+ * bottom (see `ZoneView`'s `stackedCards`), one card wide regardless of how
+ * long the run is, so a slice of its *width* is a sliver with nothing on
+ * screen to tell two ends apart. Its height is exactly the thing that grows
+ * with the run and reads as "top" and "bottom" to whoever is looking at it.
  */
 export function positionAt(
   positions: string[] | undefined,
-  x: number,
-  rect: { x: number; width: number },
+  y: number,
+  rect: { y: number; height: number },
 ): string | undefined {
   if (!positions?.length) return undefined;
   if (positions.length === 1) return positions[0];
-  if (rect.width <= 0) return positions[0];
+  if (rect.height <= 0) return positions[0];
 
-  const share = (x - rect.x) / rect.width;
+  const share = (y - rect.y) / rect.height;
   const index = Math.floor(share * positions.length);
   return positions[Math.max(0, Math.min(index, positions.length - 1))];
 }

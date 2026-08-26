@@ -204,4 +204,50 @@ test.describe('the board on a phone', () => {
     // registered target despite being minimized.
     await expect(card).toHaveAttribute('aria-selected', 'true');
   });
+
+  test('a card in the fan does not block the page from being scrolled past it', async ({
+    page,
+    request,
+  }) => {
+    // The bug this guards against: attaching a drag gesture to an element
+    // makes react-native-gesture-handler set that element's own `touch-action`
+    // to `none` on the web build, unconditionally — every touch that begins
+    // on a card is claimed for the gesture before the browser's native touch
+    // scrolling ever gets a say, vertical swipe included. On a phone the hand
+    // is the biggest touch target on the page and sits mid-scroll, so that
+    // silently made the board unscrollable the moment a finger landed on any
+    // of a dozen-plus cards. `pan-y` hands vertical panning back to the
+    // browser; a horizontal drag (rearranging the fan) is untouched, since
+    // `touch-action` only ever gives up the axis it's told to.
+    //
+    // Asserting the CSS rather than driving an actual touch-scroll gesture:
+    // native touch-scroll-vs-gesture arbitration is a browser compositor
+    // decision that CDP-driven touch synthesis does not reliably reproduce,
+    // where the `touch-action` value react-native-gesture-handler committed
+    // to the DOM is exactly the fact a regression here would change.
+    const { matchId, host } = await tableWithBots(request, 'zolik', 2);
+    await openMatch(page, host, matchId);
+    await handCards(page);
+
+    const touchActions = await page
+      .locator('[data-testid^="card-hand:"]')
+      .first()
+      .evaluate((card) => {
+        // Several ancestors between the card's own ring and the hand row set
+        // their own `touch-action` for reasons that have nothing to do with
+        // this gesture (the ring itself uses `manipulation`, to suppress
+        // double-tap-to-zoom) — collect every non-default value on the way up
+        // rather than assuming which level the gesture's own is at.
+        const seen: string[] = [];
+        let node: HTMLElement | null = card as HTMLElement;
+        for (let i = 0; i < 6 && node; i++, node = node.parentElement) {
+          const value = getComputedStyle(node).touchAction;
+          if (value !== 'auto') seen.push(value);
+        }
+        return seen;
+      });
+
+    expect(touchActions).toContain('pan-y');
+    expect(touchActions).not.toContain('none');
+  });
 });

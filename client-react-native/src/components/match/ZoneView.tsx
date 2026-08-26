@@ -62,13 +62,32 @@ type Props = {
   /** The one the pointer is over right now. */
   hoveredDrop?: string | null;
   /**
+   * Which of `hoveredDrop`'s ordered positions a card in flight currently
+   * means, for a target with a choice of more than one — a run's group shows
+   * this live, before a player lets go, rather than only revealing where a
+   * card landed after. An index into an ordered list, not a position's name:
+   * this file draws the slice, it does not need to know what either end of
+   * it is called.
+   */
+  hoveredPosition?: { index: number; count: number } | null;
+  /**
    * Element ids that may be resolved with a press rather than a drag —
    * standing in for a drag when what to send has already been chosen and only
    * where it goes is still open. Disjoint in practice from a live drag: this
    * is populated between drags, not during one.
    */
   pressableDrops?: ReadonlySet<string>;
-  onPressDrop?: (elementId: string, pageX: number) => void;
+  onPressDrop?: (elementId: string, pageY: number) => void;
+  /**
+   * Group ids (a meld's own id, not an element id) that could be *aimed at*
+   * right now — pointed at before any card is picked, so a move can be made
+   * target-first as well as cards-first. Populated only while nothing is
+   * selected; see the match screen's `armableGroups`.
+   */
+  armableGroups?: ReadonlySet<string>;
+  /** The one currently aimed at, if any. */
+  armedGroupId?: string | null;
+  onAimGroup?: (groupId: string) => void;
 };
 
 export function ZoneView({
@@ -86,8 +105,12 @@ export function ZoneView({
   registerDrop,
   activeDrops,
   hoveredDrop,
+  hoveredPosition,
   pressableDrops,
   onPressDrop,
+  armableGroups,
+  armedGroupId,
+  onAimGroup,
 }: Props) {
   const metrics = useMetrics();
   const styles = useMemo(() => zoneStyles(metrics), [metrics]);
@@ -202,7 +225,7 @@ export function ZoneView({
           <Pressable
             testID={`zone-press-${zone.id}`}
             style={StyleSheet.absoluteFill}
-            onPress={(e) => onPressDrop?.(zoneId, e.nativeEvent.pageX)}
+            onPress={(e) => onPressDrop?.(zoneId, e.nativeEvent.pageY)}
           />
         ) : null}
 
@@ -216,13 +239,20 @@ export function ZoneView({
             const groupId = groupElementId(g.id);
             const groupLive = activeDrops?.has(groupId) ?? false;
             const groupPressable = pressableDrops?.has(groupId) ?? false;
+            const groupArmable = armableGroups?.has(g.id) ?? false;
+            const groupArmed = armedGroupId === g.id;
             const groupOpen = expandedGroups.has(g.id);
+            // Only meaningful while this exact group is the one being
+            // hovered — `hoveredPosition` is a fact about `hoveredDrop`, not
+            // about every group on the board.
+            const hoveredSlice = hoveredDrop === groupId ? hoveredPosition : null;
             return (
               <View
                 key={g.id}
                 ref={(n) => registerDrop?.(groupId, n as unknown as Measurable | null)}
                 style={[
                   styles.group,
+                  groupArmed && styles.armed,
                   groupLive && styles.live,
                   hoveredDrop === groupId && styles.hovered,
                 ]}
@@ -239,12 +269,24 @@ export function ZoneView({
                     row the way a horizontal fan did. Tapping the meld undoes
                     the overlap so every card shows in full — that tap is
                     disabled while the meld is a live drop target, so it
-                    never steals a press meant to resolve the drop. */}
+                    never steals a press meant to resolve the drop.
+                    While nothing is selected, the same tap also arms this
+                    meld as a target for the cards picked next — the two
+                    are the same gesture wanting the same thing, so aiming
+                    costs no tap of its own. */}
                 <Pressable
                   disabled={groupPressable}
-                  onPress={() => toggleGroup(g.id)}
+                  onPress={() => {
+                    toggleGroup(g.id);
+                    if (groupArmable) onAimGroup?.(g.id);
+                  }}
                   accessibilityRole="button"
                   accessibilityState={{ expanded: groupOpen }}
+                  // Flat, not nested in `accessibilityState` — see `CardView`'s
+                  // own `aria-selected`: this version of react-native-web drops
+                  // `accessibilityState.selected` on the web build silently,
+                  // where the flat aria spelling reaches the DOM.
+                  aria-selected={groupArmed}
                   accessibilityLabel={groupOpen ? 'Collapse this group' : 'Show all cards in this group'}
                   testID={`group-toggle-${g.id}`}
                 >
@@ -271,7 +313,26 @@ export function ZoneView({
                   <Pressable
                     testID={`group-press-${g.id}`}
                     style={StyleSheet.absoluteFill}
-                    onPress={(e) => onPressDrop?.(groupId, e.nativeEvent.pageX)}
+                    onPress={(e) => onPressDrop?.(groupId, e.nativeEvent.pageY)}
+                  />
+                ) : null}
+                {/* Which of more than one place a card in flight would land
+                    if let go right now — a slice of the group's own height,
+                    since the group is drawn as a stack running top to bottom
+                    (see the comment above). Purely a highlight: it changes
+                    which slice is tinted, never the group's own size, the
+                    same discipline `styles.live`/`hovered` already keep. */}
+                {hoveredSlice ? (
+                  <View
+                    pointerEvents="none"
+                    testID={`group-slice-${g.id}`}
+                    style={[
+                      styles.slice,
+                      {
+                        top: `${(100 * hoveredSlice.index) / hoveredSlice.count}%`,
+                        height: `${100 / hoveredSlice.count}%`,
+                      },
+                    ]}
                   />
                 ) : null}
               </View>
@@ -375,6 +436,10 @@ function zoneStyles(m: Metrics) {
       borderColor: colors.border,
       borderRadius: 8,
       padding: 4,
+      // So `slice` below positions against this box and not some further-out
+      // ancestor — a plain layout change, not a drop-state style, so it's
+      // fine on the group at rest as well as lit up.
+      position: 'relative',
     },
     // Only the border colour changes, never its width: a region that grew when
     // it lit up would move every region after it in the middle of the drag,
@@ -382,6 +447,22 @@ function zoneStyles(m: Metrics) {
     // keeps to that too — it only touches colour, style and fill.
     live: { borderColor: colors.accent },
     hovered: dropArmed,
+    // Which slice of the group a card in flight would land in, right now —
+    // sized and positioned in `top`/`height` percentages set inline per
+    // hover, so this only ever supplies the look. Absolutely positioned
+    // inside `group` (now `position: 'relative'`), so it overlays without
+    // adding to the group's own measured size.
+    slice: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      backgroundColor: 'rgba(251, 191, 36, 0.22)',
+      borderRadius: 6,
+    },
+    // A target pointed at before any card was picked — colour only, same
+    // discipline as `live`/`hovered`: this box must not change size just
+    // because it was tapped.
+    armed: { borderColor: colors.gold, backgroundColor: 'rgba(251, 191, 36, 0.10)' },
     badge: { color: colors.gold, fontSize: 10, marginTop: 2 },
     hidden: { color: colors.muted, fontSize: 11, marginTop: 6, fontStyle: 'italic' },
     dropHere: { color: colors.gold, fontSize: 11, marginTop: 6, fontStyle: 'italic' },

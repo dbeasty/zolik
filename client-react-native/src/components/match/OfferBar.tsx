@@ -2,15 +2,9 @@ import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { ActionOffer, MatchAction, ParamSpec } from '@/src/api/matchTypes';
-import {
-  defaultParam,
-  eligibleCards,
-  isOneTap,
-  offerGroupKey,
-  offerMatchesSelection,
-  submissionFor,
-} from '@/src/api/matchTypes';
+import { defaultParam, isOneTap, offerGroupKey, submissionFor } from '@/src/api/matchTypes';
 import { useMetrics } from '@/src/hooks/useMetrics';
+import { fits, type Fit } from '@/src/lib/drops';
 import type { Metrics } from '@/src/lib/layout';
 import { factText, label } from '@/src/lib/labels';
 import { reasonText } from '@/src/lib/i18n';
@@ -45,6 +39,14 @@ type Props = {
   offers: ActionOffer[];
   /** Cards the player has selected in their own zone, for composite offers. */
   selectedCards: string[];
+  /**
+   * The meld a player pointed at on the board before picking any cards —
+   * `target.meldId`, not an element id. Set by tapping a meld with nothing
+   * selected (see the match screen), and read here to decide which of a
+   * folded control's targets a later selection resolves to, so "meld, then
+   * cards, then the button" is as real a sequence as "cards, then meld".
+   */
+  armedGroupId?: string | null;
   onSend: (action: MatchAction) => void;
   /** Called when an offer consumed the current selection. */
   onConsumeSelection: () => void;
@@ -84,7 +86,14 @@ function foldOffers(offers: ActionOffer[]): { groups: Map<string, ActionOffer[]>
   return { groups, foldedIds };
 }
 
-export function OfferBar({ offers, selectedCards, onSend, onConsumeSelection, onAmbiguous }: Props) {
+export function OfferBar({
+  offers,
+  selectedCards,
+  armedGroupId,
+  onSend,
+  onConsumeSelection,
+  onAmbiguous,
+}: Props) {
   const metrics = useMetrics();
   const styles = useMemo(() => offerBarStyles(metrics), [metrics]);
 
@@ -123,6 +132,7 @@ export function OfferBar({ offers, selectedCards, onSend, onConsumeSelection, on
               groupKey={key}
               group={groups.get(key) ?? []}
               selectedCards={selectedCards}
+              armedGroupId={armedGroupId}
               onResolve={send}
               onAmbiguous={onAmbiguous}
               styles={styles}
@@ -130,6 +140,13 @@ export function OfferBar({ offers, selectedCards, onSend, onConsumeSelection, on
           );
         }
         const ready = isReady(offer, selectedCards, params[offer.id]);
+        // Only rendered once the offer is on (a disabled offer already shows
+        // the engine's own reason below) and still not ready — the client's
+        // own reason the current selection would not go, in the same slot a
+        // server reason uses, so a control greyed out for "you picked two,
+        // this takes one" reads as the same kind of thing as one greyed out
+        // for "not your turn" rather than as broken.
+        const unready = offer.enabled && !ready && !offer.composite ? unreadyReason(offer, selectedCards) : undefined;
         return (
           <View key={offer.id} style={styles.slot}>
             <Pressable
@@ -158,11 +175,15 @@ export function OfferBar({ offers, selectedCards, onSend, onConsumeSelection, on
               <Text testID={`why-${offer.id}`} style={styles.why} numberOfLines={2}>
                 {reasonText(offer.whyNot, offer.whyNot)}
               </Text>
+            ) : unready ? (
+              <Text testID={`why-${offer.id}`} style={styles.why} numberOfLines={2}>
+                {label(unready.labelKey, unready.params)}
+              </Text>
             ) : null}
 
             {offer.enabled && offer.composite ? (
               <Text testID={`needs-${offer.id}`} style={styles.hint}>
-                pick {offer.source?.minCards ?? 1}+ cards
+                {compositeHint(offer, selectedCards)}
               </Text>
             ) : null}
 
@@ -204,6 +225,7 @@ export function OfferBar({ offers, selectedCards, onSend, onConsumeSelection, on
 export function OfferGlance({
   offers,
   selectedCards = [],
+  armedGroupId,
   onSend,
   onConsumeSelection,
   onAmbiguous,
@@ -212,6 +234,7 @@ export function OfferGlance({
 }: {
   offers: ActionOffer[];
   selectedCards?: string[];
+  armedGroupId?: string | null;
   onSend?: (action: MatchAction) => void;
   onConsumeSelection?: () => void;
   onAmbiguous?: (groupKey: string) => void;
@@ -249,10 +272,11 @@ export function OfferGlance({
       fire(offer);
       return;
     }
-    // Mirrors `FoldedOffer`'s own press: go straight through when the
-    // selection already settles which target was meant, otherwise hand the
-    // choice to whoever can point at the board's own targets.
-    const settled = (groups.get(groupKey) ?? []).filter((o) => offerMatchesSelection(o, selectedCards));
+    // Mirrors `FoldedOffer`'s own press, aimed target and all: go straight
+    // through when the selection already settles which target was meant,
+    // otherwise hand the choice to whoever can point at the board's own
+    // targets.
+    const settled = settledOffers(groups.get(groupKey) ?? [], selectedCards, armedGroupId);
     if (settled.length === 1) {
       fire(settled[0]);
       return;
@@ -303,6 +327,7 @@ function FoldedOffer({
   groupKey,
   group,
   selectedCards,
+  armedGroupId,
   onResolve,
   onAmbiguous,
   styles,
@@ -310,14 +335,20 @@ function FoldedOffer({
   groupKey: string;
   group: ActionOffer[];
   selectedCards: string[];
+  armedGroupId?: string | null;
   onResolve: (offer: ActionOffer) => void;
   onAmbiguous?: (groupKey: string) => void;
   styles: OfferBarStyles;
 }) {
   const first = group[0];
   const enabledCount = group.filter((o) => o.enabled).length;
-  const settled = group.filter((o) => offerMatchesSelection(o, selectedCards));
+  const settled = settledOffers(group, selectedCards, armedGroupId);
   const disabled = enabledCount === 0;
+  // Whether a target was pointed at before any card was — the board already
+  // knows which one; only the cards are still open. Used purely to pick the
+  // hint below: an aimed target that is not yet settled means "keep picking
+  // cards", not "there's more than one place this could go".
+  const aimed = armedGroupId ? group.some((o) => o.target?.meldId === armedGroupId) : false;
 
   // The engine's own reason, same as a lone offer already shows — a folded
   // control disabled with nothing next to it reads as broken, not as "not
@@ -368,7 +399,7 @@ function FoldedOffer({
 
       {!disabled && settled.length !== 1 ? (
         <Text testID={`needs-group:${groupKey}`} style={styles.hint}>
-          more than one place this could go — pick on the board
+          {aimed ? 'pick cards for the place you tapped' : 'more than one place this could go — pick on the board'}
         </Text>
       ) : null}
     </View>
@@ -456,11 +487,38 @@ function ParamControl({
   );
 }
 
-/** Which cards to send: the player's selection when they have one. */
+/** Which cards to send: the whole selection, once it is one this offer takes. */
 function pickCards(offer: ActionOffer, selected: string[]): string[] | undefined {
-  const mine = eligibleCards(offer, selected);
-  if (mine.length) return mine;
-  return undefined;
+  if (!selected.length) return undefined;
+  return fits(offer, selected).ok ? selected : undefined;
+}
+
+/**
+ * Whether this offer alone, given the current selection, is what a plain tap
+ * would send. Used both for a lone control's own readiness and to pick a
+ * folded group's member out of several sharing a label — see `settledOffers`.
+ */
+function offerSettles(offer: ActionOffer, selected: string[]): boolean {
+  if (!offer.enabled) return false;
+  if (selected.length === 0) return isOneTap(offer);
+  return fits(offer, selected).ok;
+}
+
+/**
+ * Which of a folded group's members the current state resolves to.
+ *
+ * Ordinarily the selection alone, exactly as a lone offer of the same shape
+ * would settle it. But once a target has been aimed at — a meld tapped with
+ * nothing selected, before any card was chosen — arming narrows this to that
+ * target and only that one: it must still be settled by the selection in the
+ * usual way, never waved through with nothing chosen even where the offer's
+ * own shape would otherwise allow it. Arming is a promise to send *there*, not
+ * licence to guess *what* from the target alone.
+ */
+function settledOffers(group: ActionOffer[], selected: string[], armedGroupId?: string | null): ActionOffer[] {
+  const aimed = armedGroupId ? group.find((o) => o.target?.meldId === armedGroupId) : undefined;
+  if (!aimed) return group.filter((o) => offerSettles(o, selected));
+  return offerSettles(aimed, selected) ? [aimed] : [];
 }
 
 /** Whether an offer has everything it needs to be sent right now. */
@@ -472,12 +530,39 @@ function isReady(
   if (!offer.enabled) return false;
   if (offer.composite) {
     const need = offer.source?.minCards ?? 1;
-    return eligibleCards(offer, selected).length >= need;
+    return selected.length >= need && fits(offer, selected).ok;
   }
   if ((offer.params ?? []).length > 0) {
     return (offer.params ?? []).every((p) => (chosen?.[p.name] ?? defaultParam(p)) !== undefined);
   }
-  return isOneTap(offer);
+  return offerSettles(offer, selected);
+}
+
+/**
+ * Why an *enabled*, non-composite offer is not ready to send as things
+ * stand — rendered in the same slot the server's own `whyNot` occupies, so a
+ * control the current selection has not yet satisfied reads as the same kind
+ * of thing as one the engine refused, rather than as broken. `undefined` when
+ * the offer is ready, so the caller shows nothing.
+ */
+function unreadyReason(offer: ActionOffer, selected: string[]): Extract<Fit, { ok: false }> | undefined {
+  const need = offer.source?.minCards ?? 0;
+  if (need === 0) return undefined;
+  if (selected.length === 0) {
+    return isOneTap(offer) ? undefined : { ok: false, labelKey: 'sel.needMore', params: { n: need } };
+  }
+  const fit = fits(offer, selected);
+  return fit.ok ? undefined : fit;
+}
+
+/** The hint under a composite control: what to pick, or why the current pick will not do. */
+function compositeHint(offer: ActionOffer, selected: string[]): string {
+  const min = offer.source?.minCards ?? 1;
+  if (selected.length > 0) {
+    const fit = fits(offer, selected);
+    if (!fit.ok) return label(fit.labelKey, fit.params);
+  }
+  return `pick ${min}+ cards`;
 }
 
 /**
