@@ -5,15 +5,32 @@ import (
 	"time"
 )
 
+// EndGame scores the deal that just ended and deals the next one, unless the
+// match is over.
+//
+// It is ScoreDeal followed by StartNextGame, and it keeps that shape — and its
+// signature — because it is what every existing caller and test means by "the
+// deal ended". A caller that needs to stop in between, to put the settlement in
+// front of the players before the table is wiped, calls the two halves itself.
 func EndGame(state GameState, winnerID string) (GameState, error) {
+	ns, over, err := ScoreDeal(state, winnerID)
+	if err != nil || over {
+		return ns, err
+	}
+	return StartNextGame(ns, winnerID)
+}
+
+// ScoreDeal settles the deal that just ended and stops there, reporting whether
+// that finished the match.
+func ScoreDeal(state GameState, winnerID string) (GameState, bool, error) {
 	if state.GameNumber < 1 {
-		return state, RulesError{Code: ErrInvalidMeld, Message: "invalid game"}
+		return state, false, RulesError{Code: ErrInvalidMeld, Message: "invalid game"}
 	}
 	if state.TurnOrder == nil {
-		return state, RulesError{Code: ErrInvalidMeld, Message: "missing turn order"}
+		return state, false, RulesError{Code: ErrInvalidMeld, Message: "missing turn order"}
 	}
 	if state.Hands == nil {
-		return state, RulesError{Code: ErrInvalidMeld, Message: "missing hands"}
+		return state, false, RulesError{Code: ErrInvalidMeld, Message: "missing hands"}
 	}
 
 	if state.GameScores == nil {
@@ -38,18 +55,43 @@ func EndGame(state GameState, winnerID string) (GameState, error) {
 		state.GameScores[pid] = append(state.GameScores[pid], gameScore[pid])
 		state.TotalScores[pid] += gameScore[pid]
 	}
+	// Recorded alongside the scores because it cannot be read back out of
+	// them — see GameState.DealWinners.
+	state.DealWinners = append(state.DealWinners, winnerID)
 
-	// Advance or end the match.
 	if matchIsOver(state, cfg) {
 		state.Status = StatusCompleted
 		state.Phase = Phase("completed")
 		winner, draw := DetermineGameWinner(state)
 		state.WinnerID = winner
 		state.IsDraw = draw
-		return state, nil
+		return state, true, nil
 	}
+	return state, false, nil
+}
 
-	return StartNextGame(state, winnerID)
+// PauseAfterDeal parks a scored match between deals: nobody is on turn, and the
+// board is left exactly as the deal ended so the settlement it is made of can
+// still be looked at.
+//
+// nextStarter is remembered rather than recomputed on resume, because who leads
+// the next deal is decided by who went out of this one and that fact is gone as
+// soon as the table is dealt again.
+func PauseAfterDeal(state GameState, nextStarter string) GameState {
+	state.Phase = PhaseIntermission
+	state.PendingDealStarter = nextStarter
+	state.CurrentTurn = ""
+	return state
+}
+
+// ResumeAfterIntermission deals the deal the table has been waiting for.
+func ResumeAfterIntermission(state GameState) (GameState, error) {
+	starter := state.PendingDealStarter
+	if starter == "" && len(state.TurnOrder) > 0 {
+		starter = state.TurnOrder[0]
+	}
+	state.PendingDealStarter = ""
+	return StartNextGame(state, starter)
 }
 
 // matchIsOver checks the current profile's match-end condition after a deal

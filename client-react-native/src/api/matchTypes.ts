@@ -157,9 +157,64 @@ export type Standing = {
   playerId: string;
   rank: number;
   score: number;
+  /**
+   * The number to print, when that is not `score`.
+   *
+   * `score` is oriented higher-is-better so the server can rank and record it
+   * without a sense of direction, which carries a rummy penalty of 247 as
+   * -247. Printing that shows the player the arithmetic. Use
+   * `shownScore(standing)` rather than reading either field directly.
+   */
+  shown?: number;
   won?: boolean;
   labelKey?: string;
   facts?: Fact[];
+};
+
+/**
+ * One seat's row in one round.
+ *
+ * `delta` and `total` are oriented higher-is-better, like `Standing.score`, so
+ * one component renders a rummy penalty and a chip stack and puts the arrow the
+ * right way round for both. `shown` / `shownTotal` print in their place where
+ * the game's own number reads the other way — use `shownScore` rather than
+ * reading either field directly.
+ */
+export type RoundScore = {
+  playerId: string;
+  delta: number;
+  total: number;
+  shown?: number;
+  shownTotal?: number;
+  facts?: Fact[];
+};
+
+/** One completed round of a match. */
+export type RoundResult = {
+  /** 1-based, and the same number the header showed while it was being played. */
+  number: number;
+  /** Who took the round. Possibly nobody — a deal can end exhausted or level. */
+  winners?: string[];
+  scores: RoundScore[];
+  /** True of the round rather than of any one seat. */
+  facts?: Fact[];
+};
+
+/**
+ * A match's round-by-round history, and whether the table is between rounds.
+ *
+ * Absent for a game with no rounds, which is not the same as a game with none
+ * played yet: a game without them sends nothing, a fresh match sends an empty
+ * list.
+ */
+export type RoundLog = {
+  rounds: RoundResult[];
+  /** The table is sitting between rounds. The server's answer, never inferred. */
+  paused?: boolean;
+  /** What a round is called in this game — a deal, a hand, a leg. */
+  labelKey: string;
+  /** Seats that have not yet said to go on. */
+  waitingFor?: string[];
 };
 
 export type MatchPlayer = { id: string; name: string; isAI: boolean };
@@ -181,6 +236,7 @@ export type MatchState = {
   view: ViewModel;
   legalActions: ActionOffer[];
   standings?: Standing[];
+  rounds?: RoundLog;
 };
 
 /** What the client sends back. Built from an offer, never composed by hand. */

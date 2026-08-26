@@ -21,14 +21,19 @@ func NewRecorder(repo Repository) *Recorder { return &Recorder{repo: repo} }
 // RecordMatch writes the record for a completed match and folds it into every
 // durable participant's lifetime statistics.
 //
-// standings are the module's own final placings, passed in rather than derived
-// here: only the module knows how its game is scored, and a second opinion in
-// this package would be a second implementation of "who won". That is also
-// what makes this work for every game rather than only for rummy.
+// The outcome is the module's own — its final placings and its round history,
+// passed in rather than derived here: only the module knows how its game is
+// scored, and a second opinion in this package would be a second implementation
+// of "who won". That is also what makes this work for every game rather than
+// only for rummy.
+//
+// One value rather than a growing argument list. It was already "the module's
+// standings"; it is now also "the module's rounds", and a third fact would
+// otherwise be a third parameter and a fourth signature change.
 //
 // It returns ErrAlreadyRecorded if the match was already recorded, which is a
 // normal outcome under retry and not worth logging as a failure.
-func (r *Recorder) RecordMatch(ctx context.Context, m0 models.Match, standings []module.Standing) (MatchResult, error) {
+func (r *Recorder) RecordMatch(ctx context.Context, m0 models.Match, out module.Outcome) (MatchResult, error) {
 	if m0.Status != "completed" {
 		return MatchResult{}, errors.New("match is not completed")
 	}
@@ -37,7 +42,7 @@ func (r *Recorder) RecordMatch(ctx context.Context, m0 models.Match, standings [
 	if m0.EndedAt != nil {
 		completedAt = *m0.EndedAt
 	}
-	sb := BuildScoreboard(m0, standings)
+	sb := BuildScoreboard(m0, out)
 	m := BuildMatchResult(sb, m0.ID, m0.CreatedAt, completedAt, time.Now().UTC())
 
 	// The record goes in first, and its unique matchId index is what makes the
@@ -92,12 +97,12 @@ func (r *Recorder) applySeat(ctx context.Context, m MatchResult, seat Standing, 
 // The context is deliberately detached from the caller's — the request or
 // socket that carried the winning move is usually gone microseconds later, and
 // a cancelled write would lose the record.
-func (r *Recorder) RecordMatchAsync(m models.Match, standings []module.Standing) {
+func (r *Recorder) RecordMatchAsync(m models.Match, out module.Outcome) {
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
 
-		if _, err := r.RecordMatch(ctx, m, standings); err != nil {
+		if _, err := r.RecordMatch(ctx, m, out); err != nil {
 			if errors.Is(err, ErrAlreadyRecorded) {
 				return
 			}

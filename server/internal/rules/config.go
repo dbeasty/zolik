@@ -95,6 +95,11 @@ type RulesConfig struct {
 	StaticContract ContractRequirement
 
 	MatchEndMode MatchEndMode
+	// PauseBetweenDeals stops the match after each deal is scored, instead of
+	// dealing the next one in the same breath. False in every shipped profile:
+	// it is set by the module adapter from a table option, so the engine's own
+	// profiles — and every test built on them — behave exactly as before.
+	PauseBetweenDeals bool
 	// TargetScore is used when MatchEndMode == MatchEndAtScore.
 	TargetScore int
 }

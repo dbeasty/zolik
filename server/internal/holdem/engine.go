@@ -29,6 +29,7 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 		BigBlind:      cfg.Opt(OptBigBlind, v.bigBlind),
 		StartingStack: cfg.Opt(OptStartingStack, v.startingStack),
 		HandLimit:     cfg.Opt(OptHandLimit, v.handLimit),
+		Pause:         cfg.PauseBetweenRounds(false),
 		Button:        -1, // startHand rotates first, so the first button is seat 0
 	}
 	s.SmallBlind = s.BigBlind / 2
@@ -45,6 +46,19 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 
 // startHand resets the seats, moves the button, deals and posts the blinds.
 func startHand(s *GameState) []module.Event {
+	if matchOverAfterHand(s) {
+		return endMatch(s)
+	}
+	return dealHand(s)
+}
+
+// matchOverAfterHand settles who is still in and reports whether that ends the
+// match.
+//
+// Split out of startHand because a table that pauses between hands has to know
+// the match is finished *before* it stops to show a results screen, or the last
+// hand would put up an interstitial for a hand that will never be dealt.
+func matchOverAfterHand(s *GameState) bool {
 	// Anybody who ran out of chips between hands is out of the match. Done
 	// here rather than when they lose the pot, so a player who is all-in and
 	// wins stays seated.
@@ -54,12 +68,13 @@ func startHand(s *GameState) []module.Event {
 		}
 	}
 	if len(s.liveSeats()) < 2 {
-		return endMatch(s)
+		return true
 	}
-	if s.HandLimit > 0 && s.HandNumber >= s.HandLimit {
-		return endMatch(s)
-	}
+	return s.HandLimit > 0 && s.HandNumber >= s.HandLimit
+}
 
+// dealHand resets the seats, moves the button, deals and posts the blinds.
+func dealHand(s *GameState) []module.Event {
 	s.HandNumber++
 	for i := range s.Seats {
 		st := &s.Seats[i]
@@ -153,6 +168,24 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 	}
 	if s.Status != "active" {
 		return raw, nil, errCode(ErrGameNotActive)
+	}
+
+	// Between hands nobody is on turn, so the intermission does the checking
+	// the turn order normally would.
+	if s.Break.Open {
+		if a.Verb != module.VerbContinue {
+			return raw, nil, errCode(ErrGameNotActive)
+		}
+		if err := s.Break.Mark(order(s), playerID); err != nil {
+			return raw, nil, err
+		}
+		var events []module.Event
+		if s.Break.Settled(order(s)) {
+			s.Break.Close()
+			events = dealHand(s)
+		}
+		out, err := encode(s)
+		return out, events, err
 	}
 	if s.Current < 0 || s.Seats[s.Current].PlayerID != playerID {
 		return raw, nil, errCode(ErrNotYourTurn)
@@ -415,11 +448,23 @@ func endHand(s *GameState) []module.Event {
 	s.Pot = 0
 	s.LastHand = &res
 	s.Current = -1
+	s.Hands = append(s.Hands, summarise(s, res))
 
 	events := []module.Event{{Type: "hand_ended", Data: map[string]any{
 		"handNumber": res.HandNumber, "pots": len(res.Pots),
 	}}}
-	return append(events, startHand(s)...)
+
+	// The match end is checked first, so the final hand shows one results
+	// screen — the match's — rather than an interstitial before a hand that
+	// will never be dealt.
+	if matchOverAfterHand(s) {
+		return append(events, endMatch(s)...)
+	}
+	if s.Pause {
+		s.Break.Begin(s.HandNumber + 1)
+		return events
+	}
+	return append(events, dealHand(s)...)
 }
 
 // distributePots builds the side pots and awards each to the best hand among
@@ -534,4 +579,53 @@ func (m *Module) Finished(raw module.State) (bool, []string, error) {
 		return false, nil, nil
 	}
 	return true, append([]string(nil), s.Winners...), nil
+}
+
+// summarise reduces a finished hand to what outlives it. Stacks is read after
+// the pot has been distributed, so it is what each seat is actually sitting on
+// going into the next hand.
+func summarise(s *GameState, res HandResult) HandSummary {
+	sum := HandSummary{
+		Number:      res.HandNumber,
+		Uncontested: res.Uncontested,
+		Deltas:      map[string]int{},
+		Stacks:      map[string]int{},
+	}
+	seen := map[string]bool{}
+	for _, p := range res.Pots {
+		sum.Pot += p.Amount
+		for _, w := range p.Winners {
+			if !seen[w] {
+				seen[w] = true
+				sum.Winners = append(sum.Winners, w)
+			}
+		}
+	}
+	// The net move, which is not HandResult.Deltas.
+	//
+	// That field is what the pot *paid* a seat: it is measured against the
+	// stack after the street's bets were already swept away, so a player who
+	// called 40 and lost shows a delta of zero. What a round table needs is how
+	// the stack actually moved, which is the winnings less everything put in —
+	// and Committed still holds that here, because startHand has not run yet
+	// and is where it is cleared.
+	for i := range s.Seats {
+		pid := s.Seats[i].PlayerID
+		sum.Stacks[pid] = s.Seats[i].Stack
+		if net := res.Deltas[pid] - s.Seats[i].Committed; net != 0 {
+			sum.Deltas[pid] = net
+		}
+	}
+	return sum
+}
+
+// order is the seat order an intermission readies through. Every seat, whether
+// or not they are still in the match: a player who has been busted out is still
+// at the table and still reading the results.
+func order(s *GameState) []string {
+	out := make([]string, 0, len(s.Seats))
+	for i := range s.Seats {
+		out = append(out, s.Seats[i].PlayerID)
+	}
+	return out
 }

@@ -5,7 +5,7 @@ import type { MatchPlayer, Seat, Standing } from '@/src/api/matchTypes';
 import { Panel } from '@/src/components/match/Panel';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import type { Metrics } from '@/src/lib/layout';
-import { factText, label, playerName } from '@/src/lib/labels';
+import { factText, label, playerName, shownScore } from '@/src/lib/labels';
 import { colors } from '@/src/theme';
 
 /**
@@ -64,9 +64,17 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
 
         {standing ? (
           <Text testID={`standing-${seat.playerId}`} style={styles.score}>
-            {standing.score} {label(standing.labelKey)}
+            {shownScore(standing)} {label(standing.labelKey)}
           </Text>
         ) : null}
+
+        {/* What the ranking was decided on, where the module says so — a
+            scoreboard that shows only a total cannot explain a tiebreak. */}
+        {(standing?.facts ?? []).map((f, i) => (
+          <Text key={`${f.labelKey}-${i}`} style={styles.fact}>
+            {factText(f, players)}
+          </Text>
+        ))}
 
         {/* Turn is a pushed fact, not something worked out from offers. */}
         {seat.active ? (
@@ -107,7 +115,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
             // way it's a value the open tile already shows, read off the
             // same fields rather than a second, cheaper copy of them.
             const status = standing
-              ? String(standing.score)
+              ? String(shownScore(standing))
               : seat.facts?.[0]
                 ? factText(seat.facts[0], players)
                 : undefined;

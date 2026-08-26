@@ -2,6 +2,7 @@ package match
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"zolik/server/internal/canasta"
@@ -159,5 +160,45 @@ func TestBuildStateMsg_UnknownModuleDegradesRatherThanPanics(t *testing.T) {
 	}
 	if msg.ModuleID != "marias" {
 		t.Errorf("the match should still say what it is: %q", msg.ModuleID)
+	}
+}
+
+// TestBuildStateMsgCarriesTheRoundLog — the history rides on the state message
+// rather than on an event, which is what makes it survive a reconnection and a
+// page reload. An event-fed table is empty for anyone who refreshed.
+func TestBuildStateMsgCarriesTheRoundLog(t *testing.T) {
+	m, match := dealt(t, "zolik", "p1", "p2")
+	msg := m.BuildStateMsg(match, "p1")
+
+	if msg.Rounds == nil {
+		t.Fatal("a game with rounds sent no round log")
+	}
+	if msg.Rounds.LabelKey == "" {
+		t.Error("the log does not say what a round is called here")
+	}
+	if msg.Rounds.Rounds == nil {
+		t.Error("a fresh match sent a null round list; empty and absent are different answers")
+	}
+	if len(msg.Rounds.Rounds) != 0 {
+		t.Errorf("a freshly dealt match reports %d finished rounds", len(msg.Rounds.Rounds))
+	}
+}
+
+// TestBuildStateMsgOmitsRoundsForAGameWithoutThem — Prší is one deal per match,
+// so the key must be absent rather than an empty object a client has to
+// interpret.
+func TestBuildStateMsgOmitsRoundsForAGameWithoutThem(t *testing.T) {
+	m, match := dealt(t, "prsi", "p1", "p2")
+	msg := m.BuildStateMsg(match, "p1")
+
+	if msg.Rounds != nil {
+		t.Errorf("Prší sent a round log: %+v", msg.Rounds)
+	}
+	blob, err := json.Marshal(msg)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	if strings.Contains(string(blob), `"rounds"`) {
+		t.Error(`the wire carries a "rounds" key for a game with no rounds`)
 	}
 }

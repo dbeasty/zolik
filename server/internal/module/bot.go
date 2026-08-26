@@ -69,16 +69,36 @@ func BotFor(m GameModule) Bot {
 // Falls back to the offer scan for a module that emits no seats, so this is an
 // improvement rather than a new requirement.
 func ActiveSeat(m GameModule, s State, viewer string, players []PlayerRef) string {
-	if vm, err := m.View(s, viewer); err == nil {
+	if awaited := AwaitedSeats(m, s, viewer, players); len(awaited) > 0 {
+		return awaited[0]
+	}
+	return ""
+}
+
+// AwaitedSeats is every seat the module is waiting on, in the order the board
+// lists them.
+//
+// For almost all of a match there is exactly one, and ActiveSeat is that one.
+// Then a match stops between rounds and every seat that has not yet said to go
+// on is waited on at once — which is the first time "whose turn is it" has more
+// than one answer, and the reason this exists rather than the runtime asking a
+// question that quietly returns the first of several.
+//
+// The fallback for a module that emits no seats is the offer scan, exactly as
+// before: a module that has never heard of any of this is unaffected.
+func AwaitedSeats(m GameModule, s State, viewer string, players []PlayerRef) []string {
+	if vm, err := m.View(s, viewer); err == nil && len(vm.Seats) > 0 {
+		var out []string
 		for _, seat := range vm.Seats {
 			if seat.Active {
-				return seat.PlayerID
+				out = append(out, seat.PlayerID)
 			}
 		}
-		if len(vm.Seats) > 0 {
-			return "" // seats were emitted and none is active: nobody is on turn
-		}
+		// Seats were emitted and none is active: nobody is on turn. That is an
+		// answer, so it must not fall through to the scan below and invent one.
+		return out
 	}
+	var out []string
 	for _, p := range players {
 		offers, err := m.LegalActions(s, p.ID)
 		if err != nil {
@@ -86,9 +106,10 @@ func ActiveSeat(m GameModule, s State, viewer string, players []PlayerRef) strin
 		}
 		for _, o := range offers {
 			if o.Enabled {
-				return p.ID
+				out = append(out, p.ID)
+				break
 			}
 		}
 	}
-	return ""
+	return out
 }

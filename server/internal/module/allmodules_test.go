@@ -35,6 +35,11 @@ type hosted struct {
 	// prefer is a play style that gets this game moving; a driver with no
 	// preferences plays every game badly.
 	prefer []string
+	// rounds is whether this game keeps a round-by-round history. Prší is the
+	// one that does not, and the reason is recorded rather than left as an
+	// omission somebody later "fixes": it is a single deal that ends the
+	// moment a hand empties, so a one-row table is a worse answer than none.
+	rounds bool
 	// finishes is whether an offer-only driver can play this game to a result.
 	// Žolíky is the one that cannot, and the reason is documented rather than
 	// hidden: going out needs a meld *shape* the offer protocol deliberately
@@ -54,6 +59,7 @@ func allModules() []hosted {
 	return []hosted{
 		{
 			name:     "zolik",
+			rounds:   true,
 			mod:      zolikmod.New(),
 			players:  refs("p1", "p2"),
 			prefer:   []string{"draw", "discard"},
@@ -61,6 +67,7 @@ func allModules() []hosted {
 		},
 		{
 			name:     "prsi",
+			rounds:   false,
 			mod:      prsi.New(),
 			players:  refs("p1", "p2", "p3"),
 			prefer:   []string{"play_card", "pass", "draw"},
@@ -68,6 +75,7 @@ func allModules() []hosted {
 		},
 		{
 			name:     "canasta",
+			rounds:   true,
 			mod:      canasta.New(),
 			players:  refs("p1", "p2"),
 			cfg:      module.MatchConfig{Options: module.Options{"targetScore": 500}},
@@ -76,6 +84,7 @@ func allModules() []hosted {
 		},
 		{
 			name:     "holdem",
+			rounds:   true,
 			mod:      holdem.New(),
 			players:  refs("p1", "p2", "p3"),
 			cfg:      module.MatchConfig{Variation: "timed"},
@@ -420,12 +429,42 @@ func TestEveryModuleSeatsItsPlayers(t *testing.T) {
 						active = append(active, seat.PlayerID)
 					}
 				}
-				if len(active) != 1 {
-					t.Fatalf("step %d: %d seats are active, want exactly one (%v)", step, len(active), active)
+				// The invariant the runtime actually depends on: a live match
+				// is waiting on somebody, and the seats it is waiting on are
+				// the seats it is offering moves to.
+				//
+				// This used to demand exactly one active seat, which held right
+				// up until a match stopped between rounds and waited on
+				// everybody at once. "The awaited set equals the enabled set"
+				// is the stronger claim and the one the bot loop, the
+				// suspension path and the offer driver are each built on.
+				if len(active) == 0 {
+					t.Fatalf("step %d: a live match is waiting on nobody", step)
+				}
+				enabledSeats := map[string]bool{}
+				for _, p := range g.players {
+					offers, err := g.mod.LegalActions(state, p.ID)
+					if err != nil {
+						t.Fatalf("LegalActions(%s): %v", p.ID, err)
+					}
+					for _, o := range offers {
+						if o.Enabled {
+							enabledSeats[p.ID] = true
+							break
+						}
+					}
+				}
+				for _, id := range active {
+					if !enabledSeats[id] {
+						t.Fatalf("step %d: seat %q is marked active but is offered nothing", step, id)
+					}
+				}
+				for id := range enabledSeats {
+					if !contains(active, id) {
+						t.Fatalf("step %d: seat %q is offered a move but is not marked active", step, id)
+					}
 				}
 
-				// And the seat the module says is active is the one it is
-				// actually offering moves to.
 				offers, err := g.mod.LegalActions(state, active[0])
 				if err != nil {
 					t.Fatalf("LegalActions: %v", err)
@@ -594,6 +633,26 @@ func TestEveryModuleKeepsAScoreboard(t *testing.T) {
 // TestEveryModuleWritesItsRules — a lobby's "see the rules" screen renders
 // from this and nothing else, so every module has to have something to say,
 // and has to say it in keys rather than sentences it wrote itself.
+// checkKey holds a label to the one rule every label in this protocol keeps:
+// it is a key a client looks up, never a sentence a server wrote.
+//
+// Hoisted out of the rules test so the same rule reaches every new labelled
+// surface — a round's name, a round's facts — rather than being restated, or
+// quietly not restated, at each one.
+func checkKey(t *testing.T, where, key string) {
+	t.Helper()
+	if key == "" {
+		t.Errorf("%s: empty label key", where)
+		return
+	}
+	if !strings.Contains(key, ".") {
+		t.Errorf("%s: key %q looks like rendered text, not a message key", where, key)
+	}
+	if strings.Contains(key, " ") {
+		t.Errorf("%s: key %q contains a space — a key, not a sentence", where, key)
+	}
+}
+
 func TestEveryModuleWritesItsRules(t *testing.T) {
 	for _, g := range allModules() {
 		t.Run(g.name, func(t *testing.T) {
@@ -608,25 +667,13 @@ func TestEveryModuleWritesItsRules(t *testing.T) {
 			if len(sections) == 0 {
 				t.Fatal("a module's rules must have at least one section")
 			}
-			checkKey := func(where, key string) {
-				if key == "" {
-					t.Errorf("%s: empty label key", where)
-					return
-				}
-				if !strings.Contains(key, ".") {
-					t.Errorf("%s: key %q looks like rendered text, not a message key", where, key)
-				}
-				if strings.Contains(key, " ") {
-					t.Errorf("%s: key %q contains a space — a key, not a sentence", where, key)
-				}
-			}
 			for i, s := range sections {
-				checkKey(fmt.Sprintf("section %d title", i), s.TitleKey)
+				checkKey(t, fmt.Sprintf("section %d title", i), s.TitleKey)
 				if len(s.Items) == 0 {
 					t.Errorf("section %d (%s) has no items", i, s.TitleKey)
 				}
 				for j, item := range s.Items {
-					checkKey(fmt.Sprintf("section %d item %d", i, j), item.LabelKey)
+					checkKey(t, fmt.Sprintf("section %d item %d", i, j), item.LabelKey)
 				}
 			}
 		})
@@ -732,4 +779,388 @@ func TestNumericParametersAreUsable(t *testing.T) {
 	if found == 0 {
 		t.Error("no numeric parameter was ever offered; the addition is untested")
 	}
+}
+
+// TestTheScoreboardAgreesWithTheWinner — a module that names a winner and a
+// module that ranks the players are the same module, and they have to agree.
+//
+// Žolíky is why this exists. Its scoreboard ranked players by the cards they
+// were *holding when the match ended* rather than by their score across the
+// deals, so the row at the top of the table was not necessarily the player the
+// engine had just declared the winner — and the runtime recorded that row's
+// score as the player's result for the whole match. Nothing failed. The number
+// was simply wrong, everywhere it was used, for as long as it existed.
+//
+// Stated as "every winner has rank 1" rather than "rank 1 is the winner"
+// because a draw is real: several seats can share the top rank, and a module
+// that ends level names all of them.
+func TestTheScoreboardAgreesWithTheWinner(t *testing.T) {
+	for _, g := range allModules() {
+		if !g.finishes {
+			continue // driven to a finish in the module's own suite instead
+		}
+		t.Run(g.name, func(t *testing.T) {
+			state, err := g.mod.NewMatch(g.cfg, g.players, 5)
+			if err != nil {
+				t.Fatalf("NewMatch: %v", err)
+			}
+			final, res, err := module.PlayWithOffers(g.mod, state, g.players, module.DriverOptions{
+				MaxActions: 8000, Prefer: g.prefer,
+			})
+			if err != nil {
+				t.Fatalf("%v", err)
+			}
+			if !res.Finished {
+				t.Fatalf("did not finish in %d actions", res.Actions)
+			}
+			assertScoreboardAgrees(t, g.mod, final, res.Winners)
+		})
+	}
+}
+
+// assertScoreboardAgrees is the check itself, exported to the modules that
+// cannot be driven by offers alone and must play themselves to a finish.
+func assertScoreboardAgrees(t *testing.T, mod module.GameModule, final module.State, winners []string) {
+	t.Helper()
+
+	standings := module.StandingsFor(mod, final)
+	if len(standings) == 0 {
+		return // a module that keeps no scoreboard has nothing to disagree with
+	}
+
+	byID := map[string]module.Standing{}
+	for _, s := range standings {
+		byID[s.PlayerID] = s
+	}
+	for _, w := range winners {
+		s, ok := byID[w]
+		if !ok {
+			t.Errorf("the engine named %q the winner and the scoreboard does not list them", w)
+			continue
+		}
+		if s.Rank != 1 {
+			t.Errorf("the engine named %q the winner and the scoreboard ranks them %d (score %d)",
+				w, s.Rank, s.Score)
+		}
+		if !s.Won {
+			t.Errorf("the engine named %q the winner and the scoreboard does not mark them won", w)
+		}
+	}
+
+	// And the other way: nobody sits at the top of a finished scoreboard
+	// without the engine having named them.
+	won := map[string]bool{}
+	for _, w := range winners {
+		won[w] = true
+	}
+	for _, s := range standings {
+		if s.Rank == 1 && len(winners) > 0 && !won[s.PlayerID] {
+			t.Errorf("the scoreboard ranks %q first and the engine did not name them a winner", s.PlayerID)
+		}
+	}
+}
+
+// TestOnlyTheGamesWithRoundsKeepThem — the opt-in is a decision, and a decision
+// is worth asserting so it is not quietly reversed in either direction.
+func TestOnlyTheGamesWithRoundsKeepThem(t *testing.T) {
+	for _, g := range allModules() {
+		_, keeps := g.mod.(module.Rounded)
+		if keeps != g.rounds {
+			t.Errorf("%s: implements Rounded=%v, table says %v", g.name, keeps, g.rounds)
+		}
+		state, err := g.mod.NewMatch(g.cfg, g.players, 3)
+		if err != nil {
+			t.Fatalf("%s: NewMatch: %v", g.name, err)
+		}
+		got := module.RoundsFor(g.mod, state)
+		if (got != nil) != g.rounds {
+			t.Errorf("%s: RoundsFor gave %v, table says rounds=%v", g.name, got, g.rounds)
+		}
+		if got != nil {
+			// A fresh match has rounds and none of them finished. Nil and empty
+			// are different answers and both are real, so the empty one must
+			// not arrive as `null`.
+			if got.Rounds == nil {
+				t.Errorf("%s: a fresh match sends a null round list", g.name)
+			}
+			checkKey(t, g.name+" round label", got.LabelKey)
+		}
+	}
+}
+
+// TestARoundLogIsArithmetic — the property that makes a round table renderable
+// at all: every seat appears in every round, and the totals are the deltas
+// added up. It catches the orientation slip where a module negates its delta
+// and forgets its total, which no amount of eyeballing a scoreboard finds.
+func TestARoundLogIsArithmetic(t *testing.T) {
+	for _, g := range allModules() {
+		if !g.rounds || !g.finishes {
+			continue
+		}
+		t.Run(g.name, func(t *testing.T) {
+			final := playOut(t, g)
+			log := module.RoundsFor(g.mod, final)
+			if log == nil {
+				t.Fatal("a game that keeps rounds returned no log")
+			}
+			if len(log.Rounds) == 0 {
+				t.Fatal("a finished match recorded no rounds")
+			}
+			checkKey(t, "round label", log.LabelKey)
+
+			running := map[string]int{}
+			started := map[string]bool{}
+			for n, r := range log.Rounds {
+				if n > 0 && r.Number <= log.Rounds[n-1].Number {
+					t.Errorf("round %d is numbered %d, after %d", n, r.Number, log.Rounds[n-1].Number)
+				}
+				if len(r.Scores) == 0 {
+					t.Errorf("round %d scored nobody", r.Number)
+				}
+				for _, f := range r.Facts {
+					checkKey(t, "round fact", f.LabelKey)
+				}
+				for _, sc := range r.Scores {
+					for _, f := range sc.Facts {
+						checkKey(t, "round score fact", f.LabelKey)
+					}
+					if !started[sc.PlayerID] {
+						// The first round a seat appears in sets its baseline;
+						// a game may seat somebody late or bust them out early.
+						started[sc.PlayerID] = true
+						running[sc.PlayerID] = sc.Total
+						continue
+					}
+					if want := running[sc.PlayerID] + sc.Delta; sc.Total != want {
+						t.Errorf("round %d: %s totals %d, but %d + %d is %d",
+							r.Number, sc.PlayerID, sc.Total, running[sc.PlayerID], sc.Delta, want)
+					}
+					running[sc.PlayerID] = sc.Total
+				}
+			}
+		})
+	}
+}
+
+// TestTheLastRoundAgreesWithTheScoreboard — the round table and the standings
+// are two views of one number, so on a finished match they have to end at the
+// same place. Three lines that hold the higher-is-better orientation across a
+// game nobody has written yet.
+func TestTheLastRoundAgreesWithTheScoreboard(t *testing.T) {
+	for _, g := range allModules() {
+		if !g.rounds || !g.finishes {
+			continue
+		}
+		t.Run(g.name, func(t *testing.T) {
+			final := playOut(t, g)
+			log := module.RoundsFor(g.mod, final)
+			if log == nil || len(log.Rounds) == 0 {
+				t.Skip("no rounds to compare")
+			}
+			// The last total each seat posted, whenever it last appeared.
+			last := map[string]int{}
+			for _, r := range log.Rounds {
+				for _, sc := range r.Scores {
+					last[sc.PlayerID] = sc.Total
+				}
+			}
+			for _, s := range module.StandingsFor(g.mod, final) {
+				total, played := last[s.PlayerID]
+				if !played {
+					continue
+				}
+				if total != s.Score {
+					t.Errorf("%s ends the round table on %d and the scoreboard on %d",
+						s.PlayerID, total, s.Score)
+				}
+			}
+		})
+	}
+}
+
+// TestARoundLogNeverNamesACard — a round log is public by construction: it
+// takes no viewer and the same values are bound for a permanent record. Hold'em
+// is the reason it is a rule — a hand everybody folded out of is never shown —
+// but it is cheap to hold every game to.
+func TestARoundLogNeverNamesACard(t *testing.T) {
+	for _, g := range allModules() {
+		if !g.rounds || !g.finishes {
+			continue
+		}
+		t.Run(g.name, func(t *testing.T) {
+			log := module.RoundsFor(g.mod, playOut(t, g))
+			if log == nil {
+				t.Skip("no log")
+			}
+			blob, err := json.Marshal(log)
+			if err != nil {
+				t.Fatalf("marshal: %v", err)
+			}
+			for _, card := range []string{"JOKER1", "JOKER2", "\"AS\"", "\"KH\"", "\"QD\"", "\"TC\""} {
+				if strings.Contains(string(blob), card) {
+					t.Errorf("the round log names %s; it is public and permanent", card)
+				}
+			}
+		})
+	}
+}
+
+// playOut drives a game to its finish through the offer list alone.
+func playOut(t *testing.T, g hosted) module.State {
+	t.Helper()
+	state, err := g.mod.NewMatch(g.cfg, g.players, 5)
+	if err != nil {
+		t.Fatalf("NewMatch: %v", err)
+	}
+	final, res, err := module.PlayWithOffers(g.mod, state, g.players, module.DriverOptions{
+		MaxActions: 8000, Prefer: g.prefer,
+	})
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	if !res.Finished {
+		t.Fatalf("did not finish in %d actions", res.Actions)
+	}
+	return final
+}
+
+func contains(ids []string, id string) bool {
+	for _, x := range ids {
+		if x == id {
+			return true
+		}
+	}
+	return false
+}
+
+// TestAPausingGameStillPlaysItselfOut — the whole claim that an intermission is
+// an ordinary turn rather than a new primitive.
+//
+// The driver has never heard of a round, an intermission or the continue verb.
+// It reads offers and presses one. If a game that stops between every round
+// still plays to a finish under it, and the verb shows up in the tally, then
+// the pause needed nothing taught to anything: not to this driver, not to a
+// bot, not to a client.
+func TestAPausingGameStillPlaysItselfOut(t *testing.T) {
+	for _, g := range allModules() {
+		if !g.rounds || !g.finishes || !pauses(g.mod) {
+			continue
+		}
+		t.Run(g.name, func(t *testing.T) {
+			cfg := g.cfg
+			if cfg.Options == nil {
+				cfg.Options = module.Options{}
+			}
+			// Ask for the pause explicitly rather than relying on this game's
+			// default, so the test says what it is testing.
+			cfg.Options[module.OptPauseBetweenRounds] = module.OptOn
+
+			state, err := g.mod.NewMatch(cfg, g.players, 5)
+			if err != nil {
+				t.Fatalf("NewMatch: %v", err)
+			}
+			final, res, err := module.PlayWithOffers(g.mod, state, g.players, module.DriverOptions{
+				MaxActions: 8000, Prefer: g.prefer,
+			})
+			if err != nil {
+				t.Fatalf("%v", err)
+			}
+			if !res.Finished {
+				t.Fatalf("a pausing match did not finish in %d actions", res.Actions)
+			}
+
+			log := module.RoundsFor(g.mod, final)
+			if log == nil || len(log.Rounds) < 2 {
+				t.Skip("this match had no round to pause between")
+			}
+			if res.Verbs[module.VerbContinue] == 0 {
+				t.Errorf("%d rounds were played and nobody ever agreed to go on — the table never paused",
+					len(log.Rounds))
+			}
+		})
+	}
+}
+
+// TestAPausedTableSaysSo — a client puts a results screen up because the module
+// says the table is paused, never because it noticed the controls went quiet.
+// So the module has to say it, and say who it is waiting on.
+func TestAPausedTableSaysSo(t *testing.T) {
+	for _, g := range allModules() {
+		if !g.rounds || !g.finishes || !pauses(g.mod) {
+			continue
+		}
+		t.Run(g.name, func(t *testing.T) {
+			cfg := g.cfg
+			if cfg.Options == nil {
+				cfg.Options = module.Options{}
+			}
+			cfg.Options[module.OptPauseBetweenRounds] = module.OptOn
+
+			state, err := g.mod.NewMatch(cfg, g.players, 5)
+			if err != nil {
+				t.Fatalf("NewMatch: %v", err)
+			}
+
+			paused := false
+			for step := 0; step < 8000; step++ {
+				if done, _, err := g.mod.Finished(state); err != nil || done {
+					break
+				}
+				if log := module.RoundsFor(g.mod, state); log != nil && log.Paused {
+					paused = true
+					if len(log.WaitingFor) == 0 {
+						t.Fatalf("step %d: the table is paused and waiting for nobody", step)
+					}
+					// Everyone it is waiting on is offered the way to go on,
+					// and nobody else is offered anything at all.
+					for _, p := range g.players {
+						offers, err := g.mod.LegalActions(state, p.ID)
+						if err != nil {
+							t.Fatalf("LegalActions: %v", err)
+						}
+						enabled := false
+						for _, o := range offers {
+							if o.Enabled {
+								enabled = true
+								if o.Verb != module.VerbContinue {
+									t.Errorf("a paused table offers %q", o.Verb)
+								}
+							}
+						}
+						if want := contains(log.WaitingFor, p.ID); enabled != want {
+							t.Errorf("step %d: %s enabled=%v, waitingFor says %v",
+								step, p.ID, enabled, want)
+						}
+					}
+				}
+				actor := module.ActiveSeat(g.mod, state, g.players[0].ID, g.players)
+				if actor == "" {
+					break
+				}
+				offers, err := g.mod.LegalActions(state, actor)
+				if err != nil {
+					break
+				}
+				a, ok := module.ChooseAction(offers, g.prefer)
+				if !ok {
+					break
+				}
+				next, _, err := g.mod.Apply(state, actor, a)
+				if err != nil {
+					break
+				}
+				state = next
+			}
+			if !paused {
+				t.Error("a game asked to pause between rounds never reported a pause")
+			}
+		})
+	}
+}
+
+// pauses reports a module offering the pause as a table setting at all. A game
+// that does not declare the option is not expected to honour it — asking it to
+// would be asserting a setting it never advertised.
+func pauses(m module.GameModule) bool {
+	return m.Descriptor().Option(module.OptPauseBetweenRounds) != nil
 }

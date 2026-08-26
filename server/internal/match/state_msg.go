@@ -43,6 +43,15 @@ type MatchStateMsg struct {
 	// show who is ahead at rummy, canasta and poker without knowing what any of
 	// those measure.
 	Standings []module.Standing `json:"standings,omitempty"`
+	// Rounds is the round-by-round history and, between rounds, the fact that
+	// the table is waiting on its seats.
+	//
+	// Absent for a game with no rounds, which is not the same as a game with
+	// none played yet — Prší sends nothing, a fresh Canasta match sends an
+	// empty list. It rides on the state message rather than on an event so that
+	// it survives a reconnection and a page reload, which the deal-ended events
+	// a client might otherwise have accumulated do not.
+	Rounds *module.RoundLog `json:"rounds,omitempty"`
 	// SuspendedPlayer names the seat a paused match is waiting for.
 	SuspendedPlayer string `json:"suspendedPlayer,omitempty"`
 }
@@ -59,6 +68,17 @@ type PlayerMsg struct {
 // itself a small demonstration that the runtime can describe a match before
 // the game owning it has done anything.
 func (m *Manager) BuildStateMsg(match models.Match, viewerID string) MatchStateMsg {
+	return m.buildStateMsg(match, viewerID, module.RoundsFor(m.registry.Get(match.ModuleID), match.State))
+}
+
+// buildStateMsg is BuildStateMsg with the round log handed in.
+//
+// It exists because a broadcast renders one message per viewer, and the round
+// log is the one part of a state message that is the same for all of them — it
+// takes no viewer, by construction. Rebuilding it per recipient meant decoding
+// the module's whole state an extra time for every seat at the table, on every
+// single action.
+func (m *Manager) buildStateMsg(match models.Match, viewerID string, rounds *module.RoundLog) MatchStateMsg {
 	msg := MatchStateMsg{
 		Type:            "match_state",
 		MatchID:         match.ID.Hex(),
@@ -90,6 +110,7 @@ func (m *Manager) BuildStateMsg(match models.Match, viewerID string) MatchStateM
 		msg.LegalActions = offers
 	}
 	msg.Standings = module.StandingsFor(mod, match.State)
+	msg.Rounds = rounds
 	return msg
 }
 

@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+
+	"zolik/server/internal/module"
 )
 
 var testClock = time.Date(2026, 8, 22, 12, 0, 0, 0, time.UTC)
@@ -45,7 +47,7 @@ func recordMatch(t *testing.T, roster []string, dealScores [][]int) MatchResult 
 	}
 
 	match, standings := testMatch(t, roster, scores, "completed", winners...)
-	sb := BuildScoreboard(match, standings)
+	sb := BuildScoreboard(match, module.Outcome{Standings: standings})
 	m := BuildMatchResult(sb, match.ID, testClock.Add(-time.Hour), testClock, testClock)
 	m.ID = bson.NewObjectID()
 	return m
@@ -378,5 +380,64 @@ func TestLatestDisplayNameWins(t *testing.T) {
 
 	if ps.Subject.Name != "Renamed" {
 		t.Errorf("stored name = %q, want the latest one", ps.Subject.Name)
+	}
+}
+
+// TestRoundsDoNotAffectLifetimeAggregates — the round history is written to be
+// read back by a person, never to be counted.
+//
+// It matters because the match records are the source of truth: a stale
+// aggregate is repaired by replaying them through ApplyMatch, oldest first. Rows
+// written before Rounds existed carry none, so if any tally ever started
+// counting something in there, a rebuild would produce different numbers from
+// the ones that were folded in live — and the repair tool would become a way to
+// corrupt the thing it repairs.
+func TestRoundsDoNotAffectLifetimeAggregates(t *testing.T) {
+	subject := Subject{Kind: SubjectUser, ID: "u1", Name: "u1"}
+	seat := Standing{
+		PlayerID: "p1", Subject: subject, Name: "u1",
+		Seat: 0, Score: -120, Rank: 1, Won: true,
+	}
+	base := MatchResult{
+		MatchID:     bson.NewObjectID(),
+		ModuleID:    "zolik",
+		CompletedAt: testClock,
+		Composition: Composition{Players: 2, Users: 1, AIs: 1},
+		Participants: []Standing{seat, {
+			PlayerID: "p2", Subject: Subject{Kind: SubjectAI, ID: "easy"},
+			Seat: 1, Score: -300, Rank: 2,
+		}},
+		Winners: []string{"p1"},
+	}
+
+	// The same match, once without a round history and once with a long one.
+	withRounds := base
+	withRounds.RoundLabelKey = "zolik.round.deal"
+	for n := 1; n <= 7; n++ {
+		withRounds.Rounds = append(withRounds.Rounds, RoundRecord{
+			Number:  n,
+			Winners: []string{"p1"},
+			Scores: []RoundScore{
+				{PlayerID: "p1", Delta: -10 * n, Total: -10 * n},
+				{PlayerID: "p2", Delta: -40 * n, Total: -40 * n},
+			},
+		})
+	}
+
+	plain := ApplyMatch(ZeroStats(subject), base, seat, testClock)
+	rich := ApplyMatch(ZeroStats(subject), withRounds, seat, testClock)
+
+	if plain.Overall != rich.Overall {
+		t.Errorf("a round history changed the overall tally:\n without %+v\n with    %+v",
+			plain.Overall, rich.Overall)
+	}
+	if plain.VsAI != rich.VsAI {
+		t.Errorf("a round history changed the vs-AI tally")
+	}
+	if plain.CurrentStreak != rich.CurrentStreak || plain.LongestWinStreak != rich.LongestWinStreak {
+		t.Errorf("a round history changed a streak")
+	}
+	if len(plain.ByModule) != len(rich.ByModule) || plain.ByModule["zolik"] != rich.ByModule["zolik"] {
+		t.Errorf("a round history changed the per-game tally")
 	}
 }

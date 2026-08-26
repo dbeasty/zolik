@@ -34,6 +34,11 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		return nil, err
 	}
 
+	// Between hands the only thing anybody may do is agree to go on.
+	if s.Break.Open {
+		return s.Break.Offers(order(s), playerID), nil
+	}
+
 	if s.Status != "active" || s.Current < 0 || s.Seats[s.Current].PlayerID != playerID {
 		why := ErrNotYourTurn
 		if s.Status != "active" {

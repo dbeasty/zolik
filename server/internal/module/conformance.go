@@ -114,6 +114,17 @@ func PlayWithOffers(m GameModule, state State, players []PlayerRef, opts DriverO
 // offer. That this works for both games without either declaring a turn model
 // is itself a small result.
 func whoseTurn(m GameModule, state State, players []PlayerRef) (string, error) {
+	// Ask the board first, which is what the runtime does.
+	//
+	// These used to be two different rules for one question: the runtime read
+	// Seat.Active and this scanned the offers, so a module could satisfy the
+	// driver and still hang the real thing. The scan stays as the fallback for
+	// a module that emits no seats, which is the only case it was ever needed
+	// for.
+	if awaited := AwaitedSeats(m, state, viewerOf(players), players); len(awaited) > 0 {
+		return awaited[0], nil
+	}
+
 	var active []string
 	for _, p := range players {
 		offers, err := m.LegalActions(state, p.ID)
@@ -136,6 +147,15 @@ func whoseTurn(m GameModule, state State, players []PlayerRef) (string, error) {
 		sort.Strings(active)
 		return "", fmt.Errorf("more than one player has enabled offers at once: %v", active)
 	}
+}
+
+// viewerOf picks whose eyes to read the board through. Any seat will do: which
+// seats exist and which are awaited is public in every game.
+func viewerOf(players []PlayerRef) string {
+	if len(players) > 0 {
+		return players[0].ID
+	}
+	return ""
 }
 
 // ChooseAction picks a move from the offers alone.

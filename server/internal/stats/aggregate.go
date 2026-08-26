@@ -41,6 +41,8 @@ func BuildMatchResult(sb Scoreboard, matchID bson.ObjectID, startedAt, completed
 		SubjectKeys:     flat,
 		Winners:         sb.Winners,
 		IsDraw:          sb.IsDraw,
+		Rounds:          sb.Rounds,
+		RoundLabelKey:   sb.RoundLabelKey,
 		RecordedAt:      now,
 	}
 }

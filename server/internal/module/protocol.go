@@ -410,6 +410,15 @@ type Standing struct {
 	Won      bool   `json:"won"`
 	// LabelKey names what Score measures ("holdem.unit.chips").
 	LabelKey string `json:"labelKey,omitempty"`
+	// Shown is the number to print, when that is not Score.
+	//
+	// Score is oriented higher-is-better so that ranking, recording and every
+	// lifetime average need no sense of direction. Rummy is scored downwards,
+	// so a penalty of 247 is carried here as -247 — and printing that shows a
+	// player the arithmetic instead of their score. A game whose own number
+	// already reads upwards (chips, points) leaves this nil and nothing
+	// changes.
+	Shown *int `json:"shown,omitempty"`
 	// Facts are anything else worth putting in a row of a scoreboard.
 	Facts []Fact `json:"facts,omitempty"`
 }
@@ -442,21 +451,83 @@ func StandingsFor(m GameModule, s State) []Standing {
 // included, and four copies of a ranking loop is four chances to handle a tie
 // differently.
 func RankByScore(order []string, score func(string) int, labelKey string) []Standing {
+	return RankByScores(order, labelKey, score)
+}
+
+// RankByScores ranks on several measures, most significant first, each of them
+// higher-is-better. Standing.Score is the first — the one a scoreboard prints —
+// and the rest exist only to break ties.
+//
+// The variadic form is not generality for its own sake: a game can decide its
+// winner on more than one number, and Žolíky does. Its match is won by the
+// lowest total, and a tie on totals is broken by *fewest deals won*
+// (rules.DetermineMatchWinner). Ranking on the total alone left the scoreboard
+// free to disagree with the engine about who had won, which is exactly what it
+// did. A module ranks on the same measures its own rule decides on, or it is
+// keeping a second opinion.
+//
+// Ties share a rank and the next rank skips (1, 1, 3), and two players tie only
+// when they are level on *every* measure — which is the whole reason there is a
+// second one.
+func RankByScores(order []string, labelKey string, measures ...func(string) int) []Standing {
 	out := make([]Standing, 0, len(order))
 	for _, id := range order {
-		out = append(out, Standing{PlayerID: id, Score: score(id), LabelKey: labelKey})
+		out = append(out, Standing{PlayerID: id, LabelKey: labelKey})
 	}
-	sort.SliceStable(out, func(i, j int) bool { return out[i].Score > out[j].Score })
 
-	for i := range out {
-		if i > 0 && out[i].Score == out[i-1].Score {
-			out[i].Rank = out[i-1].Rank
-		} else {
-			out[i].Rank = i + 1
+	// Every measure is read once per player rather than inside the comparator:
+	// a sort calls its comparator O(n log n) times, and a measure may be a map
+	// lookup chain or a count over a whole match.
+	scores := make([][]int, len(out))
+	for i, s := range out {
+		row := make([]int, len(measures))
+		for m, measure := range measures {
+			row[m] = measure(s.PlayerID)
 		}
-		out[i].Won = out[i].Rank == 1
+		scores[i] = row
+		if len(row) > 0 {
+			out[i].Score = row[0]
+		}
 	}
-	return out
+
+	idx := make([]int, len(out))
+	for i := range idx {
+		idx[i] = i
+	}
+	sort.SliceStable(idx, func(a, b int) bool { return less(scores[idx[a]], scores[idx[b]]) })
+
+	ranked := make([]Standing, 0, len(out))
+	for pos, i := range idx {
+		s := out[i]
+		if pos > 0 && level(scores[i], scores[idx[pos-1]]) {
+			s.Rank = ranked[pos-1].Rank
+		} else {
+			s.Rank = pos + 1
+		}
+		s.Won = s.Rank == 1
+		ranked = append(ranked, s)
+	}
+	return ranked
+}
+
+// less orders two measure rows, higher-is-better, most significant first.
+func less(a, b []int) bool {
+	for i := range a {
+		if a[i] != b[i] {
+			return a[i] > b[i]
+		}
+	}
+	return false
+}
+
+// level reports two measure rows being equal on every measure.
+func level(a, b []int) bool {
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // FindOffer returns the offer with this ID, or nil.

@@ -50,7 +50,13 @@ func (m *Manager) SuspendOnDisconnect(ctx context.Context, matchID, playerID, re
 	if p := playerByID(match.Players, playerID); p == nil || p.IsAI {
 		return
 	}
-	if module.ActiveSeat(mod, match.State, viewerFor(match), refsOf(match)) != playerID {
+	// Suspended when the table is waiting on this player — which between rounds
+	// can be several people at once. Comparing against a single "active" seat
+	// meant that a player who dropped while the table waited on them, but who
+	// was not the first such seat, left it waiting on a socket that was never
+	// coming back: still active, never abandoned, and this is edge-triggered on
+	// the disconnect so it would not fire again.
+	if !awaits(module.AwaitedSeats(mod, match.State, viewerFor(match), refsOf(match)), playerID) {
 		return
 	}
 
@@ -106,4 +112,13 @@ func (m *Manager) ResumeIfReturning(ctx context.Context, matchID, playerID strin
 	// The returning player may not be the only one who was waiting: a bot
 	// behind them in the order has been idle too.
 	m.RunBotsIfNeeded(context.WithoutCancel(ctx), matchID)
+}
+
+func awaits(seats []string, playerID string) bool {
+	for _, id := range seats {
+		if id == playerID {
+			return true
+		}
+	}
+	return false
 }

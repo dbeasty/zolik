@@ -134,8 +134,25 @@ type GameState struct {
 	HandNumber int `json:"handNumber"`
 
 	LastHand *HandResult `json:"lastHand,omitempty"`
-	Winners  []string    `json:"winners,omitempty"`
-	Seed     int64       `json:"seed"`
+	// Hands is every hand that has been played, oldest first — deliberately a
+	// summary rather than the HandResult beside it.
+	//
+	// Slim on purpose. A HandResult carries the board and every hole card shown
+	// at the showdown, and GameState is re-marshalled and written to Mongo on
+	// every single action; a fifty-hand match would pay for the whole showdown
+	// history on every fold. LastHand keeps the rich version for the one hand a
+	// screen is actually looking at.
+	Hands []HandSummary `json:"hands,omitempty"`
+	// Pause is whether this table stops between hands, and Break the pause
+	// itself. Off by default: a hand is four to ten actions and a freezeout can
+	// be a hundred hands, so stopping after each one is the poker equivalent of
+	// confirming every card. The hand-by-hand table at the *end* is what a
+	// poker player actually wants, and that costs no pause at all.
+	Pause bool                `json:"pause,omitempty"`
+	Break module.Intermission `json:"break,omitempty"`
+
+	Winners []string `json:"winners,omitempty"`
+	Seed    int64    `json:"seed"`
 }
 
 // HandResult is how one hand finished, kept so a client can show a showdown
@@ -149,6 +166,26 @@ type HandResult struct {
 	Pots        []PotResult    `json:"pots,omitempty"`
 	Shown       []ShownHand    `json:"shown,omitempty"`
 	Deltas      map[string]int `json:"deltas,omitempty"`
+}
+
+// HandSummary is what a hand leaves behind once its board is gone: who was
+// pushed the chips, what each stack moved by, and what it became.
+//
+// Stacks is a snapshot rather than something recomputed later, because in poker
+// the score *is* the state: once hand 13 has happened there is no way back to
+// what a seat was sitting on after hand 12.
+//
+// It carries no cards, and that is a rule rather than an economy. A hand
+// everybody folded out of is never shown — endHand is careful about it — and
+// this summary is written onto the wire and into a permanent record, so a card
+// in here would leak twice over.
+type HandSummary struct {
+	Number      int            `json:"number"`
+	Winners     []string       `json:"winners,omitempty"`
+	Pot         int            `json:"pot,omitempty"`
+	Uncontested bool           `json:"uncontested,omitempty"`
+	Deltas      map[string]int `json:"deltas,omitempty"`
+	Stacks      map[string]int `json:"stacks"`
 }
 
 // PotResult is one pot — the main one, or a side pot — and who took it.
