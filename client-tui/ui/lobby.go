@@ -35,6 +35,10 @@ type lobbyModel struct {
 	cursor  int
 	// variation is which ruleset is picked for the highlighted module.
 	variation map[string]int
+	// bots is how many bots each module's table opens with. It holds only
+	// what was typed; a module nobody has adjusted answers through botsFor
+	// with the smallest legal table.
+	bots map[string]int
 
 	joinCode string
 	input    string
@@ -45,7 +49,7 @@ type lobbyModel struct {
 }
 
 func newLobbyModel(root *Root) lobbyModel {
-	return lobbyModel{root: root, variation: map[string]int{}}
+	return lobbyModel{root: root, variation: map[string]int{}, bots: map[string]int{}}
 }
 
 type lobbyModulesMsg struct{ modules []api.Module }
@@ -71,15 +75,16 @@ func (m lobbyModel) loadModules() tea.Cmd {
 	}
 }
 
-func (m lobbyModel) create(mod api.Module, variation string) tea.Cmd {
+func (m lobbyModel) create(mod api.Module, variation string, bots int) tea.Cmd {
 	return func() tea.Msg {
 		id, code, err := m.root.api.CreateMatch(mod.ID, variation, nil)
 		if err != nil {
 			return lobbyErrMsg{err: err.Error()}
 		}
-		// Fill the table to the module's own minimum, then start. The client
-		// does not know what that number is for any particular game.
-		for i := 1; i < mod.MinPlayers; i++ {
+		// Seat the bots the player asked for, then start. How many of them
+		// are legal is the module's business — botsFor reads its range; this
+		// loop only counts.
+		for i := 0; i < bots; i++ {
 			if err := m.root.api.AddBot(id); err != nil {
 				return lobbyErrMsg{err: err.Error()}
 			}
@@ -207,6 +212,18 @@ func (m lobbyModel) key(msg tea.KeyMsg) (lobbyModel, tea.Cmd) {
 				m.variation[mod.ID] = (m.variation[mod.ID] + d) % len(mod.Variations)
 			}
 			return m, nil
+		case "+", "=", "-", "_":
+			// How many bots the table opens with. Clamped by botsFor, so
+			// holding a key down settles at the module's own limit rather
+			// than running off into a table it will not deal.
+			if mod, ok := m.selected(); ok {
+				d := 1
+				if msg.String() == "-" || msg.String() == "_" {
+					d = -1
+				}
+				m.bots[mod.ID] = clampBots(mod, botsFor(mod, m.bots)+d)
+			}
+			return m, nil
 		case "enter":
 			mod, ok := m.selected()
 			if !ok {
@@ -217,10 +234,37 @@ func (m lobbyModel) key(msg tea.KeyMsg) (lobbyModel, tea.Cmd) {
 				v = mod.Variations[m.variation[mod.ID]].ID
 			}
 			m.status = "opening a table…"
-			return m, m.create(mod, v)
+			return m, m.create(mod, v, botsFor(mod, m.bots))
 		}
 	}
 	return m, nil
+}
+
+// botsFor is how many bots this module's table opens with: the count the
+// player typed, clamped to what the module will seat. Never fewer than its
+// minimum table needs once the host's own seat is counted, never more than its
+// maximum leaves room for — and an unset module answers with the smallest
+// legal table, which is what pressing enter has always given.
+func botsFor(mod api.Module, picked map[string]int) int {
+	n, ok := picked[mod.ID]
+	if !ok {
+		n = mod.MinPlayers - 1
+	}
+	return clampBots(mod, n)
+}
+
+// clampBots holds a count inside the module's declared range.
+func clampBots(mod api.Module, n int) int {
+	if lo := mod.MinPlayers - 1; n < lo {
+		n = lo
+	}
+	if hi := mod.MaxPlayers - 1; n > hi {
+		n = hi
+	}
+	if n < 1 {
+		n = 1
+	}
+	return n
 }
 
 func (m lobbyModel) selected() (api.Module, bool) {
@@ -268,13 +312,14 @@ func (m lobbyModel) view(width, height int) string {
 			if len(mod.Variations) > 0 {
 				line += "   [" + mod.Variations[m.variation[mod.ID]].Label + "]"
 			}
+			line += fmt.Sprintf("   %d bots", botsFor(mod, m.bots))
 			if i == m.cursor {
 				b.WriteString(offerOnStyle.Render(line) + "\n")
 			} else {
 				b.WriteString(offerOffStyle.Render(line) + "\n")
 			}
 		}
-		b.WriteString(mutedStyle.Render("\n↑/↓ choose · ←/→ ruleset · enter play against bots · q back"))
+		b.WriteString(mutedStyle.Render("\n↑/↓ choose · ←/→ ruleset · +/− bots · enter play against bots · q back"))
 	}
 
 	if m.status != "" {

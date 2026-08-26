@@ -357,6 +357,32 @@ test.describe('one shell, every game', () => {
     await expect(page.getByTestId('match-module')).toHaveText(/canasta/);
     await expect(page.getByTestId('action-bar')).toBeVisible();
   });
+
+  test('the host says how many bots sit down', async ({ page, request }) => {
+    // This button used to seat exactly enough bots to reach the module's
+    // minimum, so every quick game was a two-hander. The count is a choice
+    // now — and its range is the descriptor's, not this screen's: Prší seats
+    // 2–6, so five bots are offered and a sixth is not.
+    test.setTimeout(120_000);
+    const host = await guest(request);
+    await signIn(page, host);
+    await page.goto('/lobby/games');
+    await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 30_000 });
+
+    await expect(page.getByTestId('bots-prsi-5')).toBeVisible();
+    await expect(page.getByTestId('bots-prsi-6')).toHaveCount(0);
+
+    await page.getByTestId('bots-prsi-3').click();
+    await page.getByTestId('play-bots-prsi').click();
+
+    await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 45_000 });
+    const matchId = new URL(page.url()).pathname.split('/').pop();
+    const state = await request.get(`${API_BASE}/matches/${matchId}`);
+    expect(state.ok(), await state.text()).toBeTruthy();
+    const { players } = (await state.json()) as { players: { isAI: boolean }[] };
+    expect(players, 'three bots and the host').toHaveLength(4);
+    expect(players.filter((p) => p.isAI)).toHaveLength(3);
+  });
 });
 
 test.describe('the legacy path is gone', () => {
