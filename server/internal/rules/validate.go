@@ -1,6 +1,9 @@
 package rules
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // ValidateDraw draws a card for playerID. targetCard is only meaningful for
 // DrawFromDiscard under DiscardPickupAnyFromPile: it names which pile card to
@@ -674,20 +677,28 @@ func ValidateDiscard(state GameState, playerID string, card string, cardIndex *i
 		}
 	}
 	// A player who started laying melds toward their (still unmet) initial
-	// game requirement this turn must finish it before ending their turn —
-	// no leaving a lone partial meld on the table across turns. Only
-	// meaningful under a rotating/quota contract (Continental: e.g. "lay
-	// both required sets, not just one"), where a meld you've already laid
-	// is inherently partial progress toward a fixed count. A non-rotating
-	// profile (Žolík Classic) has no such count — every lay_meld is already
-	// a complete, standalone meld, and its clean-run requirement can only
-	// ever be met by a clean run specifically, never by laying more sets —
-	// so this block would leave a player who laid a set (but holds no
-	// clean run this turn) unable to ever discard again.
-	if cfg.FixedDealCount > 0 && state.MeldsLaidThisTurn > 0 && !state.RoundReqMet[playerID] {
+	// requirement this turn must finish it before ending their turn — no
+	// leaving a partial lay-down on the table across turns.
+	//
+	// This used to be gated on `cfg.FixedDealCount > 0`, exempting Žolík
+	// Classic, on the reasoning that its clean-run requirement can only ever
+	// be met by a clean run and so a player who laid a set without holding
+	// one would be unable to ever discard again. The exemption is worse than
+	// the thing it avoided: it is exactly how a player ends up with melds on
+	// the table, not down, and locked out of laying off for the rest of the
+	// deal with no indication why. Reported from a real game — three sets
+	// laid across three turns, every lay-off refused, and nothing on screen
+	// saying a run was what was missing.
+	//
+	// It is not a dead end, because a lay-down that cannot be completed can
+	// be taken back: `undo:lay_meld` returns the meld just laid, and
+	// `undo:turn` returns the whole turn including every meld laid in it.
+	// The rule is "finish it or take it back", which is the discipline a
+	// partial lay-down needs in either profile.
+	if state.MeldsLaidThisTurn > 0 && !state.RoundReqMet[playerID] {
 		return state, false, RulesError{
 			Code:    ErrIncompleteInitialMeld,
-			Message: "finish laying your full initial meld combination (all required sets/runs, total value met) before you can discard",
+			Message: incompleteMeldMessage(state, playerID),
 		}
 	}
 	// A discard-pile pickup made before going down obligates the player to
@@ -889,10 +900,57 @@ func notDownError(state GameState, playerID string) RulesError {
 			}
 		}
 	}
+	// Melds on the table and still not down: "lay your initial meld first" is
+	// then plainly false — the player is looking at the melds they laid — and
+	// reads as a broken feature rather than an unmet rule. Say which part is
+	// missing instead. The clean run is called out on its own because it is
+	// the one requirement no amount of further melding can satisfy: only a
+	// joker-free run will do, so a player told merely to "lay more" can go on
+	// laying sets forever without ever getting there.
+	if len(state.Melds[playerID]) > 0 {
+		req := cfg.ContractFor(state.GameNumber)
+		sets, runs, hasCleanRun := PlayerMeldCounts(state, playerID)
+		if req.RequireCleanRun && !hasCleanRun && sets >= req.Sets && runs >= req.Runs {
+			return RulesError{
+				Code:    ErrNeedCleanRun,
+				Message: "you need a joker-free run on the table before you count as down",
+			}
+		}
+	}
 	return RulesError{
 		Code:    ErrRoundReqNotMet,
 		Message: "lay your own initial meld before laying off on any meld",
 	}
+}
+
+// incompleteMeldMessage explains what an unfinished lay-down is still short
+// of, so the refusal to discard names the way out rather than restating that
+// there is a rule.
+func incompleteMeldMessage(state GameState, playerID string) string {
+	cfg := effectiveRules(state)
+	req := cfg.ContractFor(state.GameNumber)
+	sets, runs, hasCleanRun := PlayerMeldCounts(state, playerID)
+
+	var missing []string
+	if short := req.Sets - sets; short > 0 {
+		missing = append(missing, fmt.Sprintf("%d more set(s)", short))
+	}
+	if short := req.Runs - runs; short > 0 {
+		missing = append(missing, fmt.Sprintf("%d more run(s)", short))
+	}
+	if req.RequireCleanRun && !hasCleanRun {
+		missing = append(missing, "a joker-free run")
+	}
+	if cfg.InitialMeldMinimum > 0 {
+		if short := cfg.InitialMeldMinimum - PlayerInitialMeldNaturalValue(state, playerID); short > 0 {
+			missing = append(missing, fmt.Sprintf("%d more points", short))
+		}
+	}
+	if len(missing) == 0 {
+		return "finish your initial meld before you can discard"
+	}
+	return "your lay-down still needs " + strings.Join(missing, " and ") +
+		" — complete it, or take it back with undo, before you can discard"
 }
 
 func findMeldByID(state GameState, meldID string) (owner string, idx int) {

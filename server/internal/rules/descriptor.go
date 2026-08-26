@@ -111,7 +111,25 @@ func (d ModuleDescriptor) Profile(id string) *ProfileSpec {
 const (
 	OptInitialMeldMinimum  = "initialMeldMinimum"
 	OptDiscardDrawMinRound = "discardDrawMinRound"
+	OptRequireCleanRun     = "requireCleanRun"
 )
+
+// OptOff/OptOn are the two values of a yes/no option carried over the
+// enum_int wire shape. A dedicated bool OptionType would mean a new renderer
+// in every client for a control that is already a two-choice cycle, so a
+// declared pair of choices does the job with the machinery that exists.
+const (
+	OptOff = 0
+	OptOn  = 1
+)
+
+// BoolOpt maps a rule flag onto the wire values above.
+func BoolOpt(on bool) int {
+	if on {
+		return OptOn
+	}
+	return OptOff
+}
 
 // Descriptor describes this module. Pure and allocation-free to call.
 //
@@ -154,6 +172,16 @@ func Descriptor() ModuleDescriptor {
 					{Value: 0, Label: "Open"},
 					{Value: 2, Label: "Round 2"},
 					{Value: 3, Label: "Round 3"},
+				},
+			},
+			{
+				Name:  OptRequireCleanRun,
+				Type:  OptionEnumInt,
+				Label: "Clean run",
+				Help:  "Whether a joker-free run must be on the table before you count as down.",
+				Choices: []OptionChoice{
+					{Value: OptOn, Label: "Required"},
+					{Value: OptOff, Label: "Off"},
 				},
 			},
 		},
