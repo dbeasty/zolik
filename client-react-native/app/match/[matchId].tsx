@@ -14,11 +14,10 @@ import { useSession } from '@/src/context/SessionContext';
 import { useDropRegistry, type Measurable } from '@/src/hooks/useDropRegistry';
 import { useHandOrder } from '@/src/hooks/useHandOrder';
 import { useMatchSocket } from '@/src/hooks/useMatchSocket';
-import { useMetrics } from '@/src/hooks/useMetrics';
 import { usePanelState } from '@/src/hooks/usePanelState';
 import { drawableZones } from '@/src/lib/board';
 import { dropSpotsFor, groupElementId, positionAt, type DropSpot } from '@/src/lib/drops';
-import { cardsForSelection, pruneSelection, slotsForDrag } from '@/src/lib/hand';
+import { cardsForSelection, slotsForDrag, toggleSelection } from '@/src/lib/hand';
 import { reasonText } from '@/src/lib/i18n';
 import { factText, label, playerName } from '@/src/lib/labels';
 import { colors, dragLayer } from '@/src/theme';
@@ -53,7 +52,9 @@ export default function MatchScreen() {
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const { session, client } = useSession();
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
-  const metrics = useMetrics();
+  // Whether what is currently selected was picked by the *app* rather than by
+  // the player — see the auto-select effect below and `toggleSlot`.
+  const [selectionIsAuto, setSelectionIsAuto] = useState(false);
   const panels = usePanelState(matchId ? String(matchId) : undefined);
 
   const url = useMemo(() => {
@@ -90,8 +91,15 @@ export default function MatchScreen() {
   // cover. Landing it selected means whatever's about to leave the hand is
   // already picked, rather than making a player go find it among a dozen
   // others first.
+  //
+  // Flagged as the app's pick rather than the player's, which is what lets
+  // the next card they touch replace it instead of joining it — see
+  // `toggleSlot`.
   useEffect(() => {
-    if (autoSelectIds.length) setSelected(new Set(autoSelectIds));
+    if (autoSelectIds.length) {
+      setSelected(new Set(autoSelectIds));
+      setSelectionIsAuto(true);
+    }
   }, [autoSelectIds]);
 
   // Dragging a card somewhere. `drag` renders the highlights; `dragRef` is the
@@ -123,6 +131,14 @@ export default function MatchScreen() {
     );
   }
 
+  // Nothing selected, and nothing provisionally selected either — a fresh
+  // start for whatever the player does next. Used everywhere a selection is
+  // spent, so the auto-pick flag can never outlive the cards it described.
+  const clearSelection = () => {
+    setSelected(new Set());
+    setSelectionIsAuto(false);
+  };
+
   // Selection is by *slot*, not by card string. With two decks in play a hand
   // can hold two identical strings, and selecting by string could neither
   // light up the copy that was tapped nor put both of them in one meld.
@@ -132,12 +148,13 @@ export default function MatchScreen() {
     // that choice over rather than resolving it against a selection that has
     // since moved on.
     setPendingGroupKey(null);
-    setSelected((prev) => {
-      const next = pruneSelection(heldSlots, prev);
-      if (next.has(slotId)) next.delete(slotId);
-      else next.add(slotId);
-      return next;
-    });
+    // `provisional` is what makes a tap on some *other* card replace the
+    // app's own pick rather than join it — see `toggleSelection`.
+    setSelected((prev) => toggleSelection(heldSlots, prev, slotId, { provisional: selectionIsAuto }));
+    // Whatever that did, the selection is now the player's own, so further
+    // taps accumulate normally — that is how several cards are gathered into
+    // one meld.
+    setSelectionIsAuto(false);
   };
 
   const selectedCards = cardsForSelection(heldSlots, selected);
@@ -206,7 +223,18 @@ export default function MatchScreen() {
   const otherZones = visible.filter((z) => z.ownerId && z.ownerId !== viewerId && z.kind !== 'spread');
 
   const beginDrag = (zoneId: string, index: number) => {
-    const carried = slotsForDrag(slotsFor(zoneId), selected, index);
+    const slots = slotsFor(zoneId);
+    // Picking a card up is as much "I mean this one" as tapping it, so the
+    // same rule applies: a provisional selection the player didn't make is
+    // dropped the moment they take hold of something else. It would
+    // otherwise survive the drag and get merged back in by the staging
+    // branch of `endDrag`, putting a card they never chose into the next
+    // thing they try to play.
+    const picked = slots[index];
+    if (picked && selectionIsAuto && !selected.has(picked.id)) setSelected(new Set());
+    setSelectionIsAuto(false);
+
+    const carried = slotsForDrag(slots, selected, index);
     if (!carried.length) return;
 
     const cards = carried.map((s) => s.card);
@@ -258,7 +286,7 @@ export default function MatchScreen() {
     if (position) action.params = { ...(action.params ?? {}), [POSITION_PARAM]: position };
 
     send(action);
-    setSelected(new Set());
+    clearSelection();
     return true;
   };
 
@@ -285,7 +313,7 @@ export default function MatchScreen() {
     if (position) action.params = { ...(action.params ?? {}), [POSITION_PARAM]: position };
 
     send(action);
-    setSelected(new Set());
+    clearSelection();
     setPendingGroupKey(null);
   };
 
@@ -374,77 +402,26 @@ export default function MatchScreen() {
           </Text>
         ))}
 
-        {/* Buttons sit beside the piles on a wide screen, sharing that band
-            rather than costing it a full-width row of their own; on a narrow
-            one there isn't a band wide enough to share, so they stack —
-            each control still gets its own row inside its own panel instead
-            of running off the edge behind an invisible scrollbar. */}
-        <View style={[styles.tableRow, metrics.narrow && styles.tableRowNarrow]}>
-          <Section
-            title="Table"
-            zones={tableZones}
-            compact
-            {...zonePanelProps('section:table')}
-            panelPropsFor={zonePanelProps}
-            {...dropProps}
-          />
-          <Panel
-            {...zonePanelProps('controls')}
-            title="Controls"
-            testID="controls-panel"
-            style={!metrics.narrow && styles.controlsPanel}
-            summary={
-              <OfferGlance
-                offers={state.legalActions}
-                selectedCards={selectedCards}
-                onSend={send}
-                onConsumeSelection={() => setSelected(new Set())}
-                onAmbiguous={(groupKey) => {
-                  setPendingGroupKey(groupKey);
-                  drops.measure();
-                }}
-                testID="controls-summary"
-              />
-            }
-          >
-            {/* The engine's own sentence stands in for a code this build has
-                no translation for — it is at least a sentence, where the bare
-                code reads as a crash. A code we do know still wins, so a
-                translated message never regresses to English. */}
-            {error ? (
-              <Text testID="match-error" style={styles.error} onPress={clearError}>
-                {reasonText(error.code, error.message || error.code)}
-              </Text>
-            ) : null}
-            {/* Disabled offers stay on screen with their reason. An offer
-                that vanished when it became illegal would be
-                indistinguishable from a bug, which is why the server sends
-                the whole set every time. */}
-            <OfferBar
-              offers={state.legalActions}
-              selectedCards={selectedCards}
-              onSend={send}
-              onConsumeSelection={() => setSelected(new Set())}
-              onAmbiguous={(groupKey) => {
-                setPendingGroupKey(groupKey);
-                // The board is inside a scroll view, so a target's position
-                // as of the last drag is not necessarily where it is now
-                // either.
-                drops.measure();
-              }}
-            />
-            {!canAct && state.status === 'active' ? (
-              <Text testID="match-waiting" style={styles.muted}>
-                Waiting for another player…
-              </Text>
-            ) : null}
-          </Panel>
-        </View>
+        {/* The piles and stacks everyone draws from and discards to. A
+            full-width row of its own now that the controls have moved down
+            under the hand — the zones inside it are a couple of cards wide
+            and sit side by side in there, so it costs far less height than
+            a full-width row suggests. */}
+        <Section
+          title="Table"
+          zones={tableZones}
+          compact
+          {...zonePanelProps('section:table')}
+          panelPropsFor={zonePanelProps}
+          {...dropProps}
+        />
 
-        {/* Your hand first — it's what your thumb is on every turn — with
-            everyone's melds (yours and the opponents') below it rather than
-            above, so reaching your cards never means scrolling past a wall
-            of board state first. */}
+        {/* Your hand, then the controls that act on it, as one pair — it's
+            what your thumb is on every turn, and choosing a card and
+            spending it should not be at two ends of the screen. Everyone's
+            melds (yours and the opponents') go below the pair rather than
+            above it, so reaching your cards never means scrolling past a
+            wall of board state first. */}
         {/* Raised onto the drag layer for as long as a card is in flight, so
             the card being carried is drawn over the melds and the opponents
             below it rather than sliced in half by the first panel edge it
@@ -469,6 +446,68 @@ export default function MatchScreen() {
             />
           ))}
         </View>
+
+        {/* Directly under your hand, at every screen width. Every control
+            here acts on the cards picked just above it, and a bar up beside
+            the piles meant looking in one place to choose and another to
+            act — with the whole hand in between, which on a phone is most
+            of the screen. Under the hand rather than over it because that
+            is the edge a thumb is already resting on.
+
+            The cost is that the piles no longer have a neighbour to share
+            their band with on a wide screen. Worth paying: that band was
+            shared at the price of putting every button a full hand away
+            from the cards it spends. */}
+        <Panel
+          {...zonePanelProps('controls')}
+          title="Controls"
+          testID="controls-panel"
+          summary={
+            <OfferGlance
+              offers={state.legalActions}
+              selectedCards={selectedCards}
+              onSend={send}
+              onConsumeSelection={clearSelection}
+              onAmbiguous={(groupKey) => {
+                setPendingGroupKey(groupKey);
+                drops.measure();
+              }}
+              testID="controls-summary"
+            />
+          }
+        >
+          {/* The engine's own sentence stands in for a code this build has
+              no translation for — it is at least a sentence, where the bare
+              code reads as a crash. A code we do know still wins, so a
+              translated message never regresses to English. */}
+          {error ? (
+            <Text testID="match-error" style={styles.error} onPress={clearError}>
+              {reasonText(error.code, error.message || error.code)}
+            </Text>
+          ) : null}
+          {/* Disabled offers stay on screen with their reason. An offer
+              that vanished when it became illegal would be
+              indistinguishable from a bug, which is why the server sends
+              the whole set every time. */}
+          <OfferBar
+            offers={state.legalActions}
+            selectedCards={selectedCards}
+            onSend={send}
+            onConsumeSelection={clearSelection}
+            onAmbiguous={(groupKey) => {
+              setPendingGroupKey(groupKey);
+              // The board is inside a scroll view, so a target's position
+              // as of the last drag is not necessarily where it is now
+              // either.
+              drops.measure();
+            }}
+          />
+          {!canAct && state.status === 'active' ? (
+            <Text testID="match-waiting" style={styles.muted}>
+              Waiting for another player…
+            </Text>
+          ) : null}
+        </Panel>
 
         {/* Every spread on the board, whoever's it is, sharing a wrapping
             row instead of each claiming a full-width line — named by its
@@ -581,15 +620,6 @@ const styles = StyleSheet.create({
   statusGroup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   status: { color: colors.muted, fontSize: 12 },
   facts: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 2 },
-  tableRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  // A phone doesn't have a band wide enough to share between the piles and
-  // the controls, so they stack instead of sitting side by side.
-  tableRowNarrow: { flexDirection: 'column' },
-  // Takes whatever room is left beside the piles rather than shrinking to its
-  // content width — minWidth: 0 is what actually lets it shrink below that
-  // content width in the first place, which is what makes the controls wrap
-  // onto more than one line instead of overflowing the row.
-  controlsPanel: { flex: 1, minWidth: 0 },
   fact: { color: colors.muted, fontSize: 12 },
   statusDot: { width: 10, height: 10, borderRadius: 5, marginTop: 1 },
   statusDotOk: { backgroundColor: colors.success },
