@@ -52,29 +52,29 @@ describe('bundle completeness', () => {
 describe('t', () => {
   it('returns the active locale wording', () => {
     setLocale('cs');
-    expect(t('rules.variation')).toBe('Varianta');
+    expect(t('zolik.rules.section.setup')).toBe('Příprava');
     setLocale('en');
-    expect(t('rules.variation')).toBe('Variation');
+    expect(t('zolik.rules.section.setup')).toBe('Setup');
   });
 
   it('interpolates named params', () => {
-    expect(t('rules.cards', { n: 13 })).toBe('13 cards');
+    expect(t('zolik.rules.deal', { n: 13 })).toBe('Each player is dealt 13 cards.');
     setLocale('cs');
-    expect(t('rules.cards', { n: 13 })).toBe('13 karet');
+    expect(t('zolik.rules.deal', { n: 13 })).toBe('Každý hráč dostane 13 karet.');
   });
 
   it('leaves an unsupplied placeholder alone rather than printing undefined', () => {
-    expect(t('rules.cards')).toBe('{n} cards');
+    expect(t('zolik.rules.deal')).toBe('Each player is dealt {n} cards.');
   });
 
   it('falls back to English for a key the locale lacks', () => {
     // Simulates a partially-translated bundle: the completeness test above
     // stops that shipping, but the fallback must still be correct if it does.
-    const saved = BUNDLES.cs['rules.variation'];
-    delete BUNDLES.cs['rules.variation'];
+    const saved = BUNDLES.cs['zolik.rules.section.setup'];
+    delete BUNDLES.cs['zolik.rules.section.setup'];
     setLocale('cs');
-    expect(t('rules.variation')).toBe('Variation');
-    BUNDLES.cs['rules.variation'] = saved;
+    expect(t('zolik.rules.section.setup')).toBe('Setup');
+    BUNDLES.cs['zolik.rules.section.setup'] = saved;
   });
 
   it('falls back to the caller fallback, then the key, for an unknown key', () => {
@@ -87,7 +87,7 @@ describe('setLocale', () => {
   it('ignores an unknown locale rather than blanking the UI', () => {
     setLocale('klingon' as never);
     expect(getLocale()).toBe('en');
-    expect(t('rules.variation')).toBe('Variation');
+    expect(t('zolik.rules.section.setup')).toBe('Setup');
   });
 });
 

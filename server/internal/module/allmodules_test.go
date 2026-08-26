@@ -2,7 +2,9 @@ package module_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
+	"strings"
 	"testing"
 
 	"zolik/server/internal/canasta"
@@ -583,6 +585,48 @@ func TestEveryModuleKeepsAScoreboard(t *testing.T) {
 				}
 				if standings[i].Score > standings[i-1].Score {
 					t.Errorf("scores are not sorted: %+v", standings)
+				}
+			}
+		})
+	}
+}
+
+// TestEveryModuleWritesItsRules — a lobby's "see the rules" screen renders
+// from this and nothing else, so every module has to have something to say,
+// and has to say it in keys rather than sentences it wrote itself.
+func TestEveryModuleWritesItsRules(t *testing.T) {
+	for _, g := range allModules() {
+		t.Run(g.name, func(t *testing.T) {
+			p, ok := g.mod.(module.RulesProvider)
+			if !ok {
+				t.Fatalf("%s does not implement module.RulesProvider", g.name)
+			}
+			sections, err := p.Rules(g.cfg)
+			if err != nil {
+				t.Fatalf("Rules: %v", err)
+			}
+			if len(sections) == 0 {
+				t.Fatal("a module's rules must have at least one section")
+			}
+			checkKey := func(where, key string) {
+				if key == "" {
+					t.Errorf("%s: empty label key", where)
+					return
+				}
+				if !strings.Contains(key, ".") {
+					t.Errorf("%s: key %q looks like rendered text, not a message key", where, key)
+				}
+				if strings.Contains(key, " ") {
+					t.Errorf("%s: key %q contains a space — a key, not a sentence", where, key)
+				}
+			}
+			for i, s := range sections {
+				checkKey(fmt.Sprintf("section %d title", i), s.TitleKey)
+				if len(s.Items) == 0 {
+					t.Errorf("section %d (%s) has no items", i, s.TitleKey)
+				}
+				for j, item := range s.Items {
+					checkKey(fmt.Sprintf("section %d item %d", i, j), item.LabelKey)
 				}
 			}
 		})

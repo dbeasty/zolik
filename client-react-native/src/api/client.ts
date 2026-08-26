@@ -1,5 +1,5 @@
 import { ZOLIK_BASE_URL } from '@/src/config';
-import type { MatchModule, MatchState } from '@/src/api/matchTypes';
+import type { MatchModule, MatchState, ModuleRules } from '@/src/api/matchTypes';
 import type {
   AccountProfile,
   AuthProvider,
@@ -273,6 +273,28 @@ export class ZolikClient {
   async modules(): Promise<MatchModule[]> {
     const body = await this.get<{ modules: MatchModule[] }>('/modules', false);
     return body.modules ?? [];
+  }
+
+  /**
+   * One module's written rules, resolved against a variation and option
+   * overrides — the same choices a lobby's picker holds, so the sentences
+   * describe the table being configured rather than the module's defaults.
+   */
+  async moduleRules(
+    moduleId: string,
+    variation?: string,
+    options?: Record<string, number>,
+  ): Promise<ModuleRules> {
+    const q = new URLSearchParams();
+    if (variation) q.set('variation', variation);
+    for (const [name, value] of Object.entries(options ?? {})) {
+      q.set(`opt.${name}`, String(value));
+    }
+    const qs = q.toString();
+    return this.get<ModuleRules>(
+      `/modules/${encodeURIComponent(moduleId)}/rules${qs ? `?${qs}` : ''}`,
+      false,
+    );
   }
 
   async createMatch(

@@ -87,8 +87,10 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 	return out
 }
 
-// NewMatch deals the opening hand through the engine's own dealer.
-func (m *Module) NewMatch(mc module.MatchConfig, players []module.PlayerRef, seed int64) (module.State, error) {
+// resolveConfig is the one place a lobby's variation+options become a
+// rules.RulesConfig. NewMatch deals from it and Rules (rules.go) writes from
+// it, so the two cannot disagree about what a setting means.
+func resolveConfig(mc module.MatchConfig) rules.RulesConfig {
 	// ResolveProfile already falls back to the default ruleset for an empty or
 	// unknown name, so an unspecified variation needs no special case here.
 	cfg := rules.ResolveProfile(mc.Variation)
@@ -99,6 +101,12 @@ func (m *Module) NewMatch(mc module.MatchConfig, players []module.PlayerRef, see
 	cfg.StaticContract.RequireCleanRun = mc.Opt(
 		rules.OptRequireCleanRun, rules.BoolOpt(cfg.StaticContract.RequireCleanRun),
 	) == rules.OptOn
+	return cfg
+}
+
+// NewMatch deals the opening hand through the engine's own dealer.
+func (m *Module) NewMatch(mc module.MatchConfig, players []module.PlayerRef, seed int64) (module.State, error) {
+	cfg := resolveConfig(mc)
 
 	order := make([]string, 0, len(players))
 	for _, p := range players {

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/websocket"
@@ -45,6 +47,7 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	// Every game this server can host, and what each one lets a lobby set. A
 	// client renders its whole game-picker and new-match form from this.
 	r.Get("/modules", h.listModules)
+	r.Get("/modules/{id}/rules", h.moduleRules)
 	r.Get("/matches/{id}", h.getMatch)
 	r.With(auth.AuthMiddleware).Post("/matches", h.createMatch)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/join", h.joinMatch)
@@ -134,6 +137,68 @@ func (h *Handlers) listModules(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"modules": h.manager.Registry().Descriptors(),
+	})
+}
+
+// moduleRules writes out one module's rules, resolved against the variation
+// and option overrides a lobby has actually chosen — so a "see the rules"
+// screen can reflect the table a player is looking at, not just the module's
+// defaults.
+//
+// Unauthenticated, like /modules: this is descriptive metadata, the same
+// trust level as the descriptor it is resolved against.
+func (h *Handlers) moduleRules(w http.ResponseWriter, req *http.Request) {
+	id := chi.URLParam(req, "id")
+	mod := h.manager.Registry().Get(id)
+	if mod == nil {
+		writeModuleError(w, module.Error{Code: "UNKNOWN_MODULE", Message: id})
+		return
+	}
+	d := mod.Descriptor()
+
+	variation := req.URL.Query().Get("variation")
+	if variation != "" && d.Variation(variation) == nil {
+		writeModuleError(w, module.Error{Code: "UNKNOWN_VARIATION", Message: variation})
+		return
+	}
+
+	// Same discipline as Manager.Create: the descriptor is authoritative, so a
+	// value it does not declare is refused here rather than silently ignored.
+	opts := module.Options{}
+	validated := map[string]*int{}
+	for key, vals := range req.URL.Query() {
+		name, ok := strings.CutPrefix(key, "opt.")
+		if !ok || len(vals) == 0 {
+			continue
+		}
+		v, err := strconv.Atoi(vals[0])
+		if err != nil {
+			writeModuleError(w, module.Error{Code: "BAD_OPTION", Message: name})
+			return
+		}
+		opts[name] = v
+		validated[name] = &v
+	}
+	if err := d.ValidateOptions(validated); err != nil {
+		writeModuleError(w, err)
+		return
+	}
+
+	rp, ok := mod.(module.RulesProvider)
+	if !ok {
+		writeModuleError(w, module.Error{Code: "NO_RULES", Message: id})
+		return
+	}
+	sections, err := rp.Rules(module.MatchConfig{Variation: variation, Options: opts})
+	if err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	writeJSON(w, map[string]any{
+		"moduleId":  id,
+		"variation": variation,
+		"options":   opts,
+		"sections":  sections,
 	})
 }
 
@@ -359,7 +424,7 @@ func writeModuleError(w http.ResponseWriter, err error) {
 	code := module.CodeOf(err)
 	status := http.StatusBadRequest
 	switch code {
-	case "UNKNOWN_MODULE", "UNKNOWN_VARIATION":
+	case "UNKNOWN_MODULE", "UNKNOWN_VARIATION", "NO_RULES":
 		status = http.StatusNotFound
 	case "NOT_THE_HOST":
 		status = http.StatusForbidden

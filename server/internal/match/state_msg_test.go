@@ -127,6 +127,22 @@ func TestBuildStateMsg_LobbyHasNoBoardYet(t *testing.T) {
 	}
 }
 
+func TestBuildStateMsg_CarriesTheLobbysOptions(t *testing.T) {
+	// A "see the rules" screen reached from an in-progress match has to ask
+	// for the table's actual settings, not a variation's defaults — which
+	// means the options a lobby chose have to survive onto the wire.
+	m := &Manager{registry: registry()}
+	msg := m.BuildStateMsg(models.Match{
+		ModuleID: "zolik", Status: "lobby",
+		Options: map[string]int{"initialMeldMinimum": 50},
+		Players: []models.Player{{ID: "p1", Name: "p1"}},
+	}, "p1")
+
+	if msg.Options["initialMeldMinimum"] != 50 {
+		t.Errorf("options = %v, want initialMeldMinimum=50", msg.Options)
+	}
+}
+
 func TestBuildStateMsg_UnknownModuleDegradesRatherThanPanics(t *testing.T) {
 	// A document naming a module this build does not have — a rollback, or a
 	// module removed — must render as an inert match rather than crash the
