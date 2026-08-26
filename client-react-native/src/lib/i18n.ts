@@ -196,6 +196,17 @@ const en: Record<string, string> = {
   // back. {reason} is the engine's own words for the refusal.
   'discard.meldRejected': '{reason} — nothing was discarded, your cards are still staged.',
 
+  // --- what the current selection would send -------------------------------
+  // The client's own reason a control is not ready, next to the engine's own
+  // `err.*` reasons rather than a second kind of message — a control greyed
+  // out for "not your turn" and one greyed out for "you picked two, this
+  // takes one" should read as the same kind of thing, not one of them looking
+  // broken. See `fits` in `src/lib/drops.ts`.
+  'sel.tooMany.1': 'Select just one card',
+  'sel.tooMany.n': 'Select at most {n} cards',
+  'sel.needMore': 'Select {n} card(s)',
+  'sel.notThese': "Those cards can't go here",
+
   // --- what a module says happened -----------------------------------------
   // The first module-sent keys in this bundle, and deliberately few. Anything
   // a module sends is still legible without an entry here — `humanise` turns
@@ -355,6 +366,11 @@ const cs: Record<string, string> = {
   'preview.becauseOf': '{line} — {reason}',
 
   'discard.meldRejected': '{reason} — nic se neodhodilo, karty máš pořád připravené.',
+
+  'sel.tooMany.1': 'Vyber jen jednu kartu',
+  'sel.tooMany.n': 'Vyber nejvýš {n} karet',
+  'sel.needMore': 'Vyber {n} kartu/karty',
+  'sel.notThese': 'Tyhle karty sem nepatří',
 
   // Wording that names no verb, because a Czech verb agrees with the gender of
   // whoever did it and a player id carries no gender. "Vítěz: Anna" is right

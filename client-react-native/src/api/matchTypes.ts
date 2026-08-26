@@ -239,7 +239,17 @@ export type MatchModule = {
  * value for each parameter it declares. It knows what none of them mean.
  *
  * Returns null when the offer needs a person — a composite combination, or a
- * choice this helper has no business making.
+ * choice this helper has no business making. That now includes a card list
+ * that does not fit: a selection bigger than the offer will take used to be
+ * silently trimmed down to it, which sent whichever card the trim happened to
+ * keep rather than the one a person actually picked, and left the rest of the
+ * selection on the table looking chosen when it had already been spent. A
+ * mismatched selection is refused instead, the same as a drag already refuses
+ * to land one — see `fits` in `src/lib/drops.ts`, which this mirrors for the
+ * one case a drag never has to face: nobody having chosen anything at all. A
+ * missing choice only stands in for the offer's own list when that list is
+ * itself the whole submission — no card left over that only a person could
+ * have picked between.
  */
 export function submissionFor(
   offer: ActionOffer,
@@ -251,10 +261,15 @@ export function submissionFor(
 
   const need = offer.source?.minCards ?? 0;
   if (need > 0) {
-    const cards = chosen?.cards ?? offer.source?.cards ?? [];
-    if (cards.length < need) return null;
-    const max = offer.source?.maxCards ?? need;
-    action.cards = chosen?.cards ? cards.slice(0, Math.max(need, Math.min(cards.length, max))) : cards.slice(0, need);
+    if (chosen?.cards) {
+      const max = offer.source?.maxCards ?? need;
+      if (chosen.cards.length < need || chosen.cards.length > max) return null;
+      action.cards = chosen.cards;
+    } else {
+      const listed = offer.source?.cards ?? [];
+      if (listed.length !== need) return null;
+      action.cards = listed;
+    }
   }
   if (offer.target?.meldId) action.target = offer.target.meldId;
 
@@ -279,18 +294,22 @@ export function defaultParam(p: ParamSpec): string | undefined {
 }
 
 /**
- * Whether an offer can be sent by pressing it once.
+ * Whether an offer can be sent by pressing it once, with nothing chosen.
  *
- * True when the server enumerated the whole submission — Canasta ships the
- * exact cards of a meld, so it is a button. False for a rummy meld shape, or
- * anything with a choice to make first.
+ * True when the server enumerated the *whole* submission — Canasta ships the
+ * exact cards of a meld, so it is a button. Exactly that many, not merely
+ * enough of them: a lay-off with two eligible cards also enumerates a list
+ * that is at least as long as `minCards`, but which of the two goes is a
+ * choice only a person can make, and a bare `>=` here used to wave that
+ * through as one-tap and let the first candidate in the list go instead.
+ * False for a rummy meld shape, or anything with a choice to make first.
  */
 export function isOneTap(offer: ActionOffer): boolean {
   if (offer.composite) return false;
   if ((offer.params ?? []).length > 0) return false;
   const need = offer.source?.minCards ?? 0;
   if (need === 0) return true;
-  return (offer.source?.cards ?? []).length >= need;
+  return (offer.source?.cards ?? []).length === need;
 }
 
 /**
@@ -301,30 +320,4 @@ export function isOneTap(offer: ActionOffer): boolean {
  */
 export function offerGroupKey(offer: ActionOffer): string {
   return offer.labelKey ?? `verb.${offer.verb}`;
-}
-
-/**
- * Whether the current selection, on its own, says this is the one member of
- * its group that was meant — without a person having to pick a target by
- * hand. Mirrors what a press would actually send: some of the selection is
- * among this offer's own eligible cards, or nothing is selected and this
- * offer needs no choice at all to go.
- */
-export function offerMatchesSelection(offer: ActionOffer, selected: string[]): boolean {
-  if (!offer.enabled) return false;
-  if (selected.length === 0) return isOneTap(offer);
-  return (offer.source?.cards ?? []).some((c) => selected.includes(c));
-}
-
-/**
- * Which of `selected` this offer would actually take. An offer that
- * enumerates its cards (Canasta's melds) only takes those; a composite offer
- * with no list bounds a shape rather than a combination — a Žolíky meld, any
- * card in hand may go into it. Mirrors `dropSpotsFor` in `drops.ts`, which
- * matches the same offers against a drag rather than a tap-selection.
- */
-export function eligibleCards(offer: ActionOffer, selected: string[]): string[] {
-  const allowed = offer.source?.cards;
-  if (allowed && allowed.length > 0) return selected.filter((c) => allowed.includes(c));
-  return selected;
 }

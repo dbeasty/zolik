@@ -550,6 +550,22 @@ const DraggableCard = memo(function DraggableCard({
       runOnJS(onRelease)();
     });
 
+  // Web only, and the reason a phone couldn't be scrolled past the hand.
+  // Attaching *any* Pan gesture makes this library set the card's own
+  // `touch-action` to `none` — every touch starting on a card is claimed for
+  // the gesture before the browser gets a say, vertical swipe included, so
+  // the scroll view underneath never saw one. `pan-y` hands vertical panning
+  // back to the browser's own touch scrolling, which is safe now in a way it
+  // was not when the comment above was written: reaching a meld above the
+  // hand no longer depends on a drag at all, tap-to-play does it (see
+  // `app/match/[matchId].tsx`), so a phone's vertical swipe is free to mean
+  // "scroll" without taking anything away. A horizontal drag is untouched —
+  // `touch-action` only ever hands off the axis the browser is told about,
+  // and rearranging the fan stays a sideways gesture. There is no chained
+  // setter for this on `Gesture.Pan()`; `config` is the same public,
+  // typed field every chained setter writes into.
+  pan.config.touchAction = 'pan-y';
+
   const carried = useMemo(
     () => (offset ? { transform: [{ translateX: offset.dx }, { translateY: offset.dy }] } : null),
     [offset?.dx, offset?.dy],

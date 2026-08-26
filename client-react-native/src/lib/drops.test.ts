@@ -1,6 +1,6 @@
 import type { ActionOffer } from '@/src/api/matchTypes';
 
-import { dropSpotsFor, positionAt, spotAt } from './drops';
+import { dropSpotsFor, fits, positionAt, spotAt } from './drops';
 
 /**
  * The offer shapes below are the ones the four modules really emit — a Prší
@@ -163,6 +163,49 @@ describe('dropSpotsFor', () => {
   });
 });
 
+describe('fits', () => {
+  it('is fine with an empty selection — it has no opinion on nothing chosen', () => {
+    expect(fits(discard, [])).toEqual({ ok: true });
+    expect(fits(layMeld, [])).toEqual({ ok: true });
+  });
+
+  it('is fine with cards this offer names', () => {
+    expect(fits(discard, ['KD'])).toEqual({ ok: true });
+  });
+
+  it('refuses cards not on the list', () => {
+    expect(fits(discard, ['2C'])).toEqual({ ok: false, labelKey: 'sel.notThese' });
+  });
+
+  it('refuses more than the offer will take', () => {
+    expect(fits(discard, ['KD', '7H'])).toEqual({ ok: false, labelKey: 'sel.tooMany.1' });
+  });
+
+  it('names the limit when more than one may be sent', () => {
+    const oneSeven: ActionOffer = {
+      ...layOff,
+      source: { ...layOff.source!, cards: ['7H'], placements: undefined, minCards: 1, maxCards: 2 },
+    };
+    expect(fits(oneSeven, ['7H', '7H', '7H'])).toEqual({ ok: false, labelKey: 'sel.tooMany.n', params: { n: 2 } });
+  });
+
+  it('has no opinion on an offer that takes no cards at all', () => {
+    // A draw button does not care what happens to be selected in hand.
+    expect(fits(draw, ['KD', '7H', '9S'])).toEqual({ ok: true });
+  });
+
+  it('accepts any card into a shape offer with no enumerated list', () => {
+    expect(fits(layMeld, ['2C', '2D', '2H'])).toEqual({ ok: true });
+  });
+
+  it('says nothing about having too few — that is a different question', () => {
+    // Fewer than `minCards` is still "these particular cards are fine, just
+    // not enough of them yet" — a drag stages that; a button asks the min
+    // question itself, separately.
+    expect(fits(layMeld, ['2C'])).toEqual({ ok: true });
+  });
+});
+
 describe('spotAt', () => {
   it('finds the spot for an element, and says nothing for one that has none', () => {
     const spots = dropSpotsFor([discard, layOff], ['6D']);
@@ -173,7 +216,10 @@ describe('spotAt', () => {
 });
 
 describe('positionAt', () => {
-  const rect = { x: 100, width: 200 };
+  // Vertical: a group is a stack overlapping top to bottom, one card wide
+  // regardless of the run's length, so the axis that actually reads as "front"
+  // versus "end" on screen is height, not width — see `positionAt`'s own doc.
+  const rect = { y: 100, height: 200 };
 
   it('splits a two-ended target down the middle', () => {
     expect(positionAt(['front', 'end'], 140, rect)).toBe('front');

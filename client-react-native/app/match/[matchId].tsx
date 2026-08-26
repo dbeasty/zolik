@@ -110,12 +110,27 @@ export default function MatchScreen() {
   const dragRef = useRef<{ slotIds: string[]; cards: string[] } | null>(null);
   const [drag, setDrag] = useState<{ cards: string[] } | null>(null);
   const [hoveredDrop, setHoveredDrop] = useState<string | null>(null);
+  // Which of `hoveredDrop`'s ordered positions the drag is currently over,
+  // for a target with a choice of more than one — a card carried over a run
+  // says up front which end it would extend, rather than only after it is
+  // let go of. An index into the offer's own `positions` list, not the
+  // position's name, so the shell that renders it (`ZoneView`) never has to
+  // know what "front" or "end" means — only which of N ordered slices this
+  // is, the same "first is drawn first" contract `positions` already keeps.
+  const [hoveredPosition, setHoveredPosition] = useState<{ index: number; count: number } | null>(null);
   // A folded control in the offer bar was pressed but the current selection
   // does not say which of its targets was meant. Rather than guess, the
   // targets it could still mean light up the same way a drag lights them up,
   // and a press on one finishes the job a drag would have — see
   // `onAmbiguous`/`pressDrop` below.
   const [pendingGroupKey, setPendingGroupKey] = useState<string | null>(null);
+  // A meld tapped before any card was picked — `target.meldId`, the same
+  // vocabulary an offer already uses, not an element id. This is the other
+  // order a move can be made in: `pendingGroupKey` above narrows the board
+  // once a *control* said which kind of move was meant; this narrows it once
+  // the *target* was pointed at first, before any control or any card. See
+  // `onAimGroup` below for how it is set and cleared.
+  const [armedMeldId, setArmedMeldId] = useState<string | null>(null);
   // Whether a tap on the status dot has opened its explanation — declared
   // before the `!state` early return below so hook order stays fixed
   // whether or not the socket has delivered a state yet.
@@ -138,9 +153,12 @@ export default function MatchScreen() {
   // Nothing selected, and nothing provisionally selected either — a fresh
   // start for whatever the player does next. Used everywhere a selection is
   // spent, so the auto-pick flag can never outlive the cards it described.
+  // Spending a selection also disarms whatever target was pointed at: a move
+  // just went to it, so aiming has done its job.
   const clearSelection = () => {
     setSelected(new Set());
     setSelectionIsAuto(false);
+    setArmedMeldId(null);
   };
 
   // Selection is by *slot*, not by card string. With two decks in play a hand
@@ -186,8 +204,24 @@ export default function MatchScreen() {
   // recomputed on every render rather than captured at selection time, so a
   // target that stopped being legal mid-choice simply stops lighting up
   // instead of a stale one staying pressable.
+  //
+  // `armedMeldId` narrows the same way from the other order: a meld tapped
+  // *before* any card was picked, rather than a control pressed after. A
+  // target that stopped offering anything simply stops narrowing — computed
+  // fresh each render against the live offer list rather than trusted from
+  // whenever it was tapped, so a meld played away by a bot while armed does
+  // not leave the screen pointed at nothing.
+  const meldsWithOffers = new Set(
+    state.legalActions
+      .filter((o) => o.enabled && o.target?.meldId && (o.source?.minCards ?? 0) > 0)
+      .map((o) => o.target!.meldId!),
+  );
+  const armedMeldIdLive = armedMeldId && meldsWithOffers.has(armedMeldId) ? armedMeldId : null;
   const pendingCandidates = state.legalActions.filter(
-    (o) => o.enabled && (!pendingGroupKey || (o.target?.meldId && offerGroupKey(o) === pendingGroupKey)),
+    (o) =>
+      o.enabled &&
+      (!pendingGroupKey || (o.target?.meldId && offerGroupKey(o) === pendingGroupKey)) &&
+      (!armedMeldIdLive || o.target?.meldId === armedMeldIdLive),
   );
   // `dropSpotsFor` answers "where may *these cards* be let go", which is
   // exactly wrong when nothing is selected — every one of a folded control's
@@ -205,6 +239,18 @@ export default function MatchScreen() {
 
   const activeDrops = new Set([...liveSpots, ...pendingSpots].map((s) => s.elementId));
   const pressableDrops = new Set(pendingSpots.map((s) => s.elementId));
+
+  // Which melds could be *aimed at* right now — pointed at before any card is
+  // picked, the other order from the usual "select cards, then a target
+  // lights up". Only offered while nothing is selected: once cards are
+  // chosen, a fitting target is already live and pressable above, and aiming
+  // has nothing left to add. Tapping one arms it (see `onAimGroup`); tapping
+  // the armed one again clears it.
+  const armableGroups = selectedCards.length === 0 ? meldsWithOffers : new Set<string>();
+  const onAimGroup = (meldId: string) => {
+    if (!meldsWithOffers.has(meldId)) return;
+    setArmedMeldId((prev) => (prev === meldId ? null : meldId));
+  };
 
   // What's worth putting on screen at all — a hidden zone with a count and no
   // cards says nothing the seat strip hasn't already said, unless it's the
@@ -252,8 +298,23 @@ export default function MatchScreen() {
   const moveDrag = (x: number, y: number) => {
     const current = dragRef.current;
     if (!current) return;
-    const over = drops.hit(x, y, spotsFor(current.cards).map((s) => s.elementId));
+    const spots = spotsFor(current.cards);
+    const over = drops.hit(x, y, spots.map((s) => s.elementId));
     setHoveredDrop((prev) => (prev === over ? prev : over));
+
+    // Which of the target's ordered positions this hover currently means,
+    // shown live so a player can see where a card will land before letting
+    // go of it, rather than finding out only after. `null` for a target with
+    // no choice to preview (one legal position, or none), or nothing hovered.
+    const spot = over ? spots.find((s) => s.elementId === over) : undefined;
+    const rect = over ? drops.rectFor(over) : undefined;
+    const positions = spot?.positions;
+    const resolved = spot && rect ? positionAt(positions, y, rect) : undefined;
+    const index = resolved && positions ? positions.indexOf(resolved) : -1;
+    const next = positions && positions.length > 1 && index >= 0 ? { index, count: positions.length } : null;
+    setHoveredPosition((prev) =>
+      prev?.index === next?.index && prev?.count === next?.count ? prev : next,
+    );
   };
 
   const endDrag = (x: number, y: number): boolean => {
@@ -261,6 +322,7 @@ export default function MatchScreen() {
     dragRef.current = null;
     setDrag(null);
     setHoveredDrop(null);
+    setHoveredPosition(null);
     if (!current) return false;
 
     const spots = spotsFor(current.cards);
@@ -285,8 +347,10 @@ export default function MatchScreen() {
 
     // Which end of a run this landed on, when the offer said there was a
     // choice. Decided by where in the target the pointer was, which is the
-    // one thing only the gesture knows.
-    const position = positionAt(spot.positions, x, drops.rectFor(over!) ?? { x: 0, width: 0 });
+    // one thing only the gesture knows — vertically, because a group is
+    // drawn as a stack overlapping top to bottom (see `positionAt`), so this
+    // is the same axis `moveDrag` was already previewing above.
+    const position = positionAt(spot.positions, y, drops.rectFor(over!) ?? { y: 0, height: 0 });
     if (position) action.params = { ...(action.params ?? {}), [POSITION_PARAM]: position };
 
     send(action);
@@ -295,11 +359,11 @@ export default function MatchScreen() {
   };
 
   // The press equivalent of `endDrag`, for a target lit up by `pendingSpots`
-  // rather than by a card in flight. `pageX` stands in for the gesture's own
-  // x — the one thing a tap still supplies that a plain press otherwise
+  // rather than by a card in flight. `pageY` stands in for the gesture's own
+  // y — the one thing a tap still supplies that a plain press otherwise
   // would not — so a target with a choice of two positions reads a press on
-  // its left half the same way it would read a drop there.
-  const pressDrop = (elementId: string, pageX: number) => {
+  // its top half the same way it would read a drop there.
+  const pressDrop = (elementId: string, pageY: number) => {
     const spot = pendingSpots.find((s) => s.elementId === elementId);
     if (!spot) return;
     const offer = state.legalActions.find((o) => o.id === spot.offerId);
@@ -313,7 +377,7 @@ export default function MatchScreen() {
     if (!action) return;
 
     const rect = drops.rectFor(elementId);
-    const position = rect ? positionAt(spot.positions, pageX, rect) : spot.positions?.[0];
+    const position = rect ? positionAt(spot.positions, pageY, rect) : spot.positions?.[0];
     if (position) action.params = { ...(action.params ?? {}), [POSITION_PARAM]: position };
 
     send(action);
@@ -325,8 +389,12 @@ export default function MatchScreen() {
     registerDrop: (id: string, node: Measurable | null) => drops.register(id, node),
     activeDrops,
     hoveredDrop,
+    hoveredPosition,
     pressableDrops,
     onPressDrop: pressDrop,
+    armableGroups,
+    armedGroupId: armedMeldIdLive,
+    onAimGroup,
   };
 
   // The same table again: same game, same variation, the same numbers the
@@ -586,6 +654,7 @@ export default function MatchScreen() {
             <OfferGlance
               offers={state.legalActions}
               selectedCards={selectedCards}
+              armedGroupId={armedMeldIdLive}
               onSend={send}
               onConsumeSelection={clearSelection}
               onAmbiguous={(groupKey) => {
@@ -612,6 +681,7 @@ export default function MatchScreen() {
           <OfferBar
             offers={state.legalActions}
             selectedCards={selectedCards}
+            armedGroupId={armedMeldIdLive}
             onSend={send}
             onConsumeSelection={clearSelection}
             onAmbiguous={(groupKey) => {
@@ -687,8 +757,12 @@ function Section({
   registerDrop?: (id: string, node: Measurable | null) => void;
   activeDrops?: ReadonlySet<string>;
   hoveredDrop?: string | null;
+  hoveredPosition?: { index: number; count: number } | null;
   pressableDrops?: ReadonlySet<string>;
-  onPressDrop?: (elementId: string, pageX: number) => void;
+  onPressDrop?: (elementId: string, pageY: number) => void;
+  armableGroups?: ReadonlySet<string>;
+  armedGroupId?: string | null;
+  onAimGroup?: (groupId: string) => void;
 }) {
   if (!zones.length) return null;
 
