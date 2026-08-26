@@ -33,6 +33,28 @@ export const dropArmed = {
   backgroundColor: 'rgba(251, 191, 36, 0.14)',
 };
 
+/**
+ * The layer a card being carried is lifted onto, and everything it is drawn
+ * inside of with it.
+ *
+ * A dragged card stays a child of the hand it came from for the whole
+ * gesture — it has to, because moving its node loses the pointer
+ * gesture-handler captured — so it is painted inside the hand's own box, and
+ * the panels that come after the hand on the board paint over it. A card
+ * carried down onto a meld went *behind* the meld, sliced in half by its
+ * edge.
+ *
+ * `zIndex` on the card alone cannot fix that. Every `View` establishes its
+ * own stacking context — on react-native-web literally, via a base style of
+ * `position: relative; z-index: 0`, and on iOS and Android by the same
+ * siblings-only rule — so a `zIndex` ranks a card against its siblings and
+ * against nothing else. Getting the card above the board means raising every
+ * box between it and the board, each one over *its* siblings. Hence one
+ * number applied at every link in that chain, and only while a card is
+ * actually in flight.
+ */
+export const dragLayer = { zIndex: 100 } as const;
+
 export const shared = StyleSheet.create({
   screen: {
     flex: 1,
