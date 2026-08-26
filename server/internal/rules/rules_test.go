@@ -609,6 +609,110 @@ func TestValidateLayOff_MultiCardInOneAction(t *testing.T) {
 	}
 }
 
+// Regression test: a multi-card lay-off used to skip the joker-reclaim logic
+// entirely (only a single-card drop tried it), so laying off both remaining
+// naturals of an already-padded set at once left the jokers stranded in the
+// meld — "5C 5D 5H 5S JOKER1 JOKER2" — instead of being swapped back to the
+// player's hand the way a single matching card already was.
+func TestValidateLayOff_MultiCardReclaimsRedundantJokers(t *testing.T) {
+	st := GameState{
+		Status:      StatusActive,
+		Phase:       PhaseMeld,
+		Round:       1,
+		CurrentTurn: "p1",
+		Hands:       map[string][]string{"p1": {"5H", "5S", "2C"}},
+		Melds:       map[string][][]string{"p2": {{"5C", "5D", "JOKER1", "JOKER2"}}},
+		MeldMeta:    map[string][]MeldInfo{"p2": {{MeldID: "meld_1", Type: MeldSet, OwnerID: "p2", WildCount: 2}}},
+		RoundReqMet: map[string]bool{"p1": true, "p2": true},
+	}
+	ns, err := ValidateLayOff(st, "p1", "meld_1", []string{"5H", "5S"}, "")
+	if err != nil {
+		t.Fatalf("expected the multi-card lay-off to succeed, got %v", err)
+	}
+	got := ns.Melds["p2"][0]
+	if len(got) != 4 {
+		t.Fatalf("expected 4 natural fives with both jokers reclaimed, got %v", got)
+	}
+	for _, c := range got {
+		if IsJoker(c) {
+			t.Fatalf("expected no jokers left padding the set, got %v", got)
+		}
+	}
+	if !containsCard(ns.Hands["p1"], "JOKER1") || !containsCard(ns.Hands["p1"], "JOKER2") {
+		t.Fatalf("expected both jokers reclaimed into p1's hand, got %v", ns.Hands["p1"])
+	}
+	if containsCard(ns.Hands["p1"], "5H") || containsCard(ns.Hands["p1"], "5S") {
+		t.Fatalf("expected the laid-off cards to leave p1's hand, got %v", ns.Hands["p1"])
+	}
+}
+
+// Same reclaim behavior for a run, mixed with an ordinary extension in the
+// same action: TD takes JOKER1's exact slot (rank 10) while 7D genuinely
+// grows the run's front — both in one multi-card lay-off.
+func TestValidateLayOff_MultiCardReclaimsJokerInRun(t *testing.T) {
+	st := GameState{
+		Status:      StatusActive,
+		Phase:       PhaseMeld,
+		Round:       1,
+		CurrentTurn: "p1",
+		Hands:       map[string][]string{"p1": {"TD", "7D"}},
+		Melds:       map[string][][]string{"p2": {{"8D", "9D", "JOKER1", "JD"}}},
+		MeldMeta:    map[string][]MeldInfo{"p2": {{MeldID: "meld_1", Type: MeldRun, OwnerID: "p2", WildCount: 1}}},
+		RoundReqMet: map[string]bool{"p1": true, "p2": true},
+	}
+	ns, err := ValidateLayOff(st, "p1", "meld_1", []string{"TD", "7D"}, "")
+	if err != nil {
+		t.Fatalf("expected the multi-card lay-off to succeed, got %v", err)
+	}
+	got := ns.Melds["p2"][0]
+	if len(got) != 5 {
+		t.Fatalf("expected a 5-card run (7-8-9-10-J) with the joker reclaimed, got %v", got)
+	}
+	for _, c := range got {
+		if IsJoker(c) {
+			t.Fatalf("expected the joker reclaimed out of the run, got %v", got)
+		}
+	}
+	if !containsCard(ns.Hands["p1"], "JOKER1") {
+		t.Fatalf("expected the reclaimed joker in p1's hand, got %v", ns.Hands["p1"])
+	}
+}
+
+// A multi-card lay-off that reclaims a joker must be fully undoable: the
+// meld reverts to holding the joker again, and the joker that was moved into
+// the player's hand comes back out of it (rather than being left duplicated
+// in both the restored meld and the hand).
+func TestValidateUndoLayOff_UndoesReclaimedJokersToo(t *testing.T) {
+	st := GameState{
+		Status:      StatusActive,
+		Phase:       PhaseMeld,
+		Round:       1,
+		CurrentTurn: "p1",
+		Hands:       map[string][]string{"p1": {"5H", "5S"}},
+		Melds:       map[string][][]string{"p2": {{"5C", "5D", "JOKER1", "JOKER2"}}},
+		MeldMeta:    map[string][]MeldInfo{"p2": {{MeldID: "meld_1", Type: MeldSet, OwnerID: "p2", WildCount: 2}}},
+		RoundReqMet: map[string]bool{"p1": true, "p2": true},
+	}
+	ns, err := ValidateLayOff(st, "p1", "meld_1", []string{"5H", "5S"}, "")
+	if err != nil {
+		t.Fatalf("lay-off failed: %v", err)
+	}
+	undone, err := ValidateUndoLayOff(ns, "p1")
+	if err != nil {
+		t.Fatalf("expected undo to succeed, got %v", err)
+	}
+	got := undone.Melds["p2"][0]
+	if len(got) != 4 || !containsCard(got, "JOKER1") || !containsCard(got, "JOKER2") {
+		t.Fatalf("expected the meld to revert with both jokers back in place, got %v", got)
+	}
+	if containsCard(undone.Hands["p1"], "JOKER1") || containsCard(undone.Hands["p1"], "JOKER2") {
+		t.Fatalf("expected the reclaimed jokers removed from hand on undo, got %v", undone.Hands["p1"])
+	}
+	if !containsCard(undone.Hands["p1"], "5H") || !containsCard(undone.Hands["p1"], "5S") {
+		t.Fatalf("expected the laid-off cards back in hand, got %v", undone.Hands["p1"])
+	}
+}
+
 func TestValidateLayOff_PositionMustMatchTheRequestedRunEnd(t *testing.T) {
 	base := func() GameState {
 		return GameState{

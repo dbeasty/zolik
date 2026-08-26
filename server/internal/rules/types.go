@@ -50,6 +50,13 @@ type LayOffSnapshot struct {
 	// it has to take that back too — otherwise a lay-off and its undo leave
 	// an opponent permanently down for free.
 	PrevOwnerReqMet bool
+	// ReclaimedJokers holds any jokers this lay-off swapped out of the meld
+	// because a card in Cards took the joker's exact place, moved into the
+	// player's hand alongside the ordinary addition. PrevCards already has
+	// them back in the meld on undo; this is what lets undo also pull them
+	// back out of the hand they were moved into, instead of leaving them
+	// duplicated in both places.
+	ReclaimedJokers []string
 }
 
 // MeldLaidSnapshot holds what a lay_meld needs to be undone: the brand-new

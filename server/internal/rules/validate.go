@@ -437,7 +437,37 @@ func ValidateLayOff(state GameState, playerID string, meldID string, cards []str
 
 	cfg := effectiveRules(state)
 	prevCards := state.Melds[owner][idx]
-	newMeld := append(append([]string(nil), prevCards...), cards...)
+	prevMeta := MeldInfo{}
+	hasPrevMeta := false
+	if metas := state.MeldMeta[owner]; idx < len(metas) {
+		prevMeta = metas[idx]
+		hasPrevMeta = true
+	}
+
+	// A natural card that takes an existing joker's exact place in this
+	// meld swaps the joker out instead of piling in alongside it — the
+	// same replace-and-revalidate ValidateSwapJoker does explicitly for a
+	// single-card drop, generalized here so a multi-card lay-off (fully
+	// supported by the client's multi-select drag) doesn't strand a joker
+	// just because the matching naturals arrived together instead of one
+	// at a time: once they're on the table, nothing can trigger a swap for
+	// that joker again. Cards are tried in submission order against the
+	// meld as it's reclaimed so far; whatever doesn't match an existing
+	// joker is appended below, same as before this loop existed.
+	working := append([]string(nil), prevCards...)
+	var reclaimed []string
+	var toAppend []string
+	for _, c := range cards {
+		if !IsJoker(c) {
+			if swapped, joker, ok := reclaimJokerForLayOff(working, c, cfg, prevMeta, hasPrevMeta); ok {
+				working = swapped
+				reclaimed = append(reclaimed, joker)
+				continue
+			}
+		}
+		toAppend = append(toAppend, c)
+	}
+	newMeld := append(working, toAppend...)
 	mv, err := ValidateMeld(newMeld, cfg)
 	if err != nil {
 		return state, err
@@ -484,14 +514,10 @@ func ValidateLayOff(state GameState, playerID string, meldID string, cards []str
 		}
 	}
 
-	prevMeta := MeldInfo{}
-	if metas := state.MeldMeta[owner]; idx < len(metas) {
-		prevMeta = metas[idx]
-	}
-
 	prevDiscardTakenCard := state.DiscardTakenCard
 	state.DiscardTakenCard = clearIfSpent(state.DiscardTakenCard, cards)
 	state.Hands[playerID] = removeCards(state.Hands[playerID], cards)
+	state.Hands[playerID] = append(state.Hands[playerID], reclaimed...)
 	state.Melds[owner][idx] = OrderMeldForDisplay(newMeld, mv)
 	if metas := state.MeldMeta[owner]; idx < len(metas) {
 		metas[idx].Type = mv.Type
@@ -517,6 +543,7 @@ func ValidateLayOff(state GameState, playerID string, meldID string, cards []str
 
 		PrevDiscardTakenCard: prevDiscardTakenCard,
 		PrevOwnerReqMet:      prevOwnerReqMet,
+		ReclaimedJokers:      append([]string(nil), reclaimed...),
 	}
 
 	if !cfg.IsFinalDeal(state.GameNumber) && len(state.Hands[playerID]) == 0 {
@@ -553,6 +580,11 @@ func ValidateUndoLayOff(state GameState, playerID string) (GameState, error) {
 		return state, RulesError{Code: ErrNothingToUndo, Message: "that meld no longer exists on the table"}
 	}
 
+	// Any joker the lay-off swapped out of the meld went into the hand
+	// alongside the ordinary cards — remove it before adding those cards
+	// back, since PrevCards below already has the joker back in the meld
+	// and leaving it in hand too would duplicate it.
+	state.Hands[playerID] = removeCards(state.Hands[playerID], snap.ReclaimedJokers)
 	state.Hands[playerID] = append(append([]string(nil), state.Hands[playerID]...), snap.Cards...)
 	state.DiscardTakenCard = snap.PrevDiscardTakenCard
 	state.Melds[owner][idx] = append([]string(nil), snap.PrevCards...)
@@ -567,6 +599,39 @@ func ValidateUndoLayOff(state GameState, playerID string) (GameState, error) {
 	state.LastLayOff = nil
 
 	return state, nil
+}
+
+// reclaimJokerForLayOff tries to remove the first joker in meld and put card
+// in its place — the same substitution ValidateSwapJoker performs for an
+// explicit single-card swap, reused here so a multi-card lay-off can reclaim
+// a joker per matching card instead of only ever appending. ok is false if
+// meld holds no joker, or the resulting meld isn't a valid meld of the same
+// type meta records (hasMeta false skips that check, matching
+// ValidateSwapJoker's own behavior when the meld has no meta entry yet).
+func reclaimJokerForLayOff(meld []string, card string, cfg RulesConfig, meta MeldInfo, hasMeta bool) (newMeld []string, joker string, ok bool) {
+	jokerPos := -1
+	for i, c := range meld {
+		if IsJoker(c) {
+			jokerPos = i
+			break
+		}
+	}
+	if jokerPos == -1 {
+		return nil, "", false
+	}
+	joker = meld[jokerPos]
+
+	replaced := append(append([]string(nil), meld[:jokerPos]...), meld[jokerPos+1:]...)
+	replaced = append(replaced, card)
+
+	mv, err := ValidateMeld(replaced, cfg)
+	if err != nil {
+		return nil, "", false
+	}
+	if hasMeta && mv.Type != meta.Type {
+		return nil, "", false
+	}
+	return replaced, joker, true
 }
 
 // ValidateSwapJoker replaces a joker sitting in an existing meld with the
