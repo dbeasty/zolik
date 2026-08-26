@@ -137,7 +137,12 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 	}
 	if s.Status == "completed" {
 		vm.Status = append(vm.Status, module.Fact{
+			// The winner travels as a list in Params as well as a bare id in
+			// Value: one seat's win and a split are the same sentence to a
+			// client, and every module saying it the same way is what lets
+			// there be one sentence rather than one per game.
 			LabelKey: "status.winner", Value: s.WinnerID,
+			Params: map[string]any{"winners": []string{s.WinnerID}},
 		})
 	}
 	return vm, nil

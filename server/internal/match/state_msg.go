@@ -22,6 +22,11 @@ type MatchStateMsg struct {
 	Status    string `json:"status"`
 	JoinCode  string `json:"joinCode,omitempty"`
 	HostID    string `json:"hostId,omitempty"`
+	// Options is what the lobby chose, echoed back so a client can offer the
+	// same table again without remembering how this one was set up — the
+	// numbers are already the module's own vocabulary, so passing them on
+	// teaches the client nothing about any game.
+	Options map[string]int `json:"options,omitempty"`
 	// WinnerID is the first winner; Winners is all of them. Both ship, because
 	// a partnership and a split pot each have more than one and a client
 	// written before that was true should not break.
@@ -59,6 +64,7 @@ func (m *Manager) BuildStateMsg(match models.Match, viewerID string) MatchStateM
 		MatchID:         match.ID.Hex(),
 		ModuleID:        match.ModuleID,
 		Variation:       match.Variation,
+		Options:         match.Options,
 		Status:          match.Status,
 		JoinCode:        match.JoinCode,
 		HostID:          match.HostID,

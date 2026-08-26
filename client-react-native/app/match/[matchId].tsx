@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -112,6 +112,10 @@ export default function MatchScreen() {
   // before the `!state` early return below so hook order stays fixed
   // whether or not the socket has delivered a state yet.
   const [statusExplainerOpen, setStatusExplainerOpen] = useState(false);
+  // Setting up the same table again, and whatever went wrong trying — declared
+  // up here for the same reason: hooks may not be conditional.
+  const [startingAgain, setStartingAgain] = useState(false);
+  const [againError, setAgainError] = useState('');
 
   if (!state) {
     return (
@@ -297,6 +301,30 @@ export default function MatchScreen() {
     onPressDrop: pressDrop,
   };
 
+  // The same table again: same game, same variation, the same numbers the
+  // lobby chose, and a bot for every bot that was in this one. The options
+  // come back from the server on the state message, so "again" means the table
+  // that was actually played rather than whatever the defaults happen to be.
+  const playAgain = async () => {
+    setStartingAgain(true);
+    setAgainError('');
+    try {
+      const { matchId: next } = await client.createMatch(
+        state.moduleId,
+        state.variation,
+        state.options ?? {},
+      );
+      for (const p of state.players) {
+        if (p.isAI) await client.addBot(next);
+      }
+      await client.startMatch(next);
+      router.replace(`/match/${next}`);
+    } catch (e) {
+      setAgainError(String(e));
+      setStartingAgain(false);
+    }
+  };
+
   // A stable id for remembering whether a zone's own panel is put away —
   // shared by every place this screen draws one.
   const panelIdFor = (zoneId: string) => `zone:${zoneId}`;
@@ -305,6 +333,40 @@ export default function MatchScreen() {
     minimized: panels.isMinimized(panelIdFor(zoneId)),
     onToggleMinimized: () => panels.toggle(panelIdFor(zoneId)),
   });
+
+  // How the match ended, in the one vocabulary every game shares: who the
+  // server says won.
+  //
+  // This exists because a finished match used to look exactly like a stuck
+  // one. The board stayed on the last position, every control greyed out with
+  // the engine's "the game is not running" beside it, and the only thing that
+  // changed was a twelve-pixel word next to a dot that stayed green — so a
+  // player whose own last move ended the match reported it as a hang, which is
+  // the correct reading of a screen that says nothing.
+  //
+  // Read off the match envelope rather than the module's own status facts,
+  // because that is the field every module fills: two of the four send no
+  // end-of-match fact at all, and this has to be right for the next one too.
+  // Naming yourself "you" is the only judgement in it, and it is about who is
+  // reading rather than about what was played.
+  const winners = state.winners ?? (state.winnerId ? [state.winnerId] : []);
+  const iWon = winners.includes(viewerId);
+  const winnerNames = winners.map((id) => (id === viewerId ? 'you' : playerName(state.players, id)));
+  const outcome =
+    winners.length === 0
+      ? 'Nobody won.'
+      : winners.length === 1
+        ? iWon
+          ? 'You won.'
+          : `${winnerNames[0]} won.`
+        : `Won by ${winnerNames.join(', ')}.`;
+
+  // Offering the same table again only where this screen can actually set one
+  // up: every other seat was a bot, so the same match is one create-and-start
+  // away. A table with other people in it is a lobby's job, and pretending
+  // otherwise would fail at the point of pressing.
+  const againstBotsAlone =
+    state.players.length > 1 && state.players.every((p) => p.isAI || p.id === viewerId);
 
   // What the status dot means, in the same words the line it replaced used
   // to say. Red is the one case a player needs to notice — everything else
@@ -349,7 +411,7 @@ export default function MatchScreen() {
           <View style={styles.facts} testID="match-header">
             {(view.header ?? []).map((f, i) => (
               <Text key={`${f.labelKey}-${i}`} style={styles.fact}>
-                {factText(f)}
+                {factText(f, state.players)}
               </Text>
             ))}
           </View>
@@ -358,6 +420,48 @@ export default function MatchScreen() {
           <Text testID="match-status-explainer" style={styles.statusExplainer}>
             {statusExplainer}
           </Text>
+        ) : null}
+
+        {/* The end of a match, said plainly and where the eye already is —
+            above the board rather than under it, because the board below is
+            the position that ended and a player arrives at this banner from
+            the move they just made. */}
+        {state.status === 'completed' ? (
+          <View style={[styles.over, iWon && styles.overWon]} testID="match-over">
+            <Text testID="match-over-title" style={styles.overTitle}>
+              Match over
+            </Text>
+            <Text testID="match-over-outcome" style={styles.overOutcome}>
+              {outcome}
+            </Text>
+            <View style={styles.overActions}>
+              {againstBotsAlone ? (
+                <Pressable
+                  testID="match-over-again"
+                  accessibilityState={{ disabled: startingAgain }}
+                  disabled={startingAgain}
+                  onPress={playAgain}
+                  style={[styles.overButton, startingAgain && styles.overButtonBusy]}
+                >
+                  <Text style={styles.overButtonText}>
+                    {startingAgain ? 'Setting up…' : 'Play again'}
+                  </Text>
+                </Pressable>
+              ) : null}
+              <Pressable
+                testID="match-over-leave"
+                onPress={() => router.replace('/lobby/games')}
+                style={styles.overButtonQuiet}
+              >
+                <Text style={styles.overButtonQuietText}>Back to games</Text>
+              </Pressable>
+            </View>
+            {againError ? (
+              <Text testID="match-over-error" style={styles.overError}>
+                {againError}
+              </Text>
+            ) : null}
+          </View>
         ) : null}
 
         <SeatStrip
@@ -370,7 +474,7 @@ export default function MatchScreen() {
 
         {(view.prompts ?? []).map((f, i) => (
           <Text key={`prompt-${i}`} testID={`prompt-${i}`} style={styles.prompt}>
-            {factText(f)}
+            {factText(f, state.players)}
           </Text>
         ))}
 
@@ -500,7 +604,7 @@ export default function MatchScreen() {
 
         {(view.status ?? []).map((f, i) => (
           <Text key={`status-${i}`} testID={`status-${i}`} style={styles.muted}>
-            {factText(f)}
+            {factText(f, state.players)}
           </Text>
         ))}
       </ScrollView>
@@ -609,4 +713,43 @@ const styles = StyleSheet.create({
   spreads: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 8, marginTop: 10 },
   error: { color: colors.danger, fontSize: 13, marginVertical: 6 },
   muted: { color: colors.muted, fontSize: 12, marginTop: 6 },
+
+  // The end of a match, built like the rule-violation banner in `shared`: a
+  // tinted box with a border of its own, because the thing it has to beat is
+  // being mistaken for nothing having happened. Green only when the reader
+  // won — a coloured congratulation on a loss is worse than a plain box.
+  over: {
+    backgroundColor: 'rgba(61, 139, 253, 0.10)',
+    borderWidth: 1,
+    borderColor: colors.accent,
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+    gap: 6,
+  },
+  overWon: {
+    backgroundColor: 'rgba(74, 222, 128, 0.12)',
+    borderColor: colors.success,
+  },
+  overTitle: { color: colors.text, fontSize: 15, fontWeight: '700' },
+  overOutcome: { color: colors.text, fontSize: 14 },
+  overActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  overButton: {
+    backgroundColor: colors.accentButton,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  overButtonBusy: { opacity: 0.4 },
+  overButtonText: { color: colors.onAccent, fontSize: 14, fontWeight: '600' },
+  overButtonQuiet: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  overButtonQuietText: { color: colors.text, fontSize: 14, fontWeight: '600' },
+  overError: { color: colors.danger, fontSize: 12 },
 });

@@ -195,6 +195,70 @@ test.describe('one shell, every game', () => {
     });
   }
 
+  test('a finished match says so, and says who won', async ({ page, request }) => {
+    /**
+     * The bug this is written from, in the shape it was reported: "I folded
+     * and I think the game got stuck."
+     *
+     * The match had ended on that move — it was the last hand of a fixed-length
+     * table — and the screen's entire response was a twelve-pixel word next to
+     * a dot that stayed green, four controls greying out, and a line at the
+     * bottom of a scrolling page reading "Winner", with no name after it. A
+     * finished match was indistinguishable from a hung one, which is what the
+     * player quite reasonably called it.
+     *
+     * So: one hand, two seats, and a single press of whatever the server
+     * offers — the shortest route to a match that ends on the human's own
+     * move. Nothing here names a verb; the control pressed is whichever one
+     * the offer list put first.
+     */
+    test.setTimeout(180_000);
+    const { matchId, host } = await tableWithBots(request, 'holdem', 2, {
+      variation: 'timed',
+      options: { handLimit: 5 },
+    });
+    await signIn(page, host);
+
+    await page.goto(`/match/${matchId}`);
+    await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
+
+    for (let i = 0; i < 24; i++) {
+      if (await page.getByTestId('match-over').isVisible()) break;
+      if ((await playAFewMoves(page, 1)) === 0) break;
+    }
+
+    const state = await (await request.get(`${API_BASE}/matches/${matchId}?as=${host.userId}`)).json();
+    expect(state.status, 'the shortest table this game offers should have ended').toBe('completed');
+
+    // Said, rather than left to be inferred from a control that stopped
+    // working.
+    await expect(page.getByTestId('match-over')).toBeVisible();
+    await expect(page.getByTestId('match-over-title')).toHaveText('Match over');
+
+    // And whose win it was, by name — the part that used to be missing. Read
+    // from the server's own answer, so the screen cannot agree with a wrong
+    // one.
+    const winnerId = (state.winners ?? [])[0];
+    expect(winnerId, 'a completed match should name a winner').toBeTruthy();
+    const winnerName = state.players.find((p: any) => p.id === winnerId)?.name;
+    await expect(page.getByTestId('match-over-outcome')).toHaveText(
+      winnerId === host.userId ? 'You won.' : `${winnerName} won.`,
+    );
+
+    // The module's own closing lines name people too, instead of trailing off
+    // into a bare label with the subject of the sentence dropped.
+    await expect(
+      page.locator('[data-testid^="status-"]').filter({ hasText: winnerName }).first(),
+    ).toBeVisible();
+
+    // The way back out. A table of bots can be set up again from here, which
+    // is the one thing a player who just finished one wants.
+    await page.getByTestId('match-over-again').click();
+    await expect(page.getByTestId('match-over')).toBeHidden({ timeout: 60_000 });
+    await expect(page.getByTestId('action-bar')).toBeVisible();
+    expect(page.url(), 'playing again should open a different match').not.toContain(matchId);
+  });
+
   test('a disabled control says why, in the engine own words', async ({ page, request }) => {
     // The offer protocol's central claim, seen by a person: a control that is
     // off is still on screen, with the reason next to it. An offer that

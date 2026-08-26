@@ -1,6 +1,7 @@
 package holdem
 
 import (
+	"sort"
 	"strconv"
 	"testing"
 
@@ -522,4 +523,105 @@ func TestApplyDoesNotMutateItsInput(t *testing.T) {
 	if string(raw) != before {
 		t.Error("the caller's state changed underneath it")
 	}
+}
+
+// TestLastHandFoldEndsTheMatchAndTheViewSaysWho — the server half of a bug
+// reported as "I folded and I think the game got stuck".
+//
+// Nothing was stuck: it was the last hand of a fixed-length match, so the fold
+// ended the hand, the hand limit ended the match, and the table stopped in the
+// position it was already in. What the client had to work with was the
+// problem — so this pins what the view says at that moment: that there is a
+// winner, who it is, and that a pot nobody contested is named by a key of its
+// own rather than by the one whose wording names a hand that was never shown.
+func TestLastHandFoldEndsTheMatchAndTheViewSaysWho(t *testing.T) {
+	m := New()
+	raw, err := m.NewMatch(
+		module.MatchConfig{Variation: "timed", Options: module.Options{OptHandLimit: 1}},
+		[]module.PlayerRef{{ID: "p1"}, {ID: "p2"}}, 7)
+	if err != nil {
+		t.Fatalf("NewMatch: %v", err)
+	}
+
+	s := mustDecode(t, raw)
+	folder := s.Seats[s.Current].PlayerID
+	next, _, err := m.Apply(raw, folder, module.Action{Verb: VerbFold})
+	if err != nil {
+		t.Fatalf("fold refused: %v", err)
+	}
+
+	done, winners, err := m.Finished(next)
+	if err != nil || !done {
+		t.Fatalf("Finished = %v, %v — a fold on the last hand ends the match", done, err)
+	}
+	if len(winners) == 0 {
+		t.Fatal("a completed match named nobody")
+	}
+
+	vm, err := m.View(next, folder)
+	if err != nil {
+		t.Fatalf("View: %v", err)
+	}
+	facts := map[string]module.Fact{}
+	for _, f := range vm.Status {
+		facts[f.LabelKey] = f
+	}
+
+	winner, ok := facts["status.winner"]
+	if !ok {
+		t.Fatal("a completed match says nothing about who won")
+	}
+	if got := winner.Params["winners"]; !sameIDs(got, winners) {
+		t.Errorf("status.winner names %v, Finished says %v", got, winners)
+	}
+
+	if _, ok := facts["holdem.status.potUncontested"]; !ok {
+		t.Errorf("a pot won on a fold should be its own key; got %v", factKeys(facts))
+	}
+	if _, ok := facts["holdem.status.pot"]; ok {
+		t.Error("nobody showed a hand, so the key whose wording names one must not be used")
+	}
+}
+
+// TestShowdownPotNamesTheHand — the other half: a pot that *was* contested
+// keeps the key whose wording names the winning hand.
+func TestShowdownPotNamesTheHand(t *testing.T) {
+	raw := table(2, func(s *GameState) {
+		s.LastHand = &HandResult{
+			HandNumber: 1,
+			Pots:       []PotResult{{Amount: 40, Winners: []string{"p1"}, LabelKey: "holdem.hand.twoPair"}},
+		}
+	})
+	vm, err := New().View(raw, "p1")
+	if err != nil {
+		t.Fatalf("View: %v", err)
+	}
+	for _, f := range vm.Status {
+		if f.LabelKey == "holdem.status.pot" {
+			return
+		}
+	}
+	t.Error("a pot won at a showdown should use the key that names the hand")
+}
+
+func sameIDs(got any, want []string) bool {
+	ids, ok := got.([]string)
+	if !ok || len(ids) != len(want) {
+		return false
+	}
+	for i := range ids {
+		if ids[i] != want[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func factKeys(m map[string]module.Fact) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
 }
