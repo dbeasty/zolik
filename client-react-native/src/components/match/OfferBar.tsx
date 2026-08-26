@@ -57,6 +57,33 @@ type Props = {
   onAmbiguous?: (groupKey: string) => void;
 };
 
+/**
+ * Only offers that name an existing target of their own (`target.meldId`) are
+ * folded — that field is what makes several offers of the same shape distinct
+ * targets on the board rather than distinct kinds of move, and it is the one
+ * thing this file already reads off `target` nowhere else, so folding
+ * introduces no new assumption about what the field means. A group of one is
+ * rendered exactly like an ordinary offer; only a group of more than one is
+ * ever folded into a shared control. Shared between `OfferBar` and
+ * `OfferGlance` so the collapsed rail folds offers exactly the same way the
+ * full bar does.
+ */
+function foldOffers(offers: ActionOffer[]): { groups: Map<string, ActionOffer[]>; foldedIds: Set<string> } {
+  const groups = new Map<string, ActionOffer[]>();
+  for (const offer of offers) {
+    if (!offer.target?.meldId) continue;
+    const key = offerGroupKey(offer);
+    const list = groups.get(key) ?? [];
+    list.push(offer);
+    groups.set(key, list);
+  }
+  const foldedIds = new Set<string>();
+  for (const list of groups.values()) {
+    if (list.length > 1) list.forEach((o) => foldedIds.add(o.id));
+  }
+  return { groups, foldedIds };
+}
+
 export function OfferBar({ offers, selectedCards, onSend, onConsumeSelection, onAmbiguous }: Props) {
   const metrics = useMetrics();
   const styles = useMemo(() => offerBarStyles(metrics), [metrics]);
@@ -80,25 +107,7 @@ export function OfferBar({ offers, selectedCards, onSend, onConsumeSelection, on
     setParams((prev) => ({ ...prev, [offer.id]: {} }));
   };
 
-  // Only offers that name an existing target of their own (`target.meldId`)
-  // are folded — that field is what makes several offers of the same shape
-  // distinct targets on the board rather than distinct kinds of move, and it
-  // is the one thing this file already reads off `target` nowhere else, so
-  // folding introduces no new assumption about what the field means. A group
-  // of one is rendered exactly like an ordinary offer below; only a group of
-  // more than one is ever folded into a shared control.
-  const groups = new Map<string, ActionOffer[]>();
-  for (const offer of offers) {
-    if (!offer.target?.meldId) continue;
-    const key = offerGroupKey(offer);
-    const list = groups.get(key) ?? [];
-    list.push(offer);
-    groups.set(key, list);
-  }
-  const foldedIds = new Set<string>();
-  for (const list of groups.values()) {
-    if (list.length > 1) list.forEach((o) => foldedIds.add(o.id));
-  }
+  const { groups, foldedIds } = useMemo(() => foldOffers(offers), [offers]);
   const renderedGroups = new Set<string>();
 
   return (
@@ -175,16 +184,43 @@ export function OfferBar({ offers, selectedCards, onSend, onConsumeSelection, on
 }
 
 /**
- * A tiny, non-interactive row of what's currently pressable — built for a
- * collapsed `Controls` panel's rail, the same way `CardGlance` stands in for
- * a minimized hand. One pill per distinct label, so three targets folded
- * into one "Lay off" control above read as the one kind of move here too,
- * not three identical pills; disabled offers are left off, since a reason
- * nobody can read yet on a collapsed rail is not worth the room.
+ * A tiny row of what's currently pressable — built for a collapsed `Controls`
+ * panel's rail, the same way `CardGlance` stands in for a minimized hand. One
+ * pill per distinct label, so three targets folded into one "Lay off" control
+ * above read as the one kind of move here too, not three identical pills;
+ * disabled offers are left off, since a reason nobody can read yet on a
+ * collapsed rail is not worth the room.
+ *
+ * A pill is a real control, not a preview of one: pressing it sends the move,
+ * the same way pressing its full-size button in `OfferBar` would. What it
+ * cannot do is what the full bar's extra room is for — composing a card
+ * combination or dialling in a parameter — so a pill for an offer that still
+ * needs one of those stays visible (it *is* available) but dimmed until the
+ * player's own selection settles it, exactly the condition `OfferBar` uses to
+ * decide an offer isn't ready yet. A folded pill resolves the same way its
+ * `FoldedOffer` counterpart does: the selection settles it, or the press is
+ * handed to `onAmbiguous` to point at targets on the board.
  */
-export function OfferGlance({ offers, max = 4, testID = 'offer-glance' }: { offers: ActionOffer[]; max?: number; testID?: string }) {
+export function OfferGlance({
+  offers,
+  selectedCards = [],
+  onSend,
+  onConsumeSelection,
+  onAmbiguous,
+  max = 4,
+  testID = 'offer-glance',
+}: {
+  offers: ActionOffer[];
+  selectedCards?: string[];
+  onSend?: (action: MatchAction) => void;
+  onConsumeSelection?: () => void;
+  onAmbiguous?: (groupKey: string) => void;
+  max?: number;
+  testID?: string;
+}) {
   const metrics = useMetrics();
   const styles = useMemo(() => offerBarStyles(metrics), [metrics]);
+  const { groups, foldedIds } = useMemo(() => foldOffers(offers), [offers]);
 
   const seen = new Set<string>();
   const distinct: ActionOffer[] = [];
@@ -200,15 +236,54 @@ export function OfferGlance({ offers, max = 4, testID = 'offer-glance' }: { offe
   const shown = distinct.slice(0, max);
   const rest = distinct.length - shown.length;
 
+  const fire = (offer: ActionOffer) => {
+    const cards = offer.composite || (offer.source?.minCards ?? 0) > 0 ? pickCards(offer, selectedCards) : undefined;
+    const action = submissionFor(offer, { cards });
+    if (!action) return;
+    onSend?.(action);
+    if (cards?.length) onConsumeSelection?.();
+  };
+
+  const press = (offer: ActionOffer, groupKey: string) => {
+    if (!foldedIds.has(offer.id)) {
+      fire(offer);
+      return;
+    }
+    // Mirrors `FoldedOffer`'s own press: go straight through when the
+    // selection already settles which target was meant, otherwise hand the
+    // choice to whoever can point at the board's own targets.
+    const settled = (groups.get(groupKey) ?? []).filter((o) => offerMatchesSelection(o, selectedCards));
+    if (settled.length === 1) {
+      fire(settled[0]);
+      return;
+    }
+    onAmbiguous?.(groupKey);
+  };
+
   return (
     <View style={styles.glanceRow} testID={testID}>
-      {shown.map((o) => (
-        <View key={o.id} style={styles.glancePill}>
-          <Text style={styles.glancePillText} numberOfLines={1}>
-            {label(o.labelKey ?? `verb.${o.verb}`) || o.verb}
-          </Text>
-        </View>
-      ))}
+      {shown.map((o) => {
+        const groupKey = offerGroupKey(o);
+        // A folded pill can always be pressed — it either resolves outright
+        // or opens up the board's targets — but a lone offer still waiting on
+        // a card combination or a parameter isn't ready for a bare tap yet.
+        const ready = foldedIds.has(o.id) || isReady(o, selectedCards, undefined);
+        return (
+          <Pressable
+            key={o.id}
+            testID={`offer-glance-${o.id}`}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !ready }}
+            disabled={!ready}
+            onPress={() => press(o, groupKey)}
+            style={[styles.glancePill, !ready && styles.disabled]}
+          >
+            <Text style={styles.glancePillText} numberOfLines={1}>
+              {label(o.labelKey ?? `verb.${o.verb}`) || o.verb}
+            </Text>
+          </Pressable>
+        );
+      })}
       {rest > 0 ? <Text style={styles.glanceTail}>+{rest}</Text> : null}
     </View>
   );
