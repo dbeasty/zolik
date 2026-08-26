@@ -407,9 +407,13 @@ export default function MatchScreen() {
               />
             }
           >
+            {/* The engine's own sentence stands in for a code this build has
+                no translation for — it is at least a sentence, where the bare
+                code reads as a crash. A code we do know still wins, so a
+                translated message never regresses to English. */}
             {error ? (
               <Text testID="match-error" style={styles.error} onPress={clearError}>
-                {reasonText(error.code, error.code)}
+                {reasonText(error.code, error.message || error.code)}
               </Text>
             ) : null}
             {/* Disabled offers stay on screen with their reason. An offer

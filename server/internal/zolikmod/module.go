@@ -71,6 +71,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 			Defaults: map[string]int{
 				rules.OptInitialMeldMinimum:  cfg.InitialMeldMinimum,
 				rules.OptDiscardDrawMinRound: cfg.DiscardDrawMinRound,
+				rules.OptRequireCleanRun:     rules.BoolOpt(cfg.ContractFor(1).RequireCleanRun),
 			},
 		})
 	}
@@ -93,6 +94,11 @@ func (m *Module) NewMatch(mc module.MatchConfig, players []module.PlayerRef, see
 	cfg := rules.ResolveProfile(mc.Variation)
 	cfg.InitialMeldMinimum = mc.Opt(rules.OptInitialMeldMinimum, cfg.InitialMeldMinimum)
 	cfg.DiscardDrawMinRound = mc.Opt(rules.OptDiscardDrawMinRound, cfg.DiscardDrawMinRound)
+	// StaticContract is where the clean-run rule lives for every profile,
+	// rotating or not — ContractFor reads it back out for both.
+	cfg.StaticContract.RequireCleanRun = mc.Opt(
+		rules.OptRequireCleanRun, rules.BoolOpt(cfg.StaticContract.RequireCleanRun),
+	) == rules.OptOn
 
 	order := make([]string, 0, len(players))
 	for _, p := range players {

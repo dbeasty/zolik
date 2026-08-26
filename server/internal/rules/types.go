@@ -286,10 +286,14 @@ const (
 	// missing step is the difference between a dead control and an
 	// instruction — and it is a rule, so it belongs here rather than being
 	// inferred by a client from the phase.
-	ErrMustDrawFirst         RulesErrorCode = "MUST_DRAW_FIRST"
-	ErrCardNotInHand         RulesErrorCode = "CARD_NOT_IN_HAND"
-	ErrInvalidMeld           RulesErrorCode = "INVALID_MELD"
-	ErrRoundReqNotMet        RulesErrorCode = "ROUND_REQ_NOT_MET"
+	ErrMustDrawFirst  RulesErrorCode = "MUST_DRAW_FIRST"
+	ErrCardNotInHand  RulesErrorCode = "CARD_NOT_IN_HAND"
+	ErrInvalidMeld    RulesErrorCode = "INVALID_MELD"
+	ErrRoundReqNotMet RulesErrorCode = "ROUND_REQ_NOT_MET"
+	// ErrNeedCleanRun: down in every other respect, but the house rule
+	// wants a joker-free run and there isn't one. Distinct from
+	// ErrRoundReqNotMet because no further set can ever satisfy it.
+	ErrNeedCleanRun          RulesErrorCode = "NEED_CLEAN_RUN"
 	ErrMeldBelowMinimum      RulesErrorCode = "MELD_BELOW_MINIMUM"
 	ErrMeldNoContribution    RulesErrorCode = "MELD_NO_CONTRIBUTION"
 	ErrTooManyWilds          RulesErrorCode = "TOO_MANY_WILDS"
