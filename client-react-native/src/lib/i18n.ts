@@ -227,6 +227,27 @@ const en: Record<string, string> = {
   'zolik.standing.dealsWon': 'Deals won {n}',
   'zolik.standing.inHand': 'In hand {n}',
 
+  // --- rounds ---------------------------------------------------------------
+  // What a round is called, and what one did. Each of these carries its number
+  // in the params, so `humanise` alone would render a label with nothing after
+  // it.
+  'round.continue': 'Next round',
+  'round.waitingFor': 'Waiting for {n}',
+  'zolik.round.deal': 'Deal',
+  'zolik.round.cleanRun': 'One run must be joker-free',
+  'canasta.round.deal': 'Deal',
+  'canasta.round.concealed': 'Went out concealed',
+  'canasta.round.exhausted': 'The deck ran out',
+  'canasta.round.meldCards': 'Cards laid {n}',
+  'canasta.round.canastas': 'Canastas {n}',
+  'canasta.round.redThrees': 'Red threes {n}',
+  'canasta.round.goingOut': 'Going out {n}',
+  'canasta.round.inHand': 'Caught in hand {n}',
+  'holdem.round.hand': 'Hand',
+  'holdem.round.pot': 'Pot {n}',
+  'holdem.round.uncontested': 'Everyone else folded',
+  'seat.ready': 'Ready',
+
 };
 
 // Czech. Present to prove the seam is real rather than theoretical: if a
@@ -388,6 +409,26 @@ const cs: Record<string, string> = {
   'holdem.prompt.waitingFor': 'Čeká se na hráče {playerId}',
   'zolik.standing.dealsWon': 'Vyhraných kol {n}',
   'zolik.standing.inHand': 'V ruce {n}',
+
+  // Wording that names no verb where a player is the subject, for the same
+  // reason status.winner does not: a Czech verb agrees with the gender of
+  // whoever did it, and a player id carries none.
+  'round.continue': 'Další kolo',
+  'round.waitingFor': 'Čeká se na {n}',
+  'zolik.round.deal': 'Rozdání',
+  'zolik.round.cleanRun': 'Jedna postupka bez žolíka',
+  'canasta.round.deal': 'Rozdání',
+  'canasta.round.concealed': 'Vyložení naráz',
+  'canasta.round.exhausted': 'Došel balíček',
+  'canasta.round.meldCards': 'Vyložené karty {n}',
+  'canasta.round.canastas': 'Kanasty {n}',
+  'canasta.round.redThrees': 'Červené trojky {n}',
+  'canasta.round.goingOut': 'Za ukončení {n}',
+  'canasta.round.inHand': 'Zbylo v ruce {n}',
+  'holdem.round.hand': 'Hra',
+  'holdem.round.pot': 'Bank {n}',
+  'holdem.round.uncontested': 'Ostatní složili',
+  'seat.ready': 'Připraven',
 
 };
 

@@ -94,3 +94,49 @@ export type SignInOutcome = {
 
 /** Any framed message off a socket, before it is narrowed by `type`. */
 export type WSEnvelope = Record<string, unknown> & { type: string };
+
+/**
+ * One bucket of a lifetime record, with the figures derived from it.
+ *
+ * `bestScore` and `worstScore` are null rather than a sentinel until a match
+ * has been played, so a client never renders a placeholder as a real score.
+ */
+export type TallyView = {
+  matches: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  scoreSum: number;
+  rankSum: number;
+  winRate: number;
+  avgScore: number;
+  avgRank: number;
+  bestScore: number | null;
+  worstScore: number | null;
+};
+
+/**
+ * A registered player's lifetime record, as `/users/me/stats` returns it.
+ *
+ * `vsHumans` and `vsAI` overlap rather than partition: a mixed table counts in
+ * both, because the interesting question is whether a person was involved, not
+ * whether the table was pure.
+ */
+export type LifetimeStats = {
+  subject?: { kind: string; id: string; name: string };
+  overall: TallyView;
+  vsHumans: TallyView;
+  vsAI: TallyView;
+  /**
+   * Keyed by game. A Canasta total and a poker stack are not comparable, so an
+   * average across both would be noise — this split is what keeps each game's
+   * figures meaningful.
+   */
+  byModule?: Record<string, TallyView>;
+  byAIDifficulty?: Record<string, TallyView>;
+  byPlayerCount?: Record<string, TallyView>;
+  /** Signed: positive for consecutive wins, negative for losses, zero after a draw. */
+  currentStreak: number;
+  longestWinStreak: number;
+  longestLossStreak: number;
+};

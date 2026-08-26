@@ -3,6 +3,7 @@ import type { MatchModule, MatchState, ModuleRules } from '@/src/api/matchTypes'
 import type {
   AccountProfile,
   AuthProvider,
+  LifetimeStats,
   LinkedIdentity,
   PlayerSession,
   SignInOutcome,
@@ -350,8 +351,16 @@ export class ZolikClient {
     await this.request('PATCH', '/users/me', patch, true);
   }
 
-  async getStats(): Promise<Record<string, unknown>> {
-    return this.get('/users/me/stats', true);
+  /**
+   * A registered player's lifetime record.
+   *
+   * Rejected for guests, by design: a guest identity is per-device and keyed on
+   * a claimable display name, so a lifetime record for one would merge
+   * strangers' histories. Guests claim theirs by registering — see
+   * `claimGuestHistory`.
+   */
+  async getStats(): Promise<LifetimeStats> {
+    return this.get('/users/me/stats', true) as Promise<LifetimeStats>;
   }
 
   async getHistory(): Promise<unknown> {

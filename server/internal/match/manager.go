@@ -346,8 +346,12 @@ func (m *Manager) Broadcast(match models.Match) {
 		recipients = append(recipients, p.ID)
 	}
 	id := match.ID.Hex()
+	// Computed once for the whole broadcast rather than once per recipient: a
+	// round log takes no viewer, so every seat would otherwise pay to decode
+	// the same bytes into the same answer.
+	rounds := module.RoundsFor(m.registry.Get(match.ModuleID), match.State)
 	m.hub.BroadcastGameState(id, recipients, func(playerID string) interface{} {
-		return m.BuildStateMsg(match, playerID)
+		return m.buildStateMsg(match, playerID, rounds)
 	})
 }
 

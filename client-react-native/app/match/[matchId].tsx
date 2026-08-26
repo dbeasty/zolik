@@ -5,8 +5,10 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { Zone } from '@/src/api/matchTypes';
 import { POSITION_PARAM, offerGroupKey, submissionFor } from '@/src/api/matchTypes';
 import { HandZone } from '@/src/components/match/HandZone';
+import { LifetimeRecord } from '@/src/components/match/LifetimeRecord';
 import { OfferBar, OfferGlance } from '@/src/components/match/OfferBar';
 import { Panel } from '@/src/components/match/Panel';
+import { RoundResults } from '@/src/components/match/RoundResults';
 import { SeatStrip } from '@/src/components/match/SeatStrip';
 import { ZoneView } from '@/src/components/match/ZoneView';
 import { Screen } from '@/src/components/Screen';
@@ -461,6 +463,12 @@ export default function MatchScreen() {
   // up: every other seat was a bot, so the same match is one create-and-start
   // away. A table with other people in it is a lobby's job, and pretending
   // otherwise would fail at the point of pressing.
+  // A results panel is worth putting up at the end of a round as well as at the
+  // end of a match, and there is nothing to put in one before the first round
+  // has finished.
+  const showResults =
+    !!state.rounds?.rounds.length && (state.status === 'completed' || !!state.rounds.paused);
+
   const againstBotsAlone =
     state.players.length > 1 && state.players.every((p) => p.isAI || p.id === viewerId);
 
@@ -574,6 +582,29 @@ export default function MatchScreen() {
               </Text>
             ) : null}
           </View>
+        ) : null}
+
+        {/* What the match actually did, and what it did to the player's own
+            record — under the banner that says it is over, and above the board,
+            which is only the position it happened to stop in.
+
+            Shown when the module says the table is between rounds too, not only
+            at the end: a round's settlement is wiped off the table by the next
+            one, so the moment it is readable is the only moment it exists. That
+            the table is paused is the module's own answer on the round log, not
+            something worked out here from the controls that happen to be live —
+            and the control to go on is an ordinary offer, so the action bar
+            below renders it like any other. */}
+        {showResults ? (
+          <>
+            <RoundResults
+              log={state.rounds!}
+              players={state.players}
+              standings={state.standings}
+              viewerId={viewerId}
+            />
+            {state.status === 'completed' ? <LifetimeRecord moduleId={state.moduleId} /> : null}
+          </>
         ) : null}
 
         <SeatStrip
