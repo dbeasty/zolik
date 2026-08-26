@@ -50,6 +50,31 @@ func TestValidateSet_JokerStillWild(t *testing.T) {
 	}
 }
 
+func TestValidateSet_AllFourSuitsIsValid(t *testing.T) {
+	mv, err := validateSet([]string{"9C", "9D", "9H", "9S"}, 3)
+	if err != nil {
+		t.Fatalf("expected a complete four-suit set to be valid, got %v", err)
+	}
+	if mv.NaturalCount != 4 || mv.WildCount != 0 {
+		t.Fatalf("expected 4 naturals and 0 wilds, got naturals=%d wilds=%d", mv.NaturalCount, mv.WildCount)
+	}
+}
+
+func TestValidateSet_WildCannotPadAFullSet(t *testing.T) {
+	// Two decks put a second 9 of every suit in play, but a set still only
+	// wants one of each — once all four suits are down, a fifth card (wild or
+	// not) can't join. Without this cap a set could grow past four using the
+	// second deck's jokers, which is a canasta rule this game doesn't have.
+	_, err := validateSet([]string{"9C", "9D", "9H", "9S", "JOKER1"}, 3)
+	if err == nil {
+		t.Fatalf("expected a wild joining a complete four-suit set to be rejected")
+	}
+	re, ok := err.(RulesError)
+	if !ok || re.Code != ErrTooManyWilds {
+		t.Fatalf("expected TOO_MANY_WILDS, got %v", err)
+	}
+}
+
 func TestOrderMeldForDisplay_RunSortsAscending(t *testing.T) {
 	cards := []string{"6H", "8H", "7H"}
 	mv, err := validateRun(cards, 3)

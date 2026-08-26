@@ -128,6 +128,13 @@ func TestZolikClassic_JokerCannotSneakOutWithoutBeingDown(t *testing.T) {
 	// Even as the literal last card in hand, a joker discard is still
 	// forbidden if the player never met the clean-run requirement — the
 	// "ends the game" exception only covers a legitimate go-out.
+	//
+	// The error code is the general go-out gate (ROUND_REQ_NOT_MET) rather
+	// than the joker-specific one: a lone joker with nowhere to lay off is
+	// this player's only conceivable move, which is exactly the case
+	// jokerDiscardIsOnlyMove lets through the joker gate for — but the empty-
+	// hand-without-being-down check underneath still catches it, same as it
+	// would for any other last card.
 	p := "p1"
 	st := classicState(p)
 	st.Phase = PhaseDiscard
@@ -136,6 +143,46 @@ func TestZolikClassic_JokerCannotSneakOutWithoutBeingDown(t *testing.T) {
 	_, _, err := ValidateDiscard(st, p, "JOKER1", nil)
 	if err == nil {
 		t.Fatal("expected joker discard to still be rejected when not down")
+	}
+	re, ok := err.(RulesError)
+	if !ok || re.Code != ErrRoundReqNotMet {
+		t.Fatalf("expected ROUND_REQ_NOT_MET, got %v", err)
+	}
+}
+
+func TestZolikClassic_JokerDiscardAllowedAsOnlyMove(t *testing.T) {
+	// A down player holding nothing but jokers, with every table meld already
+	// full, has no other legal action at all: no natural to start a new meld
+	// with, and no room to lay either joker off anywhere. Refusing the
+	// discard here would strand them for the rest of the deal.
+	p := "p1"
+	st := classicState(p)
+	st.Phase = PhaseMeld
+	st.RoundReqMet[p] = true
+	st.Hands[p] = []string{"JOKER1", "JOKER2"}
+	st.Melds[p] = [][]string{{"9C", "9D", "9H", "9S"}}
+	st.MeldMeta[p] = []MeldInfo{{MeldID: "m1", OwnerID: p, Type: MeldSet}}
+
+	_, _, err := ValidateDiscard(st, p, "JOKER1", nil)
+	if err != nil {
+		t.Fatalf("expected the joker discard to be allowed as the only legal move, got %v", err)
+	}
+}
+
+func TestZolikClassic_JokerDiscardStillBlockedWhenLayOffPossible(t *testing.T) {
+	// Same shape as above, but the table meld has room for one more joker —
+	// laying it off is a real alternative, so the discard restriction stands.
+	p := "p1"
+	st := classicState(p)
+	st.Phase = PhaseMeld
+	st.RoundReqMet[p] = true
+	st.Hands[p] = []string{"JOKER1", "JOKER2"}
+	st.Melds[p] = [][]string{{"9C", "9D", "9H"}}
+	st.MeldMeta[p] = []MeldInfo{{MeldID: "m1", OwnerID: p, Type: MeldSet}}
+
+	_, _, err := ValidateDiscard(st, p, "JOKER1", nil)
+	if err == nil {
+		t.Fatal("expected joker discard to still be rejected while a lay-off is available")
 	}
 	re, ok := err.(RulesError)
 	if !ok || re.Code != ErrJokerDiscard {
