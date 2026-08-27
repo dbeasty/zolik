@@ -42,6 +42,12 @@ const en: Record<string, string> = {
   'err.MUST_DRAW_FIRST': 'Draw a card before melding',
   'err.GAME_SUSPENDED': 'The game is paused',
   'err.GAME_NOT_ACTIVE': 'The game is not running',
+  // Why the "start the next round" control is greyed out. Without wording the
+  // shell printed the code itself, so a player agreeing to go on was answered
+  // with ALREADY_READY in capitals.
+  'err.ALREADY_READY': 'You are ready',
+  'err.NOT_BETWEEN_ROUNDS': 'The round is still being played',
+  'err.NOT_AT_THIS_TABLE': 'You are not at this table',
   'err.DISCARD_LOCKED': 'The discard pile is locked for now',
   'err.DISCARD_PILE_EMPTY': 'The discard pile is empty',
   'err.NO_CARDS_LEFT': 'No cards left to draw',
@@ -231,8 +237,11 @@ const en: Record<string, string> = {
   // What a round is called, and what one did. Each of these carries its number
   // in the params, so `humanise` alone would render a label with nothing after
   // it.
-  'round.continue': 'Next round',
-  'round.waitingFor': 'Waiting for {n}',
+  // An instruction, not a heading. "Next round" named the thing rather than
+  // asking for it, and sat above "Waiting for 1" — which reads as though the
+  // player is the one waiting, when the table is waiting for them.
+  'round.continue': 'Start the next round',
+
   'zolik.round.deal': 'Deal',
   'zolik.round.cleanRun': 'One run must be joker-free',
   'canasta.round.deal': 'Deal',
@@ -259,6 +268,11 @@ const cs: Record<string, string> = {
   'err.MUST_DRAW_FIRST': 'Nejdřív si lízni kartu',
   'err.GAME_SUSPENDED': 'Hra je pozastavena',
   'err.GAME_NOT_ACTIVE': 'Hra neběží',
+  // "Potvrzeno" rather than "jsi připraven": a Czech participle agrees with the
+  // gender of whoever it describes, and a seat carries none.
+  'err.ALREADY_READY': 'Potvrzeno',
+  'err.NOT_BETWEEN_ROUNDS': 'Kolo ještě běží',
+  'err.NOT_AT_THIS_TABLE': 'Nejsi u tohoto stolu',
   'err.DISCARD_LOCKED': 'Odhazovací balíček je zatím zamčený',
   'err.DISCARD_PILE_EMPTY': 'Odhazovací balíček je prázdný',
   'err.NO_CARDS_LEFT': 'Už nezbývají žádné karty',
@@ -413,8 +427,11 @@ const cs: Record<string, string> = {
   // Wording that names no verb where a player is the subject, for the same
   // reason status.winner does not: a Czech verb agrees with the gender of
   // whoever did it, and a player id carries none.
-  'round.continue': 'Další kolo',
-  'round.waitingFor': 'Čeká se na {n}',
+  // Imperative, and with no count: Czech inflects "hráč" by it — jeden hráč,
+  // dva hráči, pět hráčů — so a number here would need three phrasings to buy
+  // something the seat markers already show.
+  'round.continue': 'Začít další kolo',
+
   'zolik.round.deal': 'Rozdání',
   'zolik.round.cleanRun': 'Jedna postupka bez žolíka',
   'canasta.round.deal': 'Rozdání',

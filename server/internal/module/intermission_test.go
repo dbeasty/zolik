@@ -82,6 +82,14 @@ func TestTheContinueOfferIsAnOrdinaryOffer(t *testing.T) {
 	if len(offers) != 1 {
 		t.Fatalf("a paused seat is offered %d controls, want 1", len(offers))
 	}
+	// The control is the instruction, and carries nothing else. It used to
+	// ship a "waiting for n" fact, which read as a status line under a button
+	// that was actually asking to be pressed — and said the same thing the
+	// shell already says to a player with nothing to do.
+	if len(offers[0].Facts) != 0 {
+		t.Errorf("the offer to go on carries %d facts; the label is the whole message", len(offers[0].Facts))
+	}
+
 	a, ok := module.SubmissionFor(offers[0])
 	if !ok {
 		t.Fatal("the continue offer describes no submission anything could send")
