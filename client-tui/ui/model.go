@@ -26,6 +26,17 @@ const (
 	ScreenScoreTable
 )
 
+// Build is the client's own identity — its version and the commit it was
+// built from. Over SSH this is literally the server's own buildinfo, passed
+// in as plain data by the server that hosts the TUI (see
+// client-tui/ssh.Deps.Build): "the client's build" *is* "the server's build"
+// on that path by construction, not a fact that could drift from it. Only the
+// standalone `cmd/play` dev runner has a build identity of its own.
+type Build struct {
+	Version string
+	Commit  string
+}
+
 type Root struct {
 	screen    Screen
 	width     int
@@ -34,6 +45,12 @@ type Root struct {
 	serverURL string
 	session   PlayerSession
 	api       *api.Client
+	build     Build
+
+	// serverBuild is filled in by Root.Init's version fetch. nil until it
+	// resolves (or forever, if the fetch fails) — the menu must render fine
+	// either way.
+	serverBuild *api.ServerBuild
 
 	menu       menuModel
 	lobby      lobbyModel
@@ -43,7 +60,7 @@ type Root struct {
 	status string
 }
 
-func NewRoot(_ any, serverURL string, sess PlayerSession) *Root {
+func NewRoot(_ any, serverURL string, sess PlayerSession, build Build) *Root {
 	c := api.New(serverURL)
 	c.SetAuth(sess.AccessToken, sess.UserID)
 	r := &Root{
@@ -51,6 +68,7 @@ func NewRoot(_ any, serverURL string, sess PlayerSession) *Root {
 		serverURL: serverURL,
 		session:   sess,
 		api:       c,
+		build:     build,
 	}
 	r.menu = newMenuModel(r)
 	r.lobby = newLobbyModel(r)
@@ -64,14 +82,36 @@ func (r *Root) SetRenderer(renderer *lipgloss.Renderer) {
 }
 
 func (r *Root) Init() tea.Cmd {
+	// Not r.menu.Init(): that only runs when r.screen defaults to the menu
+	// (model.go:130), and the version fetch needs to fire regardless of
+	// which screen this session starts on.
+	cmds := []tea.Cmd{r.loadServerBuild()}
 	switch r.screen {
 	case ScreenLobby:
-		return r.lobby.Init()
+		cmds = append(cmds, r.lobby.Init())
 	case ScreenMatch:
-		return r.match.Init()
+		cmds = append(cmds, r.match.Init())
 	default:
-		return r.menu.Init()
+		cmds = append(cmds, r.menu.Init())
 	}
+	return tea.Batch(cmds...)
+}
+
+// loadServerBuild asks the server which build it's running, for the menu to
+// render beside the client's own. Best-effort only: a failed fetch must never
+// surface as an error, so serverBuild simply stays nil.
+func (r *Root) loadServerBuild() tea.Cmd {
+	return func() tea.Msg {
+		build, err := r.api.GetVersion()
+		if err != nil {
+			return serverBuildMsg{}
+		}
+		return serverBuildMsg{build: &build}
+	}
+}
+
+type serverBuildMsg struct {
+	build *api.ServerBuild
 }
 
 func (r *Root) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -101,6 +141,9 @@ func (r *Root) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return r, nil
 	case scoreExportMsg:
 		r.scoreTable.export = msg.text
+		return r, nil
+	case serverBuildMsg:
+		r.serverBuild = msg.build
 		return r, nil
 	}
 

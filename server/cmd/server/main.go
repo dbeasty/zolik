@@ -14,7 +14,9 @@ import (
 	"github.com/joho/godotenv"
 
 	tuissH "zolik/client-tui/ssh"
+	tuiui "zolik/client-tui/ui"
 	"zolik/server/internal/app"
+	"zolik/server/internal/buildinfo"
 	"zolik/server/internal/tuiauth"
 )
 
@@ -72,6 +74,7 @@ func main() {
 		}, tuissH.Deps{
 			ServerURL: serverURL,
 			Auth:      &tuiauth.Adapter{Auth: a.Auth()},
+			Build:     tuiBuild(),
 		})
 		if err != nil {
 			log.Fatalf("ssh server: %v", err)
@@ -89,5 +92,12 @@ func main() {
 		_ = sshSrv
 	}
 	_ = srv.Shutdown(shutdownCtx)
+}
+
+// tuiBuild is the server's own build identity, handed to the SSH TUI as
+// plain data — see client-tui/ui.Build's doc comment for why.
+func tuiBuild() tuiui.Build {
+	version, commit := buildinfo.Resolved()
+	return tuiui.Build{Version: version, Commit: commit}
 }
 

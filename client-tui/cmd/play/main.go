@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"zolik/client-tui/api"
+	"zolik/client-tui/internal/buildinfo"
 	"zolik/client-tui/ui"
 )
 
@@ -28,7 +29,8 @@ func main() {
 		Username:    "Terminal",
 		IsGuest:     true,
 	}
-	m := ui.NewRoot(nil, base, sess)
+	version, commit := buildinfo.Resolved()
+	m := ui.NewRoot(nil, base, sess, ui.Build{Version: version, Commit: commit})
 	if _, err := tea.NewProgram(m, tea.WithAltScreen()).Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "run: %v\n", err)
 		os.Exit(1)
