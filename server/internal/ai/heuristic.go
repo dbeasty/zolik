@@ -396,11 +396,6 @@ func findLayOff(meldMeta map[string][]rules.MeldInfo, melds map[string][][]strin
 				if _, err := rules.ValidateMeld(cand, cfg); err != nil {
 					continue
 				}
-				// Never dirty the owner's only clean run with a wild — the
-				// server rejects it, and the card belongs in its own meld.
-				if rules.LayOffBreaksCleanRun(cfg, gameNumber, ownerMelds, i, []string{c}) {
-					continue
-				}
 				// Never shed the last card the player could legally discard.
 				// ValidateLayOff refuses a lay-off from a player who is not
 				// down (ROUND_REQ_NOT_MET), so reaching here means they are.
@@ -479,7 +474,7 @@ func pickSmartDiscard(hand []string, visible VisibleState, actor string, difficu
 				// protects its own melds; what separates them is reading the
 				// table (dangerous) and the discard history (seenBefore).
 				ownMeld:    ownMeld[i],
-				dangerous:  difficulty != "easy" && extendsAnyLiveMeld(c, visible.Melds, cfg, visible.GameNumber),
+				dangerous:  difficulty != "easy" && extendsAnyLiveMeld(c, visible.Melds, cfg),
 				seenBefore: difficulty == "hard" && rankAlreadyDiscardedByOthers(c, visible.PlayerDiscards, actor),
 			})
 		}
@@ -614,7 +609,7 @@ func handCanStillDiscard(rest []string, cfg rules.RulesConfig, down bool) bool {
 // a card the agent would immediately discard again.
 func discardPickupUseful(card string, hand []string, visible VisibleState) bool {
 	cfg := visible.Rules
-	if extendsAnyLiveMeld(card, visible.Melds, cfg, visible.GameNumber) {
+	if extendsAnyLiveMeld(card, visible.Melds, cfg) {
 		return true
 	}
 	combined := append(append([]string(nil), hand...), card)
@@ -656,18 +651,15 @@ func meldMaterialPositions(hand []string, cfg rules.RulesConfig) []bool {
 // extendsAnyLiveMeld reports whether card can be laid off onto any meld
 // currently on the table (any owner) — i.e. discarding it hands the next
 // player a free lay-off.
-func extendsAnyLiveMeld(card string, melds map[string][][]string, cfg rules.RulesConfig, gameNumber int) bool {
+func extendsAnyLiveMeld(card string, melds map[string][][]string, cfg rules.RulesConfig) bool {
 	// Order-independent in principle (this only asks "does any meld take it?"),
 	// but iterated in a fixed order anyway so that a future early-return or
 	// scoring change here can't reintroduce map-order-dependent play.
 	for _, owner := range sortedMeldOwners(melds) {
 		ownerMelds := melds[owner]
-		for i, existing := range ownerMelds {
+		for _, existing := range ownerMelds {
 			cand := append(append([]string(nil), existing...), card)
 			if _, err := rules.ValidateMeld(cand, cfg); err != nil {
-				continue
-			}
-			if rules.LayOffBreaksCleanRun(cfg, gameNumber, ownerMelds, i, []string{card}) {
 				continue
 			}
 			return true

@@ -424,7 +424,7 @@ func layOffOffer(state GameState, cfg RulesConfig, playerID string, m tableMeld,
 	// player may not lay off at all — a verb-level refusal, not a complaint
 	// about the probe card.
 	case "", ErrInvalidMeld, ErrTooManyWilds, ErrAdjacentWilds, ErrAceBridge,
-		ErrBreaksCleanRun, ErrWrongRunEnd:
+		ErrWrongRunEnd:
 		o.Enabled = true
 	default:
 		o.Enabled = false
@@ -465,9 +465,6 @@ func layOffPlacements(state GameState, cfg RulesConfig, playerID string, m table
 		extended := append(append([]string(nil), m.Cards...), c)
 		mv, err := ValidateMeld(extended, cfg)
 		if err != nil {
-			continue
-		}
-		if LayOffBreaksCleanRun(cfg, state.GameNumber, state.Melds[m.OwnerID], m.Index, []string{c}) {
 			continue
 		}
 		// Laying this off must not empty the hand on a non-final deal —

@@ -333,7 +333,6 @@ const (
 	ErrGameSuspended         RulesErrorCode = "GAME_SUSPENDED"
 	ErrGameNotActive         RulesErrorCode = "GAME_NOT_ACTIVE"
 	ErrJokerDiscard          RulesErrorCode = "JOKER_DISCARD_FORBIDDEN"
-	ErrBreaksCleanRun        RulesErrorCode = "BREAKS_CLEAN_RUN"
 	ErrNothingToUndo         RulesErrorCode = "NOTHING_TO_UNDO"
 	ErrNoJokerInMeld         RulesErrorCode = "NO_JOKER_IN_MELD"
 	ErrJokerSwapMismatch     RulesErrorCode = "JOKER_SWAP_MISMATCH"

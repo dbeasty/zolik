@@ -117,7 +117,7 @@ cross.
 | Meld kinds | `rules.MeldType` | set · run |
 | Card encoding | `string` | `"7H"`, `"TS"`, `"JOKER1"` — rank char + suit char |
 | Zones | fields on `GameState` | DrawPile · DiscardPile · Hands · Melds · MeldMeta |
-| Error codes | `rules.RulesErrorCode` | 23 constants, ~20 rummy-specific (ACE_BRIDGE, BREAKS_CLEAN_RUN…) |
+| Error codes | `rules.RulesErrorCode` | 25 constants, ~20 rummy-specific (ACE_BRIDGE, ADJACENT_WILDS…) |
 
 ### What *is* already parameterised
 
@@ -367,7 +367,7 @@ be introduced as a seeded, reproducible choice rather than by reinstating a wall
 ### 5.7 What the AI needs from a generic engine
 
 `HeuristicAgent` imports `rules` directly and calls `ValidateMeld`, `PlayerMeldCounts`,
-`LayOffBreaksCleanRun`, `PenaltyPoints`. It is a rummy player, not an agent framework. In the
+`IsCleanRun`, `PenaltyPoints`. It is a rummy player, not an agent framework. In the
 target architecture the `Agent` interface becomes module-scoped: each game module ships its own
 policy, and the runtime only knows how to *drive* an agent. The generic contract a module must
 expose for any agent — including a future search-based one — is:

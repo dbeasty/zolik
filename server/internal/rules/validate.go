@@ -507,12 +507,6 @@ func ValidateLayOff(state GameState, playerID string, meldID string, cards []str
 			}
 		}
 	}
-	if LayOffBreaksCleanRun(cfg, state.GameNumber, state.Melds[owner], idx, cards) {
-		return state, RulesError{
-			Code:    ErrBreaksCleanRun,
-			Message: "that run has to stay joker-free — start a separate meld instead",
-		}
-	}
 
 	prevDiscardTakenCard := state.DiscardTakenCard
 	state.DiscardTakenCard = clearIfSpent(state.DiscardTakenCard, cards)
