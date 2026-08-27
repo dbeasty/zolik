@@ -33,6 +33,7 @@ const SHELL_FILES = [
   'src/components/match/CardGlance.tsx',
   'src/components/match/RoundResults.tsx',
   'src/components/match/LifetimeRecord.tsx',
+  'src/hooks/useArrival.ts',
 ];
 
 // Nouns and verbs that belong to one game. If any of these appears in the
@@ -86,7 +87,7 @@ describe('the generic shell knows no game', () => {
   it('covers every file the shell is made of', () => {
     // A guard on the guard: adding a shell file without adding it here would
     // silently exempt it.
-    expect(SHELL_FILES.length).toBeGreaterThanOrEqual(14);
+    expect(SHELL_FILES.length).toBeGreaterThanOrEqual(15);
   });
 });
 
