@@ -284,6 +284,11 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 			Composite: o.Verb == rules.VerbLayMeld,
 		})
 	}
+	// Why each disabled offer is disabled, in terms a player can act on: the
+	// rules that justify the refusal, and the move that gets round it. Both
+	// read off what was just built rather than being worked out again — see
+	// remedy.go.
+	annotate(s.Rules, playerID, out)
 	return out, nil
 }
 

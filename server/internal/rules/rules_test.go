@@ -70,8 +70,12 @@ func TestValidateSet_WildCannotPadAFullSet(t *testing.T) {
 		t.Fatalf("expected a wild joining a complete four-suit set to be rejected")
 	}
 	re, ok := err.(RulesError)
-	if !ok || re.Code != ErrTooManyWilds {
-		t.Fatalf("expected TOO_MANY_WILDS, got %v", err)
+	// SET_TOO_LARGE, not TOO_MANY_WILDS: a set of four naturals with a fifth
+	// card is refused for its size, and telling a player holding one joker
+	// that they have too many jokers is a different rule than the one that
+	// stopped them.
+	if !ok || re.Code != ErrSetTooLarge {
+		t.Fatalf("expected SET_TOO_LARGE, got %v", err)
 	}
 }
 
