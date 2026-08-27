@@ -2,12 +2,14 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 
 	"zolik/server/internal/auth"
+	"zolik/server/internal/buildinfo"
 	"zolik/server/internal/canasta"
 	"zolik/server/internal/db"
 	"zolik/server/internal/holdem"
@@ -183,6 +185,16 @@ func (a *App) routeGroups() []routeGroup {
 			r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusOK)
 				_, _ = w.Write([]byte("ok"))
+			})
+			// Both clients render this beside their own build, so a bug
+			// report says which server the reporter was actually talking to.
+			r.Get("/version", func(w http.ResponseWriter, _ *http.Request) {
+				version, commit := buildinfo.Resolved()
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"version": version,
+					"commit":  commit,
+				})
 			})
 		}},
 		{"auth", a.auth.RegisterRoutes},

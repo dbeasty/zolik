@@ -277,6 +277,17 @@ export class ZolikClient {
   }
 
   /**
+   * Which build the server is running, for the footer next to our own — so a
+   * bug report says which server the reporter was actually talking to.
+   * Unauthenticated, and deliberately outside the 401-refresh retry path
+   * (auth=false): this is a probe fired before login, not an API call that
+   * should ever trigger a token refresh.
+   */
+  async getVersion(): Promise<{ version: string; commit: string }> {
+    return this.get('/version', false);
+  }
+
+  /**
    * One module's written rules, resolved against a variation and option
    * overrides — the same choices a lobby's picker holds, so the sentences
    * describe the table being configured rather than the module's defaults.

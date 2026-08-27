@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
+import { BuildFooter } from '@/src/components/BuildFooter';
 import { Screen } from '@/src/components/Screen';
 import { ZOLIK_BASE_URL } from '@/src/config';
 import { useSession } from '@/src/context/SessionContext';
@@ -109,6 +110,8 @@ export default function MainMenu() {
           </>
         )}
       </View>
+
+      <BuildFooter />
     </Screen>
   );
 }

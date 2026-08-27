@@ -32,6 +32,11 @@ MONGO_DB="${ZOLIK_DEV_MONGO_DB:-zolik_dev_stack}"
 API="http://127.0.0.1:${PORT}"
 WEB="http://127.0.0.1:${WEB_PORT}"
 
+# The one build identity, shared by the server binary's -ldflags and the web
+# bundle's EXPO_PUBLIC_* vars below, so the two footers can never disagree for
+# a reason other than actually being different builds. See scripts/version.sh.
+eval "$(sh "${ROOT}/scripts/version.sh" --export)"
+
 say() { printf '\033[1m==>\033[0m %s\n' "$*"; }
 die() { printf '\033[31mError:\033[0m %s\n' "$*" >&2; exit 1; }
 
@@ -56,8 +61,11 @@ ensure_datastores() {
 up() {
   ensure_datastores
 
-  say "building the server"
-  (cd "${ROOT}/server" && go build -o "${RUN}/zolik-server" ./cmd/server)
+  say "building the server (${ZOLIK_VERSION}+${ZOLIK_COMMIT})"
+  (cd "${ROOT}/server" && go build \
+      -ldflags "-X zolik/server/internal/buildinfo.Version=${ZOLIK_VERSION} \
+                -X zolik/server/internal/buildinfo.Commit=${ZOLIK_COMMIT}" \
+      -o "${RUN}/zolik-server" ./cmd/server)
 
   say "starting the server on ${API}"
   # The whole launch is wrapped in a subshell whose own stdout and stderr go
@@ -77,13 +85,24 @@ up() {
 
   say "starting the web client on ${WEB}"
   (cd "${ROOT}/client-react-native" && \
-    EXPO_PUBLIC_ZOLIK_BASE_URL="$API" nohup npx expo start --web --port "$WEB_PORT" \
+    EXPO_PUBLIC_ZOLIK_BASE_URL="$API" \
+    EXPO_PUBLIC_ZOLIK_VERSION="$ZOLIK_VERSION" EXPO_PUBLIC_ZOLIK_COMMIT="$ZOLIK_COMMIT" \
+    nohup npx expo start --web --port "$WEB_PORT" \
       > "${RUN}/web.log" 2>&1 < /dev/null & echo $! > "${RUN}/web.pid" ) > /dev/null 2>&1
   wait_for "$WEB" "the web client" 180
 
   echo
   say "up"
-  printf '   API  %s\n   Web  %s\n\n' "$API" "$WEB"
+  printf '   API  %s\n   Web  %s\n' "$API" "$WEB"
+  # Read back rather than trusting $ZOLIK_VERSION: this is the check that
+  # catches a -X flag that silently no-op'd (a typo'd import path or a
+  # dead-code-eliminated var link cleanly, with the value left empty).
+  printf '   Version (built): %s+%s\n' "$ZOLIK_VERSION" "$ZOLIK_COMMIT"
+  printf '   Version (served): '
+  curl -fsS "${API}/version" | python3 -c \
+    "import json,sys; b=json.load(sys.stdin); print(f\"{b['version']}+{b['commit']}\")" 2>/dev/null \
+    || echo '(could not read /version)'
+  echo
   printf '   Games hosted: '
   curl -fsS "${API}/modules" | sed 's/.*/&/' | python3 -c \
     'import json,sys; print(", ".join(m["id"] for m in json.load(sys.stdin)["modules"]))' 2>/dev/null \

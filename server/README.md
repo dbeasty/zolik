@@ -92,6 +92,8 @@ There is one gameplay path, and it does not name a game. `/games/*` and
 carried; `cmd/migrate-games` moves any documents left behind.
 
 - `GET /healthz`
+- `GET /version` — `{"version": "1.1.1.2", "commit": "7feb025"}`, this binary's
+  build. See [Versioning](../README.md#versioning) at the repo root.
 - WebSocket: `ws://localhost:8090/ws/matches/:id?token=<JWT>` — carries
   `module.Action` in and a per-viewer `match_state` out
 - REST:

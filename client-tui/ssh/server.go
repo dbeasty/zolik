@@ -28,6 +28,10 @@ type Config struct {
 type Deps struct {
 	ServerURL string
 	Auth      Authenticator
+	// Build is the server's own build identity, threaded straight through to
+	// every SSH session's ui.Root — see ui.Build's doc comment for why this
+	// is passed as data rather than linked into client-tui as a second copy.
+	Build ui.Build
 }
 
 type Server struct {
@@ -91,7 +95,7 @@ func Start(ctx context.Context, cfg Config, deps Deps) (*Server, error) {
 func teaProgram(deps Deps) bubblessh.Handler {
 	return func(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		sess := sessionForSSH(s, deps)
-		m := ui.NewRoot(s, deps.ServerURL, sess)
+		m := ui.NewRoot(s, deps.ServerURL, sess, deps.Build)
 		opts := []tea.ProgramOption{
 			tea.WithInput(s),
 			tea.WithOutput(s),

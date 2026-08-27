@@ -46,6 +46,27 @@ The one rule the design enforces:
 > Every rule-derived fact is computed once, on the server, inside the module —
 > and shipped. A client that has to *derive* a rule is a bug.
 
+## Versioning
+
+Every running piece — the server and both clients — reports a build like
+`1.1.1.2+7feb025`: a number plus the short commit it was built from, so
+"is the fix in?" is answerable by looking at the screen instead of reading
+logs.
+
+The `VERSION` file at the repo root holds the three-part number (`1.1.1`),
+bumped by hand for a real release. The fourth part is generated automatically
+— commits since `VERSION` itself last changed, so a bump resets it to `0`. A
+build made from an uncommitted tree gets `-dirty` appended to its hash.
+`scripts/version.sh` is the one place this is computed; `dev-stack.sh`, the
+RN npm scripts and the Docker build all read it from there so the number and
+hash can never disagree between pieces for any reason other than actually
+being different builds.
+
+The server exposes its build at `GET /version`; the RN client shows both
+halves in a footer on the main menu, and the terminal client shows its own in
+the header (naming the server's too, only when it differs — see
+`client-tui/ui/menu.go`).
+
 ## Documents
 
 - [`docs/architecture.md`](docs/architecture.md) — the original review, and

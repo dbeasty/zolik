@@ -1,7 +1,9 @@
 package app
 
 import (
+	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -9,6 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 
 	"zolik/server/internal/auth"
+	"zolik/server/internal/buildinfo"
 	"zolik/server/internal/db"
 	"zolik/server/internal/lobby"
 	"zolik/server/internal/stats"
@@ -89,6 +92,59 @@ func TestMatchRuntimeOwnsMatchesPath(t *testing.T) {
 		if !got[want] {
 			t.Errorf("route %q is not reachable", want)
 		}
+	}
+}
+
+// TestVersionRouteIsRegistered pins /version into the health group's route
+// table, and TestVersionRouteReportsBuildInfo pins its exact wire shape —
+// both the RN and TUI clients parse "version"/"commit" directly.
+func TestVersionRouteIsRegistered(t *testing.T) {
+	a := offlineApp(t)
+
+	got := map[string]bool{}
+	for _, g := range a.routeGroups() {
+		for _, route := range routesOf(t, g.register) {
+			got[route] = true
+		}
+	}
+
+	if !got["GET /version"] {
+		t.Error(`"GET /version" is not reachable`)
+	}
+}
+
+func TestVersionRouteReportsBuildInfo(t *testing.T) {
+	origVersion, origCommit := buildinfo.Version, buildinfo.Commit
+	t.Cleanup(func() { buildinfo.Version, buildinfo.Commit = origVersion, origCommit })
+	buildinfo.Version, buildinfo.Commit = "1.1.1.2", "7feb025"
+
+	a := offlineApp(t)
+	r := chi.NewRouter()
+	a.RegisterRoutes(r)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/version", nil)
+	r.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("GET /version status = %d, want 200", rec.Code)
+	}
+	if ct := rec.Header().Get("Content-Type"); ct != "application/json" {
+		t.Errorf("Content-Type = %q, want application/json", ct)
+	}
+
+	var body struct {
+		Version string `json:"version"`
+		Commit  string `json:"commit"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decoding response: %v", err)
+	}
+	if body.Version != "1.1.1.2" {
+		t.Errorf("version = %q, want 1.1.1.2", body.Version)
+	}
+	if body.Commit != "7feb025" {
+		t.Errorf("commit = %q, want 7feb025", body.Commit)
 	}
 }
 

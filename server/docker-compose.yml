@@ -1,3 +1,15 @@
+# app and app2 are one image on two ports. Shared so a version build-arg can
+# never reach one and not the other — see scripts/version.sh for how
+# ZOLIK_VERSION/ZOLIK_COMMIT get set.
+x-server-build: &server-build
+  context: ..
+  dockerfile: server/Dockerfile
+  args:
+    # The quotes matter: an exported-but-empty ZOLIK_VERSION must still fall
+    # back to the Dockerfile's ARG default, not override it with "".
+    ZOLIK_VERSION: "${ZOLIK_VERSION:-0.0.0-dev}"
+    ZOLIK_COMMIT: "${ZOLIK_COMMIT:-unknown}"
+
 services:
   mongo:
     image: mongo:7
@@ -47,9 +59,7 @@ services:
       retries: 20
 
   app:
-    build:
-      context: ..
-      dockerfile: server/Dockerfile
+    build: *server-build
     restart: unless-stopped
     depends_on:
       mongo:
@@ -70,9 +80,7 @@ services:
       - "2222:2222"
 
   app2:
-    build:
-      context: ..
-      dockerfile: server/Dockerfile
+    build: *server-build
     restart: unless-stopped
     depends_on:
       mongo:

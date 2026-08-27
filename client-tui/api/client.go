@@ -93,6 +93,21 @@ func (c *Client) Modules() ([]Module, error) {
 	return resp.Modules, nil
 }
 
+// ServerBuild is the build the server answered with, for the menu to render
+// next to the client's own — see ui.Build.
+type ServerBuild struct {
+	Version string `json:"version"`
+	Commit  string `json:"commit"`
+}
+
+// GetVersion asks which build is on the other end. Unauthenticated: the menu
+// renders it before a match, and often before login, exists.
+func (c *Client) GetVersion() (ServerBuild, error) {
+	var out ServerBuild
+	err := c.getJSON("/version", &out, false)
+	return out, err
+}
+
 func (c *Client) CreateMatch(moduleID, variation string, options map[string]int) (matchID, joinCode string, err error) {
 	body := map[string]any{"moduleId": moduleID}
 	if variation != "" {
