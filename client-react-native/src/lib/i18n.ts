@@ -42,6 +42,14 @@ const en: Record<string, string> = {
   'err.MUST_DRAW_FIRST': 'Draw a card before melding',
   'err.GAME_SUSPENDED': 'The game is paused',
   'err.GAME_NOT_ACTIVE': 'The game is not running',
+  // --- runtime refusals, which are not the rules saying no -----------------
+  //
+  // Both were reachable long before they were worded, and a player who met
+  // one was shown the code in capitals or, worse, nothing at all: an action
+  // sent while the socket was down simply vanished, which reads as a legal
+  // move being silently refused.
+  'err.MATCH_NOT_ACTIVE': 'The table is paused — waiting for a player to reconnect',
+  'err.NOT_CONNECTED': 'Not connected to the table — reconnecting, then try again',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
@@ -268,6 +276,8 @@ const cs: Record<string, string> = {
   'err.MUST_DRAW_FIRST': 'Nejdřív si lízni kartu',
   'err.GAME_SUSPENDED': 'Hra je pozastavena',
   'err.GAME_NOT_ACTIVE': 'Hra neběží',
+  'err.MATCH_NOT_ACTIVE': 'Stůl je pozastavený — čeká se na návrat hráče',
+  'err.NOT_CONNECTED': 'Nejsi připojen ke stolu — připojuji znovu, pak to zkus',
   // "Potvrzeno" rather than "jsi připraven": a Czech participle agrees with the
   // gender of whoever it describes, and a seat carries none.
   'err.ALREADY_READY': 'Potvrzeno',

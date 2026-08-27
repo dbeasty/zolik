@@ -377,17 +377,32 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 	if prev != nil {
 		_ = prev.Close()
 	}
-	defer h.manager.Hub().Registry().RemoveIfCurrent(matchID, playerID, wsConn)
-
 	ctx := context.Background()
+	// Leaving pauses the table, but only if it was waiting on them — and only
+	// if this socket was still the player's when it died.
+	//
+	// The two halves have to be one deferred block, because the second is
+	// conditional on the first. `Add` above closes whatever connection this
+	// one displaced, and that closure runs the displaced handler's defers: it
+	// is a socket ending, but it is not a player leaving, because the player
+	// is right here on the newer socket. RemoveIfCurrent already draws exactly
+	// that distinction and says so in its doc comment; suspending regardless
+	// of its answer is what turned a client that reconnects too eagerly into a
+	// table that paused and un-paused every couple of seconds for a quarter of
+	// an hour, with every action sent in the paused half refused as
+	// MATCH_NOT_ACTIVE and the bot loop giving up entirely.
+	defer func() {
+		if h.manager.Hub().Registry().RemoveIfCurrent(matchID, playerID, wsConn) {
+			h.manager.SuspendOnDisconnect(context.WithoutCancel(ctx), matchID, playerID, "socket closed")
+		}
+	}()
+
 	// Arriving may be a *return*: a match this player's disconnection paused
 	// resumes the moment they are back, before they are sent anything.
 	h.manager.ResumeIfReturning(ctx, matchID, playerID)
 	if m, err := h.manager.Repo().FindByID(ctx, oid); err == nil {
 		h.manager.Hub().WriteDirect(matchID, playerID, h.manager.BuildStateMsg(m, playerID))
 	}
-	// And leaving pauses the table, but only if it was waiting on them.
-	defer h.manager.SuspendOnDisconnect(context.WithoutCancel(ctx), matchID, playerID, "socket closed")
 
 	for {
 		_, data, err := conn.ReadMessage()
