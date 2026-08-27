@@ -112,6 +112,12 @@ type Agent interface{ Act(s State, playerID string, seed int64) (Action, error) 
 Optional. `zolikmod` implements it and returns the existing `internal/ai` heuristic player, so
 Žolíky's bots stay as strong as they are today rather than regressing to a shape-matcher.
 
+Hold'em became the second module to need it, and for the opposite reason. Žolíky's offers cannot
+express going out; poker's express everything and decide nothing, because the choice between them
+turns entirely on two cards the offer list never mentions. `holdem.Bot` (`internal/holdem/bot.go`)
+reads them: a hand-strength score before the flop, a Monte Carlo equity estimate against the range
+the bet in front of it claims after it, and pot odds to price the answer.
+
 ### 6.3 Reconnection and statistics
 
 `SuspendOnDisconnect` / `ResumeIfReturning` and the stats recorder move from `game.Manager` to
