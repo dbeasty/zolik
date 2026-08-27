@@ -172,13 +172,13 @@ func runValue(positions []int) int {
 	return sum
 }
 
-// maxSetSize is the most cards a set of one rank can ever legally hold: one
+// MaxSetSize is the most cards a set of one rank can ever legally hold: one
 // per suit. Two decks put a second copy of every card in play, but a set
 // still only wants one of each suit — the second copy belongs to a different
 // set (see the duplicate-suit check below) — so four naturals is the ceiling,
 // and a wild can only fill a suit the set doesn't have yet, never pad a set
 // that already has all four.
-const maxSetSize = 4
+const MaxSetSize = 4
 
 func validateSet(cards []string, minSetSize int) (MeldValidation, error) {
 	if len(cards) < minSetSize {
@@ -231,10 +231,10 @@ func validateSet(cards []string, minSetSize int) (MeldValidation, error) {
 		}
 		seenSuits[suit] = true
 	}
-	if len(cards) > maxSetSize {
+	if len(cards) > MaxSetSize {
 		return MeldValidation{}, RulesError{
-			Code:    ErrTooManyWilds,
-			Message: fmt.Sprintf("a set can't hold more than %d cards — a wild can only fill a missing suit, not pad a full one", maxSetSize),
+			Code:    ErrSetTooLarge,
+			Message: fmt.Sprintf("a set can't hold more than %d cards — a wild can only fill a missing suit, not pad a full one", MaxSetSize),
 		}
 	}
 

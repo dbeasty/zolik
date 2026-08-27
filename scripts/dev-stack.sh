@@ -29,8 +29,19 @@ MONGO_URI="${ZOLIK_DEV_MONGO_URI:-mongodb://localhost:27018}"
 REDIS_URL="${ZOLIK_DEV_REDIS_URL:-redis://localhost:6379/2}"
 MONGO_DB="${ZOLIK_DEV_MONGO_DB:-zolik_dev_stack}"
 
-API="http://127.0.0.1:${PORT}"
-WEB="http://127.0.0.1:${WEB_PORT}"
+# The host the *browser* will use to reach the API, which is not always the
+# host this script runs on. The bundle carries this address to whatever machine
+# loads it, so a loopback address served to a guest computer names that guest —
+# which has no server on it, and the app reports "Failed to fetch".
+#
+# Overriding client-react-native/.env does not fix that: the EXPO_PUBLIC_* value
+# exported below wins over any .env file, so this is the only knob that works.
+#
+#   ZOLIK_DEV_HOST=192.168.1.7 scripts/dev-stack.sh up
+#
+HOST="${ZOLIK_DEV_HOST:-127.0.0.1}"
+API="http://${HOST}:${PORT}"
+WEB="http://${HOST}:${WEB_PORT}"
 
 # The one build identity, shared by the server binary's -ldflags and the web
 # bundle's EXPO_PUBLIC_* vars below, so the two footers can never disagree for

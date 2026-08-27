@@ -22,23 +22,23 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 	}
 
 	return []module.RuleSection{
-		{TitleKey: "canasta.rules.section.goal", Items: []module.Fact{
-			{LabelKey: "canasta.rules.goal", Params: map[string]any{"n": targetScore}},
-		}},
-		{TitleKey: "canasta.rules.section.setup", Items: []module.Fact{
-			{LabelKey: "canasta.rules.deck", Value: "108"},
-			{LabelKey: "canasta.rules.deal", Params: map[string]any{"n": handSize}},
-			{LabelKey: "canasta.rules.redThrees"},
-		}},
-		{TitleKey: "canasta.rules.section.melding", Items: []module.Fact{
-			{LabelKey: "canasta.rules.canasta", Params: map[string]any{"n": canastaSize}},
-			{LabelKey: "canasta.rules.meldFloorBands", Params: map[string]any{
+		module.Section("canasta.rules.section.goal",
+			module.Fact{LabelKey: "canasta.rules.goal", Params: map[string]any{"n": targetScore}},
+		),
+		module.Section("canasta.rules.section.setup",
+			module.Fact{LabelKey: "canasta.rules.deck", Value: "108"},
+			module.Fact{LabelKey: "canasta.rules.deal", Params: map[string]any{"n": handSize}},
+			module.Fact{LabelKey: "canasta.rules.redThrees"},
+		),
+		module.Section("canasta.rules.section.melding",
+			module.Fact{LabelKey: "canasta.rules.canasta", Params: map[string]any{"n": canastaSize}},
+			module.Fact{LabelKey: "canasta.rules.meldFloorBands", Params: map[string]any{
 				"negative": 15, "low": 50, "mid": 90, "high": 120,
 			}},
-		}},
-		{TitleKey: "canasta.rules.section.end", Items: []module.Fact{
-			{LabelKey: goOutKey},
-			{LabelKey: "canasta.rules.end", Params: map[string]any{"n": targetScore}},
-		}},
+		),
+		module.Section("canasta.rules.section.end",
+			module.Fact{LabelKey: goOutKey},
+			module.Fact{LabelKey: "canasta.rules.end", Params: map[string]any{"n": targetScore}},
+		),
 	}, nil
 }

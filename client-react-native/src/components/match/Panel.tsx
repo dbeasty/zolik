@@ -51,6 +51,8 @@ type Props = {
   summary?: ReactNode;
   /** Would accept the card currently being dragged. */
   live?: boolean;
+  /** These cards would be refused here — see ZoneView's `refusedDrops`. */
+  refused?: boolean;
   /** The pointer is over this panel right now. */
   hovered?: boolean;
   testID?: string;
@@ -74,6 +76,7 @@ export function Panel({
   nested,
   summary,
   live,
+  refused,
   hovered,
   testID,
   innerRef,
@@ -94,6 +97,7 @@ export function Panel({
         nested && styles.nested,
         inline && styles.inline,
         live && styles.live,
+        refused && styles.refused,
         hovered && styles.hovered,
         style,
       ]}
@@ -191,6 +195,7 @@ function panelStyles(m: Metrics) {
     // when it lit up would move every region after it mid-drag, which moves
     // the very measurements the drop is tested against.
     live: { borderColor: colors.accent },
+    refused: { borderColor: colors.danger, borderStyle: 'dashed', opacity: 0.55 },
     hovered: dropArmed,
   });
 }

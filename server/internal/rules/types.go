@@ -322,7 +322,12 @@ const (
 	ErrNeedCleanRun          RulesErrorCode = "NEED_CLEAN_RUN"
 	ErrMeldBelowMinimum      RulesErrorCode = "MELD_BELOW_MINIMUM"
 	ErrMeldNoContribution    RulesErrorCode = "MELD_NO_CONTRIBUTION"
-	ErrTooManyWilds          RulesErrorCode = "TOO_MANY_WILDS"
+	ErrTooManyWilds RulesErrorCode = "TOO_MANY_WILDS"
+	// ErrSetTooLarge: a set already holds one card of every suit, so there is
+	// no missing suit left for another card — wild or natural — to fill.
+	// Split out of ErrTooManyWilds, which was returned for both and left a
+	// player holding four naturals told they had too many jokers.
+	ErrSetTooLarge           RulesErrorCode = "SET_TOO_LARGE"
 	ErrAdjacentWilds         RulesErrorCode = "ADJACENT_WILDS"
 	ErrAceBridge             RulesErrorCode = "ACE_BRIDGE"
 	ErrDiscardPileEmpty      RulesErrorCode = "DISCARD_PILE_EMPTY"

@@ -41,6 +41,12 @@ type Props = {
   // side by side, rather than the rank on top and the suit centered below,
   // or the suit is exactly what the overlap crops off.
   stacked?: boolean;
+  // The card carries a mark from the module — something true about this card
+  // that the player should act on before it becomes a refusal. Drawn as its
+  // own ring colour, not a reuse of justDrawn's: "this card is new" and "this
+  // card owes your lay-down" are different facts, and the second one is the
+  // one with a consequence.
+  badged?: boolean;
   // Passed straight through to the outer wrapper (data-testid on web) — set
   // by the caller, which knows the card's context (hand index, staged
   // group, table meld), since CardView itself doesn't.
@@ -57,6 +63,7 @@ function cardStyles(m: CardMetrics) {
       padding: m.ringPadding,
     },
     justDrawnRing: { borderColor: colors.success },
+    badgedRing: { borderColor: colors.gold, borderStyle: 'dashed' },
     draggingRing: { borderColor: colors.accent },
     card: {
       width: m.width,
@@ -105,7 +112,17 @@ function cardStyles(m: CardMetrics) {
   });
 }
 
-export function CardView({ card, selected, justDrawn, dragging, onPress, compact, stacked, testID }: Props) {
+export function CardView({
+  card,
+  selected,
+  justDrawn,
+  dragging,
+  badged,
+  onPress,
+  compact,
+  stacked,
+  testID,
+}: Props) {
   const metrics = useMetrics();
   const d = parseCard(card);
   // Recomputed only when the card's own size changes (a resize, or a device
@@ -132,7 +149,16 @@ export function CardView({ card, selected, justDrawn, dragging, onPress, compact
       // react-native-web drops it, so it would leave the web build silently
       // saying nothing.
       aria-selected={!!selected}
-      style={[styles.ring, justDrawn && styles.justDrawnRing, dragging && styles.draggingRing]}
+      style={[
+        styles.ring,
+        // Later wins, so this is the precedence read backwards: what your
+        // finger is holding beats what you owe, which beats what just
+        // arrived. A card taken off the discard pile is all three at once,
+        // and "you owe this to your lay-down" is the one with a consequence.
+        justDrawn && styles.justDrawnRing,
+        badged && styles.badgedRing,
+        dragging && styles.draggingRing,
+      ]}
     >
       <View
         style={[

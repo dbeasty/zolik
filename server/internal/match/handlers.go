@@ -418,9 +418,18 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 		}
 		if err := h.manager.HandleAction(ctx, matchID, playerID, a); err != nil {
 			log.Printf("match=%s player=%s verb=%s refused: %v", matchID, playerID, a.Verb, err)
-			_ = wsConn.WriteJSON(map[string]any{
+			frame := map[string]any{
 				"type": "error", "code": module.CodeOf(err), "message": err.Error(),
-			})
+			}
+			// The rules behind the refusal, so a submission refused on arrival
+			// explains itself the same way a greyed-out control does. An
+			// offer's own whyNot carries these too, but a composed submission
+			// — a meld a person put together — has no offer of its own to
+			// have been greyed out in advance.
+			if ids := h.manager.ExplainRefusal(ctx, matchID, module.CodeOf(err)); len(ids) > 0 {
+				frame["ruleIds"] = ids
+			}
+			_ = wsConn.WriteJSON(frame)
 		}
 	}
 }

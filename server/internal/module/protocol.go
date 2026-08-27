@@ -147,6 +147,15 @@ const (
 // CardView is one visible card.
 type CardView struct {
 	Card string `json:"card"`
+	// BadgeKeys mark this particular card — the same idea as Group.BadgeKeys,
+	// one level down. Keys, never rendered text.
+	//
+	// What it is for is refusals that have not happened yet. A player holding
+	// a card they owe their lay-down will be refused when they try to discard
+	// it, and the best refusal is the one that never happens: marking the
+	// card says so while there is still time to act on it, rather than after
+	// the move was made. Only the module knows which card that is.
+	BadgeKeys []string `json:"badgeKeys,omitempty"`
 }
 
 // Group is a run of cards within a zone that belong together — a meld, a
@@ -352,6 +361,32 @@ type ActionOffer struct {
 	Enabled bool   `json:"enabled"`
 	// WhyNot is a stable error code, never a sentence.
 	WhyNot string `json:"whyNot,omitempty"`
+
+	// RuleIDs name the written rules that justify WhyNot at this table — the
+	// ids of RuleItems this module's own Rules() builds for the config in
+	// force. Pointers into the rule index, never sentences.
+	//
+	// A code names a *class* of refusal, which is not enough to explain one:
+	// INVALID_MELD means different things in two games, and DISCARD_LOCKED
+	// means something different at every option value. Wording an explanation
+	// per code would put a second, unversioned copy of the rules on the
+	// client. Pointing at the rule the client can already read is not a
+	// second copy of anything.
+	//
+	// A list because one code can cover more than one rule. Where it does,
+	// that is usually a sign the code should be split.
+	RuleIDs []string `json:"ruleIds,omitempty"`
+
+	// Remedy is the next legal move, in words: what to do *instead*, with
+	// whatever live detail the sentence needs (which card is owed, how many
+	// points are still short). A key and params like every other Fact.
+	Remedy *Fact `json:"remedy,omitempty"`
+
+	// RemedyOfferID names another offer in this same list that performs the
+	// remedy, so an interface can put a working control under the sentence
+	// rather than an instruction the player has to go and act on themselves.
+	// Empty when there is no single offer that does it.
+	RemedyOfferID string `json:"remedyOfferId,omitempty"`
 
 	// LabelKey names this control when the verb cannot.
 	//

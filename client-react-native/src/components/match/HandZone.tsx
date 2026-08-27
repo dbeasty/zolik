@@ -71,6 +71,12 @@ type Props = {
   onDragEnd?: (x: number, y: number) => boolean;
   /** Set while the card is over a drop target outside the hand. */
   externalTarget?: string | null;
+  /**
+   * Marks the module put on particular cards, by card value — see
+   * `CardView.badgeKeys`. Pressing a marked card asks what the mark means.
+   */
+  badges?: ReadonlyMap<string, string[]>;
+  onPressBadge?: (card: string, badgeKeys: string[]) => void;
   /** Stable id for remembering whether this panel is put away. Omit for a panel that may not be minimized. */
   panelId?: string;
   minimized?: boolean;
@@ -94,6 +100,8 @@ export function HandZone({
   onDragMove,
   onDragEnd,
   externalTarget,
+  badges,
+  onPressBadge,
   panelId,
   minimized,
   onToggleMinimized,
@@ -424,6 +432,8 @@ export function HandZone({
               onRelease={release}
               onMove={stableMove}
               consumedByDrag={consumedByDrag}
+              badgeKeys={badges?.get(slot.card)}
+              onPressBadge={onPressBadge}
               styles={styles}
             />
           </Fragment>
@@ -485,6 +495,9 @@ type CardProps = {
   onRelease: () => void;
   onMove: (from: number, to: number) => void;
   consumedByDrag: () => boolean;
+  /** Marks the module put on this card, if any — see `HandZone.badges`. */
+  badgeKeys?: string[];
+  onPressBadge?: (card: string, badgeKeys: string[]) => void;
   styles: HandStyles;
 };
 
@@ -512,6 +525,8 @@ const DraggableCard = memo(function DraggableCard({
   onRelease,
   onMove,
   consumedByDrag,
+  badgeKeys,
+  onPressBadge,
   styles,
 }: CardProps) {
   const pan = Gesture.Pan()
@@ -601,6 +616,7 @@ const DraggableCard = memo(function DraggableCard({
           card={slot.card}
           selected={selected}
           dragging={held}
+          badged={Boolean(badgeKeys?.length)}
           testID={testID}
           onPress={() => {
             // A press that ended a drag is not also a tap. Gesture-handler
@@ -608,6 +624,13 @@ const DraggableCard = memo(function DraggableCard({
             // those braces, because a drag that silently toggled selection
             // would be maddening.
             if (consumedByDrag()) return;
+            // A marked card answers for its mark first. The mark is there
+            // because this card is about to be refused for something, and a
+            // player who presses it is asking about that, not choosing it.
+            if (badgeKeys?.length && onPressBadge) {
+              onPressBadge(slot.card, badgeKeys);
+              return;
+            }
             onToggle(slot.id);
           }}
         />

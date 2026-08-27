@@ -59,6 +59,13 @@ type Props = {
   registerDrop?: (elementId: string, node: Measurable | null) => void;
   /** Element ids that would accept the card currently being dragged. */
   activeDrops?: ReadonlySet<string>;
+  /**
+   * Places the cards in flight would be refused. Drawn as refusing, which is
+   * not the same as unlit: an unlit target and a forbidden one looked
+   * identical, and which of the two it is is the whole question a player is
+   * asking mid-drag.
+   */
+  refusedDrops?: ReadonlySet<string>;
   /** The one the pointer is over right now. */
   hoveredDrop?: string | null;
   /**
@@ -104,6 +111,7 @@ export function ZoneView({
   onToggleMinimized,
   registerDrop,
   activeDrops,
+  refusedDrops,
   hoveredDrop,
   hoveredPosition,
   pressableDrops,
@@ -121,6 +129,7 @@ export function ZoneView({
 
   const zoneId = zoneElementId(zone.id);
   const zoneLive = activeDrops?.has(zoneId) ?? false;
+  const zoneRefused = refusedDrops?.has(zoneId) ?? false;
 
   const cards = zone.cards ?? [];
   /**
@@ -190,6 +199,7 @@ export function ZoneView({
       inline={inline}
       nested={nested}
       live={zoneLive}
+      refused={zoneRefused}
       hovered={hoveredDrop === zoneId}
       minimized={minimized}
       onToggleMinimized={onToggleMinimized}
@@ -238,6 +248,7 @@ export function ZoneView({
           {(zone.groups ?? []).map((g) => {
             const groupId = groupElementId(g.id);
             const groupLive = activeDrops?.has(groupId) ?? false;
+            const groupRefused = refusedDrops?.has(groupId) ?? false;
             const groupPressable = pressableDrops?.has(groupId) ?? false;
             const groupArmable = armableGroups?.has(g.id) ?? false;
             const groupArmed = armedGroupId === g.id;
@@ -254,6 +265,7 @@ export function ZoneView({
                   styles.group,
                   groupArmed && styles.armed,
                   groupLive && styles.live,
+                  groupRefused && styles.refused,
                   hoveredDrop === groupId && styles.hovered,
                 ]}
                 testID={`group-${g.id}`}
@@ -446,6 +458,11 @@ function zoneStyles(m: Metrics) {
     // which moves the very measurements the drop is tested against. dropArmed
     // keeps to that too — it only touches colour, style and fill.
     live: { borderColor: colors.accent },
+    // A place these cards may not go. Dimmed and outlined in the refusal
+    // colour rather than merely left alone, and — like `live` — only colour,
+    // style and opacity, never width: a region that changed size mid-drag
+    // would move the measurements the drop is tested against.
+    refused: { borderColor: colors.danger, borderStyle: 'dashed', opacity: 0.55 },
     hovered: dropArmed,
     // Which slice of the group a card in flight would land in, right now —
     // sized and positioned in `top`/`height` percentages set inline per

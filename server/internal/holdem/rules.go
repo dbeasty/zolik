@@ -26,17 +26,17 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 	}
 
 	return []module.RuleSection{
-		{TitleKey: "holdem.rules.section.goal", Items: []module.Fact{
-			{LabelKey: "holdem.rules.goal"},
-		}},
-		{TitleKey: "holdem.rules.section.setup", Items: []module.Fact{
-			{LabelKey: "holdem.rules.stack", Params: map[string]any{"n": stack}},
-			{LabelKey: "holdem.rules.blinds", Params: map[string]any{"sb": bigBlind / 2, "bb": bigBlind}},
-		}},
-		{TitleKey: "holdem.rules.section.betting", Items: []module.Fact{
-			{LabelKey: "holdem.rules.streets"},
-			{LabelKey: "holdem.rules.showdown"},
-		}},
-		{TitleKey: "holdem.rules.section.end", Items: end},
+		module.Section("holdem.rules.section.goal",
+			module.Fact{LabelKey: "holdem.rules.goal"},
+		),
+		module.Section("holdem.rules.section.setup",
+			module.Fact{LabelKey: "holdem.rules.stack", Params: map[string]any{"n": stack}},
+			module.Fact{LabelKey: "holdem.rules.blinds", Params: map[string]any{"sb": bigBlind / 2, "bb": bigBlind}},
+		),
+		module.Section("holdem.rules.section.betting",
+			module.Fact{LabelKey: "holdem.rules.streets"},
+			module.Fact{LabelKey: "holdem.rules.showdown"},
+		),
+		module.Section("holdem.rules.section.end", end...),
 	}, nil
 }

@@ -423,8 +423,8 @@ func layOffOffer(state GameState, cfg RulesConfig, playerID string, m tableMeld,
 	// by the round-requirement gate (see notDownError), where it means the
 	// player may not lay off at all — a verb-level refusal, not a complaint
 	// about the probe card.
-	case "", ErrInvalidMeld, ErrTooManyWilds, ErrAdjacentWilds, ErrAceBridge,
-		ErrWrongRunEnd:
+	case "", ErrInvalidMeld, ErrTooManyWilds, ErrSetTooLarge, ErrAdjacentWilds,
+		ErrAceBridge, ErrWrongRunEnd:
 		o.Enabled = true
 	default:
 		o.Enabled = false

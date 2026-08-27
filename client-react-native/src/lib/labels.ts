@@ -1,4 +1,5 @@
 import type { Fact } from '@/src/api/matchTypes';
+import { cardText, isCardCode } from '@/src/lib/cards';
 import { messageTemplate, t } from '@/src/lib/i18n';
 
 /**
@@ -65,7 +66,13 @@ function tokenText(value: unknown, players: Named[]): string {
   if (typeof value !== 'string') return String(value);
   const player = players.find((p) => p.id === value);
   if (player) return player.name;
-  return KEY_SHAPED.test(value) ? label(value) : value;
+  if (KEY_SHAPED.test(value)) return label(value);
+  // A third opaque token: a card. The server names cards in its own codes,
+  // and a sentence with "JS" in it is a sentence about a card nobody at the
+  // table can see — the rest of the screen draws that card as J♠. Checked
+  // after the player list, so a player who calls themselves 7H keeps their
+  // name.
+  return isCardCode(value) ? cardText(value) : value;
 }
 
 function resolveParams(

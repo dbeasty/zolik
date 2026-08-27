@@ -270,6 +270,24 @@ func (m *Manager) Start(ctx context.Context, idOrCode string) (models.Match, err
 //
 // The module decides everything about legality; this function decides nothing
 // except whether the write raced.
+// ExplainRefusal names the written rules behind a refusal at this table, or
+// nil when the module has no rule index or nothing explains the code.
+//
+// Best-effort by design: a lookup failure here must never turn a refusal into
+// a different error, because the refusal is the thing the player is waiting
+// to hear about.
+func (m *Manager) ExplainRefusal(ctx context.Context, idOrCode, code string) []string {
+	match, err := m.repo.Resolve(ctx, idOrCode)
+	if err != nil {
+		return nil
+	}
+	return module.ExplainRefusalFor(
+		m.registry.Get(match.ModuleID),
+		module.MatchConfig{Variation: match.Variation, Options: match.Options},
+		code,
+	)
+}
+
 func (m *Manager) HandleAction(ctx context.Context, idOrCode, playerID string, a module.Action) error {
 	match, err := m.repo.Resolve(ctx, idOrCode)
 	if err != nil {
