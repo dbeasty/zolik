@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { useArrival } from '@/src/hooks/useArrival';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { factText, label, playerName, shownScore } from '@/src/lib/labels';
 import type { Metrics } from '@/src/lib/layout';
@@ -55,18 +56,27 @@ export const RoundResults = memo(function RoundResults({
   // leaves whatever varies where it varies.
   const { shared, perRound } = useMemo(() => splitSharedFacts(log), [log]);
 
+  // Re-played per round, so each result announces itself rather than only the
+  // first one of the match.
+  const arrival = useArrival(log.rounds.length);
+
   if (!log.rounds.length) return null;
 
   const byId = new Map(standings?.map((s) => [s.playerId, s]));
   const unit = standings?.[0]?.labelKey;
 
   return (
-    <Panel
-      title="Results"
-      subtitle={shared.length ? shared.map((f) => factText(f, players)).join(' · ') : undefined}
-      forceOpen
-      testID="round-results"
-    >
+    <Animated.View style={arrival}>
+      <Panel
+        title="Results"
+        subtitle={shared.length ? shared.map((f) => factText(f, players)).join(' · ') : undefined}
+        forceOpen
+        testID="round-results"
+        // Tinted only between rounds. At the end of a match the banner above
+        // is already doing the announcing, and two tinted boxes stacked on one
+        // another read as noise rather than emphasis.
+        style={log.paused ? styles.paused : undefined}
+      >
       <ScrollView horizontal showsHorizontalScrollIndicator style={styles.scroller}>
         <View>
           <View style={[styles.row, styles.headRow]}>
@@ -82,11 +92,18 @@ export const RoundResults = memo(function RoundResults({
             ))}
           </View>
 
-          {log.rounds.map((r) => {
+          {log.rounds.map((r, i) => {
             const scores = new Map(r.scores.map((s) => [s.playerId, s]));
             const took = new Set(r.winners ?? []);
+            // The row that just landed, picked out so a reader arriving at a
+            // table of eleven can see which line is the news.
+            const newest = i === log.rounds.length - 1;
             return (
-              <View key={r.number} style={styles.row} testID={`round-${r.number}`}>
+              <View
+                key={r.number}
+                style={[styles.row, newest && styles.newest]}
+                testID={`round-${r.number}`}
+              >
                 <View style={[styles.cell, styles.labelCell]}>
                   <Text style={styles.roundNumber}>{r.number}</Text>
                   {(perRound.get(r.number) ?? []).map((f, i) => (
@@ -129,8 +146,9 @@ export const RoundResults = memo(function RoundResults({
             </View>
           ) : null}
         </View>
-      </ScrollView>
-    </Panel>
+        </ScrollView>
+      </Panel>
+    </Animated.View>
   );
 });
 
@@ -196,6 +214,10 @@ function runningTotal(s: RoundScore): string {
 function roundStyles(m: Metrics) {
   return StyleSheet.create({
     scroller: { marginTop: 4 },
+    // The same tint the end-of-match banner uses, for the same reason: the
+    // thing it has to beat is being mistaken for nothing having happened.
+    paused: { backgroundColor: 'rgba(61, 139, 253, 0.10)', borderColor: colors.accent },
+    newest: { backgroundColor: 'rgba(61, 139, 253, 0.07)', borderRadius: 4 },
     row: { flexDirection: 'row', alignItems: 'flex-start' },
     headRow: { borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: 4 },
     totalRow: { borderTopWidth: 1, borderTopColor: colors.border, marginTop: 4, paddingTop: 6 },

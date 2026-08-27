@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { Zone } from '@/src/api/matchTypes';
 import { POSITION_PARAM, offerGroupKey, submissionFor } from '@/src/api/matchTypes';
@@ -14,6 +14,7 @@ import { ZoneView } from '@/src/components/match/ZoneView';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { useDropRegistry, type Measurable } from '@/src/hooks/useDropRegistry';
+import { useArrival } from '@/src/hooks/useArrival';
 import { useHandOrder } from '@/src/hooks/useHandOrder';
 import { useMatchSocket } from '@/src/hooks/useMatchSocket';
 import { usePanelState } from '@/src/hooks/usePanelState';
@@ -141,6 +142,12 @@ export default function MatchScreen() {
   // up here for the same reason: hooks may not be conditional.
   const [startingAgain, setStartingAgain] = useState(false);
   const [againError, setAgainError] = useState('');
+  // The end of a match arrives the same way the end of a round does, because it
+  // is the same kind of thing happening: the table stopped, and here is why.
+  //
+  // Up here with the rest for the same reason they are: this is a hook, the
+  // early return below is conditional, and a hook after it is not.
+  const overArrival = useArrival(state?.status ?? '');
 
   if (!state) {
     return (
@@ -488,6 +495,7 @@ export default function MatchScreen() {
   const showResults =
     !!state.rounds?.rounds.length && (state.status === 'completed' || !!state.rounds.paused);
 
+
   const againstBotsAlone =
     state.players.length > 1 && state.players.every((p) => p.isAI || p.id === viewerId);
 
@@ -566,7 +574,10 @@ export default function MatchScreen() {
             the position that ended and a player arrives at this banner from
             the move they just made. */}
         {state.status === 'completed' ? (
-          <View style={[styles.over, iWon && styles.overWon]} testID="match-over">
+          <Animated.View
+            style={[styles.over, iWon && styles.overWon, overArrival]}
+            testID="match-over"
+          >
             <Text testID="match-over-title" style={styles.overTitle}>
               Match over
             </Text>
@@ -600,7 +611,7 @@ export default function MatchScreen() {
                 {againError}
               </Text>
             ) : null}
-          </View>
+          </Animated.View>
         ) : null}
 
         {/* What the match actually did, and what it did to the player's own
