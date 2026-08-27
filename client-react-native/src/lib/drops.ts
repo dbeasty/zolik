@@ -113,6 +113,20 @@ export function fits(offer: ActionOffer, cards: string[]): Fit {
   if (enumerated && enumerated.length > 0 && !coveredBy(cards, enumerated)) {
     return { ok: false, labelKey: 'sel.notThese' };
   }
+  // Some cards are only legal with company, and the offer says which company:
+  // the 5 that extends a run of 7-8-9-10 only when the 6 goes with it. Reading
+  // the list off is not deriving a rule — this side still has no idea why
+  // those two cards belong together, only that the module said they do.
+  //
+  // Membership, not a multiset: `requires` names a rank and a suit, and either
+  // copy of a duplicate in a two-deck game satisfies it.
+  const picked = new Set(cards);
+  for (const p of placements) {
+    if (!picked.has(p.card) || !p.requires?.length) continue;
+    if (!p.requires.every((r) => picked.has(r))) {
+      return { ok: false, labelKey: 'sel.needsCompany' };
+    }
+  }
   return { ok: true };
 }
 
@@ -175,13 +189,37 @@ export function dropSpotsFor(offers: ActionOffer[], cards: string[]): DropSpot[]
 
     const placements = placementsOf(offer);
     const spot: DropSpot = { offerId: offer.id, elementId, ready: cards.length >= need };
-    if (cards.length === 1) {
-      const p = placements.find((x) => x.card === cards[0]);
-      if (p?.positions?.length) spot.positions = p.positions;
-    }
+    const positions = positionsForSelection(placements, cards);
+    if (positions.length) spot.positions = positions;
     spots.push(spot);
   }
   return spots;
+}
+
+/**
+ * Which ends of the target this exact selection may be let go on.
+ *
+ * A placement's `positions` describe *its own* submission: for an ordinary
+ * card that is the card by itself, and for one with `requires` it is that card
+ * together with the cards it names. So the hint for a selection is the hint of
+ * the placement whose submission the selection *is* — nothing else composes.
+ *
+ * Two cards that each separately could extend either end do not between them
+ * make a submission that extends either end, which is why intersecting the
+ * per-card hints is wrong and why anything unrecognised sends no hint at all.
+ * Saying nothing is what the module already does when a submission grows a run
+ * at both ends, and the server treats an absent position as "no constraint".
+ */
+function positionsForSelection(placements: Placement[], cards: string[]): string[] {
+  const picked = new Set(cards);
+  if (picked.size !== cards.length) return []; // a duplicate names no one card
+  for (const p of placements) {
+    if (!picked.has(p.card) || !p.positions?.length) continue;
+    const submission = new Set([p.card, ...(p.requires ?? [])]);
+    if (submission.size !== picked.size) continue;
+    if ([...picked].every((c) => submission.has(c))) return p.positions;
+  }
+  return [];
 }
 
 /**

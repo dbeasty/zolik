@@ -221,6 +221,7 @@ const en: Record<string, string> = {
   'sel.tooMany.n': 'Select at most {n} cards',
   'sel.needMore': 'Select {n} card(s)',
   'sel.notThese': "Those cards can't go here",
+  'sel.needsCompany': 'That card needs the ones next to it',
 
   // --- what a module says happened -----------------------------------------
   // The first module-sent keys in this bundle, and deliberately few. Anything
@@ -568,6 +569,7 @@ const cs: Record<string, string> = {
   'sel.tooMany.n': 'Vyber nejvýš {n} karet',
   'sel.needMore': 'Vyber {n} kartu/karty',
   'sel.notThese': 'Tyhle karty sem nepatří',
+  'sel.needsCompany': 'Tahle karta potřebuje ty vedle sebe',
 
   // Wording that names no verb, because a Czech verb agrees with the gender of
   // whoever did it and a player id carries no gender. "Vítěz: Anna" is right

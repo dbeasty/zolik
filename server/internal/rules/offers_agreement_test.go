@@ -120,6 +120,73 @@ func TestLegalActions_AgreesWithApplyAction(t *testing.T) {
 	}
 }
 
+// TestLegalActions_ChainedPlacementsAreAcceptedTogether is direction 2 lifted
+// from one card to a combination.
+//
+// It exists because the single-card corpus could not see the bug it now
+// guards: concreteActions only ever built lay-offs of one card, so a
+// placement that is legal *in company* had nothing checking that its company
+// was named correctly — or named at all. The offer used to list only cards
+// that extend a meld on their own, while ValidateLayOff happily took the 5
+// and the 6 together onto a run of 7-8-9-10, and every direction in the
+// agreement test passed while a client refused the move.
+//
+// Requires is a promise: whatever a placement names, plus the card itself,
+// has to be a submission the engine takes.
+func TestLegalActions_ChainedPlacementsAreAcceptedTogether(t *testing.T) {
+	for _, sc := range agreementCorpus() {
+		for _, pid := range sc.state.TurnOrder {
+			for _, o := range LegalActions(sc.state, pid) {
+				if o.Verb != VerbLayOff || !o.Enabled || o.Source == nil {
+					continue
+				}
+				for _, p := range o.Source.Placements {
+					cards := append(append([]string(nil), p.Requires...), p.Card)
+					_, err := ApplyAction(cloneState(sc.state), pid, Action{
+						Type: ActionLayOff, MeldID: o.Target.MeldID, Cards: cards,
+					})
+					if err != nil {
+						t.Errorf("%s/%s: offer %q lists %s requiring %v, but the engine REJECTS %v: %v",
+							sc.name, pid, o.ID, p.Card, p.Requires, cards, err)
+					}
+				}
+			}
+		}
+	}
+}
+
+// TestLegalActions_LayOffSourceCardsAreTheStandalonePlacements pins the split
+// between the two lists in the package that owns it.
+//
+// Source.Cards is what a client reads when it is about to send a single card
+// with nobody choosing it — the RN client's isOneTap turns a one-entry list
+// into a pressable button, and the terminal client submits Cards[:MinCards]
+// sight unseen. Neither may ever be handed a card that needs company.
+func TestLegalActions_LayOffSourceCardsAreTheStandalonePlacements(t *testing.T) {
+	for _, sc := range agreementCorpus() {
+		for _, pid := range sc.state.TurnOrder {
+			for _, o := range LegalActions(sc.state, pid) {
+				if o.Verb != VerbLayOff || o.Source == nil || len(o.Source.Placements) == 0 {
+					continue
+				}
+				want := standaloneCardsOf(o.Source.Placements)
+				if len(want) != len(o.Source.Cards) {
+					t.Errorf("%s/%s: offer %q cards=%v but standalone placements are %v",
+						sc.name, pid, o.ID, o.Source.Cards, want)
+					continue
+				}
+				for i := range want {
+					if want[i] != o.Source.Cards[i] {
+						t.Errorf("%s/%s: offer %q cards=%v but standalone placements are %v",
+							sc.name, pid, o.ID, o.Source.Cards, want)
+						break
+					}
+				}
+			}
+		}
+	}
+}
+
 // TestLegalActions_RunEndHintsMatchTheValidator checks the third direction
 // for lay-off placements specifically: a "front"/"end" hint the client
 // renders must be exactly what ValidateLayOff will accept, and an end the

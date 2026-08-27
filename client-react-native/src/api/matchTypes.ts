@@ -103,8 +103,15 @@ export type ParamSpec = {
  * cards, so a drop on the left half means the first entry and the right half
  * the last — without this side knowing what either name means. A chosen
  * position is submitted under {@link POSITION_PARAM}.
+ *
+ * `requires` names the other cards that have to go in the same action for
+ * this one to be legal — the 5 that only extends a run of 7-8-9-10 with the 6
+ * alongside it. Empty (the usual case) means the card may go on its own. The
+ * set is transitive and closed, so checking it is a membership test, never a
+ * question about which ranks sit next to which. `source.cards` deliberately
+ * omits these cards: see {@link Selector}.
  */
-export type Placement = { card: string; positions?: string[] };
+export type Placement = { card: string; positions?: string[]; requires?: string[] };
 
 /** The parameter a chosen {@link Placement} position travels back under. */
 export const POSITION_PARAM = 'position';
@@ -123,6 +130,14 @@ export type Selector = {
    * `meldId` addresses a group inside a zone and is enough on its own.
    */
   zoneId?: string;
+  /**
+   * The cards that may be sent on their own — the placements with no
+   * `requires`. Deliberately narrower than `placements`, which also lists
+   * cards legal only in company, because this is what gets sent without
+   * anyone choosing: {@link isOneTap} turns a one-entry list into a
+   * pressable button, and the terminal client submits `cards[:minCards]`
+   * sight unseen.
+   */
   cards?: string[];
   placements?: Placement[];
   minCards?: number;

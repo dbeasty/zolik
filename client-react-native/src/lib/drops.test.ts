@@ -1,4 +1,4 @@
-import type { ActionOffer } from '@/src/api/matchTypes';
+import { isOneTap, type ActionOffer } from '@/src/api/matchTypes';
 
 import {
   dropSpotsFor,
@@ -51,6 +51,52 @@ const layOff: ActionOffer = {
     maxCards: 8,
   },
   target: { zone: 'meld', ownerId: 'me', meldId: 'meld_0', zoneId: 'melds:me' },
+};
+
+/**
+ * A Žolíky lay-off onto a run of 7-8-9-10 with the 5 and the 6 in hand — the
+ * shape `layOffPlacements` emits once it enumerates chains. The 6 extends the
+ * run on its own; the 5 only does so with the 6, and `source.cards` says so by
+ * listing the 6 alone.
+ */
+const layOffChain: ActionOffer = {
+  id: 'lay_off:meld_1',
+  verb: 'lay_off',
+  enabled: true,
+  source: {
+    zone: 'hand',
+    ownerId: 'me',
+    zoneId: 'hand:me',
+    cards: ['6C'],
+    placements: [
+      { card: '6C', positions: ['front'] },
+      { card: '5C', positions: ['front'], requires: ['6C'] },
+    ],
+    minCards: 1,
+    maxCards: 8,
+  },
+  target: { zone: 'meld', ownerId: 'me', meldId: 'meld_1', zoneId: 'melds:me' },
+};
+
+/** Three deep, so a selection can skip a link in the middle of the chain. */
+const layOffDeepChain: ActionOffer = {
+  id: 'lay_off:meld_2',
+  verb: 'lay_off',
+  enabled: true,
+  source: {
+    zone: 'hand',
+    ownerId: 'me',
+    zoneId: 'hand:me',
+    cards: ['8C'],
+    placements: [
+      { card: '8C', positions: ['front'] },
+      { card: '7C', positions: ['front'], requires: ['8C'] },
+      { card: '6C', positions: ['front'], requires: ['7C', '8C'] },
+    ],
+    minCards: 1,
+    maxCards: 8,
+  },
+  target: { zone: 'meld', ownerId: 'me', meldId: 'meld_2', zoneId: 'melds:me' },
 };
 
 /** A rummy meld: a shape, not a list — any card may go in, three at least. */
@@ -287,5 +333,59 @@ describe('someOfferReady', () => {
 
   it('is ready when only one offer among several actually takes the cards', () => {
     expect(someOfferReady([draw, layMeld, layOff], ['6D', 'TD'])).toBe(true);
+  });
+});
+
+describe('a lay-off whose cards need each other', () => {
+  // The reported bug: dropping the 5 and the 6 together onto a run of
+  // 7-8-9-10 was refused outright, because the offer used to list only the
+  // cards that extend the run on their own and this side read that list as
+  // the whole truth. The player had to lay one card at a time.
+  it('takes a gap card dragged together with the card that bridges it', () => {
+    const spots = takeableSpots(dropSpotsFor([layOffChain], ['5C', '6C']));
+    expect(spotAt(spots, 'group-meld_1')).toMatchObject({ ready: true });
+  });
+
+  it('refuses a card that is only legal in company, dragged on its own', () => {
+    const spots = dropSpotsFor([layOffChain], ['5C']);
+    expect(refusalAt(spots, 'group-meld_1')?.labelKey).toBe('sel.needsCompany');
+    expect(takeableSpots(spots)).toEqual([]);
+  });
+
+  it('still takes the card that goes on its own, on its own', () => {
+    const spots = takeableSpots(dropSpotsFor([layOffChain], ['6C']));
+    expect(spotAt(spots, 'group-meld_1')).toMatchObject({ ready: true });
+  });
+
+  it('refuses a selection that skips a link the chain needs', () => {
+    // 6C needs both 7C and 8C. Holding it with only the 8C leaves a gap the
+    // server would reject, and `requires` is closed precisely so this side
+    // can see that without knowing which ranks sit next to which.
+    const spots = dropSpotsFor([layOffDeepChain], ['6C', '8C']);
+    expect(refusalAt(spots, 'group-meld_2')?.labelKey).toBe('sel.needsCompany');
+  });
+
+  it('takes the whole chain when every link is held', () => {
+    const spots = takeableSpots(dropSpotsFor([layOffDeepChain], ['6C', '7C', '8C']));
+    expect(spotAt(spots, 'group-meld_2')).toMatchObject({ ready: true });
+  });
+
+  // Constraint on the other side of the same fact: `source.cards` stays the
+  // cards that may be sent with nobody choosing, so a chain does not turn a
+  // one-tap control into one that silently sends a card needing company.
+  it('is still one tap when the only standalone card is listed beside a chain', () => {
+    expect(isOneTap(layOffChain)).toBe(true);
+  });
+
+  it('is ready once both cards of a pair are picked, so a second tap joins', () => {
+    expect(someOfferReady([layOffChain], ['5C', '6C'])).toBe(true);
+    expect(someOfferReady([layOffChain], ['5C'])).toBe(false);
+  });
+
+  // The position hint for a multi-card drop. A placement's `positions`
+  // describe its own submission, so the pair's hint is the 5's — not
+  // something composed out of both cards' hints.
+  it('names the end the whole submission grows', () => {
+    expect(dropSpotsFor([layOffChain], ['5C', '6C'])[0].positions).toEqual(['front']);
   });
 });
