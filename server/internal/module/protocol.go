@@ -147,6 +147,15 @@ const (
 // CardView is one visible card.
 type CardView struct {
 	Card string `json:"card"`
+	// BadgeKeys mark this particular card — the same idea as Group.BadgeKeys,
+	// one level down. Keys, never rendered text.
+	//
+	// What it is for is refusals that have not happened yet. A player holding
+	// a card they owe their lay-down will be refused when they try to discard
+	// it, and the best refusal is the one that never happens: marking the
+	// card says so while there is still time to act on it, rather than after
+	// the move was made. Only the module knows which card that is.
+	BadgeKeys []string `json:"badgeKeys,omitempty"`
 }
 
 // Group is a run of cards within a zone that belong together — a meld, a

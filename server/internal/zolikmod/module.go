@@ -378,9 +378,16 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 	vm := module.ViewModel{}
 
 	own := gs.Hands[viewerID]
+	// The card a pickup obliges this player to lay down, if they are the one
+	// who owes it. Marked on the card itself as well as said in a prompt —
+	// see badgedCardViews.
+	owed := ""
+	if gs.CurrentTurn == viewerID {
+		owed = gs.DiscardDrawnCardPendingMeld
+	}
 	vm.Zones = append(vm.Zones, module.Zone{
 		ID: handZoneID(viewerID), Kind: module.ZoneHand, OwnerID: viewerID,
-		LabelKey: "zone.yourHand", Cards: cardViews(own), Count: len(own),
+		LabelKey: "zone.yourHand", Cards: badgedCardViews(own, owed), Count: len(own),
 	})
 	for _, p := range gs.TurnOrder {
 		if p == viewerID {
@@ -475,9 +482,28 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 }
 
 func cardViews(cards []string) []module.CardView {
+	return badgedCardViews(cards, "")
+}
+
+// badgedCardViews marks `owed`, if it is in this hand: the card a discard-pile
+// pickup obliges the player to lay down this turn.
+//
+// Marked rather than only refused later. The rule is enforced at the discard,
+// which is the last possible moment to hear about it — by then the player has
+// already decided what their turn was for. On the card, it is an instruction
+// while there is still a turn left to act on it.
+func badgedCardViews(cards []string, owed string) []module.CardView {
 	out := make([]module.CardView, 0, len(cards))
+	marked := false
 	for _, c := range cards {
-		out = append(out, module.CardView{Card: c})
+		cv := module.CardView{Card: c}
+		// Once: two decks put a second copy of every card in play, and only
+		// one of them is the one that came off the pile.
+		if owed != "" && c == owed && !marked {
+			cv.BadgeKeys = []string{"zolik.badge.owedToMeld"}
+			marked = true
+		}
+		out = append(out, cv)
 	}
 	return out
 }

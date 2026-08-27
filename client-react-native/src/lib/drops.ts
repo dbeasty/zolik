@@ -1,4 +1,4 @@
-import type { ActionOffer, Placement } from '@/src/api/matchTypes';
+import type { ActionOffer, Fact, Placement } from '@/src/api/matchTypes';
 
 /**
  * Where the cards in your hand may be dropped, worked out from the offers.
@@ -36,6 +36,27 @@ export type DropSpot = {
   ready: boolean;
   /** Legal placement positions for the dragged card, in rendered order. */
   positions?: string[];
+  /**
+   * Why letting go here would be refused. Undefined when it would be taken.
+   *
+   * A refused spot is still a spot. Before this field the list held only
+   * targets a drop would be accepted by, so a card let go anywhere else
+   * simply snapped home in silence — with the reason already computed one
+   * line earlier and thrown away, which is the worst moment in the interface
+   * to say nothing: a drag is when a player has the strongest hypothesis
+   * about what is legal.
+   */
+  refusal?: {
+    /** The engine's code, when the whole offer is refused. */
+    code?: string;
+    /** The rules behind it, for the sheet to resolve. */
+    ruleIds?: string[];
+    remedy?: Fact;
+    remedyOfferId?: string;
+    /** This side's own reason, when the cards are what does not fit. */
+    labelKey?: string;
+    params?: Record<string, string | number>;
+  };
 };
 
 export const zoneElementId = (zoneId: string) => `zone-${zoneId}`;
@@ -109,8 +130,6 @@ export function dropSpotsFor(offers: ActionOffer[], cards: string[]): DropSpot[]
 
   const spots: DropSpot[] = [];
   for (const offer of offers) {
-    if (!offer.enabled) continue;
-
     const elementId = offer.target?.meldId
       ? groupElementId(offer.target.meldId)
       : offer.target?.zoneId
@@ -119,11 +138,40 @@ export function dropSpotsFor(offers: ActionOffer[], cards: string[]): DropSpot[]
     if (!elementId) continue;
 
     // An offer that takes no cards is a button, not a drop target: drawing
-    // from the deck is not something you do by dragging a card onto it.
+    // from the deck is not something you do by dragging a card onto it. Not
+    // a refusal either — there was never anywhere to let go — so it is left
+    // off the list entirely rather than explained.
     const need = offer.source?.minCards ?? 0;
     if (need === 0) continue;
 
-    if (!fits(offer, cards).ok) continue;
+    // Classified, not filtered. A place a card cannot go is a place with a
+    // reason attached, and the caller decides whether to light it up or
+    // explain it — see `refusalAt`.
+    if (!offer.enabled) {
+      spots.push({
+        offerId: offer.id,
+        elementId,
+        ready: false,
+        refusal: {
+          code: offer.whyNot,
+          ruleIds: offer.ruleIds,
+          remedy: offer.remedy,
+          remedyOfferId: offer.remedyOfferId,
+        },
+      });
+      continue;
+    }
+
+    const fit = fits(offer, cards);
+    if (!fit.ok) {
+      spots.push({
+        offerId: offer.id,
+        elementId,
+        ready: false,
+        refusal: { labelKey: fit.labelKey, params: fit.params },
+      });
+      continue;
+    }
 
     const placements = placementsOf(offer);
     const spot: DropSpot = { offerId: offer.id, elementId, ready: cards.length >= need };
@@ -136,9 +184,26 @@ export function dropSpotsFor(offers: ActionOffer[], cards: string[]): DropSpot[]
   return spots;
 }
 
+/**
+ * The spots a drop would actually be taken by — what lights up, and what a
+ * release sends.
+ *
+ * Split out because "where may this go" and "where has this been forbidden"
+ * are now the same list, and lighting up a refused target would be worse than
+ * the silence this replaced.
+ */
+export function takeableSpots(spots: DropSpot[]): DropSpot[] {
+  return spots.filter((s) => !s.refusal);
+}
+
+/** The refusal for one element, if letting go there would be refused. */
+export function refusalAt(spots: DropSpot[], elementId: string): DropSpot['refusal'] | undefined {
+  return spots.find((s) => s.elementId === elementId && s.refusal)?.refusal;
+}
+
 /** The spot for one element, if the dragged cards may be dropped on it. */
 export function spotAt(spots: DropSpot[], elementId: string): DropSpot | undefined {
-  return spots.find((s) => s.elementId === elementId);
+  return spots.find((s) => s.elementId === elementId && !s.refusal);
 }
 
 /**

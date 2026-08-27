@@ -14,8 +14,14 @@ import type { MatchAction, MatchState } from '@/src/api/matchTypes';
 
 export type MatchSocketState = {
   state: MatchState | null;
-  /** The last refusal from the server, as a stable code. */
-  error: { code: string; message?: string } | null;
+  /**
+   * The last refusal from the server, as a stable code — plus, when the
+   * module has written rules, the ids of the ones that justify it. A
+   * submission composed by a person (a rummy meld) has no greyed-out control
+   * of its own to have been explained in advance, so the refusal frame is
+   * where its explanation has to travel.
+   */
+  error: { code: string; message?: string; ruleIds?: string[] } | null;
   connected: boolean;
   send: (action: MatchAction) => void;
   clearError: () => void;
@@ -23,7 +29,9 @@ export type MatchSocketState = {
 
 export function useMatchSocket(url: string | null): MatchSocketState {
   const [state, setState] = useState<MatchState | null>(null);
-  const [error, setError] = useState<{ code: string; message?: string } | null>(null);
+  const [error, setError] = useState<{ code: string; message?: string; ruleIds?: string[] } | null>(
+    null,
+  );
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   // Reconnect attempts, reset on every successful open. Kept in a ref so the
@@ -68,13 +76,13 @@ export function useMatchSocket(url: string | null): MatchSocketState {
         } catch {
           return;
         }
-        const m = msg as { type?: string; code?: string; message?: string };
+        const m = msg as { type?: string; code?: string; message?: string; ruleIds?: string[] };
         if (m.type === 'match_state') {
           setState(msg as MatchState);
           return;
         }
         if (m.type === 'error') {
-          setError({ code: m.code ?? 'ERROR', message: m.message });
+          setError({ code: m.code ?? 'ERROR', message: m.message, ruleIds: m.ruleIds });
         }
         // Anything else is an event the board already reflects: the server
         // sends the whole state after every action, so events are for flavour

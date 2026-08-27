@@ -266,6 +266,147 @@ const en: Record<string, string> = {
   'holdem.round.uncontested': 'Everyone else folded',
   'seat.ready': 'Ready',
 
+
+
+  // --- refusals the other three games raise ---------------------------------
+  // Worded here for the same reason Žolíky's are: reasonText falls back to the
+  // code, and OfferBar hands it the code as that fallback, so an unworded
+  // refusal reaches a player as PILE_FROZEN in capitals. serverKeys.test.ts
+  // now fails the build rather than letting the next one through.
+  'err.SET_TOO_LARGE': 'A set already has all four suits',
+  'err.DISCARD_TAKEN_CARD_FORBIDDEN': 'You can\'t discard the card you just took — play it or keep it',
+  'err.CARD_DOES_NOT_FIT': 'That card doesn\'t match the suit or the rank',
+  'err.SUIT_REQUIRED': 'Name the suit that continues',
+  'err.MUST_ANSWER_DRAW_OR_TAKE': 'Answer with a seven, or take the cards',
+  'err.NOTHING_TO_DRAW': 'There is nothing left to draw',
+  'err.PILE_EMPTY': 'The pile is empty',
+  'err.PILE_BLOCKED': 'The pile is blocked — a black three is on top',
+  'err.PILE_FROZEN': 'The pile is frozen — you need two natural cards of the top card\'s rank',
+  'err.TOP_CARD_UNUSABLE': 'You can\'t use the top card',
+  'err.MELD_CLOSED': 'That meld is complete and closed',
+  'err.MELD_TOO_SMALL': 'A meld needs more cards than that',
+  'err.MELD_TOO_LARGE': 'That meld can\'t take any more cards',
+  'err.MELD_MIXED_RANKS': 'Every card in a meld must be the same rank',
+  'err.NOT_ENOUGH_NATURALS': 'A meld needs more natural cards than wild ones',
+  'err.RANK_ALREADY_MELDED': 'Your side already has a meld of that rank',
+  'err.NOT_YOUR_MELD': 'That meld belongs to the other side',
+  'err.NO_SUCH_MELD': 'That meld is not on the table',
+  'err.CANNOT_MELD_THREE': 'Threes are never melded',
+  'err.CANNOT_DISCARD_RED_THREE': 'A red three can\'t be discarded',
+  'err.MUST_KEEP_A_CARD': 'Keep at least one card — you can\'t empty your hand this way',
+  'err.MUST_MELD_FIRST': 'Lay your side\'s first meld before doing that',
+  'err.INITIAL_MELD_NOT_MET': 'Your first meld is still short of the points needed',
+  'err.CANNOT_GO_OUT_YET': 'Your side needs a completed canasta before it can go out',
+  'err.NOTHING_TO_CALL': 'There is no bet to call',
+  'err.CANNOT_CHECK': 'You can\'t check — there is a bet to answer',
+  'err.CANNOT_RAISE': 'You can\'t raise here',
+  'err.RAISE_TOO_SMALL': 'A raise has to be at least the last one',
+  'err.NOT_ENOUGH_CHIPS': 'You don\'t have that many chips',
+  'err.AMOUNT_REQUIRED': 'Say how much',
+  'err.AMOUNT_NOT_A_NUMBER': 'That amount isn\'t a number',
+  'err.SEAT_NOT_IN_HAND': 'You are not in this hand',
+  'err.WRONG_RANK': 'That card is the wrong rank for this',
+  'err.MATCH_FULL': 'The table is full',
+  'err.MATCH_ALREADY_STARTED': 'The match has already started',
+  'err.TOO_FEW_PLAYERS': 'Not enough players yet',
+  'err.WRONG_PLAYER_COUNT': 'This game can\'t be played with that many players',
+  'err.NOT_THE_HOST': 'Only the host can do that',
+  'err.NO_LONGER_WAITING': 'The table is no longer waiting',
+  'err.WAITING_ROOM_UNAVAILABLE': 'The waiting room isn\'t available',
+
+
+  // --- rules the engine has always enforced and never stated ----------------
+  // Every one of these was found by the guardrail rather than by review: the
+  // validator could refuse a player for it, and no sentence anywhere said so.
+  // See server/internal/zolikmod/ruleindex_test.go.
+  'zolik.rules.section.layoff': 'Adding to melds',
+  'zolik.rules.pickup.obligation': 'Before you\'re down, a card taken from the discard pile must be used in the meld that takes you down this turn.',
+  'zolik.rules.pickup.noReturn': 'A card you took from the discard pile can\'t be discarded again on the same turn — play it or keep it.',
+  'zolik.rules.wilds.setLimit': 'A set can\'t hold more jokers than natural cards.',
+  'zolik.rules.set.maxSize': 'A set can\'t hold more than {n} cards — a joker fills a missing suit, it doesn\'t pad a full one.',
+  'zolik.rules.run.aceBridge': 'An ace sits above the king or below the two, never bridging the two ends of a run.',
+  'zolik.rules.contracts.contribution': 'Until you\'re down, every meld you lay must be one the deal\'s contract still needs.',
+  'zolik.rules.layoff.afterDown': 'You can\'t add to anyone\'s melds until you\'ve laid your own contract.',
+  'zolik.rules.layoff.runEnds': 'A card added to a run must continue it at one end or the other.',
+  'zolik.rules.jokers.swap': 'A joker in a meld on the table may be bought back with the exact card it stands for.',
+  'zolik.rules.deck.reshuffle': 'When the stock runs out the discard pile is shuffled and becomes the new stock; if both are empty, the deal ends.',
+
+
+  // --- what to do instead ---------------------------------------------------
+  // The third layer of a refusal, after the reason and the rule. Sent by the
+  // module because it is the only side that knows which card is owed and
+  // which way out is on offer; see server/internal/zolikmod/remedy.go.
+  'zolik.remedy.meldThePickup': 'Add {card} to your lay-down, or undo the pickup.',
+  'zolik.remedy.discardSomethingElse': 'Discard a different card, or play {card} this turn.',
+  'zolik.remedy.discardNotAJoker': 'Discard something other than a joker.',
+  'zolik.remedy.finishOrUndoLayDown': 'Finish your lay-down, or take it back.',
+  'zolik.remedy.needMorePoints': 'You need {n} more points before you can go down.',
+  'zolik.remedy.layACleanRun': 'Lay a run with no joker in it.',
+  'zolik.remedy.goDownFirst': 'Lay your own melds first.',
+  'zolik.remedy.drawFirst': 'Draw a card first.',
+  'zolik.remedy.drawFromStock': 'Draw from the stock — the discard pile opens in round {n}.',
+  'zolik.remedy.drawFromStockEmpty': 'Draw from the stock instead.',
+
+
+  // --- keys whose meaning lives in their params -----------------------------
+  // The shape fallback renders these with the number missing ("Stack", "Pot"),
+  // which is why they earn a line where most keys do not.
+  'header.contract': 'Needs {sets} sets and {runs} runs',
+  'header.round': 'Round {value}',
+  'header.deck': 'Deck',
+  'header.target': 'Target',
+  'header.suitInPlay': 'Suit in play',
+  'seat.cards': 'Cards',
+  'zolik.offer.meld': 'Meld',
+  'prompt.pickupMustBeMelded': '{value} came off the discard pile — it has to go into the melds you go down with this turn.',
+  'prompt.initialMeld': 'Your side\'s first meld must reach {n} points.',
+  'prompt.canastasNeeded': 'Your side needs {n} more canastas before it can go out.',
+  'prompt.mustDrawOrAnswerSeven': 'Answer with a seven, or draw {n} cards.',
+  'prompt.chooseSuit': 'Choose the suit that continues',
+  'prompt.skipPending': 'Your turn is skipped',
+  'status.lastDeal': 'Team {team} scored {value}',
+  'status.teamScore': 'Team {team}: {score}',
+  'canasta.offer.rank': 'Rank',
+  'canasta.seat.teamScore': 'Team score',
+  'canasta.seat.canastas': 'Canastas',
+  'holdem.header.pot': 'Pot',
+  'holdem.header.street': 'Street',
+  'holdem.header.hand': 'Hand',
+  'holdem.header.handLimit': 'Hands in all',
+  'holdem.header.blinds': 'Blinds',
+  'holdem.cost.call': 'to call',
+  'holdem.cost.pot': 'in the pot',
+  'holdem.seat.stack': 'Stack',
+  'holdem.seat.bet': 'Bet',
+  'holdem.prompt.yourAction': 'Your action',
+  'holdem.prompt.raiseTo': 'Raise to',
+  'zone.yourHand': 'Your hand',
+  'zone.opponentHand': 'Their hand',
+  'zone.drawPile': 'Stock',
+  'zone.discardPile': 'Discard pile',
+  'zone.melds': 'Melds',
+  'zone.teamMelds': 'Your side\'s melds',
+  'zone.redThrees': 'Red threes',
+  'zone.board': 'Board',
+  'verb.drawFromDeck': 'Draw',
+  'verb.takeFromDiscard': 'Take from pile',
+
+
+  // --- the why sheet's own furniture ---------------------------------------
+  // The three layers a refusal is explained in. Labels, not sentences: what
+  // goes under each is sent by the server or worded above.
+  'why.reason': 'Why not',
+  'why.rule': 'The rule',
+  'why.remedy': 'What you can do',
+  'why.readTheRules': 'Read the full rules →',
+  'why.close': 'Close',
+  'why.open': 'why',
+
+  // --- marks on a particular card ------------------------------------------
+  // A mark is a refusal that has not happened yet: the rule is enforced at the
+  // discard, which is the last possible moment to hear about it, so the card
+  // says so while there is still a turn left to act on it.
+  'zolik.badge.owedToMeld': '{card} came off the discard pile — it has to go into the melds you go down with this turn.',
 };
 
 // Czech. Present to prove the seam is real rather than theoretical: if a
@@ -459,6 +600,142 @@ const cs: Record<string, string> = {
   'holdem.round.uncontested': 'Ostatní složili',
   'seat.ready': 'Připraven',
 
+
+
+  // --- refusals the other three games raise ---------------------------------
+  // Worded here for the same reason Žolíky's are: reasonText falls back to the
+  // code, and OfferBar hands it the code as that fallback, so an unworded
+  // refusal reaches a player as PILE_FROZEN in capitals. serverKeys.test.ts
+  // now fails the build rather than letting the next one through.
+  'err.SET_TOO_LARGE': 'Skupina už má všechny čtyři barvy',
+  'err.DISCARD_TAKEN_CARD_FORBIDDEN': 'Kartu, kterou sis právě vzal, nemůžeš odhodit — zahraj ji, nebo si ji nech',
+  'err.CARD_DOES_NOT_FIT': 'Tato karta nesedí barvou ani hodnotou',
+  'err.SUIT_REQUIRED': 'Řekni, jaká barva se hraje dál',
+  'err.MUST_ANSWER_DRAW_OR_TAKE': 'Odpověz sedmičkou, nebo si karty vezmi',
+  'err.NOTHING_TO_DRAW': 'Není co líznout',
+  'err.PILE_EMPTY': 'Balíček je prázdný',
+  'err.PILE_BLOCKED': 'Balíček je zablokovaný — nahoře leží černá trojka',
+  'err.PILE_FROZEN': 'Balíček je zmrazený — potřebuješ dvě přirozené karty hodnoty vrchní karty',
+  'err.TOP_CARD_UNUSABLE': 'Vrchní kartu použít nemůžeš',
+  'err.MELD_CLOSED': 'Tato kombinace je hotová a uzavřená',
+  'err.MELD_TOO_SMALL': 'Kombinace potřebuje víc karet',
+  'err.MELD_TOO_LARGE': 'Do této kombinace už další karty nejdou',
+  'err.MELD_MIXED_RANKS': 'Všechny karty v kombinaci musí mít stejnou hodnotu',
+  'err.NOT_ENOUGH_NATURALS': 'Kombinace potřebuje víc přirozených karet než žolíků',
+  'err.RANK_ALREADY_MELDED': 'Tvoje strana už kombinaci této hodnoty má',
+  'err.NOT_YOUR_MELD': 'Tato kombinace patří druhé straně',
+  'err.NO_SUCH_MELD': 'Taková kombinace na stole není',
+  'err.CANNOT_MELD_THREE': 'Trojky se nevykládají',
+  'err.CANNOT_DISCARD_RED_THREE': 'Červená trojka se nedá odhodit',
+  'err.MUST_KEEP_A_CARD': 'Nech si aspoň jednu kartu — takhle ruku vyprázdnit nemůžeš',
+  'err.MUST_MELD_FIRST': 'Než to uděláš, vylož první kombinaci své strany',
+  'err.INITIAL_MELD_NOT_MET': 'První kombinaci ještě chybí body',
+  'err.CANNOT_GO_OUT_YET': 'Tvoje strana potřebuje hotovou canastu, než může vyjít',
+  'err.NOTHING_TO_CALL': 'Není co dorovnat',
+  'err.CANNOT_CHECK': 'Nemůžeš čekat — je tu sázka k dorovnání',
+  'err.CANNOT_RAISE': 'Tady zvýšit nemůžeš',
+  'err.RAISE_TOO_SMALL': 'Zvýšení musí být aspoň o poslední sázku',
+  'err.NOT_ENOUGH_CHIPS': 'Tolik žetonů nemáš',
+  'err.AMOUNT_REQUIRED': 'Zadej kolik',
+  'err.AMOUNT_NOT_A_NUMBER': 'Tato částka není číslo',
+  'err.SEAT_NOT_IN_HAND': 'V tomto rozdání nehraješ',
+  'err.WRONG_RANK': 'Tato karta má pro tohle špatnou hodnotu',
+  'err.MATCH_FULL': 'Stůl je plný',
+  'err.MATCH_ALREADY_STARTED': 'Zápas už začal',
+  'err.TOO_FEW_PLAYERS': 'Zatím je málo hráčů',
+  'err.WRONG_PLAYER_COUNT': 'Tuto hru nelze hrát s tímto počtem hráčů',
+  'err.NOT_THE_HOST': 'To může udělat jen zakladatel stolu',
+  'err.NO_LONGER_WAITING': 'Stůl už nečeká',
+  'err.WAITING_ROOM_UNAVAILABLE': 'Čekárna není dostupná',
+
+
+  // --- rules the engine has always enforced and never stated ----------------
+  // Every one of these was found by the guardrail rather than by review: the
+  // validator could refuse a player for it, and no sentence anywhere said so.
+  // See server/internal/zolikmod/ruleindex_test.go.
+  'zolik.rules.section.layoff': 'Přikládání ke kombinacím',
+  'zolik.rules.pickup.obligation': 'Dokud nejsi dole, musí karta vzatá z odhazovacího balíčku být použita v kombinaci, se kterou v tomto tahu jdeš dolů.',
+  'zolik.rules.pickup.noReturn': 'Kartu vzatou z odhazovacího balíčku nemůžeš ve stejném tahu odhodit — zahraj ji, nebo si ji nech.',
+  'zolik.rules.wilds.setLimit': 'Skupina nesmí mít víc žolíků než přirozených karet.',
+  'zolik.rules.set.maxSize': 'Skupina nesmí mít víc než {n} karty — žolík doplní chybějící barvu, nenafukuje plnou.',
+  'zolik.rules.run.aceBridge': 'Eso leží nad králem nebo pod dvojkou, nikdy nespojuje oba konce postupky.',
+  'zolik.rules.contracts.contribution': 'Dokud nejsi dole, musí každá vyložená kombinace být taková, jakou zadání rozdání ještě potřebuje.',
+  'zolik.rules.layoff.afterDown': 'Ke kombinacím nemůžeš přikládat, dokud nevyložíš vlastní zadání.',
+  'zolik.rules.layoff.runEnds': 'Karta přiložená k postupce ji musí prodloužit na jednom nebo druhém konci.',
+  'zolik.rules.jokers.swap': 'Žolíka v kombinaci na stole můžeš vyměnit za přesně tu kartu, kterou zastupuje.',
+  'zolik.rules.deck.reshuffle': 'Když dojde lízací balíček, odhazovací balíček se zamíchá a stane se novým lízacím; pokud jsou prázdné oba, rozdání končí.',
+
+
+  // --- what to do instead ---------------------------------------------------
+  // The third layer of a refusal, after the reason and the rule. Sent by the
+  // module because it is the only side that knows which card is owed and
+  // which way out is on offer; see server/internal/zolikmod/remedy.go.
+  'zolik.remedy.meldThePickup': 'Přidej {card} do výkladu, nebo vrať vzetí zpět.',
+  'zolik.remedy.discardSomethingElse': 'Odhoď jinou kartu, nebo {card} v tomto tahu zahraj.',
+  'zolik.remedy.discardNotAJoker': 'Odhoď něco jiného než žolíka.',
+  'zolik.remedy.finishOrUndoLayDown': 'Dokonči výklad, nebo ho vrať zpět.',
+  'zolik.remedy.needMorePoints': 'Než půjdeš dolů, chybí ti ještě {n} bodů.',
+  'zolik.remedy.layACleanRun': 'Vylož postupku bez žolíka.',
+  'zolik.remedy.goDownFirst': 'Nejdřív vylož vlastní kombinace.',
+  'zolik.remedy.drawFirst': 'Nejdřív si lízni kartu.',
+  'zolik.remedy.drawFromStock': 'Lízni si z balíčku — odhazovací balíček se otevře v kole {n}.',
+  'zolik.remedy.drawFromStockEmpty': 'Lízni si místo toho z balíčku.',
+
+
+  // --- keys whose meaning lives in their params -----------------------------
+  // The shape fallback renders these with the number missing ("Stack", "Pot"),
+  // which is why they earn a line where most keys do not.
+  'header.contract': 'Potřebuje {sets} skupiny a {runs} postupky',
+  'header.round': 'Kolo {value}',
+  'header.deck': 'Balíček',
+  'header.target': 'Cíl',
+  'header.suitInPlay': 'Hraje se',
+  'seat.cards': 'Karet',
+  'zolik.offer.meld': 'Kombinace',
+  'prompt.pickupMustBeMelded': '{value} je z odhazovacího balíčku — musí jít do kombinací, se kterými v tomto tahu jdeš dolů.',
+  'prompt.initialMeld': 'První kombinace tvé strany musí mít {n} bodů.',
+  'prompt.canastasNeeded': 'Tvé straně chybí ještě {n} canasty, než může vyjít.',
+  'prompt.mustDrawOrAnswerSeven': 'Odpověz sedmičkou, nebo si lízni {n} karty.',
+  'prompt.chooseSuit': 'Vyber barvu, která se hraje dál',
+  'prompt.skipPending': 'Tvůj tah se přeskakuje',
+  'status.lastDeal': 'Tým {team} získal {value}',
+  'status.teamScore': 'Tým {team}: {score}',
+  'canasta.offer.rank': 'Hodnota',
+  'canasta.seat.teamScore': 'Skóre týmu',
+  'canasta.seat.canastas': 'Canasty',
+  'holdem.header.pot': 'Bank',
+  'holdem.header.street': 'Fáze',
+  'holdem.header.hand': 'Rozdání',
+  'holdem.header.handLimit': 'Rozdání celkem',
+  'holdem.header.blinds': 'Blindy',
+  'holdem.cost.call': 'k dorovnání',
+  'holdem.cost.pot': 'v banku',
+  'holdem.seat.stack': 'Žetony',
+  'holdem.seat.bet': 'Sázka',
+  'holdem.prompt.yourAction': 'Jsi na tahu',
+  'holdem.prompt.raiseTo': 'Zvýšit na',
+  'zone.yourHand': 'Tvoje karty',
+  'zone.opponentHand': 'Karty soupeře',
+  'zone.drawPile': 'Lízací balíček',
+  'zone.discardPile': 'Odhazovací balíček',
+  'zone.melds': 'Kombinace',
+  'zone.teamMelds': 'Kombinace tvé strany',
+  'zone.redThrees': 'Červené trojky',
+  'zone.board': 'Stůl',
+  'verb.drawFromDeck': 'Líznout',
+  'verb.takeFromDiscard': 'Vzít z balíčku',
+
+
+  // --- the why sheet's own furniture ---------------------------------------
+  'why.reason': 'Proč ne',
+  'why.rule': 'Pravidlo',
+  'why.remedy': 'Co s tím můžeš udělat',
+  'why.readTheRules': 'Zobrazit celá pravidla →',
+  'why.close': 'Zavřít',
+  'why.open': 'proč',
+
+  // --- marks on a particular card ------------------------------------------
+  'zolik.badge.owedToMeld': '{card} je z odhazovacího balíčku — musí jít do kombinací, se kterými v tomto tahu jdeš dolů.',
 };
 
 export const BUNDLES: Record<Locale, Record<string, string>> = { en, cs };

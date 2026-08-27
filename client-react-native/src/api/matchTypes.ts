@@ -18,7 +18,18 @@ export type Fact = {
   params?: Record<string, unknown>;
 };
 
-export type CardView = { card: string };
+/**
+ * One card as the board shows it.
+ *
+ * `badgeKeys` mark this particular card — the same idea as `Group.badgeKeys`,
+ * one level down, and set only by the module, which is the only side that
+ * knows what is worth marking. Žolíky uses it for the card a discard-pile
+ * pickup obliges you to lay down: the rule is enforced at the discard, which
+ * is the last possible moment to hear about it, so the mark is what turns a
+ * refusal into an instruction given while there is still a turn left to act
+ * on it.
+ */
+export type CardView = { card: string; badgeKeys?: string[] };
 
 /** Cards within a zone that belong together — a meld, a trick, a board. */
 export type Group = {
@@ -130,6 +141,25 @@ export type ActionOffer = {
   verb: string;
   enabled: boolean;
   whyNot?: string;
+  /**
+   * The written rules that justify `whyNot` at this table — ids of items in
+   * the rule index the server serves for this match, never sentences.
+   *
+   * A code names a *class* of refusal, which is not enough to explain one:
+   * INVALID_MELD means different things in two games and DISCARD_LOCKED
+   * means something different at every option value. Wording an explanation
+   * per code here would be a second, unversioned copy of the rules living on
+   * this side. Pointing at a rule the player can already read is not.
+   */
+  ruleIds?: string[];
+  /** What to do instead. A key and params, like every other fact. */
+  remedy?: Fact;
+  /**
+   * Another offer in this same list that performs the remedy, so the reason
+   * can carry a working control rather than an instruction to go and find
+   * one. Empty when no single offer does it.
+   */
+  remedyOfferId?: string;
   /**
    * Names this control when the verb cannot.
    *
@@ -249,9 +279,20 @@ export type MatchAction = {
 };
 
 /** One titled group of a game's written rules ("Setup", "How a match ends"). */
+/**
+ * One written rule, addressable.
+ *
+ * `id` is the sentence's own label key. Written out as a field of its own so
+ * that everything pointing at a rule — a refusal's `ruleIds`, a deep link, an
+ * anchor on the rules screen — can say "this id" without knowing that ids
+ * happen to be label keys.
+ */
+export type RuleItem = Fact & { id: string };
+
 export type RuleSection = {
+  id: string;
   titleKey: string;
-  items: Fact[];
+  items: RuleItem[];
 };
 
 /**

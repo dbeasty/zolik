@@ -5,9 +5,10 @@ import type { ActionOffer, MatchAction, ParamSpec } from '@/src/api/matchTypes';
 import { defaultParam, isOneTap, offerGroupKey, submissionFor } from '@/src/api/matchTypes';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { fits, type Fit } from '@/src/lib/drops';
+import type { Refusal } from '@/src/components/match/WhySheet';
 import type { Metrics } from '@/src/lib/layout';
 import { factText, label } from '@/src/lib/labels';
-import { reasonText } from '@/src/lib/i18n';
+import { reasonText, t } from '@/src/lib/i18n';
 import { colors } from '@/src/theme';
 
 /**
@@ -57,6 +58,13 @@ type Props = {
    * whoever renders the board can point at that group's own targets.
    */
   onAmbiguous?: (groupKey: string) => void;
+  /**
+   * A reason line was pressed. The short line stays where it is — always
+   * visible, never a click away — and this opens the rule behind it and the
+   * move to make instead. Optional: without it a reason is still shown, just
+   * not expandable, which is what this bar did before the rule index existed.
+   */
+  onExplain?: (refusal: Refusal) => void;
 };
 
 /**
@@ -93,6 +101,7 @@ export function OfferBar({
   onSend,
   onConsumeSelection,
   onAmbiguous,
+  onExplain,
 }: Props) {
   const metrics = useMetrics();
   const styles = useMemo(() => offerBarStyles(metrics), [metrics]);
@@ -135,6 +144,7 @@ export function OfferBar({
               armedGroupId={armedGroupId}
               onResolve={send}
               onAmbiguous={onAmbiguous}
+              onExplain={onExplain}
               styles={styles}
             />
           );
@@ -171,14 +181,33 @@ export function OfferBar({
               ))}
             </Pressable>
 
+            {/* The reason stays inline and always visible; pressing it opens
+                the rule behind it. A refusal a player has to tap to see at
+                all is worse than a terse one, so this expands rather than
+                replaces. */}
             {!offer.enabled && offer.whyNot ? (
-              <Text testID={`why-${offer.id}`} style={styles.why} numberOfLines={2}>
-                {reasonText(offer.whyNot, offer.whyNot)}
-              </Text>
+              <ReasonLine
+                testID={`why-${offer.id}`}
+                text={reasonText(offer.whyNot, offer.whyNot)}
+                styles={styles}
+                onPress={
+                  onExplain
+                    ? () =>
+                        onExplain({
+                          code: offer.whyNot,
+                          ruleIds: offer.ruleIds,
+                          remedy: offer.remedy,
+                          remedyOfferId: offer.remedyOfferId,
+                        })
+                    : undefined
+                }
+              />
             ) : unready ? (
-              <Text testID={`why-${offer.id}`} style={styles.why} numberOfLines={2}>
-                {label(unready.labelKey, unready.params)}
-              </Text>
+              <ReasonLine
+                testID={`why-${offer.id}`}
+                text={label(unready.labelKey, unready.params)}
+                styles={styles}
+              />
             ) : null}
 
             {offer.enabled && offer.composite ? (
@@ -330,6 +359,7 @@ function FoldedOffer({
   armedGroupId,
   onResolve,
   onAmbiguous,
+  onExplain,
   styles,
 }: {
   groupKey: string;
@@ -338,6 +368,7 @@ function FoldedOffer({
   armedGroupId?: string | null;
   onResolve: (offer: ActionOffer) => void;
   onAmbiguous?: (groupKey: string) => void;
+  onExplain?: (refusal: Refusal) => void;
   styles: OfferBarStyles;
 }) {
   const first = group[0];
@@ -392,9 +423,27 @@ function FoldedOffer({
       </Pressable>
 
       {disabled && sharedReason ? (
-        <Text testID={`why-group:${groupKey}`} style={styles.why} numberOfLines={2}>
-          {reasonText(sharedReason, sharedReason)}
-        </Text>
+        <ReasonLine
+          testID={`why-group:${groupKey}`}
+          text={reasonText(sharedReason, sharedReason)}
+          styles={styles}
+          onPress={
+            onExplain
+              ? () => {
+                  // The member this reason actually came from, so its rules
+                  // and its remedy travel with it rather than the first
+                  // member's, which may have been refused for something else.
+                  const source = group.find((o) => !o.enabled && o.whyNot === sharedReason);
+                  onExplain({
+                    code: sharedReason,
+                    ruleIds: source?.ruleIds,
+                    remedy: source?.remedy,
+                    remedyOfferId: source?.remedyOfferId,
+                  });
+                }
+              : undefined
+          }
+        />
       ) : null}
 
       {!disabled && settled.length !== 1 ? (
@@ -587,6 +636,7 @@ function offerBarStyles(m: Metrics) {
     disabled: { opacity: 0.4 },
     buttonText: { color: colors.onAccent, fontWeight: '700', fontSize: m.panel.bodyFont + 1 },
     buttonFact: { color: colors.onAccent, fontSize: m.panel.bodyFont - 1, marginTop: 2 },
+    whyMore: { color: colors.accent, fontWeight: '600' },
     why: { color: colors.muted, fontSize: m.panel.bodyFont - 2, marginTop: 3, maxWidth: m.buttonMinWidth + 40 },
     hint: { color: colors.gold, fontSize: m.panel.bodyFont - 2, marginTop: 3 },
     param: { marginTop: 6 },
@@ -633,3 +683,40 @@ function offerBarStyles(m: Metrics) {
 }
 
 type OfferBarStyles = ReturnType<typeof offerBarStyles>;
+
+/**
+ * The reason under a control: always readable at a glance, and pressable when
+ * there is more behind it.
+ *
+ * Both kinds of refusal go through here — the engine's own code and this
+ * side's "that selection won't go" — because a control greyed out for "not
+ * your turn" and one greyed out for "you picked two, this takes one" should
+ * read as the same kind of thing. Only the first has a rule behind it, so
+ * only the first gets the affordance.
+ */
+function ReasonLine({
+  text,
+  testID,
+  styles,
+  onPress,
+}: {
+  text: string;
+  testID: string;
+  styles: OfferBarStyles;
+  onPress?: () => void;
+}) {
+  if (!onPress) {
+    return (
+      <Text testID={testID} style={styles.why} numberOfLines={2}>
+        {text}
+      </Text>
+    );
+  }
+  return (
+    <Pressable onPress={onPress} testID={`${testID}-press`} accessibilityRole="button">
+      <Text testID={testID} style={styles.why} numberOfLines={2}>
+        {text} <Text style={styles.whyMore}>{t('why.open')} ›</Text>
+      </Text>
+    </Pressable>
+  );
+}

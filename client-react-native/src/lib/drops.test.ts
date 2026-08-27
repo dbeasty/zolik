@@ -1,6 +1,14 @@
 import type { ActionOffer } from '@/src/api/matchTypes';
 
-import { dropSpotsFor, fits, positionAt, someOfferReady, spotAt } from './drops';
+import {
+  dropSpotsFor,
+  fits,
+  positionAt,
+  refusalAt,
+  someOfferReady,
+  spotAt,
+  takeableSpots,
+} from './drops';
 
 /**
  * The offer shapes below are the ones the four modules really emit — a Prší
@@ -74,11 +82,13 @@ describe('dropSpotsFor', () => {
   it('offers nothing for a card the offer does not list', () => {
     // The engine already decided 2C is not discardable. Not offering a place
     // to drop it is the same fact, shown rather than stated.
-    expect(dropSpotsFor([discard], ['2C'])).toEqual([]);
+    expect(takeableSpots(dropSpotsFor([discard], ['2C']))).toEqual([]);
+    // …but the place it could not go now says why, rather than nothing.
+    expect(refusalAt(dropSpotsFor([discard], ['2C']), 'zone-discard')?.labelKey).toBe('sel.notThese');
   });
 
   it('ignores a disabled offer', () => {
-    expect(dropSpotsFor([{ ...discard, enabled: false }], ['KD'])).toEqual([]);
+    expect(takeableSpots(dropSpotsFor([{ ...discard, enabled: false }], ['KD']))).toEqual([]);
   });
 
   it('ignores an offer that takes no cards, so a deck is not a drop target', () => {
@@ -123,7 +133,8 @@ describe('dropSpotsFor', () => {
   });
 
   it('refuses more cards than the offer will take', () => {
-    expect(dropSpotsFor([discard], ['KD', '7H'])).toEqual([]);
+    expect(takeableSpots(dropSpotsFor([discard], ['KD', '7H']))).toEqual([]);
+    expect(refusalAt(dropSpotsFor([discard], ['KD', '7H']), 'zone-discard')?.labelKey).toBe('sel.tooMany.1');
   });
 
   it('counts duplicates rather than just membership', () => {
@@ -133,8 +144,8 @@ describe('dropSpotsFor', () => {
       source: { ...layOff.source!, cards: ['7H'], placements: undefined, minCards: 1, maxCards: 4 },
     };
 
-    expect(dropSpotsFor([oneSeven], ['7H'])).toHaveLength(1);
-    expect(dropSpotsFor([oneSeven], ['7H', '7H'])).toEqual([]);
+    expect(takeableSpots(dropSpotsFor([oneSeven], ['7H']))).toHaveLength(1);
+    expect(takeableSpots(dropSpotsFor([oneSeven], ['7H', '7H']))).toEqual([]);
   });
 
   it('offers every place one card may go at once', () => {

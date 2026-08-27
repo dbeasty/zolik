@@ -194,6 +194,20 @@ type EmittableKeys struct {
 	ErrorCodes []string `json:"errorCodes"`
 	// LabelKeys are everything else — rules, prompts, facts, offer labels.
 	LabelKeys []string `json:"labelKeys"`
+	// SentenceKeys are the subset that are whole sentences rather than names
+	// of things: every written rule, and every remedy. The shape fallback can
+	// turn `zone.drawPile` into "Draw pile" but it can never turn
+	// `zolik.rules.pickup.obligation` into a rule, so these are the other
+	// half of what wording is not optional for.
+	SentenceKeys []string `json:"sentenceKeys"`
+	// LabelKeysWithData are the subset ever emitted carrying params or a
+	// value of their own. The distinction matters: a client turns an
+	// unworded key into readable English by its own shape, so `zone.drawPile`
+	// reads "Draw pile" with no bundle entry at all — but that fallback has
+	// nowhere to put a number, so `prompt.pickupMustBeMelded` reads "Pickup
+	// must be melded 7H" and `holdem.seat.stack` reads "Stack" with the
+	// figure missing. These are the keys wording is not optional for.
+	LabelKeysWithData []string `json:"labelKeysWithData"`
 	// DeclaredOnly are codes declared but never returned. Reported so the
 	// list is not silently incomplete; nothing has to word them.
 	DeclaredOnly []string `json:"declaredOnly"`
@@ -204,10 +218,22 @@ type EmittableKeys struct {
 func CollectKeys(reg *Registry, dirs ...string) (EmittableKeys, error) {
 	codes, declaredOnly := EmittedCodes(dirs...)
 	labels := map[string]bool{}
+	withData := map[string]bool{}
+	// A rule or a remedy is a sentence. Rules are known exactly, from asking
+	// each module below; remedies are named by convention — a `.remedy.`
+	// segment — because a module emits one only when a player is actually
+	// refused, which no test can provoke for every code.
+	sentences := map[string]bool{}
 
 	for _, dir := range dirs {
-		for k := range labelKeysIn(dir) {
+		for k, carries := range labelKeysIn(dir) {
 			labels[k] = true
+			if carries {
+				withData[k] = true
+			}
+			if strings.Contains(k, ".remedy.") {
+				sentences[k] = true
+			}
 		}
 	}
 
@@ -229,8 +255,13 @@ func CollectKeys(reg *Registry, dirs ...string) (EmittableKeys, error) {
 		for _, cfg := range configs {
 			for _, s := range RulesFor(m, cfg) {
 				labels[s.TitleKey] = true
+				sentences[s.TitleKey] = true
 				for _, it := range s.Items {
 					labels[it.LabelKey] = true
+					sentences[it.LabelKey] = true
+					if len(it.Params) > 0 || it.Value != "" {
+						withData[it.LabelKey] = true
+					}
 				}
 			}
 		}
@@ -242,11 +273,25 @@ func CollectKeys(reg *Registry, dirs ...string) (EmittableKeys, error) {
 			out.LabelKeys = append(out.LabelKeys, k)
 		}
 	}
+	for k := range withData {
+		if k != "" {
+			out.LabelKeysWithData = append(out.LabelKeysWithData, k)
+		}
+	}
+	for k := range sentences {
+		if k != "" {
+			out.SentenceKeys = append(out.SentenceKeys, k)
+		}
+	}
 	sortStrings(out.LabelKeys)
+	sortStrings(out.LabelKeysWithData)
+	sortStrings(out.SentenceKeys)
 	return out, nil
 }
 
-// labelKeysIn reads string literals assigned to LabelKey or TitleKey.
+// labelKeysIn reads message keys out of a package's source, and reports for
+// each whether it is ever built alongside params or a value — see
+// EmittableKeys.LabelKeysWithData.
 func labelKeysIn(dir string) map[string]bool {
 	out := map[string]bool{}
 	fset := token.NewFileSet()
@@ -268,54 +313,123 @@ func labelKeysIn(dir string) map[string]bool {
 		files = append(files, f)
 		collectStringConsts(f, consts)
 	}
+
+	// A key resolved from a literal or from a string constant; anything else
+	// (a variable chosen at runtime) is not statically knowable and is caught
+	// instead by the dynamic pass over each module's Rules().
+	keyOf := func(e ast.Expr) (string, bool) {
+		switch v := e.(type) {
+		case *ast.BasicLit:
+			if v.Kind == token.STRING {
+				return strings.Trim(v.Value, `"`), true
+			}
+		case *ast.Ident:
+			if s, ok := consts[v.Name]; ok {
+				return s, true
+			}
+		}
+		return "", false
+	}
+	record := func(key string, carriesData bool) {
+		if key == "" {
+			return
+		}
+		out[key] = out[key] || carriesData
+	}
+
 	for _, f := range files {
 		ast.Inspect(f, func(n ast.Node) bool {
-			kv, ok := n.(*ast.KeyValueExpr)
-			if !ok {
-				return true
-			}
-			key, ok := kv.Key.(*ast.Ident)
-			if !ok || (key.Name != "LabelKey" && key.Name != "TitleKey") {
-				return true
-			}
-			switch v := kv.Value.(type) {
-			case *ast.BasicLit:
-				if v.Kind == token.STRING {
-					out[strings.Trim(v.Value, `"`)] = true
+			switch node := n.(type) {
+
+			// A Fact built as a struct literal: the key is one field and the
+			// data it carries is another, so both are read from the same
+			// literal rather than guessed at.
+			case *ast.CompositeLit:
+				key, carries := "", false
+				for _, elt := range node.Elts {
+					kv, ok := elt.(*ast.KeyValueExpr)
+					if !ok {
+						continue
+					}
+					name, ok := kv.Key.(*ast.Ident)
+					if !ok {
+						continue
+					}
+					switch name.Name {
+					case "LabelKey", "TitleKey":
+						if k, ok := keyOf(kv.Value); ok {
+							key = k
+						}
+					case "Params", "Value":
+						carries = true
+					case "BadgeKeys":
+						// A list of keys rather than one, and each is a
+						// standalone mark with nothing else in the literal
+						// belonging to it — so they are recorded here rather
+						// than through `key` below.
+						if list, ok := kv.Value.(*ast.CompositeLit); ok {
+							for _, elt := range list.Elts {
+								if k, ok := keyOf(elt); ok {
+									record(k, false)
+								}
+							}
+						}
+					}
 				}
-			case *ast.Ident:
-				if s, ok := consts[v.Name]; ok {
-					out[s] = true
+				record(key, carries)
+
+			// The same fields set by assignment rather than in a literal —
+			// `cv.BadgeKeys = []string{…}`, which is how a mark added
+			// conditionally is written.
+			case *ast.AssignStmt:
+				for i, lhs := range node.Lhs {
+					sel, ok := lhs.(*ast.SelectorExpr)
+					if !ok || i >= len(node.Rhs) {
+						continue
+					}
+					switch sel.Sel.Name {
+					case "LabelKey", "TitleKey":
+						if k, ok := keyOf(node.Rhs[i]); ok {
+							record(k, false)
+						}
+					case "BadgeKeys":
+						if list, ok := node.Rhs[i].(*ast.CompositeLit); ok {
+							for _, elt := range list.Elts {
+								if k, ok := keyOf(elt); ok {
+									record(k, false)
+								}
+							}
+						}
+					}
 				}
-			}
-			return true
-		})
-		// Calls that take a key as their first argument: Rule("x", …),
-		// Section("x", …), and the t("x") style helpers.
-		ast.Inspect(f, func(n ast.Node) bool {
-			call, ok := n.(*ast.CallExpr)
-			if !ok || len(call.Args) == 0 {
-				return true
-			}
-			name := ""
-			switch fn := call.Fun.(type) {
-			case *ast.Ident:
-				name = fn.Name
-			case *ast.SelectorExpr:
-				name = fn.Sel.Name
-			}
-			if name != "Rule" && name != "Section" && name != "SectionOf" {
-				return true
-			}
-			switch v := call.Args[0].(type) {
-			case *ast.BasicLit:
-				if v.Kind == token.STRING {
-					out[strings.Trim(v.Value, `"`)] = true
+
+			// A rule built through the helpers, where the params are the
+			// second argument: Rule("x", map[...]{…}) carries data,
+			// Rule("x", nil) does not.
+			case *ast.CallExpr:
+				name := ""
+				switch fn := node.Fun.(type) {
+				case *ast.Ident:
+					name = fn.Name
+				case *ast.SelectorExpr:
+					name = fn.Sel.Name
 				}
-			case *ast.Ident:
-				if s, ok := consts[v.Name]; ok {
-					out[s] = true
+				if name != "Rule" && name != "Section" && name != "SectionOf" {
+					return true
 				}
+				if len(node.Args) == 0 {
+					return true
+				}
+				key, ok := keyOf(node.Args[0])
+				if !ok {
+					return true
+				}
+				carries := false
+				if name == "Rule" && len(node.Args) > 1 {
+					ident, isIdent := node.Args[1].(*ast.Ident)
+					carries = !isIdent || ident.Name != "nil"
+				}
+				record(key, carries)
 			}
 			return true
 		})

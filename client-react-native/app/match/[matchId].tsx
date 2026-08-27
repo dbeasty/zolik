@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import type { Zone } from '@/src/api/matchTypes';
+import type { ActionOffer, Zone } from '@/src/api/matchTypes';
 import { POSITION_PARAM, offerGroupKey, submissionFor } from '@/src/api/matchTypes';
 import { HandZone } from '@/src/components/match/HandZone';
 import { LifetimeRecord } from '@/src/components/match/LifetimeRecord';
@@ -19,9 +19,19 @@ import { useHandOrder } from '@/src/hooks/useHandOrder';
 import { useMatchSocket } from '@/src/hooks/useMatchSocket';
 import { usePanelState } from '@/src/hooks/usePanelState';
 import { drawableZones } from '@/src/lib/board';
-import { dropSpotsFor, groupElementId, positionAt, someOfferReady, type DropSpot } from '@/src/lib/drops';
+import {
+  dropSpotsFor,
+  groupElementId,
+  positionAt,
+  refusalAt,
+  someOfferReady,
+  takeableSpots,
+  type DropSpot,
+} from '@/src/lib/drops';
 import { cardsForSelection, slotsForDrag, toggleSelection } from '@/src/lib/hand';
 import { reasonText } from '@/src/lib/i18n';
+import { WhySheet, type Refusal } from '@/src/components/match/WhySheet';
+import { useRuleIndex } from '@/src/hooks/useRuleIndex';
 import { factText, label, playerName } from '@/src/lib/labels';
 import { colors, dragLayer } from '@/src/theme';
 
@@ -66,6 +76,10 @@ export default function MatchScreen() {
   }, [client, matchId, session?.accessToken]);
 
   const { state, error, connected, send, clearError } = useMatchSocket(url);
+  // The table's own written rules, by id — what a refusal's `ruleIds` point
+  // into. Fetched once per table and cached; empty until it lands, which
+  // only means a sheet shows its reason and remedy with no rule behind it.
+  const ruleIndex = useRuleIndex(state);
   const viewerId = session?.userId ?? '';
 
   const view = state?.view ?? { zones: [] };
@@ -113,6 +127,10 @@ export default function MatchScreen() {
   const dragRef = useRef<{ slotIds: string[]; cards: string[] } | null>(null);
   const [drag, setDrag] = useState<{ cards: string[] } | null>(null);
   const [hoveredDrop, setHoveredDrop] = useState<string | null>(null);
+  // The refusal currently being explained, if any. One at a time: a sheet is
+  // an answer to a question a player just asked, and the last one asked is
+  // the one they meant.
+  const [explaining, setExplaining] = useState<Refusal | null>(null);
   // Which of `hoveredDrop`'s ordered positions the drag is currently over,
   // for a target with a choice of more than one — a card carried over a run
   // says up front which end it would extend, rather than only after it is
@@ -206,8 +224,13 @@ export default function MatchScreen() {
   // list on every drag, which is why a game added tomorrow gets drag and drop
   // without this screen being edited: an offer that says which cards it takes
   // and where it lands *is* a drop target.
+  // Every place the cards in flight land on — including the ones that would
+  // refuse them, which now carry the reason instead of being dropped from the
+  // list. `takeableSpots` is what lights up and what a release sends;
+  // `refusalAt` is what a release anywhere else says.
   const spotsFor = (cards: string[]) => dropSpotsFor(state.legalActions, cards);
   const liveSpots = drag ? spotsFor(drag.cards) : [];
+  const liveTakeable = takeableSpots(liveSpots);
 
   // A card in hand is a card looking for somewhere to go. Every enabled offer
   // that would take the current selection is a live target — the same set a
@@ -256,8 +279,15 @@ export default function MatchScreen() {
           )
         : [];
 
-  const activeDrops = new Set([...liveSpots, ...pendingSpots].map((s) => s.elementId));
-  const pressableDrops = new Set(pendingSpots.map((s) => s.elementId));
+  const pendingTakeable = takeableSpots(pendingSpots);
+  const activeDrops = new Set([...liveTakeable, ...pendingTakeable].map((s) => s.elementId));
+  // Where letting go would be refused, drawn as refusing rather than merely
+  // left unlit — an unlit target and a forbidden one look identical, and the
+  // difference is the whole question a player is asking mid-drag.
+  const refusedDrops = new Set(
+    liveSpots.filter((s) => s.refusal && !activeDrops.has(s.elementId)).map((s) => s.elementId),
+  );
+  const pressableDrops = new Set(pendingTakeable.map((s) => s.elementId));
 
   // Which melds could be *aimed at* right now — pointed at before any card is
   // picked, the other order from the usual "select cards, then a target
@@ -326,7 +356,7 @@ export default function MatchScreen() {
   const moveDrag = (x: number, y: number) => {
     const current = dragRef.current;
     if (!current) return;
-    const spots = spotsFor(current.cards);
+    const spots = takeableSpots(spotsFor(current.cards));
     const over = drops.hit(x, y, spots.map((s) => s.elementId));
     setHoveredDrop((prev) => (prev === over ? prev : over));
 
@@ -354,9 +384,21 @@ export default function MatchScreen() {
     if (!current) return false;
 
     const spots = spotsFor(current.cards);
+    const takeable = takeableSpots(spots);
     const over = drops.hit(x, y, spots.map((s) => s.elementId));
-    const spot = spots.find((s) => s.elementId === over);
-    if (!spot) return false;
+    const spot = takeable.find((s) => s.elementId === over);
+    if (!spot) {
+      // Let go somewhere the cards are not welcome. Before this the card
+      // simply snapped home and nothing was said, which reads as an
+      // unresponsive interface rather than a refused move — and the reason
+      // was already in hand.
+      const refusal = over ? refusalAt(spots, over) : undefined;
+      if (refusal) {
+        setExplaining(refusal);
+        return true;
+      }
+      return false;
+    }
 
     const offer = state.legalActions.find((o) => o.id === spot.offerId);
     if (!offer) return false;
@@ -413,9 +455,22 @@ export default function MatchScreen() {
     setPendingGroupKey(null);
   };
 
+  // Which cards the module marked, by card value. A mark is something true
+  // about a particular card that a player should act on before it becomes a
+  // refusal; only the module knows what, so this reads the marks rather than
+  // deciding them.
+  const badgesFor = (zone: Zone): ReadonlyMap<string, string[]> => {
+    const out = new Map<string, string[]>();
+    for (const c of zone.cards ?? []) {
+      if (c.badgeKeys?.length) out.set(c.card, c.badgeKeys);
+    }
+    return out;
+  };
+
   const dropProps = {
     registerDrop: (id: string, node: Measurable | null) => drops.register(id, node),
     activeDrops,
+    refusedDrops,
     hoveredDrop,
     hoveredPosition,
     pressableDrops,
@@ -690,6 +745,18 @@ export default function MatchScreen() {
               onDragMove={moveDrag}
               onDragEnd={endDrag}
               externalTarget={hoveredDrop}
+              badges={badgesFor(z)}
+              onPressBadge={(card, badgeKeys) =>
+                setExplaining({
+                  labelKey: badgeKeys[0],
+                  params: { card },
+                  // The rules and the way out behind the mark come from
+                  // whichever offer this card is about to be refused by —
+                  // asked for now, rather than the module having to say the
+                  // same thing twice.
+                  ...refusalBehindBadge(state.legalActions),
+                })
+              }
               {...zonePanelProps(z.id)}
             />
           ))}
@@ -730,7 +797,19 @@ export default function MatchScreen() {
               code reads as a crash. A code we do know still wins, so a
               translated message never regresses to English. */}
           {error ? (
-            <Text testID="match-error" style={styles.error} onPress={clearError}>
+            <Text
+              testID="match-error"
+              style={styles.error}
+              onPress={() => {
+                // A submission refused on arrival — a meld a person composed,
+                // which had no greyed-out control of its own to have been
+                // explained in advance — gets the same three layers as one
+                // that did. The frame carries its own ruleIds; the remedy
+                // comes from whichever offer is now on the table.
+                setExplaining({ code: error.code, ruleIds: error.ruleIds });
+                clearError();
+              }}
+            >
               {reasonText(error.code, error.message || error.code)}
             </Text>
           ) : null}
@@ -744,6 +823,7 @@ export default function MatchScreen() {
             armedGroupId={armedMeldIdLive}
             onSend={send}
             onConsumeSelection={clearSelection}
+            onExplain={setExplaining}
             onAmbiguous={(groupKey) => {
               setPendingGroupKey(groupKey);
               // The board is inside a scroll view, so a target's position
@@ -793,8 +873,49 @@ export default function MatchScreen() {
           </Text>
         ))}
       </ScrollView>
+
+      {/* Why a move was refused: the reason, the rule behind it, and the move
+          to make instead. Opened from a greyed-out control's reason line, a
+          refused drop, or a submission the server turned down — one component
+          for all three, because they are one question. */}
+      <WhySheet
+        refusal={explaining}
+        ruleIndex={ruleIndex}
+        offers={state.legalActions}
+        players={state.players}
+        onSend={send}
+        onClose={() => setExplaining(null)}
+        onOpenRules={(ruleId) => {
+          setExplaining(null);
+          router.push({
+            pathname: '/rules',
+            params: {
+              moduleId: state.moduleId,
+              variation: state.variation ?? '',
+              options: JSON.stringify(state.options ?? {}),
+              highlight: ruleId,
+            },
+          });
+        }}
+      />
     </Screen>
   );
+}
+
+/**
+ * The refusal a marked card is heading for, if a control is already greyed
+ * out for one.
+ *
+ * A mark and a refusal are the same fact at two different moments — "you owe
+ * this card to your lay-down" and "you can't discard, that card is owed" —
+ * so the mark borrows the refusal's rules and remedy rather than the module
+ * shipping a second copy of them. Nothing found means the mark stands on its
+ * own wording, which is still a sentence.
+ */
+function refusalBehindBadge(offers: ActionOffer[]): Pick<Refusal, 'ruleIds' | 'remedy' | 'remedyOfferId'> {
+  const refused = offers.find((o) => !o.enabled && (o.ruleIds?.length || o.remedy));
+  if (!refused) return {};
+  return { ruleIds: refused.ruleIds, remedy: refused.remedy, remedyOfferId: refused.remedyOfferId };
 }
 
 function Section({
@@ -816,6 +937,7 @@ function Section({
   panelPropsFor: (zoneId: string) => { panelId: string; minimized: boolean; onToggleMinimized: () => void };
   registerDrop?: (id: string, node: Measurable | null) => void;
   activeDrops?: ReadonlySet<string>;
+  refusedDrops?: ReadonlySet<string>;
   hoveredDrop?: string | null;
   hoveredPosition?: { index: number; count: number } | null;
   pressableDrops?: ReadonlySet<string>;
