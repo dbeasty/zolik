@@ -79,6 +79,30 @@ func TestValidateSet_WildCannotPadAFullSet(t *testing.T) {
 	}
 }
 
+func TestValidateSet_ThreeJokersCannotJoinThreeNaturals(t *testing.T) {
+	// The shape that was actually seen on a table: three queens and three
+	// jokers, laid as one six-card set. It is the case every guard except the
+	// size cap waves through — equal jokers and naturals satisfies the
+	// wilds-vs-naturals rule, the ranks all match, and no suit repeats — so
+	// MaxSetSize is the only thing standing between it and the table.
+	//
+	// Three jokers in one hand is reachable: two decks are dealt at 2-4
+	// players, which is why JOKER1 appears twice.
+	//
+	// Asked through ValidateMeld rather than validateSet, because that is the
+	// path a player's submission takes, and it decides which of the set and
+	// run complaints to surface — a set error losing that tie-break would
+	// hand the player a message about consecutive ranks they never claimed.
+	_, err := ValidateMeld([]string{"QS", "QH", "QD", "JOKER1", "JOKER2", "JOKER1"}, ProfileZolikClassic)
+	if err == nil {
+		t.Fatalf("expected three jokers padding three queens to be rejected")
+	}
+	re, ok := err.(RulesError)
+	if !ok || re.Code != ErrSetTooLarge {
+		t.Fatalf("expected SET_TOO_LARGE, got %v", err)
+	}
+}
+
 func TestOrderMeldForDisplay_RunSortsAscending(t *testing.T) {
 	cards := []string{"6H", "8H", "7H"}
 	mv, err := validateRun(cards, 3)
