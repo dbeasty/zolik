@@ -511,3 +511,51 @@ func TestZolikClassic_GoesOutAfterDirtyingTheRunThatGotThemDown(t *testing.T) {
 		t.Fatal("the player emptied their hand while down and must go out")
 	}
 }
+
+// A set is full at four cards, one per suit, so a complete set has nothing
+// left for a joker to stand in for. The cap has to hold on the lay-off path
+// too, and it only does because ValidateLayOff revalidates the whole meld
+// rather than the incoming card alone — validate just the card and a fifth
+// one slides straight onto a set that is already complete.
+func TestZolikClassic_CannotPadAFullSetByLayingOff(t *testing.T) {
+	p := "p1"
+	st := classicState(p)
+	st.Hands[p] = []string{"JOKER1", "9S", "2S"}
+	st.Melds[p] = [][]string{{"9C", "9D", "9H", "JOKER2"}}
+	st.MeldMeta[p] = []MeldInfo{{MeldID: "meld_1", Type: MeldSet, OwnerID: p, WildCount: 1}}
+	st.NextMeldSeq = 1
+	st.RoundReqMet[p] = true
+
+	_, err := ValidateLayOff(st, p, "meld_1", []string{"JOKER1"}, "")
+	if err == nil {
+		t.Fatal("a four-card set has no missing suit left, so a joker must not be able to join it")
+	}
+	re, ok := err.(RulesError)
+	if !ok || re.Code != ErrSetTooLarge {
+		t.Fatalf("expected SET_TOO_LARGE, got %v", err)
+	}
+
+	// The other half of the rule, so the cap can never be tightened into
+	// refusing a legal move: the last missing suit is still playable. It does
+	// not make a fifth card — 9S takes the joker's slot and the joker comes
+	// back to the player's hand (reclaimJokerForLayOff), leaving four.
+	next, err := ValidateLayOff(st, p, "meld_1", []string{"9S"}, "")
+	if err != nil {
+		t.Fatalf("the set's one missing suit should still be playable onto it: %v", err)
+	}
+	grown := next.Melds[p][0]
+	if len(grown) != MaxSetSize {
+		t.Fatalf("expected the set to stay at %d cards, got %v", MaxSetSize, grown)
+	}
+	for _, c := range []string{"9C", "9D", "9H", "9S"} {
+		if !containsCard(grown, c) {
+			t.Fatalf("expected %s in the grown set, got %v", c, grown)
+		}
+	}
+	if !containsCard(next.Hands[p], "JOKER2") {
+		t.Fatalf("the swapped-out joker should be back in hand, got %v", next.Hands[p])
+	}
+	if next.MeldMeta[p][0].WildCount != 0 {
+		t.Fatalf("the set carries no joker any more, so WildCount should be 0, got %d", next.MeldMeta[p][0].WildCount)
+	}
+}
