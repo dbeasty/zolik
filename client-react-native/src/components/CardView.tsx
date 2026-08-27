@@ -1,10 +1,12 @@
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { useMetrics } from '@/src/hooks/useMetrics';
+import { useSkin } from '@/src/hooks/useSkin';
 import { parseCard } from '@/src/lib/cards';
 import type { CardMetrics } from '@/src/lib/layout';
-import { colors } from '@/src/theme';
+import type { Skin } from '@/src/skins/types';
 
 /**
  * How much room a card takes, at scale 1 — the size the sizes in
@@ -53,8 +55,18 @@ type Props = {
   testID?: string;
 };
 
-/** Every dimension a card's own render needs, computed once per card size. */
-function cardStyles(m: CardMetrics) {
+/** The court cards get a medallion on a rich face rather than a giant pip. */
+const COURT_RANKS = new Set(['J', 'Q', 'K']);
+
+/** Every dimension a card's own render needs, computed once per card size and skin. */
+function cardStyles(m: CardMetrics, s: Skin) {
+  const colors = s.colors;
+  const card = s.card;
+  // The rich face uses smaller indices than the plain face's single rank,
+  // because it shows two of them plus a centre pip in the same 52×72.
+  const cornerRankFont = Math.max(9, m.rankFont - 3);
+  const cornerSuitFont = Math.max(8, m.suitFont - 9);
+  const medallionSize = Math.round(m.width * 0.52);
   return StyleSheet.create({
     ring: {
       borderRadius: 8,
@@ -76,20 +88,51 @@ function cardStyles(m: CardMetrics) {
       marginRight: m.gap,
       justifyContent: 'space-between',
     },
+    // Shadow, not size: the card's box is identical with or without it, so a
+    // skin that lifts cards off the felt never moves a drop measurement.
+    cardShadow: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 3,
+      elevation: 3,
+    },
+    // The floating copy under a finger sits visibly *above* the board: a
+    // touch larger, a touch tilted, a deeper shadow. Transform only — the
+    // slot it left keeps its measured size to the pixel.
+    cardDragging: {
+      transform: [{ scale: 1.06 }, { rotate: '2deg' }],
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.45,
+      shadowRadius: 12,
+      elevation: 8,
+    },
+    // A rich face positions its own corners; the plain face keeps the padded
+    // column layout it has always had.
+    cardRich: { padding: 0 },
+    faceFill: {
+      position: 'absolute',
+      top: 0,
+      bottom: 0,
+      left: 0,
+      right: 0,
+      borderRadius: 4,
+    },
     compact: {
       width: m.compactWidth,
       height: m.compactHeight,
     },
     selected: {
       borderColor: colors.gold,
-      backgroundColor: '#fffbeb',
+      backgroundColor: card.selectedFace,
     },
-    joker: { backgroundColor: '#fef3c7' },
-    pressed: { opacity: 0.85 },
+    joker: { backgroundColor: card.jokerFace },
+    pressed: { opacity: 0.85, transform: [{ scale: 0.96 }] },
     rank: {
       fontSize: m.rankFont,
       fontWeight: '700',
-      color: '#1e293b',
+      color: card.ink,
     },
     // "JKR" is 3 characters vs. 1-2 for every other rank, so it needs its own
     // (smaller) size to stay inside the card instead of overflowing the edge.
@@ -97,7 +140,7 @@ function cardStyles(m: CardMetrics) {
     suit: {
       fontSize: m.suitFont,
       alignSelf: 'center',
-      color: '#1e293b',
+      color: card.ink,
     },
     corner: {
       flexDirection: 'row',
@@ -106,9 +149,73 @@ function cardStyles(m: CardMetrics) {
     },
     suitInline: {
       fontSize: m.suitInlineFont,
-      color: '#1e293b',
+      color: card.ink,
     },
-    red: { color: '#dc2626' },
+    red: { color: card.red },
+    // ---- The rich face: two indices and a centre. ----
+    cornerTL: {
+      position: 'absolute',
+      top: 2,
+      left: 3,
+      alignItems: 'center',
+    },
+    cornerBR: {
+      position: 'absolute',
+      bottom: 2,
+      right: 3,
+      alignItems: 'center',
+      // A real card reads from either end of the table.
+      transform: [{ rotate: '180deg' }],
+    },
+    cornerRank: {
+      fontSize: cornerRankFont,
+      lineHeight: cornerRankFont + 1,
+      fontWeight: '700',
+      color: card.ink,
+    },
+    cornerSuit: {
+      fontSize: cornerSuitFont,
+      lineHeight: cornerSuitFont + 1,
+      color: card.ink,
+    },
+    center: {
+      position: 'absolute',
+      top: 0,
+      bottom: 0,
+      left: 0,
+      right: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    centerPip: {
+      fontSize: m.suitFont + 6,
+      color: card.ink,
+    },
+    medallion: {
+      width: medallionSize,
+      height: medallionSize,
+      borderRadius: medallionSize / 2,
+      borderWidth: 1.5,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderColor: card.ink,
+    },
+    medallionRed: { borderColor: card.red },
+    medallionRank: {
+      fontSize: Math.round(medallionSize * 0.5),
+      lineHeight: Math.round(medallionSize * 0.58),
+      fontWeight: '700',
+      color: card.ink,
+    },
+    medallionSuit: {
+      fontSize: Math.max(7, Math.round(medallionSize * 0.28)),
+      lineHeight: Math.max(8, Math.round(medallionSize * 0.32)),
+      color: card.ink,
+    },
+    jokerStar: {
+      fontSize: m.suitFont + 8,
+      color: card.red,
+    },
   });
 }
 
@@ -124,10 +231,62 @@ export function CardView({
   testID,
 }: Props) {
   const metrics = useMetrics();
+  const skin = useSkin();
   const d = parseCard(card);
-  // Recomputed only when the card's own size changes (a resize, or a device
-  // rotation) — every other render of a card reuses the same style objects.
-  const styles = useMemo(() => cardStyles(metrics.card), [metrics.card]);
+  // Recomputed only when the card's own size or the skin changes — every
+  // other render of a card reuses the same style objects.
+  const styles = useMemo(() => cardStyles(metrics.card, skin), [metrics.card, skin]);
+
+  const rich = skin.card.face === 'rich' && !stacked;
+  // The gradient wash is the resting face only: a selected or joker card
+  // shows its own solid fill, and painting the wash over it would hide the
+  // one thing those fills are for.
+  const washed = rich && !!skin.card.faceGradient && !selected && !d.isJoker;
+
+  const face = stacked ? (
+    <View style={styles.corner}>
+      <Text style={[styles.rank, d.isJoker && styles.jokerRank, d.isRed && styles.red]}>
+        {d.rank}
+      </Text>
+      <Text style={[styles.suitInline, d.isRed && styles.red]}>{d.suitSymbol}</Text>
+    </View>
+  ) : rich ? (
+    <>
+      <View style={styles.center} pointerEvents="none">
+        {d.isJoker ? (
+          <Text style={styles.jokerStar}>★</Text>
+        ) : COURT_RANKS.has(d.rank) ? (
+          <View style={[styles.medallion, d.isRed && styles.medallionRed]}>
+            <Text style={[styles.medallionRank, d.isRed && styles.red]}>{d.rank}</Text>
+            <Text style={[styles.medallionSuit, d.isRed && styles.red]}>{d.suitSymbol}</Text>
+          </View>
+        ) : (
+          <Text style={[styles.centerPip, d.isRed && styles.red]}>{d.suitSymbol}</Text>
+        )}
+      </View>
+      <View style={styles.cornerTL}>
+        <Text style={[styles.cornerRank, d.isJoker && styles.jokerRank, d.isRed && styles.red]}>
+          {d.rank}
+        </Text>
+        {d.isJoker ? null : (
+          <Text style={[styles.cornerSuit, d.isRed && styles.red]}>{d.suitSymbol}</Text>
+        )}
+      </View>
+      {d.isJoker ? null : (
+        <View style={styles.cornerBR}>
+          <Text style={[styles.cornerRank, d.isRed && styles.red]}>{d.rank}</Text>
+          <Text style={[styles.cornerSuit, d.isRed && styles.red]}>{d.suitSymbol}</Text>
+        </View>
+      )}
+    </>
+  ) : (
+    <>
+      <Text style={[styles.rank, d.isJoker && styles.jokerRank, d.isRed && styles.red]}>
+        {d.rank}
+      </Text>
+      <Text style={[styles.suit, d.isRed && styles.red]}>{d.suitSymbol}</Text>
+    </>
+  );
 
   const content = (
     // Ring wrapper is always present at a fixed size (border color just
@@ -163,26 +322,18 @@ export function CardView({
       <View
         style={[
           styles.card,
+          rich && styles.cardRich,
+          skin.card.shadow && styles.cardShadow,
           compact && styles.compact,
           selected && styles.selected,
           d.isJoker && styles.joker,
+          dragging && styles.cardDragging,
         ]}
       >
-        {stacked ? (
-          <View style={styles.corner}>
-            <Text style={[styles.rank, d.isJoker && styles.jokerRank, d.isRed && styles.red]}>
-              {d.rank}
-            </Text>
-            <Text style={[styles.suitInline, d.isRed && styles.red]}>{d.suitSymbol}</Text>
-          </View>
-        ) : (
-          <>
-            <Text style={[styles.rank, d.isJoker && styles.jokerRank, d.isRed && styles.red]}>
-              {d.rank}
-            </Text>
-            <Text style={[styles.suit, d.isRed && styles.red]}>{d.suitSymbol}</Text>
-          </>
-        )}
+        {washed ? (
+          <LinearGradient colors={skin.card.faceGradient!} style={styles.faceFill} />
+        ) : null}
+        {face}
       </View>
     </View>
   );

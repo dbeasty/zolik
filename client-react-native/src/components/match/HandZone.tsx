@@ -7,11 +7,14 @@ import type { Zone } from '@/src/api/matchTypes';
 import { CardGlance } from '@/src/components/match/CardGlance';
 import { CardView } from '@/src/components/CardView';
 import { Panel } from '@/src/components/match/Panel';
+import { SettleIn } from '@/src/components/match/SettleIn';
 import { useMetrics } from '@/src/hooks/useMetrics';
+import { useSkin } from '@/src/hooks/useSkin';
 import { insertionAtPoint, moveTargetFor, type Rect, type Slot } from '@/src/lib/hand';
 import type { Metrics } from '@/src/lib/layout';
 import { label } from '@/src/lib/labels';
-import { colors, dragLayer, dropArmed } from '@/src/theme';
+import type { Skin } from '@/src/skins/types';
+import { dragLayer } from '@/src/theme';
 
 /**
  * The viewer's own hand: the one zone on the board they may rearrange, and the
@@ -334,10 +337,20 @@ export function HandZone({
 
   const title = label(zone.labelKey) || zone.id;
   const metrics = useMetrics();
-  // Recomputed only when the card's own size changes — a resize or a device
-  // rotation — never on a pointer move, which is what keeps `DraggableCard`'s
-  // memo intact through a drag (see the comment on it below).
-  const styles = useMemo(() => handStyles(metrics), [metrics]);
+  const skin = useSkin();
+  // Recomputed only when the card's own size or the skin changes — a resize,
+  // a rotation, a look switched — never on a pointer move, which is what
+  // keeps `DraggableCard`'s memo intact through a drag (see the comment on
+  // it below).
+  const styles = useMemo(() => handStyles(metrics, skin), [metrics, skin]);
+
+  // Cards mounting in the hand's opening moments are the deal, and enter as
+  // one — staggered left to right. A card mounting later arrived alone (a
+  // draw) and enters at once. Read at render, used only at each card's own
+  // mount, so the distinction costs nothing after the deal.
+  const openedAt = useRef(Date.now());
+  const dealDelayFor = (index: number) =>
+    Date.now() - openedAt.current < 700 ? Math.min(index, 12) * 40 : 0;
 
   // A card can only be lifted clear of the layout if we know where it was, and
   // until then it stays in the flow and no gap is drawn — a drag that started
@@ -424,6 +437,7 @@ export function HandZone({
                   : null
               }
               testID={`card-${zone.id}-${index}`}
+              dealDelay={dealDelayFor(index)}
               bindRef={binderFor(index)}
               onToggle={stableToggle}
               onTouch={touchDown}
@@ -486,6 +500,8 @@ type CardProps = {
   /** Where to pin it once it has left the layout, relative to the row. */
   floatingAt: { left: number; top: number } | null;
   testID: string;
+  /** Milliseconds to hold before this card's entrance — the deal's stagger. */
+  dealDelay: number;
   bindRef: (node: Measurable | null) => void;
   onToggle: (slotId: string) => void;
   /** Touch-down, before the drag has activated — early enough to measure. */
@@ -517,6 +533,7 @@ const DraggableCard = memo(function DraggableCard({
   offset,
   floatingAt,
   testID,
+  dealDelay,
   bindRef,
   onToggle,
   onTouch,
@@ -612,28 +629,30 @@ const DraggableCard = memo(function DraggableCard({
           if (e.nativeEvent.actionName === 'moveRight') onMove(index, Math.min(count - 1, index + 1));
         }}
       >
-        <CardView
-          card={slot.card}
-          selected={selected}
-          dragging={held}
-          badged={Boolean(badgeKeys?.length)}
-          testID={testID}
-          onPress={() => {
-            // A press that ended a drag is not also a tap. Gesture-handler
-            // normally cancels the child responder for us; this is the belt to
-            // those braces, because a drag that silently toggled selection
-            // would be maddening.
-            if (consumedByDrag()) return;
-            // A marked card answers for its mark first. The mark is there
-            // because this card is about to be refused for something, and a
-            // player who presses it is asking about that, not choosing it.
-            if (badgeKeys?.length && onPressBadge) {
-              onPressBadge(slot.card, badgeKeys);
-              return;
-            }
-            onToggle(slot.id);
-          }}
-        />
+        <SettleIn kind="deal" delay={dealDelay}>
+          <CardView
+            card={slot.card}
+            selected={selected}
+            dragging={held}
+            badged={Boolean(badgeKeys?.length)}
+            testID={testID}
+            onPress={() => {
+              // A press that ended a drag is not also a tap. Gesture-handler
+              // normally cancels the child responder for us; this is the belt to
+              // those braces, because a drag that silently toggled selection
+              // would be maddening.
+              if (consumedByDrag()) return;
+              // A marked card answers for its mark first. The mark is there
+              // because this card is about to be refused for something, and a
+              // player who presses it is asking about that, not choosing it.
+              if (badgeKeys?.length && onPressBadge) {
+                onPressBadge(slot.card, badgeKeys);
+                return;
+              }
+              onToggle(slot.id);
+            }}
+          />
+        </SettleIn>
       </View>
     </GestureDetector>
   );
@@ -645,7 +664,9 @@ const DraggableCard = memo(function DraggableCard({
  * what keeps `DraggableCard`'s memo intact through an entire drag: the same
  * `styles` object reference is handed to every card on every pointer move.
  */
-function handStyles(m: Metrics) {
+function handStyles(m: Metrics, s: Skin) {
+  const colors = s.colors;
+  const dropArmed = s.dropArmed;
   return StyleSheet.create({
     autoArrange: { color: colors.accent, fontSize: m.panel.bodyFont, fontWeight: '600' },
     cards: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 6 },

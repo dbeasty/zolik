@@ -7,7 +7,8 @@ import { useMetrics } from '@/src/hooks/useMetrics';
 import { reasonText, t } from '@/src/lib/i18n';
 import { factText, label } from '@/src/lib/labels';
 import type { Metrics } from '@/src/lib/layout';
-import { colors } from '@/src/theme';
+import { useSkin } from '@/src/hooks/useSkin';
+import type { Skin } from '@/src/skins/types';
 
 /**
  * Why a move was refused, in three layers, each from whoever actually knows.
@@ -67,7 +68,8 @@ export function WhySheet({
   onOpenRules,
 }: Props) {
   const metrics = useMetrics();
-  const styles = useMemo(() => whySheetStyles(metrics), [metrics]);
+  const skin = useSkin();
+  const styles = useMemo(() => whySheetStyles(metrics, skin), [metrics, skin]);
 
   if (!refusal) return null;
 
@@ -168,7 +170,8 @@ function remedyLabel(offer: ActionOffer): string {
   return label(offer.labelKey ?? `verb.${offer.verb}`) || offer.verb;
 }
 
-function whySheetStyles(metrics: Metrics) {
+function whySheetStyles(metrics: Metrics, s: Skin) {
+  const colors = s.colors;
   return StyleSheet.create({
     backdrop: {
       flex: 1,

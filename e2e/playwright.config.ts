@@ -20,6 +20,13 @@ export default defineConfig({
     baseURL: WEB_BASE,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
+    // The board animates — cards deal in, pile tops flip over — and every
+    // animation in the client goes still under prefers-reduced-motion (see
+    // `src/hooks/useReducedMotion.ts`). Asking the browser for stillness
+    // makes the suite deterministic the same way it makes the board calm for
+    // a person who asked for it: elements are born already in their final
+    // position, so a test's first measurement can never race an entrance.
+    contextOptions: { reducedMotion: 'reduce' },
   },
   projects: [
     {

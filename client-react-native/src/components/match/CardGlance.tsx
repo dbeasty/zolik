@@ -4,7 +4,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { parseCard } from '@/src/lib/cards';
 import type { Metrics } from '@/src/lib/layout';
-import { colors } from '@/src/theme';
+import { useSkin } from '@/src/hooks/useSkin';
+import type { Skin } from '@/src/skins/types';
 
 /**
  * A tiny, game-blind digest of some cards — rank and suit as text, capped,
@@ -26,7 +27,8 @@ type Props = {
 
 export function CardGlance({ cards, max = 6, testID = 'card-glance' }: Props) {
   const metrics = useMetrics();
-  const styles = useMemo(() => glanceStyles(metrics), [metrics]);
+  const skin = useSkin();
+  const styles = useMemo(() => glanceStyles(metrics, skin), [metrics, skin]);
 
   if (!cards.length) return null;
 
@@ -49,14 +51,15 @@ export function CardGlance({ cards, max = 6, testID = 'card-glance' }: Props) {
   );
 }
 
-function glanceStyles(m: Metrics) {
+function glanceStyles(m: Metrics, s: Skin) {
+  const colors = s.colors;
   return StyleSheet.create({
     row: { flexDirection: 'row', flexShrink: 1, gap: 9, alignItems: 'center', flexWrap: 'nowrap', overflow: 'hidden' },
     // Noticeably bigger than the panel's own title — this is meant to read
     // as the actual content of a collapsed panel, not as fine print next to
     // the label. The title says whose hand it is; this is the hand.
     one: { color: colors.text, fontSize: m.panel.titleFont + 4, fontWeight: '700' },
-    red: { color: '#f87171' },
+    red: { color: colors.danger },
     tail: { color: colors.muted, fontSize: m.panel.titleFont + 2, fontWeight: '600' },
   });
 }

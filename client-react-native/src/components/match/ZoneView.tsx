@@ -2,14 +2,17 @@ import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { Zone } from '@/src/api/matchTypes';
+import { CardBack } from '@/src/components/CardBack';
 import { CardGlance } from '@/src/components/match/CardGlance';
 import { CardView } from '@/src/components/CardView';
 import { Panel, type Measurable } from '@/src/components/match/Panel';
+import { SettleIn } from '@/src/components/match/SettleIn';
 import { useMetrics } from '@/src/hooks/useMetrics';
+import { useSkin } from '@/src/hooks/useSkin';
 import { groupElementId, zoneElementId } from '@/src/lib/drops';
 import type { Metrics } from '@/src/lib/layout';
 import { label } from '@/src/lib/labels';
-import { colors, dropArmed } from '@/src/theme';
+import type { Skin } from '@/src/skins/types';
 
 /**
  * One area of the board, laid out by its *kind* rather than its meaning.
@@ -121,7 +124,8 @@ export function ZoneView({
   onAimGroup,
 }: Props) {
   const metrics = useMetrics();
-  const styles = useMemo(() => zoneStyles(metrics), [metrics]);
+  const skin = useSkin();
+  const styles = useMemo(() => zoneStyles(metrics, skin), [metrics, skin]);
 
   const zoneLabel = label(zone.labelKey) || zone.id;
   const title = titleOverride || zoneLabel;
@@ -308,7 +312,12 @@ export function ZoneView({
                         key={`${g.id}-${c}-${i}`}
                         style={i > 0 && !groupOpen && styles.stackedOverlap}
                       >
-                        <CardView card={c} compact stacked={!groupOpen} />
+                        {/* Keyed by card and position, so a card laid off
+                            onto this group mounts fresh — and the mount is
+                            the entrance. */}
+                        <SettleIn kind="settle">
+                          <CardView card={c} compact stacked={!groupOpen} />
+                        </SettleIn>
                       </View>
                     ))}
                   </View>
@@ -356,14 +365,22 @@ export function ZoneView({
           {/* Indices are into the whole pile, not into what is on screen, so a
               card keeps the same name whether the pile is open or folded. */}
           {shown.map((c, i) => (
-            <CardView
+            // The key is the card and its place, so a new top card is a new
+            // element — and a new element's mount is its entrance: the top of
+            // a pile flips over as if peeled off a deck, anything else
+            // settles into place.
+            <SettleIn
               key={`${zone.id}-${c.card}-${buried + i}`}
-              card={c.card}
-              compact={compact}
-              selected={selected?.includes(c.card)}
-              onPress={onPressCard ? () => onPressCard(c.card, buried + i) : undefined}
-              testID={`card-${zone.id}-${buried + i}`}
-            />
+              kind={zone.kind === 'pile' && buried + i === cards.length - 1 ? 'flip' : 'settle'}
+            >
+              <CardView
+                card={c.card}
+                compact={compact}
+                selected={selected?.includes(c.card)}
+                onPress={onPressCard ? () => onPressCard(c.card, buried + i) : undefined}
+                testID={`card-${zone.id}-${buried + i}`}
+              />
+            </SettleIn>
           ))}
         </View>
       )}
@@ -394,16 +411,41 @@ export function ZoneView({
  * drifted out of sync with that the moment either one's metrics changed.
  */
 function StackBack({ count, compact, metrics }: { count: number; compact?: boolean; metrics: Metrics }) {
-  const styles = useMemo(() => zoneStyles(metrics), [metrics]);
+  const skin = useSkin();
+  const styles = useMemo(() => zoneStyles(metrics, skin), [metrics, skin]);
   if (count <= 0) return <Text style={styles.hidden}>empty</Text>;
+
+  if (!skin.deckStack) {
+    return (
+      <View style={[styles.back, compact ? styles.backCompact : styles.backFull]}>
+        <Text style={styles.backText}>{count}</Text>
+      </View>
+    );
+  }
+
+  // A deck rather than a box: two darkened edges peeking out under a real
+  // card back, and the count on a chip. Same outer size as the flat box to
+  // the pixel — the offsets spend the slack the ring arithmetic below
+  // already reserves, so the zone measures identically either way.
+  const w = compact ? metrics.card.compactWidth : metrics.card.width;
+  const h = compact ? metrics.card.compactHeight : metrics.card.height;
   return (
-    <View style={[styles.back, compact ? styles.backCompact : styles.backFull]}>
-      <Text style={styles.backText}>{count}</Text>
+    <View style={[styles.deck, compact ? styles.backCompact : styles.backFull]}>
+      <View style={[styles.deckUnder, { left: 4, top: 4, width: w, height: h }]} />
+      <View style={[styles.deckUnder, styles.deckUnderNear, { left: 2, top: 2, width: w, height: h }]} />
+      <CardBack width={w} height={h} />
+      <View style={[styles.deckCount, { width: w }]} pointerEvents="none">
+        <View style={styles.deckCountPill}>
+          <Text style={styles.backText}>{count}</Text>
+        </View>
+      </View>
     </View>
   );
 }
 
-function zoneStyles(m: Metrics) {
+function zoneStyles(m: Metrics, s: Skin) {
+  const colors = s.colors;
+  const dropArmed = s.dropArmed;
   const ringBorderAndPadding = 2 * (m.card.ringPadding + m.card.ringBorder);
   // A standalone card's ring is sized to its content, which includes the
   // card's own trailing gap (there for spacing in a fanned hand) even when
@@ -501,5 +543,32 @@ function zoneStyles(m: Metrics) {
       height: m.card.height + ringOuterHeight,
     },
     backText: { color: colors.text, fontWeight: '700' },
+    // The deck variant of `back`: same outer box, no fill of its own — the
+    // card back and its under-edges paint the inside.
+    deck: {
+      marginTop: 6,
+      position: 'relative',
+    },
+    deckUnder: {
+      position: 'absolute',
+      borderRadius: 6,
+      backgroundColor: s.card.back.colors[1],
+      borderWidth: 1,
+      borderColor: 'rgba(0, 0, 0, 0.4)',
+      opacity: 0.8,
+    },
+    deckUnderNear: { opacity: 0.9 },
+    deckCount: {
+      position: 'absolute',
+      bottom: 5,
+      left: 0,
+      alignItems: 'center',
+    },
+    deckCountPill: {
+      backgroundColor: 'rgba(0, 0, 0, 0.55)',
+      paddingHorizontal: 7,
+      paddingVertical: 1,
+      borderRadius: 9,
+    },
   });
 }

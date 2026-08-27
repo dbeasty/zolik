@@ -6,7 +6,8 @@ import { useMetrics } from '@/src/hooks/useMetrics';
 import { factText, label, playerName, shownScore } from '@/src/lib/labels';
 import type { Metrics } from '@/src/lib/layout';
 import type { Fact, MatchPlayer, RoundLog, RoundScore, Standing } from '@/src/api/matchTypes';
-import { colors } from '@/src/theme';
+import { useSkin } from '@/src/hooks/useSkin';
+import type { Skin } from '@/src/skins/types';
 
 import { Panel } from './Panel';
 
@@ -39,7 +40,8 @@ export const RoundResults = memo(function RoundResults({
   viewerId,
 }: Props) {
   const metrics = useMetrics();
-  const styles = useMemo(() => roundStyles(metrics), [metrics]);
+  const skin = useSkin();
+  const styles = useMemo(() => roundStyles(metrics, skin), [metrics, skin]);
 
   // Columns follow the standings when there are any, so the table reads
   // best-first — and fall back to the seating when there are not.
@@ -213,7 +215,8 @@ function runningTotal(s: RoundScore): string {
   return String(s.shownTotal ?? s.total);
 }
 
-function roundStyles(m: Metrics) {
+function roundStyles(m: Metrics, s: Skin) {
+  const colors = s.colors;
   return StyleSheet.create({
     scroller: { marginTop: 4 },
     // The same tint the end-of-match banner uses, for the same reason: the

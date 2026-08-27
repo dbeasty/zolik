@@ -1,6 +1,7 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { ActionOffer, Zone } from '@/src/api/matchTypes';
 import { POSITION_PARAM, offerGroupKey, submissionFor } from '@/src/api/matchTypes';
@@ -10,8 +11,8 @@ import { OfferBar, OfferGlance } from '@/src/components/match/OfferBar';
 import { Panel } from '@/src/components/match/Panel';
 import { RoundResults } from '@/src/components/match/RoundResults';
 import { SeatStrip } from '@/src/components/match/SeatStrip';
+import { TableSurface } from '@/src/components/match/TableSurface';
 import { ZoneView } from '@/src/components/match/ZoneView';
-import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { useDropRegistry, type Measurable } from '@/src/hooks/useDropRegistry';
 import { useArrival } from '@/src/hooks/useArrival';
@@ -32,8 +33,10 @@ import { cardsForSelection, slotsForDrag, toggleSelection } from '@/src/lib/hand
 import { reasonText } from '@/src/lib/i18n';
 import { WhySheet, type Refusal } from '@/src/components/match/WhySheet';
 import { useRuleIndex } from '@/src/hooks/useRuleIndex';
+import { useSkinControls } from '@/src/hooks/useSkin';
 import { factText, label, playerName } from '@/src/lib/labels';
-import { colors, dragLayer } from '@/src/theme';
+import type { Skin } from '@/src/skins/types';
+import { dragLayer } from '@/src/theme';
 
 /**
  * One screen, every game.
@@ -167,13 +170,26 @@ export default function MatchScreen() {
   // early return below is conditional, and a hook after it is not.
   const overArrival = useArrival(state?.status ?? '');
 
+  // The look the board is wearing, and the switcher's handle on the rest.
+  // The style factory keys on the skin, so switching repaints everything at
+  // once — and repaints only: no size a drag is measured against changes.
+  const { skin, skins, setSkinId } = useSkinControls();
+  const styles = useMemo(() => matchStyles(skin), [skin]);
+  const cycleSkin = () => {
+    const at = skins.findIndex((s) => s.id === skin.id);
+    setSkinId(skins[(at + 1) % skins.length]!.id);
+  };
+
   if (!state) {
     return (
-      <Screen>
-        <Text testID="match-connecting" style={styles.muted}>
-          {connected ? 'Waiting for the table…' : 'Connecting…'}
-        </Text>
-      </Screen>
+      <View style={styles.root}>
+        <TableSurface />
+        <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+          <Text testID="match-connecting" style={styles.muted}>
+            {connected ? 'Waiting for the table…' : 'Connecting…'}
+          </Text>
+        </SafeAreaView>
+      </View>
     );
   }
 
@@ -566,7 +582,9 @@ export default function MatchScreen() {
         : 'Match in progress — everything is connected and moving normally.';
 
   return (
-    <Screen>
+    <View style={styles.root}>
+      {/* The felt. Behind everything, catches nothing. */}
+      <TableSurface />
       {/* The status lives in the navigation bar, beside the screen's own name
           and hard against the left edge. It used to sit at the right end of
           the row below, where the longest module name pushed it under the
@@ -579,6 +597,10 @@ export default function MatchScreen() {
       <Stack.Screen
         options={{
           headerTitleAlign: 'left',
+          // The bar above the board dresses to match the board — without
+          // this it keeps the app-wide chrome and the felt starts at a seam.
+          headerStyle: { backgroundColor: skin.colors.bg },
+          headerTintColor: skin.colors.text,
           headerTitle: () => (
             <Pressable
               testID="match-status-dot"
@@ -597,6 +619,7 @@ export default function MatchScreen() {
           ),
         }}
       />
+      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       {/* Drawn outside the board rather than at the top of it, so it answers
           the tap wherever the player happens to be scrolled to. */}
       {statusExplainerOpen ? (
@@ -626,6 +649,12 @@ export default function MatchScreen() {
               <Text style={styles.rulesLink}>Rules</Text>
             </Pressable>
           </View>
+          {/* Which look the board wears, cycled in place. A preference about
+              pixels, not about the game — it lives on the device and no
+              module knows it exists. */}
+          <Pressable testID="skin-toggle" onPress={cycleSkin} hitSlop={8} style={styles.skinToggle}>
+            <Text style={styles.skinToggleText}>◈ {skin.label}</Text>
+          </Pressable>
         </View>
 
         {(view.header ?? []).length > 0 ? (
@@ -729,6 +758,7 @@ export default function MatchScreen() {
           title="Table"
           zones={tableZones}
           compact
+          styles={styles}
           {...zonePanelProps('section:table')}
           panelPropsFor={zonePanelProps}
           {...dropProps}
@@ -877,6 +907,7 @@ export default function MatchScreen() {
           title="Opponents"
           zones={otherZones}
           compact
+          styles={styles}
           {...zonePanelProps('section:opponents')}
           panelPropsFor={zonePanelProps}
           {...dropProps}
@@ -913,7 +944,8 @@ export default function MatchScreen() {
           });
         }}
       />
-    </Screen>
+      </SafeAreaView>
+    </View>
   );
 }
 
@@ -937,6 +969,7 @@ function Section({
   title,
   zones,
   compact,
+  styles,
   panelId,
   minimized,
   onToggleMinimized,
@@ -946,6 +979,8 @@ function Section({
   title: string;
   zones: Zone[];
   compact?: boolean;
+  /** The screen's own skinned styles — this helper lives outside the component that builds them. */
+  styles: MatchStyles;
   panelId: string;
   minimized: boolean;
   onToggleMinimized: () => void;
@@ -1004,7 +1039,21 @@ function Section({
   );
 }
 
-const styles = StyleSheet.create({
+function matchStyles(s: Skin) {
+  const colors = s.colors;
+  return StyleSheet.create({
+  // The screen behind the felt, and the safe-area box the board lives in —
+  // the felt is drawn edge to edge, the content keeps the old padding.
+  root: { flex: 1, backgroundColor: colors.bg },
+  safe: { flex: 1, padding: 16 },
+  skinToggle: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  skinToggleText: { color: colors.muted, fontSize: 11, fontWeight: '700' },
   body: { paddingBottom: 40, gap: 4 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerTitleGroup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -1072,4 +1121,7 @@ const styles = StyleSheet.create({
   },
   overButtonQuietText: { color: colors.text, fontSize: 14, fontWeight: '600' },
   overError: { color: colors.danger, fontSize: 12 },
-});
+  });
+}
+
+type MatchStyles = ReturnType<typeof matchStyles>;
