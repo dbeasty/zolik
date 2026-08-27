@@ -47,36 +47,6 @@ func IsCleanRun(cards []string, cfg RulesConfig) bool {
 	return err == nil && mv.Type == MeldRun && mv.WildCount == 0
 }
 
-// LayOffBreaksCleanRun reports whether adding cards to the owner's meld at
-// idx would strip that owner of the joker-free run their contract requires —
-// the clean run that let them go down must stay clean, so a joker has to
-// start a separate meld instead of extending it.
-func LayOffBreaksCleanRun(cfg RulesConfig, gameNumber int, melds [][]string, idx int, cards []string) bool {
-	if !cfg.ContractFor(gameNumber).RequireCleanRun {
-		return false
-	}
-	if idx < 0 || idx >= len(melds) {
-		return false
-	}
-	if !IsCleanRun(melds[idx], cfg) {
-		return false
-	}
-	extended := append(append([]string(nil), melds[idx]...), cards...)
-	if IsCleanRun(extended, cfg) {
-		return false
-	}
-	// The extension dirties this run; allowed only if another clean run remains.
-	for i, m := range melds {
-		if i == idx {
-			continue
-		}
-		if IsCleanRun(m, cfg) {
-			return false
-		}
-	}
-	return true
-}
-
 // PlayerMeetsRoundRequirement reports whether the player has the required melds on table.
 func PlayerMeetsRoundRequirement(state GameState, playerID string) bool {
 	cfg := effectiveRules(state)

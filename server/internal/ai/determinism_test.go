@@ -109,10 +109,10 @@ func TestExtendsAnyLiveMeld_IsDeterministic(t *testing.T) {
 	melds, _ := manyMeldsTable()
 	cfg := rules.ProfileZolikClassic
 	for i := 0; i < 200; i++ {
-		if !extendsAnyLiveMeld("8C", melds, cfg, 1) {
+		if !extendsAnyLiveMeld("8C", melds, cfg) {
 			t.Fatalf("iteration %d: 8C extends pAlice's 5C-6C-7C and must be reported as dangerous", i)
 		}
-		if extendsAnyLiveMeld("2S", melds, cfg, 1) {
+		if extendsAnyLiveMeld("2S", melds, cfg) {
 			t.Fatalf("iteration %d: 2S fits nothing on the table and must be reported as safe", i)
 		}
 	}

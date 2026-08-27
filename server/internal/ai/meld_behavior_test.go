@@ -311,16 +311,26 @@ func TestFindLayOff_WontStrandTheHandOnUndiscardableJokers(t *testing.T) {
 		"p1": {{MeldID: "meld_1", Type: rules.MeldRun, OwnerID: "p1", WildCount: 0}},
 	}
 
-	// 8C extends the run, but shedding it leaves [JOKER1 JOKER2] — a hand
-	// with no legal discard and no legal meld. The agent must keep 8C.
-	if meldID, card, ok := findLayOff(meta, melds, []string{"JOKER1", "JOKER2", "8C"}, cfg, 1); ok {
-		t.Fatalf("expected no lay-off (it would strand two jokers), got %s onto %s", card, meldID)
-	}
-
-	// One joker left over is fine: a lone joker is exactly the card a player
-	// who is down is allowed to discard to go out.
-	if _, card, ok := findLayOff(meta, melds, []string{"JOKER1", "8C"}, cfg, 1); !ok || card != "8C" {
-		t.Fatalf("expected 8C to be laid off, leaving a single discardable joker; got %q ok=%v", card, ok)
+	// Stated as the invariant rather than as one specific card, because more
+	// than one lay-off is legal here and any of them is fine so long as what
+	// is left behind can still be discarded. 8C is the card that must not go:
+	// shedding it leaves [JOKER1 JOKER2], a hand with no legal discard and no
+	// legal meld. A joker onto the same run is a fine alternative — it leaves
+	// [JOKER2 8C], which still holds a discardable card.
+	for _, hand := range [][]string{
+		{"JOKER1", "JOKER2", "8C"},
+		// One joker left over is fine either way: a lone joker is exactly the
+		// card a player who is down may discard to go out.
+		{"JOKER1", "8C"},
+	} {
+		meldID, card, ok := findLayOff(meta, melds, hand, cfg, 1)
+		if !ok {
+			continue
+		}
+		left := removeCardsOnce(hand, []string{card})
+		if !handCanStillDiscard(left, cfg, true) {
+			t.Fatalf("laying %s onto %s from %v strands the hand at %v", card, meldID, hand, left)
+		}
 	}
 }
 

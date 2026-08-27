@@ -212,11 +212,18 @@ func TestResolveProfile_UnknownFallsBackToZolikClassic(t *testing.T) {
 	}
 }
 
-// Reproduces the reported table state: an AI went down on a clean club run,
-// then kept laying off onto it until the run held two jokers — leaving the
-// player "down" with no joker-free run on the table at all. The jokers have
-// to go into a separate meld instead.
-func TestZolikClassic_LayOffCannotDirtyTheOnlyCleanRun(t *testing.T) {
+// A clean run is the ticket down, not a permanent fixture. Žolík HD (the
+// ruleset ProfileZolikClassic follows) lets any meld already on the table be
+// extended with a joker during the lay-off phase, a run that went down
+// joker-free included — the only limits on the finished meld are the ordinary
+// wild ones (no more wilds than naturals, none adjacent).
+//
+// This used to be refused with BREAKS_CLEAN_RUN, on the reasoning that the
+// clean run which let a player go down had to stay clean for the deal. It
+// does not, and nothing downstream needs it to: going down is monotonic (see
+// refreshRoundReqMet), so the flag survives the run being dirtied, and going
+// out reads that flag rather than re-deriving the contract.
+func TestZolikClassic_LayOffMayDirtyACleanRun(t *testing.T) {
 	p := "p1"
 	st := classicState(p)
 	st.Hands[p] = []string{"5C", "6C", "7C", "8C", "JOKER1", "TC", "2S"}
@@ -235,17 +242,35 @@ func TestZolikClassic_LayOffCannotDirtyTheOnlyCleanRun(t *testing.T) {
 		t.Fatalf("laying off a natural onto a clean run should be allowed: %v", err)
 	}
 
-	// Extending it with a joker is not: it would leave no clean run behind.
-	_, err = ValidateLayOff(st, p, meldID, []string{"JOKER1"}, "")
-	re, ok := err.(RulesError)
-	if !ok || re.Code != ErrBreaksCleanRun {
-		t.Fatalf("expected BREAKS_CLEAN_RUN when a joker would dirty the only clean run, got %#v", err)
+	// And so is extending it with a joker.
+	st, err = ValidateLayOff(st, p, meldID, []string{"JOKER1"}, "")
+	if err != nil {
+		t.Fatalf("laying off a joker onto a clean run should be allowed: %v", err)
 	}
+	if _, _, hasCleanRun := PlayerMeldCounts(st, p); hasCleanRun {
+		t.Fatal("the run now carries a joker, so no clean run should be left on the table")
+	}
+	// Down is down: dirtying the run that got the player there does not
+	// take it back.
+	if !st.RoundReqMet[p] {
+		t.Fatal("the player must stay down after their clean run is dirtied")
+	}
+}
 
-	// The requirement bookkeeping must reflect the table, not the counts
-	// recorded when each meld was first laid.
-	if _, _, hasCleanRun := PlayerMeldCounts(st, p); !hasCleanRun {
-		t.Fatal("5C-6C-7C-8C is still on the table and still clean")
+// The clean run is still required to go *down*: a player whose only run
+// carries a joker has not met the contract, however many cards are on the
+// table. Removing the lay-off lock must not weaken this gate.
+func TestZolikClassic_CleanRunStillRequiredToGoDown(t *testing.T) {
+	p := "p1"
+	st := classicState(p)
+	st.Hands[p] = []string{"5C", "6C", "JOKER1", "TC", "2S"}
+
+	st, _, _, err := ValidateMeldAction(st, p, []string{"5C", "6C", "JOKER1"})
+	if err != nil {
+		t.Fatalf("a run with one joker is a valid meld: %v", err)
+	}
+	if st.RoundReqMet[p] {
+		t.Fatal("a joker-carrying run must not satisfy the clean-run contract")
 	}
 }
 
@@ -410,5 +435,79 @@ func TestZolikClassic_CleanRunRequirementCanBeTurnedOff(t *testing.T) {
 	}
 	if _, _, err := ValidateDiscard(st, p, "2S", nil); err != nil {
 		t.Fatalf("a down player may discard: %v", err)
+	}
+}
+
+// The engine allowing a move means nothing if the client never draws the drop
+// target for it. `layOffPlacements` used to filter the joker out of the
+// placements it offers on a clean run, so removing the refusal in
+// `ValidateLayOff` without removing that filter would have left the move legal
+// and unreachable — exactly the offer/engine drift `offers_agreement_test`
+// exists to catch, but on a state that corpus does not build.
+func TestZolikClassic_TheJokerIsOfferedOntoACleanRun(t *testing.T) {
+	p := "p1"
+	st := classicState(p)
+	st.Hands[p] = []string{"5C", "6C", "7C", "JOKER1", "2S"}
+
+	st, meldID, _, err := ValidateMeldAction(st, p, []string{"5C", "6C", "7C"})
+	if err != nil {
+		t.Fatalf("clean run should be a valid meld: %v", err)
+	}
+
+	o := FindOffer(LegalActions(st, p), LayOffOfferID(meldID))
+	if o == nil || !o.Enabled {
+		t.Fatalf("expected an enabled lay-off offer on the player's own clean run, got %+v", o)
+	}
+
+	var jokerPositions []string
+	found := false
+	for _, pl := range o.Source.Placements {
+		if pl.Card == "JOKER1" {
+			jokerPositions, found = pl.Positions, true
+		}
+	}
+	if !found {
+		t.Fatalf("the joker must be offered onto the clean run, got placements %+v", o.Source.Placements)
+	}
+	// Which ends are open is the run's business, not this rule's — what is
+	// pinned here is that at least one of them is.
+	if len(jokerPositions) == 0 {
+		t.Error("the joker is offered with no position to drop it on")
+	}
+	if !equalStrings(o.Source.Cards, cardsOf(o.Source.Placements)) {
+		t.Errorf("Cards %v != cardsOf(Placements) %v", o.Source.Cards, cardsOf(o.Source.Placements))
+	}
+}
+
+// The load-bearing downstream claim, pinned end-to-end rather than argued in a
+// comment: a player who dirties the very run that got them down can still go
+// out. `ValidateDiscard` decides that from `RoundReqMet`, and
+// `refreshRoundReqMet` only ever sets that flag — but "only ever sets it" is a
+// property of code that can be edited, so this asserts the outcome instead.
+func TestZolikClassic_GoesOutAfterDirtyingTheRunThatGotThemDown(t *testing.T) {
+	p := "p1"
+	st := classicState(p)
+	st.Hands[p] = []string{"5C", "6C", "7C", "8C", "JOKER1", "2S"}
+
+	st, meldID, _, err := ValidateMeldAction(st, p, []string{"5C", "6C", "7C"})
+	if err != nil {
+		t.Fatalf("clean run should be a valid meld: %v", err)
+	}
+	if st, err = ValidateLayOff(st, p, meldID, []string{"8C"}, ""); err != nil {
+		t.Fatalf("laying off a natural: %v", err)
+	}
+	if st, err = ValidateLayOff(st, p, meldID, []string{"JOKER1"}, ""); err != nil {
+		t.Fatalf("laying off the joker: %v", err)
+	}
+	if _, _, hasCleanRun := PlayerMeldCounts(st, p); hasCleanRun {
+		t.Fatal("precondition: the run should now carry a joker")
+	}
+
+	_, goesOut, err := ValidateDiscard(st, p, "2S", nil)
+	if err != nil {
+		t.Fatalf("discarding the last card should be allowed: %v", err)
+	}
+	if !goesOut {
+		t.Fatal("the player emptied their hand while down and must go out")
 	}
 }

@@ -73,7 +73,7 @@ state and reading back its `RulesError`. `LegalActions` therefore cannot disagre
 is precisely the failure mode this whole plan exists to end.
 
 Fine-grained per-card eligibility (which hand cards may extend *this* meld) uses the pure,
-state-free helpers the AI already uses — `ValidateMeld`, `LayOffBreaksCleanRun`, `IsJoker` — so
+state-free helpers the AI already uses — `ValidateMeld`, `IsCleanRun`, `IsJoker` — so
 no state clone is needed per card.
 
 **Cost control.** Per-card eligibility is computed only for the player whose turn it is; every

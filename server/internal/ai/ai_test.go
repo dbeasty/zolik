@@ -294,17 +294,19 @@ func TestHeuristicAgent_SkipsDiscardWhenItWontCompleteTheInitialMeld(t *testing.
 	}
 }
 
-func TestFindLayOffKeepsTheOnlyCleanRunClean(t *testing.T) {
+// A joker on a clean run is a legal lay-off (see
+// TestZolikClassic_LayOffMayDirtyACleanRun), and the agent takes it: the run
+// that put it down keeps counting whether or not it stays clean, so declining
+// would just be holding the deal's heaviest penalty card for nothing.
+func TestFindLayOffTakesAJokerOntoACleanRun(t *testing.T) {
 	cfg := rules.ProfileZolikClassic
 	melds := map[string][][]string{"p1": {{"5C", "6C", "7C", "8C"}}}
 	meta := map[string][]rules.MeldInfo{
 		"p1": {{MeldID: "meld_1", Type: rules.MeldRun, OwnerID: "p1", WildCount: 0}},
 	}
 
-	// A joker is the only card that fits — the AI must decline rather than
-	// dirty the clean run that put it down.
-	if meldID, card, ok := findLayOff(meta, melds, []string{"JOKER1", "2S"}, cfg, 1); ok {
-		t.Fatalf("expected no lay-off, got %s onto %s", card, meldID)
+	if _, card, ok := findLayOff(meta, melds, []string{"JOKER1", "2S"}, cfg, 1); !ok || card != "JOKER1" {
+		t.Fatalf("expected the joker to extend the run, got %q ok=%v", card, ok)
 	}
 
 	// A natural extension is still taken.
