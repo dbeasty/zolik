@@ -59,6 +59,7 @@
     "RAISE_TOO_SMALL",
     "RANK_ALREADY_MELDED",
     "ROUND_REQ_NOT_MET",
+    "RUN_TOO_LONG",
     "SEAT_NOT_IN_HAND",
     "SET_TOO_LARGE",
     "SUIT_REQUIRED",
@@ -202,6 +203,7 @@
     "zolik.rules.pickup.open",
     "zolik.rules.pickup.topOnly",
     "zolik.rules.run.aceBridge",
+    "zolik.rules.run.maxLength",
     "zolik.rules.section.end",
     "zolik.rules.section.goal",
     "zolik.rules.section.layoff",
@@ -299,6 +301,7 @@
     "zolik.rules.pickup.open",
     "zolik.rules.pickup.topOnly",
     "zolik.rules.run.aceBridge",
+    "zolik.rules.run.maxLength",
     "zolik.rules.section.end",
     "zolik.rules.section.goal",
     "zolik.rules.section.layoff",
@@ -501,6 +504,9 @@
     "zolik.rules.pickup.locked": [
       "n"
     ],
+    "zolik.rules.run.maxLength": [
+      "n"
+    ],
     "zolik.rules.set.maxSize": [
       "n"
     ],
@@ -565,6 +571,7 @@
     "zolik.rules.meldFloor.on",
     "zolik.rules.meldShapes",
     "zolik.rules.pickup.locked",
+    "zolik.rules.run.maxLength",
     "zolik.rules.set.maxSize",
     "zolik.standing.dealsWon",
     "zolik.standing.inHand"

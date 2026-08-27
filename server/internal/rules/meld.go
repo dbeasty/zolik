@@ -253,6 +253,16 @@ func validateSet(cards []string, minSetSize int) (MeldValidation, error) {
 	}, nil
 }
 
+// MaxRunLength is the most cards a run can ever legally hold: the low ace,
+// the twelve ranks above it, and the high ace. A-2-...-K-A.
+//
+// The window search below already could not build anything longer — its
+// candidate starts run 1..14-L+1, which is empty once L passes fourteen — but
+// failing that way produced no window at all and so fell through to the
+// generic complaint about wild cards. Naming the ceiling here says what the
+// player actually ran into.
+const MaxRunLength = 14
+
 // preferHighStart, when set true (pass a single true), breaks ties between
 // equally-valid windows (same WildCount) in favor of the highest start rank
 // instead of the lowest. Lay-offs use this to resolve a run the same
@@ -271,6 +281,12 @@ func validateRun(cards []string, minRunSize int, preferHighStart ...bool) (MeldV
 		return MeldValidation{}, RulesError{
 			Code:    ErrInvalidMeld,
 			Message: fmt.Sprintf("a run needs at least %d cards", minRunSize),
+		}
+	}
+	if len(cards) > MaxRunLength {
+		return MeldValidation{}, RulesError{
+			Code:    ErrRunTooLong,
+			Message: fmt.Sprintf("a run can't hold more than %d cards — the ace at the bottom, the twelve ranks above it, and the ace at the top", MaxRunLength),
 		}
 	}
 

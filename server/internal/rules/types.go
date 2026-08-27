@@ -319,15 +319,20 @@ const (
 	// ErrNeedCleanRun: down in every other respect, but the house rule
 	// wants a joker-free run and there isn't one. Distinct from
 	// ErrRoundReqNotMet because no further set can ever satisfy it.
-	ErrNeedCleanRun          RulesErrorCode = "NEED_CLEAN_RUN"
-	ErrMeldBelowMinimum      RulesErrorCode = "MELD_BELOW_MINIMUM"
-	ErrMeldNoContribution    RulesErrorCode = "MELD_NO_CONTRIBUTION"
-	ErrTooManyWilds RulesErrorCode = "TOO_MANY_WILDS"
+	ErrNeedCleanRun       RulesErrorCode = "NEED_CLEAN_RUN"
+	ErrMeldBelowMinimum   RulesErrorCode = "MELD_BELOW_MINIMUM"
+	ErrMeldNoContribution RulesErrorCode = "MELD_NO_CONTRIBUTION"
+	ErrTooManyWilds       RulesErrorCode = "TOO_MANY_WILDS"
 	// ErrSetTooLarge: a set already holds one card of every suit, so there is
 	// no missing suit left for another card — wild or natural — to fill.
 	// Split out of ErrTooManyWilds, which was returned for both and left a
 	// player holding four naturals told they had too many jokers.
-	ErrSetTooLarge           RulesErrorCode = "SET_TOO_LARGE"
+	ErrSetTooLarge RulesErrorCode = "SET_TOO_LARGE"
+	// ErrRunTooLong: a run has fourteen slots at most — the low ace, the
+	// twelve ranks above it, and the high ace. Split out of ErrInvalidMeld,
+	// which refused an over-long run through the window search coming back
+	// empty and so complained about wilds the player may not even hold.
+	ErrRunTooLong            RulesErrorCode = "RUN_TOO_LONG"
 	ErrAdjacentWilds         RulesErrorCode = "ADJACENT_WILDS"
 	ErrAceBridge             RulesErrorCode = "ACE_BRIDGE"
 	ErrDiscardPileEmpty      RulesErrorCode = "DISCARD_PILE_EMPTY"
