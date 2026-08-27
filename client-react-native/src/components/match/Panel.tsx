@@ -2,8 +2,9 @@ import { useMemo, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { useMetrics } from '@/src/hooks/useMetrics';
+import { useSkin } from '@/src/hooks/useSkin';
 import type { Metrics } from '@/src/lib/layout';
-import { colors, dropArmed } from '@/src/theme';
+import type { Skin } from '@/src/skins/types';
 
 /**
  * The bordered rectangle every region of the board is drawn in — a hand, a
@@ -84,7 +85,8 @@ export function Panel({
   children,
 }: Props) {
   const metrics = useMetrics();
-  const styles = useMemo(() => panelStyles(metrics), [metrics]);
+  const skin = useSkin();
+  const styles = useMemo(() => panelStyles(metrics, skin), [metrics, skin]);
 
   const collapsed = !!minimized && !forceOpen;
   const canToggle = !!panelId && !!onToggleMinimized;
@@ -156,15 +158,28 @@ export function Panel({
   );
 }
 
-function panelStyles(m: Metrics) {
+function panelStyles(m: Metrics, s: Skin) {
+  const colors = s.colors;
+  const dropArmed = s.dropArmed;
   return StyleSheet.create({
     panel: {
-      backgroundColor: colors.surface,
+      backgroundColor: s.panel.background,
       borderRadius: m.panel.radius,
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: s.panel.border,
       padding: m.panel.padding,
       marginBottom: m.panel.gap,
+      // Shadow only, never size: a panel that grew when it lifted off the
+      // felt would move every drop measurement below it.
+      ...(s.panel.shadow
+        ? {
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: 0.28,
+            shadowRadius: 8,
+            elevation: 4,
+          }
+        : null),
     },
     // Sized to its contents rather than stretching to fill the row — for a
     // stack or a pile, which is a couple of cards wide and belongs beside

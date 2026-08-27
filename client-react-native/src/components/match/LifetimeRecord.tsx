@@ -6,7 +6,8 @@ import { useSession } from '@/src/context/SessionContext';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import type { LifetimeStats } from '@/src/api/types';
 import type { Metrics } from '@/src/lib/layout';
-import { colors } from '@/src/theme';
+import { useSkin } from '@/src/hooks/useSkin';
+import type { Skin } from '@/src/skins/types';
 
 import { Panel } from './Panel';
 
@@ -34,7 +35,8 @@ export function LifetimeRecord({ moduleId }: Props) {
   const { session, client } = useSession();
   const router = useRouter();
   const metrics = useMetrics();
-  const styles = useMemo(() => recordStyles(metrics), [metrics]);
+  const skin = useSkin();
+  const styles = useMemo(() => recordStyles(metrics, skin), [metrics, skin]);
 
   const [stats, setStats] = useState<LifetimeStats | null>(null);
   const [failed, setFailed] = useState(false);
@@ -190,7 +192,8 @@ function streakText(streak: number): string {
  * counts, which read the same way in every game.
  */
 
-function recordStyles(m: Metrics) {
+function recordStyles(m: Metrics, s: Skin) {
+  const colors = s.colors;
   return StyleSheet.create({
     grid: { flexDirection: 'row', flexWrap: 'wrap', gap: m.narrow ? 12 : 20 },
     figure: { minWidth: 72 },

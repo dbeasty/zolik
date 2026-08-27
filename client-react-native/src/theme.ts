@@ -1,37 +1,25 @@
 import { StyleSheet } from 'react-native';
 
-export const colors = {
-  bg: '#0f1419',
-  surface: '#1a2332',
-  border: '#2d3a4f',
-  text: '#e8eef5',
-  muted: '#8b9cb3',
-  accent: '#3d8bfd',
-  accentDim: '#2563c4',
-  // Primary buttons sit on a very dark background, where a mid blue reads as
-  // "there is a button here" rather than "this button is live". They use this
-  // lighter blue instead, with dark text (`onAccent`) — white on a blue this
-  // light is under 3:1, dark text on it is ~9:1. Disabled is the same fill at
-  // 0.4 opacity, so enabled/disabled stays an obvious brightness step.
-  accentButton: '#7ab8ff',
-  onAccent: '#0b1220',
-  danger: '#f87171',
-  success: '#4ade80',
-  gold: '#fbbf24',
-  cardBg: '#f8fafc',
-  cardBorder: '#cbd5e1',
-};
+import { classic } from '@/src/skins/classic';
+
+/**
+ * The static palette, kept for every screen *outside* the match: lobby,
+ * auth, rules, stats. Those screens have one look, and it is the classic
+ * skin's — the values live in `src/skins/classic.ts` now, so the skin
+ * system and this file can never disagree about what "classic" means.
+ *
+ * The match screen and everything on the board read `useSkin()` instead,
+ * which serves the same shape per active skin.
+ */
+export const colors = classic.colors;
 
 // The exact spot a dragged card will land, drawn identically everywhere a
 // card can be dropped — the hand's own reorder gap and every meld or zone on
 // the board — so "this is where it goes" reads the same regardless of what
 // kind of space it is. A wash rather than a solid fill: filled in solid it
 // reads as a card already sitting there, which is the one thing it is not.
-export const dropArmed = {
-  borderStyle: 'dashed' as const,
-  borderColor: colors.gold,
-  backgroundColor: 'rgba(251, 191, 36, 0.14)',
-};
+// (Skinned components use `skin.dropArmed`, same contract per skin.)
+export const dropArmed = classic.dropArmed;
 
 /**
  * The layer a card being carried is lifted onto, and everything it is drawn

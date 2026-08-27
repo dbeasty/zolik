@@ -9,7 +9,8 @@ import type { Refusal } from '@/src/components/match/WhySheet';
 import type { Metrics } from '@/src/lib/layout';
 import { factText, label } from '@/src/lib/labels';
 import { reasonText, t } from '@/src/lib/i18n';
-import { colors } from '@/src/theme';
+import { useSkin } from '@/src/hooks/useSkin';
+import type { Skin } from '@/src/skins/types';
 
 /**
  * One control per offer — or, when several offers share a label and each
@@ -104,7 +105,8 @@ export function OfferBar({
   onExplain,
 }: Props) {
   const metrics = useMetrics();
-  const styles = useMemo(() => offerBarStyles(metrics), [metrics]);
+  const skin = useSkin();
+  const styles = useMemo(() => offerBarStyles(metrics, skin), [metrics, skin]);
 
   // Parameter values in progress, keyed by offer id then parameter name. Only
   // an offer the player is actively configuring has an entry.
@@ -271,7 +273,8 @@ export function OfferGlance({
   testID?: string;
 }) {
   const metrics = useMetrics();
-  const styles = useMemo(() => offerBarStyles(metrics), [metrics]);
+  const skin = useSkin();
+  const styles = useMemo(() => offerBarStyles(metrics, skin), [metrics, skin]);
   const { groups, foldedIds } = useMemo(() => foldOffers(offers), [offers]);
 
   const seen = new Set<string>();
@@ -473,7 +476,8 @@ function ParamControl({
   onChange: (v: string) => void;
 }) {
   const metrics = useMetrics();
-  const styles = useMemo(() => offerBarStyles(metrics), [metrics]);
+  const skin = useSkin();
+  const styles = useMemo(() => offerBarStyles(metrics, skin), [metrics, skin]);
 
   if (spec.kind === 'int') {
     const min = spec.min ?? 0;
@@ -619,7 +623,8 @@ function compositeHint(offer: ActionOffer, selected: string[]): string {
  * resize and shared by `OfferBar`, `FoldedOffer` and `ParamControl` so a
  * control never disagrees with its own slot about how wide it may be.
  */
-function offerBarStyles(m: Metrics) {
+function offerBarStyles(m: Metrics, s: Skin) {
+  const colors = s.colors;
   return StyleSheet.create({
     // A row that wraps rather than scrolls: a control that doesn't fit the
     // current line moves to the next one instead of sliding off screen behind

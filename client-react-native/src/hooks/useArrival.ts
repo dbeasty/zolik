@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, Easing } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, Easing } from 'react-native';
+
+import { useReducedMotion } from '@/src/hooks/useReducedMotion';
 
 /**
  * A short arrival for something that appears because a thing just happened.
@@ -21,23 +23,9 @@ import { AccessibilityInfo, Animated, Easing } from 'react-native';
  */
 export function useArrival(key: string | number) {
   const progress = useRef(new Animated.Value(0)).current;
-  const [stillness, setStillness] = useState(false);
-
   // Someone who has asked their system for less movement is told about
   // something appearing by its being there, not by its travel.
-  useEffect(() => {
-    let live = true;
-    AccessibilityInfo.isReduceMotionEnabled()
-      .then((on) => live && setStillness(on))
-      .catch(() => {});
-    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', (on) =>
-      setStillness(!!on),
-    );
-    return () => {
-      live = false;
-      sub?.remove?.();
-    };
-  }, []);
+  const stillness = useReducedMotion();
 
   useEffect(() => {
     if (stillness) {
