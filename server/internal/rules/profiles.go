@@ -14,6 +14,7 @@ var ProfileContinental = RulesConfig{
 	DiscardPickupMode:      DiscardPickupTopOnly,
 	JokerDiscardRestricted: true,
 	FixedDealCount:         7,
+	DealStarter:            DealStarterRotate,
 	MatchEndMode:           MatchEndAfterDeals,
 }
 
@@ -34,6 +35,7 @@ var ProfileZolikClassic = RulesConfig{
 	JokerDiscardRestricted: true,
 	FixedDealCount:         0,
 	StaticContract:         ContractRequirement{Sets: 0, Runs: 0, RequireCleanRun: true},
+	DealStarter:            DealStarterRotate,
 	MatchEndMode:           MatchEndAtScore,
 	TargetScore:            200,
 }

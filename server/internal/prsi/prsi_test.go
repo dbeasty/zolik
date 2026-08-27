@@ -301,3 +301,21 @@ func TestApply_DoesNotMutateTheCallersState(t *testing.T) {
 		t.Error("Apply mutated the state it was given")
 	}
 }
+
+// TestNewMatch_OpeningPlayerVariesBySeed guards the fix for a lobby's host
+// always leading: before it, Current was always TurnOrder[0]. Now it is
+// picked from the match seed via module.StartingSeat.
+func TestNewMatch_OpeningPlayerVariesBySeed(t *testing.T) {
+	seen := map[string]bool{}
+	for seed := int64(0); seed < 40; seed++ {
+		s := stateOf(t, newGame(t, seed, "p1", "p2", "p3"))
+		want := module.StartingSeat(seed, len(s.TurnOrder))
+		if s.Current != s.TurnOrder[want] {
+			t.Fatalf("seed %d: opened on %q, want seat %d (%q)", seed, s.Current, want, s.TurnOrder[want])
+		}
+		seen[s.Current] = true
+	}
+	if len(seen) < 2 {
+		t.Fatalf("40 seeds only ever opened on %v — the opening seat is not varying", seen)
+	}
+}

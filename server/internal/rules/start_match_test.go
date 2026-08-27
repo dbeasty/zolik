@@ -8,7 +8,7 @@ import "testing"
 func TestStartMatch_DealsAccordingToTheRuleset(t *testing.T) {
 	for _, cfg := range []RulesConfig{ProfileContinental, ProfileZolikClassic} {
 		t.Run(cfg.Profile, func(t *testing.T) {
-			st, err := StartMatch(cfg, []string{"p1", "p2", "p3"}, 4242)
+			st, err := StartMatch(cfg, []string{"p1", "p2", "p3"}, 4242, "")
 			if err != nil {
 				t.Fatalf("StartMatch: %v", err)
 			}
@@ -48,11 +48,11 @@ func TestStartMatch_DealsAccordingToTheRuleset(t *testing.T) {
 // TestStartMatch_IsDeterministicForASeed guards the property replay and
 // reproduction depend on: the same seed deals the same cards.
 func TestStartMatch_IsDeterministicForASeed(t *testing.T) {
-	a, err := StartMatch(ProfileZolikClassic, []string{"p1", "p2"}, 99)
+	a, err := StartMatch(ProfileZolikClassic, []string{"p1", "p2"}, 99, "")
 	if err != nil {
 		t.Fatalf("StartMatch: %v", err)
 	}
-	b, err := StartMatch(ProfileZolikClassic, []string{"p1", "p2"}, 99)
+	b, err := StartMatch(ProfileZolikClassic, []string{"p1", "p2"}, 99, "")
 	if err != nil {
 		t.Fatalf("StartMatch: %v", err)
 	}
@@ -68,7 +68,7 @@ func TestStartMatch_IsDeterministicForASeed(t *testing.T) {
 // TestStartMatch_RejectsAnEmptyTable keeps the guard that used to live in
 // DealHand reachable from the new entry point.
 func TestStartMatch_RejectsAnEmptyTable(t *testing.T) {
-	if _, err := StartMatch(ProfileZolikClassic, nil, 1); err == nil {
+	if _, err := StartMatch(ProfileZolikClassic, nil, 1, ""); err == nil {
 		t.Fatalf("expected StartMatch to reject a match with no players")
 	}
 }
@@ -80,7 +80,7 @@ func TestStartMatch_RejectsAnEmptyTable(t *testing.T) {
 // pins the invariants that must hold identically either way.
 func TestStartMatch_AndStartNextGame_ProduceTheSameShape(t *testing.T) {
 	cfg := ProfileZolikClassic
-	first, err := StartMatch(cfg, []string{"p1", "p2"}, 7)
+	first, err := StartMatch(cfg, []string{"p1", "p2"}, 7, "")
 	if err != nil {
 		t.Fatalf("StartMatch: %v", err)
 	}

@@ -76,6 +76,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 				rules.OptInitialMeldMinimum:  cfg.InitialMeldMinimum,
 				rules.OptDiscardDrawMinRound: cfg.DiscardDrawMinRound,
 				rules.OptRequireCleanRun:     rules.BoolOpt(cfg.ContractFor(1).RequireCleanRun),
+				rules.OptDealStarter:         rules.DealStarterOpt(cfg.DealStarter),
 				module.OptPauseBetweenRounds: module.OptOn,
 			},
 		})
@@ -110,6 +111,9 @@ func resolveConfig(mc module.MatchConfig) rules.RulesConfig {
 	cfg.StaticContract.RequireCleanRun = mc.Opt(
 		rules.OptRequireCleanRun, rules.BoolOpt(cfg.StaticContract.RequireCleanRun),
 	) == rules.OptOn
+	cfg.DealStarter = rules.ParseDealStarterOpt(
+		mc.Opt(rules.OptDealStarter, rules.DealStarterOpt(cfg.DealStarter)),
+	)
 	cfg.PauseBetweenDeals = mc.PauseBetweenRounds(true)
 	return cfg
 }
@@ -122,7 +126,8 @@ func (m *Module) NewMatch(mc module.MatchConfig, players []module.PlayerRef, see
 	for _, p := range players {
 		order = append(order, p.ID)
 	}
-	gs, err := rules.StartMatch(cfg, order, seed)
+	starter := order[module.StartingSeat(seed, len(order))]
+	gs, err := rules.StartMatch(cfg, order, seed, starter)
 	if err != nil {
 		return nil, err
 	}

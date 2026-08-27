@@ -57,6 +57,11 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 	s.TargetScore = cfg.Opt(OptTargetScore, v.targetScore)
 	s.CanastasToGoOut = cfg.Opt(OptCanastasToGoOut, v.canastasToGoOut)
 
+	// dealNew leads from Dealer+1, so the dealer is seeded one seat behind a
+	// random opening seat rather than always seat 0 (opening seat 1).
+	n := len(s.TurnOrder)
+	s.Dealer = (module.StartingSeat(seed, n) - 1 + n) % n
+
 	if err := dealNew(s); err != nil {
 		return nil, err
 	}

@@ -50,7 +50,7 @@ func visibleFor(st rules.GameState, playerDiscards map[string][]string) VisibleS
 // real engine, and reports what the agents actually did.
 func playDeal(t *testing.T, cfg rules.RulesConfig, seed int64, players []string, difficulty string, maxActions int) selfPlayResult {
 	t.Helper()
-	st, err := rules.StartMatch(cfg, players, seed)
+	st, err := rules.StartMatch(cfg, players, seed, "")
 	if err != nil {
 		t.Fatalf("StartMatch: %v", err)
 	}

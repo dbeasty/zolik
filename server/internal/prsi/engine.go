@@ -65,7 +65,7 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 	}
 	s.DiscardPile = []string{deck[0]}
 	s.DrawPile = deck[1:]
-	s.Current = s.TurnOrder[0]
+	s.Current = s.TurnOrder[module.StartingSeat(seed, len(s.TurnOrder))]
 
 	// The opening card's effect applies to the first player, exactly as if it
 	// had been played at them — that is how it is played at a table, and

@@ -17,7 +17,31 @@ func EndGame(state GameState, winnerID string) (GameState, error) {
 	if err != nil || over {
 		return ns, err
 	}
-	return StartNextGame(ns, winnerID)
+	return StartNextGame(ns, NextDealStarter(ns, effectiveRules(ns), winnerID))
+}
+
+// NextDealStarter decides who leads the deal after the one that was just
+// scored, per the resolved config's DealStarterMode.
+//
+// Rotate reads DealStarterID rather than CurrentTurn or TurnOrder[0]: it is
+// the marker the deal just finishing recorded as its own leader
+// (dealNewGame sets both together), so "the seat after whoever led" is
+// correct even when the table has looped past TurnOrder's start. An unknown
+// or empty DealStarterID (a state from before this field existed) falls back
+// to TurnOrder[0], same as ResumeAfterIntermission already does.
+func NextDealStarter(state GameState, cfg RulesConfig, winnerID string) string {
+	if cfg.DealStarter == DealStarterWinner {
+		return winnerID
+	}
+	for i, pid := range state.TurnOrder {
+		if pid == state.DealStarterID {
+			return state.TurnOrder[(i+1)%len(state.TurnOrder)]
+		}
+	}
+	if len(state.TurnOrder) > 0 {
+		return state.TurnOrder[0]
+	}
+	return winnerID
 }
 
 // ScoreDeal settles the deal that just ended and stops there, reporting whether
@@ -111,14 +135,23 @@ func matchIsOver(state GameState, cfg RulesConfig) bool {
 }
 
 // StartMatch builds the opening state for a brand-new match: deal 1, turn
-// order as given, first player to act leading. It is the counterpart to
-// StartNextGame (which advances an in-progress match to its next deal) and
-// both funnel through dealNewGame, so there is exactly one implementation of
-// "shuffle, deal, turn the first discard, reset per-deal state". Callers must
-// not hand-roll this — that is how the two paths drifted apart before.
-func StartMatch(cfg RulesConfig, turnOrder []string, seed int64) (GameState, error) {
+// order as given, starterID leading. It is the counterpart to StartNextGame
+// (which advances an in-progress match to its next deal) and both funnel
+// through dealNewGame, so there is exactly one implementation of "shuffle,
+// deal, turn the first discard, reset per-deal state". Callers must not
+// hand-roll this — that is how the two paths drifted apart before.
+//
+// starterID picks who leads the opening deal; an empty string falls back to
+// turnOrder[0] so a caller with no opinion — a test, a replay of an old
+// match — keeps meaning exactly what it always meant. A lobby's own opening
+// seat is a runtime concern (see module.StartingSeat), not a rule this
+// package decides on its own.
+func StartMatch(cfg RulesConfig, turnOrder []string, seed int64, starterID string) (GameState, error) {
 	if len(turnOrder) == 0 {
 		return GameState{}, fmt.Errorf("no turn order")
+	}
+	if starterID == "" {
+		starterID = turnOrder[0]
 	}
 	state := GameState{
 		Status:      StatusActive,
@@ -138,7 +171,7 @@ func StartMatch(cfg RulesConfig, turnOrder []string, seed int64) (GameState, err
 		state.GameScores[pid] = []int{}
 		state.TotalScores[pid] = 0
 	}
-	return dealNewGame(state, turnOrder[0])
+	return dealNewGame(state, starterID)
 }
 
 func StartNextGame(state GameState, nextTurnID string) (GameState, error) {

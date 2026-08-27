@@ -22,6 +22,11 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 	}
 	v := resolveVariation(cfg)
 
+	// startHand rotates the button before the first hand, so it is seeded one
+	// seat behind wherever the match should actually open — a random seat
+	// from the match seed, rather than always seat 0.
+	opening := module.StartingSeat(seed, len(players))
+
 	s := &GameState{
 		Status:        "active",
 		Variation:     cfg.Variation,
@@ -30,7 +35,7 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 		StartingStack: cfg.Opt(OptStartingStack, v.startingStack),
 		HandLimit:     cfg.Opt(OptHandLimit, v.handLimit),
 		Pause:         cfg.PauseBetweenRounds(false),
-		Button:        -1, // startHand rotates first, so the first button is seat 0
+		Button:        (opening - 1 + len(players)) % len(players),
 	}
 	s.SmallBlind = s.BigBlind / 2
 	if s.SmallBlind < 1 {

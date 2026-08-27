@@ -74,11 +74,16 @@ func allModules() []hosted {
 			finishes: true,
 		},
 		{
-			name:     "canasta",
-			rounds:   true,
-			mod:      canasta.New(),
-			players:  refs("p1", "p2"),
-			cfg:      module.MatchConfig{Options: module.Options{"targetScore": 500}},
+			name:    "canasta",
+			rounds:  true,
+			mod:     canasta.New(),
+			players: refs("p1", "p2"),
+			// High enough that a lucky first deal (a natural canasta can
+			// swing 900+ points on its own) can never end the match in one
+			// deal on its own — which of these two seats deals first now
+			// varies by seed, and TestAPausedTableSaysSo needs at least a
+			// second deal to ever observe a pause.
+			cfg:      module.MatchConfig{Options: module.Options{"targetScore": 1500}},
 			prefer:   []string{"lay_meld", "lay_off", "take_pile", "draw", "discard"},
 			finishes: true,
 		},
