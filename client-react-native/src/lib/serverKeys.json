@@ -97,6 +97,7 @@
     "canasta.seat.canastas",
     "canasta.seat.teamScore",
     "header.contract",
+    "header.contract.cleanRunOnly",
     "header.deal",
     "header.deck",
     "header.pileFrozen",
@@ -309,6 +310,207 @@
     "zolik.rules.turn.draw",
     "zolik.rules.wilds.setLimit"
   ],
+  "paramsByKey": {
+    "canasta.offer.rank": [
+      "value"
+    ],
+    "canasta.rules.canasta": [
+      "n"
+    ],
+    "canasta.rules.deal": [
+      "n"
+    ],
+    "canasta.rules.deck": [
+      "value"
+    ],
+    "canasta.rules.end": [
+      "n"
+    ],
+    "canasta.rules.goal": [
+      "n"
+    ],
+    "canasta.rules.meldFloorBands": [
+      "high",
+      "low",
+      "mid",
+      "negative"
+    ],
+    "canasta.seat.canastas": [
+      "n",
+      "value"
+    ],
+    "canasta.seat.teamScore": [
+      "score",
+      "team",
+      "value"
+    ],
+    "header.contract": [
+      "cleanRun",
+      "runs",
+      "sets"
+    ],
+    "header.deal": [
+      "n",
+      "value"
+    ],
+    "header.deck": [
+      "value"
+    ],
+    "header.round": [
+      "n"
+    ],
+    "header.suitInPlay": [
+      "value"
+    ],
+    "header.target": [
+      "value"
+    ],
+    "holdem.cost.call": [
+      "allIn",
+      "amount",
+      "value"
+    ],
+    "holdem.cost.pot": [
+      "value"
+    ],
+    "holdem.header.blinds": [
+      "big",
+      "small",
+      "value"
+    ],
+    "holdem.header.hand": [
+      "value"
+    ],
+    "holdem.header.handLimit": [
+      "value"
+    ],
+    "holdem.header.pot": [
+      "value"
+    ],
+    "holdem.header.street": [
+      "value"
+    ],
+    "holdem.prompt.waitingFor": [
+      "playerId"
+    ],
+    "holdem.round.pot": [
+      "n"
+    ],
+    "holdem.rules.blinds": [
+      "bb",
+      "sb"
+    ],
+    "holdem.rules.handLimit": [
+      "n"
+    ],
+    "holdem.rules.stack": [
+      "n"
+    ],
+    "holdem.seat.bet": [
+      "chips",
+      "value"
+    ],
+    "holdem.seat.stack": [
+      "chips",
+      "value"
+    ],
+    "holdem.status.shown": [
+      "best",
+      "hole",
+      "playerId",
+      "value"
+    ],
+    "prompt.canastasNeeded": [
+      "n"
+    ],
+    "prompt.initialMeld": [
+      "n"
+    ],
+    "prompt.mustDrawOrAnswerSeven": [
+      "n"
+    ],
+    "prompt.pickupMustBeMelded": [
+      "value"
+    ],
+    "prsi.rules.deal": [
+      "n"
+    ],
+    "prsi.rules.deck": [
+      "value"
+    ],
+    "seat.cards": [
+      "n",
+      "value"
+    ],
+    "status.lastDeal": [
+      "canastas",
+      "goingOut",
+      "inHand",
+      "meldCards",
+      "redThrees",
+      "team",
+      "value"
+    ],
+    "status.teamScore": [
+      "canastas",
+      "hasMelded",
+      "players",
+      "redThrees",
+      "team",
+      "value"
+    ],
+    "status.winner": [
+      "team",
+      "value",
+      "winners"
+    ],
+    "zolik.offer.meld": [
+      "value"
+    ],
+    "zolik.remedy.discardSomethingElse": [
+      "card"
+    ],
+    "zolik.remedy.drawFromStock": [
+      "n"
+    ],
+    "zolik.remedy.meldThePickup": [
+      "card"
+    ],
+    "zolik.remedy.needMorePoints": [
+      "n"
+    ],
+    "zolik.rules.contracts.rotating": [
+      "n"
+    ],
+    "zolik.rules.deal": [
+      "n"
+    ],
+    "zolik.rules.end.afterDeals": [
+      "n"
+    ],
+    "zolik.rules.end.atScore": [
+      "n"
+    ],
+    "zolik.rules.meldFloor.on": [
+      "n"
+    ],
+    "zolik.rules.meldShapes": [
+      "run",
+      "set"
+    ],
+    "zolik.rules.pickup.locked": [
+      "n"
+    ],
+    "zolik.rules.set.maxSize": [
+      "n"
+    ],
+    "zolik.standing.dealsWon": [
+      "n"
+    ],
+    "zolik.standing.inHand": [
+      "n"
+    ]
+  },
   "labelKeysWithData": [
     "canasta.offer.rank",
     "canasta.rules.canasta",

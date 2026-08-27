@@ -5,7 +5,7 @@ import type { ActionOffer, Fact, MatchAction, RuleItem } from '@/src/api/matchTy
 import { submissionFor } from '@/src/api/matchTypes';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { reasonText, t } from '@/src/lib/i18n';
-import { factText } from '@/src/lib/labels';
+import { factText, label } from '@/src/lib/labels';
 import type { Metrics } from '@/src/lib/layout';
 import { colors } from '@/src/theme';
 
@@ -108,19 +108,27 @@ export function WhySheet({
               </Text>
             </View>
 
-            {rules.map((item) => (
-              <View key={item.id} style={styles.layer}>
-                <Text style={styles.key}>{t('why.rule')}</Text>
-                <Text testID={`why-rule-${item.id}`} style={styles.value}>
-                  {factText(item, players)}
-                </Text>
-                {onOpenRules ? (
-                  <Pressable onPress={() => onOpenRules(item.id)} testID={`why-open-${item.id}`}>
-                    <Text style={styles.link}>{t('why.readTheRules')}</Text>
+            {/* One heading however many rules there are. A code can point at
+                more than one — the rule that refused you and the house rule
+                that set it up — and two blocks each headed "The rule" reads
+                as a bug rather than as two rules. */}
+            {rules.length > 0 ? (
+              <View style={styles.layer}>
+                <Text style={styles.key}>{rules.length > 1 ? t('why.rules') : t('why.rule')}</Text>
+                {rules.map((item) => (
+                  <Pressable
+                    key={item.id}
+                    onPress={onOpenRules ? () => onOpenRules(item.id) : undefined}
+                    testID={`why-rule-${item.id}`}
+                  >
+                    <Text style={styles.value}>
+                      {factText(item, players)}
+                      {onOpenRules ? <Text style={styles.link}> {t('why.readTheRules')}</Text> : null}
+                    </Text>
                   </Pressable>
-                ) : null}
+                ))}
               </View>
-            ))}
+            ) : null}
 
             {refusal.remedy ? (
               <View style={styles.layer}>
@@ -148,10 +156,16 @@ export function WhySheet({
   );
 }
 
-/** The remedy button says what the offer says, so pressing it holds no surprise. */
+/**
+ * The remedy button says what the offer's own control says, so pressing it
+ * holds no surprise.
+ *
+ * Through `label`, not `t`: an offer whose key has no wording is rendered by
+ * shape everywhere else on the board ("Undo draw"), and falling back to the
+ * bare verb here instead put a lowercase "undo" under a sentence.
+ */
 function remedyLabel(offer: ActionOffer): string {
-  const key = offer.labelKey ?? `verb.${offer.verb}`;
-  return t(key, undefined, offer.verb);
+  return label(offer.labelKey ?? `verb.${offer.verb}`) || offer.verb;
 }
 
 function whySheetStyles(metrics: Metrics) {
@@ -185,7 +199,12 @@ function whySheetStyles(metrics: Metrics) {
       fontWeight: '600',
     },
     reason: { color: colors.danger, fontSize: 15 * metrics.scale, fontWeight: '700' },
-    value: { color: colors.text, fontSize: 14 * metrics.scale, lineHeight: 20 * metrics.scale },
+    value: {
+      color: colors.text,
+      fontSize: 14 * metrics.scale,
+      lineHeight: 20 * metrics.scale,
+      marginBottom: 4,
+    },
     link: { color: colors.accent, fontSize: 13 * metrics.scale, marginTop: 3 },
     actions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
     primary: {

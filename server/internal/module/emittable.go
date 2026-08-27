@@ -200,6 +200,12 @@ type EmittableKeys struct {
 	// `zolik.rules.pickup.obligation` into a rule, so these are the other
 	// half of what wording is not optional for.
 	SentenceKeys []string `json:"sentenceKeys"`
+	// ParamsByKey is which params each key is ever sent with, so wording can
+	// be checked against what will actually be substituted into it. A
+	// template referring to {value} where the server sends {n} renders the
+	// placeholder verbatim at the player — "Round {value}" — and nothing but
+	// looking at it would otherwise catch that.
+	ParamsByKey map[string][]string `json:"paramsByKey"`
 	// LabelKeysWithData are the subset ever emitted carrying params or a
 	// value of their own. The distinction matters: a client turns an
 	// unworded key into readable English by its own shape, so `zone.drawPile`
@@ -224,8 +230,23 @@ func CollectKeys(reg *Registry, dirs ...string) (EmittableKeys, error) {
 	// segment — because a module emits one only when a player is actually
 	// refused, which no test can provoke for every code.
 	sentences := map[string]bool{}
+	params := map[string]map[string]bool{}
+	noteParams := func(key string, names ...string) {
+		if key == "" || len(names) == 0 {
+			return
+		}
+		if params[key] == nil {
+			params[key] = map[string]bool{}
+		}
+		for _, n := range names {
+			params[key][n] = true
+		}
+	}
 
 	for _, dir := range dirs {
+		for k, names := range paramNamesIn(dir) {
+			noteParams(k, names...)
+		}
 		for k, carries := range labelKeysIn(dir) {
 			labels[k] = true
 			if carries {
@@ -262,6 +283,12 @@ func CollectKeys(reg *Registry, dirs ...string) (EmittableKeys, error) {
 					if len(it.Params) > 0 || it.Value != "" {
 						withData[it.LabelKey] = true
 					}
+					for name := range it.Params {
+						noteParams(it.LabelKey, name)
+					}
+					if it.Value != "" {
+						noteParams(it.LabelKey, "value")
+					}
 				}
 			}
 		}
@@ -282,6 +309,15 @@ func CollectKeys(reg *Registry, dirs ...string) (EmittableKeys, error) {
 		if k != "" {
 			out.SentenceKeys = append(out.SentenceKeys, k)
 		}
+	}
+	out.ParamsByKey = map[string][]string{}
+	for key, names := range params {
+		list := []string{}
+		for n := range names {
+			list = append(list, n)
+		}
+		sortStrings(list)
+		out.ParamsByKey[key] = list
 	}
 	sortStrings(out.LabelKeys)
 	sortStrings(out.LabelKeysWithData)
@@ -453,4 +489,87 @@ func collectStringConsts(file *ast.File, into map[string]string) {
 			}
 		}
 	}
+}
+
+// paramNamesIn reads which params each key is built with — the keys of the
+// map literal next to a LabelKey, plus "value" where a Value is set.
+//
+// Static, so it sees a fact that is only ever built when a game reaches some
+// state no test plays to. That is exactly the fact whose wording nobody
+// checks by eye.
+func paramNamesIn(dir string) map[string][]string {
+	out := map[string][]string{}
+	fset := token.NewFileSet()
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return out
+	}
+	consts := map[string]string{}
+	files := []*ast.File{}
+	for _, e := range entries {
+		name := e.Name()
+		if e.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
+			continue
+		}
+		f, err := parser.ParseFile(fset, filepath.Join(dir, name), nil, 0)
+		if err != nil {
+			continue
+		}
+		files = append(files, f)
+		collectStringConsts(f, consts)
+	}
+
+	for _, f := range files {
+		ast.Inspect(f, func(n ast.Node) bool {
+			lit, ok := n.(*ast.CompositeLit)
+			if !ok {
+				return true
+			}
+			key, names := "", []string{}
+			for _, elt := range lit.Elts {
+				kv, ok := elt.(*ast.KeyValueExpr)
+				if !ok {
+					continue
+				}
+				field, ok := kv.Key.(*ast.Ident)
+				if !ok {
+					continue
+				}
+				switch field.Name {
+				case "LabelKey", "TitleKey":
+					switch v := kv.Value.(type) {
+					case *ast.BasicLit:
+						if v.Kind == token.STRING {
+							key = strings.Trim(v.Value, `"`)
+						}
+					case *ast.Ident:
+						if s, ok := consts[v.Name]; ok {
+							key = s
+						}
+					}
+				case "Value":
+					names = append(names, "value")
+				case "Params":
+					pl, ok := kv.Value.(*ast.CompositeLit)
+					if !ok {
+						continue
+					}
+					for _, pe := range pl.Elts {
+						pkv, ok := pe.(*ast.KeyValueExpr)
+						if !ok {
+							continue
+						}
+						if nameLit, ok := pkv.Key.(*ast.BasicLit); ok && nameLit.Kind == token.STRING {
+							names = append(names, strings.Trim(nameLit.Value, `"`))
+						}
+					}
+				}
+			}
+			if key != "" && len(names) > 0 {
+				out[key] = append(out[key], names...)
+			}
+			return true
+		})
+	}
+	return out
 }

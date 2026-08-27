@@ -465,13 +465,23 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 		{LabelKey: "header.round", Params: map[string]any{"n": gs.Round}},
 		{LabelKey: "header.deck", Value: fmt.Sprint(len(gs.DrawPile))},
 	}
+	// What this deal asks for, in the one phrasing that is true of it. A
+	// single key with sets and runs in it read "Needs 0 sets and 0 runs" on a
+	// Žolík Classic table, where the whole requirement is a joker-free run —
+	// so the module picks the sentence, rather than a client trying to make
+	// one template cover three different demands.
 	contract := cfg.ContractFor(gs.GameNumber)
-	vm.Header = append(vm.Header, module.Fact{
-		LabelKey: "header.contract",
-		Params: map[string]any{
-			"sets": contract.Sets, "runs": contract.Runs, "cleanRun": contract.RequireCleanRun,
-		},
-	})
+	switch {
+	case contract.Sets > 0 || contract.Runs > 0:
+		vm.Header = append(vm.Header, module.Fact{
+			LabelKey: "header.contract",
+			Params: map[string]any{
+				"sets": contract.Sets, "runs": contract.Runs, "cleanRun": contract.RequireCleanRun,
+			},
+		})
+	case contract.RequireCleanRun:
+		vm.Header = append(vm.Header, module.Fact{LabelKey: "header.contract.cleanRunOnly"})
+	}
 	if gs.DiscardDrawnCardPendingMeld != "" && gs.CurrentTurn == viewerID {
 		vm.Prompts = append(vm.Prompts, module.Fact{
 			LabelKey: "prompt.pickupMustBeMelded",

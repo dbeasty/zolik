@@ -56,6 +56,29 @@ describe('server key coverage', () => {
     expect(missing).toEqual([]);
   });
 
+  // The bug this catches was found by looking at a screen: the header read
+  // "Round {value}" because the wording said {value} and the server sends
+  // {n}. `interpolate` leaves an unknown placeholder verbatim — correct
+  // behaviour, and invisible until somebody reads the screen.
+  it.each(LOCALES.map((l) => l.id))(
+    '%s only uses placeholders the server actually sends',
+    (locale) => {
+      const params = serverKeys.paramsByKey as Record<string, string[]>;
+      const wrong: string[] = [];
+      for (const [key, sent] of Object.entries(params)) {
+        const wording = BUNDLES[locale][key];
+        if (!wording) continue;
+        for (const placeholder of wording.match(/\{(\w+)\}/g) ?? []) {
+          const name = placeholder.slice(1, -1);
+          if (!sent.includes(name)) {
+            wrong.push(`${key}: {${name}} is never sent (sent: ${sent.join(', ') || 'nothing'})`);
+          }
+        }
+      }
+      expect(wrong).toEqual([]);
+    },
+  );
+
   it('reports codes the engine declares but never returns', () => {
     // Not a failure — a declared code nothing returns is either an
     // unimplemented rule or a leftover, and only a person can tell which.

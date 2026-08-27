@@ -352,7 +352,8 @@ const en: Record<string, string> = {
   // The shape fallback renders these with the number missing ("Stack", "Pot"),
   // which is why they earn a line where most keys do not.
   'header.contract': 'Needs {sets} sets and {runs} runs',
-  'header.round': 'Round {value}',
+  'header.contract.cleanRunOnly': 'Needs a joker-free run',
+  'header.round': 'Round {n}',
   'header.deck': 'Deck',
   'header.target': 'Target',
   'header.suitInPlay': 'Suit in play',
@@ -365,7 +366,7 @@ const en: Record<string, string> = {
   'prompt.chooseSuit': 'Choose the suit that continues',
   'prompt.skipPending': 'Your turn is skipped',
   'status.lastDeal': 'Team {team} scored {value}',
-  'status.teamScore': 'Team {team}: {score}',
+  'status.teamScore': 'Team {team}: {value}',
   'canasta.offer.rank': 'Rank',
   'canasta.seat.teamScore': 'Team score',
   'canasta.seat.canastas': 'Canastas',
@@ -397,6 +398,7 @@ const en: Record<string, string> = {
   // goes under each is sent by the server or worded above.
   'why.reason': 'Why not',
   'why.rule': 'The rule',
+  'why.rules': 'The rules',
   'why.remedy': 'What you can do',
   'why.readTheRules': 'Read the full rules →',
   'why.close': 'Close',
@@ -686,7 +688,8 @@ const cs: Record<string, string> = {
   // The shape fallback renders these with the number missing ("Stack", "Pot"),
   // which is why they earn a line where most keys do not.
   'header.contract': 'Potřebuje {sets} skupiny a {runs} postupky',
-  'header.round': 'Kolo {value}',
+  'header.contract.cleanRunOnly': 'Potřebuje postupku bez žolíka',
+  'header.round': 'Kolo {n}',
   'header.deck': 'Balíček',
   'header.target': 'Cíl',
   'header.suitInPlay': 'Hraje se',
@@ -699,7 +702,7 @@ const cs: Record<string, string> = {
   'prompt.chooseSuit': 'Vyber barvu, která se hraje dál',
   'prompt.skipPending': 'Tvůj tah se přeskakuje',
   'status.lastDeal': 'Tým {team} získal {value}',
-  'status.teamScore': 'Tým {team}: {score}',
+  'status.teamScore': 'Tým {team}: {value}',
   'canasta.offer.rank': 'Hodnota',
   'canasta.seat.teamScore': 'Skóre týmu',
   'canasta.seat.canastas': 'Canasty',
@@ -729,6 +732,7 @@ const cs: Record<string, string> = {
   // --- the why sheet's own furniture ---------------------------------------
   'why.reason': 'Proč ne',
   'why.rule': 'Pravidlo',
+  'why.rules': 'Pravidla',
   'why.remedy': 'Co s tím můžeš udělat',
   'why.readTheRules': 'Zobrazit celá pravidla →',
   'why.close': 'Zavřít',
