@@ -29,16 +29,32 @@ export function useMatchSocket(url: string | null): MatchSocketState {
   // Reconnect attempts, reset on every successful open. Kept in a ref so the
   // backoff survives re-renders without causing them.
   const attemptRef = useRef(0);
-  const closedRef = useRef(false);
 
   useEffect(() => {
     if (!url) return;
-    closedRef.current = false;
+    // Whether *this* run of the effect has been torn down.
+    //
+    // Deliberately a plain local rather than a ref shared with the next run,
+    // which is what it used to be. A ref cannot express "this chain is over"
+    // to a socket the previous run opened: cleanup set it true, the next run
+    // set it straight back to false, and the old socket's `onclose` — which
+    // always lands after both, being a task rather than part of the commit —
+    // read false and scheduled its own reconnect, on its own `timer`, which no
+    // cleanup could ever reach. That orphan chain then reconnected forever
+    // beside the live one, each socket displacing the other on the server,
+    // each displacement pausing the table, and `send` firing into whichever
+    // one had just been closed. One re-run of this effect was enough to start
+    // it; nothing but a page reload stopped it.
+    let torn = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
+    // This run's own socket, so cleanup closes the one it opened rather than
+    // whichever one happens to be in the shared ref.
+    let socket: WebSocket | null = null;
 
     const open = () => {
-      if (closedRef.current) return;
+      if (torn) return;
       const ws = new WebSocket(url);
+      socket = ws;
       wsRef.current = ws;
 
       ws.onopen = () => {
@@ -65,8 +81,8 @@ export function useMatchSocket(url: string | null): MatchSocketState {
         // and never for correctness.
       };
       ws.onclose = () => {
+        if (torn) return;
         setConnected(false);
-        if (closedRef.current) return;
         // Reconnecting matters more here than it does for a local game: the
         // server suspends a match whose active player drops, and resumes it
         // when they return. Coming back is what un-pauses the table.
@@ -81,16 +97,31 @@ export function useMatchSocket(url: string | null): MatchSocketState {
 
     open();
     return () => {
-      closedRef.current = true;
+      torn = true;
       if (timer) clearTimeout(timer);
-      wsRef.current?.close();
-      wsRef.current = null;
+      socket?.close();
+      // Only if it is still this run's: a later run may already have put its
+      // own socket there, and clearing that one would leave `send` with
+      // nothing to write to.
+      if (wsRef.current === socket) wsRef.current = null;
+      setConnected(false);
     };
   }, [url]);
 
   const send = useCallback((action: MatchAction) => {
     const ws = wsRef.current;
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      // Said out loud rather than dropped.
+      //
+      // Returning silently here is what made a connection fault read as a
+      // rules fault: a player pressed Discard on a perfectly legal card, the
+      // action went nowhere, and the board gave back nothing at all — no
+      // refusal, no spinner, no hint that the socket was the problem. The
+      // whole board is still on screen during a reconnect, so there is
+      // nothing else to tell them from.
+      setError({ code: 'NOT_CONNECTED' });
+      return;
+    }
     setError(null);
     ws.send(JSON.stringify(action));
   }, []);
