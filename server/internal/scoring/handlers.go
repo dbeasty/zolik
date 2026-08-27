@@ -1,7 +1,6 @@
 package scoring
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"sort"
@@ -9,18 +8,15 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
-
-	"zolik/server/internal/db"
 )
 
 type Handlers struct {
-	dbm *db.Mongo
+	repo Repository
 }
 
 // NewHandlers creates scoring session REST handlers.
-func NewHandlers(m *db.Mongo) *Handlers {
-	return &Handlers{dbm: m}
+func NewHandlers(repo Repository) *Handlers {
+	return &Handlers{repo: repo}
 }
 
 type createReq struct {
@@ -85,8 +81,7 @@ func (h *Handlers) create(w http.ResponseWriter, req *http.Request) {
 		UpdatedAt: now,
 	}
 
-	coll := h.dbm.Collections().Scoring
-	if _, err := coll.InsertOne(ctx, s); err != nil {
+	if err := h.repo.Insert(ctx, s); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -103,9 +98,8 @@ func (h *Handlers) get(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var s ScoringSession
-	coll := h.dbm.Collections().Scoring
-	if err := coll.FindOne(ctx, bson.M{"_id": oid}).Decode(&s); err != nil {
+	s, err := h.repo.FindByID(ctx, oid)
+	if err != nil {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
@@ -133,9 +127,8 @@ func (h *Handlers) patch(w http.ResponseWriter, req *http.Request) {
 	}
 	idx := body.Round - 1
 
-	coll := h.dbm.Collections().Scoring
-	var s ScoringSession
-	if err := coll.FindOne(ctx, bson.M{"_id": oid}).Decode(&s); err != nil {
+	s, err := h.repo.FindByID(ctx, oid)
+	if err != nil {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
@@ -154,8 +147,7 @@ func (h *Handlers) patch(w http.ResponseWriter, req *http.Request) {
 	}
 
 	s.UpdatedAt = time.Now().UTC()
-	_, err = coll.ReplaceOne(ctx, bson.M{"_id": oid}, s, options.Replace().SetUpsert(false))
-	if err != nil {
+	if err := h.repo.Replace(ctx, s); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -172,9 +164,8 @@ func (h *Handlers) export(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "invalid session id", http.StatusBadRequest)
 		return
 	}
-	var s ScoringSession
-	coll := h.dbm.Collections().Scoring
-	if err := coll.FindOne(ctx, bson.M{"_id": oid}).Decode(&s); err != nil {
+	s, err := h.repo.FindByID(ctx, oid)
+	if err != nil {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
@@ -184,7 +175,6 @@ func (h *Handlers) export(w http.ResponseWriter, req *http.Request) {
 		"type": "export_stub",
 		"data": resp,
 	})
-	_ = context.Background()
 }
 
 func buildGetResp(s ScoringSession) getResp {

@@ -1,0 +1,3 @@
+
+# Embedded KDB data (FEATURE_FLAG_DB_ENGINE=kdb, KDB_PATH default)
+data/

@@ -48,6 +48,45 @@ func testMongoURI() string {
 	return "mongodb://127.0.0.1:27018"
 }
 
+// newTestRepository builds the match repository these tests run on: the dev
+// compose stack's MongoDB by default (skipping when unreachable), or the
+// embedded KDB engine when ZOLIK_TEST_DB_ENGINE=kdb — same tests, same
+// routes, other storage engine.
+func newTestRepository(t *testing.T) match.Repository {
+	t.Helper()
+	if strings.EqualFold(strings.TrimSpace(os.Getenv("ZOLIK_TEST_DB_ENGINE")), db.EngineKDB) {
+		k, err := db.OpenKDB(t.TempDir())
+		if err != nil {
+			t.Fatalf("opening kdb: %v", err)
+		}
+		t.Cleanup(func() { _ = k.Close(context.Background()) })
+		return match.NewKDBRepository(k)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	client, err := mongo.Connect(options.Client().ApplyURI(testMongoURI()))
+	if err != nil {
+		t.Skipf("could not build a mongo client: %v", err)
+	}
+	if err := client.Ping(ctx, nil); err != nil {
+		t.Skipf("no reachable mongo at %s (set ZOLIK_TEST_MONGO_URI, or start the dev compose stack): %v",
+			testMongoURI(), err)
+	}
+	dbName := fmt.Sprintf("zolik_invitetest_%d", time.Now().UnixNano())
+	m := &db.Mongo{Client: client, DB: client.Database(dbName)}
+	if err := m.EnsureIndexes(ctx); err != nil {
+		t.Fatalf("ensuring indexes: %v", err)
+	}
+	t.Cleanup(func() {
+		dropCtx, dropCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer dropCancel()
+		_ = m.DB.Drop(dropCtx)
+		_ = client.Disconnect(dropCtx)
+	})
+	return match.NewRepository(m)
+}
+
 // fakeWaitingRoom is a minimal, in-test stand-in for *lobby.Store —
 // match.WaitingLookup is a narrow, primitive-typed interface precisely so
 // nothing here needs to depend on the real lobby package to exercise it.
@@ -105,28 +144,8 @@ type inviteHarness struct {
 
 func newInviteHarness(t *testing.T) *inviteHarness {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
 
-	client, err := mongo.Connect(options.Client().ApplyURI(testMongoURI()))
-	if err != nil {
-		t.Skipf("could not build a mongo client: %v", err)
-	}
-	if err := client.Ping(ctx, nil); err != nil {
-		t.Skipf("no reachable mongo at %s (set ZOLIK_TEST_MONGO_URI, or start the dev compose stack): %v",
-			testMongoURI(), err)
-	}
-	dbName := fmt.Sprintf("zolik_invitetest_%d", time.Now().UnixNano())
-	m := &db.Mongo{Client: client, DB: client.Database(dbName)}
-	if err := m.EnsureIndexes(ctx); err != nil {
-		t.Fatalf("ensuring indexes: %v", err)
-	}
-	t.Cleanup(func() {
-		dropCtx, dropCancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer dropCancel()
-		_ = m.DB.Drop(dropCtx)
-		_ = client.Disconnect(dropCtx)
-	})
+	repo := newTestRepository(t)
 
 	hub, err := ws.NewHub(ws.NewConnRegistry(), "")
 	if err != nil {
@@ -135,7 +154,7 @@ func newInviteHarness(t *testing.T) *inviteHarness {
 	t.Cleanup(func() { _ = hub.Close() })
 
 	mods := module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New())
-	manager := match.NewManager(match.NewRepository(m), mods, hub)
+	manager := match.NewManager(repo, mods, hub)
 	waiting := newFakeWaitingRoom()
 	manager.SetWaitingRoom(waiting, testWaitingRoom)
 
@@ -385,25 +404,8 @@ func TestInviteWithNoWaitingRoomWiredInIsUnavailable(t *testing.T) {
 // the documented degrade-gracefully behaviour independent of any fake.
 func (h *inviteHarness) doAgainstHandlersWithNoWaitingRoom(t *testing.T, hostToken string) apiResponse {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	client, err := mongo.Connect(options.Client().ApplyURI(testMongoURI()))
-	if err != nil {
-		t.Skipf("could not build a mongo client: %v", err)
-	}
-	if err := client.Ping(ctx, nil); err != nil {
-		t.Skipf("mongo unreachable: %v", err)
-	}
-	m := &db.Mongo{Client: client, DB: client.Database(fmt.Sprintf("zolik_invitetest_nowaiting_%d", time.Now().UnixNano()))}
-	if err := m.EnsureIndexes(ctx); err != nil {
-		t.Fatalf("ensuring indexes: %v", err)
-	}
-	t.Cleanup(func() {
-		dropCtx, dropCancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer dropCancel()
-		_ = m.DB.Drop(dropCtx)
-		_ = client.Disconnect(dropCtx)
-	})
+
+	repo := newTestRepository(t)
 
 	hub, err := ws.NewHub(ws.NewConnRegistry(), "")
 	if err != nil {
@@ -412,7 +414,7 @@ func (h *inviteHarness) doAgainstHandlersWithNoWaitingRoom(t *testing.T, hostTok
 	t.Cleanup(func() { _ = hub.Close() })
 	mods := module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New())
 	// Deliberately no waiting room wired in.
-	manager := match.NewManager(match.NewRepository(m), mods, hub)
+	manager := match.NewManager(repo, mods, hub)
 	r := chi.NewRouter()
 	match.NewHandlers(manager, false).RegisterRoutes(r)
 	srv := httptest.NewServer(r)

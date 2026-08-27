@@ -8,9 +8,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo"
 
 	"zolik/server/internal/auth"
+	"zolik/server/internal/db"
 	"zolik/server/internal/models"
 )
 
@@ -142,7 +142,7 @@ func (h *Handlers) patchMe(w http.ResponseWriter, req *http.Request) {
 	if err := h.repo.UpdateByID(req.Context(), oid, update); err != nil {
 		// The unique index on username is what makes a clash a clash; report
 		// it as one rather than as a server fault.
-		if mongo.IsDuplicateKeyError(err) {
+		if db.IsDuplicateKey(err) {
 			http.Error(w, "that name is already taken", http.StatusConflict)
 			return
 		}

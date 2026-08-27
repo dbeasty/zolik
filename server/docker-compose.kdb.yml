@@ -1,0 +1,46 @@
+# The KDB deployment shape: ONE container, nothing else.
+#
+# FEATURE_FLAG_DB_ENGINE=kdb runs the storage engine embedded inside the
+# server process — no MongoDB, no mongo-express, no Redis — which is the
+# whole memory-footprint story: the fixed cost of the stack is one Go binary
+# plus its data directory. The websocket hub and the lobby waiting room fall
+# back to their in-process implementations when REDIS_URL is unset, which is
+# the supported single-instance mode.
+#
+#   docker compose -f docker-compose.kdb.yml up --build
+#
+# The build needs the kdb sibling checkout (../../kdb from this file) — same
+# additional_contexts wiring as docker-compose.yml. To move an existing
+# deployment back to Mongo, deploy docker-compose.yml instead: the image is
+# identical, only the flag differs.
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+      additional_contexts:
+        kdbsrc: ../../kdb
+      args:
+        ZOLIK_VERSION: "${ZOLIK_VERSION:-0.0.0-dev}"
+        ZOLIK_COMMIT: "${ZOLIK_COMMIT:-unknown}"
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      FEATURE_FLAG_DB_ENGINE: kdb
+      KDB_PATH: /data/kdb
+      PORT: "8090"
+      SSH_ENABLED: "true"
+      SSH_PORT: "2222"
+      SSH_HOST_KEY_PATH: /tmp/zolik-ssh/zolik_host_key
+      SSH_ALLOW_ALL_KEYS: "true"
+    volumes:
+      # /data is created nonroot-owned in the image, so the engine can write
+      # under the distroless nonroot user.
+      - kdb_data:/data
+    ports:
+      - "8090:8090"
+      - "2222:2222"
+
+volumes:
+  kdb_data:

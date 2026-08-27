@@ -288,14 +288,21 @@ func (r *mongoRepository) Leaderboard(ctx context.Context, q LeaderboardQuery) (
 		return nil, err
 	}
 
+	return rankLeaderboard(rows, q.Scope, q.MinMatches, limit), nil
+}
+
+// rankLeaderboard sorts and trims loaded lifetime records into leaderboard
+// rows. Shared by both storage backends, so the ranking rules cannot drift
+// between them.
+func rankLeaderboard(rows []PlayerStats, scope string, minMatches, limit int) []LeaderboardRow {
 	type entry struct {
 		ps PlayerStats
 		t  Tally
 	}
 	entries := make([]entry, 0, len(rows))
 	for _, ps := range rows {
-		t := ScopedTally(ps, q.Scope)
-		if t.Matches == 0 || t.Matches < q.MinMatches {
+		t := ScopedTally(ps, scope)
+		if t.Matches == 0 || t.Matches < minMatches {
 			continue
 		}
 		entries = append(entries, entry{ps: ps, t: t})
@@ -336,7 +343,7 @@ func (r *mongoRepository) Leaderboard(ctx context.Context, q LeaderboardQuery) (
 			LastMatchAt:      e.ps.LastMatchAt,
 		})
 	}
-	return out, nil
+	return out
 }
 
 // ScopedTally picks the tally a scope name refers to. An unknown scope falls

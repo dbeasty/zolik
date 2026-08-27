@@ -26,10 +26,13 @@ import (
 )
 
 type App struct {
-	cfg  Config
-	db   *db.Mongo
-	hub  *ws.Hub
-	auth *auth.Handlers
+	cfg Config
+	// closeDB releases whichever storage backend New opened — a Mongo client,
+	// or the embedded KDB engine. Repositories below are the only other
+	// handles anything holds on it.
+	closeDB func(ctx context.Context) error
+	hub     *ws.Hub
+	auth    *auth.Handlers
 	// waitingRoom is the pool of human players waiting to be picked up into
 	// a match — see internal/lobby. Rides the same Hub as match rooms do, so
 	// it needs no database of its own and no separate scaling story.
@@ -38,9 +41,69 @@ type App struct {
 	// re-constructed per route group — a repository handle is cheap to hold,
 	// and building it twice was never anything but two names for the same
 	// backend.
-	statsRepo stats.Repository
-	userRepo  userrepo.Repository
-	authStore auth.Store
+	statsRepo   stats.Repository
+	userRepo    userrepo.Repository
+	authStore   auth.Store
+	matchRepo   match.Repository
+	scoringRepo scoring.Repository
+}
+
+// repos is every repository the app wires, built in one place so the two
+// storage engines stay column-for-column comparable — a repository added to
+// one and forgotten in the other is a compile error here, not a nil panic in
+// a handler.
+type repos struct {
+	stats    stats.Repository
+	user     userrepo.Repository
+	store    auth.Store
+	sessions auth.SessionRepository
+	match    match.Repository
+	scoring  scoring.Repository
+	close    func(ctx context.Context) error
+}
+
+// mongoRepos connects to MongoDB and builds the Mongo-backed repositories —
+// the engine every deployment ran on before the KDB feature flag existed.
+func mongoRepos(ctx context.Context, cfg Config) (repos, error) {
+	m, err := db.Connect(ctx, db.Config{
+		URI: cfg.MongoURI,
+		DB:  cfg.MongoDB,
+	})
+	if err != nil {
+		return repos{}, err
+	}
+	if err := m.EnsureIndexes(ctx); err != nil {
+		_ = m.Close(ctx)
+		return repos{}, err
+	}
+	return repos{
+		stats:    stats.NewRepository(m),
+		user:     userrepo.NewRepository(m),
+		store:    auth.NewStore(m),
+		sessions: auth.NewSessionRepository(m),
+		match:    match.NewRepository(m),
+		scoring:  scoring.NewRepository(m),
+		close:    m.Close,
+	}, nil
+}
+
+// kdbRepos opens the embedded KDB engine and builds its repositories. No
+// server process, no connection string: the database is a directory, and an
+// empty path keeps it all in memory.
+func kdbRepos(cfg Config) (repos, error) {
+	k, err := db.OpenKDB(cfg.KDBPath)
+	if err != nil {
+		return repos{}, err
+	}
+	return repos{
+		stats:    stats.NewKDBRepository(k),
+		user:     userrepo.NewKDBRepository(k),
+		store:    auth.NewKDBStore(k),
+		sessions: auth.NewKDBSessionRepository(k),
+		match:    match.NewKDBRepository(k),
+		scoring:  scoring.NewKDBRepository(k),
+		close:    k.Close,
+	}, nil
 }
 
 func New(cfg Config) (*App, error) {
@@ -57,22 +120,21 @@ func New(cfg Config) (*App, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	m, err := db.Connect(ctx, db.Config{
-		URI: cfg.MongoURI,
-		DB:  cfg.MongoDB,
-	})
-	if err != nil {
-		return nil, err
+	var r repos
+	var err error
+	if cfg.DBEngine == db.EngineKDB {
+		r, err = kdbRepos(cfg)
+	} else {
+		r, err = mongoRepos(ctx, cfg)
 	}
-	if err := m.EnsureIndexes(ctx); err != nil {
-		_ = m.Close(ctx)
+	if err != nil {
 		return nil, err
 	}
 
 	registry := ws.NewConnRegistry()
 	hub, err := ws.NewHub(registry, cfg.RedisURL)
 	if err != nil {
-		_ = m.Close(ctx)
+		_ = r.close(ctx)
 		return nil, err
 	}
 
@@ -81,33 +143,27 @@ func New(cfg Config) (*App, error) {
 	// trade-off, same "fine for development without it" story.
 	waitingRoom, err := lobby.NewStore(cfg.RedisURL)
 	if err != nil {
-		_ = m.Close(ctx)
+		_ = r.close(ctx)
 		return nil, err
 	}
-
-	statsRepo := stats.NewRepository(m)
-	userRepo := userrepo.NewRepository(m)
-	// Built once and shared: auth.Handlers and the user route group both need
-	// it, and a repository handle has no reason to exist twice.
-	authStore := auth.NewStore(m)
 
 	// Mail is resolved at startup rather than at first use: a deployment that
 	// offers email sign-in but cannot send mail should fail to start, not fail
 	// silently for the first player who tries it.
 	mailer, err := auth.NewMailer(cfg.SMTP, cfg.Env == "" || cfg.Env == "local")
 	if err != nil {
-		_ = m.Close(ctx)
+		_ = r.close(ctx)
 		return nil, err
 	}
 
 	authHandlers := auth.NewHandlers(auth.Deps{
-		Store:     authStore,
-		Sessions:  auth.NewSessionRepository(m),
+		Store:     r.store,
+		Sessions:  r.sessions,
 		Providers: identity.FromConfig(cfg.Identity),
 		Mailer:    mailer,
 		// The claimer is injected for the same reason the match recorder is:
 		// stats imports auth for its middleware, so auth cannot import stats.
-		Claimer:              stats.NewClaimer(statsRepo),
+		Claimer:              stats.NewClaimer(r.stats),
 		PublicBaseURL:        cfg.PublicBaseURL,
 		AllowedReturnURLs:    cfg.AllowedReturnURLs,
 		AppName:              "Žolíky",
@@ -116,13 +172,15 @@ func New(cfg Config) (*App, error) {
 
 	return &App{
 		cfg:         cfg,
-		db:          m,
+		closeDB:     r.close,
 		hub:         hub,
 		auth:        authHandlers,
 		waitingRoom: waitingRoom,
-		statsRepo:   statsRepo,
-		userRepo:    userRepo,
-		authStore:   authStore,
+		statsRepo:   r.stats,
+		userRepo:    r.user,
+		authStore:   r.store,
+		matchRepo:   r.match,
+		scoringRepo: r.scoring,
 	}, nil
 }
 
@@ -141,8 +199,8 @@ func (a *App) Close(ctx context.Context) error {
 		_ = a.waitingRoom.Close()
 		a.waitingRoom = nil
 	}
-	if a.db != nil {
-		return a.db.Close(ctx)
+	if a.closeDB != nil {
+		return a.closeDB(ctx)
 	}
 	return nil
 }
@@ -168,7 +226,7 @@ func (a *App) routeGroups() []routeGroup {
 	// is named: register a module and it appears in /modules, in the lobby's
 	// picker, and on the one screen that plays all of them.
 	modules := module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New())
-	matchMgr := match.NewManager(match.NewRepository(a.db), modules, a.hub)
+	matchMgr := match.NewManager(a.matchRepo, modules, a.hub)
 	// The recorder turns each completed match into a permanent record plus the
 	// lifetime updates derived from it. Injected rather than constructed
 	// inside the manager, so the runtime never has to import stats.
@@ -200,7 +258,7 @@ func (a *App) routeGroups() []routeGroup {
 		{"auth", a.auth.RegisterRoutes},
 		{"lobby", lobbyHandlers.RegisterRoutes},
 		{"user", userrepo.NewHandlers(a.userRepo, a.authStore).RegisterRoutes},
-		{"scoring", scoring.NewHandlers(a.db).RegisterRoutes},
+		{"scoring", scoring.NewHandlers(a.scoringRepo).RegisterRoutes},
 		// The runtime, and now the only gameplay path there is. It replaced
 		// the Žolíky-specific one rather than sitting beside it: /games, its
 		// documents, its socket and its 24-field wire message are gone.
