@@ -119,23 +119,36 @@ func (i *Intermission) Seats(order []string) []Seat {
 // Disabled rather than absent, like every other offer here — an omitted offer
 // is indistinguishable from a client bug, and "greyed out, and here is why" is
 // what an interface actually needs.
+//
+// The offer is built for one viewer, so it can say which of the two situations
+// this seat is in rather than describing the table and leaving them to work it
+// out. That distinction is the whole point: the control used to read "Next
+// round / Waiting for 1" whether the table was waiting for *you* or for
+// somebody else, which is a status line in both cases and an instruction in
+// neither. Now it is an instruction while it is yours to give, and a status
+// line only once you have given it.
+//
+// It carries no count of who is left, deliberately. Every seat still to agree
+// is marked active on the board, so a number here would be a second, vaguer
+// copy of something the seats already show precisely.
 func (i *Intermission) Offers(order []string, playerID string) []ActionOffer {
-	waiting := i.Waiting(order)
 	o := ActionOffer{
 		ID:       OfferContinue,
 		Verb:     VerbContinue,
 		LabelKey: "round.continue",
 		Enabled:  i.Open && seated(order, playerID) && !i.Ready[playerID],
-		Facts: []Fact{{
-			LabelKey: "round.waitingFor",
-			Params:   map[string]any{"n": len(waiting), "players": waiting},
-		}},
 	}
-	if !o.Enabled {
+	switch {
+	case o.Enabled:
+		// Nothing else to say: the table is waiting on this seat, and the
+		// control says what pressing it does.
+	case !seated(order, playerID):
+		o.WhyNot = ErrNotSeated
+	default:
+		// The refusal alone says it. The shell already tells a player with
+		// nothing to do that the table is waiting on somebody else, so a fact
+		// here saying the same thing put it on screen twice.
 		o.WhyNot = ErrAlreadyReady
-		if !seated(order, playerID) {
-			o.WhyNot = ErrNotSeated
-		}
 	}
 	return []ActionOffer{o}
 }
