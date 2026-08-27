@@ -965,3 +965,31 @@ func TestFinishedReportsTheWinningPartnership(t *testing.T) {
 		t.Error("the view should carry per-team standings, since Finished can only name one player")
 	}
 }
+
+// TestNewMatch_DealerVariesBySeed guards the fix for a lobby's host always
+// dealing first: before it, Dealer was always seat 0 (so seat 1 always
+// opened). Now it is picked from the match seed via module.StartingSeat, and
+// dealNew leads from Dealer+1 — so the seat that actually opens is exactly
+// the seed's chosen seat.
+func TestNewMatch_DealerVariesBySeed(t *testing.T) {
+	players := []module.PlayerRef{{ID: "p1"}, {ID: "p2"}}
+	seen := map[string]bool{}
+	for seed := int64(0); seed < 40; seed++ {
+		raw, err := New().NewMatch(module.MatchConfig{}, players, seed)
+		if err != nil {
+			t.Fatalf("seed %d: NewMatch: %v", seed, err)
+		}
+		s, err := decode(raw)
+		if err != nil {
+			t.Fatalf("seed %d: decode: %v", seed, err)
+		}
+		want := module.StartingSeat(seed, len(players))
+		if s.Current != s.TurnOrder[want] {
+			t.Fatalf("seed %d: opened on %q, want seat %d (%q)", seed, s.Current, want, s.TurnOrder[want])
+		}
+		seen[s.Current] = true
+	}
+	if len(seen) < 2 {
+		t.Fatalf("40 seeds only ever opened on %v — the opening seat is not varying", seen)
+	}
+}

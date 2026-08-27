@@ -112,7 +112,24 @@ const (
 	OptInitialMeldMinimum  = "initialMeldMinimum"
 	OptDiscardDrawMinRound = "discardDrawMinRound"
 	OptRequireCleanRun     = "requireCleanRun"
+	OptDealStarter         = "dealStarter"
 )
+
+// DealStarterOpt/ParseDealStarterOpt carry a DealStarterMode over the
+// enum_int wire shape, the same way BoolOpt carries a bool.
+func DealStarterOpt(mode DealStarterMode) int {
+	if mode == DealStarterWinner {
+		return OptOn
+	}
+	return OptOff
+}
+
+func ParseDealStarterOpt(v int) DealStarterMode {
+	if v == OptOn {
+		return DealStarterWinner
+	}
+	return DealStarterRotate
+}
 
 // OptOff/OptOn are the two values of a yes/no option carried over the
 // enum_int wire shape. A dedicated bool OptionType would mean a new renderer
@@ -182,6 +199,16 @@ func Descriptor() ModuleDescriptor {
 				Choices: []OptionChoice{
 					{Value: OptOn, Label: "Required"},
 					{Value: OptOff, Label: "Off"},
+				},
+			},
+			{
+				Name:  OptDealStarter,
+				Type:  OptionEnumInt,
+				Label: "Deal starter",
+				Help:  "Who leads the next deal: the table rotating through every seat, or whoever just went out.",
+				Choices: []OptionChoice{
+					{Value: DealStarterOpt(DealStarterRotate), Label: "Rotate"},
+					{Value: DealStarterOpt(DealStarterWinner), Label: "Winner leads"},
 				},
 			},
 		},

@@ -40,6 +40,11 @@ func (m *Module) Rules(mc module.MatchConfig) ([]module.RuleSection, error) {
 	if cfg.JokerDiscardRestricted {
 		turn = append(turn, module.Fact{LabelKey: "zolik.rules.jokers.restricted"})
 	}
+	if cfg.DealStarter == rules.DealStarterWinner {
+		turn = append(turn, module.Fact{LabelKey: "zolik.rules.lead.winner"})
+	} else {
+		turn = append(turn, module.Fact{LabelKey: "zolik.rules.lead.rotate"})
+	}
 
 	melding := []module.Fact{}
 	if cfg.InitialMeldMinimum > 0 {

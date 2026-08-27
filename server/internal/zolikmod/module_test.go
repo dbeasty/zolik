@@ -235,3 +235,48 @@ func TestRegistry_HostsBothGames(t *testing.T) {
 		}
 	}
 }
+
+// TestNewMatch_OpeningPlayerVariesBySeed guards the fix for a lobby's host
+// always leading deal 1: before it, StartMatch always led with turnOrder[0].
+// Now NewMatch picks a random opening seat from the match seed.
+func TestNewMatch_OpeningPlayerVariesBySeed(t *testing.T) {
+	players := refs("p1", "p2", "p3")
+	seen := map[string]bool{}
+	for seed := int64(0); seed < 40; seed++ {
+		raw, err := New().NewMatch(module.MatchConfig{}, players, seed)
+		if err != nil {
+			t.Fatalf("seed %d: NewMatch: %v", seed, err)
+		}
+		s, err := decode(raw)
+		if err != nil {
+			t.Fatalf("seed %d: decode: %v", seed, err)
+		}
+		want := module.StartingSeat(seed, len(s.Rules.TurnOrder))
+		wantID := s.Rules.TurnOrder[want]
+		if s.Rules.CurrentTurn != wantID || s.Rules.DealStarterID != wantID {
+			t.Fatalf("seed %d: opened on turn=%q starter=%q, want %q",
+				seed, s.Rules.CurrentTurn, s.Rules.DealStarterID, wantID)
+		}
+		seen[wantID] = true
+	}
+	if len(seen) < 2 {
+		t.Fatalf("40 seeds only ever opened on %v — the opening seat is not varying", seen)
+	}
+}
+
+// TestResolveConfig_DealStarterOption checks the dealStarter table option
+// reaches rules.RulesConfig, the same generic path every other option
+// already takes through resolveConfig.
+func TestResolveConfig_DealStarterOption(t *testing.T) {
+	cfg := resolveConfig(module.MatchConfig{
+		Options: module.Options{rules.OptDealStarter: rules.DealStarterOpt(rules.DealStarterWinner)},
+	})
+	if cfg.DealStarter != rules.DealStarterWinner {
+		t.Fatalf("dealStarter=1 should resolve to DealStarterWinner, got %q", cfg.DealStarter)
+	}
+
+	cfg = resolveConfig(module.MatchConfig{})
+	if cfg.DealStarter != rules.DealStarterRotate {
+		t.Fatalf("an unset dealStarter should default to DealStarterRotate, got %q", cfg.DealStarter)
+	}
+}

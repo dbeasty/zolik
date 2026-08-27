@@ -113,6 +113,8 @@ const en: Record<string, string> = {
   'zolik.rules.turn.discard': 'End your turn by discarding one card.',
   'zolik.rules.jokers.restricted':
     'A joker can never be discarded, except as the exact card that empties your hand.',
+  'zolik.rules.lead.rotate': 'The lead rotates around the table one seat per deal, regardless of who won.',
+  'zolik.rules.lead.winner': 'Whoever goes out leads the next deal.',
   'zolik.rules.meldFloor.on':
     "Your first meld (or melds) must total at least {n} natural points before you're down.",
   'zolik.rules.meldFloor.off': "There's no minimum point value on your first meld.",
@@ -325,6 +327,8 @@ const cs: Record<string, string> = {
   'zolik.rules.turn.discard': 'Tah ukonči odhozením jedné karty.',
   'zolik.rules.jokers.restricted':
     'Žolíka nelze odhodit, kromě situace, kdy jím právě zbavíš ruku poslední karty.',
+  'zolik.rules.lead.rotate': 'Kdo je na řadě jako první, se každé kolo posouvá o jedno místo dál — bez ohledu na to, kdo vyhrál.',
+  'zolik.rules.lead.winner': 'Další kolo začíná ten, kdo se právě zbavil karet.',
   'zolik.rules.meldFloor.on':
     'Tvoje první kombinace (nebo kombinace) musí dohromady mít aspoň {n} přirozených bodů, než jsi dole.',
   'zolik.rules.meldFloor.off': 'Na první kombinaci není žádná minimální bodová hranice.',

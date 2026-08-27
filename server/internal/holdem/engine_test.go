@@ -625,3 +625,54 @@ func factKeys(m map[string]module.Fact) []string {
 	sort.Strings(out)
 	return out
 }
+
+// TestNewMatch_OpeningButtonVariesBySeed guards the fix for a lobby's host
+// always being the first button: before it, Button was seeded to -1 so
+// dealHand's own rotation always landed the first button on seat 0. Now it is
+// picked from the match seed, so different seeds should not all agree on seat
+// 0 — and each is still stable and in range.
+func TestNewMatch_OpeningButtonVariesBySeed(t *testing.T) {
+	players := []module.PlayerRef{{ID: "p1"}, {ID: "p2"}, {ID: "p3"}}
+	seen := map[int]bool{}
+	for seed := int64(0); seed < 40; seed++ {
+		raw, err := New().NewMatch(module.MatchConfig{Variation: "timed"}, players, seed)
+		if err != nil {
+			t.Fatalf("seed %d: NewMatch: %v", seed, err)
+		}
+		s := mustDecode(t, raw)
+		if s.Button < 0 || s.Button >= len(players) {
+			t.Fatalf("seed %d: button %d out of range", seed, s.Button)
+		}
+		// Button is seeded one seat behind module.StartingSeat, and dealHand
+		// rotates it forward once before the first hand — so by the time
+		// NewMatch returns, Button itself is the seed's chosen seat.
+		if want := module.StartingSeat(seed, len(players)); s.Button != want {
+			t.Fatalf("seed %d: button %d, want StartingSeat %d", seed, s.Button, want)
+		}
+		seen[s.Button] = true
+	}
+	if len(seen) < 2 {
+		t.Fatalf("40 seeds only ever opened on button(s) %v — the opening seat is not varying", seen)
+	}
+}
+
+// TestNewMatch_HeadsUpButtonStillReversesBlinds checks the random opening
+// seat did not disturb the one positional rule that is not "clockwise from
+// the button": heads-up, the button itself posts the small blind and acts
+// first preflop.
+func TestNewMatch_HeadsUpButtonStillReversesBlinds(t *testing.T) {
+	players := []module.PlayerRef{{ID: "p1"}, {ID: "p2"}}
+	for seed := int64(0); seed < 10; seed++ {
+		raw, err := New().NewMatch(module.MatchConfig{Variation: "timed"}, players, seed)
+		if err != nil {
+			t.Fatalf("seed %d: NewMatch: %v", seed, err)
+		}
+		s := mustDecode(t, raw)
+		if s.Current != s.Button {
+			t.Fatalf("seed %d: heads-up should open on the button (%d), got %d", seed, s.Button, s.Current)
+		}
+		if s.Seats[s.Button].Bet != s.SmallBlind {
+			t.Fatalf("seed %d: the button should have posted the small blind", seed)
+		}
+	}
+}

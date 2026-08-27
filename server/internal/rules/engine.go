@@ -256,10 +256,13 @@ func endGameWithEvents(state GameState, winnerID string) (ApplyOutcome, error) {
 	switch {
 	case over:
 		// Nothing to pause before; the match is finished.
-	case effectiveRules(ns).PauseBetweenDeals:
-		ns = PauseAfterDeal(ns, winnerID)
 	default:
-		if ns, err = StartNextGame(ns, winnerID); err != nil {
+		// Decided once, here, so the paused path and the straight-through
+		// path can never disagree about who leads next.
+		nextStarter := NextDealStarter(ns, effectiveRules(ns), winnerID)
+		if effectiveRules(ns).PauseBetweenDeals {
+			ns = PauseAfterDeal(ns, nextStarter)
+		} else if ns, err = StartNextGame(ns, nextStarter); err != nil {
 			return ApplyOutcome{State: state}, err
 		}
 	}

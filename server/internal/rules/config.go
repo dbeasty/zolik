@@ -38,6 +38,20 @@ const (
 	DiscardPickupAnyFromPile DiscardPickupMode = "any_from_pile"
 )
 
+// DealStarterMode controls who leads the deal after the one just scored.
+type DealStarterMode string
+
+const (
+	// DealStarterRotate: the seat after whoever led the last deal leads the
+	// next one, all the way around the table regardless of who wins.
+	DealStarterRotate DealStarterMode = "rotate"
+	// DealStarterWinner: whoever went out leads the next deal — the
+	// original behaviour, kept as a house-rule option rather than removed,
+	// since a run of wins carrying the lead along with the score is exactly
+	// what some tables want.
+	DealStarterWinner DealStarterMode = "winner"
+)
+
 // MatchEndMode controls when a match (as opposed to a single deal) ends.
 type MatchEndMode string
 
@@ -93,6 +107,12 @@ type RulesConfig struct {
 	// every deal uses StaticContract instead (Žolík Classic: no rotation).
 	FixedDealCount int
 	StaticContract ContractRequirement
+
+	// DealStarter decides who leads the deal after the one just scored.
+	// Empty behaves as DealStarterRotate, so a RulesConfig built before this
+	// field existed keeps meaning what it always meant to mean (whoever led
+	// least recently, not whoever won).
+	DealStarter DealStarterMode
 
 	MatchEndMode MatchEndMode
 	// PauseBetweenDeals stops the match after each deal is scored, instead of
