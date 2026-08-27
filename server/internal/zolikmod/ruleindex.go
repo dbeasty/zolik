@@ -79,6 +79,8 @@ func refusalRules(cfg rules.RulesConfig, code string) []string {
 		return []string{"zolik.rules.wilds.setLimit"}
 	case rules.ErrSetTooLarge:
 		return []string{"zolik.rules.set.maxSize"}
+	case rules.ErrRunTooLong:
+		return []string{"zolik.rules.run.maxLength"}
 	case rules.ErrAceBridge:
 		return []string{"zolik.rules.run.aceBridge"}
 	case rules.ErrAdjacentWilds:

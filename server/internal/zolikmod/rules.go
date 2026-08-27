@@ -50,6 +50,7 @@ func ruleSections(cfg rules.RulesConfig) []module.RuleSection {
 		}),
 		module.Rule("zolik.rules.wilds.setLimit", nil),
 		module.Rule("zolik.rules.set.maxSize", map[string]any{"n": rules.MaxSetSize}),
+		module.Rule("zolik.rules.run.maxLength", map[string]any{"n": rules.MaxRunLength}),
 		module.Rule("zolik.rules.run.aceBridge", nil),
 	}
 
