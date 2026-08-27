@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -567,6 +567,43 @@ export default function MatchScreen() {
 
   return (
     <Screen>
+      {/* The status lives in the navigation bar, beside the screen's own name
+          and hard against the left edge. It used to sit at the right end of
+          the row below, where the longest module name pushed it under the
+          scrollbar — and where it scrolled out of sight the moment a player
+          looked at their hand. Up here it is pinned: the colour is the
+          at-a-glance signal, the word beside it is the same fact spelled out,
+          and a tap still gets the fuller explanation — now printed directly
+          under the bar it was tapped on, so it lands in view from anywhere on
+          the board. */}
+      <Stack.Screen
+        options={{
+          headerTitleAlign: 'left',
+          headerTitle: () => (
+            <Pressable
+              testID="match-status-dot"
+              onPress={() => setStatusExplainerOpen((v) => !v)}
+              hitSlop={8}
+              style={styles.headerTitleGroup}
+            >
+              <Text style={styles.headerTitleText}>Match</Text>
+              <View
+                style={[styles.statusDot, statusOk ? styles.statusDotOk : styles.statusDotBad]}
+              />
+              <Text testID="match-status" style={styles.status}>
+                {state.status}
+              </Text>
+            </Pressable>
+          ),
+        }}
+      />
+      {/* Drawn outside the board rather than at the top of it, so it answers
+          the tap wherever the player happens to be scrolled to. */}
+      {statusExplainerOpen ? (
+        <Text testID="match-status-explainer" style={styles.statusExplainer}>
+          {statusExplainer}
+        </Text>
+      ) : null}
       <ScrollView contentContainerStyle={styles.body} testID="match-screen">
         <View style={styles.headerRow}>
           <View style={styles.moduleGroup}>
@@ -589,23 +626,6 @@ export default function MatchScreen() {
               <Text style={styles.rulesLink}>Rules</Text>
             </Pressable>
           </View>
-          {/* Text and dot as one unit — the colour is the at-a-glance signal,
-              the word next to it is the same fact spelled out, and a tap gets
-              the fuller explanation the old standalone status line gave, on
-              demand instead of by surprise. Always mounted here rather than
-              inside the (optional) header-facts row below, so it never
-              disappears when a module sends no header facts. */}
-          <Pressable
-            testID="match-status-dot"
-            onPress={() => setStatusExplainerOpen((v) => !v)}
-            hitSlop={8}
-            style={styles.statusGroup}
-          >
-            <Text testID="match-status" style={styles.status}>
-              {state.status}
-            </Text>
-            <View style={[styles.statusDot, statusOk ? styles.statusDotOk : styles.statusDotBad]} />
-          </Pressable>
         </View>
 
         {(view.header ?? []).length > 0 ? (
@@ -616,11 +636,6 @@ export default function MatchScreen() {
               </Text>
             ))}
           </View>
-        ) : null}
-        {statusExplainerOpen ? (
-          <Text testID="match-status-explainer" style={styles.statusExplainer}>
-            {statusExplainer}
-          </Text>
         ) : null}
 
         {/* The end of a match, said plainly and where the eye already is —
@@ -992,10 +1007,11 @@ function Section({
 const styles = StyleSheet.create({
   body: { paddingBottom: 40, gap: 4 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  headerTitleGroup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  headerTitleText: { color: colors.text, fontWeight: '700', fontSize: 17 },
   moduleGroup: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   module: { color: colors.text, fontWeight: '700', fontSize: 16 },
   rulesLink: { color: colors.accent, fontSize: 12, fontWeight: '700' },
-  statusGroup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   status: { color: colors.muted, fontSize: 12 },
   facts: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 2 },
   fact: { color: colors.muted, fontSize: 12 },
