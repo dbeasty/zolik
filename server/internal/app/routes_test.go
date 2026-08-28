@@ -14,6 +14,8 @@ import (
 	"zolik/server/internal/buildinfo"
 	"zolik/server/internal/db"
 	"zolik/server/internal/lobby"
+	"zolik/server/internal/match"
+	"zolik/server/internal/scoring"
 	"zolik/server/internal/stats"
 	userrepo "zolik/server/internal/user"
 	"zolik/server/internal/ws"
@@ -186,8 +188,8 @@ func offlineApp(t *testing.T) *App {
 	t.Cleanup(func() { _ = hub.Close() })
 
 	return &App{
-		db:  m,
-		hub: hub,
+		closeDB: m.Close,
+		hub:     hub,
 		auth: auth.NewHandlers(auth.Deps{
 			Store:    auth.NewStore(m),
 			Sessions: auth.NewSessionRepository(m),
@@ -199,5 +201,7 @@ func offlineApp(t *testing.T) *App {
 		statsRepo:   stats.NewRepository(m),
 		userRepo:    userrepo.NewRepository(m),
 		authStore:   auth.NewStore(m),
+		matchRepo:   match.NewRepository(m),
+		scoringRepo: scoring.NewRepository(m),
 	}
 }

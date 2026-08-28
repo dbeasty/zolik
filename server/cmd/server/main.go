@@ -24,6 +24,7 @@ func main() {
 	_ = godotenv.Load()
 
 	cfg := app.LoadConfig()
+	log.Printf("storage engine: %s (FEATURE_FLAG_DB_ENGINE)", cfg.DBEngine)
 	a, err := app.New(cfg)
 	if err != nil {
 		log.Fatalf("init app: %v", err)

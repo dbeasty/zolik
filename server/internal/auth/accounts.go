@@ -11,8 +11,8 @@ import (
 	"unicode"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo"
 
+	"zolik/server/internal/db"
 	"zolik/server/internal/identity"
 	"zolik/server/internal/models"
 )
@@ -152,7 +152,7 @@ func (a *Accounts) resolve(ctx context.Context, claims identity.Claims, opts Sig
 	// The identity is new: find the account it should attach to, or make one.
 	owner, created, err := a.ownerFor(ctx, claims, opts)
 	if err != nil {
-		if mongo.IsDuplicateKeyError(err) {
+		if db.IsDuplicateKey(err) {
 			// Lost a race to even create the account backing this identity —
 			// a concurrent racer for the *same* identity claimed the
 			// username or (verified) email first, and createUser has already
@@ -257,7 +257,7 @@ func (a *Accounts) createUser(ctx context.Context, claims identity.Claims) (mode
 		if err == nil {
 			return created, nil
 		}
-		if !mongo.IsDuplicateKeyError(err) {
+		if !db.IsDuplicateKey(err) {
 			return models.User{}, err
 		}
 		lastErr = err

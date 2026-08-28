@@ -55,17 +55,32 @@ func testMongoURI() string {
 // throw-away database, its own fake OIDC provider, and a mailer that captures
 // what would have been sent instead of sending it.
 type testHarness struct {
-	t       *testing.T
-	server  *httptest.Server
-	handler *auth.Handlers
-	mongo   *db.Mongo
-	stats   stats.Repository
-	mailer  *capturingMailer
-	oidc    *fakeOIDC
+	t        *testing.T
+	server   *httptest.Server
+	handler  *auth.Handlers
+	store    auth.Store
+	sessions auth.SessionRepository
+	stats    stats.Repository
+	mailer   *capturingMailer
+	oidc     *fakeOIDC
 }
 
-func newTestHarness(t *testing.T) *testHarness {
+// newTestBackend builds the storage stack these tests run on. The default is
+// the real MongoDB the dev compose stack provides (skipping when there is
+// none); ZOLIK_TEST_DB_ENGINE=kdb runs the very same tests on the embedded
+// KDB engine instead — on disk, in the test's temp dir, exactly the
+// production code path.
+func newTestBackend(t *testing.T) (auth.Store, auth.SessionRepository, stats.Repository) {
 	t.Helper()
+	if strings.EqualFold(strings.TrimSpace(os.Getenv("ZOLIK_TEST_DB_ENGINE")), db.EngineKDB) {
+		k, err := db.OpenKDB(t.TempDir())
+		if err != nil {
+			t.Fatalf("opening kdb: %v", err)
+		}
+		t.Cleanup(func() { _ = k.Close(context.Background()) })
+		return auth.NewKDBStore(k), auth.NewKDBSessionRepository(k), stats.NewKDBRepository(k)
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -89,14 +104,20 @@ func newTestHarness(t *testing.T) *testHarness {
 		_ = m.DB.Drop(dropCtx)
 		_ = client.Disconnect(dropCtx)
 	})
+	return auth.NewStore(m), auth.NewSessionRepository(m), stats.NewRepository(m)
+}
+
+func newTestHarness(t *testing.T) *testHarness {
+	t.Helper()
+
+	store, sessions, statsRepo := newTestBackend(t)
 
 	oidc := newFakeOIDC(t)
 	mailer := &capturingMailer{}
-	statsRepo := stats.NewRepository(m)
 
 	h := auth.NewHandlers(auth.Deps{
-		Store:                auth.NewStore(m),
-		Sessions:             auth.NewSessionRepository(m),
+		Store:                store,
+		Sessions:             sessions,
 		Providers:            identity.NewRegistry(oidc.provider(t)),
 		Mailer:               mailer,
 		Claimer:              stats.NewClaimer(statsRepo),
@@ -111,7 +132,7 @@ func newTestHarness(t *testing.T) *testHarness {
 	srv := httptest.NewServer(r)
 	t.Cleanup(srv.Close)
 
-	return &testHarness{t: t, server: srv, handler: h, mongo: m, stats: statsRepo, mailer: mailer, oidc: oidc}
+	return &testHarness{t: t, server: srv, handler: h, store: store, sessions: sessions, stats: statsRepo, mailer: mailer, oidc: oidc}
 }
 
 // --- tiny HTTP client helpers ---
@@ -979,7 +1000,7 @@ func TestLoginSessionRejectsAProviderOnlyAccount(t *testing.T) {
 	h := newTestHarness(t)
 	ctx := context.Background()
 
-	u, err := auth.NewStore(h.mongo).InsertUser(ctx, models.User{
+	u, err := h.store.InsertUser(ctx, models.User{
 		Username:     "provideronly",
 		AuthProvider: models.IdentityProviderEmail,
 	})
@@ -1008,7 +1029,7 @@ func TestRefreshMigratesAPreExistingGuestSessionOntoADurableID(t *testing.T) {
 	h := newTestHarness(t)
 	ctx := context.Background()
 	legacyToken := "legacy-refresh-token-0123456789abcdef"
-	_, err := h.mongo.Collections().Sessions.InsertOne(ctx, models.Session{
+	err := h.sessions.CreateSession(ctx, models.Session{
 		Token:     legacyToken,
 		GuestName: "OldGuest",
 		CreatedAt: time.Now().UTC(),

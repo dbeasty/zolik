@@ -1,12 +1,73 @@
 # Žolíky backend (v1 scaffold)
 
 ## Prerequisites
-- MongoDB via Docker Compose (recommended)
+- MongoDB via Docker Compose (recommended), **or** nothing at all — see
+  [Storage engines](#storage-engines-mongo-or-embedded-kdb) for the embedded
+  KDB mode.
 
 ## Run locally
 From `server/`:
 - `cp .env.example .env` (adjust secrets as needed)
 - `docker compose up --build`
+
+## Storage engines (Mongo or embedded KDB)
+
+The server has two storage backends behind one repository layer, selected at
+runtime by a feature flag — the same binary serves either, so a deployment
+can switch engines by changing an environment variable:
+
+| Variable | Values | Meaning |
+|---|---|---|
+| `FEATURE_FLAG_DB_ENGINE` | `mongo` (default) / `kdb` | Which engine this process runs on |
+| `FEATURE_FLAG_KDB` | `true` / `false` | Boolean spelling of the same flag (`true` = kdb) |
+| `KDB_PATH` | path, default `data/kdb` | Where the embedded engine keeps its data |
+
+**Mongo** is what every existing deployment runs: the compose stack above
+(app, app2, MongoDB, Redis, mongo-express).
+
+**KDB** ([sibling repo](../../kdb), `github.com/limidus/kdb/go`) runs
+*embedded in the server process* — no database server, no Redis (the ws hub
+and lobby fall back to their in-process modes), one binary plus a data
+directory. That is the low-memory single-instance deployment shape:
+
+```bash
+# bare metal / dev — no Docker, no Mongo, nothing to start first
+FEATURE_FLAG_DB_ENGINE=kdb go run ./cmd/server
+
+# or the one-container stack
+docker compose -f docker-compose.kdb.yml up --build
+```
+
+Building the image (either compose file) needs the `kdb` repo checked out as
+a sibling of this one (`../../kdb` from `server/`), wired in as a BuildKit
+named context; `go build`/`go test` need the same sibling via the go.mod
+`replace`.
+
+What differs behind the flag, deliberately:
+
+- **Durability**: KDB fsyncs every commit before acking; Mongo acks first and
+  journals on an interval. KDB writes cost a few ms each — fine for a card
+  game, and the honest price of not losing an acked write on power loss.
+- **Uniqueness and CAS**: Mongo enforces unique indexes and filtered replaces
+  server-side. The KDB layer enforces the same contracts in-process under
+  per-namespace critical sections (`internal/db/kdb.go`), which is correct
+  precisely because the KDB shape is single-instance. Do not run two server
+  processes against one `KDB_PATH` — the engine's directory lock refuses it
+  anyway.
+- **TTLs**: Mongo expires sessions/codes/flows/abandoned matches with TTL
+  indexes; the KDB layer filters expired documents on read and sweeps them
+  once a minute.
+- **Scaling**: the Redis-backed multi-instance story below is Mongo-only.
+  KDB mode is one instance, by design.
+
+`go test ./...` exercises the KDB layer with no services running. The same
+integration suites that run against Mongo run against KDB with
+`ZOLIK_TEST_DB_ENGINE=kdb go test ./internal/auth ./internal/match`.
+Side-by-side performance numbers: `go test ./internal/dbperf -bench . -benchmem`
+(Mongo rows skip unless the dev stack is up) — see
+[`docs/kdb-port.md`](../docs/kdb-port.md#insert-and-read-head-to-head) for
+the headline insert/read comparison (KDB reads ~525x faster, in-process;
+Mongo writes ~21x faster, no fsync-per-commit).
 
 ## Full stack with the web client
 

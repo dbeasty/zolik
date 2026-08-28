@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"zolik/server/internal/auth"
+	"zolik/server/internal/db"
 	"zolik/server/internal/identity"
 )
 
@@ -12,8 +13,18 @@ type Config struct {
 	Env  string
 	Port string
 
+	// DBEngine selects the storage backend: db.EngineMongo (the default) or
+	// db.EngineKDB, which runs the embedded KDB engine in-process — one
+	// binary, no database server, no Redis. See LoadConfig for the flags.
+	DBEngine string
+
 	MongoURI string
 	MongoDB  string
+
+	// KDBPath is the directory the embedded KDB engine persists to when
+	// DBEngine is db.EngineKDB. Empty falls back to in-memory storage, which
+	// loses everything on restart — acceptable only in tests.
+	KDBPath string
 
 	JWTAccessSecret  string
 	JWTRefreshSecret string
@@ -68,8 +79,12 @@ func LoadConfig() Config {
 		Env:  env,
 		Port: envOr("PORT", "8090"),
 
+		DBEngine: dbEngine(),
+
 		MongoURI: envOr("MONGO_URI", "mongodb://localhost:27017"),
 		MongoDB:  envOr("MONGO_DB", "zolik"),
+
+		KDBPath: envOr("KDB_PATH", "data/kdb"),
 
 		JWTAccessSecret:  envOr("JWT_ACCESS_SECRET", "dev_access_secret_change_me"),
 		JWTRefreshSecret: envOr("JWT_REFRESH_SECRET", "dev_refresh_secret_change_me"),
@@ -118,6 +133,24 @@ func LoadConfig() Config {
 
 		TestEndpointsEnabled: envBool("ENABLE_TEST_ENDPOINTS", local),
 	}
+}
+
+// dbEngine reads the storage-backend feature flag. FEATURE_FLAG_DB_ENGINE
+// names the engine outright ("kdb" or "mongo"); FEATURE_FLAG_KDB=true is the
+// boolean spelling of the same choice. Either works in a deployment's
+// environment; an unrecognised value falls back to Mongo, the engine every
+// existing deployment is already running on.
+func dbEngine() string {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("FEATURE_FLAG_DB_ENGINE"))) {
+	case "kdb":
+		return db.EngineKDB
+	case "mongo", "mongodb":
+		return db.EngineMongo
+	}
+	if envBool("FEATURE_FLAG_KDB", false) {
+		return db.EngineKDB
+	}
+	return db.EngineMongo
 }
 
 // providerConfig reads the standard three variables for an OAuth provider.

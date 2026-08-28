@@ -4,6 +4,12 @@
 x-server-build: &server-build
   context: ..
   dockerfile: server/Dockerfile
+  # The embedded KDB engine (FEATURE_FLAG_DB_ENGINE=kdb) is compiled into the
+  # one server image whichever engine a deployment enables, so its source has
+  # to be in every build. It lives in a sibling checkout — see
+  # docker-compose.kdb.yml for the stack that actually runs on it.
+  additional_contexts:
+    kdbsrc: ../../kdb
   args:
     # The quotes matter: an exported-but-empty ZOLIK_VERSION must still fall
     # back to the Dockerfile's ARG default, not override it with "".
