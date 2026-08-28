@@ -65,23 +65,41 @@ being fine.
 
 `go test ./internal/dbperf -bench . -benchmem` benchmarks both engines over
 the paths the server leans on (Mongo rows skip unless the dev stack is up).
-Representative numbers (M3 Max, dev-stack Mongo on localhost):
+Representative numbers (M3 Max, dev-stack Mongo on localhost), as of KDB
+`456c673`/`8fe306d` (fixed the per-commit allocation, added group-commit):
 
 | Path | KDB | Mongo |
 |---|---|---|
-| Session lookup by token (per-request auth) | ~4 µs | ~206 µs |
-| Match action cycle (load → CAS store) | ~5.0 ms | ~431 µs |
-| Insert match / session / stats upsert | ~5 ms | ~200 µs |
-| Resolve by join code (100 live matches) | ~0.8 ms | ~221 µs |
-| Leaderboard (200 players) | ~3.5 ms | ~2.7 ms |
-| History page (300 records) | ~4.2 ms | ~440 µs |
+| Session lookup by token (per-request auth) | ~3.8 µs | ~204 µs |
+| Match action cycle (load → CAS store) | ~4.0 ms | ~409 µs |
+| Insert match / session / stats upsert | ~4-4.4 ms | ~200-230 µs |
+| Resolve by join code (100 live matches) | ~0.8 ms | ~229 µs |
+| Leaderboard (200 players) | ~3.1 ms | ~2.3 ms |
+| History page (300 records) | ~3.8 ms | ~430 µs |
 
-The read/write asymmetry is the honest shape of the trade: reads are
+The read/write latency asymmetry is the honest shape of the trade: reads are
 in-process function calls; every KDB write is an fsynced commit before it is
-acked (Mongo acks first and journals on an interval), and the engine
-currently allocates ~21 MB per commit — a KDB-side optimisation target, not
-something this layer can fix. ~200 durable writes/second is far beyond a
-card table's action rate.
+acked (Mongo acks first and journals on an interval). ~250 durable
+writes/second is far beyond a card table's action rate.
+
+**Allocation history, since it was flagged and then fixed upstream.** The
+first pass through this port found the embed engine allocating ~21 MB per
+commit — reported to the KDB side. Commit `456c673` fixed it; per-commit
+allocation is now in the same order of magnitude as the Mongo driver's:
+
+| Path (KDB) | Before (`0294299`) | After (`456c673`+) | Change |
+|---|---|---|---|
+| Insert match | 21.5 MB / 882 allocs | 83 KB / 576 allocs | ~260x less |
+| Match action cycle | 21.5 MB / 1522 allocs | 113 KB / 1220 allocs | ~190x less |
+| Session create | 21.5 MB / 606 allocs | 28.7 KB / 317 allocs | ~750x less |
+| Stats upsert | 21.5 MB / 867 allocs | 69 KB / 555 allocs | ~310x less |
+
+Latency did not move on this single-writer benchmark (still fsync-per-commit
+durability, a separate cost from the allocation bug); the scan-shaped reads
+(leaderboard, history, resolve-by-join-code) were never on the commit path
+and are unaffected — their allocation is Zolik's own full-scan cost, not
+KDB's, and is what would motivate adding real indexes if these queries ever
+became a bottleneck.
 
 ## Deployment
 
