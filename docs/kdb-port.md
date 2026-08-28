@@ -66,14 +66,18 @@ being fine.
 `go test ./internal/dbperf -bench . -benchmem` benchmarks both engines over
 the paths the server leans on (Mongo rows skip unless the dev stack is up).
 Representative numbers (M3 Max, dev-stack Mongo on localhost), as of KDB
-`456c673`/`8fe306d` (fixed the per-commit allocation, added group-commit):
+`e2bbc82` (merged: `456c673`/`8fe306d` fixed the per-commit allocation and
+added group-commit; `01d0654`/`41cf11c` then fixed four storage-layer
+correctness issues the write-path change had left open — delete not
+shadowing flushed data, size accounting drift, unbounded WAL segments, and
+the integration CI job):
 
 | Path | KDB | Mongo |
 |---|---|---|
-| Session lookup by token (per-request auth) | ~3.8 µs | ~204 µs |
-| Match action cycle (load → CAS store) | ~4.0 ms | ~409 µs |
-| Insert match / session / stats upsert | ~4-4.4 ms | ~200-230 µs |
-| Resolve by join code (100 live matches) | ~0.8 ms | ~229 µs |
+| Session lookup by token (per-request auth) | ~3.8 µs | ~205-255 µs |
+| Match action cycle (load → CAS store) | ~4.2 ms | ~410-424 µs |
+| Insert match / session / stats upsert | ~5-8 ms | ~200-260 µs |
+| Resolve by join code (100 live matches) | ~0.75 ms | ~209-229 µs |
 | Leaderboard (200 players) | ~3.1 ms | ~2.3 ms |
 | History page (300 records) | ~3.8 ms | ~430 µs |
 
