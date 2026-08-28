@@ -64,7 +64,10 @@ What differs behind the flag, deliberately:
 integration suites that run against Mongo run against KDB with
 `ZOLIK_TEST_DB_ENGINE=kdb go test ./internal/auth ./internal/match`.
 Side-by-side performance numbers: `go test ./internal/dbperf -bench . -benchmem`
-(Mongo rows skip unless the dev stack is up).
+(Mongo rows skip unless the dev stack is up) — see
+[`docs/kdb-port.md`](../docs/kdb-port.md#insert-and-read-head-to-head) for
+the headline insert/read comparison (KDB reads ~525x faster, in-process;
+Mongo writes ~21x faster, no fsync-per-commit).
 
 ## Full stack with the web client
 

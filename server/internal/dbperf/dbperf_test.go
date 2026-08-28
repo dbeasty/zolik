@@ -318,3 +318,144 @@ func BenchmarkMatchHistory(b *testing.B) {
 		}
 	})
 }
+
+// --- raw insert/read: the apples-to-apples comparison ---
+//
+// Everything above measures a repository method, which necessarily differs
+// per engine (a uniqueness scan under a lock on KDB vs a unique index on
+// Mongo, a version-checked replace vs a critical section, ...). These two
+// benchmarks strip that away: the same fixed-size JSON document, written and
+// read by the same synthetic key, with no application logic in between. This
+// is the honest floor-to-floor comparison — insert speed and read speed for
+// one document, nothing else.
+
+// rawDoc is a fixed-shape, fixed-size document — big enough to be a
+// realistic write, small enough that its size isn't what the benchmark is
+// measuring.
+type rawDoc struct {
+	ID      string    `bson:"_id"`
+	Payload string    `bson:"payload"`
+	Version int       `bson:"version"`
+	At      time.Time `bson:"at"`
+}
+
+func newRawDoc(key string) rawDoc {
+	return rawDoc{
+		ID:      key,
+		Payload: strings.Repeat("x", 256),
+		Version: 1,
+		At:      time.Now().UTC(),
+	}
+}
+
+func rawMongoColl(b *testing.B) (*mongo.Collection, bool) {
+	b.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	client, err := mongo.Connect(options.Client().ApplyURI(testMongoURI()))
+	if err != nil {
+		return nil, false
+	}
+	if err := client.Ping(ctx, nil); err != nil {
+		_ = client.Disconnect(context.Background())
+		return nil, false
+	}
+	m := &db.Mongo{Client: client, DB: client.Database(fmt.Sprintf("zolik_rawperf_%d", time.Now().UnixNano()))}
+	b.Cleanup(func() {
+		dropCtx, dropCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer dropCancel()
+		_ = m.DB.Drop(dropCtx)
+		_ = client.Disconnect(dropCtx)
+	})
+	return m.DB.Collection("raw"), true
+}
+
+// BenchmarkRawInsert: one document written by key, no index maintenance
+// beyond what each engine does unconditionally (Mongo's _id index; KDB's
+// fsynced commit). No uniqueness check, no CAS, no repository logic.
+func BenchmarkRawInsert(b *testing.B) {
+	b.Run(db.EngineKDB, func(b *testing.B) {
+		k, err := db.OpenKDB(b.TempDir())
+		if err != nil {
+			b.Fatalf("opening kdb: %v", err)
+		}
+		b.Cleanup(func() { _ = k.Close(context.Background()) })
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			key := fmt.Sprintf("raw-%08d", i)
+			doc, err := db.MarshalDoc(newRawDoc(key))
+			if err != nil {
+				b.Fatal(err)
+			}
+			if err := k.Put(db.NSScoring, key, doc); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+	b.Run(db.EngineMongo, func(b *testing.B) {
+		coll, ok := rawMongoColl(b)
+		if !ok {
+			b.Skipf("no reachable mongo at %s (set ZOLIK_TEST_MONGO_URI, or start the dev compose stack)", testMongoURI())
+		}
+		ctx := context.Background()
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			key := fmt.Sprintf("raw-%08d", i)
+			if _, err := coll.InsertOne(ctx, newRawDoc(key)); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}
+
+// BenchmarkRawRead: one document read by its key, against a pre-populated
+// set — a direct point lookup on both sides (Mongo via its _id index, KDB
+// via its key-derived document id), with no scan on either side.
+func BenchmarkRawRead(b *testing.B) {
+	const seeded = 1000
+	b.Run(db.EngineKDB, func(b *testing.B) {
+		k, err := db.OpenKDB(b.TempDir())
+		if err != nil {
+			b.Fatalf("opening kdb: %v", err)
+		}
+		b.Cleanup(func() { _ = k.Close(context.Background()) })
+		for i := 0; i < seeded; i++ {
+			key := fmt.Sprintf("raw-%08d", i)
+			doc, err := db.MarshalDoc(newRawDoc(key))
+			if err != nil {
+				b.Fatal(err)
+			}
+			if err := k.Put(db.NSScoring, key, doc); err != nil {
+				b.Fatal(err)
+			}
+		}
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			key := fmt.Sprintf("raw-%08d", i%seeded)
+			if _, err := k.Get(db.NSScoring, key); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+	b.Run(db.EngineMongo, func(b *testing.B) {
+		coll, ok := rawMongoColl(b)
+		if !ok {
+			b.Skipf("no reachable mongo at %s (set ZOLIK_TEST_MONGO_URI, or start the dev compose stack)", testMongoURI())
+		}
+		ctx := context.Background()
+		for i := 0; i < seeded; i++ {
+			key := fmt.Sprintf("raw-%08d", i)
+			if _, err := coll.InsertOne(ctx, newRawDoc(key)); err != nil {
+				b.Fatal(err)
+			}
+		}
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			key := fmt.Sprintf("raw-%08d", i%seeded)
+			var out rawDoc
+			if err := coll.FindOne(ctx, bson.M{"_id": key}).Decode(&out); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}

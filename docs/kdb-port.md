@@ -65,12 +65,43 @@ being fine.
 
 `go test ./internal/dbperf -bench . -benchmem` benchmarks both engines over
 the paths the server leans on (Mongo rows skip unless the dev stack is up).
-Representative numbers (M3 Max, dev-stack Mongo on localhost), as of KDB
-`e2bbc82` (merged: `456c673`/`8fe306d` fixed the per-commit allocation and
-added group-commit; `01d0654`/`41cf11c` then fixed four storage-layer
-correctness issues the write-path change had left open — delete not
-shadowing flushed data, size accounting drift, unbounded WAL segments, and
-the integration CI job):
+As of KDB `e2bbc82` (merged: `456c673`/`8fe306d` fixed the per-commit
+allocation and added group-commit; `01d0654`/`41cf11c` then fixed four
+storage-layer correctness issues the write-path change had left open —
+delete not shadowing flushed data, size accounting drift, unbounded WAL
+segments, and the integration CI job).
+
+### Insert and read, head to head
+
+`BenchmarkRawInsert`/`BenchmarkRawRead` are the direct comparison: the same
+fixed-shape document, written and read by the same key, with **no
+application logic in between** — no uniqueness scan, no CAS, no repository
+code, just each engine's floor cost for "write one document" and "read one
+document by key" (M3 Max, dev-stack Mongo on localhost, `-benchtime 3s`):
+
+| Operation | KDB | Mongo | Ratio |
+|---|---|---|---|
+| **Insert** one document | 4.0 ms | 191 µs | Mongo ~21x faster |
+| **Read** one document by key | 362 ns | 191 µs | KDB ~525x faster |
+
+Opposite shapes, same reason: a KDB read is an in-process function call
+returning bytes already in memory; a KDB write is a transaction committed to
+the DAG and fsynced to disk before it acks — durable-by-default, at the cost
+every fsync-per-write engine pays. Mongo pays a network round trip on every
+call, win or lose, which is why its insert and read costs land in the same
+~190-210 µs band regardless of which one you're doing. Do not read the ratio
+as "KDB is bad at writes" — 4 ms per durable write is ~250 writes/second
+from one process, which a card game's action rate does not come close to
+touching; it is the honest price of never losing an acked write to a power
+cut, which Mongo's default write concern does not guarantee.
+
+### Repository-level paths
+
+The table below goes through the actual repository methods the server
+calls, so it includes each engine's real application-level cost (Mongo's
+unique index vs KDB's locked uniqueness scan, Mongo's filtered replace vs
+KDB's locked version check, etc.) — the numbers above are the fairer
+apples-to-apples read; these are the honest end-to-end ones:
 
 | Path | KDB | Mongo |
 |---|---|---|
