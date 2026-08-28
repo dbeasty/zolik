@@ -1,8 +1,10 @@
 package app
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -91,7 +93,14 @@ func mongoRepos(ctx context.Context, cfg Config) (repos, error) {
 // server process, no connection string: the database is a directory, and an
 // empty path keeps it all in memory.
 func kdbRepos(cfg Config) (repos, error) {
-	k, err := db.OpenKDB(cfg.KDBPath)
+	sc, err := db.KDBStorageFromEnv()
+	if err != nil {
+		return repos{}, err
+	}
+	// What an acknowledged write means is the one storage decision an
+	// operator makes (KDB_DURABILITY / KDB_SYNC_MODE), so say it out loud.
+	log.Printf("kdb durability: %s, sync mode: %s", cmp.Or(sc.Durability, "sync"), cmp.Or(sc.SyncMode, "fast"))
+	k, err := db.OpenKDBWithStorage(cfg.KDBPath, sc)
 	if err != nil {
 		return repos{}, err
 	}
