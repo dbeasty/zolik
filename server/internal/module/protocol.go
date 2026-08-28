@@ -260,6 +260,17 @@ const (
 type Placement struct {
 	Card      string   `json:"card"`
 	Positions []string `json:"positions,omitempty"`
+
+	// Requires names the other cards that must be submitted in the same
+	// action for this one to be legal — a rummy run's 5 needs the 6 when
+	// the run starts at the 7. Empty means "may go on its own", which is
+	// what every placement meant before this field existed.
+	//
+	// The set is transitive and closed, so a client checks membership
+	// rather than working out an order. Selector.Cards deliberately omits
+	// these cards: a control that sends one card unprompted must never
+	// reach for one that needs company.
+	Requires []string `json:"requires,omitempty"`
 }
 
 // PositionParam is the parameter a chosen Placement position is submitted
@@ -290,6 +301,9 @@ type Selector struct {
 	// a whole zone.
 	ZoneID string `json:"zoneId,omitempty"`
 
+	// Cards are those that may be sent on their own. Where Placements also
+	// lists cards that are legal only in company, this is the narrower
+	// list — see Placement.Requires.
 	Cards      []string    `json:"cards,omitempty"`
 	Placements []Placement `json:"placements,omitempty"`
 

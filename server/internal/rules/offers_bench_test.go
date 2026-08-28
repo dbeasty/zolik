@@ -108,8 +108,16 @@ func TestLegalActions_ObserverIsCheaperThanActivePlayer(t *testing.T) {
 	// is a tripwire for an accidental O(hand × melds) *state clone* — the
 	// design keeps clones to coarse gating only — not a micro-optimisation
 	// target; raise it deliberately if the offer set genuinely grows.
-	if active > 6000 {
-		t.Errorf("active player costs %.0f allocs on a busy board; expected well under 6000 — "+
+	//
+	// Raised from 6000 when lay-off placements started enumerating chains —
+	// the cards that extend a run only in company (see layOffPlacements).
+	// That is the offer set genuinely growing, not a clone creeping in:
+	// layOffPlacements is still pure and still state-free, and the scan is
+	// gated to runs that already have an anchor and pre-filtered to the
+	// run's own suit. This board is the worst case for it by construction,
+	// with four runs and a hand stacked with cards that chain onto them.
+	if active > 8000 {
+		t.Errorf("active player costs %.0f allocs on a busy board; expected well under 8000 — "+
 			"has a per-card path started cloning state?", active)
 	}
 }

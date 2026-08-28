@@ -73,12 +73,28 @@ func SwapJokerOfferID(meldID string) string { return offerSwapJokerPrefix + meld
 // end(s) of it that card may extend. Sets have no ends, so Positions is
 // empty for them.
 //
-// A placement means "legal on its own". Multi-card submissions are not
-// enumerated (that is combinatorial — see the offer-explosion risk in the
-// architecture blueprint) and are validated on arrival instead.
+// A placement means "may take part". Most may go on their own; Requires names
+// the ones that may not, and what they need for company.
+//
+// The old rule here was "legal on its own", with multi-card submissions left
+// unenumerated as combinatorial. That was half right: enumerating every
+// *combination* would explode, but enumerating each card's own prerequisite
+// does not, and leaving the gap unstated meant a client reading this list as
+// the whole truth refused a move the validator accepts — the 5 dropped with
+// the 6 onto a run of 7-8-9-10.
 type Placement struct {
 	Card      string   `json:"card"`
 	Positions []string `json:"positions,omitempty"` // "front" and/or "end"
+
+	// Requires names the other cards in hand that must be laid off in the
+	// same action for this one to be legal. Empty means "may go on its
+	// own", which is what every placement meant before this field existed.
+	//
+	// The set is transitive and closed — everything the card needs, not
+	// just its immediate neighbour — so a client checks membership rather
+	// than walking a chain. And it is proven rather than derived: the
+	// server ran ValidateMeld over the meld plus these cards plus this one.
+	Requires []string `json:"requires,omitempty"`
 }
 
 // Selector describes where an offer's cards come from, or where they go.
@@ -87,10 +103,16 @@ type Selector struct {
 	OwnerID string `json:"ownerId,omitempty"`
 	MeldID  string `json:"meldId,omitempty"`
 
-	// Cards are the individually-eligible cards in Zone. Always the card
-	// values of Placements when Placements is set, so the two can never
-	// disagree — simple clients read Cards, drag-and-drop clients read
-	// Placements for the run-end hints.
+	// Cards are the cards in Zone that may be sent on their own — the
+	// placements with no Requires.
+	//
+	// Deliberately narrower than Placements, which also lists cards that
+	// are legal only in company. A client that reads Cards is one that
+	// sends a single card: a one-tap control (see the RN client's
+	// isOneTap) or the terminal client, which submits Cards[:MinCards]
+	// sight unseen. Neither may be handed a card that needs a companion.
+	// Drag-and-drop clients read Placements, for the run-end hints and for
+	// what a multi-card selection is allowed to contain.
 	Cards      []string    `json:"cards,omitempty"`
 	Placements []Placement `json:"placements,omitempty"`
 
@@ -439,7 +461,7 @@ func layOffOffer(state GameState, cfg RulesConfig, playerID string, m tableMeld,
 	placements := layOffPlacements(state, cfg, playerID, m)
 	o.Source = &Selector{
 		Zone: ZoneHand, OwnerID: playerID, MinCards: 1, MaxCards: len(hand),
-		Cards: cardsOf(placements), Placements: placements,
+		Cards: standaloneCardsOf(placements), Placements: placements,
 	}
 	if len(placements) == 0 {
 		// The verb is available in principle but nothing in hand fits this
@@ -450,33 +472,215 @@ func layOffOffer(state GameState, cfg RulesConfig, playerID string, m tableMeld,
 	return o
 }
 
-// layOffPlacements finds every single card in hand that legally extends this
-// meld, and for a run, which end(s) it may extend. Pure: uses the same
-// state-free helpers the AI does, so no state clone per card.
+// layOffPlacements finds every card in hand that can take part in a lay-off
+// onto this meld, and for a run, which end(s) it may extend. Pure: uses the
+// same state-free helpers the AI does, so no state clone per card.
+//
+// Two passes, and they may not be merged.
+//
+// The first is the original question — which cards extend the meld exactly as
+// it lies. Those are the anchors, and they are what Source.Cards ships, what a
+// one-tap control sends and what the terminal client submits blind.
+//
+// The second grows a working copy of the meld and asks again, so a card that
+// only bridges a gap is found too: the 5 that is illegal against 7-8-9-10 and
+// legal the moment the 6 goes with it. ValidateLayOff has always taken that
+// submission — see TestValidateLayOff_MultiCardInOneAction — so this pass
+// enumerates a fact the engine already had rather than adding a rule.
+//
+// Merging the passes would lose anchors. Two jokers against a run of four both
+// extend it on their own, but not together (adjacent wilds), so a single
+// accumulating loop would drop the second and grey out a move the engine
+// accepts.
 func layOffPlacements(state GameState, cfg RulesConfig, playerID string, m tableMeld) []Placement {
+	hand := state.Hands[playerID]
+
+	// Hoisted out of the scan because it never mentioned the card: on a
+	// non-final deal, a player down to one card cannot lay it off at all.
+	// ValidateLayOff applies the same rule to the hand it leaves behind.
+	if !cfg.IsFinalDeal(state.GameNumber) && len(hand) == 1 {
+		return nil
+	}
+
+	// Pass one: the anchors, measured against the meld as it lies.
 	seen := map[string]bool{}
 	var out []Placement
-	for _, c := range state.Hands[playerID] {
+	for _, c := range hand {
 		if seen[c] {
 			continue
 		}
-		seen[c] = true
-
 		extended := append(append([]string(nil), m.Cards...), c)
 		mv, err := ValidateMeld(extended, cfg)
 		if err != nil {
 			continue
 		}
-		// Laying this off must not empty the hand on a non-final deal —
-		// the same rule ValidateLayOff applies at the end.
-		if !cfg.IsFinalDeal(state.GameNumber) && len(state.Hands[playerID]) == 1 {
-			continue
-		}
+		seen[c] = true
 		p := Placement{Card: c}
 		if mv.Type == MeldRun {
 			p.Positions = droppableEnds(m.Cards, extended, cfg)
 		}
 		out = append(out, p)
+	}
+
+	// Pass two is skipped outright in the common cases, which is what keeps
+	// this off the hot path (see TestLegalActions_ObserverIsCheaperThanActivePlayer).
+	//
+	// No anchor means no chain: a bridge has to start from a card that
+	// touches the meld as it lies, and that card is an anchor by
+	// definition. A set cannot chain either — one card per suit, four
+	// total, so a set on the table has room for at most one more and there
+	// is nothing to bridge. And if every card in hand is already listed,
+	// there is nothing left to find.
+	if len(out) == 0 || !chainable(m, cfg) || len(out) == distinctCards(hand) {
+		return out
+	}
+
+	// The closure. Anchors join the working meld without being listed
+	// again — they are the bridge every deeper card hangs off.
+	//
+	// `remaining` shrinks as cards are taken, and `working` grows inside the
+	// pass rather than between passes, so a chain running the same way the
+	// hand is ordered is found in a single sweep. The outer loop is only
+	// there for one running the other way.
+	listed := map[string]bool{}
+	for _, p := range out {
+		listed[p.Card] = true
+	}
+	// Only a card of the run's own suit, or a wild, can ever extend it.
+	// Checking that here rather than letting ValidateMeld say so is worth
+	// it because this loop asks the question once per card per pass, and a
+	// 13-card hand is mostly other suits (see the allocation tripwire in
+	// TestLegalActions_ObserverIsCheaperThanActivePlayer).
+	suit := runSuit(m.Cards)
+	remaining := make([]string, 0, len(hand))
+	for _, c := range hand {
+		if suit == "" || IsWild(c) || CardSuit(c) == suit {
+			remaining = append(remaining, c)
+		}
+	}
+	working := append([]string(nil), m.Cards...)
+	var accepted []string
+	room := len(hand) - 1 // leave a card to discard
+	if cfg.IsFinalDeal(state.GameNumber) {
+		room = len(hand)
+	}
+	for len(accepted) < room {
+		grew := false
+		tried := make(map[string]bool, len(remaining))
+		for i := 0; i < len(remaining) && len(accepted) < room; i++ {
+			c := remaining[i]
+			if tried[c] {
+				continue
+			}
+			tried[c] = true
+			cand := append(append([]string(nil), working...), c)
+			mv, err := ValidateMeld(cand, cfg)
+			if err != nil {
+				continue
+			}
+			if !seen[c] && !listed[c] {
+				need := minimalPrereq(m.Cards, accepted, c, cfg)
+				pl := Placement{Card: c, Requires: need}
+				if mv.Type == MeldRun {
+					// The hint describes the submission this card is part
+					// of, not the card alone — alone it has no submission.
+					whole := append(append(append([]string(nil), m.Cards...), need...), c)
+					pl.Positions = droppableEnds(m.Cards, whole, cfg)
+				}
+				out = append(out, pl)
+				listed[c] = true
+			}
+			working = cand
+			accepted = append(accepted, c)
+			remaining = append(remaining[:i], remaining[i+1:]...)
+			i--
+			grew = true
+		}
+		if !grew {
+			break
+		}
+	}
+	return out
+}
+
+// runSuit is the suit every natural card of a run shares, or "" when the
+// cards do not agree on one (a meld of nothing but wilds, or not a run at
+// all) and no card can therefore be ruled out cheaply.
+func runSuit(cards []string) string {
+	suit := ""
+	for _, c := range cards {
+		if IsWild(c) {
+			continue
+		}
+		s := CardSuit(c)
+		if suit == "" {
+			suit = s
+			continue
+		}
+		if s != suit {
+			return ""
+		}
+	}
+	return suit
+}
+
+// chainable reports whether this meld is one a card could bridge a gap in.
+// Only a run has gaps; a set is capped at four cards, one per suit, so it can
+// take at most one more card and that card is always legal on its own.
+func chainable(m tableMeld, cfg RulesConfig) bool {
+	if mv, err := ValidateMeld(m.Cards, cfg); err == nil {
+		return mv.Type == MeldRun
+	}
+	// An unvalidatable meld is not one this can reason about; the recorded
+	// type is the only thing left to go on.
+	return m.Meta.Type == MeldRun
+}
+
+// distinctCards counts the distinct card values in a hand.
+func distinctCards(hand []string) int {
+	seen := make(map[string]struct{}, len(hand))
+	for _, c := range hand {
+		seen[c] = struct{}{}
+	}
+	return len(seen)
+}
+
+// minimalPrereq is the smallest set of already-chained cards this one
+// genuinely cannot do without: drop each in turn and keep the drop when the
+// meld still validates. Validator-driven, so it stays right for a rule this
+// function has never been told about.
+//
+// Newest first, and that order is load-bearing. A later card can depend on an
+// earlier one, so removing an early card while a late one still sits in the
+// trial set fails for the late card's sake and the early card is wrongly kept.
+// Run 7-8-9-10 holding 5C 6C JC QC: shrinking forwards leaves the queen
+// dangling when the jack is dropped, and reports the 5 as needing the jack.
+func minimalPrereq(base, accepted []string, c string, cfg RulesConfig) []string {
+	need := append([]string(nil), accepted...)
+	for i := len(need) - 1; i >= 0; i-- {
+		if i >= len(need) {
+			continue
+		}
+		trial := append(append([]string(nil), need[:i]...), need[i+1:]...)
+		cand := append(append(append([]string(nil), base...), trial...), c)
+		if _, err := ValidateMeld(cand, cfg); err == nil {
+			need = trial
+		}
+	}
+	if len(need) == 0 {
+		return nil
+	}
+	return need
+}
+
+// standaloneCardsOf is the subset of placements a client may send one at a
+// time — everything with no Requires. See Selector.Cards.
+func standaloneCardsOf(ps []Placement) []string {
+	out := make([]string, 0, len(ps))
+	for _, p := range ps {
+		if len(p.Requires) == 0 {
+			out = append(out, p.Card)
+		}
 	}
 	return out
 }
