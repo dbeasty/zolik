@@ -67,6 +67,8 @@ const en: Record<string, string> = {
   'err.NOTHING_TO_UNDO': 'Nothing to undo',
   'err.NO_JOKER_IN_MELD': 'No joker in this meld',
   'err.JOKER_SWAP_MISMATCH': "That card doesn't take the joker's place",
+  'err.RECLAIMED_JOKER_NOT_MELDED': 'The joker you took off the table must be played into a meld this turn',
+  'err.RUN_TOO_LONG': 'That run is already at its full length',
   'err.WRONG_RUN_END': 'That card extends the other end of the run',
   'err.INVALID_MELD': 'No card in your hand fits here',
   'err.CARD_NOT_IN_HAND': 'That card is not in your hand',
@@ -331,6 +333,9 @@ const en: Record<string, string> = {
   'zolik.rules.layoff.afterDown': 'You can\'t add to anyone\'s melds until you\'ve laid your own contract.',
   'zolik.rules.layoff.runEnds': 'A card added to a run must continue it at one end or the other.',
   'zolik.rules.jokers.swap': 'A joker in a meld on the table may be bought back with the exact card it stands for.',
+  'zolik.rules.jokers.reclaim.on':
+    'A joker bought back off the table must be played into a meld the same turn — it can\'t be kept in hand.',
+  'zolik.rules.jokers.reclaim.off': 'A joker bought back off the table may be kept in hand.',
   'zolik.rules.deck.reshuffle': 'When the stock runs out the discard pile is shuffled and becomes the new stock; if both are empty, the deal ends.',
 
 
@@ -344,6 +349,7 @@ const en: Record<string, string> = {
   'zolik.remedy.finishOrUndoLayDown': 'Finish your lay-down, or take it back.',
   'zolik.remedy.needMorePoints': 'You need {n} more points before you can go down.',
   'zolik.remedy.layACleanRun': 'Lay a run with no joker in it.',
+  'zolik.remedy.playReclaimedJoker': 'Play {card} into a meld, or undo taking it.',
   'zolik.remedy.goDownFirst': 'Lay your own melds first.',
   'zolik.remedy.drawFirst': 'Draw a card first.',
   'zolik.remedy.drawFromStock': 'Draw from the stock — the discard pile opens in round {n}.',
@@ -362,6 +368,7 @@ const en: Record<string, string> = {
   'seat.cards': 'Cards',
   'zolik.offer.meld': 'Meld',
   'prompt.pickupMustBeMelded': '{value} came off the discard pile — it has to go into the melds you go down with this turn.',
+  'prompt.jokerMustBePlayed': '{value} came off the table — it has to go into a meld before you can end your turn.',
   'prompt.initialMeld': 'Your side\'s first meld must reach {n} points.',
   'prompt.canastasNeeded': 'Your side needs {n} more canastas before it can go out.',
   'prompt.mustDrawOrAnswerSeven': 'Answer with a seven, or draw {n} cards.',
@@ -411,6 +418,7 @@ const en: Record<string, string> = {
   // discard, which is the last possible moment to hear about it, so the card
   // says so while there is still a turn left to act on it.
   'zolik.badge.owedToMeld': '{card} came off the discard pile — it has to go into the melds you go down with this turn.',
+  'zolik.badge.jokerOwed': '{card} came off the table — it has to go into a meld before you can end your turn.',
 };
 
 // Czech. Present to prove the seam is real rather than theoretical: if a
@@ -440,6 +448,8 @@ const cs: Record<string, string> = {
   'err.NOTHING_TO_UNDO': 'Není co vrátit',
   'err.NO_JOKER_IN_MELD': 'V této kombinaci není žolík',
   'err.JOKER_SWAP_MISMATCH': 'Tato karta nenahradí žolíka',
+  'err.RECLAIMED_JOKER_NOT_MELDED': 'Žolíka vzatého ze stolu musíš v tomto tahu zahrát do kombinace',
+  'err.RUN_TOO_LONG': 'Postupka už je na plné délce',
   'err.WRONG_RUN_END': 'Tato karta patří na druhý konec postupky',
   'err.INVALID_MELD': 'Žádná karta v ruce sem nepasuje',
   'err.CARD_NOT_IN_HAND': 'Tuto kartu v ruce nemáš',
@@ -669,6 +679,9 @@ const cs: Record<string, string> = {
   'zolik.rules.layoff.afterDown': 'Ke kombinacím nemůžeš přikládat, dokud nevyložíš vlastní zadání.',
   'zolik.rules.layoff.runEnds': 'Karta přiložená k postupce ji musí prodloužit na jednom nebo druhém konci.',
   'zolik.rules.jokers.swap': 'Žolíka v kombinaci na stole můžeš vyměnit za přesně tu kartu, kterou zastupuje.',
+  'zolik.rules.jokers.reclaim.on':
+    'Žolíka vzatého ze stolu musíš ve stejném tahu zahrát do kombinace — nesmí ti zůstat v ruce.',
+  'zolik.rules.jokers.reclaim.off': 'Žolíka vzatého ze stolu si můžeš nechat v ruce.',
   'zolik.rules.deck.reshuffle': 'Když dojde lízací balíček, odhazovací balíček se zamíchá a stane se novým lízacím; pokud jsou prázdné oba, rozdání končí.',
 
 
@@ -682,6 +695,7 @@ const cs: Record<string, string> = {
   'zolik.remedy.finishOrUndoLayDown': 'Dokonči výklad, nebo ho vrať zpět.',
   'zolik.remedy.needMorePoints': 'Než půjdeš dolů, chybí ti ještě {n} bodů.',
   'zolik.remedy.layACleanRun': 'Vylož postupku bez žolíka.',
+  'zolik.remedy.playReclaimedJoker': 'Zahraj {card} do kombinace, nebo vrať vzetí zpět.',
   'zolik.remedy.goDownFirst': 'Nejdřív vylož vlastní kombinace.',
   'zolik.remedy.drawFirst': 'Nejdřív si lízni kartu.',
   'zolik.remedy.drawFromStock': 'Lízni si z balíčku — odhazovací balíček se otevře v kole {n}.',
@@ -700,6 +714,7 @@ const cs: Record<string, string> = {
   'seat.cards': 'Karet',
   'zolik.offer.meld': 'Kombinace',
   'prompt.pickupMustBeMelded': '{value} je z odhazovacího balíčku — musí jít do kombinací, se kterými v tomto tahu jdeš dolů.',
+  'prompt.jokerMustBePlayed': '{value} je ze stolu — než ukončíš tah, musí jít do kombinace.',
   'prompt.initialMeld': 'První kombinace tvé strany musí mít {n} bodů.',
   'prompt.canastasNeeded': 'Tvé straně chybí ještě {n} canasty, než může vyjít.',
   'prompt.mustDrawOrAnswerSeven': 'Odpověz sedmičkou, nebo si lízni {n} karty.',
@@ -744,6 +759,7 @@ const cs: Record<string, string> = {
 
   // --- marks on a particular card ------------------------------------------
   'zolik.badge.owedToMeld': '{card} je z odhazovacího balíčku — musí jít do kombinací, se kterými v tomto tahu jdeš dolů.',
+  'zolik.badge.jokerOwed': '{card} je ze stolu — než ukončíš tah, musí jít do kombinace.',
 };
 
 export const BUNDLES: Record<Locale, Record<string, string>> = { en, cs };

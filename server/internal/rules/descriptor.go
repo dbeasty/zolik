@@ -109,10 +109,11 @@ func (d ModuleDescriptor) Profile(id string) *ProfileSpec {
 // Option names. These are the JSON field names a client sends back, so they
 // are part of the wire contract and are referenced rather than retyped.
 const (
-	OptInitialMeldMinimum  = "initialMeldMinimum"
-	OptDiscardDrawMinRound = "discardDrawMinRound"
-	OptRequireCleanRun     = "requireCleanRun"
-	OptDealStarter         = "dealStarter"
+	OptInitialMeldMinimum   = "initialMeldMinimum"
+	OptDiscardDrawMinRound  = "discardDrawMinRound"
+	OptRequireCleanRun      = "requireCleanRun"
+	OptDealStarter          = "dealStarter"
+	OptJokerReclaimMustPlay = "jokerReclaimMustPlay"
 )
 
 // DealStarterOpt/ParseDealStarterOpt carry a DealStarterMode over the
@@ -199,6 +200,16 @@ func Descriptor() ModuleDescriptor {
 				Choices: []OptionChoice{
 					{Value: OptOn, Label: "Required"},
 					{Value: OptOff, Label: "Off"},
+				},
+			},
+			{
+				Name:  OptJokerReclaimMustPlay,
+				Type:  OptionEnumInt,
+				Label: "Reclaimed joker",
+				Help:  "Whether a joker taken back off the table must be played into a meld the same turn, or may be kept in hand.",
+				Choices: []OptionChoice{
+					{Value: OptOn, Label: "Play same turn"},
+					{Value: OptOff, Label: "May be kept"},
 				},
 			},
 			{

@@ -156,12 +156,19 @@ func ApplyAction(state GameState, playerID string, action Action) (ApplyOutcome,
 		if err != nil {
 			return ApplyOutcome{State: state}, err
 		}
-		events = append(events, ev("card_laid_off", map[string]interface{}{
+		layOffData := map[string]interface{}{
 			"playerId": playerID,
 			"meldId":   action.MeldID,
 			"card":     cards[0],
 			"cards":    cards,
-		}))
+		}
+		// A lay-off that took a joker's exact place moved that joker into the
+		// hand — an exchange, not a plain addition, and a client animating
+		// the event needs to know a card came back.
+		if ns.LastLayOff != nil && len(ns.LastLayOff.ReclaimedJokers) > 0 {
+			layOffData["reclaimedJokers"] = append([]string(nil), ns.LastLayOff.ReclaimedJokers...)
+		}
+		events = append(events, ev("card_laid_off", layOffData))
 		// Melding/laying off away the last card only ends the deal on a
 		// profile's final deal — every other deal requires a closing discard
 		// (ValidateMeldAction/ValidateLayOff reject an emptying play there),

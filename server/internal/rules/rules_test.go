@@ -1078,7 +1078,7 @@ func TestValidateSwapJoker_RunReplacesJokerAndReturnsItToHand(t *testing.T) {
 		Hands:       map[string][]string{"p1": {"7C"}},
 		Melds:       map[string][][]string{"p2": {{"5C", "6C", "JOKER1", "8C"}}},
 		MeldMeta:    map[string][]MeldInfo{"p2": {{MeldID: "meld_1", Type: MeldRun, OwnerID: "p2", WildCount: 1}}},
-		RoundReqMet: map[string]bool{"p1": false, "p2": true},
+		RoundReqMet: map[string]bool{"p1": true, "p2": true},
 	}
 	ns, err := ValidateSwapJoker(st, "p1", "meld_1", "7C")
 	if err != nil {
@@ -1113,7 +1113,7 @@ func TestValidateSwapJoker_SetReplacesJokerWithMatchingRank(t *testing.T) {
 		Hands:       map[string][]string{"p1": {"9H"}},
 		Melds:       map[string][][]string{"p2": {{"9C", "9D", "JOKER2"}}},
 		MeldMeta:    map[string][]MeldInfo{"p2": {{MeldID: "meld_1", Type: MeldSet, OwnerID: "p2", WildCount: 1}}},
-		RoundReqMet: map[string]bool{"p1": false, "p2": true},
+		RoundReqMet: map[string]bool{"p1": true, "p2": true},
 	}
 	ns, err := ValidateSwapJoker(st, "p1", "meld_1", "9H")
 	if err != nil {
@@ -1136,7 +1136,7 @@ func TestValidateSwapJoker_WrongCardRejected(t *testing.T) {
 		Hands:       map[string][]string{"p1": {"2H"}},
 		Melds:       map[string][][]string{"p2": {{"5C", "6C", "JOKER1", "8C"}}},
 		MeldMeta:    map[string][]MeldInfo{"p2": {{MeldID: "meld_1", Type: MeldRun, OwnerID: "p2", WildCount: 1}}},
-		RoundReqMet: map[string]bool{"p1": false, "p2": true},
+		RoundReqMet: map[string]bool{"p1": true, "p2": true},
 	}
 	_, err := ValidateSwapJoker(st, "p1", "meld_1", "2H")
 	if err == nil {
@@ -1157,7 +1157,7 @@ func TestValidateSwapJoker_NoJokerInMeldRejected(t *testing.T) {
 		Hands:       map[string][]string{"p1": {"9C"}},
 		Melds:       map[string][][]string{"p2": {{"5C", "6C", "7C"}}},
 		MeldMeta:    map[string][]MeldInfo{"p2": {{MeldID: "meld_1", Type: MeldRun, OwnerID: "p2"}}},
-		RoundReqMet: map[string]bool{"p1": false, "p2": true},
+		RoundReqMet: map[string]bool{"p1": true, "p2": true},
 	}
 	_, err := ValidateSwapJoker(st, "p1", "meld_1", "9C")
 	if err == nil {

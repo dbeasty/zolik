@@ -66,10 +66,21 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 				}
 			}
 		} else {
-			// Already down: shed cards one at a time onto any table meld
-			// (own or another player's) before trying a brand-new meld —
-			// otherwise a hand with no full new meld left in it can never
-			// shrink to zero and the deal never ends.
+			// Already down. First pay off any joker debt: a joker this agent
+			// took off the table must be played again before the engine will
+			// accept its discard, so placing it outranks every other shed.
+			// findLayOff's own reclaim guard only ever takes a joker it can
+			// place immediately, and nothing intervenes between the take and
+			// this branch, so a placement is there to find.
+			if pending := presentIn(hand, visible.PendingJokers); len(pending) > 0 {
+				if meldID, card, ok := findLayOffAmong(visible.MeldMeta, visible.Melds, hand, pending, visible.Rules, visible.GameNumber); ok {
+					return rules.Action{Type: rules.ActionLayOff, MeldID: meldID, Card: card}
+				}
+			}
+			// Shed cards one at a time onto any table meld (own or another
+			// player's) before trying a brand-new meld — otherwise a hand
+			// with no full new meld left in it can never shrink to zero and
+			// the deal never ends.
 			if meldID, card, ok := findLayOff(visible.MeldMeta, visible.Melds, hand, visible.Rules, visible.GameNumber); ok {
 				return rules.Action{Type: rules.ActionLayOff, MeldID: meldID, Card: card}
 			}
@@ -377,6 +388,13 @@ func removeCardsOnce(hand []string, remove []string) []string {
 // or another player's). Skips a lay-off that would empty the hand on a deal
 // that requires a final discard to go out (see RulesConfig.IsFinalDeal).
 func findLayOff(meldMeta map[string][]rules.MeldInfo, melds map[string][][]string, hand []string, cfg rules.RulesConfig, gameNumber int) (meldID string, card string, ok bool) {
+	return findLayOffAmong(meldMeta, melds, hand, hand, cfg, gameNumber)
+}
+
+// findLayOffAmong is findLayOff restricted to candidates (a subset of hand) —
+// the pending-joker branch of ChooseAction uses it to place exactly the joker
+// it owes the table.
+func findLayOffAmong(meldMeta map[string][]rules.MeldInfo, melds map[string][][]string, hand []string, candidates []string, cfg rules.RulesConfig, gameNumber int) (meldID string, card string, ok bool) {
 	if !cfg.IsFinalDeal(gameNumber) && len(hand) == 1 {
 		return "", "", false
 	}
@@ -391,7 +409,7 @@ func findLayOff(meldMeta map[string][]rules.MeldInfo, melds map[string][][]strin
 				continue
 			}
 			existing := ownerMelds[i]
-			for _, c := range hand {
+			for _, c := range candidates {
 				cand := append(append([]string(nil), existing...), c)
 				if _, err := rules.ValidateMeld(cand, cfg); err != nil {
 					continue
@@ -402,11 +420,109 @@ func findLayOff(meldMeta map[string][]rules.MeldInfo, melds map[string][][]strin
 				if !handCanStillDiscard(removeCardsOnce(hand, []string{c}), cfg, true) {
 					continue
 				}
+				// The engine treats a single natural dropped into a joker's
+				// exact place as buying the joker back (swap-before-lay-off,
+				// see rules.ApplyAction), and under JokerReclaimMustPlay
+				// that joker must be played again before the turn can end.
+				// Only take it when a place for it demonstrably exists —
+				// otherwise this "lay-off" walks the agent into a discard
+				// the engine will refuse, with no undo in its vocabulary.
+				if cfg.JokerReclaimMustPlay {
+					if joker, replaced, would := layOffWouldReclaim(existing, mi, c, cfg); would {
+						postHand := append(removeCardsOnce(hand, []string{c}), joker)
+						if !reclaimedJokerPlayable(meldMeta, melds, owner, i, replaced, postHand, joker, cfg, gameNumber) {
+							continue
+						}
+					}
+				}
 				return mi.MeldID, c, true
 			}
 		}
 	}
 	return "", "", false
+}
+
+// layOffWouldReclaim mirrors the engine's swap-before-lay-off decision for a
+// single card dropped onto a meld: a non-joker that takes the meld's first
+// joker's exact place (the meld re-validates as the same type with the joker
+// removed and the card added) releases that joker into the hand instead of
+// piling in alongside it.
+func layOffWouldReclaim(existing []string, mi rules.MeldInfo, c string, cfg rules.RulesConfig) (joker string, replaced []string, would bool) {
+	if rules.IsJoker(c) {
+		return "", nil, false
+	}
+	jokerPos := -1
+	for i, mc := range existing {
+		if rules.IsJoker(mc) {
+			jokerPos = i
+			break
+		}
+	}
+	if jokerPos == -1 {
+		return "", nil, false
+	}
+	joker = existing[jokerPos]
+	replaced = append(append([]string(nil), existing[:jokerPos]...), existing[jokerPos+1:]...)
+	replaced = append(replaced, c)
+	mv, err := rules.ValidateMeld(replaced, cfg)
+	if err != nil || mv.Type != mi.Type {
+		return "", nil, false
+	}
+	return joker, replaced, true
+}
+
+// reclaimedJokerPlayable reports whether the joker a lay-off would buy back
+// still has somewhere to go on the table as it will stand afterwards — the
+// changed meld swapped in, every other meld as-is. A one-card post-hand needs
+// no placement at all: discarding the last card of an already-down hand goes
+// out, which the take-and-replay rule exempts.
+func reclaimedJokerPlayable(meldMeta map[string][]rules.MeldInfo, melds map[string][][]string, changedOwner string, changedIdx int, replaced []string, postHand []string, joker string, cfg rules.RulesConfig, gameNumber int) bool {
+	if len(postHand) == 1 {
+		return true
+	}
+	rest := removeCardsOnce(postHand, []string{joker})
+	if !cfg.IsFinalDeal(gameNumber) && len(rest) == 0 {
+		return false
+	}
+	if !handCanStillDiscard(rest, cfg, true) {
+		return false
+	}
+	for _, owner := range sortedOwners(meldMeta) {
+		metas := meldMeta[owner]
+		ownerMelds := melds[owner]
+		for i := range metas {
+			if i >= len(ownerMelds) {
+				continue
+			}
+			target := ownerMelds[i]
+			if owner == changedOwner && i == changedIdx {
+				target = replaced
+			}
+			cand := append(append([]string(nil), target...), joker)
+			if _, err := rules.ValidateMeld(cand, cfg); err == nil {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// presentIn returns the entries of want that the hand actually holds,
+// respecting duplicates — the guard that keeps a stale pending list from
+// naming a card the agent no longer has.
+func presentIn(hand []string, want []string) []string {
+	counts := map[string]int{}
+	for _, c := range hand {
+		counts[c]++
+	}
+	out := make([]string, 0, len(want))
+	for _, w := range want {
+		if counts[w] > 0 {
+			counts[w]--
+			out = append(out, w)
+		}
+	}
+	return out
 }
 
 func findAnyValidMeld(hand []string, cfg rules.RulesConfig) ([]string, bool) {
