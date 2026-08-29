@@ -163,6 +163,7 @@ func ValidateMeldAction(state GameState, playerID string, cards []string) (GameS
 	prevMeldsLaidThisTurn := state.MeldsLaidThisTurn
 	prevDiscardDrawnCardPendingMeld := state.DiscardDrawnCardPendingMeld
 	prevDiscardTakenCard := state.DiscardTakenCard
+	prevJokersReclaimed := append([]string(nil), state.JokersReclaimedPendingMeld...)
 	cfg := effectiveRules(state)
 
 	mv, err := ValidateMeld(cards, cfg)
@@ -242,6 +243,9 @@ func ValidateMeldAction(state GameState, playerID string, cards []string) (GameS
 		}
 	}
 	state.DiscardTakenCard = clearIfSpent(state.DiscardTakenCard, cards)
+	// A reclaimed joker used in this brand-new meld pays off its
+	// play-it-this-turn debt.
+	state.JokersReclaimedPendingMeld = removeCards(state.JokersReclaimedPendingMeld, cards)
 	// Once a meld has been laid this turn, the discard-pile pickup (if any)
 	// can no longer be cleanly undone.
 	state.DiscardDrawnCards = nil
@@ -254,6 +258,7 @@ func ValidateMeldAction(state GameState, playerID string, cards []string) (GameS
 		PrevMeldsLaidThisTurn:           prevMeldsLaidThisTurn,
 		PrevDiscardDrawnCardPendingMeld: prevDiscardDrawnCardPendingMeld,
 		PrevDiscardTakenCard:            prevDiscardTakenCard,
+		PrevJokersReclaimedPendingMeld:  prevJokersReclaimed,
 	}
 
 	return state, meldID, mv.Type, nil
@@ -297,6 +302,7 @@ func ValidateUndoLayMeld(state GameState, playerID string) (GameState, error) {
 	state.MeldsLaidThisTurn = snap.PrevMeldsLaidThisTurn
 	state.DiscardDrawnCardPendingMeld = snap.PrevDiscardDrawnCardPendingMeld
 	state.DiscardTakenCard = snap.PrevDiscardTakenCard
+	state.JokersReclaimedPendingMeld = append([]string(nil), snap.PrevJokersReclaimedPendingMeld...)
 	state.LastMeldLaid = nil
 
 	return state, nil
@@ -345,8 +351,9 @@ func snapshotTurnMeld(state GameState, playerID string) *TurnMeldSnapshot {
 		// (e.g. right after the discard pile's last card was just picked
 		// up) crashed the whole game screen. make() is never nil, even at
 		// length 0.
-		DiscardPile: append(make([]string, 0, len(state.DiscardPile)), state.DiscardPile...),
-		NextMeldSeq: state.NextMeldSeq,
+		DiscardPile:                append(make([]string, 0, len(state.DiscardPile)), state.DiscardPile...),
+		NextMeldSeq:                state.NextMeldSeq,
+		JokersReclaimedPendingMeld: append([]string(nil), state.JokersReclaimedPendingMeld...),
 	}
 }
 
@@ -395,6 +402,7 @@ func ValidateUndoTurn(state GameState, playerID string) (GameState, error) {
 	state.DiscardDrawnCards = snap.DiscardDrawnCards
 	state.DiscardPile = snap.DiscardPile
 	state.NextMeldSeq = snap.NextMeldSeq
+	state.JokersReclaimedPendingMeld = append([]string(nil), snap.JokersReclaimedPendingMeld...)
 	state.LastLayOff = nil
 	state.LastMeldLaid = nil
 	// Re-snapshot the just-restored state rather than reusing snap directly:
@@ -509,9 +517,15 @@ func ValidateLayOff(state GameState, playerID string, meldID string, cards []str
 	}
 
 	prevDiscardTakenCard := state.DiscardTakenCard
+	prevJokersReclaimed := append([]string(nil), state.JokersReclaimedPendingMeld...)
 	state.DiscardTakenCard = clearIfSpent(state.DiscardTakenCard, cards)
 	state.Hands[playerID] = removeCards(state.Hands[playerID], cards)
 	state.Hands[playerID] = append(state.Hands[playerID], reclaimed...)
+	// One lay-off can move the play-it-this-turn joker debt both ways: a
+	// joker among cards pays its debt off, and a joker swapped out of the
+	// meld takes on a fresh one.
+	state.JokersReclaimedPendingMeld = removeCards(state.JokersReclaimedPendingMeld, cards)
+	state.JokersReclaimedPendingMeld = append(state.JokersReclaimedPendingMeld, reclaimed...)
 	state.Melds[owner][idx] = OrderMeldForDisplay(newMeld, mv)
 	if metas := state.MeldMeta[owner]; idx < len(metas) {
 		metas[idx].Type = mv.Type
@@ -535,9 +549,10 @@ func ValidateLayOff(state GameState, playerID string, meldID string, cards []str
 		PrevMeta:  prevMeta,
 		Cards:     append([]string(nil), cards...),
 
-		PrevDiscardTakenCard: prevDiscardTakenCard,
-		PrevOwnerReqMet:      prevOwnerReqMet,
-		ReclaimedJokers:      append([]string(nil), reclaimed...),
+		PrevDiscardTakenCard:           prevDiscardTakenCard,
+		PrevOwnerReqMet:                prevOwnerReqMet,
+		ReclaimedJokers:                append([]string(nil), reclaimed...),
+		PrevJokersReclaimedPendingMeld: prevJokersReclaimed,
 	}
 
 	if !cfg.IsFinalDeal(state.GameNumber) && len(state.Hands[playerID]) == 0 {
@@ -590,6 +605,7 @@ func ValidateUndoLayOff(state GameState, playerID string) (GameState, error) {
 	if state.RoundReqMet != nil {
 		state.RoundReqMet[owner] = snap.PrevOwnerReqMet
 	}
+	state.JokersReclaimedPendingMeld = append([]string(nil), snap.PrevJokersReclaimedPendingMeld...)
 	state.LastLayOff = nil
 
 	return state, nil
@@ -689,9 +705,33 @@ func ValidateSwapJoker(state GameState, playerID string, meldID string, card str
 		}
 	}
 
+	// Buying a joker back is a table move, reserved — like lay_off — for a
+	// player who has laid their own initial meld. The one exception is the
+	// swap that IS the coming out: swapping the joker out of your own run
+	// can be exactly what makes it the clean run the contract demands, or
+	// what lifts your melds over the point floor, so the gate asks whether
+	// the player is down *after* the swap rather than before it. Checked on
+	// a throwaway clone: a validator must not touch the caller's maps on a
+	// refusal.
+	if !state.RoundReqMet[playerID] {
+		sim := cloneState(state)
+		sim.Melds[owner][idx] = replaced
+		if metas := sim.MeldMeta[owner]; idx < len(metas) {
+			metas[idx].Type = mv.Type
+			metas[idx].WildCount = mv.WildCount
+		}
+		refreshRoundReqMet(sim, playerID)
+		if !sim.RoundReqMet[playerID] {
+			return state, notDownError(state, playerID)
+		}
+	}
+
 	state.DiscardTakenCard = clearIfSpent(state.DiscardTakenCard, []string{card})
 	state.Hands[playerID] = removeCards(state.Hands[playerID], []string{card})
 	state.Hands[playerID] = append(state.Hands[playerID], joker)
+	// The joker arrives owing a meld: under JokerReclaimMustPlay the turn
+	// cannot end until it is played again (see ValidateDiscard).
+	state.JokersReclaimedPendingMeld = append(state.JokersReclaimedPendingMeld, joker)
 	state.Melds[owner][idx] = OrderMeldForDisplay(replaced, mv)
 	if metas := state.MeldMeta[owner]; idx < len(metas) {
 		metas[idx].Type = mv.Type
@@ -791,6 +831,23 @@ func ValidateDiscard(state GameState, playerID string, card string, cardIndex *i
 			Message: incompleteMeldMessage(state, playerID),
 		}
 	}
+	// A joker taken off the table this turn owes a meld before the turn can
+	// end — hoarding it in hand across the discard is what the take-and-
+	// replay rule forbids. The one discard exempt is the one that empties an
+	// already-down hand: it ends the deal, the same carve-out the joker
+	// discard ban makes above. This gate is never a dead end — the take can
+	// always be walked back instead, by undo:lay_off in the window right
+	// after a lay-off reclaim, or by undo:turn at any point before the
+	// discard.
+	if cfg.JokerReclaimMustPlay && len(state.JokersReclaimedPendingMeld) > 0 {
+		goesOut := len(state.Hands[playerID]) == 1 && state.RoundReqMet[playerID]
+		if !goesOut {
+			return state, false, RulesError{
+				Code:    ErrReclaimedJokerNotMelded,
+				Message: "the joker you took off the table must be played into a meld this turn — play it, or undo taking it",
+			}
+		}
+	}
 	// A discard-pile pickup made before going down obligates the player to
 	// lay that card into their initial meld this turn.
 	if state.DiscardDrawnCardPendingMeld != "" && !state.RoundReqMet[playerID] {
@@ -820,6 +877,10 @@ func ValidateDiscard(state GameState, playerID string, card string, cardIndex *i
 	// The marker is scoped to the turn that took the card, and this discard
 	// ends that turn.
 	state.DiscardTakenCard = ""
+	// So is the joker debt: either the gate above found it paid, or it was
+	// never owed (rule off, or the going-out carve-out) — a new turn starts
+	// with a clean slate either way.
+	state.JokersReclaimedPendingMeld = nil
 	// The meld phase is over now that the discard's landed — the whole-turn
 	// undo only makes sense before that point.
 	state.TurnMeldSnapshot = nil

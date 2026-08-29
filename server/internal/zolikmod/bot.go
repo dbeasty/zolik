@@ -54,6 +54,7 @@ func visibleFor(s *matchState, playerID string) ai.VisibleState {
 		RoundReqMet:      gs.RoundReqMet,
 		Rules:            rules.ResolveConfig(gs.Rules),
 		DiscardTakenCard: gs.DiscardTakenCard,
+		PendingJokers:    gs.JokersReclaimedPendingMeld,
 	}
 }
 

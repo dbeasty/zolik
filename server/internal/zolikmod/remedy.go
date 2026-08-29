@@ -104,6 +104,23 @@ func annotate(gs rules.GameState, playerID string, offers []module.ActionOffer) 
 			o.Remedy = &module.Fact{LabelKey: "zolik.remedy.drawFromStockEmpty"}
 			o.RemedyOfferID = firstEnabled(rules.OfferDrawDeck)
 
+		case rules.ErrReclaimedJokerNotMelded:
+			// The joker is named for the same reason the pickup's card is:
+			// "the joker you took" is not identification in a hand that may
+			// hold more than one.
+			joker := ""
+			if len(gs.JokersReclaimedPendingMeld) > 0 {
+				joker = gs.JokersReclaimedPendingMeld[0]
+			}
+			o.Remedy = &module.Fact{
+				LabelKey: "zolik.remedy.playReclaimedJoker",
+				Params:   map[string]any{"card": joker},
+			}
+			// The smallest step first: right after a lay-off reclaim the
+			// one-action undo still reaches it; once anything was built on
+			// top, undoing the turn is the way out.
+			o.RemedyOfferID = firstEnabled(rules.OfferUndoLayOff, rules.OfferUndoTurn)
+
 		case rules.ErrJokerDiscard:
 			o.Remedy = &module.Fact{LabelKey: "zolik.remedy.discardNotAJoker"}
 		}

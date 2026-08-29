@@ -58,6 +58,7 @@
     "PILE_FROZEN",
     "RAISE_TOO_SMALL",
     "RANK_ALREADY_MELDED",
+    "RECLAIMED_JOKER_NOT_MELDED",
     "ROUND_REQ_NOT_MET",
     "RUN_TOO_LONG",
     "SEAT_NOT_IN_HAND",
@@ -137,6 +138,7 @@
     "prompt.canastasNeeded",
     "prompt.chooseSuit",
     "prompt.initialMeld",
+    "prompt.jokerMustBePlayed",
     "prompt.mustDrawOrAnswerSeven",
     "prompt.pickupMustBeMelded",
     "prompt.skipPending",
@@ -163,6 +165,7 @@
     "verb.takeFromDiscard",
     "verb.takePileFromHand",
     "verb.takePileOntoMeld",
+    "zolik.badge.jokerOwed",
     "zolik.badge.owedToMeld",
     "zolik.offer.meld",
     "zolik.remedy.discardNotAJoker",
@@ -175,6 +178,7 @@
     "zolik.remedy.layACleanRun",
     "zolik.remedy.meldThePickup",
     "zolik.remedy.needMorePoints",
+    "zolik.remedy.playReclaimedJoker",
     "zolik.round.cleanRun",
     "zolik.round.deal",
     "zolik.rules.cleanRun.off",
@@ -187,6 +191,8 @@
     "zolik.rules.end.afterDeals",
     "zolik.rules.end.atScore",
     "zolik.rules.goal",
+    "zolik.rules.jokers.reclaim.off",
+    "zolik.rules.jokers.reclaim.on",
     "zolik.rules.jokers.restricted",
     "zolik.rules.jokers.swap",
     "zolik.rules.layoff.afterDown",
@@ -276,6 +282,7 @@
     "zolik.remedy.layACleanRun",
     "zolik.remedy.meldThePickup",
     "zolik.remedy.needMorePoints",
+    "zolik.remedy.playReclaimedJoker",
     "zolik.rules.cleanRun.off",
     "zolik.rules.cleanRun.on",
     "zolik.rules.contracts.contribution",
@@ -285,6 +292,8 @@
     "zolik.rules.end.afterDeals",
     "zolik.rules.end.atScore",
     "zolik.rules.goal",
+    "zolik.rules.jokers.reclaim.off",
+    "zolik.rules.jokers.reclaim.on",
     "zolik.rules.jokers.restricted",
     "zolik.rules.jokers.swap",
     "zolik.rules.layoff.afterDown",
@@ -429,6 +438,9 @@
     "prompt.initialMeld": [
       "n"
     ],
+    "prompt.jokerMustBePlayed": [
+      "value"
+    ],
     "prompt.mustDrawOrAnswerSeven": [
       "n"
     ],
@@ -481,6 +493,9 @@
     ],
     "zolik.remedy.needMorePoints": [
       "n"
+    ],
+    "zolik.remedy.playReclaimedJoker": [
+      "card"
     ],
     "zolik.rules.contracts.rotating": [
       "n"
@@ -550,6 +565,7 @@
     "holdem.status.shown",
     "prompt.canastasNeeded",
     "prompt.initialMeld",
+    "prompt.jokerMustBePlayed",
     "prompt.mustDrawOrAnswerSeven",
     "prompt.pickupMustBeMelded",
     "prsi.rules.deal",
@@ -563,6 +579,7 @@
     "zolik.remedy.drawFromStock",
     "zolik.remedy.meldThePickup",
     "zolik.remedy.needMorePoints",
+    "zolik.remedy.playReclaimedJoker",
     "zolik.rules.contracts.rotating",
     "zolik.rules.contracts.static",
     "zolik.rules.deal",

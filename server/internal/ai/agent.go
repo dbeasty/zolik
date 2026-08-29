@@ -35,6 +35,13 @@ type VisibleState struct {
 	// that ignores it can talk itself into a hand it has no legal move out
 	// of. Empty when the turn's draw came from the deck.
 	DiscardTakenCard string
+	// PendingJokers holds the jokers the current player has taken off the
+	// table this turn and not yet played back into a meld — see
+	// rules.GameState.JokersReclaimedPendingMeld. Under
+	// Rules.JokerReclaimMustPlay the engine refuses the turn-ending discard
+	// while any remain, so an agent that ignores this owes a move it will
+	// never make and wedges its own turn.
+	PendingJokers []string
 }
 
 type Agent interface {

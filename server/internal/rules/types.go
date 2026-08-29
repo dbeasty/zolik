@@ -53,6 +53,12 @@ type LayOffSnapshot struct {
 	// it has to take that back too — otherwise a lay-off and its undo leave
 	// an opponent permanently down for free.
 	PrevOwnerReqMet bool
+	// PrevJokersReclaimedPendingMeld restores the play-it-this-turn debt as
+	// it stood before this lay_off, which can move it in both directions at
+	// once: reclaim a joker (adding to the debt) and lay a previously
+	// reclaimed joker onto a meld (paying it off). Only a full snapshot puts
+	// both back.
+	PrevJokersReclaimedPendingMeld []string
 	// ReclaimedJokers holds any jokers this lay-off swapped out of the meld
 	// because a card in Cards took the joker's exact place, moved into the
 	// player's hand alongside the ordinary addition. PrevCards already has
@@ -75,6 +81,10 @@ type MeldLaidSnapshot struct {
 	PrevMeldsLaidThisTurn           int
 	PrevDiscardDrawnCardPendingMeld string
 	PrevDiscardTakenCard            string
+	// PrevJokersReclaimedPendingMeld restores the play-it-this-turn joker
+	// debt: a lay_meld can spend a reclaimed joker as one of its cards, so
+	// undoing it has to put that joker back on the books.
+	PrevJokersReclaimedPendingMeld []string
 }
 
 // TurnMeldSnapshot captures everything a player's meld phase can touch, taken
@@ -102,6 +112,13 @@ type TurnMeldSnapshot struct {
 	DiscardDrawnCards           []string
 	DiscardPile                 []string
 	NextMeldSeq                 int
+	// JokersReclaimedPendingMeld restores the play-it-this-turn joker debt.
+	// Always empty in practice — the snapshot is taken right after the draw,
+	// before any reclaim can have happened — but restored explicitly so a
+	// snapshot and the state it restores can never disagree. Nil on a
+	// snapshot written before this field existed, which restores the same
+	// empty debt that build would have.
+	JokersReclaimedPendingMeld []string
 }
 
 type MeldInfo struct {
@@ -251,6 +268,19 @@ type GameState struct {
 	// scattered into melds.
 	DiscardDrawnCards []string
 
+	// JokersReclaimedPendingMeld holds the jokers this turn's actor has taken
+	// off the table — through an explicit swap_joker, or through a lay_off
+	// whose card took a joker's exact place — and not yet played back into a
+	// meld. Under Rules.JokerReclaimMustPlay that debt blocks the discard
+	// that would end the turn (see ValidateDiscard): a reclaimed joker is
+	// taken to be used, not hoarded. Entries are removed as jokers leave the
+	// hand into a lay_meld or lay_off, restored by the undo tiers alongside
+	// everything else they revert, and cleared when the turn ends.
+	//
+	// Tracked even when the rule is off, so the client can still show where
+	// a joker in hand came from; only the discard gate is conditional.
+	JokersReclaimedPendingMeld []string
+
 	// LastLayOff snapshots the most recent lay_off this turn so
 	// ValidateUndoLayOff can revert it — cleared whenever anything else
 	// happens this turn (a fresh draw, a lay_meld, a swap_joker, or another
@@ -343,10 +373,15 @@ const (
 	ErrGameSuspended         RulesErrorCode = "GAME_SUSPENDED"
 	ErrGameNotActive         RulesErrorCode = "GAME_NOT_ACTIVE"
 	ErrJokerDiscard          RulesErrorCode = "JOKER_DISCARD_FORBIDDEN"
-	ErrNothingToUndo         RulesErrorCode = "NOTHING_TO_UNDO"
-	ErrNoJokerInMeld         RulesErrorCode = "NO_JOKER_IN_MELD"
-	ErrJokerSwapMismatch     RulesErrorCode = "JOKER_SWAP_MISMATCH"
-	ErrWrongRunEnd           RulesErrorCode = "WRONG_RUN_END"
+	// ErrReclaimedJokerNotMelded: the turn cannot end while a joker taken
+	// off the table this turn is still in hand — it must be played into a
+	// meld (or the take undone) first. Only emitted under
+	// RulesConfig.JokerReclaimMustPlay.
+	ErrReclaimedJokerNotMelded RulesErrorCode = "RECLAIMED_JOKER_NOT_MELDED"
+	ErrNothingToUndo           RulesErrorCode = "NOTHING_TO_UNDO"
+	ErrNoJokerInMeld           RulesErrorCode = "NO_JOKER_IN_MELD"
+	ErrJokerSwapMismatch       RulesErrorCode = "JOKER_SWAP_MISMATCH"
+	ErrWrongRunEnd             RulesErrorCode = "WRONG_RUN_END"
 
 	// Not in spec list; required by your decision for empty deck+discard.
 	ErrNoCardsLeft RulesErrorCode = "NO_CARDS_LEFT"

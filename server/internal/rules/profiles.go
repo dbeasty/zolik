@@ -3,7 +3,8 @@ package rules
 // ProfileContinental reproduces the game's original ruleset exactly:
 // 12-card deal, 4+ card runs, a rotating 7-deal contract (RoundRequirementFor
 // below), a 35-point initial-meld floor, discard-pickup locked until table
-// round 3, and a joker can never be discarded except to go out.
+// round 3, a joker can never be discarded except to go out, and a joker
+// bought back off the table must be played again the same turn.
 var ProfileContinental = RulesConfig{
 	Profile:                "continental",
 	DealSize:               12,
@@ -13,6 +14,7 @@ var ProfileContinental = RulesConfig{
 	DiscardDrawMinRound:    3,
 	DiscardPickupMode:      DiscardPickupTopOnly,
 	JokerDiscardRestricted: true,
+	JokerReclaimMustPlay:   true,
 	FixedDealCount:         7,
 	DealStarter:            DealStarterRotate,
 	MatchEndMode:           MatchEndAfterDeals,
@@ -22,7 +24,8 @@ var ProfileContinental = RulesConfig{
 // deal, 3+ card runs, no fixed per-deal contract or point-value floor, free
 // pickup of any card from the discard pile, house rules requiring at least
 // one joker-free ("clean") run before a player is down, a joker can never be
-// discarded except to go out, and the match keeps re-dealing until someone
+// discarded except to go out, a joker bought back off the table must be
+// played again the same turn, and the match keeps re-dealing until someone
 // crosses the target score.
 var ProfileZolikClassic = RulesConfig{
 	Profile:                "zolik_classic",
@@ -33,6 +36,7 @@ var ProfileZolikClassic = RulesConfig{
 	DiscardDrawMinRound:    0,
 	DiscardPickupMode:      DiscardPickupAnyFromPile,
 	JokerDiscardRestricted: true,
+	JokerReclaimMustPlay:   true,
 	FixedDealCount:         0,
 	StaticContract:         ContractRequirement{Sets: 0, Runs: 0, RequireCleanRun: true},
 	DealStarter:            DealStarterRotate,
