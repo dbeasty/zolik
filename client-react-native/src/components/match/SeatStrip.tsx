@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { MatchPlayer, Seat, Standing } from '@/src/api/matchTypes';
-import { Panel } from '@/src/components/match/Panel';
+import { Panel, type Measurable } from '@/src/components/match/Panel';
+import { seatElementId } from '@/src/lib/flights';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
 import { useSkin } from '@/src/hooks/useSkin';
@@ -38,9 +39,15 @@ type Props = {
   panelId?: string;
   minimized?: boolean;
   onToggleMinimized?: () => void;
+  /**
+   * Publishes where each seat tile is, under `seatElementId(playerId)` — a
+   * seat is where a player's unseen cards visually live, so it is where a
+   * card in flight leaves from or lands when their hand isn't on screen.
+   */
+  registerSpot?: (elementId: string, node: Measurable | null) => void;
 };
 
-export function SeatStrip({ seats, players, viewerId, standings, panelId, minimized, onToggleMinimized }: Props) {
+export function SeatStrip({ seats, players, viewerId, standings, panelId, minimized, onToggleMinimized, registerSpot }: Props) {
   const metrics = useMetrics();
   const skin = useSkin();
   const styles = useMemo(() => seatStyles(metrics, skin), [metrics, skin]);
@@ -55,6 +62,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
     return (
       <View
         key={seat.playerId}
+        ref={(n) => registerSpot?.(seatElementId(seat.playerId), n as unknown as Measurable | null)}
         testID={`seat-${seat.playerId}`}
         style={[styles.seat, metrics.narrow && styles.seatNarrow, seat.active && styles.active, isMe && styles.mine]}
       >

@@ -111,6 +111,14 @@ type RulesConfig struct {
 	// that is over holds no joker hostage.
 	JokerReclaimMustPlay bool
 
+	// GoOutDiscardFaceDown: the discard that ends the deal is laid on the
+	// pile face down — the traditional Žolík closing gesture, "zavření".
+	// Purely presentational: the deal is already scored when anyone sees the
+	// pile again, so nothing is hidden that scoring didn't just reveal. The
+	// engine records the fact (GameState.WentOutByDiscard); this flag decides
+	// whether the module's view dresses that card back-up.
+	GoOutDiscardFaceDown bool
+
 	// FixedDealCount > 0 selects Continental's per-deal contract rotation
 	// (ContractForDeal, deals 1..FixedDealCount); FixedDealCount == 0 means
 	// every deal uses StaticContract instead (Žolík Classic: no rotation).

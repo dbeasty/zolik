@@ -34,6 +34,8 @@ const SHELL_FILES = [
   'src/components/match/RoundResults.tsx',
   'src/components/match/LifetimeRecord.tsx',
   'src/hooks/useArrival.ts',
+  'src/lib/flights.ts',
+  'src/components/match/FlightLayer.tsx',
 ];
 
 // Nouns and verbs that belong to one game. If any of these appears in the

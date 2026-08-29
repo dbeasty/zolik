@@ -25,8 +25,9 @@ var ProfileContinental = RulesConfig{
 // pickup of any card from the discard pile, house rules requiring at least
 // one joker-free ("clean") run before a player is down, a joker can never be
 // discarded except to go out, a joker bought back off the table must be
-// played again the same turn, and the match keeps re-dealing until someone
-// crosses the target score.
+// played again the same turn, the deal-ending discard is laid face down (the
+// closing gesture), and the match keeps re-dealing until someone crosses the
+// target score.
 var ProfileZolikClassic = RulesConfig{
 	Profile:                "zolik_classic",
 	DealSize:               13,
@@ -37,8 +38,11 @@ var ProfileZolikClassic = RulesConfig{
 	DiscardPickupMode:      DiscardPickupAnyFromPile,
 	JokerDiscardRestricted: true,
 	JokerReclaimMustPlay:   true,
-	FixedDealCount:         0,
-	StaticContract:         ContractRequirement{Sets: 0, Runs: 0, RequireCleanRun: true},
+	// Žolík HD's closing gesture: the go-out discard lands face down. Left
+	// off Continental, whose reference game shows every discard face up.
+	GoOutDiscardFaceDown: true,
+	FixedDealCount:       0,
+	StaticContract:       ContractRequirement{Sets: 0, Runs: 0, RequireCleanRun: true},
 	DealStarter:            DealStarterRotate,
 	MatchEndMode:           MatchEndAtScore,
 	TargetScore:            200,

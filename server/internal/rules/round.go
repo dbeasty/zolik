@@ -190,6 +190,7 @@ func dealNewGame(state GameState, nextTurnID string) (GameState, error) {
 	state.ReshuffleCount = 0
 	state.DiscardPile = nil
 	state.DrawPile = nil
+	state.WentOutByDiscard = false
 
 	// Reset per-game state.
 	state.Melds = map[string][][]string{}

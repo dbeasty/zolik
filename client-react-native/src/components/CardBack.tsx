@@ -13,7 +13,7 @@ import { useSkin } from '@/src/hooks/useSkin';
  * there and the whole point of a back is to match the face beside it.
  */
 export function CardBack({ width, height }: { width: number; height: number }) {
-  const back = useSkin().card.back;
+  const { back, bevel } = useSkin().card;
   return (
     <View
       style={[
@@ -27,6 +27,15 @@ export function CardBack({ width, height }: { width: number; height: number }) {
         end={{ x: 1, y: 1 }}
         style={styles.fill}
       />
+      {/* A gloss across the top of the printed back, on the same switch as
+          the face's bevelled edges, so face and back agree about the light.
+          Decoration inside the border — nothing about the box changes. */}
+      {bevel ? (
+        <LinearGradient
+          colors={['rgba(255, 255, 255, 0.30)', 'rgba(255, 255, 255, 0)']}
+          style={styles.gloss}
+        />
+      ) : null}
       <View style={[styles.frame, { borderColor: back.frame }]}>
         <Text style={[styles.emblem, { color: back.emblem, fontSize: Math.round(Math.min(width, height) * 0.42) }]}>
           ❖
@@ -43,6 +52,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   fill: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 },
+  gloss: { position: 'absolute', top: 0, left: 0, right: 0, height: '38%' },
   frame: {
     position: 'absolute',
     top: 3,
