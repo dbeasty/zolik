@@ -372,26 +372,43 @@ func rawMongoColl(b *testing.B) (*mongo.Collection, bool) {
 
 // BenchmarkRawInsert: one document written by key, no index maintenance
 // beyond what each engine does unconditionally (Mongo's _id index; KDB's
-// fsynced commit). No uniqueness check, no CAS, no repository logic.
+// synced commit). No uniqueness check, no CAS, no repository logic.
+//
+// KDB runs once per durability mode, because "insert one document" *is* the
+// durability cost: sync-fast is the default (ack ⇒ synced to the device via
+// F_BARRIERFSYNC), sync-full is the old always-F_FULLFSYNC behavior, and
+// async-100ms is Mongo's default journaling semantics (ack ⇒ in the page
+// cache, flushed within 100ms) — the row to compare against the mongo row
+// like for like.
 func BenchmarkRawInsert(b *testing.B) {
-	b.Run(db.EngineKDB, func(b *testing.B) {
-		k, err := db.OpenKDB(b.TempDir())
-		if err != nil {
-			b.Fatalf("opening kdb: %v", err)
-		}
-		b.Cleanup(func() { _ = k.Close(context.Background()) })
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
-			key := fmt.Sprintf("raw-%08d", i)
-			doc, err := db.MarshalDoc(newRawDoc(key))
+	kdbModes := []struct {
+		name string
+		sc   db.KDBStorage
+	}{
+		{db.EngineKDB, db.KDBStorage{}}, // the default: sync + fast
+		{db.EngineKDB + "-sync-full", db.KDBStorage{SyncMode: "full"}},
+		{db.EngineKDB + "-async-100ms", db.KDBStorage{Durability: "async", AsyncSyncIntervalMillis: 100}},
+	}
+	for _, mode := range kdbModes {
+		b.Run(mode.name, func(b *testing.B) {
+			k, err := db.OpenKDBWithStorage(b.TempDir(), mode.sc)
 			if err != nil {
-				b.Fatal(err)
+				b.Fatalf("opening kdb: %v", err)
 			}
-			if err := k.Put(db.NSScoring, key, doc); err != nil {
-				b.Fatal(err)
+			b.Cleanup(func() { _ = k.Close(context.Background()) })
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				key := fmt.Sprintf("raw-%08d", i)
+				doc, err := db.MarshalDoc(newRawDoc(key))
+				if err != nil {
+					b.Fatal(err)
+				}
+				if err := k.Put(db.NSScoring, key, doc); err != nil {
+					b.Fatal(err)
+				}
 			}
-		}
-	})
+		})
+	}
 	b.Run(db.EngineMongo, func(b *testing.B) {
 		coll, ok := rawMongoColl(b)
 		if !ok {

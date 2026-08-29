@@ -209,6 +209,62 @@ func TestKDBSurvivesReopen(t *testing.T) {
 	}
 }
 
+// TestKDBAsyncSurvivesClose is TestKDBSurvivesReopen under async
+// durability: an acked write may not be flushed yet, but Close drains the
+// commit log, so close-then-reopen must still see it.
+func TestKDBAsyncSurvivesClose(t *testing.T) {
+	dir := t.TempDir()
+	k, err := OpenKDBWithStorage(dir, KDBStorage{Durability: "async", AsyncSyncIntervalMillis: 100})
+	if err != nil {
+		t.Fatalf("open async: %v", err)
+	}
+	if err := k.Put(NSUsers, "u", []byte(`{"username":"ada"}`)); err != nil {
+		t.Fatalf("put: %v", err)
+	}
+	if err := k.Close(context.Background()); err != nil {
+		t.Fatalf("close: %v", err)
+	}
+
+	k2, err := OpenKDB(dir)
+	if err != nil {
+		t.Fatalf("reopen: %v", err)
+	}
+	defer func() { _ = k2.Close(context.Background()) }()
+	if _, err := k2.Get(NSUsers, "u"); err != nil {
+		t.Fatalf("get after async close+reopen: %v", err)
+	}
+}
+
+func TestKDBStorageFromEnv(t *testing.T) {
+	t.Setenv("KDB_DURABILITY", "async")
+	t.Setenv("KDB_SYNC_MODE", "full")
+	t.Setenv("KDB_ASYNC_SYNC_INTERVAL_MS", "100")
+	sc, err := KDBStorageFromEnv()
+	if err != nil {
+		t.Fatalf("from env: %v", err)
+	}
+	if sc.Durability != "async" || sc.SyncMode != "full" || sc.AsyncSyncIntervalMillis != 100 {
+		t.Fatalf("parsed %+v, want async/full/100", sc)
+	}
+
+	// An unrecognised value must refuse to open, not silently change what an
+	// acknowledged write means.
+	t.Setenv("KDB_DURABILITY", "yolo")
+	if _, err := KDBStorageFromEnv(); err == nil {
+		t.Fatal("KDB_DURABILITY=yolo: want error")
+	}
+	t.Setenv("KDB_DURABILITY", "")
+	t.Setenv("KDB_SYNC_MODE", "fastest")
+	if _, err := KDBStorageFromEnv(); err == nil {
+		t.Fatal("KDB_SYNC_MODE=fastest: want error")
+	}
+	t.Setenv("KDB_SYNC_MODE", "")
+	t.Setenv("KDB_ASYNC_SYNC_INTERVAL_MS", "soon")
+	if _, err := KDBStorageFromEnv(); err == nil {
+		t.Fatal("KDB_ASYNC_SYNC_INTERVAL_MS=soon: want error")
+	}
+}
+
 func TestKDBMemoryModeWorks(t *testing.T) {
 	k, err := OpenKDB("")
 	if err != nil {

@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -29,6 +31,8 @@ import (
 	"github.com/limidus/kdb/go/kdb/embed"
 	"github.com/limidus/kdb/go/kdb/schema"
 	kdbserver "github.com/limidus/kdb/go/kdb/server"
+	"github.com/limidus/kdb/go/kdb/storage"
+	storio "github.com/limidus/kdb/go/kdb/storage/io"
 )
 
 // Namespace names, one per Mongo collection, so the two backends stay
@@ -79,10 +83,91 @@ type kdbNamespace struct {
 	mu sync.Mutex
 }
 
-// OpenKDB opens (creating if needed) the embedded database rooted at path.
+// KDBStorage is the write-durability tuning the engine opens with. The zero
+// value is the default: durability "sync" with sync mode "fast" — every ack
+// still means "synced to the device", via F_BARRIERFSYNC/fdatasync rather
+// than the ~4ms full drive-cache flush. See KDBStorageFromEnv for the
+// environment spelling and kdb's docs/benchmarks/write-durability-modes.md
+// for the measured matrix.
+type KDBStorage struct {
+	// Durability: "sync" (ack ⇒ synced, the default) or "async" (ack ⇒
+	// appended; a background flush runs on an interval, Mongo-journal style).
+	Durability string
+	// SyncMode: "fast" (F_BARRIERFSYNC/fdatasync, the default) or "full"
+	// (F_FULLFSYNC/fsync — survives power loss, ~4ms per sync on Apple SSDs).
+	SyncMode string
+	// AsyncSyncIntervalMillis bounds the crash-loss window under "async".
+	// Zero uses the engine default (5ms); 100 matches Mongo's default
+	// journaling semantics.
+	AsyncSyncIntervalMillis int64
+}
+
+// KDBStorageFromEnv reads KDB_DURABILITY, KDB_SYNC_MODE and
+// KDB_ASYNC_SYNC_INTERVAL_MS. Unset means the defaults; an unrecognised
+// value is an error rather than a silent fallback, because it would silently
+// change what an acknowledged write means.
+func KDBStorageFromEnv() (KDBStorage, error) {
+	sc := KDBStorage{
+		Durability: strings.ToLower(strings.TrimSpace(os.Getenv("KDB_DURABILITY"))),
+		SyncMode:   strings.ToLower(strings.TrimSpace(os.Getenv("KDB_SYNC_MODE"))),
+	}
+	if raw := strings.TrimSpace(os.Getenv("KDB_ASYNC_SYNC_INTERVAL_MS")); raw != "" {
+		ms, err := strconv.ParseInt(raw, 10, 64)
+		if err != nil || ms < 0 {
+			return KDBStorage{}, fmt.Errorf("kdb: KDB_ASYNC_SYNC_INTERVAL_MS=%q: want a non-negative integer", raw)
+		}
+		sc.AsyncSyncIntervalMillis = ms
+	}
+	if _, err := sc.engineOptions(); err != nil {
+		return KDBStorage{}, err
+	}
+	return sc, nil
+}
+
+// engineOptions maps the string-spelled config onto the engine's option
+// struct, starting from the engine's own env-derived options so KDB_S3_*
+// replication keeps working exactly as it did under OpenFileRuntime.
+func (sc KDBStorage) engineOptions() (embed.FileRuntimeOptions, error) {
+	opts := embed.FileRuntimeOptionsFromEnv()
+	switch sc.Durability {
+	case "", "sync":
+		opts.Storage.Durability = storage.DurabilitySync
+	case "async":
+		opts.Storage.Durability = storage.DurabilityAsync
+	default:
+		return opts, fmt.Errorf("kdb: KDB_DURABILITY=%q: want \"sync\" or \"async\"", sc.Durability)
+	}
+	switch sc.SyncMode {
+	case "", "fast":
+		opts.Storage.SyncMode = storio.SyncModeFast
+	case "full":
+		opts.Storage.SyncMode = storio.SyncModeFull
+	default:
+		return opts, fmt.Errorf("kdb: KDB_SYNC_MODE=%q: want \"fast\" or \"full\"", sc.SyncMode)
+	}
+	opts.Storage.AsyncSyncIntervalMillis = sc.AsyncSyncIntervalMillis
+	return opts, nil
+}
+
+// OpenKDB opens (creating if needed) the embedded database rooted at path,
+// with durability tuning read from the environment (see KDBStorageFromEnv).
 // An empty path keeps everything in memory — no durability, which is only
 // acceptable in tests.
 func OpenKDB(path string) (*KDB, error) {
+	sc, err := KDBStorageFromEnv()
+	if err != nil {
+		return nil, err
+	}
+	return OpenKDBWithStorage(path, sc)
+}
+
+// OpenKDBWithStorage opens the embedded database with explicit durability
+// tuning, bypassing the environment.
+func OpenKDBWithStorage(path string, sc KDBStorage) (*KDB, error) {
+	opts, err := sc.engineOptions()
+	if err != nil {
+		return nil, err
+	}
 	k := &KDB{
 		nss:  make(map[string]*kdbNamespace, len(kdbNamespaceNames)),
 		stop: make(chan struct{}),
@@ -102,7 +187,7 @@ func OpenKDB(path string) (*KDB, error) {
 				k.closeRuntimes()
 				return nil, fmt.Errorf("kdb: creating %s: %w", root, err)
 			}
-			rt, err = embed.OpenFileRuntime(root, kdbCatalog, nsID, schema.None())
+			rt, err = embed.OpenFileRuntimeWithOptions(root, kdbCatalog, nsID, schema.None(), opts)
 		}
 		if err != nil {
 			k.closeRuntimes()
@@ -114,8 +199,10 @@ func OpenKDB(path string) (*KDB, error) {
 	return k, nil
 }
 
-// Close flushes and seals every namespace. The engine fsyncs each commit as
-// it happens, so this is orderliness, not durability.
+// Close flushes and seals every namespace. Under the default "sync"
+// durability every commit was already synced when it was acked, so this is
+// orderliness; under "async" it is also what drains and flushes the tail of
+// the commit log.
 func (k *KDB) Close(ctx context.Context) error {
 	k.closeOnce.Do(func() {
 		close(k.stop)

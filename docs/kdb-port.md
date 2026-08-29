@@ -61,15 +61,45 @@ being fine.
   redemption, session rotation, invites, reconnection — on the embedded
   engine.
 
+## Durability configuration
+
+What an acknowledged KDB write means is configurable since KDB `5129201`
+(`perf/fast-sync-and-interval-flush`; the measured matrix and semantics are
+in KDB's `docs/benchmarks/write-durability-modes.md`). The adapter reads two
+knobs from the environment (`internal/db/kdb.go`, `KDBStorageFromEnv`; an
+unrecognised value refuses to start rather than silently changing the
+guarantee):
+
+- `KDB_DURABILITY` — `sync` (the default: ack ⇒ synced to the device) or
+  `async` (ack ⇒ appended to the commit log in the OS page cache; a
+  background flush runs every `KDB_ASYNC_SYNC_INTERVAL_MS` ms — engine
+  default 5, `100` reproduces Mongo's default journaling semantics — which
+  bounds the crash-loss window).
+- `KDB_SYNC_MODE` — `fast` (the default: `F_BARRIERFSYNC` on macOS,
+  `fdatasync` on Linux — an acked write survives process and OS crash) or
+  `full` (`F_FULLFSYNC`/`fsync` — survives power loss too, at ~4ms per sync
+  on Apple SSDs; the only behavior the adapter had before these knobs).
+
+The default, sync+fast, is deliberately a **stronger** guarantee than
+Mongo's default write concern (`w:1, j:false` acks from memory and journals
+every ~100ms) while sitting in the same latency band — see the table below.
+`KDB_DURABILITY=async KDB_ASYNC_SYNC_INTERVAL_MS=100` is the
+Mongo-equivalent point in the space, for when even that band matters.
+
 ## Performance
 
 `go test ./internal/dbperf -bench . -benchmem` benchmarks both engines over
-the paths the server leans on (Mongo rows skip unless the dev stack is up).
-As of KDB `e2bbc82` (merged: `456c673`/`8fe306d` fixed the per-commit
-allocation and added group-commit; `01d0654`/`41cf11c` then fixed four
-storage-layer correctness issues the write-path change had left open —
-delete not shadowing flushed data, size accounting drift, unbounded WAL
-segments, and the integration CI job).
+the paths the server leans on (Mongo rows skip unless the dev stack is up;
+for clean numbers run the engines in separate passes — `-bench '/kdb'` and
+`-bench '/mongo'` — because an in-binary Mongo driver contends with the
+embedded engine and inflates the KDB rows several-fold).
+As of KDB `5129201` (`perf/fast-sync-and-interval-flush`, which made the
+write-path durability cost configurable; before that, `456c673`/`8fe306d`
+fixed the per-commit allocation and added group-commit, and
+`01d0654`/`41cf11c` fixed four storage-layer correctness issues the
+write-path change had left open — delete not shadowing flushed data, size
+accounting drift, unbounded WAL segments, and the integration CI job). KDB
+rows are the sync+fast default unless the row says otherwise.
 
 ### Insert and read, head to head
 
@@ -77,23 +107,32 @@ segments, and the integration CI job).
 fixed-shape document, written and read by the same key, with **no
 application logic in between** — no uniqueness scan, no CAS, no repository
 code, just each engine's floor cost for "write one document" and "read one
-document by key" (M3 Max, dev-stack Mongo on localhost, `-benchtime 3s`):
+document by key". The insert runs once per KDB durability mode, because for
+a one-document write the durability policy *is* the cost (M3 Max, dev-stack
+Mongo on localhost, `-benchtime 3s`):
 
 | Operation | KDB | Mongo | Ratio |
 |---|---|---|---|
-| **Insert** one document | 4.0 ms | 191 µs | Mongo ~21x faster |
-| **Read** one document by key | 362 ns | 191 µs | KDB ~525x faster |
+| **Insert**, sync+fast (default) | 240 µs | 312 µs | same band; KDB's guarantee is stronger |
+| **Insert**, async-100ms (Mongo-equivalent semantics) | 61 µs | 312 µs | KDB ~5x faster |
+| **Insert**, sync+full (the old hardwired mode) | 4.0 ms | 312 µs | Mongo ~13x faster |
+| **Read** one document by key | 409 ns | 313 µs | KDB ~760x faster |
 
-Opposite shapes, same reason: a KDB read is an in-process function call
-returning bytes already in memory; a KDB write is a transaction committed to
-the DAG and fsynced to disk before it acks — durable-by-default, at the cost
-every fsync-per-write engine pays. Mongo pays a network round trip on every
-call, win or lose, which is why its insert and read costs land in the same
-~190-210 µs band regardless of which one you're doing. Do not read the ratio
-as "KDB is bad at writes" — 4 ms per durable write is ~250 writes/second
-from one process, which a card game's action rate does not come close to
-touching; it is the honest price of never losing an acked write to a power
-cut, which Mongo's default write concern does not guarantee.
+The read row is unchanged in kind: an in-process function call returning
+bytes already in memory, against Mongo's unavoidable network round trip
+(which is why Mongo's insert and read costs land in the same ~310 µs band
+regardless of which one you're doing). The insert rows are the durability
+matrix made concrete. The earlier revision of this table showed one KDB
+insert row at 4.0 ms — "Mongo ~21x faster" — and that gap was never I/O
+speed but a guarantee mismatch: KDB acked only after `F_FULLFSYNC` forced
+the write through the drive cache (~4 ms on Apple SSDs), while Mongo's
+default write concern acks from memory and journals every ~100 ms. With the
+axes configurable, like-for-like comparisons exist in both directions:
+sync+fast acks in Mongo's band while still promising "acked ⇒ on the
+device" (barrier sync survives process and OS crash — the same guarantee
+SQLite and PostgreSQL run with on macOS), and async-100ms makes exactly
+Mongo's promise ~5x faster, with no network hop. sync+full remains available
+for "acked ⇒ survives power loss", at its honest price.
 
 ### Repository-level paths
 
@@ -103,19 +142,26 @@ unique index vs KDB's locked uniqueness scan, Mongo's filtered replace vs
 KDB's locked version check, etc.) — the numbers above are the fairer
 apples-to-apples read; these are the honest end-to-end ones:
 
-| Path | KDB | Mongo |
+| Path | KDB (sync+fast) | Mongo |
 |---|---|---|
-| Session lookup by token (per-request auth) | ~3.8 µs | ~205-255 µs |
-| Match action cycle (load → CAS store) | ~4.2 ms | ~410-424 µs |
-| Insert match / session / stats upsert | ~5-8 ms | ~200-260 µs |
-| Resolve by join code (100 live matches) | ~0.75 ms | ~209-229 µs |
-| Leaderboard (200 players) | ~3.1 ms | ~2.3 ms |
-| History page (300 records) | ~3.8 ms | ~430 µs |
+| Session lookup by token (per-request auth) | ~4.1 µs | ~233 µs |
+| Match action cycle (load → CAS store) | ~279 µs | ~452 µs |
+| Insert match | ~246 µs | ~196 µs |
+| Session create | ~201 µs | ~355 µs |
+| Stats upsert | ~344 µs | ~704 µs |
+| Resolve by join code (100 live matches) | ~0.80 ms | ~305 µs |
+| Leaderboard (200 players) | ~3.4 ms | ~2.6 ms |
+| History page (300 records) | ~4.1 ms | ~454 µs |
 
-The read/write latency asymmetry is the honest shape of the trade: reads are
-in-process function calls; every KDB write is an fsynced commit before it is
-acked (Mongo acks first and journals on an interval). ~250 durable
-writes/second is far beyond a card table's action rate.
+Under the old hardwired sync+full mode every KDB row with a write in it sat
+at 4 ms or more — the fsync floor, paid once per commit. Under the sync+fast
+default the write paths land in Mongo's own band (and the compound ones —
+action cycle, session create, stats upsert — come out ahead, because KDB's
+locked read-check-write is in-process function calls while Mongo pays a
+round trip per step). What remains slower is what was always slower for a
+different reason: the keyless scan-shaped reads (join code, leaderboard,
+history), which are Zolik's own full-scan cost and would motivate real
+indexes if they ever grew into a bottleneck.
 
 **Allocation history, since it was flagged and then fixed upstream.** The
 first pass through this port found the embed engine allocating ~21 MB per
