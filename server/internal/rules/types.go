@@ -206,6 +206,15 @@ type GameState struct {
 	DrawPile       []string
 	DiscardPile    []string // top = last element
 	ReshuffleCount int
+	// WentOutByDiscard records that the deal now settled ended with a
+	// discard — the top of DiscardPile is the card that went out. A deal can
+	// also end without one (a meld or lay-off that empties the hand), which
+	// is why this is recorded rather than inferred from an empty hand. Only
+	// meaningful while the ended deal is still on the table (paused between
+	// deals, or the match over); reset when the next deal is dealt. The view
+	// layer uses it, together with Rules.GoOutDiscardFaceDown, to lay that
+	// card face down — the closing gesture.
+	WentOutByDiscard bool
 
 	Hands map[string][]string
 

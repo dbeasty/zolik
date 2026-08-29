@@ -37,11 +37,16 @@ export const casino: Skin = {
   table: {
     background: ['#0b2c1b', '#175434', '#0a2415'],
     edge: 'rgba(0, 0, 0, 0.38)',
+    sheen: 'rgba(255, 252, 235, 0.05)',
   },
   panel: {
     background: 'rgba(6, 21, 14, 0.66)',
     border: 'rgba(228, 198, 124, 0.22)',
     shadow: true,
+    bevel: {
+      highlight: 'rgba(240, 214, 148, 0.38)',
+      shadow: 'rgba(0, 0, 0, 0.5)',
+    },
   },
   card: {
     face: 'rich',
@@ -51,6 +56,10 @@ export const casino: Skin = {
     selectedFace: '#fff4cf',
     jokerFace: '#f9efd7',
     shadow: true,
+    bevel: {
+      highlight: '#fffef9',
+      shadow: '#b9ad8e',
+    },
     back: {
       colors: ['#8a2433', '#54121e'],
       frame: 'rgba(240, 199, 94, 0.85)',

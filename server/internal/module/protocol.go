@@ -156,6 +156,12 @@ type CardView struct {
 	// card says so while there is still time to act on it, rather than after
 	// the move was made. Only the module knows which card that is.
 	BadgeKeys []string `json:"badgeKeys,omitempty"`
+	// FaceDown draws this card back-up — a ceremonial turn, not a secret.
+	// Hiding information is still done the one way it always was: by not
+	// sending the card at all (see Zone). A module sets this only where the
+	// value is already public or already spent — Žolíky's face-down closing
+	// discard lands after the deal it ended has been scored.
+	FaceDown bool `json:"faceDown,omitempty"`
 }
 
 // Group is a run of cards within a zone that belong together — a meld, a

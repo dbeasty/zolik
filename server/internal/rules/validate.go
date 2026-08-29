@@ -893,6 +893,9 @@ func ValidateDiscard(state GameState, playerID string, card string, cardIndex *i
 				Message: "that would empty your hand, but you still haven't met this round's meld requirement — lay it down first",
 			}
 		}
+		// The card just laid is the one that closed the deal — remembered so
+		// the view can dress it face down where the profile plays it that way.
+		state.WentOutByDiscard = true
 		return state, true, nil
 	}
 
