@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { MatchAction, MatchState } from '@/src/api/matchTypes';
+import { apiClient } from '@/src/api/client';
+import { busyBackoff, jitteredBackoff } from '@/src/lib/reconnectBackoff';
 
 /**
  * The socket for a module-hosted match.
@@ -91,12 +93,25 @@ export function useMatchSocket(url: string | null): MatchSocketState {
       ws.onclose = () => {
         if (torn) return;
         setConnected(false);
-        // Reconnecting matters more here than it does for a local game: the
-        // server suspends a match whose active player drops, and resumes it
-        // when they return. Coming back is what un-pauses the table.
-        const delay = Math.min(1000 * 2 ** attemptRef.current, 10_000);
-        attemptRef.current += 1;
-        timer = setTimeout(open, delay);
+        void (async () => {
+          if (torn) return;
+          let delay: number;
+          try {
+            const cap = await apiClient.getCapacity();
+            if (!cap.accepting) {
+              setError({ code: 'SERVER_BUSY' });
+              delay = busyBackoff(attemptRef.current);
+              attemptRef.current += 1;
+              if (!torn) timer = setTimeout(open, delay);
+              return;
+            }
+          } catch {
+            /* probe failed — treat as an ordinary disconnect */
+          }
+          delay = jitteredBackoff(attemptRef.current);
+          attemptRef.current += 1;
+          if (!torn) timer = setTimeout(open, delay);
+        })();
       };
       ws.onerror = () => {
         // onclose always follows; reconnection is handled there.

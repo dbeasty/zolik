@@ -18,6 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 
+	"zolik/server/internal/admission"
 	"zolik/server/internal/auth"
 	"zolik/server/internal/canasta"
 	"zolik/server/internal/db"
@@ -143,6 +144,13 @@ type inviteHarness struct {
 }
 
 func newInviteHarness(t *testing.T) *inviteHarness {
+	return newInviteHarnessWithAdmission(t, nil)
+}
+
+// newInviteHarnessWithAdmission is the same server with a capacity gate
+// installed — nil means ungated, which is what every test not about
+// admission wants.
+func newInviteHarnessWithAdmission(t *testing.T, gate *admission.Controller) *inviteHarness {
 	t.Helper()
 
 	repo := newTestRepository(t)
@@ -159,7 +167,9 @@ func newInviteHarness(t *testing.T) *inviteHarness {
 	manager.SetWaitingRoom(waiting, testWaitingRoom)
 
 	r := chi.NewRouter()
-	match.NewHandlers(manager, false).RegisterRoutes(r)
+	handlers := match.NewHandlers(manager, false)
+	handlers.SetAdmission(gate)
+	handlers.RegisterRoutes(r)
 	srv := httptest.NewServer(r)
 	t.Cleanup(srv.Close)
 

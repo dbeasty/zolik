@@ -19,7 +19,7 @@ being edited.
 - `e2e/` — Playwright specs that drive the real server and the real web build
 
 ```sh
-./scripts/dev-stack.sh up     # server + web client, on ports beside your dev ones
+./scripts/dev-stack.sh up     # Docker server (:8090) + web client (:8114)
 ./scripts/dev-stack.sh test   # every suite: Go, terminal client, RN, e2e
 ```
 

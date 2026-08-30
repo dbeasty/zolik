@@ -5,6 +5,7 @@ import { Pressable, Text, TextInput, View } from 'react-native';
 import type { MatchState } from '@/src/api/matchTypes';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
+import { formatApiError } from '@/src/lib/apiError';
 import { colors, shared } from '@/src/theme';
 
 /**
@@ -35,7 +36,7 @@ export default function JoinMatchScreen() {
       // The host started it. Everything from here is the shell's job.
       if (m.status !== 'lobby') router.replace(`/match/${matchId}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not read the table');
+      setError(formatApiError(e, 'Could not read the table'));
     }
   }, [client, matchId]);
 
@@ -56,7 +57,7 @@ export default function JoinMatchScreen() {
     try {
       setMatchId(await client.joinMatch(trimmed));
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Join failed');
+      setError(formatApiError(e, 'Join failed'));
     }
   }
 

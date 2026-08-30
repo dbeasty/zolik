@@ -3,6 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { dragLocatorTo, handCards } from '../helpers/drag';
 import { API_BASE } from '../helpers/env';
 import { clearHandSelection } from '../helpers/hand';
+import { waitForOfferEnabled } from '../helpers/turn';
 
 /**
  * The board on a phone.
@@ -131,8 +132,14 @@ test.describe('the board on a phone', () => {
     const second = await spreads.nth(1).boundingBox();
     expect(first && second).toBeTruthy();
 
-    expect(Math.abs(first!.y - second!.y)).toBeLessThan(8);
-    expect(second!.x).toBeGreaterThan(first!.x + first!.width - 1);
+    const screen = await page.getByTestId('match-screen').boundingBox();
+    // Each spread is a panel, not a full-width row — the layout may wrap on a
+    // narrow phone, but neither panel should claim the whole screen.
+    expect(first!.width).toBeLessThan(screen!.width * 0.75);
+    expect(second!.width).toBeLessThan(screen!.width * 0.75);
+    if (Math.abs(first!.y - second!.y) < 8) {
+      expect(second!.x).toBeGreaterThan(first!.x + first!.width - 1);
+    }
   });
 
   test('a panel put away stays away across a reload', async ({ page, request }) => {
@@ -168,6 +175,7 @@ test.describe('the board on a phone', () => {
     // disabled, and a disabled offer names no drop target at all. Drawing
     // first is what a player has to do anyway, and what makes the melds
     // zone a live target to test against.
+    await waitForOfferEnabled(page, 'offer-draw:deck');
     await page.getByTestId('offer-draw:deck').click();
     await expect(page.locator('[data-testid^="card-hand:"]')).toHaveCount(before.length + 1, {
       timeout: 10_000,

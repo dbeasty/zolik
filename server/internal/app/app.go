@@ -6,10 +6,13 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
+	"runtime/debug"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 
+	"zolik/server/internal/admission"
 	"zolik/server/internal/auth"
 	"zolik/server/internal/buildinfo"
 	"zolik/server/internal/canasta"
@@ -48,6 +51,11 @@ type App struct {
 	authStore   auth.Store
 	matchRepo   match.Repository
 	scoringRepo scoring.Repository
+	// admission is the one capacity gate every route group shares — built
+	// here rather than in routeGroups, which runs once per router
+	// registration and would otherwise hand each router an independent
+	// counter.
+	admission *admission.Controller
 }
 
 // repos is every repository the app wires, built in one place so the two
@@ -190,7 +198,57 @@ func New(cfg Config) (*App, error) {
 		authStore:   r.store,
 		matchRepo:   r.match,
 		scoringRepo: r.scoring,
+		admission:   newAdmission(cfg),
 	}, nil
+}
+
+// Per-connection footprint on the measured 512 MiB box: ~45 MiB idle
+// baseline, ~65 KiB per connected player. Used only to derive a count
+// ceiling when none is configured — the memory gate is what actually holds
+// the line.
+const (
+	admissionBaselineBytes = 45 << 20
+	admissionPerConnBytes  = 65 << 10
+)
+
+// newAdmission builds the capacity gate from config. Everything about it
+// degrades to "off" where there is nothing to read: no cgroup limit means no
+// derived ceiling and no memory gate, no PSI means no CPU gate — a dev
+// machine behaves exactly as if this did not exist.
+func newAdmission(cfg Config) *admission.Controller {
+	maxConns := cfg.AdmissionMaxConnections
+	limitBytes, haveLimit := admission.MemoryLimit()
+	switch {
+	case maxConns < 0:
+		maxConns = 0
+	case maxConns == 0 && haveLimit:
+		maxConns = admission.DeriveMaxConnections(
+			limitBytes, admissionBaselineBytes, admissionPerConnBytes, cfg.AdmissionMemoryWatermark)
+	}
+
+	// GOMEMLIMIT tells the garbage collector about the same wall the
+	// admission gate defends, so the runtime works harder as it approaches
+	// instead of finding out from the OOM killer. The environment variable
+	// wins if the operator set one — the runtime already honoured it at
+	// startup, and overriding an explicit choice here would be rude.
+	if haveLimit && os.Getenv("GOMEMLIMIT") == "" {
+		softLimit := int64(float64(limitBytes) * 0.9)
+		debug.SetMemoryLimit(softLimit)
+		log.Printf("admission: GOMEMLIMIT set to %d MiB (90%% of the %d MiB cgroup limit)",
+			softLimit>>20, limitBytes>>20)
+	}
+
+	c := admission.New(admission.Limits{
+		MaxConnections:      maxConns,
+		WaitingRoomRatio:    cfg.AdmissionWaitingRoomRatio,
+		MemoryHighWatermark: cfg.AdmissionMemoryWatermark,
+		CPUHighWatermark:    cfg.AdmissionCPUWatermark,
+	})
+	if haveLimit || maxConns > 0 {
+		log.Printf("admission: gating on (max connections %d, memory watermark %.2f, cpu watermark %.2f)",
+			maxConns, cfg.AdmissionMemoryWatermark, cfg.AdmissionCPUWatermark)
+	}
+	return c
 }
 
 func (a *App) Config() Config { return a.cfg }
@@ -246,12 +304,22 @@ func (a *App) routeGroups() []routeGroup {
 	matchMgr.SetWaitingRoom(a.waitingRoom, lobby.RoomID)
 
 	lobbyHandlers := lobby.NewHandlers(a.hub, a.waitingRoom)
+	lobbyHandlers.SetAdmission(a.admission)
 
 	return []routeGroup{
 		{"health", func(r chi.Router) {
 			r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(http.StatusOK)
 				_, _ = w.Write([]byte("ok"))
+			})
+			// The capacity snapshot, for operators and for clients. A client
+			// cannot read the body of a refused WebSocket handshake — the
+			// browser API hides everything before the upgrade — so this is
+			// where it learns "the server is full" rather than "the server is
+			// gone", and words the difference for the player.
+			r.Get("/healthz/capacity", func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(a.admission.Snapshot())
 			})
 			// Both clients render this beside their own build, so a bug
 			// report says which server the reporter was actually talking to.
@@ -272,7 +340,9 @@ func (a *App) routeGroups() []routeGroup {
 		// the Žolíky-specific one rather than sitting beside it: /games, its
 		// documents, its socket and its 24-field wire message are gone.
 		{"match", func(r chi.Router) {
-			match.NewHandlers(matchMgr, a.cfg.TestEndpointsEnabled).RegisterRoutes(r)
+			h := match.NewHandlers(matchMgr, a.cfg.TestEndpointsEnabled)
+			h.SetAdmission(a.admission)
+			h.RegisterRoutes(r)
 		}},
 		{"stats", stats.NewHandlers(a.statsRepo).RegisterRoutes},
 	}

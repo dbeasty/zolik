@@ -83,6 +83,35 @@ func (h *inviteHarness) waitForStatus(t *testing.T, matchID, want string) {
 	t.Fatalf("match status = %q, want %q", got, want)
 }
 
+func playerIsAwaited(res apiResponse, playerID string) bool {
+	view, _ := res.body["view"].(map[string]any)
+	seats, _ := view["seats"].([]any)
+	for _, s := range seats {
+		m, _ := s.(map[string]any)
+		if m["playerId"] == playerID && m["active"] == true {
+			return true
+		}
+	}
+	return false
+}
+
+// waitForPlayerAwaited blocks until the module is waiting on playerID. A
+// disconnect only suspends when the table is waiting on that seat, so closing
+// a socket while a bot still has the turn would leave the match active and
+// make the assertion below flaky.
+func (h *inviteHarness) waitForPlayerAwaited(t *testing.T, matchID, playerID string) {
+	t.Helper()
+	deadline := time.Now().Add(15 * time.Second)
+	for time.Now().Before(deadline) {
+		res := h.do(http.MethodGet, "/matches/"+matchID+"?as="+playerID, "", nil)
+		if res.status == http.StatusOK && playerIsAwaited(res, playerID) {
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	t.Fatalf("player %s was not awaited within timeout", playerID)
+}
+
 func TestReconnectingDoesNotSuspendTheMatch(t *testing.T) {
 	h := newInviteHarness(t)
 	hostToken := token(t, "host-ws-1", "Host", false)
@@ -118,10 +147,12 @@ func TestReconnectingDoesNotSuspendTheMatch(t *testing.T) {
 // this, "never suspend" would pass the test above and break reconnection.
 func TestTheLastSocketClosingStillSuspendsAndReturningResumes(t *testing.T) {
 	h := newInviteHarness(t)
-	hostToken := token(t, "host-ws-2", "Host", false)
+	hostID := "host-ws-2"
+	hostToken := token(t, hostID, "Host", false)
 	matchID := startedMatch(t, h, hostToken)
 
 	only := dialMatch(t, h, matchID, hostToken)
+	h.waitForPlayerAwaited(t, matchID, hostID)
 	_ = only.Close()
 	h.waitForStatus(t, matchID, "suspended")
 

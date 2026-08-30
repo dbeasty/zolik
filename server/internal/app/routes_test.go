@@ -150,6 +150,49 @@ func TestVersionRouteReportsBuildInfo(t *testing.T) {
 	}
 }
 
+func TestCapacityRouteIsRegistered(t *testing.T) {
+	a := offlineApp(t)
+
+	got := map[string]bool{}
+	for _, g := range a.routeGroups() {
+		for _, route := range routesOf(t, g.register) {
+			got[route] = true
+		}
+	}
+	if !got["GET /healthz/capacity"] {
+		t.Error(`"GET /healthz/capacity" is not reachable`)
+	}
+}
+
+func TestCapacityRouteReportsSnapshot(t *testing.T) {
+	a := offlineApp(t)
+	r := chi.NewRouter()
+	a.RegisterRoutes(r)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/healthz/capacity", nil)
+	r.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("GET /healthz/capacity status = %d, want 200", rec.Code)
+	}
+	if ct := rec.Header().Get("Content-Type"); ct != "application/json" {
+		t.Errorf("Content-Type = %q, want application/json", ct)
+	}
+
+	var body struct {
+		Accepting         bool `json:"accepting"`
+		WaitingRoomOpen   bool `json:"waitingRoomOpen"`
+		StartingMatches   bool `json:"startingMatches"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decoding response: %v", err)
+	}
+	if !body.Accepting || !body.WaitingRoomOpen || !body.StartingMatches {
+		t.Fatalf("nil admission snapshot = %+v, want all gates open", body)
+	}
+}
+
 // routesOf mounts one registrar on a router of its own and returns its routes
 // as "METHOD /pattern".
 func routesOf(t *testing.T, register func(chi.Router)) []string {

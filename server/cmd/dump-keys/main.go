@@ -28,7 +28,7 @@ import (
 func main() {
 	keys, err := module.CollectKeys(
 		module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New()),
-		"internal/rules", "internal/prsi", "internal/canasta", "internal/holdem",
+		"internal/admission", "internal/rules", "internal/prsi", "internal/canasta", "internal/holdem",
 		"internal/zolikmod", "internal/match", "internal/module", "internal/lobby",
 	)
 	if err != nil {

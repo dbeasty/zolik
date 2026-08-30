@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { handCards } from '../helpers/drag';
 import { API_BASE } from '../helpers/env';
+import { waitForOfferEnabled } from '../helpers/turn';
 import { cardByCode, clearHandSelection, selectedCodes } from '../helpers/hand';
 
 /**
@@ -65,6 +66,7 @@ async function openMatch(page: Page, host: any, matchId: string) {
 /** Draws from the deck and returns the code of the card that arrived selected. */
 async function drawOne(page: Page): Promise<string> {
   const before = await handCards(page);
+  await waitForOfferEnabled(page, 'offer-draw:deck');
   await page.getByTestId('offer-draw:deck').click();
   await expect(page.locator('[data-testid^="card-hand:"]')).toHaveCount(before.length + 1, {
     timeout: 10_000,
@@ -112,8 +114,8 @@ test.describe('the card you just drew', () => {
     await openMatch(page, host, matchId);
     await handCards(page);
 
-    const drawn = await drawOne(page);
-    await cardByCode(page, drawn).click();
+    await drawOne(page);
+    await page.locator('[data-testid^="card-hand:"][aria-selected="true"]').click();
 
     // "Not that one" means what it says.
     await expect.poll(async () => await selectedCodes(page)).toEqual([]);

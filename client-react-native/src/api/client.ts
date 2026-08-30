@@ -3,6 +3,7 @@ import type { MatchModule, MatchState, ModuleRules } from '@/src/api/matchTypes'
 import type {
   AccountProfile,
   AuthProvider,
+  CapacitySnapshot,
   LifetimeStats,
   LinkedIdentity,
   PlayerSession,
@@ -14,6 +15,8 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public status?: number,
+    public code?: string,
+    public retryAfterMs?: number,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -287,6 +290,12 @@ export class ZolikClient {
     return this.get('/version', false);
   }
 
+  /** Whether the server is accepting new connections. Probed after a refused
+   *  WebSocket handshake, since React Native cannot read the HTTP status. */
+  async getCapacity(): Promise<CapacitySnapshot> {
+    return this.get('/healthz/capacity', false);
+  }
+
   /**
    * One module's written rules, resolved against a variation and option
    * overrides — the same choices a lobby's picker holds, so the sentences
@@ -523,7 +532,7 @@ export class ZolikClient {
     }
     const text = await res.text();
     if (!res.ok) {
-      throw new ApiError(text.trim() || `HTTP ${res.status}`, res.status);
+      throw apiErrorFromResponse(text, res.status, res.headers);
     }
     if (!text) {
       return undefined as T;
@@ -545,3 +554,31 @@ function queryString(params: Record<string, string | number | undefined>): strin
 }
 
 export const apiClient = new ZolikClient();
+
+function parseRetryAfterMs(header: string | null): number | undefined {
+  if (!header) return undefined;
+  const trimmed = header.trim();
+  const seconds = parseInt(trimmed, 10);
+  if (!Number.isNaN(seconds)) return seconds * 1000;
+  const when = Date.parse(trimmed);
+  if (!Number.isNaN(when)) return Math.max(0, when - Date.now());
+  return undefined;
+}
+
+export function apiErrorFromResponse(
+  text: string,
+  status: number,
+  headers: { get(name: string): string | null },
+): ApiError {
+  let message = text.trim() || `HTTP ${status}`;
+  let code: string | undefined;
+  try {
+    const body = JSON.parse(text) as { code?: string; message?: string };
+    if (body.code) code = body.code;
+    if (body.message) message = body.message;
+    else if (body.code) message = body.code;
+  } catch {
+    /* keep raw text */
+  }
+  return new ApiError(message, status, code, parseRetryAfterMs(headers.get('Retry-After')));
+}

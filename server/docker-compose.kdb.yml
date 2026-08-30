@@ -24,6 +24,8 @@ services:
         ZOLIK_VERSION: "${ZOLIK_VERSION:-0.0.0-dev}"
         ZOLIK_COMMIT: "${ZOLIK_COMMIT:-unknown}"
     restart: unless-stopped
+    # Sized for a 1–2 GB host: one Go binary + embedded KDB, no Mongo/Redis.
+    mem_limit: 1g
     env_file:
       - .env
     environment:

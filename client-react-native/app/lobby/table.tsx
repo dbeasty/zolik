@@ -6,6 +6,7 @@ import type { MatchState } from '@/src/api/matchTypes';
 import type { WaitingPlayer } from '@/src/api/types';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
+import { formatApiError } from '@/src/lib/apiError';
 import { colors, shared } from '@/src/theme';
 
 /**
@@ -38,7 +39,7 @@ export default function TableScreen() {
       setState(m);
       if (m.status !== 'lobby') router.replace(`/match/${id}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not read the table');
+      setError(formatApiError(e, 'Could not read the table'));
     }
     // Best-effort: a host who cannot currently see the waiting room should
     // still be able to run their table. Its absence is not an error worth
@@ -64,7 +65,7 @@ export default function TableScreen() {
       await client.invitePlayer(id, playerId);
       await poll();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Invite failed');
+      setError(formatApiError(e, 'Invite failed'));
     } finally {
       setInvitingId('');
     }
@@ -77,7 +78,7 @@ export default function TableScreen() {
       await client.addBot(id);
       await poll();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not add a bot');
+      setError(formatApiError(e, 'Could not add a bot'));
     } finally {
       setBusy(false);
     }
@@ -90,7 +91,7 @@ export default function TableScreen() {
       await client.startMatch(id);
       router.replace(`/match/${id}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not start');
+      setError(formatApiError(e, 'Could not start'));
       setBusy(false);
     }
   }

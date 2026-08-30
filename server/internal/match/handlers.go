@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/websocket"
 	"go.mongodb.org/mongo-driver/v2/bson"
 
+	"zolik/server/internal/admission"
 	"zolik/server/internal/auth"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
@@ -29,7 +30,19 @@ type Handlers struct {
 	// testEndpoints enables the dev-only state seeder. Off outside local
 	// development, because it writes game state without validating it.
 	testEndpoints bool
+	// admission turns new players away before the box runs out of memory.
+	// Nil means no gating, which is what tests and unconstrained deployments
+	// get — see SetAdmission.
+	admission *admission.Controller
 }
+
+// SetAdmission wires in the capacity gate.
+//
+// Injected rather than taken in NewHandlers so that the many call sites that
+// build handlers without caring about capacity — every handler test — keep
+// working unchanged, and so a deployment that has not configured a ceiling
+// behaves exactly as it did before.
+func (h *Handlers) SetAdmission(c *admission.Controller) { h.admission = c }
 
 func NewHandlers(m *Manager, testEndpoints bool) *Handlers {
 	return &Handlers{
@@ -214,6 +227,13 @@ func (h *Handlers) createMatch(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
+	// A new match is a promise of sockets, module state and bot drivers for
+	// the next half hour — refused here, before anything is committed, while
+	// "try again in a moment" is still cheap for everyone.
+	if err := h.admission.AllowMatchStart(); err != nil {
+		admission.WriteBusy(w, err)
+		return
+	}
 	var body createMatchReq
 	_ = json.NewDecoder(req.Body).Decode(&body)
 	if body.ModuleID == "" {
@@ -326,6 +346,13 @@ func (h *Handlers) startMatch(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
+	// Start is where the module's state is actually allocated. A refusal here
+	// is retryable — the table keeps its seats and the host tries again once
+	// the pressure passes — where an OOM after an unguarded start is not.
+	if err := h.admission.AllowMatchStart(); err != nil {
+		admission.WriteBusy(w, err)
+		return
+	}
 	m, err := h.manager.Start(req.Context(), chi.URLParam(req, "id"))
 	if err != nil {
 		writeModuleError(w, err)
@@ -367,6 +394,27 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "invalid match id", http.StatusBadRequest)
 		return
 	}
+
+	// Capacity is checked before the upgrade, so a refused player gets a plain
+	// HTTP 503 their client can read, rather than a socket that opens and then
+	// dies for no stated reason.
+	//
+	// A player already registered in this room is admitted without asking:
+	// their new socket displaces their old one in Add below, and refusing a
+	// reconnect would strand them mid-hand. It still takes a slot — the
+	// displaced handler releases its own on the way out — so the ledger keeps
+	// matching the sockets actually open.
+	var slot *admission.Release
+	if h.manager.Hub().Registry().Has(matchID, playerID) {
+		slot = h.admission.AdmitReconnect()
+	} else {
+		var err error
+		if slot, err = h.admission.Admit(admission.ClassGameplay); err != nil {
+			admission.WriteBusy(w, err)
+			return
+		}
+	}
+	defer slot.Release()
 
 	conn, err := h.upgrader.Upgrade(w, req, nil)
 	if err != nil {
@@ -456,7 +504,7 @@ func writeModuleError(w http.ResponseWriter, err error) {
 		// A conflict rather than a bad request: the caller did nothing wrong,
 		// the world moved under them.
 		status = http.StatusConflict
-	case "WAITING_ROOM_UNAVAILABLE":
+	case "WAITING_ROOM_UNAVAILABLE", "SERVER_BUSY":
 		status = http.StatusServiceUnavailable
 	}
 	w.Header().Set("Content-Type", "application/json")

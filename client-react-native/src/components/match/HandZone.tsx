@@ -76,7 +76,8 @@ type Props = {
   externalTarget?: string | null;
   /**
    * Marks the module put on particular cards, by card value — see
-   * `CardView.badgeKeys`. Pressing a marked card asks what the mark means.
+   * `CardView.badgeKeys`. Long-pressing a marked card asks what the mark
+   * means; a tap still selects it for play.
    */
   badges?: ReadonlyMap<string, string[]>;
   onPressBadge?: (card: string, badgeKeys: string[]) => void;
@@ -546,6 +547,17 @@ const DraggableCard = memo(function DraggableCard({
   onPressBadge,
   styles,
 }: CardProps) {
+  // A long-press that just opened the badge explanation must not also toggle
+  // selection when the finger comes up — Pressable has no long-press of its
+  // own here, so this is the only guard.
+  const suppressTapRef = useRef(false);
+
+  const explainBadge = useCallback(() => {
+    if (!badgeKeys?.length || !onPressBadge) return;
+    suppressTapRef.current = true;
+    onPressBadge(slot.card, badgeKeys);
+  }, [badgeKeys, onPressBadge, slot.card]);
+
   const pan = Gesture.Pan()
     // Any direction, once the pointer has genuinely moved. The threshold is
     // only there so that a tap with a shaky finger stays a tap.
@@ -598,6 +610,14 @@ const DraggableCard = memo(function DraggableCard({
   // typed field every chained setter writes into.
   pan.config.touchAction = 'pan-y';
 
+  const longPress = Gesture.LongPress()
+    .minDuration(400)
+    .onStart(() => {
+      runOnJS(explainBadge)();
+    });
+  const gesture =
+    badgeKeys?.length && onPressBadge ? Gesture.Simultaneous(pan, longPress) : pan;
+
   const carried = useMemo(
     () => (offset ? { transform: [{ translateX: offset.dx }, { translateY: offset.dy }] } : null),
     [offset?.dx, offset?.dy],
@@ -611,7 +631,7 @@ const DraggableCard = memo(function DraggableCard({
   );
 
   return (
-    <GestureDetector gesture={pan}>
+    <GestureDetector gesture={gesture}>
       <View
         ref={(n) => bindRef(n as unknown as Measurable | null)}
         style={[styles.slot, pinned, held && styles.lifted, selected && !held && styles.raised, carried]}
@@ -642,11 +662,8 @@ const DraggableCard = memo(function DraggableCard({
               // those braces, because a drag that silently toggled selection
               // would be maddening.
               if (consumedByDrag()) return;
-              // A marked card answers for its mark first. The mark is there
-              // because this card is about to be refused for something, and a
-              // player who presses it is asking about that, not choosing it.
-              if (badgeKeys?.length && onPressBadge) {
-                onPressBadge(slot.card, badgeKeys);
+              if (suppressTapRef.current) {
+                suppressTapRef.current = false;
                 return;
               }
               onToggle(slot.id);

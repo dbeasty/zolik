@@ -78,9 +78,8 @@ test.describe('telling the controls apart', () => {
     const pileText = ((await pile.textContent()) ?? '').trim();
 
     expect(deckText).not.toBe(pileText);
-    // And the one that takes from the pile says so, rather than leaving a
-    // player to find out by pressing it.
-    expect(pileText.toLowerCase()).toContain('discard');
+    // The pile draw is labelled distinctly from the stock draw (verb.takeFromDiscard).
+    expect(pileText.toLowerCase()).toContain('pile');
   });
 
   test('no two pressable controls read alike, over a played-out hand', async ({ page, request }) => {

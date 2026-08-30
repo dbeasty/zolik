@@ -797,8 +797,8 @@ export default function MatchScreen() {
                   params: { card },
                   // The rules and the way out behind the mark come from
                   // whichever offer this card is about to be refused by —
-                  // asked for now, rather than the module having to say the
-                  // same thing twice.
+                  // asked for on long-press, rather than the module having
+                  // to say the same thing twice.
                   ...refusalBehindBadge(state.legalActions),
                 })
               }

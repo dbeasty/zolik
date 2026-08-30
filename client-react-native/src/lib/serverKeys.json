@@ -62,6 +62,7 @@
     "ROUND_REQ_NOT_MET",
     "RUN_TOO_LONG",
     "SEAT_NOT_IN_HAND",
+    "SERVER_BUSY",
     "SET_TOO_LARGE",
     "SUIT_REQUIRED",
     "TOO_FEW_PLAYERS",

@@ -24,10 +24,10 @@ export type Fact = {
  * `badgeKeys` mark this particular card — the same idea as `Group.badgeKeys`,
  * one level down, and set only by the module, which is the only side that
  * knows what is worth marking. Žolíky uses it for the card a discard-pile
- * pickup obliges you to lay down: the rule is enforced at the discard, which
- * is the last possible moment to hear about it, so the mark is what turns a
- * refusal into an instruction given while there is still a turn left to act
- * on it.
+ * pickup obliges you to lay down: the rule is enforced at the discard, and
+ * the mark is what turns a refusal into an instruction given while there is
+ * still a turn left to act on it — long-press the card to read it; tap to
+ * select it for your lay-down.
  */
 export type CardView = { card: string; badgeKeys?: string[] };
 

@@ -316,6 +316,7 @@ const en: Record<string, string> = {
   'err.NOT_THE_HOST': 'Only the host can do that',
   'err.NO_LONGER_WAITING': 'The table is no longer waiting',
   'err.WAITING_ROOM_UNAVAILABLE': 'The waiting room isn\'t available',
+  'err.SERVER_BUSY': 'The server is full right now — try again in a moment',
 
 
   // --- rules the engine has always enforced and never stated ----------------
@@ -662,6 +663,7 @@ const cs: Record<string, string> = {
   'err.NOT_THE_HOST': 'To může udělat jen zakladatel stolu',
   'err.NO_LONGER_WAITING': 'Stůl už nečeká',
   'err.WAITING_ROOM_UNAVAILABLE': 'Čekárna není dostupná',
+  'err.SERVER_BUSY': 'Server je právě plný — zkuste to za chvíli',
 
 
   // --- rules the engine has always enforced and never stated ----------------
