@@ -10,6 +10,7 @@ import { Panel } from '@/src/components/match/Panel';
 import { SettleIn } from '@/src/components/match/SettleIn';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
+import { zoneElementId } from '@/src/lib/drops';
 import { insertionAtPoint, moveTargetFor, type Rect, type Slot } from '@/src/lib/hand';
 import type { Metrics } from '@/src/lib/layout';
 import { label } from '@/src/lib/labels';
@@ -85,6 +86,19 @@ type Props = {
   panelId?: string;
   minimized?: boolean;
   onToggleMinimized?: () => void;
+  /**
+   * Publishes where the fan is, under the zone's element id — so a card in
+   * flight (see `FlightLayer`) can aim at the hand the way it aims at any
+   * zone. The registry's, not this component's: same contract as
+   * `ZoneView`'s `registerDrop`.
+   */
+  registerSpot?: (elementId: string, node: Measurable | null) => void;
+  /**
+   * How long a card mounting now should hold its entrance — set while a
+   * flight is landing here, so the card doesn't greet its own arrival.
+   * Never touches the deal's own stagger.
+   */
+  entranceDelay?: number;
 };
 
 type Measurable = {
@@ -109,6 +123,8 @@ export function HandZone({
   panelId,
   minimized,
   onToggleMinimized,
+  registerSpot,
+  entranceDelay,
 }: Props) {
   const rowRef = useRef<Measurable | null>(null);
   const cardRefs = useRef<(Measurable | null)[]>([]);
@@ -347,11 +363,13 @@ export function HandZone({
 
   // Cards mounting in the hand's opening moments are the deal, and enter as
   // one — staggered left to right. A card mounting later arrived alone (a
-  // draw) and enters at once. Read at render, used only at each card's own
-  // mount, so the distinction costs nothing after the deal.
+  // draw) and enters at once — unless a flight is carrying it here, in which
+  // case it waits for the landing (`entranceDelay`). Read at render, used
+  // only at each card's own mount, so the distinction costs nothing after
+  // the deal.
   const openedAt = useRef(Date.now());
   const dealDelayFor = (index: number) =>
-    Date.now() - openedAt.current < 700 ? Math.min(index, 12) * 40 : 0;
+    Date.now() - openedAt.current < 700 ? Math.min(index, 12) * 40 : entranceDelay ?? 0;
 
   // A card can only be lifted clear of the layout if we know where it was, and
   // until then it stays in the flow and no gap is drawn — a drag that started
@@ -404,6 +422,10 @@ export function HandZone({
       <View
         ref={(n) => {
           rowRef.current = n as unknown as Measurable | null;
+          // The fan doubles as a flight destination — the row rather than
+          // the whole panel, so a landing card aims at the cards, not the
+          // header above them.
+          registerSpot?.(zoneElementId(zone.id), n as unknown as Measurable | null);
         }}
         style={[styles.cards, carrying && dragLayer]}
         testID={`hand-${zone.id}`}

@@ -98,6 +98,13 @@ type Props = {
   /** The one currently aimed at, if any. */
   armedGroupId?: string | null;
   onAimGroup?: (groupId: string) => void;
+  /**
+   * How long this zone's newest card should hold its entrance, keyed by the
+   * zone's own element id — set while a flight is landing here, so the card
+   * doesn't greet its own arrival. Absent or zero means enter at once, which
+   * is exactly what happened before flights existed.
+   */
+  entranceDelays?: ReadonlyMap<string, number>;
 };
 
 export function ZoneView({
@@ -122,6 +129,7 @@ export function ZoneView({
   armableGroups,
   armedGroupId,
   onAimGroup,
+  entranceDelays,
 }: Props) {
   const metrics = useMetrics();
   const skin = useSkin();
@@ -134,6 +142,7 @@ export function ZoneView({
   const zoneId = zoneElementId(zone.id);
   const zoneLive = activeDrops?.has(zoneId) ?? false;
   const zoneRefused = refusedDrops?.has(zoneId) ?? false;
+  const entranceDelay = entranceDelays?.get(zoneId) ?? 0;
 
   const cards = zone.cards ?? [];
   /**
@@ -314,8 +323,10 @@ export function ZoneView({
                       >
                         {/* Keyed by card and position, so a card laid off
                             onto this group mounts fresh — and the mount is
-                            the entrance. */}
-                        <SettleIn kind="settle">
+                            the entrance. The delay only ever reaches a card
+                            mounting right now, which is exactly the one a
+                            flight is bringing. */}
+                        <SettleIn kind="settle" delay={entranceDelay}>
                           <CardView card={c} compact stacked={!groupOpen} />
                         </SettleIn>
                       </View>
@@ -372,12 +383,14 @@ export function ZoneView({
             <SettleIn
               key={`${zone.id}-${c.card}-${buried + i}`}
               kind={zone.kind === 'pile' && buried + i === cards.length - 1 ? 'flip' : 'settle'}
+              delay={buried + i === cards.length - 1 ? entranceDelay : 0}
             >
               <CardView
                 card={c.card}
+                faceDown={c.faceDown}
                 compact={compact}
                 selected={selected?.includes(c.card)}
-                onPress={onPressCard ? () => onPressCard(c.card, buried + i) : undefined}
+                onPress={onPressCard && !c.faceDown ? () => onPressCard(c.card, buried + i) : undefined}
                 testID={`card-${zone.id}-${buried + i}`}
               />
             </SettleIn>
@@ -431,9 +444,14 @@ function StackBack({ count, compact, metrics }: { count: number; compact?: boole
   const h = compact ? metrics.card.compactHeight : metrics.card.height;
   return (
     <View style={[styles.deck, compact ? styles.backCompact : styles.backFull]}>
+      <View style={[styles.deckUnder, styles.deckUnderFar, { left: 6, top: 6, width: w, height: h }]} />
       <View style={[styles.deckUnder, { left: 4, top: 4, width: w, height: h }]} />
       <View style={[styles.deckUnder, styles.deckUnderNear, { left: 2, top: 2, width: w, height: h }]} />
-      <CardBack width={w} height={h} />
+      {/* Shadow on the top card only — the pile below it reads as solid, so
+          one cast edge under the whole stack is what a real deck throws. */}
+      <View style={skin.card.shadow && styles.deckTopShadow}>
+        <CardBack width={w} height={h} />
+      </View>
       <View style={[styles.deckCount, { width: w }]} pointerEvents="none">
         <View style={styles.deckCountPill}>
           <Text style={styles.backText}>{count}</Text>
@@ -558,6 +576,18 @@ function zoneStyles(m: Metrics, s: Skin) {
       opacity: 0.8,
     },
     deckUnderNear: { opacity: 0.9 },
+    // The third, deepest edge — the offsets (2, 4, 6) spend exactly the
+    // slack the ring arithmetic reserves, so the box still measures the
+    // same as the flat variant to the pixel.
+    deckUnderFar: { opacity: 0.65 },
+    // Shadow, never size — same discipline as CardView's cardShadow.
+    deckTopShadow: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.35,
+      shadowRadius: 5,
+      elevation: 5,
+    },
     deckCount: {
       position: 'absolute',
       bottom: 5,

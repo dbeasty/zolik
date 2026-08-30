@@ -412,11 +412,19 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 		})
 	}
 
+	// The closing gesture: where the profile plays it that way, the discard
+	// that ended the deal lies face down until the next deal wipes the pile.
+	// Ceremonial rather than secret — the deal is scored by the time anyone
+	// sees this, so the value still travels (see module.CardView.FaceDown).
+	discardCards := cardViews(gs.DiscardPile)
+	if gs.WentOutByDiscard && cfg.GoOutDiscardFaceDown && len(discardCards) > 0 {
+		discardCards[len(discardCards)-1].FaceDown = true
+	}
 	vm.Zones = append(vm.Zones,
 		module.Zone{ID: drawZoneID, Kind: module.ZoneStack, LabelKey: "zone.drawPile", Count: len(gs.DrawPile)},
 		module.Zone{
 			ID: discardZoneID, Kind: module.ZonePile, LabelKey: "zone.discardPile",
-			Cards: cardViews(gs.DiscardPile), Count: len(gs.DiscardPile),
+			Cards: discardCards, Count: len(gs.DiscardPile),
 		},
 	)
 

@@ -43,6 +43,27 @@ export function TableSurface() {
           style={StyleSheet.absoluteFill}
         />
       ) : null}
+      {/* The same darkening from the top and bottom edges, so the four
+          washes together read as a pool of light rather than a bright
+          column — the vertical half of the radial gradient this stands
+          in for. */}
+      {table.edge ? (
+        <LinearGradient
+          colors={[table.edge, 'transparent', 'transparent', table.edge]}
+          locations={[0, 0.18, 0.8, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+      ) : null}
+      {/* The lamp itself, just off the top-left corner: one diagonal wash
+          of light, faint enough to shade the felt rather than sit on it. */}
+      {table.sheen ? (
+        <LinearGradient
+          colors={[table.sheen, 'transparent']}
+          start={{ x: 0.1, y: 0 }}
+          end={{ x: 0.6, y: 0.75 }}
+          style={StyleSheet.absoluteFill}
+        />
+      ) : null}
     </View>
   );
 }
