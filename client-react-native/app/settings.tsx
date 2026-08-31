@@ -56,8 +56,15 @@ export default function SettingsScreen() {
                 style={[styles.skin, picked && styles.skinPicked]}
               >
                 {/* A stripe of the felt itself — a look is easier to pick by
-                    looking at than by reading its name. */}
-                <View style={[styles.swatch, { backgroundColor: s.table.background[0] }]}>
+                    looking at than by reading its name. The middle stop, not
+                    the first: a felt's gradient runs dark at the edges, and
+                    the darkest end of it says nothing about the colour. */}
+                <View
+                  style={[
+                    styles.swatch,
+                    { backgroundColor: s.table.background[Math.floor(s.table.background.length / 2)] },
+                  ]}
+                >
                   <View style={[styles.swatchTrim, { backgroundColor: s.colors.gold }]} />
                 </View>
                 <Text style={[styles.skinName, picked && styles.skinNamePicked]}>{s.label}</Text>
