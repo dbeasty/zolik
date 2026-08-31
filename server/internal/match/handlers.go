@@ -219,6 +219,17 @@ type createMatchReq struct {
 	ModuleID  string         `json:"moduleId"`
 	Variation string         `json:"variation,omitempty"`
 	Options   map[string]int `json:"options,omitempty"`
+	// Avatar is the face the host wants at the table. Sent per seating rather
+	// than read from their account, because a guest has no account to read
+	// and the client always knows its own current choice — including the one
+	// made a second ago, which a token's claims would not yet carry.
+	Avatar string `json:"avatar,omitempty"`
+}
+
+// joinMatchReq is everything a player brings to a seat they are taking. Only
+// decoration so far, which is why an absent body is not an error.
+type joinMatchReq struct {
+	Avatar string `json:"avatar,omitempty"`
 }
 
 func (h *Handlers) createMatch(w http.ResponseWriter, req *http.Request) {
@@ -247,6 +258,7 @@ func (h *Handlers) createMatch(w http.ResponseWriter, req *http.Request) {
 	host := models.Player{
 		ID:      uc.UserID,
 		Name:    uc.Username,
+		Avatar:  models.SanitizeAvatar(body.Avatar),
 		UserID:  uc.PlayerUserID(),
 		GuestID: uc.PlayerGuestID(),
 	}
@@ -265,9 +277,14 @@ func (h *Handlers) joinMatch(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
+	// A body is optional here — it carries only the face this player wants —
+	// so a client that sends none joins exactly as it always did.
+	var body joinMatchReq
+	_ = json.NewDecoder(req.Body).Decode(&body)
 	p := models.Player{
 		ID:      uc.UserID,
 		Name:    uc.Username,
+		Avatar:  models.SanitizeAvatar(body.Avatar),
 		UserID:  uc.PlayerUserID(),
 		GuestID: uc.PlayerGuestID(),
 	}

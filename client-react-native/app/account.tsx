@@ -46,6 +46,11 @@ export default function AccountScreen() {
         <Pressable style={shared.button} onPress={() => router.push('/auth/login')}>
           <Text style={shared.buttonText}>Sign in</Text>
         </Pressable>
+        {/* A guest has no account to manage but does have a face and a look,
+            and this is where they came looking for them. */}
+        <Pressable style={shared.buttonSecondary} onPress={() => router.push('/settings')}>
+          <Text style={shared.buttonTextSecondary}>Settings</Text>
+        </Pressable>
       </Screen>
     );
   }
@@ -144,6 +149,15 @@ export default function AccountScreen() {
       ) : null}
 
       {error ? <Text style={shared.error}>{error}</Text> : null}
+
+      {/* The face and the felt. Not an account matter, but this is the screen
+          people open when they are looking for anything about themselves. */}
+      <Pressable
+        style={[shared.buttonSecondary, { marginTop: 16 }]}
+        onPress={() => router.push('/settings')}
+      >
+        <Text style={shared.buttonTextSecondary}>Face and table look</Text>
+      </Pressable>
 
       <Pressable style={{ marginTop: 16 }} onPress={() => refreshAccount()}>
         <Text style={shared.status}>Refresh</Text>

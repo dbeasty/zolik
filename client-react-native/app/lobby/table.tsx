@@ -4,6 +4,8 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import type { MatchState } from '@/src/api/matchTypes';
 import type { WaitingPlayer } from '@/src/api/types';
+import { Avatar } from '@/src/components/avatars/Avatar';
+import { avatarFor } from '@/src/components/avatars/catalogue';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { formatApiError } from '@/src/lib/apiError';
@@ -187,10 +189,16 @@ function WaitingPlayersPanel({
               marginBottom: 8,
             }}
           >
-            <Text style={{ color: colors.text }}>
-              {p.username}
-              {p.isGuest ? ' (guest)' : ''}
-            </Text>
+            {/* The face they are waiting under, which is the face they will
+                be sitting behind a moment later — the host picks a person
+                out of the pool, not a row of text. */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 }}>
+              <Avatar spec={avatarFor(p.playerId, false, p.avatar)} size={28} />
+              <Text style={{ color: colors.text }} numberOfLines={1}>
+                {p.username}
+                {p.isGuest ? ' (guest)' : ''}
+              </Text>
+            </View>
             <Pressable
               testID={`invite-${p.playerId}`}
               style={[shared.button, { marginBottom: 0, paddingVertical: 8, paddingHorizontal: 14 }]}

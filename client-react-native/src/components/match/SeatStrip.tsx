@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { MatchPlayer, Seat, Standing } from '@/src/api/matchTypes';
+import { Avatar } from '@/src/components/avatars/Avatar';
+import { avatarFor } from '@/src/components/avatars/catalogue';
 import { Panel, type Measurable } from '@/src/components/match/Panel';
 import { seatElementId } from '@/src/lib/flights';
 import { ms } from '@/src/lib/motion';
@@ -69,7 +71,11 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
       >
         <View style={styles.nameRow}>
           {skin.seats.avatars ? (
-            <SeatAvatar name={name} active={seat.active} styles={styles} />
+            <Avatar
+              spec={avatarFor(seat.playerId, !!player?.isAI, player?.avatar)}
+              size={metrics.seat.avatar}
+              ringColor={seat.active ? skin.colors.gold : undefined}
+            />
           ) : null}
           {standing ? <Text style={styles.rank}>{standing.rank}</Text> : null}
           <Text style={styles.name} numberOfLines={1}>
@@ -128,6 +134,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
         <View style={styles.summary} testID="match-standings-summary">
           {seats.map((seat) => {
             const standing = standings?.find((s) => s.playerId === seat.playerId);
+            const player = players.find((p) => p.id === seat.playerId);
             // The one number worth carrying onto the collapsed rail — a
             // running score where the game has one, otherwise whatever the
             // seat's own first fact says (a card count, a stack size). Either
@@ -144,6 +151,14 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
                 testID={`seat-summary-${seat.playerId}`}
                 style={[styles.summaryPill, seat.active && styles.summaryPillActive]}
               >
+                {/* The same face, small. Four names in a row is a list to be
+                    read; four faces is a table to be glanced at. */}
+                {skin.seats.avatars ? (
+                  <Avatar
+                    spec={avatarFor(seat.playerId, !!player?.isAI, player?.avatar)}
+                    size={metrics.seat.avatarCompact}
+                  />
+                ) : null}
                 <Text style={styles.summaryName} numberOfLines={1}>
                   {seat.active ? '● ' : ''}
                   {playerName(players, seat.playerId)}
@@ -176,32 +191,6 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
     </Panel>
   );
 }
-
-/**
- * An initial-circle standing in for a portrait nobody uploaded. The colour is
- * picked from the name, so a player keeps their colour across matches without
- * anything being stored — and two players at one table rarely collide.
- */
-function SeatAvatar({ name, active, styles }: { name: string; active?: boolean; styles: SeatStyles }) {
-  const initials =
-    name
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((w) => w[0]!.toUpperCase())
-      .join('') || '?';
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
-  const fill = AVATAR_FILLS[hash % AVATAR_FILLS.length];
-  return (
-    <View style={[styles.avatar, { backgroundColor: fill }, active && styles.avatarActive]}>
-      <Text style={styles.avatarText}>{initials}</Text>
-    </View>
-  );
-}
-
-/** Muted, felt-friendly fills that keep white initials readable on all of them. */
-const AVATAR_FILLS = ['#7c5cbf', '#2f7fb8', '#b8722f', '#3f8f6a', '#b84f6e', '#5a7d3f'];
 
 /**
  * The dot beside "to play", breathing. The one looping animation on the
@@ -289,17 +278,6 @@ function seatStyles(m: Metrics, s: Skin) {
     active: { borderColor: colors.accent, borderWidth: 2 },
     mine: { backgroundColor: s.seats.avatars ? 'rgba(240, 199, 94, 0.10)' : '#22304a' },
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    avatar: {
-      width: 26,
-      height: 26,
-      borderRadius: 13,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 2,
-      borderColor: 'transparent',
-    },
-    avatarActive: { borderColor: colors.gold },
-    avatarText: { color: '#ffffff', fontWeight: '800', fontSize: 11 },
     turnRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
     name: { color: colors.text, fontWeight: '700', fontSize: m.panel.bodyFont + 1, flexShrink: 1 },
     rank: {
@@ -330,5 +308,3 @@ function seatStyles(m: Metrics, s: Skin) {
     fact: { color: colors.muted, fontSize: m.panel.bodyFont - 1, marginTop: 1 },
   });
 }
-
-type SeatStyles = ReturnType<typeof seatStyles>;

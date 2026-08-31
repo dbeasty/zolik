@@ -56,7 +56,7 @@ func TestLocalOnlyStoreTracksPresenceWithNoRedis(t *testing.T) {
 		t.Fatalf("List on an empty store = %v, want empty", got)
 	}
 
-	s.Join(ctx, Entry{PlayerID: "p1", Username: "Alice", IsGuest: true})
+	s.Join(ctx, Entry{PlayerID: "p1", Username: "Alice", IsGuest: true, Avatar: "p-violet"})
 	s.Join(ctx, Entry{PlayerID: "p2", Username: "Bob"})
 
 	list := s.List(ctx)
@@ -70,16 +70,21 @@ func TestLocalOnlyStoreTracksPresenceWithNoRedis(t *testing.T) {
 		t.Errorf("IsGuest not preserved: %+v", list)
 	}
 
-	name, isGuest, ok := s.IsWaiting(ctx, "p1")
+	name, isGuest, avatar, ok := s.IsWaiting(ctx, "p1")
 	if !ok || name != "Alice" || !isGuest {
 		t.Errorf("IsWaiting(p1) = (%q, %v, %v), want (Alice, true, true)", name, isGuest, ok)
 	}
-	if _, _, ok := s.IsWaiting(ctx, "nobody"); ok {
+	// The face they are waiting under travels with them, so an invite seats
+	// the person the host was looking at rather than a face derived from an id.
+	if avatar != "p-violet" {
+		t.Errorf("IsWaiting(p1) avatar = %q, want p-violet", avatar)
+	}
+	if _, _, _, ok := s.IsWaiting(ctx, "nobody"); ok {
 		t.Error("IsWaiting reported a player who was never joined")
 	}
 
 	s.Leave(ctx, "p1")
-	if _, _, ok := s.IsWaiting(ctx, "p1"); ok {
+	if _, _, _, ok := s.IsWaiting(ctx, "p1"); ok {
 		t.Error("a player who left is still reported waiting")
 	}
 	if got := s.List(ctx); len(got) != 1 || got[0].PlayerID != "p2" {
@@ -117,7 +122,7 @@ func TestPickupReportsWhetherThePlayerWasActuallyPresent(t *testing.T) {
 	if s.Pickup(ctx, "never-here") {
 		t.Error("Pickup reported true for a player who was never in the pool")
 	}
-	if _, _, ok := s.IsWaiting(ctx, "p1"); ok {
+	if _, _, _, ok := s.IsWaiting(ctx, "p1"); ok {
 		t.Error("a picked-up player is still reported waiting — they must not be invited twice")
 	}
 }
@@ -145,13 +150,18 @@ func TestRedisMirroringMakesPresenceVisibleAcrossInstances(t *testing.T) {
 	t.Cleanup(func() { _ = instanceB.Close() })
 
 	ctx := context.Background()
-	instanceA.Join(ctx, Entry{PlayerID: "cross-1", Username: "Alice"})
+	instanceA.Join(ctx, Entry{PlayerID: "cross-1", Username: "Alice", Avatar: "m-brass"})
 
 	// instanceB has no local connection for this player at all — the only
 	// way it can know about them is via Redis.
-	name, _, ok := instanceB.IsWaiting(ctx, "cross-1")
+	name, _, avatar, ok := instanceB.IsWaiting(ctx, "cross-1")
 	if !ok || name != "Alice" {
 		t.Fatalf("instanceB.IsWaiting(cross-1) = (%q, %v), want (Alice, true)", name, ok)
+	}
+	// Redis is the only path between these two instances, so this is also the
+	// assertion that the face survives being serialised into the shared hash.
+	if avatar != "m-brass" {
+		t.Errorf("instanceB.IsWaiting(cross-1) avatar = %q, want m-brass", avatar)
 	}
 	// Present in the list, rather than the *only* thing in it.
 	//
@@ -171,7 +181,7 @@ func TestRedisMirroringMakesPresenceVisibleAcrossInstances(t *testing.T) {
 	if !instanceB.Pickup(ctx, "cross-1") {
 		t.Error("instanceB.Pickup(cross-1) = false, want true")
 	}
-	if _, _, ok := instanceA.IsWaiting(ctx, "cross-1"); ok {
+	if _, _, _, ok := instanceA.IsWaiting(ctx, "cross-1"); ok {
 		t.Error("instanceA still reports the player waiting after instanceB picked them up")
 	}
 }
@@ -195,7 +205,7 @@ func TestStaleRedisEntriesAreFilteredOut(t *testing.T) {
 		t.Fatalf("seeding a stale record: %v", err)
 	}
 
-	if _, _, ok := s.IsWaiting(ctx, "ghost"); ok {
+	if _, _, _, ok := s.IsWaiting(ctx, "ghost"); ok {
 		t.Error("IsWaiting reported a stale entry as present")
 	}
 	for _, e := range s.List(ctx) {

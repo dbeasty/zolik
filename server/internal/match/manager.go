@@ -89,7 +89,12 @@ func (m *Manager) SetRecorder(r Recorder) { m.recorder = r }
 type WaitingLookup interface {
 	// IsWaiting reports the display details of a waiting player, so an invite
 	// can build their seat without a second round trip.
-	IsWaiting(ctx context.Context, playerID string) (name string, isGuest bool, ok bool)
+	//
+	// A widening tuple rather than a struct, and deliberately so: the whole
+	// point of this interface is that the runtime never learns what a waiting
+	// room is, and returning the pool's own record would mean importing it.
+	// Four values is uglier than a type and is the honest cost of that.
+	IsWaiting(ctx context.Context, playerID string) (name string, isGuest bool, avatar string, ok bool)
 	// Pickup removes a player from the pool, reporting whether they were
 	// actually present. Called only after they have been seated — a failed
 	// seat attempt must leave them waiting, not silently drop them.
@@ -135,12 +140,16 @@ func (m *Manager) Invite(ctx context.Context, idOrCode, hostID, playerID string)
 	// client last polled: the target may have left, been picked up elsewhere,
 	// or disconnected in the meantime, and this is the only point that gets to
 	// decide whether they are still actually available.
-	name, isGuest, stillWaiting := m.waiting.IsWaiting(ctx, playerID)
+	name, isGuest, avatar, stillWaiting := m.waiting.IsWaiting(ctx, playerID)
 	if !stillWaiting {
 		return models.Match{}, false, module.Error{Code: "NO_LONGER_WAITING"}
 	}
 
-	seat := models.Player{ID: playerID, Name: name}
+	// The face they were waiting under, so being picked up out of the pool
+	// seats the person the host was looking at. Sanitised again rather than
+	// trusted: it entered the pool from a client, and this is a different
+	// door into the same seat.
+	seat := models.Player{ID: playerID, Name: name, Avatar: models.SanitizeAvatar(avatar)}
 	if isGuest {
 		seat.GuestID = playerID
 	} else {

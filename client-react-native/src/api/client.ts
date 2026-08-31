@@ -44,6 +44,18 @@ export class ZolikClient {
   accessToken = '';
   refreshToken = '';
   userId = '';
+  /**
+   * The face to take to any seat this client sits down in.
+   *
+   * Held here rather than passed to each call for the same reason the token
+   * is: three doors lead to a seat — creating a table, joining one, and
+   * waiting to be picked up out of the pool — and a face that only some of
+   * them carried would be a face that sometimes changed on the way in.
+   *
+   * Empty is an ordinary state, meaning "never chose one"; the server stores
+   * nothing and every client derives the same face from the player id.
+   */
+  avatarId = '';
   private onTokensUpdated?: (access: string, refresh: string) => void;
   private onSessionExpired?: () => void;
 
@@ -64,12 +76,14 @@ export class ZolikClient {
   }
 
   /** The waiting room's socket: connecting to it *is* "I'm waiting to be
-   *  picked up" — there is nothing else to negotiate on open. */
+   *  picked up" — the only thing negotiated on open beyond the token is the
+   *  face to be seen waiting under, so a host invites the person they saw. */
   lobbyWsUrl(): string {
     const u = new URL(this.baseUrl);
     const scheme = u.protocol === 'https:' ? 'wss' : 'ws';
     const token = encodeURIComponent(this.accessToken);
-    return `${scheme}://${u.host}/ws/lobby?token=${token}`;
+    const face = this.avatarId ? `&avatar=${encodeURIComponent(this.avatarId)}` : '';
+    return `${scheme}://${u.host}/ws/lobby?token=${token}${face}`;
   }
 
   /** A snapshot of who's currently waiting, for a host browsing whom to
@@ -323,14 +337,14 @@ export class ZolikClient {
     variation?: string,
     options: Record<string, number> = {},
   ): Promise<{ matchId: string; joinCode: string }> {
-    return this.post('/matches', { moduleId, variation, options }, true);
+    return this.post('/matches', { moduleId, variation, options, avatar: this.avatarId }, true);
   }
 
   /** Joins by match id or by the short code a host reads out. */
   async joinMatch(idOrCode: string): Promise<string> {
     const data = await this.post<{ matchId: string }>(
       `/matches/${encodeURIComponent(idOrCode)}/join`,
-      null,
+      { avatar: this.avatarId },
       true,
     );
     return data.matchId;
@@ -363,10 +377,17 @@ export class ZolikClient {
     return this.get('/users/me', true);
   }
 
-  /** Renames the account or updates its preferences. */
+  /**
+   * Renames the account or updates its preferences.
+   *
+   * Preferences are sent whole rather than as a patch of one key, because the
+   * server sets the object whole — a half-populated one would quietly clear
+   * the rest. Callers spread the current preferences and change the one they
+   * mean.
+   */
   async updateMe(patch: {
     username?: string;
-    preferences?: { language?: string; cardStyle?: string };
+    preferences?: { language?: string; cardStyle?: string; avatar?: string };
   }): Promise<void> {
     await this.request('PATCH', '/users/me', patch, true);
   }

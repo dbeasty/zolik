@@ -127,6 +127,18 @@ async function loadGuestIdentity(): Promise<GuestIdentity | null> {
   }
 }
 
+/**
+ * This device's guest id, for anything that needs a stable identity before
+ * there is a session to read one off.
+ *
+ * The face a first-time guest is shown is derived from it, which is what makes
+ * somebody who has played before and come back find the same face waiting
+ * rather than a fresh one each visit.
+ */
+export async function loadGuestId(): Promise<string | null> {
+  return (await loadGuestIdentity())?.guestId ?? null;
+}
+
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSessionState] = useState<PlayerSession | null>(null);
   const [loading, setLoading] = useState(true);
