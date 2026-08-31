@@ -86,6 +86,31 @@ func TestBuildStateMsg_ProjectsPerViewer(t *testing.T) {
 	}
 }
 
+func TestBuildStateMsgCarriesEachSeatsFace(t *testing.T) {
+	m, match := dealt(t, "zolik", "a", "b")
+	match.Players[0].Avatar = "p-violet"
+
+	msg := m.BuildStateMsg(match, "a")
+
+	byID := map[string]PlayerMsg{}
+	for _, p := range msg.Players {
+		byID[p.ID] = p
+	}
+	if byID["a"].Avatar != "p-violet" {
+		t.Errorf("player a's avatar = %q, want p-violet", byID["a"].Avatar)
+	}
+	// A seat that never named one says nothing rather than saying something
+	// empty — the client derives a face from the id in that case, and an
+	// absent field is how it is told to.
+	raw, err := json.Marshal(msg.Players[1])
+	if err != nil {
+		t.Fatalf("marshalling: %v", err)
+	}
+	if strings.Contains(string(raw), "avatar") {
+		t.Errorf("a seat with no chosen face still shipped one: %s", raw)
+	}
+}
+
 func TestBuildStateMsg_LegalActionsIsNeverNull(t *testing.T) {
 	// A nil slice serialises to JSON `null`, which every client then has to
 	// guard before indexing — the exact bug that crashed the game screen once

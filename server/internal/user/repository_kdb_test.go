@@ -68,7 +68,7 @@ func TestKDBUpdateByIDPatchesAndGuardsUsername(t *testing.T) {
 	}
 
 	// A partial patch must only touch its fields.
-	if err := r.UpdateByID(ctx, ada.ID, bson.M{"preferences": models.UserPreferences{Language: "en", CardStyle: "modern"}}); err != nil {
+	if err := r.UpdateByID(ctx, ada.ID, bson.M{"preferences": models.UserPreferences{Language: "en", CardStyle: "modern", Avatar: "p-violet"}}); err != nil {
 		t.Fatalf("patch preferences: %v", err)
 	}
 	got, err := r.FindByID(ctx, ada.ID)
@@ -80,5 +80,12 @@ func TestKDBUpdateByIDPatchesAndGuardsUsername(t *testing.T) {
 	}
 	if got.Preferences.CardStyle != "modern" {
 		t.Fatalf("patch did not land: %+v", got.Preferences)
+	}
+	// The chosen face rides in the same object, which is what lets it follow
+	// an account to a new device without a handler or a repository knowing it
+	// exists — preferences are written whole here, dotted paths being
+	// unsupported (see db.KDBUpdateUserFields).
+	if got.Preferences.Avatar != "p-violet" {
+		t.Fatalf("the chosen face did not survive the round trip: %+v", got.Preferences)
 	}
 }

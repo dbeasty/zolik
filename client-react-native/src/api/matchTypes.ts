@@ -266,7 +266,19 @@ export type RoundLog = {
   waitingFor?: string[];
 };
 
-export type MatchPlayer = { id: string; name: string; isAI: boolean };
+export type MatchPlayer = {
+  id: string;
+  name: string;
+  isAI: boolean;
+  /**
+   * The face this seat wears, as a slug. Absent when the seat never named
+   * one, which is not a gap to fill in from somewhere else: every client
+   * derives the same face from the id, so an older client, a seat filled
+   * before faces existed, and one nobody is sitting at all look right
+   * without anything having been stored for them.
+   */
+  avatar?: string;
+};
 
 export type MatchState = {
   type: 'match_state';

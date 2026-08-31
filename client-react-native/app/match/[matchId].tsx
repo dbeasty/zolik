@@ -33,6 +33,7 @@ import {
 } from '@/src/lib/drops';
 import {
   EMPTY_FLIGHT_PLAN,
+  OWN_MOVE_QUIET_MS,
   planFlights,
   type BoardLike,
   type FlightPlan,
@@ -205,7 +206,7 @@ export default function MatchScreen() {
     if (stillness || !state) return EMPTY_FLIGHT_PLAN;
     const next: BoardLike = { zones: state.view?.zones ?? [], seats: state.view?.seats ?? [] };
     const plan = planFlights(boardRef.current, next, viewerId);
-    if (!plan.flights.length || Date.now() - dragSentAt.current > 1500) return plan;
+    if (!plan.flights.length || Date.now() - dragSentAt.current > OWN_MOVE_QUIET_MS) return plan;
     const fromOwnFan = new Set(
       next.zones
         .filter((z) => z.kind === 'hand' && z.ownerId === viewerId)

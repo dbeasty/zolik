@@ -60,6 +60,14 @@ type PlayerMsg struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	IsAI bool   `json:"isAI"`
+	// Avatar is the face this seat wears — cosmetic, opaque, and omitted when
+	// the seat never named one, which every client reads as "derive it".
+	//
+	// It rides on the state message rather than being fetched per player
+	// because it is part of who is at the table, and who is at the table is
+	// already here. Deliberately absent from module.PlayerRef: a module
+	// decides rules, and a face is not one.
+	Avatar string `json:"avatar,omitempty"`
 }
 
 // BuildStateMsg renders one viewer's state.
@@ -96,7 +104,7 @@ func (m *Manager) buildStateMsg(match models.Match, viewerID string, rounds *mod
 		LegalActions: []module.ActionOffer{},
 	}
 	for _, p := range match.Players {
-		msg.Players = append(msg.Players, PlayerMsg{ID: p.ID, Name: p.Name, IsAI: p.IsAI})
+		msg.Players = append(msg.Players, PlayerMsg{ID: p.ID, Name: p.Name, IsAI: p.IsAI, Avatar: p.Avatar})
 	}
 
 	mod := m.registry.Get(match.ModuleID)

@@ -33,6 +33,12 @@ export type PanelMetrics = {
   bodyFont: number;
 };
 
+/** How big a player's face is drawn, open and on the collapsed rail. */
+export type SeatMetrics = {
+  avatar: number;
+  avatarCompact: number;
+};
+
 export type Metrics = {
   /** 1 on a comfortable screen, less on a small one. */
   scale: number;
@@ -40,6 +46,7 @@ export type Metrics = {
   narrow: boolean;
   card: CardMetrics;
   panel: PanelMetrics;
+  seat: SeatMetrics;
   /** Visible corner height of an overlapped card in a stacked group. */
   stackedCorner: number;
   /** Smallest a control may be before it wraps to the next line. */
@@ -59,6 +66,20 @@ const BASE_CARD = {
   suitFont: 18,
   jokerRankFont: 11,
   suitInlineFont: 14,
+};
+
+/**
+ * How big a player's face is drawn. A size, so it lives here and not in the
+ * skin — a skin may repaint a face but never resize one.
+ *
+ * 40 rather than the 26 the initial-circle used: at 26 a portrait is a dot,
+ * and the whole point of a face is that it is recognised across the table
+ * without being read. The collapsed rail keeps the smaller one, where the
+ * point is only to tell four players apart in a row of pills.
+ */
+const BASE_SEAT = {
+  avatar: 40,
+  avatarCompact: 22,
 };
 
 const BASE_PANEL = {
@@ -111,6 +132,11 @@ export function metricsFor(width: number): Metrics {
     suitInlineFont: font(BASE_CARD.suitInlineFont, scale),
   };
 
+  const seat: SeatMetrics = {
+    avatar: dim(BASE_SEAT.avatar, scale),
+    avatarCompact: dim(BASE_SEAT.avatarCompact, scale),
+  };
+
   const panel: PanelMetrics = {
     padding: dim(BASE_PANEL.padding, scale),
     gap: dim(BASE_PANEL.gap, scale),
@@ -124,6 +150,7 @@ export function metricsFor(width: number): Metrics {
     narrow,
     card,
     panel,
+    seat,
     stackedCorner: Math.max(20, dim(BASE_STACKED_CORNER, scale)),
     buttonMinWidth: Math.max(64, dim(BASE_BUTTON_MIN_WIDTH, scale)),
   };

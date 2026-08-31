@@ -12,6 +12,7 @@ import (
 
 	"zolik/server/internal/admission"
 	"zolik/server/internal/auth"
+	"zolik/server/internal/models"
 	"zolik/server/internal/ws"
 )
 
@@ -66,11 +67,12 @@ func (h *Handlers) waiting(w http.ResponseWriter, req *http.Request) {
 }
 
 // handleWS registers a connection as "waiting to be picked up" for as long
-// as it stays open. There is nothing to negotiate on connect beyond the
-// token — being here at all *is* the request to wait — and nothing to read
-// from the client afterwards beyond keepalive pongs, so the read loop below
-// exists only to detect a dead connection, exactly as the game handler's
-// does for the same reason.
+// as it stays open. There is little to negotiate on connect beyond the token
+// — being here at all *is* the request to wait, and the only other thing a
+// player brings is the face they want shown while they wait — and nothing to
+// read from the client afterwards beyond keepalive pongs, so the read loop
+// below exists only to detect a dead connection, exactly as the game
+// handler's does for the same reason.
 func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 	token := req.URL.Query().Get("token")
 	claims, err := auth.ParseAccessClaims(token)
@@ -120,7 +122,12 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 	}
 
 	ctx := context.Background()
-	h.store.Join(ctx, Entry{PlayerID: playerID, Username: claims.Username, IsGuest: claims.IsGuest})
+	h.store.Join(ctx, Entry{
+		PlayerID: playerID,
+		Username: claims.Username,
+		IsGuest:  claims.IsGuest,
+		Avatar:   models.SanitizeAvatar(req.URL.Query().Get("avatar")),
+	})
 	h.broadcastWaitingList(ctx)
 
 	pingDone := make(chan struct{})

@@ -52,6 +52,12 @@ type Entry struct {
 	PlayerID string `json:"playerId"`
 	Username string `json:"username"`
 	IsGuest  bool   `json:"isGuest"`
+	// Avatar is the face this player is waiting under, carried so that being
+	// picked up out of the pool seats them as the person the host saw rather
+	// than as a face derived from their id. Cosmetic and opaque here, exactly
+	// as it is on a seat; the Redis mirror gets it for free, since a record
+	// is this struct marshalled whole.
+	Avatar string `json:"avatar,omitempty"`
 	// JoinedAt is when this player most recently started waiting — reset on
 	// reconnect, not carried across a disconnect, so the list reads as "who
 	// has been here how long" rather than accumulating a lifetime figure.
@@ -78,7 +84,7 @@ type Store interface {
 	Pickup(ctx context.Context, playerID string) bool
 	// IsWaiting reports whether a player is currently in the pool, and if
 	// so, the display details a game seat is built from.
-	IsWaiting(ctx context.Context, playerID string) (name string, isGuest bool, ok bool)
+	IsWaiting(ctx context.Context, playerID string) (name string, isGuest bool, avatar string, ok bool)
 	// List returns everyone currently waiting, oldest first.
 	List(ctx context.Context) []Entry
 	Close() error
@@ -205,7 +211,7 @@ func (s *redisStore) Pickup(ctx context.Context, playerID string) bool {
 
 // IsWaiting reports whether a player is currently in the pool, and if so,
 // the display details a game seat is built from.
-func (s *redisStore) IsWaiting(ctx context.Context, playerID string) (name string, isGuest bool, ok bool) {
+func (s *redisStore) IsWaiting(ctx context.Context, playerID string) (name string, isGuest bool, avatar string, ok bool) {
 	// When Redis is configured it is the cross-instance source of truth, and
 	// it must be consulted rather than this instance's own local map:
 	// Pickup or Leave called against a *different* instance (the common case
@@ -221,24 +227,24 @@ func (s *redisStore) IsWaiting(ctx context.Context, playerID string) (name strin
 	e, found := s.local[playerID]
 	s.mu.RUnlock()
 	if !found {
-		return "", false, false
+		return "", false, "", false
 	}
-	return e.Username, e.IsGuest, true
+	return e.Username, e.IsGuest, e.Avatar, true
 }
 
-func (s *redisStore) isWaitingRedis(ctx context.Context, playerID string) (name string, isGuest bool, ok bool) {
+func (s *redisStore) isWaitingRedis(ctx context.Context, playerID string) (name string, isGuest bool, avatar string, ok bool) {
 	raw, err := s.redis.HGet(ctx, redisKey, playerID).Result()
 	if err != nil {
-		return "", false, false
+		return "", false, "", false
 	}
 	var rec redisRecord
 	if err := json.Unmarshal([]byte(raw), &rec); err != nil {
-		return "", false, false
+		return "", false, "", false
 	}
 	if time.Since(rec.LastSeen) > staleAfter {
-		return "", false, false
+		return "", false, "", false
 	}
-	return rec.Username, rec.IsGuest, true
+	return rec.Username, rec.IsGuest, rec.Avatar, true
 }
 
 // List returns everyone currently waiting, oldest first — the order a
@@ -283,8 +289,21 @@ func (s *redisStore) localSnapshot() []Entry {
 	return out
 }
 
+// sortByJoinedAt puts the longest-waiting player first.
+//
+// The tiebreak is not decoration. Two players joining inside the same clock
+// tick is ordinary — the entries come out of a map, whose iteration order Go
+// deliberately randomises — so without one, a list of simultaneous arrivals
+// came back in a different order on each call and the pool visibly shuffled
+// itself under a host who was reading it. The id is arbitrary as an ordering
+// and is the point: any stable answer beats a fresh one every time.
 func sortByJoinedAt(entries []Entry) {
-	sort.Slice(entries, func(i, j int) bool { return entries[i].JoinedAt.Before(entries[j].JoinedAt) })
+	sort.Slice(entries, func(i, j int) bool {
+		if entries[i].JoinedAt.Equal(entries[j].JoinedAt) {
+			return entries[i].PlayerID < entries[j].PlayerID
+		}
+		return entries[i].JoinedAt.Before(entries[j].JoinedAt)
+	})
 }
 
 func (s *redisStore) mirror(ctx context.Context, e Entry) {

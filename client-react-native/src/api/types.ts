@@ -19,6 +19,8 @@ export type WaitingPlayer = {
   username: string;
   isGuest: boolean;
   joinedAt: string;
+  /** The face they are waiting under — the one they keep if picked up. */
+  avatar?: string;
 };
 
 /** A push on the /ws/lobby socket. 'lobby_waiting' is the current pool,
@@ -93,7 +95,7 @@ export type AccountProfile = {
   createdAt: string;
   identities: LinkedIdentity[];
   hasPassword: boolean;
-  prefs?: { language?: string; cardStyle?: string };
+  prefs?: { language?: string; cardStyle?: string; avatar?: string };
 };
 
 /** What a completed sign-in returns, whichever door it came through. */

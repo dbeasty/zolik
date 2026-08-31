@@ -14,6 +14,7 @@ import { zoneElementId } from '@/src/lib/drops';
 import { insertionAtPoint, moveTargetFor, type Rect, type Slot } from '@/src/lib/hand';
 import type { Metrics } from '@/src/lib/layout';
 import { label } from '@/src/lib/labels';
+import { ms } from '@/src/lib/motion';
 import type { Skin } from '@/src/skins/types';
 import { dragLayer } from '@/src/theme';
 
@@ -369,7 +370,7 @@ export function HandZone({
   // the deal.
   const openedAt = useRef(Date.now());
   const dealDelayFor = (index: number) =>
-    Date.now() - openedAt.current < 700 ? Math.min(index, 12) * 40 : entranceDelay ?? 0;
+    Date.now() - openedAt.current < 700 ? Math.min(index, 12) * ms(40) : entranceDelay ?? 0;
 
   // A card can only be lifted clear of the layout if we know where it was, and
   // until then it stays in the flow and no gap is drawn — a drag that started

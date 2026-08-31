@@ -36,8 +36,19 @@ export const casino: Skin = {
   },
   table: {
     background: ['#0b2c1b', '#175434', '#0a2415'],
+    // Kept as the fallback for anything that cannot draw the lamp below.
     edge: 'rgba(0, 0, 0, 0.38)',
     sheen: 'rgba(255, 252, 235, 0.05)',
+    // The lamp itself, hung a little above the middle of the table — one
+    // radial gradient in place of the four linear ones that used to stand in
+    // for it.
+    lamp: {
+      inner: 'rgba(255, 246, 214, 0.10)',
+      outer: 'rgba(0, 0, 0, 0.46)',
+      cx: 0.5,
+      cy: 0.38,
+      r: 0.78,
+    },
   },
   panel: {
     background: 'rgba(6, 21, 14, 0.66)',

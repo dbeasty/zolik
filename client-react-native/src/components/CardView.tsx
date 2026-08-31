@@ -64,6 +64,9 @@ type Props = {
 /** The court cards get a medallion on a rich face rather than a giant pip. */
 const COURT_RANKS = new Set(['J', 'Q', 'K']);
 
+/** How much of a card's own side shows below and to the right of it. */
+const EDGE = 2;
+
 /** Every dimension a card's own render needs, computed once per card size and skin. */
 function cardStyles(m: CardMetrics, s: Skin) {
   const colors = s.colors;
@@ -80,6 +83,21 @@ function cardStyles(m: CardMetrics, s: Skin) {
       borderColor: 'transparent',
       padding: m.ringPadding,
     },
+    // The card's own thickness: a sliver of its shaded edge showing below and
+    // to the right, the way a card lying on felt shows the side nobody
+    // printed on. Absolutely positioned, so it adds nothing to the box a drop
+    // is measured against — the same contract the shadow keeps, and on the
+    // same switch as the bevel, so face, back and edge agree about the light.
+    cardEdge: {
+      position: 'absolute',
+      left: m.ringPadding + EDGE,
+      top: m.ringPadding + EDGE,
+      width: m.width,
+      height: m.height,
+      borderRadius: 6,
+      backgroundColor: card.bevel?.shadow ?? 'transparent',
+    },
+    cardEdgeCompact: { width: m.compactWidth, height: m.compactHeight },
     justDrawnRing: { borderColor: colors.success },
     badgedRing: { borderColor: colors.gold, borderStyle: 'dashed' },
     draggingRing: { borderColor: colors.accent },
@@ -355,6 +373,10 @@ export function CardView({
         dragging && styles.draggingRing,
       ]}
     >
+      {/* Drawn before the card, so the card lies on top of its own edge. */}
+      {skin.card.bevel ? (
+        <View pointerEvents="none" style={[styles.cardEdge, compact && styles.cardEdgeCompact]} />
+      ) : null}
       <View
         style={[
           styles.card,

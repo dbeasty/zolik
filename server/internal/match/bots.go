@@ -35,7 +35,23 @@ const (
 	// botMaxStall is how many consecutive actions one seat may take without
 	// the turn moving on before the loop gives up on it.
 	botMaxStall = 30
+	// The pause a bot takes before answering, when nothing has said otherwise
+	// (see Manager.SetBotPace). It has to outlast the client's narration of
+	// the move before it, or a bot's next state lands on top of an animation
+	// that is still playing.
+	botThinkMinDefault = 900 * time.Millisecond
+	botThinkMaxDefault = 1800 * time.Millisecond
 )
+
+// thinkFor is how long a bot pauses before answering. Purely cosmetic, and the
+// one thing in this file that is about people rather than rules.
+func (m *Manager) thinkFor(rnd *rand.Rand) time.Duration {
+	lo, hi := m.botThinkMin, m.botThinkMax
+	if lo <= 0 || hi <= lo {
+		lo, hi = botThinkMinDefault, botThinkMaxDefault
+	}
+	return lo + time.Duration(rnd.Int63n(int64(hi-lo)))
+}
 
 // RunBotsIfNeeded starts the bot loop for a match, unless it is already
 // running.
@@ -104,9 +120,7 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 			lastActor, stall = actor, 0
 		}
 
-		// A pause, so a bot does not answer instantly. Purely cosmetic, and
-		// the one thing in this file that is about people rather than rules.
-		time.Sleep(time.Duration(400+rnd.Intn(900)) * time.Millisecond)
+		time.Sleep(m.thinkFor(rnd))
 
 		offers, err := mod.LegalActions(match.State, actor)
 		if err != nil {

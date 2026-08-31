@@ -1,5 +1,6 @@
 import type { Seat, Zone } from '@/src/api/matchTypes';
 import { zoneElementId } from '@/src/lib/drops';
+import { ms } from '@/src/lib/motion';
 
 /**
  * Cards seen travelling between zones.
@@ -43,9 +44,15 @@ export type FlightPlan = {
 };
 
 /** How long a card is in the air. */
-export const FLIGHT_MS = 420;
+export const FLIGHT_MS = ms(420);
 /** The destination's own entrance waits slightly less, so the two overlap. */
-export const FLIGHT_HOLD_MS = 360;
+export const FLIGHT_HOLD_MS = ms(360);
+/**
+ * Two cards travelling out of one transition leave one after the other rather
+ * than together — three at once reads as a cloud, three in sequence reads as
+ * three cards.
+ */
+export const FLIGHT_SEQUENCE_MS = ms(90);
 /**
  * A flight that has not taken off this long after being planned never does.
  * In a background tab the browser throttles animation frames, so planned
@@ -53,8 +60,21 @@ export const FLIGHT_HOLD_MS = 360;
  * released the whole backlog at once, a flock of stale cards narrating
  * moves from minutes ago. The board itself is always current; only the
  * narration is skipped.
+ *
+ * Deliberately not scaled by the tempo: this is a *deadline* on how long a
+ * flight may wait to begin, not a duration of anything. It only has to stay
+ * comfortably above the time one takes to launch — which `flights.test.ts`
+ * pins, so raising the tempo can never quietly start culling flights before
+ * they leave the ground.
  */
 export const FLIGHT_STALE_MS = 1000;
+/**
+ * How long after sending a move the board stops re-narrating cards leaving
+ * the viewer's own fan. That journey already happened under their finger, and
+ * flying it again is a second answer to the same question. Has to outlast a
+ * whole flight and its landing, which is why it is derived rather than picked.
+ */
+export const OWN_MOVE_QUIET_MS = FLIGHT_MS + FLIGHT_HOLD_MS + 400;
 
 /** Where a player *is* on screen when their cards aren't: their seat tile. */
 export const seatElementId = (playerId: string) => `seat-${playerId}`;
@@ -81,6 +101,14 @@ export function planFlights(
   if (!prev || !next || !prev.zones.length || !next.zones.length) return EMPTY_FLIGHT_PLAN;
 
   const before = new Map(prev.zones.map((z) => [z.id, z]));
+
+  // A fresh deal is the one transition the rest of this module deliberately
+  // refuses to read, because every hand changing at once is normally the
+  // board being replaced rather than cards travelling. It is also the single
+  // most card-room-looking moment a table has, so it gets its own reading —
+  // narrow enough that nothing else can be mistaken for it.
+  const deal = planDeal(prev, next, before, viewerId);
+  if (deal) return deal;
 
   // Per-owner hand-count changes are the plan's connective tissue: they say
   // whose card a pile gained, and whose hand a stack's missing card went to.
@@ -172,5 +200,68 @@ export function planFlights(
   }
 
   if (flights.length === 0 || flights.length > MAX_FLIGHTS) return EMPTY_FLIGHT_PLAN;
+  return { flights, holds };
+}
+
+/**
+ * Everyone being dealt to, once, from one stack.
+ *
+ * Recognised rather than announced, like everything else here: every hand on
+ * the board went from empty to the same non-zero size, and one stack lost
+ * exactly the total. Anything less tidy — a hand that was not empty, two
+ * stacks changing, a count that does not add up — is not a deal this will
+ * claim, and falls through to the ordinary reading (which then declines it,
+ * and the board snaps to the truth as it always did).
+ *
+ * The cards go round the table in seat order, which is the *only* reason this
+ * exists: the same cards arriving all at once is what the destination
+ * entrances already do perfectly well on their own.
+ */
+function planDeal(
+  prev: BoardLike,
+  next: BoardLike,
+  before: Map<string, Zone>,
+  viewerId: string,
+): FlightPlan | null {
+  const hands = next.zones.filter((z) => z.kind === 'hand' && z.ownerId);
+  if (hands.length < 2) return null;
+
+  let each = 0;
+  for (const z of hands) {
+    const was = before.get(z.id);
+    // Every hand starts empty and ends the same size — a deal, not a refill.
+    if (!was || was.count !== 0 || z.count === 0) return null;
+    if (each === 0) each = z.count;
+    else if (z.count !== each) return null;
+  }
+
+  const total = each * hands.length;
+  const sources = next.zones.filter((z) => {
+    const was = before.get(z.id);
+    return z.kind === 'stack' && was && was.count - z.count === total;
+  });
+  if (sources.length !== 1) return null;
+
+  // Seat order, so the cards go round the table the way a hand is dealt
+  // rather than in whatever order the zones happen to be listed.
+  const order = (next.seats ?? []).map((s) => s.playerId);
+  const seated = [...hands].sort(
+    (a, b) => order.indexOf(a.ownerId!) - order.indexOf(b.ownerId!),
+  );
+
+  const fromId = zoneElementId(sources[0]!.id);
+  const flights: Flight[] = [];
+  const holds = new Map<string, number>();
+  for (const z of seated) {
+    const own = z.ownerId === viewerId;
+    const toId = own ? zoneElementId(z.id) : seatElementId(z.ownerId!);
+    // One card per player, not one per card: thirteen apiece is fifty-two
+    // cards in the air, which is a blizzard rather than a deal. The single
+    // card stands for the round, and the fan's own staggered entrance —
+    // which is already staggered, and now waits for this to land — carries
+    // the rest.
+    flights.push({ id: `${fromId}>${toId}#deal${flights.length}`, fromId, toId });
+    if (own) holds.set(toId, FLIGHT_HOLD_MS + flights.length * FLIGHT_SEQUENCE_MS);
+  }
   return { flights, holds };
 }

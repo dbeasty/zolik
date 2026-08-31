@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, StyleSheet, View } from 'react-native';
+import { Animated, StyleSheet, View } from 'react-native';
 
 import { CardBack } from '@/src/components/CardBack';
 import { CardView } from '@/src/components/CardView';
 import { useMetrics } from '@/src/hooks/useMetrics';
-import { FLIGHT_MS, FLIGHT_STALE_MS, type Flight } from '@/src/lib/flights';
+import { FLIGHT_MS, FLIGHT_SEQUENCE_MS, FLIGHT_STALE_MS, type Flight } from '@/src/lib/flights';
 import type { Rect } from '@/src/lib/hand';
+import { FLIGHT_EASING } from '@/src/lib/motion';
 
 /**
  * The air above the board: every card currently travelling between zones.
@@ -59,8 +60,16 @@ export function FlightLayer({ flights, rectFor, measure, onDone }: Props) {
       onLayout={remeasureOrigin}
       testID="flight-layer"
     >
-      {flights.map((f) => (
-        <FlightCard key={f.id} flight={f} rectFor={rectFor} measure={measure} origin={origin} onDone={onDone} />
+      {flights.map((f, i) => (
+        <FlightCard
+          key={f.id}
+          flight={f}
+          order={i}
+          rectFor={rectFor}
+          measure={measure}
+          origin={origin}
+          onDone={onDone}
+        />
       ))}
     </View>
   );
@@ -68,12 +77,15 @@ export function FlightLayer({ flights, rectFor, measure, onDone }: Props) {
 
 function FlightCard({
   flight,
+  order,
   rectFor,
   measure,
   origin,
   onDone,
 }: {
   flight: QueuedFlight;
+  /** Position in this transition's plan — its place in the queue off the table. */
+  order: number;
   rectFor: (id: string) => Rect | undefined;
   measure: () => void;
   origin: { current: { x: number; y: number } };
@@ -115,7 +127,11 @@ function FlightCard({
       Animated.timing(progress, {
         toValue: 1,
         duration: FLIGHT_MS,
-        easing: Easing.inOut(Easing.cubic),
+        // Cards from one transition leave one after another rather than in a
+        // clump — the difference between reading as three cards and as one
+        // event with three cards somewhere inside it.
+        delay: order * FLIGHT_SEQUENCE_MS,
+        easing: FLIGHT_EASING,
         useNativeDriver: true,
       }).start(() => doneRef.current(flight.id));
     };
@@ -136,6 +152,13 @@ function FlightCard({
   const to = centre(path.to);
   const dx = to.x - from.x;
   const dy = to.y - from.y;
+  // How high the journey arcs. A card thrown across the table rises; one
+  // nudged to the next place along barely leaves the felt, so the lift is
+  // taken from the distance rather than being one number for every journey.
+  const lift = Math.max(10, Math.min(46, Math.hypot(dx, dy) * 0.18));
+  // Five samples of `dy * t - lift * sin(pi * t)` — a parabola drawn with the
+  // straight segments the native driver can interpolate between.
+  const arc = [0, dy * 0.25 - lift * 0.71, dy * 0.5 - lift, dy * 0.75 - lift * 0.71, dy];
 
   return (
     <Animated.View
@@ -149,10 +172,17 @@ function FlightCard({
         transform: [
           { perspective: 800 },
           { translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [0, dx] }) },
-          { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [0, dy] }) },
-          // Lifts off the felt mid-journey and settles back down — the same
-          // reads-as-height trick the dragged card uses, animated.
-          { scale: progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 1.14, 1] }) },
+          {
+            translateY: progress.interpolate({
+              inputRange: [0, 0.25, 0.5, 0.75, 1],
+              outputRange: arc,
+            }),
+          },
+          // Growing slightly on the way reads as coming nearer the eye. It
+          // used to carry the whole sense of height on its own and peaked
+          // hard at 1.14; now that the path itself arcs, the two together
+          // would over-egg it, so the swell is gentler than it was.
+          { scale: progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 1.08, 1] }) },
           { rotateZ: progress.interpolate({ inputRange: [0, 1], outputRange: [dx >= 0 ? '-4deg' : '4deg', '2deg'] }) },
           // A slight turn around the vertical edge, the peel of a card
           // leaving one place for another.

@@ -78,7 +78,20 @@ func main() {
 			Build:     tuiBuild(),
 		})
 		if err != nil {
-			log.Fatalf("ssh server: %v", err)
+			// The SSH terminal client is another door onto the same game, not
+			// the game. Refusing to start at all because that door will not
+			// open takes every web player down over a feature none of them
+			// are using — which is exactly what happened when a deployment
+			// stopped passing SSH_HOST_KEY_PATH and the default landed
+			// somewhere the container's unprivileged user cannot write:
+			// one fatal, restart, fatal, for as long as the host would keep
+			// trying.
+			//
+			// Logged loudly rather than swallowed. Somebody who set
+			// SSH_ENABLED=true meant it, and needs to be told they did not
+			// get it; everybody else needs the server to still be serving.
+			log.Printf("ssh server: NOT started: %v — the game server is unaffected", err)
+			sshSrv = nil
 		}
 	}
 
