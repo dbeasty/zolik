@@ -551,13 +551,26 @@ func layOffPlacements(state GameState, cfg RulesConfig, playerID string, m table
 	// it because this loop asks the question once per card per pass, and a
 	// 13-card hand is mostly other suits (see the allocation tripwire in
 	// TestLegalActions_ObserverIsCheaperThanActivePlayer).
+	//
+	// Natural cards go before wilds, regardless of hand order. The loop below
+	// takes the first card that fits at each step, so without this a joker
+	// dealt before the natural card it stands in for gets used to bridge the
+	// gap first — and then reports the natural card as needing the joker's
+	// company, which is true of the chain the loop happened to build but not
+	// of the cheapest one, and not what a player laying off a joker-free run
+	// alongside a joker they'd rather keep expects to be told.
 	suit := runSuit(m.Cards)
-	remaining := make([]string, 0, len(hand))
+	var naturals, wilds []string
 	for _, c := range hand {
 		if suit == "" || IsWild(c) || CardSuit(c) == suit {
-			remaining = append(remaining, c)
+			if IsWild(c) {
+				wilds = append(wilds, c)
+			} else {
+				naturals = append(naturals, c)
+			}
 		}
 	}
+	remaining := append(naturals, wilds...)
 	working := append([]string(nil), m.Cards...)
 	var accepted []string
 	room := len(hand) - 1 // leave a card to discard
