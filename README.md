@@ -39,9 +39,15 @@ repo as a sibling checkout (`../kdb`) and SSH access as `davja@192.168.13.13`:
 
 The script bootstraps a `zolik` user on the server, rsyncs source, builds the
 web client locally, runs `docker compose -f docker-compose.kdb.yml`, and
-installs the nginx vhost. Guest sign-in works out of the box (`APP_ENV=local`);
-set `APP_ENV=production` and `SMTP_*` in the server `.env` on the host when
-email sign-in is ready.
+installs the nginx vhost.
+
+`APP_ENV=production` is the deployed setting and turns off the SSH terminal
+client, its admit-any-key mode, and both development hatches. It also makes
+`SMTP_*` **required** — the server refuses to start without a mail host rather
+than swallowing sign-in codes — so set those in the server `.env` before
+deploying. The script checks for that combination before it builds anything,
+because the alternative is a container that fatals on startup and is restarted
+forever. Guest-only play with no mail server is `APP_ENV=local`.
 
 ## How a game is added
 

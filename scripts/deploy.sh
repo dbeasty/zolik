@@ -157,6 +157,39 @@ chown ${DEPLOY_USER}:${DEPLOY_USER} ${ENV_REMOTE}
 chmod 600 ${ENV_REMOTE}
 EOF
 
+# ------------------------------------------------------- will it even boot?
+#
+# APP_ENV decides four defaults on the server, and three of them get safer
+# when it is not "local": the SSH terminal client, its admit-any-key mode, and
+# the two development hatches all switch off. The fourth is a hard
+# requirement — a real environment refuses to start without SMTP rather than
+# silently swallowing sign-in codes (auth.NewMailer) — and getting it wrong
+# does not look like a missing variable. It looks like the container fatally
+# exiting and Docker restarting it forever, which is exactly how the SSH host
+# key failure presented before it was fixed.
+#
+# So it is checked here: after .env is final, before anything is built.
+say "checking the server env will boot"
+
+read_env() { ssh_admin "sudo sed -n 's/^$1=//p' ${ENV_REMOTE} | tail -1" 2>/dev/null || true; }
+env_app="$(read_env APP_ENV)"
+env_smtp="$(read_env SMTP_HOST)"
+
+case "$env_app" in
+  ""|local)
+    warn "APP_ENV=${env_app:-<unset>} — guest sign-in only, and the SSH client and both"
+    warn "  development hatches default ON (the .env and compose file hold them shut)"
+    ;;
+  *)
+    if [[ -z "$env_smtp" ]]; then
+      die "APP_ENV=${env_app} requires SMTP_HOST in ${ENV_REMOTE}.
+  The server refuses to start without it and the container will restart forever.
+  Either set SMTP_HOST/SMTP_FROM there, or set APP_ENV=local for guest-only play."
+    fi
+    say "APP_ENV=${env_app}, SMTP_HOST set — hatches and SSH off by default"
+    ;;
+esac
+
 # --------------------------------------------------------------- build web
 if [[ "$SKIP_WEB" == false ]]; then
   say "building web client for ${PUBLIC_URL}"
