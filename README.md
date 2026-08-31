@@ -26,6 +26,23 @@ being edited.
 See [`docs/testing-this-branch.md`](docs/testing-this-branch.md) for what to
 look at, and each directory's README for setup details.
 
+## Deploy (play.limidus.com)
+
+Production runs the KDB single-container stack on **limi-mini** (`192.168.13.13`)
+behind nginx at **https://play.limidus.com/** — same Docker shape as local dev,
+with the Expo web client exported as a static bundle. Requires the **kdb**
+repo as a sibling checkout (`../kdb`) and SSH access as `davja@192.168.13.13`:
+
+```sh
+./scripts/deploy.sh
+```
+
+The script bootstraps a `zolik` user on the server, rsyncs source, builds the
+web client locally, runs `docker compose -f docker-compose.kdb.yml`, and
+installs the nginx vhost. Guest sign-in works out of the box (`APP_ENV=local`);
+set `APP_ENV=production` and `SMTP_*` in the server `.env` on the host when
+email sign-in is ready.
+
 ## How a game is added
 
 A game implements `module.GameModule` (`server/internal/module/protocol.go`):
