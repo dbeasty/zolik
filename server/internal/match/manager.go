@@ -40,6 +40,12 @@ type Manager struct {
 	// second loop and the bots would race each other.
 	botMu      sync.Mutex
 	botRunning map[string]bool
+
+	// botThinkMin and botThinkMax bound a bot's cosmetic pause. Zero means
+	// the defaults in bots.go, so a Manager built without SetBotPace behaves
+	// exactly as it did before the pace was configurable.
+	botThinkMin time.Duration
+	botThinkMax time.Duration
 }
 
 // Recorder is notified when a match finishes, so its result can be recorded
@@ -57,6 +63,16 @@ type Recorder interface {
 	// a legal move.
 	RecordMatchAsync(m models.Match, out module.Outcome)
 }
+
+// SetBotPace bounds how long a bot pauses before answering. Optional; zero or
+// an inverted range falls back to the defaults in bots.go.
+//
+// It exists because the pause is not really about the bot: it is about giving
+// the client time to finish showing the *previous* move before the next state
+// arrives. That is a property of how fast the board animates, which is a
+// client decision, so the server has to be able to be told rather than
+// guessing once at compile time.
+func (m *Manager) SetBotPace(min, max time.Duration) { m.botThinkMin, m.botThinkMax = min, max }
 
 // SetRecorder attaches statistics recording. Optional.
 func (m *Manager) SetRecorder(r Recorder) { m.recorder = r }

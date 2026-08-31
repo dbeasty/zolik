@@ -1,7 +1,8 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import { Animated, Easing, type StyleProp, type ViewStyle } from 'react-native';
+import { Animated, type StyleProp, type ViewStyle } from 'react-native';
 
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
+import { ARRIVAL_EASING, ms } from '@/src/lib/motion';
 
 /**
  * A card (or anything) arriving where it now is, with just enough motion to
@@ -49,9 +50,9 @@ export function SettleIn({ kind = 'settle', delay = 0, style, children }: Props)
     }
     const anim = Animated.timing(progress, {
       toValue: 1,
-      duration: kind === 'flip' ? 240 : 280,
+      duration: kind === 'flip' ? ms(240) : ms(280),
       delay,
-      easing: Easing.out(Easing.cubic),
+      easing: ARRIVAL_EASING,
       useNativeDriver: true,
     });
     anim.start();

@@ -4,6 +4,7 @@ import { Animated, Easing, ScrollView, StyleSheet, Text, View } from 'react-nati
 import type { MatchPlayer, Seat, Standing } from '@/src/api/matchTypes';
 import { Panel, type Measurable } from '@/src/components/match/Panel';
 import { seatElementId } from '@/src/lib/flights';
+import { ms } from '@/src/lib/motion';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
 import { useSkin } from '@/src/hooks/useSkin';
@@ -220,13 +221,13 @@ function TurnPulse({ color }: { color: string }) {
       Animated.sequence([
         Animated.timing(progress, {
           toValue: 1,
-          duration: 700,
+          duration: ms(700),
           easing: Easing.inOut(Easing.quad),
           useNativeDriver: true,
         }),
         Animated.timing(progress, {
           toValue: 0,
-          duration: 700,
+          duration: ms(700),
           easing: Easing.inOut(Easing.quad),
           useNativeDriver: true,
         }),

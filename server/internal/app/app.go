@@ -302,6 +302,12 @@ func (a *App) routeGroups() []routeGroup {
 	// pool. Wired through a narrow interface rather than an import, so the
 	// runtime does not learn what a waiting room is.
 	matchMgr.SetWaitingRoom(a.waitingRoom, lobby.RoomID)
+	// And how long a bot pauses before answering, which is a pace question
+	// rather than a rules one — see Manager.SetBotPace.
+	matchMgr.SetBotPace(
+		time.Duration(a.cfg.BotThinkMinMS)*time.Millisecond,
+		time.Duration(a.cfg.BotThinkMaxMS)*time.Millisecond,
+	)
 
 	lobbyHandlers := lobby.NewHandlers(a.hub, a.waitingRoom)
 	lobbyHandlers.SetAdmission(a.admission)

@@ -82,6 +82,16 @@ type Config struct {
 	// past which the server stops growing: no new waiting-room sockets, no
 	// new matches. Zero disables the CPU gate.
 	AdmissionCPUWatermark float64
+
+	// BotThinkMinMS and BotThinkMaxMS bound the pause a bot takes before it
+	// answers. Purely cosmetic — nothing about the rules depends on it — but
+	// it is not free-floating taste either: it has to outlast the client's
+	// own narration of the *previous* move, or a bot's next state lands on
+	// top of an animation still playing and the table reads as a stutter.
+	// Configurable so a deployment can tune the pace, and so tests can drop
+	// it to nothing rather than sleeping through it.
+	BotThinkMinMS int
+	BotThinkMaxMS int
 }
 
 // LoadConfig reads the environment.
@@ -160,6 +170,12 @@ func LoadConfig() Config {
 		AdmissionWaitingRoomRatio: envFloat("ADMISSION_WAITING_ROOM_RATIO", 0.8),
 		AdmissionMemoryWatermark:  envFloat("ADMISSION_MEMORY_WATERMARK", 0.85),
 		AdmissionCPUWatermark:     envFloat("ADMISSION_CPU_WATERMARK", 0.25),
+
+		// The client's flight plus its landing is a little over a second at
+		// the tempo it ships with (see client-react-native/src/lib/motion.ts).
+		// A floor below that had bots answering over their own last move.
+		BotThinkMinMS: envInt("BOT_THINK_MIN_MS", 900),
+		BotThinkMaxMS: envInt("BOT_THINK_MAX_MS", 1800),
 	}
 }
 

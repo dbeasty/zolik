@@ -1,5 +1,13 @@
 import type { Zone } from '@/src/api/matchTypes';
-import { planFlights, seatElementId, type BoardLike } from '@/src/lib/flights';
+import {
+  FLIGHT_HOLD_MS,
+  FLIGHT_MS,
+  FLIGHT_STALE_MS,
+  OWN_MOVE_QUIET_MS,
+  planFlights,
+  seatElementId,
+  type BoardLike,
+} from '@/src/lib/flights';
 
 /**
  * The journey-reconstruction rules, pinned in the same kind-and-count
@@ -135,5 +143,29 @@ describe('planFlights', () => {
     const a = planFlights(prev, next, ME);
     const b = planFlights(prev, next, ME);
     expect(a.flights.map((f) => f.id)).toEqual(b.flights.map((f) => f.id));
+  });
+});
+
+/**
+ * The relationships between the timings, which are the part a tempo change
+ * can quietly break. Each of these held at the pace the board shipped with;
+ * they are pinned so that raising `TEMPO` has to keep them holding.
+ */
+describe('the timings stay in proportion', () => {
+  it('leaves a flight room to take off before it is called stale', () => {
+    // FLIGHT_STALE_MS is a deadline on *starting*, not on finishing, so it
+    // does not scale with the tempo — but a tempo high enough to approach it
+    // would start culling flights that were only ever waiting to be measured.
+    expect(FLIGHT_STALE_MS).toBeGreaterThan(FLIGHT_MS);
+  });
+
+  it('lands a card before its destination greets it', () => {
+    // The hold is what makes the landing and the entrance one motion. If it
+    // ever exceeded the flight, the card would appear at the far end first.
+    expect(FLIGHT_HOLD_MS).toBeLessThan(FLIGHT_MS);
+  });
+
+  it('stays quiet about a carried card until its flight would have finished', () => {
+    expect(OWN_MOVE_QUIET_MS).toBeGreaterThan(FLIGHT_MS + FLIGHT_HOLD_MS);
   });
 });
