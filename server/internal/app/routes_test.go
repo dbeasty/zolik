@@ -4,6 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -247,4 +251,63 @@ func offlineApp(t *testing.T) *App {
 		matchRepo:   match.NewRepository(m),
 		scoringRepo: scoring.NewRepository(m),
 	}
+}
+
+// TestPublicVhostReachesEveryRoute keeps the deployed nginx vhost in step with
+// the router it sits in front of.
+//
+// The vhost hands a fixed list of top-level prefixes to the Go server and
+// serves everything else from the Expo export, falling back to index.html for
+// client-side routes. That fallback is why a missing prefix is worse than a
+// 404: the request does not fail, it succeeds with HTML, and the client gets a
+// parse error somewhere far away from the cause. /lobby/waiting shipped that
+// way — the host's waiting-room panel asked for JSON and was handed the page
+// it was rendered on.
+//
+// Enumerating the real router rather than grepping the source, so a route
+// added through any group is caught by the same test.
+func TestPublicVhostReachesEveryRoute(t *testing.T) {
+	a := offlineApp(t)
+
+	conf, err := os.ReadFile(filepath.Join("..", "..", "..", "deploy", "nginx", "play-limidus.conf"))
+	if err != nil {
+		t.Fatalf("reading the deployed vhost: %v", err)
+	}
+	covered := vhostPrefixes(string(conf))
+
+	seen := map[string]bool{}
+	for _, g := range a.routeGroups() {
+		for _, route := range routesOf(t, g.register) {
+			// "GET /matches/{id}/join" -> "matches"
+			path := route[strings.IndexByte(route, '/'):]
+			top := strings.SplitN(strings.TrimPrefix(path, "/"), "/", 2)[0]
+			if top == "" || seen[top] {
+				continue
+			}
+			seen[top] = true
+			if !covered[top] {
+				t.Errorf(
+					"the server registers /%s but deploy/nginx/play-limidus.conf does not send it "+
+						"to the API — in production that path returns index.html instead", top,
+				)
+			}
+		}
+	}
+}
+
+// vhostPrefixes reads the top-level paths the vhost forwards to the Go server:
+// the alternation in the API location's regex, plus any plain prefix location
+// (which is how the WebSocket route is matched).
+func vhostPrefixes(conf string) map[string]bool {
+	out := map[string]bool{}
+
+	if m := regexp.MustCompile(`location\s+~\s+\^/\(([^)]*)\)`).FindStringSubmatch(conf); m != nil {
+		for _, name := range strings.Split(m[1], "|") {
+			out[strings.TrimSpace(name)] = true
+		}
+	}
+	for _, m := range regexp.MustCompile(`(?m)^\s*location\s+(?:\^~\s+)?/([a-z0-9_-]+)/`).FindAllStringSubmatch(conf, -1) {
+		out[m[1]] = true
+	}
+	return out
 }
