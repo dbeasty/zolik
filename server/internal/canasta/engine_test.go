@@ -550,6 +550,58 @@ func TestLayOffRules(t *testing.T) {
 	}
 }
 
+// TestLayOffLandsInTheNamedMeld pins where a laid-off card actually goes.
+//
+// Every other lay-off test here asks whether a card *may* be laid off. This
+// one asks where it ends up when it may — the property the drag-and-drop
+// end-to-end spec is really about ("extends that meld and not another"), which
+// that spec cannot pin on its own: it plays a live hand, so a bot partner may
+// add to the same partnership meld mid-drag, and Canasta's two decks mean a
+// card's name does not identify a card. Here the position is stated outright,
+// nobody else is playing, and both halves can be asserted exactly.
+func TestLayOffLandsInTheNamedMeld(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Teams[0].HasMelded = true
+		s.Teams[0].Melds = []Meld{
+			{ID: meldID(0, "K"), TeamID: 0, Rank: "K", Cards: []string{"KH", "KD", "KS"}},
+			{ID: meldID(0, "Q"), TeamID: 0, Rank: "Q", Cards: []string{"QH", "QD", "QS"}},
+		}
+		s.Hands["p1"] = []string{"QC", "8C", "9C"}
+	})
+
+	next, code := apply(t, raw, "p1", module.Action{
+		Verb: VerbLayOff, Cards: []string{"QC"}, Target: meldID(0, "Q"),
+	})
+	if code != "" {
+		t.Fatalf("lay-off refused: %s", code)
+	}
+
+	melds := map[string][]string{}
+	for _, m := range mustDecode(t, next).Teams[0].Melds {
+		melds[m.ID] = m.Cards
+	}
+
+	got := melds[meldID(0, "Q")]
+	want := []string{"QH", "QD", "QS", "QC"}
+	if len(got) != len(want) {
+		t.Fatalf("the named meld is %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("the named meld is %v, want %v", got, want)
+		}
+	}
+
+	// And the meld nobody named is exactly as it was — the half a live board
+	// cannot be asked about, because a partner playing at the same time may
+	// legitimately have changed it.
+	other := melds[meldID(0, "K")]
+	if len(other) != 3 || other[0] != "KH" || other[1] != "KD" || other[2] != "KS" {
+		t.Errorf("the meld that was not named is %v, want [KH KD KS] untouched", other)
+	}
+}
+
 // --- threes -----------------------------------------------------------------
 
 // TestRedThreesLayThemselves covers the card that is not really in the game: it

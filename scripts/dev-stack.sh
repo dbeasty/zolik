@@ -66,7 +66,18 @@ wait_for() { # url, label, seconds
 }
 
 compose() {
-  (cd "$SERVER_DIR" && docker compose -f "$COMPOSE_FILE" "$@")
+  local bind="${ZOLIK_BIND:-}"
+  if [[ -z "$bind" && "$HOST" != "127.0.0.1" && "$HOST" != "localhost" ]]; then
+    bind="0.0.0.0"
+  fi
+  # The end-to-end suite seeds mid-round positions through /debug-state and
+  # reads sign-in codes back through /auth/dev/last-code. Both are shut in the
+  # compose file by default, because that file is also the shape the public
+  # host runs; this is the local stack, so this is where they are opened.
+  (cd "$SERVER_DIR" && ZOLIK_BIND="${bind:-127.0.0.1}" ZOLIK_TEST_ENDPOINTS=true \
+    ZOLIK_BOT_THINK_MIN_MS="${ZOLIK_BOT_THINK_MIN_MS:-}" \
+    ZOLIK_BOT_THINK_MAX_MS="${ZOLIK_BOT_THINK_MAX_MS:-}" \
+    docker compose -f "$COMPOSE_FILE" "$@")
 }
 
 ensure_env() {
@@ -153,6 +164,30 @@ run_tests() {
   say "end-to-end (needs the stack up)"
   curl -fsS -m 2 -o /dev/null "${API}/healthz" 2>/dev/null \
     || die "the stack is not running — start it with: $0 up"
+
+  # Bots answer at the pace they always did here, which is faster than the one
+  # the server now defaults to for people to watch.
+  #
+  # Both directions of that matter. Too slow and the long bot-driven specs
+  # (Prsi and the played-out hand in offer-labels) run past their thirty-second
+  # timeouts, and the suite ends up measuring the pause rather than the code.
+  # Too fast and it gets worse in the other direction: several specs race the
+  # bots by construction — drag-and-drop's Canasta lay-off drops a card on a
+  # *partnership* meld and asserts it grew by one, which a bot partner melding
+  # during the drag turns into two — and every bot action saved is another
+  # chance for one to land inside the window. Hurried to nothing, that spec
+  # failed two runs in five.
+  #
+  # So this is deliberately the old pace rather than the fastest one: it keeps
+  # the suite's timing exactly where it was before the pause became a thing
+  # anybody had chosen, which is the only setting that makes the change to it
+  # provably neutral here.
+  #
+  # Announced, because it recreates the container the developer may have been
+  # watching, and leaves it at this pace: `$0 up` restores the watchable one.
+  say "setting the bots to the suite's pace (\`$0 up\` restores a watchable one)"
+  ZOLIK_BOT_THINK_MIN_MS=400 ZOLIK_BOT_THINK_MAX_MS=1300 compose up -d >/dev/null
+  wait_for "${API}/healthz" "the server" 60
   if [[ ! -d "${ROOT}/e2e/node_modules" ]]; then
     say "installing e2e dependencies"
     (cd "${ROOT}/e2e" && npm install)

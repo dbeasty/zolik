@@ -86,6 +86,14 @@ test.describe('telling the controls apart', () => {
     // Žolíky because it is the game with two draws; the collisions it does not
     // have — a Canasta meld per rank, a lay-off per meld — are held to the same
     // rule by the Go suite, on positions this could not reliably reach.
+    // Twice the loop's own deadline below, which is the whole point: they used
+    // to be the same thirty seconds, so Playwright killed the test at the
+    // exact moment the loop was due to finish and report. Whenever the bots
+    // ran a little slow the failure was a bare "test timeout" rather than the
+    // message this test exists to print, and it looked like a product bug
+    // instead of a test that had not been given room to reach its own end.
+    test.setTimeout(60_000);
+
     const { matchId, host } = await tableWithBots(request, 'zolik');
     await openMatch(page, host, matchId);
     await handCards(page);

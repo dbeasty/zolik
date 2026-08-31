@@ -281,19 +281,44 @@ test.describe('dropping a card on the board', () => {
     // where the pointer let go.
     await dragLocatorTo(page, card(page, index), page.getByTestId(`group-${meldId}`));
 
+    // Asserted by *membership*, not by count.
+    //
+    // The meld belongs to a partnership, and the partner here is a bot that
+    // is still playing: it can lay onto this very meld while the drag is in
+    // flight, which turned "grew by exactly one" into "grew by two" often
+    // enough to fail this spec once in every handful of runs. That is the
+    // test racing the opponents rather than anything wrong with the drop, and
+    // no bot pace makes it go away — only not asking the question.
+    //
+    // What the drop actually promises is where the card landed, and that is
+    // what is checked: this meld now holds the dragged card, and still holds
+    // everything it held before.
     await expect
-      .poll(async () => (await meldGroups(request, matchId, host.userId))[meldId]?.length ?? 0, {
+      .poll(async () => (await meldGroups(request, matchId, host.userId))[meldId] ?? [], {
         timeout: 10_000,
       })
-      .toBe((meldsBefore[meldId]?.length ?? 0) + 1);
+      .toContain(dragged);
 
     const after = await meldGroups(request, matchId, host.userId);
-    expect(after[meldId]).toContain(dragged);
-    // Every other meld on the table is untouched — the drop meant one of them.
-    for (const [id, cards] of Object.entries(meldsBefore)) {
-      if (id === meldId) continue;
-      expect(after[id]).toEqual(cards);
+    for (const c of meldsBefore[meldId] ?? []) {
+      expect(after[meldId]).toContain(c);
     }
+
+    // The "and not another" half is pinned in Go, not here — see
+    // TestLayOffLandsInTheNamedMeld in server/internal/canasta/engine_test.go,
+    // which states the position outright and can therefore assert that the
+    // meld nobody named is untouched, exactly.
+    //
+    // It cannot be asserted on this board. Canasta deals two decks, so a card's
+    // name does not identify a card: while this drag is in the air the bot
+    // partner may lay the *other* copy of the dragged card onto a different
+    // meld, and no assertion phrased in card names can tell that apart from
+    // the drop having gone to the wrong place. Asking anyway is what made this
+    // spec fail one run in six, always for a reason that was not the drop.
+    //
+    // Same division of labour the offer-labels spec already documents: the
+    // end-to-end suite proves the gesture reached the server through the real
+    // UI, and the engine's own suite proves what the server then did with it.
   });
 
   test('a card carried down onto a meld is drawn over it, not behind it', async ({
