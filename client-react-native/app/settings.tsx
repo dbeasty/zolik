@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AvatarPicker } from '@/src/components/avatars/AvatarPicker';
+import { LegalLinks } from '@/src/components/LegalLinks';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { useAvatarControls } from '@/src/hooks/useAvatar';
@@ -72,6 +73,14 @@ export default function SettingsScreen() {
             );
           })}
         </View>
+      </View>
+
+      {/* Where a player goes looking for the notices once the sign-in screen
+          that first showed them is behind them. */}
+      <View style={shared.card}>
+        <Text style={styles.heading}>The small print</Text>
+        <Text style={shared.status}>What you agreed to by playing, and what is stored about you.</Text>
+        <LegalLinks style={{ marginTop: 10 }} />
       </View>
 
       {!signedIn ? (

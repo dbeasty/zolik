@@ -4,6 +4,7 @@ import { Pressable, Text, TextInput } from 'react-native';
 
 import { AvatarPicker } from '@/src/components/avatars/AvatarPicker';
 import { avatarFor } from '@/src/components/avatars/catalogue';
+import { LegalNotice } from '@/src/components/LegalNotice';
 import { Screen } from '@/src/components/Screen';
 import { loadGuestId, useSession } from '@/src/context/SessionContext';
 import { useAvatarControls } from '@/src/hooks/useAvatar';
@@ -60,7 +61,11 @@ export default function GuestScreen() {
       <Text style={shared.status}>Your face at the table</Text>
       <AvatarPicker value={avatarId} onChange={setAvatarId} />
       {error ? <Text style={shared.error}>{error}</Text> : null}
-      <Pressable style={shared.button} onPress={submit} disabled={busy}>
+      {/* Above the button, not below it: the point of the notice is that it is
+          read before the thing it is about, and a guest who taps Continue has
+          started playing. */}
+      <LegalNotice />
+      <Pressable style={[shared.button, { marginTop: 12 }]} onPress={submit} disabled={busy}>
         <Text style={shared.buttonText}>{busy ? '…' : 'Continue'}</Text>
       </Pressable>
       <Pressable onPress={() => router.back()}>
