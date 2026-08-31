@@ -146,6 +146,88 @@ describe('planFlights', () => {
   });
 });
 
+describe('a deal', () => {
+  const seats = (...ids: string[]) => ids.map((playerId) => ({ playerId }));
+
+  const dealt = (each: number, stackBefore: number, stackAfter: number) => ({
+    prev: {
+      zones: [stack('s1', stackBefore), hand('h1', ME, 0), hand('h2', 'b', 0), hand('h3', 'c', 0)],
+      seats: seats(ME, 'b', 'c'),
+    },
+    next: {
+      zones: [stack('s1', stackAfter), hand('h1', ME, each), hand('h2', 'b', each), hand('h3', 'c', each)],
+      seats: seats(ME, 'b', 'c'),
+    },
+  });
+
+  it('sends one card to every seat, from the stack it came off', () => {
+    const { prev, next } = dealt(5, 52, 37);
+    const plan = planFlights(prev, next, ME);
+    expect(plan.flights).toHaveLength(3);
+    expect(new Set(plan.flights.map((f) => f.fromId)).size).toBe(1);
+    // The viewer's own cards land in their fan; everyone else's at their seat.
+    expect(plan.flights.map((f) => f.toId)).toEqual([
+      'zone-h1',
+      seatElementId('b'),
+      seatElementId('c'),
+    ]);
+  });
+
+  it('goes round the table in seat order, not zone order', () => {
+    const { prev, next } = dealt(5, 52, 37);
+    const shuffled = { ...next, zones: [next.zones[0]!, next.zones[2]!, next.zones[3]!, next.zones[1]!] };
+    const plan = planFlights(prev, shuffled, ME);
+    expect(plan.flights.map((f) => f.toId)).toEqual([
+      'zone-h1',
+      seatElementId('b'),
+      seatElementId('c'),
+    ]);
+  });
+
+  it("holds the viewer's own entrance until their card lands", () => {
+    const { prev, next } = dealt(5, 52, 37);
+    expect(planFlights(prev, next, ME).holds.get('zone-h1')).toBeGreaterThan(0);
+  });
+
+  it('declines when the count does not add up', () => {
+    // Four short of the total: something else took cards too, and a deal this
+    // module cannot fully account for is one it does not narrate.
+    const { prev, next } = dealt(5, 52, 41);
+    expect(planFlights(prev, next, ME).flights).toHaveLength(0);
+  });
+
+  it('declines when a hand was not empty to begin with', () => {
+    const prev = {
+      zones: [stack('s1', 52), hand('h1', ME, 2), hand('h2', 'b', 0)],
+      seats: seats(ME, 'b'),
+    };
+    const next = {
+      zones: [stack('s1', 42), hand('h1', ME, 5), hand('h2', 'b', 5)],
+      seats: seats(ME, 'b'),
+    };
+    expect(planFlights(prev, next, ME).flights).toHaveLength(0);
+  });
+
+  it('declines when the hands did not all get the same', () => {
+    const prev = {
+      zones: [stack('s1', 52), hand('h1', ME, 0), hand('h2', 'b', 0)],
+      seats: seats(ME, 'b'),
+    };
+    const next = {
+      zones: [stack('s1', 41), hand('h1', ME, 5), hand('h2', 'b', 6)],
+      seats: seats(ME, 'b'),
+    };
+    expect(planFlights(prev, next, ME).flights).toHaveLength(0);
+  });
+
+  it('plans the same deal identically twice', () => {
+    const { prev, next } = dealt(5, 52, 37);
+    expect(planFlights(prev, next, ME).flights.map((f) => f.id)).toEqual(
+      planFlights(prev, next, ME).flights.map((f) => f.id),
+    );
+  });
+});
+
 /**
  * The relationships between the timings, which are the part a tempo change
  * can quietly break. Each of these held at the pace the board shipped with;

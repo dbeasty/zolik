@@ -14,79 +14,105 @@ import { Circle, Ellipse, G, Path, Rect } from 'react-native-svg';
  * any detail lands.
  */
 
-type Figure = { ink: string };
+type Figure = { ink: string; face?: string };
 
 /* ── people ─────────────────────────────────────────────────────────────── */
 
-/** Shoulders every portrait sits on, so the six read as one set. */
-function Shoulders({ ink }: Figure) {
-  return <Path d="M18 100c0-18 14-30 32-30s32 12 32 30z" fill={ink} />;
-}
-
-export function PersonAmber({ ink }: Figure) {
+/**
+ * The body every portrait sits on: clothes in the ink, a neck in the face
+ * tone. Drawn before the head, so the head laps over the neck rather than
+ * floating above a gap.
+ */
+function Body({ ink, face }: Figure) {
   return (
     <G>
-      <Circle cx="50" cy="42" r="20" fill={ink} />
-      {/* A short crop, sitting on the crown. */}
-      <Path d="M30 40c0-14 9-22 20-22s20 8 20 22c-4-8-11-11-20-11s-16 3-20 11z" fill={ink} />
-      <Shoulders ink={ink} />
+      <Rect x="42" y="56" width="16" height="18" fill={face} />
+      <Path d="M16 100c0-19 15-31 34-31s34 12 34 31z" fill={ink} />
     </G>
   );
 }
 
-export function PersonViolet({ ink }: Figure) {
+/** The head itself, in the face tone the hair is drawn over. */
+function Head({ face }: { face?: string }) {
   return (
     <G>
-      <Circle cx="50" cy="43" r="19" fill={ink} />
+      <Circle cx="50" cy="42" r="21" fill={face} />
+      {/* Ears, so a close-cropped head does not read as an egg. */}
+      <Circle cx="28" cy="44" r="4.5" fill={face} />
+      <Circle cx="72" cy="44" r="4.5" fill={face} />
+    </G>
+  );
+}
+
+export function PersonAmber({ ink, face }: Figure) {
+  return (
+    <G>
+      <Body ink={ink} face={face} />
+      <Head face={face} />
+      {/* Short and swept, sitting well down the brow. */}
+      <Path d="M29 42c0-15 9-24 21-24s21 9 21 24c-3-9-7-13-11-13-5 0-7 4-16 4-6 0-11 3-15 9z" fill={ink} />
+    </G>
+  );
+}
+
+export function PersonViolet({ ink, face }: Figure) {
+  return (
+    <G>
+      <Body ink={ink} face={face} />
+      <Head face={face} />
       {/* Long, falling past the jaw on both sides. */}
-      <Path d="M28 44c0-17 10-26 22-26s22 9 22 26v22h-7V44c0-9-6-14-15-14s-15 5-15 14v22h-7z" fill={ink} />
-      <Shoulders ink={ink} />
+      <Path d="M27 46c0-18 10-28 23-28s23 10 23 28v22h-8V44c0-9-6-14-15-14s-15 5-15 14v24h-8z" fill={ink} />
+      <Path d="M31 34c4-9 11-13 19-13s15 4 19 13c-5-4-11-6-19-6s-14 2-19 6z" fill={ink} />
     </G>
   );
 }
 
-export function PersonTeal({ ink }: Figure) {
+export function PersonTeal({ ink, face }: Figure) {
   return (
     <G>
-      <Circle cx="50" cy="42" r="20" fill={ink} />
-      {/* Tied back — a small knot behind the crown. */}
-      <Circle cx="72" cy="34" r="8" fill={ink} />
-      <Path d="M30 40c0-14 9-22 20-22s20 8 20 22c-4-8-11-11-20-11s-16 3-20 11z" fill={ink} />
-      <Shoulders ink={ink} />
+      <Body ink={ink} face={face} />
+      {/* Tied back — the knot sits behind the head, so it goes first. */}
+      <Circle cx="74" cy="32" r="9" fill={ink} />
+      <Head face={face} />
+      <Path d="M29 42c0-15 9-24 21-24s21 9 21 24c-4-10-11-14-21-14s-17 4-21 14z" fill={ink} />
     </G>
   );
 }
 
-export function PersonCoral({ ink }: Figure) {
+export function PersonCoral({ ink, face }: Figure) {
   return (
     <G>
-      <Circle cx="50" cy="44" r="19" fill={ink} />
-      {/* A round, full shape framing the whole head. */}
-      <Circle cx="50" cy="36" r="24" fill={ink} />
-      <Shoulders ink={ink} />
+      <Body ink={ink} face={face} />
+      {/* A full, round shape framing the whole head — drawn behind it, so the
+          face stays clear and only the halo shows. */}
+      <Circle cx="50" cy="38" r="27" fill={ink} />
+      <Head face={face} />
+      <Path d="M29 40c0-13 9-21 21-21s21 8 21 21c-4-8-11-12-21-12s-17 4-21 12z" fill={ink} />
     </G>
   );
 }
 
-export function PersonSlate({ ink }: Figure) {
+export function PersonSlate({ ink, face }: Figure) {
   return (
     <G>
-      <Circle cx="50" cy="42" r="20" fill={ink} />
-      {/* Bare crown, with the sides kept. */}
-      <Path d="M29 46c0-6 2-11 5-14 2 6 8 9 16 9s14-3 16-9c3 3 5 8 5 14-3-9-11-13-21-13s-18 4-21 13z" fill={ink} />
-      <Shoulders ink={ink} />
+      <Body ink={ink} face={face} />
+      <Head face={face} />
+      {/* A beard, and very little on top — the one portrait whose silhouette
+          is decided below the eyes rather than above them. */}
+      <Path d="M30 44c1-6 3-10 6-13 3 5 8 8 14 8s11-3 14-8c3 3 5 7 6 13-3-7-10-11-20-11s-17 4-20 11z" fill={ink} />
+      <Path d="M31 46c0 16 8 26 19 26s19-10 19-26c-2 9-9 13-19 13s-17-4-19-13z" fill={ink} />
     </G>
   );
 }
 
-export function PersonMoss({ ink }: Figure) {
+export function PersonMoss({ ink, face }: Figure) {
   return (
     <G>
-      <Circle cx="50" cy="43" r="19" fill={ink} />
+      <Body ink={ink} face={face} />
+      <Head face={face} />
       {/* A brimmed hat — the one silhouette that is not about hair. */}
-      <Path d="M22 34h56v5H22z" fill={ink} />
-      <Path d="M34 34c0-11 7-17 16-17s16 6 16 17z" fill={ink} />
-      <Shoulders ink={ink} />
+      <Path d="M20 33h60v6H20z" fill={ink} />
+      <Path d="M32 33c0-12 8-19 18-19s18 7 18 19z" fill={ink} />
     </G>
   );
 }

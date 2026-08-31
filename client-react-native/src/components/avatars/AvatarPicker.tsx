@@ -38,7 +38,10 @@ export function AvatarPicker({ value, onChange, isAI = false, size = 56 }: Props
             key={spec.id}
             testID={`avatar-choice-${spec.id}`}
             accessibilityRole="radio"
-            accessibilityState={{ selected: picked }}
+            // `checked`, not `selected`: react-native-web renders the latter
+            // as nothing at all on a radio, which leaves a screen reader with
+            // six equal options and no way to hear which one is taken.
+            accessibilityState={{ checked: picked }}
             accessibilityLabel={spec.label}
             onPress={() => onChange(spec.id)}
             style={styles.choice}

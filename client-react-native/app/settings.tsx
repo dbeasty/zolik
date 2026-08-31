@@ -51,7 +51,7 @@ export default function SettingsScreen() {
                 key={s.id}
                 testID={`skin-choice-${s.id}`}
                 accessibilityRole="radio"
-                accessibilityState={{ selected: picked }}
+                accessibilityState={{ checked: picked }}
                 onPress={() => setSkinId(s.id)}
                 style={[styles.skin, picked && styles.skinPicked]}
               >

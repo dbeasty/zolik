@@ -53,6 +53,10 @@ type Props = {
 export function SeatStrip({ seats, players, viewerId, standings, panelId, minimized, onToggleMinimized, registerSpot }: Props) {
   const metrics = useMetrics();
   const skin = useSkin();
+  // Asked for stillness, the seat on turn keeps its outline and its shadow
+  // and simply does not rise — the fact is still on screen, in the two cues
+  // that were never movement.
+  const stillness = useReducedMotion();
   const styles = useMemo(() => seatStyles(metrics, skin), [metrics, skin]);
 
   if (!seats.length) return null;
@@ -67,8 +71,19 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
         key={seat.playerId}
         ref={(n) => registerSpot?.(seatElementId(seat.playerId), n as unknown as Measurable | null)}
         testID={`seat-${seat.playerId}`}
-        style={[styles.seat, metrics.narrow && styles.seatNarrow, seat.active && styles.active, isMe && styles.mine]}
+        style={[
+          styles.seat,
+          metrics.narrow && styles.seatNarrow,
+          seat.active && styles.active,
+          isMe && styles.mine,
+          // Shadow only, and only on the measured node — the *lift* goes on
+          // the wrapper inside, because a transform here would move the rect
+          // this node is registered under and a card would fly to where the
+          // seat used to be.
+          seat.active && styles.activeShadow,
+        ]}
       >
+        <View style={seat.active && !stillness ? styles.lifted : undefined}>
         <View style={styles.nameRow}>
           {skin.seats.avatars ? (
             <Avatar
@@ -119,6 +134,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
             {factText(f, players)}
           </Text>
         ))}
+        </View>
       </View>
     );
   });
@@ -276,6 +292,17 @@ function seatStyles(m: Metrics, s: Skin) {
     // The seat on turn is outlined rather than filled: a filled highlight on a
     // small tile competes with the cards, which are what a player is looking at.
     active: { borderColor: colors.accent, borderWidth: 2 },
+    // The seat on turn sits a little proud of the felt. Three pixels and a
+    // deeper shadow, which is as much as a tile can rise before the row it is
+    // in starts to look ragged.
+    activeShadow: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.38,
+      shadowRadius: 10,
+      elevation: 8,
+    },
+    lifted: { transform: [{ translateY: -3 }] },
     mine: { backgroundColor: s.seats.avatars ? 'rgba(240, 199, 94, 0.10)' : '#22304a' },
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     turnRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },

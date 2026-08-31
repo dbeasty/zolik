@@ -21,12 +21,19 @@ export type AvatarSpec = {
   /** Shown under the swatch in the picker, and read out by a screen reader. */
   label: string;
   /**
-   * The two-stop wash behind the figure, and the ink the figure is drawn in.
+   * The two-stop wash behind the figure, the ink the figure is drawn in, and
+   * — for a portrait — the tone of the face itself.
+   *
+   * `face` exists because a silhouette in one colour cannot show hair *on* a
+   * head: drawn in the ink, the two merged into a single blob and all six
+   * portraits looked like the same person in different coloured rooms. A
+   * lighter face with dark hair over it is what makes them read apart.
+   *
    * Held here rather than in the skin because a face is not a look: two
    * players must be told apart under every skin, so these colours are the
    * one palette on the board a skin does not get to repaint.
    */
-  palette: { from: string; to: string; ink: string };
+  palette: { from: string; to: string; ink: string; face?: string };
 };
 
 /**
@@ -34,12 +41,12 @@ export type AvatarSpec = {
  * that the picker fits a phone without scrolling.
  */
 const PEOPLE: readonly AvatarSpec[] = [
-  { id: 'p-amber', kind: 'person', label: 'Amber', palette: { from: '#e8a33d', to: '#b8722f', ink: '#3a2410' } },
-  { id: 'p-violet', kind: 'person', label: 'Violet', palette: { from: '#9b7ad6', to: '#6a4aa8', ink: '#241a3a' } },
-  { id: 'p-teal', kind: 'person', label: 'Teal', palette: { from: '#4fb8a0', to: '#2f7d6c', ink: '#0f2b26' } },
-  { id: 'p-coral', kind: 'person', label: 'Coral', palette: { from: '#e88070', to: '#b84f5e', ink: '#3a1620' } },
-  { id: 'p-slate', kind: 'person', label: 'Slate', palette: { from: '#7d93a8', to: '#4a5f75', ink: '#16212e' } },
-  { id: 'p-moss', kind: 'person', label: 'Moss', palette: { from: '#8fae5a', to: '#5a7d3f', ink: '#1d2a12' } },
+  { id: 'p-amber', kind: 'person', label: 'Amber', palette: { from: '#e8a33d', to: '#b8722f', ink: '#3a2410', face: '#f0c9a4' } },
+  { id: 'p-violet', kind: 'person', label: 'Violet', palette: { from: '#9b7ad6', to: '#6a4aa8', ink: '#241a3a', face: '#e8c4a8' } },
+  { id: 'p-teal', kind: 'person', label: 'Teal', palette: { from: '#4fb8a0', to: '#2f7d6c', ink: '#0f2b26', face: '#8d5a3c' } },
+  { id: 'p-coral', kind: 'person', label: 'Coral', palette: { from: '#e88070', to: '#b84f5e', ink: '#3a1620', face: '#f2d3b6' } },
+  { id: 'p-slate', kind: 'person', label: 'Slate', palette: { from: '#7d93a8', to: '#4a5f75', ink: '#16212e', face: '#c98d63' } },
+  { id: 'p-moss', kind: 'person', label: 'Moss', palette: { from: '#8fae5a', to: '#5a7d3f', ink: '#1d2a12', face: '#6b4029' } },
 ];
 
 /**

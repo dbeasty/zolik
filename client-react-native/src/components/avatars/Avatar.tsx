@@ -65,7 +65,7 @@ export function Avatar({ spec, size, ringColor, label }: Props) {
         <SvgCircle cx="50" cy="50" r="50" fill={`url(#${gradId})`} />
         {Figure ? (
           <G clipPath={`url(#${clipId})`}>
-            <Figure ink={spec.palette.ink} />
+            <Figure ink={spec.palette.ink} face={spec.palette.face} />
           </G>
         ) : null}
       </Svg>

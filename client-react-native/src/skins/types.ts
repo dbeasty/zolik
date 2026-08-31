@@ -53,6 +53,19 @@ export type Skin = {
      * nothing.
      */
     sheen?: string;
+    /**
+     * The pool of light the table sits under, as an actual radial gradient.
+     *
+     * `edge` above is the older way of saying this: four linear gradients
+     * darkening from four sides, standing in for a radial one because there
+     * was no way to draw a real one. There is now, so a skin that names a
+     * lamp gets the real thing and one that names only `edge` keeps the
+     * stand-in — both are still colour behind everything, catching nothing.
+     *
+     * `cx`/`cy` are fractions of the surface (0.5, 0.4 sits the lamp a little
+     * above centre); `r` is a fraction of its larger side.
+     */
+    lamp?: { inner: string; outer: string; cx: number; cy: number; r: number };
   };
   panel: {
     background: string;
