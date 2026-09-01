@@ -61,6 +61,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					OptTargetScore:               variations["classic"].targetScore,
 					OptCanastasToGoOut:           variations["classic"].canastasToGoOut,
 					module.OptPauseBetweenRounds: module.OptOn,
+					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
 				},
 			},
 			{
@@ -77,11 +78,13 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					OptTargetScore:               variations["modern_american"].targetScore,
 					OptCanastasToGoOut:           variations["modern_american"].canastasToGoOut,
 					module.OptPauseBetweenRounds: module.OptOn,
+					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
 				},
 			},
 		},
 		Options: []module.OptionSpec{
 			module.PauseOption(),
+			module.BotSkillOption(),
 			{
 				Name:  OptHandSize,
 				Type:  module.OptionEnumInt,

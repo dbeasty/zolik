@@ -144,7 +144,7 @@ func playToTheEnd(t *testing.T, mod module.GameModule, players []module.PlayerRe
 		if err != nil {
 			break
 		}
-		action, ok := bot.Act(state, actor, offers)
+		action, ok := bot.Act(state, module.BotSeat{PlayerID: actor}, offers)
 		if !ok {
 			if action, ok = module.ChooseAction(offers, nil); !ok {
 				break

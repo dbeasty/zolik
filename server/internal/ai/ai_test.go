@@ -347,10 +347,9 @@ func TestPickSmartDiscard_MediumAvoidsFeedingLiveMeld(t *testing.T) {
 func TestPickSmartDiscard_HardBreaksPointsTiesTowardAlreadyDiscardedRank(t *testing.T) {
 	cfg := rules.ProfileZolikClassic
 	visible := VisibleState{
-		Rules: cfg,
-		PlayerDiscards: map[string][]string{
-			"human": {"QD"},
-		},
+		Rules:        cfg,
+		DealDiscards: []SeenDiscard{{Player: "human", Card: "QD"}},
+		RoundReqMet:  map[string]bool{"ai1": true, "human": true},
 	}
 	// KH and QC are both safe (no live melds on the table) and tie on
 	// points (face cards are all worth 10). The human already discarded a

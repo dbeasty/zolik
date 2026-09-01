@@ -350,8 +350,23 @@ export class ZolikClient {
     return data.matchId;
   }
 
-  async addBot(idOrCode: string): Promise<{ playerId: string }> {
-    return this.post(`/matches/${encodeURIComponent(idOrCode)}/add-bot`, null, true);
+  /**
+   * Seat a bot.
+   *
+   * `skill` overrides the table's own Opponents setting for this one seat,
+   * which is how a deliberately mixed table gets built. Omitting it — which is
+   * what the games screen does — lets the server answer from the match's
+   * botSkill option, including drawing a strength per seat under Mixed.
+   */
+  async addBot(
+    idOrCode: string,
+    skill?: string,
+  ): Promise<{ playerId: string; name?: string; skill?: string; aiPersona?: string }> {
+    return this.post(
+      `/matches/${encodeURIComponent(idOrCode)}/add-bot`,
+      skill ? { skill } : null,
+      true,
+    );
   }
 
   async startMatch(idOrCode: string): Promise<void> {

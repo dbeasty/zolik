@@ -21,6 +21,20 @@ import { colors, shared } from '@/src/theme';
  * picker, which reads `/modules`, and what is left here is true of any game:
  * a join code, a roster, bots, and the waiting room.
  */
+/**
+ * The strengths a host can seat one at a time.
+ *
+ * Spelled out here rather than read off the descriptor because this control is
+ * per-seat and the descriptor's option is per-table; the ids are the server's
+ * own (module.Skill), and an id this build has never heard of is refused there
+ * rather than guessed at.
+ */
+const BOT_SKILLS = [
+  { id: 'easy', label: 'Easy' },
+  { id: 'medium', label: 'Medium' },
+  { id: 'hard', label: 'Hard' },
+];
+
 export default function TableScreen() {
   const { client, session } = useSession();
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
@@ -73,11 +87,19 @@ export default function TableScreen() {
     }
   }
 
-  async function addBot() {
+  /**
+   * Seat a bot at a chosen strength.
+   *
+   * The empty string means "whatever the table was created with", which is
+   * what the plain button sends and what every caller sent before strengths
+   * existed. Naming one overrides it for this seat alone — the only way to
+   * build a table where the opponents differ from each other.
+   */
+  async function addBot(skill = '') {
     setBusy(true);
     setError('');
     try {
-      await client.addBot(id);
+      await client.addBot(id, skill || undefined);
       await poll();
     } catch (e) {
       setError(formatApiError(e, 'Could not add a bot'));
@@ -134,9 +156,35 @@ export default function TableScreen() {
               invitingId={invitingId}
               onInvite={invite}
             />
-            <Pressable testID="table-add-bot" style={shared.button} onPress={addBot} disabled={busy}>
+            <Pressable
+              testID="table-add-bot"
+              style={shared.button}
+              onPress={() => addBot()}
+              disabled={busy}
+            >
               <Text style={shared.buttonText}>Add a bot</Text>
             </Pressable>
+            {/*
+              One seat at a time, at a named strength. The row underneath the
+              plain button rather than replacing it: the common case is "give
+              me an opponent" and it should stay one tap.
+            */}
+            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+              {BOT_SKILLS.map((s) => (
+                <Pressable
+                  key={s.id}
+                  testID={`table-add-bot-${s.id}`}
+                  style={[
+                    shared.button,
+                    { flexGrow: 1, flexBasis: 0, paddingVertical: 8, paddingHorizontal: 10 },
+                  ]}
+                  onPress={() => addBot(s.id)}
+                  disabled={busy}
+                >
+                  <Text style={shared.buttonText}>{s.label}</Text>
+                </Pressable>
+              ))}
+            </View>
             <Pressable testID="table-start" style={shared.button} onPress={start} disabled={busy}>
               <Text style={shared.buttonText}>Start</Text>
             </Pressable>

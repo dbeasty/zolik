@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"zolik/server/internal/ai"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
 	"zolik/server/internal/rules"
@@ -41,6 +42,21 @@ type matchState struct {
 	// — it sets its own intermission phase — and the adapter owns the ready-up,
 	// because "who has agreed to go on" is protocol vocabulary and not rummy's.
 	Break module.Intermission `json:"break,omitempty"`
+	// Ledger is what everyone at the table has seen: the deal's discards in
+	// order, and the cards each seat was watched taking off the pile.
+	//
+	// It is persisted rather than re-derived because it is *history* — the
+	// pile forgets a discard the moment somebody picks it up, and forgets the
+	// lot when the stock runs out and it is recycled. Everything an agent can
+	// work out from the position instead stays worked out from the position;
+	// see ai.Ledger.
+	//
+	// It lives on the state and not in the bot because a bot is constructed
+	// fresh for every single move: there is nowhere else for a memory to live.
+	// It holds no hidden card, so putting it here leaks nothing — an older
+	// document simply arrives with an empty one, and its bots play on with no
+	// memory, exactly as they did before.
+	Ledger ai.Ledger `json:"ledger,omitempty"`
 }
 
 func decode(raw module.State) (*matchState, error) {
@@ -79,13 +95,14 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 				rules.OptDealStarter:          rules.DealStarterOpt(cfg.DealStarter),
 				rules.OptJokerReclaimMustPlay: rules.BoolOpt(cfg.JokerReclaimMustPlay),
 				module.OptPauseBetweenRounds:  module.OptOn,
+				module.OptBotSkill:            module.SkillOpt(module.SkillMedium),
 			},
 		})
 	}
 	// Declared here rather than in the rummy descriptor: pausing between deals
 	// is a property of how a match is presented, which the runtime owns, and
 	// the engine's own option list stays about rules.
-	out.Options = append(out.Options, module.PauseOption())
+	out.Options = append(out.Options, module.PauseOption(), module.BotSkillOption())
 	for _, o := range d.Options {
 		spec := module.OptionSpec{
 			Name: o.Name, Type: module.OptionType(o.Type), Label: o.Label, Help: o.Help,
@@ -180,11 +197,15 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 	// in-place mutation cannot reach the caller's bytes. Making state opaque
 	// removed the aliasing hazard that BuildGameStateMsg needed a regression
 	// test for.
+	// Kept for the ledger: what was *public* about an action is the difference
+	// between the two states, and the engine mutates in place.
+	before := ai.Before(s.Rules)
 	out, err := rules.ApplyAction(s.Rules, playerID, act)
 	if err != nil {
 		return raw, nil, module.Error{Code: string(codeOf(err)), Message: err.Error()}
 	}
 	s.Rules = out.State
+	s.Ledger.Observe(before, s.Rules, playerID, act)
 	// The engine stopped between deals; the adapter opens the ready-up.
 	if s.Rules.Phase == rules.PhaseIntermission && !s.Break.Open {
 		s.Break.Begin(s.Rules.GameNumber + 1)

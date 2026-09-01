@@ -95,7 +95,7 @@ func TestBotsProduceMovesTheEngineAccepts(t *testing.T) {
 				if err != nil {
 					t.Fatalf("LegalActions: %v", err)
 				}
-				action, ok := bot.Act(state, actor, offers)
+				action, ok := bot.Act(state, module.BotSeat{PlayerID: actor}, offers)
 				if !ok {
 					// Declining is allowed; the runtime falls back to the offer
 					// list. What is not allowed is declining every single time,
@@ -169,7 +169,7 @@ func TestBotsFinishAGameOfTheirOwn(t *testing.T) {
 					break
 				}
 				offers, _ := tc.mod.LegalActions(state, actor)
-				action, ok := bot.Act(state, actor, offers)
+				action, ok := bot.Act(state, module.BotSeat{PlayerID: actor}, offers)
 				if !ok {
 					action, ok = module.ChooseAction(offers, nil)
 					if !ok {
@@ -314,7 +314,7 @@ func TestBotsReadyUpThroughAnIntermission(t *testing.T) {
 		if err != nil {
 			t.Fatalf("LegalActions: %v", err)
 		}
-		action, ok := bot.Act(state, actor, offers)
+		action, ok := bot.Act(state, module.BotSeat{PlayerID: actor}, offers)
 		if !ok {
 			if action, ok = module.ChooseAction(offers, nil); !ok {
 				t.Fatalf("step %d: %s has no legal move", step, actor)

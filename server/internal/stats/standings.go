@@ -193,6 +193,9 @@ func compositionOf(m models.Match) Composition {
 		switch {
 		case p.IsAI:
 			c.AIs++
+			// The composition records difficulties, not personas: it answers
+			// "what sort of table was this", and two hard bots make one hard
+			// table.
 			d := p.AIDifficulty
 			if d == "" {
 				d = "default"

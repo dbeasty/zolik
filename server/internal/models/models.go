@@ -11,6 +11,18 @@ type Player struct {
 	Name         string `bson:"name" json:"name"`
 	IsAI         bool   `bson:"isAI" json:"isAI"`
 	AIDifficulty string `bson:"aiDifficulty" json:"aiDifficulty,omitempty"`
+	// AIPersona is which named opponent this is, as module.Persona.Key —
+	// "hard:miroslav". It is the durable identity a bot's lifetime record
+	// hangs on.
+	//
+	// The seat's own id cannot do that job: it is minted fresh every time a
+	// bot is seated, so a record keyed on it would be a new one-match player
+	// every game. Difficulty could, and did — but then every hard bot that has
+	// ever played shares one row, and "has Master Miroslav ever lost to me" has
+	// no answer. A persona is stable across matches *and* specific, so it can
+	// carry a record the way an account does. Empty on bots seated before
+	// personas existed, which aggregate by difficulty exactly as they used to.
+	AIPersona    string `bson:"aiPersona,omitempty" json:"aiPersona,omitempty"`
 	ConnectionID string `bson:"connectionId" json:"connectionId,omitempty"`
 	UserID       string `bson:"userId" json:"userId,omitempty"`
 	// Avatar is the face this seat wears, as a slug the clients agree on.
