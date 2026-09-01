@@ -12,6 +12,7 @@ import (
 	"zolik/server/internal/holdem"
 	"zolik/server/internal/module"
 	"zolik/server/internal/prsi"
+	"zolik/server/internal/rummytiles"
 	"zolik/server/internal/zolikmod"
 )
 
@@ -104,6 +105,20 @@ func allModules() []hosted {
 			players:  refs("p1", "p2"),
 			prefer:   []string{"knock", "lay_off", "finish_layoff", "draw", "discard", "pass"},
 			finishes: true,
+		},
+		{
+			name:    "rummytiles",
+			rounds:  true,
+			mod:     rummytiles.New(),
+			players: refs("p1", "p2"),
+			// place/add/take/split are Composite — a driver with no taste for
+			// combinations cannot enumerate a submission for them, so it never
+			// actually lays a tile. It still has to draw, reset and commit
+			// (once a bot or a person has left something committable) without
+			// ever sticking, which is what this table exists to prove; see
+			// finishes below.
+			prefer:   []string{"swap_joker", "commit", "reset_turn", "draw"},
+			finishes: false,
 		},
 	}
 }
