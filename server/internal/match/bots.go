@@ -126,7 +126,7 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 		if err != nil {
 			return
 		}
-		action, ok := module.BotFor(mod).Act(match.State, actor, offers)
+		action, ok := module.BotFor(mod).Act(match.State, botSeatFor(match, actor), offers)
 		if !ok {
 			// The module's own bot had no answer. Fall back to the offer list,
 			// which is the one thing every module is guaranteed to produce.
@@ -156,6 +156,33 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 			}
 		}
 	}
+}
+
+// botSeatFor is who this seat is and how well it plays.
+//
+// The skill comes off the seat rather than off the match, which is what makes
+// a mixed table possible: under the lobby's Mixed setting every bot drew its
+// own strength when it sat down, and this is where that shows up as different
+// play rather than as a different label. A seat with nothing recorded — every
+// bot seated before any of this existed — resolves to the module's own
+// default, which for Žolíky is the agent those matches have been playing all
+// along.
+//
+// The seed is derived, never stored: the same seat of the same match always
+// gets the same one, so a bot loop that restarts after a reconnect carries on
+// making the same decisions instead of becoming a subtly different opponent
+// halfway through a deal.
+func botSeatFor(match models.Match, actor string) module.BotSeat {
+	seat := module.BotSeat{
+		PlayerID: actor,
+		Seed:     module.SeatSeed(match.Seed, actor, "bot"),
+	}
+	if p := playerByID(match.Players, actor); p != nil {
+		if skill, auto := module.ParseSkill(p.AIDifficulty); !auto {
+			seat.Skill = skill
+		}
+	}
+	return seat
 }
 
 // firstBot picks the first awaited seat that nobody is sitting at.

@@ -151,15 +151,25 @@ func anyAI(ss []Standing) bool {
 
 // opponentAIDifficulties lists the distinct bot difficulties faced, so a table
 // holding two hard bots credits "vs hard" once rather than twice.
+//
+// Difficulty, not persona: this split answers "how do I do against hard?", and
+// a table of Master Miroslav and Iron Ivan is one hard table, not two. The
+// skill is read off the front of the subject id — see SkillOfSubjectID — so
+// this keeps meaning exactly what it meant before bots had names, including
+// for every record already written.
 func opponentAIDifficulties(ss []Standing) []string {
 	seen := map[string]bool{}
 	out := []string{}
 	for _, s := range ss {
-		if s.Subject.Kind != SubjectAI || seen[s.Subject.ID] {
+		if s.Subject.Kind != SubjectAI {
 			continue
 		}
-		seen[s.Subject.ID] = true
-		out = append(out, s.Subject.ID)
+		diff := SkillOfSubjectID(s.Subject.ID)
+		if diff == "" || seen[diff] {
+			continue
+		}
+		seen[diff] = true
+		out = append(out, diff)
 	}
 	sort.Strings(out)
 	return out

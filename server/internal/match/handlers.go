@@ -296,12 +296,33 @@ func (h *Handlers) joinMatch(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, map[string]any{"matchId": m.ID.Hex()})
 }
 
+// addBotReq is what the caller may say about the opponent it wants. Everything
+// in it is optional: a client that sends no body at all gets a bot at the
+// table's own setting, which is what every existing client does.
+type addBotReq struct {
+	// Skill overrides the table's setting for this one seat, which is how a
+	// deliberately mixed table is built one bot at a time.
+	Skill string `json:"skill,omitempty"`
+}
+
 // addBot seats a non-human player.
 //
 // It used to seat a body that never moved, because driving one was rummy-only
 // work living in the rummy runtime. It now seats an opponent that plays: the
 // runtime drives every bot from the module's own offer list (see bots.go), so
 // this works for a game nobody has written yet.
+//
+// Two things are decided here rather than later, and both are decided *once*,
+// at seating, so that they are the same for the whole match:
+//
+//	how well it plays  the request's skill, or the table's botSkill option,
+//	                   or — under Mixed — a strength drawn for this seat
+//	                   alone, which is the only way two bots at one table
+//	                   differ.
+//	who it is          a persona off the roster for that strength, avoiding
+//	                   the ones already sitting down. This is what gives the
+//	                   bot a name a player recognises and a lifetime record
+//	                   that survives the lobby it was created in.
 func (h *Handlers) addBot(w http.ResponseWriter, req *http.Request) {
 	if _, ok := auth.GetUserContext(req); !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -313,17 +334,62 @@ func (h *Handlers) addBot(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
+	var body addBotReq
+	_ = json.NewDecoder(req.Body).Decode(&body)
+
 	bot := models.Player{
 		ID:   "bot:" + randomJoinCode(8),
-		Name: "Bot " + randomJoinCode(2),
 		IsAI: true,
 	}
+	persona := h.personaFor(m, body.Skill)
+	bot.Name = persona.Name
+	bot.AIDifficulty = string(persona.Skill)
+	bot.AIPersona = persona.Key()
+
 	if _, err := h.manager.Join(ctx, m.ID.Hex(), bot); err != nil {
 		writeModuleError(w, err)
 		return
 	}
-	writeJSON(w, map[string]any{"playerId": bot.ID})
+	writeJSON(w, map[string]any{
+		"playerId":  bot.ID,
+		"name":      bot.Name,
+		"skill":     bot.AIDifficulty,
+		"aiPersona": bot.AIPersona,
+	})
 }
+
+// personaFor decides which opponent sits down at this table.
+//
+// The seed is the match's own, salted with how many seats are already taken —
+// so seating three bots at one table draws three different answers, and
+// re-creating the same match with the same seed draws the same three. Nothing
+// about that is stored: it is recomputed identically or not at all.
+func (h *Handlers) personaFor(m models.Match, want string) module.Persona {
+	skill, auto := module.ParseSkill(want)
+	if auto {
+		// Nothing asked for by name: fall back to the table's own setting,
+		// which is itself allowed to be Mixed.
+		skill, auto = module.MatchConfig{Options: m.Options}.BotSkill(h.defaultSkill(m.ModuleID))
+	}
+	seed := module.SeatSeed(m.Seed, strconv.Itoa(len(m.Players)), "seat")
+	skill = module.ResolveSkill(skill, auto, seed)
+
+	taken := make([]string, 0, len(m.Players))
+	for _, p := range m.Players {
+		if p.IsAI {
+			taken = append(taken, p.AIPersona)
+		}
+	}
+	return module.PickPersona(skill, module.TakenPersonas(taken), seed)
+}
+
+// defaultSkill is the strength a module wants when the lobby said nothing.
+//
+// Medium, universally, and deliberately not read from the descriptor: the
+// descriptor declares what a lobby *may* choose, and every module's option
+// carries its own default already. This is only the floor under a match
+// created before the option existed.
+func (h *Handlers) defaultSkill(string) module.Skill { return module.SkillMedium }
 
 // invite seats a player the host picked out of the waiting room.
 //

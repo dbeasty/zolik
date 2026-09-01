@@ -35,10 +35,14 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					{LabelKey: "prsi.rules.aces"},
 					{LabelKey: "prsi.rules.queens"},
 				},
-				Defaults: map[string]int{OptHandSize: defaultHandSize},
+				Defaults: map[string]int{
+					OptHandSize:        defaultHandSize,
+					module.OptBotSkill: module.SkillOpt(module.SkillMedium),
+				},
 			},
 		},
 		Options: []module.OptionSpec{
+			module.BotSkillOption(),
 			{
 				Name:  OptHandSize,
 				Type:  module.OptionEnumInt,

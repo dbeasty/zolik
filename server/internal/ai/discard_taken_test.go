@@ -20,7 +20,6 @@ func visibleForDiscardTest(cfg rules.RulesConfig, taken string) VisibleState {
 		Phase:            string(rules.PhaseMeld),
 		CurrentTurn:      "p1",
 		DiscardPile:      []string{},
-		PlayerDiscards:   map[string][]string{},
 		Melds:            map[string][][]string{},
 		MeldMeta:         map[string][]rules.MeldInfo{},
 		RoundReqMet:      map[string]bool{"p1": true},

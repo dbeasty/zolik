@@ -85,7 +85,7 @@ func (m lobbyModel) create(mod api.Module, variation string, bots int) tea.Cmd {
 		// are legal is the module's business — botsFor reads its range; this
 		// loop only counts.
 		for i := 0; i < bots; i++ {
-			if err := m.root.api.AddBot(id); err != nil {
+			if err := m.root.api.AddBot(id, ""); err != nil {
 				return lobbyErrMsg{err: err.Error()}
 			}
 		}

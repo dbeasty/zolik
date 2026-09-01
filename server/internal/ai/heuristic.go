@@ -1,36 +1,90 @@
 package ai
 
 import (
+	"math/rand"
 	"sort"
 
+	"zolik/server/internal/module"
 	"zolik/server/internal/rules"
 )
 
-var AINames = map[string][]string{
-	"easy":   {"Rookie Rita", "Lucky Lukáš", "Wobbly Wanda", "Slow Štefan"},
-	"medium": {"Clever Karel", "Sharp Šárka", "Steady Stanislav", "Crafty Klára"},
-	"hard":   {"Master Miroslav", "Shark Soňa", "Iron Ivan", "Relentless Radka"},
-}
+// The bot roster used to live here, as an AINames map that nothing ever read —
+// so every opponent was called "Bot 4F". It is now module.Persona, because
+// naming a seat nobody is sitting at is a runtime job and Prší's bots want
+// names too.
 
-// HeuristicAgent picks moves from fixed heuristics with no randomness: the
-// same VisibleState and hand always produce the same action. That is
-// deliberate — it makes the agent's behaviour reproducible in tests and in bug
-// reports. (It previously carried a wall-clock-seeded *rand.Rand that no
-// decision ever read, which implied a variability that was never there.) The
-// only jitter a player perceives is the "thinking" delay, which belongs to the
-// game loop that drives the agent, not to the agent itself.
+// HeuristicAgent picks moves from fixed heuristics at a declared strength.
+//
+// It is a pure function of (VisibleState, hand, seed): the same state, the same
+// hand and the same seed always produce the same action. That is a slightly
+// weaker promise than the one it used to make — it was previously
+// deterministic outright, with no randomness at all — and the weakening is on
+// purpose. A weak opponent has to make mistakes, and a mistake needs a coin to
+// flip. What matters for tests and for bug reports is *reproducibility*, not
+// the absence of dice, so the coin is seeded from the match rather than from
+// the clock and nothing about replaying a game changes.
+//
+// The seed is mixed with the position (deal, round, hand size) rather than
+// held as mutable state, so the agent has no memory between calls and two
+// agents built the same way from the same seed cannot drift apart.
 type HeuristicAgent struct {
-	difficulty string
+	prof Profile
+	seed int64
 }
 
+// NewHeuristicAgent builds an agent at a named strength, unseeded.
+//
+// Kept in its original shape because a great deal of the test suite calls it,
+// and because an unseeded agent is a perfectly good thing to want: seed zero
+// is as reproducible as any other.
 func NewHeuristicAgent(difficulty string) *HeuristicAgent {
-	return &HeuristicAgent{difficulty: difficulty}
+	skill, _ := module.ParseSkill(difficulty)
+	return &HeuristicAgent{prof: ProfileFor(skill)}
 }
 
-func (a *HeuristicAgent) Difficulty() string { return a.difficulty }
+// NewAgent builds an agent for a seat: a strength, and the seed its mistakes
+// come out of.
+func NewAgent(skill module.Skill, seed int64) *HeuristicAgent {
+	return &HeuristicAgent{prof: ProfileFor(skill), seed: seed}
+}
+
+// NewAgentWithProfile builds an agent from a profile directly, bypassing the
+// ladder.
+//
+// For tuning. The whole design says a strength is a set of knobs, and the only
+// way to find out what a knob is worth is to change one and play the same
+// seeds again — which needs a profile that is not one of the four. Nothing in
+// the server calls this; internal/ai/sim's ablation does.
+func NewAgentWithProfile(p Profile, seed int64) *HeuristicAgent {
+	return &HeuristicAgent{prof: p, seed: seed}
+}
+
+func (a *HeuristicAgent) Difficulty() string { return string(a.prof.Skill) }
+
+// Profile is the strength this agent plays at.
+func (a *HeuristicAgent) Profile() Profile { return a.prof }
+
+// rngFor is the coin for one decision.
+//
+// Derived from the position rather than carried, so that ChooseAction stays a
+// function of its arguments: an agent asked the same question twice in a turn
+// — which happens, because the runtime re-derives the state between each of a
+// turn's actions — answers it the same way both times.
+func (a *HeuristicAgent) rngFor(v VisibleState, hand []string) *rand.Rand {
+	mix := a.seed
+	mix = mix*1103515245 + int64(v.GameNumber)
+	mix = mix*1103515245 + int64(v.Round)
+	mix = mix*1103515245 + int64(len(hand))
+	mix = mix*1103515245 + int64(len(v.DealDiscards))
+	return rand.New(rand.NewSource(mix))
+}
 
 func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules.Action {
 	visible.Rules = rules.ResolveConfig(visible.Rules)
+	actor := visible.CurrentTurn
+	k := newKnowledge(visible, hand, actor, a.prof)
+	rng := a.rngFor(visible, hand)
+
 	// Priority order (simplified v1):
 	// 1) Meld phase: only start laying toward the round requirement if the
 	// current hand can complete it entirely (pattern + minimum value) this
@@ -39,11 +93,37 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 	// full plan exists. Re-derived fresh each call so it naturally picks up
 	// where a previous meld this turn left off.
 	if visible.Phase == string(rules.PhaseMeld) {
-		actor := visible.CurrentTurn
 		if !visible.RoundReqMet[actor] {
-			st := rulesStateForAI(visible, actor)
-			if combo, ok := findInitialMeldPlan(st, actor, hand); ok && len(combo) > 0 {
-				return rules.Action{Type: rules.ActionLayMeld, Cards: combo[0]}
+			// Dithering is only ever allowed *before* the first card of a
+			// plan is on the table. A plan is laid one meld at a time across
+			// successive calls, so hesitating halfway through would end the
+			// turn with melds down and the contract unmet — cards stranded
+			// where they help every opponent and can never bring this player
+			// down. That is the exact failure the self-play gate calls a
+			// stranded lay, and it must not be reachable by a dice roll.
+			midPlan := len(visible.Melds[actor]) > 0
+			// A card taken off the pile is a debt: the engine will not accept
+			// this turn's discard until that exact card is part of the initial
+			// meld. Dithering while owing it would end the turn with no legal
+			// move in it at all, so the debt overrides the dice — and, once
+			// there is one, the plan has to be a plan that *spends* it.
+			owed := visible.PendingMeldCard
+			if midPlan || owed != "" || !a.dithered(rng) {
+				st := rulesStateForAI(visible, actor)
+				combo, ok := findInitialMeldPlan(st, actor, hand)
+				if owed != "" {
+					// Not merely a preference. findInitialMeldPlan looks for
+					// any qualifying combination, and a hand that owes the
+					// pile a card usually has several — most of which do not
+					// use it. Laying one of those satisfies the contract and
+					// wedges the turn: down, still owing, and refused the
+					// discard that would end it. This is the search that
+					// asks the right question.
+					combo, ok = findInitialMeldPlanRequiring(st, actor, hand, owed)
+				}
+				if ok && len(combo) > 0 {
+					return rules.Action{Type: rules.ActionLayMeld, Cards: combo[0]}
+				}
 			}
 			// The plan search only looks for what the contract still *needs*,
 			// so it finds nothing at a table whose contract asks for nothing
@@ -51,16 +131,12 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 			// and the agent would then never lay a first meld at all. The
 			// fallback covers exactly that: a meld the plan did not ask for is
 			// worth laying if it brings the player down on its own.
-			//
-			// The old fallback laid *any* valid meld here, for profiles with no
-			// per-type quota, on the grounds that ValidateDiscard skipped its
-			// "finish what you started" gate for them so laying a spare set
-			// could not strand the turn. That gate now applies everywhere, and
-			// laying a meld that cannot complete the contract costs the turn.
-			// Holding such a set is the correct play, not a missed gain.
 			if meld, ok := findAnyValidMeld(hand, visible.Rules); ok {
 				rest := removeCardsOnce(hand, meld)
-				if len(rest) >= 1 && handCanStillDiscard(rest, visible.Rules, true) &&
+				// Same debt, same rule: a fallback meld that does not spend
+				// the card owed to the pile leaves the turn unfinishable.
+				spendsDebt := visible.PendingMeldCard == "" || containsCard(meld, visible.PendingMeldCard)
+				if spendsDebt && len(rest) >= 1 && handCanStillDiscard(rest, visible.Rules, true) &&
 					meldWouldBringDown(visible, actor, meld) {
 					return rules.Action{Type: rules.ActionLayMeld, Cards: meld}
 				}
@@ -81,8 +157,16 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 			// player's) before trying a brand-new meld — otherwise a hand
 			// with no full new meld left in it can never shrink to zero and
 			// the deal never ends.
-			if meldID, card, ok := findLayOff(visible.MeldMeta, visible.Melds, hand, visible.Rules, visible.GameNumber); ok {
-				return rules.Action{Type: rules.ActionLayOff, MeldID: meldID, Card: card}
+			//
+			// MissRate is applied here and only here: the beginner's real
+			// failure is not bad judgement but not *seeing* that the seven in
+			// hand goes on the run at the far end of the table. Skipping the
+			// lay-off costs a turn; it never costs legality, because the
+			// discard below is always available.
+			if !a.missed(rng) {
+				if meldID, card, ok := a.chooseLayOff(visible, hand, k); ok {
+					return rules.Action{Type: rules.ActionLayOff, MeldID: meldID, Card: card}
+				}
 			}
 			if meld, ok := findAnyValidMeld(hand, visible.Rules); ok && len(hand) > len(meld) && handCanStillDiscard(removeCardsOnce(hand, meld), visible.Rules, visible.RoundReqMet[actor]) {
 				return rules.Action{Type: rules.ActionLayMeld, Cards: meld}
@@ -90,7 +174,7 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 		}
 		// Otherwise discard.
 		canDiscardJoker := len(hand) == 1 && visible.RoundReqMet[actor]
-		return rules.Action{Type: rules.ActionDiscard, Card: pickSmartDiscard(hand, visible, actor, a.difficulty, canDiscardJoker)}
+		return rules.Action{Type: rules.ActionDiscard, Card: a.pickDiscard(hand, visible, actor, k, rng, canDiscardJoker)}
 	}
 	// 2) Draw phase: prefer discard if available and allowed this round, else deck.
 	if visible.Phase == string(rules.PhaseDraw) {
@@ -99,7 +183,6 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 		// DiscardDrawMinRound copy to drift out of sync with Rules.
 		discardLocked := rules.IsDiscardLocked(visible.Round, visible.Rules.DiscardDrawMinRound)
 		if len(visible.DiscardPile) > 0 && !discardLocked {
-			actor := visible.CurrentTurn
 			topDiscard := visible.DiscardPile[len(visible.DiscardPile)-1]
 			if visible.RoundReqMet[actor] {
 				// Already down: the pickup is unrestricted by the rules, but
@@ -113,6 +196,19 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 				if discardPickupUseful(topDiscard, hand, visible) {
 					return rules.Action{Type: rules.ActionDrawCard, DrawFrom: rules.DrawFromDiscard}
 				}
+				// There was a DrawSpeculative setting here that let a strong
+				// agent also take a card which merely improved the hand's
+				// *shape* — turning a pair into a triple, extending a
+				// two-card run. It is deleted rather than disabled, because
+				// the sweep was unambiguous: it lost 141 of 200 deals to the
+				// profile without it and gave up nearly sixty penalty points
+				// a match. The reason is not subtle in hindsight. Taking a
+				// card off the pile commits to it for the turn (the engine
+				// will not accept it straight back), tells the table what you
+				// are building, and buys a maybe with a certainty — and the
+				// card on the pile is one an opponent has already judged
+				// worthless. "Useful now" is a good rule; "useful later" is
+				// not.
 				return rules.Action{Type: rules.ActionDrawCard, DrawFrom: rules.DrawFromDeck}
 			}
 			// Not yet down: picking up the discard obligates laying that
@@ -129,10 +225,20 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 	}
 	// Fallback: discard.
 	if len(hand) > 0 {
-		canDiscardJoker := len(hand) == 1 && visible.RoundReqMet[visible.CurrentTurn]
-		return rules.Action{Type: rules.ActionDiscard, Card: pickSmartDiscard(hand, visible, visible.CurrentTurn, a.difficulty, canDiscardJoker)}
+		canDiscardJoker := len(hand) == 1 && visible.RoundReqMet[actor]
+		return rules.Action{Type: rules.ActionDiscard, Card: a.pickDiscard(hand, visible, actor, k, rng, canDiscardJoker)}
 	}
 	return rules.Action{Type: rules.ActionDiscard, Card: ""}
+}
+
+// missed rolls the profile's chance of not noticing an available lay-off.
+func (a *HeuristicAgent) missed(rng *rand.Rand) bool {
+	return a.prof.MissRate > 0 && rng.Float64() < a.prof.MissRate
+}
+
+// dithered rolls the profile's chance of putting off going down this turn.
+func (a *HeuristicAgent) dithered(rng *rand.Rand) bool {
+	return a.prof.MeldDither > 0 && rng.Float64() < a.prof.MeldDither
 }
 
 func rulesStateForAI(visible VisibleState, playerID string) rules.GameState {
@@ -367,7 +473,14 @@ func searchMeldCombo(
 // a variable-length candidate slice instead of fixed index arguments.
 func removeCardsOnce(hand []string, remove []string) []string {
 	toRemove := append([]string(nil), remove...)
-	out := make([]string, 0, len(hand)-len(remove))
+	// max(0, ...): remove may be longer than hand — the ledger asks to drop
+	// every card an action played from a list of only the ones it happened to
+	// know about — and a negative capacity is a panic, not a smaller slice.
+	capacity := len(hand) - len(remove)
+	if capacity < 0 {
+		capacity = 0
+	}
+	out := make([]string, 0, capacity)
 	for _, c := range hand {
 		removed := false
 		for i, r := range toRemove {
@@ -545,21 +658,69 @@ func findAnyValidMeld(hand []string, cfg rules.RulesConfig) ([]string, bool) {
 	return nil, false
 }
 
-// pickSmartDiscard is pickWorstDiscard made meld-aware. "easy" AIs keep the
-// old blind behavior (highest penalty points, full stop). "medium" and
-// "hard" first drop any candidate that would let *any* player extend a meld
-// already on the table — the single biggest source of "the AI just fed me
-// my run" complaints, since findLayOff already claims such cards for the
-// AI's own hand before reaching this fallback, so anything still here that
-// fits a live meld is pure gift to an opponent. "hard" additionally prefers,
-// among the safe candidates, a card whose rank someone has already
-// discarded this game: if a player passed on that rank before, they're
-// unlikely to want it now, which is the same "read the discards" signal a
-// careful human opponent would use.
+// pickDiscard is pickWorstDiscard made table-aware, hand-aware and fallible.
+//
+// The ordering it applies is in smarterDiscardBetter; what this function does
+// is score every legal candidate against the agent's own profile. Three
+// signals separate the strengths:
+//
+//	dangerous   the card extends a meld already on the table, so shedding it
+//	            is a gift. findLayOff has already claimed anything the agent
+//	            could use itself, so whatever reaches here and fits a live
+//	            meld is pure charity. This is the single biggest source of
+//	            "the AI just fed me my run".
+//	wanted      some seat was *seen* to take that card, or one next to it,
+//	            off the pile — so it is not merely useful to somebody, it is
+//	            useful to somebody who has shown you they are building there.
+//	seenBefore  a rank another seat has already thrown away is a rank they
+//	            are unlikely to want now. Weak evidence, so it only breaks
+//	            exact points ties.
+//
+// Keeping meld material is not a difficulty setting — an agent that breaks up
+// its own finished set every turn never gets one onto the table at all, which
+// reads as "the AI doesn't meld" rather than as a beatable opponent. What
+// varies by strength is how much *unfinished* material counts as material at
+// all; see keepValue.
+func (a *HeuristicAgent) pickDiscard(hand []string, visible VisibleState, actor string, k knowledge, rng *rand.Rand, canDiscardJoker bool) string {
+	cands := a.discardCandidates(hand, visible, actor, k, canDiscardJoker)
+	if len(cands) == 0 {
+		// Every card is a forbidden joker (pathological, but has to return
+		// something) — the caller/server is left to reject it.
+		return hand[0]
+	}
+	sort.SliceStable(cands, func(i, j int) bool { return smarterDiscardBetter(cands[i], cands[j]) })
+	// A blunder is the *second*-best card off the same list, never a card
+	// from outside it. That matters more than it looks: the list has already
+	// been filtered for legality, for the joker restriction and for the card
+	// taken off the pile this turn, so a weak agent throws away value without
+	// ever proposing a move the engine will refuse — and, crucially, without
+	// ever stranding its own turn. A bad player is still a player.
+	if len(cands) > 1 && a.prof.BlunderRate > 0 && rng.Float64() < a.prof.BlunderRate {
+		return cands[1].card
+	}
+	return cands[0].card
+}
+
+// pickSmartDiscard is the strength-free entry point kept for the engine's own
+// fallback path and for tests that name a difficulty rather than build an
+// agent.
 func pickSmartDiscard(hand []string, visible VisibleState, actor string, difficulty string, canDiscardJoker bool) string {
+	a := NewHeuristicAgent(difficulty)
+	visible.Rules = rules.ResolveConfig(visible.Rules)
+	k := newKnowledge(visible, hand, actor, a.prof)
+	if len(hand) == 0 {
+		return pickWorstDiscard(hand, visible.Rules, canDiscardJoker, visible.DiscardTakenCard)
+	}
+	// No rng: this path is the deterministic one, so a blunder never fires.
+	return a.pickDiscard(hand, visible, actor, k, rand.New(rand.NewSource(0)), canDiscardJoker)
+}
+
+// discardCandidates is every card the engine would accept as this turn's
+// discard, scored.
+func (a *HeuristicAgent) discardCandidates(hand []string, visible VisibleState, actor string, k knowledge, canDiscardJoker bool) []discardCandidate {
 	cfg := visible.Rules
 	if len(hand) == 0 {
-		return pickWorstDiscard(hand, cfg, canDiscardJoker, visible.DiscardTakenCard)
+		return nil
 	}
 	allowJoker := canDiscardJoker || !cfg.JokerDiscardRestricted
 	ownMeld := meldMaterialPositions(hand, cfg)
@@ -580,67 +741,76 @@ func pickSmartDiscard(hand []string, visible VisibleState, actor string, difficu
 			if banTaken && visible.DiscardTakenCard != "" && c == visible.DiscardTakenCard {
 				continue
 			}
+			keep := keepValue(hand, i, ownMeld[i], k, cfg)
+			// Somebody is about to go out. Every point still in hand is a
+			// point about to be scored against this seat, and a fragment that
+			// was an investment two turns ago is now just an expensive card
+			// nobody will pay for. So stop protecting anything unfinished —
+			// a complete meld still goes down rather than out, because that
+			// one can still be laid.
+			if k.endgame && keep < keepFinished {
+				keep = 0
+			}
+			// And, for a profile that goes that far, stop protecting the
+			// *table* too. Feeding somebody's run is a real cost right up
+			// until the deal is about to end, at which point the ten points
+			// in hand are the certainty and the gift is the hypothetical.
+			danger := a.prof.ReadTableDanger && extendsAnyLiveMeld(c, visible.Melds, cfg)
+			if danger && k.endgame && a.prof.EndgameDumpsUnsafe {
+				danger = false
+			}
 			cands = append(cands, discardCandidate{
-				card: c,
-				pts:  rules.PenaltyPoints(c, false),
-				// Keeping a meld you are holding is not a difficulty setting —
-				// an agent that breaks up its own finished set every turn never
-				// gets one onto the table at all, which reads as "the AI doesn't
-				// meld" rather than as a beatable opponent. Every difficulty
-				// protects its own melds; what separates them is reading the
-				// table (dangerous) and the discard history (seenBefore).
-				ownMeld:    ownMeld[i],
-				dangerous:  difficulty != "easy" && extendsAnyLiveMeld(c, visible.Melds, cfg),
-				seenBefore: difficulty == "hard" && rankAlreadyDiscardedByOthers(c, visible.PlayerDiscards, actor),
+				card:       c,
+				pts:        rules.PenaltyPoints(c, false),
+				keep:       keep,
+				dangerous:  danger,
+				wanted:     a.prof.ReadPickups && k.dangerousToOpponents(c),
+				seenBefore: a.prof.Recall > 0 && k.rankPassed(c),
 			})
 		}
 		if len(cands) > 0 {
 			break
 		}
 	}
-	if len(cands) == 0 {
-		// Every card is a forbidden joker (pathological, but has to return
-		// something) — the caller/server is left to reject it.
-		return hand[0]
-	}
-	best := cands[0]
-	for _, c := range cands[1:] {
-		if smarterDiscardBetter(c, best) {
-			best = c
-		}
-	}
-	return best.card
+	return cands
 }
 
 type discardCandidate struct {
-	card       string
-	pts        int
-	ownMeld    bool
+	card string
+	pts  int
+	// keep is how badly the agent wants to hold this card; see keepValue.
+	keep       int
 	dangerous  bool
+	wanted     bool
 	seenBefore bool
 }
 
-// smarterDiscardBetter orders candidates:
+// smarterDiscardBetter orders candidates, best-to-discard first:
 //
-//  1. a card that isn't part of a finished meld in hand beats one that is.
-//     This outranks everything else because meld material is the whole
-//     point of the hand: face cards are simultaneously the highest-penalty
-//     cards and the likeliest set material, so a points-first ordering
-//     dismantled a ready-to-lay set of kings one card per turn and the
-//     agent never got it onto the table. Denying an opponent a single
-//     lay-off is worth much less than keeping your own meld intact.
+//  1. lower keep-value wins. This outranks everything else because meld
+//     material is the whole point of the hand: face cards are simultaneously
+//     the highest-penalty cards and the likeliest set material, so a
+//     points-first ordering dismantled a ready-to-lay set of kings one card
+//     per turn and the agent never got it onto the table. Denying an opponent
+//     a single lay-off is worth much less than keeping your own meld intact.
 //  2. safe (doesn't feed a live meld) beats dangerous.
-//  3. then, same as the plain worst-card heuristic, higher penalty points
+//  3. a card nobody has shown an interest in beats one somebody has been
+//     seen collecting. Below table danger, because a meld on the table is a
+//     certainty and a pickup is an inference.
+//  4. then, same as the plain worst-card heuristic, higher penalty points
 //     win (shed the costliest card first).
-//  4. an already-passed-on rank only breaks an exact points tie, so the
+//  5. an already-passed-on rank only breaks an exact points tie, so the
 //     history signal fine-tunes which equally-costly card to let go of
 //     rather than overriding the basic "get rid of the expensive card" goal.
 func smarterDiscardBetter(c, best discardCandidate) bool {
-	if c.ownMeld != best.ownMeld {
-		return !c.ownMeld
+	if c.keep != best.keep {
+		return c.keep < best.keep
 	}
 	if c.dangerous != best.dangerous {
 		return !c.dangerous
+	}
+	if c.wanted != best.wanted {
+		return !c.wanted
 	}
 	if c.pts != best.pts {
 		return c.pts > best.pts
