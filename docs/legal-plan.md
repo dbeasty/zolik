@@ -158,11 +158,17 @@ Each is small; none blocks publishing the Terms, only the Privacy notice.
    minutes after the code is sent (`codeTTL`). The privacy notice says exactly
    that, and the e2e spec asserts the sentence is on screen — so shortening or
    lengthening that TTL without revisiting the notice turns a test red.
-4. **Named operator and contact address.** There is no LICENSE, no operator
-   name, no contact anywhere in the repo. A disclaimer with no identifiable
-   party behind it is weak, and the GDPR notice requires naming the controller.
-   This is the one input only you can supply: legal name (or "a private
-   individual operating play.limidus.com"), country, and a contact email.
+4. **Named operator and contact address.** *Partly resolved.* The operator is
+   **Limidus Corp**, and it is deployment configuration rather than a
+   checked-in constant: `ZOLIK_OPERATOR` in `scripts/deploy.sh` defaults to it
+   and rides `EXPO_PUBLIC_*` into the bundle, so a fork deploying this source
+   names itself rather than us.
+   Still missing, and still only you can supply them: `ZOLIK_OPERATOR_COUNTRY`
+   (the jurisdiction governing the terms) and `ZOLIK_OPERATOR_CONTACT` (where
+   deletion requests actually arrive). Neither has a default — a wrong
+   jurisdiction or an unread inbox is worse than a document that admits it is
+   unfinished — so until both are set the deploy warns and both screens carry
+   the draft banner.
 5. **Sub-processors.** The notice should name the categories actually in play:
    the identity providers you enable, the mail sender configured in
    `internal/app/config.go`, and your hosting. Confirm which are live in prod.
@@ -273,10 +279,13 @@ Non-lawyer draft. Short on purpose; a notice nobody reads protects nobody.
    plus a link from Settings.
 3. ~~The notice line on `auth/guest.tsx` and `auth/login.tsx`.~~ Done.
 4. ~~`e2e/tests/legal.spec.ts`.~~ Done.
-5. **You supply**, in `OPERATOR` in `src/legal/index.ts`: legal name, country,
-   and contact email. Flip the assertion in `legal.test.ts` that currently pins
-   `operatorIsNamed()` to `false`, and delete the draft-banner e2e case. The
-   banner then disappears from both screens on its own.
+5. ~~Operator name.~~ Done: `ZOLIK_OPERATOR` defaults to Limidus Corp in
+   `scripts/deploy.sh`. **You still supply** `ZOLIK_OPERATOR_COUNTRY` and
+   `ZOLIK_OPERATOR_CONTACT` — export them before a deploy, or give them
+   defaults in the script next to `ZOLIK_OPERATOR`. Then delete the
+   draft-banner e2e case; the banner disappears from both screens on its own,
+   because `operatorIsNamed()` is derived from the values rather than from a
+   flag anyone has to remember to flip.
 6. Confirm which identity providers and which mail sender are live in
    production, and correct §sharing of the privacy notice if it is not what it
    says.

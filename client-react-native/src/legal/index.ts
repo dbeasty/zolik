@@ -14,6 +14,7 @@
  * message keys, so `serverKeys.json` is unaffected and needs no regeneration.
  */
 
+import { OPERATOR_CONTACT, OPERATOR_COUNTRY, OPERATOR_NAME } from '@/src/config';
 import { getLocale, type Locale } from '@/src/lib/i18n';
 
 import { privacyCs } from './privacy.cs';
@@ -28,24 +29,25 @@ export type { LegalDocId, LegalDocument, LegalSection } from './types';
  * Who is behind the game, in one place, because both documents name them and
  * a disclaimer with two different answers is worse than one with none.
  *
- * These are placeholders. They are deliberately written in a shape no real
- * value could take, so `operatorIsNamed` can tell "nobody filled this in yet"
- * from "this is the answer" without a second flag to forget to flip — and
- * until they are filled in, both screens say so at the top rather than
- * quietly presenting a document that names nobody.
+ * Supplied at build time — `ZOLIK_OPERATOR`, `ZOLIK_OPERATOR_COUNTRY` and
+ * `ZOLIK_OPERATOR_CONTACT` in `scripts/deploy.sh`, reaching the bundle as
+ * `EXPO_PUBLIC_*` (see `src/config.ts`). A deployment names its own operator;
+ * a fork that shipped with ours baked in would be making a claim about us.
  *
- * Filling these in is the whole handover: name, jurisdiction, and an address a
- * deletion request can actually arrive at. Nothing else in this feature is
- * waiting on anything.
+ * Anything not supplied falls back to a placeholder written in a shape no real
+ * value could take, so `operatorIsNamed` can tell "nobody filled this in" from
+ * "this is the answer" without a second flag to forget to flip. A local build
+ * therefore shows a draft banner, which is the correct thing for a local build
+ * to show.
  */
-export const OPERATOR = {
+export const OPERATOR: { name: string; country: string; contact: string } = {
   /** Legal name, or "a private individual operating play.limidus.com". */
-  name: '[OPERATOR NAME]',
+  name: OPERATOR_NAME || '[OPERATOR NAME]',
   /** The jurisdiction whose law governs the terms. */
-  country: '[COUNTRY]',
+  country: OPERATOR_COUNTRY || '[COUNTRY]',
   /** A monitored address. The privacy notice promises a reply within a month. */
-  contact: '[CONTACT EMAIL]',
-} as const;
+  contact: OPERATOR_CONTACT || '[CONTACT EMAIL]',
+};
 
 /**
  * Whether `OPERATOR` has been filled in.

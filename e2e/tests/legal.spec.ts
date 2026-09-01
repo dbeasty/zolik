@@ -54,10 +54,11 @@ test.describe('the legal notices are reachable and readable', () => {
   });
 
   test('the draft banner is shown while the operator is unnamed', async ({ page }) => {
-    // Guarding the honest failure mode rather than the happy one: as long as
-    // `OPERATOR` is placeholders, every reader must be told the document is
-    // not in force. When the operator is filled in this test is what tells
-    // you to delete it.
+    // Guarding the honest failure mode rather than the happy one: a build
+    // given no operator must tell every reader the document is not in force.
+    // A dev-stack build is given none — `ZOLIK_OPERATOR*` is set only by
+    // scripts/deploy.sh — so this is the state the suite runs against. Once a
+    // deploy supplies all three, this test is what tells you to delete it.
     await page.goto('/legal/terms');
     await expect(page.getByTestId('legal-terms-draft')).toBeVisible();
   });

@@ -20,6 +20,13 @@
 #   ZOLIK_DEPLOY_USER   default zolik                 (runtime owner)
 #   ZOLIK_PUBLIC_URL    default https://play.limidus.com
 #   ZOLIK_SERVICE_IP    default 192.168.13.13         (nginx listen address)
+#
+#   Who the Terms and the Privacy Notice name. Baked into the web bundle at
+#   build time; a deployment names its own operator. All three must be set or
+#   both notices deploy carrying a "not yet in force" draft banner.
+#   ZOLIK_OPERATOR          default Limidus Corp
+#   ZOLIK_OPERATOR_COUNTRY  no default  (jurisdiction governing the terms)
+#   ZOLIK_OPERATOR_CONTACT  no default  (address deletion requests arrive at)
 
 set -euo pipefail
 
@@ -30,6 +37,14 @@ DEPLOY_SSH="${ZOLIK_DEPLOY_SSH:-davja@${DEPLOY_HOST}}"
 DEPLOY_USER="${ZOLIK_DEPLOY_USER:-zolik}"
 PUBLIC_URL="${ZOLIK_PUBLIC_URL:-https://play.limidus.com}"
 SERVICE_IP="${ZOLIK_SERVICE_IP:-192.168.13.13}"
+
+# Who the legal notices name. Only the name has a default: a wrong jurisdiction
+# or an address nobody reads is worse than a visibly unfinished document, so
+# those two stay empty until someone states them, and the client shows a draft
+# banner while any of the three is missing.
+OPERATOR="${ZOLIK_OPERATOR:-Limidus Corp}"
+OPERATOR_COUNTRY="${ZOLIK_OPERATOR_COUNTRY:-}"
+OPERATOR_CONTACT="${ZOLIK_OPERATOR_CONTACT:-}"
 
 REMOTE_SRC="/home/${DEPLOY_USER}/src"
 REMOTE_ZOLIK="${REMOTE_SRC}/zolik"
@@ -46,7 +61,7 @@ while [[ $# -gt 0 ]]; do
     --skip-web)   SKIP_WEB=true; shift ;;
     --skip-nginx) SKIP_NGINX=true; shift ;;
     -h|--help)
-      sed -n '2,22p' "$0"
+      sed -n '2,29p' "$0"
       exit 0
       ;;
     *) printf 'Unknown option: %s\n' "$1" >&2; exit 1 ;;
@@ -193,11 +208,35 @@ esac
 # --------------------------------------------------------------- build web
 if [[ "$SKIP_WEB" == false ]]; then
   say "building web client for ${PUBLIC_URL}"
+
+  # The notices are prerendered into the bundle (app.json sets web output to
+  # "static"), so who they name is decided here and cannot be changed without
+  # a rebuild. Said out loud for the same reason the APP_ENV check above is:
+  # the failure is silent otherwise — a perfectly working deploy whose Terms
+  # name "[OPERATOR NAME]".
+  if [[ -n "$OPERATOR_COUNTRY" && -n "$OPERATOR_CONTACT" ]]; then
+    say "legal notices name ${OPERATOR} (${OPERATOR_COUNTRY}, ${OPERATOR_CONTACT})"
+  else
+    warn "legal notices will deploy as a DRAFT — both screens carry a banner saying so."
+    warn "  operator: ${OPERATOR}"
+    # Full `if`s, not `[[ … ]] && warn`: under `set -e` a false test is a
+    # failing command, and this script would exit here instead of warning.
+    if [[ -z "$OPERATOR_COUNTRY" ]]; then
+      warn "  missing ZOLIK_OPERATOR_COUNTRY (governing law)"
+    fi
+    if [[ -z "$OPERATOR_CONTACT" ]]; then
+      warn "  missing ZOLIK_OPERATOR_CONTACT (where deletion requests arrive)"
+    fi
+  fi
+
   (cd "${ROOT}/client-react-native" && npm ci --silent)
   (cd "${ROOT}/client-react-native" && \
     EXPO_PUBLIC_ZOLIK_BASE_URL="$PUBLIC_URL" \
     EXPO_PUBLIC_ZOLIK_VERSION="$ZOLIK_VERSION" \
     EXPO_PUBLIC_ZOLIK_COMMIT="$ZOLIK_COMMIT" \
+    EXPO_PUBLIC_ZOLIK_OPERATOR="$OPERATOR" \
+    EXPO_PUBLIC_ZOLIK_OPERATOR_COUNTRY="$OPERATOR_COUNTRY" \
+    EXPO_PUBLIC_ZOLIK_OPERATOR_CONTACT="$OPERATOR_CONTACT" \
     npx expo export --platform web)
 
   say "uploading web release ${RELEASE}"

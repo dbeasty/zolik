@@ -109,20 +109,67 @@ describe('resolving a document for the reader', () => {
   });
 });
 
-describe('the operator record', () => {
-  /**
-   * This is the test that will fail when the placeholders are filled in, and
-   * that is the point: it is a checklist item, not a defect. Invert it to
-   * `toBe(true)` in the same commit that names the operator, and the draft
-   * banner disappears from both screens on its own.
-   */
-  it('is still a placeholder, so the screens mark themselves a draft', () => {
-    expect(operatorIsNamed()).toBe(false);
+describe('the operator the build was given', () => {
+  // `src/legal` reads the operator from `src/config`, which reads it from
+  // EXPO_PUBLIC_* at module scope — so each case resets the registry and
+  // re-requires, the same way `config.test.ts` does.
+  const savedEnv = { ...process.env };
+
+  afterEach(() => {
+    process.env = { ...savedEnv };
+    jest.resetModules();
   });
 
-  it('would be considered named once every field is real', () => {
-    const filled = { name: 'Someone', country: 'Czechia', contact: 'hi@example.test' };
-    expect(Object.values(filled).every((v) => v.trim() !== '' && !v.startsWith('['))).toBe(true);
+  function withOperator(vars: Record<string, string | undefined>) {
+    for (const [k, v] of Object.entries(vars)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+    jest.resetModules();
+    return require('@/src/legal') as typeof import('@/src/legal');
+  }
+
+  it('is unnamed in a build given nothing, so both screens mark themselves a draft', () => {
+    const legal = withOperator({
+      EXPO_PUBLIC_ZOLIK_OPERATOR: undefined,
+      EXPO_PUBLIC_ZOLIK_OPERATOR_COUNTRY: undefined,
+      EXPO_PUBLIC_ZOLIK_OPERATOR_CONTACT: undefined,
+    });
+
+    expect(legal.operatorIsNamed()).toBe(false);
+    expect(legal.OPERATOR.name).toBe('[OPERATOR NAME]');
+  });
+
+  it('is named, and reaches the prose, once the deploy script supplies all three', () => {
+    const legal = withOperator({
+      EXPO_PUBLIC_ZOLIK_OPERATOR: 'Limidus Corp',
+      EXPO_PUBLIC_ZOLIK_OPERATOR_COUNTRY: 'Czechia',
+      EXPO_PUBLIC_ZOLIK_OPERATOR_CONTACT: 'legal@limidus.test',
+    });
+
+    expect(legal.operatorIsNamed()).toBe(true);
+    // Not just the record — the sentence a reader actually sees.
+    const opening = legal.legalDocument('privacy').sections[0].body[0];
+    expect(opening).toContain('Limidus Corp');
+    expect(legal.legalDocument('terms').sections.at(-1)?.body.join(' ')).toContain(
+      'legal@limidus.test',
+    );
+  });
+
+  it('is still a draft when only the name is supplied', () => {
+    // Exactly where `scripts/deploy.sh` stands today: ZOLIK_OPERATOR defaults
+    // to Limidus Corp, while the country and the contact address have no
+    // default on purpose — a wrong jurisdiction or an unread inbox is worse
+    // than a document that admits it is not finished.
+    const legal = withOperator({
+      EXPO_PUBLIC_ZOLIK_OPERATOR: 'Limidus Corp',
+      EXPO_PUBLIC_ZOLIK_OPERATOR_COUNTRY: undefined,
+      EXPO_PUBLIC_ZOLIK_OPERATOR_CONTACT: undefined,
+    });
+
+    expect(legal.OPERATOR.name).toBe('Limidus Corp');
+    expect(legal.OPERATOR.country).toBe('[COUNTRY]');
+    expect(legal.operatorIsNamed()).toBe(false);
   });
 });
 
