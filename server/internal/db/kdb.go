@@ -80,6 +80,17 @@ type kdbNamespace struct {
 	// mu serializes writes and read-check-write critical sections. Plain
 	// reads do not take it: the engine is safe for concurrent reads, and a
 	// reader racing a writer sees before-or-after, same as with Mongo.
+	//
+	// This lock is load-bearing and cannot be replaced by the engine's own
+	// write gate: put() goes through embed.PutJSONDocument, which the gate
+	// does not cover at all (kdb's docs/kdb-lld-concurrency.md §6 warns
+	// embedded callers get no gate — verified empirically: 8 unserialized
+	// goroutines racing PutJSONDocument lost 278 of 320 writes, each
+	// returned as a "branch main moved" error, no silent corruption).
+	// deleteByUUID() goes through srv.Commit, which the gate does cover, but
+	// the gate only orders Commit calls against each other, not against an
+	// ungated PutJSONDocument. mu is what makes a put and a delete on this
+	// namespace mutually exclusive.
 	mu sync.Mutex
 }
 
