@@ -17,6 +17,7 @@ import (
 	"zolik/server/internal/buildinfo"
 	"zolik/server/internal/canasta"
 	"zolik/server/internal/db"
+	"zolik/server/internal/ginrummy"
 	"zolik/server/internal/holdem"
 	"zolik/server/internal/identity"
 	"zolik/server/internal/lobby"
@@ -292,7 +293,7 @@ func (a *App) routeGroups() []routeGroup {
 	// One runtime, hosting every game. The registry is the only place a game
 	// is named: register a module and it appears in /modules, in the lobby's
 	// picker, and on the one screen that plays all of them.
-	modules := module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New())
+	modules := module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New())
 	matchMgr := match.NewManager(a.matchRepo, modules, a.hub)
 	// The recorder turns each completed match into a permanent record plus the
 	// lifetime updates derived from it. Injected rather than constructed

@@ -10,8 +10,10 @@
     "CANNOT_GO_OUT_YET",
     "CANNOT_MELD_THREE",
     "CANNOT_RAISE",
+    "CARD_DOES_NOT_EXTEND_MELD",
     "CARD_DOES_NOT_FIT",
     "CARD_NOT_IN_HAND",
+    "DEADWOOD_TOO_HIGH",
     "DISCARD_CARD_NOT_MELDED",
     "DISCARD_LOCKED",
     "DISCARD_PILE_EMPTY",
@@ -73,6 +75,7 @@
     "UNKNOWN_OPTION",
     "UNKNOWN_SUIT",
     "UNKNOWN_VARIATION",
+    "UPCARD_DECLINED",
     "WAITING_ROOM_UNAVAILABLE",
     "WRONG_PHASE",
     "WRONG_PLAYER_COUNT",
@@ -99,6 +102,60 @@
     "canasta.rules.twoCanastasToGoOut",
     "canasta.seat.canastas",
     "canasta.seat.teamScore",
+    "ginrummy.fact.deadwood",
+    "ginrummy.fact.discardCard",
+    "ginrummy.fact.meldCards",
+    "ginrummy.header.hand",
+    "ginrummy.offer.bigGin",
+    "ginrummy.offer.discard",
+    "ginrummy.offer.drawDiscard",
+    "ginrummy.offer.drawStock",
+    "ginrummy.offer.finishLayoff",
+    "ginrummy.offer.gin",
+    "ginrummy.offer.knock",
+    "ginrummy.offer.layOff",
+    "ginrummy.offer.passUpcard",
+    "ginrummy.offer.takeUpcard",
+    "ginrummy.prompt.layoff",
+    "ginrummy.prompt.upcardDecision",
+    "ginrummy.prompt.yourTurnDiscard",
+    "ginrummy.prompt.yourTurnDraw",
+    "ginrummy.round.hand",
+    "ginrummy.round.kind",
+    "ginrummy.rules.aceLow",
+    "ginrummy.rules.bigGin",
+    "ginrummy.rules.bigGinBonus",
+    "ginrummy.rules.box",
+    "ginrummy.rules.deadHand",
+    "ginrummy.rules.deadHandDescription",
+    "ginrummy.rules.deal",
+    "ginrummy.rules.deck",
+    "ginrummy.rules.drawDiscard",
+    "ginrummy.rules.gameBonus",
+    "ginrummy.rules.gin",
+    "ginrummy.rules.ginBonus",
+    "ginrummy.rules.knockLimit",
+    "ginrummy.rules.knocking",
+    "ginrummy.rules.layoff",
+    "ginrummy.rules.layoffDescription",
+    "ginrummy.rules.lineBonuses",
+    "ginrummy.rules.match",
+    "ginrummy.rules.melds",
+    "ginrummy.rules.oklahoma",
+    "ginrummy.rules.scoring",
+    "ginrummy.rules.setsAndRuns",
+    "ginrummy.rules.setup",
+    "ginrummy.rules.shutout",
+    "ginrummy.rules.target",
+    "ginrummy.rules.turn",
+    "ginrummy.rules.undercut",
+    "ginrummy.rules.upcard",
+    "ginrummy.seat.score",
+    "ginrummy.status.gin",
+    "ginrummy.status.knocked",
+    "ginrummy.status.lastHand",
+    "ginrummy.zone.knockerHand",
+    "ginrummy.zone.melds",
     "header.contract",
     "header.contract.cleanRunOnly",
     "header.deal",
@@ -246,6 +303,34 @@
     "canasta.rules.section.melding",
     "canasta.rules.section.setup",
     "canasta.rules.twoCanastasToGoOut",
+    "ginrummy.rules.aceLow",
+    "ginrummy.rules.bigGin",
+    "ginrummy.rules.bigGinBonus",
+    "ginrummy.rules.box",
+    "ginrummy.rules.deadHand",
+    "ginrummy.rules.deadHandDescription",
+    "ginrummy.rules.deal",
+    "ginrummy.rules.deck",
+    "ginrummy.rules.drawDiscard",
+    "ginrummy.rules.gameBonus",
+    "ginrummy.rules.gin",
+    "ginrummy.rules.ginBonus",
+    "ginrummy.rules.knockLimit",
+    "ginrummy.rules.knocking",
+    "ginrummy.rules.layoff",
+    "ginrummy.rules.layoffDescription",
+    "ginrummy.rules.lineBonuses",
+    "ginrummy.rules.match",
+    "ginrummy.rules.melds",
+    "ginrummy.rules.oklahoma",
+    "ginrummy.rules.scoring",
+    "ginrummy.rules.setsAndRuns",
+    "ginrummy.rules.setup",
+    "ginrummy.rules.shutout",
+    "ginrummy.rules.target",
+    "ginrummy.rules.turn",
+    "ginrummy.rules.undercut",
+    "ginrummy.rules.upcard",
     "holdem.rules.blinds",
     "holdem.rules.goal",
     "holdem.rules.handLimit",
@@ -356,6 +441,73 @@
       "score",
       "team",
       "value"
+    ],
+    "ginrummy.fact.deadwood": [
+      "n",
+      "value"
+    ],
+    "ginrummy.fact.discardCard": [
+      "value"
+    ],
+    "ginrummy.fact.meldCards": [
+      "value"
+    ],
+    "ginrummy.header.hand": [
+      "n",
+      "value"
+    ],
+    "ginrummy.round.kind": [
+      "value"
+    ],
+    "ginrummy.rules.bigGinBonus": [
+      "n"
+    ],
+    "ginrummy.rules.box": [
+      "n"
+    ],
+    "ginrummy.rules.deal": [
+      "value"
+    ],
+    "ginrummy.rules.deck": [
+      "value"
+    ],
+    "ginrummy.rules.gameBonus": [
+      "n"
+    ],
+    "ginrummy.rules.ginBonus": [
+      "n"
+    ],
+    "ginrummy.rules.knockLimit": [
+      "n"
+    ],
+    "ginrummy.rules.shutout": [
+      "n"
+    ],
+    "ginrummy.rules.target": [
+      "n"
+    ],
+    "ginrummy.rules.undercut": [
+      "n"
+    ],
+    "ginrummy.seat.score": [
+      "score",
+      "value"
+    ],
+    "ginrummy.status.gin": [
+      "deadwood",
+      "playerId",
+      "value"
+    ],
+    "ginrummy.status.knocked": [
+      "deadwood",
+      "playerId",
+      "value"
+    ],
+    "ginrummy.status.lastHand": [
+      "delta",
+      "kind",
+      "value",
+      "winner"
     ],
     "header.contract": [
       "cleanRun",
@@ -543,6 +695,25 @@
     "canasta.rules.meldFloorBands",
     "canasta.seat.canastas",
     "canasta.seat.teamScore",
+    "ginrummy.fact.deadwood",
+    "ginrummy.fact.discardCard",
+    "ginrummy.fact.meldCards",
+    "ginrummy.header.hand",
+    "ginrummy.round.kind",
+    "ginrummy.rules.bigGinBonus",
+    "ginrummy.rules.box",
+    "ginrummy.rules.deal",
+    "ginrummy.rules.deck",
+    "ginrummy.rules.gameBonus",
+    "ginrummy.rules.ginBonus",
+    "ginrummy.rules.knockLimit",
+    "ginrummy.rules.shutout",
+    "ginrummy.rules.target",
+    "ginrummy.rules.undercut",
+    "ginrummy.seat.score",
+    "ginrummy.status.gin",
+    "ginrummy.status.knocked",
+    "ginrummy.status.lastHand",
     "header.contract",
     "header.deal",
     "header.deck",

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"zolik/server/internal/canasta"
+	"zolik/server/internal/ginrummy"
 	"zolik/server/internal/holdem"
 	"zolik/server/internal/module"
 	"zolik/server/internal/prsi"
@@ -94,6 +95,14 @@ func allModules() []hosted {
 			players:  refs("p1", "p2", "p3"),
 			cfg:      module.MatchConfig{Variation: "timed"},
 			prefer:   []string{"call", "check", "raise", "fold"},
+			finishes: true,
+		},
+		{
+			name:     "ginrummy",
+			rounds:   true,
+			mod:      ginrummy.New(),
+			players:  refs("p1", "p2"),
+			prefer:   []string{"knock", "lay_off", "finish_layoff", "draw", "discard", "pass"},
 			finishes: true,
 		},
 	}
