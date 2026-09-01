@@ -263,6 +263,13 @@ export default function MatchScreen() {
     setArmedMeldId(null);
   };
 
+  // Whether a card in hand carries a mark the module put there — Žolíky's
+  // discard-pickup debt is the one live example (see `badgedCardViews` on the
+  // server), but this reads the mark rather than deciding what it means, the
+  // same way the badge itself is rendered with no idea what it says.
+  const isMarked = (card: string) =>
+    myHands.some((z) => (z.cards ?? []).some((c) => c.card === card && (c.badgeKeys?.length ?? 0) > 0));
+
   // Selection is by *slot*, not by card string. With two decks in play a hand
   // can hold two identical strings, and selecting by string could neither
   // light up the copy that was tapped nor put both of them in one meld.
@@ -282,6 +289,14 @@ export default function MatchScreen() {
       if (selectionIsAuto && !prev.has(slotId)) {
         const joined = toggleSelection(heldSlots, prev, slotId, { provisional: false });
         if (someOfferReady(state.legalActions, cardsForSelection(heldSlots, joined))) return joined;
+        // A marked card is one the module itself flagged as owed to a meld
+        // this turn — a pickup off the discard pile the player is very
+        // likely still building around, not one they meant to abandon the
+        // moment the next tap didn't finish a meld outright. Stay joined so
+        // gathering a third card doesn't need the pickup re-selected by
+        // hand; tapping the marked card itself still drops it, same as ever.
+        const auto = heldSlots.find((s) => prev.has(s.id));
+        if (auto && isMarked(auto.card)) return joined;
       }
       return toggleSelection(heldSlots, prev, slotId, { provisional: selectionIsAuto });
     });
