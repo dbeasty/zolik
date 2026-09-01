@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/websocket"
 	"go.mongodb.org/mongo-driver/v2/bson"
 
+	"zolik/server/internal/admission"
 	"zolik/server/internal/auth"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
@@ -29,7 +30,19 @@ type Handlers struct {
 	// testEndpoints enables the dev-only state seeder. Off outside local
 	// development, because it writes game state without validating it.
 	testEndpoints bool
+	// admission turns new players away before the box runs out of memory.
+	// Nil means no gating, which is what tests and unconstrained deployments
+	// get — see SetAdmission.
+	admission *admission.Controller
 }
+
+// SetAdmission wires in the capacity gate.
+//
+// Injected rather than taken in NewHandlers so that the many call sites that
+// build handlers without caring about capacity — every handler test — keep
+// working unchanged, and so a deployment that has not configured a ceiling
+// behaves exactly as it did before.
+func (h *Handlers) SetAdmission(c *admission.Controller) { h.admission = c }
 
 func NewHandlers(m *Manager, testEndpoints bool) *Handlers {
 	return &Handlers{
@@ -206,12 +219,30 @@ type createMatchReq struct {
 	ModuleID  string         `json:"moduleId"`
 	Variation string         `json:"variation,omitempty"`
 	Options   map[string]int `json:"options,omitempty"`
+	// Avatar is the face the host wants at the table. Sent per seating rather
+	// than read from their account, because a guest has no account to read
+	// and the client always knows its own current choice — including the one
+	// made a second ago, which a token's claims would not yet carry.
+	Avatar string `json:"avatar,omitempty"`
+}
+
+// joinMatchReq is everything a player brings to a seat they are taking. Only
+// decoration so far, which is why an absent body is not an error.
+type joinMatchReq struct {
+	Avatar string `json:"avatar,omitempty"`
 }
 
 func (h *Handlers) createMatch(w http.ResponseWriter, req *http.Request) {
 	uc, ok := auth.GetUserContext(req)
 	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	// A new match is a promise of sockets, module state and bot drivers for
+	// the next half hour — refused here, before anything is committed, while
+	// "try again in a moment" is still cheap for everyone.
+	if err := h.admission.AllowMatchStart(); err != nil {
+		admission.WriteBusy(w, err)
 		return
 	}
 	var body createMatchReq
@@ -227,6 +258,7 @@ func (h *Handlers) createMatch(w http.ResponseWriter, req *http.Request) {
 	host := models.Player{
 		ID:      uc.UserID,
 		Name:    uc.Username,
+		Avatar:  models.SanitizeAvatar(body.Avatar),
 		UserID:  uc.PlayerUserID(),
 		GuestID: uc.PlayerGuestID(),
 	}
@@ -245,9 +277,14 @@ func (h *Handlers) joinMatch(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
+	// A body is optional here — it carries only the face this player wants —
+	// so a client that sends none joins exactly as it always did.
+	var body joinMatchReq
+	_ = json.NewDecoder(req.Body).Decode(&body)
 	p := models.Player{
 		ID:      uc.UserID,
 		Name:    uc.Username,
+		Avatar:  models.SanitizeAvatar(body.Avatar),
 		UserID:  uc.PlayerUserID(),
 		GuestID: uc.PlayerGuestID(),
 	}
@@ -259,12 +296,33 @@ func (h *Handlers) joinMatch(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, map[string]any{"matchId": m.ID.Hex()})
 }
 
+// addBotReq is what the caller may say about the opponent it wants. Everything
+// in it is optional: a client that sends no body at all gets a bot at the
+// table's own setting, which is what every existing client does.
+type addBotReq struct {
+	// Skill overrides the table's setting for this one seat, which is how a
+	// deliberately mixed table is built one bot at a time.
+	Skill string `json:"skill,omitempty"`
+}
+
 // addBot seats a non-human player.
 //
 // It used to seat a body that never moved, because driving one was rummy-only
 // work living in the rummy runtime. It now seats an opponent that plays: the
 // runtime drives every bot from the module's own offer list (see bots.go), so
 // this works for a game nobody has written yet.
+//
+// Two things are decided here rather than later, and both are decided *once*,
+// at seating, so that they are the same for the whole match:
+//
+//	how well it plays  the request's skill, or the table's botSkill option,
+//	                   or — under Mixed — a strength drawn for this seat
+//	                   alone, which is the only way two bots at one table
+//	                   differ.
+//	who it is          a persona off the roster for that strength, avoiding
+//	                   the ones already sitting down. This is what gives the
+//	                   bot a name a player recognises and a lifetime record
+//	                   that survives the lobby it was created in.
 func (h *Handlers) addBot(w http.ResponseWriter, req *http.Request) {
 	if _, ok := auth.GetUserContext(req); !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -276,17 +334,62 @@ func (h *Handlers) addBot(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
+	var body addBotReq
+	_ = json.NewDecoder(req.Body).Decode(&body)
+
 	bot := models.Player{
 		ID:   "bot:" + randomJoinCode(8),
-		Name: "Bot " + randomJoinCode(2),
 		IsAI: true,
 	}
+	persona := h.personaFor(m, body.Skill)
+	bot.Name = persona.Name
+	bot.AIDifficulty = string(persona.Skill)
+	bot.AIPersona = persona.Key()
+
 	if _, err := h.manager.Join(ctx, m.ID.Hex(), bot); err != nil {
 		writeModuleError(w, err)
 		return
 	}
-	writeJSON(w, map[string]any{"playerId": bot.ID})
+	writeJSON(w, map[string]any{
+		"playerId":  bot.ID,
+		"name":      bot.Name,
+		"skill":     bot.AIDifficulty,
+		"aiPersona": bot.AIPersona,
+	})
 }
+
+// personaFor decides which opponent sits down at this table.
+//
+// The seed is the match's own, salted with how many seats are already taken —
+// so seating three bots at one table draws three different answers, and
+// re-creating the same match with the same seed draws the same three. Nothing
+// about that is stored: it is recomputed identically or not at all.
+func (h *Handlers) personaFor(m models.Match, want string) module.Persona {
+	skill, auto := module.ParseSkill(want)
+	if auto {
+		// Nothing asked for by name: fall back to the table's own setting,
+		// which is itself allowed to be Mixed.
+		skill, auto = module.MatchConfig{Options: m.Options}.BotSkill(h.defaultSkill(m.ModuleID))
+	}
+	seed := module.SeatSeed(m.Seed, strconv.Itoa(len(m.Players)), "seat")
+	skill = module.ResolveSkill(skill, auto, seed)
+
+	taken := make([]string, 0, len(m.Players))
+	for _, p := range m.Players {
+		if p.IsAI {
+			taken = append(taken, p.AIPersona)
+		}
+	}
+	return module.PickPersona(skill, module.TakenPersonas(taken), seed)
+}
+
+// defaultSkill is the strength a module wants when the lobby said nothing.
+//
+// Medium, universally, and deliberately not read from the descriptor: the
+// descriptor declares what a lobby *may* choose, and every module's option
+// carries its own default already. This is only the floor under a match
+// created before the option existed.
+func (h *Handlers) defaultSkill(string) module.Skill { return module.SkillMedium }
 
 // invite seats a player the host picked out of the waiting room.
 //
@@ -324,6 +427,13 @@ func (h *Handlers) invite(w http.ResponseWriter, req *http.Request) {
 func (h *Handlers) startMatch(w http.ResponseWriter, req *http.Request) {
 	if _, ok := auth.GetUserContext(req); !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	// Start is where the module's state is actually allocated. A refusal here
+	// is retryable — the table keeps its seats and the host tries again once
+	// the pressure passes — where an OOM after an unguarded start is not.
+	if err := h.admission.AllowMatchStart(); err != nil {
+		admission.WriteBusy(w, err)
 		return
 	}
 	m, err := h.manager.Start(req.Context(), chi.URLParam(req, "id"))
@@ -367,6 +477,27 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "invalid match id", http.StatusBadRequest)
 		return
 	}
+
+	// Capacity is checked before the upgrade, so a refused player gets a plain
+	// HTTP 503 their client can read, rather than a socket that opens and then
+	// dies for no stated reason.
+	//
+	// A player already registered in this room is admitted without asking:
+	// their new socket displaces their old one in Add below, and refusing a
+	// reconnect would strand them mid-hand. It still takes a slot — the
+	// displaced handler releases its own on the way out — so the ledger keeps
+	// matching the sockets actually open.
+	var slot *admission.Release
+	if h.manager.Hub().Registry().Has(matchID, playerID) {
+		slot = h.admission.AdmitReconnect()
+	} else {
+		var err error
+		if slot, err = h.admission.Admit(admission.ClassGameplay); err != nil {
+			admission.WriteBusy(w, err)
+			return
+		}
+	}
+	defer slot.Release()
 
 	conn, err := h.upgrader.Upgrade(w, req, nil)
 	if err != nil {
@@ -456,7 +587,7 @@ func writeModuleError(w http.ResponseWriter, err error) {
 		// A conflict rather than a bad request: the caller did nothing wrong,
 		// the world moved under them.
 		status = http.StatusConflict
-	case "WAITING_ROOM_UNAVAILABLE":
+	case "WAITING_ROOM_UNAVAILABLE", "SERVER_BUSY":
 		status = http.StatusServiceUnavailable
 	}
 	w.Header().Set("Content-Type", "application/json")

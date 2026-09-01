@@ -73,7 +73,7 @@ func TestARummyMatchStopsBetweenDeals(t *testing.T) {
 		if err != nil {
 			t.Fatalf("LegalActions: %v", err)
 		}
-		a, ok := bot.Act(state, actor, offers)
+		a, ok := bot.Act(state, module.BotSeat{PlayerID: actor}, offers)
 		if !ok {
 			// The module's own bot declines during an intermission — it checks
 			// whose turn it is, and between deals nobody's it is. The offer
@@ -140,7 +140,7 @@ func TestARummyMatchStillPlaysStraightThrough(t *testing.T) {
 			break
 		}
 		offers, _ := mod.LegalActions(state, actor)
-		a, ok := bot.Act(state, actor, offers)
+		a, ok := bot.Act(state, module.BotSeat{PlayerID: actor}, offers)
 		if !ok {
 			if a, ok = module.ChooseAction(offers, nil); !ok {
 				break

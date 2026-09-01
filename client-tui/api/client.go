@@ -139,8 +139,15 @@ func (c *Client) JoinMatch(idOrCode string) (string, error) {
 
 // AddBot seats an opponent. The runtime drives it from the module's own offer
 // list, so this works for a game nobody has written yet.
-func (c *Client) AddBot(idOrCode string) error {
-	return c.postJSON("/matches/"+url.PathEscape(idOrCode)+"/add-bot", nil, &struct{}{}, true)
+//
+// skill overrides the table's Opponents setting for this one seat; empty lets
+// the server decide from the match, which is what every caller here does.
+func (c *Client) AddBot(idOrCode string, skill string) error {
+	var body any
+	if skill != "" {
+		body = map[string]string{"skill": skill}
+	}
+	return c.postJSON("/matches/"+url.PathEscape(idOrCode)+"/add-bot", body, &struct{}{}, true)
 }
 
 func (c *Client) StartMatch(idOrCode string) error {

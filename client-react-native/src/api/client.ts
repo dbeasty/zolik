@@ -3,6 +3,7 @@ import type { MatchModule, MatchState, ModuleRules } from '@/src/api/matchTypes'
 import type {
   AccountProfile,
   AuthProvider,
+  CapacitySnapshot,
   LifetimeStats,
   LinkedIdentity,
   PlayerSession,
@@ -14,6 +15,8 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public status?: number,
+    public code?: string,
+    public retryAfterMs?: number,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -41,6 +44,18 @@ export class ZolikClient {
   accessToken = '';
   refreshToken = '';
   userId = '';
+  /**
+   * The face to take to any seat this client sits down in.
+   *
+   * Held here rather than passed to each call for the same reason the token
+   * is: three doors lead to a seat — creating a table, joining one, and
+   * waiting to be picked up out of the pool — and a face that only some of
+   * them carried would be a face that sometimes changed on the way in.
+   *
+   * Empty is an ordinary state, meaning "never chose one"; the server stores
+   * nothing and every client derives the same face from the player id.
+   */
+  avatarId = '';
   private onTokensUpdated?: (access: string, refresh: string) => void;
   private onSessionExpired?: () => void;
 
@@ -61,12 +76,14 @@ export class ZolikClient {
   }
 
   /** The waiting room's socket: connecting to it *is* "I'm waiting to be
-   *  picked up" — there is nothing else to negotiate on open. */
+   *  picked up" — the only thing negotiated on open beyond the token is the
+   *  face to be seen waiting under, so a host invites the person they saw. */
   lobbyWsUrl(): string {
     const u = new URL(this.baseUrl);
     const scheme = u.protocol === 'https:' ? 'wss' : 'ws';
     const token = encodeURIComponent(this.accessToken);
-    return `${scheme}://${u.host}/ws/lobby?token=${token}`;
+    const face = this.avatarId ? `&avatar=${encodeURIComponent(this.avatarId)}` : '';
+    return `${scheme}://${u.host}/ws/lobby?token=${token}${face}`;
   }
 
   /** A snapshot of who's currently waiting, for a host browsing whom to
@@ -287,6 +304,12 @@ export class ZolikClient {
     return this.get('/version', false);
   }
 
+  /** Whether the server is accepting new connections. Probed after a refused
+   *  WebSocket handshake, since React Native cannot read the HTTP status. */
+  async getCapacity(): Promise<CapacitySnapshot> {
+    return this.get('/healthz/capacity', false);
+  }
+
   /**
    * One module's written rules, resolved against a variation and option
    * overrides — the same choices a lobby's picker holds, so the sentences
@@ -314,21 +337,36 @@ export class ZolikClient {
     variation?: string,
     options: Record<string, number> = {},
   ): Promise<{ matchId: string; joinCode: string }> {
-    return this.post('/matches', { moduleId, variation, options }, true);
+    return this.post('/matches', { moduleId, variation, options, avatar: this.avatarId }, true);
   }
 
   /** Joins by match id or by the short code a host reads out. */
   async joinMatch(idOrCode: string): Promise<string> {
     const data = await this.post<{ matchId: string }>(
       `/matches/${encodeURIComponent(idOrCode)}/join`,
-      null,
+      { avatar: this.avatarId },
       true,
     );
     return data.matchId;
   }
 
-  async addBot(idOrCode: string): Promise<{ playerId: string }> {
-    return this.post(`/matches/${encodeURIComponent(idOrCode)}/add-bot`, null, true);
+  /**
+   * Seat a bot.
+   *
+   * `skill` overrides the table's own Opponents setting for this one seat,
+   * which is how a deliberately mixed table gets built. Omitting it — which is
+   * what the games screen does — lets the server answer from the match's
+   * botSkill option, including drawing a strength per seat under Mixed.
+   */
+  async addBot(
+    idOrCode: string,
+    skill?: string,
+  ): Promise<{ playerId: string; name?: string; skill?: string; aiPersona?: string }> {
+    return this.post(
+      `/matches/${encodeURIComponent(idOrCode)}/add-bot`,
+      skill ? { skill } : null,
+      true,
+    );
   }
 
   async startMatch(idOrCode: string): Promise<void> {
@@ -354,10 +392,17 @@ export class ZolikClient {
     return this.get('/users/me', true);
   }
 
-  /** Renames the account or updates its preferences. */
+  /**
+   * Renames the account or updates its preferences.
+   *
+   * Preferences are sent whole rather than as a patch of one key, because the
+   * server sets the object whole — a half-populated one would quietly clear
+   * the rest. Callers spread the current preferences and change the one they
+   * mean.
+   */
   async updateMe(patch: {
     username?: string;
-    preferences?: { language?: string; cardStyle?: string };
+    preferences?: { language?: string; cardStyle?: string; avatar?: string };
   }): Promise<void> {
     await this.request('PATCH', '/users/me', patch, true);
   }
@@ -523,7 +568,7 @@ export class ZolikClient {
     }
     const text = await res.text();
     if (!res.ok) {
-      throw new ApiError(text.trim() || `HTTP ${res.status}`, res.status);
+      throw apiErrorFromResponse(text, res.status, res.headers);
     }
     if (!text) {
       return undefined as T;
@@ -545,3 +590,31 @@ function queryString(params: Record<string, string | number | undefined>): strin
 }
 
 export const apiClient = new ZolikClient();
+
+function parseRetryAfterMs(header: string | null): number | undefined {
+  if (!header) return undefined;
+  const trimmed = header.trim();
+  const seconds = parseInt(trimmed, 10);
+  if (!Number.isNaN(seconds)) return seconds * 1000;
+  const when = Date.parse(trimmed);
+  if (!Number.isNaN(when)) return Math.max(0, when - Date.now());
+  return undefined;
+}
+
+export function apiErrorFromResponse(
+  text: string,
+  status: number,
+  headers: { get(name: string): string | null },
+): ApiError {
+  let message = text.trim() || `HTTP ${status}`;
+  let code: string | undefined;
+  try {
+    const body = JSON.parse(text) as { code?: string; message?: string };
+    if (body.code) code = body.code;
+    if (body.message) message = body.message;
+    else if (body.code) message = body.code;
+  } catch {
+    /* keep raw text */
+  }
+  return new ApiError(message, status, code, parseRetryAfterMs(headers.get('Retry-After')));
+}

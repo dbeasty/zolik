@@ -17,7 +17,7 @@ func botAct(t *testing.T, raw module.State, playerID string) module.Action {
 	if err != nil {
 		t.Fatalf("LegalActions: %v", err)
 	}
-	a, ok := m.Bot().Act(raw, playerID, offers)
+	a, ok := m.Bot().Act(raw, module.BotSeat{PlayerID: playerID}, offers)
 	if !ok {
 		t.Fatalf("bot had no move for %s", playerID)
 	}
@@ -312,7 +312,7 @@ func playBots(t *testing.T, state module.State, players []module.PlayerRef, seat
 		if err != nil {
 			t.Fatalf("LegalActions(%s): %v", actor, err)
 		}
-		a, ok := seats[actor].Act(state, actor, offers)
+		a, ok := seats[actor].Act(state, module.BotSeat{PlayerID: actor}, offers)
 		if !ok {
 			t.Fatalf("%s had no move", actor)
 		}

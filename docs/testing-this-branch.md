@@ -11,11 +11,10 @@ Everything below is on `worktree-canasta`, merged with `main`.
 ./scripts/dev-stack.sh logs    # tail the server
 ```
 
-`up` runs on **:8096** (API) and **:8114** (web), against Mongo on **:27018** and
-Redis db **2** — deliberately beside the usual dev ports, so it does not disturb
-a server you already have running. Override with `ZOLIK_DEV_PORT`,
-`ZOLIK_DEV_WEB_PORT`, `ZOLIK_DEV_MONGO_URI`, `ZOLIK_DEV_REDIS_URL`,
-`ZOLIK_DEV_MONGO_DB`.
+`up` runs the **KDB Docker stack** (one container, **1 GB** cap) on **:8090** (API)
+and **:8114** (web) — the same shape as a local-server deployment. For the full
+Mongo + Redis stack instead, use `ZOLIK_DEV_COMPOSE=mongo ./scripts/dev-stack.sh up`.
+Override ports with `ZOLIK_DEV_PORT`, `ZOLIK_DEV_WEB_PORT`.
 
 Then open **http://127.0.0.1:8114** and press **Play**.
 
@@ -105,7 +104,7 @@ guest, then sign in: the guest history is claimed onto the new account.
 **The terminal client.** It defaults to `:8090`, so point it at the stack:
 
 ```sh
-cd client-tui && ZOLIK_BASE_URL=http://127.0.0.1:8096 go run ./cmd/play
+cd client-tui && ZOLIK_BASE_URL=http://127.0.0.1:8090 go run ./cmd/play
 ```
 
 The same four games, drawn as text: `↑/↓` chooses an offer, `1-9` picks cards
@@ -124,9 +123,11 @@ cd e2e               && npx playwright test        # needs the stack up
 directory; invoked from the repo root it silently runs with none and fails with
 `did not expect test.describe() to be called here`.
 
-**Start the server as a built binary, not a backgrounded `go run`.** A reaped
+**Start the server via `dev-stack.sh`, not a backgrounded `go run`.** A reaped
 `go run` child produces a wall of `ECONNREFUSED` that looks exactly like a code
-regression. `dev-stack.sh` does this for you; it is the reason the script exists.
+regression — and a web client pointed at the wrong port shows the same symptom on
+guest sign-in (`Failed to fetch`). The script builds Docker and pins the API URL
+the bundle uses.
 
 ## Two environment traps worth knowing
 
@@ -143,7 +144,7 @@ different project.
 
 | | |
 |---|---|
-| `/games/*`, `ws://…/ws/games/:id`, `GameStateMsg` | gone — `curl -i localhost:8096/games/x` returns 404 |
+| `/games/*`, `ws://…/ws/games/:id`, `GameStateMsg` | gone — `curl -i localhost:8090/games/x` returns 404 |
 | `/matches/*`, `ws://…/ws/matches/:id`, `match_state` | the only gameplay path |
 | `POST /matches/:id/invite` | the waiting-room pickup, ported from `/games/:id/invite` |
 | `GET /matches/:id/result` | a recorded result, for any game |

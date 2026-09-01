@@ -156,6 +156,12 @@ type CardView struct {
 	// card says so while there is still time to act on it, rather than after
 	// the move was made. Only the module knows which card that is.
 	BadgeKeys []string `json:"badgeKeys,omitempty"`
+	// FaceDown draws this card back-up — a ceremonial turn, not a secret.
+	// Hiding information is still done the one way it always was: by not
+	// sending the card at all (see Zone). A module sets this only where the
+	// value is already public or already spent — Žolíky's face-down closing
+	// discard lands after the deal it ended has been scored.
+	FaceDown bool `json:"faceDown,omitempty"`
 }
 
 // Group is a run of cards within a zone that belong together — a meld, a
@@ -248,6 +254,22 @@ const (
 	FromDiscardPile SelectorZone = "discard_pile"
 	ToMeld          SelectorZone = "meld"
 	ToTable         SelectorZone = "table"
+
+	// FromMeld and FromTable are the source-side mirror of ToMeld/ToTable.
+	//
+	// Every module before Rummy Tiles moves cards out of a hand, a deck or a
+	// discard pile — nothing had ever taken cards *off* the table, so a
+	// source naming the table had nowhere to point. A turn that rearranges
+	// what is already laid down needs exactly that: `take` pulls cards out of
+	// a meld (FromMeld, MeldID set), and a card moving from one meld into
+	// another is sourced FromMeld the same way a card moving from hand into a
+	// meld is sourced FromHand. FromTable exists for symmetry with ToTable —
+	// a source naming the table in general rather than one meld in
+	// particular — though Rummy Tiles' own moves always know which meld a
+	// card is coming from and so use FromMeld exclusively; a future module
+	// with a looser table is what FromTable is for.
+	FromMeld  SelectorZone = "from_meld"
+	FromTable SelectorZone = "from_table"
 )
 
 // Placement is one card an offer accepts, plus any positional hint (which end

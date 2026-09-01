@@ -4,8 +4,8 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 
 import type { MatchModule } from '@/src/api/matchTypes';
 import { Screen } from '@/src/components/Screen';
-import { ZOLIK_BASE_URL } from '@/src/config';
 import { useSession } from '@/src/context/SessionContext';
+import { formatApiError } from '@/src/lib/apiError';
 import { factText, label } from '@/src/lib/labels';
 import { colors } from '@/src/theme';
 
@@ -26,7 +26,7 @@ import { colors } from '@/src/theme';
  * from that range, and a game registered tomorrow gets the right one.
  */
 export default function GamesScreen() {
-  const { session } = useSession();
+  const { client, session } = useSession();
   const [modules, setModules] = useState<MatchModule[]>([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
@@ -45,15 +45,14 @@ export default function GamesScreen() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`${ZOLIK_BASE_URL}/modules`);
-        const body = (await res.json()) as { modules: MatchModule[] };
+        const list = await client.modules();
         if (cancelled) return;
-        setModules(body.modules ?? []);
+        setModules(list);
 
         const v: Record<string, string> = {};
         const o: Record<string, Record<string, number>> = {};
         const b: Record<string, number> = {};
-        for (const m of body.modules ?? []) {
+        for (const m of list) {
           const first = m.variations?.[0];
           if (first) {
             v[m.id] = first.id;
@@ -65,13 +64,13 @@ export default function GamesScreen() {
         setOptions(o);
         setBots(b);
       } catch (e) {
-        if (!cancelled) setError(String(e));
+        if (!cancelled) setError(formatApiError(e));
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [client]);
 
   const pickVariation = (moduleId: string, mod: MatchModule, id: string) => {
     setVariation((prev) => ({ ...prev, [moduleId]: id }));
@@ -89,22 +88,12 @@ export default function GamesScreen() {
       }
       setBusy(mod.id);
       setError('');
-      const auth = {
-        Authorization: `Bearer ${session.accessToken}`,
-        'Content-Type': 'application/json',
-      };
       try {
-        const created = await fetch(`${ZOLIK_BASE_URL}/matches`, {
-          method: 'POST',
-          headers: auth,
-          body: JSON.stringify({
-            moduleId: mod.id,
-            variation: variation[mod.id],
-            options: options[mod.id] ?? {},
-          }),
-        });
-        if (!created.ok) throw new Error(await created.text());
-        const { matchId } = (await created.json()) as { matchId: string };
+        const { matchId } = await client.createMatch(
+          mod.id,
+          variation[mod.id],
+          options[mod.id] ?? {},
+        );
 
         if (!withBot) {
           // Open the table and let the host fill it: invite someone out of the
@@ -119,24 +108,17 @@ export default function GamesScreen() {
         // clamp is the only thing reading it.
         const seats = botCount(mod, bots[mod.id]);
         for (let i = 0; i < seats; i++) {
-          await fetch(`${ZOLIK_BASE_URL}/matches/${matchId}/add-bot`, {
-            method: 'POST',
-            headers: auth,
-          });
+          await client.addBot(matchId);
         }
-        const started = await fetch(`${ZOLIK_BASE_URL}/matches/${matchId}/start`, {
-          method: 'POST',
-          headers: auth,
-        });
-        if (!started.ok) throw new Error(await started.text());
+        await client.startMatch(matchId);
         router.push(`/match/${matchId}`);
       } catch (e) {
-        setError(String(e));
+        setError(formatApiError(e));
       } finally {
         setBusy('');
       }
     },
-    [session, variation, options, bots],
+    [client, session, variation, options, bots],
   );
 
   if (!modules.length && !error) {

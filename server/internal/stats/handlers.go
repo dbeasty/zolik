@@ -12,6 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 
 	"zolik/server/internal/auth"
+	"zolik/server/internal/module"
 )
 
 type Handlers struct {
@@ -261,10 +262,14 @@ func (h *Handlers) leaderboard(w http.ResponseWriter, req *http.Request) {
 	})
 }
 
-// aiStats reports the bots' own lifetime records, difficulty by difficulty.
+// aiStats reports the bots' own lifetime records, opponent by opponent.
+//
 // Publishing it is the honest counterpart to counting matches against bots in
 // a player's record: if a bot's results shape your statistics, you can see how
-// that bot actually performs.
+// that bot actually performs. It used to be one row per difficulty, because a
+// difficulty was all a bot durably was; it is now one row per persona, which
+// is both more interesting to read and the thing a player was already tracking
+// in their head. The rows are still grouped in difficulty order.
 func (h *Handlers) aiStats(w http.ResponseWriter, req *http.Request) {
 	rows, err := h.repo.Leaderboard(req.Context(), LeaderboardQuery{
 		Kind:  SubjectAI,
@@ -275,25 +280,29 @@ func (h *Handlers) aiStats(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	// Difficulty order, not rank order — a client rendering an easy/medium/hard
-	// table wants them in that order even though hard presumably wins most.
+	// Difficulty order, not rank order — a client rendering an
+	// easy/medium/hard/expert table wants them in that order even though the
+	// expert presumably wins most. Within one difficulty, by id, so the
+	// listing is stable rather than at the mercy of however the store
+	// returned it.
 	sort.SliceStable(rows, func(i, j int) bool {
-		return difficultyOrder(rows[i].Subject.ID) < difficultyOrder(rows[j].Subject.ID)
+		a, b := difficultyOrder(rows[i].Subject.ID), difficultyOrder(rows[j].Subject.ID)
+		if a != b {
+			return a < b
+		}
+		return rows[i].Subject.ID < rows[j].Subject.ID
 	})
+	// "difficulties" is what the key has always been called and what every
+	// client reads; the rows underneath it are now personas. Renaming it would
+	// break every one of them to say something they can already see.
 	writeJSON(w, map[string]any{"difficulties": rows})
 }
 
-func difficultyOrder(d string) int {
-	switch d {
-	case "easy":
-		return 0
-	case "medium":
-		return 1
-	case "hard":
-		return 2
-	default:
-		return 3
-	}
+// difficultyOrder ranks a subject id by the strength behind it, weakest first.
+// Unknown or unrecorded strengths sort last rather than aliasing to easy.
+func difficultyOrder(id string) int {
+	skill := module.Skill(SkillOfSubjectID(id))
+	return skill.Rank()
 }
 
 func (h *Handlers) matchResult(w http.ResponseWriter, req *http.Request) {

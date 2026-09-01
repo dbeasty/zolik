@@ -110,6 +110,13 @@ func refusalRules(cfg rules.RulesConfig, code string) []string {
 		return []string{"zolik.rules.layoff.runEnds"}
 	case rules.ErrNoJokerInMeld, rules.ErrJokerSwapMismatch:
 		return []string{"zolik.rules.jokers.swap"}
+	case rules.ErrReclaimedJokerNotMelded:
+		// Only ever returned while the take-and-replay rule is in force,
+		// which is the only config in which the sentence stating it exists.
+		if cfg.JokerReclaimMustPlay {
+			return []string{"zolik.rules.jokers.reclaim.on", "zolik.rules.jokers.swap"}
+		}
+		return []string{"zolik.rules.jokers.reclaim.off"}
 
 	// --- discarding -------------------------------------------------------
 	case rules.ErrJokerDiscard:

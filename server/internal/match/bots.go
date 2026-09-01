@@ -35,7 +35,23 @@ const (
 	// botMaxStall is how many consecutive actions one seat may take without
 	// the turn moving on before the loop gives up on it.
 	botMaxStall = 30
+	// The pause a bot takes before answering, when nothing has said otherwise
+	// (see Manager.SetBotPace). It has to outlast the client's narration of
+	// the move before it, or a bot's next state lands on top of an animation
+	// that is still playing.
+	botThinkMinDefault = 900 * time.Millisecond
+	botThinkMaxDefault = 1800 * time.Millisecond
 )
+
+// thinkFor is how long a bot pauses before answering. Purely cosmetic, and the
+// one thing in this file that is about people rather than rules.
+func (m *Manager) thinkFor(rnd *rand.Rand) time.Duration {
+	lo, hi := m.botThinkMin, m.botThinkMax
+	if lo <= 0 || hi <= lo {
+		lo, hi = botThinkMinDefault, botThinkMaxDefault
+	}
+	return lo + time.Duration(rnd.Int63n(int64(hi-lo)))
+}
 
 // RunBotsIfNeeded starts the bot loop for a match, unless it is already
 // running.
@@ -104,15 +120,13 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 			lastActor, stall = actor, 0
 		}
 
-		// A pause, so a bot does not answer instantly. Purely cosmetic, and
-		// the one thing in this file that is about people rather than rules.
-		time.Sleep(time.Duration(400+rnd.Intn(900)) * time.Millisecond)
+		time.Sleep(m.thinkFor(rnd))
 
 		offers, err := mod.LegalActions(match.State, actor)
 		if err != nil {
 			return
 		}
-		action, ok := module.BotFor(mod).Act(match.State, actor, offers)
+		action, ok := module.BotFor(mod).Act(match.State, botSeatFor(match, actor), offers)
 		if !ok {
 			// The module's own bot had no answer. Fall back to the offer list,
 			// which is the one thing every module is guaranteed to produce.
@@ -142,6 +156,33 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 			}
 		}
 	}
+}
+
+// botSeatFor is who this seat is and how well it plays.
+//
+// The skill comes off the seat rather than off the match, which is what makes
+// a mixed table possible: under the lobby's Mixed setting every bot drew its
+// own strength when it sat down, and this is where that shows up as different
+// play rather than as a different label. A seat with nothing recorded — every
+// bot seated before any of this existed — resolves to the module's own
+// default, which for Žolíky is the agent those matches have been playing all
+// along.
+//
+// The seed is derived, never stored: the same seat of the same match always
+// gets the same one, so a bot loop that restarts after a reconnect carries on
+// making the same decisions instead of becoming a subtly different opponent
+// halfway through a deal.
+func botSeatFor(match models.Match, actor string) module.BotSeat {
+	seat := module.BotSeat{
+		PlayerID: actor,
+		Seed:     module.SeatSeed(match.Seed, actor, "bot"),
+	}
+	if p := playerByID(match.Players, actor); p != nil {
+		if skill, auto := module.ParseSkill(p.AIDifficulty); !auto {
+			seat.Skill = skill
+		}
+	}
+	return seat
 }
 
 // firstBot picks the first awaited seat that nobody is sitting at.

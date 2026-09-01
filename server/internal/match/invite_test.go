@@ -18,6 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 
+	"zolik/server/internal/admission"
 	"zolik/server/internal/auth"
 	"zolik/server/internal/canasta"
 	"zolik/server/internal/db"
@@ -91,35 +92,38 @@ func newTestRepository(t *testing.T) match.Repository {
 // match.WaitingLookup is a narrow, primitive-typed interface precisely so
 // nothing here needs to depend on the real lobby package to exercise it.
 type fakeWaitingRoom struct {
-	mu      sync.Mutex
-	waiting map[string]struct {
-		name    string
-		isGuest bool
-	}
+	mu       sync.Mutex
+	waiting  map[string]waitingEntry
 	pickedUp []string
 }
 
+// waitingEntry is what the pool knows about somebody sitting in it — the same
+// three things the real one reports to an invite.
+type waitingEntry struct {
+	name    string
+	isGuest bool
+	avatar  string
+}
+
 func newFakeWaitingRoom() *fakeWaitingRoom {
-	return &fakeWaitingRoom{waiting: map[string]struct {
-		name    string
-		isGuest bool
-	}{}}
+	return &fakeWaitingRoom{waiting: map[string]waitingEntry{}}
 }
 
 func (f *fakeWaitingRoom) add(playerID, name string, isGuest bool) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.waiting[playerID] = struct {
-		name    string
-		isGuest bool
-	}{name, isGuest}
+	f.addWithAvatar(playerID, name, isGuest, "")
 }
 
-func (f *fakeWaitingRoom) IsWaiting(_ context.Context, playerID string) (string, bool, bool) {
+func (f *fakeWaitingRoom) addWithAvatar(playerID, name string, isGuest bool, avatar string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.waiting[playerID] = waitingEntry{name, isGuest, avatar}
+}
+
+func (f *fakeWaitingRoom) IsWaiting(_ context.Context, playerID string) (string, bool, string, bool) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	e, ok := f.waiting[playerID]
-	return e.name, e.isGuest, ok
+	return e.name, e.isGuest, e.avatar, ok
 }
 
 func (f *fakeWaitingRoom) Pickup(_ context.Context, playerID string) bool {
@@ -143,6 +147,13 @@ type inviteHarness struct {
 }
 
 func newInviteHarness(t *testing.T) *inviteHarness {
+	return newInviteHarnessWithAdmission(t, nil)
+}
+
+// newInviteHarnessWithAdmission is the same server with a capacity gate
+// installed — nil means ungated, which is what every test not about
+// admission wants.
+func newInviteHarnessWithAdmission(t *testing.T, gate *admission.Controller) *inviteHarness {
 	t.Helper()
 
 	repo := newTestRepository(t)
@@ -159,7 +170,9 @@ func newInviteHarness(t *testing.T) *inviteHarness {
 	manager.SetWaitingRoom(waiting, testWaitingRoom)
 
 	r := chi.NewRouter()
-	match.NewHandlers(manager, false).RegisterRoutes(r)
+	handlers := match.NewHandlers(manager, false)
+	handlers.SetAdmission(gate)
+	handlers.RegisterRoutes(r)
 	srv := httptest.NewServer(r)
 	t.Cleanup(srv.Close)
 
@@ -284,6 +297,67 @@ func TestInviteSeatsAWaitingPlayerNotifiesThemAndRemovesThemFromThePool(t *testi
 	}
 }
 
+func TestInviteSeatsThePlayerWithTheFaceTheyWereWaitingUnder(t *testing.T) {
+	h := newInviteHarness(t)
+	hostToken := token(t, "host-1", "Host", false)
+	matchID := h.createMatch(t, hostToken)
+
+	// Being picked up out of the pool is the one door into a seat that the
+	// player themselves does not walk through, so their face has to travel
+	// with them — otherwise a host invites the person they were looking at
+	// and a stranger sits down.
+	h.waiting.addWithAvatar("waiter-1", "Waiter", true, "p-violet")
+
+	res := h.do(http.MethodPost, "/matches/"+matchID+"/invite", hostToken, map[string]any{"playerId": "waiter-1"})
+	if res.status != http.StatusOK {
+		t.Fatalf("invite: status %d body %s", res.status, res.raw)
+	}
+
+	lobby := h.do(http.MethodGet, "/matches/"+matchID, "", nil)
+	players, _ := lobby.body["players"].([]any)
+	for _, p := range players {
+		m := p.(map[string]any)
+		if m["id"] != "waiter-1" {
+			continue
+		}
+		if m["avatar"] != "p-violet" {
+			t.Fatalf("invited player's avatar = %v, want p-violet (taken from the waiting entry)", m["avatar"])
+		}
+		return
+	}
+	t.Fatalf("invited player is not in the lobby's player list: %v", players)
+}
+
+func TestInviteDropsAFaceThatIsNotTheAgreedShape(t *testing.T) {
+	h := newInviteHarness(t)
+	hostToken := token(t, "host-1", "Host", false)
+	matchID := h.createMatch(t, hostToken)
+
+	// The pool took this from a client too, so it is checked again on the way
+	// out rather than trusted because it is already inside.
+	h.waiting.addWithAvatar("waiter-1", "Waiter", true, "<script>")
+
+	if res := h.do(http.MethodPost, "/matches/"+matchID+"/invite", hostToken, map[string]any{"playerId": "waiter-1"}); res.status != http.StatusOK {
+		t.Fatalf("invite: status %d body %s", res.status, res.raw)
+	}
+
+	lobby := h.do(http.MethodGet, "/matches/"+matchID, "", nil)
+	players, _ := lobby.body["players"].([]any)
+	for _, p := range players {
+		m := p.(map[string]any)
+		if m["id"] != "waiter-1" {
+			continue
+		}
+		// Dropped, not rejected: the seat is taken, and the client derives a
+		// face from the id exactly as it does for anyone who never chose one.
+		if _, present := m["avatar"]; present {
+			t.Fatalf("invited player kept a face of the wrong shape: %v", m["avatar"])
+		}
+		return
+	}
+	t.Fatalf("invited player is not in the lobby's player list: %v", players)
+}
+
 func TestInviteIsRefusedForAnyoneButTheHost(t *testing.T) {
 	h := newInviteHarness(t)
 	hostToken := token(t, "host-1", "Host", false)
@@ -383,7 +457,7 @@ func TestInviteRespectsLobbyCapacity(t *testing.T) {
 	}
 	// And the player is still waiting: a refused seat must not quietly drop
 	// them out of the pool.
-	if _, _, ok := h.waiting.IsWaiting(context.Background(), "waiter-1"); !ok {
+	if _, _, _, ok := h.waiting.IsWaiting(context.Background(), "waiter-1"); !ok {
 		t.Error("a refused invite removed the player from the waiting room")
 	}
 }

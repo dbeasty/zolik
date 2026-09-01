@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { Animated, Easing } from 'react-native';
+import { Animated } from 'react-native';
 
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
+import { ARRIVAL_EASING, ms } from '@/src/lib/motion';
 
 /**
  * A short arrival for something that appears because a thing just happened.
@@ -35,8 +36,8 @@ export function useArrival(key: string | number) {
     progress.setValue(0);
     const anim = Animated.timing(progress, {
       toValue: 1,
-      duration: 260,
-      easing: Easing.out(Easing.cubic),
+      duration: ms(260),
+      easing: ARRIVAL_EASING,
       useNativeDriver: true,
     });
     anim.start();

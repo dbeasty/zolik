@@ -10,9 +10,11 @@ import { Panel } from '@/src/components/match/Panel';
 import { SettleIn } from '@/src/components/match/SettleIn';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
+import { zoneElementId } from '@/src/lib/drops';
 import { insertionAtPoint, moveTargetFor, type Rect, type Slot } from '@/src/lib/hand';
 import type { Metrics } from '@/src/lib/layout';
 import { label } from '@/src/lib/labels';
+import { ms } from '@/src/lib/motion';
 import type { Skin } from '@/src/skins/types';
 import { dragLayer } from '@/src/theme';
 
@@ -76,7 +78,8 @@ type Props = {
   externalTarget?: string | null;
   /**
    * Marks the module put on particular cards, by card value — see
-   * `CardView.badgeKeys`. Pressing a marked card asks what the mark means.
+   * `CardView.badgeKeys`. Long-pressing a marked card asks what the mark
+   * means; a tap still selects it for play.
    */
   badges?: ReadonlyMap<string, string[]>;
   onPressBadge?: (card: string, badgeKeys: string[]) => void;
@@ -84,6 +87,19 @@ type Props = {
   panelId?: string;
   minimized?: boolean;
   onToggleMinimized?: () => void;
+  /**
+   * Publishes where the fan is, under the zone's element id — so a card in
+   * flight (see `FlightLayer`) can aim at the hand the way it aims at any
+   * zone. The registry's, not this component's: same contract as
+   * `ZoneView`'s `registerDrop`.
+   */
+  registerSpot?: (elementId: string, node: Measurable | null) => void;
+  /**
+   * How long a card mounting now should hold its entrance — set while a
+   * flight is landing here, so the card doesn't greet its own arrival.
+   * Never touches the deal's own stagger.
+   */
+  entranceDelay?: number;
 };
 
 type Measurable = {
@@ -108,6 +124,8 @@ export function HandZone({
   panelId,
   minimized,
   onToggleMinimized,
+  registerSpot,
+  entranceDelay,
 }: Props) {
   const rowRef = useRef<Measurable | null>(null);
   const cardRefs = useRef<(Measurable | null)[]>([]);
@@ -346,11 +364,13 @@ export function HandZone({
 
   // Cards mounting in the hand's opening moments are the deal, and enter as
   // one — staggered left to right. A card mounting later arrived alone (a
-  // draw) and enters at once. Read at render, used only at each card's own
-  // mount, so the distinction costs nothing after the deal.
+  // draw) and enters at once — unless a flight is carrying it here, in which
+  // case it waits for the landing (`entranceDelay`). Read at render, used
+  // only at each card's own mount, so the distinction costs nothing after
+  // the deal.
   const openedAt = useRef(Date.now());
   const dealDelayFor = (index: number) =>
-    Date.now() - openedAt.current < 700 ? Math.min(index, 12) * 40 : 0;
+    Date.now() - openedAt.current < 700 ? Math.min(index, 12) * ms(40) : entranceDelay ?? 0;
 
   // A card can only be lifted clear of the layout if we know where it was, and
   // until then it stays in the flow and no gap is drawn — a drag that started
@@ -403,6 +423,10 @@ export function HandZone({
       <View
         ref={(n) => {
           rowRef.current = n as unknown as Measurable | null;
+          // The fan doubles as a flight destination — the row rather than
+          // the whole panel, so a landing card aims at the cards, not the
+          // header above them.
+          registerSpot?.(zoneElementId(zone.id), n as unknown as Measurable | null);
         }}
         style={[styles.cards, carrying && dragLayer]}
         testID={`hand-${zone.id}`}
@@ -546,6 +570,17 @@ const DraggableCard = memo(function DraggableCard({
   onPressBadge,
   styles,
 }: CardProps) {
+  // A long-press that just opened the badge explanation must not also toggle
+  // selection when the finger comes up — Pressable has no long-press of its
+  // own here, so this is the only guard.
+  const suppressTapRef = useRef(false);
+
+  const explainBadge = useCallback(() => {
+    if (!badgeKeys?.length || !onPressBadge) return;
+    suppressTapRef.current = true;
+    onPressBadge(slot.card, badgeKeys);
+  }, [badgeKeys, onPressBadge, slot.card]);
+
   const pan = Gesture.Pan()
     // Any direction, once the pointer has genuinely moved. The threshold is
     // only there so that a tap with a shaky finger stays a tap.
@@ -598,6 +633,14 @@ const DraggableCard = memo(function DraggableCard({
   // typed field every chained setter writes into.
   pan.config.touchAction = 'pan-y';
 
+  const longPress = Gesture.LongPress()
+    .minDuration(400)
+    .onStart(() => {
+      runOnJS(explainBadge)();
+    });
+  const gesture =
+    badgeKeys?.length && onPressBadge ? Gesture.Simultaneous(pan, longPress) : pan;
+
   const carried = useMemo(
     () => (offset ? { transform: [{ translateX: offset.dx }, { translateY: offset.dy }] } : null),
     [offset?.dx, offset?.dy],
@@ -611,7 +654,7 @@ const DraggableCard = memo(function DraggableCard({
   );
 
   return (
-    <GestureDetector gesture={pan}>
+    <GestureDetector gesture={gesture}>
       <View
         ref={(n) => bindRef(n as unknown as Measurable | null)}
         style={[styles.slot, pinned, held && styles.lifted, selected && !held && styles.raised, carried]}
@@ -642,11 +685,8 @@ const DraggableCard = memo(function DraggableCard({
               // those braces, because a drag that silently toggled selection
               // would be maddening.
               if (consumedByDrag()) return;
-              // A marked card answers for its mark first. The mark is there
-              // because this card is about to be refused for something, and a
-              // player who presses it is asking about that, not choosing it.
-              if (badgeKeys?.length && onPressBadge) {
-                onPressBadge(slot.card, badgeKeys);
+              if (suppressTapRef.current) {
+                suppressTapRef.current = false;
                 return;
               }
               onToggle(slot.id);

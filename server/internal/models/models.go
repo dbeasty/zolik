@@ -11,8 +11,28 @@ type Player struct {
 	Name         string `bson:"name" json:"name"`
 	IsAI         bool   `bson:"isAI" json:"isAI"`
 	AIDifficulty string `bson:"aiDifficulty" json:"aiDifficulty,omitempty"`
+	// AIPersona is which named opponent this is, as module.Persona.Key —
+	// "hard:miroslav". It is the durable identity a bot's lifetime record
+	// hangs on.
+	//
+	// The seat's own id cannot do that job: it is minted fresh every time a
+	// bot is seated, so a record keyed on it would be a new one-match player
+	// every game. Difficulty could, and did — but then every hard bot that has
+	// ever played shares one row, and "has Master Miroslav ever lost to me" has
+	// no answer. A persona is stable across matches *and* specific, so it can
+	// carry a record the way an account does. Empty on bots seated before
+	// personas existed, which aggregate by difficulty exactly as they used to.
+	AIPersona    string `bson:"aiPersona,omitempty" json:"aiPersona,omitempty"`
 	ConnectionID string `bson:"connectionId" json:"connectionId,omitempty"`
 	UserID       string `bson:"userId" json:"userId,omitempty"`
+	// Avatar is the face this seat wears, as a slug the clients agree on.
+	//
+	// Cosmetic, and deliberately opaque to the server: it is validated for
+	// shape and stored, never interpreted. An empty or unrecognised one is
+	// not an error — every client derives a face from the player id in that
+	// case, identically, so a roster can grow on the client without a server
+	// release and an older client never shows a blank seat.
+	Avatar string `bson:"avatar,omitempty" json:"avatar,omitempty"`
 	// GuestID is set instead of UserID when a guest holds the seat, and is the
 	// device's durable guest id (see Session.GuestID). It is what lets a match
 	// this seat played be found again — and re-attributed — if the person
@@ -52,6 +72,11 @@ type User struct {
 type UserPreferences struct {
 	Language  string `bson:"language" json:"language"`
 	CardStyle string `bson:"cardStyle" json:"cardStyle"`
+	// Avatar is the face the account chose, so it follows them to a new
+	// device rather than living beside the skin in one browser's storage.
+	// Distinct from User.AvatarURL, which is whatever picture an identity
+	// provider happened to hand over at sign-in and which nobody picked.
+	Avatar string `bson:"avatar,omitempty" json:"avatar,omitempty"`
 }
 
 // Statistics and MatchRef used to live here: a per-user counters document

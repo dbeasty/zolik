@@ -101,6 +101,23 @@ type RulesConfig struct {
 	// exact card that empties the player's hand while they're already down
 	// (i.e. the discard that ends the deal for them).
 	JokerDiscardRestricted bool
+	// JokerReclaimMustPlay: a joker taken off the table this turn — swapped
+	// out for the card it stands in for, or released by a lay-off that took
+	// its exact place — must be played into a meld before the turn can end.
+	// It cannot be kept in hand across the discard; the take can always be
+	// undone instead (undo:lay_off right after a lay-off reclaim, undo:turn
+	// always). The one exception mirrors JokerDiscardRestricted's: the
+	// discard that empties an already-down hand ends the deal, and a deal
+	// that is over holds no joker hostage.
+	JokerReclaimMustPlay bool
+
+	// GoOutDiscardFaceDown: the discard that ends the deal is laid on the
+	// pile face down — the traditional Žolík closing gesture, "zavření".
+	// Purely presentational: the deal is already scored when anyone sees the
+	// pile again, so nothing is hidden that scoring didn't just reveal. The
+	// engine records the fact (GameState.WentOutByDiscard); this flag decides
+	// whether the module's view dresses that card back-up.
+	GoOutDiscardFaceDown bool
 
 	// FixedDealCount > 0 selects Continental's per-deal contract rotation
 	// (ContractForDeal, deals 1..FixedDealCount); FixedDealCount == 0 means

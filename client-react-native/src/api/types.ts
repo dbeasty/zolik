@@ -19,6 +19,8 @@ export type WaitingPlayer = {
   username: string;
   isGuest: boolean;
   joinedAt: string;
+  /** The face they are waiting under — the one they keep if picked up. */
+  avatar?: string;
 };
 
 /** A push on the /ws/lobby socket. 'lobby_waiting' is the current pool,
@@ -27,6 +29,19 @@ export type WaitingPlayer = {
 export type LobbyWSMessage =
   | { type: 'lobby_waiting'; players: WaitingPlayer[] }
   | { type: 'lobby_invited'; matchId: string; joinCode: string };
+
+/** Admission snapshot from GET /healthz/capacity. */
+export type CapacitySnapshot = {
+  live: number;
+  maxConnections?: number;
+  memoryUsedBytes?: number;
+  memoryLimitBytes?: number;
+  memoryFraction?: number;
+  cpuStallFraction?: number;
+  accepting: boolean;
+  waitingRoomOpen: boolean;
+  startingMatches: boolean;
+};
 
 /** A signed-in player, however they signed in. */
 export type PlayerSession = {
@@ -80,7 +95,7 @@ export type AccountProfile = {
   createdAt: string;
   identities: LinkedIdentity[];
   hasPassword: boolean;
-  prefs?: { language?: string; cardStyle?: string };
+  prefs?: { language?: string; cardStyle?: string; avatar?: string };
 };
 
 /** What a completed sign-in returns, whichever door it came through. */

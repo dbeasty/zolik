@@ -132,6 +132,30 @@ Redis is **not** used for login, registration, or guest sessions — only for `z
 
 Without `REDIS_URL`, the hub runs in **local-only** mode (fine for development).
 
+## Capacity and backpressure
+
+Under load the server stops **growing** before it runs out of memory or CPU.
+Nothing here evicts an established connection — backpressure means declining
+new arrivals, not dropping players mid-hand.
+
+| Gate | What it measures | What it sheds |
+|------|------------------|---------------|
+| **Connection ceiling** | Concurrent held sockets | Waiting room first (at `ADMISSION_WAITING_ROOM_RATIO`), then gameplay at the hard limit |
+| **Memory watermark** | cgroup memory minus reclaimable page cache | All new connections and new matches |
+| **CPU watermark** | Linux PSI `some avg10` stall fraction | Waiting room and new matches only — gameplay sockets still admitted |
+
+**Reconnects are never refused.** A player returning to their own match or
+waiting-room slot displaces their dead socket and is net-neutral on the count.
+
+Refusals return **503** with `{"code":"SERVER_BUSY",...}` and a `Retry-After`
+header. Clients that cannot read a refused WebSocket handshake should probe
+`GET /healthz/capacity` instead.
+
+Configure via `.env` (see `.env.example`). When `ADMISSION_MAX_CONNECTIONS` is
+unset (0), a ceiling is derived from the process memory limit if one exists.
+The server also sets `GOMEMLIMIT` to 90% of the cgroup limit unless you set
+`GOMEMLIMIT` yourself.
+
 ## Terminal client (SSH)
 
 When `SSH_ENABLED=true` (default in local), the server embeds **[client-tui](../client-tui/)** on port **2222**:
@@ -153,6 +177,9 @@ There is one gameplay path, and it does not name a game. `/games/*` and
 carried; `cmd/migrate-games` moves any documents left behind.
 
 - `GET /healthz`
+- `GET /healthz/capacity` — admission snapshot (`accepting`, `waitingRoomOpen`,
+  `startingMatches`, live count, memory/CPU readings). For operators and for
+  clients that cannot read a refused WebSocket handshake.
 - `GET /version` — `{"version": "1.1.1.2", "commit": "7feb025"}`, this binary's
   build. See [Versioning](../README.md#versioning) at the repo root.
 - WebSocket: `ws://localhost:8090/ws/matches/:id?token=<JWT>` — carries

@@ -2,6 +2,7 @@ package app
 
 import (
 	"os"
+	"strconv"
 	"strings"
 
 	"zolik/server/internal/auth"
@@ -64,6 +65,33 @@ type Config struct {
 	// local dev (same as SSHAllowAllKeys) but must be explicitly opted into
 	// anywhere APP_ENV is set.
 	TestEndpointsEnabled bool
+
+	// AdmissionMaxConnections caps concurrently held sockets. Zero (the
+	// default) derives a ceiling from the process's memory limit; -1 turns
+	// the count ceiling off entirely. On hosts with no readable limit — dev
+	// machines — zero also means no ceiling, so nothing changes there.
+	AdmissionMaxConnections int
+	// AdmissionWaitingRoomRatio is the fraction of the ceiling past which
+	// waiting-room sockets (and new matches) are refused while gameplay
+	// sockets still get the reserved tail.
+	AdmissionWaitingRoomRatio float64
+	// AdmissionMemoryWatermark is the fraction of the memory limit at which
+	// new connections stop being admitted. Zero disables the memory gate.
+	AdmissionMemoryWatermark float64
+	// AdmissionCPUWatermark is the CPU stall fraction (PSI some avg10, 0..1)
+	// past which the server stops growing: no new waiting-room sockets, no
+	// new matches. Zero disables the CPU gate.
+	AdmissionCPUWatermark float64
+
+	// BotThinkMinMS and BotThinkMaxMS bound the pause a bot takes before it
+	// answers. Purely cosmetic — nothing about the rules depends on it — but
+	// it is not free-floating taste either: it has to outlast the client's
+	// own narration of the *previous* move, or a bot's next state lands on
+	// top of an animation still playing and the table reads as a stutter.
+	// Configurable so a deployment can tune the pace, and so tests can drop
+	// it to nothing rather than sleeping through it.
+	BotThinkMinMS int
+	BotThinkMaxMS int
 }
 
 // LoadConfig reads the environment.
@@ -132,6 +160,22 @@ func LoadConfig() Config {
 		},
 
 		TestEndpointsEnabled: envBool("ENABLE_TEST_ENDPOINTS", local),
+
+		// Watermark defaults follow the admission package's measurements: 0.85
+		// leaves slack for the lag between admitting a connection and its
+		// memory landing; 0.25 CPU stall is well past comfortable and still
+		// short of seized. Both gates disarm themselves on hosts where the
+		// reading does not exist, so local development is unaffected.
+		AdmissionMaxConnections:   envInt("ADMISSION_MAX_CONNECTIONS", 0),
+		AdmissionWaitingRoomRatio: envFloat("ADMISSION_WAITING_ROOM_RATIO", 0.8),
+		AdmissionMemoryWatermark:  envFloat("ADMISSION_MEMORY_WATERMARK", 0.85),
+		AdmissionCPUWatermark:     envFloat("ADMISSION_CPU_WATERMARK", 0.25),
+
+		// The client's flight plus its landing is a little over a second at
+		// the tempo it ships with (see client-react-native/src/lib/motion.ts).
+		// A floor below that had bots answering over their own last move.
+		BotThinkMinMS: envInt("BOT_THINK_MIN_MS", 900),
+		BotThinkMaxMS: envInt("BOT_THINK_MAX_MS", 1800),
 	}
 }
 
@@ -202,4 +246,31 @@ func envOr(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// envInt and envFloat follow envBool's manner: an unset, empty, or
+// unparseable value is the fallback, never an error — configuration here is
+// lenient by convention, and the storage-level flags are the strict ones.
+func envInt(key string, fallback int) int {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return fallback
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil {
+		return fallback
+	}
+	return n
+}
+
+func envFloat(key string, fallback float64) float64 {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return fallback
+	}
+	f, err := strconv.ParseFloat(v, 64)
+	if err != nil {
+		return fallback
+	}
+	return f
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { apiClient } from '@/src/api/client';
+import { LegalLinks } from '@/src/components/LegalLinks';
 import { CLIENT_COMMIT, CLIENT_VERSION } from '@/src/config';
 import { shared } from '@/src/theme';
 
@@ -41,6 +42,10 @@ export function BuildFooter() {
       <Text style={shared.status} testID="build-footer-server">
         {server ? `server ${server.version} · ${server.commit}` : 'server …'}
       </Text>
+      {/* The footer is already where the app keeps the things that must be
+          available and must not distract — which is exactly what the notices
+          are. Nothing above had to move to make room. */}
+      <LegalLinks />
     </View>
   );
 }

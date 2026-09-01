@@ -59,6 +59,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					OptBigBlind:                  variations["freezeout"].bigBlind,
 					OptHandLimit:                 variations["freezeout"].handLimit,
 					module.OptPauseBetweenRounds: module.OptOff,
+					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
 				},
 			},
 			{
@@ -73,11 +74,13 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					OptBigBlind:                  variations["timed"].bigBlind,
 					OptHandLimit:                 variations["timed"].handLimit,
 					module.OptPauseBetweenRounds: module.OptOff,
+					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
 				},
 			},
 		},
 		Options: []module.OptionSpec{
 			module.PauseOption(),
+			module.BotSkillOption(),
 			{
 				Name:  OptStartingStack,
 				Type:  module.OptionEnumInt,

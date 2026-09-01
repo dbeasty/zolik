@@ -1,0 +1,11 @@
+.git
+.dev-stack
+node_modules
+client-react-native/node_modules
+client-react-native/dist
+client-react-native/.expo
+e2e/node_modules
+e2e/test-results
+e2e/playwright-report
+server/.ssh
+**/.env

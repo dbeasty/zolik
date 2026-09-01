@@ -11,12 +11,37 @@ package module
 //
 // A module says that in one of two ways, and most say it in one line.
 
+// BotSeat is who the bot is playing as, and how well.
+//
+// It replaced a bare playerID parameter. The seat was always the answer to
+// "which of these hands is mine"; what it could not say was how strongly to
+// play it, and threading a skill through as a second loose string would have
+// meant every implementation growing a parameter it mostly ignores. One struct
+// grows instead, and a bot reads the fields it cares about — most read only
+// PlayerID, exactly as before.
+type BotSeat struct {
+	// PlayerID is the seat being played.
+	PlayerID string
+	// Skill is how well to play it. Empty for a seat seated before skills
+	// existed; a bot that reads it must treat empty as its own default rather
+	// than as the weakest setting, so that an old match plays on unchanged.
+	Skill Skill
+	// Seed makes a fallible bot reproducible.
+	//
+	// A weak bot has to make mistakes, and a mistake needs a coin to flip. A
+	// wall-clock-seeded coin would make a match unreplayable and a bug report
+	// unreproducible, so the runtime derives this from the match's own seed
+	// and the seat id (see SeatSeed) and the bot mixes the turn into it. Same
+	// match, same seat, same turn, same mistake.
+	Seed int64
+}
+
 // Bot chooses a move for a seat.
 //
 // It is handed the offer list rather than being expected to fetch one, so the
 // simplest possible bot is a pure function of what a client would see anyway.
 type Bot interface {
-	Act(s State, playerID string, offers []ActionOffer) (Action, bool)
+	Act(s State, seat BotSeat, offers []ActionOffer) (Action, bool)
 }
 
 // Botted is implemented by a module that supplies its own bot.
@@ -43,7 +68,7 @@ func OfferBot(prefer ...string) Bot { return offerBot{prefer: prefer} }
 
 type offerBot struct{ prefer []string }
 
-func (b offerBot) Act(_ State, _ string, offers []ActionOffer) (Action, bool) {
+func (b offerBot) Act(_ State, _ BotSeat, offers []ActionOffer) (Action, bool) {
 	return ChooseAction(offers, b.prefer)
 }
 

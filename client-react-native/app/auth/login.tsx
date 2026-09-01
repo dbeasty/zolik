@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
 
+import { LegalNotice } from '@/src/components/LegalNotice';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { claimPrompt, orderProviders, providerButtonLabel } from '@/src/lib/auth';
@@ -40,6 +41,12 @@ export default function LoginScreen() {
   return (
     <Screen title="Sign in" subtitle="Keep your statistics across devices" scroll>
       {hint ? <Text style={[shared.status, { marginBottom: 16 }]}>{hint}</Text> : null}
+
+      {/* Before the buttons, as on the guest screen: the notice is about what
+          pressing one of them starts. */}
+      <View style={{ marginBottom: 16 }}>
+        <LegalNotice />
+      </View>
 
       {oauthProviders.map((p) => (
         <Pressable

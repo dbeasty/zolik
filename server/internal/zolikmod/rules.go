@@ -115,6 +115,11 @@ func ruleSections(cfg rules.RulesConfig) []module.RuleSection {
 		module.Rule("zolik.rules.layoff.runEnds", nil),
 		module.Rule("zolik.rules.jokers.swap", nil),
 	}
+	if cfg.JokerReclaimMustPlay {
+		layOff = append(layOff, module.Rule("zolik.rules.jokers.reclaim.on", nil))
+	} else {
+		layOff = append(layOff, module.Rule("zolik.rules.jokers.reclaim.off", nil))
+	}
 
 	end := []module.RuleItem{}
 	if cfg.MatchEndMode == rules.MatchEndAfterDeals {

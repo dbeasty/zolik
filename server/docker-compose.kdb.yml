@@ -24,23 +24,52 @@ services:
         ZOLIK_VERSION: "${ZOLIK_VERSION:-0.0.0-dev}"
         ZOLIK_COMMIT: "${ZOLIK_COMMIT:-unknown}"
     restart: unless-stopped
+    # Sized for a 1–2 GB host: one Go binary + embedded KDB, no Mongo/Redis.
+    mem_limit: 1g
     env_file:
       - .env
+    # These override .env, so the container's shape is stated here rather than
+    # depending on what a particular host's .env happens to hold.
     environment:
       FEATURE_FLAG_DB_ENGINE: kdb
       KDB_PATH: /data/kdb
       PORT: "8090"
-      SSH_ENABLED: "true"
-      SSH_PORT: "2222"
-      SSH_HOST_KEY_PATH: /tmp/zolik-ssh/zolik_host_key
-      SSH_ALLOW_ALL_KEYS: "true"
+      # Off, and said out loud. Removing the SSH_* variables does not turn the
+      # terminal client off — SSH_ENABLED defaults *on* whenever APP_ENV is
+      # local, and its default host key path is one the image's nonroot user
+      # cannot create. Left unstated, that combination crash-looped the
+      # container: mkdir .ssh: permission denied, exit, restart, repeat.
+      SSH_ENABLED: "false"
+      # Belt and braces for the same reason: this also defaults on under a
+      # local APP_ENV, and "any key is admitted" is not a default a public
+      # host should ever be one edited line away from.
+      SSH_ALLOW_ALL_KEYS: "false"
+      # /matches/{id}/debug-state writes match state straight past the rules,
+      # and /auth/dev/last-code hands back the sign-in code mailed to any
+      # address. Both default ON under a local APP_ENV — which the production
+      # env file deliberately sets, to keep guest play working without SMTP —
+      # so they are closed here explicitly rather than by implication.
+      #
+      # The end-to-end suite needs them, and opens them deliberately:
+      # scripts/dev-stack.sh sets ZOLIK_TEST_ENDPOINTS=true. Nothing else
+      # does, so a deployment gets them shut without having to remember to
+      # shut them.
+      ENABLE_TEST_ENDPOINTS: "${ZOLIK_TEST_ENDPOINTS:-false}"
+      # How long a bot pauses before answering. Empty means the server's own
+      # defaults, which are a pace for people to watch. The end-to-end suite
+      # sets both to near zero: the pause is cosmetic, and a suite that sleeps
+      # through it is a suite whose timeouts measure the sleep rather than the
+      # code — see scripts/dev-stack.sh.
+      BOT_THINK_MIN_MS: "${ZOLIK_BOT_THINK_MIN_MS:-}"
+      BOT_THINK_MAX_MS: "${ZOLIK_BOT_THINK_MAX_MS:-}"
     volumes:
       # /data is created nonroot-owned in the image, so the engine can write
       # under the distroless nonroot user.
       - kdb_data:/data
+    # Loopback only — nginx on play.limidus.com is the public entry point.
+    # For LAN dev from another machine, override: ZOLIK_BIND=0.0.0.0 docker compose …
     ports:
-      - "8090:8090"
-      - "2222:2222"
+      - "${ZOLIK_BIND:-127.0.0.1}:8090:8090"
 
 volumes:
   kdb_data:

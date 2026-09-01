@@ -30,3 +30,31 @@ it('falls back to a build that is obviously not a real release', () => {
   expect(config.CLIENT_VERSION).toBe('0.0.0-dev');
   expect(config.CLIENT_COMMIT).toBe('unknown');
 });
+
+it('reports the operator the deploy script named', () => {
+  process.env.EXPO_PUBLIC_ZOLIK_OPERATOR = 'Limidus Corp';
+  process.env.EXPO_PUBLIC_ZOLIK_OPERATOR_COUNTRY = 'Czechia';
+  process.env.EXPO_PUBLIC_ZOLIK_OPERATOR_CONTACT = 'legal@limidus.com';
+  jest.resetModules();
+
+  const config = require('./config');
+
+  expect(config.OPERATOR_NAME).toBe('Limidus Corp');
+  expect(config.OPERATOR_COUNTRY).toBe('Czechia');
+  expect(config.OPERATOR_CONTACT).toBe('legal@limidus.com');
+});
+
+it('leaves the operator empty rather than inventing one', () => {
+  // Empty is what `src/legal` reads as "not named yet" and answers with a
+  // draft banner. A default here would defeat that by naming somebody.
+  delete process.env.EXPO_PUBLIC_ZOLIK_OPERATOR;
+  delete process.env.EXPO_PUBLIC_ZOLIK_OPERATOR_COUNTRY;
+  delete process.env.EXPO_PUBLIC_ZOLIK_OPERATOR_CONTACT;
+  jest.resetModules();
+
+  const config = require('./config');
+
+  expect(config.OPERATOR_NAME).toBe('');
+  expect(config.OPERATOR_COUNTRY).toBe('');
+  expect(config.OPERATOR_CONTACT).toBe('');
+});

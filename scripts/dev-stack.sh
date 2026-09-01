@@ -1,33 +1,38 @@
 #!/usr/bin/env bash
 #
-# Brings the whole stack up on one command, on ports that do not collide with
-# a dev server you may already have running.
+# Brings the whole stack up on one command — the same Docker shape we deploy on
+# a local server (KDB, one container, ~1 GB cap).
 #
-#   scripts/dev-stack.sh up      # start Mongo/Redis (if needed), server, web
-#   scripts/dev-stack.sh down    # stop the server and web build
+#   scripts/dev-stack.sh up      # docker server + web client
+#   scripts/dev-stack.sh down    # stop both
 #   scripts/dev-stack.sh test    # run every suite: Go, client, e2e
-#   scripts/dev-stack.sh logs    # tail the server log
+#   scripts/dev-stack.sh logs    # tail the server container
 #
-# Why a script rather than three commands in a README: two of the three have a
-# trap in them that costs half an hour to diagnose. The server must be a built
-# binary rather than a backgrounded `go run` — a reaped `go run` child produces
-# a wall of ECONNREFUSED that looks exactly like a code regression — and
-# Playwright must be invoked from e2e/ or it silently loads no config and
-# reports "did not expect test.describe() to be called here".
+# Why a script rather than three commands in a README: Playwright must be
+# invoked from e2e/ or it silently loads no config and reports "did not expect
+# test.describe() to be called here". This script also pins the API URL the web
+# bundle is built with — without that, guest sign-in fails with "Failed to fetch"
+# because the browser calls a port nothing is listening on.
+#
+# Override the compose file with ZOLIK_DEV_COMPOSE=mongo for the full Mongo +
+# Redis stack (docker-compose.yml, heavier — two app instances for scaling tests).
 
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RUN="${ROOT}/.dev-stack"
+SERVER_DIR="${ROOT}/server"
 mkdir -p "$RUN"
 
-# Deliberately not 8090/8100: those are the ports a normal dev session uses,
-# and the point of this script is to be runnable beside one.
-PORT="${ZOLIK_DEV_PORT:-8096}"
+COMPOSE_MODE="${ZOLIK_DEV_COMPOSE:-kdb}"
+case "$COMPOSE_MODE" in
+  kdb)   COMPOSE_FILE="docker-compose.kdb.yml" ;;
+  mongo) COMPOSE_FILE="docker-compose.yml" ;;
+  *)     printf '\033[31mError:\033[0m ZOLIK_DEV_COMPOSE must be kdb or mongo (got: %s)\n' "$COMPOSE_MODE" >&2; exit 1 ;;
+esac
+
+PORT="${ZOLIK_DEV_PORT:-8090}"
 WEB_PORT="${ZOLIK_DEV_WEB_PORT:-8114}"
-MONGO_URI="${ZOLIK_DEV_MONGO_URI:-mongodb://localhost:27018}"
-REDIS_URL="${ZOLIK_DEV_REDIS_URL:-redis://localhost:6379/2}"
-MONGO_DB="${ZOLIK_DEV_MONGO_DB:-zolik_dev_stack}"
 
 # The host the *browser* will use to reach the API, which is not always the
 # host this script runs on. The bundle carries this address to whatever machine
@@ -43,9 +48,9 @@ HOST="${ZOLIK_DEV_HOST:-127.0.0.1}"
 API="http://${HOST}:${PORT}"
 WEB="http://${HOST}:${WEB_PORT}"
 
-# The one build identity, shared by the server binary's -ldflags and the web
-# bundle's EXPO_PUBLIC_* vars below, so the two footers can never disagree for
-# a reason other than actually being different builds. See scripts/version.sh.
+# The one build identity, shared by the Docker build-args and the web bundle's
+# EXPO_PUBLIC_* vars below, so the two footers can never disagree for a reason
+# other than actually being different builds. See scripts/version.sh.
 eval "$(sh "${ROOT}/scripts/version.sh" --export)"
 
 say() { printf '\033[1m==>\033[0m %s\n' "$*"; }
@@ -60,41 +65,59 @@ wait_for() { # url, label, seconds
   die "$label did not come up at $url — see: $0 logs"
 }
 
-ensure_datastores() {
-  if ! nc -z localhost 27018 2>/dev/null || ! nc -z localhost 6379 2>/dev/null; then
-    say "starting Mongo and Redis via docker compose"
-    (cd "${ROOT}/server" && docker compose up -d mongo redis) \
-      || die "could not start Mongo/Redis. Start them yourself, or set ZOLIK_DEV_MONGO_URI / ZOLIK_DEV_REDIS_URL."
-    sleep 3
+compose() {
+  local bind="${ZOLIK_BIND:-}"
+  if [[ -z "$bind" && "$HOST" != "127.0.0.1" && "$HOST" != "localhost" ]]; then
+    bind="0.0.0.0"
+  fi
+  # The end-to-end suite seeds mid-round positions through /debug-state and
+  # reads sign-in codes back through /auth/dev/last-code. Both are shut in the
+  # compose file by default, because that file is also the shape the public
+  # host runs; this is the local stack, so this is where they are opened.
+  (cd "$SERVER_DIR" && ZOLIK_BIND="${bind:-127.0.0.1}" ZOLIK_TEST_ENDPOINTS=true \
+    ZOLIK_BOT_THINK_MIN_MS="${ZOLIK_BOT_THINK_MIN_MS:-}" \
+    ZOLIK_BOT_THINK_MAX_MS="${ZOLIK_BOT_THINK_MAX_MS:-}" \
+    docker compose -f "$COMPOSE_FILE" "$@")
+}
+
+ensure_env() {
+  if [[ ! -f "${SERVER_DIR}/.env" ]]; then
+    cp "${SERVER_DIR}/.env.example" "${SERVER_DIR}/.env"
+    say "created server/.env from .env.example"
   fi
 }
 
+stop_web() {
+  if [[ -f "${RUN}/web.pid" ]]; then
+    kill "$(cat "${RUN}/web.pid")" 2>/dev/null || true
+    rm -f "${RUN}/web.pid"
+  fi
+  pkill -f "expo start --web --port ${WEB_PORT}" 2>/dev/null || true
+}
+
+stop_legacy_binary() {
+  # Pre-docker dev-stack left a bare binary on :8096; clean it up if still around.
+  if [[ -f "${RUN}/server.pid" ]]; then
+    kill "$(cat "${RUN}/server.pid")" 2>/dev/null || true
+    rm -f "${RUN}/server.pid"
+  fi
+  pkill -f "${RUN}/zolik-server" 2>/dev/null || true
+}
+
 up() {
-  ensure_datastores
+  ensure_env
+  stop_legacy_binary
+  stop_web
 
-  say "building the server (${ZOLIK_VERSION}+${ZOLIK_COMMIT})"
-  (cd "${ROOT}/server" && go build \
-      -ldflags "-X zolik/server/internal/buildinfo.Version=${ZOLIK_VERSION} \
-                -X zolik/server/internal/buildinfo.Commit=${ZOLIK_COMMIT}" \
-      -o "${RUN}/zolik-server" ./cmd/server)
+  if [[ "$COMPOSE_MODE" == "kdb" && ! -f "${ROOT}/../kdb/go/go.mod" ]]; then
+    die "KDB stack needs the kdb repo as a sibling of zolik (../kdb). Clone it or use ZOLIK_DEV_COMPOSE=mongo."
+  fi
 
-  say "starting the server on ${API}"
-  # The whole launch is wrapped in a subshell whose own stdout and stderr go
-  # to /dev/null, not just the daemon's.
-  #
-  # That is what makes `dev-stack.sh up | tail` terminate. A daemon started
-  # here inherits this script's file descriptors, and something in the Expo
-  # toolchain keeps a copy of fd 1 alive past its own redirection — so the
-  # reader on the other end of the pipe never sees EOF and the command appears
-  # to hang, minutes after the stack is up and serving.
-  ( APP_ENV=local PORT="$PORT" SSH_ENABLED=false \
-      MONGO_URI="$MONGO_URI" MONGO_DB="$MONGO_DB" REDIS_URL="$REDIS_URL" \
-      JWT_ACCESS_SECRET=dev_access JWT_REFRESH_SECRET=dev_refresh \
-      nohup "${RUN}/zolik-server" > "${RUN}/server.log" 2>&1 < /dev/null &
-    echo $! > "${RUN}/server.pid" ) > /dev/null 2>&1
-  wait_for "${API}/healthz" "the server" 60
+  say "building and starting the server via docker compose (${COMPOSE_FILE}, ${ZOLIK_VERSION}+${ZOLIK_COMMIT})"
+  compose up -d --build
+  wait_for "${API}/healthz" "the server" 120
 
-  say "starting the web client on ${WEB}"
+  say "starting the web client on ${WEB} (API ${API})"
   (cd "${ROOT}/client-react-native" && \
     EXPO_PUBLIC_ZOLIK_BASE_URL="$API" \
     EXPO_PUBLIC_ZOLIK_VERSION="$ZOLIK_VERSION" EXPO_PUBLIC_ZOLIK_COMMIT="$ZOLIK_COMMIT" \
@@ -104,10 +127,8 @@ up() {
 
   echo
   say "up"
-  printf '   API  %s\n   Web  %s\n' "$API" "$WEB"
-  # Read back rather than trusting $ZOLIK_VERSION: this is the check that
-  # catches a -X flag that silently no-op'd (a typo'd import path or a
-  # dead-code-eliminated var link cleanly, with the value left empty).
+  printf '   Stack  %s (%s)\n' "$COMPOSE_FILE" "$COMPOSE_MODE"
+  printf '   API    %s\n   Web    %s\n' "$API" "$WEB"
   printf '   Version (built): %s+%s\n' "$ZOLIK_VERSION" "$ZOLIK_COMMIT"
   printf '   Version (served): '
   curl -fsS "${API}/version" | python3 -c \
@@ -120,22 +141,13 @@ up() {
     || echo '(could not read /modules)'
   printf '\n   Open %s and press "Play".\n' "$WEB"
 
-  # Explicit, because the daemons started above inherit this script's stdout.
-  # Without it, `dev-stack.sh up | tail` never sees EOF and appears to hang
-  # long after the stack is actually up and serving.
   exit 0
 }
 
 down() {
-  for name in server web; do
-    if [[ -f "${RUN}/${name}.pid" ]]; then
-      kill "$(cat "${RUN}/${name}.pid")" 2>/dev/null || true
-      rm -f "${RUN}/${name}.pid"
-    fi
-  done
-  # Expo spawns children that outlive the pid we recorded.
-  pkill -f "expo start --web --port ${WEB_PORT}" 2>/dev/null || true
-  pkill -f "${RUN}/zolik-server" 2>/dev/null || true
+  stop_web
+  stop_legacy_binary
+  compose down 2>/dev/null || true
   say "down"
 }
 
@@ -152,8 +164,37 @@ run_tests() {
   say "end-to-end (needs the stack up)"
   curl -fsS -m 2 -o /dev/null "${API}/healthz" 2>/dev/null \
     || die "the stack is not running — start it with: $0 up"
-  # From e2e/, always: Playwright resolves its config from the working
-  # directory and silently runs with none if invoked from the repo root.
+
+  # Bots answer at the pace they always did here, which is faster than the one
+  # the server now defaults to for people to watch.
+  #
+  # Both directions of that matter. Too slow and the long bot-driven specs
+  # (Prsi and the played-out hand in offer-labels) run past their thirty-second
+  # timeouts, and the suite ends up measuring the pause rather than the code.
+  # Too fast and it gets worse in the other direction: several specs race the
+  # bots by construction — drag-and-drop's Canasta lay-off drops a card on a
+  # *partnership* meld and asserts it grew by one, which a bot partner melding
+  # during the drag turns into two — and every bot action saved is another
+  # chance for one to land inside the window. Hurried to nothing, that spec
+  # failed two runs in five.
+  #
+  # So this is deliberately the old pace rather than the fastest one: it keeps
+  # the suite's timing exactly where it was before the pause became a thing
+  # anybody had chosen, which is the only setting that makes the change to it
+  # provably neutral here.
+  #
+  # Announced, because it recreates the container the developer may have been
+  # watching, and leaves it at this pace: `$0 up` restores the watchable one.
+  say "setting the bots to the suite's pace (\`$0 up\` restores a watchable one)"
+  ZOLIK_BOT_THINK_MIN_MS=400 ZOLIK_BOT_THINK_MAX_MS=1300 compose up -d >/dev/null
+  wait_for "${API}/healthz" "the server" 60
+  if [[ ! -d "${ROOT}/e2e/node_modules" ]]; then
+    say "installing e2e dependencies"
+    (cd "${ROOT}/e2e" && npm install)
+  fi
+  # Idempotent and fast when chromium is already present; without it every
+  # e2e test fails with "Executable doesn't exist" on a fresh machine.
+  (cd "${ROOT}/e2e" && npx playwright install chromium)
   (cd "${ROOT}/e2e" && ZOLIK_E2E_API_BASE="$API" ZOLIK_E2E_WEB_BASE="$WEB" npx playwright test --workers=2)
 }
 
@@ -161,6 +202,6 @@ case "${1:-up}" in
   up)    up ;;
   down)  down ;;
   test)  shift || true; run_tests "$@" ;;
-  logs)  tail -f "${RUN}/server.log" ;;
+  logs)  compose logs -f app ;;
   *)     die "usage: $0 {up|down|test|logs}" ;;
 esac

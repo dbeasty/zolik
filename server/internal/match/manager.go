@@ -40,6 +40,12 @@ type Manager struct {
 	// second loop and the bots would race each other.
 	botMu      sync.Mutex
 	botRunning map[string]bool
+
+	// botThinkMin and botThinkMax bound a bot's cosmetic pause. Zero means
+	// the defaults in bots.go, so a Manager built without SetBotPace behaves
+	// exactly as it did before the pace was configurable.
+	botThinkMin time.Duration
+	botThinkMax time.Duration
 }
 
 // Recorder is notified when a match finishes, so its result can be recorded
@@ -58,6 +64,16 @@ type Recorder interface {
 	RecordMatchAsync(m models.Match, out module.Outcome)
 }
 
+// SetBotPace bounds how long a bot pauses before answering. Optional; zero or
+// an inverted range falls back to the defaults in bots.go.
+//
+// It exists because the pause is not really about the bot: it is about giving
+// the client time to finish showing the *previous* move before the next state
+// arrives. That is a property of how fast the board animates, which is a
+// client decision, so the server has to be able to be told rather than
+// guessing once at compile time.
+func (m *Manager) SetBotPace(min, max time.Duration) { m.botThinkMin, m.botThinkMax = min, max }
+
 // SetRecorder attaches statistics recording. Optional.
 func (m *Manager) SetRecorder(r Recorder) { m.recorder = r }
 
@@ -73,7 +89,12 @@ func (m *Manager) SetRecorder(r Recorder) { m.recorder = r }
 type WaitingLookup interface {
 	// IsWaiting reports the display details of a waiting player, so an invite
 	// can build their seat without a second round trip.
-	IsWaiting(ctx context.Context, playerID string) (name string, isGuest bool, ok bool)
+	//
+	// A widening tuple rather than a struct, and deliberately so: the whole
+	// point of this interface is that the runtime never learns what a waiting
+	// room is, and returning the pool's own record would mean importing it.
+	// Four values is uglier than a type and is the honest cost of that.
+	IsWaiting(ctx context.Context, playerID string) (name string, isGuest bool, avatar string, ok bool)
 	// Pickup removes a player from the pool, reporting whether they were
 	// actually present. Called only after they have been seated — a failed
 	// seat attempt must leave them waiting, not silently drop them.
@@ -119,12 +140,16 @@ func (m *Manager) Invite(ctx context.Context, idOrCode, hostID, playerID string)
 	// client last polled: the target may have left, been picked up elsewhere,
 	// or disconnected in the meantime, and this is the only point that gets to
 	// decide whether they are still actually available.
-	name, isGuest, stillWaiting := m.waiting.IsWaiting(ctx, playerID)
+	name, isGuest, avatar, stillWaiting := m.waiting.IsWaiting(ctx, playerID)
 	if !stillWaiting {
 		return models.Match{}, false, module.Error{Code: "NO_LONGER_WAITING"}
 	}
 
-	seat := models.Player{ID: playerID, Name: name}
+	// The face they were waiting under, so being picked up out of the pool
+	// seats the person the host was looking at. Sanitised again rather than
+	// trusted: it entered the pool from a client, and this is a different
+	// door into the same seat.
+	seat := models.Player{ID: playerID, Name: name, Avatar: models.SanitizeAvatar(avatar)}
 	if isGuest {
 		seat.GuestID = playerID
 	} else {

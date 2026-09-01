@@ -20,6 +20,27 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 import { useMatchSocket, type MatchSocketState } from '@/src/hooks/useMatchSocket';
 
+const mockGetCapacity = jest.fn(async () => ({
+  accepting: true,
+  waitingRoomOpen: true,
+  startingMatches: true,
+  live: 0,
+}));
+
+jest.mock('@/src/api/client', () => ({
+  apiClient: {
+    get getCapacity() {
+      return mockGetCapacity;
+    },
+  },
+}));
+
+async function flushClose() {
+  await act(async () => {
+    await Promise.resolve();
+  });
+}
+
 type Handler = ((ev?: unknown) => void) | null;
 
 class FakeWebSocket {
@@ -86,11 +107,20 @@ function renderProbe(url: string | null) {
 
 describe('useMatchSocket', () => {
   const realWebSocket = (global as { WebSocket?: unknown }).WebSocket;
+  let randomSpy: jest.SpyInstance;
 
   beforeEach(() => {
     FakeWebSocket.instances = [];
     (global as { WebSocket?: unknown }).WebSocket = FakeWebSocket;
     jest.useFakeTimers();
+    randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0);
+    mockGetCapacity.mockClear();
+    mockGetCapacity.mockResolvedValue({
+      accepting: true,
+      waitingRoomOpen: true,
+      startingMatches: true,
+      live: 0,
+    });
   });
 
   afterEach(() => {
@@ -100,16 +130,18 @@ describe('useMatchSocket', () => {
   });
 
   afterEach(() => {
+    randomSpy.mockRestore();
     jest.useRealTimers();
     (global as { WebSocket?: unknown }).WebSocket = realWebSocket;
   });
 
-  it('opens one socket and reconnects after it drops', () => {
+  it('opens one socket and reconnects after it drops', async () => {
     renderProbe('ws://table/1?token=a');
     expect(FakeWebSocket.instances).toHaveLength(1);
 
     act(() => FakeWebSocket.instances[0].fireOpen());
     act(() => FakeWebSocket.instances[0].fireClose());
+    await flushClose();
     act(() => {
       jest.advanceTimersByTime(1000);
     });
@@ -159,15 +191,37 @@ describe('useMatchSocket', () => {
     expect(probe.hook!.error).toBeNull();
   });
 
-  it('reports an action it could not send instead of dropping it silently', () => {
+  it('reports an action it could not send instead of dropping it silently', async () => {
     const { probe } = renderProbe('ws://table/1?token=a');
     const first = FakeWebSocket.instances[0];
     act(() => first.fireOpen());
     act(() => first.fireClose());
+    await flushClose();
 
     act(() => probe.hook!.send({ verb: 'discard', cards: ['8H'] }));
 
     expect(first.sent).toHaveLength(0);
     expect(probe.hook!.error).toEqual({ code: 'NOT_CONNECTED' });
+  });
+
+  it('surfaces SERVER_BUSY and backs off long when capacity says the server is full', async () => {
+    mockGetCapacity.mockResolvedValue({
+      accepting: false,
+      waitingRoomOpen: false,
+      startingMatches: false,
+      live: 100,
+    });
+    const { probe } = renderProbe('ws://table/1?token=a');
+    act(() => FakeWebSocket.instances[0].fireOpen());
+    act(() => FakeWebSocket.instances[0].fireClose());
+    await flushClose();
+
+    expect(probe.hook!.error).toEqual({ code: 'SERVER_BUSY' });
+
+    act(() => jest.advanceTimersByTime(10_000));
+    expect(FakeWebSocket.instances).toHaveLength(1);
+
+    act(() => jest.advanceTimersByTime(25_000));
+    expect(FakeWebSocket.instances.length).toBeGreaterThan(1);
   });
 });

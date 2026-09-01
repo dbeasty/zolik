@@ -19,12 +19,35 @@ being edited.
 - `e2e/` — Playwright specs that drive the real server and the real web build
 
 ```sh
-./scripts/dev-stack.sh up     # server + web client, on ports beside your dev ones
+./scripts/dev-stack.sh up     # Docker server (:8090) + web client (:8114)
 ./scripts/dev-stack.sh test   # every suite: Go, terminal client, RN, e2e
 ```
 
 See [`docs/testing-this-branch.md`](docs/testing-this-branch.md) for what to
 look at, and each directory's README for setup details.
+
+## Deploy (play.limidus.com)
+
+Production runs the KDB single-container stack on **limi-mini** (`192.168.13.13`)
+behind nginx at **https://play.limidus.com/** — same Docker shape as local dev,
+with the Expo web client exported as a static bundle. Requires the **kdb**
+repo as a sibling checkout (`../kdb`) and SSH access as `davja@192.168.13.13`:
+
+```sh
+./scripts/deploy.sh
+```
+
+The script bootstraps a `zolik` user on the server, rsyncs source, builds the
+web client locally, runs `docker compose -f docker-compose.kdb.yml`, and
+installs the nginx vhost.
+
+`APP_ENV=production` is the deployed setting and turns off the SSH terminal
+client, its admit-any-key mode, and both development hatches. It also makes
+`SMTP_*` **required** — the server refuses to start without a mail host rather
+than swallowing sign-in codes — so set those in the server `.env` before
+deploying. The script checks for that combination before it builds anything,
+because the alternative is a container that fatals on startup and is restarted
+forever. Guest-only play with no mail server is `APP_ENV=local`.
 
 ## How a game is added
 

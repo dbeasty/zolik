@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { CardBack } from '@/src/components/CardBack';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
 import { parseCard } from '@/src/lib/cards';
@@ -53,10 +54,18 @@ type Props = {
   // by the caller, which knows the card's context (hand index, staged
   // group, table meld), since CardView itself doesn't.
   testID?: string;
+  // Shown back-up, in the same ring-wrapped chassis as a face — so a card
+  // turned over occupies exactly the box its face would, to the pixel, and
+  // nothing measured around it moves. A ceremonial turn, not a secret: the
+  // server still says which card it is (see matchTypes.CardView.faceDown).
+  faceDown?: boolean;
 };
 
 /** The court cards get a medallion on a rich face rather than a giant pip. */
 const COURT_RANKS = new Set(['J', 'Q', 'K']);
+
+/** How much of a card's own side shows below and to the right of it. */
+const EDGE = 2;
 
 /** Every dimension a card's own render needs, computed once per card size and skin. */
 function cardStyles(m: CardMetrics, s: Skin) {
@@ -74,6 +83,21 @@ function cardStyles(m: CardMetrics, s: Skin) {
       borderColor: 'transparent',
       padding: m.ringPadding,
     },
+    // The card's own thickness: a sliver of its shaded edge showing below and
+    // to the right, the way a card lying on felt shows the side nobody
+    // printed on. Absolutely positioned, so it adds nothing to the box a drop
+    // is measured against — the same contract the shadow keeps, and on the
+    // same switch as the bevel, so face, back and edge agree about the light.
+    cardEdge: {
+      position: 'absolute',
+      left: m.ringPadding + EDGE,
+      top: m.ringPadding + EDGE,
+      width: m.width,
+      height: m.height,
+      borderRadius: 6,
+      backgroundColor: card.bevel?.shadow ?? 'transparent',
+    },
+    cardEdgeCompact: { width: m.compactWidth, height: m.compactHeight },
     justDrawnRing: { borderColor: colors.success },
     badgedRing: { borderColor: colors.gold, borderStyle: 'dashed' },
     draggingRing: { borderColor: colors.accent },
@@ -108,6 +132,19 @@ function cardStyles(m: CardMetrics, s: Skin) {
       shadowRadius: 12,
       elevation: 8,
     },
+    // Fake thickness: lit top/left edges, shaded bottom/right ones. Border
+    // colours only, on the same 2px border the card always has — a card
+    // with depth is still exactly the size of a card without it.
+    cardBevel: card.bevel
+      ? {
+          borderTopColor: card.bevel.highlight,
+          borderLeftColor: card.bevel.highlight,
+          borderBottomColor: card.bevel.shadow,
+          borderRightColor: card.bevel.shadow,
+        }
+      : {},
+    // The back in the same chassis a face sits in — see the faceDown prop.
+    backBox: { marginRight: m.gap },
     // A rich face positions its own corners; the plain face keeps the padded
     // column layout it has always had.
     cardRich: { padding: 0 },
@@ -229,6 +266,7 @@ export function CardView({
   compact,
   stacked,
   testID,
+  faceDown,
 }: Props) {
   const metrics = useMetrics();
   const skin = useSkin();
@@ -236,6 +274,22 @@ export function CardView({
   // Recomputed only when the card's own size or the skin changes — every
   // other render of a card reuses the same style objects.
   const styles = useMemo(() => cardStyles(metrics.card, skin), [metrics.card, skin]);
+
+  if (faceDown) {
+    // The same ring wrapper a face gets, so the turned card's box is
+    // identical to its neighbours' — the back inside it draws its own
+    // border, exactly the size of the face's.
+    return (
+      <View testID={testID} style={styles.ring}>
+        <View style={styles.backBox}>
+          <CardBack
+            width={compact ? metrics.card.compactWidth : metrics.card.width}
+            height={compact ? metrics.card.compactHeight : metrics.card.height}
+          />
+        </View>
+      </View>
+    );
+  }
 
   const rich = skin.card.face === 'rich' && !stacked;
   // The gradient wash is the resting face only: a selected or joker card
@@ -319,11 +373,18 @@ export function CardView({
         dragging && styles.draggingRing,
       ]}
     >
+      {/* Drawn before the card, so the card lies on top of its own edge. */}
+      {skin.card.bevel ? (
+        <View pointerEvents="none" style={[styles.cardEdge, compact && styles.cardEdgeCompact]} />
+      ) : null}
       <View
         style={[
           styles.card,
           rich && styles.cardRich,
           skin.card.shadow && styles.cardShadow,
+          // Not on a selected card: its solid selection border must win, and
+          // per-side colours would beat an all-side one regardless of order.
+          !selected && styles.cardBevel,
           compact && styles.compact,
           selected && styles.selected,
           d.isJoker && styles.joker,

@@ -47,12 +47,39 @@ export type Skin = {
   table: {
     background: string[];
     edge?: string;
+    /**
+     * A diagonal wash of light across the felt, as if the lamp sat just off
+     * the top-left corner. Colour only — painted behind everything, catches
+     * nothing.
+     */
+    sheen?: string;
+    /**
+     * The pool of light the table sits under, as an actual radial gradient.
+     *
+     * `edge` above is the older way of saying this: four linear gradients
+     * darkening from four sides, standing in for a radial one because there
+     * was no way to draw a real one. There is now, so a skin that names a
+     * lamp gets the real thing and one that names only `edge` keeps the
+     * stand-in — both are still colour behind everything, catching nothing.
+     *
+     * `cx`/`cy` are fractions of the surface (0.5, 0.4 sits the lamp a little
+     * above centre); `r` is a fraction of its larger side.
+     */
+    lamp?: { inner: string; outer: string; cx: number; cy: number; r: number };
   };
   panel: {
     background: string;
     border: string;
     /** Panels lift off the felt with a soft shadow. */
     shadow: boolean;
+    /**
+     * Fake depth on the panel's own border: the lit edges (top and left)
+     * take `highlight`, the shaded ones (bottom and right) take `shadow`.
+     * Border *colours* only — the width never changes, and a panel lit up
+     * as a drop target keeps its plain drop colours instead (per-side
+     * colours would beat the highlight's all-side one).
+     */
+    bevel?: { highlight: string; shadow: string };
     // No typography knobs: a wider or taller title is a *layout* change (two
     // spread panels stop fitting one phone row), and a skin may never change
     // a size — see the file comment. Spaced-capitals titles were tried and
@@ -74,6 +101,14 @@ export type Skin = {
     jokerFace: string;
     /** Cards cast a small shadow, and the one being dragged casts a bigger one. */
     shadow: boolean;
+    /**
+     * Fake thickness on the card's own 2px border: lit top/left edges,
+     * shaded bottom/right ones — the way a stacked paper card catches the
+     * lamp. Colours only, never a width, and a selected card keeps its
+     * solid selection border instead. Also switches on the card back's
+     * gloss, so face and back agree about the light.
+     */
+    bevel?: { highlight: string; shadow: string };
     /** The face-down side, for draw piles (and any future flight animation). */
     back: {
       /** Corner-to-corner gradient. */

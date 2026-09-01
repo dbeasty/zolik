@@ -3,12 +3,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiClient } from '@/src/api/client';
 import type { LobbyWSMessage, WaitingPlayer } from '@/src/api/types';
 import { logger } from '@/src/lib/logger';
+import { busyBackoff, jitteredBackoff } from '@/src/lib/reconnectBackoff';
 
 /** What the waiting-room screen actually needs to show a person: not just
  *  "connected or not" but *which kind* of not-connected this is, since
  *  "still trying the first time" and "lost the connection and retrying"
  *  read very differently and a silent spinner conflates them. */
-export type LobbyConnectionStatus = 'connecting' | 'open' | 'reconnecting';
+export type LobbyConnectionStatus = 'connecting' | 'open' | 'reconnecting' | 'busy';
 
 const initialRetryDelayMs = 1500;
 const maxRetryDelayMs = 10000;
@@ -45,11 +46,13 @@ export function useLobbySocket(enabled: boolean, onInvited: (matchId: string, jo
     closingRef.current = false;
     let attemptCount = 0;
 
-    function scheduleReconnect() {
+    function scheduleReconnect(busy = false) {
       attemptCount += 1;
       setAttempts(attemptCount);
-      setStatus('reconnecting');
-      const delay = Math.min(initialRetryDelayMs * 2 ** (attemptCount - 1), maxRetryDelayMs);
+      setStatus(busy ? 'busy' : 'reconnecting');
+      const delay = busy
+        ? busyBackoff(attemptCount - 1)
+        : jitteredBackoff(attemptCount - 1, initialRetryDelayMs, maxRetryDelayMs);
       reconnectTimerRef.current = setTimeout(connect, delay);
     }
 
@@ -88,7 +91,19 @@ export function useLobbySocket(enabled: boolean, onInvited: (matchId: string, jo
         // The list is deliberately left as-is rather than cleared: it was
         // true a moment ago and is more useful than a blank screen while a
         // reconnect is in flight, which is usually seconds.
-        scheduleReconnect();
+        void (async () => {
+          if (closingRef.current) return;
+          try {
+            const cap = await apiClient.getCapacity();
+            if (!cap.waitingRoomOpen) {
+              scheduleReconnect(true);
+              return;
+            }
+          } catch {
+            /* probe failed — ordinary reconnect */
+          }
+          scheduleReconnect(false);
+        })();
       };
 
       ws.onerror = () => {

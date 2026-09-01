@@ -44,7 +44,8 @@ type bot struct{}
 
 var _ module.Bot = bot{}
 
-func (b bot) Act(raw module.State, playerID string, offers []module.ActionOffer) (module.Action, bool) {
+func (b bot) Act(raw module.State, botSeat module.BotSeat, offers []module.ActionOffer) (module.Action, bool) {
+	playerID := botSeat.PlayerID
 	s, err := decode(raw)
 	if err != nil {
 		return module.ChooseAction(offers, nil)

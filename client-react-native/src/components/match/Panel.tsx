@@ -96,6 +96,11 @@ export function Panel({
       ref={(n) => innerRef?.(n as unknown as Measurable | null)}
       style={[
         styles.panel,
+        // Depth only while the panel is at rest: a live/refused/hovered
+        // border colours all four sides, and per-side bevel colours would
+        // beat it regardless of style order — so the bevel steps aside the
+        // moment the drop states speak.
+        !nested && !live && !refused && !hovered && styles.bevel,
         nested && styles.nested,
         inline && styles.inline,
         live && styles.live,
@@ -181,6 +186,16 @@ function panelStyles(m: Metrics, s: Skin) {
           }
         : null),
     },
+    // The lit and shaded edges of a raised panel — colours on the same 1px
+    // border the panel always has, so depth costs no measurement anything.
+    bevel: s.panel.bevel
+      ? {
+          borderTopColor: s.panel.bevel.highlight,
+          borderLeftColor: s.panel.bevel.highlight,
+          borderBottomColor: s.panel.bevel.shadow,
+          borderRightColor: s.panel.bevel.shadow,
+        }
+      : {},
     // Sized to its contents rather than stretching to fill the row — for a
     // stack or a pile, which is a couple of cards wide and belongs beside
     // its neighbour rather than claiming a full-width row.

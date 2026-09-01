@@ -4,8 +4,11 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import type { MatchState } from '@/src/api/matchTypes';
 import type { WaitingPlayer } from '@/src/api/types';
+import { Avatar } from '@/src/components/avatars/Avatar';
+import { avatarFor } from '@/src/components/avatars/catalogue';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
+import { formatApiError } from '@/src/lib/apiError';
 import { colors, shared } from '@/src/theme';
 
 /**
@@ -18,6 +21,20 @@ import { colors, shared } from '@/src/theme';
  * picker, which reads `/modules`, and what is left here is true of any game:
  * a join code, a roster, bots, and the waiting room.
  */
+/**
+ * The strengths a host can seat one at a time.
+ *
+ * Spelled out here rather than read off the descriptor because this control is
+ * per-seat and the descriptor's option is per-table; the ids are the server's
+ * own (module.Skill), and an id this build has never heard of is refused there
+ * rather than guessed at.
+ */
+const BOT_SKILLS = [
+  { id: 'easy', label: 'Easy' },
+  { id: 'medium', label: 'Medium' },
+  { id: 'hard', label: 'Hard' },
+];
+
 export default function TableScreen() {
   const { client, session } = useSession();
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
@@ -38,7 +55,7 @@ export default function TableScreen() {
       setState(m);
       if (m.status !== 'lobby') router.replace(`/match/${id}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not read the table');
+      setError(formatApiError(e, 'Could not read the table'));
     }
     // Best-effort: a host who cannot currently see the waiting room should
     // still be able to run their table. Its absence is not an error worth
@@ -64,20 +81,28 @@ export default function TableScreen() {
       await client.invitePlayer(id, playerId);
       await poll();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Invite failed');
+      setError(formatApiError(e, 'Invite failed'));
     } finally {
       setInvitingId('');
     }
   }
 
-  async function addBot() {
+  /**
+   * Seat a bot at a chosen strength.
+   *
+   * The empty string means "whatever the table was created with", which is
+   * what the plain button sends and what every caller sent before strengths
+   * existed. Naming one overrides it for this seat alone — the only way to
+   * build a table where the opponents differ from each other.
+   */
+  async function addBot(skill = '') {
     setBusy(true);
     setError('');
     try {
-      await client.addBot(id);
+      await client.addBot(id, skill || undefined);
       await poll();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not add a bot');
+      setError(formatApiError(e, 'Could not add a bot'));
     } finally {
       setBusy(false);
     }
@@ -90,7 +115,7 @@ export default function TableScreen() {
       await client.startMatch(id);
       router.replace(`/match/${id}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not start');
+      setError(formatApiError(e, 'Could not start'));
       setBusy(false);
     }
   }
@@ -131,9 +156,35 @@ export default function TableScreen() {
               invitingId={invitingId}
               onInvite={invite}
             />
-            <Pressable testID="table-add-bot" style={shared.button} onPress={addBot} disabled={busy}>
+            <Pressable
+              testID="table-add-bot"
+              style={shared.button}
+              onPress={() => addBot()}
+              disabled={busy}
+            >
               <Text style={shared.buttonText}>Add a bot</Text>
             </Pressable>
+            {/*
+              One seat at a time, at a named strength. The row underneath the
+              plain button rather than replacing it: the common case is "give
+              me an opponent" and it should stay one tap.
+            */}
+            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+              {BOT_SKILLS.map((s) => (
+                <Pressable
+                  key={s.id}
+                  testID={`table-add-bot-${s.id}`}
+                  style={[
+                    shared.button,
+                    { flexGrow: 1, flexBasis: 0, paddingVertical: 8, paddingHorizontal: 10 },
+                  ]}
+                  onPress={() => addBot(s.id)}
+                  disabled={busy}
+                >
+                  <Text style={shared.buttonText}>{s.label}</Text>
+                </Pressable>
+              ))}
+            </View>
             <Pressable testID="table-start" style={shared.button} onPress={start} disabled={busy}>
               <Text style={shared.buttonText}>Start</Text>
             </Pressable>
@@ -186,10 +237,16 @@ function WaitingPlayersPanel({
               marginBottom: 8,
             }}
           >
-            <Text style={{ color: colors.text }}>
-              {p.username}
-              {p.isGuest ? ' (guest)' : ''}
-            </Text>
+            {/* The face they are waiting under, which is the face they will
+                be sitting behind a moment later — the host picks a person
+                out of the pool, not a row of text. */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 }}>
+              <Avatar spec={avatarFor(p.playerId, false, p.avatar)} size={28} />
+              <Text style={{ color: colors.text }} numberOfLines={1}>
+                {p.username}
+                {p.isGuest ? ' (guest)' : ''}
+              </Text>
+            </View>
             <Pressable
               testID={`invite-${p.playerId}`}
               style={[shared.button, { marginBottom: 0, paddingVertical: 8, paddingHorizontal: 14 }]}

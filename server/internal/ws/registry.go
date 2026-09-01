@@ -93,6 +93,21 @@ func (r *ConnRegistry) RemoveIfCurrent(gameID, playerID string, conn WSConn) boo
 	return true
 }
 
+// Has reports whether playerID already holds a connection in this room.
+//
+// Admission control leans on this to tell a reconnect from a new arrival. A
+// reconnecting player's socket displaces their own dead one via Add, so it
+// costs no net capacity, and refusing it would strand someone mid-hand — so it
+// is admitted even when the server has stopped taking anyone else.
+func (r *ConnRegistry) Has(gameID, playerID string) bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if r.conns[gameID] == nil {
+		return false
+	}
+	return r.conns[gameID][playerID] != nil
+}
+
 func (r *ConnRegistry) WriteJSON(gameID, playerID string, payload interface{}) bool {
 	r.mu.RLock()
 	defer r.mu.RUnlock()

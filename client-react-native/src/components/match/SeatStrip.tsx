@@ -2,7 +2,11 @@ import { useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { MatchPlayer, Seat, Standing } from '@/src/api/matchTypes';
-import { Panel } from '@/src/components/match/Panel';
+import { Avatar } from '@/src/components/avatars/Avatar';
+import { avatarFor } from '@/src/components/avatars/catalogue';
+import { Panel, type Measurable } from '@/src/components/match/Panel';
+import { seatElementId } from '@/src/lib/flights';
+import { ms } from '@/src/lib/motion';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
 import { useSkin } from '@/src/hooks/useSkin';
@@ -38,11 +42,21 @@ type Props = {
   panelId?: string;
   minimized?: boolean;
   onToggleMinimized?: () => void;
+  /**
+   * Publishes where each seat tile is, under `seatElementId(playerId)` — a
+   * seat is where a player's unseen cards visually live, so it is where a
+   * card in flight leaves from or lands when their hand isn't on screen.
+   */
+  registerSpot?: (elementId: string, node: Measurable | null) => void;
 };
 
-export function SeatStrip({ seats, players, viewerId, standings, panelId, minimized, onToggleMinimized }: Props) {
+export function SeatStrip({ seats, players, viewerId, standings, panelId, minimized, onToggleMinimized, registerSpot }: Props) {
   const metrics = useMetrics();
   const skin = useSkin();
+  // Asked for stillness, the seat on turn keeps its outline and its shadow
+  // and simply does not rise — the fact is still on screen, in the two cues
+  // that were never movement.
+  const stillness = useReducedMotion();
   const styles = useMemo(() => seatStyles(metrics, skin), [metrics, skin]);
 
   if (!seats.length) return null;
@@ -55,12 +69,28 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
     return (
       <View
         key={seat.playerId}
+        ref={(n) => registerSpot?.(seatElementId(seat.playerId), n as unknown as Measurable | null)}
         testID={`seat-${seat.playerId}`}
-        style={[styles.seat, metrics.narrow && styles.seatNarrow, seat.active && styles.active, isMe && styles.mine]}
+        style={[
+          styles.seat,
+          metrics.narrow && styles.seatNarrow,
+          seat.active && styles.active,
+          isMe && styles.mine,
+          // Shadow only, and only on the measured node — the *lift* goes on
+          // the wrapper inside, because a transform here would move the rect
+          // this node is registered under and a card would fly to where the
+          // seat used to be.
+          seat.active && styles.activeShadow,
+        ]}
       >
+        <View style={seat.active && !stillness ? styles.lifted : undefined}>
         <View style={styles.nameRow}>
           {skin.seats.avatars ? (
-            <SeatAvatar name={name} active={seat.active} styles={styles} />
+            <Avatar
+              spec={avatarFor(seat.playerId, !!player?.isAI, player?.avatar)}
+              size={metrics.seat.avatar}
+              ringColor={seat.active ? skin.colors.gold : undefined}
+            />
           ) : null}
           {standing ? <Text style={styles.rank}>{standing.rank}</Text> : null}
           <Text style={styles.name} numberOfLines={1}>
@@ -104,6 +134,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
             {factText(f, players)}
           </Text>
         ))}
+        </View>
       </View>
     );
   });
@@ -119,6 +150,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
         <View style={styles.summary} testID="match-standings-summary">
           {seats.map((seat) => {
             const standing = standings?.find((s) => s.playerId === seat.playerId);
+            const player = players.find((p) => p.id === seat.playerId);
             // The one number worth carrying onto the collapsed rail — a
             // running score where the game has one, otherwise whatever the
             // seat's own first fact says (a card count, a stack size). Either
@@ -135,6 +167,14 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
                 testID={`seat-summary-${seat.playerId}`}
                 style={[styles.summaryPill, seat.active && styles.summaryPillActive]}
               >
+                {/* The same face, small. Four names in a row is a list to be
+                    read; four faces is a table to be glanced at. */}
+                {skin.seats.avatars ? (
+                  <Avatar
+                    spec={avatarFor(seat.playerId, !!player?.isAI, player?.avatar)}
+                    size={metrics.seat.avatarCompact}
+                  />
+                ) : null}
                 <Text style={styles.summaryName} numberOfLines={1}>
                   {seat.active ? '● ' : ''}
                   {playerName(players, seat.playerId)}
@@ -169,32 +209,6 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
 }
 
 /**
- * An initial-circle standing in for a portrait nobody uploaded. The colour is
- * picked from the name, so a player keeps their colour across matches without
- * anything being stored — and two players at one table rarely collide.
- */
-function SeatAvatar({ name, active, styles }: { name: string; active?: boolean; styles: SeatStyles }) {
-  const initials =
-    name
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((w) => w[0]!.toUpperCase())
-      .join('') || '?';
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
-  const fill = AVATAR_FILLS[hash % AVATAR_FILLS.length];
-  return (
-    <View style={[styles.avatar, { backgroundColor: fill }, active && styles.avatarActive]}>
-      <Text style={styles.avatarText}>{initials}</Text>
-    </View>
-  );
-}
-
-/** Muted, felt-friendly fills that keep white initials readable on all of them. */
-const AVATAR_FILLS = ['#7c5cbf', '#2f7fb8', '#b8722f', '#3f8f6a', '#b84f6e', '#5a7d3f'];
-
-/**
  * The dot beside "to play", breathing. The one looping animation on the
  * board, because whose turn it is is the one fact that stays true and worth
  * noticing for as long as it is on screen. Still under reduce-motion.
@@ -212,13 +226,13 @@ function TurnPulse({ color }: { color: string }) {
       Animated.sequence([
         Animated.timing(progress, {
           toValue: 1,
-          duration: 700,
+          duration: ms(700),
           easing: Easing.inOut(Easing.quad),
           useNativeDriver: true,
         }),
         Animated.timing(progress, {
           toValue: 0,
-          duration: 700,
+          duration: ms(700),
           easing: Easing.inOut(Easing.quad),
           useNativeDriver: true,
         }),
@@ -278,19 +292,19 @@ function seatStyles(m: Metrics, s: Skin) {
     // The seat on turn is outlined rather than filled: a filled highlight on a
     // small tile competes with the cards, which are what a player is looking at.
     active: { borderColor: colors.accent, borderWidth: 2 },
+    // The seat on turn sits a little proud of the felt. Three pixels and a
+    // deeper shadow, which is as much as a tile can rise before the row it is
+    // in starts to look ragged.
+    activeShadow: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.38,
+      shadowRadius: 10,
+      elevation: 8,
+    },
+    lifted: { transform: [{ translateY: -3 }] },
     mine: { backgroundColor: s.seats.avatars ? 'rgba(240, 199, 94, 0.10)' : '#22304a' },
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    avatar: {
-      width: 26,
-      height: 26,
-      borderRadius: 13,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 2,
-      borderColor: 'transparent',
-    },
-    avatarActive: { borderColor: colors.gold },
-    avatarText: { color: '#ffffff', fontWeight: '800', fontSize: 11 },
     turnRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
     name: { color: colors.text, fontWeight: '700', fontSize: m.panel.bodyFont + 1, flexShrink: 1 },
     rank: {
@@ -321,5 +335,3 @@ function seatStyles(m: Metrics, s: Skin) {
     fact: { color: colors.muted, fontSize: m.panel.bodyFont - 1, marginTop: 1 },
   });
 }
-
-type SeatStyles = ReturnType<typeof seatStyles>;

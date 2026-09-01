@@ -11,6 +11,28 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { useLobbySocket, type LobbyConnectionStatus } from '@/src/hooks/useLobbySocket';
 import type { WaitingPlayer } from '@/src/api/types';
 
+const mockGetCapacity = jest.fn(async () => ({
+  accepting: true,
+  waitingRoomOpen: true,
+  startingMatches: true,
+  live: 0,
+}));
+
+jest.mock('@/src/api/client', () => ({
+  apiClient: {
+    lobbyWsUrl: () => 'ws://lobby?token=t',
+    get getCapacity() {
+      return mockGetCapacity;
+    },
+  },
+}));
+
+async function flushClose() {
+  await act(async () => {
+    await Promise.resolve();
+  });
+}
+
 type Handler = ((ev?: unknown) => void) | null;
 
 class FakeWebSocket {
@@ -110,11 +132,20 @@ function renderProbe(enabled = true): {
 
 describe('useLobbySocket', () => {
   const realWebSocket = (global as { WebSocket?: unknown }).WebSocket;
+  let randomSpy: jest.SpyInstance;
 
   beforeEach(() => {
     FakeWebSocket.instances = [];
     (global as { WebSocket?: unknown }).WebSocket = FakeWebSocket;
     jest.useFakeTimers();
+    randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0);
+    mockGetCapacity.mockClear();
+    mockGetCapacity.mockResolvedValue({
+      accepting: true,
+      waitingRoomOpen: true,
+      startingMatches: true,
+      live: 0,
+    });
   });
 
   // Registered before the timer-restoring afterEach below, so it runs first
@@ -128,6 +159,7 @@ describe('useLobbySocket', () => {
   });
 
   afterEach(() => {
+    randomSpy.mockRestore();
     jest.useRealTimers();
     (global as { WebSocket?: unknown }).WebSocket = realWebSocket;
   });
@@ -182,17 +214,18 @@ describe('useLobbySocket', () => {
     expect(probe.status).toBe('open');
   });
 
-  it('moves to "reconnecting" and counts attempts when the connection drops', () => {
+  it('moves to "reconnecting" and counts attempts when the connection drops', async () => {
     const { probe } = renderProbe();
     act(() => FakeWebSocket.instances[0].fireOpen());
     expect(probe.status).toBe('open');
 
     act(() => FakeWebSocket.instances[0].fireClose());
+    await flushClose();
     expect(probe.status).toBe('reconnecting');
     expect(probe.attempts).toBe(1);
   });
 
-  it('keeps showing the last-known player list while reconnecting rather than blanking it', () => {
+  it('keeps showing the last-known player list while reconnecting rather than blanking it', async () => {
     const { probe } = renderProbe();
     const ws = FakeWebSocket.instances[0];
     act(() => ws.fireOpen());
@@ -204,13 +237,15 @@ describe('useLobbySocket', () => {
     );
 
     act(() => ws.fireClose());
+    await flushClose();
     expect(probe.status).toBe('reconnecting');
     expect(probe.players).toHaveLength(1); // still there — not cleared on disconnect
   });
 
-  it('retries with a growing, capped backoff rather than hammering the server', () => {
+  it('retries with a growing, capped backoff rather than hammering the server', async () => {
     renderProbe();
     act(() => FakeWebSocket.instances[0].fireClose()); // never opened: first attempt fails
+    await flushClose();
 
     // Nothing new yet — the first retry is scheduled, not immediate.
     expect(FakeWebSocket.instances).toHaveLength(1);
@@ -219,6 +254,7 @@ describe('useLobbySocket', () => {
     expect(FakeWebSocket.instances).toHaveLength(2);
 
     act(() => FakeWebSocket.instances[1].fireClose());
+    await flushClose();
     // Second attempt waits longer (exponential) rather than the same interval.
     act(() => jest.advanceTimersByTime(1500));
     expect(FakeWebSocket.instances).toHaveLength(2); // not yet — backoff grew past 1500ms
@@ -226,9 +262,10 @@ describe('useLobbySocket', () => {
     expect(FakeWebSocket.instances).toHaveLength(3);
   });
 
-  it('resets the attempt count back to zero once a retry succeeds', () => {
+  it('resets the attempt count back to zero once a retry succeeds', async () => {
     const { probe } = renderProbe();
     act(() => FakeWebSocket.instances[0].fireClose());
+    await flushClose();
     act(() => jest.advanceTimersByTime(1500));
     expect(probe.attempts).toBe(1);
 
@@ -237,9 +274,10 @@ describe('useLobbySocket', () => {
     expect(probe.attempts).toBe(0);
   });
 
-  it('retryNow connects immediately, skipping the scheduled backoff wait', () => {
+  it('retryNow connects immediately, skipping the scheduled backoff wait', async () => {
     const { probe } = renderProbe();
     act(() => FakeWebSocket.instances[0].fireClose());
+    await flushClose();
     expect(FakeWebSocket.instances).toHaveLength(1);
 
     act(() => probe.retryNow());
@@ -248,7 +286,7 @@ describe('useLobbySocket', () => {
     expect(probe.attempts).toBe(0);
   });
 
-  it('stops retrying and closes the socket once disabled', () => {
+  it('stops retrying and closes the socket once disabled', async () => {
     const { setEnabled } = renderProbe();
     act(() => FakeWebSocket.instances[0].fireOpen());
 
@@ -259,7 +297,29 @@ describe('useLobbySocket', () => {
     // A close event arriving after teardown must not resurrect a reconnect
     // loop for a screen the person has already left.
     act(() => FakeWebSocket.instances[0].fireClose());
+    await flushClose();
     act(() => jest.advanceTimersByTime(20000));
     expect(FakeWebSocket.instances).toHaveLength(1);
+  });
+
+  it('moves to busy with a long backoff when the waiting room is closed', async () => {
+    mockGetCapacity.mockResolvedValue({
+      accepting: false,
+      waitingRoomOpen: false,
+      startingMatches: false,
+      live: 100,
+    });
+    const { probe } = renderProbe();
+    act(() => FakeWebSocket.instances[0].fireOpen());
+
+    act(() => FakeWebSocket.instances[0].fireClose());
+    await flushClose();
+    expect(probe.status).toBe('busy');
+
+    act(() => jest.advanceTimersByTime(10_000));
+    expect(FakeWebSocket.instances).toHaveLength(1);
+
+    act(() => jest.advanceTimersByTime(25_000));
+    expect(FakeWebSocket.instances.length).toBeGreaterThan(1);
   });
 });

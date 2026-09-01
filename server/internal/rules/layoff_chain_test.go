@@ -193,6 +193,41 @@ func TestLayOffPlacements_TwoJokersAtOneEndAreBothStillOffered(t *testing.T) {
 	}
 }
 
+// Reported live: a run of 2-9 on the table, a hand holding the ten and the
+// jack that reach it only as a pair — and a joker, dealt before either of
+// them, that could bridge the same gap. The closure walks the hand in dealt
+// order and takes the first card that grows the working meld, so the joker
+// got used to reach the jack before the ten was ever tried, and the offer
+// reported the jack as needing the joker's company. A player who dragged the
+// ten and the jack together — the natural, joker-free pair the engine has
+// always accepted — was refused and left holding a wild card the move never
+// needed.
+func TestLayOffPlacements_PrefersTheNaturalCardOverAWildBridge(t *testing.T) {
+	st := chainState([]string{"JOKER1", "JC", "TC", "2H"})
+	st.Melds["karel"] = [][]string{{"2C", "3C", "4C", "5C", "6C", "7C", "8C", "9C"}}
+
+	ten := layOffPlacementFor(t, st, "m1", "TC")
+	if ten == nil {
+		t.Fatal("the ten extends the run on its own and must be offered")
+	}
+	if len(ten.Requires) != 0 {
+		t.Fatalf("the ten needs no company, got requires=%v", ten.Requires)
+	}
+
+	jack := layOffPlacementFor(t, st, "m1", "JC")
+	if jack == nil {
+		t.Fatal("the jack is playable alongside the ten and must be offered")
+	}
+	if len(jack.Requires) != 1 || jack.Requires[0] != "TC" {
+		t.Fatalf("the jack needs exactly the ten, not the joker — got requires=%v", jack.Requires)
+	}
+
+	// And the engine agrees: the natural pair, no joker spent.
+	if _, err := ValidateLayOff(cloneState(st), "me", "m1", []string{"TC", "JC"}, ""); err != nil {
+		t.Fatalf("the pair the offer now lists was refused by the engine: %v", err)
+	}
+}
+
 // The chain may not swallow the whole hand on a non-final deal: the engine
 // refuses the lay-off that leaves nothing to discard, so offering it would be
 // a promise the offer cannot keep.

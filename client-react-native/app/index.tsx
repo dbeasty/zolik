@@ -9,6 +9,7 @@ import { useSession } from '@/src/context/SessionContext';
 import { useLobbySocket } from '@/src/hooks/useLobbySocket';
 import { useWaitingLobbyStatus } from '@/src/hooks/useWaitingLobbyStatus';
 import type { PlayerSession } from '@/src/api/types';
+import { reasonText } from '@/src/lib/i18n';
 import { colors, shared } from '@/src/theme';
 
 function MenuButton({
@@ -192,6 +193,30 @@ function WaitingStatusCard({ session }: { session: PlayerSession }) {
           onPress={() => setAvailable(false)}
         >
           <Text style={shared.buttonTextSecondary}>Stop</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  if (status === 'busy') {
+    return (
+      <View style={[shared.card, { marginTop: 12 }]} testID="home-waiting-status">
+        <View testID="waiting-status-busy">
+          <Text style={{ color: colors.gold, fontWeight: '600', marginBottom: 4 }}>
+            {reasonText('SERVER_BUSY')}
+          </Text>
+          <Text style={shared.status}>
+            Attempt {attempts}. The server is not taking new waiting-room connections right now.
+          </Text>
+        </View>
+        <Pressable
+          style={[shared.buttonSecondary, { marginTop: 12, marginBottom: 0 }]}
+          onPress={retryNow}
+        >
+          <Text style={shared.buttonTextSecondary}>Try again now</Text>
+        </Pressable>
+        <Pressable style={{ marginTop: 10 }} onPress={() => setAvailable(false)}>
+          <Text style={shared.status}>Stop</Text>
         </Pressable>
       </View>
     );

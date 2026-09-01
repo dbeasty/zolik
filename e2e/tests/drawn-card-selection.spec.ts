@@ -2,7 +2,8 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { handCards } from '../helpers/drag';
 import { API_BASE } from '../helpers/env';
-import { cardByCode, clearHandSelection, selectedCodes } from '../helpers/hand';
+import { waitForOfferEnabled } from '../helpers/turn';
+import { cardByCode, clearHandSelection, handCodes, selectedCodes } from '../helpers/hand';
 
 /**
  * What the card you just drew does to the card you tap next.
@@ -65,6 +66,7 @@ async function openMatch(page: Page, host: any, matchId: string) {
 /** Draws from the deck and returns the code of the card that arrived selected. */
 async function drawOne(page: Page): Promise<string> {
   const before = await handCards(page);
+  await waitForOfferEnabled(page, 'offer-draw:deck');
   await page.getByTestId('offer-draw:deck').click();
   await expect(page.locator('[data-testid^="card-hand:"]')).toHaveCount(before.length + 1, {
     timeout: 10_000,
@@ -73,6 +75,49 @@ async function drawOne(page: Page): Promise<string> {
   // this whole file is about, so assert it rather than assume it.
   await expect.poll(async () => (await selectedCodes(page)).length).toBe(1);
   return (await selectedCodes(page))[0];
+}
+
+async function board(request: Ctx, matchId: string, userId: string) {
+  const res = await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`);
+  expect(res.ok(), await res.text()).toBeTruthy();
+  return res.json();
+}
+
+/**
+ * Plays whatever is live until a pickup off the discard pile is offered to
+ * `userId`, or gives up after `budgetMs`. A fresh deal has nothing on the
+ * pile yet, so this needs at least one discard to have happened first —
+ * usually the host's own, on whichever turn the loop first finds something
+ * pressable.
+ */
+async function waitForDiscardPickupOffered(
+  page: Page,
+  request: Ctx,
+  matchId: string,
+  userId: string,
+  budgetMs = 30_000,
+): Promise<boolean> {
+  const deadline = Date.now() + budgetMs;
+  while (Date.now() < deadline) {
+    const body = await board(request, matchId, userId);
+    const offer = (body.legalActions ?? []).find((o: any) => o.id === 'draw:discard');
+    if (offer?.enabled) return true;
+    const live = page.locator('[data-testid^="offer-"]:not([aria-disabled="true"])').first();
+    if (await live.count()) {
+      try {
+        await live.click({ timeout: 5000 });
+      } catch {
+        /* the board moved under us; the next pass re-reads it */
+      }
+    }
+    await page.waitForTimeout(500);
+  }
+  return false;
+}
+
+/** The rank+suit prefix of a card code, sans the trailing suit letter — enough to tell two codes apart by more than just their copy in a two-deck hand. */
+function rankPart(code: string): string {
+  return code.replace(/[SHDC]$/, '');
 }
 
 test.describe('the card you just drew', () => {
@@ -112,8 +157,8 @@ test.describe('the card you just drew', () => {
     await openMatch(page, host, matchId);
     await handCards(page);
 
-    const drawn = await drawOne(page);
-    await cardByCode(page, drawn).click();
+    await drawOne(page);
+    await page.locator('[data-testid^="card-hand:"][aria-selected="true"]').click();
 
     // "Not that one" means what it says.
     await expect.poll(async () => await selectedCodes(page)).toEqual([]);
@@ -145,5 +190,43 @@ test.describe('the card you just drew', () => {
     await expect
       .poll(async () => (await selectedCodes(page)).slice().sort())
       .toEqual(distinct.slice().sort());
+  });
+});
+
+test.describe('a card picked up off the discard pile', () => {
+  test('stays selected when you tap a different card, unlike a plain draw', async ({
+    page,
+    request,
+  }) => {
+    const { matchId, host } = await tableWithBots(request, 'zolik');
+    await openMatch(page, host, matchId);
+    await handCards(page);
+
+    const offered = await waitForDiscardPickupOffered(page, request, matchId, host.userId);
+    test.skip(!offered, 'never reached a position where a discard pickup was offered');
+
+    const before = await handCodes(page);
+    await page.getByTestId('offer-draw:discard').click();
+    await expect(page.locator('[data-testid^="card-hand:"]')).toHaveCount(before.length + 1, {
+      timeout: 10_000,
+    });
+    await expect.poll(async () => (await selectedCodes(page)).length).toBe(1);
+    const drawn = (await selectedCodes(page))[0]!;
+
+    // A card whose rank and suit both differ from the pickup, so no offer
+    // could possibly be ready for the pair — this is specifically the case a
+    // plain draw replaces on (see the tests above) and a pickup must not.
+    const other = (await handCodes(page)).find((c) => rankPart(c) !== rankPart(drawn));
+    test.skip(!other, 'hand holds no card of a different rank to tap');
+
+    await cardByCode(page, other!).click();
+
+    // Unlike stepping aside for a plain draw, the pickup is one the module
+    // itself marked as owed to a meld this turn — see `zolik.badge.owedToMeld`
+    // — so it rides along rather than being bumped by the first other card
+    // touched. Both stay picked; only tapping the pickup itself would drop it.
+    await expect
+      .poll(async () => (await selectedCodes(page)).slice().sort())
+      .toEqual([drawn, other!].sort());
   });
 });

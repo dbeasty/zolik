@@ -3,6 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { handCards } from '../helpers/drag';
 import { API_BASE } from '../helpers/env';
 import { selectedCodes } from '../helpers/hand';
+import { waitForOfferEnabled } from '../helpers/turn';
 
 /**
  * A control refuses a selection it cannot send, rather than sending a
@@ -81,6 +82,7 @@ test.describe('a control refuses what it cannot send', () => {
 
     // A turn starts with a draw; the drawn card lands selected on its own —
     // exactly one, which is what discard takes.
+    await waitForOfferEnabled(page, 'offer-draw:deck');
     await page.getByTestId('offer-draw:deck').click();
     const discard = page.getByTestId('offer-discard');
     await expect(discard).not.toHaveAttribute('aria-disabled', 'true');

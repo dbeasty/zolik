@@ -27,9 +27,13 @@ export type Fact = {
  * pickup obliges you to lay down: the rule is enforced at the discard, which
  * is the last possible moment to hear about it, so the mark is what turns a
  * refusal into an instruction given while there is still a turn left to act
- * on it.
+ * on it — long-press the card to read it; tap to select it for your lay-down.
+ *
+ * `faceDown` shows this card back-up — a ceremonial turn, not a secret.
+ * Hiding is still done the one way it always was, by not sending the card at
+ * all; a module sets this only where the value is already public or spent.
  */
-export type CardView = { card: string; badgeKeys?: string[] };
+export type CardView = { card: string; badgeKeys?: string[]; faceDown?: boolean };
 
 /** Cards within a zone that belong together — a meld, a trick, a board. */
 export type Group = {
@@ -262,7 +266,19 @@ export type RoundLog = {
   waitingFor?: string[];
 };
 
-export type MatchPlayer = { id: string; name: string; isAI: boolean };
+export type MatchPlayer = {
+  id: string;
+  name: string;
+  isAI: boolean;
+  /**
+   * The face this seat wears, as a slug. Absent when the seat never named
+   * one, which is not a gap to fill in from somewhere else: every client
+   * derives the same face from the id, so an older client, a seat filled
+   * before faces existed, and one nobody is sitting at all look right
+   * without anything having been stored for them.
+   */
+  avatar?: string;
+};
 
 export type MatchState = {
   type: 'match_state';

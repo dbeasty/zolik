@@ -112,6 +112,11 @@ type Player struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	IsAI bool   `json:"isAI"`
+	// Avatar is the face the graphical clients draw for this seat. Carried
+	// for parity rather than use: a terminal has no portrait to show, and a
+	// field decoded here is one a future pane could reach for without the
+	// wire needing to change again.
+	Avatar string `json:"avatar,omitempty"`
 }
 
 // MatchState is everything a client renders a match from.

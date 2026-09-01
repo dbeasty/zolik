@@ -1,10 +1,11 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { ActionOffer, Zone } from '@/src/api/matchTypes';
 import { POSITION_PARAM, offerGroupKey, submissionFor } from '@/src/api/matchTypes';
+import { FlightLayer, type QueuedFlight } from '@/src/components/match/FlightLayer';
 import { HandZone } from '@/src/components/match/HandZone';
 import { LifetimeRecord } from '@/src/components/match/LifetimeRecord';
 import { OfferBar, OfferGlance } from '@/src/components/match/OfferBar';
@@ -27,8 +28,17 @@ import {
   refusalAt,
   someOfferReady,
   takeableSpots,
+  zoneElementId,
   type DropSpot,
 } from '@/src/lib/drops';
+import {
+  EMPTY_FLIGHT_PLAN,
+  OWN_MOVE_QUIET_MS,
+  planFlights,
+  type BoardLike,
+  type FlightPlan,
+} from '@/src/lib/flights';
+import { useReducedMotion } from '@/src/hooks/useReducedMotion';
 import { cardsForSelection, slotsForDrag, toggleSelection } from '@/src/lib/hand';
 import { reasonText } from '@/src/lib/i18n';
 import { WhySheet, type Refusal } from '@/src/components/match/WhySheet';
@@ -180,6 +190,55 @@ export default function MatchScreen() {
     setSkinId(skins[(at + 1) % skins.length]!.id);
   };
 
+  // Cards seen travelling between zones. The server never says "a card
+  // moved" — it sends the next board — so the journey is reconstructed by
+  // comparing this board with the last one (see `src/lib/flights.ts`), and
+  // flown on an overlay that touches nothing. Asked for stillness, nothing
+  // is ever planned, and the board behaves exactly as it did before flights
+  // existed — which is also what keeps the e2e suite deterministic.
+  const stillness = useReducedMotion();
+  const boardRef = useRef<BoardLike | null>(null);
+  // When a card last left the hand by being physically carried somewhere —
+  // that journey already happened under the player's finger, and replaying
+  // it from the fan would be a second answer to the same question.
+  const dragSentAt = useRef(0);
+  const flightPlan = useMemo<FlightPlan>(() => {
+    if (stillness || !state) return EMPTY_FLIGHT_PLAN;
+    const next: BoardLike = { zones: state.view?.zones ?? [], seats: state.view?.seats ?? [] };
+    const plan = planFlights(boardRef.current, next, viewerId);
+    if (!plan.flights.length || Date.now() - dragSentAt.current > OWN_MOVE_QUIET_MS) return plan;
+    const fromOwnFan = new Set(
+      next.zones
+        .filter((z) => z.kind === 'hand' && z.ownerId === viewerId)
+        .map((z) => zoneElementId(z.id)),
+    );
+    const kept = plan.flights.filter((f) => !fromOwnFan.has(f.fromId));
+    if (kept.length === plan.flights.length) return plan;
+    const holds = new Map(plan.holds);
+    for (const f of plan.flights) if (fromOwnFan.has(f.fromId)) holds.delete(f.toId);
+    return { flights: kept, holds };
+  }, [state, stillness, viewerId]);
+  useEffect(() => {
+    if (state) boardRef.current = { zones: state.view?.zones ?? [], seats: state.view?.seats ?? [] };
+  }, [state]);
+
+  // The flights currently in the air — appended when a plan lands, removed
+  // as each one touches down. De-duplicated by the plan's own stable ids,
+  // so replanning the same transition can never double a card.
+  const [flightsInAir, setFlightsInAir] = useState<QueuedFlight[]>([]);
+  useEffect(() => {
+    if (!flightPlan.flights.length) return;
+    setFlightsInAir((was) => {
+      const have = new Set(was.map((f) => f.id));
+      const fresh = flightPlan.flights.filter((f) => !have.has(f.id));
+      const bornAt = Date.now();
+      return fresh.length ? [...was, ...fresh.map((f) => ({ ...f, bornAt }))] : was;
+    });
+  }, [flightPlan]);
+  const landFlight = useCallback((id: string) => {
+    setFlightsInAir((was) => was.filter((f) => f.id !== id));
+  }, []);
+
   if (!state) {
     return (
       <View style={styles.root}>
@@ -204,6 +263,13 @@ export default function MatchScreen() {
     setArmedMeldId(null);
   };
 
+  // Whether a card in hand carries a mark the module put there — Žolíky's
+  // discard-pickup debt is the one live example (see `badgedCardViews` on the
+  // server), but this reads the mark rather than deciding what it means, the
+  // same way the badge itself is rendered with no idea what it says.
+  const isMarked = (card: string) =>
+    myHands.some((z) => (z.cards ?? []).some((c) => c.card === card && (c.badgeKeys?.length ?? 0) > 0));
+
   // Selection is by *slot*, not by card string. With two decks in play a hand
   // can hold two identical strings, and selecting by string could neither
   // light up the copy that was tapped nor put both of them in one meld.
@@ -223,6 +289,14 @@ export default function MatchScreen() {
       if (selectionIsAuto && !prev.has(slotId)) {
         const joined = toggleSelection(heldSlots, prev, slotId, { provisional: false });
         if (someOfferReady(state.legalActions, cardsForSelection(heldSlots, joined))) return joined;
+        // A marked card is one the module itself flagged as owed to a meld
+        // this turn — a pickup off the discard pile the player is very
+        // likely still building around, not one they meant to abandon the
+        // moment the next tap didn't finish a meld outright. Stay joined so
+        // gathering a third card doesn't need the pickup re-selected by
+        // hand; tapping the marked card itself still drops it, same as ever.
+        const auto = heldSlots.find((s) => prev.has(s.id));
+        if (auto && isMarked(auto.card)) return joined;
       }
       return toggleSelection(heldSlots, prev, slotId, { provisional: selectionIsAuto });
     });
@@ -439,6 +513,9 @@ export default function MatchScreen() {
     const position = positionAt(spot.positions, y, drops.rectFor(over!) ?? { y: 0, height: 0 });
     if (position) action.params = { ...(action.params ?? {}), [POSITION_PARAM]: position };
 
+    // The card was carried there by hand — its journey has been made, so the
+    // planner must not fly it a second time (see `flightPlan`).
+    dragSentAt.current = Date.now();
     send(action);
     clearSelection();
     return true;
@@ -494,6 +571,7 @@ export default function MatchScreen() {
     armableGroups,
     armedGroupId: armedMeldIdLive,
     onAimGroup,
+    entranceDelays: flightPlan.holds,
   };
 
   // The same table again: same game, same variation, the same numbers the
@@ -740,6 +818,7 @@ export default function MatchScreen() {
           players={state.players}
           viewerId={viewerId}
           standings={state.standings}
+          registerSpot={dropProps.registerDrop}
           {...zonePanelProps('seats')}
         />
 
@@ -790,6 +869,8 @@ export default function MatchScreen() {
               onDragMove={moveDrag}
               onDragEnd={endDrag}
               externalTarget={hoveredDrop}
+              registerSpot={dropProps.registerDrop}
+              entranceDelay={flightPlan.holds.get(zoneElementId(z.id)) ?? 0}
               badges={badgesFor(z)}
               onPressBadge={(card, badgeKeys) =>
                 setExplaining({
@@ -797,8 +878,8 @@ export default function MatchScreen() {
                   params: { card },
                   // The rules and the way out behind the mark come from
                   // whichever offer this card is about to be refused by —
-                  // asked for now, rather than the module having to say the
-                  // same thing twice.
+                  // asked for on long-press, rather than the module having
+                  // to say the same thing twice.
                   ...refusalBehindBadge(state.legalActions),
                 })
               }
@@ -945,6 +1026,15 @@ export default function MatchScreen() {
         }}
       />
       </SafeAreaView>
+
+      {/* The air above the board: cards currently travelling between zones.
+          Above everything, touchable by nothing — see FlightLayer. */}
+      <FlightLayer
+        flights={flightsInAir}
+        rectFor={drops.rectFor}
+        measure={drops.measure}
+        onDone={landFlight}
+      />
     </View>
   );
 }

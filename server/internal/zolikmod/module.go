@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"zolik/server/internal/ai"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
 	"zolik/server/internal/rules"
@@ -41,6 +42,21 @@ type matchState struct {
 	// — it sets its own intermission phase — and the adapter owns the ready-up,
 	// because "who has agreed to go on" is protocol vocabulary and not rummy's.
 	Break module.Intermission `json:"break,omitempty"`
+	// Ledger is what everyone at the table has seen: the deal's discards in
+	// order, and the cards each seat was watched taking off the pile.
+	//
+	// It is persisted rather than re-derived because it is *history* — the
+	// pile forgets a discard the moment somebody picks it up, and forgets the
+	// lot when the stock runs out and it is recycled. Everything an agent can
+	// work out from the position instead stays worked out from the position;
+	// see ai.Ledger.
+	//
+	// It lives on the state and not in the bot because a bot is constructed
+	// fresh for every single move: there is nowhere else for a memory to live.
+	// It holds no hidden card, so putting it here leaks nothing — an older
+	// document simply arrives with an empty one, and its bots play on with no
+	// memory, exactly as they did before.
+	Ledger ai.Ledger `json:"ledger,omitempty"`
 }
 
 func decode(raw module.State) (*matchState, error) {
@@ -73,18 +89,20 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 		out.Variations = append(out.Variations, module.VariationSpec{
 			ID: p.ID, Label: p.Label,
 			Defaults: map[string]int{
-				rules.OptInitialMeldMinimum:  cfg.InitialMeldMinimum,
-				rules.OptDiscardDrawMinRound: cfg.DiscardDrawMinRound,
-				rules.OptRequireCleanRun:     rules.BoolOpt(cfg.ContractFor(1).RequireCleanRun),
-				rules.OptDealStarter:         rules.DealStarterOpt(cfg.DealStarter),
-				module.OptPauseBetweenRounds: module.OptOn,
+				rules.OptInitialMeldMinimum:   cfg.InitialMeldMinimum,
+				rules.OptDiscardDrawMinRound:  cfg.DiscardDrawMinRound,
+				rules.OptRequireCleanRun:      rules.BoolOpt(cfg.ContractFor(1).RequireCleanRun),
+				rules.OptDealStarter:          rules.DealStarterOpt(cfg.DealStarter),
+				rules.OptJokerReclaimMustPlay: rules.BoolOpt(cfg.JokerReclaimMustPlay),
+				module.OptPauseBetweenRounds:  module.OptOn,
+				module.OptBotSkill:            module.SkillOpt(module.SkillMedium),
 			},
 		})
 	}
 	// Declared here rather than in the rummy descriptor: pausing between deals
 	// is a property of how a match is presented, which the runtime owns, and
 	// the engine's own option list stays about rules.
-	out.Options = append(out.Options, module.PauseOption())
+	out.Options = append(out.Options, module.PauseOption(), module.BotSkillOption())
 	for _, o := range d.Options {
 		spec := module.OptionSpec{
 			Name: o.Name, Type: module.OptionType(o.Type), Label: o.Label, Help: o.Help,
@@ -114,6 +132,9 @@ func resolveConfig(mc module.MatchConfig) rules.RulesConfig {
 	cfg.DealStarter = rules.ParseDealStarterOpt(
 		mc.Opt(rules.OptDealStarter, rules.DealStarterOpt(cfg.DealStarter)),
 	)
+	cfg.JokerReclaimMustPlay = mc.Opt(
+		rules.OptJokerReclaimMustPlay, rules.BoolOpt(cfg.JokerReclaimMustPlay),
+	) == rules.OptOn
 	cfg.PauseBetweenDeals = mc.PauseBetweenRounds(true)
 	return cfg
 }
@@ -176,11 +197,15 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 	// in-place mutation cannot reach the caller's bytes. Making state opaque
 	// removed the aliasing hazard that BuildGameStateMsg needed a regression
 	// test for.
+	// Kept for the ledger: what was *public* about an action is the difference
+	// between the two states, and the engine mutates in place.
+	before := ai.Before(s.Rules)
 	out, err := rules.ApplyAction(s.Rules, playerID, act)
 	if err != nil {
 		return raw, nil, module.Error{Code: string(codeOf(err)), Message: err.Error()}
 	}
 	s.Rules = out.State
+	s.Ledger.Observe(before, s.Rules, playerID, act)
 	// The engine stopped between deals; the adapter opens the ready-up.
 	if s.Rules.Phase == rules.PhaseIntermission && !s.Break.Open {
 		s.Break.Begin(s.Rules.GameNumber + 1)
@@ -379,17 +404,24 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 	gs := s.Rules
 	vm := module.ViewModel{}
 
+	cfg := rules.ResolveConfig(gs.Rules)
 	own := gs.Hands[viewerID]
-	// The card a pickup obliges this player to lay down, if they are the one
-	// who owes it. Marked on the card itself as well as said in a prompt —
-	// see badgedCardViews.
-	owed := ""
+	// The cards this player owes the table, if they are the one who owes
+	// them: the card a discard-pile pickup obliges them to lay down, and any
+	// joker taken off the table that the take-and-replay rule obliges them
+	// to play again. Marked on the cards themselves as well as said in a
+	// prompt — see badgedCardViews.
+	owedPickup := ""
+	var owedJokers []string
 	if gs.CurrentTurn == viewerID {
-		owed = gs.DiscardDrawnCardPendingMeld
+		owedPickup = gs.DiscardDrawnCardPendingMeld
+		if cfg.JokerReclaimMustPlay {
+			owedJokers = gs.JokersReclaimedPendingMeld
+		}
 	}
 	vm.Zones = append(vm.Zones, module.Zone{
 		ID: handZoneID(viewerID), Kind: module.ZoneHand, OwnerID: viewerID,
-		LabelKey: "zone.yourHand", Cards: badgedCardViews(own, owed), Count: len(own),
+		LabelKey: "zone.yourHand", Cards: badgedCardViews(own, owedPickup, owedJokers), Count: len(own),
 	})
 	for _, p := range gs.TurnOrder {
 		if p == viewerID {
@@ -401,11 +433,19 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 		})
 	}
 
+	// The closing gesture: where the profile plays it that way, the discard
+	// that ended the deal lies face down until the next deal wipes the pile.
+	// Ceremonial rather than secret — the deal is scored by the time anyone
+	// sees this, so the value still travels (see module.CardView.FaceDown).
+	discardCards := cardViews(gs.DiscardPile)
+	if gs.WentOutByDiscard && cfg.GoOutDiscardFaceDown && len(discardCards) > 0 {
+		discardCards[len(discardCards)-1].FaceDown = true
+	}
 	vm.Zones = append(vm.Zones,
 		module.Zone{ID: drawZoneID, Kind: module.ZoneStack, LabelKey: "zone.drawPile", Count: len(gs.DrawPile)},
 		module.Zone{
 			ID: discardZoneID, Kind: module.ZonePile, LabelKey: "zone.discardPile",
-			Cards: cardViews(gs.DiscardPile), Count: len(gs.DiscardPile),
+			Cards: discardCards, Count: len(gs.DiscardPile),
 		},
 	)
 
@@ -461,7 +501,6 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 		vm.Seats = append(vm.Seats, seat)
 	}
 
-	cfg := rules.ResolveConfig(gs.Rules)
 	vm.Header = []module.Fact{
 		{LabelKey: "header.deal", Params: map[string]any{"n": gs.GameNumber}},
 		{LabelKey: "header.round", Params: map[string]any{"n": gs.Round}},
@@ -490,30 +529,48 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 			Value:    gs.DiscardDrawnCardPendingMeld,
 		})
 	}
+	if cfg.JokerReclaimMustPlay && gs.CurrentTurn == viewerID &&
+		len(gs.JokersReclaimedPendingMeld) > 0 {
+		vm.Prompts = append(vm.Prompts, module.Fact{
+			LabelKey: "prompt.jokerMustBePlayed",
+			Value:    gs.JokersReclaimedPendingMeld[0],
+		})
+	}
 	return vm, nil
 }
 
 func cardViews(cards []string) []module.CardView {
-	return badgedCardViews(cards, "")
+	return badgedCardViews(cards, "", nil)
 }
 
-// badgedCardViews marks `owed`, if it is in this hand: the card a discard-pile
-// pickup obliges the player to lay down this turn.
+// badgedCardViews marks the cards the player owes the table: `owedPickup` is
+// the card a discard-pile pickup obliges them to lay down this turn, and
+// `owedJokers` are the jokers taken off the table that must be played again
+// before the turn ends — each debt with its own badge, since "came off the
+// pile" and "came off the table" are different instructions.
 //
-// Marked rather than only refused later. The rule is enforced at the discard,
-// which is the last possible moment to hear about it — by then the player has
-// already decided what their turn was for. On the card, it is an instruction
-// while there is still a turn left to act on it.
-func badgedCardViews(cards []string, owed string) []module.CardView {
+// Marked rather than only refused later. The rules are enforced at the
+// discard, which is the last possible moment to hear about them — by then the
+// player has already decided what their turn was for. On the card, it is an
+// instruction while there is still a turn left to act on it.
+func badgedCardViews(cards []string, owedPickup string, owedJokers []string) []module.CardView {
+	// Counted, not set-membership: two decks put a second copy of every card
+	// in play, and only as many copies are owed as the debts name.
+	owingJoker := map[string]int{}
+	for _, j := range owedJokers {
+		owingJoker[j]++
+	}
+	pickupMarked := false
 	out := make([]module.CardView, 0, len(cards))
-	marked := false
 	for _, c := range cards {
 		cv := module.CardView{Card: c}
-		// Once: two decks put a second copy of every card in play, and only
-		// one of them is the one that came off the pile.
-		if owed != "" && c == owed && !marked {
+		switch {
+		case owedPickup != "" && c == owedPickup && !pickupMarked:
 			cv.BadgeKeys = []string{"zolik.badge.owedToMeld"}
-			marked = true
+			pickupMarked = true
+		case owingJoker[c] > 0:
+			cv.BadgeKeys = []string{"zolik.badge.jokerOwed"}
+			owingJoker[c]--
 		}
 		out = append(out, cv)
 	}

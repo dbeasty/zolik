@@ -14,13 +14,22 @@ const (
 	// SubjectUser is a registered account. Durable: it accumulates lifetime
 	// statistics and appears in leaderboards and head-to-head records.
 	SubjectUser SubjectKind = "user"
-	// SubjectAI is a bot, identified by its *difficulty* rather than by the
-	// per-lobby bot instance. Bot instance IDs look like
-	// "ai:medium:1724280000000000000:0" — a fresh one every time a bot is
-	// added — so aggregating on them would produce a new one-match "player"
-	// per lobby and never a usable record. Difficulty is the thing that is
-	// stable across matches and the thing anyone actually wants a number for
-	// ("how do I do against hard?"), so that is the subject.
+	// SubjectAI is a bot, identified by its *persona* — "hard:miroslav" — or,
+	// for a bot seated before personas existed, by its difficulty alone.
+	//
+	// Not by the per-lobby bot instance: those ids are minted fresh every time
+	// a bot is added, so aggregating on them would produce a new one-match
+	// "player" per lobby and never a usable record. Difficulty was the first
+	// answer, and it is stable across matches — but it is also the *only*
+	// thing that was stable, so every hard bot that had ever played shared one
+	// row and "has Master Miroslav ever beaten me" had nowhere to be asked.
+	// A persona is stable and specific: the same opponent, with the same name,
+	// at the same strength, every time it sits down. So it keeps its score.
+	//
+	// The difficulty has not gone anywhere — it is the first half of the key,
+	// which is what lets SkillOfSubjectID read it straight back off a subject
+	// that carries nothing else, and what keeps the "how do I do against hard?"
+	// split working unchanged.
 	SubjectAI SubjectKind = "ai"
 	// SubjectGuest is an unauthenticated player. Deliberately *not* durable:
 	// a guest name is claimed per session and two people can hold the same
@@ -43,10 +52,11 @@ const (
 // player ID. It is what lifetime statistics aggregate over.
 type Subject struct {
 	Kind SubjectKind `bson:"kind" json:"kind"`
-	// ID is the user's ObjectID hex for SubjectUser, the difficulty
-	// ("easy"|"medium"|"hard") for SubjectAI, and the device's durable guest
-	// id for SubjectGuest — empty on guest seats recorded before guest ids
-	// existed, which simply leaves those matches unclaimable.
+	// ID is the user's ObjectID hex for SubjectUser, the persona key
+	// ("hard:miroslav") or bare difficulty for SubjectAI, and the device's
+	// durable guest id for SubjectGuest — empty on guest seats recorded
+	// before guest ids existed, which simply leaves those matches
+	// unclaimable.
 	ID string `bson:"id,omitempty" json:"id,omitempty"`
 	// Name is the display name as of the match being recorded. It is a
 	// snapshot for rendering, never a key — users can rename.
@@ -94,6 +104,21 @@ func (s Subject) IsHuman() bool {
 	return s.Kind == SubjectUser || s.Kind == SubjectGuest
 }
 
+// SkillOfSubjectID is the difficulty behind an AI subject id.
+//
+// A persona key is "<skill>:<slug>", so the skill is the part before the
+// colon; an id with no colon is one of the bare difficulties recorded before
+// personas existed, and is its own answer. This is what keeps every
+// difficulty-shaped question — the vs-hard split, the ordering of the bot
+// leaderboard — working on persona-keyed records without either of them
+// storing the skill twice.
+func SkillOfSubjectID(id string) string {
+	if skill, _, ok := strings.Cut(id, ":"); ok {
+		return skill
+	}
+	return id
+}
+
 // ParseSubjectKey is the inverse of Key, for reading a key back off a request
 // or a head-to-head map. The returned Subject carries no Name.
 func ParseSubjectKey(key string) (Subject, error) {
@@ -117,6 +142,9 @@ func ParseSubjectKey(key string) (Subject, error) {
 func SubjectForPlayer(p models.Player) Subject {
 	switch {
 	case p.IsAI:
+		if p.AIPersona != "" {
+			return Subject{Kind: SubjectAI, ID: p.AIPersona, Name: p.Name}
+		}
 		diff := p.AIDifficulty
 		if diff == "" {
 			// Bots added before difficulty was recorded, and any future bot
