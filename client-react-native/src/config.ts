@@ -32,3 +32,21 @@ export const APP_NAME =
  */
 export const CLIENT_VERSION = process.env.EXPO_PUBLIC_ZOLIK_VERSION || '0.0.0-dev';
 export const CLIENT_COMMIT = process.env.EXPO_PUBLIC_ZOLIK_COMMIT || 'unknown';
+
+/**
+ * Who the legal notices name as the operator, set at build time by
+ * `scripts/deploy.sh`.
+ *
+ * Build-time rather than a checked-in constant because it is deployment
+ * configuration, not code: the same source deployed by someone else names
+ * someone else, and a fork that ships with our company name in its privacy
+ * notice would be making a claim about us. It rides the same EXPO_PUBLIC_*
+ * channel as the version above, for the same reasons.
+ *
+ * Empty rather than a default here — `src/legal` decides what an unnamed
+ * operator means, and what it means is a draft banner rather than a document
+ * confidently naming nobody.
+ */
+export const OPERATOR_NAME = process.env.EXPO_PUBLIC_ZOLIK_OPERATOR || '';
+export const OPERATOR_COUNTRY = process.env.EXPO_PUBLIC_ZOLIK_OPERATOR_COUNTRY || '';
+export const OPERATOR_CONTACT = process.env.EXPO_PUBLIC_ZOLIK_OPERATOR_CONTACT || '';

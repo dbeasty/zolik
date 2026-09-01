@@ -420,6 +420,25 @@ const en: Record<string, string> = {
   // says so while there is still a turn left to act on it.
   'zolik.badge.owedToMeld': '{card} came off the discard pile — it has to go into the melds you go down with this turn.',
   'zolik.badge.jokerOwed': '{card} came off the table — it has to go into a meld before you can end your turn.',
+
+  // --- the legal notices ----------------------------------------------------
+  // Only the furniture. The documents themselves are in `src/legal`, which is
+  // a bundle of the same kind with a parity test of its own — prose that long
+  // in a flat key map buries the keys this one exists for.
+  //
+  // The notice is five fragments rather than one sentence with two links glued
+  // in, because Czech does not put the link where English does: "souhlasíš s
+  // Podmínkami" inflects the noun the link is made of. Fragments let each
+  // locale place and decline its own.
+  'legal.terms': 'Terms',
+  'legal.privacy': 'Privacy',
+  'legal.updated': 'Version {version}',
+  'legal.draft': 'Draft — not yet in force. The operator’s name, country, and contact address are still to be filled in.',
+  'legal.notice.before': 'By playing you agree to the ',
+  'legal.notice.terms': 'Terms of Use',
+  'legal.notice.between': '. What is stored about you is in the ',
+  'legal.notice.privacy': 'Privacy Notice',
+  'legal.notice.after': '.',
 };
 
 // Czech. Present to prove the seam is real rather than theoretical: if a
@@ -762,6 +781,21 @@ const cs: Record<string, string> = {
   // --- marks on a particular card ------------------------------------------
   'zolik.badge.owedToMeld': '{card} je z odhazovacího balíčku — musí jít do kombinací, se kterými v tomto tahu jdeš dolů.',
   'zolik.badge.jokerOwed': '{card} je ze stolu — než ukončíš tah, musí jít do kombinace.',
+
+  // --- the legal notices ----------------------------------------------------
+  // `legal.notice.terms` is instrumental ("souhlasíš s Podmínkami") while
+  // `legal.terms` on the footer is nominative — the same document, named twice
+  // because Czech asks it to be. This is exactly the split the five fragments
+  // above exist to allow.
+  'legal.terms': 'Podmínky',
+  'legal.privacy': 'Soukromí',
+  'legal.updated': 'Verze {version}',
+  'legal.draft': 'Návrh — zatím neplatí. Jméno provozovatele, stát a kontaktní adresa se teprve doplní.',
+  'legal.notice.before': 'Hraním souhlasíš s ',
+  'legal.notice.terms': 'Podmínkami použití',
+  'legal.notice.between': '. Co o tobě ukládáme, popisují ',
+  'legal.notice.privacy': 'Zásady ochrany osobních údajů',
+  'legal.notice.after': '.',
 };
 
 export const BUNDLES: Record<Locale, Record<string, string>> = { en, cs };

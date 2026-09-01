@@ -61,6 +61,13 @@ export default function RootLayout() {
                 <Stack.Screen name="lobby/table" options={{ title: 'Your table' }} />
                 <Stack.Screen name="lobby/join" options={{ title: 'Join a table' }} />
                 <Stack.Screen name="rules" options={{ title: 'Rules' }} />
+
+                {/* The notices, reachable from the footer, from settings, and
+                    from the sign-in screens. Titles stay English like every
+                    other header here; the documents themselves are localised
+                    — see `src/legal`. */}
+                <Stack.Screen name="legal/terms" options={{ title: 'Terms' }} />
+                <Stack.Screen name="legal/privacy" options={{ title: 'Privacy' }} />
                 <Stack.Screen
                   name="match/[matchId]"
                   options={{ title: 'Match', headerBackVisible: true }}
