@@ -19,6 +19,7 @@ import (
 	"os"
 
 	"zolik/server/internal/canasta"
+	"zolik/server/internal/ginrummy"
 	"zolik/server/internal/holdem"
 	"zolik/server/internal/module"
 	"zolik/server/internal/prsi"
@@ -27,9 +28,9 @@ import (
 
 func main() {
 	keys, err := module.CollectKeys(
-		module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New()),
+		module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New()),
 		"internal/admission", "internal/rules", "internal/prsi", "internal/canasta", "internal/holdem",
-		"internal/zolikmod", "internal/match", "internal/module", "internal/lobby",
+		"internal/zolikmod", "internal/match", "internal/module", "internal/lobby", "internal/ginrummy",
 	)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "dump-keys:", err)
