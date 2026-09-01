@@ -254,6 +254,22 @@ const (
 	FromDiscardPile SelectorZone = "discard_pile"
 	ToMeld          SelectorZone = "meld"
 	ToTable         SelectorZone = "table"
+
+	// FromMeld and FromTable are the source-side mirror of ToMeld/ToTable.
+	//
+	// Every module before Rummy Tiles moves cards out of a hand, a deck or a
+	// discard pile — nothing had ever taken cards *off* the table, so a
+	// source naming the table had nowhere to point. A turn that rearranges
+	// what is already laid down needs exactly that: `take` pulls cards out of
+	// a meld (FromMeld, MeldID set), and a card moving from one meld into
+	// another is sourced FromMeld the same way a card moving from hand into a
+	// meld is sourced FromHand. FromTable exists for symmetry with ToTable —
+	// a source naming the table in general rather than one meld in
+	// particular — though Rummy Tiles' own moves always know which meld a
+	// card is coming from and so use FromMeld exclusively; a future module
+	// with a looser table is what FromTable is for.
+	FromMeld  SelectorZone = "from_meld"
+	FromTable SelectorZone = "from_table"
 )
 
 // Placement is one card an offer accepts, plus any positional hint (which end

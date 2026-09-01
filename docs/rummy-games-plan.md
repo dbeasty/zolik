@@ -558,4 +558,97 @@ predicted.
 
 **Left for Phase B, or for whoever reads this next:** `ExplainRefusal` (`RuleIndexProvider`) was not
 implemented, matching prsi and canasta's own precedent of shipping without it; `RuleIDs` on offers is
-consequently empty. Rummy Tiles (§§3–6) has not been started.
+consequently empty.
+
+---
+
+### Phase B outcome
+
+*Also written after the work, and also partial: B2 and B3 shipped — the engine, the workspace, both
+protocol additions, the greedy bot and the full test pyramid the plan asks for at that stage. B1
+(the tile face) and B4 (board-slot selection) — the two client changes — and B5 (the solver and the
+skill ladder) did not. This section says exactly where the line is, and why it was drawn there
+rather than partway through a client change that would have been worse half-done.*
+
+**B2 and B3 shipped whole.** `server/internal/rummytiles` implements every file the plan's §3.7
+lists except `solve.go` (B5, not started): `tiles.go`, `sets.go`, `state.go`, `engine.go`,
+`scoring.go`, `offers.go`, `view.go`, `bot.go`, plus `zones.go` and `rounds.go`/`rules.go` matching
+the other five modules' shape. The two protocol additions §3.4 predicted — `FromMeld`, `FromTable`
+in `module/protocol.go` — landed exactly as sized: two new `SelectorZone` constants, no other field,
+no change to `Selector`'s shape. `go test ./...` is green across the whole server; the shared
+19-test contract passes for `rummytiles` (with `finishes: false`, alongside `zolik`, for the reason
+below) with one `hosted{}` entry added, same as every module before it.
+
+**The workspace design held up on the first real implementation.** `place`/`add`/`take`/`split`/
+`swap_joker` validate almost nothing at move time — only `commit` does, against the whole workspace
+at once — and that turned out to make several rules in §3.2 *free* rather than merely simpler:
+"a joker may not be taken from a group of three that would be left as a pair" needed no code of its
+own, because `take` allows removing any tile from any set unconditionally and the general "every set
+must have three or more tiles" check at commit already refuses the resulting pair, joker or not. The
+initial-meld boundary ("you may not touch anything already on the table") is enforced once, in a
+five-line `touchable()` check every mutating verb calls, keyed on whether a set was created this
+turn (`Workspace.NewSetIDs`) rather than threaded through five separate validators. `reset_turn`
+restoring the table exactly is likewise structural, not predictive, the same way it is for Gin
+Rummy's discard: the workspace is discarded wholesale and a fresh copy of `s.Sets` — which nothing
+but `commit` ever writes to — takes its place. `deadend_test.go` asserts this at 2, 3 and 4 seats
+over a bot-driven corpus rather than trusting the argument.
+
+**One place the plan under-specified, resolved and worth recording: `add`'s source.** §3.4's offer
+table says `add`'s source "may be the hand *or* another set" directly. Implemented that way, one
+`add` offer per *(target set, source set)* pair is needed whenever a set-to-set move is legal, which
+is quadratic in the number of sets on the table. This module instead routes a set-to-set move through
+the tray: `take` (source a meld, `FromMeld`) followed by `add` (source the tray, `FromTable`) reaches
+every table configuration `add`-from-another-set directly would, in two small moves instead of one.
+Given "small moves keep one vocabulary" is the plan's own argument against a single big
+submit-the-table action (§3.3), routing through the tray is the same argument applied one level
+down, and it is what actually made the two protocol additions sufficient — `FromMeld` for `take`,
+`FromTable` for `add`'s other case — rather than needing a third `SelectorZone` for a direct
+meld-to-meld source.
+
+**The offer-explosion limit is not just Žolíky's problem.** `place`, `add` and `take` are all
+`Composite: true` — a person, or a bot, composes the exact tiles, the offer only says the move
+exists — for the identical reason Žolíky's lay-down offer is: a set's *shape* is not enumerable the
+way a discard or a knock is. This is why `rummytiles` is `finishes: false` in the shared contract
+table and why `TestConformance_TakesRealTurnsAndNeverSticks` asserts progress and the absence of
+dead ends rather than a finished match, exactly like the Continental case in
+`extensibility-plan.md` §1.6. A version of the module's own bot that *does* finish matches exists —
+`TestConformance_BotPlaysAWholeMatchToAWinner`, at 2, 3 and 4 seats — because the bot composes moves
+directly against decoded state rather than through `SubmissionFor`.
+
+**The bot is greedy, not the solver, and it is honestly worse at going out than expected.** §3.6's
+easy/medium tier — lay what is formable from hand alone, then extend what exists, then draw — is
+what shipped; every skill currently plays this one policy, since B5's solver was not built. Measured
+in self-play, this bot rarely empties its hand: over 15 simulated rounds between two copies of it,
+every single one ended by pool exhaustion rather than a player going out. Since a pool-exhausted
+round scores *everyone's* hand negative — there is no transfer, unlike going out — two greedy bots
+playing each other trend their scores downward without bound against a fixed positive target score,
+which is a real property of the matchup, not a bug in the scoring: nothing in the rules requires a
+target-score match to ever finish if nobody ever goes out. `TestConformance_BotPlaysAWholeMatchToAWinner`
+uses a round limit instead, which always terminates regardless of how the score trends — the same
+escape hatch §3.2 already offers a lobby ("a fixed number of rounds") for exactly this reason,
+discovered here empirically rather than reasoned out in advance.
+
+**What did not ship: B1, B4, B5 — the two client changes and the solver.** Deliberately not started,
+in that order, rather than begun and left inconsistent:
+- **B1, the tile face.** `CardView.tsx`, `cards.ts`'s `isCardCode`/`parseCard`, and the metrics
+  contract they read from are unmodified. A tile code (`"7-R"`) sent to today's client would be
+  parsed by `parseCard` as a malformed card rather than rendered as a tile — this module is playable
+  today only against its own bot, or by a client that speaks the protocol directly (see
+  `e2e/tests/rummytiles.spec.ts`'s WebSocket test, which composes a real `place` action in JS the same
+  way the Go bot does, and is this plan's replacement for a UI-driven proof until B1 lands).
+- **B4, board-slot selection.** Confirmed necessary and scoped, not attempted: a card inside a
+  rendered group has no `onPress` of its own today (`ZoneView.tsx`'s group `Pressable` wraps the whole
+  stack, for `toggleGroup`/`onAimGroup`), and the match screen's selection state
+  (`heldSlots`/`selected`/`selectedCards` in `app/match/[matchId].tsx`) is hand-only by construction,
+  not by a zone check that could simply be widened. Making a `take`/`add`-from-tray offer selectable
+  needs a second, board-keyed selection channel and a restructure of the group's tap target, not a
+  one-line change — recorded here so the next attempt starts from that finding instead of
+  rediscovering it.
+- **B5, the solver.** `solve.go` does not exist. `bot.go`'s doc comment says so directly rather than
+  silently defaulting hard/expert to the greedy policy without a note — every skill plays greedy for
+  now, which is a real, if temporary, gap between what `module.BotSkillOption()` advertises and what
+  the bot actually does with it.
+
+**No file outside `internal/rummytiles` learned a Rummy Tiles rule, and no client file learned one at
+all** — trivially true right now, since no client file changed, which is the honest reading of that
+exit criterion until B1 lands.
