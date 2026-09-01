@@ -3,6 +3,8 @@ package db
 import (
 	"context"
 	"errors"
+	"fmt"
+	"sync"
 	"testing"
 	"time"
 )
@@ -315,6 +317,124 @@ func TestDocCodecKeepsHiddenFields(t *testing.T) {
 	if back.Secret != "s3" {
 		t.Fatalf("secret = %q, want s3 — codec dropped a json:\"-\" field", back.Secret)
 	}
+}
+
+// TestKDBConcurrentPutInsertDeleteAllLand is a regression guard for
+// kdbNamespace.mu: put() and deleteByUUID() go through two engine
+// serialization domains that do not order against each other (see mu's
+// comment in kdb.go), so mu is the only thing keeping a concurrent Put and
+// Delete on one namespace mutually exclusive. If a future write path ever
+// forgot to take it, this test would start losing writes the same way an
+// unserialized embed.PutJSONDocument does.
+func TestKDBConcurrentPutInsertDeleteAllLand(t *testing.T) {
+	k := openTestKDB(t)
+
+	const workers, perWorker = 8, 40
+	var wg sync.WaitGroup
+	errs := make(chan error, workers*perWorker)
+	keep := func(i int) bool { return i%3 != 2 } // the third op per worker is put-then-delete
+	for w := 0; w < workers; w++ {
+		wg.Add(1)
+		go func(w int) {
+			defer wg.Done()
+			for i := 0; i < perWorker; i++ {
+				key := fmt.Sprintf("w%02d-%03d", w, i)
+				doc := []byte(fmt.Sprintf(`{"subjectKey":%q}`, key))
+				switch i % 3 {
+				case 0:
+					if err := k.Put(NSScoring, key, doc); err != nil {
+						errs <- fmt.Errorf("put %s: %w", key, err)
+					}
+				case 1:
+					if err := k.Insert(NSScoring, key, doc); err != nil {
+						errs <- fmt.Errorf("insert %s: %w", key, err)
+					}
+				default:
+					if err := k.Put(NSScoring, key, doc); err != nil {
+						errs <- fmt.Errorf("put (pre-delete) %s: %w", key, err)
+						continue
+					}
+					if _, err := k.Delete(NSScoring, key); err != nil {
+						errs <- fmt.Errorf("delete %s: %w", key, err)
+					}
+				}
+			}
+		}(w)
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		t.Errorf("write error: %v", err)
+	}
+
+	seen := map[string]bool{}
+	err := k.Scan(NSScoring, func(doc []byte) error {
+		var p struct {
+			SubjectKey string `bson:"subjectKey"`
+		}
+		if err := UnmarshalDoc(doc, &p); err != nil {
+			return err
+		}
+		seen[p.SubjectKey] = true
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("scan: %v", err)
+	}
+
+	wantCount := 0
+	for w := 0; w < workers; w++ {
+		for i := 0; i < perWorker; i++ {
+			key := fmt.Sprintf("w%02d-%03d", w, i)
+			want := keep(i)
+			if want {
+				wantCount++
+			}
+			if seen[key] != want {
+				t.Errorf("key %s: visible=%v, want %v — a write was lost or a delete didn't land", key, seen[key], want)
+			}
+		}
+	}
+	if len(seen) != wantCount {
+		t.Fatalf("scan saw %d documents, want %d", len(seen), wantCount)
+	}
+}
+
+// TestKDBReadDuringCloseIsSafe pins down behavior this package relies on but
+// never asserted: reads take no lock (only writes do), so a read can overlap
+// Close tearing down the runtime — including the background sync goroutines
+// under async durability. There is no outcome to assert for the in-flight
+// reads beyond "no panic" (a Close mid-scan may legitimately error); the
+// point is running this under -race with nothing to report.
+func TestKDBReadDuringCloseIsSafe(t *testing.T) {
+	k, err := OpenKDB(t.TempDir())
+	if err != nil {
+		t.Fatalf("opening kdb: %v", err)
+	}
+	for i := 0; i < 20; i++ {
+		key := fmt.Sprintf("k%02d", i)
+		if err := k.Put(NSMatches, key, []byte(fmt.Sprintf(`{"i":%d}`, i))); err != nil {
+			t.Fatalf("seed %s: %v", key, err)
+		}
+	}
+
+	var wg sync.WaitGroup
+	for r := 0; r < 4; r++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer func() { _ = recover() }()
+			for j := 0; j < 100; j++ {
+				_ = k.Scan(NSMatches, func(doc []byte) error { return nil })
+			}
+		}()
+	}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		_ = k.Close(context.Background())
+	}()
+	wg.Wait()
 }
 
 var _ = errors.Is // keep errors imported if assertions above change shape
