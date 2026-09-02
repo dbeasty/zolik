@@ -12,7 +12,7 @@ import type { LegalDocument } from './types';
 export const termsCs: LegalDocument = {
   id: 'terms',
   title: 'Podmínky použití',
-  version: '2026-08-31',
+  version: '2026-09-01',
   sections: [
     {
       id: 'who',
@@ -65,6 +65,15 @@ export const termsCs: LegalDocument = {
       body: [
         'V nejširším rozsahu, který právo připouští, neodpovídáme za žádnou újmu vzniklou používáním Žolíků, včetně ztráty dat, ztráty postupu, ztráty času nebo nedostupnosti hry.',
         'Nic v těchto podmínkách neomezuje odpovědnost, kterou omezit nelze — zejména za újmu na životě a na zdraví, za podvod a za úmysl a hrubou nedbalost. Jsi-li spotřebitel, tvá zákonná práva tím nejsou dotčena.',
+      ],
+    },
+    {
+      id: 'source',
+      heading: 'Žolíky jsou svobodný software',
+      body: [
+        'Žolíky jsou licencovány pod GNU Affero General Public License, verze 3. Můžeš je volně používat, zkoumat, šířit i měnit za podmínek, které tato licence stanoví — včetně výše uvedeného vyloučení záruk, které je stejně tak jejím zněním jako naším.',
+        'Úplný zdrojový kód verze, která tu běží, najdeš na {source}. Tento odstavec existuje kvůli článku 13 té licence: protože se k Žolíkům dostáváš po síti, a ne tak, že by sis je instaloval, musí ti být zdrojový kód nabídnut přímo tady na obrazovce, a ne jen tomu, kdo si stáhne kopii.',
+        'Pokud provozuješ upravené Žolíky a necháš na nich hrát další lidi po síti, tatáž licence po tobě žádá, abys jim svůj zdrojový kód nabídl stejným způsobem.',
       ],
     },
     {
