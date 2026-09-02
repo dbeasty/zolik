@@ -101,3 +101,20 @@ the header (naming the server's too, only when it differs — see
 - [`docs/one-architecture-plan.md`](docs/one-architecture-plan.md) — phases
   5–8: poker, bots for every game, one client shell, and the deletion of the
   Žolíky-specific path
+
+## Licence
+
+Licensed under the [GNU Affero General Public License v3.0](LICENSE).
+Copyright © 2026 Limidus Corp — see [COPYRIGHT](COPYRIGHT).
+
+The server links [kdb](https://github.com/dbeasty/kdb) directly
+(`internal/db/kdb.go` imports its embed, storage, codec, schema, auth, server
+and document packages, statically linked into the binary), and kdb is
+AGPL-3.0. The combined work is therefore distributed under the same terms —
+which also matches how zolik is used: served over a network at
+play.limidus.com, the situation AGPL section 13 addresses.
+
+Because section 13 obliges a network deployment to offer its users the source,
+the running app does: `Terms · Privacy · Source` in the footer, and a `source`
+section in the Terms naming the licence and the repository. A fork points those
+at its own source with `ZOLIK_SOURCE_URL` (see `scripts/deploy.sh`).

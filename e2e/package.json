@@ -1,5 +1,6 @@
 {
   "name": "zolik-e2e",
+  "license": "AGPL-3.0-only",
   "private": true,
   "type": "module",
   "scripts": {

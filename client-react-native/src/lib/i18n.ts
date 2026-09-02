@@ -432,6 +432,7 @@ const en: Record<string, string> = {
   // locale place and decline its own.
   'legal.terms': 'Terms',
   'legal.privacy': 'Privacy',
+  'legal.source': 'Source',
   'legal.updated': 'Version {version}',
   'legal.draft': 'Draft — not yet in force. The operator’s name, country, and contact address are still to be filled in.',
   'legal.notice.before': 'By playing you agree to the ',
@@ -915,6 +916,7 @@ const cs: Record<string, string> = {
   // above exist to allow.
   'legal.terms': 'Podmínky',
   'legal.privacy': 'Soukromí',
+  'legal.source': 'Zdrojový kód',
   'legal.updated': 'Verze {version}',
   'legal.draft': 'Návrh — zatím neplatí. Jméno provozovatele, stát a kontaktní adresa se teprve doplní.',
   'legal.notice.before': 'Hraním souhlasíš s ',

@@ -11,12 +11,13 @@ import type { LegalDocument } from './types';
  *
  * `{operator}`, `{country}` and `{contact}` are filled from `OPERATOR` in
  * `./index.ts`. Until those are real values the screen marks itself a draft —
- * see `operatorIsNamed`.
+ * see `operatorIsNamed`. `{source}` is filled from `SOURCE_URL` in
+ * `src/config.ts` and is never a draft: it always has a true answer.
  */
 export const termsEn: LegalDocument = {
   id: 'terms',
   title: 'Terms of Use',
-  version: '2026-08-31',
+  version: '2026-09-01',
   sections: [
     {
       id: 'who',
@@ -69,6 +70,15 @@ export const termsEn: LegalDocument = {
       body: [
         'To the fullest extent permitted by law, we are not liable for any loss or damage arising from your use of Žolíky, including lost data, lost progress, lost time, or the game being unavailable.',
         'Nothing in these terms limits liability that cannot lawfully be limited — including liability for death or personal injury caused by negligence, for fraud, or for intent and gross negligence. If you are a consumer, your mandatory statutory rights are unaffected.',
+      ],
+    },
+    {
+      id: 'source',
+      heading: 'Žolíky is free software',
+      body: [
+        'Žolíky is licensed under the GNU Affero General Public License, version 3. You are free to use it, study it, share it, and change it, on the terms that licence sets out — including the warranty disclaimer above, which is its wording as much as ours.',
+        'The complete source of the version running here is at {source}. Section 13 of that licence is why this paragraph exists: because you reach Žolíky over a network rather than by installing it, the source has to be offered to you here, on the screen, and not only to whoever downloads a copy.',
+        'If you run a modified Žolíky and let other people play it over a network, that licence requires you to offer them your source in the same way.',
       ],
     },
     {

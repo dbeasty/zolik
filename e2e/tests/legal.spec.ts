@@ -39,6 +39,27 @@ test.describe('the legal notices are reachable and readable', () => {
     await expect(doc).toContainText('ten minutes after it is sent');
   });
 
+  test('the terms offer the source, which is what the AGPL asks of a network deployment', async ({
+    page,
+  }) => {
+    await page.goto('/');
+
+    // The footer's third link is the one-click form of the offer. It is not
+    // clicked here: it leaves for GitHub, and a suite that reaches the public
+    // internet to prove a licence notice exists fails for reasons that have
+    // nothing to do with the licence notice.
+    await expect(page.getByTestId('legal-link-source')).toBeVisible();
+
+    await page.getByTestId('legal-link-terms').click();
+
+    const doc = page.getByTestId('legal-terms');
+    // Named licence and a reachable address, on screen, in the document the
+    // player is shown — section 13 is satisfied by what a network user can
+    // read, not by the LICENSE file sitting in the repository.
+    await expect(doc).toContainText('GNU Affero General Public License');
+    await expect(doc).toContainText('https://github.com/dbeasty/zolik');
+  });
+
   test('a guest is told what they are agreeing to before they can agree to it', async ({ page }) => {
     await page.goto('/');
     await page.getByText('Continue as guest').click();

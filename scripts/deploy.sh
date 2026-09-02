@@ -27,6 +27,11 @@
 #   ZOLIK_OPERATOR          default Limidus Corp
 #   ZOLIK_OPERATOR_COUNTRY  no default  (jurisdiction governing the terms)
 #   ZOLIK_OPERATOR_CONTACT  no default  (address deletion requests arrive at)
+#
+#   Where this deployment offers its source, as AGPL section 13 requires of a
+#   thing served over a network. The default is right for deploying this source
+#   unmodified; a fork must point at its own.
+#   ZOLIK_SOURCE_URL        default https://github.com/dbeasty/zolik
 
 set -euo pipefail
 
@@ -46,6 +51,12 @@ OPERATOR="${ZOLIK_OPERATOR:-Limidus Corp}"
 OPERATOR_COUNTRY="${ZOLIK_OPERATOR_COUNTRY:-}"
 OPERATOR_CONTACT="${ZOLIK_OPERATOR_CONTACT:-}"
 
+# The AGPL section 13 offer. Unlike the three above this one has a default and
+# no draft state: the canonical repository is the true answer for any build
+# that has not changed the code, and a deployment that has changed it owes its
+# players that source instead — which is what overriding this is for.
+SOURCE_URL="${ZOLIK_SOURCE_URL:-https://github.com/dbeasty/zolik}"
+
 REMOTE_SRC="/home/${DEPLOY_USER}/src"
 REMOTE_ZOLIK="${REMOTE_SRC}/zolik"
 REMOTE_KDB="${REMOTE_SRC}/kdb"
@@ -61,7 +72,7 @@ while [[ $# -gt 0 ]]; do
     --skip-web)   SKIP_WEB=true; shift ;;
     --skip-nginx) SKIP_NGINX=true; shift ;;
     -h|--help)
-      sed -n '2,29p' "$0"
+      sed -n '2,34p' "$0"
       exit 0
       ;;
     *) printf 'Unknown option: %s\n' "$1" >&2; exit 1 ;;
@@ -229,6 +240,8 @@ if [[ "$SKIP_WEB" == false ]]; then
     fi
   fi
 
+  say "source offered at ${SOURCE_URL}"
+
   (cd "${ROOT}/client-react-native" && npm ci --silent)
   (cd "${ROOT}/client-react-native" && \
     EXPO_PUBLIC_ZOLIK_BASE_URL="$PUBLIC_URL" \
@@ -237,6 +250,7 @@ if [[ "$SKIP_WEB" == false ]]; then
     EXPO_PUBLIC_ZOLIK_OPERATOR="$OPERATOR" \
     EXPO_PUBLIC_ZOLIK_OPERATOR_COUNTRY="$OPERATOR_COUNTRY" \
     EXPO_PUBLIC_ZOLIK_OPERATOR_CONTACT="$OPERATOR_CONTACT" \
+    EXPO_PUBLIC_ZOLIK_SOURCE_URL="$SOURCE_URL" \
     npx expo export --platform web)
 
   say "uploading web release ${RELEASE}"

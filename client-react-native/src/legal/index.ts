@@ -14,7 +14,7 @@
  * message keys, so `serverKeys.json` is unaffected and needs no regeneration.
  */
 
-import { OPERATOR_CONTACT, OPERATOR_COUNTRY, OPERATOR_NAME } from '@/src/config';
+import { OPERATOR_CONTACT, OPERATOR_COUNTRY, OPERATOR_NAME, SOURCE_URL } from '@/src/config';
 import { getLocale, type Locale } from '@/src/lib/i18n';
 
 import { privacyCs } from './privacy.cs';
@@ -71,8 +71,8 @@ const DOCUMENTS: Record<Locale, Record<LegalDocId, LegalDocument>> = {
 export const LEGAL_DOCUMENTS = DOCUMENTS;
 
 /**
- * One document, in the reader's locale, with `{operator}`, `{country}` and
- * `{contact}` substituted.
+ * One document, in the reader's locale, with `{operator}`, `{country}`,
+ * `{contact}` and `{source}` substituted.
  *
  * Falls back to English for a locale with no document, exactly as `t` does.
  * The parity test means that fallback should never fire; it is here because
@@ -101,6 +101,12 @@ export function legalParams(): Record<string, string> {
     operator: OPERATOR.name,
     country: OPERATOR.country,
     contact: OPERATOR.contact,
+    // Not part of `OPERATOR`: the other three are facts about who is running
+    // the game and are missing until someone supplies them, while this one is
+    // a fact about the code and is always known. It is a placeholder rather
+    // than prose in the document because a fork's terms must offer the fork's
+    // source, and the document is the same file in every deployment.
+    source: SOURCE_URL,
   };
 }
 

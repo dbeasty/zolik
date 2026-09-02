@@ -50,3 +50,25 @@ export const CLIENT_COMMIT = process.env.EXPO_PUBLIC_ZOLIK_COMMIT || 'unknown';
 export const OPERATOR_NAME = process.env.EXPO_PUBLIC_ZOLIK_OPERATOR || '';
 export const OPERATOR_COUNTRY = process.env.EXPO_PUBLIC_ZOLIK_OPERATOR_COUNTRY || '';
 export const OPERATOR_CONTACT = process.env.EXPO_PUBLIC_ZOLIK_OPERATOR_CONTACT || '';
+
+/**
+ * Where the source of the running build can be had, for the AGPL's benefit.
+ *
+ * Section 13 is the clause that makes zolik's licence different from a plain
+ * GPL one: a network user who never receives a binary must still be offered
+ * the Corresponding Source. So the offer has to live in the app, not only in
+ * the repository — a LICENSE file rsynced to a server nobody logs into offers
+ * nothing to the person playing at play.limidus.com.
+ *
+ * Overridable at build time, and that is the point rather than a convenience:
+ * whoever deploys a modified zolik owes their readers *their* source, not
+ * ours. The default is right for a deployment of this source unmodified, which
+ * is what ours is; `scripts/deploy.sh` passes ZOLIK_SOURCE_URL for anything
+ * else. Unlike the operator fields above there is no draft state — a wrong
+ * source link is a broken promise, an unset one would be no promise at all,
+ * and the canonical repository is a true answer for every build that has not
+ * changed the code.
+ */
+export const SOURCE_URL = (
+  process.env.EXPO_PUBLIC_ZOLIK_SOURCE_URL || 'https://github.com/dbeasty/zolik'
+).replace(/\/$/, '');

@@ -173,6 +173,46 @@ describe('the operator the build was given', () => {
   });
 });
 
+describe("the AGPL's offer of source", () => {
+  // Section 13 is an obligation on the running deployment, not on the
+  // repository, so what is asserted here is the thing a player can actually
+  // reach: a URL inside the terms they are shown. A LICENSE file in git
+  // satisfies nobody who only ever loaded the web bundle.
+  const savedEnv = { ...process.env };
+
+  afterEach(() => {
+    process.env = { ...savedEnv };
+    jest.resetModules();
+  });
+
+  it.each(locales)('%s tells the reader where the source is', (locale) => {
+    setLocale(locale);
+    const terms = legalDocument('terms');
+    const source = terms.sections.find((s) => s.id === 'source');
+    expect(source).toBeDefined();
+    const prose = source!.body.join(' ');
+    expect(prose).toContain('https://github.com/dbeasty/zolik');
+    // Named, not merely gestured at — "some open licence" is not an offer.
+    expect(prose).toMatch(/Affero/);
+  });
+
+  it('offers a fork its own source rather than ours', () => {
+    // The clause a fork would otherwise get wrong: deploying modified zolik
+    // and pointing readers at the upstream repository offers them source that
+    // is not the source they are running.
+    process.env.EXPO_PUBLIC_ZOLIK_SOURCE_URL = 'https://example.test/their-fork';
+    jest.resetModules();
+    const legal = require('@/src/legal') as typeof import('@/src/legal');
+
+    const prose = legal
+      .legalDocument('terms')
+      .sections.find((s) => s.id === 'source')!
+      .body.join(' ');
+    expect(prose).toContain('https://example.test/their-fork');
+    expect(prose).not.toContain('dbeasty/zolik');
+  });
+});
+
 describe('the strings around the documents', () => {
   // These live in the i18n bundle rather than here, so they are the one part
   // of this feature the i18n parity test already guards. What it cannot check
@@ -180,6 +220,7 @@ describe('the strings around the documents', () => {
   const keys = [
     'legal.terms',
     'legal.privacy',
+    'legal.source',
     'legal.updated',
     'legal.draft',
     'legal.notice.before',
