@@ -93,6 +93,11 @@ rsync_common=(
   --exclude '.git/'
   --exclude 'node_modules/'
   --exclude '.dev-stack/'
+  # Local scratch checkouts, one per concurrent session, and none of them the
+  # thing being deployed. Untracked, so no .gitignore entry keeps them out of
+  # an rsync of the working tree — 945 MB of other branches' source was on its
+  # way to the production host before this line existed.
+  --exclude '.claude/'
   --exclude 'server/.ssh/'
   --exclude 'server/.env'
   --exclude 'client-react-native/dist/'
