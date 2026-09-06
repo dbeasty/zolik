@@ -21,6 +21,7 @@ import { useArrival } from '@/src/hooks/useArrival';
 import { useHandOrder } from '@/src/hooks/useHandOrder';
 import { useMatchSocket } from '@/src/hooks/useMatchSocket';
 import { usePanelState } from '@/src/hooks/usePanelState';
+import { useEndingScroll } from '@/src/hooks/useEndingScroll';
 import { useResultsFlash } from '@/src/hooks/useResultsFlash';
 import { drawableZones } from '@/src/lib/board';
 import {
@@ -246,6 +247,24 @@ export default function MatchScreen() {
   const landFlight = useCallback((id: string) => {
     setFlightsInAir((was) => was.filter((f) => f.id !== id));
   }, []);
+
+  // Where the player is when a round or the match ends. `useResultsFlash` above
+  // says one is over; it does not say where the way on is, and the way on is
+  // drawn at the top of a board whose reader is at the bottom of it. Up here
+  // with the other hooks for the reason they all are, and handed the whole
+  // state — `null` included — for the reason the flash is.
+  //
+  // `goTo` is the half the screen owns, because only the screen knows how the
+  // board moves: someone who asked their system for less movement is taken
+  // there rather than travelling there, exactly as with everything else here.
+  const scrollRef = useRef<ScrollView>(null);
+  const goTo = useCallback(
+    (y: number) => {
+      scrollRef.current?.scrollTo({ y, animated: !stillness });
+    },
+    [stillness],
+  );
+  const ending = useEndingScroll(state, goTo);
 
   if (!state) {
     return (
@@ -795,7 +814,12 @@ export default function MatchScreen() {
           {statusExplainer}
         </Text>
       ) : null}
-      <ScrollView contentContainerStyle={styles.body} testID="match-screen">
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={styles.body}
+        testID="match-screen"
+        {...ending.scrollProps}
+      >
         <View style={styles.headerRow}>
           <View style={styles.moduleGroup}>
             <Text testID="match-module" style={styles.module}>
@@ -843,6 +867,7 @@ export default function MatchScreen() {
           <Animated.View
             style={[styles.over, iWon && styles.overWon, overArrival]}
             testID="match-over"
+            {...ending.anchor('over')}
           >
             <Text testID="match-over-title" style={styles.overTitle}>
               Match over
@@ -892,7 +917,7 @@ export default function MatchScreen() {
             and the control to go on is an ordinary offer, so the action bar
             below renders it like any other. */}
         {showResults ? (
-          <>
+          <View style={styles.ending} {...ending.anchor('results')}>
             <RoundResults
               log={state.rounds!}
               players={state.players}
@@ -900,13 +925,13 @@ export default function MatchScreen() {
               viewerId={viewerId}
             />
             {state.status === 'completed' ? <LifetimeRecord moduleId={state.moduleId} /> : null}
-          </>
+          </View>
         ) : null}
 
         {/* Between rounds the one control the module still offers belongs
             here, with the settlement it acts on, rather than under a hand
             that cannot be played. See `controlsPanel`. */}
-        {paused ? controlsPanel : null}
+        {paused ? <View {...ending.anchor('wayOn')}>{controlsPanel}</View> : null}
 
         <SeatStrip
           seats={view.seats ?? []}
@@ -1196,6 +1221,10 @@ function matchStyles(s: Skin) {
   },
   skinToggleText: { color: colors.muted, fontSize: 11, fontWeight: '700' },
   body: { paddingBottom: 40, gap: 4 },
+  // The settlement and its record, grouped so the block a stopped table has to
+  // put in front of the player can be measured as one. Spaced like the body,
+  // which is what was between them before they were grouped.
+  ending: { gap: 4 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerTitleGroup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   headerTitleText: { color: colors.text, fontWeight: '700', fontSize: 17 },
