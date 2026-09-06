@@ -10,6 +10,7 @@ import { HandZone } from '@/src/components/match/HandZone';
 import { LifetimeRecord } from '@/src/components/match/LifetimeRecord';
 import { OfferBar, OfferGlance } from '@/src/components/match/OfferBar';
 import { Panel } from '@/src/components/match/Panel';
+import { ResultsFlash } from '@/src/components/match/ResultsFlash';
 import { RoundResults } from '@/src/components/match/RoundResults';
 import { SeatStrip } from '@/src/components/match/SeatStrip';
 import { TableSurface } from '@/src/components/match/TableSurface';
@@ -20,6 +21,7 @@ import { useArrival } from '@/src/hooks/useArrival';
 import { useHandOrder } from '@/src/hooks/useHandOrder';
 import { useMatchSocket } from '@/src/hooks/useMatchSocket';
 import { usePanelState } from '@/src/hooks/usePanelState';
+import { useResultsFlash } from '@/src/hooks/useResultsFlash';
 import { drawableZones } from '@/src/lib/board';
 import {
   dropSpotsFor,
@@ -179,6 +181,12 @@ export default function MatchScreen() {
   // Up here with the rest for the same reason they are: this is a hook, the
   // early return below is conditional, and a hook after it is not.
   const overArrival = useArrival(state?.status ?? '');
+
+  // Which ending the table is sitting on, and whether it is news. Up here with
+  // `overArrival` for exactly the reason given above it — and handed the whole
+  // state, `null` included, because "no board has arrived yet" is a state this
+  // has to be able to tell apart from "no round has ended".
+  const flash = useResultsFlash(state);
 
   // The look the board is wearing, and the switcher's handle on the rest.
   // The style factory keys on the skin, so switching repaints everything at
@@ -644,6 +652,10 @@ export default function MatchScreen() {
   const showResults =
     !!state.rounds?.rounds.length && (state.status === 'completed' || !!state.rounds.paused);
 
+  // The table is sitting between rounds. The module's own answer, never worked
+  // out here from the controls that happen to be live.
+  const paused = !!state.rounds?.paused;
+
   const againstBotsAlone =
     state.players.length > 1 && state.players.every((p) => p.isAI || p.id === viewerId);
 
@@ -658,6 +670,84 @@ export default function MatchScreen() {
       : state.status === 'completed'
         ? 'This match has finished.'
         : 'Match in progress — everything is connected and moving normally.';
+
+  // The controls, built once and rendered in one of two places.
+  //
+  // Ordinarily they sit directly under the hand, because every one of them acts
+  // on the cards picked just above it. Between rounds none of that holds: the
+  // module offers exactly one control — go on to the next round — the hand is
+  // not actionable, and a single button left several screens below the
+  // settlement it belongs to is how a paused table comes to read as a stuck
+  // one. So while the table is paused they are rendered up with the results
+  // instead, and the two positions share one piece of JSX so they can never
+  // drift apart.
+  const controlsPanel = (
+    <Panel
+      {...zonePanelProps('controls')}
+      title="Controls"
+      testID="controls-panel"
+      summary={
+        <OfferGlance
+          offers={state.legalActions}
+          selectedCards={selectedCards}
+          armedGroupId={armedMeldIdLive}
+          onSend={send}
+          onConsumeSelection={clearSelection}
+          onAmbiguous={(groupKey) => {
+            setPendingGroupKey(groupKey);
+            drops.measure();
+          }}
+          testID="controls-summary"
+        />
+      }
+    >
+      {/* The engine's own sentence stands in for a code this build has
+          no translation for — it is at least a sentence, where the bare
+          code reads as a crash. A code we do know still wins, so a
+          translated message never regresses to English. */}
+      {error ? (
+        <Text
+          testID="match-error"
+          style={styles.error}
+          onPress={() => {
+            // A submission refused on arrival — a meld a person composed,
+            // which had no greyed-out control of its own to have been
+            // explained in advance — gets the same three layers as one
+            // that did. The frame carries its own ruleIds; the remedy
+            // comes from whichever offer is now on the table.
+            setExplaining({ code: error.code, ruleIds: error.ruleIds });
+            clearError();
+          }}
+        >
+          {reasonText(error.code, error.message || error.code)}
+        </Text>
+      ) : null}
+      {/* Disabled offers stay on screen with their reason. An offer
+          that vanished when it became illegal would be
+          indistinguishable from a bug, which is why the server sends
+          the whole set every time. */}
+      <OfferBar
+        offers={state.legalActions}
+        selectedCards={selectedCards}
+        armedGroupId={armedMeldIdLive}
+        onSend={send}
+        onConsumeSelection={clearSelection}
+        onExplain={setExplaining}
+        onAmbiguous={(groupKey) => {
+          setPendingGroupKey(groupKey);
+          // The board is inside a scroll view, so a target's position
+          // as of the last drag is not necessarily where it is now
+          // either.
+          drops.measure();
+        }}
+      />
+      {!canAct && state.status === 'active' ? (
+        <Text testID="match-waiting" style={styles.muted}>
+          Waiting for another player…
+        </Text>
+      ) : null}
+    </Panel>
+  );
 
   return (
     <View style={styles.root}>
@@ -813,6 +903,11 @@ export default function MatchScreen() {
           </>
         ) : null}
 
+        {/* Between rounds the one control the module still offers belongs
+            here, with the settlement it acts on, rather than under a hand
+            that cannot be played. See `controlsPanel`. */}
+        {paused ? controlsPanel : null}
+
         <SeatStrip
           seats={view.seats ?? []}
           players={state.players}
@@ -888,82 +983,23 @@ export default function MatchScreen() {
           ))}
         </View>
 
-        {/* Directly under your hand, at every screen width. Every control
-            here acts on the cards picked just above it, and a bar up beside
-            the piles meant looking in one place to choose and another to
-            act — with the whole hand in between, which on a phone is most
-            of the screen. Under the hand rather than over it because that
-            is the edge a thumb is already resting on.
+        {/* Directly under your hand, at every screen width, for as long as
+            there is a hand to play. Every control here acts on the cards
+            picked just above it, and a bar up beside the piles meant looking
+            in one place to choose and another to act — with the whole hand in
+            between, which on a phone is most of the screen. Under the hand
+            rather than over it because that is the edge a thumb is already
+            resting on.
 
             The cost is that the piles no longer have a neighbour to share
             their band with on a wide screen. Worth paying: that band was
             shared at the price of putting every button a full hand away
-            from the cards it spends. */}
-        <Panel
-          {...zonePanelProps('controls')}
-          title="Controls"
-          testID="controls-panel"
-          summary={
-            <OfferGlance
-              offers={state.legalActions}
-              selectedCards={selectedCards}
-              armedGroupId={armedMeldIdLive}
-              onSend={send}
-              onConsumeSelection={clearSelection}
-              onAmbiguous={(groupKey) => {
-                setPendingGroupKey(groupKey);
-                drops.measure();
-              }}
-              testID="controls-summary"
-            />
-          }
-        >
-          {/* The engine's own sentence stands in for a code this build has
-              no translation for — it is at least a sentence, where the bare
-              code reads as a crash. A code we do know still wins, so a
-              translated message never regresses to English. */}
-          {error ? (
-            <Text
-              testID="match-error"
-              style={styles.error}
-              onPress={() => {
-                // A submission refused on arrival — a meld a person composed,
-                // which had no greyed-out control of its own to have been
-                // explained in advance — gets the same three layers as one
-                // that did. The frame carries its own ruleIds; the remedy
-                // comes from whichever offer is now on the table.
-                setExplaining({ code: error.code, ruleIds: error.ruleIds });
-                clearError();
-              }}
-            >
-              {reasonText(error.code, error.message || error.code)}
-            </Text>
-          ) : null}
-          {/* Disabled offers stay on screen with their reason. An offer
-              that vanished when it became illegal would be
-              indistinguishable from a bug, which is why the server sends
-              the whole set every time. */}
-          <OfferBar
-            offers={state.legalActions}
-            selectedCards={selectedCards}
-            armedGroupId={armedMeldIdLive}
-            onSend={send}
-            onConsumeSelection={clearSelection}
-            onExplain={setExplaining}
-            onAmbiguous={(groupKey) => {
-              setPendingGroupKey(groupKey);
-              // The board is inside a scroll view, so a target's position
-              // as of the last drag is not necessarily where it is now
-              // either.
-              drops.measure();
-            }}
-          />
-          {!canAct && state.status === 'active' ? (
-            <Text testID="match-waiting" style={styles.muted}>
-              Waiting for another player…
-            </Text>
-          ) : null}
-        </Panel>
+            from the cards it spends.
+
+            The one exception is a table between rounds, where the premise
+            fails in both halves — there are no cards to pick and only one
+            control — and the panel is drawn up with the results instead. */}
+        {paused ? null : controlsPanel}
 
         {/* Every spread on the board, whoever's it is, sharing a wrapping
             row instead of each claiming a full-width line — named by its
@@ -1034,6 +1070,21 @@ export default function MatchScreen() {
         rectFor={drops.rectFor}
         measure={drops.measure}
         onDone={landFlight}
+      />
+
+      {/* Two seconds saying a round or the match has ended, over everything
+          and touchable by nothing — the board underneath takes a tap during
+          those two seconds exactly as it would have. Last in the tree so it
+          is on top; see `ResultsFlash` for why it is not a dialog. */}
+      <ResultsFlash
+        visible={flash.visible}
+        kind={flash.kind}
+        log={state.rounds}
+        players={state.players}
+        standings={state.standings}
+        status={view.status}
+        winners={winners}
+        viewerId={viewerId}
       />
     </View>
   );
