@@ -254,6 +254,21 @@ const en: Record<string, string> = {
   // player is the one waiting, when the table is waiting for them.
   'round.continue': 'Start the next round',
 
+  // --- the flash that announces a round or a match ending ------------------
+  //
+  // One line and one number, held for about two seconds. Worded generically on
+  // purpose: which *kind* of ending it was is the module's own fact, printed
+  // underneath, and a client that phrased "went gin" itself would be a client
+  // that knows a game.
+  'flash.roundWon': '{winners} took it',
+  'flash.roundWonYou': 'You took it',
+  'flash.roundDrawn': 'Nobody took it',
+  'flash.matchOver': 'Match over',
+  'flash.matchWon': '{winners} won',
+  'flash.matchWonYou': 'You won',
+  'flash.matchDrawn': 'Nobody won',
+  'flash.nowOn': 'now {total}',
+
   'zolik.round.deal': 'Deal',
   'zolik.round.cleanRun': 'One run must be joker-free',
   'canasta.round.deal': 'Deal',
@@ -746,6 +761,17 @@ const cs: Record<string, string> = {
   // dva hráči, pět hráčů — so a number here would need three phrasings to buy
   // something the seat markers already show.
   'round.continue': 'Začít další kolo',
+
+  // Bezpodmětné tvary tam, kde čeština potřebuje rod: „Kolo bere X" funguje
+  // pro muže i ženu, kdežto „X vyhrál" by potřebovalo dvě znění.
+  'flash.roundWon': 'Kolo bere {winners}',
+  'flash.roundWonYou': 'Kolo bereš ty',
+  'flash.roundDrawn': 'Kolo nikdo nebere',
+  'flash.matchOver': 'Konec zápasu',
+  'flash.matchWon': 'Zápas bere {winners}',
+  'flash.matchWonYou': 'Zápas bereš ty',
+  'flash.matchDrawn': 'Nikdo nevyhrál',
+  'flash.nowOn': 'nyní {total}',
 
   'zolik.round.deal': 'Rozdání',
   'zolik.round.cleanRun': 'Jedna postupka bez žolíka',
