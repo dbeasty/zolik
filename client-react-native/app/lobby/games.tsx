@@ -6,6 +6,7 @@ import type { MatchModule } from '@/src/api/matchTypes';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { formatApiError } from '@/src/lib/apiError';
+import { loadGameSetup, saveGameSetup } from '@/src/lib/gameSetupStore';
 import { factText, label } from '@/src/lib/labels';
 import { colors } from '@/src/theme';
 
@@ -53,12 +54,27 @@ export default function GamesScreen() {
         const o: Record<string, Record<string, number>> = {};
         const b: Record<string, number> = {};
         for (const m of list) {
-          const first = m.variations?.[0];
-          if (first) {
-            v[m.id] = first.id;
-            o[m.id] = { ...(first.defaults ?? {}) };
+          const saved = await loadGameSetup(m.id);
+          // Only trust a saved pick that still matches this module's current
+          // descriptor: a variation or option the server has since renamed or
+          // dropped should fall back to the module's own default rather than
+          // resurrect a stale choice.
+          const savedVariation =
+            saved?.variation && m.variations?.some((x) => x.id === saved.variation)
+              ? saved.variation
+              : undefined;
+          const variationId = savedVariation ?? m.variations?.[0]?.id;
+          const spec = m.variations?.find((x) => x.id === variationId);
+          if (variationId) {
+            v[m.id] = variationId;
+            o[m.id] = { ...(spec?.defaults ?? {}) };
+            for (const opt of m.options ?? []) {
+              if (saved?.options && opt.name in saved.options) {
+                o[m.id][opt.name] = saved.options[opt.name];
+              }
+            }
           }
-          b[m.id] = botCount(m);
+          b[m.id] = saved?.bots ?? botCount(m);
         }
         setVariation(v);
         setOptions(o);
@@ -89,6 +105,14 @@ export default function GamesScreen() {
       setBusy(mod.id);
       setError('');
       try {
+        // Remember this pick for next time, regardless of how the match turns
+        // out — it is a setup-screen preference, not a fact about the match.
+        await saveGameSetup(mod.id, {
+          variation: variation[mod.id],
+          options: options[mod.id],
+          bots: bots[mod.id],
+        });
+
         const { matchId } = await client.createMatch(
           mod.id,
           variation[mod.id],
