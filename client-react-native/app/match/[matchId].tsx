@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { ActionOffer, Zone } from '@/src/api/matchTypes';
 import { POSITION_PARAM, offerGroupKey, submissionFor } from '@/src/api/matchTypes';
+import { Attention } from '@/src/components/match/Attention';
 import { FlightLayer, type QueuedFlight } from '@/src/components/match/FlightLayer';
 import { HandZone } from '@/src/components/match/HandZone';
 import { LifetimeRecord } from '@/src/components/match/LifetimeRecord';
@@ -752,6 +753,10 @@ export default function MatchScreen() {
         onSend={send}
         onConsumeSelection={clearSelection}
         onExplain={setExplaining}
+        // Between rounds the module offers one thing: go on. Said here as
+        // "the table is waiting on this bar" rather than as any offer's name,
+        // so the bar rings whatever the one thing turns out to be.
+        urgent={paused}
         onAmbiguous={(groupKey) => {
           setPendingGroupKey(groupKey);
           // The board is inside a scroll view, so a target's position
@@ -884,6 +889,9 @@ export default function MatchScreen() {
                   onPress={playAgain}
                   style={[styles.overButton, startingAgain && styles.overButtonBusy]}
                 >
+                  {/* The same ring the way on gets between rounds: a finished
+                      match leaves one thing to do too. */}
+                  <Attention active={!startingAgain} radius={8} />
                   <Text style={styles.overButtonText}>
                     {startingAgain ? 'Setting up…' : 'Play again'}
                   </Text>

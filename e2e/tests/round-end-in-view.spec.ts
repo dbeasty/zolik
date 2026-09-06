@@ -229,6 +229,21 @@ test.describe('a stopped table brings the way on to the player', () => {
         'a player looking at their own hand never sees it',
     ).toBeTruthy();
 
+    // In view is not the same as noticed. The one thing left to do wears a ring
+    // and is filled; everything the table is not waiting on is an outline. The
+    // suite runs under prefers-reduced-motion, so the ring here is the still
+    // version of it — which is the point: the cue survives someone who asked
+    // their system for less movement.
+    const ringed = await page.evaluate(() => {
+      const el = document.querySelector('[data-testid="offer-continue"]') as HTMLElement;
+      const ring = el.querySelector('[data-testid="attention-ring"]');
+      return { ring: !!ring, fill: getComputedStyle(el).backgroundColor };
+    });
+    expect(ringed.ring, 'the way on should be ringed, not just present').toBeTruthy();
+    expect(ringed.fill, 'the way on should be the filled control, not an outline').not.toBe(
+      'rgba(0, 0, 0, 0)',
+    );
+
     // And the settlement it belongs to came with it, rather than being cut off
     // above the fold — which is how a player comes to think they missed
     // something.
@@ -289,7 +304,14 @@ test.describe('a stopped table brings the way on to the player', () => {
     ).toBeTruthy();
 
     // Every other seat was a bot, so the same table is one press away — and the
-    // press is the point of arriving here.
+    // press is the point of arriving here, so it is ringed like the way on
+    // between rounds.
+    expect(
+      await page
+        .locator('[data-testid="match-over-again"] [data-testid="attention-ring"]')
+        .count(),
+      'the offer to play again should be ringed',
+    ).toBe(1);
     const again = await viewportBox(page, 'match-over-again');
     expect(
       again?.whollyInView,
