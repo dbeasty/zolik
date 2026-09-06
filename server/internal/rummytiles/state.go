@@ -36,7 +36,7 @@ const (
 	ErrNotARun           = "NOT_A_RUN"
 	ErrBadSplitPosition  = "BAD_SPLIT_POSITION"
 	ErrNoJokerInSet      = "NO_JOKER_IN_SET"
-	ErrJokerSwapMismatch = "JOKER_SWAP_MISMATCH"
+	ErrJokerSwapMismatch = "TILE_JOKER_SWAP_MISMATCH"
 	ErrNothingToDraw     = "NOTHING_TO_DRAW"
 )
 
