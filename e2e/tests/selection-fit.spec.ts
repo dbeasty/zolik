@@ -70,6 +70,30 @@ async function serverHand(request: Ctx, matchId: string, userId: string): Promis
   return (zone?.cards ?? []).map((c: any) => c.card);
 }
 
+/**
+ * How a control is painted: whether it is filled, and how much room it takes.
+ *
+ * A control that cannot be pressed is drawn as the outline of a button rather
+ * than a faded one, so the filled controls on screen are exactly the ones that
+ * can be pressed. The size is measured alongside because that is the half of
+ * the rule that is easy to break: a border that appeared only on greying out
+ * would reflow the whole row every time an offer came and went.
+ */
+async function paint(page: Page, testId: string) {
+  return page.evaluate((id) => {
+    const el = document.querySelector(`[data-testid="${id}"]`) as HTMLElement;
+    const cs = getComputedStyle(el);
+    const r = el.getBoundingClientRect();
+    return {
+      fill: cs.backgroundColor,
+      border: cs.borderTopWidth,
+      stroke: cs.borderTopStyle,
+      width: Math.round(r.width),
+      height: Math.round(r.height),
+    };
+  }, testId);
+}
+
 test.describe('a control refuses what it cannot send', () => {
   test('discard greys out and says why when two cards are picked, and comes back for one', async ({
     page,
@@ -87,6 +111,7 @@ test.describe('a control refuses what it cannot send', () => {
     const discard = page.getByTestId('offer-discard');
     await expect(discard).not.toHaveAttribute('aria-disabled', 'true');
     await expect(page.getByTestId('why-discard')).toHaveCount(0);
+    const pressable = await paint(page, 'offer-discard');
     const handSize = (await serverHand(request, matchId, host.userId)).length;
 
     // The drawn card is picked *for* the player, not *by* them — touching a
@@ -102,6 +127,29 @@ test.describe('a control refuses what it cannot send', () => {
     await expect(discard).toHaveAttribute('aria-disabled', 'true');
     await expect(page.getByTestId('why-discard')).toHaveText('Select just one card');
 
+    // And it is drawn as the outline of a button rather than a faded one, in a
+    // box the same size: the outline is carried by every control at every
+    // moment and only its colour changes, so the row does not shift under the
+    // thumb that is still picking cards. (The slot does widen here — the
+    // reason line below the button is longer than the button — which is why
+    // this pins the height and the border rather than the width.)
+    const refusing = await paint(page, 'offer-discard');
+    expect(refusing.fill, 'a control that cannot be pressed should not be filled').toBe(
+      'rgba(0, 0, 0, 0)',
+    );
+    expect(pressable.fill, 'a control that can be pressed should be filled').not.toBe(
+      'rgba(0, 0, 0, 0)',
+    );
+    expect({ h: refusing.height, border: refusing.border }).toEqual({
+      h: pressable.height,
+      border: pressable.border,
+    });
+    // Dashed here, where the browser draws it properly at a rounded corner —
+    // it says "not a real button yet" more plainly than any colour can. Native
+    // gets the same outline solid; see the note on `ghost` in `OfferBar`.
+    expect(refusing.stroke, 'a refusing control should read as a dashed outline').toBe('dashed');
+    expect(pressable.stroke).toBe('solid');
+
     // The server never saw a discard for either card.
     const untouched = await serverHand(request, matchId, host.userId);
     expect(untouched.length).toBe(handSize);
@@ -110,6 +158,7 @@ test.describe('a control refuses what it cannot send', () => {
     await page.locator('[data-testid^="card-hand:"][aria-selected="true"]').first().click();
     await expect(discard).not.toHaveAttribute('aria-disabled', 'true');
     await expect(page.getByTestId('why-discard')).toHaveCount(0);
+    expect((await paint(page, 'offer-discard')).fill, 'and it fills back in').toBe(pressable.fill);
 
     // And it sends exactly the one card that stayed selected — never a
     // different, guessed one.

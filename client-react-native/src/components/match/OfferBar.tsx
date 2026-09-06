@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { ActionOffer, MatchAction, ParamSpec } from '@/src/api/matchTypes';
 import { defaultParam, isOneTap, offerGroupKey, submissionFor } from '@/src/api/matchTypes';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { fits, type Fit } from '@/src/lib/drops';
+import { Attention } from '@/src/components/match/Attention';
 import type { Refusal } from '@/src/components/match/WhySheet';
 import type { Metrics } from '@/src/lib/layout';
 import { factText, label } from '@/src/lib/labels';
@@ -66,6 +67,17 @@ type Props = {
    * not expandable, which is what this bar did before the rule index existed.
    */
   onExplain?: (refusal: Refusal) => void;
+  /**
+   * The table is waiting on this bar rather than offering a choice within it.
+   * Whatever is still pressable here gets a ring around it — see `Attention`.
+   *
+   * Set between rounds and at the end of a match, where the module offers
+   * exactly one thing to do and a control that looks like every other control
+   * is one nobody reads as being addressed to them. It names no game and no
+   * offer: the caller says "this is the whole of what is left", and this bar
+   * rings whatever that turns out to be.
+   */
+  urgent?: boolean;
 };
 
 /**
@@ -103,6 +115,7 @@ export function OfferBar({
   onConsumeSelection,
   onAmbiguous,
   onExplain,
+  urgent,
 }: Props) {
   const metrics = useMetrics();
   const skin = useSkin();
@@ -166,18 +179,27 @@ export function OfferBar({
               accessibilityState={{ disabled: !offer.enabled || !ready }}
               disabled={!offer.enabled || !ready}
               onPress={() => send(offer)}
-              style={[styles.button, (!offer.enabled || !ready) && styles.disabled]}
+              style={[styles.button, (!offer.enabled || !ready) && styles.ghost]}
             >
+              {/* A ring in the air around the one thing the table is waiting
+                  for. Drawn inside the control so it needs no wrapper, and on
+                  its own layer so it costs the row no room. */}
+              <Attention active={!!urgent && offer.enabled && ready} radius={8} />
               {/* The offer's own label if it has one, because a verb cannot
                   always tell two controls apart; otherwise the verb, which
                   covers most offers. */}
-              <Text style={styles.buttonText}>
+              <Text
+                style={[styles.buttonText, (!offer.enabled || !ready) && styles.ghostText]}
+              >
                 {label(offer.labelKey ?? `verb.${offer.verb}`) || offer.verb}
               </Text>
               {/* What the move costs, pushed by the server rather than worked
                   out here — "Call 40" is a button whose meaning is its number. */}
               {(offer.facts ?? []).map((f, i) => (
-                <Text key={i} style={styles.buttonFact}>
+                <Text
+                  key={i}
+                  style={[styles.buttonFact, (!offer.enabled || !ready) && styles.ghostText]}
+                >
                   {factText(f)}
                 </Text>
               ))}
@@ -332,9 +354,9 @@ export function OfferGlance({
             accessibilityState={{ disabled: !ready }}
             disabled={!ready}
             onPress={() => press(o, groupKey)}
-            style={[styles.glancePill, !ready && styles.disabled]}
+            style={[styles.glancePill, !ready && styles.ghost]}
           >
-            <Text style={styles.glancePillText} numberOfLines={1}>
+            <Text style={[styles.glancePillText, !ready && styles.ghostText]} numberOfLines={1}>
               {label(o.labelKey ?? `verb.${o.verb}`) || o.verb}
             </Text>
           </Pressable>
@@ -420,9 +442,11 @@ function FoldedOffer({
         accessibilityState={{ disabled }}
         disabled={disabled}
         onPress={press}
-        style={[styles.button, disabled && styles.disabled]}
+        style={[styles.button, disabled && styles.ghost]}
       >
-        <Text style={styles.buttonText}>{label(first.labelKey ?? `verb.${first.verb}`) || first.verb}</Text>
+        <Text style={[styles.buttonText, disabled && styles.ghostText]}>
+          {label(first.labelKey ?? `verb.${first.verb}`) || first.verb}
+        </Text>
       </Pressable>
 
       {disabled && sharedReason ? (
@@ -633,12 +657,38 @@ function offerBarStyles(m: Metrics, s: Skin) {
     slot: { minWidth: m.buttonMinWidth, maxWidth: '100%', flexShrink: 1 },
     button: {
       backgroundColor: colors.accentButton,
+      // Carried by every button, filled or not, and the same width in both:
+      // a border that appears when a control greys out would make the row
+      // reflow every time an offer came and went. Same rule the board's
+      // highlights keep — a control may change colour to say something, never
+      // size. Invisible here because it is the fill's own colour.
+      borderWidth: 1,
+      borderColor: colors.accentButton,
       borderRadius: 8,
       paddingVertical: 10,
       paddingHorizontal: 12,
       alignItems: 'center',
     },
-    disabled: { opacity: 0.4 },
+    // What a control that cannot be pressed looks like: the outline of a
+    // button rather than a faded one. Flat dimming said "this is a button,
+    // slightly less so", and on a stopped table — where every control but one
+    // is off — it left a screen of near-identical buttons with no way to tell
+    // at a glance which one was addressed to the player. An outline is not a
+    // weaker button; it is visibly a different kind of thing, so the one
+    // filled control on screen is the one to press.
+    //
+    // Dashed on web, where it says "not a real button yet" more plainly than
+    // any colour can, and solid everywhere else: React Native draws a dashed
+    // border wrongly once a corner is rounded — the dashes break at the arcs
+    // on iOS and the whole border falls back to solid on Android — and a
+    // control that looks broken on a phone is a worse outcome than one that is
+    // merely outlined. The width is 1 in both, so nothing moves either way.
+    ghost: {
+      backgroundColor: 'transparent',
+      borderColor: colors.border,
+      borderStyle: Platform.OS === 'web' ? 'dashed' : 'solid',
+    },
+    ghostText: { color: colors.muted },
     buttonText: { color: colors.onAccent, fontWeight: '700', fontSize: m.panel.bodyFont + 1 },
     buttonFact: { color: colors.onAccent, fontSize: m.panel.bodyFont - 1, marginTop: 2 },
     whyMore: { color: colors.accent, fontWeight: '600' },
@@ -678,6 +728,9 @@ function offerBarStyles(m: Metrics, s: Skin) {
     glancePill: {
       flexShrink: 0,
       backgroundColor: colors.accentButton,
+      // As on `button` above: carried always, so ghosting one costs no width.
+      borderWidth: 1,
+      borderColor: colors.accentButton,
       borderRadius: 6,
       paddingHorizontal: 8,
       paddingVertical: 3,
