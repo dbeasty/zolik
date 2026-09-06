@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { ActionOffer, MatchAction, ParamSpec } from '@/src/api/matchTypes';
 import { defaultParam, isOneTap, offerGroupKey, submissionFor } from '@/src/api/matchTypes';
@@ -676,7 +676,18 @@ function offerBarStyles(m: Metrics, s: Skin) {
     // at a glance which one was addressed to the player. An outline is not a
     // weaker button; it is visibly a different kind of thing, so the one
     // filled control on screen is the one to press.
-    ghost: { backgroundColor: 'transparent', borderColor: colors.border },
+    //
+    // Dashed on web, where it says "not a real button yet" more plainly than
+    // any colour can, and solid everywhere else: React Native draws a dashed
+    // border wrongly once a corner is rounded — the dashes break at the arcs
+    // on iOS and the whole border falls back to solid on Android — and a
+    // control that looks broken on a phone is a worse outcome than one that is
+    // merely outlined. The width is 1 in both, so nothing moves either way.
+    ghost: {
+      backgroundColor: 'transparent',
+      borderColor: colors.border,
+      borderStyle: Platform.OS === 'web' ? 'dashed' : 'solid',
+    },
     ghostText: { color: colors.muted },
     buttonText: { color: colors.onAccent, fontWeight: '700', fontSize: m.panel.bodyFont + 1 },
     buttonFact: { color: colors.onAccent, fontSize: m.panel.bodyFont - 1, marginTop: 2 },

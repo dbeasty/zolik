@@ -87,6 +87,7 @@ async function paint(page: Page, testId: string) {
     return {
       fill: cs.backgroundColor,
       border: cs.borderTopWidth,
+      stroke: cs.borderTopStyle,
       width: Math.round(r.width),
       height: Math.round(r.height),
     };
@@ -143,6 +144,11 @@ test.describe('a control refuses what it cannot send', () => {
       h: pressable.height,
       border: pressable.border,
     });
+    // Dashed here, where the browser draws it properly at a rounded corner —
+    // it says "not a real button yet" more plainly than any colour can. Native
+    // gets the same outline solid; see the note on `ghost` in `OfferBar`.
+    expect(refusing.stroke, 'a refusing control should read as a dashed outline').toBe('dashed');
+    expect(pressable.stroke).toBe('solid');
 
     // The server never saw a discard for either card.
     const untouched = await serverHand(request, matchId, host.userId);
