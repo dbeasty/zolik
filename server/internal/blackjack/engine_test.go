@@ -659,3 +659,195 @@ func remarshal(t *testing.T, s *GameState) module.State {
 	}
 	return raw
 }
+
+// --- the shoe ------------------------------------------------------------
+
+// TestShoe_NeverDealsACardThatIsAlreadyOnTheTable.
+//
+// The bug this is written from: the cut card was a quarter of the shoe, which
+// is thirteen cards of a single deck — fewer than the sixteen a full table
+// needs to deal. The round then ran the shoe dry mid-hand, a fresh deck was
+// built with the live hands still on the table, and players sat looking at two
+// of the same card. Forty of forty single-deck matches showed one by the
+// fourth round.
+func TestShoe_NeverDealsACardThatIsAlreadyOnTheTable(t *testing.T) {
+	m := New()
+	players := seats("p1", "p2", "p3", "p4", "p5", "p6", "p7")
+
+	for seed := int64(1); seed <= 12; seed++ {
+		cfg := module.MatchConfig{Variation: "single", Options: module.Options{
+			OptRounds: 20, OptStartingStack: 2000,
+		}}
+		state, err := m.NewMatch(cfg, players, seed)
+		if err != nil {
+			t.Fatalf("NewMatch: %v", err)
+		}
+		for step := 0; step < 20000; step++ {
+			if done, _, _ := m.Finished(state); done {
+				break
+			}
+			awaited := module.AwaitedSeats(m, state, "p1", players)
+			if len(awaited) == 0 {
+				break
+			}
+			offers, err := m.LegalActions(state, awaited[0])
+			if err != nil {
+				t.Fatalf("LegalActions: %v", err)
+			}
+			// Hitting hardest is what drains a shoe fastest, which is the
+			// position this is looking for.
+			a, ok := module.ChooseAction(offers, []string{"bet", "decline_insurance", "hit", "stand"})
+			if !ok {
+				break
+			}
+			next, _, err := m.Apply(state, awaited[0], a)
+			if err != nil {
+				t.Fatalf("seed %d step %d: offered %+v but refused: %v", seed, step, a, err)
+			}
+			state = next
+
+			s := stateOf(t, next)
+			seen := map[string]int{}
+			for i := range s.Seats {
+				for _, h := range s.Seats[i].Hands {
+					for _, c := range h.Cards {
+						seen[c]++
+					}
+				}
+			}
+			for _, c := range s.Dealer {
+				seen[c]++
+			}
+			for card, n := range seen {
+				if n > s.Decks {
+					t.Fatalf("seed %d round %d: %s is on the table %d times, and the shoe holds %d",
+						seed, s.RoundNumber, card, n, s.Decks)
+				}
+			}
+		}
+	}
+}
+
+// TestShoe_IsReplacedBeforeARoundCanRunOutOfCards is the same rule stated
+// where it is decided, rather than only observed through play: whatever the
+// table size, the cut card leaves enough for every box and the dealer to be
+// dealt to.
+func TestShoe_IsReplacedBeforeARoundCanRunOutOfCards(t *testing.T) {
+	for _, count := range []int{2, 4, 7} {
+		s := tableOf(module.MatchConfig{Variation: "single"})
+		for i := 0; i < count; i++ {
+			s.Seats = append(s.Seats, Seat{PlayerID: "p" + itoa(i)})
+		}
+		if need := (count + 1) * 2; cutCard(s) < need {
+			t.Errorf("%d seats: the shoe may fall to %d cards, and the deal alone needs %d",
+				count, cutCard(s), need)
+		}
+	}
+}
+
+// --- the end of a match --------------------------------------------------
+
+// TestMatch_ATableThatAllWentBrokeNamesNobody.
+//
+// The bug this is written from: the winner was whoever held the most chips,
+// and with every seat on zero that was everybody. The match ended by naming
+// three busted players joint winners, which the shell rendered as "You won."
+// and the recorder wrote down as a win each.
+func TestMatch_ATableThatAllWentBrokeNamesNobody(t *testing.T) {
+	raw := withTable(t, func(s *GameState) {
+		s.RoundLimit = 10
+		s.Seats[0].Stack, s.Seats[1].Stack = 0, 0
+		s.Seats[0].Hands[0] = Hand{ID: handID("p1", 0), Cards: []string{"9H", "7D"}, Bet: 10}
+		s.Seats[1].Hands[0] = Hand{ID: handID("p2", 0), Cards: []string{"TS", "8C"}, Bet: 10, Done: true}
+		s.Dealer = []string{"TD", "9C"} // nineteen: both hands lose
+	})
+	next, err := apply(t, raw, "p1", VerbStand)
+	if err != nil {
+		t.Fatalf("stand: %v", err)
+	}
+
+	done, winners, err := New().Finished(next)
+	if err != nil || !done {
+		t.Fatalf("a table with nobody able to bet should be over: done=%v err=%v", done, err)
+	}
+	if len(winners) != 0 {
+		t.Errorf("every seat is on zero chips, and the match named %v as winners", winners)
+	}
+	// And the scoreboard still reads, so a client has something to show.
+	if got := module.StandingsFor(New(), next); len(got) != 2 {
+		t.Errorf("the scoreboard lost its rows: %+v", got)
+	}
+}
+
+// --- refusals say the right thing ---------------------------------------
+
+// TestRefusals_NameTheHandBeforeTheStack.
+//
+// The bug this is written from: both handlers checked the stack first, so a
+// short seat that had already drawn was told "you don't have that many chips"
+// about a hand that could not have been doubled at any stack size — and, since
+// that code maps to no written rule, the "why" behind the control opened
+// nothing.
+func TestRefusals_NameTheHandBeforeTheStack(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		verb string
+		want string
+		mut  func(*GameState)
+	}{
+		{
+			name: "a hand that has already drawn cannot be doubled at any price",
+			verb: VerbDouble, want: ErrCannotDouble,
+			mut: func(s *GameState) {
+				s.Seats[0].Stack = 2
+				s.Seats[0].Hands[0].Cards = []string{"5H", "4D", "3C"}
+			},
+		},
+		{
+			name: "a hand that is not a pair cannot be split at any price",
+			verb: VerbSplit, want: ErrCannotSplit,
+			mut: func(s *GameState) {
+				s.Seats[0].Stack = 2
+				s.Seats[0].Hands[0].Cards = []string{"9H", "7D"}
+			},
+		},
+		{
+			name: "a legal double a short seat cannot cover says so",
+			verb: VerbDouble, want: ErrNotEnoughChips,
+			mut: func(s *GameState) {
+				s.Seats[0].Stack = 2
+				s.Seats[0].Hands[0].Cards = []string{"6H", "5D"}
+			},
+		},
+		{
+			name: "a legal split a short seat cannot cover says so",
+			verb: VerbSplit, want: ErrNotEnoughChips,
+			mut: func(s *GameState) {
+				s.Seats[0].Stack = 2
+				s.Seats[0].Hands[0].Cards = []string{"8H", "8D"}
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			raw := withTable(t, tc.mut)
+			_, err := apply(t, raw, "p1", tc.verb)
+			if got := module.CodeOf(err); got != tc.want {
+				t.Errorf("refused with %s, want %s", got, tc.want)
+			}
+			// And the offer says the same thing, since a player reads the
+			// reason there rather than by pressing a dead control.
+			offers, err := New().LegalActions(raw, "p1")
+			if err != nil {
+				t.Fatalf("LegalActions: %v", err)
+			}
+			id := OfferDouble
+			if tc.verb == VerbSplit {
+				id = OfferSplit
+			}
+			o := module.FindOffer(offers, id)
+			if o == nil || o.WhyNot != tc.want {
+				t.Errorf("the offer says %+v, want whyNot=%s", o, tc.want)
+			}
+		})
+	}
+}

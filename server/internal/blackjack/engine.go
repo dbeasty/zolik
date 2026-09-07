@@ -108,12 +108,12 @@ func startRound(s *GameState) []module.Event {
 	s.Current, s.CurrentHand = -1, -1
 	s.Phase = phaseBets
 
-	// The cut card. A shoe is reshuffled between rounds rather than mid-deal,
+	// The cut card. A shoe is replaced between rounds rather than mid-deal,
 	// which is both what a table does and what keeps a round dealt from one
 	// known composition — mid-round shuffling is the thing card counters and
 	// bug reports both notice.
-	if len(s.Shoe) < s.Decks*52/4 {
-		s.Shoe = buildShoe(s.Decks, s.Seed+int64(s.RoundNumber)*7919)
+	if len(s.Shoe) < cutCard(s) {
+		reshuffle(s, int64(s.RoundNumber)*7919)
 	}
 
 	return []module.Event{{Type: "round_started", Data: map[string]any{"round": s.RoundNumber}}}
@@ -376,11 +376,8 @@ func finishIfSettled(hand *Hand) {
 }
 
 func applyDouble(s *GameState, seat *Seat, hand *Hand) ([]module.Event, error) {
-	if !canDouble(s, seat, hand) {
-		if seat.Stack < hand.Bet {
-			return nil, errCode(ErrNotEnoughChips)
-		}
-		return nil, errCode(ErrCannotDouble)
+	if why := doubleRefusal(s, seat, hand); why != "" {
+		return nil, errCode(why)
 	}
 	seat.Stack -= hand.Bet
 	seat.Staked += hand.Bet
@@ -396,25 +393,30 @@ func applyDouble(s *GameState, seat *Seat, hand *Hand) ([]module.Event, error) {
 	}}}, nil
 }
 
-// canDouble states the rule once, so the offer list and Apply cannot hold
-// different opinions about it.
-func canDouble(s *GameState, seat *Seat, hand *Hand) bool {
-	if hand.Done || len(hand.Cards) != 2 || hand.SplitAces {
-		return false
+// doubleRefusal is why this hand may not be doubled, or "" when it may.
+//
+// One function, so the offer list and Apply cannot hold different opinions
+// about it — and the order inside it is the answer a player is given. What the
+// hand is comes before what the seat can afford, because a hand that has
+// already drawn cannot be doubled at any stack size, and telling a short seat
+// "you don't have that many chips" answers a question they did not ask.
+func doubleRefusal(s *GameState, seat *Seat, hand *Hand) string {
+	if hand == nil || hand.Done || len(hand.Cards) != 2 || hand.SplitAces {
+		return ErrCannotDouble
 	}
 	if hand.Split && !s.DoubleAfterSplit {
-		return false
+		return ErrCannotDouble
 	}
-	return seat.Stack >= hand.Bet
+	if seat.Stack < hand.Bet {
+		return ErrNotEnoughChips
+	}
+	return ""
 }
 
 func applySplit(s *GameState, seat *Seat) ([]module.Event, error) {
 	hand := current(s)
-	if !canSplit(s, seat, hand) {
-		if hand != nil && seat.Stack < hand.Bet {
-			return nil, errCode(ErrNotEnoughChips)
-		}
-		return nil, errCode(ErrCannotSplit)
+	if why := splitRefusal(s, seat, hand); why != "" {
+		return nil, errCode(why)
 	}
 
 	moved := hand.Cards[1]
@@ -458,18 +460,23 @@ func applySplit(s *GameState, seat *Seat) ([]module.Event, error) {
 	}}}, nil
 }
 
-// canSplit states the rule once, for the offer list and for Apply.
-func canSplit(s *GameState, seat *Seat, hand *Hand) bool {
+// splitRefusal is why this hand may not be split, or "" when it may. The order
+// is doubleRefusal's, for the same reason: what the hand is comes before what
+// the seat can afford.
+func splitRefusal(s *GameState, seat *Seat, hand *Hand) string {
 	if hand == nil || hand.Done || len(hand.Cards) != 2 {
-		return false
+		return ErrCannotSplit
 	}
 	if !samePairValue(hand.Cards[0], hand.Cards[1]) {
-		return false
+		return ErrCannotSplit
 	}
 	if len(seat.Hands) > s.MaxSplits {
-		return false
+		return ErrCannotSplit
 	}
-	return seat.Stack >= hand.Bet
+	if seat.Stack < hand.Bet {
+		return ErrNotEnoughChips
+	}
+	return ""
 }
 
 func applySurrender(s *GameState, seat *Seat, hand *Hand) ([]module.Event, error) {
@@ -702,9 +709,16 @@ func endMatch(s *GameState) []module.Event {
 			top = s.Seats[i].Stack
 		}
 	}
-	for i := range s.Seats {
-		if s.Seats[i].Stack == top {
-			s.Winners = append(s.Winners, s.Seats[i].PlayerID)
+	// Nobody is named when nobody has a chip left. A table that all went broke
+	// was won by the house, and this is the first module here whose match can
+	// end that way — every other game's is won by somebody by construction.
+	// Naming three busted seats joint winners put "You won." in front of a
+	// player who had just lost everything, and recorded it as a win.
+	if top > 0 {
+		for i := range s.Seats {
+			if s.Seats[i].Stack == top {
+				s.Winners = append(s.Winners, s.Seats[i].PlayerID)
+			}
 		}
 	}
 	return []module.Event{{Type: "match_ended", Data: map[string]any{
@@ -724,12 +738,64 @@ func (m *Module) Finished(raw module.State) (bool, []string, error) {
 	return true, append([]string(nil), s.Winners...), nil
 }
 
-// drawCard takes the next card off the shoe, shuffling a fresh one if it runs
-// out mid-round. That is the table's own "shuffle up": running out of cards is
-// not a state a hand can be left in.
+// cutCard is how low the shoe may get before it is replaced between rounds.
+//
+// A quarter of the shoe is the usual penetration, and it is wrong for exactly
+// the table this game also ships: a quarter of one deck is thirteen cards, and
+// seven boxes plus the dealer need sixteen to deal before anybody draws. So the
+// reserve is held against what this table can actually consume — two cards a
+// box, the dealer's two, and room for everyone to draw a few — which means a
+// single-deck table gets a fresh deck most rounds, the way one is dealt anyway.
+func cutCard(s *GameState) int {
+	perSeat := (len(s.Seats) + 1) * 6
+	if quarter := s.Decks * 52 / 4; quarter > perSeat {
+		return quarter
+	}
+	return perSeat
+}
+
+// reshuffle replaces the shoe, leaving out the cards already on the table.
+//
+// Between rounds nothing is on it and this is a plain fresh shoe. Mid-round it
+// is the table's own "shuffle up": the discards go back in and the live hands
+// do not, which is what stops a card sitting in front of one player being dealt
+// to another a moment later. Without it a single deck dealt visible duplicates
+// within two rounds of a full table.
+func reshuffle(s *GameState, salt int64) {
+	inPlay := map[string]int{}
+	for i := range s.Seats {
+		for _, h := range s.Seats[i].Hands {
+			for _, c := range h.Cards {
+				inPlay[c]++
+			}
+		}
+	}
+	for _, c := range s.Dealer {
+		inPlay[c]++
+	}
+
+	fresh := buildShoe(s.Decks, s.Seed+salt)
+	out := make([]string, 0, len(fresh))
+	for _, c := range fresh {
+		if inPlay[c] > 0 {
+			inPlay[c]--
+			continue
+		}
+		out = append(out, c)
+	}
+	if len(out) == 0 {
+		// Every card in the shoe on the table at once, which needs hands no
+		// table can deal. Dealing a repeat still beats refusing to deal.
+		out = fresh
+	}
+	s.Shoe = out
+}
+
+// drawCard takes the next card off the shoe, replacing it if it runs out
+// mid-round. Running out is not a state a hand can be left in.
 func drawCard(s *GameState) string {
 	if len(s.Shoe) == 0 {
-		s.Shoe = buildShoe(s.Decks, s.Seed+int64(s.RoundNumber)*7919+1)
+		reshuffle(s, int64(s.RoundNumber)*7919+1)
 	}
 	card := s.Shoe[len(s.Shoe)-1]
 	s.Shoe = s.Shoe[:len(s.Shoe)-1]
