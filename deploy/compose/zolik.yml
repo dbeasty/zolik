@@ -1,0 +1,78 @@
+# The production stack: one container, one image, no source on the host.
+#
+# This file is the entire deployment. It is copied to /home/zolik/compose.yml
+# by scripts/deploy.sh alongside a .env, and the image it names arrives over
+# SSH as a `docker load`. Nothing here builds anything — the host has no zolik
+# source, no kdb checkout, no Go toolchain and no npm, and that is the point.
+#
+#   ZOLIK_RELEASE=1.1.1.41+2e01fae docker compose up -d
+#
+# Rolling back is the same line with an older release, as long as its image is
+# still loaded (deploy.sh keeps the last few).
+#
+# The local development stack is server/docker-compose.kdb.yml, which builds
+# from source and is otherwise the same shape.
+
+# Stated, not inferred.
+#
+# Compose names a project after whatever directory the file happens to sit in,
+# and prefixes volume names with it. This file lived under server/ until the
+# deployment stopped shipping source, so the volume was called
+# `server_kdb_data`; moving the file would have renamed the project to `zolik`,
+# and Compose would have created a *new, empty* `zolik_kdb_data` without an
+# error — a healthy container, a working sign-up page, and every account and
+# match gone. Naming the project here means a future move cannot repeat it.
+name: zolik
+
+services:
+  app:
+    # Loaded by scripts/deploy.sh, never pulled and never built. The `:?`
+    # refuses to start rather than silently resolving to `zolik:latest`, which
+    # would be whichever image happened to be loaded last.
+    image: zolik:${ZOLIK_RELEASE:?ZOLIK_RELEASE must name a loaded image tag}
+    restart: unless-stopped
+    # Sized for a 1–2 GB host: one Go binary with the web client embedded in
+    # it, an embedded KDB, no Mongo and no Redis.
+    mem_limit: 1g
+    env_file:
+      - .env
+    # These override .env, so the container's shape is stated here rather than
+    # depending on what a particular host's .env happens to hold. Every one is
+    # a literal — no `${VAR:-false}` indirection on a production host, because
+    # an unset variable somewhere in the environment should not be able to
+    # open any of these.
+    environment:
+      FEATURE_FLAG_DB_ENGINE: kdb
+      KDB_PATH: /data/kdb
+      PORT: "8090"
+      # Off, and said out loud. Removing the SSH_* variables does not turn the
+      # terminal client off — SSH_ENABLED defaults *on* whenever APP_ENV is
+      # local, and its default host key path is one the image's nonroot user
+      # cannot create. Left unstated, that combination crash-loops the
+      # container: mkdir .ssh: permission denied, exit, restart, repeat.
+      SSH_ENABLED: "false"
+      # Belt and braces for the same reason: this also defaults on under a
+      # local APP_ENV, and "any key is admitted" is not a default a public
+      # host should ever be one edited line away from.
+      SSH_ALLOW_ALL_KEYS: "false"
+      # /matches/{id}/debug-state writes match state straight past the rules,
+      # and /auth/dev/last-code hands back the sign-in code mailed to any
+      # address. Both default ON under a local APP_ENV — which a production
+      # env file may deliberately set, to keep guest play working without SMTP
+      # — so they are closed here explicitly rather than by implication.
+      ENABLE_TEST_ENDPOINTS: "false"
+    volumes:
+      # /data is created nonroot-owned in the image, so the engine can write
+      # under the distroless nonroot user.
+      - kdb_data:/data
+    # Loopback only — nginx on the host is the public entry point, and it
+    # proxies everything here now that the server serves the web client too.
+    ports:
+      - "127.0.0.1:8090:8090"
+
+volumes:
+  kdb_data:
+    # The database's identity, pinned so it survives this file being moved,
+    # renamed, or run from a different directory. See the note on `name:` above
+    # — this is the line that makes "the data outlives the deploy" true.
+    name: zolik_kdb_data

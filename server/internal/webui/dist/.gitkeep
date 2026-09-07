@@ -1,0 +1,6 @@
+The Expo web export lands here at image build time — see server/Dockerfile.
+
+Kept in git because //go:embed fails to compile against a directory that does
+not exist, and a `go test ./...` on a fresh clone has never run Expo. With
+only this file present the bundle reads as absent and the handler serves
+nothing, which is what every local build and every test wants.

@@ -52,3 +52,9 @@ client-defold/wasm-web/
 # Claude Code worktrees (local scratch checkouts, incl. their node_modules)
 .claude/worktrees/
 .dev-stack/
+
+# Claude Code session state: settings, hooks, and per-session worktrees.
+# The worktrees are full checkouts of other branches — scripts/deploy.sh used
+# to carry an explicit rsync exclusion for them after 945 MB went out with a
+# release. Untracked, they also made every build report itself "-dirty".
+.claude/
