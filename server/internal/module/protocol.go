@@ -644,7 +644,11 @@ type GameModule interface {
 	// the wrong shape rather than merely unfamiliar. Hold'em then made it
 	// unavoidable — a split pot has no single winner in any sense at all.
 	//
-	// An unfinished match returns nil. A finished one returns at least one id,
-	// in no significant order.
+	// An unfinished match returns nil. A finished one usually returns at least
+	// one id, in no significant order — but not always: blackjack is played
+	// against the house rather than against the table, so a match where every
+	// seat went broke was won by nobody at all, and saying so is better than
+	// promoting the least-busted seat. A caller renders an empty list as
+	// "nobody won" rather than treating it as an error.
 	Finished(s State) (done bool, winners []string, err error)
 }

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"zolik/server/internal/blackjack"
 	"zolik/server/internal/canasta"
 	"zolik/server/internal/ginrummy"
 	"zolik/server/internal/holdem"
@@ -104,6 +105,19 @@ func allModules() []hosted {
 			mod:      ginrummy.New(),
 			players:  refs("p1", "p2"),
 			prefer:   []string{"knock", "lay_off", "finish_layoff", "draw", "discard", "pass"},
+			finishes: true,
+		},
+		{
+			name:    "blackjack",
+			rounds:  true,
+			mod:     blackjack.New(),
+			players: refs("p1", "p2", "p3"),
+			// The house is not a seat, so every one of these verbs belongs to
+			// a player: stake, decline the insurance a driver has no way to
+			// price, and then play the hand out. Standing is preferred over
+			// hitting so a driver with no chart does not simply draw itself
+			// bust every round.
+			prefer:   []string{"bet", "decline_insurance", "stand", "hit"},
 			finishes: true,
 		},
 		{

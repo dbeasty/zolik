@@ -1,16 +1,21 @@
 {
   "errorCodes": [
     "ACE_BRIDGE",
+    "ALREADY_BET",
     "ALREADY_READY",
     "AMOUNT_NOT_A_NUMBER",
     "AMOUNT_REQUIRED",
     "BAD_OPTION",
     "BAD_SPLIT_POSITION",
+    "BET_BELOW_MINIMUM",
     "CANNOT_CHECK",
     "CANNOT_DISCARD_RED_THREE",
+    "CANNOT_DOUBLE",
     "CANNOT_GO_OUT_YET",
     "CANNOT_MELD_THREE",
     "CANNOT_RAISE",
+    "CANNOT_SPLIT",
+    "CANNOT_SURRENDER",
     "CARD_DOES_NOT_EXTEND_MELD",
     "CARD_DOES_NOT_FIT",
     "CARD_NOT_IN_HAND",
@@ -25,6 +30,7 @@
     "INITIAL_MELD_NOT_MET",
     "INITIAL_MELD_ONLY",
     "INITIAL_MELD_TOO_LOW",
+    "INSURANCE_CLOSED",
     "INVALID_MELD",
     "JOKER_DISCARD_FORBIDDEN",
     "JOKER_SWAP_MISMATCH",
@@ -95,6 +101,82 @@
     "WRONG_RUN_END"
   ],
   "labelKeys": [
+    "blackjack.fact.extraStake",
+    "blackjack.fact.insuranceCost",
+    "blackjack.fact.surrenderReturn",
+    "blackjack.fact.tableMinimum",
+    "blackjack.header.dealerSoftTotal",
+    "blackjack.header.dealerTotal",
+    "blackjack.header.decks",
+    "blackjack.header.minBet",
+    "blackjack.header.round",
+    "blackjack.offer.bet",
+    "blackjack.offer.declineInsurance",
+    "blackjack.offer.double",
+    "blackjack.offer.hit",
+    "blackjack.offer.insure",
+    "blackjack.offer.split",
+    "blackjack.offer.stand",
+    "blackjack.offer.surrender",
+    "blackjack.prompt.betAmount",
+    "blackjack.prompt.insurance",
+    "blackjack.prompt.placeBet",
+    "blackjack.prompt.waitingFor",
+    "blackjack.prompt.yourMove",
+    "blackjack.round.dealerBlackjack",
+    "blackjack.round.dealerBust",
+    "blackjack.round.dealerTotal",
+    "blackjack.round.name",
+    "blackjack.round.outcome.blackjack",
+    "blackjack.round.outcome.bust",
+    "blackjack.round.outcome.lose",
+    "blackjack.round.outcome.push",
+    "blackjack.round.outcome.surrender",
+    "blackjack.round.outcome.win",
+    "blackjack.rules.aces",
+    "blackjack.rules.blackjack",
+    "blackjack.rules.bustedOut",
+    "blackjack.rules.dealerDraws",
+    "blackjack.rules.dealerPeeks",
+    "blackjack.rules.decks",
+    "blackjack.rules.double",
+    "blackjack.rules.doubleAfterSplit",
+    "blackjack.rules.faceUp",
+    "blackjack.rules.goal",
+    "blackjack.rules.hitStand",
+    "blackjack.rules.hitsSoft17",
+    "blackjack.rules.insurance",
+    "blackjack.rules.minBet",
+    "blackjack.rules.mostChipsWins",
+    "blackjack.rules.noDoubleAfterSplit",
+    "blackjack.rules.noInsurance",
+    "blackjack.rules.noSplit",
+    "blackjack.rules.noSurrender",
+    "blackjack.rules.pays3to2",
+    "blackjack.rules.pays6to5",
+    "blackjack.rules.paysEven",
+    "blackjack.rules.rounds",
+    "blackjack.rules.section.dealer",
+    "blackjack.rules.section.end",
+    "blackjack.rules.section.play",
+    "blackjack.rules.section.table",
+    "blackjack.rules.split",
+    "blackjack.rules.splitAces",
+    "blackjack.rules.stack",
+    "blackjack.rules.standsSoft17",
+    "blackjack.rules.surrender",
+    "blackjack.seat.bet",
+    "blackjack.seat.insurance",
+    "blackjack.seat.softTotal",
+    "blackjack.seat.stack",
+    "blackjack.seat.total",
+    "blackjack.status.dealerBlackjack",
+    "blackjack.status.dealerBust",
+    "blackjack.status.dealerStands",
+    "blackjack.zone.box",
+    "blackjack.zone.dealer",
+    "blackjack.zone.shoe",
+    "blackjack.zone.yourBox",
     "canasta.offer.rank",
     "canasta.round.concealed",
     "canasta.round.deal",
@@ -346,6 +428,38 @@
     "zone.yourHand"
   ],
   "sentenceKeys": [
+    "blackjack.rules.aces",
+    "blackjack.rules.blackjack",
+    "blackjack.rules.bustedOut",
+    "blackjack.rules.dealerDraws",
+    "blackjack.rules.dealerPeeks",
+    "blackjack.rules.decks",
+    "blackjack.rules.double",
+    "blackjack.rules.doubleAfterSplit",
+    "blackjack.rules.faceUp",
+    "blackjack.rules.goal",
+    "blackjack.rules.hitStand",
+    "blackjack.rules.hitsSoft17",
+    "blackjack.rules.insurance",
+    "blackjack.rules.minBet",
+    "blackjack.rules.mostChipsWins",
+    "blackjack.rules.noDoubleAfterSplit",
+    "blackjack.rules.noInsurance",
+    "blackjack.rules.noSplit",
+    "blackjack.rules.noSurrender",
+    "blackjack.rules.pays3to2",
+    "blackjack.rules.pays6to5",
+    "blackjack.rules.paysEven",
+    "blackjack.rules.rounds",
+    "blackjack.rules.section.dealer",
+    "blackjack.rules.section.end",
+    "blackjack.rules.section.play",
+    "blackjack.rules.section.table",
+    "blackjack.rules.split",
+    "blackjack.rules.splitAces",
+    "blackjack.rules.stack",
+    "blackjack.rules.standsSoft17",
+    "blackjack.rules.surrender",
     "canasta.rules.canasta",
     "canasta.rules.deal",
     "canasta.rules.deck",
@@ -488,6 +602,91 @@
     "zolik.rules.wilds.setLimit"
   ],
   "paramsByKey": {
+    "blackjack.fact.extraStake": [
+      "n",
+      "value"
+    ],
+    "blackjack.fact.insuranceCost": [
+      "n",
+      "value"
+    ],
+    "blackjack.fact.surrenderReturn": [
+      "n",
+      "value"
+    ],
+    "blackjack.fact.tableMinimum": [
+      "n",
+      "value"
+    ],
+    "blackjack.header.dealerTotal": [
+      "n",
+      "value"
+    ],
+    "blackjack.header.decks": [
+      "n",
+      "value"
+    ],
+    "blackjack.header.minBet": [
+      "n",
+      "value"
+    ],
+    "blackjack.header.round": [
+      "n",
+      "of",
+      "value"
+    ],
+    "blackjack.prompt.waitingFor": [
+      "playerId"
+    ],
+    "blackjack.round.dealerBust": [
+      "n"
+    ],
+    "blackjack.round.dealerTotal": [
+      "n"
+    ],
+    "blackjack.rules.bustedOut": [
+      "n"
+    ],
+    "blackjack.rules.decks": [
+      "n"
+    ],
+    "blackjack.rules.minBet": [
+      "n"
+    ],
+    "blackjack.rules.rounds": [
+      "n"
+    ],
+    "blackjack.rules.split": [
+      "hands",
+      "n"
+    ],
+    "blackjack.rules.stack": [
+      "n"
+    ],
+    "blackjack.seat.bet": [
+      "chips",
+      "value"
+    ],
+    "blackjack.seat.insurance": [
+      "chips",
+      "value"
+    ],
+    "blackjack.seat.stack": [
+      "chips",
+      "value"
+    ],
+    "blackjack.seat.total": [
+      "n",
+      "value"
+    ],
+    "blackjack.status.dealerBust": [
+      "n",
+      "value"
+    ],
+    "blackjack.status.dealerStands": [
+      "n",
+      "value"
+    ],
     "canasta.offer.rank": [
       "value"
     ],
@@ -803,6 +1002,29 @@
     ]
   },
   "labelKeysWithData": [
+    "blackjack.fact.extraStake",
+    "blackjack.fact.insuranceCost",
+    "blackjack.fact.surrenderReturn",
+    "blackjack.fact.tableMinimum",
+    "blackjack.header.dealerTotal",
+    "blackjack.header.decks",
+    "blackjack.header.minBet",
+    "blackjack.header.round",
+    "blackjack.prompt.waitingFor",
+    "blackjack.round.dealerBust",
+    "blackjack.round.dealerTotal",
+    "blackjack.rules.bustedOut",
+    "blackjack.rules.decks",
+    "blackjack.rules.minBet",
+    "blackjack.rules.rounds",
+    "blackjack.rules.split",
+    "blackjack.rules.stack",
+    "blackjack.seat.bet",
+    "blackjack.seat.insurance",
+    "blackjack.seat.stack",
+    "blackjack.seat.total",
+    "blackjack.status.dealerBust",
+    "blackjack.status.dealerStands",
     "canasta.offer.rank",
     "canasta.rules.canasta",
     "canasta.rules.deal",
