@@ -117,6 +117,18 @@ func kdbRepos(cfg Config) (repos, error) {
 	// What an acknowledged write means is the one storage decision an
 	// operator makes (KDB_DURABILITY / KDB_SYNC_MODE), so say it out loud.
 	log.Printf("kdb durability: %s, sync mode: %s", cmp.Or(sc.Durability, "sync"), cmp.Or(sc.SyncMode, "fast"))
+	// Same cgroup reading the connection/CPU admission gate already uses
+	// (newAdmission, below) — one source of truth for "how much memory does
+	// this process actually have". Degrades to off with it: no cgroup limit
+	// means no derived budget, same as the rest of admission on a dev
+	// machine. Without this, KDB's own per-write admission control
+	// (kdb-spec-layer13 Component 48) never turns on for the embedded
+	// engine, and nothing sheds load from matches already in progress before
+	// the process's total memory crosses the real ceiling.
+	if limitBytes, haveLimit := admission.MemoryLimit(); haveLimit {
+		sc.MemoryBudgetBytes = limitBytes
+		log.Printf("kdb: memory admission on, budget %d MiB", limitBytes>>20)
+	}
 	k, err := db.OpenKDBWithStorage(cfg.KDBPath, sc)
 	if err != nil {
 		return repos{}, err
