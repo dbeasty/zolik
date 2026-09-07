@@ -16,6 +16,13 @@
 #
 # Override the compose file with ZOLIK_DEV_COMPOSE=mongo for the full Mongo +
 # Redis stack (docker-compose.yml, heavier — two app instances for scaling tests).
+#
+# ZOLIK_DEV_DATA picks which data the kdb stack's volume holds:
+#   (unset)   the normal persistent dev volume (server_kdb_data) — default
+#   prodcopy  a snapshot of production (server_kdb_data_prodcopy, kdb mode only —
+#             see server/docker-compose.kdb.prodcopy.yml for how it's populated)
+#   clean     wipe server_kdb_data first, so this run starts from empty
+# Only affects kdb mode; there's no Mongo-format copy of production data.
 
 set -euo pipefail
 
@@ -29,6 +36,20 @@ case "$COMPOSE_MODE" in
   kdb)   COMPOSE_FILE="docker-compose.kdb.yml" ;;
   mongo) COMPOSE_FILE="docker-compose.yml" ;;
   *)     printf '\033[31mError:\033[0m ZOLIK_DEV_COMPOSE must be kdb or mongo (got: %s)\n' "$COMPOSE_MODE" >&2; exit 1 ;;
+esac
+
+DEV_DATA="${ZOLIK_DEV_DATA:-}"
+COMPOSE_ARGS=(-f "$COMPOSE_FILE")
+case "$DEV_DATA" in
+  "" | clean) ;;
+  prodcopy)
+    if [[ "$COMPOSE_MODE" != "kdb" ]]; then
+      printf '\033[31mError:\033[0m ZOLIK_DEV_DATA=prodcopy needs kdb mode (production runs kdb; there is no Mongo copy).\n' >&2
+      exit 1
+    fi
+    COMPOSE_ARGS+=(-f docker-compose.kdb.prodcopy.yml)
+    ;;
+  *) printf '\033[31mError:\033[0m ZOLIK_DEV_DATA must be prodcopy or clean (got: %s)\n' "$DEV_DATA" >&2; exit 1 ;;
 esac
 
 PORT="${ZOLIK_DEV_PORT:-8090}"
@@ -77,7 +98,7 @@ compose() {
   (cd "$SERVER_DIR" && ZOLIK_BIND="${bind:-127.0.0.1}" ZOLIK_TEST_ENDPOINTS=true \
     ZOLIK_BOT_THINK_MIN_MS="${ZOLIK_BOT_THINK_MIN_MS:-}" \
     ZOLIK_BOT_THINK_MAX_MS="${ZOLIK_BOT_THINK_MAX_MS:-}" \
-    docker compose -f "$COMPOSE_FILE" "$@")
+    docker compose "${COMPOSE_ARGS[@]}" "$@")
 }
 
 ensure_env() {
@@ -113,6 +134,11 @@ up() {
     die "KDB stack needs the kdb repo as a sibling of zolik (../kdb). Clone it or use ZOLIK_DEV_COMPOSE=mongo."
   fi
 
+  if [[ "$DEV_DATA" == "clean" ]]; then
+    say "wiping the dev database volume for a clean start"
+    compose down -v 2>/dev/null || true
+  fi
+
   say "building and starting the server via docker compose (${COMPOSE_FILE}, ${ZOLIK_VERSION}+${ZOLIK_COMMIT})"
   compose up -d --build
   wait_for "${API}/healthz" "the server" 120
@@ -128,6 +154,7 @@ up() {
   echo
   say "up"
   printf '   Stack  %s (%s)\n' "$COMPOSE_FILE" "$COMPOSE_MODE"
+  printf '   Data   %s\n' "${DEV_DATA:-normal dev volume}"
   printf '   API    %s\n   Web    %s\n' "$API" "$WEB"
   printf '   Version (built): %s+%s\n' "$ZOLIK_VERSION" "$ZOLIK_COMMIT"
   printf '   Version (served): '

@@ -1,0 +1,21 @@
+# Override for docker-compose.kdb.yml: point the dev stack's normal data
+# volume (server_kdb_data) at a snapshot of production instead. Selected by
+# scripts/dev-stack.sh when ZOLIK_DEV_DATA=prodcopy — see that script rather
+# than invoking this file directly.
+#
+# This replaces the same `app` container docker-compose.kdb.yml would
+# otherwise start, on the same port, under the same project — it is not a
+# second stack running alongside your normal one. Your normal dev data isn't
+# touched: it's the volume named server_kdb_data, and this override never
+# references it.
+#
+# The volume `server_kdb_data_prodcopy` already exists — it was populated by
+# extracting a `docker run --rm -v zolik_kdb_data:/from alpine tar czf -`
+# snapshot pulled from the production host (192.168.13.13), the same
+# read-only mechanism scripts/deploy.sh uses for its own --snapshot backups.
+# `external: true` tells Compose to use that existing volume rather than
+# create an empty one named the same as this project's default.
+volumes:
+  kdb_data:
+    external: true
+    name: server_kdb_data_prodcopy
