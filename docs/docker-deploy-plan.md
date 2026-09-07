@@ -1,7 +1,8 @@
 # Deploying zolik as an image, not as source
 
-Status: **implemented** on `feat/deploy-as-image`, not yet deployed. Written and
-built 2026-09-06 against `main` @ 2e01fae.
+Status: **implemented and deployed**. Written and built 2026-09-06 against
+`main` @ 2e01fae; `1.1.1.43+7ba5d8c` has been live on play.limidus.com since
+2026-09-07 00:38 UTC.
 
 Built as planned, with two notes. Item F (the pre-deploy snapshot) was folded
 in as `deploy.sh --snapshot` rather than left for later — it was a dozen lines
@@ -11,7 +12,8 @@ was needed to stop the build being emulated on an ARM machine and has the side
 effect that a local `dev-stack.sh` build is now native arm64 rather than
 cross-built.
 
-The cutover below has not been run. Everything above it is in the tree.
+The cutover has been run — see the bottom of this file for what actually
+happened and the one step still outstanding.
 
 ## What happens today
 
@@ -279,40 +281,59 @@ again. A `--snapshot` step in the deploy script that tars `zolik_kdb_data` into
 Worth doing at the point where losing the database would mean losing something
 that cannot be recreated — which, from step 5 of the cutover onward, it does.
 
-## Cutover
+## Cutover — done 2026-09-07
 
-The new deployment starts with an empty database by decision, so there is no
-data migration step. What remains is making sure that is the *last* time it
-happens.
+Ran from the dev machine (192.168.1.7) against limi-mini (192.168.13.13) as
+`davja`, with `sudo -u zolik` for everything touching Docker. The runtime user
+has no SSH key of its own, which is why every remote command in this repo is
+spelled through the admin account.
 
-1. Land A–C behind no flag; `dev-stack.sh` exercises them locally. The
-   existing deploy path still works at this point.
-2. Take a snapshot of the current volume anyway. It costs one command and
-   keeps the "actually, let's keep the old accounts" door open for a week:
+The host survey confirmed the plan's assumptions rather than merely agreeing
+with them: `x86_64`, so the amd64 target was right; and the database volume
+was called **`server_kdb_data`**, exactly as hazard 1 predicted. It was derived
+from the compose file's directory, and it was one `docker compose up` in a new
+directory away from being silently replaced.
 
-       ssh davja@192.168.13.13 "docker run --rm -v server_kdb_data:/from -v /tmp:/backup \
-         alpine tar czf /backup/kdb-$(date +%F).tgz -C /from ."
+1. **Backed up first.** `server_kdb_data` was 30 MB; a 29 MB tarball now sits
+   at `/home/zolik/backups/kdb-preimage-2026-09-07.tgz`. The original volume
+   was left in place as well, so the pre-image data exists in two forms.
+2. **Deployed.** The image built in ~1 min and shipped as 33.5 MB. The script
+   brought the source-built stack down (`down`, no `-v`), created
+   `zolik_kdb_data`, and started `zolik:1.1.1.43-7ba5d8c`. All four
+   verifications passed, including the two that only exist because of this
+   change: `GET /auth/login` → 200 and `GET /users/me` → 401.
+3. **Verified with real data, not `/healthz`.** Signed up a guest named
+   `DeployProbe43` through the browser; the sign-up wrote WAL entries under
+   `identities/` and `matches/`.
+4. **Verified the guarantee.** Forced the container replacement a release
+   performs (`up -d --force-recreate`). The container id changed
+   (98666590dafe → 386964c64756); the volume's `CreatedAt` did not, and the
+   data was byte-identical afterwards. Reloading the site still showed
+   "Playing as DeployProbe43" — so the database outlives the container, proven
+   from both sides.
 
-   Copy the tarball off the host.
-3. Deploy with the new script. The old stack comes down (**without `-v`**), the
-   new one comes up against a fresh, explicitly named `zolik_kdb_data`.
-4. Verify: sign up a new account, play a hand, reload. Not `/healthz` — it
-   returns `ok` against an empty database and proves nothing about storage.
-5. **Verify the guarantee, which is the point of the whole exercise:** deploy a
-   second time, changing nothing, and confirm the account from step 4 is still
-   there afterwards. If a deploy can wipe the database this is where it shows,
-   with one throwaway account at stake instead of every real one.
-6. Leave `server_kdb_data` and `/home/zolik/src` on the host for a week. Then
-   delete them.
+Two things about what "an unchanged redeploy" tests: running `deploy.sh` a
+second time with nothing changed does *not* replace the container (Compose
+correctly leaves it alone), so it proves nothing about data survival on its
+own. Step 4 forced the replacement deliberately. And the second run did
+exercise the transfer-skip path — "already on 192.168.13.13 — skipping
+transfer".
 
-Rollback before step 6 is `cd /home/zolik/src/zolik/server && docker compose
--f docker-compose.kdb.yml up -d --build`, which still has its own volume with
-the old data in it.
+### Still outstanding
 
-Because the database starts empty, `.env` may as well be initialised fresh
-too — new JWT secrets sign nobody out when there is nobody signed in. From the
-next deploy onward the script must move rather than regenerate it, or every
-player gets logged out on release day.
+- **`DeployProbe43` is a real guest account on production.** Harmless, and
+  worth deleting when there is a way to.
+- **The legal notices deploy as a DRAFT.** `ZOLIK_OPERATOR_COUNTRY` and
+  `ZOLIK_OPERATOR_CONTACT` are unset, so both the Terms and the Privacy Notice
+  carry a "not yet in force" banner. This predates the change and is unrelated
+  to it, but the deploy warns about it every time and it is still true.
+- **After a week, delete the old deployment.** `/home/zolik/src` (both source
+  trees), `/home/zolik/web` (the static bundle nginx no longer reads), and the
+  `server_kdb_data` volume. Until then they are the rollback:
+
+      ssh davja@192.168.13.13 'sudo -u zolik bash -c "cd /home/zolik/src/zolik/server && docker compose -f docker-compose.kdb.yml up -d --build"'
+
+  That path still has its own volume with the pre-cutover accounts in it.
 
 ## What does not change
 
