@@ -15,6 +15,13 @@ x-server-build: &server-build
     # back to the Dockerfile's ARG default, not override it with "".
     ZOLIK_VERSION: "${ZOLIK_VERSION:-0.0.0-dev}"
     ZOLIK_COMMIT: "${ZOLIK_COMMIT:-unknown}"
+    # The web client is compiled into the server binary now, so the image
+    # builds it too — see server/Dockerfile. This is the address the *browser*
+    # will use to reach the API, baked into the bundle at export time and not
+    # changeable afterwards. scripts/dev-stack.sh serves the client from Expo's
+    # own dev server on another port and does not depend on this; it matters
+    # only for opening the container's port directly.
+    ZOLIK_PUBLIC_URL: "${ZOLIK_DEV_API_URL:-http://127.0.0.1:8090}"
 
 services:
   mongo:

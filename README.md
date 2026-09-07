@@ -29,17 +29,37 @@ look at, and each directory's README for setup details.
 ## Deploy (play.limidus.com)
 
 Production runs the KDB single-container stack on **limi-mini** (`192.168.13.13`)
-behind nginx at **https://play.limidus.com/** — same Docker shape as local dev,
-with the Expo web client exported as a static bundle. Requires the **kdb**
-repo as a sibling checkout (`../kdb`) and SSH access as `davja@192.168.13.13`:
+behind nginx at **https://play.limidus.com/** — same Docker shape as local dev.
+Requires the **kdb** repo as a sibling checkout (`../kdb`) and SSH access as
+`davja@192.168.13.13`:
 
 ```sh
 ./scripts/deploy.sh
 ```
 
-The script bootstraps a `zolik` user on the server, rsyncs source, builds the
-web client locally, runs `docker compose -f docker-compose.kdb.yml`, and
-installs the nginx vhost.
+**One image is the deployment.** The Go server and the Expo web client are
+built together here (`server/Dockerfile`, cross-compiled to `linux/amd64`),
+shipped over SSH with `docker save | docker load`, and run from
+`deploy/compose/zolik.yml`. The host holds a compose file, an env file and the
+image — no zolik source, no kdb checkout, no Go toolchain, no npm. Nothing is
+compiled on it.
+
+The client is compiled *into* the binary (`server/internal/webui`), so the API
+and the web app are one artifact from one commit and their version footers
+cannot disagree. nginx terminates TLS and proxies everything to
+`127.0.0.1:8090`; it serves no files and enumerates no routes.
+
+A rollback is the previous tag, which stays loaded on the host:
+
+```sh
+ssh zolik@192.168.13.13 "cd /home/zolik && ZOLIK_RELEASE=<older-tag> docker compose up -d"
+```
+
+The database lives in the `zolik_kdb_data` volume, named explicitly so it
+survives every deploy. Nothing in the deploy path may run `docker compose down
+-v` or `docker volume prune`; `--snapshot` tars it to `/home/zolik/backups`
+first. See [`docs/docker-deploy-plan.md`](docs/docker-deploy-plan.md) for why
+that is stated so loudly.
 
 `APP_ENV=production` is the deployed setting and turns off the SSH terminal
 client, its admit-any-key mode, and both development hatches. It also makes

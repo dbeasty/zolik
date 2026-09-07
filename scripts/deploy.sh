@@ -4,14 +4,15 @@
 #
 #   ./scripts/deploy.sh
 #
-# Builds the Expo web client locally, rsyncs zolik + kdb to the server,
-# runs the KDB single-container stack as the zolik user, and installs the
-# nginx vhost that replaces the static placeholder.
+# Builds one image here — the Go server with the Expo web client compiled into
+# it — ships it over SSH, and runs it there. The host holds a compose file, an
+# env file and the image. It has no zolik source, no kdb checkout, no Go
+# toolchain and no npm, and nothing is compiled on it.
 #
 # Options:
 #   --init-env     overwrite server .env from deploy/env.production.example
 #                  (generates fresh JWT secrets)
-#   --skip-web     skip local web build + upload (server/API only)
+#   --snapshot     tar the database volume on the host before switching images
 #   --skip-nginx   skip nginx vhost install (docker only)
 #
 # Environment:
@@ -20,6 +21,7 @@
 #   ZOLIK_DEPLOY_USER   default zolik                 (runtime owner)
 #   ZOLIK_PUBLIC_URL    default https://play.limidus.com
 #   ZOLIK_SERVICE_IP    default 192.168.13.13         (nginx listen address)
+#   ZOLIK_KEEP_IMAGES   default 3                     (release tags kept on the host)
 #
 #   Who the Terms and the Privacy Notice name. Baked into the web bundle at
 #   build time; a deployment names its own operator. All three must be set or
@@ -42,6 +44,7 @@ DEPLOY_SSH="${ZOLIK_DEPLOY_SSH:-davja@${DEPLOY_HOST}}"
 DEPLOY_USER="${ZOLIK_DEPLOY_USER:-zolik}"
 PUBLIC_URL="${ZOLIK_PUBLIC_URL:-https://play.limidus.com}"
 SERVICE_IP="${ZOLIK_SERVICE_IP:-192.168.13.13}"
+KEEP_IMAGES="${ZOLIK_KEEP_IMAGES:-3}"
 
 # Who the legal notices name. Only the name has a default: a wrong jurisdiction
 # or an address nobody reads is worse than a visibly unfinished document, so
@@ -57,22 +60,26 @@ OPERATOR_CONTACT="${ZOLIK_OPERATOR_CONTACT:-}"
 # players that source instead — which is what overriding this is for.
 SOURCE_URL="${ZOLIK_SOURCE_URL:-https://github.com/dbeasty/zolik}"
 
-REMOTE_SRC="/home/${DEPLOY_USER}/src"
-REMOTE_ZOLIK="${REMOTE_SRC}/zolik"
-REMOTE_KDB="${REMOTE_SRC}/kdb"
-REMOTE_WEB="/home/${DEPLOY_USER}/web"
+# Everything the host holds, and all of it written by this script.
+REMOTE_DIR="/home/${DEPLOY_USER}"
+ENV_REMOTE="${REMOTE_DIR}/.env"
+COMPOSE_REMOTE="${REMOTE_DIR}/compose.yml"
+
+# Where the source-built deployment used to live. Read only to shut it down
+# and to rescue its .env; never written to again.
+LEGACY_SRC="${REMOTE_DIR}/src/zolik"
 
 INIT_ENV=false
-SKIP_WEB=false
+SNAPSHOT=false
 SKIP_NGINX=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --init-env)   INIT_ENV=true; shift ;;
-    --skip-web)   SKIP_WEB=true; shift ;;
+    --snapshot)   SNAPSHOT=true; shift ;;
     --skip-nginx) SKIP_NGINX=true; shift ;;
     -h|--help)
-      sed -n '2,34p' "$0"
+      sed -n '2,36p' "$0"
       exit 0
       ;;
     *) printf 'Unknown option: %s\n' "$1" >&2; exit 1 ;;
@@ -81,36 +88,26 @@ done
 
 eval "$(sh "${ROOT}/scripts/version.sh" --export)"
 RELEASE="${ZOLIK_VERSION}+${ZOLIK_COMMIT}"
+# The same release, spelled for Docker. A tag may not contain "+", and a
+# rejected tag this late reads as a build failure rather than a naming one.
+TAG="${ZOLIK_VERSION}-${ZOLIK_COMMIT}"
+IMAGE="zolik:${TAG}"
 
 say()  { printf '\033[1m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[33mwarn:\033[0m %s\n' "$*" >&2; }
 die()  { printf '\033[31mError:\033[0m %s\n' "$*" >&2; exit 1; }
 
 ssh_admin() { ssh -o BatchMode=yes "$DEPLOY_SSH" "$@"; }
-
-rsync_common=(
-  -az --delete
-  --exclude '.git/'
-  --exclude 'node_modules/'
-  --exclude '.dev-stack/'
-  # Local scratch checkouts, one per concurrent session, and none of them the
-  # thing being deployed. Untracked, so no .gitignore entry keeps them out of
-  # an rsync of the working tree — 945 MB of other branches' source was on its
-  # way to the production host before this line existed.
-  --exclude '.claude/'
-  --exclude 'server/.ssh/'
-  --exclude 'server/.env'
-  --exclude 'client-react-native/dist/'
-  --exclude 'client-react-native/.expo/'
-  --exclude 'e2e/test-results/'
-  --exclude 'e2e/playwright-report/'
-)
+# Everything that touches Docker runs as the runtime owner, so the image, the
+# containers and the volume all belong to one user and one daemon path.
+ssh_zolik() { ssh_admin "sudo -u ${DEPLOY_USER} $*"; }
 
 # ---------------------------------------------------------------- preflight
 say "preflight (${RELEASE} → ${PUBLIC_URL})"
 
-command -v rsync >/dev/null || die "rsync is required"
-command -v ssh   >/dev/null || die "ssh is required"
+command -v ssh    >/dev/null || die "ssh is required"
+command -v docker >/dev/null || die "docker is required — the image is built here now, not on the server"
+docker buildx version >/dev/null 2>&1 || die "docker buildx is required (the build cross-compiles to linux/amd64)"
 
 ssh_admin 'echo ok' >/dev/null 2>&1 || die "cannot SSH to ${DEPLOY_SSH} (BatchMode=yes)"
 
@@ -120,6 +117,13 @@ fi
 
 ssh_admin "command -v docker >/dev/null" || die "docker is not installed on ${DEPLOY_HOST}"
 ssh_admin "command -v nginx >/dev/null"  || die "nginx is not installed on ${DEPLOY_HOST}"
+
+# The image is the artifact now, so what went into it matters more than it did
+# when the host rebuilt from a named commit. A dirty tree still deploys — that
+# is often deliberate — but the tag says so and so does this.
+if [[ "$ZOLIK_COMMIT" == *-dirty ]]; then
+  warn "the working tree has uncommitted changes; deploying as ${TAG}"
+fi
 
 # -------------------------------------------------------------- bootstrap
 say "bootstrap ${DEPLOY_USER} on ${DEPLOY_HOST}"
@@ -131,33 +135,28 @@ if ! id -u ${DEPLOY_USER} >/dev/null 2>&1; then
   echo "created user ${DEPLOY_USER}"
 fi
 usermod -aG docker ${DEPLOY_USER} 2>/dev/null || true
-mkdir -p ${REMOTE_SRC} ${REMOTE_WEB}/releases ${REMOTE_WEB}
-chown -R ${DEPLOY_USER}:${DEPLOY_USER} /home/${DEPLOY_USER}
-# nginx (www-data) must traverse into the static web root.
-chmod o+x /home/${DEPLOY_USER}
-chmod -R a+rX ${REMOTE_WEB}
+mkdir -p ${REMOTE_DIR}
+chown ${DEPLOY_USER}:${DEPLOY_USER} ${REMOTE_DIR}
 EOF
-
-# ---------------------------------------------------------------- sync src
-say "syncing source to ${REMOTE_ZOLIK} and ${REMOTE_KDB}"
-
-ssh_admin "sudo -u ${DEPLOY_USER} mkdir -p ${REMOTE_SRC}"
-
-rsync "${rsync_common[@]}" \
-  "${ROOT}/" "${DEPLOY_SSH}:${REMOTE_ZOLIK}/" \
-  --rsync-path="sudo rsync"
-
-rsync "${rsync_common[@]}" \
-  "${ROOT}/../kdb/" "${DEPLOY_SSH}:${REMOTE_KDB}/" \
-  --rsync-path="sudo rsync"
-
-ssh_admin "sudo chown -R ${DEPLOY_USER}:${DEPLOY_USER} ${REMOTE_SRC} && sudo rm -rf ${REMOTE_ZOLIK}/server/.ssh"
 
 # -------------------------------------------------------------- server env
 say "server .env"
 
-ENV_REMOTE="${REMOTE_ZOLIK}/server/.env"
 ENV_TEMPLATE="${ROOT}/deploy/env.production.example"
+
+# The env file moved with the rest of the deployment. Move it rather than
+# asking someone to: regenerating it instead would mint new JWT secrets and
+# sign every player out on release day, which is a strange thing to have
+# happen because a file changed directory.
+ssh_admin "sudo bash -s" <<EOF
+set -euo pipefail
+if [[ ! -f ${ENV_REMOTE} && -f ${LEGACY_SRC}/server/.env ]]; then
+  cp ${LEGACY_SRC}/server/.env ${ENV_REMOTE}
+  chown ${DEPLOY_USER}:${DEPLOY_USER} ${ENV_REMOTE}
+  chmod 600 ${ENV_REMOTE}
+  echo "moved .env from ${LEGACY_SRC}/server/.env"
+fi
+EOF
 
 if [[ "$INIT_ENV" == true ]] || ! ssh_admin "sudo test -f ${ENV_REMOTE}" 2>/dev/null; then
   access_secret="$(openssl rand -hex 32)"
@@ -171,7 +170,7 @@ if [[ "$INIT_ENV" == true ]] || ! ssh_admin "sudo test -f ${ENV_REMOTE}" 2>/dev/
   rm -f "$tmp_env"
   ssh_admin "sudo mv /tmp/zolik-server.env ${ENV_REMOTE} && sudo chown ${DEPLOY_USER}:${DEPLOY_USER} ${ENV_REMOTE} && sudo chmod 600 ${ENV_REMOTE}"
   say "wrote ${ENV_REMOTE}"
-  warn "APP_ENV=local — guest sign-in only until you set APP_ENV=production and SMTP_*"
+  warn "fresh JWT secrets — any existing session is now invalid"
 else
   say "keeping existing ${ENV_REMOTE} (pass --init-env to replace)"
 fi
@@ -196,8 +195,7 @@ EOF
 # requirement — a real environment refuses to start without SMTP rather than
 # silently swallowing sign-in codes (auth.NewMailer) — and getting it wrong
 # does not look like a missing variable. It looks like the container fatally
-# exiting and Docker restarting it forever, which is exactly how the SSH host
-# key failure presented before it was fixed.
+# exiting and Docker restarting it forever.
 #
 # So it is checked here: after .env is final, before anything is built.
 say "checking the server env will boot"
@@ -221,65 +219,105 @@ case "$env_app" in
     ;;
 esac
 
-# --------------------------------------------------------------- build web
-if [[ "$SKIP_WEB" == false ]]; then
-  say "building web client for ${PUBLIC_URL}"
+# ------------------------------------------------------------- build image
+say "building ${IMAGE} (server + web client, one image)"
 
-  # The notices are prerendered into the bundle (app.json sets web output to
-  # "static"), so who they name is decided here and cannot be changed without
-  # a rebuild. Said out loud for the same reason the APP_ENV check above is:
-  # the failure is silent otherwise — a perfectly working deploy whose Terms
-  # name "[OPERATOR NAME]".
-  if [[ -n "$OPERATOR_COUNTRY" && -n "$OPERATOR_CONTACT" ]]; then
-    say "legal notices name ${OPERATOR} (${OPERATOR_COUNTRY}, ${OPERATOR_CONTACT})"
-  else
-    warn "legal notices will deploy as a DRAFT — both screens carry a banner saying so."
-    warn "  operator: ${OPERATOR}"
-    # Full `if`s, not `[[ … ]] && warn`: under `set -e` a false test is a
-    # failing command, and this script would exit here instead of warning.
-    if [[ -z "$OPERATOR_COUNTRY" ]]; then
-      warn "  missing ZOLIK_OPERATOR_COUNTRY (governing law)"
-    fi
-    if [[ -z "$OPERATOR_CONTACT" ]]; then
-      warn "  missing ZOLIK_OPERATOR_CONTACT (where deletion requests arrive)"
-    fi
-  fi
-
-  say "source offered at ${SOURCE_URL}"
-
-  (cd "${ROOT}/client-react-native" && npm ci --silent)
-  (cd "${ROOT}/client-react-native" && \
-    EXPO_PUBLIC_ZOLIK_BASE_URL="$PUBLIC_URL" \
-    EXPO_PUBLIC_ZOLIK_VERSION="$ZOLIK_VERSION" \
-    EXPO_PUBLIC_ZOLIK_COMMIT="$ZOLIK_COMMIT" \
-    EXPO_PUBLIC_ZOLIK_OPERATOR="$OPERATOR" \
-    EXPO_PUBLIC_ZOLIK_OPERATOR_COUNTRY="$OPERATOR_COUNTRY" \
-    EXPO_PUBLIC_ZOLIK_OPERATOR_CONTACT="$OPERATOR_CONTACT" \
-    EXPO_PUBLIC_ZOLIK_SOURCE_URL="$SOURCE_URL" \
-    npx expo export --platform web)
-
-  say "uploading web release ${RELEASE}"
-  ssh_admin "sudo -u ${DEPLOY_USER} mkdir -p ${REMOTE_WEB}/releases/${RELEASE}"
-  rsync -az --delete \
-    "${ROOT}/client-react-native/dist/" \
-    "${DEPLOY_SSH}:${REMOTE_WEB}/releases/${RELEASE}/" \
-    --rsync-path="sudo rsync"
-  ssh_admin "sudo -u ${DEPLOY_USER} ln -sfn releases/${RELEASE} ${REMOTE_WEB}/current"
-  ssh_admin "sudo chmod -R a+rX ${REMOTE_WEB}"
+# The notices are prerendered into the bundle (app.json sets web output to
+# "static"), so who they name is decided at build time and cannot be changed
+# without a rebuild. Said out loud because the failure is otherwise silent — a
+# perfectly working deploy whose Terms name "[OPERATOR NAME]".
+if [[ -n "$OPERATOR_COUNTRY" && -n "$OPERATOR_CONTACT" ]]; then
+  say "legal notices name ${OPERATOR} (${OPERATOR_COUNTRY}, ${OPERATOR_CONTACT})"
 else
-  warn "skipping web build (--skip-web)"
+  warn "legal notices will deploy as a DRAFT — both screens carry a banner saying so."
+  warn "  operator: ${OPERATOR}"
+  # Full `if`s, not `[[ … ]] && warn`: under `set -e` a false test is a
+  # failing command, and this script would exit here instead of warning.
+  if [[ -z "$OPERATOR_COUNTRY" ]]; then
+    warn "  missing ZOLIK_OPERATOR_COUNTRY (governing law)"
+  fi
+  if [[ -z "$OPERATOR_CONTACT" ]]; then
+    warn "  missing ZOLIK_OPERATOR_CONTACT (where deletion requests arrive)"
+  fi
 fi
 
-# ----------------------------------------------------------- docker server
-say "building and starting server (docker-compose.kdb.yml)"
+say "source offered at ${SOURCE_URL}"
 
+# --platform is explicit because the deploy host is amd64 and this machine may
+# not be. The Dockerfile pins both build stages to the *build* platform and
+# cross-compiles, so this costs nothing beyond naming the target.
+docker buildx build \
+  --platform linux/amd64 \
+  --build-context "kdbsrc=${ROOT}/../kdb" \
+  -f "${ROOT}/server/Dockerfile" \
+  --build-arg "ZOLIK_VERSION=${ZOLIK_VERSION}" \
+  --build-arg "ZOLIK_COMMIT=${ZOLIK_COMMIT}" \
+  --build-arg "ZOLIK_PUBLIC_URL=${PUBLIC_URL}" \
+  --build-arg "ZOLIK_OPERATOR=${OPERATOR}" \
+  --build-arg "ZOLIK_OPERATOR_COUNTRY=${OPERATOR_COUNTRY}" \
+  --build-arg "ZOLIK_OPERATOR_CONTACT=${OPERATOR_CONTACT}" \
+  --build-arg "ZOLIK_SOURCE_URL=${SOURCE_URL}" \
+  -t "${IMAGE}" \
+  --load \
+  "${ROOT}"
+
+# -------------------------------------------------------------- ship image
+if [[ "$TAG" != *-dirty ]] && ssh_zolik "docker image inspect ${IMAGE} >/dev/null 2>&1"; then
+  say "${IMAGE} already on ${DEPLOY_HOST} — skipping transfer"
+else
+  say "shipping ${IMAGE} to ${DEPLOY_HOST}"
+  # `docker load` reads gzip directly, so there is nothing to decompress on
+  # the far side. Piped rather than staged through a file: the host does not
+  # need a copy of the tarball, and a partial transfer leaves nothing to
+  # clean up.
+  docker save "${IMAGE}" | gzip -1 | ssh_admin "sudo -u ${DEPLOY_USER} docker load" \
+    || die "shipping the image failed"
+fi
+
+# ----------------------------------------------------------- compose + run
+say "installing ${COMPOSE_REMOTE}"
+
+scp -q "${ROOT}/deploy/compose/zolik.yml" "${DEPLOY_SSH}:/tmp/zolik-compose.yml"
+ssh_admin "sudo mv /tmp/zolik-compose.yml ${COMPOSE_REMOTE} && sudo chown ${DEPLOY_USER}:${DEPLOY_USER} ${COMPOSE_REMOTE}"
+
+# The source-built stack, if this host is still running one. It holds port
+# 8090, so it has to go before the new one can bind.
+#
+# `down`, never `down -v`. The -v would delete its named volume, and on the
+# first run of this script that volume is still the live database. Bringing it
+# down without -v leaves it on disk, which is what makes the rollback at the
+# bottom of docs/docker-deploy-plan.md possible.
 ssh_admin "sudo -u ${DEPLOY_USER} bash -s" <<EOF
 set -euo pipefail
-export ZOLIK_VERSION='${ZOLIK_VERSION}'
-export ZOLIK_COMMIT='${ZOLIK_COMMIT}'
-export ZOLIK_BIND='127.0.0.1'
-cd ${REMOTE_ZOLIK}/server
-docker compose -f docker-compose.kdb.yml up -d --build
+if [[ -f ${LEGACY_SRC}/server/docker-compose.kdb.yml ]]; then
+  echo "stopping the source-built stack (its volume is left in place)"
+  cd ${LEGACY_SRC}/server
+  docker compose -f docker-compose.kdb.yml down || true
+fi
+EOF
+
+if [[ "$SNAPSHOT" == true ]]; then
+  say "snapshotting the database volume"
+  ssh_admin "sudo -u ${DEPLOY_USER} bash -s" <<EOF
+set -euo pipefail
+mkdir -p ${REMOTE_DIR}/backups
+if docker volume inspect zolik_kdb_data >/dev/null 2>&1; then
+  docker run --rm -v zolik_kdb_data:/from -v ${REMOTE_DIR}/backups:/backup alpine \
+    tar czf /backup/kdb-\$(date +%F-%H%M).tgz -C /from .
+  ls -1t ${REMOTE_DIR}/backups/kdb-*.tgz | tail -n +6 | xargs -r rm -f
+  echo "snapshot written to ${REMOTE_DIR}/backups"
+else
+  echo "no zolik_kdb_data volume yet — nothing to snapshot"
+fi
+EOF
+fi
+
+say "starting ${IMAGE}"
+ssh_admin "sudo -u ${DEPLOY_USER} bash -s" <<EOF
+set -euo pipefail
+export ZOLIK_RELEASE='${TAG}'
+cd ${REMOTE_DIR}
+docker compose up -d
 EOF
 
 say "waiting for API on ${DEPLOY_HOST}:8090"
@@ -291,6 +329,20 @@ for _ in $(seq 1 120); do
 done
 ssh_admin "curl -fsS http://127.0.0.1:8090/healthz" >/dev/null \
   || die "server did not come up at http://127.0.0.1:8090/healthz"
+
+# --------------------------------------------------------------- old tags
+#
+# Kept, not pruned to nothing: a rollback is only as good as the image it
+# rolls back to. `docker image rm` by tag, never `docker system prune`, which
+# reaches volumes.
+say "keeping the last ${KEEP_IMAGES} release images"
+ssh_admin "sudo -u ${DEPLOY_USER} bash -s" <<EOF
+set -euo pipefail
+docker image ls zolik --format '{{.Repository}}:{{.Tag}}' \
+  | tail -n +\$((${KEEP_IMAGES} + 1)) \
+  | xargs -r -n1 docker image rm 2>/dev/null || true
+docker image ls zolik --format '  {{.Tag}}  {{.Size}}'
+EOF
 
 # -------------------------------------------------------------- nginx
 if [[ "$SKIP_NGINX" == false ]]; then
@@ -329,25 +381,41 @@ done
 
 version="$(curl -fsS -m 10 "${PUBLIC_URL}/version" 2>/dev/null || echo FAIL)"
 html="$(curl -fsS -m 10 "${PUBLIC_URL}/" 2>/dev/null || echo "")"
-title="$(printf '%s' "$html" | sed -n 's:.*<title>\([^<]*\)</title>.*:\1:p' | head -1)"
 
-printf '  healthz     %s\n' "$health"
-printf '  version     %s\n' "$version"
-printf '  page title  %s\n' "${title:-(empty — Expo SPA)}"
+# The web client is served by the container now, so these two check something
+# the old deploy could not: that the image's own bundle is reachable, and that
+# the API/client split survives the proxy. /auth/login is the one that used to
+# answer 405 — the server registers it as POST, the client has a screen there,
+# and it is the URL every "sign in" link points at.
+signin_code="$(curl -fsS -o /dev/null -w '%{http_code}' -m 10 \
+  -H 'Accept: text/html' "${PUBLIC_URL}/auth/login" 2>/dev/null || echo FAIL)"
+api_code="$(curl -s -o /dev/null -w '%{http_code}' -m 10 \
+  -H 'Accept: application/json' "${PUBLIC_URL}/users/me" 2>/dev/null || echo FAIL)"
+
+printf '  healthz         %s\n' "$health"
+printf '  version         %s\n' "$version"
+printf '  /auth/login     %s (want 200 — the sign-in page, not the API'"'"'s 405)\n' "$signin_code"
+printf '  /users/me       %s (want 401 — the API, not a web page)\n' "$api_code"
 
 if [[ "$health" != "ok" ]]; then
   die "health check failed at ${PUBLIC_URL}/healthz"
 fi
 
-if [[ "$html" == *"Coming soon"* ]]; then
-  warn "page still shows the placeholder — nginx vhost may not be installed yet"
-elif [[ "$html" != *"_expo/"* ]]; then
-  warn "root page does not look like the Expo export — check ${REMOTE_WEB}/current"
+if [[ "$html" != *"_expo/"* ]]; then
+  die "${PUBLIC_URL}/ is not the Expo export — the image's web bundle is not being served"
+fi
+if [[ "$signin_code" != "200" ]]; then
+  warn "GET ${PUBLIC_URL}/auth/login returned ${signin_code}; the sign-in link is broken"
+fi
+if [[ "$api_code" != "401" ]]; then
+  warn "GET ${PUBLIC_URL}/users/me returned ${api_code}; expected the API's 401"
 fi
 
 echo
 say "deployed ${RELEASE} to ${PUBLIC_URL}"
+printf '  image    %s\n' "$IMAGE"
 printf '  server   ssh %s@%s\n' "$DEPLOY_USER" "$DEPLOY_HOST"
-printf '  logs     ssh %s@%s "cd %s/server && docker compose -f docker-compose.kdb.yml logs -f app"\n' \
-  "$DEPLOY_USER" "$DEPLOY_HOST" "$REMOTE_ZOLIK"
-printf '\n  Next hardening: set APP_ENV=production and SMTP_* in %s/server/.env\n' "$REMOTE_ZOLIK"
+printf '  logs     ssh %s@%s "cd %s && docker compose logs -f app"\n' \
+  "$DEPLOY_USER" "$DEPLOY_HOST" "$REMOTE_DIR"
+printf '  rollback ssh %s@%s "cd %s && ZOLIK_RELEASE=<older-tag> docker compose up -d"\n' \
+  "$DEPLOY_USER" "$DEPLOY_HOST" "$REMOTE_DIR"

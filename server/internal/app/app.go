@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -28,6 +29,7 @@ import (
 	"zolik/server/internal/scoring"
 	"zolik/server/internal/stats"
 	userrepo "zolik/server/internal/user"
+	"zolik/server/internal/webui"
 	"zolik/server/internal/ws"
 	"zolik/server/internal/zolikmod"
 )
@@ -58,6 +60,10 @@ type App struct {
 	// registration and would otherwise hand each router an independent
 	// counter.
 	admission *admission.Controller
+	// web is the Expo bundle compiled into this binary, served for anything
+	// the API does not claim. Absent in every development build and every
+	// test, which is why nothing here may assume it is there.
+	web *webui.Handler
 }
 
 // repos is every repository the app wires, built in one place so the two
@@ -201,6 +207,7 @@ func New(cfg Config) (*App, error) {
 		matchRepo:   r.match,
 		scoringRepo: r.scoring,
 		admission:   newAdmission(cfg),
+		web:         webui.NewHandler(webui.Embedded()),
 	}, nil
 }
 
@@ -359,5 +366,57 @@ func (a *App) routeGroups() []routeGroup {
 func (a *App) RegisterRoutes(r chi.Router) {
 	for _, g := range a.routeGroups() {
 		g.register(r)
+	}
+	a.registerWebUI(r)
+}
+
+// SetWebUI replaces the compiled-in bundle. Only tests call it: the real
+// bundle arrives through //go:embed at image build time, and there is no
+// deployment in which it is chosen at runtime.
+func (a *App) SetWebUI(fsys fs.FS) { a.web = webui.NewHandler(fsys) }
+
+// registerWebUI hangs the web client off the router's leftovers.
+//
+// Deliberately NotFound/MethodNotAllowed rather than a `r.Get("/*")` catch-all:
+// a catch-all is a route, and chi resolves routes by specificity in a way that
+// makes "did the API or the SPA win this path" a question with a surprising
+// answer. Off the leftovers, the API always wins, and a route group added
+// later cannot be shadowed by the client no matter what it is called.
+//
+// MethodNotAllowed is not belt-and-braces. The client has screens at
+// /auth/login, /auth/register and /auth/guest; the server registers those
+// three as POST endpoints. A browser opening one of those URLs sends a GET,
+// chi matches the path, finds no GET, and answers 405 — so before this
+// existed, following a link to the sign-in page produced "Method Not Allowed"
+// rather than the sign-in page. The old nginx vhost had the same bug for the
+// same reason, one layer further out.
+func (a *App) registerWebUI(r chi.Router) {
+	r.NotFound(a.serveWebUI(http.StatusNotFound))
+	r.MethodNotAllowed(a.serveWebUI(http.StatusMethodNotAllowed))
+}
+
+// serveWebUI answers with the client, and falls back to the API's own status
+// when it cannot.
+//
+// The order matters. An existing file is served whatever the request's Accept
+// header says, because a browser fetching /_expo/static/js/entry-<hash>.js
+// sends `Accept: */*` and a rule keyed on text/html would 404 the entire
+// JavaScript bundle. Only when the path names no file does Accept decide, and
+// then it decides the right thing: a browser navigating to /lobby/games gets
+// the app, and a mistyped API call gets the 404 it deserves instead of a page
+// it cannot parse.
+func (a *App) serveWebUI(status int) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		if a.web.Available() && (req.Method == http.MethodGet || req.Method == http.MethodHead) {
+			if name, ok := a.web.Lookup(req.URL.Path); ok {
+				a.web.ServeFile(w, req, name)
+				return
+			}
+			if webui.WantsHTML(req) {
+				a.web.ServeIndex(w, req)
+				return
+			}
+		}
+		http.Error(w, http.StatusText(status), status)
 	}
 }

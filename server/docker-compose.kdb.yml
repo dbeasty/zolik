@@ -1,4 +1,9 @@
-# The KDB deployment shape: ONE container, nothing else.
+# The KDB development stack: ONE container, nothing else.
+#
+# This file builds from source. The stack that actually runs on the public
+# host is deploy/compose/zolik.yml, which builds nothing and runs an image
+# shipped to it — same container shape, and a test keeps the two in step
+# (server/internal/app/deploy_test.go).
 #
 # FEATURE_FLAG_DB_ENGINE=kdb runs the storage engine embedded inside the
 # server process — no MongoDB, no mongo-express, no Redis — which is the
@@ -23,6 +28,14 @@ services:
       args:
         ZOLIK_VERSION: "${ZOLIK_VERSION:-0.0.0-dev}"
         ZOLIK_COMMIT: "${ZOLIK_COMMIT:-unknown}"
+        # The web client is compiled into the server binary now, so this image
+        # builds it too — see server/Dockerfile and internal/webui. This is the
+        # address the *browser* will use to reach the API, baked into the
+        # bundle at export time and not changeable at run time.
+        # scripts/dev-stack.sh serves the client from Expo's own dev server on
+        # another port and does not depend on this; it matters only when the
+        # container's own port is opened directly.
+        ZOLIK_PUBLIC_URL: "${ZOLIK_DEV_API_URL:-http://127.0.0.1:8090}"
     restart: unless-stopped
     # Sized for a 1–2 GB host: one Go binary + embedded KDB, no Mongo/Redis.
     mem_limit: 1g
