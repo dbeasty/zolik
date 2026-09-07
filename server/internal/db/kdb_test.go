@@ -298,29 +298,29 @@ func TestKDBWithoutMemoryBudgetAdmitsEverything(t *testing.T) {
 	}
 }
 
-// TestKDBHotTierBytesPerNamespaceDividesTheRealBudget guards the fix for
-// nine namespace runtimes each independently defaulting to a 128 MiB hot-tier
+// TestKDBHotTierPoolBytesSizesTheSharedPool guards the fix for nine
+// namespace runtimes each independently defaulting to a 128 MiB hot-tier
 // cache — ~1.15GB of caching alone against a 1GB container, before the
 // write-admission budget's own reject line was ever approached by real
-// data. A configured budget must be divided, not handed whole to each
-// namespace; no budget configured (a dev machine) must leave every
-// namespace at the engine's own default.
-func TestKDBHotTierBytesPerNamespaceDividesTheRealBudget(t *testing.T) {
-	const namespaces = 9
+// data. Namespaces now share one host and one memory pool (see
+// embed.OpenFileHost), so a configured budget sizes that one pool rather
+// than being divided by a namespace count; no budget configured (a dev
+// machine) must leave the host at its own default.
+func TestKDBHotTierPoolBytesSizesTheSharedPool(t *testing.T) {
 	var budget uint64 = 1024 << 20
-	got := kdbHotTierBytesPerNamespace(budget, namespaces)
+	got := kdbHotTierPoolBytes(budget)
 	if got <= 0 {
-		t.Fatalf("configured budget: got %d, want a positive per-namespace slice", got)
+		t.Fatalf("configured budget: got %d, want a positive pool size", got)
 	}
-	if want := int64(uint64(float64(budget)*kdbHotTierFraction) / namespaces); got != want {
-		t.Fatalf("got %d, want %d (%.0f%% of the budget split %d ways)", got, want, kdbHotTierFraction*100, namespaces)
+	if want := int64(float64(budget) * kdbHotTierFraction); got != want {
+		t.Fatalf("got %d, want %d (%.0f%% of the budget)", got, want, kdbHotTierFraction*100)
 	}
-	if total := uint64(got) * namespaces; total > budget {
-		t.Fatalf("per-namespace slices sum to %d, which exceeds the configured budget %d", total, budget)
+	if uint64(got) > budget {
+		t.Fatalf("pool size %d exceeds the configured budget %d", got, budget)
 	}
 
-	if got := kdbHotTierBytesPerNamespace(0, namespaces); got != 0 {
-		t.Fatalf("no budget configured: got %d, want 0 (engine default, unchanged)", got)
+	if got := kdbHotTierPoolBytes(0); got != 0 {
+		t.Fatalf("no budget configured: got %d, want 0 (host default, unchanged)", got)
 	}
 }
 

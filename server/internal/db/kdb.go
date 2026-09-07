@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -61,15 +60,36 @@ var kdbNamespaceNames = []string{
 
 const kdbCatalog = "zolik"
 
+// KDBCatalog is the catalog name every KDB namespace is opened under.
+const KDBCatalog = kdbCatalog
+
+// KDBNamespaceNames lists every namespace name the KDB backend declares, in
+// the order OpenKDBWithStorage opens them. Exported for one-shot tooling
+// (see cmd/kdb-consolidate) that must walk every namespace without keeping
+// its own copy of the list to drift out of sync with this one.
+func KDBNamespaceNames() []string {
+	out := make([]string, len(kdbNamespaceNames))
+	copy(out, kdbNamespaceNames)
+	return out
+}
+
 // kdbSweepInterval is how often expired documents are physically removed.
 // Reads filter on expiry themselves, exactly as they must under Mongo's TTL
 // monitor (which also only sweeps periodically); the sweeper is about space,
 // not correctness.
 const kdbSweepInterval = time.Minute
 
-// KDB is the embedded database: one engine runtime per namespace, plus the
-// per-namespace write lock that makes compound operations atomic.
+// KDB is the embedded database: one shared engine runtime (a Host, for the
+// file-backed case) holding every namespace under one data root, one
+// directory lock and one memory pool, plus the per-namespace write lock that
+// makes compound operations atomic.
 type KDB struct {
+	// host is non-nil only for file-backed KDBs. It owns the directory lock
+	// and the shared memory pool every namespace draws from; Close on it
+	// tears down every namespace's storage and releases the lock. Nil for
+	// in-memory KDBs, which have no lock or shim to share and stay one
+	// runtime per namespace.
+	host      *embed.Host
 	nss       map[string]*kdbNamespace
 	stop      chan struct{}
 	done      chan struct{}
@@ -130,10 +150,11 @@ type KDBStorage struct {
 	// namespace-scoped, so this is what makes all namespaces shed together
 	// as the shared ceiling is approached.
 	//
-	// Also sizes each namespace's own hot-tier cache (document/commit-ops/
-	// history-tree/memtable) as a slice of this budget — see
-	// kdbHotTierBytesPerNamespace — rather than leaving every one of the
-	// nine namespace runtimes to independently default to 128 MiB.
+	// Also sizes the shared hot-tier cache pool (document/commit-ops/
+	// history-tree/memtable — embed.Host's memory arbiter, see
+	// kdbHotTierPoolBytes) every namespace draws its own share of on demand,
+	// rather than each of the nine namespace runtimes independently
+	// defaulting to 128 MiB.
 	MemoryBudgetBytes uint64
 }
 
@@ -145,35 +166,33 @@ type KDBStorage struct {
 const kdbMemoryRejectFraction = 0.85
 
 // kdbHotTierFraction is the share of MemoryBudgetBytes set aside for KDB's
-// own per-namespace hot-tier caches (document versions, commit operations,
-// historical trees, the memtable — embed.StorageOptions.MemoryBudgetBytes),
-// split evenly across every namespace runtime this process opens. The rest
-// is headroom for Go runtime overhead, the embedded web UI, and the
-// admission grants an in-flight write burst needs before the
-// kdbMemoryRejectFraction line trips.
+// own hot-tier caching (document versions, commit operations, historical
+// trees, the memtable — embed.Host's shared memory arbiter pool, see
+// embed.OpenFileHost). The rest is headroom for Go runtime overhead, the
+// embedded web UI, and the admission grants an in-flight write burst needs
+// before the kdbMemoryRejectFraction line trips.
 //
 // Left unset (the zero value engineOptions produces when MemoryBudgetBytes
-// is 0), each of this package's nine namespace runtimes independently
-// defaults to storage.DefaultHotTierBytes (128 MiB) — nine full engines
-// each caching as if it owned the whole budget, ~1.15GB of caching alone
-// before the admission budget's own reject line is ever approached by real
-// data. embed.StorageOptions.MemoryBudgetBytes's own doc comment calls this
-// out directly: "an application that opens several runtimes in one process
-// is multiplying that default by each open, and needs to hand each runtime
-// its slice of the real limit instead." This is that wiring.
+// is 0), the host falls back to embed.DefaultHostMemoryBudgetBytes (64 MiB)
+// shared across every namespace — fine for a dev machine, but a process
+// that knows its real cgroup limit should size the pool from it instead of
+// inheriting a default sized for a single namespace running alone.
 const kdbHotTierFraction = 0.5
 
-// kdbHotTierBytesPerNamespace derives each namespace runtime's hot-tier
-// cache budget from the same cgroup-derived total kdbMemoryRejectFraction
-// governs write admission against. Zero (no admission budget configured,
-// e.g. a dev machine) returns zero, which leaves every namespace at the
-// engine's own default — the same "degrades to off" shape SetMemoryLimit
-// already has.
-func kdbHotTierBytesPerNamespace(totalBudgetBytes uint64, namespaceCount int) int64 {
-	if totalBudgetBytes == 0 || namespaceCount == 0 {
+// kdbHotTierPoolBytes derives the host's shared hot-tier cache pool — see
+// embed.Host.MemoryArbiter — from the same cgroup-derived total
+// kdbMemoryRejectFraction governs write admission against. Every namespace
+// draws its own share from this one pool on demand rather than each
+// independently defaulting to a fixed size; a busy namespace can borrow
+// from an idle one without a restart (see kdb's TestBusyNamespaceBorrowsFromTheIdleOne).
+// Zero (no admission budget configured, e.g. a dev machine) returns zero,
+// which leaves the host at its own default — the same "degrades to off"
+// shape SetMemoryLimit already has.
+func kdbHotTierPoolBytes(totalBudgetBytes uint64) int64 {
+	if totalBudgetBytes == 0 {
 		return 0
 	}
-	return int64(uint64(float64(totalBudgetBytes)*kdbHotTierFraction) / uint64(namespaceCount))
+	return int64(float64(totalBudgetBytes) * kdbHotTierFraction)
 }
 
 // busyIfShed translates the engine's admission refusals into SERVER_BUSY, the
@@ -269,7 +288,7 @@ func OpenKDBWithStorage(path string, sc KDBStorage) (*KDB, error) {
 	if err != nil {
 		return nil, err
 	}
-	if hotTier := kdbHotTierBytesPerNamespace(sc.MemoryBudgetBytes, len(kdbNamespaceNames)); hotTier > 0 {
+	if hotTier := kdbHotTierPoolBytes(sc.MemoryBudgetBytes); hotTier > 0 {
 		opts.Storage.MemoryBudgetBytes = hotTier
 	}
 	k := &KDB{
@@ -277,6 +296,25 @@ func OpenKDBWithStorage(path string, sc KDBStorage) (*KDB, error) {
 		stop: make(chan struct{}),
 		done: make(chan struct{}),
 	}
+
+	var host *embed.Host
+	if path != "" {
+		// One data root for every namespace: the Host owns the directory
+		// lock, the I/O shim and the memory pool, and lends them to each
+		// namespace opened under it — see embed.OpenFileHost. Nine
+		// namespaces used to mean nine data roots, nine locks and nine
+		// independent budgets; now they share one root and one pool.
+		if err := os.MkdirAll(path, 0o755); err != nil {
+			return nil, fmt.Errorf("kdb: creating %s: %w", path, err)
+		}
+		var err error
+		host, err = embed.OpenFileHost(path, opts)
+		if err != nil {
+			return nil, fmt.Errorf("kdb: opening host at %s: %w", path, err)
+		}
+		k.host = host
+	}
+
 	for _, name := range kdbNamespaceNames {
 		nsID := kdbCatalog + "/" + name
 		var rt *embed.EmbeddedKdbRuntime
@@ -284,14 +322,7 @@ func OpenKDBWithStorage(path string, sc KDBStorage) (*KDB, error) {
 		if path == "" {
 			rt, err = embed.OpenMemoryRuntime(kdbCatalog, nsID, schema.None())
 		} else {
-			// One data root per namespace: the engine's directory lock is
-			// per-root, so two runtimes over one root would refuse to open.
-			root := filepath.Join(path, name)
-			if err := os.MkdirAll(root, 0o755); err != nil {
-				k.closeRuntimes()
-				return nil, fmt.Errorf("kdb: creating %s: %w", root, err)
-			}
-			rt, err = embed.OpenFileRuntimeWithOptions(root, kdbCatalog, nsID, schema.None(), opts)
+			rt, err = host.Namespace(kdbCatalog, nsID, schema.None())
 		}
 		if err != nil {
 			k.closeRuntimes()
@@ -328,6 +359,12 @@ func (k *KDB) closeRuntimes() {
 		n.mu.Lock()
 		n.rt.Close()
 		n.mu.Unlock()
+	}
+	// Each rt.Close() above only closed that namespace under the host (see
+	// EmbeddedKdbRuntime.storageClose set by Host.openNamespace); the host
+	// itself — and the directory lock it holds — is released here.
+	if k.host != nil {
+		_ = k.host.Close()
 	}
 }
 
