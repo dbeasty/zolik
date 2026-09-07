@@ -129,6 +129,11 @@ type KDBStorage struct {
 	// samples process-wide memory (runtime/metrics), not anything
 	// namespace-scoped, so this is what makes all namespaces shed together
 	// as the shared ceiling is approached.
+	//
+	// Also sizes each namespace's own hot-tier cache (document/commit-ops/
+	// history-tree/memtable) as a slice of this budget — see
+	// kdbHotTierBytesPerNamespace — rather than leaving every one of the
+	// nine namespace runtimes to independently default to 128 MiB.
 	MemoryBudgetBytes uint64
 }
 
@@ -138,6 +143,38 @@ type KDBStorage struct {
 // reserve and scan row budget come from SetMemoryLimit's own defaults, same
 // as kdb-service's --memory-reserve-mb default.
 const kdbMemoryRejectFraction = 0.85
+
+// kdbHotTierFraction is the share of MemoryBudgetBytes set aside for KDB's
+// own per-namespace hot-tier caches (document versions, commit operations,
+// historical trees, the memtable — embed.StorageOptions.MemoryBudgetBytes),
+// split evenly across every namespace runtime this process opens. The rest
+// is headroom for Go runtime overhead, the embedded web UI, and the
+// admission grants an in-flight write burst needs before the
+// kdbMemoryRejectFraction line trips.
+//
+// Left unset (the zero value engineOptions produces when MemoryBudgetBytes
+// is 0), each of this package's nine namespace runtimes independently
+// defaults to storage.DefaultHotTierBytes (128 MiB) — nine full engines
+// each caching as if it owned the whole budget, ~1.15GB of caching alone
+// before the admission budget's own reject line is ever approached by real
+// data. embed.StorageOptions.MemoryBudgetBytes's own doc comment calls this
+// out directly: "an application that opens several runtimes in one process
+// is multiplying that default by each open, and needs to hand each runtime
+// its slice of the real limit instead." This is that wiring.
+const kdbHotTierFraction = 0.5
+
+// kdbHotTierBytesPerNamespace derives each namespace runtime's hot-tier
+// cache budget from the same cgroup-derived total kdbMemoryRejectFraction
+// governs write admission against. Zero (no admission budget configured,
+// e.g. a dev machine) returns zero, which leaves every namespace at the
+// engine's own default — the same "degrades to off" shape SetMemoryLimit
+// already has.
+func kdbHotTierBytesPerNamespace(totalBudgetBytes uint64, namespaceCount int) int64 {
+	if totalBudgetBytes == 0 || namespaceCount == 0 {
+		return 0
+	}
+	return int64(uint64(float64(totalBudgetBytes)*kdbHotTierFraction) / uint64(namespaceCount))
+}
 
 // busyIfShed translates the engine's admission refusals into SERVER_BUSY, the
 // same refusal vocabulary a player turned away at the door already gets
@@ -231,6 +268,9 @@ func OpenKDBWithStorage(path string, sc KDBStorage) (*KDB, error) {
 	opts, err := sc.engineOptions()
 	if err != nil {
 		return nil, err
+	}
+	if hotTier := kdbHotTierBytesPerNamespace(sc.MemoryBudgetBytes, len(kdbNamespaceNames)); hotTier > 0 {
+		opts.Storage.MemoryBudgetBytes = hotTier
 	}
 	k := &KDB{
 		nss:  make(map[string]*kdbNamespace, len(kdbNamespaceNames)),

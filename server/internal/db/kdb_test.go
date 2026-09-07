@@ -298,6 +298,32 @@ func TestKDBWithoutMemoryBudgetAdmitsEverything(t *testing.T) {
 	}
 }
 
+// TestKDBHotTierBytesPerNamespaceDividesTheRealBudget guards the fix for
+// nine namespace runtimes each independently defaulting to a 128 MiB hot-tier
+// cache — ~1.15GB of caching alone against a 1GB container, before the
+// write-admission budget's own reject line was ever approached by real
+// data. A configured budget must be divided, not handed whole to each
+// namespace; no budget configured (a dev machine) must leave every
+// namespace at the engine's own default.
+func TestKDBHotTierBytesPerNamespaceDividesTheRealBudget(t *testing.T) {
+	const namespaces = 9
+	var budget uint64 = 1024 << 20
+	got := kdbHotTierBytesPerNamespace(budget, namespaces)
+	if got <= 0 {
+		t.Fatalf("configured budget: got %d, want a positive per-namespace slice", got)
+	}
+	if want := int64(uint64(float64(budget)*kdbHotTierFraction) / namespaces); got != want {
+		t.Fatalf("got %d, want %d (%.0f%% of the budget split %d ways)", got, want, kdbHotTierFraction*100, namespaces)
+	}
+	if total := uint64(got) * namespaces; total > budget {
+		t.Fatalf("per-namespace slices sum to %d, which exceeds the configured budget %d", total, budget)
+	}
+
+	if got := kdbHotTierBytesPerNamespace(0, namespaces); got != 0 {
+		t.Fatalf("no budget configured: got %d, want 0 (engine default, unchanged)", got)
+	}
+}
+
 func TestKDBStorageFromEnv(t *testing.T) {
 	t.Setenv("KDB_DURABILITY", "async")
 	t.Setenv("KDB_SYNC_MODE", "full")
