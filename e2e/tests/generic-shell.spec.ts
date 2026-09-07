@@ -137,6 +137,7 @@ const GAMES = [
   { moduleId: 'holdem', label: 'Holdem', seats: 3, variation: 'timed' },
   { moduleId: 'zolik', label: 'Zoliky', seats: 2 },
   { moduleId: 'ginrummy', label: 'Gin Rummy', seats: 2, options: { targetScore: 100 } },
+  { moduleId: 'blackjack', label: 'Blackjack', seats: 3, options: { rounds: 5, startingStack: 200 } },
 ];
 
 test.describe('one shell, every game', () => {
@@ -330,7 +331,7 @@ test.describe('one shell, every game', () => {
     await page.goto('/lobby/games');
     await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 30_000 });
 
-    for (const id of ['zolik', 'prsi', 'canasta', 'holdem', 'ginrummy']) {
+    for (const id of ['zolik', 'prsi', 'canasta', 'holdem', 'ginrummy', 'blackjack']) {
       await expect(page.getByTestId(`module-${id}`)).toBeVisible();
     }
 

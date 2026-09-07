@@ -581,6 +581,128 @@ const en: Record<string, string> = {
   'rummytiles.offer.commit': 'Done',
   'rummytiles.offer.draw': 'Draw',
   'rummytiles.param.position': 'Split at',
+
+  // --- blackjack -----------------------------------------------------------
+  //
+  // The house rules are worded twice over — on and off — because a rule that
+  // is *not* in force is still something a player has to be told. "No
+  // surrender at this table" is information; silence is a guess.
+  'err.BET_BELOW_MINIMUM': 'That is under the table minimum',
+  'err.ALREADY_BET': 'Your stake is already up',
+  'err.INSURANCE_CLOSED': 'There is no insurance to take right now',
+  'err.CANNOT_DOUBLE': "This hand can't be doubled",
+  'err.CANNOT_SPLIT': "This hand can't be split",
+  'err.CANNOT_SURRENDER': "This hand can't be surrendered",
+
+  'blackjack.rules.section.table': 'The table',
+  'blackjack.rules.section.play': 'Playing a hand',
+  'blackjack.rules.section.dealer': 'The dealer',
+  'blackjack.rules.section.end': 'How the match ends',
+  'blackjack.rules.goal':
+    'Beat the dealer without going over twenty-one. Going over loses at once, whatever the dealer does afterwards.',
+  // Counts are their own phrase rather than a number glued to a noun: one
+  // deck and six decks inflect differently, and Czech inflects them again.
+  'blackjack.rules.decks': 'Decks in the shoe: {n}.',
+  'blackjack.rules.stack': 'Every seat sits down with {n} chips.',
+  'blackjack.rules.minBet': 'The table minimum is {n} chips.',
+  'blackjack.rules.faceUp':
+    'Player cards are dealt face up; the dealer keeps one card down until everyone has played.',
+  'blackjack.rules.hitStand': 'Draw as many cards as you like, or stand on what you have.',
+  'blackjack.rules.aces': 'An ace counts as eleven while that fits, and as one when it does not.',
+  'blackjack.rules.blackjack':
+    'An ace with a ten-value card, on the first two cards, is a blackjack.',
+  'blackjack.rules.pays3to2': 'A blackjack pays 3:2.',
+  'blackjack.rules.pays6to5': 'A blackjack pays 6:5.',
+  'blackjack.rules.paysEven': 'A blackjack pays even money.',
+  'blackjack.rules.double':
+    'On your first two cards you may double your stake and take exactly one more card.',
+  'blackjack.rules.doubleAfterSplit': 'A hand that came out of a split may be doubled too.',
+  'blackjack.rules.noDoubleAfterSplit': 'A hand that came out of a split may not be doubled.',
+  'blackjack.rules.split':
+    'Two cards of the same value may be split into hands of their own, each with its own stake — up to {n} times, for {hands} hands in all.',
+  'blackjack.rules.noSplit': 'Pairs are not split at this table.',
+  'blackjack.rules.splitAces':
+    'Split aces take one card each and then stand, and twenty-one made that way is not a blackjack.',
+  'blackjack.rules.surrender':
+    'You may give up your first hand for half its stake, once the dealer has checked for blackjack.',
+  'blackjack.rules.noSurrender': 'Hands cannot be surrendered at this table.',
+  'blackjack.rules.dealerDraws': 'The dealer draws to seventeen and then stands.',
+  'blackjack.rules.hitsSoft17': 'The dealer draws to a seventeen made with an ace.',
+  'blackjack.rules.standsSoft17': 'The dealer stands on a seventeen made with an ace.',
+  'blackjack.rules.dealerPeeks':
+    'Showing an ace or a ten, the dealer checks for blackjack before anybody plays.',
+  'blackjack.rules.insurance':
+    'Against a dealer ace you may insure for half your stake; it pays 2:1 if the dealer has blackjack.',
+  'blackjack.rules.noInsurance': 'Insurance is not offered at this table.',
+  'blackjack.rules.rounds': 'The table plays {n} rounds.',
+  'blackjack.rules.mostChipsWins': 'Whoever holds the most chips at the end wins the match.',
+  'blackjack.rules.bustedOut':
+    'A seat that can no longer cover the minimum of {n} sits out the rest of the match.',
+
+  'blackjack.zone.dealer': 'Dealer',
+  'blackjack.zone.box': 'Hand',
+  'blackjack.zone.yourBox': 'Your hand',
+  'blackjack.zone.shoe': 'Shoe',
+
+  'blackjack.header.round': 'Round {n} of {of}',
+  'blackjack.header.minBet': 'Minimum',
+  'blackjack.header.decks': 'Decks',
+  'blackjack.header.dealerTotal': 'Dealer shows {n}',
+  'blackjack.header.dealerSoftTotal': 'Dealer shows soft {n}',
+
+  'blackjack.seat.stack': 'Chips',
+  'blackjack.seat.bet': 'Stake',
+  'blackjack.seat.insurance': 'Insurance',
+  'blackjack.seat.total': 'Total',
+  'blackjack.seat.softTotal': 'Soft total',
+  'blackjack.seat.out': 'Out of chips',
+
+  'blackjack.prompt.placeBet': 'Place your stake',
+  'blackjack.prompt.insurance': 'Insurance?',
+  'blackjack.prompt.yourMove': 'Your move',
+  'blackjack.prompt.waitingFor': 'Waiting for {playerId}',
+  'blackjack.prompt.betAmount': 'Stake',
+
+  'blackjack.offer.bet': 'Bet',
+  'blackjack.offer.hit': 'Hit',
+  'blackjack.offer.stand': 'Stand',
+  'blackjack.offer.double': 'Double down',
+  'blackjack.offer.split': 'Split',
+  'blackjack.offer.surrender': 'Surrender',
+  'blackjack.offer.insure': 'Take insurance',
+  'blackjack.offer.declineInsurance': 'No insurance',
+
+  'blackjack.fact.tableMinimum': 'minimum',
+  'blackjack.fact.insuranceCost': 'to insure',
+  'blackjack.fact.extraStake': 'to stake',
+  'blackjack.fact.surrenderReturn': 'back',
+
+  'blackjack.status.dealerBlackjack': 'The dealer had blackjack',
+  'blackjack.status.dealerBust': 'The dealer went bust with {n}',
+  'blackjack.status.dealerStands': 'The dealer stands on {n}',
+
+  'blackjack.round.name': 'Round',
+  'blackjack.round.dealerTotal': 'Dealer {n}',
+  'blackjack.round.dealerBust': 'Dealer bust ({n})',
+  'blackjack.round.dealerBlackjack': 'Dealer blackjack',
+  'blackjack.round.outcome.blackjack': 'Blackjack',
+  'blackjack.round.outcome.win': 'Won',
+  'blackjack.round.outcome.push': 'Push',
+  'blackjack.round.outcome.lose': 'Lost',
+  'blackjack.round.outcome.bust': 'Bust',
+  'blackjack.round.outcome.surrender': 'Surrendered',
+
+  'blackjack.badge.inPlay': 'In play',
+  'blackjack.badge.doubled': 'Doubled',
+  'blackjack.badge.split': 'Split',
+  'blackjack.badge.blackjack': 'Blackjack',
+  'blackjack.badge.bust': 'Bust',
+  'blackjack.badge.won': 'Won',
+  'blackjack.badge.push': 'Push',
+  'blackjack.badge.lost': 'Lost',
+  'blackjack.badge.surrendered': 'Surrendered',
+
+  'blackjack.unit.chips': 'chips',
 };
 
 // Czech. Present to prove the seam is real rather than theoretical: if a
@@ -1076,6 +1198,121 @@ const cs: Record<string, string> = {
   'rummytiles.offer.commit': 'Hotovo',
   'rummytiles.offer.draw': 'Líznout',
   'rummytiles.param.position': 'Rozdělit na',
+
+  // --- blackjack -----------------------------------------------------------
+  'err.BET_BELOW_MINIMUM': 'Sázka je pod minimem stolu',
+  'err.ALREADY_BET': 'Sázka už je vsazená',
+  'err.INSURANCE_CLOSED': 'Pojištění teď nabídnout nelze',
+  'err.CANNOT_DOUBLE': 'Tuhle ruku nelze zdvojit',
+  'err.CANNOT_SPLIT': 'Tuhle ruku nelze rozdělit',
+  'err.CANNOT_SURRENDER': 'Tuhle ruku nelze vzdát',
+
+  'blackjack.rules.section.table': 'Stůl',
+  'blackjack.rules.section.play': 'Hra s rukou',
+  'blackjack.rules.section.dealer': 'Krupiér',
+  'blackjack.rules.section.end': 'Konec zápasu',
+  'blackjack.rules.goal':
+    'Poraz krupiéra a nepřetáhni přes jednadvacet. Kdo přetáhne, prohrává hned, ať krupiér udělá potom cokoli.',
+  'blackjack.rules.decks': 'Balíčků v botě: {n}.',
+  'blackjack.rules.stack': 'Každé místo začíná s {n} žetony.',
+  'blackjack.rules.minBet': 'Minimální sázka u stolu je {n} žetonů.',
+  'blackjack.rules.faceUp':
+    'Karty hráčů se rozdávají lícem nahoru; krupiér má jednu kartu skrytou, dokud všichni nedohrají.',
+  'blackjack.rules.hitStand': 'Můžeš si brát další karty, nebo zůstat stát na tom, co máš.',
+  'blackjack.rules.aces': 'Eso platí jedenáct, dokud se vejde, jinak jedna.',
+  'blackjack.rules.blackjack': 'Eso s desítkovou kartou na prvních dvou kartách je blackjack.',
+  'blackjack.rules.pays3to2': 'Blackjack se platí 3:2.',
+  'blackjack.rules.pays6to5': 'Blackjack se platí 6:5.',
+  'blackjack.rules.paysEven': 'Blackjack se platí jedna ku jedné.',
+  'blackjack.rules.double':
+    'Na prvních dvou kartách můžeš zdvojit sázku a vzít si přesně jednu kartu.',
+  'blackjack.rules.doubleAfterSplit': 'Zdvojit lze i ruku, která vznikla rozdělením.',
+  'blackjack.rules.noDoubleAfterSplit': 'Ruku, která vznikla rozdělením, zdvojit nelze.',
+  'blackjack.rules.split':
+    'Dvě karty stejné hodnoty můžeš rozdělit na samostatné ruce, každou s vlastní sázkou — až {n}×, celkem na {hands} ruce.',
+  'blackjack.rules.noSplit': 'U tohoto stolu se páry nedělí.',
+  'blackjack.rules.splitAces':
+    'Rozdělená esa dostanou po jedné kartě a stojí; jednadvacet z nich není blackjack.',
+  'blackjack.rules.surrender':
+    'První ruku můžeš vzdát za polovinu sázky, jakmile krupiér zkontroluje blackjack.',
+  'blackjack.rules.noSurrender': 'U tohoto stolu se ruce vzdát nedají.',
+  'blackjack.rules.dealerDraws': 'Krupiér dobírá do sedmnácti a pak stojí.',
+  'blackjack.rules.hitsSoft17': 'Na sedmnáctku s esem si krupiér ještě bere.',
+  'blackjack.rules.standsSoft17': 'Na sedmnáctce s esem krupiér stojí.',
+  'blackjack.rules.dealerPeeks':
+    'S esem nebo desítkou nahoře se krupiér podívá na blackjack dřív, než kdokoli hraje.',
+  'blackjack.rules.insurance':
+    'Proti krupiérovu esu se můžeš pojistit za polovinu sázky; při krupiérově blackjacku platí 2:1.',
+  'blackjack.rules.noInsurance': 'Pojištění se u tohoto stolu nenabízí.',
+  'blackjack.rules.rounds': 'Hraje se {n} kol.',
+  'blackjack.rules.mostChipsWins': 'Zápas vyhrává ten, kdo má na konci nejvíc žetonů.',
+  'blackjack.rules.bustedOut':
+    'Místo, které už nepokryje minimum {n} žetonů, zbytek zápasu nehraje.',
+
+  'blackjack.zone.dealer': 'Krupiér',
+  'blackjack.zone.box': 'Ruka',
+  'blackjack.zone.yourBox': 'Tvoje ruka',
+  'blackjack.zone.shoe': 'Bota',
+
+  'blackjack.header.round': 'Kolo {n} z {of}',
+  'blackjack.header.minBet': 'Minimum',
+  'blackjack.header.decks': 'Balíčky',
+  'blackjack.header.dealerTotal': 'Krupiér ukazuje {n}',
+  'blackjack.header.dealerSoftTotal': 'Krupiér ukazuje měkkých {n}',
+
+  'blackjack.seat.stack': 'Žetony',
+  'blackjack.seat.bet': 'Sázka',
+  'blackjack.seat.insurance': 'Pojištění',
+  'blackjack.seat.total': 'Celkem',
+  'blackjack.seat.softTotal': 'Měkkých',
+  'blackjack.seat.out': 'Bez žetonů',
+
+  'blackjack.prompt.placeBet': 'Vsaď si',
+  'blackjack.prompt.insurance': 'Pojistíš se?',
+  'blackjack.prompt.yourMove': 'Jsi na tahu',
+  'blackjack.prompt.waitingFor': 'Čeká se na hráče {playerId}',
+  'blackjack.prompt.betAmount': 'Sázka',
+
+  'blackjack.offer.bet': 'Vsadit',
+  'blackjack.offer.hit': 'Další kartu',
+  'blackjack.offer.stand': 'Stát',
+  'blackjack.offer.double': 'Zdvojit',
+  'blackjack.offer.split': 'Rozdělit',
+  'blackjack.offer.surrender': 'Vzdát',
+  'blackjack.offer.insure': 'Pojistit se',
+  'blackjack.offer.declineInsurance': 'Bez pojištění',
+
+  'blackjack.fact.tableMinimum': 'minimum',
+  'blackjack.fact.insuranceCost': 'za pojištění',
+  'blackjack.fact.extraStake': 'k vsazení',
+  'blackjack.fact.surrenderReturn': 'zpět',
+
+  'blackjack.status.dealerBlackjack': 'Krupiér měl blackjack',
+  'blackjack.status.dealerBust': 'Krupiér přetáhl na {n}',
+  'blackjack.status.dealerStands': 'Krupiér stojí na {n}',
+
+  'blackjack.round.name': 'Kolo',
+  'blackjack.round.dealerTotal': 'Krupiér {n}',
+  'blackjack.round.dealerBust': 'Krupiér přetáhl ({n})',
+  'blackjack.round.dealerBlackjack': 'Krupiérův blackjack',
+  'blackjack.round.outcome.blackjack': 'Blackjack',
+  'blackjack.round.outcome.win': 'Výhra',
+  'blackjack.round.outcome.push': 'Shoda',
+  'blackjack.round.outcome.lose': 'Prohra',
+  'blackjack.round.outcome.bust': 'Přetažení',
+  'blackjack.round.outcome.surrender': 'Vzdáno',
+
+  'blackjack.badge.inPlay': 'Na tahu',
+  'blackjack.badge.doubled': 'Zdvojeno',
+  'blackjack.badge.split': 'Rozděleno',
+  'blackjack.badge.blackjack': 'Blackjack',
+  'blackjack.badge.bust': 'Přetaženo',
+  'blackjack.badge.won': 'Výhra',
+  'blackjack.badge.push': 'Shoda',
+  'blackjack.badge.lost': 'Prohra',
+  'blackjack.badge.surrendered': 'Vzdáno',
+
+  'blackjack.unit.chips': 'žetonů',
 };
 
 export const BUNDLES: Record<Locale, Record<string, string>> = { en, cs };
