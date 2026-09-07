@@ -414,8 +414,10 @@ fi
 echo
 say "deployed ${RELEASE} to ${PUBLIC_URL}"
 printf '  image    %s\n' "$IMAGE"
-printf '  server   ssh %s@%s\n' "$DEPLOY_USER" "$DEPLOY_HOST"
-printf '  logs     ssh %s@%s "cd %s && docker compose logs -f app"\n' \
-  "$DEPLOY_USER" "$DEPLOY_HOST" "$REMOTE_DIR"
-printf '  rollback ssh %s@%s "cd %s && ZOLIK_RELEASE=<older-tag> docker compose up -d"\n' \
-  "$DEPLOY_USER" "$DEPLOY_HOST" "$REMOTE_DIR"
+# Spelled through the admin account on purpose: the runtime user owns the
+# containers but has no SSH key of its own, so every one of these is reached
+# the same way this script reaches it.
+printf '  logs     ssh %s "sudo -u %s bash -c \x27cd %s && docker compose logs -f app\x27"\n' \
+  "$DEPLOY_SSH" "$DEPLOY_USER" "$REMOTE_DIR"
+printf '  rollback ssh %s "sudo -u %s bash -c \x27cd %s && ZOLIK_RELEASE=<older-tag> docker compose up -d\x27"\n' \
+  "$DEPLOY_SSH" "$DEPLOY_USER" "$REMOTE_DIR"

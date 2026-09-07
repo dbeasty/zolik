@@ -52,7 +52,7 @@ cannot disagree. nginx terminates TLS and proxies everything to
 A rollback is the previous tag, which stays loaded on the host:
 
 ```sh
-ssh zolik@192.168.13.13 "cd /home/zolik && ZOLIK_RELEASE=<older-tag> docker compose up -d"
+ssh davja@192.168.13.13 'sudo -u zolik bash -c "cd /home/zolik && ZOLIK_RELEASE=<older-tag> docker compose up -d"'
 ```
 
 The database lives in the `zolik_kdb_data` volume, named explicitly so it
