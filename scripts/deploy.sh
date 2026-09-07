@@ -25,10 +25,12 @@
 #
 #   Who the Terms and the Privacy Notice name. Baked into the web bundle at
 #   build time; a deployment names its own operator. All three must be set or
-#   both notices deploy carrying a "not yet in force" draft banner.
+#   both notices deploy carrying a "not yet in force" draft banner. A fork
+#   deploying this source must override all three — leaving them would make a
+#   claim about someone else's company.
 #   ZOLIK_OPERATOR          default Limidus Corp
-#   ZOLIK_OPERATOR_COUNTRY  no default  (jurisdiction governing the terms)
-#   ZOLIK_OPERATOR_CONTACT  no default  (address deletion requests arrive at)
+#   ZOLIK_OPERATOR_COUNTRY  default USA                  (jurisdiction governing the terms)
+#   ZOLIK_OPERATOR_CONTACT  default support@limidus.com  (address deletion requests arrive at)
 #
 #   Where this deployment offers its source, as AGPL section 13 requires of a
 #   thing served over a network. The default is right for deploying this source
@@ -46,13 +48,21 @@ PUBLIC_URL="${ZOLIK_PUBLIC_URL:-https://play.limidus.com}"
 SERVICE_IP="${ZOLIK_SERVICE_IP:-192.168.13.13}"
 KEEP_IMAGES="${ZOLIK_KEEP_IMAGES:-3}"
 
-# Who the legal notices name. Only the name has a default: a wrong jurisdiction
+# Who the legal notices name.
+#
+# These were empty on purpose until someone stated them: a wrong jurisdiction
 # or an address nobody reads is worse than a visibly unfinished document, so
-# those two stay empty until someone states them, and the client shows a draft
-# banner while any of the three is missing.
+# the client shows a draft banner while any of the three is missing rather than
+# confidently naming nobody. They are stated now, so the banner clears and the
+# notices are documents rather than drafts.
+#
+# Defaults rather than required arguments because this repository has exactly
+# one deployment and it is this one — the same reason ZOLIK_OPERATOR has always
+# defaulted to the company name. A fork overrides all three; the header above
+# says so.
 OPERATOR="${ZOLIK_OPERATOR:-Limidus Corp}"
-OPERATOR_COUNTRY="${ZOLIK_OPERATOR_COUNTRY:-}"
-OPERATOR_CONTACT="${ZOLIK_OPERATOR_CONTACT:-}"
+OPERATOR_COUNTRY="${ZOLIK_OPERATOR_COUNTRY:-USA}"
+OPERATOR_CONTACT="${ZOLIK_OPERATOR_CONTACT:-support@limidus.com}"
 
 # The AGPL section 13 offer. Unlike the three above this one has a default and
 # no draft state: the canonical repository is the true answer for any build

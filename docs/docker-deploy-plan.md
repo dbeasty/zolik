@@ -323,10 +323,12 @@ transfer".
 
 - **`DeployProbe43` is a real guest account on production.** Harmless, and
   worth deleting when there is a way to.
-- **The legal notices deploy as a DRAFT.** `ZOLIK_OPERATOR_COUNTRY` and
-  `ZOLIK_OPERATOR_CONTACT` are unset, so both the Terms and the Privacy Notice
-  carry a "not yet in force" banner. This predates the change and is unrelated
-  to it, but the deploy warns about it every time and it is still true.
+- **The legal notices are still a DRAFT *in production*.** `ZOLIK_OPERATOR_COUNTRY`
+  (USA) and `ZOLIK_OPERATOR_CONTACT` (support@limidus.com) now have defaults in
+  `scripts/deploy.sh`, which clears the banner — but the notices are prerendered
+  into the bundle at build time, so the live site keeps its draft banner until
+  the next deploy rebuilds the image. Nothing else is needed; the next
+  `./scripts/deploy.sh` does it.
 - **After a week, delete the old deployment.** `/home/zolik/src` (both source
   trees), `/home/zolik/web` (the static bundle nginx no longer reads), and the
   `server_kdb_data` volume. Until then they are the rollback:
