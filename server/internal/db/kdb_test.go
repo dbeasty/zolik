@@ -7,6 +7,10 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"zolik/server/internal/module"
+
+	kdbserver "github.com/limidus/kdb/go/kdb/server"
 )
 
 // openTestKDB opens an on-disk engine in the test's temp dir — the same code
@@ -234,6 +238,63 @@ func TestKDBAsyncSurvivesClose(t *testing.T) {
 	defer func() { _ = k2.Close(context.Background()) }()
 	if _, err := k2.Get(NSUsers, "u"); err != nil {
 		t.Fatalf("get after async close+reopen: %v", err)
+	}
+}
+
+// TestKDBMemoryBudgetShedsWritesUnderPressure asserts the thing that actually
+// keeps the process alive, not merely that a budget was plumbed through: a
+// write must be *refused* once the guard sees memory past the budget. It is
+// worth asserting at this level because Put does not go through
+// KdbServerRuntime.Commit — it writes through the embedded runtime, which has
+// no admission of its own — so a budget alone would leave this path unmetered
+// and the refusal below would never happen.
+//
+// The budget is deliberately absurd (8 MiB, far under any Go test process) so
+// the guard reaches a shedding zone on real readings rather than on anything
+// this test has to fake.
+func TestKDBMemoryBudgetShedsWritesUnderPressure(t *testing.T) {
+	k, err := OpenKDBWithStorage(t.TempDir(), KDBStorage{MemoryBudgetBytes: 8 << 20})
+	if err != nil {
+		t.Fatalf("open with memory budget: %v", err)
+	}
+	defer func() { _ = k.Close(context.Background()) }()
+
+	// The guard samples every 200ms and requires a dwell before it moves zone,
+	// so wait for the escalation rather than sleeping a fixed guess at it.
+	deadline := time.Now().Add(10 * time.Second)
+	for k.nss[NSUsers].srv.MemoryZone() == kdbserver.ZoneNormal {
+		if time.Now().After(deadline) {
+			t.Fatal("guard never left the normal zone with an 8 MiB budget")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+
+	err = k.Put(NSUsers, "u1", []byte(`{"username":"ada"}`))
+	if err == nil {
+		t.Fatal("put succeeded under memory pressure, want it shed")
+	}
+	// module.CodeOf, not errors.As: it is what both the HTTP and the WebSocket
+	// surface actually call, and it type-asserts rather than unwrapping — so
+	// asserting through it is what catches a well-meaning fmt.Errorf("%w")
+	// added anywhere on this path later, which would silently downgrade a
+	// shed write to a generic ERROR (a 500) with every test still green.
+	if code := module.CodeOf(err); code != "SERVER_BUSY" {
+		t.Fatalf("shed write surfaced as %q (%v), want SERVER_BUSY so the client backs off instead of seeing a 500", code, err)
+	}
+}
+
+// TestKDBWithoutMemoryBudgetAdmitsEverything is the control for the above, and
+// the guarantee that adding the field changed nothing for every other caller:
+// the zero value must leave governance off, exactly as before it existed.
+func TestKDBWithoutMemoryBudgetAdmitsEverything(t *testing.T) {
+	k := openTestKDB(t)
+	for name, n := range k.nss {
+		if n.srv.Admission() != nil {
+			t.Errorf("namespace %s: admission engaged with MemoryBudgetBytes unset, want off", name)
+		}
+	}
+	if err := k.Put(NSUsers, "u1", []byte(`{"username":"ada"}`)); err != nil {
+		t.Fatalf("put with no budget configured: %v", err)
 	}
 }
 

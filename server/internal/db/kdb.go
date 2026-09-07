@@ -17,6 +17,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -24,6 +25,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"zolik/server/internal/module"
 
 	kdbauth "github.com/limidus/kdb/go/kdb/auth"
 	"github.com/limidus/kdb/go/kdb/codec"
@@ -111,6 +114,56 @@ type KDBStorage struct {
 	// Zero uses the engine default (5ms); 100 matches Mongo's default
 	// journaling semantics.
 	AsyncSyncIntervalMillis int64
+	// MemoryBudgetBytes opts every namespace's KdbServerRuntime into
+	// kdb-spec-layer13 Component 48's memory admission: an operation reserves
+	// its estimated cost before running and is rejected with a typed,
+	// retryable error under pressure, with an orderly abort+restart if
+	// pressure never clears — instead of the commit DAG (which retains every
+	// write forever; there is no compaction on this path) growing until the
+	// kernel OOM-kills the process with no signal to the client. Zero (the
+	// default) leaves governance off, admitting everything, which is only
+	// appropriate for tests and other bounded-workload runs.
+	//
+	// Every namespace shares one process and one cgroup limit, so each gets
+	// the same full budget rather than a per-namespace slice: MemoryGuard
+	// samples process-wide memory (runtime/metrics), not anything
+	// namespace-scoped, so this is what makes all namespaces shed together
+	// as the shared ceiling is approached.
+	MemoryBudgetBytes uint64
+}
+
+// kdbMemoryRejectFraction is the fraction of MemoryBudgetBytes at which
+// writes start being shed (ZoneHigh's entry point). Matches kdb-service's own
+// default (go/cmd/kdb-service/main.go), which this mirrors; the rescue
+// reserve and scan row budget come from SetMemoryLimit's own defaults, same
+// as kdb-service's --memory-reserve-mb default.
+const kdbMemoryRejectFraction = 0.85
+
+// busyIfShed translates the engine's admission refusals into SERVER_BUSY, the
+// same refusal vocabulary a player turned away at the door already gets
+// (admission.WriteBusy). Both spellings mean one thing to a caller — the
+// server is full right now, the request was fine, come back shortly — and the
+// client already renders that code from its locale bundle and backs off on it,
+// so a shed write reads as a busy server rather than as the 500 an untranslated
+// engine error would produce.
+//
+// Returned as a bare module.Error rather than wrapped: module.CodeOf type-
+// asserts, so a fmt.Errorf("%w") around this would silently degrade the code
+// to a generic ERROR at exactly the moment the vocabulary matters. The engine's
+// own text is kept as the Message so the server log still says which zone shed
+// the write and for how long it wanted the caller to wait; clients key off the
+// code, not the prose. Written as a literal so the key scanner sees SERVER_BUSY
+// and keeps it in serverKeys.json.
+//
+// Anything else — including ResourceExhaustedError, which means "resubmit
+// smaller" and so will not pass on a retry — travels on unchanged.
+func busyIfShed(err error) error {
+	var pressure *kdbserver.MemoryPressureError
+	var busy *kdbserver.BusyError
+	if errors.As(err, &pressure) || errors.As(err, &busy) {
+		return module.Error{Code: "SERVER_BUSY", Message: err.Error()}
+	}
+	return err
 }
 
 // KDBStorageFromEnv reads KDB_DURABILITY, KDB_SYNC_MODE and
@@ -204,7 +257,11 @@ func OpenKDBWithStorage(path string, sc KDBStorage) (*KDB, error) {
 			k.closeRuntimes()
 			return nil, fmt.Errorf("kdb: opening namespace %s: %w", nsID, err)
 		}
-		k.nss[name] = &kdbNamespace{id: nsID, rt: rt, srv: kdbserver.NewKdbServerRuntime(rt)}
+		srv := kdbserver.NewKdbServerRuntime(rt)
+		if sc.MemoryBudgetBytes > 0 {
+			srv.SetMemoryLimit(sc.MemoryBudgetBytes, kdbMemoryRejectFraction)
+		}
+		k.nss[name] = &kdbNamespace{id: nsID, rt: rt, srv: srv}
 	}
 	go k.sweep()
 	return k, nil
@@ -362,6 +419,25 @@ func (n *kdbNamespace) put(key string, doc []byte) error {
 	if err != nil {
 		return err
 	}
+	// PutJSONDocument appends to the DAG through the embedded runtime, so it
+	// bypasses the memory admission srv.Commit goes through (nothing in
+	// package embed consults Admission at all) — and it is the path behind
+	// every Put, Insert and Tx.Put, which is essentially all of this server's
+	// write volume. Reserving here is therefore what actually holds the line:
+	// without it the budget set at open time would govern only deletes and
+	// reads, while the writes that grow the commit DAG forever stayed
+	// unmetered. Mirrors what KdbServerRuntime.commitWith does around its own
+	// commits, bounded wait included. Acquire on a nil Admission (no budget
+	// configured) returns an empty grant and no error, so this is a no-op
+	// wherever governance is off.
+	ctx, cancel := context.WithTimeout(context.Background(), n.srv.WriteTimeout)
+	defer cancel()
+	grant, err := n.srv.Admission().Acquire(ctx, kdbserver.ClassWrite, len(withID))
+	if err != nil {
+		return busyIfShed(err)
+	}
+	defer grant.Release()
+
 	_, err = embed.PutJSONDocument(n.rt, n.id, string(withID))
 	return err
 }
@@ -389,7 +465,9 @@ func (n *kdbNamespace) deleteByUUID(id codec.UUID) (bool, error) {
 		Timestamp:   codec.TimestampNow(),
 	}
 	if _, err := n.srv.Commit(n.id, tx, "", kdbauth.Principal{}); err != nil {
-		return false, err
+		// Commit reserves against the same budget put() does, so a delete is
+		// shed under pressure exactly as a write is.
+		return false, busyIfShed(err)
 	}
 	return true, nil
 }
