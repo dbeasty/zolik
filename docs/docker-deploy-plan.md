@@ -1,8 +1,10 @@
 # Deploying zolik as an image, not as source
 
-Status: **implemented and deployed**. Written and built 2026-09-06 against
-`main` @ 2e01fae; `1.1.1.43+7ba5d8c` has been live on play.limidus.com since
-2026-09-07 00:38 UTC.
+Status: **done and merged.** Written and built 2026-09-06 against `main` @
+2e01fae, cut over 2026-09-07 00:38 UTC, merged as
+[#64](https://github.com/dbeasty/zolik/pull/64). play.limidus.com has been
+running from an image since the cutover; the current release is
+`1.1.1.45+d1c423d`.
 
 Built as planned, with two notes. Item F (the pre-deploy snapshot) was folded
 in as `deploy.sh --snapshot` rather than left for later — it was a dozen lines
@@ -13,7 +15,7 @@ effect that a local `dev-stack.sh` build is now native arm64 rather than
 cross-built.
 
 The cutover has been run — see the bottom of this file for what actually
-happened and the one step still outstanding.
+happened and what is left.
 
 ## What happens today
 
@@ -319,23 +321,47 @@ own. Step 4 forced the replacement deliberately. And the second run did
 exercise the transfer-skip path — "already on 192.168.13.13 — skipping
 transfer".
 
+### Since the cutover
+
+**The legal notices are documents rather than drafts.** `ZOLIK_OPERATOR_COUNTRY`
+(USA) and `ZOLIK_OPERATOR_CONTACT` (support@limidus.com) were given defaults in
+`scripts/deploy.sh`, and `1.1.1.45+d1c423d` carried them out. The live Terms
+page now names Limidus Corp, USA and support@limidus.com, and the "not yet in
+force" banner is gone.
+
+This is worth reading as a small proof of the arrangement rather than a
+footnote. The notices are prerendered into the bundle, so naming the operator
+is a *build-time* fact — under the old deployment it lived in whatever
+environment happened to invoke a local `npx expo export`, and the server it was
+served beside had no idea what it said. Now the values, the bundle and the
+binary are one image with one tag, and "which operator does the deployed site
+name" has the same answer as "which commit is deployed".
+
+Two release images are kept on the host, so the rollback is a real one:
+
+    1.1.1.45-d1c423d   (live)
+    1.1.1.43-7ba5d8c
+
 ### Still outstanding
 
-- **`DeployProbe43` is a real guest account on production.** Harmless, and
+- **`DeployProbe43` is a real guest account on production**, left over from
+  verifying that the database survives a container replacement. Harmless, and
   worth deleting when there is a way to.
-- **The legal notices are still a DRAFT *in production*.** `ZOLIK_OPERATOR_COUNTRY`
-  (USA) and `ZOLIK_OPERATOR_CONTACT` (support@limidus.com) now have defaults in
-  `scripts/deploy.sh`, which clears the banner — but the notices are prerendered
-  into the bundle at build time, so the live site keeps its draft banner until
-  the next deploy rebuilds the image. Nothing else is needed; the next
-  `./scripts/deploy.sh` does it.
+- **`ZOLIK_OPERATOR_COUNTRY` is "USA".** It satisfies the check — the client
+  only asks that the field be filled in with something that is not a
+  placeholder — but US contract law is state-level, so the jurisdiction
+  governing the terms is more usually a state than the country. Recorded here
+  because a value that passes a test is not the same as a value that is right,
+  and nothing else in the system will ever raise it again.
 - **After a week, delete the old deployment.** `/home/zolik/src` (both source
   trees), `/home/zolik/web` (the static bundle nginx no longer reads), and the
-  `server_kdb_data` volume. Until then they are the rollback:
+  `server_kdb_data` volume. Until then they are the rollback of last resort:
 
       ssh davja@192.168.13.13 'sudo -u zolik bash -c "cd /home/zolik/src/zolik/server && docker compose -f docker-compose.kdb.yml up -d --build"'
 
-  That path still has its own volume with the pre-cutover accounts in it.
+  That path still has its own volume with the pre-cutover accounts in it. The
+  tarball in `/home/zolik/backups/` holds the same data and does not depend on
+  the source trees, so it can outlive them.
 
 ## What does not change
 
