@@ -21,6 +21,16 @@ type MatchStateMsg struct {
 	Variation string `json:"variation,omitempty"`
 	Status    string `json:"status"`
 	JoinCode  string `json:"joinCode,omitempty"`
+	// InviteURL is the join code as something a host can send to somebody:
+	// a link that opens the client and seats whoever follows it.
+	//
+	// Minted here rather than assembled by each client because the two clients
+	// would have to agree on the route byte-for-byte, and because only the
+	// server knows how the outside world reaches this deployment — a phone on
+	// a LAN address would otherwise share a link that works nowhere else.
+	// Omitted when no public base is configured; a client then falls back to
+	// showing the code, which is all it ever had.
+	InviteURL string `json:"inviteUrl,omitempty"`
 	HostID    string `json:"hostId,omitempty"`
 	// Options is what the lobby chose, echoed back so a client can offer the
 	// same table again without remembering how this one was set up — the
@@ -95,6 +105,7 @@ func (m *Manager) buildStateMsg(match models.Match, viewerID string, rounds *mod
 		Options:         match.Options,
 		Status:          match.Status,
 		JoinCode:        match.JoinCode,
+		InviteURL:       m.InviteURL(match.JoinCode),
 		HostID:          match.HostID,
 		WinnerID:        match.WinnerID,
 		Winners:         match.Winners,

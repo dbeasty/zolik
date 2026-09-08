@@ -336,7 +336,7 @@ export class ZolikClient {
     moduleId: string,
     variation?: string,
     options: Record<string, number> = {},
-  ): Promise<{ matchId: string; joinCode: string }> {
+  ): Promise<{ matchId: string; joinCode: string; inviteUrl?: string }> {
     return this.post('/matches', { moduleId, variation, options, avatar: this.avatarId }, true);
   }
 

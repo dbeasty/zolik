@@ -108,7 +108,10 @@ func (c *Client) GetVersion() (ServerBuild, error) {
 	return out, err
 }
 
-func (c *Client) CreateMatch(moduleID, variation string, options map[string]int) (matchID, joinCode string, err error) {
+// CreateMatch opens a table and reports both ways of filling it: the short
+// code a host reads out, and the link they can paste. The link may be empty —
+// see MatchState.InviteURL.
+func (c *Client) CreateMatch(moduleID, variation string, options map[string]int) (matchID, joinCode, inviteURL string, err error) {
 	body := map[string]any{"moduleId": moduleID}
 	if variation != "" {
 		body["variation"] = variation
@@ -117,13 +120,14 @@ func (c *Client) CreateMatch(moduleID, variation string, options map[string]int)
 		body["options"] = options
 	}
 	var resp struct {
-		MatchID  string `json:"matchId"`
-		JoinCode string `json:"joinCode"`
+		MatchID   string `json:"matchId"`
+		JoinCode  string `json:"joinCode"`
+		InviteURL string `json:"inviteUrl"`
 	}
 	if err := c.postJSON("/matches", body, &resp, true); err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
-	return resp.MatchID, resp.JoinCode, nil
+	return resp.MatchID, resp.JoinCode, resp.InviteURL, nil
 }
 
 // JoinMatch joins by match id or by the short code a host reads out.

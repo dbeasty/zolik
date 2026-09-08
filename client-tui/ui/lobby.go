@@ -41,11 +41,16 @@ type lobbyModel struct {
 	bots map[string]int
 
 	joinCode string
-	input    string
-	players  []api.Player
-	hostID   string
-	status   string
-	errMsg   string
+	// inviteURL is the shareable form of joinCode, when the server names a
+	// public address. A terminal is a place people copy text out of, so this
+	// is displayed rather than acted on — there is no clipboard to write to
+	// over SSH, and the one the user has is their terminal's own.
+	inviteURL string
+	input     string
+	players   []api.Player
+	hostID    string
+	status    string
+	errMsg    string
 }
 
 func newLobbyModel(root *Root) lobbyModel {
@@ -54,7 +59,7 @@ func newLobbyModel(root *Root) lobbyModel {
 
 type lobbyModulesMsg struct{ modules []api.Module }
 type lobbyErrMsg struct{ err string }
-type lobbyCreatedMsg struct{ matchID, joinCode string }
+type lobbyCreatedMsg struct{ matchID, joinCode, inviteURL string }
 type lobbyStateMsg struct{ state api.MatchState }
 type lobbyTickMsg struct{}
 
@@ -77,7 +82,7 @@ func (m lobbyModel) loadModules() tea.Cmd {
 
 func (m lobbyModel) create(mod api.Module, variation string, bots int) tea.Cmd {
 	return func() tea.Msg {
-		id, code, err := m.root.api.CreateMatch(mod.ID, variation, nil)
+		id, code, link, err := m.root.api.CreateMatch(mod.ID, variation, nil)
 		if err != nil {
 			return lobbyErrMsg{err: err.Error()}
 		}
@@ -92,7 +97,7 @@ func (m lobbyModel) create(mod api.Module, variation string, bots int) tea.Cmd {
 		if err := m.root.api.StartMatch(id); err != nil {
 			return lobbyErrMsg{err: err.Error()}
 		}
-		return lobbyCreatedMsg{matchID: id, joinCode: code}
+		return lobbyCreatedMsg{matchID: id, joinCode: code, inviteURL: link}
 	}
 }
 
@@ -130,11 +135,21 @@ func (m lobbyModel) update(msg tea.Msg) (lobbyModel, tea.Cmd) {
 
 	case lobbyCreatedMsg:
 		m.matchID, m.joinCode, m.mode, m.errMsg = msg.matchID, msg.joinCode, lobbyWait, ""
+		m.inviteURL = msg.inviteURL
 		return m, m.poll()
 
 	case lobbyStateMsg:
 		m.players = msg.state.Players
 		m.hostID = msg.state.HostID
+		// Also carried on the polled state, so somebody who joined by code —
+		// and therefore never saw a create response — can pass the link on to
+		// the next player.
+		if msg.state.JoinCode != "" {
+			m.joinCode = msg.state.JoinCode
+		}
+		if msg.state.InviteURL != "" {
+			m.inviteURL = msg.state.InviteURL
+		}
 		if msg.state.Status != "lobby" {
 			// Started. Everything from here is the match screen's job.
 			m.root.match = newMatchModel(m.root)
@@ -285,8 +300,15 @@ func (m lobbyModel) view(width, height int) string {
 	case lobbyWait:
 		b.WriteString(titleStyle.Render("Waiting to start") + "\n\n")
 		if m.joinCode != "" {
-			b.WriteString("Join code: " + titleStyle.Render(m.joinCode) + "\n\n")
+			b.WriteString("Join code: " + titleStyle.Render(m.joinCode) + "\n")
 		}
+		// Printed on its own line and nothing else, so a terminal's
+		// double-click-to-select grabs the whole URL and most terminals turn
+		// it into something clickable of their own accord.
+		if m.inviteURL != "" {
+			b.WriteString("Invite link: " + m.inviteURL + "\n")
+		}
+		b.WriteString("\n")
 		b.WriteString(mutedStyle.Render(fmt.Sprintf("Players (%d)", len(m.players))) + "\n")
 		for i, p := range m.players {
 			bot := ""

@@ -41,6 +41,12 @@ type Manager struct {
 	botMu      sync.Mutex
 	botRunning map[string]bool
 
+	// inviteBaseURL is how the outside world reaches this deployment, and the
+	// only thing standing between a join code and a link somebody can click.
+	// Empty is the ordinary state under test, and means no link is offered —
+	// see SetInviteBaseURL in invitelink.go.
+	inviteBaseURL string
+
 	// botThinkMin and botThinkMax bound a bot's cosmetic pause. Zero means
 	// the defaults in bots.go, so a Manager built without SetBotPace behaves
 	// exactly as it did before the pace was configurable.
