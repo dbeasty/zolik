@@ -11,6 +11,7 @@ import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { formatApiError } from '@/src/lib/apiError';
 import { colors, shared } from '@/src/theme';
+import { t } from '@/src/lib/i18n';
 
 /**
  * The host's table before it starts: who is seated, who can be pulled in, and
@@ -126,7 +127,7 @@ export default function TableScreen() {
   const available = waiting.filter((p) => !seatedIds.includes(p.playerId));
 
   return (
-    <Screen title="Your table" scroll>
+    <Screen title={t('nav.table')} scroll>
       <ScrollView testID="table-screen">
         <Text testID="table-module" style={shared.status}>
           {state?.moduleId ?? '…'}
@@ -169,7 +170,7 @@ export default function TableScreen() {
               onPress={() => addBot()}
               disabled={busy}
             >
-              <Text style={shared.buttonText}>Add a bot</Text>
+              <Text style={shared.buttonText}>{t('lobby.table.addBot')}</Text>
             </Pressable>
             {/*
               One seat at a time, at a named strength. The row underneath the
@@ -193,11 +194,11 @@ export default function TableScreen() {
               ))}
             </View>
             <Pressable testID="table-start" style={shared.button} onPress={start} disabled={busy}>
-              <Text style={shared.buttonText}>Start</Text>
+              <Text style={shared.buttonText}>{t('lobby.table.start')}</Text>
             </Pressable>
           </>
         ) : (
-          <Text style={shared.status}>Waiting for the host to start…</Text>
+          <Text style={shared.status}>{t('lobby.table.waitingForHost')}</Text>
         )}
       </ScrollView>
     </Screen>
@@ -230,8 +231,7 @@ function WaitingPlayersPanel({
         // now" from "this is broken" at a glance, especially when comparing
         // notes with someone on a second device who insists they are waiting.
         <Text style={shared.status}>
-          No one is waiting right now. Anyone who makes themselves available on the
-          main menu shows up here.
+          {t('waiting.none')}
         </Text>
       ) : (
         available.map((p) => (
@@ -252,7 +252,7 @@ function WaitingPlayersPanel({
               <Avatar spec={avatarFor(p.playerId, false, p.avatar)} size={28} />
               <Text style={{ color: colors.text }} numberOfLines={1}>
                 {p.username}
-                {p.isGuest ? ' (guest)' : ''}
+                {p.isGuest ? ` ${t('home.guestSuffix')}` : ''}
               </Text>
             </View>
             <Pressable

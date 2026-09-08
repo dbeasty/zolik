@@ -475,7 +475,7 @@ function FoldedOffer({
 
       {!disabled && settled.length !== 1 ? (
         <Text testID={`needs-group:${groupKey}`} style={styles.hint}>
-          {aimed ? 'pick cards for the place you tapped' : 'more than one place this could go — pick on the board'}
+          {aimed ? t('offer.pickCards') : t('offer.ambiguous')}
         </Text>
       ) : null}
     </View>

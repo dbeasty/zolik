@@ -433,7 +433,14 @@ export const el: Record<string, string> = {
   // in, because Czech does not put the link where English does: "souhlasíš s
   // Podmínkami" inflects the noun the link is made of. Fragments let each
   // locale place and decline its own.
+  // The short word for a link or a tab.
   'legal.terms': 'Όροι',
+  // The document's own name, used as the heading above it. Kept apart from
+  // `legal.notice.terms`, which is the same words inflected to sit inside a
+  // sentence — a heading in the instrumental case reads as a mistake in every
+  // Slavic language.
+  'legal.terms.title': 'Όροι χρήσης',
+  'legal.privacy.title': 'Ενημέρωση απορρήτου',
   'legal.privacy': 'Απόρρητο',
   'legal.source': 'Πηγαίος κώδικας',
   'legal.updated': 'Έκδοση {version}',
@@ -710,10 +717,10 @@ export const el: Record<string, string> = {
   // itself lived on this screen: a player who cannot read "Settings" is
   // exactly the one who came here to change it.
   'settings.title': 'Ρυθμίσεις',
-  'settings.subtitle': 'Πώς φαίνεσαι εσύ, και πώς το τραπέζι',
   'settings.signedInAs': 'Συνδέθηκες ως {username}',
   'settings.playingAsGuest': 'Παίζεις ως {username} (επισκέπτης)',
   'settings.notSignedIn': 'Δεν έχεις συνδεθεί — συνδέσου ή συνέχισε ως επισκέπτης για να παίξεις online.',
+  'settings.subtitle': 'Πώς φαίνεσαι εσύ, και πώς το τραπέζι',
   'settings.face.heading': 'Το πρόσωπό σου στο τραπέζι',
   'settings.face.account': 'Φυλάσσεται με τον λογαριασμό σου, οπότε σε ακολουθεί και σε άλλη συσκευή.',
   'settings.face.device': 'Φυλάσσεται σε αυτή τη συσκευή. Συνδέσου για να το πάρεις μαζί σου.',
@@ -756,6 +763,8 @@ export const el: Record<string, string> = {
   'nav.scoreTable': 'Πίνακας σκορ',
   'nav.stats': 'Στατιστικά',
   'nav.more': 'Περισσότερα',
+
+  // --- the account menu behind the face in the corner ----------------------
   'menu.label': 'Μενού λογαριασμού',
   'menu.signedIn': 'Συνδεδεμένος',
   'menu.notSignedIn': 'Μη συνδεδεμένος',
@@ -765,5 +774,404 @@ export const el: Record<string, string> = {
   'more.stats': 'Στατιστικά και κατάταξη',
   'more.needsAccount': 'συνδέσου για χρήση',
   'gate.title': 'Συνδέσου για να το χρησιμοποιήσεις',
-  'gate.body': 'Οι πίνακες σκορ και τα στατιστικά φυλάσσονται με τον λογαριασμό σου, ώστε να σε ακολουθούν σε άλλη συσκευή. Ο επισκέπτης δεν έχει πού να τα φυλάξει.',
+  'gate.body':
+    'Οι πίνακες σκορ και τα στατιστικά φυλάσσονται με τον λογαριασμό σου, ώστε να σε ακολουθούν σε άλλη συσκευή. Ο επισκέπτης δεν έχει πού να τα φυλάξει.',
+
+  // --- screens that never reached a key at all -------------------------------
+  //
+  // Everything below was typed straight into JSX. The parity tests could not
+  // see it — they prove every *key* is worded in twenty-four languages, not
+  // that a sentence ever became a key — so the app read half in the player's
+  // language and half in English. `scripts/find-untranslated.js` is the gate
+  // that stops that recurring; these are what it found.
+
+  // Errors shown when a thrown error carries no message of its own. The server
+  // sends codes, not sentences (see `reasonText`); these cover the cases where
+  // nothing came back at all — a socket that died, a fetch that never landed.
+  'error.generic': 'Αυτό δεν πέτυχε',
+  'error.signIn': 'Η σύνδεση απέτυχε',
+  'error.login': 'Η σύνδεση απέτυχε',
+  'error.register': 'Η εγγραφή απέτυχε',
+  'error.sendCode': 'Δεν ήταν δυνατή η αποστολή κωδικού',
+  'error.badCode': 'Αυτός ο κωδικός δεν λειτούργησε',
+  'error.rulesLoad': 'Δεν ήταν δυνατή η φόρτωση των κανόνων',
+  'error.createFailed': 'Η δημιουργία απέτυχε',
+  'error.saveFailed': 'Η αποθήκευση απέτυχε',
+  'error.exportFailed': 'Η εξαγωγή απέτυχε',
+
+  // --- the route that does not exist ----------------------------------------
+  'notFound.title': 'Ωχ!',
+  'notFound.message': 'Αυτή η οθόνη δεν υπάρχει.',
+  'notFound.home': 'Πήγαινε στην αρχική οθόνη!',
+
+  // --- signing in -----------------------------------------------------------
+  'auth.login.subtitle': 'Κράτα τα στατιστικά σου σε όλες τις συσκευές',
+  'auth.login.continueWithEmail': 'Συνέχεια με email',
+  'auth.login.usernameInstead': "Σύνδεση με όνομα χρήστη αντ' αυτού",
+  'auth.email.title': 'Σύνδεση με email',
+  'auth.email.subtitle': 'Θα σου στείλουμε έναν κωδικό μιας χρήσης',
+  'auth.email.address': 'Διεύθυνση email',
+  'auth.email.send': 'Αποστολή κωδικού',
+  'auth.email.codeTitle': 'Βάλε τον κωδικό',
+  'auth.email.codePlaceholder': 'Εξαψήφιος κωδικός',
+  'auth.email.differentAddress': 'Χρήση άλλης διεύθυνσης',
+  'auth.email.sentTo': 'Στάλθηκε στο {email}',
+  'auth.email.continue': 'Συνέχεια',
+  'auth.guest.title': 'Παιχνίδι ως επισκέπτης',
+  'auth.guest.subtitle': 'Δεν χρειάζεται λογαριασμός',
+  'auth.guest.displayName': 'Εμφανιζόμενο όνομα',
+  'auth.register.title': 'Δημιουργία λογαριασμού',
+  'auth.register.username': 'Όνομα χρήστη',
+  'auth.register.email': 'Email (προαιρετικό)',
+  'auth.register.password': 'Κωδικός πρόσβασης',
+  'auth.username.createAccount': 'Δημιούργησε λογαριασμό με όνομα χρήστη και κωδικό',
+  'auth.callback.signedIn': 'Συνδέθηκες.',
+
+  // --- the account screen ---------------------------------------------------
+  'account.signInPrompt': 'Συνδέσου για να διαχειριστείς τον λογαριασμό σου.',
+  'account.keepGames': 'Κράτα αυτά τα παιχνίδια',
+  'account.signedInWith': 'Συνδεδεμένος μέσω',
+  'account.addMethod': 'Πρόσθεσε τρόπο σύνδεσης',
+  'account.usernameAndPassword': 'Όνομα χρήστη και κωδικός',
+  'account.faceAndTable': 'Πρόσωπο και όψη τραπεζιού',
+  'account.refresh': 'Ανανέωση',
+  'account.remove': 'Αφαίρεση',
+
+  // --- the main menu --------------------------------------------------------
+  'home.subtitle': 'Κοντινένταλ ρέμι · {server}',
+  'home.playingAs': 'Παίζεις ως {name}',
+  'home.signInPrompt': 'Συνδέσου ή συνέχισε ως επισκέπτης για να παίξεις online.',
+  'home.statsAndLeaderboard': 'Στατιστικά και κατάταξη',
+  'home.play': 'Παίξε',
+  'home.offlineScoreTable': 'Πίνακας σκορ εκτός σύνδεσης',
+  'home.signInToKeepStats': 'Συνδέσου για να κρατήσεις τα στατιστικά σου',
+  'home.signOut': 'Αποσύνδεση',
+  'home.continueAsGuest': 'Συνέχεια ως επισκέπτης',
+  // Someone playing as a guest, marked in a list of names.
+  'home.guestSuffix': '(επισκέπτης)',
+
+  // --- the waiting room on the main menu ------------------------------------
+  //
+  // Counts are whole phrases per count, not a number glued to a noun — the
+  // same reason `countLabel` exists. One and many are the cases the interface
+  // actually produces, so they are the cases that get their own wording.
+  'waiting.checking': 'Βλέπουμε ποιος είναι εδώ…',
+  'waiting.youAreWaiting': 'Περιμένεις να παίξεις',
+  'waiting.pickedUp': 'Όποιος ανοίξει τραπέζι μπορεί να σε πάρει — κανείς δεν χρειάζεται κωδικό από σένα.',
+  'waiting.othersOne': 'Περιμένει και 1 ακόμα παίκτης',
+  'waiting.othersMany': 'Περιμένουν και {n} ακόμα παίκτες',
+  'waiting.oneWaiting': '1 παίκτης περιμένει να παίξει',
+  'waiting.manyWaiting': '{n} παίκτες περιμένουν να παίξουν',
+  'waiting.adding': 'Σε προσθέτουμε στη λίστα αναμονής…',
+  'waiting.slowHint':
+    'Αν αυτό δεν τελειώσει σε λίγα δευτερόλεπτα, έλεγξε αν η διεύθυνση του διακομιστή παρακάτω είναι προσβάσιμη από αυτή τη συσκευή.',
+  'waiting.serverBusyDetail':
+    'Προσπάθεια {n}. Ο διακομιστής δεν δέχεται αυτή τη στιγμή νέες συνδέσεις στην αίθουσα αναμονής.',
+  'waiting.reconnecting': 'Χάθηκε η σύνδεση — επανασύνδεση…',
+  'waiting.reconnectingDetail':
+    'Προσπάθεια {n}. Μπορεί να συμβεί αν άλλαξε το δίκτυο της συσκευής σου ή αν ο διακομιστής επανεκκινήθηκε.',
+  'waiting.tryAgain': 'Δοκίμασε ξανά τώρα',
+  'waiting.makeAvailable': 'Κάνε με διαθέσιμο για παιχνίδι',
+  'waiting.stop': 'Σταμάτα να περιμένεις',
+  'waiting.noneYet':
+    'Αυτή τη στιγμή δεν περιμένει κανείς να παίξει. Μπες στη λίστα και θα είσαι ο πρώτος που θα δει ο καθένας.',
+  'waiting.noOthersYet':
+    'Δεν περιμένει κανείς άλλος ακόμα. Οι οικοδεσπότες σε βλέπουν έτσι κι αλλιώς και μπορούν να σε καλέσουν.',
+  'waiting.server': 'Διακομιστής',
+  'waiting.none':
+    'Αυτή τη στιγμή δεν περιμένει κανείς. Όποιος δηλώσει διαθέσιμος στο κύριο μενού εμφανίζεται εδώ.',
+
+  // --- landing on a shared invite link --------------------------------------
+  'join.missingCode': 'Σε αυτόν τον σύνδεσμο λείπει ο κωδικός του τραπεζιού.',
+  'join.staleLink': 'Ζήτα φρέσκο σύνδεσμο από όποιον σε κάλεσε, ή μπες με τον κωδικό.',
+  'join.enterCode': 'Βάλε κωδικό',
+  'join.backToMenu': 'Πίσω στο μενού',
+  'join.takingSeat': 'Παίρνουμε θέση…',
+  'join.takingSeatAt': 'Παίρνουμε θέση στο {game}…',
+
+  // --- the lobby ------------------------------------------------------------
+  'lobby.games.subtitle': 'Ό,τι μπορεί να φιλοξενήσει αυτός ο διακομιστής',
+  'lobby.games.bots': 'Μποτ',
+  'lobby.games.playBot': 'Παίξε εναντίον ενός μποτ',
+  'lobby.games.playBots': 'Παίξε εναντίον {n} μποτ',
+  'lobby.games.openTable': 'Άνοιξε τραπέζι',
+  'lobby.games.players': '{n} παίκτες',
+  'lobby.games.playerRange': '{min}–{max} παίκτες',
+  'lobby.join.placeholder': 'Κωδικός ή σύνδεσμος πρόσκλησης',
+  'lobby.join.needCode': 'Δώσε κωδικό, σύνδεσμο ή ταυτότητα αγώνα',
+  'lobby.games.signInFirst': 'Συνδέσου πρώτα',
+  'lobby.join.action': 'Μπες',
+  'lobby.join.waitingTitle': 'Αναμονή για τον οικοδεσπότη',
+  // Two whole sentences rather than one with a swapped noun: "a game of {game}"
+  // does not survive a language that inflects the game's name after "of".
+  'lobby.join.joinedGame': 'Μπήκες σε παιχνίδι {game} — αναμονή για την έναρξη',
+  'lobby.join.joinedTable': 'Μπήκες στο τραπέζι — αναμονή για την έναρξη',
+  'lobby.table.addBot': 'Πρόσθεσε μποτ',
+  'lobby.table.start': 'Ξεκίνα',
+  'lobby.table.waitingForHost': 'Αναμονή να ξεκινήσει ο οικοδεσπότης…',
+
+  // --- inviting someone to a table ------------------------------------------
+  'invite.heading': 'Κάλεσε παίκτες',
+  'invite.explain':
+    'Στείλε αυτόν τον σύνδεσμο. Όποιος τον ανοίξει προσγειώνεται σε αυτό το τραπέζι — χωρίς λογαριασμό.',
+  'invite.noAddress':
+    'Σε αυτόν τον διακομιστή δεν έχει ρυθμιστεί κοινοποιήσιμη διεύθυνση, οπότε χρησιμοποίησε τον κωδικό παρακάτω.',
+  'invite.readOutCode': 'Ή υπαγόρευσε τον κωδικό:',
+  'invite.copy': 'Αντιγραφή συνδέσμου',
+  'invite.share': 'Κοινοποίηση συνδέσμου',
+  'invite.copied': 'Αντιγράφηκε!',
+  'invite.shared': 'Κοινοποιήθηκε',
+
+  // --- the match screen -----------------------------------------------------
+  'match.waitingForTable': 'Αναμονή για το τραπέζι…',
+  'match.waitingForPlayer': 'Αναμονή για άλλον παίκτη…',
+  'match.nobodyWon': 'Δεν κέρδισε κανείς.',
+  'match.youWon': 'Κέρδισες.',
+  'match.finished': 'Αυτός ο αγώνας τελείωσε.',
+  'match.inProgress': 'Ο αγώνας είναι σε εξέλιξη — όλα είναι συνδεδεμένα και κυλούν κανονικά.',
+  'match.controls': 'Χειριστήρια',
+  'match.over': 'Ο αγώνας τελείωσε',
+  'match.settingUp': 'Ετοιμάζουμε…',
+  'match.playAgain': 'Παίξε ξανά',
+  'match.backToGames': 'Πίσω στα παιχνίδια',
+  'match.table': 'Τραπέζι',
+  'match.opponents': 'Αντίπαλοι',
+  // Marks which seat is the reader's own, in a list of seats.
+  'match.youSuffix': '(εσύ)',
+  // The winner line is composed from whole sentences rather than a name glued
+  // to " won." — the verb agrees with the subject in most of these languages,
+  // and a suffix cannot know that.
+  'match.you': 'εσύ',
+  'match.someoneWon': 'Ο {name} κέρδισε.',
+  'match.wonBy': 'Κερδισμένο από {names}.',
+  'match.pausedFor': 'Σε παύση — αναμονή να επανασυνδεθεί ο {name}.',
+  'match.results': 'Αποτελέσματα',
+  'match.players': 'Παίκτες',
+  'match.toPlay': 'στη σειρά',
+
+  // --- the offline score table ----------------------------------------------
+  'scoring.namesHint': 'Ονόματα χωρισμένα με κόμμα (4–8 παίκτες)',
+  'scoring.newSession': 'Νέα συνεδρία',
+  // A worked example, not a sentence: the names are placeholders a translator
+  // may localise, the shape `name:score,` is what the parser needs.
+  'scoring.scoresPlaceholder': 'Άννα:120,Βασίλης:80,…',
+  'scoring.saveRound': 'Αποθήκευση γύρου',
+  'scoring.export': 'Εξαγωγή φύλλου σκορ',
+  'scoring.formatHint': 'Μορφή σκορ: Όνομα:100,Όνομα2:50',
+  'scoring.nameCountError': 'Δώσε 2–8 ονόματα παικτών χωρισμένα με κόμμα',
+  'scoring.session': 'Συνεδρία: {id}',
+  'scoring.players': 'Παίκτες: {names}',
+  'scoring.roundScores': 'Σκορ του γύρου {n}',
+  'stats.loading': 'Φόρτωση…',
+  // The figures could not be fetched. `{reason}` is whatever the server or the
+  // network said, which is not ours to translate — the frame around it is.
+  'stats.unavailable': '(μη διαθέσιμο: {reason})',
+
+  // --- statistics -----------------------------------------------------------
+  'stats.title': 'Στατιστικά και κατάταξη',
+  'stats.yours': 'Τα στατιστικά σου',
+  'stats.leaderboard': 'Κατάταξη',
+
+  // --- a player's lifetime record, shown beside a finished match ------------
+  'record.title': 'Το ιστορικό σου',
+  'record.guest':
+    'Παίζεις ως επισκέπτης, οπότε δεν κρατιέται ιστορικό. Συνδέσου και τα παιχνίδια που έχεις ήδη παίξει σε αυτή τη συσκευή — μαζί με αυτό — θα μείνουν στον λογαριασμό σου.',
+  'record.signInToKeep': 'Συνδέσου και κράτα τα',
+  'record.failed': 'Το ιστορικό σου δεν φορτώθηκε αυτή τη στιγμή. Ο αγώνας έχει καταγραφεί με ασφάλεια.',
+  'record.loading': 'Φόρτωση…',
+  'record.played': 'Παιγμένα',
+  'record.won': 'Κερδισμένα',
+  'record.lost': 'Χαμένα',
+  'record.winRate': 'Ποσοστό νικών',
+  'record.streak': 'Σερί',
+  'record.atThisGame': 'Σε αυτό το παιχνίδι',
+  // A streak is a count with a noun, so it is a whole phrase per count for
+  // the same reason `countLabel` is: "1 win" / "2 wins" is an English rule,
+  // and most of these languages do not share it.
+  'record.streakNone': '—',
+  'record.streakWinOne': '1 νίκη',
+  'record.streakWinMany': '{n} νίκες',
+  'record.streakLossOne': '1 ήττα',
+  'record.streakLossMany': '{n} ήττες',
+
+  // --- moving cards ---------------------------------------------------------
+  'hand.dragHint':
+    'Σύρε ένα φύλλο κατά μήκος της βεντάλιας για να το αναδιατάξεις, ή στο τραπέζι για να το παίξεις',
+  'hand.moveLeft': 'Αριστερά',
+  'hand.moveRight': 'Δεξιά',
+  'zone.collapseGroup': 'Σύμπτυξη αυτής της ομάδας',
+  'zone.expandGroup': 'Εμφάνιση όλων των φύλλων αυτής της ομάδας',
+  'zone.dropHere': 'Άφησέ το εδώ',
+  'offer.pickCards': 'διάλεξε φύλλα για το σημείο που άγγιξες',
+  'offer.ambiguous': 'αυτό μπορεί να πάει σε περισσότερα από ένα σημεία — διάλεξε στο τραπέζι',
+
+  // --- the build footer -----------------------------------------------------
+  'build.app': 'εφαρμογή',
+  'build.server': 'διακομιστής',
+  // --- the words the server chose, worded here -------------------------------
+  //
+  // /modules describes each game, variation, option and choice with an English
+  // label. That made the lobby the one screen that stayed English whatever the
+  // picker said. `src/lib/gameLabels.ts` looks these up and falls back to the
+  // label the server sent, so a game added after this build still reads.
+  //
+  // Absent on purpose: game names, place names, ratios and bare numbers.
+  // "Texas Hold'em", "Vegas Strip", "3:2" and "500" read the same in every
+  // language and fall through to the server's own label.
+  'option.pauseBetweenRounds': 'Παύση ανάμεσα στους γύρους',
+  'choice.pauseBetweenRounds.1': 'Παύση',
+  'choice.pauseBetweenRounds.0': 'Συνέχισε κατευθείαν',
+  'option.botSkill': 'Αντίπαλοι',
+  'choice.botSkill.0': 'Ανάμεικτοι',
+  'choice.botSkill.1': 'Εύκολοι',
+  'choice.botSkill.2': 'Μέτριοι',
+  'choice.botSkill.3': 'Δύσκολοι',
+  'option.initialMeldMinimum': 'Αξία ανοίγματος',
+  'choice.initialMeldMinimum.0': 'Καμία',
+  'option.discardDrawMinRound': 'Τράβηγμα από τον σωρό',
+  'choice.discardDrawMinRound.0': 'Ανοιχτό',
+  'choice.discardDrawMinRound.2': 'Από τον γύρο 2',
+  'choice.discardDrawMinRound.3': 'Από τον γύρο 3',
+  'option.requireCleanRun': 'Κέντα χωρίς μπαλαντέρ',
+  'choice.requireCleanRun.1': 'Απαιτείται',
+  'choice.requireCleanRun.0': 'Όχι',
+  'option.jokerReclaimMustPlay': 'Εξαγορασμένος μπαλαντέρ',
+  'choice.jokerReclaimMustPlay.1': 'Παίζεται τον ίδιο γύρο',
+  'choice.jokerReclaimMustPlay.0': 'Μπορεί να κρατηθεί',
+  'option.dealStarter': 'Ποιος ξεκινά',
+  'choice.dealStarter.0': 'Εκ περιτροπής',
+  'choice.dealStarter.1': 'Ξεκινά ο νικητής',
+  'variation.prsi.classic': 'Κλασικό',
+  'option.handSize': 'Φύλλα που μοιράζονται',
+  'variation.canasta.classic': 'Κλασική',
+  'variation.canasta.modern_american': 'Modern American',
+  'option.targetScore': 'Σκορ στόχος',
+  'option.canastasToGoOut': 'Καναστες για έξοδο',
+  'variation.holdem.freezeout': 'Freezeout',
+  'variation.holdem.timed': 'Σταθερός αριθμός μοιρασιών',
+  'option.startingStack': 'Αρχικές μάρκες',
+  'option.bigBlind': 'Μεγάλο τυφλό',
+  'option.handLimit': 'Μοιρασιές',
+  'choice.handLimit.0': 'Μέχρι να μείνει μία θέση',
+  'variation.ginrummy.standard': 'Κανονικό',
+  'option.knockLimit': 'Όριο χτυπήματος',
+  'choice.knockLimit.0': 'Οκλαχόμα (το ορίζει το ανοιχτό φύλλο)',
+  'option.bigGin': 'Μεγάλο τζιν',
+  'choice.bigGin.0': 'Ανενεργό',
+  'choice.bigGin.1': 'Ενεργό (+25)',
+  'option.lineBonuses': 'Μπόνους στον απολογισμό',
+  'choice.lineBonuses.1': 'Ενεργά',
+  'choice.lineBonuses.0': 'Ανενεργά',
+  'variation.rummytiles.standard': 'Κανονικό',
+  'choice.targetScore.0': 'Κανένα',
+  // Two games qualify a number the others mean plainly: Canasta's 500 is a
+  // short game, Gin Rummy's and Rummy Tiles' 500 is just 500; Hold'em's
+  // starting 200 is a short stack, Blackjack's 200 is just 200. Module-scoped
+  // so the qualifier travels with the game that means it — a bare key would
+  // hand the note to games it is false for. `scripts/check-server-labels.js`
+  // is what finds these; both were shipping as English on a Czech screen.
+  'choice.canasta.targetScore.500': '500 (σύντομη)',
+  'choice.holdem.startingStack.200': '200 (σύντομη)',
+  'option.roundLimit': 'Όριο γύρων',
+  'choice.roundLimit.0': 'Κανένα',
+  'option.poolExhaustion': 'Αν στερέψει το απόθεμα',
+  'choice.poolExhaustion.1': 'Τον γύρο κερδίζει το χαμηλότερο χέρι',
+  'choice.poolExhaustion.0': 'Τον γύρο δεν τον κερδίζει κανείς',
+  'variation.blackjack.single': 'Μία τράπουλα',
+  'option.minBet': 'Ελάχιστο τραπεζιού',
+  'option.rounds': 'Γύροι',
+  'option.decks': 'Τράπουλες',
+  'option.dealerHitsSoft17': 'Ο ντίλερ στο μαλακό 17',
+  'choice.dealerHitsSoft17.0': 'Μένει',
+  'choice.dealerHitsSoft17.1': 'Τραβά',
+  'option.blackjackPays': 'Το μπλακ τζακ πληρώνει',
+  'choice.blackjackPays.100': 'Ένα προς ένα',
+  'option.maxSplits': 'Χώρισμα',
+  'choice.maxSplits.0': 'Χωρίς χώρισμα',
+  'choice.maxSplits.1': 'Μία φορά (δύο χέρια)',
+  'choice.maxSplits.3': 'Τρεις φορές (τέσσερα χέρια)',
+  'option.doubleAfterSplit': 'Διπλασιασμός μετά το χώρισμα',
+  'choice.doubleAfterSplit.1': 'Επιτρέπεται',
+  'choice.doubleAfterSplit.0': 'Δεν επιτρέπεται',
+  'option.surrender': 'Παράδοση',
+  'choice.surrender.0': 'Ανενεργή',
+  'choice.surrender.1': 'Όψιμη παράδοση',
+  'option.insurance': 'Ασφάλεια',
+  'choice.insurance.1': 'Προσφέρεται',
+  'choice.insurance.0': 'Δεν προσφέρεται',
+
+  // --- the verbs on the buttons ---------------------------------------------
+  //
+  // An offer without a `labelKey` of its own is labelled from its raw verb —
+  // `label(offer.labelKey ?? `verb.${offer.verb}`)` in `OfferBar`. That key is
+  // built on this side, so `cmd/dump-keys` never sees it and `serverKeys.json`
+  // does not list it: the parity tests all passed while "Discard", "Lay meld",
+  // "Undo draw" and "Undo lay off" sat in English on a Czech board, because
+  // `humanise()` turned the key into English nobody had written and no search
+  // for an English *string* could find.
+  //
+  // Worded here from the server's own `OfferVerb` constants rather than from
+  // what one run happened to render, so a verb that only appears in a state
+  // the sweep never reached is covered too.
+  'verb.add': 'Πρόσθεσε',
+  'verb.bet': 'Ποντάρισε',
+  'verb.call': 'Πάσο',
+  'verb.check': 'Τσεκ',
+  'verb.commit': 'Έτοιμο',
+  'verb.continue': 'Συνέχεια',
+  'verb.decline_insurance': 'Χωρίς ασφάλεια',
+  'verb.discard': 'Πέταξε',
+  'verb.double': 'Διπλασίασε',
+  'verb.draw': 'Τράβα',
+  'verb.finish_layoff': 'Τέλος προσάρτησης',
+  'verb.fold': 'Πάσο (φολ)',
+  'verb.hit': 'Φύλλο',
+  'verb.insure': 'Πάρε ασφάλεια',
+  'verb.knock': 'Χτύπα',
+  'verb.lay_meld': 'Κατέβασε',
+  'verb.lay_off': 'Προσάρτησε',
+  'verb.pass': 'Πάσο',
+  'verb.place': 'Τοποθέτησε',
+  'verb.play_card': 'Παίξε',
+  'verb.raise': 'Ανέβασε',
+  'verb.reset_turn': 'Μηδένισε τη σειρά',
+  'verb.split': 'Χώρισε',
+  'verb.stand': 'Μένω',
+  'verb.surrender': 'Παράδοση',
+  'verb.swap_joker': 'Άλλαξε τον μπαλαντέρ',
+  'verb.take': 'Πάρε',
+  'verb.take_pile': 'Πάρε από τον σωρό',
+  // Declared by the server and listed in `serverKeys.json`, but never worded.
+  'verb.takePileFromHand': 'Πάρε τον σωρό στο χέρι',
+  'verb.takePileOntoMeld': 'Πάρε τον σωρό σε συνδυασμό',
+  'verb.undoDraw': 'Ακύρωση τραβήγματος',
+  'verb.undoLayOff': 'Ακύρωση προσάρτησης',
+  'verb.undoMeld': 'Ακύρωση συνδυασμού',
+  'verb.undoTurn': 'Ακύρωση σειράς',
+
+  // --- suits, spelled out ---------------------------------------------------
+  //
+  // Read aloud by a screen reader and shown where a pip would not fit. The
+  // pips themselves are drawn, not written, so these are the only place the
+  // suit is ever a word.
+  'suit.C': 'Σπαθιά',
+  'suit.D': 'Καρό',
+  'suit.H': 'Κούπες',
+  'suit.S': 'Μπαστούνια',
+
+  // --- counters the board prints beside a number ----------------------------
+  'canasta.seat.notOpened': 'Δεν άνοιξε',
+  'canasta.unit.points': 'πόντοι',
+  'ginrummy.unit.points': 'πόντοι',
+  'holdem.seat.dealer': 'Μοιράζει',
+  'holdem.unit.chips': 'μάρκες',
+  'prsi.unit.cardsLeft': 'φύλλα απομένουν',
+  'rummytiles.prompt.initialMeld': 'Το πρώτο σου κατέβασμα πρέπει να αξίζει {n} πόντους.',
+  'rummytiles.unit.points': 'πόντοι',
+  'zolik.unit.penalty': 'ποινή',
+  'header.pileFrozen': 'Ο σωρός πάγωσε',
+  // The module-less form of `ginrummy.prompt.yourTurnDraw`: Žolíky and Canasta
+  // send the prompt without a module prefix. Neither the Go constants nor
+  // `serverKeys.json` list it — the sweep is what found it.
+  'prompt.yourTurnDraw': 'Τράβα ένα φύλλο',
 };

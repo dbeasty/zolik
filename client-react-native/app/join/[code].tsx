@@ -8,6 +8,7 @@ import { useSession } from '@/src/context/SessionContext';
 import { formatApiError } from '@/src/lib/apiError';
 import { clearPendingInvite, savePendingInvite } from '@/src/lib/pendingInvite';
 import { shared } from '@/src/theme';
+import { t } from '@/src/lib/i18n';
 
 /**
  * Where a shared link lands: `/join/ABC123`.
@@ -48,7 +49,7 @@ export default function JoinByLinkScreen() {
 
   const follow = useCallback(async () => {
     if (!joinCode) {
-      setError('That link is missing its table code.');
+      setError(t('join.missingCode'));
       return;
     }
 
@@ -105,32 +106,32 @@ export default function JoinByLinkScreen() {
 
   if (error) {
     return (
-      <Screen title="Join a table" scroll>
+      <Screen title={t('nav.join')} scroll>
         <Text testID="invite-error" style={shared.error}>
           {error}
         </Text>
         <Text style={shared.status}>
-          Ask whoever invited you for a fresh link, or join with the code instead.
+          {t('join.staleLink')}
         </Text>
         <Pressable
           testID="invite-error-join"
           style={shared.button}
           onPress={() => router.replace('/lobby/join')}
         >
-          <Text style={shared.buttonText}>Enter a code</Text>
+          <Text style={shared.buttonText}>{t('join.enterCode')}</Text>
         </Pressable>
         <Pressable testID="invite-error-home" onPress={() => router.replace('/')}>
-          <Text style={shared.status}>Back to the menu</Text>
+          <Text style={shared.status}>{t('join.backToMenu')}</Text>
         </Pressable>
       </Screen>
     );
   }
 
   return (
-    <Screen title="Joining" scroll>
+    <Screen title={t('nav.joining')} scroll>
       <ActivityIndicator testID="invite-joining" />
       <Text style={[shared.status, { marginTop: 12 }]}>
-        {table?.moduleId ? `Taking a seat at ${table.moduleId}…` : 'Taking a seat…'}
+        {table?.moduleId ? t('join.takingSeatAt', { game: table.moduleId }) : t('join.takingSeat')}
       </Text>
     </Screen>
   );

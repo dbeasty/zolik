@@ -44,7 +44,7 @@ import {
 } from '@/src/lib/flights';
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
 import { cardsForSelection, slotsForDrag, toggleSelection } from '@/src/lib/hand';
-import { reasonText } from '@/src/lib/i18n';
+import { reasonText, t } from '@/src/lib/i18n';
 import { WhySheet, type Refusal } from '@/src/components/match/WhySheet';
 import { useRuleIndex } from '@/src/hooks/useRuleIndex';
 import { useSkinControls } from '@/src/hooks/useSkin';
@@ -273,7 +273,7 @@ export default function MatchScreen() {
         <TableSurface />
         <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
           <Text testID="match-connecting" style={styles.muted}>
-            {connected ? 'Waiting for the table…' : 'Connecting…'}
+            {connected ? t('match.waitingForTable') : 'Connecting…'}
           </Text>
         </SafeAreaView>
       </View>
@@ -652,15 +652,15 @@ export default function MatchScreen() {
   // reading rather than about what was played.
   const winners = state.winners ?? (state.winnerId ? [state.winnerId] : []);
   const iWon = winners.includes(viewerId);
-  const winnerNames = winners.map((id) => (id === viewerId ? 'you' : playerName(state.players, id)));
+  const winnerNames = winners.map((id) => (id === viewerId ? t('match.you') : playerName(state.players, id)));
   const outcome =
     winners.length === 0
-      ? 'Nobody won.'
+      ? t('match.nobodyWon')
       : winners.length === 1
         ? iWon
-          ? 'You won.'
-          : `${winnerNames[0]} won.`
-        : `Won by ${winnerNames.join(', ')}.`;
+          ? t('match.youWon')
+          : t('match.someoneWon', { name: winnerNames[0] })
+        : t('match.wonBy', { names: winnerNames.join(', ') });
 
   // Offering the same table again only where this screen can actually set one
   // up: every other seat was a bot, so the same match is one create-and-start
@@ -686,10 +686,10 @@ export default function MatchScreen() {
   const statusOk = state.status !== 'suspended';
   const statusExplainer =
     state.status === 'suspended'
-      ? `Paused — waiting for ${playerName(state.players, state.suspendedPlayer ?? '')} to reconnect.`
+      ? t('match.pausedFor', { name: playerName(state.players, state.suspendedPlayer ?? '') })
       : state.status === 'completed'
-        ? 'This match has finished.'
-        : 'Match in progress — everything is connected and moving normally.';
+        ? t('match.finished')
+        : t('match.inProgress');
 
   // The controls, built once and rendered in one of two places.
   //
@@ -704,7 +704,7 @@ export default function MatchScreen() {
   const controlsPanel = (
     <Panel
       {...zonePanelProps('controls')}
-      title="Controls"
+      title={t('match.controls')}
       testID="controls-panel"
       summary={
         <OfferGlance
@@ -767,7 +767,7 @@ export default function MatchScreen() {
       />
       {!canAct && state.status === 'active' ? (
         <Text testID="match-waiting" style={styles.muted}>
-          Waiting for another player…
+          {t('match.waitingForPlayer')}
         </Text>
       ) : null}
     </Panel>
@@ -800,7 +800,7 @@ export default function MatchScreen() {
               hitSlop={8}
               style={styles.headerTitleGroup}
             >
-              <Text style={styles.headerTitleText}>Match</Text>
+              <Text style={styles.headerTitleText}>{t('nav.match')}</Text>
               <View
                 style={[styles.statusDot, statusOk ? styles.statusDotOk : styles.statusDotBad]}
               />
@@ -843,7 +843,7 @@ export default function MatchScreen() {
               }
               hitSlop={8}
             >
-              <Text style={styles.rulesLink}>Rules</Text>
+              <Text style={styles.rulesLink}>{t('nav.rules')}</Text>
             </Pressable>
           </View>
           {/* Which look the board wears, cycled in place. A preference about
@@ -875,7 +875,7 @@ export default function MatchScreen() {
             {...ending.anchor('over')}
           >
             <Text testID="match-over-title" style={styles.overTitle}>
-              Match over
+              {t('match.over')}
             </Text>
             <Text testID="match-over-outcome" style={styles.overOutcome}>
               {outcome}
@@ -893,7 +893,7 @@ export default function MatchScreen() {
                       match leaves one thing to do too. */}
                   <Attention active={!startingAgain} radius={8} />
                   <Text style={styles.overButtonText}>
-                    {startingAgain ? 'Setting up…' : 'Play again'}
+                    {startingAgain ? t('match.settingUp') : t('match.playAgain')}
                   </Text>
                 </Pressable>
               ) : null}
@@ -902,7 +902,7 @@ export default function MatchScreen() {
                 onPress={() => router.replace('/lobby/games')}
                 style={styles.overButtonQuiet}
               >
-                <Text style={styles.overButtonQuietText}>Back to games</Text>
+                <Text style={styles.overButtonQuietText}>{t('match.backToGames')}</Text>
               </Pressable>
             </View>
             {againError ? (
@@ -962,7 +962,7 @@ export default function MatchScreen() {
             and sit side by side in there, so it costs far less height than
             a full-width row suggests. */}
         <Section
-          title="Table"
+          title={t('match.table')}
           zones={tableZones}
           compact
           styles={styles}
@@ -1045,7 +1045,7 @@ export default function MatchScreen() {
               <ZoneView
                 key={z.id}
                 zone={z}
-                title={z.ownerId ? playerName(state.players, z.ownerId) + (z.ownerId === viewerId ? ' (you)' : '') : undefined}
+                title={z.ownerId ? playerName(state.players, z.ownerId) + (z.ownerId === viewerId ? ` ${t('match.youSuffix')}` : '') : undefined}
                 {...zonePanelProps(z.id)}
                 {...dropProps}
               />
@@ -1054,7 +1054,7 @@ export default function MatchScreen() {
         ) : null}
 
         <Section
-          title="Opponents"
+          title={t('match.opponents')}
           zones={otherZones}
           compact
           styles={styles}

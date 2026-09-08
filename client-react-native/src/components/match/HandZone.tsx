@@ -17,6 +17,7 @@ import { label } from '@/src/lib/labels';
 import { ms } from '@/src/lib/motion';
 import type { Skin } from '@/src/skins/types';
 import { dragLayer } from '@/src/theme';
+import { t } from '@/src/lib/i18n';
 
 /**
  * The viewer's own hand: the one zone on the board they may rearrange, and the
@@ -481,7 +482,7 @@ export function HandZone({
 
       {slots.length > 1 ? (
         <Text style={styles.hint} testID={`hand-hint-${zone.id}`}>
-          Drag a card along the fan to rearrange it, or onto the board to play it
+          {t('hand.dragHint')}
         </Text>
       ) : null}
     </Panel>
@@ -664,8 +665,8 @@ const DraggableCard = memo(function DraggableCard({
         accessible
         accessibilityLabel={slot.card}
         accessibilityActions={[
-          { name: 'moveLeft', label: 'Move left' },
-          { name: 'moveRight', label: 'Move right' },
+          { name: 'moveLeft', label: t('hand.moveLeft') },
+          { name: 'moveRight', label: t('hand.moveRight') },
         ]}
         onAccessibilityAction={(e) => {
           if (e.nativeEvent.actionName === 'moveLeft') onMove(index, Math.max(0, index - 1));

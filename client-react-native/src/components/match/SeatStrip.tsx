@@ -13,6 +13,7 @@ import { useSkin } from '@/src/hooks/useSkin';
 import type { Metrics } from '@/src/lib/layout';
 import { factText, label, playerName, shownScore } from '@/src/lib/labels';
 import type { Skin } from '@/src/skins/types';
+import { t } from '@/src/lib/i18n';
 
 /**
  * The table: who is playing, whose turn it is, and their own numbers.
@@ -118,7 +119,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
           <View style={styles.turnRow}>
             <TurnPulse color={skin.colors.accent} />
             <Text testID={`seat-active-${seat.playerId}`} style={styles.turn}>
-              to play
+              {t('match.toPlay')}
             </Text>
           </View>
         ) : null}
@@ -142,7 +143,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
   return (
     <Panel
       panelId={panelId}
-      title="Players"
+      title={t('match.players')}
       minimized={minimized}
       onToggleMinimized={onToggleMinimized}
       testID="match-standings"

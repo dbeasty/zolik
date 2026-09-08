@@ -25,7 +25,7 @@ export default function StatsScreen() {
         }
       } catch (e) {
         if (!cancelled) {
-          setLeaderboard(`(unavailable: ${e instanceof Error ? e.message : 'error'})`);
+          setLeaderboard(t('stats.unavailable', { reason: e instanceof Error ? e.message : t('error.generic') }));
         }
       }
       // No guest branch: the effect above returns before here without an
@@ -35,7 +35,7 @@ export default function StatsScreen() {
         if (!cancelled) setStats(JSON.stringify(s, null, 2));
       } catch (e) {
         if (!cancelled) {
-          setStats(`(unavailable: ${e instanceof Error ? e.message : 'error'})`);
+          setStats(t('stats.unavailable', { reason: e instanceof Error ? e.message : t('error.generic') }));
         }
       }
     })();
@@ -48,10 +48,10 @@ export default function StatsScreen() {
 
   return (
     <Screen title={t('more.stats')} scroll>
-      <Text style={[shared.status, { fontWeight: '600', color: colors.text }]}>Your stats</Text>
-      <Text style={[shared.status, { marginBottom: 16 }]}>{stats || 'Loading…'}</Text>
-      <Text style={[shared.status, { fontWeight: '600', color: colors.text }]}>Leaderboard</Text>
-      <Text style={shared.status}>{leaderboard || 'Loading…'}</Text>
+      <Text style={[shared.status, { fontWeight: '600', color: colors.text }]}>{t('stats.yours')}</Text>
+      <Text style={[shared.status, { marginBottom: 16 }]}>{stats || t('stats.loading')}</Text>
+      <Text style={[shared.status, { fontWeight: '600', color: colors.text }]}>{t('stats.leaderboard')}</Text>
+      <Text style={shared.status}>{leaderboard || t('stats.loading')}</Text>
     </Screen>
   );
 }

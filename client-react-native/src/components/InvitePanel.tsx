@@ -3,6 +3,7 @@ import { Platform, Pressable, Text, View } from 'react-native';
 
 import { inviteUrlFor, shareInviteLink } from '@/src/lib/inviteLink';
 import { colors, shared } from '@/src/theme';
+import { t } from '@/src/lib/i18n';
 
 /**
  * The host's "invite people" control: one link, one button.
@@ -44,16 +45,16 @@ export function InvitePanel({
   // On a phone the button opens the system share sheet, which is where the
   // recipient actually is; on web it copies, because that is what sharing a
   // URL means in a browser.
-  const actionLabel = Platform.OS === 'web' ? 'Copy link' : 'Share link';
-  const doneLabel = Platform.OS === 'web' ? 'Copied!' : 'Shared';
+  const actionLabel = Platform.OS === 'web' ? t('invite.copy') : t('invite.share');
+  const doneLabel = Platform.OS === 'web' ? t('invite.copied') : t('invite.shared');
 
   return (
     <View style={[shared.card, { marginTop: 12 }]} testID="invite-panel">
       <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14 }}>
-        Invite players
+        {t('invite.heading')}
       </Text>
       <Text style={shared.status}>
-        Send this link. Whoever opens it lands at this table — no account needed.
+        {t('invite.explain')}
       </Text>
 
       {url ? (
@@ -94,13 +95,13 @@ export function InvitePanel({
         // configured. Said plainly rather than shown as a dead button — the
         // code below still works, and that is the useful thing to point at.
         <Text testID="invite-url-unavailable" style={shared.status}>
-          This server has no shareable address configured, so use the code below.
+          {t('invite.noAddress')}
         </Text>
       )}
 
       {joinCode ? (
         <Text style={{ color: colors.muted, fontSize: 13, marginTop: 12 }}>
-          Or read out the code:{' '}
+          {t('invite.readOutCode')}{' '}
           <Text testID="table-join-code" style={{ color: colors.text, fontWeight: '700', fontSize: 16 }}>
             {joinCode}
           </Text>

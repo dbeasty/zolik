@@ -33,6 +33,24 @@ const codesNeedingNoWording = new Set([
 ]);
 
 describe('server key coverage', () => {
+  // The error codes were checked from the start; the *label* and *sentence*
+  // keys were not, and `serverKeys.json` has listed them all along. Three had
+  // no wording in any language and nothing said so, because `label()` renders
+  // an unworded key through `humanise()` — `verb.takePileOntoMeld` reads as
+  // "Take pile onto meld", which is English that looks written rather than
+  // missing. Checking the list the server itself publishes is the cheap half
+  // of closing that; `e2e/tests/untranslated-sweep.spec.ts` is the other half,
+  // for the keys this side builds and no dump can see.
+  it.each(LOCALES.map((l) => l.id))('%s words every label key the server can send', (locale) => {
+    const missing = (serverKeys.labelKeys as string[]).filter((k) => !BUNDLES[locale][k]);
+    expect(missing).toEqual([]);
+  });
+
+  it.each(LOCALES.map((l) => l.id))('%s words every sentence key the server can send', (locale) => {
+    const missing = (serverKeys.sentenceKeys as string[]).filter((k) => !BUNDLES[locale][k]);
+    expect(missing).toEqual([]);
+  });
+
   it.each(LOCALES.map((l) => l.id))('%s words every error code the server can send', (locale) => {
     const missing = (serverKeys.errorCodes as string[])
       .filter((code) => !codesNeedingNoWording.has(code))

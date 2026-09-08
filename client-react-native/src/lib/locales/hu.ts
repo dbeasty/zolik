@@ -429,7 +429,14 @@ export const hu: Record<string, string> = {
   // in, because Czech does not put the link where English does: "souhlasíš s
   // Podmínkami" inflects the noun the link is made of. Fragments let each
   // locale place and decline its own.
+  // The short word for a link or a tab.
   'legal.terms': 'Feltételek',
+  // The document's own name, used as the heading above it. Kept apart from
+  // `legal.notice.terms`, which is the same words inflected to sit inside a
+  // sentence — a heading in the instrumental case reads as a mistake in every
+  // Slavic language.
+  'legal.terms.title': 'Felhasználási feltételek',
+  'legal.privacy.title': 'Adatvédelmi tájékoztató',
   'legal.privacy': 'Adatvédelem',
   'legal.source': 'Forráskód',
   'legal.updated': '{version}. verzió',
@@ -701,10 +708,10 @@ export const hu: Record<string, string> = {
   // itself lived on this screen: a player who cannot read "Settings" is
   // exactly the one who came here to change it.
   'settings.title': 'Beállítások',
-  'settings.subtitle': 'Hogy nézel ki te, és hogy néz ki az asztal',
   'settings.signedInAs': 'Bejelentkezve mint {username}',
   'settings.playingAsGuest': '{username} néven játszol (vendég)',
   'settings.notSignedIn': 'Nincs bejelentkezve — jelentkezz be, vagy folytasd vendégként az online játékhoz.',
+  'settings.subtitle': 'Hogy nézel ki te, és hogy néz ki az asztal',
   'settings.face.heading': 'Az arcod az asztalnál',
   'settings.face.account': 'A fiókodhoz mentve, így elkísér egy másik eszközre is.',
   'settings.face.device': 'Ezen az eszközön tárolva. Jelentkezz be, hogy magaddal vidd.',
@@ -747,6 +754,8 @@ export const hu: Record<string, string> = {
   'nav.scoreTable': 'Ponttábla',
   'nav.stats': 'Statisztika',
   'nav.more': 'Több',
+
+  // --- the account menu behind the face in the corner ----------------------
   'menu.label': 'Fiókmenü',
   'menu.signedIn': 'Bejelentkezve',
   'menu.notSignedIn': 'Nincs bejelentkezve',
@@ -756,5 +765,400 @@ export const hu: Record<string, string> = {
   'more.stats': 'Statisztika és ranglista',
   'more.needsAccount': 'jelentkezz be',
   'gate.title': 'Jelentkezz be ehhez',
-  'gate.body': 'A ponttáblázatokat és a statisztikákat a fiókod őrzi, így egy másik eszközre is elkísérnek. Vendégként nincs hol tárolni őket.',
+  'gate.body':
+    'A ponttáblázatokat és a statisztikákat a fiókod őrzi, így egy másik eszközre is elkísérnek. Vendégként nincs hol tárolni őket.',
+
+  // --- screens that never reached a key at all -------------------------------
+  //
+  // Everything below was typed straight into JSX. The parity tests could not
+  // see it — they prove every *key* is worded in twenty-four languages, not
+  // that a sentence ever became a key — so the app read half in the player's
+  // language and half in English. `scripts/find-untranslated.js` is the gate
+  // that stops that recurring; these are what it found.
+
+  // Errors shown when a thrown error carries no message of its own. The server
+  // sends codes, not sentences (see `reasonText`); these cover the cases where
+  // nothing came back at all — a socket that died, a fetch that never landed.
+  'error.generic': 'Ez nem sikerült',
+  'error.signIn': 'A belépés nem sikerült',
+  'error.login': 'A belépés nem sikerült',
+  'error.register': 'A regisztráció nem sikerült',
+  'error.sendCode': 'Nem sikerült kódot küldeni',
+  'error.badCode': 'Ez a kód nem működött',
+  'error.rulesLoad': 'A szabályokat nem sikerült betölteni',
+  'error.createFailed': 'A létrehozás nem sikerült',
+  'error.saveFailed': 'A mentés nem sikerült',
+  'error.exportFailed': 'Az exportálás nem sikerült',
+
+  // --- the route that does not exist ----------------------------------------
+  'notFound.title': 'Hoppá!',
+  'notFound.message': 'Ez a képernyő nem létezik.',
+  'notFound.home': 'Vissza a kezdőképernyőre!',
+
+  // --- signing in -----------------------------------------------------------
+  'auth.login.subtitle': 'Őrizd meg a statisztikáidat minden eszközön',
+  'auth.login.continueWithEmail': 'Folytatás e-maillel',
+  'auth.login.usernameInstead': 'Belépés inkább felhasználónévvel',
+  'auth.email.title': 'Belépés e-maillel',
+  'auth.email.subtitle': 'Küldünk egy egyszer használatos kódot',
+  'auth.email.address': 'E-mail-cím',
+  'auth.email.send': 'Kód küldése',
+  'auth.email.codeTitle': 'Írd be a kódot',
+  'auth.email.codePlaceholder': 'Hatjegyű kód',
+  'auth.email.differentAddress': 'Másik cím használata',
+  'auth.email.sentTo': 'Elküldve ide: {email}',
+  'auth.email.continue': 'Tovább',
+  'auth.guest.title': 'Játék vendégként',
+  'auth.guest.subtitle': 'Nem kell fiók',
+  'auth.guest.displayName': 'Megjelenő név',
+  'auth.register.title': 'Fiók létrehozása',
+  'auth.register.username': 'Felhasználónév',
+  'auth.register.email': 'E-mail (nem kötelező)',
+  'auth.register.password': 'Jelszó',
+  'auth.username.createAccount': 'Fiók létrehozása felhasználónévvel és jelszóval',
+  'auth.callback.signedIn': 'Beléptél.',
+
+  // --- the account screen ---------------------------------------------------
+  'account.signInPrompt': 'Lépj be a fiókod kezeléséhez.',
+  'account.keepGames': 'Ezek a játékok maradjanak meg',
+  'account.signedInWith': 'Belépve ezzel',
+  'account.addMethod': 'Belépési mód hozzáadása',
+  'account.usernameAndPassword': 'Felhasználónév és jelszó',
+  'account.faceAndTable': 'Arc és az asztal kinézete',
+  'account.refresh': 'Frissítés',
+  'account.remove': 'Eltávolítás',
+
+  // --- the main menu --------------------------------------------------------
+  'home.subtitle': 'Kontinentális römi · {server}',
+  'home.playingAs': '{name} néven játszol',
+  'home.signInPrompt': 'Lépj be, vagy folytasd vendégként, hogy online játszhass.',
+  'home.statsAndLeaderboard': 'Statisztika és ranglista',
+  'home.play': 'Játék',
+  'home.offlineScoreTable': 'Offline ponttábla',
+  'home.signInToKeepStats': 'Lépj be, hogy megmaradjon a statisztikád',
+  'home.signOut': 'Kilépés',
+  'home.continueAsGuest': 'Folytatás vendégként',
+  // Someone playing as a guest, marked in a list of names.
+  'home.guestSuffix': '(vendég)',
+
+  // --- the waiting room on the main menu ------------------------------------
+  //
+  // Counts are whole phrases per count, not a number glued to a noun — the
+  // same reason `countLabel` exists. One and many are the cases the interface
+  // actually produces, so they are the cases that get their own wording.
+  'waiting.checking': 'Megnézzük, ki van a közelben…',
+  'waiting.youAreWaiting': 'Játékra vársz',
+  'waiting.pickedUp': 'Bárki, aki asztalt nyit, felvehet — senkinek nincs szüksége tőled kódra.',
+  'waiting.othersOne': 'Még 1 játékos vár',
+  'waiting.othersMany': 'Még {n} játékos vár',
+  'waiting.oneWaiting': '1 játékos vár a játékra',
+  'waiting.manyWaiting': '{n} játékos vár a játékra',
+  'waiting.adding': 'Felveszünk a várólistára…',
+  'waiting.slowHint':
+    'Ha ez nem fejeződik be pár másodpercen belül, ellenőrizd, hogy az alábbi kiszolgálócím elérhető-e erről az eszközről.',
+  'waiting.serverBusyDetail':
+    '{n}. próbálkozás. A kiszolgáló jelenleg nem fogad új kapcsolatokat a váróterembe.',
+  'waiting.reconnecting': 'Megszakadt a kapcsolat — újracsatlakozás…',
+  'waiting.reconnectingDetail':
+    '{n}. próbálkozás. Ez előfordulhat, ha megváltozott az eszközöd hálózata, vagy újraindult a kiszolgáló.',
+  'waiting.tryAgain': 'Próbáld újra most',
+  'waiting.makeAvailable': 'Legyek elérhető a játékhoz',
+  'waiting.stop': 'Ne várjak tovább',
+  'waiting.noneYet':
+    'Jelenleg senki sem vár játékra. Írd fel magad a listára, és te leszel az első, akit bárki meglát.',
+  'waiting.noOthersYet': 'Rajtad kívül még senki sem vár. A házigazdák így is látnak, és meghívhatnak.',
+  'waiting.server': 'Kiszolgáló',
+  'waiting.none': 'Jelenleg senki sem vár. Aki a főmenüben elérhetővé teszi magát, itt jelenik meg.',
+
+  // --- landing on a shared invite link --------------------------------------
+  'join.missingCode': 'Erről a linkről hiányzik az asztal kódja.',
+  'join.staleLink': 'Kérj friss linket attól, aki meghívott, vagy csatlakozz inkább a kóddal.',
+  'join.enterCode': 'Kód megadása',
+  'join.backToMenu': 'Vissza a menübe',
+  'join.takingSeat': 'Helyet foglalunk…',
+  'join.takingSeatAt': 'Helyet foglalunk itt: {game}…',
+
+  // --- the lobby ------------------------------------------------------------
+  'lobby.games.subtitle': 'Minden, amit ez a kiszolgáló kínálni tud',
+  'lobby.games.bots': 'Botok',
+  'lobby.games.playBot': 'Játék bot ellen',
+  'lobby.games.playBots': 'Játék {n} bot ellen',
+  'lobby.games.openTable': 'Asztal nyitása',
+  'lobby.games.players': '{n} játékos',
+  'lobby.games.playerRange': '{min}–{max} játékos',
+  'lobby.join.placeholder': 'Csatlakozási kód vagy meghívó link',
+  'lobby.join.needCode': 'Adj meg egy kódot, egy linket vagy egy mérkőzés-azonosítót',
+  'lobby.games.signInFirst': 'Előbb lépj be',
+  'lobby.join.action': 'Csatlakozás',
+  'lobby.join.waitingTitle': 'Várunk a házigazdára',
+  // Two whole sentences rather than one with a swapped noun: "a game of {game}"
+  // does not survive a language that inflects the game's name after "of".
+  'lobby.join.joinedGame': 'Csatlakoztál egy {game} játszmához — várunk az indulásra',
+  'lobby.join.joinedTable': 'Csatlakoztál az asztalhoz — várunk az indulásra',
+  'lobby.table.addBot': 'Bot hozzáadása',
+  'lobby.table.start': 'Indítás',
+  'lobby.table.waitingForHost': 'Várunk, hogy a házigazda elindítsa…',
+
+  // --- inviting someone to a table ------------------------------------------
+  'invite.heading': 'Játékosok meghívása',
+  'invite.explain': 'Küldd el ezt a linket. Aki megnyitja, ehhez az asztalhoz kerül — fiók nem kell hozzá.',
+  'invite.noAddress':
+    'Ehhez a kiszolgálóhoz nincs megosztható cím beállítva, ezért használd az alábbi kódot.',
+  'invite.readOutCode': 'Vagy mondd be a kódot:',
+  'invite.copy': 'Link másolása',
+  'invite.share': 'Link megosztása',
+  'invite.copied': 'Másolva!',
+  'invite.shared': 'Megosztva',
+
+  // --- the match screen -----------------------------------------------------
+  'match.waitingForTable': 'Várunk az asztalra…',
+  'match.waitingForPlayer': 'Várunk egy másik játékosra…',
+  'match.nobodyWon': 'Senki sem nyert.',
+  'match.youWon': 'Nyertél.',
+  'match.finished': 'Ez a mérkőzés véget ért.',
+  'match.inProgress': 'A mérkőzés folyik — minden csatlakozik és rendben halad.',
+  'match.controls': 'Vezérlők',
+  'match.over': 'Vége a mérkőzésnek',
+  'match.settingUp': 'Előkészítés…',
+  'match.playAgain': 'Új játék',
+  'match.backToGames': 'Vissza a játékokhoz',
+  'match.table': 'Asztal',
+  'match.opponents': 'Ellenfelek',
+  // Marks which seat is the reader's own, in a list of seats.
+  'match.youSuffix': '(te)',
+  // The winner line is composed from whole sentences rather than a name glued
+  // to " won." — the verb agrees with the subject in most of these languages,
+  // and a suffix cannot know that.
+  'match.you': 'te',
+  'match.someoneWon': '{name} nyert.',
+  'match.wonBy': 'Nyertes: {names}.',
+  'match.pausedFor': 'Szünetel — várunk, hogy {name} újracsatlakozzon.',
+  'match.results': 'Eredmények',
+  'match.players': 'Játékosok',
+  'match.toPlay': 'ő következik',
+
+  // --- the offline score table ----------------------------------------------
+  'scoring.namesHint': 'Vesszővel elválasztott nevek (4–8 játékos)',
+  'scoring.newSession': 'Új munkamenet',
+  // A worked example, not a sentence: the names are placeholders a translator
+  // may localise, the shape `name:score,` is what the parser needs.
+  'scoring.scoresPlaceholder': 'Anna:120,Bence:80,…',
+  'scoring.saveRound': 'Kör mentése',
+  'scoring.export': 'Pontlap exportálása',
+  'scoring.formatHint': 'Pontok formátuma: Név:100,Név2:50',
+  'scoring.nameCountError': 'Adj meg 2–8 játékosnevet vesszővel elválasztva',
+  'scoring.session': 'Munkamenet: {id}',
+  'scoring.players': 'Játékosok: {names}',
+  'scoring.roundScores': 'A(z) {n}. kör pontjai',
+  'stats.loading': 'Betöltés…',
+  // The figures could not be fetched. `{reason}` is whatever the server or the
+  // network said, which is not ours to translate — the frame around it is.
+  'stats.unavailable': '(nem érhető el: {reason})',
+
+  // --- statistics -----------------------------------------------------------
+  'stats.title': 'Statisztika és ranglista',
+  'stats.yours': 'A te statisztikád',
+  'stats.leaderboard': 'Ranglista',
+
+  // --- a player's lifetime record, shown beside a finished match ------------
+  'record.title': 'A mérlegek',
+  'record.guest':
+    'Vendégként játszol, ezért nem vezetünk mérleget. Lépj be, és az ezen az eszközön már lejátszott játszmák — ez is beleértve — a fiókodhoz kerülnek.',
+  'record.signInToKeep': 'Belépés és megőrzés',
+  'record.failed': 'A mérleged most nem tölthető be. A mérkőzés biztonságosan rögzült.',
+  'record.loading': 'Betöltés…',
+  'record.played': 'Lejátszva',
+  'record.won': 'Nyert',
+  'record.lost': 'Vesztett',
+  'record.winRate': 'Nyerési arány',
+  'record.streak': 'Sorozat',
+  'record.atThisGame': 'Ebben a játékban',
+  // A streak is a count with a noun, so it is a whole phrase per count for
+  // the same reason `countLabel` is: "1 win" / "2 wins" is an English rule,
+  // and most of these languages do not share it.
+  'record.streakNone': '—',
+  'record.streakWinOne': '1 győzelem',
+  'record.streakWinMany': '{n} győzelem',
+  'record.streakLossOne': '1 vereség',
+  'record.streakLossMany': '{n} vereség',
+
+  // --- moving cards ---------------------------------------------------------
+  'hand.dragHint': 'Húzd a lapot a legyező mentén az átrendezéshez, vagy az asztalra a kijátszáshoz',
+  'hand.moveLeft': 'Balra',
+  'hand.moveRight': 'Jobbra',
+  'zone.collapseGroup': 'Csoport összecsukása',
+  'zone.expandGroup': 'A csoport összes lapjának mutatása',
+  'zone.dropHere': 'Ide ejtsd',
+  'offer.pickCards': 'válassz lapokat a megérintett helyhez',
+  'offer.ambiguous': 'ez több helyre is mehet — válassz az asztalon',
+
+  // --- the build footer -----------------------------------------------------
+  'build.app': 'alkalmazás',
+  'build.server': 'kiszolgáló',
+  // --- the words the server chose, worded here -------------------------------
+  //
+  // /modules describes each game, variation, option and choice with an English
+  // label. That made the lobby the one screen that stayed English whatever the
+  // picker said. `src/lib/gameLabels.ts` looks these up and falls back to the
+  // label the server sent, so a game added after this build still reads.
+  //
+  // Absent on purpose: game names, place names, ratios and bare numbers.
+  // "Texas Hold'em", "Vegas Strip", "3:2" and "500" read the same in every
+  // language and fall through to the server's own label.
+  'option.pauseBetweenRounds': 'Szünet a körök között',
+  'choice.pauseBetweenRounds.1': 'Szünet',
+  'choice.pauseBetweenRounds.0': 'Menjen tovább',
+  'option.botSkill': 'Ellenfelek',
+  'choice.botSkill.0': 'Vegyes',
+  'choice.botSkill.1': 'Könnyű',
+  'choice.botSkill.2': 'Közepes',
+  'choice.botSkill.3': 'Nehéz',
+  'option.initialMeldMinimum': 'Nyitóérték',
+  'choice.initialMeldMinimum.0': 'Nincs',
+  'option.discardDrawMinRound': 'Felvétel a dobópakliból',
+  'choice.discardDrawMinRound.0': 'Nyitva',
+  'choice.discardDrawMinRound.2': 'A 2. körtől',
+  'choice.discardDrawMinRound.3': 'A 3. körtől',
+  'option.requireCleanRun': 'Joker nélküli sor',
+  'choice.requireCleanRun.1': 'Kötelező',
+  'choice.requireCleanRun.0': 'Nem',
+  'option.jokerReclaimMustPlay': 'Kiváltott joker',
+  'choice.jokerReclaimMustPlay.1': 'Ugyanabban a körben kijátszandó',
+  'choice.jokerReclaimMustPlay.0': 'Megtartható',
+  'option.dealStarter': 'Ki kezd',
+  'choice.dealStarter.0': 'Felváltva',
+  'choice.dealStarter.1': 'A győztes kezd',
+  'variation.prsi.classic': 'Klasszikus',
+  'option.handSize': 'Kiosztott lapok',
+  'variation.canasta.classic': 'Klasszikus',
+  'variation.canasta.modern_american': 'Modern American',
+  'option.targetScore': 'Célpontszám',
+  'option.canastasToGoOut': 'Canasták a kiszálláshoz',
+  'variation.holdem.freezeout': 'Freezeout',
+  'variation.holdem.timed': 'Rögzített leosztásszám',
+  'option.startingStack': 'Kezdő zsetonok',
+  'option.bigBlind': 'Nagy vak',
+  'option.handLimit': 'Leosztások',
+  'choice.handLimit.0': 'Amíg egy hely marad',
+  'variation.ginrummy.standard': 'Alap',
+  'option.knockLimit': 'Kopogási határ',
+  'choice.knockLimit.0': 'Oklahoma (a felfordított lap szabja meg)',
+  'option.bigGin': 'Big gin',
+  'choice.bigGin.0': 'Ki',
+  'choice.bigGin.1': 'Be (+25)',
+  'option.lineBonuses': 'Bónuszok az elszámolásban',
+  'choice.lineBonuses.1': 'Be',
+  'choice.lineBonuses.0': 'Ki',
+  'variation.rummytiles.standard': 'Alap',
+  'choice.targetScore.0': 'Nincs',
+  // Two games qualify a number the others mean plainly: Canasta's 500 is a
+  // short game, Gin Rummy's and Rummy Tiles' 500 is just 500; Hold'em's
+  // starting 200 is a short stack, Blackjack's 200 is just 200. Module-scoped
+  // so the qualifier travels with the game that means it — a bare key would
+  // hand the note to games it is false for. `scripts/check-server-labels.js`
+  // is what finds these; both were shipping as English on a Czech screen.
+  'choice.canasta.targetScore.500': '500 (rövid)',
+  'choice.holdem.startingStack.200': '200 (rövid)',
+  'option.roundLimit': 'Körök korlátja',
+  'choice.roundLimit.0': 'Nincs',
+  'option.poolExhaustion': 'Ha a készlet kifogy',
+  'choice.poolExhaustion.1': 'A legalacsonyabb kéz nyeri a kört',
+  'choice.poolExhaustion.0': 'A kört senki nem nyeri',
+  'variation.blackjack.single': 'Egy pakli',
+  'option.minBet': 'Asztalminimum',
+  'option.rounds': 'Körök',
+  'option.decks': 'Paklik',
+  'option.dealerHitsSoft17': 'Osztó lágy 17-nél',
+  'choice.dealerHitsSoft17.0': 'Megáll',
+  'choice.dealerHitsSoft17.1': 'Húz',
+  'option.blackjackPays': 'A blackjack fizet',
+  'choice.blackjackPays.100': 'Egy az egyhez',
+  'option.maxSplits': 'Szétosztás',
+  'choice.maxSplits.0': 'Nincs szétosztás',
+  'choice.maxSplits.1': 'Egyszer (két kéz)',
+  'choice.maxSplits.3': 'Háromszor (négy kéz)',
+  'option.doubleAfterSplit': 'Duplázás szétosztás után',
+  'choice.doubleAfterSplit.1': 'Megengedett',
+  'choice.doubleAfterSplit.0': 'Nem megengedett',
+  'option.surrender': 'Feladás',
+  'choice.surrender.0': 'Ki',
+  'choice.surrender.1': 'Kései feladás',
+  'option.insurance': 'Biztosítás',
+  'choice.insurance.1': 'Van',
+  'choice.insurance.0': 'Nincs',
+
+  // --- the verbs on the buttons ---------------------------------------------
+  //
+  // An offer without a `labelKey` of its own is labelled from its raw verb —
+  // `label(offer.labelKey ?? `verb.${offer.verb}`)` in `OfferBar`. That key is
+  // built on this side, so `cmd/dump-keys` never sees it and `serverKeys.json`
+  // does not list it: the parity tests all passed while "Discard", "Lay meld",
+  // "Undo draw" and "Undo lay off" sat in English on a Czech board, because
+  // `humanise()` turned the key into English nobody had written and no search
+  // for an English *string* could find.
+  //
+  // Worded here from the server's own `OfferVerb` constants rather than from
+  // what one run happened to render, so a verb that only appears in a state
+  // the sweep never reached is covered too.
+  'verb.add': 'Hozzáadás',
+  'verb.bet': 'Tét',
+  'verb.call': 'Megadom',
+  'verb.check': 'Passz',
+  'verb.commit': 'Kész',
+  'verb.continue': 'Tovább',
+  'verb.decline_insurance': 'Nem kérek biztosítást',
+  'verb.discard': 'Eldobás',
+  'verb.double': 'Duplázás',
+  'verb.draw': 'Húzás',
+  'verb.finish_layoff': 'Hozzárakás kész',
+  'verb.fold': 'Bedobom',
+  'verb.hit': 'Lapot',
+  'verb.insure': 'Biztosítás kérése',
+  'verb.knock': 'Kopogás',
+  'verb.lay_meld': 'Lerak',
+  'verb.lay_off': 'Hozzárakás',
+  'verb.pass': 'Passz',
+  'verb.place': 'Elhelyezés',
+  'verb.play_card': 'Játszd ki',
+  'verb.raise': 'Emelek',
+  'verb.reset_turn': 'Kör visszaállítása',
+  'verb.split': 'Szétosztás',
+  'verb.stand': 'Megállok',
+  'verb.surrender': 'Feladás',
+  'verb.swap_joker': 'Joker cseréje',
+  'verb.take': 'Elvétel',
+  'verb.take_pile': 'Elvétel a pakliból',
+  // Declared by the server and listed in `serverKeys.json`, but never worded.
+  'verb.takePileFromHand': 'Vedd a paklit a kezedbe',
+  'verb.takePileOntoMeld': 'Vedd a paklit egy kombinációra',
+  'verb.undoDraw': 'Húzás visszavonása',
+  'verb.undoLayOff': 'Hozzárakás visszavonása',
+  'verb.undoMeld': 'Kombináció visszavonása',
+  'verb.undoTurn': 'Kör visszavonása',
+
+  // --- suits, spelled out ---------------------------------------------------
+  //
+  // Read aloud by a screen reader and shown where a pip would not fit. The
+  // pips themselves are drawn, not written, so these are the only place the
+  // suit is ever a word.
+  'suit.C': 'Treff',
+  'suit.D': 'Káró',
+  'suit.H': 'Kör',
+  'suit.S': 'Pikk',
+
+  // --- counters the board prints beside a number ----------------------------
+  'canasta.seat.notOpened': 'Nem nyitott',
+  'canasta.unit.points': 'pont',
+  'ginrummy.unit.points': 'pont',
+  'holdem.seat.dealer': 'Osztó',
+  'holdem.unit.chips': 'zseton',
+  'prsi.unit.cardsLeft': 'lap maradt',
+  'rummytiles.prompt.initialMeld': 'Az első lerakásodnak {n} pontot kell érnie.',
+  'rummytiles.unit.points': 'pont',
+  'zolik.unit.penalty': 'büntetés',
+  'header.pileFrozen': 'A pakli befagyasztva',
+  // The module-less form of `ginrummy.prompt.yourTurnDraw`: Žolíky and Canasta
+  // send the prompt without a module prefix. Neither the Go constants nor
+  // `serverKeys.json` list it — the sweep is what found it.
+  'prompt.yourTurnDraw': 'Húzz egy lapot',
 };

@@ -424,7 +424,14 @@ export const ro: Record<string, string> = {
   // in, because Czech does not put the link where English does: "souhlasíš s
   // Podmínkami" inflects the noun the link is made of. Fragments let each
   // locale place and decline its own.
+  // The short word for a link or a tab.
   'legal.terms': 'Termeni',
+  // The document's own name, used as the heading above it. Kept apart from
+  // `legal.notice.terms`, which is the same words inflected to sit inside a
+  // sentence — a heading in the instrumental case reads as a mistake in every
+  // Slavic language.
+  'legal.terms.title': 'Termeni de utilizare',
+  'legal.privacy.title': 'Notă de confidențialitate',
   'legal.privacy': 'Confidențialitate',
   'legal.source': 'Cod sursă',
   'legal.updated': 'Versiunea {version}',
@@ -694,10 +701,11 @@ export const ro: Record<string, string> = {
   // itself lived on this screen: a player who cannot read "Settings" is
   // exactly the one who came here to change it.
   'settings.title': 'Setări',
-  'settings.subtitle': 'Cum arăți tu și cum arată masa',
   'settings.signedInAs': 'Autentificat ca {username}',
   'settings.playingAsGuest': 'Joci ca {username} (invitat)',
-  'settings.notSignedIn': 'Nu ești autentificat — autentifică-te sau continuă ca invitat pentru a juca online.',
+  'settings.notSignedIn':
+    'Nu ești autentificat — autentifică-te sau continuă ca invitat pentru a juca online.',
+  'settings.subtitle': 'Cum arăți tu și cum arată masa',
   'settings.face.heading': 'Chipul tău la masă',
   'settings.face.account': 'Păstrat în contul tău, așa că te însoțește pe alt dispozitiv.',
   'settings.face.device': 'Păstrat pe acest dispozitiv. Autentifică-te ca să-l iei cu tine.',
@@ -740,6 +748,8 @@ export const ro: Record<string, string> = {
   'nav.scoreTable': 'Tabel de scor',
   'nav.stats': 'Statistici',
   'nav.more': 'Mai multe',
+
+  // --- the account menu behind the face in the corner ----------------------
   'menu.label': 'Meniul contului',
   'menu.signedIn': 'Autentificat',
   'menu.notSignedIn': 'Neautentificat',
@@ -749,5 +759,400 @@ export const ro: Record<string, string> = {
   'more.stats': 'Statistici și clasament',
   'more.needsAccount': 'autentifică-te ca să folosești',
   'gate.title': 'Autentifică-te ca să folosești asta',
-  'gate.body': 'Tabelele de scor și statisticile sunt păstrate cu contul tău, așa că te însoțesc pe alt dispozitiv. Un invitat nu are unde să le păstreze.',
+  'gate.body':
+    'Tabelele de scor și statisticile sunt păstrate cu contul tău, așa că te însoțesc pe alt dispozitiv. Un invitat nu are unde să le păstreze.',
+
+  // --- screens that never reached a key at all -------------------------------
+  //
+  // Everything below was typed straight into JSX. The parity tests could not
+  // see it — they prove every *key* is worded in twenty-four languages, not
+  // that a sentence ever became a key — so the app read half in the player's
+  // language and half in English. `scripts/find-untranslated.js` is the gate
+  // that stops that recurring; these are what it found.
+
+  // Errors shown when a thrown error carries no message of its own. The server
+  // sends codes, not sentences (see `reasonText`); these cover the cases where
+  // nothing came back at all — a socket that died, a fetch that never landed.
+  'error.generic': 'Nu a mers',
+  'error.signIn': 'Autentificarea a eșuat',
+  'error.login': 'Autentificarea a eșuat',
+  'error.register': 'Înregistrarea a eșuat',
+  'error.sendCode': 'Nu s-a putut trimite un cod',
+  'error.badCode': 'Codul acela nu a funcționat',
+  'error.rulesLoad': 'Regulile nu au putut fi încărcate',
+  'error.createFailed': 'Crearea a eșuat',
+  'error.saveFailed': 'Salvarea a eșuat',
+  'error.exportFailed': 'Exportul a eșuat',
+
+  // --- the route that does not exist ----------------------------------------
+  'notFound.title': 'Hopa!',
+  'notFound.message': 'Ecranul acesta nu există.',
+  'notFound.home': 'Mergi la ecranul principal!',
+
+  // --- signing in -----------------------------------------------------------
+  'auth.login.subtitle': 'Păstrează-ți statisticile pe toate dispozitivele',
+  'auth.login.continueWithEmail': 'Continuă cu e-mailul',
+  'auth.login.usernameInstead': 'Autentifică-te mai degrabă cu un nume de utilizator',
+  'auth.email.title': 'Autentificare cu e-mail',
+  'auth.email.subtitle': 'Îți trimitem un cod de unică folosință',
+  'auth.email.address': 'Adresă de e-mail',
+  'auth.email.send': 'Trimite codul',
+  'auth.email.codeTitle': 'Introdu codul',
+  'auth.email.codePlaceholder': 'Cod din 6 cifre',
+  'auth.email.differentAddress': 'Folosește altă adresă',
+  'auth.email.sentTo': 'Trimis la {email}',
+  'auth.email.continue': 'Continuă',
+  'auth.guest.title': 'Joc ca invitat',
+  'auth.guest.subtitle': 'Nu e nevoie de cont',
+  'auth.guest.displayName': 'Nume afișat',
+  'auth.register.title': 'Creează cont',
+  'auth.register.username': 'Nume de utilizator',
+  'auth.register.email': 'E-mail (opțional)',
+  'auth.register.password': 'Parolă',
+  'auth.username.createAccount': 'Creează un cont cu nume de utilizator și parolă',
+  'auth.callback.signedIn': 'Autentificat.',
+
+  // --- the account screen ---------------------------------------------------
+  'account.signInPrompt': 'Autentifică-te ca să îți administrezi contul.',
+  'account.keepGames': 'Păstrează aceste jocuri',
+  'account.signedInWith': 'Autentificat prin',
+  'account.addMethod': 'Adaugă o metodă de autentificare',
+  'account.usernameAndPassword': 'Nume de utilizator și parolă',
+  'account.faceAndTable': 'Chip și aspectul mesei',
+  'account.refresh': 'Reîmprospătează',
+  'account.remove': 'Elimină',
+
+  // --- the main menu --------------------------------------------------------
+  'home.subtitle': 'Remi continental · {server}',
+  'home.playingAs': 'Joci ca {name}',
+  'home.signInPrompt': 'Autentifică-te sau continuă ca invitat ca să joci online.',
+  'home.statsAndLeaderboard': 'Statistici și clasament',
+  'home.play': 'Joacă',
+  'home.offlineScoreTable': 'Tabel de scor offline',
+  'home.signInToKeepStats': 'Autentifică-te ca să îți păstrezi statisticile',
+  'home.signOut': 'Deconectare',
+  'home.continueAsGuest': 'Continuă ca invitat',
+  // Someone playing as a guest, marked in a list of names.
+  'home.guestSuffix': '(invitat)',
+
+  // --- the waiting room on the main menu ------------------------------------
+  //
+  // Counts are whole phrases per count, not a number glued to a noun — the
+  // same reason `countLabel` exists. One and many are the cases the interface
+  // actually produces, so they are the cases that get their own wording.
+  'waiting.checking': 'Vedem cine e pe aici…',
+  'waiting.youAreWaiting': 'Aștepți să joci',
+  'waiting.pickedUp': 'Oricine deschide o masă te poate lua — nimeni nu are nevoie de vreun cod de la tine.',
+  'waiting.othersOne': 'Mai așteaptă încă 1 jucător',
+  'waiting.othersMany': 'Mai așteaptă încă {n} jucători',
+  'waiting.oneWaiting': '1 jucător așteaptă să joace',
+  'waiting.manyWaiting': '{n} jucători așteaptă să joace',
+  'waiting.adding': 'Te adăugăm pe lista de așteptare…',
+  'waiting.slowHint':
+    'Dacă asta nu se termină în câteva secunde, verifică dacă adresa serverului de mai jos e accesibilă de pe acest dispozitiv.',
+  'waiting.serverBusyDetail':
+    'Încercarea {n}. Serverul nu acceptă momentan conexiuni noi la sala de așteptare.',
+  'waiting.reconnecting': 'Conexiune pierdută — reconectare…',
+  'waiting.reconnectingDetail':
+    'Încercarea {n}. Se poate întâmpla dacă rețeaua dispozitivului tău s-a schimbat sau dacă serverul a repornit.',
+  'waiting.tryAgain': 'Încearcă din nou acum',
+  'waiting.makeAvailable': 'Fă-mă disponibil pentru joc',
+  'waiting.stop': 'Nu mai aștepta',
+  'waiting.noneYet':
+    'Chiar acum nu așteaptă nimeni să joace. Înscrie-te pe listă și vei fi primul pe care îl vede oricine.',
+  'waiting.noOthersYet': 'Nimeni altcineva nu așteaptă încă. Gazdele te văd oricum și te pot invita.',
+  'waiting.server': 'Server',
+  'waiting.none': 'Chiar acum nu așteaptă nimeni. Cine se face disponibil din meniul principal apare aici.',
+
+  // --- landing on a shared invite link --------------------------------------
+  'join.missingCode': 'Acelui link îi lipsește codul mesei.',
+  'join.staleLink': 'Cere un link nou de la cine te-a invitat, sau alătură-te cu codul.',
+  'join.enterCode': 'Introdu un cod',
+  'join.backToMenu': 'Înapoi la meniu',
+  'join.takingSeat': 'Îți ocupăm un loc…',
+  'join.takingSeatAt': 'Îți ocupăm un loc la {game}…',
+
+  // --- the lobby ------------------------------------------------------------
+  'lobby.games.subtitle': 'Tot ce poate găzdui acest server',
+  'lobby.games.bots': 'Boți',
+  'lobby.games.playBot': 'Joacă împotriva unui bot',
+  'lobby.games.playBots': 'Joacă împotriva a {n} boți',
+  'lobby.games.openTable': 'Deschide o masă',
+  'lobby.games.players': '{n} jucători',
+  'lobby.games.playerRange': '{min}–{max} jucători',
+  'lobby.join.placeholder': 'Cod de alăturare sau link de invitație',
+  'lobby.join.needCode': 'Introdu un cod, un link sau un ID de meci',
+  'lobby.games.signInFirst': 'Autentifică-te mai întâi',
+  'lobby.join.action': 'Alătură-te',
+  'lobby.join.waitingTitle': 'Așteptăm gazda',
+  // Two whole sentences rather than one with a swapped noun: "a game of {game}"
+  // does not survive a language that inflects the game's name after "of".
+  'lobby.join.joinedGame': 'Te-ai alăturat unui joc de {game} — așteptăm startul',
+  'lobby.join.joinedTable': 'Te-ai alăturat mesei — așteptăm startul',
+  'lobby.table.addBot': 'Adaugă un bot',
+  'lobby.table.start': 'Începe',
+  'lobby.table.waitingForHost': 'Așteptăm ca gazda să înceapă…',
+
+  // --- inviting someone to a table ------------------------------------------
+  'invite.heading': 'Invită jucători',
+  'invite.explain': 'Trimite acest link. Cine îl deschide ajunge la această masă — fără cont.',
+  'invite.noAddress':
+    'Acest server nu are configurată o adresă care se poate distribui, așa că folosește codul de mai jos.',
+  'invite.readOutCode': 'Sau dictează codul:',
+  'invite.copy': 'Copiază linkul',
+  'invite.share': 'Distribuie linkul',
+  'invite.copied': 'Copiat!',
+  'invite.shared': 'Distribuit',
+
+  // --- the match screen -----------------------------------------------------
+  'match.waitingForTable': 'Așteptăm masa…',
+  'match.waitingForPlayer': 'Așteptăm alt jucător…',
+  'match.nobodyWon': 'Nu a câștigat nimeni.',
+  'match.youWon': 'Ai câștigat.',
+  'match.finished': 'Acest meci s-a încheiat.',
+  'match.inProgress': 'Meci în desfășurare — totul e conectat și merge normal.',
+  'match.controls': 'Comenzi',
+  'match.over': 'Meci încheiat',
+  'match.settingUp': 'Pregătim…',
+  'match.playAgain': 'Joacă din nou',
+  'match.backToGames': 'Înapoi la jocuri',
+  'match.table': 'Masă',
+  'match.opponents': 'Adversari',
+  // Marks which seat is the reader's own, in a list of seats.
+  'match.youSuffix': '(tu)',
+  // The winner line is composed from whole sentences rather than a name glued
+  // to " won." — the verb agrees with the subject in most of these languages,
+  // and a suffix cannot know that.
+  'match.you': 'tu',
+  'match.someoneWon': '{name} a câștigat.',
+  'match.wonBy': 'Câștigat de {names}.',
+  'match.pausedFor': 'În pauză — așteptăm ca {name} să se reconecteze.',
+  'match.results': 'Rezultate',
+  'match.players': 'Jucători',
+  'match.toPlay': 'la rând',
+
+  // --- the offline score table ----------------------------------------------
+  'scoring.namesHint': 'Nume separate prin virgulă (4–8 jucători)',
+  'scoring.newSession': 'Sesiune nouă',
+  // A worked example, not a sentence: the names are placeholders a translator
+  // may localise, the shape `name:score,` is what the parser needs.
+  'scoring.scoresPlaceholder': 'Ana:120,Bogdan:80,…',
+  'scoring.saveRound': 'Salvează runda',
+  'scoring.export': 'Exportă fișa de scor',
+  'scoring.formatHint': 'Formatul punctelor: Nume:100,Nume2:50',
+  'scoring.nameCountError': 'Introdu 2–8 nume de jucători separate prin virgulă',
+  'scoring.session': 'Sesiune: {id}',
+  'scoring.players': 'Jucători: {names}',
+  'scoring.roundScores': 'Punctele rundei {n}',
+  'stats.loading': 'Se încarcă…',
+  // The figures could not be fetched. `{reason}` is whatever the server or the
+  // network said, which is not ours to translate — the frame around it is.
+  'stats.unavailable': '(indisponibil: {reason})',
+
+  // --- statistics -----------------------------------------------------------
+  'stats.title': 'Statistici și clasament',
+  'stats.yours': 'Statisticile tale',
+  'stats.leaderboard': 'Clasament',
+
+  // --- a player's lifetime record, shown beside a finished match ------------
+  'record.title': 'Bilanțul tău',
+  'record.guest':
+    'Joci ca invitat, așa că nu se ține niciun bilanț. Autentifică-te și jocurile pe care le-ai jucat deja pe acest dispozitiv — inclusiv acesta — rămân legate de contul tău.',
+  'record.signInToKeep': 'Autentifică-te și păstrează-le',
+  'record.failed': 'Bilanțul tău nu a putut fi încărcat acum. Meciul e înregistrat în siguranță.',
+  'record.loading': 'Se încarcă…',
+  'record.played': 'Jucate',
+  'record.won': 'Câștigate',
+  'record.lost': 'Pierdute',
+  'record.winRate': 'Rata de victorii',
+  'record.streak': 'Serie',
+  'record.atThisGame': 'La acest joc',
+  // A streak is a count with a noun, so it is a whole phrase per count for
+  // the same reason `countLabel` is: "1 win" / "2 wins" is an English rule,
+  // and most of these languages do not share it.
+  'record.streakNone': '—',
+  'record.streakWinOne': '1 victorie',
+  'record.streakWinMany': '{n} victorii',
+  'record.streakLossOne': '1 înfrângere',
+  'record.streakLossMany': '{n} înfrângeri',
+
+  // --- moving cards ---------------------------------------------------------
+  'hand.dragHint': 'Trage o carte de-a lungul evantaiului ca să o rearanjezi, sau pe masă ca să o joci',
+  'hand.moveLeft': 'La stânga',
+  'hand.moveRight': 'La dreapta',
+  'zone.collapseGroup': 'Restrânge acest grup',
+  'zone.expandGroup': 'Arată toate cărțile din acest grup',
+  'zone.dropHere': 'Lasă aici',
+  'offer.pickCards': 'alege cărți pentru locul pe care l-ai atins',
+  'offer.ambiguous': 'asta poate merge în mai multe locuri — alege pe masă',
+
+  // --- the build footer -----------------------------------------------------
+  'build.app': 'aplicație',
+  'build.server': 'server',
+  // --- the words the server chose, worded here -------------------------------
+  //
+  // /modules describes each game, variation, option and choice with an English
+  // label. That made the lobby the one screen that stayed English whatever the
+  // picker said. `src/lib/gameLabels.ts` looks these up and falls back to the
+  // label the server sent, so a game added after this build still reads.
+  //
+  // Absent on purpose: game names, place names, ratios and bare numbers.
+  // "Texas Hold'em", "Vegas Strip", "3:2" and "500" read the same in every
+  // language and fall through to the server's own label.
+  'option.pauseBetweenRounds': 'Pauză între runde',
+  'choice.pauseBetweenRounds.1': 'Pauză',
+  'choice.pauseBetweenRounds.0': 'Continuă direct',
+  'option.botSkill': 'Adversari',
+  'choice.botSkill.0': 'Amestecați',
+  'choice.botSkill.1': 'Ușori',
+  'choice.botSkill.2': 'Medii',
+  'choice.botSkill.3': 'Grei',
+  'option.initialMeldMinimum': 'Valoarea de deschidere',
+  'choice.initialMeldMinimum.0': 'Fără',
+  'option.discardDrawMinRound': 'Luare din teancul de aruncate',
+  'choice.discardDrawMinRound.0': 'Deschis',
+  'choice.discardDrawMinRound.2': 'Din runda 2',
+  'choice.discardDrawMinRound.3': 'Din runda 3',
+  'option.requireCleanRun': 'Scară fără joker',
+  'choice.requireCleanRun.1': 'Obligatorie',
+  'choice.requireCleanRun.0': 'Nu',
+  'option.jokerReclaimMustPlay': 'Joker răscumpărat',
+  'choice.jokerReclaimMustPlay.1': 'De jucat în aceeași tură',
+  'choice.jokerReclaimMustPlay.0': 'Poate fi păstrat',
+  'option.dealStarter': 'Cine începe',
+  'choice.dealStarter.0': 'Pe rând',
+  'choice.dealStarter.1': 'Începe câștigătorul',
+  'variation.prsi.classic': 'Clasic',
+  'option.handSize': 'Cărți împărțite',
+  'variation.canasta.classic': 'Clasică',
+  'variation.canasta.modern_american': 'Modern American',
+  'option.targetScore': 'Scor țintă',
+  'option.canastasToGoOut': 'Canaste pentru ieșire',
+  'variation.holdem.freezeout': 'Freezeout',
+  'variation.holdem.timed': 'Număr fix de mâini',
+  'option.startingStack': 'Jetoane de start',
+  'option.bigBlind': 'Blind mare',
+  'option.handLimit': 'Mâini',
+  'choice.handLimit.0': 'Până rămâne un singur loc',
+  'variation.ginrummy.standard': 'Standard',
+  'option.knockLimit': 'Limita de bătaie',
+  'choice.knockLimit.0': 'Oklahoma (o stabilește cartea întoarsă)',
+  'option.bigGin': 'Big gin',
+  'choice.bigGin.0': 'Oprit',
+  'choice.bigGin.1': 'Pornit (+25)',
+  'option.lineBonuses': 'Bonusuri la socoteală',
+  'choice.lineBonuses.1': 'Pornit',
+  'choice.lineBonuses.0': 'Oprit',
+  'variation.rummytiles.standard': 'Standard',
+  'choice.targetScore.0': 'Fără',
+  // Two games qualify a number the others mean plainly: Canasta's 500 is a
+  // short game, Gin Rummy's and Rummy Tiles' 500 is just 500; Hold'em's
+  // starting 200 is a short stack, Blackjack's 200 is just 200. Module-scoped
+  // so the qualifier travels with the game that means it — a bare key would
+  // hand the note to games it is false for. `scripts/check-server-labels.js`
+  // is what finds these; both were shipping as English on a Czech screen.
+  'choice.canasta.targetScore.500': '500 (scurtă)',
+  'choice.holdem.startingStack.200': '200 (scurtă)',
+  'option.roundLimit': 'Limită de runde',
+  'choice.roundLimit.0': 'Fără',
+  'option.poolExhaustion': 'Dacă rezerva se termină',
+  'choice.poolExhaustion.1': 'Câștigă runda mâna cea mai mică',
+  'choice.poolExhaustion.0': 'Nu câștigă nimeni runda',
+  'variation.blackjack.single': 'Un singur pachet',
+  'option.minBet': 'Minimul mesei',
+  'option.rounds': 'Runde',
+  'option.decks': 'Pachete',
+  'option.dealerHitsSoft17': 'Crupierul la 17 moale',
+  'choice.dealerHitsSoft17.0': 'Se oprește',
+  'choice.dealerHitsSoft17.1': 'Trage',
+  'option.blackjackPays': 'Blackjack-ul plătește',
+  'choice.blackjackPays.100': 'Unu la unu',
+  'option.maxSplits': 'Despărțire',
+  'choice.maxSplits.0': 'Fără despărțire',
+  'choice.maxSplits.1': 'O dată (două mâini)',
+  'choice.maxSplits.3': 'De trei ori (patru mâini)',
+  'option.doubleAfterSplit': 'Dublare după despărțire',
+  'choice.doubleAfterSplit.1': 'Permisă',
+  'choice.doubleAfterSplit.0': 'Nepermisă',
+  'option.surrender': 'Predare',
+  'choice.surrender.0': 'Oprit',
+  'choice.surrender.1': 'Predare târzie',
+  'option.insurance': 'Asigurare',
+  'choice.insurance.1': 'Se oferă',
+  'choice.insurance.0': 'Nu se oferă',
+
+  // --- the verbs on the buttons ---------------------------------------------
+  //
+  // An offer without a `labelKey` of its own is labelled from its raw verb —
+  // `label(offer.labelKey ?? `verb.${offer.verb}`)` in `OfferBar`. That key is
+  // built on this side, so `cmd/dump-keys` never sees it and `serverKeys.json`
+  // does not list it: the parity tests all passed while "Discard", "Lay meld",
+  // "Undo draw" and "Undo lay off" sat in English on a Czech board, because
+  // `humanise()` turned the key into English nobody had written and no search
+  // for an English *string* could find.
+  //
+  // Worded here from the server's own `OfferVerb` constants rather than from
+  // what one run happened to render, so a verb that only appears in a state
+  // the sweep never reached is covered too.
+  'verb.add': 'Adaugă',
+  'verb.bet': 'Pariază',
+  'verb.call': 'Plătesc',
+  'verb.check': 'Verific',
+  'verb.commit': 'Gata',
+  'verb.continue': 'Continuă',
+  'verb.decline_insurance': 'Fără asigurare',
+  'verb.discard': 'Aruncă',
+  'verb.double': 'Dublează',
+  'verb.draw': 'Trage',
+  'verb.finish_layoff': 'Gata cu alipirea',
+  'verb.fold': 'Mă retrag',
+  'verb.hit': 'Carte',
+  'verb.insure': 'Ia asigurare',
+  'verb.knock': 'Bate',
+  'verb.lay_meld': 'Coboară',
+  'verb.lay_off': 'Alipește',
+  'verb.pass': 'Pas',
+  'verb.place': 'Așază',
+  'verb.play_card': 'Joacă',
+  'verb.raise': 'Măresc',
+  'verb.reset_turn': 'Resetează tura',
+  'verb.split': 'Desparte',
+  'verb.stand': 'Rămân',
+  'verb.surrender': 'Predă',
+  'verb.swap_joker': 'Schimbă jokerul',
+  'verb.take': 'Ia',
+  'verb.take_pile': 'Ia din teanc',
+  // Declared by the server and listed in `serverKeys.json`, but never worded.
+  'verb.takePileFromHand': 'Ia teancul în mână',
+  'verb.takePileOntoMeld': 'Ia teancul pe o combinație',
+  'verb.undoDraw': 'Anulează tragerea',
+  'verb.undoLayOff': 'Anulează alipirea',
+  'verb.undoMeld': 'Anulează combinația',
+  'verb.undoTurn': 'Anulează tura',
+
+  // --- suits, spelled out ---------------------------------------------------
+  //
+  // Read aloud by a screen reader and shown where a pip would not fit. The
+  // pips themselves are drawn, not written, so these are the only place the
+  // suit is ever a word.
+  'suit.C': 'Trefle',
+  'suit.D': 'Caro',
+  'suit.H': 'Cupă',
+  'suit.S': 'Pică',
+
+  // --- counters the board prints beside a number ----------------------------
+  'canasta.seat.notOpened': 'Nedeschis',
+  'canasta.unit.points': 'puncte',
+  'ginrummy.unit.points': 'puncte',
+  'holdem.seat.dealer': 'Împărțitor',
+  'holdem.unit.chips': 'jetoane',
+  'prsi.unit.cardsLeft': 'cărți rămase',
+  'rummytiles.prompt.initialMeld': 'Prima ta coborâre trebuie să valoreze {n} puncte.',
+  'rummytiles.unit.points': 'puncte',
+  'zolik.unit.penalty': 'penalizare',
+  'header.pileFrozen': 'Teanc înghețat',
+  // The module-less form of `ginrummy.prompt.yourTurnDraw`: Žolíky and Canasta
+  // send the prompt without a module prefix. Neither the Go constants nor
+  // `serverKeys.json` list it — the sweep is what found it.
+  'prompt.yourTurnDraw': 'Trage o carte',
 };

@@ -10,6 +10,7 @@ import { loadGuestId, useSession } from '@/src/context/SessionContext';
 import { useAvatarControls } from '@/src/hooks/useAvatar';
 import { consumePendingInvite } from '@/src/lib/pendingInvite';
 import { shared } from '@/src/theme';
+import { t } from '@/src/lib/i18n';
 
 export default function GuestScreen() {
   const { guestLogin } = useSession();
@@ -48,23 +49,23 @@ export default function GuestScreen() {
       const invited = await consumePendingInvite();
       router.replace(invited ? `/join/${encodeURIComponent(invited)}` : '/lobby/games');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Login failed');
+      setError(e instanceof Error ? e.message : t('error.login'));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <Screen title="Guest play" subtitle="No account required" scroll>
+    <Screen title={t('auth.guest.title')} subtitle={t('auth.guest.subtitle')} scroll>
       <TextInput
         style={shared.input}
-        placeholder="Display name"
+        placeholder={t('auth.guest.displayName')}
         placeholderTextColor="#8b9cb3"
         value={name}
         onChangeText={setName}
         autoCapitalize="words"
       />
-      <Text style={shared.status}>Your face at the table</Text>
+      <Text style={shared.status}>{t('settings.face.heading')}</Text>
       <AvatarPicker value={avatarId} onChange={setAvatarId} />
       {error ? <Text style={shared.error}>{error}</Text> : null}
       {/* Above the button, not below it: the point of the notice is that it is
@@ -75,7 +76,7 @@ export default function GuestScreen() {
         <Text style={shared.buttonText}>{busy ? '…' : 'Continue'}</Text>
       </Pressable>
       <Pressable onPress={() => router.back()}>
-        <Text style={shared.status}>Back</Text>
+        <Text style={shared.status}>{t('settings.back')}</Text>
       </Pressable>
     </Screen>
   );

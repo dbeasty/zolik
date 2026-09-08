@@ -420,7 +420,14 @@ export const et: Record<string, string> = {
   // in, because Czech does not put the link where English does: "souhlasíš s
   // Podmínkami" inflects the noun the link is made of. Fragments let each
   // locale place and decline its own.
+  // The short word for a link or a tab.
   'legal.terms': 'Tingimused',
+  // The document's own name, used as the heading above it. Kept apart from
+  // `legal.notice.terms`, which is the same words inflected to sit inside a
+  // sentence — a heading in the instrumental case reads as a mistake in every
+  // Slavic language.
+  'legal.terms.title': 'Kasutustingimused',
+  'legal.privacy.title': 'Privaatsusteade',
   'legal.privacy': 'Privaatsus',
   'legal.source': 'Lähtekood',
   'legal.updated': 'Versioon {version}',
@@ -690,10 +697,10 @@ export const et: Record<string, string> = {
   // itself lived on this screen: a player who cannot read "Settings" is
   // exactly the one who came here to change it.
   'settings.title': 'Seaded',
-  'settings.subtitle': 'Milline näed välja sina ja milline laud',
   'settings.signedInAs': 'Sisse logitud kui {username}',
   'settings.playingAsGuest': 'Mängid kui {username} (külaline)',
   'settings.notSignedIn': 'Ei ole sisse logitud — logi sisse või jätka külalisena, et mängida veebis.',
+  'settings.subtitle': 'Milline näed välja sina ja milline laud',
   'settings.face.heading': 'Sinu nägu laua taga',
   'settings.face.account': 'Salvestatud sinu kontole, nii et see tuleb teise seadmesse kaasa.',
   'settings.face.device': 'Salvestatud sellesse seadmesse. Logi sisse, et see endaga kaasa võtta.',
@@ -736,6 +743,8 @@ export const et: Record<string, string> = {
   'nav.scoreTable': 'Punktitabel',
   'nav.stats': 'Statistika',
   'nav.more': 'Rohkem',
+
+  // --- the account menu behind the face in the corner ----------------------
   'menu.label': 'Konto menüü',
   'menu.signedIn': 'Sisse logitud',
   'menu.notSignedIn': 'Pole sisse logitud',
@@ -745,5 +754,398 @@ export const et: Record<string, string> = {
   'more.stats': 'Statistika ja edetabel',
   'more.needsAccount': 'logi sisse',
   'gate.title': 'Logi sisse, et seda kasutada',
-  'gate.body': 'Punktitabelid ja statistika salvestatakse sinu kontoga, nii et need järgnevad sulle teise seadmesse. Külalisel pole neid kuhugi salvestada.',
+  'gate.body':
+    'Punktitabelid ja statistika salvestatakse sinu kontoga, nii et need järgnevad sulle teise seadmesse. Külalisel pole neid kuhugi salvestada.',
+
+  // --- screens that never reached a key at all -------------------------------
+  //
+  // Everything below was typed straight into JSX. The parity tests could not
+  // see it — they prove every *key* is worded in twenty-four languages, not
+  // that a sentence ever became a key — so the app read half in the player's
+  // language and half in English. `scripts/find-untranslated.js` is the gate
+  // that stops that recurring; these are what it found.
+
+  // Errors shown when a thrown error carries no message of its own. The server
+  // sends codes, not sentences (see `reasonText`); these cover the cases where
+  // nothing came back at all — a socket that died, a fetch that never landed.
+  'error.generic': 'See ei õnnestunud',
+  'error.signIn': 'Sisselogimine ebaõnnestus',
+  'error.login': 'Sisselogimine ebaõnnestus',
+  'error.register': 'Registreerimine ebaõnnestus',
+  'error.sendCode': 'Koodi ei õnnestunud saata',
+  'error.badCode': 'See kood ei töötanud',
+  'error.rulesLoad': 'Reegleid ei õnnestunud laadida',
+  'error.createFailed': 'Loomine ebaõnnestus',
+  'error.saveFailed': 'Salvestamine ebaõnnestus',
+  'error.exportFailed': 'Eksport ebaõnnestus',
+
+  // --- the route that does not exist ----------------------------------------
+  'notFound.title': 'Ups!',
+  'notFound.message': 'Sellist ekraani ei ole.',
+  'notFound.home': 'Mine avaekraanile!',
+
+  // --- signing in -----------------------------------------------------------
+  'auth.login.subtitle': 'Hoia oma statistikat kõigis seadmetes',
+  'auth.login.continueWithEmail': 'Jätka e-postiga',
+  'auth.login.usernameInstead': 'Logi selle asemel sisse kasutajanimega',
+  'auth.email.title': 'Sisselogimine e-postiga',
+  'auth.email.subtitle': 'Saadame sulle ühekordse koodi',
+  'auth.email.address': 'E-posti aadress',
+  'auth.email.send': 'Saada kood',
+  'auth.email.codeTitle': 'Sisesta kood',
+  'auth.email.codePlaceholder': 'Kuuekohaline kood',
+  'auth.email.differentAddress': 'Kasuta teist aadressi',
+  'auth.email.sentTo': 'Saadetud aadressile {email}',
+  'auth.email.continue': 'Jätka',
+  'auth.guest.title': 'Mäng külalisena',
+  'auth.guest.subtitle': 'Kontot pole vaja',
+  'auth.guest.displayName': 'Kuvatav nimi',
+  'auth.register.title': 'Loo konto',
+  'auth.register.username': 'Kasutajanimi',
+  'auth.register.email': 'E-post (valikuline)',
+  'auth.register.password': 'Parool',
+  'auth.username.createAccount': 'Loo konto kasutajanime ja parooliga',
+  'auth.callback.signedIn': 'Sisse logitud.',
+
+  // --- the account screen ---------------------------------------------------
+  'account.signInPrompt': 'Logi sisse, et oma kontot hallata.',
+  'account.keepGames': 'Säilita need mängud',
+  'account.signedInWith': 'Sisse logitud kaudu',
+  'account.addMethod': 'Lisa sisselogimisviis',
+  'account.usernameAndPassword': 'Kasutajanimi ja parool',
+  'account.faceAndTable': 'Nägu ja laua välimus',
+  'account.refresh': 'Värskenda',
+  'account.remove': 'Eemalda',
+
+  // --- the main menu --------------------------------------------------------
+  'home.subtitle': 'Kontinentaalne rummi · {server}',
+  'home.playingAs': 'Mängid nimega {name}',
+  'home.signInPrompt': 'Logi sisse või jätka külalisena, et võrgus mängida.',
+  'home.statsAndLeaderboard': 'Statistika ja edetabel',
+  'home.play': 'Mängi',
+  'home.offlineScoreTable': 'Punktitabel võrguühenduseta',
+  'home.signInToKeepStats': 'Logi sisse, et statistika alles jääks',
+  'home.signOut': 'Logi välja',
+  'home.continueAsGuest': 'Jätka külalisena',
+  // Someone playing as a guest, marked in a list of names.
+  'home.guestSuffix': '(külaline)',
+
+  // --- the waiting room on the main menu ------------------------------------
+  //
+  // Counts are whole phrases per count, not a number glued to a noun — the
+  // same reason `countLabel` exists. One and many are the cases the interface
+  // actually produces, so they are the cases that get their own wording.
+  'waiting.checking': 'Vaatame, kes on ligi…',
+  'waiting.youAreWaiting': 'Sa ootad mängu',
+  'waiting.pickedUp': 'Igaüks, kes laua avab, võib sind kaasa võtta — kellelgi pole sinult koodi vaja.',
+  'waiting.othersOne': 'Ootab veel 1 mängija',
+  'waiting.othersMany': 'Ootab veel {n} mängijat',
+  'waiting.oneWaiting': '1 mängija ootab mängu',
+  'waiting.manyWaiting': '{n} mängijat ootab mängu',
+  'waiting.adding': 'Lisame su ootejärjekorda…',
+  'waiting.slowHint':
+    'Kui see ei lõpe paari sekundiga, kontrolli, kas allolev serveri aadress on sellest seadmest kättesaadav.',
+  'waiting.serverBusyDetail': 'Katse {n}. Server ei võta praegu ooteruumi uusi ühendusi vastu.',
+  'waiting.reconnecting': 'Ühendus katkes — ühendame uuesti…',
+  'waiting.reconnectingDetail':
+    'Katse {n}. Nii võib juhtuda, kui su seadme võrk muutus või server taaskäivitus.',
+  'waiting.tryAgain': 'Proovi kohe uuesti',
+  'waiting.makeAvailable': 'Tee mind mängimiseks kättesaadavaks',
+  'waiting.stop': 'Lõpeta ootamine',
+  'waiting.noneYet': 'Praegu ei oota keegi mängu. Pane end nimekirja, siis oled esimene, keda keegi näeb.',
+  'waiting.noOthersYet':
+    'Keegi teine veel ei oota. Võõrustajad näevad sind sellegipoolest ja võivad sind kutsuda.',
+  'waiting.server': 'Server',
+  'waiting.none': 'Praegu ei oota keegi. Kes end peamenüüs kättesaadavaks teeb, ilmub siia.',
+
+  // --- landing on a shared invite link --------------------------------------
+  'join.missingCode': 'Sellel lingil puudub laua kood.',
+  'join.staleLink': 'Küsi kutsujalt värsket linki või liitu selle asemel koodiga.',
+  'join.enterCode': 'Sisesta kood',
+  'join.backToMenu': 'Tagasi menüüsse',
+  'join.takingSeat': 'Võtame koha…',
+  'join.takingSeatAt': 'Võtame koha mängus {game}…',
+
+  // --- the lobby ------------------------------------------------------------
+  'lobby.games.subtitle': 'Kõik, mida see server pakkuda oskab',
+  'lobby.games.bots': 'Robotid',
+  'lobby.games.playBot': 'Mängi roboti vastu',
+  'lobby.games.playBots': 'Mängi {n} roboti vastu',
+  'lobby.games.openTable': 'Ava laud',
+  'lobby.games.players': '{n} mängijat',
+  'lobby.games.playerRange': '{min}–{max} mängijat',
+  'lobby.join.placeholder': 'Liitumiskood või kutselink',
+  'lobby.join.needCode': 'Sisesta liitumiskood, link või matši ID',
+  'lobby.games.signInFirst': 'Logi kõigepealt sisse',
+  'lobby.join.action': 'Liitu',
+  'lobby.join.waitingTitle': 'Ootame võõrustajat',
+  // Two whole sentences rather than one with a swapped noun: "a game of {game}"
+  // does not survive a language that inflects the game's name after "of".
+  'lobby.join.joinedGame': 'Liitusid mänguga {game} — ootame algust',
+  'lobby.join.joinedTable': 'Liitusid lauaga — ootame algust',
+  'lobby.table.addBot': 'Lisa robot',
+  'lobby.table.start': 'Alusta',
+  'lobby.table.waitingForHost': 'Ootame, kuni võõrustaja alustab…',
+
+  // --- inviting someone to a table ------------------------------------------
+  'invite.heading': 'Kutsu mängijaid',
+  'invite.explain': 'Saada see link. Kes selle avab, jõuab selle laua taha — kontot pole vaja.',
+  'invite.noAddress': 'Sellel serveril pole jagatavat aadressi seadistatud, kasuta seega allolevat koodi.',
+  'invite.readOutCode': 'Või ütle kood ette:',
+  'invite.copy': 'Kopeeri link',
+  'invite.share': 'Jaga linki',
+  'invite.copied': 'Kopeeritud!',
+  'invite.shared': 'Jagatud',
+
+  // --- the match screen -----------------------------------------------------
+  'match.waitingForTable': 'Ootame lauda…',
+  'match.waitingForPlayer': 'Ootame teist mängijat…',
+  'match.nobodyWon': 'Keegi ei võitnud.',
+  'match.youWon': 'Sa võitsid.',
+  'match.finished': 'See matš on lõppenud.',
+  'match.inProgress': 'Matš käib — kõik on ühendatud ja liigub tavapäraselt.',
+  'match.controls': 'Juhtnupud',
+  'match.over': 'Matš läbi',
+  'match.settingUp': 'Valmistame ette…',
+  'match.playAgain': 'Mängi uuesti',
+  'match.backToGames': 'Tagasi mängude juurde',
+  'match.table': 'Laud',
+  'match.opponents': 'Vastased',
+  // Marks which seat is the reader's own, in a list of seats.
+  'match.youSuffix': '(sina)',
+  // The winner line is composed from whole sentences rather than a name glued
+  // to " won." — the verb agrees with the subject in most of these languages,
+  // and a suffix cannot know that.
+  'match.you': 'sina',
+  'match.someoneWon': '{name} võitis.',
+  'match.wonBy': 'Võitis {names}.',
+  'match.pausedFor': 'Peatatud — ootame, kuni {name} uuesti ühendub.',
+  'match.results': 'Tulemused',
+  'match.players': 'Mängijad',
+  'match.toPlay': 'käigul',
+
+  // --- the offline score table ----------------------------------------------
+  'scoring.namesHint': 'Nimed komadega eraldatult (4–8 mängijat)',
+  'scoring.newSession': 'Uus seanss',
+  // A worked example, not a sentence: the names are placeholders a translator
+  // may localise, the shape `name:score,` is what the parser needs.
+  'scoring.scoresPlaceholder': 'Anne:120,Bruno:80,…',
+  'scoring.saveRound': 'Salvesta voor',
+  'scoring.export': 'Ekspordi punktileht',
+  'scoring.formatHint': 'Punktide vorming: Nimi:100,Nimi2:50',
+  'scoring.nameCountError': 'Sisesta 2–8 mängija nime komadega eraldatult',
+  'scoring.session': 'Seanss: {id}',
+  'scoring.players': 'Mängijad: {names}',
+  'scoring.roundScores': '{n}. vooru punktid',
+  'stats.loading': 'Laadime…',
+  // The figures could not be fetched. `{reason}` is whatever the server or the
+  // network said, which is not ours to translate — the frame around it is.
+  'stats.unavailable': '(pole saadaval: {reason})',
+
+  // --- statistics -----------------------------------------------------------
+  'stats.title': 'Statistika ja edetabel',
+  'stats.yours': 'Sinu statistika',
+  'stats.leaderboard': 'Edetabel',
+
+  // --- a player's lifetime record, shown beside a finished match ------------
+  'record.title': 'Sinu saldo',
+  'record.guest':
+    'Sa mängid külalisena, seega saldot ei peeta. Logi sisse ja mängud, mille oled selles seadmes juba mänginud — ka see siin — jäävad sinu konto külge.',
+  'record.signInToKeep': 'Logi sisse ja säilita need',
+  'record.failed': 'Sinu saldot ei õnnestunud praegu laadida. Matš on turvaliselt talletatud.',
+  'record.loading': 'Laadime…',
+  'record.played': 'Mängitud',
+  'record.won': 'Võidud',
+  'record.lost': 'Kaotused',
+  'record.winRate': 'Võiduprotsent',
+  'record.streak': 'Seeria',
+  'record.atThisGame': 'Selles mängus',
+  // A streak is a count with a noun, so it is a whole phrase per count for
+  // the same reason `countLabel` is: "1 win" / "2 wins" is an English rule,
+  // and most of these languages do not share it.
+  'record.streakNone': '—',
+  'record.streakWinOne': '1 võit',
+  'record.streakWinMany': '{n} võitu',
+  'record.streakLossOne': '1 kaotus',
+  'record.streakLossMany': '{n} kaotust',
+
+  // --- moving cards ---------------------------------------------------------
+  'hand.dragHint': 'Lohista kaarti mööda lehvikut, et see ümber paigutada, või lauale, et see välja mängida',
+  'hand.moveLeft': 'Vasakule',
+  'hand.moveRight': 'Paremale',
+  'zone.collapseGroup': 'Ahenda see rühm',
+  'zone.expandGroup': 'Näita selle rühma kõiki kaarte',
+  'zone.dropHere': 'Kukuta siia',
+  'offer.pickCards': 'vali kaardid kohale, mida puudutasid',
+  'offer.ambiguous': 'see sobib mitmesse kohta — vali laual',
+
+  // --- the build footer -----------------------------------------------------
+  'build.app': 'rakendus',
+  'build.server': 'server',
+  // --- the words the server chose, worded here -------------------------------
+  //
+  // /modules describes each game, variation, option and choice with an English
+  // label. That made the lobby the one screen that stayed English whatever the
+  // picker said. `src/lib/gameLabels.ts` looks these up and falls back to the
+  // label the server sent, so a game added after this build still reads.
+  //
+  // Absent on purpose: game names, place names, ratios and bare numbers.
+  // "Texas Hold'em", "Vegas Strip", "3:2" and "500" read the same in every
+  // language and fall through to the server's own label.
+  'option.pauseBetweenRounds': 'Paus voorude vahel',
+  'choice.pauseBetweenRounds.1': 'Paus',
+  'choice.pauseBetweenRounds.0': 'Mängi kohe edasi',
+  'option.botSkill': 'Vastased',
+  'choice.botSkill.0': 'Segatud',
+  'choice.botSkill.1': 'Kerge',
+  'choice.botSkill.2': 'Keskmine',
+  'choice.botSkill.3': 'Raske',
+  'option.initialMeldMinimum': 'Avamisväärtus',
+  'choice.initialMeldMinimum.0': 'Puudub',
+  'option.discardDrawMinRound': 'Võtmine viskepakist',
+  'choice.discardDrawMinRound.0': 'Avatud',
+  'choice.discardDrawMinRound.2': 'Alates voorust 2',
+  'choice.discardDrawMinRound.3': 'Alates voorust 3',
+  'option.requireCleanRun': 'Jokkerita jada',
+  'choice.requireCleanRun.1': 'Nõutav',
+  'choice.requireCleanRun.0': 'Ei',
+  'option.jokerReclaimMustPlay': 'Välja ostetud jokker',
+  'choice.jokerReclaimMustPlay.1': 'Mängida samal käigul',
+  'choice.jokerReclaimMustPlay.0': 'Võib kätte jääda',
+  'option.dealStarter': 'Kes alustab',
+  'choice.dealStarter.0': 'Kordamööda',
+  'choice.dealStarter.1': 'Alustab võitja',
+  'variation.prsi.classic': 'Klassikaline',
+  'option.handSize': 'Jagatud kaardid',
+  'variation.canasta.classic': 'Klassikaline',
+  'variation.canasta.modern_american': 'Modern American',
+  'option.targetScore': 'Sihtpunktid',
+  'option.canastasToGoOut': 'Canastasid väljaminekuks',
+  'variation.holdem.freezeout': 'Freezeout',
+  'variation.holdem.timed': 'Kindel arv jagamisi',
+  'option.startingStack': 'Algžetoonid',
+  'option.bigBlind': 'Suur pimepanus',
+  'option.handLimit': 'Jagamised',
+  'choice.handLimit.0': 'Kuni jääb üks koht',
+  'variation.ginrummy.standard': 'Standardne',
+  'option.knockLimit': 'Koputamispiir',
+  'choice.knockLimit.0': 'Oklahoma (selle määrab lahtine kaart)',
+  'option.bigGin': 'Big gin',
+  'choice.bigGin.0': 'Väljas',
+  'choice.bigGin.1': 'Sees (+25)',
+  'option.lineBonuses': 'Boonused arvestuses',
+  'choice.lineBonuses.1': 'Sees',
+  'choice.lineBonuses.0': 'Väljas',
+  'variation.rummytiles.standard': 'Standardne',
+  'choice.targetScore.0': 'Puudub',
+  // Two games qualify a number the others mean plainly: Canasta's 500 is a
+  // short game, Gin Rummy's and Rummy Tiles' 500 is just 500; Hold'em's
+  // starting 200 is a short stack, Blackjack's 200 is just 200. Module-scoped
+  // so the qualifier travels with the game that means it — a bare key would
+  // hand the note to games it is false for. `scripts/check-server-labels.js`
+  // is what finds these; both were shipping as English on a Czech screen.
+  'choice.canasta.targetScore.500': '500 (lühike)',
+  'choice.holdem.startingStack.200': '200 (lühike)',
+  'option.roundLimit': 'Voorude piir',
+  'choice.roundLimit.0': 'Puudub',
+  'option.poolExhaustion': 'Kui varu saab otsa',
+  'choice.poolExhaustion.1': 'Vooru võidab madalaim käsi',
+  'choice.poolExhaustion.0': 'Vooru ei võida keegi',
+  'variation.blackjack.single': 'Üks pakk',
+  'option.minBet': 'Laua alammäär',
+  'option.rounds': 'Voorud',
+  'option.decks': 'Pakid',
+  'option.dealerHitsSoft17': 'Jagaja pehme 17 puhul',
+  'choice.dealerHitsSoft17.0': 'Jääb',
+  'choice.dealerHitsSoft17.1': 'Võtab',
+  'option.blackjackPays': 'Blackjack maksab',
+  'choice.blackjackPays.100': 'Üks ühele',
+  'option.maxSplits': 'Jagamine',
+  'choice.maxSplits.0': 'Ei jagata',
+  'choice.maxSplits.1': 'Üks kord (kaks kätt)',
+  'choice.maxSplits.3': 'Kolm korda (neli kätt)',
+  'option.doubleAfterSplit': 'Kahekordistamine pärast jagamist',
+  'choice.doubleAfterSplit.1': 'Lubatud',
+  'choice.doubleAfterSplit.0': 'Pole lubatud',
+  'option.surrender': 'Loobumine',
+  'choice.surrender.0': 'Väljas',
+  'choice.surrender.1': 'Hiline loobumine',
+  'option.insurance': 'Kindlustus',
+  'choice.insurance.1': 'Pakutakse',
+  'choice.insurance.0': 'Ei pakuta',
+
+  // --- the verbs on the buttons ---------------------------------------------
+  //
+  // An offer without a `labelKey` of its own is labelled from its raw verb —
+  // `label(offer.labelKey ?? `verb.${offer.verb}`)` in `OfferBar`. That key is
+  // built on this side, so `cmd/dump-keys` never sees it and `serverKeys.json`
+  // does not list it: the parity tests all passed while "Discard", "Lay meld",
+  // "Undo draw" and "Undo lay off" sat in English on a Czech board, because
+  // `humanise()` turned the key into English nobody had written and no search
+  // for an English *string* could find.
+  //
+  // Worded here from the server's own `OfferVerb` constants rather than from
+  // what one run happened to render, so a verb that only appears in a state
+  // the sweep never reached is covered too.
+  'verb.add': 'Lisa',
+  'verb.bet': 'Panusta',
+  'verb.call': 'Maksan',
+  'verb.check': 'Passin',
+  'verb.commit': 'Valmis',
+  'verb.continue': 'Jätka',
+  'verb.decline_insurance': 'Kindlustuseta',
+  'verb.discard': 'Viska ära',
+  'verb.double': 'Kahekordista',
+  'verb.draw': 'Tõmba',
+  'verb.finish_layoff': 'Külgepanek tehtud',
+  'verb.fold': 'Loobun',
+  'verb.hit': 'Kaart',
+  'verb.insure': 'Võta kindlustus',
+  'verb.knock': 'Koputa',
+  'verb.lay_meld': 'Pane välja',
+  'verb.lay_off': 'Pane külge',
+  'verb.pass': 'Passi',
+  'verb.place': 'Aseta',
+  'verb.play_card': 'Mängi',
+  'verb.raise': 'Tõstan',
+  'verb.reset_turn': 'Lähtesta käik',
+  'verb.split': 'Jaga',
+  'verb.stand': 'Jään',
+  'verb.surrender': 'Loobu',
+  'verb.swap_joker': 'Vaheta jokker',
+  'verb.take': 'Võta',
+  'verb.take_pile': 'Võta hunnikust',
+  // Declared by the server and listed in `serverKeys.json`, but never worded.
+  'verb.takePileFromHand': 'Võta hunnik kätte',
+  'verb.takePileOntoMeld': 'Võta hunnik kombinatsiooni',
+  'verb.undoDraw': 'Võta tõmme tagasi',
+  'verb.undoLayOff': 'Võta külgepanek tagasi',
+  'verb.undoMeld': 'Võta kombinatsioon tagasi',
+  'verb.undoTurn': 'Võta käik tagasi',
+
+  // --- suits, spelled out ---------------------------------------------------
+  //
+  // Read aloud by a screen reader and shown where a pip would not fit. The
+  // pips themselves are drawn, not written, so these are the only place the
+  // suit is ever a word.
+  'suit.C': 'Risti',
+  'suit.D': 'Ruutu',
+  'suit.H': 'Ärtu',
+  'suit.S': 'Poti',
+
+  // --- counters the board prints beside a number ----------------------------
+  'canasta.seat.notOpened': 'Ei ole avanud',
+  'canasta.unit.points': 'punkti',
+  'ginrummy.unit.points': 'punkti',
+  'holdem.seat.dealer': 'Jagaja',
+  'holdem.unit.chips': 'žetooni',
+  'prsi.unit.cardsLeft': 'kaarti jäänud',
+  'rummytiles.prompt.initialMeld': 'Sinu esimene väljapanek peab olema väärt {n} punkti.',
+  'rummytiles.unit.points': 'punkti',
+  'zolik.unit.penalty': 'trahv',
+  'header.pileFrozen': 'Hunnik külmutatud',
+  // The module-less form of `ginrummy.prompt.yourTurnDraw`: Žolíky and Canasta
+  // send the prompt without a module prefix. Neither the Go constants nor
+  // `serverKeys.json` list it — the sweep is what found it.
+  'prompt.yourTurnDraw': 'Tõmba kaart',
 };

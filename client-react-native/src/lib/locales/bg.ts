@@ -425,7 +425,14 @@ export const bg: Record<string, string> = {
   // in, because Czech does not put the link where English does: "souhlasíš s
   // Podmínkami" inflects the noun the link is made of. Fragments let each
   // locale place and decline its own.
+  // The short word for a link or a tab.
   'legal.terms': 'Условия',
+  // The document's own name, used as the heading above it. Kept apart from
+  // `legal.notice.terms`, which is the same words inflected to sit inside a
+  // sentence — a heading in the instrumental case reads as a mistake in every
+  // Slavic language.
+  'legal.terms.title': 'Условия за ползване',
+  'legal.privacy.title': 'Уведомление за поверителност',
   'legal.privacy': 'Поверителност',
   'legal.source': 'Изходен код',
   'legal.updated': 'Версия {version}',
@@ -699,10 +706,10 @@ export const bg: Record<string, string> = {
   // itself lived on this screen: a player who cannot read "Settings" is
   // exactly the one who came here to change it.
   'settings.title': 'Настройки',
-  'settings.subtitle': 'Как изглеждаш ти и как изглежда масата',
   'settings.signedInAs': 'Влязъл си като {username}',
   'settings.playingAsGuest': 'Играеш като {username} (гост)',
   'settings.notSignedIn': 'Не си влязъл — влез или продължи като гост, за да играеш онлайн.',
+  'settings.subtitle': 'Как изглеждаш ти и как изглежда масата',
   'settings.face.heading': 'Твоето лице на масата',
   'settings.face.account': 'Пази се в акаунта ти, така че те следва и на друго устройство.',
   'settings.face.device': 'Пази се на това устройство. Влез в профила си, за да го носиш със себе си.',
@@ -745,6 +752,8 @@ export const bg: Record<string, string> = {
   'nav.scoreTable': 'Таблица с точки',
   'nav.stats': 'Статистика',
   'nav.more': 'Още',
+
+  // --- the account menu behind the face in the corner ----------------------
   'menu.label': 'Меню на профила',
   'menu.signedIn': 'Влязъл',
   'menu.notSignedIn': 'Не си влязъл',
@@ -754,5 +763,398 @@ export const bg: Record<string, string> = {
   'more.stats': 'Статистики и класация',
   'more.needsAccount': 'влез, за да ползваш',
   'gate.title': 'Влез, за да ползваш това',
-  'gate.body': 'Таблиците с точки и статистиките се пазят с профила ти, за да те следват и на друго устройство. Гостът няма къде да ги пази.',
+  'gate.body':
+    'Таблиците с точки и статистиките се пазят с профила ти, за да те следват и на друго устройство. Гостът няма къде да ги пази.',
+
+  // --- screens that never reached a key at all -------------------------------
+  //
+  // Everything below was typed straight into JSX. The parity tests could not
+  // see it — they prove every *key* is worded in twenty-four languages, not
+  // that a sentence ever became a key — so the app read half in the player's
+  // language and half in English. `scripts/find-untranslated.js` is the gate
+  // that stops that recurring; these are what it found.
+
+  // Errors shown when a thrown error carries no message of its own. The server
+  // sends codes, not sentences (see `reasonText`); these cover the cases where
+  // nothing came back at all — a socket that died, a fetch that never landed.
+  'error.generic': 'Това не се получи',
+  'error.signIn': 'Влизането не бе успешно',
+  'error.login': 'Влизането не бе успешно',
+  'error.register': 'Регистрацията не бе успешна',
+  'error.sendCode': 'Кодът не можа да бъде изпратен',
+  'error.badCode': 'Този код не сработи',
+  'error.rulesLoad': 'Правилата не можаха да се заредят',
+  'error.createFailed': 'Създаването не бе успешно',
+  'error.saveFailed': 'Запазването не бе успешно',
+  'error.exportFailed': 'Експортът не бе успешен',
+
+  // --- the route that does not exist ----------------------------------------
+  'notFound.title': 'Опа!',
+  'notFound.message': 'Този екран не съществува.',
+  'notFound.home': 'Към началния екран!',
+
+  // --- signing in -----------------------------------------------------------
+  'auth.login.subtitle': 'Запази статистиката си на всички устройства',
+  'auth.login.continueWithEmail': 'Продължи с имейл',
+  'auth.login.usernameInstead': 'Влез вместо това с потребителско име',
+  'auth.email.title': 'Влизане с имейл',
+  'auth.email.subtitle': 'Ще ти изпратим еднократен код',
+  'auth.email.address': 'Имейл адрес',
+  'auth.email.send': 'Изпрати код',
+  'auth.email.codeTitle': 'Въведи кода',
+  'auth.email.codePlaceholder': 'Шестцифрен код',
+  'auth.email.differentAddress': 'Използвай друг адрес',
+  'auth.email.sentTo': 'Изпратено до {email}',
+  'auth.email.continue': 'Продължи',
+  'auth.guest.title': 'Игра като гост',
+  'auth.guest.subtitle': 'Не е нужен акаунт',
+  'auth.guest.displayName': 'Показвано име',
+  'auth.register.title': 'Създай акаунт',
+  'auth.register.username': 'Потребителско име',
+  'auth.register.email': 'Имейл (по желание)',
+  'auth.register.password': 'Парола',
+  'auth.username.createAccount': 'Създай акаунт с потребителско име и парола',
+  'auth.callback.signedIn': 'Влязохте.',
+
+  // --- the account screen ---------------------------------------------------
+  'account.signInPrompt': 'Влез, за да управляваш акаунта си.',
+  'account.keepGames': 'Запази тези игри',
+  'account.signedInWith': 'Влязохте чрез',
+  'account.addMethod': 'Добави начин за влизане',
+  'account.usernameAndPassword': 'Потребителско име и парола',
+  'account.faceAndTable': 'Лице и вид на масата',
+  'account.refresh': 'Опресни',
+  'account.remove': 'Премахни',
+
+  // --- the main menu --------------------------------------------------------
+  'home.subtitle': 'Континентален реми · {server}',
+  'home.playingAs': 'Играеш като {name}',
+  'home.signInPrompt': 'Влез или продължи като гост, за да играеш онлайн.',
+  'home.statsAndLeaderboard': 'Статистика и класация',
+  'home.play': 'Играй',
+  'home.offlineScoreTable': 'Таблица с точки офлайн',
+  'home.signInToKeepStats': 'Влез, за да запазиш статистиката си',
+  'home.signOut': 'Излез',
+  'home.continueAsGuest': 'Продължи като гост',
+  // Someone playing as a guest, marked in a list of names.
+  'home.guestSuffix': '(гост)',
+
+  // --- the waiting room on the main menu ------------------------------------
+  //
+  // Counts are whole phrases per count, not a number glued to a noun — the
+  // same reason `countLabel` exists. One and many are the cases the interface
+  // actually produces, so they are the cases that get their own wording.
+  'waiting.checking': 'Гледаме кой е наоколо…',
+  'waiting.youAreWaiting': 'Чакаш да играеш',
+  'waiting.pickedUp': 'Всеки, който отвори маса, може да те вземе — никой няма нужда от код от теб.',
+  'waiting.othersOne': 'Чака и още 1 играч',
+  'waiting.othersMany': 'Чакат и още {n} играчи',
+  'waiting.oneWaiting': '1 играч чака да играе',
+  'waiting.manyWaiting': '{n} играчи чакат да играят',
+  'waiting.adding': 'Добавяме те към списъка на чакащите…',
+  'waiting.slowHint':
+    'Ако това не приключи за няколко секунди, провери дали адресът на сървъра по-долу е достъпен от това устройство.',
+  'waiting.serverBusyDetail': 'Опит {n}. В момента сървърът не приема нови връзки към чакалнята.',
+  'waiting.reconnecting': 'Връзката прекъсна — свързваме се отново…',
+  'waiting.reconnectingDetail':
+    'Опит {n}. Това може да стане, ако мрежата на устройството ти се е сменила или сървърът е рестартирал.',
+  'waiting.tryAgain': 'Опитай пак сега',
+  'waiting.makeAvailable': 'Отбележи ме като готов за игра',
+  'waiting.stop': 'Спри да чакаш',
+  'waiting.noneYet':
+    'В момента никой не чака да играе. Запиши се в списъка и ще си първият, когото някой вижда.',
+  'waiting.noOthersYet': 'Още никой друг не чака. Домакините пак те виждат и могат да те поканят.',
+  'waiting.server': 'Сървър',
+  'waiting.none': 'В момента никой не чака. Който се отбележи като готов в главното меню, се появява тук.',
+
+  // --- landing on a shared invite link --------------------------------------
+  'join.missingCode': 'На тази връзка ѝ липсва кодът на масата.',
+  'join.staleLink': 'Поискай нов линк от този, който те покани, или се присъедини с кода.',
+  'join.enterCode': 'Въведи код',
+  'join.backToMenu': 'Обратно към менюто',
+  'join.takingSeat': 'Заемаме място…',
+  'join.takingSeatAt': 'Заемаме място на {game}…',
+
+  // --- the lobby ------------------------------------------------------------
+  'lobby.games.subtitle': 'Всичко, което този сървър може да предложи',
+  'lobby.games.bots': 'Ботове',
+  'lobby.games.playBot': 'Играй срещу бот',
+  'lobby.games.playBots': 'Играй срещу {n} бота',
+  'lobby.games.openTable': 'Отвори маса',
+  'lobby.games.players': 'Играчи: {n}',
+  'lobby.games.playerRange': 'Играчи: {min}–{max}',
+  'lobby.join.placeholder': 'Код за присъединяване или линк с покана',
+  'lobby.join.needCode': 'Въведи код за присъединяване, връзка или ID на мач',
+  'lobby.games.signInFirst': 'Първо влез',
+  'lobby.join.action': 'Присъедини се',
+  'lobby.join.waitingTitle': 'Чакаме домакина',
+  // Two whole sentences rather than one with a swapped noun: "a game of {game}"
+  // does not survive a language that inflects the game's name after "of".
+  'lobby.join.joinedGame': 'Присъедини се към игра на {game} — чакаме старта',
+  'lobby.join.joinedTable': 'Присъедини се към масата — чакаме старта',
+  'lobby.table.addBot': 'Добави бот',
+  'lobby.table.start': 'Започни',
+  'lobby.table.waitingForHost': 'Чакаме домакинът да започне…',
+
+  // --- inviting someone to a table ------------------------------------------
+  'invite.heading': 'Покани играчи',
+  'invite.explain': 'Изпрати този линк. Който го отвори, попада на тази маса — без нужда от акаунт.',
+  'invite.noAddress': 'На този сървър не е зададен адрес за споделяне, затова използвай кода по-долу.',
+  'invite.readOutCode': 'Или продиктувай кода:',
+  'invite.copy': 'Копирай линка',
+  'invite.share': 'Сподели линка',
+  'invite.copied': 'Копирано!',
+  'invite.shared': 'Споделено',
+
+  // --- the match screen -----------------------------------------------------
+  'match.waitingForTable': 'Чакаме масата…',
+  'match.waitingForPlayer': 'Чакаме друг играч…',
+  'match.nobodyWon': 'Никой не спечели.',
+  'match.youWon': 'Ти спечели.',
+  'match.finished': 'Този мач приключи.',
+  'match.inProgress': 'Мачът тече — всичко е свързано и работи нормално.',
+  'match.controls': 'Управление',
+  'match.over': 'Краят на мача',
+  'match.settingUp': 'Подготвяме…',
+  'match.playAgain': 'Играй отново',
+  'match.backToGames': 'Обратно към игрите',
+  'match.table': 'Маса',
+  'match.opponents': 'Съперници',
+  // Marks which seat is the reader's own, in a list of seats.
+  'match.youSuffix': '(ти)',
+  // The winner line is composed from whole sentences rather than a name glued
+  // to " won." — the verb agrees with the subject in most of these languages,
+  // and a suffix cannot know that.
+  'match.you': 'ти',
+  'match.someoneWon': '{name} спечели.',
+  'match.wonBy': 'Спечелено от {names}.',
+  'match.pausedFor': 'На пауза — чакаме {name} да се свърже отново.',
+  'match.results': 'Резултати',
+  'match.players': 'Играчи',
+  'match.toPlay': 'на ход',
+
+  // --- the offline score table ----------------------------------------------
+  'scoring.namesHint': 'Имена, разделени със запетаи (4–8 играчи)',
+  'scoring.newSession': 'Нова сесия',
+  // A worked example, not a sentence: the names are placeholders a translator
+  // may localise, the shape `name:score,` is what the parser needs.
+  'scoring.scoresPlaceholder': 'Ана:120,Борис:80,…',
+  'scoring.saveRound': 'Запази рунда',
+  'scoring.export': 'Експортирай таблицата',
+  'scoring.formatHint': 'Формат на точките: Име:100,Име2:50',
+  'scoring.nameCountError': 'Въведи 2–8 имена на играчи, разделени със запетаи',
+  'scoring.session': 'Сесия: {id}',
+  'scoring.players': 'Играчи: {names}',
+  'scoring.roundScores': 'Точки за рунд {n}',
+  'stats.loading': 'Зарежда се…',
+  // The figures could not be fetched. `{reason}` is whatever the server or the
+  // network said, which is not ours to translate — the frame around it is.
+  'stats.unavailable': '(недостъпно: {reason})',
+
+  // --- statistics -----------------------------------------------------------
+  'stats.title': 'Статистика и класация',
+  'stats.yours': 'Твоята статистика',
+  'stats.leaderboard': 'Класация',
+
+  // --- a player's lifetime record, shown beside a finished match ------------
+  'record.title': 'Твоят баланс',
+  'record.guest':
+    'Играеш като гост, затова не се води баланс. Влез и игрите, които вече си изиграл на това устройство — включително тази — ще останат към акаунта ти.',
+  'record.signInToKeep': 'Влез и ги запази',
+  'record.failed': 'Балансът ти не можа да се зареди в момента. Мачът е записан надеждно.',
+  'record.loading': 'Зарежда се…',
+  'record.played': 'Изиграни',
+  'record.won': 'Спечелени',
+  'record.lost': 'Загубени',
+  'record.winRate': 'Процент победи',
+  'record.streak': 'Серия',
+  'record.atThisGame': 'В тази игра',
+  // A streak is a count with a noun, so it is a whole phrase per count for
+  // the same reason `countLabel` is: "1 win" / "2 wins" is an English rule,
+  // and most of these languages do not share it.
+  'record.streakNone': '—',
+  'record.streakWinOne': '1 победа',
+  'record.streakWinMany': '{n} победи',
+  'record.streakLossOne': '1 загуба',
+  'record.streakLossMany': '{n} загуби',
+
+  // --- moving cards ---------------------------------------------------------
+  'hand.dragHint': 'Влачи карта по ветрилото, за да я пренаредиш, или върху масата, за да я изиграеш',
+  'hand.moveLeft': 'Наляво',
+  'hand.moveRight': 'Надясно',
+  'zone.collapseGroup': 'Свий тази група',
+  'zone.expandGroup': 'Покажи всички карти в тази група',
+  'zone.dropHere': 'Пусни тук',
+  'offer.pickCards': 'избери карти за мястото, което докосна',
+  'offer.ambiguous': 'това може да отиде на повече от едно място — избери на масата',
+
+  // --- the build footer -----------------------------------------------------
+  'build.app': 'приложение',
+  'build.server': 'сървър',
+  // --- the words the server chose, worded here -------------------------------
+  //
+  // /modules describes each game, variation, option and choice with an English
+  // label. That made the lobby the one screen that stayed English whatever the
+  // picker said. `src/lib/gameLabels.ts` looks these up and falls back to the
+  // label the server sent, so a game added after this build still reads.
+  //
+  // Absent on purpose: game names, place names, ratios and bare numbers.
+  // "Texas Hold'em", "Vegas Strip", "3:2" and "500" read the same in every
+  // language and fall through to the server's own label.
+  'option.pauseBetweenRounds': 'Пауза между рундовете',
+  'choice.pauseBetweenRounds.1': 'Пауза',
+  'choice.pauseBetweenRounds.0': 'Продължавай веднага',
+  'option.botSkill': 'Съперници',
+  'choice.botSkill.0': 'Смесени',
+  'choice.botSkill.1': 'Лесни',
+  'choice.botSkill.2': 'Средни',
+  'choice.botSkill.3': 'Трудни',
+  'option.initialMeldMinimum': 'Стойност за отваряне',
+  'choice.initialMeldMinimum.0': 'Без',
+  'option.discardDrawMinRound': 'Вземане от купчината',
+  'choice.discardDrawMinRound.0': 'Отворено',
+  'choice.discardDrawMinRound.2': 'От рунд 2',
+  'choice.discardDrawMinRound.3': 'От рунд 3',
+  'option.requireCleanRun': 'Поредица без жокер',
+  'choice.requireCleanRun.1': 'Задължителна',
+  'choice.requireCleanRun.0': 'Не',
+  'option.jokerReclaimMustPlay': 'Откупен жокер',
+  'choice.jokerReclaimMustPlay.1': 'Да се изиграе в същия ход',
+  'choice.jokerReclaimMustPlay.0': 'Може да се задържи',
+  'option.dealStarter': 'Кой започва',
+  'choice.dealStarter.0': 'По ред',
+  'choice.dealStarter.1': 'Започва победителят',
+  'variation.prsi.classic': 'Класически',
+  'option.handSize': 'Раздадени карти',
+  'variation.canasta.classic': 'Класическа',
+  'variation.canasta.modern_american': 'Modern American',
+  'option.targetScore': 'Целеви резултат',
+  'option.canastasToGoOut': 'Канасти за излизане',
+  'variation.holdem.freezeout': 'Freezeout',
+  'variation.holdem.timed': 'Фиксиран брой раздавания',
+  'option.startingStack': 'Начални чипове',
+  'option.bigBlind': 'Голям блайнд',
+  'option.handLimit': 'Раздавания',
+  'choice.handLimit.0': 'Докато остане едно място',
+  'variation.ginrummy.standard': 'Стандартен',
+  'option.knockLimit': 'Граница за чукане',
+  'choice.knockLimit.0': 'Оклахома (определя я обърнатата карта)',
+  'option.bigGin': 'Голям джин',
+  'choice.bigGin.0': 'Изкл.',
+  'choice.bigGin.1': 'Вкл. (+25)',
+  'option.lineBonuses': 'Бонуси в равносметката',
+  'choice.lineBonuses.1': 'Вкл.',
+  'choice.lineBonuses.0': 'Изкл.',
+  'variation.rummytiles.standard': 'Стандартен',
+  'choice.targetScore.0': 'Без',
+  // Two games qualify a number the others mean plainly: Canasta's 500 is a
+  // short game, Gin Rummy's and Rummy Tiles' 500 is just 500; Hold'em's
+  // starting 200 is a short stack, Blackjack's 200 is just 200. Module-scoped
+  // so the qualifier travels with the game that means it — a bare key would
+  // hand the note to games it is false for. `scripts/check-server-labels.js`
+  // is what finds these; both were shipping as English on a Czech screen.
+  'choice.canasta.targetScore.500': '500 (кратка)',
+  'choice.holdem.startingStack.200': '200 (кратка)',
+  'option.roundLimit': 'Лимит на рундове',
+  'choice.roundLimit.0': 'Без',
+  'option.poolExhaustion': 'Ако запасът свърши',
+  'choice.poolExhaustion.1': 'Рундът се печели от най-ниската ръка',
+  'choice.poolExhaustion.0': 'Никой не печели рунда',
+  'variation.blackjack.single': 'Едно тесте',
+  'option.minBet': 'Минимум на масата',
+  'option.rounds': 'Рундове',
+  'option.decks': 'Тестета',
+  'option.dealerHitsSoft17': 'Крупието при мека 17',
+  'choice.dealerHitsSoft17.0': 'Остава',
+  'choice.dealerHitsSoft17.1': 'Тегли',
+  'option.blackjackPays': 'Блекджекът плаща',
+  'choice.blackjackPays.100': 'Едно към едно',
+  'option.maxSplits': 'Разделяне',
+  'choice.maxSplits.0': 'Без разделяне',
+  'choice.maxSplits.1': 'Веднъж (две ръце)',
+  'choice.maxSplits.3': 'Три пъти (четири ръце)',
+  'option.doubleAfterSplit': 'Удвояване след разделяне',
+  'choice.doubleAfterSplit.1': 'Разрешено',
+  'choice.doubleAfterSplit.0': 'Забранено',
+  'option.surrender': 'Отказ',
+  'choice.surrender.0': 'Изкл.',
+  'choice.surrender.1': 'Късен отказ',
+  'option.insurance': 'Застраховка',
+  'choice.insurance.1': 'Предлага се',
+  'choice.insurance.0': 'Не се предлага',
+
+  // --- the verbs on the buttons ---------------------------------------------
+  //
+  // An offer without a `labelKey` of its own is labelled from its raw verb —
+  // `label(offer.labelKey ?? `verb.${offer.verb}`)` in `OfferBar`. That key is
+  // built on this side, so `cmd/dump-keys` never sees it and `serverKeys.json`
+  // does not list it: the parity tests all passed while "Discard", "Lay meld",
+  // "Undo draw" and "Undo lay off" sat in English on a Czech board, because
+  // `humanise()` turned the key into English nobody had written and no search
+  // for an English *string* could find.
+  //
+  // Worded here from the server's own `OfferVerb` constants rather than from
+  // what one run happened to render, so a verb that only appears in a state
+  // the sweep never reached is covered too.
+  'verb.add': 'Добави',
+  'verb.bet': 'Заложи',
+  'verb.call': 'Плащам',
+  'verb.check': 'Чек',
+  'verb.commit': 'Готово',
+  'verb.continue': 'Продължи',
+  'verb.decline_insurance': 'Без застраховка',
+  'verb.discard': 'Изхвърли',
+  'verb.double': 'Удвои',
+  'verb.draw': 'Тегли',
+  'verb.finish_layoff': 'Готово с прикачването',
+  'verb.fold': 'Пас на ръката',
+  'verb.hit': 'Карта',
+  'verb.insure': 'Застраховай се',
+  'verb.knock': 'Чукни',
+  'verb.lay_meld': 'Свали',
+  'verb.lay_off': 'Прикачи',
+  'verb.pass': 'Пас',
+  'verb.place': 'Постави',
+  'verb.play_card': 'Изиграй',
+  'verb.raise': 'Вдигам',
+  'verb.reset_turn': 'Върни хода',
+  'verb.split': 'Раздели',
+  'verb.stand': 'Оставам',
+  'verb.surrender': 'Откажи се',
+  'verb.swap_joker': 'Смени жокера',
+  'verb.take': 'Вземи',
+  'verb.take_pile': 'Вземи от купчината',
+  // Declared by the server and listed in `serverKeys.json`, but never worded.
+  'verb.takePileFromHand': 'Вземи купчината в ръката',
+  'verb.takePileOntoMeld': 'Вземи купчината върху комбинация',
+  'verb.undoDraw': 'Върни тегленето',
+  'verb.undoLayOff': 'Върни прикачването',
+  'verb.undoMeld': 'Върни комбинацията',
+  'verb.undoTurn': 'Върни хода',
+
+  // --- suits, spelled out ---------------------------------------------------
+  //
+  // Read aloud by a screen reader and shown where a pip would not fit. The
+  // pips themselves are drawn, not written, so these are the only place the
+  // suit is ever a word.
+  'suit.C': 'Спатии',
+  'suit.D': 'Каро',
+  'suit.H': 'Купи',
+  'suit.S': 'Пики',
+
+  // --- counters the board prints beside a number ----------------------------
+  'canasta.seat.notOpened': 'Не е отворил',
+  'canasta.unit.points': 'точки',
+  'ginrummy.unit.points': 'точки',
+  'holdem.seat.dealer': 'Раздаващ',
+  'holdem.unit.chips': 'чипа',
+  'prsi.unit.cardsLeft': 'останали карти',
+  'rummytiles.prompt.initialMeld': 'Първото ти сваляне трябва да струва {n} точки.',
+  'rummytiles.unit.points': 'точки',
+  'zolik.unit.penalty': 'наказание',
+  'header.pileFrozen': 'Купчината е замразена',
+  // The module-less form of `ginrummy.prompt.yourTurnDraw`: Žolíky and Canasta
+  // send the prompt without a module prefix. Neither the Go constants nor
+  // `serverKeys.json` list it — the sweep is what found it.
+  'prompt.yourTurnDraw': 'Изтегли карта',
 };

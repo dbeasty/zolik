@@ -9,6 +9,8 @@ import { formatApiError } from '@/src/lib/apiError';
 import { loadGameSetup, saveGameSetup } from '@/src/lib/gameSetupStore';
 import { factText, label } from '@/src/lib/labels';
 import { colors } from '@/src/theme';
+import { choiceLabel, moduleLabel, optionLabel, variationLabel } from '@/src/lib/gameLabels';
+import { t } from '@/src/lib/i18n';
 
 /**
  * The game picker, rendered entirely from `/modules`.
@@ -99,7 +101,7 @@ export default function GamesScreen() {
   const start = useCallback(
     async (mod: MatchModule, withBot: boolean) => {
       if (!session?.accessToken) {
-        setError('Sign in first');
+        setError(t('lobby.games.signInFirst'));
         return;
       }
       setBusy(mod.id);
@@ -147,14 +149,14 @@ export default function GamesScreen() {
 
   if (!modules.length && !error) {
     return (
-      <Screen title="Games">
+      <Screen title={t('nav.games')}>
         <ActivityIndicator color={colors.accent} />
       </Screen>
     );
   }
 
   return (
-    <Screen title="Games" subtitle="Everything this server can host">
+    <Screen title={t('nav.games')} subtitle={t('lobby.games.subtitle')}>
       <ScrollView testID="games-list">
         {error ? (
           <Text testID="games-error" style={styles.error}>
@@ -166,11 +168,11 @@ export default function GamesScreen() {
           <View key={mod.id} style={styles.card} testID={`module-${mod.id}`}>
             <View style={styles.headerRow}>
               <View>
-                <Text style={styles.name}>{mod.label}</Text>
+                <Text style={styles.name}>{moduleLabel(mod)}</Text>
                 <Text style={styles.meta}>
                   {mod.minPlayers === mod.maxPlayers
-                    ? `${mod.minPlayers} players`
-                    : `${mod.minPlayers}–${mod.maxPlayers} players`}
+                    ? t('lobby.games.players', { n: mod.minPlayers })
+                    : t('lobby.games.playerRange', { min: mod.minPlayers, max: mod.maxPlayers })}
                 </Text>
               </View>
               <Pressable
@@ -187,7 +189,7 @@ export default function GamesScreen() {
                 }
                 style={styles.rulesLink}
               >
-                <Text style={styles.rulesLinkText}>Rules</Text>
+                <Text style={styles.rulesLinkText}>{t('nav.rules')}</Text>
               </Pressable>
             </View>
 
@@ -200,7 +202,7 @@ export default function GamesScreen() {
                     onPress={() => pickVariation(mod.id, mod, v.id)}
                     style={[styles.pill, variation[mod.id] === v.id && styles.pillOn]}
                   >
-                    <Text style={styles.pillText}>{v.label}</Text>
+                    <Text style={styles.pillText}>{variationLabel(mod.id, v)}</Text>
                   </Pressable>
                 ))}
               </View>
@@ -217,7 +219,7 @@ export default function GamesScreen() {
 
             {(mod.options ?? []).map((opt) => (
               <View key={opt.name} style={styles.option}>
-                <Text style={styles.optionLabel}>{opt.label}</Text>
+                <Text style={styles.optionLabel}>{optionLabel(mod.id, opt)}</Text>
                 <View style={styles.row}>
                   {opt.choices.map((c) => {
                     const on = (options[mod.id] ?? {})[opt.name] === c.value;
@@ -233,7 +235,7 @@ export default function GamesScreen() {
                         }
                         style={[styles.pill, on && styles.pillOn]}
                       >
-                        <Text style={styles.pillText}>{c.label}</Text>
+                        <Text style={styles.pillText}>{choiceLabel(mod.id, opt.name, c)}</Text>
                       </Pressable>
                     );
                   })}
@@ -243,7 +245,7 @@ export default function GamesScreen() {
 
             {botChoices(mod).length > 1 ? (
               <View style={styles.option}>
-                <Text style={styles.optionLabel}>Bots</Text>
+                <Text style={styles.optionLabel}>{t('lobby.games.bots')}</Text>
                 <View style={styles.row}>
                   {botChoices(mod).map((n) => {
                     const on = botCount(mod, bots[mod.id]) === n;
@@ -271,8 +273,8 @@ export default function GamesScreen() {
               >
                 <Text style={styles.buttonText}>
                   {botCount(mod, bots[mod.id]) === 1
-                    ? 'Play against a bot'
-                    : `Play against ${botCount(mod, bots[mod.id])} bots`}
+                    ? t('lobby.games.playBot')
+                    : t('lobby.games.playBots', { n: botCount(mod, bots[mod.id]) })}
                 </Text>
               </Pressable>
               <Pressable
@@ -281,7 +283,7 @@ export default function GamesScreen() {
                 onPress={() => start(mod, false)}
                 style={[styles.button, styles.secondary, busy === mod.id && styles.buttonBusy]}
               >
-                <Text style={styles.buttonText}>Open a table</Text>
+                <Text style={styles.buttonText}>{t('lobby.games.openTable')}</Text>
               </Pressable>
             </View>
           </View>

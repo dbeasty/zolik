@@ -426,7 +426,14 @@ export const mt: Record<string, string> = {
   // in, because Czech does not put the link where English does: "souhlasíš s
   // Podmínkami" inflects the noun the link is made of. Fragments let each
   // locale place and decline its own.
+  // The short word for a link or a tab.
   'legal.terms': 'Termini',
+  // The document's own name, used as the heading above it. Kept apart from
+  // `legal.notice.terms`, which is the same words inflected to sit inside a
+  // sentence — a heading in the instrumental case reads as a mistake in every
+  // Slavic language.
+  'legal.terms.title': 'Termini tal-użu',
+  'legal.privacy.title': 'Avviż tal-privatezza',
   'legal.privacy': 'Privatezza',
   'legal.source': 'Kodiċi sors',
   'legal.updated': 'Verżjoni {version}',
@@ -701,10 +708,10 @@ export const mt: Record<string, string> = {
   // itself lived on this screen: a player who cannot read "Settings" is
   // exactly the one who came here to change it.
   'settings.title': 'Issettjar',
-  'settings.subtitle': 'Kif tidher int, u kif tidher il-mejda',
   'settings.signedInAs': 'Idħalt bħala {username}',
   'settings.playingAsGuest': 'Qed tilgħab bħala {username} (mistieden)',
   'settings.notSignedIn': 'Mhux idħalt — idħol jew kompli bħala mistieden biex tilgħab online.',
+  'settings.subtitle': 'Kif tidher int, u kif tidher il-mejda',
   'settings.face.heading': 'Wiċċek fuq il-mejda',
   'settings.face.account': 'Jinżamm mal-kont tiegħek, u għalhekk jiġi miegħek fuq apparat ieħor.',
   'settings.face.device': 'Jinżamm fuq dan l-apparat. Idħol biex teħdu miegħek.',
@@ -747,6 +754,8 @@ export const mt: Record<string, string> = {
   'nav.scoreTable': 'Tabella tal-iskor',
   'nav.stats': 'Statistika',
   'nav.more': 'Aktar',
+
+  // --- the account menu behind the face in the corner ----------------------
   'menu.label': 'Menu tal-kont',
   'menu.signedIn': 'Daħalt',
   'menu.notSignedIn': 'Mhux imdaħħal',
@@ -756,5 +765,401 @@ export const mt: Record<string, string> = {
   'more.stats': 'Statistika u klassifika',
   'more.needsAccount': 'idħol biex tuża',
   'gate.title': 'Idħol biex tuża dan',
-  'gate.body': "It-tabelli tal-punti u l-istatistika jinżammu mal-kont tiegħek, biex isegwuk fuq apparat ieħor. Mistieden m'għandux fejn iżommhom.",
+  'gate.body':
+    "It-tabelli tal-punti u l-istatistika jinżammu mal-kont tiegħek, biex isegwuk fuq apparat ieħor. Mistieden m'għandux fejn iżommhom.",
+
+  // --- screens that never reached a key at all -------------------------------
+  //
+  // Everything below was typed straight into JSX. The parity tests could not
+  // see it — they prove every *key* is worded in twenty-four languages, not
+  // that a sentence ever became a key — so the app read half in the player's
+  // language and half in English. `scripts/find-untranslated.js` is the gate
+  // that stops that recurring; these are what it found.
+
+  // Errors shown when a thrown error carries no message of its own. The server
+  // sends codes, not sentences (see `reasonText`); these cover the cases where
+  // nothing came back at all — a socket that died, a fetch that never landed.
+  'error.generic': 'Dak ma rnexxiex',
+  'error.signIn': 'Id-dħul ma rnexxiex',
+  'error.login': 'Id-dħul ma rnexxiex',
+  'error.register': 'Ir-reġistrazzjoni ma rnexxietx',
+  'error.sendCode': 'Ma setax jintbagħat kodiċi',
+  'error.badCode': 'Dak il-kodiċi ma ħadimx',
+  'error.rulesLoad': 'Ir-regoli ma setgħux jitniżżlu',
+  'error.createFailed': 'Il-ħolqien ma rnexxiex',
+  'error.saveFailed': 'L-issejvjar ma rnexxiex',
+  'error.exportFailed': 'L-esportazzjoni ma rnexxietx',
+
+  // --- the route that does not exist ----------------------------------------
+  'notFound.title': 'Ops!',
+  'notFound.message': 'Din l-iskrin ma teżistix.',
+  'notFound.home': 'Mur fl-iskrin tal-bidu!',
+
+  // --- signing in -----------------------------------------------------------
+  'auth.login.subtitle': 'Żomm l-istatistika tiegħek fuq kull apparat',
+  'auth.login.continueWithEmail': 'Kompli bl-email',
+  'auth.login.usernameInstead': "Idħol minflok b'isem tal-utent",
+  'auth.email.title': 'Dħul bl-email',
+  'auth.email.subtitle': "Nibagħtulek kodiċi ta' darba",
+  'auth.email.address': 'Indirizz tal-email',
+  'auth.email.send': 'Ibgħat il-kodiċi',
+  'auth.email.codeTitle': 'Daħħal il-kodiċi',
+  'auth.email.codePlaceholder': "Kodiċi ta' sitt ċifri",
+  'auth.email.differentAddress': 'Uża indirizz ieħor',
+  'auth.email.sentTo': 'Mibgħut lil {email}',
+  'auth.email.continue': 'Kompli',
+  'auth.guest.title': 'Logħob bħala mistieden',
+  'auth.guest.subtitle': "M'hemmx bżonn kont",
+  'auth.guest.displayName': 'Isem li jidher',
+  'auth.register.title': 'Oħloq kont',
+  'auth.register.username': 'Isem tal-utent',
+  'auth.register.email': 'Email (mhux obbligatorju)',
+  'auth.register.password': 'Password',
+  'auth.username.createAccount': "Oħloq kont b'isem tal-utent u password",
+  'auth.callback.signedIn': 'Daħalt.',
+
+  // --- the account screen ---------------------------------------------------
+  'account.signInPrompt': 'Idħol biex timmaniġġja l-kont tiegħek.',
+  'account.keepGames': 'Żomm dawn il-logħbiet',
+  'account.signedInWith': "Daħalt permezz ta'",
+  'account.addMethod': "Żid mod ta' dħul",
+  'account.usernameAndPassword': 'Isem tal-utent u password',
+  'account.faceAndTable': 'Wiċċ u dehra tal-mejda',
+  'account.refresh': 'Aġġorna',
+  'account.remove': 'Neħħi',
+
+  // --- the main menu --------------------------------------------------------
+  'home.subtitle': 'Rummy Kontinentali · {server}',
+  'home.playingAs': 'Qed tilgħab bħala {name}',
+  'home.signInPrompt': 'Idħol jew kompli bħala mistieden biex tilgħab online.',
+  'home.statsAndLeaderboard': 'Statistika u klassifika',
+  'home.play': 'Ilgħab',
+  'home.offlineScoreTable': 'Tabella tal-iskor offline',
+  'home.signInToKeepStats': 'Idħol biex iżżomm l-istatistika tiegħek',
+  'home.signOut': 'Oħroġ',
+  'home.continueAsGuest': 'Kompli bħala mistieden',
+  // Someone playing as a guest, marked in a list of names.
+  'home.guestSuffix': '(mistieden)',
+
+  // --- the waiting room on the main menu ------------------------------------
+  //
+  // Counts are whole phrases per count, not a number glued to a noun — the
+  // same reason `countLabel` exists. One and many are the cases the interface
+  // actually produces, so they are the cases that get their own wording.
+  'waiting.checking': 'Naraw min hawn…',
+  'waiting.youAreWaiting': 'Qed tistenna biex tilgħab',
+  'waiting.pickedUp': "Kull min jiftaħ mejda jista' jieħdok — ħadd m'għandu bżonn kodiċi mingħandek.",
+  'waiting.othersOne': 'Qed jistenna wkoll 1 plejer ieħor',
+  'waiting.othersMany': 'Qed jistennew ukoll {n} plejers oħra',
+  'waiting.oneWaiting': '1 plejer qed jistenna biex jilgħab',
+  'waiting.manyWaiting': '{n} plejers qed jistennew biex jilagħbu',
+  'waiting.adding': 'Qed inżiduk mal-lista tal-istennija…',
+  'waiting.slowHint':
+    'Jekk dan ma jispiċċax fi ftit sekondi, iċċekkja jekk l-indirizz tas-server hawn taħt huwiex jinlaħaq minn dan l-apparat.',
+  'waiting.serverBusyDetail':
+    'Prova {n}. Is-server bħalissa mhux jaċċetta konnessjonijiet ġodda mal-kamra tal-istennija.',
+  'waiting.reconnecting': 'Il-konnessjoni ntilfet — nerġgħu naqbdu…',
+  'waiting.reconnectingDetail':
+    "Prova {n}. Dan jista' jiġri jekk in-network tal-apparat tiegħek inbidel, jew jekk is-server reġa' beda.",
+  'waiting.tryAgain': "Erġa' pprova issa",
+  'waiting.makeAvailable': 'Agħmilni disponibbli biex nilgħab',
+  'waiting.stop': 'Ieqaf tistenna',
+  'waiting.noneYet':
+    'Bħalissa ħadd mhu qed jistenna biex jilgħab. Niżżel ismek fil-lista u tkun l-ewwel wieħed li jara kulħadd.',
+  'waiting.noOthersYet': 'Ħadd aktar għadu ma qed jistenna. Il-ħosts jarawk xorta u jistgħu jistiednuk.',
+  'waiting.server': 'Server',
+  'waiting.none':
+    'Bħalissa ħadd mhu qed jistenna. Min jagħmel lilu nnifsu disponibbli fil-menu prinċipali jidher hawn.',
+
+  // --- landing on a shared invite link --------------------------------------
+  'join.missingCode': 'Dan il-link nieqes mill-kodiċi tal-mejda.',
+  'join.staleLink': 'Itlob link ġdid mingħand min stiednek, jew ingħaqad bil-kodiċi minflok.',
+  'join.enterCode': 'Daħħal kodiċi',
+  'join.backToMenu': 'Lura għall-menu',
+  'join.takingSeat': 'Qed nieħdu post…',
+  'join.takingSeatAt': 'Qed nieħdu post fi {game}…',
+
+  // --- the lobby ------------------------------------------------------------
+  'lobby.games.subtitle': "Dak kollu li dan is-server jista' joffri",
+  'lobby.games.bots': 'Bots',
+  'lobby.games.playBot': 'Ilgħab kontra bot',
+  'lobby.games.playBots': 'Ilgħab kontra {n} bots',
+  'lobby.games.openTable': 'Iftaħ mejda',
+  'lobby.games.players': '{n} plejers',
+  'lobby.games.playerRange': '{min}–{max} plejers',
+  'lobby.join.placeholder': "Kodiċi jew link ta' stedina",
+  'lobby.join.needCode': 'Daħħal kodiċi, link, jew ID tal-partita',
+  'lobby.games.signInFirst': 'Idħol l-ewwel',
+  'lobby.join.action': 'Ingħaqad',
+  'lobby.join.waitingTitle': 'Nistennew lill-ħost',
+  // Two whole sentences rather than one with a swapped noun: "a game of {game}"
+  // does not survive a language that inflects the game's name after "of".
+  'lobby.join.joinedGame': "Ingħaqadt ma' logħba {game} — nistennew il-bidu",
+  'lobby.join.joinedTable': 'Ingħaqadt mal-mejda — nistennew il-bidu',
+  'lobby.table.addBot': 'Żid bot',
+  'lobby.table.start': 'Ibda',
+  'lobby.table.waitingForHost': 'Nistennew lill-ħost jibda…',
+
+  // --- inviting someone to a table ------------------------------------------
+  'invite.heading': 'Stieden plejers',
+  'invite.explain': "Ibgħat dan il-link. Min jiftħu jasal f'din il-mejda — mingħajr bżonn ta' kont.",
+  'invite.noAddress':
+    "Dan is-server m'għandux indirizz li jista' jinqasam ikkonfigurat, mela uża l-kodiċi hawn taħt.",
+  'invite.readOutCode': 'Jew aqra l-kodiċi:',
+  'invite.copy': 'Ikkopja l-link',
+  'invite.share': 'Aqsam il-link',
+  'invite.copied': 'Ikkupjat!',
+  'invite.shared': 'Maqsum',
+
+  // --- the match screen -----------------------------------------------------
+  'match.waitingForTable': 'Nistennew il-mejda…',
+  'match.waitingForPlayer': 'Nistennew plejer ieħor…',
+  'match.nobodyWon': 'Ħadd ma rebaħ.',
+  'match.youWon': 'Rbaħt.',
+  'match.finished': 'Din il-partita spiċċat.',
+  'match.inProgress': 'Il-partita għaddejja — kollox huwa konness u miexi normali.',
+  'match.controls': 'Kontrolli',
+  'match.over': 'Il-partita spiċċat',
+  'match.settingUp': 'Qed nippreparaw…',
+  'match.playAgain': "Erġa' ilgħab",
+  'match.backToGames': 'Lura għal-logħob',
+  'match.table': 'Mejda',
+  'match.opponents': 'Avversarji',
+  // Marks which seat is the reader's own, in a list of seats.
+  'match.youSuffix': '(int)',
+  // The winner line is composed from whole sentences rather than a name glued
+  // to " won." — the verb agrees with the subject in most of these languages,
+  // and a suffix cannot know that.
+  'match.you': 'int',
+  'match.someoneWon': '{name} rebaħ.',
+  'match.wonBy': 'Rebħet {names}.',
+  'match.pausedFor': "Wieqaf — nistennew lil {name} jerġa' jaqbad.",
+  'match.results': 'Riżultati',
+  'match.players': 'Plejers',
+  'match.toPlay': 'imissu',
+
+  // --- the offline score table ----------------------------------------------
+  'scoring.namesHint': "Ismijiet mifruda b'virgoli (4–8 plejers)",
+  'scoring.newSession': 'Sessjoni ġdida',
+  // A worked example, not a sentence: the names are placeholders a translator
+  // may localise, the shape `name:score,` is what the parser needs.
+  'scoring.scoresPlaceholder': 'Anna:120,Ben:80,…',
+  'scoring.saveRound': 'Issejvja r-rawnd',
+  'scoring.export': 'Esporta l-karta tal-iskor',
+  'scoring.formatHint': 'Format tal-punti: Isem:100,Isem2:50',
+  'scoring.nameCountError': "Daħħal 2–8 ismijiet ta' plejers mifruda b'virgoli",
+  'scoring.session': 'Sessjoni: {id}',
+  'scoring.players': 'Plejers: {names}',
+  'scoring.roundScores': 'Punti tar-rawnd {n}',
+  'stats.loading': 'Qed jitniżżel…',
+  // The figures could not be fetched. `{reason}` is whatever the server or the
+  // network said, which is not ours to translate — the frame around it is.
+  'stats.unavailable': '(mhux disponibbli: {reason})',
+
+  // --- statistics -----------------------------------------------------------
+  'stats.title': 'Statistika u klassifika',
+  'stats.yours': 'L-istatistika tiegħek',
+  'stats.leaderboard': 'Klassifika',
+
+  // --- a player's lifetime record, shown beside a finished match ------------
+  'record.title': 'Ir-rekord tiegħek',
+  'record.guest':
+    "Qed tilgħab bħala mistieden, mela m'hemm ebda rekord miżmum. Idħol u l-logħbiet li diġà lgħabt fuq dan l-apparat — inkluża din — jinżammu mal-kont tiegħek.",
+  'record.signInToKeep': 'Idħol u żommhom',
+  'record.failed': "Ir-rekord tiegħek ma setax jitniżżel bħalissa. Il-partita hija rreġistrata b'sigurtà.",
+  'record.loading': 'Qed jitniżżel…',
+  'record.played': 'Milgħuba',
+  'record.won': 'Rebħin',
+  'record.lost': 'Telfiet',
+  'record.winRate': "Rata ta' rebħ",
+  'record.streak': 'Sensiela',
+  'record.atThisGame': "F'din il-logħba",
+  // A streak is a count with a noun, so it is a whole phrase per count for
+  // the same reason `countLabel` is: "1 win" / "2 wins" is an English rule,
+  // and most of these languages do not share it.
+  'record.streakNone': '—',
+  'record.streakWinOne': '1 rebħa',
+  'record.streakWinMany': '{n} rebħiet',
+  'record.streakLossOne': '1 telfa',
+  'record.streakLossMany': '{n} telfiet',
+
+  // --- moving cards ---------------------------------------------------------
+  'hand.dragHint': "Iġbed karta tul il-mruħa biex terġa' tirranġaha, jew fuq il-mejda biex tilgħabha",
+  'hand.moveLeft': 'Lejn ix-xellug',
+  'hand.moveRight': 'Lejn il-lemin',
+  'zone.collapseGroup': 'Agħlaq dan il-grupp',
+  'zone.expandGroup': "Uri l-karti kollha ta' dan il-grupp",
+  'zone.dropHere': "Itfa' hawn",
+  'offer.pickCards': 'agħżel karti għall-post li messejt',
+  'offer.ambiguous': "dan jista' jmur f'aktar minn post wieħed — agħżel fuq il-mejda",
+
+  // --- the build footer -----------------------------------------------------
+  'build.app': 'app',
+  'build.server': 'server',
+  // --- the words the server chose, worded here -------------------------------
+  //
+  // /modules describes each game, variation, option and choice with an English
+  // label. That made the lobby the one screen that stayed English whatever the
+  // picker said. `src/lib/gameLabels.ts` looks these up and falls back to the
+  // label the server sent, so a game added after this build still reads.
+  //
+  // Absent on purpose: game names, place names, ratios and bare numbers.
+  // "Texas Hold'em", "Vegas Strip", "3:2" and "500" read the same in every
+  // language and fall through to the server's own label.
+  'option.pauseBetweenRounds': 'Waqfa bejn ir-rawnds',
+  'choice.pauseBetweenRounds.1': 'Waqfa',
+  'choice.pauseBetweenRounds.0': 'Kompli mill-ewwel',
+  'option.botSkill': 'Avversarji',
+  'choice.botSkill.0': 'Imħallta',
+  'choice.botSkill.1': 'Faċli',
+  'choice.botSkill.2': 'Medji',
+  'choice.botSkill.3': 'Diffiċli',
+  'option.initialMeldMinimum': 'Valur tal-ftuħ',
+  'choice.initialMeldMinimum.0': 'Xejn',
+  'option.discardDrawMinRound': 'Teħid mill-munzell tal-iskart',
+  'choice.discardDrawMinRound.0': 'Miftuħ',
+  'choice.discardDrawMinRound.2': 'Mir-rawnd 2',
+  'choice.discardDrawMinRound.3': 'Mir-rawnd 3',
+  'option.requireCleanRun': 'Sekwenza mingħajr joker',
+  'choice.requireCleanRun.1': 'Meħtieġa',
+  'choice.requireCleanRun.0': 'Le',
+  'option.jokerReclaimMustPlay': 'Joker mixtri lura',
+  'choice.jokerReclaimMustPlay.1': 'Jintlagħab fl-istess dawra',
+  'choice.jokerReclaimMustPlay.0': "Jista' jinżamm",
+  'option.dealStarter': 'Min jibda',
+  'choice.dealStarter.0': 'Kull darba ħaddieħor',
+  'choice.dealStarter.1': 'Jibda r-rebbieħ',
+  'variation.prsi.classic': 'Klassiku',
+  'option.handSize': 'Karti mqassma',
+  'variation.canasta.classic': 'Klassika',
+  'variation.canasta.modern_american': 'Modern American',
+  'option.targetScore': 'Skor fil-mira',
+  'option.canastasToGoOut': 'Canastas biex toħroġ',
+  'variation.holdem.freezeout': 'Freezeout',
+  'variation.holdem.timed': "Numru fiss ta' idejn",
+  'option.startingStack': 'Ċipsijiet tal-bidu',
+  'option.bigBlind': 'Blind kbir',
+  'option.handLimit': 'Idejn',
+  'choice.handLimit.0': "Sakemm jibqa' post wieħed",
+  'variation.ginrummy.standard': 'Standard',
+  'option.knockLimit': 'Limitu tat-tħabbit',
+  'choice.knockLimit.0': 'Oklahoma (jiddeterminah il-karta mikxufa)',
+  'option.bigGin': 'Big gin',
+  'choice.bigGin.0': 'Mitfi',
+  'choice.bigGin.1': 'Mixgħul (+25)',
+  'option.lineBonuses': 'Bonusijiet fil-kont',
+  'choice.lineBonuses.1': 'Mixgħula',
+  'choice.lineBonuses.0': 'Mitfija',
+  'variation.rummytiles.standard': 'Standard',
+  'choice.targetScore.0': 'Xejn',
+  // Two games qualify a number the others mean plainly: Canasta's 500 is a
+  // short game, Gin Rummy's and Rummy Tiles' 500 is just 500; Hold'em's
+  // starting 200 is a short stack, Blackjack's 200 is just 200. Module-scoped
+  // so the qualifier travels with the game that means it — a bare key would
+  // hand the note to games it is false for. `scripts/check-server-labels.js`
+  // is what finds these; both were shipping as English on a Czech screen.
+  'choice.canasta.targetScore.500': '500 (qasira)',
+  'choice.holdem.startingStack.200': '200 (qasira)',
+  'option.roundLimit': "Limitu ta' rawnds",
+  'choice.roundLimit.0': 'Xejn',
+  'option.poolExhaustion': 'Jekk il-borża tispiċċa',
+  'choice.poolExhaustion.1': 'Ir-rawnd jirbħu l-inqas id',
+  'choice.poolExhaustion.0': 'Ir-rawnd ma jirbħu ħadd',
+  'variation.blackjack.single': 'Mazz wieħed',
+  'option.minBet': 'Minimu tal-mejda',
+  'option.rounds': 'Rawnds',
+  'option.decks': 'Mazzi',
+  'option.dealerHitsSoft17': 'Id-dealer fuq 17 artab',
+  'choice.dealerHitsSoft17.0': 'Jieqaf',
+  'choice.dealerHitsSoft17.1': 'Jiġbed',
+  'option.blackjackPays': 'Il-blackjack iħallas',
+  'choice.blackjackPays.100': "Wieħed ma' wieħed",
+  'option.maxSplits': 'Qsim',
+  'choice.maxSplits.0': 'L-ebda qsim',
+  'choice.maxSplits.1': 'Darba (żewġ idejn)',
+  'choice.maxSplits.3': "Tliet darbiet (erba' idejn)",
+  'option.doubleAfterSplit': 'Irdoppjar wara qsim',
+  'choice.doubleAfterSplit.1': 'Permess',
+  'choice.doubleAfterSplit.0': 'Mhux permess',
+  'option.surrender': 'Ċediment',
+  'choice.surrender.0': 'Mitfi',
+  'choice.surrender.1': 'Ċediment tard',
+  'option.insurance': 'Assigurazzjoni',
+  'choice.insurance.1': 'Tiġi offruta',
+  'choice.insurance.0': 'Ma tiġix offruta',
+
+  // --- the verbs on the buttons ---------------------------------------------
+  //
+  // An offer without a `labelKey` of its own is labelled from its raw verb —
+  // `label(offer.labelKey ?? `verb.${offer.verb}`)` in `OfferBar`. That key is
+  // built on this side, so `cmd/dump-keys` never sees it and `serverKeys.json`
+  // does not list it: the parity tests all passed while "Discard", "Lay meld",
+  // "Undo draw" and "Undo lay off" sat in English on a Czech board, because
+  // `humanise()` turned the key into English nobody had written and no search
+  // for an English *string* could find.
+  //
+  // Worded here from the server's own `OfferVerb` constants rather than from
+  // what one run happened to render, so a verb that only appears in a state
+  // the sweep never reached is covered too.
+  'verb.add': 'Żid',
+  'verb.bet': 'Poġġi',
+  'verb.call': 'Sejjaħ',
+  'verb.check': 'Iċċekkja',
+  'verb.commit': 'Lest',
+  'verb.continue': 'Kompli',
+  'verb.decline_insurance': 'Bla assigurazzjoni',
+  'verb.discard': 'Armi',
+  'verb.double': 'Irdoppja',
+  'verb.draw': 'Iġbed',
+  'verb.finish_layoff': 'Iż-żieda lesta',
+  'verb.fold': 'Warrab',
+  'verb.hit': 'Karta',
+  'verb.insure': 'Ħu assigurazzjoni',
+  'verb.knock': 'Ħabbat',
+  'verb.lay_meld': 'Niżżel',
+  'verb.lay_off': 'Żid',
+  'verb.pass': 'Għaddi',
+  'verb.place': 'Poġġi',
+  'verb.play_card': 'Ilgħab',
+  'verb.raise': 'Għolli',
+  'verb.reset_turn': "Erġa' ibda d-dawra",
+  'verb.split': 'Aqsam',
+  'verb.stand': 'Nieqaf',
+  'verb.surrender': 'Ċedi',
+  'verb.swap_joker': 'Ibdel il-joker',
+  'verb.take': 'Ħu',
+  'verb.take_pile': 'Ħu mill-munzell',
+  // Declared by the server and listed in `serverKeys.json`, but never worded.
+  'verb.takePileFromHand': "Ħu l-munzell f'idek",
+  'verb.takePileOntoMeld': 'Ħu l-munzell fuq kombinazzjoni',
+  'verb.undoDraw': 'Ħassar il-ġbid',
+  'verb.undoLayOff': 'Ħassar iż-żieda',
+  'verb.undoMeld': 'Ħassar il-kombinazzjoni',
+  'verb.undoTurn': 'Ħassar id-dawra',
+
+  // --- suits, spelled out ---------------------------------------------------
+  //
+  // Read aloud by a screen reader and shown where a pip would not fit. The
+  // pips themselves are drawn, not written, so these are the only place the
+  // suit is ever a word.
+  'suit.C': 'Bastuni',
+  'suit.D': 'Djamanti',
+  'suit.H': 'Kwiekeb',
+  'suit.S': 'Spadi',
+
+  // --- counters the board prints beside a number ----------------------------
+  'canasta.seat.notOpened': 'Ma fetaħx',
+  'canasta.unit.points': 'punti',
+  'ginrummy.unit.points': 'punti',
+  'holdem.seat.dealer': 'Dealer',
+  'holdem.unit.chips': 'ċipsijiet',
+  'prsi.unit.cardsLeft': 'karti fadal',
+  'rummytiles.prompt.initialMeld': 'L-ewwel tniżżil tiegħek irid jiswa {n} punti.',
+  'rummytiles.unit.points': 'punti',
+  'zolik.unit.penalty': 'penali',
+  'header.pileFrozen': 'Il-munzell iffriżat',
+  // The module-less form of `ginrummy.prompt.yourTurnDraw`: Žolíky and Canasta
+  // send the prompt without a module prefix. Neither the Go constants nor
+  // `serverKeys.json` list it — the sweep is what found it.
+  'prompt.yourTurnDraw': 'Iġbed karta',
 };

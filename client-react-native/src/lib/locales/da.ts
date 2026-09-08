@@ -419,7 +419,14 @@ export const da: Record<string, string> = {
   // in, because Czech does not put the link where English does: "souhlasíš s
   // Podmínkami" inflects the noun the link is made of. Fragments let each
   // locale place and decline its own.
+  // The short word for a link or a tab.
   'legal.terms': 'Vilkår',
+  // The document's own name, used as the heading above it. Kept apart from
+  // `legal.notice.terms`, which is the same words inflected to sit inside a
+  // sentence — a heading in the instrumental case reads as a mistake in every
+  // Slavic language.
+  'legal.terms.title': 'Brugsvilkår',
+  'legal.privacy.title': 'Privatlivspolitik',
   'legal.privacy': 'Privatliv',
   'legal.source': 'Kildekode',
   'legal.updated': 'Version {version}',
@@ -689,10 +696,10 @@ export const da: Record<string, string> = {
   // itself lived on this screen: a player who cannot read "Settings" is
   // exactly the one who came here to change it.
   'settings.title': 'Indstillinger',
-  'settings.subtitle': 'Hvordan du ser ud, og hvordan bordet gør',
   'settings.signedInAs': 'Logget ind som {username}',
   'settings.playingAsGuest': 'Spiller som {username} (gæst)',
   'settings.notSignedIn': 'Ikke logget ind — log ind eller fortsæt som gæst for at spille online.',
+  'settings.subtitle': 'Hvordan du ser ud, og hvordan bordet gør',
   'settings.face.heading': 'Dit ansigt ved bordet',
   'settings.face.account': 'Gemmes med din konto, så det følger med til en anden enhed.',
   'settings.face.device': 'Gemmes på denne enhed. Log ind for at tage det med dig.',
@@ -735,6 +742,8 @@ export const da: Record<string, string> = {
   'nav.scoreTable': 'Pointtavle',
   'nav.stats': 'Statistik',
   'nav.more': 'Mere',
+
+  // --- the account menu behind the face in the corner ----------------------
   'menu.label': 'Kontomenu',
   'menu.signedIn': 'Logget ind',
   'menu.notSignedIn': 'Ikke logget ind',
@@ -744,5 +753,399 @@ export const da: Record<string, string> = {
   'more.stats': 'Statistik og rangliste',
   'more.needsAccount': 'log ind for at bruge',
   'gate.title': 'Log ind for at bruge dette',
-  'gate.body': 'Pointtabeller og statistik gemmes med din konto, så de følger dig til en anden enhed. En gæst har ingen steder at gemme dem.',
+  'gate.body':
+    'Pointtabeller og statistik gemmes med din konto, så de følger dig til en anden enhed. En gæst har ingen steder at gemme dem.',
+
+  // --- screens that never reached a key at all -------------------------------
+  //
+  // Everything below was typed straight into JSX. The parity tests could not
+  // see it — they prove every *key* is worded in twenty-four languages, not
+  // that a sentence ever became a key — so the app read half in the player's
+  // language and half in English. `scripts/find-untranslated.js` is the gate
+  // that stops that recurring; these are what it found.
+
+  // Errors shown when a thrown error carries no message of its own. The server
+  // sends codes, not sentences (see `reasonText`); these cover the cases where
+  // nothing came back at all — a socket that died, a fetch that never landed.
+  'error.generic': 'Det virkede ikke',
+  'error.signIn': 'Login mislykkedes',
+  'error.login': 'Login mislykkedes',
+  'error.register': 'Oprettelsen mislykkedes',
+  'error.sendCode': 'Kunne ikke sende en kode',
+  'error.badCode': 'Den kode virkede ikke',
+  'error.rulesLoad': 'Kunne ikke hente reglerne',
+  'error.createFailed': 'Kunne ikke oprette',
+  'error.saveFailed': 'Kunne ikke gemme',
+  'error.exportFailed': 'Kunne ikke eksportere',
+
+  // --- the route that does not exist ----------------------------------------
+  'notFound.title': 'Ups!',
+  'notFound.message': 'Den her skærm findes ikke.',
+  'notFound.home': 'Gå til startskærmen!',
+
+  // --- signing in -----------------------------------------------------------
+  'auth.login.subtitle': 'Behold din statistik på alle enheder',
+  'auth.login.continueWithEmail': 'Fortsæt med e-mail',
+  'auth.login.usernameInstead': 'Log ind med brugernavn i stedet',
+  'auth.email.title': 'Log ind med e-mail',
+  'auth.email.subtitle': 'Vi sender dig en engangskode',
+  'auth.email.address': 'E-mailadresse',
+  'auth.email.send': 'Send kode',
+  'auth.email.codeTitle': 'Indtast koden',
+  'auth.email.codePlaceholder': 'Sekscifret kode',
+  'auth.email.differentAddress': 'Brug en anden adresse',
+  'auth.email.sentTo': 'Sendt til {email}',
+  'auth.email.continue': 'Fortsæt',
+  'auth.guest.title': 'Spil som gæst',
+  'auth.guest.subtitle': 'Ingen konto nødvendig',
+  'auth.guest.displayName': 'Vist navn',
+  'auth.register.title': 'Opret konto',
+  'auth.register.username': 'Brugernavn',
+  'auth.register.email': 'E-mail (valgfrit)',
+  'auth.register.password': 'Adgangskode',
+  'auth.username.createAccount': 'Opret en konto med brugernavn og adgangskode',
+  'auth.callback.signedIn': 'Logget ind.',
+
+  // --- the account screen ---------------------------------------------------
+  'account.signInPrompt': 'Log ind for at administrere din konto.',
+  'account.keepGames': 'Behold de her spil',
+  'account.signedInWith': 'Logget ind med',
+  'account.addMethod': 'Tilføj en loginmetode',
+  'account.usernameAndPassword': 'Brugernavn og adgangskode',
+  'account.faceAndTable': 'Ansigt og bordets udseende',
+  'account.refresh': 'Opdater',
+  'account.remove': 'Fjern',
+
+  // --- the main menu --------------------------------------------------------
+  'home.subtitle': 'Kontinental rommy · {server}',
+  'home.playingAs': 'Du spiller som {name}',
+  'home.signInPrompt': 'Log ind eller fortsæt som gæst for at spille online.',
+  'home.statsAndLeaderboard': 'Statistik og rangliste',
+  'home.play': 'Spil',
+  'home.offlineScoreTable': 'Pointtavle offline',
+  'home.signInToKeepStats': 'Log ind for at beholde din statistik',
+  'home.signOut': 'Log ud',
+  'home.continueAsGuest': 'Fortsæt som gæst',
+  // Someone playing as a guest, marked in a list of names.
+  'home.guestSuffix': '(gæst)',
+
+  // --- the waiting room on the main menu ------------------------------------
+  //
+  // Counts are whole phrases per count, not a number glued to a noun — the
+  // same reason `countLabel` exists. One and many are the cases the interface
+  // actually produces, so they are the cases that get their own wording.
+  'waiting.checking': 'Ser efter, hvem der er her…',
+  'waiting.youAreWaiting': 'Du venter på at spille',
+  'waiting.pickedUp': 'Enhver, der åbner et bord, kan samle dig op — ingen har brug for en kode fra dig.',
+  'waiting.othersOne': '1 spiller mere venter også',
+  'waiting.othersMany': '{n} spillere mere venter også',
+  'waiting.oneWaiting': '1 spiller venter på at spille',
+  'waiting.manyWaiting': '{n} spillere venter på at spille',
+  'waiting.adding': 'Du bliver føjet til ventelisten…',
+  'waiting.slowHint':
+    'Hvis det ikke bliver færdigt på et par sekunder, så tjek, om serveradressen nedenfor kan nås fra denne enhed.',
+  'waiting.serverBusyDetail':
+    'Forsøg {n}. Serveren tager lige nu ikke imod nye forbindelser til venteværelset.',
+  'waiting.reconnecting': 'Forbindelsen røg — forbinder igen…',
+  'waiting.reconnectingDetail':
+    'Forsøg {n}. Det kan ske, hvis enhedens netværk er skiftet, eller serveren blev genstartet.',
+  'waiting.tryAgain': 'Prøv igen nu',
+  'waiting.makeAvailable': 'Gør mig tilgængelig til at spille',
+  'waiting.stop': 'Hold op med at vente',
+  'waiting.noneYet':
+    'Lige nu venter ingen på at spille. Skriv dig på listen, så er du den første, nogen ser.',
+  'waiting.noOthersYet': 'Ingen andre venter endnu. Værter kan se dig alligevel og kan invitere dig.',
+  'waiting.server': 'Server',
+  'waiting.none': 'Lige nu venter ingen. Den, der gør sig tilgængelig i hovedmenuen, dukker op her.',
+
+  // --- landing on a shared invite link --------------------------------------
+  'join.missingCode': 'Det link mangler sin bordkode.',
+  'join.staleLink': 'Bed den, der inviterede dig, om et nyt link, eller kom med via koden i stedet.',
+  'join.enterCode': 'Indtast en kode',
+  'join.backToMenu': 'Tilbage til menuen',
+  'join.takingSeat': 'Tager plads…',
+  'join.takingSeatAt': 'Tager plads ved {game}…',
+
+  // --- the lobby ------------------------------------------------------------
+  'lobby.games.subtitle': 'Alt hvad denne server kan byde på',
+  'lobby.games.bots': 'Bots',
+  'lobby.games.playBot': 'Spil mod en bot',
+  'lobby.games.playBots': 'Spil mod {n} bots',
+  'lobby.games.openTable': 'Åbn et bord',
+  'lobby.games.players': '{n} spillere',
+  'lobby.games.playerRange': '{min}–{max} spillere',
+  'lobby.join.placeholder': 'Kode eller invitationslink',
+  'lobby.join.needCode': 'Indtast en kode, et link eller et kamp-id',
+  'lobby.games.signInFirst': 'Log ind først',
+  'lobby.join.action': 'Deltag',
+  'lobby.join.waitingTitle': 'Venter på værten',
+  // Two whole sentences rather than one with a swapped noun: "a game of {game}"
+  // does not survive a language that inflects the game's name after "of".
+  'lobby.join.joinedGame': 'Du er med i et spil {game} — venter på start',
+  'lobby.join.joinedTable': 'Du er med ved bordet — venter på start',
+  'lobby.table.addBot': 'Tilføj en bot',
+  'lobby.table.start': 'Start',
+  'lobby.table.waitingForHost': 'Venter på, at værten starter…',
+
+  // --- inviting someone to a table ------------------------------------------
+  'invite.heading': 'Inviter spillere',
+  'invite.explain': 'Send det her link. Den, der åbner det, lander ved dette bord — ingen konto nødvendig.',
+  'invite.noAddress': 'Denne server har ingen delbar adresse sat op, så brug koden nedenfor.',
+  'invite.readOutCode': 'Eller læs koden op:',
+  'invite.copy': 'Kopiér link',
+  'invite.share': 'Del link',
+  'invite.copied': 'Kopieret!',
+  'invite.shared': 'Delt',
+
+  // --- the match screen -----------------------------------------------------
+  'match.waitingForTable': 'Venter på bordet…',
+  'match.waitingForPlayer': 'Venter på en anden spiller…',
+  'match.nobodyWon': 'Ingen vandt.',
+  'match.youWon': 'Du vandt.',
+  'match.finished': 'Denne kamp er slut.',
+  'match.inProgress': 'Kampen er i gang — alt er forbundet og kører normalt.',
+  'match.controls': 'Betjening',
+  'match.over': 'Kampen er slut',
+  'match.settingUp': 'Gør klar…',
+  'match.playAgain': 'Spil igen',
+  'match.backToGames': 'Tilbage til spillene',
+  'match.table': 'Bord',
+  'match.opponents': 'Modstandere',
+  // Marks which seat is the reader's own, in a list of seats.
+  'match.youSuffix': '(dig)',
+  // The winner line is composed from whole sentences rather than a name glued
+  // to " won." — the verb agrees with the subject in most of these languages,
+  // and a suffix cannot know that.
+  'match.you': 'dig',
+  'match.someoneWon': '{name} vandt.',
+  'match.wonBy': 'Vundet af {names}.',
+  'match.pausedFor': 'På pause — venter på, at {name} forbinder igen.',
+  'match.results': 'Resultater',
+  'match.players': 'Spillere',
+  'match.toPlay': 'i tur',
+
+  // --- the offline score table ----------------------------------------------
+  'scoring.namesHint': 'Navne adskilt af kommaer (4–8 spillere)',
+  'scoring.newSession': 'Ny session',
+  // A worked example, not a sentence: the names are placeholders a translator
+  // may localise, the shape `name:score,` is what the parser needs.
+  'scoring.scoresPlaceholder': 'Anna:120,Bo:80,…',
+  'scoring.saveRound': 'Gem runden',
+  'scoring.export': 'Eksportér scorekortet',
+  'scoring.formatHint': 'Pointformat: Navn:100,Navn2:50',
+  'scoring.nameCountError': 'Indtast 2–8 spillernavne adskilt af kommaer',
+  'scoring.session': 'Session: {id}',
+  'scoring.players': 'Spillere: {names}',
+  'scoring.roundScores': 'Point for runde {n}',
+  'stats.loading': 'Indlæser…',
+  // The figures could not be fetched. `{reason}` is whatever the server or the
+  // network said, which is not ours to translate — the frame around it is.
+  'stats.unavailable': '(utilgængelig: {reason})',
+
+  // --- statistics -----------------------------------------------------------
+  'stats.title': 'Statistik og rangliste',
+  'stats.yours': 'Din statistik',
+  'stats.leaderboard': 'Rangliste',
+
+  // --- a player's lifetime record, shown beside a finished match ------------
+  'record.title': 'Dit facit',
+  'record.guest':
+    'Du spiller som gæst, så der føres ikke noget facit. Log ind, og de spil, du allerede har spillet på denne enhed — også dette — knyttes til din konto.',
+  'record.signInToKeep': 'Log ind og behold dem',
+  'record.failed': 'Dit facit kunne ikke hentes lige nu. Kampen er trygt registreret.',
+  'record.loading': 'Indlæser…',
+  'record.played': 'Spillede',
+  'record.won': 'Vundne',
+  'record.lost': 'Tabte',
+  'record.winRate': 'Vindprocent',
+  'record.streak': 'Stime',
+  'record.atThisGame': 'I dette spil',
+  // A streak is a count with a noun, so it is a whole phrase per count for
+  // the same reason `countLabel` is: "1 win" / "2 wins" is an English rule,
+  // and most of these languages do not share it.
+  'record.streakNone': '—',
+  'record.streakWinOne': '1 sejr',
+  'record.streakWinMany': '{n} sejre',
+  'record.streakLossOne': '1 nederlag',
+  'record.streakLossMany': '{n} nederlag',
+
+  // --- moving cards ---------------------------------------------------------
+  'hand.dragHint': 'Træk et kort langs viften for at flytte det, eller ud på bordet for at spille det',
+  'hand.moveLeft': 'Til venstre',
+  'hand.moveRight': 'Til højre',
+  'zone.collapseGroup': 'Fold denne gruppe sammen',
+  'zone.expandGroup': 'Vis alle kort i denne gruppe',
+  'zone.dropHere': 'Slip her',
+  'offer.pickCards': 'vælg kort til det sted, du trykkede på',
+  'offer.ambiguous': 'det her kan komme flere steder hen — vælg på bordet',
+
+  // --- the build footer -----------------------------------------------------
+  'build.app': 'app',
+  'build.server': 'server',
+  // --- the words the server chose, worded here -------------------------------
+  //
+  // /modules describes each game, variation, option and choice with an English
+  // label. That made the lobby the one screen that stayed English whatever the
+  // picker said. `src/lib/gameLabels.ts` looks these up and falls back to the
+  // label the server sent, so a game added after this build still reads.
+  //
+  // Absent on purpose: game names, place names, ratios and bare numbers.
+  // "Texas Hold'em", "Vegas Strip", "3:2" and "500" read the same in every
+  // language and fall through to the server's own label.
+  'option.pauseBetweenRounds': 'Pause mellem runder',
+  'choice.pauseBetweenRounds.1': 'Pause',
+  'choice.pauseBetweenRounds.0': 'Spil videre med det samme',
+  'option.botSkill': 'Modstandere',
+  'choice.botSkill.0': 'Blandede',
+  'choice.botSkill.1': 'Lette',
+  'choice.botSkill.2': 'Mellem',
+  'choice.botSkill.3': 'Svære',
+  'option.initialMeldMinimum': 'Åbningsværdi',
+  'choice.initialMeldMinimum.0': 'Ingen',
+  'option.discardDrawMinRound': 'Tag fra kastebunken',
+  'choice.discardDrawMinRound.0': 'Åben',
+  'choice.discardDrawMinRound.2': 'Fra runde 2',
+  'choice.discardDrawMinRound.3': 'Fra runde 3',
+  'option.requireCleanRun': 'Jokerfri række',
+  'choice.requireCleanRun.1': 'Påkrævet',
+  'choice.requireCleanRun.0': 'Nej',
+  'option.jokerReclaimMustPlay': 'Tilbagekøbt joker',
+  'choice.jokerReclaimMustPlay.1': 'Spilles samme tur',
+  'choice.jokerReclaimMustPlay.0': 'Må beholdes',
+  'option.dealStarter': 'Udspil',
+  'choice.dealStarter.0': 'På skift',
+  'choice.dealStarter.1': 'Vinderen spiller ud',
+  'variation.prsi.classic': 'Klassisk',
+  'option.handSize': 'Uddelte kort',
+  'variation.canasta.classic': 'Klassisk',
+  'variation.canasta.modern_american': 'Modern American',
+  'option.targetScore': 'Målpoint',
+  'option.canastasToGoOut': 'Canastaer for at gå ud',
+  'variation.holdem.freezeout': 'Freezeout',
+  'variation.holdem.timed': 'Fast antal hænder',
+  'option.startingStack': 'Startjetoner',
+  'option.bigBlind': 'Big blind',
+  'option.handLimit': 'Hænder',
+  'choice.handLimit.0': 'Indtil én plads er tilbage',
+  'variation.ginrummy.standard': 'Standard',
+  'option.knockLimit': 'Bankegrænse',
+  'choice.knockLimit.0': 'Oklahoma (det opvendte kort sætter den)',
+  'option.bigGin': 'Big gin',
+  'choice.bigGin.0': 'Fra',
+  'choice.bigGin.1': 'Til (+25)',
+  'option.lineBonuses': 'Bonusser i opgørelsen',
+  'choice.lineBonuses.1': 'Til',
+  'choice.lineBonuses.0': 'Fra',
+  'variation.rummytiles.standard': 'Standard',
+  'choice.targetScore.0': 'Ingen',
+  // Two games qualify a number the others mean plainly: Canasta's 500 is a
+  // short game, Gin Rummy's and Rummy Tiles' 500 is just 500; Hold'em's
+  // starting 200 is a short stack, Blackjack's 200 is just 200. Module-scoped
+  // so the qualifier travels with the game that means it — a bare key would
+  // hand the note to games it is false for. `scripts/check-server-labels.js`
+  // is what finds these; both were shipping as English on a Czech screen.
+  'choice.canasta.targetScore.500': '500 (kort)',
+  'choice.holdem.startingStack.200': '200 (kort)',
+  'option.roundLimit': 'Rundegrænse',
+  'choice.roundLimit.0': 'Ingen',
+  'option.poolExhaustion': 'Hvis posen slipper op',
+  'choice.poolExhaustion.1': 'Laveste hånd vinder runden',
+  'choice.poolExhaustion.0': 'Ingen vinder runden',
+  'variation.blackjack.single': 'Ét spil',
+  'option.minBet': 'Bordets minimum',
+  'option.rounds': 'Runder',
+  'option.decks': 'Spil',
+  'option.dealerHitsSoft17': 'Dealer på blød 17',
+  'choice.dealerHitsSoft17.0': 'Står',
+  'choice.dealerHitsSoft17.1': 'Trækker',
+  'option.blackjackPays': 'Blackjack betaler',
+  'choice.blackjackPays.100': 'Én til én',
+  'option.maxSplits': 'Deling',
+  'choice.maxSplits.0': 'Ingen deling',
+  'choice.maxSplits.1': 'Én gang (to hænder)',
+  'choice.maxSplits.3': 'Tre gange (fire hænder)',
+  'option.doubleAfterSplit': 'Fordobling efter deling',
+  'choice.doubleAfterSplit.1': 'Tilladt',
+  'choice.doubleAfterSplit.0': 'Ikke tilladt',
+  'option.surrender': 'Opgivelse',
+  'choice.surrender.0': 'Fra',
+  'choice.surrender.1': 'Sen opgivelse',
+  'option.insurance': 'Forsikring',
+  'choice.insurance.1': 'Tilbydes',
+  'choice.insurance.0': 'Tilbydes ikke',
+
+  // --- the verbs on the buttons ---------------------------------------------
+  //
+  // An offer without a `labelKey` of its own is labelled from its raw verb —
+  // `label(offer.labelKey ?? `verb.${offer.verb}`)` in `OfferBar`. That key is
+  // built on this side, so `cmd/dump-keys` never sees it and `serverKeys.json`
+  // does not list it: the parity tests all passed while "Discard", "Lay meld",
+  // "Undo draw" and "Undo lay off" sat in English on a Czech board, because
+  // `humanise()` turned the key into English nobody had written and no search
+  // for an English *string* could find.
+  //
+  // Worded here from the server's own `OfferVerb` constants rather than from
+  // what one run happened to render, so a verb that only appears in a state
+  // the sweep never reached is covered too.
+  'verb.add': 'Tilføj',
+  'verb.bet': 'Sats',
+  'verb.call': 'Syn',
+  'verb.check': 'Tjek',
+  'verb.commit': 'Færdig',
+  'verb.continue': 'Fortsæt',
+  'verb.decline_insurance': 'Ingen forsikring',
+  'verb.discard': 'Smid ud',
+  'verb.double': 'Fordobl',
+  'verb.draw': 'Træk',
+  'verb.finish_layoff': 'Færdig med at lægge på',
+  'verb.fold': 'Kast dig',
+  'verb.hit': 'Tag kort',
+  'verb.insure': 'Tag forsikring',
+  'verb.knock': 'Bank',
+  'verb.lay_meld': 'Læg ud',
+  'verb.lay_off': 'Læg på',
+  'verb.pass': 'Pas',
+  'verb.place': 'Placer',
+  'verb.play_card': 'Spil',
+  'verb.raise': 'Hæv',
+  'verb.reset_turn': 'Nulstil turen',
+  'verb.split': 'Del',
+  'verb.stand': 'Stå',
+  'verb.surrender': 'Opgiv',
+  'verb.swap_joker': 'Byt jokeren',
+  'verb.take': 'Tag',
+  'verb.take_pile': 'Tag fra bunken',
+  // Declared by the server and listed in `serverKeys.json`, but never worded.
+  'verb.takePileFromHand': 'Tag bunken på hånden',
+  'verb.takePileOntoMeld': 'Tag bunken på en kombination',
+  'verb.undoDraw': 'Fortryd træk',
+  'verb.undoLayOff': 'Fortryd pålægning',
+  'verb.undoMeld': 'Fortryd kombination',
+  'verb.undoTurn': 'Fortryd tur',
+
+  // --- suits, spelled out ---------------------------------------------------
+  //
+  // Read aloud by a screen reader and shown where a pip would not fit. The
+  // pips themselves are drawn, not written, so these are the only place the
+  // suit is ever a word.
+  'suit.C': 'Klør',
+  'suit.D': 'Ruder',
+  'suit.H': 'Hjerter',
+  'suit.S': 'Spar',
+
+  // --- counters the board prints beside a number ----------------------------
+  'canasta.seat.notOpened': 'Ikke åbnet',
+  'canasta.unit.points': 'point',
+  'ginrummy.unit.points': 'point',
+  'holdem.seat.dealer': 'Giver',
+  'holdem.unit.chips': 'jetoner',
+  'prsi.unit.cardsLeft': 'kort tilbage',
+  'rummytiles.prompt.initialMeld': 'Din første udlægning skal være {n} point værd.',
+  'rummytiles.unit.points': 'point',
+  'zolik.unit.penalty': 'straf',
+  'header.pileFrozen': 'Bunken frosset',
+  // The module-less form of `ginrummy.prompt.yourTurnDraw`: Žolíky and Canasta
+  // send the prompt without a module prefix. Neither the Go constants nor
+  // `serverKeys.json` list it — the sweep is what found it.
+  'prompt.yourTurnDraw': 'Træk et kort',
 };
