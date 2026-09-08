@@ -1,11 +1,26 @@
 import { BUNDLES, LOCALES, setLocale } from '@/src/lib/i18n';
-import { LEGAL_DOCUMENTS, legalDocument, legalParams, operatorIsNamed } from '@/src/legal';
+import {
+  LEGAL_DOCUMENTS,
+  LEGAL_LOCALES,
+  legalDocument,
+  legalIsTranslated,
+  legalParams,
+  operatorIsNamed,
+} from '@/src/legal';
 import type { LegalDocId } from '@/src/legal';
 
 afterEach(() => setLocale('en'));
 
 const DOC_IDS: LegalDocId[] = ['terms', 'privacy'];
-const locales = LOCALES.map((l) => l.id);
+/**
+ * Parity is asserted over the languages the notices exist in, not over the
+ * twenty-four the interface speaks. The rest are covered below by
+ * "every locale resolves to a complete document" — the guarantee that matters
+ * for them is that the reader gets the English notice in full and is told it
+ * is English, not that a translation nobody wrote is identical to one.
+ */
+const locales = LEGAL_LOCALES;
+const allLocales = LOCALES.map((l) => l.id);
 
 /**
  * The same discipline `i18n.test.ts` applies to interface strings, applied to
@@ -85,7 +100,7 @@ describe('document completeness', () => {
 });
 
 describe('resolving a document for the reader', () => {
-  it.each(locales)('%s leaves no placeholder unsubstituted', (locale) => {
+  it.each(allLocales)('%s leaves no placeholder unsubstituted', (locale) => {
     setLocale(locale);
     for (const docId of DOC_IDS) {
       const rendered = legalDocument(docId)
@@ -103,9 +118,28 @@ describe('resolving a document for the reader', () => {
   });
 
   it('falls back to English rather than to nothing', () => {
-    // Not reachable through `setLocale`, which validates its argument — this
-    // is the guard for a locale added to LOCALES before its documents are.
-    expect(legalDocument('privacy', 'de' as never).title).toBe(LEGAL_DOCUMENTS.en.privacy.title);
+    // Reachable, and routinely: German is a language the interface speaks and
+    // the notices do not.
+    expect(legalDocument('privacy', 'de').title).toBe(LEGAL_DOCUMENTS.en.privacy.title);
+  });
+
+  it.each(allLocales)('%s resolves to a complete document, translated or not', (locale) => {
+    setLocale(locale);
+    for (const docId of DOC_IDS) {
+      const doc = legalDocument(docId);
+      expect(doc.sections.length).toBe(LEGAL_DOCUMENTS.en[docId].sections.length);
+      expect(doc.title.trim()).not.toBe('');
+    }
+  });
+
+  it('tells the caller which locales the notices were actually written in', () => {
+    // The banner on the document screen hangs off this, so a locale wrongly
+    // reported as translated means an English notice presented as if it were
+    // the reader's — the one failure mode the fallback cannot soften.
+    expect(legalIsTranslated('en')).toBe(true);
+    expect(legalIsTranslated('cs')).toBe(true);
+    expect(legalIsTranslated('de')).toBe(false);
+    expect(LEGAL_LOCALES.every((l) => legalIsTranslated(l))).toBe(true);
   });
 });
 

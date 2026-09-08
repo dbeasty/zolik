@@ -1,7 +1,8 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '@/src/components/Screen';
-import { legalDocument, operatorIsNamed, type LegalDocId } from '@/src/legal';
+import { useLocale } from '@/src/hooks/useLocale';
+import { legalDocument, legalIsTranslated, operatorIsNamed, type LegalDocId } from '@/src/legal';
 import { t } from '@/src/lib/i18n';
 import { colors, shared } from '@/src/theme';
 
@@ -18,8 +19,10 @@ import { colors, shared } from '@/src/theme';
  * match the casino felt is a disclaimer that reads as decoration.
  */
 export function LegalDocumentScreen({ id }: { id: LegalDocId }) {
-  const doc = legalDocument(id);
+  const locale = useLocale();
+  const doc = legalDocument(id, locale);
   const draft = !operatorIsNamed();
+  const untranslated = !legalIsTranslated(locale);
 
   return (
     <Screen title={doc.title} scroll>
@@ -30,6 +33,16 @@ export function LegalDocumentScreen({ id }: { id: LegalDocId }) {
         {draft ? (
           <View style={styles.draft} testID={`legal-${id}-draft`}>
             <Text style={styles.draftText}>{t('legal.draft')}</Text>
+          </View>
+        ) : null}
+
+        {/* The interface around this text is in the reader's language and
+            the text is not, which without saying so reads as an oversight
+            rather than as a deliberate limit. Same banner treatment as the
+            draft notice: both say "do not read this as finished". */}
+        {untranslated ? (
+          <View style={styles.draft} testID={`legal-${id}-untranslated`}>
+            <Text style={styles.draftText}>{t('legal.untranslated')}</Text>
           </View>
         ) : null}
 

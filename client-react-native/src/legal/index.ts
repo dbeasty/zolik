@@ -62,24 +62,50 @@ export function operatorIsNamed(): boolean {
   return Object.values(OPERATOR).every((v) => v.trim() !== '' && !v.startsWith('['));
 }
 
-const DOCUMENTS: Record<Locale, Record<LegalDocId, LegalDocument>> = {
+const DOCUMENTS: Partial<Record<Locale, Record<LegalDocId, LegalDocument>>> = {
   en: { terms: termsEn, privacy: privacyEn },
   cs: { terms: termsCs, privacy: privacyCs },
 };
 
+/**
+ * The languages the notices actually exist in — deliberately not the
+ * twenty-four the interface speaks.
+ *
+ * The interface can be translated by anyone who knows the language. These
+ * cannot: a Terms of Use is an agreement and a Privacy Notice is a statement
+ * of what a controller does with personal data, and both are read against the
+ * law of a jurisdiction. A confidently-worded mistranslation of "you may
+ * request erasure" is not a bad day for the reader the way a mistranslated
+ * button is — it is a promise the operator did not make, in a document that
+ * exists to be relied on.
+ *
+ * So the notices fall back to English and say so (`legal.untranslated`), and
+ * this list grows one entry at a time, when a person who reads the language
+ * has checked the words. `LEGAL_LOCALES` is what the parity test iterates;
+ * every *other* locale is covered by a test that it still resolves to a
+ * complete English document rather than to nothing.
+ */
+export const LEGAL_LOCALES = Object.keys(DOCUMENTS) as Locale[];
+
+/** Whether the notices have been translated into `locale` by a person. */
+export function legalIsTranslated(locale: Locale = getLocale()): boolean {
+  return DOCUMENTS[locale] !== undefined;
+}
+
 /** Exported for the parity test, which has to see every bundle at once. */
-export const LEGAL_DOCUMENTS = DOCUMENTS;
+export const LEGAL_DOCUMENTS = DOCUMENTS as Record<Locale, Record<LegalDocId, LegalDocument>>;
 
 /**
  * One document, in the reader's locale, with `{operator}`, `{country}`,
  * `{contact}` and `{source}` substituted.
  *
- * Falls back to English for a locale with no document, exactly as `t` does.
- * The parity test means that fallback should never fire; it is here because
- * the alternative when it does is a blank screen where the terms should be.
+ * Falls back to English for a locale with no document, exactly as `t` does —
+ * and unlike in `t`, that fallback is the expected path for most locales
+ * rather than a guard against a mistake. See `LEGAL_LOCALES`. Callers that
+ * render the document should ask `legalIsTranslated` and tell the reader.
  */
 export function legalDocument(id: LegalDocId, locale: Locale = getLocale()): LegalDocument {
-  const doc = DOCUMENTS[locale]?.[id] ?? DOCUMENTS.en[id];
+  const doc = DOCUMENTS[locale]?.[id] ?? DOCUMENTS.en![id];
   return {
     ...doc,
     sections: doc.sections.map(fillSection),
