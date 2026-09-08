@@ -818,7 +818,7 @@ export const et: Record<string, string> = {
   'account.remove': 'Eemalda',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Continental Rummy · {server}',
+  'home.subtitle': 'Kontinentaalne rummi · {server}',
   'home.playingAs': 'Mängid nimega {name}',
   'home.signInPrompt': 'Logi sisse või jätka külalisena, et võrgus mängida.',
   'home.statsAndLeaderboard': 'Statistika ja edetabel',
@@ -1038,6 +1038,14 @@ export const et: Record<string, string> = {
   'choice.lineBonuses.0': 'Väljas',
   'variation.rummytiles.standard': 'Standardne',
   'choice.targetScore.0': 'Puudub',
+  // Two games qualify a number the others mean plainly: Canasta's 500 is a
+  // short game, Gin Rummy's and Rummy Tiles' 500 is just 500; Hold'em's
+  // starting 200 is a short stack, Blackjack's 200 is just 200. Module-scoped
+  // so the qualifier travels with the game that means it — a bare key would
+  // hand the note to games it is false for. `scripts/check-server-labels.js`
+  // is what finds these; both were shipping as English on a Czech screen.
+  'choice.canasta.targetScore.500': '500 (lühike)',
+  'choice.holdem.startingStack.200': '200 (lühike)',
   'option.roundLimit': 'Voorude piir',
   'choice.roundLimit.0': 'Puudub',
   'option.poolExhaustion': 'Kui varu saab otsa',
@@ -1065,4 +1073,79 @@ export const et: Record<string, string> = {
   'option.insurance': 'Kindlustus',
   'choice.insurance.1': 'Pakutakse',
   'choice.insurance.0': 'Ei pakuta',
+
+  // --- the verbs on the buttons ---------------------------------------------
+  //
+  // An offer without a `labelKey` of its own is labelled from its raw verb —
+  // `label(offer.labelKey ?? `verb.${offer.verb}`)` in `OfferBar`. That key is
+  // built on this side, so `cmd/dump-keys` never sees it and `serverKeys.json`
+  // does not list it: the parity tests all passed while "Discard", "Lay meld",
+  // "Undo draw" and "Undo lay off" sat in English on a Czech board, because
+  // `humanise()` turned the key into English nobody had written and no search
+  // for an English *string* could find.
+  //
+  // Worded here from the server's own `OfferVerb` constants rather than from
+  // what one run happened to render, so a verb that only appears in a state
+  // the sweep never reached is covered too.
+  'verb.add': 'Lisa',
+  'verb.bet': 'Panusta',
+  'verb.call': 'Maksan',
+  'verb.check': 'Passin',
+  'verb.commit': 'Valmis',
+  'verb.continue': 'Jätka',
+  'verb.decline_insurance': 'Kindlustuseta',
+  'verb.discard': 'Viska ära',
+  'verb.double': 'Kahekordista',
+  'verb.draw': 'Tõmba',
+  'verb.finish_layoff': 'Külgepanek tehtud',
+  'verb.fold': 'Loobun',
+  'verb.hit': 'Kaart',
+  'verb.insure': 'Võta kindlustus',
+  'verb.knock': 'Koputa',
+  'verb.lay_meld': 'Pane välja',
+  'verb.lay_off': 'Pane külge',
+  'verb.pass': 'Passi',
+  'verb.place': 'Aseta',
+  'verb.play_card': 'Mängi',
+  'verb.raise': 'Tõstan',
+  'verb.reset_turn': 'Lähtesta käik',
+  'verb.split': 'Jaga',
+  'verb.stand': 'Jään',
+  'verb.surrender': 'Loobu',
+  'verb.swap_joker': 'Vaheta jokker',
+  'verb.take': 'Võta',
+  'verb.take_pile': 'Võta hunnikust',
+  // Declared by the server and listed in `serverKeys.json`, but never worded.
+  'verb.takePileFromHand': 'Võta hunnik kätte',
+  'verb.takePileOntoMeld': 'Võta hunnik kombinatsiooni',
+  'verb.undoDraw': 'Võta tõmme tagasi',
+  'verb.undoLayOff': 'Võta külgepanek tagasi',
+  'verb.undoMeld': 'Võta kombinatsioon tagasi',
+  'verb.undoTurn': 'Võta käik tagasi',
+
+  // --- suits, spelled out ---------------------------------------------------
+  //
+  // Read aloud by a screen reader and shown where a pip would not fit. The
+  // pips themselves are drawn, not written, so these are the only place the
+  // suit is ever a word.
+  'suit.C': 'Risti',
+  'suit.D': 'Ruutu',
+  'suit.H': 'Ärtu',
+  'suit.S': 'Poti',
+
+  // --- counters the board prints beside a number ----------------------------
+  'canasta.seat.notOpened': 'Ei ole avanud',
+  'canasta.unit.points': 'punkti',
+  'ginrummy.unit.points': 'punkti',
+  'holdem.seat.dealer': 'Jagaja',
+  'holdem.unit.chips': 'žetooni',
+  'prsi.unit.cardsLeft': 'kaarti jäänud',
+  'rummytiles.prompt.initialMeld': 'Sinu esimene väljapanek peab olema väärt {n} punkti.',
+  'rummytiles.unit.points': 'punkti',
+  'zolik.unit.penalty': 'trahv',
+  'header.pileFrozen': 'Hunnik külmutatud',
+  // The module-less form of `ginrummy.prompt.yourTurnDraw`: Žolíky and Canasta
+  // send the prompt without a module prefix. Neither the Go constants nor
+  // `serverKeys.json` list it — the sweep is what found it.
+  'prompt.yourTurnDraw': 'Tõmba kaart',
 };

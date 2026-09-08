@@ -838,7 +838,7 @@ export const el: Record<string, string> = {
   'account.remove': 'Αφαίρεση',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Continental Rummy · {server}',
+  'home.subtitle': 'Κοντινένταλ ρέμι · {server}',
   'home.playingAs': 'Παίζεις ως {name}',
   'home.signInPrompt': 'Συνδέσου ή συνέχισε ως επισκέπτης για να παίξεις online.',
   'home.statsAndLeaderboard': 'Στατιστικά και κατάταξη',
@@ -1064,6 +1064,14 @@ export const el: Record<string, string> = {
   'choice.lineBonuses.0': 'Ανενεργά',
   'variation.rummytiles.standard': 'Κανονικό',
   'choice.targetScore.0': 'Κανένα',
+  // Two games qualify a number the others mean plainly: Canasta's 500 is a
+  // short game, Gin Rummy's and Rummy Tiles' 500 is just 500; Hold'em's
+  // starting 200 is a short stack, Blackjack's 200 is just 200. Module-scoped
+  // so the qualifier travels with the game that means it — a bare key would
+  // hand the note to games it is false for. `scripts/check-server-labels.js`
+  // is what finds these; both were shipping as English on a Czech screen.
+  'choice.canasta.targetScore.500': '500 (σύντομη)',
+  'choice.holdem.startingStack.200': '200 (σύντομη)',
   'option.roundLimit': 'Όριο γύρων',
   'choice.roundLimit.0': 'Κανένα',
   'option.poolExhaustion': 'Αν στερέψει το απόθεμα',
@@ -1091,4 +1099,79 @@ export const el: Record<string, string> = {
   'option.insurance': 'Ασφάλεια',
   'choice.insurance.1': 'Προσφέρεται',
   'choice.insurance.0': 'Δεν προσφέρεται',
+
+  // --- the verbs on the buttons ---------------------------------------------
+  //
+  // An offer without a `labelKey` of its own is labelled from its raw verb —
+  // `label(offer.labelKey ?? `verb.${offer.verb}`)` in `OfferBar`. That key is
+  // built on this side, so `cmd/dump-keys` never sees it and `serverKeys.json`
+  // does not list it: the parity tests all passed while "Discard", "Lay meld",
+  // "Undo draw" and "Undo lay off" sat in English on a Czech board, because
+  // `humanise()` turned the key into English nobody had written and no search
+  // for an English *string* could find.
+  //
+  // Worded here from the server's own `OfferVerb` constants rather than from
+  // what one run happened to render, so a verb that only appears in a state
+  // the sweep never reached is covered too.
+  'verb.add': 'Πρόσθεσε',
+  'verb.bet': 'Ποντάρισε',
+  'verb.call': 'Πάσο',
+  'verb.check': 'Τσεκ',
+  'verb.commit': 'Έτοιμο',
+  'verb.continue': 'Συνέχεια',
+  'verb.decline_insurance': 'Χωρίς ασφάλεια',
+  'verb.discard': 'Πέταξε',
+  'verb.double': 'Διπλασίασε',
+  'verb.draw': 'Τράβα',
+  'verb.finish_layoff': 'Τέλος προσάρτησης',
+  'verb.fold': 'Πάσο (φολ)',
+  'verb.hit': 'Φύλλο',
+  'verb.insure': 'Πάρε ασφάλεια',
+  'verb.knock': 'Χτύπα',
+  'verb.lay_meld': 'Κατέβασε',
+  'verb.lay_off': 'Προσάρτησε',
+  'verb.pass': 'Πάσο',
+  'verb.place': 'Τοποθέτησε',
+  'verb.play_card': 'Παίξε',
+  'verb.raise': 'Ανέβασε',
+  'verb.reset_turn': 'Μηδένισε τη σειρά',
+  'verb.split': 'Χώρισε',
+  'verb.stand': 'Μένω',
+  'verb.surrender': 'Παράδοση',
+  'verb.swap_joker': 'Άλλαξε τον μπαλαντέρ',
+  'verb.take': 'Πάρε',
+  'verb.take_pile': 'Πάρε από τον σωρό',
+  // Declared by the server and listed in `serverKeys.json`, but never worded.
+  'verb.takePileFromHand': 'Πάρε τον σωρό στο χέρι',
+  'verb.takePileOntoMeld': 'Πάρε τον σωρό σε συνδυασμό',
+  'verb.undoDraw': 'Ακύρωση τραβήγματος',
+  'verb.undoLayOff': 'Ακύρωση προσάρτησης',
+  'verb.undoMeld': 'Ακύρωση συνδυασμού',
+  'verb.undoTurn': 'Ακύρωση σειράς',
+
+  // --- suits, spelled out ---------------------------------------------------
+  //
+  // Read aloud by a screen reader and shown where a pip would not fit. The
+  // pips themselves are drawn, not written, so these are the only place the
+  // suit is ever a word.
+  'suit.C': 'Σπαθιά',
+  'suit.D': 'Καρό',
+  'suit.H': 'Κούπες',
+  'suit.S': 'Μπαστούνια',
+
+  // --- counters the board prints beside a number ----------------------------
+  'canasta.seat.notOpened': 'Δεν άνοιξε',
+  'canasta.unit.points': 'πόντοι',
+  'ginrummy.unit.points': 'πόντοι',
+  'holdem.seat.dealer': 'Μοιράζει',
+  'holdem.unit.chips': 'μάρκες',
+  'prsi.unit.cardsLeft': 'φύλλα απομένουν',
+  'rummytiles.prompt.initialMeld': 'Το πρώτο σου κατέβασμα πρέπει να αξίζει {n} πόντους.',
+  'rummytiles.unit.points': 'πόντοι',
+  'zolik.unit.penalty': 'ποινή',
+  'header.pileFrozen': 'Ο σωρός πάγωσε',
+  // The module-less form of `ginrummy.prompt.yourTurnDraw`: Žolíky and Canasta
+  // send the prompt without a module prefix. Neither the Go constants nor
+  // `serverKeys.json` list it — the sweep is what found it.
+  'prompt.yourTurnDraw': 'Τράβα ένα φύλλο',
 };

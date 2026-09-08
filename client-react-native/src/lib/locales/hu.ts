@@ -829,7 +829,7 @@ export const hu: Record<string, string> = {
   'account.remove': 'Eltávolítás',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Continental Rummy · {server}',
+  'home.subtitle': 'Kontinentális römi · {server}',
   'home.playingAs': '{name} néven játszol',
   'home.signInPrompt': 'Lépj be, vagy folytasd vendégként, hogy online játszhass.',
   'home.statsAndLeaderboard': 'Statisztika és ranglista',
@@ -1051,6 +1051,14 @@ export const hu: Record<string, string> = {
   'choice.lineBonuses.0': 'Ki',
   'variation.rummytiles.standard': 'Alap',
   'choice.targetScore.0': 'Nincs',
+  // Two games qualify a number the others mean plainly: Canasta's 500 is a
+  // short game, Gin Rummy's and Rummy Tiles' 500 is just 500; Hold'em's
+  // starting 200 is a short stack, Blackjack's 200 is just 200. Module-scoped
+  // so the qualifier travels with the game that means it — a bare key would
+  // hand the note to games it is false for. `scripts/check-server-labels.js`
+  // is what finds these; both were shipping as English on a Czech screen.
+  'choice.canasta.targetScore.500': '500 (rövid)',
+  'choice.holdem.startingStack.200': '200 (rövid)',
   'option.roundLimit': 'Körök korlátja',
   'choice.roundLimit.0': 'Nincs',
   'option.poolExhaustion': 'Ha a készlet kifogy',
@@ -1078,4 +1086,79 @@ export const hu: Record<string, string> = {
   'option.insurance': 'Biztosítás',
   'choice.insurance.1': 'Van',
   'choice.insurance.0': 'Nincs',
+
+  // --- the verbs on the buttons ---------------------------------------------
+  //
+  // An offer without a `labelKey` of its own is labelled from its raw verb —
+  // `label(offer.labelKey ?? `verb.${offer.verb}`)` in `OfferBar`. That key is
+  // built on this side, so `cmd/dump-keys` never sees it and `serverKeys.json`
+  // does not list it: the parity tests all passed while "Discard", "Lay meld",
+  // "Undo draw" and "Undo lay off" sat in English on a Czech board, because
+  // `humanise()` turned the key into English nobody had written and no search
+  // for an English *string* could find.
+  //
+  // Worded here from the server's own `OfferVerb` constants rather than from
+  // what one run happened to render, so a verb that only appears in a state
+  // the sweep never reached is covered too.
+  'verb.add': 'Hozzáadás',
+  'verb.bet': 'Tét',
+  'verb.call': 'Megadom',
+  'verb.check': 'Passz',
+  'verb.commit': 'Kész',
+  'verb.continue': 'Tovább',
+  'verb.decline_insurance': 'Nem kérek biztosítást',
+  'verb.discard': 'Eldobás',
+  'verb.double': 'Duplázás',
+  'verb.draw': 'Húzás',
+  'verb.finish_layoff': 'Hozzárakás kész',
+  'verb.fold': 'Bedobom',
+  'verb.hit': 'Lapot',
+  'verb.insure': 'Biztosítás kérése',
+  'verb.knock': 'Kopogás',
+  'verb.lay_meld': 'Lerak',
+  'verb.lay_off': 'Hozzárakás',
+  'verb.pass': 'Passz',
+  'verb.place': 'Elhelyezés',
+  'verb.play_card': 'Játszd ki',
+  'verb.raise': 'Emelek',
+  'verb.reset_turn': 'Kör visszaállítása',
+  'verb.split': 'Szétosztás',
+  'verb.stand': 'Megállok',
+  'verb.surrender': 'Feladás',
+  'verb.swap_joker': 'Joker cseréje',
+  'verb.take': 'Elvétel',
+  'verb.take_pile': 'Elvétel a pakliból',
+  // Declared by the server and listed in `serverKeys.json`, but never worded.
+  'verb.takePileFromHand': 'Vedd a paklit a kezedbe',
+  'verb.takePileOntoMeld': 'Vedd a paklit egy kombinációra',
+  'verb.undoDraw': 'Húzás visszavonása',
+  'verb.undoLayOff': 'Hozzárakás visszavonása',
+  'verb.undoMeld': 'Kombináció visszavonása',
+  'verb.undoTurn': 'Kör visszavonása',
+
+  // --- suits, spelled out ---------------------------------------------------
+  //
+  // Read aloud by a screen reader and shown where a pip would not fit. The
+  // pips themselves are drawn, not written, so these are the only place the
+  // suit is ever a word.
+  'suit.C': 'Treff',
+  'suit.D': 'Káró',
+  'suit.H': 'Kör',
+  'suit.S': 'Pikk',
+
+  // --- counters the board prints beside a number ----------------------------
+  'canasta.seat.notOpened': 'Nem nyitott',
+  'canasta.unit.points': 'pont',
+  'ginrummy.unit.points': 'pont',
+  'holdem.seat.dealer': 'Osztó',
+  'holdem.unit.chips': 'zseton',
+  'prsi.unit.cardsLeft': 'lap maradt',
+  'rummytiles.prompt.initialMeld': 'Az első lerakásodnak {n} pontot kell érnie.',
+  'rummytiles.unit.points': 'pont',
+  'zolik.unit.penalty': 'büntetés',
+  'header.pileFrozen': 'A pakli befagyasztva',
+  // The module-less form of `ginrummy.prompt.yourTurnDraw`: Žolíky and Canasta
+  // send the prompt without a module prefix. Neither the Go constants nor
+  // `serverKeys.json` list it — the sweep is what found it.
+  'prompt.yourTurnDraw': 'Húzz egy lapot',
 };

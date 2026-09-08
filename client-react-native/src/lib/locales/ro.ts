@@ -823,7 +823,7 @@ export const ro: Record<string, string> = {
   'account.remove': 'Elimină',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Continental Rummy · {server}',
+  'home.subtitle': 'Remi continental · {server}',
   'home.playingAs': 'Joci ca {name}',
   'home.signInPrompt': 'Autentifică-te sau continuă ca invitat ca să joci online.',
   'home.statsAndLeaderboard': 'Statistici și clasament',
@@ -1045,6 +1045,14 @@ export const ro: Record<string, string> = {
   'choice.lineBonuses.0': 'Oprit',
   'variation.rummytiles.standard': 'Standard',
   'choice.targetScore.0': 'Fără',
+  // Two games qualify a number the others mean plainly: Canasta's 500 is a
+  // short game, Gin Rummy's and Rummy Tiles' 500 is just 500; Hold'em's
+  // starting 200 is a short stack, Blackjack's 200 is just 200. Module-scoped
+  // so the qualifier travels with the game that means it — a bare key would
+  // hand the note to games it is false for. `scripts/check-server-labels.js`
+  // is what finds these; both were shipping as English on a Czech screen.
+  'choice.canasta.targetScore.500': '500 (scurtă)',
+  'choice.holdem.startingStack.200': '200 (scurtă)',
   'option.roundLimit': 'Limită de runde',
   'choice.roundLimit.0': 'Fără',
   'option.poolExhaustion': 'Dacă rezerva se termină',
@@ -1072,4 +1080,79 @@ export const ro: Record<string, string> = {
   'option.insurance': 'Asigurare',
   'choice.insurance.1': 'Se oferă',
   'choice.insurance.0': 'Nu se oferă',
+
+  // --- the verbs on the buttons ---------------------------------------------
+  //
+  // An offer without a `labelKey` of its own is labelled from its raw verb —
+  // `label(offer.labelKey ?? `verb.${offer.verb}`)` in `OfferBar`. That key is
+  // built on this side, so `cmd/dump-keys` never sees it and `serverKeys.json`
+  // does not list it: the parity tests all passed while "Discard", "Lay meld",
+  // "Undo draw" and "Undo lay off" sat in English on a Czech board, because
+  // `humanise()` turned the key into English nobody had written and no search
+  // for an English *string* could find.
+  //
+  // Worded here from the server's own `OfferVerb` constants rather than from
+  // what one run happened to render, so a verb that only appears in a state
+  // the sweep never reached is covered too.
+  'verb.add': 'Adaugă',
+  'verb.bet': 'Pariază',
+  'verb.call': 'Plătesc',
+  'verb.check': 'Verific',
+  'verb.commit': 'Gata',
+  'verb.continue': 'Continuă',
+  'verb.decline_insurance': 'Fără asigurare',
+  'verb.discard': 'Aruncă',
+  'verb.double': 'Dublează',
+  'verb.draw': 'Trage',
+  'verb.finish_layoff': 'Gata cu alipirea',
+  'verb.fold': 'Mă retrag',
+  'verb.hit': 'Carte',
+  'verb.insure': 'Ia asigurare',
+  'verb.knock': 'Bate',
+  'verb.lay_meld': 'Coboară',
+  'verb.lay_off': 'Alipește',
+  'verb.pass': 'Pas',
+  'verb.place': 'Așază',
+  'verb.play_card': 'Joacă',
+  'verb.raise': 'Măresc',
+  'verb.reset_turn': 'Resetează tura',
+  'verb.split': 'Desparte',
+  'verb.stand': 'Rămân',
+  'verb.surrender': 'Predă',
+  'verb.swap_joker': 'Schimbă jokerul',
+  'verb.take': 'Ia',
+  'verb.take_pile': 'Ia din teanc',
+  // Declared by the server and listed in `serverKeys.json`, but never worded.
+  'verb.takePileFromHand': 'Ia teancul în mână',
+  'verb.takePileOntoMeld': 'Ia teancul pe o combinație',
+  'verb.undoDraw': 'Anulează tragerea',
+  'verb.undoLayOff': 'Anulează alipirea',
+  'verb.undoMeld': 'Anulează combinația',
+  'verb.undoTurn': 'Anulează tura',
+
+  // --- suits, spelled out ---------------------------------------------------
+  //
+  // Read aloud by a screen reader and shown where a pip would not fit. The
+  // pips themselves are drawn, not written, so these are the only place the
+  // suit is ever a word.
+  'suit.C': 'Trefle',
+  'suit.D': 'Caro',
+  'suit.H': 'Cupă',
+  'suit.S': 'Pică',
+
+  // --- counters the board prints beside a number ----------------------------
+  'canasta.seat.notOpened': 'Nedeschis',
+  'canasta.unit.points': 'puncte',
+  'ginrummy.unit.points': 'puncte',
+  'holdem.seat.dealer': 'Împărțitor',
+  'holdem.unit.chips': 'jetoane',
+  'prsi.unit.cardsLeft': 'cărți rămase',
+  'rummytiles.prompt.initialMeld': 'Prima ta coborâre trebuie să valoreze {n} puncte.',
+  'rummytiles.unit.points': 'puncte',
+  'zolik.unit.penalty': 'penalizare',
+  'header.pileFrozen': 'Teanc înghețat',
+  // The module-less form of `ginrummy.prompt.yourTurnDraw`: Žolíky and Canasta
+  // send the prompt without a module prefix. Neither the Go constants nor
+  // `serverKeys.json` list it — the sweep is what found it.
+  'prompt.yourTurnDraw': 'Trage o carte',
 };

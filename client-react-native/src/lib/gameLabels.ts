@@ -1,4 +1,4 @@
-import { t } from '@/src/lib/i18n';
+import { messageTemplate, t } from '@/src/lib/i18n';
 
 /**
  * The words the *server* chose, rendered in the player's language.
@@ -43,19 +43,46 @@ export function variationLabel(moduleId: string, v: { id: string; label: string 
 /**
  * A table setting's name.
  *
- * Keyed by the option's `name` alone rather than by module: `handSize` means
- * "cards dealt" in every game that has it, and duplicating it per module
- * would be twenty-four files of the same word — and an invitation for the
- * same setting to end up worded two different ways.
+ * Tried module-first, then bare. `handSize` means "cards dealt" in every game
+ * that has it, so the bare key carries it once instead of in seven copies —
+ * but a module that means something different by the same option name can say
+ * so without the others inheriting it.
  */
-export function optionLabel(opt: { name: string; label: string }): string {
-  return t(`option.${opt.name}`, undefined, opt.label);
+export function optionLabel(moduleId: string, opt: { name: string; label: string }): string {
+  return scoped(`option.${moduleId}.${opt.name}`, `option.${opt.name}`, opt.label);
 }
 
-/** One value a setting can take — "Easy", "Off", "Late surrender". */
+/**
+ * One value a setting can take — "Easy", "Off", "Late surrender".
+ *
+ * Module-first for a reason found the hard way: Canasta's target score of 500
+ * is labelled "500 (short)" while Gin Rummy's and Rummy Tiles' 500 is just
+ * "500". A bare `choice.targetScore.500` gave all three whichever wording was
+ * keyed last, so one of them was wrong whichever way it went.
+ */
 export function choiceLabel(
+  moduleId: string,
   optionName: string,
   choice: { value: number | string; label: string },
 ): string {
-  return t(`choice.${optionName}.${choice.value}`, undefined, choice.label);
+  return scoped(
+    `choice.${moduleId}.${optionName}.${choice.value}`,
+    `choice.${optionName}.${choice.value}`,
+    choice.label,
+  );
+}
+
+/**
+ * The specific key if it has words, else the shared one, else the server's own
+ * label — so a module opts out of the shared wording only by having its own.
+ *
+ * The probe is `messageTemplate`, not a `t` call with a sentinel: under the
+ * missing-key marker `t` answers `_TX_<key>_` for everything unworded, and a
+ * sentinel comparison would then read every *deliberately* absent
+ * module-scoped key as present — turning the diagnostic into a source of
+ * leaks that are not real.
+ */
+function scoped(specific: string, shared: string, serverLabel: string): string {
+  if (messageTemplate(specific) !== undefined) return t(specific);
+  return t(shared, undefined, serverLabel);
 }

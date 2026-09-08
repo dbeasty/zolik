@@ -819,7 +819,7 @@ export const lt: Record<string, string> = {
   'account.remove': 'Pašalinti',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Continental Rummy · {server}',
+  'home.subtitle': 'Kontinentinis remis · {server}',
   'home.playingAs': 'Žaidi kaip {name}',
   'home.signInPrompt': 'Prisijunk arba tęsk kaip svečias, kad žaistum internete.',
   'home.statsAndLeaderboard': 'Statistika ir lentelė',
@@ -1040,6 +1040,14 @@ export const lt: Record<string, string> = {
   'choice.lineBonuses.0': 'Išjungtos',
   'variation.rummytiles.standard': 'Standartinis',
   'choice.targetScore.0': 'Nėra',
+  // Two games qualify a number the others mean plainly: Canasta's 500 is a
+  // short game, Gin Rummy's and Rummy Tiles' 500 is just 500; Hold'em's
+  // starting 200 is a short stack, Blackjack's 200 is just 200. Module-scoped
+  // so the qualifier travels with the game that means it — a bare key would
+  // hand the note to games it is false for. `scripts/check-server-labels.js`
+  // is what finds these; both were shipping as English on a Czech screen.
+  'choice.canasta.targetScore.500': '500 (trumpa)',
+  'choice.holdem.startingStack.200': '200 (trumpa)',
   'option.roundLimit': 'Raundų riba',
   'choice.roundLimit.0': 'Nėra',
   'option.poolExhaustion': 'Jei atsargos baigiasi',
@@ -1067,4 +1075,79 @@ export const lt: Record<string, string> = {
   'option.insurance': 'Draudimas',
   'choice.insurance.1': 'Siūlomas',
   'choice.insurance.0': 'Nesiūlomas',
+
+  // --- the verbs on the buttons ---------------------------------------------
+  //
+  // An offer without a `labelKey` of its own is labelled from its raw verb —
+  // `label(offer.labelKey ?? `verb.${offer.verb}`)` in `OfferBar`. That key is
+  // built on this side, so `cmd/dump-keys` never sees it and `serverKeys.json`
+  // does not list it: the parity tests all passed while "Discard", "Lay meld",
+  // "Undo draw" and "Undo lay off" sat in English on a Czech board, because
+  // `humanise()` turned the key into English nobody had written and no search
+  // for an English *string* could find.
+  //
+  // Worded here from the server's own `OfferVerb` constants rather than from
+  // what one run happened to render, so a verb that only appears in a state
+  // the sweep never reached is covered too.
+  'verb.add': 'Pridėti',
+  'verb.bet': 'Statyti',
+  'verb.call': 'Atsakau',
+  'verb.check': 'Tikrinu',
+  'verb.commit': 'Baigta',
+  'verb.continue': 'Tęsti',
+  'verb.decline_insurance': 'Be draudimo',
+  'verb.discard': 'Atmesti',
+  'verb.double': 'Padvigubinti',
+  'verb.draw': 'Traukti',
+  'verb.finish_layoff': 'Pridėjimas baigtas',
+  'verb.fold': 'Pasitraukiu',
+  'verb.hit': 'Korta',
+  'verb.insure': 'Apsidrausti',
+  'verb.knock': 'Belsti',
+  'verb.lay_meld': 'Išdėk',
+  'verb.lay_off': 'Pridėti',
+  'verb.pass': 'Praleisti',
+  'verb.place': 'Padėti',
+  'verb.play_card': 'Sužaisk',
+  'verb.raise': 'Keliu',
+  'verb.reset_turn': 'Atstatyti ėjimą',
+  'verb.split': 'Perskirti',
+  'verb.stand': 'Lieku',
+  'verb.surrender': 'Atiduoti',
+  'verb.swap_joker': 'Pakeisti džokerį',
+  'verb.take': 'Imti',
+  'verb.take_pile': 'Imti iš krūvelės',
+  // Declared by the server and listed in `serverKeys.json`, but never worded.
+  'verb.takePileFromHand': 'Imk krūvelę į ranką',
+  'verb.takePileOntoMeld': 'Imk krūvelę į derinį',
+  'verb.undoDraw': 'Atšaukti traukimą',
+  'verb.undoLayOff': 'Atšaukti pridėjimą',
+  'verb.undoMeld': 'Atšaukti derinį',
+  'verb.undoTurn': 'Atšaukti ėjimą',
+
+  // --- suits, spelled out ---------------------------------------------------
+  //
+  // Read aloud by a screen reader and shown where a pip would not fit. The
+  // pips themselves are drawn, not written, so these are the only place the
+  // suit is ever a word.
+  'suit.C': 'Kryžiai',
+  'suit.D': 'Būgnai',
+  'suit.H': 'Širdys',
+  'suit.S': 'Vynai',
+
+  // --- counters the board prints beside a number ----------------------------
+  'canasta.seat.notOpened': 'Neatidarė',
+  'canasta.unit.points': 'taškų',
+  'ginrummy.unit.points': 'taškų',
+  'holdem.seat.dealer': 'Dalytojas',
+  'holdem.unit.chips': 'žetonų',
+  'prsi.unit.cardsLeft': 'liko kortų',
+  'rummytiles.prompt.initialMeld': 'Tavo pirmas išdėjimas turi būti vertas {n} taškų.',
+  'rummytiles.unit.points': 'taškų',
+  'zolik.unit.penalty': 'bauda',
+  'header.pileFrozen': 'Krūvelė užšaldyta',
+  // The module-less form of `ginrummy.prompt.yourTurnDraw`: Žolíky and Canasta
+  // send the prompt without a module prefix. Neither the Go constants nor
+  // `serverKeys.json` list it — the sweep is what found it.
+  'prompt.yourTurnDraw': 'Paimk kortą',
 };

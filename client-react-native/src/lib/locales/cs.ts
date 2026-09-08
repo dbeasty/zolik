@@ -814,7 +814,7 @@ export const cs: Record<string, string> = {
   'account.remove': 'Odebrat',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Continental Rummy · {server}',
+  'home.subtitle': 'Kontinentální žolíky · {server}',
   'home.playingAs': 'Hraješ jako {name}',
   'home.signInPrompt': 'Přihlas se nebo pokračuj jako host, ať můžeš hrát online.',
   'home.statsAndLeaderboard': 'Statistiky a žebříček',
@@ -1033,6 +1033,14 @@ export const cs: Record<string, string> = {
   'choice.lineBonuses.0': 'Ne',
   'variation.rummytiles.standard': 'Standardní',
   'choice.targetScore.0': 'Bez cíle',
+  // Two games qualify a number the others mean plainly: Canasta's 500 is a
+  // short game, Gin Rummy's and Rummy Tiles' 500 is just 500; Hold'em's
+  // starting 200 is a short stack, Blackjack's 200 is just 200. Module-scoped
+  // so the qualifier travels with the game that means it — a bare key would
+  // hand the note to games it is false for. `scripts/check-server-labels.js`
+  // is what finds these; both were shipping as English on a Czech screen.
+  'choice.canasta.targetScore.500': '500 (krátká)',
+  'choice.holdem.startingStack.200': '200 (krátká)',
   'option.roundLimit': 'Limit kol',
   'choice.roundLimit.0': 'Bez limitu',
   'option.poolExhaustion': 'Když se banka vyčerpá',
@@ -1060,4 +1068,79 @@ export const cs: Record<string, string> = {
   'option.insurance': 'Pojištění',
   'choice.insurance.1': 'Nabízeno',
   'choice.insurance.0': 'Nenabízeno',
+
+  // --- the verbs on the buttons ---------------------------------------------
+  //
+  // An offer without a `labelKey` of its own is labelled from its raw verb —
+  // `label(offer.labelKey ?? `verb.${offer.verb}`)` in `OfferBar`. That key is
+  // built on this side, so `cmd/dump-keys` never sees it and `serverKeys.json`
+  // does not list it: the parity tests all passed while "Discard", "Lay meld",
+  // "Undo draw" and "Undo lay off" sat in English on a Czech board, because
+  // `humanise()` turned the key into English nobody had written and no search
+  // for an English *string* could find.
+  //
+  // Worded here from the server's own `OfferVerb` constants rather than from
+  // what one run happened to render, so a verb that only appears in a state
+  // the sweep never reached is covered too.
+  'verb.add': 'Přidat',
+  'verb.bet': 'Vsadit',
+  'verb.call': 'Dorovnat',
+  'verb.check': 'Čekám',
+  'verb.commit': 'Hotovo',
+  'verb.continue': 'Pokračovat',
+  'verb.decline_insurance': 'Bez pojištění',
+  'verb.discard': 'Odhodit',
+  'verb.double': 'Zdvojit',
+  'verb.draw': 'Líznout',
+  'verb.finish_layoff': 'Hotovo s přikládáním',
+  'verb.fold': 'Složit',
+  'verb.hit': 'Další kartu',
+  'verb.insure': 'Pojistit se',
+  'verb.knock': 'Klepnout',
+  'verb.lay_meld': 'Kombinace',
+  'verb.lay_off': 'Přiložit',
+  'verb.pass': 'Nechat',
+  'verb.place': 'Položit',
+  'verb.play_card': 'Zahrát',
+  'verb.raise': 'Zvýšit',
+  'verb.reset_turn': 'Vrátit tah',
+  'verb.split': 'Rozdělit',
+  'verb.stand': 'Stát',
+  'verb.surrender': 'Vzdát',
+  'verb.swap_joker': 'Vyměnit žolíka',
+  'verb.take': 'Vzít',
+  'verb.take_pile': 'Vzít z balíčku',
+  // Declared by the server and listed in `serverKeys.json`, but never worded.
+  'verb.takePileFromHand': 'Vzít kupu do ruky',
+  'verb.takePileOntoMeld': 'Vzít kupu na kombinaci',
+  'verb.undoDraw': 'Vrátit líznutí',
+  'verb.undoLayOff': 'Vrátit přiložení',
+  'verb.undoMeld': 'Vrátit kombinaci',
+  'verb.undoTurn': 'Vrátit tah',
+
+  // --- suits, spelled out ---------------------------------------------------
+  //
+  // Read aloud by a screen reader and shown where a pip would not fit. The
+  // pips themselves are drawn, not written, so these are the only place the
+  // suit is ever a word.
+  'suit.C': 'Kříže',
+  'suit.D': 'Káry',
+  'suit.H': 'Srdce',
+  'suit.S': 'Piky',
+
+  // --- counters the board prints beside a number ----------------------------
+  'canasta.seat.notOpened': 'Ještě nevyložil',
+  'canasta.unit.points': 'bodů',
+  'ginrummy.unit.points': 'bodů',
+  'holdem.seat.dealer': 'Rozdávající',
+  'holdem.unit.chips': 'žetonů',
+  'prsi.unit.cardsLeft': 'zbývá karet',
+  'rummytiles.prompt.initialMeld': 'Tvoje první vyložení musí mít hodnotu {n} bodů.',
+  'rummytiles.unit.points': 'bodů',
+  'zolik.unit.penalty': 'trestné body',
+  'header.pileFrozen': 'Kupa zamrzlá',
+  // The module-less form of `ginrummy.prompt.yourTurnDraw`: Žolíky and Canasta
+  // send the prompt without a module prefix. Neither the Go constants nor
+  // `serverKeys.json` list it — the sweep is what found it.
+  'prompt.yourTurnDraw': 'Lízni kartu',
 };

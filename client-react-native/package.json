@@ -45,7 +45,8 @@
     "ios": "expo start --ios",
     "web": "sh ../scripts/version.sh --exec expo start --web",
     "test": "jest",
-    "i18n": "node ../scripts/check-locales.js && node ../scripts/find-untranslated.js"
+    "i18n": "node ../scripts/check-locales.js && node ../scripts/find-untranslated.js",
+    "i18n:labels": "node ../scripts/check-server-labels.js"
   },
   "private": true
 }

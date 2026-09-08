@@ -219,7 +219,7 @@ export default function GamesScreen() {
 
             {(mod.options ?? []).map((opt) => (
               <View key={opt.name} style={styles.option}>
-                <Text style={styles.optionLabel}>{optionLabel(opt)}</Text>
+                <Text style={styles.optionLabel}>{optionLabel(mod.id, opt)}</Text>
                 <View style={styles.row}>
                   {opt.choices.map((c) => {
                     const on = (options[mod.id] ?? {})[opt.name] === c.value;
@@ -235,7 +235,7 @@ export default function GamesScreen() {
                         }
                         style={[styles.pill, on && styles.pillOn]}
                       >
-                        <Text style={styles.pillText}>{choiceLabel(opt.name, c)}</Text>
+                        <Text style={styles.pillText}>{choiceLabel(mod.id, opt.name, c)}</Text>
                       </Pressable>
                     );
                   })}

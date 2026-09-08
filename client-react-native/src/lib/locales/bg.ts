@@ -827,7 +827,7 @@ export const bg: Record<string, string> = {
   'account.remove': 'Премахни',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Continental Rummy · {server}',
+  'home.subtitle': 'Континентален реми · {server}',
   'home.playingAs': 'Играеш като {name}',
   'home.signInPrompt': 'Влез или продължи като гост, за да играеш онлайн.',
   'home.statsAndLeaderboard': 'Статистика и класация',
@@ -1047,6 +1047,14 @@ export const bg: Record<string, string> = {
   'choice.lineBonuses.0': 'Изкл.',
   'variation.rummytiles.standard': 'Стандартен',
   'choice.targetScore.0': 'Без',
+  // Two games qualify a number the others mean plainly: Canasta's 500 is a
+  // short game, Gin Rummy's and Rummy Tiles' 500 is just 500; Hold'em's
+  // starting 200 is a short stack, Blackjack's 200 is just 200. Module-scoped
+  // so the qualifier travels with the game that means it — a bare key would
+  // hand the note to games it is false for. `scripts/check-server-labels.js`
+  // is what finds these; both were shipping as English on a Czech screen.
+  'choice.canasta.targetScore.500': '500 (кратка)',
+  'choice.holdem.startingStack.200': '200 (кратка)',
   'option.roundLimit': 'Лимит на рундове',
   'choice.roundLimit.0': 'Без',
   'option.poolExhaustion': 'Ако запасът свърши',
@@ -1074,4 +1082,79 @@ export const bg: Record<string, string> = {
   'option.insurance': 'Застраховка',
   'choice.insurance.1': 'Предлага се',
   'choice.insurance.0': 'Не се предлага',
+
+  // --- the verbs on the buttons ---------------------------------------------
+  //
+  // An offer without a `labelKey` of its own is labelled from its raw verb —
+  // `label(offer.labelKey ?? `verb.${offer.verb}`)` in `OfferBar`. That key is
+  // built on this side, so `cmd/dump-keys` never sees it and `serverKeys.json`
+  // does not list it: the parity tests all passed while "Discard", "Lay meld",
+  // "Undo draw" and "Undo lay off" sat in English on a Czech board, because
+  // `humanise()` turned the key into English nobody had written and no search
+  // for an English *string* could find.
+  //
+  // Worded here from the server's own `OfferVerb` constants rather than from
+  // what one run happened to render, so a verb that only appears in a state
+  // the sweep never reached is covered too.
+  'verb.add': 'Добави',
+  'verb.bet': 'Заложи',
+  'verb.call': 'Плащам',
+  'verb.check': 'Чек',
+  'verb.commit': 'Готово',
+  'verb.continue': 'Продължи',
+  'verb.decline_insurance': 'Без застраховка',
+  'verb.discard': 'Изхвърли',
+  'verb.double': 'Удвои',
+  'verb.draw': 'Тегли',
+  'verb.finish_layoff': 'Готово с прикачването',
+  'verb.fold': 'Пас на ръката',
+  'verb.hit': 'Карта',
+  'verb.insure': 'Застраховай се',
+  'verb.knock': 'Чукни',
+  'verb.lay_meld': 'Свали',
+  'verb.lay_off': 'Прикачи',
+  'verb.pass': 'Пас',
+  'verb.place': 'Постави',
+  'verb.play_card': 'Изиграй',
+  'verb.raise': 'Вдигам',
+  'verb.reset_turn': 'Върни хода',
+  'verb.split': 'Раздели',
+  'verb.stand': 'Оставам',
+  'verb.surrender': 'Откажи се',
+  'verb.swap_joker': 'Смени жокера',
+  'verb.take': 'Вземи',
+  'verb.take_pile': 'Вземи от купчината',
+  // Declared by the server and listed in `serverKeys.json`, but never worded.
+  'verb.takePileFromHand': 'Вземи купчината в ръката',
+  'verb.takePileOntoMeld': 'Вземи купчината върху комбинация',
+  'verb.undoDraw': 'Върни тегленето',
+  'verb.undoLayOff': 'Върни прикачването',
+  'verb.undoMeld': 'Върни комбинацията',
+  'verb.undoTurn': 'Върни хода',
+
+  // --- suits, spelled out ---------------------------------------------------
+  //
+  // Read aloud by a screen reader and shown where a pip would not fit. The
+  // pips themselves are drawn, not written, so these are the only place the
+  // suit is ever a word.
+  'suit.C': 'Спатии',
+  'suit.D': 'Каро',
+  'suit.H': 'Купи',
+  'suit.S': 'Пики',
+
+  // --- counters the board prints beside a number ----------------------------
+  'canasta.seat.notOpened': 'Не е отворил',
+  'canasta.unit.points': 'точки',
+  'ginrummy.unit.points': 'точки',
+  'holdem.seat.dealer': 'Раздаващ',
+  'holdem.unit.chips': 'чипа',
+  'prsi.unit.cardsLeft': 'останали карти',
+  'rummytiles.prompt.initialMeld': 'Първото ти сваляне трябва да струва {n} точки.',
+  'rummytiles.unit.points': 'точки',
+  'zolik.unit.penalty': 'наказание',
+  'header.pileFrozen': 'Купчината е замразена',
+  // The module-less form of `ginrummy.prompt.yourTurnDraw`: Žolíky and Canasta
+  // send the prompt without a module prefix. Neither the Go constants nor
+  // `serverKeys.json` list it — the sweep is what found it.
+  'prompt.yourTurnDraw': 'Изтегли карта',
 };

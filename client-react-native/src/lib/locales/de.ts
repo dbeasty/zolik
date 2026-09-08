@@ -835,7 +835,7 @@ export const de: Record<string, string> = {
   'account.remove': 'Entfernen',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Continental Rummy · {server}',
+  'home.subtitle': 'Kontinental-Rommé · {server}',
   'home.playingAs': 'Du spielst als {name}',
   'home.signInPrompt': 'Melde dich an oder spiel als Gast weiter, um online zu spielen.',
   'home.statsAndLeaderboard': 'Statistik & Rangliste',
@@ -1057,6 +1057,14 @@ export const de: Record<string, string> = {
   'choice.lineBonuses.0': 'Aus',
   'variation.rummytiles.standard': 'Standard',
   'choice.targetScore.0': 'Aus',
+  // Two games qualify a number the others mean plainly: Canasta's 500 is a
+  // short game, Gin Rummy's and Rummy Tiles' 500 is just 500; Hold'em's
+  // starting 200 is a short stack, Blackjack's 200 is just 200. Module-scoped
+  // so the qualifier travels with the game that means it — a bare key would
+  // hand the note to games it is false for. `scripts/check-server-labels.js`
+  // is what finds these; both were shipping as English on a Czech screen.
+  'choice.canasta.targetScore.500': '500 (kurz)',
+  'choice.holdem.startingStack.200': '200 (kurz)',
   'option.roundLimit': 'Rundenlimit',
   'choice.roundLimit.0': 'Aus',
   'option.poolExhaustion': 'Wenn der Vorrat leer ist',
@@ -1084,4 +1092,79 @@ export const de: Record<string, string> = {
   'option.insurance': 'Versicherung',
   'choice.insurance.1': 'Angeboten',
   'choice.insurance.0': 'Nicht angeboten',
+
+  // --- the verbs on the buttons ---------------------------------------------
+  //
+  // An offer without a `labelKey` of its own is labelled from its raw verb —
+  // `label(offer.labelKey ?? `verb.${offer.verb}`)` in `OfferBar`. That key is
+  // built on this side, so `cmd/dump-keys` never sees it and `serverKeys.json`
+  // does not list it: the parity tests all passed while "Discard", "Lay meld",
+  // "Undo draw" and "Undo lay off" sat in English on a Czech board, because
+  // `humanise()` turned the key into English nobody had written and no search
+  // for an English *string* could find.
+  //
+  // Worded here from the server's own `OfferVerb` constants rather than from
+  // what one run happened to render, so a verb that only appears in a state
+  // the sweep never reached is covered too.
+  'verb.add': 'Hinzufügen',
+  'verb.bet': 'Setzen',
+  'verb.call': 'Mitgehen',
+  'verb.check': 'Schieben',
+  'verb.commit': 'Fertig',
+  'verb.continue': 'Weiter',
+  'verb.decline_insurance': 'Keine Versicherung',
+  'verb.discard': 'Ablegen',
+  'verb.double': 'Verdoppeln',
+  'verb.draw': 'Ziehen',
+  'verb.finish_layoff': 'Anlegen beendet',
+  'verb.fold': 'Aussteigen',
+  'verb.hit': 'Karte',
+  'verb.insure': 'Versichern',
+  'verb.knock': 'Klopfen',
+  'verb.lay_meld': 'Auslegen',
+  'verb.lay_off': 'Anlegen',
+  'verb.pass': 'Passen',
+  'verb.place': 'Platzieren',
+  'verb.play_card': 'Ausspielen',
+  'verb.raise': 'Erhöhen',
+  'verb.reset_turn': 'Zug zurücksetzen',
+  'verb.split': 'Teilen',
+  'verb.stand': 'Stehen bleiben',
+  'verb.surrender': 'Aufgeben',
+  'verb.swap_joker': 'Joker tauschen',
+  'verb.take': 'Nehmen',
+  'verb.take_pile': 'Vom Stapel nehmen',
+  // Declared by the server and listed in `serverKeys.json`, but never worded.
+  'verb.takePileFromHand': 'Stapel auf die Hand nehmen',
+  'verb.takePileOntoMeld': 'Stapel an eine Auslage nehmen',
+  'verb.undoDraw': 'Ziehen rückgängig',
+  'verb.undoLayOff': 'Anlegen rückgängig',
+  'verb.undoMeld': 'Auslage rückgängig',
+  'verb.undoTurn': 'Zug rückgängig',
+
+  // --- suits, spelled out ---------------------------------------------------
+  //
+  // Read aloud by a screen reader and shown where a pip would not fit. The
+  // pips themselves are drawn, not written, so these are the only place the
+  // suit is ever a word.
+  'suit.C': 'Kreuz',
+  'suit.D': 'Karo',
+  'suit.H': 'Herz',
+  'suit.S': 'Pik',
+
+  // --- counters the board prints beside a number ----------------------------
+  'canasta.seat.notOpened': 'Nicht eröffnet',
+  'canasta.unit.points': 'Punkte',
+  'ginrummy.unit.points': 'Punkte',
+  'holdem.seat.dealer': 'Geber',
+  'holdem.unit.chips': 'Chips',
+  'prsi.unit.cardsLeft': 'Karten übrig',
+  'rummytiles.prompt.initialMeld': 'Deine erste Auslage muss {n} Punkte wert sein.',
+  'rummytiles.unit.points': 'Punkte',
+  'zolik.unit.penalty': 'Strafpunkte',
+  'header.pileFrozen': 'Stapel eingefroren',
+  // The module-less form of `ginrummy.prompt.yourTurnDraw`: Žolíky and Canasta
+  // send the prompt without a module prefix. Neither the Go constants nor
+  // `serverKeys.json` list it — the sweep is what found it.
+  'prompt.yourTurnDraw': 'Zieh eine Karte',
 };

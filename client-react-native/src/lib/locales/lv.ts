@@ -817,7 +817,7 @@ export const lv: Record<string, string> = {
   'account.remove': 'Noņemt',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Continental Rummy · {server}',
+  'home.subtitle': 'Kontinentālais remijs · {server}',
   'home.playingAs': 'Tu spēlē kā {name}',
   'home.signInPrompt': 'Pieraksties vai turpini kā viesis, lai spēlētu tiešsaistē.',
   'home.statsAndLeaderboard': 'Statistika un rezultātu tabula',
@@ -1038,6 +1038,14 @@ export const lv: Record<string, string> = {
   'choice.lineBonuses.0': 'Izslēgti',
   'variation.rummytiles.standard': 'Standarta',
   'choice.targetScore.0': 'Nav',
+  // Two games qualify a number the others mean plainly: Canasta's 500 is a
+  // short game, Gin Rummy's and Rummy Tiles' 500 is just 500; Hold'em's
+  // starting 200 is a short stack, Blackjack's 200 is just 200. Module-scoped
+  // so the qualifier travels with the game that means it — a bare key would
+  // hand the note to games it is false for. `scripts/check-server-labels.js`
+  // is what finds these; both were shipping as English on a Czech screen.
+  'choice.canasta.targetScore.500': '500 (īsa)',
+  'choice.holdem.startingStack.200': '200 (īsa)',
   'option.roundLimit': 'Raundu ierobežojums',
   'choice.roundLimit.0': 'Nav',
   'option.poolExhaustion': 'Ja krājums izsīkst',
@@ -1065,4 +1073,79 @@ export const lv: Record<string, string> = {
   'option.insurance': 'Apdrošināšana',
   'choice.insurance.1': 'Tiek piedāvāta',
   'choice.insurance.0': 'Netiek piedāvāta',
+
+  // --- the verbs on the buttons ---------------------------------------------
+  //
+  // An offer without a `labelKey` of its own is labelled from its raw verb —
+  // `label(offer.labelKey ?? `verb.${offer.verb}`)` in `OfferBar`. That key is
+  // built on this side, so `cmd/dump-keys` never sees it and `serverKeys.json`
+  // does not list it: the parity tests all passed while "Discard", "Lay meld",
+  // "Undo draw" and "Undo lay off" sat in English on a Czech board, because
+  // `humanise()` turned the key into English nobody had written and no search
+  // for an English *string* could find.
+  //
+  // Worded here from the server's own `OfferVerb` constants rather than from
+  // what one run happened to render, so a verb that only appears in a state
+  // the sweep never reached is covered too.
+  'verb.add': 'Pievieno',
+  'verb.bet': 'Likt',
+  'verb.call': 'Izlīdzinu',
+  'verb.check': 'Čeko',
+  'verb.commit': 'Gatavs',
+  'verb.continue': 'Turpināt',
+  'verb.decline_insurance': 'Bez apdrošināšanas',
+  'verb.discard': 'Izmet',
+  'verb.double': 'Dubultot',
+  'verb.draw': 'Velc',
+  'verb.finish_layoff': 'Pievienošana pabeigta',
+  'verb.fold': 'Metu',
+  'verb.hit': 'Kārti',
+  'verb.insure': 'Apdrošināties',
+  'verb.knock': 'Klauvē',
+  'verb.lay_meld': 'Izliec',
+  'verb.lay_off': 'Pievieno',
+  'verb.pass': 'Garām',
+  'verb.place': 'Novieto',
+  'verb.play_card': 'Izspēlē',
+  'verb.raise': 'Paaugstinu',
+  'verb.reset_turn': 'Atiestatīt gājienu',
+  'verb.split': 'Sadalīt',
+  'verb.stand': 'Palieku',
+  'verb.surrender': 'Atteikties',
+  'verb.swap_joker': 'Nomaini džokeru',
+  'verb.take': 'Ņem',
+  'verb.take_pile': 'Ņem no kaudzes',
+  // Declared by the server and listed in `serverKeys.json`, but never worded.
+  'verb.takePileFromHand': 'Ņem kaudzi rokā',
+  'verb.takePileOntoMeld': 'Ņem kaudzi uz kombināciju',
+  'verb.undoDraw': 'Atsaukt vilkšanu',
+  'verb.undoLayOff': 'Atsaukt pievienošanu',
+  'verb.undoMeld': 'Atsaukt kombināciju',
+  'verb.undoTurn': 'Atsaukt gājienu',
+
+  // --- suits, spelled out ---------------------------------------------------
+  //
+  // Read aloud by a screen reader and shown where a pip would not fit. The
+  // pips themselves are drawn, not written, so these are the only place the
+  // suit is ever a word.
+  'suit.C': 'Kreiss',
+  'suit.D': 'Kāravs',
+  'suit.H': 'Ercens',
+  'suit.S': 'Pīķis',
+
+  // --- counters the board prints beside a number ----------------------------
+  'canasta.seat.notOpened': 'Nav atvēris',
+  'canasta.unit.points': 'punkti',
+  'ginrummy.unit.points': 'punkti',
+  'holdem.seat.dealer': 'Dalītājs',
+  'holdem.unit.chips': 'žetoni',
+  'prsi.unit.cardsLeft': 'atlikušas kārtis',
+  'rummytiles.prompt.initialMeld': 'Tavai pirmajai izlikšanai jābūt {n} punktu vērtai.',
+  'rummytiles.unit.points': 'punkti',
+  'zolik.unit.penalty': 'sods',
+  'header.pileFrozen': 'Kaudze iesaldēta',
+  // The module-less form of `ginrummy.prompt.yourTurnDraw`: Žolíky and Canasta
+  // send the prompt without a module prefix. Neither the Go constants nor
+  // `serverKeys.json` list it — the sweep is what found it.
+  'prompt.yourTurnDraw': 'Pavelc kārti',
 };

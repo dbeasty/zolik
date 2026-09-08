@@ -839,7 +839,7 @@ export const ga: Record<string, string> = {
   'account.remove': 'Bain',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Continental Rummy · {server}',
+  'home.subtitle': 'Rummy Ilchríochach · {server}',
   'home.playingAs': 'Tá tú ag imirt mar {name}',
   'home.signInPrompt': 'Sínigh isteach nó lean ar aghaidh mar aoi chun imirt ar líne.',
   'home.statsAndLeaderboard': 'Staitisticí agus tábla ceannais',
@@ -1064,6 +1064,14 @@ export const ga: Record<string, string> = {
   'choice.lineBonuses.0': 'As',
   'variation.rummytiles.standard': 'Caighdeánach',
   'choice.targetScore.0': 'Gan cheann',
+  // Two games qualify a number the others mean plainly: Canasta's 500 is a
+  // short game, Gin Rummy's and Rummy Tiles' 500 is just 500; Hold'em's
+  // starting 200 is a short stack, Blackjack's 200 is just 200. Module-scoped
+  // so the qualifier travels with the game that means it — a bare key would
+  // hand the note to games it is false for. `scripts/check-server-labels.js`
+  // is what finds these; both were shipping as English on a Czech screen.
+  'choice.canasta.targetScore.500': '500 (gearr)',
+  'choice.holdem.startingStack.200': '200 (gearr)',
   'option.roundLimit': 'Teorainn bhabhtaí',
   'choice.roundLimit.0': 'Gan cheann',
   'option.poolExhaustion': 'Má thránn an linn',
@@ -1091,4 +1099,79 @@ export const ga: Record<string, string> = {
   'option.insurance': 'Árachas',
   'choice.insurance.1': 'Ar fáil',
   'choice.insurance.0': 'Níl ar fáil',
+
+  // --- the verbs on the buttons ---------------------------------------------
+  //
+  // An offer without a `labelKey` of its own is labelled from its raw verb —
+  // `label(offer.labelKey ?? `verb.${offer.verb}`)` in `OfferBar`. That key is
+  // built on this side, so `cmd/dump-keys` never sees it and `serverKeys.json`
+  // does not list it: the parity tests all passed while "Discard", "Lay meld",
+  // "Undo draw" and "Undo lay off" sat in English on a Czech board, because
+  // `humanise()` turned the key into English nobody had written and no search
+  // for an English *string* could find.
+  //
+  // Worded here from the server's own `OfferVerb` constants rather than from
+  // what one run happened to render, so a verb that only appears in a state
+  // the sweep never reached is covered too.
+  'verb.add': 'Cuir leis',
+  'verb.bet': 'Cuir geall',
+  'verb.call': 'Glaoigh',
+  'verb.check': 'Seiceáil',
+  'verb.commit': 'Déanta',
+  'verb.continue': 'Ar aghaidh',
+  'verb.decline_insurance': 'Gan árachas',
+  'verb.discard': 'Caith',
+  'verb.double': 'Dúbail',
+  'verb.draw': 'Tarraing',
+  'verb.finish_layoff': 'Cur leis críochnaithe',
+  'verb.fold': 'Fill',
+  'verb.hit': 'Cárta',
+  'verb.insure': 'Tóg árachas',
+  'verb.knock': 'Cnag',
+  'verb.lay_meld': 'Leag síos',
+  'verb.lay_off': 'Cuir leis',
+  'verb.pass': 'Lig thart',
+  'verb.place': 'Cuir síos',
+  'verb.play_card': 'Imir',
+  'verb.raise': 'Ardaigh',
+  'verb.reset_turn': 'Athshocraigh an seal',
+  'verb.split': 'Roinn',
+  'verb.stand': 'Seasaim',
+  'verb.surrender': 'Géill',
+  'verb.swap_joker': 'Malartaigh an t-áilteoir',
+  'verb.take': 'Tóg',
+  'verb.take_pile': 'Tóg ón gcarn',
+  // Declared by the server and listed in `serverKeys.json`, but never worded.
+  'verb.takePileFromHand': 'Tóg an carn i do láimh',
+  'verb.takePileOntoMeld': 'Tóg an carn ar chumasc',
+  'verb.undoDraw': 'Cealaigh an tarraingt',
+  'verb.undoLayOff': 'Cealaigh an cur leis',
+  'verb.undoMeld': 'Cealaigh an cumasc',
+  'verb.undoTurn': 'Cealaigh an seal',
+
+  // --- suits, spelled out ---------------------------------------------------
+  //
+  // Read aloud by a screen reader and shown where a pip would not fit. The
+  // pips themselves are drawn, not written, so these are the only place the
+  // suit is ever a word.
+  'suit.C': 'Triuf',
+  'suit.D': 'Muileata',
+  'suit.H': 'Hart',
+  'suit.S': 'Spéireata',
+
+  // --- counters the board prints beside a number ----------------------------
+  'canasta.seat.notOpened': 'Gan oscailt',
+  'canasta.unit.points': 'pointe',
+  'ginrummy.unit.points': 'pointe',
+  'holdem.seat.dealer': 'Dáileoir',
+  'holdem.unit.chips': 'slis',
+  'prsi.unit.cardsLeft': 'cárta fágtha',
+  'rummytiles.prompt.initialMeld': 'Caithfidh do chéad leagan síos {n} pointe a bheith fiú.',
+  'rummytiles.unit.points': 'pointe',
+  'zolik.unit.penalty': 'pionós',
+  'header.pileFrozen': 'Carn reoite',
+  // The module-less form of `ginrummy.prompt.yourTurnDraw`: Žolíky and Canasta
+  // send the prompt without a module prefix. Neither the Go constants nor
+  // `serverKeys.json` list it — the sweep is what found it.
+  'prompt.yourTurnDraw': 'Tarraing cárta',
 };

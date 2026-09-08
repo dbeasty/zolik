@@ -1031,6 +1031,14 @@ export const en: Record<string, string> = {
   'choice.lineBonuses.0': 'Off',
   'variation.rummytiles.standard': 'Standard',
   'choice.targetScore.0': 'Off',
+  // Two games qualify a number the others mean plainly: Canasta's 500 is a
+  // short game, Gin Rummy's and Rummy Tiles' 500 is just 500; Hold'em's
+  // starting 200 is a short stack, Blackjack's 200 is just 200. Module-scoped
+  // so the qualifier travels with the game that means it — a bare key would
+  // hand the note to games it is false for. `scripts/check-server-labels.js`
+  // is what finds these; both were shipping as English on a Czech screen.
+  'choice.canasta.targetScore.500': '500 (short)',
+  'choice.holdem.startingStack.200': '200 (short)',
   'option.roundLimit': 'Round limit',
   'choice.roundLimit.0': 'Off',
   'option.poolExhaustion': 'Pool exhaustion',
@@ -1058,4 +1066,79 @@ export const en: Record<string, string> = {
   'option.insurance': 'Insurance',
   'choice.insurance.1': 'Offered',
   'choice.insurance.0': 'Not offered',
+
+  // --- the verbs on the buttons ---------------------------------------------
+  //
+  // An offer without a `labelKey` of its own is labelled from its raw verb —
+  // `label(offer.labelKey ?? `verb.${offer.verb}`)` in `OfferBar`. That key is
+  // built on this side, so `cmd/dump-keys` never sees it and `serverKeys.json`
+  // does not list it: the parity tests all passed while "Discard", "Lay meld",
+  // "Undo draw" and "Undo lay off" sat in English on a Czech board, because
+  // `humanise()` turned the key into English nobody had written and no search
+  // for an English *string* could find.
+  //
+  // Worded here from the server's own `OfferVerb` constants rather than from
+  // what one run happened to render, so a verb that only appears in a state
+  // the sweep never reached is covered too.
+  'verb.add': 'Add',
+  'verb.bet': 'Bet',
+  'verb.call': 'Call',
+  'verb.check': 'Check',
+  'verb.commit': 'Done',
+  'verb.continue': 'Continue',
+  'verb.decline_insurance': 'No insurance',
+  'verb.discard': 'Discard',
+  'verb.double': 'Double down',
+  'verb.draw': 'Draw',
+  'verb.finish_layoff': 'Done laying off',
+  'verb.fold': 'Fold',
+  'verb.hit': 'Hit',
+  'verb.insure': 'Take insurance',
+  'verb.knock': 'Knock',
+  'verb.lay_meld': 'Meld',
+  'verb.lay_off': 'Lay off',
+  'verb.pass': 'Pass',
+  'verb.place': 'Place',
+  'verb.play_card': 'Play',
+  'verb.raise': 'Raise',
+  'verb.reset_turn': 'Reset turn',
+  'verb.split': 'Split',
+  'verb.stand': 'Stand',
+  'verb.surrender': 'Surrender',
+  'verb.swap_joker': 'Swap the joker',
+  'verb.take': 'Take',
+  'verb.take_pile': 'Take from pile',
+  // Declared by the server and listed in `serverKeys.json`, but never worded.
+  'verb.takePileFromHand': 'Take the pile into your hand',
+  'verb.takePileOntoMeld': 'Take the pile onto a meld',
+  'verb.undoDraw': 'Undo draw',
+  'verb.undoLayOff': 'Undo lay off',
+  'verb.undoMeld': 'Undo meld',
+  'verb.undoTurn': 'Undo turn',
+
+  // --- suits, spelled out ---------------------------------------------------
+  //
+  // Read aloud by a screen reader and shown where a pip would not fit. The
+  // pips themselves are drawn, not written, so these are the only place the
+  // suit is ever a word.
+  'suit.C': 'Clubs',
+  'suit.D': 'Diamonds',
+  'suit.H': 'Hearts',
+  'suit.S': 'Spades',
+
+  // --- counters the board prints beside a number ----------------------------
+  'canasta.seat.notOpened': 'Not opened',
+  'canasta.unit.points': 'points',
+  'ginrummy.unit.points': 'points',
+  'holdem.seat.dealer': 'Dealer',
+  'holdem.unit.chips': 'chips',
+  'prsi.unit.cardsLeft': 'cards left',
+  'rummytiles.prompt.initialMeld': 'Your first lay must be worth {n} points.',
+  'rummytiles.unit.points': 'points',
+  'zolik.unit.penalty': 'penalty',
+  'header.pileFrozen': 'Pile frozen',
+  // The module-less form of `ginrummy.prompt.yourTurnDraw`: Žolíky and Canasta
+  // send the prompt without a module prefix. Neither the Go constants nor
+  // `serverKeys.json` list it — the sweep is what found it.
+  'prompt.yourTurnDraw': 'Draw a card',
 };
