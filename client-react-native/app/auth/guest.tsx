@@ -8,6 +8,7 @@ import { LegalNotice } from '@/src/components/LegalNotice';
 import { Screen } from '@/src/components/Screen';
 import { loadGuestId, useSession } from '@/src/context/SessionContext';
 import { useAvatarControls } from '@/src/hooks/useAvatar';
+import { consumePendingInvite } from '@/src/lib/pendingInvite';
 import { shared } from '@/src/theme';
 
 export default function GuestScreen() {
@@ -40,7 +41,12 @@ export default function GuestScreen() {
     setError('');
     try {
       await guestLogin(name.trim() || 'Player');
-      router.replace('/lobby/games');
+      // Somebody who arrived by following an invite came here to answer one
+      // question — what to call themselves — and is owed the table they
+      // clicked, not the game picker. This is the far end of the handoff
+      // `/join/[code]` starts; see src/lib/pendingInvite.ts.
+      const invited = await consumePendingInvite();
+      router.replace(invited ? `/join/${encodeURIComponent(invited)}` : '/lobby/games');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Login failed');
     } finally {

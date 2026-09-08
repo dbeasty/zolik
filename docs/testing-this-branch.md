@@ -97,6 +97,20 @@ players*. In window B: *Play* → *Open a table* → window A's player appears i
 the panel → *Invite* → window A jumps straight into the table with no code
 exchanged. Then *Start*.
 
+**Inviting by link, which needs two browsers and no coordination.** In window
+B: *Play* → *Open a table* → the *Invite players* panel holds a URL like
+`http://127.0.0.1:8114/join/EKP42P`. Press *Copy link* and open it in a private
+window with no session at all: it asks for a display name, nothing else, and
+lands that guest at your table. The join code is still there underneath for
+reading down a phone.
+
+The URL is built from the server's `PUBLIC_BASE_URL`, except in a browser,
+where the page's own origin wins — otherwise a dev link would point at :8090,
+which serves no client. Following a link to a table that has already been dealt
+says so and offers the code box instead. On the web this is the whole flow; a
+native build opens the link in the browser until the deployment carries
+universal-link/app-link association files.
+
 **Sign-in.** Guest, passwordless email (the code is printed to the server log —
 `./scripts/dev-stack.sh logs`), and legacy username/password. Play a match as a
 guest, then sign in: the guest history is claimed onto the new account.

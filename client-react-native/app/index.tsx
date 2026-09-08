@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
 import { BuildFooter } from '@/src/components/BuildFooter';
@@ -10,6 +10,7 @@ import { useLobbySocket } from '@/src/hooks/useLobbySocket';
 import { useWaitingLobbyStatus } from '@/src/hooks/useWaitingLobbyStatus';
 import type { PlayerSession } from '@/src/api/types';
 import { reasonText } from '@/src/lib/i18n';
+import { consumePendingInvite } from '@/src/lib/pendingInvite';
 import { colors, shared } from '@/src/theme';
 
 function MenuButton({
@@ -35,6 +36,7 @@ function MenuButton({
 
 export default function MainMenu() {
   const { session, loading, logout } = useSession();
+  useFollowPendingInvite(!!session && !loading);
 
   if (loading) {
     return (
@@ -115,6 +117,38 @@ export default function MainMenu() {
       <BuildFooter />
     </Screen>
   );
+}
+
+/**
+ * Resume an invite that was interrupted by signing in.
+ *
+ * Every account sign-in path — email code, username, OAuth callback, the
+ * legacy registration — finishes with `router.replace('/')`, so the menu is
+ * where they all come back to and therefore the only place one hook covers
+ * them all. (Guest sign-in does its own, because it lands on the game picker
+ * instead; see app/auth/guest.tsx.)
+ *
+ * Consumed, never merely read: the note is deleted before the navigation it
+ * causes, so an invite followed once cannot ambush somebody on their next
+ * visit to the menu. Nothing happens without a session, which is what keeps
+ * this from firing during the moment before storage has been read.
+ */
+function useFollowPendingInvite(ready: boolean) {
+  // Once per mount. The effect's dependencies settle more than once while the
+  // session loads, and consuming twice would race the storage delete.
+  const followed = useRef(false);
+
+  useEffect(() => {
+    if (!ready || followed.current) return;
+    followed.current = true;
+    let live = true;
+    consumePendingInvite().then((code) => {
+      if (live && code) router.replace(`/join/${encodeURIComponent(code)}`);
+    });
+    return () => {
+      live = false;
+    };
+  }, [ready]);
 }
 
 /**

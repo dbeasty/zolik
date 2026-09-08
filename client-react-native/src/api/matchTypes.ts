@@ -289,6 +289,13 @@ export type MatchState = {
   /** What the lobby chose, echoed back — enough to set the same table again. */
   options?: Record<string, number>;
   joinCode?: string;
+  /**
+   * The join code as a link somebody can open — minted by the server, because
+   * only it knows how the outside world reaches this deployment. Absent when
+   * no public base is configured, which is the ordinary local-development
+   * state; see `src/lib/inviteLink.ts` for what a client does then.
+   */
+  inviteUrl?: string;
   hostId?: string;
   winnerId?: string;
   winners?: string[];

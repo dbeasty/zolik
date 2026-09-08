@@ -368,6 +368,11 @@ func (a *App) routeGroups() []routeGroup {
 	// pool. Wired through a narrow interface rather than an import, so the
 	// runtime does not learn what a waiting room is.
 	matchMgr.SetWaitingRoom(a.waitingRoom, lobby.RoomID)
+	// And where the outside world reaches us, so a host can share a link
+	// instead of dictating a join code. The same configured value the OAuth
+	// redirect is built from, and for the same reason — see
+	// match.Manager.SetInviteBaseURL.
+	matchMgr.SetInviteBaseURL(a.cfg.PublicBaseURL)
 	// And how long a bot pauses before answering, which is a pace question
 	// rather than a rules one — see Manager.SetBotPace.
 	matchMgr.SetBotPace(

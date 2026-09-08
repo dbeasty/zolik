@@ -3,9 +3,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 
 import type { MatchState } from '@/src/api/matchTypes';
+import { InvitePanel } from '@/src/components/InvitePanel';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { formatApiError } from '@/src/lib/apiError';
+import { codeFromInviteInput } from '@/src/lib/inviteLink';
 import { colors, shared } from '@/src/theme';
 
 /**
@@ -49,9 +51,12 @@ export default function JoinMatchScreen() {
 
   async function join() {
     setError('');
-    const trimmed = code.trim();
+    // A whole link is accepted here as readily as a code. Pasting the thing
+    // you were sent is the obvious move, and refusing a URL this app minted
+    // itself would be the client being pedantic about its own format.
+    const trimmed = codeFromInviteInput(code);
     if (!trimmed) {
-      setError('Enter a join code or match ID');
+      setError('Enter a join code, a link, or a match ID');
       return;
     }
     try {
@@ -67,9 +72,16 @@ export default function JoinMatchScreen() {
         <TextInput
           testID="join-code"
           style={shared.input}
-          placeholder="Join code or match ID"
+          placeholder="Join code or invite link"
           placeholderTextColor={colors.muted}
+          // Kept at "characters" even though this box now also takes a URL:
+          // it is a soft-keyboard hint, so it still helps somebody typing a
+          // six-character code by hand — which the server resolves
+          // case-sensitively — and does nothing at all to a paste. Turning it
+          // off would have quietly broken hand-typed codes on phones to buy
+          // nothing.
           autoCapitalize="characters"
+          autoCorrect={false}
           value={code}
           onChangeText={setCode}
         />
@@ -87,6 +99,12 @@ export default function JoinMatchScreen() {
         Joined {state?.moduleId ? `a game of ${state.moduleId}` : 'the table'} — waiting to start
       </Text>
       {error ? <Text style={shared.error}>{error}</Text> : null}
+
+      {/* Anybody at the table can pull in the next player — see the same
+          panel on the host's screen. */}
+      {state?.joinCode ? (
+        <InvitePanel joinCode={state.joinCode} inviteUrl={state.inviteUrl} />
+      ) : null}
 
       <Text style={[shared.status, { marginTop: 12 }]}>
         Players ({state?.players.length ?? 0})
