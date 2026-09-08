@@ -33,7 +33,7 @@ services:
     restart: unless-stopped
     # Sized for a 1–2 GB host: one Go binary with the web client embedded in
     # it, an embedded KDB, no Mongo and no Redis.
-    mem_limit: 1g
+    mem_limit: 2g
     env_file:
       - .env
     # These override .env, so the container's shape is stated here rather than
