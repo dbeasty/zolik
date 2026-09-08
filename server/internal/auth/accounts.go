@@ -14,6 +14,7 @@ import (
 
 	"zolik/server/internal/db"
 	"zolik/server/internal/identity"
+	"zolik/server/internal/metrics"
 	"zolik/server/internal/models"
 )
 
@@ -41,10 +42,20 @@ type GuestClaimer interface {
 type Accounts struct {
 	store   Store
 	claimer GuestClaimer
+	// metrics counts new accounts. Never nil after NewAccounts.
+	metrics metrics.Sink
 }
 
 func NewAccounts(store Store, claimer GuestClaimer) *Accounts {
-	return &Accounts{store: store, claimer: claimer}
+	return &Accounts{store: store, claimer: claimer, metrics: metrics.Nop()}
+}
+
+// SetMetrics attaches the counter sink.
+func (a *Accounts) SetMetrics(s metrics.Sink) {
+	if s == nil {
+		s = metrics.Nop()
+	}
+	a.metrics = s
 }
 
 // SignInOptions carries the context of a sign-in that is not part of the
@@ -255,6 +266,10 @@ func (a *Accounts) createUser(ctx context.Context, claims identity.Claims) (mode
 		// played simply has none, which the stats endpoint renders as zeroes.
 		created, err := a.store.InsertUser(ctx, u)
 		if err == nil {
+			// Counted on the successful insert, inside the retry loop, so a
+			// username collision that costs an attempt does not also cost a
+			// phantom registration.
+			a.metrics.Add(metrics.UsersRegistered, 1)
 			return created, nil
 		}
 		if !db.IsDuplicateKey(err) {

@@ -37,6 +37,14 @@ type Repository interface {
 	// unchanged. A whole match is one document, so load → apply → store is
 	// safe without transactions as long as a concurrent writer loses.
 	UpdateWithVersion(ctx context.Context, id bson.ObjectID, expected int64, next models.Match) error
+	// FindAbandonable lists suspended matches whose AbandonAt has passed.
+	//
+	// It exists because AbandonAt did not, in any useful sense: it was written
+	// by SuspendOnDisconnect and read by nothing, so a table whose player
+	// closed the tab stayed suspended for ever — not finished, not abandoned,
+	// not swept, and invisible to any count of how many games went unfinished.
+	// This is the read that makes the field mean something.
+	FindAbandonable(ctx context.Context, now time.Time, limit int) ([]models.Match, error)
 }
 
 type mongoRepository struct {
@@ -101,4 +109,20 @@ func (r *mongoRepository) UpdateWithVersion(ctx context.Context, id bson.ObjectI
 		return ErrVersionConflict
 	}
 	return nil
+}
+
+// FindAbandonable lists suspended matches past their abandon deadline.
+func (r *mongoRepository) FindAbandonable(ctx context.Context, now time.Time, limit int) ([]models.Match, error) {
+	cur, err := r.coll.Find(ctx,
+		bson.M{"status": "suspended", "abandonAt": bson.M{"$lte": now}},
+		options.Find().SetLimit(int64(limit)).SetSort(bson.D{{Key: "abandonAt", Value: 1}}),
+	)
+	if err != nil {
+		return nil, err
+	}
+	var out []models.Match
+	if err := cur.All(ctx, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
 }

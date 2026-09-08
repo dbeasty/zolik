@@ -7,6 +7,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
+	"zolik/server/internal/metrics"
 	"zolik/server/internal/models"
 )
 
@@ -54,7 +55,8 @@ func (h *Handlers) GuestSessionWithID(ctx context.Context, guestName, guestID st
 		guestName = "Guest"
 	}
 	guestID = sanitizeGuestID(guestID)
-	if guestID == "" {
+	newDevice := guestID == ""
+	if newDevice {
 		var err error
 		if guestID, err = NewRandomToken(16); err != nil {
 			return SessionTokens{}, err
@@ -75,6 +77,14 @@ func (h *Handlers) GuestSessionWithID(ctx context.Context, guestName, guestID st
 		ExpiresAt: now.Add(refreshTokenTTL),
 	}); err != nil {
 		return SessionTokens{}, err
+	}
+
+	// Counted only when an id had to be minted. A returning device sends the
+	// id it already has, and counting every guest *session* would report the
+	// same person again every time they opened the tab — which is a measure
+	// of how often people reload, not of how many arrived.
+	if newDevice {
+		h.metrics.Add(metrics.SessionsGuest, 1)
 	}
 
 	accessToken, err := CreateAccessToken(guestID, guestName, true, guestAccessTokenTTL)

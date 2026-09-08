@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"zolik/server/internal/metrics"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
 )
@@ -14,9 +15,22 @@ import (
 // lifetime updates derived from it.
 type Recorder struct {
 	repo Repository
+	// metrics counts completions for the operator's console. Never nil after
+	// NewRecorder; a sink that discards is the default.
+	metrics metrics.Sink
 }
 
-func NewRecorder(repo Repository) *Recorder { return &Recorder{repo: repo} }
+func NewRecorder(repo Repository) *Recorder {
+	return &Recorder{repo: repo, metrics: metrics.Nop()}
+}
+
+// SetMetrics attaches the counter sink.
+func (r *Recorder) SetMetrics(s metrics.Sink) {
+	if s == nil {
+		s = metrics.Nop()
+	}
+	r.metrics = s
+}
 
 // RecordMatch writes the record for a completed match and folds it into every
 // durable participant's lifetime statistics.
@@ -52,6 +66,13 @@ func (r *Recorder) RecordMatch(ctx context.Context, m0 models.Match, out module.
 	if err != nil {
 		return MatchResult{}, err
 	}
+
+	// Counted here, at the same moment the permanent record is written and
+	// behind the same unique index. That is what makes the daily counter and
+	// match_results incapable of disagreeing about how many games were played:
+	// a retried completion loses the insert race above and returns before
+	// reaching this line, so it is counted exactly once.
+	r.countCompletion(m)
 
 	// Aggregates are applied per seat, not per subject, because one AI
 	// difficulty can hold several seats at the same table and each played its
@@ -109,4 +130,24 @@ func (r *Recorder) RecordMatchAsync(m models.Match, out module.Outcome) {
 			log.Printf("match=%s stats: recording failed: %v", m.ID.Hex(), err)
 		}
 	}()
+}
+
+// countCompletion folds one finished match into the daily counters.
+//
+// Distinct players are people, not seats and not bots. An AI subject holds a
+// seat and has a perfectly good subject key, and counting it would make "how
+// many people played today" a number that goes up when nobody does — a table
+// of one human against three bots would read as four. Guests are counted:
+// they are people, they just have no account yet.
+func (r *Recorder) countCompletion(m MatchResult) {
+	r.metrics.Add(metrics.MatchesCompleted, 1)
+	r.metrics.Add(metrics.MatchesCompletedFor(m.ModuleID), 1)
+	for _, p := range m.Participants {
+		if p.Subject.Kind == SubjectAI {
+			continue
+		}
+		if key := p.Subject.Key(); key != "" {
+			r.metrics.SeePlayer(key)
+		}
+	}
 }

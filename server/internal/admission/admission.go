@@ -36,6 +36,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"zolik/server/internal/metrics"
 )
 
 // Class is what a would-be connection is for. It sets the order things are
@@ -151,6 +153,40 @@ type Controller struct {
 	// refused counts rejections by reason, for observability.
 	mu      sync.Mutex
 	refused map[Reason]int64
+
+	// sink is where refusals go to become a durable, per-day number.
+	//
+	// The map above answers "how is it going right now" on /healthz/capacity
+	// and is wiped by every restart — which is precisely the event heavy load
+	// tends to cause, so the moment an operator most wants the figure is the
+	// moment it is most likely to have just been zeroed. This is the same
+	// count, kept.
+	//
+	// A counter, never a write: Sink.Add folds into memory and something else
+	// flushes it later. A refusal happens exactly when the box is least able
+	// to afford another database write, and a capacity gate that got slower
+	// under load would be the wrong shape of thing entirely.
+	sink Sink
+}
+
+// Sink is the narrow slice of internal/metrics this package needs: one method,
+// declared at the consumer, so nothing here depends on how counters are stored
+// or flushed. The *names*, though, come from metrics itself — mirroring them
+// would be two copies of the same string, and the copy that drifts is the one
+// whose column silently stops appearing on the operator's screen.
+type Sink interface {
+	Add(name string, n int64)
+}
+
+// SetSink attaches the metrics sink. Safe to leave unset: a nil sink counts
+// nothing, and the gate behaves identically.
+func (c *Controller) SetSink(s Sink) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	c.sink = s
+	c.mu.Unlock()
 }
 
 // New builds a Controller. A nil gauge (or one that cannot read a limit)
@@ -259,7 +295,18 @@ func (c *Controller) AllowMatchStart() error {
 		return nil
 	}
 	if reason := c.matchStartRefusal(); reason != "" {
-		return c.reject(reason)
+		rej := c.reject(reason)
+		// Counted separately as well as by reason. A player turned away here
+		// never opened a socket, so nothing downstream would otherwise
+		// distinguish "we were full" from "we told someone they could not
+		// start a game" — and the second is the one they actually experienced.
+		c.mu.Lock()
+		sink := c.sink
+		c.mu.Unlock()
+		if sink != nil {
+			sink.Add(metrics.AdmissionRefusedMatchStart, 1)
+		}
+		return rej
 	}
 	return nil
 }
@@ -307,7 +354,13 @@ func (c *Controller) AdmitReconnect() *Release {
 func (c *Controller) reject(reason Reason) *Rejection {
 	c.mu.Lock()
 	c.refused[reason]++
+	sink := c.sink
 	c.mu.Unlock()
+	// Outside the lock: Add is cheap, but this one is on the path of every
+	// refused arrival and the lock above is shared with Snapshot.
+	if sink != nil {
+		sink.Add(metrics.AdmissionRefusedFor(string(reason)), 1)
+	}
 	return &Rejection{Reason: reason, RetryAfter: c.limits.RetryAfter}
 }
 
