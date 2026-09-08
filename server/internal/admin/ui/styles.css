@@ -429,3 +429,8 @@ th {
   background: var(--line);
   height: 2px;
 }
+
+/* An empty bucket the operator has asked to see again. Present and readable,
+   and visibly not the row to read — showing them back should not undo the
+   reason they were hidden. */
+tbody tr.quiet td { color: var(--muted); }

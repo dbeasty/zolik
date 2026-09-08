@@ -129,6 +129,13 @@
 
   function num(n) { return (n || 0).toLocaleString(); }
 
+  /* Empty buckets are off by default. A month-long range over a quiet week is
+   * mostly rows of zeroes, and a table you scroll past nothing to read is a
+   * table nobody reads. lastReport lets the toggle redraw without refetching:
+   * the rows are already here, only the filter changed. */
+  var showQuiet = false;
+  var lastReport = null;
+
   function percent(rate) {
     return Math.round((rate || 0) * 100) + '%';
   }
@@ -198,7 +205,8 @@
         'waiting_room_closed is it declining to grow while still serving every game in progress.';
     }
 
-    renderTable(rep.buckets);
+    lastReport = rep;
+    renderTable(rep.buckets, rep.bucket);
   }
 
   /* A bar per bucket, drawn with divs rather than a charting library: the CSP
@@ -255,7 +263,38 @@
     return label.replace(/^\d{4}-/, '');
   }
 
-  function renderTable(buckets) {
+  /* One row's cells, in the order the header names them.
+   *
+   * Emptiness is decided from this same list rather than from a second copy
+   * of the field names, because the two would drift: a column added to the
+   * table and forgotten in the filter would start hiding rows that have a
+   * number in them, which is the one failure this feature must not have. */
+  function rowCells(b) {
+    return [
+      { text: b.label + (b.partial ? ' *' : '') },
+      { n: b.matches.created },
+      { n: b.matches.started },
+      { n: b.matches.completed },
+      { n: b.matches.abandoned },
+      { n: b.matches.neverStarted },
+      { n: b.players.distinct, suffix: b.players.isFloor ? '+' : '' },
+      { n: b.users.registered },
+      { n: b.users.guests },
+      { n: b.admission.total },
+      { n: b.ops.uncleanBoots }
+    ];
+  }
+
+  /* A bucket in which nothing at all happened: every number the table would
+   * print is zero. Not the same as a bucket with no *matches* — a day that
+   * turned somebody away or booted uncleanly is a day worth reading. */
+  function isQuiet(b) {
+    return rowCells(b).every(function (c) {
+      return c.text !== undefined || (c.n || 0) === 0;
+    });
+  }
+
+  function renderTable(buckets, noun) {
     var table = $('table');
     clear(table);
     var head = ['bucket', 'created', 'started', 'finished', 'abandoned',
@@ -270,24 +309,57 @@
     thead.appendChild(hr);
     table.appendChild(thead);
 
+    var quiet = 0;
     var tbody = document.createElement('tbody');
     buckets.forEach(function (b) {
+      var isEmpty = isQuiet(b);
+      if (isEmpty) {
+        quiet++;
+        if (!showQuiet) return;
+      }
       var tr = document.createElement('tr');
-      [
-        b.label + (b.partial ? ' *' : ''),
-        num(b.matches.created), num(b.matches.started), num(b.matches.completed),
-        num(b.matches.abandoned), num(b.matches.neverStarted),
-        num(b.players.distinct) + (b.players.isFloor ? '+' : ''),
-        num(b.users.registered), num(b.users.guests),
-        num(b.admission.total), num(b.ops.uncleanBoots)
-      ].forEach(function (v) {
+      // Kept legible but visibly not the thing to read, so that asking for
+      // them back does not undo the reason they were hidden.
+      if (isEmpty) tr.className = 'quiet';
+      rowCells(b).forEach(function (c) {
         var td = document.createElement('td');
-        td.textContent = v;
+        td.textContent = c.text !== undefined ? c.text : num(c.n) + (c.suffix || '');
         tr.appendChild(td);
       });
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
+
+    renderQuietNote(quiet, noun);
+  }
+
+  /* Say what was left out, and offer it back.
+   *
+   * A table that silently drops rows is one an operator misreads as a shorter
+   * range than they asked for — "we only have four days of data" is a much
+   * worse conclusion than the empty rows were a nuisance. The chart above
+   * still draws every bucket, so the shape of a quiet stretch stays visible
+   * even while its rows are not. */
+  function renderQuietNote(quiet, noun) {
+    var note = $('empty-note');
+    clear(note);
+    show(note, quiet > 0);
+    if (!quiet) return;
+
+    var plural = quiet === 1 ? '' : 's';
+    note.appendChild(document.createTextNode(
+      (showQuiet ? 'Showing ' : 'Hiding ') + quiet + ' empty ' + noun + plural +
+      ' — nothing was created, played, refused or crashed. '));
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'link';
+    btn.textContent = showQuiet ? 'Hide them' : 'Show them';
+    btn.addEventListener('click', function () {
+      showQuiet = !showQuiet;
+      if (lastReport) renderTable(lastReport.buckets, lastReport.bucket);
+    });
+    note.appendChild(btn);
   }
 
   /* ----------------------------------------------------------------- load */
