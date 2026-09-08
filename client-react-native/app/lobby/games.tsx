@@ -101,7 +101,7 @@ export default function GamesScreen() {
   const start = useCallback(
     async (mod: MatchModule, withBot: boolean) => {
       if (!session?.accessToken) {
-        setError('Sign in first');
+        setError(t('lobby.games.signInFirst'));
         return;
       }
       setBusy(mod.id);

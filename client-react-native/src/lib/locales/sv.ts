@@ -692,6 +692,9 @@ export const sv: Record<string, string> = {
   // itself lived on this screen: a player who cannot read "Settings" is
   // exactly the one who came here to change it.
   'settings.title': 'Inställningar',
+  'settings.signedInAs': 'Inloggad som {username}',
+  'settings.playingAsGuest': 'Du spelar som {username} (gäst)',
+  'settings.notSignedIn': 'Inte inloggad — logga in eller fortsätt som gäst för att spela online.',
   'settings.subtitle': 'Hur du ser ut, och hur bordet gör det',
   'settings.face.heading': 'Ditt ansikte vid bordet',
   'settings.face.account': 'Sparas med ditt konto, så det följer med till en annan enhet.',
@@ -734,6 +737,20 @@ export const sv: Record<string, string> = {
   'nav.match': 'Match',
   'nav.scoreTable': 'Poängtabell',
   'nav.stats': 'Statistik',
+  'nav.more': 'Mer',
+
+  // --- the account menu behind the face in the corner ----------------------
+  'menu.label': 'Kontomeny',
+  'menu.signedIn': 'Inloggad',
+  'menu.notSignedIn': 'Inte inloggad',
+  'menu.keepStats': 'för att behålla din statistik',
+  'menu.signOut': 'Logga ut',
+  'more.scoreTable': 'Offline-poängtabell',
+  'more.stats': 'Statistik och topplista',
+  'more.needsAccount': 'logga in för att använda',
+  'gate.title': 'Logga in för att använda detta',
+  'gate.body':
+    'Poängtabeller och statistik sparas med ditt konto, så de följer med dig till en annan enhet. En gäst har ingenstans att spara dem.',
 
   // --- screens that never reached a key at all -------------------------------
   //
@@ -837,6 +854,7 @@ export const sv: Record<string, string> = {
   'waiting.none': 'Just nu väntar ingen. Den som gör sig tillgänglig i huvudmenyn dyker upp här.',
 
   // --- landing on a shared invite link --------------------------------------
+  'join.missingCode': 'Den länken saknar sin bordskod.',
   'join.staleLink': 'Be den som bjöd in dig om en ny länk, eller gå med via koden i stället.',
   'join.enterCode': 'Ange en kod',
   'join.backToMenu': 'Tillbaka till menyn',
@@ -852,6 +870,8 @@ export const sv: Record<string, string> = {
   'lobby.games.players': '{n} spelare',
   'lobby.games.playerRange': '{min}–{max} spelare',
   'lobby.join.placeholder': 'Kod eller inbjudningslänk',
+  'lobby.join.needCode': 'Ange en kod, en länk eller ett match-id',
+  'lobby.games.signInFirst': 'Logga in först',
   'lobby.join.action': 'Gå med',
   'lobby.join.waitingTitle': 'Väntar på värden',
   // Two whole sentences rather than one with a swapped noun: "a game of {game}"
@@ -909,10 +929,14 @@ export const sv: Record<string, string> = {
   'scoring.saveRound': 'Spara ronden',
   'scoring.export': 'Exportera protokollet',
   'scoring.formatHint': 'Poängformat: Namn:100,Namn2:50',
+  'scoring.nameCountError': 'Ange 2–8 spelarnamn separerade med komma',
   'scoring.session': 'Session: {id}',
   'scoring.players': 'Spelare: {names}',
   'scoring.roundScores': 'Poäng för rond {n}',
   'stats.loading': 'Läser in…',
+  // The figures could not be fetched. `{reason}` is whatever the server or the
+  // network said, which is not ours to translate — the frame around it is.
+  'stats.unavailable': '(otillgänglig: {reason})',
 
   // --- statistics -----------------------------------------------------------
   'stats.title': 'Statistik och topplista',

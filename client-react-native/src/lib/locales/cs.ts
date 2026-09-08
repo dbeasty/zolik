@@ -694,6 +694,9 @@ export const cs: Record<string, string> = {
   // itself lived on this screen: a player who cannot read "Settings" is
   // exactly the one who came here to change it.
   'settings.title': 'Nastavení',
+  'settings.signedInAs': 'Přihlášen jako {username}',
+  'settings.playingAsGuest': 'Hraješ jako {username} (host)',
+  'settings.notSignedIn': 'Nejsi přihlášen — přihlas se nebo pokračuj jako host a hraj online.',
   'settings.subtitle': 'Jak vypadáš ty a jak stůl',
   'settings.face.heading': 'Tvoje tvář u stolu',
   'settings.face.account': 'Uloženo k tvému účtu, takže tě doprovodí i na jiné zařízení.',
@@ -735,6 +738,20 @@ export const cs: Record<string, string> = {
   'nav.match': 'Zápas',
   'nav.scoreTable': 'Tabulka skóre',
   'nav.stats': 'Statistiky',
+  'nav.more': 'Další',
+
+  // --- the account menu behind the face in the corner ----------------------
+  'menu.label': 'Nabídka účtu',
+  'menu.signedIn': 'Přihlášen',
+  'menu.notSignedIn': 'Nepřihlášen',
+  'menu.keepStats': 'aby ti zůstaly statistiky',
+  'menu.signOut': 'Odhlásit se',
+  'more.scoreTable': 'Offline tabulka skóre',
+  'more.stats': 'Statistiky a žebříček',
+  'more.needsAccount': 'přihlas se',
+  'gate.title': 'Přihlas se, ať to můžeš použít',
+  'gate.body':
+    'Tabulky skóre a statistiky se ukládají k tvému účtu, takže jdou s tebou i na jiné zařízení. Host je nemá kam uložit.',
 
   // --- screens that never reached a key at all -------------------------------
   //
@@ -837,6 +854,7 @@ export const cs: Record<string, string> = {
   'waiting.none': 'Právě teď nikdo nečeká. Kdo se nabídne v hlavní nabídce, objeví se tady.',
 
   // --- landing on a shared invite link --------------------------------------
+  'join.missingCode': 'Tomuhle odkazu chybí kód stolu.',
   'join.staleLink': 'Požádej toho, kdo tě pozval, o nový odkaz, nebo se připoj kódem.',
   'join.enterCode': 'Zadat kód',
   'join.backToMenu': 'Zpátky do nabídky',
@@ -852,6 +870,8 @@ export const cs: Record<string, string> = {
   'lobby.games.players': 'Hráčů: {n}',
   'lobby.games.playerRange': 'Hráčů: {min}–{max}',
   'lobby.join.placeholder': 'Kód nebo odkaz s pozvánkou',
+  'lobby.join.needCode': 'Zadej kód, odkaz nebo ID zápasu',
+  'lobby.games.signInFirst': 'Nejdřív se přihlas',
   'lobby.join.action': 'Připojit se',
   'lobby.join.waitingTitle': 'Čekání na hostitele',
   // Two whole sentences rather than one with a swapped noun: "a game of {game}"
@@ -908,10 +928,14 @@ export const cs: Record<string, string> = {
   'scoring.saveRound': 'Uložit kolo',
   'scoring.export': 'Exportovat zápis',
   'scoring.formatHint': 'Formát bodů: Jméno:100,Jméno2:50',
+  'scoring.nameCountError': 'Zadej 2–8 jmen hráčů oddělených čárkami',
   'scoring.session': 'Relace: {id}',
   'scoring.players': 'Hráči: {names}',
   'scoring.roundScores': 'Body kola {n}',
   'stats.loading': 'Načítání…',
+  // The figures could not be fetched. `{reason}` is whatever the server or the
+  // network said, which is not ours to translate — the frame around it is.
+  'stats.unavailable': '(nedostupné: {reason})',
 
   // --- statistics -----------------------------------------------------------
   'stats.title': 'Statistiky a žebříček',

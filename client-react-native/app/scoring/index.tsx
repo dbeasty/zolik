@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { Screen } from '@/src/components/Screen';
+import { SignInRequired } from '@/src/components/SignInRequired';
 import { useSession } from '@/src/context/SessionContext';
 import { colors, shared } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
 
 export default function ScoringScreen() {
-  const { client } = useSession();
+  const { client, session } = useSession();
+  const signedIn = !!session && !session.isGuest;
   const [namesInput, setNamesInput] = useState('Alice,Bob,Carol,Dave');
   const [sessionId, setSessionId] = useState('');
   const [players, setPlayers] = useState<string[]>([]);
@@ -23,7 +25,7 @@ export default function ScoringScreen() {
       .map((n) => n.trim())
       .filter(Boolean);
     if (names.length < 2 || names.length > 8) {
-      setError('Enter 2–8 comma-separated player names');
+      setError(t('scoring.nameCountError'));
       return;
     }
     try {
@@ -72,8 +74,12 @@ export default function ScoringScreen() {
     }
   }
 
+  // Kept against an account server-side, so there has to be one — a guest
+  // has nowhere for a score table to be kept.
+  if (!signedIn) return <SignInRequired title={t('more.scoreTable')} />;
+
   return (
-    <Screen title={t('home.offlineScoreTable')} scroll>
+    <Screen title={t('more.scoreTable')} scroll>
       {!sessionId ? (
         <>
           <Text style={shared.status}>{t('scoring.namesHint')}</Text>

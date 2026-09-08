@@ -717,6 +717,9 @@ export const el: Record<string, string> = {
   // itself lived on this screen: a player who cannot read "Settings" is
   // exactly the one who came here to change it.
   'settings.title': 'Ρυθμίσεις',
+  'settings.signedInAs': 'Συνδέθηκες ως {username}',
+  'settings.playingAsGuest': 'Παίζεις ως {username} (επισκέπτης)',
+  'settings.notSignedIn': 'Δεν έχεις συνδεθεί — συνδέσου ή συνέχισε ως επισκέπτης για να παίξεις online.',
   'settings.subtitle': 'Πώς φαίνεσαι εσύ, και πώς το τραπέζι',
   'settings.face.heading': 'Το πρόσωπό σου στο τραπέζι',
   'settings.face.account': 'Φυλάσσεται με τον λογαριασμό σου, οπότε σε ακολουθεί και σε άλλη συσκευή.',
@@ -759,6 +762,20 @@ export const el: Record<string, string> = {
   'nav.match': 'Αγώνας',
   'nav.scoreTable': 'Πίνακας σκορ',
   'nav.stats': 'Στατιστικά',
+  'nav.more': 'Περισσότερα',
+
+  // --- the account menu behind the face in the corner ----------------------
+  'menu.label': 'Μενού λογαριασμού',
+  'menu.signedIn': 'Συνδεδεμένος',
+  'menu.notSignedIn': 'Μη συνδεδεμένος',
+  'menu.keepStats': 'για να κρατήσεις τα στατιστικά σου',
+  'menu.signOut': 'Αποσύνδεση',
+  'more.scoreTable': 'Πίνακας σκορ εκτός σύνδεσης',
+  'more.stats': 'Στατιστικά και κατάταξη',
+  'more.needsAccount': 'συνδέσου για χρήση',
+  'gate.title': 'Συνδέσου για να το χρησιμοποιήσεις',
+  'gate.body':
+    'Οι πίνακες σκορ και τα στατιστικά φυλάσσονται με τον λογαριασμό σου, ώστε να σε ακολουθούν σε άλλη συσκευή. Ο επισκέπτης δεν έχει πού να τα φυλάξει.',
 
   // --- screens that never reached a key at all -------------------------------
   //
@@ -865,6 +882,7 @@ export const el: Record<string, string> = {
     'Αυτή τη στιγμή δεν περιμένει κανείς. Όποιος δηλώσει διαθέσιμος στο κύριο μενού εμφανίζεται εδώ.',
 
   // --- landing on a shared invite link --------------------------------------
+  'join.missingCode': 'Σε αυτόν τον σύνδεσμο λείπει ο κωδικός του τραπεζιού.',
   'join.staleLink': 'Ζήτα φρέσκο σύνδεσμο από όποιον σε κάλεσε, ή μπες με τον κωδικό.',
   'join.enterCode': 'Βάλε κωδικό',
   'join.backToMenu': 'Πίσω στο μενού',
@@ -880,6 +898,8 @@ export const el: Record<string, string> = {
   'lobby.games.players': '{n} παίκτες',
   'lobby.games.playerRange': '{min}–{max} παίκτες',
   'lobby.join.placeholder': 'Κωδικός ή σύνδεσμος πρόσκλησης',
+  'lobby.join.needCode': 'Δώσε κωδικό, σύνδεσμο ή ταυτότητα αγώνα',
+  'lobby.games.signInFirst': 'Συνδέσου πρώτα',
   'lobby.join.action': 'Μπες',
   'lobby.join.waitingTitle': 'Αναμονή για τον οικοδεσπότη',
   // Two whole sentences rather than one with a swapped noun: "a game of {game}"
@@ -938,10 +958,14 @@ export const el: Record<string, string> = {
   'scoring.saveRound': 'Αποθήκευση γύρου',
   'scoring.export': 'Εξαγωγή φύλλου σκορ',
   'scoring.formatHint': 'Μορφή σκορ: Όνομα:100,Όνομα2:50',
+  'scoring.nameCountError': 'Δώσε 2–8 ονόματα παικτών χωρισμένα με κόμμα',
   'scoring.session': 'Συνεδρία: {id}',
   'scoring.players': 'Παίκτες: {names}',
   'scoring.roundScores': 'Σκορ του γύρου {n}',
   'stats.loading': 'Φόρτωση…',
+  // The figures could not be fetched. `{reason}` is whatever the server or the
+  // network said, which is not ours to translate — the frame around it is.
+  'stats.unavailable': '(μη διαθέσιμο: {reason})',
 
   // --- statistics -----------------------------------------------------------
   'stats.title': 'Στατιστικά και κατάταξη',

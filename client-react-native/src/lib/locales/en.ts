@@ -691,6 +691,9 @@ export const en: Record<string, string> = {
   // itself lived on this screen: a player who cannot read "Settings" is
   // exactly the one who came here to change it.
   'settings.title': 'Settings',
+  'settings.signedInAs': 'Signed in as {username}',
+  'settings.playingAsGuest': 'Playing as {username} (guest)',
+  'settings.notSignedIn': 'Not signed in — sign in or continue as a guest to play online.',
   'settings.subtitle': 'How you look, and how the table does',
   'settings.face.heading': 'Your face at the table',
   'settings.face.account': 'Kept with your account, so it follows you to another device.',
@@ -732,6 +735,19 @@ export const en: Record<string, string> = {
   'nav.match': 'Match',
   'nav.scoreTable': 'Score table',
   'nav.stats': 'Stats',
+  'nav.more': 'More',
+
+  // --- the account menu behind the face in the corner ----------------------
+  'menu.label': 'Account menu',
+  'menu.signedIn': 'Signed in',
+  'menu.notSignedIn': 'Not signed in',
+  'menu.keepStats': 'to keep your stats',
+  'menu.signOut': 'Sign out',
+  'more.scoreTable': 'Offline score table',
+  'more.stats': 'Stats & leaderboard',
+  'more.needsAccount': 'sign in to use',
+  'gate.title': 'Sign in to use this',
+  'gate.body': 'Score tables and stats are kept with your account, so they follow you to another device. A guest has nowhere for them to be kept.',
 
   // --- screens that never reached a key at all -------------------------------
   //
@@ -836,6 +852,7 @@ export const en: Record<string, string> = {
   'waiting.none': 'No one is waiting right now. Anyone who makes themselves available on the main menu shows up here.',
 
   // --- landing on a shared invite link --------------------------------------
+  'join.missingCode': 'That link is missing its table code.',
   'join.staleLink': 'Ask whoever invited you for a fresh link, or join with the code instead.',
   'join.enterCode': 'Enter a code',
   'join.backToMenu': 'Back to the menu',
@@ -851,6 +868,8 @@ export const en: Record<string, string> = {
   'lobby.games.players': '{n} players',
   'lobby.games.playerRange': '{min}–{max} players',
   'lobby.join.placeholder': 'Join code or invite link',
+  'lobby.join.needCode': 'Enter a join code, a link, or a match ID',
+  'lobby.games.signInFirst': 'Sign in first',
   'lobby.join.action': 'Join',
   'lobby.join.waitingTitle': 'Waiting for the host',
   // Two whole sentences rather than one with a swapped noun: "a game of {game}"
@@ -907,10 +926,14 @@ export const en: Record<string, string> = {
   'scoring.saveRound': 'Save round',
   'scoring.export': 'Export scorecard',
   'scoring.formatHint': 'Scores format: Name:100,Name2:50',
+  'scoring.nameCountError': 'Enter 2–8 comma-separated player names',
   'scoring.session': 'Session: {id}',
   'scoring.players': 'Players: {names}',
   'scoring.roundScores': 'Round {n} scores',
   'stats.loading': 'Loading…',
+  // The figures could not be fetched. `{reason}` is whatever the server or the
+  // network said, which is not ours to translate — the frame around it is.
+  'stats.unavailable': '(unavailable: {reason})',
 
   // --- statistics -----------------------------------------------------------
   'stats.title': 'Stats & leaderboard',

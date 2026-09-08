@@ -701,6 +701,10 @@ export const ro: Record<string, string> = {
   // itself lived on this screen: a player who cannot read "Settings" is
   // exactly the one who came here to change it.
   'settings.title': 'Setări',
+  'settings.signedInAs': 'Autentificat ca {username}',
+  'settings.playingAsGuest': 'Joci ca {username} (invitat)',
+  'settings.notSignedIn':
+    'Nu ești autentificat — autentifică-te sau continuă ca invitat pentru a juca online.',
   'settings.subtitle': 'Cum arăți tu și cum arată masa',
   'settings.face.heading': 'Chipul tău la masă',
   'settings.face.account': 'Păstrat în contul tău, așa că te însoțește pe alt dispozitiv.',
@@ -743,6 +747,20 @@ export const ro: Record<string, string> = {
   'nav.match': 'Meci',
   'nav.scoreTable': 'Tabel de scor',
   'nav.stats': 'Statistici',
+  'nav.more': 'Mai multe',
+
+  // --- the account menu behind the face in the corner ----------------------
+  'menu.label': 'Meniul contului',
+  'menu.signedIn': 'Autentificat',
+  'menu.notSignedIn': 'Neautentificat',
+  'menu.keepStats': 'ca să-ți păstrezi statisticile',
+  'menu.signOut': 'Deconectare',
+  'more.scoreTable': 'Tabel de scor offline',
+  'more.stats': 'Statistici și clasament',
+  'more.needsAccount': 'autentifică-te ca să folosești',
+  'gate.title': 'Autentifică-te ca să folosești asta',
+  'gate.body':
+    'Tabelele de scor și statisticile sunt păstrate cu contul tău, așa că te însoțesc pe alt dispozitiv. Un invitat nu are unde să le păstreze.',
 
   // --- screens that never reached a key at all -------------------------------
   //
@@ -847,6 +865,7 @@ export const ro: Record<string, string> = {
   'waiting.none': 'Chiar acum nu așteaptă nimeni. Cine se face disponibil din meniul principal apare aici.',
 
   // --- landing on a shared invite link --------------------------------------
+  'join.missingCode': 'Acelui link îi lipsește codul mesei.',
   'join.staleLink': 'Cere un link nou de la cine te-a invitat, sau alătură-te cu codul.',
   'join.enterCode': 'Introdu un cod',
   'join.backToMenu': 'Înapoi la meniu',
@@ -862,6 +881,8 @@ export const ro: Record<string, string> = {
   'lobby.games.players': '{n} jucători',
   'lobby.games.playerRange': '{min}–{max} jucători',
   'lobby.join.placeholder': 'Cod de alăturare sau link de invitație',
+  'lobby.join.needCode': 'Introdu un cod, un link sau un ID de meci',
+  'lobby.games.signInFirst': 'Autentifică-te mai întâi',
   'lobby.join.action': 'Alătură-te',
   'lobby.join.waitingTitle': 'Așteptăm gazda',
   // Two whole sentences rather than one with a swapped noun: "a game of {game}"
@@ -919,10 +940,14 @@ export const ro: Record<string, string> = {
   'scoring.saveRound': 'Salvează runda',
   'scoring.export': 'Exportă fișa de scor',
   'scoring.formatHint': 'Formatul punctelor: Nume:100,Nume2:50',
+  'scoring.nameCountError': 'Introdu 2–8 nume de jucători separate prin virgulă',
   'scoring.session': 'Sesiune: {id}',
   'scoring.players': 'Jucători: {names}',
   'scoring.roundScores': 'Punctele rundei {n}',
   'stats.loading': 'Se încarcă…',
+  // The figures could not be fetched. `{reason}` is whatever the server or the
+  // network said, which is not ours to translate — the frame around it is.
+  'stats.unavailable': '(indisponibil: {reason})',
 
   // --- statistics -----------------------------------------------------------
   'stats.title': 'Statistici și clasament',

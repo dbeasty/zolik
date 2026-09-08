@@ -708,6 +708,9 @@ export const nl: Record<string, string> = {
   // itself lived on this screen: a player who cannot read "Settings" is
   // exactly the one who came here to change it.
   'settings.title': 'Instellingen',
+  'settings.signedInAs': 'Aangemeld als {username}',
+  'settings.playingAsGuest': 'Je speelt als {username} (gast)',
+  'settings.notSignedIn': 'Niet aangemeld — meld je aan of ga verder als gast om online te spelen.',
   'settings.subtitle': 'Hoe jij eruitziet, en hoe de tafel',
   'settings.face.heading': 'Jouw gezicht aan tafel',
   'settings.face.account': 'Bewaard bij je account, zodat het met je meegaat naar een ander apparaat.',
@@ -750,6 +753,20 @@ export const nl: Record<string, string> = {
   'nav.match': 'Partij',
   'nav.scoreTable': 'Scoretabel',
   'nav.stats': 'Statistieken',
+  'nav.more': 'Meer',
+
+  // --- the account menu behind the face in the corner ----------------------
+  'menu.label': 'Accountmenu',
+  'menu.signedIn': 'Aangemeld',
+  'menu.notSignedIn': 'Niet aangemeld',
+  'menu.keepStats': 'om je statistieken te bewaren',
+  'menu.signOut': 'Afmelden',
+  'more.scoreTable': 'Offline scoretabel',
+  'more.stats': 'Statistieken en ranglijst',
+  'more.needsAccount': 'meld je aan om te gebruiken',
+  'gate.title': 'Meld je aan om dit te gebruiken',
+  'gate.body':
+    'Scoretabellen en statistieken worden bij je account bewaard, zodat ze met je meegaan naar een ander apparaat. Een gast heeft er geen plek voor.',
 
   // --- screens that never reached a key at all -------------------------------
   //
@@ -855,6 +872,7 @@ export const nl: Record<string, string> = {
     'Er wacht op dit moment niemand. Wie zich in het hoofdmenu beschikbaar stelt, verschijnt hier.',
 
   // --- landing on a shared invite link --------------------------------------
+  'join.missingCode': 'Aan die link ontbreekt de tafelcode.',
   'join.staleLink': 'Vraag degene die je uitnodigde om een nieuwe link, of doe mee met de code.',
   'join.enterCode': 'Een code invoeren',
   'join.backToMenu': 'Terug naar het menu',
@@ -870,6 +888,8 @@ export const nl: Record<string, string> = {
   'lobby.games.players': '{n} spelers',
   'lobby.games.playerRange': '{min}–{max} spelers',
   'lobby.join.placeholder': 'Deelnamecode of uitnodigingslink',
+  'lobby.join.needCode': 'Voer een code, een link of een match-ID in',
+  'lobby.games.signInFirst': 'Meld je eerst aan',
   'lobby.join.action': 'Meedoen',
   'lobby.join.waitingTitle': 'Wachten op de gastheer',
   // Two whole sentences rather than one with a swapped noun: "a game of {game}"
@@ -926,10 +946,14 @@ export const nl: Record<string, string> = {
   'scoring.saveRound': 'Ronde opslaan',
   'scoring.export': 'Scorekaart exporteren',
   'scoring.formatHint': 'Puntenformaat: Naam:100,Naam2:50',
+  'scoring.nameCountError': "Voer 2–8 spelersnamen in, gescheiden door komma's",
   'scoring.session': 'Sessie: {id}',
   'scoring.players': 'Spelers: {names}',
   'scoring.roundScores': 'Punten van ronde {n}',
   'stats.loading': 'Laden…',
+  // The figures could not be fetched. `{reason}` is whatever the server or the
+  // network said, which is not ours to translate — the frame around it is.
+  'stats.unavailable': '(niet beschikbaar: {reason})',
 
   // --- statistics -----------------------------------------------------------
   'stats.title': 'Statistieken en ranglijst',

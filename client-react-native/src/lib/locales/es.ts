@@ -706,6 +706,10 @@ export const es: Record<string, string> = {
   // itself lived on this screen: a player who cannot read "Settings" is
   // exactly the one who came here to change it.
   'settings.title': 'Ajustes',
+  'settings.signedInAs': 'Sesión iniciada como {username}',
+  'settings.playingAsGuest': 'Jugando como {username} (invitado)',
+  'settings.notSignedIn':
+    'No has iniciado sesión — inicia sesión o continúa como invitado para jugar online.',
   'settings.subtitle': 'Qué aspecto tienes tú y qué aspecto tiene la mesa',
   'settings.face.heading': 'Tu cara en la mesa',
   'settings.face.account': 'Se guarda con tu cuenta, así que te acompaña a otro dispositivo.',
@@ -748,6 +752,20 @@ export const es: Record<string, string> = {
   'nav.match': 'Partida',
   'nav.scoreTable': 'Tabla de puntos',
   'nav.stats': 'Estadísticas',
+  'nav.more': 'Más',
+
+  // --- the account menu behind the face in the corner ----------------------
+  'menu.label': 'Menú de cuenta',
+  'menu.signedIn': 'Sesión iniciada',
+  'menu.notSignedIn': 'Sin sesión iniciada',
+  'menu.keepStats': 'para conservar tus estadísticas',
+  'menu.signOut': 'Cerrar sesión',
+  'more.scoreTable': 'Tabla de puntos sin conexión',
+  'more.stats': 'Estadísticas y clasificación',
+  'more.needsAccount': 'inicia sesión para usar',
+  'gate.title': 'Inicia sesión para usar esto',
+  'gate.body':
+    'Las tablas de puntos y las estadísticas se guardan con tu cuenta, así te acompañan a otro dispositivo. Un invitado no tiene dónde guardarlas.',
 
   // --- screens that never reached a key at all -------------------------------
   //
@@ -852,6 +870,7 @@ export const es: Record<string, string> = {
   'waiting.none': 'Ahora mismo no espera nadie. Quien se ponga disponible en el menú principal aparece aquí.',
 
   // --- landing on a shared invite link --------------------------------------
+  'join.missingCode': 'A ese enlace le falta el código de la mesa.',
   'join.staleLink': 'Pide un enlace nuevo a quien te invitó, o únete con el código en su lugar.',
   'join.enterCode': 'Introducir un código',
   'join.backToMenu': 'Volver al menú',
@@ -867,6 +886,8 @@ export const es: Record<string, string> = {
   'lobby.games.players': '{n} jugadores',
   'lobby.games.playerRange': '{min}–{max} jugadores',
   'lobby.join.placeholder': 'Código o enlace de invitación',
+  'lobby.join.needCode': 'Introduce un código, un enlace o un ID de partida',
+  'lobby.games.signInFirst': 'Inicia sesión primero',
   'lobby.join.action': 'Unirse',
   'lobby.join.waitingTitle': 'Esperando al anfitrión',
   // Two whole sentences rather than one with a swapped noun: "a game of {game}"
@@ -924,10 +945,14 @@ export const es: Record<string, string> = {
   'scoring.saveRound': 'Guardar ronda',
   'scoring.export': 'Exportar hoja de puntos',
   'scoring.formatHint': 'Formato de puntos: Nombre:100,Nombre2:50',
+  'scoring.nameCountError': 'Introduce de 2 a 8 nombres separados por comas',
   'scoring.session': 'Sesión: {id}',
   'scoring.players': 'Jugadores: {names}',
   'scoring.roundScores': 'Puntos de la ronda {n}',
   'stats.loading': 'Cargando…',
+  // The figures could not be fetched. `{reason}` is whatever the server or the
+  // network said, which is not ours to translate — the frame around it is.
+  'stats.unavailable': '(no disponible: {reason})',
 
   // --- statistics -----------------------------------------------------------
   'stats.title': 'Estadísticas y clasificación',

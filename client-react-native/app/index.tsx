@@ -42,7 +42,7 @@ function MenuButton({
 }
 
 export default function MainMenu() {
-  const { session, loading, logout } = useSession();
+  const { session, loading } = useSession();
   useFollowPendingInvite(!!session && !loading);
 
   if (loading) {
@@ -89,27 +89,12 @@ export default function MainMenu() {
             router.push('/lobby/join');
           }}
         />
-        <MenuButton
-          label={t('home.offlineScoreTable')}
-          secondary
-          onPress={() => router.push('/scoring')}
-        />
-        <MenuButton label={t('home.statsAndLeaderboard')} secondary onPress={() => router.push('/stats')} />
-
-        {session ? (
-          <>
-            {session.isGuest ? (
-              <MenuButton
-                label={t('home.signInToKeepStats')}
-                secondary
-                onPress={() => router.push('/auth/login')}
-              />
-            ) : (
-              <MenuButton label={t('nav.account')} secondary onPress={() => router.push('/account')} />
-            )}
-            <MenuButton label={t('home.signOut')} secondary onPress={() => logout()} />
-          </>
-        ) : (
+        {/* Settings, sign-out, the account and the second-tier screens are
+            not here: they are behind the face in the top corner, which is
+            where a player looks for themselves. See `AccountMenu`. What is
+            left is the two things this screen exists to do — and, for
+            somebody with no session yet, the two ways to get one. */}
+        {!session ? (
           <>
             <MenuButton label={t('settings.signIn')} onPress={() => router.push('/auth/login')} />
             <MenuButton
@@ -118,7 +103,7 @@ export default function MainMenu() {
               onPress={() => router.push('/auth/guest')}
             />
           </>
-        )}
+        ) : null}
       </View>
 
       <BuildFooter />

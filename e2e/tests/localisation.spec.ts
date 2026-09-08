@@ -108,8 +108,12 @@ test.describe('the whole app speaks one language at a time', () => {
     { path: '/auth/register', name: 'the legacy account screen' },
     { path: '/auth/username-login', name: 'username sign-in' },
     { path: '/lobby/join', name: 'joining by code' },
-    { path: '/scoring', name: 'the offline score table' },
-    { path: '/stats', name: 'stats' },
+    { path: '/more', name: 'the more menu' },
+    // Reached with no session, so both render the sign-in gate rather than
+    // the screen behind it — which is the thing worth checking here, since
+    // the gate is what a signed-out player actually sees.
+    { path: '/scoring', name: 'the score table gate' },
+    { path: '/stats', name: 'the stats gate' },
     // The notices themselves are English until a person has checked the
     // translation, and say so in their own banner. What must be German here is
     // everything around them: the bar, the links, the version line, and the
@@ -128,6 +132,26 @@ test.describe('the whole app speaks one language at a time', () => {
       expectNoEnglish(await screenText(page, screen.exclude), screen.name);
     });
   }
+
+  test('the account menu behind the face shows no English, signed out or as a guest', async ({
+    page,
+    request,
+  }) => {
+    // Signed out first: the panel names the state it is in, and that naming
+    // is the one thing on it a player reads before they have an account.
+    await openInGerman(page, '/');
+    await page.getByTestId('account-menu-button').click();
+    await expect(page.getByTestId('account-menu')).toBeVisible();
+    expectNoEnglish(await screenText(page), 'the account menu, signed out');
+
+    // Then as a guest, which is a third state — neither signed in nor absent —
+    // and the one with wording of its own (`menu.keepStats`).
+    await loginAsFreshGuest(page, request, 'LocaleGuest');
+    await openInGerman(page, '/');
+    await page.getByTestId('account-menu-button').click();
+    await expect(page.getByTestId('account-menu-status')).toBeVisible();
+    expectNoEnglish(await screenText(page), 'the account menu, as a guest');
+  });
 
   test('the lobby and an open table show no English when the language is German', async ({
     page,

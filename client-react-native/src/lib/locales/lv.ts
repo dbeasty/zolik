@@ -696,6 +696,9 @@ export const lv: Record<string, string> = {
   // itself lived on this screen: a player who cannot read "Settings" is
   // exactly the one who came here to change it.
   'settings.title': 'Iestatījumi',
+  'settings.signedInAs': 'Pierakstījies kā {username}',
+  'settings.playingAsGuest': 'Spēlē kā {username} (viesis)',
+  'settings.notSignedIn': 'Neesi pierakstījies — piesakies vai turpini kā viesis, lai spēlētu tiešsaistē.',
   'settings.subtitle': 'Kā izskaties tu un kā izskatās galds',
   'settings.face.heading': 'Tava seja pie galda',
   'settings.face.account': 'Glabājas tavā kontā, tāpēc seko tev uz citu ierīci.',
@@ -738,6 +741,20 @@ export const lv: Record<string, string> = {
   'nav.match': 'Mačs',
   'nav.scoreTable': 'Punktu tabula',
   'nav.stats': 'Statistika',
+  'nav.more': 'Vairāk',
+
+  // --- the account menu behind the face in the corner ----------------------
+  'menu.label': 'Konta izvēlne',
+  'menu.signedIn': 'Pierakstījies',
+  'menu.notSignedIn': 'Neesi pierakstījies',
+  'menu.keepStats': 'lai saglabātu savu statistiku',
+  'menu.signOut': 'Iziet',
+  'more.scoreTable': 'Bezsaistes punktu tabula',
+  'more.stats': 'Statistika un līderu saraksts',
+  'more.needsAccount': 'piesakies, lai lietotu',
+  'gate.title': 'Piesakies, lai to lietotu',
+  'gate.body':
+    'Punktu tabulas un statistika glabājas kopā ar tavu kontu, tāpēc tās seko tev uz citu ierīci. Viesim nav kur tās glabāt.',
 
   // --- screens that never reached a key at all -------------------------------
   //
@@ -842,6 +859,7 @@ export const lv: Record<string, string> = {
   'waiting.none': 'Pašlaik neviens negaida. Kas galvenajā izvēlnē padara sevi pieejamu, parādās šeit.',
 
   // --- landing on a shared invite link --------------------------------------
+  'join.missingCode': 'Šai saitei trūkst galda koda.',
   'join.staleLink': 'Palūdz uzaicinātājam svaigu saiti vai pievienojies ar kodu.',
   'join.enterCode': 'Ievadīt kodu',
   'join.backToMenu': 'Atpakaļ uz izvēlni',
@@ -857,6 +875,8 @@ export const lv: Record<string, string> = {
   'lobby.games.players': 'Spēlētāji: {n}',
   'lobby.games.playerRange': 'Spēlētāji: {min}–{max}',
   'lobby.join.placeholder': 'Pievienošanās kods vai ielūguma saite',
+  'lobby.join.needCode': 'Ievadi kodu, saiti vai mača ID',
+  'lobby.games.signInFirst': 'Vispirms pieraksties',
   'lobby.join.action': 'Pievienoties',
   'lobby.join.waitingTitle': 'Gaidām saimnieku',
   // Two whole sentences rather than one with a swapped noun: "a game of {game}"
@@ -913,10 +933,14 @@ export const lv: Record<string, string> = {
   'scoring.saveRound': 'Saglabāt raundu',
   'scoring.export': 'Eksportēt punktu lapu',
   'scoring.formatHint': 'Punktu formāts: Vārds:100,Vārds2:50',
+  'scoring.nameCountError': 'Ievadi 2–8 spēlētāju vārdus, atdalītus ar komatiem',
   'scoring.session': 'Sesija: {id}',
   'scoring.players': 'Spēlētāji: {names}',
   'scoring.roundScores': '{n}. raunda punkti',
   'stats.loading': 'Ielādē…',
+  // The figures could not be fetched. `{reason}` is whatever the server or the
+  // network said, which is not ours to translate — the frame around it is.
+  'stats.unavailable': '(nav pieejams: {reason})',
 
   // --- statistics -----------------------------------------------------------
   'stats.title': 'Statistika un rezultātu tabula',

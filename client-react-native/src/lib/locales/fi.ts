@@ -700,6 +700,10 @@ export const fi: Record<string, string> = {
   // itself lived on this screen: a player who cannot read "Settings" is
   // exactly the one who came here to change it.
   'settings.title': 'Asetukset',
+  'settings.signedInAs': 'Kirjautunut sisään nimellä {username}',
+  'settings.playingAsGuest': 'Pelaat vieraana {username} (vieras)',
+  'settings.notSignedIn':
+    'Et ole kirjautunut sisään — kirjaudu sisään tai jatka vieraana pelataksesi verkossa.',
   'settings.subtitle': 'Miltä sinä näytät ja miltä pöytä näyttää',
   'settings.face.heading': 'Kasvosi pöydässä',
   'settings.face.account': 'Tallennetaan tiliisi, joten se seuraa sinua toiselle laitteelle.',
@@ -742,6 +746,20 @@ export const fi: Record<string, string> = {
   'nav.match': 'Ottelu',
   'nav.scoreTable': 'Pistetaulukko',
   'nav.stats': 'Tilastot',
+  'nav.more': 'Lisää',
+
+  // --- the account menu behind the face in the corner ----------------------
+  'menu.label': 'Tilivalikko',
+  'menu.signedIn': 'Kirjautunut sisään',
+  'menu.notSignedIn': 'Ei kirjautunut',
+  'menu.keepStats': 'jotta tilastosi säilyvät',
+  'menu.signOut': 'Kirjaudu ulos',
+  'more.scoreTable': 'Offline-pistetaulukko',
+  'more.stats': 'Tilastot ja tulostaulu',
+  'more.needsAccount': 'kirjaudu käyttääksesi',
+  'gate.title': 'Kirjaudu sisään käyttääksesi tätä',
+  'gate.body':
+    'Pistetaulukot ja tilastot tallennetaan tilillesi, joten ne seuraavat sinua toiselle laitteelle. Vieraalla ei ole niille tallennuspaikkaa.',
 
   // --- screens that never reached a key at all -------------------------------
   //
@@ -847,6 +865,7 @@ export const fi: Record<string, string> = {
   'waiting.none': 'Juuri nyt kukaan ei odota. Se, joka ilmoittautuu päävalikossa, ilmestyy tähän.',
 
   // --- landing on a shared invite link --------------------------------------
+  'join.missingCode': 'Tästä linkistä puuttuu pöydän koodi.',
   'join.staleLink': 'Pyydä kutsujaltasi tuore linkki tai liity sen sijaan koodilla.',
   'join.enterCode': 'Syötä koodi',
   'join.backToMenu': 'Takaisin valikkoon',
@@ -862,6 +881,8 @@ export const fi: Record<string, string> = {
   'lobby.games.players': '{n} pelaajaa',
   'lobby.games.playerRange': '{min}–{max} pelaajaa',
   'lobby.join.placeholder': 'Liittymiskoodi tai kutsulinkki',
+  'lobby.join.needCode': 'Anna liittymiskoodi, linkki tai ottelun tunnus',
+  'lobby.games.signInFirst': 'Kirjaudu ensin sisään',
   'lobby.join.action': 'Liity',
   'lobby.join.waitingTitle': 'Odotetaan isäntää',
   // Two whole sentences rather than one with a swapped noun: "a game of {game}"
@@ -919,10 +940,14 @@ export const fi: Record<string, string> = {
   'scoring.saveRound': 'Tallenna kierros',
   'scoring.export': 'Vie pistelappu',
   'scoring.formatHint': 'Pisteiden muoto: Nimi:100,Nimi2:50',
+  'scoring.nameCountError': 'Anna 2–8 pelaajan nimeä pilkuilla eroteltuina',
   'scoring.session': 'Istunto: {id}',
   'scoring.players': 'Pelaajat: {names}',
   'scoring.roundScores': 'Kierroksen {n} pisteet',
   'stats.loading': 'Ladataan…',
+  // The figures could not be fetched. `{reason}` is whatever the server or the
+  // network said, which is not ours to translate — the frame around it is.
+  'stats.unavailable': '(ei saatavilla: {reason})',
 
   // --- statistics -----------------------------------------------------------
   'stats.title': 'Tilastot ja tulostaulu',

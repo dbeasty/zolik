@@ -698,6 +698,9 @@ export const lt: Record<string, string> = {
   // itself lived on this screen: a player who cannot read "Settings" is
   // exactly the one who came here to change it.
   'settings.title': 'Nustatymai',
+  'settings.signedInAs': 'Prisijungęs kaip {username}',
+  'settings.playingAsGuest': 'Žaidi kaip {username} (svečias)',
+  'settings.notSignedIn': 'Neprisijungęs — prisijunk arba tęsk kaip svečias, kad žaistum internetu.',
   'settings.subtitle': 'Kaip atrodai tu ir kaip atrodo stalas',
   'settings.face.heading': 'Tavo veidas prie stalo',
   'settings.face.account': 'Saugoma paskyroje, todėl keliauja su tavimi į kitą įrenginį.',
@@ -740,6 +743,20 @@ export const lt: Record<string, string> = {
   'nav.match': 'Rungtynės',
   'nav.scoreTable': 'Taškų lentelė',
   'nav.stats': 'Statistika',
+  'nav.more': 'Daugiau',
+
+  // --- the account menu behind the face in the corner ----------------------
+  'menu.label': 'Paskyros meniu',
+  'menu.signedIn': 'Prisijungęs',
+  'menu.notSignedIn': 'Neprisijungęs',
+  'menu.keepStats': 'kad išsaugotum statistiką',
+  'menu.signOut': 'Atsijungti',
+  'more.scoreTable': 'Nešėtinė taškų lentelė',
+  'more.stats': 'Statistika ir lyderių lentelė',
+  'more.needsAccount': 'prisijunk, kad naudotum',
+  'gate.title': 'Prisijunk, kad tai naudotum',
+  'gate.body':
+    'Taškų lentelės ir statistika saugomos su tavo paskyra, tad keliauja su tavimi į kitą įrenginį. Svečias neturi kur jų laikyti.',
 
   // --- screens that never reached a key at all -------------------------------
   //
@@ -844,6 +861,7 @@ export const lt: Record<string, string> = {
     'Šiuo metu niekas nelaukia. Kas pagrindiniame meniu pažymi save kaip pasiruošusį, pasirodo čia.',
 
   // --- landing on a shared invite link --------------------------------------
+  'join.missingCode': 'Šiai nuorodai trūksta stalo kodo.',
   'join.staleLink': 'Paprašyk pakvietusiojo naujos nuorodos arba prisijunk su kodu.',
   'join.enterCode': 'Įvesti kodą',
   'join.backToMenu': 'Atgal į meniu',
@@ -859,6 +877,8 @@ export const lt: Record<string, string> = {
   'lobby.games.players': 'Žaidėjų: {n}',
   'lobby.games.playerRange': 'Žaidėjų: {min}–{max}',
   'lobby.join.placeholder': 'Prisijungimo kodas arba kvietimo nuoroda',
+  'lobby.join.needCode': 'Įvesk kodą, nuorodą arba rungtynių ID',
+  'lobby.games.signInFirst': 'Pirma prisijunk',
   'lobby.join.action': 'Prisijungti',
   'lobby.join.waitingTitle': 'Laukiame šeimininko',
   // Two whole sentences rather than one with a swapped noun: "a game of {game}"
@@ -915,10 +935,14 @@ export const lt: Record<string, string> = {
   'scoring.saveRound': 'Įrašyti raundą',
   'scoring.export': 'Eksportuoti taškų lapą',
   'scoring.formatHint': 'Taškų formatas: Vardas:100,Vardas2:50',
+  'scoring.nameCountError': 'Įvesk 2–8 žaidėjų vardus, atskirtus kableliais',
   'scoring.session': 'Sesija: {id}',
   'scoring.players': 'Žaidėjai: {names}',
   'scoring.roundScores': '{n} raundo taškai',
   'stats.loading': 'Įkeliama…',
+  // The figures could not be fetched. `{reason}` is whatever the server or the
+  // network said, which is not ours to translate — the frame around it is.
+  'stats.unavailable': '(nepasiekiama: {reason})',
 
   // --- statistics -----------------------------------------------------------
   'stats.title': 'Statistika ir lentelė',

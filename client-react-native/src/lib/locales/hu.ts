@@ -708,6 +708,9 @@ export const hu: Record<string, string> = {
   // itself lived on this screen: a player who cannot read "Settings" is
   // exactly the one who came here to change it.
   'settings.title': 'Beállítások',
+  'settings.signedInAs': 'Bejelentkezve mint {username}',
+  'settings.playingAsGuest': '{username} néven játszol (vendég)',
+  'settings.notSignedIn': 'Nincs bejelentkezve — jelentkezz be, vagy folytasd vendégként az online játékhoz.',
   'settings.subtitle': 'Hogy nézel ki te, és hogy néz ki az asztal',
   'settings.face.heading': 'Az arcod az asztalnál',
   'settings.face.account': 'A fiókodhoz mentve, így elkísér egy másik eszközre is.',
@@ -750,6 +753,20 @@ export const hu: Record<string, string> = {
   'nav.match': 'Mérkőzés',
   'nav.scoreTable': 'Ponttábla',
   'nav.stats': 'Statisztika',
+  'nav.more': 'Több',
+
+  // --- the account menu behind the face in the corner ----------------------
+  'menu.label': 'Fiókmenü',
+  'menu.signedIn': 'Bejelentkezve',
+  'menu.notSignedIn': 'Nincs bejelentkezve',
+  'menu.keepStats': 'hogy megmaradjanak a statisztikáid',
+  'menu.signOut': 'Kijelentkezés',
+  'more.scoreTable': 'Offline ponttáblázat',
+  'more.stats': 'Statisztika és ranglista',
+  'more.needsAccount': 'jelentkezz be',
+  'gate.title': 'Jelentkezz be ehhez',
+  'gate.body':
+    'A ponttáblázatokat és a statisztikákat a fiókod őrzi, így egy másik eszközre is elkísérnek. Vendégként nincs hol tárolni őket.',
 
   // --- screens that never reached a key at all -------------------------------
   //
@@ -854,6 +871,7 @@ export const hu: Record<string, string> = {
   'waiting.none': 'Jelenleg senki sem vár. Aki a főmenüben elérhetővé teszi magát, itt jelenik meg.',
 
   // --- landing on a shared invite link --------------------------------------
+  'join.missingCode': 'Erről a linkről hiányzik az asztal kódja.',
   'join.staleLink': 'Kérj friss linket attól, aki meghívott, vagy csatlakozz inkább a kóddal.',
   'join.enterCode': 'Kód megadása',
   'join.backToMenu': 'Vissza a menübe',
@@ -869,6 +887,8 @@ export const hu: Record<string, string> = {
   'lobby.games.players': '{n} játékos',
   'lobby.games.playerRange': '{min}–{max} játékos',
   'lobby.join.placeholder': 'Csatlakozási kód vagy meghívó link',
+  'lobby.join.needCode': 'Adj meg egy kódot, egy linket vagy egy mérkőzés-azonosítót',
+  'lobby.games.signInFirst': 'Előbb lépj be',
   'lobby.join.action': 'Csatlakozás',
   'lobby.join.waitingTitle': 'Várunk a házigazdára',
   // Two whole sentences rather than one with a swapped noun: "a game of {game}"
@@ -926,10 +946,14 @@ export const hu: Record<string, string> = {
   'scoring.saveRound': 'Kör mentése',
   'scoring.export': 'Pontlap exportálása',
   'scoring.formatHint': 'Pontok formátuma: Név:100,Név2:50',
+  'scoring.nameCountError': 'Adj meg 2–8 játékosnevet vesszővel elválasztva',
   'scoring.session': 'Munkamenet: {id}',
   'scoring.players': 'Játékosok: {names}',
   'scoring.roundScores': 'A(z) {n}. kör pontjai',
   'stats.loading': 'Betöltés…',
+  // The figures could not be fetched. `{reason}` is whatever the server or the
+  // network said, which is not ours to translate — the frame around it is.
+  'stats.unavailable': '(nem érhető el: {reason})',
 
   // --- statistics -----------------------------------------------------------
   'stats.title': 'Statisztika és ranglista',

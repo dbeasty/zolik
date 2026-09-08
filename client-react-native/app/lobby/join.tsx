@@ -57,7 +57,7 @@ export default function JoinMatchScreen() {
     // itself would be the client being pedantic about its own format.
     const trimmed = codeFromInviteInput(code);
     if (!trimmed) {
-      setError('Enter a join code, a link, or a match ID');
+      setError(t('lobby.join.needCode'));
       return;
     }
     try {

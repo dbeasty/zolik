@@ -708,6 +708,9 @@ export const mt: Record<string, string> = {
   // itself lived on this screen: a player who cannot read "Settings" is
   // exactly the one who came here to change it.
   'settings.title': 'Issettjar',
+  'settings.signedInAs': 'Idħalt bħala {username}',
+  'settings.playingAsGuest': 'Qed tilgħab bħala {username} (mistieden)',
+  'settings.notSignedIn': 'Mhux idħalt — idħol jew kompli bħala mistieden biex tilgħab online.',
   'settings.subtitle': 'Kif tidher int, u kif tidher il-mejda',
   'settings.face.heading': 'Wiċċek fuq il-mejda',
   'settings.face.account': 'Jinżamm mal-kont tiegħek, u għalhekk jiġi miegħek fuq apparat ieħor.',
@@ -750,6 +753,20 @@ export const mt: Record<string, string> = {
   'nav.match': 'Partita',
   'nav.scoreTable': 'Tabella tal-iskor',
   'nav.stats': 'Statistika',
+  'nav.more': 'Aktar',
+
+  // --- the account menu behind the face in the corner ----------------------
+  'menu.label': 'Menu tal-kont',
+  'menu.signedIn': 'Daħalt',
+  'menu.notSignedIn': 'Mhux imdaħħal',
+  'menu.keepStats': 'biex iżżomm l-istatistika tiegħek',
+  'menu.signOut': 'Oħroġ',
+  'more.scoreTable': 'Tabella tal-punti offline',
+  'more.stats': 'Statistika u klassifika',
+  'more.needsAccount': 'idħol biex tuża',
+  'gate.title': 'Idħol biex tuża dan',
+  'gate.body':
+    "It-tabelli tal-punti u l-istatistika jinżammu mal-kont tiegħek, biex isegwuk fuq apparat ieħor. Mistieden m'għandux fejn iżommhom.",
 
   // --- screens that never reached a key at all -------------------------------
   //
@@ -855,6 +872,7 @@ export const mt: Record<string, string> = {
     'Bħalissa ħadd mhu qed jistenna. Min jagħmel lilu nnifsu disponibbli fil-menu prinċipali jidher hawn.',
 
   // --- landing on a shared invite link --------------------------------------
+  'join.missingCode': 'Dan il-link nieqes mill-kodiċi tal-mejda.',
   'join.staleLink': 'Itlob link ġdid mingħand min stiednek, jew ingħaqad bil-kodiċi minflok.',
   'join.enterCode': 'Daħħal kodiċi',
   'join.backToMenu': 'Lura għall-menu',
@@ -870,6 +888,8 @@ export const mt: Record<string, string> = {
   'lobby.games.players': '{n} plejers',
   'lobby.games.playerRange': '{min}–{max} plejers',
   'lobby.join.placeholder': "Kodiċi jew link ta' stedina",
+  'lobby.join.needCode': 'Daħħal kodiċi, link, jew ID tal-partita',
+  'lobby.games.signInFirst': 'Idħol l-ewwel',
   'lobby.join.action': 'Ingħaqad',
   'lobby.join.waitingTitle': 'Nistennew lill-ħost',
   // Two whole sentences rather than one with a swapped noun: "a game of {game}"
@@ -927,10 +947,14 @@ export const mt: Record<string, string> = {
   'scoring.saveRound': 'Issejvja r-rawnd',
   'scoring.export': 'Esporta l-karta tal-iskor',
   'scoring.formatHint': 'Format tal-punti: Isem:100,Isem2:50',
+  'scoring.nameCountError': "Daħħal 2–8 ismijiet ta' plejers mifruda b'virgoli",
   'scoring.session': 'Sessjoni: {id}',
   'scoring.players': 'Plejers: {names}',
   'scoring.roundScores': 'Punti tar-rawnd {n}',
   'stats.loading': 'Qed jitniżżel…',
+  // The figures could not be fetched. `{reason}` is whatever the server or the
+  // network said, which is not ours to translate — the frame around it is.
+  'stats.unavailable': '(mhux disponibbli: {reason})',
 
   // --- statistics -----------------------------------------------------------
   'stats.title': 'Statistika u klassifika',

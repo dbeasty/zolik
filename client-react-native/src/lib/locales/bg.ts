@@ -706,6 +706,9 @@ export const bg: Record<string, string> = {
   // itself lived on this screen: a player who cannot read "Settings" is
   // exactly the one who came here to change it.
   'settings.title': 'Настройки',
+  'settings.signedInAs': 'Влязъл си като {username}',
+  'settings.playingAsGuest': 'Играеш като {username} (гост)',
+  'settings.notSignedIn': 'Не си влязъл — влез или продължи като гост, за да играеш онлайн.',
   'settings.subtitle': 'Как изглеждаш ти и как изглежда масата',
   'settings.face.heading': 'Твоето лице на масата',
   'settings.face.account': 'Пази се в акаунта ти, така че те следва и на друго устройство.',
@@ -748,6 +751,20 @@ export const bg: Record<string, string> = {
   'nav.match': 'Мач',
   'nav.scoreTable': 'Таблица с точки',
   'nav.stats': 'Статистика',
+  'nav.more': 'Още',
+
+  // --- the account menu behind the face in the corner ----------------------
+  'menu.label': 'Меню на профила',
+  'menu.signedIn': 'Влязъл',
+  'menu.notSignedIn': 'Не си влязъл',
+  'menu.keepStats': 'за да пазиш статистиките си',
+  'menu.signOut': 'Изход',
+  'more.scoreTable': 'Офлайн таблица с точки',
+  'more.stats': 'Статистики и класация',
+  'more.needsAccount': 'влез, за да ползваш',
+  'gate.title': 'Влез, за да ползваш това',
+  'gate.body':
+    'Таблиците с точки и статистиките се пазят с профила ти, за да те следват и на друго устройство. Гостът няма къде да ги пази.',
 
   // --- screens that never reached a key at all -------------------------------
   //
@@ -851,6 +868,7 @@ export const bg: Record<string, string> = {
   'waiting.none': 'В момента никой не чака. Който се отбележи като готов в главното меню, се появява тук.',
 
   // --- landing on a shared invite link --------------------------------------
+  'join.missingCode': 'На тази връзка ѝ липсва кодът на масата.',
   'join.staleLink': 'Поискай нов линк от този, който те покани, или се присъедини с кода.',
   'join.enterCode': 'Въведи код',
   'join.backToMenu': 'Обратно към менюто',
@@ -866,6 +884,8 @@ export const bg: Record<string, string> = {
   'lobby.games.players': 'Играчи: {n}',
   'lobby.games.playerRange': 'Играчи: {min}–{max}',
   'lobby.join.placeholder': 'Код за присъединяване или линк с покана',
+  'lobby.join.needCode': 'Въведи код за присъединяване, връзка или ID на мач',
+  'lobby.games.signInFirst': 'Първо влез',
   'lobby.join.action': 'Присъедини се',
   'lobby.join.waitingTitle': 'Чакаме домакина',
   // Two whole sentences rather than one with a swapped noun: "a game of {game}"
@@ -922,10 +942,14 @@ export const bg: Record<string, string> = {
   'scoring.saveRound': 'Запази рунда',
   'scoring.export': 'Експортирай таблицата',
   'scoring.formatHint': 'Формат на точките: Име:100,Име2:50',
+  'scoring.nameCountError': 'Въведи 2–8 имена на играчи, разделени със запетаи',
   'scoring.session': 'Сесия: {id}',
   'scoring.players': 'Играчи: {names}',
   'scoring.roundScores': 'Точки за рунд {n}',
   'stats.loading': 'Зарежда се…',
+  // The figures could not be fetched. `{reason}` is whatever the server or the
+  // network said, which is not ours to translate — the frame around it is.
+  'stats.unavailable': '(недостъпно: {reason})',
 
   // --- statistics -----------------------------------------------------------
   'stats.title': 'Статистика и класация',

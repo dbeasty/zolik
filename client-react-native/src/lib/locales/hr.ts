@@ -698,6 +698,9 @@ export const hr: Record<string, string> = {
   // itself lived on this screen: a player who cannot read "Settings" is
   // exactly the one who came here to change it.
   'settings.title': 'Postavke',
+  'settings.signedInAs': 'Prijavljen kao {username}',
+  'settings.playingAsGuest': 'Igraš kao {username} (gost)',
+  'settings.notSignedIn': 'Nisi prijavljen — prijavi se ili nastavi kao gost za igru online.',
   'settings.subtitle': 'Kako izgledaš ti i kako stol',
   'settings.face.heading': 'Tvoje lice za stolom',
   'settings.face.account': 'Čuva se uz tvoj račun, pa te prati i na drugi uređaj.',
@@ -739,6 +742,20 @@ export const hr: Record<string, string> = {
   'nav.match': 'Meč',
   'nav.scoreTable': 'Tablica bodova',
   'nav.stats': 'Statistika',
+  'nav.more': 'Više',
+
+  // --- the account menu behind the face in the corner ----------------------
+  'menu.label': 'Izbornik računa',
+  'menu.signedIn': 'Prijavljen',
+  'menu.notSignedIn': 'Nisi prijavljen',
+  'menu.keepStats': 'da sačuvaš svoju statistiku',
+  'menu.signOut': 'Odjava',
+  'more.scoreTable': 'Offline tablica rezultata',
+  'more.stats': 'Statistika i ljestvica',
+  'more.needsAccount': 'prijavi se za korištenje',
+  'gate.title': 'Prijavi se da ovo koristiš',
+  'gate.body':
+    'Tablice rezultata i statistika čuvaju se uz tvoj račun, pa te prate na drugi uređaj. Gost ih nema gdje čuvati.',
 
   // --- screens that never reached a key at all -------------------------------
   //
@@ -841,6 +858,7 @@ export const hr: Record<string, string> = {
   'waiting.none': 'Trenutno nitko ne čeka. Tko se učini dostupnim u glavnom izborniku, pojavljuje se ovdje.',
 
   // --- landing on a shared invite link --------------------------------------
+  'join.missingCode': 'Toj poveznici nedostaje kôd stola.',
   'join.staleLink': 'Zatraži svježu poveznicu od onoga tko te pozvao, ili se pridruži kodom.',
   'join.enterCode': 'Upiši kôd',
   'join.backToMenu': 'Natrag na izbornik',
@@ -856,6 +874,8 @@ export const hr: Record<string, string> = {
   'lobby.games.players': 'Igrača: {n}',
   'lobby.games.playerRange': 'Igrača: {min}–{max}',
   'lobby.join.placeholder': 'Kôd za pridruživanje ili poveznica s pozivom',
+  'lobby.join.needCode': 'Upiši kôd, poveznicu ili ID meča',
+  'lobby.games.signInFirst': 'Prvo se prijavi',
   'lobby.join.action': 'Pridruži se',
   'lobby.join.waitingTitle': 'Čekamo domaćina',
   // Two whole sentences rather than one with a swapped noun: "a game of {game}"
@@ -912,10 +932,14 @@ export const hr: Record<string, string> = {
   'scoring.saveRound': 'Spremi rundu',
   'scoring.export': 'Izvezi bodovnu listu',
   'scoring.formatHint': 'Format bodova: Ime:100,Ime2:50',
+  'scoring.nameCountError': 'Upiši 2–8 imena igrača odvojenih zarezima',
   'scoring.session': 'Sesija: {id}',
   'scoring.players': 'Igrači: {names}',
   'scoring.roundScores': 'Bodovi runde {n}',
   'stats.loading': 'Učitavanje…',
+  // The figures could not be fetched. `{reason}` is whatever the server or the
+  // network said, which is not ours to translate — the frame around it is.
+  'stats.unavailable': '(nedostupno: {reason})',
 
   // --- statistics -----------------------------------------------------------
   'stats.title': 'Statistika i ljestvica',

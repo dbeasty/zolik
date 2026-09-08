@@ -717,6 +717,10 @@ export const ga: Record<string, string> = {
   // itself lived on this screen: a player who cannot read "Settings" is
   // exactly the one who came here to change it.
   'settings.title': 'Socruithe',
+  'settings.signedInAs': 'Sínithe isteach mar {username}',
+  'settings.playingAsGuest': 'Ag imirt mar {username} (aoi)',
+  'settings.notSignedIn':
+    'Níl tú sínithe isteach — sínigh isteach nó lean ar aghaidh mar aoi chun imirt ar líne.',
   'settings.subtitle': 'An chuma atá ortsa, agus an chuma atá ar an mbord',
   'settings.face.heading': "D'aghaidh ag an mbord",
   'settings.face.account': 'Coinnítear le do chuntas í, mar sin leanann sí thú go gléas eile.',
@@ -759,6 +763,20 @@ export const ga: Record<string, string> = {
   'nav.match': 'Cluiche',
   'nav.scoreTable': 'Tábla scór',
   'nav.stats': 'Staitisticí',
+  'nav.more': 'Tuilleadh',
+
+  // --- the account menu behind the face in the corner ----------------------
+  'menu.label': 'Roghchlár an chuntais',
+  'menu.signedIn': 'Sínithe isteach',
+  'menu.notSignedIn': 'Gan síniú isteach',
+  'menu.keepStats': 'chun do staitisticí a choinneáil',
+  'menu.signOut': 'Sínigh amach',
+  'more.scoreTable': 'Tábla scór as líne',
+  'more.stats': 'Staitisticí agus rangú',
+  'more.needsAccount': 'sínigh isteach le húsáid',
+  'gate.title': 'Sínigh isteach chun é seo a úsáid',
+  'gate.body':
+    'Coinnítear táblaí scór agus staitisticí le do chuntas, mar sin leanann siad thú go gléas eile. Níl áit ar bith ag aoi chun iad a choinneáil.',
 
   // --- screens that never reached a key at all -------------------------------
   //
@@ -866,6 +884,7 @@ export const ga: Record<string, string> = {
     'Níl éinne ag fanacht faoi láthair. Aon duine a chuireann é féin ar fáil sa phríomhroghchlár, taispeánfar anseo é.',
 
   // --- landing on a shared invite link --------------------------------------
+  'join.missingCode': 'Tá cód an bhoird ar iarraidh ón nasc sin.',
   'join.staleLink':
     'Iarr nasc úr ar an té a thug cuireadh duit, nó téigh isteach leis an gcód ina ionad sin.',
   'join.enterCode': 'Cuir cód isteach',
@@ -882,6 +901,8 @@ export const ga: Record<string, string> = {
   'lobby.games.players': '{n} imreoir',
   'lobby.games.playerRange': '{min}–{max} imreoir',
   'lobby.join.placeholder': 'Cód dul isteach nó nasc cuireadh',
+  'lobby.join.needCode': 'Cuir isteach cód, nasc, nó aitheantas cluiche',
+  'lobby.games.signInFirst': 'Sínigh isteach ar dtús',
   'lobby.join.action': 'Téigh isteach',
   'lobby.join.waitingTitle': 'Ag fanacht leis an óstach',
   // Two whole sentences rather than one with a swapped noun: "a game of {game}"
@@ -938,10 +959,14 @@ export const ga: Record<string, string> = {
   'scoring.saveRound': 'Sábháil an babhta',
   'scoring.export': 'Easpórtáil an scórchárta',
   'scoring.formatHint': 'Formáid na scór: Ainm:100,Ainm2:50',
+  'scoring.nameCountError': 'Cuir isteach 2–8 ainm imreora scartha le camóga',
   'scoring.session': 'Seisiún: {id}',
   'scoring.players': 'Imreoirí: {names}',
   'scoring.roundScores': 'Scóir bhabhta {n}',
   'stats.loading': 'Á lódáil…',
+  // The figures could not be fetched. `{reason}` is whatever the server or the
+  // network said, which is not ours to translate — the frame around it is.
+  'stats.unavailable': '(níl ar fáil: {reason})',
 
   // --- statistics -----------------------------------------------------------
   'stats.title': 'Staitisticí agus tábla ceannais',

@@ -49,7 +49,7 @@ export default function JoinByLinkScreen() {
 
   const follow = useCallback(async () => {
     if (!joinCode) {
-      setError('That link is missing its table code.');
+      setError(t('join.missingCode'));
       return;
     }
 

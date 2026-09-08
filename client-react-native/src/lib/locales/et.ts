@@ -697,6 +697,9 @@ export const et: Record<string, string> = {
   // itself lived on this screen: a player who cannot read "Settings" is
   // exactly the one who came here to change it.
   'settings.title': 'Seaded',
+  'settings.signedInAs': 'Sisse logitud kui {username}',
+  'settings.playingAsGuest': 'Mängid kui {username} (külaline)',
+  'settings.notSignedIn': 'Ei ole sisse logitud — logi sisse või jätka külalisena, et mängida veebis.',
   'settings.subtitle': 'Milline näed välja sina ja milline laud',
   'settings.face.heading': 'Sinu nägu laua taga',
   'settings.face.account': 'Salvestatud sinu kontole, nii et see tuleb teise seadmesse kaasa.',
@@ -739,6 +742,20 @@ export const et: Record<string, string> = {
   'nav.match': 'Matš',
   'nav.scoreTable': 'Punktitabel',
   'nav.stats': 'Statistika',
+  'nav.more': 'Rohkem',
+
+  // --- the account menu behind the face in the corner ----------------------
+  'menu.label': 'Konto menüü',
+  'menu.signedIn': 'Sisse logitud',
+  'menu.notSignedIn': 'Pole sisse logitud',
+  'menu.keepStats': 'et statistika alles jääks',
+  'menu.signOut': 'Logi välja',
+  'more.scoreTable': 'Vahetu punktitabel',
+  'more.stats': 'Statistika ja edetabel',
+  'more.needsAccount': 'logi sisse',
+  'gate.title': 'Logi sisse, et seda kasutada',
+  'gate.body':
+    'Punktitabelid ja statistika salvestatakse sinu kontoga, nii et need järgnevad sulle teise seadmesse. Külalisel pole neid kuhugi salvestada.',
 
   // --- screens that never reached a key at all -------------------------------
   //
@@ -842,6 +859,7 @@ export const et: Record<string, string> = {
   'waiting.none': 'Praegu ei oota keegi. Kes end peamenüüs kättesaadavaks teeb, ilmub siia.',
 
   // --- landing on a shared invite link --------------------------------------
+  'join.missingCode': 'Sellel lingil puudub laua kood.',
   'join.staleLink': 'Küsi kutsujalt värsket linki või liitu selle asemel koodiga.',
   'join.enterCode': 'Sisesta kood',
   'join.backToMenu': 'Tagasi menüüsse',
@@ -857,6 +875,8 @@ export const et: Record<string, string> = {
   'lobby.games.players': '{n} mängijat',
   'lobby.games.playerRange': '{min}–{max} mängijat',
   'lobby.join.placeholder': 'Liitumiskood või kutselink',
+  'lobby.join.needCode': 'Sisesta liitumiskood, link või matši ID',
+  'lobby.games.signInFirst': 'Logi kõigepealt sisse',
   'lobby.join.action': 'Liitu',
   'lobby.join.waitingTitle': 'Ootame võõrustajat',
   // Two whole sentences rather than one with a swapped noun: "a game of {game}"
@@ -913,10 +933,14 @@ export const et: Record<string, string> = {
   'scoring.saveRound': 'Salvesta voor',
   'scoring.export': 'Ekspordi punktileht',
   'scoring.formatHint': 'Punktide vorming: Nimi:100,Nimi2:50',
+  'scoring.nameCountError': 'Sisesta 2–8 mängija nime komadega eraldatult',
   'scoring.session': 'Seanss: {id}',
   'scoring.players': 'Mängijad: {names}',
   'scoring.roundScores': '{n}. vooru punktid',
   'stats.loading': 'Laadime…',
+  // The figures could not be fetched. `{reason}` is whatever the server or the
+  // network said, which is not ours to translate — the frame around it is.
+  'stats.unavailable': '(pole saadaval: {reason})',
 
   // --- statistics -----------------------------------------------------------
   'stats.title': 'Statistika ja edetabel',

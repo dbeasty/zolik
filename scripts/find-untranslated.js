@@ -125,6 +125,17 @@ for (const dir of dirs) {
         }
       }
 
+      // A sentence handed straight to a function — `setError('…')`,
+      // `setNotice('…')`. Invisible to every pattern above, because it never
+      // touches JSX at all, and it is exactly where the messages a player
+      // sees when something breaks tend to live.
+      for (const m of code.matchAll(/\b(set[A-Z]\w*|alert|throw new Error)\(\s*'([^']{4,})'/g)) {
+        const v = m[2];
+        if (looksHuman(v) && /\s/.test(v)) {
+          findings.push({ rel, n, kind: 'call-argument', text: v.trim() });
+        }
+      }
+
       // Ternaries and returns that yield a bare sentence: ? 'Sign in' : 'Sign out'
       for (const m of code.matchAll(/[?:]\s*'([^']{4,})'/g)) {
         const v = m[1];

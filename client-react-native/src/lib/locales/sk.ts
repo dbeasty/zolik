@@ -695,6 +695,9 @@ export const sk: Record<string, string> = {
   // itself lived on this screen: a player who cannot read "Settings" is
   // exactly the one who came here to change it.
   'settings.title': 'Nastavenia',
+  'settings.signedInAs': 'Prihlásený ako {username}',
+  'settings.playingAsGuest': 'Hráš ako {username} (hosť)',
+  'settings.notSignedIn': 'Nie si prihlásený — prihlás sa alebo pokračuj ako hosť a hraj online.',
   'settings.subtitle': 'Ako vyzeráš ty a ako stôl',
   'settings.face.heading': 'Tvoja tvár pri stole',
   'settings.face.account': 'Uložené k tvojmu účtu, takže ťa sprevádza aj na iné zariadenie.',
@@ -737,6 +740,20 @@ export const sk: Record<string, string> = {
   'nav.match': 'Zápas',
   'nav.scoreTable': 'Tabuľka skóre',
   'nav.stats': 'Štatistiky',
+  'nav.more': 'Viac',
+
+  // --- the account menu behind the face in the corner ----------------------
+  'menu.label': 'Ponuka účtu',
+  'menu.signedIn': 'Prihlásený',
+  'menu.notSignedIn': 'Neprihlásený',
+  'menu.keepStats': 'aby ti zostali štatistiky',
+  'menu.signOut': 'Odhlásiť sa',
+  'more.scoreTable': 'Offline tabuľka skóre',
+  'more.stats': 'Štatistiky a rebríček',
+  'more.needsAccount': 'prihlás sa',
+  'gate.title': 'Prihlás sa, aby si to mohol použiť',
+  'gate.body':
+    'Tabuľky skóre a štatistiky sa ukladajú k tvojmu účtu, takže idú s tebou aj na iné zariadenie. Hosť ich nemá kam uložiť.',
 
   // --- screens that never reached a key at all -------------------------------
   //
@@ -840,6 +857,7 @@ export const sk: Record<string, string> = {
   'waiting.none': 'Práve teraz nikto nečaká. Kto sa ponúkne v hlavnej ponuke, objaví sa tu.',
 
   // --- landing on a shared invite link --------------------------------------
+  'join.missingCode': 'Tomuto odkazu chýba kód stola.',
   'join.staleLink': 'Popros toho, kto ťa pozval, o nový odkaz, alebo sa pripoj kódom.',
   'join.enterCode': 'Zadať kód',
   'join.backToMenu': 'Späť do ponuky',
@@ -855,6 +873,8 @@ export const sk: Record<string, string> = {
   'lobby.games.players': 'Hráčov: {n}',
   'lobby.games.playerRange': 'Hráčov: {min}–{max}',
   'lobby.join.placeholder': 'Kód alebo odkaz s pozvánkou',
+  'lobby.join.needCode': 'Zadaj kód, odkaz alebo ID zápasu',
+  'lobby.games.signInFirst': 'Najprv sa prihlás',
   'lobby.join.action': 'Pripojiť sa',
   'lobby.join.waitingTitle': 'Čakanie na hostiteľa',
   // Two whole sentences rather than one with a swapped noun: "a game of {game}"
@@ -911,10 +931,14 @@ export const sk: Record<string, string> = {
   'scoring.saveRound': 'Uložiť kolo',
   'scoring.export': 'Exportovať zápis',
   'scoring.formatHint': 'Formát bodov: Meno:100,Meno2:50',
+  'scoring.nameCountError': 'Zadaj 2–8 mien hráčov oddelených čiarkami',
   'scoring.session': 'Relácia: {id}',
   'scoring.players': 'Hráči: {names}',
   'scoring.roundScores': 'Body kola {n}',
   'stats.loading': 'Načítava sa…',
+  // The figures could not be fetched. `{reason}` is whatever the server or the
+  // network said, which is not ours to translate — the frame around it is.
+  'stats.unavailable': '(nedostupné: {reason})',
 
   // --- statistics -----------------------------------------------------------
   'stats.title': 'Štatistiky a rebríček',
