@@ -89,11 +89,6 @@ export default function MainMenu() {
             router.push('/lobby/join');
           }}
         />
-        <MenuButton
-          label="Offline score table"
-          secondary
-          onPress={() => router.push('/scoring')}
-        />
         <MenuButton label="Stats & leaderboard" secondary onPress={() => router.push('/stats')} />
 
         {session ? (

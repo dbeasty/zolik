@@ -111,6 +111,22 @@ export type SignInOutcome = {
 export type WSEnvelope = Record<string, unknown> & { type: string };
 
 /**
+ * The durable identity behind a seat: a registered account or a bot persona.
+ *
+ * `name` is a snapshot taken when the match was recorded, not a key — people
+ * rename, so two rows for the same `id` can disagree about it and the newer
+ * one wins. Render `name`; identify by `kind` + `id`.
+ */
+export type StatsSubject = {
+  /** 'user' or 'ai'. Guests never reach a leaderboard — see the server's
+   *  `Subject.Durable`. */
+  kind: string;
+  /** An account's id, or a bot's persona key (`hard:miroslav`). */
+  id: string;
+  name: string;
+};
+
+/**
  * One bucket of a lifetime record, with the figures derived from it.
  *
  * `bestScore` and `worstScore` are null rather than a sentinel until a match
@@ -138,7 +154,16 @@ export type TallyView = {
  * whether the table was pure.
  */
 export type LifetimeStats = {
-  subject?: { kind: string; id: string; name: string };
+  subject?: StatsSubject;
+  /**
+   * The same four figures as `overall`, flattened. The server keeps them for
+   * clients that predate the tally split; nothing here reads them, because
+   * `overall` says the same thing with its derived rates attached.
+   */
+  gamesPlayed?: number;
+  gamesWon?: number;
+  gamesLost?: number;
+  gamesDrawn?: number;
   overall: TallyView;
   vsHumans: TallyView;
   vsAI: TallyView;
@@ -154,4 +179,31 @@ export type LifetimeStats = {
   currentStreak: number;
   longestWinStreak: number;
   longestLossStreak: number;
+};
+
+/** Which record a leaderboard ranks on. */
+export type LeaderboardScope = 'overall' | 'vs_humans' | 'vs_ai';
+
+/** Who is being ranked. Bots are ranked separately from people, never mixed:
+ *  a bot that has played thousands of matches would otherwise sit permanently
+ *  at the top of the human board. */
+export type LeaderboardKind = 'user' | 'ai';
+
+/** One ranked entry, as `/leaderboard` returns it. */
+export type LeaderboardEntry = {
+  rank: number;
+  subject: StatsSubject;
+  tally: TallyView;
+  /** Streaks are always the overall run, whatever the scope — a streak is a
+   *  property of the player, not of a filtered subset of their matches. */
+  currentStreak: number;
+  longestWinStreak: number;
+  /** RFC3339. Absent for a subject whose last match predates the field. */
+  lastMatchAt?: string;
+};
+
+export type Leaderboard = {
+  scope: LeaderboardScope;
+  kind: LeaderboardKind;
+  entries: LeaderboardEntry[];
 };
