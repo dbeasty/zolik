@@ -255,6 +255,7 @@ export const ga: Record<string, string> = {
   'holdem.round.pot': 'Pota {n}',
   'holdem.round.uncontested': "D'fhill gach duine eile",
   'seat.ready': 'Réidh',
+  'results.you': '(tú)',
 
 
 

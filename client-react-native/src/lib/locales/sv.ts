@@ -239,6 +239,7 @@ export const sv: Record<string, string> = {
   'holdem.round.pot': 'Pott {n}',
   'holdem.round.uncontested': 'Alla andra lade sig',
   'seat.ready': 'Redo',
+  'results.you': '(du)',
 
 
 

@@ -246,6 +246,7 @@ export const fi: Record<string, string> = {
   'holdem.round.pot': 'Potti {n}',
   'holdem.round.uncontested': 'Kaikki muut luovuttivat',
   'seat.ready': 'Valmis',
+  'results.you': '(sinä)',
 
 
 

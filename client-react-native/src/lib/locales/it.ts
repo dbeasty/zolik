@@ -246,6 +246,7 @@ export const it: Record<string, string> = {
   'holdem.round.pot': 'Piatto {n}',
   'holdem.round.uncontested': 'Tutti gli altri hanno lasciato',
   'seat.ready': 'Pronto',
+  'results.you': '(tu)',
 
 
 

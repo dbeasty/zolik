@@ -251,6 +251,7 @@ export const hu: Record<string, string> = {
   'holdem.round.pot': 'Pot: {n}',
   'holdem.round.uncontested': 'Mindenki más bedobta',
   'seat.ready': 'Kész',
+  'results.you': '(te)',
 
 
 

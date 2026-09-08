@@ -246,6 +246,7 @@ export const lv: Record<string, string> = {
   'holdem.round.pot': 'Banka {n}',
   'holdem.round.uncontested': 'Visi pārējie atmeta',
   'seat.ready': 'Gatavs',
+  'results.you': '(tu)',
 
 
 

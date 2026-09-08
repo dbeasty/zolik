@@ -247,6 +247,7 @@ export const bg: Record<string, string> = {
   'holdem.round.pot': 'Пот {n}',
   'holdem.round.uncontested': 'Всички други се отказаха',
   'seat.ready': 'Готов',
+  'results.you': '(ти)',
 
 
 

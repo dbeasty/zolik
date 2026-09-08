@@ -249,6 +249,7 @@ export const nl: Record<string, string> = {
   'holdem.round.pot': 'Pot {n}',
   'holdem.round.uncontested': 'Alle anderen pasten',
   'seat.ready': 'Klaar',
+  'results.you': '(jij)',
 
 
 

@@ -255,6 +255,7 @@ export const en: Record<string, string> = {
   'holdem.round.pot': 'Pot {n}',
   'holdem.round.uncontested': 'Everyone else folded',
   'seat.ready': 'Ready',
+  'results.you': '(you)',
 
 
 
