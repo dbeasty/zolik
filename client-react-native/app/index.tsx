@@ -1,14 +1,17 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
 
+import { Avatar } from '@/src/components/avatars/Avatar';
+import { avatarFor } from '@/src/components/avatars/catalogue';
 import { BuildFooter } from '@/src/components/BuildFooter';
 import { Screen } from '@/src/components/Screen';
 import { ZOLIK_BASE_URL } from '@/src/config';
 import { useSession } from '@/src/context/SessionContext';
 import { useLobbySocket } from '@/src/hooks/useLobbySocket';
 import { useWaitingLobbyStatus } from '@/src/hooks/useWaitingLobbyStatus';
-import type { PlayerSession } from '@/src/api/types';
+import type { PlayerSession, WaitingPlayer } from '@/src/api/types';
 import { reasonText } from '@/src/lib/i18n';
 import { consumePendingInvite } from '@/src/lib/pendingInvite';
 import { colors, shared } from '@/src/theme';
@@ -17,14 +20,18 @@ function MenuButton({
   label,
   onPress,
   secondary,
+  style,
 }: {
   label: string;
   onPress: () => void;
   secondary?: boolean;
+  /** Only for spacing — the button's own look is not negotiable, which is
+   *  the point: every button on this screen is this one. */
+  style?: StyleProp<ViewStyle>;
 }) {
   return (
     <Pressable
-      style={[shared.button, secondary && shared.buttonSecondary]}
+      style={[shared.button, secondary && shared.buttonSecondary, style]}
       onPress={onPress}
     >
       <Text style={[shared.buttonText, secondary && shared.buttonTextSecondary]}>
@@ -148,14 +155,23 @@ function useFollowPendingInvite(ready: boolean) {
 
 /**
  * "The main page would be the waiting room and would give us status of the
- * players available" — this is that status, right on the menu, and now
- * "Find players" toggles availability in place instead of navigating to a
- * separate screen. Being available *is* an active WebSocket connection
- * (useLobbySocket) that makes this device inviteable; browsing the count
- * beforehand is a read-only poll (useWaitingLobbyStatus) that commits to
- * nothing. Only one of the two is ever enabled at a time, driven by the
- * `available` toggle below — the two hooks themselves are unchanged from
- * how the old dedicated waiting-room screen used them.
+ * players available" — this is that status, right on the menu.
+ *
+ * Two things a person has to be able to tell apart here, which the first cut
+ * of this card ran together: *who is waiting* and *whether they themselves
+ * are waiting*. So the roster is the body of the card in both states — real
+ * faces and names, because "3 players waiting" answers a smaller question
+ * than "who?" — and the button underneath does one thing only, which is to
+ * put you in that list or take you back out. It is the same MenuButton as the
+ * menu below it, deliberately: a control that publishes your availability
+ * should not look like a different species of thing from "Play".
+ *
+ * Being available *is* an active WebSocket connection (useLobbySocket) that
+ * makes this device inviteable; browsing the pool beforehand is a read-only
+ * poll (useWaitingLobbyStatus) that commits to nothing. Only one of the two is
+ * ever enabled at a time, driven by the `available` toggle below — the two
+ * hooks themselves are unchanged from how the old dedicated waiting-room
+ * screen used them.
  */
 function WaitingStatusCard({ session }: { session: PlayerSession }) {
   const [available, setAvailable] = useState(false);
@@ -172,57 +188,57 @@ function WaitingStatusCard({ session }: { session: PlayerSession }) {
       <View style={[shared.card, { marginTop: 12 }]} testID="home-waiting-status">
         {!idleLoaded ? (
           <Text style={shared.status}>Checking who's around…</Text>
-        ) : idlePlayers.length === 0 ? (
-          <Text style={shared.status}>No one is waiting to play right now.</Text>
         ) : (
-          <>
-            <Text style={{ color: colors.text, fontWeight: '600', marginBottom: 4 }}>
-              {idlePlayers.length === 1
-                ? '1 player waiting to play'
-                : `${idlePlayers.length} players waiting to play`}
-            </Text>
-            <Text style={shared.status}>
-              {idlePlayers
-                .slice(0, 5)
-                .map((p) => p.username)
-                .join(', ')}
-              {idlePlayers.length > 5 ? `, +${idlePlayers.length - 5} more` : ''}
-            </Text>
-          </>
+          <WaitingList
+            players={idlePlayers}
+            heading={
+              idlePlayers.length === 1
+                ? '1 player is waiting to play'
+                : `${idlePlayers.length} players are waiting to play`
+            }
+            empty="Nobody is waiting to play right now. Put yourself on the list and you'll be the first anyone sees."
+          />
         )}
-        <Pressable
-          style={[shared.buttonSecondary, { marginTop: 12, marginBottom: 0 }]}
+        <MenuButton
+          label={availableLabel}
+          secondary
+          style={cardButton}
           onPress={() => setAvailable(true)}
-        >
-          <Text style={shared.buttonTextSecondary}>Find players</Text>
-        </Pressable>
+        />
       </View>
     );
   }
 
-  const others = livePlayers.filter((p) => p.playerId !== session.userId).length;
+  // Your own row is dropped: the list answers "who might I end up playing
+  // with", and you are not one of them.
+  const others = livePlayers.filter((p) => p.playerId !== session.userId);
 
   if (status === 'open') {
     return (
       <View style={[shared.card, { marginTop: 12 }]} testID="home-waiting-status">
         <View testID="waiting-status-open">
           <Text style={{ color: colors.success, fontWeight: '600', marginBottom: 4 }}>
-            You're visible to hosts
+            You're waiting to play
           </Text>
-          <Text style={shared.status}>
-            {others === 0
-              ? 'No one else is waiting right now.'
-              : others === 1
-                ? '1 other player is also waiting.'
-                : `${others} other players are also waiting.`}
+          <Text style={[shared.status, { marginTop: 0, marginBottom: 10 }]}>
+            Anyone opening a table can pick you up — they don't need a code from you.
           </Text>
+          <WaitingList
+            players={others}
+            heading={
+              others.length === 1
+                ? '1 other player is waiting too'
+                : `${others.length} other players are waiting too`
+            }
+            empty="Nobody else is waiting yet. Hosts can still see you and invite you."
+          />
         </View>
-        <Pressable
-          style={[shared.buttonSecondary, { marginTop: 12, marginBottom: 0 }]}
+        <MenuButton
+          label={stopLabel}
+          secondary
+          style={cardButton}
           onPress={() => setAvailable(false)}
-        >
-          <Text style={shared.buttonTextSecondary}>Stop</Text>
-        </Pressable>
+        />
       </View>
     );
   }
@@ -238,14 +254,9 @@ function WaitingStatusCard({ session }: { session: PlayerSession }) {
             Attempt {attempts}. The server is not taking new waiting-room connections right now.
           </Text>
         </View>
-        <Pressable
-          style={[shared.buttonSecondary, { marginTop: 12, marginBottom: 0 }]}
-          onPress={retryNow}
-        >
-          <Text style={shared.buttonTextSecondary}>Try again now</Text>
-        </Pressable>
+        <MenuButton label="Try again now" secondary style={cardButton} onPress={retryNow} />
         <Pressable style={{ marginTop: 10 }} onPress={() => setAvailable(false)}>
-          <Text style={shared.status}>Stop</Text>
+          <Text style={shared.status}>{stopLabel}</Text>
         </Pressable>
       </View>
     );
@@ -264,14 +275,9 @@ function WaitingStatusCard({ session }: { session: PlayerSession }) {
           </Text>
           <Text style={[shared.status, { marginTop: 4 }]}>Server: {ZOLIK_BASE_URL}</Text>
         </View>
-        <Pressable
-          style={[shared.buttonSecondary, { marginTop: 12, marginBottom: 0 }]}
-          onPress={retryNow}
-        >
-          <Text style={shared.buttonTextSecondary}>Try again now</Text>
-        </Pressable>
+        <MenuButton label="Try again now" secondary style={cardButton} onPress={retryNow} />
         <Pressable style={{ marginTop: 10 }} onPress={() => setAvailable(false)}>
-          <Text style={shared.status}>Stop</Text>
+          <Text style={shared.status}>{stopLabel}</Text>
         </Pressable>
       </View>
     );
@@ -281,7 +287,7 @@ function WaitingStatusCard({ session }: { session: PlayerSession }) {
     <View style={[shared.card, { marginTop: 12 }]} testID="home-waiting-status">
       <View testID="waiting-status-connecting">
         <ActivityIndicator color={colors.accent} style={{ marginBottom: 8 }} />
-        <Text style={shared.status}>Connecting…</Text>
+        <Text style={shared.status}>Adding you to the waiting list…</Text>
         <Text style={[shared.status, { marginTop: 4, fontSize: 12 }]}>
           If this doesn't finish in a few seconds, check the server address below is reachable
           from this device.
@@ -289,8 +295,72 @@ function WaitingStatusCard({ session }: { session: PlayerSession }) {
         <Text style={[shared.status, { marginTop: 4 }]}>Server: {ZOLIK_BASE_URL}</Text>
       </View>
       <Pressable style={{ marginTop: 10 }} onPress={() => setAvailable(false)}>
-        <Text style={shared.status}>Stop</Text>
+        <Text style={shared.status}>{stopLabel}</Text>
       </Pressable>
+    </View>
+  );
+}
+
+/**
+ * The two halves of the toggle, written out once each.
+ *
+ * "Find players" — what this button used to say — named a screen to go
+ * looking at, and there is no such screen: the tap does not search for
+ * anybody, it publishes *you*, to everybody. Naming that effect instead
+ * settles the one question the old card left a person holding, which was what
+ * pressing it was about to do to them.
+ */
+const availableLabel = 'Make me available to play';
+const stopLabel = 'Stop waiting';
+
+/** A MenuButton sitting last inside a card, where the card supplies the
+ *  bottom margin the menu stack normally wants. */
+const cardButton = { marginTop: 12, marginBottom: 0 } as const;
+
+/** How many faces fit before the card costs more room than it earns. */
+const maxNamesShown = 8;
+
+/**
+ * The pool as people rather than as a number.
+ *
+ * Each is drawn under the face they are waiting behind, which is the face
+ * they will still be sitting behind a moment later — so spotting a friend in
+ * the list is possible at all. The count this replaces could tell you the
+ * room was not empty, and nothing else about it.
+ */
+function WaitingList({
+  players,
+  heading,
+  empty,
+}: {
+  players: WaitingPlayer[];
+  heading: string;
+  empty: string;
+}) {
+  if (players.length === 0) {
+    return <Text style={[shared.status, { marginTop: 0 }]}>{empty}</Text>;
+  }
+
+  const shown = players.slice(0, maxNamesShown);
+  return (
+    <View testID="home-waiting-list">
+      <Text style={{ color: colors.text, fontWeight: '600', marginBottom: 8 }}>{heading}</Text>
+      {shown.map((p) => (
+        <View
+          key={p.playerId}
+          testID={`home-waiting-player-${p.playerId}`}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}
+        >
+          <Avatar spec={avatarFor(p.playerId, false, p.avatar)} size={24} />
+          <Text style={{ color: colors.text, flexShrink: 1 }} numberOfLines={1}>
+            {p.username}
+            {p.isGuest ? ' (guest)' : ''}
+          </Text>
+        </View>
+      ))}
+      {players.length > shown.length ? (
+        <Text style={[shared.status, { marginTop: 2 }]}>+{players.length - shown.length} more</Text>
+      ) : null}
     </View>
   );
 }
