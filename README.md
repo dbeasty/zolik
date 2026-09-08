@@ -16,11 +16,13 @@ being edited.
   embedded SSH host)
 - `client-react-native/` — Expo GUI client for web/iOS/Android
 - `client-tui/` — text-only terminal client (Bubbletea + SSH)
-- `e2e/` — Playwright specs that drive the real server and the real web build
+- `e2e/` — Playwright specs that drive the real server and the real web build,
+  and `e2e/longevity/`, a fleet of browsers that plays it for hours
 
 ```sh
 ./scripts/dev-stack.sh up     # Docker server (:8090) + web client (:8114)
 ./scripts/dev-stack.sh test   # every suite: Go, terminal client, RN, e2e
+./scripts/dev-stack.sh soak   # longevity: several browsers playing, for hours
 ```
 
 See [`docs/testing-this-branch.md`](docs/testing-this-branch.md) for what to
@@ -121,6 +123,8 @@ the header (naming the server's too, only when it differs — see
 - [`docs/one-architecture-plan.md`](docs/one-architecture-plan.md) — phases
   5–8: poker, bots for every game, one client shell, and the deletion of the
   Žolíky-specific path
+- [`docs/memory.md`](docs/memory.md) — the four memory thresholds and the order
+  they belong in, what was actually using the memory, and how to measure it
 
 ## Licence
 

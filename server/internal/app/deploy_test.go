@@ -114,7 +114,7 @@ func TestProductionDataOutlivesTheDeploy(t *testing.T) {
 func TestProductionClosesTheHatches(t *testing.T) {
 	env := readCompose(t, prodCompose).Services["app"].Environment
 
-	for _, key := range []string{"SSH_ENABLED", "SSH_ALLOW_ALL_KEYS", "ENABLE_TEST_ENDPOINTS"} {
+	for _, key := range []string{"SSH_ENABLED", "SSH_ALLOW_ALL_KEYS", "ENABLE_TEST_ENDPOINTS", "ENABLE_DEBUG_ENDPOINTS"} {
 		value, ok := env[key]
 		if !ok {
 			t.Errorf("%s is unset in production. It is not off by omission: APP_ENV=local turns "+

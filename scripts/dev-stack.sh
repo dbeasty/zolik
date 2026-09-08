@@ -6,6 +6,7 @@
 #   scripts/dev-stack.sh up      # docker server + web client
 #   scripts/dev-stack.sh down    # stop both
 #   scripts/dev-stack.sh test    # run every suite: Go, client, e2e
+#   scripts/dev-stack.sh soak    # longevity: a fleet of browsers playing for hours
 #   scripts/dev-stack.sh logs    # tail the server container
 #
 # Why a script rather than three commands in a README: Playwright must be
@@ -96,6 +97,7 @@ compose() {
   # compose file by default, because that file is also the shape the public
   # host runs; this is the local stack, so this is where they are opened.
   (cd "$SERVER_DIR" && ZOLIK_BIND="${bind:-127.0.0.1}" ZOLIK_TEST_ENDPOINTS=true \
+    ZOLIK_DEBUG_ENDPOINTS="${ZOLIK_DEBUG_ENDPOINTS:-true}" \
     ZOLIK_BOT_THINK_MIN_MS="${ZOLIK_BOT_THINK_MIN_MS:-}" \
     ZOLIK_BOT_THINK_MAX_MS="${ZOLIK_BOT_THINK_MAX_MS:-}" \
     docker compose "${COMPOSE_ARGS[@]}" "$@")
@@ -225,10 +227,47 @@ run_tests() {
   (cd "${ROOT}/e2e" && ZOLIK_E2E_API_BASE="$API" ZOLIK_E2E_WEB_BASE="$WEB" npx playwright test --workers=2)
 }
 
+# Longevity: several real browsers signing in and playing, for as long as they
+# are given, against the stack that is already up.
+#
+# Deliberately a separate verb from `test`. The suite answers "does it work" in
+# thirty-second slices and is expected to be run constantly; this answers "does
+# it still work after four hours of it", takes as long as it is told to, and is
+# expected to be started on purpose and left alone. Sharing a verb would mean
+# one of those two things quietly became the other.
+#
+# Everything is an environment variable because the run is reproducible from a
+# shell history and is usually started detached:
+#
+#   ZOLIK_SOAK_FOR=4h ZOLIK_SOAK_SOLO=6 ZOLIK_SOAK_DUOS=2 $0 soak
+#
+# See e2e/longevity/README.md for the full list.
+run_soak() {
+  curl -fsS -m 2 -o /dev/null "${API}/healthz" 2>/dev/null \
+    || die "the stack is not running — start it with: $0 up"
+  curl -fsS -m 5 -o /dev/null "${WEB}" 2>/dev/null \
+    || die "the web client is not running at ${WEB} — start it with: $0 up"
+
+  if [[ ! -d "${ROOT}/e2e/node_modules" ]]; then
+    say "installing e2e dependencies"
+    (cd "${ROOT}/e2e" && npm install)
+  fi
+  (cd "${ROOT}/e2e" && npx playwright install chromium)
+
+  # Bots answer at whatever pace the running container was started with. Unlike
+  # `test`, this does *not* hurry them and does not recreate the container to do
+  # it: a soak run is meant to look like use, and a container restarted at the
+  # start of it would reset the very memory curve the run exists to measure.
+  say "soaking ${API} (bots at the pace the container is already running)"
+  (cd "${ROOT}/e2e" && ZOLIK_E2E_API_BASE="$API" ZOLIK_E2E_WEB_BASE="$WEB" \
+    npx playwright test --config longevity/longevity.config.ts "$@")
+}
+
 case "${1:-up}" in
   up)    up ;;
   down)  down ;;
   test)  shift || true; run_tests "$@" ;;
+  soak)  shift || true; run_soak "$@" ;;
   logs)  compose logs -f app ;;
-  *)     die "usage: $0 {up|down|test|logs}" ;;
+  *)     die "usage: $0 {up|down|test|soak|logs}" ;;
 esac

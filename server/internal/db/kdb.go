@@ -160,10 +160,45 @@ type KDBStorage struct {
 
 // kdbMemoryRejectFraction is the fraction of MemoryBudgetBytes at which
 // writes start being shed (ZoneHigh's entry point). Matches kdb-service's own
-// default (go/cmd/kdb-service/main.go), which this mirrors; the rescue
-// reserve and scan row budget come from SetMemoryLimit's own defaults, same
-// as kdb-service's --memory-reserve-mb default.
+// default (go/cmd/kdb-service/main.go), which this mirrors; the scan row
+// budget likewise comes from the engine's own default. The rescue reserve
+// does not — see kdbRescueReserveBytes.
 const kdbMemoryRejectFraction = 0.85
+
+// kdbRescueReserveBytes is one whole rescue reserve, divided by the number of
+// namespaces that will each hold a share of it.
+//
+// The reserve is memory KDB holds back and drops on entry to Critical, so the
+// abort sequence has room to finish in-flight commits and write its typed
+// rejections instead of dying partway through for want of a few megabytes. It
+// is deliberately a *real* allocation with every page touched — a reservation
+// the allocator has not honoured yet is an intention, not headroom.
+//
+// Which is exactly why nine of them is not nine times as safe. Taking the
+// engine's default per namespace, as SetMemoryLimit does, allocated and
+// touched 9 x 48 MiB = 432 MiB before a single player connected: 42% of a 1 GiB
+// container, live and uncollectable, at idle. With Go's collector then aiming
+// at twice the live heap, the process idled at roughly 84% of that container —
+// a hair under the 0.85 admission watermark — so the first few players to
+// arrive pushed it over and were refused. The server looked like it could hold
+// four people. It was holding nine copies of its own escape hatch.
+//
+// One process, one cgroup, one memory ceiling: one reserve's worth is what a
+// single-runtime deployment holds, so that is what this one holds too, split so
+// that every namespace still has its own share to drop when its guard goes
+// critical. The guards all sample process-wide memory, so they go critical
+// together and the shares are dropped together — which is the same 48 MiB
+// arriving at the same moment, from nine places instead of one.
+//
+// See TestRescueReserveIsSharedAcrossNamespaces, which is what stops a tenth
+// namespace quietly adding another 48 MiB.
+func kdbRescueReserveBytes() int64 {
+	share := kdbserver.DefaultRescueReserveBytes / int64(len(kdbNamespaceNames))
+	if share < 1 {
+		return 1
+	}
+	return share
+}
 
 // kdbHotTierFraction is the share of MemoryBudgetBytes set aside for KDB's
 // own hot-tier caching (document versions, commit operations, historical
@@ -330,7 +365,15 @@ func OpenKDBWithStorage(path string, sc KDBStorage) (*KDB, error) {
 		}
 		srv := kdbserver.NewKdbServerRuntime(rt)
 		if sc.MemoryBudgetBytes > 0 {
-			srv.SetMemoryLimit(sc.MemoryBudgetBytes, kdbMemoryRejectFraction)
+			// SetMemoryBudget rather than SetMemoryLimit: the narrow form
+			// takes the engine's default rescue reserve, and this process
+			// opens nine of these. See kdbRescueReserveBytes.
+			srv.SetMemoryBudget(
+				sc.MemoryBudgetBytes,
+				kdbMemoryRejectFraction,
+				kdbRescueReserveBytes(),
+				kdbserver.DefaultScanRowBudget,
+			)
 		}
 		k.nss[name] = &kdbNamespace{id: nsID, rt: rt, srv: srv}
 	}
