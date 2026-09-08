@@ -417,7 +417,14 @@ export const en: Record<string, string> = {
   // in, because Czech does not put the link where English does: "souhlasíš s
   // Podmínkami" inflects the noun the link is made of. Fragments let each
   // locale place and decline its own.
+  // The short word for a link or a tab.
   'legal.terms': 'Terms',
+  // The document's own name, used as the heading above it. Kept apart from
+  // `legal.notice.terms`, which is the same words inflected to sit inside a
+  // sentence — a heading in the instrumental case reads as a mistake in every
+  // Slavic language.
+  'legal.terms.title': 'Terms of Use',
+  'legal.privacy.title': 'Privacy Notice',
   'legal.privacy': 'Privacy',
   'legal.source': 'Source',
   'legal.updated': 'Version {version}',
@@ -724,4 +731,307 @@ export const en: Record<string, string> = {
   'nav.match': 'Match',
   'nav.scoreTable': 'Score table',
   'nav.stats': 'Stats',
+
+  // --- screens that never reached a key at all -------------------------------
+  //
+  // Everything below was typed straight into JSX. The parity tests could not
+  // see it — they prove every *key* is worded in twenty-four languages, not
+  // that a sentence ever became a key — so the app read half in the player's
+  // language and half in English. `scripts/find-untranslated.js` is the gate
+  // that stops that recurring; these are what it found.
+
+  // Errors shown when a thrown error carries no message of its own. The server
+  // sends codes, not sentences (see `reasonText`); these cover the cases where
+  // nothing came back at all — a socket that died, a fetch that never landed.
+  'error.generic': 'That did not work',
+  'error.signIn': 'Sign-in failed',
+  'error.login': 'Login failed',
+  'error.register': 'Registration failed',
+  'error.sendCode': 'Could not send a code',
+  'error.badCode': 'That code did not work',
+  'error.rulesLoad': 'Could not load the rules',
+  'error.createFailed': 'Create failed',
+  'error.saveFailed': 'Save failed',
+  'error.exportFailed': 'Export failed',
+
+  // --- the route that does not exist ----------------------------------------
+  'notFound.title': 'Oops!',
+  'notFound.message': "This screen doesn't exist.",
+  'notFound.home': 'Go to home screen!',
+
+  // --- signing in -----------------------------------------------------------
+  'auth.login.subtitle': 'Keep your statistics across devices',
+  'auth.login.continueWithEmail': 'Continue with email',
+  'auth.login.usernameInstead': 'Sign in with a username instead',
+  'auth.email.title': 'Sign in with email',
+  'auth.email.subtitle': "We'll email you a one-time code",
+  'auth.email.address': 'Email address',
+  'auth.email.send': 'Send code',
+  'auth.email.codeTitle': 'Enter the code',
+  'auth.email.codePlaceholder': '6-digit code',
+  'auth.email.differentAddress': 'Use a different address',
+  'auth.email.sentTo': 'Sent to {email}',
+  'auth.email.continue': 'Continue',
+  'auth.guest.title': 'Guest play',
+  'auth.guest.subtitle': 'No account required',
+  'auth.guest.displayName': 'Display name',
+  'auth.register.title': 'Create account',
+  'auth.register.username': 'Username',
+  'auth.register.email': 'Email (optional)',
+  'auth.register.password': 'Password',
+  'auth.username.createAccount': 'Create a username/password account',
+  'auth.callback.signedIn': 'Signed in.',
+
+  // --- the account screen ---------------------------------------------------
+  'account.signInPrompt': 'Sign in to manage your account.',
+  'account.keepGames': 'Keep these games',
+  'account.signedInWith': 'Signed in with',
+  'account.addMethod': 'Add a sign-in method',
+  'account.usernameAndPassword': 'Username and password',
+  'account.faceAndTable': 'Face and table look',
+  'account.refresh': 'Refresh',
+  'account.remove': 'Remove',
+
+  // --- the main menu --------------------------------------------------------
+  'home.subtitle': 'Continental Rummy · {server}',
+  'home.playingAs': 'Playing as {name}',
+  'home.signInPrompt': 'Sign in or continue as guest to play online.',
+  'home.statsAndLeaderboard': 'Stats & leaderboard',
+  'home.play': 'Play',
+  'home.offlineScoreTable': 'Offline score table',
+  'home.signInToKeepStats': 'Sign in to keep your stats',
+  'home.signOut': 'Sign out',
+  'home.continueAsGuest': 'Continue as guest',
+  // Someone playing as a guest, marked in a list of names.
+  'home.guestSuffix': '(guest)',
+
+  // --- the waiting room on the main menu ------------------------------------
+  //
+  // Counts are whole phrases per count, not a number glued to a noun — the
+  // same reason `countLabel` exists. One and many are the cases the interface
+  // actually produces, so they are the cases that get their own wording.
+  'waiting.checking': "Checking who's around…",
+  'waiting.youAreWaiting': "You're waiting to play",
+  'waiting.pickedUp': "Anyone opening a table can pick you up — they don't need a code from you.",
+  'waiting.othersOne': '1 other player is waiting too',
+  'waiting.othersMany': '{n} other players are waiting too',
+  'waiting.oneWaiting': '1 player is waiting to play',
+  'waiting.manyWaiting': '{n} players are waiting to play',
+  'waiting.adding': 'Adding you to the waiting list…',
+  'waiting.slowHint':
+    "If this doesn't finish in a few seconds, check the server address below is reachable from this device.",
+  'waiting.serverBusyDetail':
+    'Attempt {n}. The server is not taking new waiting-room connections right now.',
+  'waiting.reconnecting': 'Connection lost — reconnecting…',
+  'waiting.reconnectingDetail':
+    "Attempt {n}. This can happen if your device's network changed, or the server restarted.",
+  'waiting.tryAgain': 'Try again now',
+  'waiting.makeAvailable': 'Make me available to play',
+  'waiting.stop': 'Stop waiting',
+  'waiting.noneYet':
+    "Nobody is waiting to play right now. Put yourself on the list and you'll be the first anyone sees.",
+  'waiting.noOthersYet': 'Nobody else is waiting yet. Hosts can still see you and invite you.',
+  'waiting.server': 'Server',
+  'waiting.none': 'No one is waiting right now. Anyone who makes themselves available on the main menu shows up here.',
+
+  // --- landing on a shared invite link --------------------------------------
+  'join.staleLink': 'Ask whoever invited you for a fresh link, or join with the code instead.',
+  'join.enterCode': 'Enter a code',
+  'join.backToMenu': 'Back to the menu',
+  'join.takingSeat': 'Taking a seat…',
+  'join.takingSeatAt': 'Taking a seat at {game}…',
+
+  // --- the lobby ------------------------------------------------------------
+  'lobby.games.subtitle': 'Everything this server can host',
+  'lobby.games.bots': 'Bots',
+  'lobby.games.playBot': 'Play against a bot',
+  'lobby.games.playBots': 'Play against {n} bots',
+  'lobby.games.openTable': 'Open a table',
+  'lobby.games.players': '{n} players',
+  'lobby.games.playerRange': '{min}–{max} players',
+  'lobby.join.placeholder': 'Join code or invite link',
+  'lobby.join.action': 'Join',
+  'lobby.join.waitingTitle': 'Waiting for the host',
+  // Two whole sentences rather than one with a swapped noun: "a game of {game}"
+  // does not survive a language that inflects the game's name after "of".
+  'lobby.join.joinedGame': 'Joined a game of {game} — waiting to start',
+  'lobby.join.joinedTable': 'Joined the table — waiting to start',
+  'lobby.table.addBot': 'Add a bot',
+  'lobby.table.start': 'Start',
+  'lobby.table.waitingForHost': 'Waiting for the host to start…',
+
+  // --- inviting someone to a table ------------------------------------------
+  'invite.heading': 'Invite players',
+  'invite.explain': 'Send this link. Whoever opens it lands at this table — no account needed.',
+  'invite.noAddress': 'This server has no shareable address configured, so use the code below.',
+  'invite.readOutCode': 'Or read out the code:',
+  'invite.copy': 'Copy link',
+  'invite.share': 'Share link',
+  'invite.copied': 'Copied!',
+  'invite.shared': 'Shared',
+
+  // --- the match screen -----------------------------------------------------
+  'match.waitingForTable': 'Waiting for the table…',
+  'match.waitingForPlayer': 'Waiting for another player…',
+  'match.nobodyWon': 'Nobody won.',
+  'match.youWon': 'You won.',
+  'match.finished': 'This match has finished.',
+  'match.inProgress': 'Match in progress — everything is connected and moving normally.',
+  'match.controls': 'Controls',
+  'match.over': 'Match over',
+  'match.settingUp': 'Setting up…',
+  'match.playAgain': 'Play again',
+  'match.backToGames': 'Back to games',
+  'match.table': 'Table',
+  'match.opponents': 'Opponents',
+  // Marks which seat is the reader's own, in a list of seats.
+  'match.youSuffix': '(you)',
+  // The winner line is composed from whole sentences rather than a name glued
+  // to " won." — the verb agrees with the subject in most of these languages,
+  // and a suffix cannot know that.
+  'match.you': 'you',
+  'match.someoneWon': '{name} won.',
+  'match.wonBy': 'Won by {names}.',
+  'match.pausedFor': 'Paused — waiting for {name} to reconnect.',
+  'match.results': 'Results',
+  'match.players': 'Players',
+  'match.toPlay': 'to play',
+
+  // --- the offline score table ----------------------------------------------
+  'scoring.namesHint': 'Comma-separated names (4–8 players)',
+  'scoring.newSession': 'New session',
+  // A worked example, not a sentence: the names are placeholders a translator
+  // may localise, the shape `name:score,` is what the parser needs.
+  'scoring.scoresPlaceholder': 'Alice:120,Bob:80,…',
+  'scoring.saveRound': 'Save round',
+  'scoring.export': 'Export scorecard',
+  'scoring.formatHint': 'Scores format: Name:100,Name2:50',
+  'scoring.session': 'Session: {id}',
+  'scoring.players': 'Players: {names}',
+  'scoring.roundScores': 'Round {n} scores',
+  'stats.loading': 'Loading…',
+
+  // --- statistics -----------------------------------------------------------
+  'stats.title': 'Stats & leaderboard',
+  'stats.yours': 'Your stats',
+  'stats.leaderboard': 'Leaderboard',
+
+  // --- a player's lifetime record, shown beside a finished match ------------
+  'record.title': 'Your record',
+  'record.guest':
+    'You are playing as a guest, so no record is being kept. Sign in and the games you have already played on this device — including this one — are kept with your account.',
+  'record.signInToKeep': 'Sign in and keep these',
+  'record.failed': 'Your record could not be loaded just now. The match is safely recorded.',
+  'record.loading': 'Loading…',
+  'record.played': 'Played',
+  'record.won': 'Won',
+  'record.lost': 'Lost',
+  'record.winRate': 'Win rate',
+  'record.streak': 'Streak',
+  'record.atThisGame': 'At this game',
+  // A streak is a count with a noun, so it is a whole phrase per count for
+  // the same reason `countLabel` is: "1 win" / "2 wins" is an English rule,
+  // and most of these languages do not share it.
+  'record.streakNone': '—',
+  'record.streakWinOne': '1 win',
+  'record.streakWinMany': '{n} wins',
+  'record.streakLossOne': '1 loss',
+  'record.streakLossMany': '{n} losses',
+
+  // --- moving cards ---------------------------------------------------------
+  'hand.dragHint': 'Drag a card along the fan to rearrange it, or onto the board to play it',
+  'hand.moveLeft': 'Move left',
+  'hand.moveRight': 'Move right',
+  'zone.collapseGroup': 'Collapse this group',
+  'zone.expandGroup': 'Show all cards in this group',
+  'zone.dropHere': 'Drop here',
+  'offer.pickCards': 'pick cards for the place you tapped',
+  'offer.ambiguous': 'more than one place this could go — pick on the board',
+
+  // --- the build footer -----------------------------------------------------
+  'build.app': 'app',
+  'build.server': 'server',
+  // --- the words the server chose, worded here -------------------------------
+  //
+  // /modules describes each game, variation, option and choice with an English
+  // label. That made the lobby the one screen that stayed English whatever the
+  // picker said. `src/lib/gameLabels.ts` looks these up and falls back to the
+  // label the server sent, so a game added after this build still reads.
+  //
+  // Absent on purpose: game names, place names, ratios and bare numbers.
+  // "Texas Hold'em", "Vegas Strip", "3:2" and "500" read the same in every
+  // language and fall through to the server's own label.
+  'option.pauseBetweenRounds': 'Pause between rounds',
+  'choice.pauseBetweenRounds.1': 'Pause',
+  'choice.pauseBetweenRounds.0': 'Play straight on',
+  'option.botSkill': 'Opponents',
+  'choice.botSkill.0': 'Mixed',
+  'choice.botSkill.1': 'Easy',
+  'choice.botSkill.2': 'Medium',
+  'choice.botSkill.3': 'Hard',
+  'option.initialMeldMinimum': 'Meld value',
+  'choice.initialMeldMinimum.0': 'Off',
+  'option.discardDrawMinRound': 'Discard pickup',
+  'choice.discardDrawMinRound.0': 'Open',
+  'choice.discardDrawMinRound.2': 'Round 2',
+  'choice.discardDrawMinRound.3': 'Round 3',
+  'option.requireCleanRun': 'Clean run',
+  'choice.requireCleanRun.1': 'Required',
+  'choice.requireCleanRun.0': 'Off',
+  'option.jokerReclaimMustPlay': 'Reclaimed joker',
+  'choice.jokerReclaimMustPlay.1': 'Play same turn',
+  'choice.jokerReclaimMustPlay.0': 'May be kept',
+  'option.dealStarter': 'Deal starter',
+  'choice.dealStarter.0': 'Rotate',
+  'choice.dealStarter.1': 'Winner leads',
+  'variation.prsi.classic': 'Classic',
+  'option.handSize': 'Cards dealt',
+  'variation.canasta.classic': 'Classic',
+  'variation.canasta.modern_american': 'Modern American',
+  'option.targetScore': 'Target score',
+  'option.canastasToGoOut': 'Canastas to go out',
+  'variation.holdem.freezeout': 'Freezeout',
+  'variation.holdem.timed': 'Fixed hands',
+  'option.startingStack': 'Starting chips',
+  'option.bigBlind': 'Big blind',
+  'option.handLimit': 'Hands',
+  'choice.handLimit.0': 'Until one seat is left',
+  'variation.ginrummy.standard': 'Standard',
+  'option.knockLimit': 'Knock limit',
+  'choice.knockLimit.0': 'Oklahoma (the upcard sets it)',
+  'option.bigGin': 'Big gin',
+  'choice.bigGin.0': 'Off',
+  'choice.bigGin.1': 'On (+25)',
+  'option.lineBonuses': 'Line bonuses',
+  'choice.lineBonuses.1': 'On',
+  'choice.lineBonuses.0': 'Off',
+  'variation.rummytiles.standard': 'Standard',
+  'choice.targetScore.0': 'Off',
+  'option.roundLimit': 'Round limit',
+  'choice.roundLimit.0': 'Off',
+  'option.poolExhaustion': 'Pool exhaustion',
+  'choice.poolExhaustion.1': 'Lowest hand wins the round',
+  'choice.poolExhaustion.0': 'Nobody wins the round',
+  'variation.blackjack.single': 'Single deck',
+  'option.minBet': 'Table minimum',
+  'option.rounds': 'Rounds',
+  'option.decks': 'Decks',
+  'option.dealerHitsSoft17': 'Dealer on soft 17',
+  'choice.dealerHitsSoft17.0': 'Stands',
+  'choice.dealerHitsSoft17.1': 'Hits',
+  'option.blackjackPays': 'Blackjack pays',
+  'choice.blackjackPays.100': 'Even money',
+  'option.maxSplits': 'Splitting',
+  'choice.maxSplits.0': 'No splitting',
+  'choice.maxSplits.1': 'Once (two hands)',
+  'choice.maxSplits.3': 'Three times (four hands)',
+  'option.doubleAfterSplit': 'Double after split',
+  'choice.doubleAfterSplit.1': 'Allowed',
+  'choice.doubleAfterSplit.0': 'Not allowed',
+  'option.surrender': 'Surrender',
+  'choice.surrender.0': 'Off',
+  'choice.surrender.1': 'Late surrender',
+  'option.insurance': 'Insurance',
+  'choice.insurance.1': 'Offered',
+  'choice.insurance.0': 'Not offered',
 };

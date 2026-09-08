@@ -4,6 +4,7 @@ import { Text } from 'react-native';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { colors, shared } from '@/src/theme';
+import { t } from '@/src/lib/i18n';
 
 export default function StatsScreen() {
   const { client, session } = useSession();
@@ -42,11 +43,11 @@ export default function StatsScreen() {
   }, [client, session]);
 
   return (
-    <Screen title="Stats & leaderboard" scroll>
-      <Text style={[shared.status, { fontWeight: '600', color: colors.text }]}>Your stats</Text>
-      <Text style={[shared.status, { marginBottom: 16 }]}>{stats || 'Loading…'}</Text>
-      <Text style={[shared.status, { fontWeight: '600', color: colors.text }]}>Leaderboard</Text>
-      <Text style={shared.status}>{leaderboard || 'Loading…'}</Text>
+    <Screen title={t('stats.title')} scroll>
+      <Text style={[shared.status, { fontWeight: '600', color: colors.text }]}>{t('stats.yours')}</Text>
+      <Text style={[shared.status, { marginBottom: 16 }]}>{stats || t('stats.loading')}</Text>
+      <Text style={[shared.status, { fontWeight: '600', color: colors.text }]}>{t('stats.leaderboard')}</Text>
+      <Text style={shared.status}>{leaderboard || t('stats.loading')}</Text>
     </Screen>
   );
 }

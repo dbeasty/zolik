@@ -417,7 +417,14 @@ export const lt: Record<string, string> = {
   // in, because Czech does not put the link where English does: "souhlasíš s
   // Podmínkami" inflects the noun the link is made of. Fragments let each
   // locale place and decline its own.
+  // The short word for a link or a tab.
   'legal.terms': 'Sąlygos',
+  // The document's own name, used as the heading above it. Kept apart from
+  // `legal.notice.terms`, which is the same words inflected to sit inside a
+  // sentence — a heading in the instrumental case reads as a mistake in every
+  // Slavic language.
+  'legal.terms.title': 'Naudojimo sąlygos',
+  'legal.privacy.title': 'Privatumo pranešimas',
   'legal.privacy': 'Privatumas',
   'legal.source': 'Pirminis kodas',
   'legal.updated': 'Versija {version}',
@@ -732,4 +739,307 @@ export const lt: Record<string, string> = {
   'nav.match': 'Rungtynės',
   'nav.scoreTable': 'Taškų lentelė',
   'nav.stats': 'Statistika',
+
+  // --- screens that never reached a key at all -------------------------------
+  //
+  // Everything below was typed straight into JSX. The parity tests could not
+  // see it — they prove every *key* is worded in twenty-four languages, not
+  // that a sentence ever became a key — so the app read half in the player's
+  // language and half in English. `scripts/find-untranslated.js` is the gate
+  // that stops that recurring; these are what it found.
+
+  // Errors shown when a thrown error carries no message of its own. The server
+  // sends codes, not sentences (see `reasonText`); these cover the cases where
+  // nothing came back at all — a socket that died, a fetch that never landed.
+  'error.generic': 'Tai nepavyko',
+  'error.signIn': 'Prisijungti nepavyko',
+  'error.login': 'Prisijungti nepavyko',
+  'error.register': 'Registruotis nepavyko',
+  'error.sendCode': 'Nepavyko išsiųsti kodo',
+  'error.badCode': 'Tas kodas neveikė',
+  'error.rulesLoad': 'Nepavyko įkelti taisyklių',
+  'error.createFailed': 'Sukurti nepavyko',
+  'error.saveFailed': 'Įrašyti nepavyko',
+  'error.exportFailed': 'Eksportuoti nepavyko',
+
+  // --- the route that does not exist ----------------------------------------
+  'notFound.title': 'Ups!',
+  'notFound.message': 'Tokio ekrano nėra.',
+  'notFound.home': 'Eiti į pradinį ekraną!',
+
+  // --- signing in -----------------------------------------------------------
+  'auth.login.subtitle': 'Išsaugok statistiką visuose įrenginiuose',
+  'auth.login.continueWithEmail': 'Tęsti su el. paštu',
+  'auth.login.usernameInstead': 'Prisijungti vietoj to naudotojo vardu',
+  'auth.email.title': 'Prisijungimas el. paštu',
+  'auth.email.subtitle': 'Atsiųsime tau vienkartinį kodą',
+  'auth.email.address': 'El. pašto adresas',
+  'auth.email.send': 'Siųsti kodą',
+  'auth.email.codeTitle': 'Įvesk kodą',
+  'auth.email.codePlaceholder': 'Šešių skaitmenų kodas',
+  'auth.email.differentAddress': 'Naudoti kitą adresą',
+  'auth.email.sentTo': 'Išsiųsta adresu {email}',
+  'auth.email.continue': 'Tęsti',
+  'auth.guest.title': 'Žaidimas kaip svečias',
+  'auth.guest.subtitle': 'Paskyros nereikia',
+  'auth.guest.displayName': 'Rodomas vardas',
+  'auth.register.title': 'Sukurti paskyrą',
+  'auth.register.username': 'Naudotojo vardas',
+  'auth.register.email': 'El. paštas (nebūtina)',
+  'auth.register.password': 'Slaptažodis',
+  'auth.username.createAccount': 'Sukurti paskyrą su naudotojo vardu ir slaptažodžiu',
+  'auth.callback.signedIn': 'Prisijungta.',
+
+  // --- the account screen ---------------------------------------------------
+  'account.signInPrompt': 'Prisijunk, kad galėtum tvarkyti paskyrą.',
+  'account.keepGames': 'Išsaugoti šiuos žaidimus',
+  'account.signedInWith': 'Prisijungta per',
+  'account.addMethod': 'Pridėti prisijungimo būdą',
+  'account.usernameAndPassword': 'Naudotojo vardas ir slaptažodis',
+  'account.faceAndTable': 'Veidas ir stalo išvaizda',
+  'account.refresh': 'Atnaujinti',
+  'account.remove': 'Pašalinti',
+
+  // --- the main menu --------------------------------------------------------
+  'home.subtitle': 'Continental Rummy · {server}',
+  'home.playingAs': 'Žaidi kaip {name}',
+  'home.signInPrompt': 'Prisijunk arba tęsk kaip svečias, kad žaistum internete.',
+  'home.statsAndLeaderboard': 'Statistika ir lentelė',
+  'home.play': 'Žaisti',
+  'home.offlineScoreTable': 'Taškų lentelė neprisijungus',
+  'home.signInToKeepStats': 'Prisijunk, kad išsaugotum statistiką',
+  'home.signOut': 'Atsijungti',
+  'home.continueAsGuest': 'Tęsti kaip svečias',
+  // Someone playing as a guest, marked in a list of names.
+  'home.guestSuffix': '(svečias)',
+
+  // --- the waiting room on the main menu ------------------------------------
+  //
+  // Counts are whole phrases per count, not a number glued to a noun — the
+  // same reason `countLabel` exists. One and many are the cases the interface
+  // actually produces, so they are the cases that get their own wording.
+  'waiting.checking': 'Žiūrime, kas netoliese…',
+  'waiting.youAreWaiting': 'Lauki, kol galėsi žaisti',
+  'waiting.pickedUp': 'Bet kas, kas atveria stalą, gali tave paimti — niekam nereikia iš tavęs kodo.',
+  'waiting.othersOne': 'Laukia dar 1 žaidėjas',
+  'waiting.othersMany': 'Laukia dar {n} žaidėjų',
+  'waiting.oneWaiting': '1 žaidėjas laukia, kol galės žaisti',
+  'waiting.manyWaiting': '{n} žaidėjų laukia, kol galės žaisti',
+  'waiting.adding': 'Įtraukiame tave į laukiančiųjų sąrašą…',
+  'waiting.slowHint':
+    'Jei tai nesibaigs per kelias sekundes, patikrink, ar žemiau nurodytas serverio adresas pasiekiamas iš šio įrenginio.',
+  'waiting.serverBusyDetail': 'Bandymas {n}. Serveris šiuo metu nepriima naujų prisijungimų prie laukiamojo.',
+  'waiting.reconnecting': 'Ryšys nutrūko — jungiamės iš naujo…',
+  'waiting.reconnectingDetail':
+    'Bandymas {n}. Taip gali nutikti, jei pasikeitė tavo įrenginio tinklas arba serveris buvo paleistas iš naujo.',
+  'waiting.tryAgain': 'Bandyti dabar iš naujo',
+  'waiting.makeAvailable': 'Pažymėti mane kaip pasiruošusį žaisti',
+  'waiting.stop': 'Nustoti laukti',
+  'waiting.noneYet':
+    'Šiuo metu niekas nelaukia žaidimo. Įsirašyk į sąrašą ir būsi pirmas, kurį bet kas pamatys.',
+  'waiting.noOthersYet': 'Daugiau niekas dar nelaukia. Šeimininkai tave vis tiek mato ir gali pakviesti.',
+  'waiting.server': 'Serveris',
+  'waiting.none':
+    'Šiuo metu niekas nelaukia. Kas pagrindiniame meniu pažymi save kaip pasiruošusį, pasirodo čia.',
+
+  // --- landing on a shared invite link --------------------------------------
+  'join.staleLink': 'Paprašyk pakvietusiojo naujos nuorodos arba prisijunk su kodu.',
+  'join.enterCode': 'Įvesti kodą',
+  'join.backToMenu': 'Atgal į meniu',
+  'join.takingSeat': 'Užimame vietą…',
+  'join.takingSeatAt': 'Užimame vietą prie {game}…',
+
+  // --- the lobby ------------------------------------------------------------
+  'lobby.games.subtitle': 'Viskas, ką šis serveris gali pasiūlyti',
+  'lobby.games.bots': 'Botai',
+  'lobby.games.playBot': 'Žaisti prieš botą',
+  'lobby.games.playBots': 'Žaisti prieš {n} botus',
+  'lobby.games.openTable': 'Atverti stalą',
+  'lobby.games.players': 'Žaidėjų: {n}',
+  'lobby.games.playerRange': 'Žaidėjų: {min}–{max}',
+  'lobby.join.placeholder': 'Prisijungimo kodas arba kvietimo nuoroda',
+  'lobby.join.action': 'Prisijungti',
+  'lobby.join.waitingTitle': 'Laukiame šeimininko',
+  // Two whole sentences rather than one with a swapped noun: "a game of {game}"
+  // does not survive a language that inflects the game's name after "of".
+  'lobby.join.joinedGame': 'Prisijungei prie žaidimo {game} — laukiame starto',
+  'lobby.join.joinedTable': 'Prisijungei prie stalo — laukiame starto',
+  'lobby.table.addBot': 'Pridėti botą',
+  'lobby.table.start': 'Pradėti',
+  'lobby.table.waitingForHost': 'Laukiame, kol šeimininkas pradės…',
+
+  // --- inviting someone to a table ------------------------------------------
+  'invite.heading': 'Pakviesti žaidėjų',
+  'invite.explain': 'Nusiųsk šią nuorodą. Kas ją atvers, pateks prie šio stalo — paskyros nereikia.',
+  'invite.noAddress': 'Šiam serveriui nenustatytas bendrinamas adresas, tad naudok kodą žemiau.',
+  'invite.readOutCode': 'Arba padiktuok kodą:',
+  'invite.copy': 'Kopijuoti nuorodą',
+  'invite.share': 'Dalytis nuoroda',
+  'invite.copied': 'Nukopijuota!',
+  'invite.shared': 'Pasidalyta',
+
+  // --- the match screen -----------------------------------------------------
+  'match.waitingForTable': 'Laukiame stalo…',
+  'match.waitingForPlayer': 'Laukiame kito žaidėjo…',
+  'match.nobodyWon': 'Niekas nelaimėjo.',
+  'match.youWon': 'Tu laimėjai.',
+  'match.finished': 'Šios rungtynės baigėsi.',
+  'match.inProgress': 'Rungtynės vyksta — viskas prijungta ir juda įprastai.',
+  'match.controls': 'Valdikliai',
+  'match.over': 'Rungtynių pabaiga',
+  'match.settingUp': 'Ruošiame…',
+  'match.playAgain': 'Žaisti dar kartą',
+  'match.backToGames': 'Atgal į žaidimus',
+  'match.table': 'Stalas',
+  'match.opponents': 'Priešininkai',
+  // Marks which seat is the reader's own, in a list of seats.
+  'match.youSuffix': '(tu)',
+  // The winner line is composed from whole sentences rather than a name glued
+  // to " won." — the verb agrees with the subject in most of these languages,
+  // and a suffix cannot know that.
+  'match.you': 'tu',
+  'match.someoneWon': '{name} laimėjo.',
+  'match.wonBy': 'Laimėjo {names}.',
+  'match.pausedFor': 'Sustabdyta — laukiame, kol {name} vėl prisijungs.',
+  'match.results': 'Rezultatai',
+  'match.players': 'Žaidėjai',
+  'match.toPlay': 'eina',
+
+  // --- the offline score table ----------------------------------------------
+  'scoring.namesHint': 'Vardai, atskirti kableliais (4–8 žaidėjai)',
+  'scoring.newSession': 'Nauja sesija',
+  // A worked example, not a sentence: the names are placeholders a translator
+  // may localise, the shape `name:score,` is what the parser needs.
+  'scoring.scoresPlaceholder': 'Aistė:120,Benas:80,…',
+  'scoring.saveRound': 'Įrašyti raundą',
+  'scoring.export': 'Eksportuoti taškų lapą',
+  'scoring.formatHint': 'Taškų formatas: Vardas:100,Vardas2:50',
+  'scoring.session': 'Sesija: {id}',
+  'scoring.players': 'Žaidėjai: {names}',
+  'scoring.roundScores': '{n} raundo taškai',
+  'stats.loading': 'Įkeliama…',
+
+  // --- statistics -----------------------------------------------------------
+  'stats.title': 'Statistika ir lentelė',
+  'stats.yours': 'Tavo statistika',
+  'stats.leaderboard': 'Lentelė',
+
+  // --- a player's lifetime record, shown beside a finished match ------------
+  'record.title': 'Tavo rezultatai',
+  'record.guest':
+    'Žaidi kaip svečias, tad rezultatai nekaupiami. Prisijunk ir žaidimai, kuriuos šiame įrenginyje jau sužaidei — įskaitant šį — liks prie tavo paskyros.',
+  'record.signInToKeep': 'Prisijungti ir juos išsaugoti',
+  'record.failed': 'Tavo rezultatų dabar nepavyko įkelti. Rungtynės saugiai užfiksuotos.',
+  'record.loading': 'Įkeliama…',
+  'record.played': 'Sužaista',
+  'record.won': 'Laimėta',
+  'record.lost': 'Pralaimėta',
+  'record.winRate': 'Pergalių dalis',
+  'record.streak': 'Serija',
+  'record.atThisGame': 'Šiame žaidime',
+  // A streak is a count with a noun, so it is a whole phrase per count for
+  // the same reason `countLabel` is: "1 win" / "2 wins" is an English rule,
+  // and most of these languages do not share it.
+  'record.streakNone': '—',
+  'record.streakWinOne': '1 pergalė',
+  'record.streakWinMany': 'Pergalės: {n}',
+  'record.streakLossOne': '1 pralaimėjimas',
+  'record.streakLossMany': 'Pralaimėjimai: {n}',
+
+  // --- moving cards ---------------------------------------------------------
+  'hand.dragHint': 'Tempk kortą palei vėduoklę, kad ją perstumtum, arba ant stalo, kad ją sužaistum',
+  'hand.moveLeft': 'Kairėn',
+  'hand.moveRight': 'Dešinėn',
+  'zone.collapseGroup': 'Sutraukti šią grupę',
+  'zone.expandGroup': 'Rodyti visas šios grupės kortas',
+  'zone.dropHere': 'Padėk čia',
+  'offer.pickCards': 'pasirink kortas vietai, kurią palietei',
+  'offer.ambiguous': 'tai tinka daugiau nei vienoje vietoje — pasirink ant stalo',
+
+  // --- the build footer -----------------------------------------------------
+  'build.app': 'programa',
+  'build.server': 'serveris',
+  // --- the words the server chose, worded here -------------------------------
+  //
+  // /modules describes each game, variation, option and choice with an English
+  // label. That made the lobby the one screen that stayed English whatever the
+  // picker said. `src/lib/gameLabels.ts` looks these up and falls back to the
+  // label the server sent, so a game added after this build still reads.
+  //
+  // Absent on purpose: game names, place names, ratios and bare numbers.
+  // "Texas Hold'em", "Vegas Strip", "3:2" and "500" read the same in every
+  // language and fall through to the server's own label.
+  'option.pauseBetweenRounds': 'Pertrauka tarp raundų',
+  'choice.pauseBetweenRounds.1': 'Pertrauka',
+  'choice.pauseBetweenRounds.0': 'Tęsti iš karto',
+  'option.botSkill': 'Priešininkai',
+  'choice.botSkill.0': 'Mišrūs',
+  'choice.botSkill.1': 'Lengvi',
+  'choice.botSkill.2': 'Vidutiniai',
+  'choice.botSkill.3': 'Sunkūs',
+  'option.initialMeldMinimum': 'Atvėrimo vertė',
+  'choice.initialMeldMinimum.0': 'Nėra',
+  'option.discardDrawMinRound': 'Ėmimas iš atmetimo krūvelės',
+  'choice.discardDrawMinRound.0': 'Atvira',
+  'choice.discardDrawMinRound.2': 'Nuo 2 raundo',
+  'choice.discardDrawMinRound.3': 'Nuo 3 raundo',
+  'option.requireCleanRun': 'Seka be džokerio',
+  'choice.requireCleanRun.1': 'Privaloma',
+  'choice.requireCleanRun.0': 'Ne',
+  'option.jokerReclaimMustPlay': 'Išpirktas džokeris',
+  'choice.jokerReclaimMustPlay.1': 'Sužaisti tą patį ėjimą',
+  'choice.jokerReclaimMustPlay.0': 'Galima pasilikti',
+  'option.dealStarter': 'Kas pradeda',
+  'choice.dealStarter.0': 'Paeiliui',
+  'choice.dealStarter.1': 'Pradeda laimėtojas',
+  'variation.prsi.classic': 'Klasikinis',
+  'option.handSize': 'Išdalytos kortos',
+  'variation.canasta.classic': 'Klasikinė',
+  'variation.canasta.modern_american': 'Modern American',
+  'option.targetScore': 'Tikslinis rezultatas',
+  'option.canastasToGoOut': 'Kanastos išėjimui',
+  'variation.holdem.freezeout': 'Freezeout',
+  'variation.holdem.timed': 'Fiksuotas dalijimų skaičius',
+  'option.startingStack': 'Pradiniai žetonai',
+  'option.bigBlind': 'Didysis aklasis',
+  'option.handLimit': 'Dalijimai',
+  'choice.handLimit.0': 'Kol liks viena vieta',
+  'variation.ginrummy.standard': 'Standartinis',
+  'option.knockLimit': 'Beldimo riba',
+  'choice.knockLimit.0': 'Oklahoma (ją nustato atversta korta)',
+  'option.bigGin': 'Big gin',
+  'choice.bigGin.0': 'Išjungta',
+  'choice.bigGin.1': 'Įjungta (+25)',
+  'option.lineBonuses': 'Premijos suvestinėje',
+  'choice.lineBonuses.1': 'Įjungtos',
+  'choice.lineBonuses.0': 'Išjungtos',
+  'variation.rummytiles.standard': 'Standartinis',
+  'choice.targetScore.0': 'Nėra',
+  'option.roundLimit': 'Raundų riba',
+  'choice.roundLimit.0': 'Nėra',
+  'option.poolExhaustion': 'Jei atsargos baigiasi',
+  'choice.poolExhaustion.1': 'Raundą laimi žemiausia ranka',
+  'choice.poolExhaustion.0': 'Raundo nelaimi niekas',
+  'variation.blackjack.single': 'Viena kaladė',
+  'option.minBet': 'Stalo minimumas',
+  'option.rounds': 'Raundai',
+  'option.decks': 'Kaladės',
+  'option.dealerHitsSoft17': 'Dalytojas prie minkštos 17',
+  'choice.dealerHitsSoft17.0': 'Lieka',
+  'choice.dealerHitsSoft17.1': 'Traukia',
+  'option.blackjackPays': 'Blackjack moka',
+  'choice.blackjackPays.100': 'Vienas prieš vieną',
+  'option.maxSplits': 'Perskyrimas',
+  'choice.maxSplits.0': 'Be perskyrimo',
+  'choice.maxSplits.1': 'Kartą (dvi rankos)',
+  'choice.maxSplits.3': 'Tris kartus (keturios rankos)',
+  'option.doubleAfterSplit': 'Padvigubinimas po perskyrimo',
+  'choice.doubleAfterSplit.1': 'Leidžiama',
+  'choice.doubleAfterSplit.0': 'Neleidžiama',
+  'option.surrender': 'Atidavimas',
+  'choice.surrender.0': 'Išjungta',
+  'choice.surrender.1': 'Vėlyvas atidavimas',
+  'option.insurance': 'Draudimas',
+  'choice.insurance.1': 'Siūlomas',
+  'choice.insurance.0': 'Nesiūlomas',
 };

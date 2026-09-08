@@ -10,6 +10,7 @@ import { useSkin } from '@/src/hooks/useSkin';
 import type { Skin } from '@/src/skins/types';
 
 import { Panel } from './Panel';
+import { t } from '@/src/lib/i18n';
 
 /**
  * What the match did, round by round.
@@ -70,7 +71,7 @@ export const RoundResults = memo(function RoundResults({
   return (
     <Animated.View style={arrival}>
       <Panel
-        title="Results"
+        title={t('match.results')}
         subtitle={shared.length ? shared.map((f) => factText(f, players)).join(' · ') : undefined}
         forceOpen
         testID="round-results"

@@ -7,6 +7,7 @@ import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { factText, label } from '@/src/lib/labels';
 import { colors } from '@/src/theme';
+import { t } from '@/src/lib/i18n';
 
 /**
  * A game's written rules, resolved against the variation and options a
@@ -63,7 +64,7 @@ export default function RulesScreen() {
         );
         if (!cancelled) setRules(result);
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Could not load the rules');
+        if (!cancelled) setError(e instanceof Error ? e.message : t('error.rulesLoad'));
       }
     })();
     return () => {
@@ -93,14 +94,14 @@ export default function RulesScreen() {
 
   if (!rules && !error) {
     return (
-      <Screen title="Rules">
+      <Screen title={t('nav.rules')}>
         <ActivityIndicator color={colors.accent} />
       </Screen>
     );
   }
 
   return (
-    <Screen title="Rules" scroll>
+    <Screen title={t('nav.rules')} scroll>
       <ScrollView ref={scroller} testID="rules-screen">
         {error ? (
           <Text testID="rules-error" style={styles.error}>

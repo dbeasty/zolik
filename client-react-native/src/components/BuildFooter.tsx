@@ -5,6 +5,7 @@ import { apiClient } from '@/src/api/client';
 import { LegalLinks } from '@/src/components/LegalLinks';
 import { CLIENT_COMMIT, CLIENT_VERSION } from '@/src/config';
 import { shared } from '@/src/theme';
+import { t } from '@/src/lib/i18n';
 
 type ServerBuild = { version: string; commit: string };
 
@@ -37,10 +38,10 @@ export function BuildFooter() {
   return (
     <View testID="build-footer" style={{ marginTop: 24 }}>
       <Text style={shared.status} testID="build-footer-app">
-        app {CLIENT_VERSION} · {CLIENT_COMMIT}
+        {t('build.app')} {CLIENT_VERSION} · {CLIENT_COMMIT}
       </Text>
       <Text style={shared.status} testID="build-footer-server">
-        {server ? `server ${server.version} · ${server.commit}` : 'server …'}
+        {server ? `${t('build.server')} ${server.version} · ${server.commit}` : `${t('build.server')} …`}
       </Text>
       {/* The footer is already where the app keeps the things that must be
           available and must not distract — which is exactly what the notices

@@ -416,7 +416,14 @@ export const sl: Record<string, string> = {
   // in, because Czech does not put the link where English does: "souhlasíš s
   // Podmínkami" inflects the noun the link is made of. Fragments let each
   // locale place and decline its own.
+  // The short word for a link or a tab.
   'legal.terms': 'Pogoji',
+  // The document's own name, used as the heading above it. Kept apart from
+  // `legal.notice.terms`, which is the same words inflected to sit inside a
+  // sentence — a heading in the instrumental case reads as a mistake in every
+  // Slavic language.
+  'legal.terms.title': 'Pogoji uporabe',
+  'legal.privacy.title': 'Obvestilo o zasebnosti',
   'legal.privacy': 'Zasebnost',
   'legal.source': 'Izvorna koda',
   'legal.updated': 'Različica {version}',
@@ -725,4 +732,305 @@ export const sl: Record<string, string> = {
   'nav.match': 'Tekma',
   'nav.scoreTable': 'Tabela točk',
   'nav.stats': 'Statistika',
+
+  // --- screens that never reached a key at all -------------------------------
+  //
+  // Everything below was typed straight into JSX. The parity tests could not
+  // see it — they prove every *key* is worded in twenty-four languages, not
+  // that a sentence ever became a key — so the app read half in the player's
+  // language and half in English. `scripts/find-untranslated.js` is the gate
+  // that stops that recurring; these are what it found.
+
+  // Errors shown when a thrown error carries no message of its own. The server
+  // sends codes, not sentences (see `reasonText`); these cover the cases where
+  // nothing came back at all — a socket that died, a fetch that never landed.
+  'error.generic': 'To ni uspelo',
+  'error.signIn': 'Prijava ni uspela',
+  'error.login': 'Prijava ni uspela',
+  'error.register': 'Registracija ni uspela',
+  'error.sendCode': 'Kode ni bilo mogoče poslati',
+  'error.badCode': 'Ta koda ni delovala',
+  'error.rulesLoad': 'Pravil ni bilo mogoče naložiti',
+  'error.createFailed': 'Ustvarjanje ni uspelo',
+  'error.saveFailed': 'Shranjevanje ni uspelo',
+  'error.exportFailed': 'Izvoz ni uspel',
+
+  // --- the route that does not exist ----------------------------------------
+  'notFound.title': 'Ups!',
+  'notFound.message': 'Ta zaslon ne obstaja.',
+  'notFound.home': 'Pojdi na začetni zaslon!',
+
+  // --- signing in -----------------------------------------------------------
+  'auth.login.subtitle': 'Obdrži svojo statistiko na vseh napravah',
+  'auth.login.continueWithEmail': 'Nadaljuj z e-pošto',
+  'auth.login.usernameInstead': 'Prijavi se raje z uporabniškim imenom',
+  'auth.email.title': 'Prijava z e-pošto',
+  'auth.email.subtitle': 'Poslali ti bomo enkratno kodo',
+  'auth.email.address': 'E-poštni naslov',
+  'auth.email.send': 'Pošlji kodo',
+  'auth.email.codeTitle': 'Vnesi kodo',
+  'auth.email.codePlaceholder': 'Šestmestna koda',
+  'auth.email.differentAddress': 'Uporabi drug naslov',
+  'auth.email.sentTo': 'Poslano na {email}',
+  'auth.email.continue': 'Naprej',
+  'auth.guest.title': 'Igra kot gost',
+  'auth.guest.subtitle': 'Račun ni potreben',
+  'auth.guest.displayName': 'Prikazano ime',
+  'auth.register.title': 'Ustvari račun',
+  'auth.register.username': 'Uporabniško ime',
+  'auth.register.email': 'E-pošta (neobvezno)',
+  'auth.register.password': 'Geslo',
+  'auth.username.createAccount': 'Ustvari račun z uporabniškim imenom in geslom',
+  'auth.callback.signedIn': 'Prijavljen.',
+
+  // --- the account screen ---------------------------------------------------
+  'account.signInPrompt': 'Prijavi se, da urediš svoj račun.',
+  'account.keepGames': 'Obdrži te igre',
+  'account.signedInWith': 'Prijavljen prek',
+  'account.addMethod': 'Dodaj način prijave',
+  'account.usernameAndPassword': 'Uporabniško ime in geslo',
+  'account.faceAndTable': 'Obraz in videz mize',
+  'account.refresh': 'Osveži',
+  'account.remove': 'Odstrani',
+
+  // --- the main menu --------------------------------------------------------
+  'home.subtitle': 'Continental Rummy · {server}',
+  'home.playingAs': 'Igraš kot {name}',
+  'home.signInPrompt': 'Prijavi se ali nadaljuj kot gost, da igraš na spletu.',
+  'home.statsAndLeaderboard': 'Statistika in lestvica',
+  'home.play': 'Igraj',
+  'home.offlineScoreTable': 'Tabela točk brez povezave',
+  'home.signInToKeepStats': 'Prijavi se, da obdržiš statistiko',
+  'home.signOut': 'Odjava',
+  'home.continueAsGuest': 'Nadaljuj kot gost',
+  // Someone playing as a guest, marked in a list of names.
+  'home.guestSuffix': '(gost)',
+
+  // --- the waiting room on the main menu ------------------------------------
+  //
+  // Counts are whole phrases per count, not a number glued to a noun — the
+  // same reason `countLabel` exists. One and many are the cases the interface
+  // actually produces, so they are the cases that get their own wording.
+  'waiting.checking': 'Gledamo, kdo je v bližini…',
+  'waiting.youAreWaiting': 'Čakaš na igro',
+  'waiting.pickedUp': 'Kdor koli odpre mizo, te lahko pobere — nihče ne potrebuje kode od tebe.',
+  'waiting.othersOne': 'Čaka še 1 igralec',
+  'waiting.othersMany': 'Čaka še {n} igralcev',
+  'waiting.oneWaiting': '1 igralec čaka na igro',
+  'waiting.manyWaiting': '{n} igralcev čaka na igro',
+  'waiting.adding': 'Dodajamo te na čakalni seznam…',
+  'waiting.slowHint':
+    'Če se to v nekaj sekundah ne konča, preveri, ali je spodnji naslov strežnika dosegljiv s te naprave.',
+  'waiting.serverBusyDetail': 'Poskus {n}. Strežnik trenutno ne sprejema novih povezav v čakalnico.',
+  'waiting.reconnecting': 'Povezava izgubljena — ponovno se povezujemo…',
+  'waiting.reconnectingDetail':
+    'Poskus {n}. To se lahko zgodi, če se je omrežje tvoje naprave spremenilo ali se je strežnik znova zagnal.',
+  'waiting.tryAgain': 'Poskusi zdaj znova',
+  'waiting.makeAvailable': 'Naredi me na voljo za igro',
+  'waiting.stop': 'Nehaj čakati',
+  'waiting.noneYet': 'Trenutno nihče ne čaka na igro. Vpiši se na seznam in boš prvi, ki ga kdor koli vidi.',
+  'waiting.noOthersYet': 'Nihče drug še ne čaka. Gostitelji te vseeno vidijo in te lahko povabijo.',
+  'waiting.server': 'Strežnik',
+  'waiting.none': 'Trenutno nihče ne čaka. Kdor se v glavnem meniju naredi na voljo, se pojavi tukaj.',
+
+  // --- landing on a shared invite link --------------------------------------
+  'join.staleLink': 'Prosi tistega, ki te je povabil, za svežo povezavo, ali se pridruži s kodo.',
+  'join.enterCode': 'Vnesi kodo',
+  'join.backToMenu': 'Nazaj v meni',
+  'join.takingSeat': 'Zasedamo mesto…',
+  'join.takingSeatAt': 'Zasedamo mesto pri {game}…',
+
+  // --- the lobby ------------------------------------------------------------
+  'lobby.games.subtitle': 'Vse, kar ta strežnik zmore ponuditi',
+  'lobby.games.bots': 'Boti',
+  'lobby.games.playBot': 'Igraj proti botu',
+  'lobby.games.playBots': 'Igraj proti {n} botom',
+  'lobby.games.openTable': 'Odpri mizo',
+  'lobby.games.players': 'Igralcev: {n}',
+  'lobby.games.playerRange': 'Igralcev: {min}–{max}',
+  'lobby.join.placeholder': 'Koda za pridružitev ali povezava s povabilom',
+  'lobby.join.action': 'Pridruži se',
+  'lobby.join.waitingTitle': 'Čakamo gostitelja',
+  // Two whole sentences rather than one with a swapped noun: "a game of {game}"
+  // does not survive a language that inflects the game's name after "of".
+  'lobby.join.joinedGame': 'Pridružil si se igri {game} — čakamo na začetek',
+  'lobby.join.joinedTable': 'Pridružil si se mizi — čakamo na začetek',
+  'lobby.table.addBot': 'Dodaj bota',
+  'lobby.table.start': 'Začni',
+  'lobby.table.waitingForHost': 'Čakamo, da gostitelj začne…',
+
+  // --- inviting someone to a table ------------------------------------------
+  'invite.heading': 'Povabi igralce',
+  'invite.explain': 'Pošlji to povezavo. Kdor jo odpre, pristane pri tej mizi — račun ni potreben.',
+  'invite.noAddress': 'Za ta strežnik ni nastavljen naslov za deljenje, zato uporabi spodnjo kodo.',
+  'invite.readOutCode': 'Ali pa narekuj kodo:',
+  'invite.copy': 'Kopiraj povezavo',
+  'invite.share': 'Deli povezavo',
+  'invite.copied': 'Kopirano!',
+  'invite.shared': 'Deljeno',
+
+  // --- the match screen -----------------------------------------------------
+  'match.waitingForTable': 'Čakamo mizo…',
+  'match.waitingForPlayer': 'Čakamo drugega igralca…',
+  'match.nobodyWon': 'Nihče ni zmagal.',
+  'match.youWon': 'Zmagal si.',
+  'match.finished': 'Ta tekma se je končala.',
+  'match.inProgress': 'Tekma poteka — vse je povezano in teče normalno.',
+  'match.controls': 'Upravljanje',
+  'match.over': 'Konec tekme',
+  'match.settingUp': 'Pripravljamo…',
+  'match.playAgain': 'Igraj znova',
+  'match.backToGames': 'Nazaj k igram',
+  'match.table': 'Miza',
+  'match.opponents': 'Nasprotniki',
+  // Marks which seat is the reader's own, in a list of seats.
+  'match.youSuffix': '(ti)',
+  // The winner line is composed from whole sentences rather than a name glued
+  // to " won." — the verb agrees with the subject in most of these languages,
+  // and a suffix cannot know that.
+  'match.you': 'ti',
+  'match.someoneWon': '{name} zmaga.',
+  'match.wonBy': 'Zmaga {names}.',
+  'match.pausedFor': 'Zaustavljeno — čakamo, da se {name} znova poveže.',
+  'match.results': 'Rezultati',
+  'match.players': 'Igralci',
+  'match.toPlay': 'na potezi',
+
+  // --- the offline score table ----------------------------------------------
+  'scoring.namesHint': 'Imena, ločena z vejicami (4–8 igralcev)',
+  'scoring.newSession': 'Nova seja',
+  // A worked example, not a sentence: the names are placeholders a translator
+  // may localise, the shape `name:score,` is what the parser needs.
+  'scoring.scoresPlaceholder': 'Ana:120,Boris:80,…',
+  'scoring.saveRound': 'Shrani krog',
+  'scoring.export': 'Izvozi zapisnik',
+  'scoring.formatHint': 'Oblika točk: Ime:100,Ime2:50',
+  'scoring.session': 'Seja: {id}',
+  'scoring.players': 'Igralci: {names}',
+  'scoring.roundScores': 'Točke kroga {n}',
+  'stats.loading': 'Nalaganje…',
+
+  // --- statistics -----------------------------------------------------------
+  'stats.title': 'Statistika in lestvica',
+  'stats.yours': 'Tvoja statistika',
+  'stats.leaderboard': 'Lestvica',
+
+  // --- a player's lifetime record, shown beside a finished match ------------
+  'record.title': 'Tvoj izkupiček',
+  'record.guest':
+    'Igraš kot gost, zato se izkupiček ne vodi. Prijavi se in igre, ki si jih na tej napravi že odigral — vključno s to — bodo ostale pri tvojem računu.',
+  'record.signInToKeep': 'Prijavi se in jih obdrži',
+  'record.failed': 'Tvojega izkupička zdaj ni bilo mogoče naložiti. Tekma je varno zabeležena.',
+  'record.loading': 'Nalaganje…',
+  'record.played': 'Odigrano',
+  'record.won': 'Zmage',
+  'record.lost': 'Porazi',
+  'record.winRate': 'Delež zmag',
+  'record.streak': 'Niz',
+  'record.atThisGame': 'Pri tej igri',
+  // A streak is a count with a noun, so it is a whole phrase per count for
+  // the same reason `countLabel` is: "1 win" / "2 wins" is an English rule,
+  // and most of these languages do not share it.
+  'record.streakNone': '—',
+  'record.streakWinOne': '1 zmaga',
+  'record.streakWinMany': '{n} zmag',
+  'record.streakLossOne': '1 poraz',
+  'record.streakLossMany': '{n} porazov',
+
+  // --- moving cards ---------------------------------------------------------
+  'hand.dragHint': 'Povleci karto vzdolž pahljače, da jo prerazporediš, ali na mizo, da jo odigraš',
+  'hand.moveLeft': 'Levo',
+  'hand.moveRight': 'Desno',
+  'zone.collapseGroup': 'Strni to skupino',
+  'zone.expandGroup': 'Pokaži vse karte te skupine',
+  'zone.dropHere': 'Spusti sem',
+  'offer.pickCards': 'izberi karte za mesto, ki si se ga dotaknil',
+  'offer.ambiguous': 'to lahko gre na več mest — izberi na mizi',
+
+  // --- the build footer -----------------------------------------------------
+  'build.app': 'aplikacija',
+  'build.server': 'strežnik',
+  // --- the words the server chose, worded here -------------------------------
+  //
+  // /modules describes each game, variation, option and choice with an English
+  // label. That made the lobby the one screen that stayed English whatever the
+  // picker said. `src/lib/gameLabels.ts` looks these up and falls back to the
+  // label the server sent, so a game added after this build still reads.
+  //
+  // Absent on purpose: game names, place names, ratios and bare numbers.
+  // "Texas Hold'em", "Vegas Strip", "3:2" and "500" read the same in every
+  // language and fall through to the server's own label.
+  'option.pauseBetweenRounds': 'Premor med krogi',
+  'choice.pauseBetweenRounds.1': 'Premor',
+  'choice.pauseBetweenRounds.0': 'Nadaljuj takoj',
+  'option.botSkill': 'Nasprotniki',
+  'choice.botSkill.0': 'Mešani',
+  'choice.botSkill.1': 'Lahki',
+  'choice.botSkill.2': 'Srednji',
+  'choice.botSkill.3': 'Težki',
+  'option.initialMeldMinimum': 'Vrednost odprtja',
+  'choice.initialMeldMinimum.0': 'Brez',
+  'option.discardDrawMinRound': 'Jemanje s kupa odvrženih',
+  'choice.discardDrawMinRound.0': 'Odprto',
+  'choice.discardDrawMinRound.2': 'Od kroga 2',
+  'choice.discardDrawMinRound.3': 'Od kroga 3',
+  'option.requireCleanRun': 'Niz brez jokerja',
+  'choice.requireCleanRun.1': 'Obvezen',
+  'choice.requireCleanRun.0': 'Ne',
+  'option.jokerReclaimMustPlay': 'Odkupljeni joker',
+  'choice.jokerReclaimMustPlay.1': 'Odigrati v isti potezi',
+  'choice.jokerReclaimMustPlay.0': 'Lahko ostane v roki',
+  'option.dealStarter': 'Kdo začne',
+  'choice.dealStarter.0': 'Izmenično',
+  'choice.dealStarter.1': 'Začne zmagovalec',
+  'variation.prsi.classic': 'Klasično',
+  'option.handSize': 'Razdeljene karte',
+  'variation.canasta.classic': 'Klasična',
+  'variation.canasta.modern_american': 'Modern American',
+  'option.targetScore': 'Ciljne točke',
+  'option.canastasToGoOut': 'Canaste za izhod',
+  'variation.holdem.freezeout': 'Freezeout',
+  'variation.holdem.timed': 'Stalno število deljenj',
+  'option.startingStack': 'Začetni žetoni',
+  'option.bigBlind': 'Velika stava',
+  'option.handLimit': 'Deljenja',
+  'choice.handLimit.0': 'Dokler ne ostane eno mesto',
+  'variation.ginrummy.standard': 'Standardni',
+  'option.knockLimit': 'Meja trkanja',
+  'choice.knockLimit.0': 'Oklahoma (določi jo obrnjena karta)',
+  'option.bigGin': 'Big gin',
+  'choice.bigGin.0': 'Izklopljeno',
+  'choice.bigGin.1': 'Vklopljeno (+25)',
+  'option.lineBonuses': 'Bonusi v obračunu',
+  'choice.lineBonuses.1': 'Vklopljeni',
+  'choice.lineBonuses.0': 'Izklopljeni',
+  'variation.rummytiles.standard': 'Standardno',
+  'choice.targetScore.0': 'Brez',
+  'option.roundLimit': 'Omejitev krogov',
+  'choice.roundLimit.0': 'Brez',
+  'option.poolExhaustion': 'Če zaloga poide',
+  'choice.poolExhaustion.1': 'Krog dobi najnižja roka',
+  'choice.poolExhaustion.0': 'Kroga ne dobi nihče',
+  'variation.blackjack.single': 'En komplet',
+  'option.minBet': 'Najnižja stava mize',
+  'option.rounds': 'Krogi',
+  'option.decks': 'Kompleti',
+  'option.dealerHitsSoft17': 'Delivec pri mehki 17',
+  'choice.dealerHitsSoft17.0': 'Obstane',
+  'choice.dealerHitsSoft17.1': 'Vleče',
+  'option.blackjackPays': 'Blackjack plača',
+  'choice.blackjackPays.100': 'Ena proti ena',
+  'option.maxSplits': 'Deljenje',
+  'choice.maxSplits.0': 'Brez deljenja',
+  'choice.maxSplits.1': 'Enkrat (dve roki)',
+  'choice.maxSplits.3': 'Trikrat (štiri roke)',
+  'option.doubleAfterSplit': 'Podvojitev po deljenju',
+  'choice.doubleAfterSplit.1': 'Dovoljeno',
+  'choice.doubleAfterSplit.0': 'Ni dovoljeno',
+  'option.surrender': 'Predaja',
+  'choice.surrender.0': 'Izklopljena',
+  'choice.surrender.1': 'Pozna predaja',
+  'option.insurance': 'Zavarovanje',
+  'choice.insurance.1': 'Na voljo',
+  'choice.insurance.0': 'Ni na voljo',
 };

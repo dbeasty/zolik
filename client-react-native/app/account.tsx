@@ -6,6 +6,7 @@ import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { claimPrompt, claimedMessage, orderProviders, providerButtonLabel } from '@/src/lib/auth';
 import { colors, shared } from '@/src/theme';
+import { t } from '@/src/lib/i18n';
 
 /**
  * The account screen: which sign-in methods are attached, and the chance to
@@ -33,7 +34,7 @@ export default function AccountScreen() {
 
   if (loading) {
     return (
-      <Screen title="Account">
+      <Screen title={t('nav.account')}>
         <ActivityIndicator color={colors.accent} />
       </Screen>
     );
@@ -41,15 +42,15 @@ export default function AccountScreen() {
 
   if (!session || session.isGuest) {
     return (
-      <Screen title="Account">
-        <Text style={shared.status}>Sign in to manage your account.</Text>
+      <Screen title={t('nav.account')}>
+        <Text style={shared.status}>{t('account.signInPrompt')}</Text>
         <Pressable style={shared.button} onPress={() => router.push('/auth/login')}>
-          <Text style={shared.buttonText}>Sign in</Text>
+          <Text style={shared.buttonText}>{t('settings.signIn')}</Text>
         </Pressable>
         {/* A guest has no account to manage but does have a face and a look,
             and this is where they came looking for them. */}
         <Pressable style={shared.buttonSecondary} onPress={() => router.push('/settings')}>
-          <Text style={shared.buttonTextSecondary}>Settings</Text>
+          <Text style={shared.buttonTextSecondary}>{t('settings.title')}</Text>
         </Pressable>
       </Screen>
     );
@@ -67,14 +68,14 @@ export default function AccountScreen() {
     try {
       await action();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'That did not work');
+      setError(e instanceof Error ? e.message : t('error.generic'));
     } finally {
       setBusy(null);
     }
   }
 
   return (
-    <Screen title="Account" subtitle={account?.username} scroll>
+    <Screen title={t('nav.account')} subtitle={account?.username} scroll>
       {hint ? (
         <View style={shared.card}>
           <Text style={shared.status}>{hint}</Text>
@@ -91,7 +92,7 @@ export default function AccountScreen() {
             {busy === 'claim' ? (
               <ActivityIndicator color={colors.text} />
             ) : (
-              <Text style={shared.buttonText}>Keep these games</Text>
+              <Text style={shared.buttonText}>{t('account.keepGames')}</Text>
             )}
           </Pressable>
         </View>
@@ -99,7 +100,7 @@ export default function AccountScreen() {
       {notice ? <Text style={shared.status}>{notice}</Text> : null}
 
       <Text style={[shared.status, { fontWeight: '600', color: colors.text, marginTop: 8 }]}>
-        Signed in with
+        {t('account.signedInWith')}
       </Text>
       {(account?.identities ?? []).map((id) => (
         <View key={id.provider} style={shared.card}>
@@ -114,7 +115,7 @@ export default function AccountScreen() {
               disabled={busy !== null}
             >
               <Text style={shared.error}>
-                {busy === `unlink:${id.provider}` ? '…' : 'Remove'}
+                {busy === `unlink:${id.provider}` ? '…' : t('account.remove')}
               </Text>
             </Pressable>
           ) : null}
@@ -122,14 +123,14 @@ export default function AccountScreen() {
       ))}
       {account?.hasPassword ? (
         <View style={shared.card}>
-          <Text style={shared.status}>Username and password</Text>
+          <Text style={shared.status}>{t('account.usernameAndPassword')}</Text>
         </View>
       ) : null}
 
       {linkable.length > 0 ? (
         <>
           <Text style={[shared.status, { fontWeight: '600', color: colors.text, marginTop: 8 }]}>
-            Add a sign-in method
+            {t('account.addMethod')}
           </Text>
           {linkable.map((p) => (
             <Pressable
@@ -156,11 +157,11 @@ export default function AccountScreen() {
         style={[shared.buttonSecondary, { marginTop: 16 }]}
         onPress={() => router.push('/settings')}
       >
-        <Text style={shared.buttonTextSecondary}>Face and table look</Text>
+        <Text style={shared.buttonTextSecondary}>{t('account.faceAndTable')}</Text>
       </Pressable>
 
       <Pressable style={{ marginTop: 16 }} onPress={() => refreshAccount()}>
-        <Text style={shared.status}>Refresh</Text>
+        <Text style={shared.status}>{t('account.refresh')}</Text>
       </Pressable>
     </Screen>
   );

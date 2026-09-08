@@ -9,6 +9,7 @@ import { useSession } from '@/src/context/SessionContext';
 import { formatApiError } from '@/src/lib/apiError';
 import { codeFromInviteInput } from '@/src/lib/inviteLink';
 import { colors, shared } from '@/src/theme';
+import { t } from '@/src/lib/i18n';
 
 /**
  * Joining a table somebody else opened, by code or by invitation.
@@ -68,11 +69,11 @@ export default function JoinMatchScreen() {
 
   if (!matchId) {
     return (
-      <Screen title="Join a table" scroll>
+      <Screen title={t('nav.join')} scroll>
         <TextInput
           testID="join-code"
           style={shared.input}
-          placeholder="Join code or invite link"
+          placeholder={t('lobby.join.placeholder')}
           placeholderTextColor={colors.muted}
           // Kept at "characters" even though this box now also takes a URL:
           // it is a soft-keyboard hint, so it still helps somebody typing a
@@ -87,16 +88,18 @@ export default function JoinMatchScreen() {
         />
         {error ? <Text style={shared.error}>{error}</Text> : null}
         <Pressable testID="join-submit" style={shared.button} onPress={join}>
-          <Text style={shared.buttonText}>Join</Text>
+          <Text style={shared.buttonText}>{t('lobby.join.action')}</Text>
         </Pressable>
       </Screen>
     );
   }
 
   return (
-    <Screen title="Waiting for the host" scroll>
+    <Screen title={t('lobby.join.waitingTitle')} scroll>
       <Text testID="lobby-joined" style={shared.status}>
-        Joined {state?.moduleId ? `a game of ${state.moduleId}` : 'the table'} — waiting to start
+        {state?.moduleId
+          ? t('lobby.join.joinedGame', { game: state.moduleId })
+          : t('lobby.join.joinedTable')}
       </Text>
       {error ? <Text style={shared.error}>{error}</Text> : null}
 

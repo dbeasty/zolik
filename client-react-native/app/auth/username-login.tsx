@@ -5,6 +5,7 @@ import { Pressable, Text, TextInput } from 'react-native';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { shared } from '@/src/theme';
+import { t } from '@/src/lib/i18n';
 
 /**
  * Legacy username/password sign-in.
@@ -28,17 +29,17 @@ export default function UsernameLoginScreen() {
       await login(username.trim(), password);
       router.replace('/');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Login failed');
+      setError(e instanceof Error ? e.message : t('error.login'));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <Screen title="Sign in with username" scroll>
+    <Screen title={t('nav.usernameSignIn')} scroll>
       <TextInput
         style={shared.input}
-        placeholder="Username"
+        placeholder={t('auth.register.username')}
         placeholderTextColor="#8b9cb3"
         autoCapitalize="none"
         value={username}
@@ -46,7 +47,7 @@ export default function UsernameLoginScreen() {
       />
       <TextInput
         style={shared.input}
-        placeholder="Password"
+        placeholder={t('auth.register.password')}
         placeholderTextColor="#8b9cb3"
         secureTextEntry
         value={password}
@@ -54,10 +55,10 @@ export default function UsernameLoginScreen() {
       />
       {error ? <Text style={shared.error}>{error}</Text> : null}
       <Pressable style={shared.button} onPress={submit} disabled={busy}>
-        <Text style={shared.buttonText}>{busy ? '…' : 'Sign in'}</Text>
+        <Text style={shared.buttonText}>{busy ? '…' : t('settings.signIn')}</Text>
       </Pressable>
       <Pressable onPress={() => router.push('/auth/register')}>
-        <Text style={shared.status}>Create a username/password account</Text>
+        <Text style={shared.status}>{t('auth.username.createAccount')}</Text>
       </Pressable>
     </Screen>
   );

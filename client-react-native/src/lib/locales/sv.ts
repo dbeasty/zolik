@@ -415,7 +415,14 @@ export const sv: Record<string, string> = {
   // in, because Czech does not put the link where English does: "souhlasíš s
   // Podmínkami" inflects the noun the link is made of. Fragments let each
   // locale place and decline its own.
+  // The short word for a link or a tab.
   'legal.terms': 'Villkor',
+  // The document's own name, used as the heading above it. Kept apart from
+  // `legal.notice.terms`, which is the same words inflected to sit inside a
+  // sentence — a heading in the instrumental case reads as a mistake in every
+  // Slavic language.
+  'legal.terms.title': 'Användarvillkor',
+  'legal.privacy.title': 'Integritetspolicy',
   'legal.privacy': 'Integritet',
   'legal.source': 'Källkod',
   'legal.updated': 'Version {version}',
@@ -726,4 +733,307 @@ export const sv: Record<string, string> = {
   'nav.match': 'Match',
   'nav.scoreTable': 'Poängtabell',
   'nav.stats': 'Statistik',
+
+  // --- screens that never reached a key at all -------------------------------
+  //
+  // Everything below was typed straight into JSX. The parity tests could not
+  // see it — they prove every *key* is worded in twenty-four languages, not
+  // that a sentence ever became a key — so the app read half in the player's
+  // language and half in English. `scripts/find-untranslated.js` is the gate
+  // that stops that recurring; these are what it found.
+
+  // Errors shown when a thrown error carries no message of its own. The server
+  // sends codes, not sentences (see `reasonText`); these cover the cases where
+  // nothing came back at all — a socket that died, a fetch that never landed.
+  'error.generic': 'Det gick inte',
+  'error.signIn': 'Inloggningen misslyckades',
+  'error.login': 'Inloggningen misslyckades',
+  'error.register': 'Registreringen misslyckades',
+  'error.sendCode': 'Kunde inte skicka någon kod',
+  'error.badCode': 'Den koden fungerade inte',
+  'error.rulesLoad': 'Kunde inte läsa in reglerna',
+  'error.createFailed': 'Kunde inte skapa',
+  'error.saveFailed': 'Kunde inte spara',
+  'error.exportFailed': 'Kunde inte exportera',
+
+  // --- the route that does not exist ----------------------------------------
+  'notFound.title': 'Hoppsan!',
+  'notFound.message': 'Den här skärmen finns inte.',
+  'notFound.home': 'Gå till startskärmen!',
+
+  // --- signing in -----------------------------------------------------------
+  'auth.login.subtitle': 'Behåll din statistik på alla enheter',
+  'auth.login.continueWithEmail': 'Fortsätt med e-post',
+  'auth.login.usernameInstead': 'Logga in med användarnamn i stället',
+  'auth.email.title': 'Logga in med e-post',
+  'auth.email.subtitle': 'Vi mejlar dig en engångskod',
+  'auth.email.address': 'E-postadress',
+  'auth.email.send': 'Skicka kod',
+  'auth.email.codeTitle': 'Ange koden',
+  'auth.email.codePlaceholder': 'Sexsiffrig kod',
+  'auth.email.differentAddress': 'Använd en annan adress',
+  'auth.email.sentTo': 'Skickad till {email}',
+  'auth.email.continue': 'Fortsätt',
+  'auth.guest.title': 'Spela som gäst',
+  'auth.guest.subtitle': 'Inget konto behövs',
+  'auth.guest.displayName': 'Visningsnamn',
+  'auth.register.title': 'Skapa konto',
+  'auth.register.username': 'Användarnamn',
+  'auth.register.email': 'E-post (valfritt)',
+  'auth.register.password': 'Lösenord',
+  'auth.username.createAccount': 'Skapa ett konto med användarnamn och lösenord',
+  'auth.callback.signedIn': 'Inloggad.',
+
+  // --- the account screen ---------------------------------------------------
+  'account.signInPrompt': 'Logga in för att hantera ditt konto.',
+  'account.keepGames': 'Behåll de här partierna',
+  'account.signedInWith': 'Inloggad med',
+  'account.addMethod': 'Lägg till ett inloggningssätt',
+  'account.usernameAndPassword': 'Användarnamn och lösenord',
+  'account.faceAndTable': 'Ansikte och bordets utseende',
+  'account.refresh': 'Uppdatera',
+  'account.remove': 'Ta bort',
+
+  // --- the main menu --------------------------------------------------------
+  'home.subtitle': 'Continental Rummy · {server}',
+  'home.playingAs': 'Du spelar som {name}',
+  'home.signInPrompt': 'Logga in eller fortsätt som gäst för att spela online.',
+  'home.statsAndLeaderboard': 'Statistik och topplista',
+  'home.play': 'Spela',
+  'home.offlineScoreTable': 'Poängtabell offline',
+  'home.signInToKeepStats': 'Logga in för att behålla din statistik',
+  'home.signOut': 'Logga ut',
+  'home.continueAsGuest': 'Fortsätt som gäst',
+  // Someone playing as a guest, marked in a list of names.
+  'home.guestSuffix': '(gäst)',
+
+  // --- the waiting room on the main menu ------------------------------------
+  //
+  // Counts are whole phrases per count, not a number glued to a noun — the
+  // same reason `countLabel` exists. One and many are the cases the interface
+  // actually produces, so they are the cases that get their own wording.
+  'waiting.checking': 'Kollar vilka som är här…',
+  'waiting.youAreWaiting': 'Du väntar på att spela',
+  'waiting.pickedUp':
+    'Vem som helst som öppnar ett bord kan plocka upp dig — ingen behöver någon kod från dig.',
+  'waiting.othersOne': '1 spelare till väntar också',
+  'waiting.othersMany': '{n} spelare till väntar också',
+  'waiting.oneWaiting': '1 spelare väntar på att spela',
+  'waiting.manyWaiting': '{n} spelare väntar på att spela',
+  'waiting.adding': 'Du läggs till i kön…',
+  'waiting.slowHint':
+    'Om det inte blir klart på några sekunder, kontrollera att serveradressen nedan går att nå från den här enheten.',
+  'waiting.serverBusyDetail': 'Försök {n}. Servern tar just nu inte emot nya anslutningar till väntrummet.',
+  'waiting.reconnecting': 'Anslutningen bröts — återansluter…',
+  'waiting.reconnectingDetail':
+    'Försök {n}. Det kan hända om enhetens nätverk har ändrats, eller om servern startades om.',
+  'waiting.tryAgain': 'Försök igen nu',
+  'waiting.makeAvailable': 'Gör mig tillgänglig att spela',
+  'waiting.stop': 'Sluta vänta',
+  'waiting.noneYet': 'Just nu väntar ingen på att spela. Ställ dig i kön så blir du den första någon ser.',
+  'waiting.noOthersYet': 'Ingen annan väntar än. Värdar ser dig ändå och kan bjuda in dig.',
+  'waiting.server': 'Server',
+  'waiting.none': 'Just nu väntar ingen. Den som gör sig tillgänglig i huvudmenyn dyker upp här.',
+
+  // --- landing on a shared invite link --------------------------------------
+  'join.staleLink': 'Be den som bjöd in dig om en ny länk, eller gå med via koden i stället.',
+  'join.enterCode': 'Ange en kod',
+  'join.backToMenu': 'Tillbaka till menyn',
+  'join.takingSeat': 'Tar plats…',
+  'join.takingSeatAt': 'Tar plats vid {game}…',
+
+  // --- the lobby ------------------------------------------------------------
+  'lobby.games.subtitle': 'Allt den här servern kan erbjuda',
+  'lobby.games.bots': 'Bottar',
+  'lobby.games.playBot': 'Spela mot en bott',
+  'lobby.games.playBots': 'Spela mot {n} bottar',
+  'lobby.games.openTable': 'Öppna ett bord',
+  'lobby.games.players': '{n} spelare',
+  'lobby.games.playerRange': '{min}–{max} spelare',
+  'lobby.join.placeholder': 'Kod eller inbjudningslänk',
+  'lobby.join.action': 'Gå med',
+  'lobby.join.waitingTitle': 'Väntar på värden',
+  // Two whole sentences rather than one with a swapped noun: "a game of {game}"
+  // does not survive a language that inflects the game's name after "of".
+  'lobby.join.joinedGame': 'Du gick med i ett parti {game} — väntar på start',
+  'lobby.join.joinedTable': 'Du gick med vid bordet — väntar på start',
+  'lobby.table.addBot': 'Lägg till en bott',
+  'lobby.table.start': 'Starta',
+  'lobby.table.waitingForHost': 'Väntar på att värden startar…',
+
+  // --- inviting someone to a table ------------------------------------------
+  'invite.heading': 'Bjud in spelare',
+  'invite.explain':
+    'Skicka den här länken. Den som öppnar den hamnar vid det här bordet — inget konto behövs.',
+  'invite.noAddress': 'Den här servern har ingen delbar adress inställd, så använd koden nedan.',
+  'invite.readOutCode': 'Eller läs upp koden:',
+  'invite.copy': 'Kopiera länk',
+  'invite.share': 'Dela länk',
+  'invite.copied': 'Kopierad!',
+  'invite.shared': 'Delad',
+
+  // --- the match screen -----------------------------------------------------
+  'match.waitingForTable': 'Väntar på bordet…',
+  'match.waitingForPlayer': 'Väntar på en annan spelare…',
+  'match.nobodyWon': 'Ingen vann.',
+  'match.youWon': 'Du vann.',
+  'match.finished': 'Den här matchen är slut.',
+  'match.inProgress': 'Matchen pågår — allt är anslutet och rullar på normalt.',
+  'match.controls': 'Kontroller',
+  'match.over': 'Matchen är slut',
+  'match.settingUp': 'Förbereder…',
+  'match.playAgain': 'Spela igen',
+  'match.backToGames': 'Tillbaka till spelen',
+  'match.table': 'Bord',
+  'match.opponents': 'Motståndare',
+  // Marks which seat is the reader's own, in a list of seats.
+  'match.youSuffix': '(du)',
+  // The winner line is composed from whole sentences rather than a name glued
+  // to " won." — the verb agrees with the subject in most of these languages,
+  // and a suffix cannot know that.
+  'match.you': 'du',
+  'match.someoneWon': '{name} vann.',
+  'match.wonBy': 'Vunnen av {names}.',
+  'match.pausedFor': 'Pausad — väntar på att {name} återansluter.',
+  'match.results': 'Resultat',
+  'match.players': 'Spelare',
+  'match.toPlay': 'i tur',
+
+  // --- the offline score table ----------------------------------------------
+  'scoring.namesHint': 'Namn separerade med komma (4–8 spelare)',
+  'scoring.newSession': 'Ny session',
+  // A worked example, not a sentence: the names are placeholders a translator
+  // may localise, the shape `name:score,` is what the parser needs.
+  'scoring.scoresPlaceholder': 'Anna:120,Bo:80,…',
+  'scoring.saveRound': 'Spara ronden',
+  'scoring.export': 'Exportera protokollet',
+  'scoring.formatHint': 'Poängformat: Namn:100,Namn2:50',
+  'scoring.session': 'Session: {id}',
+  'scoring.players': 'Spelare: {names}',
+  'scoring.roundScores': 'Poäng för rond {n}',
+  'stats.loading': 'Läser in…',
+
+  // --- statistics -----------------------------------------------------------
+  'stats.title': 'Statistik och topplista',
+  'stats.yours': 'Din statistik',
+  'stats.leaderboard': 'Topplista',
+
+  // --- a player's lifetime record, shown beside a finished match ------------
+  'record.title': 'Ditt facit',
+  'record.guest':
+    'Du spelar som gäst, så inget facit förs. Logga in så knyts de partier du redan spelat på den här enheten — det här inräknat — till ditt konto.',
+  'record.signInToKeep': 'Logga in och behåll dem',
+  'record.failed': 'Ditt facit gick inte att läsa in just nu. Matchen är tryggt registrerad.',
+  'record.loading': 'Läser in…',
+  'record.played': 'Spelade',
+  'record.won': 'Vunna',
+  'record.lost': 'Förlorade',
+  'record.winRate': 'Vinstandel',
+  'record.streak': 'Svit',
+  'record.atThisGame': 'I det här spelet',
+  // A streak is a count with a noun, so it is a whole phrase per count for
+  // the same reason `countLabel` is: "1 win" / "2 wins" is an English rule,
+  // and most of these languages do not share it.
+  'record.streakNone': '—',
+  'record.streakWinOne': '1 vinst',
+  'record.streakWinMany': '{n} vinster',
+  'record.streakLossOne': '1 förlust',
+  'record.streakLossMany': '{n} förluster',
+
+  // --- moving cards ---------------------------------------------------------
+  'hand.dragHint': 'Dra ett kort längs solfjädern för att flytta det, eller ut på bordet för att spela det',
+  'hand.moveLeft': 'Åt vänster',
+  'hand.moveRight': 'Åt höger',
+  'zone.collapseGroup': 'Fäll ihop den här gruppen',
+  'zone.expandGroup': 'Visa alla kort i den här gruppen',
+  'zone.dropHere': 'Släpp här',
+  'offer.pickCards': 'välj kort till platsen du tryckte på',
+  'offer.ambiguous': 'det här kan hamna på flera ställen — välj på bordet',
+
+  // --- the build footer -----------------------------------------------------
+  'build.app': 'app',
+  'build.server': 'server',
+  // --- the words the server chose, worded here -------------------------------
+  //
+  // /modules describes each game, variation, option and choice with an English
+  // label. That made the lobby the one screen that stayed English whatever the
+  // picker said. `src/lib/gameLabels.ts` looks these up and falls back to the
+  // label the server sent, so a game added after this build still reads.
+  //
+  // Absent on purpose: game names, place names, ratios and bare numbers.
+  // "Texas Hold'em", "Vegas Strip", "3:2" and "500" read the same in every
+  // language and fall through to the server's own label.
+  'option.pauseBetweenRounds': 'Paus mellan ronder',
+  'choice.pauseBetweenRounds.1': 'Paus',
+  'choice.pauseBetweenRounds.0': 'Spela vidare direkt',
+  'option.botSkill': 'Motståndare',
+  'choice.botSkill.0': 'Blandade',
+  'choice.botSkill.1': 'Lätta',
+  'choice.botSkill.2': 'Medel',
+  'choice.botSkill.3': 'Svåra',
+  'option.initialMeldMinimum': 'Öppningsvärde',
+  'choice.initialMeldMinimum.0': 'Inget',
+  'option.discardDrawMinRound': 'Ta från kasthögen',
+  'choice.discardDrawMinRound.0': 'Öppen',
+  'choice.discardDrawMinRound.2': 'Från rond 2',
+  'choice.discardDrawMinRound.3': 'Från rond 3',
+  'option.requireCleanRun': 'Jokerfri svit',
+  'choice.requireCleanRun.1': 'Krävs',
+  'choice.requireCleanRun.0': 'Nej',
+  'option.jokerReclaimMustPlay': 'Återköpt joker',
+  'choice.jokerReclaimMustPlay.1': 'Spelas samma tur',
+  'choice.jokerReclaimMustPlay.0': 'Får behållas',
+  'option.dealStarter': 'Förhand',
+  'choice.dealStarter.0': 'Turas om',
+  'choice.dealStarter.1': 'Vinnaren spelar ut',
+  'variation.prsi.classic': 'Klassisk',
+  'option.handSize': 'Utdelade kort',
+  'variation.canasta.classic': 'Klassisk',
+  'variation.canasta.modern_american': 'Modern American',
+  'option.targetScore': 'Målpoäng',
+  'option.canastasToGoOut': 'Canastor för att gå ut',
+  'variation.holdem.freezeout': 'Freezeout',
+  'variation.holdem.timed': 'Fast antal givar',
+  'option.startingStack': 'Startmarker',
+  'option.bigBlind': 'Stora mörken',
+  'option.handLimit': 'Givar',
+  'choice.handLimit.0': 'Tills en plats är kvar',
+  'variation.ginrummy.standard': 'Standard',
+  'option.knockLimit': 'Knackgräns',
+  'choice.knockLimit.0': 'Oklahoma (det uppvända kortet sätter den)',
+  'option.bigGin': 'Big gin',
+  'choice.bigGin.0': 'Av',
+  'choice.bigGin.1': 'På (+25)',
+  'option.lineBonuses': 'Bonusar i uppräkningen',
+  'choice.lineBonuses.1': 'På',
+  'choice.lineBonuses.0': 'Av',
+  'variation.rummytiles.standard': 'Standard',
+  'choice.targetScore.0': 'Inget',
+  'option.roundLimit': 'Rondgräns',
+  'choice.roundLimit.0': 'Ingen',
+  'option.poolExhaustion': 'Om påsen tar slut',
+  'choice.poolExhaustion.1': 'Lägsta handen vinner ronden',
+  'choice.poolExhaustion.0': 'Ingen vinner ronden',
+  'variation.blackjack.single': 'En lek',
+  'option.minBet': 'Bordets minimum',
+  'option.rounds': 'Ronder',
+  'option.decks': 'Lekar',
+  'option.dealerHitsSoft17': 'Givaren på mjuk 17',
+  'choice.dealerHitsSoft17.0': 'Stannar',
+  'choice.dealerHitsSoft17.1': 'Drar',
+  'option.blackjackPays': 'Blackjack betalar',
+  'choice.blackjackPays.100': 'Lika mycket',
+  'option.maxSplits': 'Delning',
+  'choice.maxSplits.0': 'Ingen delning',
+  'choice.maxSplits.1': 'En gång (två händer)',
+  'choice.maxSplits.3': 'Tre gånger (fyra händer)',
+  'option.doubleAfterSplit': 'Dubbla efter delning',
+  'choice.doubleAfterSplit.1': 'Tillåtet',
+  'choice.doubleAfterSplit.0': 'Inte tillåtet',
+  'option.surrender': 'Ge upp',
+  'choice.surrender.0': 'Av',
+  'choice.surrender.1': 'Sent uppgivande',
+  'option.insurance': 'Försäkring',
+  'choice.insurance.1': 'Erbjuds',
+  'choice.insurance.0': 'Erbjuds inte',
 };

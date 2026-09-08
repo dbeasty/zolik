@@ -427,7 +427,14 @@ export const nl: Record<string, string> = {
   // in, because Czech does not put the link where English does: "souhlasíš s
   // Podmínkami" inflects the noun the link is made of. Fragments let each
   // locale place and decline its own.
+  // The short word for a link or a tab.
   'legal.terms': 'Voorwaarden',
+  // The document's own name, used as the heading above it. Kept apart from
+  // `legal.notice.terms`, which is the same words inflected to sit inside a
+  // sentence — a heading in the instrumental case reads as a mistake in every
+  // Slavic language.
+  'legal.terms.title': 'Gebruiksvoorwaarden',
+  'legal.privacy.title': 'Privacyverklaring',
   'legal.privacy': 'Privacy',
   'legal.source': 'Broncode',
   'legal.updated': 'Versie {version}',
@@ -742,4 +749,308 @@ export const nl: Record<string, string> = {
   'nav.match': 'Partij',
   'nav.scoreTable': 'Scoretabel',
   'nav.stats': 'Statistieken',
+
+  // --- screens that never reached a key at all -------------------------------
+  //
+  // Everything below was typed straight into JSX. The parity tests could not
+  // see it — they prove every *key* is worded in twenty-four languages, not
+  // that a sentence ever became a key — so the app read half in the player's
+  // language and half in English. `scripts/find-untranslated.js` is the gate
+  // that stops that recurring; these are what it found.
+
+  // Errors shown when a thrown error carries no message of its own. The server
+  // sends codes, not sentences (see `reasonText`); these cover the cases where
+  // nothing came back at all — a socket that died, a fetch that never landed.
+  'error.generic': 'Dat is niet gelukt',
+  'error.signIn': 'Aanmelden mislukt',
+  'error.login': 'Aanmelden mislukt',
+  'error.register': 'Registreren mislukt',
+  'error.sendCode': 'Kon geen code versturen',
+  'error.badCode': 'Die code werkte niet',
+  'error.rulesLoad': 'Kon de regels niet laden',
+  'error.createFailed': 'Aanmaken mislukt',
+  'error.saveFailed': 'Opslaan mislukt',
+  'error.exportFailed': 'Exporteren mislukt',
+
+  // --- the route that does not exist ----------------------------------------
+  'notFound.title': 'Oeps!',
+  'notFound.message': 'Dit scherm bestaat niet.',
+  'notFound.home': 'Ga naar het beginscherm!',
+
+  // --- signing in -----------------------------------------------------------
+  'auth.login.subtitle': 'Houd je statistieken op al je apparaten',
+  'auth.login.continueWithEmail': 'Doorgaan met e-mail',
+  'auth.login.usernameInstead': 'In plaats daarvan met een gebruikersnaam aanmelden',
+  'auth.email.title': 'Aanmelden met e-mail',
+  'auth.email.subtitle': 'We mailen je een eenmalige code',
+  'auth.email.address': 'E-mailadres',
+  'auth.email.send': 'Code versturen',
+  'auth.email.codeTitle': 'Voer de code in',
+  'auth.email.codePlaceholder': 'Code van 6 cijfers',
+  'auth.email.differentAddress': 'Ander adres gebruiken',
+  'auth.email.sentTo': 'Verstuurd naar {email}',
+  'auth.email.continue': 'Doorgaan',
+  'auth.guest.title': 'Spelen als gast',
+  'auth.guest.subtitle': 'Geen account nodig',
+  'auth.guest.displayName': 'Weergavenaam',
+  'auth.register.title': 'Account aanmaken',
+  'auth.register.username': 'Gebruikersnaam',
+  'auth.register.email': 'E-mail (optioneel)',
+  'auth.register.password': 'Wachtwoord',
+  'auth.username.createAccount': 'Een account met gebruikersnaam en wachtwoord aanmaken',
+  'auth.callback.signedIn': 'Aangemeld.',
+
+  // --- the account screen ---------------------------------------------------
+  'account.signInPrompt': 'Meld je aan om je account te beheren.',
+  'account.keepGames': 'Deze partijen behouden',
+  'account.signedInWith': 'Aangemeld met',
+  'account.addMethod': 'Een aanmeldmethode toevoegen',
+  'account.usernameAndPassword': 'Gebruikersnaam en wachtwoord',
+  'account.faceAndTable': 'Gezicht en uiterlijk van de tafel',
+  'account.refresh': 'Vernieuwen',
+  'account.remove': 'Verwijderen',
+
+  // --- the main menu --------------------------------------------------------
+  'home.subtitle': 'Continental Rummy · {server}',
+  'home.playingAs': 'Je speelt als {name}',
+  'home.signInPrompt': 'Meld je aan of ga verder als gast om online te spelen.',
+  'home.statsAndLeaderboard': 'Statistieken en ranglijst',
+  'home.play': 'Spelen',
+  'home.offlineScoreTable': 'Scoretabel offline',
+  'home.signInToKeepStats': 'Meld je aan om je statistieken te bewaren',
+  'home.signOut': 'Afmelden',
+  'home.continueAsGuest': 'Doorgaan als gast',
+  // Someone playing as a guest, marked in a list of names.
+  'home.guestSuffix': '(gast)',
+
+  // --- the waiting room on the main menu ------------------------------------
+  //
+  // Counts are whole phrases per count, not a number glued to a noun — the
+  // same reason `countLabel` exists. One and many are the cases the interface
+  // actually produces, so they are the cases that get their own wording.
+  'waiting.checking': 'Kijken wie er is…',
+  'waiting.youAreWaiting': 'Je wacht om te spelen',
+  'waiting.pickedUp': 'Iedereen die een tafel opent kan je oppikken — daar is geen code van jou voor nodig.',
+  'waiting.othersOne': '1 andere speler wacht ook',
+  'waiting.othersMany': '{n} andere spelers wachten ook',
+  'waiting.oneWaiting': '1 speler wacht om te spelen',
+  'waiting.manyWaiting': '{n} spelers wachten om te spelen',
+  'waiting.adding': 'Je wordt aan de wachtlijst toegevoegd…',
+  'waiting.slowHint':
+    'Als dit niet binnen een paar seconden klaar is, controleer dan of het serveradres hieronder vanaf dit apparaat bereikbaar is.',
+  'waiting.serverBusyDetail':
+    'Poging {n}. De server neemt op dit moment geen nieuwe verbindingen met de wachtruimte aan.',
+  'waiting.reconnecting': 'Verbinding verbroken — opnieuw verbinden…',
+  'waiting.reconnectingDetail':
+    'Poging {n}. Dit kan gebeuren als het netwerk van je apparaat is veranderd, of als de server opnieuw is gestart.',
+  'waiting.tryAgain': 'Nu opnieuw proberen',
+  'waiting.makeAvailable': 'Mij beschikbaar stellen om te spelen',
+  'waiting.stop': 'Stoppen met wachten',
+  'waiting.noneYet':
+    'Er wacht op dit moment niemand om te spelen. Zet jezelf op de lijst, dan ben jij de eerste die iemand ziet.',
+  'waiting.noOthersYet': 'Er wacht nog niemand anders. Gastheren zien je toch en kunnen je uitnodigen.',
+  'waiting.server': 'Server',
+  'waiting.none':
+    'Er wacht op dit moment niemand. Wie zich in het hoofdmenu beschikbaar stelt, verschijnt hier.',
+
+  // --- landing on a shared invite link --------------------------------------
+  'join.staleLink': 'Vraag degene die je uitnodigde om een nieuwe link, of doe mee met de code.',
+  'join.enterCode': 'Een code invoeren',
+  'join.backToMenu': 'Terug naar het menu',
+  'join.takingSeat': 'Plaatsnemen…',
+  'join.takingSeatAt': 'Plaatsnemen bij {game}…',
+
+  // --- the lobby ------------------------------------------------------------
+  'lobby.games.subtitle': 'Alles wat deze server kan aanbieden',
+  'lobby.games.bots': 'Bots',
+  'lobby.games.playBot': 'Tegen een bot spelen',
+  'lobby.games.playBots': 'Tegen {n} bots spelen',
+  'lobby.games.openTable': 'Een tafel openen',
+  'lobby.games.players': '{n} spelers',
+  'lobby.games.playerRange': '{min}–{max} spelers',
+  'lobby.join.placeholder': 'Deelnamecode of uitnodigingslink',
+  'lobby.join.action': 'Meedoen',
+  'lobby.join.waitingTitle': 'Wachten op de gastheer',
+  // Two whole sentences rather than one with a swapped noun: "a game of {game}"
+  // does not survive a language that inflects the game's name after "of".
+  'lobby.join.joinedGame': 'Je doet mee aan een partij {game} — wachten op de start',
+  'lobby.join.joinedTable': 'Je zit aan tafel — wachten op de start',
+  'lobby.table.addBot': 'Een bot toevoegen',
+  'lobby.table.start': 'Starten',
+  'lobby.table.waitingForHost': 'Wachten tot de gastheer start…',
+
+  // --- inviting someone to a table ------------------------------------------
+  'invite.heading': 'Spelers uitnodigen',
+  'invite.explain': 'Stuur deze link. Wie hem opent komt aan deze tafel terecht — zonder account.',
+  'invite.noAddress': 'Voor deze server is geen deelbaar adres ingesteld, gebruik dus de code hieronder.',
+  'invite.readOutCode': 'Of lees de code voor:',
+  'invite.copy': 'Link kopiëren',
+  'invite.share': 'Link delen',
+  'invite.copied': 'Gekopieerd!',
+  'invite.shared': 'Gedeeld',
+
+  // --- the match screen -----------------------------------------------------
+  'match.waitingForTable': 'Wachten op de tafel…',
+  'match.waitingForPlayer': 'Wachten op een andere speler…',
+  'match.nobodyWon': 'Niemand heeft gewonnen.',
+  'match.youWon': 'Je hebt gewonnen.',
+  'match.finished': 'Deze partij is afgelopen.',
+  'match.inProgress': 'Partij bezig — alles is verbonden en loopt normaal.',
+  'match.controls': 'Bediening',
+  'match.over': 'Partij afgelopen',
+  'match.settingUp': 'Klaarzetten…',
+  'match.playAgain': 'Nog een keer spelen',
+  'match.backToGames': 'Terug naar de spellen',
+  'match.table': 'Tafel',
+  'match.opponents': 'Tegenstanders',
+  // Marks which seat is the reader's own, in a list of seats.
+  'match.youSuffix': '(jij)',
+  // The winner line is composed from whole sentences rather than a name glued
+  // to " won." — the verb agrees with the subject in most of these languages,
+  // and a suffix cannot know that.
+  'match.you': 'jij',
+  'match.someoneWon': '{name} heeft gewonnen.',
+  'match.wonBy': 'Gewonnen door {names}.',
+  'match.pausedFor': 'Gepauzeerd — wachten tot {name} opnieuw verbindt.',
+  'match.results': 'Uitslag',
+  'match.players': 'Spelers',
+  'match.toPlay': 'aan zet',
+
+  // --- the offline score table ----------------------------------------------
+  'scoring.namesHint': "Namen gescheiden door komma's (4–8 spelers)",
+  'scoring.newSession': 'Nieuwe sessie',
+  // A worked example, not a sentence: the names are placeholders a translator
+  // may localise, the shape `name:score,` is what the parser needs.
+  'scoring.scoresPlaceholder': 'Anna:120,Bram:80,…',
+  'scoring.saveRound': 'Ronde opslaan',
+  'scoring.export': 'Scorekaart exporteren',
+  'scoring.formatHint': 'Puntenformaat: Naam:100,Naam2:50',
+  'scoring.session': 'Sessie: {id}',
+  'scoring.players': 'Spelers: {names}',
+  'scoring.roundScores': 'Punten van ronde {n}',
+  'stats.loading': 'Laden…',
+
+  // --- statistics -----------------------------------------------------------
+  'stats.title': 'Statistieken en ranglijst',
+  'stats.yours': 'Jouw statistieken',
+  'stats.leaderboard': 'Ranglijst',
+
+  // --- a player's lifetime record, shown beside a finished match ------------
+  'record.title': 'Jouw balans',
+  'record.guest':
+    'Je speelt als gast, dus er wordt geen balans bijgehouden. Meld je aan en de partijen die je op dit apparaat al hebt gespeeld — deze inbegrepen — worden bij je account bewaard.',
+  'record.signInToKeep': 'Aanmelden en bewaren',
+  'record.failed': 'Je balans kon nu niet geladen worden. De partij is netjes vastgelegd.',
+  'record.loading': 'Laden…',
+  'record.played': 'Gespeeld',
+  'record.won': 'Gewonnen',
+  'record.lost': 'Verloren',
+  'record.winRate': 'Winstpercentage',
+  'record.streak': 'Reeks',
+  'record.atThisGame': 'Bij dit spel',
+  // A streak is a count with a noun, so it is a whole phrase per count for
+  // the same reason `countLabel` is: "1 win" / "2 wins" is an English rule,
+  // and most of these languages do not share it.
+  'record.streakNone': '—',
+  'record.streakWinOne': '1 overwinning',
+  'record.streakWinMany': '{n} overwinningen',
+  'record.streakLossOne': '1 nederlaag',
+  'record.streakLossMany': '{n} nederlagen',
+
+  // --- moving cards ---------------------------------------------------------
+  'hand.dragHint': 'Sleep een kaart langs de waaier om hem te verplaatsen, of naar het bord om hem te spelen',
+  'hand.moveLeft': 'Naar links',
+  'hand.moveRight': 'Naar rechts',
+  'zone.collapseGroup': 'Deze groep inklappen',
+  'zone.expandGroup': 'Alle kaarten in deze groep tonen',
+  'zone.dropHere': 'Hier neerleggen',
+  'offer.pickCards': 'kies kaarten voor de plek die je aantikte',
+  'offer.ambiguous': 'dit kan op meer dan één plek — kies op het bord',
+
+  // --- the build footer -----------------------------------------------------
+  'build.app': 'app',
+  'build.server': 'server',
+  // --- the words the server chose, worded here -------------------------------
+  //
+  // /modules describes each game, variation, option and choice with an English
+  // label. That made the lobby the one screen that stayed English whatever the
+  // picker said. `src/lib/gameLabels.ts` looks these up and falls back to the
+  // label the server sent, so a game added after this build still reads.
+  //
+  // Absent on purpose: game names, place names, ratios and bare numbers.
+  // "Texas Hold'em", "Vegas Strip", "3:2" and "500" read the same in every
+  // language and fall through to the server's own label.
+  'option.pauseBetweenRounds': 'Pauze tussen rondes',
+  'choice.pauseBetweenRounds.1': 'Pauze',
+  'choice.pauseBetweenRounds.0': 'Meteen door',
+  'option.botSkill': 'Tegenstanders',
+  'choice.botSkill.0': 'Gemengd',
+  'choice.botSkill.1': 'Makkelijk',
+  'choice.botSkill.2': 'Gemiddeld',
+  'choice.botSkill.3': 'Moeilijk',
+  'option.initialMeldMinimum': 'Openingswaarde',
+  'choice.initialMeldMinimum.0': 'Geen',
+  'option.discardDrawMinRound': 'Pakken van de aflegstapel',
+  'choice.discardDrawMinRound.0': 'Open',
+  'choice.discardDrawMinRound.2': 'Vanaf ronde 2',
+  'choice.discardDrawMinRound.3': 'Vanaf ronde 3',
+  'option.requireCleanRun': 'Jokervrije reeks',
+  'choice.requireCleanRun.1': 'Verplicht',
+  'choice.requireCleanRun.0': 'Nee',
+  'option.jokerReclaimMustPlay': 'Teruggekochte joker',
+  'choice.jokerReclaimMustPlay.1': 'Zelfde beurt spelen',
+  'choice.jokerReclaimMustPlay.0': 'Mag je houden',
+  'option.dealStarter': 'Voorhand',
+  'choice.dealStarter.0': 'Om de beurt',
+  'choice.dealStarter.1': 'Winnaar begint',
+  'variation.prsi.classic': 'Klassiek',
+  'option.handSize': 'Gedeelde kaarten',
+  'variation.canasta.classic': 'Klassiek',
+  'variation.canasta.modern_american': 'Modern American',
+  'option.targetScore': 'Doelscore',
+  'option.canastasToGoOut': "Canasta's om uit te gaan",
+  'variation.holdem.freezeout': 'Freezeout',
+  'variation.holdem.timed': 'Vast aantal handen',
+  'option.startingStack': 'Startfiches',
+  'option.bigBlind': 'Big blind',
+  'option.handLimit': 'Handen',
+  'choice.handLimit.0': 'Tot er één plek over is',
+  'variation.ginrummy.standard': 'Standaard',
+  'option.knockLimit': 'Klopgrens',
+  'choice.knockLimit.0': 'Oklahoma (de open kaart bepaalt hem)',
+  'option.bigGin': 'Big gin',
+  'choice.bigGin.0': 'Uit',
+  'choice.bigGin.1': 'Aan (+25)',
+  'option.lineBonuses': 'Bonussen bij het optellen',
+  'choice.lineBonuses.1': 'Aan',
+  'choice.lineBonuses.0': 'Uit',
+  'variation.rummytiles.standard': 'Standaard',
+  'choice.targetScore.0': 'Geen',
+  'option.roundLimit': 'Rondelimiet',
+  'choice.roundLimit.0': 'Geen',
+  'option.poolExhaustion': 'Als de voorraad opraakt',
+  'choice.poolExhaustion.1': 'Laagste hand wint de ronde',
+  'choice.poolExhaustion.0': 'Niemand wint de ronde',
+  'variation.blackjack.single': 'Eén spel',
+  'option.minBet': 'Tafelminimum',
+  'option.rounds': 'Rondes',
+  'option.decks': 'Spellen',
+  'option.dealerHitsSoft17': 'Dealer bij zachte 17',
+  'choice.dealerHitsSoft17.0': 'Blijft staan',
+  'choice.dealerHitsSoft17.1': 'Neemt kaart',
+  'option.blackjackPays': 'Blackjack betaalt',
+  'choice.blackjackPays.100': 'Gelijk uit',
+  'option.maxSplits': 'Splitsen',
+  'choice.maxSplits.0': 'Niet splitsen',
+  'choice.maxSplits.1': 'Eén keer (twee handen)',
+  'choice.maxSplits.3': 'Drie keer (vier handen)',
+  'option.doubleAfterSplit': 'Verdubbelen na splitsen',
+  'choice.doubleAfterSplit.1': 'Toegestaan',
+  'choice.doubleAfterSplit.0': 'Niet toegestaan',
+  'option.surrender': 'Opgeven',
+  'choice.surrender.0': 'Uit',
+  'choice.surrender.1': 'Laat opgeven',
+  'option.insurance': 'Verzekering',
+  'choice.insurance.1': 'Aangeboden',
+  'choice.insurance.0': 'Niet aangeboden',
 };

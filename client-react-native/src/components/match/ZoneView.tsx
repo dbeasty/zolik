@@ -13,6 +13,7 @@ import { groupElementId, zoneElementId } from '@/src/lib/drops';
 import type { Metrics } from '@/src/lib/layout';
 import { label } from '@/src/lib/labels';
 import type { Skin } from '@/src/skins/types';
+import { t } from '@/src/lib/i18n';
 
 /**
  * One area of the board, laid out by its *kind* rather than its meaning.
@@ -312,7 +313,7 @@ export function ZoneView({
                   // `accessibilityState.selected` on the web build silently,
                   // where the flat aria spelling reaches the DOM.
                   aria-selected={groupArmed}
-                  accessibilityLabel={groupOpen ? 'Collapse this group' : 'Show all cards in this group'}
+                  accessibilityLabel={groupOpen ? t('zone.collapseGroup') : t('zone.expandGroup')}
                   testID={`group-toggle-${g.id}`}
                 >
                   <View style={styles.stackedCards}>
@@ -408,7 +409,7 @@ export function ZoneView({
           first meld of the game has an invisible target. */}
         {zoneLive && !(zone.cards ?? []).length && !(zone.groups ?? []).length ? (
           <Text style={styles.dropHere} testID={`drop-here-${zone.id}`}>
-            Drop here
+            {t('zone.dropHere')}
           </Text>
         ) : null}
       </View>

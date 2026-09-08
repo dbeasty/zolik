@@ -417,7 +417,14 @@ export const cs: Record<string, string> = {
   // in, because Czech does not put the link where English does: "souhlasíš s
   // Podmínkami" inflects the noun the link is made of. Fragments let each
   // locale place and decline its own.
+  // The short word for a link or a tab.
   'legal.terms': 'Podmínky',
+  // The document's own name, used as the heading above it. Kept apart from
+  // `legal.notice.terms`, which is the same words inflected to sit inside a
+  // sentence — a heading in the instrumental case reads as a mistake in every
+  // Slavic language.
+  'legal.terms.title': 'Podmínky použití',
+  'legal.privacy.title': 'Zásady ochrany osobních údajů',
   'legal.privacy': 'Soukromí',
   'legal.source': 'Zdrojový kód',
   'legal.updated': 'Verze {version}',
@@ -727,4 +734,305 @@ export const cs: Record<string, string> = {
   'nav.match': 'Zápas',
   'nav.scoreTable': 'Tabulka skóre',
   'nav.stats': 'Statistiky',
+
+  // --- screens that never reached a key at all -------------------------------
+  //
+  // Everything below was typed straight into JSX. The parity tests could not
+  // see it — they prove every *key* is worded in twenty-four languages, not
+  // that a sentence ever became a key — so the app read half in the player's
+  // language and half in English. `scripts/find-untranslated.js` is the gate
+  // that stops that recurring; these are what it found.
+
+  // Errors shown when a thrown error carries no message of its own. The server
+  // sends codes, not sentences (see `reasonText`); these cover the cases where
+  // nothing came back at all — a socket that died, a fetch that never landed.
+  'error.generic': 'To se nepovedlo',
+  'error.signIn': 'Přihlášení selhalo',
+  'error.login': 'Přihlášení selhalo',
+  'error.register': 'Registrace selhala',
+  'error.sendCode': 'Kód se nepodařilo odeslat',
+  'error.badCode': 'Tenhle kód nefungoval',
+  'error.rulesLoad': 'Pravidla se nepodařilo načíst',
+  'error.createFailed': 'Vytvoření selhalo',
+  'error.saveFailed': 'Uložení selhalo',
+  'error.exportFailed': 'Export selhal',
+
+  // --- the route that does not exist ----------------------------------------
+  'notFound.title': 'Jejda!',
+  'notFound.message': 'Tahle obrazovka neexistuje.',
+  'notFound.home': 'Zpátky na úvod!',
+
+  // --- signing in -----------------------------------------------------------
+  'auth.login.subtitle': 'Měj svoje statistiky na všech zařízeních',
+  'auth.login.continueWithEmail': 'Pokračovat e-mailem',
+  'auth.login.usernameInstead': 'Přihlásit se raději jménem',
+  'auth.email.title': 'Přihlášení e-mailem',
+  'auth.email.subtitle': 'Pošleme ti jednorázový kód',
+  'auth.email.address': 'E-mailová adresa',
+  'auth.email.send': 'Poslat kód',
+  'auth.email.codeTitle': 'Zadej kód',
+  'auth.email.codePlaceholder': 'Šestimístný kód',
+  'auth.email.differentAddress': 'Použít jinou adresu',
+  'auth.email.sentTo': 'Odesláno na {email}',
+  'auth.email.continue': 'Pokračovat',
+  'auth.guest.title': 'Hra jako host',
+  'auth.guest.subtitle': 'Účet není potřeba',
+  'auth.guest.displayName': 'Zobrazované jméno',
+  'auth.register.title': 'Vytvořit účet',
+  'auth.register.username': 'Uživatelské jméno',
+  'auth.register.email': 'E-mail (nepovinný)',
+  'auth.register.password': 'Heslo',
+  'auth.username.createAccount': 'Vytvořit účet se jménem a heslem',
+  'auth.callback.signedIn': 'Přihlášeno.',
+
+  // --- the account screen ---------------------------------------------------
+  'account.signInPrompt': 'Přihlas se, ať můžeš spravovat účet.',
+  'account.keepGames': 'Zachovat tyhle hry',
+  'account.signedInWith': 'Přihlášen přes',
+  'account.addMethod': 'Přidat způsob přihlášení',
+  'account.usernameAndPassword': 'Jméno a heslo',
+  'account.faceAndTable': 'Tvář a vzhled stolu',
+  'account.refresh': 'Obnovit',
+  'account.remove': 'Odebrat',
+
+  // --- the main menu --------------------------------------------------------
+  'home.subtitle': 'Continental Rummy · {server}',
+  'home.playingAs': 'Hraješ jako {name}',
+  'home.signInPrompt': 'Přihlas se nebo pokračuj jako host, ať můžeš hrát online.',
+  'home.statsAndLeaderboard': 'Statistiky a žebříček',
+  'home.play': 'Hrát',
+  'home.offlineScoreTable': 'Offline tabulka skóre',
+  'home.signInToKeepStats': 'Přihlas se a zachovej si statistiky',
+  'home.signOut': 'Odhlásit se',
+  'home.continueAsGuest': 'Pokračovat jako host',
+  // Someone playing as a guest, marked in a list of names.
+  'home.guestSuffix': '(host)',
+
+  // --- the waiting room on the main menu ------------------------------------
+  //
+  // Counts are whole phrases per count, not a number glued to a noun — the
+  // same reason `countLabel` exists. One and many are the cases the interface
+  // actually produces, so they are the cases that get their own wording.
+  'waiting.checking': 'Koukáme, kdo je poblíž…',
+  'waiting.youAreWaiting': 'Čekáš na hru',
+  'waiting.pickedUp': 'Kdokoli, kdo otevře stůl, si tě může vzít — kód od tebe nikdo nepotřebuje.',
+  'waiting.othersOne': 'Čeká i 1 další hráč',
+  'waiting.othersMany': 'Čekají i další hráči: {n}',
+  'waiting.oneWaiting': '1 hráč čeká na hru',
+  'waiting.manyWaiting': 'Hráčů čekajících na hru: {n}',
+  'waiting.adding': 'Přidáváme tě na čekací listinu…',
+  'waiting.slowHint':
+    'Pokud to za pár vteřin neskončí, zkontroluj, jestli je adresa serveru níže z tohohle zařízení dostupná.',
+  'waiting.serverBusyDetail': 'Pokus {n}. Server právě nepřijímá nová spojení do čekárny.',
+  'waiting.reconnecting': 'Spojení ztraceno — připojujeme znovu…',
+  'waiting.reconnectingDetail':
+    'Pokus {n}. Může se to stát, když se změnila síť tvého zařízení nebo se restartoval server.',
+  'waiting.tryAgain': 'Zkusit hned znovu',
+  'waiting.makeAvailable': 'Nabídnout se ke hře',
+  'waiting.stop': 'Přestat čekat',
+  'waiting.noneYet': 'Právě teď nikdo nečeká na hru. Zapiš se na listinu a budeš první, koho kdokoli uvidí.',
+  'waiting.noOthersYet': 'Zatím nečeká nikdo další. Hostitelé tě stejně vidí a můžou tě pozvat.',
+  'waiting.server': 'Server',
+  'waiting.none': 'Právě teď nikdo nečeká. Kdo se nabídne v hlavní nabídce, objeví se tady.',
+
+  // --- landing on a shared invite link --------------------------------------
+  'join.staleLink': 'Požádej toho, kdo tě pozval, o nový odkaz, nebo se připoj kódem.',
+  'join.enterCode': 'Zadat kód',
+  'join.backToMenu': 'Zpátky do nabídky',
+  'join.takingSeat': 'Sedáme si ke stolu…',
+  'join.takingSeatAt': 'Sedáme si ke stolu {game}…',
+
+  // --- the lobby ------------------------------------------------------------
+  'lobby.games.subtitle': 'Všechno, co tenhle server umí nabídnout',
+  'lobby.games.bots': 'Boti',
+  'lobby.games.playBot': 'Hrát proti botovi',
+  'lobby.games.playBots': 'Hrát proti botům: {n}',
+  'lobby.games.openTable': 'Otevřít stůl',
+  'lobby.games.players': 'Hráčů: {n}',
+  'lobby.games.playerRange': 'Hráčů: {min}–{max}',
+  'lobby.join.placeholder': 'Kód nebo odkaz s pozvánkou',
+  'lobby.join.action': 'Připojit se',
+  'lobby.join.waitingTitle': 'Čekání na hostitele',
+  // Two whole sentences rather than one with a swapped noun: "a game of {game}"
+  // does not survive a language that inflects the game's name after "of".
+  'lobby.join.joinedGame': 'Připojeno ke hře {game} — čeká se na start',
+  'lobby.join.joinedTable': 'Připojeno ke stolu — čeká se na start',
+  'lobby.table.addBot': 'Přidat bota',
+  'lobby.table.start': 'Začít',
+  'lobby.table.waitingForHost': 'Čekáme, až hostitel začne…',
+
+  // --- inviting someone to a table ------------------------------------------
+  'invite.heading': 'Pozvat hráče',
+  'invite.explain': 'Pošli tenhle odkaz. Kdo ho otevře, přistane u tohohle stolu — účet není potřeba.',
+  'invite.noAddress': 'Tenhle server nemá nastavenou sdílitelnou adresu, použij tedy kód níže.',
+  'invite.readOutCode': 'Nebo nadiktuj kód:',
+  'invite.copy': 'Kopírovat odkaz',
+  'invite.share': 'Sdílet odkaz',
+  'invite.copied': 'Zkopírováno!',
+  'invite.shared': 'Sdíleno',
+
+  // --- the match screen -----------------------------------------------------
+  'match.waitingForTable': 'Čekáme na stůl…',
+  'match.waitingForPlayer': 'Čekáme na dalšího hráče…',
+  'match.nobodyWon': 'Nikdo nevyhrál.',
+  'match.youWon': 'Vyhrál jsi.',
+  'match.finished': 'Tenhle zápas skončil.',
+  'match.inProgress': 'Zápas běží — všechno je připojené a funguje normálně.',
+  'match.controls': 'Ovládání',
+  'match.over': 'Konec zápasu',
+  'match.settingUp': 'Připravujeme…',
+  'match.playAgain': 'Hrát znovu',
+  'match.backToGames': 'Zpátky ke hrám',
+  'match.table': 'Stůl',
+  'match.opponents': 'Soupeři',
+  // Marks which seat is the reader's own, in a list of seats.
+  'match.youSuffix': '(ty)',
+  // The winner line is composed from whole sentences rather than a name glued
+  // to " won." — the verb agrees with the subject in most of these languages,
+  // and a suffix cannot know that.
+  'match.you': 'ty',
+  'match.someoneWon': '{name} vyhrává.',
+  'match.wonBy': 'Vyhrává {names}.',
+  'match.pausedFor': 'Pozastaveno — čekáme, až se {name} znovu připojí.',
+  'match.results': 'Výsledky',
+  'match.players': 'Hráči',
+  'match.toPlay': 'na tahu',
+
+  // --- the offline score table ----------------------------------------------
+  'scoring.namesHint': 'Jména oddělená čárkami (4–8 hráčů)',
+  'scoring.newSession': 'Nová relace',
+  // A worked example, not a sentence: the names are placeholders a translator
+  // may localise, the shape `name:score,` is what the parser needs.
+  'scoring.scoresPlaceholder': 'Alena:120,Bohuš:80,…',
+  'scoring.saveRound': 'Uložit kolo',
+  'scoring.export': 'Exportovat zápis',
+  'scoring.formatHint': 'Formát bodů: Jméno:100,Jméno2:50',
+  'scoring.session': 'Relace: {id}',
+  'scoring.players': 'Hráči: {names}',
+  'scoring.roundScores': 'Body kola {n}',
+  'stats.loading': 'Načítání…',
+
+  // --- statistics -----------------------------------------------------------
+  'stats.title': 'Statistiky a žebříček',
+  'stats.yours': 'Tvoje statistiky',
+  'stats.leaderboard': 'Žebříček',
+
+  // --- a player's lifetime record, shown beside a finished match ------------
+  'record.title': 'Tvoje bilance',
+  'record.guest':
+    'Hraješ jako host, takže se žádná bilance nevede. Přihlas se a hry, které jsi na tomhle zařízení už odehrál — včetně téhle — zůstanou u tvého účtu.',
+  'record.signInToKeep': 'Přihlásit se a zachovat je',
+  'record.failed': 'Tvoji bilanci se teď nepodařilo načíst. Zápas je bezpečně zaznamenaný.',
+  'record.loading': 'Načítání…',
+  'record.played': 'Odehráno',
+  'record.won': 'Výhry',
+  'record.lost': 'Prohry',
+  'record.winRate': 'Úspěšnost',
+  'record.streak': 'Série',
+  'record.atThisGame': 'V téhle hře',
+  // A streak is a count with a noun, so it is a whole phrase per count for
+  // the same reason `countLabel` is: "1 win" / "2 wins" is an English rule,
+  // and most of these languages do not share it.
+  'record.streakNone': '—',
+  'record.streakWinOne': '1 výhra',
+  'record.streakWinMany': 'Výhry: {n}',
+  'record.streakLossOne': '1 prohra',
+  'record.streakLossMany': 'Prohry: {n}',
+
+  // --- moving cards ---------------------------------------------------------
+  'hand.dragHint': 'Táhni kartu podél vějíře, když ji chceš přerovnat, nebo na stůl, když ji chceš zahrát',
+  'hand.moveLeft': 'Doleva',
+  'hand.moveRight': 'Doprava',
+  'zone.collapseGroup': 'Sbalit tuhle skupinu',
+  'zone.expandGroup': 'Ukázat všechny karty téhle skupiny',
+  'zone.dropHere': 'Polož sem',
+  'offer.pickCards': 'vyber karty pro místo, na které jsi klepl',
+  'offer.ambiguous': 'tohle patří na víc míst — vyber na stole',
+
+  // --- the build footer -----------------------------------------------------
+  'build.app': 'aplikace',
+  'build.server': 'server',
+  // --- the words the server chose, worded here -------------------------------
+  //
+  // /modules describes each game, variation, option and choice with an English
+  // label. That made the lobby the one screen that stayed English whatever the
+  // picker said. `src/lib/gameLabels.ts` looks these up and falls back to the
+  // label the server sent, so a game added after this build still reads.
+  //
+  // Absent on purpose: game names, place names, ratios and bare numbers.
+  // "Texas Hold'em", "Vegas Strip", "3:2" and "500" read the same in every
+  // language and fall through to the server's own label.
+  'option.pauseBetweenRounds': 'Pauza mezi koly',
+  'choice.pauseBetweenRounds.1': 'Pauza',
+  'choice.pauseBetweenRounds.0': 'Hrát rovnou dál',
+  'option.botSkill': 'Soupeři',
+  'choice.botSkill.0': 'Smíšení',
+  'choice.botSkill.1': 'Lehcí',
+  'choice.botSkill.2': 'Střední',
+  'choice.botSkill.3': 'Těžcí',
+  'option.initialMeldMinimum': 'Hodnota otevření',
+  'choice.initialMeldMinimum.0': 'Bez minima',
+  'option.discardDrawMinRound': 'Braní z odhazovacího balíčku',
+  'choice.discardDrawMinRound.0': 'Otevřené',
+  'choice.discardDrawMinRound.2': 'Od kola 2',
+  'choice.discardDrawMinRound.3': 'Od kola 3',
+  'option.requireCleanRun': 'Postupka bez žolíka',
+  'choice.requireCleanRun.1': 'Povinná',
+  'choice.requireCleanRun.0': 'Ne',
+  'option.jokerReclaimMustPlay': 'Vykoupený žolík',
+  'choice.jokerReclaimMustPlay.1': 'Zahrát ve stejném tahu',
+  'choice.jokerReclaimMustPlay.0': 'Může zůstat v ruce',
+  'option.dealStarter': 'Kdo vynáší',
+  'choice.dealStarter.0': 'Po řadě',
+  'choice.dealStarter.1': 'Vynáší vítěz',
+  'variation.prsi.classic': 'Klasické',
+  'option.handSize': 'Rozdané karty',
+  'variation.canasta.classic': 'Klasická',
+  'variation.canasta.modern_american': 'Modern American',
+  'option.targetScore': 'Cílové skóre',
+  'option.canastasToGoOut': 'Canasty k vyjití',
+  'variation.holdem.freezeout': 'Freezeout',
+  'variation.holdem.timed': 'Pevný počet rozdání',
+  'option.startingStack': 'Startovní žetony',
+  'option.bigBlind': 'Velký blind',
+  'option.handLimit': 'Rozdání',
+  'choice.handLimit.0': 'Dokud nezbude jedno místo',
+  'variation.ginrummy.standard': 'Standardní',
+  'option.knockLimit': 'Limit klepnutí',
+  'choice.knockLimit.0': 'Oklahoma (určí ho otočená karta)',
+  'option.bigGin': 'Big gin',
+  'choice.bigGin.0': 'Ne',
+  'choice.bigGin.1': 'Ano (+25)',
+  'option.lineBonuses': 'Bonusy v zúčtování',
+  'choice.lineBonuses.1': 'Ano',
+  'choice.lineBonuses.0': 'Ne',
+  'variation.rummytiles.standard': 'Standardní',
+  'choice.targetScore.0': 'Bez cíle',
+  'option.roundLimit': 'Limit kol',
+  'choice.roundLimit.0': 'Bez limitu',
+  'option.poolExhaustion': 'Když se banka vyčerpá',
+  'choice.poolExhaustion.1': 'Kolo vyhrává nejnižší ruka',
+  'choice.poolExhaustion.0': 'Kolo nevyhrává nikdo',
+  'variation.blackjack.single': 'Jeden balíček',
+  'option.minBet': 'Minimum stolu',
+  'option.rounds': 'Kola',
+  'option.decks': 'Balíčky',
+  'option.dealerHitsSoft17': 'Krupiér při měkké 17',
+  'choice.dealerHitsSoft17.0': 'Zůstává',
+  'choice.dealerHitsSoft17.1': 'Táhne',
+  'option.blackjackPays': 'Blackjack platí',
+  'choice.blackjackPays.100': 'Jedna ku jedné',
+  'option.maxSplits': 'Rozdělení',
+  'choice.maxSplits.0': 'Bez rozdělení',
+  'choice.maxSplits.1': 'Jednou (dvě rozdání)',
+  'choice.maxSplits.3': 'Třikrát (čtyři rozdání)',
+  'option.doubleAfterSplit': 'Zdvojení po rozdělení',
+  'choice.doubleAfterSplit.1': 'Povoleno',
+  'choice.doubleAfterSplit.0': 'Nepovoleno',
+  'option.surrender': 'Vzdání',
+  'choice.surrender.0': 'Ne',
+  'choice.surrender.1': 'Pozdní vzdání',
+  'option.insurance': 'Pojištění',
+  'choice.insurance.1': 'Nabízeno',
+  'choice.insurance.0': 'Nenabízeno',
 };
