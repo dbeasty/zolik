@@ -74,6 +74,11 @@ export default function RootLayout() {
                 <Stack.Screen name="lobby/games" options={{ title: t('nav.games') }} />
                 <Stack.Screen name="lobby/table" options={{ title: t('nav.table') }} />
                 <Stack.Screen name="lobby/join" options={{ title: t('nav.join') }} />
+                {/* Where a shared link lands. Its own route rather than a
+                    parameter on lobby/join because this URL is written down
+                    outside the app — in chats, in mail — and wants to stay
+                    short, stable and typeable. See src/lib/inviteLink.ts. */}
+                <Stack.Screen name="join/[code]" options={{ title: t('nav.joining') }} />
                 <Stack.Screen name="rules" options={{ title: t('nav.rules') }} />
 
                 {/* The notices, reachable from the footer, from settings, and

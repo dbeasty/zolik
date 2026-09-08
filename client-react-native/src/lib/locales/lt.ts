@@ -726,6 +726,8 @@ export const lt: Record<string, string> = {
   'nav.games': 'Žaidimai',
   'nav.table': 'Tavo stalas',
   'nav.join': 'Prisijungti prie stalo',
+  // The screen a shared invite link lands on while it resolves the code.
+  'nav.joining': 'Jungiamasi prie stalo',
   'nav.rules': 'Taisyklės',
   'nav.match': 'Rungtynės',
   'nav.scoreTable': 'Taškų lentelė',

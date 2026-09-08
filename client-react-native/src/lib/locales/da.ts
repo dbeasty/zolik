@@ -724,6 +724,8 @@ export const da: Record<string, string> = {
   'nav.games': 'Spil',
   'nav.table': 'Dit bord',
   'nav.join': 'Slut dig til et bord',
+  // The screen a shared invite link lands on while it resolves the code.
+  'nav.joining': 'Tilslutter',
   'nav.rules': 'Regler',
   'nav.match': 'Kamp',
   'nav.scoreTable': 'Pointtavle',

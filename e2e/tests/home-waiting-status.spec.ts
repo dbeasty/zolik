@@ -5,9 +5,10 @@ import { loginAsFreshGuest } from '../helpers/login';
 /**
  * "The main page would be the waiting room and would give us status of the
  * players available" — the main menu shows a live count on its own, without
- * itself joining the pool (that stays an explicit "Find players" tap, which
- * now toggles in place rather than navigating — see WaitingStatusCard's own
- * doc comment in app/index.tsx for why the two data sources are kept apart).
+ * itself joining the pool (that stays an explicit "Make me available to play"
+ * tap, which toggles in place rather than navigating — see WaitingStatusCard's
+ * own doc comment in app/index.tsx for why the two data sources are kept
+ * apart).
  */
 test.describe('the main menu shows waiting-room status', () => {
   test('a new waiter is absent until they connect, then appears live', async ({ browser, request }) => {
@@ -35,13 +36,13 @@ test.describe('the main menu shows waiting-room status', () => {
       await expect(card).not.toContainText(waiter.username, { timeout: 10_000 });
 
       // The status card itself must never have joined the pool — only an
-      // actual "Find players" tap does that.
+      // actual availability tap does that.
       await homePage.reload();
       await expect(card).not.toContainText(waiter.username, { timeout: 10_000 });
 
       // The other player becomes available for real.
       await waiterPage.goto('/');
-      await waiterPage.getByText('Find players', { exact: true }).click();
+      await waiterPage.getByText('Make me available to play', { exact: true }).click();
       await expect(waiterPage.getByTestId('waiting-status-open')).toBeVisible({
         timeout: 15_000,
       });
@@ -52,6 +53,60 @@ test.describe('the main menu shows waiting-room status', () => {
     } finally {
       await homeCtx.close();
       await waiterCtx.close();
+    }
+  });
+
+  /**
+   * Making yourself available used to blank the roster out and replace it
+   * with a bare count — "2 other players are also waiting" — which is the
+   * one moment a person most wants to know *who*, since these are the people
+   * they are about to be seated with. This asserts the names survive the
+   * toggle, on the screen of somebody who has taken it.
+   */
+  test('someone who is waiting still sees who else is waiting, by name', async ({
+    browser,
+    request,
+  }) => {
+    const oneCtx = await browser.newContext();
+    const twoCtx = await browser.newContext();
+    const onePage = await oneCtx.newPage();
+    const twoPage = await twoCtx.newPage();
+
+    try {
+      const one = await loginAsFreshGuest(
+        onePage,
+        request,
+        `e2e-pair1-${Math.random().toString(36).slice(2, 8)}`,
+      );
+      const two = await loginAsFreshGuest(
+        twoPage,
+        request,
+        `e2e-pair2-${Math.random().toString(36).slice(2, 8)}`,
+      );
+
+      for (const page of [onePage, twoPage]) {
+        await page.goto('/');
+        await page.getByText('Make me available to play', { exact: true }).click();
+        await expect(page.getByTestId('waiting-status-open')).toBeVisible({ timeout: 15_000 });
+      }
+
+      // Each sees the other by name — and never a row for themselves, which
+      // is what makes "N other players" an honest count rather than one that
+      // silently includes the reader.
+      await expect(onePage.getByTestId(`home-waiting-player-${two.userId}`)).toContainText(
+        two.username,
+        { timeout: 15_000 },
+      );
+      await expect(onePage.getByTestId(`home-waiting-player-${one.userId}`)).toBeHidden();
+
+      await expect(twoPage.getByTestId(`home-waiting-player-${one.userId}`)).toContainText(
+        one.username,
+        { timeout: 15_000 },
+      );
+      await expect(twoPage.getByTestId(`home-waiting-player-${two.userId}`)).toBeHidden();
+    } finally {
+      await oneCtx.close();
+      await twoCtx.close();
     }
   });
 });

@@ -38,7 +38,21 @@ services:
         ZOLIK_PUBLIC_URL: "${ZOLIK_DEV_API_URL:-http://127.0.0.1:8090}"
     restart: unless-stopped
     # Sized for a 1–2 GB host: one Go binary + embedded KDB, no Mongo/Redis.
-    mem_limit: 1g
+    #
+    # Read this together with the fractions the process derives from it, which
+    # are all fractions *of this number* and therefore all move when it does:
+    # KDB's hot-tier cache pool is half of it, KDB sheds writes at 0.85 of it,
+    # the admission gate refuses players at 0.85 of it, and GOMEMLIMIT sits
+    # just below that gate so the collector reacts before anybody is turned
+    # away (internal/app/app.go, goMemLimitFor). Raising this raises the cache
+    # pool by the same proportion, so it buys less headroom than it looks like
+    # it does.
+    #
+    # What it does not scale is the rescue reserve, which is a fixed
+    # allocation per storage namespace and was the reason this container used
+    # to idle at 81% of 1 GiB — see kdbRescueReserveBytes in
+    # server/internal/db/kdb.go.
+    mem_limit: 2g
     env_file:
       - .env
     # These override .env, so the container's shape is stated here rather than
@@ -68,6 +82,11 @@ services:
       # does, so a deployment gets them shut without having to remember to
       # shut them.
       ENABLE_TEST_ENDPOINTS: "${ZOLIK_TEST_ENDPOINTS:-false}"
+      # /debug/memory and /debug/pprof: where this process's memory has gone,
+      # and a heap profile that names the call sites holding it. Same class of
+      # hatch as the two above — on by default under a local APP_ENV, so shut
+      # here explicitly — and additionally able to stop the world on request.
+      ENABLE_DEBUG_ENDPOINTS: "${ZOLIK_DEBUG_ENDPOINTS:-false}"
       # How long a bot pauses before answering. Empty means the server's own
       # defaults, which are a pace for people to watch. The end-to-end suite
       # sets both to near zero: the pause is cosmetic, and a suite that sleeps

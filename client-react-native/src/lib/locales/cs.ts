@@ -721,6 +721,8 @@ export const cs: Record<string, string> = {
   'nav.games': 'Hry',
   'nav.table': 'Tvůj stůl',
   'nav.join': 'Připojit se ke stolu',
+  // The screen a shared invite link lands on while it resolves the code.
+  'nav.joining': 'Připojování',
   'nav.rules': 'Pravidla',
   'nav.match': 'Zápas',
   'nav.scoreTable': 'Tabulka skóre',

@@ -734,6 +734,8 @@ export const bg: Record<string, string> = {
   'nav.games': 'Игри',
   'nav.table': 'Твоята маса',
   'nav.join': 'Присъедини се към маса',
+  // The screen a shared invite link lands on while it resolves the code.
+  'nav.joining': 'Присъединяване',
   'nav.rules': 'Правила',
   'nav.match': 'Мач',
   'nav.scoreTable': 'Таблица с точки',

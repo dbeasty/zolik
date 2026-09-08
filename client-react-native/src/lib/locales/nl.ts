@@ -736,6 +736,8 @@ export const nl: Record<string, string> = {
   'nav.games': 'Spellen',
   'nav.table': 'Jouw tafel',
   'nav.join': 'Aan een tafel deelnemen',
+  // The screen a shared invite link lands on while it resolves the code.
+  'nav.joining': 'Bezig met deelnemen',
   'nav.rules': 'Regels',
   'nav.match': 'Partij',
   'nav.scoreTable': 'Scoretabel',

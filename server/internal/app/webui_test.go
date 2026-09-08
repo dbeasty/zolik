@@ -79,6 +79,11 @@ func TestClientRoutesReachTheApp(t *testing.T) {
 	for _, url := range []string{
 		"/",
 		"/match/6a1f2c",
+		// The invite link. This is the one client route whose URL is written
+		// down outside this repository — pasted into chats, mailed, read off a
+		// second screen — so a stranger following one must reach the app
+		// rather than the API's 404. See match.InvitePath.
+		"/join/ABC123",
 		"/lobby/games",
 		"/lobby/table",
 		"/scoring",

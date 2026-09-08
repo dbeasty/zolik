@@ -729,6 +729,8 @@ export const ro: Record<string, string> = {
   'nav.games': 'Jocuri',
   'nav.table': 'Masa ta',
   'nav.join': 'Alătură-te unei mese',
+  // The screen a shared invite link lands on while it resolves the code.
+  'nav.joining': 'Se alătură',
   'nav.rules': 'Reguli',
   'nav.match': 'Meci',
   'nav.scoreTable': 'Tabel de scor',

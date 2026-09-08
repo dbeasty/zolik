@@ -724,6 +724,8 @@ export const lv: Record<string, string> = {
   'nav.games': 'Spēles',
   'nav.table': 'Tavs galds',
   'nav.join': 'Pievienoties galdam',
+  // The screen a shared invite link lands on while it resolves the code.
+  'nav.joining': 'Notiek pievienošanās',
   'nav.rules': 'Noteikumi',
   'nav.match': 'Mačs',
   'nav.scoreTable': 'Punktu tabula',

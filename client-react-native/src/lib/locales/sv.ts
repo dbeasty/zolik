@@ -720,6 +720,8 @@ export const sv: Record<string, string> = {
   'nav.games': 'Spel',
   'nav.table': 'Ditt bord',
   'nav.join': 'Gå med vid ett bord',
+  // The screen a shared invite link lands on while it resolves the code.
+  'nav.joining': 'Ansluter',
   'nav.rules': 'Regler',
   'nav.match': 'Match',
   'nav.scoreTable': 'Poängtabell',

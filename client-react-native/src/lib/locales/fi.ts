@@ -728,6 +728,8 @@ export const fi: Record<string, string> = {
   'nav.games': 'Pelit',
   'nav.table': 'Sinun pöytäsi',
   'nav.join': 'Liity pöytään',
+  // The screen a shared invite link lands on while it resolves the code.
+  'nav.joining': 'Liitytään',
   'nav.rules': 'Säännöt',
   'nav.match': 'Ottelu',
   'nav.scoreTable': 'Pistetaulukko',

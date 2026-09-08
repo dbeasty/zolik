@@ -745,6 +745,8 @@ export const ga: Record<string, string> = {
   'nav.games': 'Cluichí',
   'nav.table': 'Do bhord',
   'nav.join': 'Téigh isteach i mbord',
+  // The screen a shared invite link lands on while it resolves the code.
+  'nav.joining': 'Ag dul isteach',
   'nav.rules': 'Rialacha',
   'nav.match': 'Cluiche',
   'nav.scoreTable': 'Tábla scór',

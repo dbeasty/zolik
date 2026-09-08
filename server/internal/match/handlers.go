@@ -268,7 +268,14 @@ func (h *Handlers) createMatch(w http.ResponseWriter, req *http.Request) {
 		writeModuleError(w, err)
 		return
 	}
-	writeJSON(w, map[string]any{"matchId": m.ID.Hex(), "joinCode": m.JoinCode})
+	// The link goes back with the code, not instead of it: a host reads one
+	// out over the phone and pastes the other into a chat, and which of the
+	// two is the convenient one is theirs to decide.
+	resp := map[string]any{"matchId": m.ID.Hex(), "joinCode": m.JoinCode}
+	if link := h.manager.InviteURL(m.JoinCode); link != "" {
+		resp["inviteUrl"] = link
+	}
+	writeJSON(w, resp)
 }
 
 func (h *Handlers) joinMatch(w http.ResponseWriter, req *http.Request) {

@@ -736,6 +736,8 @@ export const hu: Record<string, string> = {
   'nav.games': 'Játékok',
   'nav.table': 'A te asztalod',
   'nav.join': 'Csatlakozás asztalhoz',
+  // The screen a shared invite link lands on while it resolves the code.
+  'nav.joining': 'Csatlakozás',
   'nav.rules': 'Szabályok',
   'nav.match': 'Mérkőzés',
   'nav.scoreTable': 'Ponttábla',

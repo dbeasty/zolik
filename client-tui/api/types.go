@@ -121,12 +121,18 @@ type Player struct {
 
 // MatchState is everything a client renders a match from.
 type MatchState struct {
-	Type            string        `json:"type"`
-	MatchID         string        `json:"matchId"`
-	ModuleID        string        `json:"moduleId"`
-	Variation       string        `json:"variation,omitempty"`
-	Status          string        `json:"status"`
-	JoinCode        string        `json:"joinCode,omitempty"`
+	Type      string `json:"type"`
+	MatchID   string `json:"matchId"`
+	ModuleID  string `json:"moduleId"`
+	Variation string `json:"variation,omitempty"`
+	Status    string `json:"status"`
+	JoinCode  string `json:"joinCode,omitempty"`
+	// InviteURL is the join code as a link the host can send somebody. Minted
+	// by the server, which is the only party that knows how the outside world
+	// reaches it — a terminal client has no origin of its own to guess from,
+	// and the address it dialled may well be a LAN one that means nothing to
+	// the person being invited. Empty when the server names no public base.
+	InviteURL       string        `json:"inviteUrl,omitempty"`
 	HostID          string        `json:"hostId,omitempty"`
 	WinnerID        string        `json:"winnerId,omitempty"`
 	Winners         []string      `json:"winners,omitempty"`

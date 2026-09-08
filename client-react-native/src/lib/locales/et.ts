@@ -725,6 +725,8 @@ export const et: Record<string, string> = {
   'nav.games': 'Mängud',
   'nav.table': 'Sinu laud',
   'nav.join': 'Liitu lauaga',
+  // The screen a shared invite link lands on while it resolves the code.
+  'nav.joining': 'Liitumine',
   'nav.rules': 'Reeglid',
   'nav.match': 'Matš',
   'nav.scoreTable': 'Punktitabel',

@@ -745,6 +745,8 @@ export const el: Record<string, string> = {
   'nav.games': 'Παιχνίδια',
   'nav.table': 'Το τραπέζι σου',
   'nav.join': 'Μπες σε τραπέζι',
+  // The screen a shared invite link lands on while it resolves the code.
+  'nav.joining': 'Σύνδεση σε τραπέζι',
   'nav.rules': 'Κανόνες',
   'nav.match': 'Αγώνας',
   'nav.scoreTable': 'Πίνακας σκορ',

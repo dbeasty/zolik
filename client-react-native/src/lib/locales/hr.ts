@@ -725,6 +725,8 @@ export const hr: Record<string, string> = {
   'nav.games': 'Igre',
   'nav.table': 'Tvoj stol',
   'nav.join': 'Pridruži se stolu',
+  // The screen a shared invite link lands on while it resolves the code.
+  'nav.joining': 'Pridruživanje',
   'nav.rules': 'Pravila',
   'nav.match': 'Meč',
   'nav.scoreTable': 'Tablica bodova',

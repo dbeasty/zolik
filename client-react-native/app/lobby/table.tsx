@@ -6,6 +6,7 @@ import type { MatchState } from '@/src/api/matchTypes';
 import type { WaitingPlayer } from '@/src/api/types';
 import { Avatar } from '@/src/components/avatars/Avatar';
 import { avatarFor } from '@/src/components/avatars/catalogue';
+import { InvitePanel } from '@/src/components/InvitePanel';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { formatApiError } from '@/src/lib/apiError';
@@ -132,10 +133,16 @@ export default function TableScreen() {
           {state?.variation ? ` · ${state.variation}` : ''}
         </Text>
 
+        {/*
+          How anybody else gets here. Shown to every seat rather than to the
+          host alone: filling a table is not a host-only errand, and a player
+          already sitting down is often the one with the group chat open.
+          Contrast the waiting-room panel below, which really is host-only —
+          inviting out of the pool is a host action on the server, so showing
+          it to somebody who cannot use it would be offering a dead control.
+        */}
         {state?.joinCode ? (
-          <Text style={{ color: colors.text, fontSize: 18, marginTop: 8 }}>
-            Join code: <Text testID="table-join-code" style={{ fontWeight: '700' }}>{state.joinCode}</Text>
-          </Text>
+          <InvitePanel joinCode={state.joinCode} inviteUrl={state.inviteUrl} />
         ) : null}
 
         <Text style={[shared.status, { marginTop: 12 }]}>Players ({players.length})</Text>
@@ -223,7 +230,8 @@ function WaitingPlayersPanel({
         // now" from "this is broken" at a glance, especially when comparing
         // notes with someone on a second device who insists they are waiting.
         <Text style={shared.status}>
-          No one is waiting right now. Anyone who opens “Find players” shows up here.
+          No one is waiting right now. Anyone who makes themselves available on the
+          main menu shows up here.
         </Text>
       ) : (
         available.map((p) => (

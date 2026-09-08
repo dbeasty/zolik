@@ -736,6 +736,8 @@ export const mt: Record<string, string> = {
   'nav.games': 'Logħob',
   'nav.table': 'Il-mejda tiegħek',
   'nav.join': "Ingħaqad ma' mejda",
+  // The screen a shared invite link lands on while it resolves the code.
+  'nav.joining': 'Qed tingħaqad',
   'nav.rules': 'Regoli',
   'nav.match': 'Partita',
   'nav.scoreTable': 'Tabella tal-iskor',

@@ -718,6 +718,8 @@ export const en: Record<string, string> = {
   'nav.games': 'Games',
   'nav.table': 'Your table',
   'nav.join': 'Join a table',
+  // The screen a shared invite link lands on while it resolves the code.
+  'nav.joining': 'Joining',
   'nav.rules': 'Rules',
   'nav.match': 'Match',
   'nav.scoreTable': 'Score table',

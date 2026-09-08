@@ -254,10 +254,12 @@ func newAdmission(cfg Config) *admission.Controller {
 	// wins if the operator set one — the runtime already honoured it at
 	// startup, and overriding an explicit choice here would be rude.
 	if haveLimit && os.Getenv("GOMEMLIMIT") == "" {
-		softLimit := int64(float64(limitBytes) * 0.9)
+		softLimit := goMemLimitFor(limitBytes, cfg.AdmissionMemoryWatermark)
 		debug.SetMemoryLimit(softLimit)
-		log.Printf("admission: GOMEMLIMIT set to %d MiB (90%% of the %d MiB cgroup limit)",
-			softLimit>>20, limitBytes>>20)
+		log.Printf("admission: GOMEMLIMIT set to %d MiB, below the %.0f%% watermark at %d MiB "+
+			"(cgroup limit %d MiB)",
+			softLimit>>20, cfg.AdmissionMemoryWatermark*100,
+			int64(float64(limitBytes)*cfg.AdmissionMemoryWatermark)>>20, limitBytes>>20)
 	}
 
 	c := admission.New(admission.Limits{
@@ -271,6 +273,48 @@ func newAdmission(cfg Config) *admission.Controller {
 			maxConns, cfg.AdmissionMemoryWatermark, cfg.AdmissionCPUWatermark)
 	}
 	return c
+}
+
+// goMemLimitMargin is how far below the admission watermark GOMEMLIMIT sits.
+//
+// Which side of the watermark it sits on is the whole question, and it used to
+// be the wrong one: a flat 90% against a default 85% watermark meant the
+// collector was told it could grow *past* the point where the gate starts
+// turning players away. Under sustained allocation that is exactly what it did
+// — the soak runs show the process climbing to 91% while refusing arrivals,
+// and a single collection then giving 280 MiB back. Players were refused to
+// protect memory that was garbage.
+//
+// So: collector first, gate second. The runtime is pushed to work as the heap
+// approaches a line *below* the one the gate defends, and a player is refused
+// only when collecting could not get under it — which is the only reason
+// refusing someone is the right answer.
+//
+// It is a margin rather than a guarantee. GOMEMLIMIT governs the Go runtime's
+// own accounting, and the gate reads the cgroup, which also counts file pages
+// the runtime knows nothing about; the two can still disagree by whatever the
+// page cache is holding. Ordering them correctly is not the same as making them
+// agree, and only the first is in this function's gift.
+const goMemLimitMargin = 0.05
+
+// goMemLimitFallbackFraction applies where there is no watermark to sit below
+// — the gate can be turned off (watermark <= 0) while the cgroup limit is still
+// real, and the collector should still be told about the ceiling.
+const goMemLimitFallbackFraction = 0.9
+
+// goMemLimitMinFraction floors the result, so a watermark set very low
+// misconfigures the gate rather than also strangling the collector.
+const goMemLimitMinFraction = 0.5
+
+func goMemLimitFor(limitBytes uint64, watermark float64) int64 {
+	fraction := goMemLimitFallbackFraction
+	if watermark > 0 {
+		fraction = watermark - goMemLimitMargin
+	}
+	if fraction < goMemLimitMinFraction {
+		fraction = goMemLimitMinFraction
+	}
+	return int64(float64(limitBytes) * fraction)
 }
 
 func (a *App) Config() Config { return a.cfg }
@@ -324,6 +368,11 @@ func (a *App) routeGroups() []routeGroup {
 	// pool. Wired through a narrow interface rather than an import, so the
 	// runtime does not learn what a waiting room is.
 	matchMgr.SetWaitingRoom(a.waitingRoom, lobby.RoomID)
+	// And where the outside world reaches us, so a host can share a link
+	// instead of dictating a join code. The same configured value the OAuth
+	// redirect is built from, and for the same reason — see
+	// match.Manager.SetInviteBaseURL.
+	matchMgr.SetInviteBaseURL(a.cfg.PublicBaseURL)
 	// And how long a bot pauses before answering, which is a pace question
 	// rather than a rules one — see Manager.SetBotPace.
 	matchMgr.SetBotPace(
@@ -373,6 +422,13 @@ func (a *App) routeGroups() []routeGroup {
 			h.RegisterRoutes(r)
 		}},
 		{"stats", stats.NewHandlers(a.statsRepo).RegisterRoutes},
+		// Where the memory went. Off unless APP_ENV is local — see
+		// debugmem.go for why it is not something a public listener carries.
+		{"debug", func(r chi.Router) {
+			if a.cfg.DebugEndpointsEnabled {
+				a.registerDebugRoutes(r)
+			}
+		}},
 	}
 }
 
