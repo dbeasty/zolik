@@ -2,6 +2,7 @@ package blackjack
 
 import (
 	"encoding/json"
+	"strconv"
 	"testing"
 
 	"zolik/server/internal/module"
@@ -151,6 +152,71 @@ func TestBet_RefusesBelowTheTableMinimumAndAboveTheStack(t *testing.T) {
 	if _, err := bet(t, next, "p1", 25); module.CodeOf(err) != ErrAlreadyBet {
 		t.Errorf("betting twice was refused with %v, want %s", err, ErrAlreadyBet)
 	}
+}
+
+// TestBettingOfferQuickChoices pins the shortcut stakes the bet control
+// carries alongside its bare range — twice the table minimum and the whole
+// stack — so a player is not left doing that multiplication themselves, and
+// pins that "all in" survives a collision rather than losing the tie to
+// whichever candidate happened to be computed first.
+func TestBettingOfferQuickChoices(t *testing.T) {
+	quickAmounts := func(t *testing.T, raw module.State, player string) map[string]int {
+		t.Helper()
+		offers, err := New().LegalActions(raw, player)
+		if err != nil {
+			t.Fatalf("LegalActions: %v", err)
+		}
+		for _, o := range offers {
+			if o.ID != OfferBet {
+				continue
+			}
+			if !o.Enabled {
+				t.Fatalf("bet offer disabled: %s", o.WhyNot)
+			}
+			got := map[string]int{}
+			for _, c := range o.Params[0].Choices {
+				n, err := strconv.Atoi(c.Value)
+				if err != nil {
+					t.Fatalf("choice %q is not a number: %v", c.Value, err)
+				}
+				got[c.LabelKey] = n
+			}
+			return got
+		}
+		t.Fatalf("no bet offer for %s", player)
+		return nil
+	}
+
+	t.Run("double the minimum and all in, distinct", func(t *testing.T) {
+		raw := newMatch(t, 7, module.MatchConfig{Options: module.Options{OptMinBet: 25}})
+		stack := seatOf(t, stateOf(t, raw), "p1").Stack
+
+		got := quickAmounts(t, raw, "p1")
+		if got["blackjack.quick.doubleMin"] != 50 {
+			t.Errorf("2x-min choice = %d, want 50", got["blackjack.quick.doubleMin"])
+		}
+		if got["blackjack.quick.allIn"] != stack {
+			t.Errorf("all-in choice = %d, want %d", got["blackjack.quick.allIn"], stack)
+		}
+	})
+
+	t.Run("all in wins the tie when the stack is too short for double the minimum", func(t *testing.T) {
+		raw := newMatch(t, 7, module.MatchConfig{Options: module.Options{OptMinBet: 25}})
+		s := stateOf(t, raw)
+		seatOf(t, s, "p1").Stack = 30 // enough to bet, not enough to double the minimum
+		short, err := json.Marshal(s)
+		if err != nil {
+			t.Fatalf("marshal: %v", err)
+		}
+
+		got := quickAmounts(t, short, "p1")
+		if len(got) != 1 {
+			t.Fatalf("choices = %v, want exactly one (all in)", got)
+		}
+		if got["blackjack.quick.allIn"] != 30 {
+			t.Errorf("all-in choice = %d, want 30", got["blackjack.quick.allIn"])
+		}
+	})
 }
 
 func TestBet_TheLastStakeDealsTheRound(t *testing.T) {

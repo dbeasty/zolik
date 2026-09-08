@@ -383,6 +383,9 @@ export const ro: Record<string, string> = {
   'holdem.seat.bet': 'Pariu',
   'holdem.prompt.yourAction': 'E rândul tău',
   'holdem.prompt.raiseTo': 'Mărește la',
+  'holdem.quick.halfPot': '½ Pot',
+  'holdem.quick.pot': 'Pot',
+  'holdem.quick.allIn': 'All-in',
   'zone.yourHand': 'Mâna ta',
   'zone.opponentHand': 'Mâna adversarului',
   'zone.drawPile': 'Talon',
@@ -653,6 +656,8 @@ export const ro: Record<string, string> = {
   'blackjack.prompt.waitingFor': 'Se așteaptă {playerId}',
   'blackjack.prompt.betAmount': 'Miză',
 
+  'blackjack.quick.doubleMin': '2× Minim',
+  'blackjack.quick.allIn': 'All-in',
   'blackjack.offer.bet': 'Pariază',
   'blackjack.offer.hit': 'Carte',
   'blackjack.offer.stand': 'Rămân',

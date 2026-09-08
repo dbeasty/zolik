@@ -309,17 +309,26 @@ test.describe('one shell, every game', () => {
     const stepper = page.getByTestId('param-amount');
     await expect(stepper).toBeVisible({ timeout: 40_000 });
 
+    // The value sits in a typed field now, not a label — a player who knows
+    // the figure they want can enter it directly instead of nudging a stepper.
     const value = page.getByTestId('param-amount-value');
-    const before = Number((await value.textContent()) ?? '0');
+    const before = Number((await value.inputValue()) || '0');
     await page.getByTestId('param-amount-up').click();
-    const after = Number((await value.textContent()) ?? '0');
+    const after = Number((await value.inputValue()) || '0');
     expect(after, 'the stepper should move within the engine range').toBeGreaterThanOrEqual(before);
 
     // And the top of the range is reachable in one press, because a player who
     // wants everything in should not have to hold a button down.
     await page.getByTestId('param-amount-max').click();
-    const maxed = Number((await value.textContent()) ?? '0');
+    const maxed = Number((await value.inputValue()) || '0');
     expect(maxed).toBeGreaterThanOrEqual(after);
+
+    // Typing an exact figure works too, and the engine still gets the last
+    // word: the field clamps to the range it was given on commit.
+    await value.fill(String(maxed + 1000));
+    await value.press('Enter');
+    const typed = Number((await value.inputValue()) || '0');
+    expect(typed, 'typing past the range should clamp to it, not overshoot').toBe(maxed);
   });
 
   test('the lobby lists every hosted game without naming one', async ({ page, request }) => {

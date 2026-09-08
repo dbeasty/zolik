@@ -91,6 +91,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 			Max:      maxTo,
 			Step:     1,
 			Default:  minTo,
+			Choices:  raiseQuickChoices(s, minTo, maxTo),
 		}}
 		raise.Facts = []module.Fact{{
 			LabelKey: "holdem.cost.pot", Value: strconv.Itoa(s.potIfCalled()),
@@ -117,6 +118,50 @@ func raiseRange(s *GameState, seat *Seat) (int, int) {
 		minTo = 1
 	}
 	return minTo, maxTo
+}
+
+// raiseQuickChoices names the raise-to totals a no-limit player actually
+// reasons about — half the pot, the whole pot, and the top of the range —
+// alongside the bare range `ParamKindInt` already carries, so a player is not
+// left doing pot arithmetic in their head to reach a normal-sized bet.
+//
+// Each is clamped into [minTo, maxTo], the same bounds the stepper obeys, and
+// the engine still validates whatever comes back — a quick choice is a
+// shortcut to a value, not a second way in.
+//
+// Built to keep "all in" always present and to write every `LabelKey` as a
+// literal string in its own `module.ParamChoice{...}` — never assigned from a
+// variable — because `dump-keys` finds label keys by reading the source, not
+// by running it, and a key that only exists behind a local struct field is
+// invisible to that scan. Insertion order decides the tie: all in goes in
+// first, so a pot or half-pot amount that happens to coincide with it is
+// dropped from the list rather than duplicating the button under another name.
+func raiseQuickChoices(s *GameState, minTo, maxTo int) []module.ParamChoice {
+	potAfterCall := s.potIfCalled()
+	clamp := func(n int) int {
+		if n < minTo {
+			return minTo
+		}
+		if n > maxTo {
+			return maxTo
+		}
+		return n
+	}
+
+	allIn := maxTo
+	pot := clamp(s.CurrentBet + potAfterCall)
+	halfPot := clamp(s.CurrentBet + potAfterCall/2)
+
+	seen := map[int]bool{allIn: true}
+	choices := []module.ParamChoice{{Value: strconv.Itoa(allIn), LabelKey: "holdem.quick.allIn"}}
+	if !seen[pot] {
+		seen[pot] = true
+		choices = append([]module.ParamChoice{{Value: strconv.Itoa(pot), LabelKey: "holdem.quick.pot"}}, choices...)
+	}
+	if !seen[halfPot] {
+		choices = append([]module.ParamChoice{{Value: strconv.Itoa(halfPot), LabelKey: "holdem.quick.halfPot"}}, choices...)
+	}
+	return choices
 }
 
 // potIfCalled is what the pot would be if the current bet were called all

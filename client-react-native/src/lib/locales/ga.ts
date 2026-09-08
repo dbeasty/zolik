@@ -392,6 +392,9 @@ export const ga: Record<string, string> = {
   'holdem.seat.bet': 'Geall',
   'holdem.prompt.yourAction': 'Do sheal chun gnímh',
   'holdem.prompt.raiseTo': 'Ardaigh go',
+  'holdem.quick.halfPot': '½ Pota',
+  'holdem.quick.pot': 'Pota',
+  'holdem.quick.allIn': 'All-in',
   'zone.yourHand': 'Do lámh',
   'zone.opponentHand': 'A lámh',
   'zone.drawPile': 'Stoc',
@@ -669,6 +672,8 @@ export const ga: Record<string, string> = {
   'blackjack.prompt.waitingFor': 'Ag fanacht le {playerId}',
   'blackjack.prompt.betAmount': 'Geall',
 
+  'blackjack.quick.doubleMin': '2× Íosmhéid',
+  'blackjack.quick.allIn': 'All-in',
   'blackjack.offer.bet': 'Cuir geall',
   'blackjack.offer.hit': 'Cárta',
   'blackjack.offer.stand': 'Seasaim',

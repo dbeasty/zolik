@@ -112,6 +112,7 @@ func (m *Module) bettingOffers(raw module.State, s *GameState, seat *Seat) []mod
 			Max:      seat.Stack,
 			Step:     1,
 			Default:  s.MinBet,
+			Choices:  betQuickChoices(s.MinBet, seat.Stack),
 		}}
 		bet.Facts = []module.Fact{{
 			LabelKey: "blackjack.fact.tableMinimum", Value: strconv.Itoa(s.MinBet),
@@ -127,6 +128,37 @@ func (m *Module) bettingOffers(raw module.State, s *GameState, seat *Seat) []mod
 		}
 	}
 	return offers
+}
+
+// betQuickChoices names a couple of stakes a player reasons about without
+// doing the multiplication themselves — twice the table minimum, and the
+// whole stack — alongside the bare range `ParamKindInt` already carries.
+//
+// Built the same way holdem's raiseQuickChoices is: every LabelKey a literal
+// string in its own module.ParamChoice{...}, since dump-keys finds label
+// keys by reading the source rather than by running it, and "all in" always
+// present — inserted first, so a double-the-minimum stake that happens to
+// equal the whole stack (a short one) is dropped in its favour rather than
+// showing two buttons for the same figure.
+func betQuickChoices(minBet, stack int) []module.ParamChoice {
+	clamp := func(n int) int {
+		if n < minBet {
+			return minBet
+		}
+		if n > stack {
+			return stack
+		}
+		return n
+	}
+
+	allIn := stack
+	doubleMin := clamp(minBet * 2)
+
+	choices := []module.ParamChoice{{Value: strconv.Itoa(allIn), LabelKey: "blackjack.quick.allIn"}}
+	if doubleMin != allIn {
+		choices = append([]module.ParamChoice{{Value: strconv.Itoa(doubleMin), LabelKey: "blackjack.quick.doubleMin"}}, choices...)
+	}
+	return choices
 }
 
 // insuranceOffers is a decision with two answers, both of which are offered,

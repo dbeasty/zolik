@@ -385,6 +385,9 @@ export const mt: Record<string, string> = {
   'holdem.seat.bet': 'Imħatra',
   'holdem.prompt.yourAction': 'Imissek taġixxi',
   'holdem.prompt.raiseTo': 'Għolli sa',
+  'holdem.quick.halfPot': '½ Pot',
+  'holdem.quick.pot': 'Pot',
+  'holdem.quick.allIn': 'All-in',
   'zone.yourHand': 'Idek',
   'zone.opponentHand': 'Idu',
   'zone.drawPile': 'Mazz',
@@ -660,6 +663,8 @@ export const mt: Record<string, string> = {
   'blackjack.prompt.waitingFor': 'Nistennew lil {playerId}',
   'blackjack.prompt.betAmount': 'Imħatra',
 
+  'blackjack.quick.doubleMin': '2× Minimu',
+  'blackjack.quick.allIn': 'All-in',
   'blackjack.offer.bet': 'Poġġi',
   'blackjack.offer.hit': 'Karta',
   'blackjack.offer.stand': 'Nieqaf',

@@ -1,5 +1,14 @@
-import { useMemo, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type GestureResponderEvent,
+  PanResponder,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
 import type { ActionOffer, MatchAction, ParamSpec } from '@/src/api/matchTypes';
 import { defaultParam, isOneTap, offerGroupKey, submissionFor } from '@/src/api/matchTypes';
@@ -508,25 +517,47 @@ function ParamControl({
     const max = spec.max ?? min;
     const step = spec.step && spec.step > 0 ? spec.step : 1;
     const current = Number(value) || min;
-    const clamp = (n: number) => String(Math.min(Math.max(n, min), max));
+    const clamp = (n: number) => Math.min(Math.max(n, min), max);
+    const commit = (n: number) => onChange(String(clamp(n)));
 
     return (
       <View style={styles.param} testID={`param-${spec.name}`}>
         <Text style={styles.paramLabel}>{label(spec.labelKey)}</Text>
+
+        {/* Drag to any figure in the range — the fine-grained way in, next to
+            the stepper's one-unit nudge and the keyboard's exact one. */}
+        <AmountSlider
+          testID={`param-${spec.name}-slider`}
+          min={min}
+          max={max}
+          step={step}
+          value={current}
+          onChange={commit}
+          styles={styles}
+        />
+
         <View style={styles.stepper}>
           <Pressable
             testID={`param-${spec.name}-down`}
-            onPress={() => onChange(clamp(current - step))}
+            onPress={() => commit(current - step)}
             style={styles.stepButton}
           >
             <Text style={styles.stepText}>−</Text>
           </Pressable>
-          <Text testID={`param-${spec.name}-value`} style={styles.paramValue}>
-            {value}
-          </Text>
+          {/* The value is also where it's typed — a player who knows the
+              exact figure they want should not have to nudge or drag their
+              way to it. */}
+          <AmountInput
+            testID={`param-${spec.name}-value`}
+            value={current}
+            min={min}
+            max={max}
+            onCommit={commit}
+            styles={styles}
+          />
           <Pressable
             testID={`param-${spec.name}-up`}
-            onPress={() => onChange(clamp(current + step))}
+            onPress={() => commit(current + step)}
             style={styles.stepButton}
           >
             <Text style={styles.stepText}>+</Text>
@@ -535,12 +566,32 @@ function ParamControl({
               control says "max", not "all in": it does not know. */}
           <Pressable
             testID={`param-${spec.name}-max`}
-            onPress={() => onChange(String(max))}
+            onPress={() => commit(max)}
             style={styles.stepButton}
           >
             <Text style={styles.stepText}>max</Text>
           </Pressable>
         </View>
+
+        {/* Named shortcuts to figures worth naming — a pot-sized raise, an
+            all-in — computed by the engine and handed over as `choices` the
+            same way a `ParamKindChoice` carries its own. This file still
+            reads no rule off them: each is just a value to jump the control
+            to. */}
+        {(spec.choices ?? []).length > 0 ? (
+          <View style={styles.choices}>
+            {(spec.choices ?? []).map((c) => (
+              <Pressable
+                key={c.value}
+                testID={`param-${spec.name}-${c.value}`}
+                onPress={() => commit(Number(c.value))}
+                style={[styles.choice, current === Number(c.value) && styles.choiceOn]}
+              >
+                <Text style={styles.choiceText}>{label(c.labelKey) || c.value}</Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
       </View>
     );
   }
@@ -560,6 +611,164 @@ function ParamControl({
           </Pressable>
         ))}
       </View>
+    </View>
+  );
+}
+
+/**
+ * The typed half of a `ParamKindInt` control: the same figure the stepper and
+ * slider move, editable as text.
+ *
+ * Kept as its own local `text` while the field has focus, because a value
+ * clamped and *echoed back into this field* on every keystroke fights the
+ * very thing a player is trying to type — "15" reads as "1" then jumps to
+ * "20" before the second digit lands. What the field shows is only corrected
+ * on commit: blurring or submitting parses what's there, and only then does
+ * the range have the last word over the text itself.
+ *
+ * The slider and the quick chips are not the text field, though, and a
+ * player watching the thumb while they type expects it to move as they go —
+ * so every keystroke that parses to a number also pushes it out to them via
+ * `onCommit`, unclamped-into-the-field but still clamped-into-range at the
+ * shared value, the same clamp the stepper and the slider already obey.
+ */
+function AmountInput({
+  value,
+  min,
+  max,
+  onCommit,
+  styles,
+  testID,
+}: {
+  value: number;
+  min: number;
+  max: number;
+  onCommit: (n: number) => void;
+  styles: OfferBarStyles;
+  testID: string;
+}) {
+  const [text, setText] = useState(String(value));
+  const [editing, setEditing] = useState(false);
+
+  useEffect(() => {
+    if (!editing) setText(String(value));
+  }, [value, editing]);
+
+  const change = (t: string) => {
+    setText(t);
+    const n = Number(t);
+    if (t.trim() !== '' && Number.isFinite(n)) onCommit(n);
+  };
+
+  const commit = () => {
+    setEditing(false);
+    const n = Number(text);
+    if (text.trim() !== '' && Number.isFinite(n)) {
+      onCommit(n);
+    } else {
+      setText(String(value));
+    }
+  };
+
+  return (
+    <TextInput
+      testID={testID}
+      value={text}
+      onFocus={() => setEditing(true)}
+      onChangeText={change}
+      onBlur={commit}
+      onSubmitEditing={commit}
+      keyboardType="number-pad"
+      selectTextOnFocus
+      style={styles.paramValueInput}
+      accessibilityLabel={`${min}–${max}`}
+    />
+  );
+}
+
+// The slider thumb's size in both the geometry below and its own style —
+// one constant, so the two can never drift apart and misalign the thumb
+// with the track it draws over.
+const THUMB_SIZE = 18;
+const THUMB_RADIUS = THUMB_SIZE / 2;
+
+/**
+ * The drag half of a `ParamKindInt` control: any figure in the range under a
+ * thumb, next to the stepper's one-unit nudge and the input's exact one.
+ *
+ * Plain `PanResponder` rather than a slider library — this range is a plain
+ * line between two numbers the engine already computed, which a dozen lines
+ * of touch handling covers without a native module to keep in step with
+ * Expo's own upgrades. Values the handlers need live in a ref rather than a
+ * render-time closure: `PanResponder.create` is built once, on the first
+ * render, and a handler built then would otherwise keep reading that
+ * render's `min`/`max`/`onChange` forever.
+ */
+function AmountSlider({
+  min,
+  max,
+  step,
+  value,
+  onChange,
+  styles,
+  testID,
+}: {
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  onChange: (n: number) => void;
+  styles: OfferBarStyles;
+  testID: string;
+}) {
+  const [width, setWidth] = useState(0);
+  const live = useRef({ min, max, step, width, onChange });
+  live.current = { min, max, step, width, onChange };
+
+  // The thumb is a circle of its own width, not a point, so its *centre*
+  // ranges over [radius, width − radius] rather than [0, width] — a thumb
+  // whose centre could reach 0 would hang half off the left edge of the
+  // track, landing to the left of the "−" button beneath it instead of flush
+  // with it. Every position below is in that same centre-of-thumb space, in
+  // and out, so the touched point and the drawn thumb never disagree.
+  const centreFor = (ratio: number, width: number): number => {
+    const usable = Math.max(width - THUMB_SIZE, 0);
+    return THUMB_RADIUS + Math.min(Math.max(ratio, 0), 1) * usable;
+  };
+
+  const valueAtOffset = (x: number): number => {
+    const { min, max, step, width } = live.current;
+    const range = max - min;
+    const usable = Math.max(width - THUMB_SIZE, 0);
+    if (width <= 0 || range <= 0 || usable <= 0) return min;
+    const ratio = Math.min(Math.max((x - THUMB_RADIUS) / usable, 0), 1);
+    const snapped = Math.round((min + ratio * range) / step) * step;
+    return Math.min(Math.max(snapped, min), max);
+  };
+
+  const responder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (e: GestureResponderEvent) => live.current.onChange(valueAtOffset(e.nativeEvent.locationX)),
+      onPanResponderMove: (e: GestureResponderEvent) => live.current.onChange(valueAtOffset(e.nativeEvent.locationX)),
+    }),
+  ).current;
+
+  const range = Math.max(max - min, 1);
+  const ratio = Math.min(Math.max((value - min) / range, 0), 1);
+  const centre = centreFor(ratio, width);
+
+  return (
+    <View
+      testID={testID}
+      style={styles.sliderTrack}
+      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+      {...responder.panHandlers}
+    >
+      <View style={styles.sliderRail} />
+      <View style={[styles.sliderFill, { width: centre }]} />
+      <View style={[styles.sliderThumb, { left: centre - THUMB_RADIUS }]} />
     </View>
   );
 }
@@ -706,12 +915,35 @@ function offerBarStyles(m: Metrics, s: Skin) {
       paddingVertical: 4,
     },
     stepText: { color: colors.text, fontSize: m.panel.bodyFont, fontWeight: '700' },
-    paramValue: {
+    paramValueInput: {
       color: colors.text,
       fontSize: m.panel.bodyFont + 1,
       fontWeight: '700',
-      minWidth: 44,
+      minWidth: 52,
       textAlign: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 6,
+      backgroundColor: colors.surface,
+      paddingHorizontal: 6,
+      paddingVertical: 4,
+    },
+    // A plain line under a thumb: `sliderTrack` carries the touch handlers
+    // and the height a finger needs, `sliderRail` is the full-width line
+    // beneath everything, `sliderFill` the same line redrawn up to the
+    // current value, and `sliderThumb` the handle — three layers so the fill
+    // never has to repaint the rail's ends.
+    sliderTrack: { height: 28, justifyContent: 'center', marginTop: 6 },
+    sliderRail: { height: 4, borderRadius: 2, backgroundColor: colors.border },
+    sliderFill: { position: 'absolute', height: 4, borderRadius: 2, backgroundColor: colors.accent },
+    sliderThumb: {
+      position: 'absolute',
+      width: THUMB_SIZE,
+      height: THUMB_SIZE,
+      borderRadius: THUMB_RADIUS,
+      backgroundColor: colors.accent,
+      borderWidth: 2,
+      borderColor: colors.onAccent,
     },
     choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 2 },
     choice: {
