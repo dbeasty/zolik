@@ -66,6 +66,14 @@ type Config struct {
 	// anywhere APP_ENV is set.
 	TestEndpointsEnabled bool
 
+	// DebugEndpointsEnabled gates /debug/memory and /debug/pprof, which
+	// report where this process's memory has gone and can be asked to
+	// collect before answering. Same default as TestEndpointsEnabled — on
+	// under a local APP_ENV, opted into anywhere else — because it exposes
+	// the shape of the process and can be made to stop the world, and
+	// neither belongs on a public listener.
+	DebugEndpointsEnabled bool
+
 	// AdmissionMaxConnections caps concurrently held sockets. Zero (the
 	// default) derives a ceiling from the process's memory limit; -1 turns
 	// the count ceiling off entirely. On hosts with no readable limit — dev
@@ -160,6 +168,8 @@ func LoadConfig() Config {
 		},
 
 		TestEndpointsEnabled: envBool("ENABLE_TEST_ENDPOINTS", local),
+
+		DebugEndpointsEnabled: envBool("ENABLE_DEBUG_ENDPOINTS", local),
 
 		// Watermark defaults follow the admission package's measurements: 0.85
 		// leaves slack for the lag between admitting a connection and its

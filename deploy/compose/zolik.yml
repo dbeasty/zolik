@@ -61,6 +61,10 @@ services:
       # env file may deliberately set, to keep guest play working without SMTP
       # — so they are closed here explicitly rather than by implication.
       ENABLE_TEST_ENDPOINTS: "false"
+      # /debug/memory and /debug/pprof. A literal, not an interpolation: this
+      # one can be asked to stop the world, and it reports the shape of the
+      # process to anyone who can reach the port.
+      ENABLE_DEBUG_ENDPOINTS: "false"
     volumes:
       # /data is created nonroot-owned in the image, so the engine can write
       # under the distroless nonroot user.
