@@ -125,6 +125,9 @@ the header (naming the server's too, only when it differs — see
   Žolíky-specific path
 - [`docs/memory.md`](docs/memory.md) — the four memory thresholds and the order
   they belong in, what was actually using the memory, and how to measure it
+- [`docs/logging-and-reporting-plan.md`](docs/logging-and-reporting-plan.md) —
+  structured logs, a counter document per day, and the one endpoint that says
+  how much was played, by whom, and how often the box said no
 
 ## Licence
 
