@@ -759,4 +759,7 @@ export const de: Record<string, string> = {
   'menu.signOut': 'Abmelden',
   'more.scoreTable': 'Offline-Punktetabelle',
   'more.stats': 'Statistik und Rangliste',
+  'more.needsAccount': 'zum Nutzen anmelden',
+  'gate.title': 'Melde dich an, um das zu nutzen',
+  'gate.body': 'Punktetabellen und Statistiken werden bei deinem Konto gespeichert und folgen dir auf ein anderes Gerät. Ein Gast hat keinen Ort dafür.',
 };

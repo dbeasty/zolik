@@ -748,4 +748,7 @@ export const pl: Record<string, string> = {
   'menu.signOut': 'Wyloguj się',
   'more.scoreTable': 'Tabela wyników offline',
   'more.stats': 'Statystyki i ranking',
+  'more.needsAccount': 'zaloguj się, by użyć',
+  'gate.title': 'Zaloguj się, by tego użyć',
+  'gate.body': 'Tabele wyników i statystyki są zapisywane przy twoim koncie, więc idą z tobą na inne urządzenie. Gość nie ma gdzie ich trzymać.',
 };

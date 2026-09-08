@@ -752,4 +752,7 @@ export const es: Record<string, string> = {
   'menu.signOut': 'Cerrar sesión',
   'more.scoreTable': 'Tabla de puntos sin conexión',
   'more.stats': 'Estadísticas y clasificación',
+  'more.needsAccount': 'inicia sesión para usar',
+  'gate.title': 'Inicia sesión para usar esto',
+  'gate.body': 'Las tablas de puntos y las estadísticas se guardan con tu cuenta, así te acompañan a otro dispositivo. Un invitado no tiene dónde guardarlas.',
 };

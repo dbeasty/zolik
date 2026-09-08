@@ -738,4 +738,7 @@ export const en: Record<string, string> = {
   'menu.signOut': 'Sign out',
   'more.scoreTable': 'Offline score table',
   'more.stats': 'Stats & leaderboard',
+  'more.needsAccount': 'sign in to use',
+  'gate.title': 'Sign in to use this',
+  'gate.body': 'Score tables and stats are kept with your account, so they follow you to another device. A guest has nowhere for them to be kept.',
 };

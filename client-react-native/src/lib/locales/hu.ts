@@ -754,4 +754,7 @@ export const hu: Record<string, string> = {
   'menu.signOut': 'Kijelentkezés',
   'more.scoreTable': 'Offline ponttáblázat',
   'more.stats': 'Statisztika és ranglista',
+  'more.needsAccount': 'jelentkezz be',
+  'gate.title': 'Jelentkezz be ehhez',
+  'gate.body': 'A ponttáblázatokat és a statisztikákat a fiókod őrzi, így egy másik eszközre is elkísérnek. Vendégként nincs hol tárolni őket.',
 };

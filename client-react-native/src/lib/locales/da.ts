@@ -742,4 +742,7 @@ export const da: Record<string, string> = {
   'menu.signOut': 'Log ud',
   'more.scoreTable': 'Offline pointtabel',
   'more.stats': 'Statistik og rangliste',
+  'more.needsAccount': 'log ind for at bruge',
+  'gate.title': 'Log ind for at bruge dette',
+  'gate.body': 'Pointtabeller og statistik gemmes med din konto, så de følger dig til en anden enhed. En gæst har ingen steder at gemme dem.',
 };

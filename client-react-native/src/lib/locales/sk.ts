@@ -741,4 +741,7 @@ export const sk: Record<string, string> = {
   'menu.signOut': 'Odhlásiť sa',
   'more.scoreTable': 'Offline tabuľka skóre',
   'more.stats': 'Štatistiky a rebríček',
+  'more.needsAccount': 'prihlás sa',
+  'gate.title': 'Prihlás sa, aby si to mohol použiť',
+  'gate.body': 'Tabuľky skóre a štatistiky sa ukladajú k tvojmu účtu, takže idú s tebou aj na iné zariadenie. Hosť ich nemá kam uložiť.',
 };

@@ -754,4 +754,7 @@ export const nl: Record<string, string> = {
   'menu.signOut': 'Afmelden',
   'more.scoreTable': 'Offline scoretabel',
   'more.stats': 'Statistieken en ranglijst',
+  'more.needsAccount': 'meld je aan om te gebruiken',
+  'gate.title': 'Meld je aan om dit te gebruiken',
+  'gate.body': 'Scoretabellen en statistieken worden bij je account bewaard, zodat ze met je meegaan naar een ander apparaat. Een gast heeft er geen plek voor.',
 };

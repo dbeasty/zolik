@@ -752,4 +752,7 @@ export const fr: Record<string, string> = {
   'menu.signOut': 'Se déconnecter',
   'more.scoreTable': 'Feuille de score hors ligne',
   'more.stats': 'Statistiques et classement',
+  'more.needsAccount': 'connecte-toi pour utiliser',
+  'gate.title': 'Connecte-toi pour utiliser ceci',
+  'gate.body': "Les feuilles de score et les statistiques sont conservées avec ton compte, elles te suivent donc sur un autre appareil. Un invité n'a nulle part où les garder.",
 };

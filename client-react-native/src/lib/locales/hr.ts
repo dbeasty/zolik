@@ -743,4 +743,7 @@ export const hr: Record<string, string> = {
   'menu.signOut': 'Odjava',
   'more.scoreTable': 'Offline tablica rezultata',
   'more.stats': 'Statistika i ljestvica',
+  'more.needsAccount': 'prijavi se za korištenje',
+  'gate.title': 'Prijavi se da ovo koristiš',
+  'gate.body': 'Tablice rezultata i statistika čuvaju se uz tvoj račun, pa te prate na drugi uređaj. Gost ih nema gdje čuvati.',
 };

@@ -739,4 +739,7 @@ export const cs: Record<string, string> = {
   'menu.signOut': 'Odhlásit se',
   'more.scoreTable': 'Offline tabulka skóre',
   'more.stats': 'Statistiky a žebříček',
+  'more.needsAccount': 'přihlas se',
+  'gate.title': 'Přihlas se, ať to můžeš použít',
+  'gate.body': 'Tabulky skóre a statistiky se ukládají k tvému účtu, takže jdou s tebou i na jiné zařízení. Host je nemá kam uložit.',
 };

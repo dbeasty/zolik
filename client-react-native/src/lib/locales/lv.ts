@@ -742,4 +742,7 @@ export const lv: Record<string, string> = {
   'menu.signOut': 'Iziet',
   'more.scoreTable': 'Bezsaistes punktu tabula',
   'more.stats': 'Statistika un līderu saraksts',
+  'more.needsAccount': 'piesakies, lai lietotu',
+  'gate.title': 'Piesakies, lai to lietotu',
+  'gate.body': 'Punktu tabulas un statistika glabājas kopā ar tavu kontu, tāpēc tās seko tev uz citu ierīci. Viesim nav kur tās glabāt.',
 };

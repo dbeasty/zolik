@@ -738,4 +738,7 @@ export const sv: Record<string, string> = {
   'menu.signOut': 'Logga ut',
   'more.scoreTable': 'Offline-poängtabell',
   'more.stats': 'Statistik och topplista',
+  'more.needsAccount': 'logga in för att använda',
+  'gate.title': 'Logga in för att använda detta',
+  'gate.body': 'Poängtabeller och statistik sparas med ditt konto, så de följer med dig till en annan enhet. En gäst har ingenstans att spara dem.',
 };

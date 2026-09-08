@@ -744,4 +744,7 @@ export const lt: Record<string, string> = {
   'menu.signOut': 'Atsijungti',
   'more.scoreTable': 'Nešėtinė taškų lentelė',
   'more.stats': 'Statistika ir lyderių lentelė',
+  'more.needsAccount': 'prisijunk, kad naudotum',
+  'gate.title': 'Prisijunk, kad tai naudotum',
+  'gate.body': 'Taškų lentelės ir statistika saugomos su tavo paskyra, tad keliauja su tavimi į kitą įrenginį. Svečias neturi kur jų laikyti.',
 };

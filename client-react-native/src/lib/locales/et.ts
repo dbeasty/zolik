@@ -743,4 +743,7 @@ export const et: Record<string, string> = {
   'menu.signOut': 'Logi välja',
   'more.scoreTable': 'Vahetu punktitabel',
   'more.stats': 'Statistika ja edetabel',
+  'more.needsAccount': 'logi sisse',
+  'gate.title': 'Logi sisse, et seda kasutada',
+  'gate.body': 'Punktitabelid ja statistika salvestatakse sinu kontoga, nii et need järgnevad sulle teise seadmesse. Külalisel pole neid kuhugi salvestada.',
 };

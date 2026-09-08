@@ -763,4 +763,7 @@ export const ga: Record<string, string> = {
   'menu.signOut': 'Sínigh amach',
   'more.scoreTable': 'Tábla scór as líne',
   'more.stats': 'Staitisticí agus rangú',
+  'more.needsAccount': 'sínigh isteach le húsáid',
+  'gate.title': 'Sínigh isteach chun é seo a úsáid',
+  'gate.body': 'Coinnítear táblaí scór agus staitisticí le do chuntas, mar sin leanann siad thú go gléas eile. Níl áit ar bith ag aoi chun iad a choinneáil.',
 };

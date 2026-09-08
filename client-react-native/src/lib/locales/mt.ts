@@ -754,4 +754,7 @@ export const mt: Record<string, string> = {
   'menu.signOut': 'Oħroġ',
   'more.scoreTable': 'Tabella tal-punti offline',
   'more.stats': 'Statistika u klassifika',
+  'more.needsAccount': 'idħol biex tuża',
+  'gate.title': 'Idħol biex tuża dan',
+  'gate.body': "It-tabelli tal-punti u l-istatistika jinżammu mal-kont tiegħek, biex isegwuk fuq apparat ieħor. Mistieden m'għandux fejn iżommhom.",
 };

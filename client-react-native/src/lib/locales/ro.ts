@@ -747,4 +747,7 @@ export const ro: Record<string, string> = {
   'menu.signOut': 'Deconectare',
   'more.scoreTable': 'Tabel de scor offline',
   'more.stats': 'Statistici și clasament',
+  'more.needsAccount': 'autentifică-te ca să folosești',
+  'gate.title': 'Autentifică-te ca să folosești asta',
+  'gate.body': 'Tabelele de scor și statisticile sunt păstrate cu contul tău, așa că te însoțesc pe alt dispozitiv. Un invitat nu are unde să le păstreze.',
 };

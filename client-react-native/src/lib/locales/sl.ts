@@ -737,4 +737,7 @@ export const sl: Record<string, string> = {
   'menu.signOut': 'Odjava',
   'more.scoreTable': 'Tabela točk brez povezave',
   'more.stats': 'Statistika in lestvica',
+  'more.needsAccount': 'prijavi se za uporabo',
+  'gate.title': 'Prijavi se, da to uporabiš',
+  'gate.body': 'Tabele točk in statistika se hranijo pri tvojem računu, zato te spremljajo na drugo napravo. Gost jih nima kam shraniti.',
 };

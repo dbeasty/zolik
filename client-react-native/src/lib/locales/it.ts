@@ -748,4 +748,7 @@ export const it: Record<string, string> = {
   'menu.signOut': 'Esci',
   'more.scoreTable': 'Tabella punti offline',
   'more.stats': 'Statistiche e classifica',
+  'more.needsAccount': 'accedi per usare',
+  'gate.title': 'Accedi per usare questo',
+  'gate.body': 'Le tabelle punti e le statistiche sono conservate con il tuo account, così ti seguono su un altro dispositivo. Un ospite non ha dove tenerle.',
 };

@@ -746,4 +746,7 @@ export const fi: Record<string, string> = {
   'menu.signOut': 'Kirjaudu ulos',
   'more.scoreTable': 'Offline-pistetaulukko',
   'more.stats': 'Tilastot ja tulostaulu',
+  'more.needsAccount': 'kirjaudu käyttääksesi',
+  'gate.title': 'Kirjaudu sisään käyttääksesi tätä',
+  'gate.body': 'Pistetaulukot ja tilastot tallennetaan tilillesi, joten ne seuraavat sinua toiselle laitteelle. Vieraalla ei ole niille tallennuspaikkaa.',
 };
