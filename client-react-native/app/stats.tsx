@@ -36,13 +36,23 @@ import {
 import { colors, shared } from '@/src/theme';
 
 /**
- * Your lifetime record, and the board it puts you on.
+ * Everything about your games: the lifetime record, the board it puts you on,
+ * the way in to an account, and the scorepad for a game played away from the
+ * app. One link on the menu reaches all of it.
  *
- * The two halves load independently and fail independently, which is the whole
- * shape of this screen. The leaderboard is public and the personal record needs
- * an account, so a signed-out visitor sees a full board and an invitation, a
- * guest sees a board and an explanation of why they have no record of their
- * own, and a server that is down for one of the two does not blank the other.
+ * Gathering them is the point rather than a convenience. Each was previously
+ * its own menu entry competing with "Play", and none of them is a way to play:
+ * they are what you look at before and after, or instead. The scorepad in
+ * particular kept being read as an offline *mode* of the app while it sat
+ * among the game buttons, which is why it is here, below the record it
+ * deliberately does not contribute to.
+ *
+ * The two data-backed halves load independently and fail independently, which
+ * is the rest of the shape. The leaderboard is public and the personal record
+ * needs an account, so a signed-out visitor sees a full board and an
+ * invitation, a guest sees a board and an explanation of why they have no
+ * record of their own, and a server that is down for one does not blank the
+ * other.
  *
  * Everything a figure *means* — whether a bucket is worth a row, what an
  * unplayed one reads as, how a bot persona is named — is decided in
@@ -185,6 +195,24 @@ export default function StatsScreen() {
               : 'Nobody is ranked here yet. Finish a match and this is where it shows up.'}
           </Empty>
         )}
+      </Section>
+
+      <Section title="Away from the app" testID="live-game-section">
+        <View style={[shared.card, { marginBottom: 0 }]}>
+          <Text style={[shared.status, { marginTop: 0, marginBottom: 12 }]}>
+            Playing with real cards at a real table? Keep the scorecard here. It is a
+            scorepad, not a game — nothing it records counts towards the record above.
+          </Text>
+          <Pressable
+            style={[shared.button, shared.buttonSecondary, { marginBottom: 0 }]}
+            onPress={() => router.push('/scoring')}
+            testID="stats-record-live-game"
+          >
+            <Text style={[shared.buttonText, shared.buttonTextSecondary]}>
+              Record a live game
+            </Text>
+          </Pressable>
+        </View>
       </Section>
     </Screen>
   );

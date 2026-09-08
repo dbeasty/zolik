@@ -112,18 +112,26 @@ test.describe('stats & leaderboard', () => {
 });
 
 test.describe('recording a live game', () => {
-  test('the menu offers it as a thing you do away from the app, not an offline mode', async ({
+  test('the menu reaches it through stats, in one link, not as a way to play', async ({
     page,
     request,
   }) => {
     await loginAsFreshGuest(page, request, `e2e-live-${Math.random().toString(36).slice(2, 8)}`);
     await page.goto('/');
 
-    // It is no longer one of the ways to play: it sits below them, worded as
-    // what it is.
+    // The menu offers ways to play and one link to everything else. The
+    // scorepad is not a way to play and no longer sits among them.
     await expect(page.getByText('Offline score table', { exact: true })).toHaveCount(0);
-    const link = page.getByTestId('menu-record-live-game');
+    await expect(page.getByTestId('menu-record-live-game')).toHaveCount(0);
+    await page.getByText('Stats & leaderboard', { exact: true }).click();
+    await expect(page).toHaveURL(/\/stats/, { timeout: 10_000 });
+
+    // …and the hub carries it, below the record it does not feed.
+    const link = page.getByTestId('stats-record-live-game');
     await expect(link).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId('live-game-section')).toContainText(
+      'nothing it records counts towards the record above',
+    );
 
     await link.click();
     await expect(page).toHaveURL(/\/scoring/, { timeout: 10_000 });
