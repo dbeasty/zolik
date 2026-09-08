@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"zolik/server/internal/metrics"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
 	"zolik/server/internal/ws"
@@ -28,6 +29,11 @@ type Manager struct {
 	// recorder is optional; nil simply means no statistics are kept, which is
 	// what the tests and any statistics-free deployment run with.
 	recorder Recorder
+
+	// metrics counts what the runtime did, for the operator's console. Never
+	// nil after New — it defaults to a sink that discards — so nothing on the
+	// game path has to guard a call.
+	metrics metrics.Sink
 
 	// waiting is the pool a host may seat a player out of, and waitingRoom is
 	// the socket room a pick-up notification goes to. Both optional: without
@@ -178,12 +184,23 @@ func (m *Manager) Invite(ctx context.Context, idOrCode, hostID, playerID string)
 }
 
 func NewManager(repo Repository, registry *module.Registry, hub *ws.Hub) *Manager {
-	return &Manager{repo: repo, registry: registry, hub: hub}
+	return &Manager{repo: repo, registry: registry, hub: hub, metrics: metrics.Nop()}
 }
 
 func (m *Manager) Registry() *module.Registry { return m.registry }
-func (m *Manager) Repo() Repository           { return m.repo }
-func (m *Manager) Hub() *ws.Hub               { return m.hub }
+
+// SetMetrics attaches the counter sink. Optional: a nil sink counts nothing
+// and the runtime is unchanged, which is the rule for everything in this
+// package that is about describing the game rather than playing it.
+func (m *Manager) SetMetrics(s metrics.Sink) {
+	if s == nil {
+		s = metrics.Nop()
+	}
+	m.metrics = s
+}
+
+func (m *Manager) Repo() Repository { return m.repo }
+func (m *Manager) Hub() *ws.Hub     { return m.hub }
 
 // Create opens a lobby for a module.
 func (m *Manager) Create(ctx context.Context, moduleID string, cfg module.MatchConfig, host models.Player) (models.Match, error) {
@@ -219,7 +236,16 @@ func (m *Manager) Create(ctx context.Context, moduleID string, cfg module.MatchC
 		Seed:      time.Now().UnixNano(),
 		CreatedAt: time.Now().UTC(),
 	}
-	return m.repo.Insert(ctx, match)
+	created, err := m.repo.Insert(ctx, match)
+	if err != nil {
+		return models.Match{}, err
+	}
+	// Counted on the insert rather than on the request, so a lobby that
+	// failed to persist is not reported as one that existed. The gap between
+	// this and matches.started is the report's "never started" figure — a
+	// lobby nobody joined, which is not a game anybody failed to finish.
+	m.metrics.Add(metrics.MatchesCreated, 1)
+	return created, nil
 }
 
 // Join adds a player to a lobby.
@@ -289,6 +315,7 @@ func (m *Manager) Start(ctx context.Context, idOrCode string) (models.Match, err
 		return models.Match{}, err
 	}
 	match.Version++
+	m.metrics.Add(metrics.MatchesStarted, 1)
 	m.Broadcast(match)
 	// A bot may be first to act — in Hold'em it usually is, since the blinds
 	// decide the order rather than who created the lobby.

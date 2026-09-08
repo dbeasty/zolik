@@ -1,5 +1,11 @@
 # Logging and reporting — the operator's console, and the door it lives behind
 
+> **Status: implemented on `feat/ops-observability`, except where noted below.**
+> Phases 0–4, 6 and 7 shipped whole. Phase 5 shipped as the console *shell*
+> — guard, password login, embedded UI — and deliberately without the
+> `admin-ui` branch's account-management screens. See
+> [§5 Phase 5](#phase-5--port-the-console-forward) for what that leaves and why.
+
 - **Baseline:** `main` @ `6d6ebc5`, plus the `admin-ui` branch @ `36d0001` ported forward
 - **Goal:** answer, from one screen, how much was played today / this week / this month, by how
   many people, how many of them were new, how many tables were walked away from, how often the
@@ -319,6 +325,12 @@ The console shows all four, plus a completion rate defined explicitly as
 `completed / (completed + abandoned)` — never over `created`, which would count an empty lobby as
 a game somebody failed to finish.
 
+A bucket in which nothing resolved reports **0**, not an absence. An earlier draft made it null,
+on the reasoning that zero-over-zero is not "0% completed"; in practice every other figure on
+that row is a zero, and a blank in the middle of them is a question rather than an answer. Same
+for the CSV, and for the chart, which draws a flat baseline for an empty range rather than
+substituting a message for the bars.
+
 ---
 
 ## Phase 5 — Port the console forward
@@ -335,6 +347,29 @@ Re-apply the `admin-ui` branch onto current `main`, console and password login o
   gaining its counterpart — the piece that makes the console work on the engine production runs
 
 Left on the branch: feedback triage, Redis auto-detection. Separate features, separate changes.
+
+**What actually shipped, and what did not.** The console shell, the guard, the
+password login, `cmd/adminpass`, the rate limiter and the embedded UI are in.
+The **account-management screens are not** — listing users, deleting an
+account, setting a password, revoking sessions.
+
+That is a deliberate cut, and the reasoning is the same one this section
+already applies to feedback triage, one step further. Those screens need eight
+new repository methods (`ListUsers`, `CountUsers`, `CountUsersSeenSince`,
+`DeleteByID`, `UpdateByID`, `DeleteIdentitiesForUser`, `DeleteByUserID`,
+`CountActiveSessions`), each in **both** engines, plus the KDB scans and tests
+that go with them — roughly as much surface again as everything else in this
+plan. None of it is reporting, one of them deletes accounts, and porting it
+alongside would have turned one reviewable change into two large ones sharing
+a diff.
+
+`stats.UsageSummary` was not ported either, and should not be: the report in
+Phase 6 answers the same question from the daily counters, over both engines,
+with the gap-filling and the bucketing it never had.
+
+So the console today is *the reporting console*. Adding the account screens is
+a follow-up with a clear shape: the eight methods, their KDB counterparts, and
+the existing `admin_test.go` from the branch, which already tests them.
 
 **Correction to make while porting.** The branch registers the admin group unconditionally, with
 the comment that a route table changing shape by environment is worse than a guard that denies.
@@ -518,7 +553,7 @@ ahead of that need.
 | 2 | Counters wired, `rebuild-daily-metrics` | Games and users become answerable |
 | 3 | Boot records | Crashes become visible, retroactively from the next boot |
 | 4 | Abandon reaper | Closes a live bug; "unfinished" becomes a real number |
-| 5 | Console ported forward, KDB-complete | An operator console that runs on the engine production uses |
+| 5 | Console shell ported forward | An operator console that runs on the engine production uses (account screens deferred — see Phase 5) |
 | 6 | The reporting screen | The ask, end to end |
 | 7 | Second listener, tunnel, password | The console is unreachable from the internet |
 
@@ -544,7 +579,10 @@ not anybody is counting it.
    `players.distinct` and counts their matches normally, so "how many people played" means people.
 4. **Feedback triage** — port it alongside the console, or leave it on the branch? It is a
    genuinely useful feature and it is not this ask; porting it doubles the review surface of
-   Phase 5.
+   Phase 5. *(Left on the branch, along with the account-management screens — see Phase 5.)*
+5. **The account-management screens** — worth a follow-up now, or is the reporting console
+   enough? They are the larger half of the `admin-ui` branch and the half that can delete
+   accounts.
 
 *(The earlier draft's question about `METRICS_TOKEN` versus the console is answered: the console
 wins, and the token is gone.)*

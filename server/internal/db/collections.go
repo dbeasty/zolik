@@ -28,6 +28,12 @@ type Collections struct {
 	// short-lived and TTL-swept.
 	LoginCodes *mongo.Collection
 	OAuthFlows *mongo.Collection
+	// DailyMetrics holds one counter document per UTC day and Boots one row
+	// per process lifetime. Both are operational rather than game data: they
+	// are what the console reads to say how much was played and how often
+	// this process died, and nothing in the game path reads either.
+	DailyMetrics *mongo.Collection
+	Boots        *mongo.Collection
 }
 
 func (m *Mongo) Collections() Collections {
@@ -42,5 +48,7 @@ func (m *Mongo) Collections() Collections {
 		Identities:   m.DB.Collection("identities"),
 		LoginCodes:   m.DB.Collection("login_codes"),
 		OAuthFlows:   m.DB.Collection("oauth_flows"),
+		DailyMetrics: m.DB.Collection("daily_metrics"),
+		Boots:        m.DB.Collection("boots"),
 	}
 }

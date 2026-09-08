@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>zolik — operator console</title>
+<link rel="stylesheet" href="/admin/styles.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- Sign in. Shown until a token is held; the console has no other state
+       in which it shows anything at all. -->
+  <section id="signin" hidden>
+    <div class="card">
+      <h1>Operator console</h1>
+      <p class="muted" id="signin-intro">Sign in to see how much has been played.</p>
+      <p class="error" id="signin-error" hidden></p>
+
+      <form id="password-form" hidden>
+        <label>
+          <span class="muted">Username</span>
+          <input type="text" id="username" autocomplete="username" required>
+        </label>
+        <label>
+          <span class="muted">Password</span>
+          <input type="password" id="password" autocomplete="current-password" required>
+        </label>
+        <button type="submit">Sign in</button>
+      </form>
+
+      <p class="muted" id="no-doors" hidden>
+        No sign-in method is configured, so nothing here can be reached.
+        Set <code>ADMIN_USERNAME</code> and <code>ADMIN_PASSWORD_HASH</code>
+        (generate the hash with <code>go run ./cmd/adminpass</code>) and
+        restart.
+      </p>
+    </div>
+  </section>
+
+  <!-- The console proper. -->
+  <section id="console" hidden>
+    <div class="bar">
+      <h1>zolik</h1>
+      <div class="bar-right">
+        <span class="muted" id="who"></span>
+        <button id="signout" class="secondary">Sign out</button>
+      </div>
+    </div>
+
+    <p class="error" id="error" hidden></p>
+
+    <div class="card">
+      <div class="section-head">
+        <h2>Right now</h2>
+        <span class="muted" id="version"></span>
+      </div>
+      <div class="tiles" id="live-tiles"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-head">
+        <h2>Report</h2>
+        <div class="filters">
+          <label><span class="muted">From</span> <input type="date" id="from"></label>
+          <label><span class="muted">To</span> <input type="date" id="to"></label>
+          <label><span class="muted">By</span>
+            <select id="bucket">
+              <option value="day">day</option>
+              <option value="week">week</option>
+              <option value="month">month</option>
+            </select>
+          </label>
+          <button id="refresh">Show</button>
+          <button id="csv" class="secondary">CSV</button>
+        </div>
+      </div>
+
+      <p class="muted" id="range-note"></p>
+      <div class="tiles" id="totals"></div>
+
+      <h3>Games</h3>
+      <div class="chart" id="chart"></div>
+
+      <h3>By game</h3>
+      <div class="chipset" id="modules"></div>
+
+      <h3>Turned away</h3>
+      <div class="chipset" id="refusals"></div>
+      <p class="muted" id="refusal-note"></p>
+
+      <h3>Every bucket</h3>
+      <div class="scroller">
+        <table id="table"></table>
+      </div>
+    </div>
+  </section>
+
+</div>
+<script src="/admin/app.js"></script>
+</body>
+</html>

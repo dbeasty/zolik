@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"zolik/server/internal/identity"
+	"zolik/server/internal/metrics"
 	"zolik/server/internal/models"
 )
 
@@ -69,6 +70,20 @@ type Handlers struct {
 	// CapturingMailer's doc comment for why this must never exist outside
 	// local/e2e use.
 	devMailer *CapturingMailer
+
+	// metrics counts first-time guests. Never nil after NewHandlers.
+	metrics metrics.Sink
+}
+
+// SetMetrics attaches the counter sink, here and on the accounts behind it.
+func (h *Handlers) SetMetrics(s metrics.Sink) {
+	if s == nil {
+		s = metrics.Nop()
+	}
+	h.metrics = s
+	if h.accounts != nil {
+		h.accounts.SetMetrics(s)
+	}
 }
 
 func NewHandlers(d Deps) *Handlers {
@@ -95,6 +110,7 @@ func NewHandlers(d Deps) *Handlers {
 		allowedReturnURLs: d.AllowedReturnURLs,
 		testEndpoints:     d.TestEndpointsEnabled,
 		devMailer:         devMailer,
+		metrics:           metrics.Nop(),
 	}
 }
 

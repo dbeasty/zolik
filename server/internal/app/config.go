@@ -14,6 +14,32 @@ type Config struct {
 	Env  string
 	Port string
 
+	// AdminPort is the second listener: the operator console and its API, on
+	// a port nginx does not proxy and Compose publishes to host loopback
+	// only. It is a separate listener rather than a route group on the public
+	// one because the public vhost is a single catch-all proxy, so anything
+	// the public router registers is on the internet by construction — see
+	// docs/logging-and-reporting-plan.md §7.
+	AdminPort string
+	// AdminEmails are accounts allowed into the console, by verified email
+	// address. Configuration rather than a flag on the user document: there
+	// is then no bootstrap problem, removal takes effect on the next request
+	// rather than at token expiry, and nothing the running system exposes can
+	// grant it.
+	AdminEmails []string
+	// AdminUsername and AdminPasswordHash are the console's other door, and
+	// the recommended one: a bcrypt hash from `go run ./cmd/adminpass`, which
+	// depends on neither mail delivery nor an account existing. Only the hash
+	// is ever configured — a plaintext password in an environment variable
+	// would sit in shell history, process listings, `docker inspect` output
+	// and any log that dumps the environment.
+	AdminUsername     string
+	AdminPasswordHash string
+
+	// LogLevel is the slog level name the process logs at: debug, info, warn
+	// or error. Anything unrecognised means info — see obs.ParseLevel.
+	LogLevel string
+
 	// DBEngine selects the storage backend: db.EngineMongo (the default) or
 	// db.EngineKDB, which runs the embedded KDB engine in-process — one
 	// binary, no database server, no Redis. See LoadConfig for the flags.
@@ -102,6 +128,13 @@ type Config struct {
 	BotThinkMaxMS int
 }
 
+// IsLocal reports whether this process is running on a developer's machine,
+// by the same test LoadConfig uses to pick its defaults. Exported so that
+// anything deciding behaviour on it — the log handler, the admin listener's
+// bind address — asks the one question rather than re-deriving it from Env
+// and drifting.
+func (c Config) IsLocal() bool { return c.Env == "" || c.Env == "local" }
+
 // LoadConfig reads the environment.
 //
 // Every identity provider is read the same way, from the same three variable
@@ -114,6 +147,13 @@ func LoadConfig() Config {
 	return Config{
 		Env:  env,
 		Port: envOr("PORT", "8090"),
+
+		AdminPort:         envOr("ADMIN_PORT", "8091"),
+		AdminEmails:       envList("ADMIN_EMAILS", nil),
+		AdminUsername:     os.Getenv("ADMIN_USERNAME"),
+		AdminPasswordHash: os.Getenv("ADMIN_PASSWORD_HASH"),
+
+		LogLevel: envOr("LOG_LEVEL", "info"),
 
 		DBEngine: dbEngine(),
 

@@ -51,11 +51,14 @@ const (
 	NSIdentities   = "identities"
 	NSLoginCodes   = "login_codes"
 	NSOAuthFlows   = "oauth_flows"
+	NSDailyMetrics = "daily_metrics"
+	NSBoots        = "boots"
 )
 
 var kdbNamespaceNames = []string{
 	NSMatches, NSUsers, NSSessions, NSScoring, NSMatchResults,
 	NSPlayerStats, NSIdentities, NSLoginCodes, NSOAuthFlows,
+	NSDailyMetrics, NSBoots,
 }
 
 const kdbCatalog = "zolik"
