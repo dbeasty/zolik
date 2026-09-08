@@ -392,6 +392,9 @@ export const el: Record<string, string> = {
   'holdem.seat.bet': 'Στοίχημα',
   'holdem.prompt.yourAction': 'Σειρά σου',
   'holdem.prompt.raiseTo': 'Ανέβασε σε',
+  'holdem.quick.halfPot': '½ Πότ',
+  'holdem.quick.pot': 'Πότ',
+  'holdem.quick.allIn': 'All-in',
   'zone.yourHand': 'Το χέρι σου',
   'zone.opponentHand': 'Το χέρι του',
   'zone.drawPile': 'Τράπουλα',
@@ -669,6 +672,8 @@ export const el: Record<string, string> = {
   'blackjack.prompt.waitingFor': 'Αναμονή για {playerId}',
   'blackjack.prompt.betAmount': 'Ποντάρισμα',
 
+  'blackjack.quick.doubleMin': '2× Ελάχιστο',
+  'blackjack.quick.allIn': 'All-in',
   'blackjack.offer.bet': 'Ποντάρισε',
   'blackjack.offer.hit': 'Φύλλο',
   'blackjack.offer.stand': 'Μένω',

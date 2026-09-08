@@ -382,6 +382,9 @@ export const pt: Record<string, string> = {
   'holdem.seat.bet': 'Aposta',
   'holdem.prompt.yourAction': 'É a tua vez',
   'holdem.prompt.raiseTo': 'Subir para',
+  'holdem.quick.halfPot': '½ Pote',
+  'holdem.quick.pot': 'Pote',
+  'holdem.quick.allIn': 'All-in',
   'zone.yourHand': 'A tua mão',
   'zone.opponentHand': 'A mão dele',
   'zone.drawPile': 'Baralho',
@@ -655,6 +658,8 @@ export const pt: Record<string, string> = {
   'blackjack.prompt.waitingFor': 'À espera de {playerId}',
   'blackjack.prompt.betAmount': 'Aposta',
 
+  'blackjack.quick.doubleMin': '2× Mínimo',
+  'blackjack.quick.allIn': 'All-in',
   'blackjack.offer.bet': 'Apostar',
   'blackjack.offer.hit': 'Carta',
   'blackjack.offer.stand': 'Ficar',

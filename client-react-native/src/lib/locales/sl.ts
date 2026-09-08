@@ -377,6 +377,9 @@ export const sl: Record<string, string> = {
   'holdem.seat.bet': 'Stava',
   'holdem.prompt.yourAction': 'Na vrsti si',
   'holdem.prompt.raiseTo': 'Zvišaj na',
+  'holdem.quick.halfPot': '½ Pot',
+  'holdem.quick.pot': 'Pot',
+  'holdem.quick.allIn': 'All-in',
   'zone.yourHand': 'Tvoja roka',
   'zone.opponentHand': 'Nasprotnikova roka',
   'zone.drawPile': 'Talon',
@@ -644,6 +647,8 @@ export const sl: Record<string, string> = {
   'blackjack.prompt.waitingFor': 'Čakamo na {playerId}',
   'blackjack.prompt.betAmount': 'Stava',
 
+  'blackjack.quick.doubleMin': '2× Najnižja stava',
+  'blackjack.quick.allIn': 'All-in',
   'blackjack.offer.bet': 'Stavi',
   'blackjack.offer.hit': 'Karta',
   'blackjack.offer.stand': 'Obstanem',

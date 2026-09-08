@@ -123,6 +123,8 @@
     "blackjack.prompt.placeBet",
     "blackjack.prompt.waitingFor",
     "blackjack.prompt.yourMove",
+    "blackjack.quick.allIn",
+    "blackjack.quick.doubleMin",
     "blackjack.round.dealerBlackjack",
     "blackjack.round.dealerBust",
     "blackjack.round.dealerTotal",
@@ -268,6 +270,9 @@
     "holdem.prompt.raiseTo",
     "holdem.prompt.waitingFor",
     "holdem.prompt.yourAction",
+    "holdem.quick.allIn",
+    "holdem.quick.halfPot",
+    "holdem.quick.pot",
     "holdem.round.hand",
     "holdem.round.pot",
     "holdem.round.uncontested",
@@ -638,6 +643,12 @@
     "blackjack.prompt.waitingFor": [
       "playerId"
     ],
+    "blackjack.quick.allIn": [
+      "value"
+    ],
+    "blackjack.quick.doubleMin": [
+      "value"
+    ],
     "blackjack.round.dealerBust": [
       "n"
     ],
@@ -836,6 +847,15 @@
     "holdem.prompt.waitingFor": [
       "playerId"
     ],
+    "holdem.quick.allIn": [
+      "value"
+    ],
+    "holdem.quick.halfPot": [
+      "value"
+    ],
+    "holdem.quick.pot": [
+      "value"
+    ],
     "holdem.round.pot": [
       "n"
     ],
@@ -1011,6 +1031,8 @@
     "blackjack.header.minBet",
     "blackjack.header.round",
     "blackjack.prompt.waitingFor",
+    "blackjack.quick.allIn",
+    "blackjack.quick.doubleMin",
     "blackjack.round.dealerBust",
     "blackjack.round.dealerTotal",
     "blackjack.rules.bustedOut",
@@ -1067,6 +1089,9 @@
     "holdem.header.pot",
     "holdem.header.street",
     "holdem.prompt.waitingFor",
+    "holdem.quick.allIn",
+    "holdem.quick.halfPot",
+    "holdem.quick.pot",
     "holdem.round.pot",
     "holdem.rules.blinds",
     "holdem.rules.handLimit",

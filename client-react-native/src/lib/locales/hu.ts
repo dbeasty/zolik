@@ -388,6 +388,9 @@ export const hu: Record<string, string> = {
   'holdem.seat.bet': 'Tét',
   'holdem.prompt.yourAction': 'Te következel',
   'holdem.prompt.raiseTo': 'Emelés eddig',
+  'holdem.quick.halfPot': '½ Pot',
+  'holdem.quick.pot': 'Pot',
+  'holdem.quick.allIn': 'All-in',
   'zone.yourHand': 'A kezed',
   'zone.opponentHand': 'Az ellenfél keze',
   'zone.drawPile': 'Húzópakli',
@@ -660,6 +663,8 @@ export const hu: Record<string, string> = {
   'blackjack.prompt.waitingFor': 'Várakozás rá: {playerId}',
   'blackjack.prompt.betAmount': 'Tét',
 
+  'blackjack.quick.doubleMin': '2× Minimum',
+  'blackjack.quick.allIn': 'All-in',
   'blackjack.offer.bet': 'Tét',
   'blackjack.offer.hit': 'Lapot',
   'blackjack.offer.stand': 'Megállok',

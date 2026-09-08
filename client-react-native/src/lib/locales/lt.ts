@@ -378,6 +378,9 @@ export const lt: Record<string, string> = {
   'holdem.seat.bet': 'Statymas',
   'holdem.prompt.yourAction': 'Tavo eilė veikti',
   'holdem.prompt.raiseTo': 'Kelti iki',
+  'holdem.quick.halfPot': '½ Bankas',
+  'holdem.quick.pot': 'Bankas',
+  'holdem.quick.allIn': 'All-in',
   'zone.yourHand': 'Tavo ranka',
   'zone.opponentHand': 'Priešininko ranka',
   'zone.drawPile': 'Kaladė',
@@ -650,6 +653,8 @@ export const lt: Record<string, string> = {
   'blackjack.prompt.waitingFor': 'Laukiama {playerId}',
   'blackjack.prompt.betAmount': 'Statymas',
 
+  'blackjack.quick.doubleMin': '2× Minimumas',
+  'blackjack.quick.allIn': 'All-in',
   'blackjack.offer.bet': 'Statyti',
   'blackjack.offer.hit': 'Korta',
   'blackjack.offer.stand': 'Lieku',

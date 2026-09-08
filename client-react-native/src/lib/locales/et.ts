@@ -379,6 +379,9 @@ export const et: Record<string, string> = {
   'holdem.seat.bet': 'Panus',
   'holdem.prompt.yourAction': 'Sinu kord tegutseda',
   'holdem.prompt.raiseTo': 'Tõsta kuni',
+  'holdem.quick.halfPot': '½ Pank',
+  'holdem.quick.pot': 'Pank',
+  'holdem.quick.allIn': 'All-in',
   'zone.yourHand': 'Sinu käsi',
   'zone.opponentHand': 'Vastase käsi',
   'zone.drawPile': 'Tõmbepakk',
@@ -649,6 +652,8 @@ export const et: Record<string, string> = {
   'blackjack.prompt.waitingFor': 'Ootame mängijat {playerId}',
   'blackjack.prompt.betAmount': 'Panus',
 
+  'blackjack.quick.doubleMin': '2× Alammäär',
+  'blackjack.quick.allIn': 'All-in',
   'blackjack.offer.bet': 'Panusta',
   'blackjack.offer.hit': 'Kaart',
   'blackjack.offer.stand': 'Jään',
