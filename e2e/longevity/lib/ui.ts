@@ -124,7 +124,7 @@ export async function startTable(page: Page, timeout = 12_000): Promise<boolean>
  */
 export async function waitInTheLobby(page: Page): Promise<boolean> {
   await page.goto('/');
-  const find = page.getByText('Find players', { exact: true });
+  const find = page.getByText('Make me available to play', { exact: true });
   if (!(await find.isVisible().catch(() => false))) return false;
   await find.click();
   return page

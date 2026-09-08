@@ -230,7 +230,8 @@ function WaitingPlayersPanel({
         // now" from "this is broken" at a glance, especially when comparing
         // notes with someone on a second device who insists they are waiting.
         <Text style={shared.status}>
-          No one is waiting right now. Anyone who opens “Find players” shows up here.
+          No one is waiting right now. Anyone who makes themselves available on the
+          main menu shows up here.
         </Text>
       ) : (
         available.map((p) => (

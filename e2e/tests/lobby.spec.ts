@@ -15,13 +15,13 @@ import { loginAsFreshGuest } from '../helpers/login';
  * screen talks to itself.
  *
  * Becoming available is now a toggle on the main menu rather than a
- * dedicated screen — "Find players" opens the connection in place. See
- * WaitingStatusCard in app/index.tsx.
+ * dedicated screen — "Make me available to play" opens the connection in
+ * place. See WaitingStatusCard in app/index.tsx.
  */
 
 async function becomeAvailable(page: Page) {
   await page.goto('/');
-  await page.getByText('Find players', { exact: true }).click();
+  await page.getByText('Make me available to play', { exact: true }).click();
   await expect(page.getByTestId('waiting-status-open')).toBeVisible({ timeout: 15_000 });
 }
 
@@ -110,7 +110,7 @@ test.describe('the waiting room', () => {
   // that only a real browser can prove: that leaving genuinely disappears
   // the player from a host's live view within one poll, rather than leaving
   // a stale, inviteable-looking row behind — covering both ways a person
-  // actually leaves: closing the tab, and tapping "Stop".
+  // actually leaves: closing the tab, and tapping "Stop waiting".
   test('a player who disconnects disappears from the host\'s view', async ({ browser, request }) => {
     const hostCtx = await browser.newContext();
     const waiterCtx = await browser.newContext();
@@ -150,7 +150,7 @@ test.describe('the waiting room', () => {
     }
   });
 
-  test('tapping "Stop" removes a player from the host\'s view without closing anything', async ({
+  test('tapping "Stop waiting" removes a player from the host\'s view without closing anything', async ({
     browser,
     request,
   }) => {
@@ -179,8 +179,8 @@ test.describe('the waiting room', () => {
       // waiter's own screen (not an absolute "no one waiting" claim, which
       // the shared, global pool can't guarantee under parallel workers) and
       // via their row disappearing from the host's panel.
-      await waiterPage.getByText('Stop', { exact: true }).click();
-      await expect(waiterPage.getByText('Find players', { exact: true })).toBeVisible({
+      await waiterPage.getByText('Stop waiting', { exact: true }).click();
+      await expect(waiterPage.getByText('Make me available to play', { exact: true })).toBeVisible({
         timeout: 15_000,
       });
 
