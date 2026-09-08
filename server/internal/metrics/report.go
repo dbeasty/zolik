@@ -77,9 +77,12 @@ type MatchCounts struct {
 	ByModule []ModuleCount `json:"byModule"`
 	// CompletionRate is completed / (completed + abandoned) — deliberately
 	// not over Created, which would count an empty lobby as a game somebody
-	// walked away from. Nil when nothing resolved in the bucket, because
-	// zero-over-zero is not "0% completed".
-	CompletionRate *float64 `json:"completionRate"`
+	// walked away from.
+	//
+	// Zero, never absent, when nothing resolved in the bucket. A bucket with
+	// no games is a row of zeroes like any other, and a reader scanning the
+	// column should not have to decide what a blank means.
+	CompletionRate float64 `json:"completionRate"`
 }
 
 type ModuleCount struct {
@@ -296,17 +299,14 @@ func sortReasons(rows []ReasonCount) []ReasonCount {
 	return rows
 }
 
-// completionRate is nil rather than zero when nothing resolved, because "no
-// games finished or were abandoned" is not the same statement as "0% of games
-// were finished", and a tile showing 0% on a quiet day is alarming for no
-// reason.
-func completionRate(m MatchCounts) *float64 {
+// completionRate is completed over everything that resolved, and zero when
+// nothing did.
+func completionRate(m MatchCounts) float64 {
 	resolved := m.Completed + m.Abandoned
 	if resolved == 0 {
-		return nil
+		return 0
 	}
-	rate := float64(m.Completed) / float64(resolved)
-	return &rate
+	return float64(m.Completed) / float64(resolved)
 }
 
 func totalsFrom(buckets []Period, distinctPlayers int, floor bool) Totals {

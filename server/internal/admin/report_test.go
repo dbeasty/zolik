@@ -13,13 +13,13 @@ import (
 )
 
 func sampleReport() metrics.Report {
-	rate := 0.8
+	const rate = 0.8
 	return metrics.Report{
 		From: "2026-09-01", To: "2026-09-02", Bucket: metrics.BucketDay, Timezone: "UTC",
 		Buckets: []metrics.Period{
 			{
 				Label: "2026-09-01", Start: "2026-09-01", End: "2026-09-01",
-				Matches: metrics.MatchCounts{Created: 5, Started: 4, Completed: 3, Abandoned: 1, NeverStarted: 1, CompletionRate: &rate},
+				Matches: metrics.MatchCounts{Created: 5, Started: 4, Completed: 3, Abandoned: 1, NeverStarted: 1, CompletionRate: rate},
 				Players: metrics.PlayerCounts{Distinct: 7},
 				Users:   metrics.UserCounts{Registered: 2, Guests: 4},
 			},
@@ -30,7 +30,7 @@ func sampleReport() metrics.Report {
 			},
 		},
 		Totals: metrics.Totals{
-			Matches: metrics.MatchCounts{Created: 6, Started: 4, Completed: 3, Abandoned: 1, CompletionRate: &rate},
+			Matches: metrics.MatchCounts{Created: 6, Started: 4, Completed: 3, Abandoned: 1, CompletionRate: rate},
 			Players: metrics.PlayerCounts{Distinct: 8, IsFloor: true},
 			Ops:     metrics.OpsCounts{Boots: 3, UncleanBoots: 1},
 		},
@@ -159,14 +159,15 @@ func TestReportCSV(t *testing.T) {
 	if rows[1][0] != "2026-09-01" {
 		t.Errorf("first row label = %q", rows[1][0])
 	}
-	// Empty rather than 0: a spreadsheet averaging a column of rates must not
-	// be handed a zero for a bucket in which nothing resolved.
+	// A bucket in which nothing resolved exports 0, not a blank: the whole row
+	// is zeroes, and a blank cell in the middle of them is a question rather
+	// than an answer.
 	rateCol := indexOf(rows[0], "completion_rate")
 	if rateCol < 0 {
 		t.Fatal("no completion_rate column")
 	}
-	if rows[2][rateCol] != "" {
-		t.Errorf("an unresolved bucket exported a rate of %q, want empty", rows[2][rateCol])
+	if rows[2][rateCol] != "0.0000" {
+		t.Errorf("an unresolved bucket exported a rate of %q, want 0.0000", rows[2][rateCol])
 	}
 }
 

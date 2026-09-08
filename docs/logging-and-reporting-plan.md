@@ -325,6 +325,12 @@ The console shows all four, plus a completion rate defined explicitly as
 `completed / (completed + abandoned)` — never over `created`, which would count an empty lobby as
 a game somebody failed to finish.
 
+A bucket in which nothing resolved reports **0**, not an absence. An earlier draft made it null,
+on the reasoning that zero-over-zero is not "0% completed"; in practice every other figure on
+that row is a zero, and a blank in the middle of them is a question rather than an answer. Same
+for the CSV, and for the chart, which draws a flat baseline for an empty range rather than
+substituting a message for the bars.
+
 ---
 
 ## Phase 5 — Port the console forward

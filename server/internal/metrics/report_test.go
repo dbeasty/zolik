@@ -61,26 +61,30 @@ func TestUnfinishedSplitsThreeWays(t *testing.T) {
 	if m.NeverStarted != 4 {
 		t.Errorf("neverStarted = %d, want 4 (10 created, 6 started)", m.NeverStarted)
 	}
-	if m.CompletionRate == nil {
-		t.Fatal("completionRate is nil with resolved games")
-	}
 	// 4 of 5 resolved games finished. Over `created` it would read 40%, which
 	// would blame the players for four lobbies nobody joined.
-	if got := *m.CompletionRate; got < 0.79 || got > 0.81 {
+	if got := m.CompletionRate; got < 0.79 || got > 0.81 {
 		t.Errorf("completionRate = %v, want 0.8", got)
 	}
 }
 
-// Zero-over-zero is not "0% completed". A tile reading 0% on a quiet day is
-// alarming for no reason.
-func TestCompletionRateIsAbsentWhenNothingResolved(t *testing.T) {
+// A bucket in which nothing resolved reports zero, not an absence. Every other
+// figure on the row is a zero in that case, and a reader scanning the column
+// should not have to work out what a blank means.
+func TestCompletionRateIsZeroWhenNothingResolved(t *testing.T) {
 	ctx := t.Context()
 	store := newKDBStore(t)
 	_ = store.Merge(ctx, "2026-09-08", map[string]int64{metrics.MatchesCreated: 3}, nil, false)
 
 	rep, _ := metrics.NewReporter(store).Build(ctx, day("2026-09-08"), day("2026-09-08"), metrics.BucketDay)
-	if rep.Buckets[0].Matches.CompletionRate != nil {
-		t.Errorf("completionRate = %v, want nil", *rep.Buckets[0].Matches.CompletionRate)
+	if got := rep.Buckets[0].Matches.CompletionRate; got != 0 {
+		t.Errorf("completionRate = %v, want 0", got)
+	}
+	// And an entirely empty day is a full row of zeroes, not a gap.
+	empty, _ := metrics.NewReporter(store).Build(ctx, day("2026-09-07"), day("2026-09-07"), metrics.BucketDay)
+	b := empty.Buckets[0]
+	if b.Matches.Completed != 0 || b.Matches.CompletionRate != 0 || b.Players.Distinct != 0 {
+		t.Errorf("an empty day did not report zeroes: %+v", b)
 	}
 }
 

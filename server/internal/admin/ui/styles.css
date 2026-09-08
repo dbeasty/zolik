@@ -418,12 +418,14 @@ th {
 }
 .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
-/* Said, rather than left as an empty box: a chart with no bars reads as a
-   broken chart, not as a quiet fortnight. */
-.chart-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: var(--muted);
+/* A bucket with nothing in it still draws its column, as a faint baseline, so
+   an empty range reads as a row of zeroes rather than as a chart that failed
+   to load. */
+.chart-bar {
+  background: var(--bar);
+  border: 0;
+}
+.chart-col .chart-bar[data-empty="1"] {
+  background: var(--line);
+  height: 2px;
 }

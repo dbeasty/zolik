@@ -47,7 +47,8 @@ func writeReportCSV(w http.ResponseWriter, rep metrics.Report) {
 		_ = c.Write([]string{
 			p.Label, p.Start, p.End, strconv.FormatBool(p.Partial),
 			itoa(p.Matches.Created), itoa(p.Matches.Started), itoa(p.Matches.Completed),
-			itoa(p.Matches.Abandoned), itoa(p.Matches.NeverStarted), rate(p.Matches.CompletionRate),
+			itoa(p.Matches.Abandoned), itoa(p.Matches.NeverStarted),
+			strconv.FormatFloat(p.Matches.CompletionRate, 'f', 4, 64),
 			strconv.Itoa(p.Players.Distinct), strconv.FormatBool(p.Players.IsFloor),
 			itoa(p.Users.Registered), itoa(p.Users.Guests),
 			itoa(p.Admission.Connections), itoa(p.Admission.Total), itoa(p.Admission.MatchStartDenied),
@@ -57,13 +58,3 @@ func writeReportCSV(w http.ResponseWriter, rep metrics.Report) {
 }
 
 func itoa(n int64) string { return strconv.FormatInt(n, 10) }
-
-// rate renders a completion rate, and an empty cell when nothing resolved.
-// Empty rather than 0: a spreadsheet averaging a column of rates must not be
-// handed a zero for a day on which no game either finished or was abandoned.
-func rate(r *float64) string {
-	if r == nil {
-		return ""
-	}
-	return strconv.FormatFloat(*r, 'f', 4, 64)
-}

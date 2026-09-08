@@ -130,10 +130,7 @@
   function num(n) { return (n || 0).toLocaleString(); }
 
   function percent(rate) {
-    // null is "nothing resolved", which is not the same statement as 0%. A
-    // tile reading 0% on a quiet day is alarming for no reason.
-    if (rate === null || rate === undefined) return '—';
-    return Math.round(rate * 100) + '%';
+    return Math.round((rate || 0) * 100) + '%';
   }
 
   function renderStatus(s) {
@@ -214,26 +211,20 @@
       return Math.max(m, b.matches.completed + b.matches.abandoned);
     }, 0);
 
-    // An empty chart reads as a broken chart rather than as a quiet fortnight,
-    // so say which it is.
-    if (!peak) {
-      var none = document.createElement('div');
-      none.className = 'chart-empty';
-      none.textContent = 'No game finished or was abandoned in this range.';
-      el.appendChild(none);
-      return;
-    }
 
     buckets.forEach(function (b) {
       var col = document.createElement('div');
       col.className = 'chart-col';
       var done = b.matches.completed;
       var gone = b.matches.abandoned;
-      var height = Math.round(((done + gone) / peak) * 100);
+      // A range with nothing in it draws a row of empty columns rather than
+      // a message: the bars are zero, and zero is the answer.
+      var height = peak ? Math.round(((done + gone) / peak) * 100) : 0;
 
       var bar = document.createElement('div');
       bar.className = 'chart-bar';
       bar.style.height = height + '%';
+      if (done + gone === 0) bar.setAttribute('data-empty', '1');
       // Abandoned games are shaded into the same bar rather than given their
       // own: they are part of how much was played, and a second series would
       // invite reading them as extra activity.

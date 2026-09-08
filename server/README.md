@@ -206,7 +206,8 @@ Two of the numbers are worth reading carefully:
   can act on: *abandoned* (started, walked away from), *never started* (a lobby
   that never filled) and *in flight*. The completion rate is
   `completed / (completed + abandoned)` — never over created, which would count
-  an empty lobby as a game somebody failed to finish.
+  an empty lobby as a game somebody failed to finish, and **0** rather than
+  absent in a bucket where nothing resolved.
 
 `GET /admin/api/report?from=&to=&bucket=day|week|month` returns JSON, or CSV
 with `&format=csv`. All days are UTC and the response says so.
