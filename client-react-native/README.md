@@ -46,7 +46,7 @@ Ensure the server binds on `0.0.0.0` or your LAN interface when testing on a pho
 2. Guest login → New game → Add AI ×3 → Start
 3. Play: draw from deck, lay meld if legal, discard
 4. Register → Sign in → Stats & leaderboard
-5. Offline score table → new session → save a round → export
+5. Record a live game → start scorecard → save a round → export
 
 ## Project layout
 

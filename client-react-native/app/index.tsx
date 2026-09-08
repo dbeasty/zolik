@@ -82,11 +82,6 @@ export default function MainMenu() {
             router.push('/lobby/join');
           }}
         />
-        <MenuButton
-          label="Offline score table"
-          secondary
-          onPress={() => router.push('/scoring')}
-        />
         <MenuButton label="Stats & leaderboard" secondary onPress={() => router.push('/stats')} />
 
         {session ? (
@@ -112,6 +107,17 @@ export default function MainMenu() {
             />
           </>
         )}
+      </View>
+
+      <View style={{ marginTop: 24, alignItems: 'center' }}>
+        <Pressable onPress={() => router.push('/scoring')} testID="menu-record-live-game">
+          <Text style={{ color: colors.muted, fontSize: 14, textDecorationLine: 'underline' }}>
+            Record a live game
+          </Text>
+        </Pressable>
+        <Text style={[shared.status, { textAlign: 'center', marginTop: 4 }]}>
+          Keeping score for a game you're playing with real cards.
+        </Text>
       </View>
 
       <BuildFooter />

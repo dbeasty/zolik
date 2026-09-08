@@ -4,6 +4,9 @@ import type {
   AccountProfile,
   AuthProvider,
   CapacitySnapshot,
+  Leaderboard,
+  LeaderboardKind,
+  LeaderboardScope,
   LifetimeStats,
   LinkedIdentity,
   PlayerSession,
@@ -436,11 +439,25 @@ export class ZolikClient {
   }
 
   /** `scope` picks which record ranks: 'overall' | 'vs_humans' | 'vs_ai'.
-   *  `kind` defaults to human players; pass 'ai' for the bot standings. */
+   *  `kind` defaults to human players; pass 'ai' for the bot standings.
+   *
+   *  Unauthenticated on purpose: a signed-out visitor and a guest both get to
+   *  see who is winning, which is most of the reason the board exists. */
   async getLeaderboard(
-    opts: { scope?: string; kind?: string; minMatches?: number; limit?: number } = {},
-  ): Promise<unknown> {
-    return this.get(`/leaderboard${queryString(opts)}`, false);
+    opts: {
+      scope?: LeaderboardScope;
+      kind?: LeaderboardKind;
+      minMatches?: number;
+      limit?: number;
+    } = {},
+  ): Promise<Leaderboard> {
+    const body = await this.get<Leaderboard>(`/leaderboard${queryString(opts)}`, false);
+    // The server always sends `entries`, empty array included (rankLeaderboard
+    // returns an initialised slice on every path). This default is only so that
+    // an unexpected body renders the screen's empty state rather than throwing
+    // inside a `.map` — the type says the key is there, and a runtime that
+    // disagrees should still show a page.
+    return { ...body, entries: body.entries ?? [] };
   }
 
 

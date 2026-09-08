@@ -78,7 +78,7 @@ export default function RootLayout() {
                   options={{ title: 'Match', headerBackVisible: true }}
                 />
 
-                <Stack.Screen name="scoring/index" options={{ title: 'Score table' }} />
+                <Stack.Screen name="scoring/index" options={{ title: 'Live game' }} />
                 <Stack.Screen name="stats" options={{ title: 'Stats' }} />
                 <Stack.Screen name="settings" options={{ title: 'Settings' }} />
               </Stack>

@@ -72,10 +72,14 @@ export default function ScoringScreen() {
   }
 
   return (
-    <Screen title="Offline score table" scroll>
+    <Screen
+      title="Record a live game"
+      subtitle="Keep the scorecard for a game you're playing with real cards."
+      scroll
+    >
       {!sessionId ? (
         <>
-          <Text style={shared.status}>Comma-separated names (4–8 players)</Text>
+          <Text style={shared.status}>Who is playing? Comma-separated names (2–8)</Text>
           <TextInput
             style={shared.input}
             value={namesInput}
@@ -84,7 +88,7 @@ export default function ScoringScreen() {
             placeholderTextColor="#8b9cb3"
           />
           <Pressable style={shared.button} onPress={createSession}>
-            <Text style={shared.buttonText}>New session</Text>
+            <Text style={shared.buttonText}>Start scorecard</Text>
           </Pressable>
         </>
       ) : (
