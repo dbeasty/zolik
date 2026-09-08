@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"runtime/debug"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -24,6 +25,7 @@ import (
 	"zolik/server/internal/identity"
 	"zolik/server/internal/lobby"
 	"zolik/server/internal/match"
+	"zolik/server/internal/metrics"
 	"zolik/server/internal/module"
 	"zolik/server/internal/prsi"
 	"zolik/server/internal/rummytiles"
@@ -61,6 +63,16 @@ type App struct {
 	// registration and would otherwise hand each router an independent
 	// counter.
 	admission *admission.Controller
+	// matchMgr is the game runtime, built once — see matchManager.
+	matchOnce sync.Once
+	matchMgr  *match.Manager
+	// metrics is the in-memory counter sink every instrumented path writes
+	// to; recorder flushes it, reporter reads it back, and boots records
+	// this process's lifetime. See internal/metrics.
+	metrics  metrics.Sink
+	recorder *metrics.Recorder
+	reporter *metrics.Reporter
+	boots    *metrics.BootRecorder
 	// web is the Expo bundle compiled into this binary, served for anything
 	// the API does not claim. Absent in every development build and every
 	// test, which is why nothing here may assume it is there.
@@ -78,7 +90,11 @@ type repos struct {
 	sessions auth.SessionRepository
 	match    match.Repository
 	scoring  scoring.Repository
-	close    func(ctx context.Context) error
+	// metrics is the daily counter store behind the operator console. Built
+	// alongside every other repository so the two engines stay
+	// column-for-column comparable.
+	metrics metrics.Store
+	close   func(ctx context.Context) error
 }
 
 // mongoRepos connects to MongoDB and builds the Mongo-backed repositories —
@@ -102,6 +118,7 @@ func mongoRepos(ctx context.Context, cfg Config) (repos, error) {
 		sessions: auth.NewSessionRepository(m),
 		match:    match.NewRepository(m),
 		scoring:  scoring.NewRepository(m),
+		metrics:  metrics.NewMongoStore(m),
 		close:    m.Close,
 	}, nil
 }
@@ -140,6 +157,7 @@ func kdbRepos(cfg Config) (repos, error) {
 		sessions: auth.NewKDBSessionRepository(k),
 		match:    match.NewKDBRepository(k),
 		scoring:  scoring.NewKDBRepository(k),
+		metrics:  metrics.NewKDBStore(k),
 		close:    k.Close,
 	}, nil
 }
@@ -208,6 +226,14 @@ func New(cfg Config) (*App, error) {
 		TestEndpointsEnabled: cfg.TestEndpointsEnabled,
 	})
 
+	// Built before anything that counts, and Start()ed later from Run: until
+	// then counters accumulate in memory and nothing is written, which is
+	// what makes a recorder safe to hand out during construction.
+	recorder := metrics.NewRecorder(r.metrics)
+	gate := newAdmission(cfg)
+	gate.SetSink(recorder)
+	authHandlers.SetMetrics(recorder)
+
 	return &App{
 		cfg:         cfg,
 		closeDB:     r.close,
@@ -219,9 +245,41 @@ func New(cfg Config) (*App, error) {
 		authStore:   r.store,
 		matchRepo:   r.match,
 		scoringRepo: r.scoring,
-		admission:   newAdmission(cfg),
+		admission:   gate,
+		metrics:     recorder,
+		recorder:    recorder,
+		reporter:    metrics.NewReporter(r.metrics),
+		boots:       metrics.NewBootRecorder(r.metrics, recorder),
 		web:         webui.NewHandler(webui.Embedded()),
 	}, nil
+}
+
+// Start begins the background work that describes the server: flushing
+// counters, recording this process's boot, and sweeping abandoned matches.
+//
+// Separate from New because all three want a context that lives as long as the
+// process, and because a test that builds an App has no use for any of them.
+// Everything here is best-effort by design: none of it may stop the server
+// from serving.
+func (a *App) Start(ctx context.Context) {
+	a.recorder.Start(ctx)
+	version, _ := buildinfo.Resolved()
+	a.boots.Start(ctx, version)
+	// The sweeper that turns a table nobody came back to into an abandoned
+	// one. Started here rather than in routeGroups so there is exactly one of
+	// it — see matchManager.
+	a.matchManager().StartReaper(ctx)
+}
+
+// Stop closes this process's boot record, and flushes whatever counters have
+// not been written yet.
+//
+// Called from the shutdown path *before* Close, so a slow database teardown
+// cannot be what loses the fact that this was a clean exit — which is the
+// difference between the next start reporting a deploy and reporting a crash.
+func (a *App) Stop(ctx context.Context) {
+	a.boots.Stop(ctx, metrics.ReasonSignal)
+	a.recorder.Flush(ctx)
 }
 
 // Per-connection footprint on the measured 512 MiB box: ~45 MiB idle
@@ -354,16 +412,34 @@ type routeGroup struct {
 // leaves only whichever came last, with no panic and no warning. That is
 // exactly what happened between the module runtime and the stats handlers, and
 // nothing but the browser suite noticed.
-func (a *App) routeGroups() []routeGroup {
-	// One runtime, hosting every game. The registry is the only place a game
-	// is named: register a module and it appears in /modules, in the lobby's
-	// picker, and on the one screen that plays all of them.
-	modules := module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New(), rummytiles.New(), blackjack.New())
-	matchMgr := match.NewManager(a.matchRepo, modules, a.hub)
+// matchManager builds the runtime once and hands back the same instance.
+//
+// Memoised because routeGroups runs per router registration and the manager is
+// no longer only a bundle of handlers: it owns the bot-loop flags, and the
+// abandon reaper Start runs against it. Two managers would mean two reapers
+// racing each other for the same rows, and bot state split across instances
+// that cannot see each other's flags.
+func (a *App) matchManager() *match.Manager {
+	a.matchOnce.Do(func() {
+		// One runtime, hosting every game. The registry is the only place a
+		// game is named: register a module and it appears in /modules, in the
+		// lobby's picker, and on the one screen that plays all of them.
+		modules := module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New(), rummytiles.New(), blackjack.New())
+		a.matchMgr = a.configureManager(match.NewManager(a.matchRepo, modules, a.hub))
+	})
+	return a.matchMgr
+}
+
+func (a *App) configureManager(matchMgr *match.Manager) *match.Manager {
 	// The recorder turns each completed match into a permanent record plus the
 	// lifetime updates derived from it. Injected rather than constructed
 	// inside the manager, so the runtime never has to import stats.
-	matchMgr.SetRecorder(stats.NewRecorder(a.statsRepo))
+	statsRecorder := stats.NewRecorder(a.statsRepo)
+	statsRecorder.SetMetrics(a.metrics)
+	matchMgr.SetRecorder(statsRecorder)
+	// The runtime counts what it does — lobbies opened, games started,
+	// tables abandoned — for the operator's console.
+	matchMgr.SetMetrics(a.metrics)
 	// And the waiting room, so a host can seat a specific player out of the
 	// pool. Wired through a narrow interface rather than an import, so the
 	// runtime does not learn what a waiting room is.
@@ -379,6 +455,12 @@ func (a *App) routeGroups() []routeGroup {
 		time.Duration(a.cfg.BotThinkMinMS)*time.Millisecond,
 		time.Duration(a.cfg.BotThinkMaxMS)*time.Millisecond,
 	)
+
+	return matchMgr
+}
+
+func (a *App) routeGroups() []routeGroup {
+	matchMgr := a.matchManager()
 
 	lobbyHandlers := lobby.NewHandlers(a.hub, a.waitingRoom)
 	lobbyHandlers.SetAdmission(a.admission)

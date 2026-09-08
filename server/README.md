@@ -156,6 +156,74 @@ unset (0), a ceiling is derived from the process memory limit if one exists.
 The server also sets `GOMEMLIMIT` to 90% of the cgroup limit unless you set
 `GOMEMLIMIT` yourself.
 
+## Operator console and reporting
+
+`/admin` answers: how many games were played today, this week, this month; how
+many people played and how many were new; how many games went unfinished; how
+often the process died; and how often somebody was turned away because the box
+was full.
+
+**It is not on the public listener.** Not guarded there — absent. The
+production vhost proxies one catch-all to the game server by design, so
+anything the public router registers is on the internet by construction. The
+console is registered on a second router, served by a second `http.Server` on
+`ADMIN_PORT` (8091), bound to `127.0.0.1` and published by Compose to the
+host's loopback only. nginx has no route to it.
+
+```sh
+ssh -N -L 8091:127.0.0.1:8091 davja@192.168.13.13
+open http://127.0.0.1:8091/admin
+```
+
+Sign in with a username and a bcrypt hash — never a plaintext password in the
+environment:
+
+```sh
+printf '%s' 'a-long-passphrase' | go run ./cmd/adminpass
+```
+
+Set the result as `ADMIN_PASSWORD_HASH` alongside `ADMIN_USERNAME`. Configure
+neither and the listener does not start at all: a closed port, rather than one
+that answers 401 forever. Changing the password invalidates every console token
+already issued, because the signing key is derived from the hash.
+`ADMIN_EMAILS` is an optional second door for allow-listed accounts; it needs
+mail delivery, so it is not the recommended one.
+
+### Where the numbers come from
+
+One document per UTC day in `daily_metrics`, incremented in memory and flushed
+every 30 seconds — a refusal happens exactly when the box is least able to
+afford another write, so the refusal path does not write. Weeks and months are
+sums of those days computed on read; nothing stores a rollup.
+
+Two of the numbers are worth reading carefully:
+
+- **People** is the union of each day's set of subject keys, not a counter —
+  somebody who played on Monday and Thursday is one person in the week. Bots
+  are excluded; guests are not. A day that hits the 5,000-key cap is reported
+  as a floor rather than a number that quietly stops rising.
+- **Unfinished** splits three ways, because mixing them gives a figure nobody
+  can act on: *abandoned* (started, walked away from), *never started* (a lobby
+  that never filled) and *in flight*. The completion rate is
+  `completed / (completed + abandoned)` — never over created, which would count
+  an empty lobby as a game somebody failed to finish.
+
+`GET /admin/api/report?from=&to=&bucket=day|week|month` returns JSON, or CSV
+with `&format=csv`. All days are UTC and the response says so.
+
+### Crashes
+
+A process that is OOM-killed does not get to write that it died, so it cannot
+report its own crash. Instead each start writes a row to `boots` and the
+shutdown path closes it; a start that finds the previous row still open
+concludes its predecessor died, counts it once, and logs the dead run's id and
+uptime at WARN. Crashes are therefore reported one restart late, which is the
+only honest version of it.
+
+That distinguishes the three things an operator conflates as "it went down": a
+deploy (clean exit, immediately followed by a start at a new version), a crash
+or OOM kill, and a host reboot.
+
 ## Terminal client (SSH)
 
 When `SSH_ENABLED=true` (default in local), the server embeds **[client-tui](../client-tui/)** on port **2222**:
