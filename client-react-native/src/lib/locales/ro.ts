@@ -246,6 +246,7 @@ export const ro: Record<string, string> = {
   'holdem.round.pot': 'Pot {n}',
   'holdem.round.uncontested': 'Toți ceilalți s-au retras',
   'seat.ready': 'Pregătit',
+  'results.you': '(tu)',
 
 
 

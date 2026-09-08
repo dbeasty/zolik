@@ -3,6 +3,7 @@ package match
 import (
 	"context"
 	"errors"
+	"sort"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -119,4 +120,34 @@ func (r *kdbRepository) UpdateWithVersion(ctx context.Context, id bson.ObjectID,
 		}
 		return tx.Put(id.Hex(), doc)
 	})
+}
+
+// FindAbandonable scans for suspended matches past their deadline.
+//
+// A scan, like every other cross-document query this backend answers: KDB has
+// no secondary index, and the alternative — keeping a separate namespace of
+// deadlines — would be a second thing to keep in step with the match document
+// for a sweep that runs twice a minute over a collection holding live games
+// only.
+func (r *kdbRepository) FindAbandonable(ctx context.Context, now time.Time, limit int) ([]models.Match, error) {
+	var out []models.Match
+	err := r.k.Scan(db.NSMatches, func(raw []byte) error {
+		var m models.Match
+		if err := db.UnmarshalDoc(raw, &m); err != nil {
+			return err
+		}
+		if m.Status != "suspended" || m.AbandonAt == nil || m.AbandonAt.After(now) {
+			return nil
+		}
+		out = append(out, m)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].AbandonAt.Before(*out[j].AbandonAt) })
+	if len(out) > limit {
+		out = out[:limit]
+	}
+	return out, nil
 }

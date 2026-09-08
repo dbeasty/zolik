@@ -244,6 +244,7 @@ export const lt: Record<string, string> = {
   'holdem.round.pot': 'Bankas {n}',
   'holdem.round.uncontested': 'Visi kiti pasitraukė',
   'seat.ready': 'Pasiruošęs',
+  'results.you': '(tu)',
 
 
 

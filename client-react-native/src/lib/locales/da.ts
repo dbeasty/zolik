@@ -242,6 +242,7 @@ export const da: Record<string, string> = {
   'holdem.round.pot': 'Pulje {n}',
   'holdem.round.uncontested': 'Alle andre kastede sig',
   'seat.ready': 'Klar',
+  'results.you': '(dig)',
 
 
 

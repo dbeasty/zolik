@@ -65,14 +65,43 @@ services:
       # one can be asked to stop the world, and it reports the shape of the
       # process to anyone who can reach the port.
       ENABLE_DEBUG_ENDPOINTS: "false"
+      # The operator console's port inside the container. It is a *second*
+      # listener, and the ports: block below is what keeps it off the
+      # internet — see the note there. ADMIN_USERNAME and ADMIN_PASSWORD_HASH
+      # come from .env; without them the listener does not start at all.
+      ADMIN_PORT: "8091"
+      # Structured JSON to stdout, which is what `docker logs | jq` wants.
+      LOG_LEVEL: info
     volumes:
       # /data is created nonroot-owned in the image, so the engine can write
       # under the distroless nonroot user.
       - kdb_data:/data
-    # Loopback only — nginx on the host is the public entry point, and it
-    # proxies everything here now that the server serves the web client too.
     ports:
+      # The game. Loopback only — nginx on the host is the public entry point,
+      # and it proxies everything here now that the server serves the web
+      # client too.
       - "127.0.0.1:8090:8090"
+      # The operator console, and the line that keeps it private.
+      #
+      # nginx does not proxy this port and has no vhost for it, so it is not
+      # reachable from the internet at all — not guarded, not 403, absent. That
+      # is deliberate: the public vhost is a single catch-all `location /`, so
+      # anything the game's router registers is public by construction, and a
+      # console mounted there would be one guard bug away from the world. The
+      # server therefore registers the console on a different router entirely
+      # (see internal/app/admin.go), and this maps it to the *host's* loopback
+      # only.
+      #
+      # An operator reaches it by tunnelling, with the key that already
+      # deploys this:
+      #
+      #   ssh -N -L 8091:127.0.0.1:8091 davja@192.168.13.13
+      #   open http://127.0.0.1:8091/admin
+      #
+      # Do not change this to "8091:8091". That binds every interface on the
+      # host, which publishes the console to the LAN and, through the WAN NAT
+      # that already forwards to this box, potentially further.
+      - "127.0.0.1:8091:8091"
 
 volumes:
   kdb_data:

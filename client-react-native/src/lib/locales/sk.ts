@@ -245,6 +245,7 @@ export const sk: Record<string, string> = {
   'holdem.round.pot': 'Bank {n}',
   'holdem.round.uncontested': 'Všetci ostatní zložili',
   'seat.ready': 'Pripravený',
+  'results.you': '(ty)',
 
 
 

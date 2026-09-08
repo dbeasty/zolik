@@ -244,6 +244,7 @@ export const sl: Record<string, string> = {
   'holdem.round.pot': 'Pot {n}',
   'holdem.round.uncontested': 'Vsi drugi so odstopili',
   'seat.ready': 'Pripravljen',
+  'results.you': '(ti)',
 
 
 

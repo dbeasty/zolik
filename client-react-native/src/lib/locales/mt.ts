@@ -248,6 +248,7 @@ export const mt: Record<string, string> = {
   'holdem.round.pot': 'Pot {n}',
   'holdem.round.uncontested': 'Kulħadd ieħor warrab',
   'seat.ready': 'Lest',
+  'results.you': '(int)',
 
 
 

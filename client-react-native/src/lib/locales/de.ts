@@ -251,6 +251,7 @@ export const de: Record<string, string> = {
   'holdem.round.pot': 'Pot {n}',
   'holdem.round.uncontested': 'Alle anderen sind ausgestiegen',
   'seat.ready': 'Bereit',
+  'results.you': '(du)',
 
 
 
