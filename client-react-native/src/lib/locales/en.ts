@@ -685,6 +685,9 @@ export const en: Record<string, string> = {
   // exactly the one who came here to change it.
   'settings.title': 'Settings',
   'settings.subtitle': 'How you look, and how the table does',
+  'settings.signedInAs': 'Signed in as {username}',
+  'settings.playingAsGuest': 'Playing as {username} (guest)',
+  'settings.notSignedIn': 'Not signed in — sign in or continue as a guest to play online.',
   'settings.face.heading': 'Your face at the table',
   'settings.face.account': 'Kept with your account, so it follows you to another device.',
   'settings.face.device': 'Kept on this device. Sign in to carry it with you.',
@@ -725,4 +728,14 @@ export const en: Record<string, string> = {
   'nav.match': 'Match',
   'nav.scoreTable': 'Score table',
   'nav.stats': 'Stats',
+  'nav.more': 'More',
+
+  // --- the account menu behind the face in the corner ----------------------
+  'menu.label': 'Account menu',
+  'menu.signedIn': 'Signed in',
+  'menu.notSignedIn': 'Not signed in',
+  'menu.keepStats': 'to keep your stats',
+  'menu.signOut': 'Sign out',
+  'more.scoreTable': 'Offline score table',
+  'more.stats': 'Stats & leaderboard',
 };

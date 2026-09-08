@@ -702,6 +702,9 @@ export const nl: Record<string, string> = {
   // exactly the one who came here to change it.
   'settings.title': 'Instellingen',
   'settings.subtitle': 'Hoe jij eruitziet, en hoe de tafel',
+  'settings.signedInAs': 'Aangemeld als {username}',
+  'settings.playingAsGuest': 'Je speelt als {username} (gast)',
+  'settings.notSignedIn': 'Niet aangemeld — meld je aan of ga verder als gast om online te spelen.',
   'settings.face.heading': 'Jouw gezicht aan tafel',
   'settings.face.account': 'Bewaard bij je account, zodat het met je meegaat naar een ander apparaat.',
   'settings.face.device': 'Bewaard op dit apparaat. Meld je aan om het mee te nemen.',
@@ -743,4 +746,12 @@ export const nl: Record<string, string> = {
   'nav.match': 'Partij',
   'nav.scoreTable': 'Scoretabel',
   'nav.stats': 'Statistieken',
+  'nav.more': 'Meer',
+  'menu.label': 'Accountmenu',
+  'menu.signedIn': 'Aangemeld',
+  'menu.notSignedIn': 'Niet aangemeld',
+  'menu.keepStats': 'om je statistieken te bewaren',
+  'menu.signOut': 'Afmelden',
+  'more.scoreTable': 'Offline scoretabel',
+  'more.stats': 'Statistieken en ranglijst',
 };

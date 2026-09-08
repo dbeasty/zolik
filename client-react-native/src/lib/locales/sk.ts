@@ -689,6 +689,9 @@ export const sk: Record<string, string> = {
   // exactly the one who came here to change it.
   'settings.title': 'Nastavenia',
   'settings.subtitle': 'Ako vyzeráš ty a ako stôl',
+  'settings.signedInAs': 'Prihlásený ako {username}',
+  'settings.playingAsGuest': 'Hráš ako {username} (hosť)',
+  'settings.notSignedIn': 'Nie si prihlásený — prihlás sa alebo pokračuj ako hosť a hraj online.',
   'settings.face.heading': 'Tvoja tvár pri stole',
   'settings.face.account': 'Uložené k tvojmu účtu, takže ťa sprevádza aj na iné zariadenie.',
   'settings.face.device': 'Uložené v tomto zariadení. Prihlás sa, aby šlo s tebou.',
@@ -730,4 +733,12 @@ export const sk: Record<string, string> = {
   'nav.match': 'Zápas',
   'nav.scoreTable': 'Tabuľka skóre',
   'nav.stats': 'Štatistiky',
+  'nav.more': 'Viac',
+  'menu.label': 'Ponuka účtu',
+  'menu.signedIn': 'Prihlásený',
+  'menu.notSignedIn': 'Neprihlásený',
+  'menu.keepStats': 'aby ti zostali štatistiky',
+  'menu.signOut': 'Odhlásiť sa',
+  'more.scoreTable': 'Offline tabuľka skóre',
+  'more.stats': 'Štatistiky a rebríček',
 };

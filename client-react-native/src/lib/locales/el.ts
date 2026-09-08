@@ -711,6 +711,9 @@ export const el: Record<string, string> = {
   // exactly the one who came here to change it.
   'settings.title': 'Ρυθμίσεις',
   'settings.subtitle': 'Πώς φαίνεσαι εσύ, και πώς το τραπέζι',
+  'settings.signedInAs': 'Συνδέθηκες ως {username}',
+  'settings.playingAsGuest': 'Παίζεις ως {username} (επισκέπτης)',
+  'settings.notSignedIn': 'Δεν έχεις συνδεθεί — συνδέσου ή συνέχισε ως επισκέπτης για να παίξεις online.',
   'settings.face.heading': 'Το πρόσωπό σου στο τραπέζι',
   'settings.face.account': 'Φυλάσσεται με τον λογαριασμό σου, οπότε σε ακολουθεί και σε άλλη συσκευή.',
   'settings.face.device': 'Φυλάσσεται σε αυτή τη συσκευή. Συνδέσου για να το πάρεις μαζί σου.',
@@ -752,4 +755,12 @@ export const el: Record<string, string> = {
   'nav.match': 'Αγώνας',
   'nav.scoreTable': 'Πίνακας σκορ',
   'nav.stats': 'Στατιστικά',
+  'nav.more': 'Περισσότερα',
+  'menu.label': 'Μενού λογαριασμού',
+  'menu.signedIn': 'Συνδεδεμένος',
+  'menu.notSignedIn': 'Μη συνδεδεμένος',
+  'menu.keepStats': 'για να κρατήσεις τα στατιστικά σου',
+  'menu.signOut': 'Αποσύνδεση',
+  'more.scoreTable': 'Πίνακας σκορ εκτός σύνδεσης',
+  'more.stats': 'Στατιστικά και κατάταξη',
 };

@@ -700,6 +700,9 @@ export const bg: Record<string, string> = {
   // exactly the one who came here to change it.
   'settings.title': 'Настройки',
   'settings.subtitle': 'Как изглеждаш ти и как изглежда масата',
+  'settings.signedInAs': 'Влязъл си като {username}',
+  'settings.playingAsGuest': 'Играеш като {username} (гост)',
+  'settings.notSignedIn': 'Не си влязъл — влез или продължи като гост, за да играеш онлайн.',
   'settings.face.heading': 'Твоето лице на масата',
   'settings.face.account': 'Пази се в акаунта ти, така че те следва и на друго устройство.',
   'settings.face.device': 'Пази се на това устройство. Влез в профила си, за да го носиш със себе си.',
@@ -741,4 +744,12 @@ export const bg: Record<string, string> = {
   'nav.match': 'Мач',
   'nav.scoreTable': 'Таблица с точки',
   'nav.stats': 'Статистика',
+  'nav.more': 'Още',
+  'menu.label': 'Меню на профила',
+  'menu.signedIn': 'Влязъл',
+  'menu.notSignedIn': 'Не си влязъл',
+  'menu.keepStats': 'за да пазиш статистиките си',
+  'menu.signOut': 'Изход',
+  'more.scoreTable': 'Офлайн таблица с точки',
+  'more.stats': 'Статистики и класация',
 };

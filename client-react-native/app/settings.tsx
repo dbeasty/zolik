@@ -42,6 +42,14 @@ export default function SettingsScreen() {
 
   return (
     <Screen title={t('settings.title')} subtitle={t('settings.subtitle')} scroll>
+      <Text style={shared.status}>
+        {!session
+          ? t('settings.notSignedIn')
+          : signedIn
+            ? t('settings.signedInAs', { username: session.username })
+            : t('settings.playingAsGuest', { username: session.username })}
+      </Text>
+
       <View style={shared.card}>
         <Text style={styles.heading}>{t('settings.face.heading')}</Text>
         <Text style={shared.status}>

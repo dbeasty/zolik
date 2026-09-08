@@ -686,6 +686,9 @@ export const sv: Record<string, string> = {
   // exactly the one who came here to change it.
   'settings.title': 'Inställningar',
   'settings.subtitle': 'Hur du ser ut, och hur bordet gör det',
+  'settings.signedInAs': 'Inloggad som {username}',
+  'settings.playingAsGuest': 'Du spelar som {username} (gäst)',
+  'settings.notSignedIn': 'Inte inloggad — logga in eller fortsätt som gäst för att spela online.',
   'settings.face.heading': 'Ditt ansikte vid bordet',
   'settings.face.account': 'Sparas med ditt konto, så det följer med till en annan enhet.',
   'settings.face.device': 'Sparas på den här enheten. Logga in för att ta det med dig.',
@@ -727,4 +730,12 @@ export const sv: Record<string, string> = {
   'nav.match': 'Match',
   'nav.scoreTable': 'Poängtabell',
   'nav.stats': 'Statistik',
+  'nav.more': 'Mer',
+  'menu.label': 'Kontomeny',
+  'menu.signedIn': 'Inloggad',
+  'menu.notSignedIn': 'Inte inloggad',
+  'menu.keepStats': 'för att behålla din statistik',
+  'menu.signOut': 'Logga ut',
+  'more.scoreTable': 'Offline-poängtabell',
+  'more.stats': 'Statistik och topplista',
 };

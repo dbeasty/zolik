@@ -695,6 +695,9 @@ export const ro: Record<string, string> = {
   // exactly the one who came here to change it.
   'settings.title': 'Setări',
   'settings.subtitle': 'Cum arăți tu și cum arată masa',
+  'settings.signedInAs': 'Autentificat ca {username}',
+  'settings.playingAsGuest': 'Joci ca {username} (invitat)',
+  'settings.notSignedIn': 'Nu ești autentificat — autentifică-te sau continuă ca invitat pentru a juca online.',
   'settings.face.heading': 'Chipul tău la masă',
   'settings.face.account': 'Păstrat în contul tău, așa că te însoțește pe alt dispozitiv.',
   'settings.face.device': 'Păstrat pe acest dispozitiv. Autentifică-te ca să-l iei cu tine.',
@@ -736,4 +739,12 @@ export const ro: Record<string, string> = {
   'nav.match': 'Meci',
   'nav.scoreTable': 'Tabel de scor',
   'nav.stats': 'Statistici',
+  'nav.more': 'Mai multe',
+  'menu.label': 'Meniul contului',
+  'menu.signedIn': 'Autentificat',
+  'menu.notSignedIn': 'Neautentificat',
+  'menu.keepStats': 'ca să-ți păstrezi statisticile',
+  'menu.signOut': 'Deconectare',
+  'more.scoreTable': 'Tabel de scor offline',
+  'more.stats': 'Statistici și clasament',
 };

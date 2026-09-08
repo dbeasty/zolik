@@ -711,6 +711,9 @@ export const ga: Record<string, string> = {
   // exactly the one who came here to change it.
   'settings.title': 'Socruithe',
   'settings.subtitle': 'An chuma atá ortsa, agus an chuma atá ar an mbord',
+  'settings.signedInAs': 'Sínithe isteach mar {username}',
+  'settings.playingAsGuest': 'Ag imirt mar {username} (aoi)',
+  'settings.notSignedIn': 'Níl tú sínithe isteach — sínigh isteach nó lean ar aghaidh mar aoi chun imirt ar líne.',
   'settings.face.heading': "D'aghaidh ag an mbord",
   'settings.face.account': 'Coinnítear le do chuntas í, mar sin leanann sí thú go gléas eile.',
   'settings.face.device': 'Coinnítear ar an ngléas seo í. Sínigh isteach chun í a thabhairt leat.',
@@ -752,4 +755,12 @@ export const ga: Record<string, string> = {
   'nav.match': 'Cluiche',
   'nav.scoreTable': 'Tábla scór',
   'nav.stats': 'Staitisticí',
+  'nav.more': 'Tuilleadh',
+  'menu.label': 'Roghchlár an chuntais',
+  'menu.signedIn': 'Sínithe isteach',
+  'menu.notSignedIn': 'Gan síniú isteach',
+  'menu.keepStats': 'chun do staitisticí a choinneáil',
+  'menu.signOut': 'Sínigh amach',
+  'more.scoreTable': 'Tábla scór as líne',
+  'more.stats': 'Staitisticí agus rangú',
 };

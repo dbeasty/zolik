@@ -697,6 +697,9 @@ export const pt: Record<string, string> = {
   // exactly the one who came here to change it.
   'settings.title': 'Definições',
   'settings.subtitle': 'O aspeto que tens tu, e o que a mesa tem',
+  'settings.signedInAs': 'Sessão iniciada como {username}',
+  'settings.playingAsGuest': 'A jogar como {username} (convidado)',
+  'settings.notSignedIn': 'Sessão não iniciada — inicia sessão ou continua como convidado para jogar online.',
   'settings.face.heading': 'A tua cara à mesa',
   'settings.face.account': 'Guardada com a tua conta, por isso segue-te para outro dispositivo.',
   'settings.face.device': 'Guardada neste dispositivo. Inicia sessão para a levares contigo.',
@@ -738,4 +741,12 @@ export const pt: Record<string, string> = {
   'nav.match': 'Partida',
   'nav.scoreTable': 'Tabela de pontos',
   'nav.stats': 'Estatísticas',
+  'nav.more': 'Mais',
+  'menu.label': 'Menu da conta',
+  'menu.signedIn': 'Sessão iniciada',
+  'menu.notSignedIn': 'Sessão não iniciada',
+  'menu.keepStats': 'para guardares as tuas estatísticas',
+  'menu.signOut': 'Terminar sessão',
+  'more.scoreTable': 'Tabela de pontos offline',
+  'more.stats': 'Estatísticas e classificação',
 };

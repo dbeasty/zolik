@@ -700,6 +700,9 @@ export const fr: Record<string, string> = {
   // exactly the one who came here to change it.
   'settings.title': 'Réglages',
   'settings.subtitle': "De quoi tu as l'air, et de quoi la table a l'air",
+  'settings.signedInAs': 'Connecté en tant que {username}',
+  'settings.playingAsGuest': 'Tu joues en tant que {username} (invité)',
+  'settings.notSignedIn': "Non connecté — connecte-toi ou continue en tant qu'invité pour jouer en ligne.",
   'settings.face.heading': 'Ton visage à la table',
   'settings.face.account': 'Conservé avec ton compte, il te suit sur un autre appareil.',
   'settings.face.device': "Conservé sur cet appareil. Connecte-toi pour l'emporter avec toi.",
@@ -741,4 +744,12 @@ export const fr: Record<string, string> = {
   'nav.match': 'Partie',
   'nav.scoreTable': 'Tableau des scores',
   'nav.stats': 'Statistiques',
+  'nav.more': 'Plus',
+  'menu.label': 'Menu du compte',
+  'menu.signedIn': 'Connecté',
+  'menu.notSignedIn': 'Non connecté',
+  'menu.keepStats': 'pour garder tes statistiques',
+  'menu.signOut': 'Se déconnecter',
+  'more.scoreTable': 'Feuille de score hors ligne',
+  'more.stats': 'Statistiques et classement',
 };

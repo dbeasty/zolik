@@ -707,6 +707,9 @@ export const de: Record<string, string> = {
   // exactly the one who came here to change it.
   'settings.title': 'Einstellungen',
   'settings.subtitle': 'Wie du aussiehst — und wie der Tisch',
+  'settings.signedInAs': 'Angemeldet als {username}',
+  'settings.playingAsGuest': 'Du spielst als {username} (Gast)',
+  'settings.notSignedIn': 'Nicht angemeldet — melde dich an oder spiele als Gast weiter, um online zu spielen.',
   'settings.face.heading': 'Dein Gesicht am Tisch',
   'settings.face.account': 'Wird bei deinem Konto gespeichert und folgt dir auf andere Geräte.',
   'settings.face.device': 'Wird auf diesem Gerät gespeichert. Melde dich an, um es mitzunehmen.',
@@ -748,4 +751,12 @@ export const de: Record<string, string> = {
   'nav.match': 'Partie',
   'nav.scoreTable': 'Punktetabelle',
   'nav.stats': 'Statistik',
+  'nav.more': 'Mehr',
+  'menu.label': 'Kontomenü',
+  'menu.signedIn': 'Angemeldet',
+  'menu.notSignedIn': 'Nicht angemeldet',
+  'menu.keepStats': 'um deine Statistik zu behalten',
+  'menu.signOut': 'Abmelden',
+  'more.scoreTable': 'Offline-Punktetabelle',
+  'more.stats': 'Statistik und Rangliste',
 };

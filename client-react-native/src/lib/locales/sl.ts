@@ -686,6 +686,9 @@ export const sl: Record<string, string> = {
   // exactly the one who came here to change it.
   'settings.title': 'Nastavitve',
   'settings.subtitle': 'Kako izgledaš ti in kako miza',
+  'settings.signedInAs': 'Prijavljen kot {username}',
+  'settings.playingAsGuest': 'Igraš kot {username} (gost)',
+  'settings.notSignedIn': 'Nisi prijavljen — prijavi se ali nadaljuj kot gost za igranje na spletu.',
   'settings.face.heading': 'Tvoj obraz za mizo',
   'settings.face.account': 'Shranjeno pri tvojem računu, zato te spremlja na drugo napravo.',
   'settings.face.device': 'Shranjeno na tej napravi. Prijavi se, da ga vzameš s seboj.',
@@ -726,4 +729,12 @@ export const sl: Record<string, string> = {
   'nav.match': 'Tekma',
   'nav.scoreTable': 'Tabela točk',
   'nav.stats': 'Statistika',
+  'nav.more': 'Več',
+  'menu.label': 'Meni računa',
+  'menu.signedIn': 'Prijavljen',
+  'menu.notSignedIn': 'Nisi prijavljen',
+  'menu.keepStats': 'da ohraniš svojo statistiko',
+  'menu.signOut': 'Odjava',
+  'more.scoreTable': 'Tabela točk brez povezave',
+  'more.stats': 'Statistika in lestvica',
 };

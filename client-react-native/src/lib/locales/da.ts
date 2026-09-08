@@ -690,6 +690,9 @@ export const da: Record<string, string> = {
   // exactly the one who came here to change it.
   'settings.title': 'Indstillinger',
   'settings.subtitle': 'Hvordan du ser ud, og hvordan bordet gør',
+  'settings.signedInAs': 'Logget ind som {username}',
+  'settings.playingAsGuest': 'Spiller som {username} (gæst)',
+  'settings.notSignedIn': 'Ikke logget ind — log ind eller fortsæt som gæst for at spille online.',
   'settings.face.heading': 'Dit ansigt ved bordet',
   'settings.face.account': 'Gemmes med din konto, så det følger med til en anden enhed.',
   'settings.face.device': 'Gemmes på denne enhed. Log ind for at tage det med dig.',
@@ -731,4 +734,12 @@ export const da: Record<string, string> = {
   'nav.match': 'Kamp',
   'nav.scoreTable': 'Pointtavle',
   'nav.stats': 'Statistik',
+  'nav.more': 'Mere',
+  'menu.label': 'Kontomenu',
+  'menu.signedIn': 'Logget ind',
+  'menu.notSignedIn': 'Ikke logget ind',
+  'menu.keepStats': 'for at beholde din statistik',
+  'menu.signOut': 'Log ud',
+  'more.scoreTable': 'Offline pointtabel',
+  'more.stats': 'Statistik og rangliste',
 };

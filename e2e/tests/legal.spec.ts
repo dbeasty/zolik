@@ -62,7 +62,12 @@ test.describe('the legal notices are reachable and readable', () => {
 
   test('a guest is told what they are agreeing to before they can agree to it', async ({ page }) => {
     await page.goto('/');
-    await page.getByText('Continue as guest').click();
+    // `exact`, because the home screen's own "Sign in or continue as guest to
+    // play online." contains this label as a substring and getByText matches
+    // case-insensitive substrings by default — without it the locator
+    // resolves to two elements and fails strict mode. Same trap, and the same
+    // fix, as every locator in sign-in.spec.ts.
+    await page.getByText('Continue as guest', { exact: true }).click();
 
     const notice = page.getByTestId('legal-notice');
     await expect(notice).toBeVisible();

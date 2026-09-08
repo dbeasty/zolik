@@ -690,6 +690,9 @@ export const lv: Record<string, string> = {
   // exactly the one who came here to change it.
   'settings.title': 'Iestatījumi',
   'settings.subtitle': 'Kā izskaties tu un kā izskatās galds',
+  'settings.signedInAs': 'Pierakstījies kā {username}',
+  'settings.playingAsGuest': 'Spēlē kā {username} (viesis)',
+  'settings.notSignedIn': 'Neesi pierakstījies — piesakies vai turpini kā viesis, lai spēlētu tiešsaistē.',
   'settings.face.heading': 'Tava seja pie galda',
   'settings.face.account': 'Glabājas tavā kontā, tāpēc seko tev uz citu ierīci.',
   'settings.face.device': 'Glabājas šajā ierīcē. Pieraksties, lai paņemtu to līdzi.',
@@ -731,4 +734,12 @@ export const lv: Record<string, string> = {
   'nav.match': 'Mačs',
   'nav.scoreTable': 'Punktu tabula',
   'nav.stats': 'Statistika',
+  'nav.more': 'Vairāk',
+  'menu.label': 'Konta izvēlne',
+  'menu.signedIn': 'Pierakstījies',
+  'menu.notSignedIn': 'Neesi pierakstījies',
+  'menu.keepStats': 'lai saglabātu savu statistiku',
+  'menu.signOut': 'Iziet',
+  'more.scoreTable': 'Bezsaistes punktu tabula',
+  'more.stats': 'Statistika un līderu saraksts',
 };
