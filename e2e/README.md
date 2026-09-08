@@ -90,6 +90,22 @@ matched the scrolling bar the offer buttons live in, so every "move" was a click
 on a div. The bar is `action-bar` now. Fixing it turned three green tests red,
 correctly.
 
+## Longevity
+
+The suite here is many short tests: open a page, play a hand, assert, throw the
+page away. `longevity/` is the opposite shape — several browsers signing in as
+guests and playing through the real screens for as long as they are left
+running, with the server's own capacity snapshot and each browser's heap
+sampled throughout. It is for the failures that need time to appear rather than
+for correctness, and it is a separate verb because sharing one would mean one
+of those two things quietly became the other.
+
+```sh
+ZOLIK_SOAK_FOR=4h ./scripts/dev-stack.sh soak
+```
+
+See [`longevity/README.md`](longevity/README.md).
+
 ## What is no longer here
 
 Twelve specs drove the bespoke Žolíky screen — drag-to-meld, staging, joker

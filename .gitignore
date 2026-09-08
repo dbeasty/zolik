@@ -34,6 +34,8 @@ go.work.sum
 # e2e (Playwright)
 e2e/node_modules/
 e2e/test-results/
+# Longevity runs write a report per run; they are findings, not source.
+e2e/longevity/reports/
 e2e/playwright-report/
 # Playwright writes these wherever it is invoked from; running it outside e2e/
 # by mistake should not leave a tracked file behind.
