@@ -70,6 +70,17 @@ services:
       # internet — see the note there. ADMIN_USERNAME and ADMIN_PASSWORD_HASH
       # come from .env; without them the listener does not start at all.
       ADMIN_PORT: "8091"
+      # 0.0.0.0 *inside the container*, which is not the loosening it looks
+      # like. The ports: line below is what decides who can reach this, and it
+      # publishes to the host's loopback only.
+      #
+      # The server defaults this to 127.0.0.1, which is right on a bare host
+      # and silently fatal here: Docker forwards a published port to the
+      # container's bridge address, so a console bound to the container's
+      # loopback is reachable from nothing at all — the tunnel connects, gets
+      # an empty reply, and the log still says the console is up. Two loopback
+      # binds in series are not twice the boundary; they are a wall.
+      ADMIN_BIND: "0.0.0.0"
       # Structured JSON to stdout, which is what `docker logs | jq` wants.
       LOG_LEVEL: info
     volumes:

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -165,17 +166,24 @@ func startAdminListener(cfg app.Config, a *app.App) *http.Server {
 	// clients — neither of which reaches this port.
 	a.RegisterAdminRoutes(adminRouter)
 
+	addr := net.JoinHostPort(cfg.AdminBind, cfg.AdminPort)
 	srv := &http.Server{
-		// 127.0.0.1, not ":". Stated rather than left to the default, because
-		// the default is every interface and that is the whole thing this is
-		// trying not to be.
-		Addr:              "127.0.0.1:" + cfg.AdminPort,
+		// Always an explicit interface, never the http default of every
+		// interface. Which one is Config.AdminBind's job: 127.0.0.1 on a bare
+		// host, where this line is the only thing standing between the
+		// console and the network, and 0.0.0.0 in the container, where the
+		// published-port binding is that thing instead and a loopback bind
+		// here would only make the console unreachable. See Config.AdminBind.
+		Addr:              addr,
 		Handler:           adminRouter,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	go func() {
-		log.Printf("admin console on 127.0.0.1:%s (reach it with: ssh -N -L %s:127.0.0.1:%s <host>)",
-			cfg.AdminPort, cfg.AdminPort, cfg.AdminPort)
+		// The tunnel in this line targets the *host's* loopback, which is
+		// where the published port lands — not addr, which is the interface
+		// inside the container and is nobody's destination.
+		log.Printf("admin console on %s (reach it with: ssh -N -L %s:127.0.0.1:%s <host>)",
+			addr, cfg.AdminPort, cfg.AdminPort)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			// Not fatal. A console that cannot bind is a console nobody can
 			// read; it is not a reason to stop serving games.

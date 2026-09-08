@@ -21,6 +21,20 @@ type Config struct {
 	// the public router registers is on the internet by construction — see
 	// docs/logging-and-reporting-plan.md §7.
 	AdminPort string
+	// AdminBind is the interface the console listens on. It defaults to
+	// 127.0.0.1 because a bare-metal server has nothing between the console and
+	// the network but this line.
+	//
+	// In a container that default is wrong in a way that looks like success:
+	// the listener starts, logs that it is up, and is unreachable by anybody.
+	// Docker forwards a published port to the container's *bridge* address, and
+	// a process bound to the container's loopback is not listening there — so
+	// the connection is accepted by docker-proxy and then closed, which reaches
+	// the operator as an empty reply rather than as a refusal. The deployment
+	// therefore sets 0.0.0.0 and leaves the boundary to the published-port
+	// binding (127.0.0.1:8091:8091), which is the only one of the two that
+	// Docker actually enforces. See deploy/compose/zolik.yml.
+	AdminBind string
 	// AdminEmails are accounts allowed into the console, by verified email
 	// address. Configuration rather than a flag on the user document: there
 	// is then no bootstrap problem, removal takes effect on the next request
@@ -149,6 +163,7 @@ func LoadConfig() Config {
 		Port: envOr("PORT", "8090"),
 
 		AdminPort:         envOr("ADMIN_PORT", "8091"),
+		AdminBind:         envOr("ADMIN_BIND", "127.0.0.1"),
 		AdminEmails:       envList("ADMIN_EMAILS", nil),
 		AdminUsername:     os.Getenv("ADMIN_USERNAME"),
 		AdminPasswordHash: os.Getenv("ADMIN_PASSWORD_HASH"),
