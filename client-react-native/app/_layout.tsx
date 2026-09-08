@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { AccountMenu } from '@/src/components/AccountMenu';
 import { SessionProvider } from '@/src/context/SessionContext';
 import { useLocale, useLocaleBootstrap } from '@/src/hooks/useLocale';
 import { MetricsProvider } from '@/src/hooks/useMetrics';
@@ -55,7 +56,13 @@ export default function RootLayout() {
                   contentStyle: { backgroundColor: colors.bg },
                 }}
               >
-                <Stack.Screen name="index" options={{ title: t('nav.home') }} />
+                {/* The face in the corner is the whole account menu — who you
+                    are, and everything that is about you rather than about
+                    playing. See `src/components/AccountMenu.tsx`. */}
+                <Stack.Screen
+                  name="index"
+                  options={{ title: t('nav.home'), headerRight: () => <AccountMenu /> }}
+                />
 
                 {/* Signing in. The provider list is fetched, so enabling Apple or
                     Microsoft server-side lights up a button with no app change. */}
@@ -94,6 +101,7 @@ export default function RootLayout() {
                   options={{ title: t('nav.match'), headerBackVisible: true }}
                 />
 
+                <Stack.Screen name="more" options={{ title: t('nav.more') }} />
                 <Stack.Screen name="scoring/index" options={{ title: t('nav.scoreTable') }} />
                 <Stack.Screen name="stats" options={{ title: t('nav.stats') }} />
                 <Stack.Screen name="settings" options={{ title: t('settings.title') }} />

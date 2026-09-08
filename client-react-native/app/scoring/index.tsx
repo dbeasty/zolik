@@ -2,11 +2,14 @@ import { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { Screen } from '@/src/components/Screen';
+import { SignInRequired } from '@/src/components/SignInRequired';
 import { useSession } from '@/src/context/SessionContext';
+import { t } from '@/src/lib/i18n';
 import { colors, shared } from '@/src/theme';
 
 export default function ScoringScreen() {
-  const { client } = useSession();
+  const { client, session } = useSession();
+  const signedIn = !!session && !session.isGuest;
   const [namesInput, setNamesInput] = useState('Alice,Bob,Carol,Dave');
   const [sessionId, setSessionId] = useState('');
   const [players, setPlayers] = useState<string[]>([]);
@@ -71,8 +74,12 @@ export default function ScoringScreen() {
     }
   }
 
+  // Kept against an account server-side, so there has to be one — a guest
+  // has nowhere for a score table to be kept.
+  if (!signedIn) return <SignInRequired title={t('more.scoreTable')} />;
+
   return (
-    <Screen title="Offline score table" scroll>
+    <Screen title={t('more.scoreTable')} scroll>
       {!sessionId ? (
         <>
           <Text style={shared.status}>Comma-separated names (4–8 players)</Text>
