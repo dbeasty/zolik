@@ -35,7 +35,7 @@ type Store interface {
 	// CloseBoot stamps a boot row as stopped. Called from the shutdown path
 	// with a reason, and from the next process's startup with Counted set,
 	// to mark a dead predecessor as already counted.
-	CloseBoot(ctx context.Context, id string, stoppedAt time.Time, reason string, counted bool) error
+	CloseBoot(ctx context.Context, id string, stoppedAt time.Time, reason Reason, counted bool) error
 	// Boots lists boot rows started within a range, oldest first.
 	Boots(ctx context.Context, from, to time.Time) ([]Boot, error)
 }

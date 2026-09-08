@@ -38,7 +38,7 @@ func TestCleanRestartIsNotACrash(t *testing.T) {
 
 	first := metrics.NewBootRecorder(store, newCountingSink())
 	first.Start(ctx, "1.0")
-	first.Stop(ctx, "signal")
+	first.Stop(ctx, metrics.ReasonSignal)
 
 	sink := newCountingSink()
 	metrics.NewBootRecorder(store, sink).Start(ctx, "1.1")
@@ -111,5 +111,5 @@ func TestBootRecorderSurvivesABrokenStore(t *testing.T) {
 	ctx := t.Context()
 	b := metrics.NewBootRecorder(brokenStore{}, newCountingSink())
 	b.Start(ctx, "1.0")
-	b.Stop(ctx, "signal")
+	b.Stop(ctx, metrics.ReasonSignal)
 }

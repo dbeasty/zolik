@@ -165,7 +165,7 @@ func TestBootLifecycle(t *testing.T) {
 	}
 
 	stop := start.Add(2 * time.Hour)
-	if err := s.CloseBoot(ctx, "boot-1", stop, "signal", false); err != nil {
+	if err := s.CloseBoot(ctx, "boot-1", stop, metrics.ReasonSignal, false); err != nil {
 		t.Fatalf("close: %v", err)
 	}
 	if _, ok, _ := s.LatestOpenBoot(ctx, "boot-2"); ok {
@@ -198,7 +198,7 @@ func TestCountedBootIsNotOfferedAgain(t *testing.T) {
 	if !ok {
 		t.Fatal("the dead row was not offered even once")
 	}
-	if err := s.CloseBoot(ctx, "dead", start, "", true); err != nil {
+	if err := s.CloseBoot(ctx, "dead", start, metrics.ReasonUnclean, true); err != nil {
 		t.Fatalf("close: %v", err)
 	}
 	if _, ok, _ := s.LatestOpenBoot(ctx, "next"); ok {

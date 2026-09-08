@@ -94,10 +94,15 @@ type Boot struct {
 	StartedAt time.Time  `bson:"startedAt" json:"startedAt"`
 	StoppedAt *time.Time `bson:"stoppedAt,omitempty" json:"stoppedAt,omitempty"`
 
-	// Reason is why the process stopped: "signal" for SIGINT/SIGTERM, the only
-	// stop this process can observe about itself. Empty alongside a nil
-	// StoppedAt is what "crashed" is made of.
-	Reason string `bson:"reason,omitempty" json:"reason,omitempty"`
+	// Reason is how the process ended, and it is the field that says so —
+	// never something inferred from the timestamps.
+	//
+	// The inference is tempting and wrong. A dead process's row is *also*
+	// stamped with a StoppedAt, by the successor that concluded it died,
+	// because a row left open forever would be re-examined by every later
+	// boot. So "has a StoppedAt" cannot mean "exited cleanly": both outcomes
+	// have one, and only this field tells them apart.
+	Reason Reason `bson:"reason,omitempty" json:"reason,omitempty"`
 
 	// Counted marks a row already folded into boot.unclean, so that a server
 	// restarted repeatedly does not count one dead predecessor once per
@@ -105,6 +110,21 @@ type Boot struct {
 	// crash count from a single crash.
 	Counted bool `bson:"counted,omitempty" json:"counted,omitempty"`
 }
+
+// Reason is how a process ended.
+type Reason string
+
+const (
+	// ReasonRunning is the zero value: this row is still open, either because
+	// the process is running or because it died and nothing has noticed yet.
+	ReasonRunning Reason = ""
+	// ReasonSignal is a graceful shutdown — SIGINT or SIGTERM, the only stop
+	// a process can observe about itself. A deploy looks like this.
+	ReasonSignal Reason = "signal"
+	// ReasonUnclean is a row a later process closed on its behalf: it never
+	// ran its shutdown path. An OOM kill, a SIGKILL, or the host going down.
+	ReasonUnclean Reason = "unclean"
+)
 
 // Uptime is how long the process ran, and zero for one still running.
 func (b Boot) Uptime() time.Duration {
@@ -115,4 +135,9 @@ func (b Boot) Uptime() time.Duration {
 }
 
 // Clean reports whether the process got to run its shutdown path.
-func (b Boot) Clean() bool { return b.StoppedAt != nil }
+func (b Boot) Clean() bool { return b.Reason == ReasonSignal }
+
+// Crashed reports whether a later process concluded this one died. It is the
+// definition of the unclean-boot count, and it is a stored fact rather than a
+// derivation — see Reason.
+func (b Boot) Crashed() bool { return b.Reason == ReasonUnclean }

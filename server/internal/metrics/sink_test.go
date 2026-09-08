@@ -213,7 +213,7 @@ func (brokenStore) InsertBoot(context.Context, metrics.Boot) error {
 func (brokenStore) LatestOpenBoot(context.Context, string) (metrics.Boot, bool, error) {
 	return metrics.Boot{}, false, errors.New("store is broken")
 }
-func (brokenStore) CloseBoot(context.Context, string, time.Time, string, bool) error {
+func (brokenStore) CloseBoot(context.Context, string, time.Time, metrics.Reason, bool) error {
 	return errors.New("store is broken")
 }
 func (brokenStore) Boots(context.Context, time.Time, time.Time) ([]metrics.Boot, error) {

@@ -103,7 +103,7 @@ func (s *kdbStore) LatestOpenBoot(ctx context.Context, exceptID string) (Boot, b
 	return best, found, nil
 }
 
-func (s *kdbStore) CloseBoot(ctx context.Context, id string, stoppedAt time.Time, reason string, counted bool) error {
+func (s *kdbStore) CloseBoot(ctx context.Context, id string, stoppedAt time.Time, reason Reason, counted bool) error {
 	return s.k.Update(db.NSBoots, func(tx *db.Tx) error {
 		raw, err := tx.Get(id)
 		if err != nil {

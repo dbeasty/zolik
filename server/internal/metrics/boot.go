@@ -79,12 +79,12 @@ func (b *BootRecorder) Start(ctx context.Context, version string) {
 		"previousStartedAt", prev.StartedAt,
 		"ranFor", now.Sub(prev.StartedAt).Round(time.Second))
 
-	// Stamped as counted so a crash-looping container does not report a fresh
-	// crash on every restart — one dead process is one crash, however many
-	// times its successor is restarted. The stop time is the best guess
-	// available: nobody recorded when it actually died, and leaving it nil
-	// would keep the row open forever.
-	if err := b.store.CloseBoot(ctx, prev.ID, now, "", true); err != nil {
+	// Stamped unclean, and counted so a crash-looping container does not
+	// report a fresh crash on every restart — one dead process is one crash,
+	// however many times its successor is restarted. The stop time is the best
+	// guess available: nobody recorded when it actually died, and leaving the
+	// row open would have every later boot re-examine it.
+	if err := b.store.CloseBoot(ctx, prev.ID, now, ReasonUnclean, true); err != nil {
 		slog.Warn("could not stamp the previous boot record as counted; it may be counted again",
 			"previousBoot", prev.ID, "error", err)
 	}
@@ -93,7 +93,7 @@ func (b *BootRecorder) Start(ctx context.Context, version string) {
 // Stop closes this process's boot row. Called from the shutdown path, before
 // the database is torn down — a slow teardown must not be what loses the fact
 // that this was a clean exit.
-func (b *BootRecorder) Stop(ctx context.Context, reason string) {
+func (b *BootRecorder) Stop(ctx context.Context, reason Reason) {
 	if b.id == "" {
 		return
 	}

@@ -167,7 +167,7 @@ func (s *mongoStore) LatestOpenBoot(ctx context.Context, exceptID string) (Boot,
 	return b, true, nil
 }
 
-func (s *mongoStore) CloseBoot(ctx context.Context, id string, stoppedAt time.Time, reason string, counted bool) error {
+func (s *mongoStore) CloseBoot(ctx context.Context, id string, stoppedAt time.Time, reason Reason, counted bool) error {
 	set := bson.M{"stoppedAt": stoppedAt}
 	if reason != "" {
 		set["reason"] = reason
