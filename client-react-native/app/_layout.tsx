@@ -54,15 +54,14 @@ export default function RootLayout() {
                   headerStyle: { backgroundColor: colors.surface },
                   headerTintColor: colors.text,
                   contentStyle: { backgroundColor: colors.bg },
+                  // The face in the corner is the whole account menu — who you
+                  // are, and everything that is about you rather than about
+                  // playing. Set here, not per-screen, so every route gets it
+                  // for free — see `src/components/AccountMenu.tsx`.
+                  headerRight: () => <AccountMenu />,
                 }}
               >
-                {/* The face in the corner is the whole account menu — who you
-                    are, and everything that is about you rather than about
-                    playing. See `src/components/AccountMenu.tsx`. */}
-                <Stack.Screen
-                  name="index"
-                  options={{ title: t('nav.home'), headerRight: () => <AccountMenu /> }}
-                />
+                <Stack.Screen name="index" options={{ title: t('nav.home') }} />
 
                 {/* Signing in. The provider list is fetched, so enabling Apple or
                     Microsoft server-side lights up a button with no app change. */}
