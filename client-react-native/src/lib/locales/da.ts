@@ -23,6 +23,13 @@ export const da: Record<string, string> = {
   'err.ALREADY_READY': 'Du er klar',
   'err.NOT_BETWEEN_ROUNDS': 'Runden spilles stadig',
   'err.NOT_AT_THIS_TABLE': 'Du sidder ikke ved dette bord',
+  // Bringing a table back that the sweeper set aside. Refusals a player
+  // can actually provoke: a link to a table that is gone, one that was
+  // already picked up in another tab, and a table with other people at it.
+  'err.MATCH_MOVED_ON': 'Bordet er gået videre — genindlæs siden',
+  'err.MATCH_NOT_ABANDONED': 'Dette bord venter ikke på at blive genoptaget',
+  'err.MATCH_NOT_FOUND': 'Dette bord findes ikke længere',
+  'err.TABLE_HAS_OTHER_PLAYERS': 'Kun et bord, hvor alle andre er bots, kan genoptages',
   'err.DISCARD_LOCKED': 'Kastebunken er låst indtil videre',
   'err.DISCARD_PILE_EMPTY': 'Kastebunken er tom',
   'err.NO_CARDS_LEFT': 'Der er ikke flere kort at trække',
@@ -909,6 +916,11 @@ export const da: Record<string, string> = {
   'match.youWon': 'Du vandt.',
   'match.finished': 'Denne kamp er slut.',
   'match.inProgress': 'Kampen er i gang — alt er forbundet og kører normalt.',
+  'match.connecting': 'Forbinder…',
+  'match.abandonedTitle': 'Bordet lagt til side',
+  'match.abandoned': 'Ingen kom tilbage til dette bord, så det blev lagt til side. Kortene ligger præcis, hvor du forlod dem.',
+  'match.resume': 'Fortsæt hvor du slap',
+  'match.resuming': 'Henter bordet tilbage…',
   'match.controls': 'Betjening',
   'match.over': 'Kampen er slut',
   'match.settingUp': 'Gør klar…',

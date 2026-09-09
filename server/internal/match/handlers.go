@@ -65,6 +65,9 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	r.With(auth.AuthMiddleware).Post("/matches", h.createMatch)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/join", h.joinMatch)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/start", h.startMatch)
+	// Bringing a swept-up table back. Separate from start, which allocates a
+	// module's state: this one only undoes an envelope.
+	r.With(auth.AuthMiddleware).Post("/matches/{id}/resume", h.resumeMatch)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/add-bot", h.addBot)
 	// Seat a specific player out of the waiting room, instead of reading a
 	// join code out to them.
@@ -451,6 +454,40 @@ func (h *Handlers) startMatch(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, map[string]any{"matchId": m.ID.Hex(), "status": m.Status})
 }
 
+// resumeMatch brings an abandoned bots-only table back, for the player who
+// was at it.
+//
+// Every rule about who may do this lives in the manager rather than here, so
+// the socket path and any future caller get the same answers; this end is only
+// the door. The resolved match is returned so the client can route on the
+// status it actually got rather than assuming the one it asked for.
+func (h *Handlers) resumeMatch(w http.ResponseWriter, req *http.Request) {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	ctx := req.Context()
+	m, err := h.manager.Repo().Resolve(ctx, chi.URLParam(req, "id"))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	// A resumed table is a live one, and a live one costs a slot the same way
+	// a freshly started match does. Checked before the write rather than
+	// after, so a server under pressure refuses the table instead of reviving
+	// one it cannot then run bots for.
+	if err := h.admission.AllowMatchStart(); err != nil {
+		admission.WriteBusy(w, err)
+		return
+	}
+	if err := h.manager.ResumeAbandoned(ctx, m.ID.Hex(), uc.UserID); err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	writeJSON(w, map[string]any{"matchId": m.ID.Hex(), "status": "active"})
+}
+
 // getMatch returns a viewer's state over plain HTTP.
 //
 // The socket is the live path, but a plain GET makes the runtime testable and
@@ -586,11 +623,13 @@ func writeModuleError(w http.ResponseWriter, err error) {
 	code := module.CodeOf(err)
 	status := http.StatusBadRequest
 	switch code {
-	case "UNKNOWN_MODULE", "UNKNOWN_VARIATION", "NO_RULES":
+	case "UNKNOWN_MODULE", "UNKNOWN_VARIATION", "NO_RULES", "MATCH_NOT_FOUND":
 		status = http.StatusNotFound
+	case "NOT_AT_THIS_TABLE", "TABLE_HAS_OTHER_PLAYERS":
+		status = http.StatusForbidden
 	case "NOT_THE_HOST":
 		status = http.StatusForbidden
-	case "NO_LONGER_WAITING", "MATCH_FULL":
+	case "NO_LONGER_WAITING", "MATCH_FULL", "MATCH_NOT_ABANDONED", "MATCH_MOVED_ON":
 		// A conflict rather than a bad request: the caller did nothing wrong,
 		// the world moved under them.
 		status = http.StatusConflict

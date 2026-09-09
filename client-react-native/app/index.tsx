@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
@@ -13,7 +13,7 @@ import { useLobbySocket } from '@/src/hooks/useLobbySocket';
 import { useWaitingLobbyStatus } from '@/src/hooks/useWaitingLobbyStatus';
 import type { PlayerSession, WaitingPlayer } from '@/src/api/types';
 import { reasonText, t } from '@/src/lib/i18n';
-import { consumePendingInvite } from '@/src/lib/pendingInvite';
+import { consumePendingDestination } from '@/src/lib/pendingDestination';
 import { colors, shared } from '@/src/theme';
 
 function MenuButton({
@@ -43,7 +43,7 @@ function MenuButton({
 
 export default function MainMenu() {
   const { session, loading } = useSession();
-  useFollowPendingInvite(!!session && !loading);
+  useFollowPendingDestination(!!session && !loading);
 
   if (loading) {
     return (
@@ -125,7 +125,7 @@ export default function MainMenu() {
  * visit to the menu. Nothing happens without a session, which is what keeps
  * this from firing during the moment before storage has been read.
  */
-function useFollowPendingInvite(ready: boolean) {
+function useFollowPendingDestination(ready: boolean) {
   // Once per mount. The effect's dependencies settle more than once while the
   // session loads, and consuming twice would race the storage delete.
   const followed = useRef(false);
@@ -134,8 +134,14 @@ function useFollowPendingInvite(ready: boolean) {
     if (!ready || followed.current) return;
     followed.current = true;
     let live = true;
-    consumePendingInvite().then((code) => {
-      if (live && code) router.replace(`/join/${encodeURIComponent(code)}`);
+    consumePendingDestination().then((path) => {
+      // Cast because expo-router types routes as literals and this one is
+      // only known at run time. Safe by construction rather than by assertion:
+      // `pendingDestination` stores nothing that is not a path rooted at `/`,
+      // and re-checks on the way out — a route that no longer exists lands on
+      // the app's own not-found screen, which is the same thing a stale link
+      // pasted into the address bar does.
+      if (live && path) router.replace(path as Href);
     });
     return () => {
       live = false;

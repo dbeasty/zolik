@@ -23,6 +23,13 @@ export const sv: Record<string, string> = {
   'err.ALREADY_READY': 'Du är redo',
   'err.NOT_BETWEEN_ROUNDS': 'Ronden pågår fortfarande',
   'err.NOT_AT_THIS_TABLE': 'Du sitter inte vid det här bordet',
+  // Bringing a table back that the sweeper set aside. Refusals a player
+  // can actually provoke: a link to a table that is gone, one that was
+  // already picked up in another tab, and a table with other people at it.
+  'err.MATCH_MOVED_ON': 'Bordet har gått vidare — ladda om sidan',
+  'err.MATCH_NOT_ABANDONED': 'Det här bordet väntar inte på att återupptas',
+  'err.MATCH_NOT_FOUND': 'Det här bordet finns inte längre',
+  'err.TABLE_HAS_OTHER_PLAYERS': 'Bara ett bord där alla andra är bottar kan återupptas',
   'err.DISCARD_LOCKED': 'Kasthögen är låst tills vidare',
   'err.DISCARD_PILE_EMPTY': 'Kasthögen är tom',
   'err.NO_CARDS_LEFT': 'Inga kort kvar att dra',
@@ -905,6 +912,11 @@ export const sv: Record<string, string> = {
   'match.youWon': 'Du vann.',
   'match.finished': 'Den här matchen är slut.',
   'match.inProgress': 'Matchen pågår — allt är anslutet och rullar på normalt.',
+  'match.connecting': 'Ansluter…',
+  'match.abandonedTitle': 'Bordet undanlagt',
+  'match.abandoned': 'Ingen kom tillbaka till det här bordet, så det lades undan. Korten ligger precis där du lämnade dem.',
+  'match.resume': 'Fortsätt där du slutade',
+  'match.resuming': 'Hämtar tillbaka bordet…',
   'match.controls': 'Kontroller',
   'match.over': 'Matchen är slut',
   'match.settingUp': 'Förbereder…',

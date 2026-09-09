@@ -373,6 +373,17 @@ export class ZolikClient {
     await this.post(`/matches/${encodeURIComponent(idOrCode)}/start`, null, true);
   }
 
+  /**
+   * Bring back a table the server swept up after nobody came back to it.
+   *
+   * Only ever offered for a table whose other seats are all bots — the server
+   * enforces that rather than trusting the screen, and answers
+   * TABLE_HAS_OTHER_PLAYERS if the screen asks anyway.
+   */
+  async resumeMatch(idOrCode: string): Promise<void> {
+    await this.post(`/matches/${encodeURIComponent(idOrCode)}/resume`, null, true);
+  }
+
   /** A viewer's state over plain HTTP; the socket is the live path. */
   async getMatch(idOrCode: string, as?: string): Promise<MatchState> {
     const q = as ? `?as=${encodeURIComponent(as)}` : '';

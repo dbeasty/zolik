@@ -23,6 +23,13 @@ export const hr: Record<string, string> = {
   'err.ALREADY_READY': 'Spreman si',
   'err.NOT_BETWEEN_ROUNDS': 'Runda još traje',
   'err.NOT_AT_THIS_TABLE': 'Nisi za ovim stolom',
+  // Bringing a table back that the sweeper set aside. Refusals a player
+  // can actually provoke: a link to a table that is gone, one that was
+  // already picked up in another tab, and a table with other people at it.
+  'err.MATCH_MOVED_ON': 'Stol je otišao dalje — ponovno učitaj stranicu',
+  'err.MATCH_NOT_ABANDONED': 'Ovaj stol ne čeka nastavak',
+  'err.MATCH_NOT_FOUND': 'Ovaj stol više ne postoji',
+  'err.TABLE_HAS_OTHER_PLAYERS': 'Nastaviti se može samo stol za kojim su svi ostali botovi',
   'err.DISCARD_LOCKED': 'Hrpa odbačenih je zasad zaključana',
   'err.DISCARD_PILE_EMPTY': 'Hrpa odbačenih je prazna',
   'err.NO_CARDS_LEFT': 'Nema više karata za vučenje',
@@ -908,6 +915,11 @@ export const hr: Record<string, string> = {
   'match.youWon': 'Pobijedio si.',
   'match.finished': 'Ovaj meč je završio.',
   'match.inProgress': 'Meč je u tijeku — sve je povezano i teče normalno.',
+  'match.connecting': 'Povezivanje…',
+  'match.abandonedTitle': 'Stol odložen',
+  'match.abandoned': 'Nitko se nije vratio za ovaj stol pa je odložen. Karte su točno ondje gdje si ih ostavio.',
+  'match.resume': 'Nastavi gdje si stao',
+  'match.resuming': 'Vraćanje stola…',
   'match.controls': 'Upravljanje',
   'match.over': 'Kraj meča',
   'match.settingUp': 'Pripremamo…',

@@ -45,6 +45,8 @@ import {
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
 import { cardsForSelection, slotsForDrag, toggleSelection } from '@/src/lib/hand';
 import { reasonText, t } from '@/src/lib/i18n';
+import { ApiError } from '@/src/api/client';
+import { savePendingDestination } from '@/src/lib/pendingDestination';
 import { WhySheet, type Refusal } from '@/src/components/match/WhySheet';
 import { useRuleIndex } from '@/src/hooks/useRuleIndex';
 import { useSkinControls } from '@/src/hooks/useSkin';
@@ -80,7 +82,7 @@ import { dragLayer } from '@/src/theme';
  */
 export default function MatchScreen() {
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
-  const { session, client } = useSession();
+  const { session, client, loading } = useSession();
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
   // Whether what is currently selected was picked by the *app* rather than by
   // the player — see the auto-select effect below and `toggleSlot`.
@@ -91,6 +93,30 @@ export default function MatchScreen() {
     if (!matchId || !session?.accessToken) return null;
     return client.matchSocketUrl(String(matchId));
   }, [client, matchId, session?.accessToken]);
+
+  // A link to a table almost never arrives at a signed-in app: it comes out of
+  // a chat, on a device that may never have been used to play. Without this the
+  // screen rendered "Connecting…" for ever and meant it — the socket URL needs
+  // a token, `useMatchSocket` is handed null without one, and null is the one
+  // input it neither opens nor fails on. So the screen sat there with no
+  // socket, no error and no timeout, looking exactly like a server that was
+  // not answering. `/join/[code]` has always handed sign-in a note saying where
+  // to come back to; the table's own link, which is the one a player follows to
+  // their own game, never learned to.
+  //
+  // Waits for `loading`, because the session is read from storage
+  // asynchronously and acting before it settles would send a returning player
+  // through guest sign-in they did not need.
+  useEffect(() => {
+    if (loading || session || !matchId) return;
+    let live = true;
+    void savePendingDestination(`/match/${encodeURIComponent(String(matchId))}`).then(() => {
+      if (live) router.replace('/auth/guest');
+    });
+    return () => {
+      live = false;
+    };
+  }, [loading, session, matchId]);
 
   const { state, error, connected, send, clearError } = useMatchSocket(url);
   // The table's own written rules, by id — what a refusal's `ruleIds` point
@@ -177,6 +203,11 @@ export default function MatchScreen() {
   // up here for the same reason: hooks may not be conditional.
   const [startingAgain, setStartingAgain] = useState(false);
   const [againError, setAgainError] = useState('');
+  // Bringing a swept-up table back, and whatever went wrong trying. Separate
+  // from the pair above because they are separate offers on the same banner:
+  // one continues this game, the other starts a new one like it.
+  const [resuming, setResuming] = useState(false);
+  const [resumeError, setResumeError] = useState('');
   // The end of a match arrives the same way the end of a round does, because it
   // is the same kind of thing happening: the table stopped, and here is why.
   //
@@ -273,7 +304,7 @@ export default function MatchScreen() {
         <TableSurface />
         <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
           <Text testID="match-connecting" style={styles.muted}>
-            {connected ? t('match.waitingForTable') : 'Connecting…'}
+            {connected ? t('match.waitingForTable') : t('match.connecting')}
           </Text>
         </SafeAreaView>
       </View>
@@ -626,6 +657,31 @@ export default function MatchScreen() {
     }
   };
 
+  // This same table, carrying on from where it stopped.
+  //
+  // Nothing is rebuilt: the sweeper only wrote a status and an end time, so the
+  // hands, the melds, the pile and the score are all still on the server and
+  // the position comes back exactly as it was. There is deliberately no
+  // navigation afterwards — this socket is still open and still in the table's
+  // room, so the revived board arrives as an ordinary state message and the
+  // banner goes away by itself.
+  const resume = async () => {
+    setResuming(true);
+    setResumeError('');
+    try {
+      await client.resumeMatch(String(matchId));
+    } catch (e) {
+      // Rendered from the same locale bundle as every other refusal rather
+      // than as whatever the exception stringifies to: "Only a table where
+      // everyone else is a bot can be brought back" is an answer, where
+      // `ApiError: TABLE_HAS_OTHER_PLAYERS` is a stack trace shown to a player.
+      const code = e instanceof ApiError ? e.code : undefined;
+      setResumeError(reasonText(code, e instanceof Error ? e.message : String(e)));
+    } finally {
+      setResuming(false);
+    }
+  };
+
   // A stable id for remembering whether a zone's own panel is put away —
   // shared by every place this screen draws one.
   const panelIdFor = (zoneId: string) => `zone:${zoneId}`;
@@ -670,7 +726,8 @@ export default function MatchScreen() {
   // end of a match, and there is nothing to put in one before the first round
   // has finished.
   const showResults =
-    !!state.rounds?.rounds.length && (state.status === 'completed' || !!state.rounds.paused);
+    !!state.rounds?.rounds.length &&
+    (state.status === 'completed' || state.status === 'abandoned' || !!state.rounds.paused);
 
   // The table is sitting between rounds. The module's own answer, never worked
   // out here from the controls that happen to be live.
@@ -679,17 +736,31 @@ export default function MatchScreen() {
   const againstBotsAlone =
     state.players.length > 1 && state.players.every((p) => p.isAI || p.id === viewerId);
 
+  // The table was set aside by the sweeper rather than played to the end. A
+  // different ending, and it needs different words and a different offer — it
+  // is the one ending that can be undone.
+  const wasAbandoned = state.status === 'abandoned';
+
   // What the status dot means, in the same words the line it replaced used
   // to say. Red is the one case a player needs to notice — everything else
   // (active, completed) is green, since "simple red or green" was the ask,
   // not a status per state value.
-  const statusOk = state.status !== 'suspended';
+  //
+  // `abandoned` is red for the same reason `suspended` is, and adding it here
+  // is half of a real bug: the dot fell through to green and the explainer
+  // read "everything is connected and moving normally" on a table the sweeper
+  // had resolved hours earlier, whose every control the engine was refusing.
+  // That is the exact failure the comment above `winners` describes being
+  // fixed once for finished matches, reappearing for swept-up ones.
+  const statusOk = state.status !== 'suspended' && state.status !== 'abandoned';
   const statusExplainer =
     state.status === 'suspended'
       ? t('match.pausedFor', { name: playerName(state.players, state.suspendedPlayer ?? '') })
-      : state.status === 'completed'
-        ? t('match.finished')
-        : t('match.inProgress');
+      : state.status === 'abandoned'
+        ? t('match.abandoned')
+        : state.status === 'completed'
+          ? t('match.finished')
+          : t('match.inProgress');
 
   // The controls, built once and rendered in one of two places.
   //
@@ -868,19 +939,42 @@ export default function MatchScreen() {
             above the board rather than under it, because the board below is
             the position that ended and a player arrives at this banner from
             the move they just made. */}
-        {state.status === 'completed' ? (
+        {state.status === 'completed' || state.status === 'abandoned' ? (
           <Animated.View
-            style={[styles.over, iWon && styles.overWon, overArrival]}
+            style={[styles.over, iWon && !wasAbandoned && styles.overWon, overArrival]}
             testID="match-over"
             {...ending.anchor('over')}
           >
             <Text testID="match-over-title" style={styles.overTitle}>
-              {t('match.over')}
+              {wasAbandoned ? t('match.abandonedTitle') : t('match.over')}
             </Text>
+            {/* A swept-up table has no outcome to report — it did not end, it
+                stopped — so this says what happened to it instead, and that
+                nothing was lost. The winner of a deal played half an hour ago
+                is not the news. */}
             <Text testID="match-over-outcome" style={styles.overOutcome}>
-              {outcome}
+              {wasAbandoned ? t('match.abandoned') : outcome}
             </Text>
             <View style={styles.overActions}>
+              {/* Carrying on beats starting over, so it goes first and takes
+                  the ring. Offered only where the server will actually allow
+                  it: a table with other people at it was abandoned for all of
+                  them, and one player reviving it on their own would restart a
+                  game the others counted as over. */}
+              {wasAbandoned && againstBotsAlone ? (
+                <Pressable
+                  testID="match-over-resume"
+                  accessibilityState={{ disabled: resuming }}
+                  disabled={resuming}
+                  onPress={resume}
+                  style={[styles.overButton, resuming && styles.overButtonBusy]}
+                >
+                  <Attention active={!resuming} radius={8} />
+                  <Text style={styles.overButtonText}>
+                    {resuming ? t('match.resuming') : t('match.resume')}
+                  </Text>
+                </Pressable>
+              ) : null}
               {againstBotsAlone ? (
                 <Pressable
                   testID="match-over-again"
@@ -890,8 +984,10 @@ export default function MatchScreen() {
                   style={[styles.overButton, startingAgain && styles.overButtonBusy]}
                 >
                   {/* The same ring the way on gets between rounds: a finished
-                      match leaves one thing to do too. */}
-                  <Attention active={!startingAgain} radius={8} />
+                      match leaves one thing to do too. Not on a swept-up
+                      table, where resuming is the offer being pointed at and a
+                      second ring would point at nothing. */}
+                  <Attention active={!startingAgain && !wasAbandoned} radius={8} />
                   <Text style={styles.overButtonText}>
                     {startingAgain ? t('match.settingUp') : t('match.playAgain')}
                   </Text>
@@ -905,9 +1001,9 @@ export default function MatchScreen() {
                 <Text style={styles.overButtonQuietText}>{t('match.backToGames')}</Text>
               </Pressable>
             </View>
-            {againError ? (
+            {againError || resumeError ? (
               <Text testID="match-over-error" style={styles.overError}>
-                {againError}
+                {againError || resumeError}
               </Text>
             ) : null}
           </Animated.View>

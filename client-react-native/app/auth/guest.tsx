@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, Text, TextInput } from 'react-native';
 
@@ -8,7 +8,7 @@ import { LegalNotice } from '@/src/components/LegalNotice';
 import { Screen } from '@/src/components/Screen';
 import { loadGuestId, useSession } from '@/src/context/SessionContext';
 import { useAvatarControls } from '@/src/hooks/useAvatar';
-import { consumePendingInvite } from '@/src/lib/pendingInvite';
+import { consumePendingDestination } from '@/src/lib/pendingDestination';
 import { shared } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
 
@@ -42,12 +42,20 @@ export default function GuestScreen() {
     setError('');
     try {
       await guestLogin(name.trim() || 'Player');
-      // Somebody who arrived by following an invite came here to answer one
+      // Somebody who arrived by following a link came here to answer one
       // question — what to call themselves — and is owed the table they
-      // clicked, not the game picker. This is the far end of the handoff
-      // `/join/[code]` starts; see src/lib/pendingInvite.ts.
-      const invited = await consumePendingInvite();
-      router.replace(invited ? `/join/${encodeURIComponent(invited)}` : '/lobby/games');
+      // clicked, not the game picker. This is the far end of the handoff that
+      // `/join/[code]` and `/match/[matchId]` both start; see
+      // src/lib/pendingDestination.ts. The route is replayed rather than
+      // rebuilt, so this end needs to know nothing about either link's shape.
+      const going = await consumePendingDestination();
+      // Cast because expo-router types routes as literals and this one is
+      // only known at run time. Safe by construction rather than by assertion:
+      // `pendingDestination` stores nothing that is not a path rooted at `/`,
+      // and re-checks on the way out — a route that no longer exists lands on
+      // the app's own not-found screen, which is the same thing a stale link
+      // pasted into the address bar does.
+      router.replace((going || '/lobby/games') as Href);
     } catch (e) {
       setError(e instanceof Error ? e.message : t('error.login'));
     } finally {

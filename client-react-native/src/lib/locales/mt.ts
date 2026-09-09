@@ -23,6 +23,13 @@ export const mt: Record<string, string> = {
   'err.ALREADY_READY': 'Int lest',
   'err.NOT_BETWEEN_ROUNDS': 'Ir-rawnd għadu għaddej',
   'err.NOT_AT_THIS_TABLE': "M'intix f'din il-mejda",
+  // Bringing a table back that the sweeper set aside. Refusals a player
+  // can actually provoke: a link to a table that is gone, one that was
+  // already picked up in another tab, and a table with other people at it.
+  'err.MATCH_MOVED_ON': 'Il-mejda mxiet ’il quddiem — erġa’ agħbi l-paġna',
+  'err.MATCH_NOT_ABANDONED': 'Din il-mejda mhix tistenna li terġa’ tinbeda',
+  'err.MATCH_NOT_FOUND': 'Din il-mejda ma għadhiex teżisti',
+  'err.TABLE_HAS_OTHER_PLAYERS': 'Tista’ terġa’ tinbeda biss mejda fejn l-oħrajn kollha huma bots',
   'err.DISCARD_LOCKED': 'Il-munzell tal-iskart huwa msakkar għalissa',
   'err.DISCARD_PILE_EMPTY': 'Il-munzell tal-iskart huwa vojt',
   'err.NO_CARDS_LEFT': "M'hemmx aktar karti x'tiġbed",
@@ -923,6 +930,11 @@ export const mt: Record<string, string> = {
   'match.youWon': 'Rbaħt.',
   'match.finished': 'Din il-partita spiċċat.',
   'match.inProgress': 'Il-partita għaddejja — kollox huwa konness u miexi normali.',
+  'match.connecting': 'Qed jgħaqqad…',
+  'match.abandonedTitle': 'Mejda mwarrba',
+  'match.abandoned': 'Ħadd ma reġa’ lura għal din il-mejda, għalhekk twarrbet. Il-karti qegħdin eżatt fejn ħallejthom.',
+  'match.resume': 'Kompli minn fejn waqaft',
+  'match.resuming': 'Il-mejda qed tinġieb lura…',
   'match.controls': 'Kontrolli',
   'match.over': 'Il-partita spiċċat',
   'match.settingUp': 'Qed nippreparaw…',

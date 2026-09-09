@@ -28,6 +28,13 @@ export const en: Record<string, string> = {
   'err.ALREADY_READY': 'You are ready',
   'err.NOT_BETWEEN_ROUNDS': 'The round is still being played',
   'err.NOT_AT_THIS_TABLE': 'You are not at this table',
+  // Bringing a table back that the sweeper set aside. Refusals a player
+  // can actually provoke: a link to a table that is gone, one that was
+  // already picked up in another tab, and a table with other people at it.
+  'err.MATCH_MOVED_ON': 'The table moved on — reload to see where it is',
+  'err.MATCH_NOT_ABANDONED': 'That table is not waiting to be brought back',
+  'err.MATCH_NOT_FOUND': 'That table no longer exists',
+  'err.TABLE_HAS_OTHER_PLAYERS': 'Only a table where everyone else is a bot can be brought back',
   'err.DISCARD_LOCKED': 'The discard pile is locked for now',
   'err.DISCARD_PILE_EMPTY': 'The discard pile is empty',
   'err.NO_CARDS_LEFT': 'No cards left to draw',
@@ -902,6 +909,11 @@ export const en: Record<string, string> = {
   'match.youWon': 'You won.',
   'match.finished': 'This match has finished.',
   'match.inProgress': 'Match in progress — everything is connected and moving normally.',
+  'match.connecting': 'Connecting…',
+  'match.abandonedTitle': 'Table set aside',
+  'match.abandoned': 'Nobody came back to this table, so it was set aside. The cards are exactly where you left them.',
+  'match.resume': 'Pick up where you left off',
+  'match.resuming': 'Bringing the table back…',
   'match.controls': 'Controls',
   'match.over': 'Match over',
   'match.settingUp': 'Setting up…',

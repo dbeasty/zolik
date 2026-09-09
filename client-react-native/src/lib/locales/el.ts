@@ -23,6 +23,13 @@ export const el: Record<string, string> = {
   'err.ALREADY_READY': 'Είσαι έτοιμος',
   'err.NOT_BETWEEN_ROUNDS': 'Ο γύρος παίζεται ακόμα',
   'err.NOT_AT_THIS_TABLE': 'Δεν είσαι σε αυτό το τραπέζι',
+  // Bringing a table back that the sweeper set aside. Refusals a player
+  // can actually provoke: a link to a table that is gone, one that was
+  // already picked up in another tab, and a table with other people at it.
+  'err.MATCH_MOVED_ON': 'Το τραπέζι προχώρησε — φόρτωσε ξανά τη σελίδα',
+  'err.MATCH_NOT_ABANDONED': 'Αυτό το τραπέζι δεν περιμένει να συνεχιστεί',
+  'err.MATCH_NOT_FOUND': 'Αυτό το τραπέζι δεν υπάρχει πια',
+  'err.TABLE_HAS_OTHER_PLAYERS': 'Μόνο ένα τραπέζι όπου όλοι οι άλλοι είναι μποτ μπορεί να συνεχιστεί',
   'err.DISCARD_LOCKED': 'Ο σωρός απόρριψης είναι προς το παρόν κλειδωμένος',
   'err.DISCARD_PILE_EMPTY': 'Ο σωρός απόρριψης είναι άδειος',
   'err.NO_CARDS_LEFT': 'Δεν έμειναν φύλλα για τράβηγμα',
@@ -934,6 +941,11 @@ export const el: Record<string, string> = {
   'match.youWon': 'Κέρδισες.',
   'match.finished': 'Αυτός ο αγώνας τελείωσε.',
   'match.inProgress': 'Ο αγώνας είναι σε εξέλιξη — όλα είναι συνδεδεμένα και κυλούν κανονικά.',
+  'match.connecting': 'Σύνδεση…',
+  'match.abandonedTitle': 'Το τραπέζι μπήκε στην άκρη',
+  'match.abandoned': 'Κανείς δεν επέστρεψε σε αυτό το τραπέζι, οπότε μπήκε στην άκρη. Τα φύλλα είναι ακριβώς εκεί που τα άφησες.',
+  'match.resume': 'Συνέχισε από εκεί που έμεινες',
+  'match.resuming': 'Επαναφορά τραπεζιού…',
   'match.controls': 'Χειριστήρια',
   'match.over': 'Ο αγώνας τελείωσε',
   'match.settingUp': 'Ετοιμάζουμε…',

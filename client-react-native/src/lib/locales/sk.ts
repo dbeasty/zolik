@@ -23,6 +23,13 @@ export const sk: Record<string, string> = {
   'err.ALREADY_READY': 'Si pripravený',
   'err.NOT_BETWEEN_ROUNDS': 'Kolo ešte prebieha',
   'err.NOT_AT_THIS_TABLE': 'Nesedíš pri tomto stole',
+  // Bringing a table back that the sweeper set aside. Refusals a player
+  // can actually provoke: a link to a table that is gone, one that was
+  // already picked up in another tab, and a table with other people at it.
+  'err.MATCH_MOVED_ON': 'Stôl sa medzitým posunul — načítaj stránku znova',
+  'err.MATCH_NOT_ABANDONED': 'Tento stôl na obnovenie nečaká',
+  'err.MATCH_NOT_FOUND': 'Tento stôl už neexistuje',
+  'err.TABLE_HAS_OTHER_PLAYERS': 'Obnoviť sa dá len stôl, kde sú všetci ostatní boti',
   'err.DISCARD_LOCKED': 'Odhadzovací balíček je zatiaľ zamknutý',
   'err.DISCARD_PILE_EMPTY': 'Odhadzovací balíček je prázdny',
   'err.NO_CARDS_LEFT': 'Nie sú už karty na ťahanie',
@@ -907,6 +914,11 @@ export const sk: Record<string, string> = {
   'match.youWon': 'Vyhral si.',
   'match.finished': 'Tento zápas sa skončil.',
   'match.inProgress': 'Zápas beží — všetko je pripojené a funguje normálne.',
+  'match.connecting': 'Pripájam…',
+  'match.abandonedTitle': 'Stôl odložený',
+  'match.abandoned': 'K tomuto stolu sa nikto nevrátil, tak bol odložený. Karty sú presne tam, kde si ich nechal.',
+  'match.resume': 'Pokračovať tam, kde si skončil',
+  'match.resuming': 'Obnovujem stôl…',
   'match.controls': 'Ovládanie',
   'match.over': 'Koniec zápasu',
   'match.settingUp': 'Pripravujeme…',

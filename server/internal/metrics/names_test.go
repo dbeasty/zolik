@@ -17,13 +17,15 @@ import (
 var (
 	allowedConstants = map[string]bool{
 		"MatchesCreated": true, "MatchesStarted": true, "MatchesCompleted": true,
-		"MatchesAbandoned": true, "UsersRegistered": true, "SessionsGuest": true,
+		"MatchesAbandoned": true, "MatchesResumed": true,
+		"UsersRegistered": true, "SessionsGuest": true,
 		"WSConnected": true, "AdmissionRefusedMatchStart": true,
 		"BootsTotal": true, "BootsUnclean": true,
 		"AdminLoginOK": true, "AdminLoginDenied": true,
 	}
 	allowedBuilders = map[string]bool{
-		"MatchesCompletedFor": true, "MatchesAbandonedFor": true, "AdmissionRefusedFor": true,
+		"MatchesCompletedFor": true, "MatchesAbandonedFor": true,
+		"MatchesResumedFor": true, "AdmissionRefusedFor": true,
 	}
 )
 

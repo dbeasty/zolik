@@ -20,6 +20,13 @@ const (
 	MatchesStarted   = "matches.started"
 	MatchesCompleted = "matches.completed"
 	MatchesAbandoned = "matches.abandoned"
+	// MatchesResumed counts abandoned tables a player brought back. It is a
+	// correction rather than a lifecycle event of its own: the table really
+	// was abandoned when the sweeper said so, and that line stays in the log,
+	// but a game that got played out afterwards is not one anybody failed to
+	// finish. completionRate subtracts these from the abandoned side for
+	// exactly that reason.
+	MatchesResumed = "matches.resumed"
 
 	// UsersRegistered counts accounts, not people arriving: a guest who plays
 	// for a month and never signs up is in SessionsGuest and in the day's
@@ -57,6 +64,7 @@ const (
 	MatchesCompletedPrefix = "matches.completed."
 	AdmissionRefusedPrefix = "admission.refused."
 	MatchesAbandonedPrefix = "matches.abandoned."
+	MatchesResumedPrefix   = "matches.resumed."
 )
 
 // MatchesCompletedFor names the per-module completion counter.
@@ -67,6 +75,11 @@ func MatchesCompletedFor(moduleID string) string {
 // MatchesAbandonedFor names the per-module abandonment counter.
 func MatchesAbandonedFor(moduleID string) string {
 	return MatchesAbandonedPrefix + sanitise(moduleID)
+}
+
+// MatchesResumedFor names the per-module resumption counter.
+func MatchesResumedFor(moduleID string) string {
+	return MatchesResumedPrefix + sanitise(moduleID)
 }
 
 // AdmissionRefusedFor names the per-reason refusal counter.
