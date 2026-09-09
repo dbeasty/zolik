@@ -23,6 +23,13 @@ export const fr: Record<string, string> = {
   'err.ALREADY_READY': 'Tu es prêt',
   'err.NOT_BETWEEN_ROUNDS': 'La manche est encore en cours',
   'err.NOT_AT_THIS_TABLE': "Tu n'es pas à cette table",
+  // Bringing a table back that the sweeper set aside. Refusals a player
+  // can actually provoke: a link to a table that is gone, one that was
+  // already picked up in another tab, and a table with other people at it.
+  'err.MATCH_MOVED_ON': 'La table a changé — recharge la page',
+  'err.MATCH_NOT_ABANDONED': 'Cette table n’attend pas d’être reprise',
+  'err.MATCH_NOT_FOUND': 'Cette table n’existe plus',
+  'err.TABLE_HAS_OTHER_PLAYERS': 'Seule une table où tous les autres sont des bots peut être reprise',
   'err.DISCARD_LOCKED': "La défausse est verrouillée pour l'instant",
   'err.DISCARD_PILE_EMPTY': 'La défausse est vide',
   'err.NO_CARDS_LEFT': 'Plus de cartes à piocher',
@@ -923,6 +930,11 @@ export const fr: Record<string, string> = {
   'match.youWon': 'Tu as gagné.',
   'match.finished': 'Cette partie est terminée.',
   'match.inProgress': 'Partie en cours — tout est connecté et fonctionne normalement.',
+  'match.connecting': 'Connexion…',
+  'match.abandonedTitle': 'Table mise de côté',
+  'match.abandoned': 'Personne n’est revenu à cette table, elle a donc été mise de côté. Les cartes sont exactement là où tu les as laissées.',
+  'match.resume': 'Reprendre où tu t’es arrêté',
+  'match.resuming': 'Reprise de la table…',
   'match.controls': 'Commandes',
   'match.over': 'Partie terminée',
   'match.settingUp': 'Préparation…',

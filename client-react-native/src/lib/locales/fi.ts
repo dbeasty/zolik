@@ -23,6 +23,13 @@ export const fi: Record<string, string> = {
   'err.ALREADY_READY': 'Olet valmis',
   'err.NOT_BETWEEN_ROUNDS': 'Kierros on vielä kesken',
   'err.NOT_AT_THIS_TABLE': 'Et ole tässä pöydässä',
+  // Bringing a table back that the sweeper set aside. Refusals a player
+  // can actually provoke: a link to a table that is gone, one that was
+  // already picked up in another tab, and a table with other people at it.
+  'err.MATCH_MOVED_ON': 'Pöytä on edennyt — lataa sivu uudelleen',
+  'err.MATCH_NOT_ABANDONED': 'Tämä pöytä ei odota jatkamista',
+  'err.MATCH_NOT_FOUND': 'Tätä pöytää ei ole enää',
+  'err.TABLE_HAS_OTHER_PLAYERS': 'Vain pöydän, jossa kaikki muut ovat botteja, voi palauttaa',
   'err.DISCARD_LOCKED': 'Poistopino on toistaiseksi lukittu',
   'err.DISCARD_PILE_EMPTY': 'Poistopino on tyhjä',
   'err.NO_CARDS_LEFT': 'Nostettavia kortteja ei ole jäljellä',
@@ -916,6 +923,11 @@ export const fi: Record<string, string> = {
   'match.youWon': 'Voitit.',
   'match.finished': 'Tämä ottelu on päättynyt.',
   'match.inProgress': 'Ottelu käynnissä — kaikki on yhteydessä ja etenee normaalisti.',
+  'match.connecting': 'Yhdistetään…',
+  'match.abandonedTitle': 'Pöytä siirretty sivuun',
+  'match.abandoned': 'Kukaan ei palannut tähän pöytään, joten se siirrettiin sivuun. Kortit ovat täsmälleen siinä, mihin jätit ne.',
+  'match.resume': 'Jatka siitä, mihin jäit',
+  'match.resuming': 'Palautetaan pöytää…',
   'match.controls': 'Ohjaimet',
   'match.over': 'Ottelu päättyi',
   'match.settingUp': 'Valmistellaan…',

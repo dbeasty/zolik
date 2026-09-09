@@ -23,6 +23,13 @@ export const pl: Record<string, string> = {
   'err.ALREADY_READY': 'Jesteś gotowy',
   'err.NOT_BETWEEN_ROUNDS': 'Runda wciąż trwa',
   'err.NOT_AT_THIS_TABLE': 'Nie siedzisz przy tym stole',
+  // Bringing a table back that the sweeper set aside. Refusals a player
+  // can actually provoke: a link to a table that is gone, one that was
+  // already picked up in another tab, and a table with other people at it.
+  'err.MATCH_MOVED_ON': 'Stół poszedł dalej — odśwież stronę',
+  'err.MATCH_NOT_ABANDONED': 'Ten stół nie czeka na wznowienie',
+  'err.MATCH_NOT_FOUND': 'Ten stół już nie istnieje',
+  'err.TABLE_HAS_OTHER_PLAYERS': 'Wznowić można tylko stół, przy którym wszyscy pozostali to boty',
   'err.DISCARD_LOCKED': 'Stos odrzuconych jest na razie zablokowany',
   'err.DISCARD_PILE_EMPTY': 'Stos odrzuconych jest pusty',
   'err.NO_CARDS_LEFT': 'Nie ma już kart do dobrania',
@@ -914,6 +921,11 @@ export const pl: Record<string, string> = {
   'match.youWon': 'Wygrałeś.',
   'match.finished': 'Ten mecz się zakończył.',
   'match.inProgress': 'Mecz w toku — wszystko jest połączone i działa normalnie.',
+  'match.connecting': 'Łączenie…',
+  'match.abandonedTitle': 'Stół odłożony',
+  'match.abandoned': 'Nikt nie wrócił do tego stołu, więc został odłożony. Karty są dokładnie tam, gdzie je zostawiłeś.',
+  'match.resume': 'Wróć tam, gdzie skończyłeś',
+  'match.resuming': 'Przywracanie stołu…',
   'match.controls': 'Sterowanie',
   'match.over': 'Koniec meczu',
   'match.settingUp': 'Przygotowujemy…',

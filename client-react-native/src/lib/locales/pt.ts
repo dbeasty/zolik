@@ -23,6 +23,13 @@ export const pt: Record<string, string> = {
   'err.ALREADY_READY': 'Já estás pronto',
   'err.NOT_BETWEEN_ROUNDS': 'A ronda ainda está a decorrer',
   'err.NOT_AT_THIS_TABLE': 'Não estás nesta mesa',
+  // Bringing a table back that the sweeper set aside. Refusals a player
+  // can actually provoke: a link to a table that is gone, one that was
+  // already picked up in another tab, and a table with other people at it.
+  'err.MATCH_MOVED_ON': 'A mesa avançou — recarrega a página',
+  'err.MATCH_NOT_ABANDONED': 'Esta mesa não está à espera de ser retomada',
+  'err.MATCH_NOT_FOUND': 'Esta mesa já não existe',
+  'err.TABLE_HAS_OTHER_PLAYERS': 'Só se pode retomar uma mesa em que todos os outros são bots',
   'err.DISCARD_LOCKED': 'O monte de descartes está bloqueado por agora',
   'err.DISCARD_PILE_EMPTY': 'O monte de descartes está vazio',
   'err.NO_CARDS_LEFT': 'Já não há cartas para comprar',
@@ -919,6 +926,11 @@ export const pt: Record<string, string> = {
   'match.youWon': 'Ganhaste.',
   'match.finished': 'Esta partida terminou.',
   'match.inProgress': 'Partida a decorrer — está tudo ligado e a funcionar normalmente.',
+  'match.connecting': 'A ligar…',
+  'match.abandonedTitle': 'Mesa posta de lado',
+  'match.abandoned': 'Ninguém voltou a esta mesa, por isso foi posta de lado. As cartas estão exatamente onde as deixaste.',
+  'match.resume': 'Continuar onde ficaste',
+  'match.resuming': 'A recuperar a mesa…',
   'match.controls': 'Comandos',
   'match.over': 'Partida terminada',
   'match.settingUp': 'A preparar…',

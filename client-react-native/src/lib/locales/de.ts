@@ -23,6 +23,13 @@ export const de: Record<string, string> = {
   'err.ALREADY_READY': 'Du bist bereit',
   'err.NOT_BETWEEN_ROUNDS': 'Die Runde läuft noch',
   'err.NOT_AT_THIS_TABLE': 'Du sitzt nicht an diesem Tisch',
+  // Bringing a table back that the sweeper set aside. Refusals a player
+  // can actually provoke: a link to a table that is gone, one that was
+  // already picked up in another tab, and a table with other people at it.
+  'err.MATCH_MOVED_ON': 'Der Tisch hat sich weiterbewegt — lade die Seite neu',
+  'err.MATCH_NOT_ABANDONED': 'Dieser Tisch wartet nicht darauf, fortgesetzt zu werden',
+  'err.MATCH_NOT_FOUND': 'Diesen Tisch gibt es nicht mehr',
+  'err.TABLE_HAS_OTHER_PLAYERS': 'Nur ein Tisch, an dem alle anderen Bots sind, lässt sich fortsetzen',
   'err.DISCARD_LOCKED': 'Der Ablagestapel ist vorerst gesperrt',
   'err.DISCARD_PILE_EMPTY': 'Der Ablagestapel ist leer',
   'err.NO_CARDS_LEFT': 'Keine Karten mehr zum Ziehen',
@@ -927,6 +934,11 @@ export const de: Record<string, string> = {
   'match.youWon': 'Du hast gewonnen.',
   'match.finished': 'Diese Partie ist beendet.',
   'match.inProgress': 'Partie läuft — alles ist verbunden und läuft normal.',
+  'match.connecting': 'Verbinde…',
+  'match.abandonedTitle': 'Tisch beiseitegelegt',
+  'match.abandoned': 'Niemand ist an diesen Tisch zurückgekehrt, also wurde er beiseitegelegt. Die Karten liegen genau so, wie du sie verlassen hast.',
+  'match.resume': 'Dort weitermachen, wo du aufgehört hast',
+  'match.resuming': 'Tisch wird zurückgeholt…',
   'match.controls': 'Steuerung',
   'match.over': 'Partie beendet',
   'match.settingUp': 'Wird vorbereitet …',

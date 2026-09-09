@@ -30,6 +30,10 @@ const codesNeedingNoWording = new Set([
   'UNKNOWN_OPTION',
   'OPTION_NOT_ALLOWED',
   'NO_RULES',
+  // A match id that is not an object id. The routes resolve the match before
+  // any handler runs, so a bad id is a 404 long before this code can be
+  // returned; it exists to make the manager total rather than to be read.
+  'INVALID_MATCH_ID',
 ]);
 
 describe('server key coverage', () => {

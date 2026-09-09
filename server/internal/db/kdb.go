@@ -638,13 +638,27 @@ func injectDocID(doc []byte, id codec.UUID) ([]byte, error) {
 // reads filter on the same fields (correctness) and this sweep reclaims the
 // space (parity).
 type expiryProbe struct {
-	ExpiresAt time.Time  `bson:"expiresAt"`
-	AbandonAt *time.Time `bson:"abandonAt"`
+	ExpiresAt time.Time `bson:"expiresAt"`
 }
 
 // sweptNamespaces mirrors mongo.go's TTL indexes: sessions, login codes and
-// OAuth flows die at expiresAt; a suspended match dies at abandonAt.
-var sweptNamespaces = []string{NSSessions, NSLoginCodes, NSOAuthFlows, NSMatches}
+// OAuth flows die at expiresAt.
+//
+// Matches are deliberately not here, and abandonAt is deliberately not an
+// expiry field. It used to be both, and the pair destroyed games: abandonAt is
+// not "delete me at", it is "decide about me at", and match.StartReaper is
+// what decides — it marks the table abandoned, clears abandonAt, and leaves
+// the row. Sweeping the same field turned that into a race between two
+// timers, and when this one won there was no abandoned match to report, no
+// row for the statistics, and nothing left of the game: a player following
+// their own link got a table that had never existed rather than one that had
+// ended. The reaper's 30s tick beat this one's minute often enough that the
+// losses looked random.
+//
+// A resolved match is history and stays, exactly like a completed one. What
+// bounds the collection is that suspended tables stop being suspended within
+// AbandonWindow, not that they are eventually deleted.
+var sweptNamespaces = []string{NSSessions, NSLoginCodes, NSOAuthFlows}
 
 func (k *KDB) sweep() {
 	defer close(k.done)
@@ -676,9 +690,9 @@ func (k *KDB) sweepNamespace(n *kdbNamespace) {
 	}
 	for _, id := range dead {
 		n.mu.Lock()
-		// Re-check under the lock: a suspended match can be resumed — its
-		// abandonAt cleared — between the scan above and this delete, and
-		// deleting it then would kill a live table.
+		// Re-check under the lock: a document can be rewritten with a later
+		// expiry between the scan above and this delete, and deleting it then
+		// would drop a session that had just been extended.
 		if doc, _, found, err := n.srv.GetDocument(n.id, id); err == nil && found && expired([]byte(doc), now) {
 			_, _ = n.deleteByUUID(id)
 		}
@@ -692,8 +706,5 @@ func expired(doc []byte, now time.Time) bool {
 	if err := UnmarshalDoc(doc, &p); err != nil {
 		return false
 	}
-	if !p.ExpiresAt.IsZero() && p.ExpiresAt.Before(now) {
-		return true
-	}
-	return p.AbandonAt != nil && !p.AbandonAt.IsZero() && p.AbandonAt.Before(now)
+	return !p.ExpiresAt.IsZero() && p.ExpiresAt.Before(now)
 }

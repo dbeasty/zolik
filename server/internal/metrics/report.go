@@ -70,6 +70,11 @@ type MatchCounts struct {
 	Started   int64 `json:"started"`
 	Completed int64 `json:"completed"`
 	Abandoned int64 `json:"abandoned"`
+	// Resumed is abandoned tables a player brought back — a correction to the
+	// line above rather than a category of its own. Reported separately so
+	// the operator can see both the sweeper's raw work and the net figure,
+	// and subtracted from the abandoned side of CompletionRate.
+	Resumed int64 `json:"resumed"`
 	// NeverStarted is a lobby that never filled: created, and never became a
 	// game at all. Not a game anybody failed to finish.
 	NeverStarted int64 `json:"neverStarted"`
@@ -231,6 +236,7 @@ func foldDay(p *Period, d Day) {
 	p.Matches.Started += d.Counter(MatchesStarted)
 	p.Matches.Completed += d.Counter(MatchesCompleted)
 	p.Matches.Abandoned += d.Counter(MatchesAbandoned)
+	p.Matches.Resumed += d.Counter(MatchesResumed)
 	p.Users.Registered += d.Counter(UsersRegistered)
 	p.Users.Guests += d.Counter(SessionsGuest)
 	p.Admission.Connections += d.Counter(WSConnected)
@@ -301,8 +307,22 @@ func sortReasons(rows []ReasonCount) []ReasonCount {
 
 // completionRate is completed over everything that resolved, and zero when
 // nothing did.
+//
+// A resumed table is subtracted from the abandoned side. Without that, a game
+// swept up while its player was away and then played to the end would count
+// once in each column and be treated as two resolutions — pushing the rate
+// towards 50% for a table nobody actually walked away from.
+//
+// Clamped at zero because the two counters are daily and a resumption need not
+// land in the same bucket as the abandonment it corrects: a table swept at
+// 23:58 and brought back after midnight would otherwise give the second day a
+// negative abandoned count and a completion rate above 1.
 func completionRate(m MatchCounts) float64 {
-	resolved := m.Completed + m.Abandoned
+	abandoned := m.Abandoned - m.Resumed
+	if abandoned < 0 {
+		abandoned = 0
+	}
+	resolved := m.Completed + abandoned
 	if resolved == 0 {
 		return 0
 	}
@@ -316,6 +336,7 @@ func totalsFrom(buckets []Period, distinctPlayers int, floor bool) Totals {
 		t.Matches.Started += p.Matches.Started
 		t.Matches.Completed += p.Matches.Completed
 		t.Matches.Abandoned += p.Matches.Abandoned
+		t.Matches.Resumed += p.Matches.Resumed
 		t.Users.Registered += p.Users.Registered
 		t.Users.Guests += p.Users.Guests
 		t.Admission.Total += p.Admission.Total

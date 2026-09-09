@@ -23,6 +23,13 @@ export const ro: Record<string, string> = {
   'err.ALREADY_READY': 'Ești pregătit',
   'err.NOT_BETWEEN_ROUNDS': 'Runda încă se joacă',
   'err.NOT_AT_THIS_TABLE': 'Nu ești la această masă',
+  // Bringing a table back that the sweeper set aside. Refusals a player
+  // can actually provoke: a link to a table that is gone, one that was
+  // already picked up in another tab, and a table with other people at it.
+  'err.MATCH_MOVED_ON': 'Masa a mers mai departe — reîncarcă pagina',
+  'err.MATCH_NOT_ABANDONED': 'Această masă nu așteaptă să fie reluată',
+  'err.MATCH_NOT_FOUND': 'Această masă nu mai există',
+  'err.TABLE_HAS_OTHER_PLAYERS': 'Poate fi reluată doar o masă la care toți ceilalți sunt boți',
   'err.DISCARD_LOCKED': 'Teancul de aruncate este blocat deocamdată',
   'err.DISCARD_PILE_EMPTY': 'Teancul de aruncate este gol',
   'err.NO_CARDS_LEFT': 'Nu mai sunt cărți de tras',
@@ -916,6 +923,11 @@ export const ro: Record<string, string> = {
   'match.youWon': 'Ai câștigat.',
   'match.finished': 'Acest meci s-a încheiat.',
   'match.inProgress': 'Meci în desfășurare — totul e conectat și merge normal.',
+  'match.connecting': 'Se conectează…',
+  'match.abandonedTitle': 'Masă pusă deoparte',
+  'match.abandoned': 'Nimeni nu s-a întors la această masă, așa că a fost pusă deoparte. Cărțile sunt exact unde le-ai lăsat.',
+  'match.resume': 'Continuă de unde ai rămas',
+  'match.resuming': 'Se recuperează masa…',
   'match.controls': 'Comenzi',
   'match.over': 'Meci încheiat',
   'match.settingUp': 'Pregătim…',

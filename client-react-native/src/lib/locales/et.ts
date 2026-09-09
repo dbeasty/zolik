@@ -23,6 +23,13 @@ export const et: Record<string, string> = {
   'err.ALREADY_READY': 'Oled valmis',
   'err.NOT_BETWEEN_ROUNDS': 'Voor käib veel',
   'err.NOT_AT_THIS_TABLE': 'Sa ei ole selle laua taga',
+  // Bringing a table back that the sweeper set aside. Refusals a player
+  // can actually provoke: a link to a table that is gone, one that was
+  // already picked up in another tab, and a table with other people at it.
+  'err.MATCH_MOVED_ON': 'Laud on edasi liikunud — laadi leht uuesti',
+  'err.MATCH_NOT_ABANDONED': 'See laud ei oota jätkamist',
+  'err.MATCH_NOT_FOUND': 'Seda lauda enam ei ole',
+  'err.TABLE_HAS_OTHER_PLAYERS': 'Taastada saab ainult laua, kus kõik teised on robotid',
   'err.DISCARD_LOCKED': 'Viskepakk on esialgu lukus',
   'err.DISCARD_PILE_EMPTY': 'Viskepakk on tühi',
   'err.NO_CARDS_LEFT': 'Tõmmata pole enam midagi',
@@ -909,6 +916,11 @@ export const et: Record<string, string> = {
   'match.youWon': 'Sa võitsid.',
   'match.finished': 'See matš on lõppenud.',
   'match.inProgress': 'Matš käib — kõik on ühendatud ja liigub tavapäraselt.',
+  'match.connecting': 'Ühendan…',
+  'match.abandonedTitle': 'Laud kõrvale pandud',
+  'match.abandoned': 'Keegi ei tulnud selle laua juurde tagasi, nii et see pandi kõrvale. Kaardid on täpselt seal, kuhu sa need jätsid.',
+  'match.resume': 'Jätka sealt, kus pooleli jäid',
+  'match.resuming': 'Taastan lauda…',
   'match.controls': 'Juhtnupud',
   'match.over': 'Matš läbi',
   'match.settingUp': 'Valmistame ette…',

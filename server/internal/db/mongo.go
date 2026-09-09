@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -46,15 +47,42 @@ func (m *Mongo) Close(ctx context.Context) error {
 	return m.Client.Disconnect(ctx)
 }
 
+// isMissingIndex reports whether an index drop failed only because there was
+// nothing there — a fresh database, or one already migrated.
+func isMissingIndex(err error) bool {
+	var ce mongo.CommandError
+	if errors.As(err, &ce) {
+		// 26 NamespaceNotFound, 27 IndexNotFound.
+		return ce.Code == 26 || ce.Code == 27
+	}
+	return false
+}
+
 func (m *Mongo) EnsureIndexes(ctx context.Context) error {
 	c := m.Collections()
 
 	// games
+	//
+	// abandonAt deliberately carries no TTL index. It used to, and the index
+	// destroyed games: abandonAt is not "delete me at", it is "decide about me
+	// at", and match.StartReaper is what decides — it marks the table
+	// abandoned, clears abandonAt, and leaves the row. A TTL index on the same
+	// field made that a race between Mongo's expiry monitor and the reaper,
+	// and when Mongo won the whole match was gone: no abandoned row for the
+	// statistics, and a player following their own link got a table that had
+	// never existed rather than one that had ended.
 	if _, err := c.Games.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{Keys: bson.D{{Key: "status", Value: 1}}},
 		{Keys: bson.D{{Key: "players.userId", Value: 1}}},
-		{Keys: bson.D{{Key: "abandonAt", Value: 1}}, Options: options.Index().SetExpireAfterSeconds(0)},
 	}); err != nil {
+		return err
+	}
+	// Dropped rather than merely not created: an index lives in the database,
+	// not in this file, so a deployment that ever ran the old build keeps
+	// expiring matches until something removes it. Named by its field, which
+	// is how CreateMany named it. A NamespaceNotFound or IndexNotFound simply
+	// means there is nothing to undo.
+	if err := c.Games.Indexes().DropOne(ctx, "abandonAt_1"); err != nil && !isMissingIndex(err) {
 		return err
 	}
 

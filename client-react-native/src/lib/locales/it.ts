@@ -23,6 +23,13 @@ export const it: Record<string, string> = {
   'err.ALREADY_READY': 'Sei già pronto',
   'err.NOT_BETWEEN_ROUNDS': 'Il round è ancora in gioco',
   'err.NOT_AT_THIS_TABLE': 'Non sei a questo tavolo',
+  // Bringing a table back that the sweeper set aside. Refusals a player
+  // can actually provoke: a link to a table that is gone, one that was
+  // already picked up in another tab, and a table with other people at it.
+  'err.MATCH_MOVED_ON': 'Il tavolo è andato avanti — ricarica la pagina',
+  'err.MATCH_NOT_ABANDONED': 'Questo tavolo non è in attesa di essere ripreso',
+  'err.MATCH_NOT_FOUND': 'Questo tavolo non esiste più',
+  'err.TABLE_HAS_OTHER_PLAYERS': 'Si può riprendere solo un tavolo in cui tutti gli altri sono bot',
   'err.DISCARD_LOCKED': 'La pila degli scarti è bloccata per ora',
   'err.DISCARD_PILE_EMPTY': 'La pila degli scarti è vuota',
   'err.NO_CARDS_LEFT': 'Non ci sono più carte da pescare',
@@ -918,6 +925,11 @@ export const it: Record<string, string> = {
   'match.youWon': 'Hai vinto.',
   'match.finished': 'Questa partita è finita.',
   'match.inProgress': 'Partita in corso — è tutto connesso e funziona normalmente.',
+  'match.connecting': 'Connessione…',
+  'match.abandonedTitle': 'Tavolo messo da parte',
+  'match.abandoned': 'Nessuno è tornato a questo tavolo, così è stato messo da parte. Le carte sono esattamente dove le hai lasciate.',
+  'match.resume': 'Riprendi da dove eri rimasto',
+  'match.resuming': 'Recupero del tavolo…',
   'match.controls': 'Comandi',
   'match.over': 'Partita finita',
   'match.settingUp': 'Preparazione…',

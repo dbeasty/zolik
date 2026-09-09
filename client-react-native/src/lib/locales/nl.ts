@@ -23,6 +23,13 @@ export const nl: Record<string, string> = {
   'err.ALREADY_READY': 'Je bent al klaar',
   'err.NOT_BETWEEN_ROUNDS': 'De ronde is nog bezig',
   'err.NOT_AT_THIS_TABLE': 'Je zit niet aan deze tafel',
+  // Bringing a table back that the sweeper set aside. Refusals a player
+  // can actually provoke: a link to a table that is gone, one that was
+  // already picked up in another tab, and a table with other people at it.
+  'err.MATCH_MOVED_ON': 'De tafel is verdergegaan — laad de pagina opnieuw',
+  'err.MATCH_NOT_ABANDONED': 'Deze tafel wacht niet om hervat te worden',
+  'err.MATCH_NOT_FOUND': 'Deze tafel bestaat niet meer',
+  'err.TABLE_HAS_OTHER_PLAYERS': 'Alleen een tafel waar alle anderen bots zijn kan worden hervat',
   'err.DISCARD_LOCKED': 'De aflegstapel is voorlopig op slot',
   'err.DISCARD_PILE_EMPTY': 'De aflegstapel is leeg',
   'err.NO_CARDS_LEFT': 'Er zijn geen kaarten meer om te pakken',
@@ -922,6 +929,11 @@ export const nl: Record<string, string> = {
   'match.youWon': 'Je hebt gewonnen.',
   'match.finished': 'Deze partij is afgelopen.',
   'match.inProgress': 'Partij bezig — alles is verbonden en loopt normaal.',
+  'match.connecting': 'Verbinden…',
+  'match.abandonedTitle': 'Tafel opzijgezet',
+  'match.abandoned': 'Niemand kwam terug naar deze tafel, dus is hij opzijgezet. De kaarten liggen precies waar je ze achterliet.',
+  'match.resume': 'Ga verder waar je gebleven was',
+  'match.resuming': 'Tafel wordt teruggehaald…',
   'match.controls': 'Bediening',
   'match.over': 'Partij afgelopen',
   'match.settingUp': 'Klaarzetten…',

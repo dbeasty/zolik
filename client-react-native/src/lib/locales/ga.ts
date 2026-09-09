@@ -23,6 +23,13 @@ export const ga: Record<string, string> = {
   'err.ALREADY_READY': 'Tá tú réidh',
   'err.NOT_BETWEEN_ROUNDS': 'Tá an babhta fós á imirt',
   'err.NOT_AT_THIS_TABLE': 'Níl tú ag an mbord seo',
+  // Bringing a table back that the sweeper set aside. Refusals a player
+  // can actually provoke: a link to a table that is gone, one that was
+  // already picked up in another tab, and a table with other people at it.
+  'err.MATCH_MOVED_ON': 'Bhog an tábla ar aghaidh — athlódáil an leathanach',
+  'err.MATCH_NOT_ABANDONED': 'Níl an tábla seo ag fanacht le hatosú',
+  'err.MATCH_NOT_FOUND': 'Níl an tábla seo ann a thuilleadh',
+  'err.TABLE_HAS_OTHER_PLAYERS': 'Ní féidir ach tábla ina bhfuil cách eile ina róbaí a atosú',
   'err.DISCARD_LOCKED': 'Tá an carn caite faoi ghlas go fóill',
   'err.DISCARD_PILE_EMPTY': 'Tá an carn caite folamh',
   'err.NO_CARDS_LEFT': 'Níl cárta ar bith fágtha le tarraingt',
@@ -935,6 +942,11 @@ export const ga: Record<string, string> = {
   'match.youWon': 'Bhuaigh tú.',
   'match.finished': 'Tá an cluiche seo críochnaithe.',
   'match.inProgress': 'Cluiche ar siúl — tá gach rud ceangailte agus ag bogadh mar is gnách.',
+  'match.connecting': 'Ag ceangal…',
+  'match.abandonedTitle': 'Tábla curtha i leataobh',
+  'match.abandoned': 'Níor fhill aon duine ar an tábla seo, mar sin cuireadh i leataobh é. Tá na cártaí díreach mar a d’fhág tú iad.',
+  'match.resume': 'Lean ar aghaidh ón áit ar stop tú',
+  'match.resuming': 'An tábla á thabhairt ar ais…',
   'match.controls': 'Rialtáin',
   'match.over': 'Cluiche thart',
   'match.settingUp': 'Á shocrú…',

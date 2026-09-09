@@ -23,6 +23,13 @@ export const sl: Record<string, string> = {
   'err.ALREADY_READY': 'Pripravljen si',
   'err.NOT_BETWEEN_ROUNDS': 'Krog še poteka',
   'err.NOT_AT_THIS_TABLE': 'Nisi za to mizo',
+  // Bringing a table back that the sweeper set aside. Refusals a player
+  // can actually provoke: a link to a table that is gone, one that was
+  // already picked up in another tab, and a table with other people at it.
+  'err.MATCH_MOVED_ON': 'Miza je šla naprej — znova naloži stran',
+  'err.MATCH_NOT_ABANDONED': 'Ta miza ne čaka na nadaljevanje',
+  'err.MATCH_NOT_FOUND': 'Ta miza ne obstaja več',
+  'err.TABLE_HAS_OTHER_PLAYERS': 'Nadaljuje se lahko samo miza, kjer so vsi drugi boti',
   'err.DISCARD_LOCKED': 'Kup odvrženih je zaenkrat zaklenjen',
   'err.DISCARD_PILE_EMPTY': 'Kup odvrženih je prazen',
   'err.NO_CARDS_LEFT': 'Ni več kart za jemanje',
@@ -902,6 +909,11 @@ export const sl: Record<string, string> = {
   'match.youWon': 'Zmagal si.',
   'match.finished': 'Ta tekma se je končala.',
   'match.inProgress': 'Tekma poteka — vse je povezano in teče normalno.',
+  'match.connecting': 'Povezovanje…',
+  'match.abandonedTitle': 'Miza odložena',
+  'match.abandoned': 'Nihče se ni vrnil k tej mizi, zato je bila odložena. Karte so točno tam, kjer si jih pustil.',
+  'match.resume': 'Nadaljuj, kjer si končal',
+  'match.resuming': 'Obnavljam mizo…',
   'match.controls': 'Upravljanje',
   'match.over': 'Konec tekme',
   'match.settingUp': 'Pripravljamo…',

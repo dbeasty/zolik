@@ -23,6 +23,13 @@ export const lt: Record<string, string> = {
   'err.ALREADY_READY': 'Esi pasiruošęs',
   'err.NOT_BETWEEN_ROUNDS': 'Raundas dar vyksta',
   'err.NOT_AT_THIS_TABLE': 'Tu nesėdi prie šio stalo',
+  // Bringing a table back that the sweeper set aside. Refusals a player
+  // can actually provoke: a link to a table that is gone, one that was
+  // already picked up in another tab, and a table with other people at it.
+  'err.MATCH_MOVED_ON': 'Stalas pajudėjo toliau — perkrauk puslapį',
+  'err.MATCH_NOT_ABANDONED': 'Šis stalas nelaukia atnaujinimo',
+  'err.MATCH_NOT_FOUND': 'Šio stalo nebėra',
+  'err.TABLE_HAS_OTHER_PLAYERS': 'Atnaujinti galima tik stalą, prie kurio visi kiti yra botai',
   'err.DISCARD_LOCKED': 'Atmetimo krūvelė kol kas užrakinta',
   'err.DISCARD_PILE_EMPTY': 'Atmetimo krūvelė tuščia',
   'err.NO_CARDS_LEFT': 'Nebėra kortų traukti',
@@ -911,6 +918,11 @@ export const lt: Record<string, string> = {
   'match.youWon': 'Tu laimėjai.',
   'match.finished': 'Šios rungtynės baigėsi.',
   'match.inProgress': 'Rungtynės vyksta — viskas prijungta ir juda įprastai.',
+  'match.connecting': 'Jungiamasi…',
+  'match.abandonedTitle': 'Stalas padėtas į šalį',
+  'match.abandoned': 'Prie šio stalo niekas negrįžo, todėl jis buvo padėtas į šalį. Kortos yra būtent ten, kur jas palikai.',
+  'match.resume': 'Tęsk ten, kur baigei',
+  'match.resuming': 'Atkuriamas stalas…',
   'match.controls': 'Valdikliai',
   'match.over': 'Rungtynių pabaiga',
   'match.settingUp': 'Ruošiame…',

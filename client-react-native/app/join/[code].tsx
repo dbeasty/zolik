@@ -6,7 +6,7 @@ import type { MatchState } from '@/src/api/matchTypes';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { formatApiError } from '@/src/lib/apiError';
-import { clearPendingInvite, savePendingInvite } from '@/src/lib/pendingInvite';
+import { clearPendingDestination, savePendingDestination } from '@/src/lib/pendingDestination';
 import { shared } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
 
@@ -22,7 +22,7 @@ import { t } from '@/src/lib/i18n';
  *
  *  1. **No session yet.** Overwhelmingly the common case, because an invite
  *     arrives in a chat on a device that has never played. The code is put
- *     aside (`pendingInvite`) and the guest screen takes over — a display name
+ *     aside (`pendingDestination`) and the guest screen takes over — a display name
  *     and a face, which is the same thing Zoom asks for and no more.
  *  2. **A session.** Take the seat and go where a seated player belongs: the
  *     table screen for the host, the waiting-for-the-host screen for everyone
@@ -58,7 +58,7 @@ export default function JoinByLinkScreen() {
       // navigate to fixed destinations, and threading a code through every one
       // of them — including the OAuth round trip, which leaves the app
       // entirely — is how it gets dropped.
-      await savePendingInvite(joinCode);
+      await savePendingDestination(`/join/${encodeURIComponent(joinCode)}`);
       router.replace('/auth/guest');
       return;
     }
@@ -76,7 +76,7 @@ export default function JoinByLinkScreen() {
       const matchId = await client.joinMatch(joinCode);
       // The note has done its job. Cleared before navigating, so a table that
       // refuses the next visitor does not follow them around.
-      await clearPendingInvite();
+      await clearPendingDestination();
 
       const seated = await client.getMatch(matchId, session.userId);
       if (seated.status !== 'lobby') {
@@ -91,7 +91,7 @@ export default function JoinByLinkScreen() {
           : `/lobby/join?matchId=${encodeURIComponent(matchId)}`,
       );
     } catch (e) {
-      await clearPendingInvite();
+      await clearPendingDestination();
       setError(formatApiError(e, 'That table could not be joined'));
     }
   }, [client, joinCode, session]);

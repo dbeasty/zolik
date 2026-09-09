@@ -23,6 +23,13 @@ export const bg: Record<string, string> = {
   'err.ALREADY_READY': 'Готов си',
   'err.NOT_BETWEEN_ROUNDS': 'Рундът още се играе',
   'err.NOT_AT_THIS_TABLE': 'Не си на тази маса',
+  // Bringing a table back that the sweeper set aside. Refusals a player
+  // can actually provoke: a link to a table that is gone, one that was
+  // already picked up in another tab, and a table with other people at it.
+  'err.MATCH_MOVED_ON': 'Масата продължи напред — презареди страницата',
+  'err.MATCH_NOT_ABANDONED': 'Тази маса не чака да бъде подновена',
+  'err.MATCH_NOT_FOUND': 'Тази маса вече не съществува',
+  'err.TABLE_HAS_OTHER_PLAYERS': 'Може да се поднови само маса, на която всички останали са ботове',
   'err.DISCARD_LOCKED': 'Купчината за изхвърляне засега е заключена',
   'err.DISCARD_PILE_EMPTY': 'Купчината за изхвърляне е празна',
   'err.NO_CARDS_LEFT': 'Няма повече карти за теглене',
@@ -918,6 +925,11 @@ export const bg: Record<string, string> = {
   'match.youWon': 'Ти спечели.',
   'match.finished': 'Този мач приключи.',
   'match.inProgress': 'Мачът тече — всичко е свързано и работи нормално.',
+  'match.connecting': 'Свързване…',
+  'match.abandonedTitle': 'Масата е оставена настрана',
+  'match.abandoned': 'Никой не се върна на тази маса, затова тя беше оставена настрана. Картите са точно там, където ги остави.',
+  'match.resume': 'Продължи оттам, докъдето стигна',
+  'match.resuming': 'Масата се възстановява…',
   'match.controls': 'Управление',
   'match.over': 'Краят на мача',
   'match.settingUp': 'Подготвяме…',

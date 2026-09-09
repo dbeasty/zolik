@@ -23,6 +23,13 @@ export const hu: Record<string, string> = {
   'err.ALREADY_READY': 'Készen állsz',
   'err.NOT_BETWEEN_ROUNDS': 'A kör még tart',
   'err.NOT_AT_THIS_TABLE': 'Nem ülsz ennél az asztalnál',
+  // Bringing a table back that the sweeper set aside. Refusals a player
+  // can actually provoke: a link to a table that is gone, one that was
+  // already picked up in another tab, and a table with other people at it.
+  'err.MATCH_MOVED_ON': 'Az asztal továbblépett — töltsd újra az oldalt',
+  'err.MATCH_NOT_ABANDONED': 'Ez az asztal nem vár folytatásra',
+  'err.MATCH_NOT_FOUND': 'Ez az asztal már nem létezik',
+  'err.TABLE_HAS_OTHER_PLAYERS': 'Csak olyan asztal folytatható, ahol mindenki más bot',
   'err.DISCARD_LOCKED': 'A dobópakli egyelőre zárva van',
   'err.DISCARD_PILE_EMPTY': 'A dobópakli üres',
   'err.NO_CARDS_LEFT': 'Nincs több húzható lap',
@@ -922,6 +929,11 @@ export const hu: Record<string, string> = {
   'match.youWon': 'Nyertél.',
   'match.finished': 'Ez a mérkőzés véget ért.',
   'match.inProgress': 'A mérkőzés folyik — minden csatlakozik és rendben halad.',
+  'match.connecting': 'Csatlakozás…',
+  'match.abandonedTitle': 'Asztal félretéve',
+  'match.abandoned': 'Senki sem tért vissza ehhez az asztalhoz, ezért félretettük. A lapok pontosan ott vannak, ahol hagytad.',
+  'match.resume': 'Folytasd ott, ahol abbahagytad',
+  'match.resuming': 'Asztal visszahozása…',
   'match.controls': 'Vezérlők',
   'match.over': 'Vége a mérkőzésnek',
   'match.settingUp': 'Előkészítés…',

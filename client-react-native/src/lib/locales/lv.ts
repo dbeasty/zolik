@@ -23,6 +23,13 @@ export const lv: Record<string, string> = {
   'err.ALREADY_READY': 'Tu esi gatavs',
   'err.NOT_BETWEEN_ROUNDS': 'Raunds vēl turpinās',
   'err.NOT_AT_THIS_TABLE': 'Tu neesi pie šī galda',
+  // Bringing a table back that the sweeper set aside. Refusals a player
+  // can actually provoke: a link to a table that is gone, one that was
+  // already picked up in another tab, and a table with other people at it.
+  'err.MATCH_MOVED_ON': 'Galds ir pavirzījies tālāk — pārlādē lapu',
+  'err.MATCH_NOT_ABANDONED': 'Šis galds negaida atsākšanu',
+  'err.MATCH_NOT_FOUND': 'Šī galda vairs nav',
+  'err.TABLE_HAS_OTHER_PLAYERS': 'Atsākt var tikai galdu, pie kura visi pārējie ir boti',
   'err.DISCARD_LOCKED': 'Izmešanas kaudze pagaidām ir slēgta',
   'err.DISCARD_PILE_EMPTY': 'Izmešanas kaudze ir tukša',
   'err.NO_CARDS_LEFT': 'Vairs nav kārtu, ko vilkt',
@@ -909,6 +916,11 @@ export const lv: Record<string, string> = {
   'match.youWon': 'Tu uzvarēji.',
   'match.finished': 'Šis mačs ir beidzies.',
   'match.inProgress': 'Mačs norit — viss ir savienots un darbojas normāli.',
+  'match.connecting': 'Savienojas…',
+  'match.abandonedTitle': 'Galds nolikts malā',
+  'match.abandoned': 'Neviens pie šī galda neatgriezās, tāpēc tas tika nolikts malā. Kārtis ir tieši tur, kur tu tās atstāji.',
+  'match.resume': 'Turpini tur, kur beidzi',
+  'match.resuming': 'Atjaunoju galdu…',
   'match.controls': 'Vadība',
   'match.over': 'Mača beigas',
   'match.settingUp': 'Gatavojam…',
