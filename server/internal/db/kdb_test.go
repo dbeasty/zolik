@@ -386,6 +386,42 @@ func TestKDBExpirySweep(t *testing.T) {
 	}
 }
 
+// The bug this closes destroyed games. abandonAt was treated as an expiry
+// field and matches as a swept namespace, so a suspended table was physically
+// deleted at its abandon deadline — racing match.StartReaper, whose whole job
+// is to reach that table first and mark it abandoned. When the sweeper won,
+// the match was simply gone: nothing for the statistics, and a player
+// following their own link got "no such table" for a game that had been on
+// screen minutes earlier.
+func TestKDBSweepKeepsASuspendedMatch(t *testing.T) {
+	k := openTestKDB(t)
+	due, err := MarshalDoc(struct {
+		Status    string    `bson:"status"`
+		AbandonAt time.Time `bson:"abandonAt"`
+	}{Status: "suspended", AbandonAt: time.Now().UTC().Add(-time.Hour)})
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	if err := k.Put(NSMatches, "m", due); err != nil {
+		t.Fatalf("put: %v", err)
+	}
+
+	// Swept explicitly, so this fails if matches are ever put back on the
+	// sweep list rather than only if the list happens to be consulted.
+	k.sweepNamespace(k.nss[NSMatches])
+	if _, err := k.Get(NSMatches, "m"); err != nil {
+		t.Fatalf("a suspended match past its abandon deadline was deleted: %v", err)
+	}
+
+	// And the namespace is not on the sweeper's own list, which is what the
+	// background ticker actually walks.
+	for _, ns := range sweptNamespaces {
+		if ns == NSMatches {
+			t.Fatal("matches are on the sweep list; the reaper resolves them, deletion loses them")
+		}
+	}
+}
+
 func TestDocCodecKeepsHiddenFields(t *testing.T) {
 	// The models hide server-only fields from JSON (`json:"-"`) but persist
 	// them via bson tags. The KDB codec must behave like the Mongo driver
