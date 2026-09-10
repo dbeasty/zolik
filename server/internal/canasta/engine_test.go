@@ -447,6 +447,47 @@ func TestOpeningAcrossTwoMelds(t *testing.T) {
 	}
 }
 
+// TestMeldOffersDoNotHideARankBehindASharedWild is the offer-list half of the
+// wild-allocation story: newMeldCandidates spends the hand's wilds once,
+// greedily, across every rank, because that is what makes reachableValue's
+// estimate of a turn's reach conservative rather than merely hopeful. But a
+// player choosing *one* meld to lay right now is not constrained by what a
+// different, unchosen rank would have wanted — two ranks can each want the
+// same physical joker, and both are still real, independently legal moves.
+// Offering only the one the greedy allocator happened to favour left a player
+// unable to lay a meld `Apply` would have accepted outright.
+func TestMeldOffersDoNotHideARankBehindASharedWild(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Teams[0].HasMelded = true
+		s.Hands["p1"] = []string{"8C", "8D", "JC", "JH", "JOKER1"}
+	})
+
+	offers, err := New().LegalActions(raw, "p1")
+	if err != nil {
+		t.Fatalf("LegalActions: %v", err)
+	}
+	ranks := map[string]bool{}
+	for _, o := range offers {
+		if o.Verb == VerbLayMeld && o.Enabled {
+			ranks[o.ID] = true
+		}
+	}
+	for _, want := range []string{OfferLayMeld + ":8", OfferLayMeld + ":J"} {
+		if !ranks[want] {
+			t.Errorf("offers = %v, want %q among them", ranks, want)
+		}
+	}
+
+	// And the one the offer list would have hidden really is legal: `Apply`
+	// takes it outright.
+	if _, code := apply(t, raw, "p1", module.Action{
+		Verb: VerbLayMeld, Cards: []string{"JC", "JH", "JOKER1"},
+	}); code != "" {
+		t.Errorf("laying J, J, joker: %s", code)
+	}
+}
+
 // --- lay-offs and partnerships ----------------------------------------------
 
 // TestPartnersShareMelds is the single fact that made this a module rather than
