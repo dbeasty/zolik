@@ -212,6 +212,8 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 		events, err = applyDraw(s, playerID)
 	case VerbTakePile:
 		events, err = applyTakePile(s, playerID, a)
+	case VerbTakeTop:
+		events, err = applyTakeTop(s, playerID, a)
 	case VerbLayMeld:
 		events, err = applyLayMeld(s, playerID, a)
 	case VerbLayOff:
@@ -238,12 +240,16 @@ func applyDraw(s *GameState, playerID string) ([]module.Event, error) {
 		return nil, errCode(ErrNothingToDraw)
 	}
 
+	// How many is the variation's: Canasta takes one, Samba two. A red three
+	// drawn is laid down and replaced rather than counted, so the loop is over
+	// cards that reached the hand, not over cards off the stock.
 	var drawn []string
 	var reds []string
-	for {
+	for len(drawn) < s.rules().DrawCount {
 		if len(s.DrawPile) == 0 {
-			// The stock ran out mid-replacement. The deal simply ends, which
-			// is the same answer as running out at the top of a turn.
+			// The stock ran out mid-draw. The deal simply ends, which is the
+			// same answer as running out at the top of a turn — and the cards
+			// already drawn stay in the hand to be counted against it.
 			return endDeal(s, "", false, true), nil
 		}
 		card := s.DrawPile[len(s.DrawPile)-1]
@@ -255,7 +261,6 @@ func applyDraw(s *GameState, playerID string) ([]module.Event, error) {
 		}
 		s.Hands[playerID] = append(s.Hands[playerID], card)
 		drawn = append(drawn, card)
-		break
 	}
 
 	s.Phase = phaseMeld
@@ -311,7 +316,10 @@ func pileTakeOptions(s *GameState, playerID string) []pileOption {
 
 	// A partnership that has not opened is frozen out of the easy captures
 	// even when the pile itself is not frozen — the "personal freeze".
-	frozen := s.Frozen || !t.HasMelded
+	// Samba's pile is frozen against everyone for the whole deal, so a capture
+	// there always costs two naturals from hand: the same rule the buried wild
+	// imposes here, made permanent rather than made separately.
+	frozen := s.Frozen || !t.HasMelded || r.PileAlwaysFrozen
 
 	naturals := make([]string, 0, len(hand))
 	var wilds []string
@@ -403,7 +411,10 @@ func applyTakePile(s *GameState, playerID string, a module.Action) ([]module.Eve
 
 	t := s.team(playerID)
 	rank := rankOf(top)
-	frozen := s.Frozen || !t.HasMelded
+	// Samba's pile is frozen against everyone for the whole deal, so a capture
+	// there always costs two naturals from hand: the same rule the buried wild
+	// imposes here, made permanent rather than made separately.
+	frozen := s.Frozen || !t.HasMelded || r.PileAlwaysFrozen
 
 	// Resolve which of the two captures this is, and refuse with the reason
 	// that actually applies rather than a generic one.
@@ -503,6 +514,105 @@ func applyTakePile(s *GameState, playerID string, a module.Action) ([]module.Eve
 
 	return []module.Event{{Type: "pile_taken", Data: map[string]any{
 		"playerId": playerID, "cards": len(rest) + 1, "top": top,
+	}}}, nil
+}
+
+// --- taking the top card onto a sequence ------------------------------------
+
+// topCardRuns lists the sequences on this side's table that the top card of the
+// discard pile would continue.
+//
+// Samba's second way into the pile, and a genuinely different move from taking
+// it: one card comes off, the pile stays where it is, and it replaces the draw
+// rather than following it. Only where the variation has sequences at all.
+func topCardRuns(s *GameState, playerID string) []string {
+	r := s.rules()
+	if !r.Sequences {
+		return nil
+	}
+	top := s.top()
+	if top == "" || isWild(top) {
+		return nil
+	}
+	// A black three on top blocks the pile, and neither three nor wild can be
+	// in a sequence anyway — the index lookup is what says so.
+	idx, ok := runIndexOf(top)
+	if !ok {
+		return nil
+	}
+	t := s.team(playerID)
+	if t == nil {
+		return nil
+	}
+
+	var out []string
+	for i := range t.Melds {
+		m := &t.Melds[i]
+		if m.kind() != meldRun || m.Suit != suitOf(top) || m.closed(r) {
+			continue
+		}
+		low, high := runSpan(m.Cards)
+		if idx == low-1 || idx == high+1 {
+			out = append(out, m.ID)
+		}
+	}
+	return out
+}
+
+func applyTakeTop(s *GameState, playerID string, a module.Action) ([]module.Event, error) {
+	r := s.rules()
+	if !r.Sequences {
+		return nil, module.Error{Code: ErrUnknownAction, Message: VerbTakeTop}
+	}
+	if s.Phase != phaseDraw {
+		return nil, errCode(ErrWrongPhase)
+	}
+	if len(s.DiscardPile) == 0 {
+		return nil, errCode(ErrPileEmpty)
+	}
+
+	t := s.team(playerID)
+	owner, m := s.findMeld(a.Target)
+	if m == nil {
+		return nil, errCode(ErrNoSuchMeld)
+	}
+	if owner.ID != t.ID {
+		return nil, errCode(ErrNotYourMeld)
+	}
+	if m.kind() != meldRun {
+		return nil, errCode(ErrWrongRank)
+	}
+	if m.closed(r) {
+		return nil, errCode(ErrMeldClosed)
+	}
+
+	top := s.top()
+	grown := sortRun(append(append([]string(nil), m.Cards...), top))
+	if err := validateRun(r, grown); err != nil {
+		return nil, err
+	}
+
+	// This is the one move that takes a card without putting one in the hand —
+	// it replaces the draw rather than following it. So a player holding a
+	// single card could take it and then have no way to end the turn: the
+	// discard would be their last card, which is going out, which their side
+	// may not be able to do. Refused here rather than discovered at the discard,
+	// because by then there is no way back.
+	if err := checkLeavesPlayable(s, t, s.Hands[playerID]); err != nil {
+		return nil, err
+	}
+
+	// No initial-meld check: this takes nothing out of the hand and only adds
+	// to what is on the table, so it cannot make a floor unreachable — which is
+	// the dead end checkInitialMeld exists to prevent.
+	s.DiscardPile = s.DiscardPile[:len(s.DiscardPile)-1]
+	m.Cards = grown
+	s.Phase = phaseMeld
+	s.LaidThisTurn += cardValue(top)
+	noteInitialMeld(s, t)
+
+	return []module.Event{{Type: "top_card_taken", Data: map[string]any{
+		"playerId": playerID, "card": top, "meldId": m.ID,
 	}}}, nil
 }
 
@@ -791,7 +901,9 @@ func advanceTurn(s *GameState) []module.Event {
 	s.TookPileThisTurn = false
 	s.MeldsAtTurnStart = len(s.team(next).Melds) > 0
 
-	if len(s.DrawPile) == 0 && len(pileTakeOptions(s, next)) == 0 {
+	// Taking the top card onto a sequence is also a move, so a stock of nothing
+	// is only a dead deal when that is unavailable too.
+	if len(s.DrawPile) == 0 && len(pileTakeOptions(s, next)) == 0 && len(topCardRuns(s, next)) == 0 {
 		return endDeal(s, "", false, true)
 	}
 	return nil

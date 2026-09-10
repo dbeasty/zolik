@@ -14,8 +14,11 @@ const (
 	// "take_pile:meld:<meldId>".
 	OfferTakePile = "take_pile"
 	// OfferLayMeld is likewise the placeholder; live candidates are
-	// "lay_meld:<rank>".
+	// "lay_meld:<rank>", or "lay_meld:run:<suit><low>" for a sequence.
 	OfferLayMeld = "lay_meld"
+	// OfferTakeTop is Samba's one-card capture; live ones are
+	// "take_top:<meldId>".
+	OfferTakeTop = "take_top"
 )
 
 // LegalActions answers "what may this player do right now?".
@@ -143,19 +146,54 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		offers = append(offers, o)
 	}
 
+	// --- take the top card onto a sequence -----------------------------------
+	//
+	// Samba's other way into the pile, and its own verb because it is its own
+	// move: one card, and the pile stays standing (engine.go's applyTakeTop).
+	for _, meldID := range topCardRuns(s, playerID) {
+		a := module.Action{Verb: VerbTakeTop, Target: meldID}
+		ok, why := probe(m, raw, playerID, a)
+		if !ok {
+			continue
+		}
+		offers = append(offers, module.ActionOffer{
+			ID: OfferTakeTop + ":" + meldID, Verb: VerbTakeTop, Enabled: ok, WhyNot: why,
+			LabelKey: "verb.takeTopForSequence",
+			Source:   &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID},
+			Target:   &module.Selector{Zone: module.ToMeld, MeldID: meldID, ZoneID: meldsZoneID(t.ID)},
+		})
+	}
+
 	// --- lay a new meld ------------------------------------------------------
 	laid := 0
-	for _, c := range newMeldCandidates(r, hand, t) {
+	candidates := newMeldCandidates(r, hand, t)
+	// Sequences are enumerated the same way groups are, and can be, because a
+	// run takes no wilds: it is the maximal block of consecutive ranks in a
+	// suit rather than a shape somebody composes (docs/samba-plan.md §3.3).
+	candidates = append(candidates, runCandidates(r, hand, t)...)
+	for _, c := range candidates {
 		a := module.Action{Verb: VerbLayMeld, Cards: c.Cards}
 		ok, _ := probe(m, raw, playerID, a)
 		if !ok {
 			continue
 		}
+		fact := module.Fact{LabelKey: "canasta.offer.rank", Value: c.Rank}
+		if c.Kind == meldRun {
+			// A run is told apart by where it starts and stops, not by a rank
+			// it does not have.
+			fact = module.Fact{
+				LabelKey: "canasta.offer.sequence",
+				Value:    c.Cards[0] + "-" + c.Cards[len(c.Cards)-1],
+				Params: map[string]any{
+					"suit": c.Suit, "from": c.Cards[0], "to": c.Cards[len(c.Cards)-1],
+				},
+			}
+		}
 		offers = append(offers, module.ActionOffer{
-			ID: OfferLayMeld + ":" + c.Rank, Verb: VerbLayMeld, Enabled: true,
-			// One of these per meldable rank, so the rank is what tells them
-			// apart on screen.
-			Facts: []module.Fact{{LabelKey: "canasta.offer.rank", Value: c.Rank}},
+			ID: OfferLayMeld + ":" + c.offerKey(), Verb: VerbLayMeld, Enabled: true,
+			// One of these per meldable rank or sequence, so that is what tells
+			// them apart on screen.
+			Facts: []module.Fact{fact},
 			Source: &module.Selector{
 				Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID),
 				Cards: c.Cards, MinCards: len(c.Cards), MaxCards: len(c.Cards),
@@ -204,7 +242,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		// one is built on.
 		o := module.ActionOffer{
 			ID: "lay_off:" + mm.ID, Verb: VerbLayOff,
-			Facts: []module.Fact{{LabelKey: "canasta.offer.rank", Value: mm.Rank}},
+			Facts: []module.Fact{meldOfferFact(mm)},
 		}
 		var probeCards []string
 		if len(eligible) > 0 {
@@ -225,6 +263,25 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	}
 
 	return offers, nil
+}
+
+// meldOfferFact is how one meld on the table is told from another on screen: a
+// group by its rank, a sequence by the cards it runs between.
+//
+// A side can have several of each in Samba, so "K" on its own would put two
+// identical buttons in a row — which is the thing the offer list is supposed to
+// stop a client having to work out for itself.
+func meldOfferFact(m Meld) module.Fact {
+	if m.kind() != meldRun {
+		return module.Fact{LabelKey: "canasta.offer.rank", Value: m.Rank}
+	}
+	return module.Fact{
+		LabelKey: "canasta.offer.sequence",
+		Value:    m.Cards[0] + "-" + m.Cards[len(m.Cards)-1],
+		Params: map[string]any{
+			"suit": m.Suit, "from": m.Cards[0], "to": m.Cards[len(m.Cards)-1],
+		},
+	}
 }
 
 func pileOfferID(opt pileOption) string {

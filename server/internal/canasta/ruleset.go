@@ -154,6 +154,52 @@ var variations = map[string]ruleset{
 	},
 }
 
+// sambaFloors add a fourth band above the three Canasta has: past 7000 a side
+// needs 150 to open, which is what keeps a 10,000-point match from being decided
+// halfway through it.
+var sambaFloors = []floor{
+	{Above: 0, Min: 50}, {Above: 1500, Min: 90},
+	{Above: 3000, Min: 120}, {Above: 7000, Min: 150},
+}
+
+func init() {
+	// Samba: three decks, fifteen cards, sequences, and a pile nobody can take
+	// cheaply. Registered here rather than in the literal above because it is
+	// long enough that a reader deserves the fields named (docs/samba-plan.md §2).
+	variations["samba"] = ruleset{
+		HandSize: 15,
+		// Six seats deal thirteen: ninety cards off a 162-card deck would leave
+		// a stock too thin for six players drawing two a turn.
+		HandSizeAt:      map[int]int{6: 13},
+		TargetScore:     10000,
+		CanastasToGoOut: 2,
+		MaxSeats:        6,
+
+		Decks: 3, JokersPerDeck: 2, DrawCount: 2,
+
+		Sequences: true,
+		// Two wilds at most, and twice as many naturals as wilds — so a group
+		// with two wilds needs four naturals and cannot exist below six cards.
+		MaxWilds: 2, MinNaturals: 2, NaturalsPerWild: 2,
+		// No cap: a side may keep several groups of one rank, separately. And a
+		// group canasta is not closed by its seventh card, unlike a sequence,
+		// whose seventh card is what makes it a samba.
+		GroupsPerRank: 0, GroupCanastaCloses: false,
+		PileAlwaysFrozen: true,
+
+		MeldFloors: sambaFloors,
+
+		// Two canastas — the same two that let a side go out — before red threes
+		// count up, and a flat 100 each when they count down.
+		RedThreesNeed: 2, RedThreePenaltyFlat: true,
+
+		NaturalCanastaBonus: 500, MixedCanastaBonus: 300, SambaBonus: 1500,
+		// 200 for going out, and no concealed bonus: Samba does not have one, so
+		// melding a whole hand in a turn pays the ordinary 200.
+		GoingOutBonus: 200, ConcealedBonus: 0,
+	}
+}
+
 func resolveVariation(variation string) ruleset {
 	if v, ok := variations[variation]; ok {
 		return v

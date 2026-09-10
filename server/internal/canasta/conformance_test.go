@@ -24,7 +24,7 @@ func refs(ids ...string) []module.PlayerRef {
 
 // The order a UI shell would pick moves in: build the table, then take the
 // pile if you can, then draw, and discard only because a turn has to end.
-var driverPrefer = []string{VerbLayMeld, VerbLayOff, VerbTakePile, VerbDraw, VerbDiscard}
+var driverPrefer = []string{VerbLayMeld, VerbLayOff, VerbTakePile, VerbTakeTop, VerbDraw, VerbDiscard}
 
 // TestOfferDrivenPlayFinishesAMatch is the strongest claim this module makes.
 //
@@ -107,6 +107,135 @@ func TestOfferDrivenPlayFinishesAMatch(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestSambaIsAlsoOfferDriven is the same claim for the variation that had every
+// reason to break it.
+//
+// Sequences are the thing `extensibility-plan.md` §1.1 says cannot be
+// enumerated, and Žolíky still cannot be driven from offers for exactly that
+// reason. Samba's runs are the exception because they take no wilds: a candidate
+// is the maximal block of consecutive ranks in a suit, which is a fact about the
+// hand rather than a shape a human composes. If that reasoning were wrong, this
+// test is where it would show — the driver would run out of legal moves it could
+// see, and the match would not finish.
+//
+// Every seat count from two to six, because seating is the other thing this work
+// changed and a partnership bug at six would otherwise surface in production.
+func TestSambaIsAlsoOfferDriven(t *testing.T) {
+	m := New()
+	for seats := 2; seats <= 6; seats++ {
+		players := refs(seatNames(seats)...)
+		t.Run(seatLabel(seats), func(t *testing.T) {
+			for seed := int64(1); seed <= 8; seed++ {
+				cfg := module.MatchConfig{
+					Variation: "samba",
+					Options:   module.Options{OptTargetScore: 1000},
+				}
+				state, err := m.NewMatch(cfg, players, seed)
+				if err != nil {
+					t.Fatalf("seed %d: NewMatch: %v", seed, err)
+				}
+				final, res, err := module.PlayWithOffers(m, state, players, module.DriverOptions{
+					MaxActions: 8000, Prefer: driverPrefer,
+				})
+				if err != nil {
+					t.Fatalf("seed %d: %v", seed, err)
+				}
+				if !res.Finished {
+					t.Fatalf("seed %d: match did not finish in %d actions (verbs=%v)",
+						seed, res.Actions, res.Verbs)
+				}
+				if len(res.Winners) == 0 {
+					t.Fatalf("seed %d: finished with no winner", seed)
+				}
+				s, err := decode(final)
+				if err != nil {
+					t.Fatalf("seed %d: decode: %v", seed, err)
+				}
+				if got, want := len(s.Teams), seatsToTeams(seats); got != want {
+					t.Errorf("seed %d: %d seats made %d sides, want %d", seed, seats, got, want)
+				}
+				if s.Teams[s.WinnerTeam].Score < s.TargetScore {
+					t.Errorf("seed %d: winner scored %d, below the %d target",
+						seed, s.Teams[s.WinnerTeam].Score, s.TargetScore)
+				}
+			}
+		})
+	}
+}
+
+// A Samba where nobody ever lays a sequence is Canasta with a bigger deck, so
+// the run offers have to be reachable in real play rather than merely correct.
+//
+// What this asserts is that sequences get laid and that the top card gets taken
+// onto one — both from offers alone, by a driver that has never heard of a suit.
+// It deliberately does *not* assert that a samba completes: only the final deal's
+// melds survive on the table, so any count here undercounts by most of the match,
+// and a threshold tuned to what the greedy driver happens to manage would be a
+// number nobody could defend. That a seven-card sequence scores 1500 and closes
+// is pinned deterministically in scoring_test.go instead.
+func TestSambasAndSequencesActuallyGetPlayed(t *testing.T) {
+	m := New()
+	players := refs("p1", "p2", "p3", "p4")
+
+	runsLaid, sambas, topsTaken := 0, 0, 0
+	for seed := int64(1); seed <= 12; seed++ {
+		cfg := module.MatchConfig{
+			Variation: "samba",
+			Options:   module.Options{OptTargetScore: 1000},
+		}
+		state, err := m.NewMatch(cfg, players, seed)
+		if err != nil {
+			t.Fatalf("NewMatch: %v", err)
+		}
+		final, res, err := module.PlayWithOffers(m, state, players, module.DriverOptions{
+			MaxActions: 8000, Prefer: driverPrefer,
+		})
+		if err != nil {
+			t.Fatalf("seed %d: %v", seed, err)
+		}
+		topsTaken += res.Verbs[VerbTakeTop]
+
+		s, err := decode(final)
+		if err != nil {
+			t.Fatalf("seed %d: decode: %v", seed, err)
+		}
+		// The last deal is still on the table; earlier ones were swept, so this
+		// undercounts. It only has to be non-zero.
+		for i := range s.Teams {
+			for _, mm := range s.Teams[i].Melds {
+				if mm.kind() != meldRun {
+					continue
+				}
+				runsLaid++
+				if mm.isCanasta() {
+					sambas++
+				}
+			}
+		}
+	}
+
+	if runsLaid == 0 {
+		t.Error("no sequence was ever laid across twelve Samba matches — the run offers are decorative")
+	}
+	if topsTaken == 0 {
+		t.Error("the top card was never taken onto a sequence — take_top is unreachable in real play")
+	}
+	t.Logf("across twelve matches: %d sequences on the final table, %d of them sambas, %d top cards taken onto a run",
+		runsLaid, sambas, topsTaken)
+}
+
+func seatNames(n int) []string {
+	all := []string{"p1", "p2", "p3", "p4", "p5", "p6"}
+	return all[:n]
+}
+
+func seatLabel(n int) string {
+	if n >= 4 && n%2 == 0 {
+		return string(rune('0'+n)) + " seats, partnerships"
+	}
+	return string(rune('0'+n)) + " seats, everyone for themselves"
 }
 
 // TestDriverExercisesEveryVerb checks the offers are not merely sufficient but

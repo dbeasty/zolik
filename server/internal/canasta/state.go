@@ -41,6 +41,10 @@ import (
 const (
 	VerbDraw     = "draw"
 	VerbTakePile = "take_pile"
+	// VerbTakeTop is Samba's: the top card onto a sequence, instead of drawing.
+	// A separate verb rather than a flavour of take_pile because it does
+	// something else — one card comes off and the pile stays standing.
+	VerbTakeTop = "take_top"
 	VerbLayMeld  = "lay_meld"
 	VerbLayOff   = "lay_off"
 	VerbDiscard  = "discard"

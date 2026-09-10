@@ -62,6 +62,28 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
 				},
 			},
+			{
+				ID:    "samba",
+				Label: "Samba",
+				// Three decks, sequences and a pile nobody takes cheaply. The
+				// seat range is the variation's own: six on 162 cards, where
+				// the other two seat four on 108.
+				MaxPlayers: variations["samba"].MaxSeats,
+				Summary: []module.Fact{
+					{LabelKey: "canasta.rules.deck", Value: "162"},
+					{LabelKey: "canasta.rules.sequences"},
+					{LabelKey: "canasta.rules.samba", Params: map[string]any{"n": variations["samba"].SambaBonus}},
+					{LabelKey: "canasta.rules.pileAlwaysFrozen"},
+					{LabelKey: "canasta.rules.twoCanastasToGoOut"},
+				},
+				Defaults: map[string]int{
+					OptHandSize:                  variations["samba"].HandSize,
+					OptTargetScore:               variations["samba"].TargetScore,
+					OptCanastasToGoOut:           variations["samba"].CanastasToGoOut,
+					module.OptPauseBetweenRounds: module.OptOn,
+					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
+				},
+			},
 		},
 		Options: []module.OptionSpec{
 			module.PauseOption(),
@@ -87,6 +109,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					{Value: 1000, Label: "1000"},
 					{Value: 3000, Label: "3000"},
 					{Value: 5000, Label: "5000"},
+					{Value: 10000, Label: "10000"},
 				},
 			},
 			{
@@ -164,11 +187,16 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 			}
 		}
 		for _, mm := range t.Melds {
-			g := module.Group{ID: mm.ID, Kind: "set", Cards: append([]string(nil), mm.Cards...)}
+			g := module.Group{ID: mm.ID, Kind: mm.kind(), Cards: append([]string(nil), mm.Cards...)}
 			if mm.isCanasta() {
-				if mm.isNatural() {
+				switch {
+				case mm.kind() == meldRun:
+					// Seven in a suit is a samba, and worth saying so: it is the
+					// biggest single number on a Samba scoresheet.
+					g.BadgeKeys = append(g.BadgeKeys, "badge.samba")
+				case mm.isNatural():
 					g.BadgeKeys = append(g.BadgeKeys, "badge.naturalCanasta")
-				} else {
+				default:
 					g.BadgeKeys = append(g.BadgeKeys, "badge.mixedCanasta")
 				}
 			}
@@ -330,7 +358,7 @@ func topOnly(s *GameState) []string {
 // Canasta meld ships as exact cards rather than a shape to solve — the same
 // property that lets the conformance driver play this game to a winner.
 func (m *Module) Bot() module.Bot {
-	return module.OfferBot(VerbLayMeld, VerbLayOff, VerbTakePile, VerbDraw, VerbDiscard)
+	return module.OfferBot(VerbLayMeld, VerbLayOff, VerbTakePile, VerbTakeTop, VerbDraw, VerbDiscard)
 }
 
 // Standings ranks by partnership score, so both members of a side share a rank
