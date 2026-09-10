@@ -8,10 +8,10 @@ var _ module.RulesProvider = (*Module)(nil)
 // score and go-out requirement, resolved the same way the engine resolves
 // them (engine.go).
 func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
-	v := resolveVariation(cfg)
-	handSize := cfg.Opt(OptHandSize, v.handSize)
-	targetScore := cfg.Opt(OptTargetScore, v.targetScore)
-	canastasToGoOut := cfg.Opt(OptCanastasToGoOut, v.canastasToGoOut)
+	v := resolveVariation(cfg.Variation)
+	handSize := cfg.Opt(OptHandSize, v.HandSize)
+	targetScore := cfg.Opt(OptTargetScore, v.TargetScore)
+	canastasToGoOut := cfg.Opt(OptCanastasToGoOut, v.CanastasToGoOut)
 
 	// Reuses the exact keys Descriptor's Summary already ships (param-free —
 	// the sentence spells "one"/"two" out in words) rather than a second,

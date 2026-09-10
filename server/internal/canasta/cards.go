@@ -20,21 +20,25 @@ const (
 	rankThree = "3"
 )
 
-// buildDeck returns 108 cards: two standard decks plus four jokers.
+// buildDeck returns the variation's deck: 108 cards at two decks and four
+// jokers, 162 at three and six.
 //
-// Fixed at two decks rather than scaling with the table, because the meld
-// arithmetic Canasta is built on — three wilds to four naturals in a seven-card
-// canasta — is a property of how many of each rank exist. A third deck is a
-// different game (Samba), not a bigger one.
-func buildDeck() []string {
-	out := make([]string, 0, 108)
-	for d := 0; d < 2; d++ {
-		for _, r := range ranks {
+// The count is a property of the variation rather than of the table, because the
+// meld arithmetic a game is built on — three wilds to four naturals in a
+// seven-card canasta — is a property of how many of each rank exist. A third deck
+// is a different game (Samba), not a bigger one, which is why it arrives with a
+// ruleset rather than with a fifth player.
+func buildDeck(r ruleset) []string {
+	out := make([]string, 0, r.Decks*(len(ranks)*len(suits)+r.JokersPerDeck))
+	for d := 0; d < r.Decks; d++ {
+		for _, rank := range ranks {
 			for _, s := range suits {
-				out = append(out, r+s)
+				out = append(out, rank+s)
 			}
 		}
-		out = append(out, "JOKER1", "JOKER2")
+		for j := 0; j < r.JokersPerDeck; j++ {
+			out = append(out, "JOKER"+string(rune('1'+j)))
+		}
 	}
 	return out
 }

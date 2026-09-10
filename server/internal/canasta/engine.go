@@ -1,6 +1,8 @@
 package canasta
 
 import (
+	"fmt"
+
 	"zolik/server/internal/module"
 )
 
@@ -14,8 +16,12 @@ var _ module.GameModule = (*Module)(nil)
 
 // NewMatch deals the first deal of a fresh match.
 func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, seed int64) (module.State, error) {
-	if len(players) < 2 || len(players) > 4 {
-		return nil, module.Error{Code: "WRONG_PLAYER_COUNT", Message: "canasta seats two to four"}
+	r := resolveVariation(cfg.Variation)
+	if len(players) < 2 || len(players) > r.MaxSeats {
+		return nil, module.Error{
+			Code:    "WRONG_PLAYER_COUNT",
+			Message: fmt.Sprintf("this canasta seats two to %d", r.MaxSeats),
+		}
 	}
 
 	s := &GameState{
@@ -36,13 +42,13 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 	}
 
 	// Partnerships are seat parity, computed once and stored, so nothing else
-	// in the package re-derives who is on whose side. At two or three players
-	// everyone is their own partnership, which needs no special case anywhere
-	// else — a team simply has one member.
-	teams := 2
-	if len(players) == 3 {
-		teams = 3
-	}
+	// in the package re-derives who is on whose side. Where the seats cannot be
+	// split evenly — three players, five — everyone is their own partnership,
+	// which needs no special case anywhere else: a team simply has one member.
+	//
+	// Heads-up is two sides of one rather than one side of two, which is why the
+	// evenness test is not enough on its own.
+	teams := seatsToTeams(len(players))
 	for i := 0; i < teams; i++ {
 		s.Teams = append(s.Teams, Team{ID: i})
 	}
@@ -52,10 +58,17 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 		s.Teams[team].Players = append(s.Teams[team].Players, p)
 	}
 
-	v := resolveVariation(cfg)
-	s.HandSize = cfg.Opt(OptHandSize, v.handSize)
-	s.TargetScore = cfg.Opt(OptTargetScore, v.targetScore)
-	s.CanastasToGoOut = cfg.Opt(OptCanastasToGoOut, v.canastasToGoOut)
+	// The ruleset is stored, not just read: a deal is played under the rules the
+	// match was created with, so shipping a change to a variation cannot alter a
+	// match already in flight. The three scalars stay on the state beside it
+	// because they were there first and a client reads them.
+	r.HandSize = cfg.Opt(OptHandSize, r.handSizeFor(len(players)))
+	r.TargetScore = cfg.Opt(OptTargetScore, r.TargetScore)
+	r.CanastasToGoOut = cfg.Opt(OptCanastasToGoOut, r.CanastasToGoOut)
+	s.Rules = &r
+	s.HandSize = r.HandSize
+	s.TargetScore = r.TargetScore
+	s.CanastasToGoOut = r.CanastasToGoOut
 
 	// dealNew leads from Dealer+1, so the dealer is seeded one seat behind a
 	// random opening seat rather than always seat 0 (opening seat 1).
@@ -68,13 +81,27 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 	return encode(s)
 }
 
+// seatsToTeams is how a table of this size divides into sides.
+//
+// Even and four or more: partnerships, half as many sides as seats, partner i
+// and i+teams — so four seats are 0+2 against 1+3 and six are 0+3, 1+4, 2+5,
+// which puts partners opposite each other at both. Anything else — heads-up,
+// three, five — is every seat for itself.
+func seatsToTeams(seats int) int {
+	if seats >= 4 && seats%2 == 0 {
+		return seats / 2
+	}
+	return seats
+}
+
 // dealNew shuffles and deals one deal, leaving the first player to move.
 //
 // The seed is varied per deal so a match is reproducible from its match seed
 // yet does not deal the same cards every deal — the same trick prsi uses for
 // its reshuffles, and for the same reason.
 func dealNew(s *GameState) error {
-	deck := shuffle(buildDeck(), s.Seed+int64(s.DealNumber)*7919+1)
+	r := s.rules()
+	deck := shuffle(buildDeck(r), s.Seed+int64(s.DealNumber)*7919+1)
 
 	for i := range s.Teams {
 		s.Teams[i].Melds = nil
@@ -263,6 +290,7 @@ type pileOption struct {
 // offer list, and by the stock-exhaustion check — so those three cannot come
 // to different conclusions about whether a pile is takeable.
 func pileTakeOptions(s *GameState, playerID string) []pileOption {
+	r := s.rules()
 	top := s.top()
 	if top == "" {
 		return nil
@@ -301,7 +329,7 @@ func pileTakeOptions(s *GameState, playerID string) []pileOption {
 	// Capture by laying the top card off onto a meld the partnership already
 	// has. Only available while the pile is unfrozen.
 	if !frozen {
-		if m := t.meld(rank); m != nil && !m.closed() {
+		if m := t.meld(rank); m != nil && !m.closed(r) {
 			out = append(out, pileOption{MeldID: m.ID})
 		}
 	}
@@ -328,18 +356,19 @@ func pileTakeOptions(s *GameState, playerID string) []pileOption {
 // that the resulting meld is legal, and that a partnership still opening can
 // actually reach its minimum from the top card and its hand.
 func capturePlayable(s *GameState, playerID string, fromHand []string) bool {
+	r := s.rules()
 	t := s.team(playerID)
 	top := s.top()
 	rank := rankOf(top)
 
 	combined := append([]string{top}, fromHand...)
 	if existing := t.meld(rank); existing != nil {
-		if existing.closed() {
+		if existing.closed(r) {
 			return false
 		}
 		combined = append(append([]string(nil), existing.Cards...), combined...)
 	}
-	if validateMeld(combined) != nil {
+	if validateMeld(r, combined) != nil {
 		return false
 	}
 	if t.HasMelded {
@@ -352,10 +381,11 @@ func capturePlayable(s *GameState, playerID string, fromHand []string) bool {
 		return false
 	}
 	laid := s.LaidThisTurn + handValue(append([]string{top}, fromHand...))
-	return laid+reachableValue(rest, t) >= initialMeldMinimum(t.Score)
+	return laid+reachableValue(r, rest, t) >= r.meldFloor(t.Score)
 }
 
 func applyTakePile(s *GameState, playerID string, a module.Action) ([]module.Event, error) {
+	r := s.rules()
 	if s.Phase != phaseDraw {
 		return nil, errCode(ErrWrongPhase)
 	}
@@ -392,7 +422,7 @@ func applyTakePile(s *GameState, playerID string, a module.Action) ([]module.Eve
 		if m.Rank != rank {
 			return nil, errCode(ErrWrongRank)
 		}
-		if m.closed() {
+		if m.closed(r) {
 			return nil, errCode(ErrMeldClosed)
 		}
 	} else {
@@ -412,18 +442,18 @@ func applyTakePile(s *GameState, playerID string, a module.Action) ([]module.Eve
 		}
 		combined := append([]string{top}, fromHand...)
 		if existing := t.meld(rank); existing != nil {
-			if existing.closed() {
+			if existing.closed(r) {
 				return nil, errCode(ErrMeldClosed)
 			}
 			combined = append(append([]string(nil), existing.Cards...), combined...)
 		}
-		if err := validateMeld(combined); err != nil {
+		if err := validateMeld(r, combined); err != nil {
 			return nil, err
 		}
 		if !t.HasMelded {
 			rest, _ := removeCards(s.Hands[playerID], fromHand)
 			laid := s.LaidThisTurn + handValue(append([]string{top}, fromHand...))
-			if laid+reachableValue(rest, t) < initialMeldMinimum(t.Score) {
+			if laid+reachableValue(r, rest, t) < r.meldFloor(t.Score) {
 				return nil, errCode(ErrInitialMeldNotMet)
 			}
 		}
@@ -476,6 +506,7 @@ func applyTakePile(s *GameState, playerID string, a module.Action) ([]module.Eve
 // --- melding ---------------------------------------------------------------
 
 func applyLayMeld(s *GameState, playerID string, a module.Action) ([]module.Event, error) {
+	r := s.rules()
 	if s.Phase != phaseMeld {
 		return nil, errCode(ErrWrongPhase)
 	}
@@ -496,7 +527,7 @@ func applyLayMeld(s *GameState, playerID string, a module.Action) ([]module.Even
 			return nil, errCode(ErrCannotMeldThree)
 		}
 	} else {
-		if err := validateMeld(a.Cards); err != nil {
+		if err := validateMeld(r, a.Cards); err != nil {
 			return nil, err
 		}
 	}
@@ -540,6 +571,7 @@ func applyLayMeld(s *GameState, playerID string, a module.Action) ([]module.Even
 }
 
 func applyLayOff(s *GameState, playerID string, a module.Action) ([]module.Event, error) {
+	r := s.rules()
 	if s.Phase != phaseMeld {
 		return nil, errCode(ErrWrongPhase)
 	}
@@ -566,7 +598,7 @@ func applyLayOff(s *GameState, playerID string, a module.Action) ([]module.Event
 	if owner.ID != t.ID {
 		return nil, errCode(ErrNotYourMeld)
 	}
-	if m.closed() {
+	if m.closed(r) {
 		return nil, errCode(ErrMeldClosed)
 	}
 	for _, c := range a.Cards {
@@ -575,7 +607,7 @@ func applyLayOff(s *GameState, playerID string, a module.Action) ([]module.Event
 		}
 	}
 	grown := append(append([]string(nil), m.Cards...), a.Cards...)
-	if err := validateMeld(grown); err != nil {
+	if err := validateMeld(r, grown); err != nil {
 		return nil, err
 	}
 
@@ -612,14 +644,15 @@ func applyLayOff(s *GameState, playerID string, a module.Action) ([]module.Event
 // allowed is a lay that puts the minimum out of reach, because there is no way
 // to take cards back off the table. See meld.go's reachableValue.
 func checkInitialMeld(s *GameState, t *Team, value int, rest []string) error {
+	r := s.rules()
 	if t.HasMelded {
 		return nil
 	}
 	laid := s.LaidThisTurn + value
-	if laid >= initialMeldMinimum(t.Score) {
+	if laid >= r.meldFloor(t.Score) {
 		return nil
 	}
-	if laid+reachableValue(rest, t) < initialMeldMinimum(t.Score) {
+	if laid+reachableValue(r, rest, t) < r.meldFloor(t.Score) {
 		return errCode(ErrInitialMeldNotMet)
 	}
 	return nil
@@ -628,7 +661,8 @@ func checkInitialMeld(s *GameState, t *Team, value int, rest []string) error {
 // noteInitialMeld promotes a partnership the moment this turn's total clears
 // the floor.
 func noteInitialMeld(s *GameState, t *Team) {
-	if !t.HasMelded && s.LaidThisTurn >= initialMeldMinimum(t.Score) {
+	r := s.rules()
+	if !t.HasMelded && s.LaidThisTurn >= r.meldFloor(t.Score) {
 		t.HasMelded = true
 	}
 }

@@ -2,13 +2,12 @@ package canasta
 
 import "sort"
 
-// The shape of a legal meld. Named rather than written inline so the rules
-// read as rules and there is exactly one place to change any of them.
+// The shape of a legal meld that no variation argues about. The wild limits used
+// to live here too and now come from the ruleset, because Samba counts them
+// differently (docs/samba-plan.md §2).
 const (
 	minMeldSize = 3
 	canastaSize = 7
-	maxWilds    = 3
-	minNaturals = 2
 )
 
 // meldRank is the rank a group of cards melds as: the single natural rank
@@ -37,11 +36,18 @@ func meldRank(cards []string) (string, bool) {
 // Called by every path that puts cards on the table — a new meld, a lay-off's
 // resulting meld, the meld a pile capture creates — so none of them can hold a
 // different opinion about wild limits.
-func validateMeld(cards []string) error {
+func validateMeld(r ruleset, cards []string) error {
+	return validateGroup(r, cards)
+}
+
+// validateGroup is the rules for n cards of one rank.
+func validateGroup(r ruleset, cards []string) error {
 	if len(cards) < minMeldSize {
 		return errCode(ErrMeldTooSmall)
 	}
-	if len(cards) > canastaSize {
+	// A group stops at seven only where a canasta closes. Where it does not —
+	// Samba — the wild limits below are what bound it.
+	if r.GroupCanastaCloses && len(cards) > canastaSize {
 		return errCode(ErrMeldTooLarge)
 	}
 	rank, ok := meldRank(cards)
@@ -60,10 +66,16 @@ func validateMeld(cards []string) error {
 			wilds++
 		}
 	}
-	if wilds > maxWilds {
+	naturals := len(cards) - wilds
+	if wilds > r.MaxWilds {
 		return errCode(ErrTooManyWilds)
 	}
-	if len(cards)-wilds < minNaturals {
+	if naturals < r.MinNaturals {
+		return errCode(ErrNotEnoughNaturals)
+	}
+	// Samba's ratio: twice as many naturals as wilds, which makes a two-wild
+	// group need four naturals rather than the two an absolute floor asks for.
+	if r.NaturalsPerWild > 0 && naturals < wilds*r.NaturalsPerWild {
 		return errCode(ErrNotEnoughNaturals)
 	}
 	return nil
@@ -106,7 +118,7 @@ type candidate struct {
 // Wilds are allocated greedily to the most valuable rank that needs one, which
 // is what makes the result *achievable* rather than merely plausible — the
 // initial-meld reachability check below depends on that.
-func newMeldCandidates(hand []string, t *Team) []candidate {
+func newMeldCandidates(r ruleset, hand []string, t *Team) []candidate {
 	byRank := countByRank(hand)
 
 	var wilds []string
@@ -137,7 +149,7 @@ func newMeldCandidates(hand []string, t *Team) []candidate {
 				naturals = append(naturals, c)
 			}
 		}
-		if len(naturals) < minNaturals {
+		if len(naturals) < r.MinNaturals {
 			continue
 		}
 		opts = append(opts, opt{rank: rank, naturals: naturals})
@@ -165,7 +177,7 @@ func newMeldCandidates(hand []string, t *Team) []candidate {
 			cards = append(cards, wilds[spent])
 			spent++
 		}
-		if validateMeld(cards) != nil {
+		if validateMeld(r, cards) != nil {
 			continue
 		}
 		out = append(out, candidate{Rank: o.rank, Cards: cards, Value: handValue(cards)})
@@ -183,15 +195,15 @@ func newMeldCandidates(hand []string, t *Team) []candidate {
 //
 // A natural of the meld's rank always fits; a wild fits only while the meld
 // still has room for one. A closed canasta accepts nothing.
-func layOffCards(hand []string, m *Meld) []string {
-	if m == nil || m.closed() {
+func layOffCards(r ruleset, hand []string, m *Meld) []string {
+	if m == nil || m.closed(r) {
 		return nil
 	}
-	room := canastaSize - len(m.Cards)
+	room := m.room(r)
 	var out []string
 	for _, c := range hand {
 		if isWild(c) {
-			if m.wilds() < maxWilds && room > 0 {
+			if m.wilds() < r.MaxWilds && room > 0 {
 				out = append(out, c)
 			}
 			continue
@@ -215,7 +227,7 @@ func layOffCards(hand []string, m *Meld) []string {
 //
 // Deliberately a lower bound: it counts a greedy, concretely achievable set of
 // melds, never a hypothetical one. Erring high would put the dead end back.
-func reachableValue(hand []string, t *Team) int {
+func reachableValue(r ruleset, hand []string, t *Team) int {
 	remaining := append([]string(nil), hand...)
 	total := 0
 
@@ -224,11 +236,11 @@ func reachableValue(hand []string, t *Team) int {
 	if t != nil {
 		for i := range t.Melds {
 			m := t.Melds[i]
-			for _, c := range layOffCards(remaining, &m) {
-				if m.closed() {
+			for _, c := range layOffCards(r, remaining, &m) {
+				if m.closed(r) {
 					break
 				}
-				if isWild(c) && m.wilds() >= maxWilds {
+				if isWild(c) && m.wilds() >= r.MaxWilds {
 					continue
 				}
 				m.Cards = append(m.Cards, c)
@@ -237,7 +249,7 @@ func reachableValue(hand []string, t *Team) int {
 			}
 		}
 	}
-	for _, c := range newMeldCandidates(remaining, t) {
+	for _, c := range newMeldCandidates(r, remaining, t) {
 		total += c.Value
 	}
 	return total

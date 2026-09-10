@@ -64,6 +64,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 
 	t := s.team(playerID)
 	hand := s.Hands[playerID]
+	r := s.rules()
 	offers := make([]module.ActionOffer, 0, 8)
 
 	// --- draw ----------------------------------------------------------------
@@ -144,7 +145,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 
 	// --- lay a new meld ------------------------------------------------------
 	laid := 0
-	for _, c := range newMeldCandidates(hand, t) {
+	for _, c := range newMeldCandidates(r, hand, t) {
 		a := module.Action{Verb: VerbLayMeld, Cards: c.Cards}
 		ok, _ := probe(m, raw, playerID, a)
 		if !ok {
@@ -198,7 +199,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	// them, which is the fact that made Canasta a module rather than a profile.
 	for i := range t.Melds {
 		mm := t.Melds[i]
-		eligible := layOffCards(hand, &mm)
+		eligible := layOffCards(r, hand, &mm)
 		// One per meld the partnership has down, told apart by the rank each
 		// one is built on.
 		o := module.ActionOffer{

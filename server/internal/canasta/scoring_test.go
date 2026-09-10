@@ -56,7 +56,7 @@ func TestCardPredicates(t *testing.T) {
 }
 
 func TestDeckIsTwoDecksAndFourJokers(t *testing.T) {
-	deck := buildDeck()
+	deck := buildDeck(classicRules())
 	if len(deck) != 108 {
 		t.Fatalf("deck has %d cards, want 108", len(deck))
 	}
@@ -105,8 +105,8 @@ func TestCanastaBonuses(t *testing.T) {
 	}
 
 	tm := &Team{Melds: []Meld{natural, mixed, short}}
-	want := naturalCanastaBonus + mixedCanastaBonus
-	if got := canastaScore(tm); got != want {
+	want := classicRules().NaturalCanastaBonus + classicRules().MixedCanastaBonus
+	if got := canastaScore(classicRules(), tm); got != want {
 		t.Errorf("canastaScore = %d, want %d", got, want)
 	}
 	if got := tm.canastas(); got != 2 {
@@ -151,7 +151,7 @@ func TestScoreDeal(t *testing.T) {
 
 	// Team 0: 70 + 15 melded, 500 canasta, 100 red three, 100 going out, none
 	// left in hand.
-	want0 := 85 + naturalCanastaBonus + redThreeValue + goingOutBonus
+	want0 := 85 + classicRules().NaturalCanastaBonus + redThreeValue + classicRules().GoingOutBonus
 	if res.Teams[0].Total != want0 {
 		t.Errorf("team 0 scored %d, want %d (%+v)", res.Teams[0].Total, want0, res.Teams[0])
 	}
@@ -260,7 +260,7 @@ func TestReachableValueIsAchievable(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := reachableValue(tc.hand, &Team{}); got != tc.want {
+			if got := reachableValue(classicRules(), tc.hand, &Team{}); got != tc.want {
 				t.Errorf("reachableValue(%v) = %d, want %d", tc.hand, got, tc.want)
 			}
 		})

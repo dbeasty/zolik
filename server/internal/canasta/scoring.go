@@ -2,67 +2,53 @@ package canasta
 
 import "zolik/server/internal/module"
 
-// Bonuses, all of them. The numbers live here and nowhere else.
-const (
-	redThreeValue       = 100
-	allRedThreesBonus   = 800 // all four, instead of 4×100
-	naturalCanastaBonus = 500
-	mixedCanastaBonus   = 300
-	goingOutBonus       = 100
-	concealedBonus      = 200
-)
+// redThreeValue is the one bonus that is the same in every variation. The rest
+// belong to the ruleset, because Samba disagrees with Canasta about all of them.
+const redThreeValue = 100
 
 func errCode(code string) error { return module.Error{Code: code} }
-
-// initialMeldMinimum is the value a partnership must lay in one turn to get on
-// the table, and it rises with that partnership's own accumulated score — so a
-// team that is ahead has to work harder to open, which is the mechanism that
-// keeps a match from running away.
-func initialMeldMinimum(score int) int {
-	switch {
-	case score < 0:
-		return 15
-	case score < 1500:
-		return 50
-	case score < 3000:
-		return 90
-	default:
-		return 120
-	}
-}
 
 // redThreeScore is the partnership's red threes, signed.
 //
 // The sign is the whole point: red threes are a gift that turns into a
-// liability if the partnership never completes a canasta, which is what stops
-// them being free points for doing nothing.
-func redThreeScore(t *Team) int {
+// liability if the partnership never got where it needed to, which is what stops
+// them being free points for doing nothing. What "where it needed to" means is
+// the variation's, and so is whether the all-of-them bonus is charged back in
+// full when it goes the other way.
+func redThreeScore(r ruleset, t *Team) int {
 	n := len(t.RedThrees)
 	if n == 0 {
 		return 0
 	}
 	value := n * redThreeValue
-	if n == 4 {
-		value = allRedThreesBonus
+	if n >= r.redThrees() {
+		value = r.redThreeAllBonus()
 	}
-	if t.canastas() == 0 {
+	if t.canastas() < r.RedThreesNeed {
+		if r.RedThreePenaltyFlat {
+			return -(n * redThreeValue)
+		}
 		return -value
 	}
 	return value
 }
 
-// canastaScore is the bonus for completed canastas — 500 for one with no
-// wilds in it, 300 for one built with them.
-func canastaScore(t *Team) int {
+// canastaScore is the bonus for everything the side has completed — 500 for a
+// canasta with no wilds in it, 300 for one built with them, and in Samba 1500
+// for a seven-card sequence.
+func canastaScore(r ruleset, t *Team) int {
 	total := 0
 	for _, m := range t.Melds {
 		if !m.isCanasta() {
 			continue
 		}
-		if m.isNatural() {
-			total += naturalCanastaBonus
-		} else {
-			total += mixedCanastaBonus
+		switch {
+		case m.kind() == meldRun:
+			total += r.SambaBonus
+		case m.isNatural():
+			total += r.NaturalCanastaBonus
+		default:
+			total += r.MixedCanastaBonus
 		}
 	}
 	return total
@@ -85,6 +71,7 @@ func meldCardScore(t *Team) int {
 // and nobody did.
 func scoreDeal(s *GameState, wentOut string, concealed bool, exhausted bool) DealResult {
 	res := DealResult{DealNumber: s.DealNumber, WentOut: wentOut, Concealed: concealed, Exhausted: exhausted}
+	r := s.rules()
 
 	outTeam := -1
 	if wentOut != "" {
@@ -98,13 +85,15 @@ func scoreDeal(s *GameState, wentOut string, concealed bool, exhausted bool) Dea
 		tr := TeamResult{
 			TeamID:    t.ID,
 			MeldCards: meldCardScore(t),
-			Canastas:  canastaScore(t),
-			RedThrees: redThreeScore(t),
+			Canastas:  canastaScore(r, t),
+			RedThrees: redThreeScore(r, t),
 		}
 		if t.ID == outTeam {
-			tr.GoingOut = goingOutBonus
-			if concealed {
-				tr.GoingOut = concealedBonus
+			tr.GoingOut = r.GoingOutBonus
+			// A variation with no concealed bonus — Samba — pays the ordinary
+			// one for a hand melded in a single turn, rather than nothing.
+			if concealed && r.ConcealedBonus > 0 {
+				tr.GoingOut = r.ConcealedBonus
 			}
 		}
 		// Everything still in either partner's hand counts against them —

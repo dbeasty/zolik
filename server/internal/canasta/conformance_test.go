@@ -6,6 +6,14 @@ import (
 	"zolik/server/internal/module"
 )
 
+// classicRules is the ruleset the unit tests below reason about.
+//
+// The engine's helpers take a ruleset now that a variation can change the deck,
+// the wild limits and every bonus (docs/samba-plan.md §3.1). The tests that
+// pinned Canasta's numbers still pin Canasta's numbers — they name the ruleset
+// they are asserting about instead of assuming there is only one.
+func classicRules() ruleset { return variations["classic"] }
+
 func refs(ids ...string) []module.PlayerRef {
 	out := make([]module.PlayerRef, 0, len(ids))
 	for _, id := range ids {

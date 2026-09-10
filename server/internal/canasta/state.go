@@ -89,10 +89,30 @@ const (
 // Owned by the team rather than the player: either partner may extend it, and
 // that single fact is most of why Canasta could not be a `RulesConfig` profile.
 type Meld struct {
-	ID     string   `json:"id"`
-	TeamID int      `json:"teamId"`
-	Rank   string   `json:"rank"`
-	Cards  []string `json:"cards"`
+	ID     string `json:"id"`
+	TeamID int    `json:"teamId"`
+	// Kind is "set" — n cards of one rank — or "run", a sequence in one suit.
+	// Empty means "set", so a meld written before sequences existed reads back
+	// as what it was.
+	Kind string `json:"kind,omitempty"`
+	// Rank is a set's rank; Suit is a run's suit. Each is empty for the other.
+	Rank  string   `json:"rank"`
+	Suit  string   `json:"suit,omitempty"`
+	Cards []string `json:"cards"`
+}
+
+// The two kinds of meld. A zero Kind is a set, so nothing has to be migrated.
+const (
+	meldSet = "set"
+	meldRun = "run"
+)
+
+// kind is Kind with the empty-means-set default applied.
+func (m Meld) kind() string {
+	if m.Kind == "" {
+		return meldSet
+	}
+	return m.Kind
 }
 
 func meldID(teamID int, rank string) string {
@@ -118,9 +138,32 @@ func (m Meld) isCanasta() bool { return len(m.Cards) >= canastaSize }
 // isNatural reports a canasta with no wilds in it — worth 500 rather than 300.
 func (m Meld) isNatural() bool { return m.wilds() == 0 }
 
-// closed reports a meld that can take no more cards. A canasta is complete at
-// seven; adding an eighth is not a bigger canasta, it is a rule nobody plays.
-func (m Meld) closed() bool { return len(m.Cards) >= canastaSize }
+// closed reports a meld that can take no more cards.
+//
+// In Canasta a canasta is complete at seven and an eighth card is a rule nobody
+// plays. Samba disagrees for groups — a canasta there keeps taking cards, bounded
+// by the wild limits instead — so the answer belongs to the variation. A sequence
+// always closes at seven, because a seven-card sequence is a samba and that is
+// the whole of what a samba is.
+func (m Meld) closed(r ruleset) bool {
+	if len(m.Cards) < canastaSize {
+		return false
+	}
+	return m.Kind == meldRun || r.GroupCanastaCloses
+}
+
+// room is how many more cards this meld will take. Unbounded melds report a
+// number large enough to mean "as many as you have", which is true: a hand is
+// the real limit.
+func (m Meld) room(r ruleset) int {
+	if m.closed(r) {
+		return 0
+	}
+	if m.Kind == meldRun || r.GroupCanastaCloses {
+		return canastaSize - len(m.Cards)
+	}
+	return canastaSize
+}
 
 // Team is a partnership: the scoring unit, and the owner of melds.
 type Team struct {
@@ -202,6 +245,11 @@ type GameState struct {
 	HandSize        int `json:"handSize"`
 	TargetScore     int `json:"targetScore"`
 	CanastasToGoOut int `json:"canastasToGoOut"`
+	// Rules is the whole resolved ruleset, of which the three scalars above are
+	// the part that shipped first. Nil for a match dealt before this field
+	// existed — see rules(), which reconstructs one rather than making every
+	// reader check.
+	Rules *ruleset `json:"rules,omitempty"`
 
 	DealNumber int `json:"dealNumber"`
 	// Dealer is the seat index that dealt, rotating each deal so the
@@ -253,6 +301,24 @@ type TeamResult struct {
 	InHand    int `json:"inHand"`
 	Total     int `json:"total"`
 	Running   int `json:"running"`
+}
+
+// rules is the ruleset this match is being played under.
+//
+// A match dealt before the ruleset existed has only the three scalars, so one is
+// reconstructed from its variation and those values are laid back over the top.
+// That keeps the migration in one function instead of a nil check at every call
+// site — and a match in flight when this shipped plays on under the rules it was
+// dealt under, which is the same guarantee `Pause` makes.
+func (s *GameState) rules() ruleset {
+	if s.Rules != nil {
+		return *s.Rules
+	}
+	r := resolveVariation(s.Variation)
+	r.HandSize = s.HandSize
+	r.TargetScore = s.TargetScore
+	r.CanastasToGoOut = s.CanastasToGoOut
+	return r
 }
 
 func (s *GameState) team(playerID string) *Team {

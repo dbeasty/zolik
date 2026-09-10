@@ -6,33 +6,12 @@ import (
 	"zolik/server/internal/module"
 )
 
-// Option names and the values each variation starts from.
+// Option names. The values each variation starts from live in ruleset.go.
 const (
 	OptHandSize        = "handSize"
 	OptTargetScore     = "targetScore"
 	OptCanastasToGoOut = "canastasToGoOut"
 )
-
-type variationDefaults struct {
-	handSize        int
-	targetScore     int
-	canastasToGoOut int
-}
-
-var variations = map[string]variationDefaults{
-	// Classic: eleven cards, one canasta buys the right to go out, 5000 wins.
-	"classic": {handSize: 11, targetScore: 5000, canastasToGoOut: 1},
-	// Modern American: thirteen cards and two canastas to go out, which makes
-	// deals longer and the discard pile far more valuable.
-	"modern_american": {handSize: 13, targetScore: 5000, canastasToGoOut: 2},
-}
-
-func resolveVariation(cfg module.MatchConfig) variationDefaults {
-	if v, ok := variations[cfg.Variation]; ok {
-		return v
-	}
-	return variations["classic"]
-}
 
 // Descriptor is Canasta's self-description.
 //
@@ -45,11 +24,12 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 		ID:         "canasta",
 		Label:      "Canasta",
 		MinPlayers: 2,
-		MaxPlayers: 4,
+		MaxPlayers: 6,
 		Variations: []module.VariationSpec{
 			{
-				ID:    "classic",
-				Label: "Classic",
+				ID:         "classic",
+				MaxPlayers: variations["classic"].MaxSeats,
+				Label:      "Classic",
 				Summary: []module.Fact{
 					{LabelKey: "canasta.rules.deck", Value: "108"},
 					{LabelKey: "canasta.rules.canasta", Params: map[string]any{"n": canastaSize}},
@@ -57,16 +37,17 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					{LabelKey: "canasta.rules.oneCanastaToGoOut"},
 				},
 				Defaults: map[string]int{
-					OptHandSize:                  variations["classic"].handSize,
-					OptTargetScore:               variations["classic"].targetScore,
-					OptCanastasToGoOut:           variations["classic"].canastasToGoOut,
+					OptHandSize:                  variations["classic"].HandSize,
+					OptTargetScore:               variations["classic"].TargetScore,
+					OptCanastasToGoOut:           variations["classic"].CanastasToGoOut,
 					module.OptPauseBetweenRounds: module.OptOn,
 					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
 				},
 			},
 			{
-				ID:    "modern_american",
-				Label: "Modern American",
+				ID:         "modern_american",
+				MaxPlayers: variations["modern_american"].MaxSeats,
+				Label:      "Modern American",
 				Summary: []module.Fact{
 					{LabelKey: "canasta.rules.deck", Value: "108"},
 					{LabelKey: "canasta.rules.canasta", Params: map[string]any{"n": canastaSize}},
@@ -74,9 +55,9 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					{LabelKey: "canasta.rules.twoCanastasToGoOut"},
 				},
 				Defaults: map[string]int{
-					OptHandSize:                  variations["modern_american"].handSize,
-					OptTargetScore:               variations["modern_american"].targetScore,
-					OptCanastasToGoOut:           variations["modern_american"].canastasToGoOut,
+					OptHandSize:                  variations["modern_american"].HandSize,
+					OptTargetScore:               variations["modern_american"].TargetScore,
+					OptCanastasToGoOut:           variations["modern_american"].CanastasToGoOut,
 					module.OptPauseBetweenRounds: module.OptOn,
 					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
 				},
@@ -136,6 +117,7 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 	}
 
 	vm := module.ViewModel{}
+	r := s.rules()
 
 	own := s.Hands[viewerID]
 	vm.Zones = append(vm.Zones, module.Zone{
@@ -267,7 +249,7 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 		if !vt.HasMelded {
 			vm.Prompts = append(vm.Prompts, module.Fact{
 				LabelKey: "prompt.initialMeld",
-				Params:   map[string]any{"n": initialMeldMinimum(vt.Score)},
+				Params:   map[string]any{"n": r.meldFloor(vt.Score)},
 			})
 		}
 		if !canGoOut(s, vt) {
