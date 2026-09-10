@@ -189,34 +189,12 @@ func (c candidate) offerKey() string {
 	return c.Rank
 }
 
-// newMeldCandidates enumerates the new melds a hand could lay, best first.
-//
-// One per rank, and the biggest legal one for that rank: a player wanting a
-// smaller meld can send it, since `Apply` validates the concrete submission
-// independently and the offer is a rendering input rather than a permission
-// grant.
-//
-// Wilds are allocated greedily to the most valuable rank that needs one, which
-// is what makes the result *achievable* rather than merely plausible — the
-// initial-meld reachability check below depends on that.
-func newMeldCandidates(r ruleset, hand []string, t *Team) []candidate {
+// meldableNaturals lists, for each rank the hand could still open a new meld
+// on, that rank's natural (non-wild) cards — the one fact both meld-candidate
+// functions below need before they diverge on how to spend the hand's wilds.
+func meldableNaturals(r ruleset, hand []string, t *Team) map[string][]string {
 	byRank := countByRank(hand)
-
-	var wilds []string
-	for _, c := range hand {
-		if isWild(c) {
-			wilds = append(wilds, c)
-		}
-	}
-	sort.Strings(wilds)
-
-	// Ranks that could form a new meld, most valuable first, so a scarce wild
-	// is spent where it buys the most.
-	type opt struct {
-		rank     string
-		naturals []string
-	}
-	var opts []opt
+	out := map[string][]string{}
 	for rank, cards := range byRank {
 		if rank == rankThree || isWild(cards[0]) {
 			continue
@@ -233,6 +211,51 @@ func newMeldCandidates(r ruleset, hand []string, t *Team) []candidate {
 		if len(naturals) < r.MinNaturals {
 			continue
 		}
+		out[rank] = naturals
+	}
+	return out
+}
+
+func handWilds(hand []string) []string {
+	var wilds []string
+	for _, c := range hand {
+		if isWild(c) {
+			wilds = append(wilds, c)
+		}
+	}
+	sort.Strings(wilds)
+	return wilds
+}
+
+func sortCandidates(out []candidate) {
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Value != out[j].Value {
+			return out[i].Value > out[j].Value
+		}
+		// offerKey rather than Rank: a sequence has no rank, so two of them
+		// would tie here and sort unstably against each other.
+		return out[i].offerKey() < out[j].offerKey()
+	})
+}
+
+// newMeldCandidates enumerates the new melds a hand could lay, best first, as
+// a *turn's* worth of melding: every rank draws from one shared pool of
+// wilds, spent greedily on the most valuable rank that needs one. That is
+// what makes the result achievable rather than merely plausible, which is
+// exactly the property reachableValue needs — the one caller of this
+// function — to stay a safe lower bound. It is the wrong function for asking
+// "what single meld could I lay right now": see allMeldCandidates for that.
+func newMeldCandidates(r ruleset, hand []string, t *Team) []candidate {
+	naturalsByRank := meldableNaturals(r, hand, t)
+	wilds := handWilds(hand)
+
+	// Most valuable first, so a scarce wild is spent where it buys the most.
+	type opt struct {
+		rank     string
+		naturals []string
+	}
+	opts := make([]opt, 0, len(naturalsByRank))
+	for rank, naturals := range naturalsByRank {
 		opts = append(opts, opt{rank: rank, naturals: naturals})
 	}
 	sort.Slice(opts, func(i, j int) bool {
@@ -263,12 +286,36 @@ func newMeldCandidates(r ruleset, hand []string, t *Team) []candidate {
 		}
 		out = append(out, candidate{Rank: o.rank, Cards: cards, Value: handValue(cards)})
 	}
-	sort.Slice(out, func(i, j int) bool {
-		if out[i].Value != out[j].Value {
-			return out[i].Value > out[j].Value
+	sortCandidates(out)
+	return out
+}
+
+// allMeldCandidates enumerates every meld a hand could lay as its own,
+// independent move — the question offers.go actually asks. Unlike
+// newMeldCandidates, it never lets one rank's use of a wild count against
+// another's: two ranks can each want the same physical joker, and both are
+// still real melds a player could choose to lay this turn, even though
+// choosing one spends the wild the other wanted. Hiding the second because
+// the first claimed it first would take a legal move off the board.
+func allMeldCandidates(r ruleset, hand []string, t *Team) []candidate {
+	naturalsByRank := meldableNaturals(r, hand, t)
+	wilds := handWilds(hand)
+
+	var out []candidate
+	for rank, naturals := range naturalsByRank {
+		cards := append([]string(nil), naturals...)
+		if len(cards) > canastaSize {
+			cards = cards[:canastaSize]
 		}
-		return out[i].Rank < out[j].Rank
-	})
+		for i := 0; len(cards) < minMeldSize && i < len(wilds); i++ {
+			cards = append(cards, wilds[i])
+		}
+		if validateMeld(r, cards) != nil {
+			continue
+		}
+		out = append(out, candidate{Rank: rank, Cards: cards, Value: handValue(cards)})
+	}
+	sortCandidates(out)
 	return out
 }
 

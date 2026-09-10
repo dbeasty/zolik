@@ -1150,6 +1150,7 @@ export const cs: Record<string, string> = {
   'verb.undoDraw': 'Vrátit líznutí',
   'verb.undoLayOff': 'Vrátit přiložení',
   'verb.undoMeld': 'Vrátit kombinaci',
+  'verb.undoTakePile': 'Vrátit vzetí balíčku',
   'verb.undoTurn': 'Vrátit tah',
 
   // --- suits, spelled out ---------------------------------------------------

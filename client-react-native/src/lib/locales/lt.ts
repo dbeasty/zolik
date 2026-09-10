@@ -1157,6 +1157,7 @@ export const lt: Record<string, string> = {
   'verb.undoDraw': 'Atšaukti traukimą',
   'verb.undoLayOff': 'Atšaukti pridėjimą',
   'verb.undoMeld': 'Atšaukti derinį',
+  'verb.undoTakePile': 'Atšaukti ėmimą iš krūvelės',
   'verb.undoTurn': 'Atšaukti ėjimą',
 
   // --- suits, spelled out ---------------------------------------------------

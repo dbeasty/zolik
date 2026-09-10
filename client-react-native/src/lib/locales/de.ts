@@ -1174,6 +1174,7 @@ export const de: Record<string, string> = {
   'verb.undoDraw': 'Ziehen rückgängig',
   'verb.undoLayOff': 'Anlegen rückgängig',
   'verb.undoMeld': 'Auslage rückgängig',
+  'verb.undoTakePile': 'Stapelnahme rückgängig',
   'verb.undoTurn': 'Zug rückgängig',
 
   // --- suits, spelled out ---------------------------------------------------

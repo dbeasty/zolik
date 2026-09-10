@@ -1162,6 +1162,7 @@ export const fi: Record<string, string> = {
   'verb.undoDraw': 'Kumoa nosto',
   'verb.undoLayOff': 'Kumoa liittäminen',
   'verb.undoMeld': 'Kumoa yhdistelmä',
+  'verb.undoTakePile': 'Kumoa pinon otto',
   'verb.undoTurn': 'Kumoa vuoro',
 
   // --- suits, spelled out ---------------------------------------------------

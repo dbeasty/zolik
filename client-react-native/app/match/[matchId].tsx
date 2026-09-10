@@ -303,9 +303,33 @@ export default function MatchScreen() {
       <View style={styles.root}>
         <TableSurface />
         <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-          <Text testID="match-connecting" style={styles.muted}>
-            {connected ? t('match.waitingForTable') : t('match.connecting')}
-          </Text>
+          {/* A refusal that arrives before any board has to be drawn here,
+              because the one place this screen renders `error` is inside the
+              controls panel — which does not exist until there is a state to
+              build it from. So "that table no longer exists" was being set,
+              and shown nowhere: the screen went on saying "Waiting for the
+              table…" about a table the server had just said was gone. A
+              player who followed an old link had no way to tell that from a
+              server that had stopped answering, and no way out but the back
+              button. */}
+          {error ? (
+            <>
+              <Text testID="match-gone" style={styles.error}>
+                {reasonText(error.code, error.message || error.code)}
+              </Text>
+              <Pressable
+                testID="match-gone-leave"
+                onPress={() => router.replace('/lobby/games')}
+                style={styles.overButtonQuiet}
+              >
+                <Text style={styles.overButtonQuietText}>{t('match.backToGames')}</Text>
+              </Pressable>
+            </>
+          ) : (
+            <Text testID="match-connecting" style={styles.muted}>
+              {connected ? t('match.waitingForTable') : t('match.connecting')}
+            </Text>
+          )}
         </SafeAreaView>
       </View>
     );

@@ -1168,6 +1168,7 @@ export const nl: Record<string, string> = {
   'verb.undoDraw': 'Pakken ongedaan maken',
   'verb.undoLayOff': 'Aanleggen ongedaan maken',
   'verb.undoMeld': 'Combinatie ongedaan maken',
+  'verb.undoTakePile': 'Stapel nemen ongedaan maken',
   'verb.undoTurn': 'Beurt ongedaan maken',
 
   // --- suits, spelled out ---------------------------------------------------

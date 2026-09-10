@@ -1153,6 +1153,7 @@ export const sk: Record<string, string> = {
   'verb.undoDraw': 'Vrátiť potiahnutie',
   'verb.undoLayOff': 'Vrátiť priloženie',
   'verb.undoMeld': 'Vrátiť kombináciu',
+  'verb.undoTakePile': 'Vrátiť vzatie z kôpky',
   'verb.undoTurn': 'Vrátiť ťah',
 
   // --- suits, spelled out ---------------------------------------------------

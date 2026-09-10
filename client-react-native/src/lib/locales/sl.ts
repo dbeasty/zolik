@@ -1148,6 +1148,7 @@ export const sl: Record<string, string> = {
   'verb.undoDraw': 'Razveljavi jemanje',
   'verb.undoLayOff': 'Razveljavi prislanjanje',
   'verb.undoMeld': 'Razveljavi kombinacijo',
+  'verb.undoTakePile': 'Razveljavi vzem s kupa',
   'verb.undoTurn': 'Razveljavi potezo',
 
   // --- suits, spelled out ---------------------------------------------------

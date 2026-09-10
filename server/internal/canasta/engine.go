@@ -206,6 +206,16 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 		return raw, nil, errCode(ErrNotYourTurn)
 	}
 
+	// Every verb but the undo itself spends or replaces whatever it touches,
+	// so a pile capture stops being undoable the moment anything else
+	// happens — cleared here, up front, rather than separately in each of
+	// them. Safe because a refusal below returns the caller's own `raw`
+	// untouched (see Apply's own doc comment): this clear only survives when
+	// the action it guarded actually went through.
+	if a.Verb != VerbUndoTakePile {
+		s.PileTaken = nil
+	}
+
 	var events []module.Event
 	switch a.Verb {
 	case VerbDraw:
@@ -220,6 +230,8 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 		events, err = applyLayOff(s, playerID, a)
 	case VerbDiscard:
 		events, err = applyDiscard(s, playerID, a)
+	case VerbUndoTakePile:
+		events, err = applyUndoTakePile(s, playerID)
 	default:
 		err = module.Error{Code: ErrUnknownAction, Message: a.Verb}
 	}
@@ -472,6 +484,29 @@ func applyTakePile(s *GameState, playerID string, a module.Action) ([]module.Eve
 		}
 	}
 
+	// Snapshotted before anything moves, so an undo — see PileTaken — can put
+	// it all back exactly rather than reconstructing it from what the table
+	// looks like afterward.
+	pileSnapshot := append([]string(nil), s.DiscardPile...)
+	priorHand := append([]string(nil), s.Hands[playerID]...)
+	priorFrozen := s.Frozen
+	priorHasMelded := t.HasMelded
+	priorLaidThisTurn := s.LaidThisTurn
+	var meldIDForUndo string
+	var meldWasNew bool
+	var priorMeldCards []string
+	if target != "" {
+		_, m := s.findMeld(target)
+		meldIDForUndo, priorMeldCards = m.ID, append([]string(nil), m.Cards...)
+	} else if existing := t.openGroup(r, rank); existing != nil {
+		meldIDForUndo, priorMeldCards = existing.ID, append([]string(nil), existing.Cards...)
+	} else {
+		// The id is read back from the meld once it exists rather than predicted
+		// here: a side's *second* group of a rank is not `t0-K` (see newMeldID),
+		// so guessing it would leave the undo pointing at the wrong meld.
+		meldWasNew = true
+	}
+
 	// Committed from here. Melded cards leave the hand, the top card joins
 	// them, and everything buried under it becomes the taker's problem.
 	laidValue := cardValue(top)
@@ -491,8 +526,10 @@ func applyTakePile(s *GameState, playerID string, a module.Action) ([]module.Eve
 			ID: t.newMeldID(meldSet, rank), TeamID: t.ID,
 			Kind: meldSet, Rank: rank, Cards: meldCards,
 		})
+		meldIDForUndo = t.Melds[len(t.Melds)-1].ID
 	}
 
+	var redThreesGained []string
 	rest := s.DiscardPile[:len(s.DiscardPile)-1]
 	for _, c := range rest {
 		// The only red three that can be buried here is the deal's opening
@@ -500,6 +537,7 @@ func applyTakePile(s *GameState, playerID string, a module.Action) ([]module.Eve
 		// there is no draw to replace.
 		if isRedThree(c) {
 			t.RedThrees = append(t.RedThrees, c)
+			redThreesGained = append(redThreesGained, c)
 			continue
 		}
 		s.Hands[playerID] = append(s.Hands[playerID], c)
@@ -511,6 +549,18 @@ func applyTakePile(s *GameState, playerID string, a module.Action) ([]module.Eve
 
 	s.LaidThisTurn += laidValue
 	noteInitialMeld(s, t)
+
+	s.PileTaken = &PileTaken{
+		Pile:              pileSnapshot,
+		PriorHand:         priorHand,
+		MeldID:            meldIDForUndo,
+		MeldWasNew:        meldWasNew,
+		PriorCards:        priorMeldCards,
+		RedThreesGained:   redThreesGained,
+		PriorHasMelded:    priorHasMelded,
+		PriorLaidThisTurn: priorLaidThisTurn,
+		PriorFrozen:       priorFrozen,
+	}
 
 	return []module.Event{{Type: "pile_taken", Data: map[string]any{
 		"playerId": playerID, "cards": len(rest) + 1, "top": top,
@@ -613,6 +663,47 @@ func applyTakeTop(s *GameState, playerID string, a module.Action) ([]module.Even
 
 	return []module.Event{{Type: "top_card_taken", Data: map[string]any{
 		"playerId": playerID, "card": top, "meldId": m.ID,
+	}}}, nil
+}
+
+// applyUndoTakePile reverses the current turn's pile capture — see PileTaken
+// for why this is the one move this module lets a player take back, and how
+// narrowly it is scoped.
+func applyUndoTakePile(s *GameState, playerID string) ([]module.Event, error) {
+	pt := s.PileTaken
+	if pt == nil {
+		return nil, errCode(ErrNothingToUndo)
+	}
+	t := s.team(playerID)
+	m := t.meldByID(pt.MeldID)
+	if m == nil {
+		return nil, errCode(ErrNothingToUndo)
+	}
+	if !pt.MeldWasNew && len(m.Cards) <= len(pt.PriorCards) {
+		return nil, errCode(ErrNothingToUndo)
+	}
+
+	if pt.MeldWasNew {
+		t.Melds = t.Melds[:len(t.Melds)-1] // appended last by applyTakePile; nothing since has touched it
+	} else {
+		m.Cards = append([]string(nil), pt.PriorCards...)
+	}
+
+	s.Hands[playerID] = append([]string(nil), pt.PriorHand...)
+	if len(pt.RedThreesGained) > 0 {
+		t.RedThrees, _ = removeCards(t.RedThrees, pt.RedThreesGained)
+	}
+
+	s.DiscardPile = append([]string(nil), pt.Pile...)
+	s.Frozen = pt.PriorFrozen
+	s.TookPileThisTurn = false
+	s.Phase = phaseDraw
+	s.LaidThisTurn = pt.PriorLaidThisTurn
+	t.HasMelded = pt.PriorHasMelded
+	s.PileTaken = nil
+
+	return []module.Event{{Type: "take_pile_undone", Data: map[string]any{
+		"playerId": playerID,
 	}}}, nil
 }
 

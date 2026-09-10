@@ -1169,6 +1169,7 @@ export const mt: Record<string, string> = {
   'verb.undoDraw': 'Ħassar il-ġbid',
   'verb.undoLayOff': 'Ħassar iż-żieda',
   'verb.undoMeld': 'Ħassar il-kombinazzjoni',
+  'verb.undoTakePile': 'Ħassar it-teħid mill-munzell',
   'verb.undoTurn': 'Ħassar id-dawra',
 
   // --- suits, spelled out ---------------------------------------------------

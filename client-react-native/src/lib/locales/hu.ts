@@ -1168,6 +1168,7 @@ export const hu: Record<string, string> = {
   'verb.undoDraw': 'Húzás visszavonása',
   'verb.undoLayOff': 'Hozzárakás visszavonása',
   'verb.undoMeld': 'Kombináció visszavonása',
+  'verb.undoTakePile': 'Elvétel visszavonása',
   'verb.undoTurn': 'Kör visszavonása',
 
   // --- suits, spelled out ---------------------------------------------------

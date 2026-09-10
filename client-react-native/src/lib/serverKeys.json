@@ -396,6 +396,7 @@
     "verb.takePileFromHand",
     "verb.takePileOntoMeld",
     "verb.takeTopForSequence",
+    "verb.undoTakePile",
     "zolik.badge.jokerOwed",
     "zolik.badge.owedToMeld",
     "zolik.offer.meld",

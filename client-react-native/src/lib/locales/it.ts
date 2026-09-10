@@ -1165,6 +1165,7 @@ export const it: Record<string, string> = {
   'verb.undoDraw': 'Annulla la pescata',
   'verb.undoLayOff': "Annulla l'attacco",
   'verb.undoMeld': 'Annulla la combinazione',
+  'verb.undoTakePile': 'Annulla la presa dalla pila',
   'verb.undoTurn': 'Annulla il turno',
 
   // --- suits, spelled out ---------------------------------------------------

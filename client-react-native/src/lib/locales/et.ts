@@ -1155,6 +1155,7 @@ export const et: Record<string, string> = {
   'verb.undoDraw': 'Võta tõmme tagasi',
   'verb.undoLayOff': 'Võta külgepanek tagasi',
   'verb.undoMeld': 'Võta kombinatsioon tagasi',
+  'verb.undoTakePile': 'Võta hunnikuvõtt tagasi',
   'verb.undoTurn': 'Võta käik tagasi',
 
   // --- suits, spelled out ---------------------------------------------------

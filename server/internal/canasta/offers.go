@@ -19,6 +19,8 @@ const (
 	// OfferTakeTop is Samba's one-card capture; live ones are
 	// "take_top:<meldId>".
 	OfferTakeTop = "take_top"
+	// OfferUndoTakePile takes back this turn's pile capture — see PileTaken.
+	OfferUndoTakePile = "undo_take_pile"
 )
 
 // LegalActions answers "what may this player do right now?".
@@ -164,9 +166,24 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		})
 	}
 
+	// --- undo taking the pile --------------------------------------------------
+	//
+	// Only ever on offer for the same turn's own capture — see PileTaken — and
+	// gone the instant anything else reaches the table, so this never competes
+	// with an ordinary move for a player's attention.
+	if s.PileTaken != nil {
+		o := module.ActionOffer{ID: OfferUndoTakePile, Verb: VerbUndoTakePile, LabelKey: "verb.undoTakePile"}
+		o.Enabled, o.WhyNot = probe(m, raw, playerID, module.Action{Verb: VerbUndoTakePile})
+		o.Source = &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID}
+		offers = append(offers, o)
+	}
+
 	// --- lay a new meld ------------------------------------------------------
 	laid := 0
-	candidates := newMeldCandidates(r, hand, t)
+	// allMeldCandidates rather than newMeldCandidates: this asks what single
+	// meld a player could lay right now, and two ranks wanting the same joker
+	// are both real moves (see meld.go).
+	candidates := allMeldCandidates(r, hand, t)
 	// Sequences are enumerated the same way groups are, and can be, because a
 	// run takes no wilds: it is the maximal block of consecutive ranks in a
 	// suit rather than a shape somebody composes (docs/samba-plan.md §3.3).

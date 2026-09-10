@@ -1170,6 +1170,7 @@ export const fr: Record<string, string> = {
   'verb.undoDraw': 'Annuler la pioche',
   'verb.undoLayOff': 'Annuler le report',
   'verb.undoMeld': 'Annuler la combinaison',
+  'verb.undoTakePile': 'Annuler la prise de la défausse',
   'verb.undoTurn': 'Annuler le tour',
 
   // --- suits, spelled out ---------------------------------------------------
