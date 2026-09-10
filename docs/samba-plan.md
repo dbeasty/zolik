@@ -387,6 +387,15 @@ Four, each resolved the way the module already leans, and each cheap to revisit:
 Delivered as planned, in the five phases above. Seven things are worth recording — five of them
 because the plan was wrong about them.
 
+One caveat on the verification, stated rather than left implied: the browser-level checks were
+not run against this branch. Metro resolves out of a symlinked `node_modules` into the *other*
+worktrees under `.claude/worktrees/` and fails to bundle, so the Expo web client could not be
+started from here. Everything below the UI was exercised against a real server on a real
+database — the e2e suite runs green against a build of this branch, including a four-seat Samba
+match played to a winner over real WebSockets — and the sweep in §10's last item is the
+server-side answer to the question the untranslated-sweep spec asks in a browser. A Samba *screen*
+has not been looked at.
+
 **The offer list carries a sequence game.** `module.PlayWithOffers` — the driver that reads a
 module's offer list and nothing else, and has never heard of a suit — finishes whole Samba
 matches to a winner at every seat count from two to six, and the e2e plays a four-seat Samba
@@ -427,8 +436,20 @@ that reason, and the golden fixture is what caught the first attempt at deriving
 permanently frozen pile the existing `PILE_FROZEN`: both already say exactly what happened, and a
 second code per variation would have been a second sentence to translate for no new meaning.
 
-**Adding a badge exposed a gap that had been open since Canasta shipped.** `dump-keys` reads
-`BadgeKeys` from a struct literal or a plain assignment; Canasta writes its badges with
-`append`, so `badge.naturalCanasta` and `badge.mixedCanasta` — and Žolíky's `badge.cleanRun` —
-were in nobody's bundle and had been rendering in English in all 24 locales. `badge.samba` would
-have been the fourth. The scanner reads the append form now, and all four are worded.
+**Adding a badge exposed a hole that had been open since Canasta shipped, and pulling on it
+found two more.** `dump-keys` reads keys out of the source, so it only finds the spellings it was
+taught — and it had not been taught `append`. Canasta badges its canastas with
+`g.BadgeKeys = append(...)`, so `badge.naturalCanasta`, `badge.mixedCanasta` and Žolíky's
+`badge.cleanRun` were in no bundle at all and had been rendering in English in all 24 locales.
+`badge.samba` would have been the fourth.
+
+Rather than teach the scanner one more spelling and hope, `canasta/keys_test.go` now plays real
+matches under all three variations and checks the keys the module *actually emits* against the
+committed manifest. It found the other two immediately: `seat.LabelKeys` is written with `append`
+in five modules, leaving twelve seat labels off the manifest and five of them — Hold'em's
+folded/all-in/out, Žolíky's contract-met and Canasta's own meld prompt — with no wording in any
+locale, English included; and Canasta's turn prompt chose its key through a variable, which
+`dump-keys` documents as invisible and which is now two literals. All of it is worded.
+
+None of those five keys is Samba's. They are what a static scan cannot see, found because
+something finally looked.
