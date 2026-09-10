@@ -122,6 +122,65 @@ func (r *kdbRepository) UpdateWithVersion(ctx context.Context, id bson.ObjectID,
 	})
 }
 
+// FindRetired scans for resolved matches past their retention window.
+//
+// A scan rather than a query because the engine has no secondary indexes; the
+// predicate is the same one the sweeper re-applies before deleting, and lives
+// in retention.go so the two can never disagree about what "retired" means.
+func (r *kdbRepository) FindRetired(ctx context.Context, now time.Time, w RetentionWindows, limit int) ([]models.Match, error) {
+	if !w.Any() {
+		return nil, nil
+	}
+	var out []models.Match
+	err := r.k.Scan(db.NSMatches, func(raw []byte) error {
+		var m models.Match
+		if err := db.UnmarshalDoc(raw, &m); err != nil {
+			return err
+		}
+		if !retired(m, now, w) {
+			return nil
+		}
+		out = append(out, m)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(out) > limit {
+		out = out[:limit]
+	}
+	return out, nil
+}
+
+// DeleteIfUnchanged removes a match inside the namespace's critical section,
+// which is where every other conditional write in this repository is enforced —
+// the engine has no conditional delete, and does not need one while kdb mode is
+// single-process.
+func (r *kdbRepository) DeleteIfUnchanged(ctx context.Context, id bson.ObjectID, expected int64) error {
+	return r.k.Update(db.NSMatches, func(tx *db.Tx) error {
+		cur, err := tx.Get(id.Hex())
+		if err != nil {
+			if db.IsNotFound(err) {
+				// Already gone. Same shape Mongo's filtered delete gives:
+				// somebody else won, and there is nothing left to do.
+				return ErrVersionConflict
+			}
+			return err
+		}
+		var probe struct {
+			Version int64 `bson:"version"`
+		}
+		if err := db.UnmarshalDoc(cur, &probe); err != nil {
+			return err
+		}
+		if probe.Version != expected {
+			return ErrVersionConflict
+		}
+		_, err = tx.Delete(id.Hex())
+		return err
+	})
+}
+
 // FindAbandonable scans for suspended matches past their deadline.
 //
 // A scan, like every other cross-document query this backend answers: KDB has

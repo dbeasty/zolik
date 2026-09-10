@@ -29,6 +29,18 @@ export type MatchSocketState = {
   clearError: () => void;
 };
 
+/**
+ * Refusals no amount of reconnecting can fix.
+ *
+ * Everything else this socket reports is transient by nature — a dropped
+ * connection, a busy server, an illegal move — and retrying is the right
+ * answer. A table that does not exist is not going to start existing, so
+ * retrying it is a hot loop against a certainty: the server answers the same
+ * way every time, and the player watches a spinner that will never resolve
+ * behind an error that was already final.
+ */
+const TERMINAL_CODES = new Set(['MATCH_NOT_FOUND']);
+
 export function useMatchSocket(url: string | null): MatchSocketState {
   const [state, setState] = useState<MatchState | null>(null);
   const [error, setError] = useState<{ code: string; message?: string; ruleIds?: string[] } | null>(
@@ -56,6 +68,10 @@ export function useMatchSocket(url: string | null): MatchSocketState {
     // one had just been closed. One re-run of this effect was enough to start
     // it; nothing but a page reload stopped it.
     let torn = false;
+    // Whether the server has said something no reconnect can improve on. Scoped
+    // to this run of the effect like `torn`, so pointing the screen at a
+    // different table starts over rather than inheriting the last one's verdict.
+    let terminal = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
     // This run's own socket, so cleanup closes the one it opened rather than
     // whichever one happens to be in the shared ref.
@@ -84,7 +100,9 @@ export function useMatchSocket(url: string | null): MatchSocketState {
           return;
         }
         if (m.type === 'error') {
-          setError({ code: m.code ?? 'ERROR', message: m.message, ruleIds: m.ruleIds });
+          const code = m.code ?? 'ERROR';
+          if (TERMINAL_CODES.has(code)) terminal = true;
+          setError({ code, message: m.message, ruleIds: m.ruleIds });
         }
         // Anything else is an event the board already reflects: the server
         // sends the whole state after every action, so events are for flavour
@@ -93,6 +111,9 @@ export function useMatchSocket(url: string | null): MatchSocketState {
       ws.onclose = () => {
         if (torn) return;
         setConnected(false);
+        // The refusal is already on screen and is the last word; reconnecting
+        // would only fetch it again, for ever.
+        if (terminal) return;
         void (async () => {
           if (torn) return;
           let delay: number;

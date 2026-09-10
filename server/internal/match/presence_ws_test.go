@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // A socket that was *displaced* is not a player who left.
@@ -158,4 +159,50 @@ func TestTheLastSocketClosingStillSuspendsAndReturningResumes(t *testing.T) {
 
 	dialMatch(t, h, matchID, hostToken)
 	h.waitForStatus(t, matchID, "active")
+}
+
+// A socket to a table that no longer exists gets an answer, not silence.
+//
+// The handler used to write the state only `if err == nil`, with no else. A
+// link to a deleted or mistyped match therefore opened a socket, was sent
+// nothing at all, and left the screen saying "Waiting for the table…" for ever
+// — connected, so not even a reconnect spinner, just a sentence that would
+// never stop being true and no way to tell it from a server gone quiet.
+//
+// It matters more now than it did. Retention deletes resolved matches on a
+// schedule, so "this table is gone" stops being a rarity and becomes the
+// expected end state of every old link somebody saved.
+func TestSocketToAMissingMatchSaysSo(t *testing.T) {
+	h := newInviteHarness(t)
+	tok := token(t, "ws-missing-1", "Ada", false)
+
+	// A well-formed object id that was never a match — the shape a link to a
+	// long-since-retired table has.
+	url := strings.Replace(h.server.URL, "http://", "ws://", 1) +
+		"/ws/matches/" + bson.NewObjectID().Hex() + "?token=" + tok
+	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
+	if err != nil {
+		t.Fatalf("dialling: %v", err)
+	}
+	defer func() { _ = conn.Close() }()
+
+	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	var frame struct {
+		Type string `json:"type"`
+		Code string `json:"code"`
+	}
+	if err := conn.ReadJSON(&frame); err != nil {
+		t.Fatalf("reading the refusal: %v", err)
+	}
+	if frame.Type != "error" || frame.Code != "MATCH_NOT_FOUND" {
+		t.Fatalf("got %+v, want an error frame with MATCH_NOT_FOUND", frame)
+	}
+
+	// And the socket closes rather than hanging open on a table that will
+	// never send anything: the client stops reconnecting on this code, so a
+	// server that kept the socket alive would leave it waiting on nothing.
+	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	if _, _, err := conn.ReadMessage(); err == nil {
+		t.Fatal("the socket stayed open after the refusal")
+	}
 }

@@ -75,6 +75,11 @@ type MatchCounts struct {
 	// the operator can see both the sweeper's raw work and the net figure,
 	// and subtracted from the abandoned side of CompletionRate.
 	Resumed int64 `json:"resumed"`
+	// Deleted is rows retention removed in the bucket. Deliberately outside
+	// the completed/abandoned/neverStarted split rather than subtracted from
+	// it: those three describe games that were played, and a game does not
+	// stop having been played because its board was later reclaimed.
+	Deleted int64 `json:"deleted"`
 	// NeverStarted is a lobby that never filled: created, and never became a
 	// game at all. Not a game anybody failed to finish.
 	NeverStarted int64 `json:"neverStarted"`
@@ -237,6 +242,7 @@ func foldDay(p *Period, d Day) {
 	p.Matches.Completed += d.Counter(MatchesCompleted)
 	p.Matches.Abandoned += d.Counter(MatchesAbandoned)
 	p.Matches.Resumed += d.Counter(MatchesResumed)
+	p.Matches.Deleted += d.Counter(MatchesDeleted)
 	p.Users.Registered += d.Counter(UsersRegistered)
 	p.Users.Guests += d.Counter(SessionsGuest)
 	p.Admission.Connections += d.Counter(WSConnected)
@@ -337,6 +343,7 @@ func totalsFrom(buckets []Period, distinctPlayers int, floor bool) Totals {
 		t.Matches.Completed += p.Matches.Completed
 		t.Matches.Abandoned += p.Matches.Abandoned
 		t.Matches.Resumed += p.Matches.Resumed
+		t.Matches.Deleted += p.Matches.Deleted
 		t.Users.Registered += p.Users.Registered
 		t.Users.Guests += p.Users.Guests
 		t.Admission.Total += p.Admission.Total

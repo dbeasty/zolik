@@ -269,6 +269,13 @@ func (a *App) Start(ctx context.Context) {
 	// one. Started here rather than in routeGroups so there is exactly one of
 	// it — see matchManager.
 	a.matchManager().StartReaper(ctx)
+	// And the sweeper that reclaims the ones it resolved, long afterwards.
+	// Separate from the reaper on purpose: that one decides what a table
+	// *became* and runs in seconds, this one decides when the row stops being
+	// worth keeping and runs in days. Folding them together is how a deadline
+	// the runtime reasons about turns into a deadline the store deletes on,
+	// which is the bug retention.go exists not to repeat.
+	a.matchManager().StartRetention(ctx, a.cfg.Retention)
 }
 
 // Stop closes this process's boot record, and flushes whatever counters have

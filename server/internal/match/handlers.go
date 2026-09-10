@@ -575,9 +575,34 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 	// Arriving may be a *return*: a match this player's disconnection paused
 	// resumes the moment they are back, before they are sent anything.
 	h.manager.ResumeIfReturning(ctx, matchID, playerID)
-	if m, err := h.manager.Repo().FindByID(ctx, oid); err == nil {
-		h.manager.Hub().WriteDirect(matchID, playerID, h.manager.BuildStateMsg(m, playerID))
+	m, err := h.manager.Repo().FindByID(ctx, oid)
+	if err != nil {
+		// Said out loud rather than left as a silence.
+		//
+		// This used to be an `if err == nil` with no else: a link to a table
+		// that no longer exists opened a socket, was sent nothing at all, and
+		// left the screen on "Waiting for the table…" for ever — connected,
+		// so not even a reconnect spinner, just a sentence that would never
+		// stop being true. Indistinguishable from a server that had gone
+		// quiet, for the one case where the answer is short and certain.
+		//
+		// It matters more now than it did: retention deletes resolved matches
+		// on a schedule (see retention.go), so "this table is gone" stops
+		// being a rarity and becomes the expected end state of every old link
+		// somebody saved.
+		_ = wsConn.WriteJSON(map[string]any{
+			"type": "error", "code": "MATCH_NOT_FOUND", "message": matchID,
+		})
+		// Closed explicitly. Returning from the handler does not do it — this
+		// connection was hijacked out of net/http at the upgrade, so nothing
+		// upstream owns it any more — and a socket left open after a final
+		// refusal is the same hang in a new place: the client has stopped
+		// reconnecting on this code, so it would sit on a connection that is
+		// never going to say anything else.
+		_ = conn.Close()
+		return
 	}
+	h.manager.Hub().WriteDirect(matchID, playerID, h.manager.BuildStateMsg(m, playerID))
 
 	for {
 		_, data, err := conn.ReadMessage()
