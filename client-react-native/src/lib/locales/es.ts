@@ -313,6 +313,7 @@ export const es: Record<string, string> = {
   'err.TOO_FEW_PLAYERS': 'Todavía no hay jugadores suficientes',
   'err.WRONG_PLAYER_COUNT': 'Este juego no puede jugarse con ese número de jugadores',
   'err.NOT_THE_HOST': 'Eso solo puede hacerlo el anfitrión',
+  'err.BAD_SEATING': 'Ese orden de asientos no coincide con quién está en la mesa',
   'err.NO_LONGER_WAITING': 'La mesa ya no está esperando',
   'err.WAITING_ROOM_UNAVAILABLE': 'La sala de espera no está disponible',
   'err.SERVER_BUSY': 'El servidor está lleno ahora mismo — inténtalo en un momento',

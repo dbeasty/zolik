@@ -305,6 +305,7 @@ export const da: Record<string, string> = {
   'err.TOO_FEW_PLAYERS': 'Der er endnu ikke spillere nok',
   'err.WRONG_PLAYER_COUNT': 'Dette spil kan ikke spilles med så mange spillere',
   'err.NOT_THE_HOST': 'Det kan kun værten',
+  'err.BAD_SEATING': 'Den pladsorden passer ikke til dem, der sidder ved bordet',
   'err.NO_LONGER_WAITING': 'Bordet venter ikke længere',
   'err.WAITING_ROOM_UNAVAILABLE': 'Venteværelset er ikke tilgængeligt',
   'err.SERVER_BUSY': 'Serveren er fuld lige nu — prøv igen om et øjeblik',

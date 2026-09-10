@@ -309,6 +309,7 @@ export const cs: Record<string, string> = {
   'err.TOO_FEW_PLAYERS': 'Zatím je málo hráčů',
   'err.WRONG_PLAYER_COUNT': 'Tuto hru nelze hrát s tímto počtem hráčů',
   'err.NOT_THE_HOST': 'To může udělat jen zakladatel stolu',
+  'err.BAD_SEATING': 'Toto rozsazení neodpovídá tomu, kdo je u stolu',
   'err.NO_LONGER_WAITING': 'Stůl už nečeká',
   'err.WAITING_ROOM_UNAVAILABLE': 'Čekárna není dostupná',
   'err.SERVER_BUSY': 'Server je právě plný — zkuste to za chvíli',

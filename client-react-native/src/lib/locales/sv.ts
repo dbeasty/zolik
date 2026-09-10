@@ -302,6 +302,7 @@ export const sv: Record<string, string> = {
   'err.TOO_FEW_PLAYERS': 'Ännu inte tillräckligt många spelare',
   'err.WRONG_PLAYER_COUNT': 'Det här spelet går inte att spela med så många spelare',
   'err.NOT_THE_HOST': 'Bara värden kan göra det',
+  'err.BAD_SEATING': 'Den platsordningen stämmer inte med vilka som sitter vid bordet',
   'err.NO_LONGER_WAITING': 'Bordet väntar inte längre',
   'err.WAITING_ROOM_UNAVAILABLE': 'Väntrummet är inte tillgängligt',
   'err.SERVER_BUSY': 'Servern är full just nu — försök igen om en stund',

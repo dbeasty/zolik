@@ -308,6 +308,7 @@ export const sl: Record<string, string> = {
   'err.TOO_FEW_PLAYERS': 'Igralcev še ni dovolj',
   'err.WRONG_PLAYER_COUNT': 'Te igre ni mogoče igrati s toliko igralci',
   'err.NOT_THE_HOST': 'To lahko stori samo gostitelj',
+  'err.BAD_SEATING': 'Ta razporeditev sedežev se ne ujema s tistimi za mizo',
   'err.NO_LONGER_WAITING': 'Miza ne čaka več',
   'err.WAITING_ROOM_UNAVAILABLE': 'Čakalnica ni na voljo',
   'err.SERVER_BUSY': 'Strežnik je trenutno poln — poskusi znova čez trenutek',

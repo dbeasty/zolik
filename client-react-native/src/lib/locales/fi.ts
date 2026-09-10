@@ -309,6 +309,7 @@ export const fi: Record<string, string> = {
   'err.TOO_FEW_PLAYERS': 'Pelaajia ei ole vielä tarpeeksi',
   'err.WRONG_PLAYER_COUNT': 'Tätä peliä ei voi pelata noin monella pelaajalla',
   'err.NOT_THE_HOST': 'Sen voi tehdä vain isäntä',
+  'err.BAD_SEATING': 'Tuo paikkajärjestys ei vastaa pöydässä olijoita',
   'err.NO_LONGER_WAITING': 'Pöytä ei enää odota',
   'err.WAITING_ROOM_UNAVAILABLE': 'Odotushuone ei ole käytettävissä',
   'err.SERVER_BUSY': 'Palvelin on juuri nyt täynnä — yritä hetken kuluttua uudelleen',

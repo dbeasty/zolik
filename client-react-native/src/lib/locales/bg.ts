@@ -311,6 +311,7 @@ export const bg: Record<string, string> = {
   'err.TOO_FEW_PLAYERS': 'Още няма достатъчно играчи',
   'err.WRONG_PLAYER_COUNT': 'Тази игра не може да се играе с толкова играчи',
   'err.NOT_THE_HOST': 'Това може само домакинът',
+  'err.BAD_SEATING': 'Тази подредба не съответства на играчите на масата',
   'err.NO_LONGER_WAITING': 'Масата вече не чака',
   'err.WAITING_ROOM_UNAVAILABLE': 'Чакалнята не е достъпна',
   'err.SERVER_BUSY': 'Сървърът е пълен в момента — опитай пак след малко',

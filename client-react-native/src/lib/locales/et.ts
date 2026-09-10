@@ -307,6 +307,7 @@ export const et: Record<string, string> = {
   'err.TOO_FEW_PLAYERS': 'Mängijaid pole veel piisavalt',
   'err.WRONG_PLAYER_COUNT': 'Seda mängu ei saa nii paljude mängijatega mängida',
   'err.NOT_THE_HOST': 'Seda saab teha ainult võõrustaja',
+  'err.BAD_SEATING': 'See istekohtade järjekord ei vasta lauas olijatele',
   'err.NO_LONGER_WAITING': 'Laud enam ei oota',
   'err.WAITING_ROOM_UNAVAILABLE': 'Ooteruum ei ole saadaval',
   'err.SERVER_BUSY': 'Server on praegu täis — proovi hetke pärast uuesti',

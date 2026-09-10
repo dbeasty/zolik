@@ -310,6 +310,7 @@ export const ro: Record<string, string> = {
   'err.TOO_FEW_PLAYERS': 'Încă nu sunt destui jucători',
   'err.WRONG_PLAYER_COUNT': 'Acest joc nu se poate juca cu atâția jucători',
   'err.NOT_THE_HOST': 'Doar gazda poate face asta',
+  'err.BAD_SEATING': 'Această așezare nu corespunde cu cine este la masă',
   'err.NO_LONGER_WAITING': 'Masa nu mai așteaptă',
   'err.WAITING_ROOM_UNAVAILABLE': 'Sala de așteptare nu este disponibilă',
   'err.SERVER_BUSY': 'Serverul este plin în acest moment — încearcă din nou peste un moment',

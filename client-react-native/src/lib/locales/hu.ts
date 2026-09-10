@@ -314,6 +314,7 @@ export const hu: Record<string, string> = {
   'err.TOO_FEW_PLAYERS': 'Még nincs elég játékos',
   'err.WRONG_PLAYER_COUNT': 'Ezt a játékot ennyi játékossal nem lehet játszani',
   'err.NOT_THE_HOST': 'Ezt csak a házigazda teheti meg',
+  'err.BAD_SEATING': 'Ez az ülésrend nem egyezik azzal, ki ül az asztalnál',
   'err.NO_LONGER_WAITING': 'Az asztal már nem vár',
   'err.WAITING_ROOM_UNAVAILABLE': 'A váróterem nem érhető el',
   'err.SERVER_BUSY': 'A kiszolgáló most tele van — próbáld újra egy pillanat múlva',

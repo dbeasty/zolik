@@ -309,6 +309,7 @@ export const lv: Record<string, string> = {
   'err.TOO_FEW_PLAYERS': 'Spēlētāju vēl nepietiek',
   'err.WRONG_PLAYER_COUNT': 'Šo spēli nevar spēlēt ar tik daudz spēlētājiem',
   'err.NOT_THE_HOST': 'To var izdarīt tikai saimnieks',
+  'err.BAD_SEATING': 'Šis vietu izkārtojums neatbilst tiem, kas ir pie galda',
   'err.NO_LONGER_WAITING': 'Galds vairs negaida',
   'err.WAITING_ROOM_UNAVAILABLE': 'Uzgaidāmā telpa nav pieejama',
   'err.SERVER_BUSY': 'Serveris pašlaik ir pilns — pamēģini pēc brīža',
