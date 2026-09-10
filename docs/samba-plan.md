@@ -3,7 +3,8 @@
 Samba shipped as a third **variation of the Canasta module**, alongside `classic` and
 `modern_american`.
 
-- **Baseline:** `main` @ `88feae2`.
+- **Baseline:** `main` @ `88feae2`, rebased onto `6396cac` when the meld-zone label fix landed
+  mid-flight.
 - **Deliverable:** `variation: "samba"` on module `canasta` — 162 cards, sequence melds, a
   permanently frozen pile, a 10,000-point target, **two to six seats** — with the two existing
   variations playing **byte-identically** to how they play today, and the conformance driver
