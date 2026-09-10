@@ -924,6 +924,10 @@ export const mt: Record<string, string> = {
   'lobby.join.joinedGame': "Ingħaqadt ma' logħba {game} — nistennew il-bidu",
   'lobby.join.joinedTable': 'Ingħaqadt mal-mejda — nistennew il-bidu',
   'lobby.table.addBot': 'Żid bot',
+  'lobby.table.side': 'Naħa {n}',
+  'lobby.table.shuffleSeats': 'Ħawwad il-postijiet',
+  'lobby.table.moveSeatUp': "Mexxi lil {name} post 'il fuq",
+  'lobby.table.moveSeatDown': "Mexxi lil {name} post 'l isfel",
   'lobby.table.start': 'Ibda',
   'lobby.table.waitingForHost': 'Nistennew lill-ħost jibda…',
 

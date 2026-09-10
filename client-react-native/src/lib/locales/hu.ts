@@ -923,6 +923,10 @@ export const hu: Record<string, string> = {
   'lobby.join.joinedGame': 'Csatlakoztál egy {game} játszmához — várunk az indulásra',
   'lobby.join.joinedTable': 'Csatlakoztál az asztalhoz — várunk az indulásra',
   'lobby.table.addBot': 'Bot hozzáadása',
+  'lobby.table.side': '{n}. oldal',
+  'lobby.table.shuffleSeats': 'Helyek keverése',
+  'lobby.table.moveSeatUp': '{name} egy hellyel feljebb',
+  'lobby.table.moveSeatDown': '{name} egy hellyel lejjebb',
   'lobby.table.start': 'Indítás',
   'lobby.table.waitingForHost': 'Várunk, hogy a házigazda elindítsa…',
 

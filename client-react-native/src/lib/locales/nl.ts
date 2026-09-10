@@ -924,6 +924,10 @@ export const nl: Record<string, string> = {
   'lobby.join.joinedGame': 'Je doet mee aan een partij {game} — wachten op de start',
   'lobby.join.joinedTable': 'Je zit aan tafel — wachten op de start',
   'lobby.table.addBot': 'Een bot toevoegen',
+  'lobby.table.side': 'Kant {n}',
+  'lobby.table.shuffleSeats': 'Plaatsen schudden',
+  'lobby.table.moveSeatUp': '{name} een plaats omhoog',
+  'lobby.table.moveSeatDown': '{name} een plaats omlaag',
   'lobby.table.start': 'Starten',
   'lobby.table.waitingForHost': 'Wachten tot de gastheer start…',
 

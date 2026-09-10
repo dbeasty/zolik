@@ -906,6 +906,10 @@ export const cs: Record<string, string> = {
   'lobby.join.joinedGame': 'Připojeno ke hře {game} — čeká se na start',
   'lobby.join.joinedTable': 'Připojeno ke stolu — čeká se na start',
   'lobby.table.addBot': 'Přidat bota',
+  'lobby.table.side': 'Strana {n}',
+  'lobby.table.shuffleSeats': 'Zamíchat místa',
+  'lobby.table.moveSeatUp': 'Posunout {name} o místo nahoru',
+  'lobby.table.moveSeatDown': 'Posunout {name} o místo dolů',
   'lobby.table.start': 'Začít',
   'lobby.table.waitingForHost': 'Čekáme, až hostitel začne…',
 

@@ -913,6 +913,10 @@ export const lt: Record<string, string> = {
   'lobby.join.joinedGame': 'Prisijungei prie žaidimo {game} — laukiame starto',
   'lobby.join.joinedTable': 'Prisijungei prie stalo — laukiame starto',
   'lobby.table.addBot': 'Pridėti botą',
+  'lobby.table.side': 'Pusė {n}',
+  'lobby.table.shuffleSeats': 'Sumaišyti vietas',
+  'lobby.table.moveSeatUp': 'Perkelti {name} viena vieta aukštyn',
+  'lobby.table.moveSeatDown': 'Perkelti {name} viena vieta žemyn',
   'lobby.table.start': 'Pradėti',
   'lobby.table.waitingForHost': 'Laukiame, kol šeimininkas pradės…',
 

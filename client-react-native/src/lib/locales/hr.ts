@@ -910,6 +910,10 @@ export const hr: Record<string, string> = {
   'lobby.join.joinedGame': 'Pridružio si se igri {game} — čekamo početak',
   'lobby.join.joinedTable': 'Pridružio si se stolu — čekamo početak',
   'lobby.table.addBot': 'Dodaj bota',
+  'lobby.table.side': 'Strana {n}',
+  'lobby.table.shuffleSeats': 'Promiješaj mjesta',
+  'lobby.table.moveSeatUp': 'Pomakni {name} mjesto gore',
+  'lobby.table.moveSeatDown': 'Pomakni {name} mjesto dolje',
   'lobby.table.start': 'Počni',
   'lobby.table.waitingForHost': 'Čekamo da domaćin počne…',
 

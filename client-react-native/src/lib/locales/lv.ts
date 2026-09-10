@@ -911,6 +911,10 @@ export const lv: Record<string, string> = {
   'lobby.join.joinedGame': 'Tu pievienojies spēlei {game} — gaidām sākumu',
   'lobby.join.joinedTable': 'Tu pievienojies galdam — gaidām sākumu',
   'lobby.table.addBot': 'Pievienot botu',
+  'lobby.table.side': 'Puse {n}',
+  'lobby.table.shuffleSeats': 'Sajaukt vietas',
+  'lobby.table.moveSeatUp': 'Pārvietot {name} vienu vietu augšup',
+  'lobby.table.moveSeatDown': 'Pārvietot {name} vienu vietu lejup',
   'lobby.table.start': 'Sākt',
   'lobby.table.waitingForHost': 'Gaidām, kad saimnieks sāks…',
 

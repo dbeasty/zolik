@@ -135,6 +135,35 @@ func (d ModuleDescriptor) Option(name string) *OptionSpec {
 	return nil
 }
 
+// Seated is implemented by a module whose seats are not all on their own side.
+//
+// Optional, and only two kinds of game need it. A partnership game has to be
+// able to say who is playing with whom *before* the match exists, because that
+// is precisely what a lobby is for deciding — and the answer cannot be worked
+// out by a client without reimplementing the rule. So the module answers it,
+// from the same function the deal itself will use.
+//
+// The seats are given in the order they will be dealt, and the answer is in
+// terms of that order: sides are a property of where people sit, not of who
+// they are. That is what lets a lobby offer "form teams" by doing nothing more
+// than reordering the seats.
+type Seated interface {
+	// Sides groups the seats into partnerships. One group per side, each
+	// listing its player ids. A game where everyone plays for themselves
+	// returns nil rather than a group per seat — nil means "no sides to show".
+	Sides(cfg MatchConfig, players []PlayerRef) [][]string
+}
+
+// SidesOf is what a lobby shows for a table that has not been dealt yet, or nil
+// where the game has no sides.
+func SidesOf(m GameModule, cfg MatchConfig, players []PlayerRef) [][]string {
+	s, ok := m.(Seated)
+	if !ok {
+		return nil
+	}
+	return s.Sides(cfg, players)
+}
+
 // SeatRange is the player range in force for a match of this variation.
 //
 // The one place the question is answered, so a lobby that lets somebody join and

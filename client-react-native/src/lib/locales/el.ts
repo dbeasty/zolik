@@ -934,6 +934,10 @@ export const el: Record<string, string> = {
   'lobby.join.joinedGame': 'Μπήκες σε παιχνίδι {game} — αναμονή για την έναρξη',
   'lobby.join.joinedTable': 'Μπήκες στο τραπέζι — αναμονή για την έναρξη',
   'lobby.table.addBot': 'Πρόσθεσε μποτ',
+  'lobby.table.side': 'Πλευρά {n}',
+  'lobby.table.shuffleSeats': 'Ανακάτεψε τις θέσεις',
+  'lobby.table.moveSeatUp': 'Μετακίνησε τον {name} μία θέση πάνω',
+  'lobby.table.moveSeatDown': 'Μετακίνησε τον {name} μία θέση κάτω',
   'lobby.table.start': 'Ξεκίνα',
   'lobby.table.waitingForHost': 'Αναμονή να ξεκινήσει ο οικοδεσπότης…',
 

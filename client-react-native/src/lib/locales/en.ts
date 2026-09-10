@@ -904,6 +904,10 @@ export const en: Record<string, string> = {
   'lobby.join.joinedGame': 'Joined a game of {game} — waiting to start',
   'lobby.join.joinedTable': 'Joined the table — waiting to start',
   'lobby.table.addBot': 'Add a bot',
+  'lobby.table.side': 'Side {n}',
+  'lobby.table.shuffleSeats': 'Shuffle the seats',
+  'lobby.table.moveSeatUp': 'Move {name} up a seat',
+  'lobby.table.moveSeatDown': 'Move {name} down a seat',
   'lobby.table.start': 'Start',
   'lobby.table.waitingForHost': 'Waiting for the host to start…',
 

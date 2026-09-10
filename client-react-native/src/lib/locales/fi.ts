@@ -917,6 +917,10 @@ export const fi: Record<string, string> = {
   'lobby.join.joinedGame': 'Liityit peliin {game} — odotetaan aloitusta',
   'lobby.join.joinedTable': 'Liityit pöytään — odotetaan aloitusta',
   'lobby.table.addBot': 'Lisää botti',
+  'lobby.table.side': 'Puoli {n}',
+  'lobby.table.shuffleSeats': 'Sekoita paikat',
+  'lobby.table.moveSeatUp': 'Siirrä {name} paikkaa ylemmäs',
+  'lobby.table.moveSeatDown': 'Siirrä {name} paikkaa alemmas',
   'lobby.table.start': 'Aloita',
   'lobby.table.waitingForHost': 'Odotetaan, että isäntä aloittaa…',
 

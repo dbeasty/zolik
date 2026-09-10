@@ -44,6 +44,11 @@ type MatchStateMsg struct {
 	Winners  []string `json:"winners,omitempty"`
 
 	Players []PlayerMsg `json:"players"`
+	// Sides is who is playing with whom, in seat order, for a table that has
+	// not been dealt yet — the lobby's answer to "who is my partner if we start
+	// now". Absent once the match is active, where the board carries the
+	// partnerships itself, and absent entirely for a game with no sides.
+	Sides [][]string `json:"sides,omitempty"`
 	// View is the board as this viewer may see it — the only place hidden
 	// information is filtered, decided by the module.
 	View module.ViewModel `json:"view"`
@@ -119,6 +124,14 @@ func (m *Manager) buildStateMsg(match models.Match, viewerID string, rounds *mod
 	}
 
 	mod := m.registry.Get(match.ModuleID)
+	// Sides are a lobby fact. Once the match is dealt the board carries the
+	// partnerships itself — per seat, in the ViewModel — and repeating them here
+	// would be a second copy to keep honest.
+	if mod != nil && match.Status == "lobby" {
+		msg.Sides = module.SidesOf(mod,
+			module.MatchConfig{Variation: match.Variation, Options: match.Options},
+			playerRefs(match.Players))
+	}
 	if mod == nil || len(match.State) == 0 {
 		return msg
 	}

@@ -911,6 +911,10 @@ export const et: Record<string, string> = {
   'lobby.join.joinedGame': 'Liitusid mänguga {game} — ootame algust',
   'lobby.join.joinedTable': 'Liitusid lauaga — ootame algust',
   'lobby.table.addBot': 'Lisa robot',
+  'lobby.table.side': 'Pool {n}',
+  'lobby.table.shuffleSeats': 'Sega kohad',
+  'lobby.table.moveSeatUp': 'Liiguta {name} koha võrra üles',
+  'lobby.table.moveSeatDown': 'Liiguta {name} koha võrra alla',
   'lobby.table.start': 'Alusta',
   'lobby.table.waitingForHost': 'Ootame, kuni võõrustaja alustab…',
 

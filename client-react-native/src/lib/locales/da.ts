@@ -911,6 +911,10 @@ export const da: Record<string, string> = {
   'lobby.join.joinedGame': 'Du er med i et spil {game} — venter på start',
   'lobby.join.joinedTable': 'Du er med ved bordet — venter på start',
   'lobby.table.addBot': 'Tilføj en bot',
+  'lobby.table.side': 'Side {n}',
+  'lobby.table.shuffleSeats': 'Bland pladserne',
+  'lobby.table.moveSeatUp': 'Flyt {name} en plads op',
+  'lobby.table.moveSeatDown': 'Flyt {name} en plads ned',
   'lobby.table.start': 'Start',
   'lobby.table.waitingForHost': 'Venter på, at værten starter…',
 

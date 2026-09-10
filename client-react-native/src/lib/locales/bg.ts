@@ -920,6 +920,10 @@ export const bg: Record<string, string> = {
   'lobby.join.joinedGame': 'Присъедини се към игра на {game} — чакаме старта',
   'lobby.join.joinedTable': 'Присъедини се към масата — чакаме старта',
   'lobby.table.addBot': 'Добави бот',
+  'lobby.table.side': 'Страна {n}',
+  'lobby.table.shuffleSeats': 'Разбъркай местата',
+  'lobby.table.moveSeatUp': 'Премести {name} с едно място нагоре',
+  'lobby.table.moveSeatDown': 'Премести {name} с едно място надолу',
   'lobby.table.start': 'Започни',
   'lobby.table.waitingForHost': 'Чакаме домакинът да започне…',
 

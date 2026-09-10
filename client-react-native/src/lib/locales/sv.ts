@@ -906,6 +906,10 @@ export const sv: Record<string, string> = {
   'lobby.join.joinedGame': 'Du gick med i ett parti {game} — väntar på start',
   'lobby.join.joinedTable': 'Du gick med vid bordet — väntar på start',
   'lobby.table.addBot': 'Lägg till en bott',
+  'lobby.table.side': 'Sida {n}',
+  'lobby.table.shuffleSeats': 'Blanda platserna',
+  'lobby.table.moveSeatUp': 'Flytta {name} en plats upp',
+  'lobby.table.moveSeatDown': 'Flytta {name} en plats ner',
   'lobby.table.start': 'Starta',
   'lobby.table.waitingForHost': 'Väntar på att värden startar…',
 

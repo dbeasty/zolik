@@ -917,6 +917,10 @@ export const ro: Record<string, string> = {
   'lobby.join.joinedGame': 'Te-ai alăturat unui joc de {game} — așteptăm startul',
   'lobby.join.joinedTable': 'Te-ai alăturat mesei — așteptăm startul',
   'lobby.table.addBot': 'Adaugă un bot',
+  'lobby.table.side': 'Tabăra {n}',
+  'lobby.table.shuffleSeats': 'Amestecă locurile',
+  'lobby.table.moveSeatUp': 'Mută {name} cu un loc mai sus',
+  'lobby.table.moveSeatDown': 'Mută {name} cu un loc mai jos',
   'lobby.table.start': 'Începe',
   'lobby.table.waitingForHost': 'Așteptăm ca gazda să înceapă…',
 

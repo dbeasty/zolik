@@ -187,6 +187,63 @@ func NewManager(repo Repository, registry *module.Registry, hub *ws.Hub) *Manage
 	return &Manager{repo: repo, registry: registry, hub: hub, metrics: metrics.Nop()}
 }
 
+// Seat puts the table in the order the host wants, before it is dealt.
+//
+// This is how partnerships are chosen. In a game with sides the turn has to
+// alternate between them — two partners can never play back to back — so a
+// side *is* a position in the seating, and "who is my partner" and "where do I
+// sit" are one question with one answer. Reordering the seats is therefore the
+// whole mechanism, and no module needs to know it happened: Canasta already
+// derives its partnerships from the order it is handed the players.
+//
+// The order must be a permutation of exactly who is already seated. Anything
+// else — an unknown id, a duplicate, somebody left out — is refused rather than
+// interpreted, because every one of those is a client bug whose kindest failure
+// is a loud one.
+func (m *Manager) Seat(ctx context.Context, idOrCode, hostID string, order []string) (models.Match, error) {
+	match, err := m.repo.Resolve(ctx, idOrCode)
+	if err != nil {
+		return models.Match{}, err
+	}
+	if match.HostID != hostID {
+		return models.Match{}, module.Error{Code: "NOT_THE_HOST"}
+	}
+	// Only before the deal. Afterwards the seating is what the hands were dealt
+	// against, and moving it would silently reassign cards already held.
+	if match.Status != "lobby" {
+		return models.Match{}, module.Error{Code: "MATCH_ALREADY_STARTED"}
+	}
+
+	byID := make(map[string]models.Player, len(match.Players))
+	for _, p := range match.Players {
+		byID[p.ID] = p
+	}
+	if len(order) != len(match.Players) {
+		return models.Match{}, module.Error{Code: "BAD_SEATING", Message: "the order must name every seat exactly once"}
+	}
+	seen := make(map[string]bool, len(order))
+	players := make([]models.Player, 0, len(order))
+	turn := make([]string, 0, len(order))
+	for _, id := range order {
+		p, ok := byID[id]
+		if !ok || seen[id] {
+			return models.Match{}, module.Error{Code: "BAD_SEATING", Message: "the order must name every seat exactly once"}
+		}
+		seen[id] = true
+		players = append(players, p)
+		turn = append(turn, id)
+	}
+
+	match.Players = players
+	match.TurnOrder = turn
+	if err := m.repo.UpdateWithVersion(ctx, match.ID, match.Version, match); err != nil {
+		return models.Match{}, err
+	}
+	match.Version++
+	m.Broadcast(match)
+	return match, nil
+}
+
 func (m *Manager) Registry() *module.Registry { return m.registry }
 
 // SetMetrics attaches the counter sink. Optional: a nil sink counts nothing
