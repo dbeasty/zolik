@@ -147,6 +147,31 @@ test.describe('a table the sweeper set aside', () => {
     expect(after.status).toBe('active');
   });
 
+  // A table that is gone rather than merely finished — which retention makes
+  // the normal end state of every old link somebody saved. The socket used to
+  // be sent nothing at all in this case, leaving the screen on "Waiting for
+  // the table…" for ever: connected, so not even a spinner, and no way out.
+  test('a link to a table that no longer exists says so, and offers a way out', async ({
+    page,
+    request,
+  }) => {
+    const { host } = await tableWithBot(request);
+    // A well-formed id that was never a match — the shape a link to a
+    // long-since-retired table has.
+    const gone = '6aa0e923f50dcd02734b9099';
+
+    await openMatch(page, host, gone);
+
+    await expect(page.getByTestId('match-gone')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('match-gone')).toHaveText('That table no longer exists');
+    // Never the spinner: the two are mutually exclusive, and showing both
+    // would be the old hang with an error printed above it.
+    await expect(page.getByTestId('match-connecting')).toBeHidden();
+
+    await page.getByTestId('match-gone-leave').click();
+    await expect(page).toHaveURL(/\/lobby\/games/, { timeout: 30_000 });
+  });
+
   // The other half of the report: a link opened without a session used to sit
   // on "Connecting…" for ever, because the socket URL needs a token and the
   // hook is handed null without one — an input it neither opens nor fails on.
