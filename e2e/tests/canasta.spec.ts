@@ -100,6 +100,162 @@ async function stateFor(request: Ctx, matchId: string, viewerId: string): Promis
   return res.json();
 }
 
+/**
+ * Plays a match to its end over real sockets, choosing every move from the
+ * offer list and nothing else.
+ *
+ * The discipline is the whole point, so it lives in one place: build the
+ * submission an offer describes, send it, wait for the broadcast, repeat. It
+ * knows the verbs only well enough to put them in a sensible order — it has
+ * never heard of a canasta, a samba, a red three or a frozen pile, and the
+ * moment it needed to would be the moment the offer protocol had failed.
+ */
+async function playFromOffers(
+  page: any,
+  wsBase: string,
+  matchId: string,
+  tokens: string[],
+  order: string[],
+) {
+  return page.evaluate(
+    async ({ wsBase, matchId, tokens, order }) => {
+      type Seat = { ws: WebSocket; inbox: any[] };
+
+      const open = async (token: string): Promise<Seat> => {
+        const ws = new WebSocket(`${wsBase}/ws/matches/${matchId}?token=${encodeURIComponent(token)}`);
+        const inbox: any[] = [];
+        await new Promise<void>((resolve, reject) => {
+          ws.onopen = () => resolve();
+          ws.onerror = () => reject(new Error('socket failed to open'));
+          setTimeout(() => reject(new Error('socket open timed out')), 10000);
+        });
+        ws.onmessage = (ev) => inbox.push(JSON.parse(String(ev.data)));
+        return { ws, inbox };
+      };
+
+      const latest = (seat: Seat) => {
+        for (let i = seat.inbox.length - 1; i >= 0; i--) {
+          if (seat.inbox[i].type === 'match_state') return seat.inbox[i];
+        }
+        return null;
+      };
+
+      const settle = async (seat: Seat) => {
+        for (let i = 0; i < 200; i++) {
+          if (latest(seat)) return latest(seat);
+          await new Promise((r) => setTimeout(r, 50));
+        }
+        throw new Error('no match_state arrived');
+      };
+
+      const seats = await Promise.all(tokens.map(open));
+      for (const s of seats) await settle(s);
+
+      /**
+       * Build the submission an offer describes, using only what the offer
+       * declares. This is the whole discipline: `minCards` cards from the
+       * front of the list the offer says it will accept, plus the meld it
+       * says to aim at. Nothing here knows what a canasta is.
+       */
+      const submissionFor = (o: any) => {
+        const action: any = { offerId: o.id, verb: o.verb };
+        const need = o.source?.minCards ?? 0;
+        if (need > 0) {
+          const cards = o.source?.cards ?? [];
+          if (cards.length < need) return null;
+          action.cards = cards.slice(0, need);
+        }
+        if (o.target?.meldId) action.target = o.target.meldId;
+        return action;
+      };
+
+      // A preference order is a UI choice, not a rule: build the table, take
+      // the pile when it is offered, and discard only because a turn has to
+      // end somewhere.
+
+      const verbs: Record<string, number> = {};
+      let moves = 0;
+      let status = 'active';
+      let winnerId = '';
+      let deals = 0;
+      let sawCanastaBadge = false;
+      let sawRedThrees = false;
+      const errors: string[] = [];
+
+      for (let step = 0; step < 1500; step++) {
+        const idx = seats.findIndex((s) => (latest(s)?.legalActions ?? []).some((o: any) => o.enabled));
+        if (idx === -1) break;
+
+        const seat = seats[idx];
+        const state = latest(seat);
+        status = state.status;
+        winnerId = state.winnerId ?? '';
+        if (status !== 'active') break;
+
+        // Observations a UI would make, gathered as we go rather than
+        // re-derived: badges and the red-three zone are pushed facts.
+        for (const z of state.view?.zones ?? []) {
+          if (z.id?.startsWith('redThrees:')) sawRedThrees = true;
+          for (const g of z.groups ?? []) {
+            if ((g.badgeKeys ?? []).some((b: string) => b.includes('Canasta'))) sawCanastaBadge = true;
+          }
+        }
+        const dealFact = (state.view?.header ?? []).find((f: any) => f.labelKey === 'header.deal');
+        if (dealFact) deals = Math.max(deals, Number(dealFact.value) || 0);
+
+        const enabled = state.legalActions.filter((o: any) => o.enabled);
+        // A verb the order does not name goes *last*, not first. `indexOf`
+        // returns -1 for one, which sorts it ahead of everything — so the day
+        // the server grew an `undo_take_pile` offer, this driver took the pile,
+        // undid it, took it again, and never finished a match. A shell picks
+        // undo because a player asked; nothing should pick it by default.
+        const rank = (verb: string) => {
+          const i = order.indexOf(verb);
+          return i === -1 ? order.length : i;
+        };
+        enabled.sort((a: any, b: any) => rank(a.verb) - rank(b.verb));
+
+        let action: any = null;
+        for (const o of enabled) {
+          action = submissionFor(o);
+          if (action) break;
+        }
+        if (!action) break;
+
+        const before = seats.map((s) => s.inbox.length);
+        seat.ws.send(JSON.stringify(action));
+        verbs[action.verb] = (verbs[action.verb] ?? 0) + 1;
+        moves++;
+
+        // Wait for the broadcast to reach every seat, so the next iteration
+        // reads fresh state rather than the state it just acted on.
+        for (let i = 0; i < 200; i++) {
+          if (seats.every((s, k) => s.inbox.length > before[k])) break;
+          await new Promise((r) => setTimeout(r, 20));
+        }
+        for (const s of seats) {
+          const last = s.inbox[s.inbox.length - 1];
+          if (last?.type === 'error') errors.push(`${last.code}: ${last.message}`);
+        }
+      }
+
+      const final = seats.map(latest).find((s) => s) ?? {};
+      for (const s of seats) s.ws.close();
+      return {
+        moves,
+        verbs,
+        errors,
+        deals,
+        sawCanastaBadge,
+        sawRedThrees,
+        status: final.status ?? status,
+        winnerId: final.winnerId ?? winnerId,
+      };
+    },
+    { wsBase, matchId, tokens, order },
+  );
+}
+
 test.describe('canasta', () => {
   test('the server offers Canasta and describes it well enough to render a form', async ({ request }) => {
     const res = await request.get(`${API_BASE}/modules`);
@@ -110,14 +266,23 @@ test.describe('canasta', () => {
     expect(canasta, 'canasta should be a hosted module').toBeTruthy();
     expect(canasta.label).toBeTruthy();
     expect(canasta.minPlayers).toBe(2);
-    expect(canasta.maxPlayers).toBe(4);
+    // Six, because Samba seats six. The two Canasta rulesets narrow it to four
+    // on their own specs — a module's range is the widest any of its variations
+    // needs, and the variation's is what a lobby actually enforces.
+    expect(canasta.maxPlayers).toBe(6);
 
-    // Two shipped rulesets, each declaring a starting value for every option —
+    // Three shipped rulesets, each declaring a starting value for every option —
     // so a lobby can show what it is about to create without asking the server
     // to resolve anything.
     const variationIds = canasta.variations.map((v: { id: string }) => v.id);
     expect(variationIds).toContain('classic');
     expect(variationIds).toContain('modern_american');
+    expect(variationIds).toContain('samba');
+
+    const byId = (id: string) => canasta.variations.find((v: { id: string }) => v.id === id);
+    expect(byId('classic').maxPlayers, 'Classic seats four on 108 cards').toBe(4);
+    expect(byId('modern_american').maxPlayers).toBe(4);
+    expect(byId('samba').maxPlayers, 'Samba seats six on 162 cards').toBe(6);
 
     const optionNames = canasta.options.map((o: { name: string }) => o.name);
     for (const v of canasta.variations) {
@@ -243,134 +408,15 @@ test.describe('canasta', () => {
     const { matchId, users } = await startMatch(request, 2, { options: { targetScore: 500 } });
     const wsBase = API_BASE.replace(/^http/, 'ws');
 
-    const result = await page.evaluate(
-      async ({ wsBase, matchId, tokens }) => {
-        type Seat = { ws: WebSocket; inbox: any[] };
-
-        const open = async (token: string): Promise<Seat> => {
-          const ws = new WebSocket(`${wsBase}/ws/matches/${matchId}?token=${encodeURIComponent(token)}`);
-          const inbox: any[] = [];
-          await new Promise<void>((resolve, reject) => {
-            ws.onopen = () => resolve();
-            ws.onerror = () => reject(new Error('socket failed to open'));
-            setTimeout(() => reject(new Error('socket open timed out')), 10000);
-          });
-          ws.onmessage = (ev) => inbox.push(JSON.parse(String(ev.data)));
-          return { ws, inbox };
-        };
-
-        const latest = (seat: Seat) => {
-          for (let i = seat.inbox.length - 1; i >= 0; i--) {
-            if (seat.inbox[i].type === 'match_state') return seat.inbox[i];
-          }
-          return null;
-        };
-
-        const settle = async (seat: Seat) => {
-          for (let i = 0; i < 200; i++) {
-            if (latest(seat)) return latest(seat);
-            await new Promise((r) => setTimeout(r, 50));
-          }
-          throw new Error('no match_state arrived');
-        };
-
-        const seats = await Promise.all(tokens.map(open));
-        for (const s of seats) await settle(s);
-
-        /**
-         * Build the submission an offer describes, using only what the offer
-         * declares. This is the whole discipline: `minCards` cards from the
-         * front of the list the offer says it will accept, plus the meld it
-         * says to aim at. Nothing here knows what a canasta is.
-         */
-        const submissionFor = (o: any) => {
-          const action: any = { offerId: o.id, verb: o.verb };
-          const need = o.source?.minCards ?? 0;
-          if (need > 0) {
-            const cards = o.source?.cards ?? [];
-            if (cards.length < need) return null;
-            action.cards = cards.slice(0, need);
-          }
-          if (o.target?.meldId) action.target = o.target.meldId;
-          return action;
-        };
-
-        // A preference order is a UI choice, not a rule: build the table, take
-        // the pile when it is offered, and discard only because a turn has to
-        // end somewhere.
-        const order = ['lay_meld', 'lay_off', 'take_pile', 'draw', 'discard'];
-
-        const verbs: Record<string, number> = {};
-        let moves = 0;
-        let status = 'active';
-        let winnerId = '';
-        let deals = 0;
-        let sawCanastaBadge = false;
-        let sawRedThrees = false;
-        const errors: string[] = [];
-
-        for (let step = 0; step < 1500; step++) {
-          const idx = seats.findIndex((s) => (latest(s)?.legalActions ?? []).some((o: any) => o.enabled));
-          if (idx === -1) break;
-
-          const seat = seats[idx];
-          const state = latest(seat);
-          status = state.status;
-          winnerId = state.winnerId ?? '';
-          if (status !== 'active') break;
-
-          // Observations a UI would make, gathered as we go rather than
-          // re-derived: badges and the red-three zone are pushed facts.
-          for (const z of state.view?.zones ?? []) {
-            if (z.id?.startsWith('redThrees:')) sawRedThrees = true;
-            for (const g of z.groups ?? []) {
-              if ((g.badgeKeys ?? []).some((b: string) => b.includes('Canasta'))) sawCanastaBadge = true;
-            }
-          }
-          const dealFact = (state.view?.header ?? []).find((f: any) => f.labelKey === 'header.deal');
-          if (dealFact) deals = Math.max(deals, Number(dealFact.value) || 0);
-
-          const enabled = state.legalActions.filter((o: any) => o.enabled);
-          enabled.sort((a: any, b: any) => order.indexOf(a.verb) - order.indexOf(b.verb));
-
-          let action: any = null;
-          for (const o of enabled) {
-            action = submissionFor(o);
-            if (action) break;
-          }
-          if (!action) break;
-
-          const before = seats.map((s) => s.inbox.length);
-          seat.ws.send(JSON.stringify(action));
-          verbs[action.verb] = (verbs[action.verb] ?? 0) + 1;
-          moves++;
-
-          // Wait for the broadcast to reach every seat, so the next iteration
-          // reads fresh state rather than the state it just acted on.
-          for (let i = 0; i < 200; i++) {
-            if (seats.every((s, k) => s.inbox.length > before[k])) break;
-            await new Promise((r) => setTimeout(r, 20));
-          }
-          for (const s of seats) {
-            const last = s.inbox[s.inbox.length - 1];
-            if (last?.type === 'error') errors.push(`${last.code}: ${last.message}`);
-          }
-        }
-
-        const final = seats.map(latest).find((s) => s) ?? {};
-        for (const s of seats) s.ws.close();
-        return {
-          moves,
-          verbs,
-          errors,
-          deals,
-          sawCanastaBadge,
-          sawRedThrees,
-          status: final.status ?? status,
-          winnerId: final.winnerId ?? winnerId,
-        };
-      },
-      { wsBase, matchId, tokens: users.map((u) => u.accessToken) },
+    const result = await playFromOffers(
+      page,
+      wsBase,
+      matchId,
+      users.map((u) => u.accessToken),
+      // A preference order is a UI choice, not a rule: build the table, take
+      // the pile when it is offered, and discard only because a turn has to
+      // end somewhere.
+      ['lay_meld', 'lay_off', 'take_pile', 'take_top', 'draw', 'discard'],
     );
 
     // Nothing the offers advertised was refused. An offer the engine then
@@ -395,6 +441,87 @@ test.describe('canasta', () => {
     const persisted = await (await request.get(`${API_BASE}/matches/${matchId}`)).json();
     expect(persisted.status).toBe('completed');
     expect(persisted.winnerId).toBe(result.winnerId);
+  });
+
+  test('a fifth player is turned away at a Classic table and seated at a Samba one', async ({
+    request,
+  }) => {
+    // The seat range belongs to the variation, and the point of it being
+    // enforced at the door is that a table which fills up can always deal. A
+    // fifth player refused at `start` would leave four people looking at a
+    // lobby that cannot begin.
+    const openTable = async (variation: string) => {
+      const host = await guest(request);
+      const auth = { Authorization: `Bearer ${host.accessToken}` };
+      const created = await request.post(`${API_BASE}/matches`, {
+        headers: auth,
+        data: { moduleId: 'canasta', variation },
+      });
+      expect(created.ok(), await created.text()).toBeTruthy();
+      const { matchId } = await created.json();
+      return { matchId, auth };
+    };
+
+    const seat = async (matchId: string) => {
+      const u = await guest(request);
+      return request.post(`${API_BASE}/matches/${matchId}/join`, {
+        headers: { Authorization: `Bearer ${u.accessToken}` },
+      });
+    };
+
+    const classic = await openTable('classic');
+    for (let i = 0; i < 3; i++) expect((await seat(classic.matchId)).ok()).toBeTruthy();
+    const fifth = await seat(classic.matchId);
+    expect(fifth.ok(), 'a fifth player should not fit a Classic table').toBeFalsy();
+    expect((await fifth.json()).code).toBe('MATCH_FULL');
+
+    const samba = await openTable('samba');
+    for (let i = 0; i < 5; i++) {
+      expect((await seat(samba.matchId)).ok(), `player ${i + 2} should fit a Samba table`).toBeTruthy();
+    }
+    const seventh = await seat(samba.matchId);
+    expect(seventh.ok(), 'a seventh player should not fit even a Samba table').toBeFalsy();
+    expect((await seventh.json()).code).toBe('MATCH_FULL');
+  });
+
+  test('a whole Samba match plays to a winner over real WebSockets', async ({ page, request }) => {
+    // The same claim as the Canasta run above, for the variation that had every
+    // reason to break it: Samba melds can be *sequences*, which are the shapes
+    // extensibility-plan.md §1.1 says an offer list cannot enumerate.
+    //
+    // It can enumerate these, and for one reason: a Samba sequence takes no wild
+    // cards, so a candidate is the longest run of consecutive ranks the hand
+    // actually holds in a suit — a fact rather than a composition. If that were
+    // wrong, this test is where it would show, as a client that runs out of
+    // moves it can see.
+    test.setTimeout(240_000);
+
+    const { matchId, users } = await startMatch(request, 4, {
+      variation: 'samba',
+      options: { targetScore: 1000 },
+    });
+    const wsBase = API_BASE.replace(/^http/, 'ws');
+
+    const result = await playFromOffers(
+      page,
+      wsBase,
+      matchId,
+      users.map((u) => u.accessToken),
+      ['lay_meld', 'lay_off', 'take_pile', 'take_top', 'draw', 'discard'],
+    );
+
+    expect(result.errors, `socket errors: ${result.errors.join('; ')}`).toEqual([]);
+    expect(result.moves).toBeGreaterThan(20);
+    expect(result.status).toBe('completed');
+    expect(result.winnerId).not.toBe('');
+    expect(result.verbs.lay_meld ?? 0).toBeGreaterThan(0);
+    expect(result.verbs.discard ?? 0).toBeGreaterThan(0);
+    expect(result.verbs.draw ?? 0).toBeGreaterThan(0);
+
+    const persisted = await (await request.get(`${API_BASE}/matches/${matchId}`)).json();
+    expect(persisted.status).toBe('completed');
+    expect(persisted.winnerId).toBe(result.winnerId);
+    expect(persisted.variation).toBe('samba');
   });
 
   test('the runtime keeps hosting the other two games', async ({ request }) => {

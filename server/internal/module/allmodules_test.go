@@ -160,6 +160,22 @@ func TestEveryModuleDescribesItself(t *testing.T) {
 				if v.ID == "" || v.Label == "" {
 					t.Errorf("variation %+v is not renderable", v)
 				}
+				// A variation may narrow the module's seat range and must never
+				// widen it: the module's is what the lobby list and every screen
+				// that has not yet asked about a variation still read, so a
+				// variation seating more than its module would be advertised at
+				// one size and enforced at another.
+				min, max := d.SeatRange(v.ID)
+				if max > d.MaxPlayers {
+					t.Errorf("variation %q seats %d, more than the module's %d — a variation narrows, never widens",
+						v.ID, max, d.MaxPlayers)
+				}
+				if min < d.MinPlayers {
+					t.Errorf("variation %q opens at %d, below the module's %d", v.ID, min, d.MinPlayers)
+				}
+				if max < min {
+					t.Errorf("variation %q seats %d..%d, which is nobody", v.ID, min, max)
+				}
 				for opt, val := range v.Defaults {
 					spec := d.Option(opt)
 					if spec == nil {

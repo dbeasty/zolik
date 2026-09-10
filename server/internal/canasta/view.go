@@ -6,33 +6,12 @@ import (
 	"zolik/server/internal/module"
 )
 
-// Option names and the values each variation starts from.
+// Option names. The values each variation starts from live in ruleset.go.
 const (
 	OptHandSize        = "handSize"
 	OptTargetScore     = "targetScore"
 	OptCanastasToGoOut = "canastasToGoOut"
 )
-
-type variationDefaults struct {
-	handSize        int
-	targetScore     int
-	canastasToGoOut int
-}
-
-var variations = map[string]variationDefaults{
-	// Classic: eleven cards, one canasta buys the right to go out, 5000 wins.
-	"classic": {handSize: 11, targetScore: 5000, canastasToGoOut: 1},
-	// Modern American: thirteen cards and two canastas to go out, which makes
-	// deals longer and the discard pile far more valuable.
-	"modern_american": {handSize: 13, targetScore: 5000, canastasToGoOut: 2},
-}
-
-func resolveVariation(cfg module.MatchConfig) variationDefaults {
-	if v, ok := variations[cfg.Variation]; ok {
-		return v
-	}
-	return variations["classic"]
-}
 
 // Descriptor is Canasta's self-description.
 //
@@ -45,38 +24,62 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 		ID:         "canasta",
 		Label:      "Canasta",
 		MinPlayers: 2,
-		MaxPlayers: 4,
+		MaxPlayers: 6,
 		Variations: []module.VariationSpec{
 			{
-				ID:    "classic",
-				Label: "Classic",
+				ID:         "classic",
+				MaxPlayers: variations["classic"].MaxSeats,
+				Label:      "Classic",
 				Summary: []module.Fact{
-					{LabelKey: "canasta.rules.deck", Value: "108"},
+					{LabelKey: "canasta.rules.deck", Value: "108", Params: map[string]any{"decks": variations["classic"].Decks}},
 					{LabelKey: "canasta.rules.canasta", Params: map[string]any{"n": canastaSize}},
 					{LabelKey: "canasta.rules.redThrees"},
 					{LabelKey: "canasta.rules.oneCanastaToGoOut"},
 				},
 				Defaults: map[string]int{
-					OptHandSize:                  variations["classic"].handSize,
-					OptTargetScore:               variations["classic"].targetScore,
-					OptCanastasToGoOut:           variations["classic"].canastasToGoOut,
+					OptHandSize:                  variations["classic"].HandSize,
+					OptTargetScore:               variations["classic"].TargetScore,
+					OptCanastasToGoOut:           variations["classic"].CanastasToGoOut,
 					module.OptPauseBetweenRounds: module.OptOn,
 					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
 				},
 			},
 			{
-				ID:    "modern_american",
-				Label: "Modern American",
+				ID:         "modern_american",
+				MaxPlayers: variations["modern_american"].MaxSeats,
+				Label:      "Modern American",
 				Summary: []module.Fact{
-					{LabelKey: "canasta.rules.deck", Value: "108"},
+					{LabelKey: "canasta.rules.deck", Value: "108", Params: map[string]any{"decks": variations["modern_american"].Decks}},
 					{LabelKey: "canasta.rules.canasta", Params: map[string]any{"n": canastaSize}},
 					{LabelKey: "canasta.rules.redThrees"},
 					{LabelKey: "canasta.rules.twoCanastasToGoOut"},
 				},
 				Defaults: map[string]int{
-					OptHandSize:                  variations["modern_american"].handSize,
-					OptTargetScore:               variations["modern_american"].targetScore,
-					OptCanastasToGoOut:           variations["modern_american"].canastasToGoOut,
+					OptHandSize:                  variations["modern_american"].HandSize,
+					OptTargetScore:               variations["modern_american"].TargetScore,
+					OptCanastasToGoOut:           variations["modern_american"].CanastasToGoOut,
+					module.OptPauseBetweenRounds: module.OptOn,
+					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
+				},
+			},
+			{
+				ID:    "samba",
+				Label: "Samba",
+				// Three decks, sequences and a pile nobody takes cheaply. The
+				// seat range is the variation's own: six on 162 cards, where
+				// the other two seat four on 108.
+				MaxPlayers: variations["samba"].MaxSeats,
+				Summary: []module.Fact{
+					{LabelKey: "canasta.rules.deck", Value: "162", Params: map[string]any{"decks": variations["samba"].Decks}},
+					{LabelKey: "canasta.rules.sequences"},
+					{LabelKey: "canasta.rules.samba", Params: map[string]any{"n": variations["samba"].SambaBonus}},
+					{LabelKey: "canasta.rules.pileAlwaysFrozen"},
+					{LabelKey: "canasta.rules.twoCanastasToGoOut"},
+				},
+				Defaults: map[string]int{
+					OptHandSize:                  variations["samba"].HandSize,
+					OptTargetScore:               variations["samba"].TargetScore,
+					OptCanastasToGoOut:           variations["samba"].CanastasToGoOut,
 					module.OptPauseBetweenRounds: module.OptOn,
 					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
 				},
@@ -106,6 +109,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					{Value: 1000, Label: "1000"},
 					{Value: 3000, Label: "3000"},
 					{Value: 5000, Label: "5000"},
+					{Value: 10000, Label: "10000"},
 				},
 			},
 			{
@@ -136,6 +140,7 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 	}
 
 	vm := module.ViewModel{}
+	r := s.rules()
 
 	own := s.Hands[viewerID]
 	vm.Zones = append(vm.Zones, module.Zone{
@@ -182,11 +187,16 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 			}
 		}
 		for _, mm := range t.Melds {
-			g := module.Group{ID: mm.ID, Kind: "set", Cards: append([]string(nil), mm.Cards...)}
+			g := module.Group{ID: mm.ID, Kind: mm.kind(), Cards: append([]string(nil), mm.Cards...)}
 			if mm.isCanasta() {
-				if mm.isNatural() {
+				switch {
+				case mm.kind() == meldRun:
+					// Seven in a suit is a samba, and worth saying so: it is the
+					// biggest single number on a Samba scoresheet.
+					g.BadgeKeys = append(g.BadgeKeys, "badge.samba")
+				case mm.isNatural():
 					g.BadgeKeys = append(g.BadgeKeys, "badge.naturalCanasta")
-				} else {
+				default:
 					g.BadgeKeys = append(g.BadgeKeys, "badge.mixedCanasta")
 				}
 			}
@@ -267,7 +277,7 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 		if !vt.HasMelded {
 			vm.Prompts = append(vm.Prompts, module.Fact{
 				LabelKey: "prompt.initialMeld",
-				Params:   map[string]any{"n": initialMeldMinimum(vt.Score)},
+				Params:   map[string]any{"n": r.meldFloor(vt.Score)},
 			})
 		}
 		if !canGoOut(s, vt) {
@@ -278,11 +288,15 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 		}
 	}
 	if s.Current == viewerID {
-		key := "prompt.yourTurnDraw"
+		// Both spelled out rather than assigned to one variable: a key that
+		// reaches Fact through a variable is invisible to cmd/dump-keys, so it
+		// never reaches the manifest and no locale is ever checked for it.
+		// These two were exactly that until the sweep in keys_test.go found them.
 		if s.Phase == phaseMeld {
-			key = "prompt.yourTurnMeld"
+			vm.Prompts = append(vm.Prompts, module.Fact{LabelKey: "prompt.yourTurnMeld"})
+		} else {
+			vm.Prompts = append(vm.Prompts, module.Fact{LabelKey: "prompt.yourTurnDraw"})
 		}
-		vm.Prompts = append(vm.Prompts, module.Fact{LabelKey: key})
 	}
 
 	if s.LastDeal != nil {
@@ -348,7 +362,7 @@ func topOnly(s *GameState) []string {
 // Canasta meld ships as exact cards rather than a shape to solve — the same
 // property that lets the conformance driver play this game to a winner.
 func (m *Module) Bot() module.Bot {
-	return module.OfferBot(VerbLayMeld, VerbLayOff, VerbTakePile, VerbDraw, VerbDiscard)
+	return module.OfferBot(VerbLayMeld, VerbLayOff, VerbTakePile, VerbTakeTop, VerbDraw, VerbDiscard)
 }
 
 // Standings ranks by partnership score, so both members of a side share a rank

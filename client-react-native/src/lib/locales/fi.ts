@@ -134,13 +134,18 @@ export const fi: Record<string, string> = {
   'canasta.rules.section.melding': 'Laskeminen',
   'canasta.rules.section.end': 'Miten ottelu päättyy',
   'canasta.rules.goal': 'Pelataan pareittain; ensimmäisenä {n} pisteeseen yltävä puoli voittaa ottelun.',
-  'canasta.rules.deck': 'Pelataan {value} kortilla — kaksi pakkaa ja jokerit.',
+  'canasta.rules.deck': 'Pelataan {value} kortilla — {decks} pakkaa ja jokerit.',
   'canasta.rules.deal': 'Jokainen pelaaja saa {n} korttia.',
+  'canasta.rules.drawCount': 'Nostat {n} korttia vuorosi alussa.',
   'canasta.rules.redThrees':
     'Punainen kolmonen kädessäsi näytetään heti ja se antaa bonuksen — paitsi jos puolesi ei koskaan saa canastaa valmiiksi, jolloin se lasketaan sinua vastaan.',
   'canasta.rules.canasta': 'Canasta on yhdistelmä, jossa on {n} tai useampi samanarvoinen kortti.',
+  'canasta.rules.sequences': 'Yhdistelmä voi olla myös jono: kolme tai useampi saman maan kortti peräkkäin, ei koskaan jokeria mukana.',
+  'canasta.rules.samba': 'Seitsemän kortin jono on samba ja se on {n} pisteen arvoinen.',
+  'canasta.rules.pileAlwaysFrozen': 'Poistopino on jäädytetty koko jaon ajan: saat sen vain sovittamalla päällimmäisen kortin kahteen luonnolliseen korttiin kädestäsi.',
   'canasta.rules.meldFloorBands':
     'Ensimmäisen laskusi on yllettävä pisterajaan, joka nousee pistetilanteesi mukana: {negative} alle nollan, {low} 1500:aan asti, {mid} 3000:een asti, {high} sen yli.',
+  'canasta.rules.meldFloorBandsFive': 'Ensimmäisen yhdistelmäsi on yllettävä pisterajaan, joka nousee pistetilanteesi mukana: {negative} alle nollan, {low} 1500 asti, {mid} 3000 asti, {high} 7000 asti ja {top} sen yli.',
   'canasta.rules.oneCanastaToGoOut': 'Yksi valmis canasta riittää, jotta puolesi pääsee ulos.',
   'canasta.rules.twoCanastasToGoOut': 'Puolesi tarvitsee kaksi valmista canastaa ennen kuin se pääsee ulos.',
   'canasta.rules.end': 'Jakoa jatketaan, kunnes toinen puoli ylittää {n} pistettä — sitten ottelu on ohi.',
@@ -253,6 +258,7 @@ export const fi: Record<string, string> = {
   'holdem.round.pot': 'Potti {n}',
   'holdem.round.uncontested': 'Kaikki muut luovuttivat',
   'seat.ready': 'Valmis',
+  'zolik.seat.contractMet': 'Sopimus täytetty',
   'results.you': '(sinä)',
 
 
@@ -276,6 +282,9 @@ export const fi: Record<string, string> = {
   'err.MELD_TOO_SMALL': 'Yhdistelmä vaatii enemmän kortteja',
   'err.MELD_TOO_LARGE': 'Tuohon yhdistelmään ei mahdu enää kortteja',
   'err.MELD_MIXED_RANKS': 'Yhdistelmän jokaisen kortin on oltava samanarvoinen',
+  'err.SEQUENCE_NO_WILDS': 'Jonossa ei saa olla jokereita',
+  'err.SEQUENCE_NEEDS_ONE_SUIT': 'Jonon kaikkien korttien on oltava samaa maata',
+  'err.RUN_NOT_CONSECUTIVE': 'Jonon on kuljettava järjestyksessä ilman aukkoja',
   'err.NOT_ENOUGH_NATURALS': 'Yhdistelmä vaatii enemmän luonnollisia kortteja kuin jokereita',
   'err.RANK_ALREADY_MELDED': 'Puolellasi on jo tämän arvoinen yhdistelmä',
   'err.NOT_YOUR_MELD': 'Tuo yhdistelmä kuuluu vastapuolelle',
@@ -375,6 +384,11 @@ export const fi: Record<string, string> = {
   'status.lastDeal': 'Joukkue {team} sai {value}',
   'status.teamScore': 'Joukkue {team}: {value}',
   'canasta.offer.rank': 'Arvo',
+  'canasta.offer.sequence': 'Jono',
+  'badge.naturalCanasta': 'Puhdas canasta',
+  'badge.mixedCanasta': 'Epäpuhdas canasta',
+  'badge.samba': 'Samba',
+  'badge.cleanRun': 'Puhdas jono',
   'canasta.seat.teamScore': 'Joukkueen pisteet',
   'canasta.seat.canastas': 'Canastat',
   'holdem.header.pot': 'Potti',
@@ -1044,6 +1058,7 @@ export const fi: Record<string, string> = {
   'option.handSize': 'Jaetut kortit',
   'variation.canasta.classic': 'Klassinen',
   'variation.canasta.modern_american': 'Modern American',
+  'variation.canasta.samba': 'Samba',
   'option.targetScore': 'Tavoitepisteet',
   'option.canastasToGoOut': 'Canastat ulospääsyyn',
   'variation.holdem.freezeout': 'Freezeout',
@@ -1143,6 +1158,7 @@ export const fi: Record<string, string> = {
   // Declared by the server and listed in `serverKeys.json`, but never worded.
   'verb.takePileFromHand': 'Ota pino käteen',
   'verb.takePileOntoMeld': 'Ota pino yhdistelmään',
+  'verb.takeTopForSequence': 'Ota päällimmäinen kortti jonoon',
   'verb.undoDraw': 'Kumoa nosto',
   'verb.undoLayOff': 'Kumoa liittäminen',
   'verb.undoMeld': 'Kumoa yhdistelmä',
@@ -1164,6 +1180,9 @@ export const fi: Record<string, string> = {
   'canasta.unit.points': 'pistettä',
   'ginrummy.unit.points': 'pistettä',
   'holdem.seat.dealer': 'Jakaja',
+  'holdem.seat.folded': 'Luovutti',
+  'holdem.seat.allIn': 'All in',
+  'holdem.seat.out': 'Ulkona',
   'holdem.unit.chips': 'pelimerkkiä',
   'prsi.unit.cardsLeft': 'korttia jäljellä',
   'rummytiles.prompt.initialMeld': 'Ensimmäisen laskusi on oltava {n} pisteen arvoinen.',
@@ -1174,4 +1193,5 @@ export const fi: Record<string, string> = {
   // send the prompt without a module prefix. Neither the Go constants nor
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Nosta kortti',
+  'prompt.yourTurnMeld': 'Yhdistä jos voit, sitten poista',
 };

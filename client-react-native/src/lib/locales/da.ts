@@ -130,13 +130,18 @@ export const da: Record<string, string> = {
   'canasta.rules.section.melding': 'At lægge ud',
   'canasta.rules.section.end': 'Sådan slutter matchen',
   'canasta.rules.goal': 'Der spilles i makkerpar; den første side, der når {n} point, vinder matchen.',
-  'canasta.rules.deck': 'Spilles med {value} kort — to spil plus jokere.',
+  'canasta.rules.deck': 'Spilles med {value} kort — {decks} spil plus jokere.',
   'canasta.rules.deal': 'Hver spiller får {n} kort.',
+  'canasta.rules.drawCount': 'Du trækker {n} kort i begyndelsen af din tur.',
   'canasta.rules.redThrees':
     'En rød treer på hånden vises straks og tæller som bonus — medmindre din side aldrig får en canasta færdig, og så tæller den imod dig.',
   'canasta.rules.canasta': 'En canasta er en kombination af {n} eller flere kort af samme værdi.',
+  'canasta.rules.sequences': 'En kombination kan også være en sekvens: tre eller flere kort i samme farve i træk, aldrig med et vildt kort iblandt.',
+  'canasta.rules.samba': 'En sekvens på syv kort er en samba og giver {n} point.',
+  'canasta.rules.pileAlwaysFrozen': 'Kastebunken er frosset hele givet: du kan kun tage den ved at lægge to naturlige kort fra hånden til det øverste kort.',
   'canasta.rules.meldFloorBands':
     'Din første udlægning skal nå et pointminimum, der stiger med din stilling: {negative} under nul, {low} op til 1500, {mid} op til 3000, {high} derover.',
+  'canasta.rules.meldFloorBandsFive': 'Din første kombination skal nå et pointminimum, der stiger med din score: {negative} under nul, {low} op til 1500, {mid} op til 3000, {high} op til 7000 og {top} derover.',
   'canasta.rules.oneCanastaToGoOut': 'Én færdig canasta er nok til, at din side kan gå ud.',
   'canasta.rules.twoCanastasToGoOut': 'Din side skal have to færdige canastaer, før den må gå ud.',
   'canasta.rules.end': 'Der gives videre, indtil en side passerer {n} point — så er matchen slut.',
@@ -249,6 +254,7 @@ export const da: Record<string, string> = {
   'holdem.round.pot': 'Pulje {n}',
   'holdem.round.uncontested': 'Alle andre kastede sig',
   'seat.ready': 'Klar',
+  'zolik.seat.contractMet': 'Kontrakt opfyldt',
   'results.you': '(dig)',
 
 
@@ -272,6 +278,9 @@ export const da: Record<string, string> = {
   'err.MELD_TOO_SMALL': 'En kombination kræver flere kort end det',
   'err.MELD_TOO_LARGE': 'Den kombination kan ikke rumme flere kort',
   'err.MELD_MIXED_RANKS': 'Alle kort i en kombination skal have samme værdi',
+  'err.SEQUENCE_NO_WILDS': 'En sekvens må ikke indeholde vilde kort',
+  'err.SEQUENCE_NEEDS_ONE_SUIT': 'Alle kort i en sekvens skal være i samme farve',
+  'err.RUN_NOT_CONSECUTIVE': 'En sekvens skal løbe i rækkefølge uden huller',
   'err.NOT_ENOUGH_NATURALS': 'En kombination kræver flere naturlige kort end vilde',
   'err.RANK_ALREADY_MELDED': 'Din side har allerede en kombination af den værdi',
   'err.NOT_YOUR_MELD': 'Den kombination tilhører modstandersiden',
@@ -372,6 +381,11 @@ export const da: Record<string, string> = {
   'status.lastDeal': 'Hold {team} fik {value}',
   'status.teamScore': 'Hold {team}: {value}',
   'canasta.offer.rank': 'Værdi',
+  'canasta.offer.sequence': 'Sekvens',
+  'badge.naturalCanasta': 'Ren canasta',
+  'badge.mixedCanasta': 'Uren canasta',
+  'badge.samba': 'Samba',
+  'badge.cleanRun': 'Ren sekvens',
   'canasta.seat.teamScore': 'Holdets point',
   'canasta.seat.canastas': 'Canastaer',
   'holdem.header.pot': 'Pulje',
@@ -1037,6 +1051,7 @@ export const da: Record<string, string> = {
   'option.handSize': 'Uddelte kort',
   'variation.canasta.classic': 'Klassisk',
   'variation.canasta.modern_american': 'Modern American',
+  'variation.canasta.samba': 'Samba',
   'option.targetScore': 'Målpoint',
   'option.canastasToGoOut': 'Canastaer for at gå ud',
   'variation.holdem.freezeout': 'Freezeout',
@@ -1136,6 +1151,7 @@ export const da: Record<string, string> = {
   // Declared by the server and listed in `serverKeys.json`, but never worded.
   'verb.takePileFromHand': 'Tag bunken på hånden',
   'verb.takePileOntoMeld': 'Tag bunken på en kombination',
+  'verb.takeTopForSequence': 'Tag det øverste kort til en sekvens',
   'verb.undoDraw': 'Fortryd træk',
   'verb.undoLayOff': 'Fortryd pålægning',
   'verb.undoMeld': 'Fortryd kombination',
@@ -1157,6 +1173,9 @@ export const da: Record<string, string> = {
   'canasta.unit.points': 'point',
   'ginrummy.unit.points': 'point',
   'holdem.seat.dealer': 'Giver',
+  'holdem.seat.folded': 'Passet',
+  'holdem.seat.allIn': 'All in',
+  'holdem.seat.out': 'Ude',
   'holdem.unit.chips': 'jetoner',
   'prsi.unit.cardsLeft': 'kort tilbage',
   'rummytiles.prompt.initialMeld': 'Din første udlægning skal være {n} point værd.',
@@ -1167,4 +1186,5 @@ export const da: Record<string, string> = {
   // send the prompt without a module prefix. Neither the Go constants nor
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Træk et kort',
+  'prompt.yourTurnMeld': 'Læg ned hvis du kan, og kast så',
 };

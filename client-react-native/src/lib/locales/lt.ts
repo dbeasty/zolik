@@ -132,13 +132,18 @@ export const lt: Record<string, string> = {
   'canasta.rules.section.melding': 'Išdėjimas',
   'canasta.rules.section.end': 'Kaip baigiasi rungtynės',
   'canasta.rules.goal': 'Žaidžiama poromis; pirmoji pusė, pasiekusi {n} taškų, laimi rungtynes.',
-  'canasta.rules.deck': 'Žaidžiama {value} kortomis — dvi kaladės ir džokeriai.',
+  'canasta.rules.deck': 'Žaidžiama {value} kortomis — {decks} kaladės ir džokeriai.',
   'canasta.rules.deal': 'Kiekvienas žaidėjas gauna {n} kortų.',
+  'canasta.rules.drawCount': 'Ėjimo pradžioje imi {n} kortas.',
   'canasta.rules.redThrees':
     'Raudonas trejetas tavo rankoje parodomas iškart ir duoda premiją — nebent tavo pusė niekada nesudaro kanastos, tada jis skaičiuojamas prieš tave.',
   'canasta.rules.canasta': 'Kanasta — tai {n} ar daugiau tos pačios vertės kortų derinys.',
+  'canasta.rules.sequences': 'Derinys gali būti ir seka: trys ar daugiau tos pačios rūšies kortų iš eilės, niekada su džokeriu tarp jų.',
+  'canasta.rules.samba': 'Septynių kortų seka yra samba, verta {n} taškų.',
+  'canasta.rules.pileAlwaysFrozen': 'Atmetimo krūvelė užšaldyta visą dalijimą: paimti ją gali tik pridėjęs prie viršutinės kortos dvi natūralias kortas iš rankos.',
   'canasta.rules.meldFloorBands':
     'Tavo pirmas išdėjimas turi pasiekti taškų minimumą, kuris auga kartu su tavo rezultatu: {negative} žemiau nulio, {low} iki 1500, {mid} iki 3000, {high} virš to.',
+  'canasta.rules.meldFloorBandsFive': 'Tavo pirmasis derinys turi pasiekti taškų minimumą, kuris auga kartu su rezultatu: {negative} žemiau nulio, {low} iki 1500, {mid} iki 3000, {high} iki 7000 ir {top} virš to.',
   'canasta.rules.oneCanastaToGoOut': 'Vienos užbaigtos kanastos pakanka, kad tavo pusė išeitų.',
   'canasta.rules.twoCanastasToGoOut': 'Tavo pusei reikia dviejų užbaigtų kanastų, kad galėtų išeiti.',
   'canasta.rules.end': 'Dalijama toliau, kol viena pusė peržengia {n} taškų — tada rungtynės baigtos.',
@@ -251,6 +256,7 @@ export const lt: Record<string, string> = {
   'holdem.round.pot': 'Bankas {n}',
   'holdem.round.uncontested': 'Visi kiti pasitraukė',
   'seat.ready': 'Pasiruošęs',
+  'zolik.seat.contractMet': 'Sutartis įvykdyta',
   'results.you': '(tu)',
 
 
@@ -274,6 +280,9 @@ export const lt: Record<string, string> = {
   'err.MELD_TOO_SMALL': 'Deriniui reikia daugiau kortų nei tiek',
   'err.MELD_TOO_LARGE': 'Šis derinys daugiau kortų nebepriima',
   'err.MELD_MIXED_RANKS': 'Visos derinio kortos turi būti tos pačios vertės',
+  'err.SEQUENCE_NO_WILDS': 'Sekoje negali būti džokerių',
+  'err.SEQUENCE_NEEDS_ONE_SUIT': 'Visos sekos kortos turi būti tos pačios rūšies',
+  'err.RUN_NOT_CONSECUTIVE': 'Seka turi eiti iš eilės, be tarpų',
   'err.NOT_ENOUGH_NATURALS': 'Deriniui reikia daugiau natūralių kortų nei džokerių',
   'err.RANK_ALREADY_MELDED': 'Tavo pusė jau turi tokios vertės derinį',
   'err.NOT_YOUR_MELD': 'Šis derinys priklauso priešingai pusei',
@@ -372,6 +381,11 @@ export const lt: Record<string, string> = {
   'status.lastDeal': 'Komanda {team} surinko {value}',
   'status.teamScore': 'Komanda {team}: {value}',
   'canasta.offer.rank': 'Vertė',
+  'canasta.offer.sequence': 'Seka',
+  'badge.naturalCanasta': 'Švari kanasta',
+  'badge.mixedCanasta': 'Nešvari kanasta',
+  'badge.samba': 'Samba',
+  'badge.cleanRun': 'Švari seka',
   'canasta.seat.teamScore': 'Komandos taškai',
   'canasta.seat.canastas': 'Kanastos',
   'holdem.header.pot': 'Bankas',
@@ -1039,6 +1053,7 @@ export const lt: Record<string, string> = {
   'option.handSize': 'Išdalytos kortos',
   'variation.canasta.classic': 'Klasikinė',
   'variation.canasta.modern_american': 'Modern American',
+  'variation.canasta.samba': 'Samba',
   'option.targetScore': 'Tikslinis rezultatas',
   'option.canastasToGoOut': 'Kanastos išėjimui',
   'variation.holdem.freezeout': 'Freezeout',
@@ -1138,6 +1153,7 @@ export const lt: Record<string, string> = {
   // Declared by the server and listed in `serverKeys.json`, but never worded.
   'verb.takePileFromHand': 'Imk krūvelę į ranką',
   'verb.takePileOntoMeld': 'Imk krūvelę į derinį',
+  'verb.takeTopForSequence': 'Imk viršutinę kortą į seką',
   'verb.undoDraw': 'Atšaukti traukimą',
   'verb.undoLayOff': 'Atšaukti pridėjimą',
   'verb.undoMeld': 'Atšaukti derinį',
@@ -1159,6 +1175,9 @@ export const lt: Record<string, string> = {
   'canasta.unit.points': 'taškų',
   'ginrummy.unit.points': 'taškų',
   'holdem.seat.dealer': 'Dalytojas',
+  'holdem.seat.folded': 'Pasitraukė',
+  'holdem.seat.allIn': 'All in',
+  'holdem.seat.out': 'Iškritęs',
   'holdem.unit.chips': 'žetonų',
   'prsi.unit.cardsLeft': 'liko kortų',
   'rummytiles.prompt.initialMeld': 'Tavo pirmas išdėjimas turi būti vertas {n} taškų.',
@@ -1169,4 +1188,5 @@ export const lt: Record<string, string> = {
   // send the prompt without a module prefix. Neither the Go constants nor
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Paimk kortą',
+  'prompt.yourTurnMeld': 'Išdėk, jei gali, tada išmesk',
 };

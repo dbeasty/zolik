@@ -135,13 +135,18 @@ export const pl: Record<string, string> = {
   'canasta.rules.section.melding': 'Wykładanie',
   'canasta.rules.section.end': 'Jak kończy się mecz',
   'canasta.rules.goal': 'Gra się w parach; pierwsza strona, która osiągnie {n} punktów, wygrywa mecz.',
-  'canasta.rules.deck': 'Gra się {value} kartami — dwie talie plus jokery.',
+  'canasta.rules.deck': 'Gra się {value} kartami — {decks} talie plus jokery.',
   'canasta.rules.deal': 'Każdy gracz dostaje {n} kart.',
+  'canasta.rules.drawCount': 'Na początku tury dobierasz {n} karty.',
   'canasta.rules.redThrees':
     'Czerwoną trójkę z ręki pokazuje się od razu i liczy jako premia — chyba że twoja strona nigdy nie skompletuje canasty, wtedy liczy się przeciwko tobie.',
   'canasta.rules.canasta': 'Canasta to układ {n} lub więcej kart tej samej wartości.',
+  'canasta.rules.sequences': 'Układ może być też sekwensem: trzy lub więcej kart tego samego koloru po kolei, nigdy z jokerem w środku.',
+  'canasta.rules.samba': 'Sekwens z siedmiu kart to samba warta {n} punktów.',
+  'canasta.rules.pileAlwaysFrozen': 'Stos odrzuconych jest zamrożony przez całe rozdanie: aby go wziąć, musisz dołożyć do wierzchniej karty dwie naturalne karty z ręki.',
   'canasta.rules.meldFloorBands':
     'Twoje pierwsze wyłożenie musi osiągnąć minimum punktowe rosnące wraz z wynikiem: {negative} poniżej zera, {low} do 1500, {mid} do 3000, {high} powyżej.',
+  'canasta.rules.meldFloorBandsFive': 'Twój pierwszy układ musi osiągnąć minimum punktowe rosnące wraz z wynikiem: {negative} poniżej zera, {low} do 1500, {mid} do 3000, {high} do 7000, powyżej {top}.',
   'canasta.rules.oneCanastaToGoOut': 'Jedna skompletowana canasta wystarczy, by twoja strona mogła wyjść.',
   'canasta.rules.twoCanastasToGoOut':
     'Twoja strona potrzebuje dwóch skompletowanych canast, zanim będzie mogła wyjść.',
@@ -255,6 +260,7 @@ export const pl: Record<string, string> = {
   'holdem.round.pot': 'Pula {n}',
   'holdem.round.uncontested': 'Wszyscy inni spasowali',
   'seat.ready': 'Gotowy',
+  'zolik.seat.contractMet': 'Kontrakt spełniony',
   'results.you': '(ty)',
 
 
@@ -279,6 +285,9 @@ export const pl: Record<string, string> = {
   'err.MELD_TOO_SMALL': 'Układ potrzebuje więcej kart',
   'err.MELD_TOO_LARGE': 'Ten układ nie przyjmie już żadnej karty',
   'err.MELD_MIXED_RANKS': 'Wszystkie karty w układzie muszą mieć tę samą wartość',
+  'err.SEQUENCE_NO_WILDS': 'Sekwens nie może zawierać jokerów',
+  'err.SEQUENCE_NEEDS_ONE_SUIT': 'Wszystkie karty sekwensu muszą być w tym samym kolorze',
+  'err.RUN_NOT_CONSECUTIVE': 'Sekwens musi iść po kolei, bez przerw',
   'err.NOT_ENOUGH_NATURALS': 'Układ potrzebuje więcej kart naturalnych niż jokerów',
   'err.RANK_ALREADY_MELDED': 'Twoja strona ma już układ tej wartości',
   'err.NOT_YOUR_MELD': 'Ten układ należy do przeciwnej strony',
@@ -377,6 +386,11 @@ export const pl: Record<string, string> = {
   'status.lastDeal': 'Drużyna {team} zdobyła {value}',
   'status.teamScore': 'Drużyna {team}: {value}',
   'canasta.offer.rank': 'Wartość',
+  'canasta.offer.sequence': 'Sekwens',
+  'badge.naturalCanasta': 'Czysta canasta',
+  'badge.mixedCanasta': 'Brudna canasta',
+  'badge.samba': 'Samba',
+  'badge.cleanRun': 'Czysty sekwens',
   'canasta.seat.teamScore': 'Wynik drużyny',
   'canasta.seat.canastas': 'Canasty',
   'holdem.header.pot': 'Pula',
@@ -1042,6 +1056,7 @@ export const pl: Record<string, string> = {
   'option.handSize': 'Rozdawane karty',
   'variation.canasta.classic': 'Klasyczna',
   'variation.canasta.modern_american': 'Modern American',
+  'variation.canasta.samba': 'Samba',
   'option.targetScore': 'Wynik docelowy',
   'option.canastasToGoOut': 'Canasty do wyjścia',
   'variation.holdem.freezeout': 'Freezeout',
@@ -1141,6 +1156,7 @@ export const pl: Record<string, string> = {
   // Declared by the server and listed in `serverKeys.json`, but never worded.
   'verb.takePileFromHand': 'Weź stos do ręki',
   'verb.takePileOntoMeld': 'Weź stos na układ',
+  'verb.takeTopForSequence': 'Weź wierzchnią kartę do sekwensu',
   'verb.undoDraw': 'Cofnij dobranie',
   'verb.undoLayOff': 'Cofnij dołożenie',
   'verb.undoMeld': 'Cofnij układ',
@@ -1162,6 +1178,9 @@ export const pl: Record<string, string> = {
   'canasta.unit.points': 'pkt',
   'ginrummy.unit.points': 'pkt',
   'holdem.seat.dealer': 'Rozdający',
+  'holdem.seat.folded': 'Spasował',
+  'holdem.seat.allIn': 'All in',
+  'holdem.seat.out': 'Odpadł',
   'holdem.unit.chips': 'żetonów',
   'prsi.unit.cardsLeft': 'kart zostało',
   'rummytiles.prompt.initialMeld': 'Twoje pierwsze wyłożenie musi być warte {n} punktów.',
@@ -1172,4 +1191,5 @@ export const pl: Record<string, string> = {
   // send the prompt without a module prefix. Neither the Go constants nor
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Dobierz kartę',
+  'prompt.yourTurnMeld': 'Wyłóż, jeśli możesz, potem odrzuć',
 };

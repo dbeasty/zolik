@@ -134,13 +134,18 @@ export const sk: Record<string, string> = {
   'canasta.rules.section.melding': 'Vykladanie',
   'canasta.rules.section.end': 'Ako sa zápas končí',
   'canasta.rules.goal': 'Hrá sa vo dvojiciach; prvá strana, ktorá dosiahne {n} bodov, vyhráva zápas.',
-  'canasta.rules.deck': 'Hrá sa s {value} kartami — dva balíčky plus žolíci.',
+  'canasta.rules.deck': 'Hrá sa s {value} kartami — {decks} balíčky plus žolíci.',
   'canasta.rules.deal': 'Každý hráč dostane {n} kariet.',
+  'canasta.rules.drawCount': 'Na začiatku ťahu si potiahnete {n} karty.',
   'canasta.rules.redThrees':
     'Červená trojka v ruke sa hneď ukáže a počíta sa ako bonus — okrem prípadu, keď tvoja strana nikdy nedokončí canastu, vtedy sa počíta proti tebe.',
   'canasta.rules.canasta': 'Canasta je kombinácia {n} alebo viacerých kariet rovnakej hodnoty.',
+  'canasta.rules.sequences': 'Kombinácia môže byť aj postupka: tri a viac kariet rovnakej farby za sebou, nikdy so žolíkom medzi nimi.',
+  'canasta.rules.samba': 'Postupka zo siedmich kariet je samba a má hodnotu {n} bodov.',
+  'canasta.rules.pileAlwaysFrozen': 'Odhadzovací balíček je zamrznutý po celé rozdanie: vziať si ho môžete len tak, že k vrchnej karte priložíte dve prirodzené karty z ruky.',
   'canasta.rules.meldFloorBands':
     'Tvoje prvé vyloženie musí dosiahnuť bodové minimum, ktoré rastie so skóre: {negative} pod nulou, {low} do 1500, {mid} do 3000, {high} nad tým.',
+  'canasta.rules.meldFloorBandsFive': 'Vaša prvá kombinácia musí dosiahnuť bodové minimum, ktoré rastie s vaším skóre: {negative} pod nulou, {low} do 1500, {mid} do 3000, {high} do 7000 a {top} nad tým.',
   'canasta.rules.oneCanastaToGoOut': 'Jedna dokončená canasta stačí, aby tvoja strana mohla vyjsť.',
   'canasta.rules.twoCanastasToGoOut': 'Tvoja strana potrebuje dve dokončené canasty, kým môže vyjsť.',
   'canasta.rules.end': 'Rozdáva sa ďalej, kým jedna strana neprekročí {n} bodov — potom je zápas na konci.',
@@ -252,6 +257,7 @@ export const sk: Record<string, string> = {
   'holdem.round.pot': 'Bank {n}',
   'holdem.round.uncontested': 'Všetci ostatní zložili',
   'seat.ready': 'Pripravený',
+  'zolik.seat.contractMet': 'Záväzok splnený',
   'results.you': '(ty)',
 
 
@@ -276,6 +282,9 @@ export const sk: Record<string, string> = {
   'err.MELD_TOO_SMALL': 'Kombinácia potrebuje viac kariet',
   'err.MELD_TOO_LARGE': 'Táto kombinácia už neprijme ďalšie karty',
   'err.MELD_MIXED_RANKS': 'Všetky karty v kombinácii musia mať rovnakú hodnotu',
+  'err.SEQUENCE_NO_WILDS': 'Postupka nesmie obsahovať žolíkov',
+  'err.SEQUENCE_NEEDS_ONE_SUIT': 'Všetky karty postupky musia byť rovnakej farby',
+  'err.RUN_NOT_CONSECUTIVE': 'Postupka musí ísť po poradí, bez medzier',
   'err.NOT_ENOUGH_NATURALS': 'Kombinácia potrebuje viac prirodzených kariet než žolíkov',
   'err.RANK_ALREADY_MELDED': 'Tvoja strana už má kombináciu tejto hodnoty',
   'err.NOT_YOUR_MELD': 'Táto kombinácia patrí súperovej strane',
@@ -372,6 +381,11 @@ export const sk: Record<string, string> = {
   'status.lastDeal': 'Tím {team} získal {value}',
   'status.teamScore': 'Tím {team}: {value}',
   'canasta.offer.rank': 'Hodnota',
+  'canasta.offer.sequence': 'Postupka',
+  'badge.naturalCanasta': 'Čistá kanasta',
+  'badge.mixedCanasta': 'Nečistá kanasta',
+  'badge.samba': 'Samba',
+  'badge.cleanRun': 'Čistá postupka',
   'canasta.seat.teamScore': 'Skóre tímu',
   'canasta.seat.canastas': 'Canasty',
   'holdem.header.pot': 'Bank',
@@ -1035,6 +1049,7 @@ export const sk: Record<string, string> = {
   'option.handSize': 'Rozdané karty',
   'variation.canasta.classic': 'Klasická',
   'variation.canasta.modern_american': 'Modern American',
+  'variation.canasta.samba': 'Samba',
   'option.targetScore': 'Cieľové skóre',
   'option.canastasToGoOut': 'Canasty na vyjdenie',
   'variation.holdem.freezeout': 'Freezeout',
@@ -1134,6 +1149,7 @@ export const sk: Record<string, string> = {
   // Declared by the server and listed in `serverKeys.json`, but never worded.
   'verb.takePileFromHand': 'Vziať kopu do ruky',
   'verb.takePileOntoMeld': 'Vziať kopu na kombináciu',
+  'verb.takeTopForSequence': 'Vziať vrchnú kartu do postupky',
   'verb.undoDraw': 'Vrátiť potiahnutie',
   'verb.undoLayOff': 'Vrátiť priloženie',
   'verb.undoMeld': 'Vrátiť kombináciu',
@@ -1155,6 +1171,9 @@ export const sk: Record<string, string> = {
   'canasta.unit.points': 'bodov',
   'ginrummy.unit.points': 'bodov',
   'holdem.seat.dealer': 'Rozdávajúci',
+  'holdem.seat.folded': 'Zložil',
+  'holdem.seat.allIn': 'All in',
+  'holdem.seat.out': 'Vyradený',
   'holdem.unit.chips': 'žetónov',
   'prsi.unit.cardsLeft': 'zostáva kariet',
   'rummytiles.prompt.initialMeld': 'Tvoje prvé vyloženie musí mať hodnotu {n} bodov.',
@@ -1165,4 +1184,5 @@ export const sk: Record<string, string> = {
   // send the prompt without a module prefix. Neither the Go constants nor
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Potiahni kartu',
+  'prompt.yourTurnMeld': 'Vyložte, ak môžete, potom odhoďte',
 };

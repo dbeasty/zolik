@@ -265,7 +265,7 @@ func TestTakingThePileMovesEveryCard(t *testing.T) {
 	if s.Frozen {
 		t.Error("taking the pile should thaw it")
 	}
-	m := s.Teams[0].meld("A")
+	m := s.Teams[0].openGroup(classicRules(), "A")
 	if m == nil || len(m.Cards) != 3 {
 		t.Fatalf("expected a three-card ace meld, got %+v", m)
 	}
@@ -421,7 +421,7 @@ func TestMeldShape(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := validateMeld(tc.cards)
+			err := validateMeld(classicRules(), tc.cards)
 			got := ""
 			if err != nil {
 				got = module.CodeOf(err)
@@ -448,8 +448,8 @@ func TestInitialMeldMinimum(t *testing.T) {
 		{score: 3000, want: 120}, {score: 9000, want: 120},
 	}
 	for _, tc := range cases {
-		if got := initialMeldMinimum(tc.score); got != tc.want {
-			t.Errorf("initialMeldMinimum(%d) = %d, want %d", tc.score, got, tc.want)
+		if got := classicRules().meldFloor(tc.score); got != tc.want {
+			t.Errorf("meldFloor(%d) = %d, want %d", tc.score, got, tc.want)
 		}
 	}
 }
@@ -624,7 +624,7 @@ func TestPartnersShareMelds(t *testing.T) {
 	if code != "" {
 		t.Fatalf("a partner should be able to lay off, got %s", code)
 	}
-	if m := mustDecode(t, next).Teams[0].meld("K"); len(m.Cards) != 4 {
+	if m := mustDecode(t, next).Teams[0].openGroup(classicRules(), "K"); len(m.Cards) != 4 {
 		t.Errorf("meld has %d cards, want 4", len(m.Cards))
 	}
 
@@ -800,22 +800,22 @@ func TestRedThreesLayThemselves(t *testing.T) {
 
 	t.Run("they count against a partnership with no canasta", func(t *testing.T) {
 		bare := &Team{RedThrees: []string{"3H", "3D"}}
-		if got := redThreeScore(bare); got != -200 {
+		if got := redThreeScore(classicRules(), bare); got != -200 {
 			t.Errorf("two red threes and no canasta = %d, want -200", got)
 		}
 		withCanasta := &Team{
 			RedThrees: []string{"3H", "3D"},
 			Melds:     []Meld{{Rank: "K", Cards: []string{"KH", "KD", "KS", "KC", "KH", "KD", "KS"}}},
 		}
-		if got := redThreeScore(withCanasta); got != 200 {
+		if got := redThreeScore(classicRules(), withCanasta); got != 200 {
 			t.Errorf("two red threes with a canasta = %d, want 200", got)
 		}
 		all := &Team{
 			RedThrees: []string{"3H", "3D", "3H", "3D"},
 			Melds:     withCanasta.Melds,
 		}
-		if got := redThreeScore(all); got != allRedThreesBonus {
-			t.Errorf("all four red threes = %d, want %d", got, allRedThreesBonus)
+		if got := redThreeScore(classicRules(), all); got != classicRules().redThreeAllBonus() {
+			t.Errorf("all four red threes = %d, want %d", got, classicRules().redThreeAllBonus())
 		}
 	})
 }
@@ -895,8 +895,8 @@ func TestGoingOutNeedsACanasta(t *testing.T) {
 		if s.LastDeal == nil || s.LastDeal.WentOut != "p1" {
 			t.Fatalf("deal should have ended with p1 out, got %+v", s.LastDeal)
 		}
-		if s.LastDeal.Teams[0].GoingOut != goingOutBonus {
-			t.Errorf("going-out bonus was %d, want %d", s.LastDeal.Teams[0].GoingOut, goingOutBonus)
+		if s.LastDeal.Teams[0].GoingOut != classicRules().GoingOutBonus {
+			t.Errorf("going-out bonus was %d, want %d", s.LastDeal.Teams[0].GoingOut, classicRules().GoingOutBonus)
 		}
 	})
 
@@ -951,8 +951,8 @@ func TestConcealedGoOut(t *testing.T) {
 	if s.LastDeal == nil || !s.LastDeal.Concealed {
 		t.Fatalf("expected a concealed go-out, got %+v", s.LastDeal)
 	}
-	if s.LastDeal.Teams[0].GoingOut != concealedBonus {
-		t.Errorf("bonus was %d, want %d", s.LastDeal.Teams[0].GoingOut, concealedBonus)
+	if s.LastDeal.Teams[0].GoingOut != classicRules().ConcealedBonus {
+		t.Errorf("bonus was %d, want %d", s.LastDeal.Teams[0].GoingOut, classicRules().ConcealedBonus)
 	}
 }
 

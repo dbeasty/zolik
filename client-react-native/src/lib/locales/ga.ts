@@ -137,13 +137,18 @@ export const ga: Record<string, string> = {
   'canasta.rules.section.melding': 'Leagan síos',
   'canasta.rules.section.end': 'Conas a chríochnaíonn an cluiche',
   'canasta.rules.goal': 'Imrítear i mbeirteanna; buann an chéad taobh a shroicheann {n} bpointe an cluiche.',
-  'canasta.rules.deck': 'Imrítear le {value} cárta — dhá phaca agus áilteoirí.',
+  'canasta.rules.deck': 'Imrítear le {value} cárta — {decks} phaca agus áilteoirí.',
   'canasta.rules.deal': 'Faigheann gach imreoir {n} chárta.',
+  'canasta.rules.drawCount': 'Tarraingíonn tú {n} chárta ag tús do sheala.',
   'canasta.rules.redThrees':
     'Taispeántar trí dhearg i do láimh láithreach agus faigheann tú bónas air — ach amháin mura gcríochnaíonn do thaobh canasta riamh, agus ansin comhairtear i do choinne é.',
   'canasta.rules.canasta': 'Is é atá i gcanasta ná cumasc de {n} chárta nó níos mó den luach céanna.',
+  'canasta.rules.sequences': 'Is féidir le cumasc a bheith ina sheicheamh freisin: trí chárta nó níos mó den chineál céanna as a chéile, gan áilteoir eatarthu riamh.',
+  'canasta.rules.samba': 'Is samba é seicheamh de sheacht gcárta, agus is fiú {n} pointe é.',
+  'canasta.rules.pileAlwaysFrozen': 'Tá an carn caite reoite ar feadh na dála ar fad: ní féidir leat é a thógáil ach an cárta barr a mheaitseáil le dhá chárta nádúrtha as do lámh.',
   'canasta.rules.meldFloorBands':
     'Caithfidh do chéad leagan síos íosmhéid pointí a bhaint amach a ardaíonn le do scór: {negative} faoi bhun a náid, {low} suas go 1500, {mid} suas go 3000, {high} os a chionn sin.',
+  'canasta.rules.meldFloorBandsFive': 'Caithfidh do chéad chumasc íosmhéid pointí a bhaint amach a ardaíonn le do scór: {negative} faoi bhun nialais, {low} suas go 1500, {mid} suas go 3000, {high} suas go 7000 agus {top} os a chionn sin.',
   'canasta.rules.oneCanastaToGoOut': 'Is leor canasta amháin críochnaithe chun go rachadh do thaobh amach.',
   'canasta.rules.twoCanastasToGoOut':
     'Teastaíonn dhá chanasta chríochnaithe ó do thaobh sula bhféadfaidh sé dul amach.',
@@ -262,6 +267,7 @@ export const ga: Record<string, string> = {
   'holdem.round.pot': 'Pota {n}',
   'holdem.round.uncontested': "D'fhill gach duine eile",
   'seat.ready': 'Réidh',
+  'zolik.seat.contractMet': 'Conradh comhlíonta',
   'results.you': '(tú)',
 
 
@@ -286,6 +292,9 @@ export const ga: Record<string, string> = {
   'err.MELD_TOO_SMALL': 'Teastaíonn níos mó cártaí ná sin ó chumasc',
   'err.MELD_TOO_LARGE': 'Ní féidir leis an gcumasc sin níos mó cártaí a ghlacadh',
   'err.MELD_MIXED_RANKS': 'Caithfidh gach cárta i gcumasc a bheith den luach céanna',
+  'err.SEQUENCE_NO_WILDS': 'Ní féidir áilteoirí a bheith i seicheamh',
+  'err.SEQUENCE_NEEDS_ONE_SUIT': 'Caithfidh gach cárta i seicheamh a bheith den chineál céanna',
+  'err.RUN_NOT_CONSECUTIVE': 'Caithfidh seicheamh rith in ord, gan bhearna',
   'err.NOT_ENOUGH_NATURALS': 'Teastaíonn níos mó cártaí nádúrtha ná áilteoirí ó chumasc',
   'err.RANK_ALREADY_MELDED': 'Tá cumasc den luach sin ag do thaobh cheana',
   'err.NOT_YOUR_MELD': 'Is leis an taobh eile an cumasc sin',
@@ -386,6 +395,11 @@ export const ga: Record<string, string> = {
   'status.lastDeal': 'Fuair foireann {team} {value}',
   'status.teamScore': 'Foireann {team}: {value}',
   'canasta.offer.rank': 'Luach',
+  'canasta.offer.sequence': 'Seicheamh',
+  'badge.naturalCanasta': 'Canasta glan',
+  'badge.mixedCanasta': 'Canasta measctha',
+  'badge.samba': 'Samba',
+  'badge.cleanRun': 'Rith glan',
   'canasta.seat.teamScore': 'Scór na foirne',
   'canasta.seat.canastas': 'Canastaí',
   'holdem.header.pot': 'Pota',
@@ -1063,6 +1077,7 @@ export const ga: Record<string, string> = {
   'option.handSize': 'Cártaí a dháiltear',
   'variation.canasta.classic': 'Clasaiceach',
   'variation.canasta.modern_american': 'Modern American',
+  'variation.canasta.samba': 'Samba',
   'option.targetScore': 'Sprioc-scór',
   'option.canastasToGoOut': 'Canastaí le dul amach',
   'variation.holdem.freezeout': 'Freezeout',
@@ -1162,6 +1177,7 @@ export const ga: Record<string, string> = {
   // Declared by the server and listed in `serverKeys.json`, but never worded.
   'verb.takePileFromHand': 'Tóg an carn i do láimh',
   'verb.takePileOntoMeld': 'Tóg an carn ar chumasc',
+  'verb.takeTopForSequence': 'Tóg an cárta barr isteach i seicheamh',
   'verb.undoDraw': 'Cealaigh an tarraingt',
   'verb.undoLayOff': 'Cealaigh an cur leis',
   'verb.undoMeld': 'Cealaigh an cumasc',
@@ -1183,6 +1199,9 @@ export const ga: Record<string, string> = {
   'canasta.unit.points': 'pointe',
   'ginrummy.unit.points': 'pointe',
   'holdem.seat.dealer': 'Dáileoir',
+  'holdem.seat.folded': 'Fillte',
+  'holdem.seat.allIn': 'Gach rud isteach',
+  'holdem.seat.out': 'Amuigh',
   'holdem.unit.chips': 'slis',
   'prsi.unit.cardsLeft': 'cárta fágtha',
   'rummytiles.prompt.initialMeld': 'Caithfidh do chéad leagan síos {n} pointe a bheith fiú.',
@@ -1193,4 +1212,5 @@ export const ga: Record<string, string> = {
   // send the prompt without a module prefix. Neither the Go constants nor
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Tarraing cárta',
+  'prompt.yourTurnMeld': 'Cumaisc más féidir, ansin caith uait',
 };

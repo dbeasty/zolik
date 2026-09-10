@@ -1,4 +1,5 @@
-// Package canasta implements Classic (American) Canasta as a game module.
+// Package canasta implements Canasta — Classic, Modern American and Samba — as
+// a game module.
 //
 // It is the third module behind the runtime, and the first one that is a
 // *rummy* and still not the rummy engine. `architecture.md` §1 predicted this
@@ -28,6 +29,12 @@
 //     15 / 50 / 90 / 120.
 //   - Going out needs the partnership's canasta quota. 100, or 200 concealed.
 //   - Deals repeat until a partnership passes the target score.
+//
+// Samba differs in the deck, the draw, the wild limits, the meld kinds, the pile
+// and every bonus (docs/samba-plan.md §2), and none of that is written twice:
+// ruleset.go holds one struct per variation and the engine reads it. What a
+// variation cannot change is the shape of a turn or who owns a meld — those are
+// this package, not a knob in it.
 package canasta
 
 import (
@@ -39,8 +46,12 @@ import (
 
 // Verbs this module accepts.
 const (
-	VerbDraw         = "draw"
-	VerbTakePile     = "take_pile"
+	VerbDraw     = "draw"
+	VerbTakePile = "take_pile"
+	// VerbTakeTop is Samba's: the top card onto a sequence, instead of drawing.
+	// A separate verb rather than a flavour of take_pile because it does
+	// something else — one card comes off and the pile stays standing.
+	VerbTakeTop      = "take_top"
 	VerbLayMeld      = "lay_meld"
 	VerbLayOff       = "lay_off"
 	VerbDiscard      = "discard"
@@ -86,6 +97,14 @@ const (
 	// ErrNothingToUndo is shared with Žolíky's own undo (internal/rules):
 	// same fact, same word, no reason for a client to carry two keys for it.
 	ErrNothingToUndo = "NOTHING_TO_UNDO"
+
+	// Sequences, in the variations that have them. A closed samba reports the
+	// existing MELD_CLOSED and a permanently frozen pile the existing
+	// PILE_FROZEN: both say exactly what happened, and a second code per
+	// variation would be a second sentence to translate for no new meaning.
+	ErrSequenceNoWilds      = "SEQUENCE_NO_WILDS"
+	ErrSequenceNeedsOneSuit = "SEQUENCE_NEEDS_ONE_SUIT"
+	ErrRunNotConsecutive    = "RUN_NOT_CONSECUTIVE"
 )
 
 // Meld is one partnership's set of a single rank.
@@ -93,10 +112,30 @@ const (
 // Owned by the team rather than the player: either partner may extend it, and
 // that single fact is most of why Canasta could not be a `RulesConfig` profile.
 type Meld struct {
-	ID     string   `json:"id"`
-	TeamID int      `json:"teamId"`
-	Rank   string   `json:"rank"`
-	Cards  []string `json:"cards"`
+	ID     string `json:"id"`
+	TeamID int    `json:"teamId"`
+	// Kind is "set" — n cards of one rank — or "run", a sequence in one suit.
+	// Empty means "set", so a meld written before sequences existed reads back
+	// as what it was.
+	Kind string `json:"kind,omitempty"`
+	// Rank is a set's rank; Suit is a run's suit. Each is empty for the other.
+	Rank  string   `json:"rank"`
+	Suit  string   `json:"suit,omitempty"`
+	Cards []string `json:"cards"`
+}
+
+// The two kinds of meld. A zero Kind is a set, so nothing has to be migrated.
+const (
+	meldSet = "set"
+	meldRun = "run"
+)
+
+// kind is Kind with the empty-means-set default applied.
+func (m Meld) kind() string {
+	if m.Kind == "" {
+		return meldSet
+	}
+	return m.Kind
 }
 
 func meldID(teamID int, rank string) string {
@@ -160,9 +199,32 @@ func (m Meld) isCanasta() bool { return len(m.Cards) >= canastaSize }
 // isNatural reports a canasta with no wilds in it — worth 500 rather than 300.
 func (m Meld) isNatural() bool { return m.wilds() == 0 }
 
-// closed reports a meld that can take no more cards. A canasta is complete at
-// seven; adding an eighth is not a bigger canasta, it is a rule nobody plays.
-func (m Meld) closed() bool { return len(m.Cards) >= canastaSize }
+// closed reports a meld that can take no more cards.
+//
+// In Canasta a canasta is complete at seven and an eighth card is a rule nobody
+// plays. Samba disagrees for groups — a canasta there keeps taking cards, bounded
+// by the wild limits instead — so the answer belongs to the variation. A sequence
+// always closes at seven, because a seven-card sequence is a samba and that is
+// the whole of what a samba is.
+func (m Meld) closed(r ruleset) bool {
+	if len(m.Cards) < canastaSize {
+		return false
+	}
+	return m.Kind == meldRun || r.GroupCanastaCloses
+}
+
+// room is how many more cards this meld will take. Unbounded melds report a
+// number large enough to mean "as many as you have", which is true: a hand is
+// the real limit.
+func (m Meld) room(r ruleset) int {
+	if m.closed(r) {
+		return 0
+	}
+	if m.Kind == meldRun || r.GroupCanastaCloses {
+		return canastaSize - len(m.Cards)
+	}
+	return canastaSize
+}
 
 // Team is a partnership: the scoring unit, and the owner of melds.
 type Team struct {
@@ -178,15 +240,72 @@ type Team struct {
 	// deal. It gates lay-offs, unfreezes the pile for this team, and is reset
 	// every deal.
 	HasMelded bool `json:"hasMelded"`
+	// MeldSeq numbers the sequences this side has laid, so their ids stay
+	// stable while the runs themselves grow at both ends.
+	MeldSeq int `json:"meldSeq,omitempty"`
 }
 
-func (t *Team) meld(rank string) *Meld {
+// groupsOfRank is every group this side has of one rank, open or closed.
+//
+// Plural because Samba allows more than one and keeps them separate. Canasta
+// allows one, which the ruleset says with GroupsPerRank rather than by this
+// function pretending there can only ever be a single answer.
+func (t *Team) groupsOfRank(rank string) []*Meld {
+	var out []*Meld
 	for i := range t.Melds {
-		if t.Melds[i].Rank == rank {
-			return &t.Melds[i]
+		if t.Melds[i].kind() == meldSet && t.Melds[i].Rank == rank {
+			out = append(out, &t.Melds[i])
+		}
+	}
+	return out
+}
+
+// openGroup is the group of this rank that can still take cards, or nil.
+func (t *Team) openGroup(r ruleset, rank string) *Meld {
+	for _, m := range t.groupsOfRank(rank) {
+		if !m.closed(r) {
+			return m
 		}
 	}
 	return nil
+}
+
+// rankIsFull reports that this side may not start another group of this rank.
+//
+// One question, asked by the three places that used to ask "is there a meld of
+// this rank": laying a new meld, enumerating candidates, and capturing the pile.
+// Canasta's cap of one is what made "a meld of this rank exists" and "you may not
+// start another" the same sentence; Samba's absence of a cap is what separates
+// them.
+func (t *Team) rankIsFull(r ruleset, rank string) bool {
+	if r.GroupsPerRank <= 0 {
+		return false
+	}
+	return len(t.groupsOfRank(rank)) >= r.GroupsPerRank
+}
+
+// newMeldID names a meld about to go on the table.
+//
+// A side's first group of a rank keeps the id it has always had, so nothing that
+// already refers to `t0-K` has to learn anything. The cases that could not arise
+// before get suffixes of their own: a second group of a rank is `t0-K-2`, and a
+// sequence is `t0-seq1` from a counter, because a run grows at both ends and an
+// id derived from its low card would not survive the growth.
+func (t *Team) newMeldID(kind, rank string) string {
+	if kind == meldRun {
+		t.MeldSeq++
+		return fmt.Sprintf("t%d-seq%d", t.ID, t.MeldSeq)
+	}
+	base := meldID(t.ID, rank)
+	if t.meldByID(base) == nil {
+		return base
+	}
+	for n := 2; ; n++ {
+		id := fmt.Sprintf("%s-%d", base, n)
+		if t.meldByID(id) == nil {
+			return id
+		}
+	}
 }
 
 func (t *Team) meldByID(id string) *Meld {
@@ -248,6 +367,11 @@ type GameState struct {
 	HandSize        int `json:"handSize"`
 	TargetScore     int `json:"targetScore"`
 	CanastasToGoOut int `json:"canastasToGoOut"`
+	// Rules is the whole resolved ruleset, of which the three scalars above are
+	// the part that shipped first. Nil for a match dealt before this field
+	// existed — see rules(), which reconstructs one rather than making every
+	// reader check.
+	Rules *ruleset `json:"rules,omitempty"`
 
 	DealNumber int `json:"dealNumber"`
 	// Dealer is the seat index that dealt, rotating each deal so the
@@ -299,6 +423,24 @@ type TeamResult struct {
 	InHand    int `json:"inHand"`
 	Total     int `json:"total"`
 	Running   int `json:"running"`
+}
+
+// rules is the ruleset this match is being played under.
+//
+// A match dealt before the ruleset existed has only the three scalars, so one is
+// reconstructed from its variation and those values are laid back over the top.
+// That keeps the migration in one function instead of a nil check at every call
+// site — and a match in flight when this shipped plays on under the rules it was
+// dealt under, which is the same guarantee `Pause` makes.
+func (s *GameState) rules() ruleset {
+	if s.Rules != nil {
+		return *s.Rules
+	}
+	r := resolveVariation(s.Variation)
+	r.HandSize = s.HandSize
+	r.TargetScore = s.TargetScore
+	r.CanastasToGoOut = s.CanastasToGoOut
+	return r
 }
 
 func (s *GameState) team(playerID string) *Team {

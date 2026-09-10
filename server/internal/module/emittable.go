@@ -398,7 +398,7 @@ func labelKeysIn(dir string) map[string]bool {
 						}
 					case "Params", "Value":
 						carries = true
-					case "BadgeKeys":
+					case "BadgeKeys", "LabelKeys":
 						// A list of keys rather than one, and each is a
 						// standalone mark with nothing else in the literal
 						// belonging to it — so they are recorded here rather
@@ -428,11 +428,26 @@ func labelKeysIn(dir string) map[string]bool {
 						if k, ok := keyOf(node.Rhs[i]); ok {
 							record(k, false)
 						}
-					case "BadgeKeys":
+					case "BadgeKeys", "LabelKeys":
 						if list, ok := node.Rhs[i].(*ast.CompositeLit); ok {
 							for _, elt := range list.Elts {
 								if k, ok := keyOf(elt); ok {
 									record(k, false)
+								}
+							}
+						}
+						// `g.BadgeKeys = append(g.BadgeKeys, "badge.x")`, which
+						// is how a mark is added inside a branch rather than
+						// built in one go. Missed until Samba: Canasta has
+						// badged its canastas this way since it shipped, and
+						// both keys were absent from the manifest and from
+						// every bundle because of it.
+						if call, ok := node.Rhs[i].(*ast.CallExpr); ok {
+							if fn, ok := call.Fun.(*ast.Ident); ok && fn.Name == "append" {
+								for _, arg := range call.Args[1:] {
+									if k, ok := keyOf(arg); ok {
+										record(k, false)
+									}
 								}
 							}
 						}

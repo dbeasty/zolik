@@ -138,13 +138,18 @@ export const el: Record<string, string> = {
   'canasta.rules.section.end': 'Πώς τελειώνει ο αγώνας',
   'canasta.rules.goal':
     'Παίζεται σε ζευγάρια· η πρώτη πλευρά που φτάνει τους {n} πόντους κερδίζει τον αγώνα.',
-  'canasta.rules.deck': 'Παίζεται με {value} φύλλα — δύο τράπουλες συν μπαλαντέρ.',
+  'canasta.rules.deck': 'Παίζεται με {value} φύλλα — {decks} τράπουλες συν μπαλαντέρ.',
   'canasta.rules.deal': 'Κάθε παίκτης παίρνει {n} φύλλα.',
+  'canasta.rules.drawCount': 'Στην αρχή του γύρου σου τραβάς {n} φύλλα.',
   'canasta.rules.redThrees':
     'Ένα κόκκινο τριάρι στο χέρι σου φανερώνεται αμέσως και μετρά ως μπόνους — εκτός αν η πλευρά σου δεν ολοκληρώσει ποτέ καναστα, οπότε μετρά εναντίον σου.',
   'canasta.rules.canasta': 'Καναστα είναι ένας συνδυασμός {n} ή περισσότερων φύλλων ίδιας αξίας.',
+  'canasta.rules.sequences': 'Ένας συνδυασμός μπορεί να είναι και σειρά: τρία ή περισσότερα φύλλα του ίδιου χρώματος στη σειρά, ποτέ με μπαλαντέρ ανάμεσά τους.',
+  'canasta.rules.samba': 'Μια σειρά επτά φύλλων είναι σάμπα και αξίζει {n} πόντους.',
+  'canasta.rules.pileAlwaysFrozen': 'Ο σωρός απόρριψης είναι παγωμένος όλη τη μοιρασιά: μπορείς να τον πάρεις μόνο ταιριάζοντας το πάνω φύλλο με δύο φυσικά φύλλα από το χέρι σου.',
   'canasta.rules.meldFloorBands':
     'Το πρώτο σου κατέβασμα πρέπει να φτάσει ένα ελάχιστο πόντων που ανεβαίνει με το σκορ σου: {negative} κάτω από το μηδέν, {low} έως 1500, {mid} έως 3000, {high} πιο πάνω.',
+  'canasta.rules.meldFloorBandsFive': 'Ο πρώτος σου συνδυασμός πρέπει να φτάσει ένα ελάχιστο πόντων που ανεβαίνει με το σκορ σου: {negative} κάτω από το μηδέν, {low} ως 1500, {mid} ως 3000, {high} ως 7000 και {top} πάνω από αυτό.',
   'canasta.rules.oneCanastaToGoOut': 'Μία ολοκληρωμένη καναστα αρκεί για να βγει η πλευρά σου.',
   'canasta.rules.twoCanastasToGoOut':
     'Η πλευρά σου χρειάζεται δύο ολοκληρωμένες καναστες πριν μπορέσει να βγει.',
@@ -261,6 +266,7 @@ export const el: Record<string, string> = {
   'holdem.round.pot': 'Πότ {n}',
   'holdem.round.uncontested': 'Όλοι οι άλλοι πάσαραν',
   'seat.ready': 'Έτοιμος',
+  'zolik.seat.contractMet': 'Το συμβόλαιο ολοκληρώθηκε',
   'results.you': '(εσύ)',
 
 
@@ -285,6 +291,9 @@ export const el: Record<string, string> = {
   'err.MELD_TOO_SMALL': 'Ένας συνδυασμός χρειάζεται περισσότερα φύλλα από αυτά',
   'err.MELD_TOO_LARGE': 'Αυτός ο συνδυασμός δεν χωρά άλλα φύλλα',
   'err.MELD_MIXED_RANKS': 'Κάθε φύλλο σε έναν συνδυασμό πρέπει να έχει την ίδια αξία',
+  'err.SEQUENCE_NO_WILDS': 'Μια σειρά δεν μπορεί να έχει μπαλαντέρ',
+  'err.SEQUENCE_NEEDS_ONE_SUIT': 'Όλα τα φύλλα μιας σειράς πρέπει να είναι στο ίδιο χρώμα',
+  'err.RUN_NOT_CONSECUTIVE': 'Η σειρά πρέπει να είναι συνεχόμενη, χωρίς κενά',
   'err.NOT_ENOUGH_NATURALS': 'Ένας συνδυασμός χρειάζεται περισσότερα φυσικά φύλλα από μπαλαντέρ',
   'err.RANK_ALREADY_MELDED': 'Η πλευρά σου έχει ήδη συνδυασμό αυτής της αξίας',
   'err.NOT_YOUR_MELD': 'Αυτός ο συνδυασμός ανήκει στην αντίπαλη πλευρά',
@@ -386,6 +395,11 @@ export const el: Record<string, string> = {
   'status.lastDeal': 'Η ομάδα {team} έκανε {value}',
   'status.teamScore': 'Ομάδα {team}: {value}',
   'canasta.offer.rank': 'Αξία',
+  'canasta.offer.sequence': 'Σειρά',
+  'badge.naturalCanasta': 'Καθαρή κανάστα',
+  'badge.mixedCanasta': 'Μικτή κανάστα',
+  'badge.samba': 'Σάμπα',
+  'badge.cleanRun': 'Καθαρή σειρά',
   'canasta.seat.teamScore': 'Σκορ ομάδας',
   'canasta.seat.canastas': 'Καναστες',
   'holdem.header.pot': 'Πότ',
@@ -1063,6 +1077,7 @@ export const el: Record<string, string> = {
   'option.handSize': 'Φύλλα που μοιράζονται',
   'variation.canasta.classic': 'Κλασική',
   'variation.canasta.modern_american': 'Modern American',
+  'variation.canasta.samba': 'Σάμπα',
   'option.targetScore': 'Σκορ στόχος',
   'option.canastasToGoOut': 'Καναστες για έξοδο',
   'variation.holdem.freezeout': 'Freezeout',
@@ -1162,6 +1177,7 @@ export const el: Record<string, string> = {
   // Declared by the server and listed in `serverKeys.json`, but never worded.
   'verb.takePileFromHand': 'Πάρε τον σωρό στο χέρι',
   'verb.takePileOntoMeld': 'Πάρε τον σωρό σε συνδυασμό',
+  'verb.takeTopForSequence': 'Πάρε το πάνω φύλλο σε μια σειρά',
   'verb.undoDraw': 'Ακύρωση τραβήγματος',
   'verb.undoLayOff': 'Ακύρωση προσάρτησης',
   'verb.undoMeld': 'Ακύρωση συνδυασμού',
@@ -1183,6 +1199,9 @@ export const el: Record<string, string> = {
   'canasta.unit.points': 'πόντοι',
   'ginrummy.unit.points': 'πόντοι',
   'holdem.seat.dealer': 'Μοιράζει',
+  'holdem.seat.folded': 'Πάσο',
+  'holdem.seat.allIn': 'Όλα μέσα',
+  'holdem.seat.out': 'Εκτός',
   'holdem.unit.chips': 'μάρκες',
   'prsi.unit.cardsLeft': 'φύλλα απομένουν',
   'rummytiles.prompt.initialMeld': 'Το πρώτο σου κατέβασμα πρέπει να αξίζει {n} πόντους.',
@@ -1193,4 +1212,5 @@ export const el: Record<string, string> = {
   // send the prompt without a module prefix. Neither the Go constants nor
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Τράβα ένα φύλλο',
+  'prompt.yourTurnMeld': 'Κάνε συνδυασμό αν μπορείς και μετά ρίξε',
 };

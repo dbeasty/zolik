@@ -14,8 +14,11 @@ const (
 	// "take_pile:meld:<meldId>".
 	OfferTakePile = "take_pile"
 	// OfferLayMeld is likewise the placeholder; live candidates are
-	// "lay_meld:<rank>".
+	// "lay_meld:<rank>", or "lay_meld:run:<suit><low>" for a sequence.
 	OfferLayMeld = "lay_meld"
+	// OfferTakeTop is Samba's one-card capture; live ones are
+	// "take_top:<meldId>".
+	OfferTakeTop = "take_top"
 	// OfferUndoTakePile takes back this turn's pile capture — see PileTaken.
 	OfferUndoTakePile = "undo_take_pile"
 )
@@ -66,6 +69,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 
 	t := s.team(playerID)
 	hand := s.Hands[playerID]
+	r := s.rules()
 	offers := make([]module.ActionOffer, 0, 8)
 
 	// --- draw ----------------------------------------------------------------
@@ -144,6 +148,24 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		offers = append(offers, o)
 	}
 
+	// --- take the top card onto a sequence -----------------------------------
+	//
+	// Samba's other way into the pile, and its own verb because it is its own
+	// move: one card, and the pile stays standing (engine.go's applyTakeTop).
+	for _, meldID := range topCardRuns(s, playerID) {
+		a := module.Action{Verb: VerbTakeTop, Target: meldID}
+		ok, why := probe(m, raw, playerID, a)
+		if !ok {
+			continue
+		}
+		offers = append(offers, module.ActionOffer{
+			ID: OfferTakeTop + ":" + meldID, Verb: VerbTakeTop, Enabled: ok, WhyNot: why,
+			LabelKey: "verb.takeTopForSequence",
+			Source:   &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID},
+			Target:   &module.Selector{Zone: module.ToMeld, MeldID: meldID, ZoneID: meldsZoneID(t.ID)},
+		})
+	}
+
 	// --- undo taking the pile --------------------------------------------------
 	//
 	// Only ever on offer for the same turn's own capture — see PileTaken — and
@@ -158,17 +180,37 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 
 	// --- lay a new meld ------------------------------------------------------
 	laid := 0
-	for _, c := range allMeldCandidates(hand, t) {
+	// allMeldCandidates rather than newMeldCandidates: this asks what single
+	// meld a player could lay right now, and two ranks wanting the same joker
+	// are both real moves (see meld.go).
+	candidates := allMeldCandidates(r, hand, t)
+	// Sequences are enumerated the same way groups are, and can be, because a
+	// run takes no wilds: it is the maximal block of consecutive ranks in a
+	// suit rather than a shape somebody composes (docs/samba-plan.md §3.3).
+	candidates = append(candidates, runCandidates(r, hand, t)...)
+	for _, c := range candidates {
 		a := module.Action{Verb: VerbLayMeld, Cards: c.Cards}
 		ok, _ := probe(m, raw, playerID, a)
 		if !ok {
 			continue
 		}
+		fact := module.Fact{LabelKey: "canasta.offer.rank", Value: c.Rank}
+		if c.Kind == meldRun {
+			// A run is told apart by where it starts and stops, not by a rank
+			// it does not have.
+			fact = module.Fact{
+				LabelKey: "canasta.offer.sequence",
+				Value:    c.Cards[0] + "-" + c.Cards[len(c.Cards)-1],
+				Params: map[string]any{
+					"suit": c.Suit, "from": c.Cards[0], "to": c.Cards[len(c.Cards)-1],
+				},
+			}
+		}
 		offers = append(offers, module.ActionOffer{
-			ID: OfferLayMeld + ":" + c.Rank, Verb: VerbLayMeld, Enabled: true,
-			// One of these per meldable rank, so the rank is what tells them
-			// apart on screen.
-			Facts: []module.Fact{{LabelKey: "canasta.offer.rank", Value: c.Rank}},
+			ID: OfferLayMeld + ":" + c.offerKey(), Verb: VerbLayMeld, Enabled: true,
+			// One of these per meldable rank or sequence, so that is what tells
+			// them apart on screen.
+			Facts: []module.Fact{fact},
 			Source: &module.Selector{
 				Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID),
 				Cards: c.Cards, MinCards: len(c.Cards), MaxCards: len(c.Cards),
@@ -196,7 +238,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	if laid == 0 {
 		o := module.ActionOffer{ID: OfferLayMeld, Verb: VerbLayMeld}
 		o.Enabled, o.WhyNot = probe(m, raw, playerID, module.Action{
-			Verb: VerbLayMeld, Cards: plausibleMeld(hand, t),
+			Verb: VerbLayMeld, Cards: plausibleMeld(r, hand, t),
 		})
 		o.Source = &module.Selector{
 			Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID),
@@ -212,32 +254,73 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	// them, which is the fact that made Canasta a module rather than a profile.
 	for i := range t.Melds {
 		mm := t.Melds[i]
-		eligible := layOffCards(hand, &mm)
+		eligible := layOffCards(r, hand, &mm)
 		// One per meld the partnership has down, told apart by the rank each
 		// one is built on.
 		o := module.ActionOffer{
 			ID: "lay_off:" + mm.ID, Verb: VerbLayOff,
-			Facts: []module.Fact{{LabelKey: "canasta.offer.rank", Value: mm.Rank}},
+			Facts: []module.Fact{meldOfferFact(mm)},
 		}
-		var probeCards []string
-		if len(eligible) > 0 {
-			probeCards = eligible[:1]
+		// Probed one card at a time rather than once for the whole list.
+		//
+		// It used to be once: probe the first candidate, and if the engine
+		// refused it, report the whole meld as accepting nothing. That held only
+		// while `layOffCards` and the engine agreed about wilds card for card,
+		// which Canasta's flat limit made true and Samba's ratio — twice as many
+		// naturals as wilds — makes false. A hand holding both a seven and a
+		// joker would be told the seven did not fit, because the joker did not.
+		//
+		// So the list is filtered by the engine's own answer, the way
+		// discardableCards already is. A second implementation of the wild rules
+		// is exactly the drift this module refuses to have.
+		accepted := make([]string, 0, len(eligible))
+		for _, c := range eligible {
+			if ok, _ := probe(m, raw, playerID, module.Action{
+				Verb: VerbLayOff, Cards: []string{c}, Target: mm.ID,
+			}); ok {
+				accepted = append(accepted, c)
+			}
 		}
-		o.Enabled, o.WhyNot = probe(m, raw, playerID, module.Action{
-			Verb: VerbLayOff, Cards: probeCards, Target: mm.ID,
-		})
-		if !o.Enabled {
-			eligible = nil
+		if len(accepted) > 0 {
+			o.Enabled = true
+		} else {
+			// Say why, using whichever card the player would most plausibly try.
+			var probeCards []string
+			if len(eligible) > 0 {
+				probeCards = eligible[:1]
+			}
+			o.Enabled, o.WhyNot = probe(m, raw, playerID, module.Action{
+				Verb: VerbLayOff, Cards: probeCards, Target: mm.ID,
+			})
 		}
 		o.Source = &module.Selector{
 			Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID),
-			Cards: eligible, MinCards: 1, MaxCards: canastaSize - len(mm.Cards),
+			Cards: accepted, MinCards: 1, MaxCards: mm.room(r),
 		}
 		o.Target = &module.Selector{Zone: module.ToMeld, MeldID: mm.ID, ZoneID: meldsZoneID(t.ID)}
 		offers = append(offers, o)
 	}
 
 	return offers, nil
+}
+
+// meldOfferFact is how one meld on the table is told from another on screen: a
+// group by its rank, a sequence by the cards it runs between.
+//
+// A side can have several of each in Samba, so "K" on its own would put two
+// identical buttons in a row — which is the thing the offer list is supposed to
+// stop a client having to work out for itself.
+func meldOfferFact(m Meld) module.Fact {
+	if m.kind() != meldRun {
+		return module.Fact{LabelKey: "canasta.offer.rank", Value: m.Rank}
+	}
+	return module.Fact{
+		LabelKey: "canasta.offer.sequence",
+		Value:    m.Cards[0] + "-" + m.Cards[len(m.Cards)-1],
+		Params: map[string]any{
+			"suit": m.Suit, "from": m.Cards[0], "to": m.Cards[len(m.Cards)-1],
+		},
+	}
 }
 
 func pileOfferID(opt pileOption) string {
@@ -296,13 +379,13 @@ func plausibleCapture(s *GameState, playerID string) []string {
 // plausibleMeld is the same idea for melding: the largest same-rank group in
 // hand, so a refusal says "not enough of them" or "you have not opened" rather
 // than a generic no.
-func plausibleMeld(hand []string, t *Team) []string {
+func plausibleMeld(r ruleset, hand []string, t *Team) []string {
 	best := []string(nil)
 	for rank, cards := range countByRank(hand) {
 		if rank == rankThree || isWild(cards[0]) {
 			continue
 		}
-		if t != nil && t.meld(rank) != nil {
+		if t != nil && t.rankIsFull(r, rank) {
 			continue
 		}
 		if len(cards) > len(best) {

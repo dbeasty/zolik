@@ -137,13 +137,18 @@ export const hu: Record<string, string> = {
   'canasta.rules.section.end': 'Hogyan ér véget a mérkőzés',
   'canasta.rules.goal':
     'Párokban játsszák; az az oldal nyeri a mérkőzést, amelyik elsőként éri el a(z) {n} pontot.',
-  'canasta.rules.deck': '{value} lappal játsszák — két pakli plusz jokerek.',
+  'canasta.rules.deck': '{value} lappal játsszák — {decks} pakli plusz jokerek.',
   'canasta.rules.deal': 'Minden játékos {n} lapot kap.',
+  'canasta.rules.drawCount': 'A köröd elején {n} lapot húzol.',
   'canasta.rules.redThrees':
     'A kezedben lévő piros hármast azonnal fel kell mutatni, és bónuszként számít — kivéve ha az oldalad soha nem fejez be canastát, mert akkor ellened számít.',
   'canasta.rules.canasta': 'A canasta {n} vagy több azonos értékű lapból álló kombináció.',
+  'canasta.rules.sequences': 'Egy kombináció sor is lehet: három vagy több azonos színű lap egymás után, soha nem jokerrel közte.',
+  'canasta.rules.samba': 'A hét lapból álló sor egy samba, {n} pontot ér.',
+  'canasta.rules.pileAlwaysFrozen': 'A dobópakli az egész osztás alatt be van fagyasztva: csak úgy viheted el, ha a felső lapját két természetes lappal párosítod a kezedből.',
   'canasta.rules.meldFloorBands':
     'Az első lerakásodnak el kell érnie egy pontminimumot, amely az állásoddal együtt emelkedik: {negative} nulla alatt, {low} 1500-ig, {mid} 3000-ig, {high} azon felül.',
+  'canasta.rules.meldFloorBandsFive': 'Az első kombinációdnak el kell érnie egy pontminimumot, amely az eredményeddel együtt nő: {negative} nulla alatt, {low} 1500-ig, {mid} 3000-ig, {high} 7000-ig, azon felül {top}.',
   'canasta.rules.oneCanastaToGoOut': 'Egy befejezett canasta elég ahhoz, hogy az oldalad kiszálljon.',
   'canasta.rules.twoCanastasToGoOut':
     'Az oldaladnak két befejezett canastára van szüksége, mielőtt kiszállhatna.',
@@ -258,6 +263,7 @@ export const hu: Record<string, string> = {
   'holdem.round.pot': 'Pot: {n}',
   'holdem.round.uncontested': 'Mindenki más bedobta',
   'seat.ready': 'Kész',
+  'zolik.seat.contractMet': 'Szerződés teljesítve',
   'results.you': '(te)',
 
 
@@ -281,6 +287,9 @@ export const hu: Record<string, string> = {
   'err.MELD_TOO_SMALL': 'Egy kombinációhoz ennél több lap kell',
   'err.MELD_TOO_LARGE': 'Ez a kombináció már nem fogad be több lapot',
   'err.MELD_MIXED_RANKS': 'Egy kombináció minden lapjának azonos értékűnek kell lennie',
+  'err.SEQUENCE_NO_WILDS': 'Egy sorban nem lehet joker',
+  'err.SEQUENCE_NEEDS_ONE_SUIT': 'Egy sor minden lapjának azonos színűnek kell lennie',
+  'err.RUN_NOT_CONSECUTIVE': 'A sornak sorrendben kell futnia, kihagyás nélkül',
   'err.NOT_ENOUGH_NATURALS': 'Egy kombinációban több természetes lapnak kell lennie, mint jokernek',
   'err.RANK_ALREADY_MELDED': 'Az oldalodnak már van ilyen értékű kombinációja',
   'err.NOT_YOUR_MELD': 'Ez a kombináció az ellenfél oldaláé',
@@ -382,6 +391,11 @@ export const hu: Record<string, string> = {
   'status.lastDeal': 'A(z) {team} csapat {value} pontot szerzett',
   'status.teamScore': '{team} csapat: {value}',
   'canasta.offer.rank': 'Érték',
+  'canasta.offer.sequence': 'Sor',
+  'badge.naturalCanasta': 'Tiszta kanaszta',
+  'badge.mixedCanasta': 'Vegyes kanaszta',
+  'badge.samba': 'Samba',
+  'badge.cleanRun': 'Tiszta sor',
   'canasta.seat.teamScore': 'Csapatpontszám',
   'canasta.seat.canastas': 'Canasták',
   'holdem.header.pot': 'Pot',
@@ -1050,6 +1064,7 @@ export const hu: Record<string, string> = {
   'option.handSize': 'Kiosztott lapok',
   'variation.canasta.classic': 'Klasszikus',
   'variation.canasta.modern_american': 'Modern American',
+  'variation.canasta.samba': 'Samba',
   'option.targetScore': 'Célpontszám',
   'option.canastasToGoOut': 'Canasták a kiszálláshoz',
   'variation.holdem.freezeout': 'Freezeout',
@@ -1149,6 +1164,7 @@ export const hu: Record<string, string> = {
   // Declared by the server and listed in `serverKeys.json`, but never worded.
   'verb.takePileFromHand': 'Vedd a paklit a kezedbe',
   'verb.takePileOntoMeld': 'Vedd a paklit egy kombinációra',
+  'verb.takeTopForSequence': 'A felső lap elvitele egy sorba',
   'verb.undoDraw': 'Húzás visszavonása',
   'verb.undoLayOff': 'Hozzárakás visszavonása',
   'verb.undoMeld': 'Kombináció visszavonása',
@@ -1170,6 +1186,9 @@ export const hu: Record<string, string> = {
   'canasta.unit.points': 'pont',
   'ginrummy.unit.points': 'pont',
   'holdem.seat.dealer': 'Osztó',
+  'holdem.seat.folded': 'Bedobta',
+  'holdem.seat.allIn': 'All in',
+  'holdem.seat.out': 'Kiesett',
   'holdem.unit.chips': 'zseton',
   'prsi.unit.cardsLeft': 'lap maradt',
   'rummytiles.prompt.initialMeld': 'Az első lerakásodnak {n} pontot kell érnie.',
@@ -1180,4 +1199,5 @@ export const hu: Record<string, string> = {
   // send the prompt without a module prefix. Neither the Go constants nor
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Húzz egy lapot',
+  'prompt.yourTurnMeld': 'Rakj ki, ha tudsz, aztán dobj el',
 };

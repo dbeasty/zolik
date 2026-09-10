@@ -138,13 +138,18 @@ export const en: Record<string, string> = {
   'canasta.rules.section.end': 'How the match ends',
   'canasta.rules.goal':
     'Play in partnerships; the first side to reach {n} points wins the match.',
-  'canasta.rules.deck': 'Played with {value} cards — two decks plus jokers.',
+  'canasta.rules.deck': 'Played with {value} cards — {decks} decks plus jokers.',
   'canasta.rules.deal': 'Each player is dealt {n} cards.',
+  'canasta.rules.drawCount': 'You draw {n} cards at the start of your turn.',
   'canasta.rules.redThrees':
     "A red three in your hand is shown immediately and scores as a bonus — unless your side never completes a canasta, when it counts against you instead.",
   'canasta.rules.canasta': 'A canasta is a meld of {n} or more cards of the same rank.',
+  'canasta.rules.sequences': 'A meld can also be a sequence: three or more cards of the same suit in a row, never with a wild card among them.',
+  'canasta.rules.samba': 'A sequence of seven cards is a samba, worth {n} points.',
+  'canasta.rules.pileAlwaysFrozen': 'The discard pile is frozen all deal: to take it you must match its top card with two natural cards from your hand.',
   'canasta.rules.meldFloorBands':
     'Your first meld must reach a point minimum that rises with your score: {negative} below zero, {low} up to 1500, {mid} up to 3000, {high} beyond that.',
+  'canasta.rules.meldFloorBandsFive': 'Your first meld must reach a point minimum that rises with your score: {negative} below zero, {low} up to 1500, {mid} up to 3000, {high} up to 7000, {top} beyond that.',
   'canasta.rules.oneCanastaToGoOut': 'One completed canasta is enough for your side to go out.',
   'canasta.rules.twoCanastasToGoOut':
     'Your side needs two completed canastas before it may go out.',
@@ -262,6 +267,7 @@ export const en: Record<string, string> = {
   'holdem.round.pot': 'Pot {n}',
   'holdem.round.uncontested': 'Everyone else folded',
   'seat.ready': 'Ready',
+  'zolik.seat.contractMet': 'Contract met',
   'results.you': '(you)',
 
 
@@ -285,6 +291,9 @@ export const en: Record<string, string> = {
   'err.MELD_TOO_SMALL': 'A meld needs more cards than that',
   'err.MELD_TOO_LARGE': 'That meld can\'t take any more cards',
   'err.MELD_MIXED_RANKS': 'Every card in a meld must be the same rank',
+  'err.SEQUENCE_NO_WILDS': "A sequence can't contain wild cards",
+  'err.SEQUENCE_NEEDS_ONE_SUIT': 'Every card in a sequence must be the same suit',
+  'err.RUN_NOT_CONSECUTIVE': 'A sequence must run in order, with no gaps',
   'err.NOT_ENOUGH_NATURALS': 'A meld needs more natural cards than wild ones',
   'err.RANK_ALREADY_MELDED': 'Your side already has a meld of that rank',
   'err.NOT_YOUR_MELD': 'That meld belongs to the other side',
@@ -373,6 +382,11 @@ export const en: Record<string, string> = {
   'status.lastDeal': 'Team {team} scored {value}',
   'status.teamScore': 'Team {team}: {value}',
   'canasta.offer.rank': 'Rank',
+  'canasta.offer.sequence': 'Sequence',
+  'badge.naturalCanasta': 'Natural canasta',
+  'badge.mixedCanasta': 'Mixed canasta',
+  'badge.samba': 'Samba',
+  'badge.cleanRun': 'Clean run',
   'canasta.seat.teamScore': 'Team score',
   'canasta.seat.canastas': 'Canastas',
   'holdem.header.pot': 'Pot',
@@ -1030,6 +1044,7 @@ export const en: Record<string, string> = {
   'option.handSize': 'Cards dealt',
   'variation.canasta.classic': 'Classic',
   'variation.canasta.modern_american': 'Modern American',
+  'variation.canasta.samba': 'Samba',
   'option.targetScore': 'Target score',
   'option.canastasToGoOut': 'Canastas to go out',
   'variation.holdem.freezeout': 'Freezeout',
@@ -1129,6 +1144,7 @@ export const en: Record<string, string> = {
   // Declared by the server and listed in `serverKeys.json`, but never worded.
   'verb.takePileFromHand': 'Take the pile into your hand',
   'verb.takePileOntoMeld': 'Take the pile onto a meld',
+  'verb.takeTopForSequence': 'Take the top card onto a sequence',
   'verb.undoDraw': 'Undo draw',
   'verb.undoLayOff': 'Undo lay off',
   'verb.undoMeld': 'Undo meld',
@@ -1150,6 +1166,9 @@ export const en: Record<string, string> = {
   'canasta.unit.points': 'points',
   'ginrummy.unit.points': 'points',
   'holdem.seat.dealer': 'Dealer',
+  'holdem.seat.folded': 'Folded',
+  'holdem.seat.allIn': 'All in',
+  'holdem.seat.out': 'Out',
   'holdem.unit.chips': 'chips',
   'prsi.unit.cardsLeft': 'cards left',
   'rummytiles.prompt.initialMeld': 'Your first lay must be worth {n} points.',
@@ -1160,4 +1179,5 @@ export const en: Record<string, string> = {
   // send the prompt without a module prefix. Neither the Go constants nor
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Draw a card',
+  'prompt.yourTurnMeld': 'Meld if you can, then discard',
 };

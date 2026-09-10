@@ -100,6 +100,19 @@ type VariationSpec struct {
 	Label    string         `json:"label"`
 	Summary  []Fact         `json:"summary,omitempty"`
 	Defaults map[string]int `json:"defaults,omitempty"`
+
+	// MinPlayers and MaxPlayers narrow the module's own range for this
+	// variation. Zero means "whatever the module says", which is what every
+	// variation meant before these existed.
+	//
+	// They exist because a variation can be a different game at the table as
+	// well as on paper: Samba seats six on 162 cards where Classic Canasta
+	// seats four on 108, and one number on the module would have to be wrong
+	// for one of them. Widening it lets a fifth player be turned away at the
+	// lobby rather than at the deal, which is the difference between a full
+	// table and a stuck one.
+	MinPlayers int `json:"minPlayers,omitempty"`
+	MaxPlayers int `json:"maxPlayers,omitempty"`
 }
 
 // ModuleDescriptor is a game's whole self-description.
@@ -120,6 +133,27 @@ func (d ModuleDescriptor) Option(name string) *OptionSpec {
 		}
 	}
 	return nil
+}
+
+// SeatRange is the player range in force for a match of this variation.
+//
+// The one place the question is answered, so a lobby that lets somebody join and
+// an engine that refuses to deal cannot hold different opinions about how many
+// seats there are. A variation that names neither bound is the module's range,
+// unchanged.
+func (d ModuleDescriptor) SeatRange(variation string) (min, max int) {
+	min, max = d.MinPlayers, d.MaxPlayers
+	v := d.Variation(variation)
+	if v == nil {
+		return min, max
+	}
+	if v.MinPlayers > 0 {
+		min = v.MinPlayers
+	}
+	if v.MaxPlayers > 0 {
+		max = v.MaxPlayers
+	}
+	return min, max
 }
 
 // Variation returns the named variation's spec, or nil.

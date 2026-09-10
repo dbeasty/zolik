@@ -134,13 +134,18 @@ export const it: Record<string, string> = {
   'canasta.rules.section.melding': 'Calare',
   'canasta.rules.section.end': 'Come finisce la partita',
   'canasta.rules.goal': 'Si gioca a coppie; la prima coppia a raggiungere {n} punti vince la partita.',
-  'canasta.rules.deck': 'Si gioca con {value} carte — due mazzi più i jolly.',
+  'canasta.rules.deck': 'Si gioca con {value} carte — {decks} mazzi più i jolly.',
   'canasta.rules.deal': 'A ogni giocatore vengono date {n} carte.',
+  'canasta.rules.drawCount': "All'inizio del turno peschi {n} carte.",
   'canasta.rules.redThrees':
     'Un tre rosso in mano si mostra subito e vale come bonus — a meno che la tua coppia non completi mai una canasta, nel qual caso conta contro di te.',
   'canasta.rules.canasta': 'Una canasta è una combinazione di {n} o più carte dello stesso valore.',
+  'canasta.rules.sequences': 'Una combinazione può anche essere una scala: tre o più carte dello stesso seme in fila, mai con un jolly tra loro.',
+  'canasta.rules.samba': 'Una scala di sette carte è una samba e vale {n} punti.',
+  'canasta.rules.pileAlwaysFrozen': 'La pila degli scarti resta congelata per tutta la mano: per prenderla devi abbinare la carta in cima a due carte naturali della tua mano.',
   'canasta.rules.meldFloorBands':
     'La tua prima calata deve raggiungere un minimo di punti che sale con il tuo punteggio: {negative} sotto zero, {low} fino a 1500, {mid} fino a 3000, {high} oltre.',
+  'canasta.rules.meldFloorBandsFive': 'La tua prima combinazione deve raggiungere un minimo di punti che cresce con il punteggio: {negative} sotto zero, {low} fino a 1500, {mid} fino a 3000, {high} fino a 7000, {top} oltre.',
   'canasta.rules.oneCanastaToGoOut': 'Una canasta completa basta alla tua coppia per chiudere.',
   'canasta.rules.twoCanastasToGoOut': 'Alla tua coppia servono due canaste complete prima di poter chiudere.',
   'canasta.rules.end': 'Si continua a smazzare finché una coppia supera {n} punti — poi la partita è finita.',
@@ -253,6 +258,7 @@ export const it: Record<string, string> = {
   'holdem.round.pot': 'Piatto {n}',
   'holdem.round.uncontested': 'Tutti gli altri hanno lasciato',
   'seat.ready': 'Pronto',
+  'zolik.seat.contractMet': 'Contratto soddisfatto',
   'results.you': '(tu)',
 
 
@@ -276,6 +282,9 @@ export const it: Record<string, string> = {
   'err.MELD_TOO_SMALL': 'Una combinazione richiede più carte di così',
   'err.MELD_TOO_LARGE': 'Quella combinazione non può accogliere altre carte',
   'err.MELD_MIXED_RANKS': 'Tutte le carte di una combinazione devono avere lo stesso valore',
+  'err.SEQUENCE_NO_WILDS': 'Una scala non può contenere jolly',
+  'err.SEQUENCE_NEEDS_ONE_SUIT': 'Tutte le carte di una scala devono essere dello stesso seme',
+  'err.RUN_NOT_CONSECUTIVE': 'Una scala deve essere consecutiva, senza salti',
   'err.NOT_ENOUGH_NATURALS': 'Una combinazione richiede più carte naturali che jolly',
   'err.RANK_ALREADY_MELDED': 'La tua coppia ha già una combinazione di quel valore',
   'err.NOT_YOUR_MELD': 'Quella combinazione è della coppia avversaria',
@@ -375,6 +384,11 @@ export const it: Record<string, string> = {
   'status.lastDeal': 'La squadra {team} ha fatto {value}',
   'status.teamScore': 'Squadra {team}: {value}',
   'canasta.offer.rank': 'Valore',
+  'canasta.offer.sequence': 'Scala',
+  'badge.naturalCanasta': 'Canasta pura',
+  'badge.mixedCanasta': 'Canasta impura',
+  'badge.samba': 'Samba',
+  'badge.cleanRun': 'Scala pulita',
   'canasta.seat.teamScore': 'Punteggio squadra',
   'canasta.seat.canastas': 'Canaste',
   'holdem.header.pot': 'Piatto',
@@ -1047,6 +1061,7 @@ export const it: Record<string, string> = {
   'option.handSize': 'Carte distribuite',
   'variation.canasta.classic': 'Classica',
   'variation.canasta.modern_american': 'Modern American',
+  'variation.canasta.samba': 'Samba',
   'option.targetScore': 'Punteggio obiettivo',
   'option.canastasToGoOut': 'Canaste per chiudere',
   'variation.holdem.freezeout': 'Freezeout',
@@ -1146,6 +1161,7 @@ export const it: Record<string, string> = {
   // Declared by the server and listed in `serverKeys.json`, but never worded.
   'verb.takePileFromHand': 'Prendi la pila in mano',
   'verb.takePileOntoMeld': 'Prendi la pila su una combinazione',
+  'verb.takeTopForSequence': 'Prendere la carta in cima su una scala',
   'verb.undoDraw': 'Annulla la pescata',
   'verb.undoLayOff': "Annulla l'attacco",
   'verb.undoMeld': 'Annulla la combinazione',
@@ -1167,6 +1183,9 @@ export const it: Record<string, string> = {
   'canasta.unit.points': 'punti',
   'ginrummy.unit.points': 'punti',
   'holdem.seat.dealer': 'Mazziere',
+  'holdem.seat.folded': 'Fuori mano',
+  'holdem.seat.allIn': 'All in',
+  'holdem.seat.out': 'Eliminato',
   'holdem.unit.chips': 'fiches',
   'prsi.unit.cardsLeft': 'carte rimaste',
   'rummytiles.prompt.initialMeld': 'La tua prima calata deve valere {n} punti.',
@@ -1177,4 +1196,5 @@ export const it: Record<string, string> = {
   // send the prompt without a module prefix. Neither the Go constants nor
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Pesca una carta',
+  'prompt.yourTurnMeld': 'Combina se puoi, poi scarta',
 };

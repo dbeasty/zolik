@@ -93,6 +93,11 @@ partner's permission to go out (a social convention with no state), the "seven c
 Samba / Bolivia" variant families, and the special-hands variants. Each is additive and none
 changes a type.
 
+> **Since revised.** Samba shipped as a third variation — see
+> [`samba-plan.md`](./samba-plan.md). "Additive" turned out to be half right: the numbers were,
+> but a Samba meld can be a *sequence*, and three assumptions this module was built on had to
+> move behind a ruleset before it could be one. The rest of the sentence still stands.
+
 ## 3. Design
 
 ### 3.1 Partnerships behind a player-shaped interface

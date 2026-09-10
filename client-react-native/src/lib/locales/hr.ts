@@ -133,13 +133,18 @@ export const hr: Record<string, string> = {
   'canasta.rules.section.melding': 'Spuštanje',
   'canasta.rules.section.end': 'Kako meč završava',
   'canasta.rules.goal': 'Igra se u parovima; prva strana koja dosegne {n} bodova pobjeđuje u meču.',
-  'canasta.rules.deck': 'Igra se s {value} karata — dva špila plus džokeri.',
+  'canasta.rules.deck': 'Igra se s {value} karata — {decks} špila plus džokeri.',
   'canasta.rules.deal': 'Svaki igrač dobiva {n} karata.',
+  'canasta.rules.drawCount': 'Na početku poteza vučeš {n} karte.',
   'canasta.rules.redThrees':
     'Crvena trojka u ruci odmah se pokazuje i broji se kao bonus — osim ako tvoja strana nikad ne dovrši canastu, tada se broji protiv tebe.',
   'canasta.rules.canasta': 'Canasta je kombinacija od {n} ili više karata iste vrijednosti.',
+  'canasta.rules.sequences': 'Kombinacija može biti i niz: tri ili više karata iste boje u nizu, nikad s džokerom među njima.',
+  'canasta.rules.samba': 'Niz od sedam karata je samba i vrijedi {n} bodova.',
+  'canasta.rules.pileAlwaysFrozen': 'Hrpa odbačenih zamrznuta je cijelo dijeljenje: možeš je uzeti samo tako da gornjoj karti pridružiš dvije prirodne karte iz ruke.',
   'canasta.rules.meldFloorBands':
     'Tvoje prvo spuštanje mora doseći bodovni minimum koji raste s tvojim rezultatom: {negative} ispod nule, {low} do 1500, {mid} do 3000, {high} iznad toga.',
+  'canasta.rules.meldFloorBandsFive': 'Tvoja prva kombinacija mora dosegnuti bodovni minimum koji raste s tvojim rezultatom: {negative} ispod nule, {low} do 1500, {mid} do 3000, {high} do 7000 i {top} iznad toga.',
   'canasta.rules.oneCanastaToGoOut': 'Jedna dovršena canasta dovoljna je da tvoja strana izađe.',
   'canasta.rules.twoCanastasToGoOut':
     'Tvojoj strani trebaju dvije dovršene canaste prije nego što smije izaći.',
@@ -252,6 +257,7 @@ export const hr: Record<string, string> = {
   'holdem.round.pot': 'Pot {n}',
   'holdem.round.uncontested': 'Svi ostali su odustali',
   'seat.ready': 'Spreman',
+  'zolik.seat.contractMet': 'Ugovor ispunjen',
   'results.you': '(ti)',
 
 
@@ -276,6 +282,9 @@ export const hr: Record<string, string> = {
   'err.MELD_TOO_SMALL': 'Kombinaciji treba više karata od toga',
   'err.MELD_TOO_LARGE': 'Ta kombinacija ne može primiti više karata',
   'err.MELD_MIXED_RANKS': 'Sve karte u kombinaciji moraju biti iste vrijednosti',
+  'err.SEQUENCE_NO_WILDS': 'Niz ne smije sadržavati džokere',
+  'err.SEQUENCE_NEEDS_ONE_SUIT': 'Sve karte u nizu moraju biti iste boje',
+  'err.RUN_NOT_CONSECUTIVE': 'Niz mora ići redom, bez rupa',
   'err.NOT_ENOUGH_NATURALS': 'Kombinaciji treba više prirodnih karata nego džokera',
   'err.RANK_ALREADY_MELDED': 'Tvoja strana već ima kombinaciju te vrijednosti',
   'err.NOT_YOUR_MELD': 'Ta kombinacija pripada protivničkoj strani',
@@ -374,6 +383,11 @@ export const hr: Record<string, string> = {
   'status.lastDeal': 'Ekipa {team} osvojila je {value}',
   'status.teamScore': 'Ekipa {team}: {value}',
   'canasta.offer.rank': 'Vrijednost',
+  'canasta.offer.sequence': 'Niz',
+  'badge.naturalCanasta': 'Čista kanasta',
+  'badge.mixedCanasta': 'Nečista kanasta',
+  'badge.samba': 'Samba',
+  'badge.cleanRun': 'Čisti niz',
   'canasta.seat.teamScore': 'Rezultat ekipe',
   'canasta.seat.canastas': 'Canaste',
   'holdem.header.pot': 'Pot',
@@ -1036,6 +1050,7 @@ export const hr: Record<string, string> = {
   'option.handSize': 'Podijeljene karte',
   'variation.canasta.classic': 'Klasična',
   'variation.canasta.modern_american': 'Modern American',
+  'variation.canasta.samba': 'Samba',
   'option.targetScore': 'Ciljni rezultat',
   'option.canastasToGoOut': 'Canaste za izlazak',
   'variation.holdem.freezeout': 'Freezeout',
@@ -1135,6 +1150,7 @@ export const hr: Record<string, string> = {
   // Declared by the server and listed in `serverKeys.json`, but never worded.
   'verb.takePileFromHand': 'Uzmi hrpu u ruku',
   'verb.takePileOntoMeld': 'Uzmi hrpu na kombinaciju',
+  'verb.takeTopForSequence': 'Uzmi gornju kartu u niz',
   'verb.undoDraw': 'Poništi vučenje',
   'verb.undoLayOff': 'Poništi prislanjanje',
   'verb.undoMeld': 'Poništi kombinaciju',
@@ -1156,6 +1172,9 @@ export const hr: Record<string, string> = {
   'canasta.unit.points': 'bodova',
   'ginrummy.unit.points': 'bodova',
   'holdem.seat.dealer': 'Djelitelj',
+  'holdem.seat.folded': 'Odustao',
+  'holdem.seat.allIn': 'All in',
+  'holdem.seat.out': 'Ispao',
   'holdem.unit.chips': 'žetona',
   'prsi.unit.cardsLeft': 'preostalo karata',
   'rummytiles.prompt.initialMeld': 'Tvoje prvo spuštanje mora vrijediti {n} bodova.',
@@ -1166,4 +1185,5 @@ export const hr: Record<string, string> = {
   // send the prompt without a module prefix. Neither the Go constants nor
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Vuci kartu',
+  'prompt.yourTurnMeld': 'Složi ako možeš, zatim odbaci',
 };

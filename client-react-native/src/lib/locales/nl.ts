@@ -134,13 +134,18 @@ export const nl: Record<string, string> = {
   'canasta.rules.section.end': 'Hoe de partij eindigt',
   'canasta.rules.goal':
     'Er wordt in koppels gespeeld; de eerste partij die {n} punten haalt, wint de wedstrijd.',
-  'canasta.rules.deck': 'Gespeeld met {value} kaarten — twee spellen plus jokers.',
+  'canasta.rules.deck': 'Gespeeld met {value} kaarten — {decks} spellen plus jokers.',
   'canasta.rules.deal': 'Elke speler krijgt {n} kaarten.',
+  'canasta.rules.drawCount': 'Je pakt {n} kaarten aan het begin van je beurt.',
   'canasta.rules.redThrees':
     'Een rode drie in je hand wordt meteen getoond en telt als bonus — tenzij jouw partij nooit een canasta afmaakt, dan telt hij tegen je.',
   'canasta.rules.canasta': 'Een canasta is een combinatie van {n} of meer kaarten van dezelfde waarde.',
+  'canasta.rules.sequences': 'Een combinatie kan ook een reeks zijn: drie of meer kaarten van dezelfde kleur op volgorde, nooit met een wilde kaart ertussen.',
+  'canasta.rules.samba': 'Een reeks van zeven kaarten is een samba en levert {n} punten op.',
+  'canasta.rules.pileAlwaysFrozen': 'De aflegstapel is het hele spel bevroren: je kunt hem alleen nemen door de bovenste kaart te combineren met twee natuurlijke kaarten uit je hand.',
   'canasta.rules.meldFloorBands':
     'Je eerste leg moet een puntenminimum halen dat met je stand meestijgt: {negative} onder nul, {low} tot 1500, {mid} tot 3000, {high} daarboven.',
+  'canasta.rules.meldFloorBandsFive': 'Je eerste combinatie moet een puntenminimum halen dat met je score meestijgt: {negative} onder nul, {low} tot 1500, {mid} tot 3000, {high} tot 7000 en {top} daarboven.',
   'canasta.rules.oneCanastaToGoOut': 'Eén afgemaakte canasta is genoeg om jouw partij te laten uitgaan.',
   'canasta.rules.twoCanastasToGoOut':
     "Jouw partij heeft twee afgemaakte canasta's nodig voordat ze mag uitgaan.",
@@ -256,6 +261,7 @@ export const nl: Record<string, string> = {
   'holdem.round.pot': 'Pot {n}',
   'holdem.round.uncontested': 'Alle anderen pasten',
   'seat.ready': 'Klaar',
+  'zolik.seat.contractMet': 'Contract gehaald',
   'results.you': '(jij)',
 
 
@@ -281,6 +287,9 @@ export const nl: Record<string, string> = {
   'err.MELD_TOO_SMALL': 'Een combinatie heeft meer kaarten nodig dan dat',
   'err.MELD_TOO_LARGE': 'Die combinatie kan er geen kaarten meer bij hebben',
   'err.MELD_MIXED_RANKS': 'Elke kaart in een combinatie moet dezelfde waarde hebben',
+  'err.SEQUENCE_NO_WILDS': 'Een reeks mag geen wilde kaarten bevatten',
+  'err.SEQUENCE_NEEDS_ONE_SUIT': 'Alle kaarten in een reeks moeten dezelfde kleur hebben',
+  'err.RUN_NOT_CONSECUTIVE': 'Een reeks moet op volgorde lopen, zonder gaten',
   'err.NOT_ENOUGH_NATURALS': 'Een combinatie heeft meer natuurlijke dan wilde kaarten nodig',
   'err.RANK_ALREADY_MELDED': 'Jouw partij heeft al een combinatie van die waarde',
   'err.NOT_YOUR_MELD': 'Die combinatie is van de tegenpartij',
@@ -381,6 +390,11 @@ export const nl: Record<string, string> = {
   'status.lastDeal': 'Team {team} scoorde {value}',
   'status.teamScore': 'Team {team}: {value}',
   'canasta.offer.rank': 'Waarde',
+  'canasta.offer.sequence': 'Reeks',
+  'badge.naturalCanasta': 'Zuivere canasta',
+  'badge.mixedCanasta': 'Onzuivere canasta',
+  'badge.samba': 'Samba',
+  'badge.cleanRun': 'Zuivere reeks',
   'canasta.seat.teamScore': 'Teamstand',
   'canasta.seat.canastas': "Canasta's",
   'holdem.header.pot': 'Pot',
@@ -1050,6 +1064,7 @@ export const nl: Record<string, string> = {
   'option.handSize': 'Gedeelde kaarten',
   'variation.canasta.classic': 'Klassiek',
   'variation.canasta.modern_american': 'Modern American',
+  'variation.canasta.samba': 'Samba',
   'option.targetScore': 'Doelscore',
   'option.canastasToGoOut': "Canasta's om uit te gaan",
   'variation.holdem.freezeout': 'Freezeout',
@@ -1149,6 +1164,7 @@ export const nl: Record<string, string> = {
   // Declared by the server and listed in `serverKeys.json`, but never worded.
   'verb.takePileFromHand': 'Neem de stapel in je hand',
   'verb.takePileOntoMeld': 'Neem de stapel op een combinatie',
+  'verb.takeTopForSequence': 'De bovenste kaart op een reeks nemen',
   'verb.undoDraw': 'Pakken ongedaan maken',
   'verb.undoLayOff': 'Aanleggen ongedaan maken',
   'verb.undoMeld': 'Combinatie ongedaan maken',
@@ -1170,6 +1186,9 @@ export const nl: Record<string, string> = {
   'canasta.unit.points': 'punten',
   'ginrummy.unit.points': 'punten',
   'holdem.seat.dealer': 'Deler',
+  'holdem.seat.folded': 'Gepast',
+  'holdem.seat.allIn': 'All-in',
+  'holdem.seat.out': 'Uit',
   'holdem.unit.chips': 'fiches',
   'prsi.unit.cardsLeft': 'kaarten over',
   'rummytiles.prompt.initialMeld': 'Je eerste leg moet {n} punten waard zijn.',
@@ -1180,4 +1199,5 @@ export const nl: Record<string, string> = {
   // send the prompt without a module prefix. Neither the Go constants nor
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Pak een kaart',
+  'prompt.yourTurnMeld': 'Leg af als je kunt, gooi dan weg',
 };

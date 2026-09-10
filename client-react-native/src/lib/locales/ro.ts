@@ -134,13 +134,18 @@ export const ro: Record<string, string> = {
   'canasta.rules.section.melding': 'Coborârea',
   'canasta.rules.section.end': 'Cum se încheie meciul',
   'canasta.rules.goal': 'Se joacă în echipe; prima tabără care ajunge la {n} puncte câștigă meciul.',
-  'canasta.rules.deck': 'Se joacă cu {value} cărți — două pachete plus jokeri.',
+  'canasta.rules.deck': 'Se joacă cu {value} cărți — {decks} pachete plus jokeri.',
   'canasta.rules.deal': 'Fiecare jucător primește {n} cărți.',
+  'canasta.rules.drawCount': 'La începutul turei tragi {n} cărți.',
   'canasta.rules.redThrees':
     'Un trei roșu din mâna ta se arată imediat și aduce bonus — dacă tabăra ta nu termină nicio canastă, se socotește însă împotriva ta.',
   'canasta.rules.canasta': 'O canastă este o combinație de {n} sau mai multe cărți de aceeași valoare.',
+  'canasta.rules.sequences': 'O combinație poate fi și o secvență: trei sau mai multe cărți de aceeași culoare la rând, niciodată cu un joker între ele.',
+  'canasta.rules.samba': 'O secvență de șapte cărți este o samba și valorează {n} puncte.',
+  'canasta.rules.pileAlwaysFrozen': 'Teancul de aruncate este înghețat toată mâna: îl poți lua doar potrivind cartea de deasupra cu două cărți naturale din mână.',
   'canasta.rules.meldFloorBands':
     'Prima ta coborâre trebuie să atingă un minim de puncte care crește odată cu scorul tău: {negative} sub zero, {low} până la 1500, {mid} până la 3000, {high} peste.',
+  'canasta.rules.meldFloorBandsFive': 'Prima ta combinație trebuie să atingă un minim de puncte care crește odată cu scorul: {negative} sub zero, {low} până la 1500, {mid} până la 3000, {high} până la 7000 și {top} peste.',
   'canasta.rules.oneCanastaToGoOut': 'O canastă terminată e de ajuns ca tabăra ta să iasă.',
   'canasta.rules.twoCanastasToGoOut': 'Tabăra ta are nevoie de două canaste terminate înainte să poată ieși.',
   'canasta.rules.end':
@@ -253,6 +258,7 @@ export const ro: Record<string, string> = {
   'holdem.round.pot': 'Pot {n}',
   'holdem.round.uncontested': 'Toți ceilalți s-au retras',
   'seat.ready': 'Pregătit',
+  'zolik.seat.contractMet': 'Contract îndeplinit',
   'results.you': '(tu)',
 
 
@@ -277,6 +283,9 @@ export const ro: Record<string, string> = {
   'err.MELD_TOO_SMALL': 'O combinație are nevoie de mai multe cărți decât atât',
   'err.MELD_TOO_LARGE': 'Acea combinație nu mai poate primi cărți',
   'err.MELD_MIXED_RANKS': 'Toate cărțile dintr-o combinație trebuie să aibă aceeași valoare',
+  'err.SEQUENCE_NO_WILDS': 'O secvență nu poate conține jokeri',
+  'err.SEQUENCE_NEEDS_ONE_SUIT': 'Toate cărțile dintr-o secvență trebuie să aibă aceeași culoare',
+  'err.RUN_NOT_CONSECUTIVE': 'O secvență trebuie să meargă în ordine, fără goluri',
   'err.NOT_ENOUGH_NATURALS': 'O combinație are nevoie de mai multe cărți naturale decât jokeri',
   'err.RANK_ALREADY_MELDED': 'Tabăra ta are deja o combinație de această valoare',
   'err.NOT_YOUR_MELD': 'Acea combinație aparține taberei adverse',
@@ -377,6 +386,11 @@ export const ro: Record<string, string> = {
   'status.lastDeal': 'Echipa {team} a făcut {value}',
   'status.teamScore': 'Echipa {team}: {value}',
   'canasta.offer.rank': 'Valoare',
+  'canasta.offer.sequence': 'Secvență',
+  'badge.naturalCanasta': 'Canastă curată',
+  'badge.mixedCanasta': 'Canastă mixtă',
+  'badge.samba': 'Samba',
+  'badge.cleanRun': 'Secvență curată',
   'canasta.seat.teamScore': 'Scorul echipei',
   'canasta.seat.canastas': 'Canaste',
   'holdem.header.pot': 'Pot',
@@ -1044,6 +1058,7 @@ export const ro: Record<string, string> = {
   'option.handSize': 'Cărți împărțite',
   'variation.canasta.classic': 'Clasică',
   'variation.canasta.modern_american': 'Modern American',
+  'variation.canasta.samba': 'Samba',
   'option.targetScore': 'Scor țintă',
   'option.canastasToGoOut': 'Canaste pentru ieșire',
   'variation.holdem.freezeout': 'Freezeout',
@@ -1143,6 +1158,7 @@ export const ro: Record<string, string> = {
   // Declared by the server and listed in `serverKeys.json`, but never worded.
   'verb.takePileFromHand': 'Ia teancul în mână',
   'verb.takePileOntoMeld': 'Ia teancul pe o combinație',
+  'verb.takeTopForSequence': 'Ia cartea de deasupra într-o secvență',
   'verb.undoDraw': 'Anulează tragerea',
   'verb.undoLayOff': 'Anulează alipirea',
   'verb.undoMeld': 'Anulează combinația',
@@ -1164,6 +1180,9 @@ export const ro: Record<string, string> = {
   'canasta.unit.points': 'puncte',
   'ginrummy.unit.points': 'puncte',
   'holdem.seat.dealer': 'Împărțitor',
+  'holdem.seat.folded': 'S-a retras',
+  'holdem.seat.allIn': 'All in',
+  'holdem.seat.out': 'Eliminat',
   'holdem.unit.chips': 'jetoane',
   'prsi.unit.cardsLeft': 'cărți rămase',
   'rummytiles.prompt.initialMeld': 'Prima ta coborâre trebuie să valoreze {n} puncte.',
@@ -1174,4 +1193,5 @@ export const ro: Record<string, string> = {
   // send the prompt without a module prefix. Neither the Go constants nor
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Trage o carte',
+  'prompt.yourTurnMeld': 'Combină dacă poți, apoi aruncă',
 };

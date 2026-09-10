@@ -134,13 +134,18 @@ export const bg: Record<string, string> = {
   'canasta.rules.section.melding': 'Сваляне',
   'canasta.rules.section.end': 'Как свършва мачът',
   'canasta.rules.goal': 'Играе се по двойки; първата страна, стигнала {n} точки, печели мача.',
-  'canasta.rules.deck': 'Играе се с {value} карти — две тестета плюс жокери.',
+  'canasta.rules.deck': 'Играе се с {value} карти — {decks} тестета плюс жокери.',
   'canasta.rules.deal': 'Всеки играч получава {n} карти.',
+  'canasta.rules.drawCount': 'В началото на своя ход теглиш {n} карти.',
   'canasta.rules.redThrees':
     'Червена тройка в ръката ти се показва веднага и носи бонус — освен ако страната ти никога не завърши канаста, тогава се брои срещу теб.',
   'canasta.rules.canasta': 'Канаста е комбинация от {n} или повече карти с еднаква стойност.',
+  'canasta.rules.sequences': 'Комбинацията може да бъде и последователност: три или повече карти от една боя поред, никога с жокер между тях.',
+  'canasta.rules.samba': 'Последователност от седем карти е самба и струва {n} точки.',
+  'canasta.rules.pileAlwaysFrozen': 'Купчината с изхвърлени е замразена през цялото раздаване: можеш да я вземеш само като допълниш горната карта с две естествени карти от ръката си.',
   'canasta.rules.meldFloorBands':
     'Първото ти сваляне трябва да достигне минимум точки, който расте с резултата ти: {negative} под нулата, {low} до 1500, {mid} до 3000, {high} над това.',
+  'canasta.rules.meldFloorBandsFive': 'Първата ти комбинация трябва да достигне точков минимум, който расте с резултата ти: {negative} под нулата, {low} до 1500, {mid} до 3000, {high} до 7000 и {top} над това.',
   'canasta.rules.oneCanastaToGoOut': 'Една завършена канаста стига, за да излезе страната ти.',
   'canasta.rules.twoCanastasToGoOut':
     'Страната ти се нуждае от две завършени канасти, преди да може да излезе.',
@@ -254,6 +259,7 @@ export const bg: Record<string, string> = {
   'holdem.round.pot': 'Пот {n}',
   'holdem.round.uncontested': 'Всички други се отказаха',
   'seat.ready': 'Готов',
+  'zolik.seat.contractMet': 'Договорът е изпълнен',
   'results.you': '(ти)',
 
 
@@ -278,6 +284,9 @@ export const bg: Record<string, string> = {
   'err.MELD_TOO_SMALL': 'Комбинацията се нуждае от повече карти',
   'err.MELD_TOO_LARGE': 'Тази комбинация не може да поеме повече карти',
   'err.MELD_MIXED_RANKS': 'Всяка карта в комбинация трябва да е с еднаква стойност',
+  'err.SEQUENCE_NO_WILDS': 'Последователността не може да съдържа жокери',
+  'err.SEQUENCE_NEEDS_ONE_SUIT': 'Всички карти в последователността трябва да са от една боя',
+  'err.RUN_NOT_CONSECUTIVE': 'Последователността трябва да върви поред, без прекъсвания',
   'err.NOT_ENOUGH_NATURALS': 'Комбинацията се нуждае от повече естествени карти, отколкото жокери',
   'err.RANK_ALREADY_MELDED': 'Страната ти вече има комбинация с тази стойност',
   'err.NOT_YOUR_MELD': 'Тази комбинация е на противниковата страна',
@@ -378,6 +387,11 @@ export const bg: Record<string, string> = {
   'status.lastDeal': 'Отбор {team} направи {value}',
   'status.teamScore': 'Отбор {team}: {value}',
   'canasta.offer.rank': 'Стойност',
+  'canasta.offer.sequence': 'Последователност',
+  'badge.naturalCanasta': 'Чиста канаста',
+  'badge.mixedCanasta': 'Нечиста канаста',
+  'badge.samba': 'Самба',
+  'badge.cleanRun': 'Чиста последователност',
   'canasta.seat.teamScore': 'Точки на отбора',
   'canasta.seat.canastas': 'Канасти',
   'holdem.header.pot': 'Пот',
@@ -1046,6 +1060,7 @@ export const bg: Record<string, string> = {
   'option.handSize': 'Раздадени карти',
   'variation.canasta.classic': 'Класическа',
   'variation.canasta.modern_american': 'Modern American',
+  'variation.canasta.samba': 'Самба',
   'option.targetScore': 'Целеви резултат',
   'option.canastasToGoOut': 'Канасти за излизане',
   'variation.holdem.freezeout': 'Freezeout',
@@ -1145,6 +1160,7 @@ export const bg: Record<string, string> = {
   // Declared by the server and listed in `serverKeys.json`, but never worded.
   'verb.takePileFromHand': 'Вземи купчината в ръката',
   'verb.takePileOntoMeld': 'Вземи купчината върху комбинация',
+  'verb.takeTopForSequence': 'Вземи горната карта в последователност',
   'verb.undoDraw': 'Върни тегленето',
   'verb.undoLayOff': 'Върни прикачването',
   'verb.undoMeld': 'Върни комбинацията',
@@ -1166,6 +1182,9 @@ export const bg: Record<string, string> = {
   'canasta.unit.points': 'точки',
   'ginrummy.unit.points': 'точки',
   'holdem.seat.dealer': 'Раздаващ',
+  'holdem.seat.folded': 'Пас',
+  'holdem.seat.allIn': 'Ол ин',
+  'holdem.seat.out': 'Отпаднал',
   'holdem.unit.chips': 'чипа',
   'prsi.unit.cardsLeft': 'останали карти',
   'rummytiles.prompt.initialMeld': 'Първото ти сваляне трябва да струва {n} точки.',
@@ -1176,4 +1195,5 @@ export const bg: Record<string, string> = {
   // send the prompt without a module prefix. Neither the Go constants nor
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Изтегли карта',
+  'prompt.yourTurnMeld': 'Комбинирай, ако можеш, после изхвърли',
 };

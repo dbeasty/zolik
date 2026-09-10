@@ -266,7 +266,9 @@ func (m *Manager) Join(ctx context.Context, idOrCode string, p models.Player) (m
 	if mod == nil {
 		return models.Match{}, module.Error{Code: "UNKNOWN_MODULE", Message: match.ModuleID}
 	}
-	if len(match.Players) >= mod.Descriptor().MaxPlayers {
+	// The variation's range, not the module's: a table's size is a property of
+	// the rules it was created under (module.SeatRange).
+	if _, max := mod.Descriptor().SeatRange(match.Variation); len(match.Players) >= max {
 		return models.Match{}, module.Error{Code: "MATCH_FULL"}
 	}
 
@@ -293,10 +295,10 @@ func (m *Manager) Start(ctx context.Context, idOrCode string) (models.Match, err
 		return models.Match{}, module.Error{Code: "UNKNOWN_MODULE", Message: match.ModuleID}
 	}
 	d := mod.Descriptor()
-	if len(match.Players) < d.MinPlayers {
+	if min, _ := d.SeatRange(match.Variation); len(match.Players) < min {
 		return models.Match{}, module.Error{
 			Code:    "TOO_FEW_PLAYERS",
-			Message: fmt.Sprintf("%s needs at least %d players", d.Label, d.MinPlayers),
+			Message: fmt.Sprintf("%s needs at least %d players", d.Label, min),
 		}
 	}
 
