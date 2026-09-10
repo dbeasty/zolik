@@ -1135,6 +1135,7 @@ export const sv: Record<string, string> = {
   'verb.undoDraw': 'Ångra draget',
   'verb.undoLayOff': 'Ångra påläggningen',
   'verb.undoMeld': 'Ångra kombinationen',
+  'verb.undoTakePile': 'Ångra dragning från högen',
   'verb.undoTurn': 'Ångra turen',
 
   // --- suits, spelled out ---------------------------------------------------

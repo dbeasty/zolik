@@ -1132,6 +1132,7 @@ export const en: Record<string, string> = {
   'verb.undoDraw': 'Undo draw',
   'verb.undoLayOff': 'Undo lay off',
   'verb.undoMeld': 'Undo meld',
+  'verb.undoTakePile': 'Undo take pile',
   'verb.undoTurn': 'Undo turn',
 
   // --- suits, spelled out ---------------------------------------------------

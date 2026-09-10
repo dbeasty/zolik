@@ -1151,6 +1151,7 @@ export const es: Record<string, string> = {
   'verb.undoDraw': 'Deshacer robo',
   'verb.undoLayOff': 'Deshacer arrime',
   'verb.undoMeld': 'Deshacer combinación',
+  'verb.undoTakePile': 'Deshacer toma del montón',
   'verb.undoTurn': 'Deshacer turno',
 
   // --- suits, spelled out ---------------------------------------------------

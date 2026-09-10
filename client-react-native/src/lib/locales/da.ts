@@ -1139,6 +1139,7 @@ export const da: Record<string, string> = {
   'verb.undoDraw': 'Fortryd træk',
   'verb.undoLayOff': 'Fortryd pålægning',
   'verb.undoMeld': 'Fortryd kombination',
+  'verb.undoTakePile': 'Fortryd træk fra bunken',
   'verb.undoTurn': 'Fortryd tur',
 
   // --- suits, spelled out ---------------------------------------------------

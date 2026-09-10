@@ -1138,6 +1138,7 @@ export const hr: Record<string, string> = {
   'verb.undoDraw': 'Poništi vučenje',
   'verb.undoLayOff': 'Poništi prislanjanje',
   'verb.undoMeld': 'Poništi kombinaciju',
+  'verb.undoTakePile': 'Poništi uzimanje s hrpe',
   'verb.undoTurn': 'Poništi potez',
 
   // --- suits, spelled out ---------------------------------------------------

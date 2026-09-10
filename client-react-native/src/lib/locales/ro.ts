@@ -1146,6 +1146,7 @@ export const ro: Record<string, string> = {
   'verb.undoDraw': 'Anulează tragerea',
   'verb.undoLayOff': 'Anulează alipirea',
   'verb.undoMeld': 'Anulează combinația',
+  'verb.undoTakePile': 'Anulează luarea din teanc',
   'verb.undoTurn': 'Anulează tura',
 
   // --- suits, spelled out ---------------------------------------------------
