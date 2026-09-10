@@ -204,7 +204,16 @@ async function playFromOffers(
         if (dealFact) deals = Math.max(deals, Number(dealFact.value) || 0);
 
         const enabled = state.legalActions.filter((o: any) => o.enabled);
-        enabled.sort((a: any, b: any) => order.indexOf(a.verb) - order.indexOf(b.verb));
+        // A verb the order does not name goes *last*, not first. `indexOf`
+        // returns -1 for one, which sorts it ahead of everything — so the day
+        // the server grew an `undo_take_pile` offer, this driver took the pile,
+        // undid it, took it again, and never finished a match. A shell picks
+        // undo because a player asked; nothing should pick it by default.
+        const rank = (verb: string) => {
+          const i = order.indexOf(verb);
+          return i === -1 ? order.length : i;
+        };
+        enabled.sort((a: any, b: any) => rank(a.verb) - rank(b.verb));
 
         let action: any = null;
         for (const o of enabled) {
