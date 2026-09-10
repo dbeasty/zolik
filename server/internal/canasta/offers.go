@@ -244,19 +244,41 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 			ID: "lay_off:" + mm.ID, Verb: VerbLayOff,
 			Facts: []module.Fact{meldOfferFact(mm)},
 		}
-		var probeCards []string
-		if len(eligible) > 0 {
-			probeCards = eligible[:1]
+		// Probed one card at a time rather than once for the whole list.
+		//
+		// It used to be once: probe the first candidate, and if the engine
+		// refused it, report the whole meld as accepting nothing. That held only
+		// while `layOffCards` and the engine agreed about wilds card for card,
+		// which Canasta's flat limit made true and Samba's ratio — twice as many
+		// naturals as wilds — makes false. A hand holding both a seven and a
+		// joker would be told the seven did not fit, because the joker did not.
+		//
+		// So the list is filtered by the engine's own answer, the way
+		// discardableCards already is. A second implementation of the wild rules
+		// is exactly the drift this module refuses to have.
+		accepted := make([]string, 0, len(eligible))
+		for _, c := range eligible {
+			if ok, _ := probe(m, raw, playerID, module.Action{
+				Verb: VerbLayOff, Cards: []string{c}, Target: mm.ID,
+			}); ok {
+				accepted = append(accepted, c)
+			}
 		}
-		o.Enabled, o.WhyNot = probe(m, raw, playerID, module.Action{
-			Verb: VerbLayOff, Cards: probeCards, Target: mm.ID,
-		})
-		if !o.Enabled {
-			eligible = nil
+		if len(accepted) > 0 {
+			o.Enabled = true
+		} else {
+			// Say why, using whichever card the player would most plausibly try.
+			var probeCards []string
+			if len(eligible) > 0 {
+				probeCards = eligible[:1]
+			}
+			o.Enabled, o.WhyNot = probe(m, raw, playerID, module.Action{
+				Verb: VerbLayOff, Cards: probeCards, Target: mm.ID,
+			})
 		}
 		o.Source = &module.Selector{
 			Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID),
-			Cards: eligible, MinCards: 1, MaxCards: canastaSize - len(mm.Cards),
+			Cards: accepted, MinCards: 1, MaxCards: mm.room(r),
 		}
 		o.Target = &module.Selector{Zone: module.ToMeld, MeldID: mm.ID, ZoneID: meldsZoneID(t.ID)}
 		offers = append(offers, o)

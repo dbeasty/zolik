@@ -131,6 +131,15 @@ func TestOffersAgreeWithApply(t *testing.T) {
 	}{
 		{"two players", refs("p1", "p2"), module.MatchConfig{Options: module.Options{OptTargetScore: 500}}},
 		{"four players", refs("p1", "p2", "p3", "p4"), module.MatchConfig{Options: module.Options{OptTargetScore: 500}}},
+		// Samba, where the offer list has the most to get wrong: sequences, a
+		// second group of a rank, a pile that only ever yields to two naturals
+		// and a verb that takes one card without giving one back.
+		{"four players, samba", refs("p1", "p2", "p3", "p4"), module.MatchConfig{
+			Variation: "samba", Options: module.Options{OptTargetScore: 1000},
+		}},
+		{"six players, samba", refs("p1", "p2", "p3", "p4", "p5", "p6"), module.MatchConfig{
+			Variation: "samba", Options: module.Options{OptTargetScore: 1000},
+		}},
 	}
 
 	for _, tab := range tables {
@@ -191,6 +200,12 @@ func TestPerCardOffersAgreeWithApply(t *testing.T) {
 	m := New()
 	players := refs("p1", "p2", "p3", "p4")
 	states := collectStates(t, module.MatchConfig{Options: module.Options{OptTargetScore: 500}}, players, 6, 800)
+	// Samba states too: a lay-off onto a sequence is the one per-card list whose
+	// eligibility is about where a card sits in a run rather than what rank it
+	// is, so it is the one most able to name a card the engine then refuses.
+	states = append(states, collectStates(t, module.MatchConfig{
+		Variation: "samba", Options: module.Options{OptTargetScore: 1000},
+	}, players, 6, 800)...)
 
 	discardChecks, layOffChecks := 0, 0
 	for _, state := range states {
