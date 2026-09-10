@@ -11,6 +11,7 @@ import (
 	"zolik/server/internal/module"
 
 	kdbserver "github.com/limidus/kdb/go/kdb/server"
+	"github.com/limidus/kdb/go/kdb/storage"
 )
 
 // openTestKDB opens an on-disk engine in the test's temp dir — the same code
@@ -351,6 +352,88 @@ func TestKDBStorageFromEnv(t *testing.T) {
 	t.Setenv("KDB_ASYNC_SYNC_INTERVAL_MS", "soon")
 	if _, err := KDBStorageFromEnv(); err == nil {
 		t.Fatal("KDB_ASYNC_SYNC_INTERVAL_MS=soon: want error")
+	}
+}
+
+// TestHistoryRetentionDefaultsOnAndChangesNothing is the pair of facts that
+// make "on by default" safe to ship. The flag decides whether a named mode is
+// listened to; it does not name one. With no KDB_HISTORY_MODE — every
+// deployment until one says otherwise — the engine must be asked for exactly
+// what it was asked for before the modes existed.
+func TestHistoryRetentionDefaultsOnAndChangesNothing(t *testing.T) {
+	t.Setenv("FEATURE_FLAG_KDB_HISTORY_RETENTION", "")
+	t.Setenv("KDB_HISTORY_MODE", "")
+
+	sc, err := KDBStorageFromEnv()
+	if err != nil {
+		t.Fatalf("from env: %v", err)
+	}
+	if !sc.HistoryRetention {
+		t.Error("FEATURE_FLAG_KDB_HISTORY_RETENTION unset: want on by default")
+	}
+	opts, err := sc.engineOptions()
+	if err != nil {
+		t.Fatalf("options: %v", err)
+	}
+	if opts.Storage.HistoryMode != storage.HistoryModeUnset {
+		t.Errorf("no mode named, but the engine was asked for %q. Unset is the only value that "+
+			"leaves an existing namespace alone and builds a new one full", opts.Storage.HistoryMode)
+	}
+}
+
+// TestHistoryRetentionIsGated is the flag earning its keep. The history mode
+// is a property a namespace is *built* with — it refuses to open under any
+// other — so a stray KDB_HISTORY_MODE reaching a server that was not meant to
+// have one is not a setting that gets ignored, it is a database that will not
+// open on the next restart. Off must therefore mean discarded, not merely
+// defaulted.
+func TestHistoryRetentionIsGated(t *testing.T) {
+	t.Setenv("KDB_HISTORY_MODE", "none")
+
+	t.Setenv("FEATURE_FLAG_KDB_HISTORY_RETENTION", "false")
+	sc, err := KDBStorageFromEnv()
+	if err != nil {
+		t.Fatalf("flag off: %v", err)
+	}
+	opts, err := sc.engineOptions()
+	if err != nil {
+		t.Fatalf("flag off, options: %v", err)
+	}
+	if opts.Storage.HistoryMode != storage.HistoryModeUnset {
+		t.Errorf("flag off: history mode reached the engine as %q; KDB_HISTORY_MODE must be "+
+			"discarded, or an environment nobody audited decides what a namespace keeps",
+			opts.Storage.HistoryMode)
+	}
+	if !opts.Storage.Retain.IsZero() {
+		t.Errorf("flag off: retention window %v reached the engine, want the zero window",
+			opts.Storage.Retain)
+	}
+
+	t.Setenv("FEATURE_FLAG_KDB_HISTORY_RETENTION", "true")
+	sc, err = KDBStorageFromEnv()
+	if err != nil {
+		t.Fatalf("flag on: %v", err)
+	}
+	opts, err = sc.engineOptions()
+	if err != nil {
+		t.Fatalf("flag on, options: %v", err)
+	}
+	if opts.Storage.HistoryMode != storage.HistoryModeNone {
+		t.Errorf("flag on: history mode is %q, want none — the flag is on and the variable says so",
+			opts.Storage.HistoryMode)
+	}
+
+	// A typo with the flag on refuses to start rather than quietly keeping
+	// every commit forever, which is a disk filling up with no log line.
+	t.Setenv("KDB_HISTORY_MODE", "nope")
+	if _, err := KDBStorageFromEnv(); err == nil {
+		t.Fatal("KDB_HISTORY_MODE=nope with the flag on: want error")
+	}
+
+	// The same typo with the flag off is not an error: nothing is reading it.
+	t.Setenv("FEATURE_FLAG_KDB_HISTORY_RETENTION", "false")
+	if _, err := KDBStorageFromEnv(); err != nil {
+		t.Fatalf("KDB_HISTORY_MODE=nope with the flag off: want no error, got %v", err)
 	}
 }
 

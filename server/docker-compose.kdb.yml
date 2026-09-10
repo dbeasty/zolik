@@ -60,6 +60,35 @@ services:
     environment:
       FEATURE_FLAG_DB_ENGINE: kdb
       KDB_PATH: /data/kdb
+      # KDB 0.4.0's history retention modes, behind a flag and off by default.
+      #
+      #   none  keep the current dataset plus a 24h window (KDB_RETAIN_DURATION
+      #         moves it); everything older is reclaimed, so the footprint is a
+      #         function of the data rather than of how many commits have ever
+      #         been made. Costs write throughput — measured on this stack, the
+      #         reclaim lands in the write path and the gameplay
+      #         load→apply→store cycle roughly triples.
+      #   full  keep every commit forever. What KDB did before the modes
+      #         existed, and what every namespace built before this line is.
+      #
+      # The flag is on and the mode is unset, which together mean "nothing
+      # changes": unset reads as whatever a namespace already is, and for a
+      # new one, full. The flag decides whether a mode is listened to, not
+      # which mode it is — it exists to be turned off, and it is transitional
+      # either way. A later KDB switches the mode on a running namespace and
+      # it comes out.
+      #
+      # To try `none` here — the wipe is not optional, an existing volume
+      # holds full-mode namespaces and they REFUSE TO OPEN under any other,
+      # which is a container that exits and restarts forever:
+      #
+      #   ZOLIK_KDB_HISTORY_MODE=none ZOLIK_DEV_DATA=clean scripts/dev-stack.sh up
+      #
+      # dev-stack.sh recognises that mismatch crash if you forget the wipe.
+      # Production is a different matter; see deploy/compose/zolik.yml and
+      # docs/kdb-history-none-cutover.md.
+      FEATURE_FLAG_KDB_HISTORY_RETENTION: "${ZOLIK_KDB_HISTORY_RETENTION:-true}"
+      KDB_HISTORY_MODE: "${ZOLIK_KDB_HISTORY_MODE:-}"
       PORT: "8090"
       # Off, and said out loud. Removing the SSH_* variables does not turn the
       # terminal client off — SSH_ENABLED defaults *on* whenever APP_ENV is
