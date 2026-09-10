@@ -1149,6 +1149,7 @@ export const pt: Record<string, string> = {
   'verb.undoDraw': 'Anular a compra',
   'verb.undoLayOff': 'Anular o encosto',
   'verb.undoMeld': 'Anular a combinação',
+  'verb.undoTakePile': 'Anular a retirada do monte',
   'verb.undoTurn': 'Anular a jogada',
 
   // --- suits, spelled out ---------------------------------------------------

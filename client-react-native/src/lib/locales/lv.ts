@@ -1139,6 +1139,7 @@ export const lv: Record<string, string> = {
   'verb.undoDraw': 'Atsaukt vilkšanu',
   'verb.undoLayOff': 'Atsaukt pievienošanu',
   'verb.undoMeld': 'Atsaukt kombināciju',
+  'verb.undoTakePile': 'Atsaukt ņemšanu no kaudzes',
   'verb.undoTurn': 'Atsaukt gājienu',
 
   // --- suits, spelled out ---------------------------------------------------

@@ -1165,6 +1165,7 @@ export const el: Record<string, string> = {
   'verb.undoDraw': 'Ακύρωση τραβήγματος',
   'verb.undoLayOff': 'Ακύρωση προσάρτησης',
   'verb.undoMeld': 'Ακύρωση συνδυασμού',
+  'verb.undoTakePile': 'Ακύρωση λήψης σωρού',
   'verb.undoTurn': 'Ακύρωση σειράς',
 
   // --- suits, spelled out ---------------------------------------------------

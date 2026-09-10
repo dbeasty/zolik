@@ -1,6 +1,7 @@
 package canasta
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -280,6 +281,120 @@ func TestTakingThePileMovesEveryCard(t *testing.T) {
 	}
 	if s.Phase != phaseMeld {
 		t.Errorf("phase is %q, want %q", s.Phase, phaseMeld)
+	}
+}
+
+// TestUndoTakePileRestoresExactly is the narrow escape hatch PileTaken exists
+// for: reachableValue's own reachability check (meld.go) is only a lower
+// bound, so a partnership can take the pile believing the opening minimum is
+// still reachable and then find their actual hand will not cooperate. Taking
+// the pile back apart should leave the table indistinguishable from having
+// never taken it at all — not approximately, exactly.
+func TestUndoTakePileRestoresExactly(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		s.Teams[0].HasMelded = true
+		s.Frozen = true
+		s.DiscardPile = []string{"4C", "5D", "9S", "AS"}
+		s.Hands["p1"] = []string{"AH", "AD", "8C"}
+	})
+	next, code := apply(t, raw, "p1", module.Action{Verb: VerbTakePile, Cards: []string{"AH", "AD"}})
+	if code != "" {
+		t.Fatalf("take refused: %s", code)
+	}
+	undone, code := apply(t, next, "p1", module.Action{Verb: VerbUndoTakePile})
+	if code != "" {
+		t.Fatalf("undo refused: %s", code)
+	}
+	before, after := mustDecode(t, raw), mustDecode(t, undone)
+	if !reflect.DeepEqual(before, after) {
+		t.Errorf("undo did not restore the exact prior state:\nbefore: %+v\nafter:  %+v", before, after)
+	}
+}
+
+// TestUndoTakePileReopensTheTable covers the take that itself crosses the
+// opening minimum — the exact situation a player who cannot actually complete
+// it needs undone, since HasMelded flipping true is not just a card move.
+func TestUndoTakePileReopensTheTable(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		// Sixty in aces, clearing the fifty-point floor outright.
+		s.DiscardPile = []string{"4C", "AS"}
+		s.Hands["p1"] = []string{"AH", "AD", "8C", "9C"}
+	})
+	next, code := apply(t, raw, "p1", module.Action{Verb: VerbTakePile, Cards: []string{"AH", "AD"}})
+	if code != "" {
+		t.Fatalf("take refused: %s", code)
+	}
+	if s := mustDecode(t, next); !s.Teams[0].HasMelded {
+		t.Fatalf("sixty in aces should have opened the table")
+	}
+
+	undone, code := apply(t, next, "p1", module.Action{Verb: VerbUndoTakePile})
+	if code != "" {
+		t.Fatalf("undo refused: %s", code)
+	}
+	s := mustDecode(t, undone)
+	if s.Teams[0].HasMelded {
+		t.Error("undo should have closed the table back up")
+	}
+	if s.Phase != phaseDraw {
+		t.Errorf("phase = %q, want %q", s.Phase, phaseDraw)
+	}
+	if !reflect.DeepEqual(s, mustDecode(t, raw)) {
+		t.Error("undo did not restore the exact prior state")
+	}
+}
+
+// TestUndoTakePileOntoExistingMeld covers the other capture shape: the top
+// card extending a meld the partnership already has down, rather than
+// forming a new one.
+func TestUndoTakePileOntoExistingMeld(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		s.Teams[0].HasMelded = true
+		s.Teams[0].Melds = []Meld{{ID: meldID(0, "A"), TeamID: 0, Rank: "A", Cards: []string{"AC", "AH", "AD"}}}
+		s.DiscardPile = []string{"4C", "AS"}
+		s.Hands["p1"] = []string{"8C", "9C"}
+	})
+	next, code := apply(t, raw, "p1", module.Action{Verb: VerbTakePile, Target: meldID(0, "A")})
+	if code != "" {
+		t.Fatalf("take refused: %s", code)
+	}
+	undone, code := apply(t, next, "p1", module.Action{Verb: VerbUndoTakePile})
+	if code != "" {
+		t.Fatalf("undo refused: %s", code)
+	}
+	if before, after := mustDecode(t, raw), mustDecode(t, undone); !reflect.DeepEqual(before, after) {
+		t.Errorf("undo did not restore the exact prior state:\nbefore: %+v\nafter:  %+v", before, after)
+	}
+}
+
+// TestUndoTakePileUnavailableOnceSomethingElseHappened is the guard that
+// keeps the undo exact rather than merely best-effort: once any other move
+// has touched the table, the cards this capture placed may no longer be where
+// it left them, so undo has to refuse rather than guess.
+func TestUndoTakePileUnavailableOnceSomethingElseHappened(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		s.Teams[0].HasMelded = true
+		s.DiscardPile = []string{"4C", "5D", "9S", "AS"}
+		s.Hands["p1"] = []string{"AH", "AD", "8C"}
+	})
+	next, code := apply(t, raw, "p1", module.Action{Verb: VerbTakePile, Cards: []string{"AH", "AD"}})
+	if code != "" {
+		t.Fatalf("take refused: %s", code)
+	}
+	next, code = apply(t, next, "p1", module.Action{Verb: VerbDiscard, Cards: []string{"9S"}})
+	if code != "" {
+		t.Fatalf("discard refused: %s", code)
+	}
+	if _, code := apply(t, next, "p2", module.Action{Verb: VerbUndoTakePile}); code != ErrNothingToUndo {
+		t.Errorf("undo after a discard = %q, want %q", code, ErrNothingToUndo)
+	}
+
+	offers, err := New().LegalActions(next, "p2")
+	if err != nil {
+		t.Fatalf("LegalActions: %v", err)
+	}
+	if o := module.FindOffer(offers, OfferUndoTakePile); o != nil {
+		t.Errorf("the undo offer should be gone once another move has happened, got %+v", o)
 	}
 }
 

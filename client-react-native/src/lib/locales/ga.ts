@@ -1165,6 +1165,7 @@ export const ga: Record<string, string> = {
   'verb.undoDraw': 'Cealaigh an tarraingt',
   'verb.undoLayOff': 'Cealaigh an cur leis',
   'verb.undoMeld': 'Cealaigh an cumasc',
+  'verb.undoTakePile': 'Cealaigh an tógáil ón gcarn',
   'verb.undoTurn': 'Cealaigh an seal',
 
   // --- suits, spelled out ---------------------------------------------------

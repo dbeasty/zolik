@@ -16,6 +16,8 @@ const (
 	// OfferLayMeld is likewise the placeholder; live candidates are
 	// "lay_meld:<rank>".
 	OfferLayMeld = "lay_meld"
+	// OfferUndoTakePile takes back this turn's pile capture — see PileTaken.
+	OfferUndoTakePile = "undo_take_pile"
 )
 
 // LegalActions answers "what may this player do right now?".
@@ -138,6 +140,18 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		o.Enabled, o.WhyNot = probe(m, raw, playerID, module.Action{
 			Verb: VerbTakePile, Cards: plausibleCapture(s, playerID),
 		})
+		o.Source = &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID}
+		offers = append(offers, o)
+	}
+
+	// --- undo taking the pile --------------------------------------------------
+	//
+	// Only ever on offer for the same turn's own capture — see PileTaken — and
+	// gone the instant anything else reaches the table, so this never competes
+	// with an ordinary move for a player's attention.
+	if s.PileTaken != nil {
+		o := module.ActionOffer{ID: OfferUndoTakePile, Verb: VerbUndoTakePile, LabelKey: "verb.undoTakePile"}
+		o.Enabled, o.WhyNot = probe(m, raw, playerID, module.Action{Verb: VerbUndoTakePile})
 		o.Source = &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID}
 		offers = append(offers, o)
 	}

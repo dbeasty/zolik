@@ -39,11 +39,12 @@ import (
 
 // Verbs this module accepts.
 const (
-	VerbDraw     = "draw"
-	VerbTakePile = "take_pile"
-	VerbLayMeld  = "lay_meld"
-	VerbLayOff   = "lay_off"
-	VerbDiscard  = "discard"
+	VerbDraw         = "draw"
+	VerbTakePile     = "take_pile"
+	VerbLayMeld      = "lay_meld"
+	VerbLayOff       = "lay_off"
+	VerbDiscard      = "discard"
+	VerbUndoTakePile = "undo_take_pile"
 )
 
 // Turn phases. Two, not three: melding and discarding are the same phase,
@@ -82,6 +83,9 @@ const (
 	ErrCannotDiscardThree = "CANNOT_DISCARD_RED_THREE"
 	ErrCannotGoOutYet     = "CANNOT_GO_OUT_YET"
 	ErrMustKeepACard      = "MUST_KEEP_A_CARD"
+	// ErrNothingToUndo is shared with Žolíky's own undo (internal/rules):
+	// same fact, same word, no reason for a client to carry two keys for it.
+	ErrNothingToUndo = "NOTHING_TO_UNDO"
 )
 
 // Meld is one partnership's set of a single rank.
@@ -97,6 +101,44 @@ type Meld struct {
 
 func meldID(teamID int, rank string) string {
 	return fmt.Sprintf("t%d-%s", teamID, rank)
+}
+
+// PileTaken snapshots one capture of the discard pile so it can be undone
+// before anything else touches the table.
+//
+// Taking the pile is not a plain draw: it commits to a meld and, before a
+// partnership has opened, to reaching the whole turn's minimum, in the same
+// motion that draws the cards. reachableValue's own reachability check is
+// only a lower bound (meld.go), so it can refuse a take that would in fact
+// have worked but cannot always tell a genuinely doomed one apart — a
+// partnership can take the pile believing the minimum is still reachable and
+// then find the concrete hand it holds will not cooperate. Since nothing else
+// in this module lets a card come back off the table, that partnership would
+// otherwise be stuck for the rest of the deal. This is the one exception,
+// scoped as narrowly as the problem: it undoes exactly this capture, and only
+// for as long as none of its cards have gone anywhere else.
+type PileTaken struct {
+	// Pile is the discard pile exactly as it stood before the capture, top
+	// card last — put back verbatim rather than reconstructed from parts.
+	Pile []string `json:"pile"`
+	// PriorHand is the player's own hand exactly as it stood before the
+	// capture. Restored verbatim rather than by reversing the individual
+	// removals and additions, which would put every card back but not
+	// necessarily in the order the player last arranged them in.
+	PriorHand []string `json:"priorHand"`
+	// MeldID is which meld received the top card. MeldWasNew says whether to
+	// delete it outright on undo or truncate it back to PriorCards.
+	MeldID     string   `json:"meldId"`
+	MeldWasNew bool     `json:"meldWasNew"`
+	PriorCards []string `json:"priorCards,omitempty"`
+	// RedThreesGained are the buried red threes this capture handed straight
+	// to the team's row, named individually so undo removes exactly those —
+	// never "however many are there now", which a partner's move in between
+	// could have changed.
+	RedThreesGained   []string `json:"redThreesGained,omitempty"`
+	PriorHasMelded    bool     `json:"priorHasMelded"`
+	PriorLaidThisTurn int      `json:"priorLaidThisTurn,omitempty"`
+	PriorFrozen       bool     `json:"priorFrozen,omitempty"`
 }
 
 func (m Meld) naturals() int {
@@ -196,6 +238,10 @@ type GameState struct {
 	// detectable after the fact.
 	MeldsAtTurnStart bool `json:"meldsAtTurnStart,omitempty"`
 	TookPileThisTurn bool `json:"tookPileThisTurn,omitempty"`
+	// PileTaken is this turn's pile capture, if it can still be undone. Set by
+	// applyTakePile and cleared the instant any other action reaches the
+	// table, so an undo can only ever unwind exactly what it captured.
+	PileTaken *PileTaken `json:"pileTaken,omitempty"`
 
 	// Rules resolved at deal time, so a match cannot change shape underneath
 	// a deal in progress.

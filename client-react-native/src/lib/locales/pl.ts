@@ -1144,6 +1144,7 @@ export const pl: Record<string, string> = {
   'verb.undoDraw': 'Cofnij dobranie',
   'verb.undoLayOff': 'Cofnij dołożenie',
   'verb.undoMeld': 'Cofnij układ',
+  'verb.undoTakePile': 'Cofnij wzięcie ze stosu',
   'verb.undoTurn': 'Cofnij kolejkę',
 
   // --- suits, spelled out ---------------------------------------------------

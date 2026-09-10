@@ -1148,6 +1148,7 @@ export const bg: Record<string, string> = {
   'verb.undoDraw': 'Върни тегленето',
   'verb.undoLayOff': 'Върни прикачването',
   'verb.undoMeld': 'Върни комбинацията',
+  'verb.undoTakePile': 'Върни вземането от купчината',
   'verb.undoTurn': 'Върни хода',
 
   // --- suits, spelled out ---------------------------------------------------
