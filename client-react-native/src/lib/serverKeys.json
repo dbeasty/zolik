@@ -79,8 +79,11 @@
     "RANK_ALREADY_MELDED",
     "RECLAIMED_JOKER_NOT_MELDED",
     "ROUND_REQ_NOT_MET",
+    "RUN_NOT_CONSECUTIVE",
     "RUN_TOO_LONG",
     "SEAT_NOT_IN_HAND",
+    "SEQUENCE_NEEDS_ONE_SUIT",
+    "SEQUENCE_NO_WILDS",
     "SERVER_BUSY",
     "SET_TOO_LARGE",
     "SUIT_REQUIRED",
@@ -106,6 +109,10 @@
     "WRONG_RUN_END"
   ],
   "labelKeys": [
+    "badge.cleanRun",
+    "badge.mixedCanasta",
+    "badge.naturalCanasta",
+    "badge.samba",
     "blackjack.fact.extraStake",
     "blackjack.fact.insuranceCost",
     "blackjack.fact.surrenderReturn",
@@ -185,21 +192,27 @@
     "blackjack.zone.shoe",
     "blackjack.zone.yourBox",
     "canasta.offer.rank",
+    "canasta.offer.sequence",
     "canasta.round.concealed",
     "canasta.round.deal",
     "canasta.round.exhausted",
     "canasta.rules.canasta",
     "canasta.rules.deal",
     "canasta.rules.deck",
+    "canasta.rules.drawCount",
     "canasta.rules.end",
     "canasta.rules.goal",
     "canasta.rules.meldFloorBands",
+    "canasta.rules.meldFloorBandsFive",
     "canasta.rules.oneCanastaToGoOut",
+    "canasta.rules.pileAlwaysFrozen",
     "canasta.rules.redThrees",
+    "canasta.rules.samba",
     "canasta.rules.section.end",
     "canasta.rules.section.goal",
     "canasta.rules.section.melding",
     "canasta.rules.section.setup",
+    "canasta.rules.sequences",
     "canasta.rules.twoCanastasToGoOut",
     "canasta.seat.canastas",
     "canasta.seat.teamScore",
@@ -371,6 +384,7 @@
     "verb.takeFromDiscard",
     "verb.takePileFromHand",
     "verb.takePileOntoMeld",
+    "verb.takeTopForSequence",
     "zolik.badge.jokerOwed",
     "zolik.badge.owedToMeld",
     "zolik.offer.meld",
@@ -474,15 +488,20 @@
     "canasta.rules.canasta",
     "canasta.rules.deal",
     "canasta.rules.deck",
+    "canasta.rules.drawCount",
     "canasta.rules.end",
     "canasta.rules.goal",
     "canasta.rules.meldFloorBands",
+    "canasta.rules.meldFloorBandsFive",
     "canasta.rules.oneCanastaToGoOut",
+    "canasta.rules.pileAlwaysFrozen",
     "canasta.rules.redThrees",
+    "canasta.rules.samba",
     "canasta.rules.section.end",
     "canasta.rules.section.goal",
     "canasta.rules.section.melding",
     "canasta.rules.section.setup",
+    "canasta.rules.sequences",
     "canasta.rules.twoCanastasToGoOut",
     "ginrummy.rules.aceLow",
     "ginrummy.rules.bigGin",
@@ -707,6 +726,12 @@
     "canasta.offer.rank": [
       "value"
     ],
+    "canasta.offer.sequence": [
+      "from",
+      "suit",
+      "to",
+      "value"
+    ],
     "canasta.rules.canasta": [
       "n"
     ],
@@ -715,6 +740,9 @@
     ],
     "canasta.rules.deck": [
       "value"
+    ],
+    "canasta.rules.drawCount": [
+      "n"
     ],
     "canasta.rules.end": [
       "n"
@@ -727,6 +755,16 @@
       "low",
       "mid",
       "negative"
+    ],
+    "canasta.rules.meldFloorBandsFive": [
+      "high",
+      "low",
+      "mid",
+      "negative",
+      "top"
+    ],
+    "canasta.rules.samba": [
+      "n"
     ],
     "canasta.seat.canastas": [
       "n",
@@ -1054,12 +1092,16 @@
     "blackjack.status.dealerBust",
     "blackjack.status.dealerStands",
     "canasta.offer.rank",
+    "canasta.offer.sequence",
     "canasta.rules.canasta",
     "canasta.rules.deal",
     "canasta.rules.deck",
+    "canasta.rules.drawCount",
     "canasta.rules.end",
     "canasta.rules.goal",
     "canasta.rules.meldFloorBands",
+    "canasta.rules.meldFloorBandsFive",
+    "canasta.rules.samba",
     "canasta.seat.canastas",
     "canasta.seat.teamScore",
     "ginrummy.fact.deadwood",

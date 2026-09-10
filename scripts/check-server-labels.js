@@ -44,6 +44,8 @@ const PROPER = new Set([
   'Texas Hold’em', "Texas Hold'em",
   // Variations, which are named after places or after the game itself.
   'Žolík Classic', 'Continental', 'Oklahoma', 'Atlantic City', 'Vegas Strip',
+  // Samba is the name of the game as well as of the dance; it is not "Samba mode".
+  'Samba',
 ]);
 
 function keysOfEnglish() {

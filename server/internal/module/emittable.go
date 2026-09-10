@@ -436,6 +436,21 @@ func labelKeysIn(dir string) map[string]bool {
 								}
 							}
 						}
+						// `g.BadgeKeys = append(g.BadgeKeys, "badge.x")`, which
+						// is how a mark is added inside a branch rather than
+						// built in one go. Missed until Samba: Canasta has
+						// badged its canastas this way since it shipped, and
+						// both keys were absent from the manifest and from
+						// every bundle because of it.
+						if call, ok := node.Rhs[i].(*ast.CallExpr); ok {
+							if fn, ok := call.Fun.(*ast.Ident); ok && fn.Name == "append" {
+								for _, arg := range call.Args[1:] {
+									if k, ok := keyOf(arg); ok {
+										record(k, false)
+									}
+								}
+							}
+						}
 					}
 				}
 

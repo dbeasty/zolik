@@ -1,4 +1,5 @@
-// Package canasta implements Classic (American) Canasta as a game module.
+// Package canasta implements Canasta — Classic, Modern American and Samba — as
+// a game module.
 //
 // It is the third module behind the runtime, and the first one that is a
 // *rummy* and still not the rummy engine. `architecture.md` §1 predicted this
@@ -28,6 +29,12 @@
 //     15 / 50 / 90 / 120.
 //   - Going out needs the partnership's canasta quota. 100, or 200 concealed.
 //   - Deals repeat until a partnership passes the target score.
+//
+// Samba differs in the deck, the draw, the wild limits, the meld kinds, the pile
+// and every bonus (docs/samba-plan.md §2), and none of that is written twice:
+// ruleset.go holds one struct per variation and the engine reads it. What a
+// variation cannot change is the shape of a turn or who owns a meld — those are
+// this package, not a knob in it.
 package canasta
 
 import (
