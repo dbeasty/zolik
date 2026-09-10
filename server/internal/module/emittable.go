@@ -398,7 +398,7 @@ func labelKeysIn(dir string) map[string]bool {
 						}
 					case "Params", "Value":
 						carries = true
-					case "BadgeKeys":
+					case "BadgeKeys", "LabelKeys":
 						// A list of keys rather than one, and each is a
 						// standalone mark with nothing else in the literal
 						// belonging to it — so they are recorded here rather
@@ -428,7 +428,7 @@ func labelKeysIn(dir string) map[string]bool {
 						if k, ok := keyOf(node.Rhs[i]); ok {
 							record(k, false)
 						}
-					case "BadgeKeys":
+					case "BadgeKeys", "LabelKeys":
 						if list, ok := node.Rhs[i].(*ast.CompositeLit); ok {
 							for _, elt := range list.Elts {
 								if k, ok := keyOf(elt); ok {

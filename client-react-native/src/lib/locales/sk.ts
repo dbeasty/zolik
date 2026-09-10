@@ -257,6 +257,7 @@ export const sk: Record<string, string> = {
   'holdem.round.pot': 'Bank {n}',
   'holdem.round.uncontested': 'Všetci ostatní zložili',
   'seat.ready': 'Pripravený',
+  'zolik.seat.contractMet': 'Záväzok splnený',
   'results.you': '(ty)',
 
 
@@ -1169,6 +1170,9 @@ export const sk: Record<string, string> = {
   'canasta.unit.points': 'bodov',
   'ginrummy.unit.points': 'bodov',
   'holdem.seat.dealer': 'Rozdávajúci',
+  'holdem.seat.folded': 'Zložil',
+  'holdem.seat.allIn': 'All in',
+  'holdem.seat.out': 'Vyradený',
   'holdem.unit.chips': 'žetónov',
   'prsi.unit.cardsLeft': 'zostáva kariet',
   'rummytiles.prompt.initialMeld': 'Tvoje prvé vyloženie musí mať hodnotu {n} bodov.',
@@ -1179,4 +1183,5 @@ export const sk: Record<string, string> = {
   // send the prompt without a module prefix. Neither the Go constants nor
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Potiahni kartu',
+  'prompt.yourTurnMeld': 'Vyložte, ak môžete, potom odhoďte',
 };

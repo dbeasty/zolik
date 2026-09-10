@@ -288,11 +288,15 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 		}
 	}
 	if s.Current == viewerID {
-		key := "prompt.yourTurnDraw"
+		// Both spelled out rather than assigned to one variable: a key that
+		// reaches Fact through a variable is invisible to cmd/dump-keys, so it
+		// never reaches the manifest and no locale is ever checked for it.
+		// These two were exactly that until the sweep in keys_test.go found them.
 		if s.Phase == phaseMeld {
-			key = "prompt.yourTurnMeld"
+			vm.Prompts = append(vm.Prompts, module.Fact{LabelKey: "prompt.yourTurnMeld"})
+		} else {
+			vm.Prompts = append(vm.Prompts, module.Fact{LabelKey: "prompt.yourTurnDraw"})
 		}
-		vm.Prompts = append(vm.Prompts, module.Fact{LabelKey: key})
 	}
 
 	if s.LastDeal != nil {

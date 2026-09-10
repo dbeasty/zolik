@@ -42,6 +42,13 @@ type DriverOptions struct {
 	Prefer []string
 	// OnAction, if set, is called after each accepted action.
 	OnAction func(playerID string, a Action)
+	// OnState, if set, is called with the state after each accepted action.
+	//
+	// For the checks that are about what a match passes *through* rather than
+	// where it ends up: a badge is only on the board while the meld that earns
+	// it is, and the table is swept between deals, so the final state is the
+	// one place most of them cannot be seen.
+	OnState func(s State)
 }
 
 // PlayWithOffers drives a match to completion (or to MaxActions) using only
@@ -97,6 +104,9 @@ func PlayWithOffers(m GameModule, state State, players []PlayerRef, opts DriverO
 		res.Verbs[a.Verb]++
 		if opts.OnAction != nil {
 			opts.OnAction(actor, a)
+		}
+		if opts.OnState != nil {
+			opts.OnState(state)
 		}
 	}
 

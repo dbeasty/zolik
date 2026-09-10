@@ -263,6 +263,7 @@ export const hu: Record<string, string> = {
   'holdem.round.pot': 'Pot: {n}',
   'holdem.round.uncontested': 'Mindenki más bedobta',
   'seat.ready': 'Kész',
+  'zolik.seat.contractMet': 'Szerződés teljesítve',
   'results.you': '(te)',
 
 
@@ -1184,6 +1185,9 @@ export const hu: Record<string, string> = {
   'canasta.unit.points': 'pont',
   'ginrummy.unit.points': 'pont',
   'holdem.seat.dealer': 'Osztó',
+  'holdem.seat.folded': 'Bedobta',
+  'holdem.seat.allIn': 'All in',
+  'holdem.seat.out': 'Kiesett',
   'holdem.unit.chips': 'zseton',
   'prsi.unit.cardsLeft': 'lap maradt',
   'rummytiles.prompt.initialMeld': 'Az első lerakásodnak {n} pontot kell érnie.',
@@ -1194,4 +1198,5 @@ export const hu: Record<string, string> = {
   // send the prompt without a module prefix. Neither the Go constants nor
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Húzz egy lapot',
+  'prompt.yourTurnMeld': 'Rakj ki, ha tudsz, aztán dobj el',
 };

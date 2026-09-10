@@ -267,6 +267,7 @@ export const ga: Record<string, string> = {
   'holdem.round.pot': 'Pota {n}',
   'holdem.round.uncontested': "D'fhill gach duine eile",
   'seat.ready': 'Réidh',
+  'zolik.seat.contractMet': 'Conradh comhlíonta',
   'results.you': '(tú)',
 
 
@@ -1197,6 +1198,9 @@ export const ga: Record<string, string> = {
   'canasta.unit.points': 'pointe',
   'ginrummy.unit.points': 'pointe',
   'holdem.seat.dealer': 'Dáileoir',
+  'holdem.seat.folded': 'Fillte',
+  'holdem.seat.allIn': 'Gach rud isteach',
+  'holdem.seat.out': 'Amuigh',
   'holdem.unit.chips': 'slis',
   'prsi.unit.cardsLeft': 'cárta fágtha',
   'rummytiles.prompt.initialMeld': 'Caithfidh do chéad leagan síos {n} pointe a bheith fiú.',
@@ -1207,4 +1211,5 @@ export const ga: Record<string, string> = {
   // send the prompt without a module prefix. Neither the Go constants nor
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Tarraing cárta',
+  'prompt.yourTurnMeld': 'Cumaisc más féidir, ansin caith uait',
 };

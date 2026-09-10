@@ -379,3 +379,56 @@ Four, each resolved the way the module already leans, and each cheap to revisit:
 4. **Five seats.** Pagat gives the hand size at five (15) but not the seating, and five cannot be
    split into equal partnerships. Five plays as five individuals, which is what three already
    does — the module has never held that a Canasta table must have sides.
+
+---
+
+## 10. Outcome
+
+Delivered as planned, in the five phases above. Seven things are worth recording — five of them
+because the plan was wrong about them.
+
+**The offer list carries a sequence game.** `module.PlayWithOffers` — the driver that reads a
+module's offer list and nothing else, and has never heard of a suit — finishes whole Samba
+matches to a winner at every seat count from two to six, and the e2e plays a four-seat Samba
+match to a winner over real sockets against real Mongo. That is the claim §3.3 rests on, and it
+holds for the reason given: a Samba sequence takes no wilds, so a candidate is the maximal block
+of consecutive ranks a hand actually holds in a suit. `extensibility-plan.md` §1.1's
+offer-explosion limit is about shapes a *human* composes, and this is not one. Žolíky still
+cannot be driven from offers, and still for the same reason.
+
+**The driver found a dead position within eight seeds.** `take_top` is the only move in the game
+that takes a card without putting one in the hand — it replaces the draw rather than following
+it. So a player holding a single card could take the top card onto a sequence and then have no
+legal way to end the turn: their discard would be their last card, which is going out, which
+their side could not do. The plan did not see it, the rules do not mention it, and a human tester
+would have had to be dealt it. It is refused up front now, beside the two dead ends
+`checkLeavesPlayable` already prevented.
+
+**Phase 0's "no test edits" was wrong.** The unit tests call `validateMeld`, `redThreeScore` and
+`initialMeldMinimum` directly, so widening those signatures reached them. What survived intact is
+the thing that mattered: every *assertion* is unchanged, and the tests that pinned Canasta's
+numbers still pin Canasta's numbers — they now name the ruleset they are asserting about instead
+of assuming there is only one.
+
+**The golden fixture had to hash the play, not the state.** Hashing the encoded `GameState` went
+red the moment the ruleset was stored on it, having changed no card — and Phase 2 would have done
+it again by adding `Kind` to every meld. It hashes each deal's six-part settlement, the running
+scores, the winner and the move tally instead. The recorded values came from a throwaway worktree
+at the commit before the refactor, so "nothing moved" is measured against the old code rather than
+asserted about the new.
+
+**Two numbers nearly changed a shipped variation.** Red threes are the sign-flip case: Modern
+American needs two canastas to go out but has always paid for red threes after *one*, so deriving
+the threshold from `CanastasToGoOut` would have quietly rewritten it. And Samba's flat 100-a-three
+penalty is Samba's — Canasta negates the all-of-them bonus instead. Both are ruleset fields for
+that reason, and the golden fixture is what caught the first attempt at deriving them.
+
+**Three error codes, not six.** A closed samba reports the existing `MELD_CLOSED` and a
+permanently frozen pile the existing `PILE_FROZEN`: both already say exactly what happened, and a
+second code per variation would have been a second sentence to translate for no new meaning.
+
+**Adding a badge exposed a gap that had been open since Canasta shipped.** `dump-keys` reads
+`BadgeKeys` from a struct literal or a plain assignment; Canasta writes its badges with
+`append`, so `badge.naturalCanasta` and `badge.mixedCanasta` — and Žolíky's `badge.cleanRun` —
+were in nobody's bundle and had been rendering in English in all 24 locales. `badge.samba` would
+have been the fourth. The scanner reads the append form now, and all four are worded.

@@ -254,6 +254,7 @@ export const da: Record<string, string> = {
   'holdem.round.pot': 'Pulje {n}',
   'holdem.round.uncontested': 'Alle andre kastede sig',
   'seat.ready': 'Klar',
+  'zolik.seat.contractMet': 'Kontrakt opfyldt',
   'results.you': '(dig)',
 
 
@@ -1171,6 +1172,9 @@ export const da: Record<string, string> = {
   'canasta.unit.points': 'point',
   'ginrummy.unit.points': 'point',
   'holdem.seat.dealer': 'Giver',
+  'holdem.seat.folded': 'Passet',
+  'holdem.seat.allIn': 'All in',
+  'holdem.seat.out': 'Ude',
   'holdem.unit.chips': 'jetoner',
   'prsi.unit.cardsLeft': 'kort tilbage',
   'rummytiles.prompt.initialMeld': 'Din første udlægning skal være {n} point værd.',
@@ -1181,4 +1185,5 @@ export const da: Record<string, string> = {
   // send the prompt without a module prefix. Neither the Go constants nor
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Træk et kort',
+  'prompt.yourTurnMeld': 'Læg ned hvis du kan, og kast så',
 };

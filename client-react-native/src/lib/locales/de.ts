@@ -263,6 +263,7 @@ export const de: Record<string, string> = {
   'holdem.round.pot': 'Pot {n}',
   'holdem.round.uncontested': 'Alle anderen sind ausgestiegen',
   'seat.ready': 'Bereit',
+  'zolik.seat.contractMet': 'Kontrakt erfüllt',
   'results.you': '(du)',
 
 
@@ -1190,6 +1191,9 @@ export const de: Record<string, string> = {
   'canasta.unit.points': 'Punkte',
   'ginrummy.unit.points': 'Punkte',
   'holdem.seat.dealer': 'Geber',
+  'holdem.seat.folded': 'Gepasst',
+  'holdem.seat.allIn': 'All-in',
+  'holdem.seat.out': 'Raus',
   'holdem.unit.chips': 'Chips',
   'prsi.unit.cardsLeft': 'Karten übrig',
   'rummytiles.prompt.initialMeld': 'Deine erste Auslage muss {n} Punkte wert sein.',
@@ -1200,4 +1204,5 @@ export const de: Record<string, string> = {
   // send the prompt without a module prefix. Neither the Go constants nor
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Zieh eine Karte',
+  'prompt.yourTurnMeld': 'Lege aus, wenn du kannst, dann wirf ab',
 };
