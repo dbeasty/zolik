@@ -329,7 +329,7 @@ func pileTakeOptions(s *GameState, playerID string) []pileOption {
 	// Capture by laying the top card off onto a meld the partnership already
 	// has. Only available while the pile is unfrozen.
 	if !frozen {
-		if m := t.meld(rank); m != nil && !m.closed(r) {
+		if m := t.openGroup(r, rank); m != nil {
 			out = append(out, pileOption{MeldID: m.ID})
 		}
 	}
@@ -362,10 +362,11 @@ func capturePlayable(s *GameState, playerID string, fromHand []string) bool {
 	rank := rankOf(top)
 
 	combined := append([]string{top}, fromHand...)
-	if existing := t.meld(rank); existing != nil {
-		if existing.closed(r) {
-			return false
-		}
+	existing := t.openGroup(r, rank)
+	if existing == nil && t.rankIsFull(r, rank) {
+		return false // the only group of this rank is a closed canasta
+	}
+	if existing != nil {
 		combined = append(append([]string(nil), existing.Cards...), combined...)
 	}
 	if validateMeld(r, combined) != nil {
@@ -441,10 +442,11 @@ func applyTakePile(s *GameState, playerID string, a module.Action) ([]module.Eve
 			}
 		}
 		combined := append([]string{top}, fromHand...)
-		if existing := t.meld(rank); existing != nil {
-			if existing.closed(r) {
-				return nil, errCode(ErrMeldClosed)
-			}
+		existing := t.openGroup(r, rank)
+		if existing == nil && t.rankIsFull(r, rank) {
+			return nil, errCode(ErrMeldClosed)
+		}
+		if existing != nil {
 			combined = append(append([]string(nil), existing.Cards...), combined...)
 		}
 		if err := validateMeld(r, combined); err != nil {
@@ -471,11 +473,12 @@ func applyTakePile(s *GameState, playerID string, a module.Action) ([]module.Eve
 	if target != "" {
 		_, m := s.findMeld(target)
 		m.Cards = append(m.Cards, top)
-	} else if existing := t.meld(rank); existing != nil {
+	} else if existing := t.openGroup(r, rank); existing != nil {
 		existing.Cards = append(existing.Cards, meldCards...)
 	} else {
 		t.Melds = append(t.Melds, Meld{
-			ID: meldID(t.ID, rank), TeamID: t.ID, Rank: rank, Cards: meldCards,
+			ID: t.newMeldID(meldSet, rank), TeamID: t.ID,
+			Kind: meldSet, Rank: rank, Cards: meldCards,
 		})
 	}
 
@@ -533,7 +536,13 @@ func applyLayMeld(s *GameState, playerID string, a module.Action) ([]module.Even
 	}
 
 	rank, _ := meldRank(a.Cards)
-	if t.meld(rank) != nil {
+	kind := meldSet
+	if !blackThrees {
+		kind = meldKindOf(r, a.Cards)
+	}
+	// A cap on groups of a rank is Canasta's; Samba keeps them separate instead.
+	// Sequences have no such cap in either — two runs in one suit are two melds.
+	if kind == meldSet && t.rankIsFull(r, rank) {
 		return nil, errCode(ErrRankAlreadyMelded)
 	}
 
@@ -546,12 +555,19 @@ func applyLayMeld(s *GameState, playerID string, a module.Action) ([]module.Even
 		}
 	}
 
+	laid := Meld{
+		ID: t.newMeldID(kind, rank), TeamID: t.ID, Kind: kind, Rank: rank,
+		Cards: append([]string(nil), a.Cards...),
+	}
+	if kind == meldRun {
+		laid.Rank = ""
+		laid.Suit = suitOf(a.Cards[0])
+		laid.Cards = sortRun(laid.Cards)
+	}
 	// Provisionally place it, so "can this partnership go out now" is asked of
 	// the table as it will actually be — a meld that completes a canasta is
 	// what licenses going out on the same action.
-	t.Melds = append(t.Melds, Meld{
-		ID: meldID(t.ID, rank), TeamID: t.ID, Rank: rank, Cards: append([]string(nil), a.Cards...),
-	})
+	t.Melds = append(t.Melds, laid)
 	if err := checkLeavesPlayable(s, t, rest); err != nil {
 		t.Melds = t.Melds[:len(t.Melds)-1]
 		return nil, err
@@ -562,7 +578,7 @@ func applyLayMeld(s *GameState, playerID string, a module.Action) ([]module.Even
 	noteInitialMeld(s, t)
 
 	events := []module.Event{{Type: "meld_laid", Data: map[string]any{
-		"playerId": playerID, "meldId": meldID(t.ID, rank), "cards": a.Cards,
+		"playerId": playerID, "meldId": laid.ID, "cards": a.Cards,
 	}}}
 	if len(rest) == 0 {
 		return append(events, endDeal(s, playerID, wasConcealed(s), false)...), nil
@@ -601,13 +617,33 @@ func applyLayOff(s *GameState, playerID string, a module.Action) ([]module.Event
 	if m.closed(r) {
 		return nil, errCode(ErrMeldClosed)
 	}
-	for _, c := range a.Cards {
-		if !isWild(c) && rankOf(c) != m.Rank {
-			return nil, errCode(ErrWrongRank)
+	// What "fits" means depends on the kind. A group takes its own rank and
+	// wilds; a sequence takes the cards that continue it, in its suit, and no
+	// wild ever. Saying WRONG_RANK to somebody offering the nine of hearts to a
+	// heart run would send them to fix a rank that is not the problem.
+	if m.kind() == meldRun {
+		for _, c := range a.Cards {
+			if isWild(c) {
+				return nil, errCode(ErrSequenceNoWilds)
+			}
+			if suitOf(c) != m.Suit {
+				return nil, errCode(ErrSequenceNeedsOneSuit)
+			}
+		}
+	} else {
+		for _, c := range a.Cards {
+			if !isWild(c) && rankOf(c) != m.Rank {
+				return nil, errCode(ErrWrongRank)
+			}
 		}
 	}
 	grown := append(append([]string(nil), m.Cards...), a.Cards...)
-	if err := validateMeld(r, grown); err != nil {
+	if m.kind() == meldRun {
+		grown = sortRun(grown)
+		if err := validateRun(r, grown); err != nil {
+			return nil, err
+		}
+	} else if err := validateMeld(r, grown); err != nil {
 		return nil, err
 	}
 

@@ -264,7 +264,7 @@ func TestTakingThePileMovesEveryCard(t *testing.T) {
 	if s.Frozen {
 		t.Error("taking the pile should thaw it")
 	}
-	m := s.Teams[0].meld("A")
+	m := s.Teams[0].openGroup(classicRules(), "A")
 	if m == nil || len(m.Cards) != 3 {
 		t.Fatalf("expected a three-card ace meld, got %+v", m)
 	}
@@ -468,7 +468,7 @@ func TestPartnersShareMelds(t *testing.T) {
 	if code != "" {
 		t.Fatalf("a partner should be able to lay off, got %s", code)
 	}
-	if m := mustDecode(t, next).Teams[0].meld("K"); len(m.Cards) != 4 {
+	if m := mustDecode(t, next).Teams[0].openGroup(classicRules(), "K"); len(m.Cards) != 4 {
 		t.Errorf("meld has %d cards, want 4", len(m.Cards))
 	}
 

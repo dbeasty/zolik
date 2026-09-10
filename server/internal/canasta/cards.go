@@ -62,6 +62,64 @@ func rankOf(card string) string {
 	return card[:len(card)-1]
 }
 
+// runRanks are the ranks a sequence can be built from, low to high.
+//
+// It starts at four and the ace is high, and both ends are consequences rather
+// than choices: twos are wild and threes are never an ordinary meld, so there is
+// nothing below the four to run from, and an ace that could also be low would
+// make A-2-3 a sequence in a game where the 2 is a joker.
+var runRanks = []string{"4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"}
+
+var runRankIndex = func() map[string]int {
+	m := make(map[string]int, len(runRanks))
+	for i, r := range runRanks {
+		m[r] = i
+	}
+	return m
+}()
+
+// runIndexOf is a card's position in a sequence, and whether it can be in one at
+// all. Wilds and threes cannot, which is what the second return says.
+func runIndexOf(card string) (int, bool) {
+	if isWild(card) {
+		return 0, false
+	}
+	i, ok := runRankIndex[rankOf(card)]
+	return i, ok
+}
+
+// runSpan is the lowest and highest positions a sequence covers. Callers have
+// already validated that it is one, so the gaps are not re-checked here.
+func runSpan(cards []string) (low, high int) {
+	low, high = len(runRanks), -1
+	for _, c := range cards {
+		i, ok := runIndexOf(c)
+		if !ok {
+			continue
+		}
+		if i < low {
+			low = i
+		}
+		if i > high {
+			high = i
+		}
+	}
+	return low, high
+}
+
+// sortRun puts a sequence in rank order, which is how it is stored and how it is
+// drawn. A run whose cards arrive shuffled is still the same meld, but a client
+// showing 9-7-8 would look like a bug in the client.
+func sortRun(cards []string) []string {
+	out := append([]string(nil), cards...)
+	sort.SliceStable(out, func(i, j int) bool {
+		a, _ := runIndexOf(out[i])
+		b, _ := runIndexOf(out[j])
+		return a < b
+	})
+	return out
+}
+
 func suitOf(card string) string {
 	if rankOf(card) == rankJoker || card == "" {
 		return ""

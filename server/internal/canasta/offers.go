@@ -183,7 +183,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	if laid == 0 {
 		o := module.ActionOffer{ID: OfferLayMeld, Verb: VerbLayMeld}
 		o.Enabled, o.WhyNot = probe(m, raw, playerID, module.Action{
-			Verb: VerbLayMeld, Cards: plausibleMeld(hand, t),
+			Verb: VerbLayMeld, Cards: plausibleMeld(r, hand, t),
 		})
 		o.Source = &module.Selector{
 			Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID),
@@ -283,13 +283,13 @@ func plausibleCapture(s *GameState, playerID string) []string {
 // plausibleMeld is the same idea for melding: the largest same-rank group in
 // hand, so a refusal says "not enough of them" or "you have not opened" rather
 // than a generic no.
-func plausibleMeld(hand []string, t *Team) []string {
+func plausibleMeld(r ruleset, hand []string, t *Team) []string {
 	best := []string(nil)
 	for rank, cards := range countByRank(hand) {
 		if rank == rankThree || isWild(cards[0]) {
 			continue
 		}
-		if t != nil && t.meld(rank) != nil {
+		if t != nil && t.rankIsFull(r, rank) {
 			continue
 		}
 		if len(cards) > len(best) {

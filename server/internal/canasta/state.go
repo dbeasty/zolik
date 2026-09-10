@@ -82,6 +82,14 @@ const (
 	ErrCannotDiscardThree = "CANNOT_DISCARD_RED_THREE"
 	ErrCannotGoOutYet     = "CANNOT_GO_OUT_YET"
 	ErrMustKeepACard      = "MUST_KEEP_A_CARD"
+
+	// Sequences, in the variations that have them. A closed samba reports the
+	// existing MELD_CLOSED and a permanently frozen pile the existing
+	// PILE_FROZEN: both say exactly what happened, and a second code per
+	// variation would be a second sentence to translate for no new meaning.
+	ErrSequenceNoWilds      = "SEQUENCE_NO_WILDS"
+	ErrSequenceNeedsOneSuit = "SEQUENCE_NEEDS_ONE_SUIT"
+	ErrRunNotConsecutive    = "RUN_NOT_CONSECUTIVE"
 )
 
 // Meld is one partnership's set of a single rank.
@@ -179,15 +187,72 @@ type Team struct {
 	// deal. It gates lay-offs, unfreezes the pile for this team, and is reset
 	// every deal.
 	HasMelded bool `json:"hasMelded"`
+	// MeldSeq numbers the sequences this side has laid, so their ids stay
+	// stable while the runs themselves grow at both ends.
+	MeldSeq int `json:"meldSeq,omitempty"`
 }
 
-func (t *Team) meld(rank string) *Meld {
+// groupsOfRank is every group this side has of one rank, open or closed.
+//
+// Plural because Samba allows more than one and keeps them separate. Canasta
+// allows one, which the ruleset says with GroupsPerRank rather than by this
+// function pretending there can only ever be a single answer.
+func (t *Team) groupsOfRank(rank string) []*Meld {
+	var out []*Meld
 	for i := range t.Melds {
-		if t.Melds[i].Rank == rank {
-			return &t.Melds[i]
+		if t.Melds[i].kind() == meldSet && t.Melds[i].Rank == rank {
+			out = append(out, &t.Melds[i])
+		}
+	}
+	return out
+}
+
+// openGroup is the group of this rank that can still take cards, or nil.
+func (t *Team) openGroup(r ruleset, rank string) *Meld {
+	for _, m := range t.groupsOfRank(rank) {
+		if !m.closed(r) {
+			return m
 		}
 	}
 	return nil
+}
+
+// rankIsFull reports that this side may not start another group of this rank.
+//
+// One question, asked by the three places that used to ask "is there a meld of
+// this rank": laying a new meld, enumerating candidates, and capturing the pile.
+// Canasta's cap of one is what made "a meld of this rank exists" and "you may not
+// start another" the same sentence; Samba's absence of a cap is what separates
+// them.
+func (t *Team) rankIsFull(r ruleset, rank string) bool {
+	if r.GroupsPerRank <= 0 {
+		return false
+	}
+	return len(t.groupsOfRank(rank)) >= r.GroupsPerRank
+}
+
+// newMeldID names a meld about to go on the table.
+//
+// A side's first group of a rank keeps the id it has always had, so nothing that
+// already refers to `t0-K` has to learn anything. The cases that could not arise
+// before get suffixes of their own: a second group of a rank is `t0-K-2`, and a
+// sequence is `t0-seq1` from a counter, because a run grows at both ends and an
+// id derived from its low card would not survive the growth.
+func (t *Team) newMeldID(kind, rank string) string {
+	if kind == meldRun {
+		t.MeldSeq++
+		return fmt.Sprintf("t%d-seq%d", t.ID, t.MeldSeq)
+	}
+	base := meldID(t.ID, rank)
+	if t.meldByID(base) == nil {
+		return base
+	}
+	for n := 2; ; n++ {
+		id := fmt.Sprintf("%s-%d", base, n)
+		if t.meldByID(id) == nil {
+			return id
+		}
+	}
 }
 
 func (t *Team) meldByID(id string) *Meld {
