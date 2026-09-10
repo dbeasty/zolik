@@ -394,6 +394,7 @@ export const da: Record<string, string> = {
   'zone.discardPile': 'Kastebunke',
   'zone.melds': 'Kombinationer',
   'zone.teamMelds': 'Din sides kombinationer',
+  'zone.opponentMelds': 'Modstanderens kombinationer',
   'zone.redThrees': 'Røde treere',
   'zone.board': 'Bord',
   'verb.drawFromDeck': 'Træk',

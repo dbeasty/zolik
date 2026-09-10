@@ -396,6 +396,7 @@ export const hr: Record<string, string> = {
   'zone.discardPile': 'Hrpa odbačenih',
   'zone.melds': 'Kombinacije',
   'zone.teamMelds': 'Kombinacije tvoje strane',
+  'zone.opponentMelds': 'Kombinacije protivničke strane',
   'zone.redThrees': 'Crvene trojke',
   'zone.board': 'Stol',
   'verb.drawFromDeck': 'Vuci',

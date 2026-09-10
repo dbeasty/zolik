@@ -395,6 +395,7 @@ export const en: Record<string, string> = {
   'zone.discardPile': 'Discard pile',
   'zone.melds': 'Melds',
   'zone.teamMelds': 'Your side\'s melds',
+  'zone.opponentMelds': 'Their side\'s melds',
   'zone.redThrees': 'Red threes',
   'zone.board': 'Board',
   'verb.drawFromDeck': 'Draw',

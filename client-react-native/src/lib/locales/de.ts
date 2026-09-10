@@ -405,6 +405,7 @@ export const de: Record<string, string> = {
   'zone.discardPile': 'Ablagestapel',
   'zone.melds': 'Auslagen',
   'zone.teamMelds': 'Auslagen deiner Seite',
+  'zone.opponentMelds': 'Auslagen der Gegenseite',
   'zone.redThrees': 'Rote Dreien',
   'zone.board': 'Board',
   'verb.drawFromDeck': 'Ziehen',

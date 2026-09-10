@@ -401,6 +401,7 @@ export const mt: Record<string, string> = {
   'zone.discardPile': 'Munzell tal-iskart',
   'zone.melds': 'Kombinazzjonijiet',
   'zone.teamMelds': 'Il-kombinazzjonijiet tan-naħa tiegħek',
+  'zone.opponentMelds': 'Il-kombinazzjonijiet tan-naħa l-oħra',
   'zone.redThrees': 'Tlietiet ħomor',
   'zone.board': 'Mejda',
   'verb.drawFromDeck': 'Iġbed',

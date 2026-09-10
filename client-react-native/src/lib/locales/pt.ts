@@ -398,6 +398,7 @@ export const pt: Record<string, string> = {
   'zone.discardPile': 'Monte de descartes',
   'zone.melds': 'Combinações',
   'zone.teamMelds': 'Combinações do teu lado',
+  'zone.opponentMelds': 'Combinações do lado adversário',
   'zone.redThrees': 'Treses vermelhos',
   'zone.board': 'Mesa',
   'verb.drawFromDeck': 'Comprar',

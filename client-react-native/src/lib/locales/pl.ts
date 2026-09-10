@@ -399,6 +399,7 @@ export const pl: Record<string, string> = {
   'zone.discardPile': 'Stos odrzuconych',
   'zone.melds': 'Układy',
   'zone.teamMelds': 'Układy twojej strony',
+  'zone.opponentMelds': 'Układy przeciwnej strony',
   'zone.redThrees': 'Czerwone trójki',
   'zone.board': 'Stół',
   'verb.drawFromDeck': 'Dobierz',

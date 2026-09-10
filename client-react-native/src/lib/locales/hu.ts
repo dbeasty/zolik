@@ -404,6 +404,7 @@ export const hu: Record<string, string> = {
   'zone.discardPile': 'Dobópakli',
   'zone.melds': 'Kombinációk',
   'zone.teamMelds': 'Az oldalad kombinációi',
+  'zone.opponentMelds': 'Az ellenfél kombinációi',
   'zone.redThrees': 'Piros hármasok',
   'zone.board': 'Asztal',
   'verb.drawFromDeck': 'Húzás',

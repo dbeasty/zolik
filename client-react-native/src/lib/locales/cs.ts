@@ -394,6 +394,7 @@ export const cs: Record<string, string> = {
   'zone.discardPile': 'Odhazovací balíček',
   'zone.melds': 'Kombinace',
   'zone.teamMelds': 'Kombinace tvé strany',
+  'zone.opponentMelds': 'Kombinace soupeře',
   'zone.redThrees': 'Červené trojky',
   'zone.board': 'Stůl',
   'verb.drawFromDeck': 'Líznout',

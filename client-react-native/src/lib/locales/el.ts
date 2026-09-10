@@ -408,6 +408,7 @@ export const el: Record<string, string> = {
   'zone.discardPile': 'Σωρός απόρριψης',
   'zone.melds': 'Συνδυασμοί',
   'zone.teamMelds': 'Συνδυασμοί της πλευράς σου',
+  'zone.opponentMelds': 'Συνδυασμοί του αντιπάλου',
   'zone.redThrees': 'Κόκκινα τριάρια',
   'zone.board': 'Τραπέζι',
   'verb.drawFromDeck': 'Τράβα',

@@ -393,6 +393,7 @@ export const sl: Record<string, string> = {
   'zone.discardPile': 'Kup odvrženih',
   'zone.melds': 'Kombinacije',
   'zone.teamMelds': 'Kombinacije tvoje strani',
+  'zone.opponentMelds': 'Kombinacije nasprotnikove strani',
   'zone.redThrees': 'Rdeče trojke',
   'zone.board': 'Miza',
   'verb.drawFromDeck': 'Vzemi',

@@ -400,6 +400,7 @@ export const bg: Record<string, string> = {
   'zone.discardPile': 'Изхвърлени',
   'zone.melds': 'Комбинации',
   'zone.teamMelds': 'Комбинации на твоята страна',
+  'zone.opponentMelds': 'Комбинации на противника',
   'zone.redThrees': 'Червени тройки',
   'zone.board': 'Маса',
   'verb.drawFromDeck': 'Тегли',

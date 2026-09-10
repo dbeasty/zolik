@@ -408,6 +408,7 @@ export const ga: Record<string, string> = {
   'zone.discardPile': 'Carn caite',
   'zone.melds': 'Cumaisc',
   'zone.teamMelds': 'Cumaisc do thaobha',
+  'zone.opponentMelds': 'Cumaisc an taoibh eile',
   'zone.redThrees': 'Trínna dearga',
   'zone.board': 'Bord',
   'verb.drawFromDeck': 'Tarraing',

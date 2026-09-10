@@ -399,6 +399,7 @@ export const fr: Record<string, string> = {
   'zone.discardPile': 'Défausse',
   'zone.melds': 'Combinaisons',
   'zone.teamMelds': 'Combinaisons de ton camp',
+  'zone.opponentMelds': 'Combinaisons du camp adverse',
   'zone.redThrees': 'Trois rouges',
   'zone.board': 'Tableau',
   'verb.drawFromDeck': 'Piocher',
