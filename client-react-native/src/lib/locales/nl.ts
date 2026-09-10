@@ -403,6 +403,7 @@ export const nl: Record<string, string> = {
   'zone.discardPile': 'Aflegstapel',
   'zone.melds': 'Combinaties',
   'zone.teamMelds': 'Combinaties van jouw partij',
+  'zone.opponentMelds': 'Combinaties van de tegenpartij',
   'zone.redThrees': 'Rode drieën',
   'zone.board': 'Board',
   'verb.drawFromDeck': 'Pakken',

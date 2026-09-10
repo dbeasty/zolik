@@ -399,6 +399,7 @@ export const ro: Record<string, string> = {
   'zone.discardPile': 'Teancul de aruncate',
   'zone.melds': 'Combinații',
   'zone.teamMelds': 'Combinațiile taberei tale',
+  'zone.opponentMelds': 'Combinațiile taberei adverse',
   'zone.redThrees': 'Treiuri roșii',
   'zone.board': 'Masă',
   'verb.drawFromDeck': 'Trage',

@@ -395,6 +395,7 @@ export const et: Record<string, string> = {
   'zone.discardPile': 'Viskepakk',
   'zone.melds': 'Kombinatsioonid',
   'zone.teamMelds': 'Sinu poole kombinatsioonid',
+  'zone.opponentMelds': 'Vastase poole kombinatsioonid',
   'zone.redThrees': 'Punased kolmed',
   'zone.board': 'Laud',
   'verb.drawFromDeck': 'Tõmba',

@@ -396,6 +396,7 @@ export const lv: Record<string, string> = {
   'zone.discardPile': 'Izmešanas kaudze',
   'zone.melds': 'Kombinācijas',
   'zone.teamMelds': 'Tavas puses kombinācijas',
+  'zone.opponentMelds': 'Pretinieka puses kombinācijas',
   'zone.redThrees': 'Sarkanie trijnieki',
   'zone.board': 'Galds',
   'verb.drawFromDeck': 'Velc',

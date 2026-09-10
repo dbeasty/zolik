@@ -166,11 +166,20 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 	// One spread per partnership. Melds are groups inside it, badged with what
 	// they have become — a client renders "canasta" without knowing that seven
 	// is the number.
+	viewerTeam := s.team(viewerID)
 	for i := range s.Teams {
 		t := &s.Teams[i]
-		z := module.Zone{
-			ID: meldsZoneID(t.ID), Kind: module.ZoneSpread,
-			LabelKey: "zone.teamMelds", Count: 0,
+		var z module.Zone
+		if viewerTeam != nil && t.ID == viewerTeam.ID {
+			z = module.Zone{
+				ID: meldsZoneID(t.ID), Kind: module.ZoneSpread,
+				LabelKey: "zone.teamMelds", Count: 0,
+			}
+		} else {
+			z = module.Zone{
+				ID: meldsZoneID(t.ID), Kind: module.ZoneSpread,
+				LabelKey: "zone.opponentMelds", Count: 0,
+			}
 		}
 		for _, mm := range t.Melds {
 			g := module.Group{ID: mm.ID, Kind: "set", Cards: append([]string(nil), mm.Cards...)}

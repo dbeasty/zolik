@@ -433,6 +433,7 @@
     "zone.drawPile",
     "zone.melds",
     "zone.opponentHand",
+    "zone.opponentMelds",
     "zone.redThrees",
     "zone.teamMelds",
     "zone.yourHand"

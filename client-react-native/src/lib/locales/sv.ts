@@ -391,6 +391,7 @@ export const sv: Record<string, string> = {
   'zone.discardPile': 'Kasthög',
   'zone.melds': 'Kombinationer',
   'zone.teamMelds': 'Din sidas kombinationer',
+  'zone.opponentMelds': 'Motståndarsidans kombinationer',
   'zone.redThrees': 'Röda treor',
   'zone.board': 'Bord',
   'verb.drawFromDeck': 'Dra',

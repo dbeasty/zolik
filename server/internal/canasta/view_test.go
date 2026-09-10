@@ -199,6 +199,47 @@ func TestViewCarriesTheScoreboard(t *testing.T) {
 	}
 }
 
+// TestMeldZoneLabelsAreFromTheViewersSide catches a label bug that looks
+// nothing like a data leak but has the same effect on a player: every meld
+// zone was rendered as "your side's melds" regardless of which team it
+// actually belonged to, so a player could not tell an opponent's meld from
+// their own and tried to lay off onto a meld that was never theirs.
+func TestMeldZoneLabelsAreFromTheViewersSide(t *testing.T) {
+	raw := fourHanded(func(s *GameState) {
+		s.Teams[0].Melds = []Meld{{ID: meldID(0, "A"), TeamID: 0, Rank: "A",
+			Cards: []string{"AH", "AS", "AD"}}}
+		s.Teams[1].Melds = []Meld{{ID: meldID(1, "K"), TeamID: 1, Rank: "K",
+			Cards: []string{"KH", "KD", "KS"}}}
+	})
+
+	labelOf := func(viewer string, teamID int) string {
+		vm, err := New().View(raw, viewer)
+		if err != nil {
+			t.Fatalf("View: %v", err)
+		}
+		for _, z := range vm.Zones {
+			if z.ID == meldsZoneID(teamID) {
+				return z.LabelKey
+			}
+		}
+		t.Fatalf("no meld zone for team %d in %s's view", teamID, viewer)
+		return ""
+	}
+
+	if got := labelOf("p1", 0); got != "zone.teamMelds" {
+		t.Errorf("p1 viewing their own team's melds: got %q, want zone.teamMelds", got)
+	}
+	if got := labelOf("p1", 1); got != "zone.opponentMelds" {
+		t.Errorf("p1 viewing the other team's melds: got %q, want zone.opponentMelds", got)
+	}
+	if got := labelOf("p2", 1); got != "zone.teamMelds" {
+		t.Errorf("p2 viewing their own team's melds: got %q, want zone.teamMelds", got)
+	}
+	if got := labelOf("p2", 0); got != "zone.opponentMelds" {
+		t.Errorf("p2 viewing the other team's melds: got %q, want zone.opponentMelds", got)
+	}
+}
+
 // TestPromptsExplainWhatIsMissing — the offers say what a player may do; the
 // prompts say what they are working toward, which is the part a player cannot
 // infer from a greyed-out button.

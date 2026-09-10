@@ -394,6 +394,7 @@ export const lt: Record<string, string> = {
   'zone.discardPile': 'Atmetimo krūvelė',
   'zone.melds': 'Deriniai',
   'zone.teamMelds': 'Tavo pusės deriniai',
+  'zone.opponentMelds': 'Priešininko pusės deriniai',
   'zone.redThrees': 'Raudoni trejetai',
   'zone.board': 'Stalas',
   'verb.drawFromDeck': 'Traukti',

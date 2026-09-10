@@ -397,6 +397,7 @@ export const fi: Record<string, string> = {
   'zone.discardPile': 'Poistopino',
   'zone.melds': 'Yhdistelmät',
   'zone.teamMelds': 'Puolesi yhdistelmät',
+  'zone.opponentMelds': 'Vastustajan yhdistelmät',
   'zone.redThrees': 'Punaiset kolmoset',
   'zone.board': 'Pöytä',
   'verb.drawFromDeck': 'Nosta',
