@@ -133,7 +133,7 @@ export const cs: Record<string, string> = {
   'canasta.rules.section.melding': 'Vykládání',
   'canasta.rules.section.end': 'Konec zápasu',
   'canasta.rules.goal': 'Hraje se ve dvojicích; zápas vyhrává strana, která první dosáhne {n} bodů.',
-  'canasta.rules.deck': 'Hraje se s {value} kartami — dva balíčky plus žolíci.',
+  'canasta.rules.deck': 'Hraje se s {value} kartami — {decks} balíčky plus žolíci.',
   'canasta.rules.deal': 'Každý hráč dostane {n} karet.',
   'canasta.rules.drawCount': 'Na začátku tahu si líznete {n} karty.',
   'canasta.rules.redThrees':

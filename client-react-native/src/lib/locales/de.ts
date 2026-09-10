@@ -136,7 +136,7 @@ export const de: Record<string, string> = {
   'canasta.rules.section.end': 'Wie die Partie endet',
   'canasta.rules.goal':
     'Gespielt wird in Partnerschaften; die erste Seite mit {n} Punkten gewinnt die Partie.',
-  'canasta.rules.deck': 'Gespielt mit {value} Karten — zwei Blätter plus Joker.',
+  'canasta.rules.deck': 'Gespielt mit {value} Karten — {decks} Blätter plus Joker.',
   'canasta.rules.deal': 'Jeder Spieler erhält {n} Karten.',
   'canasta.rules.drawCount': 'Zu Beginn deines Zuges ziehst du {n} Karten.',
   'canasta.rules.redThrees':

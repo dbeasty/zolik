@@ -137,7 +137,7 @@ export const hu: Record<string, string> = {
   'canasta.rules.section.end': 'Hogyan ér véget a mérkőzés',
   'canasta.rules.goal':
     'Párokban játsszák; az az oldal nyeri a mérkőzést, amelyik elsőként éri el a(z) {n} pontot.',
-  'canasta.rules.deck': '{value} lappal játsszák — két pakli plusz jokerek.',
+  'canasta.rules.deck': '{value} lappal játsszák — {decks} pakli plusz jokerek.',
   'canasta.rules.deal': 'Minden játékos {n} lapot kap.',
   'canasta.rules.drawCount': 'A köröd elején {n} lapot húzol.',
   'canasta.rules.redThrees':

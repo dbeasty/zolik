@@ -132,7 +132,7 @@ export const et: Record<string, string> = {
   'canasta.rules.section.melding': 'Väljapanek',
   'canasta.rules.section.end': 'Kuidas matš lõpeb',
   'canasta.rules.goal': 'Mängitakse paarides; esimene pool, kes jõuab {n} punktini, võidab matši.',
-  'canasta.rules.deck': 'Mängitakse {value} kaardiga — kaks pakki pluss jokkerid.',
+  'canasta.rules.deck': 'Mängitakse {value} kaardiga — {decks} pakki pluss jokkerid.',
   'canasta.rules.deal': 'Iga mängija saab {n} kaarti.',
   'canasta.rules.drawCount': 'Käigu alguses tõmbad {n} kaarti.',
   'canasta.rules.redThrees':

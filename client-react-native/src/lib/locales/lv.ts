@@ -134,7 +134,7 @@ export const lv: Record<string, string> = {
   'canasta.rules.section.melding': 'Izlikšana',
   'canasta.rules.section.end': 'Kā beidzas mačs',
   'canasta.rules.goal': 'Spēlē pāros; pirmā puse, kas sasniedz {n} punktus, uzvar mačā.',
-  'canasta.rules.deck': 'Spēlē ar {value} kārtīm — divas kavas plus džokeri.',
+  'canasta.rules.deck': 'Spēlē ar {value} kārtīm — {decks} kavas plus džokeri.',
   'canasta.rules.deal': 'Katrs spēlētājs saņem {n} kārtis.',
   'canasta.rules.drawCount': 'Gājiena sākumā tu paņem {n} kārtis.',
   'canasta.rules.redThrees':

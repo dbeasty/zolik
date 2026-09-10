@@ -28,7 +28,7 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 	deck := strconv.Itoa(v.Decks*52 + v.Decks*v.JokersPerDeck)
 
 	setup := []module.Fact{
-		{LabelKey: "canasta.rules.deck", Value: deck},
+		{LabelKey: "canasta.rules.deck", Value: deck, Params: map[string]any{"decks": v.Decks}},
 		{LabelKey: "canasta.rules.deal", Params: map[string]any{"n": handSize}},
 		{LabelKey: "canasta.rules.redThrees"},
 	}

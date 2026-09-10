@@ -130,7 +130,7 @@ export const da: Record<string, string> = {
   'canasta.rules.section.melding': 'At lægge ud',
   'canasta.rules.section.end': 'Sådan slutter matchen',
   'canasta.rules.goal': 'Der spilles i makkerpar; den første side, der når {n} point, vinder matchen.',
-  'canasta.rules.deck': 'Spilles med {value} kort — to spil plus jokere.',
+  'canasta.rules.deck': 'Spilles med {value} kort — {decks} spil plus jokere.',
   'canasta.rules.deal': 'Hver spiller får {n} kort.',
   'canasta.rules.drawCount': 'Du trækker {n} kort i begyndelsen af din tur.',
   'canasta.rules.redThrees':

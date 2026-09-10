@@ -136,7 +136,7 @@ export const es: Record<string, string> = {
   'canasta.rules.section.melding': 'Bajarse',
   'canasta.rules.section.end': 'Cómo termina la partida',
   'canasta.rules.goal': 'Se juega por parejas; el primer bando en llegar a {n} puntos gana la partida.',
-  'canasta.rules.deck': 'Se juega con {value} cartas — dos barajas más comodines.',
+  'canasta.rules.deck': 'Se juega con {value} cartas — {decks} barajas más comodines.',
   'canasta.rules.deal': 'Cada jugador recibe {n} cartas.',
   'canasta.rules.drawCount': 'Robas {n} cartas al principio de tu turno.',
   'canasta.rules.redThrees':

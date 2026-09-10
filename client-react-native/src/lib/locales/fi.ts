@@ -134,7 +134,7 @@ export const fi: Record<string, string> = {
   'canasta.rules.section.melding': 'Laskeminen',
   'canasta.rules.section.end': 'Miten ottelu päättyy',
   'canasta.rules.goal': 'Pelataan pareittain; ensimmäisenä {n} pisteeseen yltävä puoli voittaa ottelun.',
-  'canasta.rules.deck': 'Pelataan {value} kortilla — kaksi pakkaa ja jokerit.',
+  'canasta.rules.deck': 'Pelataan {value} kortilla — {decks} pakkaa ja jokerit.',
   'canasta.rules.deal': 'Jokainen pelaaja saa {n} korttia.',
   'canasta.rules.drawCount': 'Nostat {n} korttia vuorosi alussa.',
   'canasta.rules.redThrees':

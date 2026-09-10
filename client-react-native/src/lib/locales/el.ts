@@ -138,7 +138,7 @@ export const el: Record<string, string> = {
   'canasta.rules.section.end': 'Πώς τελειώνει ο αγώνας',
   'canasta.rules.goal':
     'Παίζεται σε ζευγάρια· η πρώτη πλευρά που φτάνει τους {n} πόντους κερδίζει τον αγώνα.',
-  'canasta.rules.deck': 'Παίζεται με {value} φύλλα — δύο τράπουλες συν μπαλαντέρ.',
+  'canasta.rules.deck': 'Παίζεται με {value} φύλλα — {decks} τράπουλες συν μπαλαντέρ.',
   'canasta.rules.deal': 'Κάθε παίκτης παίρνει {n} φύλλα.',
   'canasta.rules.drawCount': 'Στην αρχή του γύρου σου τραβάς {n} φύλλα.',
   'canasta.rules.redThrees':

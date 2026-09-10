@@ -133,7 +133,7 @@ export const sl: Record<string, string> = {
   'canasta.rules.section.melding': 'Polaganje',
   'canasta.rules.section.end': 'Kako se tekma konča',
   'canasta.rules.goal': 'Igra se v parih; prva stran, ki doseže {n} točk, dobi tekmo.',
-  'canasta.rules.deck': 'Igra se s {value} kartami — dva kompleta in jokerji.',
+  'canasta.rules.deck': 'Igra se s {value} kartami — {decks} kompleta in jokerji.',
   'canasta.rules.deal': 'Vsak igralec dobi {n} kart.',
   'canasta.rules.drawCount': 'Na začetku poteze vlečeš {n} karti.',
   'canasta.rules.redThrees':

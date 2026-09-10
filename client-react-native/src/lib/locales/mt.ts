@@ -134,7 +134,7 @@ export const mt: Record<string, string> = {
   'canasta.rules.section.melding': 'It-tniżżil',
   'canasta.rules.section.end': 'Kif tispiċċa l-partita',
   'canasta.rules.goal': "Jintlagħab f'pari; l-ewwel naħa li tilħaq {n} punti tirbaħ il-partita.",
-  'canasta.rules.deck': "Jintlagħab b'{value} karti — żewġ mazzi flimkien mal-jokers.",
+  'canasta.rules.deck': "Jintlagħab b'{value} karti — {decks} mazzi flimkien mal-jokers.",
   'canasta.rules.deal': 'Kull plejer jieħu {n} karti.',
   'canasta.rules.drawCount': 'Fil-bidu tad-dawra tiegħek tiġbed {n} karti.',
   'canasta.rules.redThrees':

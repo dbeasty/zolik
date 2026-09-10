@@ -31,7 +31,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 				MaxPlayers: variations["classic"].MaxSeats,
 				Label:      "Classic",
 				Summary: []module.Fact{
-					{LabelKey: "canasta.rules.deck", Value: "108"},
+					{LabelKey: "canasta.rules.deck", Value: "108", Params: map[string]any{"decks": variations["classic"].Decks}},
 					{LabelKey: "canasta.rules.canasta", Params: map[string]any{"n": canastaSize}},
 					{LabelKey: "canasta.rules.redThrees"},
 					{LabelKey: "canasta.rules.oneCanastaToGoOut"},
@@ -49,7 +49,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 				MaxPlayers: variations["modern_american"].MaxSeats,
 				Label:      "Modern American",
 				Summary: []module.Fact{
-					{LabelKey: "canasta.rules.deck", Value: "108"},
+					{LabelKey: "canasta.rules.deck", Value: "108", Params: map[string]any{"decks": variations["modern_american"].Decks}},
 					{LabelKey: "canasta.rules.canasta", Params: map[string]any{"n": canastaSize}},
 					{LabelKey: "canasta.rules.redThrees"},
 					{LabelKey: "canasta.rules.twoCanastasToGoOut"},
@@ -70,7 +70,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 				// the other two seat four on 108.
 				MaxPlayers: variations["samba"].MaxSeats,
 				Summary: []module.Fact{
-					{LabelKey: "canasta.rules.deck", Value: "162"},
+					{LabelKey: "canasta.rules.deck", Value: "162", Params: map[string]any{"decks": variations["samba"].Decks}},
 					{LabelKey: "canasta.rules.sequences"},
 					{LabelKey: "canasta.rules.samba", Params: map[string]any{"n": variations["samba"].SambaBonus}},
 					{LabelKey: "canasta.rules.pileAlwaysFrozen"},

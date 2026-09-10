@@ -134,7 +134,7 @@ export const it: Record<string, string> = {
   'canasta.rules.section.melding': 'Calare',
   'canasta.rules.section.end': 'Come finisce la partita',
   'canasta.rules.goal': 'Si gioca a coppie; la prima coppia a raggiungere {n} punti vince la partita.',
-  'canasta.rules.deck': 'Si gioca con {value} carte — due mazzi più i jolly.',
+  'canasta.rules.deck': 'Si gioca con {value} carte — {decks} mazzi più i jolly.',
   'canasta.rules.deal': 'A ogni giocatore vengono date {n} carte.',
   'canasta.rules.drawCount': "All'inizio del turno peschi {n} carte.",
   'canasta.rules.redThrees':

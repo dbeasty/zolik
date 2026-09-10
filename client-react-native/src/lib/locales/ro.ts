@@ -134,7 +134,7 @@ export const ro: Record<string, string> = {
   'canasta.rules.section.melding': 'Coborârea',
   'canasta.rules.section.end': 'Cum se încheie meciul',
   'canasta.rules.goal': 'Se joacă în echipe; prima tabără care ajunge la {n} puncte câștigă meciul.',
-  'canasta.rules.deck': 'Se joacă cu {value} cărți — două pachete plus jokeri.',
+  'canasta.rules.deck': 'Se joacă cu {value} cărți — {decks} pachete plus jokeri.',
   'canasta.rules.deal': 'Fiecare jucător primește {n} cărți.',
   'canasta.rules.drawCount': 'La începutul turei tragi {n} cărți.',
   'canasta.rules.redThrees':

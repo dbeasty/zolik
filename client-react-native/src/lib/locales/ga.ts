@@ -137,7 +137,7 @@ export const ga: Record<string, string> = {
   'canasta.rules.section.melding': 'Leagan síos',
   'canasta.rules.section.end': 'Conas a chríochnaíonn an cluiche',
   'canasta.rules.goal': 'Imrítear i mbeirteanna; buann an chéad taobh a shroicheann {n} bpointe an cluiche.',
-  'canasta.rules.deck': 'Imrítear le {value} cárta — dhá phaca agus áilteoirí.',
+  'canasta.rules.deck': 'Imrítear le {value} cárta — {decks} phaca agus áilteoirí.',
   'canasta.rules.deal': 'Faigheann gach imreoir {n} chárta.',
   'canasta.rules.drawCount': 'Tarraingíonn tú {n} chárta ag tús do sheala.',
   'canasta.rules.redThrees':

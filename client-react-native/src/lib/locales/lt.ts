@@ -132,7 +132,7 @@ export const lt: Record<string, string> = {
   'canasta.rules.section.melding': 'Išdėjimas',
   'canasta.rules.section.end': 'Kaip baigiasi rungtynės',
   'canasta.rules.goal': 'Žaidžiama poromis; pirmoji pusė, pasiekusi {n} taškų, laimi rungtynes.',
-  'canasta.rules.deck': 'Žaidžiama {value} kortomis — dvi kaladės ir džokeriai.',
+  'canasta.rules.deck': 'Žaidžiama {value} kortomis — {decks} kaladės ir džokeriai.',
   'canasta.rules.deal': 'Kiekvienas žaidėjas gauna {n} kortų.',
   'canasta.rules.drawCount': 'Ėjimo pradžioje imi {n} kortas.',
   'canasta.rules.redThrees':

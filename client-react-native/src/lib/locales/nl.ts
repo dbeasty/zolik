@@ -134,7 +134,7 @@ export const nl: Record<string, string> = {
   'canasta.rules.section.end': 'Hoe de partij eindigt',
   'canasta.rules.goal':
     'Er wordt in koppels gespeeld; de eerste partij die {n} punten haalt, wint de wedstrijd.',
-  'canasta.rules.deck': 'Gespeeld met {value} kaarten — twee spellen plus jokers.',
+  'canasta.rules.deck': 'Gespeeld met {value} kaarten — {decks} spellen plus jokers.',
   'canasta.rules.deal': 'Elke speler krijgt {n} kaarten.',
   'canasta.rules.drawCount': 'Je pakt {n} kaarten aan het begin van je beurt.',
   'canasta.rules.redThrees':

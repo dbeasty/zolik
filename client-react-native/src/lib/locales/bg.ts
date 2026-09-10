@@ -134,7 +134,7 @@ export const bg: Record<string, string> = {
   'canasta.rules.section.melding': 'Сваляне',
   'canasta.rules.section.end': 'Как свършва мачът',
   'canasta.rules.goal': 'Играе се по двойки; първата страна, стигнала {n} точки, печели мача.',
-  'canasta.rules.deck': 'Играе се с {value} карти — две тестета плюс жокери.',
+  'canasta.rules.deck': 'Играе се с {value} карти — {decks} тестета плюс жокери.',
   'canasta.rules.deal': 'Всеки играч получава {n} карти.',
   'canasta.rules.drawCount': 'В началото на своя ход теглиш {n} карти.',
   'canasta.rules.redThrees':
