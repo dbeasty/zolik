@@ -144,7 +144,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 
 	// --- lay a new meld ------------------------------------------------------
 	laid := 0
-	for _, c := range newMeldCandidates(hand, t) {
+	for _, c := range allMeldCandidates(hand, t) {
 		a := module.Action{Verb: VerbLayMeld, Cards: c.Cards}
 		ok, _ := probe(m, raw, playerID, a)
 		if !ok {
