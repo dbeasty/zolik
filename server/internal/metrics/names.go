@@ -27,6 +27,11 @@ const (
 	// finish. completionRate subtracts these from the abandoned side for
 	// exactly that reason.
 	MatchesResumed = "matches.resumed"
+	// MatchesDeleted counts rows retention removed. Not a lifecycle event —
+	// the game it refers to had already finished, been abandoned, or never
+	// started — but the one number that says the sweeper is doing anything,
+	// and the one that would show a window set far too short.
+	MatchesDeleted = "matches.deleted"
 
 	// UsersRegistered counts accounts, not people arriving: a guest who plays
 	// for a month and never signs up is in SessionsGuest and in the day's

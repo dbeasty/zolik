@@ -18,6 +18,7 @@ import (
 
 	"zolik/server/internal/db"
 	"zolik/server/internal/models"
+	"zolik/server/internal/rules"
 )
 
 // ErrVersionConflict is returned when someone else wrote first.
@@ -45,6 +46,18 @@ type Repository interface {
 	// not swept, and invisible to any count of how many games went unfinished.
 	// This is the read that makes the field mean something.
 	FindAbandonable(ctx context.Context, now time.Time, limit int) ([]models.Match, error)
+	// FindRetired lists matches that have reached a status they cannot leave
+	// and have sat there past that status's retention window. Candidates only:
+	// the caller re-checks each one and deletes under a version guard.
+	FindRetired(ctx context.Context, now time.Time, w RetentionWindows, limit int) ([]models.Match, error)
+	// DeleteIfUnchanged removes a match only if its version is still the one
+	// the caller read.
+	//
+	// The guard is not ceremony. An abandoned table can be resumed, so a row
+	// that qualified for deletion when it was scanned may be a live game
+	// moments later; without the check, retention would occasionally delete a
+	// match out from under the player who had just picked it back up.
+	DeleteIfUnchanged(ctx context.Context, id bson.ObjectID, expected int64) error
 }
 
 type mongoRepository struct {
@@ -106,6 +119,50 @@ func (r *mongoRepository) UpdateWithVersion(ctx context.Context, id bson.ObjectI
 		return err
 	}
 	if res.MatchedCount == 0 {
+		return ErrVersionConflict
+	}
+	return nil
+}
+
+// FindRetired lists resolved matches past their retention window.
+//
+// One query per enabled class, or-ed together, so a disabled class contributes
+// no clause at all rather than a clause that can never match. `active` and
+// `suspended` are unrepresentable here by construction.
+func (r *mongoRepository) FindRetired(ctx context.Context, now time.Time, w RetentionWindows, limit int) ([]models.Match, error) {
+	var or []bson.M
+	if w.Lobby > 0 {
+		or = append(or, bson.M{"status": "lobby", "createdAt": bson.M{"$lt": now.Add(-w.Lobby)}})
+	}
+	if w.Completed > 0 {
+		or = append(or, bson.M{"status": "completed", "endedAt": bson.M{"$lt": now.Add(-w.Completed)}})
+	}
+	if w.Abandoned > 0 {
+		or = append(or, bson.M{
+			"status":  string(rules.StatusAbandoned),
+			"endedAt": bson.M{"$lt": now.Add(-w.Abandoned)},
+		})
+	}
+	if len(or) == 0 {
+		return nil, nil
+	}
+	cur, err := r.coll.Find(ctx, bson.M{"$or": or}, options.Find().SetLimit(int64(limit)))
+	if err != nil {
+		return nil, err
+	}
+	var out []models.Match
+	if err := cur.All(ctx, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (r *mongoRepository) DeleteIfUnchanged(ctx context.Context, id bson.ObjectID, expected int64) error {
+	res, err := r.coll.DeleteOne(ctx, bson.M{"_id": id, "version": expected})
+	if err != nil {
+		return err
+	}
+	if res.DeletedCount == 0 {
 		return ErrVersionConflict
 	}
 	return nil

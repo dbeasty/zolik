@@ -4,10 +4,12 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"zolik/server/internal/auth"
 	"zolik/server/internal/db"
 	"zolik/server/internal/identity"
+	"zolik/server/internal/match"
 )
 
 type Config struct {
@@ -113,6 +115,18 @@ type Config struct {
 	// the shape of the process and can be made to stop the world, and
 	// neither belongs on a public listener.
 	DebugEndpointsEnabled bool
+
+	// Retention is how long each kind of resolved match is kept before its row
+	// is deleted. Any window set to 0 keeps that kind for ever.
+	//
+	// The defaults are deliberately generous, because deleting a game is the
+	// one thing here that cannot be undone. A lobby nobody started is litter
+	// within a day. A completed game keeps its board for three months, long
+	// past the point anyone reopens a link, and its permanent record in
+	// match_results outlives that regardless. An abandoned game keeps its for
+	// one month, which is the window in which "pick up where you left off" is
+	// a real offer rather than a promise the sweeper breaks.
+	Retention match.RetentionWindows
 
 	// AdmissionMaxConnections caps concurrently held sockets. Zero (the
 	// default) derives a ceiling from the process's memory limit; -1 turns
@@ -222,6 +236,12 @@ func LoadConfig() Config {
 			FromName: envOr("SMTP_FROM_NAME", "Žolíky"),
 		},
 
+		Retention: match.RetentionWindows{
+			Lobby:     envHours("ZOLIK_RETAIN_LOBBY_HOURS", 24),
+			Completed: envHours("ZOLIK_RETAIN_COMPLETED_HOURS", 90*24),
+			Abandoned: envHours("ZOLIK_RETAIN_ABANDONED_HOURS", 30*24),
+		},
+
 		TestEndpointsEnabled: envBool("ENABLE_TEST_ENDPOINTS", local),
 
 		DebugEndpointsEnabled: envBool("ENABLE_DEBUG_ENDPOINTS", local),
@@ -316,6 +336,20 @@ func envOr(key, fallback string) string {
 // envInt and envFloat follow envBool's manner: an unset, empty, or
 // unparseable value is the fallback, never an error — configuration here is
 // lenient by convention, and the storage-level flags are the strict ones.
+// envHours reads a whole number of hours, in envBool's lenient manner. Hours
+// rather than a Go duration string because these are operator-facing knobs
+// measured in days, and "720" is harder to typo into something surprising than
+// "720h" is — a missing unit parses as neither, so it falls back rather than
+// silently meaning nanoseconds. A negative value is treated as zero: "keep
+// everything", which is the safe reading of a nonsense window.
+func envHours(key string, fallbackHours int) time.Duration {
+	h := envInt(key, fallbackHours)
+	if h <= 0 {
+		return 0
+	}
+	return time.Duration(h) * time.Hour
+}
+
 func envInt(key string, fallback int) int {
 	v := strings.TrimSpace(os.Getenv(key))
 	if v == "" {
