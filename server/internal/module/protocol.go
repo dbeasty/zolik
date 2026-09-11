@@ -329,6 +329,28 @@ type Selector struct {
 	Cards      []string    `json:"cards,omitempty"`
 	Placements []Placement `json:"placements,omitempty"`
 
+	// Submit is the one combination to send when nobody is choosing: a bot
+	// taking this offer, or a client putting it under a single button.
+	//
+	// Cards says which cards *may* go and MinCards/MaxCards bound how many of
+	// them, which between them describe a whole family of legal submissions.
+	// That is the right answer for an interface and no answer at all for a bot:
+	// a Canasta hand with four queens may lay any three of them or all four,
+	// every one of those is legal, and the module's own opinion — lay all
+	// four — was not expressible.
+	//
+	// It used to be read off MinCards, which meant the minimum had to lie
+	// whenever the best submission was not the smallest one. Canasta's meld
+	// offers did lie, and the cost was a hand of four queens that could not lay
+	// three: the offer demanded exactly four and every shorter selection sat
+	// there unready. Saying the two things separately is the same fix Composite
+	// already made for "is this a button", and for the same reason — see its
+	// note on inference.
+	//
+	// Empty means the old reading still applies: the first MinCards cards of
+	// the list, which is what every single-card offer in every module means.
+	Submit []string `json:"submit,omitempty"`
+
 	MinCards int `json:"minCards,omitempty"`
 	MaxCards int `json:"maxCards,omitempty"`
 }
