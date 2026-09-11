@@ -769,6 +769,7 @@ export const sk: Record<string, string> = {
   'nav.scoreTable': 'Tabuľka skóre',
   'nav.stats': 'Štatistiky',
   'nav.more': 'Viac',
+  'nav.about': 'O aplikácii',
 
   // --- the account menu behind the face in the corner ----------------------
   'menu.label': 'Ponuka účtu',
@@ -1017,6 +1018,7 @@ export const sk: Record<string, string> = {
   // --- the build footer -----------------------------------------------------
   'build.app': 'aplikácia',
   'build.server': 'server',
+  'about.subtitle': 'Verzia, ktorú hráte, a drobné písmo.',
   // --- the words the server chose, worded here -------------------------------
   //
   // /modules describes each game, variation, option and choice with an English

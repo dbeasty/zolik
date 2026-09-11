@@ -791,6 +791,7 @@ export const el: Record<string, string> = {
   'nav.scoreTable': 'Πίνακας σκορ',
   'nav.stats': 'Στατιστικά',
   'nav.more': 'Περισσότερα',
+  'nav.about': 'Σχετικά',
 
   // --- the account menu behind the face in the corner ----------------------
   'menu.label': 'Μενού λογαριασμού',
@@ -1045,6 +1046,7 @@ export const el: Record<string, string> = {
   // --- the build footer -----------------------------------------------------
   'build.app': 'εφαρμογή',
   'build.server': 'διακομιστής',
+  'about.subtitle': 'Η έκδοση που παίζετε και τα ψιλά γράμματα.',
   // --- the words the server chose, worded here -------------------------------
   //
   // /modules describes each game, variation, option and choice with an English

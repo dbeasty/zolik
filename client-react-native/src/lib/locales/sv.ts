@@ -766,6 +766,7 @@ export const sv: Record<string, string> = {
   'nav.scoreTable': 'Poängtabell',
   'nav.stats': 'Statistik',
   'nav.more': 'Mer',
+  'nav.about': 'Om',
 
   // --- the account menu behind the face in the corner ----------------------
   'menu.label': 'Kontomeny',
@@ -1015,6 +1016,7 @@ export const sv: Record<string, string> = {
   // --- the build footer -----------------------------------------------------
   'build.app': 'app',
   'build.server': 'server',
+  'about.subtitle': 'Versionen du spelar, och det finstilta.',
   // --- the words the server chose, worded here -------------------------------
   //
   // /modules describes each game, variation, option and choice with an English

@@ -111,6 +111,7 @@ test.describe('no screen can reach a key it has no words for', () => {
     for (const path of [
       '/',
       '/more',
+      '/about',
       '/settings',
       '/auth/login',
       '/auth/guest',

@@ -101,6 +101,10 @@ export default function RootLayout() {
                 />
 
                 <Stack.Screen name="more" options={{ title: t('nav.more') }} />
+                {/* Which build is running, and the notices — reached from the
+                    account menu, which rides every screen, unlike the main
+                    menu's footer where these numbers used to live alone. */}
+                <Stack.Screen name="about" options={{ title: t('nav.about') }} />
                 <Stack.Screen name="scoring/index" options={{ title: t('nav.scoreTable') }} />
                 <Stack.Screen name="stats" options={{ title: t('nav.stats') }} />
                 <Stack.Screen name="settings" options={{ title: t('settings.title') }} />

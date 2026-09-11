@@ -767,6 +767,7 @@ export const cs: Record<string, string> = {
   'nav.scoreTable': 'Tabulka skóre',
   'nav.stats': 'Statistiky',
   'nav.more': 'Další',
+  'nav.about': 'O aplikaci',
 
   // --- the account menu behind the face in the corner ----------------------
   'menu.label': 'Nabídka účtu',
@@ -1014,6 +1015,7 @@ export const cs: Record<string, string> = {
   // --- the build footer -----------------------------------------------------
   'build.app': 'aplikace',
   'build.server': 'server',
+  'about.subtitle': 'Verze, kterou hrajete, a drobné písmo.',
   // --- the words the server chose, worded here -------------------------------
   //
   // /modules describes each game, variation, option and choice with an English

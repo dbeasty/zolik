@@ -771,6 +771,7 @@ export const et: Record<string, string> = {
   'nav.scoreTable': 'Punktitabel',
   'nav.stats': 'Statistika',
   'nav.more': 'Rohkem',
+  'nav.about': 'Teave',
 
   // --- the account menu behind the face in the corner ----------------------
   'menu.label': 'Konto menüü',
@@ -1019,6 +1020,7 @@ export const et: Record<string, string> = {
   // --- the build footer -----------------------------------------------------
   'build.app': 'rakendus',
   'build.server': 'server',
+  'about.subtitle': 'Versioon, mida sa mängid, ja väike kiri.',
   // --- the words the server chose, worded here -------------------------------
   //
   // /modules describes each game, variation, option and choice with an English

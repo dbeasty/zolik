@@ -28,4 +28,33 @@ test.describe('the build footer shows what it is actually running', () => {
     await expect(serverLine).toContainText(version, { timeout: 10_000 });
     await expect(serverLine).toContainText(commit);
   });
+
+  /**
+   * The same two numbers, reached the way a player actually reaches them —
+   * from the face in the corner, which rides every screen, rather than from
+   * the footer of the one screen they have navigated away from. Started from
+   * a screen that has no footer on purpose: a version that is only knowable
+   * from the main menu is not knowable at the moment someone hits a bug.
+   */
+  test('About, off the account menu, says the same thing from another screen', async ({
+    page,
+    request,
+  }) => {
+    const res = await request.get(`${API_BASE}/version`);
+    expect(res.ok()).toBe(true);
+    const { version, commit } = await res.json();
+
+    await page.goto('/settings');
+    await expect(page.getByTestId('build-footer')).toHaveCount(0);
+
+    await page.getByTestId('account-menu-button').click();
+    await page.getByTestId('account-menu-about').click();
+
+    const appLine = page.getByTestId('about-app');
+    await expect(appLine).toHaveText(/\d+\.\d+\.\d+\.\d+/);
+
+    const serverLine = page.getByTestId('about-server');
+    await expect(serverLine).toContainText(version, { timeout: 10_000 });
+    await expect(serverLine).toContainText(commit);
+  });
 });

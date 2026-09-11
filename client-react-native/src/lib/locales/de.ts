@@ -788,6 +788,7 @@ export const de: Record<string, string> = {
   'nav.scoreTable': 'Punktetabelle',
   'nav.stats': 'Statistik',
   'nav.more': 'Mehr',
+  'nav.about': 'Über',
 
   // --- the account menu behind the face in the corner ----------------------
   'menu.label': 'Kontomenü',
@@ -1038,6 +1039,7 @@ export const de: Record<string, string> = {
   // --- the build footer -----------------------------------------------------
   'build.app': 'App',
   'build.server': 'Server',
+  'about.subtitle': 'Der Build, den du spielst, und das Kleingedruckte.',
   // --- the words the server chose, worded here -------------------------------
   //
   // /modules describes each game, variation, option and choice with an English
