@@ -143,6 +143,8 @@ export const ro: Record<string, string> = {
   'canasta.rules.sequences': 'O combinație poate fi și o secvență: trei sau mai multe cărți de aceeași culoare la rând, niciodată cu un joker între ele.',
   'canasta.rules.samba': 'O secvență de șapte cărți este o samba și valorează {n} puncte.',
   'canasta.rules.pileAlwaysFrozen': 'Teancul de aruncate este înghețat toată mâna: îl poți lua doar potrivind cartea de deasupra cu două cărți naturale din mână.',
+  'canasta.rules.pileOntoMeld': 'Dacă partea ta are deja o combinație neterminată de valoarea cărții de deasupra, poți lua tot teancul de aruncate ca să adaugi acea carte la ea — nu ai nevoie de o pereche în mână.',
+  'canasta.rules.pileNoMeldCapture': 'O combinație aflată deja pe masă nu poate lua teancul de aruncate: ca să îl iei trebuie să potrivești cartea de deasupra cu două cărți din propria mână.',
   'canasta.rules.meldFloorBands':
     'Prima ta coborâre trebuie să atingă un minim de puncte care crește odată cu scorul tău: {negative} sub zero, {low} până la 1500, {mid} până la 3000, {high} peste.',
   'canasta.rules.meldFloorBandsFive': 'Prima ta combinație trebuie să atingă un minim de puncte care crește odată cu scorul: {negative} sub zero, {low} până la 1500, {mid} până la 3000, {high} până la 7000 și {top} peste.',
@@ -278,6 +280,7 @@ export const ro: Record<string, string> = {
   'err.PILE_BLOCKED': 'Teancul este blocat — deasupra stă un trei negru',
   'err.PILE_FROZEN':
     'Teancul este înghețat — ai nevoie de două cărți naturale de valoarea cărții de deasupra',
+  'err.MELD_CAPTURE_NOT_ALLOWED': 'În acest joc o combinație de pe masă nu poate lua teancul — ai nevoie de două cărți din mână',
   'err.TOP_CARD_UNUSABLE': 'Nu poți folosi cartea de deasupra',
   'err.MELD_CLOSED': 'Acea combinație este completă și închisă',
   'err.MELD_TOO_SMALL': 'O combinație are nevoie de mai multe cărți decât atât',

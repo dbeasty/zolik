@@ -143,6 +143,8 @@ export const lv: Record<string, string> = {
   'canasta.rules.sequences': 'Kombinācija var būt arī secība: trīs vai vairāk vienas masts kārtis pēc kārtas, nekad ar džokeru starp tām.',
   'canasta.rules.samba': 'Secība no septiņām kārtīm ir samba, un tā ir {n} punktu vērta.',
   'canasta.rules.pileAlwaysFrozen': 'Izmešanas kaudze ir iesaldēta visu dalījumu: to vari paņemt tikai tad, ja augšējai kārtij pievieno divas dabiskās kārtis no rokas.',
+  'canasta.rules.pileOntoMeld': 'Ja tavai pusei jau ir nepabeigta kombinācija augšējās kārts vērtībā, vari paņemt visu izmešanas kaudzi un pievienot tai šo kārti — pāris rokā nav vajadzīgs.',
+  'canasta.rules.pileNoMeldCapture': 'Kombinācija, kas jau ir uz galda, izmešanas kaudzi paņemt nevar: lai to paņemtu, augšējai kārtij jāpievieno divas kārtis no paša rokas.',
   'canasta.rules.meldFloorBands':
     'Tavai pirmajai izlikšanai jāsasniedz punktu minimums, kas aug līdz ar tavu rezultātu: {negative} zem nulles, {low} līdz 1500, {mid} līdz 3000, {high} virs tā.',
   'canasta.rules.meldFloorBandsFive': 'Tavai pirmajai kombinācijai jāsasniedz punktu minimums, kas aug līdz ar tavu rezultātu: {negative} zem nulles, {low} līdz 1500, {mid} līdz 3000, {high} līdz 7000 un {top} virs tā.',
@@ -277,6 +279,7 @@ export const lv: Record<string, string> = {
   'err.PILE_EMPTY': 'Kaudze ir tukša',
   'err.PILE_BLOCKED': 'Kaudze ir bloķēta — virspusē guļ melns trijnieks',
   'err.PILE_FROZEN': 'Kaudze ir iesaldēta — tev vajadzīgas divas dabiskas augšējās kārts vērtības kārtis',
+  'err.MELD_CAPTURE_NOT_ALLOWED': 'Šajā spēlē kombinācija uz galda kaudzi paņemt nevar — vajadzīgas divas kārtis no rokas',
   'err.TOP_CARD_UNUSABLE': 'Tu nevari izmantot augšējo kārti',
   'err.MELD_CLOSED': 'Šī kombinācija ir pilna un slēgta',
   'err.MELD_TOO_SMALL': 'Kombinācijai vajag vairāk kāršu nekā tik',

@@ -137,6 +137,8 @@ export const sv: Record<string, string> = {
   'canasta.rules.sequences': 'En kombination kan också vara en sekvens: tre eller fler kort i samma färg i följd, aldrig med ett vilt kort bland dem.',
   'canasta.rules.samba': 'En sekvens på sju kort är en samba och ger {n} poäng.',
   'canasta.rules.pileAlwaysFrozen': 'Kasthögen är fryst hela given: du kan bara ta den genom att lägga två naturliga kort från handen till det översta kortet.',
+  'canasta.rules.pileOntoMeld': 'Har din sida redan en oavslutad kombination av det översta kortets valör får du ta hela kasthögen och lägga det kortet till den — du behöver inget par på handen.',
+  'canasta.rules.pileNoMeldCapture': 'En kombination som redan ligger på bordet kan inte ta kasthögen: för att ta den måste du lägga två kort från din egen hand till det översta kortet.',
   'canasta.rules.meldFloorBands':
     'Din första utläggning måste nå ett poängminimum som stiger med din ställning: {negative} under noll, {low} upp till 1500, {mid} upp till 3000, {high} däröver.',
   'canasta.rules.meldFloorBandsFive': 'Din första kombination måste nå ett poängminimum som stiger med ditt resultat: {negative} under noll, {low} upp till 1500, {mid} upp till 3000, {high} upp till 7000 och {top} däröver.',
@@ -270,6 +272,7 @@ export const sv: Record<string, string> = {
   'err.PILE_EMPTY': 'Högen är tom',
   'err.PILE_BLOCKED': 'Högen är blockerad — en svart trea ligger överst',
   'err.PILE_FROZEN': 'Högen är frusen — du behöver två naturliga kort av det översta kortets valör',
+  'err.MELD_CAPTURE_NOT_ALLOWED': 'I det här spelet kan en kombination på bordet inte ta högen — du behöver två kort från handen',
   'err.TOP_CARD_UNUSABLE': 'Du kan inte använda det översta kortet',
   'err.MELD_CLOSED': 'Den kombinationen är fullständig och stängd',
   'err.MELD_TOO_SMALL': 'En kombination behöver fler kort än så',

@@ -51,6 +51,15 @@ type ruleset struct {
 	// PileAlwaysFrozen makes every capture require two naturals from hand, for
 	// the whole deal, against everyone.
 	PileAlwaysFrozen bool `json:"pileAlwaysFrozen,omitempty"`
+	// PileMeldCapture is whether an open meld the side already has on the table
+	// can reach up and take the pile, with nothing spent from hand. It is the
+	// cheapest capture in the game — the top card is already matched, so the
+	// price is a meld you laid on some earlier turn — and Modern American is
+	// defined partly by refusing it: there, the pile always costs two cards out
+	// of your hand. Declared on every variation rather than defaulted, because
+	// a zero value here would silently hand the cheap capture to a variation
+	// whose whole character is not having it.
+	PileMeldCapture bool `json:"pileMeldCapture"`
 
 	// MeldFloors are the initial-meld minimums, ascending by the score they
 	// start at. Below zero every variation asks for negativeMeldFloor.
@@ -136,6 +145,10 @@ var variations = map[string]ruleset{
 		HandSize: 11, TargetScore: 5000, CanastasToGoOut: 1, MaxSeats: 4,
 		Decks: 2, JokersPerDeck: 2, DrawCount: 1,
 		MaxWilds: 3, MinNaturals: 2, GroupsPerRank: 1, GroupCanastaCloses: true,
+		// An open meld takes the pile, which is original Canasta's rule and the
+		// reason an unfinished meld on the table is worth something beyond the
+		// points in it.
+		PileMeldCapture:     true,
 		MeldFloors:          classicFloors,
 		RedThreesNeed:       1,
 		NaturalCanastaBonus: 500, MixedCanastaBonus: 300,
@@ -147,6 +160,11 @@ var variations = map[string]ruleset{
 		HandSize: 13, TargetScore: 5000, CanastasToGoOut: 2, MaxSeats: 4,
 		Decks: 2, JokersPerDeck: 2, DrawCount: 1,
 		MaxWilds: 3, MinNaturals: 2, GroupsPerRank: 1, GroupCanastaCloses: true,
+		// And here it does not: the American game removed the capture off a
+		// table meld entirely, so the pile always costs cards out of the hand.
+		// With thirteen-card hands and two canastas to go out, the pile is the
+		// deal's main prize, and this is what keeps it expensive.
+		PileMeldCapture:     false,
 		MeldFloors:          classicFloors,
 		RedThreesNeed:       1,
 		NaturalCanastaBonus: 500, MixedCanastaBonus: 300,
@@ -186,6 +204,12 @@ func init() {
 		// whose seventh card is what makes it a samba.
 		GroupsPerRank: 0, GroupCanastaCloses: false,
 		PileAlwaysFrozen: true,
+		// No meld capture either. It would be unreachable anyway behind the
+		// permanent freeze, but Samba's answer to "can a table meld take the
+		// pile?" is no in its own right, and a reader should not have to derive
+		// it from another field. Samba's consolation is `take_top`: an open
+		// sequence may pull the single top card and leave the pile standing.
+		PileMeldCapture: false,
 
 		MeldFloors: sambaFloors,
 

@@ -143,6 +143,8 @@ export const it: Record<string, string> = {
   'canasta.rules.sequences': 'Una combinazione può anche essere una scala: tre o più carte dello stesso seme in fila, mai con un jolly tra loro.',
   'canasta.rules.samba': 'Una scala di sette carte è una samba e vale {n} punti.',
   'canasta.rules.pileAlwaysFrozen': 'La pila degli scarti resta congelata per tutta la mano: per prenderla devi abbinare la carta in cima a due carte naturali della tua mano.',
+  'canasta.rules.pileOntoMeld': 'Se la tua parte ha già una combinazione incompleta del valore della carta in cima, puoi prendere tutta la pila degli scarti e aggiungerle quella carta: non ti serve una coppia in mano.',
+  'canasta.rules.pileNoMeldCapture': 'Una combinazione già in tavola non può prendere la pila degli scarti: per prenderla devi abbinare la carta in cima a due carte della tua stessa mano.',
   'canasta.rules.meldFloorBands':
     'La tua prima calata deve raggiungere un minimo di punti che sale con il tuo punteggio: {negative} sotto zero, {low} fino a 1500, {mid} fino a 3000, {high} oltre.',
   'canasta.rules.meldFloorBandsFive': 'La tua prima combinazione deve raggiungere un minimo di punti che cresce con il punteggio: {negative} sotto zero, {low} fino a 1500, {mid} fino a 3000, {high} fino a 7000, {top} oltre.',
@@ -277,6 +279,7 @@ export const it: Record<string, string> = {
   'err.PILE_EMPTY': 'La pila è vuota',
   'err.PILE_BLOCKED': "La pila è bloccata — in cima c'è un tre nero",
   'err.PILE_FROZEN': 'La pila è congelata — ti servono due carte naturali del valore della carta in cima',
+  'err.MELD_CAPTURE_NOT_ALLOWED': 'In questo gioco una combinazione in tavola non può prendere la pila — ti servono due carte in mano',
   'err.TOP_CARD_UNUSABLE': 'Non puoi usare la carta in cima',
   'err.MELD_CLOSED': 'Quella combinazione è completa e chiusa',
   'err.MELD_TOO_SMALL': 'Una combinazione richiede più carte di così',

@@ -144,6 +144,8 @@ export const fr: Record<string, string> = {
   'canasta.rules.sequences': 'Une combinaison peut aussi être une séquence : trois cartes ou plus de la même couleur qui se suivent, jamais avec un joker parmi elles.',
   'canasta.rules.samba': 'Une séquence de sept cartes est un samba, qui vaut {n} points.',
   'canasta.rules.pileAlwaysFrozen': 'La défausse est gelée toute la donne : pour la prendre, tu dois associer sa carte du dessus à deux cartes naturelles de ta main.',
+  'canasta.rules.pileOntoMeld': 'Si ton camp a déjà une combinaison inachevée du rang de la carte du dessus, tu peux prendre toute la défausse pour y ajouter cette carte : aucune paire en main n’est nécessaire.',
+  'canasta.rules.pileNoMeldCapture': 'Une combinaison déjà posée sur la table ne peut pas prendre la défausse : pour la prendre, tu dois associer sa carte du dessus à deux cartes de ta propre main.',
   'canasta.rules.meldFloorBands':
     "Ta première pose doit atteindre un minimum de points qui monte avec ton score : {negative} en dessous de zéro, {low} jusqu'à 1500, {mid} jusqu'à 3000, {high} au-delà.",
   'canasta.rules.meldFloorBandsFive': "Ta première combinaison doit atteindre un minimum de points qui monte avec ton score : {negative} sous zéro, {low} jusqu'à 1500, {mid} jusqu'à 3000, {high} jusqu'à 7000, {top} au-delà.",
@@ -279,6 +281,7 @@ export const fr: Record<string, string> = {
   'err.PILE_EMPTY': 'La pile est vide',
   'err.PILE_BLOCKED': 'La pile est bloquée — un trois noir est sur le dessus',
   'err.PILE_FROZEN': 'La pile est gelée — il te faut deux cartes naturelles du rang de la carte du dessus',
+  'err.MELD_CAPTURE_NOT_ALLOWED': 'Dans ce jeu, une combinaison posée ne peut pas prendre la pile — il te faut deux cartes en main',
   'err.TOP_CARD_UNUSABLE': 'Tu ne peux pas utiliser la carte du dessus',
   'err.MELD_CLOSED': 'Cette combinaison est complète et fermée',
   'err.MELD_TOO_SMALL': 'Une combinaison exige plus de cartes que cela',

@@ -141,6 +141,8 @@ export const et: Record<string, string> = {
   'canasta.rules.sequences': 'Kombinatsioon võib olla ka jada: kolm või rohkem sama masti kaarti järjest, mitte kunagi jokkeriga vahel.',
   'canasta.rules.samba': 'Seitsmest kaardist jada on samba ja annab {n} punkti.',
   'canasta.rules.pileAlwaysFrozen': 'Viskepakk on kogu jagamise vältel külmutatud: saad selle võtta ainult sobitades ülemise kaardi kahe loomuliku kaardiga oma käest.',
+  'canasta.rules.pileOntoMeld': 'Kui sinu poolel on laual juba pooleli kombinatsioon ülemise kaardi väärtuses, võid võtta kogu viskepaki ja lisada selle kaardi sinna juurde — paari käes pole vaja.',
+  'canasta.rules.pileNoMeldCapture': 'Laual olev kombinatsioon ei saa viskepakki võtta: selle võtmiseks pead sobitama ülemise kaardi kahe kaardiga oma käest.',
   'canasta.rules.meldFloorBands':
     'Sinu esimene väljapanek peab ulatuma punktide alammäärani, mis kasvab koos su seisuga: {negative} alla nulli, {low} kuni 1500, {mid} kuni 3000, {high} sellest üle.',
   'canasta.rules.meldFloorBandsFive': 'Su esimene kombinatsioon peab ulatuma punktimiinimumini, mis kasvab koos su skooriga: {negative} alla nulli, {low} kuni 1500, {mid} kuni 3000, {high} kuni 7000 ja {top} üle selle.',
@@ -275,6 +277,7 @@ export const et: Record<string, string> = {
   'err.PILE_EMPTY': 'Hunnik on tühi',
   'err.PILE_BLOCKED': 'Hunnik on blokeeritud — peal on must kolm',
   'err.PILE_FROZEN': 'Hunnik on külmutatud — vaja on kaht loomulikku pealmise kaardi väärtusega kaarti',
+  'err.MELD_CAPTURE_NOT_ALLOWED': 'Selles mängus ei saa laual olev kombinatsioon pakki võtta — vaja on kaht kaarti käest',
   'err.TOP_CARD_UNUSABLE': 'Sa ei saa pealmist kaarti kasutada',
   'err.MELD_CLOSED': 'See kombinatsioon on täielik ja suletud',
   'err.MELD_TOO_SMALL': 'Kombinatsioon vajab rohkem kaarte kui see',

@@ -78,17 +78,22 @@ func TestExistingVariationsAreUnchanged(t *testing.T) {
 			name:    "modern_american/4",
 			players: refs("p1", "p2", "p3", "p4"),
 			cfg:     goldenCfg("modern_american"),
-			// Seeds 4 and 6 were re-recorded when this branch merged main: the
-			// "offer every meldable rank, not just the one a shared wild
-			// favoured" fix deliberately widens the meld offers, so the driver
-			// picks differently and the deals settle differently. Verified as
-			// main's rather than this branch's by running these same cases on
-			// plain origin/main, where both produce exactly these hashes.
-			// Seed 6 moved again for the duplicate-copy fix, for the same
-			// reason as classic/3's — see the note there.
+			// Every seed was re-recorded when Modern American stopped allowing
+			// the pile to be claimed by a meld already on the table — the one
+			// capture the American game does not have (ruleset.go's
+			// PileMeldCapture). It is the cheapest capture there is, so the
+			// driver took it constantly; without it the pile changes hands far
+			// less often and every deal in this variation settles differently.
+			// That is the change, not a side effect of it: `classic/*` above is
+			// untouched, and so is Samba, which never offered the move.
+			//
+			// The history these replace: seeds 4 and 6 were re-recorded when
+			// the "offer every meldable rank, not just the one a shared wild
+			// favoured" fix widened the meld offers, and seed 6 again for the
+			// duplicate-copy fix — see the note on classic/3.
 			want: []string{
-				"2863826a2309f055", "2657c0a78520664d", "6f07d3bfea709bff",
-				"a1ce2c481c73bcf6", "89e091cc3974fda8", "ca6bbd019709f98e",
+				"5bb51f6359d5b398", "72097794ad8dbf2d", "ffc102857127d200",
+				"9d0dbb31597dda48", "d4d13197c3c43edc", "65359ad99009f7c7",
 			},
 		},
 	}

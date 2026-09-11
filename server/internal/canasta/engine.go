@@ -378,8 +378,13 @@ func pileTakeOptions(s *GameState, playerID string) []pileOption {
 	var out []pileOption
 
 	// Capture by laying the top card off onto a meld the partnership already
-	// has. Only available while the pile is unfrozen.
-	if !frozen {
+	// has: the cheapest way in, since it spends nothing from hand. It needs an
+	// unfrozen pile *and* a variation that allows the move at all — Modern
+	// American removed it outright, so there the pile always costs two cards
+	// out of a hand no matter how the table looks. `openGroup` is what makes
+	// the meld have to be incomplete: a closed canasta is not an open group,
+	// so it cannot reach up and take anything.
+	if !frozen && r.PileMeldCapture {
 		if m := t.openGroup(r, rank); m != nil {
 			out = append(out, pileOption{MeldID: m.ID})
 		}
@@ -464,8 +469,16 @@ func applyTakePile(s *GameState, playerID string, a module.Action) ([]module.Eve
 	var fromHand []string
 	target := a.Target
 	if target != "" {
+		// Frozen first, then whether the variation has this capture at all.
+		// The order is what keeps Samba answering `PILE_FROZEN` — the rule its
+		// players were actually told, and the one its rules screen prints —
+		// while Modern American, whose pile is not frozen and refuses anyway,
+		// gets the reason that is true there.
 		if frozen {
 			return nil, errCode(ErrPileFrozen)
+		}
+		if !r.PileMeldCapture {
+			return nil, errCode(ErrMeldCaptureNotAllowed)
 		}
 		owner, m := s.findMeld(target)
 		if m == nil {

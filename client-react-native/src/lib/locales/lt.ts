@@ -141,6 +141,8 @@ export const lt: Record<string, string> = {
   'canasta.rules.sequences': 'Derinys gali būti ir seka: trys ar daugiau tos pačios rūšies kortų iš eilės, niekada su džokeriu tarp jų.',
   'canasta.rules.samba': 'Septynių kortų seka yra samba, verta {n} taškų.',
   'canasta.rules.pileAlwaysFrozen': 'Atmetimo krūvelė užšaldyta visą dalijimą: paimti ją gali tik pridėjęs prie viršutinės kortos dvi natūralias kortas iš rankos.',
+  'canasta.rules.pileOntoMeld': 'Jei tavo pusė jau turi nebaigtą viršutinės kortos vertės derinį, gali paimti visą atmetimo krūvelę ir pridėti tą kortą prie derinio — poros rankoje nereikia.',
+  'canasta.rules.pileNoMeldCapture': 'Ant stalo gulintis derinys atmetimo krūvelės paimti negali: kad ją paimtum, prie viršutinės kortos turi pridėti dvi kortas iš savo rankos.',
   'canasta.rules.meldFloorBands':
     'Tavo pirmas išdėjimas turi pasiekti taškų minimumą, kuris auga kartu su tavo rezultatu: {negative} žemiau nulio, {low} iki 1500, {mid} iki 3000, {high} virš to.',
   'canasta.rules.meldFloorBandsFive': 'Tavo pirmasis derinys turi pasiekti taškų minimumą, kuris auga kartu su rezultatu: {negative} žemiau nulio, {low} iki 1500, {mid} iki 3000, {high} iki 7000 ir {top} virš to.',
@@ -275,6 +277,7 @@ export const lt: Record<string, string> = {
   'err.PILE_EMPTY': 'Krūvelė tuščia',
   'err.PILE_BLOCKED': 'Krūvelė užblokuota — viršuje guli juodas trejetas',
   'err.PILE_FROZEN': 'Krūvelė užšaldyta — tau reikia dviejų natūralių viršutinės kortos vertės kortų',
+  'err.MELD_CAPTURE_NOT_ALLOWED': 'Šiame žaidime derinys ant stalo krūvelės paimti negali — reikia dviejų kortų iš rankos',
   'err.TOP_CARD_UNUSABLE': 'Viršutinės kortos panaudoti negali',
   'err.MELD_CLOSED': 'Šis derinys pilnas ir uždarytas',
   'err.MELD_TOO_SMALL': 'Deriniui reikia daugiau kortų nei tiek',

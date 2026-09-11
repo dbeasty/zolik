@@ -145,6 +145,8 @@ export const de: Record<string, string> = {
   'canasta.rules.sequences': 'Eine Auslage kann auch eine Sequenz sein: drei oder mehr Karten derselben Farbe in Folge, niemals mit einer wilden Karte darin.',
   'canasta.rules.samba': 'Eine Sequenz aus sieben Karten ist eine Samba und zählt {n} Punkte.',
   'canasta.rules.pileAlwaysFrozen': 'Der Ablagestapel ist die ganze Runde eingefroren: Um ihn zu nehmen, musst du seine oberste Karte mit zwei natürlichen Karten aus deiner Hand belegen.',
+  'canasta.rules.pileOntoMeld': 'Hat deine Partei bereits eine unvollständige Auslage im Wert der obersten Karte, darfst du den ganzen Ablagestapel nehmen und diese Karte anlegen — ein passendes Paar auf der Hand brauchst du dafür nicht.',
+  'canasta.rules.pileNoMeldCapture': 'Eine Auslage, die schon auf dem Tisch liegt, kann den Ablagestapel nicht nehmen: Dafür musst du seine oberste Karte mit zwei Karten aus deiner eigenen Hand belegen.',
   'canasta.rules.meldFloorBands':
     'Deine erste Auslage muss einen Mindestwert erreichen, der mit deinem Punktestand steigt: {negative} unter null, {low} bis 1500, {mid} bis 3000, {high} darüber.',
   'canasta.rules.meldFloorBandsFive': 'Deine erste Auslage muss einen Mindestwert erreichen, der mit deinem Punktestand steigt: {negative} unter null, {low} bis 1500, {mid} bis 3000, {high} bis 7000, darüber {top}.',
@@ -284,6 +286,7 @@ export const de: Record<string, string> = {
   'err.PILE_BLOCKED': 'Der Stapel ist blockiert — oben liegt eine schwarze Drei',
   'err.PILE_FROZEN':
     'Der Stapel ist eingefroren — du brauchst zwei natürliche Karten im Wert der obersten Karte',
+  'err.MELD_CAPTURE_NOT_ALLOWED': 'In diesem Spiel kann eine Auslage auf dem Tisch den Stapel nicht nehmen — du brauchst zwei Karten von der Hand',
   'err.TOP_CARD_UNUSABLE': 'Du kannst die oberste Karte nicht verwenden',
   'err.MELD_CLOSED': 'Diese Auslage ist vollständig und geschlossen',
   'err.MELD_TOO_SMALL': 'Eine Auslage braucht mehr Karten als das',

@@ -142,6 +142,8 @@ export const hr: Record<string, string> = {
   'canasta.rules.sequences': 'Kombinacija može biti i niz: tri ili više karata iste boje u nizu, nikad s džokerom među njima.',
   'canasta.rules.samba': 'Niz od sedam karata je samba i vrijedi {n} bodova.',
   'canasta.rules.pileAlwaysFrozen': 'Hrpa odbačenih zamrznuta je cijelo dijeljenje: možeš je uzeti samo tako da gornjoj karti pridružiš dvije prirodne karte iz ruke.',
+  'canasta.rules.pileOntoMeld': 'Ako tvoja strana već ima nedovršenu kombinaciju vrijednosti gornje karte, možeš uzeti cijelu hrpu odbačenih i toj kombinaciji pridružiti tu kartu — par u ruci nije potreban.',
+  'canasta.rules.pileNoMeldCapture': 'Kombinacija koja je već na stolu ne može uzeti hrpu odbačenih: da bi je uzeo, gornjoj karti moraš pridružiti dvije karte iz vlastite ruke.',
   'canasta.rules.meldFloorBands':
     'Tvoje prvo spuštanje mora doseći bodovni minimum koji raste s tvojim rezultatom: {negative} ispod nule, {low} do 1500, {mid} do 3000, {high} iznad toga.',
   'canasta.rules.meldFloorBandsFive': 'Tvoja prva kombinacija mora dosegnuti bodovni minimum koji raste s tvojim rezultatom: {negative} ispod nule, {low} do 1500, {mid} do 3000, {high} do 7000 i {top} iznad toga.',
@@ -277,6 +279,7 @@ export const hr: Record<string, string> = {
   'err.PILE_EMPTY': 'Hrpa je prazna',
   'err.PILE_BLOCKED': 'Hrpa je blokirana — na vrhu je crna trojka',
   'err.PILE_FROZEN': 'Hrpa je zamrznuta — trebaju ti dvije prirodne karte vrijednosti gornje karte',
+  'err.MELD_CAPTURE_NOT_ALLOWED': 'U ovoj igri kombinacija na stolu ne može uzeti hrpu — trebaju ti dvije karte iz ruke',
   'err.TOP_CARD_UNUSABLE': 'Ne možeš upotrijebiti gornju kartu',
   'err.MELD_CLOSED': 'Ta kombinacija je potpuna i zatvorena',
   'err.MELD_TOO_SMALL': 'Kombinaciji treba više karata od toga',

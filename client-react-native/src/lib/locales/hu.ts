@@ -146,6 +146,8 @@ export const hu: Record<string, string> = {
   'canasta.rules.sequences': 'Egy kombináció sor is lehet: három vagy több azonos színű lap egymás után, soha nem jokerrel közte.',
   'canasta.rules.samba': 'A hét lapból álló sor egy samba, {n} pontot ér.',
   'canasta.rules.pileAlwaysFrozen': 'A dobópakli az egész osztás alatt be van fagyasztva: csak úgy viheted el, ha a felső lapját két természetes lappal párosítod a kezedből.',
+  'canasta.rules.pileOntoMeld': 'Ha az oldaladnak már van befejezetlen kombinációja a felső lap értékéből, elviheted az egész dobópaklit, és hozzáteheted azt a lapot — nem kell hozzá pár a kezedben.',
+  'canasta.rules.pileNoMeldCapture': 'Az asztalon fekvő kombináció nem viheti el a dobópaklit: az elvitelhez a felső lapját két saját kézből származó lappal kell párosítanod.',
   'canasta.rules.meldFloorBands':
     'Az első lerakásodnak el kell érnie egy pontminimumot, amely az állásoddal együtt emelkedik: {negative} nulla alatt, {low} 1500-ig, {mid} 3000-ig, {high} azon felül.',
   'canasta.rules.meldFloorBandsFive': 'Az első kombinációdnak el kell érnie egy pontminimumot, amely az eredményeddel együtt nő: {negative} nulla alatt, {low} 1500-ig, {mid} 3000-ig, {high} 7000-ig, azon felül {top}.',
@@ -282,6 +284,7 @@ export const hu: Record<string, string> = {
   'err.PILE_EMPTY': 'A pakli üres',
   'err.PILE_BLOCKED': 'A pakli le van zárva — fekete hármas van a tetején',
   'err.PILE_FROZEN': 'A pakli be van fagyasztva — két természetes lap kell a felső lap értékéből',
+  'err.MELD_CAPTURE_NOT_ALLOWED': 'Ebben a játékban az asztalon lévő kombináció nem viheti el a paklit — két lap kell a kezedből',
   'err.TOP_CARD_UNUSABLE': 'A felső lapot nem tudod használni',
   'err.MELD_CLOSED': 'Ez a kombináció teljes és lezárt',
   'err.MELD_TOO_SMALL': 'Egy kombinációhoz ennél több lap kell',

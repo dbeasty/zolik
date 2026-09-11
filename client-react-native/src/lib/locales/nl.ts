@@ -143,6 +143,8 @@ export const nl: Record<string, string> = {
   'canasta.rules.sequences': 'Een combinatie kan ook een reeks zijn: drie of meer kaarten van dezelfde kleur op volgorde, nooit met een wilde kaart ertussen.',
   'canasta.rules.samba': 'Een reeks van zeven kaarten is een samba en levert {n} punten op.',
   'canasta.rules.pileAlwaysFrozen': 'De aflegstapel is het hele spel bevroren: je kunt hem alleen nemen door de bovenste kaart te combineren met twee natuurlijke kaarten uit je hand.',
+  'canasta.rules.pileOntoMeld': 'Heeft jouw partij al een onafgemaakte combinatie van de waarde van de bovenste kaart, dan mag je de hele aflegstapel nemen en die kaart eraan toevoegen — een paar in je hand is niet nodig.',
+  'canasta.rules.pileNoMeldCapture': 'Een combinatie die al op tafel ligt kan de aflegstapel niet nemen: daarvoor moet je de bovenste kaart combineren met twee kaarten uit je eigen hand.',
   'canasta.rules.meldFloorBands':
     'Je eerste leg moet een puntenminimum halen dat met je stand meestijgt: {negative} onder nul, {low} tot 1500, {mid} tot 3000, {high} daarboven.',
   'canasta.rules.meldFloorBandsFive': 'Je eerste combinatie moet een puntenminimum halen dat met je score meestijgt: {negative} onder nul, {low} tot 1500, {mid} tot 3000, {high} tot 7000 en {top} daarboven.',
@@ -282,6 +284,7 @@ export const nl: Record<string, string> = {
   'err.PILE_BLOCKED': 'De stapel is geblokkeerd — er ligt een zwarte drie bovenop',
   'err.PILE_FROZEN':
     'De stapel is bevroren — je hebt twee natuurlijke kaarten van de waarde van de bovenste kaart nodig',
+  'err.MELD_CAPTURE_NOT_ALLOWED': 'In dit spel kan een combinatie op tafel de stapel niet nemen — je hebt twee kaarten uit je hand nodig',
   'err.TOP_CARD_UNUSABLE': 'Je kunt de bovenste kaart niet gebruiken',
   'err.MELD_CLOSED': 'Die combinatie is compleet en gesloten',
   'err.MELD_TOO_SMALL': 'Een combinatie heeft meer kaarten nodig dan dat',

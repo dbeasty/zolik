@@ -139,6 +139,8 @@ export const da: Record<string, string> = {
   'canasta.rules.sequences': 'En kombination kan også være en sekvens: tre eller flere kort i samme farve i træk, aldrig med et vildt kort iblandt.',
   'canasta.rules.samba': 'En sekvens på syv kort er en samba og giver {n} point.',
   'canasta.rules.pileAlwaysFrozen': 'Kastebunken er frosset hele givet: du kan kun tage den ved at lægge to naturlige kort fra hånden til det øverste kort.',
+  'canasta.rules.pileOntoMeld': 'Har din side allerede en ufærdig kombination af det øverste korts værdi, kan du tage hele kastebunken og lægge det kort til den — du behøver ikke et par på hånden.',
+  'canasta.rules.pileNoMeldCapture': 'En kombination, der allerede ligger på bordet, kan ikke tage kastebunken: for at tage den skal du lægge to kort fra din egen hånd til det øverste kort.',
   'canasta.rules.meldFloorBands':
     'Din første udlægning skal nå et pointminimum, der stiger med din stilling: {negative} under nul, {low} op til 1500, {mid} op til 3000, {high} derover.',
   'canasta.rules.meldFloorBandsFive': 'Din første kombination skal nå et pointminimum, der stiger med din score: {negative} under nul, {low} op til 1500, {mid} op til 3000, {high} op til 7000 og {top} derover.',
@@ -273,6 +275,7 @@ export const da: Record<string, string> = {
   'err.PILE_EMPTY': 'Bunken er tom',
   'err.PILE_BLOCKED': 'Bunken er blokeret — der ligger en sort treer øverst',
   'err.PILE_FROZEN': 'Bunken er frosset — du skal bruge to naturlige kort af det øverste korts værdi',
+  'err.MELD_CAPTURE_NOT_ALLOWED': 'I dette spil kan en kombination på bordet ikke tage bunken — du skal bruge to kort fra hånden',
   'err.TOP_CARD_UNUSABLE': 'Du kan ikke bruge det øverste kort',
   'err.MELD_CLOSED': 'Den kombination er komplet og lukket',
   'err.MELD_TOO_SMALL': 'En kombination kræver flere kort end det',

@@ -147,6 +147,8 @@ export const en: Record<string, string> = {
   'canasta.rules.sequences': 'A meld can also be a sequence: three or more cards of the same suit in a row, never with a wild card among them.',
   'canasta.rules.samba': 'A sequence of seven cards is a samba, worth {n} points.',
   'canasta.rules.pileAlwaysFrozen': 'The discard pile is frozen all deal: to take it you must match its top card with two natural cards from your hand.',
+  'canasta.rules.pileOntoMeld': "If your side already has an unfinished meld of the top card's rank, you can take the whole discard pile to add that card to it — no matching pair in your hand is needed.",
+  'canasta.rules.pileNoMeldCapture': 'A meld already on the table cannot take the discard pile: to take it you must match its top card with two cards from your own hand.',
   'canasta.rules.meldFloorBands':
     'Your first meld must reach a point minimum that rises with your score: {negative} below zero, {low} up to 1500, {mid} up to 3000, {high} beyond that.',
   'canasta.rules.meldFloorBandsFive': 'Your first meld must reach a point minimum that rises with your score: {negative} below zero, {low} up to 1500, {mid} up to 3000, {high} up to 7000, {top} beyond that.',
@@ -286,6 +288,7 @@ export const en: Record<string, string> = {
   'err.PILE_EMPTY': 'The pile is empty',
   'err.PILE_BLOCKED': 'The pile is blocked — a black three is on top',
   'err.PILE_FROZEN': 'The pile is frozen — you need two natural cards of the top card\'s rank',
+  'err.MELD_CAPTURE_NOT_ALLOWED': "A meld on the table can't take the pile in this game — you need two cards from your hand",
   'err.TOP_CARD_UNUSABLE': 'You can\'t use the top card',
   'err.MELD_CLOSED': 'That meld is complete and closed',
   'err.MELD_TOO_SMALL': 'A meld needs more cards than that',

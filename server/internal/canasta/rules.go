@@ -49,8 +49,22 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 			module.Fact{LabelKey: "canasta.rules.samba", Params: map[string]any{"n": v.SambaBonus}},
 		)
 	}
-	if v.PileAlwaysFrozen {
+	// How the pile is taken — the clause players most often arrive at a table
+	// disagreeing about, so every variation states its own answer.
+	//
+	// The always-frozen sentence answers it on its own ("two natural cards from
+	// your hand" leaves no room for a meld to do the work), which is why Samba
+	// stops there. The other two say it either way round rather than only when
+	// the move is missing: that an unfinished meld can claim the pile is news to
+	// anyone who learned the American game, and that it cannot is news to
+	// everyone else.
+	switch {
+	case v.PileAlwaysFrozen:
 		melding = append(melding, module.Fact{LabelKey: "canasta.rules.pileAlwaysFrozen"})
+	case v.PileMeldCapture:
+		melding = append(melding, module.Fact{LabelKey: "canasta.rules.pileOntoMeld"})
+	default:
+		melding = append(melding, module.Fact{LabelKey: "canasta.rules.pileNoMeldCapture"})
 	}
 	// The bands are read off the ruleset rather than written out again, so a
 	// variation that adds one cannot end up describing the other's.

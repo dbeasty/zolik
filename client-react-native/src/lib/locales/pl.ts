@@ -144,6 +144,8 @@ export const pl: Record<string, string> = {
   'canasta.rules.sequences': 'Układ może być też sekwensem: trzy lub więcej kart tego samego koloru po kolei, nigdy z jokerem w środku.',
   'canasta.rules.samba': 'Sekwens z siedmiu kart to samba warta {n} punktów.',
   'canasta.rules.pileAlwaysFrozen': 'Stos odrzuconych jest zamrożony przez całe rozdanie: aby go wziąć, musisz dołożyć do wierzchniej karty dwie naturalne karty z ręki.',
+  'canasta.rules.pileOntoMeld': 'Jeśli twoja strona ma już na stole niedokończony układ o wartości wierzchniej karty, możesz wziąć cały stos odrzuconych i dołożyć do niego tę kartę — para w ręce nie jest potrzebna.',
+  'canasta.rules.pileNoMeldCapture': 'Układ leżący już na stole nie może wziąć stosu odrzuconych: aby go wziąć, musisz dołożyć do wierzchniej karty dwie karty z własnej ręki.',
   'canasta.rules.meldFloorBands':
     'Twoje pierwsze wyłożenie musi osiągnąć minimum punktowe rosnące wraz z wynikiem: {negative} poniżej zera, {low} do 1500, {mid} do 3000, {high} powyżej.',
   'canasta.rules.meldFloorBandsFive': 'Twój pierwszy układ musi osiągnąć minimum punktowe rosnące wraz z wynikiem: {negative} poniżej zera, {low} do 1500, {mid} do 3000, {high} do 7000, powyżej {top}.',
@@ -280,6 +282,7 @@ export const pl: Record<string, string> = {
   'err.PILE_EMPTY': 'Stos jest pusty',
   'err.PILE_BLOCKED': 'Stos jest zablokowany — na wierzchu leży czarna trójka',
   'err.PILE_FROZEN': 'Stos jest zamrożony — potrzebujesz dwóch naturalnych kart o wartości wierzchniej karty',
+  'err.MELD_CAPTURE_NOT_ALLOWED': 'W tej grze układ na stole nie może wziąć stosu — potrzebujesz dwóch kart z ręki',
   'err.TOP_CARD_UNUSABLE': 'Nie możesz użyć wierzchniej karty',
   'err.MELD_CLOSED': 'Ten układ jest kompletny i zamknięty',
   'err.MELD_TOO_SMALL': 'Układ potrzebuje więcej kart',
