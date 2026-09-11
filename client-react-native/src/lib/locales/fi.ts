@@ -309,6 +309,7 @@ export const fi: Record<string, string> = {
   'err.TOO_FEW_PLAYERS': 'Pelaajia ei ole vielä tarpeeksi',
   'err.WRONG_PLAYER_COUNT': 'Tätä peliä ei voi pelata noin monella pelaajalla',
   'err.NOT_THE_HOST': 'Sen voi tehdä vain isäntä',
+  'err.BAD_SEATING': 'Tuo paikkajärjestys ei vastaa pöydässä olijoita',
   'err.NO_LONGER_WAITING': 'Pöytä ei enää odota',
   'err.WAITING_ROOM_UNAVAILABLE': 'Odotushuone ei ole käytettävissä',
   'err.SERVER_BUSY': 'Palvelin on juuri nyt täynnä — yritä hetken kuluttua uudelleen',
@@ -917,6 +918,10 @@ export const fi: Record<string, string> = {
   'lobby.join.joinedGame': 'Liityit peliin {game} — odotetaan aloitusta',
   'lobby.join.joinedTable': 'Liityit pöytään — odotetaan aloitusta',
   'lobby.table.addBot': 'Lisää botti',
+  'lobby.table.side': 'Puoli {n}',
+  'lobby.table.shuffleSeats': 'Sekoita paikat',
+  'lobby.table.moveSeatUp': 'Siirrä {name} paikkaa ylemmäs',
+  'lobby.table.moveSeatDown': 'Siirrä {name} paikkaa alemmas',
   'lobby.table.start': 'Aloita',
   'lobby.table.waitingForHost': 'Odotetaan, että isäntä aloittaa…',
 

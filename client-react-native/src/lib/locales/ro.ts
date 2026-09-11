@@ -310,6 +310,7 @@ export const ro: Record<string, string> = {
   'err.TOO_FEW_PLAYERS': 'Încă nu sunt destui jucători',
   'err.WRONG_PLAYER_COUNT': 'Acest joc nu se poate juca cu atâția jucători',
   'err.NOT_THE_HOST': 'Doar gazda poate face asta',
+  'err.BAD_SEATING': 'Această așezare nu corespunde cu cine este la masă',
   'err.NO_LONGER_WAITING': 'Masa nu mai așteaptă',
   'err.WAITING_ROOM_UNAVAILABLE': 'Sala de așteptare nu este disponibilă',
   'err.SERVER_BUSY': 'Serverul este plin în acest moment — încearcă din nou peste un moment',
@@ -917,6 +918,10 @@ export const ro: Record<string, string> = {
   'lobby.join.joinedGame': 'Te-ai alăturat unui joc de {game} — așteptăm startul',
   'lobby.join.joinedTable': 'Te-ai alăturat mesei — așteptăm startul',
   'lobby.table.addBot': 'Adaugă un bot',
+  'lobby.table.side': 'Tabăra {n}',
+  'lobby.table.shuffleSeats': 'Amestecă locurile',
+  'lobby.table.moveSeatUp': 'Mută {name} cu un loc mai sus',
+  'lobby.table.moveSeatDown': 'Mută {name} cu un loc mai jos',
   'lobby.table.start': 'Începe',
   'lobby.table.waitingForHost': 'Așteptăm ca gazda să înceapă…',
 

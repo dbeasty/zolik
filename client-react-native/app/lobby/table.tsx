@@ -110,6 +110,50 @@ export default function TableScreen() {
     }
   }
 
+  /**
+   * Send a new seat order and show the server's answer.
+   *
+   * The order is sent whole rather than as "move this one": the server refuses
+   * anything that is not a permutation of the table, and a whole order is the
+   * only request that can be checked that way. It also makes the two controls
+   * here — a nudge and a shuffle — the same call.
+   */
+  async function reseat(order: string[]) {
+    if (!id) return;
+    setBusy(true);
+    setError('');
+    try {
+      await client.seatTable(id, order);
+      await poll();
+    } catch (e) {
+      setError(formatApiError(e, 'Could not rearrange the table'));
+      // Re-read rather than keep the order we hoped for: a refusal means the
+      // server's seating is the true one and ours was a guess.
+      await poll();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function moveSeat(from: number, to: number) {
+    const order = players.map((p) => p.id);
+    if (to < 0 || to >= order.length) return;
+    const [moved] = order.splice(from, 1);
+    order.splice(to, 0, moved!);
+    void reseat(order);
+  }
+
+  function shuffleSeats() {
+    // Fisher-Yates, so every seating is equally likely — this is cutting for
+    // partners, and a shuffle that favoured an order would be a loaded cut.
+    const order = players.map((p) => p.id);
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [order[i], order[j]] = [order[j]!, order[i]!];
+    }
+    void reseat(order);
+  }
+
   async function start() {
     setBusy(true);
     setError('');
@@ -123,6 +167,17 @@ export default function TableScreen() {
   }
 
   const players = state?.players ?? [];
+  // The sides come from the server, which asks the module — a client counting
+  // to two would be a second implementation of a rule, and the two would
+  // eventually disagree about a six-seat table.
+  const sides = state?.sides ?? [];
+  const nameOf = (playerId: string) =>
+    players.find((p) => p.id === playerId)?.name ?? playerId;
+  const sideName = (i: number) => t('lobby.table.side', { n: i + 1 });
+  const sideOf = (playerId: string) => {
+    const i = sides.findIndex((side) => side.includes(playerId));
+    return i === -1 ? '' : sideName(i);
+  };
   const seatedIds = players.map((p) => p.id);
   const available = waiting.filter((p) => !seatedIds.includes(p.playerId));
 
@@ -148,12 +203,72 @@ export default function TableScreen() {
 
         <Text style={[shared.status, { marginTop: 12 }]}>Players ({players.length})</Text>
         {players.map((p, i) => (
-          <Text key={p.id} testID={`seated-${p.id}`} style={{ color: colors.text, marginBottom: 4 }}>
-            {i + 1}. {p.name}
-            {p.isAI ? ' 🤖' : ''}
-            {p.id === state?.hostId ? ' ★' : ''}
-          </Text>
+          <View
+            key={p.id}
+            style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}
+          >
+            <Text testID={`seated-${p.id}`} style={{ color: colors.text, flexShrink: 1 }}>
+              {i + 1}. {p.name}
+              {p.isAI ? ' 🤖' : ''}
+              {p.id === state?.hostId ? ' ★' : ''}
+              {sideOf(p.id) ? ` · ${sideOf(p.id)}` : ''}
+            </Text>
+            {/*
+              Move a seat rather than name a team. In a game with sides the turn
+              alternates between them, so where somebody sits *is* who they play
+              with — one control, and no second idea of a team to keep in step.
+              Only offered to the host, and only while the table is a lobby.
+            */}
+            {isHost && players.length > 1 ? (
+              <View style={{ flexDirection: 'row', marginLeft: 'auto' }}>
+                <Pressable
+                  testID={`seat-up-${p.id}`}
+                  accessibilityLabel={t('lobby.table.moveSeatUp', { name: p.name })}
+                  disabled={busy || i === 0}
+                  onPress={() => moveSeat(i, i - 1)}
+                  style={{ paddingHorizontal: 10, paddingVertical: 2, opacity: i === 0 ? 0.3 : 1 }}
+                >
+                  <Text style={{ color: colors.text }}>▲</Text>
+                </Pressable>
+                <Pressable
+                  testID={`seat-down-${p.id}`}
+                  accessibilityLabel={t('lobby.table.moveSeatDown', { name: p.name })}
+                  disabled={busy || i === players.length - 1}
+                  onPress={() => moveSeat(i, i + 1)}
+                  style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 2,
+                    opacity: i === players.length - 1 ? 0.3 : 1,
+                  }}
+                >
+                  <Text style={{ color: colors.text }}>▼</Text>
+                </Pressable>
+              </View>
+            ) : null}
+          </View>
         ))}
+
+        {/*
+          Shown to everyone, not only the host: knowing who you are playing with
+          is not a host's private business, and a player who cannot rearrange
+          the table still needs to see what they are about to be dealt into.
+        */}
+        {sides.length > 1 ? (
+          <Text testID="table-sides" style={[shared.status, { marginTop: 8 }]}>
+            {sides.map((side, i) => `${sideName(i)}: ${side.map(nameOf).join(' + ')}`).join('   ')}
+          </Text>
+        ) : null}
+
+        {isHost && players.length > 2 ? (
+          <Pressable
+            testID="table-shuffle-seats"
+            style={[shared.button, { marginTop: 8 }]}
+            disabled={busy}
+            onPress={shuffleSeats}
+          >
+            <Text style={shared.buttonText}>{t('lobby.table.shuffleSeats')}</Text>
+          </Pressable>
+        ) : null}
 
         {error ? <Text style={shared.error}>{error}</Text> : null}
 

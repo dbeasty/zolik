@@ -312,6 +312,7 @@ export const mt: Record<string, string> = {
   'err.TOO_FEW_PLAYERS': "Għadhom m'hemmx biżżejjed plejers",
   'err.WRONG_PLAYER_COUNT': "Din il-logħba ma tistax tintlagħab b'daqshekk plejers",
   'err.NOT_THE_HOST': "Dak jista' jagħmlu biss il-ħost",
+  'err.BAD_SEATING': "Dak l-ordni tal-postijiet ma jaqbilx ma' min qiegħed fuq il-mejda",
   'err.NO_LONGER_WAITING': "Il-mejda m'għadhiex tistenna",
   'err.WAITING_ROOM_UNAVAILABLE': 'Il-kamra tal-istennija mhijiex disponibbli',
   'err.SERVER_BUSY': "Is-server huwa mimli bħalissa — erġa' pprova fi ftit",
@@ -924,6 +925,10 @@ export const mt: Record<string, string> = {
   'lobby.join.joinedGame': "Ingħaqadt ma' logħba {game} — nistennew il-bidu",
   'lobby.join.joinedTable': 'Ingħaqadt mal-mejda — nistennew il-bidu',
   'lobby.table.addBot': 'Żid bot',
+  'lobby.table.side': 'Naħa {n}',
+  'lobby.table.shuffleSeats': 'Ħawwad il-postijiet',
+  'lobby.table.moveSeatUp': "Mexxi lil {name} post 'il fuq",
+  'lobby.table.moveSeatDown': "Mexxi lil {name} post 'l isfel",
   'lobby.table.start': 'Ibda',
   'lobby.table.waitingForHost': 'Nistennew lill-ħost jibda…',
 

@@ -308,6 +308,7 @@ export const sl: Record<string, string> = {
   'err.TOO_FEW_PLAYERS': 'Igralcev še ni dovolj',
   'err.WRONG_PLAYER_COUNT': 'Te igre ni mogoče igrati s toliko igralci',
   'err.NOT_THE_HOST': 'To lahko stori samo gostitelj',
+  'err.BAD_SEATING': 'Ta razporeditev sedežev se ne ujema s tistimi za mizo',
   'err.NO_LONGER_WAITING': 'Miza ne čaka več',
   'err.WAITING_ROOM_UNAVAILABLE': 'Čakalnica ni na voljo',
   'err.SERVER_BUSY': 'Strežnik je trenutno poln — poskusi znova čez trenutek',
@@ -904,6 +905,10 @@ export const sl: Record<string, string> = {
   'lobby.join.joinedGame': 'Pridružil si se igri {game} — čakamo na začetek',
   'lobby.join.joinedTable': 'Pridružil si se mizi — čakamo na začetek',
   'lobby.table.addBot': 'Dodaj bota',
+  'lobby.table.side': 'Stran {n}',
+  'lobby.table.shuffleSeats': 'Premešaj sedeže',
+  'lobby.table.moveSeatUp': 'Premakni {name} mesto višje',
+  'lobby.table.moveSeatDown': 'Premakni {name} mesto nižje',
   'lobby.table.start': 'Začni',
   'lobby.table.waitingForHost': 'Čakamo, da gostitelj začne…',
 

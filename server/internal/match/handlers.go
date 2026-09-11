@@ -72,6 +72,7 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	// Seat a specific player out of the waiting room, instead of reading a
 	// join code out to them.
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/invite", h.invite)
+	r.With(auth.AuthMiddleware).Post("/matches/{id}/seats", h.seatTable)
 	r.Get("/ws/matches/{id}", h.handleWS)
 
 	if h.testEndpoints {
@@ -432,6 +433,47 @@ func (h *Handlers) invite(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, map[string]any{
 		"matchId": m.ID.Hex(), "invited": true, "playerCount": len(m.Players),
 	})
+}
+
+// seatTable puts the table in the order the host wants, before it is dealt.
+//
+// The whole of "form teams": in a game with sides the turn alternates between
+// them, so a side is a position in the seating and reordering the seats is how
+// partners are chosen. See Manager.Seat.
+func (h *Handlers) seatTable(w http.ResponseWriter, req *http.Request) {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	var body struct {
+		Order []string `json:"order"`
+	}
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil || len(body.Order) == 0 {
+		http.Error(w, "order required", http.StatusBadRequest)
+		return
+	}
+
+	m, err := h.manager.Seat(req.Context(), chi.URLParam(req, "id"), uc.UserID, body.Order)
+	if err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	writeJSON(w, map[string]any{
+		"matchId": m.ID.Hex(),
+		"order":   m.TurnOrder,
+		"sides":   h.sidesFor(m),
+	})
+}
+
+// sidesFor is who would be playing with whom if this table were dealt now, or
+// nil for a game where everybody plays for themselves.
+func (h *Handlers) sidesFor(m models.Match) [][]string {
+	mod := h.manager.Registry().Get(m.ModuleID)
+	if mod == nil {
+		return nil
+	}
+	return module.SidesOf(mod, module.MatchConfig{Variation: m.Variation, Options: m.Options}, playerRefs(m.Players))
 }
 
 func (h *Handlers) startMatch(w http.ResponseWriter, req *http.Request) {

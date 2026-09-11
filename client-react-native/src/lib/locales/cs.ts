@@ -309,6 +309,7 @@ export const cs: Record<string, string> = {
   'err.TOO_FEW_PLAYERS': 'Zatím je málo hráčů',
   'err.WRONG_PLAYER_COUNT': 'Tuto hru nelze hrát s tímto počtem hráčů',
   'err.NOT_THE_HOST': 'To může udělat jen zakladatel stolu',
+  'err.BAD_SEATING': 'Toto rozsazení neodpovídá tomu, kdo je u stolu',
   'err.NO_LONGER_WAITING': 'Stůl už nečeká',
   'err.WAITING_ROOM_UNAVAILABLE': 'Čekárna není dostupná',
   'err.SERVER_BUSY': 'Server je právě plný — zkuste to za chvíli',
@@ -906,6 +907,10 @@ export const cs: Record<string, string> = {
   'lobby.join.joinedGame': 'Připojeno ke hře {game} — čeká se na start',
   'lobby.join.joinedTable': 'Připojeno ke stolu — čeká se na start',
   'lobby.table.addBot': 'Přidat bota',
+  'lobby.table.side': 'Strana {n}',
+  'lobby.table.shuffleSeats': 'Zamíchat místa',
+  'lobby.table.moveSeatUp': 'Posunout {name} o místo nahoru',
+  'lobby.table.moveSeatDown': 'Posunout {name} o místo dolů',
   'lobby.table.start': 'Začít',
   'lobby.table.waitingForHost': 'Čekáme, až hostitel začne…',
 

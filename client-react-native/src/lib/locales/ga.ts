@@ -319,6 +319,7 @@ export const ga: Record<string, string> = {
   'err.TOO_FEW_PLAYERS': 'Níl go leor imreoirí ann fós',
   'err.WRONG_PLAYER_COUNT': 'Ní féidir an cluiche seo a imirt leis an oiread sin imreoirí',
   'err.NOT_THE_HOST': 'Níl cead ach ag an óstach é sin a dhéanamh',
+  'err.BAD_SEATING': 'Ní ionann an t-ord suíochán sin agus na himreoirí atá ag an mbord',
   'err.NO_LONGER_WAITING': 'Níl an bord ag fanacht a thuilleadh',
   'err.WAITING_ROOM_UNAVAILABLE': 'Níl an seomra feithimh ar fáil',
   'err.SERVER_BUSY': 'Tá an freastalaí lán faoi láthair — bain triail eile as i gceann nóiméid',
@@ -937,6 +938,10 @@ export const ga: Record<string, string> = {
   'lobby.join.joinedGame': 'Chuaigh tú isteach i gcluiche {game} — ag fanacht leis an tús',
   'lobby.join.joinedTable': 'Chuaigh tú isteach sa bhord — ag fanacht leis an tús',
   'lobby.table.addBot': 'Cuir bota leis',
+  'lobby.table.side': 'Taobh {n}',
+  'lobby.table.shuffleSeats': 'Suaith na suíocháin',
+  'lobby.table.moveSeatUp': 'Bog {name} suas suíochán',
+  'lobby.table.moveSeatDown': 'Bog {name} síos suíochán',
   'lobby.table.start': 'Tosaigh',
   'lobby.table.waitingForHost': 'Ag fanacht leis an óstach tosú…',
 

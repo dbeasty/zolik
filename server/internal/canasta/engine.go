@@ -81,6 +81,29 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 	return encode(s)
 }
 
+var _ module.Seated = (*Module)(nil)
+
+// Sides is who plays with whom, answered for a table that has not been dealt.
+//
+// It is the lobby's question — "if we start now, who is my partner?" — and it
+// is answered here, from seatsToTeams and the same seat arithmetic NewMatch
+// uses, rather than by a client counting to two. A rule with two
+// implementations is a rule that will eventually have two answers.
+//
+// Nil where nobody has a partner: at two, three or five seats every player is
+// their own side, and a lobby showing five "teams" of one would be noise.
+func (m *Module) Sides(cfg module.MatchConfig, players []module.PlayerRef) [][]string {
+	teams := seatsToTeams(len(players))
+	if teams == len(players) {
+		return nil
+	}
+	out := make([][]string, teams)
+	for i, p := range players {
+		out[i%teams] = append(out[i%teams], p.ID)
+	}
+	return out
+}
+
 // seatsToTeams is how a table of this size divides into sides.
 //
 // Even and four or more: partnerships, half as many sides as seats, partner i

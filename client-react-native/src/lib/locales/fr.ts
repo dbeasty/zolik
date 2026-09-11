@@ -311,6 +311,7 @@ export const fr: Record<string, string> = {
   'err.TOO_FEW_PLAYERS': 'Pas encore assez de joueurs',
   'err.WRONG_PLAYER_COUNT': 'Ce jeu ne peut pas se jouer à ce nombre de joueurs',
   'err.NOT_THE_HOST': "Seul l'hôte peut faire cela",
+  'err.BAD_SEATING': 'Cet ordre des places ne correspond pas aux joueurs à la table',
   'err.NO_LONGER_WAITING': "La table n'attend plus",
   'err.WAITING_ROOM_UNAVAILABLE': "La salle d'attente n'est pas disponible",
   'err.SERVER_BUSY': 'Le serveur est saturé — réessaie dans un instant',
@@ -924,6 +925,10 @@ export const fr: Record<string, string> = {
   'lobby.join.joinedGame': 'Tu as rejoint une partie de {game} — en attente du départ',
   'lobby.join.joinedTable': 'Tu as rejoint la table — en attente du départ',
   'lobby.table.addBot': 'Ajouter un bot',
+  'lobby.table.side': 'Camp {n}',
+  'lobby.table.shuffleSeats': 'Mélanger les places',
+  'lobby.table.moveSeatUp': 'Monter {name} d’une place',
+  'lobby.table.moveSeatDown': 'Descendre {name} d’une place',
   'lobby.table.start': 'Démarrer',
   'lobby.table.waitingForHost': "En attente du départ donné par l'hôte…",
 

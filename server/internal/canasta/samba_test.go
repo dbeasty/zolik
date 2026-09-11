@@ -450,6 +450,49 @@ func TestSambaSeating(t *testing.T) {
 	}
 }
 
+// The sides a lobby shows have to be the sides the deal produces, or "form
+// teams" is a promise the table then breaks.
+func TestSidesMatchTheDeal(t *testing.T) {
+	m := New()
+	for _, seats := range []int{2, 3, 4, 5, 6} {
+		players := refs(seatNames(seats)...)
+		cfg := module.MatchConfig{Variation: "samba"}
+		sides := m.Sides(cfg, players)
+
+		// Nobody has a partner at two, three or five seats, and a lobby showing
+		// five "teams" of one would be noise rather than information.
+		if seats%2 != 0 || seats < 4 {
+			if sides != nil {
+				t.Errorf("%d seats reported sides %v; nobody has a partner there", seats, sides)
+			}
+			continue
+		}
+
+		raw, err := m.NewMatch(cfg, players, 5)
+		if err != nil {
+			t.Fatalf("%d seats: NewMatch: %v", seats, err)
+		}
+		dealt := mustDecode(t, raw)
+
+		if len(sides) != len(dealt.Teams) {
+			t.Fatalf("%d seats: lobby showed %d sides, the deal made %d", seats, len(sides), len(dealt.Teams))
+		}
+		for i, side := range sides {
+			got := dealt.Teams[i].Players
+			if len(side) != len(got) {
+				t.Errorf("%d seats: side %d is %v, the deal made %v", seats, i, side, got)
+				continue
+			}
+			for j := range side {
+				if side[j] != got[j] {
+					t.Errorf("%d seats: side %d is %v, the deal made %v", seats, i, side, got)
+					break
+				}
+			}
+		}
+	}
+}
+
 // Six seats deal thirteen; everything below deals fifteen.
 func TestSambaHandSizeAtSixSeats(t *testing.T) {
 	m := New()

@@ -374,6 +374,21 @@ export class ZolikClient {
   }
 
   /**
+   * Put the table in a given seat order, before it is dealt. Host only.
+   *
+   * This is how partnerships are chosen. In a game with sides the turn
+   * alternates between them, so a side is a position in the seating — which
+   * means there is nothing to send but the order, and no separate idea of a
+   * "team" on the wire at all.
+   */
+  async seatTable(
+    idOrCode: string,
+    order: string[],
+  ): Promise<{ order: string[]; sides?: string[][] }> {
+    return this.post(`/matches/${encodeURIComponent(idOrCode)}/seats`, { order }, true);
+  }
+
+  /**
    * Bring back a table the server swept up after nobody came back to it.
    *
    * Only ever offered for a table whose other seats are all bots — the server

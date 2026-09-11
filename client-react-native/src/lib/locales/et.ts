@@ -307,6 +307,7 @@ export const et: Record<string, string> = {
   'err.TOO_FEW_PLAYERS': 'Mängijaid pole veel piisavalt',
   'err.WRONG_PLAYER_COUNT': 'Seda mängu ei saa nii paljude mängijatega mängida',
   'err.NOT_THE_HOST': 'Seda saab teha ainult võõrustaja',
+  'err.BAD_SEATING': 'See istekohtade järjekord ei vasta lauas olijatele',
   'err.NO_LONGER_WAITING': 'Laud enam ei oota',
   'err.WAITING_ROOM_UNAVAILABLE': 'Ooteruum ei ole saadaval',
   'err.SERVER_BUSY': 'Server on praegu täis — proovi hetke pärast uuesti',
@@ -911,6 +912,10 @@ export const et: Record<string, string> = {
   'lobby.join.joinedGame': 'Liitusid mänguga {game} — ootame algust',
   'lobby.join.joinedTable': 'Liitusid lauaga — ootame algust',
   'lobby.table.addBot': 'Lisa robot',
+  'lobby.table.side': 'Pool {n}',
+  'lobby.table.shuffleSeats': 'Sega kohad',
+  'lobby.table.moveSeatUp': 'Liiguta {name} koha võrra üles',
+  'lobby.table.moveSeatDown': 'Liiguta {name} koha võrra alla',
   'lobby.table.start': 'Alusta',
   'lobby.table.waitingForHost': 'Ootame, kuni võõrustaja alustab…',
 

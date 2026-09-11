@@ -307,6 +307,7 @@ export const lt: Record<string, string> = {
   'err.TOO_FEW_PLAYERS': 'Žaidėjų dar nepakanka',
   'err.WRONG_PLAYER_COUNT': 'Šio žaidimo negalima žaisti su tiek žaidėjų',
   'err.NOT_THE_HOST': 'Tai gali padaryti tik šeimininkas',
+  'err.BAD_SEATING': 'Ši vietų tvarka neatitinka tų, kurie yra prie stalo',
   'err.NO_LONGER_WAITING': 'Stalas nebelaukia',
   'err.WAITING_ROOM_UNAVAILABLE': 'Laukiamasis nepasiekiamas',
   'err.SERVER_BUSY': 'Serveris šiuo metu pilnas — pabandyk po akimirkos',
@@ -913,6 +914,10 @@ export const lt: Record<string, string> = {
   'lobby.join.joinedGame': 'Prisijungei prie žaidimo {game} — laukiame starto',
   'lobby.join.joinedTable': 'Prisijungei prie stalo — laukiame starto',
   'lobby.table.addBot': 'Pridėti botą',
+  'lobby.table.side': 'Pusė {n}',
+  'lobby.table.shuffleSeats': 'Sumaišyti vietas',
+  'lobby.table.moveSeatUp': 'Perkelti {name} viena vieta aukštyn',
+  'lobby.table.moveSeatDown': 'Perkelti {name} viena vieta žemyn',
   'lobby.table.start': 'Pradėti',
   'lobby.table.waitingForHost': 'Laukiame, kol šeimininkas pradės…',
 

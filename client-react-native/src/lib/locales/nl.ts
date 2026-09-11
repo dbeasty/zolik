@@ -314,6 +314,7 @@ export const nl: Record<string, string> = {
   'err.TOO_FEW_PLAYERS': 'Nog niet genoeg spelers',
   'err.WRONG_PLAYER_COUNT': 'Dit spel kan niet met zoveel spelers gespeeld worden',
   'err.NOT_THE_HOST': 'Dat kan alleen de gastheer',
+  'err.BAD_SEATING': 'Die volgorde past niet bij wie er aan tafel zit',
   'err.NO_LONGER_WAITING': 'De tafel wacht niet meer',
   'err.WAITING_ROOM_UNAVAILABLE': 'De wachtruimte is niet beschikbaar',
   'err.SERVER_BUSY': 'De server zit nu vol — probeer het zo nog eens',
@@ -924,6 +925,10 @@ export const nl: Record<string, string> = {
   'lobby.join.joinedGame': 'Je doet mee aan een partij {game} — wachten op de start',
   'lobby.join.joinedTable': 'Je zit aan tafel — wachten op de start',
   'lobby.table.addBot': 'Een bot toevoegen',
+  'lobby.table.side': 'Kant {n}',
+  'lobby.table.shuffleSeats': 'Plaatsen schudden',
+  'lobby.table.moveSeatUp': '{name} een plaats omhoog',
+  'lobby.table.moveSeatDown': '{name} een plaats omlaag',
   'lobby.table.start': 'Starten',
   'lobby.table.waitingForHost': 'Wachten tot de gastheer start…',
 

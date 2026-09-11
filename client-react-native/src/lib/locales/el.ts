@@ -318,6 +318,7 @@ export const el: Record<string, string> = {
   'err.TOO_FEW_PLAYERS': 'Δεν υπάρχουν ακόμα αρκετοί παίκτες',
   'err.WRONG_PLAYER_COUNT': 'Αυτό το παιχνίδι δεν παίζεται με τόσους παίκτες',
   'err.NOT_THE_HOST': 'Αυτό μπορεί να το κάνει μόνο ο οικοδεσπότης',
+  'err.BAD_SEATING': 'Αυτή η σειρά θέσεων δεν ταιριάζει με όσους είναι στο τραπέζι',
   'err.NO_LONGER_WAITING': 'Το τραπέζι δεν περιμένει πια',
   'err.WAITING_ROOM_UNAVAILABLE': 'Η αίθουσα αναμονής δεν είναι διαθέσιμη',
   'err.SERVER_BUSY': 'Ο διακομιστής είναι γεμάτος αυτή τη στιγμή — δοκίμασε ξανά σε λίγο',
@@ -934,6 +935,10 @@ export const el: Record<string, string> = {
   'lobby.join.joinedGame': 'Μπήκες σε παιχνίδι {game} — αναμονή για την έναρξη',
   'lobby.join.joinedTable': 'Μπήκες στο τραπέζι — αναμονή για την έναρξη',
   'lobby.table.addBot': 'Πρόσθεσε μποτ',
+  'lobby.table.side': 'Πλευρά {n}',
+  'lobby.table.shuffleSeats': 'Ανακάτεψε τις θέσεις',
+  'lobby.table.moveSeatUp': 'Μετακίνησε τον {name} μία θέση πάνω',
+  'lobby.table.moveSeatDown': 'Μετακίνησε τον {name} μία θέση κάτω',
   'lobby.table.start': 'Ξεκίνα',
   'lobby.table.waitingForHost': 'Αναμονή να ξεκινήσει ο οικοδεσπότης…',
 

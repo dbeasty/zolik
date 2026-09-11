@@ -301,6 +301,12 @@ export type MatchState = {
   winners?: string[];
   suspendedPlayer?: string;
   players: MatchPlayer[];
+  /**
+   * Who is playing with whom if the table were dealt now, in seat order —
+   * present only while the table is still a lobby, and only for a game that
+   * has sides at all. Once dealt, the board carries the partnerships itself.
+   */
+  sides?: string[][];
   view: ViewModel;
   legalActions: ActionOffer[];
   standings?: Standing[];
