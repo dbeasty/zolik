@@ -463,6 +463,12 @@ type GameState struct {
 	Pause bool                `json:"pause,omitempty"`
 	Break module.Intermission `json:"break,omitempty"`
 
+	// OpenDiscard is whether this table publishes the whole discard pile
+	// rather than its top card (view.go's shownPile). Resolved once at
+	// NewMatch like Pause, and false — the folded pile this game has always
+	// shown — for a match that was dealt before the option existed.
+	OpenDiscard bool `json:"openDiscard,omitempty"`
+
 	WinnerTeam int    `json:"winnerTeam"`
 	WinnerID   string `json:"winnerId,omitempty"`
 	Seed       int64  `json:"seed"`

@@ -1223,3 +1223,121 @@ func TestAPausedTableSaysSo(t *testing.T) {
 func pauses(m module.GameModule) bool {
 	return m.Descriptor().Option(module.OptPauseBetweenRounds) != nil
 }
+
+// TestADiscardPileShowsWhatTheTableAskedFor — the open-pile option, checked
+// against every game that declares it rather than four times in four packages.
+//
+// The term is narrow and worth stating exactly: with the option on, a pile
+// publishes every card it holds; with it off, its top card and nothing else.
+// Neither setting changes what anybody may *do* — the option decides what a
+// viewer is sent, and a module that enforced it in its offers instead would
+// have turned a house rule into a rule.
+//
+// The one exemption is the interesting half. A game whose draw can reach under
+// the top card (Žolíky's free pickup) offers those buried cards by name, and a
+// view that folded them away would be hiding cards it is at the same time
+// inviting the player to take. Presentation does not get to contradict an
+// offer, so such a game keeps its pile open and the test says so rather than
+// excusing it per module.
+//
+// The run has to actually build a pile for any of this to mean anything, which
+// is why a game whose pile never grows past one card fails rather than passes
+// quietly.
+func TestADiscardPileShowsWhatTheTableAskedFor(t *testing.T) {
+	for _, g := range allModules() {
+		if g.mod.Descriptor().Option(module.OptOpenDiscardPile) == nil {
+			continue
+		}
+		t.Run(g.name, func(t *testing.T) {
+			for _, open := range []bool{false, true} {
+				name, want := "folded", module.OptOff
+				if open {
+					name, want = "open", module.OptOn
+				}
+				t.Run(name, func(t *testing.T) {
+					cfg := g.cfg
+					opts := module.Options{}
+					for k, v := range cfg.Options {
+						opts[k] = v
+					}
+					opts[module.OptOpenDiscardPile] = want
+					cfg.Options = opts
+
+					state, err := g.mod.NewMatch(cfg, g.players, 5)
+					if err != nil {
+						t.Fatalf("NewMatch: %v", err)
+					}
+
+					deepest := 0
+					reachesUnderTop := false
+					var folds []string
+					check := func(s module.State) {
+						for _, p := range g.players {
+							vm, err := g.mod.View(s, p.ID)
+							if err != nil {
+								t.Fatalf("View: %v", err)
+							}
+							for _, z := range vm.Zones {
+								if z.Kind != module.ZonePile {
+									continue
+								}
+								if z.Count > deepest {
+									deepest = z.Count
+								}
+								if open && len(z.Cards) != z.Count {
+									t.Fatalf("an open pile of %d showed %d cards", z.Count, len(z.Cards))
+								}
+								if !open && len(z.Cards) > 1 {
+									folds = append(folds, fmt.Sprintf("a folded pile of %d showed %v", z.Count, z.Cards))
+								}
+								if len(z.Cards) > 0 && drawsUnderTop(t, g, s, z.Cards[len(z.Cards)-1].Card) {
+									reachesUnderTop = true
+								}
+							}
+						}
+					}
+
+					check(state)
+					if _, _, err := module.PlayWithOffers(g.mod, state, g.players, module.DriverOptions{
+						MaxActions: 400, Prefer: g.prefer, OnState: check,
+					}); err != nil {
+						t.Fatalf("%v", err)
+					}
+					if deepest < 2 {
+						t.Fatalf("the pile never grew past %d cards, so this proves nothing", deepest)
+					}
+					if len(folds) > 0 && !reachesUnderTop {
+						t.Fatalf("%s (and no draw in this game ever reaches under the top card)", folds[0])
+					}
+					if !open && reachesUnderTop && len(folds) == 0 {
+						t.Errorf("this game's draw reaches under the top card, yet the pile was folded to it all match")
+					}
+				})
+			}
+		})
+	}
+}
+
+// drawsUnderTop reports whether anybody at this table is offered a discard-pile
+// card that is not the top one — the property that makes folding the pile away
+// a contradiction rather than a preference.
+func drawsUnderTop(t *testing.T, g hosted, s module.State, top string) bool {
+	t.Helper()
+	for _, p := range g.players {
+		offers, err := g.mod.LegalActions(s, p.ID)
+		if err != nil {
+			t.Fatalf("LegalActions: %v", err)
+		}
+		for _, o := range offers {
+			if o.Source == nil || o.Source.Zone != module.FromDiscardPile {
+				continue
+			}
+			for _, c := range o.Source.Cards {
+				if c != top {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}

@@ -77,7 +77,11 @@ func (m *Module) probe(raw module.State, playerID string, a module.Action) (bool
 func (m *Module) upcardOffers(raw module.State, s *GameState, playerID string) []module.ActionOffer {
 	take := module.ActionOffer{
 		ID: OfferDrawDiscard, Verb: VerbDraw, LabelKey: "ginrummy.offer.takeUpcard",
-		Source: &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID, Cards: append([]string(nil), s.DiscardPile...)},
+		// Only ever the top card: this draw takes the upcard, never anything
+		// under it. Naming the whole pile here said otherwise, and said it to
+		// every client — an offer is published to the player it is offered to,
+		// so a selector that over-lists is a leak as well as a wrong answer.
+		Source: &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID, Cards: topOnly(s.DiscardPile)},
 	}
 	take.Enabled, take.WhyNot = m.probe(raw, playerID, module.Action{OfferID: take.ID, Verb: VerbDraw})
 
@@ -96,7 +100,8 @@ func (m *Module) drawOffers(raw module.State, s *GameState, playerID string) []m
 
 	discard := module.ActionOffer{
 		ID: OfferDrawDiscard, Verb: VerbDraw, LabelKey: "ginrummy.offer.drawDiscard",
-		Source: &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID, Cards: append([]string(nil), s.DiscardPile...)},
+		// The top card alone, for the reason above.
+		Source: &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID, Cards: topOnly(s.DiscardPile)},
 	}
 	discard.Enabled, discard.WhyNot = m.probe(raw, playerID, module.Action{OfferID: discard.ID, Verb: VerbDraw})
 

@@ -54,6 +54,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					OptBigGin:                    module.BoolOpt(variations["standard"].bigGin),
 					OptLineBonuses:               module.BoolOpt(variations["standard"].lineBonuses),
 					module.OptPauseBetweenRounds: module.OptOn,
+					module.OptOpenDiscardPile:    module.OptOff,
 					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
 				},
 			},
@@ -69,12 +70,17 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					OptBigGin:                    module.BoolOpt(variations["oklahoma"].bigGin),
 					OptLineBonuses:               module.BoolOpt(variations["oklahoma"].lineBonuses),
 					module.OptPauseBetweenRounds: module.OptOn,
+					module.OptOpenDiscardPile:    module.OptOff,
 					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
 				},
 			},
 		},
 		Options: []module.OptionSpec{
 			module.PauseOption(),
+			// Off by default: counting what has gone through the pile is most
+			// of the skill in this game, and the discard log the module keeps
+			// for its own bot (state.Interest) is deliberately not published.
+			module.OpenDiscardPileOption(),
 			module.BotSkillOption(),
 			{
 				Name: OptTargetScore, Type: module.OptionEnumInt,
@@ -151,7 +157,7 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 	vm.Zones = append(vm.Zones,
 		module.Zone{ID: stockZoneID, Kind: module.ZoneStack, LabelKey: "zone.drawPile", Count: len(s.Stock)},
 		module.Zone{ID: discardZoneID, Kind: module.ZonePile, LabelKey: "zone.discardPile",
-			Cards: cardViews(topOnly(s.DiscardPile)), Count: len(s.DiscardPile)},
+			Cards: cardViews(shownPile(s)), Count: len(s.DiscardPile)},
 	)
 
 	if len(s.KnockerMelds) > 0 {
@@ -237,6 +243,17 @@ func cardViews(cards []string) []module.CardView {
 
 // topOnly is what the discard pile shows: its top card, or nothing while it
 // is empty (during the upcard dance, once someone has taken it).
+// shownPile is how much of the discard pile this table publishes — all of it
+// where the option is on, the top card alone otherwise. Every card in it was
+// discarded face up, so the folded pile guards the memory the game is played
+// with rather than any secret.
+func shownPile(s *GameState) []string {
+	if s.OpenDiscard {
+		return s.DiscardPile
+	}
+	return topOnly(s.DiscardPile)
+}
+
 func topOnly(pile []string) []string {
 	if len(pile) == 0 {
 		return nil

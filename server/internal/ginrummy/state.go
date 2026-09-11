@@ -134,6 +134,12 @@ type GameState struct {
 	Intermission module.Intermission `json:"intermission,omitempty"`
 	Pause        bool                `json:"pause,omitempty"`
 
+	// OpenDiscard is whether this table publishes the whole discard pile
+	// rather than its top card (view.go's shownPile). Resolved once at
+	// NewMatch, and false — the folded pile this game has always shown — for
+	// a hand dealt before the option existed.
+	OpenDiscard bool `json:"openDiscard,omitempty"`
+
 	TargetScore   int  `json:"targetScore"`
 	KnockLimitOpt int  `json:"knockLimitOpt"` // the raw option: a fixed limit, or oklahomaSentinel
 	KnockLimit    int  `json:"knockLimit"`    // this hand's effective limit
