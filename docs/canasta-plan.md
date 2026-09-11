@@ -121,6 +121,12 @@ worth writing down rather than papering over: a `winners []string` would be the 
 | `lay_meld:<rank>` | `lay_meld` | the exact cards of a candidate meld |
 | `lay_off:<meldId>` | `lay_off` | eligible cards from hand |
 | `discard` | `discard` | the legally discardable cards |
+| `undo_take_pile` | `undo_take_pile` | — (this turn's capture, while nothing has been built on it) |
+| `undo_lay_off` | `undo_lay_off` | — (the last lay-off still standing) |
+
+The two undos are the only moves in this module that take a card back off the
+table, and both are offered only inside the turn that made them: `PileTaken`
+and `LaidOff` in `state.go` say how narrowly, and why each one exists.
 
 Every enabled/disabled decision is produced by **probing the real engine** against the state,
 exactly as `prsi/offers.go` does — the offer list is `Apply`'s own answer asked in advance, so

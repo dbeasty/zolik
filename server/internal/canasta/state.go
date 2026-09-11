@@ -56,6 +56,10 @@ const (
 	VerbLayOff       = "lay_off"
 	VerbDiscard      = "discard"
 	VerbUndoTakePile = "undo_take_pile"
+	// VerbUndoLayOff takes back a lay-off made this turn — see LaidOff. The
+	// same word Žolíky's own undo uses (rules.ActionUndoLayOff), because it is
+	// the same move and nobody should have to learn two names for it.
+	VerbUndoLayOff = "undo_lay_off"
 )
 
 // Turn phases. Two, not three: melding and discarding are the same phase,
@@ -151,11 +155,12 @@ func meldID(teamID int, rank string) string {
 // only a lower bound (meld.go), so it can refuse a take that would in fact
 // have worked but cannot always tell a genuinely doomed one apart — a
 // partnership can take the pile believing the minimum is still reachable and
-// then find the concrete hand it holds will not cooperate. Since nothing else
-// in this module lets a card come back off the table, that partnership would
-// otherwise be stuck for the rest of the deal. This is the one exception,
-// scoped as narrowly as the problem: it undoes exactly this capture, and only
-// for as long as none of its cards have gone anywhere else.
+// then find the concrete hand it holds will not cooperate. Without a way back
+// that partnership is stuck for the rest of the deal, so there is one, scoped
+// as narrowly as the problem: it undoes exactly this capture, and only for as
+// long as none of its cards have gone anywhere else. LaidOff below is the only
+// other move that takes a card back off the table, and it is there for a
+// different reason — a mistake rather than a dead end.
 type PileTaken struct {
 	// Pile is the discard pile exactly as it stood before the capture, top
 	// card last — put back verbatim rather than reconstructed from parts.
@@ -178,6 +183,45 @@ type PileTaken struct {
 	PriorHasMelded    bool     `json:"priorHasMelded"`
 	PriorLaidThisTurn int      `json:"priorLaidThisTurn,omitempty"`
 	PriorFrozen       bool     `json:"priorFrozen,omitempty"`
+}
+
+// LaidOff snapshots one lay-off so it can be taken back.
+//
+// The reason is smaller than PileTaken's and far more ordinary. A lay-off is a
+// single tap onto one of several melds sitting side by side, and the card is
+// gone the moment it lands: putting the wrong card on the wrong meld is the
+// easiest mistake this game lets a player make, and the one it gave them no way
+// to correct.
+//
+// Not the dead end PileTaken exists for: checkInitialMeld already refuses a
+// lay-off that would put the opening minimum out of reach, and an undo only
+// ever hands cards back, so nothing here is about rescuing a stuck turn. It is
+// about the mistakes the rules happily allow and never let you take back — a
+// wild spent on a meld you were saving it for, or a seventh card that closes a
+// canasta you wanted to keep open, which in Classic shuts that rank for the
+// rest of the deal.
+//
+// A stack, rather than PileTaken's single snapshot, because a turn holds one
+// capture and any number of lay-offs: a player who puts three cards down before
+// seeing the mistake would otherwise get one of them back and no more. Unwound
+// last-first, and the whole stack is dropped the instant anything else reaches
+// the table, so an undo only ever reverses a move nothing was built on top of.
+type LaidOff struct {
+	// MeldID is the meld that received the cards; PriorCards is exactly what
+	// it held beforehand, restored verbatim rather than by removing what was
+	// added — a sequence is stored sorted, so the cards do not come off the
+	// end they went on.
+	MeldID     string   `json:"meldId"`
+	PriorCards []string `json:"priorCards"`
+	// Cards are the cards that left the hand, named so the event that reverses
+	// this can say which ones came back.
+	Cards []string `json:"cards"`
+	// PriorHand is the hand exactly as it stood before, restored whole rather
+	// than by appending the cards again — for the reason PileTaken keeps one:
+	// somebody arranged that hand.
+	PriorHand         []string `json:"priorHand"`
+	PriorLaidThisTurn int      `json:"priorLaidThisTurn,omitempty"`
+	PriorHasMelded    bool     `json:"priorHasMelded,omitempty"`
 }
 
 func (m Meld) naturals() int {
@@ -361,6 +405,10 @@ type GameState struct {
 	// applyTakePile and cleared the instant any other action reaches the
 	// table, so an undo can only ever unwind exactly what it captured.
 	PileTaken *PileTaken `json:"pileTaken,omitempty"`
+	// LaidOff is this turn's lay-offs that can still be taken back, oldest
+	// first — see LaidOff. Appended to by applyLayOff, and emptied by anything
+	// else that reaches the table.
+	LaidOff []LaidOff `json:"laidOff,omitempty"`
 
 	// Rules resolved at deal time, so a match cannot change shape underneath
 	// a deal in progress.

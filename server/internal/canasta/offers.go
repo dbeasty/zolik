@@ -21,6 +21,8 @@ const (
 	OfferTakeTop = "take_top"
 	// OfferUndoTakePile takes back this turn's pile capture — see PileTaken.
 	OfferUndoTakePile = "undo_take_pile"
+	// OfferUndoLayOff takes back the last lay-off still standing — see LaidOff.
+	OfferUndoLayOff = "undo_lay_off"
 )
 
 // LegalActions answers "what may this player do right now?".
@@ -298,6 +300,28 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 			Cards: accepted, MinCards: 1, MaxCards: mm.room(r),
 		}
 		o.Target = &module.Selector{Zone: module.ToMeld, MeldID: mm.ID, ZoneID: meldsZoneID(t.ID)}
+		offers = append(offers, o)
+	}
+
+	// --- undo the last lay-off -------------------------------------------------
+	//
+	// Last in the list, directly behind the lay-offs it reverses: that is where
+	// a player looks for it, and it keeps every ordinary move ahead of it for a
+	// bot reading the list in order (module.ChooseAction with no preferences
+	// takes the first enabled offer), so a bot only ever reaches for it when it
+	// has nothing to play at all.
+	if n := len(s.LaidOff); n > 0 {
+		last := s.LaidOff[n-1]
+		o := module.ActionOffer{ID: OfferUndoLayOff, Verb: VerbUndoLayOff, LabelKey: "verb.undoLayOff"}
+		o.Enabled, o.WhyNot = probe(m, raw, playerID, module.Action{Verb: VerbUndoLayOff})
+		// Which meld it comes back off, told apart the same way the lay-off
+		// that put it there was — a side can have several melds down and
+		// "undo lay off" on its own would not say which one moves.
+		if mm := t.meldByID(last.MeldID); mm != nil {
+			o.Facts = []module.Fact{meldOfferFact(*mm)}
+		}
+		o.Source = &module.Selector{Zone: module.FromMeld, MeldID: last.MeldID, ZoneID: meldsZoneID(t.ID)}
+		o.Target = &module.Selector{Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID)}
 		offers = append(offers, o)
 	}
 
