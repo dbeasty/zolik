@@ -792,6 +792,7 @@ export const ga: Record<string, string> = {
   'nav.scoreTable': 'Tábla scór',
   'nav.stats': 'Staitisticí',
   'nav.more': 'Tuilleadh',
+  'nav.about': 'Maidir leis',
 
   // --- the account menu behind the face in the corner ----------------------
   'menu.label': 'Roghchlár an chuntais',
@@ -1045,6 +1046,7 @@ export const ga: Record<string, string> = {
   // --- the build footer -----------------------------------------------------
   'build.app': 'aip',
   'build.server': 'freastalaí',
+  'about.subtitle': 'An leagan atá á imirt agat, agus an mionchló.',
   // --- the words the server chose, worded here -------------------------------
   //
   // /modules describes each game, variation, option and choice with an English

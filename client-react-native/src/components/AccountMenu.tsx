@@ -105,6 +105,15 @@ export function AccountMenu() {
               testID="account-menu-settings"
               onPress={() => go('/settings')}
             />
+            {/* Above the sign-in items rather than below them, because the
+                items below are about your account and this one is about the
+                app — and because "About" under "Sign out" reads as part of
+                leaving. */}
+            <MenuItem
+              label={t('nav.about')}
+              testID="account-menu-about"
+              onPress={() => go('/about')}
+            />
 
             {/* Both sign-in items say the same two words, because that is what
                 the action is. A guest gets the reason underneath in smaller

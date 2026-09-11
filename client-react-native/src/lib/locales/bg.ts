@@ -780,6 +780,7 @@ export const bg: Record<string, string> = {
   'nav.scoreTable': 'Таблица с точки',
   'nav.stats': 'Статистика',
   'nav.more': 'Още',
+  'nav.about': 'Относно',
 
   // --- the account menu behind the face in the corner ----------------------
   'menu.label': 'Меню на профила',
@@ -1028,6 +1029,7 @@ export const bg: Record<string, string> = {
   // --- the build footer -----------------------------------------------------
   'build.app': 'приложение',
   'build.server': 'сървър',
+  'about.subtitle': 'Версията, която играете, и дребният шрифт.',
   // --- the words the server chose, worded here -------------------------------
   //
   // /modules describes each game, variation, option and choice with an English

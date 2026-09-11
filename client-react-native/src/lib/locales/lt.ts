@@ -772,6 +772,7 @@ export const lt: Record<string, string> = {
   'nav.scoreTable': 'Taškų lentelė',
   'nav.stats': 'Statistika',
   'nav.more': 'Daugiau',
+  'nav.about': 'Apie',
 
   // --- the account menu behind the face in the corner ----------------------
   'menu.label': 'Paskyros meniu',
@@ -1021,6 +1022,7 @@ export const lt: Record<string, string> = {
   // --- the build footer -----------------------------------------------------
   'build.app': 'programa',
   'build.server': 'serveris',
+  'about.subtitle': 'Versija, kuria žaidžiate, ir smulkusis šriftas.',
   // --- the words the server chose, worded here -------------------------------
   //
   // /modules describes each game, variation, option and choice with an English

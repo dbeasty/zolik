@@ -782,6 +782,7 @@ export const mt: Record<string, string> = {
   'nav.scoreTable': 'Tabella tal-iskor',
   'nav.stats': 'Statistika',
   'nav.more': 'Aktar',
+  'nav.about': 'Dwar',
 
   // --- the account menu behind the face in the corner ----------------------
   'menu.label': 'Menu tal-kont',
@@ -1033,6 +1034,7 @@ export const mt: Record<string, string> = {
   // --- the build footer -----------------------------------------------------
   'build.app': 'app',
   'build.server': 'server',
+  'about.subtitle': 'Il-verżjoni li qed tilgħab biha, u l-istampa ż-żgħira.',
   // --- the words the server chose, worded here -------------------------------
   //
   // /modules describes each game, variation, option and choice with an English

@@ -770,6 +770,7 @@ export const lv: Record<string, string> = {
   'nav.scoreTable': 'Punktu tabula',
   'nav.stats': 'Statistika',
   'nav.more': 'Vairāk',
+  'nav.about': 'Par',
 
   // --- the account menu behind the face in the corner ----------------------
   'menu.label': 'Konta izvēlne',
@@ -1019,6 +1020,7 @@ export const lv: Record<string, string> = {
   // --- the build footer -----------------------------------------------------
   'build.app': 'lietotne',
   'build.server': 'serveris',
+  'about.subtitle': 'Versija, ar kuru spēlējat, un sīkais druks.',
   // --- the words the server chose, worded here -------------------------------
   //
   // /modules describes each game, variation, option and choice with an English

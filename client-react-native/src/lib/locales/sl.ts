@@ -765,6 +765,7 @@ export const sl: Record<string, string> = {
   'nav.scoreTable': 'Tabela točk',
   'nav.stats': 'Statistika',
   'nav.more': 'Več',
+  'nav.about': 'O aplikaciji',
 
   // --- the account menu behind the face in the corner ----------------------
   'menu.label': 'Meni računa',
@@ -1012,6 +1013,7 @@ export const sl: Record<string, string> = {
   // --- the build footer -----------------------------------------------------
   'build.app': 'aplikacija',
   'build.server': 'strežnik',
+  'about.subtitle': 'Različica, s katero igrate, in drobni tisk.',
   // --- the words the server chose, worded here -------------------------------
   //
   // /modules describes each game, variation, option and choice with an English

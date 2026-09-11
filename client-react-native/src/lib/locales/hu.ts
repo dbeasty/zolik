@@ -782,6 +782,7 @@ export const hu: Record<string, string> = {
   'nav.scoreTable': 'Ponttábla',
   'nav.stats': 'Statisztika',
   'nav.more': 'Több',
+  'nav.about': 'Névjegy',
 
   // --- the account menu behind the face in the corner ----------------------
   'menu.label': 'Fiókmenü',
@@ -1032,6 +1033,7 @@ export const hu: Record<string, string> = {
   // --- the build footer -----------------------------------------------------
   'build.app': 'alkalmazás',
   'build.server': 'kiszolgáló',
+  'about.subtitle': 'A futó verzió és az apró betűs rész.',
   // --- the words the server chose, worded here -------------------------------
   //
   // /modules describes each game, variation, option and choice with an English
