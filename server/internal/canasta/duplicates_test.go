@@ -92,7 +92,7 @@ func TestRunExtensionsStayDistinct(t *testing.T) {
 // Three black threes are three black threes whether or not two of them are the
 // same card — the going-out meld has to be offered either way.
 func TestBlackThreeCandidateCountsCopies(t *testing.T) {
-	got := blackThreeCandidate([]string{"3C", "3C", "3S", "AH"})
+	got := blackThreeCandidate(variations["classic"], []string{"3C", "3C", "3S", "AH"})
 	if len(got) != 3 {
 		t.Errorf("got %v, want three black threes", got)
 	}

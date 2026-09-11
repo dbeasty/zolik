@@ -146,6 +146,10 @@ export const en: Record<string, string> = {
   'canasta.rules.canasta': 'A canasta is a meld of {n} or more cards of the same rank.',
   'canasta.rules.sequences': 'A meld can also be a sequence: three or more cards of the same suit in a row, never with a wild card among them.',
   'canasta.rules.samba': 'A sequence of seven cards is a samba, worth {n} points.',
+  'canasta.rules.blackThreesGoOut':
+    'A black three blocks the discard pile and is worth {n} points. Three or four of them may be melded straight from your hand, never with a wild card among them, and only as the move that takes your side out.',
+  'canasta.rules.blackThreesNeverMeld':
+    'A black three is never melded. It blocks the discard pile when discarded, and costs {n} points if it is still in your hand when the deal ends.',
   'canasta.rules.pileAlwaysFrozen': 'The discard pile is frozen all deal: to take it you must match its top card with two natural cards from your hand.',
   'canasta.rules.meldFloorBands':
     'Your first meld must reach a point minimum that rises with your score: {negative} below zero, {low} up to 1500, {mid} up to 3000, {high} beyond that.',
@@ -299,6 +303,7 @@ export const en: Record<string, string> = {
   'err.NOT_YOUR_MELD': 'That meld belongs to the other side',
   'err.NO_SUCH_MELD': 'That meld is not on the table',
   'err.CANNOT_MELD_THREE': 'Threes are never melded',
+  'err.BLACK_THREE_GO_OUT_ONLY': 'Black threes go down only as the move that empties your hand',
   'err.CANNOT_DISCARD_RED_THREE': 'A red three can\'t be discarded',
   'err.MUST_KEEP_A_CARD': 'Keep at least one card — you can\'t empty your hand this way',
   'err.MUST_MELD_FIRST': 'Lay your side\'s first meld before doing that',

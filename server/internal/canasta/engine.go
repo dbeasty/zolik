@@ -750,16 +750,29 @@ func applyLayMeld(s *GameState, playerID string, a module.Action) ([]module.Even
 	}
 	t := s.team(playerID)
 
-	// Black threes are the one meld that is not about points: they may only
-	// go down as the move that empties a hand.
+	// Black threes are the one meld that is not about points: where a variation
+	// allows them at all they may only go down as the move that empties a hand.
 	blackThrees := len(a.Cards) > 0 && isBlackThree(a.Cards[0])
 	if blackThrees {
+		// Modern American never lets one reach the table, so the refusal is the
+		// blanket one an ordinary three already gets rather than the narrower
+		// "not like this" below.
+		if !r.BlackThreeMeld {
+			return nil, errCode(ErrCannotMeldThree)
+		}
 		if err := validateBlackThreeMeld(a.Cards); err != nil {
 			return nil, err
 		}
 		rest, _ := removeCards(s.Hands[playerID], a.Cards)
-		if len(rest) > 0 || !canGoOut(s, t) {
-			return nil, errCode(ErrCannotMeldThree)
+		// Two different refusals, because they send the player two different
+		// places: a hand with cards left over is the wrong *move*, while a side
+		// short of its canastas is the wrong *time*, and the second is the one
+		// the going-out rule already has words for.
+		if !canGoOut(s, t) {
+			return nil, errCode(ErrCannotGoOutYet)
+		}
+		if len(rest) > 0 {
+			return nil, errCode(ErrBlackThreeGoOutOnly)
 		}
 	} else {
 		if err := validateMeld(r, a.Cards); err != nil {

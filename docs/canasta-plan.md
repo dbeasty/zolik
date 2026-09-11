@@ -42,7 +42,7 @@ Classic (American) Canasta, the ruleset in Hoyle and on pagat.com.
 server (`AS`, `TD`, `2C`, `JOKER1`…`JOKER4`), with duplicates disambiguated the way the
 existing 2-deck rummy deck already does.
 
-**Card values.** Joker 50 · 2 20 · A 20 · K Q J T 9 8 10 · 7 6 5 4 5 · black 3 5 · red 3 100.
+**Card values.** Joker 50 · 2 20 · A 20 · K Q J T 9 8 10 · 7 6 5 4 5 · black 3 100 · red 3 100.
 
 **Wilds.** Jokers and 2s. A meld may hold at most 3 wilds and must hold at least 2 naturals.
 
@@ -54,8 +54,14 @@ a **canasta** — *natural* (no wilds, 500) or *mixed* (300) — and is closed t
 the partnership's red-three row and the player draws a replacement. 100 each, 800 for all
 four, and **negative** if the partnership finished the deal with no canasta.
 
-**Black threes.** Discarding one blocks the pile for the next player only. They may be melded
-only as part of going out, and never with a wild.
+**Black threes.** Discarding one blocks the pile for the next player only. A group of three or
+four may be melded straight from the hand, never with a wild among them, and only as the move
+that goes out — the partnership's canasta quota still has to be met first. 100 each on the
+table, 100 each against a hand still holding one when the deal ends.
+
+Whether that meld exists at all is the variation's: `classic` and `samba` allow it,
+`modern_american` forbids it outright, where a black three is only ever a stop card or a
+penalty. See `ruleset.BlackThreeMeld`.
 
 **The discard pile.** A player may take the entire pile instead of drawing, if they can use the
 top card immediately:

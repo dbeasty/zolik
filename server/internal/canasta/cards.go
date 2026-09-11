@@ -143,8 +143,8 @@ func isRedThree(card string) bool {
 	return s == "H" || s == "D"
 }
 
-// isBlackThree blocks the pile when discarded and may only be melded on the
-// way out.
+// isBlackThree blocks the pile when discarded and, in the variations that
+// allow it at all, may only be melded on the way out.
 func isBlackThree(card string) bool {
 	if rankOf(card) != rankThree {
 		return false
@@ -159,6 +159,10 @@ func isBlackThree(card string) bool {
 // Red threes are excluded here and scored separately: their 100 is a bonus
 // that flips sign with the partnership's canasta count, so folding it into a
 // per-card value would make it wrong in one of the two cases.
+//
+// Black threes are not excluded, because their 100 does not flip: it is worth
+// 100 melded and costs 100 stranded, which is one number with one sign and is
+// exactly what a per-card value means. See blackThreeValue.
 func cardValue(card string) int {
 	switch rankOf(card) {
 	case rankJoker:
@@ -175,7 +179,7 @@ func cardValue(card string) int {
 		if isRedThree(card) {
 			return redThreeValue
 		}
-		return 5 // black three
+		return blackThreeValue
 	}
 	return 0
 }

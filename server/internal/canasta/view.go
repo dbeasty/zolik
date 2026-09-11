@@ -53,6 +53,12 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					{LabelKey: "canasta.rules.canasta", Params: map[string]any{"n": canastaSize}},
 					{LabelKey: "canasta.rules.redThrees"},
 					{LabelKey: "canasta.rules.twoCanastasToGoOut"},
+					// The one rule that tells this variation from Classic at a
+					// glance. Two canastas to go out is a number Classic could
+					// be set to; a black three that can never be melded is not,
+					// and it is the reason the pile matters as much as it does
+					// here — so it belongs in the pitch, not only in the rules.
+					{LabelKey: "canasta.rules.blackThreesNeverMeld", Params: map[string]any{"n": blackThreeValue}},
 				},
 				Defaults: map[string]int{
 					OptHandSize:                  variations["modern_american"].HandSize,

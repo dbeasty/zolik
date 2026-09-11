@@ -227,8 +227,11 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		laid++
 	}
 	// Going out on a set of black threes is a real, if rare, move, and it has
-	// its own candidate because nothing else would ever produce it.
-	if bt := blackThreeCandidate(hand); bt != nil {
+	// its own candidate because nothing else would ever produce it. Not in every
+	// variation, though: where the meld does not exist, neither should a control
+	// for it — `probe` would refuse it anyway, but an offer nobody can ever take
+	// is a rule the player has to discover by being told no.
+	if bt := blackThreeCandidate(r, hand); bt != nil {
 		if ok, _ := probe(m, raw, playerID, module.Action{Verb: VerbLayMeld, Cards: bt}); ok {
 			offers = append(offers, module.ActionOffer{
 				ID: OfferLayMeld + ":" + rankThree, Verb: VerbLayMeld, Enabled: true,
@@ -475,7 +478,10 @@ func smallestAcceptedMeld(m *Module, raw module.State, playerID string, c candid
 //
 // Counted by copy: three black threes are three black threes whether or not
 // two of them are the same card, and with two decks in play they often are.
-func blackThreeCandidate(hand []string) []string {
+func blackThreeCandidate(r ruleset, hand []string) []string {
+	if !r.BlackThreeMeld {
+		return nil
+	}
 	var out []string
 	for _, c := range hand {
 		if isBlackThree(c) {

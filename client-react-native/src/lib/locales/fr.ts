@@ -143,6 +143,10 @@ export const fr: Record<string, string> = {
   'canasta.rules.canasta': 'Une canasta est une combinaison de {n} cartes ou plus de même rang.',
   'canasta.rules.sequences': 'Une combinaison peut aussi être une séquence : trois cartes ou plus de la même couleur qui se suivent, jamais avec un joker parmi elles.',
   'canasta.rules.samba': 'Une séquence de sept cartes est un samba, qui vaut {n} points.',
+  'canasta.rules.blackThreesGoOut':
+    "Un trois noir bloque la pile et vaut {n} points. Trois ou quatre d'entre eux peuvent être posés directement de la main, jamais avec un joker parmi eux, et seulement comme le coup par lequel ton camp sort.",
+  'canasta.rules.blackThreesNeverMeld':
+    "Un trois noir ne se pose jamais. Défaussé, il bloque la pile, et s'il reste en main à la fin de la donne il coûte {n} points.",
   'canasta.rules.pileAlwaysFrozen': 'La défausse est gelée toute la donne : pour la prendre, tu dois associer sa carte du dessus à deux cartes naturelles de ta main.',
   'canasta.rules.meldFloorBands':
     "Ta première pose doit atteindre un minimum de points qui monte avec ton score : {negative} en dessous de zéro, {low} jusqu'à 1500, {mid} jusqu'à 3000, {high} au-delà.",
@@ -292,6 +296,7 @@ export const fr: Record<string, string> = {
   'err.NOT_YOUR_MELD': 'Cette combinaison appartient au camp adverse',
   'err.NO_SUCH_MELD': "Cette combinaison n'est pas sur la table",
   'err.CANNOT_MELD_THREE': 'Les trois ne se posent jamais',
+  'err.BLACK_THREE_GO_OUT_ONLY': 'Les trois noirs ne se posent que comme le coup qui vide ta main',
   'err.CANNOT_DISCARD_RED_THREE': 'Un trois rouge ne peut pas être défaussé',
   'err.MUST_KEEP_A_CARD': 'Garde au moins une carte — tu ne peux pas vider ta main ainsi',
   'err.MUST_MELD_FIRST': "Pose d'abord l'ouverture de ton camp",

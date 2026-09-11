@@ -19,8 +19,9 @@
 //     natural (no wilds) 500, mixed 300.
 //   - Jokers and 2s are wild. Red threes lay themselves down for 100 each
 //     (800 for all four) and count against a partnership with no canasta.
-//     Black threes block the pile when discarded and may only be melded on
-//     the way out.
+//     Black threes block the pile when discarded, score 100 melded and cost
+//     100 stranded, and may only be melded on the way out — and in Modern
+//     American, not at all.
 //   - A turn is draw (or take the whole discard pile) → meld → discard.
 //   - The pile may be taken only by using its top card at once, and is frozen
 //     against everyone by a buried wild and against a partnership that has
@@ -72,32 +73,37 @@ const (
 // Error codes. Stable keys a client renders from its locale bundle, never
 // sentences — the same contract the other two modules keep.
 const (
-	ErrNotYourTurn        = "NOT_YOUR_TURN"
-	ErrGameNotActive      = "GAME_NOT_ACTIVE"
-	ErrWrongPhase         = "WRONG_PHASE"
-	ErrCardNotInHand      = "CARD_NOT_IN_HAND"
-	ErrUnknownAction      = "UNKNOWN_ACTION"
-	ErrNothingToDraw      = "NOTHING_TO_DRAW"
-	ErrPileEmpty          = "PILE_EMPTY"
-	ErrPileBlocked        = "PILE_BLOCKED"
-	ErrPileFrozen         = "PILE_FROZEN"
-	ErrTopCardUnusable    = "TOP_CARD_UNUSABLE"
-	ErrMeldTooSmall       = "MELD_TOO_SMALL"
-	ErrMeldTooLarge       = "MELD_TOO_LARGE"
-	ErrMeldMixedRanks     = "MELD_MIXED_RANKS"
-	ErrTooManyWilds       = "TOO_MANY_WILDS"
-	ErrNotEnoughNaturals  = "NOT_ENOUGH_NATURALS"
-	ErrRankAlreadyMelded  = "RANK_ALREADY_MELDED"
-	ErrCannotMeldThree    = "CANNOT_MELD_THREE"
-	ErrNoSuchMeld         = "NO_SUCH_MELD"
-	ErrNotYourMeld        = "NOT_YOUR_MELD"
-	ErrMeldClosed         = "MELD_CLOSED"
-	ErrWrongRank          = "WRONG_RANK"
-	ErrInitialMeldNotMet  = "INITIAL_MELD_NOT_MET"
-	ErrMustMeldFirst      = "MUST_MELD_FIRST"
-	ErrCannotDiscardThree = "CANNOT_DISCARD_RED_THREE"
-	ErrCannotGoOutYet     = "CANNOT_GO_OUT_YET"
-	ErrMustKeepACard      = "MUST_KEEP_A_CARD"
+	ErrNotYourTurn       = "NOT_YOUR_TURN"
+	ErrGameNotActive     = "GAME_NOT_ACTIVE"
+	ErrWrongPhase        = "WRONG_PHASE"
+	ErrCardNotInHand     = "CARD_NOT_IN_HAND"
+	ErrUnknownAction     = "UNKNOWN_ACTION"
+	ErrNothingToDraw     = "NOTHING_TO_DRAW"
+	ErrPileEmpty         = "PILE_EMPTY"
+	ErrPileBlocked       = "PILE_BLOCKED"
+	ErrPileFrozen        = "PILE_FROZEN"
+	ErrTopCardUnusable   = "TOP_CARD_UNUSABLE"
+	ErrMeldTooSmall      = "MELD_TOO_SMALL"
+	ErrMeldTooLarge      = "MELD_TOO_LARGE"
+	ErrMeldMixedRanks    = "MELD_MIXED_RANKS"
+	ErrTooManyWilds      = "TOO_MANY_WILDS"
+	ErrNotEnoughNaturals = "NOT_ENOUGH_NATURALS"
+	ErrRankAlreadyMelded = "RANK_ALREADY_MELDED"
+	ErrCannotMeldThree   = "CANNOT_MELD_THREE"
+	// ErrBlackThreeGoOutOnly is narrower than ErrCannotMeldThree and is the
+	// reason a variation that *allows* the black-three meld gives for refusing
+	// one. "Threes are never melded" would be a lie at a Classic table that is
+	// offering the move three lines further down the same screen.
+	ErrBlackThreeGoOutOnly = "BLACK_THREE_GO_OUT_ONLY"
+	ErrNoSuchMeld          = "NO_SUCH_MELD"
+	ErrNotYourMeld         = "NOT_YOUR_MELD"
+	ErrMeldClosed          = "MELD_CLOSED"
+	ErrWrongRank           = "WRONG_RANK"
+	ErrInitialMeldNotMet   = "INITIAL_MELD_NOT_MET"
+	ErrMustMeldFirst       = "MUST_MELD_FIRST"
+	ErrCannotDiscardThree  = "CANNOT_DISCARD_RED_THREE"
+	ErrCannotGoOutYet      = "CANNOT_GO_OUT_YET"
+	ErrMustKeepACard       = "MUST_KEEP_A_CARD"
 	// ErrNothingToUndo is shared with Žolíky's own undo (internal/rules):
 	// same fact, same word, no reason for a client to carry two keys for it.
 	ErrNothingToUndo = "NOTHING_TO_UNDO"

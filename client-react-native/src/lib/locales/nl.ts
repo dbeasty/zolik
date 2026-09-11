@@ -142,6 +142,10 @@ export const nl: Record<string, string> = {
   'canasta.rules.canasta': 'Een canasta is een combinatie van {n} of meer kaarten van dezelfde waarde.',
   'canasta.rules.sequences': 'Een combinatie kan ook een reeks zijn: drie of meer kaarten van dezelfde kleur op volgorde, nooit met een wilde kaart ertussen.',
   'canasta.rules.samba': 'Een reeks van zeven kaarten is een samba en levert {n} punten op.',
+  'canasta.rules.blackThreesGoOut':
+    'Een zwarte drie blokkeert de stapel en is {n} punten waard. Drie of vier ervan mogen rechtstreeks uit de hand worden gelegd, nooit met een joker ertussen, en alleen als de zet waarmee jouw partij uitgaat.',
+  'canasta.rules.blackThreesNeverMeld':
+    'Een zwarte drie wordt nooit gelegd. Afgelegd blokkeert hij de stapel, en blijft hij aan het eind van het spel in je hand, dan kost hij {n} punten.',
   'canasta.rules.pileAlwaysFrozen': 'De aflegstapel is het hele spel bevroren: je kunt hem alleen nemen door de bovenste kaart te combineren met twee natuurlijke kaarten uit je hand.',
   'canasta.rules.meldFloorBands':
     'Je eerste leg moet een puntenminimum halen dat met je stand meestijgt: {negative} onder nul, {low} tot 1500, {mid} tot 3000, {high} daarboven.',
@@ -295,6 +299,8 @@ export const nl: Record<string, string> = {
   'err.NOT_YOUR_MELD': 'Die combinatie is van de tegenpartij',
   'err.NO_SUCH_MELD': 'Die combinatie ligt niet op tafel',
   'err.CANNOT_MELD_THREE': 'Drieën worden nooit gelegd',
+  'err.BLACK_THREE_GO_OUT_ONLY':
+    'Zwarte drieën worden alleen gelegd als de zet die je hand leegmaakt',
   'err.CANNOT_DISCARD_RED_THREE': 'Een rode drie mag niet afgelegd worden',
   'err.MUST_KEEP_A_CARD': 'Houd minstens één kaart — zo kun je je hand niet legen',
   'err.MUST_MELD_FIRST': 'Leg eerst de openingsleg van jouw partij',

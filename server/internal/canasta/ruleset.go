@@ -52,6 +52,18 @@ type ruleset struct {
 	// the whole deal, against everyone.
 	PileAlwaysFrozen bool `json:"pileAlwaysFrozen,omitempty"`
 
+	// BlackThreeMeld is whether a group of black threes may ever go down.
+	//
+	// Where it is on, the meld is still only legal as the move that empties a
+	// hand — three or four of them, straight from the hand, never with a wild
+	// among them. Where it is off, a black three has no route to the table at
+	// all: it is a stop card when discarded and 100 against you when it is not,
+	// and that is the whole of it. Modern American is the variation that forbids
+	// it, and forbidding it there is not a detail — the pile is the game at
+	// thirteen cards and two canastas, so a hand that cannot shed its blockers
+	// on the way out plays differently from one that can.
+	BlackThreeMeld bool `json:"blackThreeMeld,omitempty"`
+
 	// MeldFloors are the initial-meld minimums, ascending by the score they
 	// start at. Below zero every variation asks for negativeMeldFloor.
 	MeldFloors []floor `json:"meldFloors"`
@@ -136,13 +148,15 @@ var variations = map[string]ruleset{
 		HandSize: 11, TargetScore: 5000, CanastasToGoOut: 1, MaxSeats: 4,
 		Decks: 2, JokersPerDeck: 2, DrawCount: 1,
 		MaxWilds: 3, MinNaturals: 2, GroupsPerRank: 1, GroupCanastaCloses: true,
+		BlackThreeMeld:      true,
 		MeldFloors:          classicFloors,
 		RedThreesNeed:       1,
 		NaturalCanastaBonus: 500, MixedCanastaBonus: 300,
 		GoingOutBonus: 100, ConcealedBonus: 200,
 	},
 	// Modern American: thirteen cards and two canastas to go out, which makes
-	// deals longer and the discard pile far more valuable.
+	// deals longer and the discard pile far more valuable — and black threes
+	// that can never be melded, only discarded or paid for.
 	"modern_american": {
 		HandSize: 13, TargetScore: 5000, CanastasToGoOut: 2, MaxSeats: 4,
 		Decks: 2, JokersPerDeck: 2, DrawCount: 1,
@@ -181,6 +195,8 @@ func init() {
 		// Two wilds at most, and twice as many naturals as wilds — so a group
 		// with two wilds needs four naturals and cannot exist below six cards.
 		MaxWilds: 2, MinNaturals: 2, NaturalsPerWild: 2,
+		// Black threes go down on the way out, as in Classic.
+		BlackThreeMeld: true,
 		// No cap: a side may keep several groups of one rank, separately. And a
 		// group canasta is not closed by its seventh card, unlike a sequence,
 		// whose seventh card is what makes it a samba.

@@ -142,6 +142,10 @@ export const mt: Record<string, string> = {
   'canasta.rules.canasta': "Canasta hija kombinazzjoni ta' {n} karti jew aktar tal-istess valur.",
   'canasta.rules.sequences': "Kombinazzjoni tista' tkun ukoll sekwenza: tliet karti jew aktar tal-istess kulur wara xulxin, qatt b'joker fosthom.",
   'canasta.rules.samba': "Sekwenza ta' seba' karti hija samba u tiswa {n} punti.",
+  'canasta.rules.blackThreesGoOut':
+    "Tlieta sewda timblokka l-munzell u tiswa {n} punti. Tlieta jew erbgħa minnhom jistgħu jitniżżlu dritt minn idejk, qatt b'karta selvaġġa fosthom, u biss bħala l-mossa li biha toħroġ in-naħa tiegħek.",
+  'canasta.rules.blackThreesNeverMeld':
+    "Tlieta sewda qatt ma titniżżel. Meta tarmiha timblokka l-munzell, u jekk tibqa' f'idejk fl-aħħar tad-daqqa tiswielek {n} punti.",
   'canasta.rules.pileAlwaysFrozen': "Il-munzell tal-iskart huwa ffriżat għad-daqqa kollha: tista' teħdu biss billi tqabbel il-karta ta' fuq ma' żewġ karti naturali minn idejk.",
   'canasta.rules.meldFloorBands':
     "L-ewwel tniżżil tiegħek irid jilħaq minimu ta' punti li jitla' mal-iskor tiegħek: {negative} taħt iż-żero, {low} sa 1500, {mid} sa 3000, {high} 'il fuq minn hekk.",
@@ -293,6 +297,7 @@ export const mt: Record<string, string> = {
   'err.NOT_YOUR_MELD': 'Dik il-kombinazzjoni hija tan-naħa l-oħra',
   'err.NO_SUCH_MELD': 'Dik il-kombinazzjoni mhijiex fuq il-mejda',
   'err.CANNOT_MELD_THREE': 'It-tlietiet qatt ma jitniżżlu',
+  'err.BLACK_THREE_GO_OUT_ONLY': 'It-tlietiet suwed jitniżżlu biss bħala l-mossa li tbattal idejk',
   'err.CANNOT_DISCARD_RED_THREE': 'Tlieta ħamra ma tistax tintrema',
   'err.MUST_KEEP_A_CARD': 'Żomm mill-inqas karta waħda — hekk ma tistax tbattal idek',
   'err.MUST_MELD_FIRST': 'L-ewwel niżżel il-ftuħ tan-naħa tiegħek',

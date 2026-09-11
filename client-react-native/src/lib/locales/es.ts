@@ -144,6 +144,10 @@ export const es: Record<string, string> = {
   'canasta.rules.canasta': 'Una canasta es una combinación de {n} o más cartas del mismo valor.',
   'canasta.rules.sequences': 'Una combinación también puede ser una escalera: tres o más cartas del mismo palo seguidas, nunca con un comodín entre ellas.',
   'canasta.rules.samba': 'Una escalera de siete cartas es una samba y vale {n} puntos.',
+  'canasta.rules.blackThreesGoOut':
+    'Un tres negro bloquea el montón y vale {n} puntos. Tres o cuatro de ellos pueden bajarse directamente de la mano, nunca con un comodín entre ellos, y solo como la jugada con la que tu bando se va.',
+  'canasta.rules.blackThreesNeverMeld':
+    'Un tres negro no se baja nunca. Al descartarlo bloquea el montón, y si se queda en tu mano al final de la ronda te cuesta {n} puntos.',
   'canasta.rules.pileAlwaysFrozen': 'El montón de descarte está congelado toda la mano: para llevártelo tienes que casar su carta superior con dos cartas naturales de tu mano.',
   'canasta.rules.meldFloorBands':
     'Tu primera bajada debe alcanzar un mínimo de puntos que sube con tu marcador: {negative} por debajo de cero, {low} hasta 1500, {mid} hasta 3000, {high} más allá.',
@@ -294,6 +298,7 @@ export const es: Record<string, string> = {
   'err.NOT_YOUR_MELD': 'Esa combinación es del bando contrario',
   'err.NO_SUCH_MELD': 'Esa combinación no está en la mesa',
   'err.CANNOT_MELD_THREE': 'Los treses nunca se bajan',
+  'err.BLACK_THREE_GO_OUT_ONLY': 'Los treses negros solo se bajan como la jugada que vacía tu mano',
   'err.CANNOT_DISCARD_RED_THREE': 'Un tres rojo no se puede descartar',
   'err.MUST_KEEP_A_CARD': 'Quédate al menos una carta — así no puedes vaciar tu mano',
   'err.MUST_MELD_FIRST': 'Baja primero la combinación inicial de tu bando',

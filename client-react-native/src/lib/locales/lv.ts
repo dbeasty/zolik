@@ -142,6 +142,10 @@ export const lv: Record<string, string> = {
   'canasta.rules.canasta': 'Kanasta ir kombinācija no {n} vai vairāk vienādas vērtības kārtīm.',
   'canasta.rules.sequences': 'Kombinācija var būt arī secība: trīs vai vairāk vienas masts kārtis pēc kārtas, nekad ar džokeru starp tām.',
   'canasta.rules.samba': 'Secība no septiņām kārtīm ir samba, un tā ir {n} punktu vērta.',
+  'canasta.rules.blackThreesGoOut':
+    'Melns trijnieks bloķē kaudzi un ir {n} punktu vērts. Trīs vai četrus no tiem drīkst izlikt tieši no rokas, nekad ar džokeru starp tiem, un tikai kā gājienu, ar kuru tava puse iziet.',
+  'canasta.rules.blackThreesNeverMeld':
+    'Melnu trijnieku nekad neizliek. Izmests tas bloķē kaudzi, bet palicis rokā dalīšanas beigās maksā {n} punktus.',
   'canasta.rules.pileAlwaysFrozen': 'Izmešanas kaudze ir iesaldēta visu dalījumu: to vari paņemt tikai tad, ja augšējai kārtij pievieno divas dabiskās kārtis no rokas.',
   'canasta.rules.meldFloorBands':
     'Tavai pirmajai izlikšanai jāsasniedz punktu minimums, kas aug līdz ar tavu rezultātu: {negative} zem nulles, {low} līdz 1500, {mid} līdz 3000, {high} virs tā.',
@@ -290,6 +294,7 @@ export const lv: Record<string, string> = {
   'err.NOT_YOUR_MELD': 'Šī kombinācija pieder pretinieku pusei',
   'err.NO_SUCH_MELD': 'Šīs kombinācijas uz galda nav',
   'err.CANNOT_MELD_THREE': 'Trijniekus nekad neizliek',
+  'err.BLACK_THREE_GO_OUT_ONLY': 'Melnus trijniekus izliek tikai kā gājienu, kas iztukšo tavu roku',
   'err.CANNOT_DISCARD_RED_THREE': 'Sarkano trijnieku nedrīkst izmest',
   'err.MUST_KEEP_A_CARD': 'Paturi vismaz vienu kārti — tā tu roku iztukšot nevari',
   'err.MUST_MELD_FIRST': 'Vispirms izliec savas puses pirmo kombināciju',
