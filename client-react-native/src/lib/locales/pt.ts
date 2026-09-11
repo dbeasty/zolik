@@ -148,6 +148,8 @@ export const pt: Record<string, string> = {
   'canasta.rules.blackThreesNeverMeld':
     'Um três preto nunca se baixa. Descartado bloqueia o monte, e se ficar na tua mão no fim da mão custa-te {n} pontos.',
   'canasta.rules.pileAlwaysFrozen': 'O monte de descartes está congelado durante toda a mão: para o levares tens de juntar a carta do topo a duas cartas naturais da tua mão.',
+  'canasta.rules.pileOntoMeld': 'Se o teu lado já tiver uma combinação por terminar do valor da carta do topo, podes levar todo o monte de descartes e juntar-lhe essa carta — não precisas de um par na mão.',
+  'canasta.rules.pileNoMeldCapture': 'Uma combinação que já está na mesa não pode levar o monte de descartes: para o levares tens de juntar a carta do topo a duas cartas da tua própria mão.',
   'canasta.rules.meldFloorBands':
     'A tua primeira baixa tem de atingir um mínimo de pontos que sobe com a tua pontuação: {negative} abaixo de zero, {low} até 1500, {mid} até 3000, {high} acima disso.',
   'canasta.rules.meldFloorBandsFive': 'A tua primeira combinação tem de atingir um mínimo de pontos que sobe com a tua pontuação: {negative} abaixo de zero, {low} até 1500, {mid} até 3000, {high} até 7000 e {top} acima disso.',
@@ -282,6 +284,7 @@ export const pt: Record<string, string> = {
   'err.PILE_EMPTY': 'O monte está vazio',
   'err.PILE_BLOCKED': 'O monte está bloqueado — está um três preto por cima',
   'err.PILE_FROZEN': 'O monte está congelado — precisas de duas cartas naturais do valor da carta do topo',
+  'err.MELD_CAPTURE_NOT_ALLOWED': 'Neste jogo uma combinação na mesa não pode levar o monte — precisas de duas cartas da mão',
   'err.TOP_CARD_UNUSABLE': 'Não podes usar a carta do topo',
   'err.MELD_CLOSED': 'Essa combinação está completa e fechada',
   'err.MELD_TOO_SMALL': 'Uma combinação precisa de mais cartas do que isso',

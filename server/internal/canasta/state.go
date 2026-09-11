@@ -115,6 +115,17 @@ const (
 	ErrSequenceNoWilds      = "SEQUENCE_NO_WILDS"
 	ErrSequenceNeedsOneSuit = "SEQUENCE_NEEDS_ONE_SUIT"
 	ErrRunNotConsecutive    = "RUN_NOT_CONSECUTIVE"
+
+	// ErrMeldCaptureNotAllowed is the variation speaking, not the moment: this
+	// game never lets a meld already on the table claim the discard pile.
+	//
+	// Its own code rather than PILE_FROZEN, which the note above would
+	// otherwise cover, because the two say different things to a player.
+	// "Frozen" means not while a wild is buried in it — wait, or pay two
+	// naturals — and so implies the move exists. Modern American's answer is
+	// that it does not, and a player told to wait for a thaw that is never
+	// coming has been told the wrong thing.
+	ErrMeldCaptureNotAllowed = "MELD_CAPTURE_NOT_ALLOWED"
 )
 
 // Meld is one partnership's set of a single rank.

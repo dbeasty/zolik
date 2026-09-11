@@ -147,6 +147,8 @@ export const mt: Record<string, string> = {
   'canasta.rules.blackThreesNeverMeld':
     "Tlieta sewda qatt ma titniżżel. Meta tarmiha timblokka l-munzell, u jekk tibqa' f'idejk fl-aħħar tad-daqqa tiswielek {n} punti.",
   'canasta.rules.pileAlwaysFrozen': "Il-munzell tal-iskart huwa ffriżat għad-daqqa kollha: tista' teħdu biss billi tqabbel il-karta ta' fuq ma' żewġ karti naturali minn idejk.",
+  'canasta.rules.pileOntoMeld': "Jekk in-naħa tiegħek diġà għandha kombinazzjoni mhux lesta tal-valur tal-karta ta' fuq, tista' tieħu l-munzell tal-iskart kollu u żżid dik il-karta magħha — m'għandekx bżonn par f'idejk.",
+  'canasta.rules.pileNoMeldCapture': "Kombinazzjoni li diġà qiegħda fuq il-mejda ma tistax tieħu l-munzell tal-iskart: biex teħdu trid tqabbel il-karta ta' fuq ma' żewġ karti minn idejk stess.",
   'canasta.rules.meldFloorBands':
     "L-ewwel tniżżil tiegħek irid jilħaq minimu ta' punti li jitla' mal-iskor tiegħek: {negative} taħt iż-żero, {low} sa 1500, {mid} sa 3000, {high} 'il fuq minn hekk.",
   'canasta.rules.meldFloorBandsFive': "L-ewwel kombinazzjoni tiegħek trid tilħaq minimu ta' punti li jogħla mal-iskor tiegħek: {negative} taħt iż-żero, {low} sa 1500, {mid} sa 3000, {high} sa 7000 u {top} 'il fuq minn hekk.",
@@ -284,6 +286,7 @@ export const mt: Record<string, string> = {
   'err.PILE_BLOCKED': 'Il-munzell huwa mblukkat — hemm tlieta sewda fuq',
   'err.PILE_FROZEN':
     "Il-munzell huwa ffriżat — għandek bżonn żewġ karti naturali tal-valur tal-karta ta' fuq",
+  'err.MELD_CAPTURE_NOT_ALLOWED': "F'din il-logħba kombinazzjoni fuq il-mejda ma tistax tieħu l-munzell — għandek bżonn żewġ karti minn idejk",
   'err.TOP_CARD_UNUSABLE': "Ma tistax tuża l-karta ta' fuq",
   'err.MELD_CLOSED': 'Dik il-kombinazzjoni hija sħiħa u magħluqa',
   'err.MELD_TOO_SMALL': 'Kombinazzjoni għandha bżonn aktar karti minn hekk',

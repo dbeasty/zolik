@@ -147,6 +147,8 @@ export const sk: Record<string, string> = {
   'canasta.rules.blackThreesNeverMeld':
     'Čierna trojka sa nikdy nevykladá. Odhodená blokuje kôpku a na konci rozdania ti v ruke uberie {n} bodov.',
   'canasta.rules.pileAlwaysFrozen': 'Odhadzovací balíček je zamrznutý po celé rozdanie: vziať si ho môžete len tak, že k vrchnej karte priložíte dve prirodzené karty z ruky.',
+  'canasta.rules.pileOntoMeld': 'Ak vaša strana už má na stole nedokončenú kombináciu v hodnote vrchnej karty, môžete si vziať celý odhadzovací balíček a túto kartu k nej priložiť — dvojicu v ruke na to nepotrebujete.',
+  'canasta.rules.pileNoMeldCapture': 'Kombinácia ležiaca na stole si odhadzovací balíček vziať nemôže: aby ste ho získali, musíte k jeho vrchnej karte priložiť dve karty z vlastnej ruky.',
   'canasta.rules.meldFloorBands':
     'Tvoje prvé vyloženie musí dosiahnuť bodové minimum, ktoré rastie so skóre: {negative} pod nulou, {low} do 1500, {mid} do 3000, {high} nad tým.',
   'canasta.rules.meldFloorBandsFive': 'Vaša prvá kombinácia musí dosiahnuť bodové minimum, ktoré rastie s vaším skóre: {negative} pod nulou, {low} do 1500, {mid} do 3000, {high} do 7000 a {top} nad tým.',
@@ -281,6 +283,7 @@ export const sk: Record<string, string> = {
   'err.PILE_EMPTY': 'Kôpka je prázdna',
   'err.PILE_BLOCKED': 'Kôpka je zablokovaná — navrchu leží čierna trojka',
   'err.PILE_FROZEN': 'Kôpka je zamrznutá — potrebuješ dve prirodzené karty v hodnote vrchnej karty',
+  'err.MELD_CAPTURE_NOT_ALLOWED': 'V tejto hre si kombinácia na stole kôpku vziať nemôže — potrebuješ dve karty z ruky',
   'err.TOP_CARD_UNUSABLE': 'Vrchnú kartu nemôžeš použiť',
   'err.MELD_CLOSED': 'Táto kombinácia je úplná a uzavretá',
   'err.MELD_TOO_SMALL': 'Kombinácia potrebuje viac kariet',

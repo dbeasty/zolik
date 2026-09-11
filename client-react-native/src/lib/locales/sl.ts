@@ -146,6 +146,8 @@ export const sl: Record<string, string> = {
   'canasta.rules.blackThreesNeverMeld':
     'Črne trojke se nikoli ne polaga. Odvržena blokira kup, če pa ti ob koncu deljenja ostane v roki, te stane {n} točk.',
   'canasta.rules.pileAlwaysFrozen': 'Kup odvrženih je zamrznjen vso deljitev: vzameš ga lahko le tako, da vrhnji karti dodaš dve naravni karti iz roke.',
+  'canasta.rules.pileOntoMeld': 'Če ima tvoja stran že nedokončano kombinacijo v vrednosti vrhnje karte, lahko vzameš cel kup odvrženih in ji dodaš to karto — para v roki ne potrebuješ.',
+  'canasta.rules.pileNoMeldCapture': 'Kombinacija, ki je že na mizi, kupa odvrženih ne more vzeti: da ga vzameš, moraš vrhnji karti dodati dve karti iz lastne roke.',
   'canasta.rules.meldFloorBands':
     'Tvoje prvo polaganje mora doseči najmanjše število točk, ki raste z izidom: {negative} pod ničlo, {low} do 1500, {mid} do 3000, {high} nad tem.',
   'canasta.rules.meldFloorBandsFive': 'Tvoja prva kombinacija mora doseči točkovni minimum, ki raste s tvojim rezultatom: {negative} pod ničlo, {low} do 1500, {mid} do 3000, {high} do 7000 in {top} nad tem.',
@@ -280,6 +282,7 @@ export const sl: Record<string, string> = {
   'err.PILE_EMPTY': 'Kup je prazen',
   'err.PILE_BLOCKED': 'Kup je blokiran — na vrhu leži črna trojka',
   'err.PILE_FROZEN': 'Kup je zamrznjen — potrebuješ dve naravni karti vrednosti zgornje karte',
+  'err.MELD_CAPTURE_NOT_ALLOWED': 'V tej igri kombinacija na mizi kupa ne more vzeti — potrebuješ dve karti iz roke',
   'err.TOP_CARD_UNUSABLE': 'Zgornje karte ne moreš uporabiti',
   'err.MELD_CLOSED': 'Ta kombinacija je popolna in zaprta',
   'err.MELD_TOO_SMALL': 'Kombinacija potrebuje več kart od tega',

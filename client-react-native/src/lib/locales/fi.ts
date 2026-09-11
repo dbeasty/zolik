@@ -147,6 +147,8 @@ export const fi: Record<string, string> = {
   'canasta.rules.blackThreesNeverMeld':
     'Mustaa kolmosta ei lasketa koskaan. Poistettuna se tukkii pinon, ja jaon lopussa käteen jäänyt maksaa {n} pistettä.',
   'canasta.rules.pileAlwaysFrozen': 'Poistopino on jäädytetty koko jaon ajan: saat sen vain sovittamalla päällimmäisen kortin kahteen luonnolliseen korttiin kädestäsi.',
+  'canasta.rules.pileOntoMeld': 'Jos puolellasi on jo pöydässä keskeneräinen yhdistelmä päällimmäisen kortin arvoa, saat ottaa koko poistopinon ja lisätä sen kortin siihen — paria kädessä ei tarvita.',
+  'canasta.rules.pileNoMeldCapture': 'Pöydässä jo oleva yhdistelmä ei voi ottaa poistopinoa: sen ottamiseen tarvitset päällimmäisen kortin pariksi kaksi korttia omasta kädestäsi.',
   'canasta.rules.meldFloorBands':
     'Ensimmäisen laskusi on yllettävä pisterajaan, joka nousee pistetilanteesi mukana: {negative} alle nollan, {low} 1500:aan asti, {mid} 3000:een asti, {high} sen yli.',
   'canasta.rules.meldFloorBandsFive': 'Ensimmäisen yhdistelmäsi on yllettävä pisterajaan, joka nousee pistetilanteesi mukana: {negative} alle nollan, {low} 1500 asti, {mid} 3000 asti, {high} 7000 asti ja {top} sen yli.',
@@ -281,6 +283,7 @@ export const fi: Record<string, string> = {
   'err.PILE_EMPTY': 'Pino on tyhjä',
   'err.PILE_BLOCKED': 'Pino on tukossa — päällimmäisenä on musta kolmonen',
   'err.PILE_FROZEN': 'Pino on jäädytetty — tarvitset kaksi luonnollista korttia päällimmäisen kortin arvosta',
+  'err.MELD_CAPTURE_NOT_ALLOWED': 'Tässä pelissä pöydän yhdistelmä ei voi ottaa pinoa — tarvitset kaksi korttia kädestä',
   'err.TOP_CARD_UNUSABLE': 'Et voi käyttää päällimmäistä korttia',
   'err.MELD_CLOSED': 'Tuo yhdistelmä on täysi ja suljettu',
   'err.MELD_TOO_SMALL': 'Yhdistelmä vaatii enemmän kortteja',

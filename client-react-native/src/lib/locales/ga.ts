@@ -150,6 +150,8 @@ export const ga: Record<string, string> = {
   'canasta.rules.blackThreesNeverMeld':
     'Ní leagtar trí dhubh síos riamh. Dúnann sé an carn nuair a chaitear é, agus má fhanann sé i do láimh ag deireadh na dála cosnaíonn sé {n} pointe ort.',
   'canasta.rules.pileAlwaysFrozen': 'Tá an carn caite reoite ar feadh na dála ar fad: ní féidir leat é a thógáil ach an cárta barr a mheaitseáil le dhá chárta nádúrtha as do lámh.',
+  'canasta.rules.pileOntoMeld': 'Má tá cumasc neamhchríochnaithe de luach an chárta uachtaraigh ag do thaobh cheana, is féidir leat an carn caite ar fad a thógáil agus an cárta sin a chur leis — ní gá péire a bheith i do lámh.',
+  'canasta.rules.pileNoMeldCapture': 'Ní féidir le cumasc atá ar an mbord cheana an carn caite a thógáil: chun é a thógáil caithfidh tú an cárta barr a mheaitseáil le dhá chárta as do lámh féin.',
   'canasta.rules.meldFloorBands':
     'Caithfidh do chéad leagan síos íosmhéid pointí a bhaint amach a ardaíonn le do scór: {negative} faoi bhun a náid, {low} suas go 1500, {mid} suas go 3000, {high} os a chionn sin.',
   'canasta.rules.meldFloorBandsFive': 'Caithfidh do chéad chumasc íosmhéid pointí a bhaint amach a ardaíonn le do scór: {negative} faoi bhun nialais, {low} suas go 1500, {mid} suas go 3000, {high} suas go 7000 agus {top} os a chionn sin.',
@@ -291,6 +293,7 @@ export const ga: Record<string, string> = {
   'err.PILE_EMPTY': 'Tá an carn folamh',
   'err.PILE_BLOCKED': 'Tá an carn dúnta — tá trí dhubh ar a bharr',
   'err.PILE_FROZEN': 'Tá an carn reoite — teastaíonn dhá chárta nádúrtha de luach an chárta uachtaraigh uait',
+  'err.MELD_CAPTURE_NOT_ALLOWED': 'Sa chluiche seo ní féidir le cumasc ar an mbord an carn a thógáil — teastaíonn dhá chárta as do lámh uait',
   'err.TOP_CARD_UNUSABLE': 'Ní féidir leat an cárta uachtarach a úsáid',
   'err.MELD_CLOSED': 'Tá an cumasc sin iomlán agus dúnta',
   'err.MELD_TOO_SMALL': 'Teastaíonn níos mó cártaí ná sin ó chumasc',

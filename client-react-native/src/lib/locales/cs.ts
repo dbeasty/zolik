@@ -146,6 +146,8 @@ export const cs: Record<string, string> = {
   'canasta.rules.blackThreesNeverMeld':
     'Černá trojka se nikdy nevykládá. Odhozená blokuje balíček a na konci rozdání vám v ruce ubere {n} bodů.',
   'canasta.rules.pileAlwaysFrozen': 'Odhazovací balíček je zamrzlý po celé rozdání: vzít si ho můžete jen tak, že k vrchní kartě přiložíte dvě přirozené karty z ruky.',
+  'canasta.rules.pileOntoMeld': 'Pokud vaše strana už má na stole nedokončenou kombinaci v hodnotě vrchní karty, můžete si vzít celý odhazovací balíček a tuto kartu k ní přiložit — dvojici v ruce k tomu nepotřebujete.',
+  'canasta.rules.pileNoMeldCapture': 'Kombinace ležící na stole si odhazovací balíček vzít nemůže: abyste ho získali, musíte k jeho vrchní kartě přiložit dvě karty z vlastní ruky.',
   'canasta.rules.meldFloorBands':
     'Minimální hodnota první kombinace roste s vaším skóre: {negative} pod nulou, {low} do 1500, {mid} do 3000, {high} nad tím.',
   'canasta.rules.meldFloorBandsFive': 'Vaše první kombinace musí dosáhnout bodového minima, které roste s vaším skóre: {negative} pod nulou, {low} do 1500, {mid} do 3000, {high} do 7000 a {top} nad tím.',
@@ -281,6 +283,7 @@ export const cs: Record<string, string> = {
   'err.PILE_EMPTY': 'Balíček je prázdný',
   'err.PILE_BLOCKED': 'Balíček je zablokovaný — nahoře leží černá trojka',
   'err.PILE_FROZEN': 'Balíček je zmrazený — potřebuješ dvě přirozené karty hodnoty vrchní karty',
+  'err.MELD_CAPTURE_NOT_ALLOWED': 'V této hře si kombinace na stole balíček vzít nemůže — potřebuješ dvě karty z ruky',
   'err.TOP_CARD_UNUSABLE': 'Vrchní kartu použít nemůžeš',
   'err.MELD_CLOSED': 'Tato kombinace je hotová a uzavřená',
   'err.MELD_TOO_SMALL': 'Kombinace potřebuje víc karet',

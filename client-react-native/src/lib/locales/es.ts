@@ -149,6 +149,8 @@ export const es: Record<string, string> = {
   'canasta.rules.blackThreesNeverMeld':
     'Un tres negro no se baja nunca. Al descartarlo bloquea el montón, y si se queda en tu mano al final de la ronda te cuesta {n} puntos.',
   'canasta.rules.pileAlwaysFrozen': 'El montón de descarte está congelado toda la mano: para llevártelo tienes que casar su carta superior con dos cartas naturales de tu mano.',
+  'canasta.rules.pileOntoMeld': 'Si tu bando ya tiene una combinación sin terminar del valor de la carta superior, puedes llevarte todo el montón de descarte y añadirle esa carta: no necesitas una pareja en la mano.',
+  'canasta.rules.pileNoMeldCapture': 'Una combinación que ya está en la mesa no puede llevarse el montón de descarte: para llevártelo tienes que casar su carta superior con dos cartas de tu propia mano.',
   'canasta.rules.meldFloorBands':
     'Tu primera bajada debe alcanzar un mínimo de puntos que sube con tu marcador: {negative} por debajo de cero, {low} hasta 1500, {mid} hasta 3000, {high} más allá.',
   'canasta.rules.meldFloorBandsFive': 'Tu primera combinación debe alcanzar un mínimo de puntos que sube con tu puntuación: {negative} por debajo de cero, {low} hasta 1500, {mid} hasta 3000, {high} hasta 7000 y {top} por encima.',
@@ -285,6 +287,7 @@ export const es: Record<string, string> = {
   'err.PILE_BLOCKED': 'El montón está bloqueado — hay un tres negro encima',
   'err.PILE_FROZEN':
     'El montón está congelado — necesitas dos cartas naturales del valor de la carta superior',
+  'err.MELD_CAPTURE_NOT_ALLOWED': 'En este juego una combinación de la mesa no puede llevarse el montón — necesitas dos cartas de la mano',
   'err.TOP_CARD_UNUSABLE': 'No puedes usar la carta superior',
   'err.MELD_CLOSED': 'Esa combinación está completa y cerrada',
   'err.MELD_TOO_SMALL': 'Una combinación necesita más cartas que eso',
