@@ -44,6 +44,8 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 		Status: "active",
 		Hands:  map[string][]string{},
 		Seed:   seed,
+		// Off by default: a pub pile is a stack nobody leafs through.
+		OpenDiscard: cfg.OpenDiscardPile(false),
 	}
 	for _, p := range players {
 		s.Players = append(s.Players, p.ID)

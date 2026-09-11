@@ -35,6 +35,9 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 		// table the moment the next deal starts — so not stopping is what makes
 		// the score unreadable rather than merely brisk.
 		Pause: cfg.PauseBetweenRounds(true),
+		// Off by default: taking the pile is the swing in this game, and
+		// remembering what is in it is part of earning it.
+		OpenDiscard: cfg.OpenDiscardPile(false),
 	}
 	for _, p := range players {
 		s.Players = append(s.Players, p.ID)

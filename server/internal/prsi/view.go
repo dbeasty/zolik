@@ -36,12 +36,17 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					{LabelKey: "prsi.rules.queens"},
 				},
 				Defaults: map[string]int{
-					OptHandSize:        defaultHandSize,
-					module.OptBotSkill: module.SkillOpt(module.SkillMedium),
+					OptHandSize:               defaultHandSize,
+					module.OptOpenDiscardPile: module.OptOff,
+					module.OptBotSkill:        module.SkillOpt(module.SkillMedium),
 				},
 			},
 		},
 		Options: []module.OptionSpec{
+			// Off by default, which is the pub table this game is played on:
+			// the pile is a stack of cards nobody turns over, and what went
+			// into it is remembered rather than looked up.
+			module.OpenDiscardPileOption(),
 			module.BotSkillOption(),
 			{
 				Name:  OptHandSize,
@@ -102,7 +107,7 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 		},
 		module.Zone{
 			ID: discardZoneID, Kind: module.ZonePile, LabelKey: "zone.discardPile",
-			Cards: cardViews(topOnly(s)), Count: len(s.DiscardPile),
+			Cards: cardViews(shownPile(s)), Count: len(s.DiscardPile),
 		},
 	)
 
@@ -163,6 +168,18 @@ func cardViews(cards []string) []module.CardView {
 // topOnly is what the discard pile shows: its top card. What is buried under
 // it is not secret exactly, but it is not in play either, and sending it would
 // invite a client to reason about it.
+// shownPile is how much of the discard pile this table publishes — all of it
+// where the option is on, the top card alone otherwise. Both are public
+// either way: every card in the pile was played face up, and the pile is
+// shuffled when it is recycled, so an open pile says nothing about the order
+// of the draw pile it becomes.
+func shownPile(s *GameState) []string {
+	if s.OpenDiscard {
+		return s.DiscardPile
+	}
+	return topOnly(s)
+}
+
 func topOnly(s *GameState) []string {
 	if t := s.top(); t != "" {
 		return []string{t}

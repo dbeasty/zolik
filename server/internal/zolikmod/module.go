@@ -95,6 +95,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 				rules.OptDealStarter:          rules.DealStarterOpt(cfg.DealStarter),
 				rules.OptJokerReclaimMustPlay: rules.BoolOpt(cfg.JokerReclaimMustPlay),
 				module.OptPauseBetweenRounds:  module.OptOn,
+				module.OptOpenDiscardPile:     module.BoolOpt(!cfg.DiscardPileTopOnly),
 				module.OptBotSkill:            module.SkillOpt(module.SkillMedium),
 			},
 		})
@@ -102,7 +103,14 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 	// Declared here rather than in the rummy descriptor: pausing between deals
 	// is a property of how a match is presented, which the runtime owns, and
 	// the engine's own option list stays about rules.
-	out.Options = append(out.Options, module.PauseOption(), module.BotSkillOption())
+	out.Options = append(out.Options,
+		module.PauseOption(),
+		// On by default, which is what this game has always published: a pile
+		// you may pick a buried card out of is a pile you have to be able to
+		// read. A table that plays Continental's top-card draw can fold it.
+		module.OpenDiscardPileOption(),
+		module.BotSkillOption(),
+	)
 	for _, o := range d.Options {
 		spec := module.OptionSpec{
 			Name: o.Name, Type: module.OptionType(o.Type), Label: o.Label, Help: o.Help,
@@ -136,6 +144,10 @@ func resolveConfig(mc module.MatchConfig) rules.RulesConfig {
 		rules.OptJokerReclaimMustPlay, rules.BoolOpt(cfg.JokerReclaimMustPlay),
 	) == rules.OptOn
 	cfg.PauseBetweenDeals = mc.PauseBetweenRounds(true)
+	// Stored inverted (see RulesConfig.DiscardPileTopOnly): open is the
+	// default, so the persisted zero value is the behaviour every match dealt
+	// before this option existed already had.
+	cfg.DiscardPileTopOnly = !mc.OpenDiscardPile(!cfg.DiscardPileTopOnly)
 	return cfg
 }
 
@@ -437,7 +449,7 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 	// that ended the deal lies face down until the next deal wipes the pile.
 	// Ceremonial rather than secret — the deal is scored by the time anyone
 	// sees this, so the value still travels (see module.CardView.FaceDown).
-	discardCards := cardViews(gs.DiscardPile)
+	discardCards := cardViews(shownPile(gs, cfg))
 	if gs.WentOutByDiscard && cfg.GoOutDiscardFaceDown && len(discardCards) > 0 {
 		discardCards[len(discardCards)-1].FaceDown = true
 	}
@@ -537,6 +549,24 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 		})
 	}
 	return vm, nil
+}
+
+// shownPile is how much of the discard pile this table publishes: the whole
+// pile, or the top card alone where the table asked for the folded one.
+//
+// The fold is refused under DiscardPickupAnyFromPile, and deliberately: that
+// draw offers every card in the pile as a target (rules.drawablePileCards), so
+// folding it would hide cards the same view is inviting the player to take.
+// The option is presentation, and presentation does not get to contradict an
+// offer.
+func shownPile(gs rules.GameState, cfg rules.RulesConfig) []string {
+	if !cfg.DiscardPileTopOnly || cfg.DiscardPickupMode == rules.DiscardPickupAnyFromPile {
+		return gs.DiscardPile
+	}
+	if len(gs.DiscardPile) == 0 {
+		return nil
+	}
+	return gs.DiscardPile[len(gs.DiscardPile)-1:]
 }
 
 func cardViews(cards []string) []module.CardView {

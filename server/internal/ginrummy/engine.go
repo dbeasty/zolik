@@ -36,6 +36,9 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 	s.BigGin = cfg.Opt(OptBigGin, module.BoolOpt(v.bigGin)) == module.OptOn
 	s.LineBonuses = cfg.Opt(OptLineBonuses, module.BoolOpt(v.lineBonuses)) == module.OptOn
 	s.Pause = cfg.PauseBetweenRounds(true)
+	// Off by default: which cards have gone through the pile is what a Gin
+	// Rummy player is meant to be holding in their head.
+	s.OpenDiscard = cfg.OpenDiscardPile(false)
 
 	s.Dealer = s.Players[module.StartingSeat(seed, len(s.Players))]
 	dealHand(s)

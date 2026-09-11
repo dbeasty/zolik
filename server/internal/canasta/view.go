@@ -41,6 +41,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					OptTargetScore:               variations["classic"].TargetScore,
 					OptCanastasToGoOut:           variations["classic"].CanastasToGoOut,
 					module.OptPauseBetweenRounds: module.OptOn,
+					module.OptOpenDiscardPile:    module.OptOff,
 					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
 				},
 			},
@@ -65,6 +66,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					OptTargetScore:               variations["modern_american"].TargetScore,
 					OptCanastasToGoOut:           variations["modern_american"].CanastasToGoOut,
 					module.OptPauseBetweenRounds: module.OptOn,
+					module.OptOpenDiscardPile:    module.OptOff,
 					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
 				},
 			},
@@ -87,12 +89,18 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					OptTargetScore:               variations["samba"].TargetScore,
 					OptCanastasToGoOut:           variations["samba"].CanastasToGoOut,
 					module.OptPauseBetweenRounds: module.OptOn,
+					module.OptOpenDiscardPile:    module.OptOff,
 					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
 				},
 			},
 		},
 		Options: []module.OptionSpec{
 			module.PauseOption(),
+			// Off by default, which is how this game has always dealt: the pile
+			// is what a capture wins whole, so what lies under the top card is
+			// the thing the deal is played over, and a table that wants it
+			// readable says so.
+			module.OpenDiscardPileOption(),
 			module.BotSkillOption(),
 			{
 				Name:  OptHandSize,
@@ -170,7 +178,7 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 		},
 		module.Zone{
 			ID: discardZoneID, Kind: module.ZonePile, LabelKey: "zone.discardPile",
-			Cards: cardViews(topOnly(s)), Count: len(s.DiscardPile),
+			Cards: cardViews(shownPile(s)), Count: len(s.DiscardPile),
 		},
 	)
 
@@ -354,6 +362,20 @@ func cardViews(cards []string) []module.CardView {
 // topOnly is what the discard pile shows. What is buried under it is not in
 // play until somebody takes the whole thing, and sending it would invite a
 // client to reason about cards its player cannot legally see.
+// shownPile is how much of the discard pile this table publishes: the whole
+// thing where the option is on, and otherwise the top card alone.
+//
+// Nothing secret is being kept either way — every card in it was discarded
+// face up in front of everybody. What the folded pile protects is the memory
+// it takes to play Canasta well, which is why it is the default and why it is
+// a table's own choice rather than the module's.
+func shownPile(s *GameState) []string {
+	if s.OpenDiscard {
+		return s.DiscardPile
+	}
+	return topOnly(s)
+}
+
 func topOnly(s *GameState) []string {
 	if t := s.top(); t != "" {
 		return []string{t}

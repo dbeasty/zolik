@@ -74,6 +74,12 @@ type GameState struct {
 	// their turn unless they answer with an Ace of their own.
 	SkipPending bool `json:"skipPending,omitempty"`
 
+	// OpenDiscard is whether this table publishes the whole discard pile
+	// rather than its top card (view.go's shownPile). Resolved once at
+	// NewMatch, and false — the folded pile this game has always shown — for
+	// a match dealt before the option existed.
+	OpenDiscard bool `json:"openDiscard,omitempty"`
+
 	WinnerID string `json:"winnerId,omitempty"`
 	Seed     int64  `json:"seed"`
 	// Reshuffles counts how many times the pile has been recycled, which also

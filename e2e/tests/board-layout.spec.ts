@@ -17,7 +17,12 @@ import { API_BASE } from '../helpers/env';
 
 type Ctx = import('@playwright/test').APIRequestContext;
 
-async function tableWithBots(request: Ctx, moduleId: string, seats = 2) {
+async function tableWithBots(
+  request: Ctx,
+  moduleId: string,
+  seats = 2,
+  options: Record<string, number> = {},
+) {
   const res = await request.post(`${API_BASE}/auth/guest`, {
     data: { guestName: `layout-${Math.random().toString(36).slice(2, 10)}` },
   });
@@ -27,7 +32,7 @@ async function tableWithBots(request: Ctx, moduleId: string, seats = 2) {
 
   const created = await request.post(`${API_BASE}/matches`, {
     headers: auth,
-    data: { moduleId, options: {} },
+    data: { moduleId, options },
   });
   expect(created.ok(), await created.text()).toBeTruthy();
   const { matchId } = await created.json();
@@ -129,10 +134,10 @@ test.describe('the shape of the board', () => {
   });
 
   test('a pile of one card has nothing to open', async ({ page, request }) => {
-    // Prší and Canasta send only the top card, because what is under it is not
-    // public in those games — so there is nothing to unfold and no control
-    // offering to. The shell works that out from what it was sent rather than
-    // from which game it is.
+    // Prší and Canasta send only the top card by default, because keeping the
+    // pile in your head is part of those games — so there is nothing to unfold
+    // and no control offering to. The shell works that out from what it was
+    // sent rather than from which game it is.
     const { matchId, host } = await tableWithBots(request, 'prsi');
     await openMatch(page, host, matchId);
     await handCards(page);
@@ -140,5 +145,41 @@ test.describe('the shape of the board', () => {
     const { sent } = await zoneCards(request, matchId, host.userId, 'discard');
     expect(sent).toBeLessThanOrEqual(1);
     await expect(page.getByTestId('zone-toggle-discard')).toHaveCount(0);
+  });
+
+  test('a table that opened its pile can look under the top card', async ({ page, request }) => {
+    // The same game, the same screen, one setting different: `openDiscardPile`
+    // is what decides whether the pile arrives whole, and nothing in the shell
+    // knows the option exists. A control to open the pile appearing here and
+    // not in the test above is the whole of the feature, seen from a seat.
+    const { matchId, host } = await tableWithBots(request, 'prsi', 2, { openDiscardPile: 1 });
+    await openMatch(page, host, matchId);
+    await handCards(page);
+
+    // Prší buries a card every time anybody plays one, so this only has to
+    // press whatever is live until the pile is more than its top card.
+    const deadline = Date.now() + 40_000;
+    let sent = 0;
+    while (Date.now() < deadline) {
+      ({ sent } = await zoneCards(request, matchId, host.userId, 'discard'));
+      if (sent > 1) break;
+      const live = page.locator('[data-testid^="offer-"]:not([aria-disabled="true"])').first();
+      if (await live.count()) {
+        try {
+          await live.click({ timeout: 5000 });
+        } catch {
+          /* the board moved under us; the next pass re-reads it */
+        }
+      }
+      await page.waitForTimeout(500);
+    }
+    test.skip(sent <= 1, 'never got a second card onto the pile');
+
+    await expect(drawnIn(page, 'discard')).toHaveCount(1);
+    const toggle = page.getByTestId('zone-toggle-discard');
+    await expect(toggle).toBeVisible();
+
+    await toggle.click();
+    await expect(drawnIn(page, 'discard')).toHaveCount(sent);
   });
 });
