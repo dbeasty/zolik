@@ -44,6 +44,28 @@ services:
     environment:
       FEATURE_FLAG_DB_ENGINE: kdb
       KDB_PATH: /data/kdb
+      # KDB 0.4.0's history retention modes: the feature is on, and no mode is
+      # named. Those are two different statements. An unset KDB_HISTORY_MODE
+      # reads as "whatever this namespace already is", and every namespace on
+      # this host predates the modes, so they keep every commit exactly as
+      # they always have. Nothing here changes what is on disk.
+      #
+      # The empty mode is a literal for the reason the hatches above are: it
+      # overrides .env, so what this host's namespaces keep cannot be decided
+      # by a variable that turns up in an environment.
+      #
+      # Naming a mode IS a procedure, not an edit. A namespace refuses to open
+      # under a mode it was not built with, so "none" here without first
+      # dealing with what is in zolik_kdb_data switches nothing: the container
+      # exits on open and Docker restarts it forever, which reads as a bad
+      # build rather than a configuration change. The volume has to be
+      # converted offline (kdb-inspect migrate-history) or wiped, accepting
+      # the loss of every account, match and stat.
+      #
+      # Written down in docs/kdb-history-none-cutover.md. The mode line below
+      # is the last step of it, not the first.
+      FEATURE_FLAG_KDB_HISTORY_RETENTION: "true"
+      KDB_HISTORY_MODE: ""
       PORT: "8090"
       # Off, and said out loud. Removing the SSH_* variables does not turn the
       # terminal client off — SSH_ENABLED defaults *on* whenever APP_ENV is

@@ -159,6 +159,30 @@ type KDBStorage struct {
 	// rather than each of the nine namespace runtimes independently
 	// defaulting to 128 MiB.
 	MemoryBudgetBytes uint64
+	// HistoryRetention opens up KDB 0.4.0's history retention modes
+	// (KDB_HISTORY_MODE, KDB_RETAIN_*). On by default: the modes are a
+	// property of the engine now, and the flag exists to be *turned off* —
+	// with it false the engine's env-derived history settings are discarded,
+	// so a KDB_HISTORY_MODE that finds its way into an environment cannot
+	// change what a namespace keeps.
+	//
+	// On is safe because it is not itself a choice of mode. An unset
+	// KDB_HISTORY_MODE reads as "whatever this namespace already is", so
+	// every deployment that names no mode keeps behaving exactly as it did.
+	//
+	// Deliberately transitional. Today the mode is a property a namespace is
+	// *built* with — it refuses to open under any other, and changing one
+	// means an offline conversion or a wiped volume. A later KDB changes the
+	// mode on a running namespace; when that lands this flag comes out and
+	// the setting becomes an ordinary one.
+	//
+	// See docs/kdb-history-none-cutover.md.
+	HistoryRetention bool
+	// HistoryMode is "none" (keep the live dataset plus a window, reclaim the
+	// rest) or "full" (keep every commit forever). Empty means unset, which
+	// the engine reads as "whatever this namespace already is" — and for a
+	// new one, full. Ignored entirely unless HistoryRetention is on.
+	HistoryMode string
 }
 
 // kdbMemoryRejectFraction is the fraction of MemoryBudgetBytes at which
@@ -268,6 +292,18 @@ func KDBStorageFromEnv() (KDBStorage, error) {
 	sc := KDBStorage{
 		Durability: strings.ToLower(strings.TrimSpace(os.Getenv("KDB_DURABILITY"))),
 		SyncMode:   strings.ToLower(strings.TrimSpace(os.Getenv("KDB_SYNC_MODE"))),
+		// Spelled like the engine switch it sits next to
+		// (FEATURE_FLAG_DB_ENGINE, internal/app/config.go), but read here
+		// rather than there: it gates a storage option, and the benchmarks
+		// and tests that call OpenKDB directly have to see the same gate the
+		// server does.
+		//
+		// On by default. That is not the same as choosing a mode: with
+		// KDB_HISTORY_MODE unset — which is every deployment until one says
+		// otherwise — the engine keeps doing what it has always done, and
+		// this only decides whether a mode, once named, is listened to.
+		HistoryRetention: kdbEnvBool("FEATURE_FLAG_KDB_HISTORY_RETENTION", true),
+		HistoryMode:      strings.ToLower(strings.TrimSpace(os.Getenv("KDB_HISTORY_MODE"))),
 	}
 	if raw := strings.TrimSpace(os.Getenv("KDB_ASYNC_SYNC_INTERVAL_MS")); raw != "" {
 		ms, err := strconv.ParseInt(raw, 10, 64)
@@ -282,11 +318,44 @@ func KDBStorageFromEnv() (KDBStorage, error) {
 	return sc, nil
 }
 
+// kdbEnvBool reads a boolean feature flag. Same spellings the app config
+// accepts, so FEATURE_FLAG_* means one thing across the server; an
+// unrecognised value is the fallback rather than an error, matching envBool
+// there.
+func kdbEnvBool(key string, fallback bool) bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(key))) {
+	case "1", "true", "yes", "on":
+		return true
+	case "0", "false", "no", "off":
+		return false
+	default:
+		return fallback
+	}
+}
+
 // engineOptions maps the string-spelled config onto the engine's option
 // struct, starting from the engine's own env-derived options so KDB_S3_*
 // replication keeps working exactly as it did under OpenFileRuntime.
 func (sc KDBStorage) engineOptions() (embed.FileRuntimeOptions, error) {
 	opts := embed.FileRuntimeOptionsFromEnv()
+	// FileRuntimeOptionsFromEnv has already read KDB_HISTORY_MODE and the
+	// retention window. Behind the flag, put them back to unset — which the
+	// engine reads as "whatever this namespace already is", so an existing
+	// namespace opens exactly as it always did and a new one is built full.
+	if !sc.HistoryRetention {
+		opts.Storage.HistoryMode = storage.HistoryModeUnset
+		opts.Storage.Retain = storage.RetentionWindow{}
+	} else {
+		// The engine ignores a KDB_HISTORY_MODE it cannot parse. Here it is a
+		// refusal to start, for the reason KDB_DURABILITY is: a typo that
+		// silently keeps every commit forever is a disk filling up in a
+		// month's time, with nothing in the log that points at it.
+		mode, err := storage.ParseHistoryMode(sc.HistoryMode)
+		if err != nil {
+			return opts, fmt.Errorf("kdb: KDB_HISTORY_MODE=%q: want \"none\" or \"full\"", sc.HistoryMode)
+		}
+		opts.Storage.HistoryMode = mode
+	}
 	switch sc.Durability {
 	case "", "sync":
 		opts.Storage.Durability = storage.DurabilitySync

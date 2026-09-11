@@ -24,6 +24,18 @@
 #             see server/docker-compose.kdb.prodcopy.yml for how it's populated)
 #   clean     wipe server_kdb_data first, so this run starts from empty
 # Only affects kdb mode; there's no Mongo-format copy of production data.
+#
+# ZOLIK_KDB_HISTORY_MODE picks how long KDB keeps the past: `none` is the live
+# dataset plus a 24h window, reclaiming the rest, and `full` keeps every commit
+# forever. Unset (the default) means "whatever the namespace already is", which
+# is full — so this changes nothing until you name a mode. A namespace refuses
+# to open under a mode it was not built with, so naming one needs a wiped
+# volume:
+#
+#   ZOLIK_KDB_HISTORY_MODE=none ZOLIK_DEV_DATA=clean scripts/dev-stack.sh up
+#
+# ZOLIK_KDB_HISTORY_RETENTION=false turns the whole feature off, and then a
+# KDB_HISTORY_MODE is discarded rather than obeyed.
 
 set -euo pipefail
 
@@ -78,12 +90,18 @@ eval "$(sh "${ROOT}/scripts/version.sh" --export)"
 say() { printf '\033[1m==>\033[0m %s\n' "$*"; }
 die() { printf '\033[31mError:\033[0m %s\n' "$*" >&2; exit 1; }
 
-wait_for() { # url, label, seconds
-  local url="$1" label="$2" secs="${3:-60}"
+poll_until() { # url, seconds — returns non-zero instead of exiting
+  local url="$1" secs="${2:-60}"
   for _ in $(seq "$secs"); do
     if curl -fsS -m 2 -o /dev/null "$url" 2>/dev/null; then return 0; fi
     sleep 1
   done
+  return 1
+}
+
+wait_for() { # url, label, seconds
+  local url="$1" label="$2" secs="${3:-60}"
+  poll_until "$url" "$secs" && return 0
   die "$label did not come up at $url — see: $0 logs"
 }
 
@@ -100,7 +118,43 @@ compose() {
     ZOLIK_DEBUG_ENDPOINTS="${ZOLIK_DEBUG_ENDPOINTS:-true}" \
     ZOLIK_BOT_THINK_MIN_MS="${ZOLIK_BOT_THINK_MIN_MS:-}" \
     ZOLIK_BOT_THINK_MAX_MS="${ZOLIK_BOT_THINK_MAX_MS:-}" \
+    ZOLIK_KDB_HISTORY_RETENTION="${ZOLIK_KDB_HISTORY_RETENTION:-true}" \
+    ZOLIK_KDB_HISTORY_MODE="${ZOLIK_KDB_HISTORY_MODE:-}" \
     docker compose "${COMPOSE_ARGS[@]}" "$@")
+}
+
+# A namespace records the history mode it was built with and refuses to open
+# under the other, so changing ZOLIK_KDB_HISTORY_MODE against an existing
+# volume does not convert anything — the server exits on open and Docker
+# restarts it forever. What that looks like from here is the health check
+# timing out, which is what every other startup failure looks like too.
+#
+# So the one failure that has a one-line fix says so itself.
+explain_if_history_mode_mismatch() {
+  local logs detail recorded
+  logs="$(compose logs --tail 200 app 2>/dev/null || true)"
+  case "$logs" in
+    *"history mode but is being opened as"*)
+      # The server logs JSON, so the message arrives with its quotes escaped.
+      detail="$(printf '%s\n' "$logs" \
+        | grep -o 'kdb: namespace .*cannot share a data directory\.' \
+        | head -1 | sed 's/\\"/"/g')"
+      # "was built with the "none" history mode" — what the volume actually is,
+      # which is the mode to name when offering to keep it.
+      recorded="$(printf '%s\n' "$detail" \
+        | sed -n 's/.*was built with the "\([a-z]*\)" history mode.*/\1/p')"
+
+      printf '\033[31m\nThis is a history-mode mismatch, not a broken build.\033[0m\n' >&2
+      printf '%s\n' "$detail" >&2
+      printf '\nThe dev volume holds namespaces built under a different KDB_HISTORY_MODE.\n' >&2
+      printf 'Nothing in it is data worth keeping, so wipe it and start over:\n\n' >&2
+      printf '    ZOLIK_DEV_DATA=clean %s up\n\n' "$0" >&2
+      if [[ -n "$recorded" ]]; then
+        printf 'Or keep what is there and open it as it was built:\n\n' >&2
+        printf '    ZOLIK_KDB_HISTORY_MODE=%s %s up\n\n' "$recorded" "$0" >&2
+      fi
+      ;;
+  esac
 }
 
 ensure_env() {
@@ -143,7 +197,10 @@ up() {
 
   say "building and starting the server via docker compose (${COMPOSE_FILE}, ${ZOLIK_VERSION}+${ZOLIK_COMMIT})"
   compose up -d --build
-  wait_for "${API}/healthz" "the server" 120
+  if ! poll_until "${API}/healthz" 120; then
+    explain_if_history_mode_mismatch
+    die "the server did not come up at ${API}/healthz — see: $0 logs"
+  fi
 
   say "starting the web client on ${WEB} (API ${API})"
   (cd "${ROOT}/client-react-native" && \

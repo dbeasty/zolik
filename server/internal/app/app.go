@@ -134,6 +134,17 @@ func kdbRepos(cfg Config) (repos, error) {
 	// What an acknowledged write means is the one storage decision an
 	// operator makes (KDB_DURABILITY / KDB_SYNC_MODE), so say it out loud.
 	log.Printf("kdb durability: %s, sync mode: %s", cmp.Or(sc.Durability, "sync"), cmp.Or(sc.SyncMode, "fast"))
+	// What a namespace keeps is not otherwise visible from outside: it is
+	// recorded per namespace in meta.json inside the data volume, and reading
+	// it there means stopping to mount the volume. Say it at startup instead.
+	switch {
+	case sc.HistoryRetention:
+		log.Printf("kdb history retention: on, mode %s",
+			cmp.Or(sc.HistoryMode, "unset (namespaces keep the mode they were built with)"))
+	case sc.HistoryMode != "":
+		log.Printf("kdb history retention: off — KDB_HISTORY_MODE=%s ignored "+
+			"(set FEATURE_FLAG_KDB_HISTORY_RETENTION=true to honour it)", sc.HistoryMode)
+	}
 	// Same cgroup reading the connection/CPU admission gate already uses
 	// (newAdmission, below) — one source of truth for "how much memory does
 	// this process actually have". Degrades to off with it: no cgroup limit
