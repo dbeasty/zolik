@@ -311,7 +311,7 @@ function seatStyles(m: Metrics, s: Skin) {
       flexShrink: 0,
     },
     summaryPillActive: { borderColor: colors.accent },
-    summaryPillOurs: { backgroundColor: s.seats.avatars ? 'rgba(240, 199, 94, 0.10)' : '#22304a' },
+    summaryPillOurs: { backgroundColor: s.seats.avatars ? 'rgba(240, 199, 94, 0.22)' : '#22304a' },
     summaryName: { color: colors.text, fontSize: m.panel.bodyFont, fontWeight: '700' },
     summaryStatus: { color: colors.gold, fontSize: m.panel.bodyFont - 1, fontWeight: '700' },
     // alignItems: flex-start — a seat with more to show (standings, tags,
@@ -342,11 +342,11 @@ function seatStyles(m: Metrics, s: Skin) {
       elevation: 8,
     },
     lifted: { transform: [{ translateY: -3 }] },
-    mine: { backgroundColor: s.seats.avatars ? 'rgba(240, 199, 94, 0.10)' : '#22304a' },
+    mine: { backgroundColor: s.seats.avatars ? 'rgba(240, 199, 94, 0.22)' : '#22304a' },
     // Your partner, in the same colour as your own seat and weaker: the pair
     // reads as one block at a glance, and which of the two is you is still
     // never in doubt.
-    teammate: { backgroundColor: s.seats.avatars ? 'rgba(240, 199, 94, 0.05)' : '#1e2a3d' },
+    teammate: { backgroundColor: s.seats.avatars ? 'rgba(240, 199, 94, 0.13)' : '#1e2a3d' },
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     turnRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
     name: { color: colors.text, fontWeight: '700', fontSize: m.panel.bodyFont + 1, flexShrink: 1 },
