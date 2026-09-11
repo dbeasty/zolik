@@ -216,8 +216,21 @@ func hasCards(hand []string, cards []string) bool {
 	return ok
 }
 
-// sortedUnique is used wherever an offer lists cards: a stable, duplicate-free
-// list keeps offer content addressable so a client can diff it across pushes.
+// sortedCards is used wherever an offer lists the cards in a hand it would
+// take: a stable order keeps offer content addressable so a client can diff it
+// across pushes, and every copy is kept, because a hand is a multiset. Two
+// decks are in play, so a player holding two 7H holds two cards, and an offer
+// that named one of them would be describing a hand nobody has — see
+// `removeCards`, which has taken one copy per request all along.
+func sortedCards(cards []string) []string {
+	out := append([]string(nil), cards...)
+	sort.Strings(out)
+	return out
+}
+
+// sortedUnique is the same for a list of *choices* rather than of cards: which
+// single card to discard, which rank to meld. One entry per distinct card is
+// the whole list there, and a second copy would offer the same choice twice.
 func sortedUnique(cards []string) []string {
 	seen := map[string]bool{}
 	out := make([]string, 0, len(cards))
