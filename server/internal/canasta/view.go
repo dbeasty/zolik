@@ -232,6 +232,12 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 	// player, so each seat carries its side's score and canasta count — which
 	// is exactly the sort of thing that had nowhere to go before Seats existed
 	// and had to be smuggled through Status facts.
+	//
+	// Sides are set only where sides exist. `s.Teams` is already the answer
+	// seatsToTeams gave when the match was dealt, so a side per seat means
+	// every player is their own side — heads-up, three, five — and saying so
+	// would put a partnership badge on a game that has no partners.
+	sided := len(s.Teams) < len(s.TurnOrder)
 	for _, p := range s.TurnOrder {
 		t := s.team(p)
 		seat := module.Seat{
@@ -243,6 +249,9 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 			},
 		}
 		if t != nil {
+			if sided {
+				seat.Side = strconv.Itoa(t.ID)
+			}
 			seat.Facts = append(seat.Facts,
 				module.Fact{LabelKey: "canasta.seat.teamScore", Value: strconv.Itoa(t.Score),
 					Params: map[string]any{"team": t.ID, "score": t.Score}},

@@ -990,6 +990,8 @@ export const ga: Record<string, string> = {
   // to " won." — the verb agrees with the subject in most of these languages,
   // and a suffix cannot know that.
   'match.you': 'tusa',
+  'match.yourTeam': 'D\'fhoireann',
+  'match.teammates': 'Foireann: {names}',
   'match.someoneWon': 'Bhuaigh {name}.',
   'match.wonBy': 'Buaite ag {names}.',
   'match.pausedFor': 'Ar sos — ag fanacht le {name} athcheangal.',

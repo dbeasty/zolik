@@ -48,6 +48,9 @@ type Seat struct {
 	Active    bool     `json:"active,omitempty"`
 	LabelKeys []string `json:"labelKeys,omitempty"`
 	Facts     []Fact   `json:"facts,omitempty"`
+	// Side is the partnership this seat plays for, shared by partners and
+	// empty where a seat is its own side. An id to group by, never to print.
+	Side string `json:"side,omitempty"`
 }
 
 type ViewModel struct {

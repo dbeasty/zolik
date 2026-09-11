@@ -970,6 +970,8 @@ export const fi: Record<string, string> = {
   // to " won." — the verb agrees with the subject in most of these languages,
   // and a suffix cannot know that.
   'match.you': 'sinä',
+  'match.yourTeam': 'Sinun joukkueesi',
+  'match.teammates': 'Joukkue: {names}',
   'match.someoneWon': '{name} voitti.',
   'match.wonBy': 'Voittaja: {names}.',
   'match.pausedFor': 'Tauolla — odotetaan, että {name} yhdistää uudelleen.',

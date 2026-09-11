@@ -963,6 +963,8 @@ export const lv: Record<string, string> = {
   // to " won." — the verb agrees with the subject in most of these languages,
   // and a suffix cannot know that.
   'match.you': 'tu',
+  'match.yourTeam': 'Tava komanda',
+  'match.teammates': 'Komanda: {names}',
   'match.someoneWon': '{name} uzvarēja.',
   'match.wonBy': 'Uzvarēja {names}.',
   'match.pausedFor': 'Apturēts — gaidām, kad {name} atkal pieslēgsies.',

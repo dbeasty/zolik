@@ -977,6 +977,8 @@ export const mt: Record<string, string> = {
   // to " won." — the verb agrees with the subject in most of these languages,
   // and a suffix cannot know that.
   'match.you': 'int',
+  'match.yourTeam': 'It-tim tiegħek',
+  'match.teammates': 'Tim: {names}',
   'match.someoneWon': '{name} rebaħ.',
   'match.wonBy': 'Rebħet {names}.',
   'match.pausedFor': "Wieqaf — nistennew lil {name} jerġa' jaqbad.",

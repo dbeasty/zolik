@@ -271,3 +271,52 @@ func TestPromptsExplainWhatIsMissing(t *testing.T) {
 		t.Errorf("canastas-needed prompt says %v, want 1", needCanastas)
 	}
 }
+
+// TestSeatsCarryTheirSide is the in-match half of Seated.Sides: a lobby is told
+// who will be partners before the deal, and after it the board has to keep
+// saying so. Without this a player who joined a table they did not seat has no
+// way to find their partner except by watching whose melds land in their spread.
+//
+// The value itself is deliberately unexamined beyond "partners match, opponents
+// differ" — it is an id a client groups by, not a name it prints.
+func TestSeatsCarryTheirSide(t *testing.T) {
+	vm, err := New().View(fourHanded(nil), "p1")
+	if err != nil {
+		t.Fatalf("View: %v", err)
+	}
+	side := func(playerID string) string {
+		seat := vm.SeatOf(playerID)
+		if seat == nil {
+			t.Fatalf("no seat for %s", playerID)
+		}
+		return seat.Side
+	}
+	if side("p1") == "" {
+		t.Fatal("a seat in a partnership game carries no side")
+	}
+	if side("p1") != side("p3") {
+		t.Errorf("partners are on different sides: p1 %q, p3 %q", side("p1"), side("p3"))
+	}
+	if side("p2") != side("p4") {
+		t.Errorf("partners are on different sides: p2 %q, p4 %q", side("p2"), side("p4"))
+	}
+	if side("p1") == side("p2") {
+		t.Errorf("opponents share a side: both %q", side("p1"))
+	}
+}
+
+// TestSeatsOfOwnSideCarryNoSide is the same rule the lobby applies: at two,
+// three or five seats every player is their own side, and a partnership badge
+// on every seat is noise rather than information.
+func TestSeatsOfOwnSideCarryNoSide(t *testing.T) {
+	vm, err := New().View(twoHanded(nil), "p1")
+	if err != nil {
+		t.Fatalf("View: %v", err)
+	}
+	for _, seat := range vm.Seats {
+		if seat.Side != "" {
+			t.Errorf("%s has side %q in a game where everybody plays for themselves",
+				seat.PlayerID, seat.Side)
+		}
+	}
+}
