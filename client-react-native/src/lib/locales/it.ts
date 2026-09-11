@@ -142,6 +142,10 @@ export const it: Record<string, string> = {
   'canasta.rules.canasta': 'Una canasta è una combinazione di {n} o più carte dello stesso valore.',
   'canasta.rules.sequences': 'Una combinazione può anche essere una scala: tre o più carte dello stesso seme in fila, mai con un jolly tra loro.',
   'canasta.rules.samba': 'Una scala di sette carte è una samba e vale {n} punti.',
+  'canasta.rules.blackThreesGoOut':
+    'Un tre nero blocca la pila e vale {n} punti. Tre o quattro di essi si possono calare direttamente dalla mano, mai con una matta fra loro, e solo come la mossa con cui la tua coppia chiude.',
+  'canasta.rules.blackThreesNeverMeld':
+    'Un tre nero non si cala mai. Scartato blocca la pila, e se resta in mano alla fine della smazzata ti costa {n} punti.',
   'canasta.rules.pileAlwaysFrozen': 'La pila degli scarti resta congelata per tutta la mano: per prenderla devi abbinare la carta in cima a due carte naturali della tua mano.',
   'canasta.rules.pileOntoMeld': 'Se la tua parte ha già una combinazione incompleta del valore della carta in cima, puoi prendere tutta la pila degli scarti e aggiungerle quella carta: non ti serve una coppia in mano.',
   'canasta.rules.pileNoMeldCapture': 'Una combinazione già in tavola non può prendere la pila degli scarti: per prenderla devi abbinare la carta in cima a due carte della tua stessa mano.',
@@ -293,6 +297,7 @@ export const it: Record<string, string> = {
   'err.NOT_YOUR_MELD': 'Quella combinazione è della coppia avversaria',
   'err.NO_SUCH_MELD': 'Quella combinazione non è sul tavolo',
   'err.CANNOT_MELD_THREE': 'I tre non si calano mai',
+  'err.BLACK_THREE_GO_OUT_ONLY': 'I tre neri si calano solo come la mossa che svuota la tua mano',
   'err.CANNOT_DISCARD_RED_THREE': 'Un tre rosso non si può scartare',
   'err.MUST_KEEP_A_CARD': 'Tieni almeno una carta — così non puoi svuotare la mano',
   'err.MUST_MELD_FIRST': "Cala prima l'apertura della tua coppia",

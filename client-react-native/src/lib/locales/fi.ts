@@ -142,6 +142,10 @@ export const fi: Record<string, string> = {
   'canasta.rules.canasta': 'Canasta on yhdistelmä, jossa on {n} tai useampi samanarvoinen kortti.',
   'canasta.rules.sequences': 'Yhdistelmä voi olla myös jono: kolme tai useampi saman maan kortti peräkkäin, ei koskaan jokeria mukana.',
   'canasta.rules.samba': 'Seitsemän kortin jono on samba ja se on {n} pisteen arvoinen.',
+  'canasta.rules.blackThreesGoOut':
+    'Musta kolmonen tukkii pinon ja on {n} pisteen arvoinen. Kolme tai neljä niistä saa laskea suoraan kädestä, ei koskaan jokerin kanssa, ja vain siirtona, jolla puolesi pääsee ulos.',
+  'canasta.rules.blackThreesNeverMeld':
+    'Mustaa kolmosta ei lasketa koskaan. Poistettuna se tukkii pinon, ja jaon lopussa käteen jäänyt maksaa {n} pistettä.',
   'canasta.rules.pileAlwaysFrozen': 'Poistopino on jäädytetty koko jaon ajan: saat sen vain sovittamalla päällimmäisen kortin kahteen luonnolliseen korttiin kädestäsi.',
   'canasta.rules.pileOntoMeld': 'Jos puolellasi on jo pöydässä keskeneräinen yhdistelmä päällimmäisen kortin arvoa, saat ottaa koko poistopinon ja lisätä sen kortin siihen — paria kädessä ei tarvita.',
   'canasta.rules.pileNoMeldCapture': 'Pöydässä jo oleva yhdistelmä ei voi ottaa poistopinoa: sen ottamiseen tarvitset päällimmäisen kortin pariksi kaksi korttia omasta kädestäsi.',
@@ -293,6 +297,7 @@ export const fi: Record<string, string> = {
   'err.NOT_YOUR_MELD': 'Tuo yhdistelmä kuuluu vastapuolelle',
   'err.NO_SUCH_MELD': 'Tuota yhdistelmää ei ole pöydässä',
   'err.CANNOT_MELD_THREE': 'Kolmosia ei koskaan lasketa',
+  'err.BLACK_THREE_GO_OUT_ONLY': 'Mustat kolmoset lasketaan vain siirtona, joka tyhjentää kätesi',
   'err.CANNOT_DISCARD_RED_THREE': 'Punaista kolmosta ei voi poistaa',
   'err.MUST_KEEP_A_CARD': 'Pidä vähintään yksi kortti — näin et voi tyhjentää kättäsi',
   'err.MUST_MELD_FIRST': 'Laske ensin puolesi avaus',

@@ -140,6 +140,10 @@ export const lt: Record<string, string> = {
   'canasta.rules.canasta': 'Kanasta — tai {n} ar daugiau tos pačios vertės kortų derinys.',
   'canasta.rules.sequences': 'Derinys gali būti ir seka: trys ar daugiau tos pačios rūšies kortų iš eilės, niekada su džokeriu tarp jų.',
   'canasta.rules.samba': 'Septynių kortų seka yra samba, verta {n} taškų.',
+  'canasta.rules.blackThreesGoOut':
+    'Juodas trejetas užblokuoja krūvelę ir vertas {n} taškų. Tris ar keturis iš jų galima išdėti tiesiai iš rankos, niekada su džokeriu tarp jų, ir tik kaip ėjimą, kuriuo tavo pusė išeina.',
+  'canasta.rules.blackThreesNeverMeld':
+    'Juodas trejetas niekada neišdedamas. Išmestas jis užblokuoja krūvelę, o likęs rankoje dalybos pabaigoje kainuoja {n} taškų.',
   'canasta.rules.pileAlwaysFrozen': 'Atmetimo krūvelė užšaldyta visą dalijimą: paimti ją gali tik pridėjęs prie viršutinės kortos dvi natūralias kortas iš rankos.',
   'canasta.rules.pileOntoMeld': 'Jei tavo pusė jau turi nebaigtą viršutinės kortos vertės derinį, gali paimti visą atmetimo krūvelę ir pridėti tą kortą prie derinio — poros rankoje nereikia.',
   'canasta.rules.pileNoMeldCapture': 'Ant stalo gulintis derinys atmetimo krūvelės paimti negali: kad ją paimtum, prie viršutinės kortos turi pridėti dvi kortas iš savo rankos.',
@@ -291,6 +295,8 @@ export const lt: Record<string, string> = {
   'err.NOT_YOUR_MELD': 'Šis derinys priklauso priešingai pusei',
   'err.NO_SUCH_MELD': 'Šio derinio ant stalo nėra',
   'err.CANNOT_MELD_THREE': 'Trejetai niekada neišdedami',
+  'err.BLACK_THREE_GO_OUT_ONLY':
+    'Juodi trejetai išdedami tik kaip ėjimas, ištuštinantis tavo ranką',
   'err.CANNOT_DISCARD_RED_THREE': 'Raudono trejeto atmesti negalima',
   'err.MUST_KEEP_A_CARD': 'Pasilik bent vieną kortą — taip rankos neištuštinsi',
   'err.MUST_MELD_FIRST': 'Pirma išdėk savo pusės pradinį derinį',

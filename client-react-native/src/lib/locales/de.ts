@@ -144,6 +144,10 @@ export const de: Record<string, string> = {
   'canasta.rules.canasta': 'Eine Canasta ist eine Auslage aus {n} oder mehr Karten desselben Werts.',
   'canasta.rules.sequences': 'Eine Auslage kann auch eine Sequenz sein: drei oder mehr Karten derselben Farbe in Folge, niemals mit einer wilden Karte darin.',
   'canasta.rules.samba': 'Eine Sequenz aus sieben Karten ist eine Samba und zählt {n} Punkte.',
+  'canasta.rules.blackThreesGoOut':
+    'Eine schwarze Drei blockiert den Stapel und zählt {n} Punkte. Drei oder vier davon dürfen direkt aus der Hand ausgelegt werden, nie mit einem Joker darunter, und nur als der Zug, mit dem deine Seite hinausgeht.',
+  'canasta.rules.blackThreesNeverMeld':
+    'Eine schwarze Drei wird nie ausgelegt. Abgeworfen blockiert sie den Stapel, und bleibt sie am Ende des Blattes auf deiner Hand, kostet sie {n} Punkte.',
   'canasta.rules.pileAlwaysFrozen': 'Der Ablagestapel ist die ganze Runde eingefroren: Um ihn zu nehmen, musst du seine oberste Karte mit zwei natürlichen Karten aus deiner Hand belegen.',
   'canasta.rules.pileOntoMeld': 'Hat deine Partei bereits eine unvollständige Auslage im Wert der obersten Karte, darfst du den ganzen Ablagestapel nehmen und diese Karte anlegen — ein passendes Paar auf der Hand brauchst du dafür nicht.',
   'canasta.rules.pileNoMeldCapture': 'Eine Auslage, die schon auf dem Tisch liegt, kann den Ablagestapel nicht nehmen: Dafür musst du seine oberste Karte mit zwei Karten aus deiner eigenen Hand belegen.',
@@ -300,6 +304,8 @@ export const de: Record<string, string> = {
   'err.NOT_YOUR_MELD': 'Diese Auslage gehört der anderen Seite',
   'err.NO_SUCH_MELD': 'Diese Auslage liegt nicht auf dem Tisch',
   'err.CANNOT_MELD_THREE': 'Dreien werden nie ausgelegt',
+  'err.BLACK_THREE_GO_OUT_ONLY':
+    'Schwarze Dreien werden nur als der Zug ausgelegt, der deine Hand leert',
   'err.CANNOT_DISCARD_RED_THREE': 'Eine rote Drei kann nicht abgelegt werden',
   'err.MUST_KEEP_A_CARD': 'Behalte mindestens eine Karte — so kannst du deine Hand nicht leeren',
   'err.MUST_MELD_FIRST': 'Leg zuerst die Erstauslage deiner Seite',

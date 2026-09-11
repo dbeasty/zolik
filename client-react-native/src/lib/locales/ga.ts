@@ -145,6 +145,10 @@ export const ga: Record<string, string> = {
   'canasta.rules.canasta': 'Is é atá i gcanasta ná cumasc de {n} chárta nó níos mó den luach céanna.',
   'canasta.rules.sequences': 'Is féidir le cumasc a bheith ina sheicheamh freisin: trí chárta nó níos mó den chineál céanna as a chéile, gan áilteoir eatarthu riamh.',
   'canasta.rules.samba': 'Is samba é seicheamh de sheacht gcárta, agus is fiú {n} pointe é.',
+  'canasta.rules.blackThreesGoOut':
+    'Dúnann trí dhubh an carn agus is fiú {n} pointe é. Is féidir trí cinn nó ceithre cinn díobh a leagan síos díreach as do láimh, riamh le fiailcharta ina measc, agus mar an mbeart a théann do thaobh amach amháin.',
+  'canasta.rules.blackThreesNeverMeld':
+    'Ní leagtar trí dhubh síos riamh. Dúnann sé an carn nuair a chaitear é, agus má fhanann sé i do láimh ag deireadh na dála cosnaíonn sé {n} pointe ort.',
   'canasta.rules.pileAlwaysFrozen': 'Tá an carn caite reoite ar feadh na dála ar fad: ní féidir leat é a thógáil ach an cárta barr a mheaitseáil le dhá chárta nádúrtha as do lámh.',
   'canasta.rules.pileOntoMeld': 'Má tá cumasc neamhchríochnaithe de luach an chárta uachtaraigh ag do thaobh cheana, is féidir leat an carn caite ar fad a thógáil agus an cárta sin a chur leis — ní gá péire a bheith i do lámh.',
   'canasta.rules.pileNoMeldCapture': 'Ní féidir le cumasc atá ar an mbord cheana an carn caite a thógáil: chun é a thógáil caithfidh tú an cárta barr a mheaitseáil le dhá chárta as do lámh féin.',
@@ -303,6 +307,8 @@ export const ga: Record<string, string> = {
   'err.NOT_YOUR_MELD': 'Is leis an taobh eile an cumasc sin',
   'err.NO_SUCH_MELD': 'Níl an cumasc sin ar an mbord',
   'err.CANNOT_MELD_THREE': 'Ní leagtar trínna síos riamh',
+  'err.BLACK_THREE_GO_OUT_ONLY':
+    'Ní leagtar trínna dubha síos ach mar an mbeart a fholmhaíonn do lámh',
   'err.CANNOT_DISCARD_RED_THREE': 'Ní féidir trí dhearg a chaitheamh',
   'err.MUST_KEEP_A_CARD': 'Coinnigh cárta amháin ar a laghad — ní féidir leat do lámh a fholmhú mar sin',
   'err.MUST_MELD_FIRST': 'Leag síos céad chumasc do thaobha ar dtús',

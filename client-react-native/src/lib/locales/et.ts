@@ -140,6 +140,10 @@ export const et: Record<string, string> = {
   'canasta.rules.canasta': 'Canasta on {n} või enama sama väärtusega kaardi kombinatsioon.',
   'canasta.rules.sequences': 'Kombinatsioon võib olla ka jada: kolm või rohkem sama masti kaarti järjest, mitte kunagi jokkeriga vahel.',
   'canasta.rules.samba': 'Seitsmest kaardist jada on samba ja annab {n} punkti.',
+  'canasta.rules.blackThreesGoOut':
+    'Must kolm blokeerib hunniku ja on väärt {n} punkti. Kolm või neli neist tohib panna välja otse käest, mitte kunagi jokkeriga nende seas, ja ainult käiguna, millega sinu pool välja läheb.',
+  'canasta.rules.blackThreesNeverMeld':
+    'Musta kolme ei panda kunagi välja. Äravisatuna blokeerib see hunniku ja jagamise lõpus kätte jäänuna maksab {n} punkti.',
   'canasta.rules.pileAlwaysFrozen': 'Viskepakk on kogu jagamise vältel külmutatud: saad selle võtta ainult sobitades ülemise kaardi kahe loomuliku kaardiga oma käest.',
   'canasta.rules.pileOntoMeld': 'Kui sinu poolel on laual juba pooleli kombinatsioon ülemise kaardi väärtuses, võid võtta kogu viskepaki ja lisada selle kaardi sinna juurde — paari käes pole vaja.',
   'canasta.rules.pileNoMeldCapture': 'Laual olev kombinatsioon ei saa viskepakki võtta: selle võtmiseks pead sobitama ülemise kaardi kahe kaardiga oma käest.',
@@ -291,6 +295,8 @@ export const et: Record<string, string> = {
   'err.NOT_YOUR_MELD': 'See kombinatsioon kuulub vastaspoolele',
   'err.NO_SUCH_MELD': 'Seda kombinatsiooni pole laual',
   'err.CANNOT_MELD_THREE': 'Kolmi ei panda kunagi välja',
+  'err.BLACK_THREE_GO_OUT_ONLY':
+    'Mustad kolmed pannakse välja ainult käiguna, mis tühjendab su käe',
   'err.CANNOT_DISCARD_RED_THREE': 'Punast kolme ei tohi ära visata',
   'err.MUST_KEEP_A_CARD': 'Jäta alles vähemalt üks kaart — nii ei saa sa oma kätt tühjendada',
   'err.MUST_MELD_FIRST': 'Pane esmalt välja oma poole avang',

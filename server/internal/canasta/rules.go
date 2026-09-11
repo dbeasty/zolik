@@ -49,6 +49,18 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 			module.Fact{LabelKey: "canasta.rules.samba", Params: map[string]any{"n": v.SambaBonus}},
 		)
 	}
+	// Black threes are two rules in one sentence — what they do to the pile, and
+	// whether they can ever leave a hand for the table — and which of the two
+	// sentences a table states is the variation's, not a number to be filled in.
+	// Modern American forbids the meld outright, so its players read that rather
+	// than reading about a move they will never be offered.
+	blackThrees := "canasta.rules.blackThreesNeverMeld"
+	if v.BlackThreeMeld {
+		blackThrees = "canasta.rules.blackThreesGoOut"
+	}
+	melding = append(melding, module.Fact{
+		LabelKey: blackThrees, Params: map[string]any{"n": blackThreeValue},
+	})
 	// How the pile is taken — the clause players most often arrive at a table
 	// disagreeing about, so every variation states its own answer.
 	//

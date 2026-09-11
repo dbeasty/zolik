@@ -145,6 +145,10 @@ export const hu: Record<string, string> = {
   'canasta.rules.canasta': 'A canasta {n} vagy több azonos értékű lapból álló kombináció.',
   'canasta.rules.sequences': 'Egy kombináció sor is lehet: három vagy több azonos színű lap egymás után, soha nem jokerrel közte.',
   'canasta.rules.samba': 'A hét lapból álló sor egy samba, {n} pontot ér.',
+  'canasta.rules.blackThreesGoOut':
+    'A fekete hármas lezárja a paklit és {n} pontot ér. Három vagy négy darabot közvetlenül a kezedből lerakhatsz, soha nem jokerrel együtt, és csak azzal a lépéssel, amellyel az oldalad kiszáll.',
+  'canasta.rules.blackThreesNeverMeld':
+    'A fekete hármast soha nem rakják le. Eldobva lezárja a paklit, és ha az osztás végén a kezedben marad, {n} pontodba kerül.',
   'canasta.rules.pileAlwaysFrozen': 'A dobópakli az egész osztás alatt be van fagyasztva: csak úgy viheted el, ha a felső lapját két természetes lappal párosítod a kezedből.',
   'canasta.rules.pileOntoMeld': 'Ha az oldaladnak már van befejezetlen kombinációja a felső lap értékéből, elviheted az egész dobópaklit, és hozzáteheted azt a lapot — nem kell hozzá pár a kezedben.',
   'canasta.rules.pileNoMeldCapture': 'Az asztalon fekvő kombináció nem viheti el a dobópaklit: az elvitelhez a felső lapját két saját kézből származó lappal kell párosítanod.',
@@ -298,6 +302,8 @@ export const hu: Record<string, string> = {
   'err.NOT_YOUR_MELD': 'Ez a kombináció az ellenfél oldaláé',
   'err.NO_SUCH_MELD': 'Ez a kombináció nincs az asztalon',
   'err.CANNOT_MELD_THREE': 'A hármasokat soha nem rakják le',
+  'err.BLACK_THREE_GO_OUT_ONLY':
+    'A fekete hármasokat csak azzal a lépéssel lehet lerakni, amely kiüríti a kezed',
   'err.CANNOT_DISCARD_RED_THREE': 'Piros hármast nem lehet eldobni',
   'err.MUST_KEEP_A_CARD': 'Tarts meg legalább egy lapot — így nem ürítheted ki a kezed',
   'err.MUST_MELD_FIRST': 'Előbb rakd le az oldalad nyitását',

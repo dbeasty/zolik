@@ -6,6 +6,18 @@ import "zolik/server/internal/module"
 // belong to the ruleset, because Samba disagrees with Canasta about all of them.
 const redThreeValue = 100
 
+// blackThreeValue is what a black three is worth: 100 on the table, 100 against
+// you in a hand.
+//
+// Not a face value, and not five. A black three is never an ordinary meld — it
+// cannot be laid off onto, cannot be part of a canasta, and in the variations
+// that let it down at all it goes down only as the move that empties a hand.
+// Pricing it at 100 is what makes that move worth making and what makes holding
+// one late a real risk, which is the whole of its role in the game. Like
+// redThreeValue it is the same in every variation, including the one where the
+// only way it is ever scored is against you (modern_american).
+const blackThreeValue = 100
+
 func errCode(code string) error { return module.Error{Code: code} }
 
 // redThreeScore is the partnership's red threes, signed.

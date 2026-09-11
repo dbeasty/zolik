@@ -143,6 +143,10 @@ export const pl: Record<string, string> = {
   'canasta.rules.canasta': 'Canasta to układ {n} lub więcej kart tej samej wartości.',
   'canasta.rules.sequences': 'Układ może być też sekwensem: trzy lub więcej kart tego samego koloru po kolei, nigdy z jokerem w środku.',
   'canasta.rules.samba': 'Sekwens z siedmiu kart to samba warta {n} punktów.',
+  'canasta.rules.blackThreesGoOut':
+    'Czarna trójka blokuje stos i jest warta {n} punktów. Trzy lub cztery z nich można wyłożyć prosto z ręki, nigdy z jokerem wśród nich, i tylko jako zagranie, którym twoja strona wychodzi.',
+  'canasta.rules.blackThreesNeverMeld':
+    'Czarnej trójki nigdy się nie wykłada. Odrzucona blokuje stos, a zostawiona w ręce na koniec rozdania kosztuje {n} punktów.',
   'canasta.rules.pileAlwaysFrozen': 'Stos odrzuconych jest zamrożony przez całe rozdanie: aby go wziąć, musisz dołożyć do wierzchniej karty dwie naturalne karty z ręki.',
   'canasta.rules.pileOntoMeld': 'Jeśli twoja strona ma już na stole niedokończony układ o wartości wierzchniej karty, możesz wziąć cały stos odrzuconych i dołożyć do niego tę kartę — para w ręce nie jest potrzebna.',
   'canasta.rules.pileNoMeldCapture': 'Układ leżący już na stole nie może wziąć stosu odrzuconych: aby go wziąć, musisz dołożyć do wierzchniej karty dwie karty z własnej ręki.',
@@ -296,6 +300,7 @@ export const pl: Record<string, string> = {
   'err.NOT_YOUR_MELD': 'Ten układ należy do przeciwnej strony',
   'err.NO_SUCH_MELD': 'Tego układu nie ma na stole',
   'err.CANNOT_MELD_THREE': 'Trójek nigdy się nie wykłada',
+  'err.BLACK_THREE_GO_OUT_ONLY': 'Czarne trójki wykłada się tylko jako zagranie opróżniające rękę',
   'err.CANNOT_DISCARD_RED_THREE': 'Czerwonej trójki nie można odrzucić',
   'err.MUST_KEEP_A_CARD': 'Zatrzymaj co najmniej jedną kartę — tak nie opróżnisz ręki',
   'err.MUST_MELD_FIRST': 'Najpierw wyłóż otwarcie swojej strony',

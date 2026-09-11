@@ -42,6 +42,13 @@ func TestExistingVariationsAreUnchanged(t *testing.T) {
 		cfg     module.MatchConfig
 		want    []string // by seed, seeds 1..len
 	}{
+		// Eleven of the twenty-four hashes below were re-recorded when black
+		// threes were repriced from 5 to 100 (see blackThreeValue). That is a
+		// deliberate change to what a deal is worth, not a change to how one is
+		// played: every deal still runs the same cards in the same order, and
+		// only the settlement moves. classic/2 did not move at all, because
+		// across those six seeds no black three ever reached the table or was
+		// stranded in a hand at the end.
 		{
 			name:    "classic/2",
 			players: refs("p1", "p2"),
@@ -61,8 +68,8 @@ func TestExistingVariationsAreUnchanged(t *testing.T) {
 			// as two cards and offer nothing. The driver now takes the go-out
 			// it was always entitled to, so the deal settles differently.
 			want: []string{
-				"284f63d874e1d71e", "1247c543cf17aaab", "89ef2adfec9d6609",
-				"c28153ad509fef3c", "080f6737d755b0a6", "cb468b531de2ac96",
+				"284f63d874e1d71e", "eab94d924c7627c8", "584a945acd0a61ec",
+				"432c716c0fd809d4", "080f6737d755b0a6", "55317538da0249af",
 			},
 		},
 		{
@@ -70,8 +77,8 @@ func TestExistingVariationsAreUnchanged(t *testing.T) {
 			players: refs("p1", "p2", "p3", "p4"),
 			cfg:     goldenCfg("classic"),
 			want: []string{
-				"cb125876593839bb", "9d58d1f2b741bcfb", "6e219a382095cda1",
-				"487e77b09e075fe5", "d24b4d92e41b8a15", "22a3ba98486407aa",
+				"cb125876593839bb", "c4adae99f3de2c82", "6e219a382095cda1",
+				"742849c7f193daa8", "6e050b28d36d6512", "22a3ba98486407aa",
 			},
 		},
 		{
@@ -87,13 +94,21 @@ func TestExistingVariationsAreUnchanged(t *testing.T) {
 			// That is the change, not a side effect of it: `classic/*` above is
 			// untouched, and so is Samba, which never offered the move.
 			//
+			// These are the *merged* hashes, not this branch's. Black threes
+			// losing their meld here (BlackThreeMeld, which landed on main while
+			// this branch was open) moves seed 5 a second time on top of the
+			// pile change; the other five settle where this branch alone put
+			// them. Recorded by running the merge, rather than by picking one
+			// side's list — either side's would have been a number nothing
+			// produces.
+			//
 			// The history these replace: seeds 4 and 6 were re-recorded when
 			// the "offer every meldable rank, not just the one a shared wild
 			// favoured" fix widened the meld offers, and seed 6 again for the
 			// duplicate-copy fix — see the note on classic/3.
 			want: []string{
 				"5bb51f6359d5b398", "72097794ad8dbf2d", "ffc102857127d200",
-				"9d0dbb31597dda48", "d4d13197c3c43edc", "65359ad99009f7c7",
+				"9d0dbb31597dda48", "95f25b41ef6a0bb3", "65359ad99009f7c7",
 			},
 		},
 	}

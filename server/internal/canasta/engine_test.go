@@ -1054,10 +1054,26 @@ func TestBlackThreesOnlyGoDownOnTheWayOut(t *testing.T) {
 				Cards: []string{"KH", "KD", "KS", "KC", "KH", "KD", "KS"}}}
 			s.Hands["p1"] = []string{"3C", "3S", "3C", "8C", "9C"}
 		})
+		// The narrow refusal, not the blanket one: at a Classic table this move
+		// exists and is being offered, so "threes are never melded" would be
+		// contradicted by the player's own screen.
 		if _, code := apply(t, raw, "p1", module.Action{
 			Verb: VerbLayMeld, Cards: []string{"3C", "3S", "3C"},
-		}); code != ErrCannotMeldThree {
-			t.Errorf("got %q, want %q", code, ErrCannotMeldThree)
+		}); code != ErrBlackThreeGoOutOnly {
+			t.Errorf("got %q, want %q", code, ErrBlackThreeGoOutOnly)
+		}
+	})
+
+	t.Run("nor before the side has the canastas to go out", func(t *testing.T) {
+		raw := twoHanded(func(s *GameState) {
+			s.Phase = phaseMeld
+			s.Teams[0].HasMelded = true
+			s.Hands["p1"] = []string{"3C", "3S", "3C"}
+		})
+		if _, code := apply(t, raw, "p1", module.Action{
+			Verb: VerbLayMeld, Cards: []string{"3C", "3S", "3C"},
+		}); code != ErrCannotGoOutYet {
+			t.Errorf("got %q, want %q", code, ErrCannotGoOutYet)
 		}
 	})
 
@@ -1077,6 +1093,80 @@ func TestBlackThreesOnlyGoDownOnTheWayOut(t *testing.T) {
 		}
 		if s := mustDecode(t, next); s.LastDeal == nil || s.LastDeal.WentOut != "p1" {
 			t.Errorf("the deal should have ended with p1 out, got %+v", s.LastDeal)
+		}
+	})
+}
+
+// modernAmericanTable is twoHanded dealt under Modern American's rules, which
+// differ from Classic's here in exactly one thing: a black three has no route
+// to the table at all.
+func modernAmericanTable(mutate func(s *GameState)) module.State {
+	return twoHanded(func(s *GameState) {
+		r := variations["modern_american"]
+		s.Variation = "modern_american"
+		s.Rules = &r
+		s.HandSize = r.HandSize
+		s.TargetScore = r.TargetScore
+		s.CanastasToGoOut = r.CanastasToGoOut
+		if mutate != nil {
+			mutate(s)
+		}
+	})
+}
+
+// The same hand that goes out on black threes at a Classic table cannot even
+// try at a Modern American one, and is not offered the move to try.
+func TestModernAmericanNeverMeldsBlackThrees(t *testing.T) {
+	goingOut := func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Teams[0].HasMelded = true
+		s.Teams[0].Melds = []Meld{
+			{ID: meldID(0, "K"), TeamID: 0, Rank: "K",
+				Cards: []string{"KH", "KD", "KS", "KC", "KH", "KD", "KS"}},
+			{ID: meldID(0, "Q"), TeamID: 0, Rank: "Q",
+				Cards: []string{"QH", "QD", "QS", "QC", "QH", "QD", "QS"}},
+		}
+		s.Hands["p1"] = []string{"3C", "3S", "3C"}
+	}
+
+	t.Run("the meld is refused outright", func(t *testing.T) {
+		if _, code := apply(t, modernAmericanTable(goingOut), "p1", module.Action{
+			Verb: VerbLayMeld, Cards: []string{"3C", "3S", "3C"},
+		}); code != ErrCannotMeldThree {
+			t.Errorf("got %q, want %q", code, ErrCannotMeldThree)
+		}
+	})
+
+	// The refusal alone is not enough. An offer nobody can ever take is a rule
+	// the player only finds out about by being told no, which is the failure
+	// this half guards against.
+	t.Run("and never offered", func(t *testing.T) {
+		offers, err := New().LegalActions(modernAmericanTable(goingOut), "p1")
+		if err != nil {
+			t.Fatalf("LegalActions: %v", err)
+		}
+		for _, o := range offers {
+			if o.ID == OfferLayMeld+":"+rankThree {
+				t.Fatalf("Modern American offered the black-three meld: %+v", o)
+			}
+		}
+	})
+
+	// Classic is the control: without it, a bug that stopped offering the meld
+	// everywhere would pass the test above.
+	t.Run("but Classic still offers it", func(t *testing.T) {
+		offers, err := New().LegalActions(twoHanded(goingOut), "p1")
+		if err != nil {
+			t.Fatalf("LegalActions: %v", err)
+		}
+		var found bool
+		for _, o := range offers {
+			if o.ID == OfferLayMeld+":"+rankThree {
+				found = o.Enabled
+			}
+		}
+		if !found {
+			t.Error("Classic no longer offers the black-three go-out")
 		}
 	})
 }
