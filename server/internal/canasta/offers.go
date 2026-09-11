@@ -275,11 +275,21 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		// So the list is filtered by the engine's own answer, the way
 		// discardableCards already is. A second implementation of the wild rules
 		// is exactly the drift this module refuses to have.
+		//
+		// Asked once per distinct card and answered for every copy of it: the
+		// engine cannot tell two 7H apart, so probing the second one would buy
+		// a second identical answer at the price of a second engine run.
 		accepted := make([]string, 0, len(eligible))
+		verdict := map[string]bool{}
 		for _, c := range eligible {
-			if ok, _ := probe(m, raw, playerID, module.Action{
-				Verb: VerbLayOff, Cards: []string{c}, Target: mm.ID,
-			}); ok {
+			ok, asked := verdict[c]
+			if !asked {
+				ok, _ = probe(m, raw, playerID, module.Action{
+					Verb: VerbLayOff, Cards: []string{c}, Target: mm.ID,
+				})
+				verdict[c] = ok
+			}
+			if ok {
 				accepted = append(accepted, c)
 			}
 		}
@@ -423,6 +433,9 @@ func plausibleMeld(r ruleset, hand []string, t *Team) []string {
 }
 
 // blackThreeCandidate is the going-out meld of black threes, or nil.
+//
+// Counted by copy: three black threes are three black threes whether or not
+// two of them are the same card, and with two decks in play they often are.
 func blackThreeCandidate(hand []string) []string {
 	var out []string
 	for _, c := range hand {
@@ -430,13 +443,14 @@ func blackThreeCandidate(hand []string) []string {
 			out = append(out, c)
 		}
 	}
+	out = sortedCards(out)
 	if len(out) < minMeldSize {
 		return nil
 	}
 	if len(out) > 4 {
 		out = out[:4]
 	}
-	return sortedUnique(out)
+	return out
 }
 
 // probe runs an action through the real engine and reports whether it would be

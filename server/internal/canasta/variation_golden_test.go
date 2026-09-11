@@ -55,9 +55,14 @@ func TestExistingVariationsAreUnchanged(t *testing.T) {
 			name:    "classic/3",
 			players: refs("p1", "p2", "p3"),
 			cfg:     goldenCfg("classic"),
+			// Seed 6 was re-recorded when offer card lists stopped collapsing
+			// duplicate copies: a hand holding two 3C and a 3S really can go
+			// out on black threes, and `blackThreeCandidate` used to count that
+			// as two cards and offer nothing. The driver now takes the go-out
+			// it was always entitled to, so the deal settles differently.
 			want: []string{
 				"284f63d874e1d71e", "1247c543cf17aaab", "89ef2adfec9d6609",
-				"c28153ad509fef3c", "080f6737d755b0a6", "038b3d7157a34855",
+				"c28153ad509fef3c", "080f6737d755b0a6", "cb468b531de2ac96",
 			},
 		},
 		{
@@ -79,9 +84,11 @@ func TestExistingVariationsAreUnchanged(t *testing.T) {
 			// picks differently and the deals settle differently. Verified as
 			// main's rather than this branch's by running these same cases on
 			// plain origin/main, where both produce exactly these hashes.
+			// Seed 6 moved again for the duplicate-copy fix, for the same
+			// reason as classic/3's — see the note there.
 			want: []string{
 				"2863826a2309f055", "2657c0a78520664d", "6f07d3bfea709bff",
-				"a1ce2c481c73bcf6", "89e091cc3974fda8", "b2d3c3f27f46f2b9",
+				"a1ce2c481c73bcf6", "89e091cc3974fda8", "ca6bbd019709f98e",
 			},
 		},
 	}

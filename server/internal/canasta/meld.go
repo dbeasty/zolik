@@ -323,6 +323,13 @@ func allMeldCandidates(r ruleset, hand []string, t *Team) []candidate {
 //
 // A natural of the meld's rank always fits; a wild fits only while the meld
 // still has room for one. A closed canasta accepts nothing.
+//
+// Every copy, not every distinct card. A group takes n of one rank and two
+// decks are in play, so a hand holding two 7H can lay off two 7H in one
+// action — which `Apply` has always accepted and this list used to collapse to
+// one, leaving a client with an accurate multiset of a hand and an offer that
+// named half of it. A run is the exception and keeps its own counsel below:
+// the same card cannot extend a sequence twice.
 func layOffCards(r ruleset, hand []string, m *Meld) []string {
 	if m == nil || m.closed(r) {
 		return nil
@@ -343,7 +350,7 @@ func layOffCards(r ruleset, hand []string, m *Meld) []string {
 			out = append(out, c)
 		}
 	}
-	return sortedUnique(out)
+	return sortedCards(out)
 }
 
 // runExtensions is which cards in a hand this sequence would accept.

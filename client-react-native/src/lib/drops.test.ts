@@ -194,6 +194,22 @@ describe('dropSpotsFor', () => {
     expect(takeableSpots(dropSpotsFor([oneSeven], ['7H', '7H']))).toEqual([]);
   });
 
+  it('takes both copies when the offer lists both', () => {
+    // The other half of counting duplicates, and the half a Canasta lay-off
+    // after a pile take depends on: a hand holding two 7H may lay off two 7H,
+    // so the offer names the card twice and this side has to honour that
+    // rather than stopping at the first match.
+    const twoSevens: ActionOffer = {
+      ...layOff,
+      source: { ...layOff.source!, cards: ['7H', '7H'], placements: undefined, minCards: 1, maxCards: 4 },
+    };
+
+    expect(takeableSpots(dropSpotsFor([twoSevens], ['7H', '7H']))).toHaveLength(1);
+    expect(someOfferReady([twoSevens], ['7H', '7H'])).toBe(true);
+    // Still counted, not merely matched: a third copy is one more than offered.
+    expect(takeableSpots(dropSpotsFor([twoSevens], ['7H', '7H', '7H']))).toEqual([]);
+  });
+
   it('offers every place one card may go at once', () => {
     // A 6D that both extends a run and could be discarded gets two lit
     // targets, and the player picks by where they let go.
