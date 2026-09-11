@@ -142,6 +142,10 @@ export const sk: Record<string, string> = {
   'canasta.rules.canasta': 'Canasta je kombinácia {n} alebo viacerých kariet rovnakej hodnoty.',
   'canasta.rules.sequences': 'Kombinácia môže byť aj postupka: tri a viac kariet rovnakej farby za sebou, nikdy so žolíkom medzi nimi.',
   'canasta.rules.samba': 'Postupka zo siedmich kariet je samba a má hodnotu {n} bodov.',
+  'canasta.rules.blackThreesGoOut':
+    'Čierna trojka blokuje kôpku a má hodnotu {n} bodov. Tri alebo štyri z nich sa smú vyložiť priamo z ruky, nikdy so žolíkom medzi nimi, a len ako ťah, ktorým tvoja strana vychádza.',
+  'canasta.rules.blackThreesNeverMeld':
+    'Čierna trojka sa nikdy nevykladá. Odhodená blokuje kôpku a na konci rozdania ti v ruke uberie {n} bodov.',
   'canasta.rules.pileAlwaysFrozen': 'Odhadzovací balíček je zamrznutý po celé rozdanie: vziať si ho môžete len tak, že k vrchnej karte priložíte dve prirodzené karty z ruky.',
   'canasta.rules.meldFloorBands':
     'Tvoje prvé vyloženie musí dosiahnuť bodové minimum, ktoré rastie so skóre: {negative} pod nulou, {low} do 1500, {mid} do 3000, {high} nad tým.',
@@ -290,6 +294,7 @@ export const sk: Record<string, string> = {
   'err.NOT_YOUR_MELD': 'Táto kombinácia patrí súperovej strane',
   'err.NO_SUCH_MELD': 'Táto kombinácia nie je na stole',
   'err.CANNOT_MELD_THREE': 'Trojky sa nikdy nevykladajú',
+  'err.BLACK_THREE_GO_OUT_ONLY': 'Čierne trojky sa vykladajú len ťahom, ktorý vyprázdni tvoju ruku',
   'err.CANNOT_DISCARD_RED_THREE': 'Červenú trojku nemožno odhodiť',
   'err.MUST_KEEP_A_CARD': 'Nechaj si aspoň jednu kartu — takto si ruku nevyprázdniš',
   'err.MUST_MELD_FIRST': 'Najprv vylož prvú kombináciu svojej strany',

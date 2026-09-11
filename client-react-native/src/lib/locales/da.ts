@@ -138,6 +138,10 @@ export const da: Record<string, string> = {
   'canasta.rules.canasta': 'En canasta er en kombination af {n} eller flere kort af samme værdi.',
   'canasta.rules.sequences': 'En kombination kan også være en sekvens: tre eller flere kort i samme farve i træk, aldrig med et vildt kort iblandt.',
   'canasta.rules.samba': 'En sekvens på syv kort er en samba og giver {n} point.',
+  'canasta.rules.blackThreesGoOut':
+    'En sort treer blokerer bunken og er {n} point værd. Tre eller fire af dem må lægges ud direkte fra hånden, aldrig med en joker iblandt, og kun som det træk, hvor din side går ud.',
+  'canasta.rules.blackThreesNeverMeld':
+    'En sort treer lægges aldrig ud. Kastes den, blokerer den bunken, og bliver den på hånden, når spillet slutter, koster den {n} point.',
   'canasta.rules.pileAlwaysFrozen': 'Kastebunken er frosset hele givet: du kan kun tage den ved at lægge to naturlige kort fra hånden til det øverste kort.',
   'canasta.rules.meldFloorBands':
     'Din første udlægning skal nå et pointminimum, der stiger med din stilling: {negative} under nul, {low} op til 1500, {mid} op til 3000, {high} derover.',
@@ -286,6 +290,7 @@ export const da: Record<string, string> = {
   'err.NOT_YOUR_MELD': 'Den kombination tilhører modstandersiden',
   'err.NO_SUCH_MELD': 'Den kombination ligger ikke på bordet',
   'err.CANNOT_MELD_THREE': 'Treere lægges aldrig ud',
+  'err.BLACK_THREE_GO_OUT_ONLY': 'Sorte treere lægges kun ud som det træk, der tømmer din hånd',
   'err.CANNOT_DISCARD_RED_THREE': 'En rød treer må ikke smides ud',
   'err.MUST_KEEP_A_CARD': 'Behold mindst ét kort — sådan kan du ikke tømme hånden',
   'err.MUST_MELD_FIRST': 'Læg din sides åbning ud først',

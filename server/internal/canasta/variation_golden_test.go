@@ -42,6 +42,13 @@ func TestExistingVariationsAreUnchanged(t *testing.T) {
 		cfg     module.MatchConfig
 		want    []string // by seed, seeds 1..len
 	}{
+		// Eleven of the twenty-four hashes below were re-recorded when black
+		// threes were repriced from 5 to 100 (see blackThreeValue). That is a
+		// deliberate change to what a deal is worth, not a change to how one is
+		// played: every deal still runs the same cards in the same order, and
+		// only the settlement moves. classic/2 did not move at all, because
+		// across those six seeds no black three ever reached the table or was
+		// stranded in a hand at the end.
 		{
 			name:    "classic/2",
 			players: refs("p1", "p2"),
@@ -61,8 +68,8 @@ func TestExistingVariationsAreUnchanged(t *testing.T) {
 			// as two cards and offer nothing. The driver now takes the go-out
 			// it was always entitled to, so the deal settles differently.
 			want: []string{
-				"284f63d874e1d71e", "1247c543cf17aaab", "89ef2adfec9d6609",
-				"c28153ad509fef3c", "080f6737d755b0a6", "cb468b531de2ac96",
+				"284f63d874e1d71e", "eab94d924c7627c8", "584a945acd0a61ec",
+				"432c716c0fd809d4", "080f6737d755b0a6", "55317538da0249af",
 			},
 		},
 		{
@@ -70,8 +77,8 @@ func TestExistingVariationsAreUnchanged(t *testing.T) {
 			players: refs("p1", "p2", "p3", "p4"),
 			cfg:     goldenCfg("classic"),
 			want: []string{
-				"cb125876593839bb", "9d58d1f2b741bcfb", "6e219a382095cda1",
-				"487e77b09e075fe5", "d24b4d92e41b8a15", "22a3ba98486407aa",
+				"cb125876593839bb", "c4adae99f3de2c82", "6e219a382095cda1",
+				"742849c7f193daa8", "6e050b28d36d6512", "22a3ba98486407aa",
 			},
 		},
 		{
@@ -87,8 +94,8 @@ func TestExistingVariationsAreUnchanged(t *testing.T) {
 			// Seed 6 moved again for the duplicate-copy fix, for the same
 			// reason as classic/3's — see the note there.
 			want: []string{
-				"2863826a2309f055", "2657c0a78520664d", "6f07d3bfea709bff",
-				"a1ce2c481c73bcf6", "89e091cc3974fda8", "ca6bbd019709f98e",
+				"6672509582018b11", "b9beb5d45b32fec1", "3168e91382e2236d",
+				"a1ce2c481c73bcf6", "89e091cc3974fda8", "37bbda6b0da6b95d",
 			},
 		},
 	}

@@ -9,6 +9,7 @@
     "BAD_SEATING",
     "BAD_SPLIT_POSITION",
     "BET_BELOW_MINIMUM",
+    "BLACK_THREE_GO_OUT_ONLY",
     "CANNOT_CHECK",
     "CANNOT_DISCARD_RED_THREE",
     "CANNOT_DOUBLE",
@@ -198,6 +199,8 @@
     "canasta.round.concealed",
     "canasta.round.deal",
     "canasta.round.exhausted",
+    "canasta.rules.blackThreesGoOut",
+    "canasta.rules.blackThreesNeverMeld",
     "canasta.rules.canasta",
     "canasta.rules.deal",
     "canasta.rules.deck",
@@ -500,6 +503,8 @@
     "blackjack.rules.stack",
     "blackjack.rules.standsSoft17",
     "blackjack.rules.surrender",
+    "canasta.rules.blackThreesGoOut",
+    "canasta.rules.blackThreesNeverMeld",
     "canasta.rules.canasta",
     "canasta.rules.deal",
     "canasta.rules.deck",
@@ -746,6 +751,12 @@
       "suit",
       "to",
       "value"
+    ],
+    "canasta.rules.blackThreesGoOut": [
+      "n"
+    ],
+    "canasta.rules.blackThreesNeverMeld": [
+      "n"
     ],
     "canasta.rules.canasta": [
       "n"
@@ -1109,6 +1120,8 @@
     "blackjack.status.dealerStands",
     "canasta.offer.rank",
     "canasta.offer.sequence",
+    "canasta.rules.blackThreesGoOut",
+    "canasta.rules.blackThreesNeverMeld",
     "canasta.rules.canasta",
     "canasta.rules.deal",
     "canasta.rules.deck",

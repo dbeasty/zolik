@@ -141,6 +141,10 @@ export const sl: Record<string, string> = {
   'canasta.rules.canasta': 'Canasta je kombinacija {n} ali več kart iste vrednosti.',
   'canasta.rules.sequences': 'Kombinacija je lahko tudi zaporedje: tri ali več kart iste barve po vrsti, nikoli z jokerjem med njimi.',
   'canasta.rules.samba': 'Zaporedje sedmih kart je samba in je vredno {n} točk.',
+  'canasta.rules.blackThreesGoOut':
+    'Črna trojka blokira kup in je vredna {n} točk. Tri ali štiri od njih smeš položiti naravnost iz roke, nikoli z jokerjem med njimi, in le kot potezo, s katero tvoja stran izide.',
+  'canasta.rules.blackThreesNeverMeld':
+    'Črne trojke se nikoli ne polaga. Odvržena blokira kup, če pa ti ob koncu deljenja ostane v roki, te stane {n} točk.',
   'canasta.rules.pileAlwaysFrozen': 'Kup odvrženih je zamrznjen vso deljitev: vzameš ga lahko le tako, da vrhnji karti dodaš dve naravni karti iz roke.',
   'canasta.rules.meldFloorBands':
     'Tvoje prvo polaganje mora doseči najmanjše število točk, ki raste z izidom: {negative} pod ničlo, {low} do 1500, {mid} do 3000, {high} nad tem.',
@@ -289,6 +293,7 @@ export const sl: Record<string, string> = {
   'err.NOT_YOUR_MELD': 'Ta kombinacija pripada nasprotni strani',
   'err.NO_SUCH_MELD': 'Te kombinacije ni na mizi',
   'err.CANNOT_MELD_THREE': 'Trojk se nikoli ne polaga',
+  'err.BLACK_THREE_GO_OUT_ONLY': 'Črne trojke se položijo le kot poteza, ki izprazni tvojo roko',
   'err.CANNOT_DISCARD_RED_THREE': 'Rdeče trojke ni mogoče odvreči',
   'err.MUST_KEEP_A_CARD': 'Obdrži vsaj eno karto — tako roke ne moreš izprazniti',
   'err.MUST_MELD_FIRST': 'Najprej položi prvo kombinacijo svoje strani',

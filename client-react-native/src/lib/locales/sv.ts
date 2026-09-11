@@ -136,6 +136,10 @@ export const sv: Record<string, string> = {
   'canasta.rules.canasta': 'En canasta är en kombination av {n} eller fler kort av samma valör.',
   'canasta.rules.sequences': 'En kombination kan också vara en sekvens: tre eller fler kort i samma färg i följd, aldrig med ett vilt kort bland dem.',
   'canasta.rules.samba': 'En sekvens på sju kort är en samba och ger {n} poäng.',
+  'canasta.rules.blackThreesGoOut':
+    'En svart trea blockerar högen och är värd {n} poäng. Tre eller fyra av dem får läggas ut direkt från handen, aldrig med en joker ibland, och bara som draget där din sida går ut.',
+  'canasta.rules.blackThreesNeverMeld':
+    'En svart trea läggs aldrig ut. Kastad blockerar den högen, och ligger den kvar på handen när given är slut kostar den {n} poäng.',
   'canasta.rules.pileAlwaysFrozen': 'Kasthögen är fryst hela given: du kan bara ta den genom att lägga två naturliga kort från handen till det översta kortet.',
   'canasta.rules.meldFloorBands':
     'Din första utläggning måste nå ett poängminimum som stiger med din ställning: {negative} under noll, {low} upp till 1500, {mid} upp till 3000, {high} däröver.',
@@ -283,6 +287,7 @@ export const sv: Record<string, string> = {
   'err.NOT_YOUR_MELD': 'Den kombinationen tillhör motståndarsidan',
   'err.NO_SUCH_MELD': 'Den kombinationen ligger inte på bordet',
   'err.CANNOT_MELD_THREE': 'Treor läggs aldrig ut',
+  'err.BLACK_THREE_GO_OUT_ONLY': 'Svarta treor läggs bara ut som draget som tömmer din hand',
   'err.CANNOT_DISCARD_RED_THREE': 'En röd trea får inte kastas',
   'err.MUST_KEEP_A_CARD': 'Behåll minst ett kort — så kan du inte tömma handen',
   'err.MUST_MELD_FIRST': 'Lägg ut din sidas öppning först',

@@ -142,6 +142,10 @@ export const ro: Record<string, string> = {
   'canasta.rules.canasta': 'O canastă este o combinație de {n} sau mai multe cărți de aceeași valoare.',
   'canasta.rules.sequences': 'O combinație poate fi și o secvență: trei sau mai multe cărți de aceeași culoare la rând, niciodată cu un joker între ele.',
   'canasta.rules.samba': 'O secvență de șapte cărți este o samba și valorează {n} puncte.',
+  'canasta.rules.blackThreesGoOut':
+    'Un trei negru blochează teancul și valorează {n} puncte. Trei sau patru dintre ele pot fi coborâte direct din mână, niciodată cu un joker între ele, și doar ca mutarea cu care tabăra ta iese.',
+  'canasta.rules.blackThreesNeverMeld':
+    'Un trei negru nu se coboară niciodată. Aruncat, blochează teancul, iar rămas în mână la sfârșitul împărțelii te costă {n} puncte.',
   'canasta.rules.pileAlwaysFrozen': 'Teancul de aruncate este înghețat toată mâna: îl poți lua doar potrivind cartea de deasupra cu două cărți naturale din mână.',
   'canasta.rules.meldFloorBands':
     'Prima ta coborâre trebuie să atingă un minim de puncte care crește odată cu scorul tău: {negative} sub zero, {low} până la 1500, {mid} până la 3000, {high} peste.',
@@ -291,6 +295,7 @@ export const ro: Record<string, string> = {
   'err.NOT_YOUR_MELD': 'Acea combinație aparține taberei adverse',
   'err.NO_SUCH_MELD': 'Acea combinație nu este pe masă',
   'err.CANNOT_MELD_THREE': 'Treiurile nu se coboară niciodată',
+  'err.BLACK_THREE_GO_OUT_ONLY': 'Treiurile negre se coboară doar ca mutarea care îți golește mâna',
   'err.CANNOT_DISCARD_RED_THREE': 'Un trei roșu nu poate fi aruncat',
   'err.MUST_KEEP_A_CARD': 'Păstrează cel puțin o carte — așa nu îți poți goli mâna',
   'err.MUST_MELD_FIRST': 'Coboară mai întâi deschiderea taberei tale',
