@@ -75,12 +75,18 @@ type ParamSpec struct {
 }
 
 type Selector struct {
-	Zone     string   `json:"zone"`
-	OwnerID  string   `json:"ownerId,omitempty"`
-	MeldID   string   `json:"meldId,omitempty"`
-	Cards    []string `json:"cards,omitempty"`
-	MinCards int      `json:"minCards,omitempty"`
-	MaxCards int      `json:"maxCards,omitempty"`
+	Zone    string   `json:"zone"`
+	OwnerID string   `json:"ownerId,omitempty"`
+	MeldID  string   `json:"meldId,omitempty"`
+	Cards   []string `json:"cards,omitempty"`
+	// Submit is the one combination to send when nobody is choosing. See
+	// module.Selector.Submit on the server: Cards and MinCards/MaxCards bound a
+	// family of legal submissions, and this is the module's answer to which of
+	// them. Empty means the old reading, Cards[:MinCards].
+	Submit []string `json:"submit,omitempty"`
+
+	MinCards int `json:"minCards,omitempty"`
+	MaxCards int `json:"maxCards,omitempty"`
 }
 
 // ActionOffer is one affordance. The server always sends the full set,
@@ -188,7 +194,10 @@ func SubmissionFor(o ActionOffer) (Action, bool) {
 		return Action{}, false
 	}
 	a := Action{OfferID: o.ID, Verb: o.Verb}
-	if o.Source != nil && o.Source.MinCards > 0 {
+	switch {
+	case o.Source != nil && len(o.Source.Submit) > 0:
+		a.Cards = append([]string(nil), o.Source.Submit...)
+	case o.Source != nil && o.Source.MinCards > 0:
 		if len(o.Source.Cards) < o.Source.MinCards {
 			return Action{}, false
 		}

@@ -139,11 +139,24 @@ export type Selector = {
    * `requires`. Deliberately narrower than `placements`, which also lists
    * cards legal only in company, because this is what gets sent without
    * anyone choosing: {@link isOneTap} turns a one-entry list into a
-   * pressable button, and the terminal client submits `cards[:minCards]`
-   * sight unseen.
+   * pressable button, and a client with nobody choosing submits `submit`, or
+   * `cards[:minCards]` when the offer names no combination.
    */
   cards?: string[];
   placements?: Placement[];
+  /**
+   * The one combination to send when nobody is choosing — a press of this
+   * offer's own control, rather than a selection someone built.
+   *
+   * `cards` says which cards may go and `minCards`/`maxCards` bound how many,
+   * which together describe a family of legal submissions; this is the
+   * module's answer to *which*. A Canasta hand with four queens may lay three
+   * of them or all four, and the module says: all four.
+   *
+   * Absent means what it always meant — the submission is `cards` when the
+   * list is exactly `minCards` long.
+   */
+  submit?: string[];
   minCards?: number;
   maxCards?: number;
 };
@@ -407,9 +420,17 @@ export function submissionFor(
       if (chosen.cards.length < need || chosen.cards.length > max) return null;
       action.cards = chosen.cards;
     } else {
-      const listed = offer.source?.cards ?? [];
-      if (listed.length !== need) return null;
-      action.cards = listed;
+      // Nobody chose, so the offer has to have named its own combination —
+      // either outright in `submit`, or by listing exactly as many cards as it
+      // needs, which is how every offer said it before `submit` existed.
+      const named = offer.source?.submit ?? [];
+      if (named.length > 0) {
+        action.cards = named;
+      } else {
+        const listed = offer.source?.cards ?? [];
+        if (listed.length !== need) return null;
+        action.cards = listed;
+      }
     }
   }
   if (offer.target?.meldId) action.target = offer.target.meldId;
@@ -448,6 +469,11 @@ export function defaultParam(p: ParamSpec): string | undefined {
 export function isOneTap(offer: ActionOffer): boolean {
   if (offer.composite) return false;
   if ((offer.params ?? []).length > 0) return false;
+  // An offer that names its combination is a button by saying so, which is
+  // what lets a Canasta meld stay one tap while still letting a player lay
+  // fewer cards than the candidate holds — the two facts stopped being the
+  // same fact when `submit` arrived.
+  if ((offer.source?.submit ?? []).length > 0) return true;
   const need = offer.source?.minCards ?? 0;
   if (need === 0) return true;
   return (offer.source?.cards ?? []).length === need;

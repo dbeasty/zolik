@@ -219,16 +219,22 @@ func SubmissionFor(o ActionOffer) (Action, bool) {
 	}
 	a := Action{OfferID: o.ID, Verb: o.Verb}
 
-	// If the offer wants cards, take as many as it says it needs, from the
-	// front of the list it says it will accept.
+	// An offer that names its combination outright is sent as named — see
+	// Selector.Submit. That is the module's own answer to "which of the legal
+	// submissions", and it exists because the minimum is not always the best
+	// one: Canasta lays all four queens, while a player may lay three.
 	//
-	// As many, not one: an offer that ships a concrete combination — Canasta's
-	// melds, where a candidate is n cards of a single rank — declares MinCards
-	// equal to that combination's size and orders the list so the prefix is the
+	// Otherwise, take as many cards as the offer says it needs, from the front
+	// of the list it says it will accept. As many, not one: an offer that ships
+	// a concrete combination and does not name it declares MinCards equal to
+	// that combination's size and orders the list so the prefix is the
 	// combination. Sending only the first card would submit an illegal fragment
 	// of a legal move. Modules whose offers take a single card set MinCards to
 	// 1 and are unaffected.
-	if o.Source != nil && o.Source.MinCards > 0 {
+	switch {
+	case o.Source != nil && len(o.Source.Submit) > 0:
+		a.Cards = append([]string(nil), o.Source.Submit...)
+	case o.Source != nil && o.Source.MinCards > 0:
 		if len(o.Source.Cards) < o.Source.MinCards {
 			return Action{}, false
 		}

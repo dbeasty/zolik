@@ -215,7 +215,12 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 			Facts: []module.Fact{fact},
 			Source: &module.Selector{
 				Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID),
-				Cards: c.Cards, MinCards: len(c.Cards), MaxCards: len(c.Cards),
+				// The candidate is what a press sends and the most a selection
+				// may be; the smallest meld the engine would actually take out
+				// of it is what a selection has to reach.
+				Cards: c.Cards, Submit: c.Cards,
+				MinCards: smallestAcceptedMeld(m, raw, playerID, c),
+				MaxCards: len(c.Cards),
 			},
 			Target: &module.Selector{Zone: module.ToTable, ZoneID: meldsZoneID(t.ID)},
 		})
@@ -230,7 +235,10 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 				Facts: []module.Fact{{LabelKey: "canasta.offer.rank", Value: rankThree}},
 				Source: &module.Selector{
 					Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID),
-					Cards: bt, MinCards: len(bt), MaxCards: len(bt),
+					// No latitude here, unlike an ordinary group: this meld is
+					// legal only as the move that empties a hand, so a subset
+					// of it is not a smaller version of the same move.
+					Cards: bt, Submit: bt, MinCards: len(bt), MaxCards: len(bt),
 				},
 				Target: &module.Selector{Zone: module.ToTable, ZoneID: meldsZoneID(t.ID)},
 			})
@@ -430,6 +438,37 @@ func plausibleMeld(r ruleset, hand []string, t *Team) []string {
 		best = best[:canastaSize]
 	}
 	return best
+}
+
+// smallestAcceptedMeld is the fewest cards of this candidate the engine would
+// take right now.
+//
+// Asked rather than reasoned about, because the answer is not a property of the
+// cards. Three queens out of four is an ordinary meld once a partnership has
+// opened and thirty points short of the floor before it has, and the floor
+// itself moves with the score. The one place that knows is `Apply`, so the
+// prefixes are put to it in order and the first one it accepts is the minimum.
+//
+// A sequence is not asked at all: a prefix of a run is another, shorter run, but
+// a *subset* of one need not be contiguous, and MinCards is a count rather than
+// a list — saying "three of these five" would license 5-6-8 along with 5-6-7.
+// Runs keep demanding the whole candidate, which is what they meant before.
+//
+// At most four extra probes, and only for a rank a hand holds five or more of.
+func smallestAcceptedMeld(m *Module, raw module.State, playerID string, c candidate) int {
+	if c.Kind == meldRun || len(c.Cards) <= minMeldSize {
+		return len(c.Cards)
+	}
+	for n := minMeldSize; n < len(c.Cards); n++ {
+		if ok, _ := probe(m, raw, playerID, module.Action{
+			Verb: VerbLayMeld, Cards: c.Cards[:n],
+		}); ok {
+			return n
+		}
+	}
+	// The caller only builds this offer once the whole candidate is accepted,
+	// so this is always a submission that works.
+	return len(c.Cards)
 }
 
 // blackThreeCandidate is the going-out meld of black threes, or nil.
