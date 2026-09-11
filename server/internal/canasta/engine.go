@@ -238,6 +238,12 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 	if a.Verb != VerbUndoTakePile {
 		s.PileTaken = nil
 	}
+	// The same window for lay-offs, one verb wider: a second lay-off does not
+	// close the first's, it stacks on top of it (see LaidOff), so laying off is
+	// the one other verb that leaves the stack standing.
+	if a.Verb != VerbLayOff && a.Verb != VerbUndoLayOff {
+		s.LaidOff = nil
+	}
 
 	var events []module.Event
 	switch a.Verb {
@@ -255,6 +261,8 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 		events, err = applyDiscard(s, playerID, a)
 	case VerbUndoTakePile:
 		events, err = applyUndoTakePile(s, playerID)
+	case VerbUndoLayOff:
+		events, err = applyUndoLayOff(s, playerID)
 	default:
 		err = module.Error{Code: ErrUnknownAction, Message: a.Verb}
 	}
@@ -884,6 +892,17 @@ func applyLayOff(s *GameState, playerID string, a module.Action) ([]module.Event
 		return nil, err
 	}
 
+	// Pushed before the hand moves, so what it holds is the table as it stood
+	// rather than as it is about to be — see LaidOff.
+	s.LaidOff = append(s.LaidOff, LaidOff{
+		MeldID:            m.ID,
+		PriorCards:        append([]string(nil), before...),
+		Cards:             append([]string(nil), a.Cards...),
+		PriorHand:         append([]string(nil), s.Hands[playerID]...),
+		PriorLaidThisTurn: s.LaidThisTurn,
+		PriorHasMelded:    t.HasMelded,
+	})
+
 	s.Hands[playerID] = rest
 	s.LaidThisTurn += value
 	noteInitialMeld(s, t)
@@ -895,6 +914,44 @@ func applyLayOff(s *GameState, playerID string, a module.Action) ([]module.Event
 		return append(events, endDeal(s, playerID, wasConcealed(s), false)...), nil
 	}
 	return events, nil
+}
+
+// applyUndoLayOff takes back the most recent lay-off still standing — see
+// LaidOff for why the window is exactly this narrow, and why it is a stack.
+//
+// Nothing here can strand anybody: an undo only ever puts cards back into a
+// hand, so the hand grows and checkLeavesPlayable's "keep one to discard" can
+// only become easier to satisfy. What it does take away is a canasta the
+// lay-off completed — and that matters only at the discard, which asks
+// canGoOut for itself.
+func applyUndoLayOff(s *GameState, playerID string) ([]module.Event, error) {
+	if len(s.LaidOff) == 0 {
+		return nil, errCode(ErrNothingToUndo)
+	}
+	lo := s.LaidOff[len(s.LaidOff)-1]
+
+	t := s.team(playerID)
+	m := t.meldByID(lo.MeldID)
+	if m == nil {
+		return nil, errCode(ErrNothingToUndo)
+	}
+	// The stack is unwound last-first, so this entry's cards are still the top
+	// of the meld and nothing has been laid on them. A meld that is not the
+	// size this entry left it is one somebody built on, and putting it back
+	// would throw their cards away — refuse instead, and let the turn stand.
+	if len(m.Cards) != len(lo.PriorCards)+len(lo.Cards) {
+		return nil, errCode(ErrNothingToUndo)
+	}
+
+	m.Cards = append([]string(nil), lo.PriorCards...)
+	s.Hands[playerID] = append([]string(nil), lo.PriorHand...)
+	s.LaidThisTurn = lo.PriorLaidThisTurn
+	t.HasMelded = lo.PriorHasMelded
+	s.LaidOff = s.LaidOff[:len(s.LaidOff)-1]
+
+	return []module.Event{{Type: "lay_off_undone", Data: map[string]any{
+		"playerId": playerID, "meldId": lo.MeldID, "cards": lo.Cards,
+	}}}, nil
 }
 
 // checkInitialMeld enforces the opening minimum without creating a dead end.
@@ -1027,6 +1084,14 @@ func advanceTurn(s *GameState) []module.Event {
 
 // endDeal scores the deal and either deals the next one or ends the match.
 func endDeal(s *GameState, wentOut string, concealed bool, exhausted bool) []module.Event {
+	// A deal ends in the middle of somebody's turn — going out is a lay-off or
+	// a meld, not a discard — so the turn's take-backs are closed here rather
+	// than left for the next action to clear. A settled deal is not a thing to
+	// undo your way back into, and during a pause between deals there is nobody
+	// on turn to be offered it.
+	s.LaidOff = nil
+	s.PileTaken = nil
+
 	res := scoreDeal(s, wentOut, concealed, exhausted)
 	s.LastDeal = &res
 	s.Deals = append(s.Deals, res)

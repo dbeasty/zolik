@@ -398,6 +398,229 @@ func TestUndoTakePileUnavailableOnceSomethingElseHappened(t *testing.T) {
 	}
 }
 
+// --- undoing a lay-off ------------------------------------------------------
+
+// laidOffTable is a side already on the table with a king group and a heart
+// run, which between them are every lay-off shape there is: a group that takes
+// its rank and wilds, and a sequence that takes neither.
+func laidOffTable(mutate func(s *GameState)) module.State {
+	return twoHanded(func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Teams[0].HasMelded = true
+		s.Teams[0].Melds = []Meld{{
+			ID: meldID(0, "K"), TeamID: 0, Kind: meldSet, Rank: "K",
+			Cards: []string{"KH", "KD", "KS"},
+		}}
+		s.Hands["p1"] = []string{"KC", "2S", "8C", "9C"}
+		if mutate != nil {
+			mutate(s)
+		}
+	})
+}
+
+// TestUndoLayOffRestoresExactly is the whole promise: a card put on the wrong
+// meld comes back, and leaves the table indistinguishable from one it never
+// reached — not approximately, exactly.
+func TestUndoLayOffRestoresExactly(t *testing.T) {
+	raw := laidOffTable(nil)
+	next, code := apply(t, raw, "p1", module.Action{
+		Verb: VerbLayOff, Target: meldID(0, "K"), Cards: []string{"KC"},
+	})
+	if code != "" {
+		t.Fatalf("lay-off refused: %s", code)
+	}
+	undone, code := apply(t, next, "p1", module.Action{Verb: VerbUndoLayOff})
+	if code != "" {
+		t.Fatalf("undo refused: %s", code)
+	}
+	if before, after := mustDecode(t, raw), mustDecode(t, undone); !reflect.DeepEqual(before, after) {
+		t.Errorf("undo did not restore the exact prior state:\nbefore: %+v\nafter:  %+v", before, after)
+	}
+}
+
+// TestUndoLayOffUnwindsLastFirst is why LaidOff is a stack rather than the
+// single snapshot PileTaken keeps: a turn holds any number of lay-offs, and a
+// player who spots the mistake two cards later should still get it back.
+func TestUndoLayOffUnwindsLastFirst(t *testing.T) {
+	raw := laidOffTable(nil)
+	next := raw
+	for _, card := range []string{"KC", "2S"} {
+		var code string
+		next, code = apply(t, next, "p1", module.Action{
+			Verb: VerbLayOff, Target: meldID(0, "K"), Cards: []string{card},
+		})
+		if code != "" {
+			t.Fatalf("lay-off of %s refused: %s", card, code)
+		}
+	}
+	if got := mustDecode(t, next).Teams[0].Melds[0].Cards; len(got) != 5 {
+		t.Fatalf("meld holds %v, want five cards", got)
+	}
+
+	// One undo takes back the wild and leaves the king where it was.
+	next, code := apply(t, next, "p1", module.Action{Verb: VerbUndoLayOff})
+	if code != "" {
+		t.Fatalf("first undo refused: %s", code)
+	}
+	s := mustDecode(t, next)
+	if want := []string{"KH", "KD", "KS", "KC"}; !reflect.DeepEqual(s.Teams[0].Melds[0].Cards, want) {
+		t.Errorf("meld = %v, want %v", s.Teams[0].Melds[0].Cards, want)
+	}
+
+	// The second takes back the king, and the turn is where it started.
+	next, code = apply(t, next, "p1", module.Action{Verb: VerbUndoLayOff})
+	if code != "" {
+		t.Fatalf("second undo refused: %s", code)
+	}
+	if before, after := mustDecode(t, raw), mustDecode(t, next); !reflect.DeepEqual(before, after) {
+		t.Errorf("unwinding every lay-off did not restore the prior state:\nbefore: %+v\nafter:  %+v", before, after)
+	}
+	if _, code := apply(t, next, "p1", module.Action{Verb: VerbUndoLayOff}); code != ErrNothingToUndo {
+		t.Errorf("a third undo = %q, want %q", code, ErrNothingToUndo)
+	}
+}
+
+// TestUndoLayOffClosesTheTableBackUp covers the lay-off that is not only a card
+// move: one that carries this turn's total over the opening minimum promotes
+// the whole partnership, and taking it back has to demote them again.
+func TestUndoLayOffClosesTheTableBackUp(t *testing.T) {
+	raw := laidOffTable(func(s *GameState) {
+		// Thirty in kings, laid this turn and still short of the fifty-point
+		// floor — so the side has a table to aim at but is not yet on it.
+		s.Teams[0].HasMelded = false
+		s.LaidThisTurn = 30
+		s.Hands["p1"] = []string{"KC", "2S", "8C", "9C"}
+	})
+	// A king and a wild is another thirty, which clears the floor outright.
+	next, code := apply(t, raw, "p1", module.Action{
+		Verb: VerbLayOff, Target: meldID(0, "K"), Cards: []string{"KC", "2S"},
+	})
+	if code != "" {
+		t.Fatalf("lay-off refused: %s", code)
+	}
+	if s := mustDecode(t, next); !s.Teams[0].HasMelded {
+		t.Fatalf("sixty laid should have opened the table")
+	}
+
+	undone, code := apply(t, next, "p1", module.Action{Verb: VerbUndoLayOff})
+	if code != "" {
+		t.Fatalf("undo refused: %s", code)
+	}
+	s := mustDecode(t, undone)
+	if s.Teams[0].HasMelded {
+		t.Error("undo should have closed the table back up")
+	}
+	if s.LaidThisTurn != 30 {
+		t.Errorf("laid this turn = %d, want 30", s.LaidThisTurn)
+	}
+	if !reflect.DeepEqual(s, mustDecode(t, raw)) {
+		t.Error("undo did not restore the exact prior state")
+	}
+}
+
+// TestUndoLayOffUnavailableOnceSomethingElseHappened is the guard that keeps
+// the undo exact rather than best-effort. A lay-off stacks on the one before
+// it, so laying off again leaves both takeable; anything else — a meld, a
+// discard, the turn passing — closes the window, because after that the cards
+// may no longer be where the lay-off left them.
+func TestUndoLayOffUnavailableOnceSomethingElseHappened(t *testing.T) {
+	raw := laidOffTable(func(s *GameState) {
+		s.Hands["p1"] = []string{"KC", "9H", "9D", "9S", "8C", "7D"}
+	})
+	next, code := apply(t, raw, "p1", module.Action{
+		Verb: VerbLayOff, Target: meldID(0, "K"), Cards: []string{"KC"},
+	})
+	if code != "" {
+		t.Fatalf("lay-off refused: %s", code)
+	}
+	next, code = apply(t, next, "p1", module.Action{
+		Verb: VerbLayMeld, Cards: []string{"9H", "9D", "9S"},
+	})
+	if code != "" {
+		t.Fatalf("meld refused: %s", code)
+	}
+	if _, code := apply(t, next, "p1", module.Action{Verb: VerbUndoLayOff}); code != ErrNothingToUndo {
+		t.Errorf("undo after a meld = %q, want %q", code, ErrNothingToUndo)
+	}
+
+	offers, err := New().LegalActions(next, "p1")
+	if err != nil {
+		t.Fatalf("LegalActions: %v", err)
+	}
+	if o := module.FindOffer(offers, OfferUndoLayOff); o != nil {
+		t.Errorf("the undo offer should be gone once another move has happened, got %+v", o)
+	}
+}
+
+// TestUndoLayOffIsOfferedWhileItStands pairs the offer list with the engine:
+// the control appears only in the window the engine will actually honour, and
+// it names the meld the cards come back off — a side can have several down.
+func TestUndoLayOffIsOfferedWhileItStands(t *testing.T) {
+	raw := laidOffTable(nil)
+	if o := offerFor(t, raw, "p1", OfferUndoLayOff); o != nil {
+		t.Fatalf("nothing has been laid off yet, but the undo is on offer: %+v", o)
+	}
+
+	next, code := apply(t, raw, "p1", module.Action{
+		Verb: VerbLayOff, Target: meldID(0, "K"), Cards: []string{"KC"},
+	})
+	if code != "" {
+		t.Fatalf("lay-off refused: %s", code)
+	}
+	o := offerFor(t, next, "p1", OfferUndoLayOff)
+	if o == nil {
+		t.Fatal("the undo is not on offer straight after a lay-off")
+	}
+	if !o.Enabled {
+		t.Errorf("the undo is on offer but disabled: %s", o.WhyNot)
+	}
+	if o.Source == nil || o.Source.MeldID != meldID(0, "K") {
+		t.Errorf("the undo does not name the meld it takes cards back off: %+v", o.Source)
+	}
+	if len(o.Facts) != 1 || o.Facts[0].Value != "K" {
+		t.Errorf("facts = %+v, want the king group named", o.Facts)
+	}
+
+	// And a partner, who is not on turn, is offered nothing of the sort.
+	if o := offerFor(t, next, "p2", OfferUndoLayOff); o != nil {
+		t.Errorf("the undo is on offer to a player who is not on turn: %+v", o)
+	}
+}
+
+// TestUndoLayOffGoneOnceTheDealIsSettled covers the lay-off that empties a hand
+// and ends the deal there and then: the scores are in, so there is nothing left
+// to undo your way back into.
+func TestUndoLayOffGoneOnceTheDealIsSettled(t *testing.T) {
+	raw := laidOffTable(func(s *GameState) {
+		// A canasta but for one card, and that card is the whole hand.
+		s.Teams[0].Melds[0].Cards = []string{"KH", "KD", "KS", "KC", "KH", "KD"}
+		s.Hands["p1"] = []string{"KS"}
+	})
+	next, code := apply(t, raw, "p1", module.Action{
+		Verb: VerbLayOff, Target: meldID(0, "K"), Cards: []string{"KS"},
+	})
+	if code != "" {
+		t.Fatalf("lay-off refused: %s", code)
+	}
+	s := mustDecode(t, next)
+	if s.LastDeal == nil {
+		t.Fatal("going out on a lay-off should have settled the deal")
+	}
+	if len(s.LaidOff) != 0 {
+		t.Errorf("the settled deal still carries %d undoable lay-offs", len(s.LaidOff))
+	}
+}
+
+// offerFor finds one offer by id in what this player is being shown, or nil.
+func offerFor(t *testing.T, raw module.State, playerID, offerID string) *module.ActionOffer {
+	t.Helper()
+	offers, err := New().LegalActions(raw, playerID)
+	if err != nil {
+		t.Fatalf("LegalActions: %v", err)
+	}
+	return module.FindOffer(offers, offerID)
+}
+
 // --- meld shape -------------------------------------------------------------
 
 func TestMeldShape(t *testing.T) {
