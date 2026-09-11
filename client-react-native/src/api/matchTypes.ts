@@ -76,6 +76,13 @@ export type Seat = {
   active?: boolean;
   labelKeys?: string[];
   facts?: Fact[];
+  /**
+   * Which partnership this seat plays for — an id shared by partners and by
+   * nobody else, absent where a seat is its own side. Opaque: the client
+   * groups seats by it and never prints it, because who is partnered is the
+   * module's rule and what that partnership is called is the client's choice.
+   */
+  side?: string;
 };
 
 export type ViewModel = {

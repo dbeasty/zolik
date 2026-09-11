@@ -222,6 +222,16 @@ type Seat struct {
 	// canastas. Pre-resolved by the module, rendered by the client,
 	// interpreted by neither.
 	Facts []Fact `json:"facts,omitempty"`
+	// Side is which partnership this seat plays for: an id shared by partners
+	// and by nobody else. Opaque — a client groups seats by it and does not
+	// otherwise read it, because a side's *name* is a rendering decision and
+	// its *membership* is a rule.
+	//
+	// Empty where a seat is its own side, which is every seat in a game
+	// without partnerships. That is the same answer Seated.Sides gives a
+	// lobby, for the same reason: six sides of one is not a fact worth
+	// showing, it is noise with a label on it.
+	Side string `json:"side,omitempty"`
 }
 
 // ViewModel is the whole board as one viewer sees it.

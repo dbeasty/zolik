@@ -977,6 +977,8 @@ export const hu: Record<string, string> = {
   // to " won." — the verb agrees with the subject in most of these languages,
   // and a suffix cannot know that.
   'match.you': 'te',
+  'match.yourTeam': 'A te csapatod',
+  'match.teammates': 'Csapat: {names}',
   'match.someoneWon': '{name} nyert.',
   'match.wonBy': 'Nyertes: {names}.',
   'match.pausedFor': 'Szünetel — várunk, hogy {name} újracsatlakozzon.',

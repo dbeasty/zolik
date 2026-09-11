@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { API_BASE } from '../helpers/env';
+import { API_BASE, WEB_BASE } from '../helpers/env';
 
 /**
  * End-to-end for arranging a table before it is dealt.
@@ -170,5 +170,63 @@ test.describe('arranging the table', () => {
     });
 
     expect((await stateOf(request, matchId)).sides).toBeFalsy();
+  });
+
+  // The one check here that opens a browser, because it is the one thing the
+  // API cannot show: `sides` is a lobby field and disappears at the deal, so
+  // everything above stops watching exactly where a player starts caring.
+  // Somebody who joined a table they did not arrange, or came back to one a
+  // day later, could read the whole board and not know who they were playing
+  // with.
+  test('the board keeps saying who your partner is', async ({ page, request }) => {
+    const { matchId, users, auth } = await lobby(request, 4);
+    const ids = users.map((u) => u.userId);
+    expect((await request.post(`${API_BASE}/matches/${matchId}/start`, { headers: auth })).ok()).toBeTruthy();
+
+    const dealt = await stateOf(request, matchId);
+    const nameOf = (id: string) =>
+      dealt.players.find((p: { id: string; name: string }) => p.id === id).name;
+
+    await page.addInitScript((session) => {
+      window.localStorage.setItem('zolik_session', JSON.stringify(session));
+    }, {
+      accessToken: users[0].accessToken,
+      refreshToken: users[0].refreshToken,
+      userId: ids[0],
+      username: nameOf(ids[0]),
+      isGuest: true,
+    });
+    await page.goto(`${WEB_BASE}/match/${matchId}`);
+    await expect(page.getByTestId('seat-strip')).toBeVisible();
+
+    // Partners sit opposite, so seat 2 is the host's. Their tile says so in
+    // the second person; the host's own names the partner.
+    await expect(page.getByTestId(`seat-team-${ids[2]}`)).toHaveText('Your team');
+    await expect(page.getByTestId(`seat-team-${ids[0]}`)).toHaveText(`Team: ${nameOf(ids[2])}`);
+
+    // The opponents are a pair too, and saying so is the difference between a
+    // board with sides on it and a board that only marks the viewer's.
+    await expect(page.getByTestId(`seat-team-${ids[1]}`)).toHaveText(`Team: ${nameOf(ids[3])}`);
+    await expect(page.getByTestId(`seat-team-${ids[3]}`)).toHaveText(`Team: ${nameOf(ids[1])}`);
+  });
+
+  test('a board where everybody plays for themselves marks no teams', async ({ page, request }) => {
+    const { matchId, users, auth } = await lobby(request, 2);
+    expect((await request.post(`${API_BASE}/matches/${matchId}/start`, { headers: auth })).ok()).toBeTruthy();
+
+    await page.addInitScript((session) => {
+      window.localStorage.setItem('zolik_session', JSON.stringify(session));
+    }, {
+      accessToken: users[0].accessToken,
+      refreshToken: users[0].refreshToken,
+      userId: users[0].userId,
+      username: 'solo',
+      isGuest: true,
+    });
+    await page.goto(`${WEB_BASE}/match/${matchId}`);
+    await expect(page.getByTestId('seat-strip')).toBeVisible();
+    // Heads-up Canasta is two sides of one, and a partnership badge on a seat
+    // with no partner is noise wearing the clothes of information.
+    await expect(page.locator('[data-testid^="seat-team-"]')).toHaveCount(0);
   });
 });

@@ -973,6 +973,8 @@ export const bg: Record<string, string> = {
   // to " won." — the verb agrees with the subject in most of these languages,
   // and a suffix cannot know that.
   'match.you': 'ти',
+  'match.yourTeam': 'Вашият отбор',
+  'match.teammates': 'Отбор: {names}',
   'match.someoneWon': '{name} спечели.',
   'match.wonBy': 'Спечелено от {names}.',
   'match.pausedFor': 'На пауза — чакаме {name} да се свърже отново.',
