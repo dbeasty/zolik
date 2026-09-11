@@ -6,6 +6,7 @@ import type { MatchModule } from '@/src/api/matchTypes';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { formatApiError } from '@/src/lib/apiError';
+import { orderModules } from '@/src/lib/gameOrder';
 import { loadGameSetup, saveGameSetup } from '@/src/lib/gameSetupStore';
 import { factText, label } from '@/src/lib/labels';
 import { colors } from '@/src/theme';
@@ -48,8 +49,27 @@ export default function GamesScreen() {
     let cancelled = false;
     (async () => {
       try {
-        const list = await client.modules();
+        const fetched = await client.modules();
         if (cancelled) return;
+
+        // Personalize the order by what this player actually plays; a
+        // player with no match history yet has nothing to personalize with,
+        // so `playCounts` stays undefined and orderModules falls back to the
+        // general popularity ranking on its own.
+        let playCounts: Record<string, number> | undefined;
+        try {
+          const stats = await client.getStats();
+          playCounts = {};
+          for (const [id, tally] of Object.entries(stats.byModule ?? {})) {
+            playCounts[id] = tally.matches;
+          }
+        } catch {
+          // Stats are a personalization nicety, not a requirement — the
+          // popularity default below still gives a sensible order.
+        }
+        if (cancelled) return;
+
+        const list = orderModules(fetched, playCounts);
         setModules(list);
 
         const v: Record<string, string> = {};
