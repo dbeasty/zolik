@@ -5,7 +5,7 @@
 export const pt: Record<string, string> = {
   // --- engine error codes (rules.RulesErrorCode) ---------------------------
   'err.NOT_YOUR_TURN': 'Não é a tua vez',
-  'err.WRONG_PHASE': 'Neste momento não é possível',
+  'err.WRONG_PHASE': 'Não nesta altura da vez',
   'err.MUST_DRAW_FIRST': 'Compra uma carta antes de baixar',
   'err.GAME_SUSPENDED': 'O jogo está em pausa',
   'err.GAME_NOT_ACTIVE': 'O jogo não está a decorrer',
@@ -129,11 +129,17 @@ export const pt: Record<string, string> = {
   'prsi.rules.aces': 'Joga um ás e o jogador seguinte perde a vez.',
   'prsi.rules.queens': 'Joga uma dama e diz o naipe que continua.',
   'prsi.rules.end': 'A partida acaba no momento em que a mão de alguém fica vazia.',
+  'prsi.remedy.matchOrDraw': 'Joga uma carta de {suit} ou uma que sirva em {card} — caso contrário, compra.',
+  'prsi.remedy.answerSevenOrTake': 'Responde com um sete teu, ou leva as {n} cartas.',
+  'prsi.remedy.playOrDraw': 'Não tens nenhuma vez para saltar — joga uma carta de {suit} ou compra.',
+  'prsi.remedy.nameASuit': 'Diz qual o naipe que se segue à tua dama.',
+  'prsi.remedy.nothingLeftToDraw': 'Não resta nada para comprar — joga uma carta se puderes.',
 
   'canasta.rules.section.goal': 'Objetivo',
   'canasta.rules.section.setup': 'Preparação',
   'canasta.rules.section.melding': 'Baixar',
   'canasta.rules.section.end': 'Como acaba a partida',
+  'canasta.rules.section.turn': 'A tua vez',
   'canasta.rules.goal': 'Joga-se a pares; o primeiro lado a chegar a {n} pontos ganha a partida.',
   'canasta.rules.deck': 'Joga-se com {value} cartas — {decks} baralhos mais jokers.',
   'canasta.rules.deal': 'Cada jogador recebe {n} cartas.',
@@ -153,6 +159,31 @@ export const pt: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'A tua primeira baixa tem de atingir um mínimo de pontos que sobe com a tua pontuação: {negative} abaixo de zero, {low} até 1500, {mid} até 3000, {high} acima disso.',
   'canasta.rules.meldFloorBandsFive': 'A tua primeira combinação tem de atingir um mínimo de pontos que sobe com a tua pontuação: {negative} abaixo de zero, {low} até 1500, {mid} até 3000, {high} até 7000 e {top} acima disso.',
+  'canasta.rules.turn':
+    'Uma vez é uma entrada de cartas na tua mão — comprar do baralho ou levar todo o monte de descartes — depois as combinações que quiseres baixar e, por fim, uma carta descartada.',
+  'canasta.rules.turnDiscard':
+    'É o descarte que fecha a vez, por isso tens de guardar sempre uma carta para ele.',
+  'canasta.rules.pileTopCard':
+    'O monte de descartes só pode ser levado com uma jogada que use logo a sua carta de topo.',
+  'canasta.rules.pileBlocked':
+    'Um três preto no topo bloqueia o monte — ninguém o pode levar até o três ficar enterrado — e um que te fique na mão custa {n}.',
+  'canasta.rules.pileFrozenByWild':
+    'Um curinga enterrado no monte congela-o para todos: levá-lo custa então duas cartas naturais do valor da carta de topo, saídas da tua mão.',
+  'canasta.rules.meldShape': 'Uma combinação são {n} ou mais cartas do mesmo valor.',
+  'canasta.rules.wildLimit':
+    'Uma combinação pode ter no máximo {wilds} curingas e nunca menos de {naturals} cartas naturais.',
+  'canasta.rules.wildRatio':
+    'Uma combinação precisa de {n} cartas naturais por cada curinga e nunca mais de {wilds} curingas ao todo.',
+  'canasta.rules.oneMeldPerRank':
+    'O teu lado mantém uma combinação por valor — as cartas seguintes desse valor juntam-se a ela.',
+  'canasta.rules.meldsPerRankUnlimited': 'O teu lado pode ter várias combinações do mesmo valor.',
+  'canasta.rules.canastaCloses': 'Uma canastra de {n} cartas está completa e não aceita mais.',
+  'canasta.rules.meldsAreShared':
+    'As combinações são da dupla: qualquer um dos parceiros pode alargá-las, e ninguém toca nas do adversário.',
+  'canasta.rules.layOffAfterOpening':
+    'Enquanto o teu lado não fizer a sua combinação inicial, não pode juntar cartas a nada na mesa.',
+  'canasta.rules.goOutKeepsACard':
+    'Tens de conseguir sempre terminar a tua vez, por isso nunca baixes a mão inteira a não ser que seja a jogada com que sais.',
   'canasta.rules.oneCanastaToGoOut': 'Uma canastra completa chega para o teu lado sair.',
   'canasta.rules.twoCanastasToGoOut': 'O teu lado precisa de duas canastras completas antes de poder sair.',
   'canasta.rules.end': 'Continua a dar-se cartas até um lado passar os {n} pontos — aí a partida acaba.',
@@ -171,6 +202,19 @@ export const pt: Record<string, string> = {
   'holdem.rules.lastPlayerStanding': 'Joga-se até um lugar ter todas as fichas.',
   'holdem.rules.mostChipsWins': 'Quem tiver mais fichas quando o jogo parar ganha a partida.',
   'holdem.rules.handLimit': 'O jogo para ao fim de {n} mãos.',
+  'holdem.rules.checkOrCall':
+    'Só podes passar quando não deves nada; caso contrário, iguala, sobe ou desiste.',
+  'holdem.rules.minRaise': 'Uma subida tem de ser pelo menos tão grande como a anterior.',
+  'holdem.rules.allIn':
+    'Nunca podes pôr mais do que a tua pilha, e o all-in é sempre permitido — mesmo por menos do que uma subida completa.',
+  'holdem.rules.foldedOut': 'Assim que desistes, ficas de fora até à mão seguinte.',
+  'holdem.remedy.callOrFold': 'Deves {n} — iguala, sobe ou desiste.',
+  'holdem.remedy.checkOrRaise': 'Não deves nada — passa ou sobe.',
+  'holdem.remedy.callAllInOrFold': 'A tua pilha não chega acima da aposta — iguala {n} em all-in ou desiste.',
+  'holdem.remedy.raiseAtLeast': 'Sobe pelo menos para {n}.',
+  'holdem.remedy.raiseAtMost': 'Sobe no máximo para {n} — é toda a tua pilha.',
+  'holdem.remedy.nameAnAmount': 'Diz para quanto sobes, entre {min} e {max}.',
+  'holdem.remedy.waitForNextHand': 'Estás fora desta mão — espera pela distribuição seguinte.',
 
   // --- header --------------------------------------------------------------
   'header.deal': 'Ronda {n}',
@@ -280,12 +324,14 @@ export const pt: Record<string, string> = {
   'err.CARD_DOES_NOT_FIT': 'Essa carta não coincide nem no naipe nem no valor',
   'err.SUIT_REQUIRED': 'Diz o naipe que continua',
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Responde com um sete, ou leva as cartas',
+  'err.NOTHING_TO_SKIP': 'Não há nenhuma vez para saltar',
   'err.NOTHING_TO_DRAW': 'Não resta nada para comprar',
   'err.PILE_EMPTY': 'O monte está vazio',
   'err.PILE_BLOCKED': 'O monte está bloqueado — está um três preto por cima',
   'err.PILE_FROZEN': 'O monte está congelado — precisas de duas cartas naturais do valor da carta do topo',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'Neste jogo uma combinação na mesa não pode levar o monte — precisas de duas cartas da mão',
-  'err.TOP_CARD_UNUSABLE': 'Não podes usar a carta do topo',
+  'err.CAPTURE_NEEDS_TWO_CARDS': 'Levar o monte custa duas cartas da tua mão',
+  'err.TOP_CARD_UNUSABLE': 'O teu lado não pode usar a carta de topo',
   'err.MELD_CLOSED': 'Essa combinação está completa e fechada',
   'err.MELD_TOO_SMALL': 'Uma combinação precisa de mais cartas do que isso',
   'err.MELD_TOO_LARGE': 'Essa combinação já não aceita mais cartas',
@@ -307,7 +353,7 @@ export const pt: Record<string, string> = {
   'err.CANNOT_GO_OUT_YET': 'O teu lado precisa de uma canastra completa antes de poder sair',
   'err.NOTHING_TO_CALL': 'Não há aposta para igualar',
   'err.CANNOT_CHECK': 'Não podes passar — há uma aposta para responder',
-  'err.CANNOT_RAISE': 'Aqui não podes subir',
+  'err.CANNOT_RAISE': 'Não podes subir — a tua pilha não chega acima da aposta',
   'err.RAISE_TOO_SMALL': 'Uma subida tem de valer pelo menos o mesmo que a anterior',
   'err.NOT_ENOUGH_CHIPS': 'Não tens tantas fichas',
   'err.AMOUNT_REQUIRED': 'Diz quanto',
@@ -396,6 +442,28 @@ export const pt: Record<string, string> = {
   'status.teamScore': 'Equipa {team}: {value}',
   'canasta.offer.rank': 'Valor',
   'canasta.offer.sequence': 'Sequência',
+  'canasta.remedy.drawOrTakePile':
+    'Compra do baralho ou leva o monte de descartes antes de baixares combinações.',
+  'canasta.remedy.meldOrDiscard': 'Já compraste — baixa uma combinação ou descarta para terminar a vez.',
+  'canasta.remedy.drawFromStock': 'Compra antes do baralho.',
+  'canasta.remedy.takePileInstead': 'O baralho acabou — leva antes o monte de descartes.',
+  'canasta.remedy.pileBlocked': 'Compra do baralho — o três preto no topo mantém o monte fechado.',
+  'canasta.remedy.pileFrozen':
+    'Compra do baralho, ou leva o monte com duas cartas naturais da tua mão que sirvam em {card}.',
+  'canasta.remedy.topCardUnusable': 'Compra do baralho — o teu lado não tem uso para o {card} do topo.',
+  'canasta.remedy.captureFromHand': 'Leva o monte com duas cartas da tua própria mão que sirvam em {card}.',
+  'canasta.remedy.needTwoMatching':
+    'Precisas de duas cartas da tua mão que sirvam em {card} — caso contrário, compra do baralho.',
+  'canasta.remedy.needMorePoints': 'À primeira combinação do teu lado faltam {n} pontos.',
+  'canasta.remedy.openFirst': 'Baixa a primeira combinação do teu lado antes de juntares cartas.',
+  'canasta.remedy.needCanastas': 'O teu lado precisa de mais {n} canastra de {size} cartas para poder sair.',
+  'canasta.remedy.keepACard': 'Guarda uma carta para descartar.',
+  'canasta.remedy.layOffInstead': 'Junta-as à combinação que o teu lado já tem.',
+  'canasta.remedy.meldClosed':
+    'Essa combinação está completa com {n} cartas — começa outra ou junta noutro sítio.',
+  'canasta.remedy.discardNotARedThree': 'Descarta outra coisa que não um três vermelho.',
+  'canasta.remedy.blackThreesOnTheWayOut': 'Os três pretos só descem na jogada que te esvazia a mão.',
+  'canasta.remedy.ownMeldsOnly': 'Junta apenas às combinações do teu próprio lado.',
   'badge.naturalCanasta': 'Canastra limpa',
   'badge.mixedCanasta': 'Canastra suja',
   'badge.samba': 'Samba',
@@ -515,6 +583,9 @@ export const pt: Record<string, string> = {
     'O bónus de partida duplica para {n} se o perdedor não tiver marcado um único ponto.',
   'ginrummy.rules.box': 'Cada mão que ganhaste vale {n} pontos no fim da partida.',
   'ginrummy.rules.gameBonus': 'Ganhar a partida vale mais {n} pontos.',
+  'ginrummy.rules.upcardDance':
+    'Antes da primeira compra, o não dador pode levar a carta virada e depois o dador; se ambos passarem, o não dador tem de comprar do baralho.',
+  'ginrummy.rules.knockOnDiscard': 'Bater substitui o teu descarte, por isso só acontece no fim da tua vez.',
   'ginrummy.fact.deadwood': '{value} de deadwood',
   'ginrummy.fact.discardCard': 'Descartar {value}',
   'ginrummy.fact.meldCards': 'Em {value}',
@@ -536,6 +607,13 @@ export const pt: Record<string, string> = {
   'ginrummy.offer.bigGin': 'Big gin!',
   'ginrummy.offer.layOff': 'Encostar',
   'ginrummy.offer.finishLayoff': 'Acabei de encostar',
+  'ginrummy.remedy.takeOrPassUpcard': 'Leva a carta virada ou passa.',
+  'ginrummy.remedy.drawFirst': 'Compra primeiro uma carta — do baralho ou do monte de descartes.',
+  'ginrummy.remedy.discardToEndTurn': 'Descarta uma carta para terminar a tua vez.',
+  'ginrummy.remedy.finishLayoff': 'Já não te encaixa mais nada — acaba de juntar cartas.',
+  'ginrummy.remedy.stockDrawForced': 'Ambos passaram essa carta — compra do baralho.',
+  'ginrummy.remedy.drawElsewhere': 'Esse monte está vazio — compra do outro.',
+  'ginrummy.remedy.getDeadwoodDown': 'Podes bater quando a tua madeira morta descer a {n} ou menos.',
   'ginrummy.zone.knockerHand': 'Mão que bateu',
   'ginrummy.zone.melds': 'Combinações',
   'ginrummy.prompt.upcardDecision': 'Tira a carta virada, ou passa',
@@ -545,11 +623,11 @@ export const pt: Record<string, string> = {
 
   // --- rummy tiles -------------------------------------------------------------
   'err.TILE_NOT_IN_HAND': 'Essa peça não está na tua mão',
-  'err.TILE_DOES_NOT_FIT': 'Isso não encaixa aí',
+  'err.TILE_DOES_NOT_FIT': 'Essa peça não encaixa nesse conjunto',
   'err.NO_SUCH_SET': 'Essa combinação não está na mesa',
   'err.INITIAL_MELD_ONLY':
     'Antes da tua primeira baixa só podes reorganizar as tuas próprias combinações novas',
-  'err.TABLE_NOT_VALID': 'A mesa ainda não é válida',
+  'err.TABLE_NOT_VALID': 'Um conjunto na mesa não é um grupo nem uma sequência válidos',
   'err.TRAY_NOT_EMPTY': 'Ainda tens peças soltas por colocar',
   'err.NOTHING_PLAYED': 'Joga pelo menos uma peça antes de terminares a tua vez',
   'err.INITIAL_MELD_TOO_LOW': 'A tua primeira baixa tem de valer 30 pontos ou mais',
@@ -587,6 +665,18 @@ export const pt: Record<string, string> = {
     'Se o monte se esgotar e ninguém puder jogar, a ronda acaba sem vencedor — cada mão é simplesmente contada.',
   'rummytiles.rules.target': 'O primeiro a passar {n} pontos no fim de uma ronda ganha a partida.',
   'rummytiles.rules.roundLimit': 'A partida acaba ao fim de {n} rondas — ganha a pontuação mais alta.',
+  'rummytiles.remedy.emptyTheTray': 'Coloca as {n} peças que ainda estão no teu suporte, ou reinicia a vez.',
+  'rummytiles.remedy.playFromHandOrDraw':
+    'Reorganizar não é uma vez — joga pelo menos uma peça da tua mão ou compra.',
+  'rummytiles.remedy.fixOrReset':
+    'Cada conjunto na mesa tem de ser um grupo ou uma sequência válidos — corrige-os ou reinicia a vez.',
+  'rummytiles.remedy.needMorePoints': 'À tua primeira baixa faltam {n} pontos para os {floor}.',
+  'rummytiles.remedy.ownNewSetsOnly':
+    'Até à tua primeira baixa de {n} pontos só podes reorganizar os conjuntos que fizeste nesta vez.',
+  'rummytiles.remedy.startANewSet': 'Põe-na antes num conjunto novo.',
+  'rummytiles.remedy.splitLeavesThree':
+    'Divide a sequência de forma que ambas as metades fiquem com pelo menos {n} peças.',
+  'rummytiles.remedy.matchTheJoker': 'Troca o curinga pela peça exata que ele representa.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Monte {n}',
   'rummytiles.header.round': 'Ronda {n}',
@@ -665,6 +755,19 @@ export const pt: Record<string, string> = {
   'blackjack.rules.mostChipsWins': 'Quem tiver mais fichas no fim ganha a partida.',
   'blackjack.rules.bustedOut':
     'Um lugar que já não consiga cobrir o mínimo de {n} fica de fora o resto da partida.',
+  'blackjack.rules.roundOrder':
+    'Uma ronda segue uma ordem: apostas, cartas distribuídas, seguro se o dealer mostrar um ás, e depois cada lugar joga a sua mão à vez.',
+  'blackjack.rules.oneStakePerRound': 'Uma aposta por ronda — depois de feita, não se altera.',
+  'blackjack.rules.stakeFromStack': 'Só podes apostar fichas que tenhas realmente.',
+  'blackjack.remedy.putAStakeUp': 'Faz primeiro uma aposta — {n} ou mais.',
+  'blackjack.remedy.answerInsurance': 'Diz primeiro sim ou não ao seguro.',
+  'blackjack.remedy.playThisHand': 'Joga a mão à tua frente — pede carta ou fica.',
+  'blackjack.remedy.stakeIsUp': 'A tua aposta já está feita — espera pela distribuição.',
+  'blackjack.remedy.stakeAtLeast': 'Aposta pelo menos {n}.',
+  'blackjack.remedy.stakeAtMost': 'Aposta no máximo {n} — é toda a tua pilha.',
+  'blackjack.remedy.sayHowMuch': 'Diz quanto apostas — {n} ou mais.',
+  'blackjack.remedy.hitOrStand': 'Pede carta ou fica.',
+  'blackjack.remedy.waitForNextRound': 'Estás fora desta ronda — espera pela distribuição seguinte.',
 
   'blackjack.zone.dealer': 'Dador',
   'blackjack.zone.box': 'Mão',
@@ -916,6 +1019,7 @@ export const pt: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Tudo o que este servidor consegue alojar',
   'lobby.games.bots': 'Bots',
+  'lobby.games.setup': 'Definições',
   'lobby.games.playBot': 'Jogar contra um bot',
   'lobby.games.playBots': 'Jogar contra {n} bots',
   'lobby.games.openTable': 'Abrir uma mesa',

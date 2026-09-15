@@ -739,6 +739,131 @@ func TestEveryModuleWritesItsRules(t *testing.T) {
 	}
 }
 
+// TestEveryModuleExplainsItsRefusals is the other half of writing the rules
+// down: a game that states them and then refuses a player with a bare code has
+// an index nobody can follow.
+//
+// The per-module suites check the mapping in depth — every code the engine can
+// emit points at a sentence that table states (module.RuleIndexCheck). This
+// checks the thing none of them can: that a *new* game arriving tomorrow
+// cannot ship without one, which is how five of these went out returning
+// WRONG_PHASE with nothing behind it.
+func TestEveryModuleExplainsItsRefusals(t *testing.T) {
+	for _, g := range allModules() {
+		t.Run(g.name, func(t *testing.T) {
+			p, ok := g.mod.(module.RuleIndexProvider)
+			if !ok {
+				t.Fatalf("%s does not implement module.RuleIndexProvider — "+
+					"its refusals reach a player as bare codes", g.name)
+			}
+			// Every game has a turn and every game can be asked out of it, so
+			// this is the one code all seven are known to emit. A module that
+			// explains nothing at all fails here rather than at the far end of
+			// somebody's play-through.
+			if len(p.ExplainRefusal(g.cfg, "NOT_YOUR_TURN")) == 0 {
+				t.Error("nothing explains NOT_YOUR_TURN, which every game can return")
+			}
+			if len(p.ExplainRefusal(g.cfg, "NO_SUCH_CODE_AT_ALL")) != 0 {
+				t.Error("a code this engine cannot emit was explained anyway")
+			}
+		})
+	}
+}
+
+// TestADisabledOfferSaysWhy is the promise the offer protocol makes and the one
+// a player actually feels: a greyed-out control carries the engine's own
+// reason, and — where the module has written one — the rule behind it or the
+// move to make instead.
+//
+// Checked over a real play-through rather than a built state, because the
+// interesting refusals are the ones a game reaches on its own.
+func TestADisabledOfferSaysWhy(t *testing.T) {
+	for _, g := range allModules() {
+		t.Run(g.name, func(t *testing.T) {
+			state, err := g.mod.NewMatch(g.cfg, g.players, 7)
+			if err != nil {
+				t.Fatalf("NewMatch: %v", err)
+			}
+			seen, explained := 0, 0
+			for step := 0; step < 40; step++ {
+				for _, ref := range g.players {
+					offers, err := g.mod.LegalActions(state, ref.ID)
+					if err != nil {
+						t.Fatalf("LegalActions: %v", err)
+					}
+					live := map[string]bool{}
+					for _, o := range offers {
+						if o.Enabled {
+							live[o.ID] = true
+						}
+					}
+					for _, o := range offers {
+						if o.Enabled {
+							continue
+						}
+						if o.WhyNot == "" {
+							t.Fatalf("offer %q is disabled and says nothing about why", o.ID)
+						}
+						seen++
+						if len(o.RuleIDs) > 0 || o.Remedy != nil {
+							explained++
+						}
+						// A remedy that names a control puts a working button
+						// under the sentence, so the id has to be a live offer
+						// on this very list. Naming a dead one is worse than
+						// naming none: the sheet either shows nothing where a
+						// button was promised, or offers a move the engine
+						// would refuse.
+						if o.RemedyOfferID != "" && !live[o.RemedyOfferID] {
+							t.Errorf("offer %q points its remedy at %q, which is not an enabled offer here",
+								o.ID, o.RemedyOfferID)
+						}
+					}
+				}
+				next, done := advanceOnce(g, state)
+				if done {
+					break
+				}
+				state = next
+			}
+			if seen == 0 {
+				t.Fatal("no disabled offer was reached at all — the check looked at nothing")
+			}
+			if explained == 0 {
+				t.Errorf("%d disabled offers, and not one carried a rule or a remedy", seen)
+			}
+		})
+	}
+}
+
+// advanceOnce plays whatever the first player with an enabled offer can play,
+// so the loop above walks through real states rather than one.
+func advanceOnce(g hosted, state module.State) (module.State, bool) {
+	if done, _, err := g.mod.Finished(state); err != nil || done {
+		return state, true
+	}
+	for _, ref := range g.players {
+		offers, err := g.mod.LegalActions(state, ref.ID)
+		if err != nil {
+			continue
+		}
+		for _, o := range offers {
+			if !o.Enabled {
+				continue
+			}
+			a, ok := module.SubmissionFor(o)
+			if !ok {
+				continue
+			}
+			next, _, err := g.mod.Apply(state, ref.ID, a)
+			if err == nil {
+				return next, false
+			}
+		}
+	}
+	return state, true
+}
+
 // TestTiesShareARank is the property Canasta and poker both need: a partnership
 // and a split pot are two players who genuinely came first.
 func TestTiesShareARank(t *testing.T) {

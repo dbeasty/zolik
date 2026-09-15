@@ -5,7 +5,7 @@
 export const nl: Record<string, string> = {
   // --- engine error codes (rules.RulesErrorCode) ---------------------------
   'err.NOT_YOUR_TURN': 'Je bent niet aan de beurt',
-  'err.WRONG_PHASE': 'Op dit moment niet mogelijk',
+  'err.WRONG_PHASE': 'Niet op dit punt in de beurt',
   'err.MUST_DRAW_FIRST': 'Pak eerst een kaart voordat je legt',
   'err.GAME_SUSPENDED': 'Het spel is gepauzeerd',
   'err.GAME_NOT_ACTIVE': 'Het spel loopt niet',
@@ -127,11 +127,17 @@ export const nl: Record<string, string> = {
   'prsi.rules.aces': 'Speel een aas en de beurt van de volgende speler wordt overgeslagen.',
   'prsi.rules.queens': 'Speel een vrouw en noem de kleur die verdergaat.',
   'prsi.rules.end': 'De partij eindigt op het moment dat iemands hand leeg is.',
+  'prsi.remedy.matchOrDraw': 'Speel een {suit}-kaart of een die op {card} past — anders pak je een kaart.',
+  'prsi.remedy.answerSevenOrTake': 'Antwoord met een eigen zeven, of pak de {n} kaarten.',
+  'prsi.remedy.playOrDraw': 'Er wacht geen beurt om over te slaan — speel een {suit}-kaart of pak een kaart.',
+  'prsi.remedy.nameASuit': 'Noem de kleur die na je vrouw komt.',
+  'prsi.remedy.nothingLeftToDraw': 'Er is niets meer om te pakken — speel een kaart als je kunt.',
 
   'canasta.rules.section.goal': 'Doel',
   'canasta.rules.section.setup': 'Opzet',
   'canasta.rules.section.melding': 'Uitleggen',
   'canasta.rules.section.end': 'Hoe de partij eindigt',
+  'canasta.rules.section.turn': 'Jouw beurt',
   'canasta.rules.goal':
     'Er wordt in koppels gespeeld; de eerste partij die {n} punten haalt, wint de wedstrijd.',
   'canasta.rules.deck': 'Gespeeld met {value} kaarten — {decks} spellen plus jokers.',
@@ -152,6 +158,31 @@ export const nl: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Je eerste leg moet een puntenminimum halen dat met je stand meestijgt: {negative} onder nul, {low} tot 1500, {mid} tot 3000, {high} daarboven.',
   'canasta.rules.meldFloorBandsFive': 'Je eerste combinatie moet een puntenminimum halen dat met je score meestijgt: {negative} onder nul, {low} tot 1500, {mid} tot 3000, {high} tot 7000 en {top} daarboven.',
+  'canasta.rules.turn':
+    'Een beurt is één greep naar je hand — pakken van de stapel of de hele aflegstapel nemen — daarna de series die je wilt leggen, en tot slot één afgelegde kaart.',
+  'canasta.rules.turnDiscard':
+    'De aflegkaart sluit de beurt af, dus je hebt er altijd een kaart voor over te houden.',
+  'canasta.rules.pileTopCard':
+    'De aflegstapel is alleen te pakken met een zet die de bovenste kaart meteen gebruikt.',
+  'canasta.rules.pileBlocked':
+    'Een zwarte drie bovenop blokkeert de stapel — niemand mag hem pakken tot de drie bedekt is — en een drie in je hand kost {n}.',
+  'canasta.rules.pileFrozenByWild':
+    'Een begraven joker bevriest de stapel voor iedereen: hem pakken kost dan twee natuurlijke kaarten van de waarde van de bovenste kaart, uit je eigen hand.',
+  'canasta.rules.meldShape': 'Een serie bestaat uit {n} of meer kaarten van dezelfde waarde.',
+  'canasta.rules.wildLimit':
+    'Een serie mag hoogstens {wilds} jokers bevatten en nooit minder dan {naturals} natuurlijke kaarten.',
+  'canasta.rules.wildRatio':
+    'Een serie heeft {n} natuurlijke kaarten per joker nodig, en nooit meer dan {wilds} jokers in totaal.',
+  'canasta.rules.oneMeldPerRank':
+    'Jouw kant houdt één serie per waarde — verdere kaarten van die waarde gaan daarbij.',
+  'canasta.rules.meldsPerRankUnlimited': 'Jouw kant mag meerdere series van dezelfde waarde hebben.',
+  'canasta.rules.canastaCloses': 'Een canasta van {n} kaarten is compleet en neemt er geen meer op.',
+  'canasta.rules.meldsAreShared':
+    'Series horen bij het koppel: beide partners mogen ze uitbreiden, en die van de tegenpartij blijven onaangeroerd.',
+  'canasta.rules.layOffAfterOpening':
+    'Zolang jouw kant zijn eerste serie niet heeft gelegd, mag hij niets op tafel aanvullen.',
+  'canasta.rules.goOutKeepsACard':
+    'Je moet je beurt altijd kunnen afmaken, dus leg nooit je hele hand neer, tenzij het de zet is waarmee je uitgaat.',
   'canasta.rules.oneCanastaToGoOut': 'Eén afgemaakte canasta is genoeg om jouw partij te laten uitgaan.',
   'canasta.rules.twoCanastasToGoOut':
     "Jouw partij heeft twee afgemaakte canasta's nodig voordat ze mag uitgaan.",
@@ -174,6 +205,19 @@ export const nl: Record<string, string> = {
   'holdem.rules.lastPlayerStanding': 'Er wordt gespeeld tot één plek alle fiches heeft.',
   'holdem.rules.mostChipsWins': 'Wie de meeste fiches heeft als het spel stopt, wint de partij.',
   'holdem.rules.handLimit': 'Het spel stopt na {n} handen.',
+  'holdem.rules.checkOrCall':
+    'Je mag alleen checken als je niets verschuldigd bent; anders callen, verhogen of passen.',
+  'holdem.rules.minRaise': 'Een verhoging moet minstens zo groot zijn als de vorige.',
+  'holdem.rules.allIn':
+    'Je kunt nooit meer inzetten dan je stapel, en all-in gaan mag altijd — ook voor minder dan een volledige verhoging.',
+  'holdem.rules.foldedOut': 'Zodra je past, sta je buitenspel tot de volgende deal.',
+  'holdem.remedy.callOrFold': 'Er staat {n} open — call, verhoog of pas.',
+  'holdem.remedy.checkOrRaise': 'Er staat niets open — check of verhoog.',
+  'holdem.remedy.callAllInOrFold': 'Je stapel komt niet boven de inzet — call {n} all-in of pas.',
+  'holdem.remedy.raiseAtLeast': 'Verhoog naar minstens {n}.',
+  'holdem.remedy.raiseAtMost': 'Verhoog naar hoogstens {n} — dat is je hele stapel.',
+  'holdem.remedy.nameAnAmount': 'Zeg naar hoeveel je verhoogt, tussen {min} en {max}.',
+  'holdem.remedy.waitForNextHand': 'Je doet niet mee aan deze hand — wacht op de volgende deal.',
 
   // --- header --------------------------------------------------------------
   'header.deal': 'Ronde {n}',
@@ -283,13 +327,15 @@ export const nl: Record<string, string> = {
   'err.CARD_DOES_NOT_FIT': 'Die kaart past niet qua kleur en niet qua waarde',
   'err.SUIT_REQUIRED': 'Noem de kleur die verdergaat',
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Antwoord met een zeven, of neem de kaarten',
+  'err.NOTHING_TO_SKIP': 'Er is geen beurt om over te slaan',
   'err.NOTHING_TO_DRAW': 'Er is niets meer om te pakken',
   'err.PILE_EMPTY': 'De stapel is leeg',
   'err.PILE_BLOCKED': 'De stapel is geblokkeerd — er ligt een zwarte drie bovenop',
   'err.PILE_FROZEN':
     'De stapel is bevroren — je hebt twee natuurlijke kaarten van de waarde van de bovenste kaart nodig',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'In dit spel kan een combinatie op tafel de stapel niet nemen — je hebt twee kaarten uit je hand nodig',
-  'err.TOP_CARD_UNUSABLE': 'Je kunt de bovenste kaart niet gebruiken',
+  'err.CAPTURE_NEEDS_TWO_CARDS': 'De aflegstapel pakken kost twee kaarten uit je hand',
+  'err.TOP_CARD_UNUSABLE': 'Jouw kant kan de bovenste kaart niet gebruiken',
   'err.MELD_CLOSED': 'Die combinatie is compleet en gesloten',
   'err.MELD_TOO_SMALL': 'Een combinatie heeft meer kaarten nodig dan dat',
   'err.MELD_TOO_LARGE': 'Die combinatie kan er geen kaarten meer bij hebben',
@@ -311,7 +357,7 @@ export const nl: Record<string, string> = {
   'err.CANNOT_GO_OUT_YET': 'Jouw partij heeft een afgemaakte canasta nodig voordat ze kan uitgaan',
   'err.NOTHING_TO_CALL': 'Er is geen inzet om mee te gaan',
   'err.CANNOT_CHECK': 'Je kunt niet checken — er staat een inzet',
-  'err.CANNOT_RAISE': 'Hier kun je niet verhogen',
+  'err.CANNOT_RAISE': 'Je kunt niet verhogen — je stapel komt niet boven de inzet',
   'err.RAISE_TOO_SMALL': 'Een verhoging moet minstens zo groot zijn als de vorige',
   'err.NOT_ENOUGH_CHIPS': 'Zoveel fiches heb je niet',
   'err.AMOUNT_REQUIRED': 'Zeg hoeveel',
@@ -401,6 +447,29 @@ export const nl: Record<string, string> = {
   'status.teamScore': 'Team {team}: {value}',
   'canasta.offer.rank': 'Waarde',
   'canasta.offer.sequence': 'Reeks',
+  'canasta.remedy.drawOrTakePile': 'Pak eerst van de stapel of neem de aflegstapel voordat je series legt.',
+  'canasta.remedy.meldOrDiscard':
+    'Je hebt al gepakt — leg een serie of leg een kaart af om je beurt te beëindigen.',
+  'canasta.remedy.drawFromStock': 'Pak in plaats daarvan van de stapel.',
+  'canasta.remedy.takePileInstead': 'De stapel is op — neem in plaats daarvan de aflegstapel.',
+  'canasta.remedy.pileBlocked': 'Pak van de stapel — de zwarte drie bovenop houdt de aflegstapel dicht.',
+  'canasta.remedy.pileFrozen':
+    'Pak van de stapel, of neem de aflegstapel met twee natuurlijke kaarten uit je hand die op {card} passen.',
+  'canasta.remedy.topCardUnusable': 'Pak van de stapel — jouw kant kan niets met de {card} bovenop.',
+  'canasta.remedy.captureFromHand':
+    'Neem de aflegstapel met twee kaarten uit je eigen hand die op {card} passen.',
+  'canasta.remedy.needTwoMatching':
+    'Je hebt twee kaarten uit je hand nodig die op {card} passen — anders pak je van de stapel.',
+  'canasta.remedy.needMorePoints': 'De eerste serie van jouw kant komt {n} punten tekort.',
+  'canasta.remedy.openFirst': 'Leg eerst de openingsserie van jouw kant voordat je aanlegt.',
+  'canasta.remedy.needCanastas':
+    'Jouw kant heeft nog {n} canasta van {size} kaarten nodig om uit te kunnen gaan.',
+  'canasta.remedy.keepACard': 'Houd een kaart over om af te leggen.',
+  'canasta.remedy.layOffInstead': 'Leg ze aan bij de serie die jouw kant al heeft.',
+  'canasta.remedy.meldClosed': 'Die serie is compleet bij {n} kaarten — begin een nieuwe of leg elders aan.',
+  'canasta.remedy.discardNotARedThree': 'Leg iets anders af dan een rode drie.',
+  'canasta.remedy.blackThreesOnTheWayOut': 'Zwarte drieën gaan alleen neer als de zet die je hand leegt.',
+  'canasta.remedy.ownMeldsOnly': 'Leg alleen aan bij series van je eigen kant.',
   'badge.naturalCanasta': 'Zuivere canasta',
   'badge.mixedCanasta': 'Onzuivere canasta',
   'badge.samba': 'Samba',
@@ -519,6 +588,10 @@ export const nl: Record<string, string> = {
   'ginrummy.rules.shutout': 'De partijbonus verdubbelt naar {n} als de verliezer geen enkel punt scoorde.',
   'ginrummy.rules.box': 'Elke gewonnen hand is aan het eind van de partij {n} punten waard.',
   'ginrummy.rules.gameBonus': 'De partij winnen levert nog eens {n} punten op.',
+  'ginrummy.rules.upcardDance':
+    'Vóór de eerste trek mag de niet-gever de open kaart nemen, daarna de gever; passen beiden, dan moet de niet-gever van de stapel pakken.',
+  'ginrummy.rules.knockOnDiscard':
+    'Kloppen vervangt je aflegkaart, dus het kan alleen aan het eind van je beurt.',
   'ginrummy.fact.deadwood': '{value} deadwood',
   'ginrummy.fact.discardCard': '{value} afleggen',
   'ginrummy.fact.meldCards': 'Bij {value}',
@@ -540,6 +613,13 @@ export const nl: Record<string, string> = {
   'ginrummy.offer.bigGin': 'Big gin!',
   'ginrummy.offer.layOff': 'Aanleggen',
   'ginrummy.offer.finishLayoff': 'Klaar met aanleggen',
+  'ginrummy.remedy.takeOrPassUpcard': 'Neem de open kaart, of geef hem door.',
+  'ginrummy.remedy.drawFirst': 'Pak eerst een kaart — van de stapel of de aflegstapel.',
+  'ginrummy.remedy.discardToEndTurn': 'Leg één kaart af om je beurt te beëindigen.',
+  'ginrummy.remedy.finishLayoff': 'Er past niets meer van jou — rond het aanleggen af.',
+  'ginrummy.remedy.stockDrawForced': 'Jullie hebben die kaart allebei laten gaan — pak van de stapel.',
+  'ginrummy.remedy.drawElsewhere': 'Die stapel is leeg — pak van de andere.',
+  'ginrummy.remedy.getDeadwoodDown': 'Je mag kloppen zodra je dood hout {n} of minder is.',
   'ginrummy.zone.knockerHand': 'Geklopte hand',
   'ginrummy.zone.melds': 'Combinaties',
   'ginrummy.prompt.upcardDecision': 'Neem de open kaart, of pas',
@@ -549,10 +629,10 @@ export const nl: Record<string, string> = {
 
   // --- rummy tiles -------------------------------------------------------------
   'err.TILE_NOT_IN_HAND': 'Die steen zit niet in je hand',
-  'err.TILE_DOES_NOT_FIT': 'Dat past daar niet',
+  'err.TILE_DOES_NOT_FIT': 'Die steen past niet in die reeks',
   'err.NO_SUCH_SET': 'Die combinatie ligt niet op tafel',
   'err.INITIAL_MELD_ONLY': 'Vóór je eerste leg mag je alleen je eigen nieuwe combinaties herschikken',
-  'err.TABLE_NOT_VALID': 'De tafel is nog niet geldig',
+  'err.TABLE_NOT_VALID': 'Een reeks op tafel is geen geldige groep of rij',
   'err.TRAY_NOT_EMPTY': 'Je hebt nog losse stenen te plaatsen',
   'err.NOTHING_PLAYED': 'Speel minstens één steen voordat je je beurt beëindigt',
   'err.INITIAL_MELD_TOO_LOW': 'Je eerste leg moet 30 punten of meer waard zijn',
@@ -591,6 +671,18 @@ export const nl: Record<string, string> = {
     'Raakt de voorraad op en kan niemand meer spelen, dan eindigt de ronde zonder winnaar — elke hand wordt gewoon geteld.',
   'rummytiles.rules.target': 'Wie na afloop van een ronde als eerste {n} punten passeert, wint de partij.',
   'rummytiles.rules.roundLimit': 'De partij eindigt na {n} rondes — de hoogste score wint.',
+  'rummytiles.remedy.emptyTheTray':
+    'Plaats de {n} stenen die nog op je plankje liggen, of zet de beurt terug.',
+  'rummytiles.remedy.playFromHandOrDraw':
+    'Herschikken is geen beurt — speel minstens één steen uit je hand, of pak er een.',
+  'rummytiles.remedy.fixOrReset':
+    'Elke reeks op tafel moet een geldige groep of rij zijn — herstel ze, of zet de beurt terug.',
+  'rummytiles.remedy.needMorePoints': 'Je eerste leg komt {n} punten tekort voor {floor}.',
+  'rummytiles.remedy.ownNewSetsOnly':
+    'Tot je eerste leg van {n} punten mag je alleen de reeksen herschikken die je deze beurt hebt gemaakt.',
+  'rummytiles.remedy.startANewSet': 'Zet hem in plaats daarvan in een nieuwe reeks.',
+  'rummytiles.remedy.splitLeavesThree': 'Splits de rij zo dat beide helften minstens {n} stenen houden.',
+  'rummytiles.remedy.matchTheJoker': 'Ruil de joker voor precies de steen waar hij voor staat.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Voorraad {n}',
   'rummytiles.header.round': 'Ronde {n}',
@@ -670,6 +762,19 @@ export const nl: Record<string, string> = {
   'blackjack.rules.mostChipsWins': 'Wie aan het eind de meeste fiches heeft, wint de partij.',
   'blackjack.rules.bustedOut':
     'Een plek die het minimum van {n} niet meer kan opbrengen, zit de rest van de partij uit.',
+  'blackjack.rules.roundOrder':
+    'Een ronde verloopt op volgorde: inzetten, kaarten delen, verzekering als de dealer een aas toont, daarna speelt elke plek om beurten zijn hand.',
+  'blackjack.rules.oneStakePerRound': 'Eén inzet per ronde — eenmaal geplaatst blijft hij staan.',
+  'blackjack.rules.stakeFromStack': 'Je kunt alleen fiches inzetten die je echt hebt.',
+  'blackjack.remedy.putAStakeUp': 'Zet eerst in — {n} of meer.',
+  'blackjack.remedy.answerInsurance': 'Zeg eerst ja of nee tegen de verzekering.',
+  'blackjack.remedy.playThisHand': 'Speel de hand voor je — kopen of passen.',
+  'blackjack.remedy.stakeIsUp': 'Je inzet staat al — wacht op het delen.',
+  'blackjack.remedy.stakeAtLeast': 'Zet minstens {n} in.',
+  'blackjack.remedy.stakeAtMost': 'Zet hoogstens {n} in — dat is je hele stapel.',
+  'blackjack.remedy.sayHowMuch': 'Zeg hoeveel je inzet — {n} of meer.',
+  'blackjack.remedy.hitOrStand': 'Koop, of pas.',
+  'blackjack.remedy.waitForNextRound': 'Je doet niet mee aan deze ronde — wacht op de volgende deal.',
 
   'blackjack.zone.dealer': 'Dealer',
   'blackjack.zone.box': 'Hand',
@@ -920,6 +1025,7 @@ export const nl: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Alles wat deze server kan aanbieden',
   'lobby.games.bots': 'Bots',
+  'lobby.games.setup': 'Instellingen',
   'lobby.games.playBot': 'Tegen een bot spelen',
   'lobby.games.playBots': 'Tegen {n} bots spelen',
   'lobby.games.openTable': 'Een tafel openen',

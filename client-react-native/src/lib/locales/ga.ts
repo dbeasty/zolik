@@ -5,7 +5,7 @@
 export const ga: Record<string, string> = {
   // --- engine error codes (rules.RulesErrorCode) ---------------------------
   'err.NOT_YOUR_TURN': 'Ní hé do sheal é',
-  'err.WRONG_PHASE': 'Níl sé sin ar fáil faoi láthair',
+  'err.WRONG_PHASE': 'Ní ag an bpointe seo den seal',
   'err.MUST_DRAW_FIRST': 'Tarraing cárta sula leagann tú síos',
   'err.GAME_SUSPENDED': 'Tá an cluiche ar sos',
   'err.GAME_NOT_ACTIVE': 'Níl an cluiche ar siúl',
@@ -131,11 +131,17 @@ export const ga: Record<string, string> = {
   'prsi.rules.aces': 'Imir aonach agus scipeáiltear seal an chéad imreora eile.',
   'prsi.rules.queens': 'Imir banríon agus ainmnigh an dath a leanann.',
   'prsi.rules.end': 'Críochnaíonn an cluiche an nóiméad a bhíonn lámh duine éigin folamh.',
+  'prsi.remedy.matchOrDraw': 'Imir cárta {suit} nó ceann a fheileann do {card} — nó tarraing.',
+  'prsi.remedy.answerSevenOrTake': 'Freagair le seacht de do chuid féin, nó tóg na {n} gcárta.',
+  'prsi.remedy.playOrDraw': 'Níl aon seal le scipeáil agat — imir cárta {suit}, nó tarraing.',
+  'prsi.remedy.nameASuit': 'Ainmnigh an oiriúint a leanann do bhanríon.',
+  'prsi.remedy.nothingLeftToDraw': 'Níl aon rud fágtha le tarraingt — imir cárta más féidir leat.',
 
   'canasta.rules.section.goal': 'Aidhm',
   'canasta.rules.section.setup': 'Socrú',
   'canasta.rules.section.melding': 'Leagan síos',
   'canasta.rules.section.end': 'Conas a chríochnaíonn an cluiche',
+  'canasta.rules.section.turn': 'Do sheal',
   'canasta.rules.goal': 'Imrítear i mbeirteanna; buann an chéad taobh a shroicheann {n} bpointe an cluiche.',
   'canasta.rules.deck': 'Imrítear le {value} cárta — {decks} phaca agus áilteoirí.',
   'canasta.rules.deal': 'Faigheann gach imreoir {n} chárta.',
@@ -155,6 +161,32 @@ export const ga: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Caithfidh do chéad leagan síos íosmhéid pointí a bhaint amach a ardaíonn le do scór: {negative} faoi bhun a náid, {low} suas go 1500, {mid} suas go 3000, {high} os a chionn sin.',
   'canasta.rules.meldFloorBandsFive': 'Caithfidh do chéad chumasc íosmhéid pointí a bhaint amach a ardaíonn le do scór: {negative} faoi bhun nialais, {low} suas go 1500, {mid} suas go 3000, {high} suas go 7000 agus {top} os a chionn sin.',
+  'canasta.rules.turn':
+    'Is éard atá i seal amháin ná aistriú isteach i do lámh — tarraing ón stoc nó tóg an carn iomlán — ansin cibé cumaisc is mian leat, agus ar deireadh cárta amháin caite.',
+  'canasta.rules.turnDiscard':
+    'Is é an cárta caite a chuireann deireadh le seal, mar sin ní mór cárta breise a bheith agat dó i gcónaí.',
+  'canasta.rules.pileTopCard':
+    'Ní féidir an carn a thógáil ach le himirt a bhaineann úsáid láithreach as an gcárta is airde air.',
+  'canasta.rules.pileBlocked':
+    'Cuireann trí dubh ar barr bac ar an gcarn — ní féidir le duine ar bith é a thógáil go dtí go mbíonn an trí curtha faoi — agus cosnaíonn ceann atá fágtha i do lámh {n}.',
+  'canasta.rules.pileFrozenByWild':
+    'Reonn cárta fiáin atá curtha faoin gcarn é in aghaidh cách: cosnaíonn sé ansin dhá chárta nádúrtha de chéimíocht an chárta is airde, as do lámh féin.',
+  'canasta.rules.meldShape': 'Is éard is cumasc ann ná {n} chárta nó níos mó den chéimíocht chéanna.',
+  'canasta.rules.wildLimit':
+    'Féadfaidh {wilds} chárta fhiáine ar a mhéad a bheith i gcumasc, agus ní lú riamh ná {naturals} chárta nádúrtha.',
+  'canasta.rules.wildRatio':
+    'Teastaíonn {n} chárta nádúrtha ó chumasc in aghaidh gach cárta fiáin, agus ní mó riamh ná {wilds} chárta fhiáine san iomlán.',
+  'canasta.rules.oneMeldPerRank':
+    'Coinníonn do thaobh cumasc amháin de gach céimíocht — cuirtear tuilleadh cártaí den chéimíocht sin leis.',
+  'canasta.rules.meldsPerRankUnlimited':
+    'Féadfaidh roinnt cumasc den chéimíocht chéanna a bheith ag do thaobh.',
+  'canasta.rules.canastaCloses': 'Tá canasta de {n} chárta críochnaithe agus ní ghlacann sé le cárta eile.',
+  'canasta.rules.meldsAreShared':
+    'Is leis an bpáirtnéireacht na cumaisc: féadfaidh ceachtar páirtí cur leo, agus ní bhaineann ceachtar taobh le cinn an taoibh eile.',
+  'canasta.rules.layOffAfterOpening':
+    'Go dtí go mbíonn a chéad chumasc déanta ag do thaobh, ní féidir leis cur le haon rud ar an mbord.',
+  'canasta.rules.goOutKeepsACard':
+    'Caithfidh tú a bheith in ann do sheal a chríochnú i gcónaí, mar sin ná cuir do lámh iomlán síos riamh mura hí sin an imirt a chuireann amach thú.',
   'canasta.rules.oneCanastaToGoOut': 'Is leor canasta amháin críochnaithe chun go rachadh do thaobh amach.',
   'canasta.rules.twoCanastasToGoOut':
     'Teastaíonn dhá chanasta chríochnaithe ó do thaobh sula bhféadfaidh sé dul amach.',
@@ -180,6 +212,20 @@ export const ga: Record<string, string> = {
   'holdem.rules.mostChipsWins':
     'An té a bhfuil an líon is mó slisní aige nuair a stopann an imirt, buann sé an cluiche.',
   'holdem.rules.handLimit': 'Stopann an imirt tar éis {n} lámh.',
+  'holdem.rules.checkOrCall':
+    'Ní féidir leat seiceáil ach amháin nuair nach bhfuil aon rud dlite ort; seachas sin, glaoigh, ardaigh nó fill.',
+  'holdem.rules.minRaise': 'Caithfidh ardú a bheith ar a laghad chomh mór leis an gceann roimhe.',
+  'holdem.rules.allIn':
+    'Ní féidir leat riamh níos mó ná do charn a chur isteach, agus tá cead dul isteach go hiomlán i gcónaí — fiú ar níos lú ná lánardú.',
+  'holdem.rules.foldedOut': 'Nuair a fhilleann tú, tá tú amuigh go dtí go ndáiltear an chéad lámh eile.',
+  'holdem.remedy.callOrFold': 'Tá {n} le glaoch — glaoigh, ardaigh nó fill.',
+  'holdem.remedy.checkOrRaise': 'Níl aon rud dlite — seiceáil, nó ardaigh.',
+  'holdem.remedy.callAllInOrFold':
+    'Ní rachaidh do charn os cionn an gheill — glaoigh {n} go hiomlán isteach, nó fill.',
+  'holdem.remedy.raiseAtLeast': 'Ardaigh go {n} ar a laghad.',
+  'holdem.remedy.raiseAtMost': 'Ardaigh go {n} ar a mhéad — sin do charn iomlán.',
+  'holdem.remedy.nameAnAmount': 'Abair cé mhéad a bheidh san ardú, idir {min} agus {max}.',
+  'holdem.remedy.waitForNextHand': 'Tá tú amuigh as an lámh seo — fan leis an gcéad dáileadh eile.',
 
   // --- header --------------------------------------------------------------
   'header.deal': 'Dáileadh {n}',
@@ -289,12 +335,14 @@ export const ga: Record<string, string> = {
   'err.CARD_DOES_NOT_FIT': 'Ní mheaitseálann an cárta sin an dath ná an luach',
   'err.SUIT_REQUIRED': 'Ainmnigh an dath a leanann',
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Freagair le seacht, nó tóg na cártaí',
+  'err.NOTHING_TO_SKIP': 'Níl aon seal le scipeáil',
   'err.NOTHING_TO_DRAW': 'Níl aon rud fágtha le tarraingt',
   'err.PILE_EMPTY': 'Tá an carn folamh',
   'err.PILE_BLOCKED': 'Tá an carn dúnta — tá trí dhubh ar a bharr',
   'err.PILE_FROZEN': 'Tá an carn reoite — teastaíonn dhá chárta nádúrtha de luach an chárta uachtaraigh uait',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'Sa chluiche seo ní féidir le cumasc ar an mbord an carn a thógáil — teastaíonn dhá chárta as do lámh uait',
-  'err.TOP_CARD_UNUSABLE': 'Ní féidir leat an cárta uachtarach a úsáid',
+  'err.CAPTURE_NEEDS_TWO_CARDS': 'Cosnaíonn tógáil an charn dhá chárta as do lámh',
+  'err.TOP_CARD_UNUSABLE': 'Ní féidir le do thaobh an cárta is airde a úsáid',
   'err.MELD_CLOSED': 'Tá an cumasc sin iomlán agus dúnta',
   'err.MELD_TOO_SMALL': 'Teastaíonn níos mó cártaí ná sin ó chumasc',
   'err.MELD_TOO_LARGE': 'Ní féidir leis an gcumasc sin níos mó cártaí a ghlacadh',
@@ -316,7 +364,7 @@ export const ga: Record<string, string> = {
   'err.CANNOT_GO_OUT_YET': 'Teastaíonn canasta críochnaithe ó do thaobh sula bhféadfaidh sé dul amach',
   'err.NOTHING_TO_CALL': 'Níl aon gheall le glaoch',
   'err.CANNOT_CHECK': 'Ní féidir leat seiceáil — tá geall ann le freagairt',
-  'err.CANNOT_RAISE': 'Ní féidir leat ardú anseo',
+  'err.CANNOT_RAISE': 'Ní féidir leat ardú — ní rachaidh do charn os cionn an gheill',
   'err.RAISE_TOO_SMALL': 'Caithfidh ardú a bheith chomh mór leis an gceann deireanach ar a laghad',
   'err.NOT_ENOUGH_CHIPS': 'Níl an oiread sin slisní agat',
   'err.AMOUNT_REQUIRED': 'Abair cé mhéad',
@@ -406,6 +454,30 @@ export const ga: Record<string, string> = {
   'status.teamScore': 'Foireann {team}: {value}',
   'canasta.offer.rank': 'Luach',
   'canasta.offer.sequence': 'Seicheamh',
+  'canasta.remedy.drawOrTakePile': 'Tarraing ón stoc, nó tóg an carn, sula ndéanann tú cumasc.',
+  'canasta.remedy.meldOrDiscard':
+    'Tá cárta tarraingthe agat cheana — déan cumasc, nó caith cárta chun do sheal a chríochnú.',
+  'canasta.remedy.drawFromStock': 'Tarraing ón stoc ina ionad sin.',
+  'canasta.remedy.takePileInstead': 'Tá an stoc folamh — tóg an carn ina ionad sin.',
+  'canasta.remedy.pileBlocked': 'Tarraing ón stoc — coinníonn an trí dubh ar barr an carn dúnta.',
+  'canasta.remedy.pileFrozen':
+    'Tarraing ón stoc, nó tóg an carn le dhá chárta nádúrtha as do lámh a fheileann do {card}.',
+  'canasta.remedy.topCardUnusable': 'Tarraing ón stoc — níl aon mhaith sa {card} atá ar barr do do thaobhsa.',
+  'canasta.remedy.captureFromHand': 'Tóg an carn le dhá chárta as do lámh féin a fheileann do {card}.',
+  'canasta.remedy.needTwoMatching':
+    'Teastaíonn dhá chárta as do lámh uait a fheileann do {card} — nó tarraing ón stoc.',
+  'canasta.remedy.needMorePoints': 'Tá {n} pointe in easnamh ar chéad chumasc do thaoibh.',
+  'canasta.remedy.openFirst': 'Cuir síos céad chumasc do thaoibh sula gcuireann tú le rud ar bith.',
+  'canasta.remedy.needCanastas':
+    'Teastaíonn {n} chanasta eile de {size} chárta ó do thaobh sula féidir leis dul amach.',
+  'canasta.remedy.keepACard': 'Coinnigh cárta le caitheamh.',
+  'canasta.remedy.layOffInstead': 'Cuir leis an gcumasc atá ag do thaobh cheana iad.',
+  'canasta.remedy.meldClosed':
+    'Tá an cumasc sin críochnaithe ag {n} chárta — tosaigh ceann eile, nó cuir le rud eile.',
+  'canasta.remedy.discardNotARedThree': 'Caith rud éigin seachas trí dearg.',
+  'canasta.remedy.blackThreesOnTheWayOut':
+    'Ní chuirtear trínna dubha síos ach mar an imirt a fholmhaíonn do lámh.',
+  'canasta.remedy.ownMeldsOnly': 'Ná cuir le cumasc ach amháin ceann de chuid do thaoibh féin.',
   'badge.naturalCanasta': 'Canasta glan',
   'badge.mixedCanasta': 'Canasta measctha',
   'badge.samba': 'Samba',
@@ -526,6 +598,10 @@ export const ga: Record<string, string> = {
     'Déantar bónas an chluiche a dhúbailt go {n} mura bhfuair an cailliúnaí pointe ar bith.',
   'ginrummy.rules.box': 'Is fiú {n} bpointe gach lámh a bhuaigh tú ag deireadh an chluiche.',
   'ginrummy.rules.gameBonus': 'Is fiú {n} bpointe eile an cluiche a bhuachan.',
+  'ginrummy.rules.upcardDance':
+    'Roimh an gcéad tarraingt, féadfaidh an neamhdháileoir an cárta oscailte a thógáil, agus ansin an dáileoir; má ligeann an bheirt thairis é, caithfidh an neamhdháileoir tarraingt ón stoc.',
+  'ginrummy.rules.knockOnDiscard':
+    'Cuireann cnag in ionad an chárta a chaithfeá, mar sin ní tharlaíonn sé ach ag deireadh do sheal.',
   'ginrummy.fact.deadwood': 'deadwood {value}',
   'ginrummy.fact.discardCard': 'Caith {value}',
   'ginrummy.fact.meldCards': 'Ar {value}',
@@ -547,6 +623,14 @@ export const ga: Record<string, string> = {
   'ginrummy.offer.bigGin': 'Big gin!',
   'ginrummy.offer.layOff': 'Cuir leis',
   'ginrummy.offer.finishLayoff': 'Cur leis críochnaithe',
+  'ginrummy.remedy.takeOrPassUpcard': 'Tóg an cárta oscailte, nó lig thart é.',
+  'ginrummy.remedy.drawFirst': 'Tarraing cárta ar dtús — ón stoc nó ón gcarn.',
+  'ginrummy.remedy.discardToEndTurn': 'Caith cárta amháin chun do sheal a chríochnú.',
+  'ginrummy.remedy.finishLayoff': 'Níl aon rud eile de do chuidse a oireann — críochnaigh an cur leis.',
+  'ginrummy.remedy.stockDrawForced': 'Lig sibh beirt an cárta sin thart — tarraing ón stoc.',
+  'ginrummy.remedy.drawElsewhere': 'Tá an carn sin folamh — tarraing ón gceann eile.',
+  'ginrummy.remedy.getDeadwoodDown':
+    'Is féidir leat cnag a bhualadh chomh luath is atá do chuid adhmaid mhairbh ag {n} nó níos lú.',
   'ginrummy.zone.knockerHand': 'Lámh an chnagaire',
   'ginrummy.zone.melds': 'Cumaisc',
   'ginrummy.prompt.upcardDecision': 'Tóg an cárta iompaithe, nó lig thart é',
@@ -556,10 +640,10 @@ export const ga: Record<string, string> = {
 
   // --- rummy tiles -------------------------------------------------------------
   'err.TILE_NOT_IN_HAND': 'Níl an leacán sin i do láimh',
-  'err.TILE_DOES_NOT_FIT': 'Ní oireann sé sin ansin',
+  'err.TILE_DOES_NOT_FIT': 'Ní oireann an tíl sin don tacar sin',
   'err.NO_SUCH_SET': 'Níl an cumasc sin ar an mbord',
   'err.INITIAL_MELD_ONLY': 'Roimh do chéad leagan síos ní féidir leat ach do chumaisc nua féin a atheagrú',
-  'err.TABLE_NOT_VALID': 'Níl an bord bailí fós',
+  'err.TABLE_NOT_VALID': 'Níl tacar éigin ar an mbord ina ghrúpa ná ina rith bailí',
   'err.TRAY_NOT_EMPTY': 'Tá leacáin scaoilte fós agat le cur síos',
   'err.NOTHING_PLAYED': 'Imir leacán amháin ar a laghad sula gcríochnaíonn tú do sheal',
   'err.INITIAL_MELD_TOO_LOW': 'Caithfidh do chéad leagan síos a bheith 30 pointe nó níos mó',
@@ -599,6 +683,18 @@ export const ga: Record<string, string> = {
   'rummytiles.rules.target':
     'An chéad duine a théann thar {n} bpointe tar éis do bhabhta críochnú, buann sé an cluiche.',
   'rummytiles.rules.roundLimit': 'Críochnaíonn an cluiche tar éis {n} bhabhta — buann an scór is airde.',
+  'rummytiles.remedy.emptyTheTray': 'Cuir na {n} tíl atá fós i do thráidire, nó athshocraigh an seal.',
+  'rummytiles.remedy.playFromHandOrDraw':
+    'Ní seal é athshocrú — imir tíl amháin ar a laghad as do lámh, nó tarraing.',
+  'rummytiles.remedy.fixOrReset':
+    'Caithfidh gach tacar ar an mbord a bheith ina ghrúpa nó ina rith bailí — ceartaigh iad, nó athshocraigh an seal.',
+  'rummytiles.remedy.needMorePoints':
+    'Tá {n} pointe in easnamh ar do chéad leagan chun {floor} a bhaint amach.',
+  'rummytiles.remedy.ownNewSetsOnly':
+    'Go dtí do chéad leagan de {n} pointe, ní féidir leat ach na tacair a rinne tú sa seal seo a athshocrú.',
+  'rummytiles.remedy.startANewSet': 'Cuir i dtacar nua é ina ionad sin.',
+  'rummytiles.remedy.splitLeavesThree': 'Roinn rith ionas go gcoinníonn an dá leath {n} tíl ar a laghad.',
+  'rummytiles.remedy.matchTheJoker': 'Malartaigh an fear fiáin ar an tíl bheacht a sheasann sé di.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Linn {n}',
   'rummytiles.header.round': 'Babhta {n}',
@@ -679,6 +775,20 @@ export const ga: Record<string, string> = {
     'An té a bhfuil an líon is mó slisní aige ag an deireadh, buann sé an cluiche.',
   'blackjack.rules.bustedOut':
     'Suíochán nach féidir leis íosmhéid {n} a chlúdach a thuilleadh, fanann sé amuigh don chuid eile den chluiche.',
+  'blackjack.rules.roundOrder':
+    'Téann babhta in ord: geallta síos, cártaí dáilte, árachas má thaispeánann an dáileoir aon, ansin imríonn gach suíochán a lámh ina sheal.',
+  'blackjack.rules.oneStakePerRound':
+    'Geall amháin in aghaidh an bhabhta — a luaithe atá sé síos, ní féidir é a athrú.',
+  'blackjack.rules.stakeFromStack': 'Ní féidir leat ach sceallóga atá agat i ndáiríre a chur síos.',
+  'blackjack.remedy.putAStakeUp': 'Cuir geall síos ar dtús — {n} nó níos mó.',
+  'blackjack.remedy.answerInsurance': 'Abair sea nó ní hea leis an árachas ar dtús.',
+  'blackjack.remedy.playThisHand': 'Imir an lámh atá os do chomhair — buail nó seas.',
+  'blackjack.remedy.stakeIsUp': 'Tá do gheall síos cheana — fan leis an dáileadh.',
+  'blackjack.remedy.stakeAtLeast': 'Cuir {n} ar a laghad síos.',
+  'blackjack.remedy.stakeAtMost': 'Cuir {n} ar a mhéad síos — sin do charn iomlán.',
+  'blackjack.remedy.sayHowMuch': 'Abair cé mhéad atá le cur síos — {n} nó níos mó.',
+  'blackjack.remedy.hitOrStand': 'Buail, nó seas.',
+  'blackjack.remedy.waitForNextRound': 'Tá tú amuigh as an mbabhta seo — fan leis an gcéad dáileadh eile.',
 
   'blackjack.zone.dealer': 'Dáileoir',
   'blackjack.zone.box': 'Lámh',
@@ -933,6 +1043,7 @@ export const ga: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Gach rud is féidir leis an bhfreastalaí seo a óstáil',
   'lobby.games.bots': 'Botanna',
+  'lobby.games.setup': 'Socruithe',
   'lobby.games.playBot': 'Imir in aghaidh bota',
   'lobby.games.playBots': 'Imir in aghaidh {n} bota',
   'lobby.games.openTable': 'Oscail bord',

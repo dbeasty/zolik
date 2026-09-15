@@ -5,7 +5,7 @@
 export const bg: Record<string, string> = {
   // --- engine error codes (rules.RulesErrorCode) ---------------------------
   'err.NOT_YOUR_TURN': 'Не е твой ред',
-  'err.WRONG_PHASE': 'В момента не е възможно',
+  'err.WRONG_PHASE': 'Не в тази част от реда',
   'err.MUST_DRAW_FIRST': 'Изтегли карта, преди да свалиш',
   'err.GAME_SUSPENDED': 'Играта е на пауза',
   'err.GAME_NOT_ACTIVE': 'Играта не тече',
@@ -128,11 +128,17 @@ export const bg: Record<string, string> = {
   'prsi.rules.aces': 'Изиграй асо и ходът на следващия играч се пропуска.',
   'prsi.rules.queens': 'Изиграй дама и назови боята, която продължава.',
   'prsi.rules.end': 'Мачът свършва в мига, в който нечия ръка е празна.',
+  'prsi.remedy.matchOrDraw': 'Играй карта {suit} или такава, която пасва на {card} — иначе тегли.',
+  'prsi.remedy.answerSevenOrTake': 'Отговори със своя седмица или вземи {n} карти.',
+  'prsi.remedy.playOrDraw': 'Няма пропуснат ред за теб — играй карта {suit} или тегли.',
+  'prsi.remedy.nameASuit': 'Кажи коя боя следва след дамата ти.',
+  'prsi.remedy.nothingLeftToDraw': 'Няма какво да се тегли — играй карта, ако можеш.',
 
   'canasta.rules.section.goal': 'Цел',
   'canasta.rules.section.setup': 'Подготовка',
   'canasta.rules.section.melding': 'Сваляне',
   'canasta.rules.section.end': 'Как свършва мачът',
+  'canasta.rules.section.turn': 'Твоят ред',
   'canasta.rules.goal': 'Играе се по двойки; първата страна, стигнала {n} точки, печели мача.',
   'canasta.rules.deck': 'Играе се с {value} карти — {decks} тестета плюс жокери.',
   'canasta.rules.deal': 'Всеки играч получава {n} карти.',
@@ -152,6 +158,31 @@ export const bg: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Първото ти сваляне трябва да достигне минимум точки, който расте с резултата ти: {negative} под нулата, {low} до 1500, {mid} до 3000, {high} над това.',
   'canasta.rules.meldFloorBandsFive': 'Първата ти комбинация трябва да достигне точков минимум, който расте с резултата ти: {negative} под нулата, {low} до 1500, {mid} до 3000, {high} до 7000 и {top} над това.',
+  'canasta.rules.turn':
+    'Редът е едно вземане в ръката — теглене от тестето или взимане на цялото бунище — после толкова комбинации, колкото искаш, и накрая една хвърлена карта.',
+  'canasta.rules.turnDiscard':
+    'Хвърлянето е това, което завършва реда, затова винаги ти трябва карта в излишък за него.',
+  'canasta.rules.pileTopCard':
+    'Бунището може да се вземе само с ход, който веднага използва горната му карта.',
+  'canasta.rules.pileBlocked':
+    'Черна тройка отгоре блокира бунището — никой не може да го вземе, докато не бъде затрупана, а останала в ръката струва {n}.',
+  'canasta.rules.pileFrozenByWild':
+    'Заровена жокер карта замразява бунището срещу всички: тогава взимането му струва две естествени карти от твоята ръка, същия ранг като горната.',
+  'canasta.rules.meldShape': 'Комбинацията е {n} или повече карти от един и същи ранг.',
+  'canasta.rules.wildLimit':
+    'Комбинацията може да съдържа най-много {wilds} жокер карти и никога по-малко от {naturals} естествени.',
+  'canasta.rules.wildRatio':
+    'Комбинацията иска {n} естествени карти за всяка жокер карта, и никога повече от {wilds} жокера общо.',
+  'canasta.rules.oneMeldPerRank':
+    'Твоята страна държи по една комбинация от всеки ранг — следващите карти от този ранг се добавят към нея.',
+  'canasta.rules.meldsPerRankUnlimited': 'Твоята страна може да има няколко комбинации от един и същи ранг.',
+  'canasta.rules.canastaCloses': 'Канаста от {n} карти е завършена и не приема повече.',
+  'canasta.rules.meldsAreShared':
+    'Комбинациите са на отбора: всеки от двамата партньори може да ги разширява, а чуждите не се пипат.',
+  'canasta.rules.layOffAfterOpening':
+    'Докато страната ти не е направила първата си комбинация, тя не може да добавя карти към нищо на масата.',
+  'canasta.rules.goOutKeepsACard':
+    'Винаги трябва да можеш да довършиш реда си, затова не изиграваш цялата си ръка, освен ако това е ходът, с който излизаш.',
   'canasta.rules.oneCanastaToGoOut': 'Една завършена канаста стига, за да излезе страната ти.',
   'canasta.rules.twoCanastasToGoOut':
     'Страната ти се нуждае от две завършени канасти, преди да може да излезе.',
@@ -172,6 +203,19 @@ export const bg: Record<string, string> = {
   'holdem.rules.lastPlayerStanding': 'Играе се, докато едно място не държи всички чипове.',
   'holdem.rules.mostChipsWins': 'Който има най-много чипове при спиране на играта, печели мача.',
   'holdem.rules.handLimit': 'Играта спира след {n} раздавания.',
+  'holdem.rules.checkOrCall':
+    'Може да чекнеш само когато не дължиш нищо; иначе плащаш, вдигаш или се отказваш.',
+  'holdem.rules.minRaise': 'Вдигането трябва да е поне толкова голямо, колкото последното.',
+  'holdem.rules.allIn':
+    'Никога не можеш да вкараш повече от стека си, а всичко-в е винаги позволено — дори когато е по-малко от пълно вдигане.',
+  'holdem.rules.foldedOut': 'Откажеш ли се, си извън играта до следващото раздаване.',
+  'holdem.remedy.callOrFold': 'Дължиш {n} — плати, вдигни или се откажи.',
+  'holdem.remedy.checkOrRaise': 'Нищо не се дължи — чекни или вдигни.',
+  'holdem.remedy.callAllInOrFold': 'Стекът ти не стига над залога — плати {n} с всичко-в или се откажи.',
+  'holdem.remedy.raiseAtLeast': 'Вдигни поне до {n}.',
+  'holdem.remedy.raiseAtMost': 'Вдигни най-много до {n} — това е целият ти стек.',
+  'holdem.remedy.nameAnAmount': 'Кажи до колко вдигаш — между {min} и {max}.',
+  'holdem.remedy.waitForNextHand': 'Извън тази ръка си — изчакай следващото раздаване.',
 
   // --- header --------------------------------------------------------------
   'header.deal': 'Раздаване {n}',
@@ -281,12 +325,14 @@ export const bg: Record<string, string> = {
   'err.CARD_DOES_NOT_FIT': 'Тази карта не съвпада нито по боя, нито по стойност',
   'err.SUIT_REQUIRED': 'Назови боята, която продължава',
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Отговори със седмица или вземи картите',
+  'err.NOTHING_TO_SKIP': 'Няма ред за пропускане',
   'err.NOTHING_TO_DRAW': 'Не е останало нищо за теглене',
   'err.PILE_EMPTY': 'Купчината е празна',
   'err.PILE_BLOCKED': 'Купчината е блокирана — отгоре има черна тройка',
   'err.PILE_FROZEN': 'Купчината е замразена — нужни са ти две естествени карти със стойността на горната',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'В тази игра комбинация на масата не може да вземе купчината — нужни са ти две карти от ръката',
-  'err.TOP_CARD_UNUSABLE': 'Не можеш да използваш горната карта',
+  'err.CAPTURE_NEEDS_TWO_CARDS': 'Взимането на бунището струва две карти от ръката ти',
+  'err.TOP_CARD_UNUSABLE': 'Твоята страна не може да използва горната карта',
   'err.MELD_CLOSED': 'Тази комбинация е пълна и затворена',
   'err.MELD_TOO_SMALL': 'Комбинацията се нуждае от повече карти',
   'err.MELD_TOO_LARGE': 'Тази комбинация не може да поеме повече карти',
@@ -308,7 +354,7 @@ export const bg: Record<string, string> = {
   'err.CANNOT_GO_OUT_YET': 'Страната ти се нуждае от завършена канаста, преди да може да излезе',
   'err.NOTHING_TO_CALL': 'Няма залог за плащане',
   'err.CANNOT_CHECK': 'Не можеш да чекнеш — има залог, на който да отговориш',
-  'err.CANNOT_RAISE': 'Тук не можеш да вдигаш',
+  'err.CANNOT_RAISE': 'Не можеш да вдигнеш — стекът ти не стига над залога',
   'err.RAISE_TOO_SMALL': 'Вдигането трябва да е поне колкото предишното',
   'err.NOT_ENOUGH_CHIPS': 'Нямаш толкова чипове',
   'err.AMOUNT_REQUIRED': 'Кажи колко',
@@ -398,6 +444,30 @@ export const bg: Record<string, string> = {
   'status.teamScore': 'Отбор {team}: {value}',
   'canasta.offer.rank': 'Стойност',
   'canasta.offer.sequence': 'Последователност',
+  'canasta.remedy.drawOrTakePile': 'Първо тегли от тестето или вземи бунището, после редиш комбинации.',
+  'canasta.remedy.meldOrDiscard': 'Вече изтегли — сложи комбинация или хвърли карта, за да завършиш реда.',
+  'canasta.remedy.drawFromStock': 'Тегли от тестето вместо това.',
+  'canasta.remedy.takePileInstead': 'Тестето свърши — вземи бунището вместо това.',
+  'canasta.remedy.pileBlocked': 'Тегли от тестето — черната тройка отгоре държи бунището затворено.',
+  'canasta.remedy.pileFrozen':
+    'Тегли от тестето или вземи бунището с две естествени карти от ръката си, които пасват на {card}.',
+  'canasta.remedy.topCardUnusable': 'Тегли от тестето — твоята страна няма полза от {card} отгоре.',
+  'canasta.remedy.captureFromHand':
+    'Вземи бунището с две карти от собствената си ръка, които пасват на {card}.',
+  'canasta.remedy.needTwoMatching':
+    'Трябват ти две карти от ръката, които пасват на {card} — иначе тегли от тестето.',
+  'canasta.remedy.needMorePoints': 'На първата комбинация на твоята страна ѝ липсват {n} точки.',
+  'canasta.remedy.openFirst': 'Сложи първата комбинация на твоята страна, преди да добавяш карти.',
+  'canasta.remedy.needCanastas':
+    'На твоята страна ѝ трябват още {n} канасти от по {size} карти, преди да излезе.',
+  'canasta.remedy.keepACard': 'Запази една карта, с която да хвърлиш.',
+  'canasta.remedy.layOffInstead': 'Добави ги към комбинацията, която твоята страна вече има.',
+  'canasta.remedy.meldClosed':
+    'Тази комбинация е завършена при {n} карти — започни друга или добави някъде другаде.',
+  'canasta.remedy.discardNotARedThree': 'Хвърли нещо друго, не червена тройка.',
+  'canasta.remedy.blackThreesOnTheWayOut':
+    'Черните тройки се полагат само като ходът, с който изпразваш ръката си.',
+  'canasta.remedy.ownMeldsOnly': 'Добавяй само към комбинациите на твоята страна.',
   'badge.naturalCanasta': 'Чиста канаста',
   'badge.mixedCanasta': 'Нечиста канаста',
   'badge.samba': 'Самба',
@@ -517,6 +587,9 @@ export const bg: Record<string, string> = {
   'ginrummy.rules.shutout': 'Бонусът за мача се удвоява до {n}, ако губещият не е спечелил нито една точка.',
   'ginrummy.rules.box': 'Всяко спечелено раздаване струва {n} точки в края на мача.',
   'ginrummy.rules.gameBonus': 'Спечелването на мача носи още {n} точки.',
+  'ginrummy.rules.upcardDance':
+    'Преди първото теглене раздаващият противник може да вземе обърнатата карта, после раздаващият; ако и двамата откажат, недаващият тегли от тестето.',
+  'ginrummy.rules.knockOnDiscard': 'Чукането замества хвърлянето ти, затова става само в края на реда ти.',
   'ginrummy.fact.deadwood': 'дедуд {value}',
   'ginrummy.fact.discardCard': 'Изхвърли {value}',
   'ginrummy.fact.meldCards': 'Към {value}',
@@ -538,6 +611,13 @@ export const bg: Record<string, string> = {
   'ginrummy.offer.bigGin': 'Голям джин!',
   'ginrummy.offer.layOff': 'Прикачи',
   'ginrummy.offer.finishLayoff': 'Готово с прикачването',
+  'ginrummy.remedy.takeOrPassUpcard': 'Вземи обърнатата карта или я подмини.',
+  'ginrummy.remedy.drawFirst': 'Първо изтегли карта — от тестето или от бунището.',
+  'ginrummy.remedy.discardToEndTurn': 'Хвърли една карта, за да завършиш реда си.',
+  'ginrummy.remedy.finishLayoff': 'Нищо повече от твоите карти не пасва — приключи с добавянето.',
+  'ginrummy.remedy.stockDrawForced': 'И двамата подминахте тази карта — тегли от тестето.',
+  'ginrummy.remedy.drawElsewhere': 'Тази купчина е празна — тегли от другата.',
+  'ginrummy.remedy.getDeadwoodDown': 'Можеш да чукнеш, щом мъртвият ти товар падне до {n} или по-малко.',
   'ginrummy.zone.knockerHand': 'Ръката на чукналия',
   'ginrummy.zone.melds': 'Комбинации',
   'ginrummy.prompt.upcardDecision': 'Вземи обърнатата карта или пасувай',
@@ -547,11 +627,11 @@ export const bg: Record<string, string> = {
 
   // --- rummy tiles -------------------------------------------------------------
   'err.TILE_NOT_IN_HAND': 'Това плочка не е в ръката ти',
-  'err.TILE_DOES_NOT_FIT': 'Това не пасва там',
+  'err.TILE_DOES_NOT_FIT': 'Тази плочка не пасва в тази редица',
   'err.NO_SUCH_SET': 'Тази комбинация не е на масата',
   'err.INITIAL_MELD_ONLY':
     'Преди първото си сваляне можеш да пренареждаш само собствените си нови комбинации',
-  'err.TABLE_NOT_VALID': 'Масата още не е валидна',
+  'err.TABLE_NOT_VALID': 'Някоя редица на масата не е валидна група или серия',
   'err.TRAY_NOT_EMPTY': 'Още имаш свободни плочки за поставяне',
   'err.NOTHING_PLAYED': 'Изиграй поне една плочка, преди да завършиш хода си',
   'err.INITIAL_MELD_TOO_LOW': 'Първото ти сваляне трябва да струва 30 точки или повече',
@@ -589,6 +669,18 @@ export const bg: Record<string, string> = {
     'Ако запасът свърши и никой не може да играе, рундът приключва без победител — всяка ръка просто се точкува.',
   'rummytiles.rules.target': 'Първият, който мине {n} точки след края на рунд, печели мача.',
   'rummytiles.rules.roundLimit': 'Мачът свършва след {n} рунда — печели най-високият резултат.',
+  'rummytiles.remedy.emptyTheTray': 'Постави {n}-те плочки, които още са в чекмеджето, или нулирай реда.',
+  'rummytiles.remedy.playFromHandOrDraw':
+    'Само пренареждането не е ред — сложи поне една плочка от ръката си или тегли.',
+  'rummytiles.remedy.fixOrReset':
+    'Всяка редица на масата трябва да е валидна група или серия — оправи ги или нулирай реда.',
+  'rummytiles.remedy.needMorePoints': 'На първото ти излагане му липсват {n} точки до {floor}.',
+  'rummytiles.remedy.ownNewSetsOnly':
+    'Докато не изложиш първите си {n} точки, може да пренареждаш само редиците, които си направил този ред.',
+  'rummytiles.remedy.startANewSet': 'Сложи я в нова редица вместо това.',
+  'rummytiles.remedy.splitLeavesThree':
+    'Раздели серията така, че и двете половини да запазят поне {n} плочки.',
+  'rummytiles.remedy.matchTheJoker': 'Замени жокера точно с плочката, която той замества.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Запас {n}',
   'rummytiles.header.round': 'Рунд {n}',
@@ -668,6 +760,19 @@ export const bg: Record<string, string> = {
   'blackjack.rules.mostChipsWins': 'Който има най-много чипове накрая, печели мача.',
   'blackjack.rules.bustedOut':
     'Място, което вече не може да покрие минимума от {n}, стои настрана до края на мача.',
+  'blackjack.rules.roundOrder':
+    'Раздаването върви по ред: залози, раздадени карти, застраховка ако дилърът показва асо, после всяко място играе ръката си поред.',
+  'blackjack.rules.oneStakePerRound': 'Един залог на раздаване — щом е сложен, не се променя.',
+  'blackjack.rules.stakeFromStack': 'Може да залагаш само чипове, които наистина имаш.',
+  'blackjack.remedy.putAStakeUp': 'Първо направи залог — {n} или повече.',
+  'blackjack.remedy.answerInsurance': 'Първо кажи да или не на застраховката.',
+  'blackjack.remedy.playThisHand': 'Играй ръката пред себе си — тегли или спри.',
+  'blackjack.remedy.stakeIsUp': 'Залогът ти вече е сложен — изчакай раздаването.',
+  'blackjack.remedy.stakeAtLeast': 'Заложи поне {n}.',
+  'blackjack.remedy.stakeAtMost': 'Заложи най-много {n} — това е целият ти стек.',
+  'blackjack.remedy.sayHowMuch': 'Кажи колко залагаш — {n} или повече.',
+  'blackjack.remedy.hitOrStand': 'Тегли или спри.',
+  'blackjack.remedy.waitForNextRound': 'Извън това раздаване си — изчакай следващото.',
 
   'blackjack.zone.dealer': 'Крупие',
   'blackjack.zone.box': 'Ръка',
@@ -916,6 +1021,7 @@ export const bg: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Всичко, което този сървър може да предложи',
   'lobby.games.bots': 'Ботове',
+  'lobby.games.setup': 'Настройки',
   'lobby.games.playBot': 'Играй срещу бот',
   'lobby.games.playBots': 'Играй срещу {n} бота',
   'lobby.games.openTable': 'Отвори маса',

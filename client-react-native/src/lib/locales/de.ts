@@ -5,7 +5,7 @@
 export const de: Record<string, string> = {
   // --- engine error codes (rules.RulesErrorCode) ---------------------------
   'err.NOT_YOUR_TURN': 'Du bist nicht an der Reihe',
-  'err.WRONG_PHASE': 'Gerade nicht möglich',
+  'err.WRONG_PHASE': 'Nicht an dieser Stelle des Zuges',
   'err.MUST_DRAW_FIRST': 'Zieh eine Karte, bevor du auslegst',
   'err.GAME_SUSPENDED': 'Das Spiel pausiert',
   'err.GAME_NOT_ACTIVE': 'Das Spiel läuft nicht',
@@ -129,11 +129,17 @@ export const de: Record<string, string> = {
   'prsi.rules.aces': 'Spielst du ein Ass, wird der nächste Spieler übersprungen.',
   'prsi.rules.queens': 'Spiel eine Dame und nenne die Farbe, die weitergeht.',
   'prsi.rules.end': 'Die Partie endet in dem Moment, in dem jemandes Hand leer ist.',
+  'prsi.remedy.matchOrDraw': 'Spiel eine {suit}-Karte oder eine, die zu {card} passt — sonst zieh.',
+  'prsi.remedy.answerSevenOrTake': 'Antworte mit einer eigenen Sieben, oder nimm die {n} Karten.',
+  'prsi.remedy.playOrDraw': 'Es wartet kein Aussetzen auf dich — spiel eine {suit}-Karte oder zieh.',
+  'prsi.remedy.nameASuit': 'Sag, welche Farbe auf deine Dame folgt.',
+  'prsi.remedy.nothingLeftToDraw': 'Es ist nichts mehr zum Ziehen da — spiel eine Karte, wenn du kannst.',
 
   'canasta.rules.section.goal': 'Ziel',
   'canasta.rules.section.setup': 'Vorbereitung',
   'canasta.rules.section.melding': 'Auslegen',
   'canasta.rules.section.end': 'Wie die Partie endet',
+  'canasta.rules.section.turn': 'Dein Zug',
   'canasta.rules.goal':
     'Gespielt wird in Partnerschaften; die erste Seite mit {n} Punkten gewinnt die Partie.',
   'canasta.rules.deck': 'Gespielt mit {value} Karten — {decks} Blätter plus Joker.',
@@ -154,6 +160,31 @@ export const de: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Deine erste Auslage muss einen Mindestwert erreichen, der mit deinem Punktestand steigt: {negative} unter null, {low} bis 1500, {mid} bis 3000, {high} darüber.',
   'canasta.rules.meldFloorBandsFive': 'Deine erste Auslage muss einen Mindestwert erreichen, der mit deinem Punktestand steigt: {negative} unter null, {low} bis 1500, {mid} bis 3000, {high} bis 7000, darüber {top}.',
+  'canasta.rules.turn':
+    'Ein Zug ist ein Griff auf die Hand — vom Stapel ziehen oder den ganzen Ablagestapel nehmen — dann beliebige Auslagen, und zuletzt eine abgelegte Karte.',
+  'canasta.rules.turnDiscard':
+    'Ein Zug endet mit dem Ablegen, also brauchst du dafür immer eine Karte übrig.',
+  'canasta.rules.pileTopCard':
+    'Der Ablagestapel lässt sich nur mit einem Zug nehmen, der seine oberste Karte sofort verwendet.',
+  'canasta.rules.pileBlocked':
+    'Eine schwarze Drei obenauf sperrt den Stapel — niemand darf ihn nehmen, bis sie zugedeckt ist — und auf der Hand kostet sie {n}.',
+  'canasta.rules.pileFrozenByWild':
+    'Eine vergrabene wilde Karte friert den Stapel für alle ein: ihn zu nehmen kostet dann zwei natürliche Karten aus deiner Hand im Wert der obersten Karte.',
+  'canasta.rules.meldShape': 'Eine Auslage sind {n} oder mehr Karten desselben Werts.',
+  'canasta.rules.wildLimit':
+    'Eine Auslage darf höchstens {wilds} wilde Karten enthalten und nie weniger als {naturals} natürliche.',
+  'canasta.rules.wildRatio':
+    'Eine Auslage braucht {n} natürliche Karten je wilder Karte und nie mehr als {wilds} wilde insgesamt.',
+  'canasta.rules.oneMeldPerRank':
+    'Deine Seite hat je Wert eine Auslage — weitere Karten dieses Werts werden daran angelegt.',
+  'canasta.rules.meldsPerRankUnlimited': 'Deine Seite darf mehrere Auslagen desselben Werts haben.',
+  'canasta.rules.canastaCloses': 'Eine Canasta aus {n} Karten ist fertig und nimmt keine weiteren auf.',
+  'canasta.rules.meldsAreShared':
+    'Auslagen gehören dem Team: beide Partner dürfen sie erweitern, und die der Gegenseite bleiben unberührt.',
+  'canasta.rules.layOffAfterOpening':
+    'Solange deine Seite ihre erste Auslage nicht gemacht hat, darf sie nichts auf dem Tisch ergänzen.',
+  'canasta.rules.goOutKeepsACard':
+    'Du musst deinen Zug immer beenden können, also legst du nie die ganze Hand aus — außer es ist genau der Zug, mit dem du rausgehst.',
   'canasta.rules.oneCanastaToGoOut': 'Eine fertige Canasta genügt, damit deine Seite hinausgehen darf.',
   'canasta.rules.twoCanastasToGoOut':
     'Deine Seite braucht zwei fertige Canastas, bevor sie hinausgehen darf.',
@@ -176,6 +207,20 @@ export const de: Record<string, string> = {
   'holdem.rules.lastPlayerStanding': 'Gespielt wird, bis ein Platz alle Chips hält.',
   'holdem.rules.mostChipsWins': 'Wer bei Spielende die meisten Chips hält, gewinnt die Partie.',
   'holdem.rules.handLimit': 'Nach {n} Blättern ist Schluss.',
+  'holdem.rules.checkOrCall':
+    'Schieben darfst du nur, wenn du nichts schuldest; sonst mitgehen, erhöhen oder passen.',
+  'holdem.rules.minRaise': 'Eine Erhöhung muss mindestens so groß sein wie die vorige.',
+  'holdem.rules.allIn':
+    'Mehr als deinen Stack kannst du nie setzen, und All-in ist immer erlaubt — auch wenn es weniger als eine volle Erhöhung ist.',
+  'holdem.rules.foldedOut': 'Wer passt, ist bis zur nächsten Austeilung draußen.',
+  'holdem.remedy.callOrFold': 'Du schuldest {n} — geh mit, erhöhe oder passe.',
+  'holdem.remedy.checkOrRaise': 'Es steht nichts aus — schiebe oder erhöhe.',
+  'holdem.remedy.callAllInOrFold':
+    'Dein Stack kommt nicht über den Einsatz — geh mit {n} All-in mit, oder passe.',
+  'holdem.remedy.raiseAtLeast': 'Erhöhe auf mindestens {n}.',
+  'holdem.remedy.raiseAtMost': 'Erhöhe höchstens auf {n} — das ist dein ganzer Stack.',
+  'holdem.remedy.nameAnAmount': 'Sag, auf wie viel du erhöhst — zwischen {min} und {max}.',
+  'holdem.remedy.waitForNextHand': 'Du bist aus dieser Hand raus — warte auf die nächste Austeilung.',
 
   // --- header --------------------------------------------------------------
   'header.deal': 'Gabe {n}',
@@ -285,13 +330,15 @@ export const de: Record<string, string> = {
   'err.CARD_DOES_NOT_FIT': 'Diese Karte passt weder in Farbe noch im Wert',
   'err.SUIT_REQUIRED': 'Nenne die Farbe, die weitergeht',
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Kontere mit einer Sieben oder nimm die Karten',
+  'err.NOTHING_TO_SKIP': 'Es gibt kein Aussetzen zu übernehmen',
   'err.NOTHING_TO_DRAW': 'Es ist nichts mehr zum Ziehen da',
   'err.PILE_EMPTY': 'Der Stapel ist leer',
   'err.PILE_BLOCKED': 'Der Stapel ist blockiert — oben liegt eine schwarze Drei',
   'err.PILE_FROZEN':
     'Der Stapel ist eingefroren — du brauchst zwei natürliche Karten im Wert der obersten Karte',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'In diesem Spiel kann eine Auslage auf dem Tisch den Stapel nicht nehmen — du brauchst zwei Karten von der Hand',
-  'err.TOP_CARD_UNUSABLE': 'Du kannst die oberste Karte nicht verwenden',
+  'err.CAPTURE_NEEDS_TWO_CARDS': 'Den Ablagestapel zu nehmen kostet zwei Karten aus deiner Hand',
+  'err.TOP_CARD_UNUSABLE': 'Deine Seite kann die oberste Karte nicht verwenden',
   'err.MELD_CLOSED': 'Diese Auslage ist vollständig und geschlossen',
   'err.MELD_TOO_SMALL': 'Eine Auslage braucht mehr Karten als das',
   'err.MELD_TOO_LARGE': 'Diese Auslage kann keine weiteren Karten aufnehmen',
@@ -313,7 +360,7 @@ export const de: Record<string, string> = {
   'err.CANNOT_GO_OUT_YET': 'Deine Seite braucht eine fertige Canasta, bevor sie hinausgehen kann',
   'err.NOTHING_TO_CALL': 'Es gibt keinen Einsatz mitzugehen',
   'err.CANNOT_CHECK': 'Du kannst nicht schieben — es steht ein Einsatz',
-  'err.CANNOT_RAISE': 'Hier kannst du nicht erhöhen',
+  'err.CANNOT_RAISE': 'Du kannst nicht erhöhen — dein Stack kommt nicht über den Einsatz',
   'err.RAISE_TOO_SMALL': 'Eine Erhöhung muss mindestens so hoch sein wie die letzte',
   'err.NOT_ENOUGH_CHIPS': 'So viele Chips hast du nicht',
   'err.AMOUNT_REQUIRED': 'Sag, wie viel',
@@ -403,6 +450,31 @@ export const de: Record<string, string> = {
   'status.teamScore': 'Team {team}: {value}',
   'canasta.offer.rank': 'Wert',
   'canasta.offer.sequence': 'Sequenz',
+  'canasta.remedy.drawOrTakePile': 'Zieh erst vom Stapel oder nimm den Ablagestapel, bevor du auslegst.',
+  'canasta.remedy.meldOrDiscard':
+    'Du hast schon gezogen — leg eine Auslage, oder lege eine Karte ab und beende den Zug.',
+  'canasta.remedy.drawFromStock': 'Zieh stattdessen vom Stapel.',
+  'canasta.remedy.takePileInstead': 'Der Stapel ist leer — nimm stattdessen den Ablagestapel.',
+  'canasta.remedy.pileBlocked': 'Zieh vom Stapel — die schwarze Drei obenauf hält den Ablagestapel zu.',
+  'canasta.remedy.pileFrozen':
+    'Zieh vom Stapel, oder nimm den Ablagestapel mit zwei natürlichen Karten aus deiner Hand, die zu {card} passen.',
+  'canasta.remedy.topCardUnusable': 'Zieh vom Stapel — deine Seite kann mit {card} obenauf nichts anfangen.',
+  'canasta.remedy.captureFromHand':
+    'Nimm den Ablagestapel mit zwei Karten aus der eigenen Hand, die zu {card} passen.',
+  'canasta.remedy.needTwoMatching':
+    'Du brauchst zwei Karten aus der Hand, die zu {card} passen — sonst zieh vom Stapel.',
+  'canasta.remedy.needMorePoints': 'Der ersten Auslage deiner Seite fehlen {n} Punkte.',
+  'canasta.remedy.openFirst': 'Leg zuerst die Eröffnungsauslage deiner Seite, bevor du anlegst.',
+  'canasta.remedy.needCanastas':
+    'Deiner Seite fehlen noch {n} Canastas zu je {size} Karten, um rausgehen zu können.',
+  'canasta.remedy.keepACard': 'Behalte eine Karte zum Ablegen übrig.',
+  'canasta.remedy.layOffInstead': 'Leg sie an die Auslage an, die deine Seite schon hat.',
+  'canasta.remedy.meldClosed':
+    'Diese Auslage ist bei {n} Karten fertig — fang eine neue an oder leg woanders an.',
+  'canasta.remedy.discardNotARedThree': 'Leg etwas anderes ab als eine rote Drei.',
+  'canasta.remedy.blackThreesOnTheWayOut':
+    'Schwarze Dreien werden nur mit dem Zug ausgelegt, der deine Hand leert.',
+  'canasta.remedy.ownMeldsOnly': 'Leg nur an Auslagen deiner eigenen Seite an.',
   'badge.naturalCanasta': 'Reine Canasta',
   'badge.mixedCanasta': 'Unreine Canasta',
   'badge.samba': 'Samba',
@@ -523,6 +595,10 @@ export const de: Record<string, string> = {
     'Der Partiebonus verdoppelt sich auf {n}, wenn der Verlierer keinen einzigen Punkt erzielt hat.',
   'ginrummy.rules.box': 'Jedes gewonnene Blatt ist am Ende der Partie {n} Punkte wert.',
   'ginrummy.rules.gameBonus': 'Der Sieg in der Partie bringt weitere {n} Punkte.',
+  'ginrummy.rules.upcardDance':
+    'Vor dem ersten Zug darf der Nichtgeber die offene Karte nehmen, danach der Geber; lehnen beide ab, muss der Nichtgeber vom Stapel ziehen.',
+  'ginrummy.rules.knockOnDiscard':
+    'Ein Klopfen ersetzt dein Ablegen, kann also nur am Ende deines Zuges kommen.',
   'ginrummy.fact.deadwood': '{value} Deadwood',
   'ginrummy.fact.discardCard': '{value} ablegen',
   'ginrummy.fact.meldCards': 'An {value}',
@@ -544,6 +620,13 @@ export const de: Record<string, string> = {
   'ginrummy.offer.bigGin': 'Big Gin!',
   'ginrummy.offer.layOff': 'Anlegen',
   'ginrummy.offer.finishLayoff': 'Anlegen beendet',
+  'ginrummy.remedy.takeOrPassUpcard': 'Nimm die offene Karte oder lass sie weiter.',
+  'ginrummy.remedy.drawFirst': 'Zieh zuerst eine Karte — vom Stapel oder vom Ablagestapel.',
+  'ginrummy.remedy.discardToEndTurn': 'Leg eine Karte ab, um deinen Zug zu beenden.',
+  'ginrummy.remedy.finishLayoff': 'Nichts mehr von dir passt — beende das Anlegen.',
+  'ginrummy.remedy.stockDrawForced': 'Ihr habt beide diese Karte gehen lassen — zieh vom Stapel.',
+  'ginrummy.remedy.drawElsewhere': 'Dieser Stapel ist leer — zieh vom anderen.',
+  'ginrummy.remedy.getDeadwoodDown': 'Klopfen kannst du, sobald dein Restwert auf {n} oder weniger fällt.',
   'ginrummy.zone.knockerHand': 'Geklopftes Blatt',
   'ginrummy.zone.melds': 'Auslagen',
   'ginrummy.prompt.upcardDecision': 'Nimm die offene Karte oder passe',
@@ -553,10 +636,10 @@ export const de: Record<string, string> = {
 
   // --- rummy tiles -------------------------------------------------------------
   'err.TILE_NOT_IN_HAND': 'Dieser Stein ist nicht auf deiner Hand',
-  'err.TILE_DOES_NOT_FIT': 'Das passt dort nicht',
+  'err.TILE_DOES_NOT_FIT': 'Dieser Stein passt nicht in diese Auslage',
   'err.NO_SUCH_SET': 'Diese Gruppe liegt nicht auf dem Tisch',
   'err.INITIAL_MELD_ONLY': 'Vor deiner Erstauslage darfst du nur deine eigenen neuen Gruppen umlegen',
-  'err.TABLE_NOT_VALID': 'Der Tisch ist noch nicht gültig',
+  'err.TABLE_NOT_VALID': 'Eine Auslage auf dem Tisch ist weder gültige Gruppe noch Reihe',
   'err.TRAY_NOT_EMPTY': 'Du hast noch lose Steine zu platzieren',
   'err.NOTHING_PLAYED': 'Leg mindestens einen Stein, bevor du deinen Zug beendest',
   'err.INITIAL_MELD_TOO_LOW': 'Deine Erstauslage muss 30 Punkte oder mehr wert sein',
@@ -596,6 +679,19 @@ export const de: Record<string, string> = {
   'rummytiles.rules.target':
     'Wer nach Ende einer Runde als Erster {n} Punkte überschreitet, gewinnt die Partie.',
   'rummytiles.rules.roundLimit': 'Die Partie endet nach {n} Runden — die höchste Punktzahl gewinnt.',
+  'rummytiles.remedy.emptyTheTray':
+    'Leg die {n} Steine ab, die noch im Fach liegen, oder setz den Zug zurück.',
+  'rummytiles.remedy.playFromHandOrDraw':
+    'Umsortieren allein ist kein Zug — leg mindestens einen Stein aus der Hand, oder zieh.',
+  'rummytiles.remedy.fixOrReset':
+    'Jede Auslage auf dem Tisch muss eine gültige Gruppe oder Reihe sein — bring sie in Ordnung oder setz den Zug zurück.',
+  'rummytiles.remedy.needMorePoints': 'Deiner ersten Auslage fehlen {n} Punkte bis {floor}.',
+  'rummytiles.remedy.ownNewSetsOnly':
+    'Bis du deine ersten {n} Punkte ausgelegt hast, darfst du nur die Auslagen umbauen, die du in diesem Zug gemacht hast.',
+  'rummytiles.remedy.startANewSet': 'Leg ihn stattdessen in eine neue Auslage.',
+  'rummytiles.remedy.splitLeavesThree':
+    'Teile die Reihe so, dass beiden Hälften mindestens {n} Steine bleiben.',
+  'rummytiles.remedy.matchTheJoker': 'Tausch den Joker gegen genau den Stein, für den er steht.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Vorrat {n}',
   'rummytiles.header.round': 'Runde {n}',
@@ -675,6 +771,19 @@ export const de: Record<string, string> = {
   'blackjack.rules.mostChipsWins': 'Wer am Ende die meisten Chips hält, gewinnt die Partie.',
   'blackjack.rules.bustedOut':
     'Ein Platz, der das Minimum von {n} nicht mehr aufbringt, setzt für den Rest der Partie aus.',
+  'blackjack.rules.roundOrder':
+    'Eine Runde läuft der Reihe nach: Einsätze, Karten austeilen, Versicherung wenn der Geber ein Ass zeigt, dann spielt jeder Platz seine Hand.',
+  'blackjack.rules.oneStakePerRound': 'Ein Einsatz pro Runde — einmal gesetzt, bleibt er.',
+  'blackjack.rules.stakeFromStack': 'Setzen kannst du nur Chips, die du wirklich hast.',
+  'blackjack.remedy.putAStakeUp': 'Setz zuerst einen Einsatz — {n} oder mehr.',
+  'blackjack.remedy.answerInsurance': 'Sag erst Ja oder Nein zur Versicherung.',
+  'blackjack.remedy.playThisHand': 'Spiel die Hand vor dir — ziehen oder stehen bleiben.',
+  'blackjack.remedy.stakeIsUp': 'Dein Einsatz steht schon — warte auf das Austeilen.',
+  'blackjack.remedy.stakeAtLeast': 'Setz mindestens {n}.',
+  'blackjack.remedy.stakeAtMost': 'Setz höchstens {n} — das ist dein ganzer Stack.',
+  'blackjack.remedy.sayHowMuch': 'Sag, wie viel du setzt — {n} oder mehr.',
+  'blackjack.remedy.hitOrStand': 'Zieh, oder bleib stehen.',
+  'blackjack.remedy.waitForNextRound': 'Du bist aus dieser Runde raus — warte auf die nächste Austeilung.',
 
   'blackjack.zone.dealer': 'Geber',
   'blackjack.zone.box': 'Blatt',
@@ -925,6 +1034,7 @@ export const de: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Alles, was dieser Server anbieten kann',
   'lobby.games.bots': 'Bots',
+  'lobby.games.setup': 'Einstellungen',
   'lobby.games.playBot': 'Gegen einen Bot spielen',
   'lobby.games.playBots': 'Gegen {n} Bots spielen',
   'lobby.games.openTable': 'Tisch eröffnen',

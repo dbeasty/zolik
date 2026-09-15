@@ -1,6 +1,7 @@
 import type { ActionOffer } from '@/src/api/matchTypes';
 import { dropSpotsFor, refusalAt, spotAt, takeableSpots } from '@/src/lib/drops';
-import { BUNDLES, reasonText, setLocale, t } from '@/src/lib/i18n';
+import { BUNDLES, LOCALES, reasonText, setLocale, t } from '@/src/lib/i18n';
+import serverKeys from '@/src/lib/serverKeys.json';
 
 afterEach(() => setLocale('en'));
 
@@ -82,5 +83,78 @@ describe('wording a refusal', () => {
   it('falls back rather than blanking on a code this build has never seen', () => {
     // A server newer than the app. Ugly, and legible, which is the trade.
     expect(reasonText('SOME_FUTURE_CODE', 'SOME_FUTURE_CODE')).toBe('SOME_FUTURE_CODE');
+  });
+});
+
+/**
+ * The sentence a refused player actually reads.
+ *
+ * The tests above prove a refusal is carried somewhere legible; these prove
+ * what it says once it gets there. They exist because the complaint that
+ * started this was not "nothing is shown" — it was that what is shown says
+ * nothing: `err.WRONG_PHASE` read "Not available right now", and in Czech
+ * literally "not now", under every greyed-out control in five games.
+ */
+describe('what a refusal says', () => {
+  it('no longer answers "why not?" with "not now"', () => {
+    // The reason narrows it to a moment in the turn; the remedy says which
+    // moment and what to do about it. Neither half alone is the fix.
+    expect(reasonText('WRONG_PHASE')).toBe('Not at this point in the turn');
+    setLocale('cs');
+    expect(reasonText('WRONG_PHASE')).not.toBe('Teď to nejde');
+  });
+
+  it('names the move to make instead, per game and per phase', () => {
+    expect(t('canasta.remedy.drawOrTakePile')).toMatch(/draw|take/i);
+    expect(t('canasta.remedy.meldOrDiscard')).toMatch(/discard/i);
+    expect(t('ginrummy.remedy.drawFirst')).toMatch(/draw/i);
+    expect(t('ginrummy.remedy.discardToEndTurn')).toMatch(/discard/i);
+    expect(t('blackjack.remedy.putAStakeUp', { n: 10 })).toMatch(/stake/i);
+    expect(t('rummytiles.remedy.playFromHandOrDraw')).toMatch(/play|draw/i);
+  });
+
+  it('puts the live figure in the sentence rather than the rule-book number', () => {
+    expect(t('holdem.remedy.callOrFold', { n: 40 })).toContain('40');
+    expect(t('holdem.remedy.raiseAtLeast', { n: 180 })).toContain('180');
+    expect(t('canasta.remedy.needMorePoints', { n: 20 })).toContain('20');
+    expect(t('prsi.remedy.answerSevenOrTake', { n: 4 })).toContain('4');
+  });
+
+  it('has somewhere to put the tokens the server sends as names', () => {
+    // The server sends `suit.H` and a card code; labels.ts turns both into
+    // words before they reach the template.
+    const sentence = t('prsi.remedy.matchOrDraw', { suit: 'Hearts', card: '7♠' });
+    expect(sentence).toContain('Hearts');
+    expect(sentence).toContain('7♠');
+  });
+});
+
+/**
+ * Every remedy the server can send reads as a finished sentence in every
+ * language — no placeholder left standing where a number should be.
+ *
+ * `serverKeys.test.ts` checks the other direction: that a template never asks
+ * for a parameter the server does not send. This checks that substituting the
+ * parameters it does send leaves nothing behind, which is what catches `{nn}`
+ * where `{n}` was meant — a typo no parity check sees, because it is a
+ * placeholder in every locale equally.
+ */
+describe('every remedy renders', () => {
+  const remedies = (serverKeys.sentenceKeys as string[]).filter((k) => k.includes('.remedy.'));
+  const params = serverKeys.paramsByKey as Record<string, string[]>;
+
+  it('has remedies to check at all', () => {
+    expect(remedies.length).toBeGreaterThan(20);
+  });
+
+  it.each(LOCALES.map((l) => l.id))('%s leaves no placeholder unfilled', (locale) => {
+    setLocale(locale);
+    const unfilled: string[] = [];
+    for (const key of remedies) {
+      const sent = Object.fromEntries((params[key] ?? []).map((name) => [name, '·']));
+      const rendered = t(key, sent);
+      if (/\{\w+\}/.test(rendered)) unfilled.push(`${key}: ${rendered}`);
+    }
+    expect(unfilled).toEqual([]);
   });
 });

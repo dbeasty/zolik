@@ -5,7 +5,7 @@
 export const it: Record<string, string> = {
   // --- engine error codes (rules.RulesErrorCode) ---------------------------
   'err.NOT_YOUR_TURN': 'Non è il tuo turno',
-  'err.WRONG_PHASE': 'Al momento non è possibile',
+  'err.WRONG_PHASE': 'Non in questo punto del turno',
   'err.MUST_DRAW_FIRST': 'Pesca una carta prima di calare',
   'err.GAME_SUSPENDED': 'La partita è in pausa',
   'err.GAME_NOT_ACTIVE': 'La partita non è in corso',
@@ -128,11 +128,17 @@ export const it: Record<string, string> = {
   'prsi.rules.aces': 'Gioca un asso e il turno del giocatore successivo salta.',
   'prsi.rules.queens': 'Gioca una donna e indica il seme che prosegue.',
   'prsi.rules.end': 'La partita finisce nel momento in cui una mano resta vuota.',
+  'prsi.remedy.matchOrDraw': 'Gioca una carta di {suit} o una che va su {card} — altrimenti pesca.',
+  'prsi.remedy.answerSevenOrTake': 'Rispondi con un tuo sette, oppure prendi le {n} carte.',
+  'prsi.remedy.playOrDraw': "Non c'è nessun turno da saltare — gioca una carta di {suit} o pesca.",
+  'prsi.remedy.nameASuit': "Di' quale seme segue la tua donna.",
+  'prsi.remedy.nothingLeftToDraw': 'Non è rimasto niente da pescare — gioca una carta se puoi.',
 
   'canasta.rules.section.goal': 'Obiettivo',
   'canasta.rules.section.setup': 'Preparazione',
   'canasta.rules.section.melding': 'Calare',
   'canasta.rules.section.end': 'Come finisce la partita',
+  'canasta.rules.section.turn': 'Il tuo turno',
   'canasta.rules.goal': 'Si gioca a coppie; la prima coppia a raggiungere {n} punti vince la partita.',
   'canasta.rules.deck': 'Si gioca con {value} carte — {decks} mazzi più i jolly.',
   'canasta.rules.deal': 'A ogni giocatore vengono date {n} carte.',
@@ -152,6 +158,31 @@ export const it: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'La tua prima calata deve raggiungere un minimo di punti che sale con il tuo punteggio: {negative} sotto zero, {low} fino a 1500, {mid} fino a 3000, {high} oltre.',
   'canasta.rules.meldFloorBandsFive': 'La tua prima combinazione deve raggiungere un minimo di punti che cresce con il punteggio: {negative} sotto zero, {low} fino a 1500, {mid} fino a 3000, {high} fino a 7000, {top} oltre.',
+  'canasta.rules.turn':
+    "Un turno è un'entrata di carte nella tua mano — pescare dal mazzo o prendere tutto il pozzo — poi le combinazioni che vuoi calare, infine una carta scartata.",
+  'canasta.rules.turnDiscard':
+    'È lo scarto a chiudere il turno, quindi ti serve sempre una carta di riserva per farlo.',
+  'canasta.rules.pileTopCard':
+    'Il pozzo si può prendere solo con una mossa che usa subito la sua carta in cima.',
+  'canasta.rules.pileBlocked':
+    'Un tre nero in cima blocca il pozzo — nessuno può prenderlo finché il tre non è sepolto — e uno rimasto in mano costa {n}.',
+  'canasta.rules.pileFrozenByWild':
+    'Una matta sepolta nel pozzo lo congela per tutti: prenderlo costa allora due carte naturali del valore della carta in cima, dalla tua mano.',
+  'canasta.rules.meldShape': 'Una combinazione sono {n} o più carte dello stesso valore.',
+  'canasta.rules.wildLimit':
+    'Una combinazione può contenere al massimo {wilds} matte e mai meno di {naturals} carte naturali.',
+  'canasta.rules.wildRatio':
+    'Una combinazione richiede {n} carte naturali per ogni matta e mai più di {wilds} matte in tutto.',
+  'canasta.rules.oneMeldPerRank':
+    'La tua parte tiene una combinazione per valore: le altre carte di quel valore si aggiungono a quella.',
+  'canasta.rules.meldsPerRankUnlimited': 'La tua parte può avere più combinazioni dello stesso valore.',
+  'canasta.rules.canastaCloses': 'Una canasta di {n} carte è completa e non ne accetta altre.',
+  'canasta.rules.meldsAreShared':
+    'Le combinazioni sono della coppia: entrambi i compagni possono allungarle, e quelle avversarie non si toccano.',
+  'canasta.rules.layOffAfterOpening':
+    'Finché la tua parte non ha fatto la sua apertura, non può aggiungere carte a nulla sul tavolo.',
+  'canasta.rules.goOutKeepsACard':
+    'Devi sempre poter finire il tuo turno, quindi non calare mai tutta la mano a meno che non sia la mossa che ti fa chiudere.',
   'canasta.rules.oneCanastaToGoOut': 'Una canasta completa basta alla tua coppia per chiudere.',
   'canasta.rules.twoCanastasToGoOut': 'Alla tua coppia servono due canaste complete prima di poter chiudere.',
   'canasta.rules.end': 'Si continua a smazzare finché una coppia supera {n} punti — poi la partita è finita.',
@@ -171,6 +202,19 @@ export const it: Record<string, string> = {
   'holdem.rules.lastPlayerStanding': 'Si gioca finché un posto non detiene tutte le fiches.',
   'holdem.rules.mostChipsWins': 'Chi ha più fiches quando il gioco si ferma vince la partita.',
   'holdem.rules.handLimit': 'Il gioco si ferma dopo {n} mani.',
+  'holdem.rules.checkOrCall':
+    'Puoi passare solo quando non devi nulla; altrimenti chiama, rilancia o lascia.',
+  'holdem.rules.minRaise': "Un rilancio dev'essere grande almeno quanto il precedente.",
+  'holdem.rules.allIn':
+    "Non puoi mai mettere più del tuo stack, e l'all-in è sempre consentito, anche per meno di un rilancio pieno.",
+  'holdem.rules.foldedOut': 'Una volta che lasci, sei fuori fino alla mano successiva.',
+  'holdem.remedy.callOrFold': 'Devi {n}: chiama, rilancia o lascia.',
+  'holdem.remedy.checkOrRaise': 'Non si deve nulla: passa o rilancia.',
+  'holdem.remedy.callAllInOrFold': 'Il tuo stack non supera la puntata: chiama {n} all-in o lascia.',
+  'holdem.remedy.raiseAtLeast': 'Rilancia ad almeno {n}.',
+  'holdem.remedy.raiseAtMost': 'Rilancia al massimo a {n}: è tutto il tuo stack.',
+  'holdem.remedy.nameAnAmount': "Di' a quanto rilanci, tra {min} e {max}.",
+  'holdem.remedy.waitForNextHand': 'Sei fuori da questa mano: aspetta la prossima distribuzione.',
 
   // --- header --------------------------------------------------------------
   'header.deal': 'Smazzata {n}',
@@ -279,12 +323,14 @@ export const it: Record<string, string> = {
   'err.CARD_DOES_NOT_FIT': 'Quella carta non corrisponde né per seme né per valore',
   'err.SUIT_REQUIRED': 'Indica il seme che prosegue',
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Rispondi con un sette, oppure prendi le carte',
+  'err.NOTHING_TO_SKIP': "Non c'è nessun turno da saltare",
   'err.NOTHING_TO_DRAW': 'Non è rimasto nulla da pescare',
   'err.PILE_EMPTY': 'La pila è vuota',
   'err.PILE_BLOCKED': "La pila è bloccata — in cima c'è un tre nero",
   'err.PILE_FROZEN': 'La pila è congelata — ti servono due carte naturali del valore della carta in cima',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'In questo gioco una combinazione in tavola non può prendere la pila — ti servono due carte in mano',
-  'err.TOP_CARD_UNUSABLE': 'Non puoi usare la carta in cima',
+  'err.CAPTURE_NEEDS_TWO_CARDS': 'Prendere il pozzo costa due carte dalla tua mano',
+  'err.TOP_CARD_UNUSABLE': 'La tua parte non può usare la carta in cima',
   'err.MELD_CLOSED': 'Quella combinazione è completa e chiusa',
   'err.MELD_TOO_SMALL': 'Una combinazione richiede più carte di così',
   'err.MELD_TOO_LARGE': 'Quella combinazione non può accogliere altre carte',
@@ -305,7 +351,7 @@ export const it: Record<string, string> = {
   'err.CANNOT_GO_OUT_YET': 'Alla tua coppia serve una canasta completa prima di poter chiudere',
   'err.NOTHING_TO_CALL': "Non c'è nessuna puntata da vedere",
   'err.CANNOT_CHECK': "Non puoi passare — c'è una puntata a cui rispondere",
-  'err.CANNOT_RAISE': 'Qui non puoi rilanciare',
+  'err.CANNOT_RAISE': 'Non puoi rilanciare: il tuo stack non supera la puntata',
   'err.RAISE_TOO_SMALL': "Un rilancio deve valere almeno quanto l'ultimo",
   'err.NOT_ENOUGH_CHIPS': 'Non hai così tante fiches',
   'err.AMOUNT_REQUIRED': 'Indica quanto',
@@ -394,6 +440,28 @@ export const it: Record<string, string> = {
   'status.teamScore': 'Squadra {team}: {value}',
   'canasta.offer.rank': 'Valore',
   'canasta.offer.sequence': 'Scala',
+  'canasta.remedy.drawOrTakePile': 'Pesca dal mazzo o prendi il pozzo prima di calare combinazioni.',
+  'canasta.remedy.meldOrDiscard': 'Hai già pescato: cala una combinazione o scarta per chiudere il turno.',
+  'canasta.remedy.drawFromStock': 'Pesca invece dal mazzo.',
+  'canasta.remedy.takePileInstead': 'Il mazzo è finito: prendi invece il pozzo.',
+  'canasta.remedy.pileBlocked': 'Pesca dal mazzo: il tre nero in cima tiene chiuso il pozzo.',
+  'canasta.remedy.pileFrozen':
+    'Pesca dal mazzo, oppure prendi il pozzo con due carte naturali della tua mano che vanno su {card}.',
+  'canasta.remedy.topCardUnusable': 'Pesca dal mazzo: la tua parte non sa che farsene del {card} in cima.',
+  'canasta.remedy.captureFromHand': 'Prendi il pozzo con due carte della tua mano che vanno su {card}.',
+  'canasta.remedy.needTwoMatching':
+    'Ti servono due carte in mano che vanno su {card} — altrimenti pesca dal mazzo.',
+  'canasta.remedy.needMorePoints': 'Alla prima combinazione della tua parte mancano {n} punti.',
+  'canasta.remedy.openFirst': 'Cala la prima combinazione della tua parte prima di aggiungere carte.',
+  'canasta.remedy.needCanastas':
+    'Alla tua parte servono altre {n} canaste da {size} carte per poter chiudere.',
+  'canasta.remedy.keepACard': 'Tieni da parte una carta per lo scarto.',
+  'canasta.remedy.layOffInstead': 'Aggiungile alla combinazione che la tua parte ha già.',
+  'canasta.remedy.meldClosed':
+    "Quella combinazione è completa a {n} carte: cominciane un'altra o aggiungi altrove.",
+  'canasta.remedy.discardNotARedThree': 'Scarta qualcosa che non sia un tre rosso.',
+  'canasta.remedy.blackThreesOnTheWayOut': 'I tre neri si calano solo con la mossa che ti svuota la mano.',
+  'canasta.remedy.ownMeldsOnly': 'Aggiungi solo alle combinazioni della tua parte.',
   'badge.naturalCanasta': 'Canasta pura',
   'badge.mixedCanasta': 'Canasta impura',
   'badge.samba': 'Samba',
@@ -513,6 +581,10 @@ export const it: Record<string, string> = {
     'Il bonus di partita raddoppia a {n} se il perdente non ha segnato un solo punto.',
   'ginrummy.rules.box': 'Ogni mano vinta vale {n} punti alla fine della partita.',
   'ginrummy.rules.gameBonus': 'Vincere la partita vale altri {n} punti.',
+  'ginrummy.rules.upcardDance':
+    'Prima della prima pescata la carta scoperta può prenderla il non mazziere, poi il mazziere; se passano entrambi, il non mazziere deve pescare dal mazzo.',
+  'ginrummy.rules.knockOnDiscard':
+    'Bussare sostituisce il tuo scarto, quindi avviene solo alla fine del turno.',
   'ginrummy.fact.deadwood': '{value} di deadwood',
   'ginrummy.fact.discardCard': 'Scarta {value}',
   'ginrummy.fact.meldCards': 'Su {value}',
@@ -534,6 +606,13 @@ export const it: Record<string, string> = {
   'ginrummy.offer.bigGin': 'Big gin!',
   'ginrummy.offer.layOff': 'Attacca',
   'ginrummy.offer.finishLayoff': 'Attacchi finiti',
+  'ginrummy.remedy.takeOrPassUpcard': 'Prendi la carta scoperta oppure passa.',
+  'ginrummy.remedy.drawFirst': 'Pesca prima una carta, dal mazzo o dal pozzo.',
+  'ginrummy.remedy.discardToEndTurn': 'Scarta una carta per chiudere il turno.',
+  'ginrummy.remedy.finishLayoff': 'Non ti entra più nulla: finisci di aggiungere carte.',
+  'ginrummy.remedy.stockDrawForced': "L'avete passata entrambi: pesca dal mazzo.",
+  'ginrummy.remedy.drawElsewhere': "Quel mazzetto è vuoto: pesca dall'altro.",
+  'ginrummy.remedy.getDeadwoodDown': 'Puoi bussare quando il tuo scarto morto scende a {n} o meno.',
   'ginrummy.zone.knockerHand': 'Mano che ha bussato',
   'ginrummy.zone.melds': 'Combinazioni',
   'ginrummy.prompt.upcardDecision': 'Prendi la carta scoperta, oppure passa',
@@ -543,10 +622,10 @@ export const it: Record<string, string> = {
 
   // --- rummy tiles -------------------------------------------------------------
   'err.TILE_NOT_IN_HAND': 'Quella tessera non è nella tua mano',
-  'err.TILE_DOES_NOT_FIT': 'Lì non ci sta',
+  'err.TILE_DOES_NOT_FIT': 'Quella tessera non entra in quel gruppo',
   'err.NO_SUCH_SET': 'Quella combinazione non è sul tavolo',
   'err.INITIAL_MELD_ONLY': 'Prima della tua apertura puoi riordinare solo le tue nuove combinazioni',
-  'err.TABLE_NOT_VALID': 'Il tavolo non è ancora valido',
+  'err.TABLE_NOT_VALID': 'Un gruppo sul tavolo non è né un gruppo né una scala validi',
   'err.TRAY_NOT_EMPTY': 'Hai ancora tessere sciolte da piazzare',
   'err.NOTHING_PLAYED': 'Gioca almeno una tessera prima di chiudere il turno',
   'err.INITIAL_MELD_TOO_LOW': 'La tua apertura deve valere 30 punti o più',
@@ -585,6 +664,18 @@ export const it: Record<string, string> = {
     'Se la riserva si esaurisce e nessuno può giocare, il round finisce senza vincitore — ogni mano viene semplicemente conteggiata.',
   'rummytiles.rules.target': 'Il primo a superare {n} punti alla fine di un round vince la partita.',
   'rummytiles.rules.roundLimit': 'La partita finisce dopo {n} round — vince il punteggio più alto.',
+  'rummytiles.remedy.emptyTheTray': 'Posiziona le {n} tessere ancora sul leggio, oppure azzera il turno.',
+  'rummytiles.remedy.playFromHandOrDraw':
+    'Riorganizzare non è un turno: gioca almeno una tessera dalla mano, oppure pesca.',
+  'rummytiles.remedy.fixOrReset':
+    "Ogni gruppo sul tavolo dev'essere un gruppo o una scala validi: sistemali o azzera il turno.",
+  'rummytiles.remedy.needMorePoints': 'Alla tua prima calata mancano {n} punti per arrivare a {floor}.',
+  'rummytiles.remedy.ownNewSetsOnly':
+    'Fino alla tua prima calata da {n} punti puoi riorganizzare solo i gruppi creati in questo turno.',
+  'rummytiles.remedy.startANewSet': 'Mettila invece in un gruppo nuovo.',
+  'rummytiles.remedy.splitLeavesThree':
+    'Dividi la scala in modo che entrambe le metà conservino almeno {n} tessere.',
+  'rummytiles.remedy.matchTheJoker': 'Scambia il jolly con esattamente la tessera che rappresenta.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Riserva {n}',
   'rummytiles.header.round': 'Round {n}',
@@ -663,6 +754,19 @@ export const it: Record<string, string> = {
   'blackjack.rules.mostChipsWins': 'Chi ha più fiches alla fine vince la partita.',
   'blackjack.rules.bustedOut':
     'Il posto che non riesce più a coprire il minimo di {n} resta fuori per il resto della partita.',
+  'blackjack.rules.roundOrder':
+    'Un giro segue un ordine: puntate, carte distribuite, assicurazione se il banco mostra un asso, poi ogni posto gioca la sua mano a turno.',
+  'blackjack.rules.oneStakePerRound': 'Una puntata per giro: una volta fatta, non si cambia.',
+  'blackjack.rules.stakeFromStack': 'Puoi puntare solo le fiche che hai davvero.',
+  'blackjack.remedy.putAStakeUp': 'Fai prima una puntata: {n} o più.',
+  'blackjack.remedy.answerInsurance': "Rispondi prima sì o no all'assicurazione.",
+  'blackjack.remedy.playThisHand': 'Gioca la mano davanti a te: chiedi carta o stai.',
+  'blackjack.remedy.stakeIsUp': 'La tua puntata è già fatta: aspetta la distribuzione.',
+  'blackjack.remedy.stakeAtLeast': 'Punta almeno {n}.',
+  'blackjack.remedy.stakeAtMost': 'Punta al massimo {n}: è tutto il tuo stack.',
+  'blackjack.remedy.sayHowMuch': "Di' quanto punti: {n} o più.",
+  'blackjack.remedy.hitOrStand': 'Chiedi carta o stai.',
+  'blackjack.remedy.waitForNextRound': 'Sei fuori da questo giro: aspetta la prossima distribuzione.',
 
   'blackjack.zone.dealer': 'Banco',
   'blackjack.zone.box': 'Mano',
@@ -914,6 +1018,7 @@ export const it: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Tutto ciò che questo server può ospitare',
   'lobby.games.bots': 'Bot',
+  'lobby.games.setup': 'Impostazioni',
   'lobby.games.playBot': 'Gioca contro un bot',
   'lobby.games.playBots': 'Gioca contro {n} bot',
   'lobby.games.openTable': 'Apri un tavolo',

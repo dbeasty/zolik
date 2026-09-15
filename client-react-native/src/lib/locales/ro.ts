@@ -5,7 +5,7 @@
 export const ro: Record<string, string> = {
   // --- engine error codes (rules.RulesErrorCode) ---------------------------
   'err.NOT_YOUR_TURN': 'Nu e rândul tău',
-  'err.WRONG_PHASE': 'Nu se poate acum',
+  'err.WRONG_PHASE': 'Nu în acest moment al rândului',
   'err.MUST_DRAW_FIRST': 'Trage o carte înainte să cobori',
   'err.GAME_SUSPENDED': 'Jocul este în pauză',
   'err.GAME_NOT_ACTIVE': 'Jocul nu se desfășoară',
@@ -128,11 +128,18 @@ export const ro: Record<string, string> = {
   'prsi.rules.aces': 'Joacă un as și rândul următorului jucător este sărit.',
   'prsi.rules.queens': 'Joacă o damă și spune culoarea care continuă.',
   'prsi.rules.end': 'Meciul se încheie în clipa în care mâna cuiva este goală.',
+  'prsi.remedy.matchOrDraw':
+    'Joacă o carte de {suit} sau una care se potrivește peste {card} — altfel trage.',
+  'prsi.remedy.answerSevenOrTake': 'Răspunde cu un șapte de-al tău sau ia cele {n} cărți.',
+  'prsi.remedy.playOrDraw': 'Nu te așteaptă nicio sărire de rând — joacă o carte de {suit} sau trage.',
+  'prsi.remedy.nameASuit': 'Spune ce culoare urmează după dama ta.',
+  'prsi.remedy.nothingLeftToDraw': 'Nu a mai rămas nimic de tras — joacă o carte dacă poți.',
 
   'canasta.rules.section.goal': 'Scop',
   'canasta.rules.section.setup': 'Pregătire',
   'canasta.rules.section.melding': 'Coborârea',
   'canasta.rules.section.end': 'Cum se încheie meciul',
+  'canasta.rules.section.turn': 'Rândul tău',
   'canasta.rules.goal': 'Se joacă în echipe; prima tabără care ajunge la {n} puncte câștigă meciul.',
   'canasta.rules.deck': 'Se joacă cu {value} cărți — {decks} pachete plus jokeri.',
   'canasta.rules.deal': 'Fiecare jucător primește {n} cărți.',
@@ -152,6 +159,30 @@ export const ro: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Prima ta coborâre trebuie să atingă un minim de puncte care crește odată cu scorul tău: {negative} sub zero, {low} până la 1500, {mid} până la 3000, {high} peste.',
   'canasta.rules.meldFloorBandsFive': 'Prima ta combinație trebuie să atingă un minim de puncte care crește odată cu scorul: {negative} sub zero, {low} până la 1500, {mid} până la 3000, {high} până la 7000 și {top} peste.',
+  'canasta.rules.turn':
+    'Un rând înseamnă o intrare de cărți în mână — tragi din pachet sau iei tot mormanul de cărți aruncate — apoi câte combinații vrei și, la final, o carte aruncată.',
+  'canasta.rules.turnDiscard': 'Aruncarea încheie rândul, deci trebuie să-ți rămână mereu o carte pentru ea.',
+  'canasta.rules.pileTopCard':
+    'Mormanul de cărți aruncate poate fi luat doar printr-o mutare care folosește imediat cartea de deasupra.',
+  'canasta.rules.pileBlocked':
+    'Un trei negru deasupra blochează mormanul — nimeni nu îl poate lua până când treiul nu e îngropat — iar unul rămas în mână costă {n}.',
+  'canasta.rules.pileFrozenByWild':
+    'O carte wild îngropată în morman îl îngheață pentru toți: luarea lui costă atunci două cărți naturale de valoarea cărții de deasupra, din mâna ta.',
+  'canasta.rules.meldShape': 'O combinație înseamnă {n} sau mai multe cărți de aceeași valoare.',
+  'canasta.rules.wildLimit':
+    'O combinație poate avea cel mult {wilds} cărți wild și niciodată mai puțin de {naturals} naturale.',
+  'canasta.rules.wildRatio':
+    'O combinație cere {n} cărți naturale pentru fiecare wild și niciodată mai mult de {wilds} wild-uri în total.',
+  'canasta.rules.oneMeldPerRank':
+    'Echipa ta ține o singură combinație pentru fiecare valoare — celelalte cărți de acea valoare se adaugă la ea.',
+  'canasta.rules.meldsPerRankUnlimited': 'Echipa ta poate avea mai multe combinații de aceeași valoare.',
+  'canasta.rules.canastaCloses': 'O canastă de {n} cărți este completă și nu mai primește altele.',
+  'canasta.rules.meldsAreShared':
+    'Combinațiile aparțin echipei: oricare dintre parteneri le poate extinde, iar pe cele adverse nu le atinge nimeni.',
+  'canasta.rules.layOffAfterOpening':
+    'Până când echipa ta nu își face combinația inițială, nu poate adăuga cărți la nimic de pe masă.',
+  'canasta.rules.goOutKeepsACard':
+    'Trebuie să poți întotdeauna să-ți închei rândul, așa că nu-ți pune niciodată toată mâna pe masă decât dacă e chiar mutarea cu care ieși.',
   'canasta.rules.oneCanastaToGoOut': 'O canastă terminată e de ajuns ca tabăra ta să iasă.',
   'canasta.rules.twoCanastasToGoOut': 'Tabăra ta are nevoie de două canaste terminate înainte să poată ieși.',
   'canasta.rules.end':
@@ -171,6 +202,19 @@ export const ro: Record<string, string> = {
   'holdem.rules.lastPlayerStanding': 'Se joacă până când un loc deține toate jetoanele.',
   'holdem.rules.mostChipsWins': 'Cine are cele mai multe jetoane când jocul se oprește câștigă meciul.',
   'holdem.rules.handLimit': 'Jocul se oprește după {n} mâini.',
+  'holdem.rules.checkOrCall':
+    'Poți verifica doar când nu datorezi nimic; altfel plătești, ridici sau te retragi.',
+  'holdem.rules.minRaise': 'O ridicare trebuie să fie cel puțin la fel de mare ca cea dinainte.',
+  'holdem.rules.allIn':
+    'Nu poți pune niciodată mai mult decât ai în teanc, iar all-in-ul e mereu permis — chiar și pentru mai puțin decât o ridicare completă.',
+  'holdem.rules.foldedOut': 'Odată ce te retragi, ești în afara jocului până la următoarea împărțire.',
+  'holdem.remedy.callOrFold': 'Ai {n} de plătit — plătește, ridică sau retrage-te.',
+  'holdem.remedy.checkOrRaise': 'Nu datorezi nimic — verifică sau ridică.',
+  'holdem.remedy.callAllInOrFold': 'Teancul tău nu trece de pariu — plătește {n} all-in sau retrage-te.',
+  'holdem.remedy.raiseAtLeast': 'Ridică la cel puțin {n}.',
+  'holdem.remedy.raiseAtMost': 'Ridică cel mult la {n} — atât ai în tot teancul.',
+  'holdem.remedy.nameAnAmount': 'Spune la cât ridici, între {min} și {max}.',
+  'holdem.remedy.waitForNextHand': 'Ești în afara acestei mâini — așteaptă următoarea împărțire.',
 
   // --- header --------------------------------------------------------------
   'header.deal': 'Mâna {n}',
@@ -279,13 +323,15 @@ export const ro: Record<string, string> = {
   'err.CARD_DOES_NOT_FIT': 'Acea carte nu se potrivește nici la culoare, nici la valoare',
   'err.SUIT_REQUIRED': 'Spune culoarea care continuă',
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Răspunde cu un șapte, sau ia cărțile',
+  'err.NOTHING_TO_SKIP': 'Nu e niciun rând de sărit',
   'err.NOTHING_TO_DRAW': 'Nu a mai rămas nimic de tras',
   'err.PILE_EMPTY': 'Teancul este gol',
   'err.PILE_BLOCKED': 'Teancul este blocat — deasupra stă un trei negru',
   'err.PILE_FROZEN':
     'Teancul este înghețat — ai nevoie de două cărți naturale de valoarea cărții de deasupra',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'În acest joc o combinație de pe masă nu poate lua teancul — ai nevoie de două cărți din mână',
-  'err.TOP_CARD_UNUSABLE': 'Nu poți folosi cartea de deasupra',
+  'err.CAPTURE_NEEDS_TWO_CARDS': 'Luarea mormanului costă două cărți din mâna ta',
+  'err.TOP_CARD_UNUSABLE': 'Echipa ta nu poate folosi cartea de deasupra',
   'err.MELD_CLOSED': 'Acea combinație este completă și închisă',
   'err.MELD_TOO_SMALL': 'O combinație are nevoie de mai multe cărți decât atât',
   'err.MELD_TOO_LARGE': 'Acea combinație nu mai poate primi cărți',
@@ -306,7 +352,7 @@ export const ro: Record<string, string> = {
   'err.CANNOT_GO_OUT_YET': 'Tabăra ta are nevoie de o canastă terminată înainte să poată ieși',
   'err.NOTHING_TO_CALL': 'Nu există niciun pariu de plătit',
   'err.CANNOT_CHECK': 'Nu poți verifica — există un pariu la care trebuie să răspunzi',
-  'err.CANNOT_RAISE': 'Aici nu poți mări',
+  'err.CANNOT_RAISE': 'Nu poți ridica — teancul tău nu trece de pariu',
   'err.RAISE_TOO_SMALL': 'O mărire trebuie să fie cel puțin cât cea anterioară',
   'err.NOT_ENOUGH_CHIPS': 'Nu ai atâtea jetoane',
   'err.AMOUNT_REQUIRED': 'Spune cât',
@@ -396,6 +442,28 @@ export const ro: Record<string, string> = {
   'status.teamScore': 'Echipa {team}: {value}',
   'canasta.offer.rank': 'Valoare',
   'canasta.offer.sequence': 'Secvență',
+  'canasta.remedy.drawOrTakePile':
+    'Trage din pachet sau ia mormanul de cărți aruncate înainte să pui combinații.',
+  'canasta.remedy.meldOrDiscard': 'Ai tras deja — pune o combinație sau aruncă o carte ca să închei rândul.',
+  'canasta.remedy.drawFromStock': 'Trage în schimb din pachet.',
+  'canasta.remedy.takePileInstead': 'Pachetul s-a terminat — ia în schimb mormanul de cărți aruncate.',
+  'canasta.remedy.pileBlocked': 'Trage din pachet — treiul negru de deasupra ține mormanul închis.',
+  'canasta.remedy.pileFrozen':
+    'Trage din pachet sau ia mormanul cu două cărți naturale din mână care se potrivesc cu {card}.',
+  'canasta.remedy.topCardUnusable': 'Trage din pachet — echipa ta nu are ce face cu {card} de deasupra.',
+  'canasta.remedy.captureFromHand': 'Ia mormanul cu două cărți din propria mână care se potrivesc cu {card}.',
+  'canasta.remedy.needTwoMatching':
+    'Ai nevoie de două cărți din mână care se potrivesc cu {card} — altfel trage din pachet.',
+  'canasta.remedy.needMorePoints': 'Primei combinații a echipei tale îi lipsesc {n} puncte.',
+  'canasta.remedy.openFirst': 'Pune mai întâi combinația inițială a echipei tale, apoi adaugă cărți.',
+  'canasta.remedy.needCanastas': 'Echipei tale îi mai trebuie {n} canastă de {size} cărți ca să poată ieși.',
+  'canasta.remedy.keepACard': 'Păstrează o carte cu care să arunci.',
+  'canasta.remedy.layOffInstead': 'Adaugă-le la combinația pe care echipa ta o are deja.',
+  'canasta.remedy.meldClosed':
+    'Combinația aceea e completă la {n} cărți — începe alta sau adaugă în altă parte.',
+  'canasta.remedy.discardNotARedThree': 'Aruncă altceva decât un trei roșu.',
+  'canasta.remedy.blackThreesOnTheWayOut': 'Treii negri se pun jos doar cu mutarea care îți golește mâna.',
+  'canasta.remedy.ownMeldsOnly': 'Adaugă doar la combinațiile propriei echipe.',
   'badge.naturalCanasta': 'Canastă curată',
   'badge.mixedCanasta': 'Canastă mixtă',
   'badge.samba': 'Samba',
@@ -514,6 +582,10 @@ export const ro: Record<string, string> = {
   'ginrummy.rules.shutout': 'Bonusul de meci se dublează la {n} dacă cel învins nu a marcat niciun punct.',
   'ginrummy.rules.box': 'Fiecare mână câștigată valorează {n} puncte la sfârșitul meciului.',
   'ginrummy.rules.gameBonus': 'Câștigarea meciului aduce încă {n} puncte.',
+  'ginrummy.rules.upcardDance':
+    'Înainte de prima tragere, cartea întoarsă poate fi luată de cel care nu a împărțit, apoi de împărțitor; dacă amândoi pasează, cel care nu a împărțit trebuie să tragă din pachet.',
+  'ginrummy.rules.knockOnDiscard':
+    'Bătaia înlocuiește aruncarea ta, deci se poate face doar la finalul rândului.',
   'ginrummy.fact.deadwood': '{value} deadwood',
   'ginrummy.fact.discardCard': 'Aruncă {value}',
   'ginrummy.fact.meldCards': 'La {value}',
@@ -535,6 +607,13 @@ export const ro: Record<string, string> = {
   'ginrummy.offer.bigGin': 'Big gin!',
   'ginrummy.offer.layOff': 'Alipește',
   'ginrummy.offer.finishLayoff': 'Gata cu alipirea',
+  'ginrummy.remedy.takeOrPassUpcard': 'Ia cartea întoarsă sau pasează.',
+  'ginrummy.remedy.drawFirst': 'Trage mai întâi o carte — din pachet sau din morman.',
+  'ginrummy.remedy.discardToEndTurn': 'Aruncă o carte ca să închei rândul.',
+  'ginrummy.remedy.finishLayoff': 'Nimic din ce ai nu se mai potrivește — termină adăugarea.',
+  'ginrummy.remedy.stockDrawForced': 'Amândoi ați pasat cartea aceea — trage din pachet.',
+  'ginrummy.remedy.drawElsewhere': 'Mormanul acela e gol — trage din celălalt.',
+  'ginrummy.remedy.getDeadwoodDown': 'Poți bate când lemnul mort îți scade la {n} sau mai puțin.',
   'ginrummy.zone.knockerHand': 'Mâna celui care a bătut',
   'ginrummy.zone.melds': 'Combinații',
   'ginrummy.prompt.upcardDecision': 'Ia cartea întoarsă, sau pasează',
@@ -544,10 +623,10 @@ export const ro: Record<string, string> = {
 
   // --- rummy tiles -------------------------------------------------------------
   'err.TILE_NOT_IN_HAND': 'Acea piesă nu este în mâna ta',
-  'err.TILE_DOES_NOT_FIT': 'Aia nu încape acolo',
+  'err.TILE_DOES_NOT_FIT': 'Piesa aceea nu se potrivește în setul acela',
   'err.NO_SUCH_SET': 'Acea combinație nu este pe masă',
   'err.INITIAL_MELD_ONLY': 'Înainte de prima ta coborâre poți rearanja doar propriile combinații noi',
-  'err.TABLE_NOT_VALID': 'Masa nu este încă validă',
+  'err.TABLE_NOT_VALID': 'Un set de pe masă nu e un grup sau o serie validă',
   'err.TRAY_NOT_EMPTY': 'Mai ai piese nepuse',
   'err.NOTHING_PLAYED': 'Joacă cel puțin o piesă înainte să îți încheii tura',
   'err.INITIAL_MELD_TOO_LOW': 'Prima ta coborâre trebuie să valoreze 30 de puncte sau mai mult',
@@ -585,6 +664,18 @@ export const ro: Record<string, string> = {
     'Dacă rezerva se termină și nimeni nu mai poate juca, runda se încheie fără câștigător — fiecare mână este pur și simplu punctată.',
   'rummytiles.rules.target': 'Primul care depășește {n} puncte la sfârșitul unei runde câștigă meciul.',
   'rummytiles.rules.roundLimit': 'Meciul se încheie după {n} runde — câștigă scorul cel mai mare.',
+  'rummytiles.remedy.emptyTheTray': 'Așază cele {n} piese rămase pe suport sau resetează rândul.',
+  'rummytiles.remedy.playFromHandOrDraw':
+    'Rearanjarea nu e un rând — joacă cel puțin o piesă din mână sau trage.',
+  'rummytiles.remedy.fixOrReset':
+    'Fiecare set de pe masă trebuie să fie un grup sau o serie validă — repară-le sau resetează rândul.',
+  'rummytiles.remedy.needMorePoints': 'Primei tale puneri îi lipsesc {n} puncte până la {floor}.',
+  'rummytiles.remedy.ownNewSetsOnly':
+    'Până la prima ta punere de {n} puncte poți rearanja doar seturile create în acest rând.',
+  'rummytiles.remedy.startANewSet': 'Pune-o într-un set nou.',
+  'rummytiles.remedy.splitLeavesThree':
+    'Împarte seria astfel încât ambele jumătăți să păstreze cel puțin {n} piese.',
+  'rummytiles.remedy.matchTheJoker': 'Schimbă jokerul exact cu piesa pe care o înlocuiește.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Rezervă {n}',
   'rummytiles.header.round': 'Runda {n}',
@@ -662,6 +753,19 @@ export const ro: Record<string, string> = {
   'blackjack.rules.mostChipsWins': 'Cine are cele mai multe jetoane la final câștigă meciul.',
   'blackjack.rules.bustedOut':
     'Un loc care nu mai poate acoperi minimul de {n} stă deoparte pentru restul meciului.',
+  'blackjack.rules.roundOrder':
+    'O rundă merge în ordine: mizele, împărțirea cărților, asigurarea dacă dealerul arată un as, apoi fiecare loc își joacă mâna pe rând.',
+  'blackjack.rules.oneStakePerRound': 'O miză pe rundă — odată pusă, nu se mai schimbă.',
+  'blackjack.rules.stakeFromStack': 'Poți miza doar jetoanele pe care le ai cu adevărat.',
+  'blackjack.remedy.putAStakeUp': 'Pune mai întâi o miză — {n} sau mai mult.',
+  'blackjack.remedy.answerInsurance': 'Spune mai întâi da sau nu la asigurare.',
+  'blackjack.remedy.playThisHand': 'Joacă mâna din fața ta — mai ceri carte sau stai.',
+  'blackjack.remedy.stakeIsUp': 'Miza ta e deja pusă — așteaptă împărțirea.',
+  'blackjack.remedy.stakeAtLeast': 'Mizează cel puțin {n}.',
+  'blackjack.remedy.stakeAtMost': 'Mizează cel mult {n} — atât ai în tot teancul.',
+  'blackjack.remedy.sayHowMuch': 'Spune cât mizezi — {n} sau mai mult.',
+  'blackjack.remedy.hitOrStand': 'Mai ceri carte sau stai.',
+  'blackjack.remedy.waitForNextRound': 'Ești în afara acestei runde — așteaptă următoarea împărțire.',
 
   'blackjack.zone.dealer': 'Crupier',
   'blackjack.zone.box': 'Mână',
@@ -912,6 +1016,7 @@ export const ro: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Tot ce poate găzdui acest server',
   'lobby.games.bots': 'Boți',
+  'lobby.games.setup': 'Setări',
   'lobby.games.playBot': 'Joacă împotriva unui bot',
   'lobby.games.playBots': 'Joacă împotriva a {n} boți',
   'lobby.games.openTable': 'Deschide o masă',

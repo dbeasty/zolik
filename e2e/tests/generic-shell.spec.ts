@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { API_BASE } from '../helpers/env';
+import { openGameSetup } from '../helpers/lobby';
 
 /**
  * One screen, every game (docs/one-architecture-plan.md Phase 7).
@@ -344,8 +345,14 @@ test.describe('one shell, every game', () => {
       await expect(page.getByTestId(`module-${id}`)).toBeVisible();
     }
 
+    // A card arrives closed, saying what it is set to rather than how to set it.
+    await expect(page.getByTestId('setup-digest-holdem')).toBeVisible();
+    await expect(page.getByTestId('option-holdem-bigBlind-20')).toHaveCount(0);
+
     // Options come from the descriptor, so a knob nobody typed into this
-    // client is nonetheless rendered.
+    // client is nonetheless rendered — once the setup is open.
+    await openGameSetup(page, 'holdem');
+    await openGameSetup(page, 'canasta');
     await expect(page.getByTestId('option-holdem-bigBlind-20')).toBeVisible();
     await expect(page.getByTestId('option-canasta-targetScore-500')).toBeVisible();
     // And a game with two shipped rulesets offers both.
@@ -361,6 +368,7 @@ test.describe('one shell, every game', () => {
     await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 30_000 });
 
     // Pick the short Canasta target so the lobby is exercising real options.
+    await openGameSetup(page, 'canasta');
     await page.getByTestId('option-canasta-targetScore-500').click();
     await page.getByTestId('play-bots-canasta').click();
 
@@ -380,6 +388,7 @@ test.describe('one shell, every game', () => {
     await page.goto('/lobby/games');
     await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 30_000 });
 
+    await openGameSetup(page, 'prsi');
     await expect(page.getByTestId('bots-prsi-5')).toBeVisible();
     await expect(page.getByTestId('bots-prsi-6')).toHaveCount(0);
 

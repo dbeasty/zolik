@@ -64,6 +64,15 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	pass.Enabled, pass.WhyNot = probe(m, raw, playerID, module.Action{Verb: VerbPass})
 	offers = append(offers, pass)
 
+	// Why each disabled offer is disabled, in terms a player can act on — see
+	// remedy.go.
+	//
+	// The empty config is the whole config here: Prší states the same
+	// sentences at every table, and its one option (how many cards are dealt)
+	// changes a number inside one of them rather than which of them exist. A
+	// second option that did change the listing would have to be resolved from
+	// the state, the way the other modules resolve theirs.
+	m.annotate(module.MatchConfig{}, s, offers)
 	return offers, nil
 }
 

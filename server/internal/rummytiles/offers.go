@@ -37,9 +37,16 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		if s.Status != "active" {
 			why = ErrGameNotActive
 		}
-		return placeholderOffers(why), nil
+		return m.explained(s, placeholderOffers(why)), nil
 	}
-	return m.turnOffers(raw, s, playerID), nil
+	return m.explained(s, m.turnOffers(raw, s, playerID)), nil
+}
+
+// explained puts the reason, the rule and the way out on every disabled offer
+// before it leaves this package — see remedy.go.
+func (m *Module) explained(s *GameState, offers []module.ActionOffer) []module.ActionOffer {
+	m.annotate(s, offers)
+	return offers
 }
 
 func placeholderOffers(why string) []module.ActionOffer {

@@ -10,7 +10,7 @@
 export const en: Record<string, string> = {
   // --- engine error codes (rules.RulesErrorCode) ---------------------------
   'err.NOT_YOUR_TURN': "It's not your turn",
-  'err.WRONG_PHASE': 'Not available right now',
+  'err.WRONG_PHASE': 'Not at this point in the turn',
   'err.MUST_DRAW_FIRST': 'Draw a card before melding',
   'err.GAME_SUSPENDED': 'The game is paused',
   'err.GAME_NOT_ACTIVE': 'The game is not running',
@@ -131,11 +131,17 @@ export const en: Record<string, string> = {
   'prsi.rules.aces': "Play an ace and the next player's turn is skipped.",
   'prsi.rules.queens': 'Play a queen and name the suit that continues.',
   'prsi.rules.end': "The match ends the moment someone's hand is empty.",
+  'prsi.remedy.matchOrDraw': 'Play a {suit} card, or one that matches {card} — otherwise draw.',
+  'prsi.remedy.answerSevenOrTake': 'Answer with a seven of your own, or take the {n} cards.',
+  'prsi.remedy.playOrDraw': 'There is no skip waiting for you — play a {suit} card, or draw.',
+  'prsi.remedy.nameASuit': 'Name the suit that follows your queen.',
+  'prsi.remedy.nothingLeftToDraw': 'Nothing is left to draw — play a card if you can.',
 
   'canasta.rules.section.goal': 'Goal',
   'canasta.rules.section.setup': 'Setup',
   'canasta.rules.section.melding': 'Melding',
   'canasta.rules.section.end': 'How the match ends',
+  'canasta.rules.section.turn': 'Your turn',
   'canasta.rules.goal':
     'Play in partnerships; the first side to reach {n} points wins the match.',
   'canasta.rules.deck': 'Played with {value} cards — {decks} decks plus jokers.',
@@ -156,6 +162,30 @@ export const en: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Your first meld must reach a point minimum that rises with your score: {negative} below zero, {low} up to 1500, {mid} up to 3000, {high} beyond that.',
   'canasta.rules.meldFloorBandsFive': 'Your first meld must reach a point minimum that rises with your score: {negative} below zero, {low} up to 1500, {mid} up to 3000, {high} up to 7000, {top} beyond that.',
+  'canasta.rules.turn':
+    'A turn is one move into your hand — draw from the stock, or take the whole discard pile — then any melds you want to lay, then one card discarded.',
+  'canasta.rules.turnDiscard': 'The discard is what ends a turn, so you always need a card to spare for it.',
+  'canasta.rules.pileTopCard':
+    'The discard pile can only be taken by a move that uses its top card straight away.',
+  'canasta.rules.pileBlocked':
+    'A black three on top blocks the pile — nobody may take it until the three is buried — and one left in your hand costs {n}.',
+  'canasta.rules.pileFrozenByWild':
+    "A wild card buried in the pile freezes it against everyone: taking it then costs two natural cards of the top card's rank, out of your own hand.",
+  'canasta.rules.meldShape': 'A meld is {n} or more cards of the same rank.',
+  'canasta.rules.wildLimit':
+    'A meld may hold at most {wilds} wild cards, and never fewer than {naturals} natural ones.',
+  'canasta.rules.wildRatio':
+    'A meld needs {n} natural cards for every wild one, and never more than {wilds} wilds in all.',
+  'canasta.rules.oneMeldPerRank':
+    'Your side keeps one meld of each rank — more cards of that rank are laid off onto it.',
+  'canasta.rules.meldsPerRankUnlimited': 'Your side may have several melds of the same rank.',
+  'canasta.rules.canastaCloses': 'A canasta of {n} is complete and takes no more cards.',
+  'canasta.rules.meldsAreShared':
+    "Melds belong to the partnership: either partner may extend them, and neither side may touch the other's.",
+  'canasta.rules.layOffAfterOpening':
+    'Until your side has made its initial meld it may not lay off onto anything.',
+  'canasta.rules.goOutKeepsACard':
+    'You must always be able to finish your turn, so never meld away your whole hand unless it is the move that goes out.',
   'canasta.rules.oneCanastaToGoOut': 'One completed canasta is enough for your side to go out.',
   'canasta.rules.twoCanastasToGoOut':
     'Your side needs two completed canastas before it may go out.',
@@ -180,6 +210,18 @@ export const en: Record<string, string> = {
   'holdem.rules.lastPlayerStanding': 'The match plays until one seat holds every chip.',
   'holdem.rules.mostChipsWins': 'Whoever holds the most chips when play stops wins the match.',
   'holdem.rules.handLimit': 'Play stops after {n} hands.',
+  'holdem.rules.checkOrCall': 'You may check only when nothing is owed; otherwise call, raise or fold.',
+  'holdem.rules.minRaise': 'A raise has to be at least as big as the last one.',
+  'holdem.rules.allIn':
+    'You can never put in more than your stack, and going all in is always allowed — even for less than a full raise.',
+  'holdem.rules.foldedOut': 'Once you fold you are out until the next hand is dealt.',
+  'holdem.remedy.callOrFold': 'There is {n} to call — call, raise, or fold.',
+  'holdem.remedy.checkOrRaise': 'Nothing is owed — check, or raise.',
+  'holdem.remedy.callAllInOrFold': 'Your stack will not get above the bet — call {n} all in, or fold.',
+  'holdem.remedy.raiseAtLeast': 'Raise to at least {n}.',
+  'holdem.remedy.raiseAtMost': 'Raise to at most {n} — that is your whole stack.',
+  'holdem.remedy.nameAnAmount': 'Say how much to raise to, between {min} and {max}.',
+  'holdem.remedy.waitForNextHand': 'You are out of this hand — wait for the next deal.',
 
   // --- header --------------------------------------------------------------
   'header.deal': 'Deal {n}',
@@ -288,12 +330,14 @@ export const en: Record<string, string> = {
   'err.CARD_DOES_NOT_FIT': 'That card doesn\'t match the suit or the rank',
   'err.SUIT_REQUIRED': 'Name the suit that continues',
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Answer with a seven, or take the cards',
+  'err.NOTHING_TO_SKIP': 'There is no skip to take',
   'err.NOTHING_TO_DRAW': 'There is nothing left to draw',
   'err.PILE_EMPTY': 'The pile is empty',
   'err.PILE_BLOCKED': 'The pile is blocked — a black three is on top',
   'err.PILE_FROZEN': 'The pile is frozen — you need two natural cards of the top card\'s rank',
   'err.MELD_CAPTURE_NOT_ALLOWED': "A meld on the table can't take the pile in this game — you need two cards from your hand",
-  'err.TOP_CARD_UNUSABLE': 'You can\'t use the top card',
+  'err.CAPTURE_NEEDS_TWO_CARDS': 'Taking the pile costs two cards from your hand',
+  'err.TOP_CARD_UNUSABLE': "Your side can't use the top card",
   'err.MELD_CLOSED': 'That meld is complete and closed',
   'err.MELD_TOO_SMALL': 'A meld needs more cards than that',
   'err.MELD_TOO_LARGE': 'That meld can\'t take any more cards',
@@ -314,7 +358,7 @@ export const en: Record<string, string> = {
   'err.CANNOT_GO_OUT_YET': 'Your side needs a completed canasta before it can go out',
   'err.NOTHING_TO_CALL': 'There is no bet to call',
   'err.CANNOT_CHECK': 'You can\'t check — there is a bet to answer',
-  'err.CANNOT_RAISE': 'You can\'t raise here',
+  'err.CANNOT_RAISE': "You can't raise — your stack won't get above the bet",
   'err.RAISE_TOO_SMALL': 'A raise has to be at least the last one',
   'err.NOT_ENOUGH_CHIPS': 'You don\'t have that many chips',
   'err.AMOUNT_REQUIRED': 'Say how much',
@@ -392,6 +436,26 @@ export const en: Record<string, string> = {
   'status.teamScore': 'Team {team}: {value}',
   'canasta.offer.rank': 'Rank',
   'canasta.offer.sequence': 'Sequence',
+  'canasta.remedy.drawOrTakePile': 'Draw from the stock, or take the discard pile, before you meld.',
+  'canasta.remedy.meldOrDiscard': 'You have already drawn — lay a meld, or discard to end your turn.',
+  'canasta.remedy.drawFromStock': 'Draw from the stock instead.',
+  'canasta.remedy.takePileInstead': 'The stock is empty — take the discard pile instead.',
+  'canasta.remedy.pileBlocked': 'Draw from the stock — the black three on top keeps the pile shut.',
+  'canasta.remedy.pileFrozen':
+    'Draw from the stock, or take the pile with two natural cards from your hand that match {card}.',
+  'canasta.remedy.topCardUnusable': 'Draw from the stock — your side has no use for the {card} on top.',
+  'canasta.remedy.captureFromHand': 'Take the pile with two cards from your own hand that match {card}.',
+  'canasta.remedy.needTwoMatching':
+    'You need two cards from your hand that match {card} — otherwise draw from the stock.',
+  'canasta.remedy.needMorePoints': "Your side's first meld is {n} points short.",
+  'canasta.remedy.openFirst': "Lay your side's first meld before you lay off.",
+  'canasta.remedy.needCanastas': 'Your side needs {n} more canasta of {size} before it can go out.',
+  'canasta.remedy.keepACard': 'Keep a card back to discard with.',
+  'canasta.remedy.layOffInstead': 'Lay them off onto the meld your side already has.',
+  'canasta.remedy.meldClosed': 'That meld is complete at {n} — start another, or lay off elsewhere.',
+  'canasta.remedy.discardNotARedThree': 'Discard something other than a red three.',
+  'canasta.remedy.blackThreesOnTheWayOut': 'Black threes go down only as the move that empties your hand.',
+  'canasta.remedy.ownMeldsOnly': "Lay off onto one of your own side's melds.",
   'badge.naturalCanasta': 'Natural canasta',
   'badge.mixedCanasta': 'Mixed canasta',
   'badge.samba': 'Samba',
@@ -503,6 +567,10 @@ export const en: Record<string, string> = {
   'ginrummy.rules.shutout': "The game bonus doubles to {n} if the loser never scored a single point.",
   'ginrummy.rules.box': 'Each hand you won is worth {n} points at the end of the match.',
   'ginrummy.rules.gameBonus': 'Winning the match is worth a further {n} points.',
+  'ginrummy.rules.upcardDance':
+    'Before the first draw the non-dealer may take the upcard, then the dealer may; if both pass, the non-dealer must draw from the stock.',
+  'ginrummy.rules.knockOnDiscard':
+    'A knock replaces your discard, so it can only happen at the end of your turn.',
   'ginrummy.fact.deadwood': '{value} deadwood',
   'ginrummy.fact.discardCard': 'Discard {value}',
   'ginrummy.fact.meldCards': 'Onto {value}',
@@ -524,6 +592,13 @@ export const en: Record<string, string> = {
   'ginrummy.offer.bigGin': 'Big gin!',
   'ginrummy.offer.layOff': 'Lay off',
   'ginrummy.offer.finishLayoff': 'Done laying off',
+  'ginrummy.remedy.takeOrPassUpcard': 'Take the upcard, or pass it.',
+  'ginrummy.remedy.drawFirst': 'Draw a card first — from the stock or the discard pile.',
+  'ginrummy.remedy.discardToEndTurn': 'Discard one card to end your turn.',
+  'ginrummy.remedy.finishLayoff': 'Nothing more of yours fits — finish laying off.',
+  'ginrummy.remedy.stockDrawForced': 'You both passed that card — draw from the stock.',
+  'ginrummy.remedy.drawElsewhere': 'That pile is empty — draw from the other one.',
+  'ginrummy.remedy.getDeadwoodDown': 'You can knock once your deadwood is {n} or less.',
   'ginrummy.zone.knockerHand': 'Knocked hand',
   'ginrummy.zone.melds': 'Melds',
   'ginrummy.prompt.upcardDecision': 'Take the upcard, or pass',
@@ -533,10 +608,10 @@ export const en: Record<string, string> = {
 
   // --- rummy tiles -------------------------------------------------------------
   'err.TILE_NOT_IN_HAND': 'That tile is not in your hand',
-  'err.TILE_DOES_NOT_FIT': "That doesn't fit there",
+  'err.TILE_DOES_NOT_FIT': "That tile doesn't fit in that set",
   'err.NO_SUCH_SET': 'That set is not on the table',
   'err.INITIAL_MELD_ONLY': 'You may only rearrange your own new sets before your first lay',
-  'err.TABLE_NOT_VALID': "The table isn't valid yet",
+  'err.TABLE_NOT_VALID': "A set on the table isn't a valid group or run",
   'err.TRAY_NOT_EMPTY': 'You still have loose tiles to place',
   'err.NOTHING_PLAYED': 'Play at least one tile before finishing your turn',
   'err.INITIAL_MELD_TOO_LOW': 'Your first lay needs to be worth 30 points or more',
@@ -573,6 +648,17 @@ export const en: Record<string, string> = {
     'If the pool runs dry and nobody can play, the round ends with no winner — every hand is simply scored.',
   'rummytiles.rules.target': 'First to pass {n} points after a round ends wins the match.',
   'rummytiles.rules.roundLimit': 'The match ends after {n} rounds — highest score wins.',
+  'rummytiles.remedy.emptyTheTray': 'Place the {n} tiles still in your tray, or reset the turn.',
+  'rummytiles.remedy.playFromHandOrDraw':
+    'Rearranging is not a turn — play at least one tile from your hand, or draw.',
+  'rummytiles.remedy.fixOrReset':
+    'Every set on the table has to be a valid group or run — fix them, or reset the turn.',
+  'rummytiles.remedy.needMorePoints': 'Your first lay is {n} points short of {floor}.',
+  'rummytiles.remedy.ownNewSetsOnly':
+    'Until your first lay of {n} points you may only rearrange the sets you made this turn.',
+  'rummytiles.remedy.startANewSet': 'Put it in a new set instead.',
+  'rummytiles.remedy.splitLeavesThree': 'Split a run so that both halves keep at least {n} tiles.',
+  'rummytiles.remedy.matchTheJoker': 'Swap the joker for the exact tile it stands for.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Pool {n}',
   'rummytiles.header.round': 'Round {n}',
@@ -652,6 +738,19 @@ export const en: Record<string, string> = {
   'blackjack.rules.mostChipsWins': 'Whoever holds the most chips at the end wins the match.',
   'blackjack.rules.bustedOut':
     'A seat that can no longer cover the minimum of {n} sits out the rest of the match.',
+  'blackjack.rules.roundOrder':
+    'A round goes in order: stakes up, cards dealt, insurance if the dealer shows an ace, then each seat plays its hand in turn.',
+  'blackjack.rules.oneStakePerRound': 'One stake per round — once it is up it cannot be changed.',
+  'blackjack.rules.stakeFromStack': 'You can only stake chips you actually hold.',
+  'blackjack.remedy.putAStakeUp': 'Put a stake up first — {n} or more.',
+  'blackjack.remedy.answerInsurance': 'Say yes or no to insurance first.',
+  'blackjack.remedy.playThisHand': 'Play the hand in front of you — hit, or stand.',
+  'blackjack.remedy.stakeIsUp': 'Your stake is already up — wait for the deal.',
+  'blackjack.remedy.stakeAtLeast': 'Stake at least {n}.',
+  'blackjack.remedy.stakeAtMost': 'Stake at most {n} — that is your whole stack.',
+  'blackjack.remedy.sayHowMuch': 'Say how much to stake — {n} or more.',
+  'blackjack.remedy.hitOrStand': 'Hit, or stand.',
+  'blackjack.remedy.waitForNextRound': 'You are out of this round — wait for the next deal.',
 
   'blackjack.zone.dealer': 'Dealer',
   'blackjack.zone.box': 'Hand',
@@ -899,6 +998,7 @@ export const en: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Everything this server can host',
   'lobby.games.bots': 'Bots',
+  'lobby.games.setup': 'Settings',
   'lobby.games.playBot': 'Play against a bot',
   'lobby.games.playBots': 'Play against {n} bots',
   'lobby.games.openTable': 'Open a table',

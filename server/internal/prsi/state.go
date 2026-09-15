@@ -95,6 +95,14 @@ const (
 	ErrGameNotActive  = "GAME_NOT_ACTIVE"
 	ErrCardNotInHand  = "CARD_NOT_IN_HAND"
 	ErrCardDoesNotFit = "CARD_DOES_NOT_FIT"
+	// ErrNothingToSkip is a pass with no skip owed to you.
+	//
+	// It used to be ErrCardDoesNotFit, which words as "that card doesn't match
+	// the suit or the rank" — a sentence about a card, printed under a button
+	// that plays none. A code shared between two unrelated refusals cannot be
+	// worded for both, and the player reading it was told about a move they
+	// had not made.
+	ErrNothingToSkip  = "NOTHING_TO_SKIP"
 	ErrMustAnswerDraw = "MUST_ANSWER_DRAW_OR_TAKE"
 	ErrSuitRequired   = "SUIT_REQUIRED"
 	ErrUnknownSuit    = "UNKNOWN_SUIT"

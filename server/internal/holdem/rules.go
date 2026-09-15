@@ -33,8 +33,19 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 			module.Fact{LabelKey: "holdem.rules.stack", Params: map[string]any{"n": stack}},
 			module.Fact{LabelKey: "holdem.rules.blinds", Params: map[string]any{"sb": bigBlind / 2, "bb": bigBlind}},
 		),
+		// The mechanics of a betting round, and not only its shape.
+		//
+		// Written out because this is where every refusal in the game comes
+		// from: "you can't check", "a raise has to be at least the last one",
+		// "you don't have that many chips" are all one rule each, and none of
+		// them was stated anywhere a player could read it before being told
+		// no. See ruleindex.go, which points each of those codes here.
 		module.Section("holdem.rules.section.betting",
 			module.Fact{LabelKey: "holdem.rules.streets"},
+			module.Fact{LabelKey: "holdem.rules.checkOrCall"},
+			module.Fact{LabelKey: "holdem.rules.minRaise"},
+			module.Fact{LabelKey: "holdem.rules.allIn"},
+			module.Fact{LabelKey: "holdem.rules.foldedOut"},
 			module.Fact{LabelKey: "holdem.rules.showdown"},
 		),
 		module.Section("holdem.rules.section.end", end...),

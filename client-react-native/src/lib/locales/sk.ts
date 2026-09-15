@@ -5,7 +5,7 @@
 export const sk: Record<string, string> = {
   // --- engine error codes (rules.RulesErrorCode) ---------------------------
   'err.NOT_YOUR_TURN': 'Nie si na rade',
-  'err.WRONG_PHASE': 'Teraz to nejde',
+  'err.WRONG_PHASE': 'V tejto časti ťahu nie',
   'err.MUST_DRAW_FIRST': 'Najprv si potiahni kartu',
   'err.GAME_SUSPENDED': 'Hra je pozastavená',
   'err.GAME_NOT_ACTIVE': 'Hra nebeží',
@@ -128,11 +128,17 @@ export const sk: Record<string, string> = {
   'prsi.rules.aces': 'Zahraj eso a ďalší hráč ťah vynechá.',
   'prsi.rules.queens': 'Zahraj dámu a povedz farbu, ktorá pokračuje.',
   'prsi.rules.end': 'Zápas sa končí vo chvíli, keď je niečia ruka prázdna.',
+  'prsi.remedy.matchOrDraw': 'Zahraj kartu {suit} alebo takú, ktorá sedí na {card} — inak si potiahni.',
+  'prsi.remedy.answerSevenOrTake': 'Odpovedz vlastnou sedmičkou alebo si vezmi {n} kariet.',
+  'prsi.remedy.playOrDraw': 'Nečaká ťa žiadne vynechanie — zahraj kartu {suit} alebo si potiahni.',
+  'prsi.remedy.nameASuit': 'Povedz, aká farba ide po tvojej dáme.',
+  'prsi.remedy.nothingLeftToDraw': 'Niet už z čoho ťahať — zahraj kartu, ak môžeš.',
 
   'canasta.rules.section.goal': 'Cieľ',
   'canasta.rules.section.setup': 'Príprava',
   'canasta.rules.section.melding': 'Vykladanie',
   'canasta.rules.section.end': 'Ako sa zápas končí',
+  'canasta.rules.section.turn': 'Tvoj ťah',
   'canasta.rules.goal': 'Hrá sa vo dvojiciach; prvá strana, ktorá dosiahne {n} bodov, vyhráva zápas.',
   'canasta.rules.deck': 'Hrá sa s {value} kartami — {decks} balíčky plus žolíci.',
   'canasta.rules.deal': 'Každý hráč dostane {n} kariet.',
@@ -152,6 +158,30 @@ export const sk: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Tvoje prvé vyloženie musí dosiahnuť bodové minimum, ktoré rastie so skóre: {negative} pod nulou, {low} do 1500, {mid} do 3000, {high} nad tým.',
   'canasta.rules.meldFloorBandsFive': 'Vaša prvá kombinácia musí dosiahnuť bodové minimum, ktoré rastie s vaším skóre: {negative} pod nulou, {low} do 1500, {mid} do 3000, {high} do 7000 a {top} nad tým.',
+  'canasta.rules.turn':
+    'Ťah je jedno nabratie do ruky — potiahnutie z balíka alebo vzatie celého odhadzovacieho balíka — potom ľubovoľné kombinácie a nakoniec jedna odhodená karta.',
+  'canasta.rules.turnDiscard': 'Ťah končí odhodením, takže naň musíš mať vždy kartu navyše.',
+  'canasta.rules.pileTopCard':
+    'Odhadzovací balík sa dá vziať len ťahom, ktorý hneď použije jeho vrchnú kartu.',
+  'canasta.rules.pileBlocked':
+    'Čierna trojka navrchu zablokuje balík — nikto ho nesmie vziať, kým nie je zasypaná — a tá, čo ti ostane v ruke, stojí {n}.',
+  'canasta.rules.pileFrozenByWild':
+    'Zakopaná divoká karta zmrazí balík pre všetkých: vziať ho potom stojí dve prirodzené karty v hodnote vrchnej karty z tvojej ruky.',
+  'canasta.rules.meldShape': 'Kombinácia sú {n} alebo viac kariet rovnakej hodnoty.',
+  'canasta.rules.wildLimit':
+    'Kombinácia smie mať najviac {wilds} divokých kariet a nikdy menej než {naturals} prirodzené.',
+  'canasta.rules.wildRatio':
+    'Kombinácia potrebuje {n} prirodzené karty na každú divokú a nikdy viac než {wilds} divoké celkovo.',
+  'canasta.rules.oneMeldPerRank':
+    'Tvoja strana má od každej hodnoty jednu kombináciu — ďalšie karty tej hodnoty sa k nej prikladajú.',
+  'canasta.rules.meldsPerRankUnlimited': 'Tvoja strana môže mať viacero kombinácií rovnakej hodnoty.',
+  'canasta.rules.canastaCloses': 'Canasta z {n} kariet je hotová a viac kariet už neprijme.',
+  'canasta.rules.meldsAreShared':
+    'Kombinácie patria dvojici: rozšíriť ich smie ktorýkoľvek z partnerov a na súperove sa nesiaha.',
+  'canasta.rules.layOffAfterOpening':
+    'Kým tvoja strana nevyloží svoju prvú kombináciu, nesmie na stole nič dopĺňať.',
+  'canasta.rules.goOutKeepsACard':
+    'Vždy musíš byť schopný dokončiť svoj ťah, takže celú ruku nevykladaj, ibaže je to práve ťah, ktorým vychádzaš.',
   'canasta.rules.oneCanastaToGoOut': 'Jedna dokončená canasta stačí, aby tvoja strana mohla vyjsť.',
   'canasta.rules.twoCanastasToGoOut': 'Tvoja strana potrebuje dve dokončené canasty, kým môže vyjsť.',
   'canasta.rules.end': 'Rozdáva sa ďalej, kým jedna strana neprekročí {n} bodov — potom je zápas na konci.',
@@ -170,6 +200,19 @@ export const sk: Record<string, string> = {
   'holdem.rules.lastPlayerStanding': 'Hrá sa, kým jedno miesto nedrží všetky žetóny.',
   'holdem.rules.mostChipsWins': 'Kto má pri ukončení hry najviac žetónov, vyhráva zápas.',
   'holdem.rules.handLimit': 'Hra sa končí po {n} rozdaniach.',
+  'holdem.rules.checkOrCall': 'Čakať smieš, len keď nič nedlhuješ; inak dorovnáš, zvýšiš alebo zložíš.',
+  'holdem.rules.minRaise': 'Zvýšenie musí byť aspoň také veľké ako to predchádzajúce.',
+  'holdem.rules.allIn':
+    'Nikdy nevsadíš viac, než máš, a all-in je vždy povolený — aj keď je menší než plné zvýšenie.',
+  'holdem.rules.foldedOut': 'Len čo zložíš, si vonku až do ďalšieho rozdania.',
+  'holdem.remedy.callOrFold': 'Dlhuješ {n} — dorovnaj, zvýš alebo zlož.',
+  'holdem.remedy.checkOrRaise': 'Nič sa nedlhuje — čakaj alebo zvýš.',
+  'holdem.remedy.callAllInOrFold':
+    'Nad stávku sa so svojím stackom nedostaneš — dorovnaj {n} all-in alebo zlož.',
+  'holdem.remedy.raiseAtLeast': 'Zvýš aspoň na {n}.',
+  'holdem.remedy.raiseAtMost': 'Zvýš najviac na {n} — to je celý tvoj stack.',
+  'holdem.remedy.nameAnAmount': 'Povedz, na koľko zvyšuješ — medzi {min} a {max}.',
+  'holdem.remedy.waitForNextHand': 'V tomto rozdaní nie si — počkaj na ďalšie.',
 
   // --- header --------------------------------------------------------------
   'header.deal': 'Rozdanie {n}',
@@ -279,12 +322,14 @@ export const sk: Record<string, string> = {
   'err.CARD_DOES_NOT_FIT': 'Táto karta nesedí ani farbou, ani hodnotou',
   'err.SUIT_REQUIRED': 'Povedz farbu, ktorá pokračuje',
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Odpovedz sedmičkou, alebo si vezmi karty',
+  'err.NOTHING_TO_SKIP': 'Nie je čo vynechať',
   'err.NOTHING_TO_DRAW': 'Nie je už čo ťahať',
   'err.PILE_EMPTY': 'Kôpka je prázdna',
   'err.PILE_BLOCKED': 'Kôpka je zablokovaná — navrchu leží čierna trojka',
   'err.PILE_FROZEN': 'Kôpka je zamrznutá — potrebuješ dve prirodzené karty v hodnote vrchnej karty',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'V tejto hre si kombinácia na stole kôpku vziať nemôže — potrebuješ dve karty z ruky',
-  'err.TOP_CARD_UNUSABLE': 'Vrchnú kartu nemôžeš použiť',
+  'err.CAPTURE_NEEDS_TWO_CARDS': 'Vzatie odhadzovacieho balíka stojí dve karty z ruky',
+  'err.TOP_CARD_UNUSABLE': 'Tvoja strana vrchnú kartu použiť nemôže',
   'err.MELD_CLOSED': 'Táto kombinácia je úplná a uzavretá',
   'err.MELD_TOO_SMALL': 'Kombinácia potrebuje viac kariet',
   'err.MELD_TOO_LARGE': 'Táto kombinácia už neprijme ďalšie karty',
@@ -305,7 +350,7 @@ export const sk: Record<string, string> = {
   'err.CANNOT_GO_OUT_YET': 'Tvoja strana potrebuje dokončenú canastu, kým môže vyjsť',
   'err.NOTHING_TO_CALL': 'Nie je žiadna stávka na dorovnanie',
   'err.CANNOT_CHECK': 'Nemôžeš checkovať — je tu stávka na odpoveď',
-  'err.CANNOT_RAISE': 'Tu nemôžeš zvyšovať',
+  'err.CANNOT_RAISE': 'Zvýšiť nemôžeš — so svojím stackom sa nad stávku nedostaneš',
   'err.RAISE_TOO_SMALL': 'Zvýšenie musí byť aspoň také ako to predchádzajúce',
   'err.NOT_ENOUGH_CHIPS': 'Toľko žetónov nemáš',
   'err.AMOUNT_REQUIRED': 'Povedz koľko',
@@ -391,6 +436,30 @@ export const sk: Record<string, string> = {
   'status.teamScore': 'Tím {team}: {value}',
   'canasta.offer.rank': 'Hodnota',
   'canasta.offer.sequence': 'Postupka',
+  'canasta.remedy.drawOrTakePile':
+    'Najprv si potiahni z balíka alebo vezmi odhadzovací balík, až potom vykladaj.',
+  'canasta.remedy.meldOrDiscard': 'Už si si potiahol — vylož kombináciu alebo odhoď kartu a ťah ukonči.',
+  'canasta.remedy.drawFromStock': 'Potiahni si namiesto toho z balíka.',
+  'canasta.remedy.takePileInstead': 'Balík sa minul — vezmi namiesto toho odhadzovací balík.',
+  'canasta.remedy.pileBlocked':
+    'Potiahni si z balíka — čierna trojka navrchu drží odhadzovací balík zavretý.',
+  'canasta.remedy.pileFrozen':
+    'Potiahni si z balíka alebo vezmi balík dvoma prirodzenými kartami z ruky, ktoré sedia na {card}.',
+  'canasta.remedy.topCardUnusable':
+    'Potiahni si z balíka — tvoja strana s kartou {card} navrchu nič nezmôže.',
+  'canasta.remedy.captureFromHand':
+    'Vezmi odhadzovací balík dvoma kartami z vlastnej ruky, ktoré sedia na {card}.',
+  'canasta.remedy.needTwoMatching':
+    'Potrebuješ z ruky dve karty, ktoré sedia na {card} — inak si potiahni z balíka.',
+  'canasta.remedy.needMorePoints': 'Prvej kombinácii tvojej strany chýba {n} bodov.',
+  'canasta.remedy.openFirst': 'Vylož prvú kombináciu svojej strany, až potom prikladaj.',
+  'canasta.remedy.needCanastas': 'Tvoja strana potrebuje ešte {n} canast po {size} kartách, aby mohla vyjsť.',
+  'canasta.remedy.keepACard': 'Nechaj si kartu na odhodenie.',
+  'canasta.remedy.layOffInstead': 'Prilož ich ku kombinácii, ktorú tvoja strana už má.',
+  'canasta.remedy.meldClosed': 'Táto kombinácia je pri {n} kartách hotová — začni inú alebo prilož inde.',
+  'canasta.remedy.discardNotARedThree': 'Odhoď niečo iné než červenú trojku.',
+  'canasta.remedy.blackThreesOnTheWayOut': 'Čierne trojky sa vykladajú len ťahom, ktorým vyprázdniš ruku.',
+  'canasta.remedy.ownMeldsOnly': 'Prikladaj len ku kombináciám vlastnej strany.',
   'badge.naturalCanasta': 'Čistá kanasta',
   'badge.mixedCanasta': 'Nečistá kanasta',
   'badge.samba': 'Samba',
@@ -508,6 +577,9 @@ export const sk: Record<string, string> = {
   'ginrummy.rules.shutout': 'Bonus za zápas sa zdvojnásobí na {n}, ak porazený nezískal ani jeden bod.',
   'ginrummy.rules.box': 'Každé vyhraté rozdanie má na konci zápasu hodnotu {n} bodov.',
   'ginrummy.rules.gameBonus': 'Výhra v zápase prináša ďalších {n} bodov.',
+  'ginrummy.rules.upcardDance':
+    'Pred prvým ťahom môže vrchnú kartu vziať nerozdávajúci, potom rozdávajúci; ak ju obaja odmietnu, nerozdávajúci si musí potiahnuť z balíka.',
+  'ginrummy.rules.knockOnDiscard': 'Klepnutie nahrádza tvoj odhod, takže príde len na konci tvojho ťahu.',
   'ginrummy.fact.deadwood': 'deadwood {value}',
   'ginrummy.fact.discardCard': 'Odhodiť {value}',
   'ginrummy.fact.meldCards': 'Na {value}',
@@ -529,6 +601,13 @@ export const sk: Record<string, string> = {
   'ginrummy.offer.bigGin': 'Big gin!',
   'ginrummy.offer.layOff': 'Priložiť',
   'ginrummy.offer.finishLayoff': 'Koniec prikladania',
+  'ginrummy.remedy.takeOrPassUpcard': 'Vezmi si vrchnú kartu alebo ju prenechaj.',
+  'ginrummy.remedy.drawFirst': 'Najprv si potiahni kartu — z balíka alebo z odhadzovacieho balíka.',
+  'ginrummy.remedy.discardToEndTurn': 'Odhoď jednu kartu a ťah ukonči.',
+  'ginrummy.remedy.finishLayoff': 'Nič ďalšie z tvojich kariet sem nesadne — dokonči prikladanie.',
+  'ginrummy.remedy.stockDrawForced': 'Tú kartu ste obaja prenechali — potiahni si z balíka.',
+  'ginrummy.remedy.drawElsewhere': 'Ten balík je prázdny — potiahni si z toho druhého.',
+  'ginrummy.remedy.getDeadwoodDown': 'Klepnúť môžeš, keď ti zvyškové body klesnú na {n} alebo menej.',
   'ginrummy.zone.knockerHand': 'Ruka toho, kto klepol',
   'ginrummy.zone.melds': 'Kombinácie',
   'ginrummy.prompt.upcardDecision': 'Vezmi otočenú kartu, alebo pasuj',
@@ -538,10 +617,10 @@ export const sk: Record<string, string> = {
 
   // --- rummy tiles -------------------------------------------------------------
   'err.TILE_NOT_IN_HAND': 'Tento kameň v ruke nemáš',
-  'err.TILE_DOES_NOT_FIT': 'Tam to nepasuje',
+  'err.TILE_DOES_NOT_FIT': 'Tento kameň do tej zostavy nepatrí',
   'err.NO_SUCH_SET': 'Táto kombinácia nie je na stole',
   'err.INITIAL_MELD_ONLY': 'Pred prvým vyložením môžeš prerovnávať iba vlastné nové kombinácie',
-  'err.TABLE_NOT_VALID': 'Stôl zatiaľ nie je platný',
+  'err.TABLE_NOT_VALID': 'Niektorá zostava na stole nie je platná skupina ani postupka',
   'err.TRAY_NOT_EMPTY': 'Máš ešte voľné kamene na umiestnenie',
   'err.NOTHING_PLAYED': 'Zahraj aspoň jeden kameň, než ukončíš ťah',
   'err.INITIAL_MELD_TOO_LOW': 'Tvoje prvé vyloženie musí mať hodnotu aspoň 30 bodov',
@@ -579,6 +658,17 @@ export const sk: Record<string, string> = {
     'Ak sa banka vyčerpá a nikto nemôže hrať, kolo sa končí bez víťaza — každá ruka sa jednoducho spočíta.',
   'rummytiles.rules.target': 'Kto po skončení kola prvý prekročí {n} bodov, vyhráva zápas.',
   'rummytiles.rules.roundLimit': 'Zápas sa končí po {n} kolách — vyhráva najvyššie skóre.',
+  'rummytiles.remedy.emptyTheTray': 'Umiestni {n} kameňov, ktoré máš ešte v priehradke, alebo ťah vráť.',
+  'rummytiles.remedy.playFromHandOrDraw':
+    'Samotné preusporiadanie nie je ťah — polož aspoň jeden kameň z ruky alebo si potiahni.',
+  'rummytiles.remedy.fixOrReset':
+    'Každá zostava na stole musí byť platná skupina alebo postupka — oprav ich alebo ťah vráť.',
+  'rummytiles.remedy.needMorePoints': 'Tvojmu prvému vyloženiu chýba {n} bodov do {floor}.',
+  'rummytiles.remedy.ownNewSetsOnly':
+    'Kým nevyložíš svojich prvých {n} bodov, smieš preusporadúvať len zostavy, ktoré si vytvoril v tomto ťahu.',
+  'rummytiles.remedy.startANewSet': 'Daj ju namiesto toho do novej zostavy.',
+  'rummytiles.remedy.splitLeavesThree': 'Rozdeľ postupku tak, aby obom polovinám zostali aspoň {n} kamene.',
+  'rummytiles.remedy.matchTheJoker': 'Vymeň žolíka presne za ten kameň, ktorý zastupuje.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Banka {n}',
   'rummytiles.header.round': 'Kolo {n}',
@@ -656,6 +746,19 @@ export const sk: Record<string, string> = {
   'blackjack.rules.rounds': 'Pri stole sa hrá {n} kôl.',
   'blackjack.rules.mostChipsWins': 'Kto má na konci najviac žetónov, vyhráva zápas.',
   'blackjack.rules.bustedOut': 'Miesto, ktoré už nedokáže pokryť minimum {n}, zvyšok zápasu sedí bokom.',
+  'blackjack.rules.roundOrder':
+    'Kolo ide v poradí: stávky, rozdanie kariet, poistenie ak krupiér ukazuje eso, a potom každé miesto hrá svoju ruku po rade.',
+  'blackjack.rules.oneStakePerRound': 'Jedna stávka na kolo — len čo je na stole, už sa nemení.',
+  'blackjack.rules.stakeFromStack': 'Staviť môžeš len žetóny, ktoré naozaj máš.',
+  'blackjack.remedy.putAStakeUp': 'Najprv stav — {n} alebo viac.',
+  'blackjack.remedy.answerInsurance': 'Najprv povedz áno alebo nie poisteniu.',
+  'blackjack.remedy.playThisHand': 'Hraj ruku pred sebou — ber alebo stoj.',
+  'blackjack.remedy.stakeIsUp': 'Tvoja stávka už je na stole — počkaj na rozdanie.',
+  'blackjack.remedy.stakeAtLeast': 'Stav aspoň {n}.',
+  'blackjack.remedy.stakeAtMost': 'Stav najviac {n} — to je všetko, čo máš.',
+  'blackjack.remedy.sayHowMuch': 'Povedz, koľko stavíš — {n} alebo viac.',
+  'blackjack.remedy.hitOrStand': 'Ber alebo stoj.',
+  'blackjack.remedy.waitForNextRound': 'V tomto kole nie si — počkaj na ďalšie rozdanie.',
 
   'blackjack.zone.dealer': 'Krupiér',
   'blackjack.zone.box': 'Rozdanie',
@@ -904,6 +1007,7 @@ export const sk: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Všetko, čo tento server vie ponúknuť',
   'lobby.games.bots': 'Boti',
+  'lobby.games.setup': 'Nastavenia',
   'lobby.games.playBot': 'Hrať proti botovi',
   'lobby.games.playBots': 'Hrať proti botom: {n}',
   'lobby.games.openTable': 'Otvoriť stôl',

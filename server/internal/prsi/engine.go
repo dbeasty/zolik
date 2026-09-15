@@ -211,7 +211,7 @@ func (m *Module) applyDraw(s *GameState, playerID string) (module.State, []modul
 // pending — otherwise passing would be a way to stall forever.
 func (m *Module) applyPass(s *GameState, playerID string) (module.State, []module.Event, error) {
 	if !s.SkipPending {
-		return nil, nil, module.Error{Code: ErrCardDoesNotFit, Message: "nothing to pass on"}
+		return nil, nil, module.Error{Code: ErrNothingToSkip, Message: "nothing to pass on"}
 	}
 	s.SkipPending = false
 	s.Current = s.nextPlayer(playerID)

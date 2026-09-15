@@ -5,7 +5,7 @@
 export const da: Record<string, string> = {
   // --- engine error codes (rules.RulesErrorCode) ---------------------------
   'err.NOT_YOUR_TURN': 'Det er ikke din tur',
-  'err.WRONG_PHASE': 'Kan ikke lige nu',
+  'err.WRONG_PHASE': 'Ikke på dette tidspunkt i turen',
   'err.MUST_DRAW_FIRST': 'Træk et kort, før du lægger ud',
   'err.GAME_SUSPENDED': 'Spillet er sat på pause',
   'err.GAME_NOT_ACTIVE': 'Spillet er ikke i gang',
@@ -124,11 +124,17 @@ export const da: Record<string, string> = {
   'prsi.rules.aces': 'Spil et es, og den næste spillers tur springes over.',
   'prsi.rules.queens': 'Spil en dame og nævn den farve, der fortsætter.',
   'prsi.rules.end': 'Matchen slutter i det øjeblik, en hånd er tom.',
+  'prsi.remedy.matchOrDraw': 'Spil et {suit}-kort eller et, der passer på {card} — ellers træk.',
+  'prsi.remedy.answerSevenOrTake': 'Svar med din egen syver, eller tag de {n} kort.',
+  'prsi.remedy.playOrDraw': 'Der venter ingen overspringelse — spil et {suit}-kort, eller træk.',
+  'prsi.remedy.nameASuit': 'Sig hvilken farve der følger efter din dame.',
+  'prsi.remedy.nothingLeftToDraw': 'Der er intet tilbage at trække — spil et kort, hvis du kan.',
 
   'canasta.rules.section.goal': 'Mål',
   'canasta.rules.section.setup': 'Opstilling',
   'canasta.rules.section.melding': 'At lægge ud',
   'canasta.rules.section.end': 'Sådan slutter matchen',
+  'canasta.rules.section.turn': 'Din tur',
   'canasta.rules.goal': 'Der spilles i makkerpar; den første side, der når {n} point, vinder matchen.',
   'canasta.rules.deck': 'Spilles med {value} kort — {decks} spil plus jokere.',
   'canasta.rules.deal': 'Hver spiller får {n} kort.',
@@ -148,6 +154,30 @@ export const da: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Din første udlægning skal nå et pointminimum, der stiger med din stilling: {negative} under nul, {low} op til 1500, {mid} op til 3000, {high} derover.',
   'canasta.rules.meldFloorBandsFive': 'Din første kombination skal nå et pointminimum, der stiger med din score: {negative} under nul, {low} op til 1500, {mid} op til 3000, {high} op til 7000 og {top} derover.',
+  'canasta.rules.turn':
+    'En tur er ét træk ind i hånden — fra bunken eller hele kastebunken — derefter de meldinger du vil lægge, og til sidst ét kort smidt ud.',
+  'canasta.rules.turnDiscard': 'Turen slutter med et kast, så du skal altid have et kort til overs til det.',
+  'canasta.rules.pileTopCard':
+    'Kastebunken kan kun tages med et træk, der bruger dens øverste kort med det samme.',
+  'canasta.rules.pileBlocked':
+    'En sort tre øverst spærrer bunken — ingen må tage den, før den er dækket — og en sort tre på hånden koster {n}.',
+  'canasta.rules.pileFrozenByWild':
+    'Et begravet jokerkort fryser bunken for alle: at tage den koster så to naturlige kort fra din hånd i det øverste korts værdi.',
+  'canasta.rules.meldShape': 'En melding er {n} eller flere kort af samme værdi.',
+  'canasta.rules.wildLimit':
+    'En melding må have højst {wilds} jokerkort og aldrig færre end {naturals} naturlige.',
+  'canasta.rules.wildRatio':
+    'En melding kræver {n} naturlige kort for hvert jokerkort og aldrig mere end {wilds} jokere i alt.',
+  'canasta.rules.oneMeldPerRank':
+    'Din side har én melding af hver værdi — flere kort af den værdi lægges til den.',
+  'canasta.rules.meldsPerRankUnlimited': 'Din side må have flere meldinger af samme værdi.',
+  'canasta.rules.canastaCloses': 'En canasta på {n} kort er færdig og tager ikke flere.',
+  'canasta.rules.meldsAreShared':
+    'Meldinger tilhører makkerparret: begge makkere må udvide dem, og modstandernes rører man ikke.',
+  'canasta.rules.layOffAfterOpening':
+    'Indtil din side har lagt sin første melding, må den ikke lægge kort til noget på bordet.',
+  'canasta.rules.goOutKeepsACard':
+    'Du skal altid kunne afslutte din tur, så du melder aldrig hele hånden ud, medmindre det er netop trækket der går ud.',
   'canasta.rules.oneCanastaToGoOut': 'Én færdig canasta er nok til, at din side kan gå ud.',
   'canasta.rules.twoCanastasToGoOut': 'Din side skal have to færdige canastaer, før den må gå ud.',
   'canasta.rules.end': 'Der gives videre, indtil en side passerer {n} point — så er matchen slut.',
@@ -167,6 +197,18 @@ export const da: Record<string, string> = {
   'holdem.rules.lastPlayerStanding': 'Der spilles, indtil én plads har alle jetoner.',
   'holdem.rules.mostChipsWins': 'Den, der har flest jetoner, når spillet stopper, vinder matchen.',
   'holdem.rules.handLimit': 'Spillet stopper efter {n} hænder.',
+  'holdem.rules.checkOrCall': 'Du må kun tjekke, når du intet skylder; ellers syner, hæver eller folder du.',
+  'holdem.rules.minRaise': 'En hævning skal være mindst lige så stor som den forrige.',
+  'holdem.rules.allIn':
+    'Du kan aldrig satse mere end din stak, og all-in er altid tilladt — også når det er mindre end en fuld hævning.',
+  'holdem.rules.foldedOut': 'Når du først har foldet, er du ude indtil næste hånd deles.',
+  'holdem.remedy.callOrFold': 'Du skylder {n} — syn, hæv eller fold.',
+  'holdem.remedy.checkOrRaise': 'Der skyldes intet — tjek eller hæv.',
+  'holdem.remedy.callAllInOrFold': 'Din stak rækker ikke over indsatsen — syn {n} all-in, eller fold.',
+  'holdem.remedy.raiseAtLeast': 'Hæv til mindst {n}.',
+  'holdem.remedy.raiseAtMost': 'Hæv højst til {n} — det er hele din stak.',
+  'holdem.remedy.nameAnAmount': 'Sig hvor meget du hæver til — mellem {min} og {max}.',
+  'holdem.remedy.waitForNextHand': 'Du er ude af denne hånd — vent på næste giv.',
 
   // --- header --------------------------------------------------------------
   'header.deal': 'Giv {n}',
@@ -275,12 +317,14 @@ export const da: Record<string, string> = {
   'err.CARD_DOES_NOT_FIT': 'Det kort passer hverken i farve eller værdi',
   'err.SUIT_REQUIRED': 'Nævn den farve, der fortsætter',
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Svar med en syver, eller tag kortene',
+  'err.NOTHING_TO_SKIP': 'Der er ingen tur at springe over',
   'err.NOTHING_TO_DRAW': 'Der er ikke mere at trække',
   'err.PILE_EMPTY': 'Bunken er tom',
   'err.PILE_BLOCKED': 'Bunken er blokeret — der ligger en sort treer øverst',
   'err.PILE_FROZEN': 'Bunken er frosset — du skal bruge to naturlige kort af det øverste korts værdi',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'I dette spil kan en kombination på bordet ikke tage bunken — du skal bruge to kort fra hånden',
-  'err.TOP_CARD_UNUSABLE': 'Du kan ikke bruge det øverste kort',
+  'err.CAPTURE_NEEDS_TWO_CARDS': 'At tage kastebunken koster to kort fra din hånd',
+  'err.TOP_CARD_UNUSABLE': 'Din side kan ikke bruge det øverste kort',
   'err.MELD_CLOSED': 'Den kombination er komplet og lukket',
   'err.MELD_TOO_SMALL': 'En kombination kræver flere kort end det',
   'err.MELD_TOO_LARGE': 'Den kombination kan ikke rumme flere kort',
@@ -301,7 +345,7 @@ export const da: Record<string, string> = {
   'err.CANNOT_GO_OUT_YET': 'Din side skal have en færdig canasta, før den kan gå ud',
   'err.NOTHING_TO_CALL': 'Der er ingen indsats at syne',
   'err.CANNOT_CHECK': 'Du kan ikke tjekke — der er en indsats at svare på',
-  'err.CANNOT_RAISE': 'Her kan du ikke hæve',
+  'err.CANNOT_RAISE': 'Du kan ikke hæve — din stak rækker ikke over indsatsen',
   'err.RAISE_TOO_SMALL': 'En hævning skal være mindst lige så stor som den forrige',
   'err.NOT_ENOUGH_CHIPS': 'Så mange jetoner har du ikke',
   'err.AMOUNT_REQUIRED': 'Sig hvor meget',
@@ -391,6 +435,28 @@ export const da: Record<string, string> = {
   'status.teamScore': 'Hold {team}: {value}',
   'canasta.offer.rank': 'Værdi',
   'canasta.offer.sequence': 'Sekvens',
+  'canasta.remedy.drawOrTakePile': 'Træk først fra bunken, eller tag kastebunken, før du melder.',
+  'canasta.remedy.meldOrDiscard':
+    'Du har allerede trukket — meld noget, eller smid et kort ud for at slutte turen.',
+  'canasta.remedy.drawFromStock': 'Træk fra bunken i stedet.',
+  'canasta.remedy.takePileInstead': 'Bunken er tom — tag kastebunken i stedet.',
+  'canasta.remedy.pileBlocked': 'Træk fra bunken — den sorte tre øverst holder kastebunken lukket.',
+  'canasta.remedy.pileFrozen':
+    'Træk fra bunken, eller tag kastebunken med to naturlige kort fra hånden, der passer på {card}.',
+  'canasta.remedy.topCardUnusable': 'Træk fra bunken — din side kan ikke bruge {card} øverst.',
+  'canasta.remedy.captureFromHand': 'Tag kastebunken med to kort fra din egen hånd, der passer på {card}.',
+  'canasta.remedy.needTwoMatching':
+    'Du skal bruge to kort fra hånden, der passer på {card} — ellers træk fra bunken.',
+  'canasta.remedy.needMorePoints': 'Din sides første melding mangler {n} point.',
+  'canasta.remedy.openFirst': 'Læg din sides første melding, før du lægger kort til.',
+  'canasta.remedy.needCanastas': 'Din side mangler {n} canasta á {size} kort, før den kan gå ud.',
+  'canasta.remedy.keepACard': 'Behold et kort at smide ud med.',
+  'canasta.remedy.layOffInstead': 'Læg dem til den melding, din side allerede har.',
+  'canasta.remedy.meldClosed':
+    'Den melding er færdig ved {n} kort — start en ny, eller læg til et andet sted.',
+  'canasta.remedy.discardNotARedThree': 'Smid noget andet ud end en rød tre.',
+  'canasta.remedy.blackThreesOnTheWayOut': 'Sorte treere lægges kun med det træk, der tømmer din hånd.',
+  'canasta.remedy.ownMeldsOnly': 'Læg kun til din egen sides meldinger.',
   'badge.naturalCanasta': 'Ren canasta',
   'badge.mixedCanasta': 'Uren canasta',
   'badge.samba': 'Samba',
@@ -509,6 +575,9 @@ export const da: Record<string, string> = {
   'ginrummy.rules.shutout': 'Matchbonussen fordobles til {n}, hvis taberen aldrig fik et eneste point.',
   'ginrummy.rules.box': 'Hver hånd, du vandt, er {n} point værd ved matchens slutning.',
   'ginrummy.rules.gameBonus': 'At vinde matchen giver yderligere {n} point.',
+  'ginrummy.rules.upcardDance':
+    'Før det første træk må ikke-giveren tage det vendte kort, derefter giveren; siger begge nej, skal ikke-giveren trække fra bunken.',
+  'ginrummy.rules.knockOnDiscard': 'Et bank erstatter dit kast, så det kan kun ske til sidst i din tur.',
   'ginrummy.fact.deadwood': '{value} deadwood',
   'ginrummy.fact.discardCard': 'Smid {value} ud',
   'ginrummy.fact.meldCards': 'På {value}',
@@ -530,6 +599,13 @@ export const da: Record<string, string> = {
   'ginrummy.offer.bigGin': 'Big gin!',
   'ginrummy.offer.layOff': 'Læg på',
   'ginrummy.offer.finishLayoff': 'Færdig med at lægge på',
+  'ginrummy.remedy.takeOrPassUpcard': 'Tag det vendte kort, eller lad det gå videre.',
+  'ginrummy.remedy.drawFirst': 'Træk først et kort — fra bunken eller fra kastebunken.',
+  'ginrummy.remedy.discardToEndTurn': 'Smid ét kort ud for at slutte din tur.',
+  'ginrummy.remedy.finishLayoff': 'Intet mere af dine kort passer — afslut afsmidningen.',
+  'ginrummy.remedy.stockDrawForced': 'I lod begge det kort gå — træk fra bunken.',
+  'ginrummy.remedy.drawElsewhere': 'Den bunke er tom — træk fra den anden.',
+  'ginrummy.remedy.getDeadwoodDown': 'Du kan banke, når dine restpoint er nede på {n} eller mindre.',
   'ginrummy.zone.knockerHand': 'Bankerens hånd',
   'ginrummy.zone.melds': 'Kombinationer',
   'ginrummy.prompt.upcardDecision': 'Tag det opvendte kort, eller pas',
@@ -539,10 +615,10 @@ export const da: Record<string, string> = {
 
   // --- rummy tiles -------------------------------------------------------------
   'err.TILE_NOT_IN_HAND': 'Den brik er ikke på din hånd',
-  'err.TILE_DOES_NOT_FIT': 'Det passer ikke der',
+  'err.TILE_DOES_NOT_FIT': 'Den brik passer ikke i det sæt',
   'err.NO_SUCH_SET': 'Den kombination ligger ikke på bordet',
   'err.INITIAL_MELD_ONLY': 'Før din første udlægning må du kun flytte rundt på dine egne nye kombinationer',
-  'err.TABLE_NOT_VALID': 'Bordet er ikke gyldigt endnu',
+  'err.TABLE_NOT_VALID': 'Et sæt på bordet er hverken en gyldig gruppe eller række',
   'err.TRAY_NOT_EMPTY': 'Du har stadig løse brikker at placere',
   'err.NOTHING_PLAYED': 'Læg mindst én brik, før du afslutter din tur',
   'err.INITIAL_MELD_TOO_LOW': 'Din første udlægning skal være mindst 30 point værd',
@@ -580,6 +656,17 @@ export const da: Record<string, string> = {
     'Slipper posen op, og ingen kan spille, slutter runden uden vinder — hver hånd tælles blot op.',
   'rummytiles.rules.target': 'Den første, der passerer {n} point efter en runde, vinder matchen.',
   'rummytiles.rules.roundLimit': 'Matchen slutter efter {n} runder — den højeste score vinder.',
+  'rummytiles.remedy.emptyTheTray': 'Placer de {n} brikker, der stadig ligger i bakken, eller nulstil turen.',
+  'rummytiles.remedy.playFromHandOrDraw':
+    'At flytte rundt er ikke en tur — læg mindst én brik fra hånden, eller træk.',
+  'rummytiles.remedy.fixOrReset':
+    'Hvert sæt på bordet skal være en gyldig gruppe eller række — ret dem, eller nulstil turen.',
+  'rummytiles.remedy.needMorePoints': 'Din første udlægning mangler {n} point op til {floor}.',
+  'rummytiles.remedy.ownNewSetsOnly':
+    'Indtil du har lagt dine første {n} point, må du kun flytte om på de sæt, du selv har lavet i denne tur.',
+  'rummytiles.remedy.startANewSet': 'Læg den i et nyt sæt i stedet.',
+  'rummytiles.remedy.splitLeavesThree': 'Del rækken sådan, at begge halvdele beholder mindst {n} brikker.',
+  'rummytiles.remedy.matchTheJoker': 'Byt jokeren med præcis den brik, den står for.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Pose {n}',
   'rummytiles.header.round': 'Runde {n}',
@@ -657,6 +744,19 @@ export const da: Record<string, string> = {
   'blackjack.rules.mostChipsWins': 'Den, der har flest jetoner til sidst, vinder matchen.',
   'blackjack.rules.bustedOut':
     'En plads, der ikke længere kan dække minimum på {n}, sidder over resten af matchen.',
+  'blackjack.rules.roundOrder':
+    'En runde går i rækkefølge: indsatser, kort deles ud, forsikring hvis dealeren viser et es, og så spiller hver plads sin hånd efter tur.',
+  'blackjack.rules.oneStakePerRound': 'Én indsats per runde — når den først er sat, kan den ikke ændres.',
+  'blackjack.rules.stakeFromStack': 'Du kan kun satse jetoner, du faktisk har.',
+  'blackjack.remedy.putAStakeUp': 'Sæt først en indsats — {n} eller mere.',
+  'blackjack.remedy.answerInsurance': 'Sig først ja eller nej til forsikringen.',
+  'blackjack.remedy.playThisHand': 'Spil hånden foran dig — tag kort eller stå.',
+  'blackjack.remedy.stakeIsUp': 'Din indsats er allerede sat — vent på uddelingen.',
+  'blackjack.remedy.stakeAtLeast': 'Sats mindst {n}.',
+  'blackjack.remedy.stakeAtMost': 'Sats højst {n} — det er hele din stak.',
+  'blackjack.remedy.sayHowMuch': 'Sig hvor meget du satser — {n} eller mere.',
+  'blackjack.remedy.hitOrStand': 'Tag kort, eller stå.',
+  'blackjack.remedy.waitForNextRound': 'Du er ude af denne runde — vent på næste uddeling.',
 
   'blackjack.zone.dealer': 'Dealer',
   'blackjack.zone.box': 'Hånd',
@@ -906,6 +1006,7 @@ export const da: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Alt hvad denne server kan byde på',
   'lobby.games.bots': 'Bots',
+  'lobby.games.setup': 'Indstillinger',
   'lobby.games.playBot': 'Spil mod en bot',
   'lobby.games.playBots': 'Spil mod {n} bots',
   'lobby.games.openTable': 'Åbn et bord',

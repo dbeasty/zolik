@@ -5,7 +5,7 @@
 export const el: Record<string, string> = {
   // --- engine error codes (rules.RulesErrorCode) ---------------------------
   'err.NOT_YOUR_TURN': 'Δεν είναι η σειρά σου',
-  'err.WRONG_PHASE': 'Δεν γίνεται αυτή τη στιγμή',
+  'err.WRONG_PHASE': 'Όχι σε αυτό το σημείο του γύρου',
   'err.MUST_DRAW_FIRST': 'Τράβα ένα φύλλο πριν κατεβάσεις',
   'err.GAME_SUSPENDED': 'Το παιχνίδι είναι σε παύση',
   'err.GAME_NOT_ACTIVE': 'Το παιχνίδι δεν τρέχει',
@@ -131,11 +131,17 @@ export const el: Record<string, string> = {
   'prsi.rules.aces': 'Παίξε άσο και η σειρά του επόμενου παίκτη προσπερνιέται.',
   'prsi.rules.queens': 'Παίξε ντάμα και πες το χρώμα που συνεχίζει.',
   'prsi.rules.end': 'Ο αγώνας τελειώνει τη στιγμή που το χέρι κάποιου αδειάσει.',
+  'prsi.remedy.matchOrDraw': 'Παίξε ένα φύλλο {suit} ή ένα που ταιριάζει με το {card} — αλλιώς τράβα.',
+  'prsi.remedy.answerSevenOrTake': 'Απάντησε με δικό σου εφτάρι ή πάρε τα {n} φύλλα.',
+  'prsi.remedy.playOrDraw': 'Δεν σε περιμένει καμία παράλειψη — παίξε ένα φύλλο {suit} ή τράβα.',
+  'prsi.remedy.nameASuit': 'Πες ποιο χρώμα ακολουθεί τη ντάμα σου.',
+  'prsi.remedy.nothingLeftToDraw': 'Δεν έμεινε τίποτα για τράβηγμα — παίξε φύλλο αν μπορείς.',
 
   'canasta.rules.section.goal': 'Στόχος',
   'canasta.rules.section.setup': 'Στήσιμο',
   'canasta.rules.section.melding': 'Κατέβασμα',
   'canasta.rules.section.end': 'Πώς τελειώνει ο αγώνας',
+  'canasta.rules.section.turn': 'Η σειρά σου',
   'canasta.rules.goal':
     'Παίζεται σε ζευγάρια· η πρώτη πλευρά που φτάνει τους {n} πόντους κερδίζει τον αγώνα.',
   'canasta.rules.deck': 'Παίζεται με {value} φύλλα — {decks} τράπουλες συν μπαλαντέρ.',
@@ -156,6 +162,30 @@ export const el: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Το πρώτο σου κατέβασμα πρέπει να φτάσει ένα ελάχιστο πόντων που ανεβαίνει με το σκορ σου: {negative} κάτω από το μηδέν, {low} έως 1500, {mid} έως 3000, {high} πιο πάνω.',
   'canasta.rules.meldFloorBandsFive': 'Ο πρώτος σου συνδυασμός πρέπει να φτάσει ένα ελάχιστο πόντων που ανεβαίνει με το σκορ σου: {negative} κάτω από το μηδέν, {low} ως 1500, {mid} ως 3000, {high} ως 7000 και {top} πάνω από αυτό.',
+  'canasta.rules.turn':
+    'Ένας γύρος είναι μία κίνηση προς το χέρι σου — τράβηγμα από την τράπουλα ή πάρσιμο όλου του σωρού — μετά όσα μελντ θέλεις, και στο τέλος ένα φύλλο στον σωρό.',
+  'canasta.rules.turnDiscard':
+    "Ο γύρος τελειώνει με ένα φύλλο στον σωρό, άρα πρέπει πάντα να σου περισσεύει ένα γι' αυτό.",
+  'canasta.rules.pileTopCard': 'Ο σωρός παίρνεται μόνο με κίνηση που χρησιμοποιεί αμέσως το πάνω φύλλο του.',
+  'canasta.rules.pileBlocked':
+    'Ένα μαύρο τρία στην κορυφή μπλοκάρει τον σωρό — κανείς δεν τον παίρνει ώσπου να θαφτεί — και στο χέρι κοστίζει {n}.',
+  'canasta.rules.pileFrozenByWild':
+    'Ένα θαμμένο μπαλαντέρ παγώνει τον σωρό για όλους: τότε το πάρσιμό του κοστίζει δύο φυσικά φύλλα από το χέρι σου, ίδιας αξίας με το πάνω φύλλο.',
+  'canasta.rules.meldShape': 'Ένα μελντ είναι {n} ή περισσότερα φύλλα της ίδιας αξίας.',
+  'canasta.rules.wildLimit':
+    'Ένα μελντ μπορεί να έχει το πολύ {wilds} μπαλαντέρ και ποτέ λιγότερα από {naturals} φυσικά φύλλα.',
+  'canasta.rules.wildRatio':
+    'Ένα μελντ χρειάζεται {n} φυσικά φύλλα για κάθε μπαλαντέρ, και ποτέ πάνω από {wilds} μπαλαντέρ συνολικά.',
+  'canasta.rules.oneMeldPerRank':
+    'Η πλευρά σου κρατά ένα μελντ ανά αξία — τα επιπλέον φύλλα αυτής της αξίας μπαίνουν πάνω του.',
+  'canasta.rules.meldsPerRankUnlimited': 'Η πλευρά σου μπορεί να έχει πολλά μελντ της ίδιας αξίας.',
+  'canasta.rules.canastaCloses': 'Μια καναστα των {n} φύλλων είναι ολοκληρωμένη και δεν δέχεται άλλα.',
+  'canasta.rules.meldsAreShared':
+    'Τα μελντ ανήκουν στο ζευγάρι: τα επεκτείνει όποιος από τους δύο θέλει, και της άλλης πλευράς δεν τα αγγίζεις.',
+  'canasta.rules.layOffAfterOpening':
+    'Ώσπου η πλευρά σου να κάνει το πρώτο της μελντ, δεν μπορεί να προσθέσει φύλλα σε τίποτα στο τραπέζι.',
+  'canasta.rules.goOutKeepsACard':
+    'Πρέπει πάντα να μπορείς να ολοκληρώσεις τον γύρο σου, οπότε ποτέ μη βγάζεις όλο το χέρι εκτός αν αυτή είναι η κίνηση που σε βγάζει έξω.',
   'canasta.rules.oneCanastaToGoOut': 'Μία ολοκληρωμένη καναστα αρκεί για να βγει η πλευρά σου.',
   'canasta.rules.twoCanastasToGoOut':
     'Η πλευρά σου χρειάζεται δύο ολοκληρωμένες καναστες πριν μπορέσει να βγει.',
@@ -179,6 +209,20 @@ export const el: Record<string, string> = {
   'holdem.rules.mostChipsWins':
     'Όποιος κρατά τις περισσότερες μάρκες όταν σταματήσει το παιχνίδι κερδίζει τον αγώνα.',
   'holdem.rules.handLimit': 'Το παιχνίδι σταματά μετά από {n} μοιρασιές.',
+  'holdem.rules.checkOrCall':
+    'Πάσο μπορείς να πεις μόνο όταν δεν χρωστάς τίποτα· αλλιώς πληρώνεις, ανεβάζεις ή τα παρατάς.',
+  'holdem.rules.minRaise': 'Μια αύξηση πρέπει να είναι τουλάχιστον όση και η προηγούμενη.',
+  'holdem.rules.allIn':
+    'Ποτέ δεν βάζεις πάνω από το στοίβαγμά σου, και το ολα μέσα επιτρέπεται πάντα — ακόμη κι όταν είναι λιγότερο από πλήρη αύξηση.',
+  'holdem.rules.foldedOut': 'Μόλις τα παρατήσεις, είσαι εκτός ώσπου να μοιραστεί το επόμενο χέρι.',
+  'holdem.remedy.callOrFold': 'Χρωστάς {n} — πλήρωσε, ανέβασε ή τα παρατάς.',
+  'holdem.remedy.checkOrRaise': 'Δεν χρωστιέται τίποτα — πάσο ή αύξηση.',
+  'holdem.remedy.callAllInOrFold':
+    'Το στοίβαγμά σου δεν φτάνει πάνω από το ποντάρισμα — πλήρωσε {n} ολα μέσα ή τα παρατάς.',
+  'holdem.remedy.raiseAtLeast': 'Ανέβασε τουλάχιστον στα {n}.',
+  'holdem.remedy.raiseAtMost': 'Ανέβασε το πολύ στα {n} — αυτό είναι όλο το στοίβαγμά σου.',
+  'holdem.remedy.nameAnAmount': 'Πες σε πόσα ανεβάζεις — ανάμεσα σε {min} και {max}.',
+  'holdem.remedy.waitForNextHand': 'Είσαι εκτός αυτού του χεριού — περίμενε το επόμενο μοίρασμα.',
 
   // --- header --------------------------------------------------------------
   'header.deal': 'Μοιρασιά {n}',
@@ -288,12 +332,14 @@ export const el: Record<string, string> = {
   'err.CARD_DOES_NOT_FIT': 'Αυτό το φύλλο δεν ταιριάζει ούτε στο χρώμα ούτε στην αξία',
   'err.SUIT_REQUIRED': 'Πες το χρώμα που συνεχίζει',
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Απάντησε με εφτάρι, ή πάρε τα φύλλα',
+  'err.NOTHING_TO_SKIP': 'Δεν υπάρχει σειρά για παράλειψη',
   'err.NOTHING_TO_DRAW': 'Δεν έμεινε τίποτα να τραβήξεις',
   'err.PILE_EMPTY': 'Ο σωρός είναι άδειος',
   'err.PILE_BLOCKED': 'Ο σωρός είναι μπλοκαρισμένος — πάνω βρίσκεται ένα μαύρο τριάρι',
   'err.PILE_FROZEN': 'Ο σωρός είναι παγωμένος — χρειάζεσαι δύο φυσικά φύλλα της αξίας του πάνω φύλλου',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'Σε αυτό το παιχνίδι ένας συνδυασμός στο τραπέζι δεν μπορεί να πάρει τον σωρό — χρειάζεσαι δύο φύλλα από το χέρι',
-  'err.TOP_CARD_UNUSABLE': 'Δεν μπορείς να χρησιμοποιήσεις το πάνω φύλλο',
+  'err.CAPTURE_NEEDS_TWO_CARDS': 'Το πάρσιμο του σωρού κοστίζει δύο φύλλα από το χέρι σου',
+  'err.TOP_CARD_UNUSABLE': 'Η πλευρά σου δεν μπορεί να χρησιμοποιήσει το πάνω φύλλο',
   'err.MELD_CLOSED': 'Αυτός ο συνδυασμός είναι πλήρης και κλειστός',
   'err.MELD_TOO_SMALL': 'Ένας συνδυασμός χρειάζεται περισσότερα φύλλα από αυτά',
   'err.MELD_TOO_LARGE': 'Αυτός ο συνδυασμός δεν χωρά άλλα φύλλα',
@@ -315,7 +361,7 @@ export const el: Record<string, string> = {
   'err.CANNOT_GO_OUT_YET': 'Η πλευρά σου χρειάζεται ολοκληρωμένη καναστα πριν μπορέσει να βγει',
   'err.NOTHING_TO_CALL': 'Δεν υπάρχει στοίχημα για πάσο',
   'err.CANNOT_CHECK': 'Δεν μπορείς να τσεκάρεις — υπάρχει στοίχημα να απαντήσεις',
-  'err.CANNOT_RAISE': 'Εδώ δεν μπορείς να ανεβάσεις',
+  'err.CANNOT_RAISE': 'Δεν μπορείς να ανεβάσεις — το στοίβαγμά σου δεν φτάνει πάνω από το ποντάρισμα',
   'err.RAISE_TOO_SMALL': 'Το ανέβασμα πρέπει να είναι τουλάχιστον όσο το προηγούμενο',
   'err.NOT_ENOUGH_CHIPS': 'Δεν έχεις τόσες μάρκες',
   'err.AMOUNT_REQUIRED': 'Πες πόσο',
@@ -406,6 +452,30 @@ export const el: Record<string, string> = {
   'status.teamScore': 'Ομάδα {team}: {value}',
   'canasta.offer.rank': 'Αξία',
   'canasta.offer.sequence': 'Σειρά',
+  'canasta.remedy.drawOrTakePile': 'Πρώτα τράβα από την τράπουλα ή πάρε τον σωρό, μετά κατεβάζεις.',
+  'canasta.remedy.meldOrDiscard':
+    'Έχεις ήδη τραβήξει — κατέβασε μελντ ή ρίξε ένα φύλλο για να κλείσεις τον γύρο.',
+  'canasta.remedy.drawFromStock': "Τράβα από την τράπουλα αντί γι' αυτό.",
+  'canasta.remedy.takePileInstead': "Η τράπουλα τελείωσε — πάρε τον σωρό αντί γι' αυτό.",
+  'canasta.remedy.pileBlocked': 'Τράβα από την τράπουλα — το μαύρο τρία στην κορυφή κρατά τον σωρό κλειστό.',
+  'canasta.remedy.pileFrozen':
+    'Τράβα από την τράπουλα ή πάρε τον σωρό με δύο φυσικά φύλλα από το χέρι σου που ταιριάζουν με το {card}.',
+  'canasta.remedy.topCardUnusable':
+    'Τράβα από την τράπουλα — η πλευρά σου δεν έχει τι να κάνει με το {card} στην κορυφή.',
+  'canasta.remedy.captureFromHand':
+    'Πάρε τον σωρό με δύο φύλλα από το δικό σου χέρι που ταιριάζουν με το {card}.',
+  'canasta.remedy.needTwoMatching':
+    'Χρειάζεσαι δύο φύλλα από το χέρι που ταιριάζουν με το {card} — αλλιώς τράβα από την τράπουλα.',
+  'canasta.remedy.needMorePoints': 'Στο πρώτο μελντ της πλευράς σου λείπουν {n} πόντοι.',
+  'canasta.remedy.openFirst': 'Κατέβασε πρώτα το πρώτο μελντ της πλευράς σου, μετά προσθέτεις.',
+  'canasta.remedy.needCanastas': 'Η πλευρά σου χρειάζεται ακόμη {n} καναστες των {size} φύλλων για να βγει.',
+  'canasta.remedy.keepACard': 'Κράτα ένα φύλλο για να το ρίξεις.',
+  'canasta.remedy.layOffInstead': 'Πρόσθεσέ τα στο μελντ που έχει ήδη η πλευρά σου.',
+  'canasta.remedy.meldClosed': 'Αυτό το μελντ ολοκληρώθηκε στα {n} φύλλα — ξεκίνα άλλο ή πρόσθεσε αλλού.',
+  'canasta.remedy.discardNotARedThree': 'Ρίξε κάτι άλλο, όχι κόκκινο τρία.',
+  'canasta.remedy.blackThreesOnTheWayOut':
+    'Τα μαύρα τρία κατεβαίνουν μόνο με την κίνηση που αδειάζει το χέρι σου.',
+  'canasta.remedy.ownMeldsOnly': 'Πρόσθετε μόνο στα μελντ της δικής σου πλευράς.',
   'badge.naturalCanasta': 'Καθαρή κανάστα',
   'badge.mixedCanasta': 'Μικτή κανάστα',
   'badge.samba': 'Σάμπα',
@@ -527,6 +597,10 @@ export const el: Record<string, string> = {
     'Το μπόνους του αγώνα διπλασιάζεται στους {n} αν ο ηττημένος δεν πήρε ούτε έναν πόντο.',
   'ginrummy.rules.box': 'Κάθε μοιρασιά που κέρδισες αξίζει {n} πόντους στο τέλος του αγώνα.',
   'ginrummy.rules.gameBonus': 'Η νίκη στον αγώνα αξίζει άλλους {n} πόντους.',
+  'ginrummy.rules.upcardDance':
+    'Πριν από το πρώτο τράβηγμα, το ανοιχτό φύλλο μπορεί να το πάρει πρώτα ο μη μοιράζων και μετά ο μοιράζων· αν το αρνηθούν κι οι δύο, ο μη μοιράζων τραβά από την τράπουλα.',
+  'ginrummy.rules.knockOnDiscard':
+    'Το χτύπημα αντικαθιστά το φύλλο που ρίχνεις, άρα γίνεται μόνο στο τέλος του γύρου σου.',
   'ginrummy.fact.deadwood': 'ντεντγουντ {value}',
   'ginrummy.fact.discardCard': 'Πέταξε {value}',
   'ginrummy.fact.meldCards': 'Στο {value}',
@@ -548,6 +622,14 @@ export const el: Record<string, string> = {
   'ginrummy.offer.bigGin': 'Μεγάλο τζιν!',
   'ginrummy.offer.layOff': 'Προσάρτησε',
   'ginrummy.offer.finishLayoff': 'Τέλος προσάρτησης',
+  'ginrummy.remedy.takeOrPassUpcard': 'Πάρε το ανοιχτό φύλλο ή πέρνα.',
+  'ginrummy.remedy.drawFirst': 'Πρώτα τράβα ένα φύλλο — από την τράπουλα ή από τον σωρό.',
+  'ginrummy.remedy.discardToEndTurn': 'Ρίξε ένα φύλλο για να κλείσεις τον γύρο σου.',
+  'ginrummy.remedy.finishLayoff': 'Τίποτα άλλο δικό σου δεν ταιριάζει — τελείωσε το κατέβασμα.',
+  'ginrummy.remedy.stockDrawForced': 'Το φύλλο αυτό το προσπεράσατε κι οι δύο — τράβα από την τράπουλα.',
+  'ginrummy.remedy.drawElsewhere': 'Αυτός ο σωρός είναι άδειος — τράβα από τον άλλο.',
+  'ginrummy.remedy.getDeadwoodDown':
+    'Μπορείς να χτυπήσεις μόλις το νεκρό σου ξύλο πέσει στους {n} πόντους ή λιγότερο.',
   'ginrummy.zone.knockerHand': 'Το χέρι που χτύπησε',
   'ginrummy.zone.melds': 'Συνδυασμοί',
   'ginrummy.prompt.upcardDecision': 'Πάρε το ανοιχτό φύλλο, ή πες πάσο',
@@ -557,11 +639,11 @@ export const el: Record<string, string> = {
 
   // --- rummy tiles -------------------------------------------------------------
   'err.TILE_NOT_IN_HAND': 'Αυτό το πλακίδιο δεν είναι στο χέρι σου',
-  'err.TILE_DOES_NOT_FIT': 'Αυτό δεν χωράει εκεί',
+  'err.TILE_DOES_NOT_FIT': "Αυτό το πλακάκι δεν ταιριάζει σ' αυτό το σετ",
   'err.NO_SUCH_SET': 'Αυτός ο συνδυασμός δεν είναι στο τραπέζι',
   'err.INITIAL_MELD_ONLY':
     'Πριν από το πρώτο σου κατέβασμα μπορείς να αναδιατάξεις μόνο τους δικούς σου νέους συνδυασμούς',
-  'err.TABLE_NOT_VALID': 'Το τραπέζι δεν είναι ακόμα έγκυρο',
+  'err.TABLE_NOT_VALID': 'Κάποιο σετ στο τραπέζι δεν είναι έγκυρη ομάδα ούτε σειρά',
   'err.TRAY_NOT_EMPTY': 'Έχεις ακόμα ασύνδετα πλακίδια να τοποθετήσεις',
   'err.NOTHING_PLAYED': 'Παίξε τουλάχιστον ένα πλακίδιο πριν τελειώσεις τη σειρά σου',
   'err.INITIAL_MELD_TOO_LOW': 'Το πρώτο σου κατέβασμα πρέπει να αξίζει 30 πόντους ή περισσότερους',
@@ -601,6 +683,19 @@ export const el: Record<string, string> = {
   'rummytiles.rules.target':
     'Ο πρώτος που θα ξεπεράσει τους {n} πόντους στο τέλος ενός γύρου κερδίζει τον αγώνα.',
   'rummytiles.rules.roundLimit': 'Ο αγώνας τελειώνει μετά από {n} γύρους — κερδίζει το υψηλότερο σκορ.',
+  'rummytiles.remedy.emptyTheTray':
+    'Τοποθέτησε τα {n} πλακάκια που είναι ακόμη στον δίσκο ή μηδένισε τον γύρο.',
+  'rummytiles.remedy.playFromHandOrDraw':
+    'Η αναδιάταξη μόνη της δεν είναι γύρος — βάλε τουλάχιστον ένα πλακάκι από το χέρι σου ή τράβα.',
+  'rummytiles.remedy.fixOrReset':
+    'Κάθε σετ στο τραπέζι πρέπει να είναι έγκυρη ομάδα ή σειρά — διόρθωσέ τα ή μηδένισε τον γύρο.',
+  'rummytiles.remedy.needMorePoints': 'Στο πρώτο σου κατέβασμα λείπουν {n} πόντοι για τους {floor}.',
+  'rummytiles.remedy.ownNewSetsOnly':
+    "Ώσπου να κατεβάσεις τους πρώτους σου {n} πόντους, μπορείς να αναδιατάξεις μόνο τα σετ που έφτιαξες σ' αυτόν τον γύρο.",
+  'rummytiles.remedy.startANewSet': "Βάλ' το σε νέο σετ αντί γι' αυτό.",
+  'rummytiles.remedy.splitLeavesThree':
+    'Χώρισε τη σειρά έτσι ώστε και τα δύο κομμάτια να κρατήσουν τουλάχιστον {n} πλακάκια.',
+  'rummytiles.remedy.matchTheJoker': 'Αντάλλαξε τον μπαλαντέρ με ακριβώς το πλακάκι που αντιπροσωπεύει.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Απόθεμα {n}',
   'rummytiles.header.round': 'Γύρος {n}',
@@ -679,6 +774,19 @@ export const el: Record<string, string> = {
   'blackjack.rules.mostChipsWins': 'Όποιος κρατά τις περισσότερες μάρκες στο τέλος κερδίζει τον αγώνα.',
   'blackjack.rules.bustedOut':
     'Μια θέση που δεν μπορεί πια να καλύψει το ελάχιστο των {n} μένει εκτός για το υπόλοιπο του αγώνα.',
+  'blackjack.rules.roundOrder':
+    'Ο γύρος έχει σειρά: στοιχήματα, μοίρασμα, ασφάλεια αν ο ντίλερ δείχνει άσο, και μετά κάθε θέση παίζει το χέρι της με τη σειρά.',
+  'blackjack.rules.oneStakePerRound': 'Ένα στοίχημα ανά γύρο — μόλις μπει, δεν αλλάζει.',
+  'blackjack.rules.stakeFromStack': 'Μπορείς να ποντάρεις μόνο μάρκες που πραγματικά έχεις.',
+  'blackjack.remedy.putAStakeUp': 'Πρώτα ποντάρισε — {n} ή περισσότερα.',
+  'blackjack.remedy.answerInsurance': 'Πρώτα πες ναι ή όχι στην ασφάλεια.',
+  'blackjack.remedy.playThisHand': 'Παίξε το χέρι μπροστά σου — τράβα ή μείνε.',
+  'blackjack.remedy.stakeIsUp': 'Το στοίχημά σου είναι ήδη μέσα — περίμενε το μοίρασμα.',
+  'blackjack.remedy.stakeAtLeast': 'Ποντάρισε τουλάχιστον {n}.',
+  'blackjack.remedy.stakeAtMost': 'Ποντάρισε το πολύ {n} — αυτά έχεις όλα κι όλα.',
+  'blackjack.remedy.sayHowMuch': 'Πες πόσα ποντάρεις — {n} ή περισσότερα.',
+  'blackjack.remedy.hitOrStand': 'Τράβα ή μείνε.',
+  'blackjack.remedy.waitForNextRound': 'Είσαι εκτός αυτού του γύρου — περίμενε το επόμενο μοίρασμα.',
 
   'blackjack.zone.dealer': 'Ντίλερ',
   'blackjack.zone.box': 'Χέρι',
@@ -930,6 +1038,7 @@ export const el: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Ό,τι μπορεί να φιλοξενήσει αυτός ο διακομιστής',
   'lobby.games.bots': 'Μποτ',
+  'lobby.games.setup': 'Ρυθμίσεις',
   'lobby.games.playBot': 'Παίξε εναντίον ενός μποτ',
   'lobby.games.playBots': 'Παίξε εναντίον {n} μποτ',
   'lobby.games.openTable': 'Άνοιξε τραπέζι',

@@ -5,7 +5,7 @@
 export const fr: Record<string, string> = {
   // --- engine error codes (rules.RulesErrorCode) ---------------------------
   'err.NOT_YOUR_TURN': "Ce n'est pas ton tour",
-  'err.WRONG_PHASE': 'Indisponible pour le moment',
+  'err.WRONG_PHASE': 'Pas à ce moment du tour',
   'err.MUST_DRAW_FIRST': 'Pioche une carte avant de poser',
   'err.GAME_SUSPENDED': 'La partie est en pause',
   'err.GAME_NOT_ACTIVE': "La partie n'est pas en cours",
@@ -129,11 +129,17 @@ export const fr: Record<string, string> = {
   'prsi.rules.aces': 'Joue un as et le tour du joueur suivant est sauté.',
   'prsi.rules.queens': 'Joue une dame et annonce la couleur qui continue.',
   'prsi.rules.end': "La partie s'arrête dès qu'une main est vide.",
+  'prsi.remedy.matchOrDraw': 'Joue une carte de {suit} ou une qui va sur {card} — sinon, pioche.',
+  'prsi.remedy.answerSevenOrTake': 'Réponds avec un sept à toi, ou prends les {n} cartes.',
+  'prsi.remedy.playOrDraw': "Aucun tour à passer ne t'attend — joue une carte de {suit}, ou pioche.",
+  'prsi.remedy.nameASuit': 'Annonce la couleur qui suit ta dame.',
+  'prsi.remedy.nothingLeftToDraw': 'Il ne reste rien à piocher — joue une carte si tu peux.',
 
   'canasta.rules.section.goal': 'But',
   'canasta.rules.section.setup': 'Mise en place',
   'canasta.rules.section.melding': 'La pose',
   'canasta.rules.section.end': 'Fin de la partie',
+  'canasta.rules.section.turn': 'Ton tour',
   'canasta.rules.goal': 'On joue en équipes ; le premier camp à atteindre {n} points remporte la partie.',
   'canasta.rules.deck': 'Se joue avec {value} cartes — {decks} jeux plus les jokers.',
   'canasta.rules.deal': 'Chaque joueur reçoit {n} cartes.',
@@ -153,6 +159,31 @@ export const fr: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     "Ta première pose doit atteindre un minimum de points qui monte avec ton score : {negative} en dessous de zéro, {low} jusqu'à 1500, {mid} jusqu'à 3000, {high} au-delà.",
   'canasta.rules.meldFloorBandsFive': "Ta première combinaison doit atteindre un minimum de points qui monte avec ton score : {negative} sous zéro, {low} jusqu'à 1500, {mid} jusqu'à 3000, {high} jusqu'à 7000, {top} au-delà.",
+  'canasta.rules.turn':
+    "Un tour, c'est une entrée dans ta main — piocher dans la pioche ou prendre toute la défausse — puis les combinaisons que tu veux poser, et enfin une carte défaussée.",
+  'canasta.rules.turnDiscard':
+    "C'est la défausse qui clôt le tour : il te faut donc toujours une carte en réserve pour elle.",
+  'canasta.rules.pileTopCard':
+    "La défausse ne se prend qu'avec un coup qui utilise aussitôt sa carte du dessus.",
+  'canasta.rules.pileBlocked':
+    "Un trois noir au sommet bloque la défausse — personne ne peut la prendre tant qu'il n'est pas enterré — et un trois noir resté en main coûte {n}.",
+  'canasta.rules.pileFrozenByWild':
+    'Une carte joker enterrée dans la défausse la gèle pour tout le monde : la prendre coûte alors deux cartes naturelles du rang de la carte du dessus, prises dans ta main.',
+  'canasta.rules.meldShape': 'Une combinaison, ce sont {n} cartes ou plus du même rang.',
+  'canasta.rules.wildLimit':
+    'Une combinaison peut contenir au plus {wilds} jokers, et jamais moins de {naturals} cartes naturelles.',
+  'canasta.rules.wildRatio':
+    'Une combinaison exige {n} cartes naturelles par joker, et jamais plus de {wilds} jokers en tout.',
+  'canasta.rules.oneMeldPerRank':
+    "Ton camp n'a qu'une combinaison par rang — les cartes suivantes de ce rang s'y ajoutent.",
+  'canasta.rules.meldsPerRankUnlimited': 'Ton camp peut avoir plusieurs combinaisons du même rang.',
+  'canasta.rules.canastaCloses': "Un canasta de {n} cartes est complet et n'en accepte plus.",
+  'canasta.rules.meldsAreShared':
+    "Les combinaisons appartiennent à l'équipe : chaque partenaire peut les prolonger, et on ne touche pas à celles d'en face.",
+  'canasta.rules.layOffAfterOpening':
+    "Tant que ton camp n'a pas fait sa pose initiale, il ne peut rien compléter sur la table.",
+  'canasta.rules.goOutKeepsACard':
+    "Tu dois toujours pouvoir finir ton tour : ne pose donc jamais toute ta main, sauf si c'est le coup qui te fait sortir.",
   'canasta.rules.oneCanastaToGoOut': 'Une canasta terminée suffit à ton camp pour sortir.',
   'canasta.rules.twoCanastasToGoOut': 'Ton camp a besoin de deux canastas terminées avant de pouvoir sortir.',
   'canasta.rules.end': "On redonne jusqu'à ce qu'un camp dépasse {n} points — la partie est alors terminée.",
@@ -172,6 +203,19 @@ export const fr: Record<string, string> = {
   'holdem.rules.lastPlayerStanding': "On joue jusqu'à ce qu'un siège détienne tous les jetons.",
   'holdem.rules.mostChipsWins': "Celui qui détient le plus de jetons à l'arrêt du jeu remporte la partie.",
   'holdem.rules.handLimit': "Le jeu s'arrête après {n} mains.",
+  'holdem.rules.checkOrCall':
+    'Tu ne peux checker que si tu ne dois rien ; sinon, suis, relance ou couche-toi.',
+  'holdem.rules.minRaise': 'Une relance doit être au moins aussi grande que la précédente.',
+  'holdem.rules.allIn':
+    "Tu ne peux jamais miser plus que ton tapis, et le tapis est toujours permis — même pour moins qu'une relance complète.",
+  'holdem.rules.foldedOut': "Une fois couché, tu es hors du coup jusqu'à la donne suivante.",
+  'holdem.remedy.callOrFold': 'Il y a {n} à suivre — suis, relance ou couche-toi.',
+  'holdem.remedy.checkOrRaise': "Rien n'est dû — checke ou relance.",
+  'holdem.remedy.callAllInOrFold': 'Ton tapis ne dépassera pas la mise — suis {n} à tapis, ou couche-toi.',
+  'holdem.remedy.raiseAtLeast': 'Relance à {n} au moins.',
+  'holdem.remedy.raiseAtMost': "Relance à {n} au plus — c'est tout ton tapis.",
+  'holdem.remedy.nameAnAmount': 'Indique à combien tu relances, entre {min} et {max}.',
+  'holdem.remedy.waitForNextHand': 'Tu es hors de ce coup — attends la prochaine donne.',
 
   // --- header --------------------------------------------------------------
   'header.deal': 'Donne {n}',
@@ -281,12 +325,14 @@ export const fr: Record<string, string> = {
   'err.CARD_DOES_NOT_FIT': 'Cette carte ne correspond ni à la couleur ni au rang',
   'err.SUIT_REQUIRED': 'Annonce la couleur qui continue',
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Réponds par un sept, ou prends les cartes',
+  'err.NOTHING_TO_SKIP': "Il n'y a aucun tour à passer",
   'err.NOTHING_TO_DRAW': "Il n'y a plus rien à piocher",
   'err.PILE_EMPTY': 'La pile est vide',
   'err.PILE_BLOCKED': 'La pile est bloquée — un trois noir est sur le dessus',
   'err.PILE_FROZEN': 'La pile est gelée — il te faut deux cartes naturelles du rang de la carte du dessus',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'Dans ce jeu, une combinaison posée ne peut pas prendre la pile — il te faut deux cartes en main',
-  'err.TOP_CARD_UNUSABLE': 'Tu ne peux pas utiliser la carte du dessus',
+  'err.CAPTURE_NEEDS_TWO_CARDS': 'Prendre la défausse coûte deux cartes de ta main',
+  'err.TOP_CARD_UNUSABLE': 'Ton camp ne peut pas utiliser la carte du dessus',
   'err.MELD_CLOSED': 'Cette combinaison est complète et fermée',
   'err.MELD_TOO_SMALL': 'Une combinaison exige plus de cartes que cela',
   'err.MELD_TOO_LARGE': 'Cette combinaison ne peut plus accueillir de cartes',
@@ -307,7 +353,7 @@ export const fr: Record<string, string> = {
   'err.CANNOT_GO_OUT_YET': "Ton camp a besoin d'une canasta terminée avant de pouvoir sortir",
   'err.NOTHING_TO_CALL': "Il n'y a aucune mise à suivre",
   'err.CANNOT_CHECK': 'Tu ne peux pas checker — il y a une mise à répondre',
-  'err.CANNOT_RAISE': 'Tu ne peux pas relancer ici',
+  'err.CANNOT_RAISE': 'Tu ne peux pas relancer — ton tapis ne dépassera pas la mise',
   'err.RAISE_TOO_SMALL': 'Une relance doit valoir au moins la précédente',
   'err.NOT_ENOUGH_CHIPS': "Tu n'as pas autant de jetons",
   'err.AMOUNT_REQUIRED': 'Indique combien',
@@ -396,6 +442,28 @@ export const fr: Record<string, string> = {
   'status.teamScore': 'Équipe {team} : {value}',
   'canasta.offer.rank': 'Rang',
   'canasta.offer.sequence': 'Séquence',
+  'canasta.remedy.drawOrTakePile': 'Pioche ou prends la défausse avant de poser tes combinaisons.',
+  'canasta.remedy.meldOrDiscard':
+    'Tu as déjà pioché — pose une combinaison, ou défausse pour finir ton tour.',
+  'canasta.remedy.drawFromStock': 'Pioche plutôt dans la pioche.',
+  'canasta.remedy.takePileInstead': 'La pioche est vide — prends plutôt la défausse.',
+  'canasta.remedy.pileBlocked': 'Pioche — le trois noir au sommet garde la défausse fermée.',
+  'canasta.remedy.pileFrozen':
+    'Pioche, ou prends la défausse avec deux cartes naturelles de ta main qui vont sur {card}.',
+  'canasta.remedy.topCardUnusable': "Pioche — ton camp n'a rien à faire du {card} au sommet.",
+  'canasta.remedy.captureFromHand':
+    'Prends la défausse avec deux cartes de ta propre main qui vont sur {card}.',
+  'canasta.remedy.needTwoMatching': 'Il te faut deux cartes en main qui vont sur {card} — sinon, pioche.',
+  'canasta.remedy.needMorePoints': 'Il manque {n} points à la première pose de ton camp.',
+  'canasta.remedy.openFirst': "Pose d'abord la combinaison d'ouverture de ton camp avant de compléter.",
+  'canasta.remedy.needCanastas': 'Il manque {n} canasta de {size} cartes à ton camp pour pouvoir sortir.',
+  'canasta.remedy.keepACard': 'Garde une carte pour la défausse.',
+  'canasta.remedy.layOffInstead': 'Ajoute-les à la combinaison que ton camp possède déjà.',
+  'canasta.remedy.meldClosed':
+    'Cette combinaison est complète à {n} cartes — commences-en une autre, ou complète ailleurs.',
+  'canasta.remedy.discardNotARedThree': "Défausse autre chose qu'un trois rouge.",
+  'canasta.remedy.blackThreesOnTheWayOut': "Les trois noirs ne se posent qu'avec le coup qui vide ta main.",
+  'canasta.remedy.ownMeldsOnly': 'Ne complète que les combinaisons de ton propre camp.',
   'badge.naturalCanasta': 'Canasta pure',
   'badge.mixedCanasta': 'Canasta mixte',
   'badge.samba': 'Samba',
@@ -515,6 +583,10 @@ export const fr: Record<string, string> = {
   'ginrummy.rules.shutout': "Le bonus de partie double à {n} si le perdant n'a pas marqué le moindre point.",
   'ginrummy.rules.box': 'Chaque main gagnée vaut {n} points à la fin de la partie.',
   'ginrummy.rules.gameBonus': 'Remporter la partie rapporte {n} points de plus.',
+  'ginrummy.rules.upcardDance':
+    'Avant la première pioche, le non-donneur peut prendre la carte retournée, puis le donneur ; si les deux passent, le non-donneur doit piocher.',
+  'ginrummy.rules.knockOnDiscard':
+    "Frapper remplace ta défausse : cela n'arrive donc qu'à la fin de ton tour.",
   'ginrummy.fact.deadwood': '{value} de deadwood',
   'ginrummy.fact.discardCard': 'Défausser {value}',
   'ginrummy.fact.meldCards': 'Sur {value}',
@@ -536,6 +608,13 @@ export const fr: Record<string, string> = {
   'ginrummy.offer.bigGin': 'Big gin !',
   'ginrummy.offer.layOff': 'Reporter',
   'ginrummy.offer.finishLayoff': 'Report terminé',
+  'ginrummy.remedy.takeOrPassUpcard': 'Prends la carte retournée, ou passe.',
+  'ginrummy.remedy.drawFirst': "Pioche d'abord une carte — dans la pioche ou dans la défausse.",
+  'ginrummy.remedy.discardToEndTurn': 'Défausse une carte pour finir ton tour.',
+  'ginrummy.remedy.finishLayoff': 'Plus rien de chez toi ne rentre — termine tes ajouts.',
+  'ginrummy.remedy.stockDrawForced': 'Vous avez tous deux laissé passer cette carte — pioche dans la pioche.',
+  'ginrummy.remedy.drawElsewhere': "Cette pile est vide — pioche dans l'autre.",
+  'ginrummy.remedy.getDeadwoodDown': 'Tu peux frapper dès que ton bois mort tombe à {n} ou moins.',
   'ginrummy.zone.knockerHand': 'Main frappée',
   'ginrummy.zone.melds': 'Combinaisons',
   'ginrummy.prompt.upcardDecision': 'Prends la carte retournée, ou passe',
@@ -545,11 +624,11 @@ export const fr: Record<string, string> = {
 
   // --- rummy tiles -------------------------------------------------------------
   'err.TILE_NOT_IN_HAND': "Cette tuile n'est pas dans ta main",
-  'err.TILE_DOES_NOT_FIT': 'Cela ne va pas là',
+  'err.TILE_DOES_NOT_FIT': 'Cette tuile ne va pas dans cette combinaison',
   'err.NO_SUCH_SET': "Cette combinaison n'est pas sur la table",
   'err.INITIAL_MELD_ONLY':
     'Avant ta première pose, tu ne peux réarranger que tes propres nouvelles combinaisons',
-  'err.TABLE_NOT_VALID': "La table n'est pas encore valide",
+  'err.TABLE_NOT_VALID': "Une combinaison sur la table n'est ni un groupe ni une suite valide",
   'err.TRAY_NOT_EMPTY': 'Il te reste des tuiles à placer',
   'err.NOTHING_PLAYED': 'Pose au moins une tuile avant de terminer ton tour',
   'err.INITIAL_MELD_TOO_LOW': 'Ta première pose doit valoir au moins 30 points',
@@ -588,6 +667,18 @@ export const fr: Record<string, string> = {
     "Si la réserve s'épuise et que personne ne peut jouer, la manche s'arrête sans vainqueur — chaque main est simplement décomptée.",
   'rummytiles.rules.target': "Le premier à dépasser {n} points à la fin d'une manche remporte la partie.",
   'rummytiles.rules.roundLimit': "La partie s'achève après {n} manches — le plus haut score l'emporte.",
+  'rummytiles.remedy.emptyTheTray': 'Place les {n} tuiles encore sur ton chevalet, ou réinitialise le tour.',
+  'rummytiles.remedy.playFromHandOrDraw':
+    "Réarranger n'est pas un tour — pose au moins une tuile de ta main, ou pioche.",
+  'rummytiles.remedy.fixOrReset':
+    'Chaque combinaison sur la table doit être un groupe ou une suite valide — corrige-les, ou réinitialise le tour.',
+  'rummytiles.remedy.needMorePoints': 'Il manque {n} points à ta première pose pour atteindre {floor}.',
+  'rummytiles.remedy.ownNewSetsOnly':
+    "Jusqu'à ta première pose de {n} points, tu ne peux réarranger que les combinaisons faites ce tour-ci.",
+  'rummytiles.remedy.startANewSet': 'Mets-la plutôt dans une nouvelle combinaison.',
+  'rummytiles.remedy.splitLeavesThree':
+    'Coupe la suite de façon que chaque moitié garde au moins {n} tuiles.',
+  'rummytiles.remedy.matchTheJoker': "Échange le joker contre exactement la tuile qu'il remplace.",
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Réserve {n}',
   'rummytiles.header.round': 'Manche {n}',
@@ -667,6 +758,19 @@ export const fr: Record<string, string> = {
   'blackjack.rules.mostChipsWins': 'Celui qui détient le plus de jetons à la fin remporte la partie.',
   'blackjack.rules.bustedOut':
     "Un siège qui ne peut plus couvrir le minimum de {n} reste hors jeu jusqu'à la fin de la partie.",
+  'blackjack.rules.roundOrder':
+    'Un tour suit un ordre : mises, distribution, assurance si le croupier montre un as, puis chaque place joue sa main à son tour.',
+  'blackjack.rules.oneStakePerRound': 'Une mise par tour — une fois posée, elle ne change plus.',
+  'blackjack.rules.stakeFromStack': 'Tu ne peux miser que des jetons que tu possèdes vraiment.',
+  'blackjack.remedy.putAStakeUp': "Pose d'abord une mise — {n} ou plus.",
+  'blackjack.remedy.answerInsurance': "Réponds d'abord oui ou non à l'assurance.",
+  'blackjack.remedy.playThisHand': 'Joue la main devant toi — tire ou reste.',
+  'blackjack.remedy.stakeIsUp': 'Ta mise est déjà posée — attends la donne.',
+  'blackjack.remedy.stakeAtLeast': 'Mise au moins {n}.',
+  'blackjack.remedy.stakeAtMost': "Mise au plus {n} — c'est tout ton tapis.",
+  'blackjack.remedy.sayHowMuch': 'Indique combien tu mises — {n} ou plus.',
+  'blackjack.remedy.hitOrStand': 'Tire, ou reste.',
+  'blackjack.remedy.waitForNextRound': 'Tu es hors de ce tour — attends la prochaine donne.',
 
   'blackjack.zone.dealer': 'Croupier',
   'blackjack.zone.box': 'Main',
@@ -919,6 +1023,7 @@ export const fr: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Tout ce que ce serveur peut héberger',
   'lobby.games.bots': 'Bots',
+  'lobby.games.setup': 'Réglages',
   'lobby.games.playBot': 'Jouer contre un bot',
   'lobby.games.playBots': 'Jouer contre {n} bots',
   'lobby.games.openTable': 'Ouvrir une table',
