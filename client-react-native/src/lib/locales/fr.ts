@@ -1023,6 +1023,7 @@ export const fr: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Tout ce que ce serveur peut héberger',
   'lobby.games.bots': 'Bots',
+  'lobby.games.setup': 'Réglages',
   'lobby.games.playBot': 'Jouer contre un bot',
   'lobby.games.playBots': 'Jouer contre {n} bots',
   'lobby.games.openTable': 'Ouvrir une table',

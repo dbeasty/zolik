@@ -1010,6 +1010,7 @@ export const lt: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Viskas, ką šis serveris gali pasiūlyti',
   'lobby.games.bots': 'Botai',
+  'lobby.games.setup': 'Nustatymai',
   'lobby.games.playBot': 'Žaisti prieš botą',
   'lobby.games.playBots': 'Žaisti prieš {n} botus',
   'lobby.games.openTable': 'Atverti stalą',

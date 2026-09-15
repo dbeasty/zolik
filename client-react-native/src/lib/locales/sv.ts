@@ -1003,6 +1003,7 @@ export const sv: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Allt den här servern kan erbjuda',
   'lobby.games.bots': 'Bottar',
+  'lobby.games.setup': 'Inställningar',
   'lobby.games.playBot': 'Spela mot en bott',
   'lobby.games.playBots': 'Spela mot {n} bottar',
   'lobby.games.openTable': 'Öppna ett bord',

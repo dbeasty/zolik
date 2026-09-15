@@ -45,6 +45,19 @@ export default function GamesScreen() {
   // comes from the module's own descriptor.
   const [bots, setBots] = useState<Record<string, number>>({});
 
+  // Which cards have their setup showing. Every module starts closed.
+  //
+  // Seven games' worth of variations, rule facts, options and bot counts laid
+  // out at once was a wall of controls in front of a player who came here to
+  // press one button, and nearly all of it belonged to a game they were not
+  // about to play. The controls themselves are unchanged — they are just
+  // behind a button now.
+  //
+  // Held for the life of the screen rather than saved: closed-by-default is
+  // the behaviour that was asked for, not a preference to be remembered back
+  // at the player, so leaving and returning re-applies it.
+  const [openSetup, setOpenSetup] = useState<Record<string, boolean>>({});
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -213,6 +226,35 @@ export default function GamesScreen() {
               </Pressable>
             </View>
 
+            {/* What this card is set to, and the way in to change it. */}
+            <View style={styles.setupRow}>
+              <Text style={styles.digest} testID={`setup-digest-${mod.id}`} numberOfLines={2}>
+                {setupDigest(mod, variation[mod.id], botCount(mod, bots[mod.id]))}
+              </Text>
+              <Pressable
+                testID={`setup-toggle-${mod.id}`}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: !!openSetup[mod.id] }}
+                // Both, deliberately. `accessibilityState` is what the native
+                // platforms read; on web it never reaches the DOM, so a screen
+                // reader there is told a button exists but never that it opens
+                // anything. `aria-expanded` is the half that lands in the
+                // markup — and the half a browser test can see.
+                aria-expanded={!!openSetup[mod.id]}
+                onPress={() => setOpenSetup((prev) => ({ ...prev, [mod.id]: !prev[mod.id] }))}
+                style={styles.setupButton}
+              >
+                <Text style={styles.setupButtonText}>
+                  {t('lobby.games.setup')} {openSetup[mod.id] ? '▴' : '▾'}
+                </Text>
+              </Pressable>
+            </View>
+
+            {/* Everything from here to the buttons is the setup. The actions
+                below stay put open or closed, so a player happy with the
+                remembered setup starts a game without opening anything. */}
+            {!openSetup[mod.id] ? null : (
+              <>
             {(mod.variations ?? []).length > 1 ? (
               <View style={styles.row}>
                 {(mod.variations ?? []).map((v) => (
@@ -284,6 +326,9 @@ export default function GamesScreen() {
               </View>
             ) : null}
 
+              </>
+            )}
+
             <View style={styles.actions}>
               <Pressable
                 testID={`play-bots-${mod.id}`}
@@ -318,6 +363,28 @@ export default function GamesScreen() {
  * table at the low end, one short of its maximum at the high end — because
  * one of the seats is the host's.
  */
+/**
+ * What a closed card says about the game it is set to: the ruleset by name,
+ * and the size of table the bot button would open.
+ *
+ * Built from the same labels the open card uses rather than any wording of
+ * its own, so a digest can never drift from the controls it stands in for —
+ * and so putting the setup away costs no new translations.
+ */
+function setupDigest(
+  mod: MatchModule,
+  variationId: string | undefined,
+  seatedBots: number,
+): string {
+  const spec = mod.variations?.find((v) => v.id === variationId);
+  const parts: string[] = [];
+  if (spec) parts.push(variationLabel(mod.id, spec));
+  // Only where it is a choice: a game with one legal table size tells the
+  // player nothing by naming it.
+  if (botChoices(mod).length > 1) parts.push(`${t('lobby.games.bots')} ${seatedBots}`);
+  return parts.join(' · ');
+}
+
 function botChoices(mod: MatchModule): number[] {
   const out: number[] = [];
   for (let n = Math.max(1, mod.minPlayers - 1); n <= Math.max(1, mod.maxPlayers - 1); n++) {
@@ -349,6 +416,22 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  setupRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 10,
+  },
+  digest: { color: colors.muted, fontSize: 12, flex: 1 },
+  setupButton: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  setupButtonText: { color: colors.text, fontSize: 13, fontWeight: '600' },
   name: { color: colors.text, fontSize: 18, fontWeight: '700' },
   meta: { color: colors.muted, fontSize: 12, marginTop: 2 },
   rulesLink: {

@@ -1038,6 +1038,7 @@ export const el: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Ό,τι μπορεί να φιλοξενήσει αυτός ο διακομιστής',
   'lobby.games.bots': 'Μποτ',
+  'lobby.games.setup': 'Ρυθμίσεις',
   'lobby.games.playBot': 'Παίξε εναντίον ενός μποτ',
   'lobby.games.playBots': 'Παίξε εναντίον {n} μποτ',
   'lobby.games.openTable': 'Άνοιξε τραπέζι',

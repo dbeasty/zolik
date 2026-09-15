@@ -1002,6 +1002,7 @@ export const sl: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Vse, kar ta strežnik zmore ponuditi',
   'lobby.games.bots': 'Boti',
+  'lobby.games.setup': 'Nastavitve',
   'lobby.games.playBot': 'Igraj proti botu',
   'lobby.games.playBots': 'Igraj proti {n} botom',
   'lobby.games.openTable': 'Odpri mizo',

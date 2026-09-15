@@ -1016,6 +1016,7 @@ export const fi: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Kaikki, mitä tämä palvelin osaa tarjota',
   'lobby.games.bots': 'Botit',
+  'lobby.games.setup': 'Asetukset',
   'lobby.games.playBot': 'Pelaa bottia vastaan',
   'lobby.games.playBots': 'Pelaa {n} bottia vastaan',
   'lobby.games.openTable': 'Avaa pöytä',

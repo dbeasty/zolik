@@ -1,6 +1,7 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 
 import { API_BASE } from '../helpers/env';
+import { openGameSetup } from '../helpers/lobby';
 
 /**
  * Every key the app can put on screen without wording for it.
@@ -153,6 +154,13 @@ test.describe('no screen can reach a key it has no words for', () => {
     );
     await openInCzech(page, '/lobby/games');
     await expect(page.getByTestId('games-list')).toBeVisible();
+    // The sweep reads what is on screen, and a closed card keeps its option
+    // and choice labels out of the DOM entirely — the exact strings this test
+    // exists to catch. So open every card first: a picker of seven closed
+    // cards would sweep clean by having nothing in it to sweep.
+    for (const id of ['zolik', 'prsi', 'canasta', 'holdem', 'ginrummy', 'rummytiles', 'blackjack']) {
+      await openGameSetup(page, id);
+    }
     collect(await page.evaluate(() => document.body.innerText), missing);
     expectNothingMissing(missing, 'the game picker');
   });

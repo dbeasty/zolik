@@ -1025,6 +1025,7 @@ export const nl: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Alles wat deze server kan aanbieden',
   'lobby.games.bots': 'Bots',
+  'lobby.games.setup': 'Instellingen',
   'lobby.games.playBot': 'Tegen een bot spelen',
   'lobby.games.playBots': 'Tegen {n} bots spelen',
   'lobby.games.openTable': 'Een tafel openen',
