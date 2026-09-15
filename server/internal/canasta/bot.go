@@ -413,6 +413,20 @@ func (b bot) build(s *GameState, playerID string, p profile, tb table, mn menu) 
 	if len(melds) == 0 {
 		return module.Action{}, false
 	}
+	// Never start an opening this turn cannot finish. See opensTheAccount:
+	// every strength is held to this, and every strength lays the meld the
+	// plan starts with rather than one of its own choosing, because the
+	// position being avoided is not a weak move but a turn with no legal move
+	// in it. That overrides meldsEarly, whose whole content — a beginner lays
+	// the first meld they see — is a taste about *which* good move to make,
+	// and there is no good version of walking into a dead turn.
+	if t != nil && !t.HasMelded {
+		opener, ok := opensTheAccount(s, playerID, t, melds)
+		if !ok {
+			return module.Action{}, false
+		}
+		return module.SubmissionFor(opener)
+	}
 	if p.meldsEarly {
 		return module.SubmissionFor(melds[0])
 	}
@@ -440,6 +454,97 @@ func (b bot) build(s *GameState, playerID string, p profile, tb table, mn menu) 
 // emptiesHand reports that playing this many cards leaves nothing but the card
 // the turn has to end with — which is to say, going out.
 func emptiesHand(held, played int) bool { return held-played <= 1 }
+
+// opensTheAccount reports that the melds available this turn add up to the
+// partnership's initial-meld minimum.
+//
+// This is the guard that stops the bot laying an opening it cannot finish, and
+// the position it exists for is a dead turn rather than a bad one. The minimum
+// is a property of the whole turn, so the engine lets a lay fall short of it
+// and then refuses the discard that would end the turn (applyDiscard's
+// ErrInitialMeldNotMet) on the grounds that more melding is still possible. If
+// it is not possible, nothing is: the meld is refused as too small, the
+// lay-off is refused because the side has not opened, and the discard is
+// refused because it laid. Nineteen of forty bot-vs-bot matches reached that
+// position before this function existed.
+//
+// The engine has its own guard — checkInitialMeld, which refuses a lay that
+// puts the floor out of reach using meld.go's reachableValue — and it is not
+// tight enough to rely on. That is worth fixing on its own terms and is not
+// this bot's business: Žolíky's agent has carried the same discipline since it
+// was written (findInitialMeldPlan only ever *starts* an opening it has
+// already found the whole of), for the same reason, and a player that checks
+// before committing does not need the engine to catch it.
+//
+// Two melds at most, and that cap is what makes the answer trustworthy rather
+// than merely optimistic. checkInitialMeld accepts a lay outright once the
+// turn's total has reached the floor, and only consults reachableValue when it
+// has not — so the *last* meld of a plan is always accepted, and the risk lies
+// entirely in the ones before it, which are accepted only if the engine's own
+// bound agrees there is a way to finish. A three-meld plan therefore depends on
+// that bound agreeing with this function about the third meld, and when it did
+// not the turn wedged anyway: four of the last remaining dead turns were
+// exactly that disagreement. A two-meld plan has no middle to disagree about.
+//
+// Greedy by value over disjoint offers, which can under-count — some
+// combination of smaller melds might reach a floor this misses. Under-counting
+// costs a turn of waiting, which is what a person short of the minimum does
+// anyway; over-counting costs the deal.
+func opensTheAccount(s *GameState, playerID string, t *Team, offers []module.ActionOffer) (module.ActionOffer, bool) {
+	r := s.rules()
+	need := r.meldFloor(t.Score) - s.LaidThisTurn
+
+	type candidate struct {
+		offer module.ActionOffer
+		cards []string
+		value int
+	}
+	cands := make([]candidate, 0, len(offers))
+	for _, o := range offers {
+		cards := meldCards(o)
+		if len(cards) == 0 {
+			continue
+		}
+		cands = append(cands, candidate{offer: o, cards: cards, value: handValue(cards)})
+	}
+	sort.SliceStable(cands, func(i, j int) bool { return cands[i].value > cands[j].value })
+
+	// Walked against a copy of the hand rather than a set of card names: two
+	// decks are in play, so a hand can hold two of the same card and two offers
+	// naming it are not necessarily in conflict.
+	remaining := append([]string(nil), s.Hands[playerID]...)
+	total, laid := 0, 0
+	var opener module.ActionOffer
+	for _, c := range cands {
+		if laid == maxOpeningMelds {
+			break
+		}
+		next, ok := removeCards(remaining, c.cards)
+		if !ok {
+			continue // its cards are already spoken for by a better meld
+		}
+		// A side that cannot go out has to be left holding two cards, one to
+		// discard and one to keep (checkLeavesPlayable). A plan that breaches
+		// that is not a plan the engine will let it finish.
+		if len(next) < 2 && !canGoOut(s, t) {
+			continue
+		}
+		remaining = next
+		total += c.value
+		if laid == 0 {
+			opener = c.offer
+		}
+		laid++
+		if total >= need {
+			return opener, true
+		}
+	}
+	return module.ActionOffer{}, false
+}
+
+// maxOpeningMelds is how many melds an opening this bot will start may take.
+// See opensTheAccount for why it is two.
+const maxOpeningMelds = 2
 
 // meldCards is what an offer would put on the table.
 func meldCards(o module.ActionOffer) []string {

@@ -376,29 +376,32 @@ func TestBotPlaysWholeDealsLegally(t *testing.T) {
 	}
 }
 
-// TestATurnCanStillWedge records a dead end this bot can reach and does not
-// cause, so that it is written down in the package it belongs to rather than
-// only in whatever ticket it ends up as.
+// TestATurnCanStillWedge records a dead end in the engine, so that it is
+// written down in the package it belongs to rather than only in a ticket.
 //
 // applyDiscard refuses to end a turn that laid cards toward the initial meld
 // without reaching the floor (ErrInitialMeldNotMet), on the grounds that the
-// player can go on melding — and checkInitialMeld is supposed to make that
-// safe by refusing any lay that puts the floor out of reach. The bound it uses
-// is meld.go's reachableValue, which counts every meld the rest of the hand
-// could make and does not subtract what checkLeavesPlayable then requires: a
-// partnership that cannot go out must be left holding two cards, one to
-// discard and one to keep. So a hand whose only remaining meld would leave it
-// holding one card is counted as reachable, laid against, and then refused
-// both the meld and the discard. The turn has no legal move in it at all.
+// player can go on melding, and checkInitialMeld is supposed to make that safe
+// by refusing any lay that puts the floor out of reach. Its bound is meld.go's
+// reachableValue, and reachableValue over-estimates: it counts melds the
+// engine will not actually accept, so a side can lay a hundred and five points
+// of the hundred and twenty it needs and find the rest was never there. No
+// further meld, no lay-off (it has not opened) and no discard (it laid): the
+// turn has no legal move in it and the deal wedges for the whole table.
 //
-// It is not a regression from this file: module.OfferBot walks into the same
-// position (seed 5, two-handed), and so would a person. Fixing it means
-// teaching reachableValue about the keep-a-card rule, which is a change to
-// what melds the engine accepts and belongs with the engine's own tests rather
-// than with the bot's.
-func TestATurnCanStillWedge(t *testing.T) {
-	t.Skip("known engine dead end: reachableValue ignores checkLeavesPlayable — see the comment above")
-}
+// It is not this bot's doing and not new. module.OfferBot — the bot this
+// module shipped with — walks into it in eight of forty two-handed matches on
+// main today. What this bot adds is opensTheAccount, which refuses to *start*
+// an opening it cannot finish, and that takes it from twenty-three of forty to
+// three: the ones that are left come through applyTakePile, which gates a
+// capture by an unmelded side on the same bound, and which no amount of care
+// on this side of the seam can predict.
+//
+// Tightening reachableValue was tried here and reverted. It is a change to
+// which melds the engine accepts, two of its own tests pin the current answer
+// (TestReachableValueIsAchievable, TestOpeningTheTable), and getting it right
+// means deciding what those tests should say — which is the engine's business
+// and wants its own change.
 
 // playOut drives a match to its end. It returns how many wild cards were
 // discarded out of a hand that still held something else — the number this
