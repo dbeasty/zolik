@@ -62,10 +62,128 @@ func (b bot) Act(raw module.State, botSeat module.BotSeat, offers []module.Actio
 		return module.ChooseAction(offers, nil)
 	}
 
+	p := profileFor(botSeat.Skill)
+	rnd := rand.New(rand.NewSource(seedFor(s, seat)))
 	if s.Street == streetPreflop {
-		return mn.action(preflop(s, seat, mn))
+		return mn.action(preflop(s, seat, mn, p, rnd))
 	}
-	return mn.action(postflop(s, seat, mn))
+	return mn.action(postflop(s, seat, mn, p, rnd))
+}
+
+// --- how well to play it -----------------------------------------------------
+
+// profile is what a skill setting changes about how this seat plays poker.
+//
+// The knobs are split the way the ones in internal/ai/profile.go are, and for
+// the same reason: a weak poker player is not one who calculates badly, it is
+// one who does not ask the second question. The first question — what am I
+// likely to have at showdown — every profile answers the same way, out of the
+// same rollout. The second — what is the *other* player likely to have, given
+// that they are betting — is the one this table turns up and down, and it is
+// where both of the complaints this file was revisited for live.
+type profile struct {
+	skill module.Skill
+
+	// --- reading the table ---
+
+	// bluffShare is how much of an opponent's betting range this profile
+	// treats as a bluff rather than as the hand the size of the bet claims.
+	//
+	// This is the "does not get bluffed" dial, and it is the correction to a
+	// model that was right in one direction only. claimedBy reads a big bet as
+	// a claim to a real hand and equity measures against hands that could make
+	// it — which stops the bot calling three-times-pot with queen high, and
+	// which, taken literally, also means nobody ever bluffs. A bot that
+	// believes that folds every hand it cannot beat a value range with, which
+	// at a table with any aggression at all is most of them, and it can be
+	// robbed by anyone who notices.
+	//
+	// So an opponent's range is a mixture: mostly the hand the bet claims, and
+	// this much of the time anything at all. Zero believes every bet
+	// completely; one reads no meaning into a bet's size and is the calling
+	// station this file was written to replace.
+	bluffShare float64
+
+	// --- aggression ---
+
+	// cbet is the chance of betting the flop heads-up as the seat that raised
+	// before it, whatever the flop brought. Most flops miss most hands, and
+	// the player who showed strength first is the one both players expect to
+	// have hit.
+	cbet float64
+	// semiBluff is the chance of betting or raising a draw that is not yet
+	// worth a value bet. The pot can be won twice — now, because the bet
+	// folds a better hand, or later, because the draw comes in — and a hand
+	// that only ever checks its draws collects on the second of those.
+	semiBluff float64
+	// bluff is the chance of betting a hand with nothing at all when checked
+	// to, heads-up, on a street where the story holds up.
+	bluff float64
+	// bluffRaise is the chance of answering a bet with a raise on nothing. The
+	// most expensive bluff to make and the most expensive one to face, so it
+	// is the smallest number here.
+	bluffRaise float64
+	// steal is the chance of opening from late position with a hand that could
+	// not open from anywhere else, when nobody has shown any interest.
+	steal float64
+
+	// --- discipline ---
+
+	// loose is how many Chen points below its own bar this profile still pays
+	// to see a flop. The beginner's defining mistake, priced in points rather
+	// than modelled as randomness: it is not that a novice picks bad hands at
+	// random, it is that their bar is lower than it should be.
+	loose float64
+}
+
+// profiles is the whole ladder, one row per skill.
+//
+// Medium is deliberately the bot exactly as it played before any of this
+// existed — every number that made it up is either zero here or the literal
+// that used to be inline — so it stays the fixed reference the other two are
+// measured against, and every test written against the old bot still describes
+// it. See TestBotLadderIsOrdered.
+var profiles = map[module.Skill]profile{
+	module.SkillEasy: {
+		skill: module.SkillEasy,
+		// Reads nothing into a bet's size, which is the same thing as
+		// believing everyone is always bluffing: the calling station, exactly.
+		// It is the right way for this game's weak setting to be weak, because
+		// it is the mistake real beginners make and it loses money slowly
+		// rather than looking broken.
+		bluffShare: 1.0,
+		loose:      1.5,
+	},
+	module.SkillMedium: {
+		skill: module.SkillMedium,
+		// The one bluff the old bot made: rarely, heads-up, on a street where
+		// a story is believable.
+		bluff: 0.18,
+	},
+	module.SkillHard: {
+		skill: module.SkillHard,
+		// Credits the claim — a big bet usually is what it says — but not
+		// completely, which is the whole difference between folding correctly
+		// and folding to anyone willing to bet big twice.
+		bluffShare: 0.30,
+		cbet:       0.65,
+		semiBluff:  0.55,
+		bluff:      0.22,
+		bluffRaise: 0.14,
+		steal:      0.35,
+	},
+}
+
+// profileFor is the strength a skill plays at.
+//
+// An unknown or empty skill is Medium, not Easy — module.BotSeat's rule: a
+// seat taken before skills existed was playing what is now called Medium, and
+// defaulting down would silently weaken every table already in the database.
+func profileFor(s module.Skill) profile {
+	if p, ok := profiles[s]; ok {
+		return p
+	}
+	return profiles[module.SkillMedium]
 }
 
 // choice is a decision before it is a submission: a verb, and for a raise the
@@ -86,7 +204,7 @@ type choice struct {
 // often a hand wins a showdown but how often it is *ahead of a hand somebody
 // was willing to put money in with*, and that is what a hand-strength score
 // approximates.
-func preflop(s *GameState, seat *Seat, mn menu) choice {
+func preflop(s *GameState, seat *Seat, mn menu, p profile, rnd *rand.Rand) choice {
 	score := chen(seat.Hole)
 	owed := s.toCall(seat)
 
@@ -97,6 +215,7 @@ func preflop(s *GameState, seat *Seat, mn menu) choice {
 	if behind(s) <= 1 {
 		playable -= 1.0
 	}
+	playable -= p.loose
 	// And a raise in front means the chips already in are not random. Three
 	// big blinds asks for a real hand; a re-raise to nine asks for a much
 	// better one.
@@ -116,6 +235,18 @@ func preflop(s *GameState, seat *Seat, mn menu) choice {
 	switch {
 	case score >= raiseWorthy && mn.can(VerbRaise):
 		return choice{verb: VerbRaise, to: raiseTarget(s, mn, preflopRaiseTo(s))}
+
+	// A steal: last to act, nobody in front has raised, and a hand that is
+	// close enough to playable that being called is not a disaster. The chips
+	// in the middle are two blinds nobody has defended, and a seat that only
+	// ever raises hands it likes never collects them. Priced as a *raise*
+	// rather than as a bluff, because it is one — the hand is usually ahead of
+	// the random cards still to act behind, it is simply not ahead enough to
+	// open with from any other seat.
+	case p.steal > 0 && mn.can(VerbRaise) && behind(s) <= 1 && opponentsOf(s) <= 2 &&
+		s.CurrentBet <= s.BigBlind && score >= playable-2.0 && rnd.Float64() < p.steal:
+		return choice{verb: VerbRaise, to: raiseTarget(s, mn, preflopRaiseTo(s))}
+
 	case owed == 0:
 		// Nothing to pay and nothing worth raising: take the free card.
 		return choice{verb: VerbCheck}
@@ -215,15 +346,21 @@ func highCardPoints(v int) float64 {
 // asks for a third of the pot to call, so it needs to win a third of the time
 // to break even — below that, calling loses money however pretty the cards
 // are, and folding is not timidity but the correct play.
-func postflop(s *GameState, seat *Seat, mn menu) choice {
+func postflop(s *GameState, seat *Seat, mn menu, p profile, rnd *rand.Rand) choice {
 	opponents := opponentsOf(s)
 	if opponents < 1 {
 		return choice{verb: VerbCheck}
 	}
 
-	rnd := rand.New(rand.NewSource(seedFor(s, seat)))
 	owed := s.toCall(seat)
-	eq := equity(seat.Hole, s.Board, opponents, rollouts(opponents), claimedBy(owed, potNow(s)), rnd)
+	eq := equity(seat.Hole, s.Board, opponents, rollouts(opponents),
+		claimedBy(owed, potNow(s)), bluffShareOf(p, owed, potNow(s)), rnd)
+	// A hand that is behind now but will not be behind for long. equity
+	// already counts the times the draw comes in; what it cannot count is the
+	// pot won without getting there, because the bet folded a better hand.
+	// That is the whole difference between a draw and a busted hand, and the
+	// only thing that makes betting one correct.
+	drawing := len(s.Board) < 5 && drawOuts(seat.Hole, s.Board) >= 8
 
 	if owed == 0 {
 		switch {
@@ -233,8 +370,25 @@ func postflop(s *GameState, seat *Seat, mn menu) choice {
 			return choice{verb: VerbRaise, to: raiseTarget(s, mn, betOf(s, seat, 0.70))}
 		case eq >= 0.55 && mn.can(VerbRaise) && rnd.Float64() < 0.6:
 			return choice{verb: VerbRaise, to: raiseTarget(s, mn, betOf(s, seat, 0.50))}
-		case eq < 0.30 && opponents == 1 && s.Street != streetFlop &&
-			mn.can(VerbRaise) && rnd.Float64() < 0.18:
+		case p.semiBluff > 0 && drawing && eq < 0.55 && eq >= 0.28 &&
+			opponents == 1 && mn.can(VerbRaise) && rnd.Float64() < p.semiBluff:
+			// The semi-bluff. Bet the draw: it wins the pot now often enough
+			// to be worth a bet on its own, and when it is called it still has
+			// the outs it started with. Heads-up only — fold equity against
+			// three opponents is a third of what it is against one, and a draw
+			// bet into a field is just a donation with extra steps.
+			return choice{verb: VerbRaise, to: raiseTarget(s, mn, betOf(s, seat, 0.60))}
+		case p.cbet > 0 && s.Street == streetFlop && opponents == 1 &&
+			tookTheLead(s, seat) && mn.can(VerbRaise) && rnd.Float64() < p.cbet:
+			// The continuation bet. Two unpaired cards miss a flop about two
+			// times in three, which is as true of the caller as of the raiser
+			// — so the seat that raised before the flop bets it regardless,
+			// and is right more often than it is wrong. Without this the bot
+			// announced every flop it missed by checking, which is a tell a
+			// human opponent picks up inside one session.
+			return choice{verb: VerbRaise, to: raiseTarget(s, mn, betOf(s, seat, 0.55))}
+		case p.bluff > 0 && eq < 0.30 && opponents == 1 && s.Street != streetFlop &&
+			mn.can(VerbRaise) && rnd.Float64() < p.bluff:
 			// A bluff, rarely, heads-up, on a street where a story is
 			// believable. Not because this bot can read anybody, but because a
 			// player who only ever bets good hands is free to play against.
@@ -249,15 +403,144 @@ func postflop(s *GameState, seat *Seat, mn menu) choice {
 	switch {
 	case eq >= required+0.25 && mn.can(VerbRaise) && !allIn:
 		return choice{verb: VerbRaise, to: raiseTarget(s, mn, betOf(s, seat, 0.75))}
+	case p.semiBluff > 0 && drawing && !allIn && opponents == 1 && mn.can(VerbRaise) &&
+		eq >= required-0.08 && rnd.Float64() < p.semiBluff:
+		// The same semi-bluff from the other side. A draw facing a bet is
+		// roughly a break-even call; raising it adds the times the raise
+		// simply ends the hand, and that is what turns break-even into a
+		// profit. The tolerance below `required` is what makes it a raise
+		// rather than a fancy way of calling.
+		return choice{verb: VerbRaise, to: raiseTarget(s, mn, betOf(s, seat, 0.70))}
 	case allIn && eq >= required+0.05:
 		// The last call of the hand has no implied odds to make up a thin
 		// margin later, so it has to be right on its own.
 		return choice{verb: VerbCall}
 	case !allIn && eq >= required:
 		return choice{verb: VerbCall}
+	case p.bluffRaise > 0 && !allIn && opponents == 1 && s.Street != streetFlop &&
+		mn.can(VerbRaise) && eq < required && float64(owed) <= 0.6*float64(potNow(s)) &&
+		drawOuts(seat.Hole, s.Board) >= 4 && rnd.Float64() < p.bluffRaise:
+		// Raising as a bluff, on a hand that was drawing and did not get
+		// there. The busted draw is the right hand to do it with and the
+		// reason is arithmetic rather than style: it has no showdown value to
+		// give up, so the fold it wins is worth the whole pot, and the cards
+		// it was drawing with are cards the opponent now cannot hold.
+		return choice{verb: VerbRaise, to: raiseTarget(s, mn, betOf(s, seat, 0.80))}
 	default:
 		return choice{verb: VerbFold}
 	}
+}
+
+// tookTheLead reports that this seat put the last raise in before the flop.
+//
+// Derived rather than recorded: GameState keeps no action log — it is
+// re-marshalled to Mongo on every action and a per-hand history would be paid
+// for on every fold — but it does keep what each seat has committed to the
+// hand, and on a flop nobody has bet into yet that figure *is* the preflop
+// betting. The seat that put in more than everybody still in the hand is the
+// one that raised last.
+func tookTheLead(s *GameState, seat *Seat) bool {
+	if seat.Committed <= s.BigBlind {
+		return false
+	}
+	for i := range s.Seats {
+		if i == s.Current || !s.Seats[i].inHand() {
+			continue
+		}
+		if s.Seats[i].Committed >= seat.Committed {
+			return false
+		}
+	}
+	return true
+}
+
+// drawOuts is how many cards in the deck would turn this hand into a straight
+// or a flush.
+//
+// Counted structurally rather than by rollout, because it is asked on every
+// postflop decision and a second Monte Carlo pass would double what the bot
+// costs to think. It is also the more honest number for what it is used for:
+// equity already knows how often a draw gets there, and what the semi-bluff
+// needs to know is whether this hand is a draw *at all* — whether there is a
+// card that changes it from losing to winning, or only a showdown it is
+// already behind in.
+//
+// Nine outs for a flush draw, eight for an open-ended straight, four for a
+// gutshot, added because a hand can be both. Anything at or above eight is a
+// real draw; four is a story to bluff with rather than a hand to bet.
+func drawOuts(hole, board []string) int {
+	if len(board) >= 5 || len(board) == 0 {
+		return 0
+	}
+	all := append(append(make([]string, 0, len(hole)+len(board)), hole...), board...)
+
+	outs := 0
+	// A suit is only a draw if this hand actually holds one of it; four to a
+	// flush entirely on the board is everybody's draw and nobody's edge.
+	for _, suit := range []string{"S", "H", "D", "C"} {
+		total, mine := 0, 0
+		for _, c := range all {
+			if suitOf(c) == suit {
+				total++
+			}
+		}
+		for _, c := range hole {
+			if suitOf(c) == suit {
+				mine++
+			}
+		}
+		if total == 4 && mine > 0 {
+			outs += 9
+		}
+	}
+
+	have := [15]bool{}
+	for _, c := range all {
+		v := rankValue[rankOf(c)]
+		if v < 2 || v > 14 {
+			continue
+		}
+		have[v] = true
+		if v == 14 {
+			have[1] = true // the wheel: A-2-3-4-5
+		}
+	}
+	// Four in a row with a missing card live at *both* ends is open-ended:
+	// eight outs. Both ends is the condition, not either — A-2-3-4 has only
+	// the five, and counting it as eight is how a bot talks itself into
+	// betting half a draw.
+	openEnded := false
+	for low := 1; low+3 <= 14; low++ {
+		if !(have[low] && have[low+1] && have[low+2] && have[low+3]) {
+			continue
+		}
+		lowEnd := low-1 >= 1 && !have[low-1]
+		highEnd := low+4 <= 14 && !have[low+4]
+		if lowEnd && highEnd {
+			openEnded = true
+		}
+	}
+	// Otherwise, four ranks inside some five-card window: one card fills it,
+	// four outs. A completed straight fills all five and is not a draw at all.
+	gutshot := false
+	for low := 1; low+4 <= 14; low++ {
+		n := 0
+		for i := 0; i < 5; i++ {
+			if have[low+i] {
+				n++
+			}
+		}
+		if n == 4 {
+			gutshot = true
+		}
+	}
+	switch {
+	case openEnded:
+		outs += 8
+	case gutshot:
+		outs += 4
+	}
+	return outs
 }
 
 // claimedBy is what a bet of this size says the player making it has.
@@ -291,6 +574,41 @@ func claimedBy(owed, pot int) int {
 	}
 }
 
+// bluffShareOf is how much of *this* bet to disbelieve.
+//
+// claimedBy reads a bigger bet as a bigger claim, and stops there, which gets
+// the ordinary range of bet sizes right and the top of it exactly backwards. A
+// bet of three times the pot is not three times the hand a pot-sized bet is.
+// Nobody makes that bet for value with a middling hand, because nothing worse
+// would ever pay it — so the range behind it splits into the hands that want a
+// call at any price and the hands that want a fold at any price, and there is
+// very little in between. That is what polarised means, and its practical
+// consequence is that the biggest bets at the table contain the *most* bluffs,
+// not the fewest.
+//
+// Read literally, the old model therefore gave an opponent a free roll: bet
+// enough and this bot folded whatever it held, two pair included, and the
+// bigger the bet the more certain the fold. So the share of the range treated
+// as a bluff grows once a bet passes the size of the pot — up to a cap,
+// because a profile that ends up disbelieving everything is the calling
+// station this file exists to replace, and it is only Easy that is supposed to
+// be one.
+func bluffShareOf(p profile, owed, pot int) float64 {
+	if p.bluffShare <= 0 || owed <= 0 || pot <= 0 {
+		return p.bluffShare
+	}
+	// Measured against the pot with the bet already in it, the same figure
+	// claimedBy brackets on, so the two readings of one bet cannot drift: 0.5
+	// is a pot-sized bet and anything above it an overbet.
+	ratio := float64(owed) / float64(pot)
+	if ratio <= 0.5 {
+		return p.bluffShare
+	}
+	share := p.bluffShare * (1 + 2*(ratio-0.5))
+	cap := math.Max(p.bluffShare, 0.60)
+	return math.Min(share, cap)
+}
+
 // equity estimates how often this hand wins the pot, by dealing the rest of
 // the deck out and counting — against opponents holding at least `floor`, the
 // hand the money in front of this seat is claiming.
@@ -306,7 +624,16 @@ func claimedBy(owed, pot int) int {
 // attempted. The attempt cap is what stops a floor nobody can reach — two pair
 // on a board that makes none — from spinning; if it bites, the unfiltered
 // estimate is returned rather than nothing.
-func equity(hole, board []string, opponents, trials, floor int, rnd *rand.Rand) float64 {
+//
+// bluffShare is what stops the floor being taken literally, and it is the
+// second half of a model that was only ever half-written. Filtering to hands
+// that could make the bet says every bet is honest; nobody plays that way, and
+// a bot that assumes it folds every hand it cannot beat a value range with. So
+// the answer is a blend of the two counts this function was already keeping —
+// mostly the filtered one, because a big bet usually is what it says, and
+// bluffShare of the unfiltered one, because sometimes it is not. At zero the
+// arithmetic is exactly what it was before the parameter existed.
+func equity(hole, board []string, opponents, trials, floor int, bluffShare float64, rnd *rand.Rand) float64 {
 	if len(hole) < 2 || opponents < 1 {
 		return 1
 	}
@@ -379,10 +706,23 @@ func equity(hole, board []string, opponents, trials, floor int, rnd *rand.Rand) 
 			won, counted = won+score, counted+1
 		}
 	}
-	if counted > 0 {
-		return won / float64(counted)
+	if dealt == 0 {
+		return 0.5
 	}
-	return anyhow / float64(dealt)
+	unfiltered := anyhow / float64(dealt)
+	if counted == 0 {
+		// No trial ever produced a hand that could have made this bet, so
+		// there is no value range to blend with.
+		return unfiltered
+	}
+	filtered := won / float64(counted)
+	if bluffShare <= 0 {
+		return filtered
+	}
+	if bluffShare >= 1 {
+		return unfiltered
+	}
+	return (1-bluffShare)*filtered + bluffShare*unfiltered
 }
 
 // rollouts trades accuracy for time as the table fills.

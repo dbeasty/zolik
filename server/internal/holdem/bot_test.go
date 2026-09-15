@@ -438,7 +438,7 @@ func BenchmarkBotThinking(b *testing.B) {
 			r := rand.New(rand.NewSource(1))
 			for i := 0; i < b.N; i++ {
 				equity([]string{"AS", "KD"}, []string{"2C", "7H", "TS"},
-					tc.opponents, rollouts(tc.opponents), pair, r)
+					tc.opponents, rollouts(tc.opponents), pair, 0.30, r)
 			}
 		})
 	}
