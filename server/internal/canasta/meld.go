@@ -455,16 +455,33 @@ func runCandidates(r ruleset, hand []string, t *Team) []candidate {
 				i++
 				continue
 			}
-			// The top of the block, not the bottom: a sequence is capped at
-			// seven and the high cards are the valuable ones.
-			if len(block) > canastaSize {
-				block = block[len(block)-canastaSize:]
-			}
-			if validateRun(r, block) == nil && !runOverlapsTable(t, s, block) {
-				out = append(out, candidate{
-					Kind: meldRun, Suit: s,
-					Cards: sortRun(block), Value: handValue(block),
-				})
+			// A block longer than seven is more than one sequence, so it is cut
+			// into more than one candidate: the top seven, then the top seven of
+			// what is left, down to a remainder too short to be a run. Cut from
+			// the top because a sequence is capped at seven and the high cards
+			// are the valuable ones.
+			//
+			// Cut rather than truncated. Truncating and then advancing past what
+			// survived left the scan standing inside the block it had just
+			// emitted, so the next pass produced a *second* candidate made of
+			// cards the first one already held — and reachableValue, which
+			// spends a candidate's cards as it counts it, counted them twice.
+			// An over-estimate there is the dead end the whole function exists
+			// to prevent, so these have to stay disjoint.
+			for rest := block; len(rest) >= minMeldSize; rest = rest[:len(rest)-canastaSize] {
+				chunk := rest
+				if len(chunk) > canastaSize {
+					chunk = chunk[len(chunk)-canastaSize:]
+				}
+				if validateRun(r, chunk) == nil && !runOverlapsTable(t, s, chunk) {
+					out = append(out, candidate{
+						Kind: meldRun, Suit: s,
+						Cards: sortRun(chunk), Value: handValue(chunk),
+					})
+				}
+				if len(rest) <= canastaSize {
+					break
+				}
 			}
 			i += len(block)
 		}
@@ -512,42 +529,69 @@ func runOverlapsTable(t *Team, suit string, block []string) bool {
 //
 // Deliberately a lower bound: it counts a greedy, concretely achievable set of
 // melds, never a hypothetical one. Erring high would put the dead end back.
+//
+// Greedy, but not in one fixed order. A card can belong to a group *and* to a
+// sequence — the six of spades is the third six and the middle of 4-5-6-7-8 —
+// and whichever pass runs first takes it. Always running groups first spent the
+// six on fifteen points and left two two-card stubs where a twenty-five point
+// run had been, so a side holding an opening worth sixty was told it could not
+// reach fifty. Each order below spends every card at most once and so is a set
+// of melds the player could actually lay; the best of them is therefore still a
+// bound that errs low, and it errs low a great deal less often.
 func reachableValue(r ruleset, hand []string, t *Team) int {
-	remaining := append([]string(nil), hand...)
-	total := 0
-
-	// Lay-offs onto melds the team already has, including any laid earlier
-	// this turn.
-	if t != nil {
-		for i := range t.Melds {
-			m := t.Melds[i]
-			for _, c := range layOffCards(r, remaining, &m) {
-				if m.closed(r) {
-					break
-				}
-				if isWild(c) && m.wilds() >= r.MaxWilds {
-					continue
-				}
-				m.Cards = append(m.Cards, c)
-				remaining, _ = removeCards(remaining, []string{c})
-				total += cardValue(c)
+	best := 0
+	for _, order := range [][]func(ruleset, []string, *Team) []candidate{
+		{layOffCandidates, newMeldCandidates, runCandidates},
+		{layOffCandidates, runCandidates, newMeldCandidates},
+		// Lay-offs take the cards of a rank already on the table, and those are
+		// sequence cards too, so they are not always the cheapest pass to run
+		// first either.
+		{runCandidates, layOffCandidates, newMeldCandidates},
+	} {
+		remaining := append([]string(nil), hand...)
+		total := 0
+		for _, enumerate := range order {
+			for _, c := range enumerate(r, remaining, t) {
+				total += c.Value
+				// Spent, not merely counted: a bound that let one card pay
+				// twice would be an over-estimate, which is precisely the dead
+				// end this function exists to prevent.
+				remaining, _ = removeCards(remaining, c.Cards)
 			}
 		}
+		if total > best {
+			best = total
+		}
 	}
-	for _, c := range newMeldCandidates(r, remaining, t) {
-		total += c.Value
-		// Spent, not merely counted. The king of hearts can be the third king
-		// of a group *and* the top of a heart sequence, and a bound that let it
-		// be both would be an over-estimate — which is precisely the dead end
-		// this function exists to prevent, reintroduced by the fix for it.
-		remaining, _ = removeCards(remaining, c.Cards)
+	return best
+}
+
+// layOffCandidates is what the hand could add to melds the side already has,
+// including any laid earlier this turn, as one candidate per meld — the shape
+// reachableValue's passes all take.
+func layOffCandidates(r ruleset, hand []string, t *Team) []candidate {
+	if t == nil {
+		return nil
 	}
-	// Sequences count too, and they have to: a Samba side opening on the
-	// 4-5-6-7-8 of hearts reaches its floor on a run alone, and a reachability
-	// check blind to runs would refuse the lay that gets it there.
-	for _, c := range runCandidates(r, remaining, t) {
-		total += c.Value
-		remaining, _ = removeCards(remaining, c.Cards)
+	remaining := append([]string(nil), hand...)
+	var out []candidate
+	for i := range t.Melds {
+		m := t.Melds[i]
+		var cards []string
+		for _, c := range layOffCards(r, remaining, &m) {
+			if m.closed(r) {
+				break
+			}
+			if isWild(c) && m.wilds() >= r.MaxWilds {
+				continue
+			}
+			m.Cards = append(m.Cards, c)
+			remaining, _ = removeCards(remaining, []string{c})
+			cards = append(cards, c)
+		}
+		if len(cards) > 0 {
+			out = append(out, candidate{Cards: cards, Value: handValue(cards)})
+		}
 	}
-	return total
+	return out
 }

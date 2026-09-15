@@ -518,6 +518,95 @@ func TestSambaHandSizeAtSixSeats(t *testing.T) {
 	}
 }
 
+// A Samba opening is often two melds — a group and a sequence — and the cards
+// they want overlap: the six of spades is the third six and the middle of
+// 4-5-6-7-8. The engine has to let the first of the two go down, which means
+// reachableValue has to see the sequence the group would otherwise eat.
+func TestSambaTwoMeldOpeningWithSharedCards(t *testing.T) {
+	// Three kings (30) and the 4-8 of spades (25) open on 55, comfortably past
+	// the floor of 50 — but only if the six is left where the run needs it.
+	hand := []string{"KH", "KD", "KS", "4S", "5S", "6S", "7S", "8S", "6H", "6D"}
+	table := func() module.State {
+		return sambaTable(func(s *GameState) {
+			s.Phase = phaseMeld
+			s.Hands["p1"] = append([]string(nil), hand...)
+		})
+	}
+
+	t.Run("the group goes down first", func(t *testing.T) {
+		next, code := apply(t, table(), "p1", module.Action{
+			Verb: VerbLayMeld, Cards: []string{"KH", "KD", "KS"},
+		})
+		if code != "" {
+			t.Fatalf("kings refused: %s — the spade run still reaches the floor", code)
+		}
+		if s := mustDecode(t, next); s.Teams[0].HasMelded {
+			t.Error("thirty points is not an opening on its own")
+		}
+		if _, code := apply(t, next, "p1", module.Action{
+			Verb: VerbLayMeld, Cards: []string{"4S", "5S", "6S", "7S", "8S"},
+		}); code != "" {
+			t.Fatalf("the run that was to finish the opening was refused: %s", code)
+		}
+	})
+
+	t.Run("and the offer to lay it is on the board", func(t *testing.T) {
+		offers, err := New().LegalActions(table(), "p1")
+		if err != nil {
+			t.Fatalf("offers: %v", err)
+		}
+		want := OfferLayMeld + ":K"
+		for _, o := range offers {
+			if o.ID == want && o.Enabled {
+				return
+			}
+		}
+		t.Errorf("no enabled %q among %s — a move the engine accepts has to be offered",
+			want, module.DescribeOffers(offers))
+	})
+
+	// The mirror image, and the reason the bound may not simply be raised:
+	// laying the sixes really does strand the floor, because it breaks the run
+	// into two-card stubs and leaves 15 + 30 = 45.
+	t.Run("but a lay that strands the floor is still refused", func(t *testing.T) {
+		if _, code := apply(t, table(), "p1", module.Action{
+			Verb: VerbLayMeld, Cards: []string{"6S", "6H", "6D"},
+		}); code != ErrInitialMeldNotMet {
+			t.Errorf("melding the sixes gave %q, want %s — it puts the floor out of reach",
+				code, ErrInitialMeldNotMet)
+		}
+	})
+}
+
+// A block of more than seven consecutive cards is more than one sequence, and
+// the candidates it produces have to be disjoint: reachableValue spends a
+// candidate's cards as it counts them, so a card in two candidates is counted
+// twice and the bound comes out above what the hand is worth — the over-estimate
+// that puts the dead end back.
+func TestLongSequenceSplitsIntoDisjointCandidates(t *testing.T) {
+	r := sambaRules()
+	hand := []string{"4S", "5S", "6S", "7S", "8S", "9S", "TS", "JS", "QS", "KS"}
+
+	cands := runCandidates(r, hand, nil)
+	seen := map[string]bool{}
+	for _, c := range cands {
+		for _, card := range c.Cards {
+			if seen[card] {
+				t.Errorf("%s appears in two run candidates", card)
+			}
+			seen[card] = true
+		}
+	}
+	// Ten in a row is a samba plus a three-card run, and both are real melds.
+	if len(cands) != 2 {
+		t.Errorf("ten consecutive spades produced %d candidates, want 2", len(cands))
+	}
+	if got, max := reachableValue(r, hand, nil), handValue(hand); got > max {
+		t.Errorf("reachable is %d from a hand worth %d — a bound that errs high is the dead end",
+			got, max)
+	}
+}
+
 func sevenOf(rank string) Meld {
 	m := Meld{Kind: meldSet, Rank: rank}
 	suits := []string{"H", "D", "S", "C", "H", "D", "S"}
