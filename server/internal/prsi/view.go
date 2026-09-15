@@ -187,12 +187,11 @@ func topOnly(s *GameState) []string {
 	return nil
 }
 
-// Bot is how Prší wants a vacant seat played: try to shed a card, take a skip
-// if one is owed, and draw only when there is nothing else. That preference is
-// a taste, not a rule — the offers decide what is legal.
-func (m *Module) Bot() module.Bot {
-	return module.OfferBot(VerbPlay, VerbPass, VerbDraw)
-}
+// Bot is how Prší wants a vacant seat played: shed a card, take a skip if one
+// is owed, and draw only when there is nothing else — and choose *which* card,
+// which is the part module.OfferBot could not do and the part this game is. See
+// bot.go.
+func (m *Module) Bot() module.Bot { return bot{} }
 
 // Standings ranks by cards left, fewest first — which is both the state of the
 // race mid-deal and the result at the end of it, since the winner is whoever

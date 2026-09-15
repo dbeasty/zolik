@@ -393,14 +393,15 @@ func topOnly(s *GameState) []string {
 }
 
 // Bot is how Canasta wants a vacant seat played: build the table first, take
-// the pile when it is offered, and discard only because a turn has to end.
+// the pile when it is worth taking, and discard the card that is least use to
+// whoever gets it.
 //
-// module.OfferBot is enough here where it would not be for Žolíky, because a
-// Canasta meld ships as exact cards rather than a shape to solve — the same
-// property that lets the conformance driver play this game to a winner.
-func (m *Module) Bot() module.Bot {
-	return module.OfferBot(VerbLayMeld, VerbLayOff, VerbTakePile, VerbTakeTop, VerbDraw, VerbDiscard)
-}
+// It was module.OfferBot with that list of verbs as a preference, on the
+// grounds that a Canasta meld ships as exact cards rather than as a shape to
+// solve — which is true of melding, and says nothing about the two decisions a
+// turn also contains: whether to take the pile, and which card to end with. An
+// offer-preference bot answers both by sort order. See bot.go.
+func (m *Module) Bot() module.Bot { return bot{} }
 
 // Standings ranks by partnership score, so both members of a side share a rank
 // — which is the case that made module.Standing allow ties in the first place.

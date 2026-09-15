@@ -259,18 +259,29 @@ func adjacentRanks(rank int) []int {
 //	               pair at all — it is twenty penalty points pretending to be
 //	               one.
 func keepValue(hand []string, idx int, inFinished bool, k knowledge, cfg rules.RulesConfig) int {
-	if inFinished {
-		return keepFinished
-	}
-	if k.prof.KeepPartials == KeepFinished {
-		return 0
-	}
 	card := hand[idx]
 	if rules.IsJoker(card) {
 		// A joker is meld material for anything. Never shed one as though it
 		// were a loose card; the engine mostly forbids it anyway, and where it
 		// does not, doing so is a mistake no strength should make on purpose.
+		//
+		// This test used to sit *below* the KeepFinished early return, which
+		// meant the two profiles that protect only finished melds — Easy and
+		// Medium, which is to say nearly every bot anybody plays against —
+		// scored a loose joker at zero and then sorted it to the front of the
+		// discard list, because a joker carries the highest penalty in the
+		// game (rules.PenaltyPoints: fifty). The comment above was true and
+		// the code below it disagreed; under any ruleset that leaves
+		// JokerDiscardRestricted off, the agent threw its wild card away at
+		// the first opportunity. The check is unconditional now, which is what
+		// "no strength should make on purpose" always meant.
+		return keepWild
+	}
+	if inFinished {
 		return keepFinished
+	}
+	if k.prof.KeepPartials == KeepFinished {
+		return 0
 	}
 	partners := fragmentPartners(hand, idx, cfg)
 	if partners == 0 {
@@ -301,6 +312,11 @@ func keepValue(hand []string, idx int, inFinished bool, k knowledge, cfg rules.R
 }
 
 const (
+	// keepWild outranks even a finished meld. A card in a finished meld is
+	// worth exactly the meld it is in; a wild is worth whichever meld the
+	// hand turns out to need, and there is no second one in the deck to
+	// replace it with.
+	keepWild         = 4
 	keepFinished     = 3
 	keepFragment     = 2
 	keepThinFragment = 1
