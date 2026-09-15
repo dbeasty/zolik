@@ -904,6 +904,7 @@ export const sk: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Všetko, čo tento server vie ponúknuť',
   'lobby.games.bots': 'Boti',
+  'lobby.games.setup': 'Nastavenia',
   'lobby.games.playBot': 'Hrať proti botovi',
   'lobby.games.playBots': 'Hrať proti botom: {n}',
   'lobby.games.openTable': 'Otvoriť stôl',

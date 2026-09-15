@@ -919,6 +919,7 @@ export const mt: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': "Dak kollu li dan is-server jista' joffri",
   'lobby.games.bots': 'Bots',
+  'lobby.games.setup': 'Issettjar',
   'lobby.games.playBot': 'Ilgħab kontra bot',
   'lobby.games.playBots': 'Ilgħab kontra {n} bots',
   'lobby.games.openTable': 'Iftaħ mejda',

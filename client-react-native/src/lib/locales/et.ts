@@ -907,6 +907,7 @@ export const et: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Kõik, mida see server pakkuda oskab',
   'lobby.games.bots': 'Robotid',
+  'lobby.games.setup': 'Seaded',
   'lobby.games.playBot': 'Mängi roboti vastu',
   'lobby.games.playBots': 'Mängi {n} roboti vastu',
   'lobby.games.openTable': 'Ava laud',

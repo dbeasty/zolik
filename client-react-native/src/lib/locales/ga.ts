@@ -933,6 +933,7 @@ export const ga: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Gach rud is féidir leis an bhfreastalaí seo a óstáil',
   'lobby.games.bots': 'Botanna',
+  'lobby.games.setup': 'Socruithe',
   'lobby.games.playBot': 'Imir in aghaidh bota',
   'lobby.games.playBots': 'Imir in aghaidh {n} bota',
   'lobby.games.openTable': 'Oscail bord',

@@ -914,6 +914,7 @@ export const it: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Tutto ciò che questo server può ospitare',
   'lobby.games.bots': 'Bot',
+  'lobby.games.setup': 'Impostazioni',
   'lobby.games.playBot': 'Gioca contro un bot',
   'lobby.games.playBots': 'Gioca contro {n} bot',
   'lobby.games.openTable': 'Apri un tavolo',

@@ -919,6 +919,7 @@ export const hu: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Minden, amit ez a kiszolgáló kínálni tud',
   'lobby.games.bots': 'Botok',
+  'lobby.games.setup': 'Beállítások',
   'lobby.games.playBot': 'Játék bot ellen',
   'lobby.games.playBots': 'Játék {n} bot ellen',
   'lobby.games.openTable': 'Asztal nyitása',

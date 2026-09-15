@@ -905,6 +905,7 @@ export const hr: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Sve što ovaj poslužitelj može ponuditi',
   'lobby.games.bots': 'Botovi',
+  'lobby.games.setup': 'Postavke',
   'lobby.games.playBot': 'Igraj protiv bota',
   'lobby.games.playBots': 'Igraj protiv {n} bota',
   'lobby.games.openTable': 'Otvori stol',

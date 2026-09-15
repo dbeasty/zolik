@@ -916,6 +916,7 @@ export const bg: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Всичко, което този сървър може да предложи',
   'lobby.games.bots': 'Ботове',
+  'lobby.games.setup': 'Настройки',
   'lobby.games.playBot': 'Играй срещу бот',
   'lobby.games.playBots': 'Играй срещу {n} бота',
   'lobby.games.openTable': 'Отвори маса',

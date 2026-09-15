@@ -912,6 +912,7 @@ export const ro: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Tot ce poate găzdui acest server',
   'lobby.games.bots': 'Boți',
+  'lobby.games.setup': 'Setări',
   'lobby.games.playBot': 'Joacă împotriva unui bot',
   'lobby.games.playBots': 'Joacă împotriva a {n} boți',
   'lobby.games.openTable': 'Deschide o masă',

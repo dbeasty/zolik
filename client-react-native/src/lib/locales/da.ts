@@ -906,6 +906,7 @@ export const da: Record<string, string> = {
   // --- the lobby ------------------------------------------------------------
   'lobby.games.subtitle': 'Alt hvad denne server kan byde på',
   'lobby.games.bots': 'Bots',
+  'lobby.games.setup': 'Indstillinger',
   'lobby.games.playBot': 'Spil mod en bot',
   'lobby.games.playBots': 'Spil mod {n} bots',
   'lobby.games.openTable': 'Åbn et bord',
