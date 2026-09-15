@@ -73,17 +73,27 @@ const (
 // Error codes. Stable keys a client renders from its locale bundle, never
 // sentences — the same contract the other two modules keep.
 const (
-	ErrNotYourTurn       = "NOT_YOUR_TURN"
-	ErrGameNotActive     = "GAME_NOT_ACTIVE"
-	ErrWrongPhase        = "WRONG_PHASE"
-	ErrCardNotInHand     = "CARD_NOT_IN_HAND"
-	ErrUnknownAction     = "UNKNOWN_ACTION"
-	ErrNothingToDraw     = "NOTHING_TO_DRAW"
-	ErrPileEmpty         = "PILE_EMPTY"
-	ErrPileBlocked       = "PILE_BLOCKED"
-	ErrPileFrozen        = "PILE_FROZEN"
-	ErrTopCardUnusable   = "TOP_CARD_UNUSABLE"
-	ErrMeldTooSmall      = "MELD_TOO_SMALL"
+	ErrNotYourTurn     = "NOT_YOUR_TURN"
+	ErrGameNotActive   = "GAME_NOT_ACTIVE"
+	ErrWrongPhase      = "WRONG_PHASE"
+	ErrCardNotInHand   = "CARD_NOT_IN_HAND"
+	ErrUnknownAction   = "UNKNOWN_ACTION"
+	ErrNothingToDraw   = "NOTHING_TO_DRAW"
+	ErrPileEmpty       = "PILE_EMPTY"
+	ErrPileBlocked     = "PILE_BLOCKED"
+	ErrPileFrozen      = "PILE_FROZEN"
+	ErrTopCardUnusable = "TOP_CARD_UNUSABLE"
+	ErrMeldTooSmall    = "MELD_TOO_SMALL"
+	// ErrCaptureNeedsTwo is a pile capture attempted without the two matching
+	// cards it costs.
+	//
+	// It used to be ErrMeldTooSmall, which words as "a meld needs more cards
+	// than that" — a sentence about melding, printed under the button that
+	// takes the discard pile. And it is not a rare corner: on most turns a
+	// player holds no matching pair, so this is *the* reason the capture
+	// control is greyed out, and for as long as it shared a code it was the
+	// wrong sentence nearly every time it was read.
+	ErrCaptureNeedsTwo   = "CAPTURE_NEEDS_TWO_CARDS"
 	ErrMeldTooLarge      = "MELD_TOO_LARGE"
 	ErrMeldMixedRanks    = "MELD_MIXED_RANKS"
 	ErrTooManyWilds      = "TOO_MANY_WILDS"

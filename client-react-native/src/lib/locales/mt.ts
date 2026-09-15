@@ -5,7 +5,7 @@
 export const mt: Record<string, string> = {
   // --- engine error codes (rules.RulesErrorCode) ---------------------------
   'err.NOT_YOUR_TURN': "M'huwiex imissek",
-  'err.WRONG_PHASE': 'Bħalissa mhux possibbli',
+  'err.WRONG_PHASE': "Mhux f'dan il-punt tad-dawra",
   'err.MUST_DRAW_FIRST': 'Iġbed karta qabel ma tniżżel',
   'err.GAME_SUSPENDED': 'Il-logħba hija wieqfa',
   'err.GAME_NOT_ACTIVE': 'Il-logħba mhijiex għaddejja',
@@ -128,11 +128,17 @@ export const mt: Record<string, string> = {
   'prsi.rules.aces': 'Ilgħab ass u d-dawra tal-plejer li jmiss taqbeż.',
   'prsi.rules.queens': 'Ilgħab reġina u semmi l-kulur li jkompli.',
   'prsi.rules.end': 'Il-partita tispiċċa fil-mument li id xi ħadd tkun vojta.',
+  'prsi.remedy.matchOrDraw': "Illiegħeb karta ta' {suit} jew waħda li taqbel ma' {card} — inkella iġbed.",
+  'prsi.remedy.answerSevenOrTake': "Wieġeb b'sebgħa tiegħek, jew ħu l-{n} karti.",
+  'prsi.remedy.playOrDraw': "M'hemm l-ebda dawra x'taqbeż — illiegħeb karta ta' {suit}, jew iġbed.",
+  'prsi.remedy.nameASuit': 'Semmi liema sinjal ikompli wara r-reġina tiegħek.',
+  'prsi.remedy.nothingLeftToDraw': "Ma fadal xejn x'tiġbed — illiegħeb karta jekk tista'.",
 
   'canasta.rules.section.goal': 'Għan',
   'canasta.rules.section.setup': 'Tħejjija',
   'canasta.rules.section.melding': 'It-tniżżil',
   'canasta.rules.section.end': 'Kif tispiċċa l-partita',
+  'canasta.rules.section.turn': 'Id-dawra tiegħek',
   'canasta.rules.goal': "Jintlagħab f'pari; l-ewwel naħa li tilħaq {n} punti tirbaħ il-partita.",
   'canasta.rules.deck': "Jintlagħab b'{value} karti — {decks} mazzi flimkien mal-jokers.",
   'canasta.rules.deal': 'Kull plejer jieħu {n} karti.',
@@ -152,6 +158,31 @@ export const mt: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     "L-ewwel tniżżil tiegħek irid jilħaq minimu ta' punti li jitla' mal-iskor tiegħek: {negative} taħt iż-żero, {low} sa 1500, {mid} sa 3000, {high} 'il fuq minn hekk.",
   'canasta.rules.meldFloorBandsFive': "L-ewwel kombinazzjoni tiegħek trid tilħaq minimu ta' punti li jogħla mal-iskor tiegħek: {negative} taħt iż-żero, {low} sa 1500, {mid} sa 3000, {high} sa 7000 u {top} 'il fuq minn hekk.",
+  'canasta.rules.turn':
+    'Dawra hija ġbid wieħed lejn idek — iġbed mill-gozz jew ħu l-gozz kollu tal-iskart — imbagħad kemm trid melds, u fl-aħħar karta waħda mixħuta.',
+  'canasta.rules.turnDiscard':
+    'Huwa l-iskart li jtemm id-dawra, għalhekk dejjem irid jibqagħlek karta għaliha.',
+  'canasta.rules.pileTopCard':
+    "Il-gozz tal-iskart jista' jittieħed biss b'mossa li tuża l-karta ta' fuqu mill-ewwel.",
+  'canasta.rules.pileBlocked':
+    "Tlieta sewda fuq nett timblokka l-gozz — ħadd ma jista' jeħdu qabel ma t-tlieta tiġi midfuna — u waħda li tibqagħlek f'idek tiswa {n}.",
+  'canasta.rules.pileFrozenByWild':
+    "Karta salvaġġa midfuna fil-gozz tiffriżah għal kulħadd: biex teħdu jkollok tħallas b'żewġ karti naturali tal-istess grad tal-karta ta' fuq, minn idek.",
+  'canasta.rules.meldShape': 'Meld huwa {n} karti jew aktar tal-istess grad.',
+  'canasta.rules.wildLimit':
+    "Meld jista' jkollu mhux aktar minn {wilds} karti salvaġġi, u qatt inqas minn {naturals} naturali.",
+  'canasta.rules.wildRatio':
+    "Meld jeħtieġ {n} karti naturali għal kull waħda salvaġġa, u qatt aktar minn {wilds} salvaġġi b'kollox.",
+  'canasta.rules.oneMeldPerRank':
+    "In-naħa tiegħek iżżomm meld wieħed ta' kull grad — karti oħra ta' dak il-grad jiżdiedu miegħu.",
+  'canasta.rules.meldsPerRankUnlimited': "In-naħa tiegħek tista' jkollha diversi melds tal-istess grad.",
+  'canasta.rules.canastaCloses': "Canasta ta' {n} karti hija kompluta u ma tiħux aktar.",
+  'canasta.rules.meldsAreShared':
+    "Il-melds huma tal-koppja: kull sieħeb jista' jkabbarhom, u ħadd ma jmiss dawk tan-naħa l-oħra.",
+  'canasta.rules.layOffAfterOpening':
+    "Sakemm in-naħa tiegħek ma tkunx għamlet l-ewwel meld tagħha, ma tistax iżżid karti ma' xejn fuq il-mejda.",
+  'canasta.rules.goOutKeepsACard':
+    "Trid dejjem tkun tista' ttemm id-dawra tiegħek, għalhekk qatt tniżżel idek kollha ħlief jekk dik tkun il-mossa li toħroġ biha.",
   'canasta.rules.oneCanastaToGoOut': 'Canasta waħda mlestija hija biżżejjed biex in-naħa tiegħek toħroġ.',
   'canasta.rules.twoCanastasToGoOut':
     "In-naħa tiegħek għandha bżonn żewġ canastas mlestija qabel ma tkun tista' toħroġ.",
@@ -173,6 +204,20 @@ export const mt: Record<string, string> = {
   'holdem.rules.lastPlayerStanding': 'Jintlagħab sakemm post wieħed ikollu ċ-ċipsijiet kollha.',
   'holdem.rules.mostChipsWins': 'Min ikollu l-aktar ċipsijiet meta tieqaf il-logħba jirbaħ il-partita.',
   'holdem.rules.handLimit': 'Il-logħba tieqaf wara {n} idejn.',
+  'holdem.rules.checkOrCall':
+    "Tista' tagħmel check biss meta ma jkollok xejn x'tħallas; inkella ċempel, għolli jew warrab.",
+  'holdem.rules.minRaise': "Żieda trid tkun mill-inqas daqs dik ta' qabel.",
+  'holdem.rules.allIn':
+    "Qatt ma tista' tpoġġi aktar mill-flus li għandek, u l-all-in huwa dejjem permess — anke għal inqas minn żieda sħiħa.",
+  'holdem.rules.foldedOut': "Ladarba twarrab, tibqa' barra sakemm titqassam l-id li jmiss.",
+  'holdem.remedy.callOrFold': "Hemm {n} x'tħallas — ċempel, għolli jew warrab.",
+  'holdem.remedy.checkOrRaise': "M'hemm xejn x'tħallas — agħmel check jew għolli.",
+  'holdem.remedy.callAllInOrFold':
+    'Il-flus tiegħek mhux se jaqbżu l-imħatra — ċempel {n} all-in, jew warrab.',
+  'holdem.remedy.raiseAtLeast': 'Għolli għal mill-inqas {n}.',
+  'holdem.remedy.raiseAtMost': 'Għolli sa mhux aktar minn {n} — dawk il-flus kollha li għandek.',
+  'holdem.remedy.nameAnAmount': 'Għid għal kemm se tgħolli, bejn {min} u {max}.',
+  'holdem.remedy.waitForNextHand': 'Inti barra minn din l-id — stenna t-tqassim li jmiss.',
 
   // --- header --------------------------------------------------------------
   'header.deal': 'Tqassim {n}',
@@ -281,13 +326,15 @@ export const mt: Record<string, string> = {
   'err.CARD_DOES_NOT_FIT': 'Dik il-karta la taqbel fil-kulur u lanqas fil-valur',
   'err.SUIT_REQUIRED': 'Semmi l-kulur li jkompli',
   'err.MUST_ANSWER_DRAW_OR_TAKE': "Wieġeb b'sebgħa, jew ħu l-karti",
+  'err.NOTHING_TO_SKIP': "M'hemm l-ebda dawra x'taqbeż",
   'err.NOTHING_TO_DRAW': "Ma baqa' xejn x'tiġbed",
   'err.PILE_EMPTY': 'Il-munzell huwa vojt',
   'err.PILE_BLOCKED': 'Il-munzell huwa mblukkat — hemm tlieta sewda fuq',
   'err.PILE_FROZEN':
     "Il-munzell huwa ffriżat — għandek bżonn żewġ karti naturali tal-valur tal-karta ta' fuq",
   'err.MELD_CAPTURE_NOT_ALLOWED': "F'din il-logħba kombinazzjoni fuq il-mejda ma tistax tieħu l-munzell — għandek bżonn żewġ karti minn idejk",
-  'err.TOP_CARD_UNUSABLE': "Ma tistax tuża l-karta ta' fuq",
+  'err.CAPTURE_NEEDS_TWO_CARDS': 'Li tieħu l-gozz jiswa żewġ karti minn idek',
+  'err.TOP_CARD_UNUSABLE': "In-naħa tiegħek ma tistax tuża l-karta ta' fuq",
   'err.MELD_CLOSED': 'Dik il-kombinazzjoni hija sħiħa u magħluqa',
   'err.MELD_TOO_SMALL': 'Kombinazzjoni għandha bżonn aktar karti minn hekk',
   'err.MELD_TOO_LARGE': 'Dik il-kombinazzjoni ma tistax tieħu aktar karti',
@@ -308,7 +355,7 @@ export const mt: Record<string, string> = {
   'err.CANNOT_GO_OUT_YET': "In-naħa tiegħek għandha bżonn canasta mlestija qabel ma tkun tista' toħroġ",
   'err.NOTHING_TO_CALL': "M'hemm ebda mħatra x'issejjaħ",
   'err.CANNOT_CHECK': "Ma tistax tiċċekkja — hemm imħatra x'twieġeb",
-  'err.CANNOT_RAISE': 'Hawn ma tistax togħla',
+  'err.CANNOT_RAISE': 'Ma tistax tgħolli — il-flus tiegħek ma jaqbżux l-imħatra',
   'err.RAISE_TOO_SMALL': "Żieda trid tkun mill-inqas daqs dik ta' qabel",
   'err.NOT_ENOUGH_CHIPS': "M'għandekx daqshekk ċipsijiet",
   'err.AMOUNT_REQUIRED': 'Għid kemm',
@@ -398,6 +445,29 @@ export const mt: Record<string, string> = {
   'status.teamScore': 'Tim {team}: {value}',
   'canasta.offer.rank': 'Valur',
   'canasta.offer.sequence': 'Sekwenza',
+  'canasta.remedy.drawOrTakePile': 'Iġbed mill-gozz, jew ħu l-gozz tal-iskart, qabel ma tagħmel meld.',
+  'canasta.remedy.meldOrDiscard': 'Diġà ġbidt — agħmel meld, jew armi karta biex ittemm id-dawra.',
+  'canasta.remedy.drawFromStock': 'Minflok, iġbed mill-gozz.',
+  'canasta.remedy.takePileInstead': 'Il-gozz spiċċa — minflok ħu l-gozz tal-iskart.',
+  'canasta.remedy.pileBlocked':
+    "Iġbed mill-gozz — it-tlieta sewda ta' fuq iżżomm il-gozz tal-iskart magħluq.",
+  'canasta.remedy.pileFrozen':
+    "Iġbed mill-gozz, jew ħu l-gozz b'żewġ karti naturali minn idek li jaqblu ma' {card}.",
+  'canasta.remedy.topCardUnusable':
+    "Iġbed mill-gozz — in-naħa tiegħek m'għandhiex x'tagħmel bil-{card} ta' fuq.",
+  'canasta.remedy.captureFromHand': "Ħu l-gozz b'żewġ karti minn idek stess li jaqblu ma' {card}.",
+  'canasta.remedy.needTwoMatching':
+    "Għandek bżonn żewġ karti minn idek li jaqblu ma' {card} — inkella iġbed mill-gozz.",
+  'canasta.remedy.needMorePoints': 'L-ewwel meld tan-naħa tiegħek huwa nieqes {n} punti.',
+  'canasta.remedy.openFirst': "Niżżel l-ewwel meld tan-naħa tiegħek qabel ma żżid karti ma' xi ħaġa.",
+  'canasta.remedy.needCanastas':
+    "In-naħa tiegħek għad għandha bżonn {n} canasta oħra ta' {size} karti qabel ma tista' toħroġ.",
+  'canasta.remedy.keepACard': 'Żomm karta biex tarmi biha.',
+  'canasta.remedy.layOffInstead': 'Żidhom mal-meld li n-naħa tiegħek diġà għandha.',
+  'canasta.remedy.meldClosed': "Dak il-meld huwa komplut b'{n} karti — ibda ieħor, jew żid x'imkien ieħor.",
+  'canasta.remedy.discardNotARedThree': 'Armi xi ħaġa oħra għajr tlieta ħamra.',
+  'canasta.remedy.blackThreesOnTheWayOut': 'It-tlieta suwed jinżlu biss bħala l-mossa li tbattal idek.',
+  'canasta.remedy.ownMeldsOnly': 'Żid biss mal-melds tan-naħa tiegħek stess.',
   'badge.naturalCanasta': 'Canasta nadifa',
   'badge.mixedCanasta': 'Canasta mħallta',
   'badge.samba': 'Samba',
@@ -518,6 +588,10 @@ export const mt: Record<string, string> = {
     'Il-bonus tal-partita jirdoppja għal {n} jekk it-telliefa qatt ma jkun ġab punt wieħed.',
   'ginrummy.rules.box': 'Kull id li rbaħt tiswa {n} punti fi tmiem il-partita.',
   'ginrummy.rules.gameBonus': 'Ir-rebħ tal-partita jiswa {n} punti oħra.',
+  'ginrummy.rules.upcardDance':
+    "Qabel l-ewwel ġbid, il-karta mixgħula tista' tittieħed minn min ma qassamx, imbagħad minn min qassam; jekk it-tnejn jgħaddu, min ma qassamx irid jiġbed mill-gozz.",
+  'ginrummy.rules.knockOnDiscard':
+    'Taħbita tissostitwixxi l-iskart tiegħek, għalhekk isseħħ biss fl-aħħar tad-dawra tiegħek.',
   'ginrummy.fact.deadwood': 'deadwood {value}',
   'ginrummy.fact.discardCard': 'Armi {value}',
   'ginrummy.fact.meldCards': 'Fuq {value}',
@@ -539,6 +613,13 @@ export const mt: Record<string, string> = {
   'ginrummy.offer.bigGin': 'Big gin!',
   'ginrummy.offer.layOff': 'Żid',
   'ginrummy.offer.finishLayoff': 'Iż-żieda lesta',
+  'ginrummy.remedy.takeOrPassUpcard': 'Ħu l-karta mixgħula, jew għaddi.',
+  'ginrummy.remedy.drawFirst': 'L-ewwel iġbed karta — mill-gozz jew mill-gozz tal-iskart.',
+  'ginrummy.remedy.discardToEndTurn': 'Armi karta waħda biex ittemm id-dawra tiegħek.',
+  'ginrummy.remedy.finishLayoff': "M'hemm xejn aktar tiegħek li jidħol — temm iż-żieda.",
+  'ginrummy.remedy.stockDrawForced': 'It-tnejn li intom għaddejtu dik il-karta — iġbed mill-gozz.',
+  'ginrummy.remedy.drawElsewhere': 'Dak il-gozz huwa vojt — iġbed mill-ieħor.',
+  'ginrummy.remedy.getDeadwoodDown': "Tista' tħabbat meta l-injam mejjet tiegħek jinżel għal {n} jew inqas.",
   'ginrummy.zone.knockerHand': "L-id ta' min ħabbat",
   'ginrummy.zone.melds': 'Kombinazzjonijiet',
   'ginrummy.prompt.upcardDecision': 'Ħu l-karta mikxufa, jew għaddi',
@@ -548,11 +629,11 @@ export const mt: Record<string, string> = {
 
   // --- rummy tiles -------------------------------------------------------------
   'err.TILE_NOT_IN_HAND': "Dik il-plakka mhijiex f'idek",
-  'err.TILE_DOES_NOT_FIT': 'Dak ma joqgħodx hemm',
+  'err.TILE_DOES_NOT_FIT': "Dak il-madum ma jidħolx f'dak is-sett",
   'err.NO_SUCH_SET': 'Dik il-kombinazzjoni mhijiex fuq il-mejda',
   'err.INITIAL_MELD_ONLY':
     "Qabel l-ewwel tniżżil tiegħek tista' torganizza biss il-kombinazzjonijiet ġodda tiegħek stess",
-  'err.TABLE_NOT_VALID': 'Il-mejda għadha mhijiex valida',
+  'err.TABLE_NOT_VALID': 'Xi sett fuq il-mejda mhuwiex grupp jew sekwenza validi',
   'err.TRAY_NOT_EMPTY': "Għad għandek plakek maħlula x'tpoġġi",
   'err.NOTHING_PLAYED': 'Ilgħab mill-inqas plakka waħda qabel ma ttemm id-dawra tiegħek',
   'err.INITIAL_MELD_TOO_LOW': 'L-ewwel tniżżil tiegħek irid jiswa 30 punt jew aktar',
@@ -591,6 +672,18 @@ export const mt: Record<string, string> = {
     "Jekk il-borża tispiċċa u ħadd ma jkun jista' jilgħab, ir-rawnd jintemm mingħajr rebbieħ — kull id sempliċement tingħadd.",
   'rummytiles.rules.target': 'L-ewwel wieħed li jaqbeż {n} punti wara li jispiċċa rawnd jirbaħ il-partita.',
   'rummytiles.rules.roundLimit': 'Il-partita tispiċċa wara {n} rawnds — jirbaħ l-ogħla skor.',
+  'rummytiles.remedy.emptyTheTray': "Poġġi l-{n} madum li għadhom fit-trej tiegħek, jew erġa' ibda d-dawra.",
+  'rummytiles.remedy.playFromHandOrDraw':
+    'Li tirranġa mill-ġdid mhijiex dawra — illiegħeb tal-inqas madum wieħed minn idek, jew iġbed.',
+  'rummytiles.remedy.fixOrReset':
+    "Kull sett fuq il-mejda jrid ikun grupp jew sekwenza validi — irranġahom, jew erġa' ibda d-dawra.",
+  'rummytiles.remedy.needMorePoints': 'L-ewwel tqegħid tiegħek huwa nieqes {n} punti minn {floor}.',
+  'rummytiles.remedy.ownNewSetsOnly':
+    "Sa ma tagħmel l-ewwel tqegħid tiegħek ta' {n} punti, tista' tirranġa biss is-settijiet li għamilt f'din id-dawra.",
+  'rummytiles.remedy.startANewSet': "Minflok, poġġih f'sett ġdid.",
+  'rummytiles.remedy.splitLeavesThree':
+    "Aqsam is-sekwenza b'mod li ż-żewġ nofsijiet iżommu mill-inqas {n} madum.",
+  'rummytiles.remedy.matchTheJoker': 'Ibdel il-joker bil-madum eżatt li jirrappreżenta.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Borża {n}',
   'rummytiles.header.round': 'Rawnd {n}',
@@ -669,6 +762,19 @@ export const mt: Record<string, string> = {
   'blackjack.rules.mostChipsWins': 'Min ikollu l-aktar ċipsijiet fl-aħħar jirbaħ il-partita.',
   'blackjack.rules.bustedOut':
     "Post li ma jkunx jista' jkopri aktar il-minimu ta' {n} joqgħod barra għall-bqija tal-partita.",
+  'blackjack.rules.roundOrder':
+    "Round jimxi f'ordni: l-imħatri, it-tqassim tal-karti, l-assigurazzjoni jekk id-dealer juri ass, imbagħad kull post jilgħab idu f'dawru.",
+  'blackjack.rules.oneStakePerRound': 'Imħatra waħda kull round — ladarba titpoġġa, ma tistax tinbidel.',
+  'blackjack.rules.stakeFromStack': "Tista' tħalli bħala mħatra biss ċipep li verament għandek.",
+  'blackjack.remedy.putAStakeUp': 'L-ewwel poġġi mħatra — {n} jew aktar.',
+  'blackjack.remedy.answerInsurance': 'L-ewwel wieġeb iva jew le għall-assigurazzjoni.',
+  'blackjack.remedy.playThisHand': 'Ilgħab l-id li għandek quddiemek — ħu karta jew ieqaf.',
+  'blackjack.remedy.stakeIsUp': 'L-imħatra tiegħek diġà mpoġġija — stenna t-tqassim.',
+  'blackjack.remedy.stakeAtLeast': "Poġġi mħatra ta' mill-inqas {n}.",
+  'blackjack.remedy.stakeAtMost': "Poġġi mħatra ta' mhux aktar minn {n} — dawk il-flus kollha li għandek.",
+  'blackjack.remedy.sayHowMuch': 'Għid kemm se tpoġġi — {n} jew aktar.',
+  'blackjack.remedy.hitOrStand': 'Ħu karta, jew ieqaf.',
+  'blackjack.remedy.waitForNextRound': 'Inti barra minn dan ir-round — stenna t-tqassim li jmiss.',
 
   'blackjack.zone.dealer': 'Dealer',
   'blackjack.zone.box': 'Id',

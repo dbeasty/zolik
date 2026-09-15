@@ -5,7 +5,7 @@
 export const sv: Record<string, string> = {
   // --- engine error codes (rules.RulesErrorCode) ---------------------------
   'err.NOT_YOUR_TURN': 'Det är inte din tur',
-  'err.WRONG_PHASE': 'Inte möjligt just nu',
+  'err.WRONG_PHASE': 'Inte vid den här punkten i turen',
   'err.MUST_DRAW_FIRST': 'Dra ett kort innan du lägger ut',
   'err.GAME_SUSPENDED': 'Spelet är pausat',
   'err.GAME_NOT_ACTIVE': 'Spelet pågår inte',
@@ -122,11 +122,17 @@ export const sv: Record<string, string> = {
   'prsi.rules.aces': 'Spela ett ess så hoppas nästa spelares tur över.',
   'prsi.rules.queens': 'Spela en dam och säg vilken färg som gäller vidare.',
   'prsi.rules.end': 'Matchen slutar i samma stund som någons hand är tom.',
+  'prsi.remedy.matchOrDraw': 'Spela ett {suit}-kort eller ett som passar på {card} — annars drar du.',
+  'prsi.remedy.answerSevenOrTake': 'Svara med en egen sjua, eller ta de {n} korten.',
+  'prsi.remedy.playOrDraw': 'Ingen överhoppning väntar på dig — spela ett {suit}-kort eller dra.',
+  'prsi.remedy.nameASuit': 'Säg vilken färg som följer efter din dam.',
+  'prsi.remedy.nothingLeftToDraw': 'Det finns inget kvar att dra — spela ett kort om du kan.',
 
   'canasta.rules.section.goal': 'Mål',
   'canasta.rules.section.setup': 'Uppställning',
   'canasta.rules.section.melding': 'Lägga ut',
   'canasta.rules.section.end': 'Så slutar matchen',
+  'canasta.rules.section.turn': 'Din tur',
   'canasta.rules.goal': 'Spelas i par; den sida som först når {n} poäng vinner matchen.',
   'canasta.rules.deck': 'Spelas med {value} kort — {decks} lekar plus jokrar.',
   'canasta.rules.deal': 'Varje spelare får {n} kort.',
@@ -146,6 +152,30 @@ export const sv: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Din första utläggning måste nå ett poängminimum som stiger med din ställning: {negative} under noll, {low} upp till 1500, {mid} upp till 3000, {high} däröver.',
   'canasta.rules.meldFloorBandsFive': 'Din första kombination måste nå ett poängminimum som stiger med ditt resultat: {negative} under noll, {low} upp till 1500, {mid} upp till 3000, {high} upp till 7000 och {top} däröver.',
+  'canasta.rules.turn':
+    'En tur är ett drag in i handen — dra från talongen eller ta hela kasthögen — sedan de läggningar du vill göra, och till sist ett kort som kastas.',
+  'canasta.rules.turnDiscard':
+    'Det är kastet som avslutar turen, så du måste alltid ha ett kort över till det.',
+  'canasta.rules.pileTopCard': 'Kasthögen kan bara tas med ett drag som genast använder dess översta kort.',
+  'canasta.rules.pileBlocked':
+    'En svart trea överst spärrar högen — ingen får ta den förrän trean är begravd — och en som blir kvar på handen kostar {n}.',
+  'canasta.rules.pileFrozenByWild':
+    'Ett vildkort begravt i högen fryser den för alla: att ta den kostar då två naturliga kort av det översta kortets valör, ur din egen hand.',
+  'canasta.rules.meldShape': 'En läggning är {n} eller fler kort av samma valör.',
+  'canasta.rules.wildLimit':
+    'En läggning får ha högst {wilds} vildkort och aldrig färre än {naturals} naturliga.',
+  'canasta.rules.wildRatio':
+    'En läggning kräver {n} naturliga kort per vildkort, och aldrig fler än {wilds} vildkort totalt.',
+  'canasta.rules.oneMeldPerRank':
+    'Din sida har en läggning per valör — fler kort av den valören läggs till den.',
+  'canasta.rules.meldsPerRankUnlimited': 'Din sida får ha flera läggningar av samma valör.',
+  'canasta.rules.canastaCloses': 'En canasta på {n} kort är färdig och tar inte emot fler.',
+  'canasta.rules.meldsAreShared':
+    'Läggningar tillhör paret: båda partner får bygga på dem, och motståndarnas rör man inte.',
+  'canasta.rules.layOffAfterOpening':
+    'Tills din sida har gjort sin första läggning får den inte lägga till kort på något på bordet.',
+  'canasta.rules.goOutKeepsACard':
+    'Du måste alltid kunna avsluta din tur, så lägg aldrig ut hela handen om det inte är just draget som gör att du går ut.',
   'canasta.rules.oneCanastaToGoOut': 'En färdig canasta räcker för att din sida ska få gå ut.',
   'canasta.rules.twoCanastasToGoOut': 'Din sida behöver två färdiga canastor innan den får gå ut.',
   'canasta.rules.end': 'Man fortsätter ge tills en sida passerar {n} poäng — då är matchen över.',
@@ -164,6 +194,19 @@ export const sv: Record<string, string> = {
   'holdem.rules.lastPlayerStanding': 'Man spelar tills en plats håller alla marker.',
   'holdem.rules.mostChipsWins': 'Den som har flest marker när spelet avbryts vinner matchen.',
   'holdem.rules.handLimit': 'Spelet avbryts efter {n} givar.',
+  'holdem.rules.checkOrCall':
+    'Du får checka bara när du inte är skyldig något; annars synar, höjer eller lägger du dig.',
+  'holdem.rules.minRaise': 'En höjning måste vara minst lika stor som den förra.',
+  'holdem.rules.allIn':
+    'Du kan aldrig satsa mer än din stack, och all-in är alltid tillåtet — även för mindre än en full höjning.',
+  'holdem.rules.foldedOut': 'När du väl lagt dig är du ute tills nästa giv.',
+  'holdem.remedy.callOrFold': 'Det är {n} att syna — syna, höj eller lägg dig.',
+  'holdem.remedy.checkOrRaise': 'Inget är skyldigt — checka eller höj.',
+  'holdem.remedy.callAllInOrFold': 'Din stack räcker inte över insatsen — syna {n} all-in, eller lägg dig.',
+  'holdem.remedy.raiseAtLeast': 'Höj till minst {n}.',
+  'holdem.remedy.raiseAtMost': 'Höj till högst {n} — det är hela din stack.',
+  'holdem.remedy.nameAnAmount': 'Säg hur mycket du höjer till, mellan {min} och {max}.',
+  'holdem.remedy.waitForNextHand': 'Du är ute ur den här given — vänta på nästa.',
 
   // --- header --------------------------------------------------------------
   'header.deal': 'Giv {n}',
@@ -272,12 +315,14 @@ export const sv: Record<string, string> = {
   'err.CARD_DOES_NOT_FIT': 'Det kortet matchar varken färg eller valör',
   'err.SUIT_REQUIRED': 'Säg vilken färg som gäller vidare',
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Svara med en sjua, eller ta korten',
+  'err.NOTHING_TO_SKIP': 'Det finns ingen tur att hoppa över',
   'err.NOTHING_TO_DRAW': 'Det finns inget kvar att dra',
   'err.PILE_EMPTY': 'Högen är tom',
   'err.PILE_BLOCKED': 'Högen är blockerad — en svart trea ligger överst',
   'err.PILE_FROZEN': 'Högen är frusen — du behöver två naturliga kort av det översta kortets valör',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'I det här spelet kan en kombination på bordet inte ta högen — du behöver två kort från handen',
-  'err.TOP_CARD_UNUSABLE': 'Du kan inte använda det översta kortet',
+  'err.CAPTURE_NEEDS_TWO_CARDS': 'Att ta kasthögen kostar två kort ur din hand',
+  'err.TOP_CARD_UNUSABLE': 'Din sida kan inte använda det översta kortet',
   'err.MELD_CLOSED': 'Den kombinationen är fullständig och stängd',
   'err.MELD_TOO_SMALL': 'En kombination behöver fler kort än så',
   'err.MELD_TOO_LARGE': 'Den kombinationen rymmer inga fler kort',
@@ -298,7 +343,7 @@ export const sv: Record<string, string> = {
   'err.CANNOT_GO_OUT_YET': 'Din sida behöver en färdig canasta innan den kan gå ut',
   'err.NOTHING_TO_CALL': 'Det finns ingen satsning att syna',
   'err.CANNOT_CHECK': 'Du kan inte checka — det finns en satsning att svara på',
-  'err.CANNOT_RAISE': 'Här kan du inte höja',
+  'err.CANNOT_RAISE': 'Du kan inte höja — din stack räcker inte över insatsen',
   'err.RAISE_TOO_SMALL': 'En höjning måste vara minst lika stor som den förra',
   'err.NOT_ENOUGH_CHIPS': 'Så många marker har du inte',
   'err.AMOUNT_REQUIRED': 'Säg hur mycket',
@@ -388,6 +433,28 @@ export const sv: Record<string, string> = {
   'status.teamScore': 'Lag {team}: {value}',
   'canasta.offer.rank': 'Valör',
   'canasta.offer.sequence': 'Sekvens',
+  'canasta.remedy.drawOrTakePile': 'Dra från talongen eller ta kasthögen innan du lägger.',
+  'canasta.remedy.meldOrDiscard':
+    'Du har redan dragit — lägg en läggning, eller kasta ett kort för att avsluta turen.',
+  'canasta.remedy.drawFromStock': 'Dra från talongen i stället.',
+  'canasta.remedy.takePileInstead': 'Talongen är slut — ta kasthögen i stället.',
+  'canasta.remedy.pileBlocked': 'Dra från talongen — den svarta trean överst håller kasthögen stängd.',
+  'canasta.remedy.pileFrozen':
+    'Dra från talongen, eller ta högen med två naturliga kort ur handen som passar på {card}.',
+  'canasta.remedy.topCardUnusable': 'Dra från talongen — din sida har ingen nytta av {card} överst.',
+  'canasta.remedy.captureFromHand': 'Ta högen med två kort ur din egen hand som passar på {card}.',
+  'canasta.remedy.needTwoMatching':
+    'Du behöver två kort ur handen som passar på {card} — annars drar du från talongen.',
+  'canasta.remedy.needMorePoints': 'Din sidas första läggning saknar {n} poäng.',
+  'canasta.remedy.openFirst': 'Lägg din sidas första läggning innan du lägger till kort.',
+  'canasta.remedy.needCanastas': 'Din sida behöver {n} canasta till på {size} kort innan den kan gå ut.',
+  'canasta.remedy.keepACard': 'Behåll ett kort att kasta med.',
+  'canasta.remedy.layOffInstead': 'Lägg till dem på läggningen din sida redan har.',
+  'canasta.remedy.meldClosed':
+    'Den läggningen är färdig vid {n} kort — börja en ny, eller lägg till någon annanstans.',
+  'canasta.remedy.discardNotARedThree': 'Kasta något annat än en röd trea.',
+  'canasta.remedy.blackThreesOnTheWayOut': 'Svarta treor läggs bara ned med draget som tömmer din hand.',
+  'canasta.remedy.ownMeldsOnly': 'Lägg bara till på din egen sidas läggningar.',
   'badge.naturalCanasta': 'Ren canasta',
   'badge.mixedCanasta': 'Oren canasta',
   'badge.samba': 'Samba',
@@ -505,6 +572,10 @@ export const sv: Record<string, string> = {
   'ginrummy.rules.shutout': 'Matchbonusen fördubblas till {n} om förloraren aldrig fick en enda poäng.',
   'ginrummy.rules.box': 'Varje giv du vann är värd {n} poäng vid matchens slut.',
   'ginrummy.rules.gameBonus': 'Att vinna matchen ger ytterligare {n} poäng.',
+  'ginrummy.rules.upcardDance':
+    'Före första draget får icke-givaren ta det uppvända kortet, därefter givaren; passar båda måste icke-givaren dra från talongen.',
+  'ginrummy.rules.knockOnDiscard':
+    'En knackning ersätter ditt kast, så den kan bara ske i slutet av din tur.',
   'ginrummy.fact.deadwood': '{value} deadwood',
   'ginrummy.fact.discardCard': 'Kasta {value}',
   'ginrummy.fact.meldCards': 'På {value}',
@@ -526,6 +597,13 @@ export const sv: Record<string, string> = {
   'ginrummy.offer.bigGin': 'Big gin!',
   'ginrummy.offer.layOff': 'Lägg på',
   'ginrummy.offer.finishLayoff': 'Klar med påläggning',
+  'ginrummy.remedy.takeOrPassUpcard': 'Ta det uppvända kortet, eller passa.',
+  'ginrummy.remedy.drawFirst': 'Dra ett kort först — från talongen eller kasthögen.',
+  'ginrummy.remedy.discardToEndTurn': 'Kasta ett kort för att avsluta din tur.',
+  'ginrummy.remedy.finishLayoff': 'Inget mer av ditt passar — avsluta pålägget.',
+  'ginrummy.remedy.stockDrawForced': 'Ni lät båda det kortet gå — dra från talongen.',
+  'ginrummy.remedy.drawElsewhere': 'Den högen är tom — dra från den andra.',
+  'ginrummy.remedy.getDeadwoodDown': 'Du kan knacka när din döda ved är {n} eller mindre.',
   'ginrummy.zone.knockerHand': 'Knackarens hand',
   'ginrummy.zone.melds': 'Kombinationer',
   'ginrummy.prompt.upcardDecision': 'Ta det uppvända kortet, eller passa',
@@ -535,10 +613,10 @@ export const sv: Record<string, string> = {
 
   // --- rummy tiles -------------------------------------------------------------
   'err.TILE_NOT_IN_HAND': 'Den brickan finns inte på din hand',
-  'err.TILE_DOES_NOT_FIT': 'Det passar inte där',
+  'err.TILE_DOES_NOT_FIT': 'Den brickan passar inte i den serien',
   'err.NO_SUCH_SET': 'Den kombinationen ligger inte på bordet',
   'err.INITIAL_MELD_ONLY': 'Före din första utläggning får du bara flytta om dina egna nya kombinationer',
-  'err.TABLE_NOT_VALID': 'Bordet är inte giltigt ännu',
+  'err.TABLE_NOT_VALID': 'En serie på bordet är varken en giltig grupp eller stege',
   'err.TRAY_NOT_EMPTY': 'Du har fortfarande lösa brickor att placera',
   'err.NOTHING_PLAYED': 'Lägg minst en bricka innan du avslutar din tur',
   'err.INITIAL_MELD_TOO_LOW': 'Din första utläggning måste vara värd minst 30 poäng',
@@ -576,6 +654,17 @@ export const sv: Record<string, string> = {
     'Tar påsen slut och ingen kan spela avslutas ronden utan vinnare — varje hand räknas helt enkelt.',
   'rummytiles.rules.target': 'Den som först passerar {n} poäng när en rond är slut vinner matchen.',
   'rummytiles.rules.roundLimit': 'Matchen slutar efter {n} ronder — högsta poäng vinner.',
+  'rummytiles.remedy.emptyTheTray': 'Placera de {n} brickor som ligger kvar i facket, eller nollställ turen.',
+  'rummytiles.remedy.playFromHandOrDraw':
+    'Att flytta om är ingen tur — spela minst en bricka från handen, eller dra.',
+  'rummytiles.remedy.fixOrReset':
+    'Varje serie på bordet måste vara en giltig grupp eller stege — rätta till dem, eller nollställ turen.',
+  'rummytiles.remedy.needMorePoints': 'Din första läggning saknar {n} poäng till {floor}.',
+  'rummytiles.remedy.ownNewSetsOnly':
+    'Fram till din första läggning på {n} poäng får du bara flytta om de serier du gjort den här turen.',
+  'rummytiles.remedy.startANewSet': 'Lägg den i en ny serie i stället.',
+  'rummytiles.remedy.splitLeavesThree': 'Dela stegen så att båda halvorna behåller minst {n} brickor.',
+  'rummytiles.remedy.matchTheJoker': 'Byt jokern mot exakt den bricka den står för.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Påse {n}',
   'rummytiles.header.round': 'Rond {n}',
@@ -653,6 +742,19 @@ export const sv: Record<string, string> = {
   'blackjack.rules.mostChipsWins': 'Den som har flest marker till slut vinner matchen.',
   'blackjack.rules.bustedOut':
     'En plats som inte längre klarar minimum på {n} sitter över resten av matchen.',
+  'blackjack.rules.roundOrder':
+    'En omgång går i ordning: insatser, kort delas ut, försäkring om given visar ett äss, sedan spelar varje plats sin hand i tur.',
+  'blackjack.rules.oneStakePerRound': 'En insats per omgång — när den är lagd kan den inte ändras.',
+  'blackjack.rules.stakeFromStack': 'Du kan bara satsa marker du faktiskt har.',
+  'blackjack.remedy.putAStakeUp': 'Lägg först en insats — {n} eller mer.',
+  'blackjack.remedy.answerInsurance': 'Svara först ja eller nej på försäkringen.',
+  'blackjack.remedy.playThisHand': 'Spela handen framför dig — ta kort eller stanna.',
+  'blackjack.remedy.stakeIsUp': 'Din insats är redan lagd — vänta på given.',
+  'blackjack.remedy.stakeAtLeast': 'Satsa minst {n}.',
+  'blackjack.remedy.stakeAtMost': 'Satsa högst {n} — det är hela din stack.',
+  'blackjack.remedy.sayHowMuch': 'Säg hur mycket du satsar — {n} eller mer.',
+  'blackjack.remedy.hitOrStand': 'Ta kort, eller stanna.',
+  'blackjack.remedy.waitForNextRound': 'Du är ute ur den här omgången — vänta på nästa giv.',
 
   'blackjack.zone.dealer': 'Givare',
   'blackjack.zone.box': 'Giv',

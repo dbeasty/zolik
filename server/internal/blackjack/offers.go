@@ -37,26 +37,35 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		return s.Break.Offers(order(s), playerID), nil
 	}
 	if s.Status != "active" {
-		return placeholders(s, ErrGameNotActive), nil
+		return m.explained(s, nil, placeholders(s, ErrGameNotActive)), nil
 	}
 
 	seat := s.seat(playerID)
 	if seat == nil {
-		return placeholders(s, module.ErrNotSeated), nil
+		return m.explained(s, nil, placeholders(s, module.ErrNotSeated)), nil
 	}
 
 	switch s.Phase {
 	case phaseBets:
-		return m.bettingOffers(raw, s, seat), nil
+		return m.explained(s, seat, m.bettingOffers(raw, s, seat)), nil
 	case phaseInsurance:
-		return m.insuranceOffers(raw, s, seat), nil
+		return m.explained(s, seat, m.insuranceOffers(raw, s, seat)), nil
 	case phasePlay:
 		if s.Current < 0 || s.Seats[s.Current].PlayerID != playerID {
-			return placeholders(s, ErrNotYourTurn), nil
+			return m.explained(s, seat, placeholders(s, ErrNotYourTurn)), nil
 		}
-		return m.playOffers(raw, s, seat), nil
+		return m.explained(s, seat, m.playOffers(raw, s, seat)), nil
 	}
-	return placeholders(s, ErrGameNotActive), nil
+	return m.explained(s, seat, placeholders(s, ErrGameNotActive)), nil
+}
+
+// explained puts the rule and the way out on every disabled offer before it
+// leaves this package — see remedy.go. Wrapped around each branch rather than
+// applied at one exit because every branch is its own return, and a phase
+// added later that forgot the call would ship bare codes silently.
+func (m *Module) explained(s *GameState, seat *Seat, offers []module.ActionOffer) []module.ActionOffer {
+	m.annotate(s, seat, offers)
+	return offers
 }
 
 // placeholders is the whole control set, off, with the one reason that
@@ -250,8 +259,22 @@ func (m *Module) playOffers(raw module.State, s *GameState, seat *Seat) []module
 // option combination and checks each id resolves.
 func ruleIDsFor(s *GameState, code string) []string {
 	switch code {
-	case ErrBetTooSmall, ErrAlreadyBet:
+	// Where in a round you are, which is what WRONG_PHASE is always about and
+	// what a code on its own can never say: the stake window has closed, or
+	// the cards are not out yet, or the dealer is still asking about
+	// insurance.
+	case ErrNotYourTurn, ErrWrongPhase:
+		return []string{"blackjack.rules.roundOrder"}
+	case ErrNotInRound:
+		return []string{"blackjack.rules.roundOrder", "blackjack.rules.bustedOut"}
+	case ErrBetTooSmall:
 		return []string{"blackjack.rules.minBet"}
+	case ErrAlreadyBet:
+		return []string{"blackjack.rules.oneStakePerRound"}
+	case ErrNotEnoughChips:
+		return []string{"blackjack.rules.stakeFromStack"}
+	case ErrAmountRequired:
+		return []string{"blackjack.rules.minBet", "blackjack.rules.stakeFromStack"}
 	case ErrCannotDouble:
 		if s.DoubleAfterSplit {
 			return []string{"blackjack.rules.double", "blackjack.rules.doubleAfterSplit"}

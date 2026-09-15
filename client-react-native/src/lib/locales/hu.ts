@@ -5,7 +5,7 @@
 export const hu: Record<string, string> = {
   // --- engine error codes (rules.RulesErrorCode) ---------------------------
   'err.NOT_YOUR_TURN': 'Nem te következel',
-  'err.WRONG_PHASE': 'Most nem lehet',
+  'err.WRONG_PHASE': 'A kör ezen pontján nem',
   'err.MUST_DRAW_FIRST': 'Húzz egy lapot, mielőtt leraksz',
   'err.GAME_SUSPENDED': 'A játék szünetel',
   'err.GAME_NOT_ACTIVE': 'A játék nem fut',
@@ -130,11 +130,18 @@ export const hu: Record<string, string> = {
   'prsi.rules.aces': 'Ha ászt játszol ki, a következő játékos köre kimarad.',
   'prsi.rules.queens': 'Játssz ki egy dámát, és mondd meg, melyik szín folytatódik.',
   'prsi.rules.end': 'A mérkőzés abban a pillanatban véget ér, amikor valakinek üres a keze.',
+  'prsi.remedy.matchOrDraw':
+    'Tegyél le egy {suit} lapot, vagy olyat, ami illik a(z) {card} lapra — különben húzz.',
+  'prsi.remedy.answerSevenOrTake': 'Válaszolj saját hetessel, vagy húzd fel a(z) {n} lapot.',
+  'prsi.remedy.playOrDraw': 'Nem vár rád kihagyott kör — tegyél le egy {suit} lapot, vagy húzz.',
+  'prsi.remedy.nameASuit': 'Mondd meg, melyik szín következik a dámád után.',
+  'prsi.remedy.nothingLeftToDraw': 'Nincs már mit húzni — tegyél le egy lapot, ha tudsz.',
 
   'canasta.rules.section.goal': 'Cél',
   'canasta.rules.section.setup': 'Előkészítés',
   'canasta.rules.section.melding': 'Lerakás',
   'canasta.rules.section.end': 'Hogyan ér véget a mérkőzés',
+  'canasta.rules.section.turn': 'A köröd',
   'canasta.rules.goal':
     'Párokban játsszák; az az oldal nyeri a mérkőzést, amelyik elsőként éri el a(z) {n} pontot.',
   'canasta.rules.deck': '{value} lappal játsszák — {decks} pakli plusz jokerek.',
@@ -155,6 +162,30 @@ export const hu: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Az első lerakásodnak el kell érnie egy pontminimumot, amely az állásoddal együtt emelkedik: {negative} nulla alatt, {low} 1500-ig, {mid} 3000-ig, {high} azon felül.',
   'canasta.rules.meldFloorBandsFive': 'Az első kombinációdnak el kell érnie egy pontminimumot, amely az eredményeddel együtt nő: {negative} nulla alatt, {low} 1500-ig, {mid} 3000-ig, {high} 7000-ig, azon felül {top}.',
+  'canasta.rules.turn':
+    'Egy kör egy lapfelvétel — húzás a pakliból vagy az egész dobópakli elvétele —, aztán annyi kombináció, amennyit akarsz, végül egy eldobott lap.',
+  'canasta.rules.turnDiscard': 'A kört a dobás zárja, ezért mindig kell maradnia rá egy lapod.',
+  'canasta.rules.pileTopCard':
+    'A dobópaklit csak olyan lépéssel veheted el, amely azonnal felhasználja a legfelső lapját.',
+  'canasta.rules.pileBlocked':
+    'A tetején lévő fekete hármas zárja a paklit — senki sem veheti el, amíg el nem temetődik —, a kézben maradt fekete hármas pedig {n} pontba kerül.',
+  'canasta.rules.pileFrozenByWild':
+    'A paklibaeltemetett zsoker mindenki elől befagyasztja: elvétele ekkor két természetes, a felső lappal azonos értékű lapba kerül a saját kezedből.',
+  'canasta.rules.meldShape': 'A kombináció {n} vagy több azonos értékű lap.',
+  'canasta.rules.wildLimit':
+    'Egy kombinációban legfeljebb {wilds} zsoker lehet, és sosem kevesebb, mint {naturals} természetes lap.',
+  'canasta.rules.wildRatio':
+    'Egy kombináció minden zsokerhez {n} természetes lapot kíván, és összesen sosem több mint {wilds} zsokert.',
+  'canasta.rules.oneMeldPerRank':
+    'A csapatod értékenként egy kombinációt tart — az adott érték további lapjai arra kerülnek rá.',
+  'canasta.rules.meldsPerRankUnlimited': 'A csapatodnak több azonos értékű kombinációja is lehet.',
+  'canasta.rules.canastaCloses': 'A {n} lapos kanaszta kész, és nem fogad több lapot.',
+  'canasta.rules.meldsAreShared':
+    'A kombinációk a párosé: bármelyik társ bővítheti őket, és az ellenfélét senki nem érinti.',
+  'canasta.rules.layOffAfterOpening':
+    'Amíg a csapatod nem tette le az első kombinációját, semmihez sem tehet hozzá lapot az asztalon.',
+  'canasta.rules.goOutKeepsACard':
+    'Mindig be kell tudnod fejezni a köröd, ezért soha ne rakd ki az egész kezed, hacsak nem ez a kimenő lépés.',
   'canasta.rules.oneCanastaToGoOut': 'Egy befejezett canasta elég ahhoz, hogy az oldalad kiszálljon.',
   'canasta.rules.twoCanastasToGoOut':
     'Az oldaladnak két befejezett canastára van szüksége, mielőtt kiszállhatna.',
@@ -176,6 +207,20 @@ export const hu: Record<string, string> = {
   'holdem.rules.lastPlayerStanding': 'Addig játszanak, amíg egy hely nem birtokolja az összes zsetont.',
   'holdem.rules.mostChipsWins': 'Aki a játék végén a legtöbb zsetont birtokolja, megnyeri a mérkőzést.',
   'holdem.rules.handLimit': 'A játék {n} leosztás után áll le.',
+  'holdem.rules.checkOrCall':
+    'Passzolni csak akkor lehet, ha nem tartozol semmivel; különben megadsz, emelsz vagy bedobsz.',
+  'holdem.rules.minRaise': 'Az emelésnek legalább akkorának kell lennie, mint az előző.',
+  'holdem.rules.allIn':
+    'Sosem tehetsz be többet a zsetonjaidnál, és az all-in mindig megengedett — akkor is, ha kevesebb egy teljes emelésnél.',
+  'holdem.rules.foldedOut': 'Ha egyszer bedobtál, kint vagy a következő osztásig.',
+  'holdem.remedy.callOrFold': '{n} a tartozásod — add meg, emelj vagy dobd be.',
+  'holdem.remedy.checkOrRaise': 'Nincs tartozás — passzolj vagy emelj.',
+  'holdem.remedy.callAllInOrFold':
+    'A zsetonjaid nem érnek a tét fölé — add meg {n}-t all-innel, vagy dobd be.',
+  'holdem.remedy.raiseAtLeast': 'Emelj legalább {n}-ra.',
+  'holdem.remedy.raiseAtMost': 'Legfeljebb {n}-ra emelj — ennyi az összes zsetonod.',
+  'holdem.remedy.nameAnAmount': 'Mondd meg, mennyire emelsz — {min} és {max} között.',
+  'holdem.remedy.waitForNextHand': 'Kimaradtál ebből a leosztásból — várd meg a következőt.',
 
   // --- header --------------------------------------------------------------
   'header.deal': '{n}. leosztás',
@@ -284,12 +329,14 @@ export const hu: Record<string, string> = {
   'err.CARD_DOES_NOT_FIT': 'Ez a lap sem színben, sem értékben nem illik',
   'err.SUIT_REQUIRED': 'Mondd meg, melyik szín folytatódik',
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Válaszolj hetessel, vagy vedd fel a lapokat',
+  'err.NOTHING_TO_SKIP': 'Nincs kihagyandó kör',
   'err.NOTHING_TO_DRAW': 'Nem maradt mit húzni',
   'err.PILE_EMPTY': 'A pakli üres',
   'err.PILE_BLOCKED': 'A pakli le van zárva — fekete hármas van a tetején',
   'err.PILE_FROZEN': 'A pakli be van fagyasztva — két természetes lap kell a felső lap értékéből',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'Ebben a játékban az asztalon lévő kombináció nem viheti el a paklit — két lap kell a kezedből',
-  'err.TOP_CARD_UNUSABLE': 'A felső lapot nem tudod használni',
+  'err.CAPTURE_NEEDS_TWO_CARDS': 'A dobópakli elvétele két lapba kerül a kezedből',
+  'err.TOP_CARD_UNUSABLE': 'A csapatod nem tudja használni a felső lapot',
   'err.MELD_CLOSED': 'Ez a kombináció teljes és lezárt',
   'err.MELD_TOO_SMALL': 'Egy kombinációhoz ennél több lap kell',
   'err.MELD_TOO_LARGE': 'Ez a kombináció már nem fogad be több lapot',
@@ -311,7 +358,7 @@ export const hu: Record<string, string> = {
   'err.CANNOT_GO_OUT_YET': 'Az oldaladnak befejezett canastára van szüksége, mielőtt kiszállhatna',
   'err.NOTHING_TO_CALL': 'Nincs megtartható tét',
   'err.CANNOT_CHECK': 'Nem passzolhatsz — van tét, amire válaszolni kell',
-  'err.CANNOT_RAISE': 'Itt nem emelhetsz',
+  'err.CANNOT_RAISE': 'Nem emelhetsz — a zsetonjaid nem érnek a tét fölé',
   'err.RAISE_TOO_SMALL': 'Az emelésnek legalább akkorának kell lennie, mint az előző',
   'err.NOT_ENOUGH_CHIPS': 'Nincs ennyi zsetonod',
   'err.AMOUNT_REQUIRED': 'Mondd meg, mennyit',
@@ -402,6 +449,30 @@ export const hu: Record<string, string> = {
   'status.teamScore': '{team} csapat: {value}',
   'canasta.offer.rank': 'Érték',
   'canasta.offer.sequence': 'Sor',
+  'canasta.remedy.drawOrTakePile': 'Előbb húzz a pakliból, vagy vedd el a dobópaklit, csak utána rakj ki.',
+  'canasta.remedy.meldOrDiscard':
+    'Már húztál — rakj ki kombinációt, vagy dobj el egy lapot a kör lezárásához.',
+  'canasta.remedy.drawFromStock': 'Húzz inkább a pakliból.',
+  'canasta.remedy.takePileInstead': 'A pakli elfogyott — vedd el helyette a dobópaklit.',
+  'canasta.remedy.pileBlocked': 'Húzz a pakliból — a tetején lévő fekete hármas zárva tartja a dobópaklit.',
+  'canasta.remedy.pileFrozen':
+    'Húzz a pakliból, vagy vedd el a dobópaklit két természetes lappal a kezedből, amelyek illenek a(z) {card} lapra.',
+  'canasta.remedy.topCardUnusable':
+    'Húzz a pakliból — a csapatod nem tud mit kezdeni a felül lévő {card} lappal.',
+  'canasta.remedy.captureFromHand':
+    'Vedd el a dobópaklit két saját kezedből származó lappal, amelyek illenek a(z) {card} lapra.',
+  'canasta.remedy.needTwoMatching':
+    'Két olyan lap kell a kezedből, ami illik a(z) {card} lapra — különben húzz a pakliból.',
+  'canasta.remedy.needMorePoints': 'A csapatod első kombinációjából {n} pont hiányzik.',
+  'canasta.remedy.openFirst': 'Rakd ki a csapatod első kombinációját, mielőtt hozzátennél valamihez.',
+  'canasta.remedy.needCanastas': 'A csapatodnak még {n} darab {size} lapos kanaszta kell a kimenéshez.',
+  'canasta.remedy.keepACard': 'Tarts meg egy lapot a dobáshoz.',
+  'canasta.remedy.layOffInstead': 'Tedd őket a csapatod meglévő kombinációjához.',
+  'canasta.remedy.meldClosed': 'Ez a kombináció {n} lapnál kész — kezdj másikat, vagy tegyél hozzá máshol.',
+  'canasta.remedy.discardNotARedThree': 'Dobj el valami mást, ne piros hármast.',
+  'canasta.remedy.blackThreesOnTheWayOut':
+    'A fekete hármasok csak azzal a lépéssel kerülnek ki, amely kiüríti a kezed.',
+  'canasta.remedy.ownMeldsOnly': 'Csak a saját csapatod kombinációihoz tegyél hozzá.',
   'badge.naturalCanasta': 'Tiszta kanaszta',
   'badge.mixedCanasta': 'Vegyes kanaszta',
   'badge.samba': 'Samba',
@@ -521,6 +592,9 @@ export const hu: Record<string, string> = {
     'A mérkőzésbónusz {n} pontra duplázódik, ha a vesztes egyetlen pontot sem szerzett.',
   'ginrummy.rules.box': 'Minden megnyert leosztás {n} pontot ér a mérkőzés végén.',
   'ginrummy.rules.gameBonus': 'A mérkőzés megnyerése további {n} pontot ér.',
+  'ginrummy.rules.upcardDance':
+    'Az első húzás előtt a felfordított lapot előbb a nem osztó veheti el, majd az osztó; ha mindketten passzolnak, a nem osztónak a pakliból kell húznia.',
+  'ginrummy.rules.knockOnDiscard': 'A kopogás a dobásod helyébe lép, ezért csak a köröd végén történhet.',
   'ginrummy.fact.deadwood': '{value} deadwood',
   'ginrummy.fact.discardCard': 'Dobd el: {value}',
   'ginrummy.fact.meldCards': 'Ehhez: {value}',
@@ -542,6 +616,13 @@ export const hu: Record<string, string> = {
   'ginrummy.offer.bigGin': 'Big gin!',
   'ginrummy.offer.layOff': 'Hozzárakás',
   'ginrummy.offer.finishLayoff': 'Hozzárakás kész',
+  'ginrummy.remedy.takeOrPassUpcard': 'Vedd el a felfordított lapot, vagy passzolj.',
+  'ginrummy.remedy.drawFirst': 'Előbb húzz egy lapot — a pakliból vagy a dobópakliból.',
+  'ginrummy.remedy.discardToEndTurn': 'Dobj el egy lapot a köröd lezárásához.',
+  'ginrummy.remedy.finishLayoff': 'Semmi több nem illik a lapjaid közül — fejezd be a hozzárakást.',
+  'ginrummy.remedy.stockDrawForced': 'Mindketten passzoltátok azt a lapot — húzz a pakliból.',
+  'ginrummy.remedy.drawElsewhere': 'Az a pakli üres — húzz a másikból.',
+  'ginrummy.remedy.getDeadwoodDown': 'Akkor kopoghatsz, ha a holt lapjaid értéke {n} vagy az alá esik.',
   'ginrummy.zone.knockerHand': 'A kopogó keze',
   'ginrummy.zone.melds': 'Kombinációk',
   'ginrummy.prompt.upcardDecision': 'Vedd el a felfordított lapot, vagy passzolj',
@@ -551,10 +632,10 @@ export const hu: Record<string, string> = {
 
   // --- rummy tiles -------------------------------------------------------------
   'err.TILE_NOT_IN_HAND': 'Ez a lapka nincs a kezedben',
-  'err.TILE_DOES_NOT_FIT': 'Ez oda nem illik',
+  'err.TILE_DOES_NOT_FIT': 'Az a lapka nem illik abba a sorba',
   'err.NO_SUCH_SET': 'Ez a kombináció nincs az asztalon',
   'err.INITIAL_MELD_ONLY': 'Az első lerakásod előtt csak a saját új kombinációidat rendezheted át',
-  'err.TABLE_NOT_VALID': 'Az asztal még nem érvényes',
+  'err.TABLE_NOT_VALID': 'Az asztalon valamelyik sor nem érvényes csoport vagy sorozat',
   'err.TRAY_NOT_EMPTY': 'Még vannak elhelyezetlen lapkáid',
   'err.NOTHING_PLAYED': 'Játssz ki legalább egy lapkát, mielőtt lezárnád a köröd',
   'err.INITIAL_MELD_TOO_LOW': 'Az első lerakásodnak legalább 30 pontot kell érnie',
@@ -592,6 +673,18 @@ export const hu: Record<string, string> = {
     'Ha a készlet kifogy, és senki nem tud játszani, a kör győztes nélkül ér véget — minden kezet egyszerűen kiértékelnek.',
   'rummytiles.rules.target': 'Aki egy kör végén elsőként lépi át a(z) {n} pontot, megnyeri a mérkőzést.',
   'rummytiles.rules.roundLimit': 'A mérkőzés {n} kör után ér véget — a legmagasabb pontszám nyer.',
+  'rummytiles.remedy.emptyTheTray': 'Tedd le a tálcádon maradt {n} lapkát, vagy állítsd vissza a kört.',
+  'rummytiles.remedy.playFromHandOrDraw':
+    'Az átrendezés nem kör — tegyél le legalább egy lapkát a kezedből, vagy húzz.',
+  'rummytiles.remedy.fixOrReset':
+    'Az asztalon minden sornak érvényes csoportnak vagy sorozatnak kell lennie — javítsd ki őket, vagy állítsd vissza a kört.',
+  'rummytiles.remedy.needMorePoints': 'Az első kirakásodból {n} pont hiányzik a(z) {floor}-hoz.',
+  'rummytiles.remedy.ownNewSetsOnly':
+    'Az első {n} pontos kirakásodig csak az ebben a körben létrehozott sorokat rendezheted át.',
+  'rummytiles.remedy.startANewSet': 'Tedd inkább új sorba.',
+  'rummytiles.remedy.splitLeavesThree':
+    'Úgy vágd ketté a sorozatot, hogy mindkét felén maradjon legalább {n} lapka.',
+  'rummytiles.remedy.matchTheJoker': 'Cseréld a zsokert pontosan arra a lapkára, amelyet helyettesít.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Készlet: {n}',
   'rummytiles.header.round': '{n}. kör',
@@ -670,6 +763,19 @@ export const hu: Record<string, string> = {
   'blackjack.rules.mostChipsWins': 'Aki a végén a legtöbb zsetont birtokolja, megnyeri a mérkőzést.',
   'blackjack.rules.bustedOut':
     'Az a hely, amely már nem tudja fedezni a(z) {n} minimumot, a mérkőzés hátralévő részében kimarad.',
+  'blackjack.rules.roundOrder':
+    'Egy kör sorrendben halad: tétek, lapok osztása, biztosítás ha az osztónál ász látszik, majd minden hely sorban lejátssza a lapját.',
+  'blackjack.rules.oneStakePerRound': 'Körönként egy tét — ha egyszer feltetted, nem változtatható.',
+  'blackjack.rules.stakeFromStack': 'Csak olyan zsetont tehetsz fel, ami valóban a tiéd.',
+  'blackjack.remedy.putAStakeUp': 'Előbb tegyél fel tétet — {n} vagy több.',
+  'blackjack.remedy.answerInsurance': 'Előbb mondj igent vagy nemet a biztosításra.',
+  'blackjack.remedy.playThisHand': 'Játszd le az előtted lévő lapot — húzz vagy állj meg.',
+  'blackjack.remedy.stakeIsUp': 'A téted már fenn van — várd meg az osztást.',
+  'blackjack.remedy.stakeAtLeast': 'Tegyél fel legalább {n}-t.',
+  'blackjack.remedy.stakeAtMost': 'Legfeljebb {n}-t tegyél fel — ennyi az összes zsetonod.',
+  'blackjack.remedy.sayHowMuch': 'Mondd meg, mennyit teszel fel — {n} vagy több.',
+  'blackjack.remedy.hitOrStand': 'Húzz, vagy állj meg.',
+  'blackjack.remedy.waitForNextRound': 'Kimaradtál ebből a körből — várd meg a következő osztást.',
 
   'blackjack.zone.dealer': 'Osztó',
   'blackjack.zone.box': 'Kéz',

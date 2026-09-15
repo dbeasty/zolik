@@ -499,7 +499,7 @@ func applyTakePile(s *GameState, playerID string, a module.Action) ([]module.Eve
 	} else {
 		fromHand = a.Cards
 		if len(fromHand) < 2 {
-			return nil, errCode(ErrMeldTooSmall)
+			return nil, errCode(ErrCaptureNeedsTwo)
 		}
 		if !hasCards(s.Hands[playerID], fromHand) {
 			return nil, errCode(ErrCardNotInHand)

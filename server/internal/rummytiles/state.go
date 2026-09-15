@@ -19,6 +19,19 @@ const (
 	VerbDraw      = "draw"
 )
 
+// The two numbers the rules turn on, named because each of them was written
+// out three times — in the engine that enforces it, in the sentence that
+// states it, and now in the remedy that says how far short a turn is. Three
+// literals that have to agree is two too many.
+const (
+	// initialMeldFloor is what a player's first committed turn must total,
+	// from new sets built out of their own hand alone.
+	initialMeldFloor = 30
+	// minSetSize is the shortest a group or a run may be, which is also what
+	// each half of a split run has to be left with.
+	minSetSize = 3
+)
+
 // Error codes. Stable keys, rendered by the client's locale bundle.
 const (
 	ErrWrongPlayerCount  = "WRONG_PLAYER_COUNT"

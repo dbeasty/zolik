@@ -61,12 +61,14 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		if s.Status != "active" {
 			why = ErrGameNotActive
 		}
-		return []module.ActionOffer{
+		waiting := []module.ActionOffer{
 			{ID: OfferDraw, Verb: VerbDraw, WhyNot: why},
 			{ID: OfferTakePile, Verb: VerbTakePile, WhyNot: why},
 			{ID: OfferLayMeld, Verb: VerbLayMeld, WhyNot: why},
 			{ID: OfferDiscard, Verb: VerbDiscard, WhyNot: why},
-		}, nil
+		}
+		m.annotate(s, playerID, waiting)
+		return waiting, nil
 	}
 
 	t := s.team(playerID)
@@ -346,6 +348,11 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		offers = append(offers, o)
 	}
 
+	// Why each disabled offer is disabled, in terms a player can act on: the
+	// written rules that justify the refusal, and the move that gets round it.
+	// Both read off what was just built rather than being worked out again —
+	// see remedy.go.
+	m.annotate(s, playerID, offers)
 	return offers, nil
 }
 

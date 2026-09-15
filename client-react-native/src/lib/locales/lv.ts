@@ -5,7 +5,7 @@
 export const lv: Record<string, string> = {
   // --- engine error codes (rules.RulesErrorCode) ---------------------------
   'err.NOT_YOUR_TURN': 'Nav tava kārta',
-  'err.WRONG_PHASE': 'Pašlaik nav iespējams',
+  'err.WRONG_PHASE': 'Ne šajā gājiena posmā',
   'err.MUST_DRAW_FIRST': 'Pavelc kārti, pirms izliec',
   'err.GAME_SUSPENDED': 'Spēle ir apturēta',
   'err.GAME_NOT_ACTIVE': 'Spēle nenotiek',
@@ -128,11 +128,17 @@ export const lv: Record<string, string> = {
   'prsi.rules.aces': 'Izspēlē dūzi, un nākamā spēlētāja gājiens tiek izlaists.',
   'prsi.rules.queens': 'Izspēlē dāmu un nosauc krāsu, kas turpinās.',
   'prsi.rules.end': 'Mačs beidzas brīdī, kad kāda roka ir tukša.',
+  'prsi.remedy.matchOrDraw': 'Izspēlē {suit} kārti vai tādu, kas der uz {card} — citādi velc.',
+  'prsi.remedy.answerSevenOrTake': 'Atbildi ar savu septītnieku vai paņem {n} kārtis.',
+  'prsi.remedy.playOrDraw': 'Tevi negaida neviens izlaidums — izspēlē {suit} kārti vai velc.',
+  'prsi.remedy.nameASuit': 'Nosauc mastu, kas seko tavai dāmai.',
+  'prsi.remedy.nothingLeftToDraw': 'Vairs nav ko vilkt — izspēlē kārti, ja vari.',
 
   'canasta.rules.section.goal': 'Mērķis',
   'canasta.rules.section.setup': 'Sagatavošana',
   'canasta.rules.section.melding': 'Izlikšana',
   'canasta.rules.section.end': 'Kā beidzas mačs',
+  'canasta.rules.section.turn': 'Tavs gājiens',
   'canasta.rules.goal': 'Spēlē pāros; pirmā puse, kas sasniedz {n} punktus, uzvar mačā.',
   'canasta.rules.deck': 'Spēlē ar {value} kārtīm — {decks} kavas plus džokeri.',
   'canasta.rules.deal': 'Katrs spēlētājs saņem {n} kārtis.',
@@ -152,6 +158,30 @@ export const lv: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Tavai pirmajai izlikšanai jāsasniedz punktu minimums, kas aug līdz ar tavu rezultātu: {negative} zem nulles, {low} līdz 1500, {mid} līdz 3000, {high} virs tā.',
   'canasta.rules.meldFloorBandsFive': 'Tavai pirmajai kombinācijai jāsasniedz punktu minimums, kas aug līdz ar tavu rezultātu: {negative} zem nulles, {low} līdz 1500, {mid} līdz 3000, {high} līdz 7000 un {top} virs tā.',
+  'canasta.rules.turn':
+    'Gājiens ir viena kāršu ņemšana rokā — velc no kavas vai paņem visu izmesto kaudzi — tad liec tik kombināciju, cik vēlies, un beidz ar vienu izmestu kārti.',
+  'canasta.rules.turnDiscard': 'Gājienu noslēdz izmešana, tāpēc tev tam vienmēr jāatstāj viena kārts.',
+  'canasta.rules.pileTopCard':
+    'Izmesto kaudzi var paņemt tikai ar gājienu, kas uzreiz izmanto tās augšējo kārti.',
+  'canasta.rules.pileBlocked':
+    'Melns trijnieks virspusē bloķē kaudzi — neviens to nedrīkst ņemt, kamēr trijnieks nav aprakts — un rokā palicis maksā {n}.',
+  'canasta.rules.pileFrozenByWild':
+    'Kaudzē apraktais džokers to iesaldē pret visiem: tad tās paņemšana maksā divas dabiskas augšējās kārts vērtības kārtis no tavas rokas.',
+  'canasta.rules.meldShape': 'Kombinācija ir {n} vai vairāk vienas vērtības kāršu.',
+  'canasta.rules.wildLimit':
+    'Kombinācijā drīkst būt ne vairāk kā {wilds} džokeri un nekad mazāk par {naturals} dabiskām kārtīm.',
+  'canasta.rules.wildRatio':
+    'Kombinācijai vajag {n} dabiskas kārtis uz katru džokeru un kopā ne vairāk kā {wilds} džokerus.',
+  'canasta.rules.oneMeldPerRank':
+    'Tava puse tur vienu katras vērtības kombināciju — pārējās tās vērtības kārtis liek tai klāt.',
+  'canasta.rules.meldsPerRankUnlimited': 'Tavai pusei var būt vairākas vienas vērtības kombinācijas.',
+  'canasta.rules.canastaCloses': '{n} kāršu kanasta ir pabeigta un vairs kārtis neuzņem.',
+  'canasta.rules.meldsAreShared':
+    'Kombinācijas pieder pārim: tās drīkst papildināt jebkurš partneris, bet pretinieku kombinācijas neaiztiek.',
+  'canasta.rules.layOffAfterOpening':
+    'Kamēr tava puse nav izlikusi savu pirmo kombināciju, tā nedrīkst neko uz galda papildināt.',
+  'canasta.rules.goOutKeepsACard':
+    'Tev vienmēr jāspēj pabeigt savu gājienu, tāpēc nekad neizliec visu roku, ja vien tas nav tieši iziešanas gājiens.',
   'canasta.rules.oneCanastaToGoOut': 'Viena pabeigta kanasta ir pietiekama, lai tava puse izietu.',
   'canasta.rules.twoCanastasToGoOut':
     'Tavai pusei vajadzīgas divas pabeigtas kanastas, pirms tā drīkst iziet.',
@@ -171,6 +201,19 @@ export const lv: Record<string, string> = {
   'holdem.rules.lastPlayerStanding': 'Spēlē, līdz viena vieta tur visus žetonus.',
   'holdem.rules.mostChipsWins': 'Kam spēles beigās ir visvairāk žetonu, tas uzvar mačā.',
   'holdem.rules.handLimit': 'Spēle apstājas pēc {n} dalījumiem.',
+  'holdem.rules.checkOrCall':
+    'Paspēlēt drīksti tikai tad, kad neko neesi parādā; citādi izlīdzini, paaugstini vai met.',
+  'holdem.rules.minRaise': 'Paaugstinājumam jābūt vismaz tikpat lielam kā iepriekšējam.',
+  'holdem.rules.allIn':
+    'Vairāk par savu žetonu kaudzi tu nekad ielikt nevari, un all-in vienmēr ir atļauts — arī tad, ja tas ir mazāks par pilnu paaugstinājumu.',
+  'holdem.rules.foldedOut': 'Tiklīdz esi metis, esi ārā līdz nākamajai dalīšanai.',
+  'holdem.remedy.callOrFold': 'Tev jāmaksā {n} — izlīdzini, paaugstini vai met.',
+  'holdem.remedy.checkOrRaise': 'Nekas nav parādā — paspēlē vai paaugstini.',
+  'holdem.remedy.callAllInOrFold': 'Tava kaudze pār likmi netiks — izlīdzini {n} ar all-in vai met.',
+  'holdem.remedy.raiseAtLeast': 'Paaugstini vismaz līdz {n}.',
+  'holdem.remedy.raiseAtMost': 'Paaugstini ne vairāk kā līdz {n} — tā ir visa tava kaudze.',
+  'holdem.remedy.nameAnAmount': 'Pasaki, līdz cik paaugstini — no {min} līdz {max}.',
+  'holdem.remedy.waitForNextHand': 'Tu esi ārā no šīs partijas — sagaidi nākamo dalīšanu.',
 
   // --- header --------------------------------------------------------------
   'header.deal': 'Dalījums {n}',
@@ -279,12 +322,14 @@ export const lv: Record<string, string> = {
   'err.CARD_DOES_NOT_FIT': 'Šī kārts neatbilst ne krāsai, ne vērtībai',
   'err.SUIT_REQUIRED': 'Nosauc krāsu, kas turpinās',
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Atbildi ar septītnieku vai paņem kārtis',
+  'err.NOTHING_TO_SKIP': 'Nav neviena izlaižama gājiena',
   'err.NOTHING_TO_DRAW': 'Vairs nav ko vilkt',
   'err.PILE_EMPTY': 'Kaudze ir tukša',
   'err.PILE_BLOCKED': 'Kaudze ir bloķēta — virspusē guļ melns trijnieks',
   'err.PILE_FROZEN': 'Kaudze ir iesaldēta — tev vajadzīgas divas dabiskas augšējās kārts vērtības kārtis',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'Šajā spēlē kombinācija uz galda kaudzi paņemt nevar — vajadzīgas divas kārtis no rokas',
-  'err.TOP_CARD_UNUSABLE': 'Tu nevari izmantot augšējo kārti',
+  'err.CAPTURE_NEEDS_TWO_CARDS': 'Kaudzes paņemšana maksā divas kārtis no tavas rokas',
+  'err.TOP_CARD_UNUSABLE': 'Tava puse nevar izmantot augšējo kārti',
   'err.MELD_CLOSED': 'Šī kombinācija ir pilna un slēgta',
   'err.MELD_TOO_SMALL': 'Kombinācijai vajag vairāk kāršu nekā tik',
   'err.MELD_TOO_LARGE': 'Šī kombinācija vairs nevar uzņemt kārtis',
@@ -305,7 +350,7 @@ export const lv: Record<string, string> = {
   'err.CANNOT_GO_OUT_YET': 'Tavai pusei vajadzīga pabeigta kanasta, pirms tā var iziet',
   'err.NOTHING_TO_CALL': 'Nav likmes, ko atbildēt',
   'err.CANNOT_CHECK': 'Tu nevari čekot — ir likme, uz kuru jāatbild',
-  'err.CANNOT_RAISE': 'Šeit tu nevari paaugstināt',
+  'err.CANNOT_RAISE': 'Tu nevari paaugstināt — tava kaudze pār likmi netiks',
   'err.RAISE_TOO_SMALL': 'Paaugstinājumam jābūt vismaz tikpat lielam kā iepriekšējam',
   'err.NOT_ENOUGH_CHIPS': 'Tev nav tik daudz žetonu',
   'err.AMOUNT_REQUIRED': 'Pasaki, cik',
@@ -393,6 +438,28 @@ export const lv: Record<string, string> = {
   'status.teamScore': 'Komanda {team}: {value}',
   'canasta.offer.rank': 'Vērtība',
   'canasta.offer.sequence': 'Secība',
+  'canasta.remedy.drawOrTakePile':
+    'Vispirms velc no kavas vai paņem izmesto kaudzi, tikai tad liec kombinācijas.',
+  'canasta.remedy.meldOrDiscard':
+    'Tu jau paņēmi kārti — liec kombināciju vai izmet kārti, lai pabeigtu gājienu.',
+  'canasta.remedy.drawFromStock': 'Tā vietā velc no kavas.',
+  'canasta.remedy.takePileInstead': 'Kava ir tukša — tā vietā paņem izmesto kaudzi.',
+  'canasta.remedy.pileBlocked': 'Velc no kavas — melnais trijnieks virspusē tur kaudzi ciet.',
+  'canasta.remedy.pileFrozen':
+    'Velc no kavas vai paņem kaudzi ar divām dabiskām kārtīm no rokas, kas der uz {card}.',
+  'canasta.remedy.topCardUnusable': 'Velc no kavas — tavai pusei no augšējās kārts {card} nav nekāda labuma.',
+  'canasta.remedy.captureFromHand': 'Paņem kaudzi ar divām savas rokas kārtīm, kas der uz {card}.',
+  'canasta.remedy.needTwoMatching': 'Tev vajag divas rokas kārtis, kas der uz {card} — citādi velc no kavas.',
+  'canasta.remedy.needMorePoints': 'Tavas puses pirmajai kombinācijai trūkst {n} punktu.',
+  'canasta.remedy.openFirst': 'Izliec savas puses pirmo kombināciju, pirms ko papildini.',
+  'canasta.remedy.needCanastas': 'Tavai pusei pirms iziešanas vajag vēl {n} kanastas pa {size} kārtīm.',
+  'canasta.remedy.keepACard': 'Atstāj vienu kārti izmešanai.',
+  'canasta.remedy.layOffInstead': 'Pieliec tās kombinācijai, kas tavai pusei jau ir.',
+  'canasta.remedy.meldClosed': 'Šī kombinācija ir pabeigta pie {n} kārtīm — sāc citu vai papildini citur.',
+  'canasta.remedy.discardNotARedThree': 'Izmet ko citu, nevis sarkano trijnieku.',
+  'canasta.remedy.blackThreesOnTheWayOut':
+    'Melnos trijniekus izliek tikai ar to gājienu, kas iztukšo tavu roku.',
+  'canasta.remedy.ownMeldsOnly': 'Papildini tikai savas puses kombinācijas.',
   'badge.naturalCanasta': 'Tīra kanasta',
   'badge.mixedCanasta': 'Netīra kanasta',
   'badge.samba': 'Samba',
@@ -509,6 +576,10 @@ export const lv: Record<string, string> = {
   'ginrummy.rules.shutout': 'Mača bonuss dubultojas līdz {n}, ja zaudētājs nav guvis nevienu punktu.',
   'ginrummy.rules.box': 'Katrs uzvarētais dalījums mača beigās ir {n} punktu vērts.',
   'ginrummy.rules.gameBonus': 'Uzvara mačā dod vēl {n} punktus.',
+  'ginrummy.rules.upcardDance':
+    'Pirms pirmās vilkšanas atklāto kārti drīkst paņemt tas, kurš nedala, tad dalītājs; ja abi izlaiž, nedalītājam jāvelk no kavas.',
+  'ginrummy.rules.knockOnDiscard':
+    'Klauvējiens aizstāj tavu izmešanu, tāpēc tas notiek tikai gājiena beigās.',
   'ginrummy.fact.deadwood': 'deadwood {value}',
   'ginrummy.fact.discardCard': 'Izmet {value}',
   'ginrummy.fact.meldCards': 'Pie {value}',
@@ -530,6 +601,14 @@ export const lv: Record<string, string> = {
   'ginrummy.offer.bigGin': 'Big gin!',
   'ginrummy.offer.layOff': 'Pievieno',
   'ginrummy.offer.finishLayoff': 'Pievienošana pabeigta',
+  'ginrummy.remedy.takeOrPassUpcard': 'Paņem atklāto kārti vai izlaid to.',
+  'ginrummy.remedy.drawFirst': 'Vispirms velc kārti — no kavas vai izmestās kaudzes.',
+  'ginrummy.remedy.discardToEndTurn': 'Izmet vienu kārti, lai pabeigtu gājienu.',
+  'ginrummy.remedy.finishLayoff': 'Vairāk nekas no tavējām neder — pabeidz pielikšanu.',
+  'ginrummy.remedy.stockDrawForced': 'Jūs abi izlaidāt to kārti — velc no kavas.',
+  'ginrummy.remedy.drawElsewhere': 'Tā kaudze ir tukša — velc no otras.',
+  'ginrummy.remedy.getDeadwoodDown':
+    'Klauvēt vari, kad tavu neizmantoto kāršu vērtība nokrītas līdz {n} vai zemāk.',
   'ginrummy.zone.knockerHand': 'Klauvētāja roka',
   'ginrummy.zone.melds': 'Kombinācijas',
   'ginrummy.prompt.upcardDecision': 'Ņem apgriezto kārti vai laid garām',
@@ -539,10 +618,10 @@ export const lv: Record<string, string> = {
 
   // --- rummy tiles -------------------------------------------------------------
   'err.TILE_NOT_IN_HAND': 'Šī kauliņa tavā rokā nav',
-  'err.TILE_DOES_NOT_FIT': 'Tur tas neder',
+  'err.TILE_DOES_NOT_FIT': 'Tas kauliņš tajā kopā neder',
   'err.NO_SUCH_SET': 'Šīs kombinācijas uz galda nav',
   'err.INITIAL_MELD_ONLY': 'Pirms pirmās izlikšanas tu drīksti pārkārtot tikai savas jaunās kombinācijas',
-  'err.TABLE_NOT_VALID': 'Galds vēl nav derīgs',
+  'err.TABLE_NOT_VALID': 'Kāda kopa uz galda nav derīga grupa vai rinda',
   'err.TRAY_NOT_EMPTY': 'Tev vēl ir brīvi kauliņi, ko novietot',
   'err.NOTHING_PLAYED': 'Izspēlē vismaz vienu kauliņu, pirms beidz gājienu',
   'err.INITIAL_MELD_TOO_LOW': 'Tavai pirmajai izlikšanai jābūt vismaz 30 punktu vērtai',
@@ -580,6 +659,17 @@ export const lv: Record<string, string> = {
     'Ja krājums izsīkst un neviens nevar spēlēt, raunds beidzas bez uzvarētāja — katru roku vienkārši saskaita.',
   'rummytiles.rules.target': 'Kurš pēc raunda beigām pirmais pārsniedz {n} punktus, uzvar mačā.',
   'rummytiles.rules.roundLimit': 'Mačs beidzas pēc {n} raundiem — uzvar augstākais rezultāts.',
+  'rummytiles.remedy.emptyTheTray': 'Novieto {n} kauliņus, kas vēl ir paliktnī, vai atiestati gājienu.',
+  'rummytiles.remedy.playFromHandOrDraw':
+    'Pārkārtošana nav gājiens — izspēlē vismaz vienu kauliņu no rokas vai velc.',
+  'rummytiles.remedy.fixOrReset':
+    'Katrai kopai uz galda jābūt derīgai grupai vai rindai — izlabo tās vai atiestati gājienu.',
+  'rummytiles.remedy.needMorePoints': 'Tavam pirmajam izlikumam līdz {floor} trūkst {n} punktu.',
+  'rummytiles.remedy.ownNewSetsOnly':
+    'Līdz savam pirmajam {n} punktu izlikumam drīksti pārkārtot tikai šajā gājienā izveidotās kopas.',
+  'rummytiles.remedy.startANewSet': 'Tā vietā liec to jaunā kopā.',
+  'rummytiles.remedy.splitLeavesThree': 'Sadali rindu tā, lai abām pusēm paliktu vismaz {n} kauliņi.',
+  'rummytiles.remedy.matchTheJoker': 'Apmaini džokeru tieši pret to kauliņu, ko tas aizstāj.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Krājums {n}',
   'rummytiles.header.round': 'Raunds {n}',
@@ -657,6 +747,19 @@ export const lv: Record<string, string> = {
   'blackjack.rules.rounds': 'Pie galda spēlē {n} raundus.',
   'blackjack.rules.mostChipsWins': 'Kam beigās ir visvairāk žetonu, tas uzvar mačā.',
   'blackjack.rules.bustedOut': 'Vieta, kas vairs nespēj segt {n} minimumu, atlikušo maču pavada malā.',
+  'blackjack.rules.roundOrder':
+    'Aplis norit pēc kārtas: likmes, kāršu dalīšana, apdrošināšana ja dīlerim redzams dūzis, tad katra vieta pēc kārtas izspēlē savu roku.',
+  'blackjack.rules.oneStakePerRound': 'Viena likme uz apli — kad tā ir likta, to vairs nemaina.',
+  'blackjack.rules.stakeFromStack': 'Likt vari tikai tos žetonus, kas tev tiešām ir.',
+  'blackjack.remedy.putAStakeUp': 'Vispirms izdari likmi — {n} vai vairāk.',
+  'blackjack.remedy.answerInsurance': 'Vispirms atbildi jā vai nē apdrošināšanai.',
+  'blackjack.remedy.playThisHand': 'Izspēlē roku sev priekšā — ņem kārti vai paliec.',
+  'blackjack.remedy.stakeIsUp': 'Tava likme jau ir likta — sagaidi dalīšanu.',
+  'blackjack.remedy.stakeAtLeast': 'Liec vismaz {n}.',
+  'blackjack.remedy.stakeAtMost': 'Liec ne vairāk kā {n} — tā ir visa tava kaudze.',
+  'blackjack.remedy.sayHowMuch': 'Pasaki, cik liec — {n} vai vairāk.',
+  'blackjack.remedy.hitOrStand': 'Ņem kārti vai paliec.',
+  'blackjack.remedy.waitForNextRound': 'Tu esi ārā no šī apļa — sagaidi nākamo dalīšanu.',
 
   'blackjack.zone.dealer': 'Dalītājs',
   'blackjack.zone.box': 'Roka',

@@ -261,7 +261,7 @@ func applySplit(s *GameState, playerID string, a module.Action) ([]module.Event,
 		return nil, errCode(ErrBadSplitPosition)
 	}
 	left, right := canonical[:pos], canonical[pos:]
-	if len(left) < 3 || len(right) < 3 {
+	if len(left) < minSetSize || len(right) < minSetSize {
 		return nil, errCode(ErrBadSplitPosition)
 	}
 
@@ -408,7 +408,7 @@ func applyCommit(s *GameState, playerID string) ([]module.Event, error) {
 		}
 	}
 	if !s.InitialMeld[playerID] {
-		if newSetsValue < 30 {
+		if newSetsValue < initialMeldFloor {
 			return nil, errCode(ErrInitialMeldLow)
 		}
 		s.InitialMeld[playerID] = true

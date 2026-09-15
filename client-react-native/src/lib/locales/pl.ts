@@ -5,7 +5,7 @@
 export const pl: Record<string, string> = {
   // --- engine error codes (rules.RulesErrorCode) ---------------------------
   'err.NOT_YOUR_TURN': 'To nie twoja kolej',
-  'err.WRONG_PHASE': 'W tej chwili niedostępne',
+  'err.WRONG_PHASE': 'Nie na tym etapie kolejki',
   'err.MUST_DRAW_FIRST': 'Dobierz kartę, zanim wyłożysz',
   'err.GAME_SUSPENDED': 'Gra jest wstrzymana',
   'err.GAME_NOT_ACTIVE': 'Gra nie jest w toku',
@@ -129,11 +129,18 @@ export const pl: Record<string, string> = {
   'prsi.rules.aces': 'Zagraj asa, a następny gracz traci kolejkę.',
   'prsi.rules.queens': 'Zagraj damę i podaj kolor, który obowiązuje dalej.',
   'prsi.rules.end': 'Mecz kończy się w chwili, gdy czyjaś ręka jest pusta.',
+  'prsi.remedy.matchOrDraw':
+    'Zagraj kartę w kolorze {suit} albo taką, która pasuje do {card} — inaczej dobierz.',
+  'prsi.remedy.answerSevenOrTake': 'Odpowiedz własną siódemką albo weź {n} kart.',
+  'prsi.remedy.playOrDraw': 'Nie czeka cię żadne pominięcie — zagraj kartę w kolorze {suit} albo dobierz.',
+  'prsi.remedy.nameASuit': 'Powiedz, jaki kolor idzie po twojej damie.',
+  'prsi.remedy.nothingLeftToDraw': 'Nie ma już czego dobierać — zagraj kartę, jeśli możesz.',
 
   'canasta.rules.section.goal': 'Cel',
   'canasta.rules.section.setup': 'Przygotowanie',
   'canasta.rules.section.melding': 'Wykładanie',
   'canasta.rules.section.end': 'Jak kończy się mecz',
+  'canasta.rules.section.turn': 'Twoja kolej',
   'canasta.rules.goal': 'Gra się w parach; pierwsza strona, która osiągnie {n} punktów, wygrywa mecz.',
   'canasta.rules.deck': 'Gra się {value} kartami — {decks} talie plus jokery.',
   'canasta.rules.deal': 'Każdy gracz dostaje {n} kart.',
@@ -153,6 +160,30 @@ export const pl: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Twoje pierwsze wyłożenie musi osiągnąć minimum punktowe rosnące wraz z wynikiem: {negative} poniżej zera, {low} do 1500, {mid} do 3000, {high} powyżej.',
   'canasta.rules.meldFloorBandsFive': 'Twój pierwszy układ musi osiągnąć minimum punktowe rosnące wraz z wynikiem: {negative} poniżej zera, {low} do 1500, {mid} do 3000, {high} do 7000, powyżej {top}.',
+  'canasta.rules.turn':
+    'Kolejka to jedno dobranie do ręki — z talii albo wzięcie całego stosu zrzutów — potem dowolne wyłożenia, a na koniec jedna karta odrzucona.',
+  'canasta.rules.turnDiscard': 'Kolejkę kończy zrzut, więc zawsze musi ci zostać na niego karta.',
+  'canasta.rules.pileTopCard':
+    'Stos zrzutów można wziąć tylko ruchem, który od razu wykorzysta jego wierzchnią kartę.',
+  'canasta.rules.pileBlocked':
+    'Czarna trójka na wierzchu blokuje stos — nikt go nie weźmie, dopóki nie zostanie przykryta — a zostawiona w ręce kosztuje {n}.',
+  'canasta.rules.pileFrozenByWild':
+    'Zakopany joker zamraża stos dla wszystkich: wzięcie go kosztuje wtedy dwie naturalne karty w wysokości wierzchniej karty, z twojej ręki.',
+  'canasta.rules.meldShape': 'Układ to {n} lub więcej kart tej samej wysokości.',
+  'canasta.rules.wildLimit':
+    'Układ może mieć najwyżej {wilds} jokery i nigdy mniej niż {naturals} karty naturalne.',
+  'canasta.rules.wildRatio':
+    'Układ wymaga {n} kart naturalnych na każdego jokera i nigdy więcej niż {wilds} jokerów łącznie.',
+  'canasta.rules.oneMeldPerRank':
+    'Twoja strona ma jeden układ każdej wysokości — kolejne karty tej wysokości dokłada się do niego.',
+  'canasta.rules.meldsPerRankUnlimited': 'Twoja strona może mieć kilka układów tej samej wysokości.',
+  'canasta.rules.canastaCloses': 'Kanasta z {n} kart jest zamknięta i nie przyjmuje już kart.',
+  'canasta.rules.meldsAreShared':
+    'Układy należą do pary: każdy z partnerów może je rozbudowywać, a cudzych się nie rusza.',
+  'canasta.rules.layOffAfterOpening':
+    'Dopóki twoja strona nie wyłoży swojego pierwszego układu, nie może niczego na stole dokładać.',
+  'canasta.rules.goOutKeepsACard':
+    'Zawsze musisz móc dokończyć kolejkę, więc nigdy nie wykładaj całej ręki, chyba że to właśnie ruch, którym wychodzisz.',
   'canasta.rules.oneCanastaToGoOut': 'Jedna skompletowana canasta wystarczy, by twoja strona mogła wyjść.',
   'canasta.rules.twoCanastasToGoOut':
     'Twoja strona potrzebuje dwóch skompletowanych canast, zanim będzie mogła wyjść.',
@@ -173,6 +204,19 @@ export const pl: Record<string, string> = {
   'holdem.rules.lastPlayerStanding': 'Gra się, aż jedno miejsce zgromadzi wszystkie żetony.',
   'holdem.rules.mostChipsWins': 'Kto ma najwięcej żetonów, gdy gra się kończy, wygrywa mecz.',
   'holdem.rules.handLimit': 'Gra kończy się po {n} rozdaniach.',
+  'holdem.rules.checkOrCall':
+    'Czekać możesz tylko wtedy, gdy nic nie jesteś winien; w przeciwnym razie sprawdzasz, podbijasz albo pasujesz.',
+  'holdem.rules.minRaise': 'Podbicie musi być co najmniej tak duże jak poprzednie.',
+  'holdem.rules.allIn':
+    'Nigdy nie postawisz więcej niż masz żetonów, a all-in jest zawsze dozwolone — nawet gdy jest mniejsze niż pełne podbicie.',
+  'holdem.rules.foldedOut': 'Gdy raz spasujesz, jesteś poza rozdaniem do następnego.',
+  'holdem.remedy.callOrFold': 'Do sprawdzenia jest {n} — sprawdź, podbij albo spasuj.',
+  'holdem.remedy.checkOrRaise': 'Nic nie jest do sprawdzenia — czekaj albo podbij.',
+  'holdem.remedy.callAllInOrFold': 'Twoje żetony nie przebiją zakładu — sprawdź {n} all-in albo spasuj.',
+  'holdem.remedy.raiseAtLeast': 'Podbij co najmniej do {n}.',
+  'holdem.remedy.raiseAtMost': 'Podbij najwyżej do {n} — tyle masz wszystkich żetonów.',
+  'holdem.remedy.nameAnAmount': 'Powiedz, do ilu podbijasz — między {min} a {max}.',
+  'holdem.remedy.waitForNextHand': 'Nie ma cię w tym rozdaniu — poczekaj na następne.',
 
   // --- header --------------------------------------------------------------
   'header.deal': 'Rozdanie {n}',
@@ -282,12 +326,14 @@ export const pl: Record<string, string> = {
   'err.CARD_DOES_NOT_FIT': 'Ta karta nie zgadza się ani kolorem, ani wartością',
   'err.SUIT_REQUIRED': 'Podaj kolor, który obowiązuje dalej',
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Odpowiedz siódemką albo weź karty',
+  'err.NOTHING_TO_SKIP': 'Nie ma kolejki do pominięcia',
   'err.NOTHING_TO_DRAW': 'Nie ma już czego dobierać',
   'err.PILE_EMPTY': 'Stos jest pusty',
   'err.PILE_BLOCKED': 'Stos jest zablokowany — na wierzchu leży czarna trójka',
   'err.PILE_FROZEN': 'Stos jest zamrożony — potrzebujesz dwóch naturalnych kart o wartości wierzchniej karty',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'W tej grze układ na stole nie może wziąć stosu — potrzebujesz dwóch kart z ręki',
-  'err.TOP_CARD_UNUSABLE': 'Nie możesz użyć wierzchniej karty',
+  'err.CAPTURE_NEEDS_TWO_CARDS': 'Wzięcie stosu kosztuje dwie karty z ręki',
+  'err.TOP_CARD_UNUSABLE': 'Twoja strona nie może użyć wierzchniej karty',
   'err.MELD_CLOSED': 'Ten układ jest kompletny i zamknięty',
   'err.MELD_TOO_SMALL': 'Układ potrzebuje więcej kart',
   'err.MELD_TOO_LARGE': 'Ten układ nie przyjmie już żadnej karty',
@@ -308,7 +354,7 @@ export const pl: Record<string, string> = {
   'err.CANNOT_GO_OUT_YET': 'Twoja strona potrzebuje skompletowanej canasty, zanim będzie mogła wyjść',
   'err.NOTHING_TO_CALL': 'Nie ma zakładu do sprawdzenia',
   'err.CANNOT_CHECK': 'Nie możesz czekać — jest zakład do odpowiedzi',
-  'err.CANNOT_RAISE': 'Tutaj nie możesz podbić',
+  'err.CANNOT_RAISE': 'Nie możesz podbić — twoje żetony nie przebiją zakładu',
   'err.RAISE_TOO_SMALL': 'Podbicie musi być co najmniej równe poprzedniemu',
   'err.NOT_ENOUGH_CHIPS': 'Nie masz tylu żetonów',
   'err.AMOUNT_REQUIRED': 'Podaj ile',
@@ -396,6 +442,28 @@ export const pl: Record<string, string> = {
   'status.teamScore': 'Drużyna {team}: {value}',
   'canasta.offer.rank': 'Wartość',
   'canasta.offer.sequence': 'Sekwens',
+  'canasta.remedy.drawOrTakePile': 'Najpierw dobierz z talii albo weź stos zrzutów, dopiero potem wykładaj.',
+  'canasta.remedy.meldOrDiscard': 'Już dobrałeś — wyłóż układ albo zrzuć kartę, żeby zakończyć kolejkę.',
+  'canasta.remedy.drawFromStock': 'Dobierz zamiast tego z talii.',
+  'canasta.remedy.takePileInstead': 'Talia się skończyła — weź zamiast tego stos zrzutów.',
+  'canasta.remedy.pileBlocked': 'Dobierz z talii — czarna trójka na wierzchu trzyma stos zamknięty.',
+  'canasta.remedy.pileFrozen':
+    'Dobierz z talii albo weź stos dwiema naturalnymi kartami z ręki, które pasują do {card}.',
+  'canasta.remedy.topCardUnusable':
+    'Dobierz z talii — twoja strona nic nie zrobi z kartą {card} na wierzchu.',
+  'canasta.remedy.captureFromHand': 'Weź stos dwiema kartami z własnej ręki, które pasują do {card}.',
+  'canasta.remedy.needTwoMatching':
+    'Potrzebujesz dwóch kart z ręki pasujących do {card} — inaczej dobierz z talii.',
+  'canasta.remedy.needMorePoints': 'Pierwszemu układowi twojej strony brakuje {n} punktów.',
+  'canasta.remedy.openFirst': 'Wyłóż pierwszy układ swojej strony, zanim zaczniesz dokładać.',
+  'canasta.remedy.needCanastas': 'Twojej stronie brakuje jeszcze {n} kanasty po {size} kart, żeby móc wyjść.',
+  'canasta.remedy.keepACard': 'Zostaw sobie kartę na zrzut.',
+  'canasta.remedy.layOffInstead': 'Dołóż je do układu, który twoja strona już ma.',
+  'canasta.remedy.meldClosed':
+    'Ten układ jest zamknięty przy {n} kartach — zacznij inny albo dołóż gdzie indziej.',
+  'canasta.remedy.discardNotARedThree': 'Zrzuć coś innego niż czerwoną trójkę.',
+  'canasta.remedy.blackThreesOnTheWayOut': 'Czarne trójki wykłada się tylko ruchem, który opróżnia ci rękę.',
+  'canasta.remedy.ownMeldsOnly': 'Dokładaj tylko do układów własnej strony.',
   'badge.naturalCanasta': 'Czysta canasta',
   'badge.mixedCanasta': 'Brudna canasta',
   'badge.samba': 'Samba',
@@ -514,6 +582,9 @@ export const pl: Record<string, string> = {
     'Premia meczowa podwaja się do {n}, jeśli przegrany nie zdobył ani jednego punktu.',
   'ginrummy.rules.box': 'Każde wygrane rozdanie jest warte {n} punktów na koniec meczu.',
   'ginrummy.rules.gameBonus': 'Wygranie meczu daje dodatkowe {n} punktów.',
+  'ginrummy.rules.upcardDance':
+    'Przed pierwszym dobraniem odkrytą kartę może wziąć nierozdający, potem rozdający; jeśli obaj spasują, nierozdający musi dobrać z talii.',
+  'ginrummy.rules.knockOnDiscard': 'Pukanie zastępuje twój zrzut, więc następuje tylko na końcu kolejki.',
   'ginrummy.fact.deadwood': 'deadwood {value}',
   'ginrummy.fact.discardCard': 'Odrzuć {value}',
   'ginrummy.fact.meldCards': 'Do {value}',
@@ -535,6 +606,13 @@ export const pl: Record<string, string> = {
   'ginrummy.offer.bigGin': 'Big gin!',
   'ginrummy.offer.layOff': 'Dołóż',
   'ginrummy.offer.finishLayoff': 'Koniec dokładania',
+  'ginrummy.remedy.takeOrPassUpcard': 'Weź odkrytą kartę albo ją przepuść.',
+  'ginrummy.remedy.drawFirst': 'Najpierw dobierz kartę — z talii albo ze stosu zrzutów.',
+  'ginrummy.remedy.discardToEndTurn': 'Zrzuć jedną kartę, żeby zakończyć kolejkę.',
+  'ginrummy.remedy.finishLayoff': 'Nic więcej z twoich kart nie pasuje — zakończ dokładanie.',
+  'ginrummy.remedy.stockDrawForced': 'Oboje przepuściliście tę kartę — dobierz z talii.',
+  'ginrummy.remedy.drawElsewhere': 'Ten stos jest pusty — dobierz z drugiego.',
+  'ginrummy.remedy.getDeadwoodDown': 'Możesz zapukać, gdy twoje martwe drewno spadnie do {n} lub mniej.',
   'ginrummy.zone.knockerHand': 'Ręka pukającego',
   'ginrummy.zone.melds': 'Układy',
   'ginrummy.prompt.upcardDecision': 'Weź odkrytą kartę albo spasuj',
@@ -544,10 +622,10 @@ export const pl: Record<string, string> = {
 
   // --- rummy tiles -------------------------------------------------------------
   'err.TILE_NOT_IN_HAND': 'Nie masz tej kostki na ręce',
-  'err.TILE_DOES_NOT_FIT': 'To tam nie pasuje',
+  'err.TILE_DOES_NOT_FIT': 'Ta kostka nie pasuje do tego układu',
   'err.NO_SUCH_SET': 'Tego układu nie ma na stole',
   'err.INITIAL_MELD_ONLY': 'Przed pierwszym wyłożeniem możesz przestawiać tylko własne nowe układy',
-  'err.TABLE_NOT_VALID': 'Stół nie jest jeszcze poprawny',
+  'err.TABLE_NOT_VALID': 'Któryś układ na stole nie jest poprawną grupą ani sekwencją',
   'err.TRAY_NOT_EMPTY': 'Masz jeszcze luźne kostki do ułożenia',
   'err.NOTHING_PLAYED': 'Zagraj co najmniej jedną kostkę, zanim zakończysz kolejkę',
   'err.INITIAL_MELD_TOO_LOW': 'Twoje pierwsze wyłożenie musi być warte co najmniej 30 punktów',
@@ -585,6 +663,18 @@ export const pl: Record<string, string> = {
     'Jeśli pula się wyczerpie i nikt nie może zagrać, runda kończy się bez zwycięzcy — każda ręka zostaje po prostu podliczona.',
   'rummytiles.rules.target': 'Kto pierwszy przekroczy {n} punktów po zakończeniu rundy, wygrywa mecz.',
   'rummytiles.rules.roundLimit': 'Mecz kończy się po {n} rundach — wygrywa najwyższy wynik.',
+  'rummytiles.remedy.emptyTheTray': 'Umieść {n} kostek, które wciąż masz na stojaku, albo cofnij kolejkę.',
+  'rummytiles.remedy.playFromHandOrDraw':
+    'Samo przestawianie to nie kolejka — zagraj co najmniej jedną kostkę z ręki albo dobierz.',
+  'rummytiles.remedy.fixOrReset':
+    'Każdy układ na stole musi być poprawną grupą albo sekwencją — popraw je albo cofnij kolejkę.',
+  'rummytiles.remedy.needMorePoints': 'Twojemu pierwszemu wyłożeniu brakuje {n} punktów do {floor}.',
+  'rummytiles.remedy.ownNewSetsOnly':
+    'Do swojego pierwszego wyłożenia na {n} punktów możesz przestawiać tylko układy stworzone w tej kolejce.',
+  'rummytiles.remedy.startANewSet': 'Włóż ją zamiast tego do nowego układu.',
+  'rummytiles.remedy.splitLeavesThree':
+    'Podziel sekwencję tak, żeby obu połówkom zostały co najmniej {n} kostki.',
+  'rummytiles.remedy.matchTheJoker': 'Wymień jokera dokładnie na tę kostkę, którą zastępuje.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Pula {n}',
   'rummytiles.header.round': 'Runda {n}',
@@ -663,6 +753,19 @@ export const pl: Record<string, string> = {
   'blackjack.rules.mostChipsWins': 'Kto na koniec ma najwięcej żetonów, wygrywa mecz.',
   'blackjack.rules.bustedOut':
     'Miejsce, które nie jest już w stanie pokryć minimum {n}, pauzuje do końca meczu.',
+  'blackjack.rules.roundOrder':
+    'Runda idzie po kolei: zakłady, rozdanie kart, ubezpieczenie gdy krupier pokazuje asa, a potem każde miejsce gra swoją rękę po kolei.',
+  'blackjack.rules.oneStakePerRound': 'Jeden zakład na rundę — raz postawiony, nie zmienia się.',
+  'blackjack.rules.stakeFromStack': 'Możesz postawić tylko żetony, które faktycznie masz.',
+  'blackjack.remedy.putAStakeUp': 'Najpierw postaw zakład — {n} lub więcej.',
+  'blackjack.remedy.answerInsurance': 'Najpierw odpowiedz tak albo nie na ubezpieczenie.',
+  'blackjack.remedy.playThisHand': 'Zagraj rękę przed sobą — dobierz albo zostań.',
+  'blackjack.remedy.stakeIsUp': 'Twój zakład już stoi — poczekaj na rozdanie.',
+  'blackjack.remedy.stakeAtLeast': 'Postaw co najmniej {n}.',
+  'blackjack.remedy.stakeAtMost': 'Postaw najwyżej {n} — tyle masz wszystkich żetonów.',
+  'blackjack.remedy.sayHowMuch': 'Powiedz, ile stawiasz — {n} lub więcej.',
+  'blackjack.remedy.hitOrStand': 'Dobierz albo zostań.',
+  'blackjack.remedy.waitForNextRound': 'Nie ma cię w tej rundzie — poczekaj na następne rozdanie.',
 
   'blackjack.zone.dealer': 'Krupier',
   'blackjack.zone.box': 'Rozdanie',

@@ -5,7 +5,7 @@
 export const hr: Record<string, string> = {
   // --- engine error codes (rules.RulesErrorCode) ---------------------------
   'err.NOT_YOUR_TURN': 'Nisi ti na redu',
-  'err.WRONG_PHASE': 'Trenutno nije moguće',
+  'err.WRONG_PHASE': 'Ne u ovom dijelu poteza',
   'err.MUST_DRAW_FIRST': 'Vuci kartu prije nego što spustiš',
   'err.GAME_SUSPENDED': 'Igra je pauzirana',
   'err.GAME_NOT_ACTIVE': 'Igra nije u tijeku',
@@ -127,11 +127,17 @@ export const hr: Record<string, string> = {
   'prsi.rules.aces': 'Odigraj asa i potez sljedećeg igrača se preskače.',
   'prsi.rules.queens': 'Odigraj damu i reci boju koja se nastavlja.',
   'prsi.rules.end': 'Meč završava u trenutku kad je nečija ruka prazna.',
+  'prsi.remedy.matchOrDraw': 'Odigraj kartu u boji {suit} ili onu koja pristaje na {card} — inače vuci.',
+  'prsi.remedy.answerSevenOrTake': 'Odgovori vlastitom sedmicom ili uzmi {n} karata.',
+  'prsi.remedy.playOrDraw': 'Ne čeka te nikakvo preskakanje — odigraj kartu u boji {suit} ili vuci.',
+  'prsi.remedy.nameASuit': 'Reci koja boja slijedi nakon tvoje dame.',
+  'prsi.remedy.nothingLeftToDraw': 'Nema se više što vući — odigraj kartu ako možeš.',
 
   'canasta.rules.section.goal': 'Cilj',
   'canasta.rules.section.setup': 'Priprema',
   'canasta.rules.section.melding': 'Spuštanje',
   'canasta.rules.section.end': 'Kako meč završava',
+  'canasta.rules.section.turn': 'Tvoj potez',
   'canasta.rules.goal': 'Igra se u parovima; prva strana koja dosegne {n} bodova pobjeđuje u meču.',
   'canasta.rules.deck': 'Igra se s {value} karata — {decks} špila plus džokeri.',
   'canasta.rules.deal': 'Svaki igrač dobiva {n} karata.',
@@ -151,6 +157,31 @@ export const hr: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Tvoje prvo spuštanje mora doseći bodovni minimum koji raste s tvojim rezultatom: {negative} ispod nule, {low} do 1500, {mid} do 3000, {high} iznad toga.',
   'canasta.rules.meldFloorBandsFive': 'Tvoja prva kombinacija mora dosegnuti bodovni minimum koji raste s tvojim rezultatom: {negative} ispod nule, {low} do 1500, {mid} do 3000, {high} do 7000 i {top} iznad toga.',
+  'canasta.rules.turn':
+    'Potez je jedno uzimanje u ruku — vučenje iz špila ili uzimanje cijele odbačene hrpe — zatim kombinacije koje želiš položiti, pa jedna odbačena karta.',
+  'canasta.rules.turnDiscard':
+    'Potez završava odbacivanjem, pa ti za to uvijek mora ostati jedna karta viška.',
+  'canasta.rules.pileTopCard':
+    'Odbačenu hrpu možeš uzeti samo potezom koji odmah iskoristi njezinu gornju kartu.',
+  'canasta.rules.pileBlocked':
+    'Crna trojka na vrhu blokira hrpu — nitko je ne smije uzeti dok trojka nije zatrpana — a ona koja ti ostane u ruci stoji {n}.',
+  'canasta.rules.pileFrozenByWild':
+    'Zakopana džoker karta zamrzava hrpu za sve: uzeti je tada stoji dvije prirodne karte iste vrijednosti kao gornja, iz tvoje ruke.',
+  'canasta.rules.meldShape': 'Kombinacija je {n} ili više karata iste vrijednosti.',
+  'canasta.rules.wildLimit':
+    'Kombinacija smije imati najviše {wilds} džoker karata i nikad manje od {naturals} prirodne.',
+  'canasta.rules.wildRatio':
+    'Kombinacija treba {n} prirodne karte na svaku džoker kartu i nikad više od {wilds} džokera ukupno.',
+  'canasta.rules.oneMeldPerRank':
+    'Tvoja strana drži jednu kombinaciju svake vrijednosti — daljnje karte te vrijednosti dodaju se na nju.',
+  'canasta.rules.meldsPerRankUnlimited': 'Tvoja strana može imati više kombinacija iste vrijednosti.',
+  'canasta.rules.canastaCloses': 'Canasta od {n} karata je gotova i više ne prima karte.',
+  'canasta.rules.meldsAreShared':
+    'Kombinacije pripadaju paru: svaki partner ih smije proširivati, a protivničke se ne diraju.',
+  'canasta.rules.layOffAfterOpening':
+    'Dok tvoja strana ne položi svoju prvu kombinaciju, ne smije ništa na stolu dopunjavati.',
+  'canasta.rules.goOutKeepsACard':
+    'Uvijek moraš moći dovršiti svoj potez, pa nikad ne izlažeš cijelu ruku osim ako je to potez kojim izlaziš.',
   'canasta.rules.oneCanastaToGoOut': 'Jedna dovršena canasta dovoljna je da tvoja strana izađe.',
   'canasta.rules.twoCanastasToGoOut':
     'Tvojoj strani trebaju dvije dovršene canaste prije nego što smije izaći.',
@@ -170,6 +201,19 @@ export const hr: Record<string, string> = {
   'holdem.rules.lastPlayerStanding': 'Igra se dok jedno mjesto ne drži sve žetone.',
   'holdem.rules.mostChipsWins': 'Tko na kraju igre ima najviše žetona, pobjeđuje u meču.',
   'holdem.rules.handLimit': 'Igra se zaustavlja nakon {n} dijeljenja.',
+  'holdem.rules.checkOrCall':
+    'Provjeriti smiješ samo kad ništa ne duguješ; inače plaćaš, podižeš ili odustaješ.',
+  'holdem.rules.minRaise': 'Podizanje mora biti barem jednako veliko kao prethodno.',
+  'holdem.rules.allIn':
+    'Nikad ne možeš uložiti više od svog stoga, a all-in je uvijek dopušten — čak i kad je manji od punog podizanja.',
+  'holdem.rules.foldedOut': 'Kad jednom odustaneš, vani si do sljedećeg dijeljenja.',
+  'holdem.remedy.callOrFold': 'Duguješ {n} — plati, podigni ili odustani.',
+  'holdem.remedy.checkOrRaise': 'Ništa se ne duguje — provjeri ili podigni.',
+  'holdem.remedy.callAllInOrFold': 'Tvoj stog neće preko uloga — plati {n} all-in ili odustani.',
+  'holdem.remedy.raiseAtLeast': 'Podigni barem na {n}.',
+  'holdem.remedy.raiseAtMost': 'Podigni najviše na {n} — to je cijeli tvoj stog.',
+  'holdem.remedy.nameAnAmount': 'Reci na koliko podižeš — između {min} i {max}.',
+  'holdem.remedy.waitForNextHand': 'Izvan si ove ruke — pričekaj sljedeće dijeljenje.',
 
   // --- header --------------------------------------------------------------
   'header.deal': 'Dijeljenje {n}',
@@ -279,12 +323,14 @@ export const hr: Record<string, string> = {
   'err.CARD_DOES_NOT_FIT': 'Ta karta ne odgovara ni po boji ni po vrijednosti',
   'err.SUIT_REQUIRED': 'Reci boju koja se nastavlja',
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Odgovori sedmicom ili uzmi karte',
+  'err.NOTHING_TO_SKIP': 'Nema reda za preskakanje',
   'err.NOTHING_TO_DRAW': 'Nije ostalo ništa za vučenje',
   'err.PILE_EMPTY': 'Hrpa je prazna',
   'err.PILE_BLOCKED': 'Hrpa je blokirana — na vrhu je crna trojka',
   'err.PILE_FROZEN': 'Hrpa je zamrznuta — trebaju ti dvije prirodne karte vrijednosti gornje karte',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'U ovoj igri kombinacija na stolu ne može uzeti hrpu — trebaju ti dvije karte iz ruke',
-  'err.TOP_CARD_UNUSABLE': 'Ne možeš upotrijebiti gornju kartu',
+  'err.CAPTURE_NEEDS_TWO_CARDS': 'Uzimanje hrpe stoji dvije karte iz tvoje ruke',
+  'err.TOP_CARD_UNUSABLE': 'Tvoja strana ne može iskoristiti gornju kartu',
   'err.MELD_CLOSED': 'Ta kombinacija je potpuna i zatvorena',
   'err.MELD_TOO_SMALL': 'Kombinaciji treba više karata od toga',
   'err.MELD_TOO_LARGE': 'Ta kombinacija ne može primiti više karata',
@@ -305,7 +351,7 @@ export const hr: Record<string, string> = {
   'err.CANNOT_GO_OUT_YET': 'Tvojoj strani treba dovršena canasta prije nego što može izaći',
   'err.NOTHING_TO_CALL': 'Nema uloga za praćenje',
   'err.CANNOT_CHECK': 'Ne možeš čekirati — postoji ulog na koji treba odgovoriti',
-  'err.CANNOT_RAISE': 'Ovdje ne možeš podizati',
+  'err.CANNOT_RAISE': 'Ne možeš podići — tvoj stog ne prelazi ulog',
   'err.RAISE_TOO_SMALL': 'Podizanje mora biti barem koliko i prethodno',
   'err.NOT_ENOUGH_CHIPS': 'Nemaš toliko žetona',
   'err.AMOUNT_REQUIRED': 'Reci koliko',
@@ -393,6 +439,27 @@ export const hr: Record<string, string> = {
   'status.teamScore': 'Ekipa {team}: {value}',
   'canasta.offer.rank': 'Vrijednost',
   'canasta.offer.sequence': 'Niz',
+  'canasta.remedy.drawOrTakePile': 'Prvo vuci iz špila ili uzmi odbačenu hrpu, pa tek onda polaži.',
+  'canasta.remedy.meldOrDiscard': 'Već si vukao — položi kombinaciju ili odbaci kartu da završiš potez.',
+  'canasta.remedy.drawFromStock': 'Umjesto toga vuci iz špila.',
+  'canasta.remedy.takePileInstead': 'Špil je prazan — umjesto toga uzmi odbačenu hrpu.',
+  'canasta.remedy.pileBlocked': 'Vuci iz špila — crna trojka na vrhu drži hrpu zatvorenom.',
+  'canasta.remedy.pileFrozen':
+    'Vuci iz špila ili uzmi hrpu s dvije prirodne karte iz ruke koje odgovaraju karti {card}.',
+  'canasta.remedy.topCardUnusable': 'Vuci iz špila — tvoja strana nema koristi od karte {card} na vrhu.',
+  'canasta.remedy.captureFromHand': 'Uzmi hrpu s dvije karte iz vlastite ruke koje odgovaraju karti {card}.',
+  'canasta.remedy.needTwoMatching':
+    'Trebaš dvije karte iz ruke koje odgovaraju karti {card} — inače vuci iz špila.',
+  'canasta.remedy.needMorePoints': 'Prvoj kombinaciji tvoje strane nedostaje {n} bodova.',
+  'canasta.remedy.openFirst': 'Položi prvu kombinaciju svoje strane prije nego što nešto dopunjuješ.',
+  'canasta.remedy.needCanastas': 'Tvojoj strani treba još {n} canasta od {size} karata da bi mogla izaći.',
+  'canasta.remedy.keepACard': 'Zadrži jednu kartu za odbacivanje.',
+  'canasta.remedy.layOffInstead': 'Dodaj ih kombinaciji koju tvoja strana već ima.',
+  'canasta.remedy.meldClosed':
+    'Ta je kombinacija gotova na {n} karata — počni drugu ili dopuni negdje drugdje.',
+  'canasta.remedy.discardNotARedThree': 'Odbaci nešto drugo osim crvene trojke.',
+  'canasta.remedy.blackThreesOnTheWayOut': 'Crne trojke izlažu se samo potezom kojim prazniš ruku.',
+  'canasta.remedy.ownMeldsOnly': 'Dopunjuj samo kombinacije vlastite strane.',
   'badge.naturalCanasta': 'Čista kanasta',
   'badge.mixedCanasta': 'Nečista kanasta',
   'badge.samba': 'Samba',
@@ -511,6 +578,10 @@ export const hr: Record<string, string> = {
   'ginrummy.rules.shutout': 'Bonus za meč udvostručuje se na {n} ako poraženi nije osvojio nijedan bod.',
   'ginrummy.rules.box': 'Svako dobiveno dijeljenje vrijedi {n} bodova na kraju meča.',
   'ginrummy.rules.gameBonus': 'Pobjeda u meču vrijedi dodatnih {n} bodova.',
+  'ginrummy.rules.upcardDance':
+    'Prije prvog vučenja okrenutu kartu smije uzeti onaj koji nije djelitelj, pa djelitelj; ako oboje propuste, nedjelitelj mora vući iz špila.',
+  'ginrummy.rules.knockOnDiscard':
+    'Kucanje zamjenjuje tvoje odbacivanje, pa se događa samo na kraju tvog poteza.',
   'ginrummy.fact.deadwood': 'deadwood {value}',
   'ginrummy.fact.discardCard': 'Odbaci {value}',
   'ginrummy.fact.meldCards': 'Na {value}',
@@ -532,6 +603,13 @@ export const hr: Record<string, string> = {
   'ginrummy.offer.bigGin': 'Big gin!',
   'ginrummy.offer.layOff': 'Prisloni',
   'ginrummy.offer.finishLayoff': 'Gotovo s prislanjanjem',
+  'ginrummy.remedy.takeOrPassUpcard': 'Uzmi okrenutu kartu ili je propusti.',
+  'ginrummy.remedy.drawFirst': 'Prvo vuci kartu — iz špila ili s odbačene hrpe.',
+  'ginrummy.remedy.discardToEndTurn': 'Odbaci jednu kartu da završiš potez.',
+  'ginrummy.remedy.finishLayoff': 'Ništa se više od tvojeg ne uklapa — završi dopunjavanje.',
+  'ginrummy.remedy.stockDrawForced': 'Obojica ste propustili tu kartu — vuci iz špila.',
+  'ginrummy.remedy.drawElsewhere': 'Ta je hrpa prazna — vuci s one druge.',
+  'ginrummy.remedy.getDeadwoodDown': 'Možeš kucnuti kad ti mrtvo drvo padne na {n} ili manje.',
   'ginrummy.zone.knockerHand': 'Ruka onoga tko je kucnuo',
   'ginrummy.zone.melds': 'Kombinacije',
   'ginrummy.prompt.upcardDecision': 'Uzmi okrenutu kartu ili propusti',
@@ -541,10 +619,10 @@ export const hr: Record<string, string> = {
 
   // --- rummy tiles -------------------------------------------------------------
   'err.TILE_NOT_IN_HAND': 'Ta pločica nije u tvojoj ruci',
-  'err.TILE_DOES_NOT_FIT': 'To tamo ne pristaje',
+  'err.TILE_DOES_NOT_FIT': 'Ta pločica ne pristaje u taj skup',
   'err.NO_SUCH_SET': 'Ta kombinacija nije na stolu',
   'err.INITIAL_MELD_ONLY': 'Prije prvog spuštanja smiješ presložiti samo vlastite nove kombinacije',
-  'err.TABLE_NOT_VALID': 'Stol još nije valjan',
+  'err.TABLE_NOT_VALID': 'Neki skup na stolu nije valjana grupa ni niz',
   'err.TRAY_NOT_EMPTY': 'Još imaš slobodnih pločica za postaviti',
   'err.NOTHING_PLAYED': 'Odigraj barem jednu pločicu prije nego što završiš potez',
   'err.INITIAL_MELD_TOO_LOW': 'Tvoje prvo spuštanje mora vrijediti 30 bodova ili više',
@@ -582,6 +660,17 @@ export const hr: Record<string, string> = {
     'Ako se zaliha potroši i nitko ne može igrati, runda završava bez pobjednika — svaka se ruka jednostavno boduje.',
   'rummytiles.rules.target': 'Tko prvi prijeđe {n} bodova nakon završetka runde, pobjeđuje u meču.',
   'rummytiles.rules.roundLimit': 'Meč završava nakon {n} rundi — pobjeđuje najviši rezultat.',
+  'rummytiles.remedy.emptyTheTray': 'Postavi {n} pločica koje su još u tvojoj ladici ili poništi potez.',
+  'rummytiles.remedy.playFromHandOrDraw':
+    'Preslagivanje nije potez — odigraj barem jednu pločicu iz ruke ili vuci.',
+  'rummytiles.remedy.fixOrReset':
+    'Svaki skup na stolu mora biti valjana grupa ili niz — popravi ih ili poništi potez.',
+  'rummytiles.remedy.needMorePoints': 'Tvojem prvom izlaganju nedostaje {n} bodova do {floor}.',
+  'rummytiles.remedy.ownNewSetsOnly':
+    'Dok ne izložiš prvih {n} bodova, smiješ preslagivati samo skupove koje si napravio u ovom potezu.',
+  'rummytiles.remedy.startANewSet': 'Umjesto toga stavi je u novi skup.',
+  'rummytiles.remedy.splitLeavesThree': 'Podijeli niz tako da obje polovice zadrže barem {n} pločice.',
+  'rummytiles.remedy.matchTheJoker': 'Zamijeni džokera točno onom pločicom koju predstavlja.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Zaliha {n}',
   'rummytiles.header.round': 'Runda {n}',
@@ -659,6 +748,19 @@ export const hr: Record<string, string> = {
   'blackjack.rules.mostChipsWins': 'Tko na kraju ima najviše žetona, pobjeđuje u meču.',
   'blackjack.rules.bustedOut':
     'Mjesto koje više ne može pokriti minimum od {n} sjedi po strani do kraja meča.',
+  'blackjack.rules.roundOrder':
+    'Runda ide redom: ulozi, dijeljenje karata, osiguranje ako djelitelj pokazuje asa, pa svako mjesto igra svoju ruku redom.',
+  'blackjack.rules.oneStakePerRound': 'Jedan ulog po rundi — kad je jednom položen, više se ne mijenja.',
+  'blackjack.rules.stakeFromStack': 'Uložiti možeš samo žetone koje doista imaš.',
+  'blackjack.remedy.putAStakeUp': 'Prvo položi ulog — {n} ili više.',
+  'blackjack.remedy.answerInsurance': 'Prvo reci da ili ne osiguranju.',
+  'blackjack.remedy.playThisHand': 'Odigraj ruku pred sobom — vuci ili stani.',
+  'blackjack.remedy.stakeIsUp': 'Tvoj je ulog već položen — pričekaj dijeljenje.',
+  'blackjack.remedy.stakeAtLeast': 'Uloži barem {n}.',
+  'blackjack.remedy.stakeAtMost': 'Uloži najviše {n} — to je cijeli tvoj stog.',
+  'blackjack.remedy.sayHowMuch': 'Reci koliko ulažeš — {n} ili više.',
+  'blackjack.remedy.hitOrStand': 'Vuci ili stani.',
+  'blackjack.remedy.waitForNextRound': 'Izvan si ove runde — pričekaj sljedeće dijeljenje.',
 
   'blackjack.zone.dealer': 'Djelitelj',
   'blackjack.zone.box': 'Ruka',

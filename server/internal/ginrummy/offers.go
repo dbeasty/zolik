@@ -41,20 +41,29 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		if s.Status != "active" {
 			why = ErrGameNotActive
 		}
-		return placeholderOffers(why), nil
+		return m.explained(s, placeholderOffers(why)), nil
 	}
 
 	switch s.Phase {
 	case phaseUpcardNonDealer, phaseUpcardDealer:
-		return m.upcardOffers(raw, s, playerID), nil
+		return m.explained(s, m.upcardOffers(raw, s, playerID)), nil
 	case phaseDraw:
-		return m.drawOffers(raw, s, playerID), nil
+		return m.explained(s, m.drawOffers(raw, s, playerID)), nil
 	case phaseDiscard:
-		return m.discardPhaseOffers(raw, s, playerID), nil
+		return m.explained(s, m.discardPhaseOffers(raw, s, playerID)), nil
 	case phaseLayoff:
-		return m.layoffOffers(raw, s, playerID), nil
+		return m.explained(s, m.layoffOffers(raw, s, playerID)), nil
 	}
-	return placeholderOffers(ErrGameNotActive), nil
+	return m.explained(s, placeholderOffers(ErrGameNotActive)), nil
+}
+
+// explained puts the reason, the rule and the way out on every disabled offer
+// before it leaves this package — see remedy.go. Wrapped around each branch
+// rather than applied at one exit because every branch is its own return, and
+// a phase added later that forgot the call would ship bare codes silently.
+func (m *Module) explained(s *GameState, offers []module.ActionOffer) []module.ActionOffer {
+	m.annotate(s, offers)
+	return offers
 }
 
 func placeholderOffers(why string) []module.ActionOffer {

@@ -5,7 +5,7 @@
 export const et: Record<string, string> = {
   // --- engine error codes (rules.RulesErrorCode) ---------------------------
   'err.NOT_YOUR_TURN': 'Praegu ei ole sinu kord',
-  'err.WRONG_PHASE': 'Praegu ei saa',
+  'err.WRONG_PHASE': 'Mitte selles käigu osas',
   'err.MUST_DRAW_FIRST': 'Tõmba kaart, enne kui välja paned',
   'err.GAME_SUSPENDED': 'Mäng on pausil',
   'err.GAME_NOT_ACTIVE': 'Mäng ei käi',
@@ -126,11 +126,18 @@ export const et: Record<string, string> = {
   'prsi.rules.aces': 'Mängi äss ja järgmise mängija käik jäetakse vahele.',
   'prsi.rules.queens': 'Mängi emand ja nimeta mast, mis jätkub.',
   'prsi.rules.end': 'Matš lõpeb hetkel, mil kellegi käsi on tühi.',
+  'prsi.remedy.matchOrDraw':
+    'Käi {suit} kaardiga või sellisega, mis sobib kaardile {card} — muidu võta kaart.',
+  'prsi.remedy.answerSevenOrTake': 'Vasta oma seitsmega või võta {n} kaarti.',
+  'prsi.remedy.playOrDraw': 'Sind ei oota ükski vahelejätmine — käi {suit} kaardiga või võta kaart.',
+  'prsi.remedy.nameASuit': 'Ütle, milline mast järgneb su emandale.',
+  'prsi.remedy.nothingLeftToDraw': 'Võtta pole enam midagi — käi kaardiga, kui saad.',
 
   'canasta.rules.section.goal': 'Eesmärk',
   'canasta.rules.section.setup': 'Ettevalmistus',
   'canasta.rules.section.melding': 'Väljapanek',
   'canasta.rules.section.end': 'Kuidas matš lõpeb',
+  'canasta.rules.section.turn': 'Sinu käik',
   'canasta.rules.goal': 'Mängitakse paarides; esimene pool, kes jõuab {n} punktini, võidab matši.',
   'canasta.rules.deck': 'Mängitakse {value} kaardiga — {decks} pakki pluss jokkerid.',
   'canasta.rules.deal': 'Iga mängija saab {n} kaarti.',
@@ -150,6 +157,30 @@ export const et: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Sinu esimene väljapanek peab ulatuma punktide alammäärani, mis kasvab koos su seisuga: {negative} alla nulli, {low} kuni 1500, {mid} kuni 3000, {high} sellest üle.',
   'canasta.rules.meldFloorBandsFive': 'Su esimene kombinatsioon peab ulatuma punktimiinimumini, mis kasvab koos su skooriga: {negative} alla nulli, {low} kuni 1500, {mid} kuni 3000, {high} kuni 7000 ja {top} üle selle.',
+  'canasta.rules.turn':
+    'Käik on üks liigutus sinu kätte — võta kaart pakist või võta kogu äraviskepakk — siis nii palju kombinatsioone kui soovid ja lõpuks üks äravisatud kaart.',
+  'canasta.rules.turnDiscard': 'Käik lõpeb äraviskamisega, seega peab sul selleks alati üks kaart üle jääma.',
+  'canasta.rules.pileTopCard':
+    'Äraviskepakki saab võtta ainult käiguga, mis kasutab selle pealmist kaarti kohe.',
+  'canasta.rules.pileBlocked':
+    'Must kolmik pealmisena blokeerib paki — keegi ei tohi seda võtta, kuni kolmik on maetud — ja kätte jäänud must kolmik maksab {n}.',
+  'canasta.rules.pileFrozenByWild':
+    'Pakki maetud jokker külmutab selle kõigi vastu: siis maksab paki võtmine kaks sinu enda käes olevat naturaalset kaarti pealmise kaardi väärtuses.',
+  'canasta.rules.meldShape': 'Kombinatsioon on {n} või rohkem sama väärtusega kaarti.',
+  'canasta.rules.wildLimit':
+    'Kombinatsioonis võib olla kuni {wilds} jokkerit ja mitte kunagi vähem kui {naturals} naturaalset kaarti.',
+  'canasta.rules.wildRatio':
+    'Kombinatsioon vajab iga jokkeri kohta {n} naturaalset kaarti ja kokku mitte üle {wilds} jokkeri.',
+  'canasta.rules.oneMeldPerRank':
+    'Sinu pool hoiab igast väärtusest üht kombinatsiooni — rohkem selle väärtusega kaarte pannakse selle külge.',
+  'canasta.rules.meldsPerRankUnlimited': 'Sinu poolel võib olla mitu sama väärtusega kombinatsiooni.',
+  'canasta.rules.canastaCloses': '{n}-kaardiline kanasta on valmis ja rohkem kaarte ei võta.',
+  'canasta.rules.meldsAreShared':
+    'Kombinatsioonid kuuluvad paarile: kumbki partner võib neid täiendada ja vastase omi ei puutu keegi.',
+  'canasta.rules.layOffAfterOpening':
+    'Kuni sinu pool pole oma avakombinatsiooni teinud, ei tohi ta lauale midagi juurde panna.',
+  'canasta.rules.goOutKeepsACard':
+    'Sa pead alati suutma oma käigu lõpetada, nii et ära pane kunagi kogu kätt lauale, kui see pole just väljaminev käik.',
   'canasta.rules.oneCanastaToGoOut': 'Üks valmis canasta piisab, et sinu pool välja läheks.',
   'canasta.rules.twoCanastasToGoOut': 'Sinu pool vajab kaht valmis canastat, enne kui tohib välja minna.',
   'canasta.rules.end': 'Jagatakse edasi, kuni üks pool ületab {n} punkti — siis on matš läbi.',
@@ -168,6 +199,20 @@ export const et: Record<string, string> = {
   'holdem.rules.lastPlayerStanding': 'Mängitakse, kuni üks koht hoiab kõiki žetoone.',
   'holdem.rules.mostChipsWins': 'Kellel on mängu lõppedes kõige rohkem žetoone, võidab matši.',
   'holdem.rules.handLimit': 'Mäng peatub {n} jagamise järel.',
+  'holdem.rules.checkOrCall':
+    'Passida tohid ainult siis, kui sa midagi ei võlgne; muidu maksa, tõsta või viska käsi ära.',
+  'holdem.rules.minRaise': 'Tõstmine peab olema vähemalt sama suur kui eelmine.',
+  'holdem.rules.allIn':
+    'Rohkem kui oma virna sa panustada ei saa ja all-in on alati lubatud — ka siis, kui see on täistõstmisest väiksem.',
+  'holdem.rules.foldedOut': 'Kui oled käe ära visanud, oled väljas kuni järgmise jagamiseni.',
+  'holdem.remedy.callOrFold': 'Sa võlgned {n} — maksa, tõsta või viska käsi ära.',
+  'holdem.remedy.checkOrRaise': 'Midagi ei võlgneta — passi või tõsta.',
+  'holdem.remedy.callAllInOrFold':
+    'Sinu virn panusest kõrgemale ei küüni — maksa {n} all-in või viska käsi ära.',
+  'holdem.remedy.raiseAtLeast': 'Tõsta vähemalt {n}-ni.',
+  'holdem.remedy.raiseAtMost': 'Tõsta kuni {n}-ni — see on kogu su virn.',
+  'holdem.remedy.nameAnAmount': 'Ütle, kui palju tõstad — {min} ja {max} vahel.',
+  'holdem.remedy.waitForNextHand': 'Sa oled sellest käest väljas — oota järgmist jagamist.',
 
   // --- header --------------------------------------------------------------
   'header.deal': 'Jagamine {n}',
@@ -277,12 +322,14 @@ export const et: Record<string, string> = {
   'err.CARD_DOES_NOT_FIT': 'See kaart ei sobi ei masti ega väärtuse poolest',
   'err.SUIT_REQUIRED': 'Nimeta mast, mis jätkub',
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Vasta seitsmega või võta kaardid',
+  'err.NOTHING_TO_SKIP': 'Vahele jätta pole midagi',
   'err.NOTHING_TO_DRAW': 'Tõmmata pole enam midagi',
   'err.PILE_EMPTY': 'Hunnik on tühi',
   'err.PILE_BLOCKED': 'Hunnik on blokeeritud — peal on must kolm',
   'err.PILE_FROZEN': 'Hunnik on külmutatud — vaja on kaht loomulikku pealmise kaardi väärtusega kaarti',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'Selles mängus ei saa laual olev kombinatsioon pakki võtta — vaja on kaht kaarti käest',
-  'err.TOP_CARD_UNUSABLE': 'Sa ei saa pealmist kaarti kasutada',
+  'err.CAPTURE_NEEDS_TWO_CARDS': 'Paki võtmine maksab kaks kaarti sinu käest',
+  'err.TOP_CARD_UNUSABLE': 'Sinu pool ei saa pealmist kaarti kasutada',
   'err.MELD_CLOSED': 'See kombinatsioon on täielik ja suletud',
   'err.MELD_TOO_SMALL': 'Kombinatsioon vajab rohkem kaarte kui see',
   'err.MELD_TOO_LARGE': 'See kombinatsioon ei mahuta rohkem kaarte',
@@ -304,7 +351,7 @@ export const et: Record<string, string> = {
   'err.CANNOT_GO_OUT_YET': 'Sinu pool vajab valmis canastat, enne kui saab välja minna',
   'err.NOTHING_TO_CALL': 'Pole ühtegi panust, mida maksta',
   'err.CANNOT_CHECK': 'Sa ei saa passida — laual on panus, millele vastata',
-  'err.CANNOT_RAISE': 'Siin sa tõsta ei saa',
+  'err.CANNOT_RAISE': 'Sa ei saa tõsta — sinu virn panusest kõrgemale ei küüni',
   'err.RAISE_TOO_SMALL': 'Tõstmine peab olema vähemalt eelmise suurune',
   'err.NOT_ENOUGH_CHIPS': 'Sul pole nii palju žetoone',
   'err.AMOUNT_REQUIRED': 'Ütle, kui palju',
@@ -393,6 +440,30 @@ export const et: Record<string, string> = {
   'status.teamScore': 'Meeskond {team}: {value}',
   'canasta.offer.rank': 'Väärtus',
   'canasta.offer.sequence': 'Jada',
+  'canasta.remedy.drawOrTakePile': 'Enne kombinatsioonide panekut võta kaart pakist või võta äraviskepakk.',
+  'canasta.remedy.meldOrDiscard':
+    'Sa juba võtsid kaardi — pane kombinatsioon või viska kaart ära ja lõpeta käik.',
+  'canasta.remedy.drawFromStock': 'Võta selle asemel kaart pakist.',
+  'canasta.remedy.takePileInstead': 'Pakk on tühi — võta selle asemel äraviskepakk.',
+  'canasta.remedy.pileBlocked': 'Võta kaart pakist — pealmine must kolmik hoiab äraviskepaki suletuna.',
+  'canasta.remedy.pileFrozen':
+    'Võta kaart pakist või võta pakk kahe naturaalse käes oleva kaardiga, mis sobivad kaardile {card}.',
+  'canasta.remedy.topCardUnusable':
+    'Võta kaart pakist — sinu pool ei saa pealmise kaardiga {card} midagi peale hakata.',
+  'canasta.remedy.captureFromHand': 'Võta pakk kahe oma käes oleva kaardiga, mis sobivad kaardile {card}.',
+  'canasta.remedy.needTwoMatching':
+    'Sul on vaja kaks käes olevat kaarti, mis sobivad kaardile {card} — muidu võta kaart pakist.',
+  'canasta.remedy.needMorePoints': 'Sinu poole esimesest kombinatsioonist jääb puudu {n} punkti.',
+  'canasta.remedy.openFirst': 'Pane enne juurdepanemist oma poole esimene kombinatsioon välja.',
+  'canasta.remedy.needCanastas': 'Sinu poolel on väljaminekuks vaja veel {n} kanastat à {size} kaarti.',
+  'canasta.remedy.keepACard': 'Jäta üks kaart äraviskamiseks alles.',
+  'canasta.remedy.layOffInstead': 'Pane need kombinatsiooni juurde, mis sinu poolel juba on.',
+  'canasta.remedy.meldClosed':
+    'See kombinatsioon on {n} kaardi juures valmis — alusta uut või pane mujale juurde.',
+  'canasta.remedy.discardNotARedThree': 'Viska ära midagi muud kui punane kolmik.',
+  'canasta.remedy.blackThreesOnTheWayOut':
+    'Mustad kolmikud lähevad lauale ainult käiguga, mis su käe tühjaks teeb.',
+  'canasta.remedy.ownMeldsOnly': 'Pane juurde ainult oma poole kombinatsioonidele.',
   'badge.naturalCanasta': 'Puhas kanasta',
   'badge.mixedCanasta': 'Segakanasta',
   'badge.samba': 'Samba',
@@ -510,6 +581,9 @@ export const et: Record<string, string> = {
   'ginrummy.rules.shutout': 'Matšiboonus kahekordistub {n} punktini, kui kaotaja ei saanud ühtegi punkti.',
   'ginrummy.rules.box': 'Iga võidetud jagamine on matši lõpus väärt {n} punkti.',
   'ginrummy.rules.gameBonus': 'Matši võitmine annab veel {n} punkti.',
+  'ginrummy.rules.upcardDance':
+    'Enne esimest võttu võib avatud kaardi võtta mittejagaja, siis jagaja; kui mõlemad loobuvad, peab mittejagaja võtma kaardi pakist.',
+  'ginrummy.rules.knockOnDiscard': 'Koputus asendab su äraviset, seega saab see toimuda ainult käigu lõpus.',
   'ginrummy.fact.deadwood': '{value} deadwoodi',
   'ginrummy.fact.discardCard': 'Viska ära {value}',
   'ginrummy.fact.meldCards': 'Kombinatsiooni {value}',
@@ -531,6 +605,14 @@ export const et: Record<string, string> = {
   'ginrummy.offer.bigGin': 'Big gin!',
   'ginrummy.offer.layOff': 'Pane külge',
   'ginrummy.offer.finishLayoff': 'Külgepanek tehtud',
+  'ginrummy.remedy.takeOrPassUpcard': 'Võta avatud kaart või jäta see võtmata.',
+  'ginrummy.remedy.drawFirst': 'Võta kõigepealt kaart — pakist või äraviskepakist.',
+  'ginrummy.remedy.discardToEndTurn': 'Viska käigu lõpetamiseks üks kaart ära.',
+  'ginrummy.remedy.finishLayoff': 'Rohkem su kaarte siia ei sobi — lõpeta juurdepanek.',
+  'ginrummy.remedy.stockDrawForced': 'Te mõlemad jätsite selle kaardi võtmata — võta kaart pakist.',
+  'ginrummy.remedy.drawElsewhere': 'See pakk on tühi — võta teisest.',
+  'ginrummy.remedy.getDeadwoodDown':
+    'Koputada saad, kui su üleliigsete kaartide väärtus langeb {n} peale või alla selle.',
   'ginrummy.zone.knockerHand': 'Koputaja käsi',
   'ginrummy.zone.melds': 'Kombinatsioonid',
   'ginrummy.prompt.upcardDecision': 'Võta lahtine kaart või passi',
@@ -540,10 +622,10 @@ export const et: Record<string, string> = {
 
   // --- rummy tiles -------------------------------------------------------------
   'err.TILE_NOT_IN_HAND': 'Seda kivi pole sinu käes',
-  'err.TILE_DOES_NOT_FIT': 'See sinna ei sobi',
+  'err.TILE_DOES_NOT_FIT': 'See klots ei sobi sellesse komplekti',
   'err.NO_SUCH_SET': 'Seda kombinatsiooni pole laual',
   'err.INITIAL_MELD_ONLY': 'Enne esimest väljapanekut tohid ümber tõsta ainult oma uusi kombinatsioone',
-  'err.TABLE_NOT_VALID': 'Laud ei ole veel kehtiv',
+  'err.TABLE_NOT_VALID': 'Mõni komplekt laual pole kehtiv grupp ega rida',
   'err.TRAY_NOT_EMPTY': 'Sul on veel vabu kive paigutada',
   'err.NOTHING_PLAYED': 'Mängi välja vähemalt üks kivi, enne kui oma käigu lõpetad',
   'err.INITIAL_MELD_TOO_LOW': 'Sinu esimene väljapanek peab olema väärt vähemalt 30 punkti',
@@ -581,6 +663,17 @@ export const et: Record<string, string> = {
     'Kui varu saab otsa ja keegi ei saa mängida, lõpeb voor võitjata — iga käsi lihtsalt arvestatakse.',
   'rummytiles.rules.target': 'Kes vooru lõppedes esimesena ületab {n} punkti, võidab matši.',
   'rummytiles.rules.roundLimit': 'Matš lõpeb {n} vooru järel — võidab kõrgeim tulemus.',
+  'rummytiles.remedy.emptyTheTray': 'Pane kohale {n} klotsi, mis on veel alusel, või lähtesta käik.',
+  'rummytiles.remedy.playFromHandOrDraw':
+    'Ümberpaigutamine pole käik — pane vähemalt üks klots oma käest või võta klots.',
+  'rummytiles.remedy.fixOrReset':
+    'Iga komplekt laual peab olema kehtiv grupp või rida — paranda need või lähtesta käik.',
+  'rummytiles.remedy.needMorePoints': 'Sinu esimesest väljapanekust jääb {floor} punktini puudu {n}.',
+  'rummytiles.remedy.ownNewSetsOnly':
+    'Kuni oma esimese {n} punkti väljapanekuni tohid ümber paigutada ainult sel käigul tehtud komplekte.',
+  'rummytiles.remedy.startANewSet': 'Pane see hoopis uude komplekti.',
+  'rummytiles.remedy.splitLeavesThree': 'Jaga rida nii, et mõlemale poolele jääks vähemalt {n} klotsi.',
+  'rummytiles.remedy.matchTheJoker': 'Vaheta jokker täpselt selle klotsi vastu, mida ta asendab.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Varu {n}',
   'rummytiles.header.round': 'Voor {n}',
@@ -659,6 +752,19 @@ export const et: Record<string, string> = {
   'blackjack.rules.mostChipsWins': 'Kellel on lõpuks kõige rohkem žetoone, võidab matši.',
   'blackjack.rules.bustedOut':
     'Koht, mis enam {n} alammäära katta ei suuda, jääb ülejäänud matši ajaks kõrvale.',
+  'blackjack.rules.roundOrder':
+    'Ring käib järjekorras: panused, kaartide jagamine, kindlustus kui diiler näitab ässa, siis mängib iga koht oma käe.',
+  'blackjack.rules.oneStakePerRound': 'Üks panus ringi kohta — kui see on tehtud, ei saa seda muuta.',
+  'blackjack.rules.stakeFromStack': 'Panustada saad ainult žetoone, mis sul tegelikult on.',
+  'blackjack.remedy.putAStakeUp': 'Tee kõigepealt panus — {n} või rohkem.',
+  'blackjack.remedy.answerInsurance': 'Ütle kõigepealt kindlustusele jah või ei.',
+  'blackjack.remedy.playThisHand': 'Mängi enda ees olevat kätt — võta kaart või jää.',
+  'blackjack.remedy.stakeIsUp': 'Sinu panus on juba tehtud — oota jagamist.',
+  'blackjack.remedy.stakeAtLeast': 'Panusta vähemalt {n}.',
+  'blackjack.remedy.stakeAtMost': 'Panusta kuni {n} — see on kogu su virn.',
+  'blackjack.remedy.sayHowMuch': 'Ütle, kui palju panustad — {n} või rohkem.',
+  'blackjack.remedy.hitOrStand': 'Võta kaart või jää.',
+  'blackjack.remedy.waitForNextRound': 'Sa oled sellest ringist väljas — oota järgmist jagamist.',
 
   'blackjack.zone.dealer': 'Jagaja',
   'blackjack.zone.box': 'Käsi',
