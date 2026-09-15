@@ -44,12 +44,17 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		if s.Status != "active" {
 			why = ErrGameNotActive
 		}
-		return []module.ActionOffer{
+		waiting := []module.ActionOffer{
 			{ID: OfferFold, Verb: VerbFold, WhyNot: why},
 			{ID: OfferCheck, Verb: VerbCheck, WhyNot: why},
 			{ID: OfferCall, Verb: VerbCall, WhyNot: why},
 			{ID: OfferRaise, Verb: VerbRaise, WhyNot: why},
-		}, nil
+		}
+		// No seat to read a figure off, so these get the rule and no remedy —
+		// which is right: there is nothing to press while somebody else is
+		// deciding.
+		m.annotate(configOf(s), s, s.seat(playerID), waiting)
+		return waiting, nil
 	}
 
 	seat := &s.Seats[s.Current]
@@ -99,6 +104,10 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	}
 	offers = append(offers, raise)
 
+	// Why each disabled offer is disabled, in terms a player can act on: the
+	// written rule behind the refusal, and the figure that makes it
+	// actionable — see remedy.go.
+	m.annotate(configOf(s), s, seat, offers)
 	return offers, nil
 }
 

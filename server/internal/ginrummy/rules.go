@@ -19,9 +19,16 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 			module.Fact{LabelKey: "ginrummy.rules.deck", Value: "52"},
 			module.Fact{LabelKey: "ginrummy.rules.deal", Value: "10"},
 			module.Fact{LabelKey: "ginrummy.rules.upcard"},
+			// The opening dance, written down because it is the one part of
+			// this game whose refusals are otherwise unreadable: a player who
+			// passed the upcard and then reaches for the discard pile is told
+			// UPCARD_DECLINED, which explains nothing unless the sequence is
+			// stated somewhere they can read it.
+			module.Fact{LabelKey: "ginrummy.rules.upcardDance"},
 		),
 		module.Section("ginrummy.rules.turn",
 			module.Fact{LabelKey: "ginrummy.rules.drawDiscard"},
+			module.Fact{LabelKey: "ginrummy.rules.knockOnDiscard"},
 		),
 		module.Section("ginrummy.rules.melds",
 			module.Fact{LabelKey: "ginrummy.rules.setsAndRuns"},

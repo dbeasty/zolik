@@ -40,9 +40,65 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 		})
 	}
 
+	// How a turn is shaped, and what each part of it costs.
+	//
+	// This section exists because of the refusals rather than in spite of them.
+	// Three quarters of what this engine can say no to is about *when* — you
+	// have not drawn, you have already drawn, the pile is shut for a reason
+	// that is nowhere on screen — and a code on its own ("WRONG_PHASE") is a
+	// refusal a player cannot act on. ruleindex.go points those at the
+	// sentences below, so the explanation a player reads is this table's own
+	// rule rather than a second wording of it kept somewhere else.
+	turn := []module.Fact{
+		{LabelKey: "canasta.rules.turn"},
+		{LabelKey: "canasta.rules.turnDiscard"},
+		{LabelKey: "canasta.rules.pileTopCard"},
+		{LabelKey: "canasta.rules.pileBlocked", Params: map[string]any{"n": blackThreeValue}},
+	}
+	// A pile frozen by a buried wild is a rule of every variation except the
+	// one whose pile is frozen all deal anyway — there, the sentence above in
+	// the melding section already says the whole of it, and stating both would
+	// have a player reading about a thaw that never comes.
+	if !v.PileAlwaysFrozen {
+		turn = append(turn, module.Fact{LabelKey: "canasta.rules.pileFrozenByWild"})
+	}
+
 	melding := []module.Fact{
+		{LabelKey: "canasta.rules.meldShape", Params: map[string]any{"n": minMeldSize}},
 		{LabelKey: "canasta.rules.canasta", Params: map[string]any{"n": canastaSize}},
 	}
+	// The wild limits, in whichever of the two shapes this variation states
+	// them. Samba's is a ratio — twice as many naturals as wilds — and reading
+	// it as an absolute floor is how a player ends up believing a two-wild
+	// meld needs two naturals when it needs four.
+	if v.NaturalsPerWild > 0 {
+		melding = append(melding, module.Fact{
+			LabelKey: "canasta.rules.wildRatio",
+			Params:   map[string]any{"n": v.NaturalsPerWild, "wilds": v.MaxWilds},
+		})
+	} else {
+		melding = append(melding, module.Fact{
+			LabelKey: "canasta.rules.wildLimit",
+			Params:   map[string]any{"wilds": v.MaxWilds, "naturals": v.MinNaturals},
+		})
+	}
+	// One meld per rank is the rule a player meets as "you already have that
+	// rank down" — which reads as an error rather than as a rule unless the
+	// rule is written somewhere. Samba caps nothing, and says so.
+	if v.GroupsPerRank == 1 {
+		melding = append(melding, module.Fact{LabelKey: "canasta.rules.oneMeldPerRank"})
+	} else {
+		melding = append(melding, module.Fact{LabelKey: "canasta.rules.meldsPerRankUnlimited"})
+	}
+	if v.GroupCanastaCloses {
+		melding = append(melding, module.Fact{
+			LabelKey: "canasta.rules.canastaCloses", Params: map[string]any{"n": canastaSize},
+		})
+	}
+	melding = append(melding,
+		module.Fact{LabelKey: "canasta.rules.meldsAreShared"},
+		module.Fact{LabelKey: "canasta.rules.layOffAfterOpening"},
+	)
 	if v.Sequences {
 		melding = append(melding,
 			module.Fact{LabelKey: "canasta.rules.sequences"},
@@ -97,9 +153,11 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 			module.Fact{LabelKey: "canasta.rules.goal", Params: map[string]any{"n": targetScore}},
 		),
 		module.Section("canasta.rules.section.setup", setup...),
+		module.Section("canasta.rules.section.turn", turn...),
 		module.Section("canasta.rules.section.melding", melding...),
 		module.Section("canasta.rules.section.end",
 			module.Fact{LabelKey: goOutKey},
+			module.Fact{LabelKey: "canasta.rules.goOutKeepsACard"},
 			module.Fact{LabelKey: "canasta.rules.end", Params: map[string]any{"n": targetScore}},
 		),
 	}, nil

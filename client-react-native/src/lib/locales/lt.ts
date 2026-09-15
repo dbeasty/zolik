@@ -5,7 +5,7 @@
 export const lt: Record<string, string> = {
   // --- engine error codes (rules.RulesErrorCode) ---------------------------
   'err.NOT_YOUR_TURN': 'Ne tavo eilė',
-  'err.WRONG_PHASE': 'Šiuo metu negalima',
+  'err.WRONG_PHASE': 'Ne šioje ėjimo vietoje',
   'err.MUST_DRAW_FIRST': 'Prieš išdėdamas paimk kortą',
   'err.GAME_SUSPENDED': 'Žaidimas pristabdytas',
   'err.GAME_NOT_ACTIVE': 'Žaidimas nevyksta',
@@ -126,11 +126,17 @@ export const lt: Record<string, string> = {
   'prsi.rules.aces': 'Sužaisk tūzą ir kito žaidėjo ėjimas praleidžiamas.',
   'prsi.rules.queens': 'Sužaisk damą ir pasakyk rūšį, kuri tęsiasi.',
   'prsi.rules.end': 'Rungtynės baigiasi tą akimirką, kai kieno nors ranka tuščia.',
+  'prsi.remedy.matchOrDraw': 'Išeik {suit} korta arba tokia, kuri tinka prie {card} — kitaip imk kortą.',
+  'prsi.remedy.answerSevenOrTake': 'Atsakyk savo septynetu arba pasiimk {n} kortas.',
+  'prsi.remedy.playOrDraw': 'Tavęs nelaukia joks praleidimas — išeik {suit} korta arba imk kortą.',
+  'prsi.remedy.nameASuit': 'Pasakyk, kuri rūšis eina po tavo damos.',
+  'prsi.remedy.nothingLeftToDraw': 'Nebėra ką imti — išeik korta, jei gali.',
 
   'canasta.rules.section.goal': 'Tikslas',
   'canasta.rules.section.setup': 'Pasiruošimas',
   'canasta.rules.section.melding': 'Išdėjimas',
   'canasta.rules.section.end': 'Kaip baigiasi rungtynės',
+  'canasta.rules.section.turn': 'Tavo ėjimas',
   'canasta.rules.goal': 'Žaidžiama poromis; pirmoji pusė, pasiekusi {n} taškų, laimi rungtynes.',
   'canasta.rules.deck': 'Žaidžiama {value} kortomis — {decks} kaladės ir džokeriai.',
   'canasta.rules.deal': 'Kiekvienas žaidėjas gauna {n} kortų.',
@@ -150,6 +156,30 @@ export const lt: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Tavo pirmas išdėjimas turi pasiekti taškų minimumą, kuris auga kartu su tavo rezultatu: {negative} žemiau nulio, {low} iki 1500, {mid} iki 3000, {high} virš to.',
   'canasta.rules.meldFloorBandsFive': 'Tavo pirmasis derinys turi pasiekti taškų minimumą, kuris auga kartu su rezultatu: {negative} žemiau nulio, {low} iki 1500, {mid} iki 3000, {high} iki 7000 ir {top} virš to.',
+  'canasta.rules.turn':
+    'Ėjimas — vienas kortų paėmimas į ranką: imi iš malkos arba pasiimi visą numestų kortų krūvą; tada dedi kombinacijas, kokias nori, ir galiausiai numeti vieną kortą.',
+  'canasta.rules.turnDiscard': 'Ėjimą užbaigia numetimas, todėl tam visada turi likti viena korta.',
+  'canasta.rules.pileTopCard':
+    'Numestų kortų krūvą galima paimti tik ėjimu, kuris iškart panaudoja jos viršutinę kortą.',
+  'canasta.rules.pileBlocked':
+    'Juodas trejetas viršuje užblokuoja krūvą — niekas jos negali imti, kol trejetas nepalaidotas — o rankoje likęs kainuoja {n}.',
+  'canasta.rules.pileFrozenByWild':
+    'Krūvoje palaidota laukinė korta užšaldo ją visiems: tada jos paėmimas kainuoja dvi natūralias viršutinės kortos vertės kortas iš tavo rankos.',
+  'canasta.rules.meldShape': 'Kombinacija — {n} ar daugiau tos pačios vertės kortų.',
+  'canasta.rules.wildLimit':
+    'Kombinacijoje gali būti daugiausia {wilds} laukinės kortos ir niekada mažiau nei {naturals} natūralios.',
+  'canasta.rules.wildRatio':
+    'Kombinacijai reikia {n} natūralių kortų kiekvienai laukinei ir iš viso ne daugiau kaip {wilds} laukinių.',
+  'canasta.rules.oneMeldPerRank':
+    'Tavo pusė laiko po vieną kiekvienos vertės kombinaciją — kitos tos vertės kortos dedamos prie jos.',
+  'canasta.rules.meldsPerRankUnlimited': 'Tavo pusė gali turėti kelias tos pačios vertės kombinacijas.',
+  'canasta.rules.canastaCloses': '{n} kortų kanasta baigta ir daugiau kortų nepriima.',
+  'canasta.rules.meldsAreShared':
+    'Kombinacijos priklauso porai: jas gali plėsti bet kuris partneris, o varžovų kombinacijų neliečia niekas.',
+  'canasta.rules.layOffAfterOpening':
+    'Kol tavo pusė nepadėjo savo pirmosios kombinacijos, ji negali nieko ant stalo papildyti.',
+  'canasta.rules.goOutKeepsACard':
+    'Visada turi galėti užbaigti savo ėjimą, tad niekada neišdėliok visos rankos, nebent tai kaip tik išėjimo ėjimas.',
   'canasta.rules.oneCanastaToGoOut': 'Vienos užbaigtos kanastos pakanka, kad tavo pusė išeitų.',
   'canasta.rules.twoCanastasToGoOut': 'Tavo pusei reikia dviejų užbaigtų kanastų, kad galėtų išeiti.',
   'canasta.rules.end': 'Dalijama toliau, kol viena pusė peržengia {n} taškų — tada rungtynės baigtos.',
@@ -169,6 +199,19 @@ export const lt: Record<string, string> = {
   'holdem.rules.lastPlayerStanding': 'Žaidžiama, kol viena vieta turi visus žetonus.',
   'holdem.rules.mostChipsWins': 'Kas turi daugiausia žetonų, kai žaidimas sustoja, laimi rungtynes.',
   'holdem.rules.handLimit': 'Žaidimas sustoja po {n} dalijimų.',
+  'holdem.rules.checkOrCall':
+    'Praleisti gali tik tada, kai nieko neskolingas; kitaip lygink, kelk arba mesk.',
+  'holdem.rules.minRaise': 'Kėlimas turi būti bent toks pat didelis kaip ankstesnis.',
+  'holdem.rules.allIn':
+    'Niekada negali įdėti daugiau nei turi žetonų, o all-in visada leidžiamas — net jei jis mažesnis už pilną kėlimą.',
+  'holdem.rules.foldedOut': 'Metęs kortas lieki už žaidimo ribų iki kito dalijimo.',
+  'holdem.remedy.callOrFold': 'Skolingas esi {n} — lygink, kelk arba mesk.',
+  'holdem.remedy.checkOrRaise': 'Niekas neskolinga — praleisk arba kelk.',
+  'holdem.remedy.callAllInOrFold': 'Tavo žetonų nepakaks viršyti statymą — lygink {n} all-in arba mesk.',
+  'holdem.remedy.raiseAtLeast': 'Kelk bent iki {n}.',
+  'holdem.remedy.raiseAtMost': 'Kelk daugiausia iki {n} — tiek turi visų žetonų.',
+  'holdem.remedy.nameAnAmount': 'Pasakyk, iki kiek keli — nuo {min} iki {max}.',
+  'holdem.remedy.waitForNextHand': 'Iš šio dalijimo esi iškritęs — palauk kito.',
 
   // --- header --------------------------------------------------------------
   'header.deal': 'Dalijimas {n}',
@@ -277,12 +320,14 @@ export const lt: Record<string, string> = {
   'err.CARD_DOES_NOT_FIT': 'Ši korta nesutampa nei rūšimi, nei verte',
   'err.SUIT_REQUIRED': 'Pasakyk rūšį, kuri tęsiasi',
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Atsakyk septynetu arba pasiimk kortas',
+  'err.NOTHING_TO_SKIP': 'Nėra ko praleisti',
   'err.NOTHING_TO_DRAW': 'Nebeliko ko traukti',
   'err.PILE_EMPTY': 'Krūvelė tuščia',
   'err.PILE_BLOCKED': 'Krūvelė užblokuota — viršuje guli juodas trejetas',
   'err.PILE_FROZEN': 'Krūvelė užšaldyta — tau reikia dviejų natūralių viršutinės kortos vertės kortų',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'Šiame žaidime derinys ant stalo krūvelės paimti negali — reikia dviejų kortų iš rankos',
-  'err.TOP_CARD_UNUSABLE': 'Viršutinės kortos panaudoti negali',
+  'err.CAPTURE_NEEDS_TWO_CARDS': 'Krūvos paėmimas kainuoja dvi kortas iš tavo rankos',
+  'err.TOP_CARD_UNUSABLE': 'Tavo pusė negali panaudoti viršutinės kortos',
   'err.MELD_CLOSED': 'Šis derinys pilnas ir uždarytas',
   'err.MELD_TOO_SMALL': 'Deriniui reikia daugiau kortų nei tiek',
   'err.MELD_TOO_LARGE': 'Šis derinys daugiau kortų nebepriima',
@@ -304,7 +349,7 @@ export const lt: Record<string, string> = {
   'err.CANNOT_GO_OUT_YET': 'Tavo pusei reikia užbaigtos kanastos, kad galėtų išeiti',
   'err.NOTHING_TO_CALL': 'Nėra statymo, kurį reikėtų atsakyti',
   'err.CANNOT_CHECK': 'Negali praleisti — yra statymas, į kurį reikia atsakyti',
-  'err.CANNOT_RAISE': 'Čia kelti negali',
+  'err.CANNOT_RAISE': 'Kelti negali — tavo žetonų nepakaks viršyti statymą',
   'err.RAISE_TOO_SMALL': 'Kėlimas turi būti bent toks kaip ankstesnis',
   'err.NOT_ENOUGH_CHIPS': 'Tiek žetonų neturi',
   'err.AMOUNT_REQUIRED': 'Pasakyk kiek',
@@ -392,6 +437,27 @@ export const lt: Record<string, string> = {
   'status.teamScore': 'Komanda {team}: {value}',
   'canasta.offer.rank': 'Vertė',
   'canasta.offer.sequence': 'Seka',
+  'canasta.remedy.drawOrTakePile':
+    'Pirma imk iš malkos arba pasiimk numestų kortų krūvą, tik tada dėk kombinacijas.',
+  'canasta.remedy.meldOrDiscard': 'Jau ėmei kortą — dėk kombinaciją arba numesk kortą ir baik ėjimą.',
+  'canasta.remedy.drawFromStock': 'Verčiau imk iš malkos.',
+  'canasta.remedy.takePileInstead': 'Malka baigėsi — verčiau pasiimk numestų kortų krūvą.',
+  'canasta.remedy.pileBlocked': 'Imk iš malkos — juodas trejetas viršuje laiko krūvą uždarytą.',
+  'canasta.remedy.pileFrozen':
+    'Imk iš malkos arba pasiimk krūvą su dviem natūraliomis kortomis iš rankos, tinkančiomis prie {card}.',
+  'canasta.remedy.topCardUnusable': 'Imk iš malkos — tavo pusei viršutinė korta {card} nieko neduoda.',
+  'canasta.remedy.captureFromHand': 'Pasiimk krūvą su dviem savo rankos kortomis, tinkančiomis prie {card}.',
+  'canasta.remedy.needTwoMatching':
+    'Tau reikia dviejų rankos kortų, tinkančių prie {card} — kitaip imk iš malkos.',
+  'canasta.remedy.needMorePoints': 'Tavo pusės pirmajai kombinacijai trūksta {n} taškų.',
+  'canasta.remedy.openFirst': 'Padėk savo pusės pirmąją kombinaciją prieš papildydamas.',
+  'canasta.remedy.needCanastas': 'Tavo pusei prieš išeinant reikia dar {n} kanastų po {size} kortas.',
+  'canasta.remedy.keepACard': 'Pasilik vieną kortą numetimui.',
+  'canasta.remedy.layOffInstead': 'Pridėk jas prie kombinacijos, kurią tavo pusė jau turi.',
+  'canasta.remedy.meldClosed': 'Ši kombinacija baigta ties {n} kortomis — pradėk kitą arba papildyk kitur.',
+  'canasta.remedy.discardNotARedThree': 'Numesk ką nors kita, ne raudoną trejetą.',
+  'canasta.remedy.blackThreesOnTheWayOut': 'Juodi trejetai dedami tik tuo ėjimu, kuris ištuština tavo ranką.',
+  'canasta.remedy.ownMeldsOnly': 'Papildyk tik savo pusės kombinacijas.',
   'badge.naturalCanasta': 'Švari kanasta',
   'badge.mixedCanasta': 'Nešvari kanasta',
   'badge.samba': 'Samba',
@@ -510,6 +576,9 @@ export const lt: Record<string, string> = {
     'Rungtynių premija padvigubėja iki {n}, jei pralaimėjęs nesurinko nė vieno taško.',
   'ginrummy.rules.box': 'Kiekvienas laimėtas dalijimas rungtynių pabaigoje vertas {n} taškų.',
   'ginrummy.rules.gameBonus': 'Rungtynių laimėjimas duoda dar {n} taškų.',
+  'ginrummy.rules.upcardDance':
+    'Prieš pirmą ėmimą atverstą kortą gali paimti nedalijantis, paskui dalijantis; jei abu praleidžia, nedalijantis privalo imti iš malkos.',
+  'ginrummy.rules.knockOnDiscard': 'Beldimas pakeičia tavo numetimą, tad įvyksta tik ėjimo pabaigoje.',
   'ginrummy.fact.deadwood': 'deadwood {value}',
   'ginrummy.fact.discardCard': 'Atmesk {value}',
   'ginrummy.fact.meldCards': 'Prie {value}',
@@ -531,6 +600,14 @@ export const lt: Record<string, string> = {
   'ginrummy.offer.bigGin': 'Big gin!',
   'ginrummy.offer.layOff': 'Pridėti',
   'ginrummy.offer.finishLayoff': 'Pridėjimas baigtas',
+  'ginrummy.remedy.takeOrPassUpcard': 'Paimk atverstą kortą arba praleisk.',
+  'ginrummy.remedy.drawFirst': 'Pirma paimk kortą — iš malkos arba iš numestų kortų krūvos.',
+  'ginrummy.remedy.discardToEndTurn': 'Numesk vieną kortą ir baik ėjimą.',
+  'ginrummy.remedy.finishLayoff': 'Daugiau tavo kortų netinka — baik papildymą.',
+  'ginrummy.remedy.stockDrawForced': 'Judu abu praleidote tą kortą — imk iš malkos.',
+  'ginrummy.remedy.drawElsewhere': 'Ta krūva tuščia — imk iš kitos.',
+  'ginrummy.remedy.getDeadwoodDown':
+    'Belsti gali, kai tavo nepanaudotų kortų vertė nukrenta iki {n} ar mažiau.',
   'ginrummy.zone.knockerHand': 'Pabeldusiojo ranka',
   'ginrummy.zone.melds': 'Deriniai',
   'ginrummy.prompt.upcardDecision': 'Imk atverstą kortą arba praleisk',
@@ -540,10 +617,10 @@ export const lt: Record<string, string> = {
 
   // --- rummy tiles -------------------------------------------------------------
   'err.TILE_NOT_IN_HAND': 'Šios plytelės tavo rankoje nėra',
-  'err.TILE_DOES_NOT_FIT': 'Ten tai netinka',
+  'err.TILE_DOES_NOT_FIT': 'Ta plokštelė netinka į tą rinkinį',
   'err.NO_SUCH_SET': 'Šio derinio ant stalo nėra',
   'err.INITIAL_MELD_ONLY': 'Prieš pirmą išdėjimą gali pertvarkyti tik savo naujus derinius',
-  'err.TABLE_NOT_VALID': 'Stalas dar negalioja',
+  'err.TABLE_NOT_VALID': 'Kažkuris rinkinys ant stalo nėra galiojanti grupė ar eilė',
   'err.TRAY_NOT_EMPTY': 'Tau dar liko laisvų plytelių padėti',
   'err.NOTHING_PLAYED': 'Sužaisk bent vieną plytelę, prieš baigdamas ėjimą',
   'err.INITIAL_MELD_TOO_LOW': 'Tavo pirmas išdėjimas turi būti vertas bent 30 taškų',
@@ -582,6 +659,17 @@ export const lt: Record<string, string> = {
     'Jei atsargos baigiasi ir niekas negali žaisti, raundas baigiasi be laimėtojo — kiekviena ranka tiesiog suskaičiuojama.',
   'rummytiles.rules.target': 'Kas raundui pasibaigus pirmas peržengia {n} taškų, laimi rungtynes.',
   'rummytiles.rules.roundLimit': 'Rungtynės baigiasi po {n} raundų — laimi aukščiausias rezultatas.',
+  'rummytiles.remedy.emptyTheTray': 'Padėk {n} plokšteles, likusias dėkle, arba atstatyk ėjimą.',
+  'rummytiles.remedy.playFromHandOrDraw':
+    'Perdėliojimas — dar ne ėjimas: padėk bent vieną plokštelę iš rankos arba imk.',
+  'rummytiles.remedy.fixOrReset':
+    'Kiekvienas rinkinys ant stalo turi būti galiojanti grupė ar eilė — pataisyk juos arba atstatyk ėjimą.',
+  'rummytiles.remedy.needMorePoints': 'Tavo pirmajam išdėliojimui iki {floor} trūksta {n} taškų.',
+  'rummytiles.remedy.ownNewSetsOnly':
+    'Iki savo pirmojo {n} taškų išdėliojimo gali pertvarkyti tik šiame ėjime sukurtus rinkinius.',
+  'rummytiles.remedy.startANewSet': 'Verčiau įdėk ją į naują rinkinį.',
+  'rummytiles.remedy.splitLeavesThree': 'Skaidyk eilę taip, kad abiem dalims liktų bent {n} plokštelės.',
+  'rummytiles.remedy.matchTheJoker': 'Iškeisk džokerį būtent į tą plokštelę, kurią jis atstoja.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Atsargos {n}',
   'rummytiles.header.round': 'Raundas {n}',
@@ -660,6 +748,19 @@ export const lt: Record<string, string> = {
   'blackjack.rules.mostChipsWins': 'Kas pabaigoje turi daugiausia žetonų, laimi rungtynes.',
   'blackjack.rules.bustedOut':
     'Vieta, kuri nebepajėgia padengti {n} minimumo, likusias rungtynes praleidžia.',
+  'blackjack.rules.roundOrder':
+    'Ratas eina iš eilės: statymai, kortų dalijimas, draudimas jei dalintojas rodo tūzą, tada kiekviena vieta iš eilės žaidžia savo ranką.',
+  'blackjack.rules.oneStakePerRound': 'Vienas statymas per ratą — pastatytas jis nebekeičiamas.',
+  'blackjack.rules.stakeFromStack': 'Statyti gali tik tuos žetonus, kuriuos iš tikrųjų turi.',
+  'blackjack.remedy.putAStakeUp': 'Pirma pastatyk statymą — {n} ar daugiau.',
+  'blackjack.remedy.answerInsurance': 'Pirma pasakyk taip arba ne draudimui.',
+  'blackjack.remedy.playThisHand': 'Žaisk priešais save esančią ranką — imk kortą arba stok.',
+  'blackjack.remedy.stakeIsUp': 'Tavo statymas jau padarytas — palauk dalijimo.',
+  'blackjack.remedy.stakeAtLeast': 'Statyk bent {n}.',
+  'blackjack.remedy.stakeAtMost': 'Statyk daugiausia {n} — tiek turi visų žetonų.',
+  'blackjack.remedy.sayHowMuch': 'Pasakyk, kiek statai — {n} ar daugiau.',
+  'blackjack.remedy.hitOrStand': 'Imk kortą arba stok.',
+  'blackjack.remedy.waitForNextRound': 'Iš šio rato esi iškritęs — palauk kito dalijimo.',
 
   'blackjack.zone.dealer': 'Dalytojas',
   'blackjack.zone.box': 'Ranka',

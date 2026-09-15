@@ -5,7 +5,7 @@
 export const fi: Record<string, string> = {
   // --- engine error codes (rules.RulesErrorCode) ---------------------------
   'err.NOT_YOUR_TURN': 'Ei ole sinun vuorosi',
-  'err.WRONG_PHASE': 'Ei onnistu juuri nyt',
+  'err.WRONG_PHASE': 'Ei tässä vuoron vaiheessa',
   'err.MUST_DRAW_FIRST': 'Nosta kortti ennen kuin lasket',
   'err.GAME_SUSPENDED': 'Peli on tauolla',
   'err.GAME_NOT_ACTIVE': 'Peli ei ole käynnissä',
@@ -128,11 +128,17 @@ export const fi: Record<string, string> = {
   'prsi.rules.aces': 'Pelaa ässä, niin seuraavan pelaajan vuoro ohitetaan.',
   'prsi.rules.queens': 'Pelaa rouva ja nimeä maa, joka jatkuu.',
   'prsi.rules.end': 'Ottelu päättyy sillä hetkellä, kun jonkun käsi on tyhjä.',
+  'prsi.remedy.matchOrDraw': 'Pelaa {suit}-kortti tai sellainen, joka sopii korttiin {card} — muuten nosta.',
+  'prsi.remedy.answerSevenOrTake': 'Vastaa omalla seiskallasi tai ota {n} korttia.',
+  'prsi.remedy.playOrDraw': 'Sinulla ei ole väliin jäävää vuoroa — pelaa {suit}-kortti tai nosta.',
+  'prsi.remedy.nameASuit': 'Kerro, mikä maa seuraa rouvaasi.',
+  'prsi.remedy.nothingLeftToDraw': 'Nostettavaa ei ole enää — pelaa kortti, jos voit.',
 
   'canasta.rules.section.goal': 'Tavoite',
   'canasta.rules.section.setup': 'Valmistelu',
   'canasta.rules.section.melding': 'Laskeminen',
   'canasta.rules.section.end': 'Miten ottelu päättyy',
+  'canasta.rules.section.turn': 'Sinun vuorosi',
   'canasta.rules.goal': 'Pelataan pareittain; ensimmäisenä {n} pisteeseen yltävä puoli voittaa ottelun.',
   'canasta.rules.deck': 'Pelataan {value} kortilla — {decks} pakkaa ja jokerit.',
   'canasta.rules.deal': 'Jokainen pelaaja saa {n} korttia.',
@@ -152,6 +158,30 @@ export const fi: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Ensimmäisen laskusi on yllettävä pisterajaan, joka nousee pistetilanteesi mukana: {negative} alle nollan, {low} 1500:aan asti, {mid} 3000:een asti, {high} sen yli.',
   'canasta.rules.meldFloorBandsFive': 'Ensimmäisen yhdistelmäsi on yllettävä pisterajaan, joka nousee pistetilanteesi mukana: {negative} alle nollan, {low} 1500 asti, {mid} 3000 asti, {high} 7000 asti ja {top} sen yli.',
+  'canasta.rules.turn':
+    'Vuoro on yksi siirto käteesi — nosto pakasta tai koko poistopakan ottaminen — sitten haluamasi sarjat ja lopuksi yksi poistettu kortti.',
+  'canasta.rules.turnDiscard': 'Vuoro päättyy poistoon, joten sinulla on aina oltava siihen kortti liikaa.',
+  'canasta.rules.pileTopCard':
+    'Poistopakan voi ottaa vain siirrolla, joka käyttää sen päällimmäisen kortin heti.',
+  'canasta.rules.pileBlocked':
+    'Päällimmäinen musta kolmonen sulkee pakan — kukaan ei saa ottaa sitä ennen kuin kolmonen on hautautunut — ja käteen jäänyt maksaa {n}.',
+  'canasta.rules.pileFrozenByWild':
+    'Pakkaan hautautunut jokeri jäädyttää sen kaikilta: sen ottaminen maksaa silloin kaksi omasta kädestäsi tulevaa luonnollista korttia päällimmäisen kortin arvoa.',
+  'canasta.rules.meldShape': 'Sarja on {n} tai useampi saman arvoinen kortti.',
+  'canasta.rules.wildLimit':
+    'Sarjassa saa olla enintään {wilds} jokeria eikä koskaan alle {naturals} luonnollista korttia.',
+  'canasta.rules.wildRatio':
+    'Sarja vaatii {n} luonnollista korttia jokaista jokeria kohti, eikä koskaan yli {wilds} jokeria yhteensä.',
+  'canasta.rules.oneMeldPerRank':
+    'Puolellasi on kutakin arvoa yksi sarja — lisää sen arvon kortteja liitetään siihen.',
+  'canasta.rules.meldsPerRankUnlimited': 'Puolellasi voi olla useita saman arvon sarjoja.',
+  'canasta.rules.canastaCloses': '{n} kortin kanasta on valmis eikä ota enää kortteja.',
+  'canasta.rules.meldsAreShared':
+    'Sarjat kuuluvat parille: kumpi tahansa saa jatkaa niitä, eikä vastustajan sarjoihin kosketa.',
+  'canasta.rules.layOffAfterOpening':
+    'Ennen kuin puolesi on tehnyt avaussarjansa, se ei saa liittää kortteja mihinkään pöydässä.',
+  'canasta.rules.goOutKeepsACard':
+    'Sinun on aina pystyttävä päättämään vuorosi, joten älä koskaan lado koko kättäsi pöytään, ellei se ole juuri ulosmenosiirto.',
   'canasta.rules.oneCanastaToGoOut': 'Yksi valmis canasta riittää, jotta puolesi pääsee ulos.',
   'canasta.rules.twoCanastasToGoOut': 'Puolesi tarvitsee kaksi valmista canastaa ennen kuin se pääsee ulos.',
   'canasta.rules.end': 'Jakoa jatketaan, kunnes toinen puoli ylittää {n} pistettä — sitten ottelu on ohi.',
@@ -171,6 +201,19 @@ export const fi: Record<string, string> = {
   'holdem.rules.lastPlayerStanding': 'Pelataan, kunnes yksi paikka omistaa kaikki pelimerkit.',
   'holdem.rules.mostChipsWins': 'Se, jolla on eniten pelimerkkejä pelin päättyessä, voittaa ottelun.',
   'holdem.rules.handLimit': 'Peli päättyy {n} jaon jälkeen.',
+  'holdem.rules.checkOrCall':
+    'Voit tsekata vain, kun et ole velkaa mitään; muuten maksa, korota tai luovuta.',
+  'holdem.rules.minRaise': 'Korotuksen on oltava vähintään yhtä suuri kuin edellinen.',
+  'holdem.rules.allIn':
+    'Et voi koskaan panna enempää kuin pinosi, ja all-in on aina sallittu — myös täyttä korotusta pienempänä.',
+  'holdem.rules.foldedOut': 'Kun luovutat, olet ulkona seuraavaan jakoon asti.',
+  'holdem.remedy.callOrFold': 'Maksettavana on {n} — maksa, korota tai luovuta.',
+  'holdem.remedy.checkOrRaise': 'Mitään ei ole velkaa — tsekkaa tai korota.',
+  'holdem.remedy.callAllInOrFold': 'Pinosi ei yllä panoksen yli — maksa {n} all-in tai luovuta.',
+  'holdem.remedy.raiseAtLeast': 'Korota vähintään {n}:een.',
+  'holdem.remedy.raiseAtMost': 'Korota enintään {n}:een — se on koko pinosi.',
+  'holdem.remedy.nameAnAmount': 'Kerro, mihin korotat — väliltä {min} ja {max}.',
+  'holdem.remedy.waitForNextHand': 'Olet ulkona tästä jaosta — odota seuraavaa.',
 
   // --- header --------------------------------------------------------------
   'header.deal': 'Jako {n}',
@@ -279,12 +322,14 @@ export const fi: Record<string, string> = {
   'err.CARD_DOES_NOT_FIT': 'Tuo kortti ei vastaa maata eikä arvoa',
   'err.SUIT_REQUIRED': 'Nimeä maa, joka jatkuu',
   'err.MUST_ANSWER_DRAW_OR_TAKE': 'Vastaa seiskalla tai ota kortit',
+  'err.NOTHING_TO_SKIP': 'Väliin jäävää vuoroa ei ole',
   'err.NOTHING_TO_DRAW': 'Nostettavaa ei ole enää jäljellä',
   'err.PILE_EMPTY': 'Pino on tyhjä',
   'err.PILE_BLOCKED': 'Pino on tukossa — päällimmäisenä on musta kolmonen',
   'err.PILE_FROZEN': 'Pino on jäädytetty — tarvitset kaksi luonnollista korttia päällimmäisen kortin arvosta',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'Tässä pelissä pöydän yhdistelmä ei voi ottaa pinoa — tarvitset kaksi korttia kädestä',
-  'err.TOP_CARD_UNUSABLE': 'Et voi käyttää päällimmäistä korttia',
+  'err.CAPTURE_NEEDS_TWO_CARDS': 'Pakan ottaminen maksaa kaksi korttia kädestäsi',
+  'err.TOP_CARD_UNUSABLE': 'Puolesi ei voi käyttää päällimmäistä korttia',
   'err.MELD_CLOSED': 'Tuo yhdistelmä on täysi ja suljettu',
   'err.MELD_TOO_SMALL': 'Yhdistelmä vaatii enemmän kortteja',
   'err.MELD_TOO_LARGE': 'Tuohon yhdistelmään ei mahdu enää kortteja',
@@ -305,7 +350,7 @@ export const fi: Record<string, string> = {
   'err.CANNOT_GO_OUT_YET': 'Puolesi tarvitsee valmiin canastan ennen kuin se pääsee ulos',
   'err.NOTHING_TO_CALL': 'Ei ole panosta maksettavaksi',
   'err.CANNOT_CHECK': 'Et voi tsekata — vastattavana on panos',
-  'err.CANNOT_RAISE': 'Tässä et voi korottaa',
+  'err.CANNOT_RAISE': 'Et voi korottaa — pinosi ei yllä panoksen yli',
   'err.RAISE_TOO_SMALL': 'Korotuksen on oltava vähintään edellisen suuruinen',
   'err.NOT_ENOUGH_CHIPS': 'Sinulla ei ole niin monta pelimerkkiä',
   'err.AMOUNT_REQUIRED': 'Kerro paljonko',
@@ -394,6 +439,30 @@ export const fi: Record<string, string> = {
   'status.teamScore': 'Joukkue {team}: {value}',
   'canasta.offer.rank': 'Arvo',
   'canasta.offer.sequence': 'Jono',
+  'canasta.remedy.drawOrTakePile': 'Nosta pakasta tai ota poistopakka ennen kuin lasket sarjoja.',
+  'canasta.remedy.meldOrDiscard': 'Olet jo nostanut — laske sarja tai poista kortti ja päätä vuorosi.',
+  'canasta.remedy.drawFromStock': 'Nosta sen sijaan pakasta.',
+  'canasta.remedy.takePileInstead': 'Pakka on tyhjä — ota sen sijaan poistopakka.',
+  'canasta.remedy.pileBlocked': 'Nosta pakasta — päällimmäinen musta kolmonen pitää poistopakan kiinni.',
+  'canasta.remedy.pileFrozen':
+    'Nosta pakasta tai ota pakka kahdella kädessäsi olevalla luonnollisella kortilla, jotka sopivat korttiin {card}.',
+  'canasta.remedy.topCardUnusable':
+    'Nosta pakasta — puolellasi ei ole käyttöä päällimmäiselle kortille {card}.',
+  'canasta.remedy.captureFromHand':
+    'Ota pakka kahdella omasta kädestäsi tulevalla kortilla, jotka sopivat korttiin {card}.',
+  'canasta.remedy.needTwoMatching':
+    'Tarvitset kädestäsi kaksi korttia, jotka sopivat korttiin {card} — muuten nosta pakasta.',
+  'canasta.remedy.needMorePoints': 'Puolesi ensimmäisestä sarjasta puuttuu {n} pistettä.',
+  'canasta.remedy.openFirst': 'Laske puolesi ensimmäinen sarja ennen kuin liität kortteja.',
+  'canasta.remedy.needCanastas':
+    'Puolesi tarvitsee vielä {n} kanastaa à {size} korttia ennen kuin se voi mennä ulos.',
+  'canasta.remedy.keepACard': 'Jätä yksi kortti poistoa varten.',
+  'canasta.remedy.layOffInstead': 'Liitä ne sarjaan, joka puolellasi jo on.',
+  'canasta.remedy.meldClosed': 'Tuo sarja on valmis {n} kortilla — aloita uusi tai liitä muualle.',
+  'canasta.remedy.discardNotARedThree': 'Poista jokin muu kuin punainen kolmonen.',
+  'canasta.remedy.blackThreesOnTheWayOut':
+    'Mustat kolmoset lasketaan vain sillä siirrolla, joka tyhjentää kätesi.',
+  'canasta.remedy.ownMeldsOnly': 'Liitä vain oman puolesi sarjoihin.',
   'badge.naturalCanasta': 'Puhdas canasta',
   'badge.mixedCanasta': 'Epäpuhdas canasta',
   'badge.samba': 'Samba',
@@ -512,6 +581,9 @@ export const fi: Record<string, string> = {
     'Ottelubonus kaksinkertaistuu {n} pisteeseen, jos häviäjä ei saanut yhtäkään pistettä.',
   'ginrummy.rules.box': 'Jokainen voittamasi jako on ottelun lopussa {n} pisteen arvoinen.',
   'ginrummy.rules.gameBonus': 'Ottelun voittaminen tuo vielä {n} pistettä.',
+  'ginrummy.rules.upcardDance':
+    'Ennen ensimmäistä nostoa avokortin saa ottaa ei-jakaja ja sitten jakaja; jos molemmat ohittavat, ei-jakajan on nostettava pakasta.',
+  'ginrummy.rules.knockOnDiscard': 'Koputus korvaa poistosi, joten se käy vain vuorosi lopussa.',
   'ginrummy.fact.deadwood': '{value} deadwoodia',
   'ginrummy.fact.discardCard': 'Poista {value}',
   'ginrummy.fact.meldCards': 'Kohteeseen {value}',
@@ -533,6 +605,13 @@ export const fi: Record<string, string> = {
   'ginrummy.offer.bigGin': 'Big gin!',
   'ginrummy.offer.layOff': 'Liitä',
   'ginrummy.offer.finishLayoff': 'Liittäminen valmis',
+  'ginrummy.remedy.takeOrPassUpcard': 'Ota avokortti tai ohita se.',
+  'ginrummy.remedy.drawFirst': 'Nosta ensin kortti — pakasta tai poistopakasta.',
+  'ginrummy.remedy.discardToEndTurn': 'Poista yksi kortti päättääksesi vuorosi.',
+  'ginrummy.remedy.finishLayoff': 'Mikään muu korteistasi ei sovi — lopeta liittäminen.',
+  'ginrummy.remedy.stockDrawForced': 'Ohititte molemmat sen kortin — nosta pakasta.',
+  'ginrummy.remedy.drawElsewhere': 'Tuo pakka on tyhjä — nosta toisesta.',
+  'ginrummy.remedy.getDeadwoodDown': 'Voit koputtaa, kun jäännöspisteesi ovat {n} tai vähemmän.',
   'ginrummy.zone.knockerHand': 'Koputtajan käsi',
   'ginrummy.zone.melds': 'Yhdistelmät',
   'ginrummy.prompt.upcardDecision': 'Ota avattu kortti tai passaa',
@@ -542,10 +621,10 @@ export const fi: Record<string, string> = {
 
   // --- rummy tiles -------------------------------------------------------------
   'err.TILE_NOT_IN_HAND': 'Tuo laatta ei ole kädessäsi',
-  'err.TILE_DOES_NOT_FIT': 'Tuo ei sovi siihen',
+  'err.TILE_DOES_NOT_FIT': 'Tuo laatta ei sovi siihen sarjaan',
   'err.NO_SUCH_SET': 'Tuota yhdistelmää ei ole pöydässä',
   'err.INITIAL_MELD_ONLY': 'Ennen ensimmäistä laskuasi voit järjestellä vain omia uusia yhdistelmiäsi',
-  'err.TABLE_NOT_VALID': 'Pöytä ei ole vielä kelvollinen',
+  'err.TABLE_NOT_VALID': 'Jokin pöydän sarja ei ole kelvollinen ryhmä eikä jono',
   'err.TRAY_NOT_EMPTY': 'Sinulla on vielä irrallisia laattoja sijoitettavana',
   'err.NOTHING_PLAYED': 'Pelaa vähintään yksi laatta ennen kuin päätät vuorosi',
   'err.INITIAL_MELD_TOO_LOW': 'Ensimmäisen laskusi on oltava vähintään 30 pisteen arvoinen',
@@ -583,6 +662,18 @@ export const fi: Record<string, string> = {
     'Jos pussi tyhjenee eikä kukaan voi pelata, kierros päättyy ilman voittajaa — jokainen käsi vain lasketaan.',
   'rummytiles.rules.target': 'Ensimmäisenä {n} pisteen yli kierroksen päättyessä yltävä voittaa ottelun.',
   'rummytiles.rules.roundLimit': 'Ottelu päättyy {n} kierroksen jälkeen — korkein pistemäärä voittaa.',
+  'rummytiles.remedy.emptyTheTray': 'Aseta {n} laattaa, jotka ovat vielä telineessä, tai nollaa vuoro.',
+  'rummytiles.remedy.playFromHandOrDraw':
+    'Uudelleenjärjestely ei ole vuoro — pelaa vähintään yksi laatta kädestäsi tai nosta.',
+  'rummytiles.remedy.fixOrReset':
+    'Jokaisen pöydässä olevan sarjan on oltava kelvollinen ryhmä tai jono — korjaa ne tai nollaa vuoro.',
+  'rummytiles.remedy.needMorePoints': 'Ensimmäisestä laskustasi puuttuu {n} pistettä {floor}:een.',
+  'rummytiles.remedy.ownNewSetsOnly':
+    'Ennen ensimmäistä {n} pisteen laskuasi saat järjestellä vain tällä vuorolla tekemiäsi sarjoja.',
+  'rummytiles.remedy.startANewSet': 'Laita se sen sijaan uuteen sarjaan.',
+  'rummytiles.remedy.splitLeavesThree':
+    'Jaa jono niin, että kummallekin puolikkaalle jää vähintään {n} laattaa.',
+  'rummytiles.remedy.matchTheJoker': 'Vaihda jokeri täsmälleen siihen laattaan, jota se edustaa.',
   'rummytiles.fact.setCards': '{value}',
   'rummytiles.header.pool': 'Pussi {n}',
   'rummytiles.header.round': 'Kierros {n}',
@@ -661,6 +752,19 @@ export const fi: Record<string, string> = {
   'blackjack.rules.mostChipsWins': 'Eniten pelimerkkejä lopussa omistava voittaa ottelun.',
   'blackjack.rules.bustedOut':
     'Paikka, joka ei enää pysty kattamaan {n} minimiä, on sivussa loppuottelun ajan.',
+  'blackjack.rules.roundOrder':
+    'Kierros etenee järjestyksessä: panokset, korttien jako, vakuutus jos jakajalla näkyy ässä, sitten kukin paikka pelaa kätensä vuorollaan.',
+  'blackjack.rules.oneStakePerRound': 'Yksi panos kierrosta kohti — kun se on asetettu, sitä ei muuteta.',
+  'blackjack.rules.stakeFromStack': 'Voit panostaa vain pelimerkkejä, jotka sinulla oikeasti on.',
+  'blackjack.remedy.putAStakeUp': 'Aseta ensin panos — {n} tai enemmän.',
+  'blackjack.remedy.answerInsurance': 'Vastaa ensin vakuutukseen kyllä tai ei.',
+  'blackjack.remedy.playThisHand': 'Pelaa edessäsi oleva käsi — ota kortti tai jää.',
+  'blackjack.remedy.stakeIsUp': 'Panoksesi on jo pöydässä — odota jakoa.',
+  'blackjack.remedy.stakeAtLeast': 'Panosta vähintään {n}.',
+  'blackjack.remedy.stakeAtMost': 'Panosta enintään {n} — se on koko pinosi.',
+  'blackjack.remedy.sayHowMuch': 'Kerro, paljonko panostat — {n} tai enemmän.',
+  'blackjack.remedy.hitOrStand': 'Ota kortti tai jää.',
+  'blackjack.remedy.waitForNextRound': 'Olet ulkona tältä kierrokselta — odota seuraavaa jakoa.',
 
   'blackjack.zone.dealer': 'Jakaja',
   'blackjack.zone.box': 'Käsi',
