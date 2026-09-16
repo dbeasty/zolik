@@ -29,6 +29,7 @@ export const cs: Record<string, string> = {
   'err.MATCH_MOVED_ON': 'Stůl se mezitím posunul — načti stránku znovu',
   'err.MATCH_NOT_ABANDONED': 'Tenhle stůl na obnovení nečeká',
   'err.MATCH_NOT_FOUND': 'Tenhle stůl už neexistuje',
+  'err.MATCH_DELETED': 'Hostitel tenhle stůl smazal',
   'err.TABLE_HAS_OTHER_PLAYERS': 'Obnovit jde jen stůl, kde jsou všichni ostatní boti',
   'err.DISCARD_LOCKED': 'Odhazovací balíček je zatím zamčený',
   'err.DISCARD_PILE_EMPTY': 'Odhazovací balíček je prázdný',
@@ -874,6 +875,7 @@ export const cs: Record<string, string> = {
   'nav.scoreTable': 'Tabulka skóre',
   'nav.stats': 'Statistiky',
   'nav.more': 'Další',
+  'nav.myGames': 'Moje hry',
   'nav.about': 'O aplikaci',
 
   // --- the account menu behind the face in the corner ----------------------
@@ -1022,6 +1024,26 @@ export const cs: Record<string, string> = {
   'lobby.table.moveSeatDown': 'Posunout {name} o místo dolů',
   'lobby.table.start': 'Začít',
   'lobby.table.waitingForHost': 'Čekáme, až hostitel začne…',
+
+  // --- "my games": stored tables, resumed or deleted --------------------
+  'mine.subtitle': 'Hry, ke kterým se můžeš vrátit, nebo je smazat',
+  'mine.tabUnfinished': 'Rozehrané',
+  'mine.tabFinished': 'Dokončené',
+  'mine.emptyUnfinished': 'Zatím nemáš žádnou rozehranou hru',
+  'mine.emptyFinished': 'Zatím žádné dokončené hry',
+  'mine.open': 'Otevřít',
+  'mine.resume': 'Obnovit',
+  'mine.delete': 'Smazat',
+  'mine.deleteConfirmTitle': 'Smazat tenhle stůl?',
+  'mine.deleteConfirmBody': 'Hra tím skončí i všem ostatním u stolu. Tohle nejde vzít zpět.',
+  'mine.deleteConfirm': 'Smazat',
+  'mine.deleteCancel': 'Zrušit',
+  'mine.viewAll': 'Zobrazit všechny',
+  'mine.status.lobby': 'Čeká na start',
+  'mine.status.active': 'Hraje se',
+  'mine.status.suspended': 'Přerušeno',
+  'mine.status.abandoned': 'Odloženo',
+  'mine.status.completed': 'Dokončeno',
 
   // --- inviting someone to a table ------------------------------------------
   'invite.heading': 'Pozvat hráče',

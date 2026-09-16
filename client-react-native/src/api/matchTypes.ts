@@ -506,3 +506,33 @@ export function isOneTap(offer: ActionOffer): boolean {
 export function offerGroupKey(offer: ActionOffer): string {
   return offer.labelKey ?? `verb.${offer.verb}`;
 }
+
+/**
+ * One row of "my games" — a stored table this player is seated at, as the
+ * server's own decision of what is safe to list: it never carries the
+ * module's state or action log, because a list row needs neither.
+ *
+ * Mirrors `server/internal/match/handlers.go`'s `storedTable`. `canResume`
+ * and `canDelete` are read off this rather than re-derived: the resume rule
+ * in particular (abandoned, and every other seat a bot) is enforced
+ * server-side, so a button built from this flag is never one the server then
+ * refuses.
+ */
+export type StoredTable = {
+  matchId: string;
+  moduleId: string;
+  variation?: string;
+  status: 'lobby' | 'active' | 'completed' | 'suspended' | 'abandoned' | string;
+  joinCode?: string;
+  isHost: boolean;
+  players: MatchPlayer[];
+  humanCount: number;
+  botCount: number;
+  createdAt: string;
+  startedAt?: string;
+  endedAt?: string;
+  suspendedAt?: string;
+  updatedAt?: string;
+  canResume: boolean;
+  canDelete: boolean;
+};

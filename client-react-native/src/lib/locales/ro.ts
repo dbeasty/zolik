@@ -29,6 +29,7 @@ export const ro: Record<string, string> = {
   'err.MATCH_MOVED_ON': 'Masa a mers mai departe — reîncarcă pagina',
   'err.MATCH_NOT_ABANDONED': 'Această masă nu așteaptă să fie reluată',
   'err.MATCH_NOT_FOUND': 'Această masă nu mai există',
+  'err.MATCH_DELETED': 'Gazda a șters această masă',
   'err.TABLE_HAS_OTHER_PLAYERS': 'Poate fi reluată doar o masă la care toți ceilalți sunt boți',
   'err.DISCARD_LOCKED': 'Teancul de aruncate este blocat deocamdată',
   'err.DISCARD_PILE_EMPTY': 'Teancul de aruncate este gol',
@@ -888,6 +889,7 @@ export const ro: Record<string, string> = {
   'nav.scoreTable': 'Tabel de scor',
   'nav.stats': 'Statistici',
   'nav.more': 'Mai multe',
+  'nav.myGames': 'Jocurile mele',
   'nav.about': 'Despre',
 
   // --- the account menu behind the face in the corner ----------------------
@@ -1038,6 +1040,26 @@ export const ro: Record<string, string> = {
   'lobby.table.moveSeatDown': 'Mută {name} cu un loc mai jos',
   'lobby.table.start': 'Începe',
   'lobby.table.waitingForHost': 'Așteptăm ca gazda să înceapă…',
+
+  // --- "my games": stored tables, resumed or deleted --------------------
+  'mine.subtitle': 'Jocuri pe care le poți relua sau șterge',
+  'mine.tabUnfinished': 'În desfășurare',
+  'mine.tabFinished': 'Terminate',
+  'mine.emptyUnfinished': 'Momentan niciun joc în desfășurare',
+  'mine.emptyFinished': 'Încă niciun joc terminat',
+  'mine.open': 'Deschide',
+  'mine.resume': 'Reia',
+  'mine.delete': 'Șterge',
+  'mine.deleteConfirmTitle': 'Ștergi această masă?',
+  'mine.deleteConfirmBody': 'Asta încheie jocul pentru toți ceilalți de la masă. Nu poate fi anulat.',
+  'mine.deleteConfirm': 'Șterge',
+  'mine.deleteCancel': 'Anulează',
+  'mine.viewAll': 'Vezi toate',
+  'mine.status.lobby': 'Așteaptă să înceapă',
+  'mine.status.active': 'În desfășurare',
+  'mine.status.suspended': 'În pauză',
+  'mine.status.abandoned': 'Amânată',
+  'mine.status.completed': 'Terminată',
 
   // --- inviting someone to a table ------------------------------------------
   'invite.heading': 'Invită jucători',

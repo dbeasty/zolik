@@ -29,6 +29,7 @@ export const da: Record<string, string> = {
   'err.MATCH_MOVED_ON': 'Bordet er gået videre — genindlæs siden',
   'err.MATCH_NOT_ABANDONED': 'Dette bord venter ikke på at blive genoptaget',
   'err.MATCH_NOT_FOUND': 'Dette bord findes ikke længere',
+  'err.MATCH_DELETED': 'Værten har slettet dette bord',
   'err.TABLE_HAS_OTHER_PLAYERS': 'Kun et bord, hvor alle andre er bots, kan genoptages',
   'err.DISCARD_LOCKED': 'Kastebunken er låst indtil videre',
   'err.DISCARD_PILE_EMPTY': 'Kastebunken er tom',
@@ -878,6 +879,7 @@ export const da: Record<string, string> = {
   'nav.scoreTable': 'Pointtavle',
   'nav.stats': 'Statistik',
   'nav.more': 'Mere',
+  'nav.myGames': 'Mine spil',
   'nav.about': 'Om',
 
   // --- the account menu behind the face in the corner ----------------------
@@ -1028,6 +1030,26 @@ export const da: Record<string, string> = {
   'lobby.table.moveSeatDown': 'Flyt {name} en plads ned',
   'lobby.table.start': 'Start',
   'lobby.table.waitingForHost': 'Venter på, at værten starter…',
+
+  // --- "my games": stored tables, resumed or deleted --------------------
+  'mine.subtitle': 'Spil du kan tage op igen, eller slette',
+  'mine.tabUnfinished': 'I gang',
+  'mine.tabFinished': 'Afsluttede',
+  'mine.emptyUnfinished': 'Ingen spil i gang lige nu',
+  'mine.emptyFinished': 'Ingen afsluttede spil endnu',
+  'mine.open': 'Åbn',
+  'mine.resume': 'Genoptag',
+  'mine.delete': 'Slet',
+  'mine.deleteConfirmTitle': 'Slet dette bord?',
+  'mine.deleteConfirmBody': 'Det afslutter spillet for alle andre ved bordet. Kan ikke fortrydes.',
+  'mine.deleteConfirm': 'Slet',
+  'mine.deleteCancel': 'Annuller',
+  'mine.viewAll': 'Se alle',
+  'mine.status.lobby': 'Venter på start',
+  'mine.status.active': 'I gang',
+  'mine.status.suspended': 'Sat på pause',
+  'mine.status.abandoned': 'Lagt til side',
+  'mine.status.completed': 'Afsluttet',
 
   // --- inviting someone to a table ------------------------------------------
   'invite.heading': 'Inviter spillere',

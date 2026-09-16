@@ -29,6 +29,7 @@ export const lt: Record<string, string> = {
   'err.MATCH_MOVED_ON': 'Stalas pajudėjo toliau — perkrauk puslapį',
   'err.MATCH_NOT_ABANDONED': 'Šis stalas nelaukia atnaujinimo',
   'err.MATCH_NOT_FOUND': 'Šio stalo nebėra',
+  'err.MATCH_DELETED': 'Šeimininkas ištrynė šį stalą',
   'err.TABLE_HAS_OTHER_PLAYERS': 'Atnaujinti galima tik stalą, prie kurio visi kiti yra botai',
   'err.DISCARD_LOCKED': 'Atmetimo krūvelė kol kas užrakinta',
   'err.DISCARD_PILE_EMPTY': 'Atmetimo krūvelė tuščia',
@@ -882,6 +883,7 @@ export const lt: Record<string, string> = {
   'nav.scoreTable': 'Taškų lentelė',
   'nav.stats': 'Statistika',
   'nav.more': 'Daugiau',
+  'nav.myGames': 'Mano žaidimai',
   'nav.about': 'Apie',
 
   // --- the account menu behind the face in the corner ----------------------
@@ -1032,6 +1034,26 @@ export const lt: Record<string, string> = {
   'lobby.table.moveSeatDown': 'Perkelti {name} viena vieta žemyn',
   'lobby.table.start': 'Pradėti',
   'lobby.table.waitingForHost': 'Laukiame, kol šeimininkas pradės…',
+
+  // --- "my games": stored tables, resumed or deleted --------------------
+  'mine.subtitle': 'Žaidimai, kuriuos gali tęsti arba ištrinti',
+  'mine.tabUnfinished': 'Vykstantys',
+  'mine.tabFinished': 'Baigti',
+  'mine.emptyUnfinished': 'Šiuo metu nėra vykstančių žaidimų',
+  'mine.emptyFinished': 'Kol kas nėra baigtų žaidimų',
+  'mine.open': 'Atidaryti',
+  'mine.resume': 'Tęsti',
+  'mine.delete': 'Ištrinti',
+  'mine.deleteConfirmTitle': 'Ištrinti šį stalą?',
+  'mine.deleteConfirmBody': 'Tai baigs žaidimą visiems kitiems prie stalo. Šio veiksmo atšaukti negalima.',
+  'mine.deleteConfirm': 'Ištrinti',
+  'mine.deleteCancel': 'Atšaukti',
+  'mine.viewAll': 'Žiūrėti visus',
+  'mine.status.lobby': 'Laukia pradžios',
+  'mine.status.active': 'Vyksta',
+  'mine.status.suspended': 'Pristabdyta',
+  'mine.status.abandoned': 'Atidėta',
+  'mine.status.completed': 'Baigta',
 
   // --- inviting someone to a table ------------------------------------------
   'invite.heading': 'Pakviesti žaidėjų',

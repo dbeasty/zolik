@@ -29,6 +29,7 @@ export const lv: Record<string, string> = {
   'err.MATCH_MOVED_ON': 'Galds ir pavirzījies tālāk — pārlādē lapu',
   'err.MATCH_NOT_ABANDONED': 'Šis galds negaida atsākšanu',
   'err.MATCH_NOT_FOUND': 'Šī galda vairs nav',
+  'err.MATCH_DELETED': 'Saimnieks izdzēsa šo galdu',
   'err.TABLE_HAS_OTHER_PLAYERS': 'Atsākt var tikai galdu, pie kura visi pārējie ir boti',
   'err.DISCARD_LOCKED': 'Izmešanas kaudze pagaidām ir slēgta',
   'err.DISCARD_PILE_EMPTY': 'Izmešanas kaudze ir tukša',
@@ -881,6 +882,7 @@ export const lv: Record<string, string> = {
   'nav.scoreTable': 'Punktu tabula',
   'nav.stats': 'Statistika',
   'nav.more': 'Vairāk',
+  'nav.myGames': 'Manas spēles',
   'nav.about': 'Par',
 
   // --- the account menu behind the face in the corner ----------------------
@@ -1031,6 +1033,26 @@ export const lv: Record<string, string> = {
   'lobby.table.moveSeatDown': 'Pārvietot {name} vienu vietu lejup',
   'lobby.table.start': 'Sākt',
   'lobby.table.waitingForHost': 'Gaidām, kad saimnieks sāks…',
+
+  // --- "my games": stored tables, resumed or deleted --------------------
+  'mine.subtitle': 'Spēles, kuras vari turpināt vai dzēst',
+  'mine.tabUnfinished': 'Notiekošās',
+  'mine.tabFinished': 'Pabeigtās',
+  'mine.emptyUnfinished': 'Šobrīd nav notiekošu spēļu',
+  'mine.emptyFinished': 'Pagaidām nav pabeigtu spēļu',
+  'mine.open': 'Atvērt',
+  'mine.resume': 'Turpināt',
+  'mine.delete': 'Dzēst',
+  'mine.deleteConfirmTitle': 'Dzēst šo galdu?',
+  'mine.deleteConfirmBody': 'Tas beidz spēli visiem pārējiem pie galda. To nevar atsaukt.',
+  'mine.deleteConfirm': 'Dzēst',
+  'mine.deleteCancel': 'Atcelt',
+  'mine.viewAll': 'Skatīt visas',
+  'mine.status.lobby': 'Gaida sākumu',
+  'mine.status.active': 'Notiek',
+  'mine.status.suspended': 'Apturēta',
+  'mine.status.abandoned': 'Atlikta',
+  'mine.status.completed': 'Pabeigta',
 
   // --- inviting someone to a table ------------------------------------------
   'invite.heading': 'Uzaicināt spēlētājus',

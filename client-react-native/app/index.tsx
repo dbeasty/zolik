@@ -11,8 +11,11 @@ import { ZOLIK_BASE_URL } from '@/src/config';
 import { useSession } from '@/src/context/SessionContext';
 import { useLobbySocket } from '@/src/hooks/useLobbySocket';
 import { useWaitingLobbyStatus } from '@/src/hooks/useWaitingLobbyStatus';
+import type { StoredTable } from '@/src/api/matchTypes';
 import type { PlayerSession, WaitingPlayer } from '@/src/api/types';
+import { moduleName } from '@/src/lib/gameLabels';
 import { reasonText, t } from '@/src/lib/i18n';
+import { routeForMatch } from '@/src/lib/matchRoute';
 import { consumePendingDestination } from '@/src/lib/pendingDestination';
 import { colors, shared } from '@/src/theme';
 
@@ -65,6 +68,7 @@ export default function MainMenu() {
         <Text style={shared.status}>{t('home.signInPrompt')}</Text>
       )}
 
+      {session ? <MyTablesCard /> : null}
       {session ? <WaitingStatusCard session={session} /> : null}
 
       <View style={{ marginTop: 16 }}>
@@ -169,6 +173,69 @@ function useFollowPendingDestination(ready: boolean) {
  * hooks themselves are unchanged from how the old dedicated waiting-room
  * screen used them.
  */
+/**
+ * A quiet reminder that a game is waiting to be gone back to.
+ *
+ * Absent, not empty, when there is nothing to show: the menu's whole design
+ * is one screen with two buttons for a player who has nowhere to be, and a
+ * card of zero rows would contradict that on every visit. Only unfinished
+ * tables are fetched — a completed game has nothing left to resume, and its
+ * own permanent record lives on the stats screen instead.
+ */
+function MyTablesCard() {
+  const { client } = useSession();
+  // Three states, not two: not yet asked, asked and empty, asked and found
+  // some. Collapsing the first two into one "nothing yet" would flash the
+  // card open for a moment on every load where there are, in fact, none.
+  const [tables, setTables] = useState<StoredTable[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const rows = await client.listMyTables('unfinished');
+        if (!cancelled) setTables(rows);
+      } catch {
+        // A quiet failure here costs nothing real: the full list is one tap
+        // away on /lobby/mine regardless, and this card is a shortcut to it,
+        // not the only way there.
+        if (!cancelled) setTables([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [client]);
+
+  if (!tables || tables.length === 0) return null;
+
+  return (
+    <View style={[shared.card, { marginTop: 12 }]} testID="home-my-tables">
+      <Text style={{ color: colors.text, fontWeight: '600', marginBottom: 8 }}>
+        {t('nav.myGames')}
+      </Text>
+      {tables.slice(0, 3).map((row) => (
+        <Pressable
+          key={row.matchId}
+          testID={`home-my-tables-row-${row.matchId}`}
+          style={{ marginBottom: 6 }}
+          onPress={() => router.push(routeForMatch(row.status, row.isHost, row.matchId))}
+        >
+          <Text style={{ color: colors.text }} numberOfLines={1}>
+            {moduleName(row.moduleId)} · {t(`mine.status.${row.status}`, undefined, row.status)}
+          </Text>
+        </Pressable>
+      ))}
+      <MenuButton
+        label={t('mine.viewAll')}
+        secondary
+        style={cardButton}
+        onPress={() => router.push('/lobby/mine')}
+      />
+    </View>
+  );
+}
+
 function WaitingStatusCard({ session }: { session: PlayerSession }) {
   const [available, setAvailable] = useState(false);
 

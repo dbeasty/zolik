@@ -29,6 +29,7 @@ export const hr: Record<string, string> = {
   'err.MATCH_MOVED_ON': 'Stol je otišao dalje — ponovno učitaj stranicu',
   'err.MATCH_NOT_ABANDONED': 'Ovaj stol ne čeka nastavak',
   'err.MATCH_NOT_FOUND': 'Ovaj stol više ne postoji',
+  'err.MATCH_DELETED': 'Domaćin je izbrisao ovaj stol',
   'err.TABLE_HAS_OTHER_PLAYERS': 'Nastaviti se može samo stol za kojim su svi ostali botovi',
   'err.DISCARD_LOCKED': 'Hrpa odbačenih je zasad zaključana',
   'err.DISCARD_PILE_EMPTY': 'Hrpa odbačenih je prazna',
@@ -881,6 +882,7 @@ export const hr: Record<string, string> = {
   'nav.scoreTable': 'Tablica bodova',
   'nav.stats': 'Statistika',
   'nav.more': 'Više',
+  'nav.myGames': 'Moje igre',
   'nav.about': 'O aplikaciji',
 
   // --- the account menu behind the face in the corner ----------------------
@@ -1029,6 +1031,26 @@ export const hr: Record<string, string> = {
   'lobby.table.moveSeatDown': 'Pomakni {name} mjesto dolje',
   'lobby.table.start': 'Počni',
   'lobby.table.waitingForHost': 'Čekamo da domaćin počne…',
+
+  // --- "my games": stored tables, resumed or deleted --------------------
+  'mine.subtitle': 'Igre koje možeš nastaviti ili izbrisati',
+  'mine.tabUnfinished': 'U tijeku',
+  'mine.tabFinished': 'Završene',
+  'mine.emptyUnfinished': 'Trenutačno nema igara u tijeku',
+  'mine.emptyFinished': 'Još nema završenih igara',
+  'mine.open': 'Otvori',
+  'mine.resume': 'Nastavi',
+  'mine.delete': 'Izbriši',
+  'mine.deleteConfirmTitle': 'Izbrisati ovaj stol?',
+  'mine.deleteConfirmBody': 'Time igra završava svima ostalima za stolom. Ovo se ne može poništiti.',
+  'mine.deleteConfirm': 'Izbriši',
+  'mine.deleteCancel': 'Odustani',
+  'mine.viewAll': 'Prikaži sve',
+  'mine.status.lobby': 'Čeka početak',
+  'mine.status.active': 'U tijeku',
+  'mine.status.suspended': 'Pauzirano',
+  'mine.status.abandoned': 'Odgođeno',
+  'mine.status.completed': 'Završeno',
 
   // --- inviting someone to a table ------------------------------------------
   'invite.heading': 'Pozovi igrače',

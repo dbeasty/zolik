@@ -1,5 +1,5 @@
 import { ZOLIK_BASE_URL } from '@/src/config';
-import type { MatchModule, MatchState, ModuleRules } from '@/src/api/matchTypes';
+import type { MatchModule, MatchState, ModuleRules, StoredTable } from '@/src/api/matchTypes';
 import type {
   AccountProfile,
   AuthProvider,
@@ -405,6 +405,27 @@ export class ZolikClient {
     return this.get(`/matches/${encodeURIComponent(idOrCode)}${q}`, false);
   }
 
+  /**
+   * Every stored game this player is seated at — unfinished by default, or
+   * the finished tab. Works for a guest exactly as it does for an account:
+   * the server keys the list on the same subject either carries.
+   */
+  async listMyTables(scope: 'unfinished' | 'finished' = 'unfinished'): Promise<StoredTable[]> {
+    const q = scope === 'finished' ? '?status=finished' : '';
+    const data = await this.get<{ tables: StoredTable[] }>(`/users/me/tables${q}`, true);
+    return data.tables;
+  }
+
+  /**
+   * Ends a table outright — host only, in any status, for every seat. See
+   * `server/internal/match/presence.go`'s `DeleteAsHost` for the rule this
+   * enforces; the client offers the button only where `canDelete` said so,
+   * but the server is the one that actually holds the line.
+   */
+  async deleteMatch(idOrCode: string): Promise<void> {
+    await this.del(`/matches/${encodeURIComponent(idOrCode)}`, true);
+  }
+
   /** The socket that carries actions in and per-viewer state out. */
   matchSocketUrl(matchId: string): string {
     const u = new URL(this.baseUrl);
@@ -555,6 +576,10 @@ export class ZolikClient {
 
   private async patch(path: string, body: unknown): Promise<void> {
     await this.request('PATCH', path, body, false);
+  }
+
+  private async del(path: string, auth: boolean): Promise<void> {
+    await this.request('DELETE', path, undefined, auth);
   }
 
   private async request<T>(

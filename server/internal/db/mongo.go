@@ -86,6 +86,20 @@ func (m *Mongo) EnsureIndexes(ctx context.Context) error {
 		return err
 	}
 
+	// matches — same abandonAt-carries-no-TTL rule as games above, though
+	// nothing here uses that field as a delete trigger yet; the other two back
+	// reads that previously had no index at all. players.id backs
+	// FindForPlayer (a "my games" list, keyed on the seat id) and joinCode
+	// backs FindByJoinCode, which until now scanned the whole collection on
+	// every join-by-code.
+	if _, err := c.Matches.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{Keys: bson.D{{Key: "players.id", Value: 1}, {Key: "updatedAt", Value: -1}}},
+		{Keys: bson.D{{Key: "joinCode", Value: 1}}},
+		{Keys: bson.D{{Key: "status", Value: 1}}},
+	}); err != nil {
+		return err
+	}
+
 	// users
 	if _, err := c.Users.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{Keys: bson.D{{Key: "username", Value: 1}}, Options: options.Index().SetUnique(true)},

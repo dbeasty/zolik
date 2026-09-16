@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/websocket"
@@ -74,6 +75,17 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/invite", h.invite)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/seats", h.seatTable)
 	r.Get("/ws/matches/{id}", h.handleWS)
+	// A stored-games list: every table this caller is seated at. Registered
+	// as /users/me/tables rather than /matches/mine — "table" is this
+	// package's own word for a live envelope (see NOT_AT_THIS_TABLE,
+	// TABLE_HAS_OTHER_PLAYERS), and /matches/{id} above is deliberately
+	// unauthenticated and answers a spectator view; a caller-scoped list
+	// belongs with the rest of "about me", not on that same segment.
+	r.With(auth.AuthMiddleware).Get("/users/me/tables", h.myTables)
+	// Ending a table outright, at its host's request. Same placeholder name
+	// as the GET above so there is only one idea of what {id} means on this
+	// path; chi keys the two by method, not by name, so they cannot collide.
+	r.With(auth.AuthMiddleware).Delete("/matches/{id}", h.deleteMatch)
 
 	if h.testEndpoints {
 		r.With(auth.AuthMiddleware).Post("/matches/{id}/debug-state", h.debugState)
@@ -544,6 +556,117 @@ func (h *Handlers) getMatch(w http.ResponseWriter, req *http.Request) {
 	}
 	viewer := req.URL.Query().Get("as")
 	writeJSON(w, h.manager.BuildStateMsg(m, viewer))
+}
+
+// storedTable is one row of a "my games" list: the envelope, worded for a
+// player rather than for a socket, and nothing the module owns.
+type storedTable struct {
+	MatchID     string      `json:"matchId"`
+	ModuleID    string      `json:"moduleId"`
+	Variation   string      `json:"variation,omitempty"`
+	Status      string      `json:"status"`
+	JoinCode    string      `json:"joinCode,omitempty"`
+	IsHost      bool        `json:"isHost"`
+	Players     []PlayerMsg `json:"players"`
+	HumanCount  int         `json:"humanCount"`
+	BotCount    int         `json:"botCount"`
+	CreatedAt   time.Time   `json:"createdAt"`
+	StartedAt   *time.Time  `json:"startedAt,omitempty"`
+	EndedAt     *time.Time  `json:"endedAt,omitempty"`
+	SuspendedAt *time.Time  `json:"suspendedAt,omitempty"`
+	UpdatedAt   time.Time   `json:"updatedAt,omitempty"`
+	// CanResume mirrors resumableBy exactly, so the button this list offers
+	// is never one ResumeAbandoned would then refuse.
+	CanResume bool `json:"canResume"`
+	// CanDelete is just IsHost today. Named as its own capability rather than
+	// left for the client to derive from IsHost, so the rule can change here
+	// without a client release.
+	CanDelete bool `json:"canDelete"`
+}
+
+func storedTableOf(m models.Match, viewerID string) storedTable {
+	// UpdatedAt is unset on a match nothing has yet written back through
+	// UpdateWithVersion — a lobby nobody has touched since it was created is
+	// the ordinary case. CreatedAt is the honest answer for "last activity"
+	// there; the alternative is a zero-value 0001-01-01 reaching the client,
+	// which is no player's idea of when anything happened.
+	updatedAt := m.UpdatedAt
+	if updatedAt.IsZero() {
+		updatedAt = m.CreatedAt
+	}
+	out := storedTable{
+		MatchID:     m.ID.Hex(),
+		ModuleID:    m.ModuleID,
+		Variation:   m.Variation,
+		Status:      m.Status,
+		JoinCode:    m.JoinCode,
+		IsHost:      m.HostID == viewerID,
+		CreatedAt:   m.CreatedAt,
+		StartedAt:   m.StartedAt,
+		EndedAt:     m.EndedAt,
+		SuspendedAt: m.SuspendedAt,
+		UpdatedAt:   updatedAt,
+	}
+	out.CanResume = m.Status == "abandoned" && resumableBy(m.Players, viewerID)
+	out.CanDelete = out.IsHost
+	for _, p := range m.Players {
+		out.Players = append(out.Players, PlayerMsg{ID: p.ID, Name: p.Name, IsAI: p.IsAI, Avatar: p.Avatar})
+		if p.IsAI {
+			out.BotCount++
+		} else {
+			out.HumanCount++
+		}
+	}
+	return out
+}
+
+// myTables lists the stored games the caller is seated at.
+//
+// Guests are served exactly like accounts: players.id is the JWT subject
+// either way (an account's object id hex, or the device's guest id), so one
+// query answers both and a guest — the common case in this app — is not
+// turned away the way the separate lifetime-statistics endpoints turn them
+// away. Neither State nor ActionLog reaches the response; storedTable has no
+// field to carry them in.
+func (h *Handlers) myTables(w http.ResponseWriter, req *http.Request) {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	statuses := UnfinishedStatuses
+	if req.URL.Query().Get("status") == "finished" {
+		statuses = FinishedStatuses
+	}
+	limit, _ := strconv.Atoi(req.URL.Query().Get("limit"))
+
+	rows, err := h.manager.Repo().FindForPlayer(req.Context(), uc.UserID,
+		PlayerMatchFilter{Statuses: statuses, Limit: limit})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	out := make([]storedTable, 0, len(rows))
+	for _, m := range rows {
+		out = append(out, storedTableOf(m, uc.UserID))
+	}
+	writeJSON(w, map[string]any{"tables": out})
+}
+
+// deleteMatch ends a table at its host's request. Every rule lives in
+// Manager.DeleteAsHost; this door does no policy of its own.
+func (h *Handlers) deleteMatch(w http.ResponseWriter, req *http.Request) {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	id := chi.URLParam(req, "id")
+	if err := h.manager.DeleteAsHost(req.Context(), id, uc.UserID); err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	writeJSON(w, map[string]any{"matchId": id, "status": "deleted"})
 }
 
 // handleWS carries actions in and per-viewer state out.

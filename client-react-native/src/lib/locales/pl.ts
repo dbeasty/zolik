@@ -29,6 +29,7 @@ export const pl: Record<string, string> = {
   'err.MATCH_MOVED_ON': 'Stół poszedł dalej — odśwież stronę',
   'err.MATCH_NOT_ABANDONED': 'Ten stół nie czeka na wznowienie',
   'err.MATCH_NOT_FOUND': 'Ten stół już nie istnieje',
+  'err.MATCH_DELETED': 'Gospodarz usunął ten stół',
   'err.TABLE_HAS_OTHER_PLAYERS': 'Wznowić można tylko stół, przy którym wszyscy pozostali to boty',
   'err.DISCARD_LOCKED': 'Stos odrzuconych jest na razie zablokowany',
   'err.DISCARD_PILE_EMPTY': 'Stos odrzuconych jest pusty',
@@ -887,6 +888,7 @@ export const pl: Record<string, string> = {
   'nav.scoreTable': 'Tabela punktów',
   'nav.stats': 'Statystyki',
   'nav.more': 'Więcej',
+  'nav.myGames': 'Moje gry',
   'nav.about': 'O aplikacji',
 
   // --- the account menu behind the face in the corner ----------------------
@@ -1036,6 +1038,26 @@ export const pl: Record<string, string> = {
   'lobby.table.moveSeatDown': 'Przesuń {name} o miejsce w dół',
   'lobby.table.start': 'Start',
   'lobby.table.waitingForHost': 'Czekamy, aż gospodarz zacznie…',
+
+  // --- "my games": stored tables, resumed or deleted --------------------
+  'mine.subtitle': 'Gry, do których możesz wrócić, albo je usunąć',
+  'mine.tabUnfinished': 'W trakcie',
+  'mine.tabFinished': 'Zakończone',
+  'mine.emptyUnfinished': 'Obecnie brak gier w trakcie',
+  'mine.emptyFinished': 'Na razie brak zakończonych gier',
+  'mine.open': 'Otwórz',
+  'mine.resume': 'Wznów',
+  'mine.delete': 'Usuń',
+  'mine.deleteConfirmTitle': 'Usunąć ten stół?',
+  'mine.deleteConfirmBody': 'To kończy grę dla wszystkich pozostałych przy stole. Tej operacji nie można cofnąć.',
+  'mine.deleteConfirm': 'Usuń',
+  'mine.deleteCancel': 'Anuluj',
+  'mine.viewAll': 'Pokaż wszystkie',
+  'mine.status.lobby': 'Czeka na start',
+  'mine.status.active': 'W trakcie',
+  'mine.status.suspended': 'Wstrzymana',
+  'mine.status.abandoned': 'Odłożona',
+  'mine.status.completed': 'Zakończona',
 
   // --- inviting someone to a table ------------------------------------------
   'invite.heading': 'Zaproś graczy',

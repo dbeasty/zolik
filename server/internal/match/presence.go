@@ -8,8 +8,10 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 
 	"zolik/server/internal/metrics"
+	"zolik/server/internal/models"
 	"zolik/server/internal/module"
 	"zolik/server/internal/rules"
+	"zolik/server/internal/ws"
 )
 
 // Reconnection, for every game.
@@ -125,6 +127,22 @@ func awaits(seats []string, playerID string) bool {
 	return false
 }
 
+// resumableBy is ResumeAbandoned's own eligibility rule, pulled out so a
+// listing can offer the same button it would actually honour rather than
+// re-deriving the rule and risking the two disagreeing: a seated human, and
+// every other seat a bot.
+func resumableBy(players []models.Player, playerID string) bool {
+	if p := playerByID(players, playerID); p == nil || p.IsAI {
+		return false
+	}
+	for _, p := range players {
+		if p.ID != playerID && !p.IsAI {
+			return false
+		}
+	}
+	return true
+}
+
 // ResumeAbandoned brings a swept-up table back to life.
 //
 // The sweeper resolves a table nobody came back to (see reaper.go), and that
@@ -165,13 +183,11 @@ func (m *Manager) ResumeAbandoned(ctx context.Context, matchID, playerID string)
 	if match.Status != string(rules.StatusAbandoned) {
 		return module.Error{Code: "MATCH_NOT_ABANDONED", Message: "status is " + match.Status}
 	}
-	if p := playerByID(match.Players, playerID); p == nil || p.IsAI {
-		return module.Error{Code: "NOT_AT_THIS_TABLE", Message: playerID}
-	}
-	for _, p := range match.Players {
-		if p.ID != playerID && !p.IsAI {
-			return module.Error{Code: "TABLE_HAS_OTHER_PLAYERS", Message: p.ID}
+	if !resumableBy(match.Players, playerID) {
+		if p := playerByID(match.Players, playerID); p == nil || p.IsAI {
+			return module.Error{Code: "NOT_AT_THIS_TABLE", Message: playerID}
 		}
+		return module.Error{Code: "TABLE_HAS_OTHER_PLAYERS", Message: playerID}
 	}
 
 	expected := match.Version
@@ -201,4 +217,82 @@ func (m *Manager) ResumeAbandoned(ctx context.Context, matchID, playerID string)
 	// no way to make.
 	m.RunBotsIfNeeded(context.WithoutCancel(ctx), matchID)
 	return nil
+}
+
+// DeleteAsHost ends a table at its host's request, for every seat.
+//
+// The rule is deliberately blunt: the host may always delete, in any status,
+// and nobody else may ever. A narrower rule — solo-vs-bots only, mirroring
+// ResumeAbandoned's own restriction — would leave the ordinary case (a host
+// clearing an abandoned or finished table off their own list) needing every
+// other seat to be a bot, which most hosted tables already satisfy but not
+// all. The cost accepted here is real: a host can end a game other people are
+// still playing. There is no vote and no "only if everyone left" grace period.
+//
+// Deleting a completed match is allowed and is the safe end of the range: its
+// permanent record went to match_results the moment it finished
+// (Manager.recorder is handed the match by value, so it never re-reads this
+// row), and retention would delete the row itself once its window passes.
+// What the host discards here is the board, not the history.
+func (m *Manager) DeleteAsHost(ctx context.Context, idOrCode, playerID string) error {
+	match, err := m.repo.Resolve(ctx, idOrCode)
+	if err != nil {
+		return module.Error{Code: "MATCH_NOT_FOUND", Message: idOrCode}
+	}
+	if playerByID(match.Players, playerID) == nil {
+		return module.Error{Code: "NOT_AT_THIS_TABLE", Message: playerID}
+	}
+	if match.HostID != playerID {
+		return module.Error{Code: "NOT_THE_HOST", Message: playerID}
+	}
+
+	// Captured before the write: once the row is gone there is nothing left
+	// to read the seat list from, and the announcement below still needs it.
+	id := match.ID
+	status := match.Status
+
+	// The same version guard retention uses, for the same reason: a delete
+	// that ignored it could land between a player's action being applied and
+	// being persisted, and that player would be told their move succeeded at
+	// a table that no longer exists.
+	if err := m.repo.DeleteIfUnchanged(ctx, id, match.Version); err != nil {
+		return module.Error{Code: "MATCH_MOVED_ON", Message: err.Error()}
+	}
+
+	m.metrics.Add(metrics.MatchesDeletedByHost, 1)
+	log.Printf("match=%s host=%s deleted a %s table", id.Hex(), playerID, status)
+	m.announceDeleted(id.Hex(), match.Players)
+	return nil
+}
+
+// errMatchDeleted is what a seated player's socket receives once their table
+// has been deleted from under them. Built as a module.Error, like every other
+// refusal this package emits, rather than a bare map literal: dump-keys only
+// recognises a code at a construction site — a Code: field, a call argument,
+// a bare return — and a string sitting in a map literal's value position is
+// invisible to it, which would leave MATCH_DELETED reaching a player as
+// SCREAMING_SNAKE with nothing to catch it.
+var errMatchDeleted = module.Error{Code: "MATCH_DELETED"}
+
+// announceDeleted tells every human seat the table is gone.
+//
+// Sent after the delete succeeds, never before: an announcement ahead of a
+// version conflict would tell people a live game had ended when it had not.
+// Publish, not WriteDirect — a seated player may be connected to a different
+// server instance, and "your table is gone" is not a message worth losing to
+// save a Redis round trip. Bots hold no socket and are skipped.
+func (m *Manager) announceDeleted(matchID string, players []models.Player) {
+	var msgs []ws.PlayerMessage
+	for _, p := range players {
+		if p.IsAI {
+			continue
+		}
+		msgs = append(msgs, ws.PlayerMessage{PlayerID: p.ID, Payload: map[string]any{
+			"type": "error", "code": module.CodeOf(errMatchDeleted),
+		}})
+	}
+	if len(msgs) == 0 {
+		return
+	}
+	m.hub.Publish(matchID, msgs)
 }

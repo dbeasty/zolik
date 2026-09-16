@@ -29,6 +29,15 @@ export default function MoreScreen() {
 
   return (
     <Screen title={t('nav.more')} scroll>
+      {/* Unlike the score table and stats below, this works for a guest —
+          a stored game is kept against whatever id played it, account or
+          not — so it is never greyed out. */}
+      <Entry
+        testID="more-my-games"
+        label={t('nav.myGames')}
+        enabled
+        onPress={() => router.push('/lobby/mine')}
+      />
       <Entry
         testID="more-score-table"
         label={t('more.scoreTable')}

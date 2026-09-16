@@ -29,6 +29,7 @@ export const ga: Record<string, string> = {
   'err.MATCH_MOVED_ON': 'Bhog an tábla ar aghaidh — athlódáil an leathanach',
   'err.MATCH_NOT_ABANDONED': 'Níl an tábla seo ag fanacht le hatosú',
   'err.MATCH_NOT_FOUND': 'Níl an tábla seo ann a thuilleadh',
+  'err.MATCH_DELETED': 'Scrios an t-óstach an tábla seo',
   'err.TABLE_HAS_OTHER_PLAYERS': 'Ní féidir ach tábla ina bhfuil cách eile ina róbaí a atosú',
   'err.DISCARD_LOCKED': 'Tá an carn caite faoi ghlas go fóill',
   'err.DISCARD_PILE_EMPTY': 'Tá an carn caite folamh',
@@ -911,6 +912,7 @@ export const ga: Record<string, string> = {
   'nav.scoreTable': 'Tábla scór',
   'nav.stats': 'Staitisticí',
   'nav.more': 'Tuilleadh',
+  'nav.myGames': 'Mo chluichí',
   'nav.about': 'Maidir leis',
 
   // --- the account menu behind the face in the corner ----------------------
@@ -1065,6 +1067,26 @@ export const ga: Record<string, string> = {
   'lobby.table.moveSeatDown': 'Bog {name} síos suíochán',
   'lobby.table.start': 'Tosaigh',
   'lobby.table.waitingForHost': 'Ag fanacht leis an óstach tosú…',
+
+  // --- "my games": stored tables, resumed or deleted --------------------
+  'mine.subtitle': 'Cluichí ar féidir leat leanúint leo, nó iad a scriosadh',
+  'mine.tabUnfinished': 'Ar siúl',
+  'mine.tabFinished': 'Críochnaithe',
+  'mine.emptyUnfinished': 'Níl aon chluiche ar siúl faoi láthair',
+  'mine.emptyFinished': 'Níl aon chluiche críochnaithe fós',
+  'mine.open': 'Oscail',
+  'mine.resume': 'Lean ar aghaidh',
+  'mine.delete': 'Scrios',
+  'mine.deleteConfirmTitle': 'Scrios an tábla seo?',
+  'mine.deleteConfirmBody': 'Cuireann sé seo deireadh leis an gcluiche do gach duine eile ag an tábla. Ní féidir é seo a chur ar ceal.',
+  'mine.deleteConfirm': 'Scrios',
+  'mine.deleteCancel': 'Cealaigh',
+  'mine.viewAll': 'Féach ar chách',
+  'mine.status.lobby': 'Ag fanacht le tosú',
+  'mine.status.active': 'Ar siúl',
+  'mine.status.suspended': 'Ar sos',
+  'mine.status.abandoned': 'Curtha i leataobh',
+  'mine.status.completed': 'Críochnaithe',
 
   // --- inviting someone to a table ------------------------------------------
   'invite.heading': "Tabhair cuireadh d'imreoirí",

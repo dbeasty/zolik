@@ -29,6 +29,7 @@ export const de: Record<string, string> = {
   'err.MATCH_MOVED_ON': 'Der Tisch hat sich weiterbewegt — lade die Seite neu',
   'err.MATCH_NOT_ABANDONED': 'Dieser Tisch wartet nicht darauf, fortgesetzt zu werden',
   'err.MATCH_NOT_FOUND': 'Diesen Tisch gibt es nicht mehr',
+  'err.MATCH_DELETED': 'Der Gastgeber hat diesen Tisch gelöscht',
   'err.TABLE_HAS_OTHER_PLAYERS': 'Nur ein Tisch, an dem alle anderen Bots sind, lässt sich fortsetzen',
   'err.DISCARD_LOCKED': 'Der Ablagestapel ist vorerst gesperrt',
   'err.DISCARD_PILE_EMPTY': 'Der Ablagestapel ist leer',
@@ -906,6 +907,7 @@ export const de: Record<string, string> = {
   'nav.scoreTable': 'Punktetabelle',
   'nav.stats': 'Statistik',
   'nav.more': 'Mehr',
+  'nav.myGames': 'Meine Spiele',
   'nav.about': 'Über',
 
   // --- the account menu behind the face in the corner ----------------------
@@ -1056,6 +1058,26 @@ export const de: Record<string, string> = {
   'lobby.table.moveSeatDown': '{name} einen Platz nach unten',
   'lobby.table.start': 'Starten',
   'lobby.table.waitingForHost': 'Warten, bis der Gastgeber startet …',
+
+  // --- "my games": stored tables, resumed or deleted --------------------
+  'mine.subtitle': 'Spiele, die du fortsetzen oder löschen kannst',
+  'mine.tabUnfinished': 'Laufend',
+  'mine.tabFinished': 'Beendet',
+  'mine.emptyUnfinished': 'Gerade kein laufendes Spiel',
+  'mine.emptyFinished': 'Noch keine beendeten Spiele',
+  'mine.open': 'Öffnen',
+  'mine.resume': 'Fortsetzen',
+  'mine.delete': 'Löschen',
+  'mine.deleteConfirmTitle': 'Diesen Tisch löschen?',
+  'mine.deleteConfirmBody': 'Das beendet das Spiel für alle anderen am Tisch. Das kann nicht rückgängig gemacht werden.',
+  'mine.deleteConfirm': 'Löschen',
+  'mine.deleteCancel': 'Abbrechen',
+  'mine.viewAll': 'Alle anzeigen',
+  'mine.status.lobby': 'Wartet auf Start',
+  'mine.status.active': 'Läuft',
+  'mine.status.suspended': 'Pausiert',
+  'mine.status.abandoned': 'Zurückgestellt',
+  'mine.status.completed': 'Beendet',
 
   // --- inviting someone to a table ------------------------------------------
   'invite.heading': 'Spieler einladen',

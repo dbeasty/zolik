@@ -180,6 +180,13 @@ export default function GamesScreen() {
     [client, session, variation, options, bots],
   );
 
+  // The one behaviour behind three tap targets: the toggle button, the
+  // player-count line, and the digest all open or close the same panel, so
+  // this is the single place that decides what "open" means.
+  const toggleSetup = useCallback((modId: string) => {
+    setOpenSetup((prev) => ({ ...prev, [modId]: !prev[modId] }));
+  }, []);
+
   if (!modules.length && !error) {
     return (
       <Screen title={t('nav.games')}>
@@ -197,17 +204,26 @@ export default function GamesScreen() {
           </Text>
         ) : null}
 
-        {modules.map((mod) => (
+        {modules.map((mod) => {
+          const expanded = !!openSetup[mod.id];
+          const digest = setupDigest(mod, variation[mod.id], botCount(mod, bots[mod.id]));
+          return (
           <View key={mod.id} style={styles.card} testID={`module-${mod.id}`}>
             <View style={styles.headerRow}>
-              <View>
+              <Pressable
+                testID={`players-${mod.id}`}
+                accessibilityRole="button"
+                accessibilityState={{ expanded }}
+                aria-expanded={expanded}
+                onPress={() => toggleSetup(mod.id)}
+              >
                 <Text style={styles.name}>{moduleLabel(mod)}</Text>
                 <Text style={styles.meta}>
                   {mod.minPlayers === mod.maxPlayers
                     ? t('lobby.games.players', { n: mod.minPlayers })
                     : t('lobby.games.playerRange', { min: mod.minPlayers, max: mod.maxPlayers })}
                 </Text>
-              </View>
+              </Pressable>
               <Pressable
                 testID={`rules-${mod.id}`}
                 onPress={() =>
@@ -226,26 +242,45 @@ export default function GamesScreen() {
               </Pressable>
             </View>
 
-            {/* What this card is set to, and the way in to change it. */}
+            {/* What this card is set to, and the way in to change it. Both the
+                digest and the toggle button open the same setup — the digest
+                states the current value, which is the obvious thing to tap to
+                change it, and the toggle is the explicit, always-visible way
+                in for anyone who does not think to try the text. */}
             <View style={styles.setupRow}>
-              <Text style={styles.digest} testID={`setup-digest-${mod.id}`} numberOfLines={2}>
-                {setupDigest(mod, variation[mod.id], botCount(mod, bots[mod.id]))}
-              </Text>
+              {digest ? (
+                <Pressable
+                  testID={`setup-digest-press-${mod.id}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded }}
+                  aria-expanded={expanded}
+                  onPress={() => toggleSetup(mod.id)}
+                  style={styles.digestPress}
+                >
+                  <Text style={styles.digest} testID={`setup-digest-${mod.id}`} numberOfLines={2}>
+                    {digest}
+                  </Text>
+                </Pressable>
+              ) : (
+                <Text style={styles.digest} testID={`setup-digest-${mod.id}`} numberOfLines={2}>
+                  {digest}
+                </Text>
+              )}
               <Pressable
                 testID={`setup-toggle-${mod.id}`}
                 accessibilityRole="button"
-                accessibilityState={{ expanded: !!openSetup[mod.id] }}
+                accessibilityState={{ expanded }}
                 // Both, deliberately. `accessibilityState` is what the native
                 // platforms read; on web it never reaches the DOM, so a screen
                 // reader there is told a button exists but never that it opens
                 // anything. `aria-expanded` is the half that lands in the
                 // markup — and the half a browser test can see.
-                aria-expanded={!!openSetup[mod.id]}
-                onPress={() => setOpenSetup((prev) => ({ ...prev, [mod.id]: !prev[mod.id] }))}
+                aria-expanded={expanded}
+                onPress={() => toggleSetup(mod.id)}
                 style={styles.setupButton}
               >
                 <Text style={styles.setupButtonText}>
-                  {t('lobby.games.setup')} {openSetup[mod.id] ? '▴' : '▾'}
+                  {t('lobby.games.setup')} {expanded ? '▴' : '▾'}
                 </Text>
               </Pressable>
             </View>
@@ -352,7 +387,8 @@ export default function GamesScreen() {
               </Pressable>
             </View>
           </View>
-        ))}
+          );
+        })}
       </ScrollView>
     </Screen>
   );
@@ -424,6 +460,10 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   digest: { color: colors.muted, fontSize: 12, flex: 1 },
+  // The digest's own hit target, sized to the text rather than the row: the
+  // row also holds the toggle button, and stretching this to flex: 1 would
+  // swallow taps meant for it.
+  digestPress: { flexShrink: 1 },
   setupButton: {
     borderWidth: 1,
     borderColor: colors.border,

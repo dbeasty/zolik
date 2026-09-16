@@ -29,6 +29,7 @@ export const nl: Record<string, string> = {
   'err.MATCH_MOVED_ON': 'De tafel is verdergegaan — laad de pagina opnieuw',
   'err.MATCH_NOT_ABANDONED': 'Deze tafel wacht niet om hervat te worden',
   'err.MATCH_NOT_FOUND': 'Deze tafel bestaat niet meer',
+  'err.MATCH_DELETED': 'De gastheer heeft deze tafel verwijderd',
   'err.TABLE_HAS_OTHER_PLAYERS': 'Alleen een tafel waar alle anderen bots zijn kan worden hervat',
   'err.DISCARD_LOCKED': 'De aflegstapel is voorlopig op slot',
   'err.DISCARD_PILE_EMPTY': 'De aflegstapel is leeg',
@@ -896,6 +897,7 @@ export const nl: Record<string, string> = {
   'nav.scoreTable': 'Scoretabel',
   'nav.stats': 'Statistieken',
   'nav.more': 'Meer',
+  'nav.myGames': 'Mijn spellen',
   'nav.about': 'Over',
 
   // --- the account menu behind the face in the corner ----------------------
@@ -1047,6 +1049,26 @@ export const nl: Record<string, string> = {
   'lobby.table.moveSeatDown': '{name} een plaats omlaag',
   'lobby.table.start': 'Starten',
   'lobby.table.waitingForHost': 'Wachten tot de gastheer start…',
+
+  // --- "my games": stored tables, resumed or deleted --------------------
+  'mine.subtitle': 'Spellen die je kunt hervatten, of verwijderen',
+  'mine.tabUnfinished': 'Lopend',
+  'mine.tabFinished': 'Afgerond',
+  'mine.emptyUnfinished': 'Op dit moment geen lopende spellen',
+  'mine.emptyFinished': 'Nog geen afgeronde spellen',
+  'mine.open': 'Openen',
+  'mine.resume': 'Hervatten',
+  'mine.delete': 'Verwijderen',
+  'mine.deleteConfirmTitle': 'Deze tafel verwijderen?',
+  'mine.deleteConfirmBody': 'Dit beëindigt het spel voor iedereen die nog aan tafel zit. Dit kan niet ongedaan worden gemaakt.',
+  'mine.deleteConfirm': 'Verwijderen',
+  'mine.deleteCancel': 'Annuleren',
+  'mine.viewAll': 'Alles bekijken',
+  'mine.status.lobby': 'Wacht op start',
+  'mine.status.active': 'Bezig',
+  'mine.status.suspended': 'Gepauzeerd',
+  'mine.status.abandoned': 'Opzij gezet',
+  'mine.status.completed': 'Afgerond',
 
   // --- inviting someone to a table ------------------------------------------
   'invite.heading': 'Spelers uitnodigen',

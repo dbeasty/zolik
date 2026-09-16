@@ -29,6 +29,7 @@ export const el: Record<string, string> = {
   'err.MATCH_MOVED_ON': 'Το τραπέζι προχώρησε — φόρτωσε ξανά τη σελίδα',
   'err.MATCH_NOT_ABANDONED': 'Αυτό το τραπέζι δεν περιμένει να συνεχιστεί',
   'err.MATCH_NOT_FOUND': 'Αυτό το τραπέζι δεν υπάρχει πια',
+  'err.MATCH_DELETED': 'Ο οικοδεσπότης διέγραψε αυτό το τραπέζι',
   'err.TABLE_HAS_OTHER_PLAYERS': 'Μόνο ένα τραπέζι όπου όλοι οι άλλοι είναι μποτ μπορεί να συνεχιστεί',
   'err.DISCARD_LOCKED': 'Ο σωρός απόρριψης είναι προς το παρόν κλειδωμένος',
   'err.DISCARD_PILE_EMPTY': 'Ο σωρός απόρριψης είναι άδειος',
@@ -908,6 +909,7 @@ export const el: Record<string, string> = {
   'nav.scoreTable': 'Πίνακας σκορ',
   'nav.stats': 'Στατιστικά',
   'nav.more': 'Περισσότερα',
+  'nav.myGames': 'Οι παρτίδες μου',
   'nav.about': 'Σχετικά',
 
   // --- the account menu behind the face in the corner ----------------------
@@ -1060,6 +1062,26 @@ export const el: Record<string, string> = {
   'lobby.table.moveSeatDown': 'Μετακίνησε τον {name} μία θέση κάτω',
   'lobby.table.start': 'Ξεκίνα',
   'lobby.table.waitingForHost': 'Αναμονή να ξεκινήσει ο οικοδεσπότης…',
+
+  // --- "my games": stored tables, resumed or deleted --------------------
+  'mine.subtitle': 'Παρτίδες που μπορείς να συνεχίσεις ή να διαγράψεις',
+  'mine.tabUnfinished': 'Σε εξέλιξη',
+  'mine.tabFinished': 'Ολοκληρωμένες',
+  'mine.emptyUnfinished': 'Καμία παρτίδα σε εξέλιξη αυτή τη στιγμή',
+  'mine.emptyFinished': 'Καμία ολοκληρωμένη παρτίδα ακόμα',
+  'mine.open': 'Άνοιγμα',
+  'mine.resume': 'Συνέχεια',
+  'mine.delete': 'Διαγραφή',
+  'mine.deleteConfirmTitle': 'Διαγραφή αυτού του τραπεζιού;',
+  'mine.deleteConfirmBody': 'Η παρτίδα τελειώνει για όλους τους υπόλοιπους παίκτες. Δεν αναιρείται.',
+  'mine.deleteConfirm': 'Διαγραφή',
+  'mine.deleteCancel': 'Άκυρο',
+  'mine.viewAll': 'Δες όλες',
+  'mine.status.lobby': 'Περιμένει να ξεκινήσει',
+  'mine.status.active': 'Σε εξέλιξη',
+  'mine.status.suspended': 'Σε παύση',
+  'mine.status.abandoned': 'Στην άκρη',
+  'mine.status.completed': 'Ολοκληρώθηκε',
 
   // --- inviting someone to a table ------------------------------------------
   'invite.heading': 'Κάλεσε παίκτες',

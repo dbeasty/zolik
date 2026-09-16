@@ -29,6 +29,7 @@ export const mt: Record<string, string> = {
   'err.MATCH_MOVED_ON': 'Il-mejda mxiet ’il quddiem — erġa’ agħbi l-paġna',
   'err.MATCH_NOT_ABANDONED': 'Din il-mejda mhix tistenna li terġa’ tinbeda',
   'err.MATCH_NOT_FOUND': 'Din il-mejda ma għadhiex teżisti',
+  'err.MATCH_DELETED': 'Il-host ħassar din il-mejda',
   'err.TABLE_HAS_OTHER_PLAYERS': 'Tista’ terġa’ tinbeda biss mejda fejn l-oħrajn kollha huma bots',
   'err.DISCARD_LOCKED': 'Il-munzell tal-iskart huwa msakkar għalissa',
   'err.DISCARD_PILE_EMPTY': 'Il-munzell tal-iskart huwa vojt',
@@ -896,6 +897,7 @@ export const mt: Record<string, string> = {
   'nav.scoreTable': 'Tabella tal-iskor',
   'nav.stats': 'Statistika',
   'nav.more': 'Aktar',
+  'nav.myGames': 'Il-logħob tiegħi',
   'nav.about': 'Dwar',
 
   // --- the account menu behind the face in the corner ----------------------
@@ -1047,6 +1049,26 @@ export const mt: Record<string, string> = {
   'lobby.table.moveSeatDown': "Mexxi lil {name} post 'l isfel",
   'lobby.table.start': 'Ibda',
   'lobby.table.waitingForHost': 'Nistennew lill-ħost jibda…',
+
+  // --- "my games": stored tables, resumed or deleted --------------------
+  'mine.subtitle': "Logħob li tista' tkompli, jew tħassar",
+  'mine.tabUnfinished': 'Għaddej',
+  'mine.tabFinished': 'Spiċċat',
+  'mine.emptyUnfinished': "Bħalissa m'hemm ebda logħba għaddejja",
+  'mine.emptyFinished': "Għadu m'hemm ebda logħba mispiċċa",
+  'mine.open': 'Iftaħ',
+  'mine.resume': 'Kompli',
+  'mine.delete': 'Ħassar',
+  'mine.deleteConfirmTitle': 'Tħassar din il-mejda?',
+  'mine.deleteConfirmBody': "Dan itemm il-logħba għal kulħadd bilqiegħda. Ma jistax jitreġġa' lura.",
+  'mine.deleteConfirm': 'Ħassar',
+  'mine.deleteCancel': 'Ikkanċella',
+  'mine.viewAll': 'Ara kollha',
+  'mine.status.lobby': 'Tistenna li tibda',
+  'mine.status.active': 'Għaddej',
+  'mine.status.suspended': 'Sospiża',
+  'mine.status.abandoned': 'Imwarrba',
+  'mine.status.completed': 'Spiċċat',
 
   // --- inviting someone to a table ------------------------------------------
   'invite.heading': 'Stieden plejers',

@@ -29,6 +29,7 @@ export const sv: Record<string, string> = {
   'err.MATCH_MOVED_ON': 'Bordet har gått vidare — ladda om sidan',
   'err.MATCH_NOT_ABANDONED': 'Det här bordet väntar inte på att återupptas',
   'err.MATCH_NOT_FOUND': 'Det här bordet finns inte längre',
+  'err.MATCH_DELETED': 'Värden har tagit bort det här bordet',
   'err.TABLE_HAS_OTHER_PLAYERS': 'Bara ett bord där alla andra är bottar kan återupptas',
   'err.DISCARD_LOCKED': 'Kasthögen är låst tills vidare',
   'err.DISCARD_PILE_EMPTY': 'Kasthögen är tom',
@@ -876,6 +877,7 @@ export const sv: Record<string, string> = {
   'nav.scoreTable': 'Poängtabell',
   'nav.stats': 'Statistik',
   'nav.more': 'Mer',
+  'nav.myGames': 'Mina spel',
   'nav.about': 'Om',
 
   // --- the account menu behind the face in the corner ----------------------
@@ -1025,6 +1027,26 @@ export const sv: Record<string, string> = {
   'lobby.table.moveSeatDown': 'Flytta {name} en plats ner',
   'lobby.table.start': 'Starta',
   'lobby.table.waitingForHost': 'Väntar på att värden startar…',
+
+  // --- "my games": stored tables, resumed or deleted --------------------
+  'mine.subtitle': 'Spel du kan återuppta, eller ta bort',
+  'mine.tabUnfinished': 'Pågående',
+  'mine.tabFinished': 'Avslutade',
+  'mine.emptyUnfinished': 'Inga pågående spel just nu',
+  'mine.emptyFinished': 'Inga avslutade spel ännu',
+  'mine.open': 'Öppna',
+  'mine.resume': 'Återuppta',
+  'mine.delete': 'Ta bort',
+  'mine.deleteConfirmTitle': 'Ta bort det här bordet?',
+  'mine.deleteConfirmBody': 'Det avslutar spelet för alla andra vid bordet. Det går inte att ångra.',
+  'mine.deleteConfirm': 'Ta bort',
+  'mine.deleteCancel': 'Avbryt',
+  'mine.viewAll': 'Visa alla',
+  'mine.status.lobby': 'Väntar på start',
+  'mine.status.active': 'Pågår',
+  'mine.status.suspended': 'Pausat',
+  'mine.status.abandoned': 'Åtsidosatt',
+  'mine.status.completed': 'Avslutat',
 
   // --- inviting someone to a table ------------------------------------------
   'invite.heading': 'Bjud in spelare',
