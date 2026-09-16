@@ -188,6 +188,22 @@ type Zone struct {
 	Cards    []CardView `json:"cards,omitempty"`
 	Count    int        `json:"count"`
 	Groups   []Group    `json:"groups,omitempty"`
+	// Dealer marks the house's own zone: cards the game itself plays, held by
+	// nobody at the table. Blackjack's dealer is the one so far.
+	//
+	// Presentational, and deliberately so. The claim the protocol makes — and
+	// that blackjack's conformance test exists to falsify — is that a client
+	// never *has* to know the dealer exists as anything but a zone with cards
+	// in it, and that still holds: a client that ignores this field draws the
+	// zone exactly as it drew it before and plays the game exactly as well.
+	// What the field buys is a client that doesn't have to *pretend* the
+	// house is a player, filing the dealer's cards in among the seats' melds
+	// because the alternative was matching on a zone id.
+	//
+	// It is a flag rather than a "who" because the house is not a who. There
+	// is no seat, no stack and no standing behind it; OwnerID stays empty,
+	// which is the fact this field is stating out loud.
+	Dealer bool `json:"dealer,omitempty"`
 }
 
 // Fact is a labelled value for a header or scoreboard — pre-resolved by the

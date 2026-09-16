@@ -68,6 +68,17 @@ export type Zone = {
   cards?: CardView[];
   count: number;
   groups?: Group[];
+  /**
+   * The house's own zone — the cards the game itself plays, held by nobody at
+   * the table. Blackjack's dealer is the one that sends it.
+   *
+   * A hint about *where to draw it*, never about how to play: the board is
+   * still laid out by `kind`, and a dealer zone is still a spread. Without
+   * this the only way to tell the house's hand from a player's melds was to
+   * match on the zone's id, which is the shell knowing a game's name — the
+   * one thing this whole protocol is arranged not to need.
+   */
+  dealer?: boolean;
 };
 
 /** One player as the board shows them: whose turn, and their own numbers. */

@@ -232,6 +232,10 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 	dealer := module.Zone{
 		ID: dealerZoneID, Kind: module.ZoneSpread, LabelKey: "blackjack.zone.dealer",
 		Cards: cardViews(s.shownDealer()), Count: len(s.Dealer),
+		// The one zone at this table that belongs to the house rather than to
+		// a seat. Says so, so a client can sit the dealer across the table
+		// from the players instead of filing their hand among the melds.
+		Dealer: true,
 	}
 	vm.Zones = append(vm.Zones, dealer)
 
