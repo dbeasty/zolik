@@ -179,22 +179,47 @@ func viewerOf(players []PlayerRef) string {
 // with it, which is how a module gets a playable opponent the day it is
 // registered, with no AI of its own.
 func ChooseAction(offers []ActionOffer, prefer []string) (Action, bool) {
+	all := ChooseActions(offers, prefer)
+	if len(all) == 0 {
+		return Action{}, false
+	}
+	return all[0], true
+}
+
+// ChooseActions is every submission the offer list describes, in the order
+// ChooseAction would have picked them: preferred verbs first, then the rest in
+// offer order.
+//
+// The plural exists because a refusal is not always the offer list's fault. An
+// offer is built by probing the validator, so an enabled one is a move the
+// engine accepted a moment ago — but "a moment ago" is the whole gap: the probe
+// ran against a clone, and between the probe and the submission another seat's
+// action can land. A driver handed one answer has to give up on the first
+// refusal; a driver handed the list can try the next one, which is what a person
+// looking at the same greyed-out control would do.
+func ChooseActions(offers []ActionOffer, prefer []string) []Action {
+	out := make([]Action, 0, len(offers))
+	seen := make(map[int]bool, len(offers))
+	take := func(i int) {
+		if seen[i] {
+			return
+		}
+		seen[i] = true
+		if a, ok := SubmissionFor(offers[i]); ok {
+			out = append(out, a)
+		}
+	}
 	for _, verb := range prefer {
 		for i := range offers {
-			if offers[i].Verb != verb {
-				continue
-			}
-			if a, ok := SubmissionFor(offers[i]); ok {
-				return a, true
+			if offers[i].Verb == verb {
+				take(i)
 			}
 		}
 	}
 	for i := range offers {
-		if a, ok := SubmissionFor(offers[i]); ok {
-			return a, true
-		}
+		take(i)
 	}
-	return Action{}, false
+	return out
 }
 
 // SubmissionFor builds the concrete action an offer describes, using only what
