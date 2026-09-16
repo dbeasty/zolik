@@ -91,12 +91,25 @@ export type Skin = {
      * 'rich' is the full treatment: indices in two corners (the second one
      * upside down, the way a real card reads from either end), a large
      * centre pip, and a medallion for the court cards.
+     * 'deluxe' is a printed card: the same two indices, but the rank's real
+     * pip arrangement instead of one centre pip, a mirrored figure on the
+     * courts and the joker, and every shape drawn as vector art rather than
+     * typed as a font glyph — see `src/components/cards/DeluxeFace.tsx`.
+     * Still only a *look*: a deluxe face occupies the identical box a plain
+     * one does, because the box is the metrics' business and never a skin's.
      */
-    face: 'plain' | 'rich';
+    face: 'plain' | 'rich' | 'deluxe';
     /** Top-to-bottom wash across a rich face; ignored for 'plain'. */
     faceGradient?: [string, string];
     ink: string;
     red: string;
+    /**
+     * The crown, cap band and collar trim on a 'deluxe' court figure — the
+     * one colour on a card that is neither its ink nor its red. Falls back to
+     * the figure's own colour, which is what a skin wanting a monochrome
+     * court leaves it at.
+     */
+    courtAccent?: string;
     selectedFace: string;
     jokerFace: string;
     /** Cards cast a small shadow, and the one being dragged casts a bigger one. */

@@ -3,9 +3,12 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { CardBack } from '@/src/components/CardBack';
+import { DeluxeFace } from '@/src/components/cards/DeluxeFace';
+import { Suit } from '@/src/components/cards/Suit';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
 import { parseCard } from '@/src/lib/cards';
+import { isCourt } from '@/src/lib/pips';
 import type { CardMetrics } from '@/src/lib/layout';
 import type { Skin } from '@/src/skins/types';
 
@@ -61,11 +64,16 @@ type Props = {
   faceDown?: boolean;
 };
 
-/** The court cards get a medallion on a rich face rather than a giant pip. */
-const COURT_RANKS = new Set(['J', 'Q', 'K']);
-
 /** How much of a card's own side shows below and to the right of it. */
 const EDGE = 2;
+
+/**
+ * The card's own border, on every face. Named because a face drawn *inside*
+ * the card has to subtract it twice to know how much room it actually has —
+ * `width` here is the outer box (React Native measures border-box), and a
+ * pip laid out against the outer box lands under the border.
+ */
+const BORDER = 2;
 
 /** Every dimension a card's own render needs, computed once per card size and skin. */
 function cardStyles(m: CardMetrics, s: Skin) {
@@ -106,7 +114,7 @@ function cardStyles(m: CardMetrics, s: Skin) {
       height: m.height,
       backgroundColor: colors.cardBg,
       borderRadius: 6,
-      borderWidth: 2,
+      borderWidth: BORDER,
       borderColor: colors.cardBorder,
       padding: 4,
       marginRight: m.gap,
@@ -291,25 +299,55 @@ export function CardView({
     );
   }
 
+  // Two faces beyond the plain one, and a stacked card is neither: a meld's
+  // overlapped cards show one corner and nothing else, so there is nothing
+  // for a pip arrangement or a court figure to be drawn in.
+  const deluxe = skin.card.face === 'deluxe' && !stacked;
   const rich = skin.card.face === 'rich' && !stacked;
   // The gradient wash is the resting face only: a selected or joker card
   // shows its own solid fill, and painting the wash over it would hide the
   // one thing those fills are for.
-  const washed = rich && !!skin.card.faceGradient && !selected && !d.isJoker;
+  const washed = (rich || deluxe) && !!skin.card.faceGradient && !selected && !d.isJoker;
 
   const face = stacked ? (
     <View style={styles.corner}>
       <Text style={[styles.rank, d.isJoker && styles.jokerRank, d.isRed && styles.red]}>
         {d.rank}
       </Text>
-      <Text style={[styles.suitInline, d.isRed && styles.red]}>{d.suitSymbol}</Text>
+      {/* The one corner a stacked meld shows. Under the deluxe skin it is the
+          drawn suit rather than the font's, so a card half-hidden in a meld
+          and the same card in hand are printed from the same shape. */}
+      {skin.card.face === 'deluxe' && !d.isJoker ? (
+        <Suit
+          suit={d.suit}
+          size={metrics.card.suitInlineFont}
+          color={d.isRed ? skin.card.red : skin.card.ink}
+        />
+      ) : (
+        <Text style={[styles.suitInline, d.isRed && styles.red]}>{d.suitSymbol}</Text>
+      )}
     </View>
+  ) : deluxe ? (
+    <DeluxeFace
+      card={d}
+      width={(compact ? metrics.card.compactWidth : metrics.card.width) - 2 * BORDER}
+      height={(compact ? metrics.card.compactHeight : metrics.card.height) - 2 * BORDER}
+      ink={skin.card.ink}
+      red={skin.card.red}
+      courtAccent={skin.card.courtAccent}
+      // The fill this card actually has, which the court figure draws its own
+      // features in — a selected card and a joker are not on plain stock.
+      stock={selected ? skin.card.selectedFace : d.isJoker ? skin.card.jokerFace : skin.colors.cardBg}
+    />
   ) : rich ? (
     <>
       <View style={styles.center} pointerEvents="none">
         {d.isJoker ? (
           <Text style={styles.jokerStar}>★</Text>
-        ) : COURT_RANKS.has(d.rank) ? (
+        ) : /* A rich face gives the courts a medallion rather than a giant pip.
+               Which ranks those are is `pips.ts`'s to say, so the deluxe face
+               and this one can never disagree about what a court card is. */
+        isCourt(d.rank) ? (
           <View style={[styles.medallion, d.isRed && styles.medallionRed]}>
             <Text style={[styles.medallionRank, d.isRed && styles.red]}>{d.rank}</Text>
             <Text style={[styles.medallionSuit, d.isRed && styles.red]}>{d.suitSymbol}</Text>
@@ -380,7 +418,7 @@ export function CardView({
       <View
         style={[
           styles.card,
-          rich && styles.cardRich,
+          (rich || deluxe) && styles.cardRich,
           skin.card.shadow && styles.cardShadow,
           // Not on a selected card: its solid selection border must win, and
           // per-side colours would beat an all-side one regardless of order.

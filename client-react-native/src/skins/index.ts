@@ -1,6 +1,7 @@
 import { storage } from '@/src/context/SessionContext';
 import { casino } from '@/src/skins/casino';
 import { classic } from '@/src/skins/classic';
+import { heirloom } from '@/src/skins/heirloom';
 import type { Skin } from '@/src/skins/types';
 
 /**
@@ -8,7 +9,7 @@ import type { Skin } from '@/src/skins/types';
  * skin is adding a file next to `casino.ts` and a line here — nothing else
  * knows how many there are.
  */
-export const SKINS: readonly Skin[] = [casino, classic];
+export const SKINS: readonly Skin[] = [heirloom, casino, classic];
 
 export const DEFAULT_SKIN = casino;
 
