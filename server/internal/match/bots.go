@@ -2,6 +2,7 @@ package match
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"math/rand"
 	"time"
@@ -126,35 +127,77 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 		if err != nil {
 			return
 		}
-		action, ok := module.BotFor(mod).Act(match.State, botSeatFor(match, actor), offers)
-		if !ok {
-			// The module's own bot had no answer. Fall back to the offer list,
-			// which is the one thing every module is guaranteed to produce.
-			action, ok = module.ChooseAction(offers, nil)
-			if !ok {
-				log.Printf("bot loop: match=%s seat=%s has no legal move; stopping", matchID, actor)
-				return
-			}
+		// Everything this seat could send, best first: the module's own bot if it
+		// has an answer, then every submission the offer list describes.
+		//
+		// A refusal is not the end of the turn. An offer is built by probing the
+		// validator, so a refused one means the state moved under the probe or
+		// the module's translation is wrong about that verb — neither of which
+		// says anything about the *next* offer. Trying them in turn is what a
+		// person does when a control they expected to work does not, and it is
+		// the difference between a seat that loses one move and a deal that
+		// stops.
+		candidates := module.ChooseActions(offers, nil)
+		if action, ok := module.BotFor(mod).Act(match.State, botSeatFor(match, actor), offers); ok {
+			candidates = append([]module.Action{action}, candidates...)
+		}
+		if len(candidates) == 0 {
+			logOfferState(matchID, actor, offers, "has no legal move; stopping")
+			return
 		}
 
-		if err := m.HandleAction(ctx, matchID, actor, action); err != nil {
-			// A bot proposing something illegal must not be retried verbatim —
-			// it would choose the same losing move again and burn the whole
-			// step budget without ever ending its turn. Recovering through the
-			// offer list is the generic version of the rummy runtime's
-			// "fall back to discarding the worst card", and it works for a game
-			// with no discards.
-			fallback, ok := module.ChooseAction(offers, nil)
-			if !ok || sameAction(fallback, action) {
-				log.Printf("bot loop: match=%s seat=%s move refused (%v) and no fallback; stopping",
-					matchID, actor, err)
-				return
+		played := false
+		for i, action := range candidates {
+			// Only the prepended bot pick is deduplicated, and only against the
+			// list's first choice, which is the one case where the two sources
+			// routinely agree. Nothing further down is compared: sameAction
+			// reads verb, target and cards but not OfferID, and the four undo
+			// offers are identical under it — skipping "duplicates" would drop
+			// undo:lay_meld and undo:turn, which are the candidates most likely
+			// to get a wedged turn moving again.
+			if i == 1 && sameAction(action, candidates[0]) {
+				continue
 			}
-			if err := m.HandleAction(ctx, matchID, actor, fallback); err != nil {
-				log.Printf("bot loop: match=%s seat=%s fallback refused too: %v", matchID, actor, err)
-				return
+			err := m.HandleAction(ctx, matchID, actor, action)
+			if err == nil {
+				if i > 0 {
+					log.Printf("bot loop: match=%s seat=%s recovered on candidate %d/%d (%s)",
+						matchID, actor, i+1, len(candidates), action.Verb)
+				}
+				played = true
+				break
 			}
+			log.Printf("bot loop: match=%s seat=%s candidate %d/%d (%s) refused: %v",
+				matchID, actor, i+1, len(candidates), action.Verb, err)
 		}
+		if !played {
+			logOfferState(matchID, actor, offers,
+				fmt.Sprintf("all %d candidate moves refused; stopping", len(candidates)))
+			return
+		}
+	}
+}
+
+// logOfferState logs the state of all available offers, which ones are enabled,
+// and which error codes disabled the rest. This helps diagnose game state wedges.
+func logOfferState(matchID, actor string, offers []module.ActionOffer, reason string) {
+	var enabled, disabled int
+	disabledByCode := make(map[string][]string)
+
+	for _, o := range offers {
+		if o.Enabled {
+			enabled++
+		} else {
+			disabled++
+			disabledByCode[o.WhyNot] = append(disabledByCode[o.WhyNot], o.ID)
+		}
+	}
+
+	log.Printf("bot loop: match=%s seat=%s %s [enabled=%d disabled=%d]",
+		matchID, actor, reason, enabled, disabled)
+
+	for code, verbs := range disabledByCode {
+		log.Printf("  disabled by %q: %v", code, verbs)
 	}
 }
 
