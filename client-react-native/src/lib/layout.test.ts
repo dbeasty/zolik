@@ -1,4 +1,4 @@
-import { metricsFor } from '@/src/lib/layout';
+import { fanPitch, metricsFor, rowWidth } from '@/src/lib/layout';
 
 describe('metricsFor', () => {
   it('is the 52x72 baseline card at laptop width', () => {
@@ -127,4 +127,58 @@ describe('metricsFor', () => {
   it('keeps the button minimum from shrinking to nothing', () => {
     expect(metricsFor(100).buttonMinWidth).toBeGreaterThanOrEqual(64);
   });
+});
+
+describe('fanPitch', () => {
+  const phone = metricsFor(375);
+  const desk = metricsFor(1600);
+  const floor = (m: ReturnType<typeof metricsFor>) => Math.max(14, Math.round(m.card.width * 0.42));
+
+  // A hand that already fits is drawn exactly as it was: nothing overlaps,
+  // and every hand small enough to be a row stays a row of separate cards.
+  it('leaves a hand that fits alone', () => {
+    expect(fanPitch(phone, 1)).toBe(phone.card.slotPitch);
+    expect(fanPitch(phone, 2)).toBe(phone.card.slotPitch);
+    expect(fanPitch(desk, 13)).toBe(desk.card.slotPitch);
+  });
+
+  // The case this exists for: fourteen cards on a phone, which at full pitch
+  // needs two and a half times the row it has.
+  it('tightens a hand that does not fit', () => {
+    expect(fanPitch(phone, 14)).toBeLessThan(phone.card.slotPitch);
+  });
+
+  // The point of the whole thing: the hand is one row.
+  it('fits the whole hand in one row', () => {
+    for (const count of [14, 15, 17]) {
+      const pitch = fanPitch(phone, count);
+      if (pitch <= floor(phone)) continue; // clamped: the hand is allowed to wrap
+      const row = (count - 1) * pitch + phone.card.slotPitch;
+      expect(row).toBeLessThanOrEqual(rowWidth(phone));
+    }
+  });
+
+  // Monotonicity is the property that keeps a fan from looking wrong as it is
+  // played down: a hand can only ever tighten as it gets longer. The first
+  // cut of this broke it — a fifteen-card hand came out looser than a
+  // fourteen-card one, because it had given up on reserving a drop gap and
+  // jumped back to the wider pitch.
+  it.each([375, 768, 1024, 1600])('never draws a longer hand looser at %spx', (width) => {
+    const m = metricsFor(width);
+    let last = Infinity;
+    for (let n = 1; n <= 40; n++) {
+      const pitch = fanPitch(m, n);
+      expect(pitch).toBeLessThanOrEqual(last);
+      last = pitch;
+    }
+  });
+
+  // Past the point where an index stops being readable the fan gives up and
+  // lets the hand wrap: a row of cards nobody can read is worse than two.
+  it('never tightens past a readable index', () => {
+    for (const count of [20, 40, 100]) {
+      expect(fanPitch(phone, count)).toBeGreaterThanOrEqual(floor(phone));
+    }
+  });
+
 });

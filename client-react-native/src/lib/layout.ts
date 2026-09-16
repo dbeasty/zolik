@@ -173,6 +173,15 @@ function scaleFor(width: number): number {
 const BOARD_MAX_WIDTH = 1400;
 
 /**
+ * The padding between the board and the edge of the screen, either side.
+ *
+ * Here rather than only in the match screen's own stylesheet because the fan
+ * below has to know how much room a row of cards actually has, and a second
+ * copy of this number is a second thing to forget.
+ */
+export const SCREEN_PADDING = 16;
+
+/**
  * How much of the card scale the *chrome* takes — panel titles, body text,
  * padding, the minimum width of a button.
  *
@@ -198,6 +207,65 @@ function dim(n: number, scale: number): number {
 /** Never below 9 — a font that keeps shrinking with the card stops being legible before the card does. */
 function font(n: number, scale: number): number {
   return Math.max(9, Math.round(n * scale));
+}
+
+/**
+ * How much of the screen a row of cards inside a panel actually gets: the
+ * board, less the screen's padding either side and the panel's own.
+ */
+export function rowWidth(m: Metrics): number {
+  return m.maxWidth - 2 * SCREEN_PADDING - 2 * m.panel.padding;
+}
+
+/**
+ * How far apart the cards of a hand sit, given how many there are.
+ *
+ * A hand of two is two cards side by side. A hand of fourteen on a phone is
+ * not: at full pitch it wants 840px of a 331px row, so it wraps to three
+ * rows, and a hand spread over three rows is one you have to re-find every
+ * turn. What a person does with fourteen cards is fan them — hold them
+ * overlapping so only the index of each shows and the whole hand is one
+ * object in one hand. This is that, in numbers.
+ *
+ * Two rules, and deliberately only two:
+ *
+ *  1. **A hand that fits is untouched.** If every card fits at full pitch
+ *     this returns exactly that and nothing overlaps at all — two hole
+ *     cards, a blackjack box, a thirteen-card hand on a desktop. Every hand
+ *     that was one row before is drawn to the pixel as it was.
+ *  2. **Otherwise it tightens until the hand is one row, and no further than
+ *     an index.** `minSliver` is what it takes to read a rank and a suit off
+ *     the corner of a card; past that the fan stops and the hand wraps after
+ *     all, because a row of cards nobody can read is worse than two rows.
+ *
+ * A third rule was tried and taken out: reserving a spare slot so that
+ * opening the drop gap never reflows the row. It cost more than it bought.
+ * On a phone it squeezed a fourteen-card hand past legibility, so the hand
+ * fell back to the un-reserved pitch anyway — and because it only *some*times
+ * fell back, a fifteen-card hand came out drawn looser than a fourteen-card
+ * one, which is backwards and visibly wrong as a hand is played down. The
+ * reflow it avoided costs nothing that matters: a row that reshuffles while
+ * a card is in the air is what happens today, and the rects a drop is tested
+ * against are cached when the finger goes down, before any gap opens.
+ */
+export function fanPitch(m: Metrics, count: number): number {
+  const natural = m.card.slotPitch;
+  if (count < 2) return natural;
+
+  const available = rowWidth(m);
+  if (count * natural <= available) return natural;
+
+  // The last card is drawn in full; the rest share what is left of the row.
+  const tight = Math.floor((available - natural) / (count - 1));
+  return Math.max(minSliver(m), tight);
+}
+
+/**
+ * The narrowest a fanned card may be squeezed to: enough of its left edge for
+ * the index printed there — a rank and a suit — to be read.
+ */
+function minSliver(m: Metrics): number {
+  return Math.max(14, Math.round(m.card.width * 0.42));
 }
 
 export function metricsFor(width: number): Metrics {

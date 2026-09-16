@@ -12,7 +12,7 @@ import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
 import { zoneElementId } from '@/src/lib/drops';
 import { insertionAtPoint, moveTargetFor, type Rect, type Slot } from '@/src/lib/hand';
-import type { Metrics } from '@/src/lib/layout';
+import { fanPitch, type Metrics } from '@/src/lib/layout';
 import { label } from '@/src/lib/labels';
 import { ms } from '@/src/lib/motion';
 import type { Skin } from '@/src/skins/types';
@@ -361,7 +361,13 @@ export function HandZone({
   // a rotation, a look switched — never on a pointer move, which is what
   // keeps `DraggableCard`'s memo intact through a drag (see the comment on
   // it below).
-  const styles = useMemo(() => handStyles(metrics, skin), [metrics, skin]);
+  // How tightly this hand is fanned. A hand that fits its row is untouched;
+  // one that does not overlaps its cards so that only the index of each
+  // shows — see `fanPitch`. It depends on how many cards are held, which does
+  // not change during a drag, so the memo below still hands every card the
+  // same `styles` object on every pointer move.
+  const overlap = fanPitch(metrics, slots.length) - metrics.card.slotPitch;
+  const styles = useMemo(() => handStyles(metrics, skin, overlap), [metrics, skin, overlap]);
 
   // Cards mounting in the hand's opening moments are the deal, and enter as
   // one — staggered left to right. A card mounting later arrived alone (a
@@ -445,8 +451,14 @@ export function HandZone({
             all. Turning boxes on and off changes only their style. */}
         {slots.map((slot, index) => (
           <Fragment key={slot.id}>
-            <DropGap active={gapIndex === index} styles={styles} />
+            {/* Every slot but the first — gaps included, so the fan keeps one
+                regular pitch the whole way along. `insertionAtPoint` reads
+                that pitch off the neighbouring card to decide which side of a
+                card a drop lands on, and an irregular fan would make it
+                read a different answer at every position. */}
+            <DropGap active={gapIndex === index} overlapped={index > 0} styles={styles} />
             <DraggableCard
+              overlapped={index > 0}
               index={index}
               slot={slot}
               count={slots.length}
@@ -477,7 +489,7 @@ export function HandZone({
             />
           </Fragment>
         ))}
-        <DropGap active={gapIndex === slots.length} styles={styles} />
+        <DropGap active={gapIndex === slots.length} overlapped styles={styles} />
       </View>
 
       {slots.length > 1 ? (
@@ -501,9 +513,17 @@ export function HandZone({
  * nothing. They exist all the time so that opening a gap never adds or moves
  * an element.
  */
-function DropGap({ active, styles }: { active: boolean; styles: HandStyles }) {
+function DropGap({
+  active,
+  overlapped,
+  styles,
+}: {
+  active: boolean;
+  overlapped?: boolean;
+  styles: HandStyles;
+}) {
   return (
-    <View style={[styles.slot, !active && styles.gapHidden]}>
+    <View style={[styles.slot, overlapped && styles.overlapped, !active && styles.gapHidden]}>
       {/* The test id goes on the ring rather than the outer box, because that
           is where CardView puts a card's — so a gap and a card can be measured
           against each other and come out the same size. */}
@@ -515,6 +535,8 @@ function DropGap({ active, styles }: { active: boolean; styles: HandStyles }) {
 }
 
 type CardProps = {
+  /** Pulled back over the card before it, when the hand is fanned. */
+  overlapped?: boolean;
   index: number;
   slot: Slot;
   count: number;
@@ -550,6 +572,7 @@ type CardProps = {
  * given is either a primitive or held stable by the hand above.
  */
 const DraggableCard = memo(function DraggableCard({
+  overlapped,
   index,
   slot,
   count,
@@ -658,7 +681,14 @@ const DraggableCard = memo(function DraggableCard({
     <GestureDetector gesture={gesture}>
       <View
         ref={(n) => bindRef(n as unknown as Measurable | null)}
-        style={[styles.slot, pinned, held && styles.lifted, selected && !held && styles.raised, carried]}
+        style={[
+          styles.slot,
+          overlapped && styles.overlapped,
+          pinned,
+          held && styles.lifted,
+          selected && !held && styles.raised,
+          carried,
+        ]}
         // The same move, for anyone not using a pointer. A drag is not an
         // affordance a screen reader can offer, so the two directions are
         // published as actions instead.
@@ -705,7 +735,7 @@ const DraggableCard = memo(function DraggableCard({
  * what keeps `DraggableCard`'s memo intact through an entire drag: the same
  * `styles` object reference is handed to every card on every pointer move.
  */
-function handStyles(m: Metrics, s: Skin) {
+function handStyles(m: Metrics, s: Skin, overlap: number) {
   const colors = s.colors;
   const dropArmed = s.dropArmed;
   return StyleSheet.create({
@@ -732,6 +762,14 @@ function handStyles(m: Metrics, s: Skin) {
       borderColor: 'transparent',
     },
     gapHidden: { display: 'none' },
+    // What makes the hand a fan: every slot but the first is pulled back over
+    // the one before it, leaving the index showing. Zero whenever the hand
+    // already fits, so a hand that was a row of separate cards still is.
+    //
+    // A margin rather than a transform, because this has to move the *layout*
+    // — the cards' measured rects are what a drop is tested against, and a
+    // fan drawn by transform would be tested against a row that isn't there.
+    overlapped: { marginLeft: overlap },
     gapRing: {
       borderRadius: 8,
       borderWidth: m.card.ringBorder,
