@@ -236,6 +236,13 @@ export function arrangeAuto(slots: Slot[]): Slot[] {
  *
  * Returns null when nothing has been measured yet, which is the honest answer
  * during the first frame of a drag.
+ *
+ * Where cards overlap — a fanned hand, where all but the last show only the
+ * sliver of their left edge — a point can be inside several of them at once.
+ * The one the player means is the one they can see, which is the *last* of
+ * them: later cards are drawn over earlier ones, so the topmost card at any
+ * point is the highest index containing it. Taking the first match instead
+ * would hand back a card buried several places to the left of the finger.
  */
 export function slotAtPoint(
   rects: (Rect | undefined)[],
@@ -243,14 +250,17 @@ export function slotAtPoint(
 ): number | null {
   let best: number | null = null;
   let bestDistance = Infinity;
+  // The topmost card the point is inside, if any — see the note above about
+  // overlapping cards. Beats any centre-distance comparison with a neighbour
+  // that happens to be laid out closer to the pointer.
+  let inside: number | null = null;
 
   for (let i = 0; i < rects.length; i++) {
     const r = rects[i];
     if (!r) continue;
-    // Inside a card is unambiguous, and beats any centre-distance comparison
-    // with a neighbour that happens to be laid out closer to the pointer.
     if (point.x >= r.x && point.x <= r.x + r.width && point.y >= r.y && point.y <= r.y + r.height) {
-      return i;
+      inside = i;
+      continue;
     }
     const dx = point.x - (r.x + r.width / 2);
     const dy = point.y - (r.y + r.height / 2);
@@ -263,7 +273,7 @@ export function slotAtPoint(
       best = i;
     }
   }
-  return best;
+  return inside ?? best;
 }
 
 /**
@@ -341,7 +351,18 @@ export function insertionAtPoint(
   if (nearest === null) return null;
   const r = rects[nearest];
   if (!r) return null;
-  return point.x < r.x + r.width / 2 ? nearest : nearest + 1;
+  // Which half of the card the point is in decides which side of it the card
+  // lands — but in a fanned hand a card's own half is not half of its
+  // *width*: all but the last are overlapped, and what a card owns on screen
+  // is the strip from its left edge to where the next one starts. Measured
+  // off the neighbour rather than passed in, so this needs to know nothing
+  // about how tightly the fan happens to be drawn; with nothing overlapping
+  // the neighbour is a whole card and a gap away, and this is `r.width`
+  // again.
+  const next = rects[nearest + 1];
+  const owned =
+    next && next.y === r.y && next.x > r.x ? Math.min(r.width, next.x - r.x) : r.width;
+  return point.x < r.x + owned / 2 ? nearest : nearest + 1;
 }
 
 /**

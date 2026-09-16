@@ -485,3 +485,56 @@ describe('toggleSelection', () => {
     });
   });
 });
+
+describe('a fanned hand, where the cards overlap', () => {
+  // Fourteen cards will not fit a phone row side by side, so they are dealt
+  // out overlapping: each shows a 20px sliver of its left edge — the index —
+  // and only the last is drawn in full. The rects stay full card width,
+  // because the cards are full cards; they just sit on top of each other.
+  const fanned = [
+    { x: 0, y: 0, width: 40, height: 60 },
+    { x: 20, y: 0, width: 40, height: 60 },
+    { x: 40, y: 0, width: 40, height: 60 },
+    { x: 60, y: 0, width: 40, height: 60 },
+  ];
+
+  // The card a finger is on is the one it can see, which is the topmost —
+  // later cards are drawn over earlier ones. Taking the first rect that
+  // contains the point would hand back a card buried up to three places to
+  // the left of the finger.
+  it('picks the card on top, not the one buried under it', () => {
+    // x=65 is inside all four; card 3 is the visible one there.
+    expect(slotAtPoint(fanned, { x: 65, y: 30 })).toBe(3);
+    // x=45 is inside cards 0..2; card 2 is on top.
+    expect(slotAtPoint(fanned, { x: 45, y: 30 })).toBe(2);
+  });
+
+  it('still picks a card by its own visible sliver', () => {
+    // x=10 is only inside card 0 — its uncovered index.
+    expect(slotAtPoint(fanned, { x: 10, y: 30 })).toBe(0);
+  });
+
+  // A card's half is half of what it owns on screen, not half its width.
+  // Against the full 40px width the flip for card 1 would land at x=40,
+  // which is two cards further along than the finger.
+  it('splits a card at the middle of the strip it owns', () => {
+    expect(insertionAtPoint(fanned, { x: 25, y: 30 })).toBe(1); // left of card 1's middle
+    expect(insertionAtPoint(fanned, { x: 35, y: 30 })).toBe(2); // right of it
+  });
+
+  // The last card is overlapped by nothing, so it owns its whole width.
+  it('gives the last card its whole width', () => {
+    expect(insertionAtPoint(fanned, { x: 75, y: 30 })).toBe(3);
+    expect(insertionAtPoint(fanned, { x: 85, y: 30 })).toBe(4);
+  });
+
+  // The rule that reads the neighbour must not read one on the next row.
+  it('does not measure a card against one on the row below', () => {
+    const wrapped = [
+      { x: 0, y: 0, width: 40, height: 60 },
+      { x: 0, y: 64, width: 40, height: 60 },
+    ];
+    expect(insertionAtPoint(wrapped, { x: 5, y: 30 })).toBe(0);
+    expect(insertionAtPoint(wrapped, { x: 35, y: 30 })).toBe(1);
+  });
+});

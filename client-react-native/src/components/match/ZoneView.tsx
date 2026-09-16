@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Zone } from '@/src/api/matchTypes';
 import { CardBack } from '@/src/components/CardBack';
 import { CardGlance } from '@/src/components/match/CardGlance';
+import { CardIndex } from '@/src/components/cards/CardIndex';
 import { CardView } from '@/src/components/CardView';
 import { Panel, type Measurable } from '@/src/components/match/Panel';
 import { SettleIn } from '@/src/components/match/SettleIn';
@@ -303,6 +304,12 @@ export function ZoneView({
             const groupArmable = armableGroups?.has(g.id) ?? false;
             const groupArmed = armedGroupId === g.id;
             const groupOpen = expandedGroups.has(g.id);
+            // On a screen with no room to spare a closed group is drawn as a
+            // column of card indices instead of overlapped cards — every card
+            // still there and still in order, at about a third of the height.
+            // Only while it is closed, and only below the width where cards
+            // fit comfortably: opening a group is asking to see the cards.
+            const indices = metrics.narrow && !groupOpen && g.cards.length >= 3;
             // Only meaningful while this exact group is the one being
             // hovered — `hoveredPosition` is a fact about `hoveredDrop`, not
             // about every group on the board.
@@ -353,21 +360,38 @@ export function ZoneView({
                   testID={`group-toggle-${g.id}`}
                 >
                   <View style={styles.stackedCards}>
-                    {g.cards.map((c, i) => (
-                      <View
-                        key={`${g.id}-${c}-${i}`}
-                        style={i > 0 && !groupOpen && styles.stackedOverlap}
-                      >
-                        {/* Keyed by card and position, so a card laid off
-                            onto this group mounts fresh — and the mount is
-                            the entrance. The delay only ever reaches a card
-                            mounting right now, which is exactly the one a
-                            flight is bringing. */}
-                        <SettleIn kind="settle" delay={entranceDelay}>
-                          <CardView card={c} compact stacked={!groupOpen} />
-                        </SettleIn>
-                      </View>
-                    ))}
+                    {/* Closed and cramped, a group is a column of card
+                        indices — see `CardIndex`; open, or anywhere with
+                        width for them, the cards themselves. The tap that
+                        swaps one for the other is the one this group already
+                        had, and nothing is summarised away: the indices are
+                        the same cards in the same order. */}
+                    {indices ? (
+                      g.cards.map((c, i) => (
+                        <CardIndex
+                          key={`${g.id}-${c}-${i}`}
+                          card={c}
+                          compact
+                          testID={`index-${g.id}-${i}`}
+                        />
+                      ))
+                    ) : (
+                      g.cards.map((c, i) => (
+                        <View
+                          key={`${g.id}-${c}-${i}`}
+                          style={i > 0 && !groupOpen && styles.stackedOverlap}
+                        >
+                          {/* Keyed by card and position, so a card laid off
+                              onto this group mounts fresh — and the mount is
+                              the entrance. The delay only ever reaches a card
+                              mounting right now, which is exactly the one a
+                              flight is bringing. */}
+                          <SettleIn kind="settle" delay={entranceDelay}>
+                            <CardView card={c} compact stacked={!groupOpen} />
+                          </SettleIn>
+                        </View>
+                      ))
+                    )}
                   </View>
                 </Pressable>
                 {(g.badgeKeys ?? []).map((b) => (
@@ -556,7 +580,11 @@ function zoneStyles(m: Metrics, s: Skin) {
     // Row + wrap rather than one meld per line: stackedCards narrows each
     // group to about one card's width, so several now fit across before
     // wrapping instead of each claiming a full-width row on its own.
-    groups: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
+    // alignItems: flex-start so each group is the height of its own cards
+    // rather than of the tallest one beside it — the row's default stretch
+    // gave a group of three the height of a group of seven and left the
+    // difference as empty box. Same reason the spreads row above does it.
+    groups: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 6, marginTop: 4 },
     group: {
       borderWidth: 1,
       borderColor: colors.border,
