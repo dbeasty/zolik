@@ -1,5 +1,5 @@
 import type { Zone } from '@/src/api/matchTypes';
-import { drawableZones, isConcealed } from '@/src/lib/board';
+import { concealedCount, drawableZones, isConcealed } from '@/src/lib/board';
 
 function zone(over: Partial<Zone>): Zone {
   return { id: 'z', kind: 'hand', count: 0, ...over };
@@ -70,5 +70,41 @@ describe('drawableZones', () => {
   it('keeps an unowned empty spread — a Canasta team melds zone belongs to no one player', () => {
     const team = zone({ id: 'melds:teamA', kind: 'spread', count: 0 });
     expect(drawableZones([team], 'me', activeDrops)).toEqual([team]);
+  });
+});
+
+describe('concealedCount', () => {
+  // The blackjack dealer: two cards, one of them shown. The other is the hole
+  // card, and it belongs on the felt face down rather than as a gap.
+  it('counts the card a dealer is holding back', () => {
+    expect(concealedCount(zone({ count: 2, cards: [{ card: '8H' }] }))).toBe(1);
+  });
+
+  it('counts a whole hidden hand', () => {
+    expect(concealedCount(zone({ kind: 'hand', count: 13 }))).toBe(13);
+  });
+
+  it('counts nothing when everything is on the table', () => {
+    expect(concealedCount(zone({ count: 2, cards: [{ card: '8H' }, { card: 'KS' }] }))).toBe(0);
+    expect(concealedCount(zone({ count: 0 }))).toBe(0);
+  });
+
+  // A spread keeps its cards inside its groups. Subtracting only the loose
+  // ones would give every meld on the board a row of phantom backs.
+  it('counts the cards inside groups as shown', () => {
+    const melds = zone({
+      count: 6,
+      groups: [
+        { id: 'm1', cards: ['AC', 'AD', 'AH'] },
+        { id: 'm2', cards: ['4C', '4D', '4H'] },
+      ],
+    });
+    expect(concealedCount(melds)).toBe(0);
+  });
+
+  // A stack is already drawn as a deck of backs; counting it here would draw
+  // the same pile twice.
+  it('leaves a stack alone', () => {
+    expect(concealedCount(zone({ kind: 'stack', count: 52 }))).toBe(0);
   });
 });
