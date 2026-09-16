@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { ActionOffer, Zone } from '@/src/api/matchTypes';
 import { POSITION_PARAM, offerGroupKey, submissionFor } from '@/src/api/matchTypes';
 import { Attention } from '@/src/components/match/Attention';
+import { Dealer } from '@/src/components/match/Dealer';
 import { FlightLayer, type QueuedFlight } from '@/src/components/match/FlightLayer';
 import { HandZone } from '@/src/components/match/HandZone';
 import { LifetimeRecord } from '@/src/components/match/LifetimeRecord';
@@ -17,6 +18,7 @@ import { SeatStrip } from '@/src/components/match/SeatStrip';
 import { TableSurface } from '@/src/components/match/TableSurface';
 import { ZoneView } from '@/src/components/match/ZoneView';
 import { useSession } from '@/src/context/SessionContext';
+import { useMetrics } from '@/src/hooks/useMetrics';
 import { useDropRegistry, type Measurable } from '@/src/hooks/useDropRegistry';
 import { useArrival } from '@/src/hooks/useArrival';
 import { useHandOrder } from '@/src/hooks/useHandOrder';
@@ -226,6 +228,9 @@ export default function MatchScreen() {
   // once — and repaints only: no size a drag is measured against changes.
   const { skin, skins, setSkinId } = useSkinControls();
   const styles = useMemo(() => matchStyles(skin), [skin]);
+  // Only for how wide the board is allowed to get — every other size on this
+  // screen is decided by the component that draws it, from the same metrics.
+  const metrics = useMetrics();
   const cycleSkin = () => {
     const at = skins.findIndex((s) => s.id === skin.id);
     setSkinId(skins[(at + 1) % skins.length]!.id);
@@ -482,7 +487,11 @@ export default function MatchScreen() {
   // Every spread, whoever's it is, in one row — a rummy meld, a canasta
   // partnership's melds, a poker board. Kept apart from the piles and stacks
   // below only by `kind`, never by whose it is or which game sent it.
-  const spreadZones = visible.filter((z) => z.kind === 'spread');
+  // The house's own zone, where the game has one, drawn at the head of the
+  // table rather than in the row of melds — see `Dealer`. Taken out of the
+  // spreads by the flag the module set, never by its id or its game.
+  const dealerZone = visible.find((z) => z.dealer);
+  const spreadZones = visible.filter((z) => z.kind === 'spread' && !z.dealer);
   const mySpreads = spreadZones.filter((z) => z.ownerId === viewerId);
   const otherSpreads = spreadZones.filter((z) => z.ownerId !== viewerId);
   const orderedSpreads = [...mySpreads, ...otherSpreads];
@@ -916,7 +925,11 @@ export default function MatchScreen() {
       ) : null}
       <ScrollView
         ref={scrollRef}
-        contentContainerStyle={styles.body}
+        // Wide enough for the table and no wider. On a large monitor the felt
+        // runs to both edges (it is drawn behind everything) while the board
+        // itself stops at a table's width — without this, a player's hand and
+        // the draw pile end up at opposite ends of a metre of glass.
+        contentContainerStyle={[styles.body, { maxWidth: metrics.maxWidth, width: '100%', alignSelf: 'center' }]}
         testID="match-screen"
         {...ending.scrollProps}
       >
@@ -1060,6 +1073,12 @@ export default function MatchScreen() {
             here, with the settlement it acts on, rather than under a hand
             that cannot be played. See `controlsPanel`. */}
         {paused ? <View {...ending.anchor('wayOn')}>{controlsPanel}</View> : null}
+
+        {/* The house sits opposite, above the seats — the players are around
+            the table, the dealer is at the head of it. Drawn at every width:
+            on a phone the figure is small and its cards sit beside it, on a
+            monitor both grow and the pair centres. */}
+        {dealerZone ? <Dealer zone={dealerZone} zoneProps={{ ...zonePanelProps(dealerZone.id), ...dropProps }} /> : null}
 
         <SeatStrip
           seats={view.seats ?? []}

@@ -710,7 +710,12 @@ function handStyles(m: Metrics, s: Skin) {
   const dropArmed = s.dropArmed;
   return StyleSheet.create({
     autoArrange: { color: colors.accent, fontSize: m.panel.bodyFont, fontWeight: '600' },
-    cards: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 6 },
+    // The gap between slots comes from the metrics rather than sitting here
+    // as a 4, because it is part of how much of the row one card costs — and
+    // that total (`slotPitch`) is what decides how big a card is allowed to
+    // get on a wide screen. Two places holding the same number is how the
+    // scale ceiling got set too high once already.
+    cards: { flexDirection: 'row', flexWrap: 'wrap', gap: m.card.fanGap, marginTop: 6 },
     hint: { color: colors.muted, fontSize: Math.max(9, m.panel.bodyFont - 2), marginTop: 6, fontStyle: 'italic' },
     lifted: { zIndex: 20, opacity: 0.92 },
     // Pulled up out of the fan rather than left flush with its neighbours, so

@@ -11,7 +11,7 @@ import { useMetrics } from '@/src/hooks/useMetrics';
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
 import { useSkin } from '@/src/hooks/useSkin';
 import type { Metrics } from '@/src/lib/layout';
-import { factText, label, playerName, shownScore } from '@/src/lib/labels';
+import { factText, isDealerLabel, label, playerName, shownScore } from '@/src/lib/labels';
 import { partnerText, partnersOf } from '@/src/lib/sides';
 import type { Skin } from '@/src/skins/types';
 import { t } from '@/src/lib/i18n';
@@ -155,11 +155,24 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
           </Text>
         ) : null}
 
-        {(seat.labelKeys ?? []).map((key) => (
-          <Text key={key} style={styles.tag}>
-            {label(key)}
-          </Text>
-        ))}
+        {/* The seat's marks. The dealer's is drawn as the button itself
+            rather than spelled out — at a real table the button is an object
+            that sits in front of somebody, and it is read by *where it is*
+            rather than by reading a word off it. The word is still there, and
+            still translated, for a screen reader and for anyone who has never
+            seen one. */}
+        {(seat.labelKeys ?? []).map((key) =>
+          isDealerLabel(key) ? (
+            <View key={key} style={styles.dealerRow} testID={`seat-dealer-${seat.playerId}`}>
+              <DealerButton size={metrics.seat.avatarCompact} skin={skin} />
+              <Text style={styles.tag}>{label(key)}</Text>
+            </View>
+          ) : (
+            <Text key={key} style={styles.tag}>
+              {label(key)}
+            </Text>
+          ),
+        )}
 
         {(seat.facts ?? []).map((f, i) => (
           <Text key={`${f.labelKey}-${i}`} style={styles.fact}>
@@ -212,6 +225,12 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
                     spec={avatarFor(seat.playerId, !!player?.isAI, player?.avatar)}
                     size={metrics.seat.avatarCompact}
                   />
+                ) : null}
+                {/* The one mark worth the width on a collapsed rail: whose
+                    deal it is survives being folded away, where "folded" and
+                    "all in" are already said by the numbers beside them. */}
+                {(seat.labelKeys ?? []).some(isDealerLabel) ? (
+                  <DealerButton size={Math.round(metrics.seat.avatarCompact * 0.8)} skin={skin} />
                 ) : null}
                 <Text style={styles.summaryName} numberOfLines={1}>
                   {seat.active ? '● ' : ''}
@@ -291,6 +310,44 @@ function TurnPulse({ color }: { color: string }) {
         transform: [{ scale: progress.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1.2] }) }],
       }}
     />
+  );
+}
+
+/**
+ * The dealer button: the little disc that sits in front of whoever deals, and
+ * moves round the table a seat at a time.
+ *
+ * An object rather than a word, because that is what it is — the whole point
+ * of a button at a real table is that it is read from across one without
+ * being read. Sized from the metrics like every other size here (a skin may
+ * repaint it and may not resize it), and drawn in the skin's own gold on the
+ * card's own stock, so it reads as a chip lying on the felt.
+ */
+function DealerButton({ size, skin }: { size: number; skin: Skin }) {
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: skin.colors.cardBg,
+        borderWidth: 1.5,
+        borderColor: skin.colors.gold,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Text
+        style={{
+          color: skin.card.ink,
+          fontWeight: '700',
+          fontSize: Math.max(8, Math.round(size * 0.6)),
+          lineHeight: Math.max(9, Math.round(size * 0.7)),
+        }}
+      >
+        D
+      </Text>
+    </View>
   );
 }
 
@@ -375,6 +432,7 @@ function seatStyles(m: Metrics, s: Skin) {
     },
     turn: { color: colors.accent, fontSize: m.panel.bodyFont - 1, fontWeight: '700' },
     tag: { color: colors.gold, fontSize: m.panel.bodyFont - 1, marginTop: 2 },
+    dealerRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
     // Louder than a fact, quieter than a tag: who you are playing with is not
     // a number and not a warning.
     team: { color: colors.text, fontSize: m.panel.bodyFont - 1, fontWeight: '600', marginTop: 2 },

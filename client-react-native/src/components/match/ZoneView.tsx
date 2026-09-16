@@ -9,6 +9,7 @@ import { Panel, type Measurable } from '@/src/components/match/Panel';
 import { SettleIn } from '@/src/components/match/SettleIn';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
+import { concealedCount } from '@/src/lib/board';
 import { groupElementId, zoneElementId } from '@/src/lib/drops';
 import type { Metrics } from '@/src/lib/layout';
 import { label } from '@/src/lib/labels';
@@ -146,6 +147,41 @@ export function ZoneView({
   const entranceDelay = entranceDelays?.get(zoneId) ?? 0;
 
   const cards = zone.cards ?? [];
+  /**
+   * Cards this zone holds and is not showing — a blackjack dealer's hole
+   * card, an opponent's hand. Drawn face down rather than described in
+   * words: a card lying face down on the table is what the player is
+   * looking at in every real game, and "1 hidden" in italics is a caption
+   * where a card should be.
+   */
+  const concealed = concealedCount(zone);
+  /**
+   * The backs themselves. Built once and placed twice: beside the cards a
+   * zone *is* showing, where a dealer's hole card belongs next to its
+   * upcard rather than on a row of its own, and on its own line where there
+   * are no loose cards to sit beside.
+   */
+  const backs =
+    concealed > 0 ? (
+      <>
+        {Array.from({ length: Math.min(concealed, MAX_BACKS) }).map((_, i) => (
+          // No card to name: that is the point of a face-down card, and
+          // `CardView`'s own faceDown branch never looks at the value.
+          <CardView
+            key={`concealed-${i}`}
+            card=""
+            faceDown
+            compact={compact}
+            testID={`card-${zone.id}-concealed-${i}`}
+          />
+        ))}
+        {concealed > MAX_BACKS ? (
+          <Text style={styles.hidden} testID={`zone-count-hidden-${zone.id}`}>
+            {concealed}
+          </Text>
+        ) : null}
+      </>
+    ) : null;
   /**
    * A pile is about its top card; the rest is history.
    *
@@ -396,13 +432,22 @@ export function ZoneView({
               />
             </SettleIn>
           ))}
+          {/* The zone's own face-down cards, in the same row as the ones it
+              is showing — a hole card lies beside the upcard, not under it. */}
+          {backs}
         </View>
       )}
 
-      {/* A zone with a count and nothing to show is somebody else's hand, or a
-          pile whose contents are not in play. Saying so beats an empty box. */}
-      {zone.count > 0 && !(zone.cards ?? []).length && !(zone.groups ?? []).length && zone.kind !== 'stack' ? (
-        <Text style={styles.hidden}>{zone.count} hidden</Text>
+      {/* The same backs, on a line of their own, for a zone whose shown cards
+          live in groups (or which is showing nothing at all) and so has no
+          card row for them to join. Past a handful it stops drawing one per
+          card and says how many instead — a fan of thirteen backs for an
+          opponent's hand is a wall of pattern that says nothing "13" does
+          not, and costs a row of the board to say it. */}
+      {backs && (zone.groups ?? []).length > 0 ? (
+        <View style={styles.cards} testID={`zone-concealed-${zone.id}`}>
+          {backs}
+        </View>
       ) : null}
 
       {/* An empty spread that can be dropped on says so, because otherwise the
@@ -416,6 +461,14 @@ export function ZoneView({
     </Panel>
   );
 }
+
+/**
+ * How many face-down cards a zone draws before it gives up and says a number
+ * instead. Four is a dealer's hand, a split box, a couple of hole cards —
+ * every case where *which cards are down* is part of the position — and
+ * short of an opponent's whole hand, where it is not.
+ */
+const MAX_BACKS = 4;
 
 /**
  * A face-down pile: the count is the only thing that matters about it.

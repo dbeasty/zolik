@@ -1,4 +1,4 @@
-import { shownScore } from '@/src/lib/labels';
+import { isDealerLabel, shownScore } from '@/src/lib/labels';
 
 describe('shownScore', () => {
   it('prints the score when a game counts upwards', () => {
@@ -21,5 +21,27 @@ describe('shownScore', () => {
     // without falling through to the negated figure.
     expect(shownScore({ score: -0, shown: 0 })).toBe(0);
     expect(shownScore({ score: -55, shown: 0 })).toBe(0);
+  });
+});
+
+describe('isDealerLabel', () => {
+  it('marks the documented dealer keys, whichever game sent them', () => {
+    expect(isDealerLabel('holdem.seat.dealer')).toBe(true);
+    expect(isDealerLabel('ginrummy.seat.dealer')).toBe(true);
+    // A game this build has never heard of, following the same convention.
+    expect(isDealerLabel('pinochle.seat.dealer')).toBe(true);
+  });
+
+  it('leaves every other seat mark alone', () => {
+    for (const key of ['holdem.seat.folded', 'holdem.seat.allIn', 'holdem.seat.out']) {
+      expect(isDealerLabel(key)).toBe(false);
+    }
+  });
+
+  // A key that merely mentions the dealer is not a mark saying this seat is
+  // one — the last segment is the mark, and only the last segment.
+  it('is not fooled by a key that only talks about the dealer', () => {
+    expect(isDealerLabel('blackjack.seat.beatTheDealer')).toBe(false);
+    expect(isDealerLabel('blackjack.rules.dealerDraws')).toBe(false);
   });
 });

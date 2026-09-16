@@ -30,6 +30,26 @@ export function humanise(key: string): string {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1).toLowerCase();
 }
 
+/**
+ * Whether a seat label key marks the dealer — `holdem.seat.dealer`,
+ * `ginrummy.seat.dealer`, and whatever the next game with a button calls its
+ * own.
+ *
+ * Read off the key's last segment, the same way `humanise` above reads one,
+ * and for the same reason: `seat.dealer` is a *documented* label key (see the
+ * protocol's `Seat.LabelKeys`, which names it as the example), so matching it
+ * is honouring a convention rather than guessing at one. A game that ships
+ * tomorrow with a dealer button gets the button drawn without this client
+ * knowing the game exists — which is the whole arrangement.
+ *
+ * Deliberately the *last* segment and not a substring: a future
+ * `blackjack.seat.beatTheDealer` is a sentence about the dealer, not a mark
+ * saying this seat is one.
+ */
+export function isDealerLabel(key: string): boolean {
+  return key.split('.').pop() === 'dealer';
+}
+
 /** A message key rendered for display, falling back to its own shape. */
 export function label(key: string | undefined, params?: Record<string, unknown>): string {
   if (!key) return '';
