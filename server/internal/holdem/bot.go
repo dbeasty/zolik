@@ -40,9 +40,26 @@ import (
 // the rules, exactly as it is for a human.
 func (m *Module) Bot() module.Bot { return bot{} }
 
-type bot struct{}
+type bot struct {
+	// tuning overrides the strength ladder for every seat this bot plays.
+	//
+	// For measurement, and nothing in the server sets it — the same seam, for
+	// the same reason, as ai.NewAgentWithProfile and sim.Contender.Profile: a
+	// strength is a set of numbers, and the only way to find out what one of
+	// them is worth is to change it and replay the same seeds. Without this
+	// the knobs below are opinions.
+	tuning *profile
+}
 
 var _ module.Bot = bot{}
+
+// profileOf is the strength this bot plays a seat at.
+func (b bot) profileOf(skill module.Skill) profile {
+	if b.tuning != nil {
+		return *b.tuning
+	}
+	return profileFor(skill)
+}
 
 func (b bot) Act(raw module.State, botSeat module.BotSeat, offers []module.ActionOffer) (module.Action, bool) {
 	playerID := botSeat.PlayerID
@@ -62,7 +79,7 @@ func (b bot) Act(raw module.State, botSeat module.BotSeat, offers []module.Actio
 		return module.ChooseAction(offers, nil)
 	}
 
-	p := profileFor(botSeat.Skill)
+	p := b.profileOf(botSeat.Skill)
 	rnd := rand.New(rand.NewSource(seedFor(s, seat)))
 	if s.Street == streetPreflop {
 		return mn.action(preflop(s, seat, mn, p, rnd))
@@ -102,15 +119,45 @@ type profile struct {
 	// this much of the time anything at all. Zero believes every bet
 	// completely; one reads no meaning into a bet's size and is the calling
 	// station this file was written to replace.
+	//
+	// It is *zero* for the strong profile, which took measuring to accept. A
+	// flat quarter of scepticism cost 2.3 big blinds a match against Medium
+	// (TestSweepHoldemKnobs, 300 matches), and the reason is not subtle once
+	// the number is in front of you: Medium's bets are honest, so every extra
+	// call bought with disbelief is a call that was wrong. Scepticism is not a
+	// strength, it is an exploit, and an exploit aimed at a player who is not
+	// making the mistake is just a leak. What replaced it is overbetDoubt.
 	bluffShare float64
+	// overbetDoubt is scepticism aimed at the one bet size that earns it.
+	//
+	// It applies only above a pot-sized bet and grows from there. Every bet
+	// this module's own profiles make is between half and four fifths of the
+	// pot, so against any of them this is exactly zero and costs exactly
+	// nothing — which is what makes it shippable where a flat bluffShare was
+	// not. What it does catch is the bet nobody makes for value with a hand a
+	// made hand beats, because nothing worse would pay it: past the size of
+	// the pot a betting range splits into the hands that want a call at any
+	// price and the hands that want a fold at any price, and the second group
+	// is what this is for.
+	overbetDoubt float64
 
 	// --- aggression ---
 
-	// cbet is the chance of betting the flop heads-up as the seat that raised
-	// before it, whatever the flop brought. Most flops miss most hands, and
-	// the player who showed strength first is the one both players expect to
-	// have hit.
-	cbet float64
+	// A cbet knob stood here — the chance of betting the flop as the seat that
+	// raised before it, whatever the flop brought. It is gone because it never
+	// fired, and the way that was discovered is worth recording: removing it
+	// changed a 300-match sweep by exactly zero chips, which is not a small
+	// effect but a dead branch.
+	//
+	// The reason is that this module cannot tell who raised. GameState keeps
+	// no action log — deliberately, it is re-marshalled on every action — so
+	// the aggressor was inferred from chips committed, and after a call the
+	// caller has committed exactly as much as the raiser. The inference can
+	// only ever be true when an opponent put in *less*, which is to say when
+	// they folded or were all-in short: never in the called pot a continuation
+	// bet is for. Restoring the play means recording the aggressor in the
+	// state, which is a schema change with its own migration, not a knob.
+
 	// semiBluff is the chance of betting or raising a draw that is not yet
 	// worth a value bet. The pot can be won twice — now, because the bet
 	// folds a better hand, or later, because the draw comes in — and a hand
@@ -162,15 +209,27 @@ var profiles = map[module.Skill]profile{
 	},
 	module.SkillHard: {
 		skill: module.SkillHard,
-		// Credits the claim — a big bet usually is what it says — but not
-		// completely, which is the whole difference between folding correctly
-		// and folding to anyone willing to bet big twice.
-		bluffShare: 0.30,
-		cbet:       0.65,
-		semiBluff:  0.55,
-		bluff:      0.22,
-		bluffRaise: 0.14,
-		steal:      0.35,
+		// Every number here was measured against Medium over 300 matches with
+		// both seatings of each seed (TestSweepHoldemKnobs), and the first
+		// draft of this row lost four big blinds a match. What it taught is
+		// the oldest lesson in the game: an exploitative adjustment is only
+		// worth what the opponent's mistake is worth, and against somebody who
+		// is not making it the adjustment is the mistake.
+		//
+		// So the scepticism is aimed only where a bet size is itself evidence
+		// (overbetDoubt, which is free against every profile here), and the
+		// bluffing is priced down to what a solid opponent cannot punish. What
+		// is left is a profile that beats Medium rather than one that bluffs
+		// more at it.
+		overbetDoubt: 0.85,
+		semiBluff:    0.25,
+		bluff:        0.18,
+		bluffRaise:   0.08,
+		// Neutral against Medium to within measurement, and kept because it is
+		// a real play against a real table: two blinds nobody defended are
+		// worth taking, and a seat that only raises hands it likes is a seat
+		// the rest of the table can read.
+		steal: 0.35,
 	},
 }
 
@@ -378,15 +437,6 @@ func postflop(s *GameState, seat *Seat, mn menu, p profile, rnd *rand.Rand) choi
 			// three opponents is a third of what it is against one, and a draw
 			// bet into a field is just a donation with extra steps.
 			return choice{verb: VerbRaise, to: raiseTarget(s, mn, betOf(s, seat, 0.60))}
-		case p.cbet > 0 && s.Street == streetFlop && opponents == 1 &&
-			tookTheLead(s, seat) && mn.can(VerbRaise) && rnd.Float64() < p.cbet:
-			// The continuation bet. Two unpaired cards miss a flop about two
-			// times in three, which is as true of the caller as of the raiser
-			// — so the seat that raised before the flop bets it regardless,
-			// and is right more often than it is wrong. Without this the bot
-			// announced every flop it missed by checking, which is a tell a
-			// human opponent picks up inside one session.
-			return choice{verb: VerbRaise, to: raiseTarget(s, mn, betOf(s, seat, 0.55))}
 		case p.bluff > 0 && eq < 0.30 && opponents == 1 && s.Street != streetFlop &&
 			mn.can(VerbRaise) && rnd.Float64() < p.bluff:
 			// A bluff, rarely, heads-up, on a street where a story is
@@ -429,29 +479,6 @@ func postflop(s *GameState, seat *Seat, mn menu, p profile, rnd *rand.Rand) choi
 	default:
 		return choice{verb: VerbFold}
 	}
-}
-
-// tookTheLead reports that this seat put the last raise in before the flop.
-//
-// Derived rather than recorded: GameState keeps no action log — it is
-// re-marshalled to Mongo on every action and a per-hand history would be paid
-// for on every fold — but it does keep what each seat has committed to the
-// hand, and on a flop nobody has bet into yet that figure *is* the preflop
-// betting. The seat that put in more than everybody still in the hand is the
-// one that raised last.
-func tookTheLead(s *GameState, seat *Seat) bool {
-	if seat.Committed <= s.BigBlind {
-		return false
-	}
-	for i := range s.Seats {
-		if i == s.Current || !s.Seats[i].inHand() {
-			continue
-		}
-		if s.Seats[i].Committed >= seat.Committed {
-			return false
-		}
-	}
-	return true
 }
 
 // drawOuts is how many cards in the deck would turn this hand into a straight
@@ -594,19 +621,18 @@ func claimedBy(owed, pot int) int {
 // station this file exists to replace, and it is only Easy that is supposed to
 // be one.
 func bluffShareOf(p profile, owed, pot int) float64 {
-	if p.bluffShare <= 0 || owed <= 0 || pot <= 0 {
-		return p.bluffShare
+	share := p.bluffShare
+	if p.overbetDoubt > 0 && owed > 0 && pot > 0 {
+		// Measured against the pot with the bet already in it, the same figure
+		// claimedBy brackets on, so the two readings of one bet cannot drift:
+		// 0.5 is a pot-sized bet and anything above it an overbet. Below that
+		// this adds nothing at all, which is the property that makes it free
+		// against an opponent who bets normal sizes.
+		if ratio := float64(owed) / float64(pot); ratio > 0.5 {
+			share += p.overbetDoubt * math.Min(1, 2*(ratio-0.5))
+		}
 	}
-	// Measured against the pot with the bet already in it, the same figure
-	// claimedBy brackets on, so the two readings of one bet cannot drift: 0.5
-	// is a pot-sized bet and anything above it an overbet.
-	ratio := float64(owed) / float64(pot)
-	if ratio <= 0.5 {
-		return p.bluffShare
-	}
-	share := p.bluffShare * (1 + 2*(ratio-0.5))
-	cap := math.Max(p.bluffShare, 0.60)
-	return math.Min(share, cap)
+	return math.Min(share, 1)
 }
 
 // equity estimates how often this hand wins the pot, by dealing the rest of
