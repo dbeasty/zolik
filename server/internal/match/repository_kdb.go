@@ -95,6 +95,7 @@ func (r *kdbRepository) Resolve(ctx context.Context, idOrCode string) (models.Ma
 func (r *kdbRepository) UpdateWithVersion(ctx context.Context, id bson.ObjectID, expected int64, next models.Match) error {
 	next.Version = expected + 1
 	next.ID = id
+	next.UpdatedAt = time.Now().UTC()
 	doc, err := db.MarshalDoc(next)
 	if err != nil {
 		return err
@@ -205,6 +206,61 @@ func (r *kdbRepository) FindAbandonable(ctx context.Context, now time.Time, limi
 		return nil, err
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].AbandonAt.Before(*out[j].AbandonAt) })
+	if len(out) > limit {
+		out = out[:limit]
+	}
+	return out, nil
+}
+
+// FindForPlayer scans for matches a seat id sits at.
+//
+// A scan, like every other cross-document read on this backend: KDB has no
+// secondary index, so "every match with this player" costs a full pass over
+// the namespace regardless of how the caller phrases it. State and ActionLog
+// are dropped after decoding rather than never read — the engine has no
+// server-side projection to skip them with — so this saves nothing over the
+// wire that a real server doesn't have, but it does keep the returned rows
+// the same shape Mongo hands back, which is what callers rely on.
+func (r *kdbRepository) FindForPlayer(ctx context.Context, playerID string, f PlayerMatchFilter) ([]models.Match, error) {
+	statuses, limit := resolvePlayerMatchFilter(f)
+	want := make(map[string]bool, len(statuses))
+	for _, s := range statuses {
+		want[s] = true
+	}
+	var out []models.Match
+	err := r.k.Scan(db.NSMatches, func(raw []byte) error {
+		var m models.Match
+		if err := db.UnmarshalDoc(raw, &m); err != nil {
+			return err
+		}
+		if !want[m.Status] {
+			return nil
+		}
+		seated := false
+		for _, p := range m.Players {
+			if p.ID == playerID {
+				seated = true
+				break
+			}
+		}
+		if !seated {
+			return nil
+		}
+		m.State = nil
+		m.ActionLog = nil
+		out = append(out, m)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	sort.Slice(out, func(i, j int) bool {
+		ui, uj := out[i].UpdatedAt, out[j].UpdatedAt
+		if !ui.Equal(uj) {
+			return ui.After(uj)
+		}
+		return out[i].ID.Hex() > out[j].ID.Hex()
+	})
 	if len(out) > limit {
 		out = out[:limit]
 	}

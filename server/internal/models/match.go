@@ -45,6 +45,13 @@ type Match struct {
 	// by ModuleID so an old replay stays readable by the module that wrote it.
 	ActionLog []MatchAction `bson:"actionLog,omitempty" json:"-"`
 
+	// UpdatedAt is set on every write that goes through UpdateWithVersion —
+	// every accepted action, suspend, resume and reap — so a listing keyed on
+	// activity rather than creation has something to sort by. A match written
+	// before this field existed sorts as if it had never been touched, which
+	// for a row that old is the right answer.
+	UpdatedAt time.Time `bson:"updatedAt,omitempty" json:"updatedAt,omitempty"`
+
 	Seed int64 `bson:"seed" json:"-"`
 	// Winners is every player who won. More than one is a real outcome — a
 	// Canasta partnership, a split poker pot — and was the first place the

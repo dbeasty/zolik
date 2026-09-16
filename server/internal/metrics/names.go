@@ -32,6 +32,12 @@ const (
 	// started — but the one number that says the sweeper is doing anything,
 	// and the one that would show a window set far too short.
 	MatchesDeleted = "matches.deleted"
+	// MatchesDeletedByHost counts tables a host ended deliberately, from the
+	// "my games" list. Kept apart from MatchesDeleted rather than folded into
+	// it: that one is retention's own signal, and a busy day of players
+	// tidying up their own tables would make the sweeper look far busier than
+	// it was.
+	MatchesDeletedByHost = "matches.deleted.byhost"
 
 	// UsersRegistered counts accounts, not people arriving: a guest who plays
 	// for a month and never signs up is in SessionsGuest and in the day's

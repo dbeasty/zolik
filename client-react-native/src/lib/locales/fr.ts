@@ -29,6 +29,7 @@ export const fr: Record<string, string> = {
   'err.MATCH_MOVED_ON': 'La table a changé — recharge la page',
   'err.MATCH_NOT_ABANDONED': 'Cette table n’attend pas d’être reprise',
   'err.MATCH_NOT_FOUND': 'Cette table n’existe plus',
+  'err.MATCH_DELETED': 'L’hôte a supprimé cette table',
   'err.TABLE_HAS_OTHER_PLAYERS': 'Seule une table où tous les autres sont des bots peut être reprise',
   'err.DISCARD_LOCKED': "La défausse est verrouillée pour l'instant",
   'err.DISCARD_PILE_EMPTY': 'La défausse est vide',
@@ -892,6 +893,7 @@ export const fr: Record<string, string> = {
   'nav.scoreTable': 'Tableau des scores',
   'nav.stats': 'Statistiques',
   'nav.more': 'Plus',
+  'nav.myGames': 'Mes parties',
   'nav.about': 'À propos',
 
   // --- the account menu behind the face in the corner ----------------------
@@ -1045,6 +1047,26 @@ export const fr: Record<string, string> = {
   'lobby.table.moveSeatDown': 'Descendre {name} d’une place',
   'lobby.table.start': 'Démarrer',
   'lobby.table.waitingForHost': "En attente du départ donné par l'hôte…",
+
+  // --- "my games": stored tables, resumed or deleted --------------------
+  'mine.subtitle': 'Des parties à reprendre, ou à supprimer',
+  'mine.tabUnfinished': 'En cours',
+  'mine.tabFinished': 'Terminées',
+  'mine.emptyUnfinished': 'Aucune partie en cours pour le moment',
+  'mine.emptyFinished': 'Aucune partie terminée pour l’instant',
+  'mine.open': 'Ouvrir',
+  'mine.resume': 'Reprendre',
+  'mine.delete': 'Supprimer',
+  'mine.deleteConfirmTitle': 'Supprimer cette table ?',
+  'mine.deleteConfirmBody': 'Cela termine la partie pour tous les joueurs encore présents. Impossible à annuler.',
+  'mine.deleteConfirm': 'Supprimer',
+  'mine.deleteCancel': 'Annuler',
+  'mine.viewAll': 'Tout voir',
+  'mine.status.lobby': 'En attente de démarrage',
+  'mine.status.active': 'En cours',
+  'mine.status.suspended': 'En pause',
+  'mine.status.abandoned': 'Mise de côté',
+  'mine.status.completed': 'Terminée',
 
   // --- inviting someone to a table ------------------------------------------
   'invite.heading': 'Inviter des joueurs',

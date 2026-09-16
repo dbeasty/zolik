@@ -80,6 +80,12 @@ type MatchCounts struct {
 	// it: those three describe games that were played, and a game does not
 	// stop having been played because its board was later reclaimed.
 	Deleted int64 `json:"deleted"`
+	// DeletedByHost is rows a host removed on purpose, from the "my games"
+	// list. Kept apart from Deleted for the same reason the two counters are
+	// separate constants: one measures the sweeper, the other measures
+	// players tidying up, and folding them together would make either look
+	// like the other.
+	DeletedByHost int64 `json:"deletedByHost"`
 	// NeverStarted is a lobby that never filled: created, and never became a
 	// game at all. Not a game anybody failed to finish.
 	NeverStarted int64 `json:"neverStarted"`
@@ -243,6 +249,7 @@ func foldDay(p *Period, d Day) {
 	p.Matches.Abandoned += d.Counter(MatchesAbandoned)
 	p.Matches.Resumed += d.Counter(MatchesResumed)
 	p.Matches.Deleted += d.Counter(MatchesDeleted)
+	p.Matches.DeletedByHost += d.Counter(MatchesDeletedByHost)
 	p.Users.Registered += d.Counter(UsersRegistered)
 	p.Users.Guests += d.Counter(SessionsGuest)
 	p.Admission.Connections += d.Counter(WSConnected)
@@ -344,6 +351,7 @@ func totalsFrom(buckets []Period, distinctPlayers int, floor bool) Totals {
 		t.Matches.Abandoned += p.Matches.Abandoned
 		t.Matches.Resumed += p.Matches.Resumed
 		t.Matches.Deleted += p.Matches.Deleted
+		t.Matches.DeletedByHost += p.Matches.DeletedByHost
 		t.Users.Registered += p.Users.Registered
 		t.Users.Guests += p.Users.Guests
 		t.Admission.Total += p.Admission.Total

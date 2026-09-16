@@ -29,6 +29,7 @@ export const sl: Record<string, string> = {
   'err.MATCH_MOVED_ON': 'Miza je šla naprej — znova naloži stran',
   'err.MATCH_NOT_ABANDONED': 'Ta miza ne čaka na nadaljevanje',
   'err.MATCH_NOT_FOUND': 'Ta miza ne obstaja več',
+  'err.MATCH_DELETED': 'Gostitelj je izbrisal to mizo',
   'err.TABLE_HAS_OTHER_PLAYERS': 'Nadaljuje se lahko samo miza, kjer so vsi drugi boti',
   'err.DISCARD_LOCKED': 'Kup odvrženih je zaenkrat zaklenjen',
   'err.DISCARD_PILE_EMPTY': 'Kup odvrženih je prazen',
@@ -876,6 +877,7 @@ export const sl: Record<string, string> = {
   'nav.scoreTable': 'Tabela točk',
   'nav.stats': 'Statistika',
   'nav.more': 'Več',
+  'nav.myGames': 'Moje igre',
   'nav.about': 'O aplikaciji',
 
   // --- the account menu behind the face in the corner ----------------------
@@ -1024,6 +1026,26 @@ export const sl: Record<string, string> = {
   'lobby.table.moveSeatDown': 'Premakni {name} mesto nižje',
   'lobby.table.start': 'Začni',
   'lobby.table.waitingForHost': 'Čakamo, da gostitelj začne…',
+
+  // --- "my games": stored tables, resumed or deleted --------------------
+  'mine.subtitle': 'Igre, h katerim se lahko vrneš, ali jih izbrišeš',
+  'mine.tabUnfinished': 'V teku',
+  'mine.tabFinished': 'Končane',
+  'mine.emptyUnfinished': 'Trenutno ni igre v teku',
+  'mine.emptyFinished': 'Še ni končanih iger',
+  'mine.open': 'Odpri',
+  'mine.resume': 'Nadaljuj',
+  'mine.delete': 'Izbriši',
+  'mine.deleteConfirmTitle': 'Izbrišem to mizo?',
+  'mine.deleteConfirmBody': 'S tem se igra konča za vse ostale za mizo. Tega ni mogoče razveljaviti.',
+  'mine.deleteConfirm': 'Izbriši',
+  'mine.deleteCancel': 'Prekliči',
+  'mine.viewAll': 'Prikaži vse',
+  'mine.status.lobby': 'Čaka na začetek',
+  'mine.status.active': 'V teku',
+  'mine.status.suspended': 'Ustavljena',
+  'mine.status.abandoned': 'Odložena',
+  'mine.status.completed': 'Končana',
 
   // --- inviting someone to a table ------------------------------------------
   'invite.heading': 'Povabi igralce',

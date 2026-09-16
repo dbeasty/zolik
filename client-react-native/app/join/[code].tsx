@@ -6,6 +6,7 @@ import type { MatchState } from '@/src/api/matchTypes';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { formatApiError } from '@/src/lib/apiError';
+import { routeForMatch } from '@/src/lib/matchRoute';
 import { clearPendingDestination, savePendingDestination } from '@/src/lib/pendingDestination';
 import { shared } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
@@ -79,17 +80,9 @@ export default function JoinByLinkScreen() {
       await clearPendingDestination();
 
       const seated = await client.getMatch(matchId, session.userId);
-      if (seated.status !== 'lobby') {
-        router.replace(`/match/${matchId}`);
-        return;
-      }
       // A host following their own link is sent to their own table, not to a
       // screen telling them to wait for themselves.
-      router.replace(
-        seated.hostId === session.userId
-          ? `/lobby/table?matchId=${encodeURIComponent(matchId)}`
-          : `/lobby/join?matchId=${encodeURIComponent(matchId)}`,
-      );
+      router.replace(routeForMatch(seated.status, seated.hostId === session.userId, matchId));
     } catch (e) {
       await clearPendingDestination();
       setError(formatApiError(e, 'That table could not be joined'));

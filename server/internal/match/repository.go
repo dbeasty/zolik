@@ -58,6 +58,53 @@ type Repository interface {
 	// moments later; without the check, retention would occasionally delete a
 	// match out from under the player who had just picked it back up.
 	DeleteIfUnchanged(ctx context.Context, id bson.ObjectID, expected int64) error
+	// FindForPlayer lists the matches a seat id is sitting at, newest activity
+	// first, capped at f.Limit. Neither State nor ActionLog is populated — a
+	// list row needs neither, and together they are the bulk of the document.
+	FindForPlayer(ctx context.Context, playerID string, f PlayerMatchFilter) ([]models.Match, error)
+}
+
+// PlayerMatchFilter narrows FindForPlayer. A zero value lists every
+// unfinished match, which is what "my games" opens on.
+type PlayerMatchFilter struct {
+	// Statuses to include. Empty means UnfinishedStatuses.
+	Statuses []string
+	// Limit caps how many rows come back. Zero means DefaultPlayerMatchLimit.
+	Limit int
+}
+
+// UnfinishedStatuses is every status with something left to go back to —
+// the default a "my games" list opens on. completed is excluded on purpose:
+// it has its own permanent record in match_results, and its own history
+// endpoint (GET /users/me/matches) — showing it here too would be two lists
+// telling a player the same thing.
+var UnfinishedStatuses = []string{"lobby", "active", "suspended", "abandoned"}
+
+// FinishedStatuses is the complement, for the "finished" tab of that same list.
+var FinishedStatuses = []string{"completed"}
+
+// DefaultPlayerMatchLimit is what FindForPlayer uses when the caller asks for
+// no particular limit.
+const DefaultPlayerMatchLimit = 20
+
+// MaxPlayerMatchLimit is the most a caller may ask FindForPlayer for. The KDB
+// path pays for this in a full collection scan, so a caller cannot ask for a
+// page large enough to be a cheap way of downloading everything.
+const MaxPlayerMatchLimit = 50
+
+func resolvePlayerMatchFilter(f PlayerMatchFilter) ([]string, int) {
+	statuses := f.Statuses
+	if len(statuses) == 0 {
+		statuses = UnfinishedStatuses
+	}
+	limit := f.Limit
+	if limit <= 0 {
+		limit = DefaultPlayerMatchLimit
+	}
+	if limit > MaxPlayerMatchLimit {
+		limit = MaxPlayerMatchLimit
+	}
+	return statuses, limit
 }
 
 type mongoRepository struct {
@@ -112,6 +159,7 @@ func (r *mongoRepository) Resolve(ctx context.Context, idOrCode string) (models.
 
 func (r *mongoRepository) UpdateWithVersion(ctx context.Context, id bson.ObjectID, expected int64, next models.Match) error {
 	next.Version = expected + 1
+	next.UpdatedAt = time.Now().UTC()
 	res, err := r.coll.ReplaceOne(ctx,
 		bson.M{"_id": id, "version": expected}, next,
 		options.Replace().SetUpsert(false))
@@ -173,6 +221,32 @@ func (r *mongoRepository) FindAbandonable(ctx context.Context, now time.Time, li
 	cur, err := r.coll.Find(ctx,
 		bson.M{"status": "suspended", "abandonAt": bson.M{"$lte": now}},
 		options.Find().SetLimit(int64(limit)).SetSort(bson.D{{Key: "abandonAt", Value: 1}}),
+	)
+	if err != nil {
+		return nil, err
+	}
+	var out []models.Match
+	if err := cur.All(ctx, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// FindForPlayer lists the matches a seat id sits at, newest activity first.
+//
+// Projected without state/actionLog: those are the bulk of the document and
+// a list row uses neither. Sorted by updatedAt then _id, so two matches
+// updated in the same instant still come back in a stable order — an
+// ObjectID embeds its creation time, so this is a legitimate tiebreak, not
+// an arbitrary one.
+func (r *mongoRepository) FindForPlayer(ctx context.Context, playerID string, f PlayerMatchFilter) ([]models.Match, error) {
+	statuses, limit := resolvePlayerMatchFilter(f)
+	cur, err := r.coll.Find(ctx,
+		bson.M{"players.id": playerID, "status": bson.M{"$in": statuses}},
+		options.Find().
+			SetSort(bson.D{{Key: "updatedAt", Value: -1}, {Key: "_id", Value: -1}}).
+			SetLimit(int64(limit)).
+			SetProjection(bson.M{"state": 0, "actionLog": 0}),
 	)
 	if err != nil {
 		return nil, err

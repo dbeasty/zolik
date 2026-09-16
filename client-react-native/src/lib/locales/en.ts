@@ -34,6 +34,7 @@ export const en: Record<string, string> = {
   'err.MATCH_MOVED_ON': 'The table moved on — reload to see where it is',
   'err.MATCH_NOT_ABANDONED': 'That table is not waiting to be brought back',
   'err.MATCH_NOT_FOUND': 'That table no longer exists',
+  'err.MATCH_DELETED': 'The host deleted this table',
   'err.TABLE_HAS_OTHER_PLAYERS': 'Only a table where everyone else is a bot can be brought back',
   'err.DISCARD_LOCKED': 'The discard pile is locked for now',
   'err.DISCARD_PILE_EMPTY': 'The discard pile is empty',
@@ -871,6 +872,7 @@ export const en: Record<string, string> = {
   'nav.scoreTable': 'Score table',
   'nav.stats': 'Stats',
   'nav.more': 'More',
+  'nav.myGames': 'My games',
   'nav.about': 'About',
 
   // --- the account menu behind the face in the corner ----------------------
@@ -1020,6 +1022,26 @@ export const en: Record<string, string> = {
   'lobby.table.moveSeatDown': 'Move {name} down a seat',
   'lobby.table.start': 'Start',
   'lobby.table.waitingForHost': 'Waiting for the host to start…',
+
+  // --- "my games": stored tables, resumed or deleted --------------------
+  'mine.subtitle': 'Games you can pick back up, or clear away',
+  'mine.tabUnfinished': 'In progress',
+  'mine.tabFinished': 'Finished',
+  'mine.emptyUnfinished': 'Nothing in progress right now',
+  'mine.emptyFinished': 'No finished games yet',
+  'mine.open': 'Open',
+  'mine.resume': 'Resume',
+  'mine.delete': 'Delete',
+  'mine.deleteConfirmTitle': 'Delete this table?',
+  'mine.deleteConfirmBody': 'This ends the game for everyone still seated. This cannot be undone.',
+  'mine.deleteConfirm': 'Delete',
+  'mine.deleteCancel': 'Cancel',
+  'mine.viewAll': 'View all',
+  'mine.status.lobby': 'Waiting to start',
+  'mine.status.active': 'In progress',
+  'mine.status.suspended': 'Paused',
+  'mine.status.abandoned': 'Set aside',
+  'mine.status.completed': 'Finished',
 
   // --- inviting someone to a table ------------------------------------------
   'invite.heading': 'Invite players',

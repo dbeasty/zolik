@@ -29,6 +29,7 @@ export const it: Record<string, string> = {
   'err.MATCH_MOVED_ON': 'Il tavolo è andato avanti — ricarica la pagina',
   'err.MATCH_NOT_ABANDONED': 'Questo tavolo non è in attesa di essere ripreso',
   'err.MATCH_NOT_FOUND': 'Questo tavolo non esiste più',
+  'err.MATCH_DELETED': "L'organizzatore ha eliminato questo tavolo",
   'err.TABLE_HAS_OTHER_PLAYERS': 'Si può riprendere solo un tavolo in cui tutti gli altri sono bot',
   'err.DISCARD_LOCKED': 'La pila degli scarti è bloccata per ora',
   'err.DISCARD_PILE_EMPTY': 'La pila degli scarti è vuota',
@@ -888,6 +889,7 @@ export const it: Record<string, string> = {
   'nav.scoreTable': 'Tabella punteggi',
   'nav.stats': 'Statistiche',
   'nav.more': 'Altro',
+  'nav.myGames': 'Le mie partite',
   'nav.about': 'Informazioni',
 
   // --- the account menu behind the face in the corner ----------------------
@@ -1040,6 +1042,26 @@ export const it: Record<string, string> = {
   'lobby.table.moveSeatDown': 'Sposta {name} giù di un posto',
   'lobby.table.start': 'Inizia',
   'lobby.table.waitingForHost': "In attesa che l'organizzatore inizi…",
+
+  // --- "my games": stored tables, resumed or deleted --------------------
+  'mine.subtitle': 'Partite da riprendere, o da eliminare',
+  'mine.tabUnfinished': 'In corso',
+  'mine.tabFinished': 'Concluse',
+  'mine.emptyUnfinished': 'Nessuna partita in corso al momento',
+  'mine.emptyFinished': 'Ancora nessuna partita conclusa',
+  'mine.open': 'Apri',
+  'mine.resume': 'Riprendi',
+  'mine.delete': 'Elimina',
+  'mine.deleteConfirmTitle': 'Eliminare questo tavolo?',
+  'mine.deleteConfirmBody': 'La partita finisce per tutti gli altri al tavolo. Non si può annullare.',
+  'mine.deleteConfirm': 'Elimina',
+  'mine.deleteCancel': 'Annulla',
+  'mine.viewAll': 'Vedi tutte',
+  'mine.status.lobby': 'In attesa di iniziare',
+  'mine.status.active': 'In corso',
+  'mine.status.suspended': 'In pausa',
+  'mine.status.abandoned': 'Messa da parte',
+  'mine.status.completed': 'Conclusa',
 
   // --- inviting someone to a table ------------------------------------------
   'invite.heading': 'Invita giocatori',

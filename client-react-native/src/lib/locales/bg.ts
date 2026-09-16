@@ -29,6 +29,7 @@ export const bg: Record<string, string> = {
   'err.MATCH_MOVED_ON': 'Масата продължи напред — презареди страницата',
   'err.MATCH_NOT_ABANDONED': 'Тази маса не чака да бъде подновена',
   'err.MATCH_NOT_FOUND': 'Тази маса вече не съществува',
+  'err.MATCH_DELETED': 'Домакинът изтри тази маса',
   'err.TABLE_HAS_OTHER_PLAYERS': 'Може да се поднови само маса, на която всички останали са ботове',
   'err.DISCARD_LOCKED': 'Купчината за изхвърляне засега е заключена',
   'err.DISCARD_PILE_EMPTY': 'Купчината за изхвърляне е празна',
@@ -894,6 +895,7 @@ export const bg: Record<string, string> = {
   'nav.scoreTable': 'Таблица с точки',
   'nav.stats': 'Статистика',
   'nav.more': 'Още',
+  'nav.myGames': 'Моите игри',
   'nav.about': 'Относно',
 
   // --- the account menu behind the face in the corner ----------------------
@@ -1043,6 +1045,26 @@ export const bg: Record<string, string> = {
   'lobby.table.moveSeatDown': 'Премести {name} с едно място надолу',
   'lobby.table.start': 'Започни',
   'lobby.table.waitingForHost': 'Чакаме домакинът да започне…',
+
+  // --- "my games": stored tables, resumed or deleted --------------------
+  'mine.subtitle': 'Игри, към които можеш да се върнеш, или да ги изтриеш',
+  'mine.tabUnfinished': 'Текущи',
+  'mine.tabFinished': 'Приключени',
+  'mine.emptyUnfinished': 'Засега няма текущи игри',
+  'mine.emptyFinished': 'Все още няма приключени игри',
+  'mine.open': 'Отвори',
+  'mine.resume': 'Продължи',
+  'mine.delete': 'Изтрий',
+  'mine.deleteConfirmTitle': 'Да се изтрие ли тази маса?',
+  'mine.deleteConfirmBody': 'Играта приключва за всички на масата. Това не може да се върне.',
+  'mine.deleteConfirm': 'Изтрий',
+  'mine.deleteCancel': 'Отказ',
+  'mine.viewAll': 'Виж всички',
+  'mine.status.lobby': 'Чака да започне',
+  'mine.status.active': 'Играе се',
+  'mine.status.suspended': 'На пауза',
+  'mine.status.abandoned': 'Отложена',
+  'mine.status.completed': 'Приключена',
 
   // --- inviting someone to a table ------------------------------------------
   'invite.heading': 'Покани играчи',

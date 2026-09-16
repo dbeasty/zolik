@@ -39,7 +39,7 @@ export type MatchSocketState = {
  * way every time, and the player watches a spinner that will never resolve
  * behind an error that was already final.
  */
-const TERMINAL_CODES = new Set(['MATCH_NOT_FOUND']);
+const TERMINAL_CODES = new Set(['MATCH_NOT_FOUND', 'MATCH_DELETED']);
 
 export function useMatchSocket(url: string | null): MatchSocketState {
   const [state, setState] = useState<MatchState | null>(null);

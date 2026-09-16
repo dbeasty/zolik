@@ -29,6 +29,7 @@ export const et: Record<string, string> = {
   'err.MATCH_MOVED_ON': 'Laud on edasi liikunud — laadi leht uuesti',
   'err.MATCH_NOT_ABANDONED': 'See laud ei oota jätkamist',
   'err.MATCH_NOT_FOUND': 'Seda lauda enam ei ole',
+  'err.MATCH_DELETED': 'Võõrustaja kustutas selle laua',
   'err.TABLE_HAS_OTHER_PLAYERS': 'Taastada saab ainult laua, kus kõik teised on robotid',
   'err.DISCARD_LOCKED': 'Viskepakk on esialgu lukus',
   'err.DISCARD_PILE_EMPTY': 'Viskepakk on tühi',
@@ -886,6 +887,7 @@ export const et: Record<string, string> = {
   'nav.scoreTable': 'Punktitabel',
   'nav.stats': 'Statistika',
   'nav.more': 'Rohkem',
+  'nav.myGames': 'Minu mängud',
   'nav.about': 'Teave',
 
   // --- the account menu behind the face in the corner ----------------------
@@ -1035,6 +1037,26 @@ export const et: Record<string, string> = {
   'lobby.table.moveSeatDown': 'Liiguta {name} koha võrra alla',
   'lobby.table.start': 'Alusta',
   'lobby.table.waitingForHost': 'Ootame, kuni võõrustaja alustab…',
+
+  // --- "my games": stored tables, resumed or deleted --------------------
+  'mine.subtitle': 'Mängud, mida saad jätkata või kustutada',
+  'mine.tabUnfinished': 'Pooleli',
+  'mine.tabFinished': 'Lõppenud',
+  'mine.emptyUnfinished': 'Hetkel ei ole pooleliolevaid mänge',
+  'mine.emptyFinished': 'Lõppenud mänge veel ei ole',
+  'mine.open': 'Ava',
+  'mine.resume': 'Jätka',
+  'mine.delete': 'Kustuta',
+  'mine.deleteConfirmTitle': 'Kustutada see laud?',
+  'mine.deleteConfirmBody': 'See lõpetab mängu kõigi teiste jaoks lauas. Seda ei saa tagasi võtta.',
+  'mine.deleteConfirm': 'Kustuta',
+  'mine.deleteCancel': 'Loobu',
+  'mine.viewAll': 'Vaata kõiki',
+  'mine.status.lobby': 'Ootab algust',
+  'mine.status.active': 'Pooleli',
+  'mine.status.suspended': 'Peatatud',
+  'mine.status.abandoned': 'Kõrvale pandud',
+  'mine.status.completed': 'Lõppenud',
 
   // --- inviting someone to a table ------------------------------------------
   'invite.heading': 'Kutsu mängijaid',

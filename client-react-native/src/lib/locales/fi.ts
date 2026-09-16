@@ -29,6 +29,7 @@ export const fi: Record<string, string> = {
   'err.MATCH_MOVED_ON': 'Pöytä on edennyt — lataa sivu uudelleen',
   'err.MATCH_NOT_ABANDONED': 'Tämä pöytä ei odota jatkamista',
   'err.MATCH_NOT_FOUND': 'Tätä pöytää ei ole enää',
+  'err.MATCH_DELETED': 'Isäntä poisti tämän pöydän',
   'err.TABLE_HAS_OTHER_PLAYERS': 'Vain pöydän, jossa kaikki muut ovat botteja, voi palauttaa',
   'err.DISCARD_LOCKED': 'Poistopino on toistaiseksi lukittu',
   'err.DISCARD_PILE_EMPTY': 'Poistopino on tyhjä',
@@ -887,6 +888,7 @@ export const fi: Record<string, string> = {
   'nav.scoreTable': 'Pistetaulukko',
   'nav.stats': 'Tilastot',
   'nav.more': 'Lisää',
+  'nav.myGames': 'Omat pelini',
   'nav.about': 'Tietoja',
 
   // --- the account menu behind the face in the corner ----------------------
@@ -1038,6 +1040,26 @@ export const fi: Record<string, string> = {
   'lobby.table.moveSeatDown': 'Siirrä {name} paikkaa alemmas',
   'lobby.table.start': 'Aloita',
   'lobby.table.waitingForHost': 'Odotetaan, että isäntä aloittaa…',
+
+  // --- "my games": stored tables, resumed or deleted --------------------
+  'mine.subtitle': 'Pelit, joita voit jatkaa tai poistaa',
+  'mine.tabUnfinished': 'Kesken',
+  'mine.tabFinished': 'Päättyneet',
+  'mine.emptyUnfinished': 'Ei kesken olevia pelejä juuri nyt',
+  'mine.emptyFinished': 'Ei vielä päättyneitä pelejä',
+  'mine.open': 'Avaa',
+  'mine.resume': 'Jatka',
+  'mine.delete': 'Poista',
+  'mine.deleteConfirmTitle': 'Poistetaanko tämä pöytä?',
+  'mine.deleteConfirmBody': 'Tämä päättää pelin kaikille pöydässä. Tätä ei voi perua.',
+  'mine.deleteConfirm': 'Poista',
+  'mine.deleteCancel': 'Peruuta',
+  'mine.viewAll': 'Näytä kaikki',
+  'mine.status.lobby': 'Odottaa alkamista',
+  'mine.status.active': 'Kesken',
+  'mine.status.suspended': 'Keskeytetty',
+  'mine.status.abandoned': 'Siirretty sivuun',
+  'mine.status.completed': 'Päättynyt',
 
   // --- inviting someone to a table ------------------------------------------
   'invite.heading': 'Kutsu pelaajia',

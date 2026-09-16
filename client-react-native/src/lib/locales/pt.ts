@@ -29,6 +29,7 @@ export const pt: Record<string, string> = {
   'err.MATCH_MOVED_ON': 'A mesa avançou — recarrega a página',
   'err.MATCH_NOT_ABANDONED': 'Esta mesa não está à espera de ser retomada',
   'err.MATCH_NOT_FOUND': 'Esta mesa já não existe',
+  'err.MATCH_DELETED': 'O anfitrião eliminou esta mesa',
   'err.TABLE_HAS_OTHER_PLAYERS': 'Só se pode retomar uma mesa em que todos os outros são bots',
   'err.DISCARD_LOCKED': 'O monte de descartes está bloqueado por agora',
   'err.DISCARD_PILE_EMPTY': 'O monte de descartes está vazio',
@@ -889,6 +890,7 @@ export const pt: Record<string, string> = {
   'nav.scoreTable': 'Tabela de pontos',
   'nav.stats': 'Estatísticas',
   'nav.more': 'Mais',
+  'nav.myGames': 'Os meus jogos',
   'nav.about': 'Acerca de',
 
   // --- the account menu behind the face in the corner ----------------------
@@ -1041,6 +1043,26 @@ export const pt: Record<string, string> = {
   'lobby.table.moveSeatDown': 'Descer {name} um lugar',
   'lobby.table.start': 'Começar',
   'lobby.table.waitingForHost': 'À espera que o anfitrião comece…',
+
+  // --- "my games": stored tables, resumed or deleted --------------------
+  'mine.subtitle': 'Jogos que podes retomar, ou eliminar',
+  'mine.tabUnfinished': 'Em curso',
+  'mine.tabFinished': 'Terminados',
+  'mine.emptyUnfinished': 'Sem jogos em curso neste momento',
+  'mine.emptyFinished': 'Ainda sem jogos terminados',
+  'mine.open': 'Abrir',
+  'mine.resume': 'Retomar',
+  'mine.delete': 'Eliminar',
+  'mine.deleteConfirmTitle': 'Eliminar esta mesa?',
+  'mine.deleteConfirmBody': 'Isto termina o jogo para todos os que ainda estão à mesa. Não pode ser desfeito.',
+  'mine.deleteConfirm': 'Eliminar',
+  'mine.deleteCancel': 'Cancelar',
+  'mine.viewAll': 'Ver todos',
+  'mine.status.lobby': 'À espera de começar',
+  'mine.status.active': 'Em curso',
+  'mine.status.suspended': 'Em pausa',
+  'mine.status.abandoned': 'Posto de lado',
+  'mine.status.completed': 'Terminado',
 
   // --- inviting someone to a table ------------------------------------------
   'invite.heading': 'Convidar jogadores',

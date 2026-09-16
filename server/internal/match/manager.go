@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"zolik/server/internal/db"
 	"zolik/server/internal/metrics"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
@@ -408,6 +409,15 @@ func (m *Manager) ExplainRefusal(ctx context.Context, idOrCode, code string) []s
 func (m *Manager) HandleAction(ctx context.Context, idOrCode, playerID string, a module.Action) error {
 	match, err := m.repo.Resolve(ctx, idOrCode)
 	if err != nil {
+		// A late action against a table that vanished under it — most often a
+		// host's delete landing between two of a bot's own moves — otherwise
+		// surfaces as the generic "ERROR" code: Resolve's error is a raw store
+		// error, and module.CodeOf has no case for one. MATCH_NOT_FOUND is
+		// wording the client already carries, for the identical situation
+		// resumeMatch and getMatch answer with today.
+		if db.IsNotFound(err) {
+			return module.Error{Code: "MATCH_NOT_FOUND", Message: idOrCode}
+		}
 		return err
 	}
 	if match.Status != "active" {

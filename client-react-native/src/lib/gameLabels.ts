@@ -41,6 +41,26 @@ export function variationLabel(moduleId: string, v: { id: string; label: string 
 }
 
 /**
+ * A game's name from just its id, with no descriptor at hand.
+ *
+ * A stored game — a "my games" row — carries `moduleId` and `variation` as
+ * bare ids, never the server's own label text; fetching `/modules` a second
+ * time just to word two strings on a list screen would be a heavier answer
+ * than the id itself, which is what falls back here. Every established game
+ * already has these keys worded from `moduleLabel`/`variationLabel` sharing
+ * the same key shape, so the fallback is only ever seen for a module id this
+ * build has never heard of.
+ */
+export function moduleName(moduleId: string): string {
+  return t(`module.${moduleId}`, undefined, moduleId);
+}
+
+/** The bare-id counterpart to `variationLabel` — see `moduleName`. */
+export function variationName(moduleId: string, variationId: string): string {
+  return t(`variation.${moduleId}.${variationId}`, undefined, variationId);
+}
+
+/**
  * A table setting's name.
  *
  * Tried module-first, then bare. `handSize` means "cards dealt" in every game

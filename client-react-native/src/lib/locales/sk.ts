@@ -29,6 +29,7 @@ export const sk: Record<string, string> = {
   'err.MATCH_MOVED_ON': 'Stôl sa medzitým posunul — načítaj stránku znova',
   'err.MATCH_NOT_ABANDONED': 'Tento stôl na obnovenie nečaká',
   'err.MATCH_NOT_FOUND': 'Tento stôl už neexistuje',
+  'err.MATCH_DELETED': 'Hostiteľ vymazal tento stôl',
   'err.TABLE_HAS_OTHER_PLAYERS': 'Obnoviť sa dá len stôl, kde sú všetci ostatní boti',
   'err.DISCARD_LOCKED': 'Odhadzovací balíček je zatiaľ zamknutý',
   'err.DISCARD_PILE_EMPTY': 'Odhadzovací balíček je prázdny',
@@ -880,6 +881,7 @@ export const sk: Record<string, string> = {
   'nav.scoreTable': 'Tabuľka skóre',
   'nav.stats': 'Štatistiky',
   'nav.more': 'Viac',
+  'nav.myGames': 'Moje hry',
   'nav.about': 'O aplikácii',
 
   // --- the account menu behind the face in the corner ----------------------
@@ -1029,6 +1031,26 @@ export const sk: Record<string, string> = {
   'lobby.table.moveSeatDown': 'Posunúť {name} o miesto nadol',
   'lobby.table.start': 'Začať',
   'lobby.table.waitingForHost': 'Čakáme, kým hostiteľ začne…',
+
+  // --- "my games": stored tables, resumed or deleted --------------------
+  'mine.subtitle': 'Hry, ku ktorým sa môžeš vrátiť, alebo ich vymazať',
+  'mine.tabUnfinished': 'Rozohrané',
+  'mine.tabFinished': 'Dokončené',
+  'mine.emptyUnfinished': 'Momentálne žiadna rozohraná hra',
+  'mine.emptyFinished': 'Zatiaľ žiadne dokončené hry',
+  'mine.open': 'Otvoriť',
+  'mine.resume': 'Obnoviť',
+  'mine.delete': 'Vymazať',
+  'mine.deleteConfirmTitle': 'Vymazať tento stôl?',
+  'mine.deleteConfirmBody': 'Tým sa hra skončí aj všetkým ostatným pri stole. Toto sa nedá vrátiť späť.',
+  'mine.deleteConfirm': 'Vymazať',
+  'mine.deleteCancel': 'Zrušiť',
+  'mine.viewAll': 'Zobraziť všetky',
+  'mine.status.lobby': 'Čaká na začiatok',
+  'mine.status.active': 'Hrá sa',
+  'mine.status.suspended': 'Pozastavené',
+  'mine.status.abandoned': 'Odložené',
+  'mine.status.completed': 'Dokončené',
 
   // --- inviting someone to a table ------------------------------------------
   'invite.heading': 'Pozvať hráčov',

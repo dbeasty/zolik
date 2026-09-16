@@ -29,6 +29,7 @@ export const hu: Record<string, string> = {
   'err.MATCH_MOVED_ON': 'Az asztal továbblépett — töltsd újra az oldalt',
   'err.MATCH_NOT_ABANDONED': 'Ez az asztal nem vár folytatásra',
   'err.MATCH_NOT_FOUND': 'Ez az asztal már nem létezik',
+  'err.MATCH_DELETED': 'A házigazda törölte ezt az asztalt',
   'err.TABLE_HAS_OTHER_PLAYERS': 'Csak olyan asztal folytatható, ahol mindenki más bot',
   'err.DISCARD_LOCKED': 'A dobópakli egyelőre zárva van',
   'err.DISCARD_PILE_EMPTY': 'A dobópakli üres',
@@ -897,6 +898,7 @@ export const hu: Record<string, string> = {
   'nav.scoreTable': 'Ponttábla',
   'nav.stats': 'Statisztika',
   'nav.more': 'Több',
+  'nav.myGames': 'Játékaim',
   'nav.about': 'Névjegy',
 
   // --- the account menu behind the face in the corner ----------------------
@@ -1047,6 +1049,26 @@ export const hu: Record<string, string> = {
   'lobby.table.moveSeatDown': '{name} egy hellyel lejjebb',
   'lobby.table.start': 'Indítás',
   'lobby.table.waitingForHost': 'Várunk, hogy a házigazda elindítsa…',
+
+  // --- "my games": stored tables, resumed or deleted --------------------
+  'mine.subtitle': 'Játékok, amelyeket folytathatsz, vagy törölhetsz',
+  'mine.tabUnfinished': 'Folyamatban',
+  'mine.tabFinished': 'Befejezett',
+  'mine.emptyUnfinished': 'Jelenleg nincs folyamatban lévő játék',
+  'mine.emptyFinished': 'Még nincs befejezett játék',
+  'mine.open': 'Megnyitás',
+  'mine.resume': 'Folytatás',
+  'mine.delete': 'Törlés',
+  'mine.deleteConfirmTitle': 'Törlöd ezt az asztalt?',
+  'mine.deleteConfirmBody': 'Ez véget vet a játéknak mindenki másnak az asztalnál. Ez nem vonható vissza.',
+  'mine.deleteConfirm': 'Törlés',
+  'mine.deleteCancel': 'Mégse',
+  'mine.viewAll': 'Összes megtekintése',
+  'mine.status.lobby': 'Kezdésre vár',
+  'mine.status.active': 'Folyamatban',
+  'mine.status.suspended': 'Szüneteltetve',
+  'mine.status.abandoned': 'Félretéve',
+  'mine.status.completed': 'Befejezve',
 
   // --- inviting someone to a table ------------------------------------------
   'invite.heading': 'Játékosok meghívása',
