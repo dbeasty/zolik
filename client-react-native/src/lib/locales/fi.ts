@@ -1155,6 +1155,8 @@ export const fi: Record<string, string> = {
   'hand.dragHint': 'Raahaa korttia viuhkaa pitkin järjestääksesi sen uudelleen, tai pöydälle pelataksesi sen',
   'hand.moveLeft': 'Vasemmalle',
   'hand.moveRight': 'Oikealle',
+  'hand.openFan': 'Levitä kortit',
+  'hand.closeFan': 'Kokoa kortit',
   'zone.collapseGroup': 'Tiivistä tämä ryhmä',
   'zone.expandGroup': 'Näytä kaikki tämän ryhmän kortit',
   'zone.dropHere': 'Pudota tähän',

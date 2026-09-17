@@ -1151,6 +1151,8 @@ export const et: Record<string, string> = {
   'hand.dragHint': 'Lohista kaarti mööda lehvikut, et see ümber paigutada, või lauale, et see välja mängida',
   'hand.moveLeft': 'Vasakule',
   'hand.moveRight': 'Paremale',
+  'hand.openFan': 'Laota kaardid laiali',
+  'hand.closeFan': 'Suru kaardid kokku',
   'zone.collapseGroup': 'Ahenda see rühm',
   'zone.expandGroup': 'Näita selle rühma kõiki kaarte',
   'zone.dropHere': 'Kukuta siia',

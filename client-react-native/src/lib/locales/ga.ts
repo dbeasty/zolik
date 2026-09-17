@@ -1181,6 +1181,8 @@ export const ga: Record<string, string> = {
   'hand.dragHint': 'Tarraing cárta feadh an fheanna chun é a atheagrú, nó ar an mbord chun é a imirt',
   'hand.moveLeft': 'Ar chlé',
   'hand.moveRight': 'Ar dheis',
+  'hand.openFan': 'Leath na cártaí',
+  'hand.closeFan': 'Druid na cártaí',
   'zone.collapseGroup': 'Laghdaigh an grúpa seo',
   'zone.expandGroup': 'Taispeáin gach cárta sa ghrúpa seo',
   'zone.dropHere': 'Lig anseo é',

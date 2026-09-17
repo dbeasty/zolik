@@ -1173,6 +1173,8 @@ export const de: Record<string, string> = {
     'Zieh eine Karte entlang des Fächers, um sie umzusortieren, oder auf das Board, um sie auszuspielen',
   'hand.moveLeft': 'Nach links',
   'hand.moveRight': 'Nach rechts',
+  'hand.openFan': 'Karten auffächern',
+  'hand.closeFan': 'Karten zusammenschieben',
   'zone.collapseGroup': 'Diese Gruppe einklappen',
   'zone.expandGroup': 'Alle Karten dieser Gruppe zeigen',
   'zone.dropHere': 'Hier ablegen',

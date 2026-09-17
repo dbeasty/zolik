@@ -1138,6 +1138,8 @@ export const cs: Record<string, string> = {
   'hand.dragHint': 'Táhni kartu podél vějíře, když ji chceš přerovnat, nebo na stůl, když ji chceš zahrát',
   'hand.moveLeft': 'Doleva',
   'hand.moveRight': 'Doprava',
+  'hand.openFan': 'Rozlož karty',
+  'hand.closeFan': 'Slož karty',
   'zone.collapseGroup': 'Sbalit tuhle skupinu',
   'zone.expandGroup': 'Ukázat všechny karty téhle skupiny',
   'zone.dropHere': 'Polož sem',

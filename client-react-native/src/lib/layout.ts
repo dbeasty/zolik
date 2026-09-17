@@ -131,6 +131,21 @@ const BASE_PANEL = {
   bodyFont: 12,
 };
 
+/**
+ * The biggest a card is ever drawn, as a multiple of the 52×72 baseline —
+ * 130×180, about the size of a real card held at arm's length.
+ *
+ * A ceiling rather than a derivation, and the honest reason is that the rule
+ * the other sizes come from has run out: once a hand stacks, thirteen cards
+ * fit across a 1400px board at a scale near five, and nothing about the
+ * *width* of the board stops a card getting there. What stops it is height —
+ * every card on the board grows together, the stock and the discard pile
+ * included, and the board is a column of panels that has to end above the
+ * bottom of the window. There is no window height in these metrics to derive
+ * that from, so it is a number, checked by eye at 1440×900 and 2560×1440.
+ */
+const FULL_CARD = 2.5;
+
 const BASE_BUTTON_MIN_WIDTH = 92;
 const BASE_STACKED_CORNER = 26;
 
@@ -139,25 +154,40 @@ const BASE_STACKED_CORNER = 26;
  * hand at scale 1 cost 407 of a 716px-tall screen. Below 768 the layout goes
  * to one column; below that, cards themselves start shrinking.
  *
- * Above 1280 they grow, and every step is the largest that still passes the
- * one thing that has to keep fitting: a thirteen-card hand — a full Žolíky
- * deal, the longest this client draws — in a single row, inside `maxWidth`
- * and its padding. A hand that wraps is a hand you have to re-find every
- * turn.
+ * The rule the growth steps are set by has always been the same one — a
+ * thirteen-card hand, a full Žolíky deal and the longest this client draws,
+ * has to fit across the board in a single row, because a hand that wraps is
+ * a hand you have to re-find every turn. What changed is what "fit" costs.
  *
- * Which is why growth starts at 1280 and not at 1024. Thirteen cards at scale
- * 1 already need about 930 of the 974 usable pixels a 1024 screen has, so
- * there is nothing to spend there: the first width that can afford a bigger
- * card is the first width with room for thirteen of them.
+ * A hand is fanned now: past the point where the cards would wrap they slide
+ * over each other instead, the way they do between your fingers, and a card
+ * in the middle of the fan costs the width of its own index rather than the
+ * width of a card. So the same rule buys a great deal more card. Thirteen
+ * stacked cards would fit across a 1400px board at nearly five times the
+ * original size — which is the point at which the rule stops being what
+ * limits anything, and `FULL_CARD` takes over.
  *
- * The test checks this with the real `slotPitch` rather than by eye, which is
- * what caught the first cut of this — a 1.6 top step whose thirteenth card
- * wrapped onto a row of its own, because the arithmetic behind it had counted
- * the card and its gap and forgotten the slot border and the row gap.
+ * So above 1280 the steps climb toward `FULL_CARD` rather than toward
+ * whatever crammed thirteen cards in side by side. Below it they are
+ * unchanged and deliberately so: a phone's constraint was never the width of
+ * the row, it was the 812 pixels of height the whole board has to live in,
+ * and making a phone's cards half again as tall to use up spare width would
+ * push the controls off the bottom of the screen. Nothing about fanning a
+ * hand gives a phone more height.
  */
 function scaleFor(width: number): number {
-  if (width >= 1600) return 1.5;
-  if (width >= 1280) return 1.3;
+  if (width >= 1600) return FULL_CARD;
+  if (width >= 1280) return 1.7;
+  // 1024 used to be the width with "nothing to spend", because thirteen cards
+  // at scale 1 already needed 930 of its 976 usable pixels. Closing the hand
+  // is what freed that up, and it is the same argument as the steps above:
+  // there is no reason to keep a card small so that thirteen of them can sit
+  // side by side, when they are not going to sit side by side.
+  if (width >= 1024) return 1.35;
+  // Below 1024 the card stays where it was. The constraint on a laptop this
+  // narrow — and on every phone under it — was never the width of the row; it
+  // is the height the whole board has to live in, and a fanned hand does not
+  // give anybody more height.
   if (width >= 768) return 1;
   if (width >= 480) return 0.88;
   if (width >= 380) return 0.78;
@@ -188,7 +218,13 @@ const BOARD_MAX_WIDTH = 1400;
  * shrinking together is exactly right, and it is what shipped.
  */
 function chromeScale(scale: number): number {
-  return scale <= 1 ? scale : 1 + (scale - 1) * 0.4;
+  if (scale <= 1) return scale;
+  // And a ceiling on top of the fraction, because the fraction alone stopped
+  // being enough once cards could reach twice the baseline: two-fifths of
+  // *that* growth puts a 12px panel title at 17, and a 17px title is the
+  // board's furniture talking over the game. 1.33 is the largest that keeps
+  // it at 16.
+  return Math.min(1.33, 1 + (scale - 1) * 0.4);
 }
 
 function dim(n: number, scale: number): number {
@@ -256,4 +292,105 @@ export function metricsFor(width: number): Metrics {
     stackedCorner: Math.max(20, dim(BASE_STACKED_CORNER, scale)),
     buttonMinWidth: Math.max(64, dim(BASE_BUTTON_MIN_WIDTH, chrome)),
   };
+}
+
+/**
+ * The padding the match screen keeps outside the board, on each side.
+ *
+ * Named here because the hand's own arithmetic needs it (see `handRowWidth`)
+ * and because it was already a bare 16 written twice — once in the screen and
+ * once in the test that checks a thirteen-card hand fits. A number two places
+ * hold separately is how the scale ceiling got set wrong the first time.
+ */
+export const SCREEN_PADDING = 16;
+
+/**
+ * How much width the hand's row of cards has to lay out in, as far as the
+ * metrics can tell from the window.
+ *
+ * An estimate, and knowingly a generous one: on the web the window width
+ * includes a scrollbar the layout does not get, and the board carries padding
+ * this cannot see from here. Good enough to decide how big a card may be —
+ * which is all it was ever used for — and good enough as a first guess before
+ * the row has measured itself. `fanPitch` takes the measured width instead
+ * once there is one, because being fifteen pixels optimistic there is the
+ * difference between a hand in one row and a hand in two.
+ */
+export function handRowWidth(m: Metrics): number {
+  return m.maxWidth - 2 * SCREEN_PADDING - 2 * m.panel.padding;
+}
+
+/**
+ * The least of a card that still says which card it is.
+ *
+ * The engraved deck prints its index in the top-left corner, so a card
+ * overlapped from the right is identified by the strip down its left edge —
+ * exactly the way a hand of cards fanned between two fingers is. This is how
+ * wide that strip is allowed to get down to: enough for the rank, the suit
+ * under it, and a little air.
+ */
+function minPeek(m: Metrics): number {
+  // Wide enough for the widest index any face draws — "10" set bold, with a
+  // suit under it. The engraved deck keeps its index inside the left fifth of
+  // the card, so this is set by the drawn faces rather than by that one.
+  return Math.max(20, Math.round(m.card.width * 0.38));
+}
+
+/**
+ * How far apart the cards in a hand sit.
+ *
+ * A hand is held, not laid out. Past the point where the cards would fit side
+ * by side they slide over each other instead — each covering the one before
+ * it, all of them still in one row, every one still showing the corner that
+ * names it. That is what a hand of cards looks like in a hand, and it is the
+ * default here rather than a fallback: wrapping a hand onto a second and
+ * third row costs the vertical space the board has least of, and means the
+ * hand you are hunting a card in is a different shape every turn.
+ *
+ * Two pitches, and nothing in between:
+ *
+ *  - **Full**, when the whole hand fits that way. A hand of three has no
+ *    reason to hug itself into a corner of a board with room to spare.
+ *  - **Closed**, when it does not: every card down to the strip that names
+ *    it, stacked as tightly as the deck can still be read.
+ *
+ * Not "as much overlap as it takes to fit", which was the first cut of this
+ * and looked like a bug — the hand tightened by a pixel or two per card as
+ * cards arrived, so it was never quite a row and never quite a fan. It closes
+ * all the way or not at all, and `spread` is the player's own override.
+ */
+export function fanPitch(
+  m: Metrics,
+  count: number,
+  measuredWidth?: number,
+  spread?: boolean,
+): number {
+  const full = m.card.slotPitch;
+  if (count < 2) return full;
+  // What one slot takes on screen: the pitch, less the row gap that trails it.
+  const slot = full - m.card.fanGap;
+  const room =
+    measuredWidth && measuredWidth > 0 ? Math.floor(measuredWidth) : handRowWidth(m);
+  if ((count - 1) * full + slot <= room) return full;
+  // Opened out: as wide as the row will take and no wider. Not `full`, which
+  // would put the hand back onto two rows — the player asked to see the cards,
+  // not to get the wrapping back.
+  if (spread) {
+    return Math.max(minPeek(m), Math.min(full, Math.floor((room - slot) / (count - 1))));
+  }
+  const closed = minPeek(m);
+  // A hand long enough to overflow even closed is past anything a deal
+  // produces; it wraps, at the tightest pitch, rather than tightening further
+  // into an unreadable stack.
+  return Math.min(full, closed);
+}
+
+/** Whether `fanPitch` is closing the hand up rather than laying it out. */
+export function fanOverlaps(
+  m: Metrics,
+  count: number,
+  measuredWidth?: number,
+  spread?: boolean,
+): boolean {
+  return fanPitch(m, count, measuredWidth, spread) < m.card.slotPitch;
 }

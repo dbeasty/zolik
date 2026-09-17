@@ -1158,6 +1158,8 @@ export const it: Record<string, string> = {
   'hand.dragHint': 'Trascina una carta lungo il ventaglio per riordinarla, o sul tavolo per giocarla',
   'hand.moveLeft': 'Sposta a sinistra',
   'hand.moveRight': 'Sposta a destra',
+  'hand.openFan': 'Allarga le carte',
+  'hand.closeFan': 'Stringi le carte',
   'zone.collapseGroup': 'Comprimi questo gruppo',
   'zone.expandGroup': 'Mostra tutte le carte di questo gruppo',
   'zone.dropHere': 'Lascia qui',

@@ -1142,6 +1142,8 @@ export const sv: Record<string, string> = {
   'hand.dragHint': 'Dra ett kort längs solfjädern för att flytta det, eller ut på bordet för att spela det',
   'hand.moveLeft': 'Åt vänster',
   'hand.moveRight': 'Åt höger',
+  'hand.openFan': 'Sprid ut korten',
+  'hand.closeFan': 'Samla ihop korten',
   'zone.collapseGroup': 'Fäll ihop den här gruppen',
   'zone.expandGroup': 'Visa alla kort i den här gruppen',
   'zone.dropHere': 'Släpp här',

@@ -1148,6 +1148,8 @@ export const lt: Record<string, string> = {
   'hand.dragHint': 'Tempk kortą palei vėduoklę, kad ją perstumtum, arba ant stalo, kad ją sužaistum',
   'hand.moveLeft': 'Kairėn',
   'hand.moveRight': 'Dešinėn',
+  'hand.openFan': 'Išskleisti kortas',
+  'hand.closeFan': 'Sutraukti kortas',
   'zone.collapseGroup': 'Sutraukti šią grupę',
   'zone.expandGroup': 'Rodyti visas šios grupės kortas',
   'zone.dropHere': 'Padėk čia',

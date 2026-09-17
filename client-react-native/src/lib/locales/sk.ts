@@ -1145,6 +1145,8 @@ export const sk: Record<string, string> = {
   'hand.dragHint': 'Ťahaj kartu pozdĺž vejára, ak ju chceš preusporiadať, alebo na stôl, ak ju chceš zahrať',
   'hand.moveLeft': 'Doľava',
   'hand.moveRight': 'Doprava',
+  'hand.openFan': 'Rozlož karty',
+  'hand.closeFan': 'Zlož karty',
   'zone.collapseGroup': 'Zbaliť túto skupinu',
   'zone.expandGroup': 'Ukázať všetky karty tejto skupiny',
   'zone.dropHere': 'Polož sem',

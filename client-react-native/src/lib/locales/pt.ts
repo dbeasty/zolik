@@ -1158,6 +1158,8 @@ export const pt: Record<string, string> = {
   'hand.dragHint': 'Arrasta uma carta ao longo do leque para a reordenar, ou para a mesa para a jogar',
   'hand.moveLeft': 'Mover para a esquerda',
   'hand.moveRight': 'Mover para a direita',
+  'hand.openFan': 'Abrir as cartas em leque',
+  'hand.closeFan': 'Juntar as cartas',
   'zone.collapseGroup': 'Fechar este grupo',
   'zone.expandGroup': 'Mostrar todas as cartas deste grupo',
   'zone.dropHere': 'Larga aqui',

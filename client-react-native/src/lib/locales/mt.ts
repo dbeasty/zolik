@@ -1164,6 +1164,8 @@ export const mt: Record<string, string> = {
   'hand.dragHint': "Iġbed karta tul il-mruħa biex terġa' tirranġaha, jew fuq il-mejda biex tilgħabha",
   'hand.moveLeft': 'Lejn ix-xellug',
   'hand.moveRight': 'Lejn il-lemin',
+  'hand.openFan': 'Ifrex il-karti',
+  'hand.closeFan': 'Iġbor il-karti',
   'zone.collapseGroup': 'Agħlaq dan il-grupp',
   'zone.expandGroup': "Uri l-karti kollha ta' dan il-grupp",
   'zone.dropHere': "Itfa' hawn",

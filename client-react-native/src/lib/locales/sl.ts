@@ -1140,6 +1140,8 @@ export const sl: Record<string, string> = {
   'hand.dragHint': 'Povleci karto vzdolž pahljače, da jo prerazporediš, ali na mizo, da jo odigraš',
   'hand.moveLeft': 'Levo',
   'hand.moveRight': 'Desno',
+  'hand.openFan': 'Razprostri karte',
+  'hand.closeFan': 'Zloži karte',
   'zone.collapseGroup': 'Strni to skupino',
   'zone.expandGroup': 'Pokaži vse karte te skupine',
   'zone.dropHere': 'Spusti sem',
