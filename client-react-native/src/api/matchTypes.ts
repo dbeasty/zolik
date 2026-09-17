@@ -132,8 +132,20 @@ export type ParamSpec = {
  * set is transitive and closed, so checking it is a membership test, never a
  * question about which ranks sit next to which. `source.cards` deliberately
  * omits these cards: see {@link Selector}.
+ *
+ * `alternatives` names the other companion sets that would do instead of
+ * `requires` — any one of them, in full, and the card is legal. A 10 reaching
+ * a run of 5-6-7-8 needs the 9, or a joker standing in the 9's place, and the
+ * player picks which one to spend. Without this the card was refused unless
+ * the selection matched `requires` exactly, so the pair a player actually
+ * dragged was rejected and they laid the two cards one at a time.
  */
-export type Placement = { card: string; positions?: string[]; requires?: string[] };
+export type Placement = {
+  card: string;
+  positions?: string[];
+  requires?: string[];
+  alternatives?: string[][];
+};
 
 /** The parameter a chosen {@link Placement} position travels back under. */
 export const POSITION_PARAM = 'position';

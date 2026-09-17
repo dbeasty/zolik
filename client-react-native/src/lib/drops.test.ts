@@ -79,6 +79,32 @@ const layOffChain: ActionOffer = {
   target: { zone: 'meld', ownerId: 'me', meldId: 'meld_1', zoneId: 'melds:me' },
 };
 
+/**
+ * The same shape when the gap can be bridged two ways. A run of 5-6-7-8, and a
+ * hand holding the joker, the 10 and the 9: the 10 reaches the run with the 9,
+ * or with the joker standing in the 9's place. Copied from what the server
+ * emits for that board.
+ */
+const layOffJokerOrNatural: ActionOffer = {
+  id: 'lay_off:meld_3',
+  verb: 'lay_off',
+  enabled: true,
+  source: {
+    zone: 'hand',
+    ownerId: 'me',
+    zoneId: 'hand:me',
+    cards: ['JOKER', '9C'],
+    placements: [
+      { card: 'JOKER', positions: ['front', 'end'] },
+      { card: '9C', positions: ['end'] },
+      { card: 'TC', positions: ['end'], requires: ['9C'], alternatives: [['JOKER']] },
+    ],
+    minCards: 1,
+    maxCards: 4,
+  },
+  target: { zone: 'meld', ownerId: 'karel', meldId: 'meld_3', zoneId: 'melds:karel' },
+};
+
 /** Three deep, so a selection can skip a link in the middle of the chain. */
 const layOffDeepChain: ActionOffer = {
   id: 'lay_off:meld_2',
@@ -385,6 +411,47 @@ describe('a lay-off whose cards need each other', () => {
   it('takes the whole chain when every link is held', () => {
     const spots = takeableSpots(dropSpotsFor([layOffDeepChain], ['6C', '7C', '8C']));
     expect(spotAt(spots, 'group-meld_2')).toMatchObject({ ready: true });
+  });
+
+  // The bug: the 10 needs company, and the player chose the joker for it
+  // rather than the 9 the offer happens to name first. Before `alternatives`
+  // this pair was refused and the player laid the two cards one at a time.
+  it('takes the card with the joker the player chose to spend', () => {
+    const spots = takeableSpots(dropSpotsFor([layOffJokerOrNatural], ['JOKER', 'TC']));
+    expect(spotAt(spots, 'group-meld_3')).toMatchObject({ ready: true });
+  });
+
+  it('still takes the natural card the offer names first', () => {
+    const spots = takeableSpots(dropSpotsFor([layOffJokerOrNatural], ['9C', 'TC']));
+    expect(spotAt(spots, 'group-meld_3')).toMatchObject({ ready: true });
+  });
+
+  it('still refuses the card with neither companion', () => {
+    const spots = dropSpotsFor([layOffJokerOrNatural], ['TC']);
+    expect(refusalAt(spots, 'group-meld_3')?.labelKey).toBe('sel.needsCompany');
+    expect(takeableSpots(spots)).toEqual([]);
+  });
+
+  // An alternative is a set, not a loose pool of acceptable cards: holding
+  // some other card alongside the 10 is not company just because a joker
+  // exists somewhere in the offer.
+  it('is not satisfied by a card no companion set names', () => {
+    const spots = dropSpotsFor([layOffJokerOrNatural], ['TC', '2H']);
+    expect(takeableSpots(spots)).toEqual([]);
+  });
+
+  // The run-end hint survives the choice. Both companions reach across the
+  // same gap, so the submission grows the same end either way — the server
+  // sweeps that invariant, and this side reuses the one hint.
+  it('names the same end whichever companion is spent', () => {
+    expect(dropSpotsFor([layOffJokerOrNatural], ['9C', 'TC'])[0].positions).toEqual(['end']);
+    expect(dropSpotsFor([layOffJokerOrNatural], ['JOKER', 'TC'])[0].positions).toEqual(['end']);
+  });
+
+  // The card still needs company, so a control that sends one card unprompted
+  // must not reach for it — having two ways in is not having no requirement.
+  it('keeps a card with alternatives out of the one-tap list', () => {
+    expect(layOffJokerOrNatural.source?.cards).not.toContain('TC');
   });
 
   // Constraint on the other side of the same fact: `source.cards` stays the

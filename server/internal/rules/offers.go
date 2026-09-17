@@ -95,6 +95,24 @@ type Placement struct {
 	// than walking a chain. And it is proven rather than derived: the
 	// server ran ValidateMeld over the meld plus these cards plus this one.
 	Requires []string `json:"requires,omitempty"`
+
+	// Alternatives are the other companion sets that would do instead of
+	// Requires — any one of them, in full, and the card is legal.
+	//
+	// Requires alone was a single answer to a question that can have
+	// several, and the difference is a wild. A run of 5-6-7-8 and a hand
+	// holding the 9, the 10 and a joker can reach the 10 two ways: with
+	// the 9, or with the joker standing in the 9's place. Requires named
+	// the 9, because the scan below reaches for naturals first, so a
+	// client reading it as the whole truth refused joker + 10 — a move the
+	// engine takes — and left the player laying the two cards one at a
+	// time.
+	//
+	// Empty when there is only one way in, which is the common case and
+	// every case in a hand holding no wild. Each entry is proven the same
+	// way Requires is, and the card is no more sendable on its own for
+	// having them: every alternative is a set of company it still needs.
+	Alternatives [][]string `json:"alternatives,omitempty"`
 }
 
 // Selector describes where an offer's cards come from, or where they go.
@@ -536,12 +554,9 @@ func layOffPlacements(state GameState, cfg RulesConfig, playerID string, m table
 	}
 
 	// The closure. Anchors join the working meld without being listed
-	// again — they are the bridge every deeper card hangs off.
-	//
-	// `remaining` shrinks as cards are taken, and `working` grows inside the
-	// pass rather than between passes, so a chain running the same way the
-	// hand is ordered is found in a single sweep. The outer loop is only
-	// there for one running the other way.
+	// again — they are the bridge every deeper card hangs off, and
+	// chainCompanions marks whatever it does report, so this map stays the
+	// record of what the offer already names.
 	listed := map[string]bool{}
 	for _, p := range out {
 		listed[p.Card] = true
@@ -559,6 +574,10 @@ func layOffPlacements(state GameState, cfg RulesConfig, playerID string, m table
 	// company, which is true of the chain the loop happened to build but not
 	// of the cheapest one, and not what a player laying off a joker-free run
 	// alongside a joker they'd rather keep expects to be told.
+	//
+	// Which makes the answer the cheapest one rather than the only one, and
+	// a player who *would* rather spend the joker is owed the other. That is
+	// the second sweep below, running the same closure the other way round.
 	suit := runSuit(m.Cards)
 	var naturals, wilds []string
 	for _, c := range hand {
@@ -570,13 +589,96 @@ func layOffPlacements(state GameState, cfg RulesConfig, playerID string, m table
 			}
 		}
 	}
-	remaining := append(naturals, wilds...)
-	working := append([]string(nil), m.Cards...)
-	var accepted []string
 	room := len(hand) - 1 // leave a card to discard
 	if cfg.IsFinalDeal(state.GameNumber) {
 		room = len(hand)
 	}
+
+	for _, ch := range chainCompanions(m.Cards, order(naturals, wilds), room, cfg, listed) {
+		pl := Placement{Card: ch.card, Requires: ch.requires}
+		if ch.isRun {
+			// The hint describes the submission this card is part of, not
+			// the card alone — alone it has no submission.
+			whole := append(append(append([]string(nil), m.Cards...), ch.requires...), ch.card)
+			pl.Positions = droppableEnds(m.Cards, whole, cfg)
+		}
+		out = append(out, pl)
+	}
+
+	// The same closure again, reaching for wilds first, to find the company
+	// the natural-first sweep hid: the joker that stands in the 9's place for
+	// a 10 whose holder also has the 9. Both answers are true and the player
+	// picks between them, so both are listed — see Placement.Alternatives.
+	//
+	// Gated on the hand actually holding both kinds of card and on the first
+	// sweep having found a card that needs company at all, so a hand with no
+	// wild, or no chain, pays nothing for this (the allocation tripwire in
+	// TestLegalActions_ObserverIsCheaperThanActivePlayer watches that).
+	if len(wilds) == 0 || len(naturals) == 0 || !anyNeedsCompany(out) {
+		return out
+	}
+	at := map[string]int{}
+	for i := range out {
+		at[out[i].Card] = i
+	}
+	// Skipping the anchors alone, not everything the first sweep listed —
+	// the cards this is here to say something new about are exactly the ones
+	// it already reported. Its own copy, since the sweep writes to what it
+	// is handed and the anchors are not this pass's to redefine.
+	anchors := make(map[string]bool, len(seen))
+	for c := range seen {
+		anchors[c] = true
+	}
+	for _, ch := range chainCompanions(m.Cards, order(wilds, naturals), room, cfg, anchors) {
+		i, known := at[ch.card]
+		if !known || sameCards(out[i].Requires, ch.requires) {
+			// A card only this sweep can reach is not an alternative to
+			// anything — it is the card's one way in, and the first sweep
+			// simply spent the wild elsewhere before getting to it. Left
+			// off rather than appended: listing it would make the offer
+			// depend on which sweep ran, and the engine will say so
+			// plainly if it is ever sent.
+			continue
+		}
+		out[i].Alternatives = appendDistinct(out[i].Alternatives, out[i].Requires, ch.requires)
+	}
+	return out
+}
+
+// order concatenates two card groups into one search order without writing
+// through either one's backing array.
+func order(first, second []string) []string {
+	out := make([]string, 0, len(first)+len(second))
+	return append(append(out, first...), second...)
+}
+
+// companion is one card the chain reached, and the smallest company it
+// needed to get there.
+type companion struct {
+	card     string
+	requires []string
+	isRun    bool
+}
+
+// chainCompanions grows a working copy of the meld by repeatedly taking the
+// first card that fits, and reports each card it accepts that skip does not
+// already cover, along with the smallest set of companions that card cannot
+// do without.
+//
+// `remaining` shrinks as cards are taken, and `working` grows inside the
+// pass rather than between passes, so a chain running the same way the cards
+// are ordered is found in a single sweep. The outer loop is only there for
+// one running the other way.
+//
+// The order the cards are offered in is the whole reason this is a parameter:
+// the loop takes the first card that fits at each step, so a gap a natural
+// card and a wild could both fill is filled by whichever comes first — and
+// the company reported for everything downstream is named after that choice.
+func chainCompanions(base, remaining []string, room int, cfg RulesConfig, skip map[string]bool) []companion {
+	remaining = append([]string(nil), remaining...)
+	working := append([]string(nil), base...)
+	var accepted []string
+	var found []companion
 	for len(accepted) < room {
 		grew := false
 		tried := make(map[string]bool, len(remaining))
@@ -591,17 +693,13 @@ func layOffPlacements(state GameState, cfg RulesConfig, playerID string, m table
 			if err != nil {
 				continue
 			}
-			if !seen[c] && !listed[c] {
-				need := minimalPrereq(m.Cards, accepted, c, cfg)
-				pl := Placement{Card: c, Requires: need}
-				if mv.Type == MeldRun {
-					// The hint describes the submission this card is part
-					// of, not the card alone — alone it has no submission.
-					whole := append(append(append([]string(nil), m.Cards...), need...), c)
-					pl.Positions = droppableEnds(m.Cards, whole, cfg)
-				}
-				out = append(out, pl)
-				listed[c] = true
+			if !skip[c] {
+				found = append(found, companion{
+					card:     c,
+					requires: minimalPrereq(base, accepted, c, cfg),
+					isRun:    mv.Type == MeldRun,
+				})
+				skip[c] = true
 			}
 			working = cand
 			accepted = append(accepted, c)
@@ -613,7 +711,52 @@ func layOffPlacements(state GameState, cfg RulesConfig, playerID string, m table
 			break
 		}
 	}
-	return out
+	return found
+}
+
+// anyNeedsCompany reports whether any placement so far is one that cannot be
+// sent on its own — the only kind an alternative could be an alternative to.
+func anyNeedsCompany(ps []Placement) bool {
+	for _, p := range ps {
+		if len(p.Requires) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// sameCards compares two companion sets as sets, not as sequences: the two
+// sweeps reach the same cards in different orders and that is not a
+// difference worth listing.
+func sameCards(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	left := make(map[string]int, len(a))
+	for _, c := range a {
+		left[c]++
+	}
+	for _, c := range b {
+		left[c]--
+		if left[c] < 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// appendDistinct adds set to alts unless it is already there, or is the
+// primary Requires it would be an alternative to.
+func appendDistinct(alts [][]string, primary, set []string) [][]string {
+	if len(set) == 0 || sameCards(primary, set) {
+		return alts
+	}
+	for _, have := range alts {
+		if sameCards(have, set) {
+			return alts
+		}
+	}
+	return append(alts, append([]string(nil), set...))
 }
 
 // runSuit is the suit every natural card of a run shares, or "" when the
