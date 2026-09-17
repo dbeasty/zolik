@@ -725,10 +725,37 @@ const DraggableCard = memo(function DraggableCard({
     () => (offset ? { transform: [{ translateX: offset.dx }, { translateY: offset.dy }] } : null),
     [offset?.dx, offset?.dy],
   );
+  /**
+   * Where a card sits once it has left the layout.
+   *
+   * `marginLeft: 0` undoes `styles.tuck` for exactly as long as this card is
+   * floating, and it is the whole of what kept a closed hand from being
+   * draggable.
+   *
+   * The tuck is a negative left margin: it is how a card in the row comes to
+   * sit `pitch` from the one before it rather than a whole card-width. That is
+   * a rule about a box *in the flow*, but a margin does not stop applying when
+   * a box is positioned absolutely — it shifts it, on top of `left`. And
+   * `left` here is derived from a measurement taken while the card was still
+   * in the row, which already had the margin in it. So the tuck was counted
+   * twice, and the carried card was drawn a whole tuck to the left of where
+   * the arithmetic put it: the finger sat near its right-hand edge instead of
+   * its middle, by 110px of a 151px card at 1280.
+   *
+   * It went unseen because it is invisible in a hand that fits — the tuck is
+   * zero there, and two wrongs of nothing are still nothing. Every closed
+   * hand had it, which since the fan started closing itself is every hand
+   * that gets dealt.
+   */
   const pinned = useMemo(
     () =>
       floatingAt
-        ? { position: 'absolute' as const, left: floatingAt.left, top: floatingAt.top }
+        ? {
+            position: 'absolute' as const,
+            left: floatingAt.left,
+            top: floatingAt.top,
+            marginLeft: 0,
+          }
         : null,
     [floatingAt?.left, floatingAt?.top],
   );
