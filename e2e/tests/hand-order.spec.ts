@@ -295,10 +295,18 @@ test.describe('arranging your hand', () => {
   });
 
   test('the card being dragged goes where the pointer goes', async ({ page, request }) => {
+    // Tall enough to hold the whole board with the hand inside the viewport.
+    // The board grew (cards are drawn as large as the row will take now), and
+    // on the default 720 this test stopped reaching the hand at all: the
+    // pointer went down at a y below the fold, no drag ever started, and the
+    // failure read "nothing was lifted out" — a test that could no longer see
+    // the thing it was about, rather than a claim that had stopped being true.
+    await page.setViewportSize({ width: 1280, height: 1400 });
     const { matchId, host } = await tableWithBots(request, 'zolik', 2);
     await openMatch(page, host, matchId);
     await handCards(page);
 
+    await card(page, 0).scrollIntoViewIfNeeded();
     const from = await card(page, 0).boundingBox();
     if (!from) throw new Error('no box');
     const grabX = from.x + from.width / 2;
@@ -322,6 +330,82 @@ test.describe('arranging your hand', () => {
         expect(carried, `nothing was lifted out after ${travelled}px`).toBeTruthy();
         const drift = Math.abs(carried!.x + carried!.width / 2 - (grabX + travelled));
         expect(drift, `card is ${Math.round(drift)}px from the pointer`).toBeLessThan(6);
+      }
+    } finally {
+      await page.mouse.up();
+      await page.waitForTimeout(300);
+    }
+  });
+
+  test('a card taken out of a closed hand is carried under the finger', async ({
+    page,
+    request,
+  }) => {
+    // The same claim as the test above, asked of the hand as it is actually
+    // held: closed up, every card but the last covered by the one after it,
+    // so the only part of a card you can take hold of is the strip down its
+    // left edge.
+    //
+    // That is not an edge case — a dealt hand is closed at every width this
+    // suite runs at (13 cards, 151px wide, sitting 49px apart at 1280). The
+    // test above grabs card 0 in its dead centre, which is the one place in a
+    // closed hand where a card's own middle and the strip you can see happen
+    // to be the same column, and so it is the one grip that cannot tell the
+    // two apart.
+    await page.setViewportSize({ width: 1280, height: 1400 });
+    const { matchId, host } = await tableWithBots(request, 'zolik', 2);
+    await openMatch(page, host, matchId);
+    await handCards(page);
+
+    await card(page, 0).scrollIntoViewIfNeeded();
+    const first = await card(page, 0).boundingBox();
+    const second = await card(page, 1).boundingBox();
+    if (!first || !second) throw new Error('no boxes');
+
+    // The hand really is closed. Without this the test could pass on a board
+    // that had quietly gone back to laying the fan out, which is the one
+    // shape the bug it is here for never had.
+    const pitch = second.x - first.x;
+    expect(pitch, 'the fan is laid out, so this is not a closed hand').toBeLessThan(first.width);
+
+    // A middle card, taken by the strip of it a player can see — the whole of
+    // the gesture that was wrong. Everything to the right of this strip is
+    // another card; aiming at the middle of card 6 would be pressing card 8.
+    const held = await card(page, 6).boundingBox();
+    if (!held) throw new Error('no box');
+    const grabX = held.x + Math.min(12, pitch / 2);
+    const grabY = held.y + held.height / 2;
+
+    await page.mouse.move(grabX, grabY);
+    await page.mouse.down();
+    await page.waitForTimeout(200);
+
+    try {
+      // Carried slowly, and asked the same question the whole way up: a drag
+      // that is right at the end and wrong in the middle is still a card you
+      // cannot aim. The path goes up over the board as well as sideways,
+      // because that is where a card being played is taken.
+      const path = [
+        { dx: 40, dy: -20 },
+        { dx: 120, dy: -80 },
+        { dx: 260, dy: -160 },
+        { dx: 420, dy: -240 },
+        { dx: 620, dy: -300 },
+      ];
+
+      for (const { dx, dy } of path) {
+        await page.mouse.move(grabX + dx, grabY + dy, { steps: 12 });
+        await page.waitForTimeout(150);
+
+        const carried = await carriedBox(page);
+        expect(carried, `nothing was lifted out after ${dx}px`).toBeTruthy();
+
+        const offX = carried!.x + carried!.width / 2 - (grabX + dx);
+        const offY = carried!.y + carried!.height / 2 - (grabY + dy);
+        expect(
+          Math.hypot(offX, offY),
+          `the finger is ${Math.round(offX)}px across and ${Math.round(offY)}px down from the middle of the card it is carrying`,
+        ).toBeLessThan(8);
       }
     } finally {
       await page.mouse.up();
