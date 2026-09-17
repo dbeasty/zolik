@@ -1,4 +1,5 @@
-import type { ActionOffer, Fact, Placement } from '@/src/api/matchTypes';
+import type { ActionOffer, Fact, Placement, Zone } from '@/src/api/matchTypes';
+import { isOneTap } from '@/src/api/matchTypes';
 
 /**
  * Where the cards in your hand may be dropped, worked out from the offers.
@@ -292,4 +293,59 @@ export function someOfferReady(offers: ActionOffer[], cards: string[]): boolean 
     const need = o.source?.minCards ?? 0;
     return o.enabled && need > 0 && cards.length >= need && fits(o, cards).ok;
   });
+}
+
+/**
+ * The piles a press acts *from* — the other half of "a card in hand is a card
+ * looking for somewhere to go".
+ *
+ * Everything else in this file answers "where may these cards be let go of",
+ * which is a question about an offer's *target*. A draw has no cards to let go
+ * of and nothing to choose: its whole move is "take from there", and the only
+ * thing on screen that says so is the pile it names as its source. Until this
+ * existed the deck was scenery — the one way to draw was a button in the
+ * control bar, several rows from the cards it deals into, and tapping the deck
+ * itself did nothing at all.
+ *
+ * Still no rule is derived here. An offer qualifies when the server has said
+ * all four of these things about it:
+ *
+ *   - it is enabled, and one tap sends it (nothing to compose, no form);
+ *   - it takes no cards from a hand, so there is nothing to have picked first;
+ *   - it names a rendered zone it comes *from*, drawn as a pile or a stack —
+ *     the two kinds a person can point at and mean "that one";
+ *   - it lands in the viewer's own hand, which is what makes it a draw rather
+ *     than some other card-less move that happens to mention a pile (Canasta's
+ *     undo of a capture names the discard pile too, and undoing is not what a
+ *     player tapping the pile means).
+ *
+ * Where two such offers name the same pile, neither is offered: a press has
+ * exactly one meaning, and guessing which of two moves was meant is the
+ * mistake this whole protocol exists to avoid. The control bar still lists
+ * both, named, which is the right place for a choice.
+ */
+export function sourceSpotsFor(offers: ActionOffer[], zones: Zone[], viewerId: string): DropSpot[] {
+  const byId = new Map(zones.map((z) => [z.id, z]));
+
+  const claims = new Map<string, DropSpot[]>();
+  for (const offer of offers) {
+    if (!offer.enabled) continue;
+    // Cards to pick first: that is a selection, and the target end of this
+    // file already handles it.
+    if ((offer.source?.minCards ?? 0) > 0) continue;
+    // A combination to compose or a number to fill in — not a press.
+    if (!isOneTap(offer)) continue;
+
+    const fromId = offer.source?.zoneId;
+    const from = fromId ? byId.get(fromId) : undefined;
+    if (!from || (from.kind !== 'pile' && from.kind !== 'stack')) continue;
+
+    const to = offer.target?.zoneId ? byId.get(offer.target.zoneId) : undefined;
+    if (!to || to.kind !== 'hand' || to.ownerId !== viewerId) continue;
+
+    const spot: DropSpot = { offerId: offer.id, elementId: zoneElementId(from.id), ready: true };
+    claims.set(from.id, [...(claims.get(from.id) ?? []), spot]);
+  }
+
+  return [...claims.values()].filter((s) => s.length === 1).map((s) => s[0]!);
 }

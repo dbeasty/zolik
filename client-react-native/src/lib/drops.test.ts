@@ -1,4 +1,4 @@
-import { isOneTap, type ActionOffer } from '@/src/api/matchTypes';
+import { isOneTap, type ActionOffer, type Zone } from '@/src/api/matchTypes';
 
 import {
   dropSpotsFor,
@@ -6,6 +6,7 @@ import {
   positionAt,
   refusalAt,
   someOfferReady,
+  sourceSpotsFor,
   spotAt,
   takeableSpots,
 } from './drops';
@@ -403,5 +404,98 @@ describe('a lay-off whose cards need each other', () => {
   // something composed out of both cards' hints.
   it('names the end the whole submission grows', () => {
     expect(dropSpotsFor([layOffChain], ['5C', '6C'])[0].positions).toEqual(['front']);
+  });
+});
+
+/**
+ * Taking *from* a pile, which is the one move with no cards to drag.
+ *
+ * The board below is the one every rummy here draws: a face-down stock, a
+ * face-up discard pile, the viewer's hand and an opponent's.
+ */
+describe('sourceSpotsFor', () => {
+  const zones: Zone[] = [
+    { id: 'draw', kind: 'stack', count: 40 },
+    { id: 'discard', kind: 'pile', count: 3, cards: [{ card: '9S' }] },
+    { id: 'hand:me', kind: 'hand', ownerId: 'me', count: 13 },
+    { id: 'hand:you', kind: 'hand', ownerId: 'you', count: 13 },
+    { id: 'melds:me', kind: 'spread', ownerId: 'me', count: 0 },
+  ];
+
+  /** Žolíky's two draws, as the server really sends them. */
+  const drawDeck: ActionOffer = {
+    id: 'draw:deck',
+    verb: 'draw',
+    enabled: true,
+    labelKey: 'verb.drawFromDeck',
+    source: { zone: 'deck', zoneId: 'draw' },
+    target: { zone: 'hand', ownerId: 'me', zoneId: 'hand:me' },
+  };
+  const drawDiscard: ActionOffer = {
+    id: 'draw:discard',
+    verb: 'draw',
+    enabled: true,
+    labelKey: 'verb.takeFromDiscard',
+    source: { zone: 'discard_pile', zoneId: 'discard', cards: ['9S'] },
+    target: { zone: 'hand', ownerId: 'me', zoneId: 'hand:me' },
+  };
+
+  it('puts each draw on the pile it comes from', () => {
+    expect(sourceSpotsFor([drawDeck, drawDiscard, discard], zones, 'me')).toEqual([
+      { offerId: 'draw:deck', elementId: 'zone-draw', ready: true },
+      { offerId: 'draw:discard', elementId: 'zone-discard', ready: true },
+    ]);
+  });
+
+  it('leaves a disabled draw off — a pile you may not take from is not a control', () => {
+    const spots = sourceSpotsFor([{ ...drawDeck, enabled: false }, drawDiscard], zones, 'me');
+    expect(spots.map((s) => s.elementId)).toEqual(['zone-discard']);
+  });
+
+  // The other half of the same rule: an offer with cards to pick is a target,
+  // and `dropSpotsFor` above is what answers for it.
+  it('ignores an offer that takes cards from a hand', () => {
+    expect(sourceSpotsFor([discard, layOff], zones, 'me')).toEqual([]);
+  });
+
+  // Canasta's undo of a capture names the discard pile as its source too, and
+  // a player tapping the pile does not mean "put it all back".
+  it('ignores a card-less offer that does not land in your own hand', () => {
+    const undoTakePile: ActionOffer = {
+      id: 'undo:take_pile',
+      verb: 'undo_take_pile',
+      enabled: true,
+      source: { zone: 'discard_pile', zoneId: 'discard' },
+    };
+    const toTheirHand: ActionOffer = { ...drawDeck, id: 'deal', target: { zone: 'hand', ownerId: 'you', zoneId: 'hand:you' } };
+    expect(sourceSpotsFor([undoTakePile, toTheirHand], zones, 'me')).toEqual([]);
+  });
+
+  // A press means one thing. Two moves from one pile is a choice, and a
+  // choice belongs on named controls, not on a guess.
+  it('offers neither of two draws that name the same pile', () => {
+    const alsoFromDiscard: ActionOffer = { ...drawDiscard, id: 'draw:discard:all' };
+    const spots = sourceSpotsFor([drawDeck, drawDiscard, alsoFromDiscard], zones, 'me');
+    expect(spots.map((s) => s.elementId)).toEqual(['zone-draw']);
+  });
+
+  it('ignores an offer that still needs a form filled in', () => {
+    const withParam: ActionOffer = {
+      ...drawDeck,
+      params: [{ name: 'amount', kind: 'int', labelKey: 'x', min: 1, max: 9 }],
+    };
+    expect(sourceSpotsFor([withParam], zones, 'me')).toEqual([]);
+  });
+
+  // Kind is the one thing the shell reads: a pile and a stack are things a
+  // person can point at, and a spread of melds is not what "take one" means.
+  it('ignores a source zone that is not a pile or a stack', () => {
+    const fromSpread: ActionOffer = { ...drawDeck, source: { zone: 'meld', zoneId: 'melds:me' } };
+    expect(sourceSpotsFor([fromSpread], zones, 'me')).toEqual([]);
+  });
+
+  it('ignores a source zone this board is not drawing at all', () => {
+    const fromNowhere: ActionOffer = { ...drawDeck, source: { zone: 'deck', zoneId: 'shoe' } };
+    expect(sourceSpotsFor([fromNowhere], zones, 'me')).toEqual([]);
   });
 });

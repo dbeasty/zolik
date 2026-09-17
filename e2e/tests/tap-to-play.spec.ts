@@ -221,13 +221,77 @@ test.describe('playing a card by tapping instead of dragging', () => {
     expect(handAfter.sort()).toEqual(withoutOne(before, dragged).sort());
   });
 
-  test('nothing selected lights nothing up', async ({ page, request }) => {
+  test('nothing selected lights up the piles you may draw from, and nothing else', async ({
+    page,
+    request,
+  }) => {
     const { matchId, host } = await tableWithBots(request, 'zolik', 2);
     await openMatch(page, host, matchId);
     await handCards(page);
 
+    // No card picked means nothing to lay off, so no meld is a target.
     await expect(page.locator('[data-testid^="group-press-"]')).toHaveCount(0);
-    await expect(page.locator('[data-testid^="zone-press-"]')).toHaveCount(0);
+
+    // What *is* lit is the other kind of move entirely: one with no cards to
+    // it, which the pile it comes from stands in for. Read off the same offer
+    // list the screen reads rather than named here, so this says "exactly the
+    // piles the server offered" and not "the two Žolíky happens to have" —
+    // and says nothing at all on a turn that is not the host's.
+    const body = await board(request, matchId, host.userId);
+    const expected = (body.legalActions ?? [])
+      .filter(
+        (o: any) =>
+          o.enabled &&
+          (o.source?.minCards ?? 0) === 0 &&
+          o.source?.zoneId &&
+          o.target?.ownerId === host.userId,
+      )
+      .map((o: any) => `zone-press-${o.source.zoneId}`)
+      .sort();
+    await expect
+      .poll(async () =>
+        (await page.locator('[data-testid^="zone-press-"]').evaluateAll((els) =>
+          els.map((e) => (e as HTMLElement).dataset.testid),
+        )).sort(),
+      )
+      .toEqual(expected);
+  });
+
+  test('a tap on the deck draws, and a tap on the discard pile spends the card', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(120_000);
+    const { matchId, host } = await tableWithBots(request, 'zolik', 2);
+    await openMatch(page, host, matchId);
+    await handCards(page);
+
+    // Wait for a turn of the host's own — a bot may be dealt the first one.
+    await expect
+      .poll(async () => !!(await offerFor(request, matchId, host.userId, 'draw')).offer, {
+        timeout: 60_000,
+      })
+      .toBe(true);
+
+    const before = await serverHand(request, matchId, host.userId);
+
+    // The deck is the control. Nothing is selected and nothing is dragged:
+    // the whole gesture is a tap on the pile the card comes off.
+    await page.getByTestId('zone-press-draw').click();
+    await expect
+      .poll(async () => (await serverHand(request, matchId, host.userId)).length, { timeout: 15_000 })
+      .toBe(before.length + 1);
+
+    // The card that just arrived is already picked, so the pile that was a
+    // place to take *from* a moment ago is now a place to put one — the same
+    // tap, one phase apart, which is the reason a press means whichever of
+    // the two the selection says it means.
+    const drawn = await serverHand(request, matchId, host.userId);
+    await expect(page.getByTestId('zone-press-discard')).toBeVisible();
+    await page.getByTestId('zone-press-discard').click();
+    await expect
+      .poll(async () => (await serverHand(request, matchId, host.userId)).length, { timeout: 15_000 })
+      .toBe(drawn.length - 1);
   });
 
   test('a card the offer list does not accept there stays put on a tap at an unlit target', async ({
