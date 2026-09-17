@@ -1163,6 +1163,8 @@ export const nl: Record<string, string> = {
   'hand.dragHint': 'Sleep een kaart langs de waaier om hem te verplaatsen, of naar het bord om hem te spelen',
   'hand.moveLeft': 'Naar links',
   'hand.moveRight': 'Naar rechts',
+  'hand.openFan': 'Kaarten uitspreiden',
+  'hand.closeFan': 'Kaarten samenschuiven',
   'zone.collapseGroup': 'Deze groep inklappen',
   'zone.expandGroup': 'Alle kaarten in deze groep tonen',
   'zone.dropHere': 'Hier neerleggen',

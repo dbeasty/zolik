@@ -1179,6 +1179,8 @@ export const el: Record<string, string> = {
     'Σύρε ένα φύλλο κατά μήκος της βεντάλιας για να το αναδιατάξεις, ή στο τραπέζι για να το παίξεις',
   'hand.moveLeft': 'Αριστερά',
   'hand.moveRight': 'Δεξιά',
+  'hand.openFan': 'Άνοιγμα των φύλλων',
+  'hand.closeFan': 'Κλείσιμο των φύλλων',
   'zone.collapseGroup': 'Σύμπτυξη αυτής της ομάδας',
   'zone.expandGroup': 'Εμφάνιση όλων των φύλλων αυτής της ομάδας',
   'zone.dropHere': 'Άφησέ το εδώ',

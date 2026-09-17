@@ -1147,6 +1147,8 @@ export const lv: Record<string, string> = {
   'hand.dragHint': 'Velc kārti gar vēdekli, lai to pārkārtotu, vai uz galda, lai to izspēlētu',
   'hand.moveLeft': 'Pa kreisi',
   'hand.moveRight': 'Pa labi',
+  'hand.openFan': 'Izklāt kārtis',
+  'hand.closeFan': 'Savilkt kārtis',
   'zone.collapseGroup': 'Sakļaut šo grupu',
   'zone.expandGroup': 'Rādīt visas šīs grupas kārtis',
   'zone.dropHere': 'Nomet šeit',

@@ -12,7 +12,7 @@ import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
 import { zoneElementId } from '@/src/lib/drops';
 import { insertionAtPoint, moveTargetFor, type Rect, type Slot } from '@/src/lib/hand';
-import type { Metrics } from '@/src/lib/layout';
+import { fanOverlaps, fanPitch, type Metrics } from '@/src/lib/layout';
 import { label } from '@/src/lib/labels';
 import { ms } from '@/src/lib/motion';
 import type { Skin } from '@/src/skins/types';
@@ -109,6 +109,25 @@ type Measurable = {
 
 type Offset = { dx: number; dy: number };
 
+/**
+ * Where a card has to sit for the pointer to be in the middle of it.
+ *
+ * A card used to travel by the distance the pointer had travelled, which kept
+ * the finger wherever on the card it first landed. In a laid-out hand that was
+ * always somewhere reasonable. In a closed one it is not: the only part of a
+ * card you can take hold of is the strip down its left edge, so every drag
+ * began with the pointer pinned to the edge of a card hanging a hundred pixels
+ * off to the right — you were dragging a card you were not under.
+ *
+ * So a card is carried by its middle. The offset is the gap between the
+ * pointer and the centre of the box the card came from, which makes the card
+ * settle under the finger as the drag starts and stay there.
+ */
+function centredOn(from: Rect | undefined, x: number, y: number): Offset {
+  if (!from) return { dx: 0, dy: 0 };
+  return { dx: x - (from.x + from.width / 2), dy: y - (from.y + from.height / 2) };
+}
+
 export function HandZone({
   zone,
   slots,
@@ -153,6 +172,20 @@ export function HandZone({
   // one of those threshold pixels is missing from it.
   const startPoint = useRef({ x: 0, y: 0 });
   const draggedRef = useRef(false);
+
+  // How wide the row actually is, which the metrics can only estimate from the
+  // window — a web scrollbar and the board's own padding are both invisible
+  // from there, and fifteen pixels is the difference between one row of cards
+  // and two. Width only: `onLayout`'s *position* means different things on
+  // different platforms (see `measure`), but its width is its own size
+  // everywhere. Safe to feed back into the layout because the row is stretched
+  // by the panel and its width does not depend on what is in it.
+  const [rowWidth, setRowWidth] = useState(0);
+
+  // Whether the player has asked to see the hand laid out rather than held.
+  // Off by default — a hand is held — and not remembered: it is a look at
+  // what you are holding right now, not a preference about card games.
+  const [spread, setSpread] = useState(false);
 
   const [held, setHeld] = useState<number | null>(null);
   const [insertion, setInsertion] = useState<number | null>(null);
@@ -223,7 +256,11 @@ export function HandZone({
     heldRef.current = index;
     draggedRef.current = true;
     setHeld(index);
-    setOffset({ dx: 0, dy: 0 });
+    // Already centred, from where the finger went down. A drag only activates
+    // once the pointer has moved its threshold, so the first `hover` corrects
+    // this within a few pixels — but starting at the old zero would put one
+    // frame of an uncentred card on screen first.
+    setOffset(centredOn(rects.current[index], startPoint.current.x, startPoint.current.y));
     startRef.current?.(index);
   }, []);
 
@@ -241,14 +278,25 @@ export function HandZone({
   const hover = useCallback(
     (absoluteX: number, absoluteY: number) => {
       const index = heldRef.current;
-      const dx = absoluteX - startPoint.current.x;
-      const dy = absoluteY - startPoint.current.y;
-      if (index !== null) setOffset({ dx, dy });
+      if (index !== null) setOffset(centredOn(rects.current[index], absoluteX, absoluteY));
 
-      const base = index === null ? undefined : rects.current[index];
-      const point = base
-        ? { x: base.x + base.width / 2 + dx, y: base.y + base.height / 2 + dy }
-        : { x: absoluteX, y: absoluteY };
+      // Where the *pointer* is, not where the middle of the card it is
+      // carrying has ended up.
+      //
+      // Those used to be nearly the same thing: with the hand laid out you
+      // grabbed a card somewhere near its middle and the two were never half
+      // a card apart. A closed hand broke that — you now take hold of a card
+      // by the thirty-pixel strip of it you can see, so its centre sits two
+      // cards to the right of your finger, and every question that was
+      // answered from the centre was answered about somewhere you were not
+      // pointing: the gap opened two places along, and a card aimed at a meld
+      // reported itself over the one beside it.
+      //
+      // So the pointer is the authority for all three — which gap is open,
+      // whether the card is still over the fan, and what the board thinks it
+      // is being offered. It is also the only one of the two the player can
+      // see.
+      const point = { x: absoluteX, y: absoluteY };
 
       lastPoint.current = point;
       moveRef.current?.(point.x, point.y);
@@ -361,7 +409,15 @@ export function HandZone({
   // a rotation, a look switched — never on a pointer move, which is what
   // keeps `DraggableCard`'s memo intact through a drag (see the comment on
   // it below).
-  const styles = useMemo(() => handStyles(metrics, skin), [metrics, skin]);
+  // How far apart the cards sit. Past the point where a hand fits across the
+  // board they slide over each other rather than wrapping onto a second row —
+  // see `fanPitch`. Recomputed when the hand grows or the window changes, and
+  // never during a drag: the count is the same on both sides of a move.
+  const pitch = fanPitch(metrics, slots.length, rowWidth, spread);
+  // The control only earns its place when there is something to open: a hand
+  // short enough to be laid out already is laid out.
+  const closable = fanOverlaps(metrics, slots.length, rowWidth, false);
+  const styles = useMemo(() => handStyles(metrics, skin, pitch), [metrics, skin, pitch]);
 
   // Cards mounting in the hand's opening moments are the deal, and enter as
   // one — staggered left to right. A card mounting later arrived alone (a
@@ -413,11 +469,28 @@ export function HandZone({
       }
       accessory={
         onAutoArrange && slots.length > 1 ? (
-          <Pressable onPress={onAutoArrange} hitSlop={8}>
-            <Text style={styles.autoArrange} testID={`hand-auto-arrange-${zone.id}`}>
-              Auto-arrange
-            </Text>
-          </Pressable>
+          <View style={styles.accessory}>
+            <Pressable onPress={onAutoArrange} hitSlop={8}>
+              <Text style={styles.autoArrange} testID={`hand-auto-arrange-${zone.id}`}>
+                Auto-arrange
+              </Text>
+            </Pressable>
+            {/* Opening the fan out is a look, not a setting, so it sits with
+                Auto-arrange in the header rather than among the controls that
+                do something to the game. */}
+            {closable ? (
+              <Pressable
+                onPress={() => setSpread((v) => !v)}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={t(spread ? 'hand.closeFan' : 'hand.openFan')}
+                accessibilityState={{ expanded: spread }}
+                testID={`hand-spread-${zone.id}`}
+              >
+                <Text style={styles.spreadToggle}>{spread ? '›‹' : '‹›'}</Text>
+              </Pressable>
+            ) : null}
+          </View>
         ) : undefined
       }
     >
@@ -429,9 +502,15 @@ export function HandZone({
           // header above them.
           registerSpot?.(zoneElementId(zone.id), n as unknown as Measurable | null);
         }}
-        style={[styles.cards, carrying && dragLayer]}
+        style={[styles.cards, styles.fanInset, carrying && dragLayer]}
         testID={`hand-${zone.id}`}
-        onLayout={measure}
+        onLayout={(e) => {
+          const w = e.nativeEvent.layout.width;
+          // Only a real change, so a re-layout that reports the same number
+          // cannot set state forever.
+          setRowWidth((prev) => (Math.abs(prev - w) > 0.5 ? w : prev));
+          measure();
+        }}
       >
         {/* Every element here keeps its place in the tree for the whole life
             of the hand: a gap before each card and one after the last, all but
@@ -503,7 +582,7 @@ export function HandZone({
  */
 function DropGap({ active, styles }: { active: boolean; styles: HandStyles }) {
   return (
-    <View style={[styles.slot, !active && styles.gapHidden]}>
+    <View style={[styles.slot, styles.tuck, !active && styles.gapHidden]}>
       {/* The test id goes on the ring rather than the outer box, because that
           is where CardView puts a card's — so a gap and a card can be measured
           against each other and come out the same size. */}
@@ -658,7 +737,14 @@ const DraggableCard = memo(function DraggableCard({
     <GestureDetector gesture={gesture}>
       <View
         ref={(n) => bindRef(n as unknown as Measurable | null)}
-        style={[styles.slot, pinned, held && styles.lifted, selected && !held && styles.raised, carried]}
+        style={[
+          styles.slot,
+          styles.tuck,
+          pinned,
+          held && styles.lifted,
+          selected && !held && styles.raised,
+          carried,
+        ]}
         // The same move, for anyone not using a pointer. A drag is not an
         // affordance a screen reader can offer, so the two directions are
         // published as actions instead.
@@ -705,24 +791,72 @@ const DraggableCard = memo(function DraggableCard({
  * what keeps `DraggableCard`'s memo intact through an entire drag: the same
  * `styles` object reference is handed to every card on every pointer move.
  */
-function handStyles(m: Metrics, s: Skin) {
+function handStyles(m: Metrics, s: Skin, pitch: number) {
   const colors = s.colors;
   const dropArmed = s.dropArmed;
+  // What each card gives up to the one before it. Zero while the hand fits.
+  const tuck = m.card.slotPitch - pitch;
+  // How far a picked card stands out of the row. A tenth of the card, so it
+  // is the same gesture whatever size the cards are drawn at, and never less
+  // than the 10px it was when a card was 72 tall.
+  const lift = Math.max(10, Math.round(m.card.height * 0.1));
   return StyleSheet.create({
     autoArrange: { color: colors.accent, fontSize: m.panel.bodyFont, fontWeight: '600' },
+    accessory: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    // The one control on the board that is about looking rather than playing.
+    // Same colour as Auto-arrange beside it, a size up, because it is two
+    // glyphs rather than a word and would otherwise read as punctuation.
+    spreadToggle: {
+      color: colors.accent,
+      fontSize: m.panel.bodyFont + 3,
+      fontWeight: '700',
+      letterSpacing: -1,
+    },
     // The gap between slots comes from the metrics rather than sitting here
     // as a 4, because it is part of how much of the row one card costs — and
     // that total (`slotPitch`) is what decides how big a card is allowed to
     // get on a wide screen. Two places holding the same number is how the
     // scale ceiling got set too high once already.
-    cards: { flexDirection: 'row', flexWrap: 'wrap', gap: m.card.fanGap, marginTop: 6 },
+    // The top padding is the room a raised card needs. `translateY` moves
+    // nothing in the layout, so without it a picked card climbs into the
+    // panel's title.
+    cards: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: m.card.fanGap,
+      marginTop: 6,
+      paddingTop: lift,
+    },
+    // Applied to every box in the row — cards and drop gaps alike — so that
+    // each one sits `pitch` from the one before it whatever mix of them is
+    // visible at the time. The row's own left padding gives back exactly what
+    // the first box takes, so the fan still starts flush with the panel.
+    //
+    // Doing it this way rather than skipping the first box is what makes it
+    // survive a drag: a lifted card leaves the flow and an open gap joins it,
+    // so *which* box comes first changes mid-gesture, and a rule that depends
+    // on knowing would put the whole hand a card-width out at the moment it
+    // matters most.
+    tuck: tuck > 0 ? { marginLeft: -tuck } : {},
+    fanInset: tuck > 0 ? { paddingLeft: tuck } : {},
     hint: { color: colors.muted, fontSize: Math.max(9, m.panel.bodyFont - 2), marginTop: 6, fontStyle: 'italic' },
     lifted: { zIndex: 20, opacity: 0.92 },
     // Pulled up out of the fan rather than left flush with its neighbours, so
     // the card about to be played reads at a glance instead of needing its
-    // border colour picked out from a row of a dozen others. `zIndex` keeps it
-    // drawn over the cards it now overlaps at the top edge.
-    raised: { transform: [{ translateY: -10 }], zIndex: 10 },
+    // border colour picked out from a row of a dozen others.
+    //
+    // It used to carry a `zIndex` as well, to draw over the cards it overlaps
+    // at the top edge. That was harmless while the hand was laid out and every
+    // card was whole. In a closed hand it is not: a raised card is 130px wide
+    // where the pitch is 49, so lifting it above its neighbours buried the
+    // three cards after it completely — picking a card up hid the part of the
+    // hand you were picking it *out of*.
+    //
+    // So it keeps its place in the order. Later cards go on covering it, and
+    // what the lift buys is the strip of its top edge standing proud of the
+    // row — which is where the rank and the suit are. You can see what you
+    // picked and what is beside it at the same time.
+    raised: { transform: [{ translateY: -lift }] },
     // The wrapper every card and every gap sits in, so the two are the same size
     // to the pixel. Its border is always here and always this wide — only its
     // colour ever changes, the same discipline CardView's own ring keeps.

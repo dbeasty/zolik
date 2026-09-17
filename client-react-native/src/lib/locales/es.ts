@@ -1160,6 +1160,8 @@ export const es: Record<string, string> = {
   'hand.dragHint': 'Arrastra una carta por el abanico para reordenarla, o sobre la mesa para jugarla',
   'hand.moveLeft': 'Mover a la izquierda',
   'hand.moveRight': 'Mover a la derecha',
+  'hand.openFan': 'Desplegar las cartas',
+  'hand.closeFan': 'Juntar las cartas',
   'zone.collapseGroup': 'Contraer este grupo',
   'zone.expandGroup': 'Mostrar todas las cartas de este grupo',
   'zone.dropHere': 'Suelta aquí',

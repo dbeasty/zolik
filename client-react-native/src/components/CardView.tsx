@@ -194,6 +194,9 @@ function cardStyles(m: CardMetrics, s: Skin) {
       alignItems: 'center',
       gap: 2,
     },
+    // Stacked, not side by side: this has to fit in the strip of a card that
+    // the next card is covering, and a strip is about as wide as one glyph.
+    plainIndex: { alignItems: 'flex-start' },
     suitInline: {
       fontSize: m.suitInlineFont,
       color: card.ink,
@@ -403,9 +406,21 @@ export function CardView({
     </>
   ) : (
     <>
-      <Text style={[styles.rank, d.isJoker && styles.jokerRank, d.isRed && styles.red]}>
-        {d.rank}
-      </Text>
+      {/* Rank over suit rather than rank alone.
+          The plain face used to put its rank in the corner and its only suit
+          in the middle of the card, which was fine while every card in a hand
+          was fully visible. A closed hand covers all but a strip down each
+          card's left edge, and a strip with a bare "3" in it does not say
+          which three — the classic skin's hand read as a row of numbers.
+          The big pip stays where it was; this is the index it never had. */}
+      <View style={styles.plainIndex}>
+        <Text style={[styles.rank, d.isJoker && styles.jokerRank, d.isRed && styles.red]}>
+          {d.rank}
+        </Text>
+        {d.isJoker ? null : (
+          <Text style={[styles.suitInline, d.isRed && styles.red]}>{d.suitSymbol}</Text>
+        )}
+      </View>
       <Text style={[styles.suit, d.isRed && styles.red]}>{d.suitSymbol}</Text>
     </>
   );

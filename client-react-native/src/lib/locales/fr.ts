@@ -1163,6 +1163,8 @@ export const fr: Record<string, string> = {
     "Fais glisser une carte le long de l'éventail pour la déplacer, ou sur le tableau pour la jouer",
   'hand.moveLeft': 'Vers la gauche',
   'hand.moveRight': 'Vers la droite',
+  'hand.openFan': 'Étaler les cartes',
+  'hand.closeFan': 'Resserrer les cartes',
   'zone.collapseGroup': 'Replier ce groupe',
   'zone.expandGroup': 'Afficher toutes les cartes de ce groupe',
   'zone.dropHere': 'Déposer ici',

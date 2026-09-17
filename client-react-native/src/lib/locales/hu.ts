@@ -1164,6 +1164,8 @@ export const hu: Record<string, string> = {
   'hand.dragHint': 'Húzd a lapot a legyező mentén az átrendezéshez, vagy az asztalra a kijátszáshoz',
   'hand.moveLeft': 'Balra',
   'hand.moveRight': 'Jobbra',
+  'hand.openFan': 'Lapok szétterítése',
+  'hand.closeFan': 'Lapok összezárása',
   'zone.collapseGroup': 'Csoport összecsukása',
   'zone.expandGroup': 'A csoport összes lapjának mutatása',
   'zone.dropHere': 'Ide ejtsd',

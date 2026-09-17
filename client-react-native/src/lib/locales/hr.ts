@@ -1145,6 +1145,8 @@ export const hr: Record<string, string> = {
   'hand.dragHint': 'Povuci kartu duž lepeze da je premjestiš, ili na stol da je odigraš',
   'hand.moveLeft': 'Ulijevo',
   'hand.moveRight': 'Udesno',
+  'hand.openFan': 'Raširi karte',
+  'hand.closeFan': 'Skupi karte',
   'zone.collapseGroup': 'Sažmi ovu grupu',
   'zone.expandGroup': 'Prikaži sve karte ove grupe',
   'zone.dropHere': 'Ispusti ovdje',

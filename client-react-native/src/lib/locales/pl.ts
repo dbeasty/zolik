@@ -1152,6 +1152,8 @@ export const pl: Record<string, string> = {
   'hand.dragHint': 'Przeciągnij kartę wzdłuż wachlarza, żeby ją przestawić, albo na stół, żeby ją zagrać',
   'hand.moveLeft': 'W lewo',
   'hand.moveRight': 'W prawo',
+  'hand.openFan': 'Rozłóż karty',
+  'hand.closeFan': 'Złóż karty',
   'zone.collapseGroup': 'Zwiń tę grupę',
   'zone.expandGroup': 'Pokaż wszystkie karty w tej grupie',
   'zone.dropHere': 'Upuść tutaj',

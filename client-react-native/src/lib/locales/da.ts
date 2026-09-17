@@ -1144,6 +1144,8 @@ export const da: Record<string, string> = {
   'hand.dragHint': 'Træk et kort langs viften for at flytte det, eller ud på bordet for at spille det',
   'hand.moveLeft': 'Til venstre',
   'hand.moveRight': 'Til højre',
+  'hand.openFan': 'Spred kortene ud',
+  'hand.closeFan': 'Saml kortene',
   'zone.collapseGroup': 'Fold denne gruppe sammen',
   'zone.expandGroup': 'Vis alle kort i denne gruppe',
   'zone.dropHere': 'Slip her',
