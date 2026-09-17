@@ -164,15 +164,13 @@ export function planFlights(
           zoneElementId(z.id),
         );
       } else if (d <= -1 && grew.length === 1 && grew[0]![1] === -d) {
+        // Taking from the pile is a draw, same as the stock: unseen in
+        // transit even though the pile showed its face a moment ago, so
+        // every draw reads the same regardless of where the card came from.
         const owner = grew[0]![0];
-        const wasTop = was.cards?.length ? was.cards[was.cards.length - 1] : undefined;
         const ownHand = owner === viewerId ? handZoneOf(next, owner) : undefined;
         add(
-          {
-            fromId: zoneElementId(z.id),
-            toId: placeFor(owner),
-            card: d === -1 && !wasTop?.faceDown ? wasTop?.card : undefined,
-          },
+          { fromId: zoneElementId(z.id), toId: placeFor(owner) },
           ownHand ? zoneElementId(ownHand.id) : undefined,
         );
       }

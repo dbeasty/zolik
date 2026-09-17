@@ -102,11 +102,12 @@ describe('planFlights', () => {
     expect(plan.flights[0]!.card).toBeUndefined();
   });
 
-  it('flies a picked-up card from the pile to the hand that grew', () => {
+  it('flies a picked-up card from the pile face down, like any other draw', () => {
     const prev = board([pile('laid', [{ card: '2D' }, { card: '9S' }]), hand('hand:me', ME, 5, ['AH'])]);
     const next = board([pile('laid', [{ card: '2D' }]), hand('hand:me', ME, 6, ['AH', '9S'])]);
     const plan = planFlights(prev, next, ME);
-    expect(plan.flights[0]).toMatchObject({ fromId: 'zone-laid', toId: 'zone-hand:me', card: '9S' });
+    expect(plan.flights[0]).toMatchObject({ fromId: 'zone-laid', toId: 'zone-hand:me' });
+    expect(plan.flights[0]!.card).toBeUndefined();
   });
 
   it('flies the newest card of a grown group to its spread', () => {
