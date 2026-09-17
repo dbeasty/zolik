@@ -33,6 +33,7 @@ import {
   positionAt,
   refusalAt,
   someOfferReady,
+  sourceSpotsFor,
   takeableSpots,
   zoneElementId,
   type DropSpot,
@@ -458,14 +459,31 @@ export default function MatchScreen() {
         : [];
 
   const pendingTakeable = takeableSpots(pendingSpots);
-  const activeDrops = new Set([...liveTakeable, ...pendingTakeable].map((s) => s.elementId));
+
+  // The piles you may take *from* right now — the deck, and the discard pile
+  // in a game whose draw phase offers both. The mirror image of everything
+  // above: those are places the cards in hand may go, this is a move with no
+  // cards to it at all, and the only thing on screen that names it is the pile
+  // itself. `sourceSpotsFor` decides which, from the offers and nothing else.
+  //
+  // Only while nothing is picked and nothing is in flight. A pile with cards
+  // chosen means "put these here" — the discard pile is both, one phase apart
+  // — and a press has to mean one thing. What is picked is what says which.
+  const sourceSpots =
+    !drag && selectedCards.length === 0 && !pendingGroupKey
+      ? sourceSpotsFor(state.legalActions, zones, viewerId)
+      : [];
+
+  const activeDrops = new Set(
+    [...liveTakeable, ...pendingTakeable, ...sourceSpots].map((s) => s.elementId),
+  );
   // Where letting go would be refused, drawn as refusing rather than merely
   // left unlit — an unlit target and a forbidden one look identical, and the
   // difference is the whole question a player is asking mid-drag.
   const refusedDrops = new Set(
     liveSpots.filter((s) => s.refusal && !activeDrops.has(s.elementId)).map((s) => s.elementId),
   );
-  const pressableDrops = new Set(pendingTakeable.map((s) => s.elementId));
+  const pressableDrops = new Set([...pendingTakeable, ...sourceSpots].map((s) => s.elementId));
 
   // Which melds could be *aimed at* right now — pointed at before any card is
   // picked, the other order from the usual "select cards, then a target
@@ -619,7 +637,12 @@ export default function MatchScreen() {
   // would not — so a target with a choice of two positions reads a press on
   // its top half the same way it would read a drop there.
   const pressDrop = (elementId: string, pageY: number) => {
-    const spot = pendingSpots.find((s) => s.elementId === elementId);
+    // A target chosen by what is picked wins over a pile that would be taken
+    // from, for the same reason `sourceSpots` is empty while anything is
+    // picked: with cards in hand a pile is somewhere to put them.
+    const spot =
+      pendingSpots.find((s) => s.elementId === elementId) ??
+      sourceSpots.find((s) => s.elementId === elementId);
     if (!spot) return;
     const offer = state.legalActions.find((o) => o.id === spot.offerId);
     if (!offer) return;
@@ -655,6 +678,7 @@ export default function MatchScreen() {
   const dropProps = {
     registerDrop: (id: string, node: Measurable | null) => drops.register(id, node),
     activeDrops,
+    sourceDrops: new Set(sourceSpots.map((s) => s.elementId)),
     refusedDrops,
     hoveredDrop,
     hoveredPosition,
@@ -1300,6 +1324,7 @@ function Section({
   panelPropsFor: (zoneId: string) => { panelId: string; minimized: boolean; onToggleMinimized: () => void };
   registerDrop?: (id: string, node: Measurable | null) => void;
   activeDrops?: ReadonlySet<string>;
+  sourceDrops?: ReadonlySet<string>;
   refusedDrops?: ReadonlySet<string>;
   hoveredDrop?: string | null;
   hoveredPosition?: { index: number; count: number } | null;

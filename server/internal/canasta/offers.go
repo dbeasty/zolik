@@ -81,8 +81,12 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	// --- draw ----------------------------------------------------------------
 	draw := module.ActionOffer{ID: OfferDraw, Verb: VerbDraw}
 	draw.Enabled, draw.WhyNot = probe(m, raw, playerID, module.Action{Verb: VerbDraw})
-	draw.Source = &module.Selector{Zone: module.FromDeck}
-	draw.Target = &module.Selector{Zone: module.FromHand, OwnerID: playerID}
+	// Named down to the rendered zone at both ends, which is what lets an
+	// interface put this move on the deck itself: a draw has no cards to pick
+	// and no target to aim at, so the pile it comes from is the only thing on
+	// screen that says what it does.
+	draw.Source = &module.Selector{Zone: module.FromDeck, ZoneID: drawZoneID}
+	draw.Target = &module.Selector{Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID)}
 	offers = append(offers, draw)
 
 	// --- discard ---------------------------------------------------------------

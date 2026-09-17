@@ -106,6 +106,11 @@ func (m *Module) turnOffers(raw module.State, s *GameState, playerID string) []m
 
 	draw := module.ActionOffer{ID: OfferDraw, Verb: VerbDraw, LabelKey: "rummytiles.offer.draw"}
 	draw.Enabled, draw.WhyNot = m.probe(raw, playerID, module.Action{OfferID: draw.ID, Verb: VerbDraw})
+	// Both ends named, so the pool can carry the move itself: a draw has no
+	// tiles to pick and nowhere to aim, and the pool is the only thing on
+	// screen that says what it does.
+	draw.Source = &module.Selector{Zone: module.FromDeck, ZoneID: poolZoneID}
+	draw.Target = &module.Selector{Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID)}
 	offers = append(offers, draw)
 
 	return offers

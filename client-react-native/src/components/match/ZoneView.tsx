@@ -65,6 +65,14 @@ type Props = {
   /** Element ids that would accept the card currently being dragged. */
   activeDrops?: ReadonlySet<string>;
   /**
+   * Of those, the ones lit because a press takes *from* them — a deck, a
+   * discard pile in a draw phase — rather than because something may be put
+   * there. Same highlight either way; the difference is what the zone says
+   * about itself, since "Drop here" on a pile you are being invited to draw
+   * from is an instruction to do the one thing you cannot.
+   */
+  sourceDrops?: ReadonlySet<string>;
+  /**
    * Places the cards in flight would be refused. Drawn as refusing, which is
    * not the same as unlit: an unlit target and a forbidden one looked
    * identical, and which of the two it is is the whole question a player is
@@ -123,6 +131,7 @@ export function ZoneView({
   onToggleMinimized,
   registerDrop,
   activeDrops,
+  sourceDrops,
   refusedDrops,
   hoveredDrop,
   hoveredPosition,
@@ -143,6 +152,7 @@ export function ZoneView({
 
   const zoneId = zoneElementId(zone.id);
   const zoneLive = activeDrops?.has(zoneId) ?? false;
+  const zoneIsSource = sourceDrops?.has(zoneId) ?? false;
   const zoneRefused = refusedDrops?.has(zoneId) ?? false;
   const entranceDelay = entranceDelays?.get(zoneId) ?? 0;
 
@@ -218,10 +228,18 @@ export function ZoneView({
   // it goes is still open — the same thing a group's own press overlay does,
   // but for an offer that names the whole zone rather than one group inside
   // it (composing a brand-new meld on an empty spread; discarding onto a
-  // pile). Rendered first among the zone's real content, so a group's own
-  // overlay — painted after, and so on top — still wins a tap inside it: the
-  // zone-wide target only ever catches what no group claimed.
+  // pile). It is also the whole of a press that takes *from* a pile, where
+  // there was never anything to choose: drawing is a tap on the deck.
   const zonePressable = pressableDrops?.has(zoneId) ?? false;
+  // Built once and placed in one of two positions below, because where it
+  // belongs in the paint order depends on what else the zone is drawing.
+  const pressOverlay = zonePressable ? (
+    <Pressable
+      testID={`zone-press-${zone.id}`}
+      style={StyleSheet.absoluteFill}
+      onPress={(e) => onPressDrop?.(zoneId, e.nativeEvent.pageY)}
+    />
+  ) : null;
 
   // What a put-away panel says about itself on its collapsed header — kind
   // decides the shape, same as it decides the layout above. A stack needs
@@ -281,13 +299,12 @@ export function ZoneView({
       }
     >
       <View style={styles.content}>
-        {zonePressable ? (
-          <Pressable
-            testID={`zone-press-${zone.id}`}
-            style={StyleSheet.absoluteFill}
-            onPress={(e) => onPressDrop?.(zoneId, e.nativeEvent.pageY)}
-          />
-        ) : null}
+        {/* Where a zone drawing groups puts its own press target: first, so a
+            group's overlay — painted after, and so on top — still wins a tap
+            inside it, and the zone-wide one only ever catches what no group
+            claimed. A zone drawing loose cards puts it last instead; see the
+            end of the card row for why. */}
+        {groups.length > 0 ? pressOverlay : null}
 
         {zone.kind === 'stack' ? <StackBack count={zone.count} compact={compact} metrics={metrics} /> : null}
 
@@ -409,33 +426,43 @@ export function ZoneView({
           })}
         </View>
       ) : (
-        <View style={styles.cards}>
-          {/* Indices are into the whole pile, not into what is on screen, so a
-              card keeps the same name whether the pile is open or folded. */}
-          {shown.map((c, i) => (
-            // The key is the card and its place, so a new top card is a new
-            // element — and a new element's mount is its entrance: the top of
-            // a pile flips over as if peeled off a deck, anything else
-            // settles into place.
-            <SettleIn
-              key={`${zone.id}-${c.card}-${buried + i}`}
-              kind={zone.kind === 'pile' && buried + i === cards.length - 1 ? 'flip' : 'settle'}
-              delay={buried + i === cards.length - 1 ? entranceDelay : 0}
-            >
-              <CardView
-                card={c.card}
-                faceDown={c.faceDown}
-                compact={compact}
-                selected={selected?.includes(c.card)}
-                onPress={onPressCard && !c.faceDown ? () => onPressCard(c.card, buried + i) : undefined}
-                testID={`card-${zone.id}-${buried + i}`}
-              />
-            </SettleIn>
-          ))}
-          {/* The zone's own face-down cards, in the same row as the ones it
-              is showing — a hole card lies beside the upcard, not under it. */}
-          {backs}
-        </View>
+        <>
+          <View style={styles.cards}>
+            {/* Indices are into the whole pile, not into what is on screen, so a
+                card keeps the same name whether the pile is open or folded. */}
+            {shown.map((c, i) => (
+              // The key is the card and its place, so a new top card is a new
+              // element — and a new element's mount is its entrance: the top of
+              // a pile flips over as if peeled off a deck, anything else
+              // settles into place.
+              <SettleIn
+                key={`${zone.id}-${c.card}-${buried + i}`}
+                kind={zone.kind === 'pile' && buried + i === cards.length - 1 ? 'flip' : 'settle'}
+                delay={buried + i === cards.length - 1 ? entranceDelay : 0}
+              >
+                <CardView
+                  card={c.card}
+                  faceDown={c.faceDown}
+                  compact={compact}
+                  selected={selected?.includes(c.card)}
+                  onPress={onPressCard && !c.faceDown ? () => onPressCard(c.card, buried + i) : undefined}
+                  testID={`card-${zone.id}-${buried + i}`}
+                />
+              </SettleIn>
+            ))}
+            {/* The zone's own face-down cards, in the same row as the ones it
+                is showing — a hole card lies beside the upcard, not under it. */}
+            {backs}
+          </View>
+          {/* After the cards, not before them. A pile is one card wide and
+              that card sits over the middle of the zone, which is exactly
+              where anyone aiming at the pile presses — so drawn first, the
+              overlay lay *under* the top card and a tap meant to discard onto
+              the pile landed on a card that does nothing and died there. A
+              loose card on a pile or a stack is not a target of its own, so
+              covering it costs nothing. */}
+          {pressOverlay}
+        </>
       )}
 
       {/* The same backs, on a line of their own, for a zone whose shown cards
@@ -451,9 +478,11 @@ export function ZoneView({
       ) : null}
 
       {/* An empty spread that can be dropped on says so, because otherwise the
-          first meld of the game has an invisible target. */}
-        {zoneLive && !(zone.cards ?? []).length && !(zone.groups ?? []).length ? (
-          <Text style={styles.dropHere} testID={`drop-here-${zone.id}`}>
+          first meld of the game has an invisible target. It says where to let
+          go and never catches the letting go itself: a caption that takes a
+          press is a caption that eats one. */}
+        {zoneLive && !zoneIsSource && !(zone.cards ?? []).length && !(zone.groups ?? []).length ? (
+          <Text pointerEvents="none" style={styles.dropHere} testID={`drop-here-${zone.id}`}>
             {t('zone.dropHere')}
           </Text>
         ) : null}
