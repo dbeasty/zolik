@@ -156,8 +156,8 @@ export const et: Record<string, string> = {
   'canasta.rules.pileOntoMeld': 'Kui sinu poolel on laual juba pooleli kombinatsioon ülemise kaardi väärtuses, võid võtta kogu viskepaki ja lisada selle kaardi sinna juurde — paari käes pole vaja.',
   'canasta.rules.pileNoMeldCapture': 'Laual olev kombinatsioon ei saa viskepakki võtta: selle võtmiseks pead sobitama ülemise kaardi kahe kaardiga oma käest.',
   'canasta.rules.meldFloorBands':
-    'Sinu esimene väljapanek peab ulatuma punktide alammäärani, mis kasvab koos su seisuga: {negative} alla nulli, {low} kuni 1500, {mid} kuni 3000, {high} sellest üle.',
-  'canasta.rules.meldFloorBandsFive': 'Su esimene kombinatsioon peab ulatuma punktimiinimumini, mis kasvab koos su skooriga: {negative} alla nulli, {low} kuni 1500, {mid} kuni 3000, {high} kuni 7000 ja {top} üle selle.',
+    'Sinu esimene väljapanek peab ulatuma punktide alammäärani, mis kasvab koos su seisuga: {negative} alla nulli, {low} kuni {lowUpTo}, {mid} kuni {midUpTo}, {high} sellest üle.',
+  'canasta.rules.meldFloorBandsFive': 'Su esimene kombinatsioon peab ulatuma punktimiinimumini, mis kasvab koos su skooriga: {negative} alla nulli, {low} kuni {lowUpTo}, {mid} kuni {midUpTo}, {high} kuni {highUpTo} ja {top} üle selle.',
   'canasta.rules.turn':
     'Käik on üks liigutus sinu kätte — võta kaart pakist või võta kogu äraviskepakk — siis nii palju kombinatsioone kui soovid ja lõpuks üks äravisatud kaart.',
   'canasta.rules.turnDiscard': 'Käik lõpeb äraviskamisega, seega peab sul selleks alati üks kaart üle jääma.',
@@ -454,7 +454,7 @@ export const et: Record<string, string> = {
   'canasta.remedy.captureFromHand': 'Võta pakk kahe oma käes oleva kaardiga, mis sobivad kaardile {card}.',
   'canasta.remedy.needTwoMatching':
     'Sul on vaja kaks käes olevat kaarti, mis sobivad kaardile {card} — muidu võta kaart pakist.',
-  'canasta.remedy.needMorePoints': 'Sinu poole esimesest kombinatsioonist jääb puudu {n} punkti.',
+  'canasta.remedy.needMorePoints': 'Sinu poole esimesest kombinatsioonist jääb {floor} punktini puudu {n}.',
   'canasta.remedy.openFirst': 'Pane enne juurdepanemist oma poole esimene kombinatsioon välja.',
   'canasta.remedy.needCanastas': 'Sinu poolel on väljaminekuks vaja veel {n} kanastat à {size} kaarti.',
   'canasta.remedy.keepACard': 'Jäta üks kaart äraviskamiseks alles.',

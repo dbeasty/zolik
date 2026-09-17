@@ -158,8 +158,8 @@ export const ro: Record<string, string> = {
   'canasta.rules.pileOntoMeld': 'Dacă partea ta are deja o combinație neterminată de valoarea cărții de deasupra, poți lua tot teancul de aruncate ca să adaugi acea carte la ea — nu ai nevoie de o pereche în mână.',
   'canasta.rules.pileNoMeldCapture': 'O combinație aflată deja pe masă nu poate lua teancul de aruncate: ca să îl iei trebuie să potrivești cartea de deasupra cu două cărți din propria mână.',
   'canasta.rules.meldFloorBands':
-    'Prima ta coborâre trebuie să atingă un minim de puncte care crește odată cu scorul tău: {negative} sub zero, {low} până la 1500, {mid} până la 3000, {high} peste.',
-  'canasta.rules.meldFloorBandsFive': 'Prima ta combinație trebuie să atingă un minim de puncte care crește odată cu scorul: {negative} sub zero, {low} până la 1500, {mid} până la 3000, {high} până la 7000 și {top} peste.',
+    'Prima ta coborâre trebuie să atingă un minim de puncte care crește odată cu scorul tău: {negative} sub zero, {low} până la {lowUpTo}, {mid} până la {midUpTo}, {high} peste.',
+  'canasta.rules.meldFloorBandsFive': 'Prima ta combinație trebuie să atingă un minim de puncte care crește odată cu scorul: {negative} sub zero, {low} până la {lowUpTo}, {mid} până la {midUpTo}, {high} până la {highUpTo} și {top} peste.',
   'canasta.rules.turn':
     'Un rând înseamnă o intrare de cărți în mână — tragi din pachet sau iei tot mormanul de cărți aruncate — apoi câte combinații vrei și, la final, o carte aruncată.',
   'canasta.rules.turnDiscard': 'Aruncarea încheie rândul, deci trebuie să-ți rămână mereu o carte pentru ea.',
@@ -455,7 +455,7 @@ export const ro: Record<string, string> = {
   'canasta.remedy.captureFromHand': 'Ia mormanul cu două cărți din propria mână care se potrivesc cu {card}.',
   'canasta.remedy.needTwoMatching':
     'Ai nevoie de două cărți din mână care se potrivesc cu {card} — altfel trage din pachet.',
-  'canasta.remedy.needMorePoints': 'Primei combinații a echipei tale îi lipsesc {n} puncte.',
+  'canasta.remedy.needMorePoints': 'Primei combinații a echipei tale îi lipsesc {n} puncte până la {floor}.',
   'canasta.remedy.openFirst': 'Pune mai întâi combinația inițială a echipei tale, apoi adaugă cărți.',
   'canasta.remedy.needCanastas': 'Echipei tale îi mai trebuie {n} canastă de {size} cărți ca să poată ieși.',
   'canasta.remedy.keepACard': 'Păstrează o carte cu care să arunci.',

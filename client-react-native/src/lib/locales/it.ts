@@ -157,8 +157,8 @@ export const it: Record<string, string> = {
   'canasta.rules.pileOntoMeld': 'Se la tua parte ha già una combinazione incompleta del valore della carta in cima, puoi prendere tutta la pila degli scarti e aggiungerle quella carta: non ti serve una coppia in mano.',
   'canasta.rules.pileNoMeldCapture': 'Una combinazione già in tavola non può prendere la pila degli scarti: per prenderla devi abbinare la carta in cima a due carte della tua stessa mano.',
   'canasta.rules.meldFloorBands':
-    'La tua prima calata deve raggiungere un minimo di punti che sale con il tuo punteggio: {negative} sotto zero, {low} fino a 1500, {mid} fino a 3000, {high} oltre.',
-  'canasta.rules.meldFloorBandsFive': 'La tua prima combinazione deve raggiungere un minimo di punti che cresce con il punteggio: {negative} sotto zero, {low} fino a 1500, {mid} fino a 3000, {high} fino a 7000, {top} oltre.',
+    'La tua prima calata deve raggiungere un minimo di punti che sale con il tuo punteggio: {negative} sotto zero, {low} fino a {lowUpTo}, {mid} fino a {midUpTo}, {high} oltre.',
+  'canasta.rules.meldFloorBandsFive': 'La tua prima combinazione deve raggiungere un minimo di punti che cresce con il punteggio: {negative} sotto zero, {low} fino a {lowUpTo}, {mid} fino a {midUpTo}, {high} fino a {highUpTo}, {top} oltre.',
   'canasta.rules.turn':
     "Un turno è un'entrata di carte nella tua mano — pescare dal mazzo o prendere tutto il pozzo — poi le combinazioni che vuoi calare, infine una carta scartata.",
   'canasta.rules.turnDiscard':
@@ -452,7 +452,7 @@ export const it: Record<string, string> = {
   'canasta.remedy.captureFromHand': 'Prendi il pozzo con due carte della tua mano che vanno su {card}.',
   'canasta.remedy.needTwoMatching':
     'Ti servono due carte in mano che vanno su {card} — altrimenti pesca dal mazzo.',
-  'canasta.remedy.needMorePoints': 'Alla prima combinazione della tua parte mancano {n} punti.',
+  'canasta.remedy.needMorePoints': 'Alla prima combinazione della tua parte mancano {n} punti per arrivare a {floor}.',
   'canasta.remedy.openFirst': 'Cala la prima combinazione della tua parte prima di aggiungere carte.',
   'canasta.remedy.needCanastas':
     'Alla tua parte servono altre {n} canaste da {size} carte per poter chiudere.',

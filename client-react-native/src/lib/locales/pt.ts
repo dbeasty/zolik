@@ -158,8 +158,8 @@ export const pt: Record<string, string> = {
   'canasta.rules.pileOntoMeld': 'Se o teu lado já tiver uma combinação por terminar do valor da carta do topo, podes levar todo o monte de descartes e juntar-lhe essa carta — não precisas de um par na mão.',
   'canasta.rules.pileNoMeldCapture': 'Uma combinação que já está na mesa não pode levar o monte de descartes: para o levares tens de juntar a carta do topo a duas cartas da tua própria mão.',
   'canasta.rules.meldFloorBands':
-    'A tua primeira baixa tem de atingir um mínimo de pontos que sobe com a tua pontuação: {negative} abaixo de zero, {low} até 1500, {mid} até 3000, {high} acima disso.',
-  'canasta.rules.meldFloorBandsFive': 'A tua primeira combinação tem de atingir um mínimo de pontos que sobe com a tua pontuação: {negative} abaixo de zero, {low} até 1500, {mid} até 3000, {high} até 7000 e {top} acima disso.',
+    'A tua primeira baixa tem de atingir um mínimo de pontos que sobe com a tua pontuação: {negative} abaixo de zero, {low} até {lowUpTo}, {mid} até {midUpTo}, {high} acima disso.',
+  'canasta.rules.meldFloorBandsFive': 'A tua primeira combinação tem de atingir um mínimo de pontos que sobe com a tua pontuação: {negative} abaixo de zero, {low} até {lowUpTo}, {mid} até {midUpTo}, {high} até {highUpTo} e {top} acima disso.',
   'canasta.rules.turn':
     'Uma vez é uma entrada de cartas na tua mão — comprar do baralho ou levar todo o monte de descartes — depois as combinações que quiseres baixar e, por fim, uma carta descartada.',
   'canasta.rules.turnDiscard':
@@ -455,7 +455,7 @@ export const pt: Record<string, string> = {
   'canasta.remedy.captureFromHand': 'Leva o monte com duas cartas da tua própria mão que sirvam em {card}.',
   'canasta.remedy.needTwoMatching':
     'Precisas de duas cartas da tua mão que sirvam em {card} — caso contrário, compra do baralho.',
-  'canasta.remedy.needMorePoints': 'À primeira combinação do teu lado faltam {n} pontos.',
+  'canasta.remedy.needMorePoints': 'À primeira combinação do teu lado faltam {n} pontos para os {floor}.',
   'canasta.remedy.openFirst': 'Baixa a primeira combinação do teu lado antes de juntares cartas.',
   'canasta.remedy.needCanastas': 'O teu lado precisa de mais {n} canastra de {size} cartas para poder sair.',
   'canasta.remedy.keepACard': 'Guarda uma carta para descartar.',

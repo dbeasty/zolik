@@ -156,8 +156,8 @@ export const cs: Record<string, string> = {
   'canasta.rules.pileOntoMeld': 'Pokud vaše strana už má na stole nedokončenou kombinaci v hodnotě vrchní karty, můžete si vzít celý odhazovací balíček a tuto kartu k ní přiložit — dvojici v ruce k tomu nepotřebujete.',
   'canasta.rules.pileNoMeldCapture': 'Kombinace ležící na stole si odhazovací balíček vzít nemůže: abyste ho získali, musíte k jeho vrchní kartě přiložit dvě karty z vlastní ruky.',
   'canasta.rules.meldFloorBands':
-    'Minimální hodnota první kombinace roste s vaším skóre: {negative} pod nulou, {low} do 1500, {mid} do 3000, {high} nad tím.',
-  'canasta.rules.meldFloorBandsFive': 'Vaše první kombinace musí dosáhnout bodového minima, které roste s vaším skóre: {negative} pod nulou, {low} do 1500, {mid} do 3000, {high} do 7000 a {top} nad tím.',
+    'Minimální hodnota první kombinace roste s vaším skóre: {negative} pod nulou, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} nad tím.',
+  'canasta.rules.meldFloorBandsFive': 'Vaše první kombinace musí dosáhnout bodového minima, které roste s vaším skóre: {negative} pod nulou, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} do {highUpTo} a {top} nad tím.',
   'canasta.rules.turn':
     'Tah je jedno nabrání do ruky — líznutí z balíčku, nebo vzetí celého odhazovacího balíčku — pak libovolné kombinace a nakonec jedna odhozená karta.',
   'canasta.rules.turnDiscard': 'Tah končí odhozením, takže na něj vždycky musíš mít kartu nazbyt.',
@@ -448,7 +448,7 @@ export const cs: Record<string, string> = {
     'Vezmi odhazovací balíček dvěma kartami z vlastní ruky, které sedí na {card}.',
   'canasta.remedy.needTwoMatching':
     'Potřebuješ z ruky dvě karty, které sedí na {card} — jinak si lízni z balíčku.',
-  'canasta.remedy.needMorePoints': 'První kombinaci tvé strany chybí {n} bodů.',
+  'canasta.remedy.needMorePoints': 'První kombinaci tvé strany chybí {n} bodů do {floor}.',
   'canasta.remedy.openFirst': 'Vylož první kombinaci své strany, teprve pak přikládej.',
   'canasta.remedy.needCanastas': 'Tvoje strana potřebuje ještě {n} canast po {size} kartách, než může vyjít.',
   'canasta.remedy.keepACard': 'Nech si kartu, kterou pak odhodíš.',

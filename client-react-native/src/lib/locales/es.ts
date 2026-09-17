@@ -159,8 +159,8 @@ export const es: Record<string, string> = {
   'canasta.rules.pileOntoMeld': 'Si tu bando ya tiene una combinación sin terminar del valor de la carta superior, puedes llevarte todo el montón de descarte y añadirle esa carta: no necesitas una pareja en la mano.',
   'canasta.rules.pileNoMeldCapture': 'Una combinación que ya está en la mesa no puede llevarse el montón de descarte: para llevártelo tienes que casar su carta superior con dos cartas de tu propia mano.',
   'canasta.rules.meldFloorBands':
-    'Tu primera bajada debe alcanzar un mínimo de puntos que sube con tu marcador: {negative} por debajo de cero, {low} hasta 1500, {mid} hasta 3000, {high} más allá.',
-  'canasta.rules.meldFloorBandsFive': 'Tu primera combinación debe alcanzar un mínimo de puntos que sube con tu puntuación: {negative} por debajo de cero, {low} hasta 1500, {mid} hasta 3000, {high} hasta 7000 y {top} por encima.',
+    'Tu primera bajada debe alcanzar un mínimo de puntos que sube con tu marcador: {negative} por debajo de cero, {low} hasta {lowUpTo}, {mid} hasta {midUpTo}, {high} más allá.',
+  'canasta.rules.meldFloorBandsFive': 'Tu primera combinación debe alcanzar un mínimo de puntos que sube con tu puntuación: {negative} por debajo de cero, {low} hasta {lowUpTo}, {mid} hasta {midUpTo}, {high} hasta {highUpTo} y {top} por encima.',
   'canasta.rules.turn':
     'Un turno es una entrada de cartas a tu mano —robar del mazo o llevarte todo el descarte—, luego las combinaciones que quieras bajar y, por último, una carta descartada.',
   'canasta.rules.turnDiscard':
@@ -457,7 +457,7 @@ export const es: Record<string, string> = {
     'Llévate el descarte con dos cartas de tu propia mano que casen con {card}.',
   'canasta.remedy.needTwoMatching':
     'Necesitas dos cartas de tu mano que casen con {card}; si no, roba del mazo.',
-  'canasta.remedy.needMorePoints': 'A la primera combinación de tu bando le faltan {n} puntos.',
+  'canasta.remedy.needMorePoints': 'A la primera combinación de tu bando le faltan {n} puntos para llegar a {floor}.',
   'canasta.remedy.openFirst': 'Baja la primera combinación de tu bando antes de añadir cartas.',
   'canasta.remedy.needCanastas': 'A tu bando le faltan {n} canastas de {size} cartas para poder cerrarse.',
   'canasta.remedy.keepACard': 'Reserva una carta para descartar.',

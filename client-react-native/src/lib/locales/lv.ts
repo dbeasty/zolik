@@ -157,8 +157,8 @@ export const lv: Record<string, string> = {
   'canasta.rules.pileOntoMeld': 'Ja tavai pusei jau ir nepabeigta kombinācija augšējās kārts vērtībā, vari paņemt visu izmešanas kaudzi un pievienot tai šo kārti — pāris rokā nav vajadzīgs.',
   'canasta.rules.pileNoMeldCapture': 'Kombinācija, kas jau ir uz galda, izmešanas kaudzi paņemt nevar: lai to paņemtu, augšējai kārtij jāpievieno divas kārtis no paša rokas.',
   'canasta.rules.meldFloorBands':
-    'Tavai pirmajai izlikšanai jāsasniedz punktu minimums, kas aug līdz ar tavu rezultātu: {negative} zem nulles, {low} līdz 1500, {mid} līdz 3000, {high} virs tā.',
-  'canasta.rules.meldFloorBandsFive': 'Tavai pirmajai kombinācijai jāsasniedz punktu minimums, kas aug līdz ar tavu rezultātu: {negative} zem nulles, {low} līdz 1500, {mid} līdz 3000, {high} līdz 7000 un {top} virs tā.',
+    'Tavai pirmajai izlikšanai jāsasniedz punktu minimums, kas aug līdz ar tavu rezultātu: {negative} zem nulles, {low} līdz {lowUpTo}, {mid} līdz {midUpTo}, {high} virs tā.',
+  'canasta.rules.meldFloorBandsFive': 'Tavai pirmajai kombinācijai jāsasniedz punktu minimums, kas aug līdz ar tavu rezultātu: {negative} zem nulles, {low} līdz {lowUpTo}, {mid} līdz {midUpTo}, {high} līdz {highUpTo} un {top} virs tā.',
   'canasta.rules.turn':
     'Gājiens ir viena kāršu ņemšana rokā — velc no kavas vai paņem visu izmesto kaudzi — tad liec tik kombināciju, cik vēlies, un beidz ar vienu izmestu kārti.',
   'canasta.rules.turnDiscard': 'Gājienu noslēdz izmešana, tāpēc tev tam vienmēr jāatstāj viena kārts.',
@@ -451,7 +451,7 @@ export const lv: Record<string, string> = {
   'canasta.remedy.topCardUnusable': 'Velc no kavas — tavai pusei no augšējās kārts {card} nav nekāda labuma.',
   'canasta.remedy.captureFromHand': 'Paņem kaudzi ar divām savas rokas kārtīm, kas der uz {card}.',
   'canasta.remedy.needTwoMatching': 'Tev vajag divas rokas kārtis, kas der uz {card} — citādi velc no kavas.',
-  'canasta.remedy.needMorePoints': 'Tavas puses pirmajai kombinācijai trūkst {n} punktu.',
+  'canasta.remedy.needMorePoints': 'Tavas puses pirmajai kombinācijai līdz {floor} trūkst {n} punktu.',
   'canasta.remedy.openFirst': 'Izliec savas puses pirmo kombināciju, pirms ko papildini.',
   'canasta.remedy.needCanastas': 'Tavai pusei pirms iziešanas vajag vēl {n} kanastas pa {size} kārtīm.',
   'canasta.remedy.keepACard': 'Atstāj vienu kārti izmešanai.',

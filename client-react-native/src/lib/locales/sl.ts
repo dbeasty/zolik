@@ -156,8 +156,8 @@ export const sl: Record<string, string> = {
   'canasta.rules.pileOntoMeld': 'Če ima tvoja stran že nedokončano kombinacijo v vrednosti vrhnje karte, lahko vzameš cel kup odvrženih in ji dodaš to karto — para v roki ne potrebuješ.',
   'canasta.rules.pileNoMeldCapture': 'Kombinacija, ki je že na mizi, kupa odvrženih ne more vzeti: da ga vzameš, moraš vrhnji karti dodati dve karti iz lastne roke.',
   'canasta.rules.meldFloorBands':
-    'Tvoje prvo polaganje mora doseči najmanjše število točk, ki raste z izidom: {negative} pod ničlo, {low} do 1500, {mid} do 3000, {high} nad tem.',
-  'canasta.rules.meldFloorBandsFive': 'Tvoja prva kombinacija mora doseči točkovni minimum, ki raste s tvojim rezultatom: {negative} pod ničlo, {low} do 1500, {mid} do 3000, {high} do 7000 in {top} nad tem.',
+    'Tvoje prvo polaganje mora doseči najmanjše število točk, ki raste z izidom: {negative} pod ničlo, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} nad tem.',
+  'canasta.rules.meldFloorBandsFive': 'Tvoja prva kombinacija mora doseči točkovni minimum, ki raste s tvojim rezultatom: {negative} pod ničlo, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} do {highUpTo} in {top} nad tem.',
   'canasta.rules.turn':
     'Poteza je en prevzem v roko — vlečenje iz kupa ali prevzem celotnega odlagalnega kupa — nato kombinacije, ki jih želiš položiti, in na koncu ena odvržena karta.',
   'canasta.rules.turnDiscard': 'Potezo zaključi odvržena karta, zato ti mora zanjo vedno ostati ena.',
@@ -449,7 +449,7 @@ export const sl: Record<string, string> = {
   'canasta.remedy.captureFromHand': 'Prevzemi kup z dvema kartama iz svoje roke, ki se podata na {card}.',
   'canasta.remedy.needTwoMatching':
     'Potrebuješ dve karti iz roke, ki se podata na {card} — sicer vleci iz kupa.',
-  'canasta.remedy.needMorePoints': 'Prvi kombinaciji tvoje strani manjka {n} točk.',
+  'canasta.remedy.needMorePoints': 'Prvi kombinaciji tvoje strani manjka {n} točk do {floor}.',
   'canasta.remedy.openFirst': 'Najprej položi prvo kombinacijo svoje strani, šele nato dopolnjuj.',
   'canasta.remedy.needCanastas': 'Tvoja stran potrebuje še {n} kanasto po {size} kart, preden lahko izide.',
   'canasta.remedy.keepACard': 'Pridrži eno karto za odmet.',

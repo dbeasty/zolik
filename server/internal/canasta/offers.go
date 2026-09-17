@@ -23,6 +23,8 @@ const (
 	OfferUndoTakePile = "undo_take_pile"
 	// OfferUndoLayOff takes back the last lay-off still standing — see LaidOff.
 	OfferUndoLayOff = "undo_lay_off"
+	// OfferUndoLayMeld takes back the last meld laid this turn — see MeldLaid.
+	OfferUndoLayMeld = "undo_lay_meld"
 )
 
 // LegalActions answers "what may this player do right now?".
@@ -340,6 +342,27 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		// Which meld it comes back off, told apart the same way the lay-off
 		// that put it there was — a side can have several melds down and
 		// "undo lay off" on its own would not say which one moves.
+		if mm := t.meldByID(last.MeldID); mm != nil {
+			o.Facts = []module.Fact{meldOfferFact(*mm)}
+		}
+		o.Source = &module.Selector{Zone: module.FromMeld, MeldID: last.MeldID, ZoneID: meldsZoneID(t.ID)}
+		o.Target = &module.Selector{Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID)}
+		offers = append(offers, o)
+	}
+
+	// --- undo the last meld laid ----------------------------------------------
+	//
+	// Behind the lay-off undo, and so last of all, for the same reason it is
+	// last: a bot reading the list in order must reach every ordinary move
+	// before either of these. It matters more here, because this one is the way
+	// out of a wedged turn (see MeldLaid) and a bot that found it early would
+	// meld and unmeld instead of playing.
+	if n := len(s.MeldsLaid); n > 0 {
+		last := s.MeldsLaid[n-1]
+		o := module.ActionOffer{ID: OfferUndoLayMeld, Verb: VerbUndoLayMeld, LabelKey: "verb.undoMeld"}
+		o.Enabled, o.WhyNot = probe(m, raw, playerID, module.Action{Verb: VerbUndoLayMeld})
+		// Which meld comes back off. A side mid-opening has two or three down
+		// and "undo meld" on its own would not say which one moves.
 		if mm := t.meldByID(last.MeldID); mm != nil {
 			o.Facts = []module.Fact{meldOfferFact(*mm)}
 		}

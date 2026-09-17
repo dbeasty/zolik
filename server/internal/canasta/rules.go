@@ -136,10 +136,24 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 	}
 	// The bands are read off the ruleset rather than written out again, so a
 	// variation that adds one cannot end up describing the other's.
+	//
+	// Their thresholds too, and not only their minimums. The sentence used to
+	// carry "up to 1500, up to 3000, up to 7000" as prose in twenty-four
+	// translations, which held only for as long as no variation moved a band —
+	// the one thing the comment above promises this cannot get wrong.
+	//
+	// Each band is named for where it ends rather than where it begins, because
+	// that is how the sentence reads it: "{low} up to {lowUpTo}". A band's
+	// ceiling is the next one's Above, so the last band has none and needs no
+	// param — it is the "beyond that" one.
 	bands := map[string]any{"negative": negativeMeldFloor}
 	for i, name := range []string{"low", "mid", "high", "top"} {
-		if i < len(v.MeldFloors) {
-			bands[name] = v.MeldFloors[i].Min
+		if i >= len(v.MeldFloors) {
+			break
+		}
+		bands[name] = v.MeldFloors[i].Min
+		if i+1 < len(v.MeldFloors) {
+			bands[name+"UpTo"] = v.MeldFloors[i+1].Above
 		}
 	}
 	floorKey := "canasta.rules.meldFloorBands"

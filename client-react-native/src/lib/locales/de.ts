@@ -159,8 +159,8 @@ export const de: Record<string, string> = {
   'canasta.rules.pileOntoMeld': 'Hat deine Partei bereits eine unvollständige Auslage im Wert der obersten Karte, darfst du den ganzen Ablagestapel nehmen und diese Karte anlegen — ein passendes Paar auf der Hand brauchst du dafür nicht.',
   'canasta.rules.pileNoMeldCapture': 'Eine Auslage, die schon auf dem Tisch liegt, kann den Ablagestapel nicht nehmen: Dafür musst du seine oberste Karte mit zwei Karten aus deiner eigenen Hand belegen.',
   'canasta.rules.meldFloorBands':
-    'Deine erste Auslage muss einen Mindestwert erreichen, der mit deinem Punktestand steigt: {negative} unter null, {low} bis 1500, {mid} bis 3000, {high} darüber.',
-  'canasta.rules.meldFloorBandsFive': 'Deine erste Auslage muss einen Mindestwert erreichen, der mit deinem Punktestand steigt: {negative} unter null, {low} bis 1500, {mid} bis 3000, {high} bis 7000, darüber {top}.',
+    'Deine erste Auslage muss einen Mindestwert erreichen, der mit deinem Punktestand steigt: {negative} unter null, {low} bis {lowUpTo}, {mid} bis {midUpTo}, {high} darüber.',
+  'canasta.rules.meldFloorBandsFive': 'Deine erste Auslage muss einen Mindestwert erreichen, der mit deinem Punktestand steigt: {negative} unter null, {low} bis {lowUpTo}, {mid} bis {midUpTo}, {high} bis {highUpTo}, darüber {top}.',
   'canasta.rules.turn':
     'Ein Zug ist ein Griff auf die Hand — vom Stapel ziehen oder den ganzen Ablagestapel nehmen — dann beliebige Auslagen, und zuletzt eine abgelegte Karte.',
   'canasta.rules.turnDiscard':
@@ -464,7 +464,7 @@ export const de: Record<string, string> = {
     'Nimm den Ablagestapel mit zwei Karten aus der eigenen Hand, die zu {card} passen.',
   'canasta.remedy.needTwoMatching':
     'Du brauchst zwei Karten aus der Hand, die zu {card} passen — sonst zieh vom Stapel.',
-  'canasta.remedy.needMorePoints': 'Der ersten Auslage deiner Seite fehlen {n} Punkte.',
+  'canasta.remedy.needMorePoints': 'Der ersten Auslage deiner Seite fehlen {n} Punkte bis {floor}.',
   'canasta.remedy.openFirst': 'Leg zuerst die Eröffnungsauslage deiner Seite, bevor du anlegst.',
   'canasta.remedy.needCanastas':
     'Deiner Seite fehlen noch {n} Canastas zu je {size} Karten, um rausgehen zu können.',

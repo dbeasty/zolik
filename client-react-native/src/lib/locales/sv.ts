@@ -151,8 +151,8 @@ export const sv: Record<string, string> = {
   'canasta.rules.pileOntoMeld': 'Har din sida redan en oavslutad kombination av det översta kortets valör får du ta hela kasthögen och lägga det kortet till den — du behöver inget par på handen.',
   'canasta.rules.pileNoMeldCapture': 'En kombination som redan ligger på bordet kan inte ta kasthögen: för att ta den måste du lägga två kort från din egen hand till det översta kortet.',
   'canasta.rules.meldFloorBands':
-    'Din första utläggning måste nå ett poängminimum som stiger med din ställning: {negative} under noll, {low} upp till 1500, {mid} upp till 3000, {high} däröver.',
-  'canasta.rules.meldFloorBandsFive': 'Din första kombination måste nå ett poängminimum som stiger med ditt resultat: {negative} under noll, {low} upp till 1500, {mid} upp till 3000, {high} upp till 7000 och {top} däröver.',
+    'Din första utläggning måste nå ett poängminimum som stiger med din ställning: {negative} under noll, {low} upp till {lowUpTo}, {mid} upp till {midUpTo}, {high} däröver.',
+  'canasta.rules.meldFloorBandsFive': 'Din första kombination måste nå ett poängminimum som stiger med ditt resultat: {negative} under noll, {low} upp till {lowUpTo}, {mid} upp till {midUpTo}, {high} upp till {highUpTo} och {top} däröver.',
   'canasta.rules.turn':
     'En tur är ett drag in i handen — dra från talongen eller ta hela kasthögen — sedan de läggningar du vill göra, och till sist ett kort som kastas.',
   'canasta.rules.turnDiscard':
@@ -446,7 +446,7 @@ export const sv: Record<string, string> = {
   'canasta.remedy.captureFromHand': 'Ta högen med två kort ur din egen hand som passar på {card}.',
   'canasta.remedy.needTwoMatching':
     'Du behöver två kort ur handen som passar på {card} — annars drar du från talongen.',
-  'canasta.remedy.needMorePoints': 'Din sidas första läggning saknar {n} poäng.',
+  'canasta.remedy.needMorePoints': 'Din sidas första läggning saknar {n} poäng till {floor}.',
   'canasta.remedy.openFirst': 'Lägg din sidas första läggning innan du lägger till kort.',
   'canasta.remedy.needCanastas': 'Din sida behöver {n} canasta till på {size} kort innan den kan gå ut.',
   'canasta.remedy.keepACard': 'Behåll ett kort att kasta med.',

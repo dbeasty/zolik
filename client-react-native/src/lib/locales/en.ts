@@ -161,8 +161,8 @@ export const en: Record<string, string> = {
   'canasta.rules.pileOntoMeld': "If your side already has an unfinished meld of the top card's rank, you can take the whole discard pile to add that card to it — no matching pair in your hand is needed.",
   'canasta.rules.pileNoMeldCapture': 'A meld already on the table cannot take the discard pile: to take it you must match its top card with two cards from your own hand.',
   'canasta.rules.meldFloorBands':
-    'Your first meld must reach a point minimum that rises with your score: {negative} below zero, {low} up to 1500, {mid} up to 3000, {high} beyond that.',
-  'canasta.rules.meldFloorBandsFive': 'Your first meld must reach a point minimum that rises with your score: {negative} below zero, {low} up to 1500, {mid} up to 3000, {high} up to 7000, {top} beyond that.',
+    'Your first meld must reach a point minimum that rises with your score: {negative} below zero, {low} up to {lowUpTo}, {mid} up to {midUpTo}, {high} beyond that.',
+  'canasta.rules.meldFloorBandsFive': 'Your first meld must reach a point minimum that rises with your score: {negative} below zero, {low} up to {lowUpTo}, {mid} up to {midUpTo}, {high} up to {highUpTo}, {top} beyond that.',
   'canasta.rules.turn':
     'A turn is one move into your hand — draw from the stock, or take the whole discard pile — then any melds you want to lay, then one card discarded.',
   'canasta.rules.turnDiscard': 'The discard is what ends a turn, so you always need a card to spare for it.',
@@ -448,7 +448,7 @@ export const en: Record<string, string> = {
   'canasta.remedy.captureFromHand': 'Take the pile with two cards from your own hand that match {card}.',
   'canasta.remedy.needTwoMatching':
     'You need two cards from your hand that match {card} — otherwise draw from the stock.',
-  'canasta.remedy.needMorePoints': "Your side's first meld is {n} points short.",
+  'canasta.remedy.needMorePoints': "Your side's first meld is {n} points short of {floor}.",
   'canasta.remedy.openFirst': "Lay your side's first meld before you lay off.",
   'canasta.remedy.needCanastas': 'Your side needs {n} more canasta of {size} before it can go out.',
   'canasta.remedy.keepACard': 'Keep a card back to discard with.',

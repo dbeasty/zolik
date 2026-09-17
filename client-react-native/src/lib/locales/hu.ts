@@ -161,8 +161,8 @@ export const hu: Record<string, string> = {
   'canasta.rules.pileOntoMeld': 'Ha az oldaladnak már van befejezetlen kombinációja a felső lap értékéből, elviheted az egész dobópaklit, és hozzáteheted azt a lapot — nem kell hozzá pár a kezedben.',
   'canasta.rules.pileNoMeldCapture': 'Az asztalon fekvő kombináció nem viheti el a dobópaklit: az elvitelhez a felső lapját két saját kézből származó lappal kell párosítanod.',
   'canasta.rules.meldFloorBands':
-    'Az első lerakásodnak el kell érnie egy pontminimumot, amely az állásoddal együtt emelkedik: {negative} nulla alatt, {low} 1500-ig, {mid} 3000-ig, {high} azon felül.',
-  'canasta.rules.meldFloorBandsFive': 'Az első kombinációdnak el kell érnie egy pontminimumot, amely az eredményeddel együtt nő: {negative} nulla alatt, {low} 1500-ig, {mid} 3000-ig, {high} 7000-ig, azon felül {top}.',
+    'Az első lerakásodnak el kell érnie egy pontminimumot, amely az állásoddal együtt emelkedik: {negative} nulla alatt, {low} {lowUpTo}-ig, {mid} {midUpTo}-ig, {high} azon felül.',
+  'canasta.rules.meldFloorBandsFive': 'Az első kombinációdnak el kell érnie egy pontminimumot, amely az eredményeddel együtt nő: {negative} nulla alatt, {low} {lowUpTo}-ig, {mid} {midUpTo}-ig, {high} {highUpTo}-ig, azon felül {top}.',
   'canasta.rules.turn':
     'Egy kör egy lapfelvétel — húzás a pakliból vagy az egész dobópakli elvétele —, aztán annyi kombináció, amennyit akarsz, végül egy eldobott lap.',
   'canasta.rules.turnDiscard': 'A kört a dobás zárja, ezért mindig kell maradnia rá egy lapod.',
@@ -464,7 +464,7 @@ export const hu: Record<string, string> = {
     'Vedd el a dobópaklit két saját kezedből származó lappal, amelyek illenek a(z) {card} lapra.',
   'canasta.remedy.needTwoMatching':
     'Két olyan lap kell a kezedből, ami illik a(z) {card} lapra — különben húzz a pakliból.',
-  'canasta.remedy.needMorePoints': 'A csapatod első kombinációjából {n} pont hiányzik.',
+  'canasta.remedy.needMorePoints': 'A csapatod első kombinációjából {n} pont hiányzik a(z) {floor}-hoz.',
   'canasta.remedy.openFirst': 'Rakd ki a csapatod első kombinációját, mielőtt hozzátennél valamihez.',
   'canasta.remedy.needCanastas': 'A csapatodnak még {n} darab {size} lapos kanaszta kell a kimenéshez.',
   'canasta.remedy.keepACard': 'Tarts meg egy lapot a dobáshoz.',

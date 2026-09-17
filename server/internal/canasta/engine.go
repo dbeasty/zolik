@@ -241,11 +241,21 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 	if a.Verb != VerbUndoTakePile {
 		s.PileTaken = nil
 	}
-	// The same window for lay-offs, one verb wider: a second lay-off does not
-	// close the first's, it stacks on top of it (see LaidOff), so laying off is
-	// the one other verb that leaves the stack standing.
-	if a.Verb != VerbLayOff && a.Verb != VerbUndoLayOff {
+	// The same window for what this turn put on the table, three verbs wider:
+	// these stack rather than replacing each other (see LaidOff and MeldLaid),
+	// so the four verbs that build the table leave both stacks standing and
+	// everything else drops them.
+	//
+	// Both together, not one each. Melding used to close the lay-off window,
+	// which meant laying a second meld quietly threw away the undo for a card
+	// you had just put on the wrong pile; and a meld laid after a lay-off has
+	// to stay undoable or the dead end MeldLaid exists for survives being two
+	// moves deep. Ordering is not what keeps this honest — the shape checks in
+	// the two undo handlers are, and they refuse anything built on since.
+	if a.Verb != VerbLayOff && a.Verb != VerbUndoLayOff &&
+		a.Verb != VerbLayMeld && a.Verb != VerbUndoLayMeld {
 		s.LaidOff = nil
+		s.MeldsLaid = nil
 	}
 
 	var events []module.Event
@@ -266,6 +276,8 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 		events, err = applyUndoTakePile(s, playerID)
 	case VerbUndoLayOff:
 		events, err = applyUndoLayOff(s, playerID)
+	case VerbUndoLayMeld:
+		events, err = applyUndoLayMeld(s, playerID)
 	default:
 		err = module.Error{Code: ErrUnknownAction, Message: a.Verb}
 	}
@@ -834,9 +846,20 @@ func applyLayMeld(s *GameState, playerID string, a module.Action) ([]module.Even
 		return nil, err
 	}
 
+	// Snapshot before the state moves, so the entry describes the table this
+	// meld arrived at rather than the one it made.
+	undo := MeldLaid{
+		MeldID:            laid.ID,
+		Cards:             append([]string(nil), laid.Cards...),
+		PriorHand:         append([]string(nil), s.Hands[playerID]...),
+		PriorLaidThisTurn: s.LaidThisTurn,
+		PriorHasMelded:    t.HasMelded,
+	}
+
 	s.Hands[playerID] = rest
 	s.LaidThisTurn += value
 	noteInitialMeld(s, t)
+	s.MeldsLaid = append(s.MeldsLaid, undo)
 
 	events := []module.Event{{Type: "meld_laid", Data: map[string]any{
 		"playerId": playerID, "meldId": laid.ID, "cards": a.Cards,
@@ -983,6 +1006,52 @@ func applyUndoLayOff(s *GameState, playerID string) ([]module.Event, error) {
 	}}}, nil
 }
 
+// applyUndoLayMeld takes back the most recent meld laid this turn — see
+// MeldLaid for why this module needs it at all, and why the window is exactly
+// this narrow.
+//
+// Nothing here can strand anybody, for applyUndoLayOff's reason: an undo only
+// ever puts cards back into a hand, so checkLeavesPlayable's "keep one to
+// discard" can only get easier to satisfy. What it does take away is a canasta
+// this meld completed, and an opening it paid for — HasMelded comes back off
+// with it, which is the point. Both matter only at the discard, which asks
+// canGoOut and checkInitialMeld for itself.
+func applyUndoLayMeld(s *GameState, playerID string) ([]module.Event, error) {
+	if len(s.MeldsLaid) == 0 {
+		return nil, errCode(ErrNothingToUndo)
+	}
+	ml := s.MeldsLaid[len(s.MeldsLaid)-1]
+
+	t := s.team(playerID)
+	m := t.meldByID(ml.MeldID)
+	if m == nil {
+		return nil, errCode(ErrNothingToUndo)
+	}
+	// A meld that is not the size this entry left it is one somebody laid off
+	// onto, and taking it off the table would throw their card away. Refuse,
+	// and let them undo the lay-off first — that offer is standing too, and the
+	// stacks unwind in the order the cards arrived.
+	if len(m.Cards) != len(ml.Cards) {
+		return nil, errCode(ErrNothingToUndo)
+	}
+	// Removed by truncation, so it has to still be the last meld the side has:
+	// the stack is unwound newest-first, and applyTakePile is the only other
+	// thing that appends to Melds — it drops this stack when it runs.
+	if t.Melds[len(t.Melds)-1].ID != ml.MeldID {
+		return nil, errCode(ErrNothingToUndo)
+	}
+
+	t.Melds = t.Melds[:len(t.Melds)-1]
+	s.Hands[playerID] = append([]string(nil), ml.PriorHand...)
+	s.LaidThisTurn = ml.PriorLaidThisTurn
+	t.HasMelded = ml.PriorHasMelded
+	s.MeldsLaid = s.MeldsLaid[:len(s.MeldsLaid)-1]
+
+	return []module.Event{{Type: "meld_undone", Data: map[string]any{
+		"playerId": playerID, "meldId": ml.MeldID, "cards": ml.Cards,
+	}}}, nil
+}
+
 // checkInitialMeld enforces the opening minimum without creating a dead end.
 //
 // The minimum is a property of a whole turn, so a partnership may reach it with
@@ -1120,6 +1189,7 @@ func endDeal(s *GameState, wentOut string, concealed bool, exhausted bool) []mod
 	// on turn to be offered it.
 	s.LaidOff = nil
 	s.PileTaken = nil
+	s.MeldsLaid = nil
 
 	res := scoreDeal(s, wentOut, concealed, exhausted)
 	s.LastDeal = &res

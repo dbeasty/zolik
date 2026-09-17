@@ -155,8 +155,8 @@ export const lt: Record<string, string> = {
   'canasta.rules.pileOntoMeld': 'Jei tavo pusė jau turi nebaigtą viršutinės kortos vertės derinį, gali paimti visą atmetimo krūvelę ir pridėti tą kortą prie derinio — poros rankoje nereikia.',
   'canasta.rules.pileNoMeldCapture': 'Ant stalo gulintis derinys atmetimo krūvelės paimti negali: kad ją paimtum, prie viršutinės kortos turi pridėti dvi kortas iš savo rankos.',
   'canasta.rules.meldFloorBands':
-    'Tavo pirmas išdėjimas turi pasiekti taškų minimumą, kuris auga kartu su tavo rezultatu: {negative} žemiau nulio, {low} iki 1500, {mid} iki 3000, {high} virš to.',
-  'canasta.rules.meldFloorBandsFive': 'Tavo pirmasis derinys turi pasiekti taškų minimumą, kuris auga kartu su rezultatu: {negative} žemiau nulio, {low} iki 1500, {mid} iki 3000, {high} iki 7000 ir {top} virš to.',
+    'Tavo pirmas išdėjimas turi pasiekti taškų minimumą, kuris auga kartu su tavo rezultatu: {negative} žemiau nulio, {low} iki {lowUpTo}, {mid} iki {midUpTo}, {high} virš to.',
+  'canasta.rules.meldFloorBandsFive': 'Tavo pirmasis derinys turi pasiekti taškų minimumą, kuris auga kartu su rezultatu: {negative} žemiau nulio, {low} iki {lowUpTo}, {mid} iki {midUpTo}, {high} iki {highUpTo} ir {top} virš to.',
   'canasta.rules.turn':
     'Ėjimas — vienas kortų paėmimas į ranką: imi iš malkos arba pasiimi visą numestų kortų krūvą; tada dedi kombinacijas, kokias nori, ir galiausiai numeti vieną kortą.',
   'canasta.rules.turnDiscard': 'Ėjimą užbaigia numetimas, todėl tam visada turi likti viena korta.',
@@ -450,7 +450,7 @@ export const lt: Record<string, string> = {
   'canasta.remedy.captureFromHand': 'Pasiimk krūvą su dviem savo rankos kortomis, tinkančiomis prie {card}.',
   'canasta.remedy.needTwoMatching':
     'Tau reikia dviejų rankos kortų, tinkančių prie {card} — kitaip imk iš malkos.',
-  'canasta.remedy.needMorePoints': 'Tavo pusės pirmajai kombinacijai trūksta {n} taškų.',
+  'canasta.remedy.needMorePoints': 'Tavo pusės pirmajai kombinacijai iki {floor} trūksta {n} taškų.',
   'canasta.remedy.openFirst': 'Padėk savo pusės pirmąją kombinaciją prieš papildydamas.',
   'canasta.remedy.needCanastas': 'Tavo pusei prieš išeinant reikia dar {n} kanastų po {size} kortas.',
   'canasta.remedy.keepACard': 'Pasilik vieną kortą numetimui.',
