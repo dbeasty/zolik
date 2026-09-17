@@ -74,8 +74,15 @@ const EDGE = 2;
  *
  * A card stacked in a meld shows one corner and nothing else, so it gets a
  * rank and a suit rather than a face. Under these two the suit beside it is
- * the drawn shape, not the font's `♠` — so the same card looks the same in a
- * meld as it does in hand, which is the only reason this list exists.
+ * a drawn shape rather than the font's `♠`, which is the only reason this
+ * list exists — a platform's idea of a spade next to a hand full of drawn
+ * ones is the mismatch that is actually worth avoiding.
+ *
+ * Under 'vector' the shape is still `Suit`'s, not the engraved deck's: that
+ * deck's indices are cut into each card's art and cannot be lifted out of it.
+ * A stacked corner is therefore a near-match rather than the same drawing.
+ * The alternative is cutting an index out of fifty-three engravings, which
+ * buys a closer match on the one corner of a card that is half-covered.
  */
 const DRAWS_ITS_SUITS: readonly string[] = ['deluxe', 'vector'];
 
