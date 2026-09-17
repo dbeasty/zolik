@@ -1,4 +1,5 @@
 import { storage } from '@/src/context/SessionContext';
+import { metricsFor } from '@/src/lib/layout';
 import { casino } from '@/src/skins/casino';
 import { classic } from '@/src/skins/classic';
 import { heirloom } from '@/src/skins/heirloom';
@@ -11,7 +12,35 @@ import type { Skin } from '@/src/skins/types';
  */
 export const SKINS: readonly Skin[] = [heirloom, casino, classic];
 
+/**
+ * What the board wears for somebody who has never chosen.
+ *
+ * `casino` on a phone, and the fallback anywhere a skin is read outside a
+ * provider — see `defaultSkinFor` for the screen this is not the answer for.
+ */
 export const DEFAULT_SKIN = casino;
+
+/**
+ * The default for a screen of a given width.
+ *
+ * Heirloom is the better board and the one to lead with, but only where
+ * there is room for it: its deck is a real engraved one, and an engraving is
+ * a set of decisions about line weight that were made for a card 63mm across.
+ * At the 52×72 a narrow screen draws, a king's robe is ten dark pixels and
+ * `casino`'s plainer face is genuinely easier to read across a hand of
+ * seventeen. So the phone keeps the face built for a phone.
+ *
+ * "Narrow" is `metricsFor`'s own — the 768 line the layout already turns on —
+ * rather than a second breakpoint that could drift from it.
+ *
+ * Note what this is *not*: a skin that changes with the window. The choice is
+ * made once, from the width at startup, and a saved preference beats it
+ * outright. A board that restyled itself mid-resize would be a look changing
+ * under somebody's hands while they played.
+ */
+export function defaultSkinFor(width: number): Skin {
+  return metricsFor(width).narrow ? casino : heirloom;
+}
 
 export function skinById(id: string | null | undefined): Skin | undefined {
   return SKINS.find((s) => s.id === id);
