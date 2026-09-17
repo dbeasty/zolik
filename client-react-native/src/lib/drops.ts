@@ -119,12 +119,20 @@ export function fits(offer: ActionOffer, cards: string[]): Fit {
   // the list off is not deriving a rule — this side still has no idea why
   // those two cards belong together, only that the module said they do.
   //
-  // Membership, not a multiset: `requires` names a rank and a suit, and either
-  // copy of a duplicate in a two-deck game satisfies it.
+  // A card may have more than one company that works, and then the offer says
+  // so too: `alternatives` holds the other sets, and any one of them held in
+  // full is enough. That is what lets a player spend a joker on a gap their
+  // hand could also fill naturally — before it, `requires` named the natural
+  // card and the joker-and-card pair the player dragged was refused, leaving
+  // them to lay the two cards one at a time.
+  //
+  // Membership, not a multiset: a companion names a rank and a suit, and
+  // either copy of a duplicate in a two-deck game satisfies it.
   const picked = new Set(cards);
   for (const p of placements) {
     if (!picked.has(p.card) || !p.requires?.length) continue;
-    if (!p.requires.every((r) => picked.has(r))) {
+    const ways = [p.requires, ...(p.alternatives ?? [])];
+    if (!ways.some((way) => way.every((r) => picked.has(r)))) {
       return { ok: false, labelKey: 'sel.needsCompany' };
     }
   }
@@ -202,8 +210,11 @@ export function dropSpotsFor(offers: ActionOffer[], cards: string[]): DropSpot[]
  *
  * A placement's `positions` describe *its own* submission: for an ordinary
  * card that is the card by itself, and for one with `requires` it is that card
- * together with the cards it names. So the hint for a selection is the hint of
- * the placement whose submission the selection *is* — nothing else composes.
+ * together with the cards it names — or with any of its `alternatives`, which
+ * reach across the same gap and so grow the same end (the server sweeps that,
+ * in TestLayOffPlacements_EveryCompanionGrowsTheSameEnd). So the hint for a
+ * selection is the hint of the placement whose submission the selection *is* —
+ * nothing else composes.
  *
  * Two cards that each separately could extend either end do not between them
  * make a submission that extends either end, which is why intersecting the
@@ -216,9 +227,11 @@ function positionsForSelection(placements: Placement[], cards: string[]): string
   if (picked.size !== cards.length) return []; // a duplicate names no one card
   for (const p of placements) {
     if (!picked.has(p.card) || !p.positions?.length) continue;
-    const submission = new Set([p.card, ...(p.requires ?? [])]);
-    if (submission.size !== picked.size) continue;
-    if ([...picked].every((c) => submission.has(c))) return p.positions;
+    for (const way of [p.requires ?? [], ...(p.alternatives ?? [])]) {
+      const submission = new Set([p.card, ...way]);
+      if (submission.size !== picked.size) continue;
+      if ([...picked].every((c) => submission.has(c))) return p.positions;
+    }
   }
   return [];
 }

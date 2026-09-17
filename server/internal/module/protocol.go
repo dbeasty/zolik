@@ -319,6 +319,16 @@ type Placement struct {
 	// these cards: a control that sends one card unprompted must never
 	// reach for one that needs company.
 	Requires []string `json:"requires,omitempty"`
+
+	// Alternatives are the other companion sets that would do instead of
+	// Requires — any one of them, in full, and the card is legal. A rummy
+	// 10 that needs the 9 to reach a run of 5-6-7-8 needs it no less for
+	// the joker in the same hand also being able to stand in the 9's
+	// place; both are company, and the player picks.
+	//
+	// Empty when there is only one way in. A card with alternatives still
+	// needs company, so Selector.Cards omits it just the same.
+	Alternatives [][]string `json:"alternatives,omitempty"`
 }
 
 // PositionParam is the parameter a chosen Placement position is submitted
