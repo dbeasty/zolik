@@ -1130,7 +1130,27 @@ export default function MatchScreen() {
               slots={slotsFor(z.id)}
               selected={selected}
               onToggle={toggleSlot}
-              onMove={(from, to) => move(z.id, from, to)}
+              onMove={(from, to) => {
+                // Moving a card along the fan drops it from the selection.
+                //
+                // Tidying your hand and choosing what to play are different
+                // intentions, and the tap that selected a card is also the
+                // start of the drag that rearranges it — so a card shuffled
+                // into place stayed lit, and the next card tapped joined a
+                // selection the player had stopped thinking about. A card you
+                // have just put somewhere is one you are organising, not one
+                // you are about to spend.
+                const moved = slotsFor(z.id)[from];
+                if (moved) {
+                  setSelected((prev) => {
+                    if (!prev.has(moved.id)) return prev;
+                    const next = new Set(prev);
+                    next.delete(moved.id);
+                    return next;
+                  });
+                }
+                move(z.id, from, to);
+              }}
               onAutoArrange={() => arrange(z.id)}
               onDragStart={(index) => beginDrag(z.id, index)}
               onDragMove={moveDrag}
