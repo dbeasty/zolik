@@ -158,8 +158,8 @@ export const fr: Record<string, string> = {
   'canasta.rules.pileOntoMeld': 'Si ton camp a déjà une combinaison inachevée du rang de la carte du dessus, tu peux prendre toute la défausse pour y ajouter cette carte : aucune paire en main n’est nécessaire.',
   'canasta.rules.pileNoMeldCapture': 'Une combinaison déjà posée sur la table ne peut pas prendre la défausse : pour la prendre, tu dois associer sa carte du dessus à deux cartes de ta propre main.',
   'canasta.rules.meldFloorBands':
-    "Ta première pose doit atteindre un minimum de points qui monte avec ton score : {negative} en dessous de zéro, {low} jusqu'à 1500, {mid} jusqu'à 3000, {high} au-delà.",
-  'canasta.rules.meldFloorBandsFive': "Ta première combinaison doit atteindre un minimum de points qui monte avec ton score : {negative} sous zéro, {low} jusqu'à 1500, {mid} jusqu'à 3000, {high} jusqu'à 7000, {top} au-delà.",
+    "Ta première pose doit atteindre un minimum de points qui monte avec ton score : {negative} en dessous de zéro, {low} jusqu'à {lowUpTo}, {mid} jusqu'à {midUpTo}, {high} au-delà.",
+  'canasta.rules.meldFloorBandsFive': "Ta première combinaison doit atteindre un minimum de points qui monte avec ton score : {negative} sous zéro, {low} jusqu'à {lowUpTo}, {mid} jusqu'à {midUpTo}, {high} jusqu'à {highUpTo}, {top} au-delà.",
   'canasta.rules.turn':
     "Un tour, c'est une entrée dans ta main — piocher dans la pioche ou prendre toute la défausse — puis les combinaisons que tu veux poser, et enfin une carte défaussée.",
   'canasta.rules.turnDiscard':
@@ -455,7 +455,7 @@ export const fr: Record<string, string> = {
   'canasta.remedy.captureFromHand':
     'Prends la défausse avec deux cartes de ta propre main qui vont sur {card}.',
   'canasta.remedy.needTwoMatching': 'Il te faut deux cartes en main qui vont sur {card} — sinon, pioche.',
-  'canasta.remedy.needMorePoints': 'Il manque {n} points à la première pose de ton camp.',
+  'canasta.remedy.needMorePoints': 'Il manque {n} points à la première pose de ton camp pour atteindre {floor}.',
   'canasta.remedy.openFirst': "Pose d'abord la combinaison d'ouverture de ton camp avant de compléter.",
   'canasta.remedy.needCanastas': 'Il manque {n} canasta de {size} cartes à ton camp pour pouvoir sortir.',
   'canasta.remedy.keepACard': 'Garde une carte pour la défausse.',

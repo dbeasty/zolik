@@ -61,6 +61,10 @@ const (
 	// same word Žolíky's own undo uses (rules.ActionUndoLayOff), because it is
 	// the same move and nobody should have to learn two names for it.
 	VerbUndoLayOff = "undo_lay_off"
+	// VerbUndoLayMeld takes back a meld laid this turn — see MeldLaid. Named
+	// for the verb it reverses, the way the two above are, and matching
+	// Žolíky's rules.ActionUndoLayMeld for the same reason.
+	VerbUndoLayMeld = "undo_lay_meld"
 )
 
 // Turn phases. Two, not three: melding and discarding are the same phase,
@@ -245,6 +249,43 @@ type LaidOff struct {
 	Cards []string `json:"cards"`
 	// PriorHand is the hand exactly as it stood before, restored whole rather
 	// than by appending the cards again — for the reason PileTaken keeps one:
+	// somebody arranged that hand.
+	PriorHand         []string `json:"priorHand"`
+	PriorLaidThisTurn int      `json:"priorLaidThisTurn,omitempty"`
+	PriorHasMelded    bool     `json:"priorHasMelded,omitempty"`
+}
+
+// MeldLaid snapshots one meld laid this turn so it can be taken back.
+//
+// This is the dead end PileTaken exists for, arrived at by the other road. The
+// opening minimum is a property of a whole turn, so checkInitialMeld has to let
+// a lay that falls short go down — a side reaches fifty with two melds as
+// legitimately as with one. Its guard against that becoming a trap is
+// reachableValue, a bound on what the rest of the hand could still add, and
+// bot.go:471 has said in writing since it was written that the bound "is not
+// tight enough to rely on": when it guesses high, the cards are on the table,
+// the floor is out of reach, and applyDiscard refuses to end a turn that laid
+// and fell short. Melding more is refused, laying off is refused because the
+// side has not opened, and discarding is refused. That is the whole move list.
+//
+// So: a way back, scoped exactly as narrowly as LaidOff's. What it undoes is
+// this turn's own melds, newest first, and only while nothing has been built on
+// them.
+//
+// A stack rather than PileTaken's single snapshot, for LaidOff's reason and
+// more sharply: the wedge is normally reached across two or three melds, so
+// handing back only the last one would leave the turn just as stuck.
+//
+// It rescues an ordinary mistake too, the way LaidOff does — a rank melded when
+// you meant to keep the wild — but the dead end is why it exists.
+type MeldLaid struct {
+	// MeldID is the meld this laid, and Cards what went into it. Both named,
+	// rather than trusting the meld's position, so undo can check it is still
+	// the meld this entry made before taking it off the table.
+	MeldID string   `json:"meldId"`
+	Cards  []string `json:"cards"`
+	// PriorHand is the hand exactly as it stood before, restored whole rather
+	// than by putting the cards back — for the reason PileTaken keeps one:
 	// somebody arranged that hand.
 	PriorHand         []string `json:"priorHand"`
 	PriorLaidThisTurn int      `json:"priorLaidThisTurn,omitempty"`
@@ -436,6 +477,10 @@ type GameState struct {
 	// first — see LaidOff. Appended to by applyLayOff, and emptied by anything
 	// else that reaches the table.
 	LaidOff []LaidOff `json:"laidOff,omitempty"`
+	// MeldsLaid is this turn's new melds that can still be taken back, oldest
+	// first — see MeldLaid. Appended to by applyLayMeld, and emptied alongside
+	// LaidOff by anything that is not one of the four table-building verbs.
+	MeldsLaid []MeldLaid `json:"meldsLaid,omitempty"`
 
 	// Rules resolved at deal time, so a match cannot change shape underneath
 	// a deal in progress.

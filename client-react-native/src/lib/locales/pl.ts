@@ -159,8 +159,8 @@ export const pl: Record<string, string> = {
   'canasta.rules.pileOntoMeld': 'Jeśli twoja strona ma już na stole niedokończony układ o wartości wierzchniej karty, możesz wziąć cały stos odrzuconych i dołożyć do niego tę kartę — para w ręce nie jest potrzebna.',
   'canasta.rules.pileNoMeldCapture': 'Układ leżący już na stole nie może wziąć stosu odrzuconych: aby go wziąć, musisz dołożyć do wierzchniej karty dwie karty z własnej ręki.',
   'canasta.rules.meldFloorBands':
-    'Twoje pierwsze wyłożenie musi osiągnąć minimum punktowe rosnące wraz z wynikiem: {negative} poniżej zera, {low} do 1500, {mid} do 3000, {high} powyżej.',
-  'canasta.rules.meldFloorBandsFive': 'Twój pierwszy układ musi osiągnąć minimum punktowe rosnące wraz z wynikiem: {negative} poniżej zera, {low} do 1500, {mid} do 3000, {high} do 7000, powyżej {top}.',
+    'Twoje pierwsze wyłożenie musi osiągnąć minimum punktowe rosnące wraz z wynikiem: {negative} poniżej zera, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} powyżej.',
+  'canasta.rules.meldFloorBandsFive': 'Twój pierwszy układ musi osiągnąć minimum punktowe rosnące wraz z wynikiem: {negative} poniżej zera, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} do {highUpTo}, powyżej {top}.',
   'canasta.rules.turn':
     'Kolejka to jedno dobranie do ręki — z talii albo wzięcie całego stosu zrzutów — potem dowolne wyłożenia, a na koniec jedna karta odrzucona.',
   'canasta.rules.turnDiscard': 'Kolejkę kończy zrzut, więc zawsze musi ci zostać na niego karta.',
@@ -455,7 +455,7 @@ export const pl: Record<string, string> = {
   'canasta.remedy.captureFromHand': 'Weź stos dwiema kartami z własnej ręki, które pasują do {card}.',
   'canasta.remedy.needTwoMatching':
     'Potrzebujesz dwóch kart z ręki pasujących do {card} — inaczej dobierz z talii.',
-  'canasta.remedy.needMorePoints': 'Pierwszemu układowi twojej strony brakuje {n} punktów.',
+  'canasta.remedy.needMorePoints': 'Pierwszemu układowi twojej strony brakuje {n} punktów do {floor}.',
   'canasta.remedy.openFirst': 'Wyłóż pierwszy układ swojej strony, zanim zaczniesz dokładać.',
   'canasta.remedy.needCanastas': 'Twojej stronie brakuje jeszcze {n} kanasty po {size} kart, żeby móc wyjść.',
   'canasta.remedy.keepACard': 'Zostaw sobie kartę na zrzut.',

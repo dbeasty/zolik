@@ -120,20 +120,28 @@ func (m *Module) annotate(s *GameState, playerID string, offers []module.ActionO
 			o.RemedyOfferID = firstEnabled(OfferTakePile, OfferDraw)
 
 		case ErrInitialMeldNotMet:
-			// The gap, not the floor. A side that has laid 30 against a floor
-			// of 50 is twenty points away; telling them the floor is 50 makes
-			// them do the arithmetic the server already did.
+			// The gap first, because it is what the player acts on: a side that
+			// has laid 30 against a floor of 50 is twenty points away, and
+			// telling them only the floor makes them do arithmetic the server
+			// already did. The floor as well, because the gap on its own reads
+			// like one — "your first meld is 40 points short" and a board
+			// saying the minimum is 150 were mistaken for a rule that said 40.
 			if t != nil {
-				short := v.meldFloor(t.Score) - s.LaidThisTurn
+				floor := v.meldFloor(t.Score)
+				short := floor - s.LaidThisTurn
 				if short < 1 {
 					short = 1
 				}
 				o.Remedy = &module.Fact{
 					LabelKey: "canasta.remedy.needMorePoints",
-					Params:   map[string]any{"n": short},
+					Params:   map[string]any{"n": short, "floor": floor},
 				}
 			}
-			o.RemedyOfferID = firstEnabled(OfferLayMeld)
+			// Forward first, then back. Melding on is what a side short of the
+			// floor normally does; taking the melds off is for the turn that
+			// cannot — which, until there was an undo, was a turn with no move
+			// at all.
+			o.RemedyOfferID = firstEnabled(OfferLayMeld, OfferUndoLayMeld)
 
 		case ErrMustMeldFirst:
 			o.Remedy = &module.Fact{LabelKey: "canasta.remedy.openFirst"}

@@ -485,6 +485,7 @@
     "verb.takePileOntoMeld",
     "verb.takeTopForSequence",
     "verb.undoLayOff",
+    "verb.undoMeld",
     "verb.undoTakePile",
     "zolik.badge.jokerOwed",
     "zolik.badge.owedToMeld",
@@ -939,6 +940,7 @@
       "size"
     ],
     "canasta.remedy.needMorePoints": [
+      "floor",
       "n"
     ],
     "canasta.remedy.needTwoMatching": [
@@ -981,13 +983,18 @@
     "canasta.rules.meldFloorBands": [
       "high",
       "low",
+      "lowUpTo",
       "mid",
+      "midUpTo",
       "negative"
     ],
     "canasta.rules.meldFloorBandsFive": [
       "high",
+      "highUpTo",
       "low",
+      "lowUpTo",
       "mid",
+      "midUpTo",
       "negative",
       "top"
     ],

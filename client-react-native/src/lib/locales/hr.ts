@@ -156,8 +156,8 @@ export const hr: Record<string, string> = {
   'canasta.rules.pileOntoMeld': 'Ako tvoja strana već ima nedovršenu kombinaciju vrijednosti gornje karte, možeš uzeti cijelu hrpu odbačenih i toj kombinaciji pridružiti tu kartu — par u ruci nije potreban.',
   'canasta.rules.pileNoMeldCapture': 'Kombinacija koja je već na stolu ne može uzeti hrpu odbačenih: da bi je uzeo, gornjoj karti moraš pridružiti dvije karte iz vlastite ruke.',
   'canasta.rules.meldFloorBands':
-    'Tvoje prvo spuštanje mora doseći bodovni minimum koji raste s tvojim rezultatom: {negative} ispod nule, {low} do 1500, {mid} do 3000, {high} iznad toga.',
-  'canasta.rules.meldFloorBandsFive': 'Tvoja prva kombinacija mora dosegnuti bodovni minimum koji raste s tvojim rezultatom: {negative} ispod nule, {low} do 1500, {mid} do 3000, {high} do 7000 i {top} iznad toga.',
+    'Tvoje prvo spuštanje mora doseći bodovni minimum koji raste s tvojim rezultatom: {negative} ispod nule, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} iznad toga.',
+  'canasta.rules.meldFloorBandsFive': 'Tvoja prva kombinacija mora dosegnuti bodovni minimum koji raste s tvojim rezultatom: {negative} ispod nule, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} do {highUpTo} i {top} iznad toga.',
   'canasta.rules.turn':
     'Potez je jedno uzimanje u ruku — vučenje iz špila ili uzimanje cijele odbačene hrpe — zatim kombinacije koje želiš položiti, pa jedna odbačena karta.',
   'canasta.rules.turnDiscard':
@@ -451,7 +451,7 @@ export const hr: Record<string, string> = {
   'canasta.remedy.captureFromHand': 'Uzmi hrpu s dvije karte iz vlastite ruke koje odgovaraju karti {card}.',
   'canasta.remedy.needTwoMatching':
     'Trebaš dvije karte iz ruke koje odgovaraju karti {card} — inače vuci iz špila.',
-  'canasta.remedy.needMorePoints': 'Prvoj kombinaciji tvoje strane nedostaje {n} bodova.',
+  'canasta.remedy.needMorePoints': 'Prvoj kombinaciji tvoje strane nedostaje {n} bodova do {floor}.',
   'canasta.remedy.openFirst': 'Položi prvu kombinaciju svoje strane prije nego što nešto dopunjuješ.',
   'canasta.remedy.needCanastas': 'Tvojoj strani treba još {n} canasta od {size} karata da bi mogla izaći.',
   'canasta.remedy.keepACard': 'Zadrži jednu kartu za odbacivanje.',

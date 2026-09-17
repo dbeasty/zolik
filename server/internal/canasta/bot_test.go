@@ -467,3 +467,38 @@ func TestUnknownSkillPlaysMedium(t *testing.T) {
 		}
 	}
 }
+
+// TestBotNeverTakesAMoveBack is the loop guard, stated as a test.
+//
+// An undo restores the position exactly and the bot is a function of the
+// position, so a bot that took one would be handed back the state it just left
+// and make the same move again. Handed a list whose only enabled offer is an
+// undo, it must decline to move rather than oscillate.
+func TestBotNeverTakesAMoveBack(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Teams[0].Melds = []Meld{{
+			ID: meldID(0, "A"), TeamID: 0, Kind: meldSet, Rank: "A",
+			Cards: []string{"AH", "AD", "AS"},
+		}}
+		s.LaidThisTurn = 60
+		s.Hands["p1"] = []string{"8C"}
+		s.MeldsLaid = []MeldLaid{{
+			MeldID: meldID(0, "A"), Cards: []string{"AH", "AD", "AS"},
+			PriorHand: []string{"AH", "AD", "AS", "8C"},
+		}}
+	})
+	offers, err := New().LegalActions(raw, "p1")
+	if err != nil {
+		t.Fatalf("LegalActions: %v", err)
+	}
+	// Whatever else is on offer, the undo is — and it is the one the bot must
+	// not reach for.
+	if o := module.FindOffer(offers, OfferUndoLayMeld); o == nil || !o.Enabled {
+		t.Fatalf("expected an enabled undo to tempt the bot, got %+v", o)
+	}
+	a, ok := bot{}.Act(raw, module.BotSeat{PlayerID: "p1", Skill: module.SkillMedium}, offers)
+	if ok && (a.Verb == VerbUndoLayMeld || a.Verb == VerbUndoLayOff || a.Verb == VerbUndoTakePile) {
+		t.Errorf("the bot took a move back: %+v", a)
+	}
+}

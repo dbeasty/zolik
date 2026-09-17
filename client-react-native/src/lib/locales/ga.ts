@@ -160,8 +160,8 @@ export const ga: Record<string, string> = {
   'canasta.rules.pileOntoMeld': 'Má tá cumasc neamhchríochnaithe de luach an chárta uachtaraigh ag do thaobh cheana, is féidir leat an carn caite ar fad a thógáil agus an cárta sin a chur leis — ní gá péire a bheith i do lámh.',
   'canasta.rules.pileNoMeldCapture': 'Ní féidir le cumasc atá ar an mbord cheana an carn caite a thógáil: chun é a thógáil caithfidh tú an cárta barr a mheaitseáil le dhá chárta as do lámh féin.',
   'canasta.rules.meldFloorBands':
-    'Caithfidh do chéad leagan síos íosmhéid pointí a bhaint amach a ardaíonn le do scór: {negative} faoi bhun a náid, {low} suas go 1500, {mid} suas go 3000, {high} os a chionn sin.',
-  'canasta.rules.meldFloorBandsFive': 'Caithfidh do chéad chumasc íosmhéid pointí a bhaint amach a ardaíonn le do scór: {negative} faoi bhun nialais, {low} suas go 1500, {mid} suas go 3000, {high} suas go 7000 agus {top} os a chionn sin.',
+    'Caithfidh do chéad leagan síos íosmhéid pointí a bhaint amach a ardaíonn le do scór: {negative} faoi bhun a náid, {low} suas go {lowUpTo}, {mid} suas go {midUpTo}, {high} os a chionn sin.',
+  'canasta.rules.meldFloorBandsFive': 'Caithfidh do chéad chumasc íosmhéid pointí a bhaint amach a ardaíonn le do scór: {negative} faoi bhun nialais, {low} suas go {lowUpTo}, {mid} suas go {midUpTo}, {high} suas go {highUpTo} agus {top} os a chionn sin.',
   'canasta.rules.turn':
     'Is éard atá i seal amháin ná aistriú isteach i do lámh — tarraing ón stoc nó tóg an carn iomlán — ansin cibé cumaisc is mian leat, agus ar deireadh cárta amháin caite.',
   'canasta.rules.turnDiscard':
@@ -467,7 +467,7 @@ export const ga: Record<string, string> = {
   'canasta.remedy.captureFromHand': 'Tóg an carn le dhá chárta as do lámh féin a fheileann do {card}.',
   'canasta.remedy.needTwoMatching':
     'Teastaíonn dhá chárta as do lámh uait a fheileann do {card} — nó tarraing ón stoc.',
-  'canasta.remedy.needMorePoints': 'Tá {n} pointe in easnamh ar chéad chumasc do thaoibh.',
+  'canasta.remedy.needMorePoints': 'Tá {n} pointe in easnamh ar chéad chumasc do thaoibh chun {floor} a bhaint amach.',
   'canasta.remedy.openFirst': 'Cuir síos céad chumasc do thaoibh sula gcuireann tú le rud ar bith.',
   'canasta.remedy.needCanastas':
     'Teastaíonn {n} chanasta eile de {size} chárta ó do thaobh sula féidir leis dul amach.',

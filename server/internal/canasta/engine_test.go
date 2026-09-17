@@ -518,12 +518,307 @@ func TestUndoLayOffClosesTheTableBackUp(t *testing.T) {
 	}
 }
 
-// TestUndoLayOffUnavailableOnceSomethingElseHappened is the guard that keeps
-// the undo exact rather than best-effort. A lay-off stacks on the one before
-// it, so laying off again leaves both takeable; anything else — a meld, a
-// discard, the turn passing — closes the window, because after that the cards
-// may no longer be where the lay-off left them.
-func TestUndoLayOffUnavailableOnceSomethingElseHappened(t *testing.T) {
+// TestUndoLayOffSurvivesAMeld is the window in Apply, stated from the outside.
+//
+// Melding used to close the lay-off's undo window, on the general ground that
+// after anything else "the cards may no longer be where the lay-off left them".
+// That is true of a discard and of the turn passing. It is not true of a meld:
+// a meld is built out of the hand and lands beside the meld the lay-off
+// reached, never on it. The cost of the blanket rule was real and silent — a
+// side melding its way towards the opening minimum lost the ability to take
+// back a card it had just put on the wrong pile, and was told nothing.
+//
+// So the four table-building verbs leave both stacks standing, and what keeps
+// the undo exact is not the ordering but applyUndoLayOff's own shape check: a
+// meld that is not the size the entry left it is refused.
+func TestUndoLayOffSurvivesAMeld(t *testing.T) {
+	raw := laidOffTable(func(s *GameState) {
+		s.Hands["p1"] = []string{"KC", "9H", "9D", "9S", "8C", "7D"}
+	})
+	next, code := apply(t, raw, "p1", module.Action{
+		Verb: VerbLayOff, Target: meldID(0, "K"), Cards: []string{"KC"},
+	})
+	if code != "" {
+		t.Fatalf("lay-off refused: %s", code)
+	}
+	melded, code := apply(t, next, "p1", module.Action{
+		Verb: VerbLayMeld, Cards: []string{"9H", "9D", "9S"},
+	})
+	if code != "" {
+		t.Fatalf("meld refused: %s", code)
+	}
+
+	undone, code := apply(t, melded, "p1", module.Action{Verb: VerbUndoLayOff})
+	if code != "" {
+		t.Fatalf("undo after a meld refused: %s", code)
+	}
+	s := mustDecode(t, undone)
+	if m := s.Teams[0].meldByID(meldID(0, "K")); len(m.Cards) != 3 {
+		t.Errorf("the king came back off = %d cards, want 3", len(m.Cards))
+	}
+	if !hasCards(s.Hands["p1"], []string{"KC"}) {
+		t.Errorf("KC should be back in hand, got %v", s.Hands["p1"])
+	}
+	if len(s.Teams[0].Melds) != 2 {
+		t.Errorf("the meld laid in between should still be down, got %d melds", len(s.Teams[0].Melds))
+	}
+
+	offers, err := New().LegalActions(melded, "p1")
+	if err != nil {
+		t.Fatalf("LegalActions: %v", err)
+	}
+	if o := module.FindOffer(offers, OfferUndoLayOff); o == nil {
+		t.Error("the lay-off undo should still be offered after a meld")
+	}
+	if o := module.FindOffer(offers, OfferUndoLayMeld); o == nil {
+		t.Error("the meld laid in between should be undoable too")
+	}
+}
+
+// --- taking back a meld -----------------------------------------------------
+
+// TestUndoLayMeldRestoresExactly is the same promise TestUndoLayOffRestoresExactly
+// makes, for the move that puts a whole new meld down: the table is left
+// indistinguishable from one the meld never reached.
+func TestUndoLayMeldRestoresExactly(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Hands["p1"] = []string{"AH", "AD", "AS", "8C", "9C"}
+	})
+	next, code := apply(t, raw, "p1", module.Action{Verb: VerbLayMeld, Cards: []string{"AH", "AD", "AS"}})
+	if code != "" {
+		t.Fatalf("meld refused: %s", code)
+	}
+	if s := mustDecode(t, next); !s.Teams[0].HasMelded {
+		t.Fatalf("sixty in aces should have opened the table")
+	}
+	undone, code := apply(t, next, "p1", module.Action{Verb: VerbUndoLayMeld})
+	if code != "" {
+		t.Fatalf("undo refused: %s", code)
+	}
+	if before, after := mustDecode(t, raw), mustDecode(t, undone); !reflect.DeepEqual(before, after) {
+		t.Errorf("undo did not restore the exact prior state:\nbefore: %+v\nafter:  %+v", before, after)
+	}
+}
+
+// TestUndoLayMeldUnwindsLastFirst is why MeldsLaid is a stack. The wedge it
+// exists for is normally reached across two or three melds — the opening
+// minimum is a property of a turn — so handing back only the last one would
+// leave the turn exactly as stuck as before.
+func TestUndoLayMeldUnwindsLastFirst(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Hands["p1"] = []string{"AH", "AD", "AS", "KH", "KD", "KS", "8C", "9C"}
+	})
+	next := raw
+	for _, cards := range [][]string{{"AH", "AD", "AS"}, {"KH", "KD", "KS"}} {
+		var code string
+		if next, code = apply(t, next, "p1", module.Action{Verb: VerbLayMeld, Cards: cards}); code != "" {
+			t.Fatalf("meld %v refused: %s", cards, code)
+		}
+	}
+	if s := mustDecode(t, next); len(s.Teams[0].Melds) != 2 || s.LaidThisTurn != 90 {
+		t.Fatalf("two melds = %d down, %d laid; want 2 and 90", len(s.Teams[0].Melds), s.LaidThisTurn)
+	}
+
+	next, code := apply(t, next, "p1", module.Action{Verb: VerbUndoLayMeld})
+	if code != "" {
+		t.Fatalf("first undo refused: %s", code)
+	}
+	if s := mustDecode(t, next); len(s.Teams[0].Melds) != 1 || s.Teams[0].Melds[0].Rank != "A" {
+		t.Errorf("the kings should have come back off, leaving the aces; got %+v", s.Teams[0].Melds)
+	}
+	next, code = apply(t, next, "p1", module.Action{Verb: VerbUndoLayMeld})
+	if code != "" {
+		t.Fatalf("second undo refused: %s", code)
+	}
+	if before, after := mustDecode(t, raw), mustDecode(t, next); !reflect.DeepEqual(before, after) {
+		t.Error("unwinding both melds did not restore the turn")
+	}
+	if _, code := apply(t, next, "p1", module.Action{Verb: VerbUndoLayMeld}); code != ErrNothingToUndo {
+		t.Errorf("a third undo = %q, want %q", code, ErrNothingToUndo)
+	}
+}
+
+// TestUndoLayMeldReopensAnOpeningInProgress is the bind this was written for,
+// and the one a player actually hits.
+//
+// The opening minimum is a turn's, so a lay that falls short of it goes down
+// and the turn cannot then end: applyDiscard refuses a turn that laid and did
+// not reach the floor. Until there was an undo that was a one-way door — having
+// started an opening you were committed to finishing it this turn, whatever
+// finishing it cost, because the only other move was one the engine refused.
+func TestUndoLayMeldReopensAnOpeningInProgress(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		s.Phase = phaseMeld
+		// Fifteen in fours against a floor of fifty. Allowed, because the aces
+		// can still reach it — which is exactly what commits the player.
+		s.Hands["p1"] = []string{"4H", "4D", "4S", "AH", "AD", "AS", "8C", "9C"}
+	})
+	next, code := apply(t, raw, "p1", module.Action{Verb: VerbLayMeld, Cards: []string{"4H", "4D", "4S"}})
+	if code != "" {
+		t.Fatalf("meld refused: %s", code)
+	}
+	if _, code := apply(t, next, "p1", module.Action{Verb: VerbDiscard, Cards: []string{"8C"}}); code != ErrInitialMeldNotMet {
+		t.Fatalf("discard after a short lay = %q, want %q", code, ErrInitialMeldNotMet)
+	}
+
+	undone, code := apply(t, next, "p1", module.Action{Verb: VerbUndoLayMeld})
+	if code != "" {
+		t.Fatalf("undo refused: %s", code)
+	}
+	if s := mustDecode(t, undone); s.LaidThisTurn != 0 || s.Teams[0].HasMelded {
+		t.Errorf("taking the opening back left laid=%d hasMelded=%v, want 0 and false",
+			s.LaidThisTurn, s.Teams[0].HasMelded)
+	}
+	// The whole point: the turn can now end the ordinary way.
+	if _, code := apply(t, undone, "p1", module.Action{Verb: VerbDiscard, Cards: []string{"8C"}}); code != "" {
+		t.Errorf("discard after taking the opening back refused: %s", code)
+	}
+}
+
+// TestUndoLayMeldRefusedOnceSomethingWasLaidOffOnIt keeps the undo exact rather
+// than best-effort, the way applyUndoLayOff's own size check does. Both stacks
+// now survive each other (see TestUndoLayOffSurvivesAMeld), so the guard, not
+// the ordering, is what stops a meld coming off the table with somebody else's
+// card still in it.
+func TestUndoLayMeldRefusedOnceSomethingWasLaidOffOnIt(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Teams[0].HasMelded = true
+		s.Hands["p1"] = []string{"AH", "AD", "AS", "AC", "8C", "9C"}
+	})
+	next, code := apply(t, raw, "p1", module.Action{Verb: VerbLayMeld, Cards: []string{"AH", "AD", "AS"}})
+	if code != "" {
+		t.Fatalf("meld refused: %s", code)
+	}
+	next, code = apply(t, next, "p1", module.Action{
+		Verb: VerbLayOff, Target: meldID(0, "A"), Cards: []string{"AC"},
+	})
+	if code != "" {
+		t.Fatalf("lay-off refused: %s", code)
+	}
+	if _, code := apply(t, next, "p1", module.Action{Verb: VerbUndoLayMeld}); code != ErrNothingToUndo {
+		t.Errorf("undoing a meld somebody laid off onto = %q, want %q", code, ErrNothingToUndo)
+	}
+	// And the way through is the other undo, in the order the cards arrived.
+	next, code = apply(t, next, "p1", module.Action{Verb: VerbUndoLayOff})
+	if code != "" {
+		t.Fatalf("undo lay-off refused: %s", code)
+	}
+	if _, code := apply(t, next, "p1", module.Action{Verb: VerbUndoLayMeld}); code != "" {
+		t.Errorf("undoing the meld once the lay-off came back = %q, want it allowed", code)
+	}
+}
+
+// TestUndoLayMeldIsOfferedWhileItStands pairs the offer list with the engine,
+// as TestUndoLayOffIsOfferedWhileItStands does: the control appears only in the
+// window the engine will honour, it names the meld that comes back off, and it
+// is last in the list so a bot reading in order reaches every real move first.
+func TestUndoLayMeldIsOfferedWhileItStands(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Hands["p1"] = []string{"AH", "AD", "AS", "8C", "9C"}
+	})
+	if o := offerFor(t, raw, "p1", OfferUndoLayMeld); o != nil {
+		t.Fatalf("nothing laid yet, but the undo was offered: %+v", o)
+	}
+	next, code := apply(t, raw, "p1", module.Action{Verb: VerbLayMeld, Cards: []string{"AH", "AD", "AS"}})
+	if code != "" {
+		t.Fatalf("meld refused: %s", code)
+	}
+	o := offerFor(t, next, "p1", OfferUndoLayMeld)
+	if o == nil {
+		t.Fatal("the undo should be offered while the meld still stands")
+	}
+	if !o.Enabled {
+		t.Errorf("the undo should be enabled, got whyNot=%q", o.WhyNot)
+	}
+	if o.LabelKey != "verb.undoMeld" {
+		t.Errorf("label key = %q, want verb.undoMeld", o.LabelKey)
+	}
+	if len(o.Facts) == 0 {
+		t.Error("the offer should name which meld comes back off")
+	}
+	offers, err := New().LegalActions(next, "p1")
+	if err != nil {
+		t.Fatalf("LegalActions: %v", err)
+	}
+	if last := offers[len(offers)-1]; last.ID != OfferUndoLayMeld {
+		t.Errorf("the undo should be last so a bot reaches every real move first, got %q", last.ID)
+	}
+}
+
+// TestWedgedOpeningIsToldTheWayBack is the refusal a player actually meets: a
+// greyed-out discard, and the "why" behind it.
+//
+// The state is built rather than played, because the engine tries hard not to
+// let a turn reach it — checkInitialMeld refuses a lay that puts the floor out
+// of reach, using meld.go's reachableValue. That bound errs low by design but
+// not always enough, which bot.go:471 has said in writing since it was written,
+// counting four dead turns against exactly this disagreement. When it does
+// happen, the discard must point at the way out rather than at more melding.
+func TestWedgedOpeningIsToldTheWayBack(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		s.Variation = "samba"
+		s.Phase = phaseMeld
+		// The position from the match that prompted this: a side well past
+		// seven thousand, so the floor is 150, holding 100 on the table and a
+		// hand with nothing left to add.
+		s.Teams[0].Score = 8065
+		s.Teams[0].Melds = []Meld{{
+			ID: meldID(0, "Q"), TeamID: 0, Kind: meldSet, Rank: "Q",
+			Cards: []string{"QD", "QH", "QS", "QC"},
+		}}
+		s.Teams[0].HasMelded = false
+		s.LaidThisTurn = 100
+		s.Hands["p1"] = []string{"5C", "7D", "8H", "KS"}
+		s.MeldsLaid = []MeldLaid{{
+			MeldID:            meldID(0, "Q"),
+			Cards:             []string{"QD", "QH", "QS", "QC"},
+			PriorHand:         []string{"QD", "QH", "QS", "QC", "5C", "7D", "8H", "KS"},
+			PriorLaidThisTurn: 60,
+			PriorHasMelded:    false,
+		}}
+	})
+
+	discard := offerFor(t, raw, "p1", OfferDiscard)
+	if discard == nil {
+		t.Fatal("no discard offer at all")
+	}
+	if discard.Enabled || discard.WhyNot != ErrInitialMeldNotMet {
+		t.Fatalf("discard = enabled:%v whyNot:%q, want disabled with %q",
+			discard.Enabled, discard.WhyNot, ErrInitialMeldNotMet)
+	}
+	// The gap and the floor both, so "50 points short" cannot be read as a rule
+	// that says 50.
+	if discard.Remedy == nil {
+		t.Fatal("no remedy on the refused discard")
+	}
+	if got := discard.Remedy.Params["n"]; got != 50 {
+		t.Errorf("remedy gap = %v, want 50", got)
+	}
+	if got := discard.Remedy.Params["floor"]; got != 150 {
+		t.Errorf("remedy floor = %v, want 150", got)
+	}
+	// Nothing left to meld, so the only move is back.
+	if discard.RemedyOfferID != OfferUndoLayMeld {
+		t.Errorf("remedy offer = %q, want %q", discard.RemedyOfferID, OfferUndoLayMeld)
+	}
+	undone, code := apply(t, raw, "p1", module.Action{Verb: VerbUndoLayMeld})
+	if code != "" {
+		t.Fatalf("undo refused: %s", code)
+	}
+	if s := mustDecode(t, undone); len(s.Teams[0].Melds) != 0 || s.LaidThisTurn != 60 {
+		t.Errorf("after the undo: %d melds and %d laid; want 0 and 60",
+			len(s.Teams[0].Melds), s.LaidThisTurn)
+	}
+}
+
+// TestUndoWindowClosesWhenTheTurnEnds is the other half: the window is a turn's,
+// and a discard is the move that ends one. Nothing a turn put on the table stays
+// takeable into somebody else's.
+func TestUndoWindowClosesWhenTheTurnEnds(t *testing.T) {
 	raw := laidOffTable(func(s *GameState) {
 		s.Hands["p1"] = []string{"KC", "9H", "9D", "9S", "8C", "7D"}
 	})
@@ -539,16 +834,13 @@ func TestUndoLayOffUnavailableOnceSomethingElseHappened(t *testing.T) {
 	if code != "" {
 		t.Fatalf("meld refused: %s", code)
 	}
-	if _, code := apply(t, next, "p1", module.Action{Verb: VerbUndoLayOff}); code != ErrNothingToUndo {
-		t.Errorf("undo after a meld = %q, want %q", code, ErrNothingToUndo)
+	next, code = apply(t, next, "p1", module.Action{Verb: VerbDiscard, Cards: []string{"7D"}})
+	if code != "" {
+		t.Fatalf("discard refused: %s", code)
 	}
-
-	offers, err := New().LegalActions(next, "p1")
-	if err != nil {
-		t.Fatalf("LegalActions: %v", err)
-	}
-	if o := module.FindOffer(offers, OfferUndoLayOff); o != nil {
-		t.Errorf("the undo offer should be gone once another move has happened, got %+v", o)
+	if s := mustDecode(t, next); len(s.LaidOff) != 0 || len(s.MeldsLaid) != 0 {
+		t.Errorf("both windows should be shut once the turn ended, got %d lay-offs and %d melds",
+			len(s.LaidOff), len(s.MeldsLaid))
 	}
 }
 

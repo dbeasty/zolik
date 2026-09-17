@@ -157,8 +157,8 @@ export const mt: Record<string, string> = {
   'canasta.rules.pileOntoMeld': "Jekk in-naħa tiegħek diġà għandha kombinazzjoni mhux lesta tal-valur tal-karta ta' fuq, tista' tieħu l-munzell tal-iskart kollu u żżid dik il-karta magħha — m'għandekx bżonn par f'idejk.",
   'canasta.rules.pileNoMeldCapture': "Kombinazzjoni li diġà qiegħda fuq il-mejda ma tistax tieħu l-munzell tal-iskart: biex teħdu trid tqabbel il-karta ta' fuq ma' żewġ karti minn idejk stess.",
   'canasta.rules.meldFloorBands':
-    "L-ewwel tniżżil tiegħek irid jilħaq minimu ta' punti li jitla' mal-iskor tiegħek: {negative} taħt iż-żero, {low} sa 1500, {mid} sa 3000, {high} 'il fuq minn hekk.",
-  'canasta.rules.meldFloorBandsFive': "L-ewwel kombinazzjoni tiegħek trid tilħaq minimu ta' punti li jogħla mal-iskor tiegħek: {negative} taħt iż-żero, {low} sa 1500, {mid} sa 3000, {high} sa 7000 u {top} 'il fuq minn hekk.",
+    "L-ewwel tniżżil tiegħek irid jilħaq minimu ta' punti li jitla' mal-iskor tiegħek: {negative} taħt iż-żero, {low} sa {lowUpTo}, {mid} sa {midUpTo}, {high} 'il fuq minn hekk.",
+  'canasta.rules.meldFloorBandsFive': "L-ewwel kombinazzjoni tiegħek trid tilħaq minimu ta' punti li jogħla mal-iskor tiegħek: {negative} taħt iż-żero, {low} sa {lowUpTo}, {mid} sa {midUpTo}, {high} sa {highUpTo} u {top} 'il fuq minn hekk.",
   'canasta.rules.turn':
     'Dawra hija ġbid wieħed lejn idek — iġbed mill-gozz jew ħu l-gozz kollu tal-iskart — imbagħad kemm trid melds, u fl-aħħar karta waħda mixħuta.',
   'canasta.rules.turnDiscard':
@@ -459,7 +459,7 @@ export const mt: Record<string, string> = {
   'canasta.remedy.captureFromHand': "Ħu l-gozz b'żewġ karti minn idek stess li jaqblu ma' {card}.",
   'canasta.remedy.needTwoMatching':
     "Għandek bżonn żewġ karti minn idek li jaqblu ma' {card} — inkella iġbed mill-gozz.",
-  'canasta.remedy.needMorePoints': 'L-ewwel meld tan-naħa tiegħek huwa nieqes {n} punti.',
+  'canasta.remedy.needMorePoints': 'L-ewwel meld tan-naħa tiegħek huwa nieqes {n} punti minn {floor}.',
   'canasta.remedy.openFirst': "Niżżel l-ewwel meld tan-naħa tiegħek qabel ma żżid karti ma' xi ħaġa.",
   'canasta.remedy.needCanastas':
     "In-naħa tiegħek għad għandha bżonn {n} canasta oħra ta' {size} karti qabel ma tista' toħroġ.",

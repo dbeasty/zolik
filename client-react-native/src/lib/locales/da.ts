@@ -153,8 +153,8 @@ export const da: Record<string, string> = {
   'canasta.rules.pileOntoMeld': 'Har din side allerede en ufærdig kombination af det øverste korts værdi, kan du tage hele kastebunken og lægge det kort til den — du behøver ikke et par på hånden.',
   'canasta.rules.pileNoMeldCapture': 'En kombination, der allerede ligger på bordet, kan ikke tage kastebunken: for at tage den skal du lægge to kort fra din egen hånd til det øverste kort.',
   'canasta.rules.meldFloorBands':
-    'Din første udlægning skal nå et pointminimum, der stiger med din stilling: {negative} under nul, {low} op til 1500, {mid} op til 3000, {high} derover.',
-  'canasta.rules.meldFloorBandsFive': 'Din første kombination skal nå et pointminimum, der stiger med din score: {negative} under nul, {low} op til 1500, {mid} op til 3000, {high} op til 7000 og {top} derover.',
+    'Din første udlægning skal nå et pointminimum, der stiger med din stilling: {negative} under nul, {low} op til {lowUpTo}, {mid} op til {midUpTo}, {high} derover.',
+  'canasta.rules.meldFloorBandsFive': 'Din første kombination skal nå et pointminimum, der stiger med din score: {negative} under nul, {low} op til {lowUpTo}, {mid} op til {midUpTo}, {high} op til {highUpTo} og {top} derover.',
   'canasta.rules.turn':
     'En tur er ét træk ind i hånden — fra bunken eller hele kastebunken — derefter de meldinger du vil lægge, og til sidst ét kort smidt ud.',
   'canasta.rules.turnDiscard': 'Turen slutter med et kast, så du skal altid have et kort til overs til det.',
@@ -448,7 +448,7 @@ export const da: Record<string, string> = {
   'canasta.remedy.captureFromHand': 'Tag kastebunken med to kort fra din egen hånd, der passer på {card}.',
   'canasta.remedy.needTwoMatching':
     'Du skal bruge to kort fra hånden, der passer på {card} — ellers træk fra bunken.',
-  'canasta.remedy.needMorePoints': 'Din sides første melding mangler {n} point.',
+  'canasta.remedy.needMorePoints': 'Din sides første melding mangler {n} point op til {floor}.',
   'canasta.remedy.openFirst': 'Læg din sides første melding, før du lægger kort til.',
   'canasta.remedy.needCanastas': 'Din side mangler {n} canasta á {size} kort, før den kan gå ud.',
   'canasta.remedy.keepACard': 'Behold et kort at smide ud med.',

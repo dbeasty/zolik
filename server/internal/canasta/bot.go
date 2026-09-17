@@ -46,6 +46,20 @@ type bot struct{}
 var _ module.Bot = bot{}
 
 func (b bot) Act(raw module.State, seat module.BotSeat, offers []module.ActionOffer) (module.Action, bool) {
+	// The undos are for people, and a bot must not see them.
+	//
+	// Not squeamishness about bots changing their minds — it is that they
+	// cannot. An undo restores the position exactly, and every path below is a
+	// function of the position, so a bot that undid a move would be handed the
+	// same state and make the same move again, forever. The one position where
+	// it would ever reach for one is the wedge MeldLaid exists for, and that is
+	// precisely the position it would oscillate in.
+	//
+	// What keeps a bot out of that wedge is opensTheAccount, which only ever
+	// starts an opening it has already found the whole of. This leaves bots
+	// exactly where they were before the undos existed, which is the point.
+	offers = withoutUndos(offers)
+
 	s, err := decode(raw)
 	if err != nil {
 		return module.ChooseAction(offers, nil)
@@ -277,6 +291,20 @@ func containsWild(cards []string) bool {
 }
 
 // --- the menu ----------------------------------------------------------------
+
+// withoutUndos drops the take-backs from a bot's view of the offer list. See
+// Act for why a bot must never be handed one.
+func withoutUndos(offers []module.ActionOffer) []module.ActionOffer {
+	out := make([]module.ActionOffer, 0, len(offers))
+	for _, o := range offers {
+		switch o.Verb {
+		case VerbUndoTakePile, VerbUndoLayOff, VerbUndoLayMeld:
+			continue
+		}
+		out = append(out, o)
+	}
+	return out
+}
 
 // menu is the enabled offers, kept whole rather than indexed by verb: this
 // module offers several take_pile and several lay_meld at once, and which one

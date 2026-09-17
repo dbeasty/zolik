@@ -157,8 +157,8 @@ export const nl: Record<string, string> = {
   'canasta.rules.pileOntoMeld': 'Heeft jouw partij al een onafgemaakte combinatie van de waarde van de bovenste kaart, dan mag je de hele aflegstapel nemen en die kaart eraan toevoegen — een paar in je hand is niet nodig.',
   'canasta.rules.pileNoMeldCapture': 'Een combinatie die al op tafel ligt kan de aflegstapel niet nemen: daarvoor moet je de bovenste kaart combineren met twee kaarten uit je eigen hand.',
   'canasta.rules.meldFloorBands':
-    'Je eerste leg moet een puntenminimum halen dat met je stand meestijgt: {negative} onder nul, {low} tot 1500, {mid} tot 3000, {high} daarboven.',
-  'canasta.rules.meldFloorBandsFive': 'Je eerste combinatie moet een puntenminimum halen dat met je score meestijgt: {negative} onder nul, {low} tot 1500, {mid} tot 3000, {high} tot 7000 en {top} daarboven.',
+    'Je eerste leg moet een puntenminimum halen dat met je stand meestijgt: {negative} onder nul, {low} tot {lowUpTo}, {mid} tot {midUpTo}, {high} daarboven.',
+  'canasta.rules.meldFloorBandsFive': 'Je eerste combinatie moet een puntenminimum halen dat met je score meestijgt: {negative} onder nul, {low} tot {lowUpTo}, {mid} tot {midUpTo}, {high} tot {highUpTo} en {top} daarboven.',
   'canasta.rules.turn':
     'Een beurt is één greep naar je hand — pakken van de stapel of de hele aflegstapel nemen — daarna de series die je wilt leggen, en tot slot één afgelegde kaart.',
   'canasta.rules.turnDiscard':
@@ -461,7 +461,7 @@ export const nl: Record<string, string> = {
     'Neem de aflegstapel met twee kaarten uit je eigen hand die op {card} passen.',
   'canasta.remedy.needTwoMatching':
     'Je hebt twee kaarten uit je hand nodig die op {card} passen — anders pak je van de stapel.',
-  'canasta.remedy.needMorePoints': 'De eerste serie van jouw kant komt {n} punten tekort.',
+  'canasta.remedy.needMorePoints': 'De eerste serie van jouw kant komt {n} punten tekort voor {floor}.',
   'canasta.remedy.openFirst': 'Leg eerst de openingsserie van jouw kant voordat je aanlegt.',
   'canasta.remedy.needCanastas':
     'Jouw kant heeft nog {n} canasta van {size} kaarten nodig om uit te kunnen gaan.',

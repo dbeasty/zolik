@@ -157,8 +157,8 @@ export const fi: Record<string, string> = {
   'canasta.rules.pileOntoMeld': 'Jos puolellasi on jo pöydässä keskeneräinen yhdistelmä päällimmäisen kortin arvoa, saat ottaa koko poistopinon ja lisätä sen kortin siihen — paria kädessä ei tarvita.',
   'canasta.rules.pileNoMeldCapture': 'Pöydässä jo oleva yhdistelmä ei voi ottaa poistopinoa: sen ottamiseen tarvitset päällimmäisen kortin pariksi kaksi korttia omasta kädestäsi.',
   'canasta.rules.meldFloorBands':
-    'Ensimmäisen laskusi on yllettävä pisterajaan, joka nousee pistetilanteesi mukana: {negative} alle nollan, {low} 1500:aan asti, {mid} 3000:een asti, {high} sen yli.',
-  'canasta.rules.meldFloorBandsFive': 'Ensimmäisen yhdistelmäsi on yllettävä pisterajaan, joka nousee pistetilanteesi mukana: {negative} alle nollan, {low} 1500 asti, {mid} 3000 asti, {high} 7000 asti ja {top} sen yli.',
+    'Ensimmäisen laskusi on yllettävä pisterajaan, joka nousee pistetilanteesi mukana: {negative} alle nollan, {low} {lowUpTo}:aan asti, {mid} {midUpTo}:een asti, {high} sen yli.',
+  'canasta.rules.meldFloorBandsFive': 'Ensimmäisen yhdistelmäsi on yllettävä pisterajaan, joka nousee pistetilanteesi mukana: {negative} alle nollan, {low} {lowUpTo} asti, {mid} {midUpTo} asti, {high} {highUpTo} asti ja {top} sen yli.',
   'canasta.rules.turn':
     'Vuoro on yksi siirto käteesi — nosto pakasta tai koko poistopakan ottaminen — sitten haluamasi sarjat ja lopuksi yksi poistettu kortti.',
   'canasta.rules.turnDiscard': 'Vuoro päättyy poistoon, joten sinulla on aina oltava siihen kortti liikaa.',
@@ -453,7 +453,7 @@ export const fi: Record<string, string> = {
     'Ota pakka kahdella omasta kädestäsi tulevalla kortilla, jotka sopivat korttiin {card}.',
   'canasta.remedy.needTwoMatching':
     'Tarvitset kädestäsi kaksi korttia, jotka sopivat korttiin {card} — muuten nosta pakasta.',
-  'canasta.remedy.needMorePoints': 'Puolesi ensimmäisestä sarjasta puuttuu {n} pistettä.',
+  'canasta.remedy.needMorePoints': 'Puolesi ensimmäisestä sarjasta puuttuu {n} pistettä {floor}:een.',
   'canasta.remedy.openFirst': 'Laske puolesi ensimmäinen sarja ennen kuin liität kortteja.',
   'canasta.remedy.needCanastas':
     'Puolesi tarvitsee vielä {n} kanastaa à {size} korttia ennen kuin se voi mennä ulos.',
