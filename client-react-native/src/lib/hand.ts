@@ -243,15 +243,28 @@ export function slotAtPoint(
 ): number | null {
   let best: number | null = null;
   let bestDistance = Infinity;
+  // The topmost box the point is inside, if it is inside any.
+  let inside: number | null = null;
 
   for (let i = 0; i < rects.length; i++) {
     const r = rects[i];
     if (!r) continue;
-    // Inside a card is unambiguous, and beats any centre-distance comparison
-    // with a neighbour that happens to be laid out closer to the pointer.
+    // Inside a card beats any centre-distance comparison with a neighbour
+    // that happens to be laid out closer to the pointer.
+    //
+    // *Which* card, when several contain the point, is the whole subtlety
+    // here: a hand long enough to be fanned has every card overlapping the
+    // one before it, so most points are inside three or four boxes at once.
+    // The answer is the last one — the cards are drawn in order and each is
+    // painted over the one before it, so the topmost box is the card the
+    // player can actually see under the pointer, and picking the first
+    // instead means dragging to the right and being told you are still over
+    // a card several places to the left.
     if (point.x >= r.x && point.x <= r.x + r.width && point.y >= r.y && point.y <= r.y + r.height) {
-      return i;
+      inside = i;
+      continue;
     }
+    if (inside !== null) continue;
     const dx = point.x - (r.x + r.width / 2);
     const dy = point.y - (r.y + r.height / 2);
     // Vertical distance is weighted, so a pointer below the fan prefers the
@@ -263,7 +276,7 @@ export function slotAtPoint(
       best = i;
     }
   }
-  return best;
+  return inside ?? best;
 }
 
 /**
@@ -341,7 +354,14 @@ export function insertionAtPoint(
   if (nearest === null) return null;
   const r = rects[nearest];
   if (!r) return null;
-  return point.x < r.x + r.width / 2 ? nearest : nearest + 1;
+  // Halfway across the part of this card the player can see, which in a fanned
+  // hand is the strip before the next card covers it rather than the whole
+  // box. Using the full width would put the tipping point under the card two
+  // places along, so the gap would open a card late all the way down the fan.
+  const next = rects[nearest + 1];
+  const visible =
+    next && next.y === r.y && next.x > r.x ? Math.min(r.width, next.x - r.x) : r.width;
+  return point.x < r.x + visible / 2 ? nearest : nearest + 1;
 }
 
 /**

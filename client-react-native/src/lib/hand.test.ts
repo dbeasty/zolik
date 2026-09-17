@@ -485,3 +485,53 @@ describe('toggleSelection', () => {
     });
   });
 });
+
+describe('a fanned hand, where the cards overlap', () => {
+  // Thirteen cards at a pitch of 23 and a width of 46 — a real phone-width
+  // fan, where every point is inside two or three boxes at once.
+  const PITCH = 23;
+  const WIDTH = 46;
+  const fan = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({ x: 10 + i * PITCH, y: 100, width: WIDTH, height: 64 }));
+
+  it('picks the card on top, not the first one the point happens to be inside', () => {
+    const rects = fan(13);
+    // Dead centre of the strip card 6 actually shows. Cards 5 and 6 both
+    // contain it; 6 is drawn over 5, so 6 is the one under the pointer.
+    const x = rects[6].x + PITCH / 2;
+    expect(slotAtPoint(rects, { x, y: 132 })).toBe(6);
+  });
+
+  it('reads the whole fan left to right, one card per strip', () => {
+    const rects = fan(13);
+    const read = rects.map((r) => slotAtPoint(rects, { x: r.x + PITCH / 2, y: 132 }));
+    expect(read).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+  });
+
+  it('still answers the last card over the part of it nothing covers', () => {
+    const rects = fan(13);
+    const last = rects[12];
+    expect(slotAtPoint(rects, { x: last.x + WIDTH - 2, y: 132 })).toBe(12);
+  });
+
+  it('opens the gap halfway across what you can see, not halfway across the card', () => {
+    const rects = fan(13);
+    // Just inside the left of card 6's visible strip: the gap goes before it.
+    expect(insertionAtPoint(rects, { x: rects[6].x + 2, y: 132 })).toBe(6);
+    // Just inside the right of the same strip: after it.
+    expect(insertionAtPoint(rects, { x: rects[6].x + PITCH - 2, y: 132 })).toBe(7);
+  });
+
+  it('is unchanged when the cards do not overlap', () => {
+    // The same thirteen at full pitch, where one box contains any given point.
+    const rects = Array.from({ length: 13 }, (_, i) => ({
+      x: 10 + i * 72,
+      y: 100,
+      width: 62,
+      height: 84,
+    }));
+    expect(slotAtPoint(rects, { x: rects[6].x + 30, y: 140 })).toBe(6);
+    expect(insertionAtPoint(rects, { x: rects[6].x + 5, y: 140 })).toBe(6);
+    expect(insertionAtPoint(rects, { x: rects[6].x + 57, y: 140 })).toBe(7);
+  });
+});
