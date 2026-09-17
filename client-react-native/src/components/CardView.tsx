@@ -318,19 +318,41 @@ export function CardView({
     );
   }
 
-  // Two faces beyond the plain one, and a stacked card is neither: a meld's
-  // overlapped cards show one corner and nothing else, so there is nothing
-  // for a pip arrangement or a court figure to be drawn in.
+  // A meld's overlapped cards show a strip of one edge and nothing else, so
+  // there is nowhere for a pip arrangement or a drawn court figure to go —
+  // these two faces sit out a stacked card and it falls back to a corner.
+  // The engraved deck is the exception, for the reason below it.
   const deluxe = skin.card.face === 'deluxe' && !stacked;
-  const vector = skin.card.face === 'vector' && !stacked;
   const rich = skin.card.face === 'rich' && !stacked;
+  /**
+   * The engraved deck draws a *stacked* card too, wherever there is room.
+   *
+   * A meld's cards overlap downwards, so each one shows a strip of its own
+   * top edge — and on this deck that strip is the card's own engraved index,
+   * because the index is part of the art rather than type laid over it. A
+   * fanned meld then looks like a fanned meld: the same card, cropped, rather
+   * than a rank and a suit typed into an empty corner.
+   *
+   * Not on a narrow screen. There the strip is 26px off a 60px card and the
+   * engraved index inside it is a few pixels of line work, where the plain
+   * corner is set at a size chosen to be read. Same trade as the default skin
+   * (see `defaultSkinFor`), same boundary.
+   */
+  const vector = skin.card.face === 'vector' && (!stacked || !metrics.narrow);
   // The gradient wash is the resting face only: a selected or joker card
   // shows its own solid fill, and painting the wash over it would hide the
   // one thing those fills are for.
   const washed =
     (rich || deluxe || vector) && !!skin.card.faceGradient && !selected && !d.isJoker;
 
-  const face = stacked ? (
+  const face = vector ? (
+    <VectorFace
+      card={d}
+      width={(compact ? metrics.card.compactWidth : metrics.card.width) - 2 * BORDER}
+      height={(compact ? metrics.card.compactHeight : metrics.card.height) - 2 * BORDER}
+      palette={skin.card.cardPalette ?? PRINTED}
+    />
+  ) : stacked ? (
     <View style={styles.corner}>
       <Text style={[styles.rank, d.isJoker && styles.jokerRank, d.isRed && styles.red]}>
         {d.rank}
@@ -348,13 +370,6 @@ export function CardView({
         <Text style={[styles.suitInline, d.isRed && styles.red]}>{d.suitSymbol}</Text>
       )}
     </View>
-  ) : vector ? (
-    <VectorFace
-      card={d}
-      width={(compact ? metrics.card.compactWidth : metrics.card.width) - 2 * BORDER}
-      height={(compact ? metrics.card.compactHeight : metrics.card.height) - 2 * BORDER}
-      palette={skin.card.cardPalette ?? PRINTED}
-    />
   ) : deluxe ? (
     <DeluxeFace
       card={d}
