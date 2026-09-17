@@ -38,6 +38,11 @@ export type DropSpot = {
   /** Legal placement positions for the dragged card, in rendered order. */
   positions?: string[];
   /**
+   * Where each of `positions` sits among the target group's cards — see
+   * `Placement.slots`. Same length and order, and absent together with it.
+   */
+  slots?: number[];
+  /**
    * Why letting go here would be refused. Undefined when it would be taken.
    *
    * A refused spot is still a spot. Before this field the list held only
@@ -198,15 +203,22 @@ export function dropSpotsFor(offers: ActionOffer[], cards: string[]): DropSpot[]
 
     const placements = placementsOf(offer);
     const spot: DropSpot = { offerId: offer.id, elementId, ready: cards.length >= need };
-    const positions = positionsForSelection(placements, cards);
-    if (positions.length) spot.positions = positions;
+    const placed = placementForSelection(placements, cards);
+    if (placed?.positions?.length) {
+      spot.positions = placed.positions;
+      // Only when the module gave one per position. A half-filled list would
+      // be worse than none: the board would draw the gap in the wrong place
+      // for the positions it did not cover.
+      if (placed.slots?.length === placed.positions.length) spot.slots = placed.slots;
+    }
     spots.push(spot);
   }
   return spots;
 }
 
 /**
- * Which ends of the target this exact selection may be let go on.
+ * The placement this exact selection *is* — which is what says which ends of
+ * the target it may be let go on, and whereabouts in it each end sits.
  *
  * A placement's `positions` describe *its own* submission: for an ordinary
  * card that is the card by itself, and for one with `requires` it is that card
@@ -222,18 +234,18 @@ export function dropSpotsFor(offers: ActionOffer[], cards: string[]): DropSpot[]
  * Saying nothing is what the module already does when a submission grows a run
  * at both ends, and the server treats an absent position as "no constraint".
  */
-function positionsForSelection(placements: Placement[], cards: string[]): string[] {
+function placementForSelection(placements: Placement[], cards: string[]): Placement | undefined {
   const picked = new Set(cards);
-  if (picked.size !== cards.length) return []; // a duplicate names no one card
+  if (picked.size !== cards.length) return undefined; // a duplicate names no one card
   for (const p of placements) {
     if (!picked.has(p.card) || !p.positions?.length) continue;
     for (const way of [p.requires ?? [], ...(p.alternatives ?? [])]) {
       const submission = new Set([p.card, ...way]);
       if (submission.size !== picked.size) continue;
-      if ([...picked].every((c) => submission.has(c))) return p.positions;
+      if ([...picked].every((c) => submission.has(c))) return p;
     }
   }
-  return [];
+  return undefined;
 }
 
 /**

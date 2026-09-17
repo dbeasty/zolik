@@ -89,7 +89,7 @@ type Props = {
    * this file draws the slice, it does not need to know what either end of
    * it is called.
    */
-  hoveredPosition?: { index: number; count: number } | null;
+  hoveredPosition?: { index: number; count: number; slot: number | null } | null;
   /**
    * Element ids that may be resolved with a press rather than a drag —
    * standing in for a drag when what to send has already been chosen and only
@@ -324,6 +324,18 @@ export function ZoneView({
             // hovered — `hoveredPosition` is a fact about `hoveredDrop`, not
             // about every group on the board.
             const hoveredSlice = hoveredDrop === groupId ? hoveredPosition : null;
+            // Where among this group's cards the one in flight would land, if
+            // the module said. Clamped, because a meld can gain a card from
+            // someone else between the hover and this render, and a gap drawn
+            // past the end of the stack is worse than none.
+            const hoveredSlot =
+              hoveredSlice?.slot != null
+                ? Math.max(0, Math.min(hoveredSlice.slot, g.cards.length))
+                : null;
+            // How far apart consecutive cards in this stack are drawn: the
+            // corner each one leaves showing while the meld is closed, and a
+            // whole card once it has been tapped open.
+            const stackStep = groupOpen ? stackedCardBox(metrics) : metrics.stackedCorner;
             return (
               <View
                 key={g.id}
@@ -373,7 +385,25 @@ export function ZoneView({
                     {g.cards.map((c, i) => (
                       <View
                         key={`${g.id}-${c}-${i}`}
-                        style={i > 0 && !groupOpen && styles.stackedOverlap}
+                        style={[
+                          i > 0 && !groupOpen && styles.stackedOverlap,
+                          // Stepping down out of the way, so the gap this card
+                          // would be pushed along by is a gap you can see.
+                          // Same move the hand makes and for the same reason
+                          // (see `HandZone`'s `splitFor`): a transform, so the
+                          // group's own box — which is what the drop is
+                          // hit-tested against — does not stir.
+                          hoveredSlot !== null && i >= hoveredSlot && styles.steppedAside,
+                        ]}
+                        // The card this box holds, said out loud. A meld's
+                        // cards had no label of their own: a screen reader
+                        // reached a run and was told only that it was a
+                        // group, and nothing outside the app could name the
+                        // cards in it either. Same spelling the hand uses —
+                        // the card code — so one vocabulary describes the
+                        // whole board.
+                        accessible
+                        accessibilityLabel={c}
                       >
                         {/* Keyed by card and position, so a card laid off
                             onto this group mounts fresh — and the mount is
@@ -385,6 +415,18 @@ export function ZoneView({
                         </SettleIn>
                       </View>
                     ))}
+                    {/* The hole itself, drawn inside the stack so its place is
+                        counted in cards rather than in the group's padding.
+                        Absolute, so it adds nothing to the group's measured
+                        size — the same discipline every other drop-state style
+                        here keeps. */}
+                    {hoveredSlot !== null ? (
+                      <View
+                        pointerEvents="none"
+                        testID={`group-slice-${g.id}`}
+                        style={[styles.hole, { top: hoveredSlot * stackStep }]}
+                      />
+                    ) : null}
                   </View>
                 </Pressable>
                 {(g.badgeKeys ?? []).map((b) => (
@@ -402,13 +444,18 @@ export function ZoneView({
                     onPress={(e) => onPressDrop?.(groupId, e.nativeEvent.pageY)}
                   />
                 ) : null}
-                {/* Which of more than one place a card in flight would land
-                    if let go right now — a slice of the group's own height,
-                    since the group is drawn as a stack running top to bottom
-                    (see the comment above). Purely a highlight: it changes
-                    which slice is tinted, never the group's own size, the
-                    same discipline `styles.live`/`hovered` already keep. */}
-                {hoveredSlice ? (
+                {/* The place a card in flight would land if let go right now.
+
+                    Drawn as a card-shaped hole in the stack, in the gap the
+                    cards below it have just stepped out of — the same answer
+                    the hand gives, in the same shape, so "this is where it
+                    goes" looks the same wherever a card is being put down.
+
+                    Where the module said nothing about the place (a set has
+                    no ends; an older server sends no `slots`) it falls back to
+                    tinting the band of the group's height that this position
+                    stands for, which is all the ordinal can honestly say. */}
+                {hoveredSlot !== null ? null : hoveredSlice && hoveredSlice.count > 1 ? (
                   <View
                     pointerEvents="none"
                     testID={`group-slice-${g.id}`}
@@ -544,6 +591,18 @@ function StackBack({ count, compact, metrics }: { count: number; compact?: boole
   );
 }
 
+/**
+ * How tall one card in a meld's stack stands, ring and all.
+ *
+ * The overlap that closes a stack, the step a card takes aside to show a drop
+ * spot, and the hole that opens where it stepped from are all this same
+ * number, so it is written once. Two of them disagreeing by a pixel is a gap
+ * that does not line up with the cards either side of it.
+ */
+function stackedCardBox(m: Metrics): number {
+  return m.card.compactHeight + 2 * (m.card.ringPadding + m.card.ringBorder);
+}
+
 function zoneStyles(m: Metrics, s: Skin) {
   const colors = s.colors;
   const dropArmed = s.dropArmed;
@@ -581,7 +640,25 @@ function zoneStyles(m: Metrics, s: Skin) {
     stackedCards: { flexDirection: 'column', alignItems: 'flex-start', marginTop: 6 },
     // Pulls every card but the first up into the one above it, leaving just
     // its top corner (rank + suit) showing.
-    stackedOverlap: { marginTop: -(m.card.compactHeight + ringOuterHeight - m.stackedCorner) },
+    stackedOverlap: { marginTop: -(stackedCardBox(m) - m.stackedCorner) },
+    // A card standing out of the way of the drop spot, by exactly the card's
+    // own height, so what opens behind it is a card-shaped space and not a
+    // slit. A transform: the group's measured box, which the drop is
+    // hit-tested against, must not move — same rule as `live` and `hovered`
+    // below, kept by drawing elsewhere rather than by not moving at all.
+    steppedAside: { transform: [{ translateY: stackedCardBox(m) }] },
+    // The space itself. Outlined in the skin's drop colour, the same dashed
+    // card-shaped hole the hand opens, and absolutely positioned inside the
+    // stack so it adds nothing to what anything measures.
+    hole: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      height: stackedCardBox(m),
+      borderRadius: 6,
+      borderWidth: 2,
+      ...dropArmed,
+    },
     // Row + wrap rather than one meld per line: stackedCards narrows each
     // group to about one card's width, so several now fit across before
     // wrapping instead of each claiming a full-width row on its own.

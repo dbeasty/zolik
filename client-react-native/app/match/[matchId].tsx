@@ -177,14 +177,22 @@ export default function MatchScreen() {
   // an answer to a question a player just asked, and the last one asked is
   // the one they meant.
   const [explaining, setExplaining] = useState<Refusal | null>(null);
-  // Which of `hoveredDrop`'s ordered positions the drag is currently over,
-  // for a target with a choice of more than one — a card carried over a run
-  // says up front which end it would extend, rather than only after it is
-  // let go of. An index into the offer's own `positions` list, not the
-  // position's name, so the shell that renders it (`ZoneView`) never has to
-  // know what "front" or "end" means — only which of N ordered slices this
-  // is, the same "first is drawn first" contract `positions` already keeps.
-  const [hoveredPosition, setHoveredPosition] = useState<{ index: number; count: number } | null>(null);
+  // Which of `hoveredDrop`'s ordered positions the drag is currently over — a
+  // card carried over a run says up front which end it would extend, rather
+  // than only after it is let go of.
+  //
+  // An index into the offer's own `positions` list, not the position's name,
+  // so the shell that renders it (`ZoneView`) never has to know what "front"
+  // or "end" means. `slot` is the same answer as a place rather than an
+  // ordinal — where among the group's cards this one would land — which is
+  // what lets the meld come apart to show the gap, the way the hand does.
+  // The module supplies it (see `Placement.slots`); null when it did not, and
+  // then the position is only shaded, never opened.
+  const [hoveredPosition, setHoveredPosition] = useState<{
+    index: number;
+    count: number;
+    slot: number | null;
+  } | null>(null);
   // A folded control in the offer bar was pressed but the current selection
   // does not say which of its targets was meant. Rather than guess, the
   // targets it could still mean light up the same way a drag lights them up,
@@ -562,16 +570,28 @@ export default function MatchScreen() {
 
     // Which of the target's ordered positions this hover currently means,
     // shown live so a player can see where a card will land before letting
-    // go of it, rather than finding out only after. `null` for a target with
-    // no choice to preview (one legal position, or none), or nothing hovered.
+    // go of it, rather than finding out only after. `null` when nothing is
+    // hovered, or the target has no positions at all.
+    //
+    // A single position counts. It used to be dropped — with one answer there
+    // was nothing to *choose* between, and a shaded band covering the whole
+    // meld said no more than the meld's own highlight already did. That stops
+    // being true once the group can come apart to show the gap: one legal
+    // place is still a place, and "the 6 goes on the front of this run" is
+    // exactly what a player wants to see before they let go.
     const spot = over ? spots.find((s) => s.elementId === over) : undefined;
     const rect = over ? drops.rectFor(over) : undefined;
     const positions = spot?.positions;
     const resolved = spot && rect ? positionAt(positions, y, rect) : undefined;
     const index = resolved && positions ? positions.indexOf(resolved) : -1;
-    const next = positions && positions.length > 1 && index >= 0 ? { index, count: positions.length } : null;
+    const next =
+      positions?.length && index >= 0
+        ? { index, count: positions.length, slot: spot?.slots?.[index] ?? null }
+        : null;
     setHoveredPosition((prev) =>
-      prev?.index === next?.index && prev?.count === next?.count ? prev : next,
+      prev?.index === next?.index && prev?.count === next?.count && prev?.slot === next?.slot
+        ? prev
+        : next,
     );
   };
 
@@ -1347,7 +1367,7 @@ function Section({
   sourceDrops?: ReadonlySet<string>;
   refusedDrops?: ReadonlySet<string>;
   hoveredDrop?: string | null;
-  hoveredPosition?: { index: number; count: number } | null;
+  hoveredPosition?: { index: number; count: number; slot: number | null } | null;
   pressableDrops?: ReadonlySet<string>;
   onPressDrop?: (elementId: string, pageY: number) => void;
   armableGroups?: ReadonlySet<string>;
