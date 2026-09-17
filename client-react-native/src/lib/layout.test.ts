@@ -7,41 +7,38 @@ import {
 } from '@/src/lib/layout';
 
 describe('metricsFor', () => {
-  it('is the 52x72 baseline card at laptop width', () => {
-    const m = metricsFor(900);
-    expect(m.scale).toBe(1);
-    expect(m.narrow).toBe(false);
-    expect(m.roomy).toBe(false);
-    expect(m.card.width).toBe(52);
-    expect(m.card.height).toBe(72);
+  it('is the 52x72 baseline card on a phone', () => {
+    const m = metricsFor(500);
+    expect(m.narrow).toBe(true);
+    expect(m.card.width).toBe(46);
+    expect(m.card.height).toBe(63);
   });
 
-  it('is still scale 1 right at the desktop breakpoint', () => {
-    expect(metricsFor(768).scale).toBe(1);
+  it('is past the narrow layout right at the desktop breakpoint', () => {
     expect(metricsFor(768).narrow).toBe(false);
+    expect(metricsFor(767).narrow).toBe(true);
   });
 
-  it('grows the card step by step as the screen gets bigger', () => {
-    const laptop = metricsFor(900);
-    const big = metricsFor(1280);
-    const huge = metricsFor(1600);
-    expect(big.card.width).toBeGreaterThan(laptop.card.width);
-    expect(huge.card.width).toBeGreaterThan(big.card.width);
-    expect(huge.roomy).toBe(true);
-  });
-
-  // Nothing below 1280 moves: a laptop and a phone draw exactly what they
-  // drew before any of this, which is what keeps this a change to big screens
-  // rather than a change to everyone's.
-  it('leaves every width below the first growth step alone', () => {
-    // The first step is at 1024 now rather than 1280: closing the hand is
-    // what gave that band something to spend.
-    for (const w of [768, 900, 1023]) {
-      const m = metricsFor(w);
-      expect(m.scale).toBe(1);
-      expect(m.card.width).toBe(52);
-      expect(m.roomy).toBe(false);
+  // Every desktop width takes the card it can hold, and stops at a card.
+  it('gives a desktop the biggest card its row can hold', () => {
+    const small = metricsFor(768);
+    const big = metricsFor(1024);
+    expect(big.card.width).toBeGreaterThan(small.card.width);
+    expect(big.roomy).toBe(true);
+    // And past the point the board stops widening, every screen is the same
+    // screen as far as a card is concerned.
+    for (const w of [1440, 1600, 1920, 2560, 3440]) {
+      expect(`${w}: ${metricsFor(w).card.width}`).toBe(`${w}: ${metricsFor(1440).card.width}`);
     }
+  });
+
+  // A phone draws exactly what it drew before any of this. Its constraint was
+  // never the width of its row, so there is nothing for the row to give it.
+  it('leaves every phone width alone', () => {
+    expect(metricsFor(375).card.width).toBe(36);
+    expect(metricsFor(414).card.width).toBe(41);
+    expect(metricsFor(600).card.width).toBe(46);
+    for (const w of [320, 375, 414, 600, 767]) expect(metricsFor(w).narrow).toBe(true);
   });
 
   // The rule every growth step is still set by, and the only thing that
@@ -87,7 +84,7 @@ describe('metricsFor', () => {
 
   // Cards are pictures of objects and grow with the screen; text is text.
   it('grows the cards faster than the words', () => {
-    const laptop = metricsFor(900);
+    const laptop = metricsFor(500);
     const huge = metricsFor(1600);
     const cardGrowth = huge.card.width / laptop.card.width;
     const textGrowth = huge.panel.titleFont / laptop.panel.titleFont;

@@ -175,24 +175,77 @@ const BASE_STACKED_CORNER = 26;
  * push the controls off the bottom of the screen. Nothing about fanning a
  * hand gives a phone more height.
  */
+/** How much of a card still shows once the next one covers it. */
+const PEEK_OF_CARD = 0.38;
+
+/**
+ * The parts of a slot that do not grow with the card: the selection ring
+ * `CardView` draws, and the border of the slot `HandZone` wraps it in. Named
+ * here because `slotPitch` is built from the same pieces and the two must not
+ * drift — the first time that arithmetic was done by eye the top of the scale
+ * came out a step too high and the thirteenth card wrapped.
+ */
+const SLOT_FIXED =
+  2 * (BASE_CARD.ringPadding + BASE_CARD.ringBorder) + 2 * BASE_CARD.ringBorder;
+
+/** A full Žolíky deal: the longest hand this client draws. */
+const FULL_HAND = 13;
+
+/**
+ * How much room the hand's row has at a given window width.
+ *
+ * The panel's own padding grows with the chrome scale, which is derived from
+ * the card scale, which is what this is used to work out — so the largest
+ * padding of the range is taken and the circle broken. It varies by five
+ * pixels end to end, which is not worth a fixed point iteration.
+ */
+function rowRoomAt(width: number): number {
+  const board = Math.min(width, BOARD_MAX_WIDTH);
+  return board - 2 * SCREEN_PADDING - 2 * Math.round(BASE_PANEL.padding * 1.33);
+}
+
+/**
+ * How big a card is, given how much room there is for one.
+ *
+ * Solved rather than stepped. The rule has not changed since the first card
+ * was drawn — thirteen of them fit across the board in one row — but for a
+ * long time it was applied to a hand laid out side by side, so the card was
+ * whatever size let thirteen of them sit in a row without touching. That is
+ * backwards: given the choice, a bigger card overlapping its neighbour beats
+ * a smaller one that does not, because what you are looking at is a card and
+ * what you lose to the overlap is the part of it you were not reading.
+ *
+ * So the size comes from the closed hand. Thirteen closed cards cost twelve
+ * pitches and one whole slot, and every part of both is either a multiple of
+ * the scale or a constant, so the largest scale the row can take falls out of
+ * one division rather than out of a table of guesses.
+ *
+ * Two things cap it:
+ *
+ *  - `FULL_CARD`, because past a point a bigger card is just a bigger card.
+ *    The board stops widening at 1400 anyway, so every monitor past that has
+ *    the same row and would otherwise get the same answer forever.
+ *  - Below 768, the old table. A phone's constraint was never the width of
+ *    its row — the breakpoints under there were set against a real 375×812
+ *    screen, where a hand cost 407 of 716 usable pixels — and a fanned hand
+ *    gives nobody more height. Working the width out and ignoring the height
+ *    would hand a phone a card half again as tall and push the controls off
+ *    the bottom of the screen.
+ */
 function scaleFor(width: number): number {
-  if (width >= 1600) return FULL_CARD;
-  if (width >= 1280) return 1.7;
-  // 1024 used to be the width with "nothing to spend", because thirteen cards
-  // at scale 1 already needed 930 of its 976 usable pixels. Closing the hand
-  // is what freed that up, and it is the same argument as the steps above:
-  // there is no reason to keep a card small so that thirteen of them can sit
-  // side by side, when they are not going to sit side by side.
-  if (width >= 1024) return 1.35;
-  // Below 1024 the card stays where it was. The constraint on a laptop this
-  // narrow — and on every phone under it — was never the width of the row; it
-  // is the height the whole board has to live in, and a fanned hand does not
-  // give anybody more height.
-  if (width >= 768) return 1;
+  if (width >= 768) {
+    const perScale = (FULL_HAND - 1) * BASE_CARD.width * PEEK_OF_CARD + BASE_CARD.width + BASE_CARD.gap;
+    const largest = (rowRoomAt(width) - SLOT_FIXED) / perScale;
+    // Rounded down to a tenth: a card is a size, not a measurement, and two
+    // windows a pixel apart should not draw cards a pixel apart.
+    return Math.min(FULL_CARD, Math.floor(largest * 10) / 10);
+  }
   if (width >= 480) return 0.88;
   if (width >= 380) return 0.78;
   return 0.7;
 }
+
+
 
 /**
  * The widest the board is drawn, whatever the window does past it. 1400 is
