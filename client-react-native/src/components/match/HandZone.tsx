@@ -109,6 +109,25 @@ type Measurable = {
 
 type Offset = { dx: number; dy: number };
 
+/**
+ * Where a card has to sit for the pointer to be in the middle of it.
+ *
+ * A card used to travel by the distance the pointer had travelled, which kept
+ * the finger wherever on the card it first landed. In a laid-out hand that was
+ * always somewhere reasonable. In a closed one it is not: the only part of a
+ * card you can take hold of is the strip down its left edge, so every drag
+ * began with the pointer pinned to the edge of a card hanging a hundred pixels
+ * off to the right — you were dragging a card you were not under.
+ *
+ * So a card is carried by its middle. The offset is the gap between the
+ * pointer and the centre of the box the card came from, which makes the card
+ * settle under the finger as the drag starts and stay there.
+ */
+function centredOn(from: Rect | undefined, x: number, y: number): Offset {
+  if (!from) return { dx: 0, dy: 0 };
+  return { dx: x - (from.x + from.width / 2), dy: y - (from.y + from.height / 2) };
+}
+
 export function HandZone({
   zone,
   slots,
@@ -237,7 +256,11 @@ export function HandZone({
     heldRef.current = index;
     draggedRef.current = true;
     setHeld(index);
-    setOffset({ dx: 0, dy: 0 });
+    // Already centred, from where the finger went down. A drag only activates
+    // once the pointer has moved its threshold, so the first `hover` corrects
+    // this within a few pixels — but starting at the old zero would put one
+    // frame of an uncentred card on screen first.
+    setOffset(centredOn(rects.current[index], startPoint.current.x, startPoint.current.y));
     startRef.current?.(index);
   }, []);
 
@@ -255,9 +278,7 @@ export function HandZone({
   const hover = useCallback(
     (absoluteX: number, absoluteY: number) => {
       const index = heldRef.current;
-      const dx = absoluteX - startPoint.current.x;
-      const dy = absoluteY - startPoint.current.y;
-      if (index !== null) setOffset({ dx, dy });
+      if (index !== null) setOffset(centredOn(rects.current[index], absoluteX, absoluteY));
 
       // Where the *pointer* is, not where the middle of the card it is
       // carrying has ended up.
