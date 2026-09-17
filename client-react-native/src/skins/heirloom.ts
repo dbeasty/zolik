@@ -4,12 +4,12 @@ import type { Skin } from '@/src/skins/types';
  * A real deck on a real table.
  *
  * `casino` is a card *room* — green felt, gold trim, a look built out of the
- * furniture. This one is built out of the deck: ivory stock with the pips
- * where a printer would put them (`face: 'deluxe'`), court figures mirrored
- * about the waist, and a navy back with a gold frame. The table under it is
- * deliberately quieter than the casino's — a deep blue-slate baize with the
- * lamp hung low — because a busier felt competes with the cards, and here the
- * cards are the thing worth looking at.
+ * furniture. This one is built out of the deck: ivory stock carrying a real
+ * engraved deck (`face: 'vector'`, restated in the palette below), and a navy
+ * back with a gold frame. The table under it is deliberately quieter than the
+ * casino's — a deep blue-slate baize with the lamp hung low — because a busier
+ * felt competes with the cards, and here the cards are the thing worth looking
+ * at.
  *
  * Palette notes, so nobody has to re-derive them:
  * - The baize is blue rather than green so the two felts are told apart at a
@@ -18,8 +18,9 @@ import type { Skin } from '@/src/skins/types';
  * - Ink is a true near-black (`#1b1b1f`) and the red a printer's vermilion
  *   (`#c8102e`, the red actually used on playing cards) rather than a screen
  *   red. On ivory stock a screen red reads as a warning light.
- * - `courtAccent` is the one colour a card carries beyond its ink: the gold a
- *   crown, a cap band and a jester's bells are drawn in.
+ * - `cardPalette` is what the deck's five inks are here. The gold in it is
+ *   the one a crown and a jester's bells are engraved in; it is a shade
+ *   deeper than the panel gold so a crown does not glow off the stock.
  * - Gold is the trim, blue (`accent`) is the live drop target. Same division
  *   of labour as `casino`, and for the same reason — gold already means
  *   "armed", so a target needs a colour nothing else is using.
@@ -65,14 +66,28 @@ export const heirloom: Skin = {
     },
   },
   card: {
-    face: 'deluxe',
+    face: 'vector',
+    // The deck restated in this table's palette: its black line work becomes
+    // the skin's near-black ink, its pillar-box red the printer's vermilion
+    // above, and its crowns the same gold the panels are trimmed in. `stock`
+    // is the ivory the card is already painted, so the places the art punches
+    // a hole in a figure show the card rather than a white patch on it.
+    //
+    // Delete these five lines and the deck reverts to the colours it was
+    // printed in — which is a real look, just a colder one than this table.
+    cardPalette: {
+      ink: '#1b1b1f',
+      red: '#c8102e',
+      gold: '#c69a3f',
+      navy: '#2b4a6e',
+      stock: '#fbf7ec',
+    },
     // Barely a gradient: enough that the stock is not a flat fill, not enough
     // that a pip sits on a different colour at the top of the card than at
     // the bottom.
     faceGradient: ['#fffdf6', '#f2ecdb'],
     ink: '#1b1b1f',
     red: '#c8102e',
-    courtAccent: '#c69a3f',
     selectedFace: '#fff6d8',
     jokerFace: '#fbf4e2',
     shadow: true,

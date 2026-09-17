@@ -15,6 +15,24 @@
  * discipline (`Panel`, `ZoneView`, `CardView`) extends to skins whole.
  */
 
+/**
+ * What the vector deck's five inks are on a given skin.
+ *
+ * The whole deck — fifty-two faces and a joker — is drawn in exactly these
+ * five flat colours, which is what makes restating it in a skin's palette a
+ * table of five strings rather than a second set of artwork. The names are
+ * the deck's jobs, not its hexes: `gold` is crowns and filigree, `navy` the
+ * line work in the courts' robes, `stock` the colour the art punches back out
+ * of a figure where the card should show through.
+ */
+export type CardPalette = {
+  ink: string;
+  red: string;
+  gold: string;
+  navy: string;
+  stock: string;
+};
+
 /** The palette every component reads. Same keys as the original `theme.colors`. */
 export type SkinColors = {
   bg: string;
@@ -97,8 +115,13 @@ export type Skin = {
      * typed as a font glyph — see `src/components/cards/DeluxeFace.tsx`.
      * Still only a *look*: a deluxe face occupies the identical box a plain
      * one does, because the box is the metrics' business and never a skin's.
+     * 'vector' is a real printed deck — engraved court figures, the deck's
+     * own pips and indices — drawn from vendored LGPL art rather than from
+     * anything this repo draws by hand. See
+     * `src/components/cards/VectorFace.tsx`, and `cardPalette` below for the
+     * one thing a skin still gets to say about it.
      */
-    face: 'plain' | 'rich' | 'deluxe';
+    face: 'plain' | 'rich' | 'deluxe' | 'vector';
     /** Top-to-bottom wash across a rich face; ignored for 'plain'. */
     faceGradient?: [string, string];
     ink: string;
@@ -110,6 +133,21 @@ export type Skin = {
      * court leaves it at.
      */
     courtAccent?: string;
+    /**
+     * What the vector deck's five inks are on this skin; ignored by every
+     * other face.
+     *
+     * Omit it and the deck is drawn as it was printed — black line work,
+     * pillar-box red, the courts' gold and navy. Give it, and the same
+     * engraving is restated in the skin's own palette, which is how an ivory
+     * Heirloom table gets a deck that belongs on it without a second copy of
+     * the art existing anywhere.
+     *
+     * Colours only, like everything else a skin declares. There is no entry
+     * here that can move a line, because the paths are the deck's and a skin
+     * has never been allowed to change a shape or a size.
+     */
+    cardPalette?: CardPalette;
     selectedFace: string;
     jokerFace: string;
     /** Cards cast a small shadow, and the one being dragged casts a bigger one. */

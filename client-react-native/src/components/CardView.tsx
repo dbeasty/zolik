@@ -5,6 +5,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { CardBack } from '@/src/components/CardBack';
 import { DeluxeFace } from '@/src/components/cards/DeluxeFace';
 import { Suit } from '@/src/components/cards/Suit';
+import { VectorFace } from '@/src/components/cards/VectorFace';
+import { PRINTED } from '@/src/cards/vector/faces';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
 import { parseCard } from '@/src/lib/cards';
@@ -66,6 +68,16 @@ type Props = {
 
 /** How much of a card's own side shows below and to the right of it. */
 const EDGE = 2;
+
+/**
+ * The faces that draw their suits instead of typing them.
+ *
+ * A card stacked in a meld shows one corner and nothing else, so it gets a
+ * rank and a suit rather than a face. Under these two the suit beside it is
+ * the drawn shape, not the font's `♠` — so the same card looks the same in a
+ * meld as it does in hand, which is the only reason this list exists.
+ */
+const DRAWS_ITS_SUITS: readonly string[] = ['deluxe', 'vector'];
 
 /**
  * The card's own border, on every face. Named because a face drawn *inside*
@@ -303,11 +315,13 @@ export function CardView({
   // overlapped cards show one corner and nothing else, so there is nothing
   // for a pip arrangement or a court figure to be drawn in.
   const deluxe = skin.card.face === 'deluxe' && !stacked;
+  const vector = skin.card.face === 'vector' && !stacked;
   const rich = skin.card.face === 'rich' && !stacked;
   // The gradient wash is the resting face only: a selected or joker card
   // shows its own solid fill, and painting the wash over it would hide the
   // one thing those fills are for.
-  const washed = (rich || deluxe) && !!skin.card.faceGradient && !selected && !d.isJoker;
+  const washed =
+    (rich || deluxe || vector) && !!skin.card.faceGradient && !selected && !d.isJoker;
 
   const face = stacked ? (
     <View style={styles.corner}>
@@ -317,7 +331,7 @@ export function CardView({
       {/* The one corner a stacked meld shows. Under the deluxe skin it is the
           drawn suit rather than the font's, so a card half-hidden in a meld
           and the same card in hand are printed from the same shape. */}
-      {skin.card.face === 'deluxe' && !d.isJoker ? (
+      {DRAWS_ITS_SUITS.includes(skin.card.face) && !d.isJoker ? (
         <Suit
           suit={d.suit}
           size={metrics.card.suitInlineFont}
@@ -327,6 +341,13 @@ export function CardView({
         <Text style={[styles.suitInline, d.isRed && styles.red]}>{d.suitSymbol}</Text>
       )}
     </View>
+  ) : vector ? (
+    <VectorFace
+      card={d}
+      width={(compact ? metrics.card.compactWidth : metrics.card.width) - 2 * BORDER}
+      height={(compact ? metrics.card.compactHeight : metrics.card.height) - 2 * BORDER}
+      palette={skin.card.cardPalette ?? PRINTED}
+    />
   ) : deluxe ? (
     <DeluxeFace
       card={d}
