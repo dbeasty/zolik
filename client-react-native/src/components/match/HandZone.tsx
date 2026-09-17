@@ -775,6 +775,10 @@ function handStyles(m: Metrics, s: Skin, pitch: number) {
   const dropArmed = s.dropArmed;
   // What each card gives up to the one before it. Zero while the hand fits.
   const tuck = m.card.slotPitch - pitch;
+  // How far a picked card stands out of the row. A tenth of the card, so it
+  // is the same gesture whatever size the cards are drawn at, and never less
+  // than the 10px it was when a card was 72 tall.
+  const lift = Math.max(10, Math.round(m.card.height * 0.1));
   return StyleSheet.create({
     autoArrange: { color: colors.accent, fontSize: m.panel.bodyFont, fontWeight: '600' },
     accessory: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -792,7 +796,16 @@ function handStyles(m: Metrics, s: Skin, pitch: number) {
     // that total (`slotPitch`) is what decides how big a card is allowed to
     // get on a wide screen. Two places holding the same number is how the
     // scale ceiling got set too high once already.
-    cards: { flexDirection: 'row', flexWrap: 'wrap', gap: m.card.fanGap, marginTop: 6 },
+    // The top padding is the room a raised card needs. `translateY` moves
+    // nothing in the layout, so without it a picked card climbs into the
+    // panel's title.
+    cards: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: m.card.fanGap,
+      marginTop: 6,
+      paddingTop: lift,
+    },
     // Applied to every box in the row — cards and drop gaps alike — so that
     // each one sits `pitch` from the one before it whatever mix of them is
     // visible at the time. The row's own left padding gives back exactly what
@@ -809,9 +822,20 @@ function handStyles(m: Metrics, s: Skin, pitch: number) {
     lifted: { zIndex: 20, opacity: 0.92 },
     // Pulled up out of the fan rather than left flush with its neighbours, so
     // the card about to be played reads at a glance instead of needing its
-    // border colour picked out from a row of a dozen others. `zIndex` keeps it
-    // drawn over the cards it now overlaps at the top edge.
-    raised: { transform: [{ translateY: -10 }], zIndex: 10 },
+    // border colour picked out from a row of a dozen others.
+    //
+    // It used to carry a `zIndex` as well, to draw over the cards it overlaps
+    // at the top edge. That was harmless while the hand was laid out and every
+    // card was whole. In a closed hand it is not: a raised card is 130px wide
+    // where the pitch is 49, so lifting it above its neighbours buried the
+    // three cards after it completely — picking a card up hid the part of the
+    // hand you were picking it *out of*.
+    //
+    // So it keeps its place in the order. Later cards go on covering it, and
+    // what the lift buys is the strip of its top edge standing proud of the
+    // row — which is where the rank and the suit are. You can see what you
+    // picked and what is beside it at the same time.
+    raised: { transform: [{ translateY: -lift }] },
     // The wrapper every card and every gap sits in, so the two are the same size
     // to the pixel. Its border is always here and always this wide — only its
     // colour ever changes, the same discipline CardView's own ring keeps.
