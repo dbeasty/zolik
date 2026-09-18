@@ -382,11 +382,33 @@ export function handRowWidth(m: Metrics): number {
  * wide that strip is allowed to get down to: enough for the rank, the suit
  * under it, and a little air.
  */
-function minPeek(m: Metrics): number {
+export function minPeek(m: Metrics): number {
   // Wide enough for the widest index any face draws — "10" set bold, with a
   // suit under it. The engraved deck keeps its index inside the left fifth of
   // the card, so this is set by the drawn faces rather than by that one.
   return Math.max(20, Math.round(m.card.width * 0.38));
+}
+
+/**
+ * The least of a card that still says a card is *there*, while one is being
+ * carried out of the hand.
+ *
+ * A closed hand sits exactly on `minPeek` — that is what `fanPitch`'s closed
+ * branch returns — so it has nothing left to give, and a hand that fills its
+ * row has no empty felt to give either. Between them that is every closed
+ * hand on a small screen, which is precisely where a card-shaped hole for a
+ * dropped card was impossible to open.
+ *
+ * So for the few seconds a card is out of the hand, and only then, the rest of
+ * the fan may close up past the point where you could read it. A hand with a
+ * card lifted out of it is being aimed at rather than read; the indices come
+ * back the instant the card is let go. Seven tenths is enough to buy a whole
+ * card at every width a hand is dealt at, and taken *from* `minPeek` rather
+ * than from a second fraction of a card, so the two cannot drift apart and
+ * this one is always the smaller.
+ */
+export function dragPeek(m: Metrics): number {
+  return Math.max(12, Math.round(minPeek(m) * 0.7));
 }
 
 /**
