@@ -10,6 +10,7 @@ import {
   pruneSelection,
   slotAtPoint,
   slotsForDrag,
+  splitFan,
   toggleSelection,
   type Slot,
 } from './hand';
@@ -533,5 +534,177 @@ describe('a fanned hand, where the cards overlap', () => {
     expect(slotAtPoint(rects, { x: rects[6].x + 30, y: 140 })).toBe(6);
     expect(insertionAtPoint(rects, { x: rects[6].x + 5, y: 140 })).toBe(6);
     expect(insertionAtPoint(rects, { x: rects[6].x + 57, y: 140 })).toBe(7);
+  });
+});
+
+describe('the hand coming apart to make room for a card', () => {
+  // A closed fan the shape a real one is: a whole card is `WANT` wider than
+  // the strip of it you can see, which is the room that has to be found.
+  const PITCH = 20;
+  const BOX = 50;
+  const WANT = BOX - PITCH + 4;
+  const FLOOR = 14;
+
+  /**
+   * A fan of `count` cards at `PITCH`, in a row `rowWidth` wide, wrapping
+   * every `perRow`. `rowWidth` is what says how much empty felt there is.
+   */
+  const fan = (count: number, rowWidth: number, perRow = count) => {
+    const rects = Array.from({ length: count }, (_, i) => ({
+      x: 10 + (i % perRow) * PITCH,
+      y: 100 + Math.floor(i / perRow) * 80,
+      width: BOX,
+      height: 70,
+    }));
+    return { rects, row: { x: 10, y: 100, width: rowWidth, height: 70 * Math.ceil(count / perRow) } };
+  };
+
+  /** The room a fan of `count` needs before it has any felt to spare. */
+  const filled = (count: number) => (count - 1) * PITCH + BOX;
+
+  const split = (o: {
+    count: number;
+    rowWidth: number;
+    held: number;
+    insertion: number;
+    perRow?: number;
+    floor?: number;
+    want?: number;
+  }) => {
+    const { rects, row } = fan(o.count, o.rowWidth, o.perRow);
+    return splitFan({
+      rects,
+      row,
+      held: o.held,
+      insertion: o.insertion,
+      pitch: PITCH,
+      want: o.want ?? WANT,
+      floor: o.floor ?? FLOOR,
+    });
+  };
+
+  /**
+   * The clear space between the hole and the first card drawn right of it —
+   * measured the way the browser measures it, from the drawn positions, so
+   * that `opening` is checked against the thing it claims to describe rather
+   * than against its own arithmetic.
+   */
+  const drawn = (s: ReturnType<typeof splitFan>, rightOfHole: number) =>
+    s.shift[rightOfHole] - s.gap + PITCH;
+
+  it('opens a whole card of clear space whether the row has room or none', () => {
+    const roomy = split({ count: 13, rowWidth: filled(13) + 200, held: 1, insertion: 7 });
+    expect(roomy.opening).toBe(WANT);
+    expect(drawn(roomy, 7)).toBe(PITCH + WANT);
+
+    const packed = split({ count: 13, rowWidth: filled(13), held: 1, insertion: 7 });
+    expect(packed.opening).toBe(WANT);
+    expect(drawn(packed, 7)).toBe(PITCH + WANT);
+  });
+
+  // The hole is the answer to "where does this land?", and the pointer is
+  // where the question was asked. An answer that slides away from the finger
+  // while you watch is a worse one, so the empty felt goes first and the hand
+  // is only tightened once there is none.
+  it('takes the room from the empty end of the row before it tightens anything', () => {
+    const s = split({ count: 13, rowWidth: filled(13) + 200, held: 1, insertion: 7 });
+    expect(s.gap).toBe(0);
+    // Nothing left of the hole moved, and everything right of it moved as one.
+    for (let i = 0; i < 7; i++) expect(`${i}: ${s.shift[i]}`).toBe(`${i}: 0`);
+    for (let i = 7; i < 13; i++) expect(`${i}: ${s.shift[i]}`).toBe(`${i}: ${WANT}`);
+  });
+
+  it('tightens the fan only as far as it has to, not as far as it may', () => {
+    const s = split({ count: 13, rowWidth: filled(13), held: 1, insertion: 2, floor: 2 });
+    // Ten intervals right of the hole to find a whole card across, and the
+    // floor is nowhere near: each closes by a tenth of it, not to the floor.
+    const drawnPitch = PITCH - (s.shift[3] - s.shift[4]);
+    expect(drawnPitch).toBeGreaterThan(PITCH - WANT / 2);
+    expect(drawnPitch).toBeLessThan(PITCH);
+  });
+
+  it('never squeezes a card past the strip that says one is there', () => {
+    // A card's worth of room asked for out of a fan that has none to give.
+    const s = split({ count: 6, rowWidth: filled(6), held: 0, insertion: 3, want: 400 });
+    const drawnAt = s.shift.map((d, i) => 10 + i * PITCH + d);
+    for (let i = 1; i < 6; i++) {
+      if (i === 0) continue;
+      const step = drawnAt[i] - drawnAt[i - 1];
+      expect(`${i}: ${step >= FLOOR}`).toBe(`${i}: true`);
+    }
+  });
+
+  it('gives back a smaller hole rather than an unreadable fan', () => {
+    const s = split({ count: 6, rowWidth: filled(6), held: 0, insertion: 3, want: 400 });
+    expect(s.opening).toBeLessThan(400);
+    // Everything the floor allowed, and not a pixel less: three intervals on
+    // the right of the hole and one on its left, each worth `PITCH - FLOOR`.
+    expect(s.opening).toBe((PITCH - FLOOR) * 3);
+  });
+
+  // The bug a wrapped hand had: room measured across every row at once asks
+  // the fullest row whether there is any, so a hole on a half-empty second
+  // row was told there was none and opened to nothing.
+  it('finds the room at the end of the row the hole is on, not the fullest one', () => {
+    const s = split({ count: 20, rowWidth: filled(13), perRow: 13, held: 0, insertion: 16 });
+    expect(s.opening).toBe(WANT);
+    // From the felt at the end of its own row, so nothing had to tighten.
+    expect(s.gap).toBe(0);
+  });
+
+  it('leaves alone the rows a wrapped hand is not opening on', () => {
+    const s = split({ count: 20, rowWidth: filled(13), perRow: 13, held: 0, insertion: 16 });
+    for (let i = 1; i <= 13; i++) expect(`${i}: ${s.shift[i]}`).toBe(`${i}: 0`);
+  });
+
+  it('keeps the card being carried out of it', () => {
+    for (const held of [0, 4, 12]) {
+      for (const insertion of [2, 8]) {
+        const s = split({ count: 13, rowWidth: filled(13), held, insertion });
+        expect(`${held}/${insertion}: ${s.shift[held]}`).toBe(`${held}/${insertion}: 0`);
+      }
+    }
+  });
+
+  it('needs no room at all when the hole is past the last card on its row', () => {
+    const s = split({ count: 13, rowWidth: filled(13), held: 4, insertion: 13 });
+    expect(s.opening).toBe(WANT);
+    expect(s.shift.every((d) => d === 0)).toBe(true);
+    expect(s.gap).toBe(0);
+  });
+
+  it('has nothing to do for a hand that is already laid out', () => {
+    const s = split({ count: 13, rowWidth: filled(13) + 400, held: 4, insertion: 8, want: 0 });
+    expect(s.shift.every((d) => d === 0)).toBe(true);
+    expect(s.gap).toBe(0);
+    expect(s.opening).toBe(0);
+  });
+
+  it('admits it does not know before anything has been measured', () => {
+    const { rects, row } = fan(5, filled(5));
+    const args = { held: 1, insertion: 3, pitch: PITCH, want: WANT, floor: FLOOR };
+    expect(splitFan({ ...args, rects: [rects[0], undefined, ...rects.slice(2)], row }).opening).toBe(0);
+    expect(splitFan({ ...args, rects, row: null }).opening).toBe(WANT);
+    expect(splitFan({ ...args, rects, row: null }).shift.every((d) => d === 0)).toBe(true);
+  });
+
+  // The cheap sweep that catches an off-by-one in the column arithmetic, which
+  // is the one place in here a mistake would hide: the hole is the same size
+  // wherever in the fan it opens, and always exactly where it is drawn.
+  it('is a hole of the same size wherever in the fan it opens', () => {
+    const count = 13;
+    for (let held = 0; held < count; held++) {
+      for (let insertion = 0; insertion <= count; insertion++) {
+        const s = split({ count, rowWidth: filled(count), held, insertion });
+        const where = `${held}->${insertion}`;
+        expect(`${where}: ${s.opening}`).toBe(`${where}: ${WANT}`);
+        // The card drawn right of the hole, if the hole has one.
+        const right = insertion === count ? null : insertion === held ? null : insertion;
+        if (right === null) continue;
+        expect(`${where}: ${Math.abs(drawn(s, right) - (PITCH + WANT)) <= 1}`).toBe(
+          `${where}: true`,
+        );
+      }
+    }
   });
 });

@@ -1,9 +1,11 @@
 import {
   SCREEN_PADDING,
+  dragPeek,
   fanOverlaps,
   fanPitch,
   handRowWidth,
   metricsFor,
+  minPeek,
 } from '@/src/lib/layout';
 
 describe('metricsFor', () => {
@@ -206,10 +208,34 @@ describe('the fan', () => {
 
   it('never squeezes a card past the corner that names it', () => {
     // Forty cards is past anything a real deal produces; the fan stops
-    // tightening well before it and lets the row wrap instead.
+    // tightening well before it and lets the row wrap instead. Said against
+    // `minPeek` rather than against the number it happens to come to, which
+    // is both the claim's own words and a stronger claim than the 18 that
+    // stood here.
     for (const w of [375, 768, 1440, 2560]) {
       const m = metricsFor(w);
-      expect(`${w}: ${fanPitch(m, 40) >= 18}`).toBe(`${w}: true`);
+      expect(`${w}: ${fanPitch(m, 40) >= minPeek(m)}`).toBe(`${w}: true`);
+    }
+  });
+
+  // The fact that decides how a hole is opened in a hand with no room in it:
+  // there is nothing left to take. A closed hand is not *near* the tightest
+  // it can be read at, it is exactly on it, so "tighten the fan, but never
+  // past the corner that names a card" buys nothing at all.
+  it('is already as tight as it can be read at, once it is closed', () => {
+    for (const w of [375, 414, 768, 800, 1024, 1280, 1440, 2560]) {
+      const m = metricsFor(w);
+      expect(`${w}: ${fanPitch(m, 13)}`).toBe(`${w}: ${minPeek(m)}`);
+    }
+  });
+
+  // Which is why a card being carried out of the hand gets a second, lower
+  // floor of its own.
+  it('lets a hand with a card lifted out of it close past what it can be read at', () => {
+    for (const w of [375, 414, 768, 800, 1024, 1280, 1440, 2560]) {
+      const m = metricsFor(w);
+      expect(`${w}: ${dragPeek(m) < minPeek(m)}`).toBe(`${w}: true`);
+      expect(`${w}: ${dragPeek(m) >= 12}`).toBe(`${w}: true`);
     }
   });
 

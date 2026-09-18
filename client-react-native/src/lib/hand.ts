@@ -380,6 +380,155 @@ export function moveTargetFor(from: number, insertion: number): number {
   return insertion > from ? insertion - 1 : insertion;
 }
 
+/** How a fan is drawn while it is being pulled apart to take a card. */
+export type FanSplit = {
+  /**
+   * How far each card is drawn from where it was laid out, by card index.
+   * Zero for the card being carried, and for every card on a row the hole is
+   * not on.
+   */
+  shift: number[];
+  /**
+   * How far the hole itself is drawn from the column it sits in. It travels
+   * with the cards on its own left, so the space that opens is one clear
+   * opening rather than two half ones either side of it.
+   */
+  gap: number;
+  /**
+   * How much clear space actually opened. Short of `want` only when the fan
+   * had nothing left to give, which is worth knowing rather than discovering
+   * by eye.
+   */
+  opening: number;
+};
+
+/**
+ * How far the hand comes apart to show where a card would land.
+ *
+ * A closed hand has no room in it. The hole standing in for the dragged card
+ * is a whole card wide, but it sits on the same pitch as everything else, so
+ * all of it but the strip a card peeks by is covered by the card after it. So
+ * the hand opens: the cards either side move out of the way until there is a
+ * card-shaped hole exactly where the card will go.
+ *
+ * Room is found in this order, and the order is the design:
+ *
+ *  1. **The empty felt right of the last card.** Free, and it leaves the hole
+ *     exactly where the pointer put it, which matters — the hole is the answer
+ *     to "where does this land?" and an answer that slides away from the
+ *     finger while you watch is a worse answer.
+ *  2. **Closing up the cards right of the hole**, evenly, down to `floor`.
+ *  3. **The empty felt left of the first card**, which on a hand that starts
+ *     flush with the row is nothing at all.
+ *  4. **Closing up the cards left of the hole.**
+ *
+ * Steps 2 and 4 are what make this work on the screens where it never did.
+ * A closed hand sits exactly on the pitch it can still be read at and fills
+ * its row to the edge — that is what `scaleFor` solves for — so on those
+ * screens steps 1 and 3 between them find nothing, and what used to happen
+ * was a hole the width of a card's peeking strip. `floor` is a second, lower
+ * pitch that only applies while a card is out of the hand (`dragPeek`): a fan
+ * with a card lifted out of it is being aimed at rather than read, and it
+ * springs back the moment the card is let go.
+ *
+ * Everything here is moved by `transform` and nothing by layout. The row keeps
+ * the shape it had when the drag started, so positions measured once, at
+ * pick-up, stay true — which is what lets the hole be a *picture* of the
+ * insertion point rather than its source. `slotAtPoint` still answers against
+ * the resting fan. One honest consequence of that: while the fan is tightened
+ * the hole travels through it slightly faster than the cards it passes, since
+ * a step of the pointer is still a whole resting pitch. The hole stays under
+ * the pointer, which is the only thing that was ever promised.
+ *
+ * Rectangles, `row`, `pitch`, `want` and `floor` only have to agree with each
+ * other; which space they are in, and where the numbers came from, is the
+ * caller's business.
+ */
+export function splitFan(opts: {
+  /** Where every card rested, measured before any of them was lifted. */
+  rects: (Rect | undefined)[];
+  /** The row they rest in, which is what says where the empty felt is. */
+  row: Rect | null;
+  /** The card that has left the row and is being carried. */
+  held: number;
+  /** The gap the hole is open at, counted the way `insertionAtPoint` counts. */
+  insertion: number;
+  /** How far apart the cards are laid out. */
+  pitch: number;
+  /** How much wider than `pitch` a whole card is — nothing, in a laid-out hand. */
+  want: number;
+  /** The least a card may be drawn from the next while one is being carried. */
+  floor: number;
+}): FanSplit {
+  const { rects, row, held, insertion, pitch, want, floor } = opts;
+  const n = rects.length;
+  const none: FanSplit = { shift: new Array(n).fill(0), gap: 0, opening: 0 };
+
+  if (!row || want <= 0 || n === 0) return { ...none, opening: Math.max(0, want) };
+  if (held < 0 || held >= n || insertion < 0 || insertion > n) return none;
+  // Before everything has been measured there is nothing to say, which is the
+  // honest answer during the first frame of a drag.
+  const columns: Rect[] = [];
+  for (const r of rects) {
+    if (!r) return none;
+    columns.push(r);
+  }
+
+  // Which column each box is drawn in. The row holds exactly the boxes it held
+  // at rest — the carried card left the flow and the hole joined it — so the
+  // columns *are* the places the cards were measured in, and this is the whole
+  // of the arithmetic: a card loses a place if the carried card was before it,
+  // and gains one if the hole is.
+  const columnOf = (i: number) => i - (held < i ? 1 : 0) + (i >= insertion ? 1 : 0);
+  const kGap = insertion - (held < insertion ? 1 : 0);
+
+  // The run of columns on the hole's own row. A wrapped hand opens on one row
+  // and the others are none of its business — measuring the empty felt across
+  // all of them at once finds the end of the *last* row, which on a full first
+  // row is how a hole came to have no room at all.
+  const bandY = columns[kGap].y;
+  let first = kGap;
+  while (first > 0 && columns[first - 1].y === bandY) first -= 1;
+  let last = kGap;
+  while (last < n - 1 && columns[last + 1].y === bandY) last += 1;
+
+  // Nothing is covering the hole, so nothing has to move for it to be seen.
+  if (last === kGap) return { ...none, opening: want };
+
+  const rightOf = last - kGap;
+  const leftOf = kGap - first;
+  const roomAfter = Math.max(0, row.x + row.width - (columns[last].x + columns[last].width));
+  const roomBefore = Math.max(0, columns[first].x - row.x);
+  const squeeze = Math.max(0, pitch - floor);
+
+  let budget = want;
+  const pushRight = Math.min(budget, roomAfter);
+  budget -= pushRight;
+  const stepRight = rightOf > 1 ? Math.min(squeeze, budget / (rightOf - 1)) : 0;
+  budget -= stepRight * (rightOf - 1);
+  const pullLeft = Math.min(budget, roomBefore);
+  budget -= pullLeft;
+  const stepLeft = leftOf > 1 ? Math.min(squeeze, budget / (leftOf - 1)) : 0;
+  if (leftOf > 1) budget -= stepLeft * (leftOf - 1);
+
+  // The outermost card on each side moves by the slack and no further; every
+  // step back towards the hole gains one more squeeze, so the card next to the
+  // hole has moved the whole way. Rounded here, at the end — rounding the step
+  // instead lets the error stack up a pixel per card and the hole comes out
+  // the wrong size.
+  const gap = -Math.round(pullLeft + Math.max(0, leftOf - 1) * stepLeft) || 0;
+  const shift = new Array<number>(n).fill(0);
+  for (let i = 0; i < n; i++) {
+    if (i === held) continue;
+    const k = columnOf(i);
+    if (k < first || k > last) continue;
+    if (k > kGap) shift[i] = Math.round(pushRight + (last - k) * stepRight);
+    else if (k < kGap) shift[i] = -Math.round(pullLeft + (k - first) * stepLeft);
+  }
+
+  return { shift, gap, opening: Math.round(want - budget) };
+}
+
 /** The cards a set of selected slots stands for, in the order they are held. */
 export function cardsForSelection(slots: Slot[], selected: ReadonlySet<string>): string[] {
   return slots.filter((s) => selected.has(s.id)).map((s) => s.card);

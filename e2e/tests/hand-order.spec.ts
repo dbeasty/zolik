@@ -84,6 +84,22 @@ async function tableWithBots(request: Ctx, moduleId: string, seats: number, as?:
  */
 async function installLayoutProbe(page: Page) {
   await page.addInitScript(() => {
+    // Is this box being carried by the pointer rather than laid out in the
+    // row? A card's test id is on its ring, a few levels inside the box the
+    // layout actually positions, so the question has to be asked of its
+    // ancestors up to the row rather than of the tagged element.
+    //
+    // Installed here, with `laidOutAt`, because three separate helpers need
+    // the same answer and an `evaluate` callback cannot see anything defined
+    // in this file.
+    (window as any).floating = (el: Element) => {
+      let node: Element | null = el;
+      while (node && !(node as HTMLElement).dataset?.testid?.startsWith('hand-')) {
+        if (getComputedStyle(node as HTMLElement).position === 'absolute') return true;
+        node = node.parentElement;
+      }
+      return false;
+    };
     (window as any).laidOutAt = (el: HTMLElement) => {
       const row = el.closest('[data-testid^="hand-hand:"]') as HTMLElement | null;
       let x = 0;
@@ -149,17 +165,7 @@ async function settledBoxes(page: Page): Promise<string[]> {
     // measuring the drawn position here would call it a broken invariant when
     // it is the invariant being kept — the positions the pointer is hit-tested
     // against, read once at pick-up, are the laid-out ones.
-    // A card's test id is on its ring, a few levels inside the box the layout
-    // actually positions — so "is this one being carried?" has to be asked of
-    // its ancestors, up to the row itself, rather than of the tagged element.
-    const floating = (el: Element) => {
-      let node: Element | null = el;
-      while (node && !(node as HTMLElement).dataset?.testid?.startsWith('hand-')) {
-        if (getComputedStyle(node as HTMLElement).position === 'absolute') return true;
-        node = node.parentElement;
-      }
-      return false;
-    };
+    const floating = (window as any).floating;
 
     return Array.from(
       document.querySelectorAll('[data-testid^="card-hand:"], [data-testid="hand-drop-gap"]'),
@@ -193,14 +199,7 @@ async function layoutLeft(page: Page, testId: string): Promise<number | null> {
  */
 async function carriedBox(page: Page) {
   return page.evaluate(() => {
-    const floating = (el: Element) => {
-      let node: Element | null = el;
-      while (node && !(node as HTMLElement).dataset?.testid?.startsWith('hand-')) {
-        if (getComputedStyle(node as HTMLElement).position === 'absolute') return true;
-        node = node.parentElement;
-      }
-      return false;
-    };
+    const floating = (window as any).floating;
     const el = Array.from(document.querySelectorAll('[data-testid^="card-hand:"]')).find(floating);
     if (!el) return null;
     const r = el.getBoundingClientRect();
@@ -399,7 +398,7 @@ test.describe('arranging your hand', () => {
     }
   });
 
-  test('a card taken out of a closed hand is carried under the finger', async ({
+  test('a card taken out of a closed hand is held clear of the row, and settles under the finger as it leaves it', async ({
     page,
     request,
   }) => {
@@ -454,6 +453,8 @@ test.describe('arranging your hand', () => {
         { dx: 620, dy: -300 },
       ];
 
+      let lift: number | null = null;
+      const lifts: number[] = [];
       for (const { dx, dy } of path) {
         await page.mouse.move(grabX + dx, grabY + dy, { steps: 12 });
         await page.waitForTimeout(150);
@@ -464,10 +465,55 @@ test.describe('arranging your hand', () => {
         const offX = carried!.x + carried!.width / 2 - (grabX + dx);
         const offY = carried!.y + carried!.height / 2 - (grabY + dy);
         expect(
-          Math.hypot(offX, offY),
-          `the finger is ${Math.round(offX)}px across and ${Math.round(offY)}px down from the middle of the card it is carrying`,
+          Math.abs(offX),
+          `the finger is ${Math.round(offX)}px across from the middle of the card it is carrying`,
         ).toBeLessThan(8);
+        lifts.push(offY);
+
+        // Vertically it is not centred on the finger, and deliberately. The
+        // hole a card is aimed at opens where the pointer is, so a card drawn
+        // around the pointer is a card drawn over the answer to its own
+        // question. In the hand it is held above the row instead, the way a
+        // card pulled out of a hand is; carried up over the board, where
+        // there is no hole to keep off and the card is the only thing saying
+        // which meld you mean, it settles back under the finger.
+        //
+        // So the claim is that it only ever settles — never bobs back up,
+        // which is what a lift switched on and off at a boundary would do.
+        if (lift !== null) {
+          expect(
+            offY,
+            `the card rose again — ${Math.round(offY)}px above the finger after ${Math.round(lift)}px`,
+          ).toBeGreaterThanOrEqual(lift - 2);
+        }
+        lift = offY;
       }
+
+      // Held well clear while the pointer was still in the hand...
+      expect(lifts[0], 'the card was never held clear of the row').toBeLessThan(
+        -held.height * 0.3,
+      );
+
+      // ...and back under the finger once it has reached the board. Polled
+      // rather than read once: every other measurement here is of a card in
+      // motion, where a frame's lag only ever reads as *more* lift than the
+      // pointer has earned, but this one is about where the card comes to
+      // rest — and under a full parallel run the last move's render can still
+      // be a frame behind the mouse.
+      const last = path[path.length - 1];
+      await expect
+        .poll(
+          async () => {
+            const at = await carriedBox(page);
+            return at ? Math.abs(at.y + at.height / 2 - (grabY + last.dy)) : null;
+          },
+          {
+            message: `the card is still being held above the finger out over the board (${lifts
+              .map((v) => Math.round(v))
+              .join(', ')})`,
+          },
+        )
+        .toBeLessThan(8);
     } finally {
       await page.mouse.up();
       await page.waitForTimeout(300);
@@ -484,20 +530,15 @@ test.describe('arranging your hand', () => {
       if (!gap) return null;
       const g = gap.getBoundingClientRect();
 
-      // A card is "carried" if it, or a box between it and the row, is
-      // positioned absolutely — the same definition the other helpers use.
-      const floating = (el: Element) => {
-        let node: Element | null = el;
-        while (node && !(node as HTMLElement).dataset?.testid?.startsWith('hand-')) {
-          if (getComputedStyle(node as HTMLElement).position === 'absolute') return true;
-          node = node.parentElement;
-        }
-        return false;
-      };
+      const floating = (window as any).floating;
 
+      // Only the cards on the hole's own row. A hand long enough to wrap has
+      // cards further left on the next line down, and sorting the lot by x
+      // alone would hand back one of those as "the card after the hole".
       const settled = Array.from(document.querySelectorAll('[data-testid^="card-hand:"]'))
         .filter((el) => !floating(el))
         .map((el) => el.getBoundingClientRect())
+        .filter((r) => Math.abs(r.y - g.y) < g.height / 2)
         .sort((a, b) => a.x - b.x);
 
       // The cards that actually shoulder the hole: the last one starting left
@@ -579,6 +620,106 @@ test.describe('arranging your hand', () => {
     expect(landed).not.toEqual(before);
     expect(landed.indexOf(moved), `${moved} did not land where the hole was`).toBeGreaterThan(1);
     expect([...landed].sort()).toEqual([...before].sort());
+  });
+
+  /**
+   * How much of the hole is left in the clear by the card being carried into
+   * it, asked of the browser rather than worked out from the numbers.
+   *
+   * What matters is whether a player can see the hole, and the only thing that
+   * settles that is what is actually painted at a point — the same reason
+   * `visiblePart` walks a card in from its left edge rather than trusting its
+   * box.
+   */
+  async function holeInTheClear(page: Page) {
+    return page.evaluate(() => {
+      const gap = document.querySelector('[data-testid="hand-drop-gap"]');
+      if (!gap) return null;
+      const g = gap.getBoundingClientRect();
+      const floating = (window as any).floating;
+      const held = Array.from(document.querySelectorAll('[data-testid^="card-hand:"]')).find(
+        (el) => floating(el),
+      );
+      if (!held) return null;
+
+      // The strip of the hole below the card being carried: the card is held
+      // above the row, so this is where the hole shows.
+      const card = held.getBoundingClientRect();
+      const strip = g.bottom - card.bottom;
+      const y = Math.round(card.bottom + strip / 2);
+
+      // Clear means clear of *any* card, not just the one being carried. The
+      // cards in a fan overlap, so the card before the hole is a whole card
+      // wide and the rest of it reaches on underneath — a space with the tail
+      // of its neighbour lying in it is a picture of two cards in one place.
+      let clear = 0;
+      let sampled = 0;
+      for (let x = Math.ceil(g.x) + 2; x < g.x + g.width - 2; x += 4) {
+        const at = document.elementFromPoint(x, y);
+        sampled += 1;
+        if (!at || !at.closest('[data-testid^="card-hand:"]')) clear += 1;
+      }
+      return { strip: Math.round(strip), height: Math.round(g.height), clear, sampled };
+    });
+  }
+
+  test('the hole you are aiming at is empty, and not hidden under the card you are carrying', async ({
+    page,
+    request,
+  }) => {
+    // The hand did come apart — a whole card of clear space, on every screen
+    // with felt to spare — and it could still not be seen, because the hole
+    // opens where the pointer is and the card was drawn around the pointer.
+    // A card sitting in its own hole looks exactly like no hole at all, which
+    // is what was actually being reported.
+    const { matchId, host } = await tableWithBots(request, 'zolik', 2);
+    await openMatch(page, host, matchId);
+    await handCards(page);
+
+    await card(page, 0).scrollIntoViewIfNeeded();
+    const first = await card(page, 0).boundingBox();
+    const second = await card(page, 1).boundingBox();
+    const target = await card(page, 8).boundingBox();
+    if (!first || !second || !target) throw new Error('no boxes');
+
+    const pitch = second.x - first.x;
+    expect(pitch, 'the fan is laid out, so this is not a closed hand').toBeLessThan(first.width);
+
+    const held = await card(page, 1).boundingBox();
+    if (!held) throw new Error('no box');
+    const grabX = held.x + Math.min(12, pitch / 2);
+    const grabY = held.y + held.height / 2;
+
+    await page.mouse.move(grabX, grabY);
+    await page.mouse.down();
+    await page.waitForTimeout(200);
+    await page.mouse.move(grabX + 100, grabY, { steps: 10 });
+    await page.waitForTimeout(150);
+    await page.mouse.move(target.x + 10, grabY, { steps: 20 });
+    await page.waitForTimeout(300);
+
+    try {
+      const seen = await holeInTheClear(page);
+      expect(seen, 'no hole, or nothing being carried into it').toBeTruthy();
+
+      // Enough of the hole below the carried card to read as a card-shaped
+      // hole — its bottom edge and both lower corners — rather than as a line
+      // peeking out from under something.
+      expect(
+        seen!.strip,
+        `only ${seen!.strip}px of a ${seen!.height}px hole is below the card being carried`,
+      ).toBeGreaterThan(seen!.height * 0.4);
+
+      // And the whole width of that strip really is empty — of the card being
+      // carried, and of the neighbour whose far end reaches underneath it.
+      expect(
+        `${seen!.clear}/${seen!.sampled}`,
+        'there is still a card painted inside the hole',
+      ).toBe(`${seen!.sampled}/${seen!.sampled}`);
+    } finally {
+      await page.mouse.up();
+      await page.waitForTimeout(400);
+    }
   });
 
   test('the row keeps its shape while a card is being dragged', async ({ page, request }) => {
@@ -718,6 +859,13 @@ test.describe('arranging your hand', () => {
       expect(gap).toBeTruthy();
       // Under the card. Following the pointer instead would put it a whole
       // column to the left, which is the divergence this exists to catch.
+      //
+      // Exact, and it stays exact because `splitFan` spends the empty felt at
+      // the end of the row before it tightens anything: on a board with room,
+      // the hole opens where the pointer put it and does not move. Spreading
+      // the opening evenly along the fan instead would slide the hole up to
+      // half a card away from the finger, and this is the assertion that
+      // would say so.
       expect(Math.round(gap!.x)).toBe(Math.round(column.x));
     } finally {
       await page.mouse.up();
@@ -846,5 +994,59 @@ test.describe('arranging your hand', () => {
     // own copy would have moved too.
     const serverAfter = await serverHand(request, matchId, host.userId);
     expect(serverAfter).toEqual(serverBefore);
+  });
+
+  /**
+   * The same claim, on a row with no felt to spare.
+   *
+   * `scaleFor` solves the card size so that a full hand closed up *exactly*
+   * fills its row, so for a band of widths above the desktop breakpoint there
+   * is no empty space at either end to open a hole with — and, until
+   * `splitFan`, no hole. 800 is inside that band and clear of the widths where
+   * a thirteen-card hand wraps. Everything here has to come out of the fan
+   * closing up on itself, which is the half of the behaviour 1280 cannot see.
+   */
+  test.describe('on a row the hand fills to both ends', () => {
+    test.use({ viewport: { width: 800, height: 1400 } });
+
+    test('the hand still comes apart by a whole card', async ({ page, request }) => {
+      const { matchId, host } = await tableWithBots(request, 'zolik', 2);
+      await openMatch(page, host, matchId);
+      await handCards(page);
+
+      await card(page, 0).scrollIntoViewIfNeeded();
+      const first = await card(page, 0).boundingBox();
+      const second = await card(page, 1).boundingBox();
+      const target = await card(page, 5).boundingBox();
+      if (!first || !second || !target) throw new Error('no boxes');
+
+      const pitch = second.x - first.x;
+      expect(pitch, 'the fan is laid out, so this is not a closed hand').toBeLessThan(first.width);
+
+      const held = await card(page, 1).boundingBox();
+      if (!held) throw new Error('no box');
+      const grabX = held.x + Math.min(12, pitch / 2);
+      const grabY = held.y + held.height / 2;
+
+      await page.mouse.move(grabX, grabY);
+      await page.mouse.down();
+      await page.waitForTimeout(200);
+      await page.mouse.move(grabX + 60, grabY, { steps: 10 });
+      await page.waitForTimeout(150);
+      await page.mouse.move(target.x + 10, grabY, { steps: 20 });
+      await page.waitForTimeout(300);
+
+      try {
+        const spot = await dropSpot(page);
+        expect(spot, 'no drop spot was drawn at all').toBeTruthy();
+        expect(
+          spot!.opening,
+          `the hole is ${Math.round(spot!.opening)}px of clear space, against a ${Math.round(spot!.cardWidth)}px card`,
+        ).toBeGreaterThan(spot!.cardWidth * 0.9);
+      } finally {
+        await page.mouse.up();
+        await page.waitForTimeout(400);
+      }
+    });
   });
 });

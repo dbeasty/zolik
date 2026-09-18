@@ -11,8 +11,8 @@ import { SettleIn } from '@/src/components/match/SettleIn';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
 import { zoneElementId } from '@/src/lib/drops';
-import { insertionAtPoint, moveTargetFor, type Rect, type Slot } from '@/src/lib/hand';
-import { fanOverlaps, fanPitch, type Metrics } from '@/src/lib/layout';
+import { insertionAtPoint, moveTargetFor, splitFan, type Rect, type Slot } from '@/src/lib/hand';
+import { dragPeek, fanOverlaps, fanPitch, type Metrics } from '@/src/lib/layout';
 import { label } from '@/src/lib/labels';
 import { ms } from '@/src/lib/motion';
 import type { Skin } from '@/src/skins/types';
@@ -107,7 +107,11 @@ type Measurable = {
   measureInWindow: (cb: (x: number, y: number, w: number, h: number) => void) => void;
 };
 
-type Offset = { dx: number; dy: number };
+type Grip = { dx: number; dy: number };
+type Offset = Grip & {
+  /** How far above the finger the card is drawn — see `carryLiftAt`. */
+  lift: number;
+};
 
 /**
  * Where a card has to sit for the pointer to be in the middle of it.
@@ -123,7 +127,7 @@ type Offset = { dx: number; dy: number };
  * pointer and the centre of the box the card came from, which makes the card
  * settle under the finger as the drag starts and stay there.
  */
-function centredOn(from: Rect | undefined, x: number, y: number): Offset {
+function centredOn(from: Rect | undefined, x: number, y: number): Grip {
   if (!from) return { dx: 0, dy: 0 };
   return { dx: x - (from.x + from.width / 2), dy: y - (from.y + from.height / 2) };
 }
@@ -139,55 +143,68 @@ function liftFor(m: Metrics): number {
 }
 
 /**
- * What each card gives up to the one before it. Zero while the hand fits.
+ * How far above the finger a card is held while it is being carried.
  *
- * Also exactly how much room the hand has to find to show a whole card's worth
- * of space — see `splitFor`.
+ * The hole a card is aimed at opens where the pointer is, and the card is
+ * carried with the pointer in its middle, so on any screen with room to open
+ * a whole card of space the card was drawn squarely over the hole it was
+ * asking about. The space was there and could not be seen, which reads as no
+ * space at all.
+ *
+ * So the card is held clear of the row, the way a card pulled out of a hand
+ * is. The card and the hole are the same height and start out level, so the
+ * fraction lifted is exactly the fraction of the hole left showing: three
+ * fifths leaves the hole's bottom edge and both its lower corners in view,
+ * which is unmistakably a card-shaped hole rather than a gap between two
+ * cards. A ratio rather than a count of pixels, so it is the same gesture at
+ * every card size — and, like `FULL_CARD`, a number settled by eye.
+ *
+ * This is how far it is held while the pointer is still in the hand. Carried
+ * up over the board it settles back under the finger — see `carryLiftAt`.
  */
-function tuckFor(m: Metrics, pitch: number): number {
-  return Math.max(0, m.card.slotPitch - pitch);
+function carryLiftFor(m: Metrics): number {
+  return Math.round(m.card.height * 0.6);
 }
 
 /**
- * How far the hand slides apart to show where a card would land.
+ * How much of that lift applies, from where the pointer is.
  *
- * A closed hand has no room in it. The gap standing in for the dragged card is
- * a whole card wide, but it sits on the same `pitch` as everything else, so
- * all of it but a thirty-pixel strip is covered by the card after it — and
- * that strip is then covered again by the card you are carrying, which is
- * directly over it because that is where your finger is. The drop spot was
- * drawn, correctly, and could not be seen.
+ * All of it while the pointer is in the hand's own row, none of it once the
+ * card has been carried a lift's distance clear of it, and the way between
+ * them is a slide rather than a step.
  *
- * So the hand opens. Cards from the gap onward move aside, and if the row has
- * run out of room on that side the ones before it give up the rest, until
- * there is a card-shaped hole in the hand exactly where the card will go.
+ * Both ends earn their keep. In the hand the lift is the whole point: it is
+ * what keeps the card off the hole it is asking about. Away from the hand
+ * there is no hole to keep off, and a card still held clear is a card drawn
+ * over the meld *next* to the one the pointer is arming — a worse lie than
+ * the one this was written to fix, because out there the card is the only
+ * thing saying what you are about to do with it.
  *
- * Both halves move by `transform`, which draws somewhere other than where a
- * box is laid out and changes no measurement at all. That is what lets this
- * exist alongside the rule the rest of the file is built on: the row never
- * changes shape while a card is being dragged, so positions measured once, at
- * pick-up, stay true — see the note at the top of this file. The hole is a
- * picture of the insertion point, never the source of it.
+ * Measured as distance from the row rather than height above it, because the
+ * places a card is taken are on both sides of the hand: the piles are above
+ * it and the melds are below.
+ *
+ * Switching at a boundary was the obvious way and the wrong one. Every
+ * boundary available is edge-triggered — `externalTarget` goes out and comes
+ * back as you skim between two melds — so the card would bob most of its own
+ * height while you were trying to aim it. Sliding on the pointer's own travel
+ * cannot flicker: it moves when the finger does, and only as far.
  */
-function splitFor(
-  tuck: number,
-  cards: (Rect | undefined)[],
-  row: Rect | null,
-): { before: number; after: number } {
-  const none = { before: 0, after: 0 };
-  if (tuck <= 0 || !row) return none;
-  const live = cards.filter((r): r is Rect => !!r);
-  if (!live.length) return none;
+function carryLiftAt(full: number, row: Rect | null, y: number): number {
+  if (!row || full <= 0) return 0;
+  const away = Math.max(row.y - y, y - (row.y + row.height), 0);
+  if (away >= full) return 0;
+  return Math.round(full * (1 - away / full));
+}
 
-  const roomAfter = Math.max(0, row.x + row.width - Math.max(...live.map((r) => r.x + r.width)));
-  const roomBefore = Math.max(0, Math.min(...live.map((r) => r.x)) - row.x);
-
-  // Whatever the right-hand side can take, and the rest from the left. A hand
-  // that fills its row to the edge — a phone, every time — would otherwise
-  // open a hole a few pixels wide, on exactly the screen where the cards
-  // overlap most and the hole is needed most.
-  const after = Math.min(tuck, roomAfter);
-  return { before: Math.min(tuck - after, roomBefore), after };
+/**
+ * What each card gives up to the one before it. Zero while the hand fits.
+ *
+ * Also exactly how much room the hand has to find to show a whole card's worth
+ * of space — see `splitFan` in `hand.ts`.
+ */
+function tuckFor(m: Metrics, pitch: number): number {
+  return Math.max(0, m.card.slotPitch - pitch);
 }
 
 export function HandZone({
@@ -274,6 +291,10 @@ export function HandZone({
   // holding a stale copy.
   const outsideRef = useRef<string | null>(null);
   outsideRef.current = externalTarget ?? null;
+  // Set from `metrics` further down the render, and read by the gesture
+  // callbacks — which would otherwise have to take `metrics` as a dependency
+  // and be rebuilt every time the window changed size.
+  const carryLiftRef = useRef(0);
   const moveRef = useRef(onDragMove);
   moveRef.current = onDragMove;
   const endRef = useRef(onDragEnd);
@@ -322,7 +343,11 @@ export function HandZone({
     // once the pointer has moved its threshold, so the first `hover` corrects
     // this within a few pixels — but starting at the old zero would put one
     // frame of an uncentred card on screen first.
-    setOffset(centredOn(rects.current[index], startPoint.current.x, startPoint.current.y));
+    const { x, y } = startPoint.current;
+    setOffset({
+      ...centredOn(rects.current[index], x, y),
+      lift: carryLiftAt(carryLiftRef.current, rowRect.current, y),
+    });
     startRef.current?.(index);
   }, []);
 
@@ -340,7 +365,12 @@ export function HandZone({
   const hover = useCallback(
     (absoluteX: number, absoluteY: number) => {
       const index = heldRef.current;
-      if (index !== null) setOffset(centredOn(rects.current[index], absoluteX, absoluteY));
+      if (index !== null) {
+        setOffset({
+          ...centredOn(rects.current[index], absoluteX, absoluteY),
+          lift: carryLiftAt(carryLiftRef.current, rowRect.current, absoluteY),
+        });
+      }
 
       // Where the *pointer* is, not where the middle of the card it is
       // carrying has ended up.
@@ -485,6 +515,7 @@ export function HandZone({
   // lives in two places is how the scale ceiling got set wrong once already.
   const lift = liftFor(metrics);
   const tuck = tuckFor(metrics, pitch);
+  carryLiftRef.current = carryLiftFor(metrics);
 
   // Cards mounting in the hand's opening moments are the deal, and enter as
   // one — staggered left to right. A card mounting later arrived alone (a
@@ -514,9 +545,20 @@ export function HandZone({
   // the same reason the gap stops following the pointer out there at all.
   const splitAt = lifted && insertion !== null ? insertion : null;
   const split =
-    splitAt === null
-      ? { before: 0, after: 0 }
-      : splitFor(tuck, rects.current.slice(0, slots.length), rowRect.current);
+    splitAt === null || held === null
+      ? null
+      : splitFan({
+          rects: rects.current.slice(0, slots.length),
+          row: rowRect.current,
+          held,
+          insertion: splitAt,
+          pitch,
+          // Exactly the room a whole card needs, and the pitch a card may be
+          // closed to while one is out of the hand — both from the helpers
+          // the layout itself uses, never re-derived here.
+          want: tuck,
+          floor: dragPeek(metrics),
+        });
 
   // The hand and the row inside it ride up onto the drag layer with the card
   // they are carrying (see `dragLayer`), so a card taken down onto a meld is
@@ -608,7 +650,7 @@ export function HandZone({
                 leaving a strip of bare felt beside it. */}
             <DropGap
               active={gapIndex === index}
-              shift={splitAt === index ? -split.before : 0}
+              shift={splitAt === index ? split?.gap ?? 0 : 0}
               styles={styles}
             />
             <DraggableCard
@@ -618,15 +660,10 @@ export function HandZone({
               selected={selected.has(slot.id)}
               held={held === index}
               offset={held === index ? offset : null}
-              // Which way this card steps aside to make the hole. The carried
-              // card is not in the row any more, so it steps nowhere.
-              shift={
-                splitAt === null || held === index
-                  ? 0
-                  : index >= splitAt
-                    ? split.after
-                    : -split.before
-              }
+              // Which way this card steps aside to make the hole, and how far
+              // — which is not the same for every card on a row with no felt
+              // to spare. `splitFan` already keeps the carried card out of it.
+              shift={split?.shift[index] ?? 0}
               raise={selected.has(slot.id) && held !== index ? lift : 0}
               floatingAt={
                 lifted && index === held && rowRect.current && rects.current[index]
@@ -654,7 +691,7 @@ export function HandZone({
         ))}
         <DropGap
           active={gapIndex === slots.length}
-          shift={splitAt === slots.length ? -split.before : 0}
+          shift={splitAt === slots.length ? split?.gap ?? 0 : 0}
           styles={styles}
         />
       </View>
@@ -702,7 +739,13 @@ function DropGap({
           is where CardView puts a card's — so a gap and a card can be measured
           against each other and come out the same size. */}
       <View style={styles.gapRing} testID={active ? 'hand-drop-gap' : undefined}>
-        <View style={styles.gapCard} />
+        <View style={styles.gapCard}>
+          {/* The hole is a hole: the panel's own surface, painted over
+              whatever of the card before it reaches underneath. See
+              `handStyles.gapCard`. */}
+          <View style={styles.gapPanel} />
+          <View style={styles.gapTint} />
+        </View>
       </View>
     </View>
   );
@@ -719,7 +762,7 @@ type CardProps = {
   /**
    * How far sideways this card steps to make room for the drop spot — right
    * if it sits after the hole, left if before it, zero the rest of the time.
-   * Drawn, never laid out: see `splitFor`.
+   * Drawn, never laid out: see `splitFan` in `hand.ts`.
    */
   shift: number;
   /** How far this card stands proud of the row for being selected. */
@@ -846,9 +889,18 @@ const DraggableCard = memo(function DraggableCard({
   const gesture =
     badgeKeys?.length && onPressBadge ? Gesture.Simultaneous(pan, longPress) : pan;
 
+  // The grip and the lift, in one transform, for the same reason `placed`
+  // merges its two: a style array does not merge `transform` keys, the last
+  // one simply wins. `centredOn` is left saying only what it has always said
+  // — where the card must sit for the pointer to be in its middle — because
+  // that is the grip, and the grip is what two of the drag tests are about.
+  // The lift is a thing the card is drawn with, not a thing the finger did.
   const carried = useMemo(
-    () => (offset ? { transform: [{ translateX: offset.dx }, { translateY: offset.dy }] } : null),
-    [offset?.dx, offset?.dy],
+    () =>
+      offset
+        ? { transform: [{ translateX: offset.dx }, { translateY: offset.dy - offset.lift }] }
+        : null,
+    [offset?.dx, offset?.dy, offset?.lift],
   );
 
   /**
@@ -971,6 +1023,9 @@ const DraggableCard = memo(function DraggableCard({
  * what keeps `DraggableCard`'s memo intact through an entire drag: the same
  * `styles` object reference is handed to every card on every pointer move.
  */
+/** Covers the box it sits in, whatever size that box turns out to be. */
+const fill = { position: 'absolute' as const, left: 0, right: 0, top: 0, bottom: 0 };
+
 function handStyles(m: Metrics, s: Skin, pitch: number) {
   const colors = s.colors;
   const dropArmed = s.dropArmed;
@@ -1041,14 +1096,37 @@ function handStyles(m: Metrics, s: Skin, pitch: number) {
       borderColor: 'transparent',
       padding: m.card.ringPadding,
     },
+    // A card-shaped hole, and empty.
+    //
+    // Empty takes some doing in a fan. The cards overlap, so the card before
+    // the hole is a whole card wide and only a strip of it shows — the rest
+    // of it reaches on underneath, and the skin's own fill for an armed drop
+    // spot is a wash you can see through. So the space that opened had the
+    // tail of its left-hand neighbour lying in it, which is a picture of two
+    // cards in one place rather than of a space for one.
+    //
+    // Painted rather than clipped, because clipping the neighbour means
+    // making its box narrower, and its box is what holds the row's shape
+    // while a card is being dragged.
+    //
+    // Three layers, because two of the three colours are translucent and
+    // there is no way to add them up ahead of time: the background the board
+    // is drawn on, the panel's own wash over it — together, exactly what this
+    // panel looks like where no card sits — and last the skin's armed tint,
+    // which still has something to tint.
     gapCard: {
       width: m.card.width,
       height: m.card.height,
       marginRight: m.card.gap,
       borderRadius: 6,
       borderWidth: 2,
-      ...dropArmed,
+      borderStyle: dropArmed.borderStyle,
+      borderColor: dropArmed.borderColor,
+      backgroundColor: colors.bg,
+      overflow: 'hidden',
     },
+    gapPanel: { ...fill, backgroundColor: s.panel.background },
+    gapTint: { ...fill, backgroundColor: dropArmed.backgroundColor },
   });
 }
 
