@@ -70,6 +70,16 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 // draw pile is face down, and that the discard pile shows only its top card.
 // The runtime never has to be told any of it.
 func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, error) {
+	return m.view(raw, viewerID, false)
+}
+
+// OpenView renders the board with every hand face up, for replaying a game
+// that is over. The runtime only ever asks for it once a match is finished.
+func (m *Module) OpenView(raw module.State) (module.ViewModel, error) {
+	return m.view(raw, "", true)
+}
+
+func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.ViewModel, error) {
 	s, err := decode(raw)
 	if err != nil {
 		return module.ViewModel{}, err
@@ -82,11 +92,15 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 	// (Zone ids come from the helpers below rather than being written out, so
 	// the offers can point at the same strings — an offer naming a zone id no
 	// zone has is a drop target nobody can hit.)
-	own := s.Hands[viewerID]
-	vm.Zones = append(vm.Zones, module.Zone{
-		ID: handZoneID(viewerID), Kind: module.ZoneHand, OwnerID: viewerID,
-		LabelKey: "zone.yourHand", Cards: cardViews(own), Count: len(own),
-	})
+	// Skipped entirely when there is no viewer, which is what an open view is:
+	// nobody is sitting at this board, so no hand is "yours".
+	if viewerID != "" {
+		own := s.Hands[viewerID]
+		vm.Zones = append(vm.Zones, module.Zone{
+			ID: handZoneID(viewerID), Kind: module.ZoneHand, OwnerID: viewerID,
+			LabelKey: "zone.yourHand", Cards: cardViews(own), Count: len(own),
+		})
+	}
 
 	// Everyone else: a count only. This is the whole anti-cheat surface for
 	// this game, and it is four lines rather than a 40-line projection.
@@ -94,10 +108,14 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 		if p == viewerID {
 			continue
 		}
-		vm.Zones = append(vm.Zones, module.Zone{
+		z := module.Zone{
 			ID: handZoneID(p), Kind: module.ZoneHand, OwnerID: p,
 			LabelKey: "zone.opponentHand", Count: len(s.Hands[p]),
-		})
+		}
+		if reveal {
+			z.Cards = cardViews(s.Hands[p])
+		}
+		vm.Zones = append(vm.Zones, z)
 	}
 
 	vm.Zones = append(vm.Zones,

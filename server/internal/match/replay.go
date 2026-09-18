@@ -134,7 +134,9 @@ func (m *Manager) BuildReplay(match models.Match, viewerID string, opts ReplayOp
 		Variation: match.Variation,
 		Options:   match.Options,
 		ViewerID:  viewerID,
-		Open:      openable(match.Status),
+		// Asking and being allowed, both: the caller says whether it wants an
+		// open board, and openable says whether this match may give one.
+		Open: opts.Open && openable(match.Status),
 		Total:     len(match.ActionLog) + 1,
 		From:      from,
 		Frames:    []ReplayFrame{},

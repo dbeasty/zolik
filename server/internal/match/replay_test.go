@@ -451,3 +451,88 @@ func TestReplayCarriesRoundBoundaries(t *testing.T) {
 		t.Errorf("prsi invented a round log")
 	}
 }
+
+// TestFinishedMatchesReplayWithNothingHidden is the other half of the open
+// view: the gate refuses to open an unfinished match, and this says that when
+// it does open one, the cards are actually there.
+//
+// Stated as "reveals more than any one seat could see", rather than "every
+// hand zone is face up", because the games disagree about what a hidden card
+// even is. Blackjack deals every box face up and hides exactly one card, the
+// dealer's hole; rummytiles hides a rack; hold'em hides two. The property they
+// share is the one worth pinning: an open view belongs to nobody and shows
+// strictly more than a player's own view of the same board.
+func TestFinishedMatchesReplayWithNothingHidden(t *testing.T) {
+	// visible counts the cards actually face up on a board, groups included —
+	// blackjack keeps a box's cards in groups rather than in Cards.
+	visible := func(vm module.ViewModel) int {
+		n := 0
+		for _, z := range vm.Zones {
+			n += len(z.Cards)
+			for _, g := range z.Groups {
+				n += len(g.Cards)
+			}
+		}
+		return n
+	}
+
+	for _, g := range replayables() {
+		t.Run(g.name, func(t *testing.T) {
+			m := replayManager()
+			match, _ := playOut(t, g, 3)
+			match.Status = "completed"
+
+			open, err := m.BuildReplay(match, "p1", ReplayOptions{Limit: MaxReplayFrames, Open: true})
+			if err != nil {
+				t.Fatalf("BuildReplay: %v", err)
+			}
+			if !open.Open {
+				t.Fatalf("a finished match did not open; %s has no OpenView", g.name)
+			}
+
+			// An open view takes no viewer, so two players replaying the same
+			// finished game must be looking at the very same board.
+			asP2, err := m.BuildReplay(match, "p2", ReplayOptions{Limit: MaxReplayFrames, Open: true})
+			if err != nil {
+				t.Fatalf("BuildReplay: %v", err)
+			}
+			if a, b := mustJSON(t, open.Frames), mustJSON(t, asP2.Frames); a != b {
+				t.Errorf("an open replay differed between two seats at the same table")
+			}
+			for _, z := range open.Frames[0].View.Zones {
+				if z.LabelKey == "zone.yourHand" || z.LabelKey == "blackjack.zone.yourBox" {
+					t.Errorf("an open view called %s's cards 'yours'", z.OwnerID)
+				}
+			}
+
+			// Somewhere in the game, an open board shows strictly more than
+			// a seat's own — and nowhere does it show less.
+			//
+			// Somewhere rather than on the deal, because the games do not
+			// agree on when cards appear: blackjack opens on a betting round
+			// with nothing dealt at all, so its frame 0 has no cards for
+			// anybody and proves nothing either way.
+			closed, err := m.BuildReplay(match, "p1", ReplayOptions{Limit: MaxReplayFrames})
+			if err != nil {
+				t.Fatalf("BuildReplay: %v", err)
+			}
+			if closed.Open {
+				t.Fatalf("a replay that did not ask to be open came back open")
+			}
+			revealedSomewhere := false
+			for i := range open.Frames {
+				openN, closedN := visible(open.Frames[i].View), visible(closed.Frames[i].View)
+				if openN < closedN {
+					t.Fatalf("frame %d: an open board shows %d cards, fewer than p1's own %d",
+						i, openN, closedN)
+				}
+				if openN > closedN {
+					revealedSomewhere = true
+				}
+			}
+			if !revealedSomewhere {
+				t.Errorf("%s never showed a single card more with the hands open", g.name)
+			}
+		})
+	}
+}

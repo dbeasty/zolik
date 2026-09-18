@@ -148,6 +148,16 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 // public to *both* partnerships, and the discard pile shows only its top card
 // even though everyone at a real table has watched it being built.
 func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, error) {
+	return m.view(raw, viewerID, false)
+}
+
+// OpenView renders the board with every hand face up, for replaying a game
+// that is over. The runtime only ever asks for it once a match is finished.
+func (m *Module) OpenView(raw module.State) (module.ViewModel, error) {
+	return m.view(raw, "", true)
+}
+
+func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.ViewModel, error) {
 	s, err := decode(raw)
 	if err != nil {
 		return module.ViewModel{}, err
@@ -156,19 +166,27 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 	vm := module.ViewModel{}
 	r := s.rules()
 
-	own := s.Hands[viewerID]
-	vm.Zones = append(vm.Zones, module.Zone{
-		ID: handZoneID(viewerID), Kind: module.ZoneHand, OwnerID: viewerID,
-		LabelKey: "zone.yourHand", Cards: cardViews(own), Count: len(own),
-	})
+	// Skipped when there is no viewer, which is what an open view is: nobody
+	// is sitting at this board, so no hand is "yours".
+	if viewerID != "" {
+		own := s.Hands[viewerID]
+		vm.Zones = append(vm.Zones, module.Zone{
+			ID: handZoneID(viewerID), Kind: module.ZoneHand, OwnerID: viewerID,
+			LabelKey: "zone.yourHand", Cards: cardViews(own), Count: len(own),
+		})
+	}
 	for _, p := range s.TurnOrder {
 		if p == viewerID {
 			continue
 		}
-		vm.Zones = append(vm.Zones, module.Zone{
+		z := module.Zone{
 			ID: handZoneID(p), Kind: module.ZoneHand, OwnerID: p,
 			LabelKey: "zone.opponentHand", Count: len(s.Hands[p]),
-		})
+		}
+		if reveal {
+			z.Cards = cardViews(s.Hands[p])
+		}
+		vm.Zones = append(vm.Zones, z)
 	}
 
 	vm.Zones = append(vm.Zones,
