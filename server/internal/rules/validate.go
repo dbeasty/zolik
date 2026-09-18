@@ -381,6 +381,23 @@ func ValidateUndoTurn(state GameState, playerID string) (GameState, error) {
 	if snap == nil || snap.PlayerID != playerID {
 		return state, RulesError{Code: ErrNothingToUndo}
 	}
+	// Nothing has been built on the snapshot yet, so there is nothing to take
+	// back. Right after a draw the snapshot *is* the live state, and it is
+	// again after an undo_turn. Accepting it there made this the one control
+	// on the row that lit up and did nothing: the engine returned a state
+	// identical in every field a player can see, the board redrew the same,
+	// and a player who had just drawn from the stock read that as the undo
+	// being broken rather than as there being nothing to undo. Its three
+	// neighbours already grey out on ErrNothingToUndo; this is the same
+	// answer, reached through the same code, so LegalActions greys this one
+	// out with it too without restating a rule of its own.
+	//
+	// A draw off the stock is not what this undoes and never was — see
+	// ValidateUndoDrawDiscard, which reaches back over a *pile* draw only,
+	// because a card taken off the stock has been seen and cannot be unseen.
+	if turnUntouchedSince(state, snap) {
+		return state, RulesError{Code: ErrNothingToUndo}
+	}
 
 	state.Hands = snap.Hands
 	state.Melds = snap.Melds
@@ -412,6 +429,116 @@ func ValidateUndoTurn(state GameState, playerID string) (GameState, error) {
 	state.TurnMeldSnapshot = snapshotTurnMeld(state, playerID)
 
 	return state, nil
+}
+
+// turnUntouchedSince reports whether the live state still matches the
+// snapshot in everything ValidateUndoTurn would restore — which is to say,
+// whether undoing the turn would be a no-op.
+//
+// Compared field by field rather than by re-snapshotting and running
+// reflect.DeepEqual, because two of these fields differ from the snapshot
+// without anything having happened that a player could see:
+//
+//   - A hand's card *order*. ValidateUndoLayMeld puts a meld's cards back on
+//     the end of the hand rather than where they came from, so laying a meld
+//     and undoing it leaves the same cards in a different order. Hands are
+//     compared as multisets for that reason; the server's order is not what a
+//     player sees anyway, since the client keeps an order of its own.
+//   - NextMeldSeq, which the single-step undos deliberately do not roll back:
+//     meld ids are never reused, so the counter runs on even when the meld it
+//     numbered is gone. It is left out of their restore on purpose, and it is
+//     invisible, so it cannot stand for "something to take back".
+//
+// Everything else is compared exactly, order included — a run's card order
+// and the discard pile's top card are both on screen.
+func turnUntouchedSince(state GameState, snap *TurnMeldSnapshot) bool {
+	if state.MeldsLaidThisTurn != snap.MeldsLaidThisTurn ||
+		state.DiscardDrawnCardPendingMeld != snap.DiscardDrawnCardPendingMeld ||
+		state.DiscardTakenCard != snap.DiscardTakenCard {
+		return false
+	}
+	if !sameCards(state.DiscardDrawnCards, snap.DiscardDrawnCards) ||
+		!sameCards(state.JokersReclaimedPendingMeld, snap.JokersReclaimedPendingMeld) {
+		return false
+	}
+	if !sameCardsInOrder(state.DiscardPile, snap.DiscardPile) {
+		return false
+	}
+	// Every player's hand and table, not just the acting player's: a lay-off
+	// or a joker swap this turn changes someone else's meld, and that is
+	// exactly as much "something to undo" as one's own.
+	for _, pid := range playersIn(state.Hands, snap.Hands) {
+		if !sameCards(state.Hands[pid], snap.Hands[pid]) {
+			return false
+		}
+	}
+	for _, pid := range playersIn(state.Melds, snap.Melds) {
+		live, kept := state.Melds[pid], snap.Melds[pid]
+		if len(live) != len(kept) {
+			return false
+		}
+		for i := range live {
+			if !sameCardsInOrder(live[i], kept[i]) {
+				return false
+			}
+		}
+	}
+	for _, pid := range playersIn(state.MeldMeta, snap.MeldMeta) {
+		live, kept := state.MeldMeta[pid], snap.MeldMeta[pid]
+		if len(live) != len(kept) {
+			return false
+		}
+		for i := range live {
+			if live[i] != kept[i] {
+				return false
+			}
+		}
+	}
+	// Only the flags the restore would write, and by the same rule it picks
+	// them: a snapshot old enough to carry one player's bool is compared on
+	// that player alone, because that is all such a build would put back.
+	if len(snap.AllRoundReqMet) > 0 {
+		for pid, met := range snap.AllRoundReqMet {
+			if state.RoundReqMet[pid] != met {
+				return false
+			}
+		}
+	} else if state.RoundReqMet[snap.PlayerID] != snap.RoundReqMet {
+		return false
+	}
+	return true
+}
+
+// playersIn is the union of two per-player maps' keys, so a player present in
+// one and absent from the other is still compared — an absent key and an
+// empty value mean the same thing here (snapshotTurnMeld drops a player whose
+// meld list is empty), and the comparisons above read a missing key as the
+// zero value, which is what makes that safe.
+func playersIn[A any, B any](live map[string]A, kept map[string]B) []string {
+	out := make([]string, 0, len(live)+len(kept))
+	for pid := range live {
+		out = append(out, pid)
+	}
+	for pid := range kept {
+		if _, both := live[pid]; !both {
+			out = append(out, pid)
+		}
+	}
+	return out
+}
+
+// sameCardsInOrder compares two card lists position by position, for the ones
+// whose order is itself on screen.
+func sameCardsInOrder(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func ValidateLayOff(state GameState, playerID string, meldID string, cards []string, position string) (GameState, error) {
