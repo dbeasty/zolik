@@ -31,6 +31,7 @@ export const ga: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'Níl an tábla seo ann a thuilleadh',
   'err.MATCH_DELETED': 'Scrios an t-óstach an tábla seo',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Caithfidh cách a bheith ar ais ag an tábla sular féidir an cluiche a thógáil suas arís',
+  'err.NOTHING_TO_REPLAY': 'Níl cluiche ar bith anseo le hathimirt go fóill',
   'err.DISCARD_LOCKED': 'Tá an carn caite faoi ghlas go fóill',
   'err.DISCARD_PILE_EMPTY': 'Tá an carn caite folamh',
   'err.NO_CARDS_LEFT': 'Níl cárta ar bith fágtha le tarraingt',

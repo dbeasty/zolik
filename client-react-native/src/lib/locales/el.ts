@@ -31,6 +31,7 @@ export const el: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'Αυτό το τραπέζι δεν υπάρχει πια',
   'err.MATCH_DELETED': 'Ο οικοδεσπότης διέγραψε αυτό το τραπέζι',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Όλοι πρέπει να είναι ξανά στο τραπέζι για να συνεχιστεί το παιχνίδι',
+  'err.NOTHING_TO_REPLAY': 'Δεν υπάρχει ακόμη παιχνίδι για αναπαραγωγή εδώ',
   'err.DISCARD_LOCKED': 'Ο σωρός απόρριψης είναι προς το παρόν κλειδωμένος',
   'err.DISCARD_PILE_EMPTY': 'Ο σωρός απόρριψης είναι άδειος',
   'err.NO_CARDS_LEFT': 'Δεν έμειναν φύλλα για τράβηγμα',

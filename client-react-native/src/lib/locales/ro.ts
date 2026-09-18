@@ -31,6 +31,7 @@ export const ro: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'Această masă nu mai există',
   'err.MATCH_DELETED': 'Gazda a șters această masă',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Toți trebuie să fie înapoi la masă pentru ca jocul să poată fi reluat',
+  'err.NOTHING_TO_REPLAY': 'Aici încă nu există niciun joc de reluat',
   'err.DISCARD_LOCKED': 'Teancul de aruncate este blocat deocamdată',
   'err.DISCARD_PILE_EMPTY': 'Teancul de aruncate este gol',
   'err.NO_CARDS_LEFT': 'Nu mai sunt cărți de tras',

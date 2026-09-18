@@ -31,6 +31,7 @@ export const bg: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'Тази маса вече не съществува',
   'err.MATCH_DELETED': 'Домакинът изтри тази маса',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Всички трябва да са отново на масата, за да продължи играта',
+  'err.NOTHING_TO_REPLAY': 'Тук още няма игра за преглед',
   'err.DISCARD_LOCKED': 'Купчината за изхвърляне засега е заключена',
   'err.DISCARD_PILE_EMPTY': 'Купчината за изхвърляне е празна',
   'err.NO_CARDS_LEFT': 'Няма повече карти за теглене',

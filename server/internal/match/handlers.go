@@ -15,6 +15,7 @@ import (
 
 	"zolik/server/internal/admission"
 	"zolik/server/internal/auth"
+	"zolik/server/internal/db"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
 	"zolik/server/internal/rules"
@@ -87,6 +88,11 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	// as the GET above so there is only one idea of what {id} means on this
 	// path; chi keys the two by method, not by name, so they cannot collide.
 	r.With(auth.AuthMiddleware).Delete("/matches/{id}", h.deleteMatch)
+	// Stepping back through a game that has stopped. Authenticated and
+	// seated-only, unlike the spectator GET above: this answers with every
+	// board the match passed through, which is a great deal more than the one
+	// it is sitting on.
+	r.With(auth.AuthMiddleware).Get("/matches/{id}/replay", h.replayMatch)
 
 	if h.testEndpoints {
 		r.With(auth.AuthMiddleware).Post("/matches/{id}/debug-state", h.debugState)
@@ -610,6 +616,13 @@ type storedTable struct {
 	// left for the client to derive from IsHost, so the rule can change here
 	// without a client release.
 	CanDelete bool `json:"canDelete"`
+	// CanReplay is whether this table has a game in it to step through.
+	//
+	// Keyed off StartedAt because the list projection strips the action log,
+	// so nothing here could count moves even if it wanted to — and because a
+	// dealt match always has at least the deal to show, which is exactly where
+	// BuildReplay draws the same line.
+	CanReplay bool `json:"canReplay"`
 }
 
 func (h *Handlers) storedTableOf(m models.Match, viewerID string) storedTable {
@@ -637,6 +650,7 @@ func (h *Handlers) storedTableOf(m models.Match, viewerID string) storedTable {
 	}
 	out.CanResume = m.Status == "abandoned" && h.manager.resumableBy(m, viewerID)
 	out.CanDelete = out.IsHost
+	out.CanReplay = m.StartedAt != nil
 	for _, p := range m.Players {
 		out.Players = append(out.Players, PlayerMsg{ID: p.ID, Name: p.Name, IsAI: p.IsAI, Avatar: p.Avatar})
 		if p.IsAI {
@@ -679,6 +693,55 @@ func (h *Handlers) myTables(w http.ResponseWriter, req *http.Request) {
 		out = append(out, h.storedTableOf(m, uc.UserID))
 	}
 	writeJSON(w, map[string]any{"tables": out})
+}
+
+// replayMatch plays a stopped game back, frame by frame.
+//
+// Paged rather than whole: a long canasta match is a megabyte and a half of
+// boards, and nothing on this server compresses a response. Paging costs one
+// extra fold per page and buys a first frame that arrives immediately.
+//
+// The viewer is always the caller's own seat. There is deliberately no
+// ?as=<somebody else> here, unlike getMatch: that route is unauthenticated and
+// spectator-ish by intent, whereas this one would hand a seated player every
+// board their opponent ever held.
+func (h *Handlers) replayMatch(w http.ResponseWriter, req *http.Request) {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	id := chi.URLParam(req, "id")
+	m, err := h.manager.Repo().Resolve(req.Context(), id)
+	if err != nil {
+		if db.IsNotFound(err) {
+			// Also how a match that outlived its retention window answers,
+			// which is the same answer every other route on a swept match
+			// already gives.
+			writeModuleError(w, module.Error{Code: "MATCH_NOT_FOUND", Message: id})
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if playerByID(m.Players, uc.UserID) == nil {
+		writeModuleError(w, module.Error{Code: "NOT_AT_THIS_TABLE"})
+		return
+	}
+
+	from, _ := strconv.Atoi(req.URL.Query().Get("from"))
+	limit, _ := strconv.Atoi(req.URL.Query().Get("limit"))
+	rep, err := h.manager.BuildReplay(m, uc.UserID, ReplayOptions{
+		From: from, Limit: limit,
+		// Asking is not getting: BuildReplay grants this only to a finished
+		// match, and every other status is projected per viewer as usual.
+		Open: true,
+	})
+	if err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	writeJSON(w, rep)
 }
 
 // deleteMatch ends a table at its host's request. Every rule lives in
@@ -877,7 +940,7 @@ func writeModuleError(w http.ResponseWriter, err error) {
 		status = http.StatusForbidden
 	case "NOT_THE_HOST":
 		status = http.StatusForbidden
-	case "NO_LONGER_WAITING", "MATCH_FULL", "MATCH_NOT_ABANDONED", "MATCH_MOVED_ON":
+	case "NO_LONGER_WAITING", "MATCH_FULL", "MATCH_NOT_ABANDONED", "MATCH_MOVED_ON", "NOTHING_TO_REPLAY":
 		// A conflict rather than a bad request: the caller did nothing wrong,
 		// the world moved under them.
 		status = http.StatusConflict

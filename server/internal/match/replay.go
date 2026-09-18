@@ -105,7 +105,13 @@ func (m *Manager) BuildReplay(match models.Match, viewerID string, opts ReplayOp
 	// A table nobody ever dealt has no game in it to step through. Not an
 	// error the caller made, which is why the handler answers 409 rather than
 	// 400 — it is the same table, just never played.
-	if len(match.State) == 0 || len(match.ActionLog) == 0 {
+	//
+	// Being dealt is the whole test, rather than having moves in the log: a
+	// match that was started and abandoned before anybody played still has a
+	// deal to look at, and drawing the line here is what lets a stored-table
+	// row advertise canReplay from StartedAt alone — the list projection
+	// strips the action log, so it could not count moves if it wanted to.
+	if len(match.State) == 0 {
 		return ReplayMsg{}, module.Error{Code: "NOTHING_TO_REPLAY"}
 	}
 

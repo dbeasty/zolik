@@ -31,6 +31,7 @@ export const it: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'Questo tavolo non esiste più',
   'err.MATCH_DELETED': "L'organizzatore ha eliminato questo tavolo",
   'err.TABLE_HAS_PLAYERS_AWAY': 'Devono essere tutti di nuovo al tavolo perché la partita possa riprendere',
+  'err.NOTHING_TO_REPLAY': 'Qui non c’è ancora nessuna partita da rivedere',
   'err.DISCARD_LOCKED': 'La pila degli scarti è bloccata per ora',
   'err.DISCARD_PILE_EMPTY': 'La pila degli scarti è vuota',
   'err.NO_CARDS_LEFT': 'Non ci sono più carte da pescare',

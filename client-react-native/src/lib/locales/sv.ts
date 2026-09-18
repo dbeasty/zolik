@@ -31,6 +31,7 @@ export const sv: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'Det här bordet finns inte längre',
   'err.MATCH_DELETED': 'Värden har tagit bort det här bordet',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Alla måste vara tillbaka vid bordet innan spelet kan återupptas',
+  'err.NOTHING_TO_REPLAY': 'Det finns ingen match att spela upp här än',
   'err.DISCARD_LOCKED': 'Kasthögen är låst tills vidare',
   'err.DISCARD_PILE_EMPTY': 'Kasthögen är tom',
   'err.NO_CARDS_LEFT': 'Inga kort kvar att dra',

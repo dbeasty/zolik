@@ -31,6 +31,7 @@ export const de: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'Diesen Tisch gibt es nicht mehr',
   'err.MATCH_DELETED': 'Der Gastgeber hat diesen Tisch gelöscht',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Alle müssen wieder am Tisch sein, damit das Spiel fortgesetzt werden kann',
+  'err.NOTHING_TO_REPLAY': 'Hier gibt es noch kein Spiel zum Nachspielen',
   'err.DISCARD_LOCKED': 'Der Ablagestapel ist vorerst gesperrt',
   'err.DISCARD_PILE_EMPTY': 'Der Ablagestapel ist leer',
   'err.NO_CARDS_LEFT': 'Keine Karten mehr zum Ziehen',

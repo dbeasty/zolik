@@ -31,6 +31,7 @@ export const pl: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'Ten stół już nie istnieje',
   'err.MATCH_DELETED': 'Gospodarz usunął ten stół',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Wszyscy muszą wrócić do stołu, żeby można było wznowić grę',
+  'err.NOTHING_TO_REPLAY': 'Nie ma tu jeszcze partii do odtworzenia',
   'err.DISCARD_LOCKED': 'Stos odrzuconych jest na razie zablokowany',
   'err.DISCARD_PILE_EMPTY': 'Stos odrzuconych jest pusty',
   'err.NO_CARDS_LEFT': 'Nie ma już kart do dobrania',
