@@ -121,6 +121,29 @@ func (m *Manager) BuildStateMsg(match models.Match, viewerID string) MatchStateM
 // the module's whole state an extra time for every seat at the table, on every
 // single action.
 func (m *Manager) buildStateMsg(match models.Match, viewerID string, rounds *module.RoundLog) MatchStateMsg {
+	return m.projectStateMsg(match, viewerID, stateMsgOpts{rounds: rounds, withOffers: true})
+}
+
+// stateMsgOpts is what varies between the two things a projection is wanted
+// for: a live board, and one frame of a replay.
+type stateMsgOpts struct {
+	rounds *module.RoundLog
+	// withOffers asks the module what this viewer may do. A replay frame says
+	// no: nobody is playing it, and offer enumeration is both the most
+	// expensive and by far the most verbose thing this function does.
+	withOffers bool
+	// openView asks for the board with every hand face up, for replaying a
+	// finished game. Whether that is allowed is decided long before here, by
+	// BuildReplay; a module that cannot do it is projected per viewer as usual.
+	openView bool
+}
+
+// projectStateMsg renders one viewer's state.
+//
+// The only place hidden information is filtered — by mod.View, below — which is
+// why a replay frame is built through here rather than through a second builder
+// that would have to be kept honest separately.
+func (m *Manager) projectStateMsg(match models.Match, viewerID string, o stateMsgOpts) MatchStateMsg {
 	msg := MatchStateMsg{
 		Type:            "match_state",
 		MatchID:         match.ID.Hex(),
@@ -163,14 +186,22 @@ func (m *Manager) buildStateMsg(match models.Match, viewerID string, rounds *mod
 	if mod == nil || len(match.State) == 0 {
 		return msg
 	}
-	if vm, err := mod.View(match.State, viewerID); err == nil {
+	if o.openView {
+		if vm, ok := module.OpenViewFor(mod, match.State); ok {
+			msg.View = vm
+		} else if vm, err := mod.View(match.State, viewerID); err == nil {
+			msg.View = vm
+		}
+	} else if vm, err := mod.View(match.State, viewerID); err == nil {
 		msg.View = vm
 	}
-	if offers, err := mod.LegalActions(match.State, viewerID); err == nil && offers != nil {
-		msg.LegalActions = offers
+	if o.withOffers {
+		if offers, err := mod.LegalActions(match.State, viewerID); err == nil && offers != nil {
+			msg.LegalActions = offers
+		}
 	}
 	msg.Standings = module.StandingsFor(mod, match.State)
-	msg.Rounds = rounds
+	msg.Rounds = o.rounds
 	return msg
 }
 
