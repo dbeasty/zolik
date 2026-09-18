@@ -408,6 +408,11 @@ var usernameSanitizer = regexp.MustCompile(`[^\p{L}\p{N}_. -]+`)
 // on the account screen — but a good default matters: "Guest4823" as a
 // permanent name is the kind of small indignity that makes an account feel
 // like a formality rather than theirs.
+//
+// The empty result is the honest answer for a sign-in that carried no name and
+// no address — an Apple private relay with the name withheld — and it is left
+// for uniqueUsername to answer, because inventing a name is the one part of
+// this that cannot be a pure function of the claims.
 func suggestUsername(claims identity.Claims) string {
 	if n := cleanUsername(claims.Name); n != "" {
 		return n
@@ -417,7 +422,7 @@ func suggestUsername(claims identity.Claims) string {
 			return n
 		}
 	}
-	return "Player"
+	return ""
 }
 
 func cleanUsername(s string) string {
@@ -443,8 +448,12 @@ func cleanUsername(s string) string {
 // The unique index remains the actual guarantee — this only avoids provoking
 // it in the common case.
 func (a *Accounts) uniqueUsername(ctx context.Context, base string) (string, error) {
+	// Nothing to work from, so the account is named the way a guest is — see
+	// GuestNameFor. "Player" stood here before, which made every nameless
+	// sign-in the same person and left the numeric suffix below to tell them
+	// apart: Player, Player2, Player3.
 	if base == "" {
-		base = "Player"
+		base = GuestNameFor("")
 	}
 	for i := 0; i < 50; i++ {
 		candidate := base

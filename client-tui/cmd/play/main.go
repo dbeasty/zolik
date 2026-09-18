@@ -19,14 +19,16 @@ func main() {
 		base = v
 	}
 	c := api.New(base)
-	if err := c.GuestLogin("Terminal"); err != nil {
+	// No name asked for, so the server invents one — every terminal used to
+	// sit down as "Terminal", which at a table of them is no name at all.
+	if err := c.GuestLogin(""); err != nil {
 		fmt.Fprintf(os.Stderr, "login: %v\n", err)
 		os.Exit(1)
 	}
 	sess := ui.PlayerSession{
 		AccessToken: c.Token,
 		UserID:      c.UserID,
-		Username:    "Terminal",
+		Username:    c.GuestName,
 		IsGuest:     true,
 	}
 	version, commit := buildinfo.Resolved()
