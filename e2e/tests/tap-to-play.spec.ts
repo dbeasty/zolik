@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { handCards } from '../helpers/drag';
+import { handCards, tapCard } from '../helpers/drag';
 import { API_BASE } from '../helpers/env';
 import { selectOnly } from '../helpers/hand';
 
@@ -305,7 +305,7 @@ test.describe('playing a card by tapping instead of dragging', () => {
 
     // Select any card, then tap the draw pile — never a valid destination
     // for a card already in hand.
-    await card(page, 0).click();
+    await tapCard(page, card(page, 0));
     await expect(card(page, 0)).toHaveAttribute('aria-selected', 'true');
 
     await expect(page.locator('[data-testid="zone-press-draw"]')).toHaveCount(0);

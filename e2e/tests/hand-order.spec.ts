@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
-import { dragLocatorTo, dragPointTo, handCards } from '../helpers/drag';
+import { dragLocatorTo, dragPointTo, grabPoint, handCards, visiblePart } from '../helpers/drag';
 import { API_BASE } from '../helpers/env';
 
 /**
@@ -18,7 +18,20 @@ import { API_BASE } from '../helpers/env';
  *
  * Žolíky is used here only because it deals a large hand. Nothing below knows
  * a rule of it, and the same drags work in any of the four.
+ *
+ * ## Tall enough to see the hand
+ *
+ * Every test here is about a gesture that starts in the hand, so the hand has
+ * to be on screen for the whole of it. The board has grown — cards are drawn
+ * as large as the row will take now — and on Playwright's default 720 the hand
+ * had slipped below the fold: `boundingBox()` still returned a box, the
+ * pointer still went down at its y, and nothing was drawn there, so the drags
+ * quietly did nothing. Half this file failed for that reason and the failures
+ * read as "hand-drop-gap not found" and "nothing was lifted out" — a suite
+ * that could no longer see what it was about, rather than a claim that had
+ * stopped being true.
  */
+test.use({ viewport: { width: 1280, height: 1400 } });
 
 type Ctx = import('@playwright/test').APIRequestContext;
 
@@ -57,7 +70,38 @@ async function tableWithBots(request: Ctx, moduleId: string, seats: number, as?:
   return { matchId, host };
 }
 
+/**
+ * Where the layout put an element, in page coordinates, ignoring any transform
+ * that is carrying it somewhere else.
+ *
+ * Installed into the page because both `settledBoxes` and `layoutLeft` need
+ * it, and an `evaluate` callback cannot see anything in this file.
+ *
+ * `offsetLeft` alone will not do: it is measured from the nearest positioned
+ * ancestor, and react-native-web makes every View `position: relative`, so a
+ * card's ring reports a handful of pixels relative to the box two levels up.
+ * The chain has to be walked and summed as far as the row.
+ */
+async function installLayoutProbe(page: Page) {
+  await page.addInitScript(() => {
+    (window as any).laidOutAt = (el: HTMLElement) => {
+      const row = el.closest('[data-testid^="hand-hand:"]') as HTMLElement | null;
+      let x = 0;
+      let y = 0;
+      let node: HTMLElement | null = el;
+      while (node && node !== row) {
+        x += node.offsetLeft;
+        y += node.offsetTop;
+        node = node.offsetParent as HTMLElement | null;
+      }
+      const origin = (row ?? document.body).getBoundingClientRect();
+      return { x: origin.x + x, y: origin.y + y };
+    };
+  });
+}
+
 async function openMatch(page: Page, host: any, matchId: string) {
+  await installLayoutProbe(page);
   await page.addInitScript((s) => {
     window.localStorage.setItem('zolik_session', JSON.stringify(s));
   }, {
@@ -94,6 +138,17 @@ const card = (page: Page, i: number) => page.locator('[data-testid^="card-hand:"
  */
 async function settledBoxes(page: Page): Promise<string[]> {
   return page.evaluate(() => {
+    // Read from `offsetLeft`/`offsetTop`, which is where the layout put a box,
+    // rather than from `getBoundingClientRect`, which is where it ends up
+    // being drawn.
+    //
+    // The two now differ on purpose. The hand comes apart to show the drop
+    // spot, and it does that with a transform: the cards either side of the
+    // hole are *drawn* a card-width apart from where they are laid out, and
+    // nothing they are measured against moves. That is the whole trick, and
+    // measuring the drawn position here would call it a broken invariant when
+    // it is the invariant being kept — the positions the pointer is hit-tested
+    // against, read once at pick-up, are the laid-out ones.
     // A card's test id is on its ring, a few levels inside the box the layout
     // actually positions — so "is this one being carried?" has to be asked of
     // its ancestors, up to the row itself, rather than of the tagged element.
@@ -111,11 +166,23 @@ async function settledBoxes(page: Page): Promise<string[]> {
     )
       .filter((el) => !floating(el))
       .map((el) => {
-        const r = el.getBoundingClientRect();
-        return `${Math.round(r.x)},${Math.round(r.y)},${Math.round(r.width)}`;
+        const p = (window as any).laidOutAt(el as HTMLElement);
+        return `${Math.round(p.x)},${Math.round(p.y)},${(el as HTMLElement).offsetWidth}`;
       })
       .sort();
   });
+}
+
+/**
+ * Where the layout put one element, in page coordinates — see `settledBoxes`
+ * for why that is not the same as where it is drawn.
+ */
+async function layoutLeft(page: Page, testId: string): Promise<number | null> {
+  return page.evaluate((id) => {
+    const el = document.querySelector(`[data-testid="${id}"]`) as HTMLElement | null;
+    if (!el) return null;
+    return Math.round((window as any).laidOutAt(el).x);
+  }, testId);
 }
 
 /**
@@ -149,18 +216,25 @@ async function carriedBox(page: Page) {
  * the dead centre — which is all `dragLocatorTo` can express — is the one
  * ambiguous spot, so a test that means "put this first" has to say so by
  * aiming at the left of the first card, the same way a person would.
+ *
+ * Both ends of the drag are expressed against the part of a card you can see
+ * (`visiblePart`), not its box. In a closed hand those are very different
+ * things: a card is 151px wide and sits 49px from the next, so a fraction of
+ * the box lands on a card two places along, and "the left of the first card"
+ * meant a point inside the third. That is also where the app puts the tipping
+ * point between two gaps — halfway across the visible strip — so measuring
+ * the same way is what makes "before" and "after" mean here what they mean
+ * on screen.
  */
 async function dragToEdge(page: Page, from: Locator, to: Locator, side: 'before' | 'after') {
   await from.scrollIntoViewIfNeeded();
-  const a = await from.boundingBox();
-  const b = await to.boundingBox();
-  if (!a || !b) throw new Error('drag needs both boxes');
+  const a = await grabPoint(from);
+  const b = await visiblePart(to);
 
-  await dragPointTo(
-    page,
-    { x: a.x + a.width / 2, y: a.y + a.height / 2 },
-    { x: side === 'before' ? b.x + b.width * 0.15 : b.x + b.width * 0.85, y: b.y + b.height / 2 },
-  );
+  await dragPointTo(page, a, {
+    x: side === 'before' ? b.x + b.width * 0.15 : b.x + b.width * 0.85,
+    y: b.y + b.height / 2,
+  });
 }
 
 test.describe('arranging your hand', () => {
@@ -174,7 +248,10 @@ test.describe('arranging your hand', () => {
     const before = await handCards(page);
     expect(before.length).toBeGreaterThan(4);
 
-    await dragLocatorTo(page, card(page, 0), card(page, 3));
+    // "Put it down after the fourth card", said the way a person says it —
+    // by aiming at the part of that card they can see. A closed hand has no
+    // unambiguous middle to aim at; see `dragToEdge`.
+    await dragToEdge(page, card(page, 0), card(page, 3), 'after');
 
     const after = await handCards(page);
 
@@ -230,18 +307,14 @@ test.describe('arranging your hand', () => {
 
     const before = await handCards(page);
     const last = await card(page, before.length - 1).boundingBox();
-    const first = await card(page, 0).boundingBox();
-    if (!last || !first) throw new Error('no boxes');
+    const first = await grabPoint(card(page, 0));
+    if (!last) throw new Error('no boxes');
 
     // Past the right-hand edge of the last card. There is one more gap than
     // there are cards, and this is the extra one — the position that simply
     // does not exist if a drop is thought of as landing *on* a card, which is
     // why the end of the fan used to be unreachable.
-    await dragPointTo(
-      page,
-      { x: first.x + first.width / 2, y: first.y + first.height / 2 },
-      { x: last.x + last.width + 16, y: last.y + last.height / 2 },
-    );
+    await dragPointTo(page, first, { x: last.x + last.width + 16, y: last.y + last.height / 2 });
 
     const after = await handCards(page);
     expect(after[after.length - 1]).toBe(before[0]);
@@ -276,8 +349,8 @@ test.describe('arranging your hand', () => {
 
     const before = await handCards(page);
     const row = await page.getByTestId(`hand-hand:${host.userId}`).boundingBox();
-    const first = await card(page, 0).boundingBox();
-    if (!row || !first) throw new Error('no boxes');
+    const first = await grabPoint(card(page, 0));
+    if (!row) throw new Error('no boxes');
 
     // The obvious way to say "put this at the end": drop it in the empty
     // space to the right of the last card. That space is a long way past the
@@ -285,23 +358,12 @@ test.describe('arranging your hand', () => {
     // still the hand?" by where the *cards* are meant it fell outside, so the
     // card sprang back and the end of the fan could not be reached by hand,
     // however well the gaps themselves worked.
-    await dragPointTo(
-      page,
-      { x: first.x + first.width / 2, y: first.y + first.height / 2 },
-      { x: row.x + row.width - 8, y: row.y + row.height / 2 },
-    );
+    await dragPointTo(page, first, { x: row.x + row.width - 8, y: row.y + row.height / 2 });
 
     expect(await handCards(page)).toEqual([...before.slice(1), before[0]]);
   });
 
   test('the card being dragged goes where the pointer goes', async ({ page, request }) => {
-    // Tall enough to hold the whole board with the hand inside the viewport.
-    // The board grew (cards are drawn as large as the row will take now), and
-    // on the default 720 this test stopped reaching the hand at all: the
-    // pointer went down at a y below the fold, no drag ever started, and the
-    // failure read "nothing was lifted out" — a test that could no longer see
-    // the thing it was about, rather than a claim that had stopped being true.
-    await page.setViewportSize({ width: 1280, height: 1400 });
     const { matchId, host } = await tableWithBots(request, 'zolik', 2);
     await openMatch(page, host, matchId);
     await handCards(page);
@@ -352,7 +414,6 @@ test.describe('arranging your hand', () => {
     // closed hand where a card's own middle and the strip you can see happen
     // to be the same column, and so it is the one grip that cannot tell the
     // two apart.
-    await page.setViewportSize({ width: 1280, height: 1400 });
     const { matchId, host } = await tableWithBots(request, 'zolik', 2);
     await openMatch(page, host, matchId);
     await handCards(page);
@@ -413,6 +474,113 @@ test.describe('arranging your hand', () => {
     }
   });
 
+  /**
+   * The hole the hand opens where a card would land, and the cards either
+   * side of it — measured as they are drawn, not as they are laid out.
+   */
+  async function dropSpot(page: Page) {
+    return page.evaluate(() => {
+      const gap = document.querySelector('[data-testid="hand-drop-gap"]');
+      if (!gap) return null;
+      const g = gap.getBoundingClientRect();
+
+      // A card is "carried" if it, or a box between it and the row, is
+      // positioned absolutely — the same definition the other helpers use.
+      const floating = (el: Element) => {
+        let node: Element | null = el;
+        while (node && !(node as HTMLElement).dataset?.testid?.startsWith('hand-')) {
+          if (getComputedStyle(node as HTMLElement).position === 'absolute') return true;
+          node = node.parentElement;
+        }
+        return false;
+      };
+
+      const settled = Array.from(document.querySelectorAll('[data-testid^="card-hand:"]'))
+        .filter((el) => !floating(el))
+        .map((el) => el.getBoundingClientRect())
+        .sort((a, b) => a.x - b.x);
+
+      // The cards that actually shoulder the hole: the last one starting left
+      // of it, and the first one starting right of it.
+      const before = [...settled].reverse().find((r) => r.x < g.x) ?? null;
+      const after = settled.find((r) => r.x > g.x) ?? null;
+      return {
+        gap: { x: g.x, width: g.width },
+        // How much clear space the hole really has. With nothing after it,
+        // the hole runs to the end of the row and is as wide as it looks.
+        opening: after ? after.x - g.x : g.width,
+        cardWidth: settled[0]?.width ?? 0,
+      };
+    });
+  }
+
+  test('the hand comes apart to show where the card will land', async ({ page, request }) => {
+    // The drop spot was being drawn correctly and could not be seen. A closed
+    // hand has no room in it: the gap standing in for the dragged card is a
+    // whole card wide, but it sits on the same pitch as everything else, so
+    // all of it but a thirty-pixel strip was covered by the card after it —
+    // and that strip was covered again by the card you are carrying, which is
+    // directly over it, because that is where your finger is.
+    const { matchId, host } = await tableWithBots(request, 'zolik', 2);
+    await openMatch(page, host, matchId);
+    const before = await handCards(page);
+
+    await card(page, 0).scrollIntoViewIfNeeded();
+    const first = await card(page, 0).boundingBox();
+    const second = await card(page, 1).boundingBox();
+    const target = await card(page, 8).boundingBox();
+    if (!first || !second || !target) throw new Error('no boxes');
+
+    const pitch = second.x - first.x;
+    expect(pitch, 'the fan is laid out, so this is not a closed hand').toBeLessThan(first.width);
+
+    // Card 1, taken by the strip of it you can see, carried along the fan —
+    // not up over the board. This is the "where in my hand does it go?" case.
+    const held = await card(page, 1).boundingBox();
+    if (!held) throw new Error('no box');
+    const grabX = held.x + Math.min(12, pitch / 2);
+    const grabY = held.y + held.height / 2;
+    const dropX = target.x + 10;
+
+    await page.mouse.move(grabX, grabY);
+    await page.mouse.down();
+    await page.waitForTimeout(200);
+    await page.mouse.move(grabX + 100, grabY, { steps: 10 });
+    await page.waitForTimeout(150);
+    await page.mouse.move(dropX, grabY, { steps: 20 });
+    await page.waitForTimeout(300);
+
+    let landed: string[];
+    try {
+      const spot = await dropSpot(page);
+      expect(spot, 'no drop spot was drawn at all').toBeTruthy();
+
+      // A hole a card could go in, rather than the strip of one. Judged
+      // against a card's own width so it holds at any size the board draws
+      // them at — this is the whole of the complaint.
+      expect(
+        spot!.opening,
+        `the hole is ${Math.round(spot!.opening)}px of clear space, against a ${Math.round(spot!.cardWidth)}px card`,
+      ).toBeGreaterThan(spot!.cardWidth * 0.9);
+
+      // And it is under the finger, not two cards along from it.
+      expect(dropX, 'the hole is not where the pointer is').toBeGreaterThanOrEqual(spot!.gap.x - 8);
+      expect(dropX).toBeLessThanOrEqual(spot!.gap.x + spot!.gap.width + 8);
+    } finally {
+      await page.mouse.up();
+      await page.waitForTimeout(400);
+      landed = await handCards(page);
+    }
+
+    // The point of showing a hole at all: the card goes where the hole was.
+    // Without this the test would be happy with a hole drawn somewhere
+    // decorative, which is the bug it replaced wearing a bigger costume.
+    const moved = before[1];
+    expect(landed).not.toEqual(before);
+    expect(landed.indexOf(moved), `${moved} did not land where the hole was`).toBeGreaterThan(1);
+    expect([...landed].sort()).toEqual([...before].sort());
+  });
+
   test('the row keeps its shape while a card is being dragged', async ({ page, request }) => {
     const { matchId, host } = await tableWithBots(request, 'zolik', 2);
     await openMatch(page, host, matchId);
@@ -447,6 +615,10 @@ test.describe('arranging your hand', () => {
       // the layout *and* inserting a gap made the row one card wider, shifted
       // everything right of the gap, and left the gap sitting a full card away
       // from the pointer.
+      //
+      // "In the same places" is a claim about the layout, not about the paint
+      // — the hand does come visibly apart around the hole, by transform. See
+      // `settledBoxes`.
       expect(await settledBoxes(page)).toEqual(settledBefore);
     } finally {
       await page.mouse.up();
@@ -487,8 +659,11 @@ test.describe('arranging your hand', () => {
         await page.mouse.move(x, target.y + target.height / 2, { steps: 10 });
         await page.waitForTimeout(250);
 
-        const gap = await page.getByTestId('hand-drop-gap').boundingBox();
-        expect(gap, `no gap while over card ${index}`).toBeTruthy();
+        // Which column the gap was *laid out* in. The hand slides apart around
+        // it to show the hole, so where it is drawn is a card-width from where
+        // it sits in the row — and it is the row this test is about.
+        const gap = await layoutLeft(page, 'hand-drop-gap');
+        expect(gap, `no gap while over card ${index}`).not.toBeNull();
 
         // The column the pointer is in, and the one after it: dropping on the
         // right of a card means "after this one", so either is a truthful
@@ -497,8 +672,8 @@ test.describe('arranging your hand', () => {
         const allowed = [columns[here], columns[Math.min(here + 1, columns.length - 1)]];
         expect(
           allowed,
-          `gap at ${Math.round(gap!.x)} while pointing at ${Math.round(x)}, expected one of ${allowed}`,
-        ).toContain(Math.round(gap!.x));
+          `gap at ${gap} while pointing at ${Math.round(x)}, expected one of ${allowed}`,
+        ).toContain(gap);
       }
     } finally {
       await page.mouse.up();

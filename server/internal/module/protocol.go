@@ -309,6 +309,18 @@ type Placement struct {
 	Card      string   `json:"card"`
 	Positions []string `json:"positions,omitempty"`
 
+	// Slots says where each of Positions lands, as an index into the
+	// group's rendered cards: 0 is before the first card, len(cards) is
+	// after the last. Same length and order as Positions, or empty.
+	//
+	// It exists so a client can draw the place a card would go without
+	// knowing what "front" means. The ordinal alone is not enough: a run
+	// that will only take a card at one end offers exactly one position,
+	// and nothing in "position 1 of 1" says which end it is. Guessing is
+	// worse than saying nothing, so the side that knows the rule says the
+	// number and the side that draws stays ignorant of the rule.
+	Slots []int `json:"slots,omitempty"`
+
 	// Requires names the other cards that must be submitted in the same
 	// action for this one to be legal — a rummy run's 5 needs the 6 when
 	// the run starts at the 7. Empty means "may go on its own", which is

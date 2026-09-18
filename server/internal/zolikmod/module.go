@@ -365,7 +365,7 @@ func toSelector(s *rules.Selector, playerID string) *module.Selector {
 	}
 	for _, p := range s.Placements {
 		out.Placements = append(out.Placements, module.Placement{
-			Card: p.Card, Positions: p.Positions,
+			Card: p.Card, Positions: p.Positions, Slots: p.Slots,
 			Requires: p.Requires, Alternatives: p.Alternatives,
 		})
 	}

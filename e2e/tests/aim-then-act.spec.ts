@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { handCards } from '../helpers/drag';
+import { handCards, tapCard } from '../helpers/drag';
 import { API_BASE } from '../helpers/env';
 import { clearHandSelection, selectOnly } from '../helpers/hand';
 
@@ -144,8 +144,8 @@ function controlFor(page: Page, offer: any) {
 async function resetPending(page: Page) {
   await clearHandSelection(page);
   const first = page.locator('[data-testid^="card-hand:"]').first();
-  await first.click();
-  await first.click();
+  await tapCard(page, first);
+  await tapCard(page, first);
   await expect(page.locator('[data-testid^="card-hand:"][aria-selected="true"]')).toHaveCount(0);
 }
 

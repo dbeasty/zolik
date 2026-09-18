@@ -143,6 +143,17 @@ export type ParamSpec = {
 export type Placement = {
   card: string;
   positions?: string[];
+  /**
+   * Where each of `positions` lands, as an index into the group's rendered
+   * cards: 0 before the first, `cards.length` after the last. Same length and
+   * order as `positions`.
+   *
+   * This is how the board can draw the place a card is about to go without
+   * knowing what "front" means — the module says the number. The ordinal on
+   * its own will not do it: a run that takes a card at one end offers one
+   * position, and "the first of one" names no end.
+   */
+  slots?: number[];
   requires?: string[];
   alternatives?: string[][];
 };

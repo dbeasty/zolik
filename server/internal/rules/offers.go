@@ -86,6 +86,17 @@ type Placement struct {
 	Card      string   `json:"card"`
 	Positions []string `json:"positions,omitempty"` // "front" and/or "end"
 
+	// Slots is where each of Positions lands, as an index into the meld's
+	// own card order: 0 before the first card, len(cards) after the last.
+	// Same length and order as Positions.
+	//
+	// "front" is a word about the rules; 0 is a place on the table. A
+	// client that draws the spot a card is about to land in needs the
+	// second and must not have to derive it from the first — and could
+	// not anyway, since a run that takes a card at one end only offers a
+	// single unnamed position.
+	Slots []int `json:"slots,omitempty"`
+
 	// Requires names the other cards in hand that must be laid off in the
 	// same action for this one to be legal. Empty means "may go on its
 	// own", which is what every placement meant before this field existed.
@@ -536,6 +547,7 @@ func layOffPlacements(state GameState, cfg RulesConfig, playerID string, m table
 		p := Placement{Card: c}
 		if mv.Type == MeldRun {
 			p.Positions = droppableEnds(m.Cards, extended, cfg)
+			p.Slots = slotsForEnds(p.Positions, len(m.Cards))
 		}
 		out = append(out, p)
 	}
@@ -601,6 +613,7 @@ func layOffPlacements(state GameState, cfg RulesConfig, playerID string, m table
 			// the card alone — alone it has no submission.
 			whole := append(append(append([]string(nil), m.Cards...), ch.requires...), ch.card)
 			pl.Positions = droppableEnds(m.Cards, whole, cfg)
+			pl.Slots = slotsForEnds(pl.Positions, len(m.Cards))
 		}
 		out = append(out, pl)
 	}
@@ -885,6 +898,29 @@ func droppableEnds(prevCards, submission []string, cfg RulesConfig) []string {
 		}
 	}
 	return sides
+}
+
+// slotsForEnds turns each named end of a run into the place in the meld's own
+// card order a card laid there would occupy: the front is before the first
+// card, the end is after the last.
+//
+// Trivial, and the point of it is where it lives rather than what it does.
+// This is the only spot in the codebase that knows "front" means zero, and it
+// is on the side that owns the rules — which is what lets a client draw the
+// gap a card is about to drop into without learning a word of Žolíky.
+func slotsForEnds(sides []string, cards int) []int {
+	if len(sides) == 0 {
+		return nil
+	}
+	out := make([]int, 0, len(sides))
+	for _, side := range sides {
+		if side == "end" {
+			out = append(out, cards)
+			continue
+		}
+		out = append(out, 0)
+	}
+	return out
 }
 
 func swapJokerOffer(state GameState, playerID string, m tableMeld, active bool) ActionOffer {
