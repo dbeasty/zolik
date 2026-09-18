@@ -393,6 +393,55 @@ func TestGuestSessionMintsADurableIDAndReuseAccumulatesItsHistory(t *testing.T) 
 	}
 }
 
+// A guest who sends no name is named by the server, and named *something*.
+//
+// The old answer was "Guest" for everybody, which at a table of three was
+// three seats reading Guest and no way to follow a hand but to count seats.
+func TestGuestSessionNamesANamelessGuest(t *testing.T) {
+	h := newTestHarness(t)
+
+	first := h.do(http.MethodPost, "/auth/guest", "", map[string]any{})
+	if first.status != http.StatusOK {
+		t.Fatalf("nameless guest login: status %d body %s", first.status, first.raw)
+	}
+	name := first.str("guestName")
+	if name == "" || name == "Guest" || name == "Player" {
+		t.Fatalf("guestName = %q, want an invented name", name)
+	}
+	if !strings.Contains(name, " ") {
+		t.Errorf("guestName = %q, want the two-word shape the roster makes", name)
+	}
+
+	// The same device, coming back with the id it kept and still no name of
+	// its own, is the same player rather than a new one.
+	second := h.do(http.MethodPost, "/auth/guest", "", map[string]any{"guestId": first.str("guestId")})
+	if got := second.str("guestName"); got != name {
+		t.Errorf("guestName = %q on the device's second visit, was %q", got, name)
+	}
+
+	// And a different device is somebody else. One name in common is possible
+	// — the roster is finite — so this asserts across enough devices that all
+	// of them agreeing means the name is not being derived at all.
+	same := 0
+	for i := 0; i < 20; i++ {
+		if h.do(http.MethodPost, "/auth/guest", "", map[string]any{}).str("guestName") == name {
+			same++
+		}
+	}
+	if same > 3 {
+		t.Errorf("%d of 20 fresh devices were also called %q", same, name)
+	}
+}
+
+// A name the caller did send is the name they get, invented names notwithstanding.
+func TestGuestSessionKeepsTheNameItWasGiven(t *testing.T) {
+	h := newTestHarness(t)
+	res := h.do(http.MethodPost, "/auth/guest", "", map[string]any{"guestName": "Alice"})
+	if got := res.str("guestName"); got != "Alice" {
+		t.Errorf("guestName = %q, want %q", got, "Alice")
+	}
+}
+
 func TestGuestSessionRejectsAForeignSuppliedID(t *testing.T) {
 	// A client-supplied id that is not shaped like one this server mints must
 	// not be trusted outright — otherwise the field would let a caller name

@@ -17,6 +17,10 @@ type Client struct {
 	BaseURL string
 	Token   string
 	UserID  string
+	// GuestName is what the server decided to call this guest, which is not
+	// necessarily what was asked for: a caller that sends no name gets an
+	// invented one back here.
+	GuestName string
 
 	client *http.Client
 }
@@ -33,16 +37,22 @@ func (c *Client) SetAuth(accessToken, userID string) {
 	c.UserID = userID
 }
 
+// GuestLogin starts a guest session. An empty name asks the server to invent
+// one — which is what a caller with nothing better to offer should do, rather
+// than seat everybody under the same word. The name it settles on lands in
+// GuestName.
 func (c *Client) GuestLogin(name string) error {
 	var resp struct {
 		AccessToken string `json:"accessToken"`
 		UserID      string `json:"userId"`
+		GuestName   string `json:"guestName"`
 	}
 	if err := c.postJSON("/auth/guest", map[string]string{"guestName": name}, &resp, false); err != nil {
 		return err
 	}
 	c.Token = resp.AccessToken
 	c.UserID = resp.UserID
+	c.GuestName = resp.GuestName
 	if c.UserID == "" {
 		c.UserID = resp.AccessToken
 	}

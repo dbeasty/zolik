@@ -118,7 +118,10 @@ export class ZolikClient {
       guestId: string;
       userId: string;
       claimableMatches?: number;
-    }>('/auth/guest', { guestName: name || 'Player', guestId: guestId || undefined }, false);
+      // A name is sent only when there is one. An empty field means "you
+      // pick", and the server picks from the device's guest id — see
+      // src/lib/guestName.ts for why neither side answers "Player".
+    }>('/auth/guest', { guestName: name || undefined, guestId: guestId || undefined }, false);
     this.accessToken = data.accessToken;
     this.refreshToken = data.refreshToken;
     this.userId = data.userId || data.guestId;
@@ -126,7 +129,9 @@ export class ZolikClient {
       accessToken: data.accessToken,
       refreshToken: data.refreshToken,
       userId: this.userId,
-      username: data.guestName || name || 'Guest',
+      // The server's answer is the one that counts: when no name was sent it
+      // is the name it invented, and that is what the table will show.
+      username: data.guestName || name,
       isGuest: true,
       guestId: data.guestId,
       claimableMatches: data.claimableMatches ?? 0,

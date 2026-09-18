@@ -51,9 +51,6 @@ func (h *Handlers) GuestSession(ctx context.Context, guestName string) (SessionT
 // to any account, cannot be used to sign in, and stops being claimable the
 // moment somebody claims it (the identities collection's unique index).
 func (h *Handlers) GuestSessionWithID(ctx context.Context, guestName, guestID string) (SessionTokens, error) {
-	if guestName == "" {
-		guestName = "Guest"
-	}
 	guestID = sanitizeGuestID(guestID)
 	newDevice := guestID == ""
 	if newDevice {
@@ -61,6 +58,13 @@ func (h *Handlers) GuestSessionWithID(ctx context.Context, guestName, guestID st
 		if guestID, err = NewRandomToken(16); err != nil {
 			return SessionTokens{}, err
 		}
+	}
+	// Named after the id rather than after the moment, so a caller that keeps
+	// no name of its own — the SSH host, a returning device whose stored
+	// session has lapsed — is greeted as the same player every time instead of
+	// as a new one. See GuestNameFor.
+	if guestName == "" {
+		guestName = GuestNameFor(guestID)
 	}
 
 	refreshToken, err := CreateRefreshToken()
