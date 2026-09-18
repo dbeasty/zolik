@@ -115,6 +115,181 @@ func TestHardSpendsAWildToOpenTheAccount(t *testing.T) {
 	}
 }
 
+// --- the canastas ------------------------------------------------------------
+
+// wildWasOnOffer asserts that the engine really did offer this player a wild
+// card to lay onto one of the side's melds.
+//
+// Without it the tests below pass the moment the offer stops existing for some
+// reason of the engine's own — a rule change, a validation tightened — and a
+// test that cannot tell "the bot declined" from "there was nothing to decline"
+// is not watching the bot at all.
+func wildWasOnOffer(t *testing.T, raw module.State, playerID string) {
+	t.Helper()
+	offers, err := New().LegalActions(raw, playerID)
+	if err != nil {
+		t.Fatalf("LegalActions: %v", err)
+	}
+	for _, o := range offers {
+		if o.Verb != VerbLayOff || !o.Enabled || o.Source == nil {
+			continue
+		}
+		for _, c := range o.Source.Cards {
+			if isWild(c) {
+				return
+			}
+		}
+	}
+	t.Fatalf("no wild lay-off was on offer to %s — the position this test is about did not arise", playerID)
+}
+
+// TestBotDoesNotDirtyANaturalCanasta is the report this section was written
+// for: a side finished a canasta with no wild in it, worth five hundred, and
+// its own bot partner laid a joker on top of it and made it worth three.
+//
+// Samba is where a finished group stays open (GroupCanastaCloses is false), so
+// the engine goes on offering the lay-off — and the bot's rule for where a
+// wild may go was "onto the meld closest to seven", which a meld already at
+// seven satisfies better than any other. The two facts meet on the one card in
+// the deck that can undo points already banked.
+func TestBotDoesNotDirtyANaturalCanasta(t *testing.T) {
+	raw := sambaTable(func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Teams[0].HasMelded = true
+		s.Teams[0].Melds = []Meld{{
+			ID: meldID(0, "K"), TeamID: 0, Rank: "K",
+			Cards: []string{"KH", "KC", "KD", "KS", "KH", "KC", "KD"},
+		}}
+		s.Hands["p1"] = []string{"JOKER1", "2C", "5H", "4C", "7D", "9S"}
+		s.DiscardPile = []string{"8H"}
+	})
+	wildWasOnOffer(t, raw, "p1")
+	for _, skill := range []module.Skill{module.SkillEasy, module.SkillMedium, module.SkillHard} {
+		got := botAct(t, raw, "p1", skill)
+		if got.Verb != VerbLayOff {
+			continue
+		}
+		for _, c := range got.Cards {
+			if isWild(c) {
+				t.Errorf("%s laid %s onto a finished natural canasta — 500 points turned into 300", skill, c)
+			}
+		}
+	}
+}
+
+// TestBotWaitsForTheSeventhNatural is the same trade one card earlier, and the
+// version of it every variation can reach.
+//
+// Six naturals down is a natural canasta waiting for one more of its rank. The
+// wild in hand would finish it today for three hundred; the seventh king
+// finishes it later for five. Spending the wild does not gain three hundred,
+// it gives up two — and it spends the card that could have finished some other
+// rank as well.
+func TestBotWaitsForTheSeventhNatural(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Teams[0].HasMelded = true
+		s.Teams[0].Melds = []Meld{{
+			ID: meldID(0, "K"), TeamID: 0, Rank: "K",
+			Cards: []string{"KH", "KC", "KD", "KS", "KH", "KC"},
+		}}
+		s.Hands["p1"] = []string{"JOKER1", "5H", "4C", "7D", "9S"}
+		// A deal with plenty left in it: a full stock, and nobody near going
+		// out. The seventh king has turns left to arrive in — which is the
+		// whole of why waiting is right here and wrong below.
+		s.Hands["p2"] = []string{"8H", "9H", "TH", "JH", "QH", "3C", "4D", "5S"}
+		s.DiscardPile = []string{"8H"}
+	})
+	wildWasOnOffer(t, raw, "p1")
+	for _, skill := range []module.Skill{module.SkillEasy, module.SkillMedium, module.SkillHard} {
+		got := botAct(t, raw, "p1", skill)
+		if got.Verb != VerbLayOff {
+			continue
+		}
+		for _, c := range got.Cards {
+			if isWild(c) {
+				t.Errorf("%s laid %s onto six naturals — a 500-point canasta closed at 300", skill, c)
+			}
+		}
+	}
+}
+
+// TestBotClosesACanastaWithAWildWhenTheDealIsEnding is the exit from that rule,
+// and a rule that only ever says no needs one.
+//
+// Waiting for the seventh natural is a bet that there will be a turn to draw it
+// in. With the stock down to its last cards there is not, and the choice stops
+// being three hundred against five hundred: it is three hundred against six
+// naturals scoring their face value and no bonus at all.
+func TestBotClosesACanastaWithAWildWhenTheDealIsEnding(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Teams[0].HasMelded = true
+		s.Teams[0].Melds = []Meld{{
+			ID: meldID(0, "K"), TeamID: 0, Rank: "K",
+			Cards: []string{"KH", "KC", "KD", "KS", "KH", "KC"},
+		}}
+		s.Hands["p1"] = []string{"JOKER1", "5H", "4C", "7D", "9S"}
+		s.Hands["p2"] = []string{"8H", "9H", "TH", "JH", "QH", "3C", "4D", "5S"}
+		s.DrawPile = filler(2)
+		s.DiscardPile = []string{"8H"}
+	})
+	got := botAct(t, raw, "p1", module.SkillHard)
+	if got.Verb != VerbLayOff || len(got.Cards) != 1 || !isWild(got.Cards[0]) {
+		t.Errorf("played %v with the stock all but gone, want the joker onto six kings", got)
+	}
+}
+
+// TestBotFinishesAMixedCanastaWithAWild is the other half of that rule.
+//
+// This meld already holds a wild, so no seventh card will ever make it
+// natural. Three hundred is the whole of what it can be worth, and the wild in
+// hand is what collects it.
+func TestBotFinishesAMixedCanastaWithAWild(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Teams[0].HasMelded = true
+		s.Teams[0].Melds = []Meld{{
+			ID: meldID(0, "K"), TeamID: 0, Rank: "K",
+			Cards: []string{"KH", "KC", "KD", "KS", "KH", "JOKER2"},
+		}}
+		s.Hands["p1"] = []string{"2C", "5H", "4C", "7D", "9S"}
+		s.DiscardPile = []string{"8H"}
+	})
+	got := botAct(t, raw, "p1", module.SkillHard)
+	if got.Verb != VerbLayOff || len(got.Cards) != 1 || !isWild(got.Cards[0]) {
+		t.Errorf("played %v, want the deuce onto a mixed meld one card short of a canasta", got)
+	}
+}
+
+// TestBotOpensWithoutSpendingAWildWhenItCan is the same card weighed at the
+// other end of the deal.
+//
+// Opening is the one place a wild is always worth spending, and that made the
+// greedy walk over the melds reach for it first: a joker is fifty points, so a
+// pair of eights and a joker outbid three aces and opened the account with the
+// most useful card in the hand. The aces open it too, for nothing.
+func TestBotOpensWithoutSpendingAWildWhenItCan(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Teams[0].Score = 0 // a fifty-point minimum
+		s.Hands["p1"] = []string{"AH", "AC", "AD", "8H", "8C", "JOKER1"}
+		s.DiscardPile = []string{"5H"}
+	})
+	for _, skill := range []module.Skill{module.SkillEasy, module.SkillMedium, module.SkillHard} {
+		got := botAct(t, raw, "p1", skill)
+		if got.Verb != VerbLayMeld {
+			t.Errorf("%s played %v, want the opening meld", skill, got.Verb)
+			continue
+		}
+		for _, c := range got.Cards {
+			if isWild(c) {
+				t.Errorf("%s opened with %v, spending a wild on a minimum three aces already cover", skill, got.Cards)
+			}
+		}
+	}
+}
+
 // --- the pile ----------------------------------------------------------------
 
 // TestBotTakesAPileWorthTaking. Capturing the pile is the biggest single swing
@@ -346,33 +521,44 @@ func TestBotPlaysWholeDealsLegally(t *testing.T) {
 			players = append(players, module.PlayerRef{ID: id})
 		}
 		for _, skill := range []module.Skill{module.SkillEasy, module.SkillMedium, module.SkillHard} {
-			for seed := int64(1); seed <= 3; seed++ {
-				// A short target, so a match is a handful of deals rather
-				// than the twenty-odd a five-thousand-point game takes: this
-				// is asserting legality per action, and more deals buys more
-				// runtime rather than more coverage.
-				state, err := m.NewMatch(module.MatchConfig{
-					Options: module.Options{
-						OptTargetScore:               500,
-						module.OptPauseBetweenRounds: module.OptOff,
-					},
-				}, players, seed)
-				if err != nil {
-					t.Fatalf("NewMatch: %v", err)
-				}
-				wilds, stuck := playOut(t, m, state, players, skill, 6000)
-				if wilds > 0 {
-					t.Errorf("%d seats, %s, seed %d: %d wild cards discarded with ordinary cards still in hand",
-						seats, skill, seed, wilds)
-				}
-				if stuck {
-					wedged++
+			// Both shapes of the game, because the wild rules differ in the
+			// one that matters: a Samba group canasta never closes, so the
+			// engine goes on offering a lay-off onto a finished one for the
+			// whole deal. Classic shuts the meld at seven and hides it.
+			for _, variation := range []string{"classic", "samba"} {
+				for seed := int64(1); seed <= 5; seed++ {
+					// A short target, so a match is a handful of deals rather
+					// than the twenty-odd a five-thousand-point game takes: this
+					// is asserting legality per action, and more deals buys more
+					// runtime rather than more coverage.
+					state, err := m.NewMatch(module.MatchConfig{
+						Variation: variation,
+						Options: module.Options{
+							OptTargetScore:               500,
+							module.OptPauseBetweenRounds: module.OptOff,
+						},
+					}, players, seed)
+					if err != nil {
+						t.Fatalf("NewMatch(%s): %v", variation, err)
+					}
+					deal, stuck := playOut(t, m, state, players, skill, 6000)
+					if deal.wildsDiscarded > 0 {
+						t.Errorf("%s, %d seats, %s, seed %d: %d wild cards discarded with ordinary cards still in hand",
+							variation, seats, skill, seed, deal.wildsDiscarded)
+					}
+					if deal.canastasDirtied > 0 {
+						t.Errorf("%s, %d seats, %s, seed %d: a wild was laid onto a finished natural canasta %d times — 500 points turned into 300",
+							variation, seats, skill, seed, deal.canastasDirtied)
+					}
+					if stuck {
+						wedged++
+					}
 				}
 			}
 		}
 	}
 	if wedged > 0 {
-		t.Logf("%d of 18 deals reached a turn with no legal move — see TestATurnCanStillWedge", wedged)
+		t.Logf("%d of 60 matches reached a turn with no legal move — see TestATurnCanStillWedge", wedged)
 	}
 }
 
@@ -403,11 +589,39 @@ func TestBotPlaysWholeDealsLegally(t *testing.T) {
 // means deciding what those tests should say — which is the engine's business
 // and wants its own change.
 
-// playOut drives a match to its end. It returns how many wild cards were
-// discarded out of a hand that still held something else — the number this
-// change is about, counted over real deals rather than over a position
-// somebody set up — and whether the deal reached a turn with no legal move.
-func playOut(t *testing.T, m *Module, state module.State, players []module.PlayerRef, skill module.Skill, maxActions int) (wilds int, stuck bool) {
+// tally is what a played-out match is being watched for: the two things a bot
+// can do with a wild card that read as a bug rather than as weak play.
+type tally struct {
+	// wildsDiscarded is a wild thrown out of a hand that still held something
+	// else.
+	wildsDiscarded int
+	// canastasDirtied is a finished canasta with no wild in it that came out
+	// of an action with one in it. Counted over deals the bots actually
+	// played, because the position it happens in is one nobody would think to
+	// set up: the meld is already finished, so nothing about the move looks
+	// like a decision until the scores are added up.
+	canastasDirtied int
+}
+
+// naturalCanastas is which melds on the table are finished and have no wild in
+// them — the five-hundred-point ones — by meld id.
+func naturalCanastas(s *GameState) map[string]bool {
+	out := map[string]bool{}
+	for i := range s.Teams {
+		for _, mm := range s.Teams[i].Melds {
+			if mm.isCanasta() && mm.isNatural() {
+				out[mm.ID] = true
+			}
+		}
+	}
+	return out
+}
+
+// playOut drives a match to its end. It returns what the bots did with their
+// wild cards along the way — counted over real deals rather than over a
+// position somebody set up — and whether the deal reached a turn with no legal
+// move.
+func playOut(t *testing.T, m *Module, state module.State, players []module.PlayerRef, skill module.Skill, maxActions int) (out tally, stuck bool) {
 	t.Helper()
 	for step := 0; step < maxActions; step++ {
 		s, err := decode(state)
@@ -415,11 +629,11 @@ func playOut(t *testing.T, m *Module, state module.State, players []module.Playe
 			t.Fatalf("decode: %v", err)
 		}
 		if s.Status != "active" {
-			return wilds, false
+			return out, false
 		}
 		actor := module.ActiveSeat(m, state, players[0].ID, players)
 		if actor == "" {
-			return wilds, false
+			return out, false
 		}
 		offers, err := m.LegalActions(state, actor)
 		if err != nil {
@@ -429,23 +643,35 @@ func playOut(t *testing.T, m *Module, state module.State, players []module.Playe
 		if !ok {
 			// No enabled offer describes a submission. Not the bot declining
 			// to move — there is nothing to move. See TestATurnCanStillWedge.
-			return wilds, true
+			return out, true
 		}
 		if a.Verb == VerbDiscard && len(a.Cards) == 1 && isWild(a.Cards[0]) {
 			// Legal, and only ever right when the hand holds nothing else the
 			// engine would take. Anything above that is the bug.
 			if hasNonWild(s.Hands[actor]) {
-				wilds++
+				out.wildsDiscarded++
 			}
 		}
+		natural := naturalCanastas(s)
 		next, _, err := m.Apply(state, actor, a)
 		if err != nil {
 			t.Fatalf("%s proposed an illegal %v: %v", actor, a, err)
 		}
+		after, err := decode(next)
+		if err != nil {
+			t.Fatalf("decode after %v: %v", a, err)
+		}
+		for i := range after.Teams {
+			for _, mm := range after.Teams[i].Melds {
+				if natural[mm.ID] && !mm.isNatural() {
+					out.canastasDirtied++
+				}
+			}
+		}
 		state = next
 	}
 	t.Fatalf("match did not finish in %d actions", maxActions)
-	return wilds, false
+	return out, false
 }
 
 func hasNonWild(hand []string) bool {

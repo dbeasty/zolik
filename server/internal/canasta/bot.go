@@ -192,6 +192,17 @@ type table struct {
 	// closing is whether this side is better off ending the deal than going on
 	// building in it.
 	closing bool
+	// ending is whether the deal is close enough to over that a canasta
+	// finished today beats a better one finished later. It is what licenses
+	// the one wild card this bot ever spends on a meld it would rather have
+	// left natural — see wildMayJoin.
+	//
+	// Unlike pressed it is not a strength setting. It is read off the stock,
+	// which is a public count every client already draws, so a beginner
+	// profile is as entitled to it as an expert: not knowing how many cards
+	// are left is not a way of playing badly, it is a way of not looking at
+	// the table.
+	ending bool
 }
 
 // read builds that judgement.
@@ -202,7 +213,7 @@ type table struct {
 // which is the difference between a strong opponent and a cheating one.
 // TestBotDoesNotPeek pins it.
 func (b bot) read(s *GameState, playerID string, p profile) table {
-	out := table{}
+	out := table{ending: len(s.DrawPile) <= lastTurnsStock(s)}
 	if !p.readsHandCounts {
 		return out
 	}
@@ -221,8 +232,28 @@ func (b bot) read(s *GameState, playerID string, p profile) table {
 		}
 	}
 	out.pressed = shortest <= at || len(s.DrawPile) <= 2
+	out.ending = out.ending || out.pressed
 	out.closing = out.pressed || !p.banksPoints || worthGoingOut(s, playerID)
 	return out
+}
+
+// lastTurnsStock is the stock a table this size draws in two more turns each.
+//
+// Below it, "wait for the seventh natural" is a plan with no turns left to
+// happen in, and the two hundred points it is holding out for are two hundred
+// points nobody is going to score. Scaled by the table rather than fixed,
+// because eight cards is a couple of turns at a two-handed Canasta table and
+// not even one circuit of a six-handed Samba drawing two apiece.
+func lastTurnsStock(s *GameState) int {
+	seats := len(s.TurnOrder)
+	if seats <= 0 {
+		seats = 2
+	}
+	draw := s.rules().DrawCount
+	if draw <= 0 {
+		draw = 1
+	}
+	return seats * draw * 2
 }
 
 // worthGoingOut answers the question this game is actually about, and the one
@@ -431,7 +462,7 @@ func (b bot) build(s *GameState, playerID string, p profile, tb table, mn menu) 
 	// the only way a canasta ever gets finished, and unlike a new meld it can
 	// never split the hand's material across two ranks that each then stall at
 	// three cards.
-	if o, cards, ok := b.bestLayOff(s, t, p, mn); ok {
+	if o, cards, ok := b.bestLayOff(s, t, p, tb, mn); ok {
 		if tb.closing || !emptiesHand(held, len(cards)) {
 			return module.Action{OfferID: o.ID, Verb: VerbLayOff, Target: o.Target.MeldID, Cards: cards}, true
 		}
@@ -460,7 +491,7 @@ func (b bot) build(s *GameState, playerID string, p profile, tb table, mn menu) 
 	}
 	best, found := module.ActionOffer{}, false
 	for _, o := range melds {
-		if p.hoardsWilds && spendsWild(o) && !worthAWild(s, t, o) {
+		if p.hoardsWilds && spendsWild(o) && !worthAWild(t, tb, o) {
 			continue
 		}
 		// The move that ends the deal, declined. See worthGoingOut: a side
@@ -522,19 +553,52 @@ func opensTheAccount(s *GameState, playerID string, t *Team, offers []module.Act
 	r := s.rules()
 	need := r.meldFloor(t.Score) - s.LaidThisTurn
 
-	type candidate struct {
-		offer module.ActionOffer
-		cards []string
-		value int
-	}
-	cands := make([]candidate, 0, len(offers))
+	all := make([]openingMeld, 0, len(offers))
+	free := make([]openingMeld, 0, len(offers))
 	for _, o := range offers {
 		cards := meldCards(o)
 		if len(cards) == 0 {
 			continue
 		}
-		cands = append(cands, candidate{offer: o, cards: cards, value: handValue(cards)})
+		c := openingMeld{offer: o, cards: cards, value: handValue(cards), wild: spendsWild(o)}
+		all = append(all, c)
+		if !c.wild {
+			free = append(free, c)
+		}
 	}
+
+	// Twice over, and the first pass is the one that keeps the wild card.
+	//
+	// An opening paid for out of naturals costs nothing but cards. The same
+	// opening paid with a joker costs fifty points now and the seventh card of
+	// some canasta later, and the greedy walk below will always reach for it
+	// first, because a joker is the most valuable card in the deck and the
+	// walk is ordered by value. So the naturals get their own attempt before
+	// the wilds are offered at all.
+	//
+	// The second pass is exactly what was here before it, and it is what keeps
+	// this a preference rather than a refusal: a side that can only open by
+	// spending a wild opens by spending a wild. Not opening is far more
+	// expensive than any wild — see worthAWild, which says the same thing
+	// about the same card.
+	if o, ok := openingPlan(s, playerID, t, free, need); ok {
+		return o, true
+	}
+	return openingPlan(s, playerID, t, all, need)
+}
+
+// openingMeld is one meld an opening plan could be built from.
+type openingMeld struct {
+	offer module.ActionOffer
+	cards []string
+	value int
+	wild  bool
+}
+
+// openingPlan is the greedy walk itself: the meld to start with, if these
+// melds between them reach the minimum.
+func openingPlan(s *GameState, playerID string, t *Team, cands []openingMeld, need int) (module.ActionOffer, bool) {
+	cands = append([]openingMeld(nil), cands...)
 	sort.SliceStable(cands, func(i, j int) bool { return cands[i].value > cands[j].value })
 
 	// Walked against a copy of the hand rather than a set of card names: two
@@ -594,18 +658,27 @@ func spendsWild(o module.ActionOffer) bool {
 	return false
 }
 
-// worthAWild reports that this meld is one of the two places a wild card earns
-// its keep: it finishes a canasta, or it is what opens the side's account.
+// worthAWild reports that this new meld is one of the two places a wild card
+// earns its keep: it is what opens the side's account, or it lands a canasta
+// that would not otherwise be one.
 //
 // Everywhere else a wild in a three-card meld is a card taken out of play. The
 // meld it is in still needs four more naturals to be worth anything beyond its
 // face value, and the wild could have been the seventh card of a rank the hand
 // already holds five of. That is the trade this test refuses to make.
-func worthAWild(s *GameState, t *Team, o module.ActionOffer) bool {
+//
+// The canasta clause is wildMayJoin's rule in the other direction, and says
+// the same thing for the same reason: a hand laying six naturals and a wild in
+// one motion is buying three hundred points with the card that would have made
+// it five, so it is worth it once the deal is ending and not before.
+func worthAWild(t *Team, tb table, o module.ActionOffer) bool {
 	if t != nil && !t.HasMelded {
 		return true
 	}
-	return len(meldCards(o)) >= canastaSize
+	if len(meldCards(o)) < canastaSize {
+		return false
+	}
+	return tb.ending
 }
 
 // betterMeld orders the melds a hand could lay: the biggest first, and among
@@ -632,14 +705,15 @@ func betterMeld(x, y module.ActionOffer) bool {
 
 // bestLayOff picks a card to add to one of the side's own melds.
 //
-// Naturals before wilds, and a meld that is close to seven before one that is
-// not: the last card of a canasta is worth several hundred points and the
-// fourth card of a meld that will never get there is worth ten.
-func (b bot) bestLayOff(s *GameState, t *Team, p profile, mn menu) (module.ActionOffer, []string, bool) {
+// Naturals before wilds, and among equals the meld the card actually advances:
+// the seventh card of a meld is worth several hundred points, the fourth card
+// of one that will never get there is worth ten, and the eighth card of a
+// finished canasta is worth ten and a risk. See layOffReach.
+func (b bot) bestLayOff(s *GameState, t *Team, p profile, tb table, mn menu) (module.ActionOffer, []string, bool) {
 	type option struct {
 		offer module.ActionOffer
 		card  string
-		room  int // how many cards short of a canasta this meld still is
+		reach int // how much closer to a canasta this meld gets; see layOffReach
 		wild  bool
 	}
 	var best *option
@@ -647,26 +721,28 @@ func (b bot) bestLayOff(s *GameState, t *Team, p profile, mn menu) (module.Actio
 		if o.Source == nil || o.Target == nil {
 			continue
 		}
-		size := 0
+		var target *Meld
 		if t != nil {
 			for i := range t.Melds {
 				if t.Melds[i].ID == o.Target.MeldID {
-					size = len(t.Melds[i].Cards)
+					target = &t.Melds[i]
 				}
 			}
 		}
-		short := canastaSize - size
+		size := 0
+		if target != nil {
+			size = len(target.Cards)
+		}
 		for _, c := range o.Source.Cards {
 			wild := isWild(c)
-			// A wild goes onto a meld only where it completes a canasta —
-			// anywhere else it is being spent to save a card that had
-			// somewhere better to be. Below the hoarding profiles it still
-			// goes on last, after every natural that fits.
-			if wild && p.hoardsWilds && short > 1 {
+			// Where a wild may go, and it is not many places. An offer whose
+			// meld this side does not own is not one either: a wild that
+			// cannot be priced is a wild that stays in the hand.
+			if wild && (target == nil || !wildMayJoin(*target, p, tb)) {
 				continue
 			}
-			cand := option{offer: o, card: c, room: short, wild: wild}
-			if best == nil || betterLayOff(cand.wild, cand.room, cand.card, best.wild, best.room, best.card) {
+			cand := option{offer: o, card: c, reach: layOffReach(size), wild: wild}
+			if best == nil || betterLayOff(cand.wild, cand.reach, cand.card, best.wild, best.reach, best.card) {
 				c := cand
 				best = &c
 			}
@@ -678,12 +754,65 @@ func (b bot) bestLayOff(s *GameState, t *Team, p profile, mn menu) (module.Actio
 	return best.offer, []string{best.card}, true
 }
 
-func betterLayOff(xWild bool, xRoom int, xCard string, yWild bool, yRoom int, yCard string) bool {
+// layOffReach orders melds by what one more card does for them: 1 means the
+// card finishes a canasta, 4 means the meld is still four cards away, and a
+// meld that is already a canasta sorts last of all.
+//
+// Last, not first, and that inversion is half of the bug this section exists
+// for. The old ordering was "cards short of seven, fewest first", which a meld
+// already at seven satisfies better than any other meld on the table — so the
+// finished canasta was the preferred destination for every card in the hand,
+// wild ones included. Where a group canasta stays open (Samba; see
+// ruleset.GroupCanastaCloses) that is where the cards went.
+func layOffReach(size int) int {
+	if size >= canastaSize {
+		return canastaSize
+	}
+	return canastaSize - size
+}
+
+// wildMayJoin answers where a wild card is allowed to go on this side's own
+// table, and the answer is "almost nowhere" for a reason the scoring states
+// plainly: seven cards of a rank pay five hundred, and the same seven with a
+// wild among them pay three.
+//
+//	already a canasta   Never, at any strength. The meld is finished, so the
+//	                    wild buys no bonus at all — and on a natural canasta
+//	                    it takes two hundred points back off a side that had
+//	                    already earned them. That is not weak play, it is
+//	                    unmaking points that were on the table, which is why
+//	                    no profile is allowed it: the same footing as never
+//	                    discarding a wild.
+//	one short, mixed    Yes. A meld that already holds a wild can never be
+//	                    natural, three hundred is the whole of what it can be
+//	                    worth, and the wild in hand is what collects it.
+//	one short, natural  Only once the deal is ending. Six naturals is a
+//	                    five-hundred-point canasta waiting on one card of its
+//	                    rank; closing it with a wild books three hundred and
+//	                    gives up two. Worth doing when there are no turns left
+//	                    to draw the seventh in — table.ending — and a loss
+//	                    before then.
+//	further off         A strength setting, unchanged: a hoarding profile
+//	                    keeps the wild for somewhere it finishes something, a
+//	                    weaker one spends it on four cards of a rank. That is
+//	                    ordinary beginner play rather than a bug, and whether
+//	                    this seat is a beginner is the profile's business.
+func wildMayJoin(m Meld, p profile, tb table) bool {
+	if m.isCanasta() {
+		return false
+	}
+	if len(m.Cards) == canastaSize-1 {
+		return m.wilds() > 0 || tb.ending
+	}
+	return !p.hoardsWilds
+}
+
+func betterLayOff(xWild bool, xReach int, xCard string, yWild bool, yReach int, yCard string) bool {
 	if xWild != yWild {
 		return !xWild
 	}
-	if xRoom != yRoom {
-		return xRoom < yRoom
+	if xReach != yReach {
+		return xReach < yReach
 	}
 	return xCard < yCard
 }
