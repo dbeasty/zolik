@@ -136,6 +136,34 @@ const layMeld: ActionOffer = {
   target: { zone: 'table', zoneId: 'melds:me' },
 };
 
+/**
+ * A Canasta group offer in Samba: three jacks on the table if you press it,
+ * and a wild in hand you may pick instead.
+ *
+ * `cards` and `submit` say two different things here, and the difference is
+ * the bug this fixture exists for. `submit` is the meld a press sends — the
+ * jacks, spending no wild they do not need. `cards` is everything a person may
+ * reach for, the two included, and `maxCards` is how far the engine said that
+ * selection may grow. While the offer named only its submission, picking the
+ * two was refused with `sel.notThese` by this file, for a meld the server had
+ * no objection to at all.
+ */
+const canastaGroup: ActionOffer = {
+  id: 'lay_meld:J',
+  verb: 'lay_meld',
+  enabled: true,
+  source: {
+    zone: 'hand',
+    ownerId: 'me',
+    zoneId: 'hand:me',
+    cards: ['2C', 'JD', 'JH', 'JS'],
+    submit: ['JD', 'JH', 'JS'],
+    minCards: 3,
+    maxCards: 4,
+  },
+  target: { zone: 'table', zoneId: 'melds:me' },
+};
+
 /** Drawing: a button. Nothing is dragged onto it. */
 const draw: ActionOffer = {
   id: 'draw:deck',
@@ -303,6 +331,37 @@ describe('fits', () => {
     // not enough of them yet" — a drag stages that; a button asks the min
     // question itself, separately.
     expect(fits(layMeld, ['2C'])).toEqual({ ok: true });
+  });
+});
+
+describe('a Canasta group with a wild to spare', () => {
+  it('takes the wild the submission did not spend', () => {
+    expect(fits(canastaGroup, ['JS', 'JD', '2C'])).toEqual({ ok: true });
+  });
+
+  it('takes every natural and the wild together, up to the offer\'s maximum', () => {
+    expect(fits(canastaGroup, ['JS', 'JD', 'JH', '2C'])).toEqual({ ok: true });
+  });
+
+  it('still refuses a card the offer never named', () => {
+    expect(fits(canastaGroup, ['JS', 'JD', '9H'])).toEqual({
+      ok: false,
+      labelKey: 'sel.notThese',
+    });
+  });
+
+  it('is ready to send as soon as three of them are picked', () => {
+    expect(someOfferReady([canastaGroup], ['JS', 'JD', '2C'])).toBe(true);
+  });
+
+  it('is still one tap, because it names its own submission', () => {
+    expect(isOneTap(canastaGroup)).toBe(true);
+  });
+
+  it('lets the wild be dropped on the table with the jacks', () => {
+    expect(dropSpotsFor([canastaGroup], ['JS', 'JD', '2C'])).toEqual([
+      { offerId: 'lay_meld:J', elementId: 'zone-melds:me', ready: true },
+    ]);
   });
 });
 
