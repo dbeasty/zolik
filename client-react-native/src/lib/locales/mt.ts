@@ -1354,4 +1354,17 @@ export const mt: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Iġbed karta',
   'prompt.yourTurnMeld': "Ikkombina jekk tista', imbagħad itfa'",
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Erġa’ ara',
+  'mine.replay': 'Erġa’ ara',
+  'replay.loading': 'Qed tinfetaħ ir-riproduzzjoni…',
+  'replay.failed': 'Ir-riproduzzjoni ma setgħetx titniżżel',
+  'replay.openHands': 'kull id miftuħa',
+  'replay.truncated': 'Din il-logħba tintwera sal-mossa {at} — ir-regoli nbidlu minn dakinhar',
+  'replay.position': '{at} minn {of}',
+  'replay.theDeal': 'It-tqassim',
+  'replay.play': 'Ibda',
+  'replay.pause': 'Pawża',
+  'replay.move': '{player} · {move}',
 };

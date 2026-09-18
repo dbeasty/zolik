@@ -1345,4 +1345,17 @@ export const fi: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Nosta kortti',
   'prompt.yourTurnMeld': 'Yhdistä jos voit, sitten poista',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Toisto',
+  'mine.replay': 'Toisto',
+  'replay.loading': 'Avataan toistoa…',
+  'replay.failed': 'Toistoa ei voitu ladata',
+  'replay.openHands': 'kaikki kädet näkyvissä',
+  'replay.truncated': 'Tämä peli toistuu siirtoon {at} asti — säännöt ovat sittemmin muuttuneet',
+  'replay.position': '{at} / {of}',
+  'replay.theDeal': 'Jako',
+  'replay.play': 'Toista',
+  'replay.pause': 'Tauko',
+  'replay.move': '{player} · {move}',
 };

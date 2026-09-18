@@ -1331,4 +1331,17 @@ export const en: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Draw a card',
   'prompt.yourTurnMeld': 'Meld if you can, then discard',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Replay',
+  'mine.replay': 'Replay',
+  'replay.loading': 'Opening the replay…',
+  'replay.failed': 'The replay could not be loaded',
+  'replay.openHands': 'every hand face up',
+  'replay.truncated': 'This game replays as far as move {at} — its rules have changed since it was played',
+  'replay.position': '{at} of {of}',
+  'replay.theDeal': 'The deal',
+  'replay.play': 'Play',
+  'replay.pause': 'Pause',
+  'replay.move': '{player} · {move}',
 };

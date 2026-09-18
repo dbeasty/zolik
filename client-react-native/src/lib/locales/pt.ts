@@ -1348,4 +1348,17 @@ export const pt: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Compra uma carta',
   'prompt.yourTurnMeld': 'Combina se puderes, depois descarta',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Rever',
+  'mine.replay': 'Rever',
+  'replay.loading': 'A abrir a repetição…',
+  'replay.failed': 'Não foi possível carregar a repetição',
+  'replay.openHands': 'todas as mãos à vista',
+  'replay.truncated': 'Este jogo é reproduzido até à jogada {at} — as regras mudaram desde então',
+  'replay.position': '{at} de {of}',
+  'replay.theDeal': 'A distribuição',
+  'replay.play': 'Reproduzir',
+  'replay.pause': 'Pausa',
+  'replay.move': '{player} · {move}',
 };

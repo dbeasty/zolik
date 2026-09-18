@@ -1330,4 +1330,17 @@ export const sl: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Vzemi karto',
   'prompt.yourTurnMeld': 'Odloži, če lahko, nato zavrzi',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Ponovitev',
+  'mine.replay': 'Ponovitev',
+  'replay.loading': 'Odpiranje ponovitve…',
+  'replay.failed': 'Ponovitve ni bilo mogoče naložiti',
+  'replay.openHands': 'vse roke odkrite',
+  'replay.truncated': 'To igro je mogoče ponoviti do poteze {at} — pravila so se odtlej spremenila',
+  'replay.position': '{at} od {of}',
+  'replay.theDeal': 'Delitev',
+  'replay.play': 'Predvajaj',
+  'replay.pause': 'Premor',
+  'replay.move': '{player} · {move}',
 };

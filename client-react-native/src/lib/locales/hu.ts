@@ -1354,4 +1354,17 @@ export const hu: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Húzz egy lapot',
   'prompt.yourTurnMeld': 'Rakj ki, ha tudsz, aztán dobj el',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Visszajátszás',
+  'mine.replay': 'Visszajátszás',
+  'replay.loading': 'Visszajátszás megnyitása…',
+  'replay.failed': 'A visszajátszás nem tölthető be',
+  'replay.openHands': 'minden lap felfedve',
+  'replay.truncated': 'Ez a játszma a(z) {at}. lépésig játszható vissza — azóta változtak a szabályai',
+  'replay.position': '{at} / {of}',
+  'replay.theDeal': 'Az osztás',
+  'replay.play': 'Lejátszás',
+  'replay.pause': 'Szünet',
+  'replay.move': '{player} · {move}',
 };

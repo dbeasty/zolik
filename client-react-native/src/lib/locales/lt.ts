@@ -1338,4 +1338,17 @@ export const lt: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Paimk kortą',
   'prompt.yourTurnMeld': 'Išdėk, jei gali, tada išmesk',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Peržiūra',
+  'mine.replay': 'Peržiūra',
+  'replay.loading': 'Atveriama peržiūra…',
+  'replay.failed': 'Nepavyko įkelti peržiūros',
+  'replay.openHands': 'visos rankos atverstos',
+  'replay.truncated': 'Šį žaidimą galima peržiūrėti iki {at} ėjimo — taisyklės nuo tada pasikeitė',
+  'replay.position': '{at} iš {of}',
+  'replay.theDeal': 'Dalijimas',
+  'replay.play': 'Groti',
+  'replay.pause': 'Pauzė',
+  'replay.move': '{player} · {move}',
 };

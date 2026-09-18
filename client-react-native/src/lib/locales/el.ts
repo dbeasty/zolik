@@ -1369,4 +1369,17 @@ export const el: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Τράβα ένα φύλλο',
   'prompt.yourTurnMeld': 'Κάνε συνδυασμό αν μπορείς και μετά ρίξε',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Επανάληψη',
+  'mine.replay': 'Επανάληψη',
+  'replay.loading': 'Άνοιγμα της επανάληψης…',
+  'replay.failed': 'Η επανάληψη δεν φορτώθηκε',
+  'replay.openHands': 'όλα τα χέρια ανοιχτά',
+  'replay.truncated': 'Το παιχνίδι αναπαράγεται ως την κίνηση {at} — οι κανόνες του άλλαξαν έκτοτε',
+  'replay.position': '{at} από {of}',
+  'replay.theDeal': 'Η μοιρασιά',
+  'replay.play': 'Αναπαραγωγή',
+  'replay.pause': 'Παύση',
+  'replay.move': '{player} · {move}',
 };

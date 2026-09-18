@@ -545,6 +545,64 @@ export function offerGroupKey(offer: ActionOffer): string {
 }
 
 /**
+ * A stopped game, played back frame by frame.
+ *
+ * Mirrors `server/internal/match/replay.go`'s `ReplayMsg`. Shaped as the
+ * sibling of `MatchState`: everything invariant across the match is here
+ * once, everything that changes is in a frame — so a frame plus this
+ * envelope is a `MatchState` in all but name, which is why the replay screen
+ * can hand it straight to the same board the live table draws.
+ *
+ * Paged, because a long game is more boards than one response should carry.
+ * `total` is the whole match, so a scrub bar can be drawn from the first page.
+ */
+export type Replay = {
+  type: 'match_replay';
+  matchId: string;
+  moduleId: string;
+  variation?: string;
+  options?: Record<string, number>;
+  players: MatchPlayer[];
+  viewerId?: string;
+  /** Every hand is face up. The server grants this only for a finished game. */
+  open?: boolean;
+  total: number;
+  from: number;
+  frames: ReplayFrame[];
+  /**
+   * The fold stopped early: the module refused a move it once accepted,
+   * because its rules have moved since this game was played. Everything up
+   * to `truncatedAt` is still exactly what happened.
+   */
+  truncated?: boolean;
+  truncatedAt?: number;
+  truncatedCode?: string;
+};
+
+/** The board after one step. Frame 0 is the deal, and carries no move. */
+export type ReplayFrame = {
+  index: number;
+  seq?: number;
+  playerId?: string;
+  verb?: string;
+  offerId?: string;
+  cards?: string[];
+  at?: string;
+  round?: number;
+  roundEnded?: boolean;
+  status: string;
+  winners?: string[];
+  view: ViewModel;
+  standings?: Standing[];
+  /**
+   * Present only on the deal and on frames that ended a round — the log is
+   * monotonic, so the server sends it at the boundaries and a reader carries
+   * the last one forward.
+   */
+  rounds?: RoundLog;
+};
+
+/**
  * One row of "my games" — a stored table this player is seated at, as the
  * server's own decision of what is safe to list: it never carries the
  * module's state or action log, because a list row needs neither.
@@ -572,4 +630,6 @@ export type StoredTable = {
   updatedAt?: string;
   canResume: boolean;
   canDelete: boolean;
+  /** Whether this table was ever dealt, and so has a game to step through. */
+  canReplay: boolean;
 };

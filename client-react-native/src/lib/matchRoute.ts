@@ -28,3 +28,14 @@ export function routeForMatch(status: string, isHost: boolean, matchId: string):
       : `/lobby/join?matchId=${encodeURIComponent(matchId)}`
   ) as Href;
 }
+
+/**
+ * Where a stopped game is stepped through.
+ *
+ * Deliberately not folded into `routeForMatch`: resuming a table and
+ * replaying one are different intentions, and a row offers both. The same
+ * `as Href` cast applies, for the reason given above.
+ */
+export function routeForReplay(matchId: string): Href {
+  return `/replay/${encodeURIComponent(matchId)}` as Href;
+}

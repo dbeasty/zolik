@@ -1337,4 +1337,17 @@ export const lv: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Pavelc kārti',
   'prompt.yourTurnMeld': 'Izlic, ja vari, tad izmet',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Atkārtojums',
+  'mine.replay': 'Atkārtojums',
+  'replay.loading': 'Atver atkārtojumu…',
+  'replay.failed': 'Atkārtojumu neizdevās ielādēt',
+  'replay.openHands': 'visas rokas atklātas',
+  'replay.truncated': 'Šo spēli var atkārtot līdz {at}. gājienam — noteikumi kopš tā laika ir mainījušies',
+  'replay.position': '{at} no {of}',
+  'replay.theDeal': 'Izdalīšana',
+  'replay.play': 'Atskaņot',
+  'replay.pause': 'Pauze',
+  'replay.move': '{player} · {move}',
 };

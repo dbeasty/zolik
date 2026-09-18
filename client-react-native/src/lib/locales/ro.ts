@@ -1345,4 +1345,17 @@ export const ro: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Trage o carte',
   'prompt.yourTurnMeld': 'Combină dacă poți, apoi aruncă',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Reluare',
+  'mine.replay': 'Reluare',
+  'replay.loading': 'Se deschide reluarea…',
+  'replay.failed': 'Reluarea nu a putut fi încărcată',
+  'replay.openHands': 'toate mâinile descoperite',
+  'replay.truncated': 'Acest joc se reia până la mutarea {at} — regulile s-au schimbat între timp',
+  'replay.position': '{at} din {of}',
+  'replay.theDeal': 'Împărțirea',
+  'replay.play': 'Redă',
+  'replay.pause': 'Pauză',
+  'replay.move': '{player} · {move}',
 };

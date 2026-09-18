@@ -1371,4 +1371,17 @@ export const ga: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Tarraing cárta',
   'prompt.yourTurnMeld': 'Cumaisc más féidir, ansin caith uait',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Athimirt',
+  'mine.replay': 'Athimirt',
+  'replay.loading': 'Ag oscailt na hathimeartha…',
+  'replay.failed': 'Níorbh fhéidir an athimirt a lódáil',
+  'replay.openHands': 'gach lámh oscailte',
+  'replay.truncated': 'Athimrítear an cluiche seo chomh fada le beart {at} — tá na rialacha athraithe ó shin',
+  'replay.position': '{at} as {of}',
+  'replay.theDeal': 'An dáileadh',
+  'replay.play': 'Seinn',
+  'replay.pause': 'Sos',
+  'replay.move': '{player} · {move}',
 };

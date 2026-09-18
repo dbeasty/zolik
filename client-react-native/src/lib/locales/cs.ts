@@ -1328,4 +1328,17 @@ export const cs: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Lízni kartu',
   'prompt.yourTurnMeld': 'Vyložte, pokud můžete, pak odhoďte',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Přehrát',
+  'mine.replay': 'Přehrát',
+  'replay.loading': 'Otevírám přehrání…',
+  'replay.failed': 'Přehrání se nepodařilo načíst',
+  'replay.openHands': 'všechny ruce odkryté',
+  'replay.truncated': 'Tuhle hru lze přehrát po tah {at} — od té doby se změnila pravidla',
+  'replay.position': '{at} z {of}',
+  'replay.theDeal': 'Rozdání',
+  'replay.play': 'Přehrát',
+  'replay.pause': 'Pauza',
+  'replay.move': '{player} · {move}',
 };

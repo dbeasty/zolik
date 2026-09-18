@@ -1349,4 +1349,17 @@ export const bg: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Изтегли карта',
   'prompt.yourTurnMeld': 'Комбинирай, ако можеш, после изхвърли',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Повторение',
+  'mine.replay': 'Повторение',
+  'replay.loading': 'Отваряне на повторението…',
+  'replay.failed': 'Повторението не можа да се зареди',
+  'replay.openHands': 'всички ръце открити',
+  'replay.truncated': 'Тази игра се повтаря до ход {at} — правилата ѝ са се променили оттогава',
+  'replay.position': '{at} от {of}',
+  'replay.theDeal': 'Раздаването',
+  'replay.play': 'Пусни',
+  'replay.pause': 'Пауза',
+  'replay.move': '{player} · {move}',
 };

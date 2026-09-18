@@ -1332,4 +1332,17 @@ export const sv: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Dra ett kort',
   'prompt.yourTurnMeld': 'Lägg ut om du kan, kasta sedan',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Spela upp',
+  'mine.replay': 'Spela upp',
+  'replay.loading': 'Öppnar uppspelningen…',
+  'replay.failed': 'Uppspelningen kunde inte laddas',
+  'replay.openHands': 'alla händer öppna',
+  'replay.truncated': 'Den här matchen kan spelas upp till drag {at} — reglerna har ändrats sedan dess',
+  'replay.position': '{at} av {of}',
+  'replay.theDeal': 'Given',
+  'replay.play': 'Spela',
+  'replay.pause': 'Paus',
+  'replay.move': '{player} · {move}',
 };

@@ -1335,4 +1335,17 @@ export const hr: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Vuci kartu',
   'prompt.yourTurnMeld': 'Složi ako možeš, zatim odbaci',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Ponovi',
+  'mine.replay': 'Ponovi',
+  'replay.loading': 'Otvaranje ponavljanja…',
+  'replay.failed': 'Ponavljanje se nije moglo učitati',
+  'replay.openHands': 'sve ruke otvorene',
+  'replay.truncated': 'Ova se igra ponavlja do poteza {at} — pravila su se otad promijenila',
+  'replay.position': '{at} od {of}',
+  'replay.theDeal': 'Dijeljenje',
+  'replay.play': 'Pokreni',
+  'replay.pause': 'Pauza',
+  'replay.move': '{player} · {move}',
 };

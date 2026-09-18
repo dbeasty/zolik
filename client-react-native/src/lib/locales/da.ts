@@ -1334,4 +1334,17 @@ export const da: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Træk et kort',
   'prompt.yourTurnMeld': 'Læg ned hvis du kan, og kast så',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Genafspil',
+  'mine.replay': 'Genafspil',
+  'replay.loading': 'Åbner genafspilningen…',
+  'replay.failed': 'Genafspilningen kunne ikke indlæses',
+  'replay.openHands': 'alle hænder åbne',
+  'replay.truncated': 'Dette spil kan genafspilles til træk {at} — reglerne er ændret siden',
+  'replay.position': '{at} af {of}',
+  'replay.theDeal': 'Givningen',
+  'replay.play': 'Afspil',
+  'replay.pause': 'Pause',
+  'replay.move': '{player} · {move}',
 };
