@@ -738,9 +738,10 @@ func anyNeedsCompany(ps []Placement) bool {
 	return false
 }
 
-// sameCards compares two companion sets as sets, not as sequences: the two
-// sweeps reach the same cards in different orders and that is not a
-// difference worth listing.
+// sameCards compares two card lists as sets, not as sequences: the two
+// companion sweeps reach the same cards in different orders and that is not a
+// difference worth listing, and a hand that has been melded from and put back
+// is the same hand in a different order.
 func sameCards(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
