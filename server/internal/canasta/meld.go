@@ -178,6 +178,29 @@ type candidate struct {
 	Suit  string
 	Cards []string
 	Value int
+
+	// Pool is every card a player may pick for this meld, where that is wider
+	// than the submission in Cards. Empty means the two are the same, which is
+	// what a sequence always means: a run takes the cards it takes.
+	//
+	// The two came apart over wilds. Cards is one submission — the module's own
+	// opinion, and what a press or a bot sends — and it spends a wild only when
+	// the meld would otherwise be too short. That was being read as the list of
+	// cards a selection may draw from, so a hand holding three jacks and a two
+	// could not lay JJ2: the two was not in the list, and the client refused
+	// the selection its own rules had nothing against. The submission stays
+	// conservative; what a person may choose does not have to be.
+	Pool []string
+}
+
+// selectable is the cards a person may pick for this meld — the pool where
+// there is one, and otherwise the submission, which is what every candidate
+// without a pool means by both.
+func (c candidate) selectable() []string {
+	if len(c.Pool) > 0 {
+		return c.Pool
+	}
+	return c.Cards
 }
 
 // offerKey is what tells one candidate from another on screen: a rank for a
@@ -297,6 +320,11 @@ func newMeldCandidates(r ruleset, hand []string, t *Team) []candidate {
 // still real melds a player could choose to lay this turn, even though
 // choosing one spends the wild the other wanted. Hiding the second because
 // the first claimed it first would take a legal move off the board.
+//
+// Each candidate carries two lists, and the difference between them is the
+// whole point: Cards is the one submission the module would send unasked, and
+// Pool is every card a person may pick instead. See candidate.Pool for why a
+// single list could not be both.
 func allMeldCandidates(r ruleset, hand []string, t *Team) []candidate {
 	naturalsByRank := meldableNaturals(r, hand, t)
 	wilds := handWilds(hand)
@@ -304,7 +332,10 @@ func allMeldCandidates(r ruleset, hand []string, t *Team) []candidate {
 	var out []candidate
 	for rank, naturals := range naturalsByRank {
 		cards := append([]string(nil), naturals...)
-		if len(cards) > canastaSize {
+		// Seven is the ceiling only where a group canasta closes at it. Samba's
+		// does not (ruleset.GroupCanastaCloses), so a side holding eight kings
+		// may lay eight, and truncating here was offering seven of them.
+		if r.GroupCanastaCloses && len(cards) > canastaSize {
 			cards = cards[:canastaSize]
 		}
 		for i := 0; len(cards) < minMeldSize && i < len(wilds); i++ {
@@ -313,7 +344,19 @@ func allMeldCandidates(r ruleset, hand []string, t *Team) []candidate {
 		if validateMeld(r, cards) != nil {
 			continue
 		}
-		out = append(out, candidate{Rank: rank, Cards: cards, Value: handValue(cards)})
+		// Every natural of the rank and every wild in the hand — not the
+		// wild this submission happened to reach for. With three decks a Samba
+		// hand holds several, the engine cannot tell one two from another, and
+		// naming only the alphabetically first made the other copies unpickable.
+		//
+		// Not every subset of this is a legal meld; the wild limits are the
+		// engine's to enforce and it refuses an over-wild submission by code,
+		// with the rules behind it (ruleindex.go). A second copy of those limits
+		// out here is exactly the drift this module refuses to have.
+		pool := sortedCards(append(append([]string(nil), naturals...), wilds...))
+		out = append(out, candidate{
+			Rank: rank, Cards: cards, Pool: pool, Value: handValue(cards),
+		})
 	}
 	sortCandidates(out)
 	return out

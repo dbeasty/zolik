@@ -1,6 +1,8 @@
 package canasta
 
 import (
+	"sort"
+
 	"zolik/server/internal/module"
 )
 
@@ -223,12 +225,15 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 			Facts: []module.Fact{fact},
 			Source: &module.Selector{
 				Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID),
-				// The candidate is what a press sends and the most a selection
-				// may be; the smallest meld the engine would actually take out
-				// of it is what a selection has to reach.
-				Cards: c.Cards, Submit: c.Cards,
+				// Three separate facts, and they were one list for too long.
+				// The candidate's own submission is what a press sends; the
+				// pool is what a person may pick from, which includes wilds
+				// the submission did not reach for; and the two bounds are the
+				// smallest and largest the engine would actually take, both
+				// asked of it rather than worked out here.
+				Cards: c.selectable(), Submit: c.Cards,
 				MinCards: smallestAcceptedMeld(m, raw, playerID, c),
-				MaxCards: len(c.Cards),
+				MaxCards: largestAcceptedMeld(m, raw, playerID, c),
 			},
 			Target: &module.Selector{Zone: module.ToTable, ZoneID: meldsZoneID(t.ID)},
 		})
@@ -506,6 +511,54 @@ func smallestAcceptedMeld(m *Module, raw module.State, playerID string, c candid
 	// The caller only builds this offer once the whole candidate is accepted,
 	// so this is always a submission that works.
 	return len(c.Cards)
+}
+
+// largestAcceptedMeld is the most cards of this candidate the engine would take
+// in one submission.
+//
+// It used to be the length of the candidate, which was the same number while
+// the candidate was also the list of pickable cards. Now that a group's pool
+// holds wilds the submission did not spend, the two have come apart: a hand
+// with four kings and three wilds may pick from seven cards and lay at most
+// six of them, and only the engine knows which number that is — Canasta caps
+// wilds flat, Samba by a ratio, and a group closes at seven in one and not the
+// other.
+//
+// Asked, then, rather than derived, exactly as the minimum is: the candidate is
+// grown a card at a time and every step put to `Apply`. Naturals first, because
+// another card of the rank never costs a group anything the wild limits would
+// object to, so the greedy walk cannot strand itself by spending a slot early.
+//
+// The result bounds a *count*, not a combination. A selection inside it can
+// still break the ratio — four kings and two wilds is six cards either way, and
+// only one of them is a meld — and that refusal stays the engine's, by code,
+// with the rules behind it. Bounding the count is what an interface needs to
+// stop a selection growing without end; saying which six is not something a
+// single number can do.
+func largestAcceptedMeld(m *Module, raw module.State, playerID string, c candidate) int {
+	// A run is its own list at both ends — see smallestAcceptedMeld on why a
+	// sequence is not asked anything.
+	if c.Kind == meldRun || len(c.Pool) == 0 {
+		return len(c.Cards)
+	}
+	rest, ok := removeCards(c.Pool, c.Cards)
+	if !ok {
+		return len(c.Cards)
+	}
+	sort.SliceStable(rest, func(i, j int) bool {
+		return !isWild(rest[i]) && isWild(rest[j])
+	})
+
+	best := append([]string(nil), c.Cards...)
+	for _, extra := range rest {
+		try := append(append([]string(nil), best...), extra)
+		if accepted, _ := probe(m, raw, playerID, module.Action{
+			Verb: VerbLayMeld, Cards: try,
+		}); accepted {
+			best = try
+		}
+	}
+	return len(best)
 }
 
 // blackThreeCandidate is the going-out meld of black threes, or nil.
