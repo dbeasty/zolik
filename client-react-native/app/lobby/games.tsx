@@ -210,22 +210,36 @@ export default function GamesScreen() {
           return (
           <View key={mod.id} style={styles.card} testID={`module-${mod.id}`}>
             <View style={styles.headerRow}>
-              <Pressable
-                testID={`players-${mod.id}`}
-                accessibilityRole="button"
-                accessibilityState={{ expanded }}
-                aria-expanded={expanded}
-                onPress={() => toggleSetup(mod.id)}
-              >
+              <View style={styles.headerMain}>
                 <Text style={styles.name}>{moduleLabel(mod)}</Text>
-                <Text style={styles.meta}>
-                  {mod.minPlayers === mod.maxPlayers
-                    ? t('lobby.games.players', { n: mod.minPlayers })
-                    : t('lobby.games.playerRange', { min: mod.minPlayers, max: mod.maxPlayers })}
-                </Text>
-              </Pressable>
+                {/* The table size is a way in to the setup, not a caption
+                    under the title — so it is drawn as one. The name above it
+                    stays plain text: it is what the card is, not a control. */}
+                <Pressable
+                  testID={`players-${mod.id}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded }}
+                  aria-expanded={expanded}
+                  onPress={() => toggleSetup(mod.id)}
+                  style={({ pressed }) => [
+                    styles.tapChip,
+                    styles.playersChip,
+                    pressed && styles.tapChipOn,
+                  ]}
+                >
+                  <Text style={styles.meta}>
+                    {mod.minPlayers === mod.maxPlayers
+                      ? t('lobby.games.players', { n: mod.minPlayers })
+                      : t('lobby.games.playerRange', { min: mod.minPlayers, max: mod.maxPlayers })}
+                  </Text>
+                  <Text style={styles.chevron} aria-hidden>
+                    {expanded ? '▴' : '▾'}
+                  </Text>
+                </Pressable>
+              </View>
               <Pressable
                 testID={`rules-${mod.id}`}
+                accessibilityRole="button"
                 onPress={() =>
                   // One continuous template literal, not a concatenation:
                   // expo-router's typed routes validate an href against its
@@ -236,9 +250,15 @@ export default function GamesScreen() {
                     `/rules?moduleId=${encodeURIComponent(mod.id)}&variation=${encodeURIComponent(variation[mod.id] ?? '')}&options=${encodeURIComponent(JSON.stringify(options[mod.id] ?? {}))}`,
                   )
                 }
-                style={styles.rulesLink}
+                style={({ pressed }) => [styles.rulesLink, pressed && styles.tapChipOn]}
               >
                 <Text style={styles.rulesLinkText}>{t('nav.rules')}</Text>
+                {/* A different glyph on purpose. Everything else in this
+                    header opens the setup in place and says so with a ▾;
+                    this one leaves for /rules. */}
+                <Text style={styles.chevron} aria-hidden>
+                  {'›'}
+                </Text>
               </Pressable>
             </View>
 
@@ -255,10 +275,17 @@ export default function GamesScreen() {
                   accessibilityState={{ expanded }}
                   aria-expanded={expanded}
                   onPress={() => toggleSetup(mod.id)}
-                  style={styles.digestPress}
+                  style={({ pressed }) => [
+                    styles.tapChip,
+                    styles.digestPress,
+                    pressed && styles.tapChipOn,
+                  ]}
                 >
                   <Text style={styles.digest} testID={`setup-digest-${mod.id}`} numberOfLines={2}>
                     {digest}
+                  </Text>
+                  <Text style={styles.chevron} aria-hidden>
+                    {expanded ? '▴' : '▾'}
                   </Text>
                 </Pressable>
               ) : (
@@ -277,7 +304,7 @@ export default function GamesScreen() {
                 // markup — and the half a browser test can see.
                 aria-expanded={expanded}
                 onPress={() => toggleSetup(mod.id)}
-                style={styles.setupButton}
+                style={({ pressed }) => [styles.setupButton, pressed && styles.tapChipOn]}
               >
                 <Text style={styles.setupButtonText}>
                   {t('lobby.games.setup')} {expanded ? '▴' : '▾'}
@@ -442,6 +469,34 @@ function botCount(mod: MatchModule, picked?: number): number {
   return Math.min(hi, Math.max(lo, picked ?? lo));
 }
 
+/**
+ * The shape every tap target in a card's header is cut from.
+ *
+ * Two of them — the table size and the digest — used to be grey captions
+ * with a `Pressable` around them, which is to say invisible: the only control
+ * on the card that looked like one was the settings button, so that is the
+ * only way in most players ever found. A border, a chevron and a pressed
+ * state are what make the other two legible as the same kind of thing.
+ *
+ * A plain object rather than a `StyleSheet` entry because the buttons below
+ * spread it and then override their own padding — one place decides what the
+ * family looks like, each member decides how big it is.
+ */
+const tapChip = {
+  borderWidth: 1,
+  borderColor: colors.border,
+  borderRadius: 8,
+  paddingHorizontal: 10,
+  paddingVertical: 6,
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 6,
+  // Web only, and ignored everywhere else: react-native-web already gives a
+  // `Pressable` a pointer, but a chip that is a `View` under a mouse should
+  // never be left to that.
+  cursor: 'pointer',
+} as const;
+
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
@@ -452,6 +507,21 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  // Shrinks rather than pushing the rules link off the row on a narrow phone.
+  headerMain: { flexShrink: 1 },
+  tapChip,
+  // Lit up under a finger: the border, and a wash of the same blue behind it.
+  //
+  // Not the solid `accentDim` fill a chosen variation uses — a pill's label is
+  // `colors.text` and survives that fill, but these chips are labelled in
+  // `colors.muted`, which on solid accent is under 2:1. The label would drop
+  // out for as long as the finger was down.
+  tapChipOn: { borderColor: colors.accent, backgroundColor: 'rgba(61, 139, 253, 0.14)' },
+  // `accentButton`, not `accent`: on a surface this dark the mid blue is
+  // about 3.2:1, which is under the floor for text this small. See the note
+  // in `src/skins/classic.ts`.
+  chevron: { color: colors.accentButton, fontSize: 12, fontWeight: '700' },
+  playersChip: { alignSelf: 'flex-start', marginTop: 6 },
   setupRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -462,26 +532,15 @@ const styles = StyleSheet.create({
   digest: { color: colors.muted, fontSize: 12, flex: 1 },
   // The digest's own hit target, sized to the text rather than the row: the
   // row also holds the toggle button, and stretching this to flex: 1 would
-  // swallow taps meant for it.
+  // swallow taps meant for it. It shrinks instead, so a long digest wraps to
+  // its two lines rather than shouldering the button off the edge.
   digestPress: { flexShrink: 1 },
-  setupButton: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
+  setupButton: { ...tapChip, paddingHorizontal: 12, paddingVertical: 8 },
   setupButtonText: { color: colors.text, fontSize: 13, fontWeight: '600' },
   name: { color: colors.text, fontSize: 18, fontWeight: '700' },
-  meta: { color: colors.muted, fontSize: 12, marginTop: 2 },
-  rulesLink: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  rulesLinkText: { color: colors.accent, fontSize: 12, fontWeight: '700' },
+  meta: { color: colors.muted, fontSize: 12 },
+  rulesLink: { ...tapChip, borderRadius: 6, paddingVertical: 5, gap: 4 },
+  rulesLinkText: { color: colors.accentButton, fontSize: 12, fontWeight: '700' },
   summary: { color: colors.muted, fontSize: 12, marginTop: 2 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
   option: { marginTop: 8 },
