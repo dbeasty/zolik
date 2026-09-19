@@ -32,6 +32,17 @@ export type CardMetrics = {
   jokerRankFont: number;
   suitInlineFont: number;
   /**
+   * The plain face's index — the rank, and the suit under it.
+   *
+   * Its own size rather than `rankFont`, because that face is now *only* its
+   * index (see `CardView`) and so the index is sized to the one place it has
+   * to be read: the strip a fanned hand leaves showing. `minPeek` and this
+   * are two views of the same number and are derived from each other below,
+   * which is the whole reason a font size lives in the layout metrics at all.
+   */
+  indexFont: number;
+  indexSuitFont: number;
+  /**
    * The flex gap between two cards in a fanned hand. A spacing, not a
    * hairline, but it stays 4 at every scale: it reads as "these are separate
    * cards" and that job does not get harder on a bigger screen.
@@ -179,6 +190,74 @@ const BASE_STACKED_CORNER = 26;
 const PEEK_OF_CARD = 0.38;
 
 /**
+ * The narrowest that strip may get, whatever fraction of the card it is.
+ *
+ * It binds on every phone — 38% of a 36px card is 14 pixels, and nothing
+ * legible fits in 14 pixels — so this, not the fraction, is what a phone's
+ * hand is actually read through, and it is what `indexFontFor` sizes the
+ * classic face's index against.
+ *
+ * 23 rather than the 20 it was: 20 was set when the plain face put a small
+ * rank in a corner and a large pip in the middle, so the strip only had to
+ * hint at the card and the middle of it finished the sentence. The middle is
+ * empty now and the strip *is* the card, which buys three more pixels of
+ * index. Three and no more: at 375px — the narrowest screen the thirteen-card
+ * rule is asserted at — twelve pitches and a whole card come to 338 of 331
+ * usable pixels at 24, and a hand that wraps is worse than a hand set a
+ * point smaller. `layout.test.ts` holds that line.
+ */
+const MIN_PEEK = 23;
+
+/**
+ * The card's own border, which every face is drawn inside.
+ *
+ * Here rather than in `CardView` alone because the index size below has to
+ * subtract it: the strip a fanned card shows is measured from the outside of
+ * that border, and type laid out against the outer box lands under it.
+ */
+export const CARD_BORDER = 2;
+
+/**
+ * The gap between the card's edge and its index, on the plain face.
+ *
+ * Small on purpose, and smaller than the 4 the other faces pad by: every
+ * pixel of the peek strip that is not air is index, and this is the only
+ * face whose index has to carry the whole card.
+ */
+export const INDEX_PADDING = 3;
+
+/**
+ * How wide the widest rank is, as a multiple of its font size.
+ *
+ * "10", set bold — the only two-character rank, and therefore the one that
+ * decides whether a closed hand can be read. Measured rather than reasoned
+ * about: a digit's advance is the font's business, and in the web build's own
+ * stack (-apple-system first) "10" at 14px bold comes to 16.45px, or 1.18em.
+ * Rounded up from there, because the stack ends in whatever `sans-serif` is
+ * on the device and the cost of being wrong is a nought hidden under the next
+ * card — which reads as an ace.
+ */
+const WIDEST_RANK = 1.25;
+
+/** How much of a card still shows once the next one covers it, in pixels. */
+function peekFor(cardWidth: number): number {
+  return Math.max(MIN_PEEK, Math.round(cardWidth * PEEK_OF_CARD));
+}
+
+/**
+ * How big the plain face's rank is: as big as the strip it is read in allows.
+ *
+ * Derived from the peek rather than from the card, so the index and the fan
+ * can never disagree about whether a closed hand is readable — the failure
+ * that derivation exists to prevent is a "10" whose nought is under the next
+ * card, which reads as an ace.
+ */
+function indexFontFor(cardWidth: number): number {
+  const room = peekFor(cardWidth) - CARD_BORDER - INDEX_PADDING;
+  return Math.max(10, Math.floor(room / WIDEST_RANK));
+}
+
+/**
  * The parts of a slot that do not grow with the card: the selection ring
  * `CardView` draws, and the border of the slot `HandZone` wraps it in. Named
  * here because `slotPitch` is built from the same pieces and the two must not
@@ -293,9 +372,11 @@ export function metricsFor(width: number): Metrics {
   const scale = scaleFor(width);
   const chrome = chromeScale(scale);
   const narrow = width < 768;
+  const cardWidth = dim(BASE_CARD.width, scale);
+  const indexFont = indexFontFor(cardWidth);
 
   const card: CardMetrics = {
-    width: dim(BASE_CARD.width, scale),
+    width: cardWidth,
     height: dim(BASE_CARD.height, scale),
     gap: dim(BASE_CARD.gap, scale),
     ringPadding: BASE_CARD.ringPadding,
@@ -306,6 +387,11 @@ export function metricsFor(width: number): Metrics {
     suitFont: font(BASE_CARD.suitFont, scale),
     jokerRankFont: font(BASE_CARD.jokerRankFont, scale),
     suitInlineFont: font(BASE_CARD.suitInlineFont, scale),
+    indexFont,
+    // Nearly as large as the rank above it. A pip is one glyph where "10" is
+    // two, so it has the width to spare — and on a face with nothing else on
+    // it, the suit is half of what the card says.
+    indexSuitFont: Math.max(9, Math.round(indexFont * 0.9)),
     fanGap: BASE_CARD.fanGap,
     // Set below, once the parts above are known.
     slotPitch: 0,
@@ -385,8 +471,10 @@ export function handRowWidth(m: Metrics): number {
 export function minPeek(m: Metrics): number {
   // Wide enough for the widest index any face draws — "10" set bold, with a
   // suit under it. The engraved deck keeps its index inside the left fifth of
-  // the card, so this is set by the drawn faces rather than by that one.
-  return Math.max(20, Math.round(m.card.width * 0.38));
+  // the card, so this is set by the drawn faces rather than by that one; the
+  // classic face's index is then cut to fit, rather than this being widened
+  // to fit it (see `indexFontFor`).
+  return peekFor(m.card.width);
 }
 
 /**
