@@ -350,6 +350,7 @@ export const pt: Record<string, string> = {
   'err.CANNOT_DISCARD_RED_THREE': 'Um três vermelho não pode ser descartado',
   'err.MUST_KEEP_A_CARD': 'Fica com pelo menos uma carta — assim não podes esvaziar a mão',
   'err.MUST_MELD_FIRST': 'Baixa primeiro a abertura do teu lado',
+  'err.UNDO_MELDS_FIRST': 'Anula primeiro o que baixaste depois de tirar o monte',
   'err.INITIAL_MELD_NOT_MET': 'À tua primeira baixa ainda faltam pontos',
   'err.CANNOT_GO_OUT_YET': 'O teu lado precisa de uma canastra completa antes de poder sair',
   'err.NOTHING_TO_CALL': 'Não há aposta para igualar',
@@ -459,6 +460,8 @@ export const pt: Record<string, string> = {
   'canasta.remedy.openFirst': 'Baixa a primeira combinação do teu lado antes de juntares cartas.',
   'canasta.remedy.needCanastas': 'O teu lado precisa de mais {n} canastra de {size} cartas para poder sair.',
   'canasta.remedy.keepACard': 'Guarda uma carta para descartar.',
+  'canasta.remedy.undoMeldsFirst':
+    'Anula primeiro as combinações baixadas depois de tirares o monte — depois o próprio monte pode voltar.',
   'canasta.remedy.layOffInstead': 'Junta-as à combinação que o teu lado já tem.',
   'canasta.remedy.meldClosed':
     'Essa combinação está completa com {n} cartas — começa outra ou junta noutro sítio.',

@@ -181,10 +181,18 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	// --- undo taking the pile --------------------------------------------------
 	//
 	// Only ever on offer for the same turn's own capture — see PileTaken — and
-	// gone the instant anything else reaches the table, so this never competes
-	// with an ordinary move for a player's attention.
+	// gone the moment the turn ends, so it never competes with an ordinary move
+	// at somebody else's table.
+	//
+	// It used to go the moment anything at all reached the table, which kept it
+	// out of the way at the cost of the one turn that needs it: a side that has
+	// melded its way to just under the opening floor cannot discard, and taking
+	// the capture back is the last step of the only way out. So it stays, and
+	// answers UNDO_MELDS_FIRST while anything laid since is still standing —
+	// a disabled control with a remedy pointing at the undo that comes first,
+	// rather than no control at all.
 	if s.PileTaken != nil {
-		o := module.ActionOffer{ID: OfferUndoTakePile, Verb: VerbUndoTakePile, LabelKey: "verb.undoTakePile"}
+		o := module.ActionOffer{ID: OfferUndoTakePile, Verb: VerbUndoTakePile, LabelKey: "verb.undoTakePile", Undo: true}
 		o.Enabled, o.WhyNot = probe(m, raw, playerID, module.Action{Verb: VerbUndoTakePile})
 		o.Source = &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID}
 		offers = append(offers, o)
@@ -346,7 +354,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	// has nothing to play at all.
 	if n := len(s.LaidOff); n > 0 {
 		last := s.LaidOff[n-1]
-		o := module.ActionOffer{ID: OfferUndoLayOff, Verb: VerbUndoLayOff, LabelKey: "verb.undoLayOff"}
+		o := module.ActionOffer{ID: OfferUndoLayOff, Verb: VerbUndoLayOff, LabelKey: "verb.undoLayOff", Undo: true}
 		o.Enabled, o.WhyNot = probe(m, raw, playerID, module.Action{Verb: VerbUndoLayOff})
 		// Which meld it comes back off, told apart the same way the lay-off
 		// that put it there was — a side can have several melds down and
@@ -368,7 +376,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	// meld and unmeld instead of playing.
 	if n := len(s.MeldsLaid); n > 0 {
 		last := s.MeldsLaid[n-1]
-		o := module.ActionOffer{ID: OfferUndoLayMeld, Verb: VerbUndoLayMeld, LabelKey: "verb.undoMeld"}
+		o := module.ActionOffer{ID: OfferUndoLayMeld, Verb: VerbUndoLayMeld, LabelKey: "verb.undoMeld", Undo: true}
 		o.Enabled, o.WhyNot = probe(m, raw, playerID, module.Action{Verb: VerbUndoLayMeld})
 		// Which meld comes back off. A side mid-opening has two or three down
 		// and "undo meld" on its own would not say which one moves.

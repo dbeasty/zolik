@@ -581,6 +581,24 @@ func runOverlapsTable(t *Team, suit string, block []string) bool {
 // reach fifty. Each order below spends every card at most once and so is a set
 // of melds the player could actually lay; the best of them is therefore still a
 // bound that errs low, and it errs low a great deal less often.
+//
+// A lay-off is not a cheap pass either, and for a while every order here ran
+// one first. A lay-off takes wild cards — the two of clubs goes onto the side's
+// three fives as readily as it holds two jacks together — and a wild spent
+// there buys twenty points, where the same wild spent gluing a pair into a meld
+// buys the pair as well. So a side that had just put one small set on the table
+// watched this bound *fall*: the capture that put the set down was authorised
+// against a table that did not have it yet, and every meld after it was then
+// measured against one that did.
+//
+// That is what wedged game 6aaa157d0079d0b3a6624b3a, and the position in
+// wedge_test.go is the same fault reproduced from self-play — a hand holding
+// jacks, queens, tens and two deuces, worth a hundred and ten laid as three
+// melds, told it could reach seventy, which is under the hundred and five it
+// needed. Every one of those three melds was refused and the turn had nothing
+// in it but taking the capture back. Running the new melds first is the order
+// that spends a wild where it is worth most, and it belongs on this list for
+// the same reason the run-first order does.
 func reachableValue(r ruleset, hand []string, t *Team) int {
 	best := 0
 	for _, order := range [][]func(ruleset, []string, *Team) []candidate{
@@ -590,6 +608,10 @@ func reachableValue(r ruleset, hand []string, t *Team) int {
 		// sequence cards too, so they are not always the cheapest pass to run
 		// first either.
 		{runCandidates, layOffCandidates, newMeldCandidates},
+		// And the two orders that spend the hand's wilds on new melds before a
+		// lay-off can swallow them.
+		{newMeldCandidates, layOffCandidates, runCandidates},
+		{newMeldCandidates, runCandidates, layOffCandidates},
 	} {
 		remaining := append([]string(nil), hand...)
 		total := 0

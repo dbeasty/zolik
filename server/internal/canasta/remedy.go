@@ -143,6 +143,13 @@ func (m *Module) annotate(s *GameState, playerID string, offers []module.ActionO
 			// at all.
 			o.RemedyOfferID = firstEnabled(OfferLayMeld, OfferUndoLayMeld)
 
+		case ErrUndoMeldsFirst:
+			// The one refusal whose remedy is the whole point of it: the
+			// capture will come back, and here is the move that gets one step
+			// closer to it.
+			o.Remedy = &module.Fact{LabelKey: "canasta.remedy.undoMeldsFirst"}
+			o.RemedyOfferID = firstEnabled(OfferUndoLayMeld, OfferUndoLayOff)
+
 		case ErrMustMeldFirst:
 			o.Remedy = &module.Fact{LabelKey: "canasta.remedy.openFirst"}
 			o.RemedyOfferID = firstEnabled(OfferLayMeld)

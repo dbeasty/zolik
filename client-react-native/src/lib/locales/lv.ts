@@ -347,6 +347,7 @@ export const lv: Record<string, string> = {
   'err.CANNOT_DISCARD_RED_THREE': 'Sarkano trijnieku nedrīkst izmest',
   'err.MUST_KEEP_A_CARD': 'Paturi vismaz vienu kārti — tā tu roku iztukšot nevari',
   'err.MUST_MELD_FIRST': 'Vispirms izliec savas puses pirmo kombināciju',
+  'err.UNDO_MELDS_FIRST': 'Vispirms atsauc to, ko izliki pēc kaudzes ņemšanas',
   'err.INITIAL_MELD_NOT_MET': 'Tavai pirmajai izlikšanai vēl trūkst punktu',
   'err.CANNOT_GO_OUT_YET': 'Tavai pusei vajadzīga pabeigta kanasta, pirms tā var iziet',
   'err.NOTHING_TO_CALL': 'Nav likmes, ko atbildēt',
@@ -455,6 +456,8 @@ export const lv: Record<string, string> = {
   'canasta.remedy.openFirst': 'Izliec savas puses pirmo kombināciju, pirms ko papildini.',
   'canasta.remedy.needCanastas': 'Tavai pusei pirms iziešanas vajag vēl {n} kanastas pa {size} kārtīm.',
   'canasta.remedy.keepACard': 'Atstāj vienu kārti izmešanai.',
+  'canasta.remedy.undoMeldsFirst':
+    'Vispirms atsauc kombinācijas, kas izliktas pēc kaudzes ņemšanas — tad varēs atgriezties arī pati kaudze.',
   'canasta.remedy.layOffInstead': 'Pieliec tās kombinācijai, kas tavai pusei jau ir.',
   'canasta.remedy.meldClosed': 'Šī kombinācija ir pabeigta pie {n} kārtīm — sāc citu vai papildini citur.',
   'canasta.remedy.discardNotARedThree': 'Izmet ko citu, nevis sarkano trijnieku.',

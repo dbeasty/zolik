@@ -319,6 +319,10 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 			// the offer explosion extensibility-plan.md §1.1 refuses. Saying so
 			// explicitly is new: a client used to have to infer it.
 			Composite: o.Verb == rules.VerbLayMeld,
+			// All four of this engine's undos share one verb, so the mapping
+			// is the verb itself. See module.ActionOffer.Undo for what the
+			// runtime does with it.
+			Undo: o.Verb == rules.VerbUndo,
 		})
 	}
 	// Why each disabled offer is disabled, in terms a player can act on: the

@@ -520,6 +520,21 @@ type ActionOffer struct {
 	// thing this protocol exists to stop.
 	Facts []Fact `json:"facts,omitempty"`
 
+	// Undo marks an offer that takes a move back rather than making one.
+	//
+	// The runtime needs it, and needs it declared rather than guessed at from
+	// the verb's spelling. A driver recovering a stuck turn tries the offers in
+	// front of it, and an undo is the one kind of offer that can succeed and
+	// still leave the seat facing the decision it just made — take the discard
+	// pile, find the turn goes nowhere, put it back, and a bot that is a pure
+	// function of the position takes it again. That is the loop that froze game
+	// 6aaa157d0079d0b3a6624b3a; see match.botLoop, which unwinds on these and
+	// then declines to replay what it unwound.
+	//
+	// Not a hint about rendering: a client is free to show an undo like any
+	// other control, and both modules that have one do.
+	Undo bool `json:"undo,omitempty"`
+
 	// Composite marks an offer whose concrete submission this list does not
 	// enumerate: a *combination* a person has to compose, from a set of cards
 	// the offer does list.

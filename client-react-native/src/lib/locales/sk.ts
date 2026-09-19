@@ -347,6 +347,7 @@ export const sk: Record<string, string> = {
   'err.CANNOT_DISCARD_RED_THREE': 'Červenú trojku nemožno odhodiť',
   'err.MUST_KEEP_A_CARD': 'Nechaj si aspoň jednu kartu — takto si ruku nevyprázdniš',
   'err.MUST_MELD_FIRST': 'Najprv vylož prvú kombináciu svojej strany',
+  'err.UNDO_MELDS_FIRST': 'Najprv vráť to, čo si vyložil po vzatí kôpky',
   'err.INITIAL_MELD_NOT_MET': 'Tvojmu prvému vyloženiu stále chýbajú body',
   'err.CANNOT_GO_OUT_YET': 'Tvoja strana potrebuje dokončenú canastu, kým môže vyjsť',
   'err.NOTHING_TO_CALL': 'Nie je žiadna stávka na dorovnanie',
@@ -456,6 +457,8 @@ export const sk: Record<string, string> = {
   'canasta.remedy.openFirst': 'Vylož prvú kombináciu svojej strany, až potom prikladaj.',
   'canasta.remedy.needCanastas': 'Tvoja strana potrebuje ešte {n} canast po {size} kartách, aby mohla vyjsť.',
   'canasta.remedy.keepACard': 'Nechaj si kartu na odhodenie.',
+  'canasta.remedy.undoMeldsFirst':
+    'Najprv vráť kombinácie vyložené po vzatí kôpky — potom sa dá vrátiť aj samotná kôpka.',
   'canasta.remedy.layOffInstead': 'Prilož ich ku kombinácii, ktorú tvoja strana už má.',
   'canasta.remedy.meldClosed': 'Táto kombinácia je pri {n} kartách hotová — začni inú alebo prilož inde.',
   'canasta.remedy.discardNotARedThree': 'Odhoď niečo iné než červenú trojku.',

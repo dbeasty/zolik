@@ -346,6 +346,7 @@ export const sl: Record<string, string> = {
   'err.CANNOT_DISCARD_RED_THREE': 'Rdeče trojke ni mogoče odvreči',
   'err.MUST_KEEP_A_CARD': 'Obdrži vsaj eno karto — tako roke ne moreš izprazniti',
   'err.MUST_MELD_FIRST': 'Najprej položi prvo kombinacijo svoje strani',
+  'err.UNDO_MELDS_FIRST': 'Najprej razveljavi to, kar si odložil po vzemu kupa',
   'err.INITIAL_MELD_NOT_MET': 'Tvojemu prvemu polaganju še manjka točk',
   'err.CANNOT_GO_OUT_YET': 'Tvoja stran potrebuje dokončano canasto, preden lahko izide',
   'err.NOTHING_TO_CALL': 'Ni stave za izenačitev',
@@ -453,6 +454,8 @@ export const sl: Record<string, string> = {
   'canasta.remedy.openFirst': 'Najprej položi prvo kombinacijo svoje strani, šele nato dopolnjuj.',
   'canasta.remedy.needCanastas': 'Tvoja stran potrebuje še {n} kanasto po {size} kart, preden lahko izide.',
   'canasta.remedy.keepACard': 'Pridrži eno karto za odmet.',
+  'canasta.remedy.undoMeldsFirst':
+    'Najprej razveljavi kombinacije, odložene po vzemu kupa — nato se lahko vrne tudi kup sam.',
   'canasta.remedy.layOffInstead': 'Dodaj jih h kombinaciji, ki jo tvoja stran že ima.',
   'canasta.remedy.meldClosed': 'Ta kombinacija je pri {n} kartah dokončana — začni novo ali dopolni drugje.',
   'canasta.remedy.discardNotARedThree': 'Odvrzi kaj drugega kot rdečo trojko.',

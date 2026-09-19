@@ -557,37 +557,26 @@ func TestBotPlaysWholeDealsLegally(t *testing.T) {
 			}
 		}
 	}
+	// Was a count worth logging, back when a turn could genuinely run out of
+	// moves. It is an assertion now: see wedge_test.go for the two faults that
+	// used to put a table here and the position they were found in.
 	if wedged > 0 {
-		t.Logf("%d of 60 matches reached a turn with no legal move — see TestATurnCanStillWedge", wedged)
+		t.Errorf("%d of 60 matches reached a turn with no legal move", wedged)
 	}
 }
 
-// TestATurnCanStillWedge records a dead end in the engine, so that it is
-// written down in the package it belongs to rather than only in a ticket.
+// The wedge this file used to record here is fixed, and the note it was
+// recorded in has moved to wedge_test.go with the tests that pin the fix.
 //
-// applyDiscard refuses to end a turn that laid cards toward the initial meld
-// without reaching the floor (ErrInitialMeldNotMet), on the grounds that the
-// player can go on melding, and checkInitialMeld is supposed to make that safe
-// by refusing any lay that puts the floor out of reach. Its bound is meld.go's
-// reachableValue, and reachableValue over-estimates: it counts melds the
-// engine will not actually accept, so a side can lay a hundred and five points
-// of the hundred and twenty it needs and find the rest was never there. No
-// further meld, no lay-off (it has not opened) and no discard (it laid): the
-// turn has no legal move in it and the deal wedges for the whole table.
-//
-// It is not this bot's doing and not new. module.OfferBot — the bot this
-// module shipped with — walks into it in eight of forty two-handed matches on
-// main today. What this bot adds is opensTheAccount, which refuses to *start*
-// an opening it cannot finish, and that takes it from twenty-three of forty to
-// three: the ones that are left come through applyTakePile, which gates a
-// capture by an unmelded side on the same bound, and which no amount of care
-// on this side of the seam can predict.
-//
-// Tightening reachableValue was tried here and reverted. It is a change to
-// which melds the engine accepts, two of its own tests pin the current answer
-// (TestReachableValueIsAchievable, TestOpeningTheTable), and getting it right
-// means deciding what those tests should say — which is the engine's business
-// and wants its own change.
+// The short version, because the count above is what is left of it: a turn that
+// laid toward the initial meld and could not reach the floor had no legal move
+// but to take itself back. It was never really a dead end in the engine's
+// arithmetic — reachableValue was erring *low*, refusing openings the hand
+// could actually make — and the two halves of the fix are meld.go's meld-first
+// orders and the undo window that now reaches the start of a turn. What this
+// bot contributes is still opensTheAccount: it declines to begin an opening it
+// cannot finish, which is a better reason not to be in the position than a way
+// out of it.
 
 // tally is what a played-out match is being watched for: the two things a bot
 // can do with a wild card that read as a bug rather than as weak play.
@@ -642,7 +631,7 @@ func playOut(t *testing.T, m *Module, state module.State, players []module.Playe
 		a, ok := m.Bot().Act(state, module.BotSeat{PlayerID: actor, Skill: skill}, offers)
 		if !ok {
 			// No enabled offer describes a submission. Not the bot declining
-			// to move — there is nothing to move. See TestATurnCanStillWedge.
+			// to move — there is nothing to move. See wedge_test.go.
 			return out, true
 		}
 		if a.Verb == VerbDiscard && len(a.Cards) == 1 && isWild(a.Cards[0]) {

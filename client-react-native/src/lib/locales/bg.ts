@@ -351,6 +351,7 @@ export const bg: Record<string, string> = {
   'err.CANNOT_DISCARD_RED_THREE': 'Червена тройка не може да се изхвърля',
   'err.MUST_KEEP_A_CARD': 'Задръж поне една карта — така не можеш да изпразниш ръката си',
   'err.MUST_MELD_FIRST': 'Първо свали отварянето на страната си',
+  'err.UNDO_MELDS_FIRST': 'Първо върни това, което положи след вземането на купчината',
   'err.INITIAL_MELD_NOT_MET': 'На първото ти сваляне още му липсват точки',
   'err.CANNOT_GO_OUT_YET': 'Страната ти се нуждае от завършена канаста, преди да може да излезе',
   'err.NOTHING_TO_CALL': 'Няма залог за плащане',
@@ -462,6 +463,8 @@ export const bg: Record<string, string> = {
   'canasta.remedy.needCanastas':
     'На твоята страна ѝ трябват още {n} канасти от по {size} карти, преди да излезе.',
   'canasta.remedy.keepACard': 'Запази една карта, с която да хвърлиш.',
+  'canasta.remedy.undoMeldsFirst':
+    'Първо върни комбинациите, положени след вземането на купчината — тогава ще може да се върне и самата купчина.',
   'canasta.remedy.layOffInstead': 'Добави ги към комбинацията, която твоята страна вече има.',
   'canasta.remedy.meldClosed':
     'Тази комбинация е завършена при {n} карти — започни друга или добави някъде другаде.',

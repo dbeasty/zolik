@@ -80,6 +80,7 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	lastActor, stall := "", 0
+	var turn botTurn
 
 	for step := 0; step < botMaxSteps; step++ {
 		oid, err := bson.ObjectIDFromHex(matchID)
@@ -119,6 +120,7 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 			}
 		} else {
 			lastActor, stall = actor, 0
+			turn = botTurn{}
 		}
 
 		time.Sleep(m.thinkFor(rnd))
@@ -137,17 +139,17 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 		// person does when a control they expected to work does not, and it is
 		// the difference between a seat that loses one move and a deal that
 		// stops.
-		candidates := module.ChooseActions(offers, nil)
+		candidates := botCandidates(offers)
 		if action, ok := module.BotFor(mod).Act(match.State, botSeatFor(match, actor), offers); ok {
-			candidates = append([]module.Action{action}, candidates...)
+			candidates = append([]botMove{{action: action, undo: isUndoIn(offers, action)}}, candidates...)
 		}
 		if len(candidates) == 0 {
 			logOfferState(matchID, actor, offers, "has no legal move; stopping")
 			return
 		}
 
-		played := false
-		for i, action := range candidates {
+		played, skipped := false, 0
+		for i, c := range candidates {
 			// Only the prepended bot pick is deduplicated, and only against the
 			// list's first choice, which is the one case where the two sources
 			// routinely agree. Nothing further down is compared: sameAction
@@ -155,24 +157,36 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 			// offers are identical under it — skipping "duplicates" would drop
 			// undo:lay_meld and undo:turn, which are the candidates most likely
 			// to get a wedged turn moving again.
-			if i == 1 && sameAction(action, candidates[0]) {
+			if i == 1 && sameAction(c.action, candidates[0].action) {
 				continue
 			}
-			err := m.HandleAction(ctx, matchID, actor, action)
+			if turn.skips(c) {
+				skipped++
+				continue
+			}
+			err := m.HandleAction(ctx, matchID, actor, c.action)
 			if err == nil {
 				if i > 0 {
 					log.Printf("bot loop: match=%s seat=%s recovered on candidate %d/%d (%s)",
-						matchID, actor, i+1, len(candidates), action.Verb)
+						matchID, actor, i+1, len(candidates), c.action.Verb)
 				}
+				turn.note(c)
 				played = true
 				break
 			}
 			log.Printf("bot loop: match=%s seat=%s candidate %d/%d (%s) refused: %v",
-				matchID, actor, i+1, len(candidates), action.Verb, err)
+				matchID, actor, i+1, len(candidates), c.action.Verb, err)
 		}
 		if !played {
+			// Skipped and refused counted apart, because they mean opposite
+			// things to whoever reads this. Refused is the engine saying no;
+			// skipped is this loop declining to make a move it has already
+			// taken back, and a line that is mostly skips is a turn that
+			// unwound and found nothing else to do rather than one the rules
+			// shut out.
 			logOfferState(matchID, actor, offers,
-				fmt.Sprintf("all %d candidate moves refused; stopping", len(candidates)))
+				fmt.Sprintf("all %d candidate moves exhausted (%d refused, %d already tried this turn); stopping",
+					len(candidates), len(candidates)-skipped, skipped))
 			return
 		}
 	}
@@ -199,6 +213,93 @@ func logOfferState(matchID, actor string, offers []module.ActionOffer, reason st
 	for code, verbs := range disabledByCode {
 		log.Printf("  disabled by %q: %v", code, verbs)
 	}
+}
+
+// botMove is one thing this seat could send, and whether sending it would take
+// a move back rather than make one. The offer list already says which — see
+// module.ActionOffer.Undo — and the loop's replay guard needs to know.
+type botMove struct {
+	action module.Action
+	undo   bool
+}
+
+// botTurn is what the loop remembers inside one seat's turn: the moves that
+// seat has made, and whether it has started taking any of them back. Cleared
+// the moment the turn moves on, because none of it means anything about the
+// next one.
+//
+// It exists for one shape of stuck turn. An undo is the only candidate that
+// can succeed and leave the seat facing exactly the decision it just made, and
+// a module's bot is a pure function of the position — TestBotNeverTakesAMoveBack
+// is what stops it oscillating on its own account — so handed back a position
+// it has already answered, it answers the same way. The loop then played
+// take_pile, undo_take_pile, take_pile for thirty actions and gave up, on a
+// table that was frozen for everybody from then on. That is what happened to
+// game 6aaa157d0079d0b3a6624b3a; canasta's own fix for the position that led
+// there is in meld.go, and this is the guard that means the next such position
+// costs a seat one bad move rather than the whole table its deal.
+//
+// So unwinding is one-way: once a move has been taken back, what this turn has
+// already tried is off the list and the loop works down to something it has not
+// done — drawing, in the case above, which is exactly what a person does after
+// putting the pile back. It arms only once an undo has actually been played, so
+// ordinary play, where the same submission twice is a coincidence of card codes
+// rather than a loop, is untouched.
+type botTurn struct {
+	played    []module.Action
+	unwinding bool
+}
+
+// skips is whether this candidate is one the turn has already made and taken
+// back. Undos are never skipped: they are how the unwinding gets anywhere, and
+// there are only ever as many of them as there are moves to take back.
+func (t *botTurn) skips(c botMove) bool {
+	if !t.unwinding || c.undo {
+		return false
+	}
+	for _, p := range t.played {
+		if sameAction(p, c.action) {
+			return true
+		}
+	}
+	return false
+}
+
+// note records a candidate the loop has just played.
+func (t *botTurn) note(c botMove) {
+	if c.undo {
+		t.unwinding = true
+		return
+	}
+	t.played = append(t.played, c.action)
+}
+
+// botCandidates is every submission the offer list describes, in the order it
+// describes them. module.ChooseActions with no preference, carrying the one
+// property of the offer the loop cannot re-derive from the submission alone.
+func botCandidates(offers []module.ActionOffer) []botMove {
+	out := make([]botMove, 0, len(offers))
+	for i := range offers {
+		if a, ok := module.SubmissionFor(offers[i]); ok {
+			out = append(out, botMove{action: a, undo: offers[i].Undo})
+		}
+	}
+	return out
+}
+
+// isUndoIn is whether the module's own bot has picked an undo, read off the
+// offer it must have come from. The shipped bots decline to, but the loop is
+// not the place to assume that of a module it has never seen.
+func isUndoIn(offers []module.ActionOffer, a module.Action) bool {
+	for i := range offers {
+		if !offers[i].Undo {
+			continue
+		}
+		if b, ok := module.SubmissionFor(offers[i]); ok && sameAction(a, b) {
+			return true
+		}
+	}
+	return false
 }
 
 // botSeatFor is who this seat is and how well it plays.
