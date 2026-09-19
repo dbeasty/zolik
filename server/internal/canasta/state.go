@@ -121,6 +121,12 @@ const (
 	// ErrNothingToUndo is shared with Žolíky's own undo (internal/rules):
 	// same fact, same word, no reason for a client to carry two keys for it.
 	ErrNothingToUndo = "NOTHING_TO_UNDO"
+	// ErrUndoMeldsFirst is the capture undo asked for out of order: a turn
+	// comes apart in the reverse of the order it was built, so the melds and
+	// lay-offs laid since have to come off before the capture underneath them
+	// can. Its own code rather than NOTHING_TO_UNDO, because there is very
+	// much something to undo and the player needs to be told what.
+	ErrUndoMeldsFirst = "UNDO_MELDS_FIRST"
 
 	// Sequences, in the variations that have them. A closed samba reports the
 	// existing MELD_CLOSED and a permanently frozen pile the existing
@@ -187,11 +193,17 @@ func meldID(teamID int, rank string) string {
 // have worked but cannot always tell a genuinely doomed one apart — a
 // partnership can take the pile believing the minimum is still reachable and
 // then find the concrete hand it holds will not cooperate. Without a way back
-// that partnership is stuck for the rest of the deal, so there is one, scoped
-// as narrowly as the problem: it undoes exactly this capture, and only for as
-// long as none of its cards have gone anywhere else. LaidOff below is the only
-// other move that takes a card back off the table, and it is there for a
-// different reason — a mistake rather than a dead end.
+// that partnership is stuck for the rest of the deal, so there is one: it
+// undoes exactly this capture, restoring the pile and the hand verbatim.
+//
+// It used to be scoped to a turn that had done nothing else, which is narrower
+// than the problem it was written for. The turn that needs it most is the one
+// that melded *towards* the opening and came up short, and that turn had
+// already spent the window. So the capture now keeps its place under whatever
+// the turn laid on top of it, and applyUndoTakePile takes it back only once
+// those have come off — which is the same restore, reached in order. LaidOff
+// below is the other move that takes a card back off the table, and it is
+// there for a different reason: a mistake rather than a dead end.
 type PileTaken struct {
 	// Pile is the discard pile exactly as it stood before the capture, top
 	// card last — put back verbatim rather than reconstructed from parts.
@@ -470,8 +482,11 @@ type GameState struct {
 	MeldsAtTurnStart bool `json:"meldsAtTurnStart,omitempty"`
 	TookPileThisTurn bool `json:"tookPileThisTurn,omitempty"`
 	// PileTaken is this turn's pile capture, if it can still be undone. Set by
-	// applyTakePile and cleared the instant any other action reaches the
-	// table, so an undo can only ever unwind exactly what it captured.
+	// applyTakePile, and dropped with the two stacks below by anything that is
+	// not a table-building verb — see buildsTheTable. It is the *first* thing a
+	// turn does and so the last to come back off: applyUndoTakePile refuses
+	// while either stack below is non-empty, which is what keeps the undo the
+	// exact restore this snapshotted.
 	PileTaken *PileTaken `json:"pileTaken,omitempty"`
 	// LaidOff is this turn's lay-offs that can still be taken back, oldest
 	// first — see LaidOff. Appended to by applyLayOff, and emptied by anything
@@ -479,7 +494,7 @@ type GameState struct {
 	LaidOff []LaidOff `json:"laidOff,omitempty"`
 	// MeldsLaid is this turn's new melds that can still be taken back, oldest
 	// first — see MeldLaid. Appended to by applyLayMeld, and emptied alongside
-	// LaidOff by anything that is not one of the four table-building verbs.
+	// LaidOff by anything that is not one of the table-building verbs.
 	MeldsLaid []MeldLaid `json:"meldsLaid,omitempty"`
 
 	// Rules resolved at deal time, so a match cannot change shape underneath

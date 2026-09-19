@@ -348,6 +348,7 @@ export const hr: Record<string, string> = {
   'err.CANNOT_DISCARD_RED_THREE': 'Crvena trojka se ne može odbaciti',
   'err.MUST_KEEP_A_CARD': 'Zadrži barem jednu kartu — tako ne možeš isprazniti ruku',
   'err.MUST_MELD_FIRST': 'Prvo spusti otvaranje svoje strane',
+  'err.UNDO_MELDS_FIRST': 'Prvo poništi ono što si položio nakon uzimanja hrpe',
   'err.INITIAL_MELD_NOT_MET': 'Tvojem prvom spuštanju još nedostaju bodovi',
   'err.CANNOT_GO_OUT_YET': 'Tvojoj strani treba dovršena canasta prije nego što može izaći',
   'err.NOTHING_TO_CALL': 'Nema uloga za praćenje',
@@ -455,6 +456,8 @@ export const hr: Record<string, string> = {
   'canasta.remedy.openFirst': 'Položi prvu kombinaciju svoje strane prije nego što nešto dopunjuješ.',
   'canasta.remedy.needCanastas': 'Tvojoj strani treba još {n} canasta od {size} karata da bi mogla izaći.',
   'canasta.remedy.keepACard': 'Zadrži jednu kartu za odbacivanje.',
+  'canasta.remedy.undoMeldsFirst':
+    'Prvo poništi kombinacije položene nakon uzimanja hrpe — tada se može vratiti i sama hrpa.',
   'canasta.remedy.layOffInstead': 'Dodaj ih kombinaciji koju tvoja strana već ima.',
   'canasta.remedy.meldClosed':
     'Ta je kombinacija gotova na {n} karata — počni drugu ili dopuni negdje drugdje.',

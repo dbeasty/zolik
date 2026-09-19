@@ -348,6 +348,7 @@ export const et: Record<string, string> = {
   'err.CANNOT_DISCARD_RED_THREE': 'Punast kolme ei tohi ära visata',
   'err.MUST_KEEP_A_CARD': 'Jäta alles vähemalt üks kaart — nii ei saa sa oma kätt tühjendada',
   'err.MUST_MELD_FIRST': 'Pane esmalt välja oma poole avang',
+  'err.UNDO_MELDS_FIRST': 'Võta esmalt tagasi see, mille panid lauale pärast hunniku võtmist',
   'err.INITIAL_MELD_NOT_MET': 'Sinu esimesel väljapanekul jääb veel punkte puudu',
   'err.CANNOT_GO_OUT_YET': 'Sinu pool vajab valmis canastat, enne kui saab välja minna',
   'err.NOTHING_TO_CALL': 'Pole ühtegi panust, mida maksta',
@@ -458,6 +459,8 @@ export const et: Record<string, string> = {
   'canasta.remedy.openFirst': 'Pane enne juurdepanemist oma poole esimene kombinatsioon välja.',
   'canasta.remedy.needCanastas': 'Sinu poolel on väljaminekuks vaja veel {n} kanastat à {size} kaarti.',
   'canasta.remedy.keepACard': 'Jäta üks kaart äraviskamiseks alles.',
+  'canasta.remedy.undoMeldsFirst':
+    'Võta esmalt tagasi kombinatsioonid, mille panid lauale pärast hunniku võtmist — siis saab ka hunniku enda tagasi.',
   'canasta.remedy.layOffInstead': 'Pane need kombinatsiooni juurde, mis sinu poolel juba on.',
   'canasta.remedy.meldClosed':
     'See kombinatsioon on {n} kaardi juures valmis — alusta uut või pane mujale juurde.',

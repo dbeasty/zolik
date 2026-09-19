@@ -361,6 +361,7 @@ export const ga: Record<string, string> = {
   'err.CANNOT_DISCARD_RED_THREE': 'Ní féidir trí dhearg a chaitheamh',
   'err.MUST_KEEP_A_CARD': 'Coinnigh cárta amháin ar a laghad — ní féidir leat do lámh a fholmhú mar sin',
   'err.MUST_MELD_FIRST': 'Leag síos céad chumasc do thaobha ar dtús',
+  'err.UNDO_MELDS_FIRST': 'Cealaigh ar dtús a bhfuil leagtha agat tar éis an carn a thógáil',
   'err.INITIAL_MELD_NOT_MET': 'Tá do chéad leagan síos gann ar phointí fós',
   'err.CANNOT_GO_OUT_YET': 'Teastaíonn canasta críochnaithe ó do thaobh sula bhféadfaidh sé dul amach',
   'err.NOTHING_TO_CALL': 'Níl aon gheall le glaoch',
@@ -472,6 +473,8 @@ export const ga: Record<string, string> = {
   'canasta.remedy.needCanastas':
     'Teastaíonn {n} chanasta eile de {size} chárta ó do thaobh sula féidir leis dul amach.',
   'canasta.remedy.keepACard': 'Coinnigh cárta le caitheamh.',
+  'canasta.remedy.undoMeldsFirst':
+    'Cealaigh ar dtús na cumaisc a leag tú tar éis an carn a thógáil — ansin féadfaidh an carn féin dul ar ais.',
   'canasta.remedy.layOffInstead': 'Cuir leis an gcumasc atá ag do thaobh cheana iad.',
   'canasta.remedy.meldClosed':
     'Tá an cumasc sin críochnaithe ag {n} chárta — tosaigh ceann eile, nó cuir le rud eile.',

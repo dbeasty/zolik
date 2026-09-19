@@ -346,6 +346,7 @@ export const lt: Record<string, string> = {
   'err.CANNOT_DISCARD_RED_THREE': 'Raudono trejeto atmesti negalima',
   'err.MUST_KEEP_A_CARD': 'Pasilik bent vieną kortą — taip rankos neištuštinsi',
   'err.MUST_MELD_FIRST': 'Pirma išdėk savo pusės pradinį derinį',
+  'err.UNDO_MELDS_FIRST': 'Pirma atšauk tai, ką išdėjai po krūvelės paėmimo',
   'err.INITIAL_MELD_NOT_MET': 'Tavo pirmam išdėjimui vis dar trūksta taškų',
   'err.CANNOT_GO_OUT_YET': 'Tavo pusei reikia užbaigtos kanastos, kad galėtų išeiti',
   'err.NOTHING_TO_CALL': 'Nėra statymo, kurį reikėtų atsakyti',
@@ -454,6 +455,8 @@ export const lt: Record<string, string> = {
   'canasta.remedy.openFirst': 'Padėk savo pusės pirmąją kombinaciją prieš papildydamas.',
   'canasta.remedy.needCanastas': 'Tavo pusei prieš išeinant reikia dar {n} kanastų po {size} kortas.',
   'canasta.remedy.keepACard': 'Pasilik vieną kortą numetimui.',
+  'canasta.remedy.undoMeldsFirst':
+    'Pirma atšauk derinius, išdėtus po krūvelės paėmimo — tada galės grįžti ir pati krūvelė.',
   'canasta.remedy.layOffInstead': 'Pridėk jas prie kombinacijos, kurią tavo pusė jau turi.',
   'canasta.remedy.meldClosed': 'Ši kombinacija baigta ties {n} kortomis — pradėk kitą arba papildyk kitur.',
   'canasta.remedy.discardNotARedThree': 'Numesk ką nors kita, ne raudoną trejetą.',

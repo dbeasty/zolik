@@ -349,6 +349,7 @@ export const ro: Record<string, string> = {
   'err.CANNOT_DISCARD_RED_THREE': 'Un trei roșu nu poate fi aruncat',
   'err.MUST_KEEP_A_CARD': 'Păstrează cel puțin o carte — așa nu îți poți goli mâna',
   'err.MUST_MELD_FIRST': 'Coboară mai întâi deschiderea taberei tale',
+  'err.UNDO_MELDS_FIRST': 'Anulează mai întâi ce ai pus jos după luarea teancului',
   'err.INITIAL_MELD_NOT_MET': 'Primei tale coborâri îi lipsesc încă puncte',
   'err.CANNOT_GO_OUT_YET': 'Tabăra ta are nevoie de o canastă terminată înainte să poată ieși',
   'err.NOTHING_TO_CALL': 'Nu există niciun pariu de plătit',
@@ -459,6 +460,8 @@ export const ro: Record<string, string> = {
   'canasta.remedy.openFirst': 'Pune mai întâi combinația inițială a echipei tale, apoi adaugă cărți.',
   'canasta.remedy.needCanastas': 'Echipei tale îi mai trebuie {n} canastă de {size} cărți ca să poată ieși.',
   'canasta.remedy.keepACard': 'Păstrează o carte cu care să arunci.',
+  'canasta.remedy.undoMeldsFirst':
+    'Anulează mai întâi combinațiile puse jos după luarea teancului — apoi poate reveni și teancul însuși.',
   'canasta.remedy.layOffInstead': 'Adaugă-le la combinația pe care echipa ta o are deja.',
   'canasta.remedy.meldClosed':
     'Combinația aceea e completă la {n} cărți — începe alta sau adaugă în altă parte.',

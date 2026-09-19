@@ -352,6 +352,7 @@ export const es: Record<string, string> = {
   'err.CANNOT_DISCARD_RED_THREE': 'Un tres rojo no se puede descartar',
   'err.MUST_KEEP_A_CARD': 'Quédate al menos una carta — así no puedes vaciar tu mano',
   'err.MUST_MELD_FIRST': 'Baja primero la combinación inicial de tu bando',
+  'err.UNDO_MELDS_FIRST': 'Deshaz primero lo que bajaste después de tomar el montón',
   'err.INITIAL_MELD_NOT_MET': 'A tu primera bajada aún le faltan puntos',
   'err.CANNOT_GO_OUT_YET': 'Tu bando necesita una canasta completa antes de poder irse',
   'err.NOTHING_TO_CALL': 'No hay ninguna apuesta que igualar',
@@ -461,6 +462,8 @@ export const es: Record<string, string> = {
   'canasta.remedy.openFirst': 'Baja la primera combinación de tu bando antes de añadir cartas.',
   'canasta.remedy.needCanastas': 'A tu bando le faltan {n} canastas de {size} cartas para poder cerrarse.',
   'canasta.remedy.keepACard': 'Reserva una carta para descartar.',
+  'canasta.remedy.undoMeldsFirst':
+    'Deshaz primero las combinaciones que bajaste tras tomar el montón — luego podrá volver el montón mismo.',
   'canasta.remedy.layOffInstead': 'Añádelas a la combinación que tu bando ya tiene.',
   'canasta.remedy.meldClosed':
     'Esa combinación está completa con {n} cartas: empieza otra o añade en otro sitio.',

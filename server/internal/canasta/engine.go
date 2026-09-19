@@ -232,28 +232,32 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 		return raw, nil, errCode(ErrNotYourTurn)
 	}
 
-	// Every verb but the undo itself spends or replaces whatever it touches,
-	// so a pile capture stops being undoable the moment anything else
-	// happens — cleared here, up front, rather than separately in each of
-	// them. Safe because a refusal below returns the caller's own `raw`
-	// untouched (see Apply's own doc comment): this clear only survives when
-	// the action it guarded actually went through.
-	if a.Verb != VerbUndoTakePile {
-		s.PileTaken = nil
-	}
-	// The same window for what this turn put on the table, three verbs wider:
-	// these stack rather than replacing each other (see LaidOff and MeldLaid),
-	// so the four verbs that build the table leave both stacks standing and
-	// everything else drops them.
+	// The window in which this turn can be taken apart again, and it is one
+	// window rather than three: the capture, the melds and the lay-offs all
+	// survive exactly the verbs that build the table, and every other verb
+	// drops all of them. Safe because a refusal below returns the caller's own
+	// `raw` untouched (see Apply's own doc comment): this clear only survives
+	// when the action it guarded actually went through.
 	//
-	// Both together, not one each. Melding used to close the lay-off window,
-	// which meant laying a second meld quietly threw away the undo for a card
-	// you had just put on the wrong pile; and a meld laid after a lay-off has
-	// to stay undoable or the dead end MeldLaid exists for survives being two
-	// moves deep. Ordering is not what keeps this honest — the shape checks in
-	// the two undo handlers are, and they refuse anything built on since.
-	if a.Verb != VerbLayOff && a.Verb != VerbUndoLayOff &&
-		a.Verb != VerbLayMeld && a.Verb != VerbUndoLayMeld {
+	// Both stacks together, not one each. Melding used to close the lay-off
+	// window, which meant laying a second meld quietly threw away the undo for
+	// a card you had just put on the wrong pile; and a meld laid after a
+	// lay-off has to stay undoable or the dead end MeldLaid exists for survives
+	// being two moves deep. Ordering is not what keeps this honest — the shape
+	// checks in the three undo handlers are, and they refuse anything built on
+	// since.
+	//
+	// The capture used to be narrower than the other two: any lay at all closed
+	// it. That is what wedged game 6aaa157d0079d0b3a6624b3a. A side that has
+	// not opened cannot discard (applyDiscard), so a turn that took the pile
+	// and then melded its way to just under the floor could only get out by
+	// putting everything back — and the one thing it could not put back was the
+	// capture that started it. Undoing has to reach the beginning of the turn
+	// or it does not reach anywhere: see applyUndoTakePile, which now refuses
+	// while anything laid since is still standing, so the restore is still the
+	// exact one PileTaken snapshotted.
+	if !buildsTheTable(a.Verb) {
+		s.PileTaken = nil
 		s.LaidOff = nil
 		s.MeldsLaid = nil
 	}
@@ -725,13 +729,34 @@ func applyTakeTop(s *GameState, playerID string, a module.Action) ([]module.Even
 	}}}, nil
 }
 
+// buildsTheTable is the five verbs that put cards on the table this turn or
+// take them off again, and so leave the turn's undo window standing. Every
+// other verb — drawing, capturing, discarding, readying between deals — closes
+// it, because after one of those there is no longer a turn to take apart.
+func buildsTheTable(verb string) bool {
+	switch verb {
+	case VerbLayMeld, VerbUndoLayMeld, VerbLayOff, VerbUndoLayOff, VerbUndoTakePile:
+		return true
+	}
+	return false
+}
+
 // applyUndoTakePile reverses the current turn's pile capture — see PileTaken
-// for why this is the one move this module lets a player take back, and how
-// narrowly it is scoped.
+// for why it is undoable at all, and how narrowly it is scoped.
+//
+// Last out, first in: the capture is the first thing a turn does, so taking it
+// back is the last step of unwinding one. Everything laid since has to come off
+// first, which is what the two stacks below check. That is not a convenience —
+// PileTaken restores the hand it snapshotted verbatim, so a meld still standing
+// from after the capture would have its cards dealt back into the hand as well
+// as left on the table.
 func applyUndoTakePile(s *GameState, playerID string) ([]module.Event, error) {
 	pt := s.PileTaken
 	if pt == nil {
 		return nil, errCode(ErrNothingToUndo)
+	}
+	if len(s.MeldsLaid) > 0 || len(s.LaidOff) > 0 {
+		return nil, errCode(ErrUndoMeldsFirst)
 	}
 	t := s.team(playerID)
 	m := t.meldByID(pt.MeldID)
