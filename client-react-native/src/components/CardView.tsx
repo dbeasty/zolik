@@ -11,7 +11,7 @@ import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
 import { parseCard } from '@/src/lib/cards';
 import { isCourt } from '@/src/lib/pips';
-import type { CardMetrics } from '@/src/lib/layout';
+import { CARD_BORDER, INDEX_PADDING, type CardMetrics } from '@/src/lib/layout';
 import type { Skin } from '@/src/skins/types';
 
 /**
@@ -70,12 +70,17 @@ type Props = {
 const EDGE = 2;
 
 /**
- * The card's own border, on every face. Named because a face drawn *inside*
- * the card has to subtract it twice to know how much room it actually has —
- * `width` here is the outer box (React Native measures border-box), and a
- * pip laid out against the outer box lands under the border.
+ * The card's own border, on every face. A face drawn *inside* the card has to
+ * subtract it twice to know how much room it actually has — `width` is the
+ * outer box (React Native measures border-box), and a pip laid out against
+ * the outer box lands under the border.
+ *
+ * It comes from the layout metrics rather than from here because the plain
+ * face's index is sized against the strip a fanned card shows, and that sum
+ * has to subtract exactly this border. Two files holding one number is how
+ * the fan and the index would come to disagree.
  */
-const BORDER = 2;
+const BORDER = CARD_BORDER;
 
 /** Every dimension a card's own render needs, computed once per card size and skin. */
 function cardStyles(m: CardMetrics, s: Skin) {
@@ -155,9 +160,11 @@ function cardStyles(m: CardMetrics, s: Skin) {
       : {},
     // The back in the same chassis a face sits in — see the faceDown prop.
     backBox: { marginRight: m.gap },
-    // A rich face positions its own corners; the plain face keeps the padded
-    // column layout it has always had.
+    // A rich face positions its own corners; the plain face pads by its own
+    // (smaller) margin, because on that face every pixel of the peek strip
+    // that is not air is index.
     cardRich: { padding: 0 },
+    cardPlain: { padding: INDEX_PADDING },
     faceFill: {
       position: 'absolute',
       top: 0,
@@ -184,11 +191,6 @@ function cardStyles(m: CardMetrics, s: Skin) {
     // "JKR" is 3 characters vs. 1-2 for every other rank, so it needs its own
     // (smaller) size to stay inside the card instead of overflowing the edge.
     jokerRank: { fontSize: m.jokerRankFont },
-    suit: {
-      fontSize: m.suitFont,
-      alignSelf: 'center',
-      color: card.ink,
-    },
     corner: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -197,6 +199,27 @@ function cardStyles(m: CardMetrics, s: Skin) {
     // Stacked, not side by side: this has to fit in the strip of a card that
     // the next card is covering, and a strip is about as wide as one glyph.
     plainIndex: { alignItems: 'flex-start' },
+    // The plain face's whole content, and therefore as large as the strip it
+    // is read in allows — `indexFont` is that sum, done in the metrics so the
+    // fan and the index cannot drift. Tight line heights because the two of
+    // them are one mark, the way a printed index is.
+    indexRank: {
+      fontSize: m.indexFont,
+      lineHeight: Math.round(m.indexFont * 1.05),
+      fontWeight: '700',
+      color: card.ink,
+    },
+    // The index is sized for "10". "JKR" is three characters, so it is set
+    // smaller to take the same strip rather than to overflow it.
+    indexJokerRank: {
+      fontSize: Math.max(9, Math.round(m.indexFont * 0.52)),
+      lineHeight: Math.max(10, Math.round(m.indexFont * 0.6)),
+    },
+    indexSuit: {
+      fontSize: m.indexSuitFont,
+      lineHeight: Math.round(m.indexSuitFont * 1.1),
+      color: card.ink,
+    },
     suitInline: {
       fontSize: m.suitInlineFont,
       color: card.ink,
@@ -329,6 +352,10 @@ export function CardView({
    * and a font.
    */
   const vector = skin.card.face === 'vector';
+  // Everything else: one index, drawn against the card's own edge. A stacked
+  // card keeps the old corner and the old padding, because what it has to fit
+  // in is a strip of its *top* edge rather than of its left one.
+  const plain = !vector && !deluxe && !rich && !stacked;
   // The gradient wash is the resting face only: a selected or joker card
   // shows its own solid fill, and painting the wash over it would hide the
   // one thing those fills are for.
@@ -405,24 +432,26 @@ export function CardView({
       )}
     </>
   ) : (
-    <>
-      {/* Rank over suit rather than rank alone.
-          The plain face used to put its rank in the corner and its only suit
-          in the middle of the card, which was fine while every card in a hand
-          was fully visible. A closed hand covers all but a strip down each
-          card's left edge, and a strip with a bare "3" in it does not say
-          which three — the classic skin's hand read as a row of numbers.
-          The big pip stays where it was; this is the index it never had. */}
-      <View style={styles.plainIndex}>
-        <Text style={[styles.rank, d.isJoker && styles.jokerRank, d.isRed && styles.red]}>
-          {d.rank}
-        </Text>
-        {d.isJoker ? null : (
-          <Text style={[styles.suitInline, d.isRed && styles.red]}>{d.suitSymbol}</Text>
-        )}
-      </View>
-      <Text style={[styles.suit, d.isRed && styles.red]}>{d.suitSymbol}</Text>
-    </>
+    /* One index, as big as the card can carry, and nothing else.
+       This face used to draw its rank small in the corner and a large pip in
+       the middle. Both halves were wrong on a phone: a closed hand covers all
+       but a strip down each card's left edge, so the pip in the middle is the
+       first thing the next card hides — it was decoration you paid for in the
+       one dimension a phone has none of — and the rank left holding the card
+       on its own was set for a face that had something else on it. So the pip
+       goes, and the index takes the room it was using. */
+    <View style={styles.plainIndex}>
+      <Text
+        style={[styles.indexRank, d.isJoker && styles.indexJokerRank, d.isRed && styles.red]}
+      >
+        {d.rank}
+      </Text>
+      {/* A joker has no suit. Its ★ was the centre pip, and it goes the way
+          every other centre pip did — "JKR" on cream stock is the card. */}
+      {d.isJoker ? null : (
+        <Text style={[styles.indexSuit, d.isRed && styles.red]}>{d.suitSymbol}</Text>
+      )}
+    </View>
   );
 
   const content = (
@@ -464,6 +493,7 @@ export function CardView({
         style={[
           styles.card,
           (rich || deluxe) && styles.cardRich,
+          plain && styles.cardPlain,
           skin.card.shadow && styles.cardShadow,
           // Not on a selected card: its solid selection border must win, and
           // per-side colours would beat an all-side one regardless of order.

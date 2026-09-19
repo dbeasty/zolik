@@ -15,10 +15,10 @@ export const SKINS: readonly Skin[] = [heirloom, casino, classic];
 /**
  * What the board wears for somebody who has never chosen.
  *
- * `casino` on a phone, and the fallback anywhere a skin is read outside a
+ * `classic` on a phone, and the fallback anywhere a skin is read outside a
  * provider — see `defaultSkinFor` for the screen this is not the answer for.
  */
-export const DEFAULT_SKIN = casino;
+export const DEFAULT_SKIN = classic;
 
 /**
  * The default for a screen of a given width.
@@ -26,9 +26,14 @@ export const DEFAULT_SKIN = casino;
  * Heirloom is the better board and the one to lead with, but only where
  * there is room for it: its deck is a real engraved one, and an engraving is
  * a set of decisions about line weight that were made for a card 63mm across.
- * At the 52×72 a narrow screen draws, a king's robe is ten dark pixels and
- * `casino`'s plainer face is genuinely easier to read across a hand of
- * seventeen. So the phone keeps the face built for a phone.
+ * At the 52×72 a narrow screen draws, a king's robe is ten dark pixels.
+ *
+ * The phone gets `classic`, whose face is one large index and nothing else.
+ * It was `casino` — two small corners, a centre pip, a medallion on the
+ * courts — and that is the same mistake one size down: three marks sharing a
+ * card 36 pixels wide leaves each of them too small to read, and a fanned
+ * hand hides two of the three anyway. What a phone can show is one mark, as
+ * big as the card will take, which is exactly what `classic` draws now.
  *
  * "Narrow" is `metricsFor`'s own — the 768 line the layout already turns on —
  * rather than a second breakpoint that could drift from it.
@@ -39,7 +44,7 @@ export const DEFAULT_SKIN = casino;
  * under somebody's hands while they played.
  */
 export function defaultSkinFor(width: number): Skin {
-  return metricsFor(width).narrow ? casino : heirloom;
+  return metricsFor(width).narrow ? classic : heirloom;
 }
 
 export function skinById(id: string | null | undefined): Skin | undefined {
