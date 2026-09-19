@@ -355,6 +355,7 @@ export const en: Record<string, string> = {
   'err.CANNOT_DISCARD_RED_THREE': 'A red three can\'t be discarded',
   'err.MUST_KEEP_A_CARD': 'Keep at least one card — you can\'t empty your hand this way',
   'err.MUST_MELD_FIRST': 'Lay your side\'s first meld before doing that',
+  'err.UNDO_MELDS_FIRST': 'Take back what you laid after the pile before taking the pile back',
   'err.INITIAL_MELD_NOT_MET': 'Your first meld is still short of the points needed',
   'err.CANNOT_GO_OUT_YET': 'Your side needs a completed canasta before it can go out',
   'err.NOTHING_TO_CALL': 'There is no bet to call',
@@ -452,6 +453,8 @@ export const en: Record<string, string> = {
   'canasta.remedy.openFirst': "Lay your side's first meld before you lay off.",
   'canasta.remedy.needCanastas': 'Your side needs {n} more canasta of {size} before it can go out.',
   'canasta.remedy.keepACard': 'Keep a card back to discard with.',
+  'canasta.remedy.undoMeldsFirst':
+    'Take back the melds you laid after the pile first — then the pile itself can go back.',
   'canasta.remedy.layOffInstead': 'Lay them off onto the meld your side already has.',
   'canasta.remedy.meldClosed': 'That meld is complete at {n} — start another, or lay off elsewhere.',
   'canasta.remedy.discardNotARedThree': 'Discard something other than a red three.',

@@ -351,6 +351,7 @@ export const pl: Record<string, string> = {
   'err.CANNOT_DISCARD_RED_THREE': 'Czerwonej trójki nie można odrzucić',
   'err.MUST_KEEP_A_CARD': 'Zatrzymaj co najmniej jedną kartę — tak nie opróżnisz ręki',
   'err.MUST_MELD_FIRST': 'Najpierw wyłóż otwarcie swojej strony',
+  'err.UNDO_MELDS_FIRST': 'Najpierw cofnij to, co wyłożyłeś po wzięciu stosu',
   'err.INITIAL_MELD_NOT_MET': 'Twojemu pierwszemu wyłożeniu wciąż brakuje punktów',
   'err.CANNOT_GO_OUT_YET': 'Twoja strona potrzebuje skompletowanej canasty, zanim będzie mogła wyjść',
   'err.NOTHING_TO_CALL': 'Nie ma zakładu do sprawdzenia',
@@ -459,6 +460,8 @@ export const pl: Record<string, string> = {
   'canasta.remedy.openFirst': 'Wyłóż pierwszy układ swojej strony, zanim zaczniesz dokładać.',
   'canasta.remedy.needCanastas': 'Twojej stronie brakuje jeszcze {n} kanasty po {size} kart, żeby móc wyjść.',
   'canasta.remedy.keepACard': 'Zostaw sobie kartę na zrzut.',
+  'canasta.remedy.undoMeldsFirst':
+    'Najpierw cofnij układy wyłożone po wzięciu stosu — wtedy wróci też sam stos.',
   'canasta.remedy.layOffInstead': 'Dołóż je do układu, który twoja strona już ma.',
   'canasta.remedy.meldClosed':
     'Ten układ jest zamknięty przy {n} kartach — zacznij inny albo dołóż gdzie indziej.',

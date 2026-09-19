@@ -350,6 +350,7 @@ export const fr: Record<string, string> = {
   'err.CANNOT_DISCARD_RED_THREE': 'Un trois rouge ne peut pas être défaussé',
   'err.MUST_KEEP_A_CARD': 'Garde au moins une carte — tu ne peux pas vider ta main ainsi',
   'err.MUST_MELD_FIRST': "Pose d'abord l'ouverture de ton camp",
+  'err.UNDO_MELDS_FIRST': 'Annule d’abord ce que tu as posé après la prise de la défausse',
   'err.INITIAL_MELD_NOT_MET': "Ta première pose n'atteint pas encore les points requis",
   'err.CANNOT_GO_OUT_YET': "Ton camp a besoin d'une canasta terminée avant de pouvoir sortir",
   'err.NOTHING_TO_CALL': "Il n'y a aucune mise à suivre",
@@ -459,6 +460,8 @@ export const fr: Record<string, string> = {
   'canasta.remedy.openFirst': "Pose d'abord la combinaison d'ouverture de ton camp avant de compléter.",
   'canasta.remedy.needCanastas': 'Il manque {n} canasta de {size} cartes à ton camp pour pouvoir sortir.',
   'canasta.remedy.keepACard': 'Garde une carte pour la défausse.',
+  'canasta.remedy.undoMeldsFirst':
+    'Annule d’abord les combinaisons posées après la prise de la défausse — ensuite la défausse elle-même pourra revenir.',
   'canasta.remedy.layOffInstead': 'Ajoute-les à la combinaison que ton camp possède déjà.',
   'canasta.remedy.meldClosed':
     'Cette combinaison est complète à {n} cartes — commences-en une autre, ou complète ailleurs.',

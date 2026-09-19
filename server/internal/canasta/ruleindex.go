@@ -145,10 +145,13 @@ func refusalRules(v ruleset, code string) []string {
 	// --- not about the rules at all ---------------------------------------
 	//
 	// A card you are not holding, a meld id that is not on the table, an undo
-	// with nothing behind it, a table that is not running. Real refusals, but
-	// no written rule explains them and none should be invented to — the sheet
-	// shows the reason and the remedy and simply has no rule to offer.
-	case ErrCardNotInHand, ErrNoSuchMeld, ErrNothingToUndo,
+	// with nothing behind it or asked for out of order, a table that is not
+	// running. Real refusals, but no written rule explains them and none should
+	// be invented to — the sheet shows the reason and the remedy and simply has
+	// no rule to offer. Taking a move back is this implementation's affordance
+	// rather than a rule of Canasta, so the order the moves come back off in is
+	// not one either.
+	case ErrCardNotInHand, ErrNoSuchMeld, ErrNothingToUndo, ErrUndoMeldsFirst,
 		ErrGameNotActive, ErrUnknownAction, "WRONG_PLAYER_COUNT":
 		return nil
 	}

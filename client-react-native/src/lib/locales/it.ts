@@ -348,6 +348,7 @@ export const it: Record<string, string> = {
   'err.CANNOT_DISCARD_RED_THREE': 'Un tre rosso non si può scartare',
   'err.MUST_KEEP_A_CARD': 'Tieni almeno una carta — così non puoi svuotare la mano',
   'err.MUST_MELD_FIRST': "Cala prima l'apertura della tua coppia",
+  'err.UNDO_MELDS_FIRST': 'Annulla prima ciò che hai calato dopo la presa dalla pila',
   'err.INITIAL_MELD_NOT_MET': 'Alla tua prima calata mancano ancora punti',
   'err.CANNOT_GO_OUT_YET': 'Alla tua coppia serve una canasta completa prima di poter chiudere',
   'err.NOTHING_TO_CALL': "Non c'è nessuna puntata da vedere",
@@ -457,6 +458,8 @@ export const it: Record<string, string> = {
   'canasta.remedy.needCanastas':
     'Alla tua parte servono altre {n} canaste da {size} carte per poter chiudere.',
   'canasta.remedy.keepACard': 'Tieni da parte una carta per lo scarto.',
+  'canasta.remedy.undoMeldsFirst':
+    'Annulla prima le combinazioni calate dopo la presa dalla pila — poi potrà tornare anche la pila stessa.',
   'canasta.remedy.layOffInstead': 'Aggiungile alla combinazione che la tua parte ha già.',
   'canasta.remedy.meldClosed':
     "Quella combinazione è completa a {n} carte: cominciane un'altra o aggiungi altrove.",

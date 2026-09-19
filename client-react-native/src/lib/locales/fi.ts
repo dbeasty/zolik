@@ -347,6 +347,7 @@ export const fi: Record<string, string> = {
   'err.CANNOT_DISCARD_RED_THREE': 'Punaista kolmosta ei voi poistaa',
   'err.MUST_KEEP_A_CARD': 'Pidä vähintään yksi kortti — näin et voi tyhjentää kättäsi',
   'err.MUST_MELD_FIRST': 'Laske ensin puolesi avaus',
+  'err.UNDO_MELDS_FIRST': 'Kumoa ensin se, minkä laskit pöytään pinon oton jälkeen',
   'err.INITIAL_MELD_NOT_MET': 'Ensimmäiseltä laskultasi puuttuu vielä pisteitä',
   'err.CANNOT_GO_OUT_YET': 'Puolesi tarvitsee valmiin canastan ennen kuin se pääsee ulos',
   'err.NOTHING_TO_CALL': 'Ei ole panosta maksettavaksi',
@@ -458,6 +459,8 @@ export const fi: Record<string, string> = {
   'canasta.remedy.needCanastas':
     'Puolesi tarvitsee vielä {n} kanastaa à {size} korttia ennen kuin se voi mennä ulos.',
   'canasta.remedy.keepACard': 'Jätä yksi kortti poistoa varten.',
+  'canasta.remedy.undoMeldsFirst':
+    'Kumoa ensin pinon oton jälkeen laskemasi yhdistelmät — sitten myös itse pino palautuu.',
   'canasta.remedy.layOffInstead': 'Liitä ne sarjaan, joka puolellasi jo on.',
   'canasta.remedy.meldClosed': 'Tuo sarja on valmis {n} kortilla — aloita uusi tai liitä muualle.',
   'canasta.remedy.discardNotARedThree': 'Poista jokin muu kuin punainen kolmonen.',

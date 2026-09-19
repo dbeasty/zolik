@@ -357,6 +357,7 @@ export const de: Record<string, string> = {
   'err.CANNOT_DISCARD_RED_THREE': 'Eine rote Drei kann nicht abgelegt werden',
   'err.MUST_KEEP_A_CARD': 'Behalte mindestens eine Karte — so kannst du deine Hand nicht leeren',
   'err.MUST_MELD_FIRST': 'Leg zuerst die Erstauslage deiner Seite',
+  'err.UNDO_MELDS_FIRST': 'Mach zuerst rückgängig, was du nach der Stapelnahme ausgelegt hast',
   'err.INITIAL_MELD_NOT_MET': 'Deiner ersten Auslage fehlen noch Punkte',
   'err.CANNOT_GO_OUT_YET': 'Deine Seite braucht eine fertige Canasta, bevor sie hinausgehen kann',
   'err.NOTHING_TO_CALL': 'Es gibt keinen Einsatz mitzugehen',
@@ -469,6 +470,8 @@ export const de: Record<string, string> = {
   'canasta.remedy.needCanastas':
     'Deiner Seite fehlen noch {n} Canastas zu je {size} Karten, um rausgehen zu können.',
   'canasta.remedy.keepACard': 'Behalte eine Karte zum Ablegen übrig.',
+  'canasta.remedy.undoMeldsFirst':
+    'Mach zuerst die Auslagen nach der Stapelnahme rückgängig — dann lässt sich auch der Stapel zurücklegen.',
   'canasta.remedy.layOffInstead': 'Leg sie an die Auslage an, die deine Seite schon hat.',
   'canasta.remedy.meldClosed':
     'Diese Auslage ist bei {n} Karten fertig — fang eine neue an oder leg woanders an.',

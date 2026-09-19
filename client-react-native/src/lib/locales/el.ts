@@ -358,6 +358,7 @@ export const el: Record<string, string> = {
   'err.CANNOT_DISCARD_RED_THREE': 'Το κόκκινο τριάρι δεν πετιέται',
   'err.MUST_KEEP_A_CARD': 'Κράτα τουλάχιστον ένα φύλλο — έτσι δεν μπορείς να αδειάσεις το χέρι σου',
   'err.MUST_MELD_FIRST': 'Κατέβασε πρώτα το άνοιγμα της πλευράς σου',
+  'err.UNDO_MELDS_FIRST': 'Πρώτα αναίρεσε όσα κατέβασες μετά τη λήψη του σωρού',
   'err.INITIAL_MELD_NOT_MET': 'Στο πρώτο σου κατέβασμα λείπουν ακόμα πόντοι',
   'err.CANNOT_GO_OUT_YET': 'Η πλευρά σου χρειάζεται ολοκληρωμένη καναστα πριν μπορέσει να βγει',
   'err.NOTHING_TO_CALL': 'Δεν υπάρχει στοίχημα για πάσο',
@@ -471,6 +472,8 @@ export const el: Record<string, string> = {
   'canasta.remedy.openFirst': 'Κατέβασε πρώτα το πρώτο μελντ της πλευράς σου, μετά προσθέτεις.',
   'canasta.remedy.needCanastas': 'Η πλευρά σου χρειάζεται ακόμη {n} καναστες των {size} φύλλων για να βγει.',
   'canasta.remedy.keepACard': 'Κράτα ένα φύλλο για να το ρίξεις.',
+  'canasta.remedy.undoMeldsFirst':
+    'Αναίρεσε πρώτα τους συνδυασμούς που κατέβασες μετά τη λήψη του σωρού — μετά μπορεί να γυρίσει πίσω και ο ίδιος ο σωρός.',
   'canasta.remedy.layOffInstead': 'Πρόσθεσέ τα στο μελντ που έχει ήδη η πλευρά σου.',
   'canasta.remedy.meldClosed': 'Αυτό το μελντ ολοκληρώθηκε στα {n} φύλλα — ξεκίνα άλλο ή πρόσθεσε αλλού.',
   'canasta.remedy.discardNotARedThree': 'Ρίξε κάτι άλλο, όχι κόκκινο τρία.',

@@ -355,6 +355,7 @@ export const hu: Record<string, string> = {
   'err.CANNOT_DISCARD_RED_THREE': 'Piros hármast nem lehet eldobni',
   'err.MUST_KEEP_A_CARD': 'Tarts meg legalább egy lapot — így nem ürítheted ki a kezed',
   'err.MUST_MELD_FIRST': 'Előbb rakd le az oldalad nyitását',
+  'err.UNDO_MELDS_FIRST': 'Előbb vond vissza, amit az elvétel után kiterítettél',
   'err.INITIAL_MELD_NOT_MET': 'Az első lerakásodból még hiányoznak pontok',
   'err.CANNOT_GO_OUT_YET': 'Az oldaladnak befejezett canastára van szüksége, mielőtt kiszállhatna',
   'err.NOTHING_TO_CALL': 'Nincs megtartható tét',
@@ -468,6 +469,8 @@ export const hu: Record<string, string> = {
   'canasta.remedy.openFirst': 'Rakd ki a csapatod első kombinációját, mielőtt hozzátennél valamihez.',
   'canasta.remedy.needCanastas': 'A csapatodnak még {n} darab {size} lapos kanaszta kell a kimenéshez.',
   'canasta.remedy.keepACard': 'Tarts meg egy lapot a dobáshoz.',
+  'canasta.remedy.undoMeldsFirst':
+    'Előbb vond vissza az elvétel után kiterített kombinációkat — utána maga a pakli is visszakerülhet.',
   'canasta.remedy.layOffInstead': 'Tedd őket a csapatod meglévő kombinációjához.',
   'canasta.remedy.meldClosed': 'Ez a kombináció {n} lapnál kész — kezdj másikat, vagy tegyél hozzá máshol.',
   'canasta.remedy.discardNotARedThree': 'Dobj el valami mást, ne piros hármast.',

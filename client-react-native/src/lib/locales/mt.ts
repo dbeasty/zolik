@@ -352,6 +352,7 @@ export const mt: Record<string, string> = {
   'err.CANNOT_DISCARD_RED_THREE': 'Tlieta ħamra ma tistax tintrema',
   'err.MUST_KEEP_A_CARD': 'Żomm mill-inqas karta waħda — hekk ma tistax tbattal idek',
   'err.MUST_MELD_FIRST': 'L-ewwel niżżel il-ftuħ tan-naħa tiegħek',
+  'err.UNDO_MELDS_FIRST': 'L-ewwel ħassar dak li niżżilt wara li ħadt il-munzell',
   'err.INITIAL_MELD_NOT_MET': 'L-ewwel tniżżil tiegħek għadu nieqes mill-punti',
   'err.CANNOT_GO_OUT_YET': "In-naħa tiegħek għandha bżonn canasta mlestija qabel ma tkun tista' toħroġ",
   'err.NOTHING_TO_CALL': "M'hemm ebda mħatra x'issejjaħ",
@@ -464,6 +465,8 @@ export const mt: Record<string, string> = {
   'canasta.remedy.needCanastas':
     "In-naħa tiegħek għad għandha bżonn {n} canasta oħra ta' {size} karti qabel ma tista' toħroġ.",
   'canasta.remedy.keepACard': 'Żomm karta biex tarmi biha.',
+  'canasta.remedy.undoMeldsFirst':
+    "L-ewwel ħassar il-kombinazzjonijiet li niżżilt wara li ħadt il-munzell — imbagħad jista' jerġa' lura l-munzell innifsu.",
   'canasta.remedy.layOffInstead': 'Żidhom mal-meld li n-naħa tiegħek diġà għandha.',
   'canasta.remedy.meldClosed': "Dak il-meld huwa komplut b'{n} karti — ibda ieħor, jew żid x'imkien ieħor.",
   'canasta.remedy.discardNotARedThree': 'Armi xi ħaġa oħra għajr tlieta ħamra.',

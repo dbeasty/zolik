@@ -811,6 +811,24 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 	if m.Status == string(rules.StatusAbandoned) {
 		h.manager.AnnouncePresence(ctx, matchID)
 	}
+	// And start the bots, if the table is waiting on one.
+	//
+	// Every other call to this follows something that *changed* the match — it
+	// started, somebody acted, a suspended table came back. None of those
+	// happens to a table that is already stuck: the loop gives up after
+	// botMaxStall actions by one seat, or simply is not running because the
+	// process restarted, and the table is then waiting on a bot with nothing to
+	// drive it. The one person who could restart it by acting is the one person
+	// the engine will not let act, because it is not their turn — so the table
+	// is frozen for good, and opening it again does not help. Game
+	// 6aaa157d0079d0b3a6624b3a sat like that.
+	//
+	// Cheap where it does nothing, which is nearly every socket: RunBotsIfNeeded
+	// takes a lock and a map lookup, and only reads the match at all if it is
+	// about to start a loop that is not running.
+	if m.Status == string(rules.StatusActive) {
+		h.manager.RunBotsIfNeeded(context.WithoutCancel(ctx), matchID)
+	}
 
 	for {
 		_, data, err := conn.ReadMessage()

@@ -340,6 +340,7 @@ export const sv: Record<string, string> = {
   'err.CANNOT_DISCARD_RED_THREE': 'En röd trea får inte kastas',
   'err.MUST_KEEP_A_CARD': 'Behåll minst ett kort — så kan du inte tömma handen',
   'err.MUST_MELD_FIRST': 'Lägg ut din sidas öppning först',
+  'err.UNDO_MELDS_FIRST': 'Ångra först det du lade ut efter att du tog högen',
   'err.INITIAL_MELD_NOT_MET': 'Din första utläggning saknar fortfarande poäng',
   'err.CANNOT_GO_OUT_YET': 'Din sida behöver en färdig canasta innan den kan gå ut',
   'err.NOTHING_TO_CALL': 'Det finns ingen satsning att syna',
@@ -450,6 +451,8 @@ export const sv: Record<string, string> = {
   'canasta.remedy.openFirst': 'Lägg din sidas första läggning innan du lägger till kort.',
   'canasta.remedy.needCanastas': 'Din sida behöver {n} canasta till på {size} kort innan den kan gå ut.',
   'canasta.remedy.keepACard': 'Behåll ett kort att kasta med.',
+  'canasta.remedy.undoMeldsFirst':
+    'Ångra först kombinationerna du lade ut efter att du tog högen — sedan kan själva högen gå tillbaka.',
   'canasta.remedy.layOffInstead': 'Lägg till dem på läggningen din sida redan har.',
   'canasta.remedy.meldClosed':
     'Den läggningen är färdig vid {n} kort — börja en ny, eller lägg till någon annanstans.',

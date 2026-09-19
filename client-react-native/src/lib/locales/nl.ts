@@ -354,6 +354,7 @@ export const nl: Record<string, string> = {
   'err.CANNOT_DISCARD_RED_THREE': 'Een rode drie mag niet afgelegd worden',
   'err.MUST_KEEP_A_CARD': 'Houd minstens één kaart — zo kun je je hand niet legen',
   'err.MUST_MELD_FIRST': 'Leg eerst de openingsleg van jouw partij',
+  'err.UNDO_MELDS_FIRST': 'Maak eerst ongedaan wat je na het nemen van de stapel hebt gelegd',
   'err.INITIAL_MELD_NOT_MET': 'Je eerste leg komt nog punten tekort',
   'err.CANNOT_GO_OUT_YET': 'Jouw partij heeft een afgemaakte canasta nodig voordat ze kan uitgaan',
   'err.NOTHING_TO_CALL': 'Er is geen inzet om mee te gaan',
@@ -466,6 +467,8 @@ export const nl: Record<string, string> = {
   'canasta.remedy.needCanastas':
     'Jouw kant heeft nog {n} canasta van {size} kaarten nodig om uit te kunnen gaan.',
   'canasta.remedy.keepACard': 'Houd een kaart over om af te leggen.',
+  'canasta.remedy.undoMeldsFirst':
+    'Maak eerst de combinaties ongedaan die je na het nemen van de stapel hebt gelegd — daarna kan de stapel zelf terug.',
   'canasta.remedy.layOffInstead': 'Leg ze aan bij de serie die jouw kant al heeft.',
   'canasta.remedy.meldClosed': 'Die serie is compleet bij {n} kaarten — begin een nieuwe of leg elders aan.',
   'canasta.remedy.discardNotARedThree': 'Leg iets anders af dan een rode drie.',

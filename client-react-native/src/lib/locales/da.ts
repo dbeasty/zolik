@@ -342,6 +342,7 @@ export const da: Record<string, string> = {
   'err.CANNOT_DISCARD_RED_THREE': 'En rød treer må ikke smides ud',
   'err.MUST_KEEP_A_CARD': 'Behold mindst ét kort — sådan kan du ikke tømme hånden',
   'err.MUST_MELD_FIRST': 'Læg din sides åbning ud først',
+  'err.UNDO_MELDS_FIRST': 'Fortryd først det, du lagde ud efter bunken',
   'err.INITIAL_MELD_NOT_MET': 'Din første udlægning mangler stadig point',
   'err.CANNOT_GO_OUT_YET': 'Din side skal have en færdig canasta, før den kan gå ud',
   'err.NOTHING_TO_CALL': 'Der er ingen indsats at syne',
@@ -452,6 +453,8 @@ export const da: Record<string, string> = {
   'canasta.remedy.openFirst': 'Læg din sides første melding, før du lægger kort til.',
   'canasta.remedy.needCanastas': 'Din side mangler {n} canasta á {size} kort, før den kan gå ud.',
   'canasta.remedy.keepACard': 'Behold et kort at smide ud med.',
+  'canasta.remedy.undoMeldsFirst':
+    'Fortryd først de kombinationer, du lagde ud efter bunken — så kan selve bunken gå tilbage.',
   'canasta.remedy.layOffInstead': 'Læg dem til den melding, din side allerede har.',
   'canasta.remedy.meldClosed':
     'Den melding er færdig ved {n} kort — start en ny, eller læg til et andet sted.',

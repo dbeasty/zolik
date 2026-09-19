@@ -345,6 +345,7 @@ export const cs: Record<string, string> = {
   'err.CANNOT_DISCARD_RED_THREE': 'Červená trojka se nedá odhodit',
   'err.MUST_KEEP_A_CARD': 'Nech si aspoň jednu kartu — takhle ruku vyprázdnit nemůžeš',
   'err.MUST_MELD_FIRST': 'Než to uděláš, vylož první kombinaci své strany',
+  'err.UNDO_MELDS_FIRST': 'Nejdřív vrať to, co jsi vyložil po vzetí balíčku',
   'err.INITIAL_MELD_NOT_MET': 'První kombinaci ještě chybí body',
   'err.CANNOT_GO_OUT_YET': 'Tvoje strana potřebuje hotovou canastu, než může vyjít',
   'err.NOTHING_TO_CALL': 'Není co dorovnat',
@@ -452,6 +453,8 @@ export const cs: Record<string, string> = {
   'canasta.remedy.openFirst': 'Vylož první kombinaci své strany, teprve pak přikládej.',
   'canasta.remedy.needCanastas': 'Tvoje strana potřebuje ještě {n} canast po {size} kartách, než může vyjít.',
   'canasta.remedy.keepACard': 'Nech si kartu, kterou pak odhodíš.',
+  'canasta.remedy.undoMeldsFirst':
+    'Nejdřív vrať kombinace vyložené po vzetí balíčku — pak půjde vrátit i samotný balíček.',
   'canasta.remedy.layOffInstead': 'Přilož je ke kombinaci, kterou už tvoje strana má.',
   'canasta.remedy.meldClosed': 'Tahle kombinace je při {n} kartách hotová — začni jinou, nebo přilož jinam.',
   'canasta.remedy.discardNotARedThree': 'Odhoď něco jiného než červenou trojku.',
