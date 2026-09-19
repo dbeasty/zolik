@@ -17,6 +17,7 @@ import (
 	"zolik/server/internal/auth"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
+	"zolik/server/internal/rules"
 	"zolik/server/internal/ws"
 )
 
@@ -78,7 +79,7 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	// A stored-games list: every table this caller is seated at. Registered
 	// as /users/me/tables rather than /matches/mine — "table" is this
 	// package's own word for a live envelope (see NOT_AT_THIS_TABLE,
-	// TABLE_HAS_OTHER_PLAYERS), and /matches/{id} above is deliberately
+	// TABLE_HAS_PLAYERS_AWAY), and /matches/{id} above is deliberately
 	// unauthenticated and answers a spectator view; a caller-scoped list
 	// belongs with the rest of "about me", not on that same segment.
 	r.With(auth.AuthMiddleware).Get("/users/me/tables", h.myTables)
@@ -347,7 +348,8 @@ type addBotReq struct {
 //	                   bot a name a player recognises and a lifetime record
 //	                   that survives the lobby it was created in.
 func (h *Handlers) addBot(w http.ResponseWriter, req *http.Request) {
-	if _, ok := auth.GetUserContext(req); !ok {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -355,6 +357,16 @@ func (h *Handlers) addBot(w http.ResponseWriter, req *http.Request) {
 	m, err := h.manager.Repo().Resolve(ctx, chi.URLParam(req, "id"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	// The host's table, and only the host's to fill. This used to check that
+	// the caller was signed in and then discard who they were, which made the
+	// six characters a host pastes into a chat enough for any passer-by to
+	// seat a bot at their table and deal it — the invited friend then arriving
+	// to MATCH_ALREADY_STARTED. Seat, Invite and DeleteAsHost have all always
+	// asked; these two were the pair that did not.
+	if err := requireHost(m, uc.UserID); err != nil {
+		writeModuleError(w, err)
 		return
 	}
 	var body addBotReq
@@ -489,8 +501,24 @@ func (h *Handlers) sidesFor(m models.Match) [][]string {
 }
 
 func (h *Handlers) startMatch(w http.ResponseWriter, req *http.Request) {
-	if _, ok := auth.GetUserContext(req); !ok {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	ctx := req.Context()
+	// Resolved before anything else so there is a host to compare against —
+	// see the note on addBot for what an unguarded deal let a stranger do.
+	// The check lives here rather than inside Manager.Start for the same
+	// reason debugState's does: Start is a runtime operation with no caller,
+	// driven by tests and by the bot loop as well as by a person.
+	m, err := h.manager.Repo().Resolve(ctx, chi.URLParam(req, "id"))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	if err := requireHost(m, uc.UserID); err != nil {
+		writeModuleError(w, err)
 		return
 	}
 	// Start is where the module's state is actually allocated. A refusal here
@@ -500,7 +528,7 @@ func (h *Handlers) startMatch(w http.ResponseWriter, req *http.Request) {
 		admission.WriteBusy(w, err)
 		return
 	}
-	m, err := h.manager.Start(req.Context(), chi.URLParam(req, "id"))
+	m, err = h.manager.Start(ctx, chi.URLParam(req, "id"))
 	if err != nil {
 		writeModuleError(w, err)
 		return
@@ -584,7 +612,7 @@ type storedTable struct {
 	CanDelete bool `json:"canDelete"`
 }
 
-func storedTableOf(m models.Match, viewerID string) storedTable {
+func (h *Handlers) storedTableOf(m models.Match, viewerID string) storedTable {
 	// UpdatedAt is unset on a match nothing has yet written back through
 	// UpdateWithVersion — a lobby nobody has touched since it was created is
 	// the ordinary case. CreatedAt is the honest answer for "last activity"
@@ -607,7 +635,7 @@ func storedTableOf(m models.Match, viewerID string) storedTable {
 		SuspendedAt: m.SuspendedAt,
 		UpdatedAt:   updatedAt,
 	}
-	out.CanResume = m.Status == "abandoned" && resumableBy(m.Players, viewerID)
+	out.CanResume = m.Status == "abandoned" && h.manager.resumableBy(m, viewerID)
 	out.CanDelete = out.IsHost
 	for _, p := range m.Players {
 		out.Players = append(out.Players, PlayerMsg{ID: p.ID, Name: p.Name, IsAI: p.IsAI, Avatar: p.Avatar})
@@ -648,7 +676,7 @@ func (h *Handlers) myTables(w http.ResponseWriter, req *http.Request) {
 	}
 	out := make([]storedTable, 0, len(rows))
 	for _, m := range rows {
-		out = append(out, storedTableOf(m, uc.UserID))
+		out = append(out, h.storedTableOf(m, uc.UserID))
 	}
 	writeJSON(w, map[string]any{"tables": out})
 }
@@ -734,6 +762,10 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 	defer func() {
 		if h.manager.Hub().Registry().RemoveIfCurrent(matchID, playerID, wsConn) {
 			h.manager.SuspendOnDisconnect(context.WithoutCancel(ctx), matchID, playerID, "socket closed")
+			// A seat leaving is also what takes a resume offer away from the
+			// people still looking at a swept-up table. Same call as the
+			// arrival below, and a no-op for every other status.
+			h.manager.AnnouncePresence(context.WithoutCancel(ctx), matchID)
 		}
 	}()
 
@@ -768,6 +800,17 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	h.manager.Hub().WriteDirect(matchID, playerID, h.manager.BuildStateMsg(m, playerID))
+	// And, on a swept-up table, tell everybody else that somebody just sat
+	// down: their own resume offer may have become available because of it.
+	// After the direct write above, so the arriving player's first message is
+	// still their own state.
+	//
+	// Gated on the status already in hand rather than left to AnnouncePresence
+	// to discover, so that opening a socket onto an ordinary match — which is
+	// every socket, nearly all the time — costs no extra read.
+	if m.Status == string(rules.StatusAbandoned) {
+		h.manager.AnnouncePresence(ctx, matchID)
+	}
 
 	for {
 		_, data, err := conn.ReadMessage()
@@ -804,6 +847,21 @@ func writeJSON(w http.ResponseWriter, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
+// requireHost is the rule that shaping a table belongs to whoever opened it.
+//
+// The same rule Manager.Seat and Manager.Invite have always carried, written
+// once here for the two handlers whose work is done before the manager is
+// reached — adding a seat, and dealing. Host rather than merely seated,
+// because that is what both clients already offer: the table screen shows
+// "Add a bot" and "Start" to the host and "waiting for the host" to everybody
+// else, so a non-host reaching either of these is not a player using the app.
+func requireHost(m models.Match, playerID string) error {
+	if m.HostID != playerID {
+		return module.Error{Code: "NOT_THE_HOST", Message: playerID}
+	}
+	return nil
+}
+
 // writeModuleError maps a module refusal onto a status code.
 //
 // The code travels in the body as well: it is the same stable vocabulary the
@@ -815,7 +873,7 @@ func writeModuleError(w http.ResponseWriter, err error) {
 	switch code {
 	case "UNKNOWN_MODULE", "UNKNOWN_VARIATION", "NO_RULES", "MATCH_NOT_FOUND":
 		status = http.StatusNotFound
-	case "NOT_AT_THIS_TABLE", "TABLE_HAS_OTHER_PLAYERS":
+	case "NOT_AT_THIS_TABLE", "TABLE_HAS_PLAYERS_AWAY":
 		status = http.StatusForbidden
 	case "NOT_THE_HOST":
 		status = http.StatusForbidden

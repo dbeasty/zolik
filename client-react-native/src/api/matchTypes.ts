@@ -354,6 +354,20 @@ export type MatchState = {
   winnerId?: string;
   winners?: string[];
   suspendedPlayer?: string;
+  /**
+   * Whether this viewer may bring a swept-up table back, and who is still
+   * missing when they may not — both answered by the server, on an abandoned
+   * table only.
+   *
+   * Not derivable here, and the screen used to try: its stand-in rule was
+   * "every other seat is a bot", which is what left two friends looking at
+   * their own intact game with nothing on the banner but "Back to games".
+   * Whether a resume is allowed turns on who is holding a socket in the
+   * table's room right now, which is a fact only the server has.
+   */
+  canResume?: boolean;
+  /** Player ids, in seat order; look their names up in `players`. */
+  awayPlayers?: string[];
   players: MatchPlayer[];
   /**
    * Who is playing with whom if the table were dealt now, in seat order —

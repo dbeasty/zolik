@@ -749,9 +749,12 @@ export default function MatchScreen() {
       await client.resumeMatch(String(matchId));
     } catch (e) {
       // Rendered from the same locale bundle as every other refusal rather
-      // than as whatever the exception stringifies to: "Only a table where
-      // everyone else is a bot can be brought back" is an answer, where
-      // `ApiError: TABLE_HAS_OTHER_PLAYERS` is a stack trace shown to a player.
+      // than as whatever the exception stringifies to: "Everyone has to be
+      // back at the table before this game can be picked up" is an answer,
+      // where `ApiError: TABLE_HAS_PLAYERS_AWAY` is a stack trace shown to a
+      // player. Reachable even with the button gated on the server's own
+      // answer, because somebody can leave between the state message that
+      // offered it and the press.
       const code = e instanceof ApiError ? e.code : undefined;
       setResumeError(reasonText(code, e instanceof Error ? e.message : String(e)));
     } finally {
@@ -817,6 +820,21 @@ export default function MatchScreen() {
   // different ending, and it needs different words and a different offer — it
   // is the one ending that can be undone.
   const wasAbandoned = state.status === 'abandoned';
+
+  // Whether this table can be picked up, as the server answers it — never
+  // worked out here.
+  //
+  // This screen used to decide for itself, using `againstBotsAlone` as a
+  // stand-in for the old server rule. The two then diverged in the worst
+  // direction: a game between two people who were both back and both looking
+  // at the board was offered nothing at all, on a banner that told them the
+  // cards were exactly where they had left them. Now the button appears when
+  // the server would honour it, and when it would not, the line below says
+  // who everyone is waiting for instead of leaving them to guess.
+  const canResume = wasAbandoned && !!state.canResume;
+  const awayNames = (state.awayPlayers ?? [])
+    .map((id) => playerName(state.players, id))
+    .filter(Boolean);
 
   // What the status dot means, in the same words the line it replaced used
   // to say. Red is the one case a player needs to notice — everything else
@@ -1036,13 +1054,21 @@ export default function MatchScreen() {
             <Text testID="match-over-outcome" style={styles.overOutcome}>
               {wasAbandoned ? t('match.abandoned') : outcome}
             </Text>
+            {/* Why there is no resume above. Only on a swept-up table, and
+                only when somebody is actually missing — a table nobody is
+                waiting for has no one to name. */}
+            {wasAbandoned && !canResume && awayNames.length ? (
+              <Text testID="match-over-waiting" style={styles.overOutcome}>
+                {t('match.abandonedWaitingFor', { names: awayNames.join(', ') })}
+              </Text>
+            ) : null}
             <View style={styles.overActions}>
               {/* Carrying on beats starting over, so it goes first and takes
-                  the ring. Offered only where the server will actually allow
-                  it: a table with other people at it was abandoned for all of
-                  them, and one player reviving it on their own would restart a
-                  game the others counted as over. */}
-              {wasAbandoned && againstBotsAlone ? (
+                  the ring. Offered exactly where the server will honour it —
+                  which on a table with other people at it means once they are
+                  all back, since reviving it while somebody is away would
+                  restart a game they had counted as over. */}
+              {canResume ? (
                 <Pressable
                   testID="match-over-resume"
                   accessibilityState={{ disabled: resuming }}

@@ -3,6 +3,7 @@ package match
 import (
 	"context"
 	"log"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -130,17 +131,104 @@ func awaits(seats []string, playerID string) bool {
 // resumableBy is ResumeAbandoned's own eligibility rule, pulled out so a
 // listing can offer the same button it would actually honour rather than
 // re-deriving the rule and risking the two disagreeing: a seated human, and
-// every other seat a bot.
-func resumableBy(players []models.Player, playerID string) bool {
-	if p := playerByID(players, playerID); p == nil || p.IsAI {
+// every other human seat back at the table right now.
+//
+// The rule used to be "every other seat a bot", which was a proxy for the
+// thing actually being protected — nobody should be able to restart a game
+// on their own that the others have counted as over. As a proxy it was both
+// too strong and, for the people it was protecting, useless: a game between
+// two friends could never be picked up again by anybody, including the player
+// who had never left and had sat watching it be swept up. The position was
+// intact, both of them were looking at it, and the only offer either screen
+// made was "Back to games".
+//
+// Presence is the honest version of the same protection. A player who is at
+// the table has not counted the game as over — they are here, now, with it
+// open in front of them — so there is nobody left to surprise. A seat that is
+// away still blocks the resume, which is the case the original rule was
+// written for and the one that is genuinely not one player's to decide.
+//
+// Under Redis fan-out the registry is still this instance's own, so a player
+// held by a peer reads as away and their table stays unresumable until they
+// are both on one instance. That is exactly today's behaviour for every human
+// table, so it degrades to what shipped rather than to something new.
+func (m *Manager) resumableBy(match models.Match, playerID string) bool {
+	if p := playerByID(match.Players, playerID); p == nil || p.IsAI {
 		return false
 	}
-	for _, p := range players {
-		if p.ID != playerID && !p.IsAI {
+	room := match.ID.Hex()
+	for _, p := range match.Players {
+		if p.ID == playerID || p.IsAI {
+			continue
+		}
+		if !m.hub.Registry().Has(room, p.ID) {
 			return false
 		}
 	}
 	return true
+}
+
+// playersAway names the human seats resumableBy is still waiting for, so a
+// refusal — and the banner a client draws before anyone presses anything —
+// can say who rather than only no.
+func (m *Manager) playersAway(match models.Match, playerID string) []string {
+	room := match.ID.Hex()
+	var away []string
+	for _, p := range match.Players {
+		if p.ID == playerID || p.IsAI {
+			continue
+		}
+		if !m.hub.Registry().Has(room, p.ID) {
+			away = append(away, p.ID)
+		}
+	}
+	return away
+}
+
+// attended reports whether anybody is still sitting at this table.
+//
+// The reaper's question, not resumableBy's: one live human socket is enough,
+// where resuming needs all of them. See ReapAbandoned for why a table with
+// somebody still at it is not a stranded one.
+func (m *Manager) attended(match models.Match) bool {
+	room := match.ID.Hex()
+	for _, p := range match.Players {
+		if p.IsAI {
+			continue
+		}
+		if m.hub.Registry().Has(room, p.ID) {
+			return true
+		}
+	}
+	return false
+}
+
+// AnnouncePresence re-sends a swept-up table's state to everyone at it, so
+// that the resume offer follows who is in the room.
+//
+// Needed because CanResume is a fact about the *room*, not about the match:
+// on an abandoned table it turns on whether every other human seat currently
+// holds a socket, and a socket opening or closing writes nothing to the match
+// for a broadcast to ride on. Without this the rule worked and nobody could
+// use it — the first player to open the game saw "waiting for Bo", Bo then
+// opened it and saw the resume, and the first player's screen went on saying
+// "waiting for Bo" until they reloaded the page. Two people looking at the
+// same table, one of them holding the only working button, is a worse failure
+// than the dead end it replaced.
+//
+// Only for abandoned tables: every other status answers CanResume false no
+// matter who is watching, so a broadcast per connection would be pure cost on
+// the path every ordinary player takes.
+func (m *Manager) AnnouncePresence(ctx context.Context, matchID string) {
+	oid, err := bson.ObjectIDFromHex(matchID)
+	if err != nil {
+		return
+	}
+	match, err := m.repo.FindByID(ctx, oid)
+	if err != nil || match.Status != string(rules.StatusAbandoned) {
+		return
+	}
+	m.Broadcast(match)
 }
 
 // ResumeAbandoned brings a swept-up table back to life.
@@ -159,12 +247,13 @@ func resumableBy(players []models.Player, playerID string) bool {
 //
 //   - Only a seated human may do it. A table is not a public resource, and
 //     "abandoned" is not an invitation.
-//   - Only when every other seat is a bot. A table with other people in it was
-//     abandoned for all of them, and one player deciding on their own that it
-//     is live again would resurrect a game the others have long since counted
-//     as over — possibly hours later, possibly on a phone in a pocket. Where
-//     other humans are involved the honest answer is a new table, which is
-//     what the client offers beside this.
+//   - Only when every other human seat is back at the table. One player
+//     deciding on their own that a game is live again would resurrect it for
+//     people who have long since counted it as over — possibly hours later,
+//     possibly on a phone in a pocket. Somebody looking at the board right now
+//     has counted it as no such thing, so once everyone is here there is
+//     nobody left for the resume to surprise. See resumableBy, which is also
+//     what the client's own offer is drawn from.
 //
 // The abandonment counter is deliberately left standing: the table really was
 // abandoned, and the log line saying so is a fact about what this server did.
@@ -183,11 +272,17 @@ func (m *Manager) ResumeAbandoned(ctx context.Context, matchID, playerID string)
 	if match.Status != string(rules.StatusAbandoned) {
 		return module.Error{Code: "MATCH_NOT_ABANDONED", Message: "status is " + match.Status}
 	}
-	if !resumableBy(match.Players, playerID) {
+	if !m.resumableBy(match, playerID) {
 		if p := playerByID(match.Players, playerID); p == nil || p.IsAI {
 			return module.Error{Code: "NOT_AT_THIS_TABLE", Message: playerID}
 		}
-		return module.Error{Code: "TABLE_HAS_OTHER_PLAYERS", Message: playerID}
+		// Named rather than counted: "waiting for Anna" is something the
+		// player can act on — send her the link — where "this table has other
+		// players" is a fact they already knew.
+		return module.Error{
+			Code:    "TABLE_HAS_PLAYERS_AWAY",
+			Message: strings.Join(m.playersAway(match, playerID), ","),
+		}
 	}
 
 	expected := match.Version
