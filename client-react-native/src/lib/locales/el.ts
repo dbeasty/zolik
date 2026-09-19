@@ -1379,6 +1379,7 @@ export const el: Record<string, string> = {
   'replay.truncated': 'Το παιχνίδι αναπαράγεται ως την κίνηση {at} — οι κανόνες του άλλαξαν έκτοτε',
   'replay.position': '{at} από {of}',
   'replay.theDeal': 'Η μοιρασιά',
+  'replay.round': 'Γύρος',
   'replay.play': 'Αναπαραγωγή',
   'replay.pause': 'Παύση',
   'replay.move': '{player} · {move}',

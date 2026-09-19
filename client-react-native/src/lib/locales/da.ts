@@ -1344,6 +1344,7 @@ export const da: Record<string, string> = {
   'replay.truncated': 'Dette spil kan genafspilles til træk {at} — reglerne er ændret siden',
   'replay.position': '{at} af {of}',
   'replay.theDeal': 'Givningen',
+  'replay.round': 'Runde',
   'replay.play': 'Afspil',
   'replay.pause': 'Pause',
   'replay.move': '{player} · {move}',

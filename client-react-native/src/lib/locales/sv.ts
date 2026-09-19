@@ -1342,6 +1342,7 @@ export const sv: Record<string, string> = {
   'replay.truncated': 'Den här matchen kan spelas upp till drag {at} — reglerna har ändrats sedan dess',
   'replay.position': '{at} av {of}',
   'replay.theDeal': 'Given',
+  'replay.round': 'Omgång',
   'replay.play': 'Spela',
   'replay.pause': 'Paus',
   'replay.move': '{player} · {move}',

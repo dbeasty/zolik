@@ -1373,6 +1373,7 @@ export const de: Record<string, string> = {
   'replay.truncated': 'Dieses Spiel lässt sich bis Zug {at} wiedergeben — seine Regeln haben sich seither geändert',
   'replay.position': '{at} von {of}',
   'replay.theDeal': 'Das Geben',
+  'replay.round': 'Runde',
   'replay.play': 'Abspielen',
   'replay.pause': 'Pause',
   'replay.move': '{player} · {move}',

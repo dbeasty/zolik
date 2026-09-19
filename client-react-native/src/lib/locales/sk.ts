@@ -1345,6 +1345,7 @@ export const sk: Record<string, string> = {
   'replay.truncated': 'Túto hru možno prehrať po ťah {at} — pravidlá sa odvtedy zmenili',
   'replay.position': '{at} z {of}',
   'replay.theDeal': 'Rozdanie',
+  'replay.round': 'Kolo',
   'replay.play': 'Prehrať',
   'replay.pause': 'Pauza',
   'replay.move': '{player} · {move}',

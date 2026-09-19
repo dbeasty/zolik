@@ -1381,6 +1381,7 @@ export const ga: Record<string, string> = {
   'replay.truncated': 'Athimrítear an cluiche seo chomh fada le beart {at} — tá na rialacha athraithe ó shin',
   'replay.position': '{at} as {of}',
   'replay.theDeal': 'An dáileadh',
+  'replay.round': 'Babhta',
   'replay.play': 'Seinn',
   'replay.pause': 'Sos',
   'replay.move': '{player} · {move}',

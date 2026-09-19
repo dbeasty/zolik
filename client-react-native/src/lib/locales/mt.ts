@@ -1364,6 +1364,7 @@ export const mt: Record<string, string> = {
   'replay.truncated': 'Din il-logħba tintwera sal-mossa {at} — ir-regoli nbidlu minn dakinhar',
   'replay.position': '{at} minn {of}',
   'replay.theDeal': 'It-tqassim',
+  'replay.round': 'Rawnd',
   'replay.play': 'Ibda',
   'replay.pause': 'Pawża',
   'replay.move': '{player} · {move}',

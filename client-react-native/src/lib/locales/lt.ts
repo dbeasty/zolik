@@ -1348,6 +1348,7 @@ export const lt: Record<string, string> = {
   'replay.truncated': 'Šį žaidimą galima peržiūrėti iki {at} ėjimo — taisyklės nuo tada pasikeitė',
   'replay.position': '{at} iš {of}',
   'replay.theDeal': 'Dalijimas',
+  'replay.round': 'Raundas',
   'replay.play': 'Groti',
   'replay.pause': 'Pauzė',
   'replay.move': '{player} · {move}',

@@ -1340,6 +1340,7 @@ export const sl: Record<string, string> = {
   'replay.truncated': 'To igro je mogoče ponoviti do poteze {at} — pravila so se odtlej spremenila',
   'replay.position': '{at} od {of}',
   'replay.theDeal': 'Delitev',
+  'replay.round': 'Krog',
   'replay.play': 'Predvajaj',
   'replay.pause': 'Premor',
   'replay.move': '{player} · {move}',

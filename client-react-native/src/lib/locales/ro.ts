@@ -1355,6 +1355,7 @@ export const ro: Record<string, string> = {
   'replay.truncated': 'Acest joc se reia până la mutarea {at} — regulile s-au schimbat între timp',
   'replay.position': '{at} din {of}',
   'replay.theDeal': 'Împărțirea',
+  'replay.round': 'Rundă',
   'replay.play': 'Redă',
   'replay.pause': 'Pauză',
   'replay.move': '{player} · {move}',

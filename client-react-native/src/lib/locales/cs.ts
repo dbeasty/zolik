@@ -1338,6 +1338,7 @@ export const cs: Record<string, string> = {
   'replay.truncated': 'Tuhle hru lze přehrát po tah {at} — od té doby se změnila pravidla',
   'replay.position': '{at} z {of}',
   'replay.theDeal': 'Rozdání',
+  'replay.round': 'Kolo',
   'replay.play': 'Přehrát',
   'replay.pause': 'Pauza',
   'replay.move': '{player} · {move}',

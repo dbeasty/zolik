@@ -1359,6 +1359,7 @@ export const bg: Record<string, string> = {
   'replay.truncated': 'Тази игра се повтаря до ход {at} — правилата ѝ са се променили оттогава',
   'replay.position': '{at} от {of}',
   'replay.theDeal': 'Раздаването',
+  'replay.round': 'Рунд',
   'replay.play': 'Пусни',
   'replay.pause': 'Пауза',
   'replay.move': '{player} · {move}',

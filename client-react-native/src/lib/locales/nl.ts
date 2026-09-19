@@ -1363,6 +1363,7 @@ export const nl: Record<string, string> = {
   'replay.truncated': 'Deze partij is terug te kijken tot zet {at} — de regels zijn sindsdien veranderd',
   'replay.position': '{at} van {of}',
   'replay.theDeal': 'Het geven',
+  'replay.round': 'Ronde',
   'replay.play': 'Afspelen',
   'replay.pause': 'Pauze',
   'replay.move': '{player} · {move}',

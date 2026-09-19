@@ -1363,6 +1363,7 @@ export const fr: Record<string, string> = {
   'replay.truncated': 'Cette partie se rejoue jusqu’au coup {at} — ses règles ont changé depuis',
   'replay.position': '{at} sur {of}',
   'replay.theDeal': 'La donne',
+  'replay.round': 'Manche',
   'replay.play': 'Lecture',
   'replay.pause': 'Pause',
   'replay.move': '{player} · {move}',

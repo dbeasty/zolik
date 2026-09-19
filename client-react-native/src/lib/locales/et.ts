@@ -1351,6 +1351,7 @@ export const et: Record<string, string> = {
   'replay.truncated': 'Seda mängu saab korrata käiguni {at} — reeglid on vahepeal muutunud',
   'replay.position': '{at} / {of}',
   'replay.theDeal': 'Jagamine',
+  'replay.round': 'Voor',
   'replay.play': 'Esita',
   'replay.pause': 'Paus',
   'replay.move': '{player} · {move}',

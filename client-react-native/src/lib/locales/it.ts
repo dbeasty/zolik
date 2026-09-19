@@ -1358,6 +1358,7 @@ export const it: Record<string, string> = {
   'replay.truncated': 'Questa partita si rivede fino alla mossa {at} — le regole sono cambiate da allora',
   'replay.position': '{at} di {of}',
   'replay.theDeal': 'La distribuzione',
+  'replay.round': 'Mano',
   'replay.play': 'Riproduci',
   'replay.pause': 'Pausa',
   'replay.move': '{player} · {move}',

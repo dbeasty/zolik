@@ -570,6 +570,14 @@ export type Replay = {
   from: number;
   frames: ReplayFrame[];
   /**
+   * The rounds this match was played in, as somewhere to jump to.
+   *
+   * Read off the server's stored round marks rather than folded, so the whole
+   * list arrives with the first page however deep into the match that page
+   * is. Absent for a game that keeps no rounds.
+   */
+  chapters?: ReplayChapter[];
+  /**
    * The fold stopped early: the module refused a move it once accepted,
    * because its rules have moved since this game was played. Everything up
    * to `truncatedAt` is still exactly what happened.
@@ -577,6 +585,17 @@ export type Replay = {
   truncated?: boolean;
   truncatedAt?: number;
   truncatedCode?: string;
+};
+
+/**
+ * One round of the match, as a place to jump to. The word for it — deal,
+ * hand, leg — comes from the round log the frames already carry.
+ */
+export type ReplayChapter = {
+  round: number;
+  /** First frame of this round; `to` is the frame that closed it. */
+  from: number;
+  to?: number;
 };
 
 /** The board after one step. Frame 0 is the deal, and carries no move. */

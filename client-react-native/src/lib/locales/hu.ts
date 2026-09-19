@@ -1364,6 +1364,7 @@ export const hu: Record<string, string> = {
   'replay.truncated': 'Ez a játszma a(z) {at}. lépésig játszható vissza — azóta változtak a szabályai',
   'replay.position': '{at} / {of}',
   'replay.theDeal': 'Az osztás',
+  'replay.round': 'Kör',
   'replay.play': 'Lejátszás',
   'replay.pause': 'Szünet',
   'replay.move': '{player} · {move}',

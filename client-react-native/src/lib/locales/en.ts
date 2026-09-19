@@ -1341,6 +1341,7 @@ export const en: Record<string, string> = {
   'replay.truncated': 'This game replays as far as move {at} — its rules have changed since it was played',
   'replay.position': '{at} of {of}',
   'replay.theDeal': 'The deal',
+  'replay.round': 'Round',
   'replay.play': 'Play',
   'replay.pause': 'Pause',
   'replay.move': '{player} · {move}',

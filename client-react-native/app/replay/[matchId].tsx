@@ -14,7 +14,7 @@ import { useMetrics } from '@/src/hooks/useMetrics';
 import { usePanelState } from '@/src/hooks/usePanelState';
 import { useSkinControls } from '@/src/hooks/useSkin';
 import { reasonText, t } from '@/src/lib/i18n';
-import { playerName } from '@/src/lib/labels';
+import { label, playerName } from '@/src/lib/labels';
 import type { Skin } from '@/src/skins/types';
 
 /**
@@ -210,6 +210,12 @@ export default function ReplayScreen() {
     setIndex(Math.max(0, Math.min(to, total - 1)));
   };
 
+  const chapters = replay.chapters ?? [];
+  // What this game calls a round — a deal, a hand, a leg. The module's own
+  // word, carried on the round log the frames already have, so this screen
+  // never has to know that Žolíky deals and Hold'em does not.
+  const roundName = rounds?.labelKey ? label(rounds.labelKey) : t('replay.round');
+
   return (
     <View style={styles.root}>
       <TableSurface />
@@ -243,6 +249,38 @@ export default function ReplayScreen() {
               </Text>
             ) : null}
           </View>
+
+          {/* Where the match's own rounds begin, as somewhere to go.
+              A long game has nothing in it a reader recognises, and a slider
+              with six hundred positions is not a way to find the deal where
+              it went wrong. The server reads these off its stored round marks
+              rather than folding for them, so the whole list is here on the
+              first page however deep into the match that page is. */}
+          {chapters.length > 1 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={own.chapterStrip}
+              contentContainerStyle={own.chapterRow}
+              testID="replay-chapters"
+            >
+              {chapters.map((c) => {
+                const here = index >= c.from && (c.to === undefined || index <= c.to);
+                return (
+                  <Pressable
+                    key={c.round}
+                    testID={`replay-chapter-${c.round}`}
+                    onPress={() => step(c.from)}
+                    style={[own.chapter, here && own.chapterHere]}
+                  >
+                    <Text style={[own.chapterText, here && own.chapterTextHere]}>
+                      {roundName} {c.round}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          ) : null}
 
           {/* A game whose rules have moved since it was played stops folding
               part of the way through. The frames before that point are still
@@ -354,6 +392,18 @@ function replayStyles(s: Skin) {
     captionText: { color: colors.text, fontSize: 15, fontWeight: '600' },
     openBadge: { color: colors.accent, fontSize: 12, fontWeight: '600' },
     truncated: { color: colors.muted, fontSize: 12, marginTop: 4 },
+    chapterStrip: { marginTop: 8, flexGrow: 0 },
+    chapterRow: { flexDirection: 'row', gap: 6, paddingRight: 8 },
+    chapter: {
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    chapterHere: { backgroundColor: colors.accentButton, borderColor: colors.accent },
+    chapterText: { color: colors.muted, fontSize: 13, fontWeight: '600' },
+    chapterTextHere: { color: colors.text },
     transport: {
       flexDirection: 'row',
       alignItems: 'center',

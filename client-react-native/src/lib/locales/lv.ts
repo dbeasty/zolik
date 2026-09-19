@@ -1347,6 +1347,7 @@ export const lv: Record<string, string> = {
   'replay.truncated': 'Šo spēli var atkārtot līdz {at}. gājienam — noteikumi kopš tā laika ir mainījušies',
   'replay.position': '{at} no {of}',
   'replay.theDeal': 'Izdalīšana',
+  'replay.round': 'Raunds',
   'replay.play': 'Atskaņot',
   'replay.pause': 'Pauze',
   'replay.move': '{player} · {move}',

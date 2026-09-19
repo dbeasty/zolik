@@ -1355,6 +1355,7 @@ export const fi: Record<string, string> = {
   'replay.truncated': 'Tämä peli toistuu siirtoon {at} asti — säännöt ovat sittemmin muuttuneet',
   'replay.position': '{at} / {of}',
   'replay.theDeal': 'Jako',
+  'replay.round': 'Kierros',
   'replay.play': 'Toista',
   'replay.pause': 'Tauko',
   'replay.move': '{player} · {move}',
