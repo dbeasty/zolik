@@ -35,7 +35,18 @@ func candidateMelds(hand []string) []meldCandidate {
 	for _, c := range hand {
 		byRank[rankOf(c)] = append(byRank[rankOf(c)], c)
 	}
-	for _, cards := range byRank {
+	// Ranks and suits are walked in a fixed order, never the map's own.
+	//
+	// Candidate order decides which of two equal-value covers the packing
+	// search settles on, and the order the melds it returns are labelled m0,
+	// m1, m2 in. Iterating the map made both vary from call to call, so the
+	// same hand could report the same melds under swapped names — and a
+	// lay_off action naming m2 could land on a different meld than the one the
+	// offer meant, including when a match is replayed from its log.
+	for _, rank := range sortedKeys(byRank, func(a, b string) bool {
+		return rankIndex[a[0]] < rankIndex[b[0]]
+	}) {
+		cards := byRank[rank]
 		if len(cards) < 3 {
 			continue
 		}
@@ -53,7 +64,8 @@ func candidateMelds(hand []string) []meldCandidate {
 	for _, c := range hand {
 		bySuit[suitOf(c)] = append(bySuit[suitOf(c)], c)
 	}
-	for _, cards := range bySuit {
+	for _, suit := range sortedKeys(bySuit, func(a, b string) bool { return a < b }) {
+		cards := bySuit[suit]
 		sorted := append([]string(nil), cards...)
 		sort.Slice(sorted, func(i, j int) bool { return rankIndex[sorted[i][0]] < rankIndex[sorted[j][0]] })
 		i := 0
@@ -74,6 +86,17 @@ func candidateMelds(hand []string) []meldCandidate {
 			i = j + 1
 		}
 	}
+	return out
+}
+
+// sortedKeys returns a map's keys in a caller-chosen order, so that a walk
+// over the map is reproducible.
+func sortedKeys(m map[string][]string, less func(a, b string) bool) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	sort.Slice(out, func(i, j int) bool { return less(out[i], out[j]) })
 	return out
 }
 

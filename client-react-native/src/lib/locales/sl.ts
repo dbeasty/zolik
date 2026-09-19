@@ -31,6 +31,7 @@ export const sl: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'Ta miza ne obstaja več',
   'err.MATCH_DELETED': 'Gostitelj je izbrisal to mizo',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Vsi se morajo vrniti k mizi, da se igra lahko nadaljuje',
+  'err.NOTHING_TO_REPLAY': 'Tu še ni igre za ponovni ogled',
   'err.DISCARD_LOCKED': 'Kup odvrženih je zaenkrat zaklenjen',
   'err.DISCARD_PILE_EMPTY': 'Kup odvrženih je prazen',
   'err.NO_CARDS_LEFT': 'Ni več kart za jemanje',
@@ -1329,4 +1330,18 @@ export const sl: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Vzemi karto',
   'prompt.yourTurnMeld': 'Odloži, če lahko, nato zavrzi',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Ponovitev',
+  'mine.replay': 'Ponovitev',
+  'replay.loading': 'Odpiranje ponovitve…',
+  'replay.failed': 'Ponovitve ni bilo mogoče naložiti',
+  'replay.openHands': 'vse roke odkrite',
+  'replay.truncated': 'To igro je mogoče ponoviti do poteze {at} — pravila so se odtlej spremenila',
+  'replay.position': '{at} od {of}',
+  'replay.theDeal': 'Delitev',
+  'replay.round': 'Krog',
+  'replay.play': 'Predvajaj',
+  'replay.pause': 'Premor',
+  'replay.move': '{player} · {move}',
 };

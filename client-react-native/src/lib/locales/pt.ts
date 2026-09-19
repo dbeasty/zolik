@@ -31,6 +31,7 @@ export const pt: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'Esta mesa já não existe',
   'err.MATCH_DELETED': 'O anfitrião eliminou esta mesa',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Têm de estar todos de volta à mesa para se poder retomar o jogo',
+  'err.NOTHING_TO_REPLAY': 'Ainda não há nenhum jogo para rever aqui',
   'err.DISCARD_LOCKED': 'O monte de descartes está bloqueado por agora',
   'err.DISCARD_PILE_EMPTY': 'O monte de descartes está vazio',
   'err.NO_CARDS_LEFT': 'Já não há cartas para comprar',
@@ -1347,4 +1348,18 @@ export const pt: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Compra uma carta',
   'prompt.yourTurnMeld': 'Combina se puderes, depois descarta',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Rever',
+  'mine.replay': 'Rever',
+  'replay.loading': 'A abrir a repetição…',
+  'replay.failed': 'Não foi possível carregar a repetição',
+  'replay.openHands': 'todas as mãos à vista',
+  'replay.truncated': 'Este jogo é reproduzido até à jogada {at} — as regras mudaram desde então',
+  'replay.position': '{at} de {of}',
+  'replay.theDeal': 'A distribuição',
+  'replay.round': 'Ronda',
+  'replay.play': 'Reproduzir',
+  'replay.pause': 'Pausa',
+  'replay.move': '{player} · {move}',
 };

@@ -31,6 +31,7 @@ export const bg: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'Тази маса вече не съществува',
   'err.MATCH_DELETED': 'Домакинът изтри тази маса',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Всички трябва да са отново на масата, за да продължи играта',
+  'err.NOTHING_TO_REPLAY': 'Тук още няма игра за преглед',
   'err.DISCARD_LOCKED': 'Купчината за изхвърляне засега е заключена',
   'err.DISCARD_PILE_EMPTY': 'Купчината за изхвърляне е празна',
   'err.NO_CARDS_LEFT': 'Няма повече карти за теглене',
@@ -1348,4 +1349,18 @@ export const bg: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Изтегли карта',
   'prompt.yourTurnMeld': 'Комбинирай, ако можеш, после изхвърли',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Повторение',
+  'mine.replay': 'Повторение',
+  'replay.loading': 'Отваряне на повторението…',
+  'replay.failed': 'Повторението не можа да се зареди',
+  'replay.openHands': 'всички ръце открити',
+  'replay.truncated': 'Тази игра се повтаря до ход {at} — правилата ѝ са се променили оттогава',
+  'replay.position': '{at} от {of}',
+  'replay.theDeal': 'Раздаването',
+  'replay.round': 'Рунд',
+  'replay.play': 'Пусни',
+  'replay.pause': 'Пауза',
+  'replay.move': '{player} · {move}',
 };

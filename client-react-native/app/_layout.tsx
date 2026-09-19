@@ -101,6 +101,13 @@ export default function RootLayout() {
                   name="match/[matchId]"
                   options={{ title: t('nav.match'), headerBackVisible: true }}
                 />
+                {/* Stepping through a stopped game. Its own route rather
+                    than a segment under match/[matchId], which would mean
+                    turning that file into a directory for no other reason. */}
+                <Stack.Screen
+                  name="replay/[matchId]"
+                  options={{ title: t('nav.replay'), headerBackVisible: true }}
+                />
 
                 <Stack.Screen name="more" options={{ title: t('nav.more') }} />
                 {/* Which build is running, and the notices — reached from the

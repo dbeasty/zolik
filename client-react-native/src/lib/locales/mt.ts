@@ -31,6 +31,7 @@ export const mt: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'Din il-mejda ma għadhiex teżisti',
   'err.MATCH_DELETED': 'Il-host ħassar din il-mejda',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Kulħadd irid ikun lura mal-mejda biex il-logħba tkun tista’ titkompla',
+  'err.NOTHING_TO_REPLAY': 'Għadu m’hemm ebda logħba x’terġa’ tara hawn',
   'err.DISCARD_LOCKED': 'Il-munzell tal-iskart huwa msakkar għalissa',
   'err.DISCARD_PILE_EMPTY': 'Il-munzell tal-iskart huwa vojt',
   'err.NO_CARDS_LEFT': "M'hemmx aktar karti x'tiġbed",
@@ -1353,4 +1354,18 @@ export const mt: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Iġbed karta',
   'prompt.yourTurnMeld': "Ikkombina jekk tista', imbagħad itfa'",
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Erġa’ ara',
+  'mine.replay': 'Erġa’ ara',
+  'replay.loading': 'Qed tinfetaħ ir-riproduzzjoni…',
+  'replay.failed': 'Ir-riproduzzjoni ma setgħetx titniżżel',
+  'replay.openHands': 'kull id miftuħa',
+  'replay.truncated': 'Din il-logħba tintwera sal-mossa {at} — ir-regoli nbidlu minn dakinhar',
+  'replay.position': '{at} minn {of}',
+  'replay.theDeal': 'It-tqassim',
+  'replay.round': 'Rawnd',
+  'replay.play': 'Ibda',
+  'replay.pause': 'Pawża',
+  'replay.move': '{player} · {move}',
 };

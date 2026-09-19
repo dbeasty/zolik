@@ -31,6 +31,7 @@ export const hu: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'Ez az asztal már nem létezik',
   'err.MATCH_DELETED': 'A házigazda törölte ezt az asztalt',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Mindenkinek vissza kell térnie az asztalhoz, hogy a játék folytatódhasson',
+  'err.NOTHING_TO_REPLAY': 'Itt még nincs visszajátszható játszma',
   'err.DISCARD_LOCKED': 'A dobópakli egyelőre zárva van',
   'err.DISCARD_PILE_EMPTY': 'A dobópakli üres',
   'err.NO_CARDS_LEFT': 'Nincs több húzható lap',
@@ -1353,4 +1354,18 @@ export const hu: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Húzz egy lapot',
   'prompt.yourTurnMeld': 'Rakj ki, ha tudsz, aztán dobj el',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Visszajátszás',
+  'mine.replay': 'Visszajátszás',
+  'replay.loading': 'Visszajátszás megnyitása…',
+  'replay.failed': 'A visszajátszás nem tölthető be',
+  'replay.openHands': 'minden lap felfedve',
+  'replay.truncated': 'Ez a játszma a(z) {at}. lépésig játszható vissza — azóta változtak a szabályai',
+  'replay.position': '{at} / {of}',
+  'replay.theDeal': 'Az osztás',
+  'replay.round': 'Kör',
+  'replay.play': 'Lejátszás',
+  'replay.pause': 'Szünet',
+  'replay.move': '{player} · {move}',
 };

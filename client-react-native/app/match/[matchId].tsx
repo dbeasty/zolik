@@ -1,12 +1,12 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { ActionOffer, Zone } from '@/src/api/matchTypes';
 import { POSITION_PARAM, offerGroupKey, submissionFor } from '@/src/api/matchTypes';
 import { Attention } from '@/src/components/match/Attention';
-import { Dealer } from '@/src/components/match/Dealer';
+import { BoardLayout, matchStyles } from '@/src/components/match/BoardLayout';
 import { FlightLayer, type QueuedFlight } from '@/src/components/match/FlightLayer';
 import { HandZone } from '@/src/components/match/HandZone';
 import { LifetimeRecord } from '@/src/components/match/LifetimeRecord';
@@ -14,9 +14,7 @@ import { OfferBar, OfferGlance } from '@/src/components/match/OfferBar';
 import { Panel } from '@/src/components/match/Panel';
 import { ResultsFlash } from '@/src/components/match/ResultsFlash';
 import { RoundResults } from '@/src/components/match/RoundResults';
-import { SeatStrip } from '@/src/components/match/SeatStrip';
 import { TableSurface } from '@/src/components/match/TableSurface';
-import { ZoneView } from '@/src/components/match/ZoneView';
 import { useSession } from '@/src/context/SessionContext';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useDropRegistry, type Measurable } from '@/src/hooks/useDropRegistry';
@@ -26,7 +24,6 @@ import { useMatchSocket } from '@/src/hooks/useMatchSocket';
 import { usePanelState } from '@/src/hooks/usePanelState';
 import { useEndingScroll } from '@/src/hooks/useEndingScroll';
 import { useResultsFlash } from '@/src/hooks/useResultsFlash';
-import { drawableZones } from '@/src/lib/board';
 import {
   dropSpotsFor,
   groupElementId,
@@ -53,8 +50,7 @@ import { savePendingDestination } from '@/src/lib/pendingDestination';
 import { WhySheet, type Refusal } from '@/src/components/match/WhySheet';
 import { useRuleIndex } from '@/src/hooks/useRuleIndex';
 import { useSkinControls } from '@/src/hooks/useSkin';
-import { factText, label, playerName } from '@/src/lib/labels';
-import type { Skin } from '@/src/skins/types';
+import { factText, playerName } from '@/src/lib/labels';
 import { dragLayer } from '@/src/theme';
 
 /**
@@ -505,29 +501,6 @@ export default function MatchScreen() {
     setArmedMeldId((prev) => (prev === meldId ? null : meldId));
   };
 
-  // What's worth putting on screen at all — a hidden zone with a count and no
-  // cards says nothing the seat strip hasn't already said, unless it's the
-  // viewer's own, or a target the card in flight could land on right now.
-  const visible = drawableZones(zones, viewerId, activeDrops);
-
-  // Every spread, whoever's it is, in one row — a rummy meld, a canasta
-  // partnership's melds, a poker board. Kept apart from the piles and stacks
-  // below only by `kind`, never by whose it is or which game sent it.
-  // The house's own zone, where the game has one, drawn at the head of the
-  // table rather than in the row of melds — see `Dealer`. Taken out of the
-  // spreads by the flag the module set, never by its id or its game.
-  const dealerZone = visible.find((z) => z.dealer);
-  const spreadZones = visible.filter((z) => z.kind === 'spread' && !z.dealer);
-  const mySpreads = spreadZones.filter((z) => z.ownerId === viewerId);
-  const otherSpreads = spreadZones.filter((z) => z.ownerId !== viewerId);
-  const orderedSpreads = [...mySpreads, ...otherSpreads];
-
-  const tableZones = visible.filter((z) => !z.ownerId && z.kind !== 'spread');
-  // Whatever is left: an opponent zone that isn't a spread — a hand revealed
-  // at a showdown, say — or a kind this shell has never seen. The fallback
-  // that keeps a game this screen wasn't written against from losing content
-  // silently.
-  const otherZones = visible.filter((z) => z.ownerId && z.ownerId !== viewerId && z.kind !== 'spread');
 
   const beginDrag = (zoneId: string, index: number) => {
     const slots = slotsFor(zoneId);
@@ -939,6 +912,70 @@ export default function MatchScreen() {
     </Panel>
   );
 
+  // Your own cards, and everything you can do to them by touch: pick, carry,
+  // rearrange. The one part of the board the two screens genuinely disagree
+  // about, which is why BoardLayout takes it as a slot rather than drawing it
+  // — a replay has the same cards and none of the verbs.
+  // Raised onto the drag layer for as long as a card is in flight, so the card
+  // being carried is drawn over the melds and the opponents below it rather
+  // than sliced in half by the first panel edge it crosses. The hand keeps
+  // hold of the card it is carrying (moving its node would lose the gesture),
+  // so lifting the card means lifting the hand — see `dragLayer`.
+  const handPanel = (
+  <View style={[styles.mine, !!drag && dragLayer]}>
+    {myHands.map((z) => (
+      <HandZone
+        key={z.id}
+        zone={z}
+        slots={slotsFor(z.id)}
+        selected={selected}
+        onToggle={toggleSlot}
+        onMove={(from, to) => {
+          // Moving a card along the fan drops it from the selection.
+          //
+          // Tidying your hand and choosing what to play are different
+          // intentions, and the tap that selected a card is also the
+          // start of the drag that rearranges it — so a card shuffled
+          // into place stayed lit, and the next card tapped joined a
+          // selection the player had stopped thinking about. A card you
+          // have just put somewhere is one you are organising, not one
+          // you are about to spend.
+          const moved = slotsFor(z.id)[from];
+          if (moved) {
+            setSelected((prev) => {
+              if (!prev.has(moved.id)) return prev;
+              const next = new Set(prev);
+              next.delete(moved.id);
+              return next;
+            });
+          }
+          move(z.id, from, to);
+        }}
+        onAutoArrange={() => arrange(z.id)}
+        onDragStart={(index) => beginDrag(z.id, index)}
+        onDragMove={moveDrag}
+        onDragEnd={endDrag}
+        externalTarget={hoveredDrop}
+        registerSpot={dropProps.registerDrop}
+        entranceDelay={flightPlan.holds.get(zoneElementId(z.id)) ?? 0}
+        badges={badgesFor(z)}
+        onPressBadge={(card, badgeKeys) =>
+          setExplaining({
+            labelKey: badgeKeys[0],
+            params: { card },
+            // The rules and the way out behind the mark come from
+            // whichever offer this card is about to be refused by —
+            // asked for on long-press, rather than the module having
+            // to say the same thing twice.
+            ...refusalBehindBadge(state.legalActions),
+          })
+        }
+        {...zonePanelProps(z.id)}
+      />
+    ))}
+  </View>
+  );
+
   return (
     <View style={styles.root}>
       {/* The felt. Behind everything, catches nothing. */}
@@ -1144,159 +1181,16 @@ export default function MatchScreen() {
             that cannot be played. See `controlsPanel`. */}
         {paused ? <View {...ending.anchor('wayOn')}>{controlsPanel}</View> : null}
 
-        {/* The house sits opposite, above the seats — the players are around
-            the table, the dealer is at the head of it. Drawn at every width:
-            on a phone the figure is small and its cards sit beside it, on a
-            monitor both grow and the pair centres. */}
-        {dealerZone ? <Dealer zone={dealerZone} zoneProps={{ ...zonePanelProps(dealerZone.id), ...dropProps }} /> : null}
-
-        <SeatStrip
-          seats={view.seats ?? []}
-          players={state.players}
+        <BoardLayout
+          state={state}
           viewerId={viewerId}
-          standings={state.standings}
-          registerSpot={dropProps.registerDrop}
-          {...zonePanelProps('seats')}
-        />
-
-        {(view.prompts ?? []).map((f, i) => (
-          <Text key={`prompt-${i}`} testID={`prompt-${i}`} style={styles.prompt}>
-            {factText(f, state.players)}
-          </Text>
-        ))}
-
-        {/* The piles and stacks everyone draws from and discards to. A
-            full-width row of its own now that the controls have moved down
-            under the hand — the zones inside it are a couple of cards wide
-            and sit side by side in there, so it costs far less height than
-            a full-width row suggests. */}
-        <Section
-          title={t('match.table')}
-          zones={tableZones}
-          compact
           styles={styles}
-          {...zonePanelProps('section:table')}
-          panelPropsFor={zonePanelProps}
-          {...dropProps}
+          zonePanelProps={zonePanelProps}
+          dropProps={dropProps}
+          hand={handPanel}
+          controls={paused ? null : controlsPanel}
         />
 
-        {/* Your hand, then the controls that act on it, as one pair — it's
-            what your thumb is on every turn, and choosing a card and
-            spending it should not be at two ends of the screen. Everyone's
-            melds (yours and the opponents') go below the pair rather than
-            above it, so reaching your cards never means scrolling past a
-            wall of board state first. */}
-        {/* Raised onto the drag layer for as long as a card is in flight, so
-            the card being carried is drawn over the melds and the opponents
-            below it rather than sliced in half by the first panel edge it
-            crosses. The hand keeps hold of the card it is carrying (moving
-            its node would lose the gesture), so lifting the card means
-            lifting the hand — see `dragLayer`. */}
-        <View style={[styles.mine, !!drag && dragLayer]}>
-          {myHands.map((z) => (
-            <HandZone
-              key={z.id}
-              zone={z}
-              slots={slotsFor(z.id)}
-              selected={selected}
-              onToggle={toggleSlot}
-              onMove={(from, to) => {
-                // Moving a card along the fan drops it from the selection.
-                //
-                // Tidying your hand and choosing what to play are different
-                // intentions, and the tap that selected a card is also the
-                // start of the drag that rearranges it — so a card shuffled
-                // into place stayed lit, and the next card tapped joined a
-                // selection the player had stopped thinking about. A card you
-                // have just put somewhere is one you are organising, not one
-                // you are about to spend.
-                const moved = slotsFor(z.id)[from];
-                if (moved) {
-                  setSelected((prev) => {
-                    if (!prev.has(moved.id)) return prev;
-                    const next = new Set(prev);
-                    next.delete(moved.id);
-                    return next;
-                  });
-                }
-                move(z.id, from, to);
-              }}
-              onAutoArrange={() => arrange(z.id)}
-              onDragStart={(index) => beginDrag(z.id, index)}
-              onDragMove={moveDrag}
-              onDragEnd={endDrag}
-              externalTarget={hoveredDrop}
-              registerSpot={dropProps.registerDrop}
-              entranceDelay={flightPlan.holds.get(zoneElementId(z.id)) ?? 0}
-              badges={badgesFor(z)}
-              onPressBadge={(card, badgeKeys) =>
-                setExplaining({
-                  labelKey: badgeKeys[0],
-                  params: { card },
-                  // The rules and the way out behind the mark come from
-                  // whichever offer this card is about to be refused by —
-                  // asked for on long-press, rather than the module having
-                  // to say the same thing twice.
-                  ...refusalBehindBadge(state.legalActions),
-                })
-              }
-              {...zonePanelProps(z.id)}
-            />
-          ))}
-        </View>
-
-        {/* Directly under your hand, at every screen width, for as long as
-            there is a hand to play. Every control here acts on the cards
-            picked just above it, and a bar up beside the piles meant looking
-            in one place to choose and another to act — with the whole hand in
-            between, which on a phone is most of the screen. Under the hand
-            rather than over it because that is the edge a thumb is already
-            resting on.
-
-            The cost is that the piles no longer have a neighbour to share
-            their band with on a wide screen. Worth paying: that band was
-            shared at the price of putting every button a full hand away
-            from the cards it spends.
-
-            The one exception is a table between rounds, where the premise
-            fails in both halves — there are no cards to pick and only one
-            control — and the panel is drawn up with the results instead. */}
-        {paused ? null : controlsPanel}
-
-        {/* Every spread on the board, whoever's it is, sharing a wrapping
-            row instead of each claiming a full-width line — named by its
-            owner where the server sent one, so two or more players' melds
-            read as whose they are at a glance rather than an anonymous
-            stack of "Melds". */}
-        {orderedSpreads.length > 0 ? (
-          <View style={styles.spreads} testID="section-spreads">
-            {orderedSpreads.map((z) => (
-              <ZoneView
-                key={z.id}
-                zone={z}
-                title={z.ownerId ? playerName(state.players, z.ownerId) + (z.ownerId === viewerId ? ` ${t('match.youSuffix')}` : '') : undefined}
-                {...zonePanelProps(z.id)}
-                {...dropProps}
-              />
-            ))}
-          </View>
-        ) : null}
-
-        <Section
-          title={t('match.opponents')}
-          zones={otherZones}
-          compact
-          styles={styles}
-          {...zonePanelProps('section:opponents')}
-          panelPropsFor={zonePanelProps}
-          {...dropProps}
-        />
-
-        {(view.status ?? []).map((f, i) => (
-          <Text key={`status-${i}`} testID={`status-${i}`} style={styles.muted}>
-            {factText(f, state.players)}
-          </Text>
-        ))}
       </ScrollView>
 
       {/* Why a move was refused: the reason, the rule behind it, and the move
@@ -1367,169 +1261,3 @@ function refusalBehindBadge(offers: ActionOffer[]): Pick<Refusal, 'ruleIds' | 'r
   if (!refused) return {};
   return { ruleIds: refused.ruleIds, remedy: refused.remedy, remedyOfferId: refused.remedyOfferId };
 }
-
-function Section({
-  title,
-  zones,
-  compact,
-  styles,
-  panelId,
-  minimized,
-  onToggleMinimized,
-  panelPropsFor,
-  ...drops
-}: {
-  title: string;
-  zones: Zone[];
-  compact?: boolean;
-  /** The screen's own skinned styles — this helper lives outside the component that builds them. */
-  styles: MatchStyles;
-  panelId: string;
-  minimized: boolean;
-  onToggleMinimized: () => void;
-  panelPropsFor: (zoneId: string) => { panelId: string; minimized: boolean; onToggleMinimized: () => void };
-  registerDrop?: (id: string, node: Measurable | null) => void;
-  activeDrops?: ReadonlySet<string>;
-  sourceDrops?: ReadonlySet<string>;
-  refusedDrops?: ReadonlySet<string>;
-  hoveredDrop?: string | null;
-  hoveredPosition?: { index: number; count: number; slot: number | null } | null;
-  pressableDrops?: ReadonlySet<string>;
-  onPressDrop?: (elementId: string, pageY: number) => void;
-  armableGroups?: ReadonlySet<string>;
-  armedGroupId?: string | null;
-  onAimGroup?: (groupId: string) => void;
-}) {
-  if (!zones.length) return null;
-
-  // Side by side if a zone is small, on its own line if it is wide — decided
-  // by kind, which is the one thing the shell is allowed to know. A stack and
-  // a pile are a couple of cards across and look absurd each occupying a full
-  // row; a hand or a spread of melds needs the width. No game is named, so a
-  // game added tomorrow is laid out by the same rule.
-  const beside = zones.filter((z) => z.kind === 'stack' || z.kind === 'pile');
-  const stacked = zones.filter((z) => z.kind !== 'stack' && z.kind !== 'pile');
-
-  return (
-    <Panel
-      panelId={panelId}
-      title={title}
-      minimized={minimized}
-      onToggleMinimized={onToggleMinimized}
-      testID={`section-${title.toLowerCase()}`}
-      style={styles.section}
-      summary={
-        <View style={styles.sectionSummary}>
-          {zones.map((z, i) => (
-            <Text key={z.id} style={styles.sectionSummaryText} numberOfLines={1}>
-              {label(z.labelKey) || z.id} {z.count}
-              {i < zones.length - 1 ? ' · ' : ''}
-            </Text>
-          ))}
-        </View>
-      }
-    >
-      {beside.length > 0 ? (
-        <View style={styles.beside} testID={`section-beside-${title.toLowerCase()}`}>
-          {beside.map((z) => (
-            <ZoneView key={z.id} zone={z} compact={compact} inline nested {...panelPropsFor(z.id)} {...drops} />
-          ))}
-        </View>
-      ) : null}
-      {stacked.map((z) => (
-        <ZoneView key={z.id} zone={z} compact={compact} nested {...panelPropsFor(z.id)} {...drops} />
-      ))}
-    </Panel>
-  );
-}
-
-function matchStyles(s: Skin) {
-  const colors = s.colors;
-  return StyleSheet.create({
-  // The screen behind the felt, and the safe-area box the board lives in —
-  // the felt is drawn edge to edge, the content keeps the old padding.
-  root: { flex: 1, backgroundColor: colors.bg },
-  safe: { flex: 1, padding: 16 },
-  skinToggle: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  skinToggleText: { color: colors.muted, fontSize: 11, fontWeight: '700' },
-  body: { paddingBottom: 40, gap: 4 },
-  // The settlement and its record, grouped so the block a stopped table has to
-  // put in front of the player can be measured as one. Spaced like the body,
-  // which is what was between them before they were grouped.
-  ending: { gap: 4 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerTitleGroup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  headerTitleText: { color: colors.text, fontWeight: '700', fontSize: 17 },
-  moduleGroup: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  module: { color: colors.text, fontWeight: '700', fontSize: 16 },
-  rulesLink: { color: colors.accent, fontSize: 12, fontWeight: '700' },
-  status: { color: colors.muted, fontSize: 12 },
-  facts: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 2 },
-  fact: { color: colors.muted, fontSize: 12 },
-  statusDot: { width: 10, height: 10, borderRadius: 5, marginTop: 1 },
-  statusDotOk: { backgroundColor: colors.success },
-  statusDotBad: { backgroundColor: colors.danger },
-  statusExplainer: { color: colors.muted, fontSize: 12, marginTop: 4 },
-  prompt: { color: colors.gold, fontSize: 13, marginTop: 6 },
-  section: { marginTop: 10 },
-  sectionSummary: { flexDirection: 'row', flexShrink: 1, minWidth: 0 },
-  sectionSummaryText: { color: colors.muted, fontSize: 12 },
-  beside: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 8, marginBottom: 8 },
-  mine: { marginTop: 10 },
-  // Two or more to a row rather than each claiming a full-width line — see
-  // the comment above where this is used. alignItems: flex-start keeps each
-  // panel sized to its own content instead of the row's default stretch,
-  // which would size every panel in a row to match its tallest neighbour —
-  // and make a minimized panel look exactly as tall as an open one beside it.
-  spreads: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 8, marginTop: 10 },
-  error: { color: colors.danger, fontSize: 13, marginVertical: 6 },
-  muted: { color: colors.muted, fontSize: 12, marginTop: 6 },
-
-  // The end of a match, built like the rule-violation banner in `shared`: a
-  // tinted box with a border of its own, because the thing it has to beat is
-  // being mistaken for nothing having happened. Green only when the reader
-  // won — a coloured congratulation on a loss is worse than a plain box.
-  over: {
-    backgroundColor: 'rgba(61, 139, 253, 0.10)',
-    borderWidth: 1,
-    borderColor: colors.accent,
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 8,
-    gap: 6,
-  },
-  overWon: {
-    backgroundColor: 'rgba(74, 222, 128, 0.12)',
-    borderColor: colors.success,
-  },
-  overTitle: { color: colors.text, fontSize: 15, fontWeight: '700' },
-  overOutcome: { color: colors.text, fontSize: 14 },
-  overActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
-  overButton: {
-    backgroundColor: colors.accentButton,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  overButtonBusy: { opacity: 0.4 },
-  overButtonText: { color: colors.onAccent, fontSize: 14, fontWeight: '600' },
-  overButtonQuiet: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  overButtonQuietText: { color: colors.text, fontSize: 14, fontWeight: '600' },
-  overError: { color: colors.danger, fontSize: 12 },
-  });
-}
-
-type MatchStyles = ReturnType<typeof matchStyles>;

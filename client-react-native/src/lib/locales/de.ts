@@ -31,6 +31,7 @@ export const de: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'Diesen Tisch gibt es nicht mehr',
   'err.MATCH_DELETED': 'Der Gastgeber hat diesen Tisch gelöscht',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Alle müssen wieder am Tisch sein, damit das Spiel fortgesetzt werden kann',
+  'err.NOTHING_TO_REPLAY': 'Hier gibt es noch kein Spiel zum Nachspielen',
   'err.DISCARD_LOCKED': 'Der Ablagestapel ist vorerst gesperrt',
   'err.DISCARD_PILE_EMPTY': 'Der Ablagestapel ist leer',
   'err.NO_CARDS_LEFT': 'Keine Karten mehr zum Ziehen',
@@ -1362,4 +1363,18 @@ export const de: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Zieh eine Karte',
   'prompt.yourTurnMeld': 'Lege aus, wenn du kannst, dann wirf ab',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Wiedergabe',
+  'mine.replay': 'Wiedergabe',
+  'replay.loading': 'Wiedergabe wird geöffnet…',
+  'replay.failed': 'Die Wiedergabe konnte nicht geladen werden',
+  'replay.openHands': 'alle Blätter offen',
+  'replay.truncated': 'Dieses Spiel lässt sich bis Zug {at} wiedergeben — seine Regeln haben sich seither geändert',
+  'replay.position': '{at} von {of}',
+  'replay.theDeal': 'Das Geben',
+  'replay.round': 'Runde',
+  'replay.play': 'Abspielen',
+  'replay.pause': 'Pause',
+  'replay.move': '{player} · {move}',
 };

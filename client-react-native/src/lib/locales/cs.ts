@@ -31,6 +31,7 @@ export const cs: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'Tenhle stůl už neexistuje',
   'err.MATCH_DELETED': 'Hostitel tenhle stůl smazal',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Aby se hra dala obnovit, musí být u stolu zase všichni',
+  'err.NOTHING_TO_REPLAY': 'Tady zatím není žádná hra k přehrání',
   'err.DISCARD_LOCKED': 'Odhazovací balíček je zatím zamčený',
   'err.DISCARD_PILE_EMPTY': 'Odhazovací balíček je prázdný',
   'err.NO_CARDS_LEFT': 'Už nezbývají žádné karty',
@@ -1327,4 +1328,18 @@ export const cs: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Lízni kartu',
   'prompt.yourTurnMeld': 'Vyložte, pokud můžete, pak odhoďte',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Přehrát',
+  'mine.replay': 'Přehrát',
+  'replay.loading': 'Otevírám přehrání…',
+  'replay.failed': 'Přehrání se nepodařilo načíst',
+  'replay.openHands': 'všechny ruce odkryté',
+  'replay.truncated': 'Tuhle hru lze přehrát po tah {at} — od té doby se změnila pravidla',
+  'replay.position': '{at} z {of}',
+  'replay.theDeal': 'Rozdání',
+  'replay.round': 'Kolo',
+  'replay.play': 'Přehrát',
+  'replay.pause': 'Pauza',
+  'replay.move': '{player} · {move}',
 };

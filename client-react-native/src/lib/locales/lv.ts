@@ -31,6 +31,7 @@ export const lv: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'Šī galda vairs nav',
   'err.MATCH_DELETED': 'Saimnieks izdzēsa šo galdu',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Lai spēli varētu turpināt, visiem jābūt atpakaļ pie galda',
+  'err.NOTHING_TO_REPLAY': 'Šeit vēl nav spēles, ko atkārtot',
   'err.DISCARD_LOCKED': 'Izmešanas kaudze pagaidām ir slēgta',
   'err.DISCARD_PILE_EMPTY': 'Izmešanas kaudze ir tukša',
   'err.NO_CARDS_LEFT': 'Vairs nav kārtu, ko vilkt',
@@ -1336,4 +1337,18 @@ export const lv: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Pavelc kārti',
   'prompt.yourTurnMeld': 'Izlic, ja vari, tad izmet',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Atkārtojums',
+  'mine.replay': 'Atkārtojums',
+  'replay.loading': 'Atver atkārtojumu…',
+  'replay.failed': 'Atkārtojumu neizdevās ielādēt',
+  'replay.openHands': 'visas rokas atklātas',
+  'replay.truncated': 'Šo spēli var atkārtot līdz {at}. gājienam — noteikumi kopš tā laika ir mainījušies',
+  'replay.position': '{at} no {of}',
+  'replay.theDeal': 'Izdalīšana',
+  'replay.round': 'Raunds',
+  'replay.play': 'Atskaņot',
+  'replay.pause': 'Pauze',
+  'replay.move': '{player} · {move}',
 };

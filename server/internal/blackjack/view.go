@@ -222,6 +222,20 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 // every seat sees the same table, and the thing being hidden is hidden from
 // everybody, the dealer included until the moment they turn it over.
 func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, error) {
+	return m.view(raw, viewerID, false)
+}
+
+// OpenView renders the board with nothing hidden, for replaying a game that is
+// over.
+//
+// At this table that means exactly one card. A blackjack box is face up by the
+// rules — everyone at the table can already count every player's hand — so the
+// only thing an open view adds is the dealer's hole card.
+func (m *Module) OpenView(raw module.State) (module.ViewModel, error) {
+	return m.view(raw, "", true)
+}
+
+func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.ViewModel, error) {
 	s, err := decode(raw)
 	if err != nil {
 		return module.ViewModel{}, err
@@ -229,9 +243,13 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 
 	vm := module.ViewModel{}
 
+	shownDealer := s.shownDealer()
+	if reveal {
+		shownDealer = s.Dealer
+	}
 	dealer := module.Zone{
 		ID: dealerZoneID, Kind: module.ZoneSpread, LabelKey: "blackjack.zone.dealer",
-		Cards: cardViews(s.shownDealer()), Count: len(s.Dealer),
+		Cards: cardViews(shownDealer), Count: len(s.Dealer),
 		// The one zone at this table that belongs to the house rather than to
 		// a seat. Says so, so a client can sit the dealer across the table
 		// from the players instead of filing their hand among the melds.

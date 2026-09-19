@@ -31,6 +31,7 @@ export const nl: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'Deze tafel bestaat niet meer',
   'err.MATCH_DELETED': 'De gastheer heeft deze tafel verwijderd',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Iedereen moet terug aan tafel zijn voordat dit spel hervat kan worden',
+  'err.NOTHING_TO_REPLAY': 'Hier is nog geen partij om terug te kijken',
   'err.DISCARD_LOCKED': 'De aflegstapel is voorlopig op slot',
   'err.DISCARD_PILE_EMPTY': 'De aflegstapel is leeg',
   'err.NO_CARDS_LEFT': 'Er zijn geen kaarten meer om te pakken',
@@ -1352,4 +1353,18 @@ export const nl: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Pak een kaart',
   'prompt.yourTurnMeld': 'Leg af als je kunt, gooi dan weg',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Terugkijken',
+  'mine.replay': 'Terugkijken',
+  'replay.loading': 'De partij wordt geopend…',
+  'replay.failed': 'De partij kon niet worden geladen',
+  'replay.openHands': 'alle handen open',
+  'replay.truncated': 'Deze partij is terug te kijken tot zet {at} — de regels zijn sindsdien veranderd',
+  'replay.position': '{at} van {of}',
+  'replay.theDeal': 'Het geven',
+  'replay.round': 'Ronde',
+  'replay.play': 'Afspelen',
+  'replay.pause': 'Pauze',
+  'replay.move': '{player} · {move}',
 };

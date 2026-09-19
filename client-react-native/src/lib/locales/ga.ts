@@ -31,6 +31,7 @@ export const ga: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'Níl an tábla seo ann a thuilleadh',
   'err.MATCH_DELETED': 'Scrios an t-óstach an tábla seo',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Caithfidh cách a bheith ar ais ag an tábla sular féidir an cluiche a thógáil suas arís',
+  'err.NOTHING_TO_REPLAY': 'Níl cluiche ar bith anseo le hathimirt go fóill',
   'err.DISCARD_LOCKED': 'Tá an carn caite faoi ghlas go fóill',
   'err.DISCARD_PILE_EMPTY': 'Tá an carn caite folamh',
   'err.NO_CARDS_LEFT': 'Níl cárta ar bith fágtha le tarraingt',
@@ -1370,4 +1371,18 @@ export const ga: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Tarraing cárta',
   'prompt.yourTurnMeld': 'Cumaisc más féidir, ansin caith uait',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Athimirt',
+  'mine.replay': 'Athimirt',
+  'replay.loading': 'Ag oscailt na hathimeartha…',
+  'replay.failed': 'Níorbh fhéidir an athimirt a lódáil',
+  'replay.openHands': 'gach lámh oscailte',
+  'replay.truncated': 'Athimrítear an cluiche seo chomh fada le beart {at} — tá na rialacha athraithe ó shin',
+  'replay.position': '{at} as {of}',
+  'replay.theDeal': 'An dáileadh',
+  'replay.round': 'Babhta',
+  'replay.play': 'Seinn',
+  'replay.pause': 'Sos',
+  'replay.move': '{player} · {move}',
 };

@@ -234,8 +234,10 @@ func (r *mongoRepository) FindAbandonable(ctx context.Context, now time.Time, li
 
 // FindForPlayer lists the matches a seat id sits at, newest activity first.
 //
-// Projected without state/actionLog: those are the bulk of the document and
-// a list row uses neither. Sorted by updatedAt then _id, so two matches
+// Projected without state/actionLog/checkpoints: those are the bulk of the
+// document and a list row uses none of them. Checkpoints belong on that list
+// for the same reason state does — each one *is* a stored board, so a list of
+// twenty tables would otherwise carry a hundred of them. Sorted by updatedAt then _id, so two matches
 // updated in the same instant still come back in a stable order — an
 // ObjectID embeds its creation time, so this is a legitimate tiebreak, not
 // an arbitrary one.
@@ -246,7 +248,7 @@ func (r *mongoRepository) FindForPlayer(ctx context.Context, playerID string, f 
 		options.Find().
 			SetSort(bson.D{{Key: "updatedAt", Value: -1}, {Key: "_id", Value: -1}}).
 			SetLimit(int64(limit)).
-			SetProjection(bson.M{"state": 0, "actionLog": 0}),
+			SetProjection(bson.M{"state": 0, "actionLog": 0, "checkpoints": 0}),
 	)
 	if err != nil {
 		return nil, err

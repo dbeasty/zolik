@@ -126,6 +126,16 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 // point it becomes visible the only way it truly is: as part of the meld it
 // joined.
 func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, error) {
+	return m.view(raw, viewerID, false)
+}
+
+// OpenView renders the board with both hands face up, for replaying a game
+// that is over. The runtime only ever asks for it once a match is finished.
+func (m *Module) OpenView(raw module.State) (module.ViewModel, error) {
+	return m.view(raw, "", true)
+}
+
+func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.ViewModel, error) {
 	s, err := decode(raw)
 	if err != nil {
 		return module.ViewModel{}, err
@@ -145,6 +155,11 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 			vm.Zones = append(vm.Zones, module.Zone{
 				ID: handZoneID(p), Kind: module.ZoneHand, OwnerID: p,
 				LabelKey: "ginrummy.zone.knockerHand", Cards: cardViews(hand), Count: len(hand),
+			})
+		case reveal:
+			vm.Zones = append(vm.Zones, module.Zone{
+				ID: handZoneID(p), Kind: module.ZoneHand, OwnerID: p,
+				LabelKey: "zone.opponentHand", Cards: cardViews(hand), Count: len(hand),
 			})
 		default:
 			vm.Zones = append(vm.Zones, module.Zone{

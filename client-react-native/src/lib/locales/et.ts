@@ -31,6 +31,7 @@ export const et: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'Seda lauda enam ei ole',
   'err.MATCH_DELETED': 'Võõrustaja kustutas selle laua',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Mängu jätkamiseks peavad kõik olema laua juurde tagasi tulnud',
+  'err.NOTHING_TO_REPLAY': 'Siin pole veel mängu, mida taasesitada',
   'err.DISCARD_LOCKED': 'Viskepakk on esialgu lukus',
   'err.DISCARD_PILE_EMPTY': 'Viskepakk on tühi',
   'err.NO_CARDS_LEFT': 'Tõmmata pole enam midagi',
@@ -1340,4 +1341,18 @@ export const et: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Tõmba kaart',
   'prompt.yourTurnMeld': 'Laota välja, kui saad, siis viska ära',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Kordus',
+  'mine.replay': 'Kordus',
+  'replay.loading': 'Korduse avamine…',
+  'replay.failed': 'Kordust ei õnnestunud laadida',
+  'replay.openHands': 'kõik käed avatud',
+  'replay.truncated': 'Seda mängu saab korrata käiguni {at} — reeglid on vahepeal muutunud',
+  'replay.position': '{at} / {of}',
+  'replay.theDeal': 'Jagamine',
+  'replay.round': 'Voor',
+  'replay.play': 'Esita',
+  'replay.pause': 'Paus',
+  'replay.move': '{player} · {move}',
 };
