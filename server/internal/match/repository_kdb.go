@@ -268,3 +268,70 @@ func (r *kdbRepository) FindForPlayer(ctx context.Context, playerID string, f Pl
 	}
 	return out, nil
 }
+
+// BoardAfter returns the match's board as it stood after a given number of
+// accepted actions, read out of the store's own history.
+//
+// This is the one thing a fold cannot offer: the board as it *was*, rather
+// than the board a module would produce from the same log today. It does not
+// depend on Apply still being pure, it does not care that a module's rules
+// have moved since, and it cannot be defeated by a state written outside the
+// log. Where it answers, a replay frame is evidence rather than reconstruction.
+//
+// KDB only, and deliberately so — see the BoardSource capability in replay.go
+// for how the runtime asks without knowing which engine it has.
+//
+// The search is over document *versions*, not actions, because they are not
+// the same thing: suspending, resuming, seating and joining all write the
+// match without touching the log. So the versions are binary-searched on the
+// length of the log each one carries, which is monotonic by construction —
+// the log is append-only and nothing ever shortens it.
+func (r *kdbRepository) BoardAfter(ctx context.Context, id bson.ObjectID, actions int) (models.Match, error) {
+	commits, err := r.k.DocumentVersions(db.NSMatches, id.Hex())
+	if err != nil {
+		return models.Match{}, err
+	}
+	if len(commits) == 0 {
+		return models.Match{}, db.ErrNotFound
+	}
+
+	at := func(i int) (models.Match, error) {
+		doc, err := r.k.GetAt(db.NSMatches, id.Hex(), commits[i])
+		if err != nil {
+			return models.Match{}, err
+		}
+		var m models.Match
+		return m, db.UnmarshalDoc(doc, &m)
+	}
+
+	// The newest version whose log is no longer than asked for. Everything
+	// after it happened later than the frame being looked at.
+	lo, hi, best := 0, len(commits)-1, -1
+	for lo <= hi {
+		mid := (lo + hi) / 2
+		m, err := at(mid)
+		if err != nil {
+			return models.Match{}, err
+		}
+		if len(m.ActionLog) <= actions {
+			best = mid
+			lo = mid + 1
+			continue
+		}
+		hi = mid - 1
+	}
+	if best < 0 {
+		return models.Match{}, db.ErrNotFound
+	}
+
+	m, err := at(best)
+	if err != nil {
+		return models.Match{}, err
+	}
+	if len(m.State) == 0 {
+		// A version from before the match was dealt. There is a board later,
+		// but not one this far back.
+		return models.Match{}, db.ErrNotFound
+	}
+	return m, nil
+}

@@ -1,7 +1,10 @@
 package match
 
 import (
+	"context"
 	"encoding/json"
+
+	"go.mongodb.org/mongo-driver/v2/bson"
 
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
@@ -93,6 +96,24 @@ type ReplayFrame struct {
 	Rounds *module.RoundLog `json:"rounds,omitempty"`
 }
 
+// BoardSource is a repository that can produce a match's board as it stood,
+// out of the store's own history, instead of by replaying the log to it.
+//
+// Optional, in the same way and for the same reason as module.Ranked: the
+// engines genuinely differ, and one that cannot answer should decline rather
+// than pretend. KDB keeps every version of every document it has written and
+// can answer exactly; Mongo replaces the document in place and cannot, so it
+// does not implement this and every fold there begins at a checkpoint or at
+// the deal, as it always has.
+//
+// Where it does answer, a frame stops being a reconstruction and becomes the
+// board as it was: independent of Apply still being pure, of the module's
+// rules not having moved since, and of anything having written state outside
+// the log.
+type BoardSource interface {
+	BoardAfter(ctx context.Context, id bson.ObjectID, actions int) (models.Match, error)
+}
+
 // How many frames one request may fold.
 //
 // The cap is not a preference, it is the defense: there is no rate limiter on
@@ -118,7 +139,7 @@ type ReplayOptions struct {
 // The sibling of BuildStateMsg, and it renders every frame through the very
 // same projection — so the one place that filters hidden information stays one
 // place, and a replay cannot drift from a live board in what it hides.
-func (m *Manager) BuildReplay(match models.Match, viewerID string, opts ReplayOptions) (ReplayMsg, error) {
+func (m *Manager) BuildReplay(ctx context.Context, match models.Match, viewerID string, opts ReplayOptions) (ReplayMsg, error) {
 	mod := m.registry.Get(match.ModuleID)
 	if mod == nil {
 		return ReplayMsg{}, module.Error{Code: "UNKNOWN_MODULE", Message: match.ModuleID}
@@ -157,11 +178,11 @@ func (m *Manager) BuildReplay(match models.Match, viewerID string, opts ReplayOp
 		ViewerID:  viewerID,
 		// Asking and being allowed, both: the caller says whether it wants an
 		// open board, and openable says whether this match may give one.
-		Open: opts.Open && openable(match.Status),
-		Total:     len(match.ActionLog) + 1,
-		From:      from,
-		Frames:    []ReplayFrame{},
-		Chapters:  chaptersOf(match),
+		Open:     opts.Open && openable(match.Status),
+		Total:    len(match.ActionLog) + 1,
+		From:     from,
+		Frames:   []ReplayFrame{},
+		Chapters: chaptersOf(match),
 	}
 	for _, p := range match.Players {
 		msg.Players = append(msg.Players, PlayerMsg{ID: p.ID, Name: p.Name, IsAI: p.IsAI, Avatar: p.Avatar})
@@ -174,7 +195,7 @@ func (m *Manager) BuildReplay(match models.Match, viewerID string, opts ReplayOp
 	if startAt < 0 {
 		startAt = 0
 	}
-	stopped, err := foldActions(mod, match, startAt, func(step int, entry *models.MatchAction, a module.Action, s module.State) (bool, error) {
+	stopped, err := foldActions(ctx, m.boardSource(), mod, match, startAt, func(step int, entry *models.MatchAction, a module.Action, s module.State) (bool, error) {
 		// Below the window, and not the step just before it: nothing to
 		// compute, and the state bytes are dropped on the way out.
 		if step < from-1 {
@@ -304,12 +325,14 @@ func openable(status string) bool { return status == "completed" }
 // State bytes are never retained: visit renders a frame and the snapshot is
 // dropped. Holding 800 canasta states would be megabytes for no gain.
 func foldActions(
+	ctx context.Context,
+	boards BoardSource,
 	mod module.GameModule,
 	match models.Match,
 	startAt int,
 	visit func(step int, entry *models.MatchAction, a module.Action, s module.State) (more bool, err error),
 ) (stoppedAt int, err error) {
-	s, step, err := foldOrigin(mod, match, startAt)
+	s, step, err := foldOrigin(ctx, boards, mod, match, startAt)
 	if err != nil {
 		return step, err
 	}
@@ -343,7 +366,21 @@ func foldActions(
 // The deal is reproducible because its inputs are frozen: Join and Seat both
 // refuse once the match leaves the lobby, and Seed is written once at Create.
 // So these are the same arguments Start passed, necessarily.
-func foldOrigin(mod module.GameModule, match models.Match, startAt int) (module.State, int, error) {
+func foldOrigin(ctx context.Context, boards BoardSource, mod module.GameModule, match models.Match, startAt int) (module.State, int, error) {
+	// The store's own history first, where there is one: it lands exactly on
+	// the frame asked for, so the fold applies nothing at all, and the board
+	// it hands back is the one that was actually there rather than one
+	// computed from the log now.
+	//
+	// A failure here is never fatal. Every reason it can fail — no history
+	// kept, a row written before any of this existed, a compacted log —
+	// leaves the checkpoints and the deal exactly as able to answer as they
+	// were, so it falls through rather than refusing.
+	if boards != nil && startAt > 0 && !match.ID.IsZero() {
+		if at, err := boards.BoardAfter(ctx, match.ID, startAt); err == nil && len(at.State) > 0 {
+			return at.State, len(at.ActionLog), nil
+		}
+	}
 	for i := len(match.Checkpoints) - 1; i >= 0; i-- {
 		if c := match.Checkpoints[i]; c.Seq <= startAt && len(c.State) > 0 {
 			return append(module.State(nil), c.State...), c.Seq, nil
@@ -398,4 +435,16 @@ func chaptersOf(match models.Match) []ReplayChapter {
 		out = append(out, ReplayChapter{Round: lastCheckpointRound(match) + 1, From: from})
 	}
 	return out
+}
+
+// boardSource is this runtime's repository, when it is one that keeps history.
+//
+// Asked per call rather than stored, because a Manager is built with a
+// Repository and nothing decides here which engine that is — the type
+// assertion is the whole of the engine-awareness in this package.
+func (m *Manager) boardSource() BoardSource {
+	if b, ok := m.repo.(BoardSource); ok {
+		return b
+	}
+	return nil
 }

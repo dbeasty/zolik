@@ -1,6 +1,7 @@
 package match
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -149,7 +150,7 @@ func TestReplayReachesTheStateTheMatchWasPlayedTo(t *testing.T) {
 			m := replayManager()
 			match, final := playOut(t, g, 7)
 
-			rep, err := m.BuildReplay(match, "p1", ReplayOptions{Limit: MaxReplayFrames})
+			rep, err := m.BuildReplay(context.Background(), match, "p1", ReplayOptions{Limit: MaxReplayFrames})
 			if err != nil {
 				t.Fatalf("BuildReplay: %v", err)
 			}
@@ -203,7 +204,7 @@ func TestReplayFoldsToTheSameBytes(t *testing.T) {
 			match, final := playOut(t, g, 11)
 
 			var folded module.State
-			_, err := foldActions(g.mod, match, 0, func(_ int, _ *models.MatchAction, _ module.Action, s module.State) (bool, error) {
+			_, err := foldActions(context.Background(), nil, g.mod, match, 0, func(_ int, _ *models.MatchAction, _ module.Action, s module.State) (bool, error) {
 				folded = s
 				return true, nil
 			})
@@ -276,7 +277,7 @@ func TestReplayShowsExactlyWhatTheLiveBoardWould(t *testing.T) {
 			match, _ := playOut(t, g, 3)
 
 			for _, viewer := range []string{"p1", "p2"} {
-				rep, err := m.BuildReplay(match, viewer, ReplayOptions{Limit: MaxReplayFrames})
+				rep, err := m.BuildReplay(context.Background(), match, viewer, ReplayOptions{Limit: MaxReplayFrames})
 				if err != nil {
 					t.Fatalf("BuildReplay: %v", err)
 				}
@@ -285,7 +286,7 @@ func TestReplayShowsExactlyWhatTheLiveBoardWould(t *testing.T) {
 				}
 
 				live := map[int]string{}
-				if _, err := foldActions(g.mod, match, 0, func(step int, _ *models.MatchAction, _ module.Action, s module.State) (bool, error) {
+				if _, err := foldActions(context.Background(), nil, g.mod, match, 0, func(step int, _ *models.MatchAction, _ module.Action, s module.State) (bool, error) {
 					vm, err := g.mod.View(s, viewer)
 					if err != nil {
 						return false, err
@@ -321,7 +322,7 @@ func TestReplayRefusesToOpenAnUnfinishedMatch(t *testing.T) {
 			match, _ := playOut(t, g, 3)
 			match.Status = status
 
-			rep, err := m.BuildReplay(match, "p1", ReplayOptions{Limit: 10, Open: true})
+			rep, err := m.BuildReplay(context.Background(), match, "p1", ReplayOptions{Limit: 10, Open: true})
 			if err != nil {
 				t.Fatalf("BuildReplay: %v", err)
 			}
@@ -352,7 +353,7 @@ func TestReplayTruncatesWhenTheLogNoLongerFolds(t *testing.T) {
 		Seq: good + 1, PlayerID: "p1", Action: []byte(`{"verb":"nonsense"}`),
 	})
 
-	rep, err := m.BuildReplay(match, "p1", ReplayOptions{Limit: MaxReplayFrames})
+	rep, err := m.BuildReplay(context.Background(), match, "p1", ReplayOptions{Limit: MaxReplayFrames})
 	if err != nil {
 		t.Fatalf("BuildReplay: %v", err)
 	}
@@ -378,14 +379,14 @@ func TestReplayPagingMatchesOneFold(t *testing.T) {
 	g := replayables()[1] // prsi
 	match, _ := playOut(t, g, 9)
 
-	whole, err := m.BuildReplay(match, "p1", ReplayOptions{Limit: MaxReplayFrames})
+	whole, err := m.BuildReplay(context.Background(), match, "p1", ReplayOptions{Limit: MaxReplayFrames})
 	if err != nil {
 		t.Fatalf("BuildReplay: %v", err)
 	}
 
 	var paged []ReplayFrame
 	for from := 0; from < whole.Total; from += 7 {
-		page, err := m.BuildReplay(match, "p1", ReplayOptions{From: from, Limit: 7})
+		page, err := m.BuildReplay(context.Background(), match, "p1", ReplayOptions{From: from, Limit: 7})
 		if err != nil {
 			t.Fatalf("page at %d: %v", from, err)
 		}
@@ -403,7 +404,7 @@ func TestReplayPagingMatchesOneFold(t *testing.T) {
 // through, which is not an error the caller made.
 func TestReplayRefusesATableNobodyPlayed(t *testing.T) {
 	m := replayManager()
-	_, err := m.BuildReplay(models.Match{ModuleID: "prsi", Status: "lobby"}, "p1", ReplayOptions{})
+	_, err := m.BuildReplay(context.Background(), models.Match{ModuleID: "prsi", Status: "lobby"}, "p1", ReplayOptions{})
 	if got := module.CodeOf(err); got != "NOTHING_TO_REPLAY" {
 		t.Errorf("code = %q, want NOTHING_TO_REPLAY", got)
 	}
@@ -416,7 +417,7 @@ func TestReplayFrameOmitsLegalActions(t *testing.T) {
 	g := replayables()[1]
 	match, _ := playOut(t, g, 4)
 
-	rep, err := m.BuildReplay(match, "p1", ReplayOptions{Limit: 5})
+	rep, err := m.BuildReplay(context.Background(), match, "p1", ReplayOptions{Limit: 5})
 	if err != nil {
 		t.Fatalf("BuildReplay: %v", err)
 	}
@@ -437,7 +438,7 @@ func TestReplayCarriesRoundBoundaries(t *testing.T) {
 	}
 	match, _ := playOut(t, g, 21)
 
-	rep, err := m.BuildReplay(match, "p1", ReplayOptions{Limit: MaxReplayFrames})
+	rep, err := m.BuildReplay(context.Background(), match, "p1", ReplayOptions{Limit: MaxReplayFrames})
 	if err != nil {
 		t.Fatalf("BuildReplay: %v", err)
 	}
@@ -454,7 +455,7 @@ func TestReplayCarriesRoundBoundaries(t *testing.T) {
 	}
 	// Prší keeps no rounds, and says so by absence rather than by an empty log.
 	prsiMatch, _ := playOut(t, replayables()[1], 4)
-	prsiRep, err := m.BuildReplay(prsiMatch, "p1", ReplayOptions{Limit: 5})
+	prsiRep, err := m.BuildReplay(context.Background(), prsiMatch, "p1", ReplayOptions{Limit: 5})
 	if err != nil {
 		t.Fatalf("BuildReplay: %v", err)
 	}
@@ -493,7 +494,7 @@ func TestFinishedMatchesReplayWithNothingHidden(t *testing.T) {
 			match, _ := playOut(t, g, 3)
 			match.Status = "completed"
 
-			open, err := m.BuildReplay(match, "p1", ReplayOptions{Limit: MaxReplayFrames, Open: true})
+			open, err := m.BuildReplay(context.Background(), match, "p1", ReplayOptions{Limit: MaxReplayFrames, Open: true})
 			if err != nil {
 				t.Fatalf("BuildReplay: %v", err)
 			}
@@ -503,7 +504,7 @@ func TestFinishedMatchesReplayWithNothingHidden(t *testing.T) {
 
 			// An open view takes no viewer, so two players replaying the same
 			// finished game must be looking at the very same board.
-			asP2, err := m.BuildReplay(match, "p2", ReplayOptions{Limit: MaxReplayFrames, Open: true})
+			asP2, err := m.BuildReplay(context.Background(), match, "p2", ReplayOptions{Limit: MaxReplayFrames, Open: true})
 			if err != nil {
 				t.Fatalf("BuildReplay: %v", err)
 			}
@@ -523,7 +524,7 @@ func TestFinishedMatchesReplayWithNothingHidden(t *testing.T) {
 			// agree on when cards appear: blackjack opens on a betting round
 			// with nothing dealt at all, so its frame 0 has no cards for
 			// anybody and proves nothing either way.
-			closed, err := m.BuildReplay(match, "p1", ReplayOptions{Limit: MaxReplayFrames})
+			closed, err := m.BuildReplay(context.Background(), match, "p1", ReplayOptions{Limit: MaxReplayFrames})
 			if err != nil {
 				t.Fatalf("BuildReplay: %v", err)
 			}
@@ -657,11 +658,11 @@ func TestAFoldFromACheckpointIsTheSameFold(t *testing.T) {
 			}
 			opts := ReplayOptions{From: from, Limit: 25}
 
-			short, err := m.BuildReplay(withCheckpoints, "p1", opts)
+			short, err := m.BuildReplay(context.Background(), withCheckpoints, "p1", opts)
 			if err != nil {
 				t.Fatalf("BuildReplay from a checkpoint: %v", err)
 			}
-			long, err := m.BuildReplay(fromTheDeal, "p1", opts)
+			long, err := m.BuildReplay(context.Background(), fromTheDeal, "p1", opts)
 			if err != nil {
 				t.Fatalf("BuildReplay from the deal: %v", err)
 			}
@@ -724,11 +725,11 @@ func TestChaptersNeedNoFold(t *testing.T) {
 		t.Skip("canasta closed no round in this play-through")
 	}
 
-	first, err := m.BuildReplay(match, "p1", ReplayOptions{From: 0, Limit: 1})
+	first, err := m.BuildReplay(context.Background(), match, "p1", ReplayOptions{From: 0, Limit: 1})
 	if err != nil {
 		t.Fatalf("BuildReplay: %v", err)
 	}
-	deep, err := m.BuildReplay(match, "p1", ReplayOptions{From: len(match.ActionLog), Limit: 1})
+	deep, err := m.BuildReplay(context.Background(), match, "p1", ReplayOptions{From: len(match.ActionLog), Limit: 1})
 	if err != nil {
 		t.Fatalf("BuildReplay: %v", err)
 	}

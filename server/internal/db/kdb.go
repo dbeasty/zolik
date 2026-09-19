@@ -445,6 +445,59 @@ func (k *KDB) Get(ns, key string) ([]byte, error) {
 }
 
 // Scan streams every document in the namespace, in no particular order.
+// DocumentVersions lists the commits that wrote a key, oldest first.
+//
+// The commit DAG has held every one of them all along — under history=full
+// nothing on that path is reclaimed — and embed.DocumentVersions is what
+// finally makes them askable for a single document rather than for a whole
+// namespace. Honestly O(the namespace's commit log): see that function's own
+// note on why, and on the answer only ever growing at its end.
+//
+// KDB only, by construction. A caller wanting to work on both engines asks a
+// repository, which declines on Mongo — see match.BoardSource.
+func (k *KDB) DocumentVersions(ns, key string) ([]string, error) {
+	n := k.ns(ns)
+	if n == nil {
+		return nil, fmt.Errorf("kdb: no namespace %q", ns)
+	}
+	versions, err := embed.DocumentVersions(n.rt, uuidForKey(key))
+	if err != nil {
+		return nil, err
+	}
+	out := make([]string, 0, len(versions))
+	for _, v := range versions {
+		if v.Deleted {
+			continue
+		}
+		out = append(out, v.Commit.Hex())
+	}
+	return out, nil
+}
+
+// GetAt reads a key as it stood at one of those commits.
+//
+// Returns db.ErrNotFound when the key did not exist yet at that commit, which
+// is an ordinary answer rather than a failure: a commit is a point in the
+// whole namespace's history, not in this document's.
+func (k *KDB) GetAt(ns, key, commitHex string) ([]byte, error) {
+	n := k.ns(ns)
+	if n == nil {
+		return nil, fmt.Errorf("kdb: no namespace %q", ns)
+	}
+	at, err := codec.HashFromHex(commitHex)
+	if err != nil {
+		return nil, fmt.Errorf("kdb: %q is not a commit: %w", commitHex, err)
+	}
+	body, ok, err := embed.DocumentAt(n.rt, n.id, uuidForKey(key), at)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, ErrNotFound
+	}
+	return []byte(body), nil
+}
+
 func (k *KDB) Scan(ns string, fn func(doc []byte) error) error {
 	return k.ns(ns).scan(func(_ codec.UUID, doc []byte) error { return fn(doc) })
 }

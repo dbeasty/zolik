@@ -731,7 +731,7 @@ func (h *Handlers) replayMatch(w http.ResponseWriter, req *http.Request) {
 
 	from, _ := strconv.Atoi(req.URL.Query().Get("from"))
 	limit, _ := strconv.Atoi(req.URL.Query().Get("limit"))
-	rep, err := h.manager.BuildReplay(m, uc.UserID, ReplayOptions{
+	rep, err := h.manager.BuildReplay(req.Context(), m, uc.UserID, ReplayOptions{
 		From: from, Limit: limit,
 		// Asking is not getting: BuildReplay grants this only to a finished
 		// match, and every other status is projected per viewer as usual.
