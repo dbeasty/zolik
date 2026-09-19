@@ -437,6 +437,15 @@ func (m *Manager) HandleAction(ctx context.Context, idOrCode, playerID string, a
 	match.State = next
 	match.ActionLog = append(match.ActionLog, logEntry(len(match.ActionLog)+1, playerID, a))
 
+	// The round log is decoded once here and used twice: to notice that this
+	// move closed a round, and by the broadcast further down. Asking for it in
+	// both places would decode the module's whole state twice on every single
+	// move, which is the one thing this path cannot afford.
+	rounds := module.RoundsFor(mod, next)
+	if c, ok := checkpointClosedBy(match, rounds); ok {
+		match.Checkpoints = append(match.Checkpoints, c)
+	}
+
 	if done, winners, err := mod.Finished(next); err == nil && done {
 		now := time.Now().UTC()
 		match.Status = "completed"
@@ -458,7 +467,7 @@ func (m *Manager) HandleAction(ctx context.Context, idOrCode, playerID string, a
 	}
 	match.Version = expected + 1
 
-	m.Broadcast(match)
+	m.broadcastWith(match, rounds)
 	m.publishEvents(match, events)
 
 	// A finished match becomes a permanent record. Asynchronous and after the
@@ -486,18 +495,82 @@ func (m *Manager) HandleAction(ctx context.Context, idOrCode, playerID string, a
 // itself has moved into the module: this loop asks each module what a given
 // viewer may see and ships the answer, without knowing what was hidden.
 func (m *Manager) Broadcast(match models.Match) {
+	// Computed once for the whole broadcast rather than once per recipient: a
+	// round log takes no viewer, so every seat would otherwise pay to decode
+	// the same bytes into the same answer.
+	m.broadcastWith(match, module.RoundsFor(m.registry.Get(match.ModuleID), match.State))
+}
+
+// broadcastWith is Broadcast with the round log already in hand, for the one
+// caller that had to decode it anyway — see HandleAction.
+func (m *Manager) broadcastWith(match models.Match, rounds *module.RoundLog) {
 	recipients := make([]string, 0, len(match.Players))
 	for _, p := range match.Players {
 		recipients = append(recipients, p.ID)
 	}
 	id := match.ID.Hex()
-	// Computed once for the whole broadcast rather than once per recipient: a
-	// round log takes no viewer, so every seat would otherwise pay to decode
-	// the same bytes into the same answer.
-	rounds := module.RoundsFor(m.registry.Get(match.ModuleID), match.State)
 	m.hub.BroadcastGameState(id, recipients, func(playerID string) interface{} {
 		return m.buildStateMsg(match, playerID, rounds)
 	})
+}
+
+// checkpointClosedBy reports the checkpoint the just-applied action earned, if
+// it closed a round at all.
+//
+// Keyed off the round log growing rather than off anything a game says about
+// itself, so a module that keeps rounds gets landmarks for free and one that
+// does not — Prší, a single deal that ends when a hand empties — gets none,
+// which is the honest answer rather than an invented one.
+func checkpointClosedBy(match models.Match, rounds *module.RoundLog) (models.MatchCheckpoint, bool) {
+	if rounds == nil {
+		return models.MatchCheckpoint{}, false
+	}
+	closed := len(rounds.Rounds)
+	if closed == 0 || closed <= lastCheckpointRound(match) {
+		return models.MatchCheckpoint{}, false
+	}
+	c := models.MatchCheckpoint{
+		Seq:   len(match.ActionLog),
+		Round: closed,
+		At:    time.Now().UTC(),
+	}
+	// The board itself only where it buys a fold worth skipping. See
+	// minCheckpointGap.
+	if c.Seq-lastStoredBoardAt(match) >= minCheckpointGap {
+		// Copied rather than aliased: match.State is the slice the module just
+		// returned, and a checkpoint has to outlive whatever happens to it.
+		c.State = append(json.RawMessage(nil), match.State...)
+	}
+	return c, true
+}
+
+// minCheckpointGap is how many moves must pass before a round boundary is
+// worth storing the board at, as well as marking.
+//
+// Measured rather than chosen: snapshotting every round costs +11% of the
+// action log at canasta and gin rummy, whose rounds are long, and +313% at
+// blackjack and +146% at hold'em, whose rounds are about nine moves and whose
+// state carries a shoe. Fifty moves is the point where the fold being skipped
+// (~25ms) is worth the kilobytes, and it leaves the games with long deals
+// storing one board per deal — which is what the shortcut was for.
+const minCheckpointGap = 50
+
+// lastStoredBoardAt is the move of the newest checkpoint that kept a board,
+// or zero — the deal — when none has.
+func lastStoredBoardAt(match models.Match) int {
+	for i := len(match.Checkpoints) - 1; i >= 0; i-- {
+		if len(match.Checkpoints[i].State) > 0 {
+			return match.Checkpoints[i].Seq
+		}
+	}
+	return 0
+}
+
+func lastCheckpointRound(match models.Match) int {
+	if n := len(match.Checkpoints); n > 0 {
+		return match.Checkpoints[n-1].Round
+	}
+	return 0
 }
 
 func (m *Manager) publishEvents(match models.Match, events []module.Event) {

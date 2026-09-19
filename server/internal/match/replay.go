@@ -37,12 +37,33 @@ type ReplayMsg struct {
 	Total  int           `json:"total"`
 	From   int           `json:"from"`
 	Frames []ReplayFrame `json:"frames"`
+	// Chapters are the rounds this match was played in — the landmarks a
+	// player actually thinks in, and the only way a six-hundred move replay
+	// is navigable by anything other than dragging a slider and hoping.
+	//
+	// Read straight off the stored checkpoints, so they cost no fold at all
+	// and arrive complete with the first page, however deep into the match
+	// that page is. Absent for a game that keeps no rounds, where a single
+	// chapter spanning everything would be a label pretending to be a map.
+	Chapters []ReplayChapter `json:"chapters,omitempty"`
 	// Truncated says the fold stopped before Total: the module refused a move
 	// it once accepted, because its rules have moved since this game was
 	// played. Everything up to TruncatedAt is still exactly what happened.
 	Truncated     bool   `json:"truncated,omitempty"`
 	TruncatedAt   int    `json:"truncatedAt,omitempty"`
 	TruncatedCode string `json:"truncatedCode,omitempty"`
+}
+
+// ReplayChapter is one round of the match, as somewhere to jump to.
+//
+// The word for it — deal, hand, leg — is the module's own, and rides on the
+// round log the frames already carry rather than being repeated here.
+type ReplayChapter struct {
+	Round int `json:"round"`
+	// From is the first frame of this round; To the frame that closed it,
+	// absent while the round is the one the match stopped in.
+	From int `json:"from"`
+	To   int `json:"to,omitempty"`
 }
 
 // ReplayFrame is the board after one step. Frame 0 is the deal, and carries no
@@ -140,13 +161,20 @@ func (m *Manager) BuildReplay(match models.Match, viewerID string, opts ReplayOp
 		Total:     len(match.ActionLog) + 1,
 		From:      from,
 		Frames:    []ReplayFrame{},
+		Chapters:  chaptersOf(match),
 	}
 	for _, p := range match.Players {
 		msg.Players = append(msg.Players, PlayerMsg{ID: p.ID, Name: p.Name, IsAI: p.IsAI, Avatar: p.Avatar})
 	}
 
 	prevRounds := -1
-	stopped, err := foldActions(mod, match, func(step int, entry *models.MatchAction, a module.Action, s module.State) (bool, error) {
+	// One frame earlier than the window, so the first rendered frame knows
+	// whether it closed a round. Below zero there is nothing before the deal.
+	startAt := from - 1
+	if startAt < 0 {
+		startAt = 0
+	}
+	stopped, err := foldActions(mod, match, startAt, func(step int, entry *models.MatchAction, a module.Action, s module.State) (bool, error) {
 		// Below the window, and not the step just before it: nothing to
 		// compute, and the state bytes are dropped on the way out.
 		if step < from-1 {
@@ -263,34 +291,34 @@ func openable(status string) bool { return status == "completed" }
 // foldActions replays a match's log through its module, handing each step's
 // state to visit.
 //
+// It starts at the newest checkpoint at or before startAt rather than at the
+// deal, which is what keeps jumping to the end of a long match from costing
+// the whole match. A checkpoint is the stored board, so starting from one also
+// means the frames after it do not depend on the actions before it still
+// folding — a rules change that breaks move 12 no longer costs you deal 5.
+//
 // It stops at the first refusal, reporting which frame could not be produced,
 // and stops early once visit says it has what it needs — so rendering a page
-// costs O(from+limit) applies rather than the whole log every time.
+// costs O(limit) applies once a checkpoint is near it.
 //
 // State bytes are never retained: visit renders a frame and the snapshot is
 // dropped. Holding 800 canasta states would be megabytes for no gain.
 func foldActions(
 	mod module.GameModule,
 	match models.Match,
+	startAt int,
 	visit func(step int, entry *models.MatchAction, a module.Action, s module.State) (more bool, err error),
 ) (stoppedAt int, err error) {
-	// The deal is reproducible because its inputs are frozen: Join and Seat
-	// both refuse once the match leaves the lobby, and Seed is written once at
-	// Create. So these are the same arguments Start passed, necessarily.
-	s, err := mod.NewMatch(
-		module.MatchConfig{Variation: match.Variation, Options: match.Options},
-		playerRefs(match.Players),
-		match.Seed,
-	)
+	s, step, err := foldOrigin(mod, match, startAt)
 	if err != nil {
-		return 0, err
+		return step, err
 	}
-	more, err := visit(0, nil, module.Action{}, s)
+	more, err := visit(step, entryAt(match, step), actionAt(match, step), s)
 	if err != nil || !more {
-		return 0, err
+		return step, err
 	}
 
-	for i := range match.ActionLog {
+	for i := step; i < len(match.ActionLog); i++ {
 		entry := match.ActionLog[i]
 		var a module.Action
 		if err := json.Unmarshal(entry.Action, &a); err != nil {
@@ -307,4 +335,67 @@ func foldActions(
 		}
 	}
 	return len(match.ActionLog), nil
+}
+
+// foldOrigin is where a fold aiming at startAt should begin: a stored
+// checkpoint if one lies at or before it, otherwise the deal.
+//
+// The deal is reproducible because its inputs are frozen: Join and Seat both
+// refuse once the match leaves the lobby, and Seed is written once at Create.
+// So these are the same arguments Start passed, necessarily.
+func foldOrigin(mod module.GameModule, match models.Match, startAt int) (module.State, int, error) {
+	for i := len(match.Checkpoints) - 1; i >= 0; i-- {
+		if c := match.Checkpoints[i]; c.Seq <= startAt && len(c.State) > 0 {
+			return append(module.State(nil), c.State...), c.Seq, nil
+		}
+	}
+	s, err := mod.NewMatch(
+		module.MatchConfig{Variation: match.Variation, Options: match.Options},
+		playerRefs(match.Players),
+		match.Seed,
+	)
+	return s, 0, err
+}
+
+// entryAt and actionAt describe the move that produced frame step, for a fold
+// that began part-way through the log and so did not apply it.
+func entryAt(match models.Match, step int) *models.MatchAction {
+	if step <= 0 || step > len(match.ActionLog) {
+		return nil
+	}
+	return &match.ActionLog[step-1]
+}
+
+func actionAt(match models.Match, step int) module.Action {
+	e := entryAt(match, step)
+	if e == nil {
+		return module.Action{}
+	}
+	var a module.Action
+	_ = json.Unmarshal(e.Action, &a)
+	return a
+}
+
+// chaptersOf turns the stored checkpoints into somewhere to jump to.
+//
+// No fold, no module, no state decoded: a checkpoint already knows which round
+// it closed and at which move, which is all a chapter is. A match with no
+// checkpoints gets none rather than one chapter covering everything — that
+// would be a label pretending to be a map.
+func chaptersOf(match models.Match) []ReplayChapter {
+	if len(match.Checkpoints) == 0 {
+		return nil
+	}
+	out := make([]ReplayChapter, 0, len(match.Checkpoints)+1)
+	from := 0
+	for _, c := range match.Checkpoints {
+		out = append(out, ReplayChapter{Round: c.Round, From: from, To: c.Seq})
+		from = c.Seq + 1
+	}
+	// The round the match stopped in, if it did not stop exactly on a
+	// boundary. It has a start and no end, which is the truth about it.
+	if from <= len(match.ActionLog) {
+		out = append(out, ReplayChapter{Round: lastCheckpointRound(match) + 1, From: from})
+	}
+	return out
 }

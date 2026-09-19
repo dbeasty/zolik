@@ -90,6 +90,7 @@ func playOut(t *testing.T, g replayable, seed int64) (models.Match, module.State
 	}
 
 	log := []models.MatchAction{}
+	var checkpoints []models.MatchCheckpoint
 	final, _, err := module.PlayWithOffers(g.mod, start, g.players, module.DriverOptions{
 		MaxActions: replayTestActions,
 		Prefer:     g.prefer,
@@ -98,6 +99,15 @@ func playOut(t *testing.T, g replayable, seed int64) (models.Match, module.State
 		// rather than the feature.
 		OnAction: func(playerID string, a module.Action) {
 			log = append(log, logEntry(len(log)+1, playerID, a))
+		},
+		// And the checkpoints the same move would have earned, through the
+		// same function the manager calls — so a fixture can never drift into
+		// describing a match the runtime would not have written.
+		OnState: func(st module.State) {
+			at := models.Match{State: st, ActionLog: log, Checkpoints: checkpoints}
+			if c, ok := checkpointClosedBy(at, module.RoundsFor(g.mod, st)); ok {
+				checkpoints = append(checkpoints, c)
+			}
 		},
 	})
 	if err != nil {
@@ -112,14 +122,15 @@ func playOut(t *testing.T, g replayable, seed int64) (models.Match, module.State
 		players = append(players, models.Player{ID: p.ID, Name: p.Name, IsAI: p.IsAI})
 	}
 	return models.Match{
-		ModuleID:  g.name,
-		Variation: g.cfg.Variation,
-		Options:   g.cfg.Options,
-		Status:    "active",
-		Players:   players,
-		Seed:      seed,
-		State:     final,
-		ActionLog: log,
+		ModuleID:    g.name,
+		Variation:   g.cfg.Variation,
+		Options:     g.cfg.Options,
+		Status:      "active",
+		Players:     players,
+		Seed:        seed,
+		State:       final,
+		ActionLog:   log,
+		Checkpoints: checkpoints,
 	}, final
 }
 
@@ -192,7 +203,7 @@ func TestReplayFoldsToTheSameBytes(t *testing.T) {
 			match, final := playOut(t, g, 11)
 
 			var folded module.State
-			_, err := foldActions(g.mod, match, func(_ int, _ *models.MatchAction, _ module.Action, s module.State) (bool, error) {
+			_, err := foldActions(g.mod, match, 0, func(_ int, _ *models.MatchAction, _ module.Action, s module.State) (bool, error) {
 				folded = s
 				return true, nil
 			})
@@ -274,7 +285,7 @@ func TestReplayShowsExactlyWhatTheLiveBoardWould(t *testing.T) {
 				}
 
 				live := map[int]string{}
-				if _, err := foldActions(g.mod, match, func(step int, _ *models.MatchAction, _ module.Action, s module.State) (bool, error) {
+				if _, err := foldActions(g.mod, match, 0, func(step int, _ *models.MatchAction, _ module.Action, s module.State) (bool, error) {
 					vm, err := g.mod.View(s, viewer)
 					if err != nil {
 						return false, err
@@ -534,5 +545,197 @@ func TestFinishedMatchesReplayWithNothingHidden(t *testing.T) {
 				t.Errorf("%s never showed a single card more with the hands open", g.name)
 			}
 		})
+	}
+}
+
+// --- checkpoints, and the chapters that come off them ----------------------
+
+// withRounds is a module that keeps them, for the tests below that need a
+// match with more than one landmark in it.
+func withRounds(t *testing.T, name string) replayable {
+	t.Helper()
+	for _, r := range replayables() {
+		if r.name == name {
+			return r
+		}
+	}
+	t.Fatalf("no module %q in the table", name)
+	return replayable{}
+}
+
+// TestCheckpointsLandOnRoundBoundaries: one per round closed, in order, each
+// naming the move that closed it.
+func TestCheckpointsLandOnRoundBoundaries(t *testing.T) {
+	// Not zolik: going out needs a meld shape the offer protocol deliberately
+	// does not enumerate (allmodules_test.go's `finishes: false`), so the
+	// offer-only driver never ends a deal and never earns a checkpoint. That
+	// is a limit of the fixture, not of checkpoints.
+	for _, name := range []string{"canasta", "ginrummy"} {
+		t.Run(name, func(t *testing.T) {
+			g := withRounds(t, name)
+			match, _ := playOut(t, g, 21)
+			if len(match.Checkpoints) == 0 {
+				t.Fatalf("%s played %d actions and closed no round at all", name, len(match.ActionLog))
+			}
+			prevSeq, prevRound := -1, 0
+			for i, c := range match.Checkpoints {
+				if c.Round != prevRound+1 {
+					t.Errorf("checkpoint %d is round %d, after round %d", i, c.Round, prevRound)
+				}
+				if c.Seq <= prevSeq {
+					t.Errorf("checkpoint %d is at move %d, not after %d", i, c.Seq, prevSeq)
+				}
+				if c.Seq > len(match.ActionLog) {
+					t.Errorf("checkpoint %d is at move %d, past the end of a %d-move log",
+						i, c.Seq, len(match.ActionLog))
+				}
+
+				prevSeq, prevRound = c.Seq, c.Round
+			}
+			// Every mark is navigation; only widely-spaced ones carry a board,
+			// so a game with short rounds is not paying kilobytes per hand.
+			boards := 0
+			for _, c := range match.Checkpoints {
+				if len(c.State) > 0 {
+					boards++
+				}
+			}
+			if boards == 0 {
+				t.Errorf("%s stored %d marks and not one board", name, len(match.Checkpoints))
+			}
+		})
+	}
+}
+
+// TestPrsiEarnsNoCheckpoints: a game with no rounds gets no landmarks, rather
+// than one invented for it.
+func TestPrsiEarnsNoCheckpoints(t *testing.T) {
+	match, _ := playOut(t, withRounds(t, "prsi"), 5)
+	if len(match.Checkpoints) != 0 {
+		t.Errorf("prsi keeps no rounds but earned %d checkpoints", len(match.Checkpoints))
+	}
+	if ch := chaptersOf(match); ch != nil {
+		t.Errorf("a game with no rounds should offer no chapters, got %v", ch)
+	}
+}
+
+// TestAFoldFromACheckpointIsTheSameFold is the whole safety of the shortcut.
+//
+// Starting from a stored board instead of the deal must reach exactly the same
+// frames — otherwise the optimisation quietly rewrites history, which is worse
+// than being slow.
+func TestAFoldFromACheckpointIsTheSameFold(t *testing.T) {
+	// Not zolik: going out needs a meld shape the offer protocol deliberately
+	// does not enumerate (allmodules_test.go's `finishes: false`), so the
+	// offer-only driver never ends a deal and never earns a checkpoint. That
+	// is a limit of the fixture, not of checkpoints.
+	for _, name := range []string{"canasta", "ginrummy"} {
+		t.Run(name, func(t *testing.T) {
+			m := replayManager()
+			g := withRounds(t, name)
+			withCheckpoints, _ := playOut(t, g, 21)
+			if len(withCheckpoints.Checkpoints) == 0 {
+				t.Skipf("%s closed no round in %d moves", name, len(withCheckpoints.ActionLog))
+			}
+
+			// The same match as an older one would have been stored: same log,
+			// same seed, no landmarks. Its fold has to start at the deal.
+			fromTheDeal := withCheckpoints
+			fromTheDeal.Checkpoints = nil
+
+			// A window that begins after the first checkpoint that actually
+			// kept a board, so the shortcut is the thing being exercised.
+			from := -1
+			for _, c := range withCheckpoints.Checkpoints {
+				if len(c.State) > 0 {
+					from = c.Seq + 1
+					break
+				}
+			}
+			if from < 0 {
+				t.Skipf("%s stored no board to start from", name)
+			}
+			opts := ReplayOptions{From: from, Limit: 25}
+
+			short, err := m.BuildReplay(withCheckpoints, "p1", opts)
+			if err != nil {
+				t.Fatalf("BuildReplay from a checkpoint: %v", err)
+			}
+			long, err := m.BuildReplay(fromTheDeal, "p1", opts)
+			if err != nil {
+				t.Fatalf("BuildReplay from the deal: %v", err)
+			}
+			if len(short.Frames) == 0 {
+				t.Fatalf("no frames in the window at %d", from)
+			}
+			if a, b := mustJSON(t, short.Frames), mustJSON(t, long.Frames); a != b {
+				t.Errorf("starting from a checkpoint changed the frames\n from checkpoint: %s\n from the deal:   %s", a, b)
+			}
+		})
+	}
+}
+
+// TestChaptersCoverEveryFrameExactlyOnce: a map with a gap in it sends a
+// reader somewhere that is not there.
+func TestChaptersCoverEveryFrameExactlyOnce(t *testing.T) {
+	// Not zolik: going out needs a meld shape the offer protocol deliberately
+	// does not enumerate (allmodules_test.go's `finishes: false`), so the
+	// offer-only driver never ends a deal and never earns a checkpoint. That
+	// is a limit of the fixture, not of checkpoints.
+	for _, name := range []string{"canasta", "ginrummy"} {
+		t.Run(name, func(t *testing.T) {
+			match, _ := playOut(t, withRounds(t, name), 21)
+			chapters := chaptersOf(match)
+			if len(chapters) == 0 {
+				t.Skipf("%s closed no round in %d moves", name, len(match.ActionLog))
+			}
+			next := 0
+			for i, c := range chapters {
+				if c.From != next {
+					t.Errorf("chapter %d starts at %d, leaving a gap after %d", i, c.From, next)
+				}
+				if c.Round != i+1 {
+					t.Errorf("chapter %d is numbered round %d", i, c.Round)
+				}
+				if c.To != 0 {
+					if c.To < c.From {
+						t.Errorf("chapter %d ends at %d, before it starts at %d", i, c.To, c.From)
+					}
+					next = c.To + 1
+				}
+			}
+			// The last chapter is the round the match stopped in, and runs to
+			// the end of the log.
+			last := chapters[len(chapters)-1]
+			if last.To != 0 && last.To != len(match.ActionLog) {
+				t.Errorf("the last chapter ends at %d, not at the end of a %d-move log",
+					last.To, len(match.ActionLog))
+			}
+		})
+	}
+}
+
+// TestChaptersNeedNoFold: the whole point of reading them off the checkpoints
+// is that a page deep in a long match still arrives with the full map.
+func TestChaptersNeedNoFold(t *testing.T) {
+	m := replayManager()
+	match, _ := playOut(t, withRounds(t, "canasta"), 21)
+	if len(match.Checkpoints) == 0 {
+		t.Skip("canasta closed no round in this play-through")
+	}
+
+	first, err := m.BuildReplay(match, "p1", ReplayOptions{From: 0, Limit: 1})
+	if err != nil {
+		t.Fatalf("BuildReplay: %v", err)
+	}
+	deep, err := m.BuildReplay(match, "p1", ReplayOptions{From: len(match.ActionLog), Limit: 1})
+	if err != nil {
+		t.Fatalf("BuildReplay: %v", err)
+	}
+	if a, b := mustJSON(t, first.Chapters), mustJSON(t, deep.Chapters); a != b {
+		t.Errorf("the chapter list changed with the page\n first: %s\n deep:  %s", a, b)
+	}
+	if len(first.Chapters) == 0 {
+		t.Errorf("a match with %d checkpoints offered no chapters", len(match.Checkpoints))
 	}
 }

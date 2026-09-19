@@ -248,6 +248,8 @@ func (r *kdbRepository) FindForPlayer(ctx context.Context, playerID string, f Pl
 		}
 		m.State = nil
 		m.ActionLog = nil
+		// Each checkpoint is a stored board; a list row needs none of them.
+		m.Checkpoints = nil
 		out = append(out, m)
 		return nil
 	})
