@@ -204,6 +204,19 @@ func (m *Module) Standings(raw module.State) ([]module.Standing, error) {
 	// Negated, because RankByScore ranks highest-first and here fewer is
 	// better. Doing it this way rather than adding a direction flag keeps one
 	// ranking implementation with one tie rule.
-	return module.RankByScore(s.TurnOrder,
-		func(id string) int { return -len(s.Hands[id]) }, "prsi.unit.cardsLeft"), nil
+	out := module.RankByScore(s.TurnOrder,
+		func(id string) int { return -len(s.Hands[id]) }, "prsi.unit.cardsLeft")
+	for i := range out {
+		// Score stays negated so the runtime can rank and record it without a
+		// sense of direction; Shown is the count as a player would say it.
+		//
+		// Without this the negation showed through onto every Prší board in
+		// production: the seat strip read "-4 cards left" under both players,
+		// on a live game, for as long as the module has existed. Žolíky has
+		// carried the same two lines since its own penalties printed
+		// backwards — see zolikmod.Module.Standings.
+		shown := len(s.Hands[out[i].PlayerID])
+		out[i].Shown = &shown
+	}
+	return out, nil
 }
