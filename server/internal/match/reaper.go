@@ -72,6 +72,27 @@ func (m *Manager) ReapAbandoned(ctx context.Context) int {
 			continue
 		}
 
+		// Somebody is still sitting here. A table with a player at it is not
+		// a stranded one, whatever the clock says — they are waiting for
+		// their opponent, watching a board that says so, and sweeping it up
+		// underneath them ends a game they were still in.
+		//
+		// This is what made a two-minute absence fatal to a game between two
+		// people: their friend closes a laptop lid, and two minutes later the
+		// player who never moved is told the table was set aside because
+		// "nobody came back". Left to run, the table stays suspended — which
+		// is the truth — and is swept on a later tick once the last person
+		// has gone too, so nothing is leaked, only deferred.
+		//
+		// AbandonAt is not pushed out while they wait. The window measures
+		// how long the missing player has been missing, and that is still the
+		// right answer the moment the room empties.
+		if m.attended(match) {
+			slog.Debug("abandon deferred, somebody is still at the table",
+				"match", match.ID.Hex(), "suspendedFor", suspendedFor(match, now))
+			continue
+		}
+
 		expected := match.Version
 		ended := now
 		match.Status = string(rules.StatusAbandoned)

@@ -40,6 +40,41 @@ const CLASSIC = {
   TargetScore: 200,
 };
 
+/** Signs somebody in, without a table. */
+async function guest(request: Ctx, name: string) {
+  return (
+    await request.post(`${API_BASE}/auth/guest`, {
+      data: { guestName: `${name}-${Math.random().toString(36).slice(2, 8)}` },
+    })
+  ).json();
+}
+
+/** A started table with two people at it — the case that had no way back. */
+async function tableWithAFriend(request: Ctx) {
+  const host = await guest(request, 'aband-host');
+  const friend = await guest(request, 'aband-friend');
+  const auth = { Authorization: `Bearer ${host.accessToken}` };
+  const { matchId, joinCode } = await (
+    await request.post(`${API_BASE}/matches`, {
+      headers: auth,
+      data: { moduleId: 'zolik', variation: 'zolik_classic' },
+    })
+  ).json();
+  const joined = await request.post(`${API_BASE}/matches/${joinCode}/join`, {
+    headers: { Authorization: `Bearer ${friend.accessToken}` },
+    data: {},
+  });
+  expect(joined.ok(), await joined.text()).toBeTruthy();
+  await request.post(`${API_BASE}/matches/${matchId}/start`, { headers: auth });
+  // The name the board will print, read off the table rather than guessed
+  // from the sign-in response — they are the same today, and a spec that
+  // asserts on a screen should take its expectation from the same place the
+  // screen does.
+  const seated = await (await request.get(`${API_BASE}/matches/${matchId}`)).json();
+  const friendName = seated.players.find((p: { id: string }) => p.id === friend.userId).name;
+  return { matchId, host, friend, friendName, auth };
+}
+
 /** A started table whose only other seat is a bot — the case resume is for. */
 async function tableWithBot(request: Ctx) {
   const host = await (
@@ -61,8 +96,13 @@ async function tableWithBot(request: Ctx) {
   return { matchId, host, auth, bot };
 }
 
-/** Seeds a mid-deal position and marks the table the way the reaper does. */
-async function seedAbandoned(request: Ctx, matchId: string, me: string, bot: string, auth: Record<string, string>) {
+/**
+ * Seeds a mid-deal position and marks the table the way the reaper does.
+ *
+ * `other` is the opposite seat, bot or human: the position is the same either
+ * way, and which it is is exactly what the resume rule used to turn on.
+ */
+async function seedAbandoned(request: Ctx, matchId: string, me: string, other: string, auth: Record<string, string>) {
   const state = {
     rules: {
       Rules: CLASSIC,
@@ -71,20 +111,20 @@ async function seedAbandoned(request: Ctx, matchId: string, me: string, bot: str
       GameNumber: 1,
       Round: 3,
       CurrentTurn: me,
-      TurnOrder: [me, bot],
-      Hands: { [me]: ['KD', 'KS', '7C', '7D', '5S'], [bot]: ['2C', '3S', '4D', '9D'] },
-      Melds: { [me]: [['AC', 'AD', 'AH']], [bot]: [['5C', '5D', '5H']] },
+      TurnOrder: [me, other],
+      Hands: { [me]: ['KD', 'KS', '7C', '7D', '5S'], [other]: ['2C', '3S', '4D', '9D'] },
+      Melds: { [me]: [['AC', 'AD', 'AH']], [other]: [['5C', '5D', '5H']] },
       MeldMeta: {
         [me]: [{ MeldID: 'meld_1', Type: 'set', OwnerID: me }],
-        [bot]: [{ MeldID: 'meld_2', Type: 'set', OwnerID: bot }],
+        [other]: [{ MeldID: 'meld_2', Type: 'set', OwnerID: other }],
       },
-      RoundReqMet: { [me]: true, [bot]: true },
+      RoundReqMet: { [me]: true, [other]: true },
       MeldsLaidThisTurn: 0,
       DrawPile: ['2C', '3C', '4C'],
       DiscardPile: ['QS'],
       DeckSeed: 42,
-      GameScores: { [me]: [], [bot]: [] },
-      TotalScores: { [me]: 0, [bot]: 0 },
+      GameScores: { [me]: [], [other]: [] },
+      TotalScores: { [me]: 0, [other]: 0 },
     },
   };
   const res = await request.post(`${API_BASE}/matches/${matchId}/debug-state`, {
@@ -145,6 +185,95 @@ test.describe('a table the sweeper set aside', () => {
     // than a client that merely stopped drawing the banner.
     const after = await (await request.get(`${API_BASE}/matches/${matchId}`)).json();
     expect(after.status).toBe('active');
+  });
+
+  // The bug this closes, reported from production and reproduced against it.
+  //
+  // Two friends were playing. One of them dropped off for two and a half
+  // minutes — a tunnel, a locked phone, a closed lid — and the sweeper
+  // resolved the table. From then on the game could not be brought back by
+  // anybody: not by the player who had dropped, and not by the one who had
+  // never left. The position was entirely intact, both of them were looking
+  // at it, and the banner told them so — "the cards are exactly where you
+  // left them" — above a single button reading "Back to games".
+  //
+  // What decides it now is presence rather than whether the other seats are
+  // bots: everybody the game concerns is here, so there is nobody left for a
+  // resume to surprise. Both browsers are real here for exactly that reason —
+  // the rule is about two people being at the table at the same time, and one
+  // context cannot be two people.
+  test('two players who are both back can pick their game up again', async ({
+    browser,
+    request,
+  }) => {
+    const { matchId, host, friend, friendName, auth } = await tableWithAFriend(request);
+    await seedAbandoned(request, matchId, host.userId, friend.userId, auth);
+
+    const hostCtx = await browser.newContext();
+    const friendCtx = await browser.newContext();
+    try {
+      const hostPage = await hostCtx.newPage();
+      const friendPage = await friendCtx.newPage();
+
+      // Only the host is looking at it to begin with. Their friend is still
+      // away, so there is nothing to press — and, crucially, the screen says
+      // who it is waiting for rather than going quiet.
+      await openMatch(hostPage, host, matchId);
+      await expect(hostPage.getByTestId('match-over')).toBeVisible({ timeout: 30_000 });
+      await expect(hostPage.getByTestId('match-over-resume')).toHaveCount(0);
+      await expect(hostPage.getByTestId('match-over-waiting')).toContainText(friendName, {
+        timeout: 15_000,
+      });
+
+      // The friend opens the same link. Nobody presses anything yet: the
+      // offer has to arrive on its own, because the thing that changed is
+      // who is in the room and not what either of them did.
+      await openMatch(friendPage, friend, matchId);
+      await expect(friendPage.getByTestId('match-over')).toBeVisible({ timeout: 30_000 });
+      await expect(hostPage.getByTestId('match-over-resume')).toBeVisible({ timeout: 30_000 });
+      await expect(hostPage.getByTestId('match-over-waiting')).toHaveCount(0);
+
+      // Either of them may press it; the one who stayed has as much claim on
+      // the game as the one who dropped.
+      await friendPage.getByTestId('match-over-resume').click();
+
+      // Both boards come back, and the friend's does so without a navigation
+      // — the socket is already in the table's room.
+      await expect(friendPage.getByTestId('match-over')).toBeHidden({ timeout: 30_000 });
+      await expect(friendPage.getByTestId('match-status')).toHaveText('active');
+      await expect(hostPage.getByTestId('match-status')).toHaveText('active', { timeout: 30_000 });
+
+      // And the server agrees, which is what makes either board real.
+      const after = await (await request.get(`${API_BASE}/matches/${matchId}`)).json();
+      expect(after.status).toBe('active');
+    } finally {
+      await hostCtx.close();
+      await friendCtx.close();
+    }
+  });
+
+  // The other half of the same rule, and the one it was originally written
+  // for: a player alone at a table their opponent has long since left may not
+  // decide on their own that the game is live again.
+  test('one player alone cannot revive a game the other has left', async ({ browser, request }) => {
+    const { matchId, host, friend, friendName, auth } = await tableWithAFriend(request);
+    await seedAbandoned(request, matchId, host.userId, friend.userId, auth);
+
+    const ctx = await browser.newContext();
+    try {
+      const page = await ctx.newPage();
+      await openMatch(page, host, matchId);
+      await expect(page.getByTestId('match-over')).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByTestId('match-over-resume')).toHaveCount(0);
+      // Not a dead end: it says who, so the player knows a link is what is
+      // missing rather than that the game is gone.
+      await expect(page.getByTestId('match-over-waiting')).toContainText(friendName);
+      // Nothing was quietly revived by the looking.
+      const after = await (await request.get(`${API_BASE}/matches/${matchId}`)).json();
+      expect(after.status).toBe('abandoned');
+    } finally {
+      await ctx.close();
+    }
   });
 
   // A table that is gone rather than merely finished — which retention makes

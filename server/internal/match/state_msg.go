@@ -6,6 +6,7 @@ import (
 
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
+	"zolik/server/internal/rules"
 )
 
 // MatchStateMsg is what a client renders a hosted match from.
@@ -69,6 +70,24 @@ type MatchStateMsg struct {
 	Rounds *module.RoundLog `json:"rounds,omitempty"`
 	// SuspendedPlayer names the seat a paused match is waiting for.
 	SuspendedPlayer string `json:"suspendedPlayer,omitempty"`
+	// CanResume says whether this viewer may bring a swept-up table back,
+	// and AwayPlayers names who is missing when they may not.
+	//
+	// Both are answered by the server rather than worked out on the board,
+	// because the answer depends on who currently holds a socket in this
+	// match's room — which no client can see. Deriving it was how a screen
+	// came to offer a resume the server would refuse, and, worse, how a
+	// resumable table came to offer nothing at all: the client's stand-in
+	// rule was "every other seat is a bot", so two friends looking at their
+	// own intact game were shown a banner with one button on it, "Back to
+	// games".
+	//
+	// Only meaningful on an abandoned table; false everywhere else, where the
+	// question does not arise.
+	CanResume bool `json:"canResume,omitempty"`
+	// AwayPlayers is who still has to come back, in seat order. Ids, not
+	// names: the client already has the names, in Players.
+	AwayPlayers []string `json:"awayPlayers,omitempty"`
 }
 
 type PlayerMsg struct {
@@ -121,6 +140,15 @@ func (m *Manager) buildStateMsg(match models.Match, viewerID string, rounds *mod
 	}
 	for _, p := range match.Players {
 		msg.Players = append(msg.Players, PlayerMsg{ID: p.ID, Name: p.Name, IsAI: p.IsAI, Avatar: p.Avatar})
+	}
+	// Asked only where it can be true. A spectator (no viewer id) gets the
+	// same false every other status gets, since bringing a table back is not
+	// something a passer-by does.
+	if match.Status == string(rules.StatusAbandoned) && viewerID != "" {
+		msg.CanResume = m.resumableBy(match, viewerID)
+		if !msg.CanResume {
+			msg.AwayPlayers = m.playersAway(match, viewerID)
+		}
 	}
 
 	mod := m.registry.Get(match.ModuleID)

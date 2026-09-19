@@ -194,3 +194,77 @@ func TestReaperHandlesABacklog(t *testing.T) {
 		t.Errorf("matches.abandoned = %d, want 5", got)
 	}
 }
+
+// The other half of the two-minute bug, and the half a player felt first.
+//
+// AbandonWindow measures how long a missing player has been missing, which is
+// the right thing to measure and the wrong thing to act on alone: their
+// opponent was sitting at the same table the whole time, watching a board
+// that said "paused, waiting for Bo". Sweeping it up underneath them ended a
+// game they were still in, and told them "nobody came back to this table" —
+// which was, to them, plainly untrue.
+func TestReaperLeavesATableSomebodyIsStillSittingAt(t *testing.T) {
+	ctx := t.Context()
+	m, repo, sink := newReaperHarness(t)
+
+	// p2 dropped and the window has run out; p1 never left.
+	waiting := suspendedMatch(t, repo, time.Now().UTC().Add(-time.Minute))
+	sitDown(t, m, waiting.ID.Hex(), "p1")
+
+	if n := m.ReapAbandoned(ctx); n != 0 {
+		t.Fatalf("reaped %d matches, want 0 — p1 is still at the table", n)
+	}
+	after, _ := repo.FindByID(ctx, waiting.ID)
+	if after.Status != "suspended" {
+		t.Errorf("status = %q, want suspended — which is the truth while p1 waits", after.Status)
+	}
+	if got := sink.counts["matches.abandoned"]; got != 0 {
+		t.Errorf("matches.abandoned = %d, want 0", got)
+	}
+}
+
+// Deferred, not cancelled. Once the room is empty the table really is
+// stranded, and the next tick resolves it — so nothing is leaked by waiting.
+func TestReaperSweepsTheTableOnceTheLastPlayerLeaves(t *testing.T) {
+	ctx := t.Context()
+	m, repo, _ := newReaperHarness(t)
+
+	waiting := suspendedMatch(t, repo, time.Now().UTC().Add(-time.Minute))
+	leave := sitDown(t, m, waiting.ID.Hex(), "p1")
+	if n := m.ReapAbandoned(ctx); n != 0 {
+		t.Fatalf("reaped %d matches while p1 was there, want 0", n)
+	}
+
+	leave()
+	if n := m.ReapAbandoned(ctx); n != 1 {
+		t.Fatalf("reaped %d matches after p1 left, want 1", n)
+	}
+	after, _ := repo.FindByID(ctx, waiting.ID)
+	if after.Status != "abandoned" {
+		t.Errorf("status = %q, want abandoned", after.Status)
+	}
+	// The window is not pushed out by the wait: it measures Bo's absence, and
+	// Bo has been gone throughout.
+	if after.EndedAt == nil {
+		t.Error("an abandoned match has no EndedAt")
+	}
+}
+
+// A bot at a deserted table is not somebody sitting at it. Bots hold no
+// sockets, so this is really a guard against a future presence check that
+// counts seats instead of connections.
+func TestReaperSweepsATableWhereOnlyBotsRemain(t *testing.T) {
+	ctx := t.Context()
+	m, repo, _ := newReaperHarness(t)
+
+	stranded := suspendedMatch(t, repo, time.Now().UTC().Add(-time.Minute))
+	loaded, _ := repo.FindByID(ctx, stranded.ID)
+	loaded.Players = append(loaded.Players, models.Player{ID: "bot:a", Name: "Klára", IsAI: true})
+	if err := repo.UpdateWithVersion(ctx, loaded.ID, loaded.Version, loaded); err != nil {
+		t.Fatalf("seating a bot: %v", err)
+	}
+
+	if n := m.ReapAbandoned(ctx); n != 1 {
+		t.Fatalf("reaped %d matches, want 1 — nobody human is here", n)
+	}
+}

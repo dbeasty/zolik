@@ -2,6 +2,7 @@ package match_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -92,17 +93,23 @@ func TestResumeCountsItselfWithoutRetractingTheAbandonment(t *testing.T) {
 	}
 }
 
-// A table with other people at it was abandoned for all of them. One player
-// deciding on their own that it is live again would resurrect a game the
-// others counted as over hours ago.
-func TestResumeRefusesATableWithOtherPeople(t *testing.T) {
+// A player who is away was not asked. Bringing the table back for them would
+// restart a game they have counted as over — possibly hours ago, possibly on
+// a phone in a pocket — and that is not one player's decision to make.
+func TestResumeRefusesATableWhoseOtherPlayersAreAway(t *testing.T) {
 	ctx := t.Context()
 	m, repo, _ := newReaperHarness(t)
 	saved := abandonedMatch(t, repo, models.Player{ID: "p2", Name: "Bo"}, bot("bot:a"))
+	sitDown(t, m, saved.ID.Hex(), "p1") // p1 is looking at it; Bo is not.
 
 	err := m.ResumeAbandoned(ctx, saved.ID.Hex(), "p1")
-	if module.CodeOf(err) != "TABLE_HAS_OTHER_PLAYERS" {
-		t.Fatalf("code = %q, want TABLE_HAS_OTHER_PLAYERS (err %v)", module.CodeOf(err), err)
+	if module.CodeOf(err) != "TABLE_HAS_PLAYERS_AWAY" {
+		t.Fatalf("code = %q, want TABLE_HAS_PLAYERS_AWAY (err %v)", module.CodeOf(err), err)
+	}
+	// Who, not just no: it is what turns the refusal into something the
+	// player can act on.
+	if !strings.Contains(err.Error(), "p2") {
+		t.Errorf("refusal %q does not name the missing player", err)
 	}
 	got, err := repo.FindByID(ctx, saved.ID)
 	if err != nil {
@@ -110,6 +117,87 @@ func TestResumeRefusesATableWithOtherPeople(t *testing.T) {
 	}
 	if got.Status != "abandoned" {
 		t.Errorf("status = %q, want the refusal to have left it abandoned", got.Status)
+	}
+}
+
+// The bug this closes, and the reason the rule above is about absence rather
+// than about bots.
+//
+// Two friends played a game. One of them lost their connection for two and a
+// half minutes, the sweeper resolved the table, and from then on it could not
+// be brought back by anybody — not by the player who had dropped, and not by
+// the one who had never left and had watched it happen from an open tab. The
+// hands, the pile and the score were all still on the server. Both of them
+// were looking at the board. The only offer either screen made was "Back to
+// games".
+//
+// Nobody is surprised by this resume: everyone it concerns is at the table.
+func TestResumeBringsBackAHumanTableWhenEverybodyIsBack(t *testing.T) {
+	ctx := t.Context()
+	m, repo, _ := newReaperHarness(t)
+	saved := abandonedMatch(t, repo, models.Player{ID: "p2", Name: "Bo"}, bot("bot:a"))
+	sitDown(t, m, saved.ID.Hex(), "p1")
+	sitDown(t, m, saved.ID.Hex(), "p2")
+
+	if err := m.ResumeAbandoned(ctx, saved.ID.Hex(), "p1"); err != nil {
+		t.Fatalf("resuming a table both players are sitting at: %v", err)
+	}
+	got, err := repo.FindByID(ctx, saved.ID)
+	if err != nil {
+		t.Fatalf("reloading: %v", err)
+	}
+	if got.Status != "active" {
+		t.Errorf("status = %q, want active", got.Status)
+	}
+	if got.EndedAt != nil {
+		t.Errorf("EndedAt = %v, want nil on a resumed table", got.EndedAt)
+	}
+}
+
+// Either of them may press it. The player who stayed has at least as much
+// claim on the game as the one who dropped, and a rule that let only the
+// returning player resume would stall on whoever happened to press first.
+func TestEitherPlayerMayResumeOnceBothAreBack(t *testing.T) {
+	ctx := t.Context()
+	m, repo, _ := newReaperHarness(t)
+	saved := abandonedMatch(t, repo, models.Player{ID: "p2", Name: "Bo"})
+	sitDown(t, m, saved.ID.Hex(), "p1")
+	sitDown(t, m, saved.ID.Hex(), "p2")
+
+	if err := m.ResumeAbandoned(ctx, saved.ID.Hex(), "p2"); err != nil {
+		t.Fatalf("resuming as the second player: %v", err)
+	}
+	got, _ := repo.FindByID(ctx, saved.ID)
+	if got.Status != "active" {
+		t.Errorf("status = %q, want active", got.Status)
+	}
+}
+
+// And the table goes back to being unresumable the moment somebody leaves
+// again, rather than staying open because it once was.
+func TestResumeRefusesAgainAfterSomebodyLeaves(t *testing.T) {
+	ctx := t.Context()
+	m, repo, _ := newReaperHarness(t)
+	saved := abandonedMatch(t, repo, models.Player{ID: "p2", Name: "Bo"})
+	sitDown(t, m, saved.ID.Hex(), "p1")
+	leave := sitDown(t, m, saved.ID.Hex(), "p2")
+	leave()
+
+	err := m.ResumeAbandoned(ctx, saved.ID.Hex(), "p1")
+	if module.CodeOf(err) != "TABLE_HAS_PLAYERS_AWAY" {
+		t.Fatalf("code = %q, want TABLE_HAS_PLAYERS_AWAY (err %v)", module.CodeOf(err), err)
+	}
+}
+
+// A table of bots needs nobody else to be anywhere: the original feature,
+// unchanged, and the case the old rule was written around.
+func TestResumeStillNeedsNobodyPresentAtABotsOnlyTable(t *testing.T) {
+	ctx := t.Context()
+	m, repo, _ := newReaperHarness(t)
+	saved := abandonedMatch(t, repo, bot("bot:a"), bot("bot:b"))
+
+	if err := m.ResumeAbandoned(ctx, saved.ID.Hex(), "p1"); err != nil {
+		t.Fatalf("resuming a bots-only table with no socket open: %v", err)
 	}
 }
 

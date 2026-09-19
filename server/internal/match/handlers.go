@@ -17,6 +17,7 @@ import (
 	"zolik/server/internal/auth"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
+	"zolik/server/internal/rules"
 	"zolik/server/internal/ws"
 )
 
@@ -78,7 +79,7 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	// A stored-games list: every table this caller is seated at. Registered
 	// as /users/me/tables rather than /matches/mine — "table" is this
 	// package's own word for a live envelope (see NOT_AT_THIS_TABLE,
-	// TABLE_HAS_OTHER_PLAYERS), and /matches/{id} above is deliberately
+	// TABLE_HAS_PLAYERS_AWAY), and /matches/{id} above is deliberately
 	// unauthenticated and answers a spectator view; a caller-scoped list
 	// belongs with the rest of "about me", not on that same segment.
 	r.With(auth.AuthMiddleware).Get("/users/me/tables", h.myTables)
@@ -611,7 +612,7 @@ type storedTable struct {
 	CanDelete bool `json:"canDelete"`
 }
 
-func storedTableOf(m models.Match, viewerID string) storedTable {
+func (h *Handlers) storedTableOf(m models.Match, viewerID string) storedTable {
 	// UpdatedAt is unset on a match nothing has yet written back through
 	// UpdateWithVersion — a lobby nobody has touched since it was created is
 	// the ordinary case. CreatedAt is the honest answer for "last activity"
@@ -634,7 +635,7 @@ func storedTableOf(m models.Match, viewerID string) storedTable {
 		SuspendedAt: m.SuspendedAt,
 		UpdatedAt:   updatedAt,
 	}
-	out.CanResume = m.Status == "abandoned" && resumableBy(m.Players, viewerID)
+	out.CanResume = m.Status == "abandoned" && h.manager.resumableBy(m, viewerID)
 	out.CanDelete = out.IsHost
 	for _, p := range m.Players {
 		out.Players = append(out.Players, PlayerMsg{ID: p.ID, Name: p.Name, IsAI: p.IsAI, Avatar: p.Avatar})
@@ -675,7 +676,7 @@ func (h *Handlers) myTables(w http.ResponseWriter, req *http.Request) {
 	}
 	out := make([]storedTable, 0, len(rows))
 	for _, m := range rows {
-		out = append(out, storedTableOf(m, uc.UserID))
+		out = append(out, h.storedTableOf(m, uc.UserID))
 	}
 	writeJSON(w, map[string]any{"tables": out})
 }
@@ -761,6 +762,10 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 	defer func() {
 		if h.manager.Hub().Registry().RemoveIfCurrent(matchID, playerID, wsConn) {
 			h.manager.SuspendOnDisconnect(context.WithoutCancel(ctx), matchID, playerID, "socket closed")
+			// A seat leaving is also what takes a resume offer away from the
+			// people still looking at a swept-up table. Same call as the
+			// arrival below, and a no-op for every other status.
+			h.manager.AnnouncePresence(context.WithoutCancel(ctx), matchID)
 		}
 	}()
 
@@ -795,6 +800,17 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	h.manager.Hub().WriteDirect(matchID, playerID, h.manager.BuildStateMsg(m, playerID))
+	// And, on a swept-up table, tell everybody else that somebody just sat
+	// down: their own resume offer may have become available because of it.
+	// After the direct write above, so the arriving player's first message is
+	// still their own state.
+	//
+	// Gated on the status already in hand rather than left to AnnouncePresence
+	// to discover, so that opening a socket onto an ordinary match — which is
+	// every socket, nearly all the time — costs no extra read.
+	if m.Status == string(rules.StatusAbandoned) {
+		h.manager.AnnouncePresence(ctx, matchID)
+	}
 
 	for {
 		_, data, err := conn.ReadMessage()
@@ -857,7 +873,7 @@ func writeModuleError(w http.ResponseWriter, err error) {
 	switch code {
 	case "UNKNOWN_MODULE", "UNKNOWN_VARIATION", "NO_RULES", "MATCH_NOT_FOUND":
 		status = http.StatusNotFound
-	case "NOT_AT_THIS_TABLE", "TABLE_HAS_OTHER_PLAYERS":
+	case "NOT_AT_THIS_TABLE", "TABLE_HAS_PLAYERS_AWAY":
 		status = http.StatusForbidden
 	case "NOT_THE_HOST":
 		status = http.StatusForbidden

@@ -35,7 +35,7 @@ export const en: Record<string, string> = {
   'err.MATCH_NOT_ABANDONED': 'That table is not waiting to be brought back',
   'err.MATCH_NOT_FOUND': 'That table no longer exists',
   'err.MATCH_DELETED': 'The host deleted this table',
-  'err.TABLE_HAS_OTHER_PLAYERS': 'Only a table where everyone else is a bot can be brought back',
+  'err.TABLE_HAS_PLAYERS_AWAY': 'Everyone has to be back at the table before this game can be picked up',
   'err.DISCARD_LOCKED': 'The discard pile is locked for now',
   'err.DISCARD_PILE_EMPTY': 'The discard pile is empty',
   'err.NO_CARDS_LEFT': 'No cards left to draw',
@@ -1065,6 +1065,12 @@ export const en: Record<string, string> = {
   'match.abandoned': 'Nobody came back to this table, so it was set aside. The cards are exactly where you left them.',
   'match.resume': 'Pick up where you left off',
   'match.resuming': 'Bringing the table back…',
+  // Why a swept-up table is not offering the resume above. Everyone at it has
+  // to be looking at it before one player may bring it back, so this names
+  // the people it is still waiting for — something the reader can act on, by
+  // sending them the link — rather than leaving a banner whose only button is
+  // the way out.
+  'match.abandonedWaitingFor': 'Waiting for {names} to come back to the table.',
   'match.controls': 'Controls',
   'match.over': 'Match over',
   'match.settingUp': 'Setting up…',
