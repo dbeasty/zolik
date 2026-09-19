@@ -347,7 +347,8 @@ type addBotReq struct {
 //	                   bot a name a player recognises and a lifetime record
 //	                   that survives the lobby it was created in.
 func (h *Handlers) addBot(w http.ResponseWriter, req *http.Request) {
-	if _, ok := auth.GetUserContext(req); !ok {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -355,6 +356,16 @@ func (h *Handlers) addBot(w http.ResponseWriter, req *http.Request) {
 	m, err := h.manager.Repo().Resolve(ctx, chi.URLParam(req, "id"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	// The host's table, and only the host's to fill. This used to check that
+	// the caller was signed in and then discard who they were, which made the
+	// six characters a host pastes into a chat enough for any passer-by to
+	// seat a bot at their table and deal it — the invited friend then arriving
+	// to MATCH_ALREADY_STARTED. Seat, Invite and DeleteAsHost have all always
+	// asked; these two were the pair that did not.
+	if err := requireHost(m, uc.UserID); err != nil {
+		writeModuleError(w, err)
 		return
 	}
 	var body addBotReq
@@ -489,8 +500,24 @@ func (h *Handlers) sidesFor(m models.Match) [][]string {
 }
 
 func (h *Handlers) startMatch(w http.ResponseWriter, req *http.Request) {
-	if _, ok := auth.GetUserContext(req); !ok {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	ctx := req.Context()
+	// Resolved before anything else so there is a host to compare against —
+	// see the note on addBot for what an unguarded deal let a stranger do.
+	// The check lives here rather than inside Manager.Start for the same
+	// reason debugState's does: Start is a runtime operation with no caller,
+	// driven by tests and by the bot loop as well as by a person.
+	m, err := h.manager.Repo().Resolve(ctx, chi.URLParam(req, "id"))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	if err := requireHost(m, uc.UserID); err != nil {
+		writeModuleError(w, err)
 		return
 	}
 	// Start is where the module's state is actually allocated. A refusal here
@@ -500,7 +527,7 @@ func (h *Handlers) startMatch(w http.ResponseWriter, req *http.Request) {
 		admission.WriteBusy(w, err)
 		return
 	}
-	m, err := h.manager.Start(req.Context(), chi.URLParam(req, "id"))
+	m, err = h.manager.Start(ctx, chi.URLParam(req, "id"))
 	if err != nil {
 		writeModuleError(w, err)
 		return
@@ -802,6 +829,21 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 func writeJSON(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(v)
+}
+
+// requireHost is the rule that shaping a table belongs to whoever opened it.
+//
+// The same rule Manager.Seat and Manager.Invite have always carried, written
+// once here for the two handlers whose work is done before the manager is
+// reached — adding a seat, and dealing. Host rather than merely seated,
+// because that is what both clients already offer: the table screen shows
+// "Add a bot" and "Start" to the host and "waiting for the host" to everybody
+// else, so a non-host reaching either of these is not a player using the app.
+func requireHost(m models.Match, playerID string) error {
+	if m.HostID != playerID {
+		return module.Error{Code: "NOT_THE_HOST", Message: playerID}
+	}
+	return nil
 }
 
 // writeModuleError maps a module refusal onto a status code.
