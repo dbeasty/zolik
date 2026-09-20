@@ -32,6 +32,7 @@ export const mt: Record<string, string> = {
   'err.MATCH_DELETED': 'Il-host ħassar din il-mejda',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Kulħadd irid ikun lura mal-mejda biex il-logħba tkun tista’ titkompla',
   'err.NOTHING_TO_REPLAY': 'Għadu m’hemm ebda logħba x’terġa’ tara hawn',
+  'err.REPLAY_UNAVAILABLE': 'Il-logħob ma jistax jerġa’ jintwera fuq dan is-server',
   'err.DISCARD_LOCKED': 'Il-munzell tal-iskart huwa msakkar għalissa',
   'err.DISCARD_PILE_EMPTY': 'Il-munzell tal-iskart huwa vojt',
   'err.NO_CARDS_LEFT': "M'hemmx aktar karti x'tiġbed",

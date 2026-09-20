@@ -32,6 +32,7 @@ export const fr: Record<string, string> = {
   'err.MATCH_DELETED': 'L’hôte a supprimé cette table',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Tout le monde doit être revenu à la table pour reprendre la partie',
   'err.NOTHING_TO_REPLAY': 'Il n’y a pas encore de partie à revoir ici',
+  'err.REPLAY_UNAVAILABLE': 'Le replay des parties n’est pas disponible sur ce serveur',
   'err.DISCARD_LOCKED': "La défausse est verrouillée pour l'instant",
   'err.DISCARD_PILE_EMPTY': 'La défausse est vide',
   'err.NO_CARDS_LEFT': 'Plus de cartes à piocher',

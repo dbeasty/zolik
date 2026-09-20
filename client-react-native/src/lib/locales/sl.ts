@@ -32,6 +32,7 @@ export const sl: Record<string, string> = {
   'err.MATCH_DELETED': 'Gostitelj je izbrisal to mizo',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Vsi se morajo vrniti k mizi, da se igra lahko nadaljuje',
   'err.NOTHING_TO_REPLAY': 'Tu še ni igre za ponovni ogled',
+  'err.REPLAY_UNAVAILABLE': 'Ponovno predvajanje partij na tem strežniku ni na voljo',
   'err.DISCARD_LOCKED': 'Kup odvrženih je zaenkrat zaklenjen',
   'err.DISCARD_PILE_EMPTY': 'Kup odvrženih je prazen',
   'err.NO_CARDS_LEFT': 'Ni več kart za jemanje',

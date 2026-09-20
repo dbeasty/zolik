@@ -269,6 +269,19 @@ func (r *kdbRepository) FindForPlayer(ctx context.Context, playerID string, f Pl
 	return out, nil
 }
 
+// RetainsHistory reports whether this store still keeps the versions
+// BoardAfter walks, and refuses with the engine's own remedy when it does not.
+//
+// Asked rather than assumed because history is a per-namespace *mode*, not a
+// property of the engine: a KDB deployment migrated to history=none still
+// answers DocumentVersions, and still would right up to the moment its
+// retention window swept the commits out from under a replay somebody was
+// halfway through. Offering the feature in that shape is worse than not
+// offering it.
+func (r *kdbRepository) RetainsHistory(ctx context.Context) error {
+	return r.k.RetainsHistory(db.NSMatches, "stepping back through a game that has stopped")
+}
+
 // BoardAfter returns the match's board as it stood after a given number of
 // accepted actions, read out of the store's own history.
 //

@@ -32,6 +32,7 @@ export const pt: Record<string, string> = {
   'err.MATCH_DELETED': 'O anfitrião eliminou esta mesa',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Têm de estar todos de volta à mesa para se poder retomar o jogo',
   'err.NOTHING_TO_REPLAY': 'Ainda não há nenhum jogo para rever aqui',
+  'err.REPLAY_UNAVAILABLE': 'A repetição de partidas não está disponível neste servidor',
   'err.DISCARD_LOCKED': 'O monte de descartes está bloqueado por agora',
   'err.DISCARD_PILE_EMPTY': 'O monte de descartes está vazio',
   'err.NO_CARDS_LEFT': 'Já não há cartas para comprar',

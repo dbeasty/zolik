@@ -37,6 +37,7 @@ export const en: Record<string, string> = {
   'err.MATCH_DELETED': 'The host deleted this table',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Everyone has to be back at the table before this game can be picked up',
   'err.NOTHING_TO_REPLAY': 'There is no game here to replay yet',
+  'err.REPLAY_UNAVAILABLE': 'Replays are not available on this server',
   'err.DISCARD_LOCKED': 'The discard pile is locked for now',
   'err.DISCARD_PILE_EMPTY': 'The discard pile is empty',
   'err.NO_CARDS_LEFT': 'No cards left to draw',

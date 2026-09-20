@@ -625,7 +625,7 @@ type storedTable struct {
 	CanReplay bool `json:"canReplay"`
 }
 
-func (h *Handlers) storedTableOf(m models.Match, viewerID string) storedTable {
+func (h *Handlers) storedTableOf(m models.Match, viewerID string, replayable bool) storedTable {
 	// UpdatedAt is unset on a match nothing has yet written back through
 	// UpdateWithVersion — a lobby nobody has touched since it was created is
 	// the ordinary case. CreatedAt is the honest answer for "last activity"
@@ -650,7 +650,10 @@ func (h *Handlers) storedTableOf(m models.Match, viewerID string) storedTable {
 	}
 	out.CanResume = m.Status == "abandoned" && h.manager.resumableBy(m, viewerID)
 	out.CanDelete = out.IsHost
-	out.CanReplay = m.StartedAt != nil
+	// Two questions, and the deployment's half is handed in rather than asked
+	// here: it is the same answer for every row, and it costs a read lock on
+	// the engine to get.
+	out.CanReplay = replayable && m.StartedAt != nil
 	for _, p := range m.Players {
 		out.Players = append(out.Players, PlayerMsg{ID: p.ID, Name: p.Name, IsAI: p.IsAI, Avatar: p.Avatar})
 		if p.IsAI {
@@ -688,9 +691,12 @@ func (h *Handlers) myTables(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	// Asked once for the whole list. A row may not offer a replay this
+	// deployment's endpoint would then refuse — see Manager.ReplayAvailable.
+	replayable := h.manager.ReplayAvailable(req.Context()) == nil
 	out := make([]storedTable, 0, len(rows))
 	for _, m := range rows {
-		out = append(out, h.storedTableOf(m, uc.UserID))
+		out = append(out, h.storedTableOf(m, uc.UserID, replayable))
 	}
 	writeJSON(w, map[string]any{"tables": out})
 }
@@ -709,6 +715,13 @@ func (h *Handlers) replayMatch(w http.ResponseWriter, req *http.Request) {
 	uc, ok := auth.GetUserContext(req)
 	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	// Before the match is even looked up: whether this deployment has replay
+	// at all is not a fact about any match, and answering it first means a
+	// deployment without replay never reads a match to say so.
+	if err := h.manager.ReplayAvailable(req.Context()); err != nil {
+		writeModuleError(w, err)
 		return
 	}
 	id := chi.URLParam(req, "id")
@@ -946,6 +959,14 @@ func writeModuleError(w http.ResponseWriter, err error) {
 		status = http.StatusConflict
 	case "WAITING_ROOM_UNAVAILABLE", "SERVER_BUSY":
 		status = http.StatusServiceUnavailable
+	case "REPLAY_UNAVAILABLE":
+		// Not implemented rather than not found: the route exists, the caller
+		// asked for it correctly, and this deployment does not have the
+		// feature — which is a fact about the server, not about the match.
+		// 404 would have been a lie about the match; 503 would have promised
+		// it will work if you try again, and it will not until an operator
+		// changes something.
+		status = http.StatusNotImplemented
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)

@@ -474,6 +474,25 @@ func (k *KDB) DocumentVersions(ns, key string) ([]string, error) {
 	return out, nil
 }
 
+// RetainsHistory reports whether this namespace still keeps the past, and
+// says why not when it does not.
+//
+// DocumentVersions and GetAt answer perfectly well under history=none — right
+// up until the retention window passes and the commits they were walking stop
+// being producible. So this is not a question about whether the call compiles;
+// it is a question about whether the answer will still be there tomorrow. A
+// caller that means to *offer* history to a player asks this first.
+//
+// feature is named in the error, so it reads as a sentence and carries the
+// engine's own migrate-history remedy with it.
+func (k *KDB) RetainsHistory(ns, feature string) error {
+	n := k.ns(ns)
+	if n == nil {
+		return fmt.Errorf("kdb: no namespace %q", ns)
+	}
+	return n.rt.AssertRetainsHistory(n.id, feature)
+}
+
 // GetAt reads a key as it stood at one of those commits.
 //
 // Returns db.ErrNotFound when the key did not exist yet at that commit, which

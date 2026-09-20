@@ -32,6 +32,7 @@ export const es: Record<string, string> = {
   'err.MATCH_DELETED': 'El anfitrión eliminó esta mesa',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Todos tienen que volver a la mesa para poder retomar la partida',
   'err.NOTHING_TO_REPLAY': 'Aquí todavía no hay ninguna partida que reproducir',
+  'err.REPLAY_UNAVAILABLE': 'La reproducción de partidas no está disponible en este servidor',
   'err.DISCARD_LOCKED': 'El montón de descarte está bloqueado por ahora',
   'err.DISCARD_PILE_EMPTY': 'El montón de descarte está vacío',
   'err.NO_CARDS_LEFT': 'No quedan cartas para robar',

@@ -462,6 +462,9 @@ func (a *App) configureManager(matchMgr *match.Manager) *match.Manager {
 		time.Duration(a.cfg.BotThinkMinMS)*time.Millisecond,
 		time.Duration(a.cfg.BotThinkMaxMS)*time.Millisecond,
 	)
+	// And whether a stopped game can be stepped through. The operator's half
+	// of that question; the store answers the other half itself.
+	matchMgr.SetReplayEnabled(a.cfg.ReplayEnabled)
 
 	return matchMgr
 }

@@ -32,6 +32,7 @@ export const da: Record<string, string> = {
   'err.MATCH_DELETED': 'Værten har slettet dette bord',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Alle skal være tilbage ved bordet, før spillet kan genoptages',
   'err.NOTHING_TO_REPLAY': 'Der er endnu ikke noget spil at afspille her',
+  'err.REPLAY_UNAVAILABLE': 'Genafspilning er ikke tilgængelig på denne server',
   'err.DISCARD_LOCKED': 'Kastebunken er låst indtil videre',
   'err.DISCARD_PILE_EMPTY': 'Kastebunken er tom',
   'err.NO_CARDS_LEFT': 'Der er ikke flere kort at trække',

@@ -32,6 +32,7 @@ export const cs: Record<string, string> = {
   'err.MATCH_DELETED': 'Hostitel tenhle stůl smazal',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Aby se hra dala obnovit, musí být u stolu zase všichni',
   'err.NOTHING_TO_REPLAY': 'Tady zatím není žádná hra k přehrání',
+  'err.REPLAY_UNAVAILABLE': 'Přehrávání her není na tomto serveru dostupné',
   'err.DISCARD_LOCKED': 'Odhazovací balíček je zatím zamčený',
   'err.DISCARD_PILE_EMPTY': 'Odhazovací balíček je prázdný',
   'err.NO_CARDS_LEFT': 'Už nezbývají žádné karty',

@@ -112,6 +112,15 @@ type ReplayFrame struct {
 // the log.
 type BoardSource interface {
 	BoardAfter(ctx context.Context, id bson.ObjectID, actions int) (models.Match, error)
+	// RetainsHistory reports whether the versions BoardAfter walks are still
+	// being kept, and says why not when they are not.
+	//
+	// On the interface rather than beside it because implementing BoardAfter
+	// is not the same as being able to answer it: KDB migrated to
+	// history=none reclaims commits on a retention window, so the same code
+	// path returns boards today and nothing at all next week. An engine that
+	// offers the one has to be able to answer the other.
+	RetainsHistory(ctx context.Context) error
 }
 
 // How many frames one request may fold.
@@ -445,6 +454,47 @@ func chaptersOf(match models.Match) []ReplayChapter {
 func (m *Manager) boardSource() BoardSource {
 	if b, ok := m.repo.(BoardSource); ok {
 		return b
+	}
+	return nil
+}
+
+// ReplayAvailable says whether this deployment can offer replay at all, and
+// why not when it cannot.
+//
+// Three gates, and every one of them is about the deployment rather than
+// about the match:
+//
+//   - the operator turned it on (FEATURE_FLAG_MATCH_REPLAY),
+//   - the store keeps every version of a document, which is KDB and not Mongo,
+//   - and that store is still *keeping* them, rather than running history=none
+//     and reclaiming on a window.
+//
+// It is one function because the answer has to be the same in both places it
+// is needed — the endpoint, and the canReplay a stored-table row advertises.
+// A list that offers a button the endpoint then refuses is the failure mode
+// this exists to prevent.
+//
+// Asked per call rather than resolved at boot: the second and third gates are
+// engine state, and SetHistoryMode can move the third one under a running
+// process. Both checks are a type assertion and a read lock, which is nothing
+// beside the fold they guard.
+func (m *Manager) ReplayAvailable(ctx context.Context) error {
+	if !m.replayEnabled {
+		return module.Error{
+			Code:    "REPLAY_UNAVAILABLE",
+			Message: "replay is off in this deployment (FEATURE_FLAG_MATCH_REPLAY)",
+		}
+	}
+	src := m.boardSource()
+	if src == nil {
+		return module.Error{
+			Code: "REPLAY_UNAVAILABLE",
+			Message: "replay needs a store that keeps every version of a document, " +
+				"which is FEATURE_FLAG_DB_ENGINE=kdb; this one replaces them in place",
+		}
+	}
+	if err := src.RetainsHistory(ctx); err != nil {
+		return module.Error{Code: "REPLAY_UNAVAILABLE", Message: err.Error()}
 	}
 	return nil
 }

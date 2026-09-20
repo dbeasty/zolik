@@ -32,6 +32,7 @@ export const hu: Record<string, string> = {
   'err.MATCH_DELETED': 'A házigazda törölte ezt az asztalt',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Mindenkinek vissza kell térnie az asztalhoz, hogy a játék folytatódhasson',
   'err.NOTHING_TO_REPLAY': 'Itt még nincs visszajátszható játszma',
+  'err.REPLAY_UNAVAILABLE': 'A visszajátszás nem érhető el ezen a kiszolgálón',
   'err.DISCARD_LOCKED': 'A dobópakli egyelőre zárva van',
   'err.DISCARD_PILE_EMPTY': 'A dobópakli üres',
   'err.NO_CARDS_LEFT': 'Nincs több húzható lap',

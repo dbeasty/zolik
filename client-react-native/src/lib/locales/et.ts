@@ -32,6 +32,7 @@ export const et: Record<string, string> = {
   'err.MATCH_DELETED': 'Võõrustaja kustutas selle laua',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Mängu jätkamiseks peavad kõik olema laua juurde tagasi tulnud',
   'err.NOTHING_TO_REPLAY': 'Siin pole veel mängu, mida taasesitada',
+  'err.REPLAY_UNAVAILABLE': 'Mängude taasesitus ei ole selles serveris saadaval',
   'err.DISCARD_LOCKED': 'Viskepakk on esialgu lukus',
   'err.DISCARD_PILE_EMPTY': 'Viskepakk on tühi',
   'err.NO_CARDS_LEFT': 'Tõmmata pole enam midagi',

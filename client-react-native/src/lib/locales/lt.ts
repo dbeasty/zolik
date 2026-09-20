@@ -32,6 +32,7 @@ export const lt: Record<string, string> = {
   'err.MATCH_DELETED': 'Šeimininkas ištrynė šį stalą',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Kad žaidimą būtų galima tęsti, visi turi grįžti prie stalo',
   'err.NOTHING_TO_REPLAY': 'Čia dar nėra žaidimo, kurį būtų galima peržiūrėti',
+  'err.REPLAY_UNAVAILABLE': 'Partijų peržiūra šiame serveryje negalima',
   'err.DISCARD_LOCKED': 'Atmetimo krūvelė kol kas užrakinta',
   'err.DISCARD_PILE_EMPTY': 'Atmetimo krūvelė tuščia',
   'err.NO_CARDS_LEFT': 'Nebėra kortų traukti',

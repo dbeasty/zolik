@@ -32,6 +32,7 @@ export const lv: Record<string, string> = {
   'err.MATCH_DELETED': 'Saimnieks izdzēsa šo galdu',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Lai spēli varētu turpināt, visiem jābūt atpakaļ pie galda',
   'err.NOTHING_TO_REPLAY': 'Šeit vēl nav spēles, ko atkārtot',
+  'err.REPLAY_UNAVAILABLE': 'Spēļu atkārtojums šajā serverī nav pieejams',
   'err.DISCARD_LOCKED': 'Izmešanas kaudze pagaidām ir slēgta',
   'err.DISCARD_PILE_EMPTY': 'Izmešanas kaudze ir tukša',
   'err.NO_CARDS_LEFT': 'Vairs nav kārtu, ko vilkt',

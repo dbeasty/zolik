@@ -61,6 +61,11 @@ services:
       FEATURE_FLAG_DB_ENGINE: kdb
       KDB_PATH: /data/kdb
       PORT: "8090"
+      # Stepping back through a game that has stopped. On here because this
+      # stack is where it is developed and where the end-to-end suite exercises
+      # it; the engine above is the other half of what it needs, and the
+      # server refuses the feature outright without it.
+      FEATURE_FLAG_MATCH_REPLAY: "true"
       # Off, and said out loud. Removing the SSH_* variables does not turn the
       # terminal client off — SSH_ENABLED defaults *on* whenever APP_ENV is
       # local, and its default host key path is one the image's nonroot user

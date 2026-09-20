@@ -45,6 +45,16 @@ services:
       FEATURE_FLAG_DB_ENGINE: kdb
       KDB_PATH: /data/kdb
       PORT: "8090"
+      # Stepping back through a game that has stopped. Off until somebody
+      # decides otherwise, and this line is the decision — a new way for a
+      # player to read every board a match passed through is not something a
+      # deployment should acquire by being upgraded.
+      #
+      # It is not the only gate: the server also requires a store that keeps
+      # every version of a document and is still keeping it, which is the
+      # engine above running history=full. Turning this on where that is not
+      # true changes nothing, by design.
+      FEATURE_FLAG_MATCH_REPLAY: "false"
       # Off, and said out loud. Removing the SSH_* variables does not turn the
       # terminal client off — SSH_ENABLED defaults *on* whenever APP_ENV is
       # local, and its default host key path is one the image's nonroot user

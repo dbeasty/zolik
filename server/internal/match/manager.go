@@ -59,6 +59,12 @@ type Manager struct {
 	// exactly as it did before the pace was configurable.
 	botThinkMin time.Duration
 	botThinkMax time.Duration
+
+	// replayEnabled is the operator's half of whether a stopped game can be
+	// stepped through; the store's half is asked of the store. Off by default,
+	// which is what every test and every Mongo deployment runs with — see
+	// ReplayAvailable, and SetReplayEnabled below.
+	replayEnabled bool
 }
 
 // Recorder is notified when a match finishes, so its result can be recorded
@@ -89,6 +95,17 @@ func (m *Manager) SetBotPace(min, max time.Duration) { m.botThinkMin, m.botThink
 
 // SetRecorder attaches statistics recording. Optional.
 func (m *Manager) SetRecorder(r Recorder) { m.recorder = r }
+
+// SetReplayEnabled turns stepping back through stopped games on.
+//
+// Optional and off by default, like every other setter here, so a Manager
+// built without it behaves exactly as one did before replay existed —
+// including writing no checkpoints, which is the whole of what the feature
+// costs the write path.
+//
+// Only half the answer: the store still has to be one that keeps history, and
+// still be keeping it. See ReplayAvailable.
+func (m *Manager) SetReplayEnabled(on bool) { m.replayEnabled = on }
 
 // WaitingLookup answers whether a player is currently in the waiting-room
 // pool, and lets them be picked up out of it. Satisfied by *lobby.Store.
@@ -442,7 +459,7 @@ func (m *Manager) HandleAction(ctx context.Context, idOrCode, playerID string, a
 	// both places would decode the module's whole state twice on every single
 	// move, which is the one thing this path cannot afford.
 	rounds := module.RoundsFor(mod, next)
-	if c, ok := checkpointClosedBy(match, rounds); ok {
+	if c, ok := m.checkpointFor(ctx, match, rounds); ok {
 		match.Checkpoints = append(match.Checkpoints, c)
 	}
 
@@ -512,6 +529,21 @@ func (m *Manager) broadcastWith(match models.Match, rounds *module.RoundLog) {
 	m.hub.BroadcastGameState(id, recipients, func(playerID string) interface{} {
 		return m.buildStateMsg(match, playerID, rounds)
 	})
+}
+
+// checkpointFor is checkpointClosedBy, asked only where the answer will ever
+// be read.
+//
+// Checkpoints exist for replay and for nothing else, so a deployment that
+// cannot offer replay does not pay for them — not the bytes, and not the copy
+// of the state at a round boundary. It is also why turning the flag on is not
+// retroactive: games played while it was off carry no landmarks, and replay
+// without chapters rather than with invented ones.
+func (m *Manager) checkpointFor(ctx context.Context, match models.Match, rounds *module.RoundLog) (models.MatchCheckpoint, bool) {
+	if m.ReplayAvailable(ctx) != nil {
+		return models.MatchCheckpoint{}, false
+	}
+	return checkpointClosedBy(match, rounds)
 }
 
 // checkpointClosedBy reports the checkpoint the just-applied action earned, if

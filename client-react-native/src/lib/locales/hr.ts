@@ -32,6 +32,7 @@ export const hr: Record<string, string> = {
   'err.MATCH_DELETED': 'Domaćin je izbrisao ovaj stol',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Svi se moraju vratiti za stol da bi se igra mogla nastaviti',
   'err.NOTHING_TO_REPLAY': 'Ovdje još nema igre za ponavljanje',
+  'err.REPLAY_UNAVAILABLE': 'Ponovno gledanje partija nije dostupno na ovom poslužitelju',
   'err.DISCARD_LOCKED': 'Hrpa odbačenih je zasad zaključana',
   'err.DISCARD_PILE_EMPTY': 'Hrpa odbačenih je prazna',
   'err.NO_CARDS_LEFT': 'Nema više karata za vučenje',

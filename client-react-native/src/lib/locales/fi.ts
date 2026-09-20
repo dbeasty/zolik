@@ -32,6 +32,7 @@ export const fi: Record<string, string> = {
   'err.MATCH_DELETED': 'Isäntä poisti tämän pöydän',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Kaikkien on oltava takaisin pöydässä, ennen kuin peliä voi jatkaa',
   'err.NOTHING_TO_REPLAY': 'Täällä ei ole vielä peliä toistettavaksi',
+  'err.REPLAY_UNAVAILABLE': 'Pelien toisto ei ole käytössä tällä palvelimella',
   'err.DISCARD_LOCKED': 'Poistopino on toistaiseksi lukittu',
   'err.DISCARD_PILE_EMPTY': 'Poistopino on tyhjä',
   'err.NO_CARDS_LEFT': 'Nostettavia kortteja ei ole jäljellä',

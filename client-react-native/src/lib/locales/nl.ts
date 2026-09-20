@@ -32,6 +32,7 @@ export const nl: Record<string, string> = {
   'err.MATCH_DELETED': 'De gastheer heeft deze tafel verwijderd',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Iedereen moet terug aan tafel zijn voordat dit spel hervat kan worden',
   'err.NOTHING_TO_REPLAY': 'Hier is nog geen partij om terug te kijken',
+  'err.REPLAY_UNAVAILABLE': 'Partijen terugkijken kan niet op deze server',
   'err.DISCARD_LOCKED': 'De aflegstapel is voorlopig op slot',
   'err.DISCARD_PILE_EMPTY': 'De aflegstapel is leeg',
   'err.NO_CARDS_LEFT': 'Er zijn geen kaarten meer om te pakken',
