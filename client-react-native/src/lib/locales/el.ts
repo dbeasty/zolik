@@ -1391,4 +1391,31 @@ export const el: Record<string, string> = {
   'replay.play': 'Αναπαραγωγή',
   'replay.pause': 'Παύση',
   'replay.move': '{player} · {move}',
+
+  // --- the showdown --------------------------------------------------------
+  //
+  // Hold'em stops after every hand with the cards on the table, and a player
+  // may turn their own hand over before the next one is dealt. Most of these
+  // earn a line for the usual reason — what they mean lives in their params —
+  // and the rest because `humanise` would render "Shown Hand" or "Mucked" as
+  // English that looks written rather than missing.
+  'err.ALREADY_SHOWN': 'Το χέρι σου είναι ήδη ανοιχτό',
+  'err.NOTHING_TO_SHOW': 'Δεν έχεις χέρι για να δείξεις',
+  'holdem.offer.show': 'Δείξε το χέρι μου',
+  'holdem.offer.finish': 'Τερματισμός αγώνα',
+  'holdem.remedy.nothingToShow': 'Δεν έπαιξες σε αυτό το χέρι — περίμενε το επόμενο.',
+  'holdem.rules.section.showdown': 'Μετά το χέρι',
+  'holdem.rules.stopEveryHand': 'Το παιχνίδι σταματά μετά από κάθε χέρι, για να φαίνονται τα φύλλα.',
+  'holdem.rules.revealEveryone': 'Στο φανέρωμα ανοίγουν όλα τα χέρια που πλήρωσαν.',
+  'holdem.rules.revealWinners': 'Στο φανέρωμα ανοίγει μόνο το νικητήριο χέρι.',
+  'holdem.rules.showYourOwn': 'Μπορείς πάντα να ανοίξεις το δικό σου χέρι, μέχρι να δεχτείς να συνεχίσετε.',
+  'holdem.rules.showOnce': 'Ένα χέρι μπορεί να δειχτεί μόνο μία φορά.',
+  'holdem.seat.won': 'Κέρδισε',
+  'holdem.seat.mucked': 'Δεν έδειξε',
+  'holdem.status.mucked': '{playerId} δεν έδειξε',
+  'holdem.status.shownVoluntary': '{playerId} έδειξε το χέρι',
+  'zone.shownHand': 'Ανοιχτό',
+  'option.showdownReveal': 'Φανέρωμα στο showdown',
+  'choice.showdownReveal.2': 'Όλοι όσοι πλήρωσαν',
+  'choice.showdownReveal.1': 'Μόνο ο νικητής',
 };

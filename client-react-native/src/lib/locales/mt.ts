@@ -1376,4 +1376,31 @@ export const mt: Record<string, string> = {
   'replay.play': 'Ibda',
   'replay.pause': 'Pawża',
   'replay.move': '{player} · {move}',
+
+  // --- the showdown --------------------------------------------------------
+  //
+  // Hold'em stops after every hand with the cards on the table, and a player
+  // may turn their own hand over before the next one is dealt. Most of these
+  // earn a line for the usual reason — what they mean lives in their params —
+  // and the rest because `humanise` would render "Shown Hand" or "Mucked" as
+  // English that looks written rather than missing.
+  'err.ALREADY_SHOWN': 'Idejk diġà miftuħa',
+  'err.NOTHING_TO_SHOW': 'M\'għandekx idejn x\'turi',
+  'holdem.offer.show': 'Uri idejja',
+  'holdem.offer.finish': 'Temm il-logħba',
+  'holdem.remedy.nothingToShow': 'Ma lgħabtx f\'din l-idejn — stenna li jmiss.',
+  'holdem.rules.section.showdown': 'Wara l-idejn',
+  'holdem.rules.stopEveryHand': 'Il-logħob jieqaf wara kull idejn, biex il-karti jidhru.',
+  'holdem.rules.revealEveryone': 'Fil-wiri jinqalbu l-idejn kollha li ħallsu.',
+  'holdem.rules.revealWinners': 'Fil-wiri tinqaleb biss l-idejn rebbieħa.',
+  'holdem.rules.showYourOwn': 'Dejjem tista\' taqleb idejk, sakemm ma taqbilx li tkompli.',
+  'holdem.rules.showOnce': 'Idejn tista’ tintwera darba biss.',
+  'holdem.seat.won': 'Rebaħ',
+  'holdem.seat.mucked': 'Ma weriex',
+  'holdem.status.mucked': '{playerId} ma weriex',
+  'holdem.status.shownVoluntary': '{playerId} wera idejh',
+  'zone.shownHand': 'Murija',
+  'option.showdownReveal': 'Wiri fl-aħħar tal-idejn',
+  'choice.showdownReveal.2': 'Kull min ħallas',
+  'choice.showdownReveal.1': 'Ir-rebbieħ biss',
 };

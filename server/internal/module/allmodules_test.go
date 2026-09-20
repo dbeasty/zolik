@@ -1236,8 +1236,12 @@ func TestAPausingGameStillPlaysItselfOut(t *testing.T) {
 				cfg.Options = module.Options{}
 			}
 			// Ask for the pause explicitly rather than relying on this game's
-			// default, so the test says what it is testing.
-			cfg.Options[module.OptPauseBetweenRounds] = module.OptOn
+			// default, so the test says what it is testing — where the game
+			// offers the choice at all. Hold'em does not: its showdown stop is
+			// unconditional, and an undeclared option is refused outright.
+			if g.mod.Descriptor().Option(module.OptPauseBetweenRounds) != nil {
+				cfg.Options[module.OptPauseBetweenRounds] = module.OptOn
+			}
 
 			state, err := g.mod.NewMatch(cfg, g.players, 5)
 			if err != nil {
@@ -1278,7 +1282,9 @@ func TestAPausedTableSaysSo(t *testing.T) {
 			if cfg.Options == nil {
 				cfg.Options = module.Options{}
 			}
-			cfg.Options[module.OptPauseBetweenRounds] = module.OptOn
+			if g.mod.Descriptor().Option(module.OptPauseBetweenRounds) != nil {
+				cfg.Options[module.OptPauseBetweenRounds] = module.OptOn
+			}
 
 			state, err := g.mod.NewMatch(cfg, g.players, 5)
 			if err != nil {
@@ -1296,24 +1302,37 @@ func TestAPausedTableSaysSo(t *testing.T) {
 						t.Fatalf("step %d: the table is paused and waiting for nobody", step)
 					}
 					// Everyone it is waiting on is offered the way to go on,
-					// and nobody else is offered anything at all.
+					// and nobody else is offered it.
+					//
+					// This used to read "and nobody else is offered anything
+					// at all", checked by refusing any enabled verb that was
+					// not `continue`. That was exact while an intermission had
+					// exactly one control, and it turned out to be exactness
+					// about the wrong thing: Hold'em's showdown offers `show`
+					// beside `continue`, because turning your hand over is a
+					// thing you may only do while the hand is still on the
+					// table. The guarantee worth keeping is not that a paused
+					// table is silent — it is that the way on is offered to
+					// exactly the seats being waited on, so `WaitingFor` and
+					// the controls can never disagree about whom the table is
+					// stuck on. Anything else a module offers is its own
+					// business, and it is still bound by every other rule
+					// here: it must be declared, it must say why when it is
+					// off, and it must be distinguishable on screen.
 					for _, p := range g.players {
 						offers, err := g.mod.LegalActions(state, p.ID)
 						if err != nil {
 							t.Fatalf("LegalActions: %v", err)
 						}
-						enabled := false
+						onward := false
 						for _, o := range offers {
-							if o.Enabled {
-								enabled = true
-								if o.Verb != module.VerbContinue {
-									t.Errorf("a paused table offers %q", o.Verb)
-								}
+							if o.Enabled && o.Verb == module.VerbContinue {
+								onward = true
 							}
 						}
-						if want := contains(log.WaitingFor, p.ID); enabled != want {
-							t.Errorf("step %d: %s enabled=%v, waitingFor says %v",
-								step, p.ID, enabled, want)
+						if want := contains(log.WaitingFor, p.ID); onward != want {
+							t.Errorf("step %d: %s offered the way on=%v, waitingFor says %v",
+								step, p.ID, onward, want)
 						}
 					}
 				}
@@ -1342,11 +1361,69 @@ func TestAPausedTableSaysSo(t *testing.T) {
 	}
 }
 
-// pauses reports a module offering the pause as a table setting at all. A game
-// that does not declare the option is not expected to honour it — asking it to
-// would be asserting a setting it never advertised.
+// pauses reports a module whose table ever stops between rounds.
+//
+// Asked as a question about behaviour rather than about the descriptor. It
+// used to be "does this module declare OptPauseBetweenRounds", and that was
+// the same question right up until Hold'em stopped declaring it — its
+// showdown is unconditional, so the setting became a control that decided
+// nothing and was removed. Under the old reading the one game that *always*
+// pauses silently dropped out of every test about pausing, which is the
+// failure mode a gate written against a declaration always has: it tests the
+// games that admit to the feature.
+//
+// So this plays a match and watches. A module is held to the pause rules if
+// a pause is ever observed, whether it offered the choice or made it.
 func pauses(m module.GameModule) bool {
-	return m.Descriptor().Option(module.OptPauseBetweenRounds) != nil
+	for _, g := range allModules() {
+		if g.mod != m {
+			continue
+		}
+		return everPauses(g)
+	}
+	return false
+}
+
+// everPauses drives a match through its own offers and reports whether the
+// round log ever said the table was sitting between rounds.
+func everPauses(g hosted) bool {
+	cfg := g.cfg
+	if cfg.Options == nil {
+		cfg.Options = module.Options{}
+	}
+	if g.mod.Descriptor().Option(module.OptPauseBetweenRounds) != nil {
+		cfg.Options[module.OptPauseBetweenRounds] = module.OptOn
+	}
+	state, err := g.mod.NewMatch(cfg, g.players, 5)
+	if err != nil {
+		return false
+	}
+	for step := 0; step < 2000; step++ {
+		if log := module.RoundsFor(g.mod, state); log != nil && log.Paused {
+			return true
+		}
+		if done, _, err := g.mod.Finished(state); err != nil || done {
+			return false
+		}
+		actor := module.ActiveSeat(g.mod, state, g.players[0].ID, g.players)
+		if actor == "" {
+			return false
+		}
+		offers, err := g.mod.LegalActions(state, actor)
+		if err != nil {
+			return false
+		}
+		a, ok := module.ChooseAction(offers, g.prefer)
+		if !ok {
+			return false
+		}
+		next, _, err := g.mod.Apply(state, actor, a)
+		if err != nil {
+			return false
+		}
+		state = next
+	}
+	return false
 }
 
 // TestADiscardPileShowsWhatTheTableAskedFor — the open-pile option, checked

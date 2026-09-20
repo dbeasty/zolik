@@ -1353,4 +1353,31 @@ export const en: Record<string, string> = {
   'replay.play': 'Play',
   'replay.pause': 'Pause',
   'replay.move': '{player} · {move}',
+
+  // --- the showdown --------------------------------------------------------
+  //
+  // Hold'em stops after every hand with the cards on the table, and a player
+  // may turn their own hand over before the next one is dealt. Most of these
+  // earn a line for the usual reason — what they mean lives in their params —
+  // and the rest because `humanise` would render "Shown Hand" or "Mucked" as
+  // English that looks written rather than missing.
+  'err.ALREADY_SHOWN': 'Your hand is already face up',
+  'err.NOTHING_TO_SHOW': 'You have no hand to show',
+  'holdem.offer.show': 'Show my hand',
+  'holdem.offer.finish': 'Finish the match',
+  'holdem.remedy.nothingToShow': 'You were not dealt into this hand — wait for the next one.',
+  'holdem.rules.section.showdown': 'After the hand',
+  'holdem.rules.stopEveryHand': 'Play stops after every hand, so the cards can be seen.',
+  'holdem.rules.revealEveryone': 'At a showdown every hand that was called is turned face up.',
+  'holdem.rules.revealWinners': 'At a showdown only the winning hand is turned face up.',
+  'holdem.rules.showYourOwn': 'You may always turn your own hand face up, until you agree to go on.',
+  'holdem.rules.showOnce': 'A hand can be shown only once.',
+  'holdem.seat.won': 'Won',
+  'holdem.seat.mucked': 'Mucked',
+  'holdem.status.mucked': '{playerId} did not show',
+  'holdem.status.shownVoluntary': '{playerId} showed their hand',
+  'zone.shownHand': 'Shown',
+  'option.showdownReveal': 'Show at showdown',
+  'choice.showdownReveal.2': 'Everyone who was called',
+  'choice.showdownReveal.1': 'The winner only',
 };

@@ -49,6 +49,16 @@ func refusalRules(code string) []string {
 		// this refusal is the consequence of.
 		return []string{"holdem.rules.noLimit"}
 
+	// --- showing a hand ---------------------------------------------------
+	//
+	// Both point at the right to show, because both are refusals of it: one
+	// says the hand is already face up, the other that there is no hand to
+	// turn over. The "once" sentence carries the first of those.
+	case ErrAlreadyShown:
+		return []string{"holdem.rules.showOnce", "holdem.rules.showYourOwn"}
+	case ErrNothingToShow:
+		return []string{"holdem.rules.showYourOwn"}
+
 	// --- not about the rules at all ---------------------------------------
 	//
 	// An amount that is not a number is a client that sent the wrong thing,

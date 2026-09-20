@@ -14,6 +14,7 @@ const (
 	OfferCheck = "check"
 	OfferCall  = "call"
 	OfferRaise = "raise"
+	OfferShow  = "show"
 )
 
 // LegalActions answers "what may this player do right now?".
@@ -34,9 +35,27 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		return nil, err
 	}
 
-	// Between hands the only thing anybody may do is agree to go on.
+	// At a showdown there are two things to do: agree to go on, and turn your
+	// hand over before you do.
+	//
+	// Going on comes first in the list, and the order is load-bearing rather
+	// than cosmetic. A bot with no preference takes the first enabled offer it
+	// is given — `module.ChooseAction(offers, nil)` — and so does the
+	// runtime's retry path after a refusal. Put `show` first and every bot in
+	// the game would turn its bluffs face up, every hand, for free.
 	if s.Break.Open {
-		return s.Break.Offers(order(s), playerID), nil
+		on := s.Break.Offers(order(s), playerID)
+		// The last showdown's control ends the match rather than starting a
+		// hand, so it says so. Same offer, same verb, different sentence —
+		// a client renders whichever label the module names.
+		if s.Closing {
+			for i := range on {
+				if on[i].ID == module.OfferContinue {
+					on[i].LabelKey = "holdem.offer.finish"
+				}
+			}
+		}
+		return append(on, showOffer(s, playerID)), nil
 	}
 
 	if s.Status != "active" || s.Current < 0 || s.Seats[s.Current].PlayerID != playerID {
@@ -171,6 +190,39 @@ func raiseQuickChoices(s *GameState, minTo, maxTo int) []module.ParamChoice {
 		choices = append([]module.ParamChoice{{Value: strconv.Itoa(halfPot), LabelKey: "holdem.quick.halfPot"}}, choices...)
 	}
 	return choices
+}
+
+// showOffer is the control for turning your own hand face up.
+//
+// Built by hand rather than through `probe`, which is the one place in this
+// file that departs from "ask the engine". probe runs a whole `Apply`, and
+// `Apply` decodes and re-encodes the entire GameState — deck, hand history and
+// all — once per viewer per broadcast. Every other offer here pays that
+// because its legality is a betting rule with real arithmetic behind it. This
+// one's is a four-term predicate with no arithmetic at all, and `applyShow`
+// enforces exactly the same four terms in the same order, so there is nothing
+// for the two to disagree about.
+func showOffer(s *GameState, playerID string) module.ActionOffer {
+	o := module.ActionOffer{ID: OfferShow, Verb: VerbShow, LabelKey: "holdem.offer.show"}
+	seat := s.seat(playerID)
+	// Same four terms as applyShow, in the same order, so the greyed-out
+	// reason a player reads is the refusal they would have been given.
+	switch {
+	case s.LastHand == nil || !s.Break.Open:
+		o.WhyNot = module.ErrNotPaused
+	case seat == nil:
+		o.WhyNot = module.ErrNotSeated
+	case s.Break.Ready[playerID]:
+		// Having said "go on" is having let the hand go.
+		o.WhyNot = module.ErrAlreadyReady
+	case s.LastHand.shows(playerID):
+		o.WhyNot = ErrAlreadyShown
+	case len(seat.Hole) == 0:
+		o.WhyNot = ErrNothingToShow
+	default:
+		o.Enabled = true
+	}
+	return o
 }
 
 // potIfCalled is what the pot would be if the current bet were called all

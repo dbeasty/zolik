@@ -1393,4 +1393,31 @@ export const ga: Record<string, string> = {
   'replay.play': 'Seinn',
   'replay.pause': 'Sos',
   'replay.move': '{player} · {move}',
+
+  // --- the showdown --------------------------------------------------------
+  //
+  // Hold'em stops after every hand with the cards on the table, and a player
+  // may turn their own hand over before the next one is dealt. Most of these
+  // earn a line for the usual reason — what they mean lives in their params —
+  // and the rest because `humanise` would render "Shown Hand" or "Mucked" as
+  // English that looks written rather than missing.
+  'err.ALREADY_SHOWN': 'Tá do lámh oscailte cheana féin',
+  'err.NOTHING_TO_SHOW': 'Níl lámh agat le taispeáint',
+  'holdem.offer.show': 'Taispeáin mo lámh',
+  'holdem.offer.finish': 'Cuir clabhsúr ar an gcluiche',
+  'holdem.remedy.nothingToShow': 'Níor imir tú an lámh seo — fan leis an gcéad cheann eile.',
+  'holdem.rules.section.showdown': 'Tar éis na láimhe',
+  'holdem.rules.stopEveryHand': 'Stopann an imirt tar éis gach láimhe, ionas go bhfeicfear na cártaí.',
+  'holdem.rules.revealEveryone': 'Ag an taispeáint iompaítear gach lámh a d\'íoc.',
+  'holdem.rules.revealWinners': 'Ag an taispeáint ní iompaítear ach an lámh bhuach.',
+  'holdem.rules.showYourOwn': 'Is féidir leat do lámh féin a iompú i gcónaí, go dtí go n-aontaíonn tú leanúint ar aghaidh.',
+  'holdem.rules.showOnce': 'Ní féidir lámh a thaispeáint ach uair amháin.',
+  'holdem.seat.won': 'Bhuaigh',
+  'holdem.seat.mucked': 'Níor thaispeáin',
+  'holdem.status.mucked': 'Níor thaispeáin {playerId}',
+  'holdem.status.shownVoluntary': 'Thaispeáin {playerId} a lámh',
+  'zone.shownHand': 'Taispeánta',
+  'option.showdownReveal': 'Taispeáint ag an deireadh',
+  'choice.showdownReveal.2': 'Gach duine a d\'íoc',
+  'choice.showdownReveal.1': 'An buaiteoir amháin',
 };

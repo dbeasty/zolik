@@ -1367,4 +1367,31 @@ export const ro: Record<string, string> = {
   'replay.play': 'Redă',
   'replay.pause': 'Pauză',
   'replay.move': '{player} · {move}',
+
+  // --- the showdown --------------------------------------------------------
+  //
+  // Hold'em stops after every hand with the cards on the table, and a player
+  // may turn their own hand over before the next one is dealt. Most of these
+  // earn a line for the usual reason — what they mean lives in their params —
+  // and the rest because `humanise` would render "Shown Hand" or "Mucked" as
+  // English that looks written rather than missing.
+  'err.ALREADY_SHOWN': 'Mâna ta este deja pe față',
+  'err.NOTHING_TO_SHOW': 'Nu ai nicio mână de arătat',
+  'holdem.offer.show': 'Arată-mi mâna',
+  'holdem.offer.finish': 'Încheie meciul',
+  'holdem.remedy.nothingToShow': 'Nu ai jucat în această mână — așteaptă următoarea.',
+  'holdem.rules.section.showdown': 'După mână',
+  'holdem.rules.stopEveryHand': 'Jocul se oprește după fiecare mână, ca să se vadă cărțile.',
+  'holdem.rules.revealEveryone': 'La deschidere se întorc toate mâinile care au plătit.',
+  'holdem.rules.revealWinners': 'La deschidere se întoarce doar mâna câștigătoare.',
+  'holdem.rules.showYourOwn': 'Îți poți întoarce oricând propria mână, până accepți să continuați.',
+  'holdem.rules.showOnce': 'O mână poate fi arătată o singură dată.',
+  'holdem.seat.won': 'A câștigat',
+  'holdem.seat.mucked': 'Nu a arătat',
+  'holdem.status.mucked': '{playerId} nu a arătat',
+  'holdem.status.shownVoluntary': '{playerId} și-a arătat mâna',
+  'zone.shownHand': 'Arătată',
+  'option.showdownReveal': 'Arătare la deschidere',
+  'choice.showdownReveal.2': 'Toți cei care au plătit',
+  'choice.showdownReveal.1': 'Doar câștigătorul',
 };

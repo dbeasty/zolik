@@ -1376,4 +1376,31 @@ export const hu: Record<string, string> = {
   'replay.play': 'Lejátszás',
   'replay.pause': 'Szünet',
   'replay.move': '{player} · {move}',
+
+  // --- the showdown --------------------------------------------------------
+  //
+  // Hold'em stops after every hand with the cards on the table, and a player
+  // may turn their own hand over before the next one is dealt. Most of these
+  // earn a line for the usual reason — what they mean lives in their params —
+  // and the rest because `humanise` would render "Shown Hand" or "Mucked" as
+  // English that looks written rather than missing.
+  'err.ALREADY_SHOWN': 'A lapod már nyitva van',
+  'err.NOTHING_TO_SHOW': 'Nincs mit megmutatnod',
+  'holdem.offer.show': 'Lapok megmutatása',
+  'holdem.offer.finish': 'Meccs befejezése',
+  'holdem.remedy.nothingToShow': 'Nem játszottál ebben a leosztásban — várd meg a következőt.',
+  'holdem.rules.section.showdown': 'A leosztás után',
+  'holdem.rules.stopEveryHand': 'A játék minden leosztás után megáll, hogy látni lehessen a lapokat.',
+  'holdem.rules.revealEveryone': 'A megmutatásnál minden megadott lap felfordul.',
+  'holdem.rules.revealWinners': 'A megmutatásnál csak a nyertes lap fordul fel.',
+  'holdem.rules.showYourOwn': 'A saját lapodat bármikor felfordíthatod, amíg rá nem bólintasz a folytatásra.',
+  'holdem.rules.showOnce': 'Egy lapot csak egyszer lehet megmutatni.',
+  'holdem.seat.won': 'Nyert',
+  'holdem.seat.mucked': 'Nem mutatta meg',
+  'holdem.status.mucked': '{playerId} nem mutatta meg',
+  'holdem.status.shownVoluntary': '{playerId} megmutatta a lapját',
+  'zone.shownHand': 'Megmutatva',
+  'option.showdownReveal': 'Megmutatás a leosztás végén',
+  'choice.showdownReveal.2': 'Mindenki, aki megadta',
+  'choice.showdownReveal.1': 'Csak a nyertes',
 };

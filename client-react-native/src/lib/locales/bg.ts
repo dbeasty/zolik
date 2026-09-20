@@ -1371,4 +1371,31 @@ export const bg: Record<string, string> = {
   'replay.play': 'Пусни',
   'replay.pause': 'Пауза',
   'replay.move': '{player} · {move}',
+
+  // --- the showdown --------------------------------------------------------
+  //
+  // Hold'em stops after every hand with the cards on the table, and a player
+  // may turn their own hand over before the next one is dealt. Most of these
+  // earn a line for the usual reason — what they mean lives in their params —
+  // and the rest because `humanise` would render "Shown Hand" or "Mucked" as
+  // English that looks written rather than missing.
+  'err.ALREADY_SHOWN': 'Ръката ти вече е открита',
+  'err.NOTHING_TO_SHOW': 'Нямаш ръка за показване',
+  'holdem.offer.show': 'Покажи ръката ми',
+  'holdem.offer.finish': 'Приключи мача',
+  'holdem.remedy.nothingToShow': 'Не участва в тази ръка — изчакай следващата.',
+  'holdem.rules.section.showdown': 'След ръката',
+  'holdem.rules.stopEveryHand': 'Играта спира след всяка ръка, за да се видят картите.',
+  'holdem.rules.revealEveryone': 'При разкриване се обръщат всички ръце, които са платили.',
+  'holdem.rules.revealWinners': 'При разкриване се обръща само печелившата ръка.',
+  'holdem.rules.showYourOwn': 'Винаги можеш да обърнеш своята ръка, докато не се съгласиш да продължите.',
+  'holdem.rules.showOnce': 'Една ръка може да се покаже само веднъж.',
+  'holdem.seat.won': 'Спечели',
+  'holdem.seat.mucked': 'Не показа',
+  'holdem.status.mucked': '{playerId} не показа',
+  'holdem.status.shownVoluntary': '{playerId} показа ръката си',
+  'zone.shownHand': 'Открита',
+  'option.showdownReveal': 'Разкриване при showdown',
+  'choice.showdownReveal.2': 'Всички, които платиха',
+  'choice.showdownReveal.1': 'Само победителят',
 };

@@ -622,6 +622,19 @@ func TestLastHandFoldEndsTheMatchAndTheViewSaysWho(t *testing.T) {
 		t.Fatalf("fold refused: %v", err)
 	}
 
+	// The last hand stops at its showdown like every other one, so the match
+	// is not over until the table has agreed to leave it. That stop is the
+	// whole point — it is the only moment the deciding hand is on the table.
+	if done, _, err := m.Finished(next); err != nil || done {
+		t.Fatalf("Finished = %v, %v — the last showdown should still be up", done, err)
+	}
+	for _, id := range []string{"p1", "p2"} {
+		next, _, err = m.Apply(next, id, module.Action{Verb: module.VerbContinue})
+		if err != nil {
+			t.Fatalf("%s could not go on: %v", id, err)
+		}
+	}
+
 	done, winners, err := m.Finished(next)
 	if err != nil || !done {
 		t.Fatalf("Finished = %v, %v — a fold on the last hand ends the match", done, err)
@@ -659,6 +672,10 @@ func TestLastHandFoldEndsTheMatchAndTheViewSaysWho(t *testing.T) {
 // keeps the key whose wording names the winning hand.
 func TestShowdownPotNamesTheHand(t *testing.T) {
 	raw := table(2, func(s *GameState) {
+		// At the showdown, which is where a finished hand is spoken about —
+		// see showdownOpen. Once the next hand is dealt the sentences go with
+		// the board they described.
+		s.Break.Begin(2)
 		s.LastHand = &HandResult{
 			HandNumber: 1,
 			Pots:       []PotResult{{Amount: 40, Winners: []string{"p1"}, LabelKey: "holdem.hand.twoPair"}},

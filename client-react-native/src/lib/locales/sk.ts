@@ -1357,4 +1357,31 @@ export const sk: Record<string, string> = {
   'replay.play': 'Prehrať',
   'replay.pause': 'Pauza',
   'replay.move': '{player} · {move}',
+
+  // --- the showdown --------------------------------------------------------
+  //
+  // Hold'em stops after every hand with the cards on the table, and a player
+  // may turn their own hand over before the next one is dealt. Most of these
+  // earn a line for the usual reason — what they mean lives in their params —
+  // and the rest because `humanise` would render "Shown Hand" or "Mucked" as
+  // English that looks written rather than missing.
+  'err.ALREADY_SHOWN': 'Vaše karty už ležia lícom nahor',
+  'err.NOTHING_TO_SHOW': 'Nemáte čo ukázať',
+  'holdem.offer.show': 'Ukázať karty',
+  'holdem.offer.finish': 'Ukončiť zápas',
+  'holdem.remedy.nothingToShow': 'V tomto rozdaní ste nehrali — počkajte na ďalšie.',
+  'holdem.rules.section.showdown': 'Po rozdaní',
+  'holdem.rules.stopEveryHand': 'Hra sa po každom rozdaní zastaví, aby bolo vidieť na karty.',
+  'holdem.rules.revealEveryone': 'Pri vyložení sa odkryjú všetky dohraté listy.',
+  'holdem.rules.revealWinners': 'Pri vyložení sa odkryje len víťazný list.',
+  'holdem.rules.showYourOwn': 'Svoje karty môžete odkryť vždy, kým nepotvrdíte pokračovanie.',
+  'holdem.rules.showOnce': 'Karty možno ukázať iba raz.',
+  'holdem.seat.won': 'Vyhral',
+  'holdem.seat.mucked': 'Neukázal',
+  'holdem.status.mucked': '{playerId} karty neukázal',
+  'holdem.status.shownVoluntary': '{playerId} ukázal svoje karty',
+  'zone.shownHand': 'Odkryté karty',
+  'option.showdownReveal': 'Odkrytie pri vyložení',
+  'choice.showdownReveal.2': 'Všetci dohrávajúci',
+  'choice.showdownReveal.1': 'Len víťaz',
 };

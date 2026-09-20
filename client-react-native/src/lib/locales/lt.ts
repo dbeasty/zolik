@@ -1360,4 +1360,31 @@ export const lt: Record<string, string> = {
   'replay.play': 'Groti',
   'replay.pause': 'Pauzė',
   'replay.move': '{player} · {move}',
+
+  // --- the showdown --------------------------------------------------------
+  //
+  // Hold'em stops after every hand with the cards on the table, and a player
+  // may turn their own hand over before the next one is dealt. Most of these
+  // earn a line for the usual reason — what they mean lives in their params —
+  // and the rest because `humanise` would render "Shown Hand" or "Mucked" as
+  // English that looks written rather than missing.
+  'err.ALREADY_SHOWN': 'Tavo kortos jau atverstos',
+  'err.NOTHING_TO_SHOW': 'Neturi kortų, kurias galėtum parodyti',
+  'holdem.offer.show': 'Parodyti kortas',
+  'holdem.offer.finish': 'Užbaigti rungtynes',
+  'holdem.remedy.nothingToShow': 'Šiame dalijime nedalyvavai — palauk kito.',
+  'holdem.rules.section.showdown': 'Po dalijimo',
+  'holdem.rules.stopEveryHand': 'Žaidimas sustoja po kiekvieno dalijimo, kad būtų matyti kortas.',
+  'holdem.rules.revealEveryone': 'Atskleidžiant atverčiamos visos likusios rankos.',
+  'holdem.rules.revealWinners': 'Atskleidžiant atverčiama tik laimėjusi ranka.',
+  'holdem.rules.showYourOwn': 'Savo kortas gali atversti visada, kol nesutinki tęsti.',
+  'holdem.rules.showOnce': 'Kortas parodyti galima tik vieną kartą.',
+  'holdem.seat.won': 'Laimėjo',
+  'holdem.seat.mucked': 'Neparodė',
+  'holdem.status.mucked': '{playerId} kortų neparodė',
+  'holdem.status.shownVoluntary': '{playerId} parodė savo kortas',
+  'zone.shownHand': 'Atverstos',
+  'option.showdownReveal': 'Rodymas atskleidžiant',
+  'choice.showdownReveal.2': 'Visi likę žaidime',
+  'choice.showdownReveal.1': 'Tik laimėtojas',
 };

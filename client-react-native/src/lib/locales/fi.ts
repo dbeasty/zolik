@@ -1367,4 +1367,31 @@ export const fi: Record<string, string> = {
   'replay.play': 'Toista',
   'replay.pause': 'Tauko',
   'replay.move': '{player} · {move}',
+
+  // --- the showdown --------------------------------------------------------
+  //
+  // Hold'em stops after every hand with the cards on the table, and a player
+  // may turn their own hand over before the next one is dealt. Most of these
+  // earn a line for the usual reason — what they mean lives in their params —
+  // and the rest because `humanise` would render "Shown Hand" or "Mucked" as
+  // English that looks written rather than missing.
+  'err.ALREADY_SHOWN': 'Kätesi on jo näkyvissä',
+  'err.NOTHING_TO_SHOW': 'Sinulla ei ole kättä näytettäväksi',
+  'holdem.offer.show': 'Näytä käteni',
+  'holdem.offer.finish': 'Päätä ottelu',
+  'holdem.remedy.nothingToShow': 'Et ollut mukana tässä jaossa — odota seuraavaa.',
+  'holdem.rules.section.showdown': 'Jaon jälkeen',
+  'holdem.rules.stopEveryHand': 'Peli pysähtyy jokaisen jaon jälkeen, jotta kortit ehtii nähdä.',
+  'holdem.rules.revealEveryone': 'Showdownissa käännetään esiin kaikki maksaneet kädet.',
+  'holdem.rules.revealWinners': 'Showdownissa käännetään esiin vain voittava käsi.',
+  'holdem.rules.showYourOwn': 'Voit aina kääntää oman kätesi esiin, kunnes hyväksyt jatkamisen.',
+  'holdem.rules.showOnce': 'Käden voi näyttää vain kerran.',
+  'holdem.seat.won': 'Voitti',
+  'holdem.seat.mucked': 'Ei näyttänyt',
+  'holdem.status.mucked': '{playerId} ei näyttänyt',
+  'holdem.status.shownVoluntary': '{playerId} näytti kätensä',
+  'zone.shownHand': 'Näytetty',
+  'option.showdownReveal': 'Näyttäminen showdownissa',
+  'choice.showdownReveal.2': 'Kaikki maksaneet',
+  'choice.showdownReveal.1': 'Vain voittaja',
 };
