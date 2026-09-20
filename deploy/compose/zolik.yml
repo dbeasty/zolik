@@ -45,16 +45,22 @@ services:
       FEATURE_FLAG_DB_ENGINE: kdb
       KDB_PATH: /data/kdb
       PORT: "8090"
-      # Stepping back through a game that has stopped. Off until somebody
-      # decides otherwise, and this line is the decision — a new way for a
-      # player to read every board a match passed through is not something a
-      # deployment should acquire by being upgraded.
+      # Stepping back through a game that has stopped. On as of 1.1.10, and
+      # this line is that decision — a new way for a player to read every
+      # board a match passed through is not something a deployment should
+      # acquire by being upgraded, so it is turned on here, in review, rather
+      # than anywhere a host's .env could reach.
       #
       # It is not the only gate: the server also requires a store that keeps
       # every version of a document and is still keeping it, which is the
       # engine above running history=full. Turning this on where that is not
       # true changes nothing, by design.
-      FEATURE_FLAG_MATCH_REPLAY: "false"
+      #
+      # Matches that finished before this went on carry no checkpoints — the
+      # write path stored none while it was off. They still replay, because
+      # the boards come out of the store's own history rather than out of the
+      # checkpoints, but with no chapters to jump to and a fold from the deal.
+      FEATURE_FLAG_MATCH_REPLAY: "true"
       # Off, and said out loud. Removing the SSH_* variables does not turn the
       # terminal client off — SSH_ENABLED defaults *on* whenever APP_ENV is
       # local, and its default host key path is one the image's nonroot user
