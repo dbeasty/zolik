@@ -1359,4 +1359,31 @@ export const lv: Record<string, string> = {
   'replay.play': 'Atskaņot',
   'replay.pause': 'Pauze',
   'replay.move': '{player} · {move}',
+
+  // --- the showdown --------------------------------------------------------
+  //
+  // Hold'em stops after every hand with the cards on the table, and a player
+  // may turn their own hand over before the next one is dealt. Most of these
+  // earn a line for the usual reason — what they mean lives in their params —
+  // and the rest because `humanise` would render "Shown Hand" or "Mucked" as
+  // English that looks written rather than missing.
+  'err.ALREADY_SHOWN': 'Tava roka jau ir atklāta',
+  'err.NOTHING_TO_SHOW': 'Tev nav rokas, ko rādīt',
+  'holdem.offer.show': 'Rādīt manu roku',
+  'holdem.offer.finish': 'Pabeigt maču',
+  'holdem.remedy.nothingToShow': 'Tu nepiedalījies šajā rokā — gaidi nākamo.',
+  'holdem.rules.section.showdown': 'Pēc rokas',
+  'holdem.rules.stopEveryHand': 'Spēle apstājas pēc katras rokas, lai kārtis var apskatīt.',
+  'holdem.rules.revealEveryone': 'Atklāšanā tiek atsegtas visas rokas, kas izlīdzināja likmi.',
+  'holdem.rules.revealWinners': 'Atklāšanā tiek atsegta tikai uzvarējušā roka.',
+  'holdem.rules.showYourOwn': 'Savu roku vari atsegt vienmēr, kamēr neesi piekritis turpināt.',
+  'holdem.rules.showOnce': 'Roku var parādīt tikai vienu reizi.',
+  'holdem.seat.won': 'Uzvarēja',
+  'holdem.seat.mucked': 'Nerādīja',
+  'holdem.status.mucked': '{playerId} kārtis neatklāja',
+  'holdem.status.shownVoluntary': '{playerId} parādīja savu roku',
+  'zone.shownHand': 'Atklāta',
+  'option.showdownReveal': 'Rādīšana atklāšanā',
+  'choice.showdownReveal.2': 'Visi, kas izlīdzināja',
+  'choice.showdownReveal.1': 'Tikai uzvarētājs',
 };

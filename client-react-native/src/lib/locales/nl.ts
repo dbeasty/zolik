@@ -1375,4 +1375,31 @@ export const nl: Record<string, string> = {
   'replay.play': 'Afspelen',
   'replay.pause': 'Pauze',
   'replay.move': '{player} · {move}',
+
+  // --- the showdown --------------------------------------------------------
+  //
+  // Hold'em stops after every hand with the cards on the table, and a player
+  // may turn their own hand over before the next one is dealt. Most of these
+  // earn a line for the usual reason — what they mean lives in their params —
+  // and the rest because `humanise` would render "Shown Hand" or "Mucked" as
+  // English that looks written rather than missing.
+  'err.ALREADY_SHOWN': 'Je hand ligt al open',
+  'err.NOTHING_TO_SHOW': 'Je hebt geen hand om te laten zien',
+  'holdem.offer.show': 'Mijn hand tonen',
+  'holdem.offer.finish': 'Match afsluiten',
+  'holdem.remedy.nothingToShow': 'Je deed niet mee in deze hand — wacht op de volgende.',
+  'holdem.rules.section.showdown': 'Na de hand',
+  'holdem.rules.stopEveryHand': 'Het spel stopt na elke hand, zodat de kaarten te zien zijn.',
+  'holdem.rules.revealEveryone': 'Bij de showdown wordt elke hand die meeging opengelegd.',
+  'holdem.rules.revealWinners': 'Bij de showdown wordt alleen de winnende hand opengelegd.',
+  'holdem.rules.showYourOwn': 'Je mag je eigen hand altijd openleggen, totdat je instemt met doorspelen.',
+  'holdem.rules.showOnce': 'Een hand kan maar één keer getoond worden.',
+  'holdem.seat.won': 'Gewonnen',
+  'holdem.seat.mucked': 'Niet getoond',
+  'holdem.status.mucked': '{playerId} toonde niets',
+  'holdem.status.shownVoluntary': '{playerId} liet de hand zien',
+  'zone.shownHand': 'Getoond',
+  'option.showdownReveal': 'Tonen bij showdown',
+  'choice.showdownReveal.2': 'Iedereen die meeging',
+  'choice.showdownReveal.1': 'Alleen de winnaar',
 };

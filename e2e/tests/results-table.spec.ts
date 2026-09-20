@@ -29,9 +29,9 @@ async function guest(request: Ctx) {
 /**
  * Seats the human, fills the rest with bots, starts.
  *
- * Hold'em with a pause between rounds, because it reaches a settled table in a
- * few presses where a rummy deal takes a hundred — and the table under test
- * names no game.
+ * Hold'em, because it stops at the showdown after every hand and so reaches a
+ * settled table in a few presses where a rummy deal takes a hundred — and the
+ * table under test names no game.
  */
 async function table(request: Ctx, bots = 3) {
   const host = await guest(request);
@@ -41,7 +41,7 @@ async function table(request: Ctx, bots = 3) {
     data: {
       moduleId: 'holdem',
       variation: 'timed',
-      options: { handLimit: 5, pauseBetweenRounds: 1 },
+      options: { handLimit: 5 },
     },
   });
   expect(created.ok(), await created.text()).toBeTruthy();

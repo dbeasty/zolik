@@ -1364,4 +1364,31 @@ export const pl: Record<string, string> = {
   'replay.play': 'Odtwórz',
   'replay.pause': 'Pauza',
   'replay.move': '{player} · {move}',
+
+  // --- the showdown --------------------------------------------------------
+  //
+  // Hold'em stops after every hand with the cards on the table, and a player
+  // may turn their own hand over before the next one is dealt. Most of these
+  // earn a line for the usual reason — what they mean lives in their params —
+  // and the rest because `humanise` would render "Shown Hand" or "Mucked" as
+  // English that looks written rather than missing.
+  'err.ALREADY_SHOWN': 'Twoje karty już leżą odkryte',
+  'err.NOTHING_TO_SHOW': 'Nie masz kart do pokazania',
+  'holdem.offer.show': 'Pokaż karty',
+  'holdem.offer.finish': 'Zakończ mecz',
+  'holdem.remedy.nothingToShow': 'Nie grałeś tego rozdania — poczekaj na następne.',
+  'holdem.rules.section.showdown': 'Po rozdaniu',
+  'holdem.rules.stopEveryHand': 'Gra zatrzymuje się po każdym rozdaniu, żeby było widać karty.',
+  'holdem.rules.revealEveryone': 'Przy showdownie odkrywane są wszystkie sprawdzone układy.',
+  'holdem.rules.revealWinners': 'Przy showdownie odkrywany jest tylko zwycięski układ.',
+  'holdem.rules.showYourOwn': 'Swoje karty możesz odkryć zawsze, dopóki nie zgodzisz się grać dalej.',
+  'holdem.rules.showOnce': 'Karty można pokazać tylko raz.',
+  'holdem.seat.won': 'Wygrał',
+  'holdem.seat.mucked': 'Nie pokazał',
+  'holdem.status.mucked': '{playerId} nie pokazał kart',
+  'holdem.status.shownVoluntary': '{playerId} pokazał swoje karty',
+  'zone.shownHand': 'Odkryte',
+  'option.showdownReveal': 'Pokazywanie przy showdownie',
+  'choice.showdownReveal.2': 'Wszyscy, którzy sprawdzili',
+  'choice.showdownReveal.1': 'Tylko zwycięzca',
 };

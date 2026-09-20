@@ -67,9 +67,17 @@ func (b bot) Act(raw module.State, botSeat module.BotSeat, offers []module.Actio
 	if err != nil {
 		return module.ChooseAction(offers, nil)
 	}
-	// Between hands, or not this seat's decision at all: there is nothing to
-	// weigh and the offer list is the entire answer.
-	if s.Break.Open || s.Status != "active" || s.Current < 0 || s.Seats[s.Current].PlayerID != playerID {
+	// At a showdown there is nothing to weigh, but there is now something to
+	// get wrong: `show` sits in the offer list beside `continue`, and a plain
+	// "take the first enabled offer" reaches it the moment anything puts it
+	// first — a reordering here, or the runtime retrying after a refused
+	// continue. So the preference is stated rather than inferred. A bot that
+	// turned its bluffs face up every hand would be a bot nobody could bluff.
+	if s.Break.Open {
+		return module.ChooseAction(offers, []string{module.VerbContinue})
+	}
+	// Not this seat's decision at all: the offer list is the entire answer.
+	if s.Status != "active" || s.Current < 0 || s.Seats[s.Current].PlayerID != playerID {
 		return module.ChooseAction(offers, nil)
 	}
 

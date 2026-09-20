@@ -11,6 +11,17 @@ const (
 	OptStartingStack = "startingStack"
 	OptBigBlind      = "bigBlind"
 	OptHandLimit     = "handLimit"
+	// OptShowdownReveal is whose hand goes face up on its own at a showdown.
+	//
+	// A house rule rather than a rule: a live table only makes the player
+	// taking the chips prove it, while every online room has a switch for
+	// showing everything. This module has always shown everything, so that
+	// stays the default and the stricter reading is the choice.
+	//
+	// It changes what a viewer is *sent*, never what anybody may do — the same
+	// discipline OptOpenDiscardPile keeps. A player whose hand it hides may
+	// still turn it over themselves.
+	OptShowdownReveal = "showdownReveal"
 )
 
 type variationDefaults struct {
@@ -55,11 +66,11 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					{LabelKey: "holdem.rules.lastPlayerStanding"},
 				},
 				Defaults: map[string]int{
-					OptStartingStack:             variations["freezeout"].startingStack,
-					OptBigBlind:                  variations["freezeout"].bigBlind,
-					OptHandLimit:                 variations["freezeout"].handLimit,
-					module.OptPauseBetweenRounds: module.OptOff,
-					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
+					OptStartingStack:   variations["freezeout"].startingStack,
+					OptBigBlind:        variations["freezeout"].bigBlind,
+					OptHandLimit:       variations["freezeout"].handLimit,
+					OptShowdownReveal:  RevealEveryone,
+					module.OptBotSkill: module.SkillOpt(module.SkillMedium),
 				},
 			},
 			{
@@ -70,17 +81,30 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					{LabelKey: "holdem.rules.mostChipsWins"},
 				},
 				Defaults: map[string]int{
-					OptStartingStack:             variations["timed"].startingStack,
-					OptBigBlind:                  variations["timed"].bigBlind,
-					OptHandLimit:                 variations["timed"].handLimit,
-					module.OptPauseBetweenRounds: module.OptOff,
-					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
+					OptStartingStack:   variations["timed"].startingStack,
+					OptBigBlind:        variations["timed"].bigBlind,
+					OptHandLimit:       variations["timed"].handLimit,
+					OptShowdownReveal:  RevealEveryone,
+					module.OptBotSkill: module.SkillOpt(module.SkillMedium),
 				},
 			},
 		},
 		Options: []module.OptionSpec{
-			module.PauseOption(),
+			// No pause option. Hold'em stops after every hand whatever the
+			// table says, because the stop is where the cards are — see
+			// GameState.Break. An option that decides nothing is worse than
+			// no option: a lobby renders it as a working control.
 			module.BotSkillOption(),
+			{
+				Name:  OptShowdownReveal,
+				Type:  module.OptionEnumInt,
+				Label: "Show at showdown",
+				Help:  "Whose cards are turned face up when a hand is called. Either way, a player may always show their own.",
+				Choices: []module.OptionChoice{
+					{Value: RevealEveryone, Label: "Everyone who was called"},
+					{Value: RevealWinners, Label: "The winner only"},
+				},
+			},
 			{
 				Name:  OptStartingStack,
 				Type:  module.OptionEnumInt,
@@ -145,6 +169,18 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 
 	vm := module.ViewModel{}
 
+	// Whose hand is face up, and whether anybody is looking at a showdown at
+	// all. Read from LastHand.Shown rather than from who happens to still be
+	// holding cards: during the stop *every* seat still holds the hand it
+	// played, and "has cards" is not the same question as "showed them".
+	open := showdownOpen(s)
+	faceUp := map[string][]string{}
+	if open && s.LastHand != nil {
+		for _, sh := range s.LastHand.Shown {
+			faceUp[sh.PlayerID] = sh.Hole
+		}
+	}
+
 	for i := range s.Seats {
 		st := &s.Seats[i]
 		z := module.Zone{
@@ -156,8 +192,19 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 			z.LabelKey = "zone.yourHand"
 			z.Cards = cardViews(st.Hole)
 		case reveal:
+			// A replay of a finished hand, where everything is open. Ahead of
+			// the showdown case because it is the wider of the two: a replay
+			// shows the hands nobody turned over as well as the ones they did.
 			z.LabelKey = "zone.opponentHand"
 			z.Cards = cardViews(st.Hole)
+		case faceUp[st.PlayerID] != nil:
+			// Turned over at the showdown, so it is everyone's to see. Drawn
+			// in the seat's own hand zone rather than in a second one beside
+			// it: a player has one hand, and two zones holding the same two
+			// cards is the board disagreeing with itself.
+			z.LabelKey = "zone.shownHand"
+			z.Cards = cardViews(faceUp[st.PlayerID])
+			z.Count = len(faceUp[st.PlayerID])
 		default:
 			z.LabelKey = "zone.opponentHand"
 		}
@@ -206,6 +253,14 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 		if st.Out {
 			seat.LabelKeys = append(seat.LabelKeys, "holdem.seat.out")
 		}
+		// Who took the hand that is on the table, marked on the seat rather
+		// than left to be read off a sentence underneath it.
+		if open && took(s.LastHand, st.PlayerID) {
+			seat.LabelKeys = append(seat.LabelKeys, "holdem.seat.won")
+		}
+		if open && mucked(s.LastHand, st.PlayerID) {
+			seat.LabelKeys = append(seat.LabelKeys, "holdem.seat.mucked")
+		}
 		vm.Seats = append(vm.Seats, seat)
 	}
 
@@ -223,31 +278,75 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 		})
 	}
 
-	// The previous hand, including any showdown. Public by the rules of the
+	// The hand on the table, including any showdown. Public by the rules of the
 	// game: cards turned face up at a showdown are turned face up for everyone.
-	if s.LastHand != nil {
+	//
+	// Scoped to the showdown, where it used to run whenever a LastHand existed
+	// at all — which is from the moment a hand ends until the moment the next
+	// one does. "p2 showed a flush" sat under a board p2's flush had nothing
+	// to do with for the whole of the following hand.
+	if open && s.LastHand != nil {
 		for _, p := range s.LastHand.Pots {
 			// A pot nobody contested has no hand to name — the winner never
 			// showed one. Its own key rather than the same key with an empty
 			// "hand" in it, because a client renders a key into a sentence and
 			// a sentence with a hole in it reads as a bug.
-			key := "holdem.status.pot"
+			//
+			// Both written out as literals in the LabelKey position, rather
+			// than picked into a variable first. `module.CollectKeys` reads
+			// source and does not run it, so the variable version put neither
+			// of these into serverKeys.json — the two sentences a player reads
+			// at the end of every hand were outside the locale lock the whole
+			// time they have existed.
 			if p.LabelKey == "" {
-				key = "holdem.status.potUncontested"
+				vm.Status = append(vm.Status, module.Fact{
+					LabelKey: "holdem.status.potUncontested",
+					Value:    strconv.Itoa(p.Amount),
+					Params: map[string]any{
+						"winners": p.Winners, "hand": p.LabelKey, "amount": p.Amount,
+					},
+				})
+			} else {
+				vm.Status = append(vm.Status, module.Fact{
+					LabelKey: "holdem.status.pot",
+					Value:    strconv.Itoa(p.Amount),
+					Params: map[string]any{
+						"winners": p.Winners, "hand": p.LabelKey, "amount": p.Amount,
+					},
+				})
 			}
-			vm.Status = append(vm.Status, module.Fact{
-				LabelKey: key, Value: strconv.Itoa(p.Amount),
-				Params: map[string]any{
-					"winners": p.Winners, "hand": p.LabelKey, "amount": p.Amount,
-				},
-			})
 		}
 		for _, sh := range s.LastHand.Shown {
+			// A hand with no name is one shown for the look of it — turned
+			// over after everyone folded, against a board that may not even
+			// be complete. It gets a sentence that names no hand, rather than
+			// the showdown sentence with a hole where the hand goes.
+			//
+			// Both params maps written out in full rather than shared through
+			// a local, for the same reason both keys are literals: the scan
+			// that builds the manifest reads which placeholders a key carries
+			// off the map literal sitting beside it, and a hoisted one leaves
+			// the key looking like it sends nothing.
+			if sh.LabelKey == "" {
+				vm.Status = append(vm.Status, module.Fact{
+					LabelKey: "holdem.status.shownVoluntary",
+					Params: map[string]any{
+						"playerId": sh.PlayerID, "hole": sh.Hole, "best": sh.Best,
+					},
+				})
+			} else {
+				vm.Status = append(vm.Status, module.Fact{
+					LabelKey: "holdem.status.shown", Value: sh.LabelKey,
+					Params: map[string]any{
+						"playerId": sh.PlayerID, "hole": sh.Hole, "best": sh.Best,
+					},
+				})
+			}
+		}
+		for _, id := range s.LastHand.Mucked {
 			vm.Status = append(vm.Status, module.Fact{
-				LabelKey: "holdem.status.shown", Value: sh.LabelKey,
-				Params: map[string]any{
-					"playerId": sh.PlayerID, "hole": sh.Hole, "best": sh.Best,
-				},
+				LabelKey: "holdem.status.mucked",
+				Params:   map[string]any{"playerId": id},
 			})
 		}
 	}
@@ -269,6 +368,47 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 		})
 	}
 	return vm, nil
+}
+
+// showdownOpen reports the table looking at a finished hand rather than
+// playing one.
+//
+// Two states, not one. The usual case is the stop between hands. The other is
+// a match that has ended: the hand that ended it never opens a stop — there is
+// nothing to go on to — and its board, its hole cards and its result all stay
+// exactly where they are, because `dealHand` is the only thing that clears
+// them and it is never reached. Without the second case the deciding hand of
+// every match would be the one hand nobody was shown.
+func showdownOpen(s *GameState) bool {
+	return s.Break.Open || s.Status == "completed"
+}
+
+// took reports this player having been pushed chips from the hand just played.
+func took(res *HandResult, playerID string) bool {
+	if res == nil {
+		return false
+	}
+	for _, p := range res.Pots {
+		for _, w := range p.Winners {
+			if w == playerID {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// mucked reports this player having reached the showdown without showing.
+func mucked(res *HandResult, playerID string) bool {
+	if res == nil {
+		return false
+	}
+	for _, id := range res.Mucked {
+		if id == playerID {
+			return true
+		}
+	}
+	return false
 }
 
 func cardViews(cards []string) []module.CardView {

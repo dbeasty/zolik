@@ -34,7 +34,7 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 		BigBlind:      cfg.Opt(OptBigBlind, v.bigBlind),
 		StartingStack: cfg.Opt(OptStartingStack, v.startingStack),
 		HandLimit:     cfg.Opt(OptHandLimit, v.handLimit),
-		Pause:         cfg.PauseBetweenRounds(false),
+		Reveal:        cfg.Opt(OptShowdownReveal, RevealEveryone),
 		Button:        (opening - 1 + len(players)) % len(players),
 	}
 	s.SmallBlind = s.BigBlind / 2
@@ -175,9 +175,17 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 		return raw, nil, errCode(ErrGameNotActive)
 	}
 
-	// Between hands nobody is on turn, so the intermission does the checking
+	// At a showdown nobody is on turn, so the intermission does the checking
 	// the turn order normally would.
 	if s.Break.Open {
+		if a.Verb == VerbShow {
+			events, err := applyShow(s, playerID)
+			if err != nil {
+				return raw, nil, err
+			}
+			out, err := encode(s)
+			return out, events, err
+		}
 		if a.Verb != module.VerbContinue {
 			return raw, nil, errCode(ErrGameNotActive)
 		}
@@ -186,11 +194,25 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 		}
 		var events []module.Event
 		if s.Break.Settled(order(s)) {
+			closing := s.Closing
 			s.Break.Close()
-			events = dealHand(s)
+			s.Closing = false
+			// The last showdown goes on to nothing, so agreeing to go on ends
+			// the match instead of dealing. Which of the two this is was
+			// decided when the hand ended — see endHand.
+			if closing {
+				events = endMatch(s)
+			} else {
+				events = dealHand(s)
+			}
 		}
 		out, err := encode(s)
 		return out, events, err
+	}
+	if a.Verb == VerbShow {
+		// Not at a showdown: whatever is on the table is being played, and the
+		// hand this would have shown was dealt over.
+		return raw, nil, module.Error{Code: module.ErrNotPaused}
 	}
 	if s.Current < 0 || s.Seats[s.Current].PlayerID != playerID {
 		return raw, nil, errCode(ErrNotYourTurn)
@@ -434,14 +456,7 @@ func endHand(s *GameState) []module.Event {
 		res.Pots = []PotResult{{Amount: s.Pot, Winners: []string{w.PlayerID}}}
 	} else {
 		res.Pots = distributePots(s, contenders)
-		for _, idx := range contenders {
-			st := &s.Seats[idx]
-			best := Best(append(append([]string(nil), st.Hole...), s.Board...))
-			res.Shown = append(res.Shown, ShownHand{
-				PlayerID: st.PlayerID, Hole: append([]string(nil), st.Hole...),
-				Best: best.Cards, LabelKey: categoryKey(best.Category),
-			})
-		}
+		reveal(s, &res, contenders)
 	}
 
 	res.Deltas = map[string]int{}
@@ -459,17 +474,132 @@ func endHand(s *GameState) []module.Event {
 		"handNumber": res.HandNumber, "pots": len(res.Pots),
 	}}}
 
-	// The match end is checked first, so the final hand shows one results
-	// screen — the match's — rather than an interstitial before a hand that
-	// will never be dealt.
-	if matchOverAfterHand(s) {
-		return append(events, endMatch(s)...)
+	// The table stops, always.
+	//
+	// Every other game here asks first. Poker does not, because poker is the
+	// one whose round ends in something to look at, and it used to deal
+	// straight over the top of it — see GameState.Break.
+	//
+	// Including the hand that ends the match, which is the change of mind
+	// worth naming. This used to settle the match here and skip the stop, so
+	// that a finished match put up one results screen rather than two. But the
+	// deciding hand is the one hand people actually talk about afterwards, and
+	// skipping its showdown meant the best hand of the match was the one
+	// nobody was shown and nobody could show into. So the last showdown
+	// happens like every other one; agreeing to go on ends the match instead
+	// of dealing the next hand.
+	s.Closing = matchOverAfterHand(s)
+	s.Break.Begin(s.HandNumber + 1)
+	return events
+}
+
+// Reveal settings: which hands a showdown turns face up on its own.
+const (
+	// RevealWinners is the table rule — only a player who is pushed chips has
+	// to prove they earned them; everyone else may keep what they paid for.
+	RevealWinners = 1
+	// RevealEveryone shows every hand that reached the showdown, which is what
+	// this module has always done and what an online table usually offers.
+	RevealEveryone = 2
+)
+
+// reveal turns the contenders' hands face up, as far as the table's setting
+// says, and names the rest as mucked.
+//
+// The filter lives here rather than in View for one reason that is not
+// negotiable: `HandResult.Shown` is what goes onto the wire. View reads it to
+// build sentences that carry the hole cards in their params, so a hand left in
+// here is public whatever a later renderer chooses to draw. Filtering at the
+// point of drawing would be a setting that hides cards from the screen and
+// ships them anyway.
+func reveal(s *GameState, res *HandResult, contenders []int) {
+	winners := map[string]bool{}
+	for _, p := range res.Pots {
+		for _, w := range p.Winners {
+			winners[w] = true
+		}
 	}
-	if s.Pause {
-		s.Break.Begin(s.HandNumber + 1)
-		return events
+	for _, idx := range contenders {
+		st := &s.Seats[idx]
+		if s.Reveal == RevealWinners && !winners[st.PlayerID] {
+			res.Mucked = append(res.Mucked, st.PlayerID)
+			continue
+		}
+		best := Best(append(append([]string(nil), st.Hole...), s.Board...))
+		res.Shown = append(res.Shown, ShownHand{
+			PlayerID: st.PlayerID, Hole: append([]string(nil), st.Hole...),
+			Best: best.Cards, LabelKey: categoryKey(best.Category),
+		})
 	}
-	return append(events, dealHand(s)...)
+}
+
+// applyShow turns one player's hand face up, by their own choice.
+//
+// It works off the seats rather than off anything stored with the result,
+// because it does not have to store anything: `dealHand` is what clears
+// `Seat.Hole`, and the showdown stop happens before it runs. So for as long as
+// there is a window to show in, every seat is still physically holding the
+// hand it just played.
+//
+// A hand that never reached a showdown is turned over with no name attached.
+// There may be no board to make five cards against, and `Best` answers "high
+// card" when it is given fewer — which would print a claim the player never
+// made out of a hand they were only ever showing for the look of it.
+func applyShow(s *GameState, playerID string) ([]module.Event, error) {
+	if s.LastHand == nil || !s.Break.Open {
+		// No hand on the table to show. Whatever cards the seats hold belong
+		// to a hand still being played.
+		return nil, module.Error{Code: module.ErrNotPaused}
+	}
+	idx := s.seatIndex(playerID)
+	if idx < 0 {
+		return nil, module.Error{Code: module.ErrNotSeated, Message: playerID}
+	}
+	// Having said "go on" is having mucked. A seat that already readied has
+	// released the hand, and the table may deal the moment the last one does.
+	if s.Break.Ready[playerID] {
+		return nil, module.Error{Code: module.ErrAlreadyReady, Message: playerID}
+	}
+	if s.LastHand.shows(playerID) {
+		return nil, errCode(ErrAlreadyShown)
+	}
+	st := &s.Seats[idx]
+	if len(st.Hole) == 0 {
+		return nil, errCode(ErrNothingToShow)
+	}
+
+	shown := ShownHand{
+		PlayerID:  playerID,
+		Hole:      append([]string(nil), st.Hole...),
+		Voluntary: true,
+	}
+	if len(st.Hole)+len(s.Board) >= 5 && !s.LastHand.Uncontested && st.inHand() {
+		best := Best(append(append([]string(nil), st.Hole...), s.Board...))
+		shown.Best, shown.LabelKey = best.Cards, categoryKey(best.Category)
+	}
+	s.LastHand.Shown = append(s.LastHand.Shown, shown)
+	s.LastHand.Mucked = without(s.LastHand.Mucked, playerID)
+
+	// The cards go out with the event because they are now public — this
+	// player just made them so. Every other field a client needs is already
+	// in the state it will be sent alongside.
+	return []module.Event{{Type: "shown", Data: map[string]any{
+		"playerId": playerID, "hole": append([]string(nil), st.Hole...),
+	}}}, nil
+}
+
+// without returns ids with one removed, keeping the rest in order.
+func without(ids []string, drop string) []string {
+	out := ids[:0]
+	for _, id := range ids {
+		if id != drop {
+			out = append(out, id)
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 // distributePots builds the side pots and awards each to the best hand among

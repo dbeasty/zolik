@@ -152,6 +152,13 @@ async function playUntil(
   userId: string,
   zoneId: string,
   done: (s: any) => boolean,
+  // Whether the table's own way on may be pressed to get where we are going.
+  //
+  // Off for the tests whose subject *is* a stop: pressing it there would skip
+  // the moment being measured. On for the one that has to reach the end of a
+  // match, because Hold'em stops at the showdown after every hand — including
+  // the last — and a driver that refuses to go on never leaves hand one.
+  goOn = false,
 ) {
   // The board arrives over the socket a moment after the screen does, and a
   // hand that is not on screen yet cannot be looked at: parking on it before it
@@ -163,7 +170,10 @@ async function playUntil(
   // Read here rather than after the table stops, because by then the screen may
   // already have done the thing under test.
   let parked = 0;
-  for (let i = 0; i < 120; i++) {
+  // Generous, because Hold'em now stops at the showdown after every hand: a
+  // five-hand table is five stops plus its betting, and a good share of these
+  // turns are spent waiting on bots rather than pressing anything.
+  for (let i = 0; i < 400; i++) {
     const state = await (await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`)).json();
     if (done(state)) return { state, parked };
     await parkOnTheHand(page, zoneId);
@@ -171,9 +181,14 @@ async function playUntil(
     const ids = await page
       .locator('[data-testid^="offer-"]:not([aria-disabled="true"])')
       .evaluateAll((els) => els.map((e) => e.getAttribute('data-testid') ?? '').filter(Boolean));
-    // Never press the intermission's own control here — that is the moment
-    // under test, and agreeing to go on would skip it.
-    const pick = ids.find((id) => !id.includes('continue'));
+    // Never press the intermission's own control unless asked — that is the
+    // moment under test, and agreeing to go on would skip it.
+    //
+    // And never press "show my hand": it is legal at every showdown, changes
+    // no turn and comes back disabled, so a driver that took the first enabled
+    // offer would spend a hand on it and then have nothing left to press.
+    const usable = ids.filter((id) => id !== 'offer-show');
+    const pick = goOn ? usable[0] : usable.find((id) => !id.includes('continue'));
     if (!pick) {
       await page.waitForTimeout(400);
       continue;
@@ -198,7 +213,7 @@ test.describe('a stopped table brings the way on to the player', () => {
     // a settlement at the top of it is a settlement nobody receives.
     await page.setViewportSize({ width: 390, height: 844 });
 
-    const { matchId, host } = await table(request, { handLimit: 5, pauseBetweenRounds: 1 });
+    const { matchId, host } = await table(request, { handLimit: 5 });
     await signIn(page, host);
     await page.goto(`/match/${matchId}`);
     await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
@@ -276,8 +291,9 @@ test.describe('a stopped table brings the way on to the player', () => {
     test.setTimeout(180_000);
     await page.setViewportSize({ width: 390, height: 844 });
 
-    // No pause between rounds: the table runs its hands straight through and
-    // stops for good, which is the only stop under test here.
+    // The stop under test is the last one. Hold'em stops at every showdown,
+    // so playUntil presses through each of them and this waits for the one
+    // the table does not come back from.
     const { matchId, host } = await table(request, { handLimit: 5 });
     await signIn(page, host);
     await page.goto(`/match/${matchId}`);
@@ -291,6 +307,7 @@ test.describe('a stopped table brings the way on to the player', () => {
       host.userId,
       hand,
       (s) => s.status === 'completed',
+      true,
     );
     expect(state, 'the shortest table this game offers should have ended').toBeTruthy();
 

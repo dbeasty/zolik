@@ -152,6 +152,21 @@ export function OfferBar({
   const { groups, foldedIds } = useMemo(() => foldOffers(offers), [offers]);
   const renderedGroups = new Set<string>();
 
+  // The one control the ring is for.
+  //
+  // `urgent` is a fact about the bar — the table is waiting on this player —
+  // and the ring used to be drawn around every control that could be pressed.
+  // That was exact while the only urgent bar in the app was an intermission,
+  // which offered exactly one thing. Hold'em's showdown offers two (go on, and
+  // show your hand first), and a ring around both says "look here" twice,
+  // which is the same as not saying it.
+  //
+  // So it marks the first control that could be pressed, and the module
+  // decides which that is by the order it lists its offers in. No game
+  // knowledge on this side: the shell does not know what leads, only that
+  // something does.
+  const leadId = offers.find((o) => o.enabled && isReady(o, selectedCards, params[o.id]))?.id;
+
   return (
     <View style={styles.bar} testID="action-bar">
       {offers.map((offer) => {
@@ -193,7 +208,7 @@ export function OfferBar({
               {/* A ring in the air around the one thing the table is waiting
                   for. Drawn inside the control so it needs no wrapper, and on
                   its own layer so it costs the row no room. */}
-              <Attention active={!!urgent && offer.enabled && ready} radius={8} />
+              <Attention active={!!urgent && offer.id === leadId} radius={8} />
               {/* The offer's own label if it has one, because a verb cannot
                   always tell two controls apart; otherwise the verb, which
                   covers most offers. */}

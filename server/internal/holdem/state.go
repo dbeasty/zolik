@@ -40,6 +40,12 @@ const (
 	VerbCheck = "check"
 	VerbCall  = "call"
 	VerbRaise = "raise"
+	// VerbShow turns a hand face up once it has been played. It is the one
+	// verb here that moves no chips and decides nothing, and it exists
+	// because the most interesting card in poker is often the one nobody
+	// had to see: a bluff that took the pot uncontested is information its
+	// owner may want to give away, and no rule requires or forbids it.
+	VerbShow = "show"
 )
 
 // Streets, in order.
@@ -70,6 +76,14 @@ const (
 	ErrNotEnoughChips  = "NOT_ENOUGH_CHIPS"
 	ErrCannotRaise     = "CANNOT_RAISE"
 	ErrSeatNotInHand   = "SEAT_NOT_IN_HAND"
+
+	// --- showing a hand ----------------------------------------------------
+	//
+	// Two, and neither is about the betting. A seat that has nothing to turn
+	// over was never dealt into the hand being shown; a seat that has already
+	// turned its hand over is asking twice.
+	ErrNothingToShow = "NOTHING_TO_SHOW"
+	ErrAlreadyShown  = "ALREADY_SHOWN"
 )
 
 // Seat is one player's position at the table, for the whole match.
@@ -143,13 +157,29 @@ type GameState struct {
 	// history on every fold. LastHand keeps the rich version for the one hand a
 	// screen is actually looking at.
 	Hands []HandSummary `json:"hands,omitempty"`
-	// Pause is whether this table stops between hands, and Break the pause
-	// itself. Off by default: a hand is four to ten actions and a freezeout can
-	// be a hundred hands, so stopping after each one is the poker equivalent of
-	// confirming every card. The hand-by-hand table at the *end* is what a
-	// poker player actually wants, and that costs no pause at all.
-	Pause bool                `json:"pause,omitempty"`
+	// Break is the showdown: the stop between one hand and the next.
+	//
+	// Unconditional, where every other game here makes the pause between
+	// rounds a table setting. Poker is the one game whose round *ends* in
+	// something worth looking at — cards turned face up — and it used to deal
+	// straight over the top of them. The board was gone, the hole cards were
+	// overwritten by the next deal, and the showdown this module had carefully
+	// computed reached the player as a grey sentence under the table. A
+	// showdown nobody is given a moment to look at is not a showdown.
+	//
+	// It is also the window the `show` verb needs. A player may only turn a
+	// hand face up while the hand is still on the table, and this is what
+	// keeps it there.
 	Break module.Intermission `json:"break,omitempty"`
+	// Closing is the showdown after the last hand — the one that goes on to
+	// nothing. Agreeing to go on from it ends the match rather than dealing.
+	Closing bool `json:"closing,omitempty"`
+
+	// Reveal is which hands go face up on their own at a showdown — see
+	// OptShowdownReveal. Resolved once at NewMatch and kept here rather than
+	// read back from the lobby, for the same reason configOf exists: a match
+	// keeps the rules it was dealt under.
+	Reveal int `json:"reveal,omitempty"`
 
 	Winners []string `json:"winners,omitempty"`
 	Seed    int64    `json:"seed"`
@@ -161,11 +191,31 @@ type HandResult struct {
 	HandNumber int `json:"handNumber"`
 	// Uncontested is a hand everyone else folded out of: there was no
 	// showdown, and no hand was ever shown.
-	Uncontested bool           `json:"uncontested,omitempty"`
-	Board       []string       `json:"board,omitempty"`
-	Pots        []PotResult    `json:"pots,omitempty"`
-	Shown       []ShownHand    `json:"shown,omitempty"`
-	Deltas      map[string]int `json:"deltas,omitempty"`
+	Uncontested bool        `json:"uncontested,omitempty"`
+	Board       []string    `json:"board,omitempty"`
+	Pots        []PotResult `json:"pots,omitempty"`
+	// Shown is every hand that is face up, and it is the *only* place a hole
+	// card becomes public. Which hands land here is decided once, in endHand,
+	// by the table's reveal setting — never later and never in View, because
+	// this is what goes onto the wire.
+	Shown []ShownHand `json:"shown,omitempty"`
+	// Mucked is who reached the showdown without turning their hand over.
+	//
+	// Named rather than left out, so a client can say "mucked" instead of
+	// leaving a gap where a seat ought to be. A gap reads as a bug; a player
+	// who kept their cards is a fact about the hand.
+	Mucked []string       `json:"mucked,omitempty"`
+	Deltas map[string]int `json:"deltas,omitempty"`
+}
+
+// shows reports whether this player's hand is already face up.
+func (r *HandResult) shows(playerID string) bool {
+	for i := range r.Shown {
+		if r.Shown[i].PlayerID == playerID {
+			return true
+		}
+	}
+	return false
 }
 
 // HandSummary is what a hand leaves behind once its board is gone: who was
@@ -198,11 +248,20 @@ type PotResult struct {
 }
 
 // ShownHand is one player's cards at showdown, with what they made.
+//
+// Best and LabelKey are empty for a hand that never reached a showdown — a
+// bluff turned over after everyone folded to it. That is not a missing field
+// to be filled in later: there may be no board to make a hand against, and
+// `Best` given fewer than five cards answers "high card", which would print a
+// claim the player never made.
 type ShownHand struct {
 	PlayerID string   `json:"playerId"`
 	Hole     []string `json:"hole"`
-	Best     []string `json:"best"`
-	LabelKey string   `json:"labelKey"`
+	Best     []string `json:"best,omitempty"`
+	LabelKey string   `json:"labelKey,omitempty"`
+	// Voluntary is a hand its owner chose to turn over, rather than one the
+	// showdown turned over for them.
+	Voluntary bool `json:"voluntary,omitempty"`
 }
 
 func (s *GameState) seat(playerID string) *Seat {

@@ -1354,4 +1354,31 @@ export const sv: Record<string, string> = {
   'replay.play': 'Spela',
   'replay.pause': 'Paus',
   'replay.move': '{player} · {move}',
+
+  // --- the showdown --------------------------------------------------------
+  //
+  // Hold'em stops after every hand with the cards on the table, and a player
+  // may turn their own hand over before the next one is dealt. Most of these
+  // earn a line for the usual reason — what they mean lives in their params —
+  // and the rest because `humanise` would render "Shown Hand" or "Mucked" as
+  // English that looks written rather than missing.
+  'err.ALREADY_SHOWN': 'Din hand ligger redan öppet',
+  'err.NOTHING_TO_SHOW': 'Du har ingen hand att visa',
+  'holdem.offer.show': 'Visa min hand',
+  'holdem.offer.finish': 'Avsluta matchen',
+  'holdem.remedy.nothingToShow': 'Du var inte med i den här handen — vänta på nästa.',
+  'holdem.rules.section.showdown': 'Efter handen',
+  'holdem.rules.stopEveryHand': 'Spelet stannar efter varje hand, så att korten hinner ses.',
+  'holdem.rules.revealEveryone': 'Vid showdown vänds alla händer som synade upp.',
+  'holdem.rules.revealWinners': 'Vid showdown vänds bara den vinnande handen upp.',
+  'holdem.rules.showYourOwn': 'Du får alltid vända upp din egen hand, ända tills du säger att det kan fortsätta.',
+  'holdem.rules.showOnce': 'En hand kan bara visas en gång.',
+  'holdem.seat.won': 'Vann',
+  'holdem.seat.mucked': 'Visade inte',
+  'holdem.status.mucked': '{playerId} visade inte',
+  'holdem.status.shownVoluntary': '{playerId} visade sin hand',
+  'zone.shownHand': 'Visad',
+  'option.showdownReveal': 'Visa vid showdown',
+  'choice.showdownReveal.2': 'Alla som synade',
+  'choice.showdownReveal.1': 'Bara vinnaren',
 };

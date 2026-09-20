@@ -1372,4 +1372,31 @@ export const es: Record<string, string> = {
   'replay.play': 'Reproducir',
   'replay.pause': 'Pausa',
   'replay.move': '{player} · {move}',
+
+  // --- the showdown --------------------------------------------------------
+  //
+  // Hold'em stops after every hand with the cards on the table, and a player
+  // may turn their own hand over before the next one is dealt. Most of these
+  // earn a line for the usual reason — what they mean lives in their params —
+  // and the rest because `humanise` would render "Shown Hand" or "Mucked" as
+  // English that looks written rather than missing.
+  'err.ALREADY_SHOWN': 'Tu mano ya está boca arriba',
+  'err.NOTHING_TO_SHOW': 'No tienes ninguna mano que mostrar',
+  'holdem.offer.show': 'Mostrar mi mano',
+  'holdem.offer.finish': 'Terminar la partida',
+  'holdem.remedy.nothingToShow': 'No participaste en esta mano — espera a la siguiente.',
+  'holdem.rules.section.showdown': 'Después de la mano',
+  'holdem.rules.stopEveryHand': 'El juego se detiene tras cada mano, para que se vean las cartas.',
+  'holdem.rules.revealEveryone': 'En el showdown se descubren todas las manos que pagaron.',
+  'holdem.rules.revealWinners': 'En el showdown solo se descubre la mano ganadora.',
+  'holdem.rules.showYourOwn': 'Siempre puedes descubrir tu propia mano, hasta que aceptes continuar.',
+  'holdem.rules.showOnce': 'Una mano solo se puede mostrar una vez.',
+  'holdem.seat.won': 'Ganó',
+  'holdem.seat.mucked': 'No mostró',
+  'holdem.status.mucked': '{playerId} no mostró',
+  'holdem.status.shownVoluntary': '{playerId} mostró su mano',
+  'zone.shownHand': 'Mostrada',
+  'option.showdownReveal': 'Mostrar en el showdown',
+  'choice.showdownReveal.2': 'Todos los que pagaron',
+  'choice.showdownReveal.1': 'Solo el ganador',
 };

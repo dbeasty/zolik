@@ -1357,4 +1357,31 @@ export const hr: Record<string, string> = {
   'replay.play': 'Pokreni',
   'replay.pause': 'Pauza',
   'replay.move': '{player} · {move}',
+
+  // --- the showdown --------------------------------------------------------
+  //
+  // Hold'em stops after every hand with the cards on the table, and a player
+  // may turn their own hand over before the next one is dealt. Most of these
+  // earn a line for the usual reason — what they mean lives in their params —
+  // and the rest because `humanise` would render "Shown Hand" or "Mucked" as
+  // English that looks written rather than missing.
+  'err.ALREADY_SHOWN': 'Tvoja ruka već je otvorena',
+  'err.NOTHING_TO_SHOW': 'Nemaš ruku za pokazati',
+  'holdem.offer.show': 'Pokaži ruku',
+  'holdem.offer.finish': 'Završi meč',
+  'holdem.remedy.nothingToShow': 'Nisi igrao ovu ruku — pričekaj sljedeću.',
+  'holdem.rules.section.showdown': 'Nakon ruke',
+  'holdem.rules.stopEveryHand': 'Igra se zaustavlja nakon svake ruke, da se karte vide.',
+  'holdem.rules.revealEveryone': 'Na otvaranju se otkrivaju sve ruke koje su platile.',
+  'holdem.rules.revealWinners': 'Na otvaranju se otkriva samo pobjednička ruka.',
+  'holdem.rules.showYourOwn': 'Svoju ruku možeš otvoriti uvijek, dok ne pristaneš na nastavak.',
+  'holdem.rules.showOnce': 'Ruka se može pokazati samo jednom.',
+  'holdem.seat.won': 'Pobijedio',
+  'holdem.seat.mucked': 'Nije pokazao',
+  'holdem.status.mucked': '{playerId} nije pokazao karte',
+  'holdem.status.shownVoluntary': '{playerId} je pokazao svoju ruku',
+  'zone.shownHand': 'Otvorena',
+  'option.showdownReveal': 'Otkrivanje na otvaranju',
+  'choice.showdownReveal.2': 'Svi koji su platili',
+  'choice.showdownReveal.1': 'Samo pobjednik',
 };

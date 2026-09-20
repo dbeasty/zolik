@@ -84,6 +84,14 @@ func (m *Module) annotate(cfg module.MatchConfig, s *GameState, seat *Seat, offe
 
 		case ErrSeatNotInHand:
 			o.Remedy = &module.Fact{LabelKey: "holdem.remedy.waitForNextHand"}
+
+		// --- showing -------------------------------------------------------
+		//
+		// The only refusals here a player can act on. "You have already shown
+		// it" has no remedy worth printing — the thing they wanted is already
+		// true — so it gets the rule and nothing else.
+		case ErrNothingToShow:
+			o.Remedy = &module.Fact{LabelKey: "holdem.remedy.nothingToShow"}
 		}
 	}
 }

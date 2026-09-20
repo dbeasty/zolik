@@ -48,6 +48,33 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 			module.Fact{LabelKey: "holdem.rules.foldedOut"},
 			module.Fact{LabelKey: "holdem.rules.showdown"},
 		),
+		// What happens after the chips are pushed, which is a section this
+		// game did not have because it used to be over by then.
+		//
+		// The reveal setting is stated here as a sentence per value rather
+		// than one sentence with the value in it, because the two describe
+		// genuinely different tables. The right to show your own hand is
+		// stated unconditionally: it is true at both settings, and a rule that
+		// only existed at one of them could not be pointed at by a refusal
+		// that can happen at either.
+		module.Section("holdem.rules.section.showdown",
+			revealRule(cfg, v),
+			module.Fact{LabelKey: "holdem.rules.showYourOwn"},
+			module.Fact{LabelKey: "holdem.rules.showOnce"},
+			module.Fact{LabelKey: "holdem.rules.stopEveryHand"},
+		),
 		module.Section("holdem.rules.section.end", end...),
 	}, nil
+}
+
+// revealRule is the sentence for the reveal setting this table is playing.
+//
+// Two literal Facts rather than one built from a variable: `module.CollectKeys`
+// reads this file rather than running it, and a key that only exists behind a
+// local has no line in the manifest and therefore no line in any locale.
+func revealRule(cfg module.MatchConfig, v variationDefaults) module.Fact {
+	if cfg.Opt(OptShowdownReveal, RevealEveryone) == RevealWinners {
+		return module.Fact{LabelKey: "holdem.rules.revealWinners"}
+	}
+	return module.Fact{LabelKey: "holdem.rules.revealEveryone"}
 }
