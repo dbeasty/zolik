@@ -578,6 +578,12 @@ export type Replay = {
    */
   chapters?: ReplayChapter[];
   /**
+   * The threads through the match a reader can follow — one per seat that
+   * moved, plus the round boundaries where the game keeps them. Frame
+   * indices only, and present on every page like `chapters`.
+   */
+  tracks?: ReplayTrack[];
+  /**
    * The fold stopped early: the module refused a move it once accepted,
    * because its rules have moved since this game was played. Everything up
    * to `truncatedAt` is still exactly what happened.
@@ -585,6 +591,15 @@ export type Replay = {
   truncated?: boolean;
   truncatedAt?: number;
   truncatedCode?: string;
+};
+
+/** One thread through a match, as the frames that belong to it. */
+export type ReplayTrack = {
+  /** `seat:<playerId>` or `rounds`. */
+  id: string;
+  playerId?: string;
+  /** Frame indices on this track, ascending. */
+  frames: number[];
 };
 
 /**
