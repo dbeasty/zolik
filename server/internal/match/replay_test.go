@@ -740,3 +740,114 @@ func TestChaptersNeedNoFold(t *testing.T) {
 		t.Errorf("a match with %d checkpoints offered no chapters", len(match.Checkpoints))
 	}
 }
+
+// --- tracks: the threads a reader can follow -------------------------------
+
+// TestTracksCoverEveryFrameExactlyOnce: the seat tracks between them are the
+// whole match, because every frame after the deal was somebody's move.
+func TestTracksCoverEveryFrameExactlyOnce(t *testing.T) {
+	for _, g := range replayables() {
+		t.Run(g.name, func(t *testing.T) {
+			match, _ := playOut(t, g, 13)
+			tracks := tracksOf(match)
+			if len(tracks) == 0 {
+				t.Fatal("a played match offered no tracks at all")
+			}
+
+			seen := map[int]string{}
+			for _, tr := range tracks {
+				if tr.ID == "rounds" {
+					continue
+				}
+				for _, f := range tr.Frames {
+					if was, dup := seen[f]; dup {
+						t.Errorf("frame %d is on both %s and %s", f, was, tr.ID)
+					}
+					seen[f] = tr.ID
+				}
+			}
+			// Frame 0 is the deal and belongs to nobody; every other frame is
+			// a move, so every other frame is on exactly one seat track.
+			for f := 1; f <= len(match.ActionLog); f++ {
+				if _, ok := seen[f]; !ok {
+					t.Errorf("frame %d is on no seat's track", f)
+				}
+			}
+			if _, ok := seen[0]; ok {
+				t.Errorf("the deal was attributed to a seat")
+			}
+		})
+	}
+}
+
+// A seat's track holds that seat's moves and nobody else's — which is the
+// whole claim "your moves" makes.
+func TestASeatsTrackIsOnlyThatSeatsMoves(t *testing.T) {
+	g := withRounds(t, "prsi")
+	match, _ := playOut(t, g, 4)
+
+	for _, tr := range tracksOf(match) {
+		if tr.PlayerID == "" {
+			continue
+		}
+		for _, f := range tr.Frames {
+			if f < 1 || f > len(match.ActionLog) {
+				t.Fatalf("%s names frame %d, outside a %d-move log", tr.ID, f, len(match.ActionLog))
+			}
+			if who := match.ActionLog[f-1].PlayerID; who != tr.PlayerID {
+				t.Errorf("%s claims frame %d, which was %s's move", tr.ID, f, who)
+			}
+		}
+	}
+}
+
+// A game that keeps no rounds gets no rounds track, rather than an empty one.
+func TestNoRoundsTrackWhereAGameKeepsNoRounds(t *testing.T) {
+	match, _ := playOut(t, withRounds(t, "prsi"), 5)
+	for _, tr := range tracksOf(match) {
+		if tr.ID == "rounds" {
+			t.Errorf("prsi keeps no rounds but was given a rounds track")
+		}
+	}
+
+	withCheckpoints, _ := playOut(t, withRounds(t, "canasta"), 21)
+	if len(withCheckpoints.Checkpoints) == 0 {
+		t.Skip("canasta closed no round in this play-through")
+	}
+	found := false
+	for _, tr := range tracksOf(withCheckpoints) {
+		if tr.ID == "rounds" {
+			found = true
+			if len(tr.Frames) != len(withCheckpoints.Checkpoints) {
+				t.Errorf("the rounds track has %d frames for %d rounds",
+					len(tr.Frames), len(withCheckpoints.Checkpoints))
+			}
+		}
+	}
+	if !found {
+		t.Errorf("a game with rounds was given no rounds track")
+	}
+}
+
+// Tracks ride on every page, like chapters: a reader who opens deep in a match
+// still needs the whole map.
+func TestTracksArriveWithEveryPage(t *testing.T) {
+	m := replayManager()
+	match, _ := playOut(t, withRounds(t, "prsi"), 6)
+
+	first, err := m.BuildReplay(context.Background(), match, "p1", ReplayOptions{From: 0, Limit: 1})
+	if err != nil {
+		t.Fatalf("BuildReplay: %v", err)
+	}
+	deep, err := m.BuildReplay(context.Background(), match, "p1",
+		ReplayOptions{From: len(match.ActionLog), Limit: 1})
+	if err != nil {
+		t.Fatalf("BuildReplay: %v", err)
+	}
+	if a, b := mustJSON(t, first.Tracks), mustJSON(t, deep.Tracks); a != b {
+		t.Errorf("the track list changed with the page\n first: %s\n deep:  %s", a, b)
+	}
+	if len(first.Tracks) == 0 {
+		t.Error("a played match offered no tracks")
+	}
+}
