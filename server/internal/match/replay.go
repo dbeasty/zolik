@@ -49,6 +49,14 @@ type ReplayMsg struct {
 	// that page is. Absent for a game that keeps no rounds, where a single
 	// chapter spanning everything would be a label pretending to be a map.
 	Chapters []ReplayChapter `json:"chapters,omitempty"`
+	// Tracks are the threads through the match a reader might follow — one
+	// seat's moves, or the round boundaries — as the frames on each.
+	//
+	// Every one is a filter on who moved, which the action log already
+	// records, so these cost a walk of it and nothing else: no module asked
+	// anything, no state decoded, no fold. Like Chapters they ride on every
+	// page, because a reader who opens deep in a match still needs the map.
+	Tracks []ReplayTrack `json:"tracks,omitempty"`
 	// Truncated says the fold stopped before Total: the module refused a move
 	// it once accepted, because its rules have moved since this game was
 	// played. Everything up to TruncatedAt is still exactly what happened.
@@ -67,6 +75,19 @@ type ReplayChapter struct {
 	// absent while the round is the one the match stopped in.
 	From int `json:"from"`
 	To   int `json:"to,omitempty"`
+}
+
+// ReplayTrack is one thread through a match, as the frames that belong to it.
+//
+// "Your moves" and "the bot's moves" are the two a reader actually asks for,
+// and a long replay is unreadable without them: stepping one frame at a time
+// through somebody else's turns to reach your own is not navigation.
+type ReplayTrack struct {
+	// ID is "seat:<playerId>" or "rounds".
+	ID       string `json:"id"`
+	PlayerID string `json:"playerId,omitempty"`
+	// Frames are the frame indices on this track, ascending.
+	Frames []int `json:"frames"`
 }
 
 // ReplayFrame is the board after one step. Frame 0 is the deal, and carries no
@@ -192,6 +213,7 @@ func (m *Manager) BuildReplay(ctx context.Context, match models.Match, viewerID 
 		From:     from,
 		Frames:   []ReplayFrame{},
 		Chapters: chaptersOf(match),
+		Tracks:   tracksOf(match),
 	}
 	for _, p := range match.Players {
 		msg.Players = append(msg.Players, PlayerMsg{ID: p.ID, Name: p.Name, IsAI: p.IsAI, Avatar: p.Avatar})
@@ -497,4 +519,45 @@ func (m *Manager) ReplayAvailable(ctx context.Context) error {
 		return module.Error{Code: "REPLAY_UNAVAILABLE", Message: err.Error()}
 	}
 	return nil
+}
+
+// tracksOf turns the action log into the threads a reader can follow.
+//
+// One track per seat that ever moved, plus the round boundaries where a game
+// keeps them. Derived from the log alone — ActionLog[i].PlayerID is who moved,
+// and frame i+1 is the board after they did — so this asks no module anything
+// and decodes no state, exactly like chaptersOf.
+//
+// Seats come in the order they first moved rather than in seat order: a reader
+// scanning the chips wants their own, and whoever opened the game moved first.
+func tracksOf(match models.Match) []ReplayTrack {
+	if len(match.ActionLog) == 0 {
+		return nil
+	}
+	bySeat := map[string]*ReplayTrack{}
+	order := make([]string, 0, len(match.Players))
+	for i, a := range match.ActionLog {
+		t, ok := bySeat[a.PlayerID]
+		if !ok {
+			t = &ReplayTrack{ID: "seat:" + a.PlayerID, PlayerID: a.PlayerID}
+			bySeat[a.PlayerID] = t
+			order = append(order, a.PlayerID)
+		}
+		t.Frames = append(t.Frames, i+1)
+	}
+
+	out := make([]ReplayTrack, 0, len(order)+1)
+	for _, id := range order {
+		out = append(out, *bySeat[id])
+	}
+	// The rounds, where the game keeps any: the frames the chapters close on,
+	// offered as something to step through rather than to jump between.
+	if len(match.Checkpoints) > 0 {
+		rounds := ReplayTrack{ID: "rounds"}
+		for _, c := range match.Checkpoints {
+			rounds.Frames = append(rounds.Frames, c.Seq)
+		}
+		out = append(out, rounds)
+	}
+	return out
 }

@@ -15,6 +15,7 @@ import { usePanelState } from '@/src/hooks/usePanelState';
 import { useSkinControls } from '@/src/hooks/useSkin';
 import { reasonText, t } from '@/src/lib/i18n';
 import { label, playerName } from '@/src/lib/labels';
+import { loadMarks, saveMarks } from '@/src/lib/markStore';
 import type { Skin } from '@/src/skins/types';
 
 /**
@@ -50,6 +51,10 @@ export default function ReplayScreen() {
   const [index, setIndex] = useState(0);
   const [error, setError] = useState('');
   const [playing, setPlaying] = useState(false);
+  // Which thread ◀ and ▶ follow. "all" is every frame, which is what they did
+  // before tracks existed, so nothing about the plain case changed.
+  const [trackId, setTrackId] = useState('all');
+  const [marks, setMarks] = useState<number[]>([]);
 
   // Frames by their own index, filled in as pages land. A map rather than an
   // array because pages arrive out of order once the scrubber is dragged, and
@@ -89,6 +94,17 @@ export default function ReplayScreen() {
   useEffect(() => {
     if (session) void loadPage(0);
   }, [session, loadPage]);
+
+  useEffect(() => {
+    if (!id) return;
+    let live = true;
+    void loadMarks(id).then((m) => {
+      if (live) setMarks(m);
+    });
+    return () => {
+      live = false;
+    };
+  }, [id]);
 
   const frame = framesRef.current.get(index) ?? null;
   const total = replay?.total ?? 0;
@@ -211,6 +227,60 @@ export default function ReplayScreen() {
   };
 
   const chapters = replay.chapters ?? [];
+
+  // The chips, in the order a reader scans them: everything, your own moves,
+  // then each opponent, then the structural ones.
+  const serverTracks = replay.tracks ?? [];
+  const seatTrack = (pid: string) => serverTracks.find((tr) => tr.playerId === pid);
+  const trackChips: { id: string; label: string; frames: number[] }[] = [
+    { id: 'all', label: t('replay.track.all'), frames: [] },
+    ...(seatTrack(viewerId) ? [{
+      id: 'seat:' + viewerId,
+      label: t('replay.track.yours'),
+      frames: seatTrack(viewerId)!.frames,
+    }] : []),
+    ...serverTracks
+      .filter((tr) => tr.playerId && tr.playerId !== viewerId)
+      .map((tr) => {
+        const who = replay.players.find((p) => p.id === tr.playerId);
+        return {
+          id: tr.id,
+          label: playerName(replay.players, tr.playerId!) + (who?.isAI ? ' 🤖' : ''),
+          frames: tr.frames,
+        };
+      }),
+    ...serverTracks
+      .filter((tr) => tr.id === 'rounds')
+      .map((tr) => ({ id: 'rounds', label: t('replay.track.rounds'), frames: tr.frames })),
+    ...(marks.length ? [{ id: 'marks', label: t('replay.track.marks'), frames: [...marks].sort((a, b) => a - b) }] : []),
+  ];
+
+  const activeTrack = trackChips.find((c) => c.id === trackId) ?? trackChips[0]!;
+  // On "all" the buttons step one frame, exactly as they did before tracks
+  // existed. On any other they step to the next frame that belongs to it.
+  const stepTarget = (dir: 1 | -1): number | null => {
+    if (activeTrack.id === 'all') {
+      const to = index + dir;
+      return to >= 0 && to < total ? to : null;
+    }
+    const frames = activeTrack.frames;
+    if (dir > 0) return frames.find((f) => f > index) ?? null;
+    let prev: number | null = null;
+    for (const f of frames) {
+      if (f < index) prev = f;
+      else break;
+    }
+    return prev;
+  };
+  const canStep = (dir: 1 | -1) => stepTarget(dir) !== null;
+
+  const toggleMark = async () => {
+    const next = marks.includes(index)
+      ? marks.filter((m) => m !== index)
+      : [...marks, index].sort((a, b) => a - b);
+    setMarks(next);
+    if (id) await saveMarks(id, next);
+  };
   // What this game calls a round — a deal, a hand, a leg. The module's own
   // word, carried on the round log the frames already have, so this screen
   // never has to know that Žolíky deals and Hold'em does not.
@@ -282,6 +352,32 @@ export default function ReplayScreen() {
             </ScrollView>
           ) : null}
 
+          {/* Which thread the arrows follow. "All" is every frame, so a reader
+              who ignores this strip gets exactly the behaviour they had
+              before it existed. */}
+          {trackChips.length > 1 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={own.chapterStrip}
+              contentContainerStyle={own.chapterRow}
+              testID="replay-tracks"
+            >
+              {trackChips.map((c) => (
+                <Pressable
+                  key={c.id}
+                  testID={`replay-track-${c.id}`}
+                  onPress={() => setTrackId(c.id)}
+                  style={[own.chapter, c.id === activeTrack.id && own.chapterHere]}
+                >
+                  <Text style={[own.chapterText, c.id === activeTrack.id && own.chapterTextHere]}>
+                    {c.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          ) : null}
+
           {/* A game whose rules have moved since it was played stops folding
               part of the way through. The frames before that point are still
               exactly what happened, so they are still worth stepping through
@@ -326,9 +422,9 @@ export default function ReplayScreen() {
           </Pressable>
           <Pressable
             testID="replay-prev"
-            onPress={() => step(index - 1)}
-            disabled={index === 0}
-            style={[own.button, index === 0 && own.buttonOff]}
+            onPress={() => { const to = stepTarget(-1); if (to !== null) step(to); }}
+            disabled={!canStep(-1)}
+            style={[own.button, !canStep(-1) && own.buttonOff]}
           >
             <Text style={own.buttonText}>◀</Text>
           </Pressable>
@@ -342,11 +438,18 @@ export default function ReplayScreen() {
           </Pressable>
           <Pressable
             testID="replay-next"
-            onPress={() => step(index + 1)}
-            disabled={index >= total - 1}
-            style={[own.button, index >= total - 1 && own.buttonOff]}
+            onPress={() => { const to = stepTarget(1); if (to !== null) step(to); }}
+            disabled={!canStep(1)}
+            style={[own.button, !canStep(1) && own.buttonOff]}
           >
             <Text style={own.buttonText}>▶</Text>
+          </Pressable>
+          <Pressable
+            testID="replay-mark"
+            onPress={() => void toggleMark()}
+            style={[own.button, marks.includes(index) && own.chapterHere]}
+          >
+            <Text style={own.buttonText}>{marks.includes(index) ? '★' : '☆'}</Text>
           </Pressable>
           <Pressable
             testID="replay-last"
