@@ -31,6 +31,8 @@ export const fr: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'Cette table n’existe plus',
   'err.MATCH_DELETED': 'L’hôte a supprimé cette table',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Tout le monde doit être revenu à la table pour reprendre la partie',
+  'err.NOTHING_TO_REPLAY': 'Il n’y a pas encore de partie à revoir ici',
+  'err.REPLAY_UNAVAILABLE': 'Le replay des parties n’est pas disponible sur ce serveur',
   'err.DISCARD_LOCKED': "La défausse est verrouillée pour l'instant",
   'err.DISCARD_PILE_EMPTY': 'La défausse est vide',
   'err.NO_CARDS_LEFT': 'Plus de cartes à piocher',
@@ -1355,4 +1357,18 @@ export const fr: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Pioche une carte',
   'prompt.yourTurnMeld': 'Combine si tu peux, puis défausse',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Revoir',
+  'mine.replay': 'Revoir',
+  'replay.loading': 'Ouverture de la partie…',
+  'replay.failed': 'Impossible de charger la partie',
+  'replay.openHands': 'toutes les mains visibles',
+  'replay.truncated': 'Cette partie se rejoue jusqu’au coup {at} — ses règles ont changé depuis',
+  'replay.position': '{at} sur {of}',
+  'replay.theDeal': 'La donne',
+  'replay.round': 'Manche',
+  'replay.play': 'Lecture',
+  'replay.pause': 'Pause',
+  'replay.move': '{player} · {move}',
 };

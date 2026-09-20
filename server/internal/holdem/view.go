@@ -127,6 +127,17 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 // so the *previous* hand's cards are shown to everyone, which is a reveal no
 // other module in this codebase has.
 func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, error) {
+	return m.view(raw, viewerID, false)
+}
+
+// OpenView renders the board with every hole card face up, for replaying a
+// hand that is over. The runtime only ever asks for it once a match is
+// finished — showing hole cards mid-hand would be the whole game.
+func (m *Module) OpenView(raw module.State) (module.ViewModel, error) {
+	return m.view(raw, "", true)
+}
+
+func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.ViewModel, error) {
 	s, err := decode(raw)
 	if err != nil {
 		return module.ViewModel{}, err
@@ -140,10 +151,14 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 			ID: "hole:" + st.PlayerID, Kind: module.ZoneHand, OwnerID: st.PlayerID,
 			Count: len(st.Hole),
 		}
-		if st.PlayerID == viewerID {
+		switch {
+		case st.PlayerID == viewerID:
 			z.LabelKey = "zone.yourHand"
 			z.Cards = cardViews(st.Hole)
-		} else {
+		case reveal:
+			z.LabelKey = "zone.opponentHand"
+			z.Cards = cardViews(st.Hole)
+		default:
 			z.LabelKey = "zone.opponentHand"
 		}
 		vm.Zones = append(vm.Zones, z)

@@ -601,6 +601,33 @@ func StandingsFor(m GameModule, s State) []Standing {
 	return out
 }
 
+// OpenViewer is implemented by a module that can show a board with nothing
+// hidden: a finished game, where there is no longer anything to protect.
+//
+// Optional, in the same way and for the same reason as Ranked — a module that
+// cannot honestly reveal everything should decline rather than half-reveal.
+// A module that declines is replayed through its ordinary per-viewer View,
+// which is always safe, just less interesting.
+//
+// Takes no viewer, by construction: "every hand face up" is one board, the
+// same for everyone looking at it.
+type OpenViewer interface {
+	OpenView(s State) (ViewModel, error)
+}
+
+// OpenViewFor returns a module's nothing-hidden board, and whether it had one.
+func OpenViewFor(m GameModule, s State) (ViewModel, bool) {
+	o, ok := m.(OpenViewer)
+	if !ok {
+		return ViewModel{}, false
+	}
+	out, err := o.OpenView(s)
+	if err != nil {
+		return ViewModel{}, false
+	}
+	return out, true
+}
+
 // RankByScore turns per-player scores into standings, highest first.
 //
 // Shared because every module that has a score wants exactly this, ties

@@ -31,6 +31,8 @@ export const sv: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'Det här bordet finns inte längre',
   'err.MATCH_DELETED': 'Värden har tagit bort det här bordet',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Alla måste vara tillbaka vid bordet innan spelet kan återupptas',
+  'err.NOTHING_TO_REPLAY': 'Det finns ingen match att spela upp här än',
+  'err.REPLAY_UNAVAILABLE': 'Det går inte att spela upp matcher på den här servern',
   'err.DISCARD_LOCKED': 'Kasthögen är låst tills vidare',
   'err.DISCARD_PILE_EMPTY': 'Kasthögen är tom',
   'err.NO_CARDS_LEFT': 'Inga kort kvar att dra',
@@ -1334,4 +1336,18 @@ export const sv: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Dra ett kort',
   'prompt.yourTurnMeld': 'Lägg ut om du kan, kasta sedan',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Spela upp',
+  'mine.replay': 'Spela upp',
+  'replay.loading': 'Öppnar uppspelningen…',
+  'replay.failed': 'Uppspelningen kunde inte laddas',
+  'replay.openHands': 'alla händer öppna',
+  'replay.truncated': 'Den här matchen kan spelas upp till drag {at} — reglerna har ändrats sedan dess',
+  'replay.position': '{at} av {of}',
+  'replay.theDeal': 'Given',
+  'replay.round': 'Omgång',
+  'replay.play': 'Spela',
+  'replay.pause': 'Paus',
+  'replay.move': '{player} · {move}',
 };

@@ -31,6 +31,8 @@ export const fi: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'Tätä pöytää ei ole enää',
   'err.MATCH_DELETED': 'Isäntä poisti tämän pöydän',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Kaikkien on oltava takaisin pöydässä, ennen kuin peliä voi jatkaa',
+  'err.NOTHING_TO_REPLAY': 'Täällä ei ole vielä peliä toistettavaksi',
+  'err.REPLAY_UNAVAILABLE': 'Pelien toisto ei ole käytössä tällä palvelimella',
   'err.DISCARD_LOCKED': 'Poistopino on toistaiseksi lukittu',
   'err.DISCARD_PILE_EMPTY': 'Poistopino on tyhjä',
   'err.NO_CARDS_LEFT': 'Nostettavia kortteja ei ole jäljellä',
@@ -1347,4 +1349,18 @@ export const fi: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Nosta kortti',
   'prompt.yourTurnMeld': 'Yhdistä jos voit, sitten poista',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Toisto',
+  'mine.replay': 'Toisto',
+  'replay.loading': 'Avataan toistoa…',
+  'replay.failed': 'Toistoa ei voitu ladata',
+  'replay.openHands': 'kaikki kädet näkyvissä',
+  'replay.truncated': 'Tämä peli toistuu siirtoon {at} asti — säännöt ovat sittemmin muuttuneet',
+  'replay.position': '{at} / {of}',
+  'replay.theDeal': 'Jako',
+  'replay.round': 'Kierros',
+  'replay.play': 'Toista',
+  'replay.pause': 'Tauko',
+  'replay.move': '{player} · {move}',
 };

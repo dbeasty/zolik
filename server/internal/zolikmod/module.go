@@ -414,6 +414,16 @@ func zoneIDFor(s *rules.Selector, playerID string) string {
 // hidden-information filtering is a property of the game, so the game decides
 // it. The runtime never learns that a hand is secret and a meld is not.
 func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, error) {
+	return m.view(raw, viewerID, false)
+}
+
+// OpenView renders the board with every hand face up, for replaying a game
+// that is over. The runtime only ever asks for it once a match is finished.
+func (m *Module) OpenView(raw module.State) (module.ViewModel, error) {
+	return m.view(raw, "", true)
+}
+
+func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.ViewModel, error) {
 	s, err := decode(raw)
 	if err != nil {
 		return module.ViewModel{}, err
@@ -436,18 +446,29 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 			owedJokers = gs.JokersReclaimedPendingMeld
 		}
 	}
-	vm.Zones = append(vm.Zones, module.Zone{
-		ID: handZoneID(viewerID), Kind: module.ZoneHand, OwnerID: viewerID,
-		LabelKey: "zone.yourHand", Cards: badgedCardViews(own, owedPickup, owedJokers), Count: len(own),
-	})
+	// Skipped when there is no viewer, which is what an open view is: nobody
+	// is sitting at this board, so no hand is "yours".
+	if viewerID != "" {
+		vm.Zones = append(vm.Zones, module.Zone{
+			ID: handZoneID(viewerID), Kind: module.ZoneHand, OwnerID: viewerID,
+			LabelKey: "zone.yourHand", Cards: badgedCardViews(own, owedPickup, owedJokers), Count: len(own),
+		})
+	}
 	for _, p := range gs.TurnOrder {
 		if p == viewerID {
 			continue
 		}
-		vm.Zones = append(vm.Zones, module.Zone{
+		z := module.Zone{
 			ID: handZoneID(p), Kind: module.ZoneHand, OwnerID: p,
 			LabelKey: "zone.opponentHand", Count: len(gs.Hands[p]),
-		})
+		}
+		if reveal {
+			// Plain card views, not badged: a badge says what this player
+			// still owes the table, which is a live obligation and means
+			// nothing in a game that has finished.
+			z.Cards = cardViews(gs.Hands[p])
+		}
+		vm.Zones = append(vm.Zones, z)
 	}
 
 	// The closing gesture: where the profile plays it that way, the discard

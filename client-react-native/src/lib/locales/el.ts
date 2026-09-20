@@ -31,6 +31,8 @@ export const el: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'Αυτό το τραπέζι δεν υπάρχει πια',
   'err.MATCH_DELETED': 'Ο οικοδεσπότης διέγραψε αυτό το τραπέζι',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Όλοι πρέπει να είναι ξανά στο τραπέζι για να συνεχιστεί το παιχνίδι',
+  'err.NOTHING_TO_REPLAY': 'Δεν υπάρχει ακόμη παιχνίδι για αναπαραγωγή εδώ',
+  'err.REPLAY_UNAVAILABLE': 'Η αναπαραγωγή παιχνιδιών δεν είναι διαθέσιμη σε αυτόν τον διακομιστή',
   'err.DISCARD_LOCKED': 'Ο σωρός απόρριψης είναι προς το παρόν κλειδωμένος',
   'err.DISCARD_PILE_EMPTY': 'Ο σωρός απόρριψης είναι άδειος',
   'err.NO_CARDS_LEFT': 'Δεν έμειναν φύλλα για τράβηγμα',
@@ -1371,4 +1373,18 @@ export const el: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Τράβα ένα φύλλο',
   'prompt.yourTurnMeld': 'Κάνε συνδυασμό αν μπορείς και μετά ρίξε',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Επανάληψη',
+  'mine.replay': 'Επανάληψη',
+  'replay.loading': 'Άνοιγμα της επανάληψης…',
+  'replay.failed': 'Η επανάληψη δεν φορτώθηκε',
+  'replay.openHands': 'όλα τα χέρια ανοιχτά',
+  'replay.truncated': 'Το παιχνίδι αναπαράγεται ως την κίνηση {at} — οι κανόνες του άλλαξαν έκτοτε',
+  'replay.position': '{at} από {of}',
+  'replay.theDeal': 'Η μοιρασιά',
+  'replay.round': 'Γύρος',
+  'replay.play': 'Αναπαραγωγή',
+  'replay.pause': 'Παύση',
+  'replay.move': '{player} · {move}',
 };

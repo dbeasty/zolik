@@ -45,6 +45,12 @@ type Match struct {
 	// by ModuleID so an old replay stays readable by the module that wrote it.
 	ActionLog []MatchAction `bson:"actionLog,omitempty" json:"-"`
 
+	// Checkpoints are the board at each round boundary, oldest first.
+	//
+	// Absent on every match played before they existed, which is exactly what
+	// an old replay gets: the fold starts at the deal, as it always did.
+	Checkpoints []MatchCheckpoint `bson:"checkpoints,omitempty" json:"-"`
+
 	// UpdatedAt is set on every write that goes through UpdateWithVersion —
 	// every accepted action, suspend, resume and reap — so a listing keyed on
 	// activity rather than creation has something to sort by. A match written
@@ -86,6 +92,41 @@ type Match struct {
 	// already carrying it — and leaves a trail back to the original if a
 	// migrated match ever looks wrong.
 	MigratedFrom bson.ObjectID `bson:"migratedFrom,omitempty" json:"-"`
+}
+
+// MatchCheckpoint is the board at a boundary the game itself defines — the
+// end of a deal, a hand, a leg.
+//
+// It is a landmark before it is an optimisation. A six-hundred move replay has
+// nothing in it a player recognises, and a slider with six hundred positions
+// is not a way to find the deal where everything went wrong; a list of deals
+// is. That the same marks also let a fold start near where it is going,
+// instead of at the deal every time, is the second thing they are for.
+//
+// The state is stored rather than derived, so reaching a checkpoint costs
+// nothing and depends on nothing — not on the module still folding an old log
+// the same way, and not on the log being intact before this point. Which is
+// also the answer to a rules change: everything from the last checkpoint
+// onwards is still readable when the actions before it have stopped replaying.
+type MatchCheckpoint struct {
+	// Seq is how many actions had been accepted when this was taken, so it is
+	// also the replay frame index this state belongs to.
+	Seq int `bson:"seq" json:"seq"`
+	// Round is how many rounds were complete here, 1-based for the round this
+	// closes — "the end of deal 3".
+	Round int `bson:"round" json:"round"`
+	// State is the board here — but only on some of them.
+	//
+	// Every round boundary is marked, because every one is somewhere a player
+	// might want to jump to; a mark is three numbers and costs nothing. A
+	// stored board is kilobytes, and is only worth keeping where it saves a
+	// fold worth saving. Games disagree wildly about how long a round is — a
+	// canasta deal runs hundreds of moves, a blackjack hand about nine — so
+	// "snapshot every round" measured at +11% of the action log for canasta
+	// and +313% for blackjack. Hence the spacing rule in the runtime, and
+	// hence this being optional rather than assumed.
+	State json.RawMessage `bson:"state,omitempty" json:"-"`
+	At    time.Time       `bson:"at" json:"at"`
 }
 
 // MatchAction is one accepted move, stored verbatim.

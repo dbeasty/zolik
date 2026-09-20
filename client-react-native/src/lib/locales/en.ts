@@ -36,6 +36,8 @@ export const en: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'That table no longer exists',
   'err.MATCH_DELETED': 'The host deleted this table',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Everyone has to be back at the table before this game can be picked up',
+  'err.NOTHING_TO_REPLAY': 'There is no game here to replay yet',
+  'err.REPLAY_UNAVAILABLE': 'Replays are not available on this server',
   'err.DISCARD_LOCKED': 'The discard pile is locked for now',
   'err.DISCARD_PILE_EMPTY': 'The discard pile is empty',
   'err.NO_CARDS_LEFT': 'No cards left to draw',
@@ -1333,4 +1335,18 @@ export const en: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Draw a card',
   'prompt.yourTurnMeld': 'Meld if you can, then discard',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Replay',
+  'mine.replay': 'Replay',
+  'replay.loading': 'Opening the replay…',
+  'replay.failed': 'The replay could not be loaded',
+  'replay.openHands': 'every hand face up',
+  'replay.truncated': 'This game replays as far as move {at} — its rules have changed since it was played',
+  'replay.position': '{at} of {of}',
+  'replay.theDeal': 'The deal',
+  'replay.round': 'Round',
+  'replay.play': 'Play',
+  'replay.pause': 'Pause',
+  'replay.move': '{player} · {move}',
 };

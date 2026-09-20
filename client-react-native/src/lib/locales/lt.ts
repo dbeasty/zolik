@@ -31,6 +31,8 @@ export const lt: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'Šio stalo nebėra',
   'err.MATCH_DELETED': 'Šeimininkas ištrynė šį stalą',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Kad žaidimą būtų galima tęsti, visi turi grįžti prie stalo',
+  'err.NOTHING_TO_REPLAY': 'Čia dar nėra žaidimo, kurį būtų galima peržiūrėti',
+  'err.REPLAY_UNAVAILABLE': 'Partijų peržiūra šiame serveryje negalima',
   'err.DISCARD_LOCKED': 'Atmetimo krūvelė kol kas užrakinta',
   'err.DISCARD_PILE_EMPTY': 'Atmetimo krūvelė tuščia',
   'err.NO_CARDS_LEFT': 'Nebėra kortų traukti',
@@ -1340,4 +1342,18 @@ export const lt: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Paimk kortą',
   'prompt.yourTurnMeld': 'Išdėk, jei gali, tada išmesk',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Peržiūra',
+  'mine.replay': 'Peržiūra',
+  'replay.loading': 'Atveriama peržiūra…',
+  'replay.failed': 'Nepavyko įkelti peržiūros',
+  'replay.openHands': 'visos rankos atverstos',
+  'replay.truncated': 'Šį žaidimą galima peržiūrėti iki {at} ėjimo — taisyklės nuo tada pasikeitė',
+  'replay.position': '{at} iš {of}',
+  'replay.theDeal': 'Dalijimas',
+  'replay.round': 'Raundas',
+  'replay.play': 'Groti',
+  'replay.pause': 'Pauzė',
+  'replay.move': '{player} · {move}',
 };

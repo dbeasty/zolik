@@ -1,6 +1,7 @@
 package match_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -8,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/v2/bson"
 
+	"zolik/server/internal/db"
 	"zolik/server/internal/match"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
@@ -26,7 +28,29 @@ type storedHarness struct {
 
 func newStoredHarness(t *testing.T) *storedHarness {
 	t.Helper()
-	repo := newTestRepository(t)
+	return storedHarnessOn(t, newTestRepository(t), false)
+}
+
+// newReplayHarness is the same surface on a deployment that can actually
+// offer a replay: the operator's flag on, and a store that keeps every
+// version of a document and is still keeping them.
+//
+// Both are needed, and neither is the default here or anywhere else — which
+// is the point of building it separately rather than turning replay on for
+// the whole file. A real embedded KDB rather than a stand-in, because the
+// third gate is a question only a real engine can answer.
+func newReplayHarness(t *testing.T) *storedHarness {
+	t.Helper()
+	k, err := db.OpenKDB(t.TempDir())
+	if err != nil {
+		t.Skipf("no embedded kdb available here: %v", err)
+	}
+	t.Cleanup(func() { _ = k.Close(context.Background()) })
+	return storedHarnessOn(t, match.NewKDBRepository(k), true)
+}
+
+func storedHarnessOn(t *testing.T, repo match.Repository, replay bool) *storedHarness {
+	t.Helper()
 
 	hub, err := ws.NewHub(ws.NewConnRegistry(), "")
 	if err != nil {
@@ -35,6 +59,7 @@ func newStoredHarness(t *testing.T) *storedHarness {
 	t.Cleanup(func() { _ = hub.Close() })
 
 	manager := match.NewManager(repo, module.NewRegistry(prsi.New()), hub)
+	manager.SetReplayEnabled(replay)
 	r := chi.NewRouter()
 	handlers := match.NewHandlers(manager, false)
 	handlers.RegisterRoutes(r)

@@ -7,7 +7,7 @@ import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { formatApiError } from '@/src/lib/apiError';
 import { moduleName, variationName } from '@/src/lib/gameLabels';
-import { routeForMatch } from '@/src/lib/matchRoute';
+import { routeForMatch, routeForReplay } from '@/src/lib/matchRoute';
 import { colors, shared } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
 
@@ -160,6 +160,20 @@ export default function MyGamesScreen() {
                   <Text style={[shared.buttonText, shared.buttonTextSecondary]}>{t('mine.open')}</Text>
                 </Pressable>
               )}
+              {/* Offered wherever the server says there is a game to step
+                  through, which is any table that was ever dealt. Whether the
+                  hands come up face down or face up is the server's call too,
+                  and depends on whether the game is actually over. */}
+              {row.canReplay ? (
+                <Pressable
+                  testID={`mine-replay-${row.matchId}`}
+                  disabled={busyId === row.matchId}
+                  style={[shared.button, shared.buttonSecondary, styles.rowButton]}
+                  onPress={() => router.push(routeForReplay(row.matchId))}
+                >
+                  <Text style={[shared.buttonText, shared.buttonTextSecondary]}>{t('mine.replay')}</Text>
+                </Pressable>
+              ) : null}
               {row.canDelete ? (
                 <Pressable
                   testID={`mine-delete-${row.matchId}`}

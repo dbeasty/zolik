@@ -31,6 +31,8 @@ export const da: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'Dette bord findes ikke længere',
   'err.MATCH_DELETED': 'Værten har slettet dette bord',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Alle skal være tilbage ved bordet, før spillet kan genoptages',
+  'err.NOTHING_TO_REPLAY': 'Der er endnu ikke noget spil at afspille her',
+  'err.REPLAY_UNAVAILABLE': 'Genafspilning er ikke tilgængelig på denne server',
   'err.DISCARD_LOCKED': 'Kastebunken er låst indtil videre',
   'err.DISCARD_PILE_EMPTY': 'Kastebunken er tom',
   'err.NO_CARDS_LEFT': 'Der er ikke flere kort at trække',
@@ -1336,4 +1338,18 @@ export const da: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Træk et kort',
   'prompt.yourTurnMeld': 'Læg ned hvis du kan, og kast så',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Genafspil',
+  'mine.replay': 'Genafspil',
+  'replay.loading': 'Åbner genafspilningen…',
+  'replay.failed': 'Genafspilningen kunne ikke indlæses',
+  'replay.openHands': 'alle hænder åbne',
+  'replay.truncated': 'Dette spil kan genafspilles til træk {at} — reglerne er ændret siden',
+  'replay.position': '{at} af {of}',
+  'replay.theDeal': 'Givningen',
+  'replay.round': 'Runde',
+  'replay.play': 'Afspil',
+  'replay.pause': 'Pause',
+  'replay.move': '{player} · {move}',
 };

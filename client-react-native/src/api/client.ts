@@ -1,5 +1,5 @@
 import { ZOLIK_BASE_URL } from '@/src/config';
-import type { MatchModule, MatchState, ModuleRules, StoredTable } from '@/src/api/matchTypes';
+import type { MatchModule, MatchState, ModuleRules, Replay, StoredTable } from '@/src/api/matchTypes';
 import type {
   AccountProfile,
   AuthProvider,
@@ -419,6 +419,21 @@ export class ZolikClient {
     const q = scope === 'finished' ? '?status=finished' : '';
     const data = await this.get<{ tables: StoredTable[] }>(`/users/me/tables${q}`, true);
     return data.tables;
+  }
+
+  /**
+   * A stopped game, played back frame by frame.
+   *
+   * Seated players only, and always from the caller's own seat — there is no
+   * way to ask for somebody else's view of it. A finished game comes back
+   * with every hand face up; anything still resumable does not.
+   *
+   * Paged: `from` and `limit` window the frames, and `total` says how long
+   * the match actually is, so a scrub bar is drawable from the first page.
+   */
+  async getReplay(idOrCode: string, from = 0, limit = 100): Promise<Replay> {
+    const q = `?from=${from}&limit=${limit}`;
+    return this.get<Replay>(`/matches/${encodeURIComponent(idOrCode)}/replay${q}`, true);
   }
 
   /**

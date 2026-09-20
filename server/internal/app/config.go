@@ -69,6 +69,16 @@ type Config struct {
 	// loses everything on restart — acceptable only in tests.
 	KDBPath string
 
+	// ReplayEnabled turns on stepping back through a game that has stopped
+	// (FEATURE_FLAG_MATCH_REPLAY). Off by default: it is only half of what
+	// replay needs, and the other half — a store that keeps every version of
+	// a document, and is still keeping them — is asked of the store at the
+	// door. See match.Manager.ReplayAvailable.
+	//
+	// Off also means the write path stores no checkpoints, so a deployment
+	// that never turns this on pays nothing for it at all.
+	ReplayEnabled bool
+
 	JWTAccessSecret  string
 	JWTRefreshSecret string
 
@@ -190,6 +200,11 @@ func LoadConfig() Config {
 		MongoDB:  envOr("MONGO_DB", "zolik"),
 
 		KDBPath: envOr("KDB_PATH", "data/kdb"),
+
+		// Deliberately not defaulted from DBEngine: running KDB is not the
+		// same as having decided to show players every board their game
+		// passed through. Both have to be said.
+		ReplayEnabled: envBool("FEATURE_FLAG_MATCH_REPLAY", false),
 
 		JWTAccessSecret:  envOr("JWT_ACCESS_SECRET", "dev_access_secret_change_me"),
 		JWTRefreshSecret: envOr("JWT_REFRESH_SECRET", "dev_refresh_secret_change_me"),

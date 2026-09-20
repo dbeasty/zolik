@@ -31,6 +31,8 @@ export const ro: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'Această masă nu mai există',
   'err.MATCH_DELETED': 'Gazda a șters această masă',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Toți trebuie să fie înapoi la masă pentru ca jocul să poată fi reluat',
+  'err.NOTHING_TO_REPLAY': 'Aici încă nu există niciun joc de reluat',
+  'err.REPLAY_UNAVAILABLE': 'Reluarea partidelor nu este disponibilă pe acest server',
   'err.DISCARD_LOCKED': 'Teancul de aruncate este blocat deocamdată',
   'err.DISCARD_PILE_EMPTY': 'Teancul de aruncate este gol',
   'err.NO_CARDS_LEFT': 'Nu mai sunt cărți de tras',
@@ -1347,4 +1349,18 @@ export const ro: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Trage o carte',
   'prompt.yourTurnMeld': 'Combină dacă poți, apoi aruncă',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Reluare',
+  'mine.replay': 'Reluare',
+  'replay.loading': 'Se deschide reluarea…',
+  'replay.failed': 'Reluarea nu a putut fi încărcată',
+  'replay.openHands': 'toate mâinile descoperite',
+  'replay.truncated': 'Acest joc se reia până la mutarea {at} — regulile s-au schimbat între timp',
+  'replay.position': '{at} din {of}',
+  'replay.theDeal': 'Împărțirea',
+  'replay.round': 'Rundă',
+  'replay.play': 'Redă',
+  'replay.pause': 'Pauză',
+  'replay.move': '{player} · {move}',
 };

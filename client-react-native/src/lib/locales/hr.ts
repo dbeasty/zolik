@@ -31,6 +31,8 @@ export const hr: Record<string, string> = {
   'err.MATCH_NOT_FOUND': 'Ovaj stol više ne postoji',
   'err.MATCH_DELETED': 'Domaćin je izbrisao ovaj stol',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Svi se moraju vratiti za stol da bi se igra mogla nastaviti',
+  'err.NOTHING_TO_REPLAY': 'Ovdje još nema igre za ponavljanje',
+  'err.REPLAY_UNAVAILABLE': 'Ponovno gledanje partija nije dostupno na ovom poslužitelju',
   'err.DISCARD_LOCKED': 'Hrpa odbačenih je zasad zaključana',
   'err.DISCARD_PILE_EMPTY': 'Hrpa odbačenih je prazna',
   'err.NO_CARDS_LEFT': 'Nema više karata za vučenje',
@@ -1337,4 +1339,18 @@ export const hr: Record<string, string> = {
   // `serverKeys.json` list it — the sweep is what found it.
   'prompt.yourTurnDraw': 'Vuci kartu',
   'prompt.yourTurnMeld': 'Složi ako možeš, zatim odbaci',
+
+  // --- replay: stepping through a game that has stopped ---
+  'nav.replay': 'Ponovi',
+  'mine.replay': 'Ponovi',
+  'replay.loading': 'Otvaranje ponavljanja…',
+  'replay.failed': 'Ponavljanje se nije moglo učitati',
+  'replay.openHands': 'sve ruke otvorene',
+  'replay.truncated': 'Ova se igra ponavlja do poteza {at} — pravila su se otad promijenila',
+  'replay.position': '{at} od {of}',
+  'replay.theDeal': 'Dijeljenje',
+  'replay.round': 'Runda',
+  'replay.play': 'Pokreni',
+  'replay.pause': 'Pauza',
+  'replay.move': '{player} · {move}',
 };
