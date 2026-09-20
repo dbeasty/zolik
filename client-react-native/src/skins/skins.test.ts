@@ -16,11 +16,22 @@ describe('the default skin', () => {
     }
   });
 
-  it('is the plainer board on a phone', () => {
+  it('is the one-index board on a phone', () => {
     // A small phone, a large one, and the last width before the layout stops
     // calling itself narrow.
     for (const width of [320, 375, 414, 767]) {
-      expect(`${width}: ${defaultSkinFor(width).id}`).toBe(`${width}: casino`);
+      expect(`${width}: ${defaultSkinFor(width).id}`).toBe(`${width}: classic`);
+    }
+  });
+
+  // The face a phone gets is the one drawn for a card that small: a single
+  // index, sized to the strip a fanned hand shows. Said here because the
+  // *reason* the phone default moved is the face, not the palette — a skin
+  // swapped for a prettier one that drew three marks again would put the
+  // phone back where it started.
+  it('is a face with nothing on it but the index', () => {
+    for (const width of [320, 375, 414, 767]) {
+      expect(`${width}: ${defaultSkinFor(width).card.face}`).toBe(`${width}: plain`);
     }
   });
 
