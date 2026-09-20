@@ -1,5 +1,12 @@
 import type { Zone } from '@/src/api/matchTypes';
-import { concealedCount, drawableZones, isConcealed } from '@/src/lib/board';
+import {
+  concealedCount,
+  drawableZones,
+  isConcealed,
+  isSpreadRowZone,
+  isTableZone,
+  sitsBeside,
+} from '@/src/lib/board';
 
 function zone(over: Partial<Zone>): Zone {
   return { id: 'z', kind: 'hand', count: 0, ...over };
@@ -106,5 +113,46 @@ describe('concealedCount', () => {
   // the same pile twice.
   it('leaves a stack alone', () => {
     expect(concealedCount(zone({ kind: 'stack', count: 52 }))).toBe(0);
+  });
+});
+
+// The three places a zone can be drawn, and the one question an empty
+// `ownerId` cannot answer on its own: poker's board and a Canasta
+// partnership's melds both name no owner, and they do not belong in the
+// same place.
+describe('where a zone is drawn', () => {
+  const board = zone({ id: 'board', kind: 'spread', shared: true, count: 5 });
+  const deck = zone({ id: 'deck', kind: 'stack', count: 47 });
+  const discard = zone({ id: 'discard', kind: 'pile', count: 3 });
+  const teamMelds = zone({ id: 'melds:teamA', kind: 'spread', count: 7 });
+  const myMelds = zone({ id: 'melds:me', kind: 'spread', ownerId: 'me', count: 3 });
+  const house = zone({ id: 'dealer', kind: 'spread', dealer: true, count: 2 });
+
+  it('puts the shared board on the table with the piles', () => {
+    expect([board, deck, discard].filter(isTableZone)).toEqual([board, deck, discard]);
+  });
+
+  it('leaves a side melds in the spread row, owner or no owner', () => {
+    expect(isTableZone(teamMelds)).toBe(false);
+    expect(isTableZone(myMelds)).toBe(false);
+    expect([teamMelds, myMelds].filter(isSpreadRowZone)).toEqual([teamMelds, myMelds]);
+  });
+
+  it('keeps the shared board out of the spread row', () => {
+    expect(isSpreadRowZone(board)).toBe(false);
+  });
+
+  it('leaves the house own zone to the head of the table', () => {
+    expect(isTableZone(house)).toBe(false);
+    expect(isSpreadRowZone(house)).toBe(false);
+  });
+
+  it('sits the board beside the deck rather than on a line of its own', () => {
+    expect([board, deck, discard].filter(sitsBeside)).toEqual([board, deck, discard]);
+  });
+
+  it('gives a hand and an unshared spread the full width', () => {
+    expect(sitsBeside(teamMelds)).toBe(false);
+    expect(sitsBeside(zone({ kind: 'hand', count: 13 }))).toBe(false);
   });
 });
