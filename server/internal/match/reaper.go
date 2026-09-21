@@ -93,41 +93,107 @@ func (m *Manager) ReapAbandoned(ctx context.Context) int {
 			continue
 		}
 
-		expected := match.Version
-		ended := now
-		match.Status = string(rules.StatusAbandoned)
-		match.EndedAt = &ended
-		// AbandonAt is cleared so a row that somehow stays in this state is
-		// not swept again on the next tick.
-		match.AbandonAt = nil
+		if m.abandon(ctx, match, now,
+			"waitingOn", match.SuspendedPlayer,
+			"suspendedFor", suspendedFor(match, now)) {
+			n++
+		}
+	}
+	return n + m.reapStranded(ctx, now)
+}
 
-		if err := m.repo.UpdateWithVersion(ctx, match.ID, expected, match); err != nil {
-			// Overwhelmingly this is the version check refusing because the
-			// player came back. Logged at debug rather than warn: it is the
-			// system working, and at one line per returning player on a busy
-			// evening it would drown the log.
-			slog.Debug("abandon skipped, the match moved on",
-				"match", match.ID.Hex(), "error", err)
+// StrandedAfter is how long an active match may go untouched, with no human
+// at the table, before the reaper abandons it.
+//
+// Well past a reconnect: a player whose socket died in a restart or a deploy
+// is back within seconds, and a player who is at the table is never swept
+// however long they think. What remains after a quarter of an hour of nobody
+// is a table nobody is coming back to — and if somebody does, an abandoned
+// match can be resumed (ResumeAbandoned), which restarts its bots too.
+const StrandedAfter = 15 * time.Minute
+
+// reapStranded abandons active matches that nothing will ever suspend.
+//
+// SuspendOnDisconnect is edge-triggered on a socket the table is waiting on
+// dropping. A match created and started over HTTP never had such a socket,
+// and one whose sockets died with the process had them closed by nobody. Both
+// sat active for ever: listed as live games, never resolved, and counted as
+// neither finished nor abandoned. The dev stack held 509 of them.
+//
+// Skipped under Redis fan-out. Presence is this instance's own registry, so a
+// player connected to a peer would read as absent here, and an idle game
+// between two people on another instance would be ended under them.
+func (m *Manager) reapStranded(ctx context.Context, now time.Time) int {
+	if m.hub.RedisEnabled() {
+		return 0
+	}
+	idleBefore := now.Add(-StrandedAfter)
+	due, err := m.repo.FindStranded(ctx, idleBefore, reapBatch)
+	if err != nil {
+		slog.Warn("could not look for stranded matches", "error", err)
+		return 0
+	}
+	var n int
+	for _, match := range due {
+		if match.Status != "active" || lastActivity(match).After(idleBefore) {
 			continue
 		}
-		match.Version = expected + 1
-		n++
-
-		m.metrics.Add(metrics.MatchesAbandoned, 1)
-		m.metrics.Add(metrics.MatchesAbandonedFor(match.ModuleID), 1)
-		slog.Info("match abandoned",
-			"match", match.ID.Hex(),
-			"module", match.ModuleID,
-			"waitingOn", match.SuspendedPlayer,
-			"suspendedFor", suspendedFor(match, now))
-
-		// Told, not left to be discovered. Anyone still holding the table open
-		// — a player who stayed while the others left, a spectator — sees it
-		// resolve rather than sitting on a game that silently stopped being
-		// one.
-		m.Broadcast(match)
+		if m.attended(match) {
+			continue
+		}
+		if m.abandon(ctx, match, now, "stranded", true,
+			"idleFor", now.Sub(lastActivity(match)).Round(time.Second)) {
+			n++
+		}
 	}
 	return n
+}
+
+// abandon writes match as abandoned under its version guard and reports
+// whether the write landed.
+func (m *Manager) abandon(ctx context.Context, match models.Match, now time.Time, logAttrs ...any) bool {
+	expected := match.Version
+	ended := now
+	match.Status = string(rules.StatusAbandoned)
+	match.EndedAt = &ended
+	// AbandonAt is cleared so a row that somehow stays in this state is not
+	// swept again on the next tick.
+	match.AbandonAt = nil
+
+	if err := m.repo.UpdateWithVersion(ctx, match.ID, expected, match); err != nil {
+		// Overwhelmingly this is the version check refusing because the player
+		// came back or moved. Logged at debug rather than warn: it is the
+		// system working, and at one line per returning player on a busy
+		// evening it would drown the log.
+		slog.Debug("abandon skipped, the match moved on",
+			"match", match.ID.Hex(), "error", err)
+		return false
+	}
+	match.Version = expected + 1
+
+	m.metrics.Add(metrics.MatchesAbandoned, 1)
+	m.metrics.Add(metrics.MatchesAbandonedFor(match.ModuleID), 1)
+	slog.Info("match abandoned",
+		append([]any{"match", match.ID.Hex(), "module", match.ModuleID}, logAttrs...)...)
+
+	// Told, not left to be discovered. Anyone still holding the table open — a
+	// player who stayed while the others left, a spectator — sees it resolve
+	// rather than sitting on a game that silently stopped being one.
+	m.Broadcast(match)
+	return true
+}
+
+// lastActivity is when anything last happened to match: its last versioned
+// write, else when it started, else when it was created. UpdatedAt is absent
+// on rows written before it existed, and Insert does not set it.
+func lastActivity(match models.Match) time.Time {
+	if !match.UpdatedAt.IsZero() {
+		return match.UpdatedAt
+	}
+	if match.StartedAt != nil {
+		return *match.StartedAt
+	}
+	return match.CreatedAt
 }
 
 func suspendedFor(match models.Match, now time.Time) time.Duration {

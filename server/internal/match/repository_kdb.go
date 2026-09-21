@@ -212,6 +212,30 @@ func (r *kdbRepository) FindAbandonable(ctx context.Context, now time.Time, limi
 	return out, nil
 }
 
+// FindStranded scans for active matches untouched since idleBefore.
+func (r *kdbRepository) FindStranded(ctx context.Context, idleBefore time.Time, limit int) ([]models.Match, error) {
+	var out []models.Match
+	err := r.k.Scan(db.NSMatches, func(raw []byte) error {
+		var m models.Match
+		if err := db.UnmarshalDoc(raw, &m); err != nil {
+			return err
+		}
+		if m.Status != "active" || lastActivity(m).After(idleBefore) {
+			return nil
+		}
+		out = append(out, m)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	sort.Slice(out, func(i, j int) bool { return lastActivity(out[i]).Before(lastActivity(out[j])) })
+	if len(out) > limit {
+		out = out[:limit]
+	}
+	return out, nil
+}
+
 // FindForPlayer scans for matches a seat id sits at.
 //
 // A scan, like every other cross-document read on this backend: KDB has no
