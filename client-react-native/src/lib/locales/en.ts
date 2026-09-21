@@ -860,7 +860,7 @@ export const en: Record<string, string> = {
   // English left after the settings screen was translated — a German player
   // reading "Einstellungen" under a bar that said "Settings". A translated app
   // with an untranslated chrome bar looks like a bug, not like a limit.
-  'nav.home': 'Zolik',
+  'nav.home': 'Jokerless',
   'nav.emailSignIn': 'Email sign-in',
   'nav.signingIn': 'Signing in',
   'nav.usernameSignIn': 'Sign in with username',
