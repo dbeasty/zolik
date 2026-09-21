@@ -38,7 +38,7 @@ const BOT_SKILLS = [
 ];
 
 export default function TableScreen() {
-  const { client, session } = useSession();
+  const { client, session, offline } = useSession();
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
 
   const [state, setState] = useState<MatchState | null>(null);
@@ -61,13 +61,15 @@ export default function TableScreen() {
     }
     // Best-effort: a host who cannot currently see the waiting room should
     // still be able to run their table. Its absence is not an error worth
-    // showing.
+    // showing. An offline table has none to ask: the waiting room is the
+    // online server's.
+    if (offline) return;
     try {
       setWaiting(await client.getWaitingLobby());
     } catch {
       /* the waiting room is optional infrastructure */
     }
-  }, [client, id, session?.userId]);
+  }, [client, id, session?.userId, offline]);
 
   useEffect(() => {
     if (!id) return;
@@ -274,11 +276,13 @@ export default function TableScreen() {
 
         {isHost ? (
           <>
-            <WaitingPlayersPanel
-              available={available}
-              invitingId={invitingId}
-              onInvite={invite}
-            />
+            {offline ? null : (
+              <WaitingPlayersPanel
+                available={available}
+                invitingId={invitingId}
+                onInvite={invite}
+              />
+            )}
             <Pressable
               testID="table-add-bot"
               style={shared.button}

@@ -3,9 +3,12 @@ package zolikcore
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -20,7 +23,7 @@ func TestAGuestPlaysABotOnTheEmbeddedHost(t *testing.T) {
 	dir := t.TempDir()
 	h := startHost(t, dir)
 
-	if again, err := Start(dir, false); err != nil || again != h {
+	if again, err := Start(dir); err != nil || again != h {
 		t.Fatalf("a second Start returned (%p, %v), want the running host %p", again, err, h)
 	}
 
@@ -74,7 +77,7 @@ func TestAGuestPlaysABotOnTheEmbeddedHost(t *testing.T) {
 func TestTheEmbeddedHostExposesOnlyWhatATableNeeds(t *testing.T) {
 	h := startHost(t, t.TempDir())
 
-	for _, path := range []string{"/healthz", "/version", "/modules"} {
+	for _, path := range []string{"/healthz", "/version", "/modules", "/nearby/info"} {
 		if got := get(t, h, path, "").StatusCode; got != http.StatusOK {
 			t.Errorf("GET %s = %d, want 200", path, got)
 		}
@@ -113,7 +116,7 @@ func TestTheEmbeddedHostExposesOnlyWhatATableNeeds(t *testing.T) {
 
 func startHost(t *testing.T, dir string) *Host {
 	t.Helper()
-	h, err := Start(dir, false)
+	h, err := Start(dir)
 	if err != nil {
 		t.Fatalf("Start: %v", err)
 	}
@@ -121,7 +124,7 @@ func startHost(t *testing.T, dir string) *Host {
 	return h
 }
 
-func get(t *testing.T, h *Host, path, token string) *http.Response {
+func get(t *testing.T, h base, path, token string) *http.Response {
 	t.Helper()
 	req, _ := http.NewRequest(http.MethodGet, h.BaseURL()+path, nil)
 	if token != "" {
@@ -136,7 +139,7 @@ func get(t *testing.T, h *Host, path, token string) *http.Response {
 	return resp
 }
 
-func postJSON[T any](t *testing.T, h *Host, path, token string, body any, want int) T {
+func postJSON[T any](t *testing.T, h base, path, token string, body any, want int) T {
 	t.Helper()
 	raw, _ := json.Marshal(body)
 	req, _ := http.NewRequest(http.MethodPost, h.BaseURL()+path, bytes.NewReader(raw))
@@ -158,16 +161,101 @@ func postJSON[T any](t *testing.T, h *Host, path, token string, body any, want i
 	return out
 }
 
-func wsURL(h *Host, matchID, token string) string {
+func wsURL(h base, matchID, token string) string {
 	return strings.Replace(h.BaseURL(), "http://", "ws://", 1) +
 		"/ws/matches/" + url.PathEscape(matchID) + "?token=" + url.QueryEscape(token)
 }
 
-func dial(t *testing.T, h *Host, matchID, token string) *websocket.Conn {
+func dial(t *testing.T, h base, matchID, token string) *websocket.Conn {
 	t.Helper()
 	conn, _, err := websocket.DefaultDialer.Dial(wsURL(h, matchID, token), nil)
 	if err != nil {
 		t.Fatalf("dialling the match socket: %v", err)
 	}
 	return conn
+}
+
+// base is anything with an address: the host itself (loopback), or the host
+// as another phone in the room reaches it (lanAddr).
+type base interface{ BaseURL() string }
+
+type lanAddr struct{ port int }
+
+func (l lanAddr) BaseURL() string { return "http://127.0.0.1:" + strconv.Itoa(l.port) }
+
+// Two players at one table: the host on loopback, a guest through the room's
+// listener. Closing the room drops the guest and leaves the host playing.
+func TestAGuestFromTheRoomJoinsTheHostsTable(t *testing.T) {
+	h := startHost(t, t.TempDir())
+	if h.LANPort() != 0 {
+		t.Fatalf("a fresh host is open to the room on %d; it should be loopback only", h.LANPort())
+	}
+	port, err := h.OpenLAN()
+	if err != nil {
+		t.Fatalf("OpenLAN: %v", err)
+	}
+	if again, _ := h.OpenLAN(); again != port {
+		t.Errorf("a second OpenLAN moved the port: %d → %d", port, again)
+	}
+	room := lanAddr{port}
+
+	var info struct {
+		Protocol   int    `json:"protocol"`
+		InstanceID string `json:"instanceId"`
+	}
+	resp, err := http.Get(room.BaseURL() + "/nearby/info")
+	if err != nil {
+		t.Fatalf("/nearby/info from the room: %v", err)
+	}
+	_ = json.NewDecoder(resp.Body).Decode(&info)
+	_ = resp.Body.Close()
+	if info.Protocol != ProtocolVersion || info.InstanceID != h.InstanceID() {
+		t.Fatalf("/nearby/info = %+v, want protocol %d and id %s", info, ProtocolVersion, h.InstanceID())
+	}
+
+	host := postJSON[map[string]any](t, h, "/auth/guest", "", map[string]any{"guestName": "Host"}, http.StatusOK)
+	guest := postJSON[map[string]any](t, room, "/auth/guest", "", map[string]any{"guestName": "Guest"}, http.StatusOK)
+	hostTok, guestTok := host["accessToken"].(string), guest["accessToken"].(string)
+
+	created := postJSON[map[string]any](t, h, "/matches", hostTok, map[string]any{"moduleId": "blackjack"}, http.StatusOK)
+	matchID, code := created["matchId"].(string), created["joinCode"].(string)
+	postJSON[map[string]any](t, room, "/matches/"+code+"/join", guestTok, map[string]any{}, http.StatusOK)
+	postJSON[map[string]any](t, h, "/matches/"+matchID+"/start", hostTok, map[string]any{}, http.StatusOK)
+
+	hostConn := dial(t, h, matchID, hostTok)
+	defer func() { _ = hostConn.Close() }()
+	guestConn := dial(t, room, matchID, guestTok)
+	defer func() { _ = guestConn.Close() }()
+	for name, c := range map[string]*websocket.Conn{"host": hostConn, "guest": guestConn} {
+		_ = c.SetReadDeadline(time.Now().Add(5 * time.Second))
+		var msg struct {
+			Type string `json:"type"`
+		}
+		if err := c.ReadJSON(&msg); err != nil || msg.Type != "match_state" {
+			t.Fatalf("%s's first frame: %q, %v", name, msg.Type, err)
+		}
+	}
+
+	h.CloseLAN()
+	if h.LANPort() != 0 {
+		t.Errorf("LANPort after CloseLAN = %d, want 0", h.LANPort())
+	}
+	_ = guestConn.SetReadDeadline(time.Now().Add(3 * time.Second))
+	for {
+		_, _, err := guestConn.ReadMessage()
+		if err == nil {
+			continue
+		}
+		var ne net.Error
+		if errors.As(err, &ne) && ne.Timeout() {
+			t.Fatal("the guest's socket is still open after CloseLAN")
+		}
+		break // hung up, as it should be
+	}
+	if _, err := http.Get(room.BaseURL() + "/healthz"); err == nil {
+		t.Error("the room's port still answers after CloseLAN")
+	}
+	if got := get(t, h, "/healthz", "").StatusCode; got != http.StatusOK {
+		t.Errorf("the host's own loopback died with the room: %d", got)
+	}
 }
