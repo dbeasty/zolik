@@ -6,6 +6,7 @@
   "dependencies": {
     "expo": "~56.0.5",
     "expo-constants": "~56.0.16",
+    "expo-dev-client": "~56.0.27",
     "expo-font": "~56.0.5",
     "expo-linear-gradient": "~56.0.4",
     "expo-linking": "~56.0.12",
@@ -14,6 +15,7 @@
     "expo-splash-screen": "~56.0.10",
     "expo-status-bar": "~56.0.4",
     "expo-symbols": "~56.0.5",
+    "expo-system-ui": "~56.0.5",
     "expo-web-browser": "~56.0.5",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -41,8 +43,8 @@
   },
   "scripts": {
     "start": "sh ../scripts/version.sh --exec expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "sh ../scripts/version.sh --exec expo start --web",
     "test": "jest",
     "i18n": "node ../scripts/check-locales.js && node ../scripts/find-untranslated.js",
