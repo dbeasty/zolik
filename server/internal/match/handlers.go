@@ -154,16 +154,11 @@ func (h *Handlers) debugState(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	expected := m.Version
-	m.State = module.State(body.State)
-	if body.Status != "" {
-		m.Status = body.Status
-	}
-	if err := h.manager.Repo().UpdateWithVersion(ctx, m.ID, expected, m); err != nil {
+	m, err = h.manager.SeedState(ctx, m.ID.Hex(), module.State(body.State), body.Status)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusConflict)
 		return
 	}
-	m.Version = expected + 1
 
 	h.manager.Broadcast(m)
 	writeJSON(w, map[string]any{"matchId": m.ID.Hex(), "status": m.Status})
@@ -583,7 +578,7 @@ func (h *Handlers) resumeMatch(w http.ResponseWriter, req *http.Request) {
 // returns the *spectator* view, which is the same projection with nobody's
 // hand in it.
 func (h *Handlers) getMatch(w http.ResponseWriter, req *http.Request) {
-	m, err := h.manager.Repo().Resolve(req.Context(), chi.URLParam(req, "id"))
+	m, err := h.manager.Current(req.Context(), chi.URLParam(req, "id"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -671,8 +666,8 @@ func (h *Handlers) storedTableOf(m models.Match, viewerID string, replayable boo
 // either way (an account's object id hex, or the device's guest id), so one
 // query answers both and a guest — the common case in this app — is not
 // turned away the way the separate lifetime-statistics endpoints turn them
-// away. Neither State nor ActionLog reaches the response; storedTable has no
-// field to carry them in.
+// away. Neither the board nor the moves reach the response; storedTable has
+// no field to carry them in.
 func (h *Handlers) myTables(w http.ResponseWriter, req *http.Request) {
 	uc, ok := auth.GetUserContext(req)
 	if !ok {
@@ -785,8 +780,7 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	oid, err := bson.ObjectIDFromHex(matchID)
-	if err != nil {
+	if _, err := bson.ObjectIDFromHex(matchID); err != nil {
 		http.Error(w, "invalid match id", http.StatusBadRequest)
 		return
 	}
@@ -848,7 +842,7 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 	// Arriving may be a *return*: a match this player's disconnection paused
 	// resumes the moment they are back, before they are sent anything.
 	h.manager.ResumeIfReturning(ctx, matchID, playerID)
-	m, err := h.manager.Repo().FindByID(ctx, oid)
+	m, err := h.manager.Current(ctx, matchID)
 	if err != nil {
 		// Said out loud rather than left as a silence.
 		//

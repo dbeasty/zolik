@@ -4,18 +4,17 @@ import (
 	"context"
 	"encoding/json"
 
-	"go.mongodb.org/mongo-driver/v2/bson"
-
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
 )
 
 // Replay: a finished game, played back from what was already stored.
 //
-// Nothing here adds a field to a match. The runtime has kept an append-only
-// ActionLog since the module protocol existed, and every module's Apply is pure
-// — no clock, seeded shuffles, reshuffle seeds derived from state — so the deal
-// plus the log *is* the game, and a replay is a fold rather than a recording.
+// Nothing here is stored for replay's sake. The runtime stores every move and
+// a snapshot now and then, because that is how a match is kept at all, and
+// every module's Apply is pure — no clock, seeded shuffles, reshuffle seeds
+// derived from state — so a snapshot plus the moves after it *is* the game,
+// and a replay is a fold rather than a recording.
 //
 // Which is also why this is read-side only: nothing calls it during play, and a
 // bug here can lose a replay but can never lose a match.
@@ -44,7 +43,7 @@ type ReplayMsg struct {
 	// player actually thinks in, and the only way a six-hundred move replay
 	// is navigable by anything other than dragging a slider and hoping.
 	//
-	// Read straight off the stored checkpoints, so they cost no fold at all
+	// Read straight off the round marks on the moves, so they cost no fold
 	// and arrive complete with the first page, however deep into the match
 	// that page is. Absent for a game that keeps no rounds, where a single
 	// chapter spanning everything would be a label pretending to be a map.
@@ -117,31 +116,12 @@ type ReplayFrame struct {
 	Rounds *module.RoundLog `json:"rounds,omitempty"`
 }
 
-// BoardSource is a repository that can produce a match's board as it stood,
-// out of the store's own history, instead of by replaying the log to it.
-//
-// Optional, in the same way and for the same reason as module.Ranked: the
-// engines genuinely differ, and one that cannot answer should decline rather
-// than pretend. KDB keeps every version of every document it has written and
-// can answer exactly; Mongo replaces the document in place and cannot, so it
-// does not implement this and every fold there begins at a checkpoint or at
-// the deal, as it always has.
-//
-// Where it does answer, a frame stops being a reconstruction and becomes the
-// board as it was: independent of Apply still being pure, of the module's
-// rules not having moved since, and of anything having written state outside
-// the log.
-type BoardSource interface {
-	BoardAfter(ctx context.Context, id bson.ObjectID, actions int) (models.Match, error)
-	// RetainsHistory reports whether the versions BoardAfter walks are still
-	// being kept, and says why not when they are not.
-	//
-	// On the interface rather than beside it because implementing BoardAfter
-	// is not the same as being able to answer it: KDB migrated to
-	// history=none reclaims commits on a retention window, so the same code
-	// path returns boards today and nothing at all next week. An engine that
-	// offers the one has to be able to answer the other.
-	RetainsHistory(ctx context.Context) error
+// replayLog is a stored match's history as a fold reads it: every move, and
+// the snapshots it can start from instead of the deal.
+type replayLog struct {
+	actions   []models.MatchAction
+	snapshots []int
+	snapshot  func(seq int) (models.JSONDoc, error)
 }
 
 // How many frames one request may fold.
@@ -183,8 +163,20 @@ func (m *Manager) BuildReplay(ctx context.Context, match models.Match, viewerID 
 	// deal to look at, and drawing the line here is what lets a stored-table
 	// row advertise canReplay from StartedAt alone — the list projection
 	// strips the action log, so it could not count moves if it wanted to.
-	if len(match.State) == 0 {
+	if match.StartedAt == nil {
 		return ReplayMsg{}, module.Error{Code: "NOTHING_TO_REPLAY"}
+	}
+
+	// The log, loaded once for the whole request: the fold, the tracks, the
+	// chapters and the move behind each frame all read it.
+	moves, err := m.repo.Moves(ctx, match.ID, 0, -1)
+	if err != nil {
+		return ReplayMsg{}, err
+	}
+	history := replayLog{
+		actions:   moves,
+		snapshots: match.Snapshots,
+		snapshot:  func(seq int) (models.JSONDoc, error) { return m.repo.Snapshot(ctx, match.ID, seq) },
 	}
 
 	from := opts.From
@@ -209,11 +201,11 @@ func (m *Manager) BuildReplay(ctx context.Context, match models.Match, viewerID 
 		// Asking and being allowed, both: the caller says whether it wants an
 		// open board, and openable says whether this match may give one.
 		Open:     opts.Open && openable(match.Status),
-		Total:    len(match.ActionLog) + 1,
+		Total:    len(moves) + 1,
 		From:     from,
 		Frames:   []ReplayFrame{},
-		Chapters: chaptersOf(match),
-		Tracks:   tracksOf(match),
+		Chapters: chaptersOf(moves),
+		Tracks:   tracksOf(match, moves),
 	}
 	for _, p := range match.Players {
 		msg.Players = append(msg.Players, PlayerMsg{ID: p.ID, Name: p.Name, IsAI: p.IsAI, Avatar: p.Avatar})
@@ -226,7 +218,7 @@ func (m *Manager) BuildReplay(ctx context.Context, match models.Match, viewerID 
 	if startAt < 0 {
 		startAt = 0
 	}
-	stopped, err := foldActions(ctx, m.boardSource(), mod, match, startAt, func(step int, entry *models.MatchAction, a module.Action, s module.State) (bool, error) {
+	stopped, err := foldActions(mod, match, history, startAt, func(step int, entry *models.MatchAction, a module.Action, s module.State) (bool, error) {
 		// Below the window, and not the step just before it: nothing to
 		// compute, and the state bytes are dropped on the way out.
 		if step < from-1 {
@@ -292,8 +284,7 @@ func (m *Manager) replayFrame(
 	rounds *module.RoundLog,
 ) ReplayFrame {
 	env := match // flat struct; Players and Options are shared read-only
-	env.State = s
-	env.ActionLog = nil
+	env.State = models.JSONDoc(s)
 	// Suspension is a fact about the envelope now, not about this moment in
 	// the game. A replay of a paused table is not itself paused.
 	env.SuspendedPlayer = ""
@@ -343,37 +334,36 @@ func openable(status string) bool { return status == "completed" }
 // foldActions replays a match's log through its module, handing each step's
 // state to visit.
 //
-// It starts at the newest checkpoint at or before startAt rather than at the
+// It starts at the newest snapshot at or before startAt rather than at the
 // deal, which is what keeps jumping to the end of a long match from costing
-// the whole match. A checkpoint is the stored board, so starting from one also
-// means the frames after it do not depend on the actions before it still
+// the whole match. A snapshot is the stored board, so starting from one also
+// means the frames after it do not depend on the moves before it still
 // folding — a rules change that breaks move 12 no longer costs you deal 5.
 //
 // It stops at the first refusal, reporting which frame could not be produced,
 // and stops early once visit says it has what it needs — so rendering a page
-// costs O(limit) applies once a checkpoint is near it.
+// costs O(limit) applies once a snapshot is near it.
 //
 // State bytes are never retained: visit renders a frame and the snapshot is
 // dropped. Holding 800 canasta states would be megabytes for no gain.
 func foldActions(
-	ctx context.Context,
-	boards BoardSource,
 	mod module.GameModule,
 	match models.Match,
+	history replayLog,
 	startAt int,
 	visit func(step int, entry *models.MatchAction, a module.Action, s module.State) (more bool, err error),
 ) (stoppedAt int, err error) {
-	s, step, err := foldOrigin(ctx, boards, mod, match, startAt)
+	s, step, err := foldOrigin(mod, match, history, startAt)
 	if err != nil {
 		return step, err
 	}
-	more, err := visit(step, entryAt(match, step), actionAt(match, step), s)
+	more, err := visit(step, entryAt(history.actions, step), actionAt(history.actions, step), s)
 	if err != nil || !more {
 		return step, err
 	}
 
-	for i := step; i < len(match.ActionLog); i++ {
-		entry := match.ActionLog[i]
+	for i := step; i < len(history.actions); i++ {
+		entry := history.actions[i]
 		var a module.Action
 		if err := json.Unmarshal(entry.Action, &a); err != nil {
 			return i + 1, err
@@ -388,33 +378,27 @@ func foldActions(
 			return i + 1, err
 		}
 	}
-	return len(match.ActionLog), nil
+	return len(history.actions), nil
 }
 
-// foldOrigin is where a fold aiming at startAt should begin: a stored
-// checkpoint if one lies at or before it, otherwise the deal.
+// foldOrigin is where a fold aiming at startAt should begin: the newest
+// snapshot at or before it, otherwise the deal.
 //
-// The deal is reproducible because its inputs are frozen: Join and Seat both
-// refuse once the match leaves the lobby, and Seed is written once at Create.
-// So these are the same arguments Start passed, necessarily.
-func foldOrigin(ctx context.Context, boards BoardSource, mod module.GameModule, match models.Match, startAt int) (module.State, int, error) {
-	// The store's own history first, where there is one: it lands exactly on
-	// the frame asked for, so the fold applies nothing at all, and the board
-	// it hands back is the one that was actually there rather than one
-	// computed from the log now.
-	//
-	// A failure here is never fatal. Every reason it can fail — no history
-	// kept, a row written before any of this existed, a compacted log —
-	// leaves the checkpoints and the deal exactly as able to answer as they
-	// were, so it falls through rather than refusing.
-	if boards != nil && startAt > 0 && !match.ID.IsZero() {
-		if at, err := boards.BoardAfter(ctx, match.ID, startAt); err == nil && len(at.State) > 0 {
-			return at.State, len(at.ActionLog), nil
+// Every match started since snapshots existed has its deal as snapshot 0, so
+// the deal is only rebuilt for one that predates them. It is reproducible
+// because its inputs are frozen: Join and Seat both refuse once the match
+// leaves the lobby, and Seed is written once at Create.
+//
+// A snapshot that cannot be read is a landmark lost, not a replay lost: an
+// older one, or the deal, still answers.
+func foldOrigin(mod module.GameModule, match models.Match, history replayLog, startAt int) (module.State, int, error) {
+	for i := len(history.snapshots) - 1; i >= 0; i-- {
+		seq := history.snapshots[i]
+		if seq > startAt || seq > len(history.actions) || history.snapshot == nil {
+			continue
 		}
-	}
-	for i := len(match.Checkpoints) - 1; i >= 0; i-- {
-		if c := match.Checkpoints[i]; c.Seq <= startAt && len(c.State) > 0 {
-			return append(module.State(nil), c.State...), c.Seq, nil
+		if b, err := history.snapshot(seq); err == nil && len(b) > 0 {
+			return append(module.State(nil), b...), seq, nil
 		}
 	}
 	s, err := mod.NewMatch(
@@ -427,15 +411,15 @@ func foldOrigin(ctx context.Context, boards BoardSource, mod module.GameModule, 
 
 // entryAt and actionAt describe the move that produced frame step, for a fold
 // that began part-way through the log and so did not apply it.
-func entryAt(match models.Match, step int) *models.MatchAction {
-	if step <= 0 || step > len(match.ActionLog) {
+func entryAt(actions []models.MatchAction, step int) *models.MatchAction {
+	if step <= 0 || step > len(actions) {
 		return nil
 	}
-	return &match.ActionLog[step-1]
+	return &actions[step-1]
 }
 
-func actionAt(match models.Match, step int) module.Action {
-	e := entryAt(match, step)
+func actionAt(actions []models.MatchAction, step int) module.Action {
+	e := entryAt(actions, step)
 	if e == nil {
 		return module.Action{}
 	}
@@ -444,62 +428,41 @@ func actionAt(match models.Match, step int) module.Action {
 	return a
 }
 
-// chaptersOf turns the stored checkpoints into somewhere to jump to.
+// chaptersOf turns the moves that closed a round into somewhere to jump to.
 //
-// No fold, no module, no state decoded: a checkpoint already knows which round
-// it closed and at which move, which is all a chapter is. A match with no
-// checkpoints gets none rather than one chapter covering everything — that
-// would be a label pretending to be a map.
-func chaptersOf(match models.Match) []ReplayChapter {
-	if len(match.Checkpoints) == 0 {
-		return nil
+// No fold, no module, no state decoded: a move that closed a round carries how
+// many were then complete, which is all a chapter is. A match that closed no
+// round gets no chapters rather than one covering everything — that would be
+// a label pretending to be a map.
+func chaptersOf(moves []models.MatchAction) []ReplayChapter {
+	var out []ReplayChapter
+	from, last := 0, 0
+	for _, mv := range moves {
+		if mv.Rounds == 0 {
+			continue
+		}
+		out = append(out, ReplayChapter{Round: mv.Rounds, From: from, To: mv.Seq})
+		from, last = mv.Seq+1, mv.Rounds
 	}
-	out := make([]ReplayChapter, 0, len(match.Checkpoints)+1)
-	from := 0
-	for _, c := range match.Checkpoints {
-		out = append(out, ReplayChapter{Round: c.Round, From: from, To: c.Seq})
-		from = c.Seq + 1
+	if len(out) == 0 {
+		return nil
 	}
 	// The round the match stopped in, if it did not stop exactly on a
 	// boundary. It has a start and no end, which is the truth about it.
-	if from <= len(match.ActionLog) {
-		out = append(out, ReplayChapter{Round: lastCheckpointRound(match) + 1, From: from})
+	if from <= len(moves) {
+		out = append(out, ReplayChapter{Round: last + 1, From: from})
 	}
 	return out
 }
 
-// boardSource is this runtime's repository, when it is one that keeps history.
+// ReplayAvailable says whether this deployment offers replay at all, and why
+// not when it does not: the operator's flag (FEATURE_FLAG_MATCH_REPLAY).
 //
-// Asked per call rather than stored, because a Manager is built with a
-// Repository and nothing decides here which engine that is — the type
-// assertion is the whole of the engine-awareness in this package.
-func (m *Manager) boardSource() BoardSource {
-	if b, ok := m.repo.(BoardSource); ok {
-		return b
-	}
-	return nil
-}
-
-// ReplayAvailable says whether this deployment can offer replay at all, and
-// why not when it cannot.
-//
-// Three gates, and every one of them is about the deployment rather than
-// about the match:
-//
-//   - the operator turned it on (FEATURE_FLAG_MATCH_REPLAY),
-//   - the store keeps every version of a document, which is KDB and not Mongo,
-//   - and that store is still *keeping* them, rather than running history=none
-//     and reclaiming on a window.
-//
-// It is one function because the answer has to be the same in both places it
-// is needed — the endpoint, and the canReplay a stored-table row advertises.
-// A list that offers a button the endpoint then refuses is the failure mode
-// this exists to prevent.
-//
-// Asked per call rather than resolved at boot: the second and third gates are
-// engine state, and SetHistoryMode can move the third one under a running
-// process. Both checks are a type assertion and a read lock, which is nothing
-// beside the fold they guard.
+// It used to ask the store too, because a replay leaned on kdb's own document
+// history. It does not any more — it folds the stored moves from a stored
+// snapshot, on any engine — so the flag is the whole answer. One function
+// still, because the answer has to be the same for the endpoint and for the
+// canReplay a stored-table row advertises.
 func (m *Manager) ReplayAvailable(ctx context.Context) error {
 	if !m.replayEnabled {
 		return module.Error{
@@ -507,36 +470,25 @@ func (m *Manager) ReplayAvailable(ctx context.Context) error {
 			Message: "replay is off in this deployment (FEATURE_FLAG_MATCH_REPLAY)",
 		}
 	}
-	src := m.boardSource()
-	if src == nil {
-		return module.Error{
-			Code: "REPLAY_UNAVAILABLE",
-			Message: "replay needs a store that keeps every version of a document, " +
-				"which is FEATURE_FLAG_DB_ENGINE=kdb; this one replaces them in place",
-		}
-	}
-	if err := src.RetainsHistory(ctx); err != nil {
-		return module.Error{Code: "REPLAY_UNAVAILABLE", Message: err.Error()}
-	}
 	return nil
 }
 
 // tracksOf turns the action log into the threads a reader can follow.
 //
 // One track per seat that ever moved, plus the round boundaries where a game
-// keeps them. Derived from the log alone — ActionLog[i].PlayerID is who moved,
+// keeps them. Derived from the log alone — moves[i].PlayerID is who moved,
 // and frame i+1 is the board after they did — so this asks no module anything
 // and decodes no state, exactly like chaptersOf.
 //
 // Seats come in the order they first moved rather than in seat order: a reader
 // scanning the chips wants their own, and whoever opened the game moved first.
-func tracksOf(match models.Match) []ReplayTrack {
-	if len(match.ActionLog) == 0 {
+func tracksOf(match models.Match, moves []models.MatchAction) []ReplayTrack {
+	if len(moves) == 0 {
 		return nil
 	}
 	bySeat := map[string]*ReplayTrack{}
 	order := make([]string, 0, len(match.Players))
-	for i, a := range match.ActionLog {
+	for i, a := range moves {
 		t, ok := bySeat[a.PlayerID]
 		if !ok {
 			t = &ReplayTrack{ID: "seat:" + a.PlayerID, PlayerID: a.PlayerID}
@@ -552,11 +504,13 @@ func tracksOf(match models.Match) []ReplayTrack {
 	}
 	// The rounds, where the game keeps any: the frames the chapters close on,
 	// offered as something to step through rather than to jump between.
-	if len(match.Checkpoints) > 0 {
-		rounds := ReplayTrack{ID: "rounds"}
-		for _, c := range match.Checkpoints {
-			rounds.Frames = append(rounds.Frames, c.Seq)
+	rounds := ReplayTrack{ID: "rounds"}
+	for _, mv := range moves {
+		if mv.Rounds > 0 {
+			rounds.Frames = append(rounds.Frames, mv.Seq)
 		}
+	}
+	if len(rounds.Frames) > 0 {
 		out = append(out, rounds)
 	}
 	return out

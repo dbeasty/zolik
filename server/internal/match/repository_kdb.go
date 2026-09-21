@@ -158,28 +158,141 @@ func (r *kdbRepository) FindRetired(ctx context.Context, now time.Time, w Retent
 // the engine has no conditional delete, and does not need one while kdb mode is
 // single-process.
 func (r *kdbRepository) DeleteIfUnchanged(ctx context.Context, id bson.ObjectID, expected int64) error {
-	return r.k.Update(db.NSMatches, func(tx *db.Tx) error {
-		cur, err := tx.Get(id.Hex())
+	return r.k.UpdateMulti([]string{db.NSMatches, db.NSMatchLog}, func(tx *db.MultiTx) error {
+		cur, err := envelopeLocked(tx, id, expected)
 		if err != nil {
-			if db.IsNotFound(err) {
-				// Already gone. Same shape Mongo's filtered delete gives:
-				// somebody else won, and there is nothing left to do.
-				return ErrVersionConflict
+			return err
+		}
+		// Every move, found by counting on from the newest snapshot, every
+		// snapshot, and the match — one transaction, so a match is never left
+		// half deleted.
+		from, _ := latestSnapshot(cur)
+		head := from
+		for {
+			if _, err := tx.Get(db.NSMatchLog, logKey(id, kindMove, head+1)); err != nil {
+				if db.IsNotFound(err) {
+					break
+				}
+				return err
 			}
-			return err
+			head++
 		}
-		var probe struct {
-			Version int64 `bson:"version"`
+		for seq := 1; seq <= head; seq++ {
+			tx.Delete(db.NSMatchLog, logKey(id, kindMove, seq))
 		}
-		if err := db.UnmarshalDoc(cur, &probe); err != nil {
-			return err
+		for _, seq := range cur.Snapshots {
+			tx.Delete(db.NSMatchLog, logKey(id, kindSnapshot, seq))
 		}
-		if probe.Version != expected {
+		tx.Delete(db.NSMatches, id.Hex())
+		return nil
+	})
+}
+
+// envelopeLocked reads the stored match inside a transaction and checks it is
+// still at version expected. A missing match is a conflict too: the same
+// "someone else won" Mongo's filtered writes answer.
+func envelopeLocked(tx *db.MultiTx, id bson.ObjectID, expected int64) (models.Match, error) {
+	raw, err := tx.Get(db.NSMatches, id.Hex())
+	if err != nil {
+		if db.IsNotFound(err) {
+			return models.Match{}, ErrVersionConflict
+		}
+		return models.Match{}, err
+	}
+	var cur models.Match
+	if err := db.UnmarshalDoc(raw, &cur); err != nil {
+		return models.Match{}, err
+	}
+	if cur.Version != expected {
+		return models.Match{}, ErrVersionConflict
+	}
+	return cur, nil
+}
+
+// AppendMove is one insert: the key names the seq, so a second move N finds
+// the first one there and is refused.
+func (r *kdbRepository) AppendMove(ctx context.Context, id bson.ObjectID, move models.MatchAction) error {
+	doc, err := db.MarshalDoc(toMoveRecord(id, move))
+	if err != nil {
+		return err
+	}
+	if err := r.k.Insert(db.NSMatchLog, logKey(id, kindMove, move.Seq), doc); err != nil {
+		if errors.Is(err, db.ErrDuplicateKey) {
 			return ErrVersionConflict
 		}
-		_, err = tx.Delete(id.Hex())
 		return err
+	}
+	return nil
+}
+
+// CommitSnapshot is one transaction across the match and its log: the move,
+// the snapshot and the envelope that lists it land together or not at all.
+func (r *kdbRepository) CommitSnapshot(ctx context.Context, id bson.ObjectID, expected int64, next models.Match,
+	moves []models.MatchAction, seq int, state models.JSONDoc) error {
+	return r.k.UpdateMulti([]string{db.NSMatches, db.NSMatchLog}, func(tx *db.MultiTx) error {
+		if _, err := envelopeLocked(tx, id, expected); err != nil {
+			return err
+		}
+		for _, mv := range moves {
+			key := logKey(id, kindMove, mv.Seq)
+			if _, err := tx.Get(db.NSMatchLog, key); err == nil {
+				return ErrVersionConflict
+			} else if !db.IsNotFound(err) {
+				return err
+			}
+			doc, err := db.MarshalDoc(toMoveRecord(id, mv))
+			if err != nil {
+				return err
+			}
+			tx.Put(db.NSMatchLog, key, doc)
+		}
+		doc, err := db.MarshalDoc(snapshotRecord{Match: id, Kind: kindSnapshot, Seq: seq, State: state})
+		if err != nil {
+			return err
+		}
+		tx.Put(db.NSMatchLog, logKey(id, kindSnapshot, seq), doc)
+
+		next.ID, next.Version, next.UpdatedAt = id, expected+1, time.Now().UTC()
+		env, err := db.MarshalDoc(next)
+		if err != nil {
+			return err
+		}
+		tx.Put(db.NSMatches, id.Hex(), env)
+		return nil
 	})
+}
+
+// Moves reads by key, counting up from from+1: the store has no range scan,
+// and does not need one when the keys are the seqs.
+func (r *kdbRepository) Moves(ctx context.Context, id bson.ObjectID, from, to int) ([]models.MatchAction, error) {
+	var out []models.MatchAction
+	for seq := from + 1; to < 0 || seq <= to; seq++ {
+		raw, err := r.k.Get(db.NSMatchLog, logKey(id, kindMove, seq))
+		if db.IsNotFound(err) {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		var rec moveRecord
+		if err := db.UnmarshalDoc(raw, &rec); err != nil {
+			return nil, err
+		}
+		out = append(out, rec.action())
+	}
+	return out, nil
+}
+
+func (r *kdbRepository) Snapshot(ctx context.Context, id bson.ObjectID, seq int) (models.JSONDoc, error) {
+	raw, err := r.k.Get(db.NSMatchLog, logKey(id, kindSnapshot, seq))
+	if err != nil {
+		return nil, err
+	}
+	var snap snapshotRecord
+	if err := db.UnmarshalDoc(raw, &snap); err != nil {
+		return nil, err
+	}
+	return snap.State, nil
 }
 
 // FindAbandonable scans for suspended matches past their deadline.
@@ -240,11 +353,8 @@ func (r *kdbRepository) FindStranded(ctx context.Context, idleBefore time.Time, 
 //
 // A scan, like every other cross-document read on this backend: KDB has no
 // secondary index, so "every match with this player" costs a full pass over
-// the namespace regardless of how the caller phrases it. State and ActionLog
-// are dropped after decoding rather than never read — the engine has no
-// server-side projection to skip them with — so this saves nothing over the
-// wire that a real server doesn't have, but it does keep the returned rows
-// the same shape Mongo hands back, which is what callers rely on.
+// the namespace regardless of how the caller phrases it — a cheap pass, now
+// that a match document holds the envelope and not the board or the moves.
 func (r *kdbRepository) FindForPlayer(ctx context.Context, playerID string, f PlayerMatchFilter) ([]models.Match, error) {
 	statuses, limit := resolvePlayerMatchFilter(f)
 	want := make(map[string]bool, len(statuses))
@@ -270,10 +380,6 @@ func (r *kdbRepository) FindForPlayer(ctx context.Context, playerID string, f Pl
 		if !seated {
 			return nil
 		}
-		m.State = nil
-		m.ActionLog = nil
-		// Each checkpoint is a stored board; a list row needs none of them.
-		m.Checkpoints = nil
 		out = append(out, m)
 		return nil
 	})
@@ -291,84 +397,4 @@ func (r *kdbRepository) FindForPlayer(ctx context.Context, playerID string, f Pl
 		out = out[:limit]
 	}
 	return out, nil
-}
-
-// RetainsHistory reports whether this store still keeps the versions
-// BoardAfter walks, and refuses with the engine's own remedy when it does not.
-//
-// Asked rather than assumed because history is a per-namespace *mode*, not a
-// property of the engine: a KDB deployment migrated to history=none still
-// answers DocumentVersions, and still would right up to the moment its
-// retention window swept the commits out from under a replay somebody was
-// halfway through. Offering the feature in that shape is worse than not
-// offering it.
-func (r *kdbRepository) RetainsHistory(ctx context.Context) error {
-	return r.k.RetainsHistory(db.NSMatches, "stepping back through a game that has stopped")
-}
-
-// BoardAfter returns the match's board as it stood after a given number of
-// accepted actions, read out of the store's own history.
-//
-// This is the one thing a fold cannot offer: the board as it *was*, rather
-// than the board a module would produce from the same log today. It does not
-// depend on Apply still being pure, it does not care that a module's rules
-// have moved since, and it cannot be defeated by a state written outside the
-// log. Where it answers, a replay frame is evidence rather than reconstruction.
-//
-// KDB only, and deliberately so — see the BoardSource capability in replay.go
-// for how the runtime asks without knowing which engine it has.
-//
-// The search is over document *versions*, not actions, because they are not
-// the same thing: suspending, resuming, seating and joining all write the
-// match without touching the log. So the versions are binary-searched on the
-// length of the log each one carries, which is monotonic by construction —
-// the log is append-only and nothing ever shortens it.
-func (r *kdbRepository) BoardAfter(ctx context.Context, id bson.ObjectID, actions int) (models.Match, error) {
-	commits, err := r.k.DocumentVersions(db.NSMatches, id.Hex())
-	if err != nil {
-		return models.Match{}, err
-	}
-	if len(commits) == 0 {
-		return models.Match{}, db.ErrNotFound
-	}
-
-	at := func(i int) (models.Match, error) {
-		doc, err := r.k.GetAt(db.NSMatches, id.Hex(), commits[i])
-		if err != nil {
-			return models.Match{}, err
-		}
-		var m models.Match
-		return m, db.UnmarshalDoc(doc, &m)
-	}
-
-	// The newest version whose log is no longer than asked for. Everything
-	// after it happened later than the frame being looked at.
-	lo, hi, best := 0, len(commits)-1, -1
-	for lo <= hi {
-		mid := (lo + hi) / 2
-		m, err := at(mid)
-		if err != nil {
-			return models.Match{}, err
-		}
-		if len(m.ActionLog) <= actions {
-			best = mid
-			lo = mid + 1
-			continue
-		}
-		hi = mid - 1
-	}
-	if best < 0 {
-		return models.Match{}, db.ErrNotFound
-	}
-
-	m, err := at(best)
-	if err != nil {
-		return models.Match{}, err
-	}
-	if len(m.State) == 0 {
-		// A version from before the match was dealt. There is a board later,
-		// but not one this far back.
-		return models.Match{}, db.ErrNotFound
-	}
-	return m, nil
 }

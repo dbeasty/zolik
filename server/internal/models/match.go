@@ -1,7 +1,6 @@
 package models
 
 import (
-	"encoding/json"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -36,26 +35,27 @@ type Match struct {
 	HostID    string   `bson:"hostId" json:"hostId"`
 	JoinCode  string   `bson:"joinCode" json:"joinCode"`
 
-	// State is the module's own game state, opaque here. Stored as raw bytes
-	// rather than a decoded document so Mongo never imposes a schema on it and
-	// the runtime is structurally unable to read it.
-	State json.RawMessage `bson:"state,omitempty" json:"-"`
-
-	// ActionLog is append-only history, in the module's own vocabulary. Versioned
-	// by ModuleID so an old replay stays readable by the module that wrote it.
-	ActionLog []MatchAction `bson:"actionLog,omitempty" json:"-"`
-
-	// Checkpoints are the board at each round boundary, oldest first.
+	// State is the module's own game state, opaque here — held in memory and
+	// never stored on the match. What is stored is each move, once, and the
+	// state at a snapshot now and then (see Snapshots); the runtime rebuilds
+	// State from the newest snapshot and the moves after it. So a match loaded
+	// straight from a repository has none: ask the Manager, which keeps the
+	// state of every match in play.
 	//
-	// Absent on every match played before they existed, which is exactly what
-	// an old replay gets: the fold starts at the deal, as it always did.
-	Checkpoints []MatchCheckpoint `bson:"checkpoints,omitempty" json:"-"`
+	// It used to be stored here and rewritten, whole, on every move — along
+	// with the log — and a store that keeps every version turned that into the
+	// square of a match's length.
+	State JSONDoc `bson:"-" json:"-"`
 
-	// UpdatedAt is set on every write that goes through UpdateWithVersion —
-	// every accepted action, suspend, resume and reap — so a listing keyed on
-	// activity rather than creation has something to sort by. A match written
-	// before this field existed sorts as if it had never been touched, which
-	// for a row that old is the right answer.
+	// Snapshots are the move counts a stored state exists for, oldest first:
+	// 0 is the deal, and the last is where a rebuild starts.
+	Snapshots []int `bson:"snapshots,omitempty" json:"-"`
+
+	// UpdatedAt is when the match was last written, and — kept within a minute
+	// while moves are being made, without a write per move — when it was last
+	// played. Activity listings sort by it and the stranded-match sweep reads
+	// it. A match written before it existed sorts as never touched, which for
+	// a row that old is the right answer.
 	UpdatedAt time.Time `bson:"updatedAt,omitempty" json:"updatedAt,omitempty"`
 
 	Seed int64 `bson:"seed" json:"-"`
@@ -94,48 +94,20 @@ type Match struct {
 	MigratedFrom bson.ObjectID `bson:"migratedFrom,omitempty" json:"-"`
 }
 
-// MatchCheckpoint is the board at a boundary the game itself defines — the
-// end of a deal, a hand, a leg.
-//
-// It is a landmark before it is an optimisation. A six-hundred move replay has
-// nothing in it a player recognises, and a slider with six hundred positions
-// is not a way to find the deal where everything went wrong; a list of deals
-// is. That the same marks also let a fold start near where it is going,
-// instead of at the deal every time, is the second thing they are for.
-//
-// The state is stored rather than derived, so reaching a checkpoint costs
-// nothing and depends on nothing — not on the module still folding an old log
-// the same way, and not on the log being intact before this point. Which is
-// also the answer to a rules change: everything from the last checkpoint
-// onwards is still readable when the actions before it have stopped replaying.
-type MatchCheckpoint struct {
-	// Seq is how many actions had been accepted when this was taken, so it is
-	// also the replay frame index this state belongs to.
-	Seq int `bson:"seq" json:"seq"`
-	// Round is how many rounds were complete here, 1-based for the round this
-	// closes — "the end of deal 3".
-	Round int `bson:"round" json:"round"`
-	// State is the board here — but only on some of them.
-	//
-	// Every round boundary is marked, because every one is somewhere a player
-	// might want to jump to; a mark is three numbers and costs nothing. A
-	// stored board is kilobytes, and is only worth keeping where it saves a
-	// fold worth saving. Games disagree wildly about how long a round is — a
-	// canasta deal runs hundreds of moves, a blackjack hand about nine — so
-	// "snapshot every round" measured at +11% of the action log for canasta
-	// and +313% for blackjack. Hence the spacing rule in the runtime, and
-	// hence this being optional rather than assumed.
-	State json.RawMessage `bson:"state,omitempty" json:"-"`
-	At    time.Time       `bson:"at" json:"at"`
-}
-
-// MatchAction is one accepted move, stored verbatim.
+// MatchAction is one accepted move, stored verbatim and never rewritten.
 //
 // The runtime records what it routed without interpreting it, which is what
 // makes the log replayable by the module and meaningless to anything else.
+// Together with the snapshot before it, it is also how the current state is
+// rebuilt: the modules' Apply is deterministic, so the moves since a snapshot
+// reproduce the board exactly.
 type MatchAction struct {
-	Seq      int             `bson:"seq" json:"seq"`
-	PlayerID string          `bson:"playerId" json:"playerId"`
-	Action   json.RawMessage `bson:"action" json:"action"`
-	At       time.Time       `bson:"at" json:"at"`
+	Seq      int       `bson:"seq" json:"seq"`
+	PlayerID string    `bson:"playerId" json:"playerId"`
+	Action   JSONDoc   `bson:"action" json:"action"`
+	At       time.Time `bson:"at" json:"at"`
+	// Rounds is how many rounds were complete after this move, set only on a
+	// move that closed one — "the end of deal 3". A replay's chapters are read
+	// off these marks, so they cost a move nothing but a number.
+	Rounds int `bson:"rounds,omitempty" json:"rounds,omitempty"`
 }

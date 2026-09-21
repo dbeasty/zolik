@@ -89,14 +89,17 @@ func TestKDBUpdateWithVersionIsCAS(t *testing.T) {
 	}
 }
 
+// The board is not part of the match document — only a snapshot stores it —
+// and a snapshot hands back exactly the bytes it was given.
 func TestKDBMatchStateSurvivesRoundTrip(t *testing.T) {
 	r := newKDBRepo(t)
 	ctx := context.Background()
 
+	board := models.JSONDoc(`{"drawPile":[1,2,3],"nested":{"deep":true},"seed":-4611686018427387904}`)
 	m, err := r.Insert(ctx, models.Match{
 		ModuleID: "prsi",
 		Status:   "active",
-		State:    []byte(`{"drawPile":[1,2,3],"nested":{"deep":true}}`),
+		State:    board,
 		Players:  []models.Player{{ID: "p1", Name: "Ada", GuestID: "0123456789abcdef0123456789abcdef"}},
 	})
 	if err != nil {
@@ -106,8 +109,17 @@ func TestKDBMatchStateSurvivesRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("find: %v", err)
 	}
-	if string(got.State) != string(m.State) {
-		t.Fatalf("opaque state changed in storage:\n in: %s\nout: %s", m.State, got.State)
+	if got.State != nil {
+		t.Fatalf("the match document stored a board: %s", got.State)
+	}
+	next := got
+	next.Snapshots = []int{0}
+	if err := r.CommitSnapshot(ctx, m.ID, got.Version, next, nil, 0, board); err != nil {
+		t.Fatalf("snapshot: %v", err)
+	}
+	snap, err := r.Snapshot(ctx, m.ID, 0)
+	if err != nil || string(snap) != string(board) {
+		t.Fatalf("snapshot changed in storage:\n in: %s\nout: %s (%v)", board, snap, err)
 	}
 	// GuestID is json:"-" but bson-persisted; it must survive storage.
 	if got.Players[0].GuestID != "0123456789abcdef0123456789abcdef" {

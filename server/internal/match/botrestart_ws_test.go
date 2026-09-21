@@ -2,7 +2,6 @@ package match_test
 
 import (
 	"context"
-	"encoding/json"
 	"net/http/httptest"
 	"testing"
 	"time"
@@ -63,19 +62,23 @@ func TestOpeningASocketStartsTheBotsOnAStuckTable(t *testing.T) {
 	seeded, err := h.repo.Insert(context.Background(), models.Match{
 		ModuleID: "canasta", Status: "active", HostID: human,
 		Players: players, TurnOrder: []string{human, bot},
-		State: json.RawMessage(state), Seed: 7, JoinCode: "WEDGED",
+		Seed: 7, JoinCode: "WEDGED", Snapshots: []int{0},
 	})
 	if err != nil {
 		t.Fatalf("seeding the match: %v", err)
 	}
+	// The dealt board, stored as the match's first snapshot, the way Start
+	// stores a deal.
+	if err := h.repo.CommitSnapshot(context.Background(), seeded.ID, seeded.Version, seeded,
+		nil, 0, models.JSONDoc(state)); err != nil {
+		t.Fatalf("seeding the board: %v", err)
+	}
 	matchID := seeded.ID.Hex()
-	startVersion := seeded.Version
 
 	// Nothing is driving it: the table sits exactly as it was written.
 	time.Sleep(150 * time.Millisecond)
-	if v := h.version(t, matchID); v != startVersion {
-		t.Fatalf("the match moved on its own before anybody opened it (version %d → %d)",
-			startVersion, v)
+	if n := h.moves(t, seeded); n != 0 {
+		t.Fatalf("the match moved on its own before anybody opened it (%d moves)", n)
 	}
 
 	// A player opens the table. They cannot act — it is not their turn — so
@@ -89,7 +92,7 @@ func TestOpeningASocketStartsTheBotsOnAStuckTable(t *testing.T) {
 
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
-		if h.version(t, matchID) > startVersion {
+		if h.moves(t, seeded) > 0 {
 			return
 		}
 		time.Sleep(20 * time.Millisecond)
@@ -135,11 +138,13 @@ func newBotRestartHarness(t *testing.T) *botRestartHarness {
 // version is how this test sees a move happen: every accepted action goes
 // through UpdateWithVersion, so the number going up is the runtime having
 // written something.
-func (h *botRestartHarness) version(t *testing.T, matchID string) int64 {
+// moves is how many moves the match has stored: a move does not write the
+// match itself, so its log is where progress shows.
+func (h *botRestartHarness) moves(t *testing.T, m models.Match) int {
 	t.Helper()
-	m, err := h.repo.Resolve(context.Background(), matchID)
+	got, err := h.repo.Moves(context.Background(), m.ID, 0, -1)
 	if err != nil {
-		t.Fatalf("resolving the match: %v", err)
+		t.Fatalf("reading the moves: %v", err)
 	}
-	return m.Version
+	return len(got)
 }

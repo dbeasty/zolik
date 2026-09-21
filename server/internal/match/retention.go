@@ -16,9 +16,9 @@ import (
 // *at what point do we delete the game?* Nothing ever deleted a finished match,
 // so `matches` grew without bound — on the production snapshot it was 7.1 MB of
 // a 7.7 MB database, while `match_results`, the permanent record every lifetime
-// figure is rebuilt from, was 28 KB. The bulk is `State` and the append-only
-// `ActionLog`: the machinery of playing a game, which stops meaning anything
-// once nobody is going to open the table again.
+// figure is rebuilt from, was 28 KB. The bulk is the board and the moves: the
+// machinery of playing a game, which stops meaning anything once nobody is
+// going to open the table again.
 //
 // The thing that must not be repeated is how the last deletion worked. An
 // `abandonAt` TTL treated a field the runtime *decides* on as a field the store
@@ -113,6 +113,7 @@ func (m *Manager) SweepRetired(ctx context.Context, w RetentionWindows) int {
 				"match", match.ID.Hex(), "error", err)
 			continue
 		}
+		m.live.forget(match.ID.Hex())
 		n++
 		m.metrics.Add(metrics.MatchesDeleted, 1)
 	}

@@ -44,6 +44,7 @@ import (
 
 	"zolik/server/internal/app"
 	"zolik/server/internal/db"
+	"zolik/server/internal/match"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
 	"zolik/server/internal/stats"
@@ -69,6 +70,7 @@ func main() {
 	mod := zolikmod.New()
 	results := m.DB.Collection("match_results")
 	matches := m.DB.Collection("matches")
+	repo := match.NewRepository(m)
 
 	cur, err := results.Find(ctx, bson.M{"moduleId": "zolik"})
 	if err != nil {
@@ -88,21 +90,26 @@ func main() {
 		}
 		seen++
 
-		var match models.Match
-		err := matches.FindOne(ctx, bson.M{"_id": rec.MatchID}).Decode(&match)
+		var played models.Match
+		err := matches.FindOne(ctx, bson.M{"_id": rec.MatchID}).Decode(&played)
 		if err != nil {
 			orphaned++
 			log.Printf("match=%s: document is gone; its score stays on the old scale", rec.MatchID.Hex())
 			continue
 		}
-		if len(match.State) == 0 {
+		// The state the match ended in is its last snapshot.
+		final, ok := len(played.Snapshots), len(played.Snapshots) > 0
+		if ok {
+			played.State, err = repo.Snapshot(ctx, played.ID, played.Snapshots[final-1])
+		}
+		if !ok || err != nil || len(played.State) == 0 {
 			orphaned++
 			log.Printf("match=%s: no state to recompute from", rec.MatchID.Hex())
 			continue
 		}
 
 		// The module's own answer, from the state the match ended in.
-		sb := stats.BuildScoreboard(match, module.OutcomeOf(mod, match.State))
+		sb := stats.BuildScoreboard(played, module.OutcomeOf(mod, module.State(played.State)))
 		if len(sb.Standings) == 0 {
 			orphaned++
 			log.Printf("match=%s: the module produced no standings", rec.MatchID.Hex())
