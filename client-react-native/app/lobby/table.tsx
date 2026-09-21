@@ -12,6 +12,7 @@ import { useSession } from '@/src/context/SessionContext';
 import { formatApiError } from '@/src/lib/apiError';
 import { colors, shared } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
+import { NotifyCircleCard } from '@/src/notify/NotifyCircleCard';
 
 /**
  * The host's table before it starts: who is seated, who can be pulled in, and
@@ -201,6 +202,14 @@ export default function TableScreen() {
         */}
         {state?.joinCode ? (
           <InvitePanel joinCode={state.joinCode} inviteUrl={state.inviteUrl} />
+        ) : null}
+
+        {/* The host's circle hears about the table the moment it opens —
+            host-only, because announcing is the host's call on the server,
+            and online-only, because nobody online can reach a table on this
+            phone. */}
+        {isHost && !offline && state?.status === 'lobby' ? (
+          <NotifyCircleCard matchId={state.matchId || id} />
         ) : null}
 
         <Text style={[shared.status, { marginTop: 12 }]}>Players ({players.length})</Text>

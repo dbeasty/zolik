@@ -27,6 +27,7 @@ import (
 	"zolik/server/internal/match"
 	"zolik/server/internal/metrics"
 	"zolik/server/internal/module"
+	"zolik/server/internal/notify"
 	"zolik/server/internal/prsi"
 	"zolik/server/internal/rummytiles"
 	"zolik/server/internal/scoring"
@@ -77,6 +78,9 @@ type App struct {
 	// the API does not claim. Absent in every development build and every
 	// test, which is why nothing here may assume it is there.
 	web *webui.Handler
+	// notify tells players about tables — their circle's, over the personal
+	// socket and push. Built in New because the guest claim below needs it.
+	notify *notify.Service
 }
 
 // repos is every repository the app wires, built in one place so the two
@@ -94,6 +98,7 @@ type repos struct {
 	// alongside every other repository so the two engines stay
 	// column-for-column comparable.
 	metrics metrics.Store
+	notify  notify.Repository
 	close   func(ctx context.Context) error
 }
 
@@ -119,6 +124,7 @@ func mongoRepos(ctx context.Context, cfg Config) (repos, error) {
 		match:    match.NewRepository(m),
 		scoring:  scoring.NewRepository(m),
 		metrics:  metrics.NewMongoStore(m),
+		notify:   notify.NewRepository(m),
 		close:    m.Close,
 	}, nil
 }
@@ -158,6 +164,7 @@ func kdbRepos(cfg Config) (repos, error) {
 		match:    match.NewKDBRepository(k),
 		scoring:  scoring.NewKDBRepository(k),
 		metrics:  metrics.NewKDBStore(k),
+		notify:   notify.NewKDBRepository(k),
 		close:    k.Close,
 	}, nil
 }
@@ -220,6 +227,17 @@ func New(cfg Config) (*App, error) {
 		return nil, err
 	}
 
+	senders, err := pushSenders(cfg.Push)
+	if err != nil {
+		_ = r.close(ctx)
+		return nil, err
+	}
+	notifySvc := notify.NewService(r.notify, r.stats, r.user, r.match, hub, senders, notify.Config{
+		PublicBaseURL:  cfg.PublicBaseURL,
+		VAPIDPublicKey: cfg.Push.VAPIDPublicKey,
+		ExpoEnabled:    cfg.Push.ExpoEnabled,
+	})
+
 	authHandlers := auth.NewHandlers(auth.Deps{
 		Store:     r.store,
 		Sessions:  r.sessions,
@@ -227,7 +245,8 @@ func New(cfg Config) (*App, error) {
 		Mailer:    mailer,
 		// The claimer is injected for the same reason the match recorder is:
 		// stats imports auth for its middleware, so auth cannot import stats.
-		Claimer:              stats.NewClaimer(r.stats),
+		// A guest's circle travels with their history, so the claim does both.
+		Claimer:              claimChain{Claimer: stats.NewClaimer(r.stats), notify: notifySvc},
 		PublicBaseURL:        cfg.PublicBaseURL,
 		AllowedReturnURLs:    cfg.AllowedReturnURLs,
 		AppName:              "Žolíky",
@@ -259,7 +278,45 @@ func New(cfg Config) (*App, error) {
 		reporter:    metrics.NewReporter(r.metrics),
 		boots:       metrics.NewBootRecorder(r.metrics, recorder),
 		web:         webui.NewHandler(webui.Embedded()),
+		notify:      notifySvc,
 	}, nil
+}
+
+// claimChain runs the statistics claim and then carries the guest's circle
+// across. The circle is best-effort: a failure there is logged rather than
+// failing a sign-in whose history has already moved.
+type claimChain struct {
+	*stats.Claimer
+	notify *notify.Service
+}
+
+func (c claimChain) ClaimGuestHistory(ctx context.Context, guestID, userID, username string) (int, error) {
+	n, err := c.Claimer.ClaimGuestHistory(ctx, guestID, userID, username)
+	if err != nil {
+		return n, err
+	}
+	if err := c.notify.Rekey(ctx, guestID, userID); err != nil {
+		log.Printf("notify: carrying guest %s circle to %s: %v", guestID, userID, err)
+	}
+	return n, nil
+}
+
+// pushSenders builds the push services the configuration allows. Anything
+// not configured is logged instead of sent, so development sees what would
+// have gone out.
+func pushSenders(cfg PushConfig) (notify.Senders, error) {
+	senders := notify.Senders{notify.DeviceExpo: notify.LogSender{}, notify.DeviceWebPush: notify.LogSender{}}
+	if cfg.ExpoEnabled {
+		senders[notify.DeviceExpo] = notify.ExpoSender{AccessToken: cfg.ExpoAccessToken}
+	}
+	if cfg.VAPIDPublicKey != "" || cfg.VAPIDPrivateKey != "" {
+		wp, err := notify.NewWebPushSender(cfg.VAPIDPublicKey, cfg.VAPIDPrivateKey, cfg.VAPIDSubject)
+		if err != nil {
+			return nil, err
+		}
+		senders[notify.DeviceWebPush] = wp
+	}
+	return senders, nil
 }
 
 // Start begins the background work that describes the server: flushing
@@ -473,6 +530,19 @@ func (a *App) configureManager(matchMgr *match.Manager) *match.Manager {
 	// And whether a stopped game can be stepped through. The operator's half
 	// of that question; the store answers the other half itself.
 	matchMgr.SetReplayEnabled(a.cfg.ReplayEnabled)
+	// And the notifications: an invite already sent about a table is
+	// withdrawn when it stops taking players, and being picked up out of the
+	// waiting room reaches the player's own socket too.
+	if a.notify != nil {
+		matchMgr.SetLobbyObserver(a.notify)
+		a.notify.SetGameLabel(func(id string) string {
+			if mod := matchMgr.Registry().Get(id); mod != nil {
+				return mod.Descriptor().Label
+			}
+			return ""
+		})
+		matchMgr.SetPersonalRoom(notify.RoomID)
+	}
 
 	return matchMgr
 }
@@ -522,6 +592,11 @@ func (a *App) routeGroups() []routeGroup {
 			h.RegisterRoutes(r)
 		}},
 		{"stats", stats.NewHandlers(a.statsRepo).RegisterRoutes},
+		{"notify", func(r chi.Router) {
+			h := notify.NewHandlers(a.notify, a.hub)
+			h.SetAdmission(a.admission)
+			h.RegisterRoutes(r)
+		}},
 		// Where the memory went. Off unless APP_ENV is local — see
 		// debugmem.go for why it is not something a public listener carries.
 		{"debug", func(r chi.Router) {

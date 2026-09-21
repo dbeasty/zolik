@@ -83,6 +83,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ...(config.plugins ?? []),
       'expo-dev-client',
       './modules/zolik-nearby/plugin/withZolikNearby.js',
+      // Table invites from the player's circle. `invites` is the channel the
+      // server names in every push (see src/notify/push.native.ts), made the
+      // default so a push that names none still lands somewhere sensible.
+      ['expo-notifications', { defaultChannel: 'invites', color: '#1a2332' }],
     ],
     // Read by src/config.ts when the bundler was not given
     // EXPO_PUBLIC_ZOLIK_VERSION — i.e. on an EAS worker, which runs neither

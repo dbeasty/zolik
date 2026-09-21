@@ -34,6 +34,12 @@ type Collections struct {
 	// this process died, and nothing in the game path reads either.
 	DailyMetrics *mongo.Collection
 	Boots        *mongo.Collection
+	// NotifyProfiles, NotifyCircle and NotifyDevices are internal/notify's:
+	// who wants to hear about tables, whose tables they hear about, and where
+	// a push reaches them when no app is open.
+	NotifyProfiles *mongo.Collection
+	NotifyCircle   *mongo.Collection
+	NotifyDevices  *mongo.Collection
 }
 
 func (m *Mongo) Collections() Collections {
@@ -50,5 +56,9 @@ func (m *Mongo) Collections() Collections {
 		OAuthFlows:   m.DB.Collection("oauth_flows"),
 		DailyMetrics: m.DB.Collection("daily_metrics"),
 		Boots:        m.DB.Collection("boots"),
+
+		NotifyProfiles: m.DB.Collection("notify_profiles"),
+		NotifyCircle:   m.DB.Collection("notify_circle"),
+		NotifyDevices:  m.DB.Collection("notify_devices"),
 	}
 }

@@ -61,6 +61,7 @@ import { useRuleIndex } from '@/src/hooks/useRuleIndex';
 import { useSkinControls } from '@/src/hooks/useSkin';
 import { factText, playerName } from '@/src/lib/labels';
 import { dragLayer } from '@/src/theme';
+import { AddToCircle } from '@/src/notify/AddToCircle';
 
 /**
  * One screen, every game.
@@ -90,7 +91,7 @@ import { dragLayer } from '@/src/theme';
  */
 export default function MatchScreen() {
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
-  const { session, client, loading } = useSession();
+  const { session, client, loading, offline } = useSession();
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
   // Whether what is currently selected was picked by the *app* rather than by
   // the player — see the auto-select effect below and `toggleSlot`.
@@ -1182,6 +1183,13 @@ export default function MatchScreen() {
               <Text testID="match-over-error" style={styles.overError}>
                 {againError || resumeError}
               </Text>
+            ) : null}
+            {/* Somebody worth playing again: offered their place in the
+                circle while the game is still warm. Online tables only —
+                the players at a table on a phone in the room are that
+                phone's guests, not accounts the online circle knows. */}
+            {state.status === 'completed' && !offline ? (
+              <AddToCircle players={state.players} viewerId={viewerId} palette={skin.colors} />
             ) : null}
           </Animated.View>
         ) : null}

@@ -155,3 +155,97 @@ export type LifetimeStats = {
   longestWinStreak: number;
   longestLossStreak: number;
 };
+
+// --- notifications: the game circle and invites ----------------------------
+//
+// Transcribed from docs/notifications-plan.md, which is the wire contract the
+// server's internal/notify package implements. Everyone is addressed by a
+// subject key, `user:<hex>` or `guest:<id>` — the same keys the match records
+// carry — so a guest can be in a circle as fully as an account can.
+
+/** Who may reach a player: everyone in their circle, or nobody. */
+export type InvitePreference = 'circle' | 'off';
+
+/** A player's own notification settings, from GET/PATCH /notify/me. */
+export type NotifyProfile = {
+  key: string;
+  /** The code behind this player's friend link, `/add/<code>`. */
+  friendCode: string;
+  /** The whole link, when the server knows its public address. */
+  friendUrl?: string;
+  invites: InvitePreference;
+  nearby: boolean;
+};
+
+/** One person on the circle screen, in whichever of its lists. */
+export type CircleEntry = {
+  key: string;
+  name: string;
+  avatar?: string;
+  /** 'pending' is a username request the other side has not accepted yet. */
+  status: 'active' | 'pending';
+  /** ISO time the relationship began. */
+  since: string;
+  /** Notifiers only: this player has silenced them. */
+  muted?: boolean;
+};
+
+/**
+ * GET /notify/circle.
+ *
+ * `members` are the people this player tells about their tables; `notifiers`
+ * are the people who tell this player about theirs; `requests` are notifiers
+ * asking to become one, by username, and waiting for an answer.
+ */
+export type CircleLists = {
+  members: CircleEntry[];
+  requests: CircleEntry[];
+  notifiers: CircleEntry[];
+};
+
+/** Somebody this player has shared a table with, not yet in their circle. */
+export type CircleSuggestion = {
+  key: string;
+  name: string;
+  avatar?: string;
+  lastPlayedAt: string;
+  matches: number;
+};
+
+/** The public face of a friend link, shown before anything is added. */
+export type FriendPreview = { name: string; avatar?: string };
+
+/** What the server says about push on this deployment. */
+export type NotifyConfig = { vapidPublicKey: string | null; expo: boolean };
+
+/** A device registration for OS push. */
+export type PushDeviceRegistration = {
+  kind: 'expo' | 'webpush';
+  token?: string;
+  subscription?: unknown;
+  platform: string;
+  locale: string;
+};
+
+/** A table somebody in this player's circle has opened, as the server sends it. */
+export type TableInvite = {
+  /** Equal to `matchId`: one invite per table, which is what de-duplicates the
+   *  socket's copy against the push's. */
+  id: string;
+  matchId: string;
+  joinCode: string;
+  moduleId: string;
+  /** The game's own name for itself, for when this build has no words for
+   *  `moduleId` — game names are mostly left unkeyed (see gameLabels.ts). */
+  moduleLabel?: string;
+  variation?: string;
+  host: { key: string; name: string; avatar?: string };
+  sentAt: string;
+};
+
+/** Everything the personal socket, /ws/me, can say. */
+export type MeWSMessage =
+  | { type: 'table_invite'; invite: TableInvite }
+  | { type: 'invite_revoked'; id: string }
+  | { type: 'lobby_invited'; matchId: string; joinCode: string }
+  | { type: 'circle_changed' };

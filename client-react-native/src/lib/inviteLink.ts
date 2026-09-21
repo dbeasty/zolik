@@ -179,3 +179,29 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     return false;
   }
 }
+
+/** The client route a friend link points at. Must match the server's. */
+export const FRIEND_PATH = '/add/';
+
+/**
+ * A player's friend link, by the same precedence as a table's: the page's own
+ * origin on web, the server's answer elsewhere, the API base as a last resort.
+ * See the top of this file for why that order.
+ */
+export function friendUrlFor(
+  profile: { friendCode?: string; friendUrl?: string },
+  origin: string = currentOrigin(),
+): string {
+  const code = (profile.friendCode ?? '').trim();
+  const fromServer = (profile.friendUrl ?? '').trim();
+  if (origin) {
+    if (fromServer) return swapOrigin(fromServer, origin);
+    if (code) return origin + FRIEND_PATH + encodeURIComponent(code);
+    return '';
+  }
+  if (fromServer) return fromServer;
+  if (code && ZOLIK_BASE_URL) {
+    return ZOLIK_BASE_URL.replace(/\/$/, '') + FRIEND_PATH + encodeURIComponent(code);
+  }
+  return '';
+}

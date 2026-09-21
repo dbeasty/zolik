@@ -114,13 +114,70 @@ export function browse(onFound: (h: NearbyHost) => void, onLost: (name: string) 
   if (!native) return () => {};
   const found = native.addListener('onHostFound', onFound);
   const lost = native.addListener('onHostLost', (e) => onLost(e.name));
-  void native.startBrowsing();
+  const release = browsing.acquire();
+  // A browser already running reported its tables to whoever was listening
+  // then; a newcomer is told about them now rather than never.
+  for (const h of [...resolvedHosts.values()]) onFound(h);
   return () => {
     found.remove();
     lost.remove();
-    void native.stopBrowsing();
+    release();
   };
 }
+
+/**
+ * One radio, several listeners.
+ *
+ * The native side has a single browser and a single scanner, but more than
+ * one part of the app now wants each: the Offline screen while it is open,
+ * and the invite watcher (src/notify/useNearbyWatcher.ts) for as long as the
+ * app is in front. Without counting, whichever stopped first would stop the
+ * other's — the Offline screen closing would blind the watcher, and a
+ * watcher's Bluetooth burst ending would silence the screen's scan mid-look.
+ * So the radio starts with its first user and stops with its last.
+ */
+function sharedRadio(start: () => Promise<void>, stop: () => Promise<void>) {
+  let users = 0;
+  return {
+    acquire(): () => void {
+      users += 1;
+      if (users === 1) void start();
+      let released = false;
+      return () => {
+        if (released) return;
+        released = true;
+        users -= 1;
+        if (users === 0) void stop();
+      };
+    },
+  };
+}
+
+/** What the running browser has found and not yet lost, by service name. */
+const resolvedHosts = new Map<string, NearbyHost>();
+let resolvedSubs: EventSubscription[] = [];
+
+const browsing = sharedRadio(
+  async () => {
+    if (!native) return;
+    resolvedSubs = [
+      native.addListener('onHostFound', (h) => void resolvedHosts.set(h.name, h)),
+      native.addListener('onHostLost', (e) => void resolvedHosts.delete(e.name)),
+    ];
+    await native.startBrowsing();
+  },
+  async () => {
+    for (const sub of resolvedSubs) sub.remove();
+    resolvedSubs = [];
+    resolvedHosts.clear();
+    await native?.stopBrowsing();
+  },
+);
+
+const scanning = sharedRadio(
+  async () => native?.bleScanStart(),
+  async () => native?.bleScanStop(),
+);
 
 /** Bytes from the platform's secure random generator. */
 export function randomBytes(count: number): Uint8Array {
@@ -169,10 +226,10 @@ export function onBleGuests(cb: (count: number) => void): () => void {
 export function bleScan(onFound: (s: BleSighting) => void): () => void {
   if (!native) return () => {};
   const sub = native.addListener('onBleFound', onFound);
-  void native.bleScanStart();
+  const release = scanning.acquire();
   return () => {
     sub.remove();
-    void native.bleScanStop();
+    release();
   };
 }
 
