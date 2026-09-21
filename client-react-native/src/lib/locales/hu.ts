@@ -492,7 +492,7 @@ export const hu: Record<string, string> = {
   'holdem.header.handLimit': 'Leosztás összesen',
   'holdem.header.blinds': 'Vakok',
   'holdem.cost.call': 'a megtartáshoz',
-  'holdem.cost.pot': 'a potban',
+  'holdem.cost.pot': 'pot megadás után',
   'holdem.seat.stack': 'Zsetonhalom',
   'holdem.seat.bet': 'Tét',
   'holdem.prompt.yourAction': 'Te következel',

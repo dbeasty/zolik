@@ -485,7 +485,7 @@ export const es: Record<string, string> = {
   'holdem.header.handLimit': 'Manos en total',
   'holdem.header.blinds': 'Ciegas',
   'holdem.cost.call': 'para igualar',
-  'holdem.cost.pot': 'en el bote',
+  'holdem.cost.pot': 'bote tras igualar',
   'holdem.seat.stack': 'Pila',
   'holdem.seat.bet': 'Apuesta',
   'holdem.prompt.yourAction': 'Te toca',

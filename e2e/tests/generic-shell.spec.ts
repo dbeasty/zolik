@@ -57,6 +57,29 @@ async function tableWithBots(
 }
 
 /** Puts a session in localStorage so the shell opens already signed in. */
+/**
+ * Waits until this player has a raise to make, dealing on if a hand ends first.
+ *
+ * Whether the player gets a turn at all depends on the shuffle. If both bots
+ * fold before the player acts, the hand is over, and the only thing offered is
+ * the intermission's "Start the next round". A plain wait for the stepper then
+ * times out even though nothing is wrong, so this presses that control and
+ * keeps waiting.
+ */
+async function untilRaiseOffered(page: Page) {
+  await expect
+    .poll(
+      async () => {
+        if (await page.getByTestId('param-amount').isVisible()) return true;
+        const next = page.getByTestId('offer-continue');
+        if (await next.isVisible()) await next.click().catch(() => {});
+        return false;
+      },
+      { timeout: 120_000, intervals: [500], message: 'a raise should come round to this player' },
+    )
+    .toBe(true);
+}
+
 async function signIn(page: Page, host: { accessToken: string; refreshToken: string; userId: string; username?: string }) {
   await page.addInitScript((s) => {
     window.localStorage.setItem('zolik_session', JSON.stringify(s));
@@ -318,8 +341,7 @@ test.describe('one shell, every game', () => {
     await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
 
     // Wait for our turn, then look for the stepper on the raise control.
-    const stepper = page.getByTestId('param-amount');
-    await expect(stepper).toBeVisible({ timeout: 40_000 });
+    await untilRaiseOffered(page);
 
     // The value sits in a typed field now, not a label — a player who knows
     // the figure they want can enter it directly instead of nudging a stepper.
@@ -348,6 +370,10 @@ test.describe('one shell, every game', () => {
       );
     const before = await amount();
     await namesAmount(before, 'dealing');
+
+    // The figure under it is the pot once the call is in, and says so. A bare
+    // "in the pot" under "Raise to 483" read as the pot this raise would make.
+    await expect(page.getByTestId('offer-raise')).toContainText(/pot after call \d+/);
 
     await page.getByTestId('param-amount-up').click();
     await expect
@@ -415,7 +441,7 @@ test.describe('one shell, every game', () => {
     await signIn(page, poker.host);
     await page.goto(`/match/${poker.matchId}`);
     await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByTestId('param-amount')).toBeVisible({ timeout: 40_000 });
+    await untilRaiseOffered(page);
 
     // A figure that is neither the default nor a quick choice, so only the
     // player's own input can explain it turning up on the pill and the wire.

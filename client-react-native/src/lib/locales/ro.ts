@@ -483,7 +483,7 @@ export const ro: Record<string, string> = {
   'holdem.header.handLimit': 'Mâini în total',
   'holdem.header.blinds': 'Blinduri',
   'holdem.cost.call': 'pentru plată',
-  'holdem.cost.pot': 'în pot',
+  'holdem.cost.pot': 'pot după plată',
   'holdem.seat.stack': 'Stac',
   'holdem.seat.bet': 'Pariu',
   'holdem.prompt.yourAction': 'E rândul tău',

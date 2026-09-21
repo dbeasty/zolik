@@ -489,7 +489,7 @@ export const nl: Record<string, string> = {
   'holdem.header.handLimit': 'Handen in totaal',
   'holdem.header.blinds': 'Blinds',
   'holdem.cost.call': 'om mee te gaan',
-  'holdem.cost.pot': 'in de pot',
+  'holdem.cost.pot': 'pot na meegaan',
   'holdem.seat.stack': 'Stapel',
   'holdem.seat.bet': 'Inzet',
   'holdem.prompt.yourAction': 'Jij bent',

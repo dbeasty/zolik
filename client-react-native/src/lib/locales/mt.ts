@@ -487,7 +487,7 @@ export const mt: Record<string, string> = {
   'holdem.header.handLimit': "Idejn b'kollox",
   'holdem.header.blinds': 'Blinds',
   'holdem.cost.call': 'biex issejjaħ',
-  'holdem.cost.pot': 'fil-pot',
+  'holdem.cost.pot': 'pot wara s-sejħa',
   'holdem.seat.stack': 'Munzell',
   'holdem.seat.bet': 'Imħatra',
   'holdem.prompt.yourAction': 'Imissek taġixxi',

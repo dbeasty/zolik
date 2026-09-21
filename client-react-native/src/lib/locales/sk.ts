@@ -479,7 +479,7 @@ export const sk: Record<string, string> = {
   'holdem.header.handLimit': 'Rozdaní spolu',
   'holdem.header.blinds': 'Blindy',
   'holdem.cost.call': 'na dorovnanie',
-  'holdem.cost.pot': 'v banku',
+  'holdem.cost.pot': 'bank po dorovnaní',
   'holdem.seat.stack': 'Stack',
   'holdem.seat.bet': 'Stávka',
   'holdem.prompt.yourAction': 'Si na rade',

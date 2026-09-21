@@ -69,17 +69,20 @@ so collapsing also forgot the amount.
   reads the websocket frame to confirm `raise` was sent with that amount. With
   the shared store disconnected, it fails with `Received string: "Raise to 40"`.
 
+## "in the pot" becomes "pot after call" (done, third commit)
+
+The fact under the raise button is `potIfCalled()`: the pot once this seat's
+call is in. Under "Raise to 483", "in the pot 130" read as the pot the raise
+would make. The key (`holdem.cost.pot`) and the server figure are unchanged.
+Only the wording changed, in all 24 locales, and each one uses that locale's
+own word for Call (for example "Pot nach Mitgehen", "pula po sprawdzeniu").
+The numeric-control e2e test checks the button reads `pot after call N`.
+
 ## Follow-ups (not in this change)
 
-1. **"in the pot 130".** This is the pot *if you call*, which is not the
-   same as the pot after this raise, and it now sits under "Raise to 483".
-   Choose one: reword it (for example "pot after call 130"), or have the client
-   add the figure it now knows, "pot becomes N". That second option is pot
-   arithmetic, which is a rule, so it would need a server-side fact the client
-   can fill in. Get a product decision before building either.
-2. **Accessibility.** The title text is now the accessible name. Check that
+1. **Accessibility.** The title text is now the accessible name. Check that
    VoiceOver or TalkBack reads "Raise to 483" once, and not the prompt twice
    (the parameter label above the slider also says "Raise to").
-3. **Other modules.** Any future module that declares a stake or amount should
+2. **Other modules.** Any future module that declares a stake or amount should
    set `Headline`. Add one sentence about it to the module-authoring notes in
    `docs/extensibility-plan.md`.

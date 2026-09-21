@@ -474,7 +474,7 @@ export const sv: Record<string, string> = {
   'holdem.header.handLimit': 'Givar totalt',
   'holdem.header.blinds': 'Mörkar',
   'holdem.cost.call': 'för att syna',
-  'holdem.cost.pot': 'i potten',
+  'holdem.cost.pot': 'pott efter syn',
   'holdem.seat.stack': 'Stack',
   'holdem.seat.bet': 'Satsning',
   'holdem.prompt.yourAction': 'Din tur att agera',
