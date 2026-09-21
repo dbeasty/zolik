@@ -1,6 +1,14 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Pressable, ScrollView, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import {
+  Animated,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { ActionOffer, Zone } from '@/src/api/matchTypes';
@@ -23,6 +31,7 @@ import { useHandOrder } from '@/src/hooks/useHandOrder';
 import { useMatchSocket } from '@/src/hooks/useMatchSocket';
 import { usePanelState } from '@/src/hooks/usePanelState';
 import { useEndingScroll } from '@/src/hooks/useEndingScroll';
+import { useOpeningScroll } from '@/src/hooks/useOpeningScroll';
 import { useResultsFlash } from '@/src/hooks/useResultsFlash';
 import {
   dropSpotsFor,
@@ -307,6 +316,27 @@ export default function MatchScreen() {
     [stillness],
   );
   const ending = useEndingScroll(state, goTo);
+  // And where the player is when one begins, which is the top of a board whose
+  // game is halfway down it. The other half of the same idea as `ending`, and
+  // the two can never both want the scroller: a deal is on or the table has
+  // stopped, never both. The scroller is handed over as something measurable
+  // rather than as a ScrollView, because measuring is all this wants of it —
+  // `measureInWindow` is on the instance both platforms hand back, and on
+  // neither one is it on the published type.
+  const opening = useOpeningScroll(
+    state,
+    goTo,
+    scrollRef as unknown as RefObject<Measurable | null>,
+  );
+  // One scroller, two hooks that watch it. Each only wants to know where the
+  // board is now, so neither minds the other having been told first.
+  const onScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      ending.scrollProps.onScroll(e);
+      opening.scrollProps.onScroll(e);
+    },
+    [ending.scrollProps, opening.scrollProps],
+  );
 
   if (!state) {
     return (
@@ -922,7 +952,7 @@ export default function MatchScreen() {
   // hold of the card it is carrying (moving its node would lose the gesture),
   // so lifting the card means lifting the hand — see `dragLayer`.
   const handPanel = (
-  <View style={[styles.mine, !!drag && dragLayer]}>
+  <View style={[styles.mine, !!drag && dragLayer]} {...opening.anchor('hand')}>
     {myHands.map((z) => (
       <HandZone
         key={z.id}
@@ -1031,6 +1061,9 @@ export default function MatchScreen() {
         contentContainerStyle={[styles.body, { maxWidth: metrics.maxWidth, width: '100%', alignSelf: 'center' }]}
         testID="match-screen"
         {...ending.scrollProps}
+        // Last, and deliberately: the spread above carries an `onScroll` of
+        // the ending's own, and this one replaces it and tells them both.
+        onScroll={onScroll}
       >
         <View style={styles.headerRow}>
           <View style={styles.moduleGroup}>
@@ -1188,7 +1221,10 @@ export default function MatchScreen() {
           zonePanelProps={zonePanelProps}
           dropProps={dropProps}
           hand={handPanel}
-          controls={paused ? null : controlsPanel}
+          controls={
+            paused ? null : <View {...opening.anchor('controls')}>{controlsPanel}</View>
+          }
+          tableAnchor={opening.anchor('table')}
         />
 
       </ScrollView>

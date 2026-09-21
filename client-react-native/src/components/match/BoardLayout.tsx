@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { MatchState, Zone } from '@/src/api/matchTypes';
@@ -59,6 +59,7 @@ export function BoardLayout({
   dropProps,
   hand,
   controls,
+  tableAnchor,
 }: {
   state: MatchState;
   viewerId: string;
@@ -70,6 +71,13 @@ export function BoardLayout({
   hand?: ReactNode;
   /** Drawn directly under the hand: the offer bar, where there is one. */
   controls?: ReactNode;
+  /**
+   * A hold on the head of the play, for a screen that scrolls to it — the
+   * table is where the game starts on the page, and the hand and controls
+   * below it are the screen's own nodes to take hold of. Absent on a replay,
+   * which nobody is dealt into. See `useOpeningScroll`.
+   */
+  tableAnchor?: { ref: Ref<View> };
 }) {
   const view = state.view ?? { zones: [] };
   const zones = view.zones ?? [];
@@ -126,15 +134,19 @@ export function BoardLayout({
       ))}
 
       {/* The piles and stacks everyone draws from and discards to. */}
-      <Section
-        title={t('match.table')}
-        zones={tableZones}
-        compact
-        styles={styles}
-        {...zonePanelProps('section:table')}
-        panelPropsFor={zonePanelProps}
-        {...drops}
-      />
+      {tableZones.length > 0 ? (
+        <View {...tableAnchor}>
+          <Section
+            title={t('match.table')}
+            zones={tableZones}
+            compact
+            styles={styles}
+            {...zonePanelProps('section:table')}
+            panelPropsFor={zonePanelProps}
+            {...drops}
+          />
+        </View>
+      ) : null}
 
       {hand}
       {controls}
