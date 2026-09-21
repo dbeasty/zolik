@@ -13,6 +13,8 @@ import { Platform } from 'react-native';
 
 import { apiClient, ZolikClient } from '@/src/api/client';
 import * as nearby from '@/modules/zolik-nearby';
+import { connectToTable } from '@/src/net/ble/link';
+import { BleTransport } from '@/src/net/ble/transport';
 import { authErrorMessage, parseAuthCallback } from '@/src/lib/auth';
 import { nearbyBaseUrl } from '@/src/lib/nearbyAddress';
 import type {
@@ -56,6 +58,13 @@ export type OfflineTable = {
   baseUrl: string;
   /** Whether this phone runs the table or sits at somebody else's. */
   role: 'host' | 'guest';
+  /** How a guest reaches the host. A host is always 'self'. */
+  via: 'self' | 'wifi' | 'bluetooth';
+  /**
+   * Over Bluetooth, the four characters both phones can show to check that
+   * nobody sits between them. Empty otherwise.
+   */
+  checkCode: string;
 };
 
 /** Thrown when a nearby table runs a different app version than this one. */
@@ -66,13 +75,38 @@ export class NearbyVersionError extends Error {
 }
 
 
-type OfflineState = OfflineTable & { client: ZolikClient; session: PlayerSession };
+type OfflineState = OfflineTable & {
+  client: ZolikClient;
+  session: PlayerSession;
+  /** The Bluetooth tunnel, for a guest at a table over Bluetooth. */
+  ble?: BleTransport;
+};
+
+/** The Bluetooth key a table answered with, pinned per instance id. */
+const hostKeyKey = (instanceId: string) => `zolik_hostkey_${instanceId}`;
+/** The peripheral a table was last reached at: a first guess, nothing more. */
+const hostRadioKey = (instanceId: string) => `zolik_hostradio_${instanceId}`;
+
+async function pinIfNew(instanceId: string, base64Key: string | undefined) {
+  if (!base64Key) return;
+  if (!(await storage.getItem(hostKeyKey(instanceId)))) {
+    await storage.setItem(hostKeyKey(instanceId), base64Key);
+  }
+}
 
 /** Per host, because each install's host signs its own tokens. */
 const offlineKey = (instanceId: string) => `zolik_offline_${instanceId}`;
 
 /** The name last used at an offline table, offered again next time. */
 const OFFLINE_NAME_KEY = 'zolik_offline_name';
+
+function bytesToBase64(b: Uint8Array): string {
+  return btoa(String.fromCharCode(...b));
+}
+
+function base64ToBytes(s: string): Uint8Array {
+  return Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+}
 
 export async function loadOfflineName(): Promise<string | null> {
   return storage.getItem(OFFLINE_NAME_KEY);
@@ -111,6 +145,8 @@ type SessionContextValue = {
   playOffline: (name: string) => Promise<void>;
   /** Seats the player at a table another phone in the room is hosting. */
   joinNearby: (address: string, name: string) => Promise<void>;
+  /** The same, over Bluetooth, to a table a scan found. */
+  joinBluetooth: (peripheralId: string, name: string) => Promise<void>;
   /** Back to the online server. Tables stay on the phone for next time. */
   leaveOffline: () => Promise<void>;
 };
@@ -400,8 +436,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   /** Signs in at a table's server and makes it the session. */
   const sitAt = useCallback(
-    async (baseUrl: string, instanceId: string, role: OfflineTable['role'], name: string) => {
-      const client = new ZolikClient(baseUrl);
+    async (
+      client: ZolikClient,
+      instanceId: string,
+      table: Pick<OfflineTable, 'role' | 'via' | 'checkCode'>,
+      name: string,
+      ble?: BleTransport,
+    ) => {
       const key = offlineKey(instanceId);
       // The guest id is kept per host, so this player gets the same seat back
       // at a table they left, even across app restarts. Signing in afresh each
@@ -426,7 +467,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           ),
         () => setOffline((prev) => (prev && prev.client === client ? null : prev)),
       );
-      setOffline({ instanceId, baseUrl, role, client, session: s });
+      setOffline({ instanceId, baseUrl: client.baseUrl, ...table, client, session: s, ble });
     },
     [],
   );
@@ -434,7 +475,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const playOffline = useCallback(
     async (name: string) => {
       const host = await nearby.startHost();
-      await sitAt(host.baseUrl, host.instanceId, 'host', name);
+      await sitAt(
+        new ZolikClient(host.baseUrl),
+        host.instanceId,
+        { role: 'host', via: 'self', checkCode: '' },
+        name,
+      );
     },
     [sitAt],
   );
@@ -446,12 +492,68 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       // because a typed or scanned address has no advertisement behind it.
       const res = await fetch(`${baseUrl}/nearby/info`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const info = (await res.json()) as { protocol?: number; instanceId?: string };
+      const info = (await res.json()) as { protocol?: number; instanceId?: string; publicKey?: string };
       if (info.protocol !== nearby.PROTOCOL_VERSION) {
         throw new NearbyVersionError(info.protocol ?? 0);
       }
       if (!info.instanceId) throw new Error('not a Zolik table');
-      await sitAt(baseUrl, info.instanceId, 'guest', name);
+      // Met over Wi-Fi first, the table's Bluetooth key is pinned now, so a
+      // later Bluetooth join to it is checked rather than trusted.
+      await pinIfNew(info.instanceId, info.publicKey);
+      await sitAt(
+        new ZolikClient(baseUrl),
+        info.instanceId,
+        { role: 'guest', via: 'wifi', checkCode: '' },
+        name,
+      );
+    },
+    [sitAt],
+  );
+
+  const joinBluetooth = useCallback(
+    async (peripheralId: string, name: string) => {
+      // The first link is opened here, to read which table this is before
+      // anything is spent on it. Later links (after a drop) find the table
+      // again by its instance id.
+      let first: nearby.BleConnection | null = await nearby.bleConnect(peripheralId);
+      const info = first.info;
+      if (info.v !== nearby.PROTOCOL_VERSION) {
+        first.close();
+        throw new NearbyVersionError(info.v ?? 0);
+      }
+      await storage.setItem(hostRadioKey(info.id), peripheralId);
+      const transport = new BleTransport({
+        instanceId: info.id,
+        connect: async () => {
+          if (first) {
+            const link = first;
+            first = null;
+            return link;
+          }
+          const last = await storage.getItem(hostRadioKey(info.id));
+          return connectToTable(info.id, last, (id) => void storage.setItem(hostRadioKey(info.id), id));
+        },
+        pinnedKey: async () => {
+          const k = await storage.getItem(hostKeyKey(info.id));
+          return k ? base64ToBytes(k) : null;
+        },
+        pinKey: (k) => storage.setItem(hostKeyKey(info.id), bytesToBase64(k)),
+        random32: () => nearby.randomBytes(32),
+      });
+      try {
+        await transport.ready();
+      } catch (e) {
+        transport.close();
+        throw e;
+      }
+      const client = new ZolikClient(`ble://${info.id}`, transport);
+      await sitAt(
+        client,
+        info.id,
+        { role: 'guest', via: 'bluetooth', checkCode: transport.checkCode },
+        name,
+        transport,
+      );
     },
     [sitAt],
   );
@@ -459,10 +561,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const leaveOffline = useCallback(async () => {
     const was = offline;
     setOffline(null);
-    // Only a host has anything running here. A guest leaving just stops
-    // talking to somebody else's phone.
+    // A host has a server and a radio running here. A guest leaving just
+    // stops talking to somebody else's phone.
+    was?.ble?.close();
     if (was?.role === 'host') {
       await nearby.closeRoom();
+      await nearby.bleHostStop();
       await nearby.stopHost();
     }
   }, [offline]);
@@ -470,7 +574,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const offlineTable = useMemo(
     () =>
       offline
-        ? { instanceId: offline.instanceId, baseUrl: offline.baseUrl, role: offline.role }
+        ? {
+            instanceId: offline.instanceId,
+            baseUrl: offline.baseUrl,
+            role: offline.role,
+            via: offline.via,
+            checkCode: offline.checkCode,
+          }
         : null,
     [offline],
   );
@@ -498,6 +608,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       offline: offlineTable,
       playOffline,
       joinNearby,
+      joinBluetooth,
       leaveOffline,
     }),
     [
@@ -505,6 +616,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       offlineTable,
       playOffline,
       joinNearby,
+      joinBluetooth,
       leaveOffline,
       session,
       loading,

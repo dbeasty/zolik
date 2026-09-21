@@ -39,6 +39,11 @@ function withLocalNetwork(config) {
     cfg.modResults.NSLocalNetworkUsageDescription =
       cfg.modResults.NSLocalNetworkUsageDescription ??
       'Zolik looks for card tables on this network so you can play with the people around you, with no internet needed.';
+    // Bluetooth, for tables with no network at all. The phones never pair,
+    // so this is the only prompt a player sees for it.
+    cfg.modResults.NSBluetoothAlwaysUsageDescription =
+      cfg.modResults.NSBluetoothAlwaysUsageDescription ??
+      'Zolik uses Bluetooth to play cards with the people around you when there is no Wi-Fi.';
     const services = new Set(cfg.modResults.NSBonjourServices ?? []);
     services.add('_zolik._tcp');
     cfg.modResults.NSBonjourServices = [...services];
@@ -61,6 +66,41 @@ function withCleartextToTheRoom(config) {
   });
 }
 
+// Android Bluetooth. From API 31 the three runtime permissions below are all
+// a table needs, and "neverForLocation" says scanning is not used to locate
+// anybody, so no location permission is asked. Up to API 30 scanning needs
+// the legacy pair plus fine location, capped so newer phones never see them.
+// Bluetooth LE is optional hardware: a phone without it still plays online
+// and over Wi-Fi.
+const BLE_PERMISSIONS = [
+  ['android.permission.BLUETOOTH_SCAN', { 'android:usesPermissionFlags': 'neverForLocation' }],
+  ['android.permission.BLUETOOTH_CONNECT', {}],
+  ['android.permission.BLUETOOTH_ADVERTISE', {}],
+  ['android.permission.BLUETOOTH', { 'android:maxSdkVersion': '30' }],
+  ['android.permission.BLUETOOTH_ADMIN', { 'android:maxSdkVersion': '30' }],
+  ['android.permission.ACCESS_FINE_LOCATION', { 'android:maxSdkVersion': '30' }],
+];
+
+function withBluetoothPermissions(config) {
+  return withAndroidManifest(config, (cfg) => {
+    const manifest = cfg.modResults.manifest;
+    manifest.$['xmlns:tools'] = manifest.$['xmlns:tools'] ?? 'http://schemas.android.com/tools';
+    const perms = (manifest['uses-permission'] = manifest['uses-permission'] ?? []);
+    for (const [name, attrs] of BLE_PERMISSIONS) {
+      const existing = perms.find((p) => p.$['android:name'] === name);
+      if (existing) Object.assign(existing.$, attrs);
+      else perms.push({ $: { 'android:name': name, ...attrs } });
+    }
+    const features = (manifest['uses-feature'] = manifest['uses-feature'] ?? []);
+    if (!features.some((f) => f.$['android:name'] === 'android.hardware.bluetooth_le')) {
+      features.push({ $: { 'android:name': 'android.hardware.bluetooth_le', 'android:required': 'false' } });
+    }
+    return cfg;
+  });
+}
+
 module.exports = function withZolikNearby(config) {
-  return withCleartextToTheRoom(withLocalNetwork(withZolikcoreRepository(config)));
+  return withBluetoothPermissions(
+    withCleartextToTheRoom(withLocalNetwork(withZolikcoreRepository(config))),
+  );
 };

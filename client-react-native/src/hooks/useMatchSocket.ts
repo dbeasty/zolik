@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 
 import type { MatchAction, MatchState } from '@/src/api/matchTypes';
 import { apiClient } from '@/src/api/client';
+import type { SocketLike } from '@/src/net/transport';
 import { busyBackoff, jitteredBackoff } from '@/src/lib/reconnectBackoff';
 
 /**
@@ -49,14 +50,14 @@ const TERMINAL_CODES = new Set(['MATCH_NOT_FOUND', 'MATCH_DELETED']);
  */
 export function useMatchSocket(
   url: string | null,
-  client: Pick<typeof apiClient, 'getCapacity'> = apiClient,
+  client: Pick<typeof apiClient, 'getCapacity' | 'openSocket'> = apiClient,
 ): MatchSocketState {
   const [state, setState] = useState<MatchState | null>(null);
   const [error, setError] = useState<{ code: string; message?: string; ruleIds?: string[] } | null>(
     null,
   );
   const [connected, setConnected] = useState(false);
-  const wsRef = useRef<WebSocket | null>(null);
+  const wsRef = useRef<SocketLike | null>(null);
   // Reconnect attempts, reset on every successful open. Kept in a ref so the
   // backoff survives re-renders without causing them.
   const attemptRef = useRef(0);
@@ -84,11 +85,11 @@ export function useMatchSocket(
     let timer: ReturnType<typeof setTimeout> | null = null;
     // This run's own socket, so cleanup closes the one it opened rather than
     // whichever one happens to be in the shared ref.
-    let socket: WebSocket | null = null;
+    let socket: SocketLike | null = null;
 
     const open = () => {
       if (torn) return;
-      const ws = new WebSocket(url);
+      const ws = client.openSocket(url);
       socket = ws;
       wsRef.current = ws;
 
