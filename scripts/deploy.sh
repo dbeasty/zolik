@@ -310,10 +310,17 @@ EOF
     # Every name must resolve before this can work. Checked here first because
     # certbot's own failure for a missing A record is a long paragraph about a
     # timeout.
+    #
+    # Queried at a public resolver (Cloudflare's own, fittingly — this domain's
+    # nameservers) rather than through whatever this machine's default resolver
+    # is. A record just added minutes ago is exactly what a resolver along that
+    # path is likely to still be holding a negative answer for, and that stale
+    # cache says nothing about whether the record exists.
     for name in "${JOKERLESS_NAMES[@]}"; do
-      if [[ -z "$(dig +short A "$name" 2>/dev/null | tail -1)" ]]; then
-        die "${name} has no A record yet. In Cloudflare add A records (DNS only, grey cloud)
-  for ${JOKERLESS_NAMES[*]} pointing at this host's WAN address, then re-run."
+      if [[ -z "$(dig +short A "$name" @1.1.1.1 +time=3 +tries=2 2>/dev/null | tail -1)" ]]; then
+        die "${name} has no A record yet (checked at 1.1.1.1, bypassing any local resolver cache).
+  In Cloudflare add A records (DNS only, grey cloud) for ${JOKERLESS_NAMES[*]}
+  pointing at this host's WAN address, then re-run."
       fi
     done
     domains=""
