@@ -138,8 +138,14 @@ async function playAndCollectOffers(
 
       const submissionFor = (o: any) => {
         const action: any = { offerId: o.id, verb: o.verb };
+        // `submit` is what a press sends; `cards` is the pool a person may pick
+        // from, and can lead with wilds the move does not need. Only an offer
+        // without one means the first `minCards` of the pool (module.Selector).
+        const submit = o.source?.submit ?? [];
         const need = o.source?.minCards ?? 0;
-        if (need > 0) {
+        if (submit.length > 0) {
+          action.cards = submit;
+        } else if (need > 0) {
           const cards = o.source?.cards ?? [];
           if (cards.length < need) return null;
           action.cards = cards.slice(0, need);

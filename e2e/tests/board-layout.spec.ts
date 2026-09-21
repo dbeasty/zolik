@@ -104,6 +104,9 @@ test.describe('the shape of the board', () => {
     // A deal starts with one card face up, so play on until something is
     // buried under it. Which control does that is the engine's business; this
     // presses whatever is live, as any player would.
+    // The test's own limit has to outlast this deadline, or a slow deal times
+    // out mid-loop instead of reaching the skip below.
+    test.setTimeout(90_000);
     const deadline = Date.now() + 40_000;
     let sent = 0;
     while (Date.now() < deadline) {
@@ -158,6 +161,9 @@ test.describe('the shape of the board', () => {
 
     // Prší buries a card every time anybody plays one, so this only has to
     // press whatever is live until the pile is more than its top card.
+    // The test's own limit has to outlast this deadline, or a slow deal times
+    // out mid-loop instead of reaching the skip below.
+    test.setTimeout(90_000);
     const deadline = Date.now() + 40_000;
     let sent = 0;
     while (Date.now() < deadline) {

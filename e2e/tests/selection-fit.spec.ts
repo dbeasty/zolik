@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { handCards } from '../helpers/drag';
+import { handCards, tapCard } from '../helpers/drag';
 import { API_BASE } from '../helpers/env';
 import { selectedCodes } from '../helpers/hand';
 import { waitForOfferEnabled } from '../helpers/turn';
@@ -119,9 +119,9 @@ test.describe('a control refuses what it cannot send', () => {
     // they actually mean to keep has to be chosen first before a second one
     // can be added to it.
     const unselected = page.locator('[data-testid^="card-hand:"]:not([aria-selected="true"])');
-    await unselected.first().click();
+    await tapCard(page, unselected.first());
     await expect(page.locator('[data-testid^="card-hand:"][aria-selected="true"]')).toHaveCount(1);
-    await unselected.first().click();
+    await tapCard(page, unselected.first());
     await expect(page.locator('[data-testid^="card-hand:"][aria-selected="true"]')).toHaveCount(2);
 
     await expect(discard).toHaveAttribute('aria-disabled', 'true');
@@ -155,7 +155,7 @@ test.describe('a control refuses what it cannot send', () => {
     expect(untouched.length).toBe(handSize);
 
     // Deselecting one brings it back.
-    await page.locator('[data-testid^="card-hand:"][aria-selected="true"]').first().click();
+    await tapCard(page, page.locator('[data-testid^="card-hand:"][aria-selected="true"]').first());
     await expect(discard).not.toHaveAttribute('aria-disabled', 'true');
     await expect(page.getByTestId('why-discard')).toHaveCount(0);
     expect((await paint(page, 'offer-discard')).fill, 'and it fills back in').toBe(pressable.fill);

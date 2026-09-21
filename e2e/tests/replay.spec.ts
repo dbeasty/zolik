@@ -56,6 +56,13 @@ test.describe('a stopped game can be stepped through', () => {
     // bot's turn when the human walks away never reaches that status and the
     // wait times out. Two identical reads in a row is the honest question —
     // is anything still happening? — and it is the same answer either way.
+    //
+    // "In a row" has to mean further apart than a bot takes to think, though
+    // (BOT_THINK_MAX_MS, 1.8 s by default). expect.poll calls straight away,
+    // so a bare comparison checks two reads microseconds apart, calls a bot
+    // mid-think "still", and the replay fetched later is a move ahead of the
+    // snapshot — a bot's hand one card off on the last frame.
+    const STILL_FOR_MS = 2_500;
     await page.goto('/lobby/mine');
     const zoneCounts = async () => {
       const res = await request.get(`${API_BASE}/matches/${matchId}`);
@@ -64,15 +71,23 @@ test.describe('a stopped game can be stepped through', () => {
       return JSON.stringify(body.view.zones.map((z) => [z.id, z.count]));
     };
     let settled = await zoneCounts();
+    let settledAt = Date.now();
     await expect
       .poll(
         async () => {
           const again = await zoneCounts();
-          const same = again === settled;
-          settled = again;
-          return same;
+          if (again !== settled) {
+            settled = again;
+            settledAt = Date.now();
+            return false;
+          }
+          return Date.now() - settledAt >= STILL_FOR_MS;
         },
-        { timeout: 60_000, message: 'the board should stop moving once nobody is at the table' },
+        {
+          timeout: 60_000,
+          intervals: [500],
+          message: 'the board should stop moving once nobody is at the table',
+        },
       )
       .toBe(true);
     const liveCounts = Object.fromEntries(

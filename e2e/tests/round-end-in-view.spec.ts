@@ -177,7 +177,14 @@ async function playUntil(
     const state = await (await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`)).json();
     if (done(state)) return { state, parked };
     await parkOnTheHand(page, zoneId);
-    parked = (await board(page)).offset;
+    // The last reading that found the player down the board, not simply the
+    // last reading. The stop can land between the server read above and this
+    // one, and then the screen has already fetched the player back up to the
+    // settlement — the behaviour under test — and reads 0. That erased the
+    // evidence of where they had been, and failed the precondition below about
+    // half the time on a run where everything it guards had worked.
+    const at = (await board(page)).offset;
+    if (at > 0) parked = at;
     const ids = await page
       .locator('[data-testid^="offer-"]:not([aria-disabled="true"])')
       .evaluateAll((els) => els.map((e) => e.getAttribute('data-testid') ?? '').filter(Boolean));
@@ -203,6 +210,8 @@ async function playUntil(
   return { state: null, parked };
 }
 
+const SMALL_PHONE = { width: 375, height: 667 };
+
 test.describe('a stopped table brings the way on to the player', () => {
   test('the control to start the next round is in view without scrolling to it', async ({
     page,
@@ -210,8 +219,12 @@ test.describe('a stopped table brings the way on to the player', () => {
   }) => {
     test.setTimeout(180_000);
     // A phone, because a phone is where the board is taller than the window and
-    // a settlement at the top of it is a settlement nobody receives.
-    await page.setViewportSize({ width: 390, height: 844 });
+    // a settlement at the top of it is a settlement nobody receives. A small
+    // one: since the board was dealt onto the table (a355a8d), a Hold'em board
+    // mid-hand can fit a 390×844 window outright, which leaves the player
+    // nowhere to have scrolled from, and the checks below fail on a deal that
+    // simply cannot show the bug. At 667 tall it never fits.
+    await page.setViewportSize(SMALL_PHONE);
 
     const { matchId, host } = await table(request, { handLimit: 5 });
     await signIn(page, host);
@@ -289,7 +302,7 @@ test.describe('a stopped table brings the way on to the player', () => {
 
   test('the offer to play again is in view when the match ends', async ({ page, request }) => {
     test.setTimeout(180_000);
-    await page.setViewportSize({ width: 390, height: 844 });
+    await page.setViewportSize(SMALL_PHONE);
 
     // The stop under test is the last one. Hold'em stops at every showdown,
     // so playUntil presses through each of them and this waits for the one
