@@ -34,10 +34,26 @@ type Repository interface {
 	// Resolve accepts either an object id or a join code, so a URL can carry
 	// whichever the player has.
 	Resolve(ctx context.Context, idOrCode string) (models.Match, error)
-	// UpdateWithVersion replaces the document only if its version is
-	// unchanged. A whole match is one document, so load → apply → store is
-	// safe without transactions as long as a concurrent writer loses.
+	// UpdateWithVersion replaces the match only if its version is unchanged,
+	// so load → apply → store is safe as long as a concurrent writer loses.
+	//
+	// The log is not the caller's to write: ActionCount, LogFormat, the log
+	// itself and the checkpoints are carried over from what is stored, and
+	// whatever next says about them is ignored. A match handed to a writer by
+	// one of the scans must not be able to shorten the log it never loaded.
 	UpdateWithVersion(ctx context.Context, id bson.ObjectID, expected int64, next models.Match) error
+	// AppendAction stores one accepted action together with the match it
+	// produced, under the same version check, and only if entry.Seq is the
+	// next one. cp is the checkpoint the action closed, if any, and board
+	// the state stored with it, if that checkpoint keeps one.
+	AppendAction(ctx context.Context, id bson.ObjectID, expected int64, next models.Match,
+		entry models.MatchAction, cp *models.MatchCheckpoint, board models.JSONDoc) error
+	// ActionLog returns actions from+1 … to, oldest first. A shorter answer
+	// means the stored log ends early; nothing past the gap is returned.
+	ActionLog(ctx context.Context, id bson.ObjectID, from, to int) ([]models.MatchAction, error)
+	// CheckpointBoard returns the board stored with the checkpoint taken after
+	// seq actions, or db.ErrNotFound when that checkpoint kept none.
+	CheckpointBoard(ctx context.Context, id bson.ObjectID, seq int) (models.JSONDoc, error)
 	// FindAbandonable lists suspended matches whose AbandonAt has passed.
 	//
 	// It exists because AbandonAt did not, in any useful sense: it was written
@@ -69,8 +85,8 @@ type Repository interface {
 	// match out from under the player who had just picked it back up.
 	DeleteIfUnchanged(ctx context.Context, id bson.ObjectID, expected int64) error
 	// FindForPlayer lists the matches a seat id is sitting at, newest activity
-	// first, capped at f.Limit. Neither State nor ActionLog is populated — a
-	// list row needs neither, and together they are the bulk of the document.
+	// first, capped at f.Limit. Neither State nor checkpoints are populated — a
+	// list row needs neither.
 	FindForPlayer(ctx context.Context, playerID string, f PlayerMatchFilter) ([]models.Match, error)
 }
 
@@ -132,6 +148,9 @@ func (r *mongoRepository) Insert(ctx context.Context, m models.Match) (models.Ma
 		m.CreatedAt = time.Now().UTC()
 	}
 	m.Version = 1
+	// Mongo keeps the log inside the match whatever layout was asked for: it
+	// keeps no versions for a growing document to multiply.
+	m.LogFormat = ""
 	res, err := r.coll.InsertOne(ctx, m)
 	if err != nil {
 		return models.Match{}, err
@@ -147,7 +166,7 @@ func (r *mongoRepository) FindByID(ctx context.Context, id bson.ObjectID) (model
 	if err := r.coll.FindOne(ctx, bson.M{"_id": id}).Decode(&m); err != nil {
 		return models.Match{}, err
 	}
-	return m, nil
+	return settle(m), nil
 }
 
 func (r *mongoRepository) FindByJoinCode(ctx context.Context, code string) (models.Match, error) {
@@ -155,7 +174,15 @@ func (r *mongoRepository) FindByJoinCode(ctx context.Context, code string) (mode
 	if err := r.coll.FindOne(ctx, bson.M{"joinCode": code}).Decode(&m); err != nil {
 		return models.Match{}, err
 	}
-	return m, nil
+	return settle(m), nil
+}
+
+// settleAll is settle over a query's rows.
+func settleAll(ms []models.Match) []models.Match {
+	for i := range ms {
+		ms[i] = settle(ms[i])
+	}
+	return ms
 }
 
 // Resolve accepts either an object id or a join code, so a URL can carry
@@ -167,12 +194,60 @@ func (r *mongoRepository) Resolve(ctx context.Context, idOrCode string) (models.
 	return r.FindByJoinCode(ctx, idOrCode)
 }
 
+// UpdateWithVersion replaces the match, carrying its stored log and
+// checkpoints across. A pipeline update rather than ReplaceOne so the log never
+// has to be loaded to be kept, and still a whole replacement, so a field next
+// has cleared really goes. $literal keeps a value that happens to start with
+// "$" — a player's name, say — from being read as a field path.
 func (r *mongoRepository) UpdateWithVersion(ctx context.Context, id bson.ObjectID, expected int64, next models.Match) error {
+	return r.replace(ctx, bson.M{"_id": id, "version": expected}, id, expected, next,
+		bson.D{{Key: "actionLog", Value: "$actionLog"}, {Key: "checkpoints", Value: "$checkpoints"}})
+}
+
+// AppendAction appends to the log inside the match, in the same single
+// document write as the match itself — atomic without a transaction.
+func (r *mongoRepository) AppendAction(ctx context.Context, id bson.ObjectID, expected int64, next models.Match,
+	entry models.MatchAction, cp *models.MatchCheckpoint, board models.JSONDoc) error {
+	filter := bson.M{
+		"_id":     id,
+		"version": expected,
+		// The next seq, or somebody else's move got in first.
+		"$expr": bson.M{"$eq": bson.A{
+			bson.M{"$size": bson.M{"$ifNull": bson.A{"$actionLog", bson.A{}}}},
+			entry.Seq - 1,
+		}},
+	}
+	checkpoints := any("$checkpoints")
+	if cp != nil {
+		c := *cp
+		c.Board = false
+		c.LegacyState = board
+		checkpoints = bson.M{"$concatArrays": bson.A{
+			bson.M{"$ifNull": bson.A{"$checkpoints", bson.A{}}},
+			bson.M{"$literal": bson.A{c}},
+		}}
+	}
+	return r.replace(ctx, filter, id, expected, next, bson.D{
+		{Key: "actionLog", Value: bson.M{"$concatArrays": bson.A{
+			bson.M{"$ifNull": bson.A{"$actionLog", bson.A{}}},
+			bson.M{"$literal": bson.A{entry}},
+		}}},
+		{Key: "checkpoints", Value: checkpoints},
+	})
+}
+
+func (r *mongoRepository) replace(ctx context.Context, filter bson.M, id bson.ObjectID, expected int64, next models.Match, owned bson.D) error {
+	next.ID = id
 	next.Version = expected + 1
 	next.UpdatedAt = time.Now().UTC()
-	res, err := r.coll.ReplaceOne(ctx,
-		bson.M{"_id": id, "version": expected}, next,
-		options.Replace().SetUpsert(false))
+	next.ActionCount, next.LogFormat = 0, ""
+	next.LegacyActionLog, next.Checkpoints = nil, nil
+	res, err := r.coll.UpdateOne(ctx, filter, mongo.Pipeline{
+		{{Key: "$replaceWith", Value: bson.M{"$mergeObjects": bson.A{
+			bson.M{"$literal": next},
+			owned,
+		}}}},
+	})
 	if err != nil {
 		return err
 	}
@@ -180,6 +255,36 @@ func (r *mongoRepository) UpdateWithVersion(ctx context.Context, id bson.ObjectI
 		return ErrVersionConflict
 	}
 	return nil
+}
+
+func (r *mongoRepository) stored(ctx context.Context, id bson.ObjectID, fields bson.M) (models.Match, error) {
+	var m models.Match
+	err := r.coll.FindOne(ctx, bson.M{"_id": id}, options.FindOne().SetProjection(fields)).Decode(&m)
+	return m, err
+}
+
+func (r *mongoRepository) ActionLog(ctx context.Context, id bson.ObjectID, from, to int) ([]models.MatchAction, error) {
+	m, err := r.stored(ctx, id, bson.M{"actionLog": 1})
+	if err != nil {
+		return nil, err
+	}
+	if from < 0 {
+		from = 0
+	}
+	return sliceLog(m.LegacyActionLog, from, to), nil
+}
+
+func (r *mongoRepository) CheckpointBoard(ctx context.Context, id bson.ObjectID, seq int) (models.JSONDoc, error) {
+	m, err := r.stored(ctx, id, bson.M{"checkpoints": 1})
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range m.Checkpoints {
+		if c.Seq == seq && len(c.LegacyState) > 0 {
+			return c.LegacyState, nil
+		}
+	}
+	return nil, db.ErrNotFound
 }
 
 // FindRetired lists resolved matches past their retention window.
@@ -212,7 +317,7 @@ func (r *mongoRepository) FindRetired(ctx context.Context, now time.Time, w Rete
 	if err := cur.All(ctx, &out); err != nil {
 		return nil, err
 	}
-	return out, nil
+	return settleAll(out), nil
 }
 
 func (r *mongoRepository) DeleteIfUnchanged(ctx context.Context, id bson.ObjectID, expected int64) error {
@@ -239,7 +344,7 @@ func (r *mongoRepository) FindAbandonable(ctx context.Context, now time.Time, li
 	if err := cur.All(ctx, &out); err != nil {
 		return nil, err
 	}
-	return out, nil
+	return settleAll(out), nil
 }
 
 // FindStranded lists active matches untouched since idleBefore. A row written
@@ -260,7 +365,7 @@ func (r *mongoRepository) FindStranded(ctx context.Context, idleBefore time.Time
 	if err := cur.All(ctx, &out); err != nil {
 		return nil, err
 	}
-	return out, nil
+	return settleAll(out), nil
 }
 
 // FindForPlayer lists the matches a seat id sits at, newest activity first.
@@ -288,5 +393,5 @@ func (r *mongoRepository) FindForPlayer(ctx context.Context, playerID string, f 
 	if err := cur.All(ctx, &out); err != nil {
 		return nil, err
 	}
-	return out, nil
+	return settleAll(out), nil
 }

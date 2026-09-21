@@ -309,6 +309,7 @@ func (m *Manager) Create(ctx context.Context, moduleID string, cfg module.MatchC
 		HostID:    host.ID,
 		JoinCode:  randomJoinCode(6),
 		Seed:      time.Now().UnixNano(),
+		LogFormat: newMatchLogFormat,
 		CreatedAt: time.Now().UTC(),
 	}
 	created, err := m.repo.Insert(ctx, match)
@@ -385,7 +386,7 @@ func (m *Manager) Start(ctx context.Context, idOrCode string) (models.Match, err
 	}
 
 	now := time.Now().UTC()
-	match.State = state
+	match.State = models.JSONDoc(state)
 	match.Status = "active"
 	match.StartedAt = &now
 	if err := m.repo.UpdateWithVersion(ctx, match.ID, match.Version, match); err != nil {
@@ -445,22 +446,24 @@ func (m *Manager) HandleAction(ctx context.Context, idOrCode, playerID string, a
 		return module.Error{Code: "UNKNOWN_MODULE", Message: match.ModuleID}
 	}
 
-	next, events, err := mod.Apply(match.State, playerID, a)
+	next, events, err := mod.Apply(module.State(match.State), playerID, a)
 	if err != nil {
 		return err // a refusal: nothing is persisted, nothing is broadcast
 	}
 
 	expected := match.Version
-	match.State = next
-	match.ActionLog = append(match.ActionLog, logEntry(len(match.ActionLog)+1, playerID, a))
+	match.State = models.JSONDoc(next)
+	entry := logEntry(match.ActionCount+1, playerID, a)
 
 	// The round log is decoded once here and used twice: to notice that this
 	// move closed a round, and by the broadcast further down. Asking for it in
 	// both places would decode the module's whole state twice on every single
 	// move, which is the one thing this path cannot afford.
 	rounds := module.RoundsFor(mod, next)
-	if c, ok := m.checkpointFor(ctx, match, rounds); ok {
-		match.Checkpoints = append(match.Checkpoints, c)
+	var checkpoint *models.MatchCheckpoint
+	var board models.JSONDoc
+	if c, b, ok := m.checkpointFor(ctx, match, entry.Seq, rounds); ok {
+		checkpoint, board = &c, b
 	}
 
 	if done, winners, err := mod.Finished(next); err == nil && done {
@@ -478,11 +481,16 @@ func (m *Manager) HandleAction(ctx context.Context, idOrCode, playerID string, a
 		match.EndedAt = &now
 	}
 
-	if err := m.repo.UpdateWithVersion(ctx, match.ID, expected, match); err != nil {
+	if err := m.repo.AppendAction(ctx, match.ID, expected, match, entry, checkpoint, board); err != nil {
 		log.Printf("match=%s player=%s action=%s persist failed: %v", match.ID.Hex(), playerID, a.Verb, err)
 		return err
 	}
 	match.Version = expected + 1
+	match.ActionCount = entry.Seq
+	if checkpoint != nil {
+		checkpoint.Board = len(board) > 0
+		match.Checkpoints = append(match.Checkpoints, *checkpoint)
+	}
 
 	m.broadcastWith(match, rounds)
 	m.publishEvents(match, events)
@@ -492,7 +500,7 @@ func (m *Manager) HandleAction(ctx context.Context, idOrCode, playerID string, a
 	// without waiting on bookkeeping, and a bookkeeping failure must never
 	// fail the move that won.
 	if match.Status == "completed" && m.recorder != nil {
-		m.recorder.RecordMatchAsync(match, module.OutcomeOf(mod, match.State))
+		m.recorder.RecordMatchAsync(match, module.OutcomeOf(mod, module.State(match.State)))
 	}
 
 	// Whoever is on turn now might be a bot. The loop is a no-op when it is
@@ -515,7 +523,7 @@ func (m *Manager) Broadcast(match models.Match) {
 	// Computed once for the whole broadcast rather than once per recipient: a
 	// round log takes no viewer, so every seat would otherwise pay to decode
 	// the same bytes into the same answer.
-	m.broadcastWith(match, module.RoundsFor(m.registry.Get(match.ModuleID), match.State))
+	m.broadcastWith(match, module.RoundsFor(m.registry.Get(match.ModuleID), module.State(match.State)))
 }
 
 // broadcastWith is Broadcast with the round log already in hand, for the one
@@ -539,41 +547,42 @@ func (m *Manager) broadcastWith(match models.Match, rounds *module.RoundLog) {
 // of the state at a round boundary. It is also why turning the flag on is not
 // retroactive: games played while it was off carry no landmarks, and replay
 // without chapters rather than with invented ones.
-func (m *Manager) checkpointFor(ctx context.Context, match models.Match, rounds *module.RoundLog) (models.MatchCheckpoint, bool) {
+func (m *Manager) checkpointFor(ctx context.Context, match models.Match, seq int, rounds *module.RoundLog) (models.MatchCheckpoint, models.JSONDoc, bool) {
 	if m.ReplayAvailable(ctx) != nil {
-		return models.MatchCheckpoint{}, false
+		return models.MatchCheckpoint{}, nil, false
 	}
-	return checkpointClosedBy(match, rounds)
+	return checkpointClosedBy(match, seq, rounds)
 }
 
-// checkpointClosedBy reports the checkpoint the just-applied action earned, if
-// it closed a round at all.
+// checkpointClosedBy reports the checkpoint action seq earned, if it closed a
+// round at all, and the board to store with it, if it keeps one.
 //
 // Keyed off the round log growing rather than off anything a game says about
 // itself, so a module that keeps rounds gets landmarks for free and one that
 // does not — Prší, a single deal that ends when a hand empties — gets none,
 // which is the honest answer rather than an invented one.
-func checkpointClosedBy(match models.Match, rounds *module.RoundLog) (models.MatchCheckpoint, bool) {
+func checkpointClosedBy(match models.Match, seq int, rounds *module.RoundLog) (models.MatchCheckpoint, models.JSONDoc, bool) {
 	if rounds == nil {
-		return models.MatchCheckpoint{}, false
+		return models.MatchCheckpoint{}, nil, false
 	}
 	closed := len(rounds.Rounds)
 	if closed == 0 || closed <= lastCheckpointRound(match) {
-		return models.MatchCheckpoint{}, false
+		return models.MatchCheckpoint{}, nil, false
 	}
 	c := models.MatchCheckpoint{
-		Seq:   len(match.ActionLog),
+		Seq:   seq,
 		Round: closed,
 		At:    time.Now().UTC(),
 	}
 	// The board itself only where it buys a fold worth skipping. See
 	// minCheckpointGap.
+	var board models.JSONDoc
 	if c.Seq-lastStoredBoardAt(match) >= minCheckpointGap {
 		// Copied rather than aliased: match.State is the slice the module just
 		// returned, and a checkpoint has to outlive whatever happens to it.
-		c.State = append(json.RawMessage(nil), match.State...)
+		board = append(models.JSONDoc(nil), match.State...)
 	}
-	return c, true
+	return c, board, true
 }
 
 // minCheckpointGap is how many moves must pass before a round boundary is
@@ -591,7 +600,7 @@ const minCheckpointGap = 50
 // or zero — the deal — when none has.
 func lastStoredBoardAt(match models.Match) int {
 	for i := len(match.Checkpoints) - 1; i >= 0; i-- {
-		if len(match.Checkpoints[i].State) > 0 {
+		if match.Checkpoints[i].Board {
 			return match.Checkpoints[i].Seq
 		}
 	}
@@ -626,7 +635,7 @@ func logEntry(seq int, playerID string, a module.Action) models.MatchAction {
 	if err != nil {
 		raw = []byte("{}")
 	}
-	return models.MatchAction{Seq: seq, PlayerID: playerID, Action: raw, At: time.Now().UTC()}
+	return models.MatchAction{Seq: seq, PlayerID: playerID, Action: models.JSONDoc(raw), At: time.Now().UTC()}
 }
 
 func playerRefs(players []models.Player) []module.PlayerRef {

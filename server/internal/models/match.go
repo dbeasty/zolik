@@ -1,7 +1,6 @@
 package models
 
 import (
-	"encoding/json"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -36,16 +35,28 @@ type Match struct {
 	HostID    string   `bson:"hostId" json:"hostId"`
 	JoinCode  string   `bson:"joinCode" json:"joinCode"`
 
-	// State is the module's own game state, opaque here. Stored as raw bytes
-	// rather than a decoded document so Mongo never imposes a schema on it and
-	// the runtime is structurally unable to read it.
-	State json.RawMessage `bson:"state,omitempty" json:"-"`
+	// State is the module's own game state, opaque here. Stored as a document
+	// the runtime never reads rather than as decoded fields, so Mongo never
+	// imposes a schema on it and the runtime is structurally unable to peek.
+	State JSONDoc `bson:"state,omitempty" json:"-"`
 
-	// ActionLog is append-only history, in the module's own vocabulary. Versioned
-	// by ModuleID so an old replay stays readable by the module that wrote it.
-	ActionLog []MatchAction `bson:"actionLog,omitempty" json:"-"`
+	// ActionCount is how many actions this match has accepted, which is also
+	// the Seq of the newest one. The repository owns it: it is set from what
+	// is stored, whatever a caller writes back.
+	ActionCount int `bson:"actionCount,omitempty" json:"-"`
 
-	// Checkpoints are the board at each round boundary, oldest first.
+	// LogFormat is where this match's action log lives. Empty is the original
+	// layout, the whole log inside this document, rewritten on every move; see
+	// LogFormatPages. Owned by the repository, like ActionCount.
+	LogFormat string `bson:"logFormat,omitempty" json:"-"`
+
+	// LegacyActionLog is the log as the original layout stored it, inside the
+	// match. Only a repository reads or writes it; everything else asks the
+	// repository for the log (Repository.ActionLog), which answers for both
+	// layouts. Loads leave it empty.
+	LegacyActionLog []MatchAction `bson:"actionLog,omitempty" json:"-"`
+
+	// Checkpoints mark each round boundary, oldest first.
 	//
 	// Absent on every match played before they existed, which is exactly what
 	// an old replay gets: the fold starts at the deal, as it always did.
@@ -115,7 +126,7 @@ type MatchCheckpoint struct {
 	// Round is how many rounds were complete here, 1-based for the round this
 	// closes — "the end of deal 3".
 	Round int `bson:"round" json:"round"`
-	// State is the board here — but only on some of them.
+	// Board reports that the board here was stored — but only some are.
 	//
 	// Every round boundary is marked, because every one is somewhere a player
 	// might want to jump to; a mark is three numbers and costs nothing. A
@@ -125,17 +136,33 @@ type MatchCheckpoint struct {
 	// "snapshot every round" measured at +11% of the action log for canasta
 	// and +313% for blackjack. Hence the spacing rule in the runtime, and
 	// hence this being optional rather than assumed.
-	State json.RawMessage `bson:"state,omitempty" json:"-"`
-	At    time.Time       `bson:"at" json:"at"`
+	//
+	// The board itself is read with Repository.CheckpointBoard.
+	Board bool `bson:"board,omitempty" json:"-"`
+	// LegacyState is the board as the original layout stored it, inside the
+	// match. Repository-only, like Match.LegacyActionLog.
+	LegacyState JSONDoc   `bson:"state,omitempty" json:"-"`
+	At          time.Time `bson:"at" json:"at"`
 }
+
+// LogFormatPages stores a match's action log outside the match document, in
+// pages of LogPageSize actions, and its checkpoint boards beside them. A move
+// then writes the game state and one page instead of the whole history, which
+// in the original layout made every version of a long match carry every move
+// before it — a 1,265-move gin rummy game ended at 328 KB and had written
+// about 200 MB of versions.
+const LogFormatPages = "pages"
+
+// LogPageSize is how many actions one stored page holds.
+const LogPageSize = 32
 
 // MatchAction is one accepted move, stored verbatim.
 //
 // The runtime records what it routed without interpreting it, which is what
 // makes the log replayable by the module and meaningless to anything else.
 type MatchAction struct {
-	Seq      int             `bson:"seq" json:"seq"`
-	PlayerID string          `bson:"playerId" json:"playerId"`
-	Action   json.RawMessage `bson:"action" json:"action"`
-	At       time.Time       `bson:"at" json:"at"`
+	Seq      int       `bson:"seq" json:"seq"`
+	PlayerID string    `bson:"playerId" json:"playerId"`
+	Action   JSONDoc   `bson:"action" json:"action"`
+	At       time.Time `bson:"at" json:"at"`
 }

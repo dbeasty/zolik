@@ -144,23 +144,35 @@ func BenchmarkMatchInsert(b *testing.B) {
 }
 
 // BenchmarkMatchActionCycle is the hot gameplay path: every action a player
-// takes is load → apply → version-checked store.
+// takes is load → apply → version-checked append, and the log grows by one
+// entry each time — which is what made a long match's moves cost more in the
+// layout that kept the log inside the match.
 func BenchmarkMatchActionCycle(b *testing.B) {
 	perEngine(b, func(b *testing.B, be backend) {
-		ctx := context.Background()
-		m, err := be.match.Insert(ctx, testMatch(0))
-		if err != nil {
-			b.Fatal(err)
-		}
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
-			cur, err := be.match.FindByID(ctx, m.ID)
-			if err != nil {
-				b.Fatal(err)
-			}
-			if err := be.match.UpdateWithVersion(ctx, m.ID, cur.Version, cur); err != nil {
-				b.Fatal(err)
-			}
+		for _, format := range []string{"", models.LogFormatPages} {
+			b.Run("layout="+format, func(b *testing.B) {
+				ctx := context.Background()
+				fresh := testMatch(0)
+				fresh.LogFormat = format
+				m, err := be.match.Insert(ctx, fresh)
+				if err != nil {
+					b.Fatal(err)
+				}
+				b.ResetTimer()
+				for i := 0; i < b.N; i++ {
+					cur, err := be.match.FindByID(ctx, m.ID)
+					if err != nil {
+						b.Fatal(err)
+					}
+					entry := models.MatchAction{
+						Seq: cur.ActionCount + 1, PlayerID: "p1",
+						Action: models.JSONDoc(`{"offerId":"draw","verb":"draw"}`), At: time.Now().UTC(),
+					}
+					if err := be.match.AppendAction(ctx, m.ID, cur.Version, cur, entry, nil, nil); err != nil {
+						b.Fatal(err)
+					}
+				}
+			})
 		}
 	})
 }

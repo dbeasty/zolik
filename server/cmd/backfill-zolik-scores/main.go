@@ -102,7 +102,7 @@ func main() {
 		}
 
 		// The module's own answer, from the state the match ended in.
-		sb := stats.BuildScoreboard(match, module.OutcomeOf(mod, match.State))
+		sb := stats.BuildScoreboard(match, module.OutcomeOf(mod, module.State(match.State)))
 		if len(sb.Standings) == 0 {
 			orphaned++
 			log.Printf("match=%s: the module produced no standings", rec.MatchID.Hex())

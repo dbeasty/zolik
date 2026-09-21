@@ -120,10 +120,10 @@ func TestReplayNeedsTheFlagTheEngineAndTheHistory(t *testing.T) {
 func TestCheckpointsFollowTheSameGateAsTheEndpoint(t *testing.T) {
 	ctx := context.Background()
 	// A round has closed, twelve moves in: the input every case here shares.
-	played := models.Match{ActionLog: make([]models.MatchAction, 12)}
+	played := models.Match{ActionCount: 11}
 	rounds := &module.RoundLog{Rounds: []module.RoundResult{{}}}
 
-	if _, ok := managerWith(historyStore{}, true).checkpointFor(ctx, played, rounds); !ok {
+	if _, _, ok := managerWith(historyStore{}, true).checkpointFor(ctx, played, 12, rounds); !ok {
 		t.Fatal("a closed round earned no checkpoint where replay is available")
 	}
 	for _, tc := range []struct {
@@ -135,7 +135,7 @@ func TestCheckpointsFollowTheSameGateAsTheEndpoint(t *testing.T) {
 		{"history reclaimed", managerWith(historyStore{retains: errors.New("history=none")}, true)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if _, ok := tc.mgr.checkpointFor(ctx, played, rounds); ok {
+			if _, _, ok := tc.mgr.checkpointFor(ctx, played, 12, rounds); ok {
 				t.Error("stored a checkpoint for a replay this deployment will not serve")
 			}
 		})

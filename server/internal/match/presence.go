@@ -61,7 +61,7 @@ func (m *Manager) SuspendOnDisconnect(ctx context.Context, matchID, playerID, re
 	// was not the first such seat, left it waiting on a socket that was never
 	// coming back: still active, never abandoned, and this is edge-triggered on
 	// the disconnect so it would not fire again.
-	if !awaits(module.AwaitedSeats(mod, match.State, viewerFor(match), refsOf(match)), playerID) {
+	if !awaits(module.AwaitedSeats(mod, module.State(match.State), viewerFor(match), refsOf(match)), playerID) {
 		return
 	}
 

@@ -37,7 +37,7 @@ func MatchFromGame(g Game) (models.Match, error) {
 		TurnOrder: g.TurnOrder,
 		HostID:    g.HostID,
 		JoinCode:  g.JoinCode,
-		State:     state,
+		State:     models.JSONDoc(state),
 		Seed:      g.DeckSeed,
 		WinnerID:  g.WinnerID,
 		CreatedAt: g.CreatedAt,

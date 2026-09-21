@@ -3,6 +3,7 @@ package match
 import (
 	"context"
 	"encoding/json"
+	"log"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 
@@ -187,6 +188,23 @@ func (m *Manager) BuildReplay(ctx context.Context, match models.Match, viewerID 
 		return ReplayMsg{}, module.Error{Code: "NOTHING_TO_REPLAY"}
 	}
 
+	// The log, loaded once for the whole request: the fold, the tracks and
+	// the move behind each frame all read it.
+	actions, err := m.repo.ActionLog(ctx, match.ID, 0, match.ActionCount)
+	if err != nil {
+		return ReplayMsg{}, err
+	}
+	if len(actions) < match.ActionCount {
+		log.Printf("match=%s replay: log holds %d of %d actions; replaying what is there",
+			match.ID.Hex(), len(actions), match.ActionCount)
+	}
+	history := replayLog{
+		actions: actions,
+		board: func(seq int) (models.JSONDoc, error) {
+			return m.repo.CheckpointBoard(ctx, match.ID, seq)
+		},
+	}
+
 	from := opts.From
 	if from < 0 {
 		from = 0
@@ -209,11 +227,11 @@ func (m *Manager) BuildReplay(ctx context.Context, match models.Match, viewerID 
 		// Asking and being allowed, both: the caller says whether it wants an
 		// open board, and openable says whether this match may give one.
 		Open:     opts.Open && openable(match.Status),
-		Total:    len(match.ActionLog) + 1,
+		Total:    len(actions) + 1,
 		From:     from,
 		Frames:   []ReplayFrame{},
 		Chapters: chaptersOf(match),
-		Tracks:   tracksOf(match),
+		Tracks:   tracksOf(match, actions),
 	}
 	for _, p := range match.Players {
 		msg.Players = append(msg.Players, PlayerMsg{ID: p.ID, Name: p.Name, IsAI: p.IsAI, Avatar: p.Avatar})
@@ -226,7 +244,7 @@ func (m *Manager) BuildReplay(ctx context.Context, match models.Match, viewerID 
 	if startAt < 0 {
 		startAt = 0
 	}
-	stopped, err := foldActions(ctx, m.boardSource(), mod, match, startAt, func(step int, entry *models.MatchAction, a module.Action, s module.State) (bool, error) {
+	stopped, err := foldActions(ctx, m.boardSource(), mod, match, history, startAt, func(step int, entry *models.MatchAction, a module.Action, s module.State) (bool, error) {
 		// Below the window, and not the step just before it: nothing to
 		// compute, and the state bytes are dropped on the way out.
 		if step < from-1 {
@@ -292,8 +310,7 @@ func (m *Manager) replayFrame(
 	rounds *module.RoundLog,
 ) ReplayFrame {
 	env := match // flat struct; Players and Options are shared read-only
-	env.State = s
-	env.ActionLog = nil
+	env.State = models.JSONDoc(s)
 	// Suspension is a fact about the envelope now, not about this moment in
 	// the game. A replay of a paused table is not itself paused.
 	env.SuspendedPlayer = ""
@@ -360,20 +377,21 @@ func foldActions(
 	boards BoardSource,
 	mod module.GameModule,
 	match models.Match,
+	history replayLog,
 	startAt int,
 	visit func(step int, entry *models.MatchAction, a module.Action, s module.State) (more bool, err error),
 ) (stoppedAt int, err error) {
-	s, step, err := foldOrigin(ctx, boards, mod, match, startAt)
+	s, step, err := foldOrigin(ctx, boards, mod, match, history, startAt)
 	if err != nil {
 		return step, err
 	}
-	more, err := visit(step, entryAt(match, step), actionAt(match, step), s)
+	more, err := visit(step, entryAt(history.actions, step), actionAt(history.actions, step), s)
 	if err != nil || !more {
 		return step, err
 	}
 
-	for i := step; i < len(match.ActionLog); i++ {
-		entry := match.ActionLog[i]
+	for i := step; i < len(history.actions); i++ {
+		entry := history.actions[i]
 		var a module.Action
 		if err := json.Unmarshal(entry.Action, &a); err != nil {
 			return i + 1, err
@@ -388,7 +406,7 @@ func foldActions(
 			return i + 1, err
 		}
 	}
-	return len(match.ActionLog), nil
+	return len(history.actions), nil
 }
 
 // foldOrigin is where a fold aiming at startAt should begin: a stored
@@ -397,7 +415,7 @@ func foldActions(
 // The deal is reproducible because its inputs are frozen: Join and Seat both
 // refuse once the match leaves the lobby, and Seed is written once at Create.
 // So these are the same arguments Start passed, necessarily.
-func foldOrigin(ctx context.Context, boards BoardSource, mod module.GameModule, match models.Match, startAt int) (module.State, int, error) {
+func foldOrigin(ctx context.Context, boards BoardSource, mod module.GameModule, match models.Match, history replayLog, startAt int) (module.State, int, error) {
 	// The store's own history first, where there is one: it lands exactly on
 	// the frame asked for, so the fold applies nothing at all, and the board
 	// it hands back is the one that was actually there rather than one
@@ -408,13 +426,19 @@ func foldOrigin(ctx context.Context, boards BoardSource, mod module.GameModule, 
 	// leaves the checkpoints and the deal exactly as able to answer as they
 	// were, so it falls through rather than refusing.
 	if boards != nil && startAt > 0 && !match.ID.IsZero() {
-		if at, err := boards.BoardAfter(ctx, match.ID, startAt); err == nil && len(at.State) > 0 {
-			return at.State, len(at.ActionLog), nil
+		if at, err := boards.BoardAfter(ctx, match.ID, startAt); err == nil && len(at.State) > 0 && at.ActionCount <= len(history.actions) {
+			return module.State(at.State), at.ActionCount, nil
 		}
 	}
 	for i := len(match.Checkpoints) - 1; i >= 0; i-- {
-		if c := match.Checkpoints[i]; c.Seq <= startAt && len(c.State) > 0 {
-			return append(module.State(nil), c.State...), c.Seq, nil
+		c := match.Checkpoints[i]
+		if c.Seq > startAt || !c.Board || c.Seq > len(history.actions) || history.board == nil {
+			continue
+		}
+		// A board that cannot be read is a landmark lost, not a replay lost:
+		// an older one, or the deal, still answers.
+		if b, err := history.board(c.Seq); err == nil && len(b) > 0 {
+			return append(module.State(nil), b...), c.Seq, nil
 		}
 	}
 	s, err := mod.NewMatch(
@@ -425,17 +449,24 @@ func foldOrigin(ctx context.Context, boards BoardSource, mod module.GameModule, 
 	return s, 0, err
 }
 
-// entryAt and actionAt describe the move that produced frame step, for a fold
-// that began part-way through the log and so did not apply it.
-func entryAt(match models.Match, step int) *models.MatchAction {
-	if step <= 0 || step > len(match.ActionLog) {
-		return nil
-	}
-	return &match.ActionLog[step-1]
+// replayLog is a stored match's history as a fold reads it: the actions, and
+// a way to fetch the board a checkpoint kept.
+type replayLog struct {
+	actions []models.MatchAction
+	board   func(seq int) (models.JSONDoc, error)
 }
 
-func actionAt(match models.Match, step int) module.Action {
-	e := entryAt(match, step)
+// entryAt and actionAt describe the move that produced frame step, for a fold
+// that began part-way through the log and so did not apply it.
+func entryAt(actions []models.MatchAction, step int) *models.MatchAction {
+	if step <= 0 || step > len(actions) {
+		return nil
+	}
+	return &actions[step-1]
+}
+
+func actionAt(actions []models.MatchAction, step int) module.Action {
+	e := entryAt(actions, step)
 	if e == nil {
 		return module.Action{}
 	}
@@ -462,7 +493,7 @@ func chaptersOf(match models.Match) []ReplayChapter {
 	}
 	// The round the match stopped in, if it did not stop exactly on a
 	// boundary. It has a start and no end, which is the truth about it.
-	if from <= len(match.ActionLog) {
+	if from <= match.ActionCount {
 		out = append(out, ReplayChapter{Round: lastCheckpointRound(match) + 1, From: from})
 	}
 	return out
@@ -524,19 +555,19 @@ func (m *Manager) ReplayAvailable(ctx context.Context) error {
 // tracksOf turns the action log into the threads a reader can follow.
 //
 // One track per seat that ever moved, plus the round boundaries where a game
-// keeps them. Derived from the log alone — ActionLog[i].PlayerID is who moved,
+// keeps them. Derived from the log alone — actions[i].PlayerID is who moved,
 // and frame i+1 is the board after they did — so this asks no module anything
 // and decodes no state, exactly like chaptersOf.
 //
 // Seats come in the order they first moved rather than in seat order: a reader
 // scanning the chips wants their own, and whoever opened the game moved first.
-func tracksOf(match models.Match) []ReplayTrack {
-	if len(match.ActionLog) == 0 {
+func tracksOf(match models.Match, actions []models.MatchAction) []ReplayTrack {
+	if len(actions) == 0 {
 		return nil
 	}
 	bySeat := map[string]*ReplayTrack{}
 	order := make([]string, 0, len(match.Players))
-	for i, a := range match.ActionLog {
+	for i, a := range actions {
 		t, ok := bySeat[a.PlayerID]
 		if !ok {
 			t = &ReplayTrack{ID: "seat:" + a.PlayerID, PlayerID: a.PlayerID}

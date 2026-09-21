@@ -2,7 +2,6 @@ package match_test
 
 import (
 	"context"
-	"encoding/json"
 	"net/http/httptest"
 	"testing"
 	"time"
@@ -63,7 +62,7 @@ func TestOpeningASocketStartsTheBotsOnAStuckTable(t *testing.T) {
 	seeded, err := h.repo.Insert(context.Background(), models.Match{
 		ModuleID: "canasta", Status: "active", HostID: human,
 		Players: players, TurnOrder: []string{human, bot},
-		State: json.RawMessage(state), Seed: 7, JoinCode: "WEDGED",
+		State: models.JSONDoc(state), Seed: 7, JoinCode: "WEDGED",
 	})
 	if err != nil {
 		t.Fatalf("seeding the match: %v", err)

@@ -2,7 +2,6 @@ package match_test
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -41,18 +40,18 @@ func play(t *testing.T, repo match.Repository, moves int) models.Match {
 		ModuleID: "prsi",
 		Status:   "active",
 		Players:  []models.Player{{ID: "p1", Name: "p1"}, {ID: "p2", Name: "p2"}},
-		State:    json.RawMessage(`{"move":0}`),
+		State:    models.JSONDoc(`{"move":0}`),
 	})
 	if err != nil {
 		t.Fatalf("insert: %v", err)
 	}
 	for i := 1; i <= moves; i++ {
 		expected := m.Version
-		m.State = json.RawMessage(fmt.Sprintf(`{"move":%d}`, i))
-		m.ActionLog = append(m.ActionLog, models.MatchAction{
-			Seq: i, PlayerID: "p1", Action: json.RawMessage(`{"verb":"draw"}`), At: time.Now().UTC(),
-		})
-		if err := repo.UpdateWithVersion(context.Background(), m.ID, expected, m); err != nil {
+		m.State = models.JSONDoc(fmt.Sprintf(`{"move":%d}`, i))
+		entry := models.MatchAction{
+			Seq: i, PlayerID: "p1", Action: models.JSONDoc(`{"verb":"draw"}`), At: time.Now().UTC(),
+		}
+		if err := repo.AppendAction(context.Background(), m.ID, expected, m, entry, nil, nil); err != nil {
 			t.Fatalf("update %d: %v", i, err)
 		}
 		m.Version = expected + 1
@@ -73,8 +72,8 @@ func TestKDBBoardAfterReadsTheBoardAsItWas(t *testing.T) {
 		if err != nil {
 			t.Fatalf("BoardAfter(%d): %v", want, err)
 		}
-		if len(at.ActionLog) != want {
-			t.Errorf("BoardAfter(%d) landed on a version with %d moves", want, len(at.ActionLog))
+		if at.ActionCount != want {
+			t.Errorf("BoardAfter(%d) landed on a version with %d moves", want, at.ActionCount)
 		}
 		if got, expect := string(at.State), fmt.Sprintf(`{"move":%d}`, want); got != expect {
 			t.Errorf("BoardAfter(%d) = %s, want %s", want, got, expect)
@@ -93,7 +92,7 @@ func TestKDBHistorySurvivesALaterRewrite(t *testing.T) {
 	// a debug-state seed, a migration, a bug. A fold from the deal would be
 	// none the wiser; history is.
 	expected := m.Version
-	m.State = json.RawMessage(`{"move":999,"scribbled":true}`)
+	m.State = models.JSONDoc(`{"move":999,"scribbled":true}`)
 	if err := repo.UpdateWithVersion(context.Background(), m.ID, expected, m); err != nil {
 		t.Fatalf("rewrite: %v", err)
 	}

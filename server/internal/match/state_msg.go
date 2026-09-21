@@ -110,7 +110,7 @@ type PlayerMsg struct {
 // itself a small demonstration that the runtime can describe a match before
 // the game owning it has done anything.
 func (m *Manager) BuildStateMsg(match models.Match, viewerID string) MatchStateMsg {
-	return m.buildStateMsg(match, viewerID, module.RoundsFor(m.registry.Get(match.ModuleID), match.State))
+	return m.buildStateMsg(match, viewerID, module.RoundsFor(m.registry.Get(match.ModuleID), module.State(match.State)))
 }
 
 // buildStateMsg is BuildStateMsg with the round log handed in.
@@ -187,20 +187,20 @@ func (m *Manager) projectStateMsg(match models.Match, viewerID string, o stateMs
 		return msg
 	}
 	if o.openView {
-		if vm, ok := module.OpenViewFor(mod, match.State); ok {
+		if vm, ok := module.OpenViewFor(mod, module.State(match.State)); ok {
 			msg.View = vm
-		} else if vm, err := mod.View(match.State, viewerID); err == nil {
+		} else if vm, err := mod.View(module.State(match.State), viewerID); err == nil {
 			msg.View = vm
 		}
-	} else if vm, err := mod.View(match.State, viewerID); err == nil {
+	} else if vm, err := mod.View(module.State(match.State), viewerID); err == nil {
 		msg.View = vm
 	}
 	if o.withOffers {
-		if offers, err := mod.LegalActions(match.State, viewerID); err == nil && offers != nil {
+		if offers, err := mod.LegalActions(module.State(match.State), viewerID); err == nil && offers != nil {
 			msg.LegalActions = offers
 		}
 	}
-	msg.Standings = module.StandingsFor(mod, match.State)
+	msg.Standings = module.StandingsFor(mod, module.State(match.State))
 	msg.Rounds = o.rounds
 	return msg
 }

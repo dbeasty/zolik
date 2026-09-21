@@ -155,7 +155,7 @@ func (h *Handlers) debugState(w http.ResponseWriter, req *http.Request) {
 	}
 
 	expected := m.Version
-	m.State = module.State(body.State)
+	m.State = models.JSONDoc(body.State)
 	if body.Status != "" {
 		m.Status = body.Status
 	}

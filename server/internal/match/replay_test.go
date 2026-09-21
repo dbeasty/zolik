@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
+
 	"zolik/server/internal/blackjack"
 	"zolik/server/internal/canasta"
 	"zolik/server/internal/ginrummy"
@@ -92,6 +94,7 @@ func playOut(t *testing.T, g replayable, seed int64) (models.Match, module.State
 
 	log := []models.MatchAction{}
 	var checkpoints []models.MatchCheckpoint
+	boards := map[int]models.JSONDoc{}
 	final, _, err := module.PlayWithOffers(g.mod, start, g.players, module.DriverOptions{
 		MaxActions: replayTestActions,
 		Prefer:     g.prefer,
@@ -105,8 +108,12 @@ func playOut(t *testing.T, g replayable, seed int64) (models.Match, module.State
 		// same function the manager calls — so a fixture can never drift into
 		// describing a match the runtime would not have written.
 		OnState: func(st module.State) {
-			at := models.Match{State: st, ActionLog: log, Checkpoints: checkpoints}
-			if c, ok := checkpointClosedBy(at, module.RoundsFor(g.mod, st)); ok {
+			at := models.Match{State: models.JSONDoc(st), ActionCount: len(log), Checkpoints: checkpoints}
+			if c, b, ok := checkpointClosedBy(at, len(log), module.RoundsFor(g.mod, st)); ok {
+				if len(b) > 0 {
+					c.Board = true
+					boards[c.Seq] = b
+				}
 				checkpoints = append(checkpoints, c)
 			}
 		},
@@ -122,21 +129,24 @@ func playOut(t *testing.T, g replayable, seed int64) (models.Match, module.State
 	for _, p := range g.players {
 		players = append(players, models.Player{ID: p.ID, Name: p.Name, IsAI: p.IsAI})
 	}
-	return models.Match{
+	match := models.Match{
+		ID:          bson.NewObjectID(),
 		ModuleID:    g.name,
 		Variation:   g.cfg.Variation,
 		Options:     g.cfg.Options,
 		Status:      "active",
 		Players:     players,
 		Seed:        seed,
-		State:       final,
-		ActionLog:   log,
+		State:       models.JSONDoc(final),
+		ActionCount: len(log),
 		Checkpoints: checkpoints,
-	}, final
+	}
+	fixtures.record(match.ID, log, boards)
+	return match, final
 }
 
 func replayManager() *Manager {
-	return &Manager{registry: module.NewRegistry(
+	return &Manager{repo: fixtures, registry: module.NewRegistry(
 		zolikmod.New(), prsi.New(), canasta.New(), holdem.New(),
 		ginrummy.New(), blackjack.New(), rummytiles.New(),
 	)}
@@ -157,7 +167,7 @@ func TestReplayReachesTheStateTheMatchWasPlayedTo(t *testing.T) {
 			if rep.Truncated {
 				t.Fatalf("fold stopped at frame %d (%s)", rep.TruncatedAt, rep.TruncatedCode)
 			}
-			if want := len(match.ActionLog) + 1; rep.Total != want {
+			if want := match.ActionCount + 1; rep.Total != want {
 				t.Errorf("total = %d, want %d", rep.Total, want)
 			}
 			if len(rep.Frames) != rep.Total {
@@ -204,7 +214,7 @@ func TestReplayFoldsToTheSameBytes(t *testing.T) {
 			match, final := playOut(t, g, 11)
 
 			var folded module.State
-			_, err := foldActions(context.Background(), nil, g.mod, match, 0, func(_ int, _ *models.MatchAction, _ module.Action, s module.State) (bool, error) {
+			_, err := foldActions(context.Background(), nil, g.mod, match, fixtures.history(match.ID), 0, func(_ int, _ *models.MatchAction, _ module.Action, s module.State) (bool, error) {
 				folded = s
 				return true, nil
 			})
@@ -286,7 +296,7 @@ func TestReplayShowsExactlyWhatTheLiveBoardWould(t *testing.T) {
 				}
 
 				live := map[int]string{}
-				if _, err := foldActions(context.Background(), nil, g.mod, match, 0, func(step int, _ *models.MatchAction, _ module.Action, s module.State) (bool, error) {
+				if _, err := foldActions(context.Background(), nil, g.mod, match, fixtures.history(match.ID), 0, func(step int, _ *models.MatchAction, _ module.Action, s module.State) (bool, error) {
 					vm, err := g.mod.View(s, viewer)
 					if err != nil {
 						return false, err
@@ -348,10 +358,11 @@ func TestReplayTruncatesWhenTheLogNoLongerFolds(t *testing.T) {
 	g := replayables()[1] // prsi
 	match, _ := playOut(t, g, 5)
 
-	good := len(match.ActionLog)
-	match.ActionLog = append(match.ActionLog, models.MatchAction{
-		Seq: good + 1, PlayerID: "p1", Action: []byte(`{"verb":"nonsense"}`),
+	good := match.ActionCount
+	fixtures.appendAction(match.ID, models.MatchAction{
+		Seq: good + 1, PlayerID: "p1", Action: models.JSONDoc(`{"verb":"nonsense"}`),
 	})
+	match.ActionCount++
 
 	rep, err := m.BuildReplay(context.Background(), match, "p1", ReplayOptions{Limit: MaxReplayFrames})
 	if err != nil {
@@ -576,7 +587,7 @@ func TestCheckpointsLandOnRoundBoundaries(t *testing.T) {
 			g := withRounds(t, name)
 			match, _ := playOut(t, g, 21)
 			if len(match.Checkpoints) == 0 {
-				t.Fatalf("%s played %d actions and closed no round at all", name, len(match.ActionLog))
+				t.Fatalf("%s played %d actions and closed no round at all", name, match.ActionCount)
 			}
 			prevSeq, prevRound := -1, 0
 			for i, c := range match.Checkpoints {
@@ -586,9 +597,9 @@ func TestCheckpointsLandOnRoundBoundaries(t *testing.T) {
 				if c.Seq <= prevSeq {
 					t.Errorf("checkpoint %d is at move %d, not after %d", i, c.Seq, prevSeq)
 				}
-				if c.Seq > len(match.ActionLog) {
+				if c.Seq > match.ActionCount {
 					t.Errorf("checkpoint %d is at move %d, past the end of a %d-move log",
-						i, c.Seq, len(match.ActionLog))
+						i, c.Seq, match.ActionCount)
 				}
 
 				prevSeq, prevRound = c.Seq, c.Round
@@ -597,7 +608,7 @@ func TestCheckpointsLandOnRoundBoundaries(t *testing.T) {
 			// so a game with short rounds is not paying kilobytes per hand.
 			boards := 0
 			for _, c := range match.Checkpoints {
-				if len(c.State) > 0 {
+				if c.Board {
 					boards++
 				}
 			}
@@ -636,7 +647,7 @@ func TestAFoldFromACheckpointIsTheSameFold(t *testing.T) {
 			g := withRounds(t, name)
 			withCheckpoints, _ := playOut(t, g, 21)
 			if len(withCheckpoints.Checkpoints) == 0 {
-				t.Skipf("%s closed no round in %d moves", name, len(withCheckpoints.ActionLog))
+				t.Skipf("%s closed no round in %d moves", name, withCheckpoints.ActionCount)
 			}
 
 			// The same match as an older one would have been stored: same log,
@@ -648,7 +659,7 @@ func TestAFoldFromACheckpointIsTheSameFold(t *testing.T) {
 			// kept a board, so the shortcut is the thing being exercised.
 			from := -1
 			for _, c := range withCheckpoints.Checkpoints {
-				if len(c.State) > 0 {
+				if c.Board {
 					from = c.Seq + 1
 					break
 				}
@@ -688,7 +699,7 @@ func TestChaptersCoverEveryFrameExactlyOnce(t *testing.T) {
 			match, _ := playOut(t, withRounds(t, name), 21)
 			chapters := chaptersOf(match)
 			if len(chapters) == 0 {
-				t.Skipf("%s closed no round in %d moves", name, len(match.ActionLog))
+				t.Skipf("%s closed no round in %d moves", name, match.ActionCount)
 			}
 			next := 0
 			for i, c := range chapters {
@@ -708,9 +719,9 @@ func TestChaptersCoverEveryFrameExactlyOnce(t *testing.T) {
 			// The last chapter is the round the match stopped in, and runs to
 			// the end of the log.
 			last := chapters[len(chapters)-1]
-			if last.To != 0 && last.To != len(match.ActionLog) {
+			if last.To != 0 && last.To != match.ActionCount {
 				t.Errorf("the last chapter ends at %d, not at the end of a %d-move log",
-					last.To, len(match.ActionLog))
+					last.To, match.ActionCount)
 			}
 		})
 	}
@@ -729,7 +740,7 @@ func TestChaptersNeedNoFold(t *testing.T) {
 	if err != nil {
 		t.Fatalf("BuildReplay: %v", err)
 	}
-	deep, err := m.BuildReplay(context.Background(), match, "p1", ReplayOptions{From: len(match.ActionLog), Limit: 1})
+	deep, err := m.BuildReplay(context.Background(), match, "p1", ReplayOptions{From: match.ActionCount, Limit: 1})
 	if err != nil {
 		t.Fatalf("BuildReplay: %v", err)
 	}
@@ -749,7 +760,7 @@ func TestTracksCoverEveryFrameExactlyOnce(t *testing.T) {
 	for _, g := range replayables() {
 		t.Run(g.name, func(t *testing.T) {
 			match, _ := playOut(t, g, 13)
-			tracks := tracksOf(match)
+			tracks := tracksOf(match, fixtures.logOf(match.ID))
 			if len(tracks) == 0 {
 				t.Fatal("a played match offered no tracks at all")
 			}
@@ -768,7 +779,7 @@ func TestTracksCoverEveryFrameExactlyOnce(t *testing.T) {
 			}
 			// Frame 0 is the deal and belongs to nobody; every other frame is
 			// a move, so every other frame is on exactly one seat track.
-			for f := 1; f <= len(match.ActionLog); f++ {
+			for f := 1; f <= match.ActionCount; f++ {
 				if _, ok := seen[f]; !ok {
 					t.Errorf("frame %d is on no seat's track", f)
 				}
@@ -786,15 +797,15 @@ func TestASeatsTrackIsOnlyThatSeatsMoves(t *testing.T) {
 	g := withRounds(t, "prsi")
 	match, _ := playOut(t, g, 4)
 
-	for _, tr := range tracksOf(match) {
+	for _, tr := range tracksOf(match, fixtures.logOf(match.ID)) {
 		if tr.PlayerID == "" {
 			continue
 		}
 		for _, f := range tr.Frames {
-			if f < 1 || f > len(match.ActionLog) {
-				t.Fatalf("%s names frame %d, outside a %d-move log", tr.ID, f, len(match.ActionLog))
+			if f < 1 || f > match.ActionCount {
+				t.Fatalf("%s names frame %d, outside a %d-move log", tr.ID, f, match.ActionCount)
 			}
-			if who := match.ActionLog[f-1].PlayerID; who != tr.PlayerID {
+			if who := fixtures.logOf(match.ID)[f-1].PlayerID; who != tr.PlayerID {
 				t.Errorf("%s claims frame %d, which was %s's move", tr.ID, f, who)
 			}
 		}
@@ -804,7 +815,7 @@ func TestASeatsTrackIsOnlyThatSeatsMoves(t *testing.T) {
 // A game that keeps no rounds gets no rounds track, rather than an empty one.
 func TestNoRoundsTrackWhereAGameKeepsNoRounds(t *testing.T) {
 	match, _ := playOut(t, withRounds(t, "prsi"), 5)
-	for _, tr := range tracksOf(match) {
+	for _, tr := range tracksOf(match, fixtures.logOf(match.ID)) {
 		if tr.ID == "rounds" {
 			t.Errorf("prsi keeps no rounds but was given a rounds track")
 		}
@@ -815,7 +826,7 @@ func TestNoRoundsTrackWhereAGameKeepsNoRounds(t *testing.T) {
 		t.Skip("canasta closed no round in this play-through")
 	}
 	found := false
-	for _, tr := range tracksOf(withCheckpoints) {
+	for _, tr := range tracksOf(withCheckpoints, fixtures.logOf(withCheckpoints.ID)) {
 		if tr.ID == "rounds" {
 			found = true
 			if len(tr.Frames) != len(withCheckpoints.Checkpoints) {
@@ -840,7 +851,7 @@ func TestTracksArriveWithEveryPage(t *testing.T) {
 		t.Fatalf("BuildReplay: %v", err)
 	}
 	deep, err := m.BuildReplay(context.Background(), match, "p1",
-		ReplayOptions{From: len(match.ActionLog), Limit: 1})
+		ReplayOptions{From: match.ActionCount, Limit: 1})
 	if err != nil {
 		t.Fatalf("BuildReplay: %v", err)
 	}
