@@ -164,10 +164,13 @@ ZOLIK_TUNNEL_PIPE=/tmp/tunnelpipe npx jest src/net/ble/pipe   # TS guest ↔ rea
 scripts/test-nearby-framing.sh                            # Swift and Kotlin on-air framing
 ```
 
-Over the air it needs real phones. The iOS simulator has no Bluetooth, and
-the Android emulator's virtual controller (API 37 image) aborts the Bluetooth
-stack with "Hardware Error 0x42" on any LE advertising. Android Bluetooth
-play needs Android 8 (API 26) or later.
+Over the air, Android can be tested on two emulators. Use the API 34 image
+(`system-images;android-34;google_apis;arm64-v8a`), run as two `-read-only`
+instances of one AVD, which share the emulator's virtual radio (netsim):
+host on one, guest on the other. The API 37 preview image is no good: its
+virtual controller aborts the Bluetooth stack ("Hardware Error 0x42") on any
+LE advertising. The iOS simulator has no Bluetooth at all, so iOS needs real
+phones. Android Bluetooth play needs Android 8 (API 26) or later.
 
 A local Release build for the simulator, with no EAS involved:
 

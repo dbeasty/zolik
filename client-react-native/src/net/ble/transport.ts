@@ -36,6 +36,12 @@ export type BleTransportOptions = {
   random32: () => Uint8Array;
   /** How long a request may wait for its answer. */
   timeoutMs?: number;
+  /**
+   * Called after every handshake with its check code. A reconnect is a new
+   * handshake with a new code, and the host shows the new one, so a screen
+   * still showing the old one would look like somebody in the middle.
+   */
+  onCheckCode?: (code: string) => void;
 };
 
 /** Thrown when a table answers with a key other than the one pinned for it. */
@@ -218,6 +224,7 @@ export class BleTransport implements Transport {
     }
     if (!pinned) await this.opts.pinKey(theirs);
     this.lastCheck = welcome.check;
+    this.opts.onCheckCode?.(welcome.check);
     return { link, session: welcome };
   }
 

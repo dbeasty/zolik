@@ -77,11 +77,22 @@ internal class Reassembler {
   }
 }
 
+/**
+ * The most a chunk can carry on a link with this MTU. An ATT value can never
+ * exceed 512 bytes, whatever the MTU, and Android refuses a longer
+ * notification or write outright: with the 517-byte MTU phones negotiate,
+ * MTU − 3 alone would be 514.
+ */
+internal fun chunkSize(mtu: Int): Int = minOf(mtu - 3, 512)
+
 internal fun frameChunks(msg: ByteArray, size: Int): List<ByteArray> {
   val framed = ByteBuffer.allocate(4 + msg.size).putInt(msg.size).put(msg).array()
   val step = maxOf(size, 20)
   return (framed.indices step step).map { framed.copyOfRange(it, minOf(it + step, framed.size)) }
 }
+
+/** About two seconds of a stack refusing the same chunk, at 10 ms a try. */
+private const val MAX_REFUSALS = 200
 
 internal class BleThread {
   private val thread = HandlerThread("zolik-ble").apply { start() }
@@ -106,6 +117,7 @@ internal class NearbyBleHost(private val context: Context, private val onGuests:
     val outbox = ArrayDeque<ByteArray>()
     var mtu = 23
     var notifying = false
+    var refusals = 0
   }
 
   fun start(name: String) = ble.post {
@@ -182,6 +194,12 @@ internal class NearbyBleHost(private val context: Context, private val onGuests:
     advertising = null
     guests.values.forEach { it.tunnel.close() }
     guests.clear()
+    // Hang up on every guest before closing the server. Closing it alone
+    // leaves the LE link up: the guest sees only "services changed", thinks
+    // it is still at the table, and never reconnects.
+    server?.let { srv ->
+      manager.getConnectedDevices(BluetoothProfile.GATT_SERVER).forEach { srv.cancelConnection(it) }
+    }
     server?.close()
     server = null
     onGuests(0)
@@ -204,7 +222,7 @@ internal class NearbyBleHost(private val context: Context, private val onGuests:
 
   private fun enqueue(address: String, msg: ByteArray) {
     val g = guests[address] ?: return
-    frameChunks(msg, g.mtu - 3).forEach { g.outbox.addLast(it) }
+    frameChunks(msg, chunkSize(g.mtu)).forEach { g.outbox.addLast(it) }
     pump(g)
   }
 
@@ -223,10 +241,18 @@ internal class NearbyBleHost(private val context: Context, private val onGuests:
       server.notifyCharacteristicChanged(g.device, c, false)
     }
     if (!ok) {
-      // Busy: try the same chunk again shortly.
       g.outbox.addFirst(chunk)
       g.notifying = false
+      // Busy: try the same chunk again shortly. A stack that keeps refusing
+      // it is not busy, and retrying for ever would stall the table without
+      // a word. Hang up instead, and the guest reconnects.
+      if (++g.refusals > MAX_REFUSALS) {
+        server.cancelConnection(g.device)
+        return
+      }
       ble.handler.postDelayed({ pump(g) }, 10)
+    } else {
+      g.refusals = 0
     }
   }
 
@@ -312,6 +338,7 @@ internal class NearbyBleGuest(
     val reassembler = Reassembler()
     val outbox = ArrayDeque<Pair<ByteArray, (() -> Unit)?>>()
     var writing = false
+    var refusals = 0
     var connected: ((Result<ByteArray>) -> Unit)? = null
   }
 
@@ -439,6 +466,13 @@ internal class NearbyBleGuest(
       changed(value)
     }
 
+    // The host's service went away under a live link: its table closed, or
+    // it restarted Bluetooth. Nothing on this link can work any more, so drop
+    // it, and reconnection finds the table again if it comes back.
+    override fun onServiceChanged(gatt: BluetoothGatt) {
+      gatt.disconnect()
+    }
+
     private fun changed(value: ByteArray) {
       link.reassembler.feed(value).forEach { onMessage(link.id, it) }
     }
@@ -460,7 +494,7 @@ internal class NearbyBleGuest(
       done(IllegalStateException("the link to the table is closed"))
       return@post
     }
-    val chunks = frameChunks(msg, link.mtu - 3)
+    val chunks = frameChunks(msg, chunkSize(link.mtu))
     chunks.forEachIndexed { i, c -> link.outbox.addLast(c to if (i == chunks.lastIndex) ({ done(null) }) else null) }
     pump(link)
   }
@@ -484,7 +518,14 @@ internal class NearbyBleGuest(
     }
     if (!ok) {
       link.writing = false
+      // As on the host: busy is retried, a refusal that lasts is a dead link.
+      if (++link.refusals > MAX_REFUSALS) {
+        gatt.disconnect()
+        return
+      }
       ble.handler.postDelayed({ pump(link) }, 10)
+    } else {
+      link.refusals = 0
     }
   }
 

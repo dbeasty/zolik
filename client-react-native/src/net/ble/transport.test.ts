@@ -70,8 +70,13 @@ function fakeHost(staticPriv: Uint8Array, serve: (w: Wire, reply: (w: Wire) => v
   return { connect, links };
 }
 
-function transport(host: ReturnType<typeof fakeHost>, pins: Map<string, Uint8Array>) {
+function transport(
+  host: ReturnType<typeof fakeHost>,
+  pins: Map<string, Uint8Array>,
+  onCheckCode?: (c: string) => void,
+) {
   return new BleTransport({
+    onCheckCode,
     instanceId: 'host1',
     connect: host.connect,
     pinnedKey: async () => pins.get('host1') ?? null,
@@ -144,7 +149,8 @@ describe('BleTransport', () => {
     const host = fakeHost(x25519.utils.randomSecretKey(), (w, reply) => {
       if (answer) reply({ t: 'res', id: w.id, s: 200, b: 'back' });
     });
-    const tr = transport(host, new Map());
+    const codes: string[] = [];
+    const tr = transport(host, new Map(), (c) => codes.push(c));
     const sock = tr.openSocket(tr.socketUrl('/ws/matches/m1'));
     let closed = false;
     sock.onclose = () => (closed = true);
@@ -159,5 +165,8 @@ describe('BleTransport', () => {
     const res = await tr.fetch('/modules', { method: 'GET' });
     expect(await res.text()).toBe('back');
     expect(host.links).toHaveLength(2);
+    // Each handshake reported its own code: the screen shows the current one.
+    expect(codes).toHaveLength(2);
+    expect(codes[1]).toBe(tr.checkCode);
   });
 });

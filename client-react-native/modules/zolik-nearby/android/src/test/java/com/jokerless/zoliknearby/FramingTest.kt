@@ -25,6 +25,14 @@ class FramingTest {
   }
 
   @Test
+  fun aChunkNeverExceedsTheLargestAttributeValue() {
+    assertEquals(20, chunkSize(23))
+    assertEquals(182, chunkSize(185))
+    assertEquals(512, chunkSize(517))
+    frameChunks(ByteArray(5000), chunkSize(517)).forEach { assertTrue(it.size <= 512) }
+  }
+
+  @Test
   fun aCorruptLengthResetsRatherThanWaitingForever() {
     val r = Reassembler()
     assertTrue(r.feed(byteArrayOf(0x7f, -1, -1, -1, 1, 2)).isEmpty())

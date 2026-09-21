@@ -169,7 +169,7 @@ final class NearbyBleHost: NSObject, CBPeripheralManagerDelegate {
   func enqueue(_ msg: Data, to central: CBCentral) {
     queue.async {
       guard let g = self.guests[central.identifier] else { return }
-      g.outbox.append(contentsOf: frameChunks(msg, size: central.maximumUpdateValueLength))
+      g.outbox.append(contentsOf: frameChunks(msg, size: min(central.maximumUpdateValueLength, 512)))
       self.drain()
     }
   }
@@ -389,6 +389,15 @@ final class NearbyBleGuest: NSObject, CBCentralManagerDelegate, CBPeripheralDele
       link.connected?(.success(link.id))
     }
     link.connected = nil
+  }
+
+  /// The host's service went away under a live link: its table closed, or
+  /// it restarted Bluetooth. Drop the link, and reconnection finds the table
+  /// again if it comes back.
+  func peripheral(_ peripheral: CBPeripheral, didModifyServices invalidatedServices: [CBService]) {
+    if invalidatedServices.contains(where: { $0.uuid == NearbyBleIDs.service }) {
+      manager?.cancelPeripheralConnection(peripheral)
+    }
   }
 
   func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {

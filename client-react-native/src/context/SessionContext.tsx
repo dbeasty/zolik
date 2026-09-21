@@ -539,6 +539,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         },
         pinKey: (k) => storage.setItem(hostKeyKey(info.id), bytesToBase64(k)),
         random32: () => nearby.randomBytes(32),
+        // After a reconnect the code changes, on the host's screen too.
+        onCheckCode: (code) =>
+          setOffline((prev) => (prev && prev.ble === transport ? { ...prev, checkCode: code } : prev)),
       });
       try {
         await transport.ready();
