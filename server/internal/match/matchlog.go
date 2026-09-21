@@ -18,14 +18,17 @@ import (
 // The repositories own the layout. Callers see a match with ActionCount and
 // a checkpoint index, and ask the repository for the log itself.
 
-// newMatchLogFormat is the layout new matches are created in. The original
-// layout until every deployed build can read pages, so a release can be
-// rolled back without stranding matches the build before it cannot open.
-var newMatchLogFormat = ""
+// newMatchLogFormat is the layout new matches are created in.
+//
+// Pages, now that the release before this one reads and writes them: rolling
+// back to it is safe. Rolling back past it, to a build that has never heard of
+// pages, is not.
+var newMatchLogFormat = models.LogFormatPages
 
 // migrateLegacyOnAppend moves an original-layout match to pages the next time
-// it accepts a move. Off for the same reason as newMatchLogFormat.
-var migrateLegacyOnAppend = false
+// it accepts a move. A finished match never moves, and keeps its inline log
+// until retention removes it.
+var migrateLegacyOnAppend = true
 
 // settle turns a match as stored into the shape callers get: ActionCount
 // filled in whichever layout it is in, and the original layout's inline log

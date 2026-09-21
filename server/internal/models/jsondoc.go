@@ -21,10 +21,9 @@ import (
 // which BoardAfter still decodes), text, and null.
 type JSONDoc json.RawMessage
 
-// jsonDocWritesText selects the stored form. Binary until every deployed
-// reader understands text, so a release can be rolled back without leaving
-// documents the previous build cannot open.
-var jsonDocWritesText = false
+// jsonDocWritesText selects the stored form: text, now that the release
+// before this one reads it.
+var jsonDocWritesText = true
 
 // SetJSONDocWritesText switches the stored form and returns the previous
 // setting, so a test can write as one release and read back as another.
