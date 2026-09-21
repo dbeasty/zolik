@@ -67,8 +67,8 @@ checked in.
 |---|---|---|
 | `development` | dev client on a device (needs `npx expo start`) | set by Metro's env |
 | `development-simulator` | the same, for the iOS simulator | set by Metro's env |
-| `preview` | internal install: an Android APK and an ad-hoc iOS build | `https://play.limidus.com` |
-| `production` | store binaries, build number auto-incremented by EAS | `https://play.limidus.com` |
+| `preview` | internal install: an Android APK and an ad-hoc iOS build | `https://jokerless.com` |
+| `production` | store binaries, build number auto-incremented by EAS | `https://jokerless.com` |
 
 ```bash
 npm i -g eas-cli && eas login
@@ -89,6 +89,6 @@ manifest, and `src/config.ts` falls back to them when the bundler was not given
 A local Release build for the simulator, with no EAS involved:
 
 ```bash
-EXPO_PUBLIC_ZOLIK_BASE_URL=https://play.limidus.com npx expo prebuild -p ios
+EXPO_PUBLIC_ZOLIK_BASE_URL=https://jokerless.com npx expo prebuild -p ios
 cd ios && LANG=en_US.UTF-8 pod install     # pod install fails without a UTF-8 locale
 ```
