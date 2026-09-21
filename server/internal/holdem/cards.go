@@ -169,6 +169,28 @@ func evaluateFive(hand []string) HandRank {
 		tiebreak = append(tiebreak, g.value)
 	}
 
+	// The cards themselves in the order a player reads the hand: the pair
+	// before its kickers, the trips before the pair in a full house, and a
+	// straight from the top down. `hand` arrives in deal order, and "7♦ A♠ K♠
+	// 7♣ K♥" printed after "two pair" is a puzzle rather than a hand.
+	//
+	// The wheel is the one place a card's value is not its rank: its ace is
+	// the bottom of the straight, so it reads last.
+	readValue := func(c string) int {
+		v := rankValue[rankOf(c)]
+		if isStraight && straightHigh == 5 && v == 14 {
+			return 1
+		}
+		return v
+	}
+	sort.SliceStable(hand, func(i, j int) bool {
+		vi, vj := readValue(hand[i]), readValue(hand[j])
+		if ni, nj := byValue[rankValue[rankOf(hand[i])]], byValue[rankValue[rankOf(hand[j])]]; ni != nj {
+			return ni > nj
+		}
+		return vi > vj
+	})
+
 	switch {
 	case isStraight && isFlush:
 		return HandRank{Category: straightFlush, Tiebreak: []int{straightHigh}, Cards: hand}

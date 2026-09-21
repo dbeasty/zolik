@@ -82,7 +82,14 @@ const PLACES_ITS_OWN = /\{\w+\}/;
  * list of either becomes a list of names.
  */
 function tokenText(value: unknown, players: Named[]): string {
-  if (Array.isArray(value)) return value.map((v) => tokenText(v, players)).join(', ');
+  if (Array.isArray(value)) {
+    // A run of cards reads as a hand — "K♠ K♥ 7♦ 7♣ A♠" — the way it would be
+    // written down at a table; commas are for lists of names.
+    const hand =
+      value.length > 0 &&
+      value.every((v) => typeof v === 'string' && isCardCode(v) && !players.some((p) => p.id === v));
+    return value.map((v) => tokenText(v, players)).join(hand ? ' ' : ', ');
+  }
   if (typeof value !== 'string') return String(value);
   const player = players.find((p) => p.id === value);
   if (player) return player.name;

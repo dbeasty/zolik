@@ -516,3 +516,73 @@ func TestAShownHandNeverReachesTheRoundLog(t *testing.T) {
 		}
 	}
 }
+
+// potFact finds the sentence that says who took the pot.
+func potFact(t *testing.T, raw module.State) module.Fact {
+	t.Helper()
+	vm, err := New().View(raw, "p1")
+	if err != nil {
+		t.Fatalf("view: %v", err)
+	}
+	for _, f := range vm.Status {
+		if f.LabelKey == "holdem.status.pot" || f.LabelKey == "holdem.status.potSplit" {
+			return f
+		}
+	}
+	t.Fatalf("no pot sentence in %+v", vm.Status)
+	return module.Fact{}
+}
+
+// TestThePotNamesTheWinningFive — the line at the end of a hand says which
+// five cards took it, in the order a player would read them out.
+func TestThePotNamesTheWinningFive(t *testing.T) {
+	for _, reveal := range []int{RevealEveryone, RevealWinners} {
+		raw, s := showdownState(t, reveal)
+		if got := s.LastHand.Pots[0].Cards; strings.Join(got, " ") != "AC AS KH QD 7H" {
+			t.Errorf("reveal %d: pot cards %v, want p1's pair of aces", reveal, got)
+		}
+		f := potFact(t, raw)
+		if f.LabelKey != "holdem.status.pot" {
+			t.Fatalf("reveal %d: pot sentence is %s", reveal, f.LabelKey)
+		}
+		if got, _ := f.Params["cards"].([]string); len(got) != 5 {
+			t.Errorf("reveal %d: pot sentence carries cards %v", reveal, f.Params["cards"])
+		}
+	}
+}
+
+// TestASplitPotNamesNoCards. Two winners tie on rank, not on suits, so no one
+// set of five is theirs; the sentence must not carry one.
+func TestASplitPotNamesNoCards(t *testing.T) {
+	s := &GameState{
+		Status: "active", Street: streetRiver, HandNumber: 1, HandLimit: 5,
+		BigBlind: 20, SmallBlind: 10, MinRaise: 20, StartingStack: 1000,
+		CurrentBet: 20, Pot: 60,
+		Reveal: RevealEveryone, Button: 0, Current: 0, Deck: buildDeck(),
+		// Broadway on the board: both seats play it.
+		Board: []string{"AS", "KH", "QD", "JC", "TS"},
+		Seats: []Seat{
+			{PlayerID: "p1", Stack: 980, Bet: 20, Committed: 20, Acted: true, Hole: []string{"2C", "3D"}},
+			{PlayerID: "p2", Stack: 980, Bet: 20, Committed: 20, Acted: true, Hole: []string{"4S", "5D"}},
+		},
+	}
+	raw, err := encode(s)
+	if err != nil {
+		t.Fatalf("encode: %v", err)
+	}
+	next, code := apply(t, raw, "p1", module.Action{Verb: VerbCheck})
+	if code != "" {
+		t.Fatalf("check refused: %s", code)
+	}
+	after := mustDecode(t, next)
+	if p := after.LastHand.Pots[0]; len(p.Winners) != 2 || len(p.Cards) != 0 {
+		t.Fatalf("split pot %+v, want two winners and no cards", p)
+	}
+	f := potFact(t, next)
+	if f.LabelKey != "holdem.status.potSplit" {
+		t.Errorf("split pot sentence is %s", f.LabelKey)
+	}
+	if _, ok := f.Params["cards"]; ok {
+		t.Errorf("split pot sentence carries cards: %v", f.Params["cards"])
+	}
+}

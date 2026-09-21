@@ -309,12 +309,24 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 						"winners": p.Winners, "hand": p.LabelKey, "amount": p.Amount,
 					},
 				})
+			} else if len(p.Cards) == 0 {
+				// A split pot: the winners tie on rank but not necessarily
+				// on suits, so there is no one set of five to name. Each
+				// winner's own cards are on their "showed" line.
+				vm.Status = append(vm.Status, module.Fact{
+					LabelKey: "holdem.status.potSplit",
+					Value:    strconv.Itoa(p.Amount),
+					Params: map[string]any{
+						"winners": p.Winners, "hand": p.LabelKey, "amount": p.Amount,
+					},
+				})
 			} else {
 				vm.Status = append(vm.Status, module.Fact{
 					LabelKey: "holdem.status.pot",
 					Value:    strconv.Itoa(p.Amount),
 					Params: map[string]any{
 						"winners": p.Winners, "hand": p.LabelKey, "amount": p.Amount,
+						"cards": p.Cards,
 					},
 				})
 			}

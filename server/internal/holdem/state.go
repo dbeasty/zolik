@@ -245,6 +245,9 @@ type PotResult struct {
 	// LabelKey names the winning hand ("holdem.hand.flush"), or is empty when
 	// the pot was won without a showdown.
 	LabelKey string `json:"labelKey,omitempty"`
+	// Cards is the winning five, in reading order, when exactly one player
+	// took the pot at a showdown. Empty for a split or an uncontested pot.
+	Cards []string `json:"cards,omitempty"`
 }
 
 // ShownHand is one player's cards at showdown, with what they made.

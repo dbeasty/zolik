@@ -261,7 +261,8 @@ export const lv: Record<string, string> = {
   // nowhere to put them. Without the entry the player read "Winner", full
   // stop, at the end of a match they had just won.
   'status.winner': 'Uzvarēja {winners}',
-  'holdem.status.pot': '{winners} uzvarēja {amount} ar {hand}',
+  'holdem.status.pot': '{winners} uzvarēja {amount} ar {hand} — {cards}',
+  'holdem.status.potSplit': '{winners} uzvarēja {amount} ar {hand}',
   'holdem.status.potUncontested': '{winners} uzvarēja {amount} — visi pārējie atmeta',
   'holdem.status.shown': '{playerId} parādīja {value}',
   'holdem.prompt.waitingFor': 'Gaidām {playerId}',

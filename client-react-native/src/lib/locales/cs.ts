@@ -258,7 +258,8 @@ export const cs: Record<string, string> = {
   // nowhere to put them. Without the entry the player read "Winner", full
   // stop, at the end of a match they had just won.
   'status.winner': 'Vítěz: {winners}',
-  'holdem.status.pot': 'Bank {amount} bere {winners} — {hand}',
+  'holdem.status.pot': 'Bank {amount} bere {winners} — {hand} ({cards})',
+  'holdem.status.potSplit': 'Bank {amount} bere {winners} — {hand}',
   'holdem.status.potUncontested': 'Bank {amount} bere {winners} — ostatní složili',
   'holdem.status.shown': 'Karty hráče {playerId}: {value}',
   'holdem.prompt.waitingFor': 'Čeká se na hráče {playerId}',

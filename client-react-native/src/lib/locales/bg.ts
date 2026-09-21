@@ -263,7 +263,8 @@ export const bg: Record<string, string> = {
   // nowhere to put them. Without the entry the player read "Winner", full
   // stop, at the end of a match they had just won.
   'status.winner': 'Спечелено от {winners}',
-  'holdem.status.pot': '{winners} печели {amount} с {hand}',
+  'holdem.status.pot': '{winners} печели {amount} с {hand} — {cards}',
+  'holdem.status.potSplit': '{winners} печели {amount} с {hand}',
   'holdem.status.potUncontested': '{winners} печели {amount} — всички други се отказаха',
   'holdem.status.shown': '{playerId} показа {value}',
   'holdem.prompt.waitingFor': 'Чака се {playerId}',
