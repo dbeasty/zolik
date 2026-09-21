@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { handCards } from '../helpers/drag';
+import { handCards, tapCard } from '../helpers/drag';
 import { API_BASE } from '../helpers/env';
 import { waitForOfferEnabled } from '../helpers/turn';
 import { cardByCode, clearHandSelection, handCodes, selectedCodes } from '../helpers/hand';
@@ -145,7 +145,7 @@ test.describe('the card you just drew', () => {
     )).find((c) => c !== drawn);
     expect(other, 'the hand holds a card other than the drawn one').toBeTruthy();
 
-    await cardByCode(page, other!).click();
+    await tapCard(page, cardByCode(page, other!));
 
     // Exactly one card picked, and it is the one just tapped. Before the fix
     // this was two, and every one-card offer went dark.
@@ -158,7 +158,7 @@ test.describe('the card you just drew', () => {
     await handCards(page);
 
     await drawOne(page);
-    await page.locator('[data-testid^="card-hand:"][aria-selected="true"]').click();
+    await tapCard(page, page.locator('[data-testid^="card-hand:"][aria-selected="true"]'));
 
     // "Not that one" means what it says.
     await expect.poll(async () => await selectedCodes(page)).toEqual([]);
@@ -184,8 +184,8 @@ test.describe('the card you just drew', () => {
     const distinct = [...new Set(codes)].slice(0, 2);
     test.skip(distinct.length < 2, 'hand has no two distinct cards');
 
-    await cardByCode(page, distinct[0]).click();
-    await cardByCode(page, distinct[1]).click();
+    await tapCard(page, cardByCode(page, distinct[0]));
+    await tapCard(page, cardByCode(page, distinct[1]));
 
     await expect
       .poll(async () => (await selectedCodes(page)).slice().sort())
@@ -219,7 +219,7 @@ test.describe('a card picked up off the discard pile', () => {
     const other = (await handCodes(page)).find((c) => rankPart(c) !== rankPart(drawn));
     test.skip(!other, 'hand holds no card of a different rank to tap');
 
-    await cardByCode(page, other!).click();
+    await tapCard(page, cardByCode(page, other!));
 
     // Unlike stepping aside for a plain draw, the pickup is one the module
     // itself marked as owed to a meld this turn — see `zolik.badge.owedToMeld`
