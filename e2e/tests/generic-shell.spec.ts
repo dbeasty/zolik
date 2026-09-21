@@ -612,7 +612,10 @@ test.describe('the legacy path is gone', () => {
 
           const o = st.legalActions.filter((x: any) => x.enabled)[0];
           const action: any = { offerId: o.id, verb: o.verb };
-          if (o.source?.minCards && (o.source?.cards ?? []).length >= o.source.minCards) {
+          // `submit` first: `cards` is the pool to pick from, not the move.
+          if (o.source?.submit?.length) {
+            action.cards = o.source.submit;
+          } else if (o.source?.minCards && (o.source?.cards ?? []).length >= o.source.minCards) {
             action.cards = o.source.cards.slice(0, o.source.minCards);
           }
           for (const p of o.params ?? []) {
