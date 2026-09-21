@@ -163,6 +163,12 @@ func kdbRepos(cfg Config) (repos, error) {
 }
 
 func New(cfg Config) (*App, error) {
+	// Checked before anything is dialled: a server signing tokens with a key
+	// from the repository lets anyone sign in as anyone, and should not start.
+	if err := auth.CheckAccessSecret(cfg.IsLocal()); err != nil {
+		return nil, err
+	}
+
 	// Covers Mongo connect + EnsureIndexes + the lobby waiting room's Redis
 	// ping. 30s rather than a tighter figure gives real headroom for a cold
 	// start — Mongo initializing an empty data volume for the first time, or

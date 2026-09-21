@@ -386,11 +386,34 @@ func (h *Handlers) resolveReturnTo(candidate string) (string, error) {
 		return h.allowedReturnURLs[0], nil
 	}
 	for _, allowed := range h.allowedReturnURLs {
-		if strings.HasPrefix(candidate, allowed) {
+		if returnURLAllowedBy(candidate, allowed) {
 			return candidate, nil
 		}
 	}
 	return "", errors.New("returnTo is not an allowed address for this deployment")
+}
+
+// returnURLAllowedBy reports whether candidate falls under the declared
+// prefix allowed.
+//
+// A bare string prefix is not enough once an entry is an origin. The entry
+// "https://jokerless.com" is a prefix of "https://jokerless.com.evil.example"
+// too, and that host would receive the sign-in code. So an entry that does
+// not itself end on a boundary ("/", as in "clientreactnative://" or
+// "https://host/app/") only matches when the candidate continues with one:
+// the end of the string, a path, a query or a fragment.
+func returnURLAllowedBy(candidate, allowed string) bool {
+	if allowed == "" || !strings.HasPrefix(candidate, allowed) {
+		return false
+	}
+	if strings.HasSuffix(allowed, "/") || len(candidate) == len(allowed) {
+		return true
+	}
+	switch candidate[len(allowed)] {
+	case '/', '?', '#':
+		return true
+	}
+	return false
 }
 
 func (h *Handlers) redirectURI(providerID string) string {

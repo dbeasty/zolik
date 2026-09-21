@@ -94,7 +94,7 @@ func Start(dataDir string) (*Host, error) {
 		return nil, err
 	}
 
-	a, err := app.NewMobile(dataDir, id.AccessSecret, id.RefreshSecret)
+	a, err := app.NewMobile(dataDir, id.AccessSecret)
 	if err != nil {
 		return nil, fmt.Errorf("init: %w", err)
 	}
@@ -237,21 +237,19 @@ func (h *Host) Stop() {
 // beside the database, so a player who deletes the app's data gets a new
 // host rather than one that cannot read its own tokens.
 type identity struct {
-	InstanceID    string `json:"instanceId"`
-	AccessSecret  string `json:"accessSecret"`
-	RefreshSecret string `json:"refreshSecret"`
+	InstanceID   string `json:"instanceId"`
+	AccessSecret string `json:"accessSecret"`
 }
 
 func loadIdentity(dataDir string) (identity, error) {
 	path := filepath.Join(dataDir, "host.json")
 	var id identity
 	if raw, err := os.ReadFile(path); err == nil {
-		if json.Unmarshal(raw, &id) == nil && id.InstanceID != "" &&
-			len(id.AccessSecret) >= 32 && len(id.RefreshSecret) >= 32 {
+		if json.Unmarshal(raw, &id) == nil && id.InstanceID != "" && len(id.AccessSecret) >= 32 {
 			return id, nil
 		}
 	}
-	id = identity{InstanceID: randomHex(8), AccessSecret: randomHex(32), RefreshSecret: randomHex(32)}
+	id = identity{InstanceID: randomHex(8), AccessSecret: randomHex(32)}
 	raw, _ := json.Marshal(id)
 	tmp := path + ".tmp"
 	if err := os.WriteFile(tmp, raw, 0o600); err != nil {

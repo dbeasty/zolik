@@ -18,85 +18,83 @@ type AccessClaims struct {
 	jwt.RegisteredClaims
 }
 
-// embedded holds what an in-process host set with SetSecrets and
-// DisableDevTokens. A server reads its secrets from the environment. The copy
+// devAccessSecret signs access tokens when JWT_ACCESS_SECRET is unset. It is
+// in the repository, so anyone can mint a token for any player with it:
+// CheckAccessSecret refuses to let a non-local deployment start on it.
+const devAccessSecret = "dev_access_secret_change_me"
+
+// embeddedSecret is the signing key an in-process host set with
+// SetAccessSecret. A server reads its key from the environment. The copy
 // embedded in the mobile app has no environment worth the name, and it must
-// never fall back to the well-known development secrets, because its
-// listener can be reached from the local network.
-var embedded struct {
+// never fall back to devAccessSecret, because other phones on the local
+// network can reach its listener.
+var embeddedSecret struct {
 	sync.RWMutex
-	access, refresh string
-	noDevTokens     bool
+	key string
 }
 
-// SetSecrets fixes the signing secrets for this process. The environment and
-// the development defaults are no longer consulted after it is called.
-func SetSecrets(access, refresh string) {
-	embedded.Lock()
-	defer embedded.Unlock()
-	embedded.access, embedded.refresh = access, refresh
+// SetAccessSecret fixes the access-token signing key for this process. The
+// environment and the development default are no longer consulted after it
+// is called.
+func SetAccessSecret(key string) {
+	embeddedSecret.Lock()
+	defer embeddedSecret.Unlock()
+	embeddedSecret.key = key
 }
 
-// DisableDevTokens makes SubjectFromToken refuse the "dev:<playerId>"
-// shortcut, which accepts whatever player id it is given.
-func DisableDevTokens() {
-	embedded.Lock()
-	defer embedded.Unlock()
-	embedded.noDevTokens = true
-}
-
-func devTokensAllowed() bool {
-	embedded.RLock()
-	defer embedded.RUnlock()
-	return !embedded.noDevTokens
+func embeddedAccessSecret() string {
+	embeddedSecret.RLock()
+	defer embeddedSecret.RUnlock()
+	return embeddedSecret.key
 }
 
 func accessSecret() string {
-	embedded.RLock()
-	set := embedded.access
-	embedded.RUnlock()
-	if set != "" {
+	if set := embeddedAccessSecret(); set != "" {
 		return set
 	}
 	if v := strings.TrimSpace(os.Getenv("JWT_ACCESS_SECRET")); v != "" {
 		return v
 	}
-	return "dev_access_secret_change_me"
+	return devAccessSecret
 }
 
-func refreshSecret() string {
-	embedded.RLock()
-	set := embedded.refresh
-	embedded.RUnlock()
-	if set != "" {
-		return set
+// CheckAccessSecret reports whether the access-token signing key is fit for
+// the deployment. Locally the built-in default is fine. Anywhere else the key
+// must be set, and must not be the default or the placeholder that
+// deploy/env.production.example ships with, because either is public and
+// would let anyone sign a token as any player. A key set in-process with
+// SetAccessSecret is the embedded host's own per-install secret, and passes.
+//
+// There is no matching check for JWT_REFRESH_SECRET: refresh tokens are
+// opaque random strings looked up in the database, not signed, so that
+// variable is never read.
+func CheckAccessSecret(local bool) error {
+	if local {
+		return nil
 	}
-	if v := strings.TrimSpace(os.Getenv("JWT_REFRESH_SECRET")); v != "" {
-		return v
+	if embeddedAccessSecret() != "" {
+		return nil
 	}
-	return "dev_refresh_secret_change_me"
+	switch strings.TrimSpace(os.Getenv("JWT_ACCESS_SECRET")) {
+	case "":
+		return errors.New("JWT_ACCESS_SECRET is unset; outside APP_ENV=local it must be set to a private random value")
+	case devAccessSecret, "REPLACE_ON_FIRST_DEPLOY":
+		return errors.New("JWT_ACCESS_SECRET is a published placeholder; outside APP_ENV=local it must be set to a private random value")
+	}
+	return nil
 }
 
 func getenv(k string) string {
 	return os.Getenv(k)
 }
 
-// TokenSubjectFromAccessToken extracts the player subject from an access JWT.
-// Dev fallback: token = "dev:<playerId>".
+// SubjectFromToken extracts the player subject from a signed access JWT. It is
+// the only thing standing between a match socket and a player's hidden hand,
+// so it accepts nothing but a token this server signed.
 func SubjectFromToken(token string) (string, error) {
 	token = strings.TrimSpace(token)
 	if token == "" {
 		return "", errors.New("empty token")
-	}
-	if strings.HasPrefix(token, "dev:") {
-		if !devTokensAllowed() {
-			return "", errors.New("dev tokens are disabled")
-		}
-		subj := strings.TrimPrefix(token, "dev:")
-		if subj == "" {
-			return "", errors.New("empty dev subject")
-		}
-		return subj, nil
 	}
 
 	parsed, err := jwt.ParseWithClaims(token, &AccessClaims{}, func(t *jwt.Token) (interface{}, error) {

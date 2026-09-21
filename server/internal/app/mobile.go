@@ -76,15 +76,13 @@ func (a *App) RegisterMobileRoutes(r chi.Router) {
 }
 
 // NewMobile builds the embedded host's App. Before anything can serve, it
-// fixes the signing secrets and turns off the dev-token shortcut. The secrets
-// are per install and the caller keeps them, so a player's seat survives the
-// app restarting. A host with no secrets refuses to start rather than sign
-// with the well-known development ones.
-func NewMobile(dataDir, accessSecret, refreshSecret string) (*App, error) {
-	if len(accessSecret) < 32 || len(refreshSecret) < 32 {
-		return nil, errors.New("mobile host needs per-install signing secrets of at least 32 bytes")
+// fixes the access-token signing key. The key is per install and the caller
+// keeps it, so a player's seat survives the app restarting. A host with no
+// key refuses to start rather than sign with the well-known development one.
+func NewMobile(dataDir, accessSecret string) (*App, error) {
+	if len(accessSecret) < 32 {
+		return nil, errors.New("mobile host needs a per-install signing secret of at least 32 bytes")
 	}
-	auth.SetSecrets(accessSecret, refreshSecret)
-	auth.DisableDevTokens()
+	auth.SetAccessSecret(accessSecret)
 	return New(MobileConfig(dataDir))
 }
