@@ -14,7 +14,7 @@ function defaultBaseUrl(): string {
 export const ZOLIK_BASE_URL = (envUrl || defaultBaseUrl()).replace(/\/$/, '');
 
 export const APP_NAME =
-  (Constants.expoConfig?.name as string | undefined) ?? 'Žolíky';
+  (Constants.expoConfig?.name as string | undefined) ?? 'Jokerless';
 
 /**
  * The build this bundle was made from — set by scripts/version.sh via the

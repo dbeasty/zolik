@@ -34,11 +34,8 @@ export default function AboutScreen() {
   return (
     <Screen title={t('nav.about')} subtitle={t('about.subtitle')} scroll>
       <View style={shared.card}>
-        {/* `nav.home` rather than `config.APP_NAME`: the latter reads
-            `expoConfig.name`, which is still the scaffold's
-            "client-react-native" and would put that on a player's screen.
-            This is the same word the navigation bar calls the app by, so the
-            two cannot drift. */}
+        {/* `nav.home` rather than `config.APP_NAME`: this is the same word
+            the navigation bar calls the app by, so the two cannot drift. */}
         <Text style={styles.appName} testID="about-app-name">
           {t('nav.home')}
         </Text>
