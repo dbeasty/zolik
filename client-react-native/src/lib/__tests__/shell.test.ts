@@ -288,7 +288,7 @@ describe('labels', () => {
   it('says nothing twice when the wording already placed the value', () => {
     const line = factText(
       {
-        labelKey: 'holdem.status.pot',
+        labelKey: 'holdem.status.potSplit',
         value: '30',
         params: { winners: ['bot:KE'], amount: 30, hand: 'holdem.hand.twoPair' },
       },
@@ -296,6 +296,36 @@ describe('labels', () => {
     );
     expect(line).toBe('Bot KE won 30 with Two pair');
     expect(line).not.toMatch(/30.*30/);
+  });
+
+  it('names the winning five cards with their suits, in reading order', () => {
+    const line = factText(
+      {
+        labelKey: 'holdem.status.pot',
+        value: '30',
+        params: {
+          winners: ['bot:KE'],
+          amount: 30,
+          hand: 'holdem.hand.twoPair',
+          cards: ['KS', 'KH', '7D', '7C', 'AS'],
+        },
+      },
+      players,
+    );
+    expect(line).toBe('Bot KE won 30 with Two pair — K♠ K♥ 7♦ 7♣ A♠');
+  });
+
+  it('names no cards for a split pot', () => {
+    expect(
+      factText(
+        {
+          labelKey: 'holdem.status.potSplit',
+          value: '30',
+          params: { winners: ['u-1', 'bot:KE'], amount: 30, hand: 'holdem.hand.flush' },
+        },
+        players,
+      ),
+    ).toBe('Dj Player, Bot KE won 30 with Flush');
   });
 
   it('renders a value that is itself a message key as words', () => {

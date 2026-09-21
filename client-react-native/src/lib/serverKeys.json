@@ -410,6 +410,7 @@
     "holdem.seat.won",
     "holdem.status.mucked",
     "holdem.status.pot",
+    "holdem.status.potSplit",
     "holdem.status.potUncontested",
     "holdem.status.shown",
     "holdem.status.shownVoluntary",
@@ -1224,6 +1225,13 @@
     ],
     "holdem.status.pot": [
       "amount",
+      "cards",
+      "hand",
+      "value",
+      "winners"
+    ],
+    "holdem.status.potSplit": [
+      "amount",
       "hand",
       "value",
       "winners"
@@ -1513,6 +1521,7 @@
     "holdem.seat.stack",
     "holdem.status.mucked",
     "holdem.status.pot",
+    "holdem.status.potSplit",
     "holdem.status.potUncontested",
     "holdem.status.shown",
     "holdem.status.shownVoluntary",

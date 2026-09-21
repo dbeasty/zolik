@@ -670,10 +670,18 @@ func distributePots(s *GameState, contenders []int) []PotResult {
 			}
 			ids = append(ids, s.Seats[idx].PlayerID)
 		}
-		out = append(out, PotResult{
+		pot := PotResult{
 			Amount: amount, Winners: ids,
 			LabelKey: categoryKey(best[winners[0]].Category),
-		})
+		}
+		// The five cards only when one player took the pot. Split winners
+		// tie on rank but can hold different suits, so any one set of five
+		// would be the wrong hand for somebody; each of theirs is on its own
+		// "showed" line instead.
+		if len(winners) == 1 {
+			pot.Cards = append([]string(nil), best[winners[0]].Cards...)
+		}
+		out = append(out, pot)
 	}
 	return out
 }

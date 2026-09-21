@@ -273,7 +273,8 @@ export const ga: Record<string, string> = {
   // nowhere to put them. Without the entry the player read "Winner", full
   // stop, at the end of a match they had just won.
   'status.winner': 'Bainte ag {winners}',
-  'holdem.status.pot': 'Bhuaigh {winners} {amount} le {hand}',
+  'holdem.status.pot': 'Bhuaigh {winners} {amount} le {hand} — {cards}',
+  'holdem.status.potSplit': 'Bhuaigh {winners} {amount} le {hand}',
   'holdem.status.potUncontested': "Bhuaigh {winners} {amount} — d'fhill gach duine eile",
   'holdem.status.shown': 'Thaispeáin {playerId} {value}',
   'holdem.prompt.waitingFor': 'Ag fanacht le {playerId}',

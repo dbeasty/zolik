@@ -678,7 +678,10 @@ func TestShowdownPotNamesTheHand(t *testing.T) {
 		s.Break.Begin(2)
 		s.LastHand = &HandResult{
 			HandNumber: 1,
-			Pots:       []PotResult{{Amount: 40, Winners: []string{"p1"}, LabelKey: "holdem.hand.twoPair"}},
+			Pots: []PotResult{{
+				Amount: 40, Winners: []string{"p1"}, LabelKey: "holdem.hand.twoPair",
+				Cards: []string{"KS", "KH", "7D", "7C", "AS"},
+			}},
 		}
 	})
 	vm, err := New().View(raw, "p1")

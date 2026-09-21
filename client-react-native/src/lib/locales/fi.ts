@@ -261,7 +261,8 @@ export const fi: Record<string, string> = {
   // nowhere to put them. Without the entry the player read "Winner", full
   // stop, at the end of a match they had just won.
   'status.winner': 'Voitti {winners}',
-  'holdem.status.pot': '{winners} voitti {amount} kädellä {hand}',
+  'holdem.status.pot': '{winners} voitti {amount} kädellä {hand} — {cards}',
+  'holdem.status.potSplit': '{winners} voitti {amount} kädellä {hand}',
   'holdem.status.potUncontested': '{winners} voitti {amount} — kaikki muut luovuttivat',
   'holdem.status.shown': '{playerId} näytti {value}',
   'holdem.prompt.waitingFor': 'Odotetaan pelaajaa {playerId}',

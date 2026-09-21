@@ -268,7 +268,8 @@ export const hu: Record<string, string> = {
   // nowhere to put them. Without the entry the player read "Winner", full
   // stop, at the end of a match they had just won.
   'status.winner': 'Nyerte: {winners}',
-  'holdem.status.pot': '{winners} nyert {amount} zsetont ezzel: {hand}',
+  'holdem.status.pot': '{winners} nyert {amount} zsetont ezzel: {hand} — {cards}',
+  'holdem.status.potSplit': '{winners} nyert {amount} zsetont ezzel: {hand}',
   'holdem.status.potUncontested': '{winners} nyert {amount} zsetont — mindenki más bedobta',
   'holdem.status.shown': '{playerId} megmutatta: {value}',
   'holdem.prompt.waitingFor': 'Várakozás rá: {playerId}',

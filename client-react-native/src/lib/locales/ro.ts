@@ -262,7 +262,8 @@ export const ro: Record<string, string> = {
   // nowhere to put them. Without the entry the player read "Winner", full
   // stop, at the end of a match they had just won.
   'status.winner': 'Câștigat de {winners}',
-  'holdem.status.pot': '{winners} a câștigat {amount} cu {hand}',
+  'holdem.status.pot': '{winners} a câștigat {amount} cu {hand} — {cards}',
+  'holdem.status.potSplit': '{winners} a câștigat {amount} cu {hand}',
   'holdem.status.potUncontested': '{winners} a câștigat {amount} — toți ceilalți s-au retras',
   'holdem.status.shown': '{playerId} a arătat {value}',
   'holdem.prompt.waitingFor': 'Se așteaptă {playerId}',

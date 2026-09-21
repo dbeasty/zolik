@@ -262,7 +262,8 @@ export const pt: Record<string, string> = {
   // nowhere to put them. Without the entry the player read "Winner", full
   // stop, at the end of a match they had just won.
   'status.winner': 'Ganho por {winners}',
-  'holdem.status.pot': '{winners} ganha {amount} com {hand}',
+  'holdem.status.pot': '{winners} ganha {amount} com {hand} — {cards}',
+  'holdem.status.potSplit': '{winners} ganha {amount} com {hand}',
   'holdem.status.potUncontested': '{winners} ganha {amount} — todos os outros desistiram',
   'holdem.status.shown': '{playerId} mostrou {value}',
   'holdem.prompt.waitingFor': 'À espera de {playerId}',

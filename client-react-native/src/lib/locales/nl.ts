@@ -265,7 +265,8 @@ export const nl: Record<string, string> = {
   // nowhere to put them. Without the entry the player read "Winner", full
   // stop, at the end of a match they had just won.
   'status.winner': 'Gewonnen door {winners}',
-  'holdem.status.pot': '{winners} wint {amount} met {hand}',
+  'holdem.status.pot': '{winners} wint {amount} met {hand} — {cards}',
+  'holdem.status.potSplit': '{winners} wint {amount} met {hand}',
   'holdem.status.potUncontested': '{winners} wint {amount} — alle anderen pasten',
   'holdem.status.shown': '{playerId} liet {value} zien',
   'holdem.prompt.waitingFor': 'Wachten op {playerId}',
