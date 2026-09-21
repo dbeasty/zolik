@@ -28,10 +28,22 @@ being edited.
 See [`docs/testing-this-branch.md`](docs/testing-this-branch.md) for what to
 look at, and each directory's README for setup details.
 
-## Deploy (play.limidus.com)
+## Deploy (jokerless.com)
 
 Production runs the KDB single-container stack on **limi-mini** (`192.168.13.13`)
-behind nginx at **https://play.limidus.com/** — same Docker shape as local dev.
+behind nginx at **https://jokerless.com/** — same Docker shape as local dev.
+The same deployment also answers at **https://jokerless.org/** and
+**https://play.limidus.com/**; `www.` on either jokerless domain redirects to
+the apex. In a browser the web client calls the API on whichever domain served
+it, so every name is a complete copy of the game (sign-in is per domain).
+`jokerless.com` is canonical: it is `PUBLIC_BASE_URL`, the OAuth callback and
+the host in server-built invite links.
+
+The jokerless DNS lives in Cloudflare as **DNS-only** (grey cloud) A records
+for `jokerless.com`, `www.jokerless.com`, `jokerless.org` and
+`www.jokerless.org`, pointing at the host's WAN address. `deploy.sh` issues
+their Let's Encrypt certificate (`--cert-name jokerless`) over HTTP-01 on first
+run and refuses to go further until all four names resolve.
 Requires the **kdb** repo as a sibling checkout (`../kdb`) and SSH access as
 `davja@192.168.13.13`:
 
