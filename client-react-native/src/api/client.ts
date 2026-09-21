@@ -79,11 +79,9 @@ export class ZolikClient {
    *  picked up" — the only thing negotiated on open beyond the token is the
    *  face to be seen waiting under, so a host invites the person they saw. */
   lobbyWsUrl(): string {
-    const u = new URL(this.baseUrl);
-    const scheme = u.protocol === 'https:' ? 'wss' : 'ws';
     const token = encodeURIComponent(this.accessToken);
     const face = this.avatarId ? `&avatar=${encodeURIComponent(this.avatarId)}` : '';
-    return `${scheme}://${u.host}/ws/lobby?token=${token}${face}`;
+    return `${socketBase(this.baseUrl)}/ws/lobby?token=${token}${face}`;
   }
 
   /** A snapshot of who's currently waiting, for a host browsing whom to
@@ -448,11 +446,9 @@ export class ZolikClient {
 
   /** The socket that carries actions in and per-viewer state out. */
   matchSocketUrl(matchId: string): string {
-    const u = new URL(this.baseUrl);
-    const scheme = u.protocol === 'https:' ? 'wss' : 'ws';
-    return `${scheme}://${u.host}/ws/matches/${encodeURIComponent(matchId)}?token=${encodeURIComponent(
-      this.accessToken,
-    )}`;
+    return `${socketBase(this.baseUrl)}/ws/matches/${encodeURIComponent(
+      matchId,
+    )}?token=${encodeURIComponent(this.accessToken)}`;
   }
 
   async getMe(): Promise<AccountProfile> {
@@ -688,4 +684,19 @@ export function apiErrorFromResponse(
     /* keep raw text */
   }
   return new ApiError(message, status, code, parseRetryAfterMs(headers.get('Retry-After')));
+}
+
+/**
+ * The ws:// or wss:// origin that matches an http(s) API base.
+ *
+ * This is string surgery rather than `new URL()` because it has to work in a
+ * native bundle, where the URL implementation depends on which polyfill got
+ * installed. Any path on the base is dropped, because the socket routes hang
+ * off the origin. A base with no scheme is treated as plain http, which is
+ * what a LAN address typed in by hand looks like.
+ */
+export function socketBase(baseUrl: string): string {
+  const m = /^(https?):\/\/([^/?#]+)/i.exec(baseUrl.trim());
+  if (!m) return `ws://${baseUrl.trim().replace(/[/?#].*$/, '')}`;
+  return `${m[1].toLowerCase() === 'https' ? 'wss' : 'ws'}://${m[2]}`;
 }

@@ -30,8 +30,23 @@ export const APP_NAME =
  * footer means "Expo was started without the version script", not "you're on
  * version zero".
  */
-export const CLIENT_VERSION = process.env.EXPO_PUBLIC_ZOLIK_VERSION || '0.0.0-dev';
-export const CLIENT_COMMIT = process.env.EXPO_PUBLIC_ZOLIK_COMMIT || 'unknown';
+export const CLIENT_VERSION =
+  process.env.EXPO_PUBLIC_ZOLIK_VERSION || nativeBuildInfo('zolikVersion') || '0.0.0-dev';
+export const CLIENT_COMMIT =
+  process.env.EXPO_PUBLIC_ZOLIK_COMMIT || nativeBuildInfo('zolikCommit') || 'unknown';
+
+/**
+ * The second source, for iOS and Android store builds only: an EAS worker
+ * bundles without scripts/version.sh or a .git, so app.config.ts stamps the
+ * version into the embedded manifest instead. It is fixed there, with none of
+ * the web caching trouble above. The web build always has the EXPO_PUBLIC_*
+ * values, so it never gets this far.
+ */
+function nativeBuildInfo(key: 'zolikVersion' | 'zolikCommit'): string {
+  if (Platform.OS === 'web') return '';
+  const v = (Constants.expoConfig?.extra as Record<string, unknown> | undefined)?.[key];
+  return typeof v === 'string' ? v : '';
+}
 
 /**
  * Who the legal notices name as the operator, set at build time by
