@@ -46,6 +46,16 @@ type Repository interface {
 	// not swept, and invisible to any count of how many games went unfinished.
 	// This is the read that makes the field mean something.
 	FindAbandonable(ctx context.Context, now time.Time, limit int) ([]models.Match, error)
+	// FindStranded lists active matches whose last activity (see lastActivity)
+	// is no later than idleBefore.
+	//
+	// The other way a table goes quiet. SuspendOnDisconnect only fires when a
+	// socket the table is waiting on drops, so a match whose sockets never
+	// existed (created and started over HTTP) or died with the process (a
+	// restart) stays active for ever, with nothing left to suspend it.
+	// Candidates only: the reaper re-checks presence and writes under a
+	// version guard.
+	FindStranded(ctx context.Context, idleBefore time.Time, limit int) ([]models.Match, error)
 	// FindRetired lists matches that have reached a status they cannot leave
 	// and have sat there past that status's retention window. Candidates only:
 	// the caller re-checks each one and deletes under a version guard.
@@ -221,6 +231,27 @@ func (r *mongoRepository) FindAbandonable(ctx context.Context, now time.Time, li
 	cur, err := r.coll.Find(ctx,
 		bson.M{"status": "suspended", "abandonAt": bson.M{"$lte": now}},
 		options.Find().SetLimit(int64(limit)).SetSort(bson.D{{Key: "abandonAt", Value: 1}}),
+	)
+	if err != nil {
+		return nil, err
+	}
+	var out []models.Match
+	if err := cur.All(ctx, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// FindStranded lists active matches untouched since idleBefore. A row written
+// before UpdatedAt existed has no updatedAt field and is judged by createdAt;
+// the reaper re-checks with lastActivity either way.
+func (r *mongoRepository) FindStranded(ctx context.Context, idleBefore time.Time, limit int) ([]models.Match, error) {
+	cur, err := r.coll.Find(ctx,
+		bson.M{"status": "active", "$or": bson.A{
+			bson.M{"updatedAt": bson.M{"$lte": idleBefore}},
+			bson.M{"updatedAt": bson.M{"$exists": false}, "createdAt": bson.M{"$lte": idleBefore}},
+		}},
+		options.Find().SetLimit(int64(limit)).SetSort(bson.D{{Key: "updatedAt", Value: 1}}),
 	)
 	if err != nil {
 		return nil, err
