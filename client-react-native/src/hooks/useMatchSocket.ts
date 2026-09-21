@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 
 import type { MatchAction, MatchState } from '@/src/api/matchTypes';
 import { apiClient } from '@/src/api/client';
@@ -123,7 +124,7 @@ export function useMatchSocket(
         // would only fetch it again, for ever.
         if (terminal) return;
         void (async () => {
-          if (torn) return;
+          if (torn || socket !== ws) return;
           let delay: number;
           try {
             const cap = await client.getCapacity();
@@ -131,7 +132,10 @@ export function useMatchSocket(
               setError({ code: 'SERVER_BUSY' });
               delay = busyBackoff(attemptRef.current);
               attemptRef.current += 1;
-              if (!torn) timer = setTimeout(open, delay);
+              // A newer socket may have been opened while the probe was out
+              // (the app coming back to the foreground does that). Scheduling
+              // another would run two chains side by side.
+              if (!torn && socket === ws) timer = setTimeout(open, delay);
               return;
             }
           } catch {
@@ -139,7 +143,7 @@ export function useMatchSocket(
           }
           delay = jitteredBackoff(attemptRef.current);
           attemptRef.current += 1;
-          if (!torn) timer = setTimeout(open, delay);
+          if (!torn && socket === ws) timer = setTimeout(open, delay);
         })();
       };
       ws.onerror = () => {
@@ -148,8 +152,24 @@ export function useMatchSocket(
     };
 
     open();
+
+    // Back in the foreground, reconnect now rather than when the backoff
+    // says. A phone hosting an offline table is suspended while its player
+    // looks at something else, and every guest's socket drops. The backoff
+    // has usually grown by the time the host is back, and a guest waiting
+    // it out sees a table stuck for no reason they can see.
+    const foreground = AppState.addEventListener('change', (next) => {
+      if (next !== 'active' || torn || terminal) return;
+      if (socket && socket.readyState !== WebSocket.CLOSED) return;
+      if (timer) clearTimeout(timer);
+      timer = null;
+      attemptRef.current = 0;
+      open();
+    });
+
     return () => {
       torn = true;
+      foreground.remove();
       if (timer) clearTimeout(timer);
       socket?.close();
       // Only if it is still this run's: a later run may already have put its
