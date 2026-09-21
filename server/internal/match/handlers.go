@@ -373,16 +373,20 @@ func (h *Handlers) addBot(w http.ResponseWriter, req *http.Request) {
 	var body addBotReq
 	_ = json.NewDecoder(req.Body).Decode(&body)
 
-	bot := models.Player{
-		ID:   "bot:" + randomJoinCode(8),
-		IsAI: true,
-	}
-	persona := h.personaFor(m, body.Skill)
-	bot.Name = persona.Name
-	bot.AIDifficulty = string(persona.Skill)
-	bot.AIPersona = persona.Key()
-
-	if _, err := h.manager.Join(ctx, m.ID.Hex(), bot); err != nil {
+	id := "bot:" + randomJoinCode(8)
+	// Who sits down is decided under the table's lock, from the table as it
+	// is then, so two add-bots racing each other cannot seat the same persona.
+	_, bot, err := h.manager.JoinWith(ctx, m.ID.Hex(), func(m models.Match) models.Player {
+		persona := h.personaFor(m, body.Skill)
+		return models.Player{
+			ID:           id,
+			IsAI:         true,
+			Name:         persona.Name,
+			AIDifficulty: string(persona.Skill),
+			AIPersona:    persona.Key(),
+		}
+	})
+	if err != nil {
 		writeModuleError(w, err)
 		return
 	}
@@ -408,7 +412,6 @@ func (h *Handlers) personaFor(m models.Match, want string) module.Persona {
 		skill, auto = module.MatchConfig{Options: m.Options}.BotSkill(h.defaultSkill(m.ModuleID))
 	}
 	seed := module.SeatSeed(m.Seed, strconv.Itoa(len(m.Players)), "seat")
-	skill = module.ResolveSkill(skill, auto, seed)
 
 	taken := make([]string, 0, len(m.Players))
 	for _, p := range m.Players {
@@ -416,7 +419,7 @@ func (h *Handlers) personaFor(m models.Match, want string) module.Persona {
 			taken = append(taken, p.AIPersona)
 		}
 	}
-	return module.PickPersona(skill, module.TakenPersonas(taken), seed)
+	return module.SeatPersona(skill, auto, module.TakenPersonas(taken), seed)
 }
 
 // defaultSkill is the strength a module wants when the lobby said nothing.
