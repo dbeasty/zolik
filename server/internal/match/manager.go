@@ -385,6 +385,30 @@ func (m *Manager) Join(ctx context.Context, idOrCode string, p models.Player) (m
 	return joined, nil
 }
 
+// JoinWith seats the player seat builds from the match as it stands under
+// the lock.
+//
+// For a seat whose identity depends on who is already sitting — a bot's
+// persona is drawn from the ones not yet at the table — deciding it from a
+// snapshot read before the lock lets two concurrent add-bots both see the same
+// table and both seat the same opponent.
+func (m *Manager) JoinWith(ctx context.Context, idOrCode string, seat func(models.Match) models.Player) (models.Match, models.Player, error) {
+	e, err := m.lockMatch(ctx, idOrCode)
+	if err != nil {
+		return models.Match{}, models.Player{}, err
+	}
+	p := seat(e.match)
+	joined, full, err := m.joinLocked(ctx, e, p)
+	e.mu.Unlock()
+	if err != nil {
+		return models.Match{}, models.Player{}, err
+	}
+	if full {
+		m.lobbyClosed(joined.ID.Hex())
+	}
+	return joined, p, nil
+}
+
 // joinLocked seats p, and reports whether that filled the table. e must be
 // locked.
 func (m *Manager) joinLocked(ctx context.Context, e *liveMatch, p models.Player) (models.Match, bool, error) {
