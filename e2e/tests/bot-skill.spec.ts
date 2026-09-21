@@ -90,13 +90,15 @@ test('a table set to one strength seats only that strength', async ({ request })
 
 test('Mixed seats opponents that are not all the same', async ({ request }) => {
   // Mixed draws per seat, so a table of several bots should not come out
-  // uniform. It legitimately can by chance, so this seats enough of them that
-  // an all-identical table would be a real signal rather than bad luck: with
-  // three strengths, eight seats agreeing is about one run in three thousand.
+  // uniform. It legitimately can by chance, so this seats as many as the table
+  // holds — Žolíky seats eight, and the host is one of them — so that an
+  // all-identical table is a real signal rather than bad luck: with three
+  // strengths, seven seats agreeing is about one run in seven hundred.
+  const BOTS = 7;
   const { matchId, auth } = await table(request, { botSkill: 0 });
   const skills = new Set<string>();
   const names = new Set<string>();
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < BOTS; i++) {
     const bot = await seatBot(request, matchId, auth);
     skills.add(bot.skill);
     names.add(bot.name);
@@ -104,7 +106,7 @@ test('Mixed seats opponents that are not all the same', async ({ request }) => {
   expect(skills.size, `every seat drew the same strength: ${[...skills]}`).toBeGreaterThan(1);
   // And nobody is seated twice: two Master Miroslavs would be two seats
   // sharing one name and one lifetime record.
-  expect(names.size).toBe(8);
+  expect(names.size).toBe(BOTS);
 });
 
 test('an unknown strength is refused rather than guessed at', async ({ request }) => {
