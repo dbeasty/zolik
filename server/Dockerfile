@@ -136,5 +136,12 @@ WORKDIR /
 COPY --from=build /out/server /server
 COPY --from=build --chown=nonroot:nonroot /out/data /data
 EXPOSE 8090 8092 2222
+# Transparent huge pages off for the Go heap. On a THP=always host, memory the
+# runtime hands back from inside a huge page stays charged to the cgroup until
+# the kernel is under real pressure, and both the admission gate and kdb's
+# write shedding read the cgroup. On the dev stack that was ~700 MiB above the
+# process's resident size: enough to hold kdb in its high zone and refuse every
+# new match. Go reads this setting only from the environment.
+ENV GODEBUG=disablethp=1
 USER nonroot:nonroot
 ENTRYPOINT ["/server"]

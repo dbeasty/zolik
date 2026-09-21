@@ -11,8 +11,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"zolik/server/internal/admission"
 	"zolik/server/internal/identity"
 	"zolik/server/internal/models"
+	"zolik/server/internal/module"
 )
 
 // The browser sign-in flow, in the shape that keeps credentials out of URLs.
@@ -450,7 +452,16 @@ func writeJSON(w http.ResponseWriter, v any) {
 // exactly the kind of detail (stack-adjacent, implementation-specific) that
 // should never reach a caller anyway. Every "something went wrong on our
 // end" response in this package should go through here.
+//
+// A write the database shed under memory pressure is the exception: the
+// request was fine and a retry will pass, so it is answered as SERVER_BUSY,
+// which the client explains, rather than as a 500 it cannot.
 func internalError(w http.ResponseWriter, route string, err error) {
 	log.Printf("auth: %s: %v", route, err)
+	var me module.Error
+	if errors.As(err, &me) && me.Code == "SERVER_BUSY" {
+		admission.WriteBusy(w, err)
+		return
+	}
 	http.Error(w, "internal server error", http.StatusInternalServerError)
 }
