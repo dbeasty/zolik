@@ -323,24 +323,37 @@ test.describe('one shell, every game', () => {
 
     // The value sits in a typed field now, not a label — a player who knows
     // the figure they want can enter it directly instead of nudging a stepper.
+    //
+    // Every read below retries. The field re-syncs its text from the shared
+    // value one render after a press, so a one-shot inputValue() straight
+    // after a click can see the previous figure — which is how this test once
+    // took a stale 41 for "max" and then called the correct clamp to 1000 an
+    // overshoot. The range comes from the field's own label ("min–max"), the
+    // same bounds the engine handed the control.
     const value = page.getByTestId('param-amount-value');
-    const before = Number((await value.inputValue()) || '0');
+    const [min, max] = ((await value.getAttribute('aria-label')) ?? '').split('–').map(Number);
+    expect(Number.isFinite(min) && Number.isFinite(max) && min <= max, 'the field names its range').toBe(
+      true,
+    );
+    const amount = async () => Number((await value.inputValue()) || '0');
+    const before = await amount();
     await page.getByTestId('param-amount-up').click();
-    const after = Number((await value.inputValue()) || '0');
-    expect(after, 'the stepper should move within the engine range').toBeGreaterThanOrEqual(before);
+    await expect
+      .poll(amount, { message: 'the stepper should move within the engine range' })
+      .toBe(Math.min(before + 1, max));
 
     // And the top of the range is reachable in one press, because a player who
     // wants everything in should not have to hold a button down.
     await page.getByTestId('param-amount-max').click();
-    const maxed = Number((await value.inputValue()) || '0');
-    expect(maxed).toBeGreaterThanOrEqual(after);
+    await expect(value).toHaveValue(String(max));
 
     // Typing an exact figure works too, and the engine still gets the last
     // word: the field clamps to the range it was given on commit.
-    await value.fill(String(maxed + 1000));
+    await value.fill(String(max + 1000));
     await value.press('Enter');
-    const typed = Number((await value.inputValue()) || '0');
-    expect(typed, 'typing past the range should clamp to it, not overshoot').toBe(maxed);
+    await expect(value, 'typing past the range should clamp to it, not overshoot').toHaveValue(
+      String(max),
+    );
   });
 
   test('the lobby lists every hosted game without naming one', async ({ page, request }) => {
@@ -506,7 +519,6 @@ test.describe('the legacy path is gone', () => {
     for (const [method, path, why] of [
       ['POST', '/games', 'creating a rummy game'],
       ['GET', '/games/abc123', 'reading one'],
-      ['GET', '/rules', 'the rummy ruleset endpoint'],
       ['GET', '/module', 'the single-module descriptor, replaced by /modules'],
     ] as const) {
       const res =
@@ -515,6 +527,26 @@ test.describe('the legacy path is gone', () => {
           : await request.get(`${API_BASE}${path}`);
       expect(res.status(), `${method} ${path} (${why}) should be gone`).toBe(404);
     }
+
+    // /rules was the rummy ruleset endpoint, and that is gone too — but the
+    // URL is not free. The client has a rules screen at /rules
+    // (client-react-native/app/rules.tsx), and since the server began shipping
+    // the web client from the same origin (92543d8), the exported rules.html
+    // answers that path with a 200 whatever the request asks for. So the check
+    // is not "404" but "nothing here speaks the old API": the web page when a
+    // bundle is embedded, a plain 404 when the server runs from source without
+    // one. Rules are served per module now, at /modules/{id}/rules.
+    const rules = await request.get(`${API_BASE}/rules`, {
+      headers: { Accept: 'application/json' },
+    });
+    const rulesType = rules.headers()['content-type'] ?? '';
+    expect(rulesType, 'GET /rules must not answer with a ruleset').not.toContain('json');
+    if (rules.status() !== 404) {
+      expect(rules.status(), 'GET /rules is either gone or the rules screen').toBe(200);
+      expect(rulesType, 'GET /rules is the client rules screen').toContain('text/html');
+    }
+    const perModule = await request.get(`${API_BASE}/modules/zolik/rules`);
+    expect(perModule.ok(), 'the per-module rules endpoint replaced it').toBeTruthy();
 
     // And what replaced them answers, for four games.
     const modules = await request.get(`${API_BASE}/modules`);
