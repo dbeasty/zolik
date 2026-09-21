@@ -240,6 +240,19 @@ say "checking the server env will boot"
 read_env() { ssh_admin "sudo sed -n 's/^$1=//p' ${ENV_REMOTE} | tail -1" 2>/dev/null || true; }
 env_app="$(read_env APP_ENV)"
 env_smtp="$(read_env SMTP_HOST)"
+env_jwt="$(read_env JWT_ACCESS_SECRET)"
+
+# Checked whatever APP_ENV says. The server refuses a missing or placeholder
+# key outside APP_ENV=local (auth.CheckAccessSecret), but at local it falls
+# back to a key that is in the repository, and anyone holding that key can
+# sign in as any player. A public host must never run on it.
+case "$env_jwt" in
+  ""|REPLACE_ON_FIRST_DEPLOY|dev_access_secret_change_me)
+    die "JWT_ACCESS_SECRET in ${ENV_REMOTE} is unset or a published placeholder.
+  Anyone could sign tokens as any player. Set it to a private random value
+  (openssl rand -hex 32) and deploy again."
+    ;;
+esac
 
 case "$env_app" in
   ""|local)
