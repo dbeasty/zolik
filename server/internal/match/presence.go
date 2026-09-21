@@ -357,6 +357,9 @@ func (m *Manager) DeleteAsHost(ctx context.Context, idOrCode, playerID string) e
 	m.metrics.Add(metrics.MatchesDeletedByHost, 1)
 	log.Printf("match=%s host=%s deleted a %s table", id.Hex(), playerID, status)
 	m.announceDeleted(id.Hex(), match.Players)
+	if status == "lobby" {
+		m.lobbyClosed(id.Hex())
+	}
 	return nil
 }
 

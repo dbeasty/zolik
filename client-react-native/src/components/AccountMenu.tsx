@@ -8,6 +8,7 @@ import { useSession } from '@/src/context/SessionContext';
 import { useAvatarId } from '@/src/hooks/useAvatar';
 import { useLocale } from '@/src/hooks/useLocale';
 import { t } from '@/src/lib/i18n';
+import { useInvites } from '@/src/notify/InviteProvider';
 import { colors } from '@/src/theme';
 
 /**
@@ -26,7 +27,8 @@ import { colors } from '@/src/theme';
  * the colour alone does not reach.
  */
 export function AccountMenu() {
-  const { session, logout } = useSession();
+  const { session, onlineSession, logout } = useSession();
+  const { circleRequests } = useInvites();
   const avatarId = useAvatarId();
   // `t` reads a module global, so without this the menu keeps the words it
   // first rendered with after the picker changes the language.
@@ -64,6 +66,14 @@ export function AccountMenu() {
         {/* Ringed in the header's own colour, so it reads as a badge stuck on
             the face rather than as part of the drawing. */}
         <View style={[styles.dot, { backgroundColor: statusColor }]} />
+        {/* Somebody asked to be in this player's circle. On the face, not
+            only inside the menu, because a request nobody sees is a request
+            nobody answers. */}
+        {circleRequests > 0 ? (
+          <View style={styles.badge} testID="account-menu-badge">
+            <Text style={styles.badgeText}>{circleRequests > 9 ? '9+' : circleRequests}</Text>
+          </View>
+        ) : null}
       </Pressable>
 
       <Modal
@@ -100,6 +110,16 @@ export function AccountMenu() {
               testID="account-menu-more"
               onPress={() => go('/more')}
             />
+            {/* The circle lives on the online server, so it follows the
+                online session — present at an offline table as well. */}
+            {onlineSession ? (
+              <MenuItem
+                label={t('circle.title')}
+                testID="account-menu-circle"
+                badge={circleRequests}
+                onPress={() => go('/circle')}
+              />
+            ) : null}
             <MenuItem
               label={t('settings.title')}
               testID="account-menu-settings"
@@ -166,11 +186,14 @@ function MenuItem({
   testID,
   danger,
   hint,
+  badge,
 }: {
   label: string;
   onPress: () => void;
   testID: string;
   danger?: boolean;
+  /** A count waiting behind the item; nothing is drawn for zero. */
+  badge?: number;
   /** Why you would, under what it is. Bracketed and quieter than the label,
    *  so the item is still read as its verb. */
   hint?: string;
@@ -185,7 +208,14 @@ function MenuItem({
       onPress={onPress}
       style={({ pressed }) => [styles.item, pressed && styles.itemPressed]}
     >
-      <Text style={[styles.itemText, danger && styles.itemTextDanger]}>{label}</Text>
+      <View style={styles.itemRow}>
+        <Text style={[styles.itemText, danger && styles.itemTextDanger]}>{label}</Text>
+        {badge ? (
+          <View style={styles.itemBadge} testID={`${testID}-badge`}>
+            <Text style={styles.badgeText}>{badge}</Text>
+          </View>
+        ) : null}
+      </View>
       {hint ? <Text style={styles.itemHint}>({hint})</Text> : null}
     </Pressable>
   );
@@ -227,7 +257,30 @@ const styles = StyleSheet.create({
   name: { color: colors.text, fontSize: 15, fontWeight: '700' },
   status: { fontSize: 12, fontWeight: '600', marginTop: 2 },
   rule: { height: 1, backgroundColor: colors.border, marginBottom: 4 },
+  badge: {
+    position: 'absolute',
+    right: -4,
+    top: -4,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    paddingHorizontal: 3,
+    backgroundColor: colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   item: { paddingHorizontal: 14, paddingVertical: 12 },
+  itemRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  itemBadge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 4,
+    backgroundColor: colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   itemPressed: { backgroundColor: colors.bg },
   itemText: { color: colors.text, fontSize: 15 },
   itemTextDanger: { color: colors.danger },

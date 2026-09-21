@@ -15,6 +15,7 @@ import {
 import { ensureBlePermission } from '@/src/net/ble/link';
 import { BleHostKeyChanged } from '@/src/net/ble/transport';
 import { guestNameFor } from '@/src/lib/guestName';
+import { loadFlag, saveFlag, useDeviceFlag } from '@/src/notify/prefs';
 import { t } from '@/src/lib/i18n';
 import { colors, shared } from '@/src/theme';
 
@@ -117,7 +118,12 @@ function NotSeated() {
       {error ? <Text style={shared.error}>{error}</Text> : null}
       <Pressable
         style={[shared.button, { marginTop: 12 }]}
-        onPress={() => run(() => playOffline(name.trim()), false)}
+        onPress={() =>
+          run(async () => {
+            await playOffline(name.trim());
+            await letRoomInIfTold(name.trim());
+          }, false)
+        }
         disabled={busy}
         testID="offline-start"
       >
@@ -185,6 +191,27 @@ function NotSeated() {
       </View>
     </Screen>
   );
+}
+
+/**
+ * Opens the Wi-Fi room straight after hosting starts, when "Tell players
+ * nearby" is on (the default). Done here rather than only on the Hosting
+ * card, because starting a table goes straight on to the game picker and a
+ * host may never see that card before their guests look for them.
+ *
+ * A failure is not the start's failure: the table is up, and the Hosting card
+ * still offers the button.
+ */
+async function letRoomInIfTold(typed: string) {
+  if (!(await loadFlag('tellNearby'))) return;
+  try {
+    // The name the table actually seated the host under, which is what the
+    // room advertises and what a guest's banner will say.
+    await nearby.openRoom((await loadOfflineName()) || typed);
+    await activateKeepAwakeAsync(KEEP_AWAKE);
+  } catch {
+    /* the Hosting card's own button remains */
+  }
 }
 
 /**
@@ -291,6 +318,20 @@ function Hosting() {
   });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  // "Tell players nearby": on by default, so hosting a table is enough for
+  // every phone in the room with the app open to be offered it — nobody has
+  // to find the button that lets the room in. Only Wi-Fi opens by itself:
+  // Bluetooth asks for a permission, and that stays behind a tap.
+  const tellNearby = useDeviceFlag('tellNearby');
+  const autoOpened = useRef(false);
+  useEffect(() => {
+    if (tellNearby !== true || autoOpened.current) return;
+    autoOpened.current = true;
+    if (!nearby.hostStatus()?.lanPort) void open();
+    // Once per visit, when the setting is first known; `open` is recreated
+    // every render and is not a reason to open again.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tellNearby]);
 
   async function open() {
     setBusy(true);
@@ -335,6 +376,38 @@ function Hosting() {
 
       <View style={[shared.card, { marginTop: 12 }]}>
         <Text style={cardTitle}>{t('offline.roomTitle')}</Text>
+        <Pressable
+          testID="offline-tell-nearby"
+          accessibilityRole="switch"
+          accessibilityState={{ checked: tellNearby === true }}
+          onPress={async () => {
+            const next = tellNearby !== true;
+            await saveFlag('tellNearby', next);
+            if (next && !room) await open();
+            if (!next && room) await close();
+          }}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 }}
+        >
+          {/* The same two-pixel border on and off, so ticking it moves nothing. */}
+          <View
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: 5,
+              borderWidth: 2,
+              borderColor: tellNearby ? colors.gold : colors.border,
+              backgroundColor: tellNearby ? colors.gold : 'transparent',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {tellNearby ? <Text style={{ color: colors.bg, fontWeight: '800' }}>✓</Text> : null}
+          </View>
+          <View style={{ flexShrink: 1 }}>
+            <Text style={{ color: colors.text }}>{t('offline.tellNearby')}</Text>
+            <Text style={[shared.status, { marginTop: 2 }]}>{t('offline.tellNearbyBody')}</Text>
+          </View>
+        </Pressable>
         {room ? (
           <>
             <Text style={shared.status}>{t('offline.roomOpen')}</Text>

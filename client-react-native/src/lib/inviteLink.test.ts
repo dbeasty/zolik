@@ -1,4 +1,4 @@
-import { codeFromInviteInput, INVITE_PATH, inviteUrlFor } from '@/src/lib/inviteLink';
+import { codeFromInviteInput, friendUrlFor, INVITE_PATH, inviteUrlFor } from '@/src/lib/inviteLink';
 
 /**
  * The link is the feature, so these are the tests that matter most: a wrong
@@ -106,5 +106,27 @@ describe('codeFromInviteInput', () => {
 
   it('gives back nothing for an empty box', () => {
     expect(codeFromInviteInput('   ')).toBe('');
+  });
+});
+
+describe('friendUrlFor', () => {
+  it('keeps the server path but the page origin on web', () => {
+    expect(
+      friendUrlFor({ friendCode: 'ABCD2345', friendUrl: 'https://jokerless.com/add/ABCD2345' }, 'http://localhost:8114'),
+    ).toBe('http://localhost:8114/add/ABCD2345');
+  });
+
+  it('builds one from the code when the server sent no link', () => {
+    expect(friendUrlFor({ friendCode: 'ABCD2345' }, 'https://jokerless.org')).toBe('https://jokerless.org/add/ABCD2345');
+  });
+
+  it('uses the server link as is on a phone', () => {
+    expect(friendUrlFor({ friendCode: 'X', friendUrl: 'https://jokerless.com/add/X' }, '')).toBe(
+      'https://jokerless.com/add/X',
+    );
+  });
+
+  it('gives nothing without a code or a link', () => {
+    expect(friendUrlFor({}, 'https://jokerless.com')).toBe('');
   });
 });

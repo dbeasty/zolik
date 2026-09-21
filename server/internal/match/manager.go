@@ -65,6 +65,34 @@ type Manager struct {
 	// which is what every test and every Mongo deployment runs with — see
 	// ReplayAvailable, and SetReplayEnabled below.
 	replayEnabled bool
+
+	// lobbyObserver hears when a table stops taking players, and
+	// personalRoom is the socket room each person's own connection is held
+	// in. Both optional — see SetLobbyObserver and SetPersonalRoom.
+	lobbyObserver LobbyObserver
+	personalRoom  string
+}
+
+// LobbyObserver is told when a lobby stops being one somebody could join: it
+// started, filled its last seat, or was deleted. It is how an invite already
+// sent about the table is withdrawn. Must not block.
+type LobbyObserver interface {
+	LobbyClosed(matchID string)
+}
+
+// SetLobbyObserver attaches the observer. Optional.
+func (m *Manager) SetLobbyObserver(o LobbyObserver) { m.lobbyObserver = o }
+
+// SetPersonalRoom names the room every client's own, always-open connection
+// is held in, keyed by subject key. With it, being picked up out of the
+// waiting room reaches the player on whichever screen — and instance — they
+// are on, not only on the waiting room's own socket. Optional.
+func (m *Manager) SetPersonalRoom(roomID string) { m.personalRoom = roomID }
+
+func (m *Manager) lobbyClosed(matchID string) {
+	if m.lobbyObserver != nil {
+		m.lobbyObserver.LobbyClosed(matchID)
+	}
 }
 
 // Recorder is notified when a match finishes, so its result can be recorded
@@ -191,12 +219,23 @@ func (m *Manager) Invite(ctx context.Context, idOrCode, hostID, playerID string)
 	}
 
 	m.waiting.Pickup(ctx, playerID)
+	invited := map[string]any{
+		"type":     "lobby_invited",
+		"matchId":  next.ID.Hex(),
+		"joinCode": next.JoinCode,
+	}
 	if m.hub != nil && m.waitingRoom != "" {
-		m.hub.WriteDirect(m.waitingRoom, playerID, map[string]any{
-			"type":     "lobby_invited",
-			"matchId":  next.ID.Hex(),
-			"joinCode": next.JoinCode,
-		})
+		m.hub.WriteDirect(m.waitingRoom, playerID, invited)
+	}
+	// And on the personal socket, through Publish rather than WriteDirect:
+	// that connection may be held by another instance, which WriteDirect
+	// could never reach.
+	if m.hub != nil && m.personalRoom != "" {
+		key := "user:" + playerID
+		if isGuest {
+			key = "guest:" + playerID
+		}
+		m.hub.Publish(m.personalRoom, []ws.PlayerMessage{{PlayerID: key, Payload: invited}})
 	}
 	return next, false, nil
 }
@@ -353,6 +392,9 @@ func (m *Manager) Join(ctx context.Context, idOrCode string, p models.Player) (m
 		return models.Match{}, err
 	}
 	match.Version++
+	if _, max := mod.Descriptor().SeatRange(match.Variation); len(match.Players) >= max {
+		m.lobbyClosed(match.ID.Hex())
+	}
 	return match, nil
 }
 
@@ -393,6 +435,7 @@ func (m *Manager) Start(ctx context.Context, idOrCode string) (models.Match, err
 	}
 	match.Version++
 	m.metrics.Add(metrics.MatchesStarted, 1)
+	m.lobbyClosed(match.ID.Hex())
 	m.Broadcast(match)
 	// A bot may be first to act — in Hold'em it usually is, since the blinds
 	// decide the order rather than who created the lobby.

@@ -5,9 +5,17 @@ import type {
   AccountProfile,
   AuthProvider,
   CapacitySnapshot,
+  CircleEntry,
+  CircleLists,
+  CircleSuggestion,
+  FriendPreview,
+  InvitePreference,
   LifetimeStats,
   LinkedIdentity,
+  NotifyConfig,
+  NotifyProfile,
   PlayerSession,
+  PushDeviceRegistration,
   SignInOutcome,
   WaitingPlayer,
 } from '@/src/api/types';
@@ -517,6 +525,103 @@ export class ZolikClient {
   }
 
 
+
+  // --- notifications: the game circle and invites ------------------------
+  //
+  // One method per route in docs/notifications-plan.md. Every one of them
+  // speaks to the online server, never to a table on a phone in the room:
+  // callers use `apiClient`, not the session's client, for exactly that
+  // reason.
+
+  /** The personal socket that carries invites to whichever screen is open. */
+  meWsUrl(): string {
+    return this.transport.socketUrl(`/ws/me?token=${encodeURIComponent(this.accessToken)}`);
+  }
+
+  async getNotifyProfile(): Promise<NotifyProfile> {
+    return this.get('/notify/me', true);
+  }
+
+  async updateNotifyProfile(patch: { invites?: InvitePreference; nearby?: boolean }): Promise<NotifyProfile> {
+    return this.request('PATCH', '/notify/me', patch, true);
+  }
+
+  async getCircle(): Promise<CircleLists> {
+    const data = await this.get<Partial<CircleLists>>('/notify/circle', true);
+    return {
+      members: data.members ?? [],
+      requests: data.requests ?? [],
+      notifiers: data.notifiers ?? [],
+    };
+  }
+
+  async getCircleSuggestions(): Promise<CircleSuggestion[]> {
+    const data = await this.get<{ players?: CircleSuggestion[] }>('/notify/circle/suggestions', true);
+    return data.players ?? [];
+  }
+
+  /**
+   * Adds somebody to this player's circle: by key for a past opponent, which
+   * takes effect at once, or by username, which sends a request the other
+   * side has to accept.
+   */
+  async addToCircle(who: { key: string } | { username: string }): Promise<CircleEntry> {
+    const data = await this.post<{ entry: CircleEntry }>('/notify/circle', who, true);
+    return data.entry;
+  }
+
+  async removeFromCircle(key: string): Promise<void> {
+    await this.del(`/notify/circle/${encodeURIComponent(key)}`, true);
+  }
+
+  async muteNotifier(key: string, muted: boolean): Promise<void> {
+    await this.post(`/notify/circle/${encodeURIComponent(key)}/mute`, { muted }, true);
+  }
+
+  async acceptCircleRequest(key: string): Promise<CircleEntry> {
+    const data = await this.post<{ entry: CircleEntry }>(
+      `/notify/circle/requests/${encodeURIComponent(key)}/accept`,
+      null,
+      true,
+    );
+    return data.entry;
+  }
+
+  async declineCircleRequest(key: string): Promise<void> {
+    await this.post(`/notify/circle/requests/${encodeURIComponent(key)}/decline`, null, true);
+  }
+
+  /** Whose friend link this is. Public, so a signed-out visitor sees it too. */
+  async previewFriendLink(code: string): Promise<FriendPreview> {
+    return this.get(`/notify/friend/${encodeURIComponent(code)}`, false);
+  }
+
+  async acceptFriendLink(code: string): Promise<CircleEntry> {
+    const data = await this.post<{ entry: CircleEntry }>(
+      `/notify/friend/${encodeURIComponent(code)}`,
+      null,
+      true,
+    );
+    return data.entry;
+  }
+
+  /** Tells the host's circle about a table. Repeat calls reach only the
+   *  people not told yet, so calling it again is safe. */
+  async announceTable(matchId: string, keys?: string[]): Promise<{ notified: number; already?: boolean }> {
+    return this.post('/notify/announce', keys ? { matchId, keys } : { matchId }, true);
+  }
+
+  async getNotifyConfig(): Promise<NotifyConfig> {
+    return this.get('/notify/config', false);
+  }
+
+  async registerPushDevice(device: PushDeviceRegistration): Promise<{ id: string }> {
+    return this.post('/notify/devices', device, true);
+  }
+
+  async unregisterPushDevice(id: string): Promise<void> {
+    await this.del(`/notify/devices/${encodeURIComponent(id)}`, true);
+  }
 
   async createScoringSession(players: string[]): Promise<string> {
     const data = await this.post<{ id: string }>(

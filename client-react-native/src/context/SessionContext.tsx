@@ -87,6 +87,21 @@ const hostKeyKey = (instanceId: string) => `zolik_hostkey_${instanceId}`;
 /** The peripheral a table was last reached at: a first guess, nothing more. */
 const hostRadioKey = (instanceId: string) => `zolik_hostradio_${instanceId}`;
 
+/**
+ * Whether this phone has sat at a table with that instance id before — its
+ * Bluetooth key was pinned then. A nearby banner says so, because "a table
+ * nearby" from somebody you have played with is a different invitation from
+ * one from a stranger.
+ */
+export async function isKnownHost(instanceId: string): Promise<boolean> {
+  if (!instanceId) return false;
+  try {
+    return !!(await storage.getItem(hostKeyKey(instanceId)));
+  } catch {
+    return false;
+  }
+}
+
 async function pinIfNew(instanceId: string, base64Key: string | undefined) {
   if (!base64Key) return;
   if (!(await storage.getItem(hostKeyKey(instanceId)))) {
@@ -114,6 +129,13 @@ export async function loadOfflineName(): Promise<string | null> {
 
 type SessionContextValue = {
   session: PlayerSession | null;
+  /**
+   * The online session, even while an offline table stands in for it as
+   * `session`. The circle, invites and push all live on the online server,
+   * and a player sitting at a table in the room is still somebody their
+   * circle can reach.
+   */
+  onlineSession: PlayerSession | null;
   loading: boolean;
   client: typeof apiClient;
   /** Sign-in methods this deployment offers; empty until fetched. */
@@ -430,6 +452,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = useCallback(async () => {
+    // Taken back while the token still names whose device this is, so the
+    // next person on this phone is not woken for the last one's tables.
+    // Loaded lazily: pushDevice reads this module's storage.
+    await (await import('@/src/notify/pushDevice')).unregisterDevice();
     await apiClient.logout();
     await applySession(null);
   }, [applySession]);
@@ -591,6 +617,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo(
     () => ({
       session: offline ? offline.session : session,
+      onlineSession: session,
       loading,
       client: offline ? offline.client : apiClient,
       providers,

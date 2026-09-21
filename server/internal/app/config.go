@@ -110,6 +110,12 @@ type Config struct {
 	// environment refuses to start rather than silently swallowing them.
 	SMTP auth.SMTPConfig
 
+	// Push is how a table invite reaches somebody with no app open — see
+	// internal/notify. Every part is optional: without VAPID keys browsers get
+	// no push, without Expo phones get none, and in both cases the in-app
+	// banner still works for anybody who has the app open.
+	Push PushConfig
+
 	// TestEndpointsEnabled gates /games/{id}/debug-state, which writes a
 	// game's phase/hands/melds/turn directly into Mongo, bypassing rules
 	// validation — lets e2e tests jump straight into a specific mid-round
@@ -251,6 +257,16 @@ func LoadConfig() Config {
 			FromName: envOr("SMTP_FROM_NAME", "Žolíky"),
 		},
 
+		Push: PushConfig{
+			VAPIDPublicKey:  os.Getenv("VAPID_PUBLIC_KEY"),
+			VAPIDPrivateKey: os.Getenv("VAPID_PRIVATE_KEY"),
+			VAPIDSubject:    envOr("VAPID_SUBJECT", "mailto:support@jokerless.com"),
+			// On by default outside local development, where there is no
+			// push credential and a log line is the more useful answer.
+			ExpoEnabled:     envBool("EXPO_PUSH_ENABLED", !local),
+			ExpoAccessToken: os.Getenv("EXPO_ACCESS_TOKEN"),
+		},
+
 		Retention: match.RetentionWindows{
 			Lobby:     envHours("ZOLIK_RETAIN_LOBBY_HOURS", 24),
 			Completed: envHours("ZOLIK_RETAIN_COMPLETED_HOURS", 90*24),
@@ -387,4 +403,14 @@ func envFloat(key string, fallback float64) float64 {
 		return fallback
 	}
 	return f
+}
+
+// PushConfig configures OS notifications. Generate a VAPID pair with
+// `go run ./cmd/vapid-keys`.
+type PushConfig struct {
+	VAPIDPublicKey  string
+	VAPIDPrivateKey string
+	VAPIDSubject    string
+	ExpoEnabled     bool
+	ExpoAccessToken string
 }

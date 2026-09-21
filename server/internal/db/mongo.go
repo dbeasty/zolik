@@ -174,5 +174,25 @@ func (m *Mongo) EnsureIndexes(ctx context.Context) error {
 		return err
 	}
 
+	// notify_* — a friend code is looked up when somebody follows a friend
+	// link, and must name one person, so it is unique. The circle is read in
+	// both directions: whom I tell, and who tells me.
+	if _, err := c.NotifyProfiles.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{Keys: bson.D{{Key: "friendCode", Value: 1}}, Options: options.Index().SetUnique(true)},
+	}); err != nil {
+		return err
+	}
+	if _, err := c.NotifyCircle.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{Keys: bson.D{{Key: "ownerKey", Value: 1}}},
+		{Keys: bson.D{{Key: "memberKey", Value: 1}}},
+	}); err != nil {
+		return err
+	}
+	if _, err := c.NotifyDevices.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{Keys: bson.D{{Key: "subjectKey", Value: 1}}},
+	}); err != nil {
+		return err
+	}
+
 	return nil
 }

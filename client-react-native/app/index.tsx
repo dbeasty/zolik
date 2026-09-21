@@ -18,6 +18,8 @@ import { moduleName } from '@/src/lib/gameLabels';
 import { reasonText, t } from '@/src/lib/i18n';
 import { routeForMatch } from '@/src/lib/matchRoute';
 import { consumePendingDestination } from '@/src/lib/pendingDestination';
+import { useInvites } from '@/src/notify/InviteProvider';
+import { InviteRow } from '@/src/notify/InviteRow';
 import { colors, shared } from '@/src/theme';
 
 function MenuButton({
@@ -71,6 +73,7 @@ export default function MainMenu() {
         <Text style={shared.status}>{t('home.signInPrompt')}</Text>
       )}
 
+      <WaitingInvitesCard />
       {session ? <MyTablesCard /> : null}
       {/* The waiting room is the online server's, and nobody online can
           pick up a player at a table on this phone. */}
@@ -251,14 +254,49 @@ function MyTablesCard() {
   );
 }
 
+/**
+ * "Tables waiting for you": every invite still queued, for the player who
+ * let the banner go by — or who arrives here from a notification.
+ *
+ * Absent when there are none, for the same reason `MyTablesCard` is: an
+ * empty card on every visit would be clutter on the one screen designed to
+ * have almost nothing on it.
+ */
+function WaitingInvitesCard() {
+  const { invites, join, dismiss, joiningId } = useInvites();
+  if (invites.length === 0) return null;
+  return (
+    <View style={[shared.card, { marginTop: 12 }]} testID="waiting-invites-card">
+      <Text style={{ color: colors.text, fontWeight: '600', marginBottom: 4 }}>
+        {t('notify.waitingCard.title')}
+      </Text>
+      {invites.map((invite) => (
+        <InviteRow
+          key={invite.id}
+          invite={invite}
+          palette={colors}
+          busy={joiningId === invite.id}
+          onJoin={() => void join(invite.id)}
+          onDismiss={() => dismiss(invite.id)}
+        />
+      ))}
+    </View>
+  );
+}
+
 function WaitingStatusCard({ session }: { session: PlayerSession }) {
   const [available, setAvailable] = useState(false);
 
   const { players: idlePlayers, loaded: idleLoaded } = useWaitingLobbyStatus(!available);
 
-  const onInvited = useCallback((matchId: string, _joinCode: string) => {
-    router.replace(`/lobby/join?matchId=${encodeURIComponent(matchId)}`);
-  }, []);
+  // The seat is already taken by the time this arrives, so the provider
+  // walks the player to it — the same thing it does with the copy of this
+  // invite that comes over the personal socket, whichever lands first.
+  const { receiveSeated } = useInvites();
+  const onInvited = useCallback(
+    (matchId: string, joinCode: string) => receiveSeated(matchId, joinCode),
+    [receiveSeated],
+  );
   const { players: livePlayers, status, attempts, retryNow } = useLobbySocket(available, onInvited);
 
   if (!available) {
