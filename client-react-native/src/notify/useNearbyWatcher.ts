@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { PermissionsAndroid, Platform } from 'react-native';
 
 import * as nearby from '@/modules/zolik-nearby';
@@ -43,6 +43,12 @@ export function useNearbyWatcher(
 ) {
   const handlersRef = useRef(handlers);
   handlersRef.current = handlers;
+  // Joining a Bluetooth table pauses scanning. A scan running while the radio
+  // connects starves the link: the host sees the connection, and the
+  // handshake then times out as "the table did not answer". The Offline
+  // screen stops its own scan before connecting for the same reason.
+  const pausedRef = useRef(false);
+  const stopScanRef = useRef<(() => void) | null>(null);
   const seatedAt = exclude.offlineInstanceId;
 
   // Wi-Fi.
@@ -94,13 +100,12 @@ export function useNearbyWatcher(
   useEffect(() => {
     if (!bleAllowed || !nearby.nearbyAvailable) return undefined;
     let live = true;
-    let stopScan: (() => void) | null = null;
     let burstTimer: ReturnType<typeof setTimeout> | null = null;
 
     const burst = async () => {
-      if (!live || stopScan) return;
-      if (!(await alreadyPermitted()) || nearby.bleState() !== 'on' || !live) return;
-      stopScan = nearby.bleScan((s) => {
+      if (!live || stopScanRef.current || pausedRef.current) return;
+      if (!(await alreadyPermitted()) || nearby.bleState() !== 'on' || !live || pausedRef.current) return;
+      stopScanRef.current = nearby.bleScan((s) => {
         const name = (s.name || '').trim();
         if (!name) return;
         const now = Date.now();
@@ -114,8 +119,8 @@ export function useNearbyWatcher(
         });
       });
       burstTimer = setTimeout(() => {
-        stopScan?.();
-        stopScan = null;
+        stopScanRef.current?.();
+        stopScanRef.current = null;
       }, BLE_BURST_MS);
     };
 
@@ -125,10 +130,27 @@ export function useNearbyWatcher(
       live = false;
       clearInterval(every);
       if (burstTimer) clearTimeout(burstTimer);
-      stopScan?.();
-      stopScan = null;
+      stopScanRef.current?.();
+      stopScanRef.current = null;
     };
   }, [bleAllowed]);
+
+  // Stable, so a caller can list it as a dependency without re-creating
+  // whatever it memoises on every render.
+  return useMemo(
+    () => ({
+      /** Stops any scan now and starts no more until `resumeBle`. */
+      pauseBle: () => {
+        pausedRef.current = true;
+        stopScanRef.current?.();
+        stopScanRef.current = null;
+      },
+      resumeBle: () => {
+        pausedRef.current = false;
+      },
+    }),
+    [],
+  );
 }
 
 /**

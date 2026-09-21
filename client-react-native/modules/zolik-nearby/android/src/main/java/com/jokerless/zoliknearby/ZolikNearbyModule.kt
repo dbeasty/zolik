@@ -3,6 +3,7 @@ package com.jokerless.zoliknearby
 import android.content.Context
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import com.jokerless.zolikcore.Host
@@ -286,8 +287,7 @@ internal class NearbyNsd(
         main.post { resolving = false; next() }
       }
       override fun onServiceResolved(info: NsdServiceInfo) {
-        @Suppress("DEPRECATION")
-        val address = (info.host as? Inet4Address)?.hostAddress
+        val address = ipv4Of(info)
         val txt = info.attributes.mapValues { (_, v) -> v?.let { String(it) } ?: "" }
         main.post {
           resolving = false
@@ -307,6 +307,20 @@ internal class NearbyNsd(
         }
       }
     })
+  }
+
+  /**
+   * The host's IPv4 address. `host` is whichever address the resolver saw
+   * first, and on the newer mDNS stack that is often an IPv6 one — the table
+   * was then dropped as unreachable, so a room found it only some of the time.
+   * API 34 lists every address; the first IPv4 among them is the one to use.
+   */
+  private fun ipv4Of(info: NsdServiceInfo): String? {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+      info.hostAddresses.firstOrNull { it is Inet4Address }?.let { return it.hostAddress }
+    }
+    @Suppress("DEPRECATION")
+    return (info.host as? Inet4Address)?.hostAddress
   }
 
   companion object {

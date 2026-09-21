@@ -212,7 +212,7 @@ export function InviteProvider({ children }: { children: React.ReactNode }) {
     [onMessage],
   );
 
-  useNearbyWatcher(
+  const watcher = useNearbyWatcher(
     nearbyAvailable && appActive && nearbyFlag === true,
     { offlineInstanceId: offline?.instanceId ?? null },
     {
@@ -266,6 +266,7 @@ export function InviteProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       setJoiningId(id);
+      watcher.pauseBle();
       try {
         if (offline) await leaveOffline();
         await followInvite(invite, {
@@ -283,9 +284,10 @@ export function InviteProvider({ children }: { children: React.ReactNode }) {
         else setError(t('notify.joinFailed', { reason: formatApiError(e) }));
       } finally {
         setJoiningId('');
+        watcher.resumeBle();
       }
     },
-    [offline, leaveOffline, joinNearby, joinBluetooth, onlineSession?.username],
+    [offline, leaveOffline, joinNearby, joinBluetooth, onlineSession?.username, watcher],
   );
 
   const value = useMemo<InviteContextValue>(
