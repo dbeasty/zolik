@@ -483,7 +483,7 @@ export const pl: Record<string, string> = {
   'holdem.header.handLimit': 'Rozdań łącznie',
   'holdem.header.blinds': 'Ciemne',
   'holdem.cost.call': 'do sprawdzenia',
-  'holdem.cost.pot': 'w puli',
+  'holdem.cost.pot': 'pula po sprawdzeniu',
   'holdem.seat.stack': 'Stos',
   'holdem.seat.bet': 'Zakład',
   'holdem.prompt.yourAction': 'Twój ruch',

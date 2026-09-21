@@ -479,7 +479,7 @@ export const hr: Record<string, string> = {
   'holdem.header.handLimit': 'Dijeljenja ukupno',
   'holdem.header.blinds': 'Blindovi',
   'holdem.cost.call': 'za praćenje',
-  'holdem.cost.pot': 'u potu',
+  'holdem.cost.pot': 'pot nakon praćenja',
   'holdem.seat.stack': 'Stack',
   'holdem.seat.bet': 'Ulog',
   'holdem.prompt.yourAction': 'Ti si na redu',

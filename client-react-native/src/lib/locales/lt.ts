@@ -477,7 +477,7 @@ export const lt: Record<string, string> = {
   'holdem.header.handLimit': 'Rankų iš viso',
   'holdem.header.blinds': 'Aklieji statymai',
   'holdem.cost.call': 'atsakyti',
-  'holdem.cost.pot': 'banke',
+  'holdem.cost.pot': 'bankas atsakius',
   'holdem.seat.stack': 'Krūvelė',
   'holdem.seat.bet': 'Statymas',
   'holdem.prompt.yourAction': 'Tavo eilė veikti',

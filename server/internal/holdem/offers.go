@@ -115,8 +115,13 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 			Max:      maxTo,
 			Step:     1,
 			Default:  minTo,
+			Headline: true,
 			Choices:  raiseQuickChoices(s, minTo, maxTo),
 		}}
+		// The pot as it stands once this seat's call is in — the base every
+		// pot-sized raise is measured from — and worded as exactly that, "pot
+		// after call". Under a title reading "Raise to 483" a bare "in the pot"
+		// read as the pot this raise would make, which it is not.
 		raise.Facts = []module.Fact{{
 			LabelKey: "holdem.cost.pot", Value: strconv.Itoa(s.potIfCalled()),
 		}}

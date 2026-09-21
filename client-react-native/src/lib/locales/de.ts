@@ -494,7 +494,7 @@ export const de: Record<string, string> = {
   'holdem.header.handLimit': 'Blätter insgesamt',
   'holdem.header.blinds': 'Blinds',
   'holdem.cost.call': 'zum Mitgehen',
-  'holdem.cost.pot': 'im Pot',
+  'holdem.cost.pot': 'Pot nach Mitgehen',
   'holdem.seat.stack': 'Stack',
   'holdem.seat.bet': 'Einsatz',
   'holdem.prompt.yourAction': 'Du bist dran',

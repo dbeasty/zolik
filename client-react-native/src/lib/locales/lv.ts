@@ -479,7 +479,7 @@ export const lv: Record<string, string> = {
   'holdem.header.handLimit': 'Roku kopā',
   'holdem.header.blinds': 'Aklās likmes',
   'holdem.cost.call': 'lai atbildētu',
-  'holdem.cost.pot': 'bankā',
+  'holdem.cost.pot': 'banka pēc izlīdzināšanas',
   'holdem.seat.stack': 'Kaudzīte',
   'holdem.seat.bet': 'Likme',
   'holdem.prompt.yourAction': 'Tava kārta rīkoties',

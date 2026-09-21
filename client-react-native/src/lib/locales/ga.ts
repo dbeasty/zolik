@@ -497,7 +497,7 @@ export const ga: Record<string, string> = {
   'holdem.header.handLimit': 'Lámha ar fad',
   'holdem.header.blinds': 'Dallóga',
   'holdem.cost.call': 'chun glaoch',
-  'holdem.cost.pot': 'sa phota',
+  'holdem.cost.pot': 'pota tar éis glaoch',
   'holdem.seat.stack': 'Cruach',
   'holdem.seat.bet': 'Geall',
   'holdem.prompt.yourAction': 'Do sheal chun gnímh',

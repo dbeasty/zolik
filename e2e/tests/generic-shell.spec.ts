@@ -57,6 +57,29 @@ async function tableWithBots(
 }
 
 /** Puts a session in localStorage so the shell opens already signed in. */
+/**
+ * Waits until this player has a raise to make, dealing on if a hand ends first.
+ *
+ * Whether the player gets a turn at all depends on the shuffle. If both bots
+ * fold before the player acts, the hand is over, and the only thing offered is
+ * the intermission's "Start the next round". A plain wait for the stepper then
+ * times out even though nothing is wrong, so this presses that control and
+ * keeps waiting.
+ */
+async function untilRaiseOffered(page: Page) {
+  await expect
+    .poll(
+      async () => {
+        if (await page.getByTestId('param-amount').isVisible()) return true;
+        const next = page.getByTestId('offer-continue');
+        if (await next.isVisible()) await next.click().catch(() => {});
+        return false;
+      },
+      { timeout: 120_000, intervals: [500], message: 'a raise should come round to this player' },
+    )
+    .toBe(true);
+}
+
 async function signIn(page: Page, host: { accessToken: string; refreshToken: string; userId: string; username?: string }) {
   await page.addInitScript((s) => {
     window.localStorage.setItem('zolik_session', JSON.stringify(s));
@@ -318,8 +341,7 @@ test.describe('one shell, every game', () => {
     await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
 
     // Wait for our turn, then look for the stepper on the raise control.
-    const stepper = page.getByTestId('param-amount');
-    await expect(stepper).toBeVisible({ timeout: 40_000 });
+    await untilRaiseOffered(page);
 
     // The value sits in a typed field now, not a label — a player who knows
     // the figure they want can enter it directly instead of nudging a stepper.
@@ -336,16 +358,62 @@ test.describe('one shell, every game', () => {
       true,
     );
     const amount = async () => Number((await value.inputValue()) || '0');
+
+    // The raise button names the figure it sends, and follows every way of
+    // setting it. It used to read "Raise" over a slider set to 483 — the
+    // player had to trust the press read the right number. Checked against
+    // the title's own text, the thing on screen, not the field beside it.
+    const title = page.getByTestId('offer-raise-title');
+    const namesAmount = async (n: number, how: string) =>
+      expect(title, `the raise button should name ${n} after ${how}`).toHaveText(
+        new RegExp(`\\b${n}$`),
+      );
     const before = await amount();
+    await namesAmount(before, 'dealing');
+
+    // The figure under it is the pot once the call is in, and says so. A bare
+    // "in the pot" under "Raise to 483" read as the pot this raise would make.
+    await expect(page.getByTestId('offer-raise')).toContainText(/pot after call \d+/);
+
     await page.getByTestId('param-amount-up').click();
     await expect
       .poll(amount, { message: 'the stepper should move within the engine range' })
       .toBe(Math.min(before + 1, max));
+    await namesAmount(Math.min(before + 1, max), 'the stepper');
+
+    // A quick choice ("½ Pot", "Pot") moves the button too. Their test ids
+    // end in the value they jump to, so a numeric suffix picks them out from
+    // the stepper's own controls.
+    const quick = (
+      await page
+        .getByTestId('param-amount')
+        .locator('[data-testid^="param-amount-"]')
+        .evaluateAll((els) => els.map((e) => e.getAttribute('data-testid') ?? ''))
+    )
+      .map((id) => Number(id.slice('param-amount-'.length)))
+      .filter((n) => Number.isInteger(n));
+    expect(quick.length, 'the raise should offer quick choices').toBeGreaterThan(0);
+    await page.getByTestId(`param-amount-${quick[0]}`).click();
+    await expect(value).toHaveValue(String(quick[0]));
+    await namesAmount(quick[0], 'a quick choice');
 
     // And the top of the range is reachable in one press, because a player who
     // wants everything in should not have to hold a button down.
     await page.getByTestId('param-amount-max').click();
     await expect(value).toHaveValue(String(max));
+    await namesAmount(max, 'max');
+
+    // Dragging the slider to its left end lands on the minimum, and the button
+    // says so — the case in the report: slider moved, button unchanged.
+    const slider = page.getByTestId('param-amount-slider');
+    const box = await slider.boundingBox();
+    if (!box) throw new Error('slider has no box');
+    await page.mouse.move(box.x + box.width - 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 1, box.y + box.height / 2, { steps: 8 });
+    await page.mouse.up();
+    await expect(value).toHaveValue(String(min));
+    await namesAmount(min, 'dragging the slider');
 
     // Typing an exact figure works too, and the engine still gets the last
     // word: the field clamps to the range it was given on commit.
@@ -354,6 +422,64 @@ test.describe('one shell, every game', () => {
     await expect(value, 'typing past the range should clamp to it, not overshoot').toHaveValue(
       String(max),
     );
+    await namesAmount(max, 'typing past the range');
+  });
+
+  test('the collapsed controls pill names and sends the amount dialled in the bar', async ({
+    page,
+    request,
+  }) => {
+    // Collapsing the controls panel unmounts the bar. The amount used to live
+    // inside it, so collapsing forgot it, and the rail's "Raise" pill — which
+    // never saw it — sent the engine's default. A player who dialled 483 and
+    // raised from the pill went in at the minimum.
+    test.setTimeout(180_000);
+    const sent: string[] = [];
+    page.on('websocket', (ws) => ws.on('framesent', (f) => sent.push(String(f.payload))));
+
+    const poker = await tableWithBots(request, 'holdem', 3, { variation: 'timed' });
+    await signIn(page, poker.host);
+    await page.goto(`/match/${poker.matchId}`);
+    await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
+    await untilRaiseOffered(page);
+
+    // A figure that is neither the default nor a quick choice, so only the
+    // player's own input can explain it turning up on the pill and the wire.
+    const value = page.getByTestId('param-amount-value');
+    const [min, max] = ((await value.getAttribute('aria-label')) ?? '').split('–').map(Number);
+    const target = Math.min(min + 7, max);
+    await value.fill(String(target));
+    await value.press('Enter');
+    await expect(page.getByTestId('offer-raise-title')).toHaveText(new RegExp(`\\b${target}$`));
+
+    const toggle = page.getByTestId('panel-toggle-zone:controls');
+    await toggle.click();
+    await expect(page.getByTestId('action-bar')).toHaveCount(0);
+    const pill = page.getByTestId('offer-glance-raise-title');
+    await expect(pill, 'the pill should name the amount set in the bar').toHaveText(
+      new RegExp(`\\b${target}$`),
+    );
+
+    // Opening the panel again finds the amount where it was left.
+    await toggle.click();
+    await expect(value, 'collapsing should not forget the amount').toHaveValue(String(target));
+    await toggle.click();
+
+    await page.getByTestId('offer-glance-raise').click();
+    await expect
+      .poll(
+        () =>
+          sent.some((raw) => {
+            try {
+              const a = JSON.parse(raw);
+              return a.verb === 'raise' && a.params?.amount === String(target);
+            } catch {
+              return false;
+            }
+          }),
+        { message: `the pill should send a raise to ${target}` },
+      )
+      .toBe(true);
   });
 
   test('the lobby lists every hosted game without naming one', async ({ page, request }) => {

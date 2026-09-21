@@ -495,7 +495,7 @@ export const el: Record<string, string> = {
   'holdem.header.handLimit': 'Μοιρασιές συνολικά',
   'holdem.header.blinds': 'Τυφλά',
   'holdem.cost.call': 'για πάσο',
-  'holdem.cost.pot': 'στο πότ',
+  'holdem.cost.pot': 'πότ μετά το πάσο',
   'holdem.seat.stack': 'Στακ',
   'holdem.seat.bet': 'Στοίχημα',
   'holdem.prompt.yourAction': 'Σειρά σου',

@@ -18,7 +18,7 @@ import { BoardLayout, matchStyles } from '@/src/components/match/BoardLayout';
 import { FlightLayer, type QueuedFlight } from '@/src/components/match/FlightLayer';
 import { HandZone } from '@/src/components/match/HandZone';
 import { LifetimeRecord } from '@/src/components/match/LifetimeRecord';
-import { OfferBar, OfferGlance } from '@/src/components/match/OfferBar';
+import { OfferBar, OfferGlance, type OfferParams } from '@/src/components/match/OfferBar';
 import { Panel } from '@/src/components/match/Panel';
 import { ResultsFlash } from '@/src/components/match/ResultsFlash';
 import { RoundResults } from '@/src/components/match/RoundResults';
@@ -183,6 +183,10 @@ export default function MatchScreen() {
   // an answer to a question a player just asked, and the last one asked is
   // the one they meant.
   const [explaining, setExplaining] = useState<Refusal | null>(null);
+  // Amounts dialled into the controls and not yet sent. Held here, not in the
+  // bar, because the bar unmounts when its panel collapses and the collapsed
+  // rail's pills send the same offers — both read this one store.
+  const [offerParams, setOfferParams] = useState<OfferParams>({});
   // Which of `hoveredDrop`'s ordered positions the drag is currently over — a
   // card carried over a run says up front which end it would extend, rather
   // than only after it is let go of.
@@ -883,6 +887,8 @@ export default function MatchScreen() {
           armedGroupId={armedMeldIdLive}
           onSend={send}
           onConsumeSelection={clearSelection}
+          params={offerParams}
+          onParamsChange={setOfferParams}
           onAmbiguous={(groupKey) => {
             setPendingGroupKey(groupKey);
             drops.measure();
@@ -922,6 +928,8 @@ export default function MatchScreen() {
         armedGroupId={armedMeldIdLive}
         onSend={send}
         onConsumeSelection={clearSelection}
+        params={offerParams}
+        onParamsChange={setOfferParams}
         onExplain={setExplaining}
         // Between rounds the module offers one thing: go on. Said here as
         // "the table is waiting on this bar" rather than as any offer's name,

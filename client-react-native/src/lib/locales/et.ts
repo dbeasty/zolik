@@ -483,7 +483,7 @@ export const et: Record<string, string> = {
   'holdem.header.handLimit': 'Käsi kokku',
   'holdem.header.blinds': 'Pimepanused',
   'holdem.cost.call': 'maksmiseks',
-  'holdem.cost.pot': 'pangas',
+  'holdem.cost.pot': 'pank pärast maksmist',
   'holdem.seat.stack': 'Virn',
   'holdem.seat.bet': 'Panus',
   'holdem.prompt.yourAction': 'Sinu kord tegutseda',

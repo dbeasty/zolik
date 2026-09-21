@@ -476,7 +476,7 @@ export const da: Record<string, string> = {
   'holdem.header.handLimit': 'Hænder i alt',
   'holdem.header.blinds': 'Blinds',
   'holdem.cost.call': 'for at syne',
-  'holdem.cost.pot': 'i puljen',
+  'holdem.cost.pot': 'pulje efter syn',
   'holdem.seat.stack': 'Stak',
   'holdem.seat.bet': 'Indsats',
   'holdem.prompt.yourAction': 'Din tur til at handle',

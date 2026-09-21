@@ -483,7 +483,7 @@ export const pt: Record<string, string> = {
   'holdem.header.handLimit': 'Mãos no total',
   'holdem.header.blinds': 'Blinds',
   'holdem.cost.call': 'para igualar',
-  'holdem.cost.pot': 'no pote',
+  'holdem.cost.pot': 'pote após igualar',
   'holdem.seat.stack': 'Stack',
   'holdem.seat.bet': 'Aposta',
   'holdem.prompt.yourAction': 'É a tua vez',

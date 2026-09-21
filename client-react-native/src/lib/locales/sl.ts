@@ -476,7 +476,7 @@ export const sl: Record<string, string> = {
   'holdem.header.handLimit': 'Deljenj skupaj',
   'holdem.header.blinds': 'Male in velike stave',
   'holdem.cost.call': 'za izenačitev',
-  'holdem.cost.pot': 'v potu',
+  'holdem.cost.pot': 'pot po izenačitvi',
   'holdem.seat.stack': 'Kupček',
   'holdem.seat.bet': 'Stava',
   'holdem.prompt.yourAction': 'Na vrsti si',

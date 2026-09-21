@@ -487,7 +487,7 @@ export const bg: Record<string, string> = {
   'holdem.header.handLimit': 'Раздавания общо',
   'holdem.header.blinds': 'Блайндове',
   'holdem.cost.call': 'за плащане',
-  'holdem.cost.pot': 'в пота',
+  'holdem.cost.pot': 'пот след плащане',
   'holdem.seat.stack': 'Стек',
   'holdem.seat.bet': 'Залог',
   'holdem.prompt.yourAction': 'Твой ред е',

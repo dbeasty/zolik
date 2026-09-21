@@ -482,7 +482,7 @@ export const fi: Record<string, string> = {
   'holdem.header.handLimit': 'Käsiä yhteensä',
   'holdem.header.blinds': 'Blindit',
   'holdem.cost.call': 'maksuun',
-  'holdem.cost.pot': 'potissa',
+  'holdem.cost.pot': 'potti maksun jälkeen',
   'holdem.seat.stack': 'Pino',
   'holdem.seat.bet': 'Panos',
   'holdem.prompt.yourAction': 'Sinun vuorosi',
