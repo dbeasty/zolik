@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -17,7 +18,46 @@ type AccessClaims struct {
 	jwt.RegisteredClaims
 }
 
+// embedded holds what an in-process host set with SetSecrets and
+// DisableDevTokens. A server reads its secrets from the environment. The copy
+// embedded in the mobile app has no environment worth the name, and it must
+// never fall back to the well-known development secrets, because its
+// listener can be reached from the local network.
+var embedded struct {
+	sync.RWMutex
+	access, refresh string
+	noDevTokens     bool
+}
+
+// SetSecrets fixes the signing secrets for this process. The environment and
+// the development defaults are no longer consulted after it is called.
+func SetSecrets(access, refresh string) {
+	embedded.Lock()
+	defer embedded.Unlock()
+	embedded.access, embedded.refresh = access, refresh
+}
+
+// DisableDevTokens makes SubjectFromToken refuse the "dev:<playerId>"
+// shortcut, which accepts whatever player id it is given.
+func DisableDevTokens() {
+	embedded.Lock()
+	defer embedded.Unlock()
+	embedded.noDevTokens = true
+}
+
+func devTokensAllowed() bool {
+	embedded.RLock()
+	defer embedded.RUnlock()
+	return !embedded.noDevTokens
+}
+
 func accessSecret() string {
+	embedded.RLock()
+	set := embedded.access
+	embedded.RUnlock()
+	if set != "" {
+		return set
+	}
 	if v := strings.TrimSpace(os.Getenv("JWT_ACCESS_SECRET")); v != "" {
 		return v
 	}
@@ -25,6 +65,12 @@ func accessSecret() string {
 }
 
 func refreshSecret() string {
+	embedded.RLock()
+	set := embedded.refresh
+	embedded.RUnlock()
+	if set != "" {
+		return set
+	}
 	if v := strings.TrimSpace(os.Getenv("JWT_REFRESH_SECRET")); v != "" {
 		return v
 	}
@@ -43,6 +89,9 @@ func SubjectFromToken(token string) (string, error) {
 		return "", errors.New("empty token")
 	}
 	if strings.HasPrefix(token, "dev:") {
+		if !devTokensAllowed() {
+			return "", errors.New("dev tokens are disabled")
+		}
 		subj := strings.TrimPrefix(token, "dev:")
 		if subj == "" {
 			return "", errors.New("empty dev subject")

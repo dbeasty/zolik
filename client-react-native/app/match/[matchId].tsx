@@ -126,7 +126,7 @@ export default function MatchScreen() {
     };
   }, [loading, session, matchId]);
 
-  const { state, error, connected, send, clearError } = useMatchSocket(url);
+  const { state, error, connected, send, clearError } = useMatchSocket(url, client);
   // The table's own written rules, by id — what a refusal's `ruleIds` point
   // into. Fetched once per table and cached; empty until it lands, which
   // only means a sheet shows its reason and remedy with no rule behind it.

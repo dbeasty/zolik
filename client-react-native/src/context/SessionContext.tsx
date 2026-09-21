@@ -11,7 +11,8 @@ import React, {
 } from 'react';
 import { Platform } from 'react-native';
 
-import { apiClient } from '@/src/api/client';
+import { apiClient, ZolikClient } from '@/src/api/client';
+import * as nearby from '@/modules/zolik-nearby';
 import { authErrorMessage, parseAuthCallback } from '@/src/lib/auth';
 import type {
   AccountProfile,
@@ -40,6 +41,32 @@ const GUEST_KEY = 'zolik_guest_identity';
 
 type GuestIdentity = { guestId: string; refreshToken: string };
 
+/**
+ * A table this phone hosts itself, with no internet: the embedded server
+ * from `modules/zolik-nearby`, reached over loopback.
+ *
+ * While one is open it *is* the session as far as every screen can tell:
+ * `client` and `session` point at it, so the game picker, the table and the
+ * match screen work unchanged. The online session is left untouched
+ * underneath and comes back as soon as the player leaves.
+ */
+export type OfflineTable = {
+  instanceId: string;
+  baseUrl: string;
+};
+
+type OfflineState = OfflineTable & { client: ZolikClient; session: PlayerSession };
+
+/** Per host, because each install's host signs its own tokens. */
+const offlineKey = (instanceId: string) => `zolik_offline_${instanceId}`;
+
+/** The name last used at an offline table, offered again next time. */
+const OFFLINE_NAME_KEY = 'zolik_offline_name';
+
+export async function loadOfflineName(): Promise<string | null> {
+  return storage.getItem(OFFLINE_NAME_KEY);
+}
+
 type SessionContextValue = {
   session: PlayerSession | null;
   loading: boolean;
@@ -67,6 +94,12 @@ type SessionContextValue = {
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, password: string, email?: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** The offline table this phone is hosting, or null when playing online. */
+  offline: OfflineTable | null;
+  /** Starts this phone's own server and seats the player at it. */
+  playOffline: (name: string) => Promise<void>;
+  /** Back to the online server. Tables stay on the phone for next time. */
+  leaveOffline: () => Promise<void>;
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -144,6 +177,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [providers, setProviders] = useState<AuthProvider[]>([]);
   const [account, setAccount] = useState<AccountProfile | null>(null);
   const [claimableMatches, setClaimableMatches] = useState(0);
+  const [offline, setOffline] = useState<OfflineState | null>(null);
 
   // The server has already rejected these credentials, so clear them from state
   // and storage. Without this the rejected token is restored on the next boot
@@ -351,11 +385,51 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     await applySession(null);
   }, [applySession]);
 
+  const playOffline = useCallback(async (name: string) => {
+    const host = await nearby.startHost(false);
+    const client = new ZolikClient(host.baseUrl);
+    const key = offlineKey(host.instanceId);
+    // The guest id is kept per host, so this player gets the same seat back
+    // at a table they left, even across app restarts. Signing in afresh each
+    // time costs nothing on loopback, and it never leaves a stale token that
+    // the next call finds out about.
+    let known: string | undefined;
+    try {
+      known = (JSON.parse((await storage.getItem(key)) ?? '{}') as { guestId?: string }).guestId;
+    } catch {
+      known = undefined;
+    }
+    const s = await client.guestLogin(name, known);
+    if (s.guestId) await storage.setItem(key, JSON.stringify({ guestId: s.guestId }));
+    await storage.setItem(OFFLINE_NAME_KEY, s.username);
+    client.bindSession(
+      s,
+      (access, refresh) =>
+        setOffline((prev) =>
+          prev && prev.client === client
+            ? { ...prev, session: { ...prev.session, accessToken: access, refreshToken: refresh } }
+            : prev,
+        ),
+      () => setOffline((prev) => (prev && prev.client === client ? null : prev)),
+    );
+    setOffline({ instanceId: host.instanceId, baseUrl: host.baseUrl, client, session: s });
+  }, []);
+
+  const leaveOffline = useCallback(async () => {
+    setOffline(null);
+    await nearby.stopHost();
+  }, []);
+
+  const offlineTable = useMemo(
+    () => (offline ? { instanceId: offline.instanceId, baseUrl: offline.baseUrl } : null),
+    [offline],
+  );
+
   const value = useMemo(
     () => ({
-      session,
+      session: offline ? offline.session : session,
       loading,
-      client: apiClient,
+      client: offline ? offline.client : apiClient,
       providers,
       account,
       claimableMatches,
@@ -371,8 +445,15 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       login,
       register,
       logout,
+      offline: offlineTable,
+      playOffline,
+      leaveOffline,
     }),
     [
+      offline,
+      offlineTable,
+      playOffline,
+      leaveOffline,
       session,
       loading,
       providers,

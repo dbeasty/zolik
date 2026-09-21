@@ -154,6 +154,16 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	}
 }
 
+// RegisterLocalRoutes mounts the part of RegisterRoutes that an offline table
+// hosted on a phone needs: a guest seat, and keeping it. There are no
+// accounts, no mail and no identity provider on a table with no internet, and
+// every route left out is one fewer reachable from the local network.
+func (h *Handlers) RegisterLocalRoutes(r chi.Router) {
+	r.Post("/auth/guest", h.guest)
+	r.Post("/auth/refresh", h.refresh)
+	r.Post("/auth/logout", h.logout)
+}
+
 // devLastCode returns the most recently mailed sign-in code for an address —
 // the passwordless-email equivalent of game's debugState: a way for an
 // automated test to complete a flow that, for a real user, requires reading

@@ -77,6 +77,8 @@ export default function RootLayout() {
                     waiting room, and one screen that plays whatever it starts.
                     There is no per-game screen any more, and adding a game adds no
                     route here. */}
+                {/* A table this phone hosts itself, with no internet. */}
+                <Stack.Screen name="offline" options={{ title: t('offline.title') }} />
                 <Stack.Screen name="lobby/games" options={{ title: t('nav.games') }} />
                 <Stack.Screen name="lobby/table" options={{ title: t('nav.table') }} />
                 <Stack.Screen name="lobby/join" options={{ title: t('nav.join') }} />

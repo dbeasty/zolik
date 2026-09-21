@@ -206,7 +206,9 @@ func New(cfg Config) (*App, error) {
 	// Mail is resolved at startup rather than at first use: a deployment that
 	// offers email sign-in but cannot send mail should fail to start, not fail
 	// silently for the first player who tries it.
-	mailer, err := auth.NewMailer(cfg.SMTP, cfg.Env == "" || cfg.Env == "local")
+	// A phone host counts as local for this: it mounts none of the email
+	// routes (see RegisterMobileRoutes), so nothing it runs can send mail.
+	mailer, err := auth.NewMailer(cfg.SMTP, cfg.IsLocal() || cfg.IsMobile())
 	if err != nil {
 		_ = r.close(ctx)
 		return nil, err

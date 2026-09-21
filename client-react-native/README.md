@@ -86,6 +86,26 @@ from `EAS_BUILD_GIT_COMMIT_HASH`. `app.config.ts` stamps both into the
 manifest, and `src/config.ts` falls back to them when the bundler was not given
 `EXPO_PUBLIC_ZOLIK_VERSION`.
 
+### Offline tables (the embedded server)
+
+On iOS and Android the app carries the game server itself
+(`server/mobile/zolikcore`, bound with gomobile), so **Play offline** works
+with no internet: the phone hosts the table on loopback and plays it against
+bots. The web build and Expo Go do not have it, and hide the button.
+
+The Go library is built outside Expo and is not checked in. Build it before
+`expo prebuild`, `expo run:*` or `eas build`:
+
+```bash
+scripts/build-mobile-core.sh            # needs gomobile, Xcode, the Android NDK and ../kdb
+```
+
+It lands in `modules/zolik-nearby/ios/Zolikcore.xcframework` and
+`modules/zolik-nearby/android/maven/`. The `zolik-nearby` module wraps it, and
+`SessionContext`'s `playOffline` points `client` and `session` at it. Tables
+and host secrets live in the app's own data directory (`zolik-host/`), so a
+table survives the app being killed.
+
 A local Release build for the simulator, with no EAS involved:
 
 ```bash

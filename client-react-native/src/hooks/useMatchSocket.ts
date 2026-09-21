@@ -41,7 +41,15 @@ export type MatchSocketState = {
  */
 const TERMINAL_CODES = new Set(['MATCH_NOT_FOUND', 'MATCH_DELETED']);
 
-export function useMatchSocket(url: string | null): MatchSocketState {
+/**
+ * `client` is the server the socket belongs to. After a drop, it is asked
+ * whether that server is full. An offline table is hosted on this phone, so
+ * asking the online server about it would report someone else's capacity.
+ */
+export function useMatchSocket(
+  url: string | null,
+  client: Pick<typeof apiClient, 'getCapacity'> = apiClient,
+): MatchSocketState {
   const [state, setState] = useState<MatchState | null>(null);
   const [error, setError] = useState<{ code: string; message?: string; ruleIds?: string[] } | null>(
     null,
@@ -118,7 +126,7 @@ export function useMatchSocket(url: string | null): MatchSocketState {
           if (torn) return;
           let delay: number;
           try {
-            const cap = await apiClient.getCapacity();
+            const cap = await client.getCapacity();
             if (!cap.accepting) {
               setError({ code: 'SERVER_BUSY' });
               delay = busyBackoff(attemptRef.current);
@@ -150,7 +158,7 @@ export function useMatchSocket(url: string | null): MatchSocketState {
       if (wsRef.current === socket) wsRef.current = null;
       setConnected(false);
     };
-  }, [url]);
+  }, [url, client]);
 
   const send = useCallback((action: MatchAction) => {
     const ws = wsRef.current;
