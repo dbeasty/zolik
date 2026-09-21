@@ -178,8 +178,23 @@ test.describe('blackjack', () => {
       expect(dealer.ownerId).toBeFalsy();
       // Two cards dealt, one of them shown: the count says there is another,
       // and the card itself is simply not sent.
+      //
+      // Unless the dealer was dealt a natural. Then the hand is over before
+      // anyone acts and both cards are turned up, as at a real table — a few
+      // percent of shuffles. That is the one reason the hole card may be seen,
+      // so it is the one reason accepted here: two cards shown must be an ace
+      // and a ten-value card.
       expect(dealer.count).toBe(2);
-      expect(dealer.cards ?? []).toHaveLength(1);
+      const shown = (dealer.cards ?? []).map((c) => c.card);
+      if (shown.length === 2) {
+        const ranks = shown.map((c) => c[0]).sort().join('');
+        expect(
+          ['AT', 'AJ', 'AQ', 'AK'],
+          `the hole card was sent (${shown.join(', ')}) without a dealer natural to reveal it`,
+        ).toContain(ranks);
+      } else {
+        expect(shown).toHaveLength(1);
+      }
 
       // Player cards are face up in this game, so every box shows its own.
       for (const u of users) {
