@@ -465,6 +465,12 @@ type ParamSpec struct {
 	// Default is the value a control should start on — the minimum legal
 	// raise, say, rather than an arbitrary end of the range.
 	Default int `json:"default,omitempty"`
+	// Headline says this parameter's current value is what pressing the offer
+	// sends, and belongs on the offer's own control: the prompt and the figure
+	// as it moves — "Raise to 483", not "Raise" above a slider the button never
+	// echoes. Opt-in, because an int that only positions something (a tile's
+	// place in a run) is no answer to "what does this button do".
+	Headline bool `json:"headline,omitempty"`
 }
 
 // ParamChoice is one selectable value of a ParamKindChoice.

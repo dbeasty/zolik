@@ -128,6 +128,12 @@ export type ParamSpec = {
   max?: number;
   step?: number;
   default?: number;
+  /**
+   * This value is what pressing the offer sends, so the offer's own control
+   * names it — "Raise to 483" — and follows it as the slider, stepper, typed
+   * field or a quick choice moves it. See {@link offerHeadline}.
+   */
+  headline?: boolean;
 };
 
 /**
@@ -520,6 +526,33 @@ export function defaultParam(p: ParamSpec): string | undefined {
     return String(Math.min(Math.max(d, min), max));
   }
   return p.choices?.[0]?.value;
+}
+
+/**
+ * What an offer's control should be titled with in place of its verb, when a
+ * parameter declares itself the headline: that parameter's prompt and the
+ * value the press would send right now — the one in progress if the player
+ * has moved it, the server's default if not. Clamped the same way
+ * `ParamControl` clamps, so the title never names a figure the stepper would
+ * not show.
+ *
+ * Undefined for everything else, which keeps its verb.
+ */
+export function offerHeadline(
+  offer: ActionOffer,
+  inProgress?: Record<string, string>,
+): { labelKey: string; value: string } | undefined {
+  const spec = (offer.params ?? []).find((p) => p.headline);
+  if (!spec) return undefined;
+  let value = inProgress?.[spec.name] ?? defaultParam(spec);
+  if (value === undefined || value === '') return undefined;
+  if (spec.kind === 'int') {
+    const min = spec.min ?? 0;
+    const max = spec.max ?? min;
+    const n = Number(value);
+    value = String(Number.isFinite(n) ? Math.min(Math.max(n, min), max) : min);
+  }
+  return { labelKey: spec.labelKey, value };
 }
 
 /**

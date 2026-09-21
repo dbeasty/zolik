@@ -336,16 +336,58 @@ test.describe('one shell, every game', () => {
       true,
     );
     const amount = async () => Number((await value.inputValue()) || '0');
+
+    // The raise button names the figure it sends, and follows every way of
+    // setting it. It used to read "Raise" over a slider set to 483 — the
+    // player had to trust the press read the right number. Checked against
+    // the title's own text, the thing on screen, not the field beside it.
+    const title = page.getByTestId('offer-raise-title');
+    const namesAmount = async (n: number, how: string) =>
+      expect(title, `the raise button should name ${n} after ${how}`).toHaveText(
+        new RegExp(`\\b${n}$`),
+      );
     const before = await amount();
+    await namesAmount(before, 'dealing');
+
     await page.getByTestId('param-amount-up').click();
     await expect
       .poll(amount, { message: 'the stepper should move within the engine range' })
       .toBe(Math.min(before + 1, max));
+    await namesAmount(Math.min(before + 1, max), 'the stepper');
+
+    // A quick choice ("½ Pot", "Pot") moves the button too. Their test ids
+    // end in the value they jump to, so a numeric suffix picks them out from
+    // the stepper's own controls.
+    const quick = (
+      await page
+        .getByTestId('param-amount')
+        .locator('[data-testid^="param-amount-"]')
+        .evaluateAll((els) => els.map((e) => e.getAttribute('data-testid') ?? ''))
+    )
+      .map((id) => Number(id.slice('param-amount-'.length)))
+      .filter((n) => Number.isInteger(n));
+    expect(quick.length, 'the raise should offer quick choices').toBeGreaterThan(0);
+    await page.getByTestId(`param-amount-${quick[0]}`).click();
+    await expect(value).toHaveValue(String(quick[0]));
+    await namesAmount(quick[0], 'a quick choice');
 
     // And the top of the range is reachable in one press, because a player who
     // wants everything in should not have to hold a button down.
     await page.getByTestId('param-amount-max').click();
     await expect(value).toHaveValue(String(max));
+    await namesAmount(max, 'max');
+
+    // Dragging the slider to its left end lands on the minimum, and the button
+    // says so — the case in the report: slider moved, button unchanged.
+    const slider = page.getByTestId('param-amount-slider');
+    const box = await slider.boundingBox();
+    if (!box) throw new Error('slider has no box');
+    await page.mouse.move(box.x + box.width - 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 1, box.y + box.height / 2, { steps: 8 });
+    await page.mouse.up();
+    await expect(value).toHaveValue(String(min));
+    await namesAmount(min, 'dragging the slider');
 
     // Typing an exact figure works too, and the engine still gets the last
     // word: the field clamps to the range it was given on commit.
@@ -354,6 +396,7 @@ test.describe('one shell, every game', () => {
     await expect(value, 'typing past the range should clamp to it, not overshoot').toHaveValue(
       String(max),
     );
+    await namesAmount(max, 'typing past the range');
   });
 
   test('the lobby lists every hosted game without naming one', async ({ page, request }) => {

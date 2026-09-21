@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 
 import type { ActionOffer, MatchAction, ParamSpec } from '@/src/api/matchTypes';
-import { defaultParam, isOneTap, offerGroupKey, submissionFor } from '@/src/api/matchTypes';
+import { defaultParam, isOneTap, offerGroupKey, offerHeadline, submissionFor } from '@/src/api/matchTypes';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { fits, type Fit } from '@/src/lib/drops';
 import { Attention } from '@/src/components/match/Attention';
@@ -196,6 +196,7 @@ export function OfferBar({
         // this takes one" reads as the same kind of thing as one greyed out
         // for "not your turn" rather than as broken.
         const unready = offer.enabled && !ready && !offer.composite ? unreadyReason(offer, selectedCards) : undefined;
+        const headline = offerHeadline(offer, params[offer.id]);
         return (
           <View key={offer.id} style={styles.slot}>
             <Pressable
@@ -209,13 +210,21 @@ export function OfferBar({
                   for. Drawn inside the control so it needs no wrapper, and on
                   its own layer so it costs the row no room. */}
               <Attention active={!!urgent && offer.id === leadId} radius={8} />
-              {/* The offer's own label if it has one, because a verb cannot
-                  always tell two controls apart; otherwise the verb, which
-                  covers most offers. */}
+              {/* The figure the press sends, when the offer declares one —
+                  "Raise to 483", following the slider and the quick choices
+                  below as they move it, because a button that says only
+                  "Raise" over a value it never echoes leaves the player to
+                  trust it read the right one. Otherwise the offer's own label
+                  if it has one, because a verb cannot always tell two
+                  controls apart; otherwise the verb, which covers most
+                  offers. */}
               <Text
+                testID={`offer-${offer.id}-title`}
                 style={[styles.buttonText, (!offer.enabled || !ready) && styles.ghostText]}
               >
-                {label(offer.labelKey ?? `verb.${offer.verb}`) || offer.verb}
+                {headline
+                  ? `${label(headline.labelKey)} ${headline.value}`
+                  : label(offer.labelKey ?? `verb.${offer.verb}`) || offer.verb}
               </Text>
               {/* What the move costs, pushed by the server rather than worked
                   out here — "Call 40" is a button whose meaning is its number. */}

@@ -121,6 +121,7 @@ func (m *Module) bettingOffers(raw module.State, s *GameState, seat *Seat) []mod
 			Max:      seat.Stack,
 			Step:     1,
 			Default:  s.MinBet,
+			Headline: true,
 			Choices:  betQuickChoices(s.MinBet, seat.Stack),
 		}}
 		bet.Facts = []module.Fact{{

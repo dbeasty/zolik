@@ -115,6 +115,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 			Max:      maxTo,
 			Step:     1,
 			Default:  minTo,
+			Headline: true,
 			Choices:  raiseQuickChoices(s, minTo, maxTo),
 		}}
 		raise.Facts = []module.Fact{{

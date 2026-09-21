@@ -173,6 +173,12 @@ func TestBettingOfferQuickChoices(t *testing.T) {
 			if !o.Enabled {
 				t.Fatalf("bet offer disabled: %s", o.WhyNot)
 			}
+			// The amount is what pressing the bet sends, so the control has
+			// to name it — a button reading "Bet" over a slider set to
+			// 483 sends 483 without ever saying so.
+			if !o.Params[0].Headline {
+				t.Errorf("bet amount should be the control's headline")
+			}
 			got := map[string]int{}
 			for _, c := range o.Params[0].Choices {
 				n, err := strconv.Atoi(c.Value)
