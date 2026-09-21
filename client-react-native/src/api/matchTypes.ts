@@ -509,12 +509,29 @@ export function submissionFor(
   if (offer.target?.meldId) action.target = offer.target.meldId;
 
   for (const p of offer.params ?? []) {
-    const supplied = chosen?.params?.[p.name];
-    const value = supplied ?? defaultParam(p);
+    const value = paramValue(p, chosen?.params?.[p.name]);
     if (value === undefined) return null;
     action.params = { ...(action.params ?? {}), [p.name]: value };
   }
   return action;
+}
+
+/**
+ * The value a parameter would be sent with: what the player chose, else the
+ * server's default — and for a number, clamped into the range the offer
+ * declares *now*. A figure chosen against last street's range and left
+ * unsent is still sitting in the in-progress state when the next offer
+ * arrives with a smaller stack behind it; the control shows it clamped, so
+ * the press has to send it clamped too, or the button says one figure and
+ * sends another.
+ */
+export function paramValue(p: ParamSpec, supplied?: string): string | undefined {
+  if (supplied === undefined || supplied === '') return defaultParam(p);
+  if (p.kind !== 'int') return supplied;
+  const min = p.min ?? 0;
+  const max = p.max ?? min;
+  const n = Number(supplied);
+  return String(Number.isFinite(n) ? Math.min(Math.max(n, min), max) : min);
 }
 
 /** A legal starting value for a parameter: the server's own default. */
@@ -532,9 +549,9 @@ export function defaultParam(p: ParamSpec): string | undefined {
  * What an offer's control should be titled with in place of its verb, when a
  * parameter declares itself the headline: that parameter's prompt and the
  * value the press would send right now — the one in progress if the player
- * has moved it, the server's default if not. Clamped the same way
- * `ParamControl` clamps, so the title never names a figure the stepper would
- * not show.
+ * has moved it, the server's default if not — `paramValue`, the same
+ * function `submissionFor` sends through, so the title cannot name a figure
+ * the press would not send.
  *
  * Undefined for everything else, which keeps its verb.
  */
@@ -544,15 +561,8 @@ export function offerHeadline(
 ): { labelKey: string; value: string } | undefined {
   const spec = (offer.params ?? []).find((p) => p.headline);
   if (!spec) return undefined;
-  let value = inProgress?.[spec.name] ?? defaultParam(spec);
-  if (value === undefined || value === '') return undefined;
-  if (spec.kind === 'int') {
-    const min = spec.min ?? 0;
-    const max = spec.max ?? min;
-    const n = Number(value);
-    value = String(Number.isFinite(n) ? Math.min(Math.max(n, min), max) : min);
-  }
-  return { labelKey: spec.labelKey, value };
+  const value = paramValue(spec, inProgress?.[spec.name]);
+  return value === undefined ? undefined : { labelKey: spec.labelKey, value };
 }
 
 /**

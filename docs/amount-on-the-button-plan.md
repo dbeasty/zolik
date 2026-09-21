@@ -49,23 +49,37 @@ fails with `Received string: "Raise"`. With the fix, it passes on repeated runs.
 The Blackjack e2e suite still passes. The full jest suite (919 tests) and `tsc`
 are clean.
 
+## The collapsed pill (done, second commit)
+
+The collapsed-rail pill (`OfferGlance`) read "Raise" and sent the server
+default, whatever the full bar had set. It was worse than that: collapsing the
+controls panel unmounts `OfferBar`, and the in-progress amount lived inside it,
+so collapsing also forgot the amount.
+
+- The match screen now holds the in-progress values (`OfferParams`) and passes
+  them to both `OfferBar` and `OfferGlance`. Both components still fall back to
+  their own local state when rendered alone.
+- The pill uses the same `offerHeadline` title and sends `params[offer.id]`.
+- `submissionFor` now sends numbers through `paramValue`, which clamps them into
+  the range currently on offer. An amount set on an earlier street and not sent
+  is sent at the figure the button shows, instead of one the engine refuses.
+- The e2e test "the collapsed controls pill names and sends the amount dialled
+  in the bar" types an amount, collapses the panel, checks the pill's text,
+  reopens the panel to check the amount survived, then presses the pill and
+  reads the websocket frame to confirm `raise` was sent with that amount. With
+  the shared store disconnected, it fails with `Received string: "Raise to 40"`.
+
 ## Follow-ups (not in this change)
 
-1. **Collapsed rail pill (`OfferGlance`).** It still reads "Raise", and a tap
-   there sends the server default, not the amount set in the full bar. The
-   in-progress params state is local to `OfferBar`. Move it up to the match
-   screen so both controls read the same value, then have the pill show the
-   headline too. This mismatch was already there before this change, and it is
-   the more serious of the two: a player can send an amount they did not pick.
-2. **"in the pot 130".** This is the pot *if you call*, which is not the
+1. **"in the pot 130".** This is the pot *if you call*, which is not the
    same as the pot after this raise, and it now sits under "Raise to 483".
    Choose one: reword it (for example "pot after call 130"), or have the client
    add the figure it now knows, "pot becomes N". That second option is pot
    arithmetic, which is a rule, so it would need a server-side fact the client
    can fill in. Get a product decision before building either.
-3. **Accessibility.** The title text is now the accessible name. Check that
+2. **Accessibility.** The title text is now the accessible name. Check that
    VoiceOver or TalkBack reads "Raise to 483" once, and not the prompt twice
    (the parameter label above the slider also says "Raise to").
-4. **Other modules.** Any future module that declares a stake or amount should
+3. **Other modules.** Any future module that declares a stake or amount should
    set `Headline`. Add one sentence about it to the module-authoring notes in
    `docs/extensibility-plan.md`.

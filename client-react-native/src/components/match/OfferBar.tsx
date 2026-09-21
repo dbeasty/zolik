@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useState } from 'react';
 import {
   type GestureResponderEvent,
   PanResponder,
@@ -47,7 +47,32 @@ import type { Skin } from '@/src/skins/types';
  * file mentions no rank, suit, meld, blind or pot.
  */
 
-type Props = {
+/**
+ * Parameter values in progress, keyed by offer id then parameter name. Only an
+ * offer the player is actively configuring has an entry.
+ */
+export type OfferParams = Record<string, Record<string, string>>;
+
+/**
+ * The in-progress values, held by whoever renders both `OfferBar` and
+ * `OfferGlance`. Collapsing the controls panel unmounts the bar, so a value it
+ * kept to itself was forgotten on collapse, and the glance pill — which never
+ * saw it — sent the server's default: a raise dialled to 483 went in at the
+ * minimum from the pill. One store, read by both, is what makes the pill's
+ * "Raise to 483" true. Optional so a bar rendered on its own still works.
+ */
+type SharedParams = {
+  params?: OfferParams;
+  onParamsChange?: Dispatch<SetStateAction<OfferParams>>;
+};
+
+/** The shared store when a caller supplies one, a local one otherwise. */
+function useOfferParams(shared: SharedParams): [OfferParams, Dispatch<SetStateAction<OfferParams>>] {
+  const [local, setLocal] = useState<OfferParams>({});
+  return shared.params && shared.onParamsChange ? [shared.params, shared.onParamsChange] : [local, setLocal];
+}
+
+type Props = SharedParams & {
   offers: ActionOffer[];
   /** Cards the player has selected in their own zone, for composite offers. */
   selectedCards: string[];
@@ -125,14 +150,13 @@ export function OfferBar({
   onAmbiguous,
   onExplain,
   urgent,
+  ...shared
 }: Props) {
   const metrics = useMetrics();
   const skin = useSkin();
   const styles = useMemo(() => offerBarStyles(metrics, skin), [metrics, skin]);
 
-  // Parameter values in progress, keyed by offer id then parameter name. Only
-  // an offer the player is actively configuring has an entry.
-  const [params, setParams] = useState<Record<string, Record<string, string>>>({});
+  const [params, setParams] = useOfferParams(shared);
 
   const setParam = (offerId: string, name: string, value: string) =>
     setParams((prev) => ({ ...prev, [offerId]: { ...(prev[offerId] ?? {}), [name]: value } }));
@@ -304,7 +328,9 @@ export function OfferBar({
  * combination or dialling in a parameter — so a pill for an offer that still
  * needs one of those stays visible (it *is* available) but dimmed until the
  * player's own selection settles it, exactly the condition `OfferBar` uses to
- * decide an offer isn't ready yet. A folded pill resolves the same way its
+ * decide an offer isn't ready yet. A parameter dialled in on the full bar is
+ * read from the same shared store (see `SharedParams`), so the pill is titled
+ * with it and sends it. A folded pill resolves the same way its
  * `FoldedOffer` counterpart does: the selection settles it, or the press is
  * handed to `onAmbiguous` to point at targets on the board.
  */
@@ -317,7 +343,8 @@ export function OfferGlance({
   onAmbiguous,
   max = 4,
   testID = 'offer-glance',
-}: {
+  ...shared
+}: SharedParams & {
   offers: ActionOffer[];
   selectedCards?: string[];
   armedGroupId?: string | null;
@@ -331,6 +358,7 @@ export function OfferGlance({
   const skin = useSkin();
   const styles = useMemo(() => offerBarStyles(metrics, skin), [metrics, skin]);
   const { groups, foldedIds } = useMemo(() => foldOffers(offers), [offers]);
+  const [params, setParams] = useOfferParams(shared);
 
   const seen = new Set<string>();
   const distinct: ActionOffer[] = [];
@@ -348,10 +376,11 @@ export function OfferGlance({
 
   const fire = (offer: ActionOffer) => {
     const cards = offer.composite || (offer.source?.minCards ?? 0) > 0 ? pickCards(offer, selectedCards) : undefined;
-    const action = submissionFor(offer, { cards });
+    const action = submissionFor(offer, { cards, params: params[offer.id] });
     if (!action) return;
     onSend?.(action);
     if (cards?.length) onConsumeSelection?.();
+    setParams((prev) => ({ ...prev, [offer.id]: {} }));
   };
 
   const press = (offer: ActionOffer, groupKey: string) => {
@@ -378,7 +407,10 @@ export function OfferGlance({
         // A folded pill can always be pressed — it either resolves outright
         // or opens up the board's targets — but a lone offer still waiting on
         // a card combination or a parameter isn't ready for a bare tap yet.
-        const ready = foldedIds.has(o.id) || isReady(o, selectedCards, undefined);
+        const ready = foldedIds.has(o.id) || isReady(o, selectedCards, params[o.id]);
+        // The same title the full bar gives it — "Raise to 483", from the
+        // shared value — so the pill says what it sends.
+        const headline = offerHeadline(o, params[o.id]);
         return (
           <Pressable
             key={o.id}
@@ -389,8 +421,14 @@ export function OfferGlance({
             onPress={() => press(o, groupKey)}
             style={[styles.glancePill, !ready && styles.ghost]}
           >
-            <Text style={[styles.glancePillText, !ready && styles.ghostText]} numberOfLines={1}>
-              {label(o.labelKey ?? `verb.${o.verb}`) || o.verb}
+            <Text
+              testID={`offer-glance-${o.id}-title`}
+              style={[styles.glancePillText, !ready && styles.ghostText]}
+              numberOfLines={1}
+            >
+              {headline
+                ? `${label(headline.labelKey)} ${headline.value}`
+                : label(o.labelKey ?? `verb.${o.verb}`) || o.verb}
             </Text>
           </Pressable>
         );

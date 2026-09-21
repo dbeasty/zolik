@@ -74,3 +74,27 @@ describe('an offer with no headline parameter', () => {
     expect(offerHeadline({ id: 'fold', verb: 'fold', enabled: true })).toBeUndefined();
   });
 });
+
+describe('a value chosen against an older range', () => {
+  // The in-progress store outlives the offer it was dialled against: set 900,
+  // leave it unsent, and the next street arrives with only 600 behind it. The
+  // control shows 600; the press has to send 600, not a figure the engine will
+  // refuse and the button never showed.
+  const shorter: ActionOffer = {
+    ...raise,
+    params: [{ ...raise.params![0], min: 60, max: 600 }],
+  };
+
+  it('is sent clamped into the range on offer now', () => {
+    expect(submissionFor(shorter, { params: { amount: '900' } })?.params?.amount).toBe('600');
+    expect(submissionFor(shorter, { params: { amount: '10' } })?.params?.amount).toBe('60');
+  });
+
+  it('is titled with that same clamped figure', () => {
+    expect(offerHeadline(shorter, { amount: '900' })?.value).toBe('600');
+  });
+
+  it('falls back to the default when the field was left empty', () => {
+    expect(submissionFor(shorter, { params: { amount: '' } })?.params?.amount).toBe('60');
+  });
+});

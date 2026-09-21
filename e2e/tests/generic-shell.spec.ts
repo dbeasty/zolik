@@ -399,6 +399,63 @@ test.describe('one shell, every game', () => {
     await namesAmount(max, 'typing past the range');
   });
 
+  test('the collapsed controls pill names and sends the amount dialled in the bar', async ({
+    page,
+    request,
+  }) => {
+    // Collapsing the controls panel unmounts the bar. The amount used to live
+    // inside it, so collapsing forgot it, and the rail's "Raise" pill — which
+    // never saw it — sent the engine's default. A player who dialled 483 and
+    // raised from the pill went in at the minimum.
+    test.setTimeout(180_000);
+    const sent: string[] = [];
+    page.on('websocket', (ws) => ws.on('framesent', (f) => sent.push(String(f.payload))));
+
+    const poker = await tableWithBots(request, 'holdem', 3, { variation: 'timed' });
+    await signIn(page, poker.host);
+    await page.goto(`/match/${poker.matchId}`);
+    await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('param-amount')).toBeVisible({ timeout: 40_000 });
+
+    // A figure that is neither the default nor a quick choice, so only the
+    // player's own input can explain it turning up on the pill and the wire.
+    const value = page.getByTestId('param-amount-value');
+    const [min, max] = ((await value.getAttribute('aria-label')) ?? '').split('–').map(Number);
+    const target = Math.min(min + 7, max);
+    await value.fill(String(target));
+    await value.press('Enter');
+    await expect(page.getByTestId('offer-raise-title')).toHaveText(new RegExp(`\\b${target}$`));
+
+    const toggle = page.getByTestId('panel-toggle-zone:controls');
+    await toggle.click();
+    await expect(page.getByTestId('action-bar')).toHaveCount(0);
+    const pill = page.getByTestId('offer-glance-raise-title');
+    await expect(pill, 'the pill should name the amount set in the bar').toHaveText(
+      new RegExp(`\\b${target}$`),
+    );
+
+    // Opening the panel again finds the amount where it was left.
+    await toggle.click();
+    await expect(value, 'collapsing should not forget the amount').toHaveValue(String(target));
+    await toggle.click();
+
+    await page.getByTestId('offer-glance-raise').click();
+    await expect
+      .poll(
+        () =>
+          sent.some((raw) => {
+            try {
+              const a = JSON.parse(raw);
+              return a.verb === 'raise' && a.params?.amount === String(target);
+            } catch {
+              return false;
+            }
+          }),
+        { message: `the pill should send a raise to ${target}` },
+      )
+      .toBe(true);
+  });
+
   test('the lobby lists every hosted game without naming one', async ({ page, request }) => {
     // Adding a fifth game is a server-only change: the picker is rendered from
     // /modules, so a module that registers itself appears here with its
