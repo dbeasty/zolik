@@ -48,7 +48,12 @@ ARG ZOLIK_OPERATOR_COUNTRY=
 ARG ZOLIK_OPERATOR_CONTACT=
 ARG ZOLIK_SOURCE_URL=https://github.com/dbeasty/zolik
 
+# EXPO_PUBLIC_ZOLIK_API_SAME_ORIGIN: this image serves the bundle itself, so in
+# a browser the API is whichever domain served the page. One deployment answers
+# on several names, and ZOLIK_PUBLIC_URL can only name one of them; it remains
+# the prerendered fallback and the address shown before hydration.
 RUN EXPO_PUBLIC_ZOLIK_BASE_URL="${ZOLIK_PUBLIC_URL}" \
+    EXPO_PUBLIC_ZOLIK_API_SAME_ORIGIN=1 \
     EXPO_PUBLIC_ZOLIK_VERSION="${ZOLIK_VERSION}" \
     EXPO_PUBLIC_ZOLIK_COMMIT="${ZOLIK_COMMIT}" \
     EXPO_PUBLIC_ZOLIK_OPERATOR="${ZOLIK_OPERATOR}" \

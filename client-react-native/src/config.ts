@@ -11,7 +11,32 @@ function defaultBaseUrl(): string {
   return 'http://127.0.0.1:8090';
 }
 
-export const ZOLIK_BASE_URL = (envUrl || defaultBaseUrl()).replace(/\/$/, '');
+/**
+ * The origin this page was served from, when the build says the API lives
+ * there too.
+ *
+ * The production image compiles the web export into the server binary, so the
+ * API is by construction whoever served the page — and one deployment answers
+ * on several domains (jokerless.com, jokerless.org, play.limidus.com). A base
+ * URL baked in at build time names only one of them, and a page loaded from
+ * any other would call it cross-origin, which the server does not allow. The
+ * Dockerfile sets EXPO_PUBLIC_ZOLIK_API_SAME_ORIGIN=1; a plain Expo dev
+ * server, where the client and API are on different ports, does not.
+ *
+ * Empty during the static prerender (no `window`) and on native, where the
+ * baked-in URL below is the answer.
+ */
+function sameOriginBaseUrl(): string {
+  if (process.env.EXPO_PUBLIC_ZOLIK_API_SAME_ORIGIN !== '1') return '';
+  if (Platform.OS !== 'web') return '';
+  if (typeof window === 'undefined' || !window.location?.origin) return '';
+  return window.location.origin;
+}
+
+export const ZOLIK_BASE_URL = (sameOriginBaseUrl() || envUrl || defaultBaseUrl()).replace(
+  /\/$/,
+  '',
+);
 
 export const APP_NAME =
   (Constants.expoConfig?.name as string | undefined) ?? 'Žolíky';
@@ -58,7 +83,7 @@ export const OPERATOR_CONTACT = process.env.EXPO_PUBLIC_ZOLIK_OPERATOR_CONTACT |
  * GPL one: a network user who never receives a binary must still be offered
  * the Corresponding Source. So the offer has to live in the app, not only in
  * the repository — a LICENSE file rsynced to a server nobody logs into offers
- * nothing to the person playing at play.limidus.com.
+ * nothing to the person playing at jokerless.com.
  *
  * Overridable at build time, and that is the point rather than a convenience:
  * whoever deploys a modified zolik owes their readers *their* source, not
