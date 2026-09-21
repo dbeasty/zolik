@@ -1,6 +1,16 @@
 import { router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  AccessibilityInfo,
+  ActivityIndicator,
+  findNodeHandle,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import type { MatchModule } from '@/src/api/matchTypes';
 import { Screen } from '@/src/components/Screen';
@@ -57,6 +67,29 @@ export default function GamesScreen() {
   // the behaviour that was asked for, not a preference to be remembered back
   // at the player, so leaving and returning re-applies it.
   const [openSetup, setOpenSetup] = useState<Record<string, boolean>>({});
+
+  // Which control opening the panel was a way of asking for.
+  //
+  // A card's header has three ways in, and two of them name something
+  // specific: the table size and the digest state a value, so the obvious
+  // reading of pressing one is "change that". Opening the panel at the top and
+  // leaving the player to find the control they just named is the panel
+  // answering a different question. So the way in is remembered, and the panel
+  // arrives at it.
+  const [arrivedAt, setArrivedAt] = useState<{ modId: string; section: SetupSection } | null>(null);
+
+  // Measured rather than computed: where a card's bot row sits depends on how
+  // many variations the game above it declared and how long their labels ran
+  // in this locale, so the only thing that knows is the layout.
+  //
+  // Typed with the inner-node accessor React Native and react-native-web both
+  // implement but neither declares on the public `ScrollView` type.
+  const scroller = useRef<ScrollView & { getInnerViewNode: () => unknown }>(null);
+  const arrived = useRef<View>(null);
+  // Where the list is and how much of it is on screen, so arriving somewhere
+  // can be the shortest move that gets there rather than a jump to the top.
+  const offset = useRef(0);
+  const viewport = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -183,9 +216,80 @@ export default function GamesScreen() {
   // The one behaviour behind three tap targets: the toggle button, the
   // player-count line, and the digest all open or close the same panel, so
   // this is the single place that decides what "open" means.
-  const toggleSetup = useCallback((modId: string) => {
-    setOpenSetup((prev) => ({ ...prev, [modId]: !prev[modId] }));
-  }, []);
+  //
+  // `section` is what the way in stands for, already resolved against the
+  // module — undefined means "just the panel", which is what the toggle button
+  // has always meant and what a chip means on a game that has no such control.
+  //
+  // Pressing the way in you are already at puts the panel away; pressing a
+  // different one moves you to it rather than closing what you are reading.
+  // That is what each caret promises below.
+  const showSetup = useCallback(
+    (modId: string, section?: SetupSection) => {
+      const here = arrivedAt?.modId === modId ? arrivedAt.section : undefined;
+      if (openSetup[modId] && here === section) {
+        setOpenSetup((prev) => ({ ...prev, [modId]: false }));
+        setArrivedAt(null);
+        return;
+      }
+      setOpenSetup((prev) => ({ ...prev, [modId]: true }));
+      // A new object even for a repeat press of the same chip, so arriving is
+      // something that happens again for a player who has since scrolled away.
+      setArrivedAt(section ? { modId, section } : null);
+    },
+    [openSetup, arrivedAt],
+  );
+
+  // Once the panel it lives in has laid out, put the control that was asked
+  // for in view, and hand it to the screen reader.
+  //
+  // Deliberately animated: the control was reached from a chip a little way
+  // above it, and a list that scrolls rather than jumps keeps that
+  // relationship legible — the player can see where they were taken from.
+  useEffect(() => {
+    if (!arrivedAt) return;
+    const timer = setTimeout(() => {
+      const node = arrived.current;
+      const view = scroller.current;
+      if (!node || !view) return;
+      node.measureLayout(
+        // The scroll view's *inner* node, not the scroll view itself.
+        // Measured against the outer one, a child's y is where it currently
+        // sits on screen — which is already scrolled, so comparing it to a
+        // scroll offset compares two different things and the panel silently
+        // decides it has nowhere to go. The inner content view is the frame
+        // `scrollTo` is stated in. Both react-native-web and native expose it.
+        view.getInnerViewNode(),
+        (_x: number, y: number, _w: number, h: number) => {
+          // The shortest scroll that brings the control into view, not a jump
+          // that puts it at the top: a card whose control is already on screen
+          // should not move at all, and one that has to move should keep as
+          // much of the card — its name above all — as it can. A panel that
+          // scrolls its own heading off to answer "which game is this" badly
+          // is not an improvement on not scrolling.
+          const top = Math.max(0, y - GAP);
+          const bottom = y + h + GAP;
+          let next = offset.current;
+          if (bottom > next + viewport.current) next = bottom - viewport.current;
+          // Second, so a control taller than the viewport shows its start
+          // rather than its end.
+          if (top < next) next = top;
+          if (Math.abs(next - offset.current) < 2) return;
+          view.scrollTo({ y: Math.max(0, next), animated: true });
+        },
+        () => {},
+      );
+      // Native only, and guarded rather than left to fail softly:
+      // react-native-web's `findNodeHandle` throws outright, so calling it
+      // here took the whole screen down behind an error overlay. On web the
+      // scroll and the mark are what a player has to go on.
+      if (Platform.OS !== 'web') {
+        const tag = findNodeHandle(node);
+        if (tag) AccessibilityInfo.setAccessibilityFocus(tag);
+      }
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [arrivedAt]);
 
   if (!modules.length && !error) {
     return (
@@ -197,7 +301,17 @@ export default function GamesScreen() {
 
   return (
     <Screen title={t('nav.games')} subtitle={t('lobby.games.subtitle')}>
-      <ScrollView testID="games-list">
+      <ScrollView
+        ref={scroller}
+        testID="games-list"
+        onLayout={(e) => {
+          viewport.current = e.nativeEvent.layout.height;
+        }}
+        onScroll={(e) => {
+          offset.current = e.nativeEvent.contentOffset.y;
+        }}
+        scrollEventThrottle={16}
+      >
         {error ? (
           <Text testID="games-error" style={styles.error}>
             {error}
@@ -207,6 +321,14 @@ export default function GamesScreen() {
         {modules.map((mod) => {
           const expanded = !!openSetup[mod.id];
           const digest = setupDigest(mod, variation[mod.id], botCount(mod, bots[mod.id]));
+          // What each way in opens the panel at, and whether the panel is
+          // already there. `here` and a chip's target both being undefined is
+          // the toggle button's case, and a chip on a game with nothing to
+          // aim at falls into it too — which is exactly right: it is then
+          // just another way to open the panel.
+          const here = arrivedAt?.modId === mod.id ? arrivedAt.section : undefined;
+          const seatsAt = sectionFor(mod, 'bots');
+          const rulesetAt = sectionFor(mod, 'variation');
           return (
           <View key={mod.id} style={styles.card} testID={`module-${mod.id}`}>
             <View style={styles.headerRow}>
@@ -220,7 +342,7 @@ export default function GamesScreen() {
                   accessibilityRole="button"
                   accessibilityState={{ expanded }}
                   aria-expanded={expanded}
-                  onPress={() => toggleSetup(mod.id)}
+                  onPress={() => showSetup(mod.id, seatsAt)}
                   style={({ pressed }) => [
                     styles.tapChip,
                     styles.playersChip,
@@ -232,8 +354,11 @@ export default function GamesScreen() {
                       ? t('lobby.games.players', { n: mod.minPlayers })
                       : t('lobby.games.playerRange', { min: mod.minPlayers, max: mod.maxPlayers })}
                   </Text>
+                  {/* A caret is a promise about what pressing this does, so
+                      it points up only when this is the way back out — not
+                      merely because some part of the panel is open. */}
                   <Text style={styles.chevron} aria-hidden>
-                    {expanded ? '▴' : '▾'}
+                    {expanded && here === seatsAt ? '▴' : '▾'}
                   </Text>
                 </Pressable>
               </View>
@@ -274,7 +399,7 @@ export default function GamesScreen() {
                   accessibilityRole="button"
                   accessibilityState={{ expanded }}
                   aria-expanded={expanded}
-                  onPress={() => toggleSetup(mod.id)}
+                  onPress={() => showSetup(mod.id, rulesetAt)}
                   style={({ pressed }) => [
                     styles.tapChip,
                     styles.digestPress,
@@ -285,7 +410,7 @@ export default function GamesScreen() {
                     {digest}
                   </Text>
                   <Text style={styles.chevron} aria-hidden>
-                    {expanded ? '▴' : '▾'}
+                    {expanded && here === rulesetAt ? '▴' : '▾'}
                   </Text>
                 </Pressable>
               ) : (
@@ -303,11 +428,11 @@ export default function GamesScreen() {
                 // anything. `aria-expanded` is the half that lands in the
                 // markup — and the half a browser test can see.
                 aria-expanded={expanded}
-                onPress={() => toggleSetup(mod.id)}
+                onPress={() => showSetup(mod.id)}
                 style={({ pressed }) => [styles.setupButton, pressed && styles.tapChipOn]}
               >
                 <Text style={styles.setupButtonText}>
-                  {t('lobby.games.setup')} {expanded ? '▴' : '▾'}
+                  {t('lobby.games.setup')} {expanded && here === undefined ? '▴' : '▾'}
                 </Text>
               </Pressable>
             </View>
@@ -318,7 +443,11 @@ export default function GamesScreen() {
             {!openSetup[mod.id] ? null : (
               <>
             {(mod.variations ?? []).length > 1 ? (
-              <View style={styles.row}>
+              <View
+                ref={here === 'variation' ? arrived : undefined}
+                testID={`setup-section-${mod.id}-variation`}
+                style={[styles.row, here === 'variation' && styles.sectionLit]}
+              >
                 {(mod.variations ?? []).map((v) => (
                   <Pressable
                     key={v.id}
@@ -368,7 +497,11 @@ export default function GamesScreen() {
             ))}
 
             {botChoices(mod).length > 1 ? (
-              <View style={styles.option}>
+              <View
+                ref={here === 'bots' ? arrived : undefined}
+                testID={`setup-section-${mod.id}-bots`}
+                style={[styles.option, here === 'bots' && styles.sectionLit]}
+              >
                 <Text style={styles.optionLabel}>{t('lobby.games.bots')}</Text>
                 <View style={styles.row}>
                   {botChoices(mod).map((n) => {
@@ -419,6 +552,34 @@ export default function GamesScreen() {
       </ScrollView>
     </Screen>
   );
+}
+
+/**
+ * The parts of the setup a card's header can send a player to: the ruleset
+ * pills, and the row of table sizes.
+ *
+ * Not every option — an option is whatever the module declared, and a header
+ * chip stands for something the closed card already says out loud.
+ */
+type SetupSection = 'variation' | 'bots';
+
+/** Breathing room left around a control the panel has just scrolled to. */
+const GAP = 24;
+
+/**
+ * Which section a way in actually lands on for this module, or undefined if
+ * this module does not draw it.
+ *
+ * Both rows are conditional: a game with one ruleset has no pills to choose
+ * between, and a game with one legal table size has no seat count to set. The
+ * chips above them are not — "2 players" is worth saying about a game whose
+ * answer is fixed. So a chip can name something that is not there, and when it
+ * does it opens the panel the way the toggle button does rather than pointing
+ * at nothing.
+ */
+function sectionFor(mod: MatchModule, want: SetupSection): SetupSection | undefined {
+  if (want === 'variation') return (mod.variations ?? []).length > 1 ? want : undefined;
+  return botChoices(mod).length > 1 ? want : undefined;
 }
 
 /**
@@ -544,6 +705,18 @@ const styles = StyleSheet.create({
   summary: { color: colors.muted, fontSize: 12, marginTop: 2 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
   option: { marginTop: 8 },
+  // The control the player asked for, marked rather than merely scrolled to.
+  //
+  // A panel scrolled to roughly the right place still leaves them scanning a
+  // card of controls for the one they named — the same reason a rule a refusal
+  // sends you to is lit on /rules, and the same wash.
+  sectionLit: {
+    backgroundColor: 'rgba(61, 139, 253, 0.16)',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    marginHorizontal: -6,
+    paddingBottom: 6,
+  },
   optionLabel: { color: colors.muted, fontSize: 12, fontWeight: '700' },
   pill: {
     borderWidth: 1,

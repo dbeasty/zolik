@@ -69,6 +69,17 @@ async function signIn(page: Page, host: { accessToken: string; refreshToken: str
   });
 }
 
+/**
+ * What a setup section is painted with — the mark the panel puts on the
+ * control a player asked for. Read as the browser computes it rather than as
+ * a class name, because the mark is the thing being claimed.
+ */
+const TRANSPARENT = 'rgba(0, 0, 0, 0)';
+
+async function wash(page: Page, testId: string) {
+  return page.getByTestId(testId).evaluate((el) => getComputedStyle(el).backgroundColor);
+}
+
 /** Every offer control currently on screen, enabled or not. */
 async function offers(page: Page) {
   return page.locator('[data-testid^="offer-"]');
@@ -358,6 +369,51 @@ test.describe('one shell, every game', () => {
     // And a game with two shipped rulesets offers both.
     await expect(page.getByTestId('variation-holdem-freezeout')).toBeVisible();
     await expect(page.getByTestId('variation-holdem-timed')).toBeVisible();
+  });
+
+  test('a way in to the setup arrives at the control it names', async ({ page, request }) => {
+    // A card's header has three ways in, and two of them name something: the
+    // table size and the digest each state a value, so pressing one reads as
+    // "change that". Opening the panel at the top and leaving the player to
+    // find the control they just named answers a different question — the more
+    // so on Žolíky, whose seat count is the last of nine rows.
+    const host = await guest(request);
+    await signIn(page, host);
+    await page.goto('/lobby/games');
+    await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 30_000 });
+
+    // The table size opens the setup at the seat count — in view, not merely
+    // in the DOM somewhere below the fold.
+    await page.getByTestId('players-zolik').click();
+    const seats = page.getByTestId('setup-section-zolik-bots');
+    await expect(seats).toBeInViewport({ ratio: 1 });
+    // And marked, because a panel scrolled to roughly the right place still
+    // leaves a player scanning nine rows of controls for the one they named.
+    expect(await wash(page, 'setup-section-zolik-bots')).not.toBe(TRANSPARENT);
+
+    // The digest names the ruleset, so it moves to the rulesets — it does not
+    // close the panel the player is reading.
+    await page.getByTestId('setup-digest-press-zolik').click();
+    await expect(page.getByTestId('setup-toggle-zolik')).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByTestId('setup-section-zolik-variation')).toBeInViewport({ ratio: 1 });
+    // One mark at a time: the seat count is no longer the answer.
+    expect(await wash(page, 'setup-section-zolik-variation')).not.toBe(TRANSPARENT);
+    expect(await wash(page, 'setup-section-zolik-bots')).toBe(TRANSPARENT);
+
+    // Pressing the way in you are already at is the way back out.
+    await page.getByTestId('setup-digest-press-zolik').click();
+    await expect(page.getByTestId('setup-toggle-zolik')).toHaveAttribute('aria-expanded', 'false');
+
+    // A chip that names something the module does not have is just another way
+    // to open the panel: Gin Rummy seats exactly two, so it draws no seat row
+    // at all, and its table size must still open the setup rather than nothing.
+    await page.getByTestId('players-ginrummy').click();
+    await expect(page.getByTestId('setup-toggle-ginrummy')).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    await expect(page.getByTestId('setup-section-ginrummy-bots')).toHaveCount(0);
+    await expect(page.getByTestId('variation-ginrummy-oklahoma')).toBeVisible();
   });
 
   test('the lobby starts a game and hands it to the shell', async ({ page, request }) => {
