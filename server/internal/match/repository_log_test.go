@@ -25,6 +25,10 @@ func openLogStore(t *testing.T) logStore {
 		t.Skipf("no embedded kdb available here: %v", err)
 	}
 	t.Cleanup(func() { _ = k.Close(context.Background()) })
+	// Each test starts in the original layout with migration off, and says so
+	// when it wants otherwise, so the defaults a release ships with cannot
+	// quietly change what these cases exercise.
+	withSwitches(t, "", false)
 	return logStore{k: k, repo: NewKDBRepository(k)}
 }
 
