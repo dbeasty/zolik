@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["ZolikNearbyModule"]
+  },
+  "android": {
+    "modules": ["com.jokerless.zoliknearby.ZolikNearbyModule"]
+  }
+}

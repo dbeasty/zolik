@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 
 import type { MatchAction, MatchState } from '@/src/api/matchTypes';
 import { apiClient } from '@/src/api/client';
@@ -41,7 +42,15 @@ export type MatchSocketState = {
  */
 const TERMINAL_CODES = new Set(['MATCH_NOT_FOUND', 'MATCH_DELETED']);
 
-export function useMatchSocket(url: string | null): MatchSocketState {
+/**
+ * `client` is the server the socket belongs to. After a drop, it is asked
+ * whether that server is full. An offline table is hosted on this phone, so
+ * asking the online server about it would report someone else's capacity.
+ */
+export function useMatchSocket(
+  url: string | null,
+  client: Pick<typeof apiClient, 'getCapacity'> = apiClient,
+): MatchSocketState {
   const [state, setState] = useState<MatchState | null>(null);
   const [error, setError] = useState<{ code: string; message?: string; ruleIds?: string[] } | null>(
     null,
@@ -115,15 +124,18 @@ export function useMatchSocket(url: string | null): MatchSocketState {
         // would only fetch it again, for ever.
         if (terminal) return;
         void (async () => {
-          if (torn) return;
+          if (torn || socket !== ws) return;
           let delay: number;
           try {
-            const cap = await apiClient.getCapacity();
+            const cap = await client.getCapacity();
             if (!cap.accepting) {
               setError({ code: 'SERVER_BUSY' });
               delay = busyBackoff(attemptRef.current);
               attemptRef.current += 1;
-              if (!torn) timer = setTimeout(open, delay);
+              // A newer socket may have been opened while the probe was out
+              // (the app coming back to the foreground does that). Scheduling
+              // another would run two chains side by side.
+              if (!torn && socket === ws) timer = setTimeout(open, delay);
               return;
             }
           } catch {
@@ -131,7 +143,7 @@ export function useMatchSocket(url: string | null): MatchSocketState {
           }
           delay = jitteredBackoff(attemptRef.current);
           attemptRef.current += 1;
-          if (!torn) timer = setTimeout(open, delay);
+          if (!torn && socket === ws) timer = setTimeout(open, delay);
         })();
       };
       ws.onerror = () => {
@@ -140,8 +152,24 @@ export function useMatchSocket(url: string | null): MatchSocketState {
     };
 
     open();
+
+    // Back in the foreground, reconnect now rather than when the backoff
+    // says. A phone hosting an offline table is suspended while its player
+    // looks at something else, and every guest's socket drops. The backoff
+    // has usually grown by the time the host is back, and a guest waiting
+    // it out sees a table stuck for no reason they can see.
+    const foreground = AppState.addEventListener('change', (next) => {
+      if (next !== 'active' || torn || terminal) return;
+      if (socket && socket.readyState !== WebSocket.CLOSED) return;
+      if (timer) clearTimeout(timer);
+      timer = null;
+      attemptRef.current = 0;
+      open();
+    });
+
     return () => {
       torn = true;
+      foreground.remove();
       if (timer) clearTimeout(timer);
       socket?.close();
       // Only if it is still this run's: a later run may already have put its
@@ -150,7 +178,7 @@ export function useMatchSocket(url: string | null): MatchSocketState {
       if (wsRef.current === socket) wsRef.current = null;
       setConnected(false);
     };
-  }, [url]);
+  }, [url, client]);
 
   const send = useCallback((action: MatchAction) => {
     const ws = wsRef.current;

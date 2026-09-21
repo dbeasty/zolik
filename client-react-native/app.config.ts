@@ -79,7 +79,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         'android.permission.WRITE_EXTERNAL_STORAGE',
       ],
     },
-    plugins: [...(config.plugins ?? []), 'expo-dev-client'],
+    plugins: [
+      ...(config.plugins ?? []),
+      'expo-dev-client',
+      './modules/zolik-nearby/plugin/withZolikNearby.js',
+    ],
     // Read by src/config.ts when the bundler was not given
     // EXPO_PUBLIC_ZOLIK_VERSION — i.e. on an EAS worker, which runs neither
     // scripts/version.sh nor git.

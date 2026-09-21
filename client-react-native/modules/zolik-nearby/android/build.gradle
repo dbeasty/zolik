@@ -1,0 +1,26 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.jokerless'
+version = '0.1.0'
+
+android {
+  namespace "com.jokerless.zoliknearby"
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+  }
+}
+
+repositories {
+  // Built by scripts/build-mobile-core.sh from server/mobile/zolikcore; not
+  // checked in. A flat Maven repository rather than a bare .aar file, because
+  // the Android Gradle plugin refuses a local .aar in a library module.
+  maven { url "$projectDir/maven" }
+}
+
+dependencies {
+  implementation 'com.jokerless:zolikcore:1.0.0'
+}

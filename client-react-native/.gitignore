@@ -45,3 +45,8 @@ yarn-error.*
 # from a worktree without a second install. The trailing-slash rule above
 # does not match a symlink.
 node_modules
+
+# The embedded Go server, built by scripts/build-mobile-core.sh.
+/modules/zolik-nearby/ios/Zolikcore.xcframework
+/modules/zolik-nearby/android/maven/
+/modules/*/android/build/

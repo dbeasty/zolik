@@ -86,6 +86,49 @@ from `EAS_BUILD_GIT_COMMIT_HASH`. `app.config.ts` stamps both into the
 manifest, and `src/config.ts` falls back to them when the bundler was not given
 `EXPO_PUBLIC_ZOLIK_VERSION`.
 
+### Offline tables (the embedded server)
+
+On iOS and Android the app carries the game server itself
+(`server/mobile/zolikcore`, bound with gomobile), so **Play offline** works
+with no internet: the phone hosts the table on loopback and plays it against
+bots. The web build and Expo Go do not have it, and hide the button.
+
+The Go library is built outside Expo and is not checked in. Build it before
+`expo prebuild`, `expo run:*` or `eas build`:
+
+```bash
+scripts/build-mobile-core.sh            # needs gomobile, Xcode, the Android NDK and ../kdb
+```
+
+It lands in `modules/zolik-nearby/ios/Zolikcore.xcframework` and
+`modules/zolik-nearby/android/maven/`. The `zolik-nearby` module wraps it, and
+`SessionContext`'s `playOffline` points `client` and `session` at it. Tables
+and host secrets live in the app's own data directory (`zolik-host/`), so a
+table survives the app being killed.
+
+### Nearby players (local Wi-Fi or a hotspot)
+
+A host taps **Invite players nearby**. The phone then listens on the network
+(port 47800 when free) and advertises `_zolik._tcp` over Bonjour/NSD, with a
+TXT record `v` (protocol), `id` (host instance) and `n` (host name). Guests
+see the table under **Tables nearby**. On a network that blocks discovery,
+such as guest Wi-Fi or client isolation, they can type the address the host
+shows or scan its QR code, which opens `clientreactnative://offline?h=…`.
+Nobody needs the internet. A phone's hotspot with no SIM data is enough.
+
+- The protocol number is `PROTOCOL_VERSION` in `modules/zolik-nearby/index.ts`
+  and `zolikcore.ProtocolVersion`, and they must move together. A guest on
+  another version is told to update rather than seated.
+- iOS asks for Local Network permission the first time. The strings and
+  `NSBonjourServices` come from the module's config plugin.
+- Android release builds need `usesCleartextTraffic`, and the plugin sets it:
+  a table is plain http to an address known only at run time.
+- A host that goes to the background is suspended by iOS. Its guests drop
+  and reconnect by themselves when it comes back, and the table waits.
+- To test with a simulator hosting and the Android emulator as a guest, join
+  by `10.0.2.2:47800`, which is the Mac as the emulator sees it. The emulator's
+  NSD also sees services advertised on the Mac.
+
 A local Release build for the simulator, with no EAS involved:
 
 ```bash

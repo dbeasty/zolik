@@ -7,6 +7,7 @@ import { Avatar } from '@/src/components/avatars/Avatar';
 import { avatarFor } from '@/src/components/avatars/catalogue';
 import { BuildFooter } from '@/src/components/BuildFooter';
 import { Screen } from '@/src/components/Screen';
+import { nearbyAvailable } from '@/modules/zolik-nearby';
 import { ZOLIK_BASE_URL } from '@/src/config';
 import { useSession } from '@/src/context/SessionContext';
 import { useLobbySocket } from '@/src/hooks/useLobbySocket';
@@ -45,7 +46,7 @@ function MenuButton({
 }
 
 export default function MainMenu() {
-  const { session, loading } = useSession();
+  const { session, loading, offline } = useSession();
   useFollowPendingDestination(!!session && !loading);
 
   if (loading) {
@@ -59,7 +60,9 @@ export default function MainMenu() {
   return (
     <Screen
       title="Žolíky"
-      subtitle={t('home.subtitle', { server: ZOLIK_BASE_URL })}
+      subtitle={
+        offline ? t('offline.subtitle') : t('home.subtitle', { server: ZOLIK_BASE_URL })
+      }
       scroll
     >
       {session ? (
@@ -69,7 +72,9 @@ export default function MainMenu() {
       )}
 
       {session ? <MyTablesCard /> : null}
-      {session ? <WaitingStatusCard session={session} /> : null}
+      {/* The waiting room is the online server's, and nobody online can
+          pick up a player at a table on this phone. */}
+      {session && !offline ? <WaitingStatusCard session={session} /> : null}
 
       <View style={{ marginTop: 16 }}>
         <MenuButton
@@ -93,6 +98,16 @@ export default function MainMenu() {
             router.push('/lobby/join');
           }}
         />
+        {/* Only where the app carries its own server: iOS and Android, not
+            the web build or Expo Go. Offered to everyone, signed in or not,
+            because the point is that it needs nothing from the internet. */}
+        {nearbyAvailable ? (
+          <MenuButton
+            label={offline ? t('offline.title') : t('home.playOffline')}
+            secondary
+            onPress={() => router.push('/offline')}
+          />
+        ) : null}
         {/* Settings, sign-out, the account and the second-tier screens are
             not here: they are behind the face in the top corner, which is
             where a player looks for themselves. See `AccountMenu`. What is
