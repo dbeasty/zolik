@@ -1,4 +1,5 @@
 import { ZOLIK_BASE_URL } from '@/src/config';
+import { HttpTransport, type SocketLike, type Transport } from '@/src/net/transport';
 import type { MatchModule, MatchState, ModuleRules, Replay, StoredTable } from '@/src/api/matchTypes';
 import type {
   AccountProfile,
@@ -59,8 +60,17 @@ export class ZolikClient {
   private onTokensUpdated?: (access: string, refresh: string) => void;
   private onSessionExpired?: () => void;
 
-  constructor(baseUrl: string = ZOLIK_BASE_URL) {
+  /** How requests and sockets reach the server. See src/net/transport.ts. */
+  readonly transport: Transport;
+
+  constructor(baseUrl: string = ZOLIK_BASE_URL, transport?: Transport) {
     this.baseUrl = baseUrl.replace(/\/$/, '');
+    this.transport = transport ?? new HttpTransport(this.baseUrl);
+  }
+
+  /** Opens a socket at an address this client's `*SocketUrl` produced. */
+  openSocket(url: string): SocketLike {
+    return this.transport.openSocket(url);
   }
 
   bindSession(
@@ -81,7 +91,7 @@ export class ZolikClient {
   lobbyWsUrl(): string {
     const token = encodeURIComponent(this.accessToken);
     const face = this.avatarId ? `&avatar=${encodeURIComponent(this.avatarId)}` : '';
-    return `${socketBase(this.baseUrl)}/ws/lobby?token=${token}${face}`;
+    return this.transport.socketUrl(`/ws/lobby?token=${token}${face}`);
   }
 
   /** A snapshot of who's currently waiting, for a host browsing whom to
@@ -446,9 +456,9 @@ export class ZolikClient {
 
   /** The socket that carries actions in and per-viewer state out. */
   matchSocketUrl(matchId: string): string {
-    return `${socketBase(this.baseUrl)}/ws/matches/${encodeURIComponent(
-      matchId,
-    )}?token=${encodeURIComponent(this.accessToken)}`;
+    return this.transport.socketUrl(
+      `/ws/matches/${encodeURIComponent(matchId)}?token=${encodeURIComponent(this.accessToken)}`,
+    );
   }
 
   async getMe(): Promise<AccountProfile> {
@@ -530,8 +540,9 @@ export class ZolikClient {
   }
 
   async exportScoringSession(id: string): Promise<string> {
-    const res = await fetch(
-      `${this.baseUrl}/scoring-sessions/${encodeURIComponent(id)}/export`,
+    const res = await this.transport.fetch(
+      `/scoring-sessions/${encodeURIComponent(id)}/export`,
+      { method: 'GET' },
     );
     const text = await res.text();
     if (!res.ok) {
@@ -611,7 +622,7 @@ export class ZolikClient {
     if (auth && this.accessToken) {
       headers.Authorization = `Bearer ${this.accessToken}`;
     }
-    const res = await fetch(`${this.baseUrl}${path}`, {
+    const res = await this.transport.fetch(path, {
       method,
       headers,
       body: body != null ? JSON.stringify(body) : undefined,
@@ -686,17 +697,5 @@ export function apiErrorFromResponse(
   return new ApiError(message, status, code, parseRetryAfterMs(headers.get('Retry-After')));
 }
 
-/**
- * The ws:// or wss:// origin that matches an http(s) API base.
- *
- * This is string surgery rather than `new URL()` because it has to work in a
- * native bundle, where the URL implementation depends on which polyfill got
- * installed. Any path on the base is dropped, because the socket routes hang
- * off the origin. A base with no scheme is treated as plain http, which is
- * what a LAN address typed in by hand looks like.
- */
-export function socketBase(baseUrl: string): string {
-  const m = /^(https?):\/\/([^/?#]+)/i.exec(baseUrl.trim());
-  if (!m) return `ws://${baseUrl.trim().replace(/[/?#].*$/, '')}`;
-  return `${m[1].toLowerCase() === 'https' ? 'wss' : 'ws'}://${m[2]}`;
-}
+
+export { socketBase } from '@/src/net/transport';

@@ -14,7 +14,9 @@ package zolikcore
 
 import (
 	"context"
+	"crypto/ecdh"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -50,6 +52,7 @@ const ProtocolVersion = 1
 type Host struct {
 	app        *app.App
 	handler    http.Handler
+	bleKey     *ecdh.PrivateKey
 	srv        *http.Server
 	ln         net.Listener
 	cancel     context.CancelFunc
@@ -105,13 +108,26 @@ func Start(dataDir string) (*Host, error) {
 		return nil, err
 	}
 
+	rawKey, _ := hex.DecodeString(id.BLEKey)
+	bleKey, err := ecdh.X25519().NewPrivateKey(rawKey)
+	if err != nil {
+		_ = a.Close(context.Background())
+		_ = ln.Close()
+		return nil, fmt.Errorf("ble key: %w", err)
+	}
+	publicKey := base64.StdEncoding.EncodeToString(bleKey.PublicKey().Bytes())
+
 	r := chi.NewRouter()
 	a.RegisterMobileRoutes(r)
+	// publicKey is the Bluetooth tunnel's static key. A guest that met this
+	// table over Wi-Fi first pins it here, so a later Bluetooth join is
+	// authenticated rather than trusted on first use.
 	r.Get("/nearby/info", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"protocol":   ProtocolVersion,
 			"instanceId": id.InstanceID,
+			"publicKey":  publicKey,
 		})
 	})
 
@@ -121,6 +137,7 @@ func Start(dataDir string) (*Host, error) {
 	h := &Host{
 		app:        a,
 		handler:    r,
+		bleKey:     bleKey,
 		srv:        newServer(r),
 		ln:         ln,
 		cancel:     cancel,
@@ -204,6 +221,24 @@ func Current() *Host {
 	return current
 }
 
+// PublicKey is the Bluetooth tunnel's static public key, base64.
+func (h *Host) PublicKey() string {
+	return base64.StdEncoding.EncodeToString(h.bleKey.PublicKey().Bytes())
+}
+
+// BLEInfo is what the GATT info characteristic answers with: everything a
+// guest needs to decide whether to join before it spends a handshake.
+// An advertisement has no room for it: iOS strips all but the service UUID.
+func (h *Host) BLEInfo(name string) []byte {
+	raw, _ := json.Marshal(map[string]any{
+		"v":  ProtocolVersion,
+		"id": h.instanceID,
+		"n":  name,
+		"pk": h.PublicKey(),
+	})
+	return raw
+}
+
 // Port is the TCP port the host accepts connections on.
 func (h *Host) Port() int { return h.ln.Addr().(*net.TCPAddr).Port }
 
@@ -239,17 +274,34 @@ func (h *Host) Stop() {
 type identity struct {
 	InstanceID   string `json:"instanceId"`
 	AccessSecret string `json:"accessSecret"`
+	// BLEKey is the host's static X25519 private key for the Bluetooth
+	// tunnel, hex. Guests pin its public half per instance id, so it has to
+	// last as long as the install does.
+	BLEKey string `json:"bleKey"`
 }
 
+// loadIdentity reads host.json, fills in anything missing (a file from an
+// older build has no BLE key yet) and writes it back if it changed. The
+// parts that were already there never change: they are what guests and
+// their tokens recognise this host by.
 func loadIdentity(dataDir string) (identity, error) {
 	path := filepath.Join(dataDir, "host.json")
 	var id identity
 	if raw, err := os.ReadFile(path); err == nil {
-		if json.Unmarshal(raw, &id) == nil && id.InstanceID != "" && len(id.AccessSecret) >= 32 {
-			return id, nil
-		}
+		_ = json.Unmarshal(raw, &id)
 	}
-	id = identity{InstanceID: randomHex(8), AccessSecret: randomHex(32)}
+	changed := false
+	if id.InstanceID == "" || len(id.AccessSecret) < 32 {
+		id.InstanceID, id.AccessSecret = randomHex(8), randomHex(32)
+		changed = true
+	}
+	if k, err := hex.DecodeString(id.BLEKey); err != nil || len(k) != 32 {
+		id.BLEKey = randomHex(32)
+		changed = true
+	}
+	if !changed {
+		return id, nil
+	}
 	raw, _ := json.Marshal(id)
 	tmp := path + ".tmp"
 	if err := os.WriteFile(tmp, raw, 0o600); err != nil {

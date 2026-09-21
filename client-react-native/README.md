@@ -129,6 +129,49 @@ Nobody needs the internet. A phone's hotspot with no SIM data is enough.
   by `10.0.2.2:47800`, which is the Mac as the emulator sees it. The emulator's
   NSD also sees services advertised on the Mac.
 
+### Bluetooth (no network at all)
+
+When phones share no Wi-Fi, the host taps **Invite over Bluetooth** and
+guests tap **Look for tables over Bluetooth**. The phones never pair.
+
+- **The radio (native, `modules/zolik-nearby/{ios,android}/NearbyBle.*`).**
+  The host is a GATT peripheral with one service,
+  `a54a0c00-3f5e-4d2a-9c47-5a6f6c696b01`:
+  - `…0c01 info`: read, `{v, id, n, pk}`.
+  - `…0c02 c2h`: written with response.
+  - `…0c03 h2c`: notify.
+
+  Every characteristic is plain, so no pairing dialog ever appears. Each
+  message is framed as a 4-byte length plus payload, cut to the MTU, with
+  one write or notification in flight at a time. Guests find the host again
+  by its instance id after a drop, because addresses rotate without pairing.
+- **Security (`server/mobile/zolikcore/tunnel.go` and `src/net/ble/crypto.ts`).**
+  The link itself is unencrypted, so the tunnel does its own: an X25519
+  handshake, then ChaCha20-Poly1305 with a counter nonce in each direction.
+  Guests pin the host's static key per table (and a Wi-Fi join pins it too),
+  and both screens show a 4-character check code.
+- **Requests and sockets (`src/net/ble/transport.ts`).** `BleTransport`
+  carries them as tunnel messages underneath `ZolikClient`, so no screen
+  knows it is on Bluetooth.
+
+Tests, none of which need a radio:
+
+```bash
+(cd server && go test ./mobile/...)                       # tunnel, attacks, vectors
+npx jest src/net                                          # guest crypto (Go vectors) and transport
+(cd server && go build -o /tmp/tunnelpipe ./mobile/tunnelpipe)
+ZOLIK_TUNNEL_PIPE=/tmp/tunnelpipe npx jest src/net/ble/pipe   # TS guest ↔ real Go host
+scripts/test-nearby-framing.sh                            # Swift and Kotlin on-air framing
+```
+
+Over the air, Android can be tested on two emulators. Use the API 34 image
+(`system-images;android-34;google_apis;arm64-v8a`), run as two `-read-only`
+instances of one AVD, which share the emulator's virtual radio (netsim):
+host on one, guest on the other. The API 37 preview image is no good: its
+virtual controller aborts the Bluetooth stack ("Hardware Error 0x42") on any
+LE advertising. The iOS simulator has no Bluetooth at all, so iOS needs real
+phones. Android Bluetooth play needs Android 8 (API 26) or later.
+
 A local Release build for the simulator, with no EAS involved:
 
 ```bash

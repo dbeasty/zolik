@@ -12,6 +12,8 @@ import {
   NearbyVersionError,
   useSession,
 } from '@/src/context/SessionContext';
+import { ensureBlePermission } from '@/src/net/ble/link';
+import { BleHostKeyChanged } from '@/src/net/ble/transport';
 import { guestNameFor } from '@/src/lib/guestName';
 import { t } from '@/src/lib/i18n';
 import { colors, shared } from '@/src/theme';
@@ -33,11 +35,11 @@ const KEEP_AWAKE = 'zolik-room';
 export default function OfflineScreen() {
   const { offline } = useSession();
   if (!offline) return <NotSeated />;
-  return offline.role === 'host' ? <Hosting /> : <Guesting baseUrl={offline.baseUrl} />;
+  return offline.role === 'host' ? <Hosting /> : <Guesting />;
 }
 
 function NotSeated() {
-  const { session, playOffline, joinNearby } = useSession();
+  const { session, playOffline, joinNearby, joinBluetooth } = useSession();
   // A QR code from a host's screen opens the app here with the address in
   // `h`. It is shown, not joined: the player decides with one more tap.
   const { h } = useLocalSearchParams<{ h?: string }>();
@@ -90,6 +92,7 @@ function NotSeated() {
     } catch (e) {
       const reason = e instanceof Error ? e.message : String(e);
       if (e instanceof NearbyVersionError) setError(t('offline.versionMismatch'));
+      else if (e instanceof BleHostKeyChanged) setError(t('offline.keyChanged'));
       else setError(t(joining ? 'offline.joinFailed' : 'offline.failed', { reason }));
     } finally {
       setBusy(false);
@@ -153,6 +156,11 @@ function NotSeated() {
         )}
       </View>
 
+      <BluetoothTables
+        busy={busy}
+        onJoin={(peripheralId) => run(() => joinBluetooth(peripheralId, name.trim()), true)}
+      />
+
       <View style={[shared.card, { marginTop: 12 }]}>
         <Text style={cardTitle}>{t('offline.byAddressTitle')}</Text>
         <TextInput
@@ -176,6 +184,81 @@ function NotSeated() {
         </Pressable>
       </View>
     </Screen>
+  );
+}
+
+/**
+ * Tables advertising over Bluetooth. Scanning waits for a tap rather than
+ * starting on arrival, because it is what asks for the permission, and a
+ * prompt nobody asked for is one people refuse.
+ */
+function BluetoothTables({ busy, onJoin }: { busy: boolean; onJoin: (peripheralId: string) => void }) {
+  const [state, setState] = useState<'idle' | 'scanning' | 'off' | 'denied' | 'unsupported'>('idle');
+  const [seen, setSeen] = useState<nearby.BleSighting[]>([]);
+  const stopRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => () => stopRef.current?.(), []);
+
+  if (state === 'unsupported' || nearby.bleState() === 'unsupported') return null;
+
+  async function look() {
+    if (!(await ensureBlePermission())) {
+      setState('denied');
+      return;
+    }
+    const radio = await nearby.bleReady();
+    if (radio === 'unsupported') {
+      setState('unsupported');
+      return;
+    }
+    if (radio === 'off') {
+      setState('off');
+      return;
+    }
+    if (radio === 'unauthorized') {
+      setState('denied');
+      return;
+    }
+    setState('scanning');
+    stopRef.current?.();
+    stopRef.current = nearby.bleScan((s) =>
+      setSeen((prev) => [...prev.filter((p) => p.peripheralId !== s.peripheralId), s]),
+    );
+  }
+
+  return (
+    <View style={[shared.card, { marginTop: 12 }]}>
+      <Text style={cardTitle}>{t('offline.bleTitle')}</Text>
+      {state === 'idle' ? (
+        <Pressable style={[shared.button, shared.buttonSecondary]} onPress={look} testID="offline-ble-look">
+          <Text style={[shared.buttonText, shared.buttonTextSecondary]}>{t('offline.bleLook')}</Text>
+        </Pressable>
+      ) : state === 'off' ? (
+        <Text style={shared.status}>{t('offline.bleOff')}</Text>
+      ) : state === 'denied' ? (
+        <Text style={shared.status}>{t('offline.bleDenied')}</Text>
+      ) : seen.length === 0 ? (
+        <Text style={shared.status}>{t('offline.bleLooking')}</Text>
+      ) : (
+        seen.map((s) => (
+          <View key={s.peripheralId} style={{ marginTop: 8 }}>
+            <Text style={shared.status}>{s.name || '—'}</Text>
+            <Pressable
+              style={[shared.button, shared.buttonSecondary]}
+              disabled={busy}
+              onPress={() => {
+                stopRef.current?.();
+                stopRef.current = null;
+                onJoin(s.peripheralId);
+              }}
+              testID={`offline-ble-join-${s.peripheralId}`}
+            >
+              <Text style={[shared.buttonText, shared.buttonTextSecondary]}>{t('offline.joinThis')}</Text>
+            </Pressable>
+          </View>
+        ))
+      )}
+    </View>
   );
 }
 
@@ -285,6 +368,8 @@ function Hosting() {
         {error ? <Text style={shared.error}>{error}</Text> : null}
       </View>
 
+      <BluetoothRoom name={session?.username ?? ''} />
+
       <Pressable
         style={[shared.button, shared.buttonSecondary]}
         onPress={leave}
@@ -297,13 +382,107 @@ function Hosting() {
   );
 }
 
-function Guesting({ baseUrl }: { baseUrl: string }) {
-  const { leaveOffline } = useSession();
+/**
+ * The host's Bluetooth side: for guests who share no Wi-Fi with it. Beside
+ * each guest it shows that guest's check code, which should match what the
+ * guest's own screen says.
+ */
+function BluetoothRoom({ name }: { name: string }) {
+  const [open, setOpen] = useState(false);
+  const [codes, setCodes] = useState<string[]>([]);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!open) return;
+    const tick = () => setCodes(nearby.bleGuestCodes());
+    tick();
+    const off = nearby.onBleGuests(tick);
+    const timer = setInterval(tick, 2000);
+    return () => {
+      off();
+      clearInterval(timer);
+    };
+  }, [open]);
+
+  const [unsupported, setUnsupported] = useState(false);
+  if (unsupported || nearby.bleState() === 'unsupported') return null;
+
+  async function start() {
+    setError('');
+    if (!(await ensureBlePermission())) {
+      setError(t('offline.bleDenied'));
+      return;
+    }
+    const radio = await nearby.bleReady();
+    if (radio === 'unsupported') {
+      setUnsupported(true);
+      return;
+    }
+    if (radio === 'unauthorized') {
+      setError(t('offline.bleDenied'));
+      return;
+    }
+    if (radio === 'off') {
+      setError(t('offline.bleOff'));
+      return;
+    }
+    await nearby.bleHostStart(name);
+    await activateKeepAwakeAsync(KEEP_AWAKE);
+    setOpen(true);
+  }
+
+  async function stop() {
+    await nearby.bleHostStop();
+    setOpen(false);
+    setCodes([]);
+  }
+
+  return (
+    <View style={[shared.card, { marginTop: 12 }]}>
+      <Text style={cardTitle}>{t('offline.bleTitle')}</Text>
+      {open ? (
+        <>
+          <Text style={shared.status} testID="offline-ble-open">
+            {t('offline.bleOpen', { n: codes.length })}
+          </Text>
+          {codes.map((c) => (
+            <Text key={c} style={[shared.status, { color: colors.text }]}>
+              {t('offline.bleCheck', { code: c })}
+            </Text>
+          ))}
+          <Pressable style={[shared.button, shared.buttonSecondary]} onPress={stop} testID="offline-ble-stop">
+            <Text style={[shared.buttonText, shared.buttonTextSecondary]}>{t('offline.bleStop')}</Text>
+          </Pressable>
+        </>
+      ) : (
+        <>
+          <Text style={shared.status}>{t('offline.bleInviteBody')}</Text>
+          <Pressable style={[shared.button, { marginTop: 8 }]} onPress={start} testID="offline-ble-invite">
+            <Text style={shared.buttonText}>{t('offline.bleInvite')}</Text>
+          </Pressable>
+        </>
+      )}
+      {error ? <Text style={shared.error}>{error}</Text> : null}
+    </View>
+  );
+}
+
+function Guesting() {
+  const { offline, leaveOffline } = useSession();
+  const baseUrl = offline?.baseUrl ?? '';
+  const overBluetooth = offline?.via === 'bluetooth';
   return (
     <Screen title={t('offline.title')} subtitle={t('offline.subtitle')} scroll>
       <Text style={shared.status} testID="offline-guest-active">
-        {t('offline.guestActive', { host: baseUrl.replace(/^https?:\/\//, '') })}
+        {overBluetooth
+          ? t('offline.guestBle')
+          : t('offline.guestActive', { host: baseUrl.replace(/^https?:\/\//, '') })}
       </Text>
+      {overBluetooth && offline?.checkCode ? (
+        <Text style={[shared.status, { color: colors.text }]} testID="offline-check-code">
+          {t('offline.bleCheck', { code: offline.checkCode })}
+        </Text>
+      ) : null}
       <Pressable style={[shared.button, { marginTop: 12 }]} onPress={() => router.push('/lobby/join')}>
         <Text style={shared.buttonText}>{t('nav.join')}</Text>
       </Pressable>

@@ -10,15 +10,90 @@ import Zolikcore
 /// reading the phone's own addresses.
 public class ZolikNearbyModule: Module {
   private let bonjour = NearbyBonjour()
+  private let bleHost = NearbyBleHost()
+  private let bleGuest = NearbyBleGuest()
 
   public func definition() -> ModuleDefinition {
     Name("ZolikNearby")
 
-    Events("onHostFound", "onHostLost")
+    Events("onHostFound", "onHostLost", "onBleFound", "onBleMessage", "onBleClosed", "onBleGuests")
 
     OnCreate {
       self.bonjour.onFound = { [weak self] host in self?.sendEvent("onHostFound", host) }
       self.bonjour.onLost = { [weak self] name in self?.sendEvent("onHostLost", ["name": name]) }
+      self.bleGuest.onFound = { [weak self] host in self?.sendEvent("onBleFound", host) }
+      self.bleGuest.onMessage = { [weak self] linkId, data in
+        self?.sendEvent("onBleMessage", ["linkId": linkId, "data": data.base64EncodedString()])
+      }
+      self.bleGuest.onClosed = { [weak self] linkId in self?.sendEvent("onBleClosed", ["linkId": linkId]) }
+      self.bleHost.onGuestsChanged = { [weak self] n in self?.sendEvent("onBleGuests", ["count": n]) }
+    }
+
+    // Bluetooth, host side: advertise the table and serve guests through
+    // the Go tunnel. The Go host must already be running.
+    AsyncFunction("bleHostStart") { (name: String) in
+      guard ZolikcoreCurrent() != nil else { throw HostException("no host is running") }
+      self.bleHost.start(name: name)
+    }
+
+    AsyncFunction("bleHostStop") {
+      self.bleHost.stop()
+    }
+
+    // Bluetooth, guest side.
+    AsyncFunction("bleScanStart") {
+      self.bleGuest.scan()
+    }
+
+    AsyncFunction("bleScanStop") {
+      self.bleGuest.stopScan()
+    }
+
+    AsyncFunction("bleConnect") { (peripheralId: String, promise: Promise) in
+      self.bleGuest.connect(peripheralId: peripheralId) { result in
+        switch result {
+        case .success(let (linkId, info)):
+          promise.resolve(["linkId": linkId, "info": String(data: info, encoding: .utf8) ?? ""])
+        case .failure(let e):
+          promise.reject("BLE_CONNECT", e.localizedDescription)
+        }
+      }
+    }
+
+    AsyncFunction("bleSend") { (linkId: String, base64: String, promise: Promise) in
+      guard let data = Data(base64Encoded: base64) else {
+        promise.reject("BLE_SEND", "not base64")
+        return
+      }
+      self.bleGuest.send(linkId: linkId, msg: data) { error in
+        if let error { promise.reject("BLE_SEND", error.localizedDescription) } else { promise.resolve(nil) }
+      }
+    }
+
+    AsyncFunction("bleDisconnect") { (linkId: String) in
+      self.bleGuest.disconnect(linkId: linkId)
+    }
+
+    Function("bleGuestCodes") { () -> [String] in
+      self.bleHost.codes()
+    }
+
+    // Randomness for the tunnel's ephemeral keys, from the system's secure
+    // generator. JS has no crypto.getRandomValues under Hermes.
+    Function("randomBytes") { (count: Int) -> String in
+      var bytes = [UInt8](repeating: 0, count: max(0, min(count, 1024)))
+      guard SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes) == errSecSuccess else {
+        throw HostException("the system random generator failed")
+      }
+      return Data(bytes).base64EncodedString()
+    }
+
+    AsyncFunction("bleReady") { (promise: Promise) in
+      self.bleGuest.ready { promise.resolve($0) }
+    }
+
+    Function("bleState") { () -> String in
+      self.bleGuest.state()
     }
 
     AsyncFunction("startHost") { () -> [String: Any] in
@@ -31,6 +106,7 @@ public class ZolikNearbyModule: Module {
 
     AsyncFunction("stopHost") {
       self.bonjour.unpublish()
+      self.bleHost.stop()
       ZolikcoreCurrent()?.stop()
     }
 

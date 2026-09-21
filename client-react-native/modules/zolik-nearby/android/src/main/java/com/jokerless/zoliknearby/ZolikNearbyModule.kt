@@ -26,6 +26,24 @@ import java.net.NetworkInterface
  */
 class ZolikNearbyModule : Module() {
   private var nearby: NearbyNsd? = null
+  private var bleHost: NearbyBleHost? = null
+  private var bleGuest: NearbyBleGuest? = null
+
+  private fun context(): android.content.Context =
+    appContext.reactContext ?: throw HostException("no application context")
+
+  private fun host(): NearbyBleHost =
+    bleHost ?: NearbyBleHost(context()) { sendEvent("onBleGuests", mapOf("count" to it)) }.also { bleHost = it }
+
+  private fun guest(): NearbyBleGuest =
+    bleGuest ?: NearbyBleGuest(
+      context(),
+      onFound = { sendEvent("onBleFound", it) },
+      onMessage = { id, data ->
+        sendEvent("onBleMessage", mapOf("linkId" to id, "data" to android.util.Base64.encodeToString(data, android.util.Base64.NO_WRAP)))
+      },
+      onClosed = { sendEvent("onBleClosed", mapOf("linkId" to it)) },
+    ).also { bleGuest = it }
 
   private fun nsd(): NearbyNsd {
     nearby?.let { return it }
@@ -40,7 +58,73 @@ class ZolikNearbyModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("ZolikNearby")
 
-    Events("onHostFound", "onHostLost")
+    Events("onHostFound", "onHostLost", "onBleFound", "onBleMessage", "onBleClosed", "onBleGuests")
+
+    // Bluetooth, host side: advertise the table and serve guests through the
+    // Go tunnel. The Go host must already be running.
+    AsyncFunction("bleHostStart") { name: String ->
+      Zolikcore.current() ?: throw HostException("no host is running")
+      host().start(name)
+    }
+
+    AsyncFunction("bleHostStop") {
+      bleHost?.stop()
+    }
+
+    // Bluetooth, guest side.
+    AsyncFunction("bleScanStart") {
+      guest().scan()
+    }
+
+    AsyncFunction("bleScanStop") {
+      bleGuest?.stopScan()
+    }
+
+    AsyncFunction("bleConnect") { peripheralId: String, promise: expo.modules.kotlin.Promise ->
+      guest().connect(peripheralId) { result ->
+        result.fold(
+          { (linkId, info) -> promise.resolve(mapOf("linkId" to linkId, "info" to String(info, Charsets.UTF_8))) },
+          { promise.reject("BLE_CONNECT", it.message ?: "could not connect", it) },
+        )
+      }
+    }
+
+    AsyncFunction("bleSend") { linkId: String, base64: String, promise: expo.modules.kotlin.Promise ->
+      val data = try {
+        android.util.Base64.decode(base64, android.util.Base64.NO_WRAP)
+      } catch (e: IllegalArgumentException) {
+        promise.reject("BLE_SEND", "not base64", e)
+        return@AsyncFunction
+      }
+      guest().send(linkId, data) { err ->
+        if (err != null) promise.reject("BLE_SEND", err.message ?: "send failed", err) else promise.resolve(null)
+      }
+    }
+
+    AsyncFunction("bleDisconnect") { linkId: String ->
+      bleGuest?.disconnect(linkId)
+    }
+
+    Function("bleGuestCodes") { ->
+      bleHost?.codes() ?: emptyList<String>()
+    }
+
+    // Randomness for the tunnel's ephemeral keys, from the system's secure
+    // generator. JS has no crypto.getRandomValues under Hermes.
+    Function("randomBytes") { count: Int ->
+      val bytes = ByteArray(count.coerceIn(0, 1024))
+      java.security.SecureRandom().nextBytes(bytes)
+      android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+    }
+
+    // Android knows its radio's state at once; iOS may have to ask first.
+    AsyncFunction("bleReady") {
+      guest().state()
+    }
+
+    Function("bleState") {
+      guest().state()
+    }
 
     AsyncFunction("startHost") {
       val context = appContext.reactContext ?: throw HostException("no application context")
@@ -55,6 +139,7 @@ class ZolikNearbyModule : Module() {
 
     AsyncFunction("stopHost") {
       nearby?.unpublish()
+      bleHost?.stop()
       Zolikcore.current()?.stop()
     }
 
@@ -96,6 +181,8 @@ class ZolikNearbyModule : Module() {
     OnDestroy {
       nearby?.unpublish()
       nearby?.stopBrowsing()
+      bleHost?.stop()
+      bleGuest?.stopScan()
     }
   }
 

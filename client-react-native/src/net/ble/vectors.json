@@ -1,0 +1,13 @@
+{
+  "checkCode": "WFAD",
+  "g2hPlainJSON": "{\"t\":\"ping\"}",
+  "g2hSealed0": "03fe3b1b0a61b78421c013cf7c4f25b4320e72f24962c176553f6a75978e",
+  "g2hSealed1": "035f13085b554b269fc82fa4e766e386a1bb2b5e06cfaa899d5ee90a64d4",
+  "guestEphPriv": "1111111111111111111111111111111111111111111111111111111111111111",
+  "h2gPlainJSON": "{\"t\":\"res\",\"id\":7,\"s\":200,\"b\":\"ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok ok \"}",
+  "h2gSealed0": "036f1664e826060b710e483a3e5e448e7ddf37c68b890e6423eae0d74969c44ea61a1b6e79544f1e5f72b5497368ff87df4a8084c35e6747a8830ccc7b35d9ba607dc91c0f34f246c770843431",
+  "hostEphPriv": "3333333333333333333333333333333333333333333333333333333333333333",
+  "hostEphPub": "7b0d47d93427f8311160781c7c733fd89f88970aef490d8aa0ee19a4cb8a1b14",
+  "hostStaticPriv": "2222222222222222222222222222222222222222222222222222222222222222",
+  "hostStaticPub": "0faa684ed28867b97f4a6a2dee5df8ce974e76b7018e3f22a1c4cf2678570f20"
+}

@@ -32,6 +32,11 @@ jest.mock('@/src/api/client', () => ({
     get getCapacity() {
       return mockGetCapacity;
     },
+    // The hook opens sockets through the client's transport; over HTTP that
+    // is a plain WebSocket, which is the fake this file installs.
+    openSocket(url: string) {
+      return new WebSocket(url);
+    },
   },
 }));
 
