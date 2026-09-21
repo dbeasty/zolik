@@ -12,6 +12,8 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+
+	"zolik/server/internal/db"
 )
 
 // Where the memory went, answerable from outside the process.
@@ -164,13 +166,13 @@ func (a *App) memoryBudgets(limit uint64) map[string]int64 {
 	if limit == 0 {
 		return map[string]int64{}
 	}
-	l := float64(limit)
+	shedding, pool := db.KDBMemoryLines(limit)
 	return map[string]int64{
 		"cgroupLimit":         int64(limit),
-		"admissionWatermark":  int64(l * a.cfg.AdmissionMemoryWatermark),
+		"admissionWatermark":  int64(float64(limit) * a.cfg.AdmissionMemoryWatermark),
 		"goMemLimit":          debug.SetMemoryLimit(-1),
-		"kdbWriteShedding":    int64(l * 0.85),
-		"kdbHotTierCachePool": int64(l * 0.5),
+		"kdbWriteShedding":    shedding,
+		"kdbHotTierCachePool": pool,
 	}
 }
 

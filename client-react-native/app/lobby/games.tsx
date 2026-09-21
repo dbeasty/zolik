@@ -43,6 +43,9 @@ export default function GamesScreen() {
   const { client, session } = useSession();
   const [modules, setModules] = useState<MatchModule[]>([]);
   const [error, setError] = useState('');
+  // A failed start is shown on the card whose button was pressed. At the top
+  // of the list it was off screen for any game below the fold.
+  const [startError, setStartError] = useState<{ modId: string; message: string } | null>(null);
   const [busy, setBusy] = useState('');
 
   // Which variation and options each module is configured with right now,
@@ -167,11 +170,11 @@ export default function GamesScreen() {
   const start = useCallback(
     async (mod: MatchModule, withBot: boolean) => {
       if (!session?.accessToken) {
-        setError(t('lobby.games.signInFirst'));
+        setStartError({ modId: mod.id, message: t('lobby.games.signInFirst') });
         return;
       }
       setBusy(mod.id);
-      setError('');
+      setStartError(null);
       try {
         // Remember this pick for next time, regardless of how the match turns
         // out — it is a setup-screen preference, not a fact about the match.
@@ -205,7 +208,7 @@ export default function GamesScreen() {
         await client.startMatch(matchId);
         router.push(`/match/${matchId}`);
       } catch (e) {
-        setError(formatApiError(e));
+        setStartError({ modId: mod.id, message: formatApiError(e) });
       } finally {
         setBusy('');
       }
@@ -546,6 +549,16 @@ export default function GamesScreen() {
                 <Text style={styles.buttonText}>{t('lobby.games.openTable')}</Text>
               </Pressable>
             </View>
+            {startError?.modId === mod.id ? (
+              <Text
+                testID={`start-error-${mod.id}`}
+                accessibilityRole="alert"
+                accessibilityLiveRegion="polite"
+                style={styles.startError}
+              >
+                {startError.message}
+              </Text>
+            ) : null}
           </View>
           );
         })}
@@ -738,4 +751,5 @@ const styles = StyleSheet.create({
   buttonBusy: { opacity: 0.5 },
   buttonText: { color: colors.onAccent, fontWeight: '700', fontSize: 13 },
   error: { color: colors.danger, marginBottom: 10 },
+  startError: { color: colors.danger, marginTop: 10 },
 });

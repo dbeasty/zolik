@@ -11,6 +11,7 @@ import (
 	"zolik/server/internal/module"
 
 	kdbserver "github.com/limidus/kdb/go/kdb/server"
+	"github.com/limidus/kdb/go/kdb/storage"
 )
 
 // openTestKDB opens an on-disk engine in the test's temp dir — the same code
@@ -321,6 +322,23 @@ func TestKDBHotTierPoolBytesSizesTheSharedPool(t *testing.T) {
 
 	if got := kdbHotTierPoolBytes(0); got != 0 {
 		t.Fatalf("no budget configured: got %d, want 0 (host default, unchanged)", got)
+	}
+}
+
+// TestKDBCachesFitUnderTheWriteRejectLine: kdb's caches may fill to more than
+// the pool (their shares sum past 1), and the collector lets the heap reach
+// twice what is live. Both multipliers applied to a full pool must still land
+// below the line where kdb starts refusing writes, or history alone can close
+// the server to new matches.
+func TestKDBCachesFitUnderTheWriteRejectLine(t *testing.T) {
+	const gcHeadroom = 2
+	shares := storage.DefaultDocumentCacheFraction + storage.DefaultCommitOpsFraction +
+		storage.DefaultMemtableFraction + storage.DefaultHistoryTreeFraction
+	peak := kdbHotTierFraction * shares * gcHeadroom
+	if peak >= kdbMemoryRejectFraction {
+		t.Fatalf("full caches peak at %.0f%% of the budget (pool %.0f%% x shares %.2f x GC %d), "+
+			"at or past the %.0f%% write-reject line",
+			peak*100, kdbHotTierFraction*100, shares, gcHeadroom, kdbMemoryRejectFraction*100)
 	}
 }
 

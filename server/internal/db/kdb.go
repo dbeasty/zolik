@@ -215,7 +215,15 @@ func kdbRescueReserveBytes() int64 {
 // shared across every namespace — fine for a dev machine, but a process
 // that knows its real cgroup limit should size the pool from it instead of
 // inheriting a default sized for a single namespace running alone.
-const kdbHotTierFraction = 0.5
+//
+// It is a quarter, not a half, because the pool is not a ceiling. kdb splits
+// it into four caches whose shares sum to 125% of it (document versions 0.5,
+// memtable, commit operations and historical trees 0.25 each), and those
+// caches fill with match history nobody is reading. The garbage collector then
+// lets the heap reach twice what is live before collecting. At a half, the
+// history of a few days' play alone (485 MiB live of 568) put the process past
+// kdbMemoryRejectFraction, and every new match was refused.
+const kdbHotTierFraction = 0.25
 
 // kdbHotTierPoolBytes derives the host's shared hot-tier cache pool — see
 // embed.Host.MemoryArbiter — from the same cgroup-derived total
@@ -231,6 +239,12 @@ func kdbHotTierPoolBytes(totalBudgetBytes uint64) int64 {
 		return 0
 	}
 	return int64(float64(totalBudgetBytes) * kdbHotTierFraction)
+}
+
+// KDBMemoryLines is where kdb starts refusing writes and how large its cache
+// pool is, for a process whose memory budget is totalBudgetBytes.
+func KDBMemoryLines(totalBudgetBytes uint64) (writeShedding, hotTierPool int64) {
+	return int64(float64(totalBudgetBytes) * kdbMemoryRejectFraction), kdbHotTierPoolBytes(totalBudgetBytes)
 }
 
 // busyIfShed translates the engine's admission refusals into SERVER_BUSY, the
