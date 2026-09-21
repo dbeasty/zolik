@@ -204,6 +204,23 @@ type Zone struct {
 	// is no seat, no stack and no standing behind it; OwnerID stays empty,
 	// which is the fact this field is stating out loud.
 	Dealer bool `json:"dealer,omitempty"`
+	// Shared marks a spread the *table* holds: cards in play for everybody at
+	// once, belonging to no player and to no side. Poker's board is the one
+	// so far.
+	//
+	// It exists because an empty OwnerID does not answer the question. A
+	// Canasta partnership's melds name no owner either — they are a side's,
+	// not a player's — and they are still somebody's cards, laid out among
+	// the other players' spreads. Poker's five are nobody's and everybody's,
+	// and belong up on the felt beside the deck they were dealt from, which
+	// is where a player looks for them.
+	//
+	// Presentational, exactly as Dealer is: a client that ignores this draws
+	// the zone as a spread wherever it draws spreads, and plays the game no
+	// worse for it. What the field buys is a client that can put the board on
+	// the table without matching on the id "board", which would be the shell
+	// knowing a game's name.
+	Shared bool `json:"shared,omitempty"`
 }
 
 // Fact is a labelled value for a header or scoreboard — pre-resolved by the

@@ -79,6 +79,18 @@ export type Zone = {
    * one thing this whole protocol is arranged not to need.
    */
   dealer?: boolean;
+  /**
+   * A spread the *table* holds — cards in play for everybody at once,
+   * belonging to no player and to no side. Poker's board is the one that
+   * sends it.
+   *
+   * A missing `ownerId` does not say this on its own: a Canasta partnership's
+   * melds name no owner either, and they are still somebody's cards. So this
+   * is what separates the two, and all it decides is where the zone is drawn
+   * — up on the table beside the piles everyone draws from, instead of down
+   * in the row of players' spreads. Laid out by `kind` either way.
+   */
+  shared?: boolean;
 };
 
 /** One player as the board shows them: whose turn, and their own numbers. */

@@ -213,7 +213,10 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 
 	vm.Zones = append(vm.Zones,
 		module.Zone{
-			ID: "board", Kind: module.ZoneSpread, LabelKey: "zone.board",
+			// Shared: the five are the table's, not a player's and not a
+			// side's, so the board is drawn up on the felt beside the deck
+			// rather than down among the players' spreads.
+			ID: "board", Kind: module.ZoneSpread, LabelKey: "zone.board", Shared: true,
 			Cards: cardViews(s.Board), Count: len(s.Board),
 		},
 		module.Zone{

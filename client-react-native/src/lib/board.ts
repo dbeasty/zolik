@@ -71,3 +71,45 @@ export function drawableZones(
     return !isConcealed(zone);
   });
 }
+
+/**
+ * Where a zone is drawn, decided by what the module said it *is*.
+ *
+ * Three places on the board, and each of these answers one of them: the
+ * table at the top (the piles everyone draws from), the row of spreads under
+ * the hand (what each player has laid down), and the head of the table (the
+ * house's own zone, which `dealer` already names).
+ *
+ * The question these exist to settle is one an empty `ownerId` cannot: a
+ * Canasta partnership's melds name no owner — they belong to a side, not a
+ * player — and poker's board names none either, and the two do not belong in
+ * the same place. A side's melds are an answer to "what has each player laid
+ * down?"; the community cards are not, they are half of everybody's hand. So
+ * the module says which it is with `shared`, and the shell never has to ask
+ * what game it is drawing.
+ */
+export function isTableZone(zone: Zone): boolean {
+  if (zone.ownerId) return false;
+  if (zone.dealer) return false;
+  return zone.kind !== 'spread' || !!zone.shared;
+}
+
+/** A spread that belongs in the row of what players have laid down. */
+export function isSpreadRowZone(zone: Zone): boolean {
+  return zone.kind === 'spread' && !zone.dealer && !zone.shared;
+}
+
+/**
+ * Whether a zone shares a row with its neighbours instead of taking a line
+ * of its own.
+ *
+ * Small by kind: a stack and a pile are a couple of cards across and look
+ * absurd each occupying a full row. A shared spread joins them — poker's
+ * board is five cards beside the deck they were dealt from, which is how a
+ * real table is laid out, and the row wraps when a screen is too narrow for
+ * both rather than never trying.
+ */
+export function sitsBeside(zone: Zone): boolean {
+  if (zone.kind === 'stack' || zone.kind === 'pile') return true;
+  return zone.kind === 'spread' && !!zone.shared;
+}

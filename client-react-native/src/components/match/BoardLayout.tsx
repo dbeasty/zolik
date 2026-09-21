@@ -7,7 +7,7 @@ import { Panel } from '@/src/components/match/Panel';
 import { SeatStrip } from '@/src/components/match/SeatStrip';
 import { ZoneView } from '@/src/components/match/ZoneView';
 import type { Measurable } from '@/src/hooks/useDropRegistry';
-import { drawableZones } from '@/src/lib/board';
+import { drawableZones, isSpreadRowZone, isTableZone, sitsBeside } from '@/src/lib/board';
 import { t } from '@/src/lib/i18n';
 import { factText, label, playerName } from '@/src/lib/labels';
 import type { Skin } from '@/src/skins/types';
@@ -86,12 +86,18 @@ export function BoardLayout({
   // table rather than in the row of melds. Taken out of the spreads by the
   // flag the module set, never by its id or its game.
   const dealerZone = visible.find((z) => z.dealer);
-  const spreadZones = visible.filter((z) => z.kind === 'spread' && !z.dealer);
+  const spreadZones = visible.filter(isSpreadRowZone);
   const mySpreads = spreadZones.filter((z) => z.ownerId === viewerId);
   const otherSpreads = spreadZones.filter((z) => z.ownerId !== viewerId);
   const orderedSpreads = [...mySpreads, ...otherSpreads];
 
-  const tableZones = visible.filter((z) => !z.ownerId && z.kind !== 'spread');
+  // The table's own zones: the piles everyone draws from and discards to, and
+  // any spread the table itself holds — poker's board, dealt from the deck it
+  // now sits beside. A shared spread is up here rather than down in the row of
+  // melds because it is nobody's: the row below answers "what has each player
+  // laid down?", and the community cards are not an answer to that question,
+  // they are half of every player's hand.
+  const tableZones = visible.filter(isTableZone);
   // Whatever is left: an opponent zone that is not a spread — a hand revealed
   // at a showdown, or every hand at once in an open replay — or a kind this
   // shell has never seen. The fallback that keeps a game it was not written
@@ -205,12 +211,11 @@ export function Section({
   if (!zones.length) return null;
 
   // Side by side if a zone is small, on its own line if it is wide — decided
-  // by kind, which is the one thing the shell is allowed to know. A stack and
-  // a pile are a couple of cards across and look absurd each occupying a full
-  // row; a hand or a spread of melds needs the width. No game is named, so a
-  // game added tomorrow is laid out by the same rule.
-  const beside = zones.filter((z) => z.kind === 'stack' || z.kind === 'pile');
-  const stacked = zones.filter((z) => z.kind !== 'stack' && z.kind !== 'pile');
+  // by what the module said the zone is, which is the one thing the shell is
+  // allowed to know (`sitsBeside`). No game is named, so a game added
+  // tomorrow is laid out by the same rule.
+  const beside = zones.filter(sitsBeside);
+  const stacked = zones.filter((z) => !sitsBeside(z));
 
   return (
     <Panel
@@ -234,7 +239,19 @@ export function Section({
       {beside.length > 0 ? (
         <View style={styles.beside} testID={`section-beside-${title.toLowerCase()}`}>
           {beside.map((z) => (
-            <ZoneView key={z.id} zone={z} compact={compact} inline nested {...panelPropsFor(z.id)} {...drops} />
+            // Compact is right for a pile you glance at and wrong for cards
+            // you read: a stack is a count and a pile is its top card, but a
+            // shared spread is half of everyone's hand and is drawn at the
+            // size the rest of the board draws cards.
+            <ZoneView
+              key={z.id}
+              zone={z}
+              compact={compact && !z.shared}
+              inline
+              nested
+              {...panelPropsFor(z.id)}
+              {...drops}
+            />
           ))}
         </View>
       ) : null}
