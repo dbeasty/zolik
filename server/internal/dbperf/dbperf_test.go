@@ -16,6 +16,7 @@ package dbperf
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -35,6 +36,7 @@ import (
 
 type backend struct {
 	name     string
+	kdb      *db.KDB // the embedded store, for the kdb backend only
 	match    match.Repository
 	sessions auth.SessionRepository
 	stats    stats.Repository
@@ -56,6 +58,7 @@ func kdbBackend(b *testing.B) backend {
 	b.Cleanup(func() { _ = k.Close(context.Background()) })
 	return backend{
 		name:     db.EngineKDB,
+		kdb:      k,
 		match:    match.NewKDBRepository(k),
 		sessions: auth.NewKDBSessionRepository(k),
 		stats:    stats.NewKDBRepository(k),
@@ -143,8 +146,16 @@ func BenchmarkMatchInsert(b *testing.B) {
 	})
 }
 
-// BenchmarkMatchActionCycle is the hot gameplay path: every action a player
-// takes is load → apply → version-checked store.
+// benchBoard is a board the size of a four-player canasta state.
+var benchBoard = models.JSONDoc(fmt.Sprintf(`{"board":%q}`, strings.Repeat("QC,QS,5D,", 400)))
+
+var benchAction = models.JSONDoc(`{"offerId":"lay_meld:5","verb":"lay_meld","cards":["5D","5H","2D"]}`)
+
+// BenchmarkMatchActionCycle is what storage does for each move a player makes:
+// store the move, and every fifty moves a snapshot of the board with the
+// envelope. The board itself is held in memory by the runtime, so nothing is
+// loaded or decoded per move. b.N is the number of moves into one match, so
+// -benchtime=2000x measures the 2,000th move as much as the first.
 func BenchmarkMatchActionCycle(b *testing.B) {
 	perEngine(b, func(b *testing.B, be backend) {
 		ctx := context.Background()
@@ -153,16 +164,80 @@ func BenchmarkMatchActionCycle(b *testing.B) {
 			b.Fatal(err)
 		}
 		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
-			cur, err := be.match.FindByID(ctx, m.ID)
-			if err != nil {
+		for seq := 1; seq <= b.N; seq++ {
+			move := models.MatchAction{Seq: seq, PlayerID: "p1", Action: benchAction, At: time.Now()}
+			if seq%50 != 0 {
+				if err := be.match.AppendMove(ctx, m.ID, move); err != nil {
+					b.Fatal(err)
+				}
+				continue
+			}
+			next := m
+			next.Snapshots = append(append([]int(nil), m.Snapshots...), seq)
+			if err := be.match.CommitSnapshot(ctx, m.ID, m.Version, next, []models.MatchAction{move}, seq, benchBoard); err != nil {
 				b.Fatal(err)
 			}
-			if err := be.match.UpdateWithVersion(ctx, m.ID, cur.Version, cur); err != nil {
-				b.Fatal(err)
-			}
+			next.Version = m.Version + 1
+			m = next
 		}
 	})
+}
+
+// inlineMatch is a match the way it was stored before moves left it: the
+// board and every move inside the document.
+type inlineMatch struct {
+	models.Match `bson:",inline"`
+	State        json.RawMessage `bson:"state"`
+	ActionLog    []inlineAction  `bson:"actionLog"`
+}
+
+type inlineAction struct {
+	Seq      int             `bson:"seq"`
+	PlayerID string          `bson:"playerId"`
+	Action   json.RawMessage `bson:"action"`
+	At       time.Time       `bson:"at"`
+}
+
+// BenchmarkInlineLogCycle is the same moves stored the way they were before:
+// load the whole document, decode it, append the move, and write it all back
+// under the version check. For comparison with BenchmarkMatchActionCycle on
+// the same build; kdb only, because that is where it mattered.
+func BenchmarkInlineLogCycle(b *testing.B) {
+	be := kdbBackend(b)
+	doc := inlineMatch{Match: testMatch(0), State: json.RawMessage(benchBoard)}
+	doc.ID = bson.NewObjectID()
+	doc.Version = 1
+	raw, err := db.MarshalDoc(doc)
+	if err != nil {
+		b.Fatal(err)
+	}
+	if err := be.kdb.Insert(db.NSMatches, doc.ID.Hex(), raw); err != nil {
+		b.Fatal(err)
+	}
+	b.ResetTimer()
+	for seq := 1; seq <= b.N; seq++ {
+		err := be.kdb.Update(db.NSMatches, func(tx *db.Tx) error {
+			cur, err := tx.Get(doc.ID.Hex())
+			if err != nil {
+				return err
+			}
+			var m inlineMatch
+			if err := db.UnmarshalDoc(cur, &m); err != nil {
+				return err
+			}
+			m.ActionLog = append(m.ActionLog, inlineAction{Seq: seq, PlayerID: "p1",
+				Action: json.RawMessage(benchAction), At: time.Now()})
+			m.Version++
+			out, err := db.MarshalDoc(m)
+			if err != nil {
+				return err
+			}
+			return tx.Put(doc.ID.Hex(), out)
+		})
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
 }
 
 // BenchmarkMatchResolveByJoinCode is the join-a-table lookup, against a

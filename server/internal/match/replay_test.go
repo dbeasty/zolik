@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
+
+	"go.mongodb.org/mongo-driver/v2/bson"
 
 	"zolik/server/internal/blackjack"
 	"zolik/server/internal/canasta"
@@ -91,7 +94,10 @@ func playOut(t *testing.T, g replayable, seed int64) (models.Match, module.State
 	}
 
 	log := []models.MatchAction{}
-	var checkpoints []models.MatchCheckpoint
+	// The deal is snapshot 0, as Start stores it.
+	snapshots := []int{0}
+	boards := map[int]models.JSONDoc{0: models.JSONDoc(start)}
+	rounds := 0
 	final, _, err := module.PlayWithOffers(g.mod, start, g.players, module.DriverOptions{
 		MaxActions: replayTestActions,
 		Prefer:     g.prefer,
@@ -101,13 +107,21 @@ func playOut(t *testing.T, g replayable, seed int64) (models.Match, module.State
 		OnAction: func(playerID string, a module.Action) {
 			log = append(log, logEntry(len(log)+1, playerID, a))
 		},
-		// And the checkpoints the same move would have earned, through the
-		// same function the manager calls — so a fixture can never drift into
-		// describing a match the runtime would not have written.
+		// And the round mark and snapshot the same move would have earned,
+		// through the rule the manager applies — so a fixture can never drift
+		// into describing a match the runtime would not have written.
 		OnState: func(st module.State) {
-			at := models.Match{State: st, ActionLog: log, Checkpoints: checkpoints}
-			if c, ok := checkpointClosedBy(at, module.RoundsFor(g.mod, st)); ok {
-				checkpoints = append(checkpoints, c)
+			seq := len(log)
+			if seq == 0 {
+				return
+			}
+			if r := module.RoundsFor(g.mod, st); r != nil && len(r.Rounds) > rounds {
+				rounds = len(r.Rounds)
+				log[seq-1].Rounds = rounds
+			}
+			if snapshotDue(seq, snapshots[len(snapshots)-1], log[seq-1].Rounds > 0) {
+				snapshots = append(snapshots, seq)
+				boards[seq] = append(models.JSONDoc(nil), st...)
 			}
 		},
 	})
@@ -122,21 +136,25 @@ func playOut(t *testing.T, g replayable, seed int64) (models.Match, module.State
 	for _, p := range g.players {
 		players = append(players, models.Player{ID: p.ID, Name: p.Name, IsAI: p.IsAI})
 	}
-	return models.Match{
-		ModuleID:    g.name,
-		Variation:   g.cfg.Variation,
-		Options:     g.cfg.Options,
-		Status:      "active",
-		Players:     players,
-		Seed:        seed,
-		State:       final,
-		ActionLog:   log,
-		Checkpoints: checkpoints,
-	}, final
+	started := time.Now().UTC()
+	match := models.Match{
+		ID:        bson.NewObjectID(),
+		ModuleID:  g.name,
+		Variation: g.cfg.Variation,
+		Options:   g.cfg.Options,
+		Status:    "active",
+		Players:   players,
+		Seed:      seed,
+		State:     models.JSONDoc(final),
+		Snapshots: snapshots,
+		StartedAt: &started,
+	}
+	fixtures.record(match.ID, log, boards)
+	return match, final
 }
 
 func replayManager() *Manager {
-	return &Manager{registry: module.NewRegistry(
+	return &Manager{repo: fixtures, registry: module.NewRegistry(
 		zolikmod.New(), prsi.New(), canasta.New(), holdem.New(),
 		ginrummy.New(), blackjack.New(), rummytiles.New(),
 	)}
@@ -157,7 +175,7 @@ func TestReplayReachesTheStateTheMatchWasPlayedTo(t *testing.T) {
 			if rep.Truncated {
 				t.Fatalf("fold stopped at frame %d (%s)", rep.TruncatedAt, rep.TruncatedCode)
 			}
-			if want := len(match.ActionLog) + 1; rep.Total != want {
+			if want := len(fixtures.logOf(match.ID)) + 1; rep.Total != want {
 				t.Errorf("total = %d, want %d", rep.Total, want)
 			}
 			if len(rep.Frames) != rep.Total {
@@ -204,7 +222,7 @@ func TestReplayFoldsToTheSameBytes(t *testing.T) {
 			match, final := playOut(t, g, 11)
 
 			var folded module.State
-			_, err := foldActions(context.Background(), nil, g.mod, match, 0, func(_ int, _ *models.MatchAction, _ module.Action, s module.State) (bool, error) {
+			_, err := foldActions(g.mod, match, fixtures.history(match), 0, func(_ int, _ *models.MatchAction, _ module.Action, s module.State) (bool, error) {
 				folded = s
 				return true, nil
 			})
@@ -286,7 +304,7 @@ func TestReplayShowsExactlyWhatTheLiveBoardWould(t *testing.T) {
 				}
 
 				live := map[int]string{}
-				if _, err := foldActions(context.Background(), nil, g.mod, match, 0, func(step int, _ *models.MatchAction, _ module.Action, s module.State) (bool, error) {
+				if _, err := foldActions(g.mod, match, fixtures.history(match), 0, func(step int, _ *models.MatchAction, _ module.Action, s module.State) (bool, error) {
 					vm, err := g.mod.View(s, viewer)
 					if err != nil {
 						return false, err
@@ -348,9 +366,9 @@ func TestReplayTruncatesWhenTheLogNoLongerFolds(t *testing.T) {
 	g := replayables()[1] // prsi
 	match, _ := playOut(t, g, 5)
 
-	good := len(match.ActionLog)
-	match.ActionLog = append(match.ActionLog, models.MatchAction{
-		Seq: good + 1, PlayerID: "p1", Action: []byte(`{"verb":"nonsense"}`),
+	good := len(fixtures.logOf(match.ID))
+	fixtures.appendAction(match.ID, models.MatchAction{
+		Seq: good + 1, PlayerID: "p1", Action: models.JSONDoc(`{"verb":"nonsense"}`),
 	})
 
 	rep, err := m.BuildReplay(context.Background(), match, "p1", ReplayOptions{Limit: MaxReplayFrames})
@@ -564,58 +582,48 @@ func withRounds(t *testing.T, name string) replayable {
 	return replayable{}
 }
 
-// TestCheckpointsLandOnRoundBoundaries: one per round closed, in order, each
-// naming the move that closed it.
-func TestCheckpointsLandOnRoundBoundaries(t *testing.T) {
+// TestRoundMarksLandOnRoundBoundaries: one per round closed, in order, on the
+// move that closed it — and the long-dealt games keep a board at some of them.
+func TestRoundMarksLandOnRoundBoundaries(t *testing.T) {
 	// Not zolik: going out needs a meld shape the offer protocol deliberately
 	// does not enumerate (allmodules_test.go's `finishes: false`), so the
-	// offer-only driver never ends a deal and never earns a checkpoint. That
-	// is a limit of the fixture, not of checkpoints.
+	// offer-only driver never ends a deal. That is a limit of the fixture.
 	for _, name := range []string{"canasta", "ginrummy"} {
 		t.Run(name, func(t *testing.T) {
 			g := withRounds(t, name)
 			match, _ := playOut(t, g, 21)
-			if len(match.Checkpoints) == 0 {
-				t.Fatalf("%s played %d actions and closed no round at all", name, len(match.ActionLog))
+			moves := fixtures.logOf(match.ID)
+			prevRound := 0
+			for _, mv := range moves {
+				if mv.Rounds == 0 {
+					continue
+				}
+				if mv.Rounds != prevRound+1 {
+					t.Errorf("move %d closed round %d, after round %d", mv.Seq, mv.Rounds, prevRound)
+				}
+				prevRound = mv.Rounds
 			}
-			prevSeq, prevRound := -1, 0
-			for i, c := range match.Checkpoints {
-				if c.Round != prevRound+1 {
-					t.Errorf("checkpoint %d is round %d, after round %d", i, c.Round, prevRound)
-				}
-				if c.Seq <= prevSeq {
-					t.Errorf("checkpoint %d is at move %d, not after %d", i, c.Seq, prevSeq)
-				}
-				if c.Seq > len(match.ActionLog) {
-					t.Errorf("checkpoint %d is at move %d, past the end of a %d-move log",
-						i, c.Seq, len(match.ActionLog))
-				}
-
-				prevSeq, prevRound = c.Seq, c.Round
+			if prevRound == 0 {
+				t.Fatalf("%s played %d moves and closed no round at all", name, len(moves))
 			}
-			// Every mark is navigation; only widely-spaced ones carry a board,
-			// so a game with short rounds is not paying kilobytes per hand.
-			boards := 0
-			for _, c := range match.Checkpoints {
-				if len(c.State) > 0 {
-					boards++
-				}
-			}
-			if boards == 0 {
-				t.Errorf("%s stored %d marks and not one board", name, len(match.Checkpoints))
+			if len(match.Snapshots) < 2 {
+				t.Errorf("%s closed %d rounds in %d moves and stored no board past the deal",
+					name, prevRound, len(moves))
 			}
 		})
 	}
 }
 
-// TestPrsiEarnsNoCheckpoints: a game with no rounds gets no landmarks, rather
+// TestPrsiEarnsNoRoundMarks: a game with no rounds gets no landmarks, rather
 // than one invented for it.
-func TestPrsiEarnsNoCheckpoints(t *testing.T) {
+func TestPrsiEarnsNoRoundMarks(t *testing.T) {
 	match, _ := playOut(t, withRounds(t, "prsi"), 5)
-	if len(match.Checkpoints) != 0 {
-		t.Errorf("prsi keeps no rounds but earned %d checkpoints", len(match.Checkpoints))
+	for _, mv := range fixtures.logOf(match.ID) {
+		if mv.Rounds != 0 {
+			t.Fatalf("prsi keeps no rounds but move %d closed round %d", mv.Seq, mv.Rounds)
+		}
 	}
-	if ch := chaptersOf(match); ch != nil {
+	if ch := chaptersOf(fixtures.logOf(match.ID)); ch != nil {
 		t.Errorf("a game with no rounds should offer no chapters, got %v", ch)
 	}
 }
@@ -635,27 +643,18 @@ func TestAFoldFromACheckpointIsTheSameFold(t *testing.T) {
 			m := replayManager()
 			g := withRounds(t, name)
 			withCheckpoints, _ := playOut(t, g, 21)
-			if len(withCheckpoints.Checkpoints) == 0 {
-				t.Skipf("%s closed no round in %d moves", name, len(withCheckpoints.ActionLog))
+			if len(withCheckpoints.Snapshots) < 2 {
+				t.Skipf("%s stored no board past the deal", name)
 			}
 
-			// The same match as an older one would have been stored: same log,
-			// same seed, no landmarks. Its fold has to start at the deal.
+			// The same match with only its deal stored: its fold has to start
+			// at the deal and apply every move.
 			fromTheDeal := withCheckpoints
-			fromTheDeal.Checkpoints = nil
+			fromTheDeal.Snapshots = []int{0}
 
-			// A window that begins after the first checkpoint that actually
-			// kept a board, so the shortcut is the thing being exercised.
-			from := -1
-			for _, c := range withCheckpoints.Checkpoints {
-				if len(c.State) > 0 {
-					from = c.Seq + 1
-					break
-				}
-			}
-			if from < 0 {
-				t.Skipf("%s stored no board to start from", name)
-			}
+			// A window that begins after the first stored board past the
+			// deal, so the shortcut is the thing being exercised.
+			from := withCheckpoints.Snapshots[1] + 1
 			opts := ReplayOptions{From: from, Limit: 25}
 
 			short, err := m.BuildReplay(context.Background(), withCheckpoints, "p1", opts)
@@ -686,9 +685,9 @@ func TestChaptersCoverEveryFrameExactlyOnce(t *testing.T) {
 	for _, name := range []string{"canasta", "ginrummy"} {
 		t.Run(name, func(t *testing.T) {
 			match, _ := playOut(t, withRounds(t, name), 21)
-			chapters := chaptersOf(match)
+			chapters := chaptersOf(fixtures.logOf(match.ID))
 			if len(chapters) == 0 {
-				t.Skipf("%s closed no round in %d moves", name, len(match.ActionLog))
+				t.Skipf("%s closed no round in %d moves", name, len(fixtures.logOf(match.ID)))
 			}
 			next := 0
 			for i, c := range chapters {
@@ -708,20 +707,20 @@ func TestChaptersCoverEveryFrameExactlyOnce(t *testing.T) {
 			// The last chapter is the round the match stopped in, and runs to
 			// the end of the log.
 			last := chapters[len(chapters)-1]
-			if last.To != 0 && last.To != len(match.ActionLog) {
+			if last.To != 0 && last.To != len(fixtures.logOf(match.ID)) {
 				t.Errorf("the last chapter ends at %d, not at the end of a %d-move log",
-					last.To, len(match.ActionLog))
+					last.To, len(fixtures.logOf(match.ID)))
 			}
 		})
 	}
 }
 
-// TestChaptersNeedNoFold: the whole point of reading them off the checkpoints
+// TestChaptersNeedNoFold: the whole point of reading them off the round marks
 // is that a page deep in a long match still arrives with the full map.
 func TestChaptersNeedNoFold(t *testing.T) {
 	m := replayManager()
 	match, _ := playOut(t, withRounds(t, "canasta"), 21)
-	if len(match.Checkpoints) == 0 {
+	if roundsClosed(fixtures.logOf(match.ID)) == 0 {
 		t.Skip("canasta closed no round in this play-through")
 	}
 
@@ -729,7 +728,7 @@ func TestChaptersNeedNoFold(t *testing.T) {
 	if err != nil {
 		t.Fatalf("BuildReplay: %v", err)
 	}
-	deep, err := m.BuildReplay(context.Background(), match, "p1", ReplayOptions{From: len(match.ActionLog), Limit: 1})
+	deep, err := m.BuildReplay(context.Background(), match, "p1", ReplayOptions{From: len(fixtures.logOf(match.ID)), Limit: 1})
 	if err != nil {
 		t.Fatalf("BuildReplay: %v", err)
 	}
@@ -737,7 +736,7 @@ func TestChaptersNeedNoFold(t *testing.T) {
 		t.Errorf("the chapter list changed with the page\n first: %s\n deep:  %s", a, b)
 	}
 	if len(first.Chapters) == 0 {
-		t.Errorf("a match with %d checkpoints offered no chapters", len(match.Checkpoints))
+		t.Errorf("a match with %d rounds offered no chapters", roundsClosed(fixtures.logOf(match.ID)))
 	}
 }
 
@@ -749,7 +748,7 @@ func TestTracksCoverEveryFrameExactlyOnce(t *testing.T) {
 	for _, g := range replayables() {
 		t.Run(g.name, func(t *testing.T) {
 			match, _ := playOut(t, g, 13)
-			tracks := tracksOf(match)
+			tracks := tracksOf(match, fixtures.logOf(match.ID))
 			if len(tracks) == 0 {
 				t.Fatal("a played match offered no tracks at all")
 			}
@@ -768,7 +767,7 @@ func TestTracksCoverEveryFrameExactlyOnce(t *testing.T) {
 			}
 			// Frame 0 is the deal and belongs to nobody; every other frame is
 			// a move, so every other frame is on exactly one seat track.
-			for f := 1; f <= len(match.ActionLog); f++ {
+			for f := 1; f <= len(fixtures.logOf(match.ID)); f++ {
 				if _, ok := seen[f]; !ok {
 					t.Errorf("frame %d is on no seat's track", f)
 				}
@@ -786,15 +785,15 @@ func TestASeatsTrackIsOnlyThatSeatsMoves(t *testing.T) {
 	g := withRounds(t, "prsi")
 	match, _ := playOut(t, g, 4)
 
-	for _, tr := range tracksOf(match) {
+	for _, tr := range tracksOf(match, fixtures.logOf(match.ID)) {
 		if tr.PlayerID == "" {
 			continue
 		}
 		for _, f := range tr.Frames {
-			if f < 1 || f > len(match.ActionLog) {
-				t.Fatalf("%s names frame %d, outside a %d-move log", tr.ID, f, len(match.ActionLog))
+			if f < 1 || f > len(fixtures.logOf(match.ID)) {
+				t.Fatalf("%s names frame %d, outside a %d-move log", tr.ID, f, len(fixtures.logOf(match.ID)))
 			}
-			if who := match.ActionLog[f-1].PlayerID; who != tr.PlayerID {
+			if who := fixtures.logOf(match.ID)[f-1].PlayerID; who != tr.PlayerID {
 				t.Errorf("%s claims frame %d, which was %s's move", tr.ID, f, who)
 			}
 		}
@@ -804,23 +803,23 @@ func TestASeatsTrackIsOnlyThatSeatsMoves(t *testing.T) {
 // A game that keeps no rounds gets no rounds track, rather than an empty one.
 func TestNoRoundsTrackWhereAGameKeepsNoRounds(t *testing.T) {
 	match, _ := playOut(t, withRounds(t, "prsi"), 5)
-	for _, tr := range tracksOf(match) {
+	for _, tr := range tracksOf(match, fixtures.logOf(match.ID)) {
 		if tr.ID == "rounds" {
 			t.Errorf("prsi keeps no rounds but was given a rounds track")
 		}
 	}
 
 	withCheckpoints, _ := playOut(t, withRounds(t, "canasta"), 21)
-	if len(withCheckpoints.Checkpoints) == 0 {
+	if roundsClosed(fixtures.logOf(withCheckpoints.ID)) == 0 {
 		t.Skip("canasta closed no round in this play-through")
 	}
 	found := false
-	for _, tr := range tracksOf(withCheckpoints) {
+	for _, tr := range tracksOf(withCheckpoints, fixtures.logOf(withCheckpoints.ID)) {
 		if tr.ID == "rounds" {
 			found = true
-			if len(tr.Frames) != len(withCheckpoints.Checkpoints) {
+			if len(tr.Frames) != roundsClosed(fixtures.logOf(withCheckpoints.ID)) {
 				t.Errorf("the rounds track has %d frames for %d rounds",
-					len(tr.Frames), len(withCheckpoints.Checkpoints))
+					len(tr.Frames), roundsClosed(fixtures.logOf(withCheckpoints.ID)))
 			}
 		}
 	}
@@ -840,7 +839,7 @@ func TestTracksArriveWithEveryPage(t *testing.T) {
 		t.Fatalf("BuildReplay: %v", err)
 	}
 	deep, err := m.BuildReplay(context.Background(), match, "p1",
-		ReplayOptions{From: len(match.ActionLog), Limit: 1})
+		ReplayOptions{From: len(fixtures.logOf(match.ID)), Limit: 1})
 	if err != nil {
 		t.Fatalf("BuildReplay: %v", err)
 	}

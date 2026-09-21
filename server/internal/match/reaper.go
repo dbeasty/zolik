@@ -55,6 +55,9 @@ func (m *Manager) StartReaper(ctx context.Context) {
 // ReapAbandoned runs one sweep and returns how many matches it abandoned.
 func (m *Manager) ReapAbandoned(ctx context.Context) int {
 	now := time.Now().UTC()
+	// The same tick lets go of the state of matches nobody is playing; see
+	// live.go.
+	m.live.evictIdle(now)
 	due, err := m.repo.FindAbandonable(ctx, now, reapBatch)
 	if err != nil {
 		slog.Warn("could not look for abandoned matches", "error", err)
@@ -151,35 +154,49 @@ func (m *Manager) reapStranded(ctx context.Context, now time.Time) int {
 
 // abandon writes match as abandoned under its version guard and reports
 // whether the write landed.
-func (m *Manager) abandon(ctx context.Context, match models.Match, now time.Time, logAttrs ...any) bool {
-	expected := match.Version
+func (m *Manager) abandon(ctx context.Context, scanned models.Match, now time.Time, logAttrs ...any) bool {
+	e, err := m.lockMatch(ctx, scanned.ID.Hex())
+	if err != nil {
+		return false
+	}
+	// Judged on the match as it is now rather than as the scan saw it: a
+	// returning player, or a move, since then means it is no longer the table
+	// the sweep found. A move alone does not write the envelope, but the first
+	// one after a quiet spell always does (touchEvery), which moves the
+	// version on — and only a quiet match is ever swept.
+	match := e.match
+	if match.Version != scanned.Version || match.Status != scanned.Status {
+		e.mu.Unlock()
+		slog.Debug("abandon skipped, the match moved on", "match", scanned.ID.Hex())
+		return false
+	}
 	ended := now
 	match.Status = string(rules.StatusAbandoned)
 	match.EndedAt = &ended
 	// AbandonAt is cleared so a row that somehow stays in this state is not
 	// swept again on the next tick.
 	match.AbandonAt = nil
-
-	if err := m.repo.UpdateWithVersion(ctx, match.ID, expected, match); err != nil {
+	err = m.saveLocked(ctx, e, match)
+	abandoned := e.match
+	e.mu.Unlock()
+	if err != nil {
 		// Overwhelmingly this is the version check refusing because the player
 		// came back or moved. Logged at debug rather than warn: it is the
 		// system working, and at one line per returning player on a busy
 		// evening it would drown the log.
-		slog.Debug("abandon skipped, the match moved on",
-			"match", match.ID.Hex(), "error", err)
+		slog.Debug("abandon skipped, the match moved on", "match", scanned.ID.Hex(), "error", err)
 		return false
 	}
-	match.Version = expected + 1
 
 	m.metrics.Add(metrics.MatchesAbandoned, 1)
-	m.metrics.Add(metrics.MatchesAbandonedFor(match.ModuleID), 1)
+	m.metrics.Add(metrics.MatchesAbandonedFor(abandoned.ModuleID), 1)
 	slog.Info("match abandoned",
-		append([]any{"match", match.ID.Hex(), "module", match.ModuleID}, logAttrs...)...)
+		append([]any{"match", abandoned.ID.Hex(), "module", abandoned.ModuleID}, logAttrs...)...)
 
 	// Told, not left to be discovered. Anyone still holding the table open — a
 	// player who stayed while the others left, a spectator — sees it resolve
 	// rather than sitting on a game that silently stopped being one.
-	m.Broadcast(match)
+	m.Broadcast(abandoned)
 	return true
 }
 

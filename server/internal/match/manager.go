@@ -3,6 +3,7 @@ package match
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"sync"
@@ -59,6 +60,9 @@ type Manager struct {
 	// exactly as it did before the pace was configurable.
 	botThinkMin time.Duration
 	botThinkMax time.Duration
+
+	// live holds the state of every match in play; see live.go.
+	live liveMatches
 
 	// replayEnabled is the operator's half of whether a stopped game can be
 	// stepped through; the store's half is asked of the store. Off by default,
@@ -126,10 +130,9 @@ func (m *Manager) SetRecorder(r Recorder) { m.recorder = r }
 
 // SetReplayEnabled turns stepping back through stopped games on.
 //
-// Optional and off by default, like every other setter here, so a Manager
-// built without it behaves exactly as one did before replay existed —
-// including writing no checkpoints, which is the whole of what the feature
-// costs the write path.
+// Optional and off by default, like every other setter here. It costs the
+// write path nothing either way: the moves and snapshots a replay folds are
+// what every match is stored as.
 //
 // Only half the answer: the store still has to be one that keeps history, and
 // still be keeping it. See ReplayAvailable.
@@ -258,10 +261,12 @@ func NewManager(repo Repository, registry *module.Registry, hub *ws.Hub) *Manage
 // interpreted, because every one of those is a client bug whose kindest failure
 // is a loud one.
 func (m *Manager) Seat(ctx context.Context, idOrCode, hostID string, order []string) (models.Match, error) {
-	match, err := m.repo.Resolve(ctx, idOrCode)
+	e, err := m.lockMatch(ctx, idOrCode)
 	if err != nil {
 		return models.Match{}, err
 	}
+	defer e.mu.Unlock()
+	match := e.match
 	if match.HostID != hostID {
 		return models.Match{}, module.Error{Code: "NOT_THE_HOST"}
 	}
@@ -293,12 +298,11 @@ func (m *Manager) Seat(ctx context.Context, idOrCode, hostID string, order []str
 
 	match.Players = players
 	match.TurnOrder = turn
-	if err := m.repo.UpdateWithVersion(ctx, match.ID, match.Version, match); err != nil {
+	if err := m.saveLocked(ctx, e, match); err != nil {
 		return models.Match{}, err
 	}
-	match.Version++
-	m.Broadcast(match)
-	return match, nil
+	m.Broadcast(e.match)
+	return e.match, nil
 }
 
 func (m *Manager) Registry() *module.Registry { return m.registry }
@@ -364,46 +368,79 @@ func (m *Manager) Create(ctx context.Context, moduleID string, cfg module.MatchC
 
 // Join adds a player to a lobby.
 func (m *Manager) Join(ctx context.Context, idOrCode string, p models.Player) (models.Match, error) {
-	match, err := m.repo.Resolve(ctx, idOrCode)
+	e, err := m.lockMatch(ctx, idOrCode)
 	if err != nil {
 		return models.Match{}, err
 	}
+	joined, full, err := m.joinLocked(ctx, e, p)
+	e.mu.Unlock()
+	if err != nil {
+		return models.Match{}, err
+	}
+	if full {
+		// Told once the lock is released, so an observer can never be the
+		// reason a table's lock is held.
+		m.lobbyClosed(joined.ID.Hex())
+	}
+	return joined, nil
+}
+
+// joinLocked seats p, and reports whether that filled the table. e must be
+// locked.
+func (m *Manager) joinLocked(ctx context.Context, e *liveMatch, p models.Player) (models.Match, bool, error) {
+	match := e.match
 	if match.Status != "lobby" {
-		return models.Match{}, module.Error{Code: "MATCH_ALREADY_STARTED"}
+		return models.Match{}, false, module.Error{Code: "MATCH_ALREADY_STARTED"}
 	}
 	for _, existing := range match.Players {
 		if existing.ID == p.ID {
-			return match, nil // idempotent: re-joining is not an error
+			return match, false, nil // idempotent: re-joining is not an error
 		}
 	}
 	mod := m.registry.Get(match.ModuleID)
 	if mod == nil {
-		return models.Match{}, module.Error{Code: "UNKNOWN_MODULE", Message: match.ModuleID}
+		return models.Match{}, false, module.Error{Code: "UNKNOWN_MODULE", Message: match.ModuleID}
 	}
 	// The variation's range, not the module's: a table's size is a property of
 	// the rules it was created under (module.SeatRange).
 	if _, max := mod.Descriptor().SeatRange(match.Variation); len(match.Players) >= max {
-		return models.Match{}, module.Error{Code: "MATCH_FULL"}
+		return models.Match{}, false, module.Error{Code: "MATCH_FULL"}
 	}
 
-	match.Players = append(match.Players, p)
-	match.TurnOrder = append(match.TurnOrder, p.ID)
-	if err := m.repo.UpdateWithVersion(ctx, match.ID, match.Version, match); err != nil {
-		return models.Match{}, err
+	match.Players = append(append([]models.Player(nil), match.Players...), p)
+	match.TurnOrder = append(append([]string(nil), match.TurnOrder...), p.ID)
+	if err := m.saveLocked(ctx, e, match); err != nil {
+		return models.Match{}, false, err
 	}
-	match.Version++
-	if _, max := mod.Descriptor().SeatRange(match.Variation); len(match.Players) >= max {
-		m.lobbyClosed(match.ID.Hex())
-	}
-	return match, nil
+	_, max := mod.Descriptor().SeatRange(match.Variation)
+	return e.match, len(e.match.Players) >= max, nil
 }
 
 // Start deals the match through its module.
 func (m *Manager) Start(ctx context.Context, idOrCode string) (models.Match, error) {
-	match, err := m.repo.Resolve(ctx, idOrCode)
+	e, err := m.lockMatch(ctx, idOrCode)
 	if err != nil {
 		return models.Match{}, err
 	}
+	started, err := m.startLocked(ctx, e)
+	e.mu.Unlock()
+	if err != nil {
+		return models.Match{}, err
+	}
+	m.metrics.Add(metrics.MatchesStarted, 1)
+	m.lobbyClosed(started.ID.Hex())
+	m.Broadcast(started)
+	// A bot may be first to act — in Hold'em it usually is, since the blinds
+	// decide the order rather than who created the lobby.
+	m.RunBotsIfNeeded(context.WithoutCancel(ctx), started.ID.Hex())
+	return started, nil
+}
+
+// startLocked deals the match and stores the deal as its first snapshot —
+// the state every rebuild of this match starts from, so none of them ever
+// calls NewMatch again. e must be locked.
+func (m *Manager) startLocked(ctx context.Context, e *liveMatch) (models.Match, error) {
+	match := e.match
 	if match.Status != "lobby" {
 		return models.Match{}, module.Error{Code: "MATCH_ALREADY_STARTED"}
 	}
@@ -427,20 +464,17 @@ func (m *Manager) Start(ctx context.Context, idOrCode string) (models.Match, err
 	}
 
 	now := time.Now().UTC()
-	match.State = state
 	match.Status = "active"
 	match.StartedAt = &now
-	if err := m.repo.UpdateWithVersion(ctx, match.ID, match.Version, match); err != nil {
+	e.seq = 0
+	if err := m.snapshotLocked(ctx, e, match, state); err != nil {
 		return models.Match{}, err
 	}
-	match.Version++
-	m.metrics.Add(metrics.MatchesStarted, 1)
-	m.lobbyClosed(match.ID.Hex())
-	m.Broadcast(match)
-	// A bot may be first to act — in Hold'em it usually is, since the blinds
-	// decide the order rather than who created the lobby.
-	m.RunBotsIfNeeded(context.WithoutCancel(ctx), match.ID.Hex())
-	return match, nil
+	e.rounds = 0
+	if r := module.RoundsFor(mod, state); r != nil {
+		e.rounds = len(r.Rounds)
+	}
+	return e.match, nil
 }
 
 // HandleAction is the single write path: load, apply through the module,
@@ -467,65 +501,25 @@ func (m *Manager) ExplainRefusal(ctx context.Context, idOrCode, code string) []s
 }
 
 func (m *Manager) HandleAction(ctx context.Context, idOrCode, playerID string, a module.Action) error {
-	match, err := m.repo.Resolve(ctx, idOrCode)
+	e, err := m.lockMatch(ctx, idOrCode)
 	if err != nil {
 		// A late action against a table that vanished under it — most often a
 		// host's delete landing between two of a bot's own moves — otherwise
-		// surfaces as the generic "ERROR" code: Resolve's error is a raw store
-		// error, and module.CodeOf has no case for one. MATCH_NOT_FOUND is
-		// wording the client already carries, for the identical situation
+		// surfaces as the generic "ERROR" code: the lookup's error is a raw
+		// store error, and module.CodeOf has no case for one. MATCH_NOT_FOUND
+		// is wording the client already carries, for the identical situation
 		// resumeMatch and getMatch answer with today.
 		if db.IsNotFound(err) {
 			return module.Error{Code: "MATCH_NOT_FOUND", Message: idOrCode}
 		}
 		return err
 	}
-	if match.Status != "active" {
-		return module.Error{Code: "MATCH_NOT_ACTIVE"}
-	}
-	mod := m.registry.Get(match.ModuleID)
-	if mod == nil {
-		return module.Error{Code: "UNKNOWN_MODULE", Message: match.ModuleID}
-	}
-
-	next, events, err := mod.Apply(match.State, playerID, a)
+	match, rounds, events, err := m.applyLocked(ctx, e, playerID, a)
+	e.mu.Unlock()
 	if err != nil {
-		return err // a refusal: nothing is persisted, nothing is broadcast
-	}
-
-	expected := match.Version
-	match.State = next
-	match.ActionLog = append(match.ActionLog, logEntry(len(match.ActionLog)+1, playerID, a))
-
-	// The round log is decoded once here and used twice: to notice that this
-	// move closed a round, and by the broadcast further down. Asking for it in
-	// both places would decode the module's whole state twice on every single
-	// move, which is the one thing this path cannot afford.
-	rounds := module.RoundsFor(mod, next)
-	if c, ok := m.checkpointFor(ctx, match, rounds); ok {
-		match.Checkpoints = append(match.Checkpoints, c)
-	}
-
-	if done, winners, err := mod.Finished(next); err == nil && done {
-		now := time.Now().UTC()
-		match.Status = "completed"
-		match.Winners = winners
-		// WinnerID stays on the document and the wire as the first winner, so
-		// every client written against a single-winner match keeps working. It
-		// is derived from Winners rather than computed separately: one
-		// implementation, two spellings.
-		match.WinnerID = ""
-		if len(winners) > 0 {
-			match.WinnerID = winners[0]
-		}
-		match.EndedAt = &now
-	}
-
-	if err := m.repo.UpdateWithVersion(ctx, match.ID, expected, match); err != nil {
-		log.Printf("match=%s player=%s action=%s persist failed: %v", match.ID.Hex(), playerID, a.Verb, err)
 		return err
 	}
-	match.Version = expected + 1
+	mod := m.registry.Get(match.ModuleID)
 
 	m.broadcastWith(match, rounds)
 	m.publishEvents(match, events)
@@ -535,7 +529,7 @@ func (m *Manager) HandleAction(ctx context.Context, idOrCode, playerID string, a
 	// without waiting on bookkeeping, and a bookkeeping failure must never
 	// fail the move that won.
 	if match.Status == "completed" && m.recorder != nil {
-		m.recorder.RecordMatchAsync(match, module.OutcomeOf(mod, match.State))
+		m.recorder.RecordMatchAsync(match, module.OutcomeOf(mod, module.State(match.State)))
 	}
 
 	// Whoever is on turn now might be a bot. The loop is a no-op when it is
@@ -549,6 +543,113 @@ func (m *Manager) HandleAction(ctx context.Context, idOrCode, playerID string, a
 	return nil
 }
 
+// snapshotRoundGap is how many moves must pass before a round boundary is
+// worth a snapshot. Measured when snapshots were only replay landmarks: a
+// board every round cost +313% at blackjack and +146% at hold'em, whose rounds
+// are about nine moves, and fifty moves leaves the long-dealt games with one
+// board per deal.
+const snapshotRoundGap = 50
+
+// snapshotEvery caps how many moves a rebuild ever re-applies, whatever a
+// game's rounds look like — Prší keeps none, and a Žolíky deal runs long.
+const snapshotEvery = 100
+
+// snapshotDue says whether the board after move seq is stored, given the
+// newest snapshot is at last and whether this move closed a round.
+func snapshotDue(seq, last int, closedRound bool) bool {
+	since := seq - last
+	return since >= snapshotEvery || (closedRound && since >= snapshotRoundGap)
+}
+
+// touchEvery is how stale a playing match's UpdatedAt may get. The stranded
+// sweep gives a match fifteen minutes and activity lists sort by it, so a
+// minute is exact enough — and it is one envelope write a minute rather than
+// one per move.
+const touchEvery = time.Minute
+
+// applyLocked plays one action on the match e holds and stores it: the move
+// alone, most of the time, or the move with a snapshot and the envelope when
+// the match finished or a snapshot is due. e must be locked.
+func (m *Manager) applyLocked(ctx context.Context, e *liveMatch, playerID string, a module.Action) (
+	models.Match, *module.RoundLog, []module.Event, error) {
+	match := e.match
+	if match.Status != "active" {
+		return models.Match{}, nil, nil, module.Error{Code: "MATCH_NOT_ACTIVE"}
+	}
+	if e.stateErr != nil {
+		return models.Match{}, nil, nil, e.stateErr
+	}
+	mod := m.registry.Get(match.ModuleID)
+	if mod == nil {
+		return models.Match{}, nil, nil, module.Error{Code: "UNKNOWN_MODULE", Message: match.ModuleID}
+	}
+	next, events, err := mod.Apply(module.State(match.State), playerID, a)
+	if err != nil {
+		return models.Match{}, nil, nil, err // a refusal: nothing is stored, nothing is broadcast
+	}
+
+	entry := logEntry(e.seq+1, playerID, a)
+	// The round log is decoded once here and used twice: to notice that this
+	// move closed a round, and by the broadcast. Asking for it in both places
+	// would decode the module's whole state twice on every single move.
+	rounds := module.RoundsFor(mod, next)
+	closed := e.rounds
+	if rounds != nil && len(rounds.Rounds) > closed {
+		closed = len(rounds.Rounds)
+		entry.Rounds = closed
+	}
+
+	envelope := match
+	finished := false
+	if done, winners, err := mod.Finished(next); err == nil && done {
+		finished = true
+		now := time.Now().UTC()
+		envelope.Status = "completed"
+		envelope.Winners = winners
+		// WinnerID stays on the document and the wire as the first winner, so
+		// every client written against a single-winner match keeps working.
+		envelope.WinnerID = ""
+		if len(winners) > 0 {
+			envelope.WinnerID = winners[0]
+		}
+		envelope.EndedAt = &now
+	}
+
+	last, _ := latestSnapshot(match)
+	snapshot := finished || snapshotDue(entry.Seq, last, entry.Rounds > 0)
+	if snapshot {
+		envelope.Snapshots = withSnapshot(match.Snapshots, entry.Seq)
+		err = m.repo.CommitSnapshot(ctx, match.ID, match.Version, envelope, []models.MatchAction{entry}, entry.Seq, models.JSONDoc(next))
+	} else {
+		err = m.repo.AppendMove(ctx, match.ID, entry)
+	}
+	if err != nil {
+		if errors.Is(err, ErrVersionConflict) {
+			// Another writer got here first; this entry is behind the store.
+			e.loaded = false
+		}
+		log.Printf("match=%s player=%s action=%s persist failed: %v", match.ID.Hex(), playerID, a.Verb, err)
+		return models.Match{}, nil, nil, err
+	}
+
+	now := time.Now().UTC()
+	if snapshot {
+		envelope.Version, envelope.UpdatedAt = match.Version+1, now
+		e.touched = now
+	}
+	envelope.State = models.JSONDoc(next)
+	e.match, e.seq, e.rounds = envelope, entry.Seq, closed
+
+	if !snapshot && now.Sub(e.touched) > touchEvery {
+		// Best effort: the move is stored; a missed touch costs a minute of
+		// staleness in a listing, nothing more.
+		if err := m.saveLocked(ctx, e, e.match); err != nil {
+			log.Printf("match=%s touch failed: %v", match.ID.Hex(), err)
+		}
+	}
+	return e.match, rounds, events, nil
+}
+
 // Broadcast sends every connected player their own view of the match.
 //
 // Per-viewer projection is unchanged from the rummy runtime, but the filtering
@@ -558,7 +659,7 @@ func (m *Manager) Broadcast(match models.Match) {
 	// Computed once for the whole broadcast rather than once per recipient: a
 	// round log takes no viewer, so every seat would otherwise pay to decode
 	// the same bytes into the same answer.
-	m.broadcastWith(match, module.RoundsFor(m.registry.Get(match.ModuleID), match.State))
+	m.broadcastWith(match, module.RoundsFor(m.registry.Get(match.ModuleID), module.State(match.State)))
 }
 
 // broadcastWith is Broadcast with the round log already in hand, for the one
@@ -572,80 +673,6 @@ func (m *Manager) broadcastWith(match models.Match, rounds *module.RoundLog) {
 	m.hub.BroadcastGameState(id, recipients, func(playerID string) interface{} {
 		return m.buildStateMsg(match, playerID, rounds)
 	})
-}
-
-// checkpointFor is checkpointClosedBy, asked only where the answer will ever
-// be read.
-//
-// Checkpoints exist for replay and for nothing else, so a deployment that
-// cannot offer replay does not pay for them — not the bytes, and not the copy
-// of the state at a round boundary. It is also why turning the flag on is not
-// retroactive: games played while it was off carry no landmarks, and replay
-// without chapters rather than with invented ones.
-func (m *Manager) checkpointFor(ctx context.Context, match models.Match, rounds *module.RoundLog) (models.MatchCheckpoint, bool) {
-	if m.ReplayAvailable(ctx) != nil {
-		return models.MatchCheckpoint{}, false
-	}
-	return checkpointClosedBy(match, rounds)
-}
-
-// checkpointClosedBy reports the checkpoint the just-applied action earned, if
-// it closed a round at all.
-//
-// Keyed off the round log growing rather than off anything a game says about
-// itself, so a module that keeps rounds gets landmarks for free and one that
-// does not — Prší, a single deal that ends when a hand empties — gets none,
-// which is the honest answer rather than an invented one.
-func checkpointClosedBy(match models.Match, rounds *module.RoundLog) (models.MatchCheckpoint, bool) {
-	if rounds == nil {
-		return models.MatchCheckpoint{}, false
-	}
-	closed := len(rounds.Rounds)
-	if closed == 0 || closed <= lastCheckpointRound(match) {
-		return models.MatchCheckpoint{}, false
-	}
-	c := models.MatchCheckpoint{
-		Seq:   len(match.ActionLog),
-		Round: closed,
-		At:    time.Now().UTC(),
-	}
-	// The board itself only where it buys a fold worth skipping. See
-	// minCheckpointGap.
-	if c.Seq-lastStoredBoardAt(match) >= minCheckpointGap {
-		// Copied rather than aliased: match.State is the slice the module just
-		// returned, and a checkpoint has to outlive whatever happens to it.
-		c.State = append(json.RawMessage(nil), match.State...)
-	}
-	return c, true
-}
-
-// minCheckpointGap is how many moves must pass before a round boundary is
-// worth storing the board at, as well as marking.
-//
-// Measured rather than chosen: snapshotting every round costs +11% of the
-// action log at canasta and gin rummy, whose rounds are long, and +313% at
-// blackjack and +146% at hold'em, whose rounds are about nine moves and whose
-// state carries a shoe. Fifty moves is the point where the fold being skipped
-// (~25ms) is worth the kilobytes, and it leaves the games with long deals
-// storing one board per deal — which is what the shortcut was for.
-const minCheckpointGap = 50
-
-// lastStoredBoardAt is the move of the newest checkpoint that kept a board,
-// or zero — the deal — when none has.
-func lastStoredBoardAt(match models.Match) int {
-	for i := len(match.Checkpoints) - 1; i >= 0; i-- {
-		if len(match.Checkpoints[i].State) > 0 {
-			return match.Checkpoints[i].Seq
-		}
-	}
-	return 0
-}
-
-func lastCheckpointRound(match models.Match) int {
-	if n := len(match.Checkpoints); n > 0 {
-		return match.Checkpoints[n-1].Round
-	}
-	return 0
 }
 
 func (m *Manager) publishEvents(match models.Match, events []module.Event) {
@@ -669,7 +696,7 @@ func logEntry(seq int, playerID string, a module.Action) models.MatchAction {
 	if err != nil {
 		raw = []byte("{}")
 	}
-	return models.MatchAction{Seq: seq, PlayerID: playerID, Action: raw, At: time.Now().UTC()}
+	return models.MatchAction{Seq: seq, PlayerID: playerID, Action: models.JSONDoc(raw), At: time.Now().UTC()}
 }
 
 func playerRefs(players []models.Player) []module.PlayerRef {

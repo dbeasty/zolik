@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -53,6 +54,9 @@ const (
 	NSOAuthFlows   = "oauth_flows"
 	NSDailyMetrics = "daily_metrics"
 	NSBoots        = "boots"
+	// NSMatchLog holds each match's moves and board snapshots, kept out of
+	// NSMatches so the scans over matches never read them.
+	NSMatchLog = "match_log"
 
 	NSNotifyProfiles = "notify_profiles"
 	NSNotifyCircle   = "notify_circle"
@@ -62,7 +66,7 @@ const (
 var kdbNamespaceNames = []string{
 	NSMatches, NSUsers, NSSessions, NSScoring, NSMatchResults,
 	NSPlayerStats, NSIdentities, NSLoginCodes, NSOAuthFlows,
-	NSDailyMetrics, NSBoots,
+	NSDailyMetrics, NSBoots, NSMatchLog,
 	NSNotifyProfiles, NSNotifyCircle, NSNotifyDevices,
 }
 
@@ -97,8 +101,10 @@ type KDB struct {
 	// tears down every namespace's storage and releases the lock. Nil for
 	// in-memory KDBs, which have no lock or shim to share and stay one
 	// runtime per namespace.
-	host      *embed.Host
-	nss       map[string]*kdbNamespace
+	host *embed.Host
+	nss  map[string]*kdbNamespace
+	// set commits transactions that span namespaces; see UpdateMulti.
+	set       *kdbserver.NamespaceSet
 	stop      chan struct{}
 	done      chan struct{}
 	closeOnce sync.Once
@@ -389,7 +395,7 @@ func OpenKDBWithStorage(path string, sc KDBStorage) (*KDB, error) {
 		if sc.MemoryBudgetBytes > 0 {
 			// SetMemoryBudget rather than SetMemoryLimit: the narrow form
 			// takes the engine's default rescue reserve, and this process
-			// opens nine of these. See kdbRescueReserveBytes.
+			// opens one of these per namespace. See kdbRescueReserveBytes.
 			srv.SetMemoryBudget(
 				sc.MemoryBudgetBytes,
 				kdbMemoryRejectFraction,
@@ -398,6 +404,22 @@ func OpenKDBWithStorage(path string, sc KDBStorage) (*KDB, error) {
 			)
 		}
 		k.nss[name] = &kdbNamespace{id: nsID, rt: rt, srv: srv}
+	}
+
+	// Transactions across namespaces commit through the host's coordinator,
+	// whose decision log is what replay consults to keep or drop each part.
+	// The set holds the same server runtimes every single-namespace write
+	// uses, so each namespace still has exactly one write gate.
+	var coord *embed.TxnCoordinator
+	if host != nil {
+		coord = host.Transactions()
+	}
+	k.set = kdbserver.NewNamespaceSet(coord)
+	for _, name := range kdbNamespaceNames {
+		if err := k.set.Add(k.nss[name].srv); err != nil {
+			k.closeRuntimes()
+			return nil, fmt.Errorf("kdb: namespace %s: %w", name, err)
+		}
 	}
 	go k.sweep()
 	return k, nil
@@ -606,6 +628,165 @@ func (t *Tx) Delete(key string) (bool, error) { return t.n.deleteByUUID(uuidForK
 // Scan streams every document in the namespace.
 func (t *Tx) Scan(fn func(doc []byte) error) error {
 	return t.n.scan(func(_ codec.UUID, doc []byte) error { return fn(doc) })
+}
+
+// MultiTx is a transaction over several namespaces: reads see its own writes,
+// and nothing it writes is applied unless the function returns nil.
+type MultiTx struct {
+	k   *KDB
+	nss map[string]*kdbNamespace
+	ops []multiOp
+}
+
+type multiOp struct {
+	ns, key string
+	doc     []byte // nil for a delete
+}
+
+// UpdateMulti runs fn holding the write lock of every namespace in nss —
+// taken in sorted order, so two of them can never deadlock — and commits its
+// writes when fn returns nil: one kdb commit when they touch one namespace,
+// one cross-namespace transaction when they touch more. Either way they land
+// together or not at all, including across a crash.
+func (k *KDB) UpdateMulti(nss []string, fn func(tx *MultiTx) error) error {
+	names := append([]string(nil), nss...)
+	sort.Strings(names)
+	tx := &MultiTx{k: k, nss: make(map[string]*kdbNamespace, len(names))}
+	for _, name := range names {
+		if _, dup := tx.nss[name]; dup {
+			continue
+		}
+		n := k.ns(name)
+		n.mu.Lock()
+		defer n.mu.Unlock()
+		tx.nss[name] = n
+	}
+	if err := fn(tx); err != nil {
+		return err
+	}
+	return tx.commit()
+}
+
+// commit turns the buffered writes into one transaction per namespace.
+//
+// A put is a delete followed by a write of the whole body. A write onto an
+// existing document is a shallow merge, which would keep a field the model
+// has since dropped; the engine applies a transaction's operations in order,
+// so deleting first makes the write a replacement — the same whole-document
+// semantics put gets from PutJSONDocument.
+func (t *MultiTx) commit() error {
+	type final struct {
+		key string
+		doc []byte
+	}
+	byNS := map[string][]final{}
+	seen := map[string]int{}
+	for _, op := range t.ops {
+		id := op.ns + "\x00" + op.key
+		if i, ok := seen[id]; ok {
+			byNS[op.ns][i].doc = op.doc
+			continue
+		}
+		seen[id] = len(byNS[op.ns])
+		byNS[op.ns] = append(byNS[op.ns], final{key: op.key, doc: op.doc})
+	}
+
+	var parts []kdbserver.NamespaceTransaction
+	for _, name := range sortedKeys(byNS) {
+		n := t.nss[name]
+		var ops []document.Op
+		for _, f := range byNS[name] {
+			id := uuidForKey(f.key)
+			_, _, exists, err := n.srv.GetDocument(n.id, id)
+			if err != nil {
+				return err
+			}
+			if exists {
+				ops = append(ops, document.DeleteOp{DocID: id})
+			}
+			if f.doc == nil {
+				continue
+			}
+			body, err := injectDocID(f.doc, id)
+			if err != nil {
+				return err
+			}
+			ops = append(ops, document.WriteOp{DocID: id, Patch: string(body)})
+		}
+		if len(ops) > 0 {
+			parts = append(parts, kdbserver.NamespaceTransaction{
+				Namespace: n.id,
+				Tx:        document.Transaction{Operations: ops},
+			})
+		}
+	}
+
+	switch len(parts) {
+	case 0:
+		return nil
+	case 1:
+		n := t.nss[strings.TrimPrefix(parts[0].Namespace, kdbCatalog+"/")]
+		head, err := n.rt.DAG.Head()
+		if err != nil {
+			return err
+		}
+		txID, err := codec.RandomUUID()
+		if err != nil {
+			return err
+		}
+		tx := parts[0].Tx
+		tx.ID, tx.BaseVersion, tx.Timestamp = txID, head, codec.TimestampNow()
+		_, err = n.srv.Commit(n.id, tx, "", kdbauth.Principal{})
+		return busyIfShed(err)
+	default:
+		_, err := t.k.set.CommitAcross(parts, kdbauth.Principal{})
+		return busyIfShed(err)
+	}
+}
+
+func sortedKeys[V any](m map[string]V) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
+}
+
+func (t *MultiTx) held(ns string) *kdbNamespace {
+	n, ok := t.nss[ns]
+	if !ok {
+		panic(fmt.Sprintf("kdb: namespace %q is not part of this transaction", ns))
+	}
+	return n
+}
+
+// Get returns the document at key as this transaction would leave it.
+func (t *MultiTx) Get(ns, key string) ([]byte, error) {
+	n := t.held(ns)
+	for i := len(t.ops) - 1; i >= 0; i-- {
+		if op := t.ops[i]; op.ns == ns && op.key == key {
+			if op.doc == nil {
+				return nil, fmt.Errorf("kdb: %s %q: %w", n.id, key, ErrNotFound)
+			}
+			return op.doc, nil
+		}
+	}
+	return n.get(key)
+}
+
+// Put creates or wholly replaces the document at key when the transaction
+// applies.
+func (t *MultiTx) Put(ns, key string, doc []byte) {
+	t.held(ns)
+	t.ops = append(t.ops, multiOp{ns: ns, key: key, doc: append([]byte(nil), doc...)})
+}
+
+// Delete removes the document at key, if there is one, when the transaction
+// applies.
+func (t *MultiTx) Delete(ns, key string) {
+	t.held(ns)
+	t.ops = append(t.ops, multiOp{ns: ns, key: key})
 }
 
 // --- namespace primitives ---

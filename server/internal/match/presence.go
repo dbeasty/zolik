@@ -39,21 +39,31 @@ const AbandonWindow = 2 * time.Minute
 // socket is not a reason to stop the game, and treating it as one would let any
 // player pause a match they were losing by pulling their network cable.
 func (m *Manager) SuspendOnDisconnect(ctx context.Context, matchID, playerID, reason string) {
-	oid, err := bson.ObjectIDFromHex(matchID)
+	e, err := m.lockMatch(ctx, matchID)
 	if err != nil {
 		return
 	}
-	match, err := m.repo.FindByID(ctx, oid)
-	if err != nil || match.Status != "active" {
+	suspended, ok := m.suspendLocked(ctx, e, playerID)
+	e.mu.Unlock()
+	if !ok {
 		return
+	}
+	log.Printf("match=%s player=%s suspended (%s)", matchID, playerID, reason)
+	m.Broadcast(suspended)
+}
+
+func (m *Manager) suspendLocked(ctx context.Context, e *liveMatch, playerID string) (models.Match, bool) {
+	match := e.match
+	if match.Status != "active" {
+		return models.Match{}, false
 	}
 	mod := m.registry.Get(match.ModuleID)
 	if mod == nil {
-		return
+		return models.Match{}, false
 	}
 	// A bot's socket cannot drop, and a bot seat should never pause a table.
 	if p := playerByID(match.Players, playerID); p == nil || p.IsAI {
-		return
+		return models.Match{}, false
 	}
 	// Suspended when the table is waiting on this player — which between rounds
 	// can be several people at once. Comparing against a single "active" seat
@@ -61,25 +71,22 @@ func (m *Manager) SuspendOnDisconnect(ctx context.Context, matchID, playerID, re
 	// was not the first such seat, left it waiting on a socket that was never
 	// coming back: still active, never abandoned, and this is edge-triggered on
 	// the disconnect so it would not fire again.
-	if !awaits(module.AwaitedSeats(mod, match.State, viewerFor(match), refsOf(match)), playerID) {
-		return
+	if !awaits(module.AwaitedSeats(mod, module.State(match.State), viewerFor(match), refsOf(match)), playerID) {
+		return models.Match{}, false
 	}
 
 	now := time.Now().UTC()
 	abandon := now.Add(AbandonWindow)
-	expected := match.Version
 	match.Status = "suspended"
 	match.SuspendedAt = &now
 	match.AbandonAt = &abandon
 	match.SuspendedPlayer = playerID
 
-	if err := m.repo.UpdateWithVersion(ctx, oid, expected, match); err != nil {
-		log.Printf("match=%s player=%s suspend failed: %v", matchID, playerID, err)
-		return
+	if err := m.saveLocked(ctx, e, match); err != nil {
+		log.Printf("match=%s player=%s suspend failed: %v", match.ID.Hex(), playerID, err)
+		return models.Match{}, false
 	}
-	match.Version = expected + 1
-	log.Printf("match=%s player=%s suspended (%s)", matchID, playerID, reason)
-	m.Broadcast(match)
+	return e.match, true
 }
 
 // ResumeIfReturning un-suspends a match when the player it was waiting on
@@ -88,31 +95,28 @@ func (m *Manager) SuspendOnDisconnect(ctx context.Context, matchID, playerID, re
 // Only that player: a match suspended for one seat is not resumed by a
 // different one reconnecting, or by a spectator arriving.
 func (m *Manager) ResumeIfReturning(ctx context.Context, matchID, playerID string) {
-	oid, err := bson.ObjectIDFromHex(matchID)
+	e, err := m.lockMatch(ctx, matchID)
 	if err != nil {
 		return
 	}
-	match, err := m.repo.FindByID(ctx, oid)
-	if err != nil || match.Status != "suspended" {
+	match := e.match
+	if match.Status != "suspended" || match.SuspendedPlayer != playerID {
+		e.mu.Unlock()
 		return
 	}
-	if match.SuspendedPlayer != playerID {
-		return
-	}
-
-	expected := match.Version
 	match.Status = "active"
 	match.SuspendedAt = nil
 	match.AbandonAt = nil
 	match.SuspendedPlayer = ""
-
-	if err := m.repo.UpdateWithVersion(ctx, oid, expected, match); err != nil {
+	err = m.saveLocked(ctx, e, match)
+	resumed := e.match
+	e.mu.Unlock()
+	if err != nil {
 		log.Printf("match=%s player=%s resume failed: %v", matchID, playerID, err)
 		return
 	}
-	match.Version = expected + 1
 	log.Printf("match=%s player=%s resumed", matchID, playerID)
-	m.Broadcast(match)
+	m.Broadcast(resumed)
 
 	// The returning player may not be the only one who was waiting: a bot
 	// behind them in the order has been idle too.
@@ -220,11 +224,7 @@ func (m *Manager) attended(match models.Match) bool {
 // matter who is watching, so a broadcast per connection would be pure cost on
 // the path every ordinary player takes.
 func (m *Manager) AnnouncePresence(ctx context.Context, matchID string) {
-	oid, err := bson.ObjectIDFromHex(matchID)
-	if err != nil {
-		return
-	}
-	match, err := m.repo.FindByID(ctx, oid)
+	match, err := m.current(ctx, matchID)
 	if err != nil || match.Status != string(rules.StatusAbandoned) {
 		return
 	}
@@ -261,31 +261,50 @@ func (m *Manager) AnnouncePresence(ctx context.Context, matchID string) {
 // subtracts — see the comment there for why a correction beats a retraction
 // when the two events can land in different daily buckets.
 func (m *Manager) ResumeAbandoned(ctx context.Context, matchID, playerID string) error {
-	oid, err := bson.ObjectIDFromHex(matchID)
-	if err != nil {
+	if _, err := bson.ObjectIDFromHex(matchID); err != nil {
 		return module.Error{Code: "INVALID_MATCH_ID", Message: matchID}
 	}
-	match, err := m.repo.FindByID(ctx, oid)
+	e, err := m.lockMatch(ctx, matchID)
 	if err != nil {
 		return module.Error{Code: "MATCH_NOT_FOUND", Message: matchID}
 	}
+	resumed, err := m.resumeAbandonedLocked(ctx, e, playerID)
+	e.mu.Unlock()
+	if err != nil {
+		return err
+	}
+
+	m.metrics.Add(metrics.MatchesResumed, 1)
+	m.metrics.Add(metrics.MatchesResumedFor(resumed.ModuleID), 1)
+	log.Printf("match=%s player=%s resumed from abandoned", matchID, playerID)
+
+	m.Broadcast(resumed)
+	// The table was very likely swept mid-turn with bots waiting on a seat that
+	// never came back, so the loop has to be restarted rather than left for the
+	// player's next action — which, if the table is waiting on a bot, they have
+	// no way to make.
+	m.RunBotsIfNeeded(context.WithoutCancel(ctx), matchID)
+	return nil
+}
+
+func (m *Manager) resumeAbandonedLocked(ctx context.Context, e *liveMatch, playerID string) (models.Match, error) {
+	match := e.match
 	if match.Status != string(rules.StatusAbandoned) {
-		return module.Error{Code: "MATCH_NOT_ABANDONED", Message: "status is " + match.Status}
+		return models.Match{}, module.Error{Code: "MATCH_NOT_ABANDONED", Message: "status is " + match.Status}
 	}
 	if !m.resumableBy(match, playerID) {
 		if p := playerByID(match.Players, playerID); p == nil || p.IsAI {
-			return module.Error{Code: "NOT_AT_THIS_TABLE", Message: playerID}
+			return models.Match{}, module.Error{Code: "NOT_AT_THIS_TABLE", Message: playerID}
 		}
 		// Named rather than counted: "waiting for Anna" is something the
 		// player can act on — send her the link — where "this table has other
 		// players" is a fact they already knew.
-		return module.Error{
+		return models.Match{}, module.Error{
 			Code:    "TABLE_HAS_PLAYERS_AWAY",
 			Message: strings.Join(m.playersAway(match, playerID), ","),
 		}
 	}
 
-	expected := match.Version
 	match.Status = "active"
 	match.EndedAt = nil
 	match.SuspendedAt = nil
@@ -296,22 +315,10 @@ func (m *Manager) ResumeAbandoned(ctx context.Context, matchID, playerID string)
 	// at once, or a player pressing twice on a slow connection, and only the
 	// first write lands. The loser is told the table moved rather than being
 	// allowed to write a second "active" over the first.
-	if err := m.repo.UpdateWithVersion(ctx, oid, expected, match); err != nil {
-		return module.Error{Code: "MATCH_MOVED_ON", Message: err.Error()}
+	if err := m.saveLocked(ctx, e, match); err != nil {
+		return models.Match{}, module.Error{Code: "MATCH_MOVED_ON", Message: err.Error()}
 	}
-	match.Version = expected + 1
-
-	m.metrics.Add(metrics.MatchesResumed, 1)
-	m.metrics.Add(metrics.MatchesResumedFor(match.ModuleID), 1)
-	log.Printf("match=%s player=%s resumed from abandoned", matchID, playerID)
-
-	m.Broadcast(match)
-	// The table was very likely swept mid-turn with bots waiting on a seat that
-	// never came back, so the loop has to be restarted rather than left for the
-	// player's next action — which, if the table is waiting on a bot, they have
-	// no way to make.
-	m.RunBotsIfNeeded(context.WithoutCancel(ctx), matchID)
-	return nil
+	return e.match, nil
 }
 
 // DeleteAsHost ends a table at its host's request, for every seat.
@@ -330,10 +337,12 @@ func (m *Manager) ResumeAbandoned(ctx context.Context, matchID, playerID string)
 // row), and retention would delete the row itself once its window passes.
 // What the host discards here is the board, not the history.
 func (m *Manager) DeleteAsHost(ctx context.Context, idOrCode, playerID string) error {
-	match, err := m.repo.Resolve(ctx, idOrCode)
+	e, err := m.lockMatch(ctx, idOrCode)
 	if err != nil {
 		return module.Error{Code: "MATCH_NOT_FOUND", Message: idOrCode}
 	}
+	defer e.mu.Unlock()
+	match := e.match
 	if playerByID(match.Players, playerID) == nil {
 		return module.Error{Code: "NOT_AT_THIS_TABLE", Message: playerID}
 	}
@@ -351,8 +360,11 @@ func (m *Manager) DeleteAsHost(ctx context.Context, idOrCode, playerID string) e
 	// being persisted, and that player would be told their move succeeded at
 	// a table that no longer exists.
 	if err := m.repo.DeleteIfUnchanged(ctx, id, match.Version); err != nil {
+		e.loaded = false
 		return module.Error{Code: "MATCH_MOVED_ON", Message: err.Error()}
 	}
+	e.loaded = false
+	m.live.forget(id.Hex())
 
 	m.metrics.Add(metrics.MatchesDeletedByHost, 1)
 	log.Printf("match=%s host=%s deleted a %s table", id.Hex(), playerID, status)

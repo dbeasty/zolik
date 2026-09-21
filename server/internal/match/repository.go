@@ -9,6 +9,7 @@ package match
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -34,10 +35,27 @@ type Repository interface {
 	// Resolve accepts either an object id or a join code, so a URL can carry
 	// whichever the player has.
 	Resolve(ctx context.Context, idOrCode string) (models.Match, error)
-	// UpdateWithVersion replaces the document only if its version is
-	// unchanged. A whole match is one document, so load → apply → store is
-	// safe without transactions as long as a concurrent writer loses.
+	// UpdateWithVersion replaces the match — the envelope, never its state or
+	// moves — only if its version is unchanged, so load → change → store is
+	// safe as long as a concurrent writer loses.
 	UpdateWithVersion(ctx context.Context, id bson.ObjectID, expected int64, next models.Match) error
+	// AppendMove stores one move, unless a move with its Seq is already
+	// stored — then it is ErrVersionConflict, which is how two writers of the
+	// same match find out one of them was behind. The only write an ordinary
+	// move makes.
+	AppendMove(ctx context.Context, id bson.ObjectID, move models.MatchAction) error
+	// CommitSnapshot stores, together: moves (under AppendMove's rule), the
+	// state after seq moves, and next under the version check. next.Snapshots
+	// must already list seq. For the deal, round boundaries, the final move,
+	// and moving an old match across, where every move must land with the
+	// envelope.
+	CommitSnapshot(ctx context.Context, id bson.ObjectID, expected int64, next models.Match,
+		moves []models.MatchAction, seq int, state models.JSONDoc) error
+	// Moves returns moves from+1 … to, oldest first, or every stored move
+	// after from when to is negative. It stops at the first gap.
+	Moves(ctx context.Context, id bson.ObjectID, from, to int) ([]models.MatchAction, error)
+	// Snapshot returns the state stored after seq moves, or db.ErrNotFound.
+	Snapshot(ctx context.Context, id bson.ObjectID, seq int) (models.JSONDoc, error)
 	// FindAbandonable lists suspended matches whose AbandonAt has passed.
 	//
 	// It exists because AbandonAt did not, in any useful sense: it was written
@@ -69,8 +87,7 @@ type Repository interface {
 	// match out from under the player who had just picked it back up.
 	DeleteIfUnchanged(ctx context.Context, id bson.ObjectID, expected int64) error
 	// FindForPlayer lists the matches a seat id is sitting at, newest activity
-	// first, capped at f.Limit. Neither State nor ActionLog is populated — a
-	// list row needs neither, and together they are the bulk of the document.
+	// first, capped at f.Limit.
 	FindForPlayer(ctx context.Context, playerID string, f PlayerMatchFilter) ([]models.Match, error)
 }
 
@@ -119,10 +136,12 @@ func resolvePlayerMatchFilter(f PlayerMatchFilter) ([]string, int) {
 
 type mongoRepository struct {
 	coll *mongo.Collection
+	log  *mongo.Collection
 }
 
 func NewRepository(m *db.Mongo) Repository {
-	return &mongoRepository{coll: m.Collections().Matches}
+	c := m.Collections()
+	return &mongoRepository{coll: c.Matches, log: c.MatchLog}
 }
 
 var _ Repository = (*mongoRepository)(nil)
@@ -215,6 +234,9 @@ func (r *mongoRepository) FindRetired(ctx context.Context, now time.Time, w Rete
 	return out, nil
 }
 
+// DeleteIfUnchanged removes the match and then its log. A delete cut short
+// between the two leaves log records nothing points at; they are unreachable
+// and cost space only, and no transaction is needed to keep that harmless.
 func (r *mongoRepository) DeleteIfUnchanged(ctx context.Context, id bson.ObjectID, expected int64) error {
 	res, err := r.coll.DeleteOne(ctx, bson.M{"_id": id, "version": expected})
 	if err != nil {
@@ -223,7 +245,75 @@ func (r *mongoRepository) DeleteIfUnchanged(ctx context.Context, id bson.ObjectI
 	if res.DeletedCount == 0 {
 		return ErrVersionConflict
 	}
+	_, err = r.log.DeleteMany(ctx, bson.M{"m": id})
+	return err
+}
+
+func (r *mongoRepository) AppendMove(ctx context.Context, id bson.ObjectID, move models.MatchAction) error {
+	if _, err := r.log.InsertOne(ctx, toMoveRecord(id, move)); err != nil {
+		if mongo.IsDuplicateKeyError(err) {
+			return ErrVersionConflict
+		}
+		return err
+	}
 	return nil
+}
+
+// CommitSnapshot writes the move, the snapshot and then the envelope. Without
+// a multi-document transaction a failure part-way can leave the move and the
+// snapshot stored under an envelope that does not list them; both are
+// harmless — the move is part of the log, and a snapshot the envelope does
+// not list is never read — and the next load rebuilds from what the envelope
+// does list.
+func (r *mongoRepository) CommitSnapshot(ctx context.Context, id bson.ObjectID, expected int64, next models.Match,
+	moves []models.MatchAction, seq int, state models.JSONDoc) error {
+	for _, mv := range moves {
+		if err := r.AppendMove(ctx, id, mv); err != nil {
+			return err
+		}
+	}
+	snap := snapshotRecord{Match: id, Kind: kindSnapshot, Seq: seq, State: state}
+	if _, err := r.log.ReplaceOne(ctx, bson.M{"m": id, "k": kindSnapshot, "s": seq}, snap,
+		options.Replace().SetUpsert(true)); err != nil {
+		return err
+	}
+	return r.UpdateWithVersion(ctx, id, expected, next)
+}
+
+func (r *mongoRepository) Moves(ctx context.Context, id bson.ObjectID, from, to int) ([]models.MatchAction, error) {
+	seq := bson.M{"$gt": from}
+	if to >= 0 {
+		seq["$lte"] = to
+	}
+	cur, err := r.log.Find(ctx, bson.M{"m": id, "k": kindMove, "s": seq},
+		options.Find().SetSort(bson.D{{Key: "s", Value: 1}}))
+	if err != nil {
+		return nil, err
+	}
+	var recs []moveRecord
+	if err := cur.All(ctx, &recs); err != nil {
+		return nil, err
+	}
+	out := make([]models.MatchAction, 0, len(recs))
+	for i, rec := range recs {
+		if rec.Seq != from+i+1 {
+			break
+		}
+		out = append(out, rec.action())
+	}
+	return out, nil
+}
+
+func (r *mongoRepository) Snapshot(ctx context.Context, id bson.ObjectID, seq int) (models.JSONDoc, error) {
+	var snap snapshotRecord
+	err := r.log.FindOne(ctx, bson.M{"m": id, "k": kindSnapshot, "s": seq}).Decode(&snap)
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, db.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return snap.State, nil
 }
 
 // FindAbandonable lists suspended matches past their abandon deadline.
@@ -265,10 +355,7 @@ func (r *mongoRepository) FindStranded(ctx context.Context, idleBefore time.Time
 
 // FindForPlayer lists the matches a seat id sits at, newest activity first.
 //
-// Projected without state/actionLog/checkpoints: those are the bulk of the
-// document and a list row uses none of them. Checkpoints belong on that list
-// for the same reason state does — each one *is* a stored board, so a list of
-// twenty tables would otherwise carry a hundred of them. Sorted by updatedAt then _id, so two matches
+// Sorted by updatedAt then _id, so two matches
 // updated in the same instant still come back in a stable order — an
 // ObjectID embeds its creation time, so this is a legitimate tiebreak, not
 // an arbitrary one.
@@ -278,8 +365,7 @@ func (r *mongoRepository) FindForPlayer(ctx context.Context, playerID string, f 
 		bson.M{"players.id": playerID, "status": bson.M{"$in": statuses}},
 		options.Find().
 			SetSort(bson.D{{Key: "updatedAt", Value: -1}, {Key: "_id", Value: -1}}).
-			SetLimit(int64(limit)).
-			SetProjection(bson.M{"state": 0, "actionLog": 0, "checkpoints": 0}),
+			SetLimit(int64(limit)),
 	)
 	if err != nil {
 		return nil, err

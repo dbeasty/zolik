@@ -7,8 +7,6 @@ import (
 	"math/rand"
 	"time"
 
-	"go.mongodb.org/mongo-driver/v2/bson"
-
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
 )
@@ -83,11 +81,7 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 	var turn botTurn
 
 	for step := 0; step < botMaxSteps; step++ {
-		oid, err := bson.ObjectIDFromHex(matchID)
-		if err != nil {
-			return
-		}
-		match, err := m.repo.FindByID(ctx, oid)
+		match, err := m.current(ctx, matchID)
 		if err != nil || match.Status != "active" {
 			return
 		}
@@ -106,7 +100,7 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 		// human's click to do work that has nothing to do with them, and
 		// leaving a window where this loop unwinds just as that click lands and
 		// nothing restarts it.
-		actor := firstBot(module.AwaitedSeats(mod, match.State, viewerFor(match), refsOf(match)), match.Players)
+		actor := firstBot(module.AwaitedSeats(mod, module.State(match.State), viewerFor(match), refsOf(match)), match.Players)
 		if actor == "" {
 			return // nobody awaited, or nobody awaited is a bot
 		}
@@ -125,7 +119,7 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 
 		time.Sleep(m.thinkFor(rnd))
 
-		offers, err := mod.LegalActions(match.State, actor)
+		offers, err := mod.LegalActions(module.State(match.State), actor)
 		if err != nil {
 			return
 		}
@@ -140,7 +134,7 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 		// the difference between a seat that loses one move and a deal that
 		// stops.
 		candidates := botCandidates(offers)
-		if action, ok := module.BotFor(mod).Act(match.State, botSeatFor(match, actor), offers); ok {
+		if action, ok := module.BotFor(mod).Act(module.State(match.State), botSeatFor(match, actor), offers); ok {
 			candidates = append([]botMove{{action: action, undo: isUndoIn(offers, action)}}, candidates...)
 		}
 		if len(candidates) == 0 {

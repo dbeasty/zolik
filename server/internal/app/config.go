@@ -70,13 +70,10 @@ type Config struct {
 	KDBPath string
 
 	// ReplayEnabled turns on stepping back through a game that has stopped
-	// (FEATURE_FLAG_MATCH_REPLAY). Off by default: it is only half of what
-	// replay needs, and the other half — a store that keeps every version of
-	// a document, and is still keeping them — is asked of the store at the
-	// door. See match.Manager.ReplayAvailable.
-	//
-	// Off also means the write path stores no checkpoints, so a deployment
-	// that never turns this on pays nothing for it at all.
+	// (FEATURE_FLAG_MATCH_REPLAY). Off by default. It needs nothing from the
+	// store beyond what every match is kept as — its moves and snapshots — so
+	// this flag is the whole of the decision. See
+	// match.Manager.ReplayAvailable.
 	ReplayEnabled bool
 
 	JWTAccessSecret  string

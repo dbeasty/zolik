@@ -100,6 +100,16 @@ func (m *Mongo) EnsureIndexes(ctx context.Context) error {
 		return err
 	}
 
+	// match_log: one record per move and per snapshot. Unique on (match,
+	// kind, seq) because that is the concurrency check — move N is written
+	// once, and a second writer is refused rather than stored beside it.
+	if _, err := c.MatchLog.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "m", Value: 1}, {Key: "k", Value: 1}, {Key: "s", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+
 	// users
 	if _, err := c.Users.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{Keys: bson.D{{Key: "username", Value: 1}}, Options: options.Index().SetUnique(true)},
