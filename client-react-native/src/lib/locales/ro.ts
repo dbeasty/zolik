@@ -17,6 +17,7 @@ export const ro: Record<string, string> = {
   // move being silently refused.
   'err.MATCH_NOT_ACTIVE': 'Masa este în pauză — se așteaptă reconectarea unui jucător',
   'err.NOT_CONNECTED': 'Fără conexiune la masă — se reconectează, apoi încearcă din nou',
+  'err.DISPLACED': 'Deschisă într-o altă filă — aceasta a încetat să se sincronizeze',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

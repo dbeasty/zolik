@@ -27,11 +27,19 @@ export type SocketLike = {
   readonly readyState: number;
   onopen: (() => void) | null;
   onmessage: ((ev: { data: string }) => void) | null;
-  onclose: (() => void) | null;
+  onclose: ((ev?: { code?: number }) => void) | null;
   onerror: (() => void) | null;
   send(data: string): void;
   close(): void;
 };
+
+/**
+ * The close code the server sends on a match socket it closed because a
+ * newer connection for the same player took the seat (another tab, most
+ * often) — as opposed to an ordinary network drop. Kept alongside
+ * `SocketLike` since it is part of the same wire contract.
+ */
+export const WS_CLOSE_DISPLACED = 4001;
 
 export interface Transport {
   /** A request to `path` (which starts with `/`) on the server. */

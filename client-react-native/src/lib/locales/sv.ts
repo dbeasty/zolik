@@ -17,6 +17,7 @@ export const sv: Record<string, string> = {
   // move being silently refused.
   'err.MATCH_NOT_ACTIVE': 'Bordet är pausat — vi väntar på att en spelare ska återansluta',
   'err.NOT_CONNECTED': 'Ingen anslutning till bordet — återansluter, försök sedan igen',
+  'err.DISPLACED': 'Öppnad i en annan flik — den här har slutat synkronisera',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

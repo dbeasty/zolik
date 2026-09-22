@@ -22,6 +22,7 @@ export const en: Record<string, string> = {
   // move being silently refused.
   'err.MATCH_NOT_ACTIVE': 'The table is paused — waiting for a player to reconnect',
   'err.NOT_CONNECTED': 'Not connected to the table — reconnecting, then try again',
+  'err.DISPLACED': 'Opened in another tab — this one has stopped syncing',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

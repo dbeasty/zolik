@@ -17,6 +17,7 @@ export const fi: Record<string, string> = {
   // move being silently refused.
   'err.MATCH_NOT_ACTIVE': 'Pöytä on tauolla — odotetaan pelaajan palaavan',
   'err.NOT_CONNECTED': 'Ei yhteyttä pöytään — yhdistetään uudelleen, yritä sitten uudestaan',
+  'err.DISPLACED': 'Avattu toisessa välilehdessä — tämä lakkasi synkronoimasta',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

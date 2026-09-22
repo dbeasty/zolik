@@ -12,7 +12,18 @@ type WSConn interface {
 	WriteJSON(v interface{}) error
 	Close() error
 	Ping() error
+	// CloseWithCode closes the connection after writing a WS close control
+	// frame carrying code and reason, so the peer's onclose handler can tell
+	// why the socket ended instead of seeing an ordinary TCP close, which
+	// reads identically to a dropped network.
+	CloseWithCode(code int, reason string) error
 }
+
+// CloseCodeDisplaced is the close code sent to a player's older connection
+// when a newer one (another tab, most often) has taken their seat — as
+// opposed to an ordinary network drop. It is in the 4000-4999 private-use
+// range reserved for applications by RFC 6455.
+const CloseCodeDisplaced = 4001
 
 // syncConn serializes all writes to one underlying connection. gorilla's
 // websocket.Conn allows only one concurrent writer — without this, a
@@ -35,6 +46,12 @@ func (c *syncConn) WriteJSON(v interface{}) error {
 
 func (c *syncConn) Close() error {
 	return c.conn.Close()
+}
+
+func (c *syncConn) CloseWithCode(code int, reason string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.conn.CloseWithCode(code, reason)
 }
 
 func (c *syncConn) Ping() error {
@@ -148,6 +165,11 @@ type PingableConn struct {
 
 func (c PingableConn) Ping() error {
 	return c.WriteControl(websocket.PingMessage, nil, time.Now().Add(10*time.Second))
+}
+
+func (c PingableConn) CloseWithCode(code int, reason string) error {
+	_ = c.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(code, reason), time.Now().Add(2*time.Second))
+	return c.Close()
 }
 
 // Totals reports how many rooms currently hold at least one connection, and

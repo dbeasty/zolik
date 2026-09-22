@@ -17,6 +17,7 @@ export const mt: Record<string, string> = {
   // move being silently refused.
   'err.MATCH_NOT_ACTIVE': "Il-mejda hija wieqfa — qed nistennew li plejer jerġa' jaqbad",
   'err.NOT_CONNECTED': "M'hemmx konnessjoni mal-mejda — qed nerġgħu naqbdu, imbagħad erġa' pprova",
+  'err.DISPLACED': 'Infetħet f\'tab ieħor — dan waqaf jissinkronizza',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.
