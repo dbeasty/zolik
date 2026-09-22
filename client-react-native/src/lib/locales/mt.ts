@@ -161,6 +161,9 @@ export const mt: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     "L-ewwel tniżżil tiegħek irid jilħaq minimu ta' punti li jitla' mal-iskor tiegħek: {negative} taħt iż-żero, {low} sa {lowUpTo}, {mid} sa {midUpTo}, {high} 'il fuq minn hekk.",
   'canasta.rules.meldFloorBandsFive': "L-ewwel kombinazzjoni tiegħek trid tilħaq minimu ta' punti li jogħla mal-iskor tiegħek: {negative} taħt iż-żero, {low} sa {lowUpTo}, {mid} sa {midUpTo}, {high} sa {highUpTo} u {top} 'il fuq minn hekk.",
+  'canasta.rules.goingOutBonus':
+    "Il-ħruġ jiswa {n} punti waħdu — {concealed} jekk in-naħa tiegħek tagħmlu f'dawra waħda, mingħajr ma tkun niżżilt xejn qabel.",
+  'canasta.rules.goingOutBonusFlat': 'Il-ħruġ jiswa {n} punti waħdu.',
   'canasta.rules.turn':
     'Dawra hija ġbid wieħed lejn idek — iġbed mill-gozz jew ħu l-gozz kollu tal-iskart — imbagħad kemm trid melds, u fl-aħħar karta waħda mixħuta.',
   'canasta.rules.turnDiscard':

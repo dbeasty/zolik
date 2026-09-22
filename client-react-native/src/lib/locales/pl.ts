@@ -163,6 +163,9 @@ export const pl: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Twoje pierwsze wyłożenie musi osiągnąć minimum punktowe rosnące wraz z wynikiem: {negative} poniżej zera, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} powyżej.',
   'canasta.rules.meldFloorBandsFive': 'Twój pierwszy układ musi osiągnąć minimum punktowe rosnące wraz z wynikiem: {negative} poniżej zera, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} do {highUpTo}, powyżej {top}.',
+  'canasta.rules.goingOutBonus':
+    'Wyjście jest warte {n} punktów samo w sobie — {concealed}, jeśli twoja strona zrobi to w jednej kolejce, nie wykładając wcześniej niczego.',
+  'canasta.rules.goingOutBonusFlat': 'Wyjście jest warte {n} punktów samo w sobie.',
   'canasta.rules.turn':
     'Kolejka to jedno dobranie do ręki — z talii albo wzięcie całego stosu zrzutów — potem dowolne wyłożenia, a na koniec jedna karta odrzucona.',
   'canasta.rules.turnDiscard': 'Kolejkę kończy zrzut, więc zawsze musi ci zostać na niego karta.',

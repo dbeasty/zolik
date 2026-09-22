@@ -162,6 +162,9 @@ export const fr: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     "Ta première pose doit atteindre un minimum de points qui monte avec ton score : {negative} en dessous de zéro, {low} jusqu'à {lowUpTo}, {mid} jusqu'à {midUpTo}, {high} au-delà.",
   'canasta.rules.meldFloorBandsFive': "Ta première combinaison doit atteindre un minimum de points qui monte avec ton score : {negative} sous zéro, {low} jusqu'à {lowUpTo}, {mid} jusqu'à {midUpTo}, {high} jusqu'à {highUpTo}, {top} au-delà.",
+  'canasta.rules.goingOutBonus':
+    'Sortir vaut {n} points à lui seul — {concealed} si ton camp le fait en un seul tour, sans avoir rien posé avant.',
+  'canasta.rules.goingOutBonusFlat': 'Sortir vaut {n} points à lui seul.',
   'canasta.rules.turn':
     "Un tour, c'est une entrée dans ta main — piocher dans la pioche ou prendre toute la défausse — puis les combinaisons que tu veux poser, et enfin une carte défaussée.",
   'canasta.rules.turnDiscard':

@@ -165,6 +165,9 @@ export const hu: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Az első lerakásodnak el kell érnie egy pontminimumot, amely az állásoddal együtt emelkedik: {negative} nulla alatt, {low} {lowUpTo}-ig, {mid} {midUpTo}-ig, {high} azon felül.',
   'canasta.rules.meldFloorBandsFive': 'Az első kombinációdnak el kell érnie egy pontminimumot, amely az eredményeddel együtt nő: {negative} nulla alatt, {low} {lowUpTo}-ig, {mid} {midUpTo}-ig, {high} {highUpTo}-ig, azon felül {top}.',
+  'canasta.rules.goingOutBonus':
+    'A kiszállás önmagában {n} pontot ér — {concealed}, ha az oldalad egyetlen körben teszi meg, anélkül hogy előtte bármit is lerakott volna.',
+  'canasta.rules.goingOutBonusFlat': 'A kiszállás önmagában {n} pontot ér.',
   'canasta.rules.turn':
     'Egy kör egy lapfelvétel — húzás a pakliból vagy az egész dobópakli elvétele —, aztán annyi kombináció, amennyit akarsz, végül egy eldobott lap.',
   'canasta.rules.turnDiscard': 'A kört a dobás zárja, ezért mindig kell maradnia rá egy lapod.',

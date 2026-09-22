@@ -160,6 +160,9 @@ export const hr: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Tvoje prvo spuštanje mora doseći bodovni minimum koji raste s tvojim rezultatom: {negative} ispod nule, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} iznad toga.',
   'canasta.rules.meldFloorBandsFive': 'Tvoja prva kombinacija mora dosegnuti bodovni minimum koji raste s tvojim rezultatom: {negative} ispod nule, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} do {highUpTo} i {top} iznad toga.',
+  'canasta.rules.goingOutBonus':
+    'Izlazak sam po sebi vrijedi {n} bodova — {concealed} ako tvoja strana to učini u jednom potezu, a prije toga nije spustila nijednu kombinaciju.',
+  'canasta.rules.goingOutBonusFlat': 'Izlazak sam po sebi vrijedi {n} bodova.',
   'canasta.rules.turn':
     'Potez je jedno uzimanje u ruku — vučenje iz špila ili uzimanje cijele odbačene hrpe — zatim kombinacije koje želiš položiti, pa jedna odbačena karta.',
   'canasta.rules.turnDiscard':

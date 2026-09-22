@@ -155,6 +155,9 @@ export const sv: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Din första utläggning måste nå ett poängminimum som stiger med din ställning: {negative} under noll, {low} upp till {lowUpTo}, {mid} upp till {midUpTo}, {high} däröver.',
   'canasta.rules.meldFloorBandsFive': 'Din första kombination måste nå ett poängminimum som stiger med ditt resultat: {negative} under noll, {low} upp till {lowUpTo}, {mid} upp till {midUpTo}, {high} upp till {highUpTo} och {top} däröver.',
+  'canasta.rules.goingOutBonus':
+    'Att gå ut är värt {n} poäng för sig — {concealed} om din sida gör det på en enda tur, utan att ha lagt ut något innan dess.',
+  'canasta.rules.goingOutBonusFlat': 'Att gå ut är värt {n} poäng för sig.',
   'canasta.rules.turn':
     'En tur är ett drag in i handen — dra från talongen eller ta hela kasthögen — sedan de läggningar du vill göra, och till sist ett kort som kastas.',
   'canasta.rules.turnDiscard':

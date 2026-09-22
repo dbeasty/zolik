@@ -161,6 +161,21 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 		floorKey = "canasta.rules.meldFloorBandsFive"
 	}
 	melding = append(melding, module.Fact{LabelKey: floorKey, Params: bands})
+	// Placed beside the meld-floor bands rather than in the end-of-match
+	// section: both are point thresholds a player weighs while deciding what
+	// to lay, and going out concealed is itself a melding choice — holding
+	// your whole hand until you can clear it in one turn.
+	if v.ConcealedBonus > 0 {
+		melding = append(melding, module.Fact{
+			LabelKey: "canasta.rules.goingOutBonus",
+			Params:   map[string]any{"n": v.GoingOutBonus, "concealed": v.ConcealedBonus},
+		})
+	} else {
+		melding = append(melding, module.Fact{
+			LabelKey: "canasta.rules.goingOutBonusFlat",
+			Params:   map[string]any{"n": v.GoingOutBonus},
+		})
+	}
 
 	return []module.RuleSection{
 		module.Section("canasta.rules.section.goal",

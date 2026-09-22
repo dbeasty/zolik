@@ -161,6 +161,9 @@ export const nl: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Je eerste leg moet een puntenminimum halen dat met je stand meestijgt: {negative} onder nul, {low} tot {lowUpTo}, {mid} tot {midUpTo}, {high} daarboven.',
   'canasta.rules.meldFloorBandsFive': 'Je eerste combinatie moet een puntenminimum halen dat met je score meestijgt: {negative} onder nul, {low} tot {lowUpTo}, {mid} tot {midUpTo}, {high} tot {highUpTo} en {top} daarboven.',
+  'canasta.rules.goingOutBonus':
+    'Uitgaan is op zichzelf {n} punten waard — {concealed} als jouw partij dat in één beurt doet, zonder daarvoor iets te hebben gelegd.',
+  'canasta.rules.goingOutBonusFlat': 'Uitgaan is op zichzelf {n} punten waard.',
   'canasta.rules.turn':
     'Een beurt is één greep naar je hand — pakken van de stapel of de hele aflegstapel nemen — daarna de series die je wilt leggen, en tot slot één afgelegde kaart.',
   'canasta.rules.turnDiscard':

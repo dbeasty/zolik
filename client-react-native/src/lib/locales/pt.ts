@@ -162,6 +162,9 @@ export const pt: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'A tua primeira baixa tem de atingir um mínimo de pontos que sobe com a tua pontuação: {negative} abaixo de zero, {low} até {lowUpTo}, {mid} até {midUpTo}, {high} acima disso.',
   'canasta.rules.meldFloorBandsFive': 'A tua primeira combinação tem de atingir um mínimo de pontos que sobe com a tua pontuação: {negative} abaixo de zero, {low} até {lowUpTo}, {mid} até {midUpTo}, {high} até {highUpTo} e {top} acima disso.',
+  'canasta.rules.goingOutBonus':
+    'Sair vale {n} pontos por si só — {concealed} se o teu lado o fizer numa só vez, sem teres baixado nada antes.',
+  'canasta.rules.goingOutBonusFlat': 'Sair vale {n} pontos por si só.',
   'canasta.rules.turn':
     'Uma vez é uma entrada de cartas na tua mão — comprar do baralho ou levar todo o monte de descartes — depois as combinações que quiseres baixar e, por fim, uma carta descartada.',
   'canasta.rules.turnDiscard':
