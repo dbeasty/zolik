@@ -19,6 +19,7 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 import { useMatchSocket, type MatchSocketState } from '@/src/hooks/useMatchSocket';
+import { WS_CLOSE_DISPLACED } from '@/src/net/transport';
 
 const mockGetCapacity = jest.fn(async () => ({
   accepting: true,
@@ -79,9 +80,9 @@ class FakeWebSocket {
     this.onopen?.();
   }
 
-  fireClose() {
+  fireClose(ev?: { code?: number }) {
     this.readyState = 3;
-    this.onclose?.();
+    this.onclose?.(ev);
   }
 }
 
@@ -248,6 +249,24 @@ describe('useMatchSocket', () => {
     await flushClose();
     act(() => jest.advanceTimersByTime(1000));
     expect(FakeWebSocket.instances).toHaveLength(4);
+  });
+
+  it('stops reconnecting and reports DISPLACED when a newer tab takes the seat', async () => {
+    // Distinct from an ordinary drop: the server closes with this code on
+    // purpose when another connection for this player has already taken
+    // over, and this tab reconnecting would only start the tug-of-war
+    // STABLE_MS (see the fix above) exists to slow down. It should not
+    // reconnect at all.
+    const { probe } = renderProbe('ws://table/1?token=a');
+    act(() => FakeWebSocket.instances[0].fireOpen());
+    act(() => FakeWebSocket.instances[0].fireClose({ code: WS_CLOSE_DISPLACED }));
+    await flushClose();
+
+    expect(probe.hook!.error).toEqual({ code: 'DISPLACED' });
+    expect(probe.hook!.connected).toBe(false);
+
+    act(() => jest.advanceTimersByTime(60_000));
+    expect(FakeWebSocket.instances).toHaveLength(1);
   });
 
   it('surfaces SERVER_BUSY and backs off long when capacity says the server is full', async () => {

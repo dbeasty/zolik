@@ -16,9 +16,10 @@ import (
 // at all.
 type seatedConn struct{}
 
-func (seatedConn) WriteJSON(interface{}) error { return nil }
-func (seatedConn) Close() error                { return nil }
-func (seatedConn) Ping() error                 { return nil }
+func (seatedConn) WriteJSON(interface{}) error     { return nil }
+func (seatedConn) Close() error                    { return nil }
+func (seatedConn) Ping() error                     { return nil }
+func (seatedConn) CloseWithCode(int, string) error { return nil }
 
 // sitDown puts playerID at matchID's table, and returns the function that
 // stands them back up — because half of these tests are about what happens

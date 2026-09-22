@@ -3,7 +3,7 @@ import { AppState } from 'react-native';
 
 import type { MatchAction, MatchState } from '@/src/api/matchTypes';
 import { apiClient } from '@/src/api/client';
-import type { SocketLike } from '@/src/net/transport';
+import { WS_CLOSE_DISPLACED, type SocketLike } from '@/src/net/transport';
 import { busyBackoff, jitteredBackoff } from '@/src/lib/reconnectBackoff';
 
 /**
@@ -136,9 +136,19 @@ export function useMatchSocket(
         // sends the whole state after every action, so events are for flavour
         // and never for correctness.
       };
-      ws.onclose = () => {
+      ws.onclose = (ev) => {
         if (stableTimer) clearTimeout(stableTimer);
         if (torn) return;
+        // The server closes with this code on purpose, when a newer
+        // connection for this same player — another tab, most likely — has
+        // already taken the seat. Reconnecting here would only trade the
+        // seat back, which is the ~1s tug-of-war STABLE_MS above exists to
+        // slow down; better to not join it at all and say why instead of
+        // leaving a stale board on screen with a spinner that never resolves.
+        if (ev?.code === WS_CLOSE_DISPLACED) {
+          terminal = true;
+          setError({ code: 'DISPLACED' });
+        }
         setConnected(false);
         // The refusal is already on screen and is the last word; reconnecting
         // would only fetch it again, for ever.

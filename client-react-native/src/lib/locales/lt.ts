@@ -17,6 +17,7 @@ export const lt: Record<string, string> = {
   // move being silently refused.
   'err.MATCH_NOT_ACTIVE': 'Stalas pristabdytas — laukiama, kol žaidėjas vėl prisijungs',
   'err.NOT_CONNECTED': 'Nėra ryšio su stalu — jungiamės iš naujo, paskui bandyk dar kartą',
+  'err.DISPLACED': 'Atidaryta kitame skirtuke — šis nustojo sinchronizuotis',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

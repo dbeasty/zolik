@@ -17,6 +17,7 @@ export const hr: Record<string, string> = {
   // move being silently refused.
   'err.MATCH_NOT_ACTIVE': 'Stol je pauziran — čeka se da se igrač ponovno spoji',
   'err.NOT_CONNECTED': 'Nema veze sa stolom — ponovno se spajamo, zatim pokušaj opet',
+  'err.DISPLACED': 'Otvoreno u drugoj kartici — ova je prestala sinkronizirati',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

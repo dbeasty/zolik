@@ -17,6 +17,7 @@ export const sl: Record<string, string> = {
   // move being silently refused.
   'err.MATCH_NOT_ACTIVE': 'Miza je zaustavljena — čakamo, da se igralec znova poveže',
   'err.NOT_CONNECTED': 'Ni povezave z mizo — ponovno se povezujemo, nato poskusi znova',
+  'err.DISPLACED': 'Odprto v drugem zavihku — ta se je nehal sinhronizirati',
   // Why the "start the next round" control is greyed out. Without wording the
   // shell printed the code itself, so a player agreeing to go on was answered
   // with ALREADY_READY in capitals.

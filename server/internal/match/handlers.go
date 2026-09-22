@@ -816,7 +816,11 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 	}
 	wsConn, prev := h.manager.Hub().Registry().Add(matchID, playerID, ws.PingableConn{Conn: conn})
 	if prev != nil {
-		_ = prev.Close()
+		// A distinct close code, not a bare Close(): the older tab's onclose
+		// handler needs to tell "displaced on purpose" from an ordinary
+		// network drop, so it can stop reconnecting instead of racing the
+		// newer socket for the seat.
+		_ = prev.CloseWithCode(ws.CloseCodeDisplaced, "displaced by a newer connection")
 	}
 	ctx := context.Background()
 	// Leaving pauses the table, but only if it was waiting on them — and only
