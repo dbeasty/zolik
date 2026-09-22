@@ -58,6 +58,12 @@ const (
 	// NSMatches so the scans over matches never read them.
 	NSMatchLog = "match_log"
 
+	// NSReservations holds one document per claimed unique value - a username,
+	// an email address, a friend code - keyed by the value itself. See
+	// kdbreservations.go for why a scan cannot do this job once a namespace
+	// replicates.
+	NSReservations = "reservations"
+
 	NSNotifyProfiles = "notify_profiles"
 	NSNotifyCircle   = "notify_circle"
 	NSNotifyDevices  = "notify_devices"
@@ -66,7 +72,7 @@ const (
 var kdbNamespaceNames = []string{
 	NSMatches, NSUsers, NSSessions, NSScoring, NSMatchResults,
 	NSPlayerStats, NSIdentities, NSLoginCodes, NSOAuthFlows,
-	NSDailyMetrics, NSBoots, NSMatchLog,
+	NSDailyMetrics, NSBoots, NSMatchLog, NSReservations,
 	NSNotifyProfiles, NSNotifyCircle, NSNotifyDevices,
 }
 
@@ -713,6 +719,11 @@ type MultiTx struct {
 	k   *KDB
 	nss map[string]*kdbNamespace
 	ops []multiOp
+	// read is the content hash of everything this transaction has read, keyed
+	// ns\x00key; empty means it was not there. Its writes assert it, so a
+	// peer's merge landing between the read and the commit refuses the
+	// transaction instead of silently overwriting the merged value.
+	read map[string]string
 }
 
 type multiOp struct {
@@ -728,20 +739,31 @@ type multiOp struct {
 func (k *KDB) UpdateMulti(nss []string, fn func(tx *MultiTx) error) error {
 	names := append([]string(nil), nss...)
 	sort.Strings(names)
-	tx := &MultiTx{k: k, nss: make(map[string]*kdbNamespace, len(names))}
+	held := make(map[string]*kdbNamespace, len(names))
 	for _, name := range names {
-		if _, dup := tx.nss[name]; dup {
+		if _, dup := held[name]; dup {
 			continue
 		}
 		n := k.ns(name)
 		n.mu.Lock()
 		defer n.mu.Unlock()
-		tx.nss[name] = n
+		held[name] = n
 	}
-	if err := fn(tx); err != nil {
-		return err
+	// Re-run on a precondition failure for the same reason Update does: with
+	// every lock held, the only thing that can have moved a document under
+	// this transaction is a peer's merge, and the answer is to decide again on
+	// what the merge left.
+	var err error
+	for attempt := 0; attempt < kdbUpdateAttempts; attempt++ {
+		tx := &MultiTx{k: k, nss: held, read: map[string]string{}}
+		if err = fn(tx); err != nil {
+			return err
+		}
+		if err = tx.commit(); !isPrecondition(err) {
+			return err
+		}
 	}
-	return tx.commit()
+	return err
 }
 
 // commit turns the buffered writes into one transaction per namespace.
@@ -772,11 +794,23 @@ func (t *MultiTx) commit() error {
 	for _, name := range sortedKeys(byNS) {
 		n := t.nss[name]
 		var ops []document.Op
+		var pres []document.Precondition
 		for _, f := range byNS[name] {
 			id := uuidForKey(f.key)
 			_, _, exists, err := n.srv.GetDocument(n.id, id)
 			if err != nil {
 				return err
+			}
+			// The first operation on a document is the one that carries what
+			// the caller read: a delete when there is something to replace,
+			// otherwise the write itself.
+			pre, err := t.precondition(name, f.key)
+			if err != nil {
+				return err
+			}
+			if pre != nil {
+				pre.OpIndex = len(ops)
+				pres = append(pres, *pre)
 			}
 			if exists {
 				ops = append(ops, document.DeleteOp{DocID: id})
@@ -793,7 +827,7 @@ func (t *MultiTx) commit() error {
 		if len(ops) > 0 {
 			parts = append(parts, kdbserver.NamespaceTransaction{
 				Namespace: n.id,
-				Tx:        document.Transaction{Operations: ops},
+				Tx:        document.Transaction{Operations: ops, Preconditions: pres},
 			})
 		}
 	}
@@ -821,6 +855,24 @@ func (t *MultiTx) commit() error {
 	}
 }
 
+// precondition is what this transaction read for ns/key, as an assertion for
+// the commit to make. Nil when the key was never read: a blind write, which is
+// what the caller asked for.
+func (t *MultiTx) precondition(ns, key string) (*document.Precondition, error) {
+	hash, ok := t.read[ns+"\x00"+key]
+	if !ok {
+		return nil, nil
+	}
+	if hash == "" {
+		return &document.Precondition{Kind: document.ExpectAbsent}, nil
+	}
+	h, err := codec.HashFromHex(hash)
+	if err != nil {
+		return nil, err
+	}
+	return &document.Precondition{Kind: document.ExpectContentHash, ContentHash: h}, nil
+}
+
 func sortedKeys[V any](m map[string]V) []string {
 	out := make([]string, 0, len(m))
 	for k := range m {
@@ -838,7 +890,8 @@ func (t *MultiTx) held(ns string) *kdbNamespace {
 	return n
 }
 
-// Get returns the document at key as this transaction would leave it.
+// Get returns the document at key as this transaction would leave it, and
+// remembers what was stored so the commit can assert it is still there.
 func (t *MultiTx) Get(ns, key string) ([]byte, error) {
 	n := t.held(ns)
 	for i := len(t.ops) - 1; i >= 0; i-- {
@@ -849,7 +902,15 @@ func (t *MultiTx) Get(ns, key string) ([]byte, error) {
 			return op.doc, nil
 		}
 	}
-	return n.get(key)
+	doc, hash, found, err := n.readForUpdate(key)
+	if err != nil {
+		return nil, err
+	}
+	t.read[ns+"\x00"+key] = hash
+	if !found {
+		return nil, fmt.Errorf("kdb: %s %q: %w", n.id, key, ErrNotFound)
+	}
+	return doc, nil
 }
 
 // Put creates or wholly replaces the document at key when the transaction

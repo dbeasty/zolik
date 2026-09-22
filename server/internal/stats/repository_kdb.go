@@ -34,6 +34,16 @@ var _ Repository = (*kdbRepository)(nil)
 
 var errStopScan = errors.New("stop scan")
 
+// resultKey is the document key of a match's result: derived from the match,
+// not from the record's own id.
+//
+// The unique matchId index is what makes recording a match idempotent under
+// Mongo. Here the match id *is* the key, so a second recording of the same
+// match — a retry, a replayed import from another node, two nodes recording
+// the same finished match — collides on one document rather than being looked
+// for by a scan each node can only run over its own copy.
+func resultKey(matchID bson.ObjectID) string { return "mr:" + matchID.Hex() }
+
 func (r *kdbRepository) InsertMatch(ctx context.Context, m MatchResult) (MatchResult, error) {
 	if m.ID.IsZero() {
 		m.ID = bson.NewObjectID()
@@ -43,29 +53,13 @@ func (r *kdbRepository) InsertMatch(ctx context.Context, m MatchResult) (MatchRe
 		return MatchResult{}, err
 	}
 	err = r.k.Update(db.NSMatchResults, func(tx *db.Tx) error {
-		// The unique matchId index is what makes recording idempotent under
-		// Mongo; this scan inside the critical section is its stand-in.
-		clash := false
-		err := tx.Scan(func(doc []byte) error {
-			var probe struct {
-				MatchID bson.ObjectID `bson:"matchId"`
+		if err := tx.Insert(resultKey(m.MatchID), doc); err != nil {
+			if db.IsDuplicateKey(err) {
+				return ErrAlreadyRecorded
 			}
-			if err := db.UnmarshalDoc(doc, &probe); err != nil {
-				return err
-			}
-			if probe.MatchID == m.MatchID {
-				clash = true
-				return errStopScan
-			}
-			return nil
-		})
-		if err != nil && !errors.Is(err, errStopScan) {
 			return err
 		}
-		if clash {
-			return ErrAlreadyRecorded
-		}
-		return tx.Insert(m.ID.Hex(), doc)
+		return nil
 	})
 	if err != nil {
 		return MatchResult{}, err
@@ -74,6 +68,22 @@ func (r *kdbRepository) InsertMatch(ctx context.Context, m MatchResult) (MatchRe
 }
 
 func (r *kdbRepository) FindMatchByMatchID(ctx context.Context, matchID bson.ObjectID) (MatchResult, error) {
+	switch doc, err := r.k.Get(db.NSMatchResults, resultKey(matchID)); {
+	case err == nil:
+		var m MatchResult
+		if err := db.UnmarshalDoc(doc, &m); err != nil {
+			return MatchResult{}, err
+		}
+		return m, nil
+	case !db.IsNotFound(err):
+		return MatchResult{}, err
+	}
+	// Records written before results were keyed by their match; the scan goes
+	// once cmd/migrate-namespaces has run everywhere.
+	return r.scanMatchByMatchID(matchID)
+}
+
+func (r *kdbRepository) scanMatchByMatchID(matchID bson.ObjectID) (MatchResult, error) {
 	var out MatchResult
 	found := false
 	err := r.k.Scan(db.NSMatchResults, func(doc []byte) error {
@@ -180,7 +190,14 @@ func (r *kdbRepository) CountMatchesForSubject(ctx context.Context, key string) 
 
 func (r *kdbRepository) ReplaceMatchAttribution(ctx context.Context, m MatchResult) error {
 	return r.k.Update(db.NSMatchResults, func(tx *db.Tx) error {
-		doc, err := tx.Get(m.ID.Hex())
+		key := resultKey(m.MatchID)
+		doc, err := tx.Get(key)
+		if db.IsNotFound(err) {
+			// A record written before results were keyed by their match still
+			// sits under its own id.
+			key = m.ID.Hex()
+			doc, err = tx.Get(key)
+		}
 		if err != nil {
 			if db.IsNotFound(err) {
 				// UpdateOne on a missing document matches nothing; keep that.
@@ -200,7 +217,7 @@ func (r *kdbRepository) ReplaceMatchAttribution(ctx context.Context, m MatchResu
 		if err != nil {
 			return err
 		}
-		return tx.Put(m.ID.Hex(), next)
+		return tx.Put(key, next)
 	})
 }
 

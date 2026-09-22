@@ -21,6 +21,10 @@ type Repository interface {
 	GetProfile(ctx context.Context, key string) (Profile, error)
 	GetProfileByFriendCode(ctx context.Context, code string) (Profile, error)
 	PutProfile(ctx context.Context, p Profile) error
+	// DeleteProfile removes a subject's profile, giving up the friend code it
+	// held. Used when a profile moves to another key, which is the only way a
+	// code can pass from one subject to another: a code names one person.
+	DeleteProfile(ctx context.Context, key string) error
 
 	GetEdge(ctx context.Context, owner, member string) (Edge, error)
 	PutEdge(ctx context.Context, e Edge) error
@@ -68,6 +72,11 @@ func (r *mongoRepository) GetProfileByFriendCode(ctx context.Context, code strin
 
 func (r *mongoRepository) PutProfile(ctx context.Context, p Profile) error {
 	_, err := r.profiles.ReplaceOne(ctx, bson.M{"_id": p.Key}, p, options.Replace().SetUpsert(true))
+	return err
+}
+
+func (r *mongoRepository) DeleteProfile(ctx context.Context, key string) error {
+	_, err := r.profiles.DeleteOne(ctx, bson.M{"_id": key})
 	return err
 }
 
@@ -136,6 +145,14 @@ func rekey(ctx context.Context, r Repository, from, to string) error {
 	}
 	if p, err := r.GetProfile(ctx, from); err == nil {
 		if _, err := r.GetProfile(ctx, to); errors.Is(err, ErrNotFound) {
+			// The profile moves rather than being copied: the friend code on
+			// it names one person, and leaving the guest's profile behind
+			// would leave two profiles claiming the same code — which the
+			// unique index on Mongo and the code's reservation on KDB both
+			// refuse, as they should.
+			if err := r.DeleteProfile(ctx, from); err != nil {
+				return err
+			}
 			p.Key = to
 			p.UpdatedAt = time.Now().UTC()
 			if err := r.PutProfile(ctx, p); err != nil {
