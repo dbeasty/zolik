@@ -299,6 +299,27 @@ export function positionAt(
 }
 
 /**
+ * Whether these cards are a submission this offer could be sent with *right
+ * now* — `fits` plus the count `fits` deliberately leaves out.
+ *
+ * The two were always meant to be asked together wherever a press is about to
+ * happen (see `fits`), and for a long time only the drag path asked the second
+ * one. A control that asked `fits` alone stayed lit over a selection still
+ * short of `minCards`, and the press then died in silence: `submissionFor`
+ * refuses a submission under the offer's own floor, so nothing was sent,
+ * nothing was refused, and nothing on screen said why. The way that was found
+ * is the worst case of it — an offer whose floor is six cards, where picking
+ * any one of them left a button that looked ready and did nothing at all.
+ */
+export function readyWith(offer: ActionOffer, cards: string[]): Fit {
+  const fit = fits(offer, cards);
+  if (!fit.ok) return fit;
+  const need = offer.source?.minCards ?? 0;
+  if (cards.length < need) return { ok: false, labelKey: 'sel.needMore', params: { n: need } };
+  return { ok: true };
+}
+
+/**
  * Whether some enabled offer that actually takes cards is ready to send
  * these right now — not merely compatible with them eventually, which a
  * fresh meld-in-progress always is (`fits` has no opinion on a selection
@@ -314,10 +335,7 @@ export function positionAt(
  * the first pick around).
  */
 export function someOfferReady(offers: ActionOffer[], cards: string[]): boolean {
-  return offers.some((o) => {
-    const need = o.source?.minCards ?? 0;
-    return o.enabled && need > 0 && cards.length >= need && fits(o, cards).ok;
-  });
+  return offers.some((o) => o.enabled && (o.source?.minCards ?? 0) > 0 && readyWith(o, cards).ok);
 }
 
 /**

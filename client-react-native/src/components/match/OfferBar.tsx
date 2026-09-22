@@ -13,7 +13,7 @@ import {
 import type { ActionOffer, MatchAction, ParamSpec } from '@/src/api/matchTypes';
 import { defaultParam, isOneTap, offerGroupKey, offerHeadline, submissionFor } from '@/src/api/matchTypes';
 import { useMetrics } from '@/src/hooks/useMetrics';
-import { fits, type Fit } from '@/src/lib/drops';
+import { fits, readyWith, type Fit } from '@/src/lib/drops';
 import { Attention } from '@/src/components/match/Attention';
 import type { Refusal } from '@/src/components/match/WhySheet';
 import type { Metrics } from '@/src/lib/layout';
@@ -858,7 +858,12 @@ function pickCards(offer: ActionOffer, selected: string[]): string[] | undefined
 function offerSettles(offer: ActionOffer, selected: string[]): boolean {
   if (!offer.enabled) return false;
   if (selected.length === 0) return isOneTap(offer);
-  return fits(offer, selected).ok;
+  // `readyWith` rather than `fits`, and the difference is the whole of it: a
+  // selection the offer would accept eventually is not one it would accept
+  // now. A control settled on `fits` alone went out lit over a half-built
+  // submission and then sent nothing when pressed, because the submission it
+  // would have made is one the offer's own floor forbids.
+  return readyWith(offer, selected).ok;
 }
 
 /**
@@ -908,7 +913,7 @@ function unreadyReason(offer: ActionOffer, selected: string[]): Extract<Fit, { o
   if (selected.length === 0) {
     return isOneTap(offer) ? undefined : { ok: false, labelKey: 'sel.needMore', params: { n: need } };
   }
-  const fit = fits(offer, selected);
+  const fit = readyWith(offer, selected);
   return fit.ok ? undefined : fit;
 }
 
