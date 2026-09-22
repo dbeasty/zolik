@@ -96,8 +96,40 @@ func TestBlackThreeCandidateCountsCopies(t *testing.T) {
 	if len(got) != 3 {
 		t.Errorf("got %v, want three black threes", got)
 	}
-	if err := validateBlackThreeMeld(got); err != nil {
+	if err := validateBlackThreeMeld(variations["classic"], got); err != nil {
 		t.Errorf("the candidate is not a legal meld: %v", err)
+	}
+}
+
+// Samba deals three decks, so a hand can hold five or six black threes — more
+// than Classic and Modern American's two-deck ceiling of four. The candidate
+// and its validation used to share a hard-coded 4, so a Samba hand sitting on
+// nothing but black threes could never go out: the offer truncated to four,
+// leaving a card behind, and a direct five- or six-card submission failed
+// validation outright.
+func TestBlackThreeCandidateFollowsTheDecksInPlay(t *testing.T) {
+	hand := []string{"3C", "3C", "3C", "3S", "3S"}
+	got := blackThreeCandidate(variations["samba"], hand)
+	if len(got) != 5 {
+		t.Errorf("got %v, want all five black threes offered", got)
+	}
+	if err := validateBlackThreeMeld(variations["samba"], got); err != nil {
+		t.Errorf("a five-card black-three meld should be legal in samba: %v", err)
+	}
+
+	sixth := append(append([]string{}, hand...), "3S")
+	if err := validateBlackThreeMeld(variations["samba"], sixth); err != nil {
+		t.Errorf("six black threes is samba's ceiling, got: %v", err)
+	}
+	seventh := append(append([]string{}, sixth...), "3C")
+	if err := validateBlackThreeMeld(variations["samba"], seventh); err == nil {
+		t.Errorf("seven black threes exceeds what three decks hold, want a refusal")
+	}
+
+	// Classic only deals two decks, so its ceiling stays at four.
+	classicFive := []string{"3C", "3C", "3S", "3S", "3C"}
+	if err := validateBlackThreeMeld(variations["classic"], classicFive); err == nil {
+		t.Errorf("classic only holds four black threes, want a refusal for five")
 	}
 }
 

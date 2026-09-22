@@ -147,6 +147,11 @@ func (r ruleset) redThreeAllBonus() int {
 	return 800
 }
 
+// blackThrees is how many black threes the deck holds — the going-out meld's
+// ceiling. Two decks means four, three means six; a hard-coded 4 was Samba's
+// third deck's black threes with nowhere legal to go.
+func (r ruleset) blackThrees() int { return r.Decks * 2 }
+
 // classicFloors are the three bands Canasta has always had; Samba adds a fourth
 // in its own table below.
 var classicFloors = []floor{{Above: 0, Min: 50}, {Above: 1500, Min: 90}, {Above: 3000, Min: 120}}

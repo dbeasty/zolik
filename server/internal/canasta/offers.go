@@ -587,8 +587,8 @@ func blackThreeCandidate(r ruleset, hand []string) []string {
 	if len(out) < minMeldSize {
 		return nil
 	}
-	if len(out) > 4 {
-		out = out[:4]
+	if max := r.blackThrees(); len(out) > max {
+		out = out[:max]
 	}
 	return out
 }

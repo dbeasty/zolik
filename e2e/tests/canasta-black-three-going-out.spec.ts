@@ -336,6 +336,66 @@ test.describe('going out on black threes', () => {
     expect(result.dealEnded.wentOut).toBe(p1.userId);
   });
 
+  test('Samba also accepts five and six black threes, its own two-deck-beyond-Classic ceiling', async ({
+    page,
+    request,
+  }) => {
+    // Production bug: blackThreeCandidate (offers.go) and validateBlackThreeMeld
+    // (meld.go) both hard-capped at 4, a leftover from Classic/Modern American's
+    // two-deck ceiling. Samba deals three decks, so a hand can hold five or six
+    // black threes — and when every remaining card is a black three, the
+    // going-out move has to be all of them or none (engine.go's `applyLayMeld`
+    // refuses BLACK_THREE_GO_OUT_ONLY unless the meld empties the hand). A
+    // four-card cap made a five- or six-card hand of nothing but black threes
+    // permanently unable to go out. See ruleset.go's `blackThrees()`.
+    const { matchId, users } = await startMatch(request, 2, 'samba');
+    const [p1, p2] = users;
+
+    const five = ['3C', '3C', '3C', '3S', '3S'];
+    const state = goingOutState('samba', p1.userId, p2.userId, {
+      canastas: 2,
+      blackThrees: five,
+    });
+    await seedDebugState(request, matchId, p1.accessToken, state);
+
+    const result = await attemptBlackThreeGoOut(
+      page,
+      API_BASE.replace(/^http/, 'ws'),
+      matchId,
+      p1.accessToken,
+      five,
+    );
+
+    expect(result.error, `submitting five black threes should not have been refused: ${JSON.stringify(result.error)}`).toBeNull();
+    expect(result.offerFound, 'lay_meld:3 should have been offered for a five-black-three hand').toBe(true);
+    expect(result.offerEnabled).toBe(true);
+    expect([...(result.offerSubmit ?? [])].sort()).toEqual([...five].sort());
+    expect(result.dealEnded, 'the deal should have ended when all five black threes went down').not.toBeNull();
+    expect(result.dealEnded.wentOut).toBe(p1.userId);
+
+    const six = ['3C', '3C', '3C', '3S', '3S', '3S'];
+    const { matchId: matchId2, users: users2 } = await startMatch(request, 2, 'samba');
+    const [q1, q2] = users2;
+    await seedDebugState(
+      request,
+      matchId2,
+      q1.accessToken,
+      goingOutState('samba', q1.userId, q2.userId, { canastas: 2, blackThrees: six }),
+    );
+    const result2 = await attemptBlackThreeGoOut(
+      page,
+      API_BASE.replace(/^http/, 'ws'),
+      matchId2,
+      q1.accessToken,
+      six,
+    );
+    expect(result2.error).toBeNull();
+    expect(result2.offerFound, 'lay_meld:3 should have been offered for a six-black-three hand').toBe(true);
+    expect(result2.offerEnabled).toBe(true);
+    expect(result2.dealEnded).not.toBeNull();
+    expect(result2.dealEnded.wentOut).toBe(q1.userId);
+  });
+
   test('Classic offers the same meld with only one canasta required', async ({ page, request }) => {
     // The control case for the rule itself (BlackThreeMeld is on in both),
     // and for CanastasToGoOut: Classic's side qualifies with one canasta
