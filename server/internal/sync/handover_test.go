@@ -46,15 +46,6 @@ func wsURL(server *httptest.Server) string {
 }
 
 func TestAMatchIsPickedUpOnAnotherDevice(t *testing.T) {
-	// Blocked on the engine, not on this package: a namespace that exists only
-	// on a spoke is never pushed up, because the hub's hello ack lists refs
-	// only for namespaces it already holds (peersync/v2_host.go hello, where
-	// the CreateOnPush grants are left out of the refs the client syncs). A
-	// match hosted on a phone is exactly that namespace. The rest of the
-	// handover works: the two tests below cover the refusals, and the flow
-	// here passes as soon as a phone can push a match it created.
-	t.Skip("needs kdb to advertise granted namespaces it does not hold yet, so a spoke can push one")
-
 	const user = "65f0c0ffeec0ffeec0ffee01"
 	const match = "65f0dead65f0dead65f0dead"
 	verifier := stubVerifier{
