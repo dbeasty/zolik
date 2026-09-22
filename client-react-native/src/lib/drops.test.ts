@@ -1,8 +1,9 @@
-import { isOneTap, type ActionOffer, type Zone } from '@/src/api/matchTypes';
+import { isOneTap, submissionFor, type ActionOffer, type Zone } from '@/src/api/matchTypes';
 
 import {
   dropSpotsFor,
   fits,
+  readyWith,
   positionAt,
   refusalAt,
   someOfferReady,
@@ -623,5 +624,96 @@ describe('sourceSpotsFor', () => {
   it('ignores a source zone this board is not drawing at all', () => {
     const fromNowhere: ActionOffer = { ...drawDeck, source: { zone: 'deck', zoneId: 'shoe' } };
     expect(sourceSpotsFor([fromNowhere], zones, 'me')).toEqual([]);
+  });
+});
+
+/**
+ * The offer that found the bug `readyWith` exists for: a Canasta go-out on
+ * black threes, which is legal only as the move that empties a hand and so
+ * takes every one of them or none. Six of them, because Samba's third deck
+ * holds six — the widest gap between "these cards are fine" and "these cards
+ * are enough" any offer in the four games produces.
+ */
+const allOrNothing: ActionOffer = {
+  id: 'lay_meld:3',
+  verb: 'lay_meld',
+  enabled: true,
+  source: {
+    zone: 'hand',
+    ownerId: 'me',
+    zoneId: 'hand:me',
+    cards: ['3C', '3C', '3C', '3S', '3S', '3S'],
+    submit: ['3C', '3C', '3C', '3S', '3S', '3S'],
+    minCards: 6,
+    maxCards: 6,
+  },
+  target: { zone: 'table', zoneId: 'melds:me' },
+};
+
+describe('readyWith', () => {
+  it('asks the question fits leaves out: are there enough of them yet', () => {
+    expect(fits(allOrNothing, ['3C'])).toEqual({ ok: true });
+    expect(readyWith(allOrNothing, ['3C'])).toEqual({
+      ok: false,
+      labelKey: 'sel.needMore',
+      params: { n: 6 },
+    });
+  });
+
+  it('is ready once the whole submission is picked', () => {
+    expect(readyWith(allOrNothing, ['3C', '3C', '3C', '3S', '3S', '3S'])).toEqual({ ok: true });
+  });
+
+  it('keeps every reason fits already gives', () => {
+    expect(readyWith(allOrNothing, ['2C', '3C', '3C', '3S', '3S', '3S'])).toEqual({
+      ok: false,
+      labelKey: 'sel.notThese',
+    });
+    expect(readyWith(discard, ['KD', '7H'])).toEqual({ ok: false, labelKey: 'sel.tooMany.1' });
+  });
+
+  it('has no opinion on an offer that takes no cards at all', () => {
+    expect(readyWith(draw, ['KD', '7H', '9S'])).toEqual({ ok: true });
+  });
+
+  it('lets a partial pick of a wider offer through as soon as it reaches the floor', () => {
+    expect(readyWith(canastaGroup, ['JS', 'JD', '2C'])).toEqual({ ok: true });
+    expect(readyWith(canastaGroup, ['JS', 'JD'])).toEqual({
+      ok: false,
+      labelKey: 'sel.needMore',
+      params: { n: 3 },
+    });
+  });
+
+  /**
+   * The invariant the bug broke. A control is lit by this side's own reading
+   * of the selection and sent by `submissionFor`, and the two disagreed: a
+   * press that looked live produced `null` and died where nothing on screen
+   * could say so. Whatever this calls ready has to be something that side
+   * will actually send.
+   */
+  it('never calls ready a selection the submission would refuse', () => {
+    const offers = [allOrNothing, canastaGroup, discard, layOff, playCard];
+    const picks = [
+      [],
+      ['3C'],
+      ['3C', '3C'],
+      ['3C', '3C', '3C', '3S', '3S'],
+      ['3C', '3C', '3C', '3S', '3S', '3S'],
+      ['JS'],
+      ['JS', 'JD'],
+      ['JS', 'JD', '2C'],
+      ['JS', 'JD', 'JH', '2C'],
+      ['KD'],
+      ['KD', '7H'],
+      ['6D'],
+      ['6D', 'TD'],
+    ];
+    for (const offer of offers) {
+      for (const cards of picks) {
+        if (cards.length === 0 || !readyWith(offer, cards).ok) continue;
+        expect([offer.id, cards, submissionFor(offer, { cards })]).not.toEqual([offer.id, cards, null]);
+      }
+    }
   });
 });
