@@ -132,3 +132,60 @@ func TestKDBUpdateUserFieldsMovesTheClaimWithTheName(t *testing.T) {
 		t.Fatalf("owner of the old name = %q (%v), want %q", owner, err, other.ID.Hex())
 	}
 }
+
+func TestAccountDataIsMirroredIntoTheAccountsOwnNamespace(t *testing.T) {
+	k := openTestKDB(t)
+	ada := models.User{
+		ID:          bson.NewObjectID(),
+		Username:    "ada",
+		Preferences: models.UserPreferences{Language: "cs", CardStyle: "classic"},
+	}
+	if err := KDBInsertUser(k, ada); err != nil {
+		t.Fatalf("insert: %v", err)
+	}
+
+	// A phone syncs a namespace, not a row, so what this person's devices can
+	// hold is exactly what is written under their own name.
+	doc, err := k.Get(UserNS(ada.ID.Hex()), PrefsKey)
+	if err != nil {
+		t.Fatalf("preferences in the account namespace: %v", err)
+	}
+	var prefs struct {
+		Language string `bson:"language"`
+		Kind     string `bson:"_kind"`
+	}
+	if err := UnmarshalDoc(doc, &prefs); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if prefs.Language != "cs" {
+		t.Fatalf("language = %q, want cs", prefs.Language)
+	}
+	// The kind is what a merge rule is chosen by on the other side of a sync.
+	if prefs.Kind != KindPrefs {
+		t.Fatalf("kind = %q, want %q", prefs.Kind, KindPrefs)
+	}
+
+	if err := KDBUpdateUserFields(k, ada.ID, bson.M{"preferences": models.UserPreferences{Language: "en"}}); err != nil {
+		t.Fatalf("update: %v", err)
+	}
+	doc, err = k.Get(UserNS(ada.ID.Hex()), PrefsKey)
+	if err != nil {
+		t.Fatalf("preferences after update: %v", err)
+	}
+	if err := UnmarshalDoc(doc, &prefs); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if prefs.Language != "en" {
+		t.Fatalf("language = %q, want en after the update", prefs.Language)
+	}
+}
+
+func TestGuestsHaveNoAccountNamespace(t *testing.T) {
+	if ns, ok := UserNSForSubject("guest:abcd"); ok {
+		t.Fatalf("a guest was given the namespace %q", ns)
+	}
+	ns, ok := UserNSForSubject("user:65f0")
+	if !ok || ns != UserNS("65f0") {
+		t.Fatalf("subject namespace = %q, %v", ns, ok)
+	}
+}

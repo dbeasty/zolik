@@ -22,6 +22,15 @@ var _ Repository = (*kdbRepository)(nil)
 
 var errStop = errors.New("stop scan")
 
+// Keys inside an account's own namespace. They are natural keys rather than
+// ids, so two devices creating the same thing - the same circle entry, the
+// same profile - write the same document and merge, instead of each creating
+// one of their own.
+const profileKey = "profile"
+
+func circleKey(member string) string { return "circle/" + member }
+func deviceKey(id string) string     { return "device/" + id }
+
 func getDoc[T any](k *db.KDB, ns, key string) (T, error) {
 	var out T
 	raw, err := k.Get(ns, key)
@@ -111,10 +120,13 @@ func (r *kdbRepository) PutProfile(_ context.Context, p Profile) error {
 	if err != nil {
 		return err
 	}
-	if p.FriendCode == "" {
-		return r.k.Put(db.NSNotifyProfiles, p.Key, doc)
-	}
-	return r.k.UpdateMulti([]string{db.NSNotifyProfiles, db.NSReservations}, func(tx *db.MultiTx) error {
+	// The profile is written into the feature's own namespace, which is what
+	// every cross-account read scans, and into the account's namespace, which
+	// is what that person's devices sync. Both in one transaction: a device
+	// holding a profile the server does not have, or the other way round,
+	// would be a state nothing here knows how to repair.
+	namespaces := append([]string{db.NSNotifyProfiles, db.NSReservations}, db.UserNamespacesOf(p.Key)...)
+	return r.k.UpdateMulti(namespaces, func(tx *db.MultiTx) error {
 		var before Profile
 		switch cur, err := tx.Get(db.NSNotifyProfiles, p.Key); {
 		case err == nil:
@@ -133,7 +145,7 @@ func (r *kdbRepository) PutProfile(_ context.Context, p Profile) error {
 			}
 		}
 		tx.Put(db.NSNotifyProfiles, p.Key, doc)
-		return nil
+		return db.MirrorUserDoc(tx, p.Key, profileKey, db.KindProfile, doc)
 	})
 }
 
@@ -148,11 +160,13 @@ func (r *kdbRepository) DeleteProfile(ctx context.Context, key string) error {
 	if err != nil {
 		return err
 	}
-	return r.k.UpdateMulti([]string{db.NSNotifyProfiles, db.NSReservations}, func(tx *db.MultiTx) error {
+	namespaces := append([]string{db.NSNotifyProfiles, db.NSReservations}, db.UserNamespacesOf(key)...)
+	return r.k.UpdateMulti(namespaces, func(tx *db.MultiTx) error {
 		if err := db.KDBRelease(tx, db.ReservationFriendCode, p.FriendCode, key); err != nil {
 			return err
 		}
 		tx.Delete(db.NSNotifyProfiles, key)
+		db.DropUserDoc(tx, key, profileKey)
 		return nil
 	})
 }
@@ -161,14 +175,29 @@ func (r *kdbRepository) GetEdge(_ context.Context, owner, member string) (Edge, 
 	return getDoc[Edge](r.k, db.NSNotifyCircle, edgeID(owner, member))
 }
 
+// PutEdge stores a circle entry for the owner. It goes into the circle
+// namespace, which is scanned in both directions (whom I tell, who tells me),
+// and into the owner's own namespace, which is what their devices hold.
 func (r *kdbRepository) PutEdge(_ context.Context, e Edge) error {
 	e.ID = edgeID(e.OwnerKey, e.MemberKey)
-	return putDoc(r.k, db.NSNotifyCircle, e.ID, e)
+	doc, err := db.MarshalDoc(e)
+	if err != nil {
+		return err
+	}
+	namespaces := append([]string{db.NSNotifyCircle}, db.UserNamespacesOf(e.OwnerKey)...)
+	return r.k.UpdateMulti(namespaces, func(tx *db.MultiTx) error {
+		tx.Put(db.NSNotifyCircle, e.ID, doc)
+		return db.MirrorUserDoc(tx, e.OwnerKey, circleKey(e.MemberKey), db.KindCircle, doc)
+	})
 }
 
 func (r *kdbRepository) DeleteEdge(_ context.Context, owner, member string) error {
-	_, err := r.k.Delete(db.NSNotifyCircle, edgeID(owner, member))
-	return err
+	namespaces := append([]string{db.NSNotifyCircle}, db.UserNamespacesOf(owner)...)
+	return r.k.UpdateMulti(namespaces, func(tx *db.MultiTx) error {
+		tx.Delete(db.NSNotifyCircle, edgeID(owner, member))
+		db.DropUserDoc(tx, owner, circleKey(member))
+		return nil
+	})
 }
 
 func (r *kdbRepository) EdgesByOwner(_ context.Context, owner string) ([]Edge, error) {
@@ -180,12 +209,34 @@ func (r *kdbRepository) EdgesByMember(_ context.Context, member string) ([]Edge,
 }
 
 func (r *kdbRepository) PutDevice(_ context.Context, d Device) error {
-	return putDoc(r.k, db.NSNotifyDevices, d.ID, d)
+	doc, err := db.MarshalDoc(d)
+	if err != nil {
+		return err
+	}
+	namespaces := append([]string{db.NSNotifyDevices}, db.UserNamespacesOf(d.SubjectKey)...)
+	return r.k.UpdateMulti(namespaces, func(tx *db.MultiTx) error {
+		tx.Put(db.NSNotifyDevices, d.ID, doc)
+		return db.MirrorUserDoc(tx, d.SubjectKey, deviceKey(d.ID), db.KindDevice, doc)
+	})
 }
 
-func (r *kdbRepository) DeleteDevice(_ context.Context, id string) error {
-	_, err := r.k.Delete(db.NSNotifyDevices, id)
-	return err
+// DeleteDevice removes a device. The subject has to be read first: the
+// account's copy is keyed inside that account's namespace, and an id alone
+// does not say whose it is.
+func (r *kdbRepository) DeleteDevice(ctx context.Context, id string) error {
+	d, err := getDoc[Device](r.k, db.NSNotifyDevices, id)
+	if errors.Is(err, ErrNotFound) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	namespaces := append([]string{db.NSNotifyDevices}, db.UserNamespacesOf(d.SubjectKey)...)
+	return r.k.UpdateMulti(namespaces, func(tx *db.MultiTx) error {
+		tx.Delete(db.NSNotifyDevices, id)
+		db.DropUserDoc(tx, d.SubjectKey, deviceKey(id))
+		return nil
+	})
 }
 
 func (r *kdbRepository) DevicesFor(_ context.Context, key string) ([]Device, error) {

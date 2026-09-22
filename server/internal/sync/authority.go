@@ -30,19 +30,9 @@ import (
 // settlement is an ordinary commit, so it replicates to every node like any
 // other write and each node closes its own copy of the entry.
 
-// userDocKind is the discriminator every document in a user's namespace
-// carries, so a rule can be chosen without knowing the document's key: the
-// document id is a hash of the key and says nothing about what is inside.
-const userDocKindField = "_kind"
-
-// The kinds of document a user's namespace holds.
-const (
-	KindPrefs   = "prefs"
-	KindScoring = "scoring"
-	KindCircle  = "circle"
-	KindDevice  = "device"
-	KindNotify  = "notify"
-)
+// Every document in a user's namespace carries the kind it is (db.DocKindField),
+// so a rule can be chosen for it without knowing its key: a document id is a
+// hash of the key and says nothing about what is inside.
 
 // rule merges one document. base is what both sides started from and may be
 // nil when they each created the document independently. A rule is pure and
@@ -52,11 +42,12 @@ const (
 type rule func(base, local, incoming map[string]json.RawMessage) (map[string]json.RawMessage, error)
 
 var rules = map[string]rule{
-	KindPrefs:   mergeByUpdatedAt,
-	KindNotify:  mergeByUpdatedAt,
-	KindDevice:  mergeByUpdatedAt,
-	KindScoring: mergeScoringSession,
-	KindCircle:  mergeCircleEdge,
+	db.KindPrefs:   mergeByUpdatedAt,
+	db.KindNotify:  mergeByUpdatedAt,
+	db.KindProfile: mergeByUpdatedAt,
+	db.KindDevice:  mergeByUpdatedAt,
+	db.KindScoring: mergeScoringSession,
+	db.KindCircle:  mergeCircleEdge,
 }
 
 // authority settles the conflicts on this node's queues that the chains hand
@@ -249,7 +240,7 @@ func fields(body string) (map[string]json.RawMessage, error) {
 }
 
 func kindOf(doc map[string]json.RawMessage) string {
-	raw, ok := doc[userDocKindField]
+	raw, ok := doc[db.DocKindField]
 	if !ok {
 		return ""
 	}

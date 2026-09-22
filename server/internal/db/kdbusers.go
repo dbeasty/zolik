@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 
@@ -121,6 +122,26 @@ func KDBUserClash(tx *Tx, self bson.ObjectID, username, email string) error {
 	})
 }
 
+// PrefsKey is where an account's preferences live inside its own namespace.
+// They are mirrored there rather than only sitting on the account document
+// because that document is the cloud's - accounts are written by the hub alone
+// - while preferences are the person's, changed from whichever device they are
+// holding.
+const PrefsKey = "prefs"
+
+// mirrorPreferences writes a user's preferences into their own namespace,
+// stamped with the time so two devices changing them can be told apart.
+func mirrorPreferences(tx *MultiTx, u models.User) error {
+	doc, err := MarshalDoc(struct {
+		models.UserPreferences `bson:",inline"`
+		UpdatedAt              time.Time `bson:"updatedAt"`
+	}{UserPreferences: u.Preferences, UpdatedAt: time.Now().UTC()})
+	if err != nil {
+		return err
+	}
+	return MirrorUserDoc(tx, subjectUserPrefix+u.ID.Hex(), PrefsKey, KindPrefs, doc)
+}
+
 // KDBInsertUser writes a new account and claims its username and email in one
 // transaction: an account that exists without holding its own name, or a name
 // held for an account that was never written, are both states nothing here
@@ -130,7 +151,8 @@ func KDBInsertUser(k *KDB, u models.User) error {
 	if err != nil {
 		return err
 	}
-	return k.UpdateMulti([]string{NSUsers, NSReservations}, func(tx *MultiTx) error {
+	namespaces := append([]string{NSUsers, NSReservations}, UserNS(u.ID.Hex()))
+	return k.UpdateMulti(namespaces, func(tx *MultiTx) error {
 		if _, err := tx.Get(NSUsers, u.ID.Hex()); err == nil {
 			return fmt.Errorf("kdb: user %s: %w", u.ID.Hex(), ErrDuplicateKey)
 		} else if !IsNotFound(err) {
@@ -140,7 +162,7 @@ func KDBInsertUser(k *KDB, u models.User) error {
 			return err
 		}
 		tx.Put(NSUsers, u.ID.Hex(), doc)
-		return nil
+		return mirrorPreferences(tx, u)
 	})
 }
 
@@ -160,7 +182,8 @@ func KDBUpdateUserFields(k *KDB, id bson.ObjectID, update bson.M) error {
 	if err := json.Unmarshal(patch, &patchFields); err != nil {
 		return err
 	}
-	return k.UpdateMulti([]string{NSUsers, NSReservations}, func(tx *MultiTx) error {
+	namespaces := append([]string{NSUsers, NSReservations}, UserNS(id.Hex()))
+	return k.UpdateMulti(namespaces, func(tx *MultiTx) error {
 		cur, err := tx.Get(NSUsers, id.Hex())
 		if err != nil {
 			if IsNotFound(err) {
@@ -199,6 +222,13 @@ func KDBUpdateUserFields(k *KDB, id bson.ObjectID, update bson.M) error {
 			return err
 		}
 		tx.Put(NSUsers, id.Hex(), next)
-		return nil
+		if _, changed := patchFields["preferences"]; !changed {
+			return nil
+		}
+		var after models.User
+		if err := UnmarshalDoc(next, &after); err != nil {
+			return err
+		}
+		return mirrorPreferences(tx, after)
 	})
 }
