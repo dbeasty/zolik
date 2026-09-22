@@ -313,6 +313,7 @@ export const hu: Record<string, string> = {
   'canasta.round.canastas': 'Canasták: {n}',
   'canasta.round.redThrees': 'Piros hármasok: {n}',
   'canasta.round.goingOut': 'Kiszállás: {n}',
+  'canasta.round.closed': '{player} zárt, {diff} pont különbséggel',
   'canasta.round.inHand': 'Kézben maradt: {n}',
   'holdem.round.hand': 'Leosztás',
   'holdem.round.pot': 'Pot: {n}',

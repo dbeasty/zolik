@@ -315,6 +315,7 @@ export const el: Record<string, string> = {
   'canasta.round.canastas': 'Καναστες {n}',
   'canasta.round.redThrees': 'Κόκκινα τριάρια {n}',
   'canasta.round.goingOut': 'Βγήκε {n}',
+  'canasta.round.closed': 'Ο/Η {player} έκλεισε με διαφορά {diff} πόντων',
   'canasta.round.inHand': 'Έμειναν στο χέρι {n}',
   'holdem.round.hand': 'Μοιρασιά',
   'holdem.round.pot': 'Πότ {n}',

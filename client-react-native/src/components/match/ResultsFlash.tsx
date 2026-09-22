@@ -196,11 +196,13 @@ export function compose({
   if (!last) return { eyebrow: '', headline: '' };
 
   const took = last.winners ?? [];
-  const headline = !took.length
-    ? t('flash.roundDrawn')
-    : took.includes(viewerId)
-      ? t('flash.roundWonYou')
-      : t('flash.roundWon', { winners: names(took) });
+  const headline = last.headline
+    ? factText(last.headline, players)
+    : !took.length
+      ? t('flash.roundDrawn')
+      : took.includes(viewerId)
+        ? t('flash.roundWonYou')
+        : t('flash.roundWon', { winners: names(took) });
 
   // What kind of ending it was, in the module's own words. A round with nothing
   // to say about itself simply has no sub-line.

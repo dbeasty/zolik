@@ -299,6 +299,7 @@ export const sv: Record<string, string> = {
   'canasta.round.canastas': 'Canastor {n}',
   'canasta.round.redThrees': 'Röda treor {n}',
   'canasta.round.goingOut': 'Gå ut {n}',
+  'canasta.round.closed': '{player} stängde med en poängskillnad på {diff}',
   'canasta.round.inHand': 'Kvar på handen {n}',
   'holdem.round.hand': 'Giv',
   'holdem.round.pot': 'Pott {n}',

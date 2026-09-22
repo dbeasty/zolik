@@ -319,6 +319,12 @@ export type RoundResult = {
   scores: RoundScore[];
   /** True of the round rather than of any one seat. */
   facts?: Fact[];
+  /**
+   * The module's own sentence for how the round ended, said in place of "X took
+   * it" — Canasta's "Šárka closed with a +120 point differential", where the
+   * side that closed is not necessarily the side that took the deal.
+   */
+  headline?: Fact;
 };
 
 /**

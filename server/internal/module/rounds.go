@@ -59,6 +59,12 @@ type RoundResult struct {
 	// Facts are true of the round rather than of any one seat: which contract
 	// it required, that the deck ran out, that the go-out was concealed.
 	Facts []Fact `json:"facts,omitempty"`
+	// Headline is the module's own sentence for how the round ended, said in
+	// place of "X took it". For most games who took the round is the story;
+	// in Canasta it is not — the side that closes the deal often scores less
+	// than the side it caught — so the module says who closed and by how much,
+	// and Winners stays the side with the points.
+	Headline *Fact `json:"headline,omitempty"`
 }
 
 // RoundScore is one seat's row in one round.

@@ -307,6 +307,7 @@ export const ro: Record<string, string> = {
   'canasta.round.canastas': 'Canaste: {n}',
   'canasta.round.redThrees': 'Treiuri roșii: {n}',
   'canasta.round.goingOut': 'Ieșire: {n}',
+  'canasta.round.closed': '{player} a închis cu o diferență de {diff} puncte',
   'canasta.round.inHand': 'Rămase în mână: {n}',
   'holdem.round.hand': 'Mână',
   'holdem.round.pot': 'Pot {n}',

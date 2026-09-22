@@ -305,6 +305,7 @@ export const sk: Record<string, string> = {
   'canasta.round.canastas': 'Canasty: {n}',
   'canasta.round.redThrees': 'Červené trojky: {n}',
   'canasta.round.goingOut': 'Vyjdenie: {n}',
+  'canasta.round.closed': '{player} zavrel(a) s rozdielom {diff} bodov',
   'canasta.round.inHand': 'Zostalo v ruke: {n}',
   'holdem.round.hand': 'Rozdanie',
   'holdem.round.pot': 'Bank {n}',

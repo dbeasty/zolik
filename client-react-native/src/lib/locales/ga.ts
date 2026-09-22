@@ -318,6 +318,7 @@ export const ga: Record<string, string> = {
   'canasta.round.canastas': 'Canastaí: {n}',
   'canasta.round.redThrees': 'Trínna dearga: {n}',
   'canasta.round.goingOut': 'Dul amach: {n}',
+  'canasta.round.closed': 'Dhún {player} le difríocht {diff} pointe',
   'canasta.round.inHand': 'Fágtha sa lámh: {n}',
   'holdem.round.hand': 'Lámh',
   'holdem.round.pot': 'Pota {n}',

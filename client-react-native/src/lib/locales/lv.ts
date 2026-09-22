@@ -306,6 +306,7 @@ export const lv: Record<string, string> = {
   'canasta.round.canastas': 'Kanastas: {n}',
   'canasta.round.redThrees': 'Sarkanie trijnieki: {n}',
   'canasta.round.goingOut': 'Iziešana: {n}',
+  'canasta.round.closed': '{player} noslēdza ar {diff} punktu starpību',
   'canasta.round.inHand': 'Palika rokā: {n}',
   'holdem.round.hand': 'Roka',
   'holdem.round.pot': 'Banka {n}',
