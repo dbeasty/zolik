@@ -166,3 +166,23 @@ func (k *KDB) OpenNamespaces() []string {
 	}
 	return out
 }
+
+// HoldsNamespace reports whether this database already holds a namespace,
+// without opening it.
+//
+// The distinction matters because opening one creates it. A match id that
+// comes off a URL is not a promise that the match exists, and a mistyped link
+// should not leave an empty namespace and a live runtime behind for somebody
+// to wonder about later.
+func (k *KDB) HoldsNamespace(name string) bool {
+	k.mu.RLock()
+	_, open := k.nss[name]
+	k.mu.RUnlock()
+	if open {
+		return true
+	}
+	if k.path == "" {
+		return false
+	}
+	return embed.NamespaceExists(k.path, Qualified(name))
+}

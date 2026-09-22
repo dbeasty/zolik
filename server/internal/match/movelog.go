@@ -58,11 +58,25 @@ func (r moveRecord) action() models.MatchAction {
 		At: time.UnixMilli(r.At).UTC(), Rounds: r.Rounds}
 }
 
-// logKey addresses a record in a store keyed by string (kdb): the match, the
-// kind and the seq, so a match's moves are found by counting rather than by
-// searching.
+// keyMatchEnvelope is where a match's envelope lives inside the match's own
+// namespace. One document, one name: the namespace already says which match
+// this is, so the key does not have to.
+const keyMatchEnvelope = "match"
+
+// recordKey addresses a move or a snapshot inside a match's own namespace —
+// "m/7", "s/120" — so a match's moves are found by counting rather than by
+// searching. It is logKey's spelling with the match hex dropped, because the
+// namespace is the match.
+func recordKey(kind string, seq int) string {
+	return fmt.Sprintf("%s/%d", kind, seq)
+}
+
+// logKey addresses a record in the shared move log the store kept before each
+// match had a namespace of its own: the match, the kind and the seq. Only the
+// reads that fall back to that layout, and cmd/migrate-namespaces, still use
+// it; it goes when the last store has been migrated.
 func logKey(id bson.ObjectID, kind string, seq int) string {
-	return fmt.Sprintf("%s/%s/%d", id.Hex(), kind, seq)
+	return fmt.Sprintf("%s/%s", id.Hex(), recordKey(kind, seq))
 }
 
 // latestSnapshot is the newest snapshot a match lists, and whether it has any.
