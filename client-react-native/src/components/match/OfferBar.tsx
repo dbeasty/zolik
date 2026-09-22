@@ -360,15 +360,24 @@ export function OfferGlance({
   const { groups, foldedIds } = useMemo(() => foldOffers(offers), [offers]);
   const [params, setParams] = useOfferParams(shared);
 
-  const seen = new Set<string>();
-  const distinct: ActionOffer[] = [];
+  // One pill per label — but several unfolded offers can share a label (every
+  // `lay_meld:<rank>` reads "Kombinace" alike), and picking whichever came
+  // first in `offers` regardless of the current selection left the pill
+  // ghosted on a hand that in fact settles a same-labelled sibling further
+  // down the list. Prefer whichever candidate the selection actually settles,
+  // so the pill tracks what's in hand rather than an arbitrary array order.
+  const byKey = new Map<string, ActionOffer>();
   for (const o of offers) {
     if (!o.enabled) continue;
     const key = offerGroupKey(o);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    distinct.push(o);
+    const current = byKey.get(key);
+    if (!current) {
+      byKey.set(key, o);
+    } else if (!offerSettles(current, selectedCards) && offerSettles(o, selectedCards)) {
+      byKey.set(key, o);
+    }
   }
+  const distinct = [...byKey.values()];
   if (!distinct.length) return null;
 
   const shown = distinct.slice(0, max);
