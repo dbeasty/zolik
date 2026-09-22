@@ -186,9 +186,7 @@ export function compose({
     // The final numbers, in the module's own unit and the module's own
     // direction — `shownScore` is what keeps a rummy penalty from printing as
     // the negation the server ranks on.
-    const sub = standings?.length
-      ? standings.map((s) => `${playerName(players, s.playerId)} ${shownScore(s)}`).join('  ·  ')
-      : sentenceOf(status, players);
+    const sub = standings?.length ? standingsLine(standings, players) : sentenceOf(status, players);
     return { eyebrow: t('flash.matchOver'), headline, sub };
   }
 
@@ -221,6 +219,29 @@ export function compose({
     after: total === undefined ? undefined : t('flash.nowOn', { total }),
     up: (moved ?? 0) >= 0,
   };
+}
+
+/**
+ * The final scoreboard, one entry per rank rather than one per player.
+ *
+ * A partnership game (Canasta) hands back one `Standing` per player, and
+ * teammates share a rank and a score — the pair's number, not each of theirs.
+ * Printed one player at a time that repeated the same score twice per side and
+ * ran the line too long to read in the two seconds it was on screen. Grouping
+ * by rank prints it once, with both names, which is also a no-op for a game
+ * with no ties: every rank there already holds one player.
+ */
+function standingsLine(standings: Standing[], players: MatchPlayer[]): string {
+  const rows: { rank: number; names: string[]; score: number }[] = [];
+  for (const s of standings) {
+    const row = rows[rows.length - 1];
+    if (row && row.rank === s.rank) {
+      row.names.push(playerName(players, s.playerId));
+    } else {
+      rows.push({ rank: s.rank, names: [playerName(players, s.playerId)], score: shownScore(s) });
+    }
+  }
+  return rows.map((r) => `${r.names.join(' & ')} ${r.score}`).join('  ·  ');
 }
 
 /** The module's own closing line, where there is one. */
