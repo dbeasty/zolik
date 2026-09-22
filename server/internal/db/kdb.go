@@ -108,7 +108,22 @@ type KDB struct {
 	// in-memory KDBs, which have no lock or shim to share and stay one
 	// runtime per namespace.
 	host *embed.Host
-	nss  map[string]*kdbNamespace
+	// path is the data root, empty for an in-memory database. Kept so a
+	// namespace can be asked for by name without creating it: a read must not
+	// bring a namespace into existence.
+	path string
+	// mu guards nss, which grows at runtime: a namespace per user and per
+	// match cannot be declared up front the way the fixed collections are.
+	mu  sync.RWMutex
+	nss map[string]*kdbNamespace
+	// primary is the runtime every namespace opened later shares governance
+	// with, so one memory budget covers the whole process however many
+	// namespaces it ends up holding.
+	primary *kdbserver.KdbServerRuntime
+	// prepare, when set, is what internal/sync hooks a newly opened namespace
+	// into: commit notification, the retention floor peers impose, and the
+	// replicated definitions. Nil until this process is a sync node.
+	prepare func(*kdbserver.KdbServerRuntime)
 	// set commits transactions that span namespaces; see UpdateMulti.
 	set       *kdbserver.NamespaceSet
 	stop      chan struct{}
@@ -400,6 +415,7 @@ func OpenKDBWithStorage(path string, sc KDBStorage) (*KDB, error) {
 			return nil, fmt.Errorf("kdb: opening host at %s: %w", path, err)
 		}
 		k.host = host
+		k.path = path
 	}
 
 	for _, name := range kdbNamespaceNames {
@@ -445,6 +461,15 @@ func OpenKDBWithStorage(path string, sc KDBStorage) (*KDB, error) {
 			return nil, fmt.Errorf("kdb: namespace %s: %w", name, err)
 		}
 	}
+	// A namespace named by the engine rather than by this binary - a peer
+	// pulling one, a cross-namespace commit reaching one - opens through the
+	// same path every other namespace does, so there is still exactly one
+	// runtime and one write gate per namespace.
+	k.set.SetOpener(k.openForEngine)
+	// Users is as good a primary as any: what the choice actually decides is
+	// which runtime carries this node's identity and its auth engine, and
+	// which one the others share a memory guard with.
+	k.primary = k.nss[NSUsers].srv
 	go k.sweep()
 	return k, nil
 }
@@ -466,6 +491,8 @@ func (k *KDB) Close(ctx context.Context) error {
 }
 
 func (k *KDB) closeRuntimes() {
+	k.mu.Lock()
+	defer k.mu.Unlock()
 	for _, n := range k.nss {
 		n.mu.Lock()
 		n.rt.Close()
@@ -479,15 +506,95 @@ func (k *KDB) closeRuntimes() {
 	}
 }
 
+// openForEngine is what the engine calls for a namespace this process has not
+// opened. create is false for a read, which must not bring a namespace into
+// existence: a typo'd name would otherwise leave a directory behind that
+// nothing ever reads again.
+func (k *KDB) openForEngine(id string, create bool) (*kdbserver.KdbServerRuntime, error) {
+	name := Unqualified(id)
+	if !create && k.path != "" && !IsDynamicNamespace(name) {
+		return nil, fmt.Errorf("%w: %s", kdbserver.ErrUnknownNamespace, id)
+	}
+	if !create && k.path != "" && !embed.NamespaceExists(k.path, id) {
+		return nil, fmt.Errorf("%w: %s", kdbserver.ErrUnknownNamespace, id)
+	}
+	n, err := k.Namespace(name)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", kdbserver.ErrUnknownNamespace, id)
+	}
+	return n.srv, nil
+}
+
 func (k *KDB) ns(name string) *kdbNamespace {
-	n, ok := k.nss[name]
-	if !ok {
-		// A namespace this binary never declared is a programming error, not
-		// a runtime condition — same class as asking Mongo for a collection
-		// handle with a typo'd name, except caught loudly.
-		panic("kdb: unknown namespace " + name)
+	n, err := k.Namespace(name)
+	if err != nil {
+		// A namespace this binary never declared, or one whose name cannot be
+		// a namespace at all, is a programming error rather than a runtime
+		// condition — the same class as asking Mongo for a collection handle
+		// with a typo'd name, except caught loudly.
+		panic("kdb: " + err.Error())
 	}
 	return n
+}
+
+// Namespace returns the handle for a namespace, opening it if this process has
+// not held it before.
+//
+// The fixed collections are all opened at startup and are only ever looked up
+// here. The ones that are not fixed — a namespace per user, per match, per
+// node outbox — cannot be: their names are data. Opening on demand is what
+// makes those possible, and it is also how a peer's sync reaches a namespace
+// this process has never written to itself.
+//
+// An in-memory database can only open what it declared: without a host there
+// is no data root to open a namespace under.
+func (k *KDB) Namespace(name string) (*kdbNamespace, error) {
+	k.mu.RLock()
+	n, ok := k.nss[name]
+	k.mu.RUnlock()
+	if ok {
+		return n, nil
+	}
+	if !IsDynamicNamespace(name) {
+		return nil, fmt.Errorf("unknown namespace %q", name)
+	}
+	if k.host == nil {
+		return nil, fmt.Errorf("namespace %q needs a file-backed database", name)
+	}
+
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	// Another goroutine may have opened it while this one waited.
+	if n, ok := k.nss[name]; ok {
+		return n, nil
+	}
+	nsID := kdbCatalog + "/" + name
+	if err := embed.ValidateNamespaceID(nsID); err != nil {
+		return nil, err
+	}
+	rt, err := k.host.Namespace(kdbCatalog, nsID, schema.None())
+	if err != nil {
+		return nil, fmt.Errorf("opening namespace %s: %w", nsID, err)
+	}
+	srv := kdbserver.NewKdbServerRuntime(rt)
+	if k.primary != nil {
+		// One budget for the process, not one per namespace: a server holding
+		// a namespace per match would otherwise grant itself the whole budget
+		// again with every table that opens.
+		srv.ShareGovernanceWith(k.primary)
+		srv.AuthEngine = k.primary.AuthEngine
+		srv.WriteTimeout = k.primary.WriteTimeout
+	}
+	if k.prepare != nil {
+		k.prepare(srv)
+	}
+	if err := k.set.Add(srv); err != nil {
+		rt.Close()
+		return nil, fmt.Errorf("namespace %s: %w", nsID, err)
+	}
+	n = &kdbNamespace{id: nsID, rt: rt, srv: srv}
+	k.nss[name] = n
+	return n, nil
 }
 
 // uuidForKey maps a natural key — an ObjectID hex, a session token, a
@@ -1085,8 +1192,15 @@ func (k *KDB) sweep() {
 		case <-k.stop:
 			return
 		case <-ticker.C:
+			// Only node-local namespaces are swept. Every one of these holds
+			// something this node issued and this node alone consumes — a
+			// refresh token, a login code, an OAuth flow — so none of them
+			// replicates, and no peer can be reading what is being deleted.
+			// A swept replicated namespace would have every node deleting
+			// every other node's expired rows, which is a great deal of
+			// commit traffic to say the same thing many times.
 			for _, name := range sweptNamespaces {
-				k.sweepNamespace(k.nss[name])
+				k.sweepNamespace(k.ns(name))
 			}
 		}
 	}
