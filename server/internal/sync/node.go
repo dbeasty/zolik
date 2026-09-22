@@ -56,6 +56,11 @@ type Config struct {
 	// before it is pushed. A hand of cards is a dozen commits in a few
 	// seconds, and they should cost one sync.
 	Debounce time.Duration
+	// Advertise is where other nodes reach this one for the matches it hosts:
+	// the address recorded with a home assignment. A phone has no address
+	// anybody can dial and leaves it empty, which is fine - it asks the hub
+	// for a match rather than the other way round.
+	Advertise string
 	// IdleClose, when set, closes namespaces nothing has used for a while. The
 	// hub holds a namespace per user and per match and cannot keep them all
 	// open; a phone holds a handful and has no reason to.
@@ -79,6 +84,9 @@ type Node struct {
 	node *syncnode.Node
 	// authority settles the conflicts that application rules have to answer.
 	authority *authority
+	// matches is what the handover policy asks about a match before it lets it
+	// change hands.
+	matches MatchHome
 }
 
 // Open makes this process a sync node over an already-open database.
@@ -107,6 +115,13 @@ func Open(k *db.KDB, cfg Config, verifier Verifier, seating MatchSeating) (*Node
 	// primary's engine.
 	engine := &authEngine{verifier: verifier, seating: seating, nodeID: primary.NodeID.String()}
 	primary.AuthEngine = engine
+	// A peer may push into a namespace this node does not hold yet, and has
+	// to be able to: a match played on a phone, or a phone's outbox, exists
+	// nowhere else until it is pushed. What stops that being an open door is
+	// the authorization above, which is asked about the namespace by name
+	// before anything is created - a phone may create its own match and its
+	// own outbox, and nothing else.
+	primary.PeerCreateOnPush = true
 
 	var peers []replication.PeerConfig
 	if cfg.Role == RoleSpoke {
@@ -138,12 +153,17 @@ func Open(k *db.KDB, cfg Config, verifier Verifier, seating MatchSeating) (*Node
 		})
 	}
 
+	n := &Node{cfg: cfg, kdb: k, node: nil}
 	sn, err := syncnode.Open(host, set, primary, syncnode.Config{
 		Peers:                    peers,
 		DataDir:                  cfg.DataDir,
 		Debounce:                 cfg.Debounce,
 		AuthorizePushedDocuments: false,
 		Idle:                     cfg.IdleClose,
+		// A peer asking to play a match this node is hosting reaches zolik's
+		// own rules, not a configuration flag: whether a match may change
+		// hands is a question about the table.
+		HandoverPolicy: n.handoverPolicy,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("sync: %w", err)
@@ -153,7 +173,7 @@ func Open(k *db.KDB, cfg Config, verifier Verifier, seating MatchSeating) (*Node
 	// created by a peer's push behaves exactly like one created locally.
 	k.PrepareNamespaces(sn.Prepare)
 
-	n := &Node{cfg: cfg, kdb: k, node: sn}
+	n.node = sn
 	if cfg.Role == RoleHub {
 		n.authority = newAuthority(n, 10*time.Second)
 	}
