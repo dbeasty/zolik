@@ -141,10 +141,18 @@ func Open(k *db.KDB, cfg Config, verifier Verifier, seating MatchSeating) (*Node
 			// case for a spoke: it is how a match played on another device,
 			// or an account's data after a fresh install, arrives at all.
 			CreateLocal: true,
-			// History below the snapshot is of no use on a phone, and is most
-			// of the bytes. It can be deepened later if anything ever needs
-			// it.
-			PreferSnapshot: true,
+			// Bootstrapping from a snapshot would be the cheaper way to fill
+			// a phone that has just signed in: history below the snapshot is
+			// of no use to it and is most of the bytes. It is off because the
+			// engine cannot do it for a namespace whose name is a prefix of
+			// another's, which u/<account> and u/<account>/ro are: the
+			// checkpoint directory for the nested one would have to live
+			// inside a path the shorter name already holds as a file. The
+			// failure is also permanent for that namespace, since the commit
+			// has landed by the time the snapshot fails. See
+			// TestNestedNamespacesBootstrapFromASnapshot; turn this back on
+			// when the engine handles it.
+			PreferSnapshot: false,
 			// Definitions arrive as a view of what this node may sync. The
 			// metadata namespace holds every namespace's chain and home,
 			// which on the hub means every user's: a phone has no business

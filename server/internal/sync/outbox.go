@@ -2,10 +2,13 @@ package sync
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -145,13 +148,51 @@ func bundlesIn(k *db.KDB, namespace string) ([]Bundle, error) {
 	return out, nil
 }
 
-// signingPayload is the bytes a node signs and the cloud verifies. The
-// signature itself is left out of it, and the fields are written in a fixed
-// order, so both sides sign the same bytes.
+// signingPayload is the bytes a node signs and the cloud verifies.
+//
+// It is built field by field rather than by encoding the bundle, because the
+// bundle does not travel as the bytes it was signed as: it is stored and
+// replicated as a document, which means a round trip through another encoding
+// before the cloud sees it again. Anything that does not survive that trip
+// byte for byte - a timestamp's precision, most obviously - would make every
+// signature fail verification for a reason that looks nothing like the cause.
+//
+// So the time goes in as milliseconds, the seats in sorted order, and the
+// envelope and the moves as their own digests, which keeps the payload small
+// as well as stable.
 func signingPayload(b Bundle) ([]byte, error) {
-	unsigned := b
-	unsigned.Signature = ""
-	return json.Marshal(unsigned)
+	h := sha256.New()
+	write := func(parts ...string) {
+		for _, p := range parts {
+			// Length-prefixed, so no combination of field values can be
+			// rearranged into the same bytes as another.
+			fmt.Fprintf(h, "%d:%s\n", len(p), p)
+		}
+	}
+	write("kdb:zolik:bundle/1", b.Match, b.Node, b.Module, b.Variation)
+	write(strconv.FormatInt(b.Seed, 10), strconv.FormatInt(b.FinishedAt.UnixMilli(), 10))
+	write(string(digest(b.Envelope)))
+	write(strconv.Itoa(len(b.Moves)))
+	for _, mv := range b.Moves {
+		write(string(digest(mv)))
+	}
+	seats := make([]string, 0, len(b.Seats))
+	for seat := range b.Seats {
+		seats = append(seats, seat)
+	}
+	sort.Strings(seats)
+	for _, seat := range seats {
+		write(seat, b.Seats[seat])
+	}
+	return h.Sum(nil), nil
+}
+
+// digest is one field's content hash, hex.
+func digest(raw []byte) []byte {
+	sum := sha256.Sum256(raw)
+	out := make([]byte, hex.EncodedLen(len(sum)))
+	hex.Encode(out, sum[:])
+	return out
 }
 
 // Importer is the cloud side: it watches the outboxes that have been pushed to
@@ -199,9 +240,17 @@ func NewImporter(k *db.KDB, verify BundleVerifier, record MatchRecorder, interva
 	}
 }
 
-func (i *Importer) Start() { go i.loop() }
+func (i *Importer) Start() {
+	if i == nil {
+		return
+	}
+	go i.loop()
+}
 
 func (i *Importer) Close() {
+	if i == nil {
+		return
+	}
 	select {
 	case <-i.stop:
 	default:
@@ -212,6 +261,9 @@ func (i *Importer) Close() {
 
 // Kick asks for a pass now, for when a push has just arrived.
 func (i *Importer) Kick() {
+	if i == nil {
+		return
+	}
 	select {
 	case i.kick <- struct{}{}:
 	default:
@@ -235,8 +287,13 @@ func (i *Importer) loop() {
 	}
 }
 
-// Pass imports everything waiting in every outbox this node holds.
+// Pass imports everything waiting in every outbox this node holds. A node that
+// takes no handed-up matches - anything that is not the hub - has nothing to
+// do here rather than nothing to be called on.
 func (i *Importer) Pass(ctx context.Context) error {
+	if i == nil {
+		return nil
+	}
 	for _, name := range i.kdb.OpenNamespaces() {
 		node, ok := db.NodeOfOutbox(name)
 		if !ok {
@@ -281,6 +338,9 @@ func (i *Importer) importOne(ctx context.Context, node string, b Bundle) error {
 // Refused lists the bundles this importer would not take and why, so an
 // operator has somewhere to look when a player says their match never arrived.
 func (i *Importer) Refused() map[string]string {
+	if i == nil {
+		return nil
+	}
 	i.mu.Lock()
 	defer i.mu.Unlock()
 	out := make(map[string]string, len(i.failed))

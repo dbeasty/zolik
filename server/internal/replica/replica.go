@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"go.mongodb.org/mongo-driver/v2/bson"
 
 	"zolik/server/internal/db"
 )
@@ -114,6 +115,26 @@ func completedAt(row json.RawMessage) string {
 	return string(fields.CompletedAt)
 }
 
+// asClientJSON turns a stored document into the JSON the rest of the API
+// speaks.
+//
+// Documents are stored as the extended JSON the bson encoding writes, where an
+// id is {"$oid":"..."} and a time is {"$date":...}. That is right for storage
+// and wrong for a client: every other endpoint this app talks to answers with
+// plain JSON, and a screen that had to understand both depending on whether
+// the device was online would be a screen with two bugs in it.
+func asClientJSON(doc []byte) (json.RawMessage, error) {
+	var fields bson.M
+	if err := db.UnmarshalDoc(doc, &fields); err != nil {
+		return nil, err
+	}
+	out, err := json.Marshal(fields)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (r *Reader) one(namespace, key string) (json.RawMessage, error) {
 	if r == nil || r.user == "" {
 		return nil, ErrNoReplica
@@ -125,7 +146,7 @@ func (r *Reader) one(namespace, key string) (json.RawMessage, error) {
 	if err != nil {
 		return nil, err
 	}
-	return json.RawMessage(doc), nil
+	return asClientJSON(doc)
 }
 
 // many returns every document of one kind in a namespace. A scan of one
@@ -150,7 +171,11 @@ func (r *Reader) many(namespace, kind string) ([]json.RawMessage, error) {
 		if probe.Kind != kind {
 			return nil
 		}
-		out = append(out, json.RawMessage(append([]byte(nil), doc...)))
+		row, err := asClientJSON(doc)
+		if err != nil {
+			return err
+		}
+		out = append(out, row)
 		return nil
 	})
 	if err != nil {

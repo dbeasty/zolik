@@ -85,10 +85,17 @@ func (syncVerifier) VerifySyncToken(_ context.Context, token string) (zsync.Iden
 
 // matchSeating answers the question every match namespace's authorization
 // comes down to: is this person sitting at this table.
-type matchSeating struct{ mgr *match.Manager }
+//
+// It reaches the runtime through the app rather than holding it, because of an
+// order this cannot get out of otherwise: the sync node has to exist before
+// the match runtime is built, since the runtime's recorder depends on what
+// kind of node this is, and the node needs somebody to ask about matches. The
+// question is only ever asked by a peer that has already connected, which is
+// long after both exist.
+type matchSeating struct{ app *App }
 
 func (s matchSeating) Seated(ctx context.Context, matchHex, userHex string) (bool, error) {
-	return s.mgr.Seated(ctx, matchHex, userHex)
+	return s.app.matchManager().Seated(ctx, matchHex, userHex)
 }
 
 // startSync begins replicating, once everything the node needs to answer
@@ -102,5 +109,53 @@ func (a *App) startSync() {
 		log.Printf("sync: this node is not replicating: %v", err)
 		return
 	}
+	if a.importer != nil {
+		a.importer.Start()
+	}
 	log.Printf("sync: node %s is a %s of the distributed database", a.sync.NodeID(), a.cfg.Sync.Role)
+}
+
+// outbox is where a node that is not the cloud puts a finished match. Nil on
+// the hub, which has nobody to hand anything to.
+//
+// It is named after this install's node key rather than after the database's
+// own node id, because the node key is what the cloud enrolled and what the
+// bundles are signed with: the two ids would otherwise have to be kept in step
+// for no gain, and a mismatch means a phone pushing an empty namespace and
+// wondering where its matches went.
+func (a *App) outbox() *zsync.Outbox {
+	if a.sync == nil || a.cfg.Sync.Role != syncRoleSpoke {
+		return nil
+	}
+	node := auth.NodeID()
+	if node == "" {
+		return nil
+	}
+	return zsync.NewOutbox(a.kdb, node, auth.NodeSigner{})
+}
+
+// configureOfflineFlow decides what happens to a match when it finishes, which
+// is the one thing that differs most between the kinds of node.
+//
+// On a spoke the match is handed up rather than recorded: a phone has no
+// leaderboard and no lifetime figures of its own, and keeping its own would be
+// keeping a second set of numbers that quietly disagreed with the ones the
+// player sees everywhere else.
+//
+// On the hub, matches handed up by other nodes are replayed, checked and
+// recorded exactly as a match played here would be.
+func (a *App) configureOfflineFlow(matchMgr *match.Manager, statsRecorder match.Recorder) match.Recorder {
+	if a.sync == nil {
+		return statsRecorder
+	}
+	if out := a.outbox(); out != nil {
+		return match.NewHandUp(a.matchRepo, out)
+	}
+	if a.cfg.Sync.Role != syncRoleHub {
+		return statsRecorder
+	}
+	claims := auth.NewKDBGuestClaims(a.kdb)
+	importer := match.NewImporter(a.matchRepo, matchMgr.Registry(), statsRecorder, claims)
+	a.importer = zsync.NewImporter(a.kdb, auth.BundleVerifier{Nodes: a.nodes}, importer, time.Minute)
+	return statsRecorder
 }

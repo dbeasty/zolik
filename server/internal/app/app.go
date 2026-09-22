@@ -75,6 +75,12 @@ type App struct {
 	// kdb is the embedded engine, held only so the sync node can be opened
 	// over the same database the repositories use. Nil under Mongo.
 	kdb *db.KDB
+	// importer takes the finished matches other nodes have handed up, checks
+	// them by replaying them, and records them. Nil on anything but the hub.
+	importer *zsync.Importer
+	// nodes is the record of enrolled replicas: which installs exist and what
+	// each one signs with.
+	nodes auth.NodeRepository
 	// replicaUser is the account signed in on this device, when this process
 	// is the copy embedded in the phone app. Empty everywhere else: a server
 	// serves whoever asks, and has no one person whose data it holds.
@@ -255,11 +261,24 @@ func New(cfg Config) (*App, error) {
 		ExpoEnabled:    cfg.Push.ExpoEnabled,
 	})
 
+	// Where enrolled replicas are recorded. On the embedded engine that is the
+	// database, so an enrolment survives a restart; anywhere else it is this
+	// process's memory, which means a Mongo deployment cannot enrol nodes and
+	// says so by forgetting them rather than by pretending.
+	var nodes auth.NodeRepository = auth.NewMemoryNodeRepository()
+	var guestClaims auth.GuestClaimStore
+	if r.kdb != nil {
+		nodes = auth.NewKDBNodeRepository(r.kdb)
+		guestClaims = auth.NewKDBGuestClaims(r.kdb)
+	}
+
 	authHandlers := auth.NewHandlers(auth.Deps{
-		Store:     r.store,
-		Sessions:  r.sessions,
-		Providers: identity.FromConfig(cfg.Identity),
-		Mailer:    mailer,
+		Store:       r.store,
+		Sessions:    r.sessions,
+		Nodes:       nodes,
+		GuestClaims: guestClaims,
+		Providers:   identity.FromConfig(cfg.Identity),
+		Mailer:      mailer,
 		// The claimer is injected for the same reason the match recorder is:
 		// stats imports auth for its middleware, so auth cannot import stats.
 		// A guest's circle travels with their history, so the claim does both.
@@ -282,6 +301,7 @@ func New(cfg Config) (*App, error) {
 		cfg:         cfg,
 		closeDB:     r.close,
 		kdb:         r.kdb,
+		nodes:       nodes,
 		hub:         hub,
 		auth:        authHandlers,
 		waitingRoom: waitingRoom,
@@ -303,7 +323,7 @@ func New(cfg Config) (*App, error) {
 	// opens afterwards is hooked into the node from the first one: a
 	// namespace that came up before the node did would never tell it about
 	// its commits.
-	node, err := openSyncNode(cfg, app.kdb, matchSeating{mgr: app.matchManager()})
+	node, err := openSyncNode(cfg, app.kdb, matchSeating{app: app})
 	if err != nil {
 		_ = app.Close(ctx)
 		return nil, err
@@ -487,6 +507,10 @@ func (a *App) Hub() *ws.Hub { return a.hub }
 func (a *App) Auth() *auth.Handlers { return a.auth }
 
 func (a *App) Close(ctx context.Context) error {
+	if a.importer != nil {
+		a.importer.Close()
+		a.importer = nil
+	}
 	if a.sync != nil {
 		_ = a.sync.Close()
 		a.sync = nil
@@ -545,7 +569,9 @@ func (a *App) configureManager(matchMgr *match.Manager) *match.Manager {
 	// inside the manager, so the runtime never has to import stats.
 	statsRecorder := stats.NewRecorder(a.statsRepo)
 	statsRecorder.SetMetrics(a.metrics)
-	matchMgr.SetRecorder(statsRecorder)
+	// Which is not necessarily what records this node's matches: see
+	// configureOfflineFlow.
+	matchMgr.SetRecorder(a.configureOfflineFlow(matchMgr, statsRecorder))
 	// The runtime counts what it does — lobbies opened, games started,
 	// tables abandoned — for the operator's console.
 	matchMgr.SetMetrics(a.metrics)

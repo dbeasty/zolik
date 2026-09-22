@@ -6,6 +6,7 @@ import (
 	"log"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/limidus/kdb/go/kdb/codec"
@@ -53,12 +54,17 @@ var rules = map[string]rule{
 // authority settles the conflicts on this node's queues that the chains hand
 // to it.
 type authority struct {
-	node      *Node
-	interval  time.Duration
-	stop      chan struct{}
-	done      chan struct{}
-	kick      chan struct{}
-	namespace func() []string
+	node     *Node
+	interval time.Duration
+	// started is whether the loop is running. A node that is built and closed
+	// without ever starting - a process that failed further along its own
+	// startup, or a test - must not be waiting for a goroutine nobody ever
+	// launched.
+	started bool
+	mu      sync.Mutex
+	stop    chan struct{}
+	done    chan struct{}
+	kick    chan struct{}
 }
 
 func newAuthority(n *Node, interval time.Duration) *authority {
@@ -75,16 +81,27 @@ func newAuthority(n *Node, interval time.Duration) *authority {
 }
 
 func (a *authority) start() {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.started {
+		return
+	}
+	a.started = true
 	go a.loop()
 }
 
 func (a *authority) close() {
+	a.mu.Lock()
+	started := a.started
+	a.mu.Unlock()
 	select {
 	case <-a.stop:
 	default:
 		close(a.stop)
 	}
-	<-a.done
+	if started {
+		<-a.done
+	}
 }
 
 // Kick asks for a pass now. A conflict recorded while a person is looking at

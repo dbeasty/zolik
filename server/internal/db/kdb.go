@@ -64,6 +64,13 @@ const (
 	// replicates.
 	NSReservations = "reservations"
 
+	// NSNodes holds one document per enrolled replica: which install it is,
+	// whose it is, and the key it signs with. NSGuestClaims holds one per
+	// guest id a person has claimed, so a match played before they signed in
+	// is credited to them however long afterwards it arrives.
+	NSNodes       = "nodes"
+	NSGuestClaims = "guest_claims"
+
 	NSNotifyProfiles = "notify_profiles"
 	NSNotifyCircle   = "notify_circle"
 	NSNotifyDevices  = "notify_devices"
@@ -72,7 +79,7 @@ const (
 var kdbNamespaceNames = []string{
 	NSMatches, NSUsers, NSSessions, NSScoring, NSMatchResults,
 	NSPlayerStats, NSIdentities, NSLoginCodes, NSOAuthFlows,
-	NSDailyMetrics, NSBoots, NSMatchLog, NSReservations,
+	NSDailyMetrics, NSBoots, NSMatchLog, NSReservations, NSNodes, NSGuestClaims,
 	NSNotifyProfiles, NSNotifyCircle, NSNotifyDevices,
 }
 

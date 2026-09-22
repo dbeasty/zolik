@@ -57,6 +57,10 @@ type Deps struct {
 	// one, /nodes/enroll answers that this deployment does not enrol nodes
 	// rather than enrolling them into nothing.
 	Nodes NodeRepository
+	// GuestClaims records which account a guest id turned out to belong to,
+	// for the seats a person took at tables with no internet. Optional: a
+	// deployment without one does not take offline matches.
+	GuestClaims GuestClaimStore
 	// Credentials reports the version an account's credentials are at, which
 	// is the `sv` an offline pass carries. Optional; without one every
 	// account is at version one, which is true until something revokes.
@@ -81,6 +85,7 @@ type Handlers struct {
 	email       *EmailAuth
 	providers   *identity.Registry
 	nodes       NodeRepository
+	guestClaims GuestClaimStore
 	credentials CredentialVersions
 	offlineKeys PublicKeys
 
@@ -149,6 +154,7 @@ func NewHandlers(d Deps) *Handlers {
 		email:             NewEmailAuth(d.Store, mailer, d.AppName),
 		providers:         providers,
 		nodes:             nodes,
+		guestClaims:       d.GuestClaims,
 		credentials:       credentials,
 		offlineKeys:       d.OfflineKeys,
 		publicBaseURL:     d.PublicBaseURL,
@@ -195,6 +201,9 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	r.With(AuthMiddleware).Get("/auth/identities", h.listIdentities)
 	r.With(AuthMiddleware).Delete("/auth/identities/{provider}", h.unlinkIdentity)
 	r.With(AuthMiddleware).Post("/auth/claim-guest", h.claimGuest)
+	// The offline equivalent: seats taken at tables the cloud never saw,
+	// proved by the receipts the hosting nodes signed.
+	r.With(AuthMiddleware).Post("/auth/claim-offline", h.claimOffline)
 	r.With(AuthMiddleware).Get("/auth/guest-summary", h.guestSummary)
 
 	// Legacy username/password. Kept because the SSH/TUI client can neither
