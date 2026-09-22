@@ -285,6 +285,24 @@ func busyIfShed(err error) error {
 	return err
 }
 
+// isPrecondition reports whether err is a write refused because the document
+// had changed since the caller read it — a peer's merge landing mid-critical
+// section, since local writers are serialized by the namespace lock.
+func isPrecondition(err error) bool {
+	var pre *kdbserver.PreconditionFailedError
+	return errors.As(err, &pre)
+}
+
+// duplicateIfPrecondition turns "the document was supposed to be absent" into
+// the duplicate-key error every unique constraint in this package speaks, so
+// a key a peer created reads the same to callers as one this process created.
+func duplicateIfPrecondition(nsID, key string, err error) error {
+	if isPrecondition(err) {
+		return fmt.Errorf("kdb: %s %q: %w", nsID, key, ErrDuplicateKey)
+	}
+	return err
+}
+
 // KDBStorageFromEnv reads KDB_DURABILITY, KDB_SYNC_MODE and
 // KDB_ASYNC_SYNC_INTERVAL_MS. Unset means the defaults; an unrecognised
 // value is an error rather than a silent fallback, because it would silently
@@ -567,11 +585,16 @@ func (k *KDB) Put(ns, key string, doc []byte) error {
 	n := k.ns(ns)
 	n.mu.Lock()
 	defer n.mu.Unlock()
-	return n.put(key, doc)
+	return n.put(key, doc, nil)
 }
 
 // Insert creates the document at key, failing with ErrDuplicateKey if one is
 // already there — the engine-level half of every unique constraint.
+//
+// The check and the write are one operation as far as any other writer is
+// concerned: n.mu keeps this process's writers out, and Expect{Absent} keeps
+// out a peer's merge that created the same key between the two, which no
+// local lock can.
 func (k *KDB) Insert(ns, key string, doc []byte) error {
 	n := k.ns(ns)
 	n.mu.Lock()
@@ -579,7 +602,10 @@ func (k *KDB) Insert(ns, key string, doc []byte) error {
 	if _, err := n.get(key); err == nil {
 		return fmt.Errorf("kdb: %s %q: %w", ns, key, ErrDuplicateKey)
 	}
-	return n.put(key, doc)
+	if err := n.put(key, doc, &kdbserver.Expect{Absent: true}); err != nil {
+		return duplicateIfPrecondition(n.id, key, err)
+	}
+	return nil
 }
 
 // Delete removes the document at key, reporting whether it existed.
@@ -597,21 +623,55 @@ func (k *KDB) Delete(ns, key string) (bool, error) {
 // other writer in this (single) process.
 type Tx struct {
 	n *kdbNamespace
+	// read remembers the content hash of every key this critical section has
+	// read, so the write that follows can say what it decided on. Empty means
+	// "was not there when I looked".
+	read map[string]string
 }
 
+// kdbUpdateAttempts is how many times Update re-runs fn when a peer's merge
+// landed between its read and its write. Contention like that is between this
+// node and a replicating peer, not between local writers (n.mu covers those),
+// so it is rare and does not compound: each retry reads the merged value.
+const kdbUpdateAttempts = 5
+
 // Update runs fn holding the namespace's write lock.
+//
+// When a write inside fn is refused because the document changed under it —
+// which, with the lock held, only a peer's merge can do — fn runs again on
+// what is there now. A read-check-write is therefore atomic against peers as
+// well as against this process, which is what a replicated namespace needs
+// and what the lock alone cannot give.
 func (k *KDB) Update(ns string, fn func(tx *Tx) error) error {
 	n := k.ns(ns)
 	n.mu.Lock()
 	defer n.mu.Unlock()
-	return fn(&Tx{n: n})
+	var err error
+	for attempt := 0; attempt < kdbUpdateAttempts; attempt++ {
+		err = fn(&Tx{n: n, read: map[string]string{}})
+		if !isPrecondition(err) {
+			return err
+		}
+	}
+	return err
 }
 
-// Get returns the document at key, or ErrNotFound.
-func (t *Tx) Get(key string) ([]byte, error) { return t.n.get(key) }
+// Get returns the document at key, or ErrNotFound. What it read is what a
+// later Put or Insert on the same key requires to still be true.
+func (t *Tx) Get(key string) ([]byte, error) {
+	doc, hash, found, err := t.n.readForUpdate(key)
+	if err != nil {
+		return nil, err
+	}
+	t.read[key] = hash
+	if !found {
+		return nil, fmt.Errorf("kdb: %s %q: %w", t.n.id, key, ErrNotFound)
+	}
+	return doc, nil
+}
 
 // Put creates or wholly replaces the document at key.
-func (t *Tx) Put(key string, doc []byte) error { return t.n.put(key, doc) }
+func (t *Tx) Put(key string, doc []byte) error { return t.n.put(key, doc, t.expect(key)) }
 
 // Insert creates the document at key, failing with ErrDuplicateKey if
 // present.
@@ -619,7 +679,24 @@ func (t *Tx) Insert(key string, doc []byte) error {
 	if _, err := t.n.get(key); err == nil {
 		return fmt.Errorf("kdb: %s %q: %w", t.n.id, key, ErrDuplicateKey)
 	}
-	return t.n.put(key, doc)
+	if err := t.n.put(key, doc, &kdbserver.Expect{Absent: true}); err != nil {
+		return duplicateIfPrecondition(t.n.id, key, err)
+	}
+	return nil
+}
+
+// expect is the precondition for writing key: what this critical section read,
+// or nothing when it is writing a key it never looked at (a blind overwrite,
+// which is what it asked for).
+func (t *Tx) expect(key string) *kdbserver.Expect {
+	hash, ok := t.read[key]
+	if !ok {
+		return nil
+	}
+	if hash == "" {
+		return &kdbserver.Expect{Absent: true}
+	}
+	return &kdbserver.Expect{ContentHash: hash}
 }
 
 // Delete removes the document at key, reporting whether it existed.
@@ -803,38 +880,44 @@ func (n *kdbNamespace) get(key string) ([]byte, error) {
 }
 
 // put stores doc at key, create-or-full-replace. It goes through
-// embed.PutJSONDocument rather than the runtime's Upsert: Upsert routes the
-// body through a WriteOp, and a WriteOp onto an existing document is a
+// KdbServerRuntime.PutJSON rather than the runtime's Upsert: Upsert routes
+// the body through a WriteOp, and a WriteOp onto an existing document is a
 // shallow *merge* — a field the model dropped (a cleared suspension, an
-// emptied option) would silently survive. PutJSONDocument swaps the whole
-// body, which is what ReplaceOne semantics require. Callers hold n.mu, which
-// is what stands in for the write serialization Upsert would have provided.
-func (n *kdbNamespace) put(key string, doc []byte) error {
-	withID, err := injectDocID(doc, uuidForKey(key))
+// emptied option) would silently survive. PutJSON swaps the whole body,
+// which is what ReplaceOne semantics require.
+//
+// PutJSON — rather than embed.PutJSONDocument, which this used to call —
+// takes the engine's write gate, so a local write is serialized against peer
+// ingest as well as against every other local writer. That matters the
+// moment a namespace replicates: a merge landing from a peer and a put from
+// here would otherwise race for the branch head, and the loser used to come
+// back as "branch main moved". It also goes through the engine's own memory
+// admission, so the manual Acquire this function used to do is gone with it.
+//
+// expect, when non-nil, is the value the caller read and decided on: the
+// write fails with *kdbserver.PreconditionFailedError if the document has
+// changed since. Callers holding n.mu need it only against peers — see
+// Update, which retries on it.
+func (n *kdbNamespace) put(key string, doc []byte, expect *kdbserver.Expect) error {
+	id := uuidForKey(key)
+	withID, err := injectDocID(doc, id)
 	if err != nil {
 		return err
 	}
-	// PutJSONDocument appends to the DAG through the embedded runtime, so it
-	// bypasses the memory admission srv.Commit goes through (nothing in
-	// package embed consults Admission at all) — and it is the path behind
-	// every Put, Insert and Tx.Put, which is essentially all of this server's
-	// write volume. Reserving here is therefore what actually holds the line:
-	// without it the budget set at open time would govern only deletes and
-	// reads, while the writes that grow the commit DAG forever stayed
-	// unmetered. Mirrors what KdbServerRuntime.commitWith does around its own
-	// commits, bounded wait included. Acquire on a nil Admission (no budget
-	// configured) returns an empty grant and no error, so this is a no-op
-	// wherever governance is off.
-	ctx, cancel := context.WithTimeout(context.Background(), n.srv.WriteTimeout)
-	defer cancel()
-	grant, err := n.srv.Admission().Acquire(ctx, kdbserver.ClassWrite, len(withID))
-	if err != nil {
+	if _, err := n.srv.PutJSON(n.id, id, string(withID), expect, kdbauth.Principal{}); err != nil {
 		return busyIfShed(err)
 	}
-	defer grant.Release()
+	return nil
+}
 
-	_, err = embed.PutJSONDocument(n.rt, n.id, string(withID))
-	return err
+// readForUpdate returns the document at key together with the content hash to
+// hand back as a precondition, and whether it is there at all.
+func (n *kdbNamespace) readForUpdate(key string) (doc []byte, hash string, found bool, err error) {
+	body, h, found, err := n.srv.ReadForUpdate(n.id, uuidForKey(key))
+	if err != nil || !found {
+		return nil, "", false, err
+	}
+	return []byte(body), h, true, nil
 }
 
 func (n *kdbNamespace) deleteByUUID(id codec.UUID) (bool, error) {
