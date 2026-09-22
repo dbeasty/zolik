@@ -48,6 +48,16 @@ import type { MatchState } from '@/src/api/matchTypes';
  */
 export const FLASH_HOLD_MS = 2000;
 
+/**
+ * How long the match-over takeover stays up.
+ *
+ * Longer than a round's `FLASH_HOLD_MS`: it carries a whole scoreboard rather
+ * than one line, and it is the last thing this screen has to say — there is no
+ * "stays on the page afterwards" to fall back on the way a round's card has
+ * the results table underneath it.
+ */
+export const FLASH_HOLD_MATCH_MS = 3500;
+
 export type FlashKind = 'round' | 'match';
 
 export type FlashMoment = {
@@ -88,7 +98,11 @@ export type Flash = {
   kind: FlashKind;
 };
 
-export function useResultsFlash(state: Ending | null, holdMs = FLASH_HOLD_MS): Flash {
+export function useResultsFlash(
+  state: Ending | null,
+  holdMs = FLASH_HOLD_MS,
+  holdMatchMs = FLASH_HOLD_MATCH_MS,
+): Flash {
   const moment = state ? momentOf(state) : null;
   const id = moment?.id ?? null;
   const ready = !!state;
@@ -120,13 +134,14 @@ export function useResultsFlash(state: Ending | null, holdMs = FLASH_HOLD_MS): F
     const next = moment!;
     lastKind.current = next.kind;
     setShowing(next);
-    const timer = setTimeout(() => setShowing(null), holdMs);
+    const hold = next.kind === 'match' ? holdMatchMs : holdMs;
+    const timer = setTimeout(() => setShowing(null), hold);
     return () => clearTimeout(timer);
     // `moment` is rebuilt every render and is fully described by `id`, so it is
     // deliberately not a dependency — including it would restart the hold on
     // every board update that arrives while the announcement is up.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, ready, holdMs]);
+  }, [id, ready, holdMs, holdMatchMs]);
 
   return { visible: showing !== null && showing.id === id, kind: lastKind.current };
 }
