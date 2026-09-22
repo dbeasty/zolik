@@ -81,6 +81,12 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 	var turn botTurn
 
 	for step := 0; step < botMaxSteps; step++ {
+		// The turn boundary is where this match can change hands: nothing is
+		// half-applied here, and the node taking it over rebuilds from what is
+		// stored. See Manager.Release.
+		if m.botsStopping(matchID) {
+			return
+		}
 		match, err := m.current(ctx, matchID)
 		if err != nil || match.Status != "active" {
 			return

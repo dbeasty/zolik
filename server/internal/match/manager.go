@@ -48,6 +48,10 @@ type Manager struct {
 	// second loop and the bots would race each other.
 	botMu      sync.Mutex
 	botRunning map[string]bool
+	// botStopping is one flag per match asking its bot loop to finish at the
+	// next turn boundary, for when the match is about to be played somewhere
+	// else. See Release.
+	botStopping map[string]bool
 
 	// inviteBaseURL is how the outside world reaches this deployment, and the
 	// only thing standing between a join code and a link somebody can click.

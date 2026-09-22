@@ -32,6 +32,7 @@ import (
 	"zolik/server/internal/rummytiles"
 	"zolik/server/internal/scoring"
 	"zolik/server/internal/stats"
+	zsync "zolik/server/internal/sync"
 	userrepo "zolik/server/internal/user"
 	"zolik/server/internal/webui"
 	"zolik/server/internal/ws"
@@ -67,6 +68,13 @@ type App struct {
 	// matchMgr is the game runtime, built once — see matchManager.
 	matchOnce sync.Once
 	matchMgr  *match.Manager
+	// sync is this process as a node of the distributed database, or nil when
+	// it replicates with nobody — which is every deployment until
+	// FEATURE_FLAG_SYNC says otherwise. See internal/sync.
+	sync *zsync.Node
+	// kdb is the embedded engine, held only so the sync node can be opened
+	// over the same database the repositories use. Nil under Mongo.
+	kdb *db.KDB
 	// metrics is the in-memory counter sink every instrumented path writes
 	// to; recorder flushes it, reporter reads it back, and boots records
 	// this process's lifetime. See internal/metrics.
@@ -99,7 +107,11 @@ type repos struct {
 	// column-for-column comparable.
 	metrics metrics.Store
 	notify  notify.Repository
-	close   func(ctx context.Context) error
+	// kdb is the embedded engine itself, set only by kdbRepos. Replication
+	// needs the database rather than a repository over it, since a namespace
+	// is not something a repository has a name for.
+	kdb   *db.KDB
+	close func(ctx context.Context) error
 }
 
 // mongoRepos connects to MongoDB and builds the Mongo-backed repositories —
@@ -157,6 +169,7 @@ func kdbRepos(cfg Config) (repos, error) {
 		return repos{}, err
 	}
 	return repos{
+		kdb:      k,
 		stats:    stats.NewKDBRepository(k),
 		user:     userrepo.NewKDBRepository(k),
 		store:    auth.NewKDBStore(k),
@@ -261,9 +274,10 @@ func New(cfg Config) (*App, error) {
 	gate.SetSink(recorder)
 	authHandlers.SetMetrics(recorder)
 
-	return &App{
+	app := &App{
 		cfg:         cfg,
 		closeDB:     r.close,
+		kdb:         r.kdb,
 		hub:         hub,
 		auth:        authHandlers,
 		waitingRoom: waitingRoom,
@@ -279,7 +293,19 @@ func New(cfg Config) (*App, error) {
 		boots:       metrics.NewBootRecorder(r.metrics, recorder),
 		web:         webui.NewHandler(webui.Embedded()),
 		notify:      notifySvc,
-	}, nil
+	}
+
+	// Opened here rather than in Start so that every namespace this process
+	// opens afterwards is hooked into the node from the first one: a
+	// namespace that came up before the node did would never tell it about
+	// its commits.
+	node, err := openSyncNode(cfg, app.kdb, matchSeating{mgr: app.matchManager()})
+	if err != nil {
+		_ = app.Close(ctx)
+		return nil, err
+	}
+	app.sync = node
+	return app, nil
 }
 
 // claimChain runs the statistics claim and then carries the guest's circle
@@ -341,6 +367,9 @@ func (a *App) Start(ctx context.Context) {
 	// the runtime reasons about turns into a deadline the store deletes on,
 	// which is the bug retention.go exists not to repeat.
 	a.matchManager().StartRetention(ctx, a.cfg.Retention)
+	// Replication starts last: the match runtime has to exist before a peer
+	// can ask this node whether one of its matches may change hands.
+	a.startSync()
 }
 
 // Stop closes this process's boot record, and flushes whatever counters have
@@ -454,6 +483,10 @@ func (a *App) Hub() *ws.Hub { return a.hub }
 func (a *App) Auth() *auth.Handlers { return a.auth }
 
 func (a *App) Close(ctx context.Context) error {
+	if a.sync != nil {
+		_ = a.sync.Close()
+		a.sync = nil
+	}
 	if a.hub != nil {
 		_ = a.hub.Close()
 		a.hub = nil
@@ -580,6 +613,16 @@ func (a *App) routeGroups() []routeGroup {
 			})
 		}},
 		{"auth", a.auth.RegisterRoutes},
+		// Where peers replicate with this node, when it is one. An ordinary
+		// WebSocket upgrade carrying a bearer token, so a phone syncs over
+		// the same port, certificate and load balancer as everything else it
+		// asks this server for.
+		{"sync", func(r chi.Router) {
+			if a.sync == nil {
+				return
+			}
+			r.Handle("/kdb/sync", a.sync.Handler())
+		}},
 		{"lobby", lobbyHandlers.RegisterRoutes},
 		{"user", userrepo.NewHandlers(a.userRepo, a.authStore).RegisterRoutes},
 		{"scoring", scoring.NewHandlers(a.scoringRepo).RegisterRoutes},
