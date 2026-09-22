@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -75,14 +76,76 @@ func (a *App) RegisterMobileRoutes(r chi.Router) {
 	})
 }
 
-// NewMobile builds the embedded host's App. Before anything can serve, it
-// fixes the access-token signing key. The key is per install and the caller
-// keeps it, so a player's seat survives the app restarting. A host with no
-// key refuses to start rather than sign with the well-known development one.
-func NewMobile(dataDir, accessSecret string) (*App, error) {
-	if len(accessSecret) < 32 {
-		return nil, errors.New("mobile host needs a per-install signing secret of at least 32 bytes")
+// DefaultCloudBaseURL is where an embedded host expects to find the cloud.
+// It is the canonical production domain rather than one of the mirrors,
+// because it is what the signing keys are published under and what an offline
+// pass names as its issuer.
+const DefaultCloudBaseURL = "https://jokerless.com"
+
+// MobileIdentity is what the app hands the embedded server about itself. It
+// is built by zolikcore from host.json, which is the only place an install's
+// own secrets live.
+type MobileIdentity struct {
+	// AccessSecret is the per-install HS256 key. It stays because the tokens
+	// handed to guests by earlier builds were signed with it, and they must
+	// go on working until they expire.
+	AccessSecret string
+	// NodeKeySeed is the Ed25519 seed this node signs with: the guest tokens
+	// it issues and the seat receipts it hands out. It is what makes a seat
+	// taken at this table something another node can later check.
+	NodeKeySeed string
+	// CloudBaseURL overrides where the cloud's keys are fetched from, for a
+	// development build pointed at a local server.
+	CloudBaseURL string
+	// BundledJWKS is a copy of the cloud's public keys compiled into the app,
+	// used until this install has fetched its own. Without one, a phone that
+	// has never been online since it was installed cannot verify an offline
+	// pass, and will seat guests only.
+	//
+	// TODO: fill this at build time from the production JWKS, so the very
+	// first offline session on a fresh install can seat a real account. It is
+	// left empty here rather than pinned to a key checked into the repository:
+	// a bundled key that nobody rotates is worse than none.
+	BundledJWKS []byte
+}
+
+// NewMobile builds the embedded host's App, and the cache of cloud keys it
+// verifies offline passes against.
+//
+// Before anything can serve, it fixes both of the install's keys. The access
+// secret is per install and the caller keeps it, so a player's seat survives
+// the app restarting. The node key is what this host signs as itself with,
+// and takes over the signing of new tokens: a host with neither refuses to
+// start rather than sign with the well-known development key.
+func NewMobile(dataDir string, id MobileIdentity) (*App, *auth.JWKSCache, error) {
+	if len(id.AccessSecret) < 32 {
+		return nil, nil, errors.New("mobile host needs a per-install signing secret of at least 32 bytes")
 	}
-	auth.SetAccessSecret(accessSecret)
-	return New(MobileConfig(dataDir))
+	if strings.TrimSpace(id.NodeKeySeed) == "" {
+		return nil, nil, errors.New("mobile host needs a per-install node key")
+	}
+	auth.SetAccessSecret(id.AccessSecret)
+	if err := auth.SetNodeKey(id.NodeKeySeed); err != nil {
+		return nil, nil, err
+	}
+
+	base := strings.TrimRight(strings.TrimSpace(id.CloudBaseURL), "/")
+	if base == "" {
+		base = DefaultCloudBaseURL
+	}
+	// Beside host.json and the database, because it is part of what this
+	// install owns: a player who clears the app's data starts again from the
+	// bundled copy rather than keeping keys nothing else agrees with.
+	keys := auth.NewJWKSCache(auth.JWKSCacheConfig{
+		URL:     base + "/.well-known/jwks.json",
+		Path:    filepath.Join(dataDir, "jwks.json"),
+		Bundled: id.BundledJWKS,
+	})
+
+	a, err := New(MobileConfig(dataDir))
+	if err != nil {
+		return nil, nil, err
+	}
+	a.Auth().SetOfflineKeys(keys)
+	return a, keys, nil
 }

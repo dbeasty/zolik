@@ -33,6 +33,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"zolik/server/internal/app"
+	"zolik/server/internal/auth"
 )
 
 // LANPort is where a host listens when other phones should reach it. It is
@@ -52,6 +53,7 @@ const ProtocolVersion = 1
 type Host struct {
 	app        *app.App
 	handler    http.Handler
+	cloudKeys  *auth.JWKSCache
 	bleKey     *ecdh.PrivateKey
 	srv        *http.Server
 	ln         net.Listener
@@ -97,7 +99,10 @@ func Start(dataDir string) (*Host, error) {
 		return nil, err
 	}
 
-	a, err := app.NewMobile(dataDir, id.AccessSecret)
+	a, cloudKeys, err := app.NewMobile(dataDir, app.MobileIdentity{
+		AccessSecret: id.AccessSecret,
+		NodeKeySeed:  id.NodeKey,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("init: %w", err)
 	}
@@ -137,6 +142,7 @@ func Start(dataDir string) (*Host, error) {
 	h := &Host{
 		app:        a,
 		handler:    r,
+		cloudKeys:  cloudKeys,
 		bleKey:     bleKey,
 		srv:        newServer(r),
 		ln:         ln,
@@ -226,6 +232,32 @@ func (h *Host) PublicKey() string {
 	return base64.StdEncoding.EncodeToString(h.bleKey.PublicKey().Bytes())
 }
 
+// NodeID names this install as a replica, derived from its node key. It is
+// what a seat receipt issued at this table says, and what the cloud records
+// when the install enrols.
+func (h *Host) NodeID() string { return auth.NodeID() }
+
+// NodePublicKey is the key half a node hands the cloud when it enrols,
+// base64url. The private half never leaves the phone.
+func (h *Host) NodePublicKey() string {
+	pub, ok := auth.NodePublicKey()
+	if !ok {
+		return ""
+	}
+	return auth.EncodeNodePublicKey(pub)
+}
+
+// RefreshCloudKeys fetches the cloud's signing keys and writes them beside
+// the database, so that this host can verify an offline pass later with no
+// connection at all. The app calls it whenever it has one: the point of the
+// cached copy is that it was fetched at a better moment than the one where it
+// is needed.
+func (h *Host) RefreshCloudKeys() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	return h.cloudKeys.Refresh(ctx)
+}
+
 // BLEInfo is what the GATT info characteristic answers with: everything a
 // guest needs to decide whether to join before it spends a handshake.
 // An advertisement has no room for it: iOS strips all but the service UUID.
@@ -274,6 +306,12 @@ func (h *Host) Stop() {
 type identity struct {
 	InstanceID   string `json:"instanceId"`
 	AccessSecret string `json:"accessSecret"`
+	// NodeKey is this install's Ed25519 seed, hex: the key it signs as a node
+	// with, as opposed to the access secret it signs tokens with for itself.
+	// It is what a seat taken at this table can be checked against afterwards,
+	// by the cloud or by another phone, so like the BLE key it has to last as
+	// long as the install does.
+	NodeKey string `json:"nodeKey"`
 	// BLEKey is the host's static X25519 private key for the Bluetooth
 	// tunnel, hex. Guests pin its public half per instance id, so it has to
 	// last as long as the install does.
@@ -297,6 +335,13 @@ func loadIdentity(dataDir string) (identity, error) {
 	}
 	if k, err := hex.DecodeString(id.BLEKey); err != nil || len(k) != 32 {
 		id.BLEKey = randomHex(32)
+		changed = true
+	}
+	// An install from before nodes existed gains one here, exactly the way it
+	// gained a BLE key. The parts already in the file are untouched, so the
+	// host keeps the identity its guests and their tokens know it by.
+	if k, err := hex.DecodeString(id.NodeKey); err != nil || len(k) != 32 {
+		id.NodeKey = randomHex(32)
 		changed = true
 	}
 	if !changed {
