@@ -67,6 +67,8 @@ export class ZolikClient {
   avatarId = '';
   private onTokensUpdated?: (access: string, refresh: string) => void;
   private onSessionExpired?: () => void;
+  /** The refresh every 401 is waiting on, while one is out. */
+  private refreshInFlight?: Promise<void>;
 
   /** How requests and sockets reach the server. See src/net/transport.ts. */
   readonly transport: Transport;
@@ -286,15 +288,35 @@ export class ZolikClient {
     this.userId = '';
   }
 
-  async refreshTokens(): Promise<void> {
-    if (!this.refreshToken) {
-      throw new ApiError('no refresh token');
+  /**
+   * Trades the refresh token for a new pair. Every caller shares one request:
+   * the server retires a refresh token the moment it is used, so two requests
+   * that came back 401 together and each refreshed on its own would spend the
+   * same token twice — the first succeeds, the second is refused, and that
+   * refusal used to sign the player out mid-game.
+   */
+  refreshTokens(): Promise<void> {
+    if (!this.refreshInFlight) {
+      this.refreshInFlight = this.exchangeRefreshToken().finally(() => {
+        this.refreshInFlight = undefined;
+      });
+    }
+    return this.refreshInFlight;
+  }
+
+  private async exchangeRefreshToken(): Promise<void> {
+    const spent = this.refreshToken;
+    if (!spent) {
+      throw new ApiError('no refresh token', 401);
     }
     const data = await this.post<{ accessToken: string; refreshToken: string }>(
       '/auth/refresh',
-      { refreshToken: this.refreshToken },
+      { refreshToken: spent },
       false,
     );
+    // Signed out or signed in as someone else while this was in the air: the
+    // answer belongs to a session that is no longer bound.
+    if (this.refreshToken !== spent) return;
     this.accessToken = data.accessToken;
     this.refreshToken = data.refreshToken;
     this.onTokensUpdated?.(data.accessToken, data.refreshToken);
@@ -724,8 +746,9 @@ export class ZolikClient {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
-    if (auth && this.accessToken) {
-      headers.Authorization = `Bearer ${this.accessToken}`;
+    const sentWith = this.accessToken;
+    if (auth && sentWith) {
+      headers.Authorization = `Bearer ${sentWith}`;
     }
     const res = await this.transport.fetch(path, {
       method,
@@ -733,9 +756,19 @@ export class ZolikClient {
       body: body != null ? JSON.stringify(body) : undefined,
     });
     if (res.status === 401 && auth && this.refreshToken && !retried) {
+      // Someone else refreshed while this request was out: its token is
+      // already stale, and the new one has not been tried yet.
+      if (this.accessToken && this.accessToken !== sentWith) {
+        return this.request<T>(method, path, body, auth, true);
+      }
       try {
         await this.refreshTokens();
-      } catch {
+      } catch (e) {
+        // Only the server refusing the refresh token means the session is
+        // over. A dropped connection, a restart's 502 or a 503 says nothing
+        // about the credentials, and signing the player out for one of those
+        // throws away a perfectly good session in the middle of a game.
+        if (!(e instanceof ApiError) || e.status !== 401) throw e;
         // The stored refresh token is gone for good: expired and reaped by the
         // sessions TTL index, rotated away, or issued by a database we are no
         // longer talking to. Letting it sit in storage wedges the app forever,

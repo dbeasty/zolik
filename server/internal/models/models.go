@@ -107,4 +107,9 @@ type Session struct {
 	GuestID   string    `bson:"guestId,omitempty" json:"guestId,omitempty"`
 	CreatedAt time.Time `bson:"createdAt" json:"createdAt"`
 	ExpiresAt time.Time `bson:"expiresAt" json:"expiresAt"`
+	// ReplacedBy is the token this one was exchanged for, set when a refresh
+	// retires it. A retired session lives on for a short grace period (its
+	// ExpiresAt is pulled in) so that a second request that was already
+	// carrying it gets the same replacement rather than a refusal.
+	ReplacedBy string `bson:"replacedBy,omitempty" json:"-"`
 }

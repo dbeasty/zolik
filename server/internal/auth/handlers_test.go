@@ -1124,9 +1124,74 @@ func TestRefreshRotatesTheTokenAndRetiresTheOldOne(t *testing.T) {
 		t.Error("the refresh token did not rotate")
 	}
 
+	// Once the successor has itself been exchanged, the first token is dead
+	// even inside its grace period: it can only ever lead to one live session.
+	again := h.do(http.MethodPost, "/auth/refresh", "", map[string]any{"refreshToken": rotated.str("refreshToken")})
+	if again.status != http.StatusOK {
+		t.Fatalf("second refresh: status %d body %s", again.status, again.raw)
+	}
 	reuse := h.do(http.MethodPost, "/auth/refresh", "", map[string]any{"refreshToken": oldRefresh})
 	if reuse.status != http.StatusUnauthorized {
-		t.Errorf("reusing a rotated-away refresh token: status = %d, want 401", reuse.status)
+		t.Errorf("reusing a token two rotations back: status = %d, want 401", reuse.status)
+	}
+}
+
+func TestRefreshReusedInsideTheGracePeriodGetsTheSameSuccessor(t *testing.T) {
+	// Two requests from one client come back 401 together and both refresh
+	// with the same token. The second must not be refused — that refusal
+	// signed a guest out in the middle of a match — and must not fork a
+	// second session either.
+	h := newTestHarness(t)
+	guest := h.do(http.MethodPost, "/auth/guest", "", map[string]any{"guestName": "Twice"})
+	oldRefresh := guest.str("refreshToken")
+
+	first := h.do(http.MethodPost, "/auth/refresh", "", map[string]any{"refreshToken": oldRefresh})
+	second := h.do(http.MethodPost, "/auth/refresh", "", map[string]any{"refreshToken": oldRefresh})
+	if first.status != http.StatusOK || second.status != http.StatusOK {
+		t.Fatalf("refresh statuses = %d, %d; want 200, 200 (%s)", first.status, second.status, second.raw)
+	}
+	if second.str("refreshToken") != first.str("refreshToken") {
+		t.Errorf("second refresh issued %q, want the first's successor %q",
+			second.str("refreshToken"), first.str("refreshToken"))
+	}
+	if second.str("userId") != first.str("userId") || second.str("accessToken") == "" {
+		t.Errorf("second refresh answered as %q with access token %q, want %q with one",
+			second.str("userId"), second.str("accessToken"), first.str("userId"))
+	}
+}
+
+func TestRefreshReusedAfterTheGracePeriodIsRefused(t *testing.T) {
+	h := newTestHarness(t)
+	guest := h.do(http.MethodPost, "/auth/guest", "", map[string]any{"guestName": "Late"})
+	oldRefresh := guest.str("refreshToken")
+
+	rotated := h.do(http.MethodPost, "/auth/refresh", "", map[string]any{"refreshToken": oldRefresh})
+	if rotated.status != http.StatusOK {
+		t.Fatalf("refresh: status %d body %s", rotated.status, rotated.raw)
+	}
+	// Age the retirement past its grace period, as the clock would.
+	past := time.Now().UTC().Add(-time.Second)
+	if err := h.sessions.Retire(context.Background(), oldRefresh, rotated.str("refreshToken"), past); err != nil {
+		t.Fatalf("ageing the retired session: %v", err)
+	}
+	late := h.do(http.MethodPost, "/auth/refresh", "", map[string]any{"refreshToken": oldRefresh})
+	if late.status != http.StatusUnauthorized {
+		t.Errorf("reusing a rotated token after the grace period: status = %d, want 401", late.status)
+	}
+}
+
+func TestRefreshReusedAfterTheSuccessorLoggedOutIsRefused(t *testing.T) {
+	h := newTestHarness(t)
+	guest := h.do(http.MethodPost, "/auth/guest", "", map[string]any{"guestName": "Gone"})
+	oldRefresh := guest.str("refreshToken")
+
+	rotated := h.do(http.MethodPost, "/auth/refresh", "", map[string]any{"refreshToken": oldRefresh})
+	if res := h.do(http.MethodPost, "/auth/logout", "", map[string]any{"refreshToken": rotated.str("refreshToken")}); res.status != http.StatusOK {
+		t.Fatalf("logout: status %d body %s", res.status, res.raw)
+	}
+	reuse := h.do(http.MethodPost, "/auth/refresh", "", map[string]any{"refreshToken": oldRefresh})
+	if reuse.status != http.StatusUnauthorized {
+		t.Errorf("reusing a rotated token after logout: status = %d, want 401", reuse.status)
 	}
 }
 
