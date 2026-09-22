@@ -12,6 +12,8 @@ import (
 	"zolik/server/internal/auth"
 	"zolik/server/internal/db"
 	"zolik/server/internal/match"
+	"zolik/server/internal/replica"
+	zsync "zolik/server/internal/sync"
 )
 
 // EnvMobile is the Env of a server embedded in the iOS or Android app, where
@@ -107,6 +109,21 @@ type MobileIdentity struct {
 	// left empty here rather than pinned to a key checked into the repository:
 	// a bundled key that nobody rotates is worse than none.
 	BundledJWKS []byte
+	// NodeCredential is what this install was given when its owner enrolled
+	// it, and is how it authenticates its database sync. Empty means the
+	// install has never been enrolled, and the host then plays offline tables
+	// without replicating anything.
+	NodeCredential string
+	// UserHex is the account signed in on this device, whose namespaces this
+	// node syncs. Empty alongside a credential means nobody is signed in, and
+	// there is nothing to ask the hub for.
+	UserHex string
+}
+
+// SyncsWithCloud reports whether this install is enrolled and signed in, which
+// is what replicating needs.
+func (id MobileIdentity) SyncsWithCloud() bool {
+	return strings.TrimSpace(id.NodeCredential) != "" && strings.TrimSpace(id.UserHex) != ""
 }
 
 // NewMobile builds the embedded host's App, and the cache of cloud keys it
@@ -142,10 +159,76 @@ func NewMobile(dataDir string, id MobileIdentity) (*App, *auth.JWKSCache, error)
 		Bundled: id.BundledJWKS,
 	})
 
-	a, err := New(MobileConfig(dataDir))
+	cfg := MobileConfig(dataDir)
+	if id.SyncsWithCloud() {
+		// The phone dials the cloud; the cloud never dials a phone, which has
+		// no address anybody could dial. It asks for its own account's two
+		// namespaces and for its own outbox, and picks up a match's namespace
+		// when its player opens one.
+		cfg.Sync = SyncConfig{
+			Role:   syncRoleSpoke,
+			HubURL: cloudSyncURL(base),
+			Token:  strings.TrimSpace(id.NodeCredential),
+			Namespaces: []string{
+				db.UserNS(id.UserHex),
+				db.UserReadOnlyNS(id.UserHex),
+			},
+		}
+	}
+	a, err := New(cfg)
 	if err != nil {
 		return nil, nil, err
 	}
 	a.Auth().SetOfflineKeys(keys)
+	a.replicaUser = strings.TrimSpace(id.UserHex)
 	return a, keys, nil
 }
+
+// cloudSyncURL turns the cloud's base URL into its peer-sync endpoint. The
+// scheme has to change with it: the sync is a WebSocket upgrade on the same
+// origin, port and certificate as every other call the app makes.
+func cloudSyncURL(base string) string {
+	switch {
+	case strings.HasPrefix(base, "https://"):
+		return "wss://" + strings.TrimPrefix(base, "https://") + "/kdb/sync"
+	case strings.HasPrefix(base, "http://"):
+		return "ws://" + strings.TrimPrefix(base, "http://") + "/kdb/sync"
+	default:
+		return base + "/kdb/sync"
+	}
+}
+
+// RegisterNodeRoutes mounts what a phone that has synced can answer for
+// itself: everything RegisterMobileRoutes serves, plus the account's own data
+// out of the copy this device holds.
+//
+// The two are separate because they are different situations rather than
+// different configurations of one. A phone hosting a table in a room with no
+// internet is serving the people around it; a phone serving its own player
+// their history on a train is serving one person, from data nobody else at
+// any table may see. What stays out of both is anything about other people -
+// the waiting room, the leaderboard, looking somebody up by friend code -
+// because this device does not hold the answer and should not pretend to.
+func (a *App) RegisterNodeRoutes(r chi.Router) {
+	for _, g := range a.routeGroups() {
+		switch g.name {
+		case "health", "match":
+			g.register(r)
+		}
+	}
+	a.auth.RegisterLocalRoutes(r)
+	replica.NewHandlers(a.Replica).RegisterRoutes(r)
+	r.NotFound(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+	})
+}
+
+// Replica is this device's copy of the signed-in account's data.
+func (a *App) Replica() *replica.Reader {
+	return replica.NewReader(a.kdb, a.replicaUser)
+}
+
+// Sync is this process as a node of the distributed database, for the app to
+// ask for a sync when it comes back to the foreground or the network returns.
+// Nil when this install replicates with nobody.
+func (a *App) Sync() *zsync.Node { return a.sync }

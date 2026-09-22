@@ -75,6 +75,10 @@ type App struct {
 	// kdb is the embedded engine, held only so the sync node can be opened
 	// over the same database the repositories use. Nil under Mongo.
 	kdb *db.KDB
+	// replicaUser is the account signed in on this device, when this process
+	// is the copy embedded in the phone app. Empty everywhere else: a server
+	// serves whoever asks, and has no one person whose data it holds.
+	replicaUser string
 	// metrics is the in-memory counter sink every instrumented path writes
 	// to; recorder flushes it, reporter reads it back, and boots records
 	// this process's lifetime. See internal/metrics.

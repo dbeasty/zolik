@@ -259,3 +259,45 @@ func TestAGuestFromTheRoomJoinsTheHostsTable(t *testing.T) {
 		t.Errorf("the host's own loopback died with the room: %d", got)
 	}
 }
+
+// TestStartNodeRefusesToSwapAccountsUnderneathALiveHost is about the database
+// on disk rather than about the API: it belongs to whoever was signed in when
+// it was written, and a sign-in on a second account must not quietly start
+// replicating somebody else's data into it.
+func TestStartNodeRefusesToSwapAccountsUnderneathALiveHost(t *testing.T) {
+	dir := t.TempDir()
+	h, err := StartNode(dir, "", "")
+	if err != nil {
+		t.Fatalf("start: %v", err)
+	}
+	t.Cleanup(func() { h.Stop() })
+
+	if _, err := StartNode(dir, "cred", "65f0c0ffeec0ffeec0ffee01"); err == nil {
+		t.Fatal("a running host was re-pointed at another account")
+	}
+	// The same caller asking again for what is already running is not a swap.
+	again, err := StartNode(dir, "", "")
+	if err != nil {
+		t.Fatalf("start again: %v", err)
+	}
+	if again != h {
+		t.Fatal("a second host was started on the same directory")
+	}
+}
+
+// TestAHostWithNobodySignedInSyncsNothing keeps the offline table exactly as
+// it was: a phone hosting a game for the room is not a node of anything.
+func TestAHostWithNobodySignedInSyncsNothing(t *testing.T) {
+	h, err := StartNode(t.TempDir(), "", "")
+	if err != nil {
+		t.Fatalf("start: %v", err)
+	}
+	t.Cleanup(func() { h.Stop() })
+
+	if err := h.SyncNow(); err != nil {
+		t.Fatalf("asking an unenrolled host to sync must do nothing, got %v", err)
+	}
+	if h.ReplicaReady() {
+		t.Fatal("a host with nobody signed in reported holding an account's data")
+	}
+}

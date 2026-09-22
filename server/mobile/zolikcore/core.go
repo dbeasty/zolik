@@ -27,6 +27,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -34,6 +35,7 @@ import (
 
 	"zolik/server/internal/app"
 	"zolik/server/internal/auth"
+	"zolik/server/internal/db"
 )
 
 // LANPort is where a host listens when other phones should reach it. It is
@@ -59,7 +61,10 @@ type Host struct {
 	ln         net.Listener
 	cancel     context.CancelFunc
 	instanceID string
-	done       chan struct{}
+	// userHex is the account this host replicates for, empty when it is only
+	// hosting a table.
+	userHex string
+	done    chan struct{}
 
 	// lanSrv serves the same handler on every interface while the host is
 	// inviting players from the room. It is separate from the loopback
@@ -83,9 +88,28 @@ var (
 // a second screen and a quick re-tap all land here, and none of them should
 // get a second database on the same directory.
 func Start(dataDir string) (*Host, error) {
+	return StartNode(dataDir, "", "")
+}
+
+// StartNode is Start for a phone that has been enrolled with the cloud and has
+// somebody signed in: the same host, which additionally replicates that
+// account's data and serves it back from this device.
+//
+// nodeCredential is what the cloud handed this install at enrolment, and
+// userHex is the account signed in now. With either missing the host comes up
+// exactly as Start's does: a table for the room, and nothing synced anywhere.
+//
+// A host already running for a different account is not silently re-pointed.
+// The database on disk is that account's, and swapping who it belongs to
+// underneath a live table is not something a sign-in should do quietly; the
+// caller stops the host first.
+func StartNode(dataDir, nodeCredential, userHex string) (*Host, error) {
 	mu.Lock()
 	defer mu.Unlock()
 	if current != nil {
+		if current.userHex != strings.TrimSpace(userHex) {
+			return nil, fmt.Errorf("a host is already running for %s", describeAccount(current.userHex))
+		}
 		return current, nil
 	}
 	if dataDir == "" {
@@ -100,8 +124,10 @@ func Start(dataDir string) (*Host, error) {
 	}
 
 	a, cloudKeys, err := app.NewMobile(dataDir, app.MobileIdentity{
-		AccessSecret: id.AccessSecret,
-		NodeKeySeed:  id.NodeKey,
+		AccessSecret:   id.AccessSecret,
+		NodeKeySeed:    id.NodeKey,
+		NodeCredential: strings.TrimSpace(nodeCredential),
+		UserHex:        strings.TrimSpace(userHex),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("init: %w", err)
@@ -123,7 +149,14 @@ func Start(dataDir string) (*Host, error) {
 	publicKey := base64.StdEncoding.EncodeToString(bleKey.PublicKey().Bytes())
 
 	r := chi.NewRouter()
-	a.RegisterMobileRoutes(r)
+	if strings.TrimSpace(userHex) != "" {
+		// The signed-in player's own history, settings and circle, served
+		// from the copy this device holds, so the app can show them with no
+		// connection at all.
+		a.RegisterNodeRoutes(r)
+	} else {
+		a.RegisterMobileRoutes(r)
+	}
 	// publicKey is the Bluetooth tunnel's static key. A guest that met this
 	// table over Wi-Fi first pins it here, so a later Bluetooth join is
 	// authenticated rather than trusted on first use.
@@ -148,6 +181,7 @@ func Start(dataDir string) (*Host, error) {
 		ln:         ln,
 		cancel:     cancel,
 		instanceID: id.InstanceID,
+		userHex:    strings.TrimSpace(userHex),
 		done:       make(chan struct{}),
 	}
 	go func() {
@@ -159,6 +193,45 @@ func Start(dataDir string) (*Host, error) {
 	log.Printf("zolikcore: host %s listening on %s", id.InstanceID, ln.Addr())
 	current = h
 	return h, nil
+}
+
+// describeAccount names an account for a refusal, without putting an id the
+// player never chose in front of them.
+func describeAccount(userHex string) string {
+	if userHex == "" {
+		return "an offline table"
+	}
+	return "another account"
+}
+
+// SyncNow replicates with the cloud immediately, for the moments where waiting
+// for the next tick would be visible: the app coming to the foreground, the
+// network coming back, a match ending. It is a no-op on a host that is not
+// enrolled or has nobody signed in.
+func (h *Host) SyncNow() error {
+	if h == nil || h.app.Sync() == nil {
+		return nil
+	}
+	return h.app.Sync().SyncNow()
+}
+
+// ReplicaReady reports whether this device is holding the signed-in account's
+// data yet, so the app can show a history screen rather than an empty one that
+// looks like a person who has never played.
+func (h *Host) ReplicaReady() bool {
+	if h == nil {
+		return false
+	}
+	return h.app.Replica().Ready()
+}
+
+// FollowMatch adds a match to what this device syncs, for a match the player
+// opened that was started somewhere else.
+func (h *Host) FollowMatch(matchHex string) error {
+	if h == nil || h.app.Sync() == nil {
+		return nil
+	}
+	return h.app.Sync().Follow(db.MatchNS(matchHex))
 }
 
 func newServer(h http.Handler) *http.Server {
