@@ -58,8 +58,9 @@ export function useMatchSocket(
   );
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<SocketLike | null>(null);
-  // Reconnect attempts, reset on every successful open. Kept in a ref so the
-  // backoff survives re-renders without causing them.
+  // Reconnect attempts, reset once an open socket has stayed open for a
+  // while (see STABLE_MS below) rather than the instant it opens. Kept in a
+  // ref so the backoff survives re-renders without causing them.
   const attemptRef = useRef(0);
 
   useEffect(() => {
@@ -86,6 +87,20 @@ export function useMatchSocket(
     // This run's own socket, so cleanup closes the one it opened rather than
     // whichever one happens to be in the shared ref.
     let socket: SocketLike | null = null;
+    // Armed on every `onopen`, cleared on `onclose` or teardown.
+    //
+    // The backoff used to reset the moment a socket opened at all. That is
+    // right for a socket that stays up, and wrong for one that is about to be
+    // displaced straight back out — a second live connection for the same
+    // player (another tab, a stuck reconnect elsewhere, the server's own
+    // "newest wins" rule) closes the older one on arrival, `onopen` still
+    // fires on the way in, and resetting the counter there meant two such
+    // sockets could trade the seat back and forth every ~1s forever, neither
+    // backoff ever growing enough to let the other settle. Waiting for the
+    // connection to prove itself stable first turns that into ordinary
+    // exponential backoff instead.
+    let stableTimer: ReturnType<typeof setTimeout> | null = null;
+    const STABLE_MS = 2000;
 
     const open = () => {
       if (torn) return;
@@ -94,8 +109,11 @@ export function useMatchSocket(
       wsRef.current = ws;
 
       ws.onopen = () => {
-        attemptRef.current = 0;
         setConnected(true);
+        if (stableTimer) clearTimeout(stableTimer);
+        stableTimer = setTimeout(() => {
+          attemptRef.current = 0;
+        }, STABLE_MS);
       };
       ws.onmessage = (ev) => {
         let msg: unknown;
@@ -119,6 +137,7 @@ export function useMatchSocket(
         // and never for correctness.
       };
       ws.onclose = () => {
+        if (stableTimer) clearTimeout(stableTimer);
         if (torn) return;
         setConnected(false);
         // The refusal is already on screen and is the last word; reconnecting
@@ -172,6 +191,7 @@ export function useMatchSocket(
       torn = true;
       foreground.remove();
       if (timer) clearTimeout(timer);
+      if (stableTimer) clearTimeout(stableTimer);
       socket?.close();
       // Only if it is still this run's: a later run may already have put its
       // own socket there, and clearing that one would leave `send` with
