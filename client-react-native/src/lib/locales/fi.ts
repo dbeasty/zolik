@@ -161,6 +161,9 @@ export const fi: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Ensimmäisen laskusi on yllettävä pisterajaan, joka nousee pistetilanteesi mukana: {negative} alle nollan, {low} {lowUpTo}:aan asti, {mid} {midUpTo}:een asti, {high} sen yli.',
   'canasta.rules.meldFloorBandsFive': 'Ensimmäisen yhdistelmäsi on yllettävä pisterajaan, joka nousee pistetilanteesi mukana: {negative} alle nollan, {low} {lowUpTo} asti, {mid} {midUpTo} asti, {high} {highUpTo} asti ja {top} sen yli.',
+  'canasta.rules.goingOutBonus':
+    'Ulosmeno on itsessään {n} pisteen arvoinen — {concealed}, jos puolesi tekee sen yhdellä vuorolla laskematta mitään sitä ennen.',
+  'canasta.rules.goingOutBonusFlat': 'Ulosmeno on itsessään {n} pisteen arvoinen.',
   'canasta.rules.turn':
     'Vuoro on yksi siirto käteesi — nosto pakasta tai koko poistopakan ottaminen — sitten haluamasi sarjat ja lopuksi yksi poistettu kortti.',
   'canasta.rules.turnDiscard': 'Vuoro päättyy poistoon, joten sinulla on aina oltava siihen kortti liikaa.',

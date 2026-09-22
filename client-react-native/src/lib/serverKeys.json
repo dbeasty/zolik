@@ -256,6 +256,8 @@
     "canasta.rules.end",
     "canasta.rules.goOutKeepsACard",
     "canasta.rules.goal",
+    "canasta.rules.goingOutBonus",
+    "canasta.rules.goingOutBonusFlat",
     "canasta.rules.layOffAfterOpening",
     "canasta.rules.meldFloorBands",
     "canasta.rules.meldFloorBandsFive",
@@ -659,6 +661,8 @@
     "canasta.rules.end",
     "canasta.rules.goOutKeepsACard",
     "canasta.rules.goal",
+    "canasta.rules.goingOutBonus",
+    "canasta.rules.goingOutBonusFlat",
     "canasta.rules.layOffAfterOpening",
     "canasta.rules.meldFloorBands",
     "canasta.rules.meldFloorBandsFive",
@@ -1020,6 +1024,13 @@
       "n"
     ],
     "canasta.rules.goal": [
+      "n"
+    ],
+    "canasta.rules.goingOutBonus": [
+      "concealed",
+      "n"
+    ],
+    "canasta.rules.goingOutBonusFlat": [
       "n"
     ],
     "canasta.rules.meldFloorBands": [
@@ -1474,6 +1485,8 @@
     "canasta.rules.drawCount",
     "canasta.rules.end",
     "canasta.rules.goal",
+    "canasta.rules.goingOutBonus",
+    "canasta.rules.goingOutBonusFlat",
     "canasta.rules.meldFloorBands",
     "canasta.rules.meldFloorBandsFive",
     "canasta.rules.meldShape",

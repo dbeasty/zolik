@@ -161,6 +161,9 @@ export const lv: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Tavai pirmajai izlikšanai jāsasniedz punktu minimums, kas aug līdz ar tavu rezultātu: {negative} zem nulles, {low} līdz {lowUpTo}, {mid} līdz {midUpTo}, {high} virs tā.',
   'canasta.rules.meldFloorBandsFive': 'Tavai pirmajai kombinācijai jāsasniedz punktu minimums, kas aug līdz ar tavu rezultātu: {negative} zem nulles, {low} līdz {lowUpTo}, {mid} līdz {midUpTo}, {high} līdz {highUpTo} un {top} virs tā.',
+  'canasta.rules.goingOutBonus':
+    'Iziešana pati par sevi ir vērta {n} punktu — {concealed}, ja tava puse to izdara vienā gājienā, iepriekš neizliekot nevienu kombināciju.',
+  'canasta.rules.goingOutBonusFlat': 'Iziešana pati par sevi ir vērta {n} punktu.',
   'canasta.rules.turn':
     'Gājiens ir viena kāršu ņemšana rokā — velc no kavas vai paņem visu izmesto kaudzi — tad liec tik kombināciju, cik vēlies, un beidz ar vienu izmestu kārti.',
   'canasta.rules.turnDiscard': 'Gājienu noslēdz izmešana, tāpēc tev tam vienmēr jāatstāj viena kārts.',

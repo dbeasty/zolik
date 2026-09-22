@@ -165,6 +165,9 @@ export const el: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Το πρώτο σου κατέβασμα πρέπει να φτάσει ένα ελάχιστο πόντων που ανεβαίνει με το σκορ σου: {negative} κάτω από το μηδέν, {low} έως {lowUpTo}, {mid} έως {midUpTo}, {high} πιο πάνω.',
   'canasta.rules.meldFloorBandsFive': 'Ο πρώτος σου συνδυασμός πρέπει να φτάσει ένα ελάχιστο πόντων που ανεβαίνει με το σκορ σου: {negative} κάτω από το μηδέν, {low} ως {lowUpTo}, {mid} ως {midUpTo}, {high} ως {highUpTo} και {top} πάνω από αυτό.',
+  'canasta.rules.goingOutBonus':
+    'Η έξοδος αξίζει {n} πόντους από μόνη της — {concealed} αν η πλευρά σου το κάνει σε έναν μόνο γύρο, χωρίς να έχει κατεβάσει τίποτα πριν.',
+  'canasta.rules.goingOutBonusFlat': 'Η έξοδος αξίζει {n} πόντους από μόνη της.',
   'canasta.rules.turn':
     'Ένας γύρος είναι μία κίνηση προς το χέρι σου — τράβηγμα από την τράπουλα ή πάρσιμο όλου του σωρού — μετά όσα μελντ θέλεις, και στο τέλος ένα φύλλο στον σωρό.',
   'canasta.rules.turnDiscard':

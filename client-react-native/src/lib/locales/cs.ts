@@ -160,6 +160,9 @@ export const cs: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Minimální hodnota první kombinace roste s vaším skóre: {negative} pod nulou, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} nad tím.',
   'canasta.rules.meldFloorBandsFive': 'Vaše první kombinace musí dosáhnout bodového minima, které roste s vaším skóre: {negative} pod nulou, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} do {highUpTo} a {top} nad tím.',
+  'canasta.rules.goingOutBonus':
+    'Vyjití samo o sobě má hodnotu {n} bodů — {concealed}, pokud to tvá strana zvládne v jediném tahu, aniž by předtím vyložila jedinou kombinaci.',
+  'canasta.rules.goingOutBonusFlat': 'Vyjití samo o sobě má hodnotu {n} bodů.',
   'canasta.rules.turn':
     'Tah je jedno nabrání do ruky — líznutí z balíčku, nebo vzetí celého odhazovacího balíčku — pak libovolné kombinace a nakonec jedna odhozená karta.',
   'canasta.rules.turnDiscard': 'Tah končí odhozením, takže na něj vždycky musíš mít kartu nazbyt.',

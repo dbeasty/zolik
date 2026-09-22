@@ -157,6 +157,9 @@ export const da: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Din første udlægning skal nå et pointminimum, der stiger med din stilling: {negative} under nul, {low} op til {lowUpTo}, {mid} op til {midUpTo}, {high} derover.',
   'canasta.rules.meldFloorBandsFive': 'Din første kombination skal nå et pointminimum, der stiger med din score: {negative} under nul, {low} op til {lowUpTo}, {mid} op til {midUpTo}, {high} op til {highUpTo} og {top} derover.',
+  'canasta.rules.goingOutBonus':
+    'At gå ud er {n} point værd i sig selv — {concealed}, hvis din side gør det i én tur uden at have meldt noget forinden.',
+  'canasta.rules.goingOutBonusFlat': 'At gå ud er {n} point værd i sig selv.',
   'canasta.rules.turn':
     'En tur er ét træk ind i hånden — fra bunken eller hele kastebunken — derefter de meldinger du vil lægge, og til sidst ét kort smidt ud.',
   'canasta.rules.turnDiscard': 'Turen slutter med et kast, så du skal altid have et kort til overs til det.',

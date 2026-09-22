@@ -162,6 +162,9 @@ export const ro: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Prima ta coborâre trebuie să atingă un minim de puncte care crește odată cu scorul tău: {negative} sub zero, {low} până la {lowUpTo}, {mid} până la {midUpTo}, {high} peste.',
   'canasta.rules.meldFloorBandsFive': 'Prima ta combinație trebuie să atingă un minim de puncte care crește odată cu scorul: {negative} sub zero, {low} până la {lowUpTo}, {mid} până la {midUpTo}, {high} până la {highUpTo} și {top} peste.',
+  'canasta.rules.goingOutBonus':
+    'Ieșirea valorează {n} puncte de una singură — {concealed} dacă tabăra ta o face într-un singur rând, fără să fi coborât nimic înainte.',
+  'canasta.rules.goingOutBonusFlat': 'Ieșirea valorează {n} puncte de una singură.',
   'canasta.rules.turn':
     'Un rând înseamnă o intrare de cărți în mână — tragi din pachet sau iei tot mormanul de cărți aruncate — apoi câte combinații vrei și, la final, o carte aruncată.',
   'canasta.rules.turnDiscard': 'Aruncarea încheie rândul, deci trebuie să-ți rămână mereu o carte pentru ea.',

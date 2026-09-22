@@ -161,6 +161,9 @@ export const it: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'La tua prima calata deve raggiungere un minimo di punti che sale con il tuo punteggio: {negative} sotto zero, {low} fino a {lowUpTo}, {mid} fino a {midUpTo}, {high} oltre.',
   'canasta.rules.meldFloorBandsFive': 'La tua prima combinazione deve raggiungere un minimo di punti che cresce con il punteggio: {negative} sotto zero, {low} fino a {lowUpTo}, {mid} fino a {midUpTo}, {high} fino a {highUpTo}, {top} oltre.',
+  'canasta.rules.goingOutBonus':
+    'Chiudere vale {n} punti da solo — {concealed} se la tua coppia lo fa in un turno solo, senza aver calato nulla prima.',
+  'canasta.rules.goingOutBonusFlat': 'Chiudere vale {n} punti da solo.',
   'canasta.rules.turn':
     "Un turno è un'entrata di carte nella tua mano — pescare dal mazzo o prendere tutto il pozzo — poi le combinazioni che vuoi calare, infine una carta scartata.",
   'canasta.rules.turnDiscard':

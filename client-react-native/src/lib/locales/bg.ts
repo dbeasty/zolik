@@ -161,6 +161,9 @@ export const bg: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Първото ти сваляне трябва да достигне минимум точки, който расте с резултата ти: {negative} под нулата, {low} до {lowUpTo}, {mid} до {midUpTo}, {high} над това.',
   'canasta.rules.meldFloorBandsFive': 'Първата ти комбинация трябва да достигне точков минимум, който расте с резултата ти: {negative} под нулата, {low} до {lowUpTo}, {mid} до {midUpTo}, {high} до {highUpTo} и {top} над това.',
+  'canasta.rules.goingOutBonus':
+    'Излизането само по себе си струва {n} точки — {concealed}, ако страната ти го направи в един-единствен ред, без да е свалила нищо преди това.',
+  'canasta.rules.goingOutBonusFlat': 'Излизането само по себе си струва {n} точки.',
   'canasta.rules.turn':
     'Редът е едно вземане в ръката — теглене от тестето или взимане на цялото бунище — после толкова комбинации, колкото искаш, и накрая една хвърлена карта.',
   'canasta.rules.turnDiscard':

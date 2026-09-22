@@ -165,6 +165,9 @@ export const en: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Your first meld must reach a point minimum that rises with your score: {negative} below zero, {low} up to {lowUpTo}, {mid} up to {midUpTo}, {high} beyond that.',
   'canasta.rules.meldFloorBandsFive': 'Your first meld must reach a point minimum that rises with your score: {negative} below zero, {low} up to {lowUpTo}, {mid} up to {midUpTo}, {high} up to {highUpTo}, {top} beyond that.',
+  'canasta.rules.goingOutBonus':
+    'Going out is worth {n} points on its own — {concealed} if your side does it in a single turn, with nothing melded before that.',
+  'canasta.rules.goingOutBonusFlat': 'Going out is worth {n} points on its own.',
   'canasta.rules.turn':
     'A turn is one move into your hand — draw from the stock, or take the whole discard pile — then any melds you want to lay, then one card discarded.',
   'canasta.rules.turnDiscard': 'The discard is what ends a turn, so you always need a card to spare for it.',

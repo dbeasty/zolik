@@ -163,6 +163,9 @@ export const es: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Tu primera bajada debe alcanzar un mínimo de puntos que sube con tu marcador: {negative} por debajo de cero, {low} hasta {lowUpTo}, {mid} hasta {midUpTo}, {high} más allá.',
   'canasta.rules.meldFloorBandsFive': 'Tu primera combinación debe alcanzar un mínimo de puntos que sube con tu puntuación: {negative} por debajo de cero, {low} hasta {lowUpTo}, {mid} hasta {midUpTo}, {high} hasta {highUpTo} y {top} por encima.',
+  'canasta.rules.goingOutBonus':
+    'Irse vale {n} puntos por sí solo — {concealed} si tu bando lo hace en un solo turno, sin haber bajado nada antes.',
+  'canasta.rules.goingOutBonusFlat': 'Irse vale {n} puntos por sí solo.',
   'canasta.rules.turn':
     'Un turno es una entrada de cartas a tu mano —robar del mazo o llevarte todo el descarte—, luego las combinaciones que quieras bajar y, por último, una carta descartada.',
   'canasta.rules.turnDiscard':

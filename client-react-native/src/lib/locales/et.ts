@@ -160,6 +160,9 @@ export const et: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Sinu esimene väljapanek peab ulatuma punktide alammäärani, mis kasvab koos su seisuga: {negative} alla nulli, {low} kuni {lowUpTo}, {mid} kuni {midUpTo}, {high} sellest üle.',
   'canasta.rules.meldFloorBandsFive': 'Su esimene kombinatsioon peab ulatuma punktimiinimumini, mis kasvab koos su skooriga: {negative} alla nulli, {low} kuni {lowUpTo}, {mid} kuni {midUpTo}, {high} kuni {highUpTo} ja {top} üle selle.',
+  'canasta.rules.goingOutBonus':
+    'Väljaminek on iseenesest väärt {n} punkti — {concealed}, kui su pool teeb seda ühe käiguga, ilma et oleks enne ühtegi kombinatsiooni lauale pannud.',
+  'canasta.rules.goingOutBonusFlat': 'Väljaminek on iseenesest väärt {n} punkti.',
   'canasta.rules.turn':
     'Käik on üks liigutus sinu kätte — võta kaart pakist või võta kogu äraviskepakk — siis nii palju kombinatsioone kui soovid ja lõpuks üks äravisatud kaart.',
   'canasta.rules.turnDiscard': 'Käik lõpeb äraviskamisega, seega peab sul selleks alati üks kaart üle jääma.',

@@ -160,6 +160,9 @@ export const sl: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Tvoje prvo polaganje mora doseči najmanjše število točk, ki raste z izidom: {negative} pod ničlo, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} nad tem.',
   'canasta.rules.meldFloorBandsFive': 'Tvoja prva kombinacija mora doseči točkovni minimum, ki raste s tvojim rezultatom: {negative} pod ničlo, {low} do {lowUpTo}, {mid} do {midUpTo}, {high} do {highUpTo} in {top} nad tem.',
+  'canasta.rules.goingOutBonus':
+    'Izid je sam po sebi vreden {n} točk — {concealed}, če tvoja stran to naredi v eni sami potezi, ne da bi prej položila kombinacijo.',
+  'canasta.rules.goingOutBonusFlat': 'Izid je sam po sebi vreden {n} točk.',
   'canasta.rules.turn':
     'Poteza je en prevzem v roko — vlečenje iz kupa ali prevzem celotnega odlagalnega kupa — nato kombinacije, ki jih želiš položiti, in na koncu ena odvržena karta.',
   'canasta.rules.turnDiscard': 'Potezo zaključi odvržena karta, zato ti mora zanjo vedno ostati ena.',

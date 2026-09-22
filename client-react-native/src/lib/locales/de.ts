@@ -163,6 +163,9 @@ export const de: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Deine erste Auslage muss einen Mindestwert erreichen, der mit deinem Punktestand steigt: {negative} unter null, {low} bis {lowUpTo}, {mid} bis {midUpTo}, {high} darüber.',
   'canasta.rules.meldFloorBandsFive': 'Deine erste Auslage muss einen Mindestwert erreichen, der mit deinem Punktestand steigt: {negative} unter null, {low} bis {lowUpTo}, {mid} bis {midUpTo}, {high} bis {highUpTo}, darüber {top}.',
+  'canasta.rules.goingOutBonus':
+    'Hinausgehen zählt allein schon {n} Punkte — {concealed}, wenn deine Seite es in einem einzigen Zug schafft, ohne vorher etwas ausgelegt zu haben.',
+  'canasta.rules.goingOutBonusFlat': 'Hinausgehen zählt allein schon {n} Punkte.',
   'canasta.rules.turn':
     'Ein Zug ist ein Griff auf die Hand — vom Stapel ziehen oder den ganzen Ablagestapel nehmen — dann beliebige Auslagen, und zuletzt eine abgelegte Karte.',
   'canasta.rules.turnDiscard':

@@ -159,6 +159,9 @@ export const lt: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Tavo pirmas išdėjimas turi pasiekti taškų minimumą, kuris auga kartu su tavo rezultatu: {negative} žemiau nulio, {low} iki {lowUpTo}, {mid} iki {midUpTo}, {high} virš to.',
   'canasta.rules.meldFloorBandsFive': 'Tavo pirmasis derinys turi pasiekti taškų minimumą, kuris auga kartu su rezultatu: {negative} žemiau nulio, {low} iki {lowUpTo}, {mid} iki {midUpTo}, {high} iki {highUpTo} ir {top} virš to.',
+  'canasta.rules.goingOutBonus':
+    'Išėjimas savaime vertas {n} taškų — {concealed}, jei tavo pusė tai padaro per vieną ėjimą, prieš tai neišdėjusi nė vieno derinio.',
+  'canasta.rules.goingOutBonusFlat': 'Išėjimas savaime vertas {n} taškų.',
   'canasta.rules.turn':
     'Ėjimas — vienas kortų paėmimas į ranką: imi iš malkos arba pasiimi visą numestų kortų krūvą; tada dedi kombinacijas, kokias nori, ir galiausiai numeti vieną kortą.',
   'canasta.rules.turnDiscard': 'Ėjimą užbaigia numetimas, todėl tam visada turi likti viena korta.',

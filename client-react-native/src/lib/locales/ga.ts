@@ -164,6 +164,9 @@ export const ga: Record<string, string> = {
   'canasta.rules.meldFloorBands':
     'Caithfidh do chéad leagan síos íosmhéid pointí a bhaint amach a ardaíonn le do scór: {negative} faoi bhun a náid, {low} suas go {lowUpTo}, {mid} suas go {midUpTo}, {high} os a chionn sin.',
   'canasta.rules.meldFloorBandsFive': 'Caithfidh do chéad chumasc íosmhéid pointí a bhaint amach a ardaíonn le do scór: {negative} faoi bhun nialais, {low} suas go {lowUpTo}, {mid} suas go {midUpTo}, {high} suas go {highUpTo} agus {top} os a chionn sin.',
+  'canasta.rules.goingOutBonus':
+    'Is fiú {n} pointe dul amach as féin — {concealed} má dhéanann do thaobh é in aon seal amháin, gan aon chumasc déanta roimhe sin.',
+  'canasta.rules.goingOutBonusFlat': 'Is fiú {n} pointe dul amach as féin.',
   'canasta.rules.turn':
     'Is éard atá i seal amháin ná aistriú isteach i do lámh — tarraing ón stoc nó tóg an carn iomlán — ansin cibé cumaisc is mian leat, agus ar deireadh cárta amháin caite.',
   'canasta.rules.turnDiscard':
