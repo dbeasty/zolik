@@ -14,14 +14,13 @@ import (
 // layout this server uses, u/<account> for what a person writes and
 // u/<account>/ro for what the cloud writes for them.
 //
-// On a file-backed node, bootstrapping the nested one from a snapshot fails:
-// its checkpoint directory would have to live inside a path the shorter name
-// already occupies as a file. Worse, the failure is not transient. The commit
-// has landed by then, so every later attempt is refused with "a snapshot can
-// only bootstrap a namespace that has never had a commit", and the namespace
-// can never be bootstrapped again.
+// Bootstrapping the nested one from a snapshot used to fail on a file-backed
+// node: the checkpoint file was named by turning the namespace id into a path,
+// so the shorter name held as a file the directory the longer one needed.
+// Fixed in kdb by flattening that name to one component; this is the guard
+// from our side, because the layout that triggers it is the layout this server
+// uses for every account.
 func TestNestedNamespacesBootstrapFromASnapshot(t *testing.T) {
-	t.Skip("kdb: a namespace whose name is a prefix of another cannot be snapshot-bootstrapped on disk")
 
 	runNested(t, true)
 }
