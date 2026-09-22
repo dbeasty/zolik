@@ -209,6 +209,47 @@ describe('useMatchSocket', () => {
     expect(probe.hook!.error).toEqual({ code: 'NOT_CONNECTED' });
   });
 
+  it('backs off a socket that keeps dying right after it opens, instead of retrying every ~1s forever', async () => {
+    // A production table hit exactly this: something (a second live
+    // connection for the same player, most likely — the server always closes
+    // whichever socket a newer one for that player displaces) kept closing
+    // this player's socket within a second of it opening. The old code reset
+    // the backoff counter in `onopen`, so every one of those doomed sockets
+    // was treated as a fresh success and retried at the same ~1s floor
+    // forever. The fix: only reset the counter once a socket has stayed open
+    // a while.
+    renderProbe('ws://table/1?token=a');
+
+    // First socket opens, then dies immediately — well inside the
+    // stability window.
+    act(() => FakeWebSocket.instances[0].fireOpen());
+    act(() => FakeWebSocket.instances[0].fireClose());
+    await flushClose();
+    act(() => jest.advanceTimersByTime(1000)); // jitteredBackoff(0) with Math.random mocked to 0
+    expect(FakeWebSocket.instances).toHaveLength(2);
+
+    // Second socket: same story. If the counter had been reset on open, this
+    // would reconnect again after another ~1000ms. It should not.
+    act(() => FakeWebSocket.instances[1].fireOpen());
+    act(() => FakeWebSocket.instances[1].fireClose());
+    await flushClose();
+    act(() => jest.advanceTimersByTime(1000));
+    expect(FakeWebSocket.instances).toHaveLength(2); // still 2: too soon for a growing backoff
+
+    act(() => jest.advanceTimersByTime(1000)); // jitteredBackoff(1) = 2000ms total
+    expect(FakeWebSocket.instances).toHaveLength(3);
+
+    // Third socket opens and this time stays up past the stability window —
+    // the table recovered. The counter resets, so the *next* failure again
+    // starts at the short delay rather than continuing to climb.
+    act(() => FakeWebSocket.instances[2].fireOpen());
+    act(() => jest.advanceTimersByTime(2000));
+    act(() => FakeWebSocket.instances[2].fireClose());
+    await flushClose();
+    act(() => jest.advanceTimersByTime(1000));
+    expect(FakeWebSocket.instances).toHaveLength(4);
+  });
+
   it('surfaces SERVER_BUSY and backs off long when capacity says the server is full', async () => {
     mockGetCapacity.mockResolvedValue({
       accepting: false,
