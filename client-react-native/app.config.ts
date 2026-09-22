@@ -50,7 +50,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
   return {
     ...config,
-    name: 'Zolik',
+    // Matches app.json's own name, so the web build, the in-app menu (see
+    // app/index.tsx) and the iOS/Android home-screen label all say the same
+    // thing. `slug` stays 'zolik' regardless — it is the EAS project's own
+    // identifier, not something a player ever reads.
+    name: 'Jokerless',
     slug: 'zolik',
     version,
     ios: {

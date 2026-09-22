@@ -964,6 +964,12 @@ export const hr: Record<string, string> = {
   'account.refresh': 'Osvježi',
   'account.remove': 'Ukloni',
 
+  // --- the first-run intro screen (app/intro.tsx) ---------------------------
+  'intro.tagline': 'Klasične kartaške igre, igrane online sa stvarnim ljudima',
+  'intro.bulletFriends': 'Igraj s prijateljima ili se pridruži drugima online',
+  'intro.bulletCrossDevice': 'Jedan račun, telefon ili preglednik — nastavi gdje si stao',
+  'intro.bulletGuest': 'Bez instalacije za isprobavanje — uđi kao gost',
+
   // --- the main menu --------------------------------------------------------
   'home.subtitle': 'Kontinentalni remi · {server}',
   'home.playingAs': 'Igraš kao {name}',

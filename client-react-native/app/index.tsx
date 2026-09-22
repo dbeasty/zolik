@@ -16,6 +16,7 @@ import type { StoredTable } from '@/src/api/matchTypes';
 import type { PlayerSession, WaitingPlayer } from '@/src/api/types';
 import { moduleName } from '@/src/lib/gameLabels';
 import { reasonText, t } from '@/src/lib/i18n';
+import { hasSeenIntro } from '@/src/lib/introStore';
 import { routeForMatch } from '@/src/lib/matchRoute';
 import { consumePendingDestination } from '@/src/lib/pendingDestination';
 import { useInvites } from '@/src/notify/InviteProvider';
@@ -49,9 +50,10 @@ function MenuButton({
 
 export default function MainMenu() {
   const { session, loading, offline } = useSession();
+  const introChecked = useIntroGate();
   useFollowPendingDestination(!!session && !loading);
 
-  if (loading) {
+  if (loading || !introChecked) {
     return (
       <Screen>
         <ActivityIndicator color="#3d8bfd" />
@@ -61,7 +63,7 @@ export default function MainMenu() {
 
   return (
     <Screen
-      title="Žolíky"
+      title="Jokerless"
       subtitle={
         offline ? t('offline.subtitle') : t('home.subtitle', { server: ZOLIK_BASE_URL })
       }
@@ -131,6 +133,40 @@ export default function MainMenu() {
       <BuildFooter />
     </Screen>
   );
+}
+
+/**
+ * Whether this device has cleared the first-run intro, or never needed to
+ * see it fetched at all.
+ *
+ * Stays `false` — never `true` — for a device that has not seen it: the
+ * redirect to `/intro` it fires unmounts this screen, so there is no second
+ * state to hold. Guarded by a ref rather than an effect dependency, same
+ * trick as `useFollowPendingDestination` below, so a re-render mid-check
+ * cannot ask twice and race the eventual `router.replace`.
+ */
+function useIntroGate(): boolean {
+  const [checked, setChecked] = useState(false);
+  const gated = useRef(false);
+
+  useEffect(() => {
+    if (gated.current) return;
+    gated.current = true;
+    let live = true;
+    hasSeenIntro().then((seen) => {
+      if (!live) return;
+      if (!seen) {
+        router.replace('/intro');
+        return;
+      }
+      setChecked(true);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  return checked;
 }
 
 /**

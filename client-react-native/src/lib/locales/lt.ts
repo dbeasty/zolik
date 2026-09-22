@@ -965,6 +965,12 @@ export const lt: Record<string, string> = {
   'account.refresh': 'Atnaujinti',
   'account.remove': 'Pašalinti',
 
+  // --- the first-run intro screen (app/intro.tsx) ---------------------------
+  'intro.tagline': 'Klasikiniai kortų žaidimai, žaidžiami internetu su tikrais žmonėmis',
+  'intro.bulletFriends': 'Žaisk su draugais arba prisijunk prie kitų internetu',
+  'intro.bulletCrossDevice': 'Viena paskyra, telefonas ar naršyklė — tęsk nuo ten, kur baigei',
+  'intro.bulletGuest': 'Nereikia nieko diegti, kad išbandytum — prisijunk kaip svečias',
+
   // --- the main menu --------------------------------------------------------
   'home.subtitle': 'Kontinentinis remis · {server}',
   'home.playingAs': 'Žaidi kaip {name}',

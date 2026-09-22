@@ -43,8 +43,14 @@ const ALLOWED = new Set([
   // Skin and avatar names are proper nouns chosen by the designer, shown
   // identically in every language — see `src/skins` and `src/components/avatars`.
   'Amber', 'Violet', 'Teal', 'Coral', 'Slate', 'Moss', 'Casino', 'Classic',
-  // The product name, in both spellings the app uses.
-  'Zolik', 'Žolíky',
+  // The product name. 'Jokerless' is what a player actually reads — the
+  // intro screen's wordmark and the main menu's title (see app/intro.tsx,
+  // app/index.tsx) — and what app.json/app.config.ts build the native apps
+  // as. 'Zolik' and 'Žolíky' are the repo/slug and one game's own name
+  // respectively, kept here because either can still turn up in a string a
+  // player reads (an invite message, a game chip). A brand name, not a
+  // sentence: shown identically in every language on purpose.
+  'Zolik', 'Žolíky', 'Jokerless',
 ]);
 
 const IGNORE_FILE = /\.test\.tsx?$|\/__tests__\//;

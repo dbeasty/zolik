@@ -71,6 +71,12 @@ export default function RootLayout() {
                 >
                   <Stack.Screen name="index" options={{ title: t('nav.home') }} />
 
+                  {/* The one-time first-run screen. No header of its own —
+                      it is a single marketing moment, reached only from the
+                      redirect in app/index.tsx, never from navigation. See
+                      src/lib/introStore.ts for the "seen it" flag. */}
+                  <Stack.Screen name="intro" options={{ headerShown: false }} />
+
                   {/* Signing in. The provider list is fetched, so enabling Apple or
                       Microsoft server-side lights up a button with no app change. */}
                   <Stack.Screen name="auth/login" options={{ title: t('settings.signIn') }} />

@@ -980,6 +980,12 @@ export const hu: Record<string, string> = {
   'account.refresh': 'Frissítés',
   'account.remove': 'Eltávolítás',
 
+  // --- the first-run intro screen (app/intro.tsx) ---------------------------
+  'intro.tagline': 'Klasszikus kártyajátékok, valódi emberekkel online',
+  'intro.bulletFriends': 'Játssz barátaiddal, vagy ülj le másokkal online',
+  'intro.bulletCrossDevice': 'Egyetlen fiók, telefon vagy böngésző — folytasd, ahol abbahagytad',
+  'intro.bulletGuest': 'Nincs szükség telepítésre a kipróbáláshoz — lépj be vendégként',
+
   // --- the main menu --------------------------------------------------------
   'home.subtitle': 'Kontinentális römi · {server}',
   'home.playingAs': '{name} néven játszol',

@@ -969,6 +969,12 @@ export const et: Record<string, string> = {
   'account.refresh': 'Värskenda',
   'account.remove': 'Eemalda',
 
+  // --- the first-run intro screen (app/intro.tsx) ---------------------------
+  'intro.tagline': 'Klassikalised kaardimängud, mängitud veebis päris inimestega',
+  'intro.bulletFriends': 'Mängi sõpradega või liitu teistega veebis',
+  'intro.bulletCrossDevice': 'Üks konto, telefon või brauser — jätka sealt, kus pooleli jäid',
+  'intro.bulletGuest': 'Proovimiseks pole vaja midagi paigaldada — alusta külalisena',
+
   // --- the main menu --------------------------------------------------------
   'home.subtitle': 'Kontinentaalne rummi · {server}',
   'home.playingAs': 'Mängid nimega {name}',

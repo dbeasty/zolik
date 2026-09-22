@@ -994,6 +994,12 @@ export const ga: Record<string, string> = {
   'account.refresh': 'Athnuaigh',
   'account.remove': 'Bain',
 
+  // --- the first-run intro screen (app/intro.tsx) ---------------------------
+  'intro.tagline': 'Cluichí cártaí clasaiceacha, imeartha ar líne le daoine fíor',
+  'intro.bulletFriends': 'Imir le cairde, nó suigh síos le daoine eile ar líne',
+  'intro.bulletCrossDevice': 'Cuntas amháin, fón nó brabhsálaí — lean ar aghaidh ón áit ar fhág tú',
+  'intro.bulletGuest': 'Ní gá aon suiteáil chun triail a bhaint as — tosaigh mar aoi',
+
   // --- the main menu --------------------------------------------------------
   'home.subtitle': 'Rummy Ilchríochach · {server}',
   'home.playingAs': 'Tá tú ag imirt mar {name}',

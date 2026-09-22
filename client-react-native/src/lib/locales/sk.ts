@@ -963,6 +963,12 @@ export const sk: Record<string, string> = {
   'account.refresh': 'Obnoviť',
   'account.remove': 'Odobrať',
 
+  // --- the first-run intro screen (app/intro.tsx) ---------------------------
+  'intro.tagline': 'Klasické kartové hry, hrané online so skutočnými ľuďmi',
+  'intro.bulletFriends': 'Hraj s priateľmi alebo sa pridaj k ostatným online',
+  'intro.bulletCrossDevice': 'Jeden účet, telefón alebo prehliadač — pokračuj tam, kde si skončil',
+  'intro.bulletGuest': 'Žiadna inštalácia na vyskúšanie — pokračuj ako hosť',
+
   // --- the main menu --------------------------------------------------------
   'home.subtitle': 'Kontinentálne žolíky · {server}',
   'home.playingAs': 'Hráš ako {name}',

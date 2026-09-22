@@ -971,6 +971,12 @@ export const it: Record<string, string> = {
   'account.refresh': 'Aggiorna',
   'account.remove': 'Rimuovi',
 
+  // --- the first-run intro screen (app/intro.tsx) ---------------------------
+  'intro.tagline': 'Giochi di carte classici, giocati online con persone vere',
+  'intro.bulletFriends': 'Gioca con gli amici o siediti al tavolo con altri online',
+  'intro.bulletCrossDevice': 'Un solo account, telefono o browser — riprendi da dove avevi lasciato',
+  'intro.bulletGuest': 'Nessuna installazione per provarlo — entra come ospite',
+
   // --- the main menu --------------------------------------------------------
   'home.subtitle': 'Ramino continentale · {server}',
   'home.playingAs': 'Giochi come {name}',

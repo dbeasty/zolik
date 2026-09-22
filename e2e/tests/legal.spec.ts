@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { seedIntroSeen } from '../helpers/login';
+
 /**
  * The notices are only worth anything if a player can actually reach them, so
  * every assertion here is about what is on the screen after a real click —
@@ -7,6 +9,12 @@ import { expect, test } from '@playwright/test';
  * would satisfy a routing test and fail the only reader who ever follows it.
  */
 test.describe('the legal notices are reachable and readable', () => {
+  // No session is seeded in this file, so `/` would otherwise show the
+  // first-run intro screen instead of the menu these links are read from.
+  test.beforeEach(async ({ page }) => {
+    await seedIntroSeen(page);
+  });
+
   test('the footer reaches the terms, and the terms say the game is free of charge and of warranty', async ({
     page,
   }) => {

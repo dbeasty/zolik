@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { API_BASE } from '../helpers/env';
+import { seedIntroSeen } from '../helpers/login';
 
 /**
  * The build footer exists to answer "is the fix in?" without reading logs —
@@ -11,6 +12,12 @@ import { API_BASE } from '../helpers/env';
  * which would otherwise pass this test for the wrong reason.
  */
 test.describe('the build footer shows what it is actually running', () => {
+  // No session is seeded in this file, so `/` would otherwise show the
+  // first-run intro screen instead of the footer this test reads.
+  test.beforeEach(async ({ page }) => {
+    await seedIntroSeen(page);
+  });
+
   test('the app half is a real build, and the server half matches /version', async ({
     page,
     request,

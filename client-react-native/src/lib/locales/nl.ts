@@ -979,6 +979,12 @@ export const nl: Record<string, string> = {
   'account.refresh': 'Vernieuwen',
   'account.remove': 'Verwijderen',
 
+  // --- the first-run intro screen (app/intro.tsx) ---------------------------
+  'intro.tagline': 'Klassieke kaartspellen, online gespeeld met echte mensen',
+  'intro.bulletFriends': 'Speel met vrienden, of sluit online aan bij anderen',
+  'intro.bulletCrossDevice': 'Eén account, telefoon of browser — ga verder waar je gebleven was',
+  'intro.bulletGuest': 'Geen installatie nodig om het te proberen — ga aan de slag als gast',
+
   // --- the main menu --------------------------------------------------------
   'home.subtitle': 'Continentale rummy · {server}',
   'home.playingAs': 'Je speelt als {name}',

@@ -977,6 +977,12 @@ export const bg: Record<string, string> = {
   'account.refresh': 'Опресни',
   'account.remove': 'Премахни',
 
+  // --- the first-run intro screen (app/intro.tsx) ---------------------------
+  'intro.tagline': 'Класически карти игри, играни онлайн с истински хора',
+  'intro.bulletFriends': 'Играйте с приятели или седнете на маса с други онлайн',
+  'intro.bulletCrossDevice': 'Един акаунт, телефон или браузър — продължете откъдето сте спрели',
+  'intro.bulletGuest': 'Без инсталация, за да опитате — включете се като гост',
+
   // --- the main menu --------------------------------------------------------
   'home.subtitle': 'Континентален реми · {server}',
   'home.playingAs': 'Играеш като {name}',

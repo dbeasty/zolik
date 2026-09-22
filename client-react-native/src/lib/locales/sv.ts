@@ -959,6 +959,12 @@ export const sv: Record<string, string> = {
   'account.refresh': 'Uppdatera',
   'account.remove': 'Ta bort',
 
+  // --- the first-run intro screen (app/intro.tsx) ---------------------------
+  'intro.tagline': 'Klassiska kortspel, spelade online med riktiga människor',
+  'intro.bulletFriends': 'Spela med vänner, eller sätt dig vid bordet med andra online',
+  'intro.bulletCrossDevice': 'Ett konto, telefon eller webbläsare — fortsätt där du slutade',
+  'intro.bulletGuest': 'Ingen installation för att prova — kom igång som gäst',
+
   // --- the main menu --------------------------------------------------------
   'home.subtitle': 'Kontinental rommé · {server}',
   'home.playingAs': 'Du spelar som {name}',

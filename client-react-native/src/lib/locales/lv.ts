@@ -964,6 +964,12 @@ export const lv: Record<string, string> = {
   'account.refresh': 'Atsvaidzināt',
   'account.remove': 'Noņemt',
 
+  // --- the first-run intro screen (app/intro.tsx) ---------------------------
+  'intro.tagline': 'Klasiskas kāršu spēles, spēlētas tiešsaistē ar īstiem cilvēkiem',
+  'intro.bulletFriends': 'Spēlē ar draugiem vai pievienojies citiem tiešsaistē',
+  'intro.bulletCrossDevice': 'Viens konts, tālrunis vai pārlūkprogramma — turpini no vietas, kur pārtrauci',
+  'intro.bulletGuest': 'Nekas nav jāinstalē, lai izmēģinātu — sāc kā viesis',
+
   // --- the main menu --------------------------------------------------------
   'home.subtitle': 'Kontinentālais remijs · {server}',
   'home.playingAs': 'Tu spēlē kā {name}',
