@@ -310,6 +310,7 @@ export const mt: Record<string, string> = {
   'canasta.round.canastas': 'Canastas: {n}',
   'canasta.round.redThrees': 'Tlietiet ħomor: {n}',
   'canasta.round.goingOut': 'Ħruġ: {n}',
+  'canasta.round.closed': "{player} għalaq b'differenza ta' {diff} punti",
   'canasta.round.inHand': "Baqgħu f'idek: {n}",
   'holdem.round.hand': 'Id',
   'holdem.round.pot': 'Pot {n}',

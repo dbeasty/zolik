@@ -306,6 +306,7 @@ export const fi: Record<string, string> = {
   'canasta.round.canastas': 'Canastat {n}',
   'canasta.round.redThrees': 'Punaiset kolmoset {n}',
   'canasta.round.goingOut': 'Ulospääsy {n}',
+  'canasta.round.closed': '{player} sulki {diff} pisteen erolla',
   'canasta.round.inHand': 'Jäi käteen {n}',
   'holdem.round.hand': 'Käsi',
   'holdem.round.pot': 'Potti {n}',

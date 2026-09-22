@@ -313,6 +313,7 @@ export const de: Record<string, string> = {
   'canasta.round.canastas': 'Canastas {n}',
   'canasta.round.redThrees': 'Rote Dreien {n}',
   'canasta.round.goingOut': 'Hinausgehen {n}',
+  'canasta.round.closed': '{player} hat mit einer Punktedifferenz von {diff} beendet',
   'canasta.round.inHand': 'Auf der Hand erwischt {n}',
   'holdem.round.hand': 'Blatt',
   'holdem.round.pot': 'Pot {n}',

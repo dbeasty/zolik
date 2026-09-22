@@ -304,6 +304,7 @@ export const lt: Record<string, string> = {
   'canasta.round.canastas': 'Kanastos: {n}',
   'canasta.round.redThrees': 'Raudoni trejetai: {n}',
   'canasta.round.goingOut': 'Išėjimas: {n}',
+  'canasta.round.closed': '{player} uždarė su {diff} taškų skirtumu',
   'canasta.round.inHand': 'Liko rankoje: {n}',
   'holdem.round.hand': 'Ranka',
   'holdem.round.pot': 'Bankas {n}',

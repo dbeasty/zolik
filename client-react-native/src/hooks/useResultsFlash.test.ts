@@ -204,6 +204,19 @@ describe('compose', () => {
     );
   });
 
+  // Canasta: the side that closes is not necessarily the side that takes the
+  // deal, so the module's own sentence replaces "X took it".
+  it("says the module's own headline in place of who took the round", () => {
+    const closed = log();
+    closed.rounds[0]!.headline = {
+      labelKey: 'canasta.round.closed',
+      params: { player: 'p2', diff: '-240' },
+    };
+    expect(compose({ kind: 'round', log: closed, players, viewerId: 'p1' }).headline).toBe(
+      'Anna closed with a -240 point differential',
+    );
+  });
+
   // The one that would be silently wrong: rummy is scored downwards and carried
   // negated, so a player who took 28 penalty points must not be shown -28's
   // arithmetic. `shown` is the number meant for a person.

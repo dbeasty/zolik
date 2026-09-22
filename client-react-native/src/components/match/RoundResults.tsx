@@ -118,6 +118,11 @@ export const RoundResults = memo(function RoundResults({
                 >
                   <View style={[styles.cell, styles.labelCell]}>
                     <Text style={styles.roundNumber}>{r.number}</Text>
+                    {r.headline ? (
+                      <Text style={styles.roundFact} testID={`round-${r.number}-headline`}>
+                        {factText(r.headline, players)}
+                      </Text>
+                    ) : null}
                     {(perRound.get(r.number) ?? []).map((f, i) => (
                       <Text key={`${f.labelKey}-${i}`} style={styles.roundFact}>
                         {factText(f, players)}

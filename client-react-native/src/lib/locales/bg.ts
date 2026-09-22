@@ -308,6 +308,7 @@ export const bg: Record<string, string> = {
   'canasta.round.canastas': 'Канасти: {n}',
   'canasta.round.redThrees': 'Червени тройки: {n}',
   'canasta.round.goingOut': 'Излизане: {n}',
+  'canasta.round.closed': '{player} затвори с разлика от {diff} точки',
   'canasta.round.inHand': 'Останали в ръката: {n}',
   'holdem.round.hand': 'Раздаване',
   'holdem.round.pot': 'Пот {n}',

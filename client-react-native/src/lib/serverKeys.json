@@ -242,6 +242,7 @@
     "canasta.remedy.takePileInstead",
     "canasta.remedy.topCardUnusable",
     "canasta.remedy.undoMeldsFirst",
+    "canasta.round.closed",
     "canasta.round.concealed",
     "canasta.round.deal",
     "canasta.round.exhausted",
@@ -989,6 +990,10 @@
     "canasta.remedy.topCardUnusable": [
       "card"
     ],
+    "canasta.round.closed": [
+      "diff",
+      "player"
+    ],
     "canasta.rules.blackThreesGoOut": [
       "n"
     ],
@@ -1459,6 +1464,7 @@
     "canasta.remedy.needTwoMatching",
     "canasta.remedy.pileFrozen",
     "canasta.remedy.topCardUnusable",
+    "canasta.round.closed",
     "canasta.rules.blackThreesGoOut",
     "canasta.rules.blackThreesNeverMeld",
     "canasta.rules.canasta",
