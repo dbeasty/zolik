@@ -231,6 +231,20 @@ export function ZoneView({
   // pile). It is also the whole of a press that takes *from* a pile, where
   // there was never anything to choose: drawing is a tap on the deck.
   const zonePressable = pressableDrops?.has(zoneId) ?? false;
+  // Whether anything *inside* this zone claims a press of its own. That is the
+  // only thing the zone-wide overlay has to lose a tap to, and the whole
+  // reason it is drawn under the spread: a group's own overlay is painted
+  // later and so wins the taps that land inside it.
+  //
+  // When no group claims one, drawing it under the spread means it catches
+  // nothing at all. The groups painted over it are inert, so a tap aimed at
+  // the spread lands on a meld that does nothing and dies there — exactly the
+  // way a tap aimed at a pile once died on its top card (see the card row
+  // below). An offer that names the whole zone rather than a group in it had
+  // no reachable target at all on a board that already had melds on it, which
+  // is every board by the time Canasta's going-out meld of black threes comes
+  // up.
+  const groupTargets = (zone.groups ?? []).some((g) => pressableDrops?.has(groupElementId(g.id)));
   // Built once and placed in one of two positions below, because where it
   // belongs in the paint order depends on what else the zone is drawing.
   const pressOverlay = zonePressable ? (
@@ -304,13 +318,14 @@ export function ZoneView({
             inside it, and the zone-wide one only ever catches what no group
             claimed. A zone drawing loose cards puts it last instead; see the
             end of the card row for why. */}
-        {groups.length > 0 ? pressOverlay : null}
+        {groups.length > 0 && groupTargets ? pressOverlay : null}
 
         {zone.kind === 'stack' ? <StackBack count={zone.count} compact={compact} metrics={metrics} /> : null}
 
         {/* Groups first: a spread's cards belong to its groups, and rendering
           both would show every card twice. */}
         {(zone.groups ?? []).length > 0 ? (
+        <>
         <View style={styles.groups}>
           {(zone.groups ?? []).map((g) => {
             const groupId = groupElementId(g.id);
@@ -472,6 +487,11 @@ export function ZoneView({
             );
           })}
         </View>
+        {/* And where it goes when nothing inside the spread claims a tap:
+            last, over the groups, for the same reason the card row below puts
+            it last. There is no group overlay left to lose the race to. */}
+        {groupTargets ? null : pressOverlay}
+        </>
       ) : (
         <>
           <View style={styles.cards}>
