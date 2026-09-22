@@ -106,6 +106,10 @@ func (e *authEngine) Authenticate(ctx context.Context, creds kdbauth.Credentials
 	return kdbauth.Principal{ID: principalID, Claims: claims}, nil
 }
 
+// claimSelf marks the principal this node writes as when it is acting on its
+// own behalf rather than for somebody who connected.
+const claimSelf = "self"
+
 // identityOf reads back what Authenticate put in the principal's claims.
 func identityOf(p kdbauth.Principal) Identity {
 	return Identity{
@@ -135,6 +139,13 @@ func (e *authEngine) Authorize(ctx context.Context, p kdbauth.Principal, action 
 		default:
 			return nil
 		}
+	}
+	// This node acting for itself: settling a conflict its own rules decided,
+	// or taking a match's home. A peer can never present this, because a
+	// peer's principal is built by Authenticate out of a verified token and
+	// nothing in a token reaches these claims.
+	if p.Claims[claimSelf] == "true" {
+		return nil
 	}
 	switch a := action.(type) {
 	case kdbauth.PeerPullAction:

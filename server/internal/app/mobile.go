@@ -217,7 +217,12 @@ func (a *App) RegisterNodeRoutes(r chi.Router) {
 		}
 	}
 	a.auth.RegisterLocalRoutes(r)
-	replica.NewHandlers(a.Replica).RegisterRoutes(r)
+	// The person's own data, read from this device's copy and written back to
+	// it: a setting changed on a train takes now and reaches the cloud when
+	// there is a connection, rather than being refused because there is not.
+	local := replica.NewHandlers(a.Replica)
+	local.SetWriter(a.ReplicaWriter)
+	local.RegisterRoutes(r)
 	r.NotFound(func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 	})
@@ -226,6 +231,11 @@ func (a *App) RegisterNodeRoutes(r chi.Router) {
 // Replica is this device's copy of the signed-in account's data.
 func (a *App) Replica() *replica.Reader {
 	return replica.NewReader(a.kdb, a.replicaUser)
+}
+
+// ReplicaWriter applies the person's own changes to that copy.
+func (a *App) ReplicaWriter() *replica.Writer {
+	return replica.NewWriter(a.kdb, a.replicaUser)
 }
 
 // Sync is this process as a node of the distributed database, for the app to

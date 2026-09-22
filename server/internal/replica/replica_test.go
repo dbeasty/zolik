@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -150,5 +151,99 @@ func TestTheLocalRoutesServeWhatThisDeviceHolds(t *testing.T) {
 	defer res2.Body.Close()
 	if res2.StatusCode != http.StatusServiceUnavailable {
 		t.Fatalf("status = %d, want 503", res2.StatusCode)
+	}
+}
+
+func TestWhatAPersonChangesOnTheirDeviceIsStoredAsTheirOwn(t *testing.T) {
+	k, rd := openReplica(t)
+	wr := NewWriter(k, user)
+
+	if err := wr.PutPrefs([]byte(`{"language":"en","cardStyle":"vector"}`)); err != nil {
+		t.Fatalf("writing preferences: %v", err)
+	}
+	doc, err := rd.Prefs()
+	if err != nil {
+		t.Fatalf("reading them back: %v", err)
+	}
+	var prefs struct {
+		Language  string `json:"language"`
+		Kind      string `json:"_kind"`
+		UpdatedAt string `json:"updatedAt"`
+	}
+	if err := json.Unmarshal(doc, &prefs); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if prefs.Language != "en" {
+		t.Fatalf("language = %q", prefs.Language)
+	}
+	// The kind is how the other side of a sync knows which rule to merge it
+	// by, and the time is how that rule decides between two devices. Both are
+	// stamped here rather than taken from the caller: a phone whose clock is
+	// a day fast would otherwise win every disagreement it was part of.
+	if prefs.Kind != db.KindPrefs {
+		t.Fatalf("kind = %q, want %q", prefs.Kind, db.KindPrefs)
+	}
+	if prefs.UpdatedAt == "" {
+		t.Fatal("the write was not stamped with a time")
+	}
+}
+
+func TestAScorepadKeepsItsIdentityAcrossDevices(t *testing.T) {
+	k, rd := openReplica(t)
+	wr := NewWriter(k, user)
+
+	// The same pad edited twice is one document, not two: two devices editing
+	// it have to land on the same key or the merge has nothing to merge.
+	if err := wr.PutScoring("pad-1", []byte(`{"rounds":[{"id":"r1","score":10}]}`)); err != nil {
+		t.Fatalf("first: %v", err)
+	}
+	if err := wr.PutScoring("pad-1", []byte(`{"rounds":[{"id":"r1","score":10},{"id":"r2","score":20}]}`)); err != nil {
+		t.Fatalf("second: %v", err)
+	}
+	pads, err := rd.Scoring()
+	if err != nil {
+		t.Fatalf("reading: %v", err)
+	}
+	if len(pads) != 1 {
+		t.Fatalf("scorepads = %d, want one document", len(pads))
+	}
+
+	// And an id that would reach outside this person's own keys is refused.
+	if err := wr.PutScoring("../stats", []byte(`{}`)); err == nil {
+		t.Fatal("a scorepad id containing a path separator was accepted")
+	}
+}
+
+func TestADeviceCannotWriteWhatTheCloudOwns(t *testing.T) {
+	k, _ := openReplica(t)
+	r := chi.NewRouter()
+	h := NewHandlers(func() *Reader { return NewReader(k, user) })
+	h.SetWriter(func() *Writer { return NewWriter(k, user) })
+	h.RegisterRoutes(r)
+	server := httptest.NewServer(r)
+	t.Cleanup(server.Close)
+
+	put := func(path, body string) int {
+		req, err := http.NewRequest(http.MethodPut, server.URL+path, strings.NewReader(body))
+		if err != nil {
+			t.Fatalf("request: %v", err)
+		}
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatalf("put %s: %v", path, err)
+		}
+		defer res.Body.Close()
+		return res.StatusCode
+	}
+
+	if code := put("/me/prefs", `{"language":"cs"}`); code != http.StatusNoContent {
+		t.Fatalf("writing own settings = %d, want 204", code)
+	}
+	// A rating and a match history are the cloud's. A device that could write
+	// them could award itself either.
+	for _, path := range []string{"/me/stats", "/me/matches"} {
+		if code := put(path, `{"overall":{"matches":9999}}`); code != http.StatusForbidden {
+			t.Fatalf("writing %s = %d, want 403", path, code)
+		}
 	}
 }

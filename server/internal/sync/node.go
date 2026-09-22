@@ -323,7 +323,10 @@ func (n *Node) NodeID() string {
 // principal is the identity this node writes as when it is acting for itself
 // rather than for a request: settling a conflict, taking a match's home.
 func (n *Node) principal() kdbauth.Principal {
-	return kdbauth.Principal{ID: "node:" + n.NodeID(), Claims: map[string]string{"server": "true"}}
+	return kdbauth.Principal{
+		ID:     "node:" + n.NodeID(),
+		Claims: map[string]string{"server": "true", claimSelf: "true"},
+	}
 }
 
 // runtime is the server runtime for a namespace, opening it if necessary.

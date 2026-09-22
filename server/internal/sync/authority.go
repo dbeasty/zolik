@@ -2,6 +2,7 @@ package sync
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"sort"
@@ -129,6 +130,37 @@ func (a *authority) loop() {
 	}
 }
 
+// Settle runs a settlement pass now and waits for it, for the moments where
+// waiting for the tick would be visible: a sync that has just brought in a
+// divergence, or a test that would otherwise be asserting against a timer.
+func (n *Node) Settle() {
+	if n == nil || n.authority == nil {
+		return
+	}
+	n.authority.pass()
+}
+
+// OpenConflicts is what this node has not been able to settle, by namespace,
+// as a line per conflict. For an operator looking at why two devices disagree,
+// and for a test asserting that they do not.
+func (n *Node) OpenConflicts() map[string][]string {
+	if n == nil {
+		return nil
+	}
+	out := map[string][]string{}
+	for _, name := range n.kdb.OpenNamespaces() {
+		queue, ok := n.node.Conflicts(db.Qualified(name))
+		if !ok {
+			continue
+		}
+		for _, e := range queue.List() {
+			out[name] = append(out[name], fmt.Sprintf("%s kind=%s authority=%v items=%d",
+				e.ID, e.Kind, e.Authority, len(e.Items)))
+		}
+	}
+	return out
+}
+
 // pass settles everything settleable on every namespace this node holds.
 func (a *authority) pass() {
 	for _, name := range a.node.kdb.OpenNamespaces() {
@@ -154,7 +186,7 @@ func (a *authority) settleNamespace(name string) error {
 		if !entry.Authority || len(entry.Items) == 0 {
 			continue
 		}
-		choices, err := a.decide(entry)
+		choices, err := a.decide(rt, name, entry)
 		if err != nil {
 			log.Printf("sync: %s conflict %s: %v", name, entry.ID, err)
 			continue
@@ -162,7 +194,17 @@ func (a *authority) settleNamespace(name string) error {
 		if len(choices) == 0 {
 			continue
 		}
-		if _, err := rt.ResolveConflict(entry.ID, choices, a.node.principal()); err != nil {
+		switch _, err := rt.ResolveConflict(entry.ID, choices, a.node.principal()); {
+		case err == nil:
+		case isSuperseded(err):
+			// The document has moved on since this merge: another merge
+			// settled it again, and that later entry is the one worth
+			// deciding. This one describes a moment that no longer exists, so
+			// it is dropped rather than retried for ever.
+			if err := queue.Remove(entry.ID); err != nil {
+				return fmt.Errorf("dropping the superseded conflict %s: %w", entry.ID, err)
+			}
+		default:
 			return fmt.Errorf("resolving %s: %w", entry.ID, err)
 		}
 	}
@@ -170,7 +212,15 @@ func (a *authority) settleNamespace(name string) error {
 }
 
 // decide turns one conflict entry into a settlement per document.
-func (a *authority) decide(entry peersync.ConflictEntry) (map[codec.UUID]peersync.Choice, error) {
+//
+// A provisional entry says which value a merge kept and which it dropped, and
+// the engine has been serving the kept one ever since. So the question is not
+// "which of these two" but "what should the document hold now", and the answer
+// has to be built against what it holds at this moment rather than against
+// what it held when the merge happened: the person may have changed it again
+// since, and the engine refuses a settlement decided against a value that has
+// moved.
+func (a *authority) decide(rt *kdbserver.KdbServerRuntime, name string, entry peersync.ConflictEntry) (map[codec.UUID]peersync.Choice, error) {
 	bases := map[string]string{}
 	for _, d := range entry.Details {
 		if d.Base != nil {
@@ -183,19 +233,65 @@ func (a *authority) decide(entry peersync.ConflictEntry) (map[codec.UUID]peersyn
 		if err != nil {
 			return nil, err
 		}
-		body, err := settle(bases[item.DocumentID], item.LocalDoc, item.IncomingDoc)
+		current, _, found, err := rt.ReadForUpdate(db.Qualified(name), id)
+		if err != nil {
+			return nil, err
+		}
+		kept := item.LocalDoc
+		if found {
+			kept = &current
+		}
+		// The side the merge dropped, which is the whole reason this is here.
+		dropped := item.IncomingDoc
+		if dropped != nil && kept != nil && sameJSON(*dropped, *kept) {
+			dropped = item.LocalDoc
+		}
+		body, err := settle(bases[item.DocumentID], kept, dropped)
 		if err != nil {
 			return nil, err
 		}
 		if body == nil {
-			// No rule for this document: leave it queued rather than guess.
-			// A conflict nobody can explain is worth a human looking at it.
-			continue
+			// No rule for this document: leave the whole entry queued rather
+			// than guess. A conflict nobody can explain is worth a human
+			// looking at it, and a settlement has to answer for every
+			// document the entry names or the engine refuses it anyway.
+			return nil, nil
 		}
+		// Every item gets a choice, including the ones already holding the
+		// right value: a settlement is all or nothing.
 		merged := string(body)
 		out[id] = peersync.Choice{Body: &merged}
 	}
 	return out, nil
+}
+
+// isSuperseded reports whether a settlement was refused because the documents
+// it decided have changed since the merge that queued them.
+func isSuperseded(err error) bool {
+	var stale *kdbserver.ErrResolutionStale
+	return errors.As(err, &stale)
+}
+
+// sameJSON compares two documents by their fields rather than their bytes, so
+// a difference of key order or whitespace is not a difference.
+func sameJSON(a, b string) bool {
+	fa, err := fields(a)
+	if err != nil {
+		return a == b
+	}
+	fb, err := fields(b)
+	if err != nil {
+		return a == b
+	}
+	ca, err := marshalCanonical(fa)
+	if err != nil {
+		return a == b
+	}
+	cb, err := marshalCanonical(fb)
+	if err != nil {
+		return a == b
+	}
+	return string(ca) == string(cb)
 }
 
 // settle picks the rule for a document and applies it. A nil result means
