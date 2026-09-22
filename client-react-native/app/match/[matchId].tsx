@@ -37,6 +37,7 @@ import {
   dropSpotsFor,
   groupElementId,
   positionAt,
+  readyWith,
   refusalAt,
   someOfferReady,
   sourceSpotsFor,
@@ -674,6 +675,20 @@ export default function MatchScreen() {
     if (!spot) return;
     const offer = state.legalActions.find((o) => o.id === spot.offerId);
     if (!offer) return;
+
+    // A target lit for a selection that is not a whole submission yet. A drag
+    // gathers into one of these — `endDrag` keeps the cards and waits for the
+    // next — but a press has nothing left to gather: the cards are already
+    // picked, so the same branch here would do literally nothing, which is
+    // what it did. The board would light up, invite the tap, and swallow it,
+    // with `submissionFor` refusing the short submission two lines later and
+    // the press dying on `if (!action) return`. Say what the control beside it
+    // says instead, in the same words.
+    if (!spot.ready) {
+      const fit = readyWith(offer, selectedCards);
+      if (!fit.ok) setExplaining({ labelKey: fit.labelKey, params: fit.params });
+      return;
+    }
 
     // An empty selection has to travel as `undefined`, not `[]` — an offer
     // built with no cards named falls back to its own one-tap default, the
