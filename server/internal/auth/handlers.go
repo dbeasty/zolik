@@ -23,6 +23,11 @@ const (
 	accessTokenTTL      = 15 * time.Minute
 	guestAccessTokenTTL = 7 * 24 * time.Hour
 	refreshTokenTTL     = 30 * 24 * time.Hour
+	// refreshReuseGrace is how long a refresh token still answers after it has
+	// been exchanged, with the token it was exchanged for. Long enough for the
+	// requests a client already had in the air, short enough that a leaked
+	// token is not a second session.
+	refreshReuseGrace = time.Minute
 )
 
 // Deps is everything the auth handlers need from the outside.
@@ -515,26 +520,40 @@ func (h *Handlers) refresh(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "invalid refresh token", http.StatusUnauthorized)
 		return
 	}
-
-	newRefresh, err := CreateRefreshToken()
-	if err != nil {
-		internalError(w, "refresh", err)
-		return
-	}
 	now := time.Now().UTC()
 
-	// Rotate: retire the old token and issue a new one.
-	_ = h.sessionRepo.DeleteByToken(ctx, body.RefreshToken)
-	if err := h.sessionRepo.CreateSession(ctx, models.Session{
-		Token:     newRefresh,
-		GuestName: s.GuestName,
-		UserID:    s.UserID,
-		GuestID:   s.GuestID,
-		CreatedAt: now,
-		ExpiresAt: now.Add(refreshTokenTTL),
-	}); err != nil {
-		internalError(w, "refresh", err)
-		return
+	var newRefresh string
+	if s.ReplacedBy != "" {
+		// Already exchanged — usually by a second request from the same
+		// client that was rejected at the same moment. Inside the grace
+		// period it gets the same successor; after it, or once the successor
+		// itself is gone (logged out, or rotated past its own grace), it is
+		// refused. Mongo's TTL monitor sweeps only once a minute, so the
+		// expiry is checked here rather than trusted to have happened.
+		next, err := h.sessionRepo.FindByToken(ctx, s.ReplacedBy)
+		if now.After(s.ExpiresAt) || err != nil || next.ReplacedBy != "" {
+			http.Error(w, "invalid refresh token", http.StatusUnauthorized)
+			return
+		}
+		s, newRefresh = next, next.Token
+	} else {
+		if newRefresh, err = CreateRefreshToken(); err != nil {
+			internalError(w, "refresh", err)
+			return
+		}
+		// Rotate: issue a new token, then retire the old one.
+		if err := h.sessionRepo.CreateSession(ctx, models.Session{
+			Token:     newRefresh,
+			GuestName: s.GuestName,
+			UserID:    s.UserID,
+			GuestID:   s.GuestID,
+			CreatedAt: now,
+			ExpiresAt: now.Add(refreshTokenTTL),
+		}); err != nil {
+			internalError(w, "refresh", err)
+			return
+		}
+		_ = h.sessionRepo.Retire(ctx, body.RefreshToken, newRefresh, now.Add(refreshReuseGrace))
 	}
 
 	// The subject is the account for a registered player and the *guest id*

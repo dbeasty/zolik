@@ -22,6 +22,9 @@ type SessionRepository interface {
 	// them, so a guest who has been playing since before this existed gains
 	// one on their next refresh rather than staying unattributable forever.
 	SetGuestID(ctx context.Context, token, guestID string) error
+	// Retire marks token as exchanged for replacedBy and cuts its life short
+	// to until, instead of deleting it outright. See Session.ReplacedBy.
+	Retire(ctx context.Context, token, replacedBy string, until time.Time) error
 	DeleteByToken(ctx context.Context, token string) error
 }
 
@@ -66,6 +69,14 @@ func (r *mongoSessionRepository) SetGuestID(ctx context.Context, token, guestID 
 	_, err := r.coll.UpdateOne(ctx,
 		bson.M{"token": token},
 		bson.M{"$set": bson.M{"guestId": guestID}},
+	)
+	return err
+}
+
+func (r *mongoSessionRepository) Retire(ctx context.Context, token, replacedBy string, until time.Time) error {
+	_, err := r.coll.UpdateOne(ctx,
+		bson.M{"token": token},
+		bson.M{"$set": bson.M{"replacedBy": replacedBy, "expiresAt": until}},
 	)
 	return err
 }
