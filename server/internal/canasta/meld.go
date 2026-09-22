@@ -150,9 +150,10 @@ func validateGroup(r ruleset, cards []string) error {
 }
 
 // validateBlackThreeMeld is the one exception: on the way out a player may put
-// down three or four black threes, and never with a wild among them.
-func validateBlackThreeMeld(cards []string) error {
-	if len(cards) < minMeldSize || len(cards) > 4 {
+// down every black three in their hand, up to as many as the deck holds, and
+// never with a wild among them.
+func validateBlackThreeMeld(r ruleset, cards []string) error {
+	if len(cards) < minMeldSize || len(cards) > r.blackThrees() {
 		return errCode(ErrMeldTooSmall)
 	}
 	for _, c := range cards {

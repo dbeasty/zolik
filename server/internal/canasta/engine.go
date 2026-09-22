@@ -813,7 +813,7 @@ func applyLayMeld(s *GameState, playerID string, a module.Action) ([]module.Even
 		if !r.BlackThreeMeld {
 			return nil, errCode(ErrCannotMeldThree)
 		}
-		if err := validateBlackThreeMeld(a.Cards); err != nil {
+		if err := validateBlackThreeMeld(r, a.Cards); err != nil {
 			return nil, err
 		}
 		rest, _ := removeCards(s.Hands[playerID], a.Cards)
