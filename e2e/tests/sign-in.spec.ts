@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { API_BASE } from '../helpers/env';
+import { seedIntroSeen } from '../helpers/login';
 
 /**
  * The sign-in flows, driven through the real UI rather than seeded via the
@@ -40,6 +41,14 @@ async function lastEmailCode(request: import('@playwright/test').APIRequestConte
   const body = await res.json();
   return body.code as string;
 }
+
+// This file drives sign-in through the real UI with no session seeded, so
+// unlike every other spec it would actually land on the first-run intro
+// screen instead of the sign-in UI it means to test. Seeded here rather than
+// per-test, since every test in this file visits `/` before it has a session.
+test.beforeEach(async ({ page }) => {
+  await seedIntroSeen(page);
+});
 
 test.describe('guest sign-in', () => {
   test('continuing as a guest signs in and lands in the game picker', async ({ page }) => {

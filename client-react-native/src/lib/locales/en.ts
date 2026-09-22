@@ -953,6 +953,16 @@ export const en: Record<string, string> = {
   'account.refresh': 'Refresh',
   'account.remove': 'Remove',
 
+  // --- the first-run intro screen (app/intro.tsx) ---------------------------
+  //
+  // Game names are deliberately not keyed here — see gameLabels.ts's own
+  // comment on why "Žolíky", "Prší", "Canasta" and "Hold'em" stay as literals
+  // in the component instead of a key per language.
+  'intro.tagline': 'Classic card games, played online with real people',
+  'intro.bulletFriends': 'Play with friends, or get seated with others online',
+  'intro.bulletCrossDevice': 'One account, phone or browser — pick up where you left off',
+  'intro.bulletGuest': 'No installs to try it — jump in as a guest',
+
   // --- the main menu --------------------------------------------------------
   'home.subtitle': 'Continental Rummy · {server}',
   'home.playingAs': 'Playing as {name}',

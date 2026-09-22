@@ -975,6 +975,12 @@ export const fr: Record<string, string> = {
   'account.refresh': 'Actualiser',
   'account.remove': 'Retirer',
 
+  // --- the first-run intro screen (app/intro.tsx) ---------------------------
+  'intro.tagline': 'Des jeux de cartes classiques, joués en ligne avec de vraies personnes',
+  'intro.bulletFriends': 'Jouez avec des amis, ou rejoignez d\'autres joueurs en ligne',
+  'intro.bulletCrossDevice': 'Un seul compte, téléphone ou navigateur — reprenez là où vous en étiez',
+  'intro.bulletGuest': 'Aucune installation pour essayer — lancez-vous en tant qu\'invité',
+
   // --- the main menu --------------------------------------------------------
   'home.subtitle': 'Rami continental · {server}',
   'home.playingAs': 'Tu joues en tant que {name}',

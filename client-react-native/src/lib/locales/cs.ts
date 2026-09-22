@@ -957,6 +957,12 @@ export const cs: Record<string, string> = {
   'account.refresh': 'Obnovit',
   'account.remove': 'Odebrat',
 
+  // --- the first-run intro screen (app/intro.tsx) ---------------------------
+  'intro.tagline': 'Klasické karetní hry, hrané online se skutečnými lidmi',
+  'intro.bulletFriends': 'Hrajte s přáteli, nebo se přidejte k ostatním online',
+  'intro.bulletCrossDevice': 'Jeden účet, telefon nebo prohlížeč — pokračujte tam, kde jste skončili',
+  'intro.bulletGuest': 'Žádná instalace na vyzkoušení — pokračujte jako host',
+
   // --- the main menu --------------------------------------------------------
   'home.subtitle': 'Kontinentální žolíky · {server}',
   'home.playingAs': 'Hraješ jako {name}',

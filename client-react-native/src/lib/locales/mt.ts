@@ -979,6 +979,12 @@ export const mt: Record<string, string> = {
   'account.refresh': 'Aġġorna',
   'account.remove': 'Neħħi',
 
+  // --- the first-run intro screen (app/intro.tsx) ---------------------------
+  'intro.tagline': 'Logħob tal-karti klassiku, imlogħob online ma\' nies veri',
+  'intro.bulletFriends': 'Ilgħab mal-ħbieb, jew inqabad ma\' oħrajn online',
+  'intro.bulletCrossDevice': 'Kont wieħed, mowbajl jew browser — kompli minn fejn ħallejt',
+  'intro.bulletGuest': 'Ebda installazzjoni biex tipprova — idħol bħala mistieden',
+
   // --- the main menu --------------------------------------------------------
   'home.subtitle': 'Rummy Kontinentali · {server}',
   'home.playingAs': 'Qed tilgħab bħala {name}',

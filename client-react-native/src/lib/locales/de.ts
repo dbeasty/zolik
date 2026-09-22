@@ -989,6 +989,12 @@ export const de: Record<string, string> = {
   'account.refresh': 'Aktualisieren',
   'account.remove': 'Entfernen',
 
+  // --- the first-run intro screen (app/intro.tsx) ---------------------------
+  'intro.tagline': 'Klassische Kartenspiele, online mit echten Menschen gespielt',
+  'intro.bulletFriends': 'Spiele mit Freunden oder werde online mit anderen zusammengeführt',
+  'intro.bulletCrossDevice': 'Ein Konto, Telefon oder Browser — mach da weiter, wo du aufgehört hast',
+  'intro.bulletGuest': 'Keine Installation nötig — einfach als Gast loslegen',
+
   // --- the main menu --------------------------------------------------------
   'home.subtitle': 'Kontinental-Rommé · {server}',
   'home.playingAs': 'Du spielst als {name}',

@@ -961,6 +961,12 @@ export const da: Record<string, string> = {
   'account.refresh': 'Opdater',
   'account.remove': 'Fjern',
 
+  // --- the first-run intro screen (app/intro.tsx) ---------------------------
+  'intro.tagline': 'Klassiske kortspil, spillet online med rigtige mennesker',
+  'intro.bulletFriends': 'Spil med venner, eller bliv sat sammen med andre online',
+  'intro.bulletCrossDevice': 'Én konto, telefon eller browser — fortsæt hvor du slap',
+  'intro.bulletGuest': 'Ingen installation nødvendig — prøv det som gæst',
+
   // --- the main menu --------------------------------------------------------
   'home.subtitle': 'Kontinental rommy · {server}',
   'home.playingAs': 'Du spiller som {name}',

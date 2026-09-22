@@ -970,6 +970,12 @@ export const fi: Record<string, string> = {
   'account.refresh': 'Päivitä',
   'account.remove': 'Poista',
 
+  // --- the first-run intro screen (app/intro.tsx) ---------------------------
+  'intro.tagline': 'Klassisia korttipelejä, pelattuna verkossa oikeiden ihmisten kanssa',
+  'intro.bulletFriends': 'Pelaa ystävien kanssa tai liity muihin pelaajiin verkossa',
+  'intro.bulletCrossDevice': 'Yksi tili, puhelin tai selain — jatka siitä mihin jäit',
+  'intro.bulletGuest': 'Ei asennusta kokeiluun — aloita vieraana',
+
   // --- the main menu --------------------------------------------------------
   'home.subtitle': 'Continental-rommi · {server}',
   'home.playingAs': 'Pelaat nimellä {name}',

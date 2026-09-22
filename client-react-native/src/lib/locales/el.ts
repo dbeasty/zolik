@@ -991,6 +991,12 @@ export const el: Record<string, string> = {
   'account.refresh': 'Ανανέωση',
   'account.remove': 'Αφαίρεση',
 
+  // --- the first-run intro screen (app/intro.tsx) ---------------------------
+  'intro.tagline': 'Κλασικά παιχνίδια με χαρτιά, online με πραγματικούς ανθρώπους',
+  'intro.bulletFriends': 'Παίξτε με φίλους ή μπείτε σε τραπέζι με άλλους online',
+  'intro.bulletCrossDevice': 'Ένας λογαριασμός, κινητό ή browser — συνεχίστε από εκεί που μείνατε',
+  'intro.bulletGuest': 'Καμία εγκατάσταση για δοκιμή — μπείτε ως επισκέπτης',
+
   // --- the main menu --------------------------------------------------------
   'home.subtitle': 'Κοντινένταλ ρέμι · {server}',
   'home.playingAs': 'Παίζεις ως {name}',

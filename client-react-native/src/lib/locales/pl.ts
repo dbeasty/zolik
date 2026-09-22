@@ -970,6 +970,12 @@ export const pl: Record<string, string> = {
   'account.refresh': 'Odśwież',
   'account.remove': 'Usuń',
 
+  // --- the first-run intro screen (app/intro.tsx) ---------------------------
+  'intro.tagline': 'Klasyczne gry karciane, rozgrywane online z prawdziwymi ludźmi',
+  'intro.bulletFriends': 'Graj ze znajomymi lub dołącz do innych online',
+  'intro.bulletCrossDevice': 'Jedno konto, telefon lub przeglądarka — kontynuuj tam, gdzie skończyłeś',
+  'intro.bulletGuest': 'Żadnej instalacji, żeby spróbować — zacznij jako gość',
+
   // --- the main menu --------------------------------------------------------
   'home.subtitle': 'Remik kontynentalny · {server}',
   'home.playingAs': 'Grasz jako {name}',

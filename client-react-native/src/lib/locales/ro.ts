@@ -971,6 +971,12 @@ export const ro: Record<string, string> = {
   'account.refresh': 'Reîmprospătează',
   'account.remove': 'Elimină',
 
+  // --- the first-run intro screen (app/intro.tsx) ---------------------------
+  'intro.tagline': 'Jocuri clasice de cărți, jucate online cu oameni reali',
+  'intro.bulletFriends': 'Joacă cu prietenii sau alătură-te altora online',
+  'intro.bulletCrossDevice': 'Un singur cont, telefon sau browser — continuă de unde ai rămas',
+  'intro.bulletGuest': 'Nicio instalare pentru a încerca — intră ca invitat',
+
   // --- the main menu --------------------------------------------------------
   'home.subtitle': 'Remi continental · {server}',
   'home.playingAs': 'Joci ca {name}',

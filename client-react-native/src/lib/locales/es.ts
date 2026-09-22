@@ -976,6 +976,12 @@ export const es: Record<string, string> = {
   'account.refresh': 'Actualizar',
   'account.remove': 'Quitar',
 
+  // --- the first-run intro screen (app/intro.tsx) ---------------------------
+  'intro.tagline': 'Juegos de cartas clásicos, jugados online con personas reales',
+  'intro.bulletFriends': 'Juega con amigos o siéntate con otros jugadores online',
+  'intro.bulletCrossDevice': 'Una sola cuenta, móvil o navegador — continúa donde lo dejaste',
+  'intro.bulletGuest': 'Sin instalaciones para probarlo — entra como invitado',
+
   // --- the main menu --------------------------------------------------------
   'home.subtitle': 'Rummy continental · {server}',
   'home.playingAs': 'Juegas como {name}',
