@@ -7,6 +7,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { Platform } from 'react-native';
@@ -17,12 +18,22 @@ import { connectToTable } from '@/src/net/ble/link';
 import { BleTransport } from '@/src/net/ble/transport';
 import { authErrorMessage, parseAuthCallback } from '@/src/lib/auth';
 import { nearbyBaseUrl } from '@/src/lib/nearbyAddress';
+import { startNodeFor, stopNodeFor } from '@/src/net/nodeSession';
+import { useReplicaSync } from '@/src/net/useReplicaSync';
 import type {
   AccountProfile,
   AuthProvider,
   PlayerSession,
   SignInOutcome,
 } from '@/src/api/types';
+
+// The node credential is kept where the session is: it names this device as
+// this person's, and is exactly as sensitive as the session itself.
+const nodeCredentialStore = {
+  getItem: (key: string) => storage.getItem(key),
+  setItem: (key: string, value: string) => storage.setItem(key, value),
+  deleteItem: (key: string) => storage.deleteItem(key),
+};
 
 const SESSION_KEY = 'zolik_session';
 
@@ -276,15 +287,57 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     [expireSession],
   );
 
+  // Whether this device is holding the signed-in account's data, which is
+  // what lets a screen read from here instead of the network.
+  const [localNodeReady, setLocalNodeReady] = useState(false);
+  // Who this device is currently a node for, so a second sign-in by the same
+  // person is not a second enrolment and a different person's is a handover.
+  const previousAccount = useRef('');
+
+  // Starting and stopping this device as a node of the database. It is
+  // best-effort in both directions: a phone that cannot enrol, or an app
+  // build with no embedded server in it, goes on reading everything from the
+  // cloud exactly as it always has.
+  const followAccountOnThisDevice = useCallback(async (s: PlayerSession | null) => {
+    try {
+      if (!s || s.isGuest) {
+        await stopNodeFor(previousAccount.current, nodeCredentialStore);
+        previousAccount.current = '';
+        setLocalNodeReady(false);
+        return;
+      }
+      if (previousAccount.current === s.userId) return;
+      if (previousAccount.current) await stopNodeFor(previousAccount.current, nodeCredentialStore);
+      previousAccount.current = s.userId;
+      const started = await startNodeFor(s.userId, nodeCredentialStore, (pubkey, kind) =>
+        apiClient.enrollNode(pubkey, kind),
+      );
+      setLocalNodeReady(started);
+    } catch {
+      // Offline at sign-in, or a build with no host. Neither is worth telling
+      // somebody about: the device holds nothing yet, and the next sign-in
+      // tries again.
+      setLocalNodeReady(false);
+    }
+  }, []);
+
   const applySession = useCallback(
     async (s: PlayerSession | null) => {
       setSessionState(s);
       await persistSession(s);
       if (s) bind(s);
       if (!s || s.isGuest) setAccount(null);
+      // A signed-in account's own data belongs on their device: their
+      // settings, their circle, their scorepads and the matches they have
+      // played, all readable with no connection. Enrolling the device is
+      // what makes that possible, and it happens once, here, rather than
+      // being something a person is asked about.
+      void followAccountOnThisDevice(s);
     },
-    [bind],
+    [bind, followAccountOnThisDevice],
   );
+
+  useReplicaSync(localNodeReady);
 
   useEffect(() => {
     loadSession()

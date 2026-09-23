@@ -249,3 +249,19 @@ export type MeWSMessage =
   | { type: 'invite_revoked'; id: string }
   | { type: 'lobby_invited'; matchId: string; joinCode: string }
   | { type: 'circle_changed' };
+
+/** What the cloud answers when a device enrols as a node of the database. */
+export type NodeEnrolment = {
+  nodeId: string;
+  /** How this device authenticates its database sync from now on. */
+  credential: string;
+};
+
+/** One offline seat a person claimed, as the cloud recorded it. */
+export type ClaimedSeat = {
+  guestId: string;
+  nodeId: string;
+  claimed: boolean;
+  /** Why not, when it was not: the seat belongs to somebody else. */
+  reason?: string;
+};

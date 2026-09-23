@@ -6,12 +6,14 @@ import type {
   AuthProvider,
   CapacitySnapshot,
   CircleEntry,
+  ClaimedSeat,
   CircleLists,
   CircleSuggestion,
   FriendPreview,
   InvitePreference,
   LifetimeStats,
   LinkedIdentity,
+  NodeEnrolment,
   NotifyConfig,
   NotifyProfile,
   PlayerSession,
@@ -235,6 +237,28 @@ export class ZolikClient {
       true,
     );
     return data.claimedMatches ?? 0;
+  }
+
+  /**
+   * Enrols this device as a node of the database, so it may hold this
+   * account's own data and hand up matches played with no internet.
+   *
+   * The cloud is given the public half of a key the device made and never
+   * sends: what comes back is a credential naming this device as this
+   * person's.
+   */
+  async enrollNode(pubkey: string, kind: string, instanceId?: string): Promise<NodeEnrolment> {
+    return this.post<NodeEnrolment>('/nodes/enroll', { pubkey, kind, instanceId }, true);
+  }
+
+  /**
+   * Claims the seats this person took at tables with no internet, proved by
+   * the receipts those tables' hosts signed. Matches from those seats are
+   * credited to them whenever they arrive, which may be weeks later.
+   */
+  async claimOfflineSeats(receipts: string[]): Promise<ClaimedSeat[]> {
+    const data = await this.post<{ seats: ClaimedSeat[] }>('/auth/claim-offline', { receipts }, true);
+    return data.seats ?? [];
   }
 
   /** What this guest session stands to keep by signing in. */
