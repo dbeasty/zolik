@@ -203,8 +203,12 @@ type Importer struct {
 	record   MatchRecorder
 	interval time.Duration
 
-	mu     sync.Mutex
-	failed map[string]string
+	mu sync.Mutex
+	// started is whether the loop is running. An importer that was built and
+	// closed without ever starting - a process that stopped further along its
+	// own startup, or a test - must not wait for a goroutine nobody launched.
+	started bool
+	failed  map[string]string
 
 	stop chan struct{}
 	done chan struct{}
@@ -244,6 +248,12 @@ func (i *Importer) Start() {
 	if i == nil {
 		return
 	}
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	if i.started {
+		return
+	}
+	i.started = true
 	go i.loop()
 }
 
@@ -251,12 +261,17 @@ func (i *Importer) Close() {
 	if i == nil {
 		return
 	}
+	i.mu.Lock()
+	started := i.started
+	i.mu.Unlock()
 	select {
 	case <-i.stop:
 	default:
 		close(i.stop)
 	}
-	<-i.done
+	if started {
+		<-i.done
+	}
 }
 
 // Kick asks for a pass now, for when a push has just arrived.

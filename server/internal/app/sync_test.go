@@ -1,8 +1,12 @@
 package app
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/go-chi/chi/v5"
 
 	"zolik/server/internal/db"
 )
@@ -43,5 +47,39 @@ func TestAnUnrecognisedSyncRoleIsOff(t *testing.T) {
 	t.Setenv("FEATURE_FLAG_SYNC", "SPOKE")
 	if got := syncConfig().Role; got != syncRoleSpoke {
 		t.Fatalf("role = %q, want %q", got, syncRoleSpoke)
+	}
+}
+
+func TestOnlyTheCloudMintsAccounts(t *testing.T) {
+	// A self-hosted node verifies the tokens the cloud signed and refuses to
+	// issue its own. A username has to name one person, and a node deciding
+	// that for itself is a node that will eventually disagree with another.
+	for _, tc := range []struct {
+		role string
+		want int
+	}{
+		{syncRoleOff, http.StatusBadRequest},
+		{syncRoleHub, http.StatusBadRequest},
+		{syncRoleSpoke, http.StatusConflict},
+	} {
+		t.Run(tc.role, func(t *testing.T) {
+			a := newNode(t, Config{Sync: SyncConfig{Role: tc.role, HubURL: "ws://localhost:1/kdb/sync", Token: "t"}})
+			r := chi.NewRouter()
+			a.RegisterRoutes(r)
+			server := httptest.NewServer(r)
+			t.Cleanup(server.Close)
+
+			// An empty body: a node that is allowed to create accounts gets
+			// as far as refusing the request itself, and one that is not says
+			// so before looking at it.
+			res, err := http.Post(server.URL+"/auth/register", "application/json", strings.NewReader(`{}`))
+			if err != nil {
+				t.Fatalf("register: %v", err)
+			}
+			defer res.Body.Close()
+			if res.StatusCode != tc.want {
+				t.Fatalf("register on a %s = %d, want %d", tc.role, res.StatusCode, tc.want)
+			}
+		})
 	}
 }

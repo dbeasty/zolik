@@ -289,6 +289,12 @@ func New(cfg Config) (*App, error) {
 		TestEndpointsEnabled: cfg.TestEndpointsEnabled,
 	})
 
+	// Only the cloud mints accounts. A self-hosted node verifies the tokens
+	// the cloud signed and refuses to issue its own: a username has to name
+	// one person, and a node deciding that for itself is a node that will
+	// eventually disagree with another one.
+	authHandlers.SetIdentityAuthority(cfg.Sync.Role != syncRoleSpoke)
+
 	// Built before anything that counts, and Start()ed later from Run: until
 	// then counters accumulate in memory and nothing is written, which is
 	// what makes a recorder safe to hand out during construction.

@@ -86,8 +86,11 @@ type Handlers struct {
 	providers   *identity.Registry
 	nodes       NodeRepository
 	guestClaims GuestClaimStore
-	credentials CredentialVersions
-	offlineKeys PublicKeys
+	// identityAuthority is whether this node may create accounts. True unless
+	// a deployment says otherwise, so an ordinary single server is unchanged.
+	identityAuthority bool
+	credentials       CredentialVersions
+	offlineKeys       PublicKeys
 
 	publicBaseURL     string
 	allowedReturnURLs []string
@@ -155,6 +158,7 @@ func NewHandlers(d Deps) *Handlers {
 		providers:         providers,
 		nodes:             nodes,
 		guestClaims:       d.GuestClaims,
+		identityAuthority: true,
 		credentials:       credentials,
 		offlineKeys:       d.OfflineKeys,
 		publicBaseURL:     d.PublicBaseURL,
@@ -179,12 +183,12 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	// Passwordless email sign-in. Verification takes an optional Authorization
 	// header: when it carries a guest token, the guest's play history is
 	// claimed as part of signing in.
-	r.Post("/auth/email/start", h.emailStart)
+	r.Post("/auth/email/start", h.requireIdentityAuthority(h.emailStart))
 	r.With(OptionalAuthMiddleware).Post("/auth/email/verify", h.emailVerify)
 
 	// Browser redirect flow. Start and the native-token endpoint both take an
 	// optional Authorization header, for the same reason.
-	r.With(OptionalAuthMiddleware).Post("/auth/oauth/{provider}/start", h.oauthStart)
+	r.With(OptionalAuthMiddleware).Post("/auth/oauth/{provider}/start", h.requireIdentityAuthority(h.oauthStart))
 	r.Get("/auth/oauth/{provider}/callback", h.oauthCallback)
 	// Apple posts its callback as a form when name/email scopes are requested.
 	r.Post("/auth/oauth/{provider}/callback", h.oauthCallback)
@@ -209,7 +213,7 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	// Legacy username/password. Kept because the SSH/TUI client can neither
 	// open a browser nor receive mail, so it has no other way in. New accounts
 	// should use the flows above; nothing here grows.
-	r.Post("/auth/register", h.register)
+	r.Post("/auth/register", h.requireIdentityAuthority(h.register))
 	r.Post("/auth/login", h.login)
 
 	r.Post("/auth/refresh", h.refresh)
@@ -217,6 +221,28 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 
 	if h.testEndpoints {
 		r.Get("/auth/dev/last-code", h.devLastCode)
+	}
+}
+
+// SetIdentityAuthority says whether this node may create accounts.
+//
+// Only the cloud may. Every account in the distributed database is minted in
+// one place, because a username has to name one person and a node deciding
+// that for itself is a node that will eventually disagree with another one.
+// A self-hosted server verifies the tokens the cloud issued - it has the
+// public keys - and refuses to issue its own, saying so rather than failing
+// obscurely.
+func (h *Handlers) SetIdentityAuthority(is bool) { h.identityAuthority = is }
+
+// requireIdentityAuthority refuses the routes that mint accounts on a node
+// that is not the one allowed to.
+func (h *Handlers) requireIdentityAuthority(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		if !h.identityAuthority {
+			http.Error(w, "accounts are created on the main server; sign in there and come back", http.StatusConflict)
+			return
+		}
+		next(w, req)
 	}
 }
 
