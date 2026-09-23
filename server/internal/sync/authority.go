@@ -687,6 +687,48 @@ func (n *Node) declareResolution() error {
 	if err := meta.SetResolution(db.Qualified("node/*"), matchChain); err != nil {
 		return fmt.Errorf("sync: outbox resolution chain: %w", err)
 	}
+	return n.claimCanonical(meta)
+}
+
+// CanonicalNamespaces are the ones only the root server writes: who exists,
+// what names are taken, which devices are enrolled, and what every finished
+// match came to.
+//
+// They are listed here rather than inferred, because the consequence of
+// getting the list wrong is not a failed write but two servers quietly
+// disagreeing about who somebody is.
+func CanonicalNamespaces() []string {
+	return []string{
+		db.NSUsers, db.NSIdentities, db.NSReservations,
+		db.NSNodes, db.NSGuestClaims,
+		db.NSMatchResults, db.NSPlayerStats,
+	}
+}
+
+// claimCanonical records, in the replicated definitions, that this node is
+// where those namespaces are written.
+//
+// Until now the only thing that made this server the root was an environment
+// variable it read about itself, which is no use to anybody else: a second
+// server brought up with the same flag would believe the same thing, and
+// nothing in the database would contradict either of them. A home assignment
+// is a fact every node receives, and the engine enforces it - a write that
+// reaches the wrong node is refused with the home's address rather than
+// merged, which is what makes "ask the primary" something a second region can
+// actually do.
+//
+// Re-asserted on every start rather than written once: a data root that was
+// restored from a backup comes back with a new node identity, and the
+// assignment has to follow the server that is actually serving.
+func (n *Node) claimCanonical(meta *kdbserver.MetaStore) error {
+	for _, name := range CanonicalNamespaces() {
+		if _, err := n.kdb.Namespace(name); err != nil {
+			return fmt.Errorf("sync: opening %s to claim it: %w", name, err)
+		}
+		if _, err := meta.AssignHome(db.Qualified(name), n.NodeID(), n.cfg.Advertise); err != nil {
+			return fmt.Errorf("sync: claiming %s for this node: %w", name, err)
+		}
+	}
 	return nil
 }
 
