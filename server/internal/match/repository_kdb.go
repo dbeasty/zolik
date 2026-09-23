@@ -162,7 +162,16 @@ func (r *kdbRepository) FindByID(ctx context.Context, id bson.ObjectID) (models.
 	// in both places in one transaction, so a match this node holds is listed
 	// here without exception.
 	indexed, err := r.k.Get(db.NSMatches, hex)
-	if err != nil {
+	switch {
+	case err == nil:
+	case db.IsNotFound(err) && r.k.HoldsNamespace(db.MatchNS(hex)):
+		// A match this node has but has never written: one that arrived by
+		// replication, because the person playing it opened it here. The
+		// index is node-local and is not replicated, so it says nothing about
+		// a match that came across; the namespace existing is the fact, and
+		// asking whether it exists does not create it.
+		return r.adoptIntoIndex(hex)
+	default:
 		return models.Match{}, err
 	}
 	raw, err := r.k.Get(db.MatchNS(hex), keyMatchEnvelope)
@@ -173,6 +182,25 @@ func (r *kdbRepository) FindByID(ctx context.Context, id bson.ObjectID) (models.
 	}
 	var m models.Match
 	if err := db.UnmarshalDoc(raw, &m); err != nil {
+		return models.Match{}, err
+	}
+	return m, nil
+}
+
+// adoptIntoIndex reads a replicated match's envelope and lists it locally, so
+// that everything which scans - the reapers, a join code, the list of a
+// player's tables - sees a match that arrived by sync exactly as it sees one
+// played here.
+func (r *kdbRepository) adoptIntoIndex(hex string) (models.Match, error) {
+	raw, err := r.k.Get(db.MatchNS(hex), keyMatchEnvelope)
+	if err != nil {
+		return models.Match{}, err
+	}
+	var m models.Match
+	if err := db.UnmarshalDoc(raw, &m); err != nil {
+		return models.Match{}, err
+	}
+	if err := r.k.Put(db.NSMatches, hex, raw); err != nil {
 		return models.Match{}, err
 	}
 	return m, nil
