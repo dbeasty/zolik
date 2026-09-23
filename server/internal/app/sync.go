@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 
 	"zolik/server/internal/auth"
@@ -98,6 +99,20 @@ func (s matchSeating) Seated(ctx context.Context, matchHex, userHex string) (boo
 	return s.app.matchManager().Seated(ctx, matchHex, userHex)
 }
 
+// attendSigner is the middleware a self-hosted node runs: whoever is signed in
+// and using it is somebody whose data it should be holding.
+//
+// It is only mounted on a spoke. The cloud holds everyone by definition, and a
+// phone holds its owner, so neither has a question to answer here.
+func (a *App) attendSigner(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if uc, ok := auth.GetUserContext(req); ok && !uc.IsGuest {
+			a.sync.Attend(uc.UserID)
+		}
+		next.ServeHTTP(w, req)
+	})
+}
+
 // startSync begins replicating, once everything the node needs to answer
 // questions about matches exists.
 func (a *App) startSync() {
@@ -112,7 +127,25 @@ func (a *App) startSync() {
 	if a.importer != nil {
 		a.importer.Start()
 	}
+	if a.cfg.Sync.Role == syncRoleSpoke {
+		go a.forgetIdleVisitors()
+	}
 	log.Printf("sync: node %s is a %s of the distributed database", a.sync.NodeID(), a.cfg.Sync.Role)
+}
+
+// forgetIdleVisitors stops a self-hosted node from accumulating everybody who
+// has ever signed in on it.
+func (a *App) forgetIdleVisitors() {
+	t := time.NewTicker(time.Hour)
+	defer t.Stop()
+	for range t.C {
+		if a.sync == nil {
+			return
+		}
+		if n := a.sync.ForgetIdle(time.Now()); n > 0 {
+			log.Printf("sync: stopped following %d people who have not played here for a day", n)
+		}
+	}
 }
 
 // outbox is where a node that is not the cloud puts a finished match. Nil on

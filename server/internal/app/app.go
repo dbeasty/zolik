@@ -681,6 +681,12 @@ func (a *App) routeGroups() []routeGroup {
 }
 
 func (a *App) RegisterRoutes(r chi.Router) {
+	if a.sync != nil && a.cfg.Sync.Role == syncRoleSpoke {
+		// A node that serves whoever walks in has to notice who walked in:
+		// it holds a person's data while they are playing here and lets go
+		// afterwards. See attendSigner.
+		r.Use(a.attendSigner)
+	}
 	for _, g := range a.routeGroups() {
 		g.register(r)
 	}

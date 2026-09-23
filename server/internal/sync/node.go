@@ -87,6 +87,9 @@ type Node struct {
 	// matches is what the handover policy asks about a match before it lets it
 	// change hands.
 	matches MatchHome
+	// attend is who this node is currently holding data for, on a node that
+	// serves whoever signs in rather than one person. See attendance.go.
+	attend attendance
 }
 
 // Open makes this process a sync node over an already-open database.
