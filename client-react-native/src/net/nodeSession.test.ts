@@ -40,18 +40,18 @@ describe('making a device hold an account’s data', () => {
     const storage = memoryStorage();
     const enrol = jest.fn().mockResolvedValue({ nodeId: 'n1', credential: 'cred' });
 
-    expect(await startNodeFor(user, storage, enrol)).toBe(true);
+    expect(await startNodeFor(user, storage, enrol, 'http://127.0.0.1:8099')).toBe(true);
 
     expect(startHost).toHaveBeenCalledTimes(1);
     expect(enrol).toHaveBeenCalledWith('pub', 'phone');
-    expect(startNode).toHaveBeenCalledWith('cred', user);
+    expect(startNode).toHaveBeenCalledWith('cred', user, 'http://127.0.0.1:8099');
     expect(storage.items[credentialKey(user)]).toBe('cred');
 
     jest.clearAllMocks();
-    expect(await startNodeFor(user, storage, enrol)).toBe(true);
+    expect(await startNodeFor(user, storage, enrol, 'http://127.0.0.1:8099')).toBe(true);
     expect(enrol).not.toHaveBeenCalled();
     expect(startHost).not.toHaveBeenCalled();
-    expect(startNode).toHaveBeenCalledWith('cred', user);
+    expect(startNode).toHaveBeenCalledWith('cred', user, 'http://127.0.0.1:8099');
   });
 
   it('does nothing where there is no embedded server', async () => {
@@ -59,7 +59,7 @@ describe('making a device hold an account’s data', () => {
     // there, as it always has.
     jest.replaceProperty(nearby as { nearbyAvailable: boolean }, 'nearbyAvailable', false);
     const enrol = jest.fn();
-    expect(await startNodeFor(user, memoryStorage(), enrol)).toBe(false);
+    expect(await startNodeFor(user, memoryStorage(), enrol, 'http://127.0.0.1:8099')).toBe(false);
     expect(enrol).not.toHaveBeenCalled();
     jest.replaceProperty(nearby as { nearbyAvailable: boolean }, 'nearbyAvailable', true);
   });

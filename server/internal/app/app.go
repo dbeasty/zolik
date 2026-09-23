@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"log"
 	"net/http"
@@ -199,6 +200,24 @@ func New(cfg Config) (*App, error) {
 		return nil, err
 	}
 
+	// The key this server signs tokens with, and the key it signs as itself
+	// with. Both are optional and both change what this deployment can do
+	// rather than whether it starts: without a signing key it goes on issuing
+	// the shared-secret tokens it always did, and cannot enrol nodes, because
+	// a credential nothing else can verify is worse than no credential.
+	signing, err := auth.ConfigureSigningKeysFromEnv(cfg.PublicBaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("token signing key: %w", err)
+	}
+	if signing {
+		log.Printf("auth: signing tokens with this deployment's own key, published at /.well-known/jwks.json")
+	} else if cfg.Sync.Enabled() {
+		log.Printf("auth: no signing key (JWT_SIGNING_KEY or JWT_SIGNING_KEY_FILE): this node cannot enrol devices")
+	}
+	if err := auth.ConfigureNodeKey(auth.NodeKeyConfigFromEnv()); err != nil {
+		return nil, fmt.Errorf("node key: %w", err)
+	}
+
 	// Covers Mongo connect + EnsureIndexes + the lobby waiting room's Redis
 	// ping. 30s rather than a tighter figure gives real headroom for a cold
 	// start — Mongo initializing an empty data volume for the first time, or
@@ -213,7 +232,6 @@ func New(cfg Config) (*App, error) {
 	defer cancel()
 
 	var r repos
-	var err error
 	if cfg.DBEngine == db.EngineKDB {
 		r, err = kdbRepos(cfg)
 	} else {

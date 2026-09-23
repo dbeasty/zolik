@@ -18,6 +18,7 @@ import { connectToTable } from '@/src/net/ble/link';
 import { BleTransport } from '@/src/net/ble/transport';
 import { authErrorMessage, parseAuthCallback } from '@/src/lib/auth';
 import { nearbyBaseUrl } from '@/src/lib/nearbyAddress';
+import { ZOLIK_BASE_URL } from '@/src/config';
 import { startNodeFor, stopNodeFor } from '@/src/net/nodeSession';
 import { useReplicaSync } from '@/src/net/useReplicaSync';
 import type {
@@ -309,14 +310,20 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       if (previousAccount.current === s.userId) return;
       if (previousAccount.current) await stopNodeFor(previousAccount.current, nodeCredentialStore);
       previousAccount.current = s.userId;
-      const started = await startNodeFor(s.userId, nodeCredentialStore, (pubkey, kind) =>
-        apiClient.enrollNode(pubkey, kind),
+      const started = await startNodeFor(
+        s.userId,
+        nodeCredentialStore,
+        (pubkey, kind) => apiClient.enrollNode(pubkey, kind),
+        ZOLIK_BASE_URL,
       );
       setLocalNodeReady(started);
-    } catch {
+    } catch (err) {
       // Offline at sign-in, or a build with no host. Neither is worth telling
       // somebody about: the device holds nothing yet, and the next sign-in
-      // tries again.
+      // tries again. It is logged, because a device that quietly never became
+      // a node looks exactly like one that did until somebody goes looking
+      // for their history.
+      console.warn('this device did not start holding its account:', err);
       setLocalNodeReady(false);
     }
   }, []);
@@ -346,10 +353,15 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           bind(s);
           setSessionState(s);
           setClaimableMatches(s.claimableMatches ?? 0);
+          // Also on a cold start, not only when somebody signs in: the
+          // session is usually one that was already stored, and a device
+          // that only became a node at sign-in would stop being one the
+          // first time the app was closed and opened again.
+          void followAccountOnThisDevice(s);
         }
       })
       .finally(() => setLoading(false));
-  }, [bind]);
+  }, [bind, followAccountOnThisDevice]);
 
   // The sign-in screen is built from what the server actually offers, so a
   // provider enabled server-side appears without an app update. A failure here

@@ -88,7 +88,7 @@ var (
 // a second screen and a quick re-tap all land here, and none of them should
 // get a second database on the same directory.
 func Start(dataDir string) (*Host, error) {
-	return StartNode(dataDir, "", "")
+	return StartNode(dataDir, "", "", "")
 }
 
 // StartNode is Start for a phone that has been enrolled with the cloud and has
@@ -99,11 +99,16 @@ func Start(dataDir string) (*Host, error) {
 // userHex is the account signed in now. With either missing the host comes up
 // exactly as Start's does: a table for the room, and nothing synced anywhere.
 //
+// cloudBaseURL is the server the app itself is talking to. It is passed in
+// rather than assumed, because a development build points at a server on the
+// same machine, and a host that synced with production while the app read
+// from localhost would be two different databases wearing one account.
+//
 // A host already running for a different account is not silently re-pointed.
 // The database on disk is that account's, and swapping who it belongs to
 // underneath a live table is not something a sign-in should do quietly; the
 // caller stops the host first.
-func StartNode(dataDir, nodeCredential, userHex string) (*Host, error) {
+func StartNode(dataDir, nodeCredential, userHex, cloudBaseURL string) (*Host, error) {
 	mu.Lock()
 	defer mu.Unlock()
 	if current != nil {
@@ -128,6 +133,7 @@ func StartNode(dataDir, nodeCredential, userHex string) (*Host, error) {
 		NodeKeySeed:    id.NodeKey,
 		NodeCredential: strings.TrimSpace(nodeCredential),
 		UserHex:        strings.TrimSpace(userHex),
+		CloudBaseURL:   strings.TrimSpace(cloudBaseURL),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("init: %w", err)

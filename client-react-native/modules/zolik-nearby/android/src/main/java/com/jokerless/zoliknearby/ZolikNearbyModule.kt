@@ -141,11 +141,11 @@ class ZolikNearbyModule : Module() {
     // The same host, for a phone that has been enrolled and has somebody
     // signed in: it additionally replicates that account's data and serves it
     // back, so the app can show a person their own things with no connection.
-    AsyncFunction("startNode") { credential: String, userHex: String ->
+    AsyncFunction("startNode") { credential: String, userHex: String, cloudBaseUrl: String ->
       val context = appContext.reactContext ?: throw HostException("no application context")
       val dir = File(context.filesDir, "zolik-host")
       val host = try {
-        Zolikcore.startNode(dir.absolutePath, credential, userHex)
+        Zolikcore.startNode(dir.absolutePath, credential, userHex, cloudBaseUrl)
       } catch (e: Exception) {
         throw HostException(e.message ?: "the host did not start")
       }

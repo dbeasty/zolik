@@ -107,9 +107,9 @@ public class ZolikNearbyModule: Module {
     // The same host, for a phone that has been enrolled and has somebody
     // signed in: it additionally replicates that account's data and serves it
     // back, so the app can show a person their own things with no connection.
-    AsyncFunction("startNode") { (credential: String, userHex: String) -> [String: Any] in
+    AsyncFunction("startNode") { (credential: String, userHex: String, cloudBaseUrl: String) -> [String: Any] in
       var error: NSError?
-      guard let host = ZolikcoreStartNode(try Self.dataDir(), credential, userHex, &error) else {
+      guard let host = ZolikcoreStartNode(try Self.dataDir(), credential, userHex, cloudBaseUrl, &error) else {
         throw HostException(error?.localizedDescription ?? "the host did not start")
       }
       return Self.describe(host)

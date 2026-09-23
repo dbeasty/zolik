@@ -44,6 +44,7 @@ export async function startNodeFor(
   userHex: string,
   storage: Storage,
   enrol: Enroller,
+  cloudBaseUrl: string,
 ): Promise<boolean> {
   if (!nearby.nearbyAvailable || !userHex) return false;
 
@@ -63,7 +64,7 @@ export async function startNodeFor(
     // underneath whatever is using it.
     await nearby.stopHost();
   }
-  await nearby.startNode(credential, userHex);
+  await nearby.startNode(credential, userHex, cloudBaseUrl);
   return true;
 }
 

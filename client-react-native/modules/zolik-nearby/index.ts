@@ -45,7 +45,7 @@ export type BleState = 'on' | 'off' | 'unauthorized' | 'unsupported' | 'unknown'
 
 type NativeModule = {
   startHost(): Promise<HostInfo>;
-  startNode(credential: string, userHex: string): Promise<HostInfo>;
+  startNode(credential: string, userHex: string, cloudBaseUrl: string): Promise<HostInfo>;
   syncNow(): Promise<void>;
   nodeIdentity(): NodeIdentity | null;
   replicaReady(): boolean;
@@ -100,9 +100,18 @@ export async function startHost(): Promise<HostInfo> {
  * A host already running for a different account is refused rather than
  * silently re-pointed: the database on the device belongs to whoever wrote
  * it, and a sign-in should not quietly hand it to somebody else.
+ *
+ * cloudBaseUrl is the server this app is talking to. It is passed rather than
+ * assumed because a development build points at a server on the same machine,
+ * and a device that synced with production while the app read from localhost
+ * would be two different databases wearing one account.
  */
-export async function startNode(credential: string, userHex: string): Promise<HostInfo> {
-  return need().startNode(credential, userHex);
+export async function startNode(
+  credential: string,
+  userHex: string,
+  cloudBaseUrl: string,
+): Promise<HostInfo> {
+  return need().startNode(credential, userHex, cloudBaseUrl);
 }
 
 /** This install's node identity, or null while no host is running. */

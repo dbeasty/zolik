@@ -266,17 +266,17 @@ func TestAGuestFromTheRoomJoinsTheHostsTable(t *testing.T) {
 // replicating somebody else's data into it.
 func TestStartNodeRefusesToSwapAccountsUnderneathALiveHost(t *testing.T) {
 	dir := t.TempDir()
-	h, err := StartNode(dir, "", "")
+	h, err := StartNode(dir, "", "", "")
 	if err != nil {
 		t.Fatalf("start: %v", err)
 	}
 	t.Cleanup(func() { h.Stop() })
 
-	if _, err := StartNode(dir, "cred", "65f0c0ffeec0ffeec0ffee01"); err == nil {
+	if _, err := StartNode(dir, "cred", "65f0c0ffeec0ffeec0ffee01", "http://127.0.0.1:8099"); err == nil {
 		t.Fatal("a running host was re-pointed at another account")
 	}
 	// The same caller asking again for what is already running is not a swap.
-	again, err := StartNode(dir, "", "")
+	again, err := StartNode(dir, "", "", "")
 	if err != nil {
 		t.Fatalf("start again: %v", err)
 	}
@@ -288,7 +288,7 @@ func TestStartNodeRefusesToSwapAccountsUnderneathALiveHost(t *testing.T) {
 // TestAHostWithNobodySignedInSyncsNothing keeps the offline table exactly as
 // it was: a phone hosting a game for the room is not a node of anything.
 func TestAHostWithNobodySignedInSyncsNothing(t *testing.T) {
-	h, err := StartNode(t.TempDir(), "", "")
+	h, err := StartNode(t.TempDir(), "", "", "")
 	if err != nil {
 		t.Fatalf("start: %v", err)
 	}

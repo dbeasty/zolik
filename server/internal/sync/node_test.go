@@ -221,3 +221,18 @@ func TestAPhoneFollowsAMatchItIsSeatedAt(t *testing.T) {
 		t.Fatal("the phone kept syncing a match it stopped following")
 	}
 }
+
+func TestASecureHubIsDialledWithTLS(t *testing.T) {
+	// The engine refuses a wss:// peer that was given no TLS settings rather
+	// than falling back to plaintext, which is right and is easy to be caught
+	// by: every deployment is wss and every test is ws.
+	if tlsFor("wss://jokerless.com/kdb/sync") == nil {
+		t.Fatal("a secure hub was going to be dialled with no TLS settings")
+	}
+	if got := tlsFor("wss://jokerless.com/kdb/sync"); got.InsecureSkipVerify {
+		t.Fatal("verification was turned off")
+	}
+	if tlsFor("ws://127.0.0.1:8099/kdb/sync") != nil {
+		t.Fatal("a plaintext hub was given TLS settings")
+	}
+}

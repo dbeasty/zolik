@@ -519,9 +519,9 @@ func (k *KDB) closeRuntimes() {
 // nothing ever reads again.
 func (k *KDB) openForEngine(id string, create bool) (*kdbserver.KdbServerRuntime, error) {
 	name := Unqualified(id)
-	if !create && k.path != "" && !IsDynamicNamespace(name) {
-		return nil, fmt.Errorf("%w: %s", kdbserver.ErrUnknownNamespace, id)
-	}
+	// A read must not bring a namespace into existence, but it must be able
+	// to reach one that already exists on disk - including a declared one
+	// this process closed for idleness and has to open again.
 	if !create && k.path != "" && !embed.NamespaceExists(k.path, id) {
 		return nil, fmt.Errorf("%w: %s", kdbserver.ErrUnknownNamespace, id)
 	}
@@ -562,7 +562,7 @@ func (k *KDB) Namespace(name string) (*kdbNamespace, error) {
 	if ok {
 		return n, nil
 	}
-	if !IsDynamicNamespace(name) {
+	if !IsDynamicNamespace(name) && !isDeclaredNamespace(name) && !k.HoldsNamespace(name) {
 		return nil, fmt.Errorf("unknown namespace %q", name)
 	}
 	if k.host == nil {
@@ -578,6 +578,16 @@ func (k *KDB) Namespace(name string) (*kdbNamespace, error) {
 	nsID := kdbCatalog + "/" + name
 	if err := embed.ValidateNamespaceID(nsID); err != nil {
 		return nil, err
+	}
+	// The set may still be serving this namespace even though this package
+	// let go of it: a handle forgotten without the engine closing it, or a
+	// namespace a peer's sync opened through the set's own opener. Two
+	// runtimes over one namespace would be two uncoordinated writers, so the
+	// one the set holds wins.
+	if existing, ok := k.set.Get(nsID); ok {
+		n := &kdbNamespace{id: nsID, rt: existing.Runtime, srv: existing}
+		k.nss[name] = n
+		return n, nil
 	}
 	rt, err := k.host.Namespace(kdbCatalog, nsID, schema.None())
 	if err != nil {
@@ -602,6 +612,33 @@ func (k *KDB) Namespace(name string) (*kdbNamespace, error) {
 	n = &kdbNamespace{id: nsID, rt: rt, srv: srv}
 	k.nss[name] = n
 	return n, nil
+}
+
+// isDeclaredNamespace reports whether a name is one of the fixed collections
+// this binary declares. They are opened at startup, but can be closed again
+// for idleness and have to be reopenable by name.
+func isDeclaredNamespace(name string) bool {
+	for _, declared := range kdbNamespaceNames {
+		if declared == name {
+			return true
+		}
+	}
+	return false
+}
+
+// ForgetNamespace drops a namespace this process is no longer holding open.
+//
+// The engine closes namespaces nobody has used for a while, which is what
+// makes a namespace per person and per match affordable. What it cannot do is
+// know that this package kept a handle to the runtime it closed: a write
+// through that handle reaches a runtime that has been drained and is refused
+// as "server is shutting down", which is true and unhelpful. Forgetting it
+// here means the next use opens the namespace again.
+func (k *KDB) ForgetNamespace(namespaceID string) {
+	name := Unqualified(namespaceID)
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	delete(k.nss, name)
 }
 
 // uuidForKey maps a natural key — an ObjectID hex, a session token, a

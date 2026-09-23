@@ -12,6 +12,7 @@ import (
 	"github.com/limidus/kdb/go/kdb/replication"
 	kdbserver "github.com/limidus/kdb/go/kdb/server"
 	"github.com/limidus/kdb/go/kdb/syncnode"
+	"github.com/limidus/kdb/go/kdb/transport/core"
 
 	"zolik/server/internal/db"
 )
@@ -158,8 +159,26 @@ func Open(k *db.KDB, cfg Config, verifier Verifier, seating MatchSeating) (*Node
 	}
 
 	n := &Node{cfg: cfg, kdb: k, node: nil}
+	// Whatever closes a namespace for idleness has to tell the database
+	// layer, which keeps handles of its own: a write through the handle of a
+	// namespace the engine has drained and closed comes back as "server is
+	// shutting down", which is true of that runtime and says nothing about
+	// what happened. Wired here rather than left to each caller, because
+	// getting it wrong is silent until a namespace goes quiet for fifteen
+	// minutes and then every write to it fails.
+	if cfg.IdleClose != nil {
+		alsoTell := cfg.IdleClose.OnClose
+		cfg.IdleClose.OnClose = func(rt *kdbserver.KdbServerRuntime) {
+			k.ForgetNamespace(rt.Runtime.DefaultNamespace)
+			if alsoTell != nil {
+				alsoTell(rt)
+			}
+		}
+	}
+
 	sn, err := syncnode.Open(host, set, primary, syncnode.Config{
 		Peers:                    peers,
+		TLS:                      tlsFor(cfg.HubURL),
 		DataDir:                  cfg.DataDir,
 		Debounce:                 cfg.Debounce,
 		AuthorizePushedDocuments: false,
@@ -228,6 +247,17 @@ func (n *Node) Handler() http.Handler {
 	return n.node.Handler()
 }
 
+// CloseIdle closes the namespaces nothing has used for a while, and returns
+// what it closed. The node does this on its own schedule; this is for asking
+// now, which is what a test needs and what an operator reclaiming memory on a
+// busy evening might want.
+func (n *Node) CloseIdle(now time.Time) []string {
+	if n == nil {
+		return nil
+	}
+	return n.node.CloseIdle(now)
+}
+
 // SyncNow asks for an immediate sync with the hub, for the moments where
 // waiting for the tick would be visible: the app coming to the foreground, the
 // network coming back, a match ending.
@@ -276,6 +306,22 @@ func (n *Node) changeNamespaces(add, remove []string) error {
 	}
 	n.cfg.Namespaces = want
 	return r.SetPeerNamespaces("hub", want)
+}
+
+// tlsFor is the TLS a peer address needs.
+//
+// A wss:// peer is refused outright by the engine unless it is given TLS
+// settings: it will not quietly fall back to plaintext, which is the right
+// call and an easy one to be caught by, since every production deployment is
+// wss and every test is ws. Verification is against the system roots, which is
+// what a phone talking to a public endpoint should do; nothing here turns that
+// off, and a deployment with a private certificate authority would configure
+// one rather than skipping verification.
+func tlsFor(hubURL string) *core.TransportTlsSettings {
+	if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(hubURL)), "wss://") {
+		return nil
+	}
+	return &core.TransportTlsSettings{Enabled: true}
 }
 
 // qualifyAll turns the namespace names this server uses into the ids the
