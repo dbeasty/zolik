@@ -39,13 +39,16 @@ const nodeCredentialTTL = 365 * 24 * time.Hour
 // asked for. InstanceID is the install's own id, kept because it is what the
 // person sees in the app and what a support conversation will be about.
 type Node struct {
-	ID         string    `json:"id"`
-	OwnerID    string    `json:"ownerId"`
-	Kind       string    `json:"kind"`
-	InstanceID string    `json:"instanceId,omitempty"`
-	PublicKey  string    `json:"publicKey"`
-	EnrolledAt time.Time `json:"enrolledAt"`
-	LastSeenAt time.Time `json:"lastSeenAt,omitempty"`
+	// The bson names matter: a stored document's own "id" field is the
+	// engine's document id, so a model that used that name for something of
+	// its own would have it replaced by a UUID it never chose.
+	ID         string    `bson:"_id" json:"id"`
+	OwnerID    string    `bson:"ownerId" json:"ownerId"`
+	Kind       string    `bson:"kind" json:"kind"`
+	InstanceID string    `bson:"instanceId,omitempty" json:"instanceId,omitempty"`
+	PublicKey  string    `bson:"publicKey" json:"publicKey"`
+	EnrolledAt time.Time `bson:"enrolledAt" json:"enrolledAt"`
+	LastSeenAt time.Time `bson:"lastSeenAt,omitempty" json:"lastSeenAt,omitempty"`
 }
 
 // NodeRepository is the persistence behind enrolled nodes, in the shape the

@@ -60,7 +60,7 @@ func TestTheReplicaServesOnlyTheKindAsked(t *testing.T) {
 	seed(t, k, db.UserNS(user), db.PrefsKey, `{"_kind":"prefs","language":"cs"}`)
 	seed(t, k, db.UserNS(user), "circle/user:aaa", `{"_kind":"circle","memberKey":"user:aaa"}`)
 	seed(t, k, db.UserNS(user), "circle/user:bbb", `{"_kind":"circle","memberKey":"user:bbb"}`)
-	seed(t, k, db.UserNS(user), "device/d1", `{"_kind":"device","id":"d1"}`)
+	seed(t, k, db.UserNS(user), "device/d1", `{"_kind":"device","_id":"d1"}`)
 	seed(t, k, db.UserNS(user), "scoring/s1", `{"_kind":"scoring","rounds":[]}`)
 
 	circle, err := rd.Circle()

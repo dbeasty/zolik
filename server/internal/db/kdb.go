@@ -1157,8 +1157,31 @@ func injectDocID(doc []byte, id codec.UUID) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	// The engine's document id is written as "id", so a model that stored a
+	// field of its own under that name would have it silently replaced by a
+	// UUID it never chose, and would read back wrong long afterwards. Every
+	// model here keys its own id as "_id".
+	//
+	// A document that already carries a UUID there is one being written
+	// again, or moved to another key by a migration, and its id is simply
+	// replaced. Anything else is a model naming a field "id", which is worth
+	// failing on loudly.
+	if existing, ok := root["id"]; ok && string(existing) != string(idJSON) && !isDocumentID(existing) {
+		return nil, fmt.Errorf("kdb: document carries its own \"id\" field (%s), which the engine's document id would replace: store it under another name", existing)
+	}
 	root["id"] = idJSON
 	return json.Marshal(root)
+}
+
+// isDocumentID reports whether a JSON value is an engine document id, which is
+// what tells a document being re-keyed from a model that named a field "id".
+func isDocumentID(raw json.RawMessage) bool {
+	var s string
+	if err := json.Unmarshal(raw, &s); err != nil {
+		return false
+	}
+	_, err := codec.UUIDFromString(s)
+	return err == nil
 }
 
 // --- expiry sweep ---
