@@ -104,6 +104,45 @@ public class ZolikNearbyModule: Module {
       return Self.describe(host)
     }
 
+    // The same host, for a phone that has been enrolled and has somebody
+    // signed in: it additionally replicates that account's data and serves it
+    // back, so the app can show a person their own things with no connection.
+    AsyncFunction("startNode") { (credential: String, userHex: String) -> [String: Any] in
+      var error: NSError?
+      guard let host = ZolikcoreStartNode(try Self.dataDir(), credential, userHex, &error) else {
+        throw HostException(error?.localizedDescription ?? "the host did not start")
+      }
+      return Self.describe(host)
+    }
+
+    // This install's node identity: what the cloud enrols, and the key half
+    // it is enrolled by. The private half never leaves the phone.
+    Function("nodeIdentity") { () -> [String: Any]? in
+      guard let host = ZolikcoreCurrent() else { return nil }
+      return ["nodeId": host.nodeID(), "publicKey": host.nodePublicKey()]
+    }
+
+    // Replicate now rather than at the next tick, for the moments where
+    // waiting would be visible: coming back to the app, the network
+    // returning, a match ending.
+    AsyncFunction("syncNow") {
+      guard let host = ZolikcoreCurrent() else { return }
+      try host.syncNow()
+    }
+
+    // Whether this device is holding the signed-in account's data yet, so the
+    // app can tell "nothing synced" from "you have never played".
+    Function("replicaReady") { () -> Bool in
+      ZolikcoreCurrent()?.replicaReady() ?? false
+    }
+
+    // Starts following a match that was begun somewhere else, so this device
+    // can open it.
+    AsyncFunction("followMatch") { (matchID: String) in
+      guard let host = ZolikcoreCurrent() else { throw HostException("no host is running") }
+      try host.followMatch(matchID)
+    }
+
     AsyncFunction("stopHost") {
       self.bonjour.unpublish()
       self.bleHost.stop()
