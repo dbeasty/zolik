@@ -95,6 +95,16 @@ export function BoardLayout({
   const otherSpreads = spreadZones.filter((z) => z.ownerId !== viewerId);
   const orderedSpreads = [...mySpreads, ...otherSpreads];
 
+  // Where that row goes. Under the buttons when the viewer holds a hand: the
+  // hand is what they play from, and the melds are a record of what has been
+  // laid down. But at a table where nobody holds a hand — blackjack, where
+  // every box is dealt face up — the spreads *are* the cards being played,
+  // yours and everyone else's, and every decision is made against them, so
+  // they go on the table above the buttons with the dealer's. Decided by the
+  // zones the module sent — all of them, hidden or not, so a spectator at a
+  // rummy table still sees it laid out as one — never by the game's name.
+  const holdsHand = zones.some((z) => z.kind === 'hand');
+
   // The table's own zones: the piles everyone draws from and discards to, and
   // any spread the table itself holds — poker's board, dealt from the deck it
   // now sits beside, or the blackjack dealer's hand beside the shoe (taken
@@ -109,6 +119,25 @@ export function BoardLayout({
   // shell has never seen. The fallback that keeps a game it was not written
   // against from losing content silently.
   const otherZones = visible.filter((z) => z.ownerId && z.ownerId !== viewerId && z.kind !== 'spread');
+
+  // Every spread on the board, whoever's it is, sharing a wrapping row
+  // instead of each claiming a full-width line — named by its owner where the
+  // server sent one, so two or more players' melds read as whose they are at
+  // a glance rather than an anonymous stack.
+  const spreadsRow =
+    orderedSpreads.length > 0 ? (
+      <View style={styles.spreads} testID="section-spreads">
+        {orderedSpreads.map((z) => (
+          <ZoneView
+            key={z.id}
+            zone={z}
+            title={z.ownerId ? playerName(state.players, z.ownerId) + (z.ownerId === viewerId ? ` ${t('match.youSuffix')}` : '') : undefined}
+            {...zonePanelProps(z.id)}
+            {...drops}
+          />
+        ))}
+      </View>
+    ) : null;
 
   return (
     <>
@@ -143,26 +172,12 @@ export function BoardLayout({
         </View>
       ) : null}
 
+      {holdsHand ? null : spreadsRow}
+
       {hand}
       {controls}
 
-      {/* Every spread on the board, whoever's it is, sharing a wrapping row
-          instead of each claiming a full-width line — named by its owner
-          where the server sent one, so two or more players' melds read as
-          whose they are at a glance rather than an anonymous stack. */}
-      {orderedSpreads.length > 0 ? (
-        <View style={styles.spreads} testID="section-spreads">
-          {orderedSpreads.map((z) => (
-            <ZoneView
-              key={z.id}
-              zone={z}
-              title={z.ownerId ? playerName(state.players, z.ownerId) + (z.ownerId === viewerId ? ` ${t('match.youSuffix')}` : '') : undefined}
-              {...zonePanelProps(z.id)}
-              {...drops}
-            />
-          ))}
-        </View>
-      ) : null}
+      {holdsHand ? spreadsRow : null}
 
       <Section
         title={t('match.opponents')}
