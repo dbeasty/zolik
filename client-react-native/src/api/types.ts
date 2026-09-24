@@ -59,6 +59,17 @@ export type PlayerSession = {
    * credential and grants no access to any account.
    */
   guestId?: string;
+  /**
+   * A pass the cloud signed, which seats this account at a table with no
+   * internet: a host checks it against the copy of the cloud's keys it
+   * cached while it last had a connection, and seats the holder as
+   * themselves rather than as a stranger.
+   *
+   * Kept with the session because that is its lifetime - it is issued at
+   * sign-in and renewed on refresh, and it is worth nothing to anybody who
+   * is not signed in.
+   */
+  offlinePass?: string;
   /** Matches recorded against this device's guest id that an account could
    *  still absorb. Drives the "sign in to keep your N games" prompt. */
   claimableMatches?: number;
@@ -249,3 +260,19 @@ export type MeWSMessage =
   | { type: 'invite_revoked'; id: string }
   | { type: 'lobby_invited'; matchId: string; joinCode: string }
   | { type: 'circle_changed' };
+
+/** What the cloud answers when a device enrols as a node of the database. */
+export type NodeEnrolment = {
+  nodeId: string;
+  /** How this device authenticates its database sync from now on. */
+  credential: string;
+};
+
+/** One offline seat a person claimed, as the cloud recorded it. */
+export type ClaimedSeat = {
+  guestId: string;
+  nodeId: string;
+  claimed: boolean;
+  /** Why not, when it was not: the seat belongs to somebody else. */
+  reason?: string;
+};

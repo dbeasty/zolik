@@ -166,8 +166,16 @@ func MigrateKDB(ctx context.Context, k *db.KDB, dry bool) (MigrationReport, erro
 		return MigrationReport{}, err
 	}
 	keep := func(ctx context.Context, id bson.ObjectID, at time.Time) error {
-		return k.Update(db.NSMatches, func(tx *db.Tx) error {
-			raw, err := tx.Get(id.Hex())
+		// Both copies of the envelope, in one transaction, exactly as every
+		// other write to one does — see putEnvelope. Putting the time back in
+		// the index alone would leave the match itself saying it had been
+		// played on the day it was migrated, which is the version every read
+		// answers from.
+		return k.UpdateMulti(envelopeNamespaces(id), func(tx *db.MultiTx) error {
+			raw, err := tx.Get(db.MatchNS(id.Hex()), keyMatchEnvelope)
+			if db.IsNotFound(err) {
+				raw, err = tx.Get(db.NSMatches, id.Hex())
+			}
 			if err != nil {
 				return err
 			}
@@ -180,7 +188,8 @@ func MigrateKDB(ctx context.Context, k *db.KDB, dry bool) (MigrationReport, erro
 			if err != nil {
 				return err
 			}
-			return tx.Put(id.Hex(), out)
+			putEnvelope(tx, id, out)
+			return nil
 		})
 	}
 	return migrateAll(ctx, NewKDBRepository(k), keep, found, skipped, dry)

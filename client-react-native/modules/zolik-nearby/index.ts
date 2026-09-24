@@ -19,6 +19,13 @@ export type HostInfo = {
   lanPort: number;
 };
 
+/**
+ * This install's identity as a node of the database: what the cloud enrols,
+ * and the public half of the key it signs with. The private half never leaves
+ * the phone.
+ */
+export type NodeIdentity = { nodeId: string; publicKey: string };
+
 /** A table somebody else in the room is hosting, as Bonjour/NSD found it. */
 export type NearbyHost = {
   /** The advertised service name, which is what a later "lost" names. */
@@ -38,6 +45,11 @@ export type BleState = 'on' | 'off' | 'unauthorized' | 'unsupported' | 'unknown'
 
 type NativeModule = {
   startHost(): Promise<HostInfo>;
+  startNode(credential: string, userHex: string, cloudBaseUrl: string): Promise<HostInfo>;
+  syncNow(): Promise<void>;
+  nodeIdentity(): NodeIdentity | null;
+  replicaReady(): boolean;
+  followMatch(matchId: string): Promise<void>;
   stopHost(): Promise<void>;
   hostStatus(): HostInfo | null;
   openRoom(name: string): Promise<{ port: number; addresses: string[] }>;
@@ -78,6 +90,56 @@ function need(): NativeModule {
 
 export async function startHost(): Promise<HostInfo> {
   return need().startHost();
+}
+
+/**
+ * Starts the embedded server for a phone that has been enrolled with the
+ * cloud and has somebody signed in: the same host, which additionally holds
+ * that account's own data and serves it back with no connection at all.
+ *
+ * A host already running for a different account is refused rather than
+ * silently re-pointed: the database on the device belongs to whoever wrote
+ * it, and a sign-in should not quietly hand it to somebody else.
+ *
+ * cloudBaseUrl is the server this app is talking to. It is passed rather than
+ * assumed because a development build points at a server on the same machine,
+ * and a device that synced with production while the app read from localhost
+ * would be two different databases wearing one account.
+ */
+export async function startNode(
+  credential: string,
+  userHex: string,
+  cloudBaseUrl: string,
+): Promise<HostInfo> {
+  return need().startNode(credential, userHex, cloudBaseUrl);
+}
+
+/** This install's node identity, or null while no host is running. */
+export function nodeIdentity(): NodeIdentity | null {
+  return native?.nodeIdentity() ?? null;
+}
+
+/**
+ * Replicates now instead of at the next tick, for the moments where waiting
+ * would be visible: the app coming back to the foreground, the network
+ * returning, a match ending.
+ */
+export async function syncNow(): Promise<void> {
+  await native?.syncNow();
+}
+
+/**
+ * Whether this device is holding the signed-in account's data yet. It is what
+ * lets a history screen say "not synced yet" rather than showing an empty
+ * list, which reads as "you have never played".
+ */
+export function replicaReady(): boolean {
+  return native?.replicaReady() ?? false;
+}
+
+/** Starts following a match begun on another device, so this one can open it. */
+export async function followMatch(matchId: string): Promise<void> {
+  await need().followMatch(matchId);
 }
 
 export async function stopHost(): Promise<void> {

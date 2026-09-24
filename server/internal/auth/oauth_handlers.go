@@ -213,6 +213,7 @@ func (h *Handlers) oauthCallback(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 		out.AccessToken, out.RefreshToken = tokens.AccessToken, tokens.RefreshToken
+		out.OfflinePass = tokens.OfflinePass
 	}
 
 	exchangeCode, err := NewRandomToken(32)
@@ -247,7 +248,7 @@ func (h *Handlers) oauthExchange(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	r := flow.Result
-	writeJSON(w, map[string]any{
+	out := map[string]any{
 		"accessToken":    r.AccessToken,
 		"refreshToken":   r.RefreshToken,
 		"userId":         r.UserID,
@@ -256,7 +257,11 @@ func (h *Handlers) oauthExchange(w http.ResponseWriter, req *http.Request) {
 		"linked":         r.Linked,
 		"provider":       flow.Provider,
 		"claimedMatches": r.ClaimedMatches,
-	})
+	}
+	if r.OfflinePass != "" {
+		out["offlinePass"] = r.OfflinePass
+	}
+	writeJSON(w, out)
 }
 
 type oauthTokenReq struct {
@@ -350,6 +355,9 @@ func (h *Handlers) completeSignIn(w http.ResponseWriter, req *http.Request, clai
 	}
 	out["accessToken"] = tokens.AccessToken
 	out["refreshToken"] = tokens.RefreshToken
+	if tokens.OfflinePass != "" {
+		out["offlinePass"] = tokens.OfflinePass
+	}
 	writeJSON(w, out)
 }
 

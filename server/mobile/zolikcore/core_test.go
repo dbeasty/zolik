@@ -259,3 +259,75 @@ func TestAGuestFromTheRoomJoinsTheHostsTable(t *testing.T) {
 		t.Errorf("the host's own loopback died with the room: %d", got)
 	}
 }
+
+// What one host on one database may become, and what it may not.
+//
+// The database on disk belongs to whoever was signed in when it was written,
+// so a sign-in on a second account must not quietly start replicating
+// somebody else's data into it. Everything else is the same host in a
+// different mode: a table for the room names nobody, and somebody signing in
+// on a host that was serving nobody is a restart on the same database rather
+// than a refusal.
+func TestWhatARunningHostMayBecome(t *testing.T) {
+	dir := t.TempDir()
+	const ada = "65f0c0ffeec0ffeec0ffee01"
+	const grace = "65f0c0ffeec0ffeec0ffee02"
+
+	offline, err := StartNode(dir, "", "", "")
+	if err != nil {
+		t.Fatalf("a table for the room: %v", err)
+	}
+	t.Cleanup(func() { Current().Stop() })
+
+	// Asking again for the same thing is not a swap.
+	if again, err := StartNode(dir, "", "", ""); err != nil || again != offline {
+		t.Fatalf("starting a second table: %v (same host: %v)", err, again == offline)
+	}
+
+	// Somebody signs in: the host comes back replicating for them.
+	mine, err := StartNode(dir, "cred", ada, "http://127.0.0.1:8099")
+	if err != nil {
+		t.Fatalf("signing in on a host that was serving nobody: %v", err)
+	}
+	if mine == offline {
+		t.Fatal("the host was not restarted, so it is not replicating")
+	}
+
+	// And they can still host a table for the room on it, which is what the
+	// app asks for when somebody taps Play offline.
+	shared, err := StartNode(dir, "", "", "")
+	if err != nil {
+		t.Fatalf("a signed-in person starting an offline table: %v", err)
+	}
+	if shared != mine {
+		t.Fatal("the offline table started a second host")
+	}
+
+	// Somebody else signing in on the same device is the one case that is
+	// refused: this database is not theirs.
+	if _, err := StartNode(dir, "cred", grace, "http://127.0.0.1:8099"); err == nil {
+		t.Fatal("a running host was re-pointed at another account")
+	}
+}
+
+// TestAHostWithNobodySignedInSyncsNothing keeps the offline table exactly as
+// it was: a phone hosting a game for the room is not a node of anything.
+func TestAHostWithNobodySignedInSyncsNothing(t *testing.T) {
+	// Whatever a previous test left running holds the package's one host
+	// slot, and a host is per process rather than per test.
+	if h := Current(); h != nil {
+		h.Stop()
+	}
+	h, err := StartNode(t.TempDir(), "", "", "")
+	if err != nil {
+		t.Fatalf("start: %v", err)
+	}
+	t.Cleanup(func() { h.Stop() })
+
+	if err := h.SyncNow(); err != nil {
+		t.Fatalf("asking an unenrolled host to sync must do nothing, got %v", err)
+	}
+	if h.ReplicaReady() {
+		t.Fatal("a host with nobody signed in reported holding an account's data")
+	}
+}

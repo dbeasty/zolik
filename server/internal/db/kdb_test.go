@@ -579,3 +579,84 @@ func TestKDBReadDuringCloseIsSafe(t *testing.T) {
 }
 
 var _ = errors.Is // keep errors imported if assertions above change shape
+
+// TestKDBUpdateRetriesWhenADocumentChangesUnderIt stands in for the one thing
+// the namespace lock cannot serialize: a peer's merge landing between an
+// Update's read and its write. The "peer" here is a write that goes straight
+// at the runtime, which is exactly what peer ingest does — it does not take
+// n.mu, because a replicating peer never could.
+func TestKDBUpdateRetriesWhenADocumentChangesUnderIt(t *testing.T) {
+	k := openTestKDB(t)
+	if err := k.Put(NSUsers, "u1", []byte(`{"username":"ada","rev":1}`)); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	attempts := 0
+	err := k.Update(NSUsers, func(tx *Tx) error {
+		attempts++
+		doc, err := tx.Get("u1")
+		if err != nil {
+			return err
+		}
+		var cur struct {
+			Username string `bson:"username"`
+			Rev      int    `bson:"rev"`
+		}
+		if err := UnmarshalDoc(doc, &cur); err != nil {
+			return err
+		}
+		if attempts == 1 {
+			// The peer writes while this critical section is deciding.
+			n := k.ns(NSUsers)
+			if err := n.put("u1", []byte(`{"username":"ada","rev":2}`), nil); err != nil {
+				t.Fatalf("peer write: %v", err)
+			}
+		}
+		cur.Rev++
+		body, err := MarshalDoc(cur)
+		if err != nil {
+			return err
+		}
+		return tx.Put("u1", body)
+	})
+	if err != nil {
+		t.Fatalf("update: %v", err)
+	}
+	if attempts != 2 {
+		t.Fatalf("attempts = %d, want 2: the first must be refused and re-run", attempts)
+	}
+
+	doc, err := k.Get(NSUsers, "u1")
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	var got struct {
+		Rev int `bson:"rev"`
+	}
+	if err := UnmarshalDoc(doc, &got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	// 3, not 2: the retry read the peer's rev 2 and incremented that. A lost
+	// update would have written 2, overwriting the peer.
+	if got.Rev != 3 {
+		t.Fatalf("rev = %d, want 3 (the peer's write must survive)", got.Rev)
+	}
+}
+
+// TestKDBInsertRefusesAKeyAPeerCreated is the unique-constraint half: the
+// existence check passed because the key really was absent, and the write is
+// still refused because it stopped being absent before it landed.
+func TestKDBInsertRefusesAKeyAPeerCreated(t *testing.T) {
+	k := openTestKDB(t)
+	n := k.ns(NSIdentities)
+	if err := n.put("google\x00sub", []byte(`{"provider":"google"}`), nil); err != nil {
+		t.Fatalf("peer write: %v", err)
+	}
+	// Insert's own read-check is bypassed here the way a racing peer bypasses
+	// it: put the precondition in by hand, since the check and the write are
+	// not separable from the outside.
+	err := n.put("google\x00sub", []byte(`{"provider":"google"}`), &kdbserver.Expect{Absent: true})
+	if !IsDuplicateKey(duplicateIfPrecondition(n.id, "google\x00sub", err)) {
+		t.Fatalf("got %v, want a duplicate-key error", err)
+	}
+}

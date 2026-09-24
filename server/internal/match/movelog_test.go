@@ -253,12 +253,20 @@ func TestDeletingAMatchLeavesNothingBehind(t *testing.T) {
 	if err := h.m.DeleteAsHost(context.Background(), id, "p1"); err != nil {
 		t.Fatalf("delete: %v", err)
 	}
+	// The match's own namespace is where its history lives now, so that is
+	// where anything outliving it would be; the old shared log is checked too,
+	// for as long as a store can still have records in it.
 	left := 0
-	if err := h.k.Scan(db.NSMatchLog, func([]byte) error { left++; return nil }); err != nil {
-		t.Fatal(err)
+	for _, ns := range []string{db.MatchNS(id), db.NSMatchLog} {
+		if err := h.k.Scan(ns, func([]byte) error { left++; return nil }); err != nil {
+			t.Fatal(err)
+		}
 	}
 	if left != 0 {
-		t.Errorf("%d log records outlived their match", left)
+		t.Errorf("%d records outlived their match", left)
+	}
+	if _, err := h.k.Get(db.NSMatches, id); !db.IsNotFound(err) {
+		t.Errorf("the index still lists a deleted match: %v", err)
 	}
 }
 
@@ -274,16 +282,20 @@ func TestAMoveCommitsAFewHundredBytes(t *testing.T) {
 	id := m.ID.Hex()
 	var committed int64
 	made := h.play(t, g, id, 1000, func(seq int, _ module.State) {
-		raw, err := h.k.Get(db.NSMatchLog, logKey(m.ID, kindMove, seq))
+		ns := db.MatchNS(id)
+		raw, err := h.k.Get(ns, recordKey(kindMove, seq))
 		if err != nil {
 			t.Fatal(err)
 		}
 		committed += int64(len(raw))
 		cur, _ := h.m.current(context.Background(), id)
 		if last, _ := latestSnapshot(cur); last == seq {
-			snap, _ := h.k.Get(db.NSMatchLog, logKey(m.ID, kindSnapshot, seq))
-			env, _ := h.k.Get(db.NSMatches, id)
-			committed += int64(len(snap) + len(env))
+			// A snapshot commits the board, the envelope, and the index's copy
+			// of the envelope — the index costs real bytes and is counted.
+			snap, _ := h.k.Get(ns, recordKey(kindSnapshot, seq))
+			env, _ := h.k.Get(ns, keyMatchEnvelope)
+			indexed, _ := h.k.Get(db.NSMatches, id)
+			committed += int64(len(snap) + len(env) + len(indexed))
 		}
 	})
 	per := float64(committed) / float64(made)

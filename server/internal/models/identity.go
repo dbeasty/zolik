@@ -144,4 +144,8 @@ type OAuthFlowResult struct {
 	// ClaimedMatches is how many guest matches were absorbed into the account,
 	// so the client can say "we kept your 12 games" instead of guessing.
 	ClaimedMatches int `bson:"claimedMatches,omitempty"`
+	// OfflinePass travels with the session for the same reason the tokens do:
+	// a browser flow is a sign-in like any other, and a client that collected
+	// one here would otherwise have no pass until its next refresh.
+	OfflinePass string `bson:"offlinePass,omitempty"`
 }

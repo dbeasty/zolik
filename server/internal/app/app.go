@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"log"
 	"net/http"
@@ -32,6 +33,7 @@ import (
 	"zolik/server/internal/rummytiles"
 	"zolik/server/internal/scoring"
 	"zolik/server/internal/stats"
+	zsync "zolik/server/internal/sync"
 	userrepo "zolik/server/internal/user"
 	"zolik/server/internal/webui"
 	"zolik/server/internal/ws"
@@ -67,6 +69,23 @@ type App struct {
 	// matchMgr is the game runtime, built once — see matchManager.
 	matchOnce sync.Once
 	matchMgr  *match.Manager
+	// sync is this process as a node of the distributed database, or nil when
+	// it replicates with nobody — which is every deployment until
+	// FEATURE_FLAG_SYNC says otherwise. See internal/sync.
+	sync *zsync.Node
+	// kdb is the embedded engine, held only so the sync node can be opened
+	// over the same database the repositories use. Nil under Mongo.
+	kdb *db.KDB
+	// importer takes the finished matches other nodes have handed up, checks
+	// them by replaying them, and records them. Nil on anything but the hub.
+	importer *zsync.Importer
+	// nodes is the record of enrolled replicas: which installs exist and what
+	// each one signs with.
+	nodes auth.NodeRepository
+	// replicaUser is the account signed in on this device, when this process
+	// is the copy embedded in the phone app. Empty everywhere else: a server
+	// serves whoever asks, and has no one person whose data it holds.
+	replicaUser string
 	// metrics is the in-memory counter sink every instrumented path writes
 	// to; recorder flushes it, reporter reads it back, and boots records
 	// this process's lifetime. See internal/metrics.
@@ -99,7 +118,11 @@ type repos struct {
 	// column-for-column comparable.
 	metrics metrics.Store
 	notify  notify.Repository
-	close   func(ctx context.Context) error
+	// kdb is the embedded engine itself, set only by kdbRepos. Replication
+	// needs the database rather than a repository over it, since a namespace
+	// is not something a repository has a name for.
+	kdb   *db.KDB
+	close func(ctx context.Context) error
 }
 
 // mongoRepos connects to MongoDB and builds the Mongo-backed repositories —
@@ -157,6 +180,7 @@ func kdbRepos(cfg Config) (repos, error) {
 		return repos{}, err
 	}
 	return repos{
+		kdb:      k,
 		stats:    stats.NewKDBRepository(k),
 		user:     userrepo.NewKDBRepository(k),
 		store:    auth.NewKDBStore(k),
@@ -176,6 +200,24 @@ func New(cfg Config) (*App, error) {
 		return nil, err
 	}
 
+	// The key this server signs tokens with, and the key it signs as itself
+	// with. Both are optional and both change what this deployment can do
+	// rather than whether it starts: without a signing key it goes on issuing
+	// the shared-secret tokens it always did, and cannot enrol nodes, because
+	// a credential nothing else can verify is worse than no credential.
+	signing, err := auth.ConfigureSigningKeysFromEnv(cfg.PublicBaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("token signing key: %w", err)
+	}
+	if signing {
+		log.Printf("auth: signing tokens with this deployment's own key, published at /.well-known/jwks.json")
+	} else if cfg.Sync.Enabled() {
+		log.Printf("auth: no signing key (JWT_SIGNING_KEY or JWT_SIGNING_KEY_FILE): this node cannot enrol devices")
+	}
+	if err := auth.ConfigureNodeKey(auth.NodeKeyConfigFromEnv()); err != nil {
+		return nil, fmt.Errorf("node key: %w", err)
+	}
+
 	// Covers Mongo connect + EnsureIndexes + the lobby waiting room's Redis
 	// ping. 30s rather than a tighter figure gives real headroom for a cold
 	// start — Mongo initializing an empty data volume for the first time, or
@@ -190,7 +232,6 @@ func New(cfg Config) (*App, error) {
 	defer cancel()
 
 	var r repos
-	var err error
 	if cfg.DBEngine == db.EngineKDB {
 		r, err = kdbRepos(cfg)
 	} else {
@@ -238,11 +279,24 @@ func New(cfg Config) (*App, error) {
 		ExpoEnabled:    cfg.Push.ExpoEnabled,
 	})
 
+	// Where enrolled replicas are recorded. On the embedded engine that is the
+	// database, so an enrolment survives a restart; anywhere else it is this
+	// process's memory, which means a Mongo deployment cannot enrol nodes and
+	// says so by forgetting them rather than by pretending.
+	var nodes auth.NodeRepository = auth.NewMemoryNodeRepository()
+	var guestClaims auth.GuestClaimStore
+	if r.kdb != nil {
+		nodes = auth.NewKDBNodeRepository(r.kdb)
+		guestClaims = auth.NewKDBGuestClaims(r.kdb)
+	}
+
 	authHandlers := auth.NewHandlers(auth.Deps{
-		Store:     r.store,
-		Sessions:  r.sessions,
-		Providers: identity.FromConfig(cfg.Identity),
-		Mailer:    mailer,
+		Store:       r.store,
+		Sessions:    r.sessions,
+		Nodes:       nodes,
+		GuestClaims: guestClaims,
+		Providers:   identity.FromConfig(cfg.Identity),
+		Mailer:      mailer,
 		// The claimer is injected for the same reason the match recorder is:
 		// stats imports auth for its middleware, so auth cannot import stats.
 		// A guest's circle travels with their history, so the claim does both.
@@ -253,6 +307,12 @@ func New(cfg Config) (*App, error) {
 		TestEndpointsEnabled: cfg.TestEndpointsEnabled,
 	})
 
+	// Only the cloud mints accounts. A self-hosted node verifies the tokens
+	// the cloud signed and refuses to issue its own: a username has to name
+	// one person, and a node deciding that for itself is a node that will
+	// eventually disagree with another one.
+	authHandlers.SetIdentityAuthority(cfg.Sync.Role != syncRoleSpoke)
+
 	// Built before anything that counts, and Start()ed later from Run: until
 	// then counters accumulate in memory and nothing is written, which is
 	// what makes a recorder safe to hand out during construction.
@@ -261,9 +321,11 @@ func New(cfg Config) (*App, error) {
 	gate.SetSink(recorder)
 	authHandlers.SetMetrics(recorder)
 
-	return &App{
+	app := &App{
 		cfg:         cfg,
 		closeDB:     r.close,
+		kdb:         r.kdb,
+		nodes:       nodes,
 		hub:         hub,
 		auth:        authHandlers,
 		waitingRoom: waitingRoom,
@@ -279,7 +341,19 @@ func New(cfg Config) (*App, error) {
 		boots:       metrics.NewBootRecorder(r.metrics, recorder),
 		web:         webui.NewHandler(webui.Embedded()),
 		notify:      notifySvc,
-	}, nil
+	}
+
+	// Opened here rather than in Start so that every namespace this process
+	// opens afterwards is hooked into the node from the first one: a
+	// namespace that came up before the node did would never tell it about
+	// its commits.
+	node, err := openSyncNode(cfg, app.kdb, matchSeating{app: app})
+	if err != nil {
+		_ = app.Close(ctx)
+		return nil, err
+	}
+	app.sync = node
+	return app, nil
 }
 
 // claimChain runs the statistics claim and then carries the guest's circle
@@ -341,6 +415,9 @@ func (a *App) Start(ctx context.Context) {
 	// the runtime reasons about turns into a deadline the store deletes on,
 	// which is the bug retention.go exists not to repeat.
 	a.matchManager().StartRetention(ctx, a.cfg.Retention)
+	// Replication starts last: the match runtime has to exist before a peer
+	// can ask this node whether one of its matches may change hands.
+	a.startSync()
 }
 
 // Stop closes this process's boot record, and flushes whatever counters have
@@ -454,6 +531,14 @@ func (a *App) Hub() *ws.Hub { return a.hub }
 func (a *App) Auth() *auth.Handlers { return a.auth }
 
 func (a *App) Close(ctx context.Context) error {
+	if a.importer != nil {
+		a.importer.Close()
+		a.importer = nil
+	}
+	if a.sync != nil {
+		_ = a.sync.Close()
+		a.sync = nil
+	}
 	if a.hub != nil {
 		_ = a.hub.Close()
 		a.hub = nil
@@ -508,7 +593,9 @@ func (a *App) configureManager(matchMgr *match.Manager) *match.Manager {
 	// inside the manager, so the runtime never has to import stats.
 	statsRecorder := stats.NewRecorder(a.statsRepo)
 	statsRecorder.SetMetrics(a.metrics)
-	matchMgr.SetRecorder(statsRecorder)
+	// Which is not necessarily what records this node's matches: see
+	// configureOfflineFlow.
+	matchMgr.SetRecorder(a.configureOfflineFlow(matchMgr, statsRecorder))
 	// The runtime counts what it does — lobbies opened, games started,
 	// tables abandoned — for the operator's console.
 	matchMgr.SetMetrics(a.metrics)
@@ -580,6 +667,16 @@ func (a *App) routeGroups() []routeGroup {
 			})
 		}},
 		{"auth", a.auth.RegisterRoutes},
+		// Where peers replicate with this node, when it is one. An ordinary
+		// WebSocket upgrade carrying a bearer token, so a phone syncs over
+		// the same port, certificate and load balancer as everything else it
+		// asks this server for.
+		{"sync", func(r chi.Router) {
+			if a.sync == nil {
+				return
+			}
+			r.Handle("/kdb/sync", a.sync.Handler())
+		}},
 		{"lobby", lobbyHandlers.RegisterRoutes},
 		{"user", userrepo.NewHandlers(a.userRepo, a.authStore).RegisterRoutes},
 		{"scoring", scoring.NewHandlers(a.scoringRepo).RegisterRoutes},
@@ -608,6 +705,12 @@ func (a *App) routeGroups() []routeGroup {
 }
 
 func (a *App) RegisterRoutes(r chi.Router) {
+	if a.sync != nil && a.cfg.Sync.Role == syncRoleSpoke {
+		// A node that serves whoever walks in has to notice who walked in:
+		// it holds a person's data while they are playing here and lets go
+		// afterwards. See attendSigner.
+		r.Use(a.attendSigner)
+	}
 	for _, g := range a.routeGroups() {
 		g.register(r)
 	}

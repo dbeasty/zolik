@@ -73,6 +73,15 @@ func (t *liveMatches) entry(id string) *liveMatch {
 	return e
 }
 
+// peek returns the entry for a match if this process is holding one, without
+// creating it. Used to ask whether anything is going on with a match here,
+// which entry would otherwise answer by making it true.
+func (t *liveMatches) peek(id string) *liveMatch {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.byID[id]
+}
+
 func (t *liveMatches) holds(id string, e *liveMatch) bool {
 	t.mu.Lock()
 	defer t.mu.Unlock()

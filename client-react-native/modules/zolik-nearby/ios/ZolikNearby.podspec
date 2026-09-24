@@ -22,6 +22,14 @@ Pod::Spec.new do |s|
   s.vendored_frameworks = 'Zolikcore.xcframework'
   s.preserve_paths = 'Zolikcore.xcframework'
 
+  # The Go runtime resolves host names through libresolv (res_9_ninit and
+  # friends), so anything in the embedded server that dials a name rather than
+  # an address needs it linked. Nothing did while the host only ever listened
+  # on loopback and the local network; syncing with the cloud and fetching its
+  # signing keys both do, and without this the app fails to link with three
+  # undefined symbols that name neither.
+  s.libraries = 'resolv'
+
   # Only this directory's own Swift. A `**` glob also reaches into the
   # framework above, and its C headers then end up in this pod's umbrella.
   s.source_files = "*.swift"

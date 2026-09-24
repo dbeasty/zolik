@@ -53,6 +53,24 @@ type Deps struct {
 	AllowedReturnURLs []string
 	// AppName appears in the sign-in email.
 	AppName string
+	// Nodes is the persistence behind enrolled replicas. Optional: without
+	// one, /nodes/enroll answers that this deployment does not enrol nodes
+	// rather than enrolling them into nothing.
+	Nodes NodeRepository
+	// GuestClaims records which account a guest id turned out to belong to,
+	// for the seats a person took at tables with no internet. Optional: a
+	// deployment without one does not take offline matches.
+	GuestClaims GuestClaimStore
+	// Credentials reports the version an account's credentials are at, which
+	// is the `sv` an offline pass carries. Optional; without one every
+	// account is at version one, which is true until something revokes.
+	Credentials CredentialVersions
+	// OfflineKeys are the cloud's public keys as this node holds them, and
+	// are what an offline host verifies a pass with. Nil on the cloud itself,
+	// which verifies passes it signed with its own keyring, and nil on a host
+	// that has never been online, where no pass can be checked and none is
+	// accepted.
+	OfflineKeys PublicKeys
 	// TestEndpointsEnabled gates /auth/dev/last-code, the same way
 	// app.Config.TestEndpointsEnabled gates game's debugState — see
 	// devLastCode's doc comment. Off by default; a real deployment should
@@ -66,6 +84,13 @@ type Handlers struct {
 	accounts    *Accounts
 	email       *EmailAuth
 	providers   *identity.Registry
+	nodes       NodeRepository
+	guestClaims GuestClaimStore
+	// identityAuthority is whether this node may create accounts. True unless
+	// a deployment says otherwise, so an ordinary single server is unchanged.
+	identityAuthority bool
+	credentials       CredentialVersions
+	offlineKeys       PublicKeys
 
 	publicBaseURL     string
 	allowedReturnURLs []string
@@ -79,6 +104,13 @@ type Handlers struct {
 	// metrics counts first-time guests. Never nil after NewHandlers.
 	metrics metrics.Sink
 }
+
+// SetOfflineKeys gives an embedded host the cloud keys it verifies offline
+// passes with. It is a setter rather than another field on Deps because the
+// cache belongs to the install rather than to the deployment: the phone host
+// builds it from its own data directory and hands it over once the server it
+// wraps exists.
+func (h *Handlers) SetOfflineKeys(keys PublicKeys) { h.offlineKeys = keys }
 
 // SetMetrics attaches the counter sink, here and on the accounts behind it.
 func (h *Handlers) SetMetrics(s metrics.Sink) {
@@ -105,12 +137,30 @@ func NewHandlers(d Deps) *Handlers {
 		devMailer = NewCapturingMailer(mailer)
 		mailer = devMailer
 	}
+	// Both of these default to the in-memory stand-ins rather than to nil, so
+	// the endpoints behind them work on a deployment that has not wired the
+	// persistent implementations yet. What is lost is durability, not
+	// correctness: a restart forgets enrolments and revocations, which is
+	// visible, where a nil would have been a silent 503.
+	nodes := d.Nodes
+	if nodes == nil {
+		nodes = NewMemoryNodeRepository()
+	}
+	credentials := d.Credentials
+	if credentials == nil {
+		credentials = NewMemoryCredentialVersions()
+	}
 	return &Handlers{
 		sessionRepo:       d.Sessions,
 		store:             d.Store,
 		accounts:          NewAccounts(d.Store, d.Claimer),
 		email:             NewEmailAuth(d.Store, mailer, d.AppName),
 		providers:         providers,
+		nodes:             nodes,
+		guestClaims:       d.GuestClaims,
+		identityAuthority: true,
+		credentials:       credentials,
+		offlineKeys:       d.OfflineKeys,
 		publicBaseURL:     d.PublicBaseURL,
 		allowedReturnURLs: d.AllowedReturnURLs,
 		testEndpoints:     d.TestEndpointsEnabled,
@@ -122,33 +172,48 @@ func NewHandlers(d Deps) *Handlers {
 func (h *Handlers) RegisterRoutes(r chi.Router) {
 	r.Get("/auth/providers", h.listProviders)
 
+	// The public half of whatever this server signs with. Unauthenticated,
+	// because the keys are public and because every node that will later
+	// verify a token without a connection has to have fetched them while it
+	// still had one.
+	r.Get("/.well-known/jwks.json", h.jwks)
+
 	r.Post("/auth/guest", h.guest)
 
 	// Passwordless email sign-in. Verification takes an optional Authorization
 	// header: when it carries a guest token, the guest's play history is
 	// claimed as part of signing in.
-	r.Post("/auth/email/start", h.emailStart)
+	r.Post("/auth/email/start", h.requireIdentityAuthority(h.emailStart))
 	r.With(OptionalAuthMiddleware).Post("/auth/email/verify", h.emailVerify)
 
 	// Browser redirect flow. Start and the native-token endpoint both take an
 	// optional Authorization header, for the same reason.
-	r.With(OptionalAuthMiddleware).Post("/auth/oauth/{provider}/start", h.oauthStart)
+	r.With(OptionalAuthMiddleware).Post("/auth/oauth/{provider}/start", h.requireIdentityAuthority(h.oauthStart))
 	r.Get("/auth/oauth/{provider}/callback", h.oauthCallback)
 	// Apple posts its callback as a form when name/email scopes are requested.
 	r.Post("/auth/oauth/{provider}/callback", h.oauthCallback)
 	r.Post("/auth/oauth/exchange", h.oauthExchange)
 	r.With(OptionalAuthMiddleware).Post("/auth/oauth/{provider}/token", h.oauthNativeToken)
 
+	// Replicas. Enrolling one is something an account does, not something a
+	// node does on its own, so it is authenticated as the person whose node
+	// it will be.
+	r.With(AuthMiddleware).Post("/nodes/enroll", h.enrollNode)
+	r.With(AuthMiddleware).Get("/nodes", h.listNodes)
+
 	// Account maintenance.
 	r.With(AuthMiddleware).Get("/auth/identities", h.listIdentities)
 	r.With(AuthMiddleware).Delete("/auth/identities/{provider}", h.unlinkIdentity)
 	r.With(AuthMiddleware).Post("/auth/claim-guest", h.claimGuest)
+	// The offline equivalent: seats taken at tables the cloud never saw,
+	// proved by the receipts the hosting nodes signed.
+	r.With(AuthMiddleware).Post("/auth/claim-offline", h.claimOffline)
 	r.With(AuthMiddleware).Get("/auth/guest-summary", h.guestSummary)
 
 	// Legacy username/password. Kept because the SSH/TUI client can neither
 	// open a browser nor receive mail, so it has no other way in. New accounts
 	// should use the flows above; nothing here grows.
-	r.Post("/auth/register", h.register)
+	r.Post("/auth/register", h.requireIdentityAuthority(h.register))
 	r.Post("/auth/login", h.login)
 
 	r.Post("/auth/refresh", h.refresh)
@@ -159,12 +224,44 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	}
 }
 
+// SetIdentityAuthority says whether this node may create accounts.
+//
+// Only the cloud may. Every account in the distributed database is minted in
+// one place, because a username has to name one person and a node deciding
+// that for itself is a node that will eventually disagree with another one.
+// A self-hosted server verifies the tokens the cloud issued - it has the
+// public keys - and refuses to issue its own, saying so rather than failing
+// obscurely.
+func (h *Handlers) SetIdentityAuthority(is bool) { h.identityAuthority = is }
+
+// requireIdentityAuthority refuses the routes that mint accounts on a node
+// that is not the one allowed to.
+func (h *Handlers) requireIdentityAuthority(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		if !h.identityAuthority {
+			http.Error(w, "accounts are created on the main server; sign in there and come back", http.StatusConflict)
+			return
+		}
+		next(w, req)
+	}
+}
+
 // RegisterLocalRoutes mounts the part of RegisterRoutes that an offline table
 // hosted on a phone needs: a guest seat, and keeping it. There are no
 // accounts, no mail and no identity provider on a table with no internet, and
 // every route left out is one fewer reachable from the local network.
 func (h *Handlers) RegisterLocalRoutes(r chi.Router) {
+	// A host publishes its node key for the same reason the cloud publishes
+	// its signing key: the tokens it hands the phones around the table are
+	// signed with it, and a guest that can fetch the key can check them
+	// rather than take them on trust. The key is public by construction, and
+	// it is what the cloud is given at enrolment.
+	r.Get("/.well-known/jwks.json", h.jwks)
 	r.Post("/auth/guest", h.guest)
+	// The one way a real account gets a seat at a table with no internet: a
+	// pass the cloud signed, checked against the keys this host cached while
+	// it last had a connection.
+	r.Post("/auth/offline-pass", h.offlinePass)
 	r.Post("/auth/refresh", h.refresh)
 	r.Post("/auth/logout", h.logout)
 }
@@ -223,7 +320,7 @@ func (h *Handlers) guest(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	writeJSON(w, map[string]any{
+	out := map[string]any{
 		"accessToken":  tokens.AccessToken,
 		"refreshToken": tokens.RefreshToken,
 		"guestName":    tokens.Username,
@@ -234,6 +331,94 @@ func (h *Handlers) guest(w http.ResponseWriter, req *http.Request) {
 		// so the client can offer "sign in to keep your N games" with a real
 		// number instead of a vague promise.
 		"claimableMatches": h.accounts.GuestMatchCount(ctx, tokens.GuestID),
+	}
+	// Only where a node signed one. A client keeps it beside the guest id and
+	// hands it back when the person eventually signs in, which is how seats
+	// taken at an offline table are reconciled with an account.
+	if tokens.SeatReceipt != "" {
+		out["seatReceipt"] = tokens.SeatReceipt
+	}
+	writeJSON(w, out)
+}
+
+type offlinePassReq struct {
+	OfflinePass string `json:"offlinePass"`
+}
+
+// offlinePass seats a signed-in cloud account at a host with no internet.
+//
+// The pass is the whole of the evidence. This host cannot ask the cloud
+// anything, has no copy of the account and never will, so what it does is
+// check the cloud's signature against keys it cached earlier and then seat
+// the person as "user:<hex>" rather than as a guest. Their play is recorded
+// against their real account id from the first hand, and syncs as theirs when
+// the host next sees a connection.
+//
+// The local session is cut short to the pass's own expiry where that comes
+// first. A host that let the session outlive the pass would be extending a
+// credential the cloud issued for thirty days into an indefinite one, which
+// is precisely the bound the pass exists to impose.
+func (h *Handlers) offlinePass(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+	if h.offlineKeys == nil {
+		http.Error(w, "this host has no copy of the cloud's signing keys", http.StatusServiceUnavailable)
+		return
+	}
+	var body offlinePassReq
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil || strings.TrimSpace(body.OfflinePass) == "" {
+		http.Error(w, "offlinePass required", http.StatusBadRequest)
+		return
+	}
+	claims, err := VerifyOfflinePass(body.OfflinePass, h.offlineKeys)
+	if err != nil {
+		// One answer for an unknown key, a wrong audience, a bad signature
+		// and an expired pass alike. Which of them it was is a detail about
+		// this host's key cache, and is of interest only to somebody probing
+		// it.
+		http.Error(w, "that pass is not valid here", http.StatusUnauthorized)
+		return
+	}
+
+	username := claims.Username
+	if username == "" {
+		// A pass with no name still seats its holder. The name is for the
+		// other players at the table, and one derived from the id is better
+		// than an empty chair.
+		username = GuestNameFor(claims.Subject)
+	}
+	subject := claims.SeatSubject()
+
+	refreshToken, err := CreateRefreshToken()
+	if err != nil {
+		internalError(w, "offlinePass", err)
+		return
+	}
+	now := time.Now().UTC()
+	expiresAt := now.Add(refreshTokenTTL)
+	if claims.ExpiresAt != nil && claims.ExpiresAt.Time.Before(expiresAt) {
+		expiresAt = claims.ExpiresAt.Time
+	}
+	if err := h.sessionRepo.CreateSession(ctx, models.Session{
+		Token:     refreshToken,
+		GuestName: username,
+		UserID:    subject,
+		CreatedAt: now,
+		ExpiresAt: expiresAt,
+	}); err != nil {
+		internalError(w, "offlinePass", err)
+		return
+	}
+	accessToken, err := CreateAccessToken(subject, username, false, accessTokenTTL)
+	if err != nil {
+		internalError(w, "offlinePass", err)
+		return
+	}
+	writeJSON(w, map[string]any{
+		"accessToken":  accessToken,
+		"refreshToken": refreshToken,
+		"userId":       subject,
+		"username":     username,
+		"isGuest":      false,
 	})
 }
 
@@ -451,13 +636,7 @@ func (h *Handlers) register(w http.ResponseWriter, req *http.Request) {
 		internalError(w, "register", err)
 		return
 	}
-	writeJSON(w, map[string]any{
-		"accessToken":  tokens.AccessToken,
-		"refreshToken": tokens.RefreshToken,
-		"userId":       tokens.UserID,
-		"username":     tokens.Username,
-		"isGuest":      false,
-	})
+	writeSessionJSON(w, tokens)
 }
 
 type loginReq struct {
@@ -488,13 +667,7 @@ func (h *Handlers) login(w http.ResponseWriter, req *http.Request) {
 		internalError(w, "login", err)
 		return
 	}
-	writeJSON(w, map[string]any{
-		"accessToken":  tokens.AccessToken,
-		"refreshToken": tokens.RefreshToken,
-		"userId":       tokens.UserID,
-		"username":     tokens.Username,
-		"isGuest":      false,
-	})
+	writeSessionJSON(w, tokens)
 }
 
 // --- session lifecycle ---
@@ -541,6 +714,21 @@ func (h *Handlers) refresh(w http.ResponseWriter, req *http.Request) {
 			internalError(w, "refresh", err)
 			return
 		}
+		// A seat an offline host granted on the strength of a pass may not be
+		// refreshed past the pass that justified it. Rotating it to a full
+		// thirty days on every refresh would turn a bounded credential into
+		// an unbounded one, and the bound is the only thing the cloud still
+		// controls once the host is out of reach.
+		expiresAt := now.Add(refreshTokenTTL)
+		if strings.HasPrefix(s.UserID, OfflineSeatPrefix) {
+			if now.After(s.ExpiresAt) {
+				http.Error(w, "invalid refresh token", http.StatusUnauthorized)
+				return
+			}
+			if s.ExpiresAt.Before(expiresAt) {
+				expiresAt = s.ExpiresAt
+			}
+		}
 		// Rotate: issue a new token, then retire the old one.
 		if err := h.sessionRepo.CreateSession(ctx, models.Session{
 			Token:     newRefresh,
@@ -548,7 +736,7 @@ func (h *Handlers) refresh(w http.ResponseWriter, req *http.Request) {
 			UserID:    s.UserID,
 			GuestID:   s.GuestID,
 			CreatedAt: now,
-			ExpiresAt: now.Add(refreshTokenTTL),
+			ExpiresAt: expiresAt,
 		}); err != nil {
 			internalError(w, "refresh", err)
 			return
@@ -581,12 +769,38 @@ func (h *Handlers) refresh(w http.ResponseWriter, req *http.Request) {
 		internalError(w, "refresh", err)
 		return
 	}
-	writeJSON(w, map[string]any{
+	out := map[string]any{
 		"accessToken":  accessToken,
 		"refreshToken": newRefresh,
 		"userId":       subject,
 		"isGuest":      isGuest,
-	})
+	}
+	// Refreshed alongside the session, so a player who stays signed in never
+	// carries a pass much older than the session it came with, and one who
+	// opens the app before a trip leaves with a full thirty days.
+	if !isGuest {
+		if pass := h.offlinePassFor(ctx, subject, s.GuestName); pass != "" {
+			out["offlinePass"] = pass
+		}
+	}
+	writeJSON(w, out)
+}
+
+// writeSessionJSON is the answer to every sign-in that mints a session. It is
+// one function so that a pass cannot be handed out by one path and quietly
+// forgotten by another.
+func writeSessionJSON(w http.ResponseWriter, tokens SessionTokens) {
+	out := map[string]any{
+		"accessToken":  tokens.AccessToken,
+		"refreshToken": tokens.RefreshToken,
+		"userId":       tokens.UserID,
+		"username":     tokens.Username,
+		"isGuest":      tokens.IsGuest,
+	}
+	if tokens.OfflinePass != "" {
+		out["offlinePass"] = tokens.OfflinePass
+	}
+	writeJSON(w, out)
 }
 
 type logoutReq struct {

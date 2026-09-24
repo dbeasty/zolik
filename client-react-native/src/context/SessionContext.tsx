@@ -7,6 +7,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { Platform } from 'react-native';
@@ -17,12 +18,23 @@ import { connectToTable } from '@/src/net/ble/link';
 import { BleTransport } from '@/src/net/ble/transport';
 import { authErrorMessage, parseAuthCallback } from '@/src/lib/auth';
 import { nearbyBaseUrl } from '@/src/lib/nearbyAddress';
+import { ZOLIK_BASE_URL } from '@/src/config';
+import { startNodeFor, stopNodeFor } from '@/src/net/nodeSession';
+import { useReplicaSync } from '@/src/net/useReplicaSync';
 import type {
   AccountProfile,
   AuthProvider,
   PlayerSession,
   SignInOutcome,
 } from '@/src/api/types';
+
+// The node credential is kept where the session is: it names this device as
+// this person's, and is exactly as sensitive as the session itself.
+const nodeCredentialStore = {
+  getItem: (key: string) => storage.getItem(key),
+  setItem: (key: string, value: string) => storage.setItem(key, value),
+  deleteItem: (key: string) => storage.deleteItem(key),
+};
 
 const SESSION_KEY = 'zolik_session';
 
@@ -263,8 +275,16 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     (s: PlayerSession) => {
       apiClient.bindSession(
         s,
-        async (access, refresh) => {
-          const updated = { ...s, accessToken: access, refreshToken: refresh };
+        async (access, refresh, offlinePass) => {
+          // The pass is renewed with the tokens, and keeping the old one
+          // would mean a device that had been signed in for a month could no
+          // longer seat its owner at a table with no internet.
+          const updated = {
+            ...s,
+            accessToken: access,
+            refreshToken: refresh,
+            offlinePass: offlinePass ?? s.offlinePass,
+          };
           setSessionState(updated);
           await persistSession(updated);
         },
@@ -276,15 +296,63 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     [expireSession],
   );
 
+  // Whether this device is holding the signed-in account's data, which is
+  // what lets a screen read from here instead of the network.
+  const [localNodeReady, setLocalNodeReady] = useState(false);
+  // Who this device is currently a node for, so a second sign-in by the same
+  // person is not a second enrolment and a different person's is a handover.
+  const previousAccount = useRef('');
+
+  // Starting and stopping this device as a node of the database. It is
+  // best-effort in both directions: a phone that cannot enrol, or an app
+  // build with no embedded server in it, goes on reading everything from the
+  // cloud exactly as it always has.
+  const followAccountOnThisDevice = useCallback(async (s: PlayerSession | null) => {
+    try {
+      if (!s || s.isGuest) {
+        await stopNodeFor(previousAccount.current, nodeCredentialStore);
+        previousAccount.current = '';
+        setLocalNodeReady(false);
+        return;
+      }
+      if (previousAccount.current === s.userId) return;
+      if (previousAccount.current) await stopNodeFor(previousAccount.current, nodeCredentialStore);
+      previousAccount.current = s.userId;
+      const started = await startNodeFor(
+        s.userId,
+        nodeCredentialStore,
+        (pubkey, kind) => apiClient.enrollNode(pubkey, kind),
+        ZOLIK_BASE_URL,
+      );
+      setLocalNodeReady(started);
+    } catch (err) {
+      // Offline at sign-in, or a build with no host. Neither is worth telling
+      // somebody about: the device holds nothing yet, and the next sign-in
+      // tries again. It is logged, because a device that quietly never became
+      // a node looks exactly like one that did until somebody goes looking
+      // for their history.
+      console.warn('this device did not start holding its account:', err);
+      setLocalNodeReady(false);
+    }
+  }, []);
+
   const applySession = useCallback(
     async (s: PlayerSession | null) => {
       setSessionState(s);
       await persistSession(s);
       if (s) bind(s);
       if (!s || s.isGuest) setAccount(null);
+      // A signed-in account's own data belongs on their device: their
+      // settings, their circle, their scorepads and the matches they have
+      // played, all readable with no connection. Enrolling the device is
+      // what makes that possible, and it happens once, here, rather than
+      // being something a person is asked about.
+      void followAccountOnThisDevice(s);
     },
-    [bind],
+    [bind, followAccountOnThisDevice],
   );
+
+  useReplicaSync(localNodeReady);
 
   useEffect(() => {
     loadSession()
@@ -293,10 +361,15 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           bind(s);
           setSessionState(s);
           setClaimableMatches(s.claimableMatches ?? 0);
+          // Also on a cold start, not only when somebody signs in: the
+          // session is usually one that was already stored, and a device
+          // that only became a node at sign-in would stop being one the
+          // first time the app was closed and opened again.
+          void followAccountOnThisDevice(s);
         }
       })
       .finally(() => setLoading(false));
-  }, [bind]);
+  }, [bind, followAccountOnThisDevice]);
 
   // The sign-in screen is built from what the server actually offers, so a
   // provider enabled server-side appears without an app update. A failure here
@@ -468,6 +541,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       table: Pick<OfflineTable, 'role' | 'via' | 'checkCode'>,
       name: string,
       ble?: BleTransport,
+      offlinePass?: string,
     ) => {
       const key = offlineKey(instanceId);
       // The guest id is kept per host, so this player gets the same seat back
@@ -480,7 +554,24 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       } catch {
         known = undefined;
       }
-      const s = await client.guestLogin(name, known);
+      // A signed-in person sits at their own table as themselves: the pass
+      // the cloud gave them says who they are, and the host checks it against
+      // the keys it cached while it last had a connection. Whatever they play
+      // is then theirs when it reaches the cloud, rather than a stranger's
+      // that has to be claimed afterwards.
+      //
+      // A host that has never been online, or a pass that has expired,
+      // refuses it, and this falls back to sitting as a guest - which is what
+      // every offline table did before any of this existed, and still works.
+      let s: PlayerSession | null = null;
+      if (offlinePass) {
+        try {
+          s = await client.offlinePassLogin(offlinePass);
+        } catch {
+          s = null;
+        }
+      }
+      if (!s) s = await client.guestLogin(name, known);
       if (s.guestId) await storage.setItem(key, JSON.stringify({ guestId: s.guestId }));
       await storage.setItem(OFFLINE_NAME_KEY, s.username);
       client.bindSession(
@@ -506,9 +597,11 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         host.instanceId,
         { role: 'host', via: 'self', checkCode: '' },
         name,
+        undefined,
+        session?.isGuest ? undefined : session?.offlinePass,
       );
     },
-    [sitAt],
+    [sitAt, session],
   );
 
   const joinNearby = useCallback(

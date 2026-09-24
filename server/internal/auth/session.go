@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -29,6 +30,14 @@ type SessionTokens struct {
 	// must persist *this* across sign-outs and app restarts, and must not
 	// persist a user id it may not keep.
 	GuestID string
+	// OfflinePass is the cloud-signed pass this account takes to a host with
+	// no internet, empty for a guest and on any deployment that has no
+	// asymmetric signing key. See offlinepass.go.
+	OfflinePass string
+	// SeatReceipt is what an offline host hands a guest so that the seat can
+	// be reconciled with an account later. Empty everywhere else, and empty
+	// on a host with no node key of its own.
+	SeatReceipt string
 }
 
 // GuestSession starts (or resumes) a guest session with no prior identity.
@@ -95,6 +104,14 @@ func (h *Handlers) GuestSessionWithID(ctx context.Context, guestName, guestID st
 	if err != nil {
 		return SessionTokens{}, err
 	}
+	// The receipt is issued here, with the seat, because this is the moment
+	// the node can honestly attest to: it is the node that seated this guest,
+	// and it says so with its own key. A node with no key issues none, and
+	// the guest is exactly as well off as they were before receipts existed.
+	receipt, err := CreateSeatReceipt(guestID)
+	if err != nil && !errors.Is(err, ErrNoNodeKey) {
+		log.Printf("auth: seat receipt for %s: %v", guestID, err)
+	}
 	return SessionTokens{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
@@ -102,6 +119,7 @@ func (h *Handlers) GuestSessionWithID(ctx context.Context, guestName, guestID st
 		Username:     guestName,
 		IsGuest:      true,
 		GuestID:      guestID,
+		SeatReceipt:  receipt,
 	}, nil
 }
 
@@ -132,7 +150,41 @@ func (h *Handlers) issueUserSession(ctx context.Context, u models.User) (Session
 		UserID:       u.ID.Hex(),
 		Username:     u.Username,
 		IsGuest:      false,
+		OfflinePass:  h.offlinePassFor(ctx, u.ID.Hex(), u.Username),
 	}, nil
+}
+
+// offlinePassFor mints the pass that travels with a session, or returns
+// nothing at all.
+//
+// Nothing at all is the right answer in more cases than it looks. A
+// deployment with no Ed25519 key signs no passes, and a client that receives
+// none simply cannot be seated offline, which is exactly where everyone was
+// before passes existed. A credential version this server cannot read is the
+// more interesting case: a pass stating the wrong version would go on being
+// honoured by an offline host after a revocation this server already knows
+// about, so the pass is withheld rather than guessed at.
+func (h *Handlers) offlinePassFor(ctx context.Context, userID, username string) string {
+	if !isObjectIDHex(userID) {
+		return ""
+	}
+	version := 1
+	if h.credentials != nil {
+		v, err := h.credentials.CredentialVersion(ctx, userID)
+		if err != nil {
+			log.Printf("auth: credential version for %s: %v", userID, err)
+			return ""
+		}
+		version = v
+	}
+	pass, err := CreateOfflinePass(userID, username, version, OfflinePassTTL)
+	if err != nil {
+		if !errors.Is(err, ErrNoSigningKey) {
+			log.Printf("auth: offline pass for %s: %v", userID, err)
+		}
+		return ""
+	}
+	return pass
 }
 
 // LoginSession authenticates a legacy username/password account. It stays for

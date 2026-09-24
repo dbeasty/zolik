@@ -238,17 +238,7 @@ func (s *kdbStore) InsertUser(ctx context.Context, u models.User) (models.User, 
 	if u.ID.IsZero() {
 		u.ID = bson.NewObjectID()
 	}
-	doc, err := db.MarshalDoc(u)
-	if err != nil {
-		return models.User{}, err
-	}
-	err = s.k.Update(db.NSUsers, func(tx *db.Tx) error {
-		if err := db.KDBUserClash(tx, u.ID, u.Username, u.Email); err != nil {
-			return err
-		}
-		return tx.Insert(u.ID.Hex(), doc)
-	})
-	if err != nil {
+	if err := db.KDBInsertUser(s.k, u); err != nil {
 		return models.User{}, err
 	}
 	return u, nil

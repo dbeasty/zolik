@@ -64,6 +64,10 @@ type Config struct {
 	MongoURI string
 	MongoDB  string
 
+	// Sync is how this process takes part in the distributed database: as the
+	// hub other nodes replicate with, as a spoke that replicates with one, or
+	// not at all. See internal/sync.
+	Sync SyncConfig
 	// KDBPath is the directory the embedded KDB engine persists to when
 	// DBEngine is db.EngineKDB. Empty falls back to in-memory storage, which
 	// loses everything on restart — acceptable only in tests.
@@ -204,6 +208,8 @@ func LoadConfig() Config {
 
 		KDBPath: envOr("KDB_PATH", "data/kdb"),
 
+		Sync: syncConfig(),
+
 		// Deliberately not defaulted from DBEngine: running KDB is not the
 		// same as having decided to show players every board their game
 		// passed through. Both have to be said.
@@ -289,6 +295,52 @@ func LoadConfig() Config {
 		// A floor below that had bots answering over their own last move.
 		BotThinkMinMS: envInt("BOT_THINK_MIN_MS", 900),
 		BotThinkMaxMS: envInt("BOT_THINK_MAX_MS", 1800),
+	}
+}
+
+// SyncConfig is the environment's answer to "what is this node".
+type SyncConfig struct {
+	// Role is "off", "hub" or "spoke".
+	Role string
+	// HubURL is the hub's sync endpoint a spoke dials: wss://host/kdb/sync.
+	HubURL string
+	// Token authenticates this node to the hub: the credential it was given
+	// when it enrolled.
+	Token string
+	// Advertise is where other nodes reach this one for the matches it hosts.
+	// A phone leaves it empty and asks rather than being asked.
+	Advertise string
+	// Namespaces is what a spoke asks the hub for beyond its own user, as
+	// namespace names. A self-hosted server names patterns; a phone names
+	// nothing here and follows what its player opens.
+	Namespaces []string
+}
+
+// Enabled reports whether this process replicates at all.
+func (s SyncConfig) Enabled() bool { return s.Role == syncRoleHub || s.Role == syncRoleSpoke }
+
+const (
+	syncRoleOff   = "off"
+	syncRoleHub   = "hub"
+	syncRoleSpoke = "spoke"
+)
+
+// syncConfig reads FEATURE_FLAG_SYNC and what a node of that kind needs. An
+// unrecognised value is off: a deployment that misspells the flag should keep
+// running exactly as it did, not half-join a database.
+func syncConfig() SyncConfig {
+	role := strings.ToLower(strings.TrimSpace(os.Getenv("FEATURE_FLAG_SYNC")))
+	switch role {
+	case syncRoleHub, syncRoleSpoke:
+	default:
+		role = syncRoleOff
+	}
+	return SyncConfig{
+		Role:       role,
+		HubURL:     strings.TrimSpace(os.Getenv("SYNC_HUB_URL")),
+		Token:      strings.TrimSpace(os.Getenv("SYNC_TOKEN")),
+		Advertise:  strings.TrimSpace(os.Getenv("SYNC_ADVERTISE")),
+		Namespaces: envList("SYNC_NAMESPACES", nil),
 	}
 }
 
