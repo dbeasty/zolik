@@ -142,9 +142,13 @@ describe('where a zone is drawn', () => {
     expect(isSpreadRowZone(board)).toBe(false);
   });
 
-  it('leaves the house own zone to the head of the table', () => {
-    expect(isTableZone(house)).toBe(false);
+  it('puts the house own zone on the table, out of the spread row', () => {
+    expect(isTableZone(house)).toBe(true);
     expect(isSpreadRowZone(house)).toBe(false);
+  });
+
+  it('sits the dealer beside the shoe, as the board sits beside the deck', () => {
+    expect(sitsBeside(house)).toBe(true);
   });
 
   it('sits the board beside the deck rather than on a line of its own', () => {

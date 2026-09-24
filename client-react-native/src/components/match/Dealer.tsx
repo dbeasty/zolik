@@ -21,8 +21,10 @@ import type { Skin } from '@/src/skins/types';
  * player is actually asking — what is the dealer showing? — had to be
  * answered by reading panel titles.
  *
- * So the dealer is drawn as what they are: a figure at the head of the table
- * with their cards in front of them, above the seats rather than among them.
+ * So the dealer is drawn as what they are: a figure with their cards in front
+ * of them, on the table beside the shoe — where poker's board sits beside the
+ * deck, just above the hand and the buttons — rather than among the players'
+ * boxes.
  * Which zone that is comes from the server (`zone.dealer`), not from matching
  * a zone id or a game's name — see `matchTypes.Zone`.
  *
@@ -54,7 +56,7 @@ export function Dealer({ zone, zoneProps }: Props) {
   // The figure is sized off the seat avatar, so the house and the players are
   // drawn at one scale — and, like every size here, it comes from the metrics
   // rather than the skin. A roomy screen gets a noticeably larger one: the
-  // dealer is the thing at the head of the table, and on a monitor there is
+  // dealer is the thing across the table from you, and on a monitor there is
   // room to say so.
   const size = Math.round(metrics.seat.avatar * (metrics.roomy ? 1.6 : 1.15));
 
@@ -112,16 +114,13 @@ function Croupier({ size, skin }: { size: number; skin: Skin }) {
 
 function dealerStyles(m: Metrics) {
   return StyleSheet.create({
-    // The house's side of the table: the figure, then their cards. Centred on
-    // a roomy screen, where there is width to spare and the dealer reads as
-    // sitting opposite; hard left on a phone, where centring just wastes the
-    // only row there is.
+    // The house's side of the table: the figure, then their cards, sharing
+    // the table's row with the shoe — so no margin of its own, which would
+    // drop the dealer's title below the shoe's beside it.
     row: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: m.roomy ? 'center' : 'flex-start',
       gap: m.panel.gap + 4,
-      marginTop: 10,
     },
     who: { alignItems: 'center' },
     // Sized to the cards rather than stretched, so the pair sits together in
