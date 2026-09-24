@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -111,7 +112,14 @@ func seatsOf(m models.Match) map[string]string {
 	for _, p := range m.Players {
 		switch {
 		case p.UserID != "":
-			seats[p.ID] = "user:" + p.UserID
+			// A host that seated somebody from an offline pass has already
+			// recorded them as a subject rather than as a bare account id:
+			// the prefix is how that host says "I decided you were this
+			// account". Prefixing it a second time yields "user:user:<hex>",
+			// which is nobody's subject key and which names a namespace the
+			// database refuses - so the match arrives at the cloud and takes
+			// the recorder down with it.
+			seats[p.ID] = subjectKeyForUser(p.UserID)
 		case p.GuestID != "":
 			seats[p.ID] = "guest:" + p.GuestID
 		case p.IsAI:
@@ -235,6 +243,17 @@ func (i *Importer) credit(ctx context.Context, envelope models.Match, seats map[
 			continue
 		}
 		user, guest, persona := splitSubject(subject)
+		// Who sat where is the hosting node's word, and a word is not a
+		// shape: these ids become subject keys, document ids and the names of
+		// namespaces, so a bundle naming something that is not an id is
+		// refused here rather than further in, where the database's answer to
+		// an impossible namespace name is to take the process down.
+		if user != "" && !isAccountID(user) {
+			return models.Match{}, fmt.Errorf("match %s: seat %s names %q, which is not an account", envelope.ID.Hex(), p.ID, user)
+		}
+		if guest != "" && !isGuestID(guest) {
+			return models.Match{}, fmt.Errorf("match %s: seat %s names %q, which is not a guest", envelope.ID.Hex(), p.ID, guest)
+		}
 		switch {
 		case user != "":
 			out.Players[n].UserID, out.Players[n].GuestID = user, ""
@@ -261,6 +280,16 @@ func (i *Importer) credit(ctx context.Context, envelope models.Match, seats map[
 	return out, nil
 }
 
+// subjectKeyForUser is the subject key for a seat held by an account, whether
+// the host wrote the id bare (the cloud's spelling) or already as a subject
+// (an offline host's, see auth.OfflineSeatPrefix).
+func subjectKeyForUser(userID string) string {
+	if strings.HasPrefix(userID, "user:") {
+		return userID
+	}
+	return "user:" + userID
+}
+
 // aiKey is a bot's durable identity: its persona where it has one, and its
 // difficulty for a bot seated before personas existed.
 func aiKey(p models.Player) string {
@@ -268,6 +297,25 @@ func aiKey(p models.Player) string {
 		return p.AIPersona
 	}
 	return p.AIDifficulty
+}
+
+// isAccountID and isGuestID are the shapes the cloud mints, and the only ones
+// a handed-up seat may name: an account is an ObjectID hex, a guest id is
+// thirty-two hex characters (see auth's sanitizeGuestID, which mints them).
+func isAccountID(s string) bool { return isLowerHex(s, 24) }
+
+func isGuestID(s string) bool { return isLowerHex(s, 32) }
+
+func isLowerHex(s string, n int) bool {
+	if len(s) != n {
+		return false
+	}
+	for _, r := range s {
+		if (r < '0' || r > '9') && (r < 'a' || r > 'f') {
+			return false
+		}
+	}
+	return true
 }
 
 func splitSubject(subject string) (user, guest, persona string) {

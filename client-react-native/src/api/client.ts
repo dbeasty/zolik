@@ -37,7 +37,7 @@ export class ApiError extends Error {
 type TokenHolder = {
   accessToken: string;
   refreshToken: string;
-  onTokensUpdated?: (access: string, refresh: string) => void;
+  onTokensUpdated?: (access: string, refresh: string, offlinePass?: string) => void;
 };
 
 /** The shape every sign-in endpoint answers with, whichever door was used. */
@@ -48,6 +48,8 @@ type SignInResponse = {
   username: string;
   created?: boolean;
   claimedMatches?: number;
+  /** The pass that seats this account at a table with no internet. */
+  offlinePass?: string;
 };
 
 export class ZolikClient {
@@ -67,7 +69,7 @@ export class ZolikClient {
    * nothing and every client derives the same face from the player id.
    */
   avatarId = '';
-  private onTokensUpdated?: (access: string, refresh: string) => void;
+  private onTokensUpdated?: (access: string, refresh: string, offlinePass?: string) => void;
   private onSessionExpired?: () => void;
   /** The refresh every 401 is waiting on, while one is out. */
   private refreshInFlight?: Promise<void>;
@@ -87,7 +89,7 @@ export class ZolikClient {
 
   bindSession(
     session: PlayerSession,
-    onUpdate?: (access: string, refresh: string) => void,
+    onUpdate?: (access: string, refresh: string, offlinePass?: string) => void,
     onExpired?: () => void,
   ) {
     this.accessToken = session.accessToken;
@@ -240,6 +242,19 @@ export class ZolikClient {
   }
 
   /**
+   * Sits at a table hosted with no internet, as the account signed in on this
+   * device rather than as a guest of that table.
+   *
+   * The pass was signed by the cloud; the host checks it against the keys it
+   * cached while it last had a connection. A host that has never been online,
+   * or a pass that has expired, refuses it - and the caller falls back to
+   * sitting as a guest, which is what happened before any of this existed.
+   */
+  async offlinePassLogin(offlinePass: string): Promise<PlayerSession> {
+    return this.post<PlayerSession>('/auth/offline-pass', { offlinePass }, false);
+  }
+
+  /**
    * Enrols this device as a node of the database, so it may hold this
    * account's own data and hand up matches played with no internet.
    *
@@ -276,27 +291,27 @@ export class ZolikClient {
   }
 
   async register(username: string, password: string, email?: string): Promise<PlayerSession> {
-    const data = await this.post<{ accessToken: string; refreshToken: string }>(
-      '/auth/register',
-      { username, password, email: email || undefined },
-      false,
-    );
+    const data = await this.post<{
+      accessToken: string;
+      refreshToken: string;
+      offlinePass?: string;
+    }>('/auth/register', { username, password, email: email || undefined }, false);
     this.accessToken = data.accessToken;
     this.refreshToken = data.refreshToken;
     await this.loadUserId();
-    return this.toSession(username, false);
+    return this.toSession(username, false, data.offlinePass);
   }
 
   async login(username: string, password: string): Promise<PlayerSession> {
-    const data = await this.post<{ accessToken: string; refreshToken: string }>(
-      '/auth/login',
-      { username, password },
-      false,
-    );
+    const data = await this.post<{
+      accessToken: string;
+      refreshToken: string;
+      offlinePass?: string;
+    }>('/auth/login', { username, password }, false);
     this.accessToken = data.accessToken;
     this.refreshToken = data.refreshToken;
     await this.loadUserId();
-    return this.toSession(username, false);
+    return this.toSession(username, false, data.offlinePass);
   }
 
   async logout(): Promise<void> {
@@ -333,17 +348,17 @@ export class ZolikClient {
     if (!spent) {
       throw new ApiError('no refresh token', 401);
     }
-    const data = await this.post<{ accessToken: string; refreshToken: string }>(
-      '/auth/refresh',
-      { refreshToken: spent },
-      false,
-    );
+    const data = await this.post<{
+      accessToken: string;
+      refreshToken: string;
+      offlinePass?: string;
+    }>('/auth/refresh', { refreshToken: spent }, false);
     // Signed out or signed in as someone else while this was in the air: the
     // answer belongs to a session that is no longer bound.
     if (this.refreshToken !== spent) return;
     this.accessToken = data.accessToken;
     this.refreshToken = data.refreshToken;
-    this.onTokensUpdated?.(data.accessToken, data.refreshToken);
+    this.onTokensUpdated?.(data.accessToken, data.refreshToken, data.offlinePass);
   }
 
   // --- matches -------------------------------------------------------------
@@ -715,19 +730,28 @@ export class ZolikClient {
         userId: data.userId,
         username: data.username,
         isGuest: false,
+        // Carried through with the rest of the session. Dropping it here is
+        // invisible until somebody sits down at a table with no internet and
+        // finds themselves seated as a stranger.
+        offlinePass: data.offlinePass,
       },
       claimedMatches: data.claimedMatches ?? 0,
       created: data.created ?? false,
     };
   }
 
-  private toSession(username: string, isGuest: boolean): PlayerSession {
+  // offlinePass travels with the session for the same reason the tokens do:
+  // it is what seats this account at a table with no internet, and a sign-in
+  // that drops it leaves the person to play as a stranger the next time they
+  // are offline.
+  private toSession(username: string, isGuest: boolean, offlinePass?: string): PlayerSession {
     return {
       accessToken: this.accessToken,
       refreshToken: this.refreshToken,
       userId: this.userId,
       username,
       isGuest,
+      offlinePass,
     };
   }
 

@@ -59,6 +59,17 @@ export type PlayerSession = {
    * credential and grants no access to any account.
    */
   guestId?: string;
+  /**
+   * A pass the cloud signed, which seats this account at a table with no
+   * internet: a host checks it against the copy of the cloud's keys it
+   * cached while it last had a connection, and seats the holder as
+   * themselves rather than as a stranger.
+   *
+   * Kept with the session because that is its lifetime - it is issued at
+   * sign-in and renewed on refresh, and it is worth nothing to anybody who
+   * is not signed in.
+   */
+  offlinePass?: string;
   /** Matches recorded against this device's guest id that an account could
    *  still absorb. Drives the "sign in to keep your N games" prompt. */
   claimableMatches?: number;

@@ -165,14 +165,23 @@ func NewMobile(dataDir string, id MobileIdentity) (*App, *auth.JWKSCache, error)
 		// no address anybody could dial. It asks for its own account's two
 		// namespaces and for its own outbox, and picks up a match's namespace
 		// when its player opens one.
+		namespaces := []string{
+			db.UserNS(id.UserHex),
+			db.UserReadOnlyNS(id.UserHex),
+		}
+		// The outbox is where a finished offline match waits, and a phone
+		// that does not replicate it hands nothing up: the bundle is written,
+		// the match looks recorded, and it never leaves the device. It is
+		// named after the node key rather than the database's node id,
+		// exactly as App.outbox names it.
+		if node := auth.NodeID(); node != "" {
+			namespaces = append(namespaces, db.NodeOutboxNS(node))
+		}
 		cfg.Sync = SyncConfig{
-			Role:   syncRoleSpoke,
-			HubURL: cloudSyncURL(base),
-			Token:  strings.TrimSpace(id.NodeCredential),
-			Namespaces: []string{
-				db.UserNS(id.UserHex),
-				db.UserReadOnlyNS(id.UserHex),
-			},
+			Role:       syncRoleSpoke,
+			HubURL:     cloudSyncURL(base),
+			Token:      strings.TrimSpace(id.NodeCredential),
+			Namespaces: namespaces,
 		}
 	}
 	a, err := New(cfg)

@@ -275,8 +275,16 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     (s: PlayerSession) => {
       apiClient.bindSession(
         s,
-        async (access, refresh) => {
-          const updated = { ...s, accessToken: access, refreshToken: refresh };
+        async (access, refresh, offlinePass) => {
+          // The pass is renewed with the tokens, and keeping the old one
+          // would mean a device that had been signed in for a month could no
+          // longer seat its owner at a table with no internet.
+          const updated = {
+            ...s,
+            accessToken: access,
+            refreshToken: refresh,
+            offlinePass: offlinePass ?? s.offlinePass,
+          };
           setSessionState(updated);
           await persistSession(updated);
         },
@@ -533,6 +541,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       table: Pick<OfflineTable, 'role' | 'via' | 'checkCode'>,
       name: string,
       ble?: BleTransport,
+      offlinePass?: string,
     ) => {
       const key = offlineKey(instanceId);
       // The guest id is kept per host, so this player gets the same seat back
@@ -545,7 +554,24 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       } catch {
         known = undefined;
       }
-      const s = await client.guestLogin(name, known);
+      // A signed-in person sits at their own table as themselves: the pass
+      // the cloud gave them says who they are, and the host checks it against
+      // the keys it cached while it last had a connection. Whatever they play
+      // is then theirs when it reaches the cloud, rather than a stranger's
+      // that has to be claimed afterwards.
+      //
+      // A host that has never been online, or a pass that has expired,
+      // refuses it, and this falls back to sitting as a guest - which is what
+      // every offline table did before any of this existed, and still works.
+      let s: PlayerSession | null = null;
+      if (offlinePass) {
+        try {
+          s = await client.offlinePassLogin(offlinePass);
+        } catch {
+          s = null;
+        }
+      }
+      if (!s) s = await client.guestLogin(name, known);
       if (s.guestId) await storage.setItem(key, JSON.stringify({ guestId: s.guestId }));
       await storage.setItem(OFFLINE_NAME_KEY, s.username);
       client.bindSession(
@@ -571,9 +597,11 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         host.instanceId,
         { role: 'host', via: 'self', checkCode: '' },
         name,
+        undefined,
+        session?.isGuest ? undefined : session?.offlinePass,
       );
     },
-    [sitAt],
+    [sitAt, session],
   );
 
   const joinNearby = useCallback(

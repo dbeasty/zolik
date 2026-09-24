@@ -111,11 +111,29 @@ func Start(dataDir string) (*Host, error) {
 func StartNode(dataDir, nodeCredential, userHex, cloudBaseURL string) (*Host, error) {
 	mu.Lock()
 	defer mu.Unlock()
+	want := strings.TrimSpace(userHex)
 	if current != nil {
-		if current.userHex != strings.TrimSpace(userHex) {
+		switch {
+		case current.userHex == want:
+			return current, nil
+		case want == "":
+			// Naming nobody is not naming somebody else. Hosting a table for
+			// the room is a mode of the same host, and the app asks for it
+			// that way - with no account - while the person may well be
+			// signed in and this host may well be replicating their data.
+			// Refusing would mean a signed-in player could not start an
+			// offline table at all.
+			return current, nil
+		case current.userHex == "":
+			// A host that was serving nobody, and somebody has just signed
+			// in. Whether a host replicates is fixed when it opens, so this
+			// is a restart rather than a change of mind: the database on disk
+			// is the same one either way, and what is lost is a live
+			// connection rather than a table.
+			current.stopLocked()
+		default:
 			return nil, fmt.Errorf("a host is already running for %s", describeAccount(current.userHex))
 		}
-		return current, nil
 	}
 	if dataDir == "" {
 		return nil, errors.New("dataDir is required")
@@ -365,6 +383,13 @@ func (h *Host) BaseURL() string { return "http://127.0.0.1:" + strconv.Itoa(h.Po
 func (h *Host) Stop() {
 	mu.Lock()
 	defer mu.Unlock()
+	h.stopLocked()
+}
+
+// stopLocked is Stop with the package lock already held, for the callers that
+// are already in it - StartNode, which has to put a host down before it can
+// bring the same database up replicating for somebody who has just signed in.
+func (h *Host) stopLocked() {
 	if current != h {
 		return
 	}

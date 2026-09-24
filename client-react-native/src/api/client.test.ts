@@ -90,7 +90,9 @@ describe('token refresh', () => {
 
     expect(s.calls.filter((c) => c.path === '/auth/refresh')).toHaveLength(1);
     expect(s.expired).not.toHaveBeenCalled();
-    expect(s.updated).toHaveBeenCalledWith('a1', 'r1');
+    // The third argument is the offline pass, which this server did not
+    // rotate: a refresh that does not mention one leaves the one in hand.
+    expect(s.updated).toHaveBeenCalledWith('a1', 'r1', undefined);
   });
 
   it('keeps the session when the refresh cannot reach the server', async () => {
@@ -109,5 +111,47 @@ describe('token refresh', () => {
     const s = server(() => reply(401));
     await expect(s.client.getMe()).rejects.toMatchObject({ status: 401 });
     expect(s.expired).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('signing in keeps the offline pass', () => {
+  /** A server that answers every sign-in shape with one pass, so a route that
+   *  drops it shows up as an undefined rather than as a different value. */
+  function transportFor(signInPath: string) {
+    return {
+      fetch: async (path: string) => ({
+        status: 200,
+        ok: true,
+        headers: { get: () => null },
+        text: async () =>
+          JSON.stringify(
+            path === signInPath
+              ? { accessToken: 'a', refreshToken: 'r', offlinePass: 'pass', username: 'ada' }
+              : { id: 'u1', username: 'ada' },
+          ),
+      }),
+      socketUrl: (p: string) => p,
+      openSocket: () => {
+        throw new Error('unused');
+      },
+    };
+  }
+
+  // Every one of these is a way into a signed-in session, and a table with no
+  // internet can only seat the account when the pass came along the way in.
+  it('on a username sign-in', async () => {
+    const client = new ZolikClient('http://x', transportFor('/auth/login') as never);
+    await expect(client.login('ada', 'pw')).resolves.toMatchObject({ offlinePass: 'pass' });
+  });
+
+  it('on registering', async () => {
+    const client = new ZolikClient('http://x', transportFor('/auth/register') as never);
+    await expect(client.register('ada', 'pw')).resolves.toMatchObject({ offlinePass: 'pass' });
+  });
+
+  it('on a mailed code', async () => {
+    const client = new ZolikClient('http://x', transportFor('/auth/email/verify') as never);
+    const outcome = await client.verifyEmailCode('ada@example.com', '123456');
+    expect(outcome.session).toMatchObject({ offlinePass: 'pass' });
   });
 });
