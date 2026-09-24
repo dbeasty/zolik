@@ -75,10 +75,10 @@ export function drawableZones(
 /**
  * Where a zone is drawn, decided by what the module said it *is*.
  *
- * Three places on the board, and each of these answers one of them: the
- * table at the top (the piles everyone draws from), the row of spreads under
- * the hand (what each player has laid down), and the head of the table (the
- * house's own zone, which `dealer` already names).
+ * Two places on the board, and each of these answers one of them: the table
+ * above the hand and the buttons (the piles everyone draws from, the cards
+ * everyone plays against — poker's board, the blackjack dealer's hand), and
+ * the row of spreads under the hand (what each player has laid down).
  *
  * The question these exist to settle is one an empty `ownerId` cannot: a
  * Canasta partnership's melds name no owner — they belong to a side, not a
@@ -90,7 +90,10 @@ export function drawableZones(
  */
 export function isTableZone(zone: Zone): boolean {
   if (zone.ownerId) return false;
-  if (zone.dealer) return false;
+  // The house's hand is on the table the way poker's board is: it is what
+  // every decision at the table is made against, so it sits just above the
+  // buttons that make them — not above the seats, a screen away from them.
+  if (zone.dealer) return true;
   return zone.kind !== 'spread' || !!zone.shared;
 }
 
@@ -107,9 +110,10 @@ export function isSpreadRowZone(zone: Zone): boolean {
  * absurd each occupying a full row. A shared spread joins them — poker's
  * board is five cards beside the deck they were dealt from, which is how a
  * real table is laid out, and the row wraps when a screen is too narrow for
- * both rather than never trying.
+ * both rather than never trying. The dealer's hand sits beside the shoe for
+ * the same reason.
  */
 export function sitsBeside(zone: Zone): boolean {
   if (zone.kind === 'stack' || zone.kind === 'pile') return true;
-  return zone.kind === 'spread' && !!zone.shared;
+  return zone.kind === 'spread' && (!!zone.shared || !!zone.dealer);
 }

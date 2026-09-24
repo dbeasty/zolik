@@ -90,10 +90,6 @@ export function BoardLayout({
   // replay: no zone is a live target, so none is held open for one.
   const visible = drawableZones(zones, viewerId, drops.activeDrops ?? EMPTY_DROPS);
 
-  // The house's own zone, where the game has one, drawn at the head of the
-  // table rather than in the row of melds. Taken out of the spreads by the
-  // flag the module set, never by its id or its game.
-  const dealerZone = visible.find((z) => z.dealer);
   const spreadZones = visible.filter(isSpreadRowZone);
   const mySpreads = spreadZones.filter((z) => z.ownerId === viewerId);
   const otherSpreads = spreadZones.filter((z) => z.ownerId !== viewerId);
@@ -101,7 +97,9 @@ export function BoardLayout({
 
   // The table's own zones: the piles everyone draws from and discards to, and
   // any spread the table itself holds — poker's board, dealt from the deck it
-  // now sits beside. A shared spread is up here rather than down in the row of
+  // now sits beside, or the blackjack dealer's hand beside the shoe (taken
+  // out of the spreads by the `dealer` flag the module set, never by its id
+  // or its game). A shared spread is up here rather than down in the row of
   // melds because it is nobody's: the row below answers "what has each player
   // laid down?", and the community cards are not an answer to that question,
   // they are half of every player's hand.
@@ -114,10 +112,6 @@ export function BoardLayout({
 
   return (
     <>
-      {/* The house sits opposite, above the seats — the players are around
-          the table, the dealer is at the head of it. */}
-      {dealerZone ? <Dealer zone={dealerZone} zoneProps={{ ...zonePanelProps(dealerZone.id), ...drops }} /> : null}
-
       <SeatStrip
         seats={view.seats ?? []}
         players={state.players}
@@ -133,7 +127,8 @@ export function BoardLayout({
         </Text>
       ))}
 
-      {/* The piles and stacks everyone draws from and discards to. */}
+      {/* The piles and stacks everyone draws from and discards to, and the
+          cards everyone plays against, directly above the hand and buttons. */}
       {tableZones.length > 0 ? (
         <View {...tableAnchor}>
           <Section
@@ -250,21 +245,26 @@ export function Section({
     >
       {beside.length > 0 ? (
         <View style={styles.beside} testID={`section-beside-${title.toLowerCase()}`}>
-          {beside.map((z) => (
+          {beside.map((z) =>
             // Compact is right for a pile you glance at and wrong for cards
             // you read: a stack is a count and a pile is its top card, but a
             // shared spread is half of everyone's hand and is drawn at the
-            // size the rest of the board draws cards.
-            <ZoneView
-              key={z.id}
-              zone={z}
-              compact={compact && !z.shared}
-              inline
-              nested
-              {...panelPropsFor(z.id)}
-              {...drops}
-            />
-          ))}
+            // size the rest of the board draws cards. The dealer's hand is
+            // the same, with the croupier sat behind it.
+            z.dealer ? (
+              <Dealer key={z.id} zone={z} zoneProps={{ ...panelPropsFor(z.id), ...drops }} />
+            ) : (
+              <ZoneView
+                key={z.id}
+                zone={z}
+                compact={compact && !z.shared}
+                inline
+                nested
+                {...panelPropsFor(z.id)}
+                {...drops}
+              />
+            ),
+          )}
         </View>
       ) : null}
       {stacked.map((z) => (
