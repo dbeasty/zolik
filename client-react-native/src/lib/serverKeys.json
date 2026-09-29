@@ -1415,6 +1415,7 @@
       "value"
     ],
     "rummytiles.move.added": [
+      "cards",
       "player"
     ],
     "rummytiles.move.committed": [
@@ -1424,6 +1425,7 @@
       "player"
     ],
     "rummytiles.move.placed": [
+      "cards",
       "player"
     ],
     "rummytiles.move.reset": [
@@ -1433,9 +1435,11 @@
       "player"
     ],
     "rummytiles.move.swappedJoker": [
+      "card",
       "player"
     ],
     "rummytiles.move.took": [
+      "cards",
       "player"
     ],
     "rummytiles.remedy.emptyTheTray": [
