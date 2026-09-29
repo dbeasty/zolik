@@ -18,6 +18,8 @@ import type {
   NotifyProfile,
   PlayerSession,
   PushDeviceRegistration,
+  SeatClaim,
+  SeatPreview,
   SignInOutcome,
   WaitingPlayer,
 } from '@/src/api/types';
@@ -488,6 +490,50 @@ export class ZolikClient {
    */
   async resumeMatch(idOrCode: string): Promise<void> {
     await this.post(`/matches/${encodeURIComponent(idOrCode)}/resume`, null, true);
+  }
+
+  /**
+   * Play a finished table again with the same people. The first press opens
+   * the rematch and hosts it; any later one, from anybody at the table, sits
+   * down at that same one. The answer says where to go: a lobby while there
+   * are others to wait for, a dealt table when there are none.
+   */
+  async rematch(idOrCode: string): Promise<{ matchId: string; status: string; hostId: string }> {
+    return this.post(`/matches/${encodeURIComponent(idOrCode)}/rematch`, null, true);
+  }
+
+  /** Give back the seat a rematch was holding for this player. */
+  async declineRematch(rematchId: string): Promise<void> {
+    await this.post(`/matches/${encodeURIComponent(rematchId)}/rematch/decline`, null, true);
+  }
+
+  /**
+   * A link that brings one person back to their seat at a started table —
+   * for somebody on a new device or a cleared browser. Anybody seated at the
+   * table may make one for anybody at it; making another replaces it.
+   * `url` is empty when the server has no public base: build it from `path`.
+   */
+  async mintSeatLink(matchId: string, playerId: string): Promise<{ path: string; url: string }> {
+    return this.post(
+      `/matches/${encodeURIComponent(matchId)}/seats/${encodeURIComponent(playerId)}/link`,
+      null,
+      true,
+    );
+  }
+
+  /** Whose seat a link opens, and at which table. Names and faces only. */
+  async seatPreview(matchId: string, secret: string): Promise<SeatPreview> {
+    return this.get(`/seats/${encodeURIComponent(matchId)}/${encodeURIComponent(secret)}`, false);
+  }
+
+  /**
+   * Takes the seat a link opens. Sent with this device's own token when it
+   * has one, so somebody who already is that seat is simply sent back to it
+   * (`alreadyYours`); anybody else gets a token that plays that seat at that
+   * table and nothing more.
+   */
+  async claimSeat(matchId: string, secret: string): Promise<SeatClaim> {
+    return this.post(`/seats/${encodeURIComponent(matchId)}/${encodeURIComponent(secret)}/claim`, null, true);
   }
 
   /** A viewer's state over plain HTTP; the socket is the live path. */
