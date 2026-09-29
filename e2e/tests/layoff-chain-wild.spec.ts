@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { dragLocatorTo, handCards } from '../helpers/drag';
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 import { cardByCode, selectOnly } from '../helpers/hand';
 
 /**
@@ -131,8 +131,8 @@ async function openMatch(page: Page, host: any, matchId: string) {
 }
 
 /** The bot's run, as the server has it. */
-async function meldOnServer(request: Ctx, matchId: string, userId: string) {
-  const b = await (await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`)).json();
+async function meldOnServer(request: Ctx, matchId: string, viewer: Viewer) {
+  const b = await (await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer))).json();
   for (const z of b.view?.zones ?? []) {
     for (const g of z.groups ?? []) if (g.id === 'meld_1') return g.cards.join(',');
   }
@@ -140,8 +140,9 @@ async function meldOnServer(request: Ctx, matchId: string, userId: string) {
 }
 
 /** The viewer's own hand, as the server has it. */
-async function handOnServer(request: Ctx, matchId: string, userId: string) {
-  const b = await (await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`)).json();
+async function handOnServer(request: Ctx, matchId: string, viewer: Viewer) {
+  const { userId } = viewer;
+  const b = await (await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer))).json();
   for (const z of b.view?.zones ?? []) {
     if (z.ownerId === userId && z.kind === 'hand') {
       return (z.cards ?? []).map((c: any) => c.card).join(',');
@@ -168,13 +169,13 @@ test.describe('a lay-off whose natural bridge is shadowed by a joker', () => {
     // The server is the witness: the run grew by exactly the two natural
     // cards, in order.
     await expect
-      .poll(() => meldOnServer(request, matchId, host.userId), { timeout: 10_000 })
+      .poll(() => meldOnServer(request, matchId, host), { timeout: 10_000 })
       .toBe('2C,3C,4C,5C,6C,7C,8C,9C,TC,JC');
 
     // And the joker that used to get spent bridging this gap is still in
     // hand — the move never needed it.
     await expect
-      .poll(() => handOnServer(request, matchId, host.userId), { timeout: 5_000 })
+      .poll(() => handOnServer(request, matchId, host), { timeout: 5_000 })
       .toContain('JOKER1');
   });
 
@@ -194,7 +195,7 @@ test.describe('a lay-off whose natural bridge is shadowed by a joker', () => {
     await dragLocatorTo(page, cardByCode(page, 'JC'), page.getByTestId('group-meld_1'));
 
     await expect
-      .poll(() => meldOnServer(request, matchId, host.userId), { timeout: 5_000 })
+      .poll(() => meldOnServer(request, matchId, host), { timeout: 5_000 })
       .toBe('2C,3C,4C,5C,6C,7C,8C,9C');
   });
 });

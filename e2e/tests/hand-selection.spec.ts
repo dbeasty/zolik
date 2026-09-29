@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { handCards, tapCard } from '../helpers/drag';
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer } from '../helpers/env';
 
 /**
  * Picking a particular card, when two of them look identical.
@@ -47,7 +47,7 @@ async function newTable(request: Ctx): Promise<Table> {
 }
 
 async function handOf(request: Ctx, t: Table): Promise<string[]> {
-  const res = await request.get(`${API_BASE}/matches/${t.matchId}?as=${t.host.userId}`);
+  const res = await request.get(`${API_BASE}/matches/${t.matchId}`, asViewer(t.host));
   expect(res.ok(), await res.text()).toBeTruthy();
   const body = await res.json();
   const zone = (body.view?.zones ?? []).find(

@@ -10,6 +10,7 @@ import type {
   CircleLists,
   CircleSuggestion,
   FriendPreview,
+  GuestProof,
   InvitePreference,
   LifetimeStats,
   LinkedIdentity,
@@ -124,26 +125,37 @@ export class ZolikClient {
   }
 
   /**
-   * Starts a guest session, reusing this device's guest identity when it has
-   * one.
+   * Starts a guest session, resuming this device's guest identity when it can
+   * prove it holds one.
    *
-   * Passing the existing id back is what keeps a guest's play attributable to
-   * one device across sessions, and therefore what makes it claimable when
-   * they eventually sign in. Without it every launch would look like a new
-   * person and the history would be unreachable.
+   * Passing the proof back is what keeps a guest's play attributable to one
+   * person across sessions, and therefore what makes it claimable when they
+   * eventually sign in. The proof is the guest *key*, not the guest id: the id
+   * is shown to everyone at every table, so the server treats a bare id as
+   * nothing and mints a new guest. A refresh token from before keys existed
+   * still works while it is live, which is how an older install gets its key.
    */
-  async guestLogin(name: string, guestId?: string): Promise<PlayerSession> {
+  async guestLogin(name: string, proof: GuestProof = {}): Promise<PlayerSession> {
     const data = await this.post<{
       accessToken: string;
       refreshToken: string;
       guestName: string;
       guestId: string;
+      guestKey?: string;
       userId: string;
       claimableMatches?: number;
       // A name is sent only when there is one. An empty field means "you
       // pick", and the server picks from the device's guest id — see
       // src/lib/guestName.ts for why neither side answers "Player".
-    }>('/auth/guest', { guestName: name || undefined, guestId: guestId || undefined }, false);
+    }>(
+      '/auth/guest',
+      {
+        guestName: name || undefined,
+        guestKey: proof.guestKey || undefined,
+        guestRefreshToken: proof.refreshToken || undefined,
+      },
+      false,
+    );
     this.accessToken = data.accessToken;
     this.refreshToken = data.refreshToken;
     this.userId = data.userId || data.guestId;
@@ -156,6 +168,7 @@ export class ZolikClient {
       username: data.guestName || name,
       isGuest: true,
       guestId: data.guestId,
+      guestKey: data.guestKey,
       claimableMatches: data.claimableMatches ?? 0,
     };
   }
@@ -232,10 +245,10 @@ export class ZolikClient {
    * travels in game state and match records — possession of the session is
    * what actually distinguishes the owner of that history.
    */
-  async claimGuestHistory(guestRefreshToken: string): Promise<number> {
+  async claimGuestHistory(proof: GuestProof): Promise<number> {
     const data = await this.post<{ claimedMatches: number }>(
       '/auth/claim-guest',
-      { guestRefreshToken },
+      { guestKey: proof.guestKey || undefined, guestRefreshToken: proof.refreshToken || undefined },
       true,
     );
     return data.claimedMatches ?? 0;
@@ -481,10 +494,14 @@ export class ZolikClient {
     await this.post(`/matches/${encodeURIComponent(idOrCode)}/resume`, null, true);
   }
 
-  /** A viewer's state over plain HTTP; the socket is the live path. */
-  async getMatch(idOrCode: string, as?: string): Promise<MatchState> {
-    const q = as ? `?as=${encodeURIComponent(as)}` : '';
-    return this.get(`/matches/${encodeURIComponent(idOrCode)}${q}`, false);
+  /**
+   * A viewer's state over plain HTTP; the socket is the live path.
+   *
+   * The viewer is whoever this session's token says it is. Without one the
+   * server answers with the spectator view: every public fact, no hands.
+   */
+  async getMatch(idOrCode: string): Promise<MatchState> {
+    return this.get(`/matches/${encodeURIComponent(idOrCode)}`, true);
   }
 
   /**

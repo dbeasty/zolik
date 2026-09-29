@@ -54,7 +54,7 @@ export default function TableScreen() {
   const poll = useCallback(async () => {
     if (!id) return;
     try {
-      const m = await client.getMatch(id, session?.userId);
+      const m = await client.getMatch(id);
       setState(m);
       if (m.status !== 'lobby') router.replace(`/match/${id}`);
     } catch (e) {

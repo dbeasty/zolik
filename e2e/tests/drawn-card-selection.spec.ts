@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { handCards, tapCard } from '../helpers/drag';
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 import { waitForOfferEnabled } from '../helpers/turn';
 import { cardByCode, clearHandSelection, handCodes, selectedCodes } from '../helpers/hand';
 
@@ -77,15 +77,15 @@ async function drawOne(page: Page): Promise<string> {
   return (await selectedCodes(page))[0];
 }
 
-async function board(request: Ctx, matchId: string, userId: string) {
-  const res = await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`);
+async function board(request: Ctx, matchId: string, viewer: Viewer) {
+  const res = await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer));
   expect(res.ok(), await res.text()).toBeTruthy();
   return res.json();
 }
 
 /**
  * Plays whatever is live until a pickup off the discard pile is offered to
- * `userId`, or gives up after `budgetMs`. A fresh deal has nothing on the
+ * `viewer`, or gives up after `budgetMs`. A fresh deal has nothing on the
  * pile yet, so this needs at least one discard to have happened first —
  * usually the host's own, on whichever turn the loop first finds something
  * pressable.
@@ -94,12 +94,12 @@ async function waitForDiscardPickupOffered(
   page: Page,
   request: Ctx,
   matchId: string,
-  userId: string,
+  viewer: Viewer,
   budgetMs = 30_000,
 ): Promise<boolean> {
   const deadline = Date.now() + budgetMs;
   while (Date.now() < deadline) {
-    const body = await board(request, matchId, userId);
+    const body = await board(request, matchId, viewer);
     const offer = (body.legalActions ?? []).find((o: any) => o.id === 'draw:discard');
     if (offer?.enabled) return true;
     const live = page.locator('[data-testid^="offer-"]:not([aria-disabled="true"])').first();
@@ -202,7 +202,7 @@ test.describe('a card picked up off the discard pile', () => {
     await openMatch(page, host, matchId);
     await handCards(page);
 
-    const offered = await waitForDiscardPickupOffered(page, request, matchId, host.userId);
+    const offered = await waitForDiscardPickupOffered(page, request, matchId, host);
     test.skip(!offered, 'never reached a position where a discard pickup was offered');
 
     const before = await handCodes(page);

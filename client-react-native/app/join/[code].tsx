@@ -79,7 +79,7 @@ export default function JoinByLinkScreen() {
       // refuses the next visitor does not follow them around.
       await clearPendingDestination();
 
-      const seated = await client.getMatch(matchId, session.userId);
+      const seated = await client.getMatch(matchId);
       // A host following their own link is sent to their own table, not to a
       // screen telling them to wait for themselves.
       router.replace(routeForMatch(seated.status, seated.hostId === session.userId, matchId));

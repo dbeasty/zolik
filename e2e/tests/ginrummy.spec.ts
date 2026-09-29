@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 
 /**
  * End-to-end for the Gin Rummy module (docs/rummy-games-plan.md, Phase A).
@@ -87,8 +87,8 @@ async function startMatch(request: Ctx, opts: { variation?: string; options?: Re
   return { matchId, users, auth };
 }
 
-async function stateFor(request: Ctx, matchId: string, viewerId: string): Promise<MatchState> {
-  const res = await request.get(`${API_BASE}/matches/${matchId}?as=${encodeURIComponent(viewerId)}`);
+async function stateFor(request: Ctx, matchId: string, viewer: Viewer): Promise<MatchState> {
+  const res = await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer));
   expect(res.ok(), await res.text()).toBeTruthy();
   return res.json();
 }
@@ -124,7 +124,7 @@ test.describe('ginrummy', () => {
   test('a Gin Rummy match persists through Mongo and comes back playable', async ({ request }) => {
     const { matchId, users } = await startMatch(request, { options: { targetScore: 100 } });
 
-    const state = await stateFor(request, matchId, users[0].userId);
+    const state = await stateFor(request, matchId, users[0]);
     expect(state.moduleId).toBe('ginrummy');
     expect(state.status).toBe('active');
     expect(state.legalActions.length).toBeGreaterThan(0);
@@ -138,7 +138,7 @@ test.describe('ginrummy', () => {
     // upcard dance is a real turn, not a special case.
     const withOffers = [];
     for (const u of users) {
-      const s = await stateFor(request, matchId, u.userId);
+      const s = await stateFor(request, matchId, u);
       if (s.legalActions.some((o) => o.enabled)) withOffers.push(u.userId);
     }
     expect(withOffers).toHaveLength(1);
@@ -148,7 +148,7 @@ test.describe('ginrummy', () => {
     const { matchId, users } = await startMatch(request, { options: { targetScore: 100 } });
 
     for (const viewer of users) {
-      const state = await stateFor(request, matchId, viewer.userId);
+      const state = await stateFor(request, matchId, viewer);
       const opponent = users.find((u) => u.userId !== viewer.userId)!;
 
       const theirs = state.view.zones.find((z) => z.kind === 'hand' && z.ownerId === opponent.userId);
@@ -337,7 +337,7 @@ test.describe('ginrummy', () => {
       const started = await request.post(`${API_BASE}/matches/${matchId}/start`, { headers: auth });
       expect(started.ok(), await started.text()).toBeTruthy();
 
-      const state = await stateFor(request, matchId, host.userId);
+      const state = await stateFor(request, matchId, host);
       expect(state.moduleId).toBe(moduleId);
       expect(state.status).toBe('active');
       expect(state.legalActions.length).toBeGreaterThan(0);

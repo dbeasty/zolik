@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { handCards, tapCard } from '../helpers/drag';
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 import { selectedCodes } from '../helpers/hand';
 import { waitForOfferEnabled } from '../helpers/turn';
 
@@ -150,15 +150,15 @@ async function openMatch(page: Page, host: any, matchId: string) {
   await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
 }
 
-async function board(request: Ctx, matchId: string, userId: string) {
-  const res = await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`);
+async function board(request: Ctx, matchId: string, viewer: Viewer) {
+  const res = await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer));
   expect(res.ok(), await res.text()).toBeTruthy();
   return res.json();
 }
 
-async function serverHand(request: Ctx, matchId: string, userId: string): Promise<string[]> {
-  const body = await board(request, matchId, userId);
-  const zone = (body.view?.zones ?? []).find((z: any) => z.kind === 'hand' && z.ownerId === userId);
+async function serverHand(request: Ctx, matchId: string, viewer: Viewer): Promise<string[]> {
+  const body = await board(request, matchId, viewer);
+  const zone = (body.view?.zones ?? []).find((z: any) => z.kind === 'hand' && z.ownerId === viewer.userId);
   return (zone?.cards ?? []).map((c: any) => c.card);
 }
 
@@ -204,7 +204,7 @@ test.describe('a control refuses what it cannot send', () => {
     await expect(discard).not.toHaveAttribute('aria-disabled', 'true');
     await expect(page.getByTestId('why-discard')).toHaveCount(0);
     const pressable = await paint(page, 'offer-discard');
-    const handSize = (await serverHand(request, matchId, host.userId)).length;
+    const handSize = (await serverHand(request, matchId, host)).length;
 
     // The drawn card is picked *for* the player, not *by* them — touching a
     // different card replaces it rather than joining it, so the drawn card
@@ -243,7 +243,7 @@ test.describe('a control refuses what it cannot send', () => {
     expect(pressable.stroke).toBe('solid');
 
     // The server never saw a discard for either card.
-    const untouched = await serverHand(request, matchId, host.userId);
+    const untouched = await serverHand(request, matchId, host);
     expect(untouched.length).toBe(handSize);
 
     // Deselecting one brings it back.
@@ -254,17 +254,17 @@ test.describe('a control refuses what it cannot send', () => {
 
     // And it sends exactly the one card that stayed selected — never a
     // different, guessed one.
-    const before = await serverHand(request, matchId, host.userId);
+    const before = await serverHand(request, matchId, host);
     const [stillSelected] = await selectedCodes(page);
     await discard.click();
 
-    await expect.poll(async () => (await serverHand(request, matchId, host.userId)).length).toBe(
+    await expect.poll(async () => (await serverHand(request, matchId, host)).length).toBe(
       before.length - 1,
     );
     // Counted, not just "not contains": two decks are in play, so the hand
     // may hold another copy of the same code, and that copy staying behind is
     // correct — one fewer of it is what "exactly this one" actually means.
-    const after = await serverHand(request, matchId, host.userId);
+    const after = await serverHand(request, matchId, host);
     const countOf = (hand: string[], code: string) => hand.filter((c) => c === code).length;
     expect(countOf(after, stillSelected)).toBe(countOf(before, stillSelected) - 1);
   });
@@ -324,7 +324,7 @@ test.describe('a control refuses what it cannot send', () => {
     // move that never left the screen. The hand is still whole afterwards.
     await meld.click({ force: true });
     await page.waitForTimeout(250);
-    expect(await serverHand(request, matchId, host.userId)).toHaveLength(6);
+    expect(await serverHand(request, matchId, host)).toHaveLength(6);
 
     // Picking the rest brings it back, and then it really does go out.
     for (let i = 1; i < 6; i++) await tapCard(page, cards.nth(i));
@@ -334,7 +334,7 @@ test.describe('a control refuses what it cannot send', () => {
 
     await meld.click();
     await expect
-      .poll(async () => (await serverHand(request, matchId, host.userId)).length)
+      .poll(async () => (await serverHand(request, matchId, host)).length)
       .toBe(0);
   });
 });

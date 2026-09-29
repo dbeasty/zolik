@@ -18,12 +18,14 @@ import { connectToTable } from '@/src/net/ble/link';
 import { BleTransport } from '@/src/net/ble/transport';
 import { authErrorMessage, parseAuthCallback } from '@/src/lib/auth';
 import { nearbyBaseUrl } from '@/src/lib/nearbyAddress';
+import { guestIdOfKey } from '@/src/lib/inviteLink';
 import { ZOLIK_BASE_URL } from '@/src/config';
 import { startNodeFor, stopNodeFor } from '@/src/net/nodeSession';
 import { useReplicaSync } from '@/src/net/useReplicaSync';
 import type {
   AccountProfile,
   AuthProvider,
+  GuestProof,
   PlayerSession,
   SignInOutcome,
 } from '@/src/api/types';
@@ -48,13 +50,24 @@ const SESSION_KEY = 'zolik_session';
  * Clearing it on sign-out would silently orphan exactly the history this
  * feature exists to preserve.
  *
- * The refresh token is stored beside it because claiming that history later
- * requires proving possession of the guest *session*, not merely knowing the
- * id — the id travels in match records, so knowing it proves nothing.
+ * The guest key is stored beside it because resuming the identity, and
+ * claiming its history later, both require proving possession of it, not
+ * merely knowing the id — the id travels in match records and in every
+ * table's player list, so knowing it proves nothing. The key is the proof,
+ * and unlike a refresh token it neither rotates nor dies with a sign-out.
+ *
+ * `refreshToken` is only ever read, from installs that predate guest keys:
+ * while it is still live the server accepts it once and answers with a key.
  */
 const GUEST_KEY = 'zolik_guest_identity';
 
-type GuestIdentity = { guestId: string; refreshToken: string };
+type GuestIdentity = { guestId: string; guestKey?: string; refreshToken?: string };
+
+/** What a stored identity can show the server; the key when there is one. */
+function proofOf(g: GuestIdentity | null): GuestProof {
+  if (!g) return {};
+  return g.guestKey ? { guestKey: g.guestKey } : { refreshToken: g.refreshToken };
+}
 
 /**
  * A table this phone hosts itself, with no internet: the embedded server
@@ -169,6 +182,14 @@ type SessionContextValue = {
   unlinkProvider: (providerId: string) => Promise<void>;
   /** Absorbs this device's guest history into the signed-in account. */
   claimGuestHistory: () => Promise<number>;
+  /**
+   * Become the guest a guest link carries, on this device. Resolves whether
+   * the server recognised the key; when it did not, the device is left a
+   * fresh guest rather than stranded with no session.
+   */
+  resumeGuestFromLink: (guestKey: string) => Promise<boolean>;
+  /** This device's guest key, for showing the guest their own link. */
+  guestKey: string | null;
   refreshAccount: () => Promise<void>;
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, password: string, email?: string) => Promise<void>;
@@ -260,6 +281,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [providers, setProviders] = useState<AuthProvider[]>([]);
   const [account, setAccount] = useState<AccountProfile | null>(null);
   const [claimableMatches, setClaimableMatches] = useState(0);
+  const [guestKey, setGuestKey] = useState<string | null>(null);
   const [offline, setOffline] = useState<OfflineState | null>(null);
 
   // The server has already rejected these credentials, so clear them from state
@@ -355,6 +377,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   useReplicaSync(localNodeReady);
 
   useEffect(() => {
+    void loadGuestIdentity().then((g) => setGuestKey(g?.guestKey ?? null));
+  }, []);
+
+  useEffect(() => {
     loadSession()
       .then((s) => {
         if (s) {
@@ -404,20 +430,36 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     [applySession],
   );
 
-  const guestLogin = useCallback(
-    async (name: string) => {
-      const existing = await loadGuestIdentity();
-      const s = await apiClient.guestLogin(name, existing?.guestId);
+  const signInAsGuest = useCallback(
+    async (name: string, proof: GuestProof) => {
+      const s = await apiClient.guestLogin(name, proof);
       if (s.guestId) {
         await storage.setItem(
           GUEST_KEY,
-          JSON.stringify({ guestId: s.guestId, refreshToken: s.refreshToken }),
+          JSON.stringify({ guestId: s.guestId, guestKey: s.guestKey } satisfies GuestIdentity),
         );
+        setGuestKey(s.guestKey ?? null);
       }
       setClaimableMatches(s.claimableMatches ?? 0);
       await applySession(s);
+      return s;
     },
     [applySession],
+  );
+
+  const guestLogin = useCallback(
+    async (name: string) => {
+      await signInAsGuest(name, proofOf(await loadGuestIdentity()));
+    },
+    [signInAsGuest],
+  );
+
+  const resumeGuestFromLink = useCallback(
+    async (key: string) => {
+      const s = await signInAsGuest('', { guestKey: key });
+      return !!s.guestId && s.guestId === guestIdOfKey(key);
+    },
+    [signInAsGuest],
   );
 
   /** Shared tail of every sign-in: adopt the session and forget the guest
@@ -427,6 +469,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       await applySession(outcome.session);
       if (outcome.claimedMatches > 0) {
         await storage.deleteItem(GUEST_KEY);
+        setGuestKey(null);
       }
       setClaimableMatches(0);
       return outcome;
@@ -499,11 +542,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const claimGuestHistory = useCallback(async () => {
     const guest = await loadGuestIdentity();
-    if (!guest?.refreshToken) return 0;
-    const claimed = await apiClient.claimGuestHistory(guest.refreshToken);
+    if (!guest?.guestKey && !guest?.refreshToken) return 0;
+    const claimed = await apiClient.claimGuestHistory(proofOf(guest));
     // The guest session is retired server-side; keeping it here would leave a
     // token that no longer works and an id nothing will ever be recorded against.
     await storage.deleteItem(GUEST_KEY);
+    setGuestKey(null);
     setClaimableMatches(0);
     return claimed;
   }, []);
@@ -548,11 +592,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       // at a table they left, even across app restarts. Signing in afresh each
       // time costs nothing on the local network, and it never leaves a stale
       // token that the next call finds out about.
-      let known: string | undefined;
+      // The key, not the id: the id is what every other player at that table
+      // sees, and the host will not hand a seat back for it alone.
+      let known: GuestIdentity | null = null;
       try {
-        known = (JSON.parse((await storage.getItem(key)) ?? '{}') as { guestId?: string }).guestId;
+        const parsed = JSON.parse((await storage.getItem(key)) ?? '{}') as Partial<GuestIdentity>;
+        known = parsed.guestId ? { guestId: parsed.guestId, guestKey: parsed.guestKey } : null;
       } catch {
-        known = undefined;
+        known = null;
       }
       // A signed-in person sits at their own table as themselves: the pass
       // the cloud gave them says who they are, and the host checks it against
@@ -571,8 +618,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           s = null;
         }
       }
-      if (!s) s = await client.guestLogin(name, known);
-      if (s.guestId) await storage.setItem(key, JSON.stringify({ guestId: s.guestId }));
+      if (!s) s = await client.guestLogin(name, proofOf(known));
+      if (s.guestId) {
+        await storage.setItem(
+          key,
+          JSON.stringify({ guestId: s.guestId, guestKey: s.guestKey } satisfies GuestIdentity),
+        );
+      }
       await storage.setItem(OFFLINE_NAME_KEY, s.username);
       client.bindSession(
         s,
@@ -724,6 +776,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       linkProvider,
       unlinkProvider,
       claimGuestHistory,
+      resumeGuestFromLink,
+      guestKey,
       refreshAccount,
       login,
       register,
@@ -754,6 +808,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       linkProvider,
       unlinkProvider,
       claimGuestHistory,
+      resumeGuestFromLink,
+      guestKey,
       refreshAccount,
       login,
       register,

@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
 import { dragLocatorTo, dragPointTo, grabPoint, handCards, visiblePart } from '../helpers/drag';
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 
 /**
  * Arranging the cards in your own hand.
@@ -132,12 +132,12 @@ async function openMatch(page: Page, host: any, matchId: string) {
 }
 
 /** The viewer's hand as the *server* holds it — the order nobody rearranged. */
-async function serverHand(request: Ctx, matchId: string, userId: string): Promise<string[]> {
-  const res = await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`);
+async function serverHand(request: Ctx, matchId: string, viewer: Viewer): Promise<string[]> {
+  const res = await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer));
   expect(res.ok(), await res.text()).toBeTruthy();
   const body = await res.json();
   const hand = (body.view?.zones ?? []).find(
-    (z: any) => z.kind === 'hand' && z.ownerId === userId,
+    (z: any) => z.kind === 'hand' && z.ownerId === viewer.userId,
   );
   return (hand?.cards ?? []).map((c: any) => c.card);
 }
@@ -926,7 +926,7 @@ test.describe('arranging your hand', () => {
     await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
 
     const shown = await handCards(page);
-    const served = await serverHand(request, second.matchId, first.host.userId);
+    const served = await serverHand(request, second.matchId, first.host);
     expect(shown).toHaveLength(served.length);
     expect(shown).not.toEqual(arranged);
 
@@ -952,7 +952,7 @@ test.describe('arranging your hand', () => {
     // to be tidy) can't pass this test by accident.
     await dragLocatorTo(page, card(page, 0), card(page, 3));
     const scrambled = await handCards(page);
-    const serverBefore = await serverHand(request, matchId, host.userId);
+    const serverBefore = await serverHand(request, matchId, host);
 
     await page.getByTestId(`hand-auto-arrange-hand:${host.userId}`).click();
 
@@ -964,7 +964,7 @@ test.describe('arranging your hand', () => {
 
     // A view preference, exactly like a manual drag: the server's own copy of
     // the hand never moves.
-    const serverAfter = await serverHand(request, matchId, host.userId);
+    const serverAfter = await serverHand(request, matchId, host);
     expect(serverAfter).toEqual(serverBefore);
 
     // And it is remembered the same way a manual arrangement is.
@@ -979,7 +979,7 @@ test.describe('arranging your hand', () => {
     const { matchId, host } = await tableWithBots(request, 'zolik', 2);
     await openMatch(page, host, matchId);
 
-    const serverBefore = await serverHand(request, matchId, host.userId);
+    const serverBefore = await serverHand(request, matchId, host);
     const shownBefore = await handCards(page);
     expect(serverBefore.length).toBe(shownBefore.length);
 
@@ -992,7 +992,7 @@ test.describe('arranging your hand', () => {
     // nothing else. If arrangement had been sent as an action — or worse, if
     // the shell had rebuilt a submission from screen positions — the server's
     // own copy would have moved too.
-    const serverAfter = await serverHand(request, matchId, host.userId);
+    const serverAfter = await serverHand(request, matchId, host);
     expect(serverAfter).toEqual(serverBefore);
   });
 

@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { handCards, tapCard } from '../helpers/drag';
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 import { selectOnly } from '../helpers/hand';
 
 /**
@@ -58,20 +58,20 @@ async function openMatch(page: Page, host: any, matchId: string) {
   await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
 }
 
-async function board(request: Ctx, matchId: string, userId: string) {
-  const res = await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`);
+async function board(request: Ctx, matchId: string, viewer: Viewer) {
+  const res = await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer));
   expect(res.ok(), await res.text()).toBeTruthy();
   return res.json();
 }
 
-async function serverHand(request: Ctx, matchId: string, userId: string): Promise<string[]> {
-  const body = await board(request, matchId, userId);
-  const zone = (body.view?.zones ?? []).find((z: any) => z.kind === 'hand' && z.ownerId === userId);
+async function serverHand(request: Ctx, matchId: string, viewer: Viewer): Promise<string[]> {
+  const body = await board(request, matchId, viewer);
+  const zone = (body.view?.zones ?? []).find((z: any) => z.kind === 'hand' && z.ownerId === viewer.userId);
   return (zone?.cards ?? []).map((c: any) => c.card);
 }
 
-async function meldGroups(request: Ctx, matchId: string, userId: string): Promise<Record<string, string[]>> {
-  const body = await board(request, matchId, userId);
+async function meldGroups(request: Ctx, matchId: string, viewer: Viewer): Promise<Record<string, string[]>> {
+  const body = await board(request, matchId, viewer);
   const out: Record<string, string[]> = {};
   for (const z of body.view?.zones ?? []) {
     for (const g of z.groups ?? []) out[g.id] = g.cards ?? [];
@@ -80,8 +80,8 @@ async function meldGroups(request: Ctx, matchId: string, userId: string): Promis
 }
 
 /** A live lay-off onto an existing meld — see `drag-and-drop.spec.ts` for why the verb is checked. */
-async function layOffOffer(request: Ctx, matchId: string, userId: string) {
-  const body = await board(request, matchId, userId);
+async function layOffOffer(request: Ctx, matchId: string, viewer: Viewer) {
+  const body = await board(request, matchId, viewer);
   return (
     (body.legalActions ?? []).find(
       (o: any) => o.enabled && o.verb === 'lay_off' && o.target?.meldId && (o.source?.cards ?? []).length > 0,
@@ -100,8 +100,8 @@ function withoutOne(hand: string[], card: string): string[] {
   return at < 0 ? hand : [...hand.slice(0, at), ...hand.slice(at + 1)];
 }
 
-async function offerFor(request: Ctx, matchId: string, userId: string, verb: string) {
-  const body = await board(request, matchId, userId);
+async function offerFor(request: Ctx, matchId: string, viewer: Viewer, verb: string) {
+  const body = await board(request, matchId, viewer);
   const offer = (body.legalActions ?? []).find((o: any) => o.verb === verb && o.enabled);
   return { offer, cards: (offer?.source?.cards ?? []) as string[] };
 }
@@ -111,13 +111,13 @@ async function playUntilOffered(
   page: Page,
   request: Ctx,
   matchId: string,
-  userId: string,
+  viewer: Viewer,
   verb: string,
   budgetMs = 90_000,
 ) {
   const deadline = Date.now() + budgetMs;
   while (Date.now() < deadline) {
-    const { offer } = await offerFor(request, matchId, userId, verb);
+    const { offer } = await offerFor(request, matchId, viewer, verb);
     if (offer) return offer;
     const live = page.locator('[data-testid^="offer-"]:not([aria-disabled="true"])').first();
     if (await live.count()) {
@@ -148,13 +148,13 @@ test.describe('playing a card by tapping instead of dragging', () => {
     await openMatch(page, host, matchId);
     await handCards(page);
 
-    const offer = await playUntilOffered(page, request, matchId, host.userId, 'lay_off');
+    const offer = await playUntilOffered(page, request, matchId, host, 'lay_off');
     test.skip(!offer, 'no lay-off came up before the deal moved on');
 
     const meldId = offer.target.meldId as string;
     const eligible = (offer.source?.cards ?? []) as string[];
-    const before = await serverHand(request, matchId, host.userId);
-    const meldsBefore = await meldGroups(request, matchId, host.userId);
+    const before = await serverHand(request, matchId, host);
+    const meldsBefore = await meldGroups(request, matchId, host);
     const dragged = before.find((c) => eligible.includes(c));
     expect(dragged, 'the hand holds a card this lay-off accepts').toBeTruthy();
 
@@ -185,7 +185,7 @@ test.describe('playing a card by tapping instead of dragging', () => {
     // through a different offer entirely — that is correct, not a bug, and a
     // meld picked without checking for it is not a fair "should stay dark"
     // example.
-    const fullBoard = await board(request, matchId, host.userId);
+    const fullBoard = await board(request, matchId, host);
     const liveMeldIds = new Set(
       (fullBoard.legalActions ?? [])
         .filter((o: any) => o.enabled && o.target?.meldId && (o.source?.minCards ?? 0) > 0)
@@ -204,12 +204,12 @@ test.describe('playing a card by tapping instead of dragging', () => {
     await page.getByTestId(`group-press-${meldId}`).click();
 
     await expect
-      .poll(async () => (await meldGroups(request, matchId, host.userId))[meldId]?.length ?? 0, {
+      .poll(async () => (await meldGroups(request, matchId, host))[meldId]?.length ?? 0, {
         timeout: 10_000,
       })
       .toBe((meldsBefore[meldId]?.length ?? 0) + 1);
 
-    const after = await meldGroups(request, matchId, host.userId);
+    const after = await meldGroups(request, matchId, host);
     expect(after[meldId]).toContain(dragged);
     // Every other meld on the table is untouched.
     for (const [id, cards] of Object.entries(meldsBefore)) {
@@ -217,7 +217,7 @@ test.describe('playing a card by tapping instead of dragging', () => {
       expect(after[id]).toEqual(cards);
     }
 
-    const handAfter = await serverHand(request, matchId, host.userId);
+    const handAfter = await serverHand(request, matchId, host);
     expect(handAfter.sort()).toEqual(withoutOne(before, dragged).sort());
   });
 
@@ -237,7 +237,7 @@ test.describe('playing a card by tapping instead of dragging', () => {
     // list the screen reads rather than named here, so this says "exactly the
     // piles the server offered" and not "the two Žolíky happens to have" —
     // and says nothing at all on a turn that is not the host's.
-    const body = await board(request, matchId, host.userId);
+    const body = await board(request, matchId, host);
     const expected = (body.legalActions ?? [])
       .filter(
         (o: any) =>
@@ -268,29 +268,29 @@ test.describe('playing a card by tapping instead of dragging', () => {
 
     // Wait for a turn of the host's own — a bot may be dealt the first one.
     await expect
-      .poll(async () => !!(await offerFor(request, matchId, host.userId, 'draw')).offer, {
+      .poll(async () => !!(await offerFor(request, matchId, host, 'draw')).offer, {
         timeout: 60_000,
       })
       .toBe(true);
 
-    const before = await serverHand(request, matchId, host.userId);
+    const before = await serverHand(request, matchId, host);
 
     // The deck is the control. Nothing is selected and nothing is dragged:
     // the whole gesture is a tap on the pile the card comes off.
     await page.getByTestId('zone-press-draw').click();
     await expect
-      .poll(async () => (await serverHand(request, matchId, host.userId)).length, { timeout: 15_000 })
+      .poll(async () => (await serverHand(request, matchId, host)).length, { timeout: 15_000 })
       .toBe(before.length + 1);
 
     // The card that just arrived is already picked, so the pile that was a
     // place to take *from* a moment ago is now a place to put one — the same
     // tap, one phase apart, which is the reason a press means whichever of
     // the two the selection says it means.
-    const drawn = await serverHand(request, matchId, host.userId);
+    const drawn = await serverHand(request, matchId, host);
     await expect(page.getByTestId('zone-press-discard')).toBeVisible();
     await page.getByTestId('zone-press-discard').click();
     await expect
-      .poll(async () => (await serverHand(request, matchId, host.userId)).length, { timeout: 15_000 })
+      .poll(async () => (await serverHand(request, matchId, host)).length, { timeout: 15_000 })
       .toBe(drawn.length - 1);
   });
 
@@ -310,10 +310,10 @@ test.describe('playing a card by tapping instead of dragging', () => {
 
     await expect(page.locator('[data-testid="zone-press-draw"]')).toHaveCount(0);
 
-    const before = await serverHand(request, matchId, host.userId);
+    const before = await serverHand(request, matchId, host);
     await page.getByTestId('zone-draw').click({ force: true });
     await page.waitForTimeout(500);
-    const after = await serverHand(request, matchId, host.userId);
+    const after = await serverHand(request, matchId, host);
     expect(after).toEqual(before);
   });
 });

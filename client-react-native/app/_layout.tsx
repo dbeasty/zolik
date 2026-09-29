@@ -140,6 +140,8 @@ export default function RootLayout() {
                       same reason join/[code] has one: it is written down
                       outside the app. */}
                   <Stack.Screen name="add/[code]" options={{ title: t('circle.addFriend.title') }} />
+                  {/* A guest link: a guest's identity, carried to another device. */}
+                  <Stack.Screen name="guest/[key]" options={{ title: t('guestLink.title') }} />
                 </Stack>
                 <InviteBanner />
               </InviteProvider>

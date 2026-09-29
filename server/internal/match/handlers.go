@@ -64,7 +64,9 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	// client renders its whole game-picker and new-match form from this.
 	r.Get("/modules", h.listModules)
 	r.Get("/modules/{id}/rules", h.moduleRules)
-	r.Get("/matches/{id}", h.getMatch)
+	// Optional auth: the token decides whose hand the answer shows, and
+	// without one it is the spectator view.
+	r.With(auth.OptionalAuthMiddleware).Get("/matches/{id}", h.getMatch)
 	r.With(auth.AuthMiddleware).Post("/matches", h.createMatch)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/join", h.joinMatch)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/start", h.startMatch)
@@ -577,16 +579,21 @@ func (h *Handlers) resumeMatch(w http.ResponseWriter, req *http.Request) {
 // getMatch returns a viewer's state over plain HTTP.
 //
 // The socket is the live path, but a plain GET makes the runtime testable and
-// debuggable without opening one — and, unauthenticated, it deliberately
-// returns the *spectator* view, which is the same projection with nobody's
-// hand in it.
+// debuggable without opening one. The viewer is whoever the bearer token says
+// the caller is, and nobody else: this route once took ?as=<playerId>, which
+// handed anyone who could read a players[] list that player's hand and legal
+// actions. Unauthenticated, it returns the *spectator* view — the same
+// projection with nobody's hand in it. A stray ?as= is ignored, not honoured.
 func (h *Handlers) getMatch(w http.ResponseWriter, req *http.Request) {
 	m, err := h.manager.Current(req.Context(), chi.URLParam(req, "id"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	viewer := req.URL.Query().Get("as")
+	viewer := ""
+	if uc, ok := auth.GetUserContext(req); ok {
+		viewer = uc.UserID
+	}
 	writeJSON(w, h.manager.BuildStateMsg(m, viewer))
 }
 
@@ -705,10 +712,9 @@ func (h *Handlers) myTables(w http.ResponseWriter, req *http.Request) {
 // boards, and nothing on this server compresses a response. Paging costs one
 // extra fold per page and buys a first frame that arrives immediately.
 //
-// The viewer is always the caller's own seat. There is deliberately no
-// ?as=<somebody else> here, unlike getMatch: that route is unauthenticated and
-// spectator-ish by intent, whereas this one would hand a seated player every
-// board their opponent ever held.
+// The viewer is always the caller's own seat, the same rule getMatch follows.
+// There is deliberately no ?as=<somebody else>: here it would hand a seated
+// player every board their opponent ever held.
 func (h *Handlers) replayMatch(w http.ResponseWriter, req *http.Request) {
 	uc, ok := auth.GetUserContext(req)
 	if !ok {

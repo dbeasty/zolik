@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { handCards } from '../helpers/drag';
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 
 /**
  * How the board is laid out, which the shell decides from a zone's *kind* and
@@ -59,8 +59,8 @@ async function openMatch(page: Page, host: any, matchId: string) {
 }
 
 /** How many cards the server says a zone holds, and how many it sent. */
-async function zoneCards(request: Ctx, matchId: string, userId: string, zoneId: string) {
-  const res = await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`);
+async function zoneCards(request: Ctx, matchId: string, viewer: Viewer, zoneId: string) {
+  const res = await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer));
   expect(res.ok(), await res.text()).toBeTruthy();
   const body = await res.json();
   const zone = (body.view?.zones ?? []).find((z: any) => z.id === zoneId);
@@ -110,7 +110,7 @@ test.describe('the shape of the board', () => {
     const deadline = Date.now() + 40_000;
     let sent = 0;
     while (Date.now() < deadline) {
-      ({ sent } = await zoneCards(request, matchId, host.userId, 'discard'));
+      ({ sent } = await zoneCards(request, matchId, host, 'discard'));
       if (sent > 1) break;
       const live = page.locator('[data-testid^="offer-"]:not([aria-disabled="true"])').first();
       if (await live.count()) {
@@ -145,7 +145,7 @@ test.describe('the shape of the board', () => {
     await openMatch(page, host, matchId);
     await handCards(page);
 
-    const { sent } = await zoneCards(request, matchId, host.userId, 'discard');
+    const { sent } = await zoneCards(request, matchId, host, 'discard');
     expect(sent).toBeLessThanOrEqual(1);
     await expect(page.getByTestId('zone-toggle-discard')).toHaveCount(0);
   });
@@ -167,7 +167,7 @@ test.describe('the shape of the board', () => {
     const deadline = Date.now() + 40_000;
     let sent = 0;
     while (Date.now() < deadline) {
-      ({ sent } = await zoneCards(request, matchId, host.userId, 'discard'));
+      ({ sent } = await zoneCards(request, matchId, host, 'discard'));
       if (sent > 1) break;
       const live = page.locator('[data-testid^="offer-"]:not([aria-disabled="true"])').first();
       if (await live.count()) {

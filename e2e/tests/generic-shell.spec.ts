@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer } from '../helpers/env';
 import { openGameSetup } from '../helpers/lobby';
 
 /**
@@ -213,13 +213,13 @@ test.describe('one shell, every game', () => {
       // And it plays. Counting clicks would prove nothing — a click on a dead
       // control counts just as well — so the check is that the *server's* view
       // of the match moved, read back through a separate HTTP request.
-      const before = await request.get(`${API_BASE}/matches/${matchId}?as=${host.userId}`);
+      const before = await request.get(`${API_BASE}/matches/${matchId}`, asViewer(host));
       const beforeBoard = JSON.stringify((await before.json()).view);
 
       const moves = await playAFewMoves(page, 12);
       expect(moves, 'the shell should have been able to press something').toBeGreaterThan(0);
 
-      const after = await request.get(`${API_BASE}/matches/${matchId}?as=${host.userId}`);
+      const after = await request.get(`${API_BASE}/matches/${matchId}`, asViewer(host));
       const afterJson = await after.json();
       expect(
         JSON.stringify(afterJson.view) !== beforeBoard || afterJson.status !== 'active',
@@ -264,7 +264,7 @@ test.describe('one shell, every game', () => {
       if ((await playAFewMoves(page, 1)) === 0) break;
     }
 
-    const state = await (await request.get(`${API_BASE}/matches/${matchId}?as=${host.userId}`)).json();
+    const state = await (await request.get(`${API_BASE}/matches/${matchId}`, asViewer(host))).json();
     expect(state.status, 'the shortest table this game offers should have ended').toBe('completed');
 
     // Said, rather than left to be inferred from a control that stopped
