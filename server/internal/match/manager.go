@@ -79,6 +79,9 @@ type Manager struct {
 	// in. Both optional — see SetLobbyObserver and SetPersonalRoom.
 	lobbyObserver LobbyObserver
 	personalRoom  string
+	// rematchObserver hears who a rematch is holding seats for, so they can
+	// be told wherever they are. Optional — see SetRematchObserver.
+	rematchObserver RematchObserver
 }
 
 // LobbyObserver is told when a lobby stops being one somebody could join: it

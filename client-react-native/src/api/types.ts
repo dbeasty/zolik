@@ -288,6 +288,9 @@ export type TableInvite = {
   variation?: string;
   host: { key: string; name: string; avatar?: string };
   sentAt: string;
+  /** The finished table this one plays again, when it is a rematch holding a
+   *  seat for the reader rather than a table anybody may join. */
+  rematchOf?: string;
 };
 
 /** Everything the personal socket, /ws/me, can say. */

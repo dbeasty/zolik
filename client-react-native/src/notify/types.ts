@@ -51,6 +51,8 @@ export type Invite = {
   moduleId?: string;
   moduleLabel?: string;
   variation?: string;
+  /** Online rematches only: the finished table it plays again. */
+  rematchOf?: string;
   target: InviteTarget;
   /** When it first arrived, in ms. Later sightings leave this alone. */
   receivedAt: number;

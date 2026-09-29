@@ -502,6 +502,18 @@ export class ZolikClient {
     return this.post(`/matches/${encodeURIComponent(idOrCode)}/rematch`, null, true);
   }
 
+  /**
+   * The host not waiting for somebody a rematch is holding a seat for. With
+   * `bot`, a bot at the table's own skill sits where they would have sat.
+   */
+  async releaseHeldSeat(rematchId: string, playerId: string, bot: boolean): Promise<void> {
+    await this.post(
+      `/matches/${encodeURIComponent(rematchId)}/rematch/release`,
+      { playerId, bot },
+      true,
+    );
+  }
+
   /** Give back the seat a rematch was holding for this player. */
   async declineRematch(rematchId: string): Promise<void> {
     await this.post(`/matches/${encodeURIComponent(rematchId)}/rematch/decline`, null, true);

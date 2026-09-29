@@ -120,6 +120,16 @@ type Reservation struct {
 	PlayerID string `bson:"playerId" json:"playerId"`
 	Name     string `bson:"name" json:"name"`
 	Avatar   string `bson:"avatar,omitempty" json:"avatar,omitempty"`
+	// UserID and GuestID are who holds it, as on Player, so the person can
+	// be reached before they have sat down — and told when it is let go.
+	UserID  string `bson:"userId,omitempty" json:"-"`
+	GuestID string `bson:"guestId,omitempty" json:"-"`
+}
+
+// Player is the seat this reservation is for, as far as it is known before
+// its holder sits down.
+func (r Reservation) Player() Player {
+	return Player{ID: r.PlayerID, Name: r.Name, Avatar: r.Avatar, UserID: r.UserID, GuestID: r.GuestID}
 }
 
 // MatchAction is one accepted move, stored verbatim and never rewritten.

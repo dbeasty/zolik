@@ -622,6 +622,7 @@ func (a *App) configureManager(matchMgr *match.Manager) *match.Manager {
 	// waiting room reaches the player's own socket too.
 	if a.notify != nil {
 		matchMgr.SetLobbyObserver(a.notify)
+		matchMgr.SetRematchObserver(a.notify)
 		a.notify.SetGameLabel(func(id string) string {
 			if mod := matchMgr.Registry().Get(id); mod != nil {
 				return mod.Descriptor().Label
