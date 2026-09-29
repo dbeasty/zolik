@@ -603,6 +603,55 @@ func TestEveryModuleNamesItsWinners(t *testing.T) {
 	}
 }
 
+// TestAnArrangedZoneNamesItsSeats — a zone laid out around the table puts
+// each card in front of the seat its By names, so a card with no By, or one
+// naming somebody not at the table, is a card the client has nowhere to put.
+// Checked on every position a played-out match passes through, since tricks
+// only exist once play has begun.
+func TestAnArrangedZoneNamesItsSeats(t *testing.T) {
+	for _, g := range allModules() {
+		t.Run(g.name, func(t *testing.T) {
+			state, err := g.mod.NewMatch(g.cfg, g.players, 9)
+			if err != nil {
+				t.Fatalf("NewMatch: %v", err)
+			}
+			seated := map[string]bool{}
+			for _, p := range g.players {
+				seated[p.ID] = true
+			}
+			check := func(s module.State) {
+				for _, viewer := range g.players {
+					vm, err := g.mod.View(s, viewer.ID)
+					if err != nil {
+						t.Fatalf("View: %v", err)
+					}
+					for _, z := range vm.Zones {
+						switch z.Arrange {
+						case "":
+							continue
+						case module.ArrangeBySeat:
+						default:
+							t.Fatalf("zone %q asks for arrangement %q, which no client knows", z.ID, z.Arrange)
+						}
+						for _, c := range z.Cards {
+							if !seated[c.By] {
+								t.Fatalf("zone %q is arranged by seat but card %s names %q", z.ID, c.Card, c.By)
+							}
+						}
+					}
+				}
+			}
+			check(state)
+			_, _, err = module.PlayWithOffers(g.mod, state, g.players, module.DriverOptions{
+				MaxActions: 300, Prefer: g.prefer, OnState: check,
+			})
+			if err != nil {
+				t.Fatalf("%v", err)
+			}
+		})
+	}
+}
+
 // TestEveryModuleStateSurvivesARoundTrip — the runtime persists State as bytes
 // and hands it back later, so a module whose state does not survive JSON is one
 // that works in memory and breaks in Mongo.

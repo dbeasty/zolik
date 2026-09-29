@@ -162,6 +162,14 @@ type CardView struct {
 	// value is already public or already spent — Žolíky's face-down closing
 	// discard lands after the deal it ended has been scored.
 	FaceDown bool `json:"faceDown,omitempty"`
+	// By is the seat (player id) that put this card where it is — in a
+	// trick, who played it. Set only where that is public, which in a trick
+	// it always is: everyone at the table watched the card go down.
+	//
+	// It is what lets a zone arranged ArrangeBySeat put each card in front
+	// of the player it came from. A client that ignores it still shows the
+	// cards; it only loses which is whose.
+	By string `json:"by,omitempty"`
 }
 
 // Group is a run of cards within a zone that belong together — a meld, a
@@ -221,7 +229,21 @@ type Zone struct {
 	// the table without matching on the id "board", which would be the shell
 	// knowing a game's name.
 	Shared bool `json:"shared,omitempty"`
+	// Arrange asks for the zone's cards to be laid out in a particular
+	// shape. The one shape so far is ArrangeBySeat: each card toward the seat
+	// named by its CardView.By, as a trick lies on a real table — the
+	// viewer's card nearest them, the others at the seats they came from.
+	//
+	// Presentational, exactly as Dealer and Shared are: a client that ignores
+	// it draws the zone by its Kind and loses only the placement. It names a
+	// shape, not a game, so every trick-taking game draws its tricks the same
+	// way without the shell learning any of their names.
+	Arrange string `json:"arrange,omitempty"`
 }
+
+// ArrangeBySeat lays a zone's cards out around the table, each toward the
+// seat in its CardView.By. See Zone.Arrange.
+const ArrangeBySeat = "bySeat"
 
 // Fact is a labelled value for a header or scoreboard — pre-resolved by the
 // module, rendered by the client, interpreted by neither.

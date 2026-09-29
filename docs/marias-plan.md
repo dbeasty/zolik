@@ -281,7 +281,10 @@ test follows `holdem/bot.go:34-36` and `ai/nopeek_test.go`. The sampler and solv
    `server/internal/marias`, signed off 2026-09-29.*
 1. **`internal/tricks`**, with tests. No client change. *Done on `claude/marias-tricks`.*
 2. **Trick area:** `CardView.By` and `Zone.Arrange`, plus the React Native compass and the TUI
-   row. Proven first with a throwaway test module in `allmodules_test`.
+   row. *Done on `claude/marias-tricks`: `SeatArrangedZone` and `lib/seatArrangement.ts` (named
+   for the shape, since the shell may not use a game's words), a flight that lands on the
+   player's own spot, and a contract test in `allmodules_test`. It was checked in the browser at
+   3, 4-5 seats and phone width using a temporary, uncommitted Prší patch.*
 3. **`marias` Volený**, with the rule-of-thumb bot and English and Czech wording. The other 22
    locales are filled in the same PR, because the key test requires it.
 4. **Licitovaný:** the association's auction game, pinned first like step 0.

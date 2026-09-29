@@ -36,6 +36,8 @@ const SHELL_FILES = [
   'src/hooks/useArrival.ts',
   'src/lib/flights.ts',
   'src/components/match/FlightLayer.tsx',
+  'src/lib/seatArrangement.ts',
+  'src/components/match/SeatArrangedZone.tsx',
 ];
 
 // Nouns and verbs that belong to one game. If any of these appears in the

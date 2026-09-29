@@ -449,6 +449,10 @@ func (m matchModel) zoneLine(z api.Zone) string {
 			b.WriteString("  " + strings.Join(g.Cards, " ") + badges + "\n")
 		}
 		return b.String()
+	case z.Arrange == "bySeat" && len(z.Cards) > 0:
+		// A trick: the question is whose card is whose, so each card is
+		// named by its player rather than listed in a row.
+		return fmt.Sprintf("%s %s\n", mutedStyle.Render(name+":"), trickCards(z.Cards, m.state.Players, m.root.session.UserID))
 	case len(z.Cards) > 0:
 		var cards []string
 		for _, c := range z.Cards {
@@ -459,6 +463,24 @@ func (m matchModel) zoneLine(z api.Zone) string {
 		// A count and no cards is somebody else's hand, or a face-down pile.
 		return fmt.Sprintf("%s %d\n", mutedStyle.Render(name+":"), z.Count)
 	}
+}
+
+// trickCards names each card in a trick by the player who played it, in play
+// order: "Anna KH  Petr AH  you 7H".
+func trickCards(cards []api.CardView, players []api.Player, me string) string {
+	parts := make([]string, 0, len(cards))
+	for _, c := range cards {
+		who := api.PlayerName(players, c.By)
+		switch {
+		case c.By == "":
+			parts = append(parts, c.Card)
+			continue
+		case c.By == me:
+			who = "you"
+		}
+		parts = append(parts, who+" "+c.Card)
+	}
+	return strings.Join(parts, "  ")
 }
 
 func (m matchModel) offerList() string {

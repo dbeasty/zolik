@@ -21,6 +21,8 @@ type Fact struct {
 
 type CardView struct {
 	Card string `json:"card"`
+	// By is who put the card here — in a trick, who played it.
+	By string `json:"by,omitempty"`
 }
 
 // Group is cards within a zone that belong together.
@@ -40,6 +42,9 @@ type Zone struct {
 	Cards    []CardView `json:"cards,omitempty"`
 	Count    int        `json:"count"`
 	Groups   []Group    `json:"groups,omitempty"`
+	// Arrange is a layout the module asked for; "bySeat" means each card
+	// belongs to the player its By names.
+	Arrange string `json:"arrange,omitempty"`
 }
 
 // Seat is one player as the board shows them: whose turn, and their numbers.
