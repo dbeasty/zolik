@@ -100,6 +100,7 @@ func scoreDeal(s *GameState, wentOut string, concealed bool, exhausted bool) Dea
 			Canastas:  canastaScore(r, t),
 			RedThrees: redThreeScore(r, t),
 		}
+		tallyTable(r, t, &tr)
 		if t.ID == outTeam {
 			tr.GoingOut = r.GoingOutBonus
 			// A variation with no concealed bonus — Samba — pays the ordinary
@@ -111,7 +112,9 @@ func scoreDeal(s *GameState, wentOut string, concealed bool, exhausted bool) Dea
 		// Everything still in either partner's hand counts against them —
 		// including the hand of the partner of whoever went out.
 		for _, p := range t.Players {
-			tr.InHand += handValue(s.Hands[p])
+			h := tallyHand(p, s.Hands[p])
+			tr.InHand += h.Points
+			tr.Hands = append(tr.Hands, h)
 		}
 		tr.Total = tr.MeldCards + tr.Canastas + tr.RedThrees + tr.GoingOut - tr.InHand
 		t.Score += tr.Total
@@ -144,4 +147,60 @@ func matchWinner(s *GameState) int {
 		return -1
 	}
 	return bestID
+}
+
+// canastaKind is the bonus a meld earns, named: "natural", "mixed", "samba", or
+// empty for a meld that is not a canasta. The same three cases canastaScore
+// adds up, so the tally and the sum cannot disagree about which is which.
+func canastaKind(m Meld) string {
+	switch {
+	case !m.isCanasta():
+		return ""
+	case m.kind() == meldRun:
+		return "samba"
+	case m.isNatural():
+		return "natural"
+	default:
+		return "mixed"
+	}
+}
+
+// tallyTable records how a side's table was scored: each meld, and the
+// canastas and red threes behind their sums.
+func tallyTable(r ruleset, t *Team, tr *TeamResult) {
+	for _, m := range t.Melds {
+		kind := canastaKind(m)
+		tr.Melds = append(tr.Melds, MeldTally{
+			Kind: m.kind(), Rank: m.Rank, Suit: m.Suit,
+			Cards: len(m.Cards), Wilds: m.wilds(), Points: handValue(m.Cards), Canasta: kind,
+		})
+		switch kind {
+		case "natural":
+			tr.Naturals++
+		case "mixed":
+			tr.Mixed++
+		case "samba":
+			tr.Sambas++
+		}
+	}
+	if n := len(t.RedThrees); n > 0 {
+		tr.RedThreeCount = n
+		tr.RedThreesAll = n >= r.redThrees()
+		tr.RedThreeShort = t.canastas() < r.RedThreesNeed
+	}
+}
+
+// tallyHand prices one leftover hand by the categories a player disputes.
+func tallyHand(pid string, hand []string) HandTally {
+	h := HandTally{PlayerID: pid, Cards: len(hand), Points: handValue(hand)}
+	for _, c := range hand {
+		switch {
+		case isBlackThree(c):
+			h.BlackThrees++
+		case isWild(c):
+			h.Wilds++
+			h.WildPoints += cardValue(c)
+		}
+	}
+	return h
 }

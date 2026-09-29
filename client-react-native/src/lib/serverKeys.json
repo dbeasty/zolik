@@ -224,6 +224,25 @@
     "blackjack.zone.dealer",
     "blackjack.zone.shoe",
     "blackjack.zone.yourBox",
+    "canasta.line.canastas",
+    "canasta.line.goingOut",
+    "canasta.line.goingOutConcealed",
+    "canasta.line.hand",
+    "canasta.line.handBlackThrees",
+    "canasta.line.handOther",
+    "canasta.line.handWilds",
+    "canasta.line.inHand",
+    "canasta.line.meldCards",
+    "canasta.line.meldRun",
+    "canasta.line.meldSet",
+    "canasta.line.meldSetWild",
+    "canasta.line.mixed",
+    "canasta.line.natural",
+    "canasta.line.redThrees",
+    "canasta.line.redThreesAll",
+    "canasta.line.redThreesShort",
+    "canasta.line.redThreesSum",
+    "canasta.line.samba",
     "canasta.offer.rank",
     "canasta.offer.sequence",
     "canasta.remedy.blackThreesOnTheWayOut",
@@ -244,10 +263,15 @@
     "canasta.remedy.takePileInstead",
     "canasta.remedy.topCardUnusable",
     "canasta.remedy.undoMeldsFirst",
+    "canasta.round.canastas",
     "canasta.round.closed",
     "canasta.round.concealed",
     "canasta.round.deal",
     "canasta.round.exhausted",
+    "canasta.round.goingOut",
+    "canasta.round.inHand",
+    "canasta.round.meldCards",
+    "canasta.round.redThrees",
     "canasta.rules.blackThreesGoOut",
     "canasta.rules.blackThreesNeverMeld",
     "canasta.rules.canasta",
@@ -972,6 +996,63 @@
       "n",
       "value"
     ],
+    "canasta.line.goingOut": [
+      "player"
+    ],
+    "canasta.line.goingOutConcealed": [
+      "player"
+    ],
+    "canasta.line.hand": [
+      "n",
+      "player"
+    ],
+    "canasta.line.handBlackThrees": [
+      "each",
+      "n"
+    ],
+    "canasta.line.handOther": [
+      "n"
+    ],
+    "canasta.line.handWilds": [
+      "n"
+    ],
+    "canasta.line.meldRun": [
+      "n",
+      "suit"
+    ],
+    "canasta.line.meldSet": [
+      "n",
+      "rank"
+    ],
+    "canasta.line.meldSetWild": [
+      "naturals",
+      "rank",
+      "wilds"
+    ],
+    "canasta.line.mixed": [
+      "each",
+      "n"
+    ],
+    "canasta.line.natural": [
+      "each",
+      "n"
+    ],
+    "canasta.line.redThrees": [
+      "each",
+      "n"
+    ],
+    "canasta.line.redThreesAll": [
+      "n"
+    ],
+    "canasta.line.redThreesShort": [
+      "made",
+      "n",
+      "need"
+    ],
+    "canasta.line.samba": [
+      "each",
+      "n"
+    ],
     "canasta.offer.rank": [
       "value"
     ],
@@ -1004,9 +1085,24 @@
     "canasta.remedy.topCardUnusable": [
       "card"
     ],
+    "canasta.round.canastas": [
+      "n"
+    ],
     "canasta.round.closed": [
       "diff",
       "player"
+    ],
+    "canasta.round.goingOut": [
+      "n"
+    ],
+    "canasta.round.inHand": [
+      "n"
+    ],
+    "canasta.round.meldCards": [
+      "n"
+    ],
+    "canasta.round.redThrees": [
+      "n"
     ],
     "canasta.rules.blackThreesGoOut": [
       "n"
@@ -1507,6 +1603,21 @@
     "blackjack.seat.total",
     "blackjack.status.dealerBust",
     "blackjack.status.dealerStands",
+    "canasta.line.goingOut",
+    "canasta.line.goingOutConcealed",
+    "canasta.line.hand",
+    "canasta.line.handBlackThrees",
+    "canasta.line.handOther",
+    "canasta.line.handWilds",
+    "canasta.line.meldRun",
+    "canasta.line.meldSet",
+    "canasta.line.meldSetWild",
+    "canasta.line.mixed",
+    "canasta.line.natural",
+    "canasta.line.redThrees",
+    "canasta.line.redThreesAll",
+    "canasta.line.redThreesShort",
+    "canasta.line.samba",
     "canasta.offer.rank",
     "canasta.offer.sequence",
     "canasta.remedy.captureFromHand",
@@ -1516,7 +1627,12 @@
     "canasta.remedy.needTwoMatching",
     "canasta.remedy.pileFrozen",
     "canasta.remedy.topCardUnusable",
+    "canasta.round.canastas",
     "canasta.round.closed",
+    "canasta.round.goingOut",
+    "canasta.round.inHand",
+    "canasta.round.meldCards",
+    "canasta.round.redThrees",
     "canasta.rules.blackThreesGoOut",
     "canasta.rules.blackThreesNeverMeld",
     "canasta.rules.canasta",
