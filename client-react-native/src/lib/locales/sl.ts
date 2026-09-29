@@ -1536,4 +1536,9 @@ export const sl: Record<string, string> = {
   'circle.addFriend.confirm': 'Dodaj igralca {name}',
   'circle.addFriend.done': 'Vi in {name} ste zdaj drug drugemu v krogu.',
   'circle.addFriend.toCircle': 'Odpri igralni krog',
+  'offer.pickAtLeast': 'Izberi {n}+ kart',
+  'why.pickAtLeast': 'Najprej izberi vsaj {n} karte iz roke, nato pritisni znova.',
+  'why.unavailable': 'Ta poteza trenutno ni mogoča.',
+  'why.notYourTurnWho': 'Na potezi je {name} — počakaj, da konča.',
+  'match.waitingForName': 'Čakamo na {name}…',
 };

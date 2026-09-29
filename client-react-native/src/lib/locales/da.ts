@@ -1540,4 +1540,9 @@ export const da: Record<string, string> = {
   'circle.addFriend.confirm': 'Tilføj {name}',
   'circle.addFriend.done': 'Du og {name} er nu i hinandens kreds.',
   'circle.addFriend.toCircle': 'Åbn spillekreds',
+  'offer.pickAtLeast': 'Vælg {n}+ kort',
+  'why.pickAtLeast': 'Vælg først mindst {n} kort fra din hånd, og tryk så igen.',
+  'why.unavailable': 'Dette træk er ikke muligt lige nu.',
+  'why.notYourTurnWho': 'Det er {name}s tur — vent, til de er færdige.',
+  'match.waitingForName': 'Venter på {name}…',
 };

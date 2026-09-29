@@ -1559,4 +1559,9 @@ export const hu: Record<string, string> = {
   'circle.addFriend.confirm': '{name} hozzáadása',
   'circle.addFriend.done': 'Te és {name} mostantól egymás körében vagytok.',
   'circle.addFriend.toCircle': 'Játékkör megnyitása',
+  'offer.pickAtLeast': 'Válassz {n}+ lapot',
+  'why.pickAtLeast': 'Előbb válassz ki legalább {n} lapot a kezedből, aztán nyomd meg újra.',
+  'why.unavailable': 'Ez a lépés most nem lehetséges.',
+  'why.notYourTurnWho': '{name} következik — várd meg, amíg befejezi.',
+  'match.waitingForName': 'Várakozás erre: {name}…',
 };

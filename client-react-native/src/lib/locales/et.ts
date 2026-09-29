@@ -1546,4 +1546,9 @@ export const et: Record<string, string> = {
   'circle.addFriend.confirm': 'Lisa {name}',
   'circle.addFriend.done': 'Sina ja {name} olete nüüd teineteise ringis.',
   'circle.addFriend.toCircle': 'Ava mänguring',
+  'offer.pickAtLeast': 'Vali {n}+ kaarti',
+  'why.pickAtLeast': 'Vali esmalt käest vähemalt {n} kaarti ja vajuta siis uuesti.',
+  'why.unavailable': 'See käik pole praegu võimalik.',
+  'why.notYourTurnWho': 'Käik on mängijal {name} — oota, kuni ta lõpetab.',
+  'match.waitingForName': 'Ootame mängijat {name}…',
 };

@@ -1,4 +1,4 @@
-import { type Dispatch, type SetStateAction, useEffect, useMemo, useRef, useState } from 'react';
+import { type Dispatch, type ReactNode, type SetStateAction, useEffect, useMemo, useRef, useState } from 'react';
 import {
   type GestureResponderEvent,
   PanResponder,
@@ -228,14 +228,19 @@ export function OfferBar({
         // for "not your turn" rather than as broken.
         const unready = offer.enabled && !ready && !offer.composite ? unreadyReason(offer, selectedCards) : undefined;
         const headline = offerHeadline(offer, params[offer.id]);
+        const live = offer.enabled && ready;
+        const explain = onExplain
+          ? () => onExplain(refusalFor(offer, selectedCards, params[offer.id]))
+          : undefined;
         return (
           <View key={offer.id} style={styles.slot}>
+            <ExplainOnPress testID={`explain-${offer.id}`} onExplain={explain}>
             <Pressable
               testID={`offer-${offer.id}`}
-              accessibilityState={{ disabled: !offer.enabled || !ready }}
-              disabled={!offer.enabled || !ready}
+              accessibilityState={{ disabled: !live }}
+              disabled={!live}
               onPress={() => send(offer)}
-              style={[styles.button, (!offer.enabled || !ready) && styles.ghost]}
+              style={[styles.button, !live && styles.ghost]}
             >
               {/* A ring in the air around the one thing the table is waiting
                   for. Drawn inside the control so it needs no wrapper, and on
@@ -251,7 +256,7 @@ export function OfferBar({
                   offers. */}
               <Text
                 testID={`offer-${offer.id}-title`}
-                style={[styles.buttonText, (!offer.enabled || !ready) && styles.ghostText]}
+                style={[styles.buttonText, !live && styles.ghostText]}
               >
                 {headline
                   ? `${label(headline.labelKey)} ${headline.value}`
@@ -262,12 +267,13 @@ export function OfferBar({
               {(offer.facts ?? []).map((f, i) => (
                 <Text
                   key={i}
-                  style={[styles.buttonFact, (!offer.enabled || !ready) && styles.ghostText]}
+                  style={[styles.buttonFact, !live && styles.ghostText]}
                 >
                   {factText(f)}
                 </Text>
               ))}
             </Pressable>
+            </ExplainOnPress>
 
             {/* The reason stays inline and always visible; pressing it opens
                 the rule behind it. A refusal a player has to tap to see at
@@ -278,23 +284,14 @@ export function OfferBar({
                 testID={`why-${offer.id}`}
                 text={reasonText(offer.whyNot, offer.whyNot)}
                 styles={styles}
-                onPress={
-                  onExplain
-                    ? () =>
-                        onExplain({
-                          code: offer.whyNot,
-                          ruleIds: offer.ruleIds,
-                          remedy: offer.remedy,
-                          remedyOfferId: offer.remedyOfferId,
-                        })
-                    : undefined
-                }
+                onPress={explain}
               />
             ) : unready ? (
               <ReasonLine
                 testID={`why-${offer.id}`}
                 text={label(unready.labelKey, unready.params)}
                 styles={styles}
+                onPress={explain}
               />
             ) : null}
 
@@ -348,6 +345,7 @@ export function OfferGlance({
   onSend,
   onConsumeSelection,
   onAmbiguous,
+  onExplain,
   max = 4,
   testID = 'offer-glance',
   ...shared
@@ -358,6 +356,8 @@ export function OfferGlance({
   onSend?: (action: MatchAction) => void;
   onConsumeSelection?: () => void;
   onAmbiguous?: (groupKey: string) => void;
+  /** A pill not ready for a bare tap was pressed anyway; see `OfferBar`. */
+  onExplain?: (refusal: Refusal) => void;
   max?: number;
   testID?: string;
 }) {
@@ -428,8 +428,12 @@ export function OfferGlance({
         // shared value — so the pill says what it sends.
         const headline = offerHeadline(o, params[o.id]);
         return (
-          <Pressable
+          <ExplainOnPress
             key={o.id}
+            testID={`explain-glance-${o.id}`}
+            onExplain={onExplain ? () => onExplain(refusalFor(o, selectedCards, params[o.id])) : undefined}
+          >
+          <Pressable
             testID={`offer-glance-${o.id}`}
             accessibilityRole="button"
             accessibilityState={{ disabled: !ready }}
@@ -447,6 +451,7 @@ export function OfferGlance({
                 : label(o.labelKey ?? `verb.${o.verb}`) || o.verb}
             </Text>
           </Pressable>
+          </ExplainOnPress>
         );
       })}
       {rest > 0 ? <Text style={styles.glanceTail}>+{rest}</Text> : null}
@@ -500,6 +505,14 @@ function FoldedOffer({
   // lone offer of the same shape would show.
   const sharedReason = sharedRefusal(group);
 
+  // The member this reason actually came from, so its rules and its remedy
+  // travel with it rather than the first member's, which may have been
+  // refused for something else.
+  const explain = () => {
+    const source = group.find((o) => !o.enabled && o.whyNot === sharedReason) ?? group.find((o) => !o.enabled);
+    if (source) onExplain?.(refusalFor(source, selectedCards, undefined));
+  };
+
   const press = () => {
     if (settled.length === 1) {
       onResolve(settled[0]);
@@ -510,39 +523,26 @@ function FoldedOffer({
 
   return (
     <View style={styles.slot}>
-      <Pressable
-        testID={`offer-group:${groupKey}`}
-        accessibilityState={{ disabled }}
-        disabled={disabled}
-        onPress={press}
-        style={[styles.button, disabled && styles.ghost]}
-      >
-        <Text style={[styles.buttonText, disabled && styles.ghostText]}>
-          {label(first.labelKey ?? `verb.${first.verb}`) || first.verb}
-        </Text>
-      </Pressable>
+      <ExplainOnPress testID={`explain-group:${groupKey}`} onExplain={onExplain ? explain : undefined}>
+        <Pressable
+          testID={`offer-group:${groupKey}`}
+          accessibilityState={{ disabled }}
+          disabled={disabled}
+          onPress={press}
+          style={[styles.button, disabled && styles.ghost]}
+        >
+          <Text style={[styles.buttonText, disabled && styles.ghostText]}>
+            {label(first.labelKey ?? `verb.${first.verb}`) || first.verb}
+          </Text>
+        </Pressable>
+      </ExplainOnPress>
 
       {disabled && sharedReason ? (
         <ReasonLine
           testID={`why-group:${groupKey}`}
           text={reasonText(sharedReason, sharedReason)}
           styles={styles}
-          onPress={
-            onExplain
-              ? () => {
-                  // The member this reason actually came from, so its rules
-                  // and its remedy travel with it rather than the first
-                  // member's, which may have been refused for something else.
-                  const source = group.find((o) => !o.enabled && o.whyNot === sharedReason);
-                  onExplain({
-                    code: sharedReason,
-                    ruleIds: source?.ruleIds,
-                    remedy: source?.remedy,
-                    remedyOfferId: source?.remedyOfferId,
-                  });
-                }
-              : undefined
-          }
+          onPress={onExplain ? explain : undefined}
         />
       ) : null}
 
@@ -917,7 +917,40 @@ function compositeHint(offer: ActionOffer, selected: string[]): string {
     const fit = fits(offer, selected);
     if (!fit.ok) return label(fit.labelKey, fit.params);
   }
-  return `pick ${min}+ cards`;
+  return t('offer.pickAtLeast', { n: min });
+}
+
+/**
+ * Why pressing this control would do nothing right now, for the sheet a press
+ * on it opens. The engine's refusal when it refused the offer — its code, its
+ * rules, its remedy — and otherwise this side's own reason the current
+ * selection or amount will not go, in the same shape. Never empty for a
+ * control that is off: a sheet with nothing in it is the silent press this
+ * replaces.
+ */
+export function refusalFor(
+  offer: ActionOffer,
+  selected: string[],
+  chosen: Record<string, string> | undefined,
+): Refusal {
+  if (!offer.enabled) {
+    return offer.whyNot
+      ? { code: offer.whyNot, ruleIds: offer.ruleIds, remedy: offer.remedy, remedyOfferId: offer.remedyOfferId }
+      : { labelKey: 'why.unavailable' };
+  }
+  if (offer.composite) {
+    const need = offer.source?.minCards ?? 1;
+    if (selected.length > 0) {
+      const fit = fits(offer, selected);
+      if (!fit.ok) return { labelKey: fit.labelKey, params: fit.params };
+    }
+    return { labelKey: 'why.pickAtLeast', params: { n: need } };
+  }
+  const unready = unreadyReason(offer, selected);
+  if (unready) return { labelKey: unready.labelKey, params: unready.params };
+  if (isReady(offer, selected, chosen)) return {};
+  const need = offer.source?.minCards ?? 0;
+  return need > 0 ? { labelKey: 'sel.needMore', params: { n: need } } : { labelKey: 'why.unavailable' };
 }
 
 /**
@@ -1042,6 +1075,32 @@ function offerBarStyles(m: Metrics, s: Skin) {
 }
 
 type OfferBarStyles = ReturnType<typeof offerBarStyles>;
+
+/**
+ * A press on a control that is off, answered with why.
+ *
+ * A disabled `Pressable` swallows the press, which leaves a player pressing it
+ * again and wondering whether the app is broken. The control itself stays
+ * `disabled` — that is what marks it off for assistive tech and for the web's
+ * `aria-disabled` — and this wraps it: a disabled pressable never claims the
+ * touch, so the press falls through to here, and a live one always claims it
+ * first, so this never fires over a working control.
+ */
+function ExplainOnPress({
+  onExplain,
+  testID,
+  children,
+}: {
+  onExplain?: () => void;
+  testID: string;
+  children: ReactNode;
+}) {
+  return (
+    <Pressable testID={testID} onPress={onExplain} tabIndex={-1} accessible={false}>
+      {children}
+    </Pressable>
+  );
+}
 
 /**
  * The reason under a control: always readable at a glance, and pressable when

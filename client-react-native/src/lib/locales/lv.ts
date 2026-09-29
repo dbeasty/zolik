@@ -1542,4 +1542,9 @@ export const lv: Record<string, string> = {
   'circle.addFriend.confirm': 'Pievienot {name}',
   'circle.addFriend.done': 'Tu un {name} tagad esat viens otra lokā.',
   'circle.addFriend.toCircle': 'Atvērt spēļu loku',
+  'offer.pickAtLeast': 'Izvēlies {n}+ kārtis',
+  'why.pickAtLeast': 'Vispirms izvēlies no rokas vismaz {n} kārtis, tad nospied vēlreiz.',
+  'why.unavailable': 'Šis gājiens pašlaik nav pieejams.',
+  'why.notYourTurnWho': 'Tagad gājiens ir {name} — pagaidi, līdz tas beigsies.',
+  'match.waitingForName': 'Gaidām {name}…',
 };

@@ -1574,4 +1574,9 @@ export const el: Record<string, string> = {
   'circle.addFriend.confirm': 'Προσθήκη: {name}',
   'circle.addFriend.done': 'Εσείς και {name} είστε πλέον ο ένας στον κύκλο του άλλου.',
   'circle.addFriend.toCircle': 'Άνοιγμα κύκλου παιχνιδιού',
+  'offer.pickAtLeast': 'Επιλέξτε {n}+ φύλλα',
+  'why.pickAtLeast': 'Επιλέξτε πρώτα τουλάχιστον {n} φύλλα από το χέρι σας και πατήστε ξανά.',
+  'why.unavailable': 'Αυτή η κίνηση δεν είναι διαθέσιμη τώρα.',
+  'why.notYourTurnWho': 'Παίζει ο/η {name} — περιμένετε να τελειώσει.',
+  'match.waitingForName': 'Αναμονή για {name}…',
 };

@@ -1554,4 +1554,9 @@ export const bg: Record<string, string> = {
   'circle.addFriend.confirm': 'Добави {name}',
   'circle.addFriend.done': 'Вие и {name} вече сте в кръга един на друг.',
   'circle.addFriend.toCircle': 'Отвори игралния кръг',
+  'offer.pickAtLeast': 'Изберете {n}+ карти',
+  'why.pickAtLeast': 'Първо изберете поне {n} карти от ръката си, после натиснете отново.',
+  'why.unavailable': 'Този ход не е възможен в момента.',
+  'why.notYourTurnWho': 'На ход е {name} — изчакайте да приключи.',
+  'match.waitingForName': 'Изчакване на {name}…',
 };

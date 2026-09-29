@@ -1576,4 +1576,9 @@ export const ga: Record<string, string> = {
   'circle.addFriend.confirm': 'Cuir {name} leis',
   'circle.addFriend.done': 'Tá tú féin agus {name} anois i gciorcal a chéile.',
   'circle.addFriend.toCircle': 'Oscail an ciorcal cluiche',
+  'offer.pickAtLeast': 'Roghnaigh {n}+ cárta',
+  'why.pickAtLeast': 'Roghnaigh {n} chárta ar a laghad ó do lámh ar dtús, ansin brúigh arís é.',
+  'why.unavailable': 'Níl an beart seo ar fáil anois.',
+  'why.notYourTurnWho': 'Is é seal {name} é — fan go gcríochnóidh siad.',
+  'match.waitingForName': 'Ag fanacht le {name}…',
 };

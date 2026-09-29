@@ -1551,4 +1551,9 @@ export const ro: Record<string, string> = {
   'circle.addFriend.confirm': 'Adaugă-l pe {name}',
   'circle.addFriend.done': 'Tu și {name} sunteți acum fiecare în cercul celuilalt.',
   'circle.addFriend.toCircle': 'Deschide cercul de joc',
+  'offer.pickAtLeast': 'Alege {n}+ cărți',
+  'why.pickAtLeast': 'Mai întâi alege cel puțin {n} cărți din mână, apoi apasă din nou.',
+  'why.unavailable': 'Această mutare nu este disponibilă acum.',
+  'why.notYourTurnWho': 'Este rândul lui {name} — așteaptă să termine.',
+  'match.waitingForName': 'Se așteaptă {name}…',
 };

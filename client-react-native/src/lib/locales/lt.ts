@@ -1544,4 +1544,9 @@ export const lt: Record<string, string> = {
   'circle.addFriend.confirm': 'Pridėti {name}',
   'circle.addFriend.done': 'Jūs ir {name} dabar esate vienas kito rate.',
   'circle.addFriend.toCircle': 'Atidaryti žaidimų ratą',
+  'offer.pickAtLeast': 'Pasirinkite {n}+ kortas',
+  'why.pickAtLeast': 'Pirmiausia pasirinkite bent {n} kortas iš rankos, tada spauskite dar kartą.',
+  'why.unavailable': 'Šis ėjimas dabar negalimas.',
+  'why.notYourTurnWho': 'Dabar eilė {name} — palaukite, kol baigs.',
+  'match.waitingForName': 'Laukiama {name}…',
 };

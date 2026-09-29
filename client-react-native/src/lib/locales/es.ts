@@ -1556,4 +1556,9 @@ export const es: Record<string, string> = {
   'circle.addFriend.confirm': 'Añadir a {name}',
   'circle.addFriend.done': '{name} y tú estáis ahora cada uno en el círculo del otro.',
   'circle.addFriend.toCircle': 'Abrir círculo de juego',
+  'offer.pickAtLeast': 'Elige {n}+ cartas',
+  'why.pickAtLeast': 'Primero selecciona al menos {n} cartas de tu mano y vuelve a pulsar.',
+  'why.unavailable': 'Este movimiento no está disponible ahora.',
+  'why.notYourTurnWho': 'Es el turno de {name}: espera a que termine.',
+  'match.waitingForName': 'Esperando a {name}…',
 };

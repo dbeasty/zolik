@@ -1538,4 +1538,9 @@ export const sv: Record<string, string> = {
   'circle.addFriend.confirm': 'Lägg till {name}',
   'circle.addFriend.done': 'Du och {name} är nu i varandras krets.',
   'circle.addFriend.toCircle': 'Öppna spelkrets',
+  'offer.pickAtLeast': 'Välj {n}+ kort',
+  'why.pickAtLeast': 'Välj först minst {n} kort från handen och tryck sedan igen.',
+  'why.unavailable': 'Det här draget går inte just nu.',
+  'why.notYourTurnWho': 'Det är {name}s tur — vänta tills den är klar.',
+  'match.waitingForName': 'Väntar på {name}…',
 };

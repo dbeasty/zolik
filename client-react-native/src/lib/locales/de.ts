@@ -1568,4 +1568,9 @@ export const de: Record<string, string> = {
   'circle.addFriend.confirm': '{name} hinzufügen',
   'circle.addFriend.done': 'Du und {name} seid jetzt gegenseitig im Kreis.',
   'circle.addFriend.toCircle': 'Spielkreis öffnen',
+  'offer.pickAtLeast': 'Wähle {n}+ Karten',
+  'why.pickAtLeast': 'Wähle zuerst mindestens {n} Karten aus deiner Hand und tippe dann erneut.',
+  'why.unavailable': 'Dieser Zug ist gerade nicht möglich.',
+  'why.notYourTurnWho': '{name} ist am Zug — warte, bis der Zug beendet ist.',
+  'match.waitingForName': 'Warten auf {name}…',
 };

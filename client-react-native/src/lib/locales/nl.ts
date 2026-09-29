@@ -1559,4 +1559,9 @@ export const nl: Record<string, string> = {
   'circle.addFriend.confirm': '{name} toevoegen',
   'circle.addFriend.done': 'Jij en {name} zitten nu in elkaars kring.',
   'circle.addFriend.toCircle': 'Spelkring openen',
+  'offer.pickAtLeast': 'Kies {n}+ kaarten',
+  'why.pickAtLeast': 'Kies eerst minstens {n} kaarten uit je hand en druk dan opnieuw.',
+  'why.unavailable': 'Deze zet is nu niet mogelijk.',
+  'why.notYourTurnWho': '{name} is aan de beurt — wacht tot die klaar is.',
+  'match.waitingForName': 'Wachten op {name}…',
 };

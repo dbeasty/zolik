@@ -1560,4 +1560,9 @@ export const mt: Record<string, string> = {
   'circle.addFriend.confirm': 'Żid lil {name}',
   'circle.addFriend.done': 'Int u {name} issa tinsabu fiċ-ċirku ta’ xulxin.',
   'circle.addFriend.toCircle': 'Iftaħ iċ-ċirku tal-logħob',
+  'offer.pickAtLeast': 'Agħżel {n}+ karti',
+  'why.pickAtLeast': "L-ewwel agħżel mill-inqas {n} karti minn idejk, imbagħad erġa' agħfas.",
+  'why.unavailable': 'Din il-mossa mhix disponibbli issa.',
+  'why.notYourTurnWho': 'Imiss lil {name} — stenna sakemm jispiċċa.',
+  'match.waitingForName': 'Qed nistennew lil {name}…',
 };

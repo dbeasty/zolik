@@ -807,6 +807,11 @@ func TestADisabledOfferSaysWhy(t *testing.T) {
 						seen++
 						if len(o.RuleIDs) > 0 || o.Remedy != nil {
 							explained++
+						} else if !selfExplained[o.WhyNot] {
+							// Every disabled control can now be pressed for
+							// its explanation, so one with nothing behind its
+							// reason opens a sheet that only repeats it.
+							t.Errorf("offer %q is disabled for %s with no rule and no remedy behind it", o.ID, o.WhyNot)
 						}
 						// A remedy that names a control puts a working button
 						// under the sentence, so the id has to be a live offer
@@ -834,6 +839,16 @@ func TestADisabledOfferSaysWhy(t *testing.T) {
 			}
 		})
 	}
+}
+
+// selfExplained are the refusals that are states of the table rather than
+// rules of a game — there is nothing to undo, you already said you were
+// ready, the match is not running. The reason is the whole explanation, and
+// a rule written only so a sheet has something to cite would be padding.
+var selfExplained = map[string]bool{
+	"NOTHING_TO_UNDO": true,
+	"ALREADY_READY":   true,
+	"GAME_NOT_ACTIVE": true,
 }
 
 // advanceOnce plays whatever the first player with an enabled offer can play,

@@ -1534,4 +1534,9 @@ export const cs: Record<string, string> = {
   'circle.addFriend.confirm': 'Přidat hráče {name}',
   'circle.addFriend.done': 'Vy a {name} jste teď jeden v kruhu druhého.',
   'circle.addFriend.toCircle': 'Otevřít herní kruh',
+  'offer.pickAtLeast': 'Vyber {n}+ karet',
+  'why.pickAtLeast': 'Nejdřív vyber z ruky aspoň {n} karty, pak to stiskni znovu.',
+  'why.unavailable': 'Tento tah teď není možný.',
+  'why.notYourTurnWho': 'Na tahu je {name} — počkej, až dohraje.',
+  'match.waitingForName': 'Čeká se na hráče {name}…',
 };

@@ -438,6 +438,16 @@ export default function MatchScreen() {
   const selectedCards = cardsForSelection(heldSlots, selected);
 
   const canAct = state.legalActions.some((o) => o.enabled);
+  // Whose turn it is when it is somebody else's: the first thing a player
+  // asking "why can't I?" needs, so a not-your-turn refusal names them.
+  const turnHolder = state.view?.seats?.find((s) => s.active && s.playerId !== viewerId);
+  const turnHolderName = turnHolder ? playerName(state.players, turnHolder.playerId) : undefined;
+  const explain = (r: Refusal) =>
+    setExplaining(
+      r.code === 'NOT_YOUR_TURN' && !r.labelKey && turnHolderName
+        ? { ...r, labelKey: 'why.notYourTurnWho', params: { name: turnHolderName } }
+        : r,
+    );
 
   // Everywhere the cards in flight could be let go of. Derived from the offer
   // list on every drag, which is why a game added tomorrow gets drag and drop
@@ -908,6 +918,7 @@ export default function MatchScreen() {
             setPendingGroupKey(groupKey);
             drops.measure();
           }}
+          onExplain={explain}
           testID="controls-summary"
         />
       }
@@ -945,7 +956,7 @@ export default function MatchScreen() {
         onConsumeSelection={clearSelection}
         params={offerParams}
         onParamsChange={setOfferParams}
-        onExplain={setExplaining}
+        onExplain={explain}
         // Between rounds the module offers one thing: go on. Said here as
         // "the table is waiting on this bar" rather than as any offer's name,
         // so the bar rings whatever the one thing turns out to be.
@@ -960,7 +971,7 @@ export default function MatchScreen() {
       />
       {!canAct && state.status === 'active' ? (
         <Text testID="match-waiting" style={styles.muted}>
-          {t('match.waitingForPlayer')}
+          {turnHolderName ? t('match.waitingForName', { name: turnHolderName }) : t('match.waitingForPlayer')}
         </Text>
       ) : null}
     </Panel>

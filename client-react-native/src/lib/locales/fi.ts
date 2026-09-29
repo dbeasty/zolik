@@ -1550,4 +1550,9 @@ export const fi: Record<string, string> = {
   'circle.addFriend.confirm': 'Lisää {name}',
   'circle.addFriend.done': 'Sinä ja {name} olette nyt toistenne piireissä.',
   'circle.addFriend.toCircle': 'Avaa pelipiiri',
+  'offer.pickAtLeast': 'Valitse {n}+ korttia',
+  'why.pickAtLeast': 'Valitse ensin kädestäsi vähintään {n} korttia ja paina sitten uudelleen.',
+  'why.unavailable': 'Tämä siirto ei ole nyt mahdollinen.',
+  'why.notYourTurnWho': 'Vuorossa on {name} — odota, että vuoro päättyy.',
+  'match.waitingForName': 'Odotetaan pelaajaa {name}…',
 };
