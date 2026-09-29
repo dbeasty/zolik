@@ -71,7 +71,13 @@ async function untilRaiseOffered(page: Page) {
     .poll(
       async () => {
         if (await page.getByTestId('param-amount').isVisible()) return true;
-        const next = page.getByTestId('offer-continue');
+        // A disabled control now answers a press with a sheet saying why, and
+        // the sheet covers the controls this is waiting for. "Start the next
+        // round" stays on screen, disabled, once this player is ready — so
+        // press it only while it is live, and dismiss a sheet if one opened.
+        const why = page.getByTestId('why-close');
+        if (await why.isVisible()) await why.click().catch(() => {});
+        const next = page.locator('[data-testid="offer-continue"]:not([aria-disabled="true"])');
         if (await next.isVisible()) await next.click().catch(() => {});
         return false;
       },

@@ -281,9 +281,10 @@ test.describe('a control refuses what it cannot send', () => {
    * offer's own floor and returns null, and the press died there — no move,
    * no refusal, nothing on screen. `readyWith` is the fix.
    *
-   * Six because that is the widest floor any of the four games produces:
-   * Samba deals three decks, so a hand can come down to all six black
-   * threes, and going out on them is all of them or none (the server side of
+   * Six black threes because that is the widest meld any of the four games
+   * offers: Samba deals three decks, so a hand can come down to all six. Its
+   * floor is five, not six — one may be kept back as the discard that goes
+   * out (a83b4c1) — so a one-card pick is still well short of it (the server side of
    * that is `canasta-black-three-going-out.spec.ts`, which proved the wire
    * honoured this move while the button above it was doing nothing at all —
    * which is exactly how this survived two rounds of fixing).
@@ -309,7 +310,7 @@ test.describe('a control refuses what it cannot send', () => {
     await expect(page.locator('[data-testid^="card-hand:"][aria-selected="true"]')).toHaveCount(1);
 
     await expect(meld).toHaveAttribute('aria-disabled', 'true');
-    await expect(page.getByTestId('why-lay_meld:3')).toHaveText(/^Select 6 card\(s\)/);
+    await expect(page.getByTestId('why-lay_meld:3')).toHaveText(/^Select 5 card\(s\)/);
     const refusing = await paint(page, 'offer-lay_meld:3');
     expect(refusing.fill, 'a control that cannot be pressed should not be filled').toBe(
       'rgba(0, 0, 0, 0)',
@@ -325,7 +326,7 @@ test.describe('a control refuses what it cannot send', () => {
     // and the press is answered with why rather than swallowed.
     await meld.click({ force: true });
     await expect(page.getByTestId('why-sheet')).toBeVisible();
-    await expect(page.getByTestId('why-reason')).toHaveText('Select 6 card(s)');
+    await expect(page.getByTestId('why-reason')).toHaveText('Select 5 card(s)');
     await page.getByTestId('why-close').click();
     await expect(page.getByTestId('why-sheet')).toBeHidden();
     expect(await serverHand(request, matchId, host)).toHaveLength(6);
