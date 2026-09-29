@@ -17,8 +17,19 @@ import (
 type AccessClaims struct {
 	Username string `json:"username"`
 	IsGuest  bool   `json:"isGuest"`
+	// Scope limits the token to one match, as "match:<id>". Set only on the
+	// token a seat link hands out: it lets the person who opened the link
+	// play that seat and nothing else — not their profile, not their circle,
+	// not any other table. Empty on every ordinary token.
+	Scope string `json:"scope,omitempty"`
 	jwt.RegisteredClaims
 }
+
+// MatchScope is the Scope a token limited to matchID carries.
+func MatchScope(matchID string) string { return "match:" + matchID }
+
+// errScopedToken is a match-scoped token offered anywhere but its match.
+var errScopedToken = errors.New("token is limited to one match")
 
 // devAccessSecret signs access tokens when JWT_ACCESS_SECRET is unset. It is
 // in the repository, so anyone can mint a token for any player with it:
@@ -129,7 +140,50 @@ func accessKeyfunc(t *jwt.Token) (interface{}, error) {
 // parseAccess is the one place an access token is read. Both exported
 // entry points go through it, so there is no second opinion anywhere about
 // what makes a token acceptable.
+//
+// It refuses a match-scoped token. Every caller that predates them — the
+// profile, the circle, the lobby, admin, other matches — therefore turns one
+// away without having to know they exist; only a caller that names the match
+// it is serving, through ParseAccessClaimsForMatch, lets one in.
 func parseAccess(token string) (*AccessClaims, error) {
+	claims, err := parseAnyAccess(token)
+	if err != nil {
+		return nil, err
+	}
+	if claims.Scope != "" {
+		return nil, errScopedToken
+	}
+	return claims, nil
+}
+
+// ParseAccessClaimsForMatch reads a token offered to one match: an ordinary
+// token, or one scoped to exactly that match.
+func ParseAccessClaimsForMatch(token, matchID string) (*AccessClaims, error) {
+	claims, err := parseAnyAccess(token)
+	if err != nil {
+		return nil, err
+	}
+	if claims.Scope != "" && (matchID == "" || claims.Scope != MatchScope(matchID)) {
+		return nil, errScopedToken
+	}
+	return claims, nil
+}
+
+// SubjectForMatch is SubjectFromToken for a match's own socket, which is the
+// one place a seat link's token is for.
+func SubjectForMatch(token, matchID string) (string, error) {
+	claims, err := ParseAccessClaimsForMatch(token, matchID)
+	if err != nil {
+		return "", err
+	}
+	if claims.Subject == "" {
+		return "", errors.New("missing subject")
+	}
+	return claims.Subject, nil
+}
+
+// parseAnyAccess checks a token's signature and purpose, whatever its scope.
+func parseAnyAccess(token string) (*AccessClaims, error) {
 	token = strings.TrimSpace(token)
 	if token == "" {
 		return nil, errors.New("empty token")
@@ -183,10 +237,24 @@ func NewRandomToken(nBytes int) (string, error) {
 }
 
 func CreateAccessToken(subject, username string, isGuest bool, ttl time.Duration) (string, error) {
+	return createAccess(subject, username, isGuest, "", ttl)
+}
+
+// CreateMatchScopedToken is an access token for one seat at one match and
+// nothing else — see AccessClaims.Scope.
+func CreateMatchScopedToken(subject, username string, isGuest bool, matchID string, ttl time.Duration) (string, error) {
+	if matchID == "" {
+		return "", errors.New("a scoped token needs a match")
+	}
+	return createAccess(subject, username, isGuest, MatchScope(matchID), ttl)
+}
+
+func createAccess(subject, username string, isGuest bool, scope string, ttl time.Duration) (string, error) {
 	now := time.Now().UTC()
 	claims := AccessClaims{
 		Username: username,
 		IsGuest:  isGuest,
+		Scope:    scope,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   subject,
 			IssuedAt:  jwt.NewNumericDate(now),
