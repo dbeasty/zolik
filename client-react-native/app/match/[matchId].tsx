@@ -24,6 +24,7 @@ import { ResultsFlash } from '@/src/components/match/ResultsFlash';
 import { RoundResults } from '@/src/components/match/RoundResults';
 import { TableSurface } from '@/src/components/match/TableSurface';
 import { useSession } from '@/src/context/SessionContext';
+import { useSeatSession } from '@/src/hooks/useSeatSession';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useDropRegistry, type Measurable } from '@/src/hooks/useDropRegistry';
 import { useArrival } from '@/src/hooks/useArrival';
@@ -98,7 +99,14 @@ const IDLE_NUDGE_MS = 20_000;
  */
 export default function MatchScreen() {
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
-  const { session, client, loading, offline } = useSession();
+  const own = useSession();
+  // A seat taken through a seat link plays this table — and only this one —
+  // as that seat, on a device that may be somebody else entirely, or nobody.
+  const seatLink = useSeatSession(matchId ? String(matchId) : undefined, own.session);
+  const session = seatLink.seat ?? own.session;
+  const client = seatLink.client ?? own.client;
+  const loading = own.loading || !seatLink.loaded;
+  const { offline } = own;
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
   // Whether what is currently selected was picked by the *app* rather than by
   // the player — see the auto-select effect below and `toggleSlot`.

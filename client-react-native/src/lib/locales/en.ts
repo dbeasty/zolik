@@ -35,6 +35,8 @@ export const en: Record<string, string> = {
   'err.MATCH_MOVED_ON': 'The table moved on — reload to see where it is',
   'err.MATCH_NOT_ABANDONED': 'That table is not waiting to be brought back',
   'err.MATCH_NOT_OVER': 'That game is not over yet',
+  'err.SEAT_LINK_EXPIRED': 'This link no longer opens a seat. Ask somebody at the table for a new one.',
+  'err.SEAT_IN_USE': 'Somebody is playing that seat right now, so this link cannot take it.',
   'err.MATCH_NOT_FOUND': 'That table no longer exists',
   'err.MATCH_DELETED': 'The host deleted this table',
   'err.TABLE_HAS_PLAYERS_AWAY': 'Everyone has to be back at the table before this game can be picked up',
@@ -1095,6 +1097,14 @@ export const en: Record<string, string> = {
   // sending them the link — rather than leaving a banner whose only button is
   // the way out.
   'match.abandonedWaitingFor': 'Waiting for {names} to come back to the table.',
+  'seat.title': 'Your seat',
+  'seat.youAre': "You're {name}",
+  'seat.atTable': '{game} with {names}',
+  'seat.present': 'at the table',
+  'seat.away': 'away',
+  'seat.claim': 'This is me — take my seat',
+  'seat.claiming': 'Taking your seat…',
+  'seat.notMe': 'Not {name}?',
   'match.controls': 'Controls',
   'match.over': 'Match over',
   'match.settingUp': 'Setting up…',

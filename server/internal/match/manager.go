@@ -417,13 +417,18 @@ func (m *Manager) JoinWith(ctx context.Context, idOrCode string, seat func(model
 // locked.
 func (m *Manager) joinLocked(ctx context.Context, e *liveMatch, p models.Player) (models.Match, bool, error) {
 	match := e.match
-	if match.Status != "lobby" {
-		return models.Match{}, false, module.Error{Code: "MATCH_ALREADY_STARTED"}
-	}
+	// Somebody already sitting here is let back in whatever the table is
+	// doing. The join link is the one thing a player is sure to still have,
+	// and asking about the status first answered MATCH_ALREADY_STARTED to the
+	// very people the table was waiting for — a started or swept-up game then
+	// looked closed to its own players.
 	for _, existing := range match.Players {
 		if existing.ID == p.ID {
 			return match, false, nil // idempotent: re-joining is not an error
 		}
+	}
+	if match.Status != "lobby" {
+		return models.Match{}, false, module.Error{Code: "MATCH_ALREADY_STARTED"}
 	}
 	mod := m.registry.Get(match.ModuleID)
 	if mod == nil {

@@ -38,6 +38,9 @@ func (m *Manager) Rematch(ctx context.Context, idOrCode, callerID string) (model
 	}
 	host := *caller
 	host.ConnectionID = ""
+	// A seat link belongs to the table it was made for; carried over, the old
+	// table's link would open this seat at the new one too.
+	host.SeatKeyHash = ""
 
 	// Somebody got there first: sit down at theirs.
 	if old.Rematch != nil {
