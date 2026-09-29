@@ -18,6 +18,14 @@ export type Fact = {
   params?: Record<string, unknown>;
 };
 
+/** One thing a player did, worded by the module — see `RecentMoves`. */
+export type MoveLine = {
+  playerId: string;
+  fact: Fact;
+  /** The group on the board the move touched, if any. */
+  groupId?: string;
+};
+
 /**
  * One card as the board shows it.
  *
@@ -277,6 +285,11 @@ export type ActionOffer = {
    * false for everything a button can send in one tap.
    */
   composite?: boolean;
+  /**
+   * The offer takes a move back rather than making one. Declared by the
+   * module, never guessed from the verb's spelling.
+   */
+  undo?: boolean;
 };
 
 /** One row of a scoreboard, in a shape no game owns. */
@@ -398,6 +411,11 @@ export type MatchState = {
   canResume?: boolean;
   /** Player ids, in seat order; look their names up in `players`. */
   awayPlayers?: string[];
+  /**
+   * The last few moves at the table as this viewer may read them, oldest
+   * first. Absent for a game that does not narrate its moves.
+   */
+  recentMoves?: MoveLine[];
   players: MatchPlayer[];
   /**
    * Who is playing with whom if the table were dealt now, in seat order —

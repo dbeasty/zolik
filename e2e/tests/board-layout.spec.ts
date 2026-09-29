@@ -112,7 +112,7 @@ test.describe('the shape of the board', () => {
     while (Date.now() < deadline) {
       ({ sent } = await zoneCards(request, matchId, host.userId, 'discard'));
       if (sent > 1) break;
-      const live = page.locator('[data-testid^="offer-"]:not([aria-disabled="true"])').first();
+      const live = page.locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])').first();
       if (await live.count()) {
         try {
           await live.click({ timeout: 5000 });
@@ -169,7 +169,7 @@ test.describe('the shape of the board', () => {
     while (Date.now() < deadline) {
       ({ sent } = await zoneCards(request, matchId, host.userId, 'discard'));
       if (sent > 1) break;
-      const live = page.locator('[data-testid^="offer-"]:not([aria-disabled="true"])').first();
+      const live = page.locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])').first();
       if (await live.count()) {
         try {
           await live.click({ timeout: 5000 });

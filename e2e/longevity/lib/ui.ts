@@ -194,7 +194,7 @@ export async function pressOffer(page: Page, offerId: string): Promise<boolean> 
  */
 export async function liveOfferIds(page: Page): Promise<string[]> {
   return page
-    .locator('[data-testid^="offer-"]:not([aria-disabled="true"])')
+    .locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])')
     .evaluateAll((els) =>
       els
         .map((e) => (e.getAttribute('data-testid') ?? '').replace(/^offer-/, ''))

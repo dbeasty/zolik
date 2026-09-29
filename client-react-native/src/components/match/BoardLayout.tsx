@@ -4,9 +4,11 @@ import { StyleSheet, Text, View } from 'react-native';
 import type { MatchState, Zone } from '@/src/api/matchTypes';
 import { Dealer } from '@/src/components/match/Dealer';
 import { Panel } from '@/src/components/match/Panel';
+import { RecentMoves } from '@/src/components/match/RecentMoves';
 import { SeatStrip } from '@/src/components/match/SeatStrip';
 import { ZoneView } from '@/src/components/match/ZoneView';
 import type { Measurable } from '@/src/hooks/useDropRegistry';
+import type { ChangeMarks } from '@/src/lib/changes';
 import { drawableZones, isSpreadRowZone, isTableZone, sitsBeside } from '@/src/lib/board';
 import { t } from '@/src/lib/i18n';
 import { factText, label, playerName } from '@/src/lib/labels';
@@ -45,6 +47,8 @@ type DropProps = {
   armedGroupId?: string | null;
   onAimGroup?: (groupId: string) => void;
   entranceDelays?: ReadonlyMap<string, number>;
+  /** Groups changed by somebody else since the viewer last acted. Not a drop fact, but handed to every zone the same way. */
+  changedGroups?: ChangeMarks;
 };
 
 type PanelProps = { panelId: string; minimized: boolean; onToggleMinimized: () => void };
@@ -155,6 +159,11 @@ export function BoardLayout({
           {factText(f, state.players)}
         </Text>
       ))}
+
+      {/* Who did what, beside the seats that did it. */}
+      {state.recentMoves?.length ? (
+        <RecentMoves moves={state.recentMoves} players={state.players} viewerId={viewerId} />
+      ) : null}
 
       {/* The piles and stacks everyone draws from and discards to, and the
           cards everyone plays against, directly above the hand and buttons. */}
@@ -336,6 +345,22 @@ export function matchStyles(s: Skin) {
   spreads: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 8, marginTop: 10 },
   error: { color: colors.danger, fontSize: 13, marginVertical: 6 },
   muted: { color: colors.muted, fontSize: 12, marginTop: 6 },
+  // What this player can do now, over the controls that do it, with the way
+  // to ask for a suggestion beside it.
+  stepRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  step: { color: colors.text, fontSize: 13, fontWeight: '600', flexShrink: 1 },
+  // Something started that has to be finished or taken back first.
+  stepObligation: { color: colors.gold, fontSize: 13, fontWeight: '700', flexShrink: 1 },
+  hintButton: {
+    marginLeft: 'auto',
+    borderWidth: 1,
+    borderColor: colors.gold,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  hintButtonText: { color: colors.gold, fontSize: 12, fontWeight: '700' },
+  hintLine: { color: colors.gold, fontSize: 13, marginBottom: 8 },
 
   // The end of a match, built like the rule-violation banner in `shared`: a
   // tinted box with a border of its own, because the thing it has to beat is

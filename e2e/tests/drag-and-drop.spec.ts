@@ -156,7 +156,7 @@ async function playUntilOffered(
   while (Date.now() < deadline) {
     const { offer } = await offerFor(request, matchId, userId, verb);
     if (offer) return offer;
-    const live = page.locator('[data-testid^="offer-"]:not([aria-disabled="true"])').first();
+    const live = page.locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])').first();
     if (await live.count()) {
       try {
         await live.click({ timeout: 5000 });
@@ -256,7 +256,7 @@ test.describe('dropping a card on the board', () => {
     while (Date.now() < deadline && !offer) {
       offer = await layOffOffer(request, matchId, host.userId);
       if (offer) break;
-      const live = page.locator('[data-testid^="offer-"]:not([aria-disabled="true"])').first();
+      const live = page.locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])').first();
       if (await live.count()) {
         try {
           await live.click({ timeout: 5000 });

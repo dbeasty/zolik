@@ -103,6 +103,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 			// readable says so.
 			module.OpenDiscardPileOption(),
 			module.BotSkillOption(),
+			module.HintsOption(),
 			{
 				Name:  OptHandSize,
 				Type:  module.OptionEnumInt,

@@ -751,6 +751,30 @@ func level(a, b []int) bool {
 	return true
 }
 
+// OfferFor is the enabled offer an action would be sent through: the one it
+// names, or, for an action that names none (a bot speaking in verbs), the
+// first enabled offer with its verb and, where it has one, its target. Nil
+// when nothing on the list fits.
+func OfferFor(offers []ActionOffer, a Action) *ActionOffer {
+	if a.OfferID != "" {
+		if o := FindOffer(offers, a.OfferID); o != nil && o.Enabled {
+			return o
+		}
+		return nil
+	}
+	for i := range offers {
+		o := &offers[i]
+		if !o.Enabled || o.Verb != a.Verb {
+			continue
+		}
+		if a.Target != "" && (o.Target == nil || o.Target.MeldID != a.Target) {
+			continue
+		}
+		return o
+	}
+	return nil
+}
+
 // FindOffer returns the offer with this ID, or nil.
 func FindOffer(offers []ActionOffer, id string) *ActionOffer {
 	for i := range offers {
