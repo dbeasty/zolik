@@ -33,7 +33,7 @@ different:
 | What wins | Card points (A and 10 are worth 10 each, the last trick 10) plus marriages (20, or 40 in trumps); or a special contract | The number of tricks against the contract |
 | Play obligation | Follow suit **and beat the card if you can**; if void, **must trump** | Follow suit; otherwise play anything |
 | Hidden stock | Talon: the declarer discards 2 | None |
-| Special contracts | Sedma, Kilo, Betl, Durch, and the defenders' "proti" versions | None; levels 1–7 × 5 strains |
+| Special contracts | Sedma, Sto (kilo), Betl, Durch, and the defenders' "proti" versions | None; levels 1–7 × 5 strains |
 | Doubling | Flek chain (flek, re, tutti, boty, kalhoty…) on each part of the contract | Double and redouble only |
 | Distinctive feature | Marriages announced during play | **Dummy**: a hand laid face up and played by the declarer |
 | Bot difficulty | Moderate: 30 cards, 10 tricks | Hard: bidding needs a *system*, and play needs a real double-dummy solver |
@@ -66,9 +66,10 @@ That puts Bridge at roughly Canasta's size, not "Mariáš plus a bit" (§8).
 
 ## 1. Rules implemented
 
-The printed rule text is pinned before any code is written (§6, step 0). The references are the
-Pagat descriptions of *Volený* and *Licitovaný mariáš* and the common Czech pub rules. Where
-sources disagree, the difference becomes an option, not a constant.
+**Pinned in [marias-rules.md](marias-rules.md) (step 0).** That document is the authority: every
+rule by id, its English wording, its source, the options, the deviations and the open questions.
+It follows the Český svaz mariáše's written rules for volený mariáš (8.5.2007), with Pagat for
+what that sheet takes for granted. This section is only the summary.
 
 **Deck.** There are 32 cards in four suits:
 - červené (hearts);
@@ -89,66 +90,41 @@ these use the codes the rest of the code already uses (`prsi/state.go:38-42`):
 This is the standard French↔German correspondence. Keeping the codes means `isCardCode`, the
 flight animation and the TUI parser keep working. Only the **faces** change (§3.4).
 
-**Card order:**
-- trump and plain games: A, 10, K, svršek, spodek, 9, 8, 7;
-- Betl and Durch: A, K, svršek, spodek, 10, 9, 8, 7.
+**In short:**
+- **Deal:** the chooser gets 7 cards, names trumps (or takes them *z lidu*), then gets 5 more
+  and discards two to the talon. There is no eso or 10 in the talon in trump games.
+- **Games:** hra 1, sedma 2, sto 4, betl 15, durch 30 units (the association's table; the pub
+  table is betl 5, durch 10). Sedma is settled separately from the game.
+- **Takeover:** the others may say *špatná* and take over with betl or durch. This is part of
+  Volený too, not only Licitovaný (ČSM B/14).
+- **Doubling:** each part can be doubled separately (flek, re, tutti, boty, kalhoty…), and
+  defenders may announce sedma or sto *proti*.
+- **Play:** follow suit and beat; if you can't follow, trump and overtrump (`tricks.FollowBeatTrump`).
+- **Hundreds:** a quiet hundred doubles hra, then doubles again for every ten past it. A quiet
+  seven is worth half an announced one. Hearts double every payment.
+- **Match:** a fixed number of deals. Standings are cumulative units, shown on the scoreboard
+  with `Standing.Shown`.
 
-**Deal and roles:**
-- The *forhont* sits left of the dealer. It rotates every deal.
-- The forhont gets 7 cards and names trumps by choosing a card. Licitovaný also allows the option
-  **"z lidu"**: trumps are taken from the next unseen card.
-- The forhont then gets 5 more cards, for 12, and discards 2 to the talon. In trump games an A or
-  10 may not be discarded.
-- The other two players get 10 cards each.
+### Options
 
-**Contracts:**
-
-| Contract | The declarer must… |
-|---|---|
-| Hra | score more than the defenders (card points plus marriages) |
-| Sedma | win the last trick with the trump 7. May be combined with Hra; each part is settled separately |
-| Kilo | reach 100 with card points plus the trump marriage. No other marriage counts |
-| Betl | take no trick. No trumps. Play stops at the first trick taken |
-| Durch | take every trick. No trumps. Play stops at the first trick lost |
-
-- **Defenders' counters:** "sedma proti" and "kilo proti".
-- **Licitovaný auction:** after the forhont announces, each other player in turn says either
-  *dobrý* (accept, and optionally flek or announce a proti) or *špatný*. *Špatný* takes over
-  with Betl or Durch; that player picks up the talon and discards.
-
-**Play:**
-- Follow suit and beat the winning card if possible.
-- If void in the led suit, trump, overtrumping if possible.
-- Otherwise play anything.
-- Marriages are announced automatically when the K or svršek of a held pair is played. Their
-  value is added to the side's total.
-
-**Settlement:**
-- Each part of the contract is worth its tariff value times its flek multiplier. It is settled
-  between the declarer and **each** defender.
-- Red trumps double everything when the `redDoubles` option is on.
-- A match is a fixed number of deals. Standings are the cumulative units, which are shown on the
-  scoreboard with `Standing.Shown`.
-
-### Options (house rules are options, not constants)
-
-All are `enum_int`, which is the only option kind today (`module/descriptor.go:73-81`).
+These are declared in `server/internal/marias/descriptor.go`; the reasons for each default are
+in marias-rules.md.
 
 | Option | Choices | Default |
 |---|---|---|
-| `deals` | 9, 12, 18, 24 (multiples of 3, so each seat is forhont equally) | 12 |
-| `tariff` | low (hra 1 / sedma 2 / kilo 4 / betl 5 / durch 10), high (… betl 15 / durch 30) | low |
-| `redDoubles` | on, off | on in Licitovaný, off in Volený |
-| `flekLimit` | 2, 4, unlimited | unlimited |
-| `zLidu` | on, off | on in Licitovaný |
-| `showCardPoints` | on, off (running card points on the seat tiles) | off |
-| `botSkill`, pause | the stock options (`skill.go:126`, `descriptor.go:54`) | |
+| `deals` | 9, 12, 18, 24 | 12 |
+| `tariff` | Association (betl 15, durch 30), Pub (betl 5, durch 10) | Association |
+| `redDoubles` | on, off | on |
+| `flekLimit` | no limit, flek only, up to re, up to boty | no limit |
+| `zLidu` | allowed, not allowed | allowed |
+| `showCardPoints` | hidden, shown | hidden |
+| `botSkill`, pause | stock | medium, pause |
 
 ### Variations
 
-- **Volený:** the forhont chooses the contract. The others may only flek and announce a proti.
-- **Licitovaný:** the other players may take over with Betl or Durch. `z lidu`, "proti" and red
-  doubling are on.
+- **Volený** is the only variation until step 4. It is as pinned above.
+- **Licitovaný** (step 4) is the association's auction game. Players bid for the right to
+  declare, with the talon, and its own tariff. It gets its own pinned rules before it is built.
 
 ## 2. What the runtime already gives us
 
@@ -219,10 +195,10 @@ Mariáš also shows:
 | `trump` | `choose_trump` | Forhont, 7 cards | `Source.Cards` = the 7, Min/Max 1 |
 | `trumpZLidu` | `choose_trump` | Forhont (option) | none |
 | `talon` | `discard` | Declarer, 12 cards | Min/Max 2. A and 10 are disabled in trump games (`WhyNot` gives the rule) |
-| `announce.hra`, `.sedma`, `.kilo`, `.betl`, `.durch` | `announce` | Declarer | One offer per legal contract, with a distinct `LabelKey` |
-| `good` / `bad.betl` / `bad.durch` | `bid` | Licitovaný, others in turn | none |
+| `announce.hra`, `.sedma`, `.sto`, `.betl`, `.durch` | `announce` | Declarer | One offer per legal contract, with a distinct `LabelKey` |
+| `good` / `bad.betl` / `bad.durch` | `bid` | Others in turn, clockwise | none |
 | `flek.<part>` | `flek` | Alternating sides | `Facts` shows the next multiplier ("×4") |
-| `protiSedma`, `protiKilo` | `announce` | Defenders while saying *dobrý* | none |
+| `protiSedma`, `protiSto` | `announce` | Defenders, in the doubling round | none |
 | `play` | `play_card` | The seat to play | `Source.Cards` = `tricks.Legal(...)` |
 | `continue` | from `Intermission` | Between deals | stock (`module/intermission.go:39-163`) |
 
@@ -301,13 +277,14 @@ test follows `holdem/bot.go:34-36` and `ai/nopeek_test.go`. The sampler and solv
 ## 6. Order of work (each step is one PR)
 
 0. **Pin the rules.** Write `rules.go` sections and the option table first. The user signs off on
-   them; the tariff and flek names come from here.
+   them; the tariff and flek names come from here. *Done: [marias-rules.md](marias-rules.md) and
+   `server/internal/marias`, awaiting sign-off on its two open questions.*
 1. **`internal/tricks`**, with tests. No client change. *Done on `claude/marias-tricks`.*
 2. **Trick area:** `CardView.By` and `Zone.Arrange`, plus the React Native compass and the TUI
    row. Proven first with a throwaway test module in `allmodules_test`.
 3. **`marias` Volený**, with the rule-of-thumb bot and English and Czech wording. The other 22
    locales are filled in the same PR, because the key test requires it.
-4. **Licitovaný:** the take-over auction, proti, `z lidu` and red doubling.
+4. **Licitovaný:** the association's auction game, pinned first like step 0.
 5. **German faces** (§3.4), and Prší opting in.
 6. **Hard bot** (sampling), in `internal/tricks/search`.
 
