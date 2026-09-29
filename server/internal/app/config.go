@@ -274,6 +274,9 @@ func LoadConfig() Config {
 			Lobby:     envHours("ZOLIK_RETAIN_LOBBY_HOURS", 24),
 			Completed: envHours("ZOLIK_RETAIN_COMPLETED_HOURS", 90*24),
 			Abandoned: envHours("ZOLIK_RETAIN_ABANDONED_HOURS", 30*24),
+			// Unset by default: every game keeps completed matches for
+			// Completed. See RetentionWindows.CompletedByGame.
+			CompletedByGame: envHoursByGame("ZOLIK_RETAIN_COMPLETED_HOURS_BY_GAME"),
 		},
 
 		TestEndpointsEnabled: envBool("ENABLE_TEST_ENDPOINTS", local),
@@ -428,6 +431,33 @@ func envHours(key string, fallbackHours int) time.Duration {
 		return 0
 	}
 	return time.Duration(h) * time.Hour
+}
+
+// envHoursByGame reads per-game windows as "holdem=8760,canasta=0": a module
+// id and whole hours, as envHours reads them, except that zero here means
+// "keep this game for ever" rather than falling back — the game was named, so
+// the operator said something about it. An entry that does not parse is left
+// out, which leaves that game on the general window: the reading that deletes
+// nothing it would not have deleted anyway.
+func envHoursByGame(key string) map[string]time.Duration {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return nil
+	}
+	out := map[string]time.Duration{}
+	for _, entry := range strings.Split(v, ",") {
+		game, hours, ok := strings.Cut(strings.TrimSpace(entry), "=")
+		game = strings.TrimSpace(game)
+		h, err := strconv.Atoi(strings.TrimSpace(hours))
+		if !ok || game == "" || err != nil {
+			continue
+		}
+		out[game] = time.Duration(max(h, 0)) * time.Hour
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 func envInt(key string, fallback int) int {

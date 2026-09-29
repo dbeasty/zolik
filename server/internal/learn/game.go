@@ -103,6 +103,22 @@ type Candidate struct {
 	Features []float32
 }
 
+// Equivalence is implemented by a game whose candidates each stand for a class
+// of moves that differ in nothing the game distinguishes. Optional.
+//
+// The adapters collapse such classes on purpose — two indices for one move
+// would split its probability between them — and Canasta's are the example:
+// one natural is offered to lay off on a group of sevens, not one per suit,
+// because a seven of hearts there is the same move as a seven of spades. A
+// network never notices. A person does not play the representative, though,
+// and cmd/export-games, matching a stored move to the candidate it was, asks
+// this before deciding that a player's seven of hearts was nothing on offer.
+type Equivalence interface {
+	// SameMove reports that played, made by seat at s, is the move candidate
+	// stands for, though the two actions differ.
+	SameMove(s module.State, seat string, played, candidate module.Action) bool
+}
+
 // Steps is every action the candidate makes, in order.
 func (c Candidate) Steps() []module.Action {
 	return append([]module.Action{c.Action}, c.Then...)

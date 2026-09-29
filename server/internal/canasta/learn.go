@@ -30,7 +30,10 @@ type learnGame struct{}
 
 func init() { learn.Register(learnGame{}) }
 
-var _ learn.Game = learnGame{}
+var (
+	_ learn.Game        = learnGame{}
+	_ learn.Equivalence = learnGame{}
+)
 
 func (learnGame) Name() string              { return "canasta" }
 func (learnGame) Module() module.GameModule { return New() }
@@ -775,6 +778,86 @@ func (c candidateBuilder) single(a module.Action, kind int) learn.Candidate {
 	f[fGoesOut] = b2f((a.Verb == VerbLayMeld || a.Verb == VerbLayOff) && left == 0)
 	f[fHandAfter] = float32(left) / 15
 	return learn.Candidate{Action: a, Features: f}
+}
+
+// SameMove is the other side of the collapsing Candidates does: a move that
+// differs from a candidate only in which of several interchangeable cards it
+// used is the move the candidate stands for.
+//
+// Interchangeable means what layOffActions means by it. On a group — a meld of
+// one rank — every natural of that rank is the same card, and a wild is a
+// joker or a deuce, which differ in what they cost; so two moves onto a group,
+// or two groups laid, are the same when they put the same number of naturals
+// of the same rank and the same wilds there. A sequence is not a group: its
+// suit is the meld, and every card in it is its own move. Nothing else is
+// collapsed, so nothing else is equivalent.
+func (learnGame) SameMove(raw module.State, seat string, played, cand module.Action) bool {
+	if played.Verb != cand.Verb || played.Target != cand.Target || len(played.Cards) != len(cand.Cards) {
+		return false
+	}
+	s, err := decode(raw)
+	if err != nil {
+		return false
+	}
+	t := s.team(seat)
+	if t == nil {
+		return false
+	}
+	r := s.rules()
+	onGroup := func(target string, cards []string) bool {
+		if target != "" {
+			m := t.meldByID(target)
+			return m != nil && m.kind() != meldRun
+		}
+		return meldKindOf(r, cards) != meldRun
+	}
+	switch played.Verb {
+	case VerbLayOff:
+		if played.Target == "" {
+			return false
+		}
+	case VerbLayMeld:
+	case VerbTakePile:
+		// The capture's cards go with the top card, which is the same for
+		// both: the meld they make is that card's.
+		top := s.top()
+		if !onGroup(played.Target, append([]string{top}, played.Cards...)) ||
+			!onGroup(cand.Target, append([]string{top}, cand.Cards...)) {
+			return false
+		}
+		return sameClasses(played.Cards, cand.Cards)
+	default:
+		return false
+	}
+	return onGroup(played.Target, played.Cards) && onGroup(cand.Target, cand.Cards) &&
+		sameClasses(played.Cards, cand.Cards)
+}
+
+// sameClasses compares two sets of cards bound for a group: naturals by rank,
+// wilds as a joker or a deuce.
+func sameClasses(a, b []string) bool {
+	count := map[string]int{}
+	class := func(c string) string {
+		switch {
+		case rankOf(c) == rankJoker:
+			return "joker"
+		case isWild(c):
+			return "deuce"
+		}
+		return rankOf(c)
+	}
+	for _, c := range a {
+		count[class(c)]++
+	}
+	for _, c := range b {
+		count[class(c)]--
+	}
+	for _, n := range count {
+		if n != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 func firstNatural(cards []string) string {

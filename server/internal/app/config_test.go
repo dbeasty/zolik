@@ -2,6 +2,7 @@ package app
 
 import (
 	"testing"
+	"time"
 )
 
 func TestLoadConfigAdmissionDefaults(t *testing.T) {
@@ -83,5 +84,22 @@ func TestLoadConfigReplayIsOffByDefault(t *testing.T) {
 		if !LoadConfig().ReplayEnabled {
 			t.Errorf("FEATURE_FLAG_MATCH_REPLAY=%s did not turn replay on", on)
 		}
+	}
+}
+
+// The per-game retention windows are off unless named, and a named game with
+// zero hours is kept for ever rather than falling back to the general window.
+func TestLoadConfigRetentionByGame(t *testing.T) {
+	t.Setenv("ZOLIK_RETAIN_COMPLETED_HOURS_BY_GAME", "")
+	if got := LoadConfig().Retention.CompletedByGame; got != nil {
+		t.Fatalf("CompletedByGame = %v with nothing set, want none", got)
+	}
+	t.Setenv("ZOLIK_RETAIN_COMPLETED_HOURS_BY_GAME", " holdem=8760 , canasta=0,bogus,zolik=x")
+	got := LoadConfig().Retention.CompletedByGame
+	if len(got) != 2 || got["holdem"] != 8760*time.Hour || got["canasta"] != 0 {
+		t.Fatalf("CompletedByGame = %v, want holdem 8760h and canasta for ever", got)
+	}
+	if _, ok := got["canasta"]; !ok {
+		t.Fatal("canasta=0 was dropped rather than kept for ever")
 	}
 }
