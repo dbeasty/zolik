@@ -67,8 +67,13 @@ func TestExistingVariationsAreUnchanged(t *testing.T) {
 			// out on black threes, and `blackThreeCandidate` used to count that
 			// as two cards and offer nothing. The driver now takes the go-out
 			// it was always entitled to, so the deal settles differently.
+			//
+			// Seed 3 was re-recorded when the black-three meld stopped demanding
+			// an empty hand: three black threes and a card to discard is going
+			// out, and the driver now takes it. classic/4 seed 4 moved for the
+			// same reason.
 			want: []string{
-				"284f63d874e1d71e", "eab94d924c7627c8", "584a945acd0a61ec",
+				"284f63d874e1d71e", "eab94d924c7627c8", "09f8d88351088305",
 				"432c716c0fd809d4", "080f6737d755b0a6", "55317538da0249af",
 			},
 		},
@@ -78,7 +83,7 @@ func TestExistingVariationsAreUnchanged(t *testing.T) {
 			cfg:     goldenCfg("classic"),
 			want: []string{
 				"cb125876593839bb", "c4adae99f3de2c82", "6e219a382095cda1",
-				"742849c7f193daa8", "6e050b28d36d6512", "22a3ba98486407aa",
+				"d1bf0cf46a8167e1", "6e050b28d36d6512", "22a3ba98486407aa",
 			},
 		},
 		{

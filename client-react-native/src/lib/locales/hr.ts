@@ -152,7 +152,7 @@ export const hr: Record<string, string> = {
   'canasta.rules.sequences': 'Kombinacija može biti i niz: tri ili više karata iste boje u nizu, nikad s džokerom među njima.',
   'canasta.rules.samba': 'Niz od sedam karata je samba i vrijedi {n} bodova.',
   'canasta.rules.blackThreesGoOut':
-    'Crna trojka blokira hrpu i vrijedi {n} bodova. Tri ili četiri njih smiju se spustiti izravno iz ruke, nikada s jokerom među njima, i samo kao potez kojim tvoja strana izlazi.',
+    'Crna trojka blokira hrpu i vrijedi {n} bodova. Tri ili više njih smiju se spustiti izravno iz ruke, nikada s jokerom među njima, i samo pri izlasku: nakon toga smiješ zadržati najviše jednu kartu, za bacanje.',
   'canasta.rules.blackThreesNeverMeld':
     'Crna trojka nikada se ne spušta. Odbačena blokira hrpu, a ostane li ti u ruci na kraju dijeljenja, stoji te {n} bodova.',
   'canasta.rules.pileAlwaysFrozen': 'Hrpa odbačenih zamrznuta je cijelo dijeljenje: možeš je uzeti samo tako da gornjoj karti pridružiš dvije prirodne karte iz ruke.',
@@ -470,7 +470,8 @@ export const hr: Record<string, string> = {
   'canasta.remedy.meldClosed':
     'Ta je kombinacija gotova na {n} karata — počni drugu ili dopuni negdje drugdje.',
   'canasta.remedy.discardNotARedThree': 'Odbaci nešto drugo osim crvene trojke.',
-  'canasta.remedy.blackThreesOnTheWayOut': 'Crne trojke izlažu se samo potezom kojim prazniš ruku.',
+  'canasta.remedy.blackThreesOnTheWayOut':
+    'Crne trojke izlažu se samo pri izlasku: nakon toga smiješ zadržati najviše jednu kartu, za bacanje.',
   'canasta.remedy.ownMeldsOnly': 'Dopunjuj samo kombinacije vlastite strane.',
   'badge.naturalCanasta': 'Čista kanasta',
   'badge.mixedCanasta': 'Nečista kanasta',

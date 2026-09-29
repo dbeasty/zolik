@@ -149,7 +149,7 @@ export const da: Record<string, string> = {
   'canasta.rules.sequences': 'En kombination kan også være en sekvens: tre eller flere kort i samme farve i træk, aldrig med et vildt kort iblandt.',
   'canasta.rules.samba': 'En sekvens på syv kort er en samba og giver {n} point.',
   'canasta.rules.blackThreesGoOut':
-    'En sort treer blokerer bunken og er {n} point værd. Tre eller fire af dem må lægges ud direkte fra hånden, aldrig med en joker iblandt, og kun som det træk, hvor din side går ud.',
+    'En sort treer blokerer bunken og er {n} point værd. Tre eller flere af dem må lægges ud direkte fra hånden, aldrig med en joker iblandt, og kun når din side går ud: når de ligger, må du højst beholde ét kort, til at smide.',
   'canasta.rules.blackThreesNeverMeld':
     'En sort treer lægges aldrig ud. Kastes den, blokerer den bunken, og bliver den på hånden, når spillet slutter, koster den {n} point.',
   'canasta.rules.pileAlwaysFrozen': 'Kastebunken er frosset hele givet: du kan kun tage den ved at lægge to naturlige kort fra hånden til det øverste kort.',
@@ -467,7 +467,8 @@ export const da: Record<string, string> = {
   'canasta.remedy.meldClosed':
     'Den melding er færdig ved {n} kort — start en ny, eller læg til et andet sted.',
   'canasta.remedy.discardNotARedThree': 'Smid noget andet ud end en rød tre.',
-  'canasta.remedy.blackThreesOnTheWayOut': 'Sorte treere lægges kun med det træk, der tømmer din hånd.',
+  'canasta.remedy.blackThreesOnTheWayOut':
+    'Sorte treere lægges kun ud, når du går ud: bagefter må du højst beholde ét kort, til at smide.',
   'canasta.remedy.ownMeldsOnly': 'Læg kun til din egen sides meldinger.',
   'badge.naturalCanasta': 'Ren canasta',
   'badge.mixedCanasta': 'Uren canasta',

@@ -154,7 +154,7 @@ export const fr: Record<string, string> = {
   'canasta.rules.sequences': 'Une combinaison peut aussi être une séquence : trois cartes ou plus de la même couleur qui se suivent, jamais avec un joker parmi elles.',
   'canasta.rules.samba': 'Une séquence de sept cartes est un samba, qui vaut {n} points.',
   'canasta.rules.blackThreesGoOut':
-    "Un trois noir bloque la pile et vaut {n} points. Trois ou quatre d'entre eux peuvent être posés directement de la main, jamais avec un joker parmi eux, et seulement comme le coup par lequel ton camp sort.",
+    "Un trois noir bloque la pile et vaut {n} points. Trois ou plus d'entre eux peuvent être posés directement de la main, jamais avec un joker parmi eux, et seulement pour sortir : une fois posés, tu peux garder au plus une carte, pour la défausser.",
   'canasta.rules.blackThreesNeverMeld':
     "Un trois noir ne se pose jamais. Défaussé, il bloque la pile, et s'il reste en main à la fin de la donne il coûte {n} points.",
   'canasta.rules.pileAlwaysFrozen': 'La défausse est gelée toute la donne : pour la prendre, tu dois associer sa carte du dessus à deux cartes naturelles de ta main.',
@@ -474,7 +474,8 @@ export const fr: Record<string, string> = {
   'canasta.remedy.meldClosed':
     'Cette combinaison est complète à {n} cartes — commences-en une autre, ou complète ailleurs.',
   'canasta.remedy.discardNotARedThree': "Défausse autre chose qu'un trois rouge.",
-  'canasta.remedy.blackThreesOnTheWayOut': "Les trois noirs ne se posent qu'avec le coup qui vide ta main.",
+  'canasta.remedy.blackThreesOnTheWayOut':
+    'Les trois noirs ne se posent que pour sortir : ensuite tu peux garder au plus une carte, pour la défausser.',
   'canasta.remedy.ownMeldsOnly': 'Ne complète que les combinaisons de ton propre camp.',
   'badge.naturalCanasta': 'Canasta pure',
   'badge.mixedCanasta': 'Canasta mixte',

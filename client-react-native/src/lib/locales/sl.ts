@@ -152,7 +152,7 @@ export const sl: Record<string, string> = {
   'canasta.rules.sequences': 'Kombinacija je lahko tudi zaporedje: tri ali več kart iste barve po vrsti, nikoli z jokerjem med njimi.',
   'canasta.rules.samba': 'Zaporedje sedmih kart je samba in je vredno {n} točk.',
   'canasta.rules.blackThreesGoOut':
-    'Črna trojka blokira kup in je vredna {n} točk. Tri ali štiri od njih smeš položiti naravnost iz roke, nikoli z jokerjem med njimi, in le kot potezo, s katero tvoja stran izide.',
+    'Črna trojka blokira kup in je vredna {n} točk. Tri ali več od njih smeš položiti naravnost iz roke, nikoli z jokerjem med njimi, in le ob izhodu: nato smeš obdržati največ eno karto, za odmet.',
   'canasta.rules.blackThreesNeverMeld':
     'Črne trojke se nikoli ne polaga. Odvržena blokira kup, če pa ti ob koncu deljenja ostane v roki, te stane {n} točk.',
   'canasta.rules.pileAlwaysFrozen': 'Kup odvrženih je zamrznjen vso deljitev: vzameš ga lahko le tako, da vrhnji karti dodaš dve naravni karti iz roke.',
@@ -467,7 +467,8 @@ export const sl: Record<string, string> = {
   'canasta.remedy.layOffInstead': 'Dodaj jih h kombinaciji, ki jo tvoja stran že ima.',
   'canasta.remedy.meldClosed': 'Ta kombinacija je pri {n} kartah dokončana — začni novo ali dopolni drugje.',
   'canasta.remedy.discardNotARedThree': 'Odvrzi kaj drugega kot rdečo trojko.',
-  'canasta.remedy.blackThreesOnTheWayOut': 'Črne trojke se položijo samo s potezo, ki izprazni tvojo roko.',
+  'canasta.remedy.blackThreesOnTheWayOut':
+    'Črne trojke se položijo samo ob izhodu: nato smeš obdržati največ eno karto, za odmet.',
   'canasta.remedy.ownMeldsOnly': 'Dopolnjuj samo kombinacije svoje strani.',
   'badge.naturalCanasta': 'Čista kanasta',
   'badge.mixedCanasta': 'Nečista kanasta',

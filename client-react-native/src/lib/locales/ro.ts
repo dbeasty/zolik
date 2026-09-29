@@ -154,7 +154,7 @@ export const ro: Record<string, string> = {
   'canasta.rules.sequences': 'O combinație poate fi și o secvență: trei sau mai multe cărți de aceeași culoare la rând, niciodată cu un joker între ele.',
   'canasta.rules.samba': 'O secvență de șapte cărți este o samba și valorează {n} puncte.',
   'canasta.rules.blackThreesGoOut':
-    'Un trei negru blochează teancul și valorează {n} puncte. Trei sau patru dintre ele pot fi coborâte direct din mână, niciodată cu un joker între ele, și doar ca mutarea cu care tabăra ta iese.',
+    'Un trei negru blochează teancul și valorează {n} puncte. Trei sau mai mulți pot fi coborâți direct din mână, niciodată cu un joker între ei, și doar la ieșire: după aceea poți păstra cel mult o carte, de aruncat.',
   'canasta.rules.blackThreesNeverMeld':
     'Un trei negru nu se coboară niciodată. Aruncat, blochează teancul, iar rămas în mână la sfârșitul împărțelii te costă {n} puncte.',
   'canasta.rules.pileAlwaysFrozen': 'Teancul de aruncate este înghețat toată mâna: îl poți lua doar potrivind cartea de deasupra cu două cărți naturale din mână.',
@@ -474,7 +474,8 @@ export const ro: Record<string, string> = {
   'canasta.remedy.meldClosed':
     'Combinația aceea e completă la {n} cărți — începe alta sau adaugă în altă parte.',
   'canasta.remedy.discardNotARedThree': 'Aruncă altceva decât un trei roșu.',
-  'canasta.remedy.blackThreesOnTheWayOut': 'Treii negri se pun jos doar cu mutarea care îți golește mâna.',
+  'canasta.remedy.blackThreesOnTheWayOut':
+    'Treii negri se pun jos doar la ieșire: după aceea poți păstra cel mult o carte, de aruncat.',
   'canasta.remedy.ownMeldsOnly': 'Adaugă doar la combinațiile propriei echipe.',
   'badge.naturalCanasta': 'Canastă curată',
   'badge.mixedCanasta': 'Canastă mixtă',

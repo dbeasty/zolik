@@ -147,7 +147,7 @@ export const sv: Record<string, string> = {
   'canasta.rules.sequences': 'En kombination kan också vara en sekvens: tre eller fler kort i samma färg i följd, aldrig med ett vilt kort bland dem.',
   'canasta.rules.samba': 'En sekvens på sju kort är en samba och ger {n} poäng.',
   'canasta.rules.blackThreesGoOut':
-    'En svart trea blockerar högen och är värd {n} poäng. Tre eller fyra av dem får läggas ut direkt från handen, aldrig med en joker ibland, och bara som draget där din sida går ut.',
+    'En svart trea blockerar högen och är värd {n} poäng. Tre eller fler av dem får läggas ut direkt från handen, aldrig med en joker ibland, och bara när din sida går ut: efteråt får du behålla högst ett kort, att slänga.',
   'canasta.rules.blackThreesNeverMeld':
     'En svart trea läggs aldrig ut. Kastad blockerar den högen, och ligger den kvar på handen när given är slut kostar den {n} poäng.',
   'canasta.rules.pileAlwaysFrozen': 'Kasthögen är fryst hela given: du kan bara ta den genom att lägga två naturliga kort från handen till det översta kortet.',
@@ -465,7 +465,8 @@ export const sv: Record<string, string> = {
   'canasta.remedy.meldClosed':
     'Den läggningen är färdig vid {n} kort — börja en ny, eller lägg till någon annanstans.',
   'canasta.remedy.discardNotARedThree': 'Kasta något annat än en röd trea.',
-  'canasta.remedy.blackThreesOnTheWayOut': 'Svarta treor läggs bara ned med draget som tömmer din hand.',
+  'canasta.remedy.blackThreesOnTheWayOut':
+    'Svarta treor läggs bara ned när du går ut: efteråt får du behålla högst ett kort, att slänga.',
   'canasta.remedy.ownMeldsOnly': 'Lägg bara till på din egen sidas läggningar.',
   'badge.naturalCanasta': 'Ren canasta',
   'badge.mixedCanasta': 'Oren canasta',

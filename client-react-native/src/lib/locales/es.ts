@@ -155,7 +155,7 @@ export const es: Record<string, string> = {
   'canasta.rules.sequences': 'Una combinación también puede ser una escalera: tres o más cartas del mismo palo seguidas, nunca con un comodín entre ellas.',
   'canasta.rules.samba': 'Una escalera de siete cartas es una samba y vale {n} puntos.',
   'canasta.rules.blackThreesGoOut':
-    'Un tres negro bloquea el montón y vale {n} puntos. Tres o cuatro de ellos pueden bajarse directamente de la mano, nunca con un comodín entre ellos, y solo como la jugada con la que tu bando se va.',
+    'Un tres negro bloquea el montón y vale {n} puntos. Tres o más de ellos pueden bajarse directamente de la mano, nunca con un comodín entre ellos, y solo al irte: una vez bajados, puedes quedarte como mucho con una carta, para descartarla.',
   'canasta.rules.blackThreesNeverMeld':
     'Un tres negro no se baja nunca. Al descartarlo bloquea el montón, y si se queda en tu mano al final de la ronda te cuesta {n} puntos.',
   'canasta.rules.pileAlwaysFrozen': 'El montón de descarte está congelado toda la mano: para llevártelo tienes que casar su carta superior con dos cartas naturales de tu mano.',
@@ -476,7 +476,8 @@ export const es: Record<string, string> = {
   'canasta.remedy.meldClosed':
     'Esa combinación está completa con {n} cartas: empieza otra o añade en otro sitio.',
   'canasta.remedy.discardNotARedThree': 'Descarta otra cosa que no sea un tres rojo.',
-  'canasta.remedy.blackThreesOnTheWayOut': 'Los treses negros solo bajan con la jugada que vacía tu mano.',
+  'canasta.remedy.blackThreesOnTheWayOut':
+    'Los treses negros solo bajan al irte: después puedes quedarte como mucho con una carta, para descartarla.',
   'canasta.remedy.ownMeldsOnly': 'Añade solo a las combinaciones de tu propio bando.',
   'badge.naturalCanasta': 'Canasta pura',
   'badge.mixedCanasta': 'Canasta impura',

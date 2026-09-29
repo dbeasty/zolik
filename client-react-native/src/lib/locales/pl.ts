@@ -155,7 +155,7 @@ export const pl: Record<string, string> = {
   'canasta.rules.sequences': 'Układ może być też sekwensem: trzy lub więcej kart tego samego koloru po kolei, nigdy z jokerem w środku.',
   'canasta.rules.samba': 'Sekwens z siedmiu kart to samba warta {n} punktów.',
   'canasta.rules.blackThreesGoOut':
-    'Czarna trójka blokuje stos i jest warta {n} punktów. Trzy lub cztery z nich można wyłożyć prosto z ręki, nigdy z jokerem wśród nich, i tylko jako zagranie, którym twoja strona wychodzi.',
+    'Czarna trójka blokuje stos i jest warta {n} punktów. Trzy lub więcej z nich można wyłożyć prosto z ręki, nigdy z jokerem wśród nich, i tylko przy wychodzeniu: potem możesz zatrzymać najwyżej jedną kartę, do odrzucenia.',
   'canasta.rules.blackThreesNeverMeld':
     'Czarnej trójki nigdy się nie wykłada. Odrzucona blokuje stos, a zostawiona w ręce na koniec rozdania kosztuje {n} punktów.',
   'canasta.rules.pileAlwaysFrozen': 'Stos odrzuconych jest zamrożony przez całe rozdanie: aby go wziąć, musisz dołożyć do wierzchniej karty dwie naturalne karty z ręki.',
@@ -474,7 +474,8 @@ export const pl: Record<string, string> = {
   'canasta.remedy.meldClosed':
     'Ten układ jest zamknięty przy {n} kartach — zacznij inny albo dołóż gdzie indziej.',
   'canasta.remedy.discardNotARedThree': 'Zrzuć coś innego niż czerwoną trójkę.',
-  'canasta.remedy.blackThreesOnTheWayOut': 'Czarne trójki wykłada się tylko ruchem, który opróżnia ci rękę.',
+  'canasta.remedy.blackThreesOnTheWayOut':
+    'Czarne trójki wykłada się tylko przy wychodzeniu: potem możesz zatrzymać najwyżej jedną kartę, do odrzucenia.',
   'canasta.remedy.ownMeldsOnly': 'Dokładaj tylko do układów własnej strony.',
   'badge.naturalCanasta': 'Czysta canasta',
   'badge.mixedCanasta': 'Brudna canasta',

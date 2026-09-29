@@ -152,7 +152,7 @@ export const cs: Record<string, string> = {
   'canasta.rules.sequences': 'Kombinace může být i postupka: tři a více karet stejné barvy za sebou, nikdy se žolíkem mezi nimi.',
   'canasta.rules.samba': 'Postupka ze sedmi karet je samba a má hodnotu {n} bodů.',
   'canasta.rules.blackThreesGoOut':
-    'Černá trojka blokuje balíček a má hodnotu {n} bodů. Tři nebo čtyři z nich můžete vyložit přímo z ruky, nikdy se žolíkem mezi nimi, a jen jako tah, kterým vaše strana ukončí hru.',
+    'Černá trojka blokuje balíček a má hodnotu {n} bodů. Tři nebo více z nich můžete vyložit přímo z ruky, nikdy se žolíkem mezi nimi, a jen při ukončení hry: jakmile leží, smíte si ponechat nejvýš jednu kartu, a tu odhodit.',
   'canasta.rules.blackThreesNeverMeld':
     'Černá trojka se nikdy nevykládá. Odhozená blokuje balíček a na konci rozdání vám v ruce ubere {n} bodů.',
   'canasta.rules.pileAlwaysFrozen': 'Odhazovací balíček je zamrzlý po celé rozdání: vzít si ho můžete jen tak, že k vrchní kartě přiložíte dvě přirozené karty z ruky.',
@@ -466,7 +466,8 @@ export const cs: Record<string, string> = {
   'canasta.remedy.layOffInstead': 'Přilož je ke kombinaci, kterou už tvoje strana má.',
   'canasta.remedy.meldClosed': 'Tahle kombinace je při {n} kartách hotová — začni jinou, nebo přilož jinam.',
   'canasta.remedy.discardNotARedThree': 'Odhoď něco jiného než červenou trojku.',
-  'canasta.remedy.blackThreesOnTheWayOut': 'Černé trojky se vykládají jen tahem, kterým vyprázdníš ruku.',
+  'canasta.remedy.blackThreesOnTheWayOut':
+    'Černé trojky se vykládají jen při ukončení hry: potom si smíš ponechat nejvýš jednu kartu, a tu odhodit.',
   'canasta.remedy.ownMeldsOnly': 'Přikládej jen ke kombinacím vlastní strany.',
   'badge.naturalCanasta': 'Čistá kanasta',
   'badge.mixedCanasta': 'Nečistá kanasta',

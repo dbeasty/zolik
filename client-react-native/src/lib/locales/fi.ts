@@ -153,7 +153,7 @@ export const fi: Record<string, string> = {
   'canasta.rules.sequences': 'Yhdistelmä voi olla myös jono: kolme tai useampi saman maan kortti peräkkäin, ei koskaan jokeria mukana.',
   'canasta.rules.samba': 'Seitsemän kortin jono on samba ja se on {n} pisteen arvoinen.',
   'canasta.rules.blackThreesGoOut':
-    'Musta kolmonen tukkii pinon ja on {n} pisteen arvoinen. Kolme tai neljä niistä saa laskea suoraan kädestä, ei koskaan jokerin kanssa, ja vain siirtona, jolla puolesi pääsee ulos.',
+    'Musta kolmonen tukkii pinon ja on {n} pisteen arvoinen. Kolme tai useampia niistä saa laskea suoraan kädestä, ei koskaan jokerin kanssa, ja vain ulos mentäessä: sen jälkeen saat pitää korkeintaan yhden kortin, poistettavaksi.',
   'canasta.rules.blackThreesNeverMeld':
     'Mustaa kolmosta ei lasketa koskaan. Poistettuna se tukkii pinon, ja jaon lopussa käteen jäänyt maksaa {n} pistettä.',
   'canasta.rules.pileAlwaysFrozen': 'Poistopino on jäädytetty koko jaon ajan: saat sen vain sovittamalla päällimmäisen kortin kahteen luonnolliseen korttiin kädestäsi.',
@@ -473,7 +473,7 @@ export const fi: Record<string, string> = {
   'canasta.remedy.meldClosed': 'Tuo sarja on valmis {n} kortilla — aloita uusi tai liitä muualle.',
   'canasta.remedy.discardNotARedThree': 'Poista jokin muu kuin punainen kolmonen.',
   'canasta.remedy.blackThreesOnTheWayOut':
-    'Mustat kolmoset lasketaan vain sillä siirrolla, joka tyhjentää kätesi.',
+    'Mustat kolmoset lasketaan vain ulos mentäessä: sen jälkeen saat pitää korkeintaan yhden kortin, poistettavaksi.',
   'canasta.remedy.ownMeldsOnly': 'Liitä vain oman puolesi sarjoihin.',
   'badge.naturalCanasta': 'Puhdas canasta',
   'badge.mixedCanasta': 'Epäpuhdas canasta',
