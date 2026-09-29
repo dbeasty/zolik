@@ -171,9 +171,15 @@ func applyDraw(s *GameState, playerID string, a module.Action) ([]module.Event, 
 			s.ForcedStockDraw = false
 		}
 		s.Phase = phaseDiscard
-		return []module.Event{{Type: "card_drawn", Data: map[string]any{
+		ev := module.Event{Type: "card_drawn", Data: map[string]any{
 			"playerId": playerID, "fromDiscard": fromDiscard,
-		}}}, nil
+		}}
+		// The discard pile's top card was face up, so naming it tells nobody
+		// anything; a card from the stock is never named.
+		if fromDiscard {
+			ev.Data["card"] = s.Hands[playerID][len(s.Hands[playerID])-1]
+		}
+		return []module.Event{ev}, nil
 	default:
 		return nil, errCode(ErrWrongPhase)
 	}
