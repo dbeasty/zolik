@@ -64,6 +64,7 @@ export function BoardLayout({
   hand,
   controls,
   tableAnchor,
+  onOpenScore,
 }: {
   state: MatchState;
   viewerId: string;
@@ -82,6 +83,8 @@ export function BoardLayout({
    * which nobody is dealt into. See `useOpeningScroll`.
    */
   tableAnchor?: { ref: Ref<View> };
+  /** Open the account behind a seat's score. See `ScoreSheet`. */
+  onOpenScore?: (playerId: string) => void;
 }) {
   const view = state.view ?? { zones: [] };
   const zones = view.zones ?? [];
@@ -151,6 +154,7 @@ export function BoardLayout({
         viewerId={viewerId}
         standings={state.standings}
         registerSpot={drops.registerDrop}
+        onOpenScore={onOpenScore}
         {...zonePanelProps('seats')}
       />
 

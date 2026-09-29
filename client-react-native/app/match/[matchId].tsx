@@ -22,6 +22,7 @@ import { OfferBar, OfferGlance, type OfferParams } from '@/src/components/match/
 import { Panel } from '@/src/components/match/Panel';
 import { ResultsFlash } from '@/src/components/match/ResultsFlash';
 import { RoundResults } from '@/src/components/match/RoundResults';
+import { ScoreSheet } from '@/src/components/match/ScoreSheet';
 import { TableSurface } from '@/src/components/match/TableSurface';
 import { useSession } from '@/src/context/SessionContext';
 import { useSeatSession } from '@/src/hooks/useSeatSession';
@@ -198,6 +199,8 @@ export default function MatchScreen() {
   // an answer to a question a player just asked, and the last one asked is
   // the one they meant.
   const [explaining, setExplaining] = useState<Refusal | null>(null);
+  // Whose score is being explained, and from which round's cell if any.
+  const [scoreOf, setScoreOf] = useState<{ playerId: string; round?: number } | null>(null);
   // Amounts dialled into the controls and not yet sent. Held here, not in the
   // bar, because the bar unmounts when its panel collapses and the collapsed
   // rail's pills send the same offers — both read this one store.
@@ -1390,6 +1393,7 @@ export default function MatchScreen() {
               players={state.players}
               standings={state.standings}
               viewerId={viewerId}
+              onOpenScore={(playerId, round) => setScoreOf({ playerId, round })}
             />
             {state.status === 'completed' ? <LifetimeRecord moduleId={state.moduleId} /> : null}
           </View>
@@ -1411,6 +1415,9 @@ export default function MatchScreen() {
             paused ? null : <View {...opening.anchor('controls')}>{controlsPanel}</View>
           }
           tableAnchor={opening.anchor('table')}
+          // Only where the game keeps rounds: a score with no account behind
+          // it — Prší's, which is a card count — has nothing to open.
+          onOpenScore={state.rounds ? (playerId) => setScoreOf({ playerId }) : undefined}
         />
 
       </ScrollView>
@@ -1419,6 +1426,17 @@ export default function MatchScreen() {
           to make instead. Opened from a greyed-out control's reason line, a
           refused drop, or a submission the server turned down — one component
           for all three, because they are one question. */}
+      <ScoreSheet
+        subjectId={scoreOf?.playerId ?? null}
+        focusRound={scoreOf?.round}
+        log={state.rounds}
+        seats={view.seats ?? []}
+        players={state.players}
+        standings={state.standings}
+        viewerId={viewerId}
+        onClose={() => setScoreOf(null)}
+      />
+
       <WhySheet
         refusal={explaining}
         ruleIndex={ruleIndex}

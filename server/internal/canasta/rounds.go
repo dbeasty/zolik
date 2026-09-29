@@ -75,6 +75,7 @@ func (m *Module) Rounds(raw module.State) (module.RoundLog, error) {
 				Delta: t.Total,
 				Total: t.Running,
 				Facts: teamFacts(t),
+				Lines: teamLines(s.rules(), d, t),
 			})
 		}
 		log.Rounds = append(log.Rounds, r)
@@ -99,24 +100,206 @@ func dealFacts(d DealResult) []module.Fact {
 // Only the parts that actually moved: a row of five zeroes is noise, and the
 // components that scored are the ones worth reading.
 func teamFacts(t TeamResult) []module.Fact {
-	parts := []struct {
-		key string
-		n   int
-	}{
-		{"canasta.round.meldCards", t.MeldCards},
-		{"canasta.round.canastas", t.Canastas},
-		{"canasta.round.redThrees", t.RedThrees},
-		{"canasta.round.goingOut", t.GoingOut},
-		{"canasta.round.inHand", t.InHand},
-	}
+	// One literal per key rather than a table of them: the manifest is read
+	// from this source, and keys in a table of anonymous structs were never in
+	// it.
 	var out []module.Fact
-	for _, p := range parts {
-		if p.n == 0 {
-			continue
-		}
-		out = append(out, module.Fact{LabelKey: p.key, Params: map[string]any{"n": p.n}})
+	if t.MeldCards != 0 {
+		out = append(out, module.Fact{LabelKey: "canasta.round.meldCards", Params: map[string]any{"n": t.MeldCards}})
+	}
+	if t.Canastas != 0 {
+		out = append(out, module.Fact{LabelKey: "canasta.round.canastas", Params: map[string]any{"n": t.Canastas}})
+	}
+	if t.RedThrees != 0 {
+		out = append(out, module.Fact{LabelKey: "canasta.round.redThrees", Params: map[string]any{"n": t.RedThrees}})
+	}
+	if t.GoingOut != 0 {
+		out = append(out, module.Fact{LabelKey: "canasta.round.goingOut", Params: map[string]any{"n": t.GoingOut}})
+	}
+	if t.InHand != 0 {
+		out = append(out, module.Fact{LabelKey: "canasta.round.inHand", Params: map[string]any{"n": t.InHand}})
 	}
 	return out
+}
+
+// teamLines is a partnership's deal as an account: each part with its points
+// and, where the deal kept them, the melds, canastas and hands behind it.
+//
+// Every key is written out in a literal of its own, including the ones picked
+// by a branch, because the manifest is built by reading this source and a key
+// passed through a variable is a key it never sees.
+func teamLines(r ruleset, d DealResult, t TeamResult) []module.ScoreLine {
+	var out []module.ScoreLine
+
+	if t.MeldCards != 0 || len(t.Melds) > 0 {
+		line := module.ScoreLine{LabelKey: "canasta.line.meldCards", Points: t.MeldCards}
+		for _, m := range t.Melds {
+			line.Sub = append(line.Sub, meldLine(m))
+		}
+		out = append(out, line)
+	}
+
+	if t.Canastas != 0 {
+		line := module.ScoreLine{LabelKey: "canasta.line.canastas", Points: t.Canastas}
+		if t.Naturals > 0 {
+			line.Sub = append(line.Sub, module.ScoreLine{
+				LabelKey: "canasta.line.natural",
+				Params:   map[string]any{"n": t.Naturals, "each": r.NaturalCanastaBonus},
+				Points:   t.Naturals * r.NaturalCanastaBonus,
+			})
+		}
+		if t.Mixed > 0 {
+			line.Sub = append(line.Sub, module.ScoreLine{
+				LabelKey: "canasta.line.mixed",
+				Params:   map[string]any{"n": t.Mixed, "each": r.MixedCanastaBonus},
+				Points:   t.Mixed * r.MixedCanastaBonus,
+			})
+		}
+		if t.Sambas > 0 {
+			line.Sub = append(line.Sub, module.ScoreLine{
+				LabelKey: "canasta.line.samba",
+				Params:   map[string]any{"n": t.Sambas, "each": r.SambaBonus},
+				Points:   t.Sambas * r.SambaBonus,
+			})
+		}
+		// A deal kept before the counts were is shown as its sum alone; so is
+		// one whose counts no longer price out under the ruleset, rather than
+		// an account that does not add up.
+		if sum := linePoints(line.Sub); sum != t.Canastas {
+			line.Sub = nil
+		}
+		out = append(out, line)
+	}
+
+	switch {
+	case t.RedThrees == 0:
+	case t.RedThreeCount == 0:
+		out = append(out, module.ScoreLine{LabelKey: "canasta.line.redThreesSum", Points: t.RedThrees})
+	case t.RedThreeShort:
+		out = append(out, module.ScoreLine{
+			LabelKey: "canasta.line.redThreesShort",
+			Params:   map[string]any{"n": t.RedThreeCount, "need": r.RedThreesNeed, "made": t.Naturals + t.Mixed + t.Sambas},
+			Points:   t.RedThrees,
+		})
+	case t.RedThreesAll:
+		out = append(out, module.ScoreLine{
+			LabelKey: "canasta.line.redThreesAll",
+			Params:   map[string]any{"n": t.RedThreeCount},
+			Points:   t.RedThrees,
+		})
+	default:
+		out = append(out, module.ScoreLine{
+			LabelKey: "canasta.line.redThrees",
+			Params:   map[string]any{"n": t.RedThreeCount, "each": redThreeValue},
+			Points:   t.RedThrees,
+		})
+	}
+
+	if t.GoingOut != 0 {
+		// Named concealed only when it paid as concealed: Samba has no such
+		// bonus and pays a hand melded in one turn the ordinary hundred, and
+		// the line should say what was paid, not what was done.
+		if d.Concealed && r.ConcealedBonus > 0 && t.GoingOut == r.ConcealedBonus {
+			out = append(out, module.ScoreLine{
+				LabelKey: "canasta.line.goingOutConcealed",
+				Params:   map[string]any{"player": d.WentOut},
+				Points:   t.GoingOut,
+			})
+		} else {
+			out = append(out, module.ScoreLine{
+				LabelKey: "canasta.line.goingOut",
+				Params:   map[string]any{"player": d.WentOut},
+				Points:   t.GoingOut,
+			})
+		}
+	}
+
+	if t.InHand != 0 {
+		line := module.ScoreLine{LabelKey: "canasta.line.inHand", Points: -t.InHand}
+		for _, h := range t.Hands {
+			if h.Cards == 0 {
+				continue
+			}
+			hand := module.ScoreLine{
+				LabelKey: "canasta.line.hand",
+				Params:   map[string]any{"player": h.PlayerID, "n": h.Cards},
+				Points:   -h.Points,
+			}
+			other := h.Points - h.BlackThrees*blackThreeValue - h.WildPoints
+			if h.BlackThrees > 0 {
+				hand.Sub = append(hand.Sub, module.ScoreLine{
+					LabelKey: "canasta.line.handBlackThrees",
+					Params:   map[string]any{"n": h.BlackThrees, "each": blackThreeValue},
+					Points:   -h.BlackThrees * blackThreeValue,
+				})
+			}
+			if h.Wilds > 0 {
+				hand.Sub = append(hand.Sub, module.ScoreLine{
+					LabelKey: "canasta.line.handWilds",
+					Params:   map[string]any{"n": h.Wilds},
+					Points:   -h.WildPoints,
+				})
+			}
+			if n := h.Cards - h.BlackThrees - h.Wilds; n > 0 {
+				hand.Sub = append(hand.Sub, module.ScoreLine{
+					LabelKey: "canasta.line.handOther",
+					Params:   map[string]any{"n": n},
+					Points:   -other,
+				})
+			}
+			// One category is the hand itself said twice.
+			if len(hand.Sub) == 1 {
+				hand.Sub = nil
+			}
+			line.Sub = append(line.Sub, hand)
+		}
+		if linePoints(line.Sub) != line.Points {
+			line.Sub = nil
+		}
+		out = append(out, line)
+	}
+	return out
+}
+
+// meldLine names a meld by what it is — "K × 5 + wild × 1", "Hearts: sequence
+// × 7" — rather than by its cards, which the round log may not carry.
+func meldLine(m MeldTally) module.ScoreLine {
+	if m.Kind == meldRun {
+		return module.ScoreLine{
+			LabelKey: "canasta.line.meldRun",
+			Params:   map[string]any{"suit": "suit." + m.Suit, "n": m.Cards},
+			Points:   m.Points,
+		}
+	}
+	if m.Wilds > 0 {
+		return module.ScoreLine{
+			LabelKey: "canasta.line.meldSetWild",
+			Params:   map[string]any{"rank": rankShown(m.Rank), "naturals": m.Cards - m.Wilds, "wilds": m.Wilds},
+			Points:   m.Points,
+		}
+	}
+	return module.ScoreLine{
+		LabelKey: "canasta.line.meldSet",
+		Params:   map[string]any{"rank": rankShown(m.Rank), "n": m.Cards},
+		Points:   m.Points,
+	}
+}
+
+// rankShown is a rank as the card faces print it: the ten is a "10" there,
+// and "T" is only this package's spelling of it.
+func rankShown(rank string) string {
+	if rank == "T" {
+		return "10"
+	}
+	return rank
+}
+
+func linePoints(ls []module.ScoreLine) int {
+	total := 0
+	for _, l := range ls {
+		total += l.Points
+	}
+	return total
 }
 
 // dealLeader is the partnership that scored the most in one deal, or false when

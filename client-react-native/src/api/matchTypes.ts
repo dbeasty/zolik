@@ -327,6 +327,25 @@ export type RoundScore = {
   shown?: number;
   shownTotal?: number;
   facts?: Fact[];
+  /**
+   * The same breakdown as an account: every part with its points, and the
+   * parts of those parts. They sum to the printed delta — the server tests
+   * that, so this side only prints them. Absent for a game or a round that
+   * has not written one; `facts` is the fallback.
+   */
+  lines?: ScoreLine[];
+};
+
+/**
+ * One row of a round's account. `points` is signed the way the row's printed
+ * delta is; `sub` breaks it down and sums to it. A line with no points and no
+ * sub explains rather than scores.
+ */
+export type ScoreLine = {
+  labelKey: string;
+  params?: Record<string, unknown>;
+  points: number;
+  sub?: ScoreLine[];
 };
 
 /** One completed round of a match. */
