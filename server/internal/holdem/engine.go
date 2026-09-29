@@ -92,6 +92,8 @@ func dealHand(s *GameState) []module.Event {
 	s.CurrentBet = 0
 	s.MinRaise = s.BigBlind
 	s.Street = streetPreflop
+	s.HandLog = nil
+	s.Aggressor = -1
 
 	// Vary the deal per hand so a match is reproducible from its seed without
 	// dealing the same cards every hand.
@@ -104,6 +106,9 @@ func dealHand(s *GameState) []module.Event {
 		for _, idx := range live {
 			s.Seats[idx].Hole = append(s.Seats[idx].Hole, s.draw())
 		}
+	}
+	for _, idx := range live {
+		s.Seats[idx].reads().Hands++
 	}
 
 	// Heads-up reverses the blinds: the button posts the small blind and acts
@@ -222,6 +227,10 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 		return raw, nil, errCode(ErrSeatNotInHand)
 	}
 
+	// What the table looked like as this seat decided, for the public record
+	// below. Taken before the action moves any chips.
+	before := decisionAt{seat: s.Current, owed: s.toCall(seat), bet: s.CurrentBet, pot: potNow(s), put: seat.Committed}
+
 	var events []module.Event
 	switch a.Verb {
 	case VerbFold:
@@ -238,6 +247,7 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 	if err != nil {
 		return raw, nil, err
 	}
+	record(s, a.Verb, before)
 
 	events = append(events, advance(s)...)
 	out, err := encode(s)
@@ -406,6 +416,7 @@ func nextStreet(s *GameState) []module.Event {
 	}
 	s.CurrentBet = 0
 	s.MinRaise = s.BigBlind
+	s.Aggressor = -1
 
 	switch s.Street {
 	case streetPreflop:
@@ -530,6 +541,7 @@ func reveal(s *GameState, res *HandResult, contenders []int) {
 			PlayerID: st.PlayerID, Hole: append([]string(nil), st.Hole...),
 			Best: best.Cards, LabelKey: categoryKey(best.Category),
 		})
+		readShown(s, idx)
 	}
 }
 
@@ -579,6 +591,7 @@ func applyShow(s *GameState, playerID string) ([]module.Event, error) {
 	}
 	s.LastHand.Shown = append(s.LastHand.Shown, shown)
 	s.LastHand.Mucked = without(s.LastHand.Mucked, playerID)
+	readShown(s, idx)
 
 	// The cards go out with the event because they are now public — this
 	// player just made them so. Every other field a client needs is already

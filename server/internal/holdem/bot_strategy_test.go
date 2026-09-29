@@ -2,7 +2,6 @@ package holdem
 
 import (
 	"math/rand"
-	"strconv"
 	"testing"
 
 	"zolik/server/internal/module"
@@ -300,38 +299,6 @@ func TestBotLadderIsOrdered(t *testing.T) {
 	} else {
 		t.Logf("medium vs easy: %+d chips", net)
 	}
-}
-
-// riverBluffer plays every street passively and then overbets the river with
-// whatever it happens to be holding.
-//
-// It is the opponent "every bet is honest" cannot play against, and the reason
-// it has to be written rather than assembled out of module.OfferBot is that an
-// offer-reading bot always picks the *minimum* raise (module.defaultParam), and
-// a minimum raise claims nothing. The whole question here is what a bet far
-// larger than the pot means.
-type riverBluffer struct{}
-
-func (riverBluffer) Act(raw module.State, _ module.BotSeat, offers []module.ActionOffer) (module.Action, bool) {
-	mn := menuOf(offers)
-	s, err := decode(raw)
-	if err == nil && s.Street == streetRiver && mn.can(VerbRaise) {
-		if lo, hi, ok := mn.bounds(); ok {
-			want := 3 * potNow(s)
-			if want < lo {
-				want = lo
-			}
-			if want > hi {
-				want = hi
-			}
-			return module.Action{
-				OfferID: mn.byVerb[VerbRaise].ID,
-				Verb:    VerbRaise,
-				Params:  map[string]string{ParamAmount: strconv.Itoa(want)},
-			}, true
-		}
-	}
-	return module.ChooseAction(offers, []string{VerbCheck, VerbCall, VerbFold})
 }
 
 // TestHardPicksOffARiverOverbet is the bluff-catching change, measured in
