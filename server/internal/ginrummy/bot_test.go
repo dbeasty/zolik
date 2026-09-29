@@ -1,6 +1,7 @@
 package ginrummy
 
 import (
+	"reflect"
 	"testing"
 
 	"zolik/server/internal/module"
@@ -83,6 +84,79 @@ func TestBot_AlwaysLaysOffWhenItCan(t *testing.T) {
 	a := botAct(t, m, raw, module.BotSeat{PlayerID: "p2", Skill: module.SkillMedium})
 	if a.Verb != VerbLayOff {
 		t.Fatalf("expected the bot to lay off, got %+v", a)
+	}
+}
+
+// TestBotDoesNotPeek.
+//
+// The bot is handed the whole state — the opponent's hand and the stock in the
+// order it will be drawn — because that is what the runtime has. Nothing but
+// this test stops it reading them, and the hint button shows a human whatever
+// the bot would do, so a bot that peeked would leak the opponent's hand to
+// them too.
+//
+// Every decision the bot makes before a knock is covered: the upcard, the
+// draw, and the discard. Each is built against two opponent hands and two
+// stocks of the same size, and has to come out the same against all four.
+// (The lay-off is not: by then the knocker's hand is face up.)
+func TestBotDoesNotPeek(t *testing.T) {
+	// A set, a run, a pair of kings and loose cards: deadwood 35, so nothing
+	// can knock and every skill has to choose a discard.
+	eleven := []string{"5H", "5D", "5C", "7S", "8S", "9S", "AH", "KC", "KD", "QD", "4D"}
+	ten := eleven[:10]
+	theirs := [][]string{
+		{"2H", "3H", "4H", "6H", "8H", "TH", "2S", "3S", "4S", "JD"},
+		{"9H", "JH", "QH", "JC", "6D", "8D", "9D", "TD", "JD", "7D"},
+	}
+	stocks := [][]string{
+		{"6C", "7C", "8C", "9C", "TC"},
+		{"3D", "2D", "AC", "AS", "QS"},
+	}
+	type position struct {
+		name  string
+		phase string
+		hand  []string
+		top   string
+	}
+	var positions []position
+	// The king turns p1's pair into a set and the two helps nothing: one of
+	// each, so the same assertion covers taking the discard and leaving it.
+	for _, top := range []string{"KH", "2C"} {
+		positions = append(positions,
+			position{"upcard", phaseUpcardNonDealer, ten, top},
+			position{"draw", phaseDraw, ten, top},
+		)
+	}
+	positions = append(positions, position{"discard", phaseDiscard, eleven, "2C"})
+
+	m := New()
+	for _, p := range positions {
+		for _, skill := range module.Skills {
+			var want module.Action
+			for i, hand := range theirs {
+				for j, stock := range stocks {
+					raw := withState(t, func(s *GameState) {
+						s.Phase = p.phase
+						s.Hands["p1"] = append([]string(nil), p.hand...)
+						s.Hands["p2"] = append([]string(nil), hand...)
+						s.Stock = append([]string(nil), stock...)
+						s.DiscardPile = []string{"3C", p.top}
+						// What p2 has taken is public, and it is what the
+						// danger score reads — so it is set, and set the same.
+						s.Interest = map[string][]string{"p2": {"JC"}}
+					})
+					got := botAct(t, m, raw, module.BotSeat{PlayerID: "p1", Skill: skill})
+					if i == 0 && j == 0 {
+						want = got
+						continue
+					}
+					if !reflect.DeepEqual(got, want) {
+						t.Errorf("%s with %s up, %s: played %+v against hand %d and stock %d, but %+v against hand 0 and stock 0 — it is reading hidden cards",
+							p.name, p.top, skill, got, i, j, want)
+					}
+				}
+			}
+		}
 	}
 }
 

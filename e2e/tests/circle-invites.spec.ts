@@ -1,6 +1,7 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 
 import { API_BASE } from '../helpers/env';
+import { openGame } from '../helpers/lobby';
 import { loginAsFreshGuest, type GuestIdentity } from '../helpers/login';
 
 /**
@@ -33,8 +34,7 @@ async function addByFriendLink(page: Page, code: string, friendName: string) {
 }
 
 async function openFriendsTable(page: Page) {
-  await page.goto('/lobby/games');
-  await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 20_000 });
+  await openGame(page, 'prsi');
   await page.getByTestId('play-friends-prsi').click();
   await expect(page.getByTestId('table-screen')).toBeVisible({ timeout: 20_000 });
 }

@@ -1,5 +1,7 @@
 package module
 
+import "fmt"
+
 // A match's rounds, in a shape no game owns.
 //
 // The runtime had no concept of a round, deliberately: the statistics model
@@ -88,8 +90,71 @@ type RoundScore struct {
 	Shown      *int `json:"shown,omitempty"`
 	ShownTotal *int `json:"shownTotal,omitempty"`
 	// Facts break the delta into the parts a player argues about: melded cards,
-	// canastas, red threes, what was left in hand.
+	// canastas, red threes, what was left in hand. One line each, for the
+	// places that have room for a summary and no more.
 	Facts []Fact `json:"facts,omitempty"`
+	// Lines are the same breakdown as an account: every part with its points,
+	// and the parts of those parts, so a player can check the arithmetic
+	// rather than take the total on trust. They sum to the printed delta —
+	// Shown where a module sets it, Delta otherwise — and CheckLines says so.
+	Lines []ScoreLine `json:"lines,omitempty"`
+}
+
+// ScoreLine is one row of a round's account.
+//
+// Points are signed and oriented the way the row's printed delta is, so a
+// client adds them up without knowing which way the game counts. A line may be
+// broken down further by Sub, whose points sum to the line's own; a line that
+// explains rather than scores ("two more cards to a canasta") has no points
+// and no Sub, and sums to nothing.
+type ScoreLine struct {
+	LabelKey string         `json:"labelKey"`
+	Params   map[string]any `json:"params,omitempty"`
+	Points   int            `json:"points"`
+	Sub      []ScoreLine    `json:"sub,omitempty"`
+}
+
+// CheckLines reports an account that does not add up: the lines against the
+// printed delta, and every broken-down line against its parts.
+//
+// A row with no lines passes. That is a module that has not written its
+// account, which is allowed; one that has written a wrong one is not.
+func CheckLines(rs RoundScore) error {
+	if len(rs.Lines) == 0 {
+		return nil
+	}
+	want := rs.Delta
+	if rs.Shown != nil {
+		want = *rs.Shown
+	}
+	if got := sumLines(rs.Lines); got != want {
+		return fmt.Errorf("%s: lines sum to %d, delta is %d", rs.PlayerID, got, want)
+	}
+	var walk func(path string, ls []ScoreLine) error
+	walk = func(path string, ls []ScoreLine) error {
+		for _, l := range ls {
+			if len(l.Sub) == 0 {
+				continue
+			}
+			here := path + "/" + l.LabelKey
+			if got := sumLines(l.Sub); got != l.Points {
+				return fmt.Errorf("%s: %s is %d but its parts sum to %d", rs.PlayerID, here, l.Points, got)
+			}
+			if err := walk(here, l.Sub); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	return walk("", rs.Lines)
+}
+
+func sumLines(ls []ScoreLine) int {
+	total := 0
+	for _, l := range ls {
+		total += l.Points
+	}
+	return total
 }
 
 // Rounded is implemented by a module whose match is made of rounds.

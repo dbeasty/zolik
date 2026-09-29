@@ -164,6 +164,7 @@ test.describe('the whole app speaks one language at a time', () => {
 
     // Opening a table is the screen the invite panel lives on, and the invite
     // panel was the last thing in the app still hardcoded in English.
+    await page.getByTestId('game-prsi').click();
     await page.getByTestId('games-list').getByText('Tisch eröffnen').first().click();
     await expect(page.getByTestId('table-screen')).toBeVisible();
     expectNoEnglish(await screenText(page), 'an open table');

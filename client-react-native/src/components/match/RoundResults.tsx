@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react';
-import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useArrival } from '@/src/hooks/useArrival';
 import { useMetrics } from '@/src/hooks/useMetrics';
@@ -32,6 +32,8 @@ type Props = {
   players: MatchPlayer[];
   standings?: Standing[];
   viewerId: string;
+  /** Open the account behind one cell: that player, that round. */
+  onOpenScore?: (playerId: string, round: number) => void;
 };
 
 export const RoundResults = memo(function RoundResults({
@@ -39,6 +41,7 @@ export const RoundResults = memo(function RoundResults({
   players,
   standings,
   viewerId,
+  onOpenScore,
 }: Props) {
   const metrics = useMetrics();
   const skin = useSkin();
@@ -131,8 +134,8 @@ export const RoundResults = memo(function RoundResults({
                   </View>
                   {columns.map((id) => {
                     const s = scores.get(id);
-                    return (
-                      <View key={id} style={styles.cell}>
+                    const content = (
+                      <>
                         <Text
                           testID={`round-${r.number}-${id}`}
                           style={[styles.delta, took.has(id) && styles.tookIt]}
@@ -140,6 +143,22 @@ export const RoundResults = memo(function RoundResults({
                           {s ? formatDelta(s) : '—'}
                         </Text>
                         {s ? <Text style={styles.total}>{runningTotal(s)}</Text> : null}
+                      </>
+                    );
+                    return s && onOpenScore ? (
+                      <Pressable
+                        key={id}
+                        style={styles.cell}
+                        onPress={() => onOpenScore(id, r.number)}
+                        accessibilityRole="button"
+                        accessibilityHint={t('score.open')}
+                        testID={`round-${r.number}-${id}-open`}
+                      >
+                        {content}
+                      </Pressable>
+                    ) : (
+                      <View key={id} style={styles.cell}>
+                        {content}
                       </View>
                     );
                   })}
