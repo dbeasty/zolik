@@ -2,6 +2,7 @@ package match_test
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -86,5 +87,33 @@ func TestGetMatchProjectsForTheTokenNotTheQuery(t *testing.T) {
 	// ?as= that agrees with the token is harmless, just redundant.
 	if res := h.do(http.MethodGet, path+"?as="+hostID, hostToken, nil); handCards(res, hostID) == 0 {
 		t.Fatalf("a matching ?as= should not blank the caller's own hand: %s", res.raw)
+	}
+}
+
+// A seat link's token is scoped to one match. At that match it is its
+// holder's own seat, hand included; at any other it is no token at all —
+// even where the same player is seated.
+func TestGetMatchHonoursASeatTokenAtItsOwnMatchOnly(t *testing.T) {
+	h := newInviteHarness(t)
+	matchID, annTok, link := tableWithASeatLink(t, h)
+	claim := h.do(http.MethodPost, strings.Replace(link, "/seat/", "/seats/", 1)+"/claim", "", nil)
+	if claim.status != http.StatusOK {
+		t.Fatalf("claim: %d %s", claim.status, claim.raw)
+	}
+	seatTok := claim.str("accessToken")
+
+	if res := h.do(http.MethodGet, "/matches/"+matchID, seatTok, nil); handCards(res, "bob") == 0 {
+		t.Fatalf("the seat token should show Bob his own hand at its table: %s", res.raw)
+	}
+
+	other := h.createMatch(t, annTok)
+	if res := h.do(http.MethodPost, "/matches/"+other+"/join", token(t, "bob", "Bob", true), nil); res.status != http.StatusOK {
+		t.Fatalf("bob joining the other table: %d %s", res.status, res.raw)
+	}
+	if res := h.do(http.MethodPost, "/matches/"+other+"/start", annTok, nil); res.status != http.StatusOK {
+		t.Fatalf("start the other table: %d %s", res.status, res.raw)
+	}
+	if res := h.do(http.MethodGet, "/matches/"+other, seatTok, nil); handCards(res, "bob") != 0 {
+		t.Fatalf("a token scoped to %s showed Bob's hand at %s", matchID, other)
 	}
 }

@@ -258,6 +258,21 @@ export default function TableScreen() {
             ) : null}
           </View>
         ))}
+        {/*
+          Seats a rematch is holding for people from the last table who have
+          not sat down yet. Nobody else can take them, and dealing now plays on
+          without them — so the host sees who they would be starting without
+          rather than a table that looks one short for no reason.
+        */}
+        {(state?.reserved ?? []).map((r) => (
+          <Text
+            key={r.playerId}
+            testID={`held-${r.playerId}`}
+            style={{ color: colors.muted, marginBottom: 4 }}
+          >
+            {t('lobby.table.heldFor', { name: r.name })}
+          </Text>
+        ))}
 
         {/*
           Shown to everyone, not only the host: knowing who you are playing with

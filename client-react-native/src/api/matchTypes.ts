@@ -412,6 +412,13 @@ export type MatchState = {
   /** Player ids, in seat order; look their names up in `players`. */
   awayPlayers?: string[];
   /**
+   * The table this finished one is being played again at, and who asked.
+   * Everybody else from here has a seat held at it.
+   */
+  rematch?: { matchId: string; hostId: string };
+  /** Who a rematch lobby is still holding seats for, in seat order. */
+  reserved?: { playerId: string; name: string; avatar?: string }[];
+  /**
    * The last few moves at the table as this viewer may read them, oldest
    * first. Absent for a game that does not narrate its moves.
    */

@@ -152,7 +152,7 @@ export function matchOverBanner(page: Page): Locator {
   return page.getByTestId('match-over');
 }
 
-/** Sets up the same table again — only offered when the opponents were all bots. */
+/** Sets up the same table again. With only bots opposite, that is a dealt table straight away. */
 export async function playAgain(page: Page): Promise<boolean> {
   const again = page.getByTestId('match-over-again');
   if (!(await again.isVisible().catch(() => false))) return false;

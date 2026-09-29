@@ -24,6 +24,7 @@ import { ResultsFlash } from '@/src/components/match/ResultsFlash';
 import { RoundResults } from '@/src/components/match/RoundResults';
 import { TableSurface } from '@/src/components/match/TableSurface';
 import { useSession } from '@/src/context/SessionContext';
+import { useSeatSession } from '@/src/hooks/useSeatSession';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useDropRegistry, type Measurable } from '@/src/hooks/useDropRegistry';
 import { useArrival } from '@/src/hooks/useArrival';
@@ -58,6 +59,7 @@ import { nextMarks, NO_MARKS, type ChangeMarks } from '@/src/lib/changes';
 import { reasonText, t } from '@/src/lib/i18n';
 import { ApiError } from '@/src/api/client';
 import { savePendingDestination } from '@/src/lib/pendingDestination';
+import { routeForMatch } from '@/src/lib/matchRoute';
 import { WhySheet, type Refusal } from '@/src/components/match/WhySheet';
 import { useRuleIndex } from '@/src/hooks/useRuleIndex';
 import { useSkinControls } from '@/src/hooks/useSkin';
@@ -97,7 +99,14 @@ const IDLE_NUDGE_MS = 20_000;
  */
 export default function MatchScreen() {
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
-  const { session, client, loading, offline } = useSession();
+  const own = useSession();
+  // A seat taken through a seat link plays this table — and only this one —
+  // as that seat, on a device that may be somebody else entirely, or nobody.
+  const seatLink = useSeatSession(matchId ? String(matchId) : undefined, own.session);
+  const session = seatLink.seat ?? own.session;
+  const client = seatLink.client ?? own.client;
+  const loading = own.loading || !seatLink.loaded;
+  const { offline } = own;
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
   // Whether what is currently selected was picked by the *app* rather than by
   // the player — see the auto-select effect below and `toggleSlot`.
@@ -230,6 +239,10 @@ export default function MatchScreen() {
   // up here for the same reason: hooks may not be conditional.
   const [startingAgain, setStartingAgain] = useState(false);
   const [againError, setAgainError] = useState('');
+  // "No thanks" to somebody else's rematch: the banner goes back to its own
+  // offers. Held here rather than on the server's answer, because the
+  // reservation it gives up belongs to the other table, not to this state.
+  const [declinedRematch, setDeclinedRematch] = useState(false);
   // Bringing a swept-up table back, and whatever went wrong trying. Separate
   // from the pair above because they are separate offers on the same banner:
   // one continues this game, the other starts a new one like it.
@@ -809,28 +822,31 @@ export default function MatchScreen() {
     changedGroups: changeMarks,
   };
 
-  // The same table again: same game, same variation, the same numbers the
-  // lobby chose, and a bot for every bot that was in this one. The options
-  // come back from the server on the state message, so "again" means the table
-  // that was actually played rather than whatever the defaults happen to be.
+  // The same table again, with the same people: same game, variation and
+  // options, the same bots down to their names, and a seat held for everybody
+  // else who played. The server decides all of it — including that a second
+  // press, from anyone at this table, sits down at the first one's rematch
+  // rather than opening another. It answers with where to go: a lobby when
+  // there are people to wait for, a dealt table when there are none.
   const playAgain = async () => {
     setStartingAgain(true);
     setAgainError('');
     try {
-      const { matchId: next } = await client.createMatch(
-        state.moduleId,
-        state.variation,
-        state.options ?? {},
-      );
-      for (const p of state.players) {
-        if (p.isAI) await client.addBot(next);
-      }
-      await client.startMatch(next);
-      router.replace(`/match/${next}`);
+      const next = await client.rematch(String(matchId));
+      router.replace(routeForMatch(next.status, next.hostId === viewerId, next.matchId));
     } catch (e) {
-      setAgainError(String(e));
+      const code = e instanceof ApiError ? e.code : undefined;
+      setAgainError(reasonText(code, e instanceof Error ? e.message : String(e)));
       setStartingAgain(false);
     }
+  };
+
+  // Giving the held seat back, so the host is not left waiting. Best-effort:
+  // if it does not reach the server the seat is let go anyway once the host
+  // deals, and there is nothing this player could do about it from here.
+  const declineRematch = () => {
+    setDeclinedRematch(true);
+    if (state.rematch) client.declineRematch(state.rematch.matchId).catch(() => {});
   };
 
   // This same table, carrying on from where it stopped.
@@ -912,8 +928,15 @@ export default function MatchScreen() {
   // out here from the controls that happen to be live.
   const paused = !!state.rounds?.paused;
 
-  const againstBotsAlone =
-    state.players.length > 1 && state.players.every((p) => p.isAI || p.id === viewerId);
+  // Only somebody who played here can ask to play it again; a spectator gets
+  // the way out and nothing else.
+  const seatedHere = state.players.some((p) => p.id === viewerId && !p.isAI);
+  // Somebody else from this table has asked for a rematch and is holding this
+  // viewer a seat at it — the one offer worth more than starting another.
+  const rematchOffer =
+    seatedHere && state.rematch && state.rematch.hostId !== viewerId && !declinedRematch
+      ? state.rematch
+      : undefined;
 
   // The table was set aside by the sweeper rather than played to the end. A
   // different ending, and it needs different words and a different offer — it
@@ -923,8 +946,8 @@ export default function MatchScreen() {
   // Whether this table can be picked up, as the server answers it — never
   // worked out here.
   //
-  // This screen used to decide for itself, using `againstBotsAlone` as a
-  // stand-in for the old server rule. The two then diverged in the worst
+  // This screen used to decide for itself, using "every other seat is a bot"
+  // as a stand-in for the old server rule. The two then diverged in the worst
   // direction: a game between two people who were both back and both looking
   // at the board was offered nothing at all, on a banner that told them the
   // cards were exactly where they had left them. Now the button appears when
@@ -1269,6 +1292,11 @@ export default function MatchScreen() {
                 {t('match.abandonedWaitingFor', { names: awayNames.join(', ') })}
               </Text>
             ) : null}
+            {rematchOffer ? (
+              <Text testID="match-over-rematch-offer" style={styles.overOutcome}>
+                {t('match.rematchOffer', { name: playerName(state.players, rematchOffer.hostId) })}
+              </Text>
+            ) : null}
             <View style={styles.overActions}>
               {/* Carrying on beats starting over, so it goes first and takes
                   the ring. Offered exactly where the server will honour it —
@@ -1289,9 +1317,9 @@ export default function MatchScreen() {
                   </Text>
                 </Pressable>
               ) : null}
-              {againstBotsAlone ? (
+              {seatedHere ? (
                 <Pressable
-                  testID="match-over-again"
+                  testID={rematchOffer ? 'match-over-join-rematch' : 'match-over-again'}
                   accessibilityState={{ disabled: startingAgain }}
                   disabled={startingAgain}
                   onPress={playAgain}
@@ -1300,11 +1328,25 @@ export default function MatchScreen() {
                   {/* The same ring the way on gets between rounds: a finished
                       match leaves one thing to do too. Not on a swept-up
                       table, where resuming is the offer being pointed at and a
-                      second ring would point at nothing. */}
-                  <Attention active={!startingAgain && !wasAbandoned} radius={8} />
+                      second ring would point at nothing — unless somebody is
+                      holding this player a seat, which is the news. */}
+                  <Attention active={!startingAgain && (!wasAbandoned || !!rematchOffer)} radius={8} />
                   <Text style={styles.overButtonText}>
-                    {startingAgain ? t('match.settingUp') : t('match.playAgain')}
+                    {startingAgain
+                      ? t('match.settingUp')
+                      : rematchOffer
+                        ? t('match.joinRematch')
+                        : t('match.playAgain')}
                   </Text>
+                </Pressable>
+              ) : null}
+              {rematchOffer ? (
+                <Pressable
+                  testID="match-over-decline-rematch"
+                  onPress={declineRematch}
+                  style={styles.overButtonQuiet}
+                >
+                  <Text style={styles.overButtonQuietText}>{t('match.declineRematch')}</Text>
                 </Pressable>
               ) : null}
               <Pressable
