@@ -1296,6 +1296,7 @@ export const lt: Record<string, string> = {
   'verb.continue': 'Tęsti',
   'verb.decline_insurance': 'Be draudimo',
   'verb.discard': 'Atmesti',
+  'verb.discardToClose': 'Baigti dalijimą',
   'verb.double': 'Padvigubinti',
   'verb.draw': 'Traukti',
   'verb.finish_layoff': 'Pridėjimas baigtas',

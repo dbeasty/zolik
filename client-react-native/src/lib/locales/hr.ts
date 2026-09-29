@@ -1293,6 +1293,7 @@ export const hr: Record<string, string> = {
   'verb.continue': 'Nastavi',
   'verb.decline_insurance': 'Bez osiguranja',
   'verb.discard': 'Odbaci',
+  'verb.discardToClose': 'Završi dijeljenje',
   'verb.double': 'Udvostruči',
   'verb.draw': 'Vuci',
   'verb.finish_layoff': 'Gotovo s prislanjanjem',

@@ -1300,6 +1300,7 @@ export const pl: Record<string, string> = {
   'verb.continue': 'Dalej',
   'verb.decline_insurance': 'Bez ubezpieczenia',
   'verb.discard': 'Odrzuć',
+  'verb.discardToClose': 'Zakończ rozdanie',
   'verb.double': 'Podwój',
   'verb.draw': 'Dobierz',
   'verb.finish_layoff': 'Koniec dokładania',

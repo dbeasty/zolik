@@ -293,6 +293,34 @@ func TestLegalActions_DiscardExcludesAnUnplayableJoker(t *testing.T) {
 	}
 }
 
+func TestLegalActions_ClosingDiscardSaysItEndsTheDeal(t *testing.T) {
+	// An ordinary discard is just "Discard".
+	o := FindOffer(LegalActions(offerFixture(nil), "p1"), OfferDiscard)
+	if o.LabelKey != "" {
+		t.Errorf("ordinary discard should be labelled by its verb, got %q", o.LabelKey)
+	}
+
+	// The last card, with the requirement met, closes the deal.
+	closing := offerFixture(func(s *GameState) { s.Hands["p1"] = []string{"4H"} })
+	o = FindOffer(LegalActions(closing, "p1"), OfferDiscard)
+	if !o.Enabled || o.LabelKey != "verb.discardToClose" {
+		t.Errorf("closing discard: enabled=%v label=%q", o.Enabled, o.LabelKey)
+	}
+
+	// The last card with the requirement unmet cannot close anything, and
+	// another player's view never says it will.
+	unmet := offerFixture(func(s *GameState) {
+		s.Hands["p1"] = []string{"4H"}
+		s.RoundReqMet = map[string]bool{}
+	})
+	if o := FindOffer(LegalActions(unmet, "p1"), OfferDiscard); o.LabelKey != "" {
+		t.Errorf("a discard that cannot close should not say it does, got %q", o.LabelKey)
+	}
+	if o := FindOffer(LegalActions(closing, "p2"), OfferDiscard); o.LabelKey != "" {
+		t.Errorf("another seat's view should not carry the closing label, got %q", o.LabelKey)
+	}
+}
+
 func TestLegalActions_SwapJokerOnlyWhereAJokerSits(t *testing.T) {
 	s := offerFixture(func(s *GameState) {
 		s.Melds["p2"] = [][]string{

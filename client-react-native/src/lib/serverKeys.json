@@ -510,6 +510,7 @@
     "status.lastDeal",
     "status.teamScore",
     "status.winner",
+    "verb.discardToClose",
     "verb.drawFromDeck",
     "verb.takeFromDiscard",
     "verb.takePileFromHand",

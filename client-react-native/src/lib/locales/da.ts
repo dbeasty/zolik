@@ -1292,6 +1292,7 @@ export const da: Record<string, string> = {
   'verb.continue': 'Fortsæt',
   'verb.decline_insurance': 'Ingen forsikring',
   'verb.discard': 'Smid ud',
+  'verb.discardToClose': 'Afslut giv',
   'verb.double': 'Fordobl',
   'verb.draw': 'Træk',
   'verb.finish_layoff': 'Færdig med at lægge på',

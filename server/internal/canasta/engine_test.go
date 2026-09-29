@@ -1602,6 +1602,48 @@ func TestGoingOutNeedsACanasta(t *testing.T) {
 	})
 }
 
+// TestClosingDiscardSaysItEndsTheDeal: the discard control reads "End deal"
+// only when the press would go out — never for a last card the partnership
+// cannot go out with, and never on another seat's view.
+func TestClosingDiscardSaysItEndsTheDeal(t *testing.T) {
+	discardOffer := func(raw module.State, viewer string) *module.ActionOffer {
+		t.Helper()
+		offers, err := New().LegalActions(raw, viewer)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return offerByID(offers, OfferDiscard)
+	}
+	lastCard := func(canasta bool) module.State {
+		return twoHanded(func(s *GameState) {
+			s.Phase = phaseMeld
+			s.Teams[0].HasMelded = true
+			s.Teams[0].Melds = []Meld{{ID: meldID(0, "Q"), TeamID: 0, Rank: "Q", Cards: []string{"QH", "QD", "QS"}}}
+			if canasta {
+				s.Teams[0].Melds[0].Cards = []string{"QH", "QD", "QS", "QC", "QH", "QD", "QS"}
+			}
+			s.Hands["p1"] = []string{"8C"}
+		})
+	}
+
+	if o := discardOffer(lastCard(true), "p1"); !o.Enabled || o.LabelKey != "verb.discardToClose" {
+		t.Errorf("going-out discard: enabled=%v label=%q", o.Enabled, o.LabelKey)
+	}
+	if o := discardOffer(lastCard(false), "p1"); o.LabelKey != "" {
+		t.Errorf("a last card that cannot go out should not say it ends the deal, got %q", o.LabelKey)
+	}
+	if o := discardOffer(lastCard(true), "p2"); o.LabelKey != "" {
+		t.Errorf("another seat's view should not carry the closing label, got %q", o.LabelKey)
+	}
+	ordinary := twoHanded(func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Hands["p1"] = []string{"8C", "9D"}
+	})
+	if o := discardOffer(ordinary, "p1"); o.LabelKey != "" {
+		t.Errorf("ordinary discard should be labelled by its verb, got %q", o.LabelKey)
+	}
+}
+
 // TestMeldingCannotStrandAPlayer is the rule that keeps every turn finishable:
 // a turn ends with a discard, and shedding your last card is going out, so a
 // partnership that cannot go out must be left holding two.

@@ -1288,6 +1288,7 @@ export const sl: Record<string, string> = {
   'verb.continue': 'Naprej',
   'verb.decline_insurance': 'Brez zavarovanja',
   'verb.discard': 'Odvrzi',
+  'verb.discardToClose': 'Končaj deljenje',
   'verb.double': 'Podvoji',
   'verb.draw': 'Vzemi',
   'verb.finish_layoff': 'Konec prislanjanja',

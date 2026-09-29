@@ -1306,6 +1306,7 @@ export const it: Record<string, string> = {
   'verb.continue': 'Continua',
   'verb.decline_insurance': 'Niente assicurazione',
   'verb.discard': 'Scarta',
+  'verb.discardToClose': 'Chiudi la smazzata',
   'verb.double': 'Raddoppia',
   'verb.draw': 'Pesca',
   'verb.finish_layoff': 'Attacchi finiti',

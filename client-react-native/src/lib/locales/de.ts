@@ -1320,6 +1320,7 @@ export const de: Record<string, string> = {
   'verb.continue': 'Weiter',
   'verb.decline_insurance': 'Keine Versicherung',
   'verb.discard': 'Ablegen',
+  'verb.discardToClose': 'Gabe beenden',
   'verb.double': 'Verdoppeln',
   'verb.draw': 'Ziehen',
   'verb.finish_layoff': 'Anlegen beendet',

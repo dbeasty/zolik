@@ -1286,6 +1286,7 @@ export const cs: Record<string, string> = {
   'verb.continue': 'Pokračovat',
   'verb.decline_insurance': 'Bez pojištění',
   'verb.discard': 'Odhodit',
+  'verb.discardToClose': 'Ukončit rozdání',
   'verb.double': 'Zdvojit',
   'verb.draw': 'Líznout',
   'verb.finish_layoff': 'Hotovo s přikládáním',
