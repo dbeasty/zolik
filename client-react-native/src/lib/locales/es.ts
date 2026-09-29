@@ -1308,6 +1308,7 @@ export const es: Record<string, string> = {
   'verb.continue': 'Continuar',
   'verb.decline_insurance': 'Sin seguro',
   'verb.discard': 'Descartar',
+  'verb.discardToClose': 'Terminar reparto',
   'verb.double': 'Doblar',
   'verb.draw': 'Robar',
   'verb.finish_layoff': 'Arrime terminado',

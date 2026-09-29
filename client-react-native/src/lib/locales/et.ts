@@ -1298,6 +1298,7 @@ export const et: Record<string, string> = {
   'verb.continue': 'Jätka',
   'verb.decline_insurance': 'Kindlustuseta',
   'verb.discard': 'Viska ära',
+  'verb.discardToClose': 'Lõpeta jagamine',
   'verb.double': 'Kahekordista',
   'verb.draw': 'Tõmba',
   'verb.finish_layoff': 'Külgepanek tehtud',

@@ -1311,6 +1311,7 @@ export const hu: Record<string, string> = {
   'verb.continue': 'Tovább',
   'verb.decline_insurance': 'Nem kérek biztosítást',
   'verb.discard': 'Eldobás',
+  'verb.discardToClose': 'Leosztás lezárása',
   'verb.double': 'Duplázás',
   'verb.draw': 'Húzás',
   'verb.finish_layoff': 'Hozzárakás kész',

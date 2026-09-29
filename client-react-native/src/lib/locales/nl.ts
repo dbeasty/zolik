@@ -1311,6 +1311,7 @@ export const nl: Record<string, string> = {
   'verb.continue': 'Doorgaan',
   'verb.decline_insurance': 'Geen verzekering',
   'verb.discard': 'Afleggen',
+  'verb.discardToClose': 'Ronde beëindigen',
   'verb.double': 'Verdubbelen',
   'verb.draw': 'Pakken',
   'verb.finish_layoff': 'Klaar met aanleggen',

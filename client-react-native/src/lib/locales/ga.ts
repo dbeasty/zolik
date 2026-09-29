@@ -1328,6 +1328,7 @@ export const ga: Record<string, string> = {
   'verb.continue': 'Ar aghaidh',
   'verb.decline_insurance': 'Gan árachas',
   'verb.discard': 'Caith',
+  'verb.discardToClose': 'Críochnaigh an dáileadh',
   'verb.double': 'Dúbail',
   'verb.draw': 'Tarraing',
   'verb.finish_layoff': 'Cur leis críochnaithe',

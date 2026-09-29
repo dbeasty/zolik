@@ -1293,6 +1293,7 @@ export const sk: Record<string, string> = {
   'verb.continue': 'Pokračovať',
   'verb.decline_insurance': 'Bez poistenia',
   'verb.discard': 'Odhodiť',
+  'verb.discardToClose': 'Ukončiť rozdanie',
   'verb.double': 'Zdvojnásobiť',
   'verb.draw': 'Potiahnuť',
   'verb.finish_layoff': 'Koniec prikladania',

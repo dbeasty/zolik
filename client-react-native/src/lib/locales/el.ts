@@ -1326,6 +1326,7 @@ export const el: Record<string, string> = {
   'verb.continue': 'Συνέχεια',
   'verb.decline_insurance': 'Χωρίς ασφάλεια',
   'verb.discard': 'Πέταξε',
+  'verb.discardToClose': 'Τέλος μοιρασιάς',
   'verb.double': 'Διπλασίασε',
   'verb.draw': 'Τράβα',
   'verb.finish_layoff': 'Τέλος προσάρτησης',

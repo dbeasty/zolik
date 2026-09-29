@@ -1293,6 +1293,7 @@ export const en: Record<string, string> = {
   'verb.continue': 'Continue',
   'verb.decline_insurance': 'No insurance',
   'verb.discard': 'Discard',
+  'verb.discardToClose': 'End deal',
   'verb.double': 'Double down',
   'verb.draw': 'Draw',
   'verb.finish_layoff': 'Done laying off',

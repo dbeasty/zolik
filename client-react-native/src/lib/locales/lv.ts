@@ -1294,6 +1294,7 @@ export const lv: Record<string, string> = {
   'verb.continue': 'Turpināt',
   'verb.decline_insurance': 'Bez apdrošināšanas',
   'verb.discard': 'Izmet',
+  'verb.discardToClose': 'Beigt dalījumu',
   'verb.double': 'Dubultot',
   'verb.draw': 'Velc',
   'verb.finish_layoff': 'Pievienošana pabeigta',

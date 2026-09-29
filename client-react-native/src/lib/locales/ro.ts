@@ -1303,6 +1303,7 @@ export const ro: Record<string, string> = {
   'verb.continue': 'Continuă',
   'verb.decline_insurance': 'Fără asigurare',
   'verb.discard': 'Aruncă',
+  'verb.discardToClose': 'Încheie mâna',
   'verb.double': 'Dublează',
   'verb.draw': 'Trage',
   'verb.finish_layoff': 'Gata cu alipirea',

@@ -1312,6 +1312,7 @@ export const mt: Record<string, string> = {
   'verb.continue': 'Kompli',
   'verb.decline_insurance': 'Bla assigurazzjoni',
   'verb.discard': 'Armi',
+  'verb.discardToClose': 'Temm it-tqassim',
   'verb.double': 'Irdoppja',
   'verb.draw': 'Iġbed',
   'verb.finish_layoff': 'Iż-żieda lesta',

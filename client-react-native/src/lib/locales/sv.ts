@@ -1290,6 +1290,7 @@ export const sv: Record<string, string> = {
   'verb.continue': 'Fortsätt',
   'verb.decline_insurance': 'Ingen försäkring',
   'verb.discard': 'Kasta',
+  'verb.discardToClose': 'Avsluta given',
   'verb.double': 'Dubbla',
   'verb.draw': 'Dra',
   'verb.finish_layoff': 'Klar med påläggning',

@@ -1306,6 +1306,7 @@ export const bg: Record<string, string> = {
   'verb.continue': 'Продължи',
   'verb.decline_insurance': 'Без застраховка',
   'verb.discard': 'Изхвърли',
+  'verb.discardToClose': 'Край на раздаването',
   'verb.double': 'Удвои',
   'verb.draw': 'Тегли',
   'verb.finish_layoff': 'Готово с прикачването',

@@ -1302,6 +1302,7 @@ export const fi: Record<string, string> = {
   'verb.continue': 'Jatka',
   'verb.decline_insurance': 'Ei vakuutusta',
   'verb.discard': 'Poista',
+  'verb.discardToClose': 'Päätä jako',
   'verb.double': 'Tuplaa',
   'verb.draw': 'Nosta',
   'verb.finish_layoff': 'Liittäminen valmis',
