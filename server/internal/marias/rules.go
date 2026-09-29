@@ -17,6 +17,7 @@ func (m *Module) Rules(mc module.MatchConfig) ([]module.RuleSection, error) {
 
 	deal := []module.RuleItem{
 		module.Rule("marias.rules.deal.roles", nil),
+		module.Rule("marias.rules.deal.turns", nil),
 		module.Rule("marias.rules.deal.trump", nil),
 	}
 	if c.zLidu {

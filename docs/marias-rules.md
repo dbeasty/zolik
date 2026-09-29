@@ -39,6 +39,7 @@ Ids are `marias.rules.<id>`. A 🔧 marks a sentence that changes or disappears 
 | Id | Rule | Source |
 |---|---|---|
 | `deal.roles` | The player left of the dealer chooses. They get 7 cards, then 5 more after choosing trumps (12 in all). The others get 10 each. The chooser changes every deal. | ČSM B/4, Pagat |
+| `deal.turns` | Everything goes clockwise: choosing, answering, doubling and play. | ČSM B/11 |
 | `deal.trump` | The chooser names trumps by choosing one of their first seven cards. | ČSM B/6 |
 | `deal.zLidu` 🔧 | …or *z lidu*: by taking a card unseen from the five they have not looked at. | ČSM B/6 |
 | `deal.talon` | The declarer discards two cards to the talon. In hra, sedma and sto neither can be an eso or a 10. The talon's cards count as the declarer's. | ČSM B/7-8, C/13 |

@@ -286,7 +286,11 @@ test follows `holdem/bot.go:34-36` and `ai/nopeek_test.go`. The sampler and solv
    player's own spot, and a contract test in `allmodules_test`. It was checked in the browser at
    3, 4-5 seats and phone width using a temporary, uncommitted Prší patch.*
 3. **`marias` Volený**, with the rule-of-thumb bot and English and Czech wording. The other 22
-   locales are filled in the same PR, because the key test requires it.
+   locales are filled in the same PR, because the key test requires it. *Done on
+   `claude/marias-tricks`: the engine (auction, take-over, doubling round, play, settlement), the
+   view, the scoreboard and round log, the bot (medium averages +5.6 units a match against two
+   easy seats), the shared contract suite, `e2e/tests/marias.spec.ts`, and all 24 locales. It
+   was played through the real UI against two bots in the browser.*
 4. **Licitovaný:** the association's auction game, pinned first like step 0.
 5. **German faces** (§3.4), and Prší opting in.
 6. **Hard bot** (sampling), in `internal/tricks/search`.

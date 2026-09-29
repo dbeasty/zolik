@@ -11,6 +11,7 @@ import (
 	"zolik/server/internal/canasta"
 	"zolik/server/internal/ginrummy"
 	"zolik/server/internal/holdem"
+	"zolik/server/internal/marias"
 	"zolik/server/internal/module"
 	"zolik/server/internal/prsi"
 	"zolik/server/internal/rummytiles"
@@ -118,6 +119,18 @@ func allModules() []hosted {
 			// hitting so a driver with no chart does not simply draw itself
 			// bust every round.
 			prefer:   []string{"bet", "decline_insurance", "stand", "hit"},
+			finishes: true,
+		},
+		{
+			name:    "marias",
+			rounds:  true,
+			mod:     marias.New(),
+			players: refs("p1", "p2", "p3"),
+			// A short match keeps the playthroughs fast. Doubling is left out
+			// of the preferences on purpose: with no limit, a driver that
+			// always doubled would double for ever, and pass ends the round.
+			cfg:      module.MatchConfig{Options: module.Options{"deals": 9}},
+			prefer:   []string{"play_card", "discard", "choose_trump", "announce", "good", "pass"},
 			finishes: true,
 		},
 		{
