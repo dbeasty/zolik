@@ -135,6 +135,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 		Options: []module.OptionSpec{
 			module.PauseOption(),
 			module.BotSkillOption(),
+			module.HintsOption(),
 			{
 				Name: OptStartingStack, Type: module.OptionEnumInt,
 				Label: "Starting chips", Help: "How many chips each seat sits down with.",

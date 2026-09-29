@@ -420,13 +420,18 @@ func (m *Manager) JoinWith(ctx context.Context, idOrCode string, seat func(model
 // locked.
 func (m *Manager) joinLocked(ctx context.Context, e *liveMatch, p models.Player) (models.Match, bool, error) {
 	match := e.match
-	if match.Status != "lobby" {
-		return models.Match{}, false, module.Error{Code: "MATCH_ALREADY_STARTED"}
-	}
+	// Somebody already sitting here is let back in whatever the table is
+	// doing. The join link is the one thing a player is sure to still have,
+	// and asking about the status first answered MATCH_ALREADY_STARTED to the
+	// very people the table was waiting for — a started or swept-up game then
+	// looked closed to its own players.
 	for _, existing := range match.Players {
 		if existing.ID == p.ID {
 			return match, false, nil // idempotent: re-joining is not an error
 		}
+	}
+	if match.Status != "lobby" {
+		return models.Match{}, false, module.Error{Code: "MATCH_ALREADY_STARTED"}
 	}
 	mod := m.registry.Get(match.ModuleID)
 	if mod == nil {
@@ -686,6 +691,11 @@ func (m *Manager) applyLocked(ctx context.Context, e *liveMatch, playerID string
 	}
 	envelope.State = models.JSONDoc(next)
 	e.match, e.seq, e.rounds = envelope, entry.Seq, closed
+	players := make([]string, 0, len(match.Players))
+	for _, p := range match.Players {
+		players = append(players, p.ID)
+	}
+	e.record(mod, next, players, events)
 
 	if !snapshot && now.Sub(e.touched) > touchEvery {
 		// Best effort: the move is stored; a missed touch costs a minute of
@@ -727,12 +737,22 @@ func (m *Manager) publishEvents(match models.Match, events []module.Event) {
 		return
 	}
 	id := match.ID.Hex()
+	mod := m.registry.Get(match.ModuleID)
 	for _, ev := range events {
-		payload := map[string]any{"type": ev.Type}
-		for k, v := range ev.Data {
-			payload[k] = v
-		}
 		for _, p := range match.Players {
+			// Filtered per player, as the board is: an event may name a card
+			// only one seat is allowed to see.
+			seen, ok := ev, true
+			if mod != nil {
+				seen, ok = module.ProjectEvent(mod, ev, p.ID)
+			}
+			if !ok {
+				continue
+			}
+			payload := map[string]any{"type": seen.Type}
+			for k, v := range seen.Data {
+				payload[k] = v
+			}
 			m.hub.WriteDirect(id, p.ID, payload)
 		}
 	}

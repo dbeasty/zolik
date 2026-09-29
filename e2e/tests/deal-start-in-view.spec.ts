@@ -200,7 +200,7 @@ test.describe('a dealt table brings the game to the player', () => {
       ).json();
       if (state.rounds?.paused) break;
       const ids = await page
-        .locator('[data-testid^="offer-"]:not([aria-disabled="true"])')
+        .locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])')
         .evaluateAll((els) => els.map((e) => e.getAttribute('data-testid') ?? '').filter(Boolean));
       const pick = ids.find((id) => id !== 'offer-show' && !id.includes('continue'));
       if (!pick) {

@@ -59,6 +59,11 @@ func NewHandlers(m *Manager, testEndpoints bool) *Handlers {
 	}
 }
 
+// matchAuth admits the caller's ordinary token, or one scoped to this match
+// alone — what a seat link hands out. Only the routes a seated player needs
+// at their own table take it; every other route refuses such a token.
+var matchAuth = auth.MatchAuthMiddleware(func(r *http.Request) string { return chi.URLParam(r, "id") })
+
 func (h *Handlers) RegisterRoutes(r chi.Router) {
 	// Every game this server can host, and what each one lets a lobby set. A
 	// client renders its whole game-picker and new-match form from this.
@@ -70,7 +75,7 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/start", h.startMatch)
 	// Bringing a swept-up table back. Separate from start, which allocates a
 	// module's state: this one only undoes an envelope.
-	r.With(auth.AuthMiddleware).Post("/matches/{id}/resume", h.resumeMatch)
+	r.With(matchAuth).Post("/matches/{id}/resume", h.resumeMatch)
 	// Playing a finished table again, with the same people. The first press
 	// opens it; every later one sits down at it.
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/rematch", h.rematch)
@@ -98,7 +103,19 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	// seated-only, unlike the spectator GET above: this answers with every
 	// board the match passed through, which is a great deal more than the one
 	// it is sitting on.
-	r.With(auth.AuthMiddleware).Get("/matches/{id}/replay", h.replayMatch)
+	r.With(matchAuth).Get("/matches/{id}/replay", h.replayMatch)
+
+	// Seat links: a link that brings one person back to one seat, for a
+	// player on a new device or a cleared browser (see seatlink.go). Minted
+	// by anybody at the table; opened and taken by whoever was sent it, who
+	// need not be signed in as anyone.
+	r.With(matchAuth).Post("/matches/{id}/seats/{playerId}/link", h.mintSeatLink)
+	r.Get("/seats/{id}/{secret}", h.seatPreview)
+	r.With(auth.OptionalAuthMiddleware).Post("/seats/{id}/{secret}/claim", h.claimSeat)
+	// The move this caller's seat would make, suggested and never made. POST
+	// because it is asked for rather than looked up: the answer depends on
+	// the live board, and nothing should cache it.
+	r.With(matchAuth).Post("/matches/{id}/hint", h.hint)
 
 	if h.testEndpoints {
 		r.With(auth.AuthMiddleware).Post("/matches/{id}/debug-state", h.debugState)
@@ -657,6 +674,106 @@ func (h *Handlers) releaseHeldSeat(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, map[string]any{"matchId": next.ID.Hex()})
 }
 
+// seatTokenTTL is how long a seat link's token plays its seat. Long enough
+// for an evening; the link can be opened again for another.
+const seatTokenTTL = 12 * time.Hour
+
+// mintSeatLink makes a link that brings one person back to their seat.
+func (h *Handlers) mintSeatLink(w http.ResponseWriter, req *http.Request) {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	matchID := chi.URLParam(req, "id")
+	if _, err := bson.ObjectIDFromHex(matchID); err != nil {
+		http.Error(w, "invalid match id", http.StatusBadRequest)
+		return
+	}
+	secret, err := h.manager.MintSeatLink(req.Context(), matchID, uc.UserID, chi.URLParam(req, "playerId"))
+	if err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	writeJSON(w, map[string]any{
+		"path": SeatPath + matchID + "/" + secret,
+		"url":  h.manager.SeatURL(matchID, secret),
+	})
+}
+
+type seatPreviewPlayer struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	IsAI    bool   `json:"isAI"`
+	Avatar  string `json:"avatar,omitempty"`
+	Present bool   `json:"present"`
+}
+
+// seatPreview says whose seat a link opens, and at which table, before
+// anything is taken — so the person holding it can tell it is theirs. Names
+// and faces only: nothing about the cards.
+func (h *Handlers) seatPreview(w http.ResponseWriter, req *http.Request) {
+	matchID := chi.URLParam(req, "id")
+	m, seat, err := h.manager.SeatByLink(req.Context(), matchID, chi.URLParam(req, "secret"))
+	if err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	players := make([]seatPreviewPlayer, 0, len(m.Players))
+	for _, p := range m.Players {
+		players = append(players, seatPreviewPlayer{
+			ID: p.ID, Name: p.Name, IsAI: p.IsAI, Avatar: p.Avatar,
+			Present: !p.IsAI && h.manager.SeatPresent(matchID, p.ID),
+		})
+	}
+	label := m.ModuleID
+	if mod := h.manager.Registry().Get(m.ModuleID); mod != nil {
+		label = mod.Descriptor().Label
+	}
+	writeJSON(w, map[string]any{
+		"matchId":     matchID,
+		"moduleId":    m.ModuleID,
+		"moduleLabel": label,
+		"variation":   m.Variation,
+		"status":      m.Status,
+		"seat":        seatPreviewPlayer{ID: seat.ID, Name: seat.Name, Avatar: seat.Avatar, Present: h.manager.SeatPresent(matchID, seat.ID)},
+		"players":     players,
+	})
+}
+
+// claimSeat takes the seat a link opens. A caller who already is that seat
+// is simply sent to the table. Anybody else gets a token that plays this seat
+// at this match and nothing more — not the identity behind it — unless the
+// seat is being played right now, which a link never takes over.
+func (h *Handlers) claimSeat(w http.ResponseWriter, req *http.Request) {
+	matchID := chi.URLParam(req, "id")
+	m, seat, err := h.manager.SeatByLink(req.Context(), matchID, chi.URLParam(req, "secret"))
+	if err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	if uc, ok := auth.GetUserContext(req); ok && uc.UserID == seat.ID {
+		writeJSON(w, map[string]any{"matchId": m.ID.Hex(), "alreadyYours": true})
+		return
+	}
+	if h.manager.SeatPresent(matchID, seat.ID) {
+		writeModuleError(w, module.Error{Code: "SEAT_IN_USE", Message: seat.Name})
+		return
+	}
+	token, err := auth.CreateMatchScopedToken(seat.ID, seat.Name, seat.GuestID != "", matchID, seatTokenTTL)
+	if err != nil {
+		http.Error(w, "could not issue a token", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, map[string]any{
+		"matchId":     m.ID.Hex(),
+		"accessToken": token,
+		"userId":      seat.ID,
+		"username":    seat.Name,
+		"expiresIn":   int(seatTokenTTL.Seconds()),
+	})
+}
+
 // getMatch returns a viewer's state over plain HTTP.
 //
 // The socket is the live path, but a plain GET makes the runtime testable and
@@ -861,7 +978,7 @@ func (h *Handlers) deleteMatch(w http.ResponseWriter, req *http.Request) {
 // socket long was rummy.
 func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 	matchID := chi.URLParam(req, "id")
-	playerID, err := auth.SubjectFromToken(req.URL.Query().Get("token"))
+	playerID, err := auth.SubjectForMatch(req.URL.Query().Get("token"), matchID)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -1049,13 +1166,13 @@ func writeModuleError(w http.ResponseWriter, err error) {
 	code := module.CodeOf(err)
 	status := http.StatusBadRequest
 	switch code {
-	case "UNKNOWN_MODULE", "UNKNOWN_VARIATION", "NO_RULES", "MATCH_NOT_FOUND":
+	case "UNKNOWN_MODULE", "UNKNOWN_VARIATION", "NO_RULES", "MATCH_NOT_FOUND", "SEAT_LINK_EXPIRED":
 		status = http.StatusNotFound
 	case "NOT_AT_THIS_TABLE", "TABLE_HAS_PLAYERS_AWAY":
 		status = http.StatusForbidden
-	case "NOT_THE_HOST":
+	case "NOT_THE_HOST", "HINTS_OFF":
 		status = http.StatusForbidden
-	case "NO_LONGER_WAITING", "MATCH_FULL", "MATCH_NOT_ABANDONED", "MATCH_MOVED_ON", "NOTHING_TO_REPLAY", "MATCH_NOT_OVER":
+	case "NO_LONGER_WAITING", "MATCH_FULL", "MATCH_NOT_ABANDONED", "MATCH_MOVED_ON", "NOTHING_TO_REPLAY", "SEAT_IN_USE", "MATCH_NOT_OVER":
 		// A conflict rather than a bad request: the caller did nothing wrong,
 		// the world moved under them.
 		status = http.StatusConflict

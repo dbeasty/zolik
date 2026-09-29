@@ -227,6 +227,12 @@ func LegalActions(state GameState, playerID string) []ActionOffer {
 	if active {
 		dsrc.Cards = discardableCards(state, playerID, hand)
 	}
+	// The last card in hand is not an ordinary discard: laying it closes the
+	// deal for everyone. Said on the control, because "Discard" over a press
+	// that ends the deal is a surprise the player only learns by making it.
+	if len(hand) == 1 && len(dsrc.Cards) == 1 {
+		discard.LabelKey = "verb.discardToClose"
+	}
 	discard.Source = dsrc
 	discard.Target = &Selector{Zone: ZoneDiscardPile}
 	offers = append(offers, discard)

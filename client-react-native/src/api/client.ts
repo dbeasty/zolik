@@ -1,6 +1,6 @@
 import { ZOLIK_BASE_URL } from '@/src/config';
 import { HttpTransport, type SocketLike, type Transport } from '@/src/net/transport';
-import type { MatchModule, MatchState, ModuleRules, Replay, StoredTable } from '@/src/api/matchTypes';
+import type { MatchAction, MatchModule, MatchState, ModuleRules, Replay, StoredTable } from '@/src/api/matchTypes';
 import type {
   AccountProfile,
   AuthProvider,
@@ -18,6 +18,8 @@ import type {
   NotifyProfile,
   PlayerSession,
   PushDeviceRegistration,
+  SeatClaim,
+  SeatPreview,
   SignInOutcome,
   WaitingPlayer,
 } from '@/src/api/types';
@@ -456,6 +458,15 @@ export class ZolikClient {
   }
 
   /**
+   * The move this player's seat would make now, suggested and never made.
+   * Refused with HINTS_OFF at a table that turned hints off, and with
+   * NOT_YOUR_TURN when there is nothing to suggest.
+   */
+  async hint(idOrCode: string): Promise<{ action: MatchAction }> {
+    return this.post(`/matches/${encodeURIComponent(idOrCode)}/hint`, null, true);
+  }
+
+  /**
    * Put the table in a given seat order, before it is dealt. Host only.
    *
    * This is how partnerships are chosen. In a game with sides the turn
@@ -506,6 +517,35 @@ export class ZolikClient {
   /** Give back the seat a rematch was holding for this player. */
   async declineRematch(rematchId: string): Promise<void> {
     await this.post(`/matches/${encodeURIComponent(rematchId)}/rematch/decline`, null, true);
+  }
+
+  /**
+   * A link that brings one person back to their seat at a started table —
+   * for somebody on a new device or a cleared browser. Anybody seated at the
+   * table may make one for anybody at it; making another replaces it.
+   * `url` is empty when the server has no public base: build it from `path`.
+   */
+  async mintSeatLink(matchId: string, playerId: string): Promise<{ path: string; url: string }> {
+    return this.post(
+      `/matches/${encodeURIComponent(matchId)}/seats/${encodeURIComponent(playerId)}/link`,
+      null,
+      true,
+    );
+  }
+
+  /** Whose seat a link opens, and at which table. Names and faces only. */
+  async seatPreview(matchId: string, secret: string): Promise<SeatPreview> {
+    return this.get(`/seats/${encodeURIComponent(matchId)}/${encodeURIComponent(secret)}`, false);
+  }
+
+  /**
+   * Takes the seat a link opens. Sent with this device's own token when it
+   * has one, so somebody who already is that seat is simply sent back to it
+   * (`alreadyYours`); anybody else gets a token that plays that seat at that
+   * table and nothing more.
+   */
+  async claimSeat(matchId: string, secret: string): Promise<SeatClaim> {
+    return this.post(`/seats/${encodeURIComponent(matchId)}/${encodeURIComponent(secret)}/claim`, null, true);
   }
 
   /** A viewer's state over plain HTTP; the socket is the live path. */
