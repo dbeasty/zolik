@@ -139,8 +139,10 @@ type MatchState struct {
 	MatchID   string `json:"matchId"`
 	ModuleID  string `json:"moduleId"`
 	Variation string `json:"variation,omitempty"`
-	Status    string `json:"status"`
-	JoinCode  string `json:"joinCode,omitempty"`
+	// Deck is the pack, when it is not the French one ("german").
+	Deck     string `json:"deck,omitempty"`
+	Status   string `json:"status"`
+	JoinCode string `json:"joinCode,omitempty"`
 	// InviteURL is the join code as a link the host can send somebody. Minted
 	// by the server, which is the only party that knows how the outside world
 	// reaches it — a terminal client has no origin of its own to guess from,

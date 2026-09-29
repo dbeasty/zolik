@@ -13,6 +13,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 		Label:      "Mariáš",
 		MinPlayers: 3,
 		MaxPlayers: 3,
+		Deck:       module.DeckGerman,
 		Variations: []module.VariationSpec{
 			{
 				ID:    variationVoleny,

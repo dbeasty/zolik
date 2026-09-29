@@ -15,6 +15,7 @@ import type { ActionOffer, Zone } from '@/src/api/matchTypes';
 import { POSITION_PARAM, offerGroupKey, submissionFor } from '@/src/api/matchTypes';
 import { Attention } from '@/src/components/match/Attention';
 import { BoardLayout, matchStyles } from '@/src/components/match/BoardLayout';
+import { DeckProvider } from '@/src/lib/deck';
 import { FlightLayer, type QueuedFlight } from '@/src/components/match/FlightLayer';
 import { HandZone } from '@/src/components/match/HandZone';
 import { LifetimeRecord } from '@/src/components/match/LifetimeRecord';
@@ -1030,7 +1031,7 @@ export default function MatchScreen() {
   </View>
   );
 
-  return (
+  const screen = (
     <View style={styles.root}>
       {/* The felt. Behind everything, catches nothing. */}
       <TableSurface />
@@ -1311,6 +1312,8 @@ export default function MatchScreen() {
       />
     </View>
   );
+  // Which pack the cards are drawn from — see src/lib/deck.ts.
+  return <DeckProvider deck={state.deck}>{screen}</DeckProvider>;
 }
 
 /**

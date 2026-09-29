@@ -378,11 +378,22 @@ export type MatchPlayer = {
   avatar?: string;
 };
 
+/**
+ * The pack a game is dealt from, when it is not the French one: `german` is
+ * the German-suited 32 (mariášky) — hearts, bells, acorns and leaves, with a
+ * spodek and a svršek where the French pack has a jack and a queen. The card
+ * codes are the same; only how they are drawn and named changes. See
+ * `src/lib/deck.ts`.
+ */
+export type CardDeck = 'german';
+
 export type MatchState = {
   type: 'match_state';
   matchId: string;
   moduleId: string;
   variation?: string;
+  /** The module's pack, absent for the French one. */
+  deck?: CardDeck;
   status: 'lobby' | 'active' | 'completed' | 'suspended' | string;
   /** What the lobby chose, echoed back — enough to set the same table again. */
   options?: Record<string, number>;
@@ -681,6 +692,8 @@ export type Replay = {
   matchId: string;
   moduleId: string;
   variation?: string;
+  /** The module's pack, as on `MatchState`. */
+  deck?: CardDeck;
   options?: Record<string, number>;
   players: MatchPlayer[];
   viewerId?: string;

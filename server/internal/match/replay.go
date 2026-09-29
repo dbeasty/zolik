@@ -28,7 +28,9 @@ type ReplayMsg struct {
 	MatchID   string         `json:"matchId"`
 	ModuleID  string         `json:"moduleId"`
 	Variation string         `json:"variation,omitempty"`
-	Options   map[string]int `json:"options,omitempty"`
+	// Deck is the module's pack, as on MatchStateMsg.
+	Deck    string         `json:"deck,omitempty"`
+	Options map[string]int `json:"options,omitempty"`
 	Players   []PlayerMsg    `json:"players"`
 	// ViewerID is the seat these frames were projected for.
 	ViewerID string `json:"viewerId,omitempty"`
@@ -207,6 +209,7 @@ func (m *Manager) BuildReplay(ctx context.Context, match models.Match, viewerID 
 		Chapters: chaptersOf(moves),
 		Tracks:   tracksOf(match, moves),
 	}
+	msg.Deck = mod.Descriptor().Deck
 	for _, p := range match.Players {
 		msg.Players = append(msg.Players, PlayerMsg{ID: p.ID, Name: p.Name, IsAI: p.IsAI, Avatar: p.Avatar})
 	}

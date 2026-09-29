@@ -147,6 +147,27 @@ func numberLabels(n int) string {
 	return strings.Join(parts, " ")
 }
 
+// germanDeck is whether the match on screen is dealt from the German-suited
+// pack (the server's MatchState.deck). Package state rather than a parameter
+// because every card on the screen belongs to the one match being shown, and
+// threading it through each render call would teach all of them about decks.
+var germanDeck bool
+
+// SetDeck says which pack the cards being drawn belong to: "german", or
+// anything else for the French one.
+func SetDeck(deck string) { germanDeck = deck == "german" }
+
+// germanColors are the German pack's own suit colours. The symbols stay the
+// French ones, which is where those came from — spades are leaves, clubs
+// acorns, diamonds bells — and are all one cell wide, which an emoji bell is
+// not.
+var germanColors = map[byte]lipgloss.Style{
+	'H': lipgloss.NewStyle().Foreground(lipgloss.Color("#E05252")),
+	'D': lipgloss.NewStyle().Foreground(lipgloss.Color("#E0A526")),
+	'C': lipgloss.NewStyle().Foreground(lipgloss.Color("#B07A45")),
+	'S': lipgloss.NewStyle().Foreground(lipgloss.Color("#4CB043")),
+}
+
 func displayRank(card string) string {
 	if strings.HasPrefix(card, "JOKER") {
 		return "JKR"
@@ -157,8 +178,33 @@ func displayRank(card string) string {
 	if card[0] == 'T' {
 		return "10"
 	}
+	if germanDeck {
+		// The spodek and svršek are the Unter and the Ober.
+		switch card[0] {
+		case 'J':
+			return "U"
+		case 'Q':
+			return "O"
+		}
+	}
 	return string(card[0])
 }
+
+func suitStyle(suit byte) lipgloss.Style {
+	if germanDeck {
+		if st, ok := germanColors[suit]; ok {
+			return st
+		}
+	}
+	if suit == 'H' || suit == 'D' {
+		return RedSuit
+	}
+	return BlackSuit
+}
+
+// CardToken is a card as a short coloured token, "[O♠]", for a line of text
+// rather than a drawn card.
+func CardToken(card string) string { return compactToken(card) }
 
 func cardSuit(card string) byte {
 	if len(card) < 2 {
@@ -171,14 +217,11 @@ func cardSuit(card string) byte {
 }
 
 func colorSuit(sym string, suit byte) string {
-	if suit == 'H' || suit == 'D' {
-		return RedSuit.Render(sym)
-	}
-	return BlackSuit.Render(sym)
+	return suitStyle(suit).Render(sym)
 }
 
 func centerSuit(symStyled, rank string) string {
-	if rank == "J" || rank == "Q" || rank == "K" {
+	if rank == "J" || rank == "Q" || rank == "K" || rank == "U" || rank == "O" {
 		return centerText(rank, 3)
 	}
 	return centerText(symStyled, 3)
@@ -239,10 +282,7 @@ func compactToken(card string) string {
 	s := cardSuit(card)
 	sym := suitSymbol[s]
 	tok := "[" + r + sym + "]"
-	if s == 'H' || s == 'D' {
-		return RedSuit.Render(tok)
-	}
-	return BlackSuit.Render(tok)
+	return suitStyle(s).Render(tok)
 }
 
 func itoa(n int) string {

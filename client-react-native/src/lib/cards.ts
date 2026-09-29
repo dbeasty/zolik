@@ -13,6 +13,8 @@
  * serve all of them.
  */
 
+import { currentDeck, GERMAN_SUIT_GLYPHS, germanIndex } from '@/src/lib/deck';
+
 export type CardDisplay = {
   rank: string;
   suitSymbol: string;
@@ -76,7 +78,12 @@ export function cardSuit(card: string): string {
 export function cardText(card: string): string {
   if (!isCardCode(card)) return card;
   const c = parseCard(card);
-  return c.isJoker ? 'Joker' : `${c.rank}${c.suitSymbol}`;
+  if (c.isJoker) return 'Joker';
+  // The same code on a German-suited table is a different card to look at —
+  // "QS" is the svršek of leaves, not the queen of spades — so it is named
+  // the way the face on the table draws it.
+  if (currentDeck() === 'german') return `${germanIndex(c.rank)}${GERMAN_SUIT_GLYPHS[c.suit] ?? ''}`;
+  return `${c.rank}${c.suitSymbol}`;
 }
 
 /**

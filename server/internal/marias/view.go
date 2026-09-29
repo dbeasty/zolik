@@ -212,17 +212,7 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 
 // Keys for the words a fact names rather than says. Written out so each is
 // a literal the key manifest can find.
-func suitKey(suit string) string {
-	switch suit {
-	case "H":
-		return "marias.suit.H"
-	case "D":
-		return "marias.suit.D"
-	case "C":
-		return "marias.suit.C"
-	}
-	return "marias.suit.S"
-}
+func suitKey(suit string) string { return module.GermanSuitKey(suit) }
 
 func gameKey(game string) string {
 	switch game {

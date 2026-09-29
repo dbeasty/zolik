@@ -107,6 +107,7 @@ func (m matchModel) update(msg tea.Msg) (matchModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case matchStateMsg:
 		m.state = msg.state
+		render.SetDeck(m.state.Deck)
 		if m.cursor >= len(m.state.LegalActions) {
 			m.cursor = 0
 		}
@@ -456,7 +457,7 @@ func (m matchModel) zoneLine(z api.Zone) string {
 	case len(z.Cards) > 0:
 		var cards []string
 		for _, c := range z.Cards {
-			cards = append(cards, c.Card)
+			cards = append(cards, render.CardToken(c.Card))
 		}
 		return fmt.Sprintf("%s %s\n", mutedStyle.Render(name+":"), strings.Join(cards, " "))
 	default:
@@ -473,12 +474,12 @@ func trickCards(cards []api.CardView, players []api.Player, me string) string {
 		who := api.PlayerName(players, c.By)
 		switch {
 		case c.By == "":
-			parts = append(parts, c.Card)
+			parts = append(parts, render.CardToken(c.Card))
 			continue
 		case c.By == me:
 			who = "you"
 		}
-		parts = append(parts, who+" "+c.Card)
+		parts = append(parts, who+" "+render.CardToken(c.Card))
 	}
 	return strings.Join(parts, "  ")
 }

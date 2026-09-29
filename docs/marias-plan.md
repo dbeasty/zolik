@@ -292,7 +292,12 @@ test follows `holdem/bot.go:34-36` and `ai/nopeek_test.go`. The sampler and solv
    easy seats), the shared contract suite, `e2e/tests/marias.spec.ts`, and all 24 locales. It
    was played through the real UI against two bots in the browser.*
 4. **Licitovaný:** the association's auction game, pinned first like step 0.
-5. **German faces** (§3.4), and Prší opting in.
+5. **German faces** (§3.4), and Prší opting in. *Done on `claude/marias-tricks`: `Deck`
+   on the descriptor and on every state and replay message; `src/lib/deck.ts` (context, plus
+   German names for a card in a sentence); `GermanSuit`, `GermanCourt` and `GermanFace` in all
+   four skin styles; the TUI's four-colour German rendering. Prší names the German suits and its
+   wild card is the svršek, in all 24 locales. Checked with headless screenshots of real tables
+   and a gallery of all 32 cards.*
 6. **Hard bot** (sampling), in `internal/tricks/search`.
 
 Steps 1–3 give a playable game. Steps 4–6 each stand on their own.

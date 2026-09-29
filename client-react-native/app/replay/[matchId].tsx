@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ApiError } from '@/src/api/client';
 import type { MatchState, Replay, ReplayFrame, RoundLog } from '@/src/api/matchTypes';
 import { BoardLayout, matchStyles } from '@/src/components/match/BoardLayout';
+import { DeckProvider } from '@/src/lib/deck';
 import { RoundResults } from '@/src/components/match/RoundResults';
 import { TableSurface } from '@/src/components/match/TableSurface';
 import { ZoneView } from '@/src/components/match/ZoneView';
@@ -286,7 +287,7 @@ export default function ReplayScreen() {
   // never has to know that Žolíky deals and Hold'em does not.
   const roundName = rounds?.labelKey ? label(rounds.labelKey) : t('replay.round');
 
-  return (
+  const screen = (
     <View style={styles.root}>
       <TableSurface />
       <Stack.Screen
@@ -463,6 +464,8 @@ export default function ReplayScreen() {
       </SafeAreaView>
     </View>
   );
+  // Which pack the cards are drawn from — see src/lib/deck.ts.
+  return <DeckProvider deck={replay?.deck}>{screen}</DeckProvider>;
 }
 
 /**

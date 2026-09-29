@@ -25,6 +25,9 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 		Label:      "Prší",
 		MinPlayers: 2,
 		MaxPlayers: 6,
+		// Prší is a Czech game, dealt from the same German-suited pack as
+		// Mariáš: the queen that names a suit is a svršek.
+		Deck: module.DeckGerman,
 		Variations: []module.VariationSpec{
 			{
 				ID:    "classic",
@@ -148,7 +151,7 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 	}
 	if s.DeclaredSuit != "" {
 		vm.Header = append(vm.Header, module.Fact{
-			LabelKey: "header.suitInPlay", Value: s.DeclaredSuit,
+			LabelKey: "header.suitInPlay", Value: module.GermanSuitKey(s.DeclaredSuit),
 		})
 	}
 
