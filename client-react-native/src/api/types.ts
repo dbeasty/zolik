@@ -239,6 +239,42 @@ export type PushDeviceRegistration = {
 };
 
 /** A table somebody in this player's circle has opened, as the server sends it. */
+/** One seat at a table, as a seat link's preview shows it. */
+export type SeatPreviewPlayer = {
+  id: string;
+  name: string;
+  isAI: boolean;
+  avatar?: string;
+  /** Somebody holds a socket in this seat right now. */
+  present: boolean;
+};
+
+/** Whose seat a seat link opens, and at which table. */
+export type SeatPreview = {
+  matchId: string;
+  moduleId: string;
+  /** The game's own name, for a build with no words for `moduleId`. */
+  moduleLabel?: string;
+  variation?: string;
+  status: string;
+  seat: SeatPreviewPlayer;
+  players: SeatPreviewPlayer[];
+};
+
+/**
+ * What taking a seat link answers: either the caller already is that seat, or
+ * a token that plays it at this table and reaches nothing else.
+ */
+export type SeatClaim = {
+  matchId: string;
+  alreadyYours?: boolean;
+  accessToken?: string;
+  userId?: string;
+  username?: string;
+  /** Seconds the token plays the seat for. */
+  expiresIn?: number;
+};
+
 export type TableInvite = {
   /** Equal to `matchId`: one invite per table, which is what de-duplicates the
    *  socket's copy against the push's. */
