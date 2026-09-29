@@ -113,6 +113,12 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		Zone: module.FromHand, OwnerID: playerID,
 		Cards: discardable, MinCards: 1, MaxCards: 1,
 	}
+	// Shedding the last card is going out, and going out ends the deal for
+	// everyone — said on the control, as Žolíky does, rather than left for the
+	// press to reveal.
+	if len(hand) == 1 && len(discardable) == 1 {
+		discard.LabelKey = "verb.discardToClose"
+	}
 	discard.Target = &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID}
 	offers = append(offers, discard)
 
