@@ -75,6 +75,8 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	// opens it; every later one sits down at it.
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/rematch", h.rematch)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/rematch/decline", h.declineRematch)
+	// The host not waiting for somebody a rematch is holding a seat for.
+	r.With(auth.AuthMiddleware).Post("/matches/{id}/rematch/release", h.releaseHeldSeat)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/add-bot", h.addBot)
 	// Seat a specific player out of the waiting room, instead of reading a
 	// join code out to them.
@@ -377,19 +379,9 @@ func (h *Handlers) addBot(w http.ResponseWriter, req *http.Request) {
 	var body addBotReq
 	_ = json.NewDecoder(req.Body).Decode(&body)
 
-	id := "bot:" + randomJoinCode(8)
 	// Who sits down is decided under the table's lock, from the table as it
 	// is then, so two add-bots racing each other cannot seat the same persona.
-	_, bot, err := h.manager.JoinWith(ctx, m.ID.Hex(), func(m models.Match) models.Player {
-		persona := h.personaFor(m, body.Skill)
-		return models.Player{
-			ID:           id,
-			IsAI:         true,
-			Name:         persona.Name,
-			AIDifficulty: string(persona.Skill),
-			AIPersona:    persona.Key(),
-		}
-	})
+	_, bot, err := h.manager.JoinWith(ctx, m.ID.Hex(), h.newBot(body.Skill))
 	if err != nil {
 		writeModuleError(w, err)
 		return
@@ -400,6 +392,22 @@ func (h *Handlers) addBot(w http.ResponseWriter, req *http.Request) {
 		"skill":     bot.AIDifficulty,
 		"aiPersona": bot.AIPersona,
 	})
+}
+
+// newBot builds the bot that sits down at a table, from the table as it is
+// under its lock — see addBot for what is decided and why.
+func (h *Handlers) newBot(skill string) func(models.Match) models.Player {
+	id := "bot:" + randomJoinCode(8)
+	return func(m models.Match) models.Player {
+		persona := h.personaFor(m, skill)
+		return models.Player{
+			ID:           id,
+			IsAI:         true,
+			Name:         persona.Name,
+			AIDifficulty: string(persona.Skill),
+			AIPersona:    persona.Key(),
+		}
+	}
 }
 
 // personaFor decides which opponent sits down at this table.
@@ -611,6 +619,37 @@ func (h *Handlers) declineRematch(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	next, err := h.manager.DeclineRematch(req.Context(), chi.URLParam(req, "id"), uc.UserID)
+	if err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	writeJSON(w, map[string]any{"matchId": next.ID.Hex()})
+}
+
+type releaseHeldSeatReq struct {
+	PlayerID string `json:"playerId"`
+	// Bot seats a bot in the seat instead of leaving it open.
+	Bot bool `json:"bot,omitempty"`
+}
+
+// releaseHeldSeat lets go of a seat a rematch was holding, at the host's
+// request, optionally seating a bot at the table's own skill in it.
+func (h *Handlers) releaseHeldSeat(w http.ResponseWriter, req *http.Request) {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	var body releaseHeldSeatReq
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil || body.PlayerID == "" {
+		http.Error(w, "playerId is required", http.StatusBadRequest)
+		return
+	}
+	var bot func(models.Match) models.Player
+	if body.Bot {
+		bot = h.newBot("")
+	}
+	next, err := h.manager.ReleaseHeldSeat(req.Context(), chi.URLParam(req, "id"), uc.UserID, body.PlayerID, bot)
 	if err != nil {
 		writeModuleError(w, err)
 		return

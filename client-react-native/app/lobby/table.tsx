@@ -100,6 +100,21 @@ export default function TableScreen() {
    * existed. Naming one overrides it for this seat alone — the only way to
    * build a table where the opponents differ from each other.
    */
+  // A bot in the seat a rematch was holding, in that seat — the host has
+  // stopped waiting for this person.
+  async function fillHeldSeat(playerId: string) {
+    setBusy(true);
+    setError('');
+    try {
+      await client.releaseHeldSeat(id, playerId, true);
+      await poll();
+    } catch (e) {
+      setError(formatApiError(e, 'Could not add a bot'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function addBot(skill = '') {
     setBusy(true);
     setError('');
@@ -170,6 +185,9 @@ export default function TableScreen() {
   }
 
   const players = state?.players ?? [];
+  // Seats a rematch is still holding. Dealing plays on without them, so the
+  // Start button names who that is.
+  const held = state?.reserved ?? [];
   // The sides come from the server, which asks the module — a client counting
   // to two would be a second implementation of a rule, and the two would
   // eventually disagree about a six-seat table.
@@ -264,14 +282,25 @@ export default function TableScreen() {
           without them — so the host sees who they would be starting without
           rather than a table that looks one short for no reason.
         */}
-        {(state?.reserved ?? []).map((r) => (
-          <Text
+        {held.map((r) => (
+          <View
             key={r.playerId}
-            testID={`held-${r.playerId}`}
-            style={{ color: colors.muted, marginBottom: 4 }}
+            style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}
           >
-            {t('lobby.table.heldFor', { name: r.name })}
-          </Text>
+            <Text testID={`held-${r.playerId}`} style={{ color: colors.muted, flexShrink: 1 }}>
+              {t('lobby.table.heldFor', { name: r.name })}
+            </Text>
+            {isHost ? (
+              <Pressable
+                testID={`held-fill-${r.playerId}`}
+                disabled={busy}
+                onPress={() => fillHeldSeat(r.playerId)}
+                style={{ marginLeft: 'auto', paddingHorizontal: 10, paddingVertical: 2 }}
+              >
+                <Text style={{ color: colors.accent }}>{t('lobby.table.fillWithBot')}</Text>
+              </Pressable>
+            ) : null}
+          </View>
         ))}
 
         {/*
@@ -337,7 +366,11 @@ export default function TableScreen() {
               ))}
             </View>
             <Pressable testID="table-start" style={shared.button} onPress={start} disabled={busy}>
-              <Text style={shared.buttonText}>{t('lobby.table.start')}</Text>
+              <Text style={shared.buttonText}>
+                {held.length
+                  ? t('lobby.table.startWithout', { names: held.map((r) => r.name).join(', ') })
+                  : t('lobby.table.start')}
+              </Text>
             </Pressable>
           </>
         ) : (

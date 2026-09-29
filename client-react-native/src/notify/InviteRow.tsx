@@ -13,6 +13,12 @@ export function inviteHeadline(invite: Invite): string {
   const host = invite.host.name || t('notify.someone');
   if (invite.source === 'waiting-room') return t('notify.banner.seated');
   if (invite.target.kind === 'nearby') return t('notify.banner.nearby', { host });
+  if (invite.rematchOf) {
+    return t('notify.banner.rematch', {
+      host,
+      game: moduleLabel({ id: invite.moduleId ?? '', label: invite.moduleLabel ?? invite.moduleId ?? '' }),
+    });
+  }
   return invite.moduleId
     ? t('notify.banner.online', { host, game: moduleLabel({ id: invite.moduleId, label: invite.moduleLabel ?? invite.moduleId }) })
     : t('notify.banner.onlineNoGame', { host });
@@ -20,6 +26,9 @@ export function inviteHeadline(invite: Invite): string {
 
 /** The quieter line under it: why this player is hearing about it. */
 export function inviteDetail(invite: Invite): string {
+  // Why they are hearing about it is that they just played; what matters is
+  // that nobody else can take the seat.
+  if (invite.rematchOf) return t('notify.banner.rematchDetail');
   if (invite.host.known) return t('notify.banner.known');
   if (invite.source === 'online') return t('notify.banner.fromCircle');
   if (invite.source === 'waiting-room') return t('notify.banner.seatedDetail');

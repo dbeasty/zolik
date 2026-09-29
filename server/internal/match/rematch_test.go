@@ -199,3 +199,99 @@ func ids(players []models.Player) []string {
 	}
 	return out
 }
+
+// rematchLog records what the runtime tells the notifications about.
+type rematchLog struct {
+	mu       sync.Mutex
+	opened   []string // held player ids, per rematch
+	released []string // released player ids
+}
+
+func (r *rematchLog) RematchOpened(_ models.Match, _ models.Player, held []models.Player) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, p := range held {
+		// The identity has to survive the hold, or nobody can be reached.
+		if p.UserID == "" && p.GuestID == "" {
+			r.opened = append(r.opened, p.ID+"(unreachable)")
+			continue
+		}
+		r.opened = append(r.opened, p.ID)
+	}
+}
+
+func (r *rematchLog) HeldSeatReleased(_ string, holder models.Player) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.released = append(r.released, holder.ID)
+}
+
+// The host stops waiting for somebody: a bot takes the seat they would have
+// had, and they are told the seat has gone.
+func TestTheHostCanFillAHeldSeatWithABot(t *testing.T) {
+	ctx := t.Context()
+	m, repo, _ := newReaperHarness(t)
+	log := &rematchLog{}
+	m.SetRematchObserver(log)
+	old := finishedMatch(t, repo, human("ann"), human("bob"), human("cat"))
+
+	next, err := m.Rematch(ctx, old.ID.Hex(), "ann")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fmt.Sprint(log.opened) != "[bob cat]" {
+		t.Fatalf("told about %v, want bob and cat, reachable", log.opened)
+	}
+
+	if _, err := m.ReleaseHeldSeat(ctx, next.ID.Hex(), "bob", "cat", nil); module.CodeOf(err) != "NOT_THE_HOST" {
+		t.Fatalf("bob releasing cat's seat: %v, want NOT_THE_HOST", err)
+	}
+	stand := models.Player{ID: "bot:stand-in", Name: "Stand-in", IsAI: true}
+	got, err := m.ReleaseHeldSeat(ctx, next.ID.Hex(), "ann", "bob", func(models.Match) models.Player { return stand })
+	if err != nil {
+		t.Fatalf("releasing bob's seat: %v", err)
+	}
+	if fmt.Sprint(got.TurnOrder) != "[ann bot:stand-in]" {
+		t.Errorf("turn order %v, want the bot where bob sat", got.TurnOrder)
+	}
+	if len(got.Reserved) != 1 || got.Reserved[0].PlayerID != "cat" {
+		t.Errorf("still holding %+v, want only cat", got.Reserved)
+	}
+
+	// Cat sits down after the bot, and still lands in her own seat.
+	joined, err := m.Rematch(ctx, old.ID.Hex(), "cat")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fmt.Sprint(joined.TurnOrder) != "[ann bot:stand-in cat]" {
+		t.Errorf("turn order %v, want [ann bot:stand-in cat]", joined.TurnOrder)
+	}
+
+	// Releasing a seat nobody holds any more is not an error.
+	if _, err := m.ReleaseHeldSeat(ctx, next.ID.Hex(), "ann", "bob", nil); err != nil {
+		t.Errorf("releasing again: %v", err)
+	}
+	if fmt.Sprint(log.released) != "[bob]" {
+		t.Errorf("released %v, want bob told once", log.released)
+	}
+}
+
+// Saying no thanks withdraws the invite too.
+func TestDecliningTellsTheNotifications(t *testing.T) {
+	ctx := t.Context()
+	m, repo, _ := newReaperHarness(t)
+	log := &rematchLog{}
+	m.SetRematchObserver(log)
+	old := finishedMatch(t, repo, human("ann"), human("bob"))
+
+	next, err := m.Rematch(ctx, old.ID.Hex(), "ann")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.DeclineRematch(ctx, next.ID.Hex(), "bob"); err != nil {
+		t.Fatal(err)
+	}
+	if fmt.Sprint(log.released) != "[bob]" {
+		t.Errorf("released %v, want bob", log.released)
+	}
+}

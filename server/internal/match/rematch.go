@@ -8,6 +8,18 @@ import (
 	"zolik/server/internal/rules"
 )
 
+// RematchObserver is told who a rematch is holding seats for, and when one of
+// those seats is let go before its holder sat down. It is how somebody who
+// already left the finished table hears about the rematch, and how that news
+// is withdrawn. Must not block.
+type RematchObserver interface {
+	RematchOpened(next models.Match, host models.Player, held []models.Player)
+	HeldSeatReleased(matchID string, holder models.Player)
+}
+
+// SetRematchObserver attaches the observer. Optional.
+func (m *Manager) SetRematchObserver(o RematchObserver) { m.rematchObserver = o }
+
 // Rematch plays a finished table again: the same game, variation and
 // options, the same seat order, and the same opponents — a bot keeps its
 // persona and skill, so "again" means against the players who were actually
@@ -66,6 +78,13 @@ func (m *Manager) Rematch(ctx context.Context, idOrCode, callerID string) (model
 	if len(next.Reserved) == 0 {
 		return m.Start(ctx, next.ID.Hex())
 	}
+	if m.rematchObserver != nil {
+		held := make([]models.Player, 0, len(next.Reserved))
+		for _, r := range next.Reserved {
+			held = append(held, r.Player())
+		}
+		m.rematchObserver.RematchOpened(next, host, held)
+	}
 	return next, nil
 }
 
@@ -102,7 +121,9 @@ func (m *Manager) openRematch(ctx context.Context, old models.Match, host models
 				Avatar:       p.Avatar,
 			})
 		default:
-			next.Reserved = append(next.Reserved, models.Reservation{PlayerID: p.ID, Name: p.Name, Avatar: p.Avatar})
+			next.Reserved = append(next.Reserved, models.Reservation{
+				PlayerID: p.ID, Name: p.Name, Avatar: p.Avatar, UserID: p.UserID, GuestID: p.GuestID,
+			})
 		}
 	}
 	next.Players, next.TurnOrder = inSeatOrder(next.Players, next.SeatOrder)
@@ -126,6 +147,7 @@ func (m *Manager) DeclineRematch(ctx context.Context, idOrCode, playerID string)
 		e.mu.Unlock()
 		return match, nil
 	}
+	holder := e.match.Reserved[i].Player()
 	next := e.match
 	next.Reserved = withoutReservation(next.Reserved, i)
 	err = m.saveLocked(ctx, e, next)
@@ -134,8 +156,65 @@ func (m *Manager) DeclineRematch(ctx context.Context, idOrCode, playerID string)
 	if err != nil {
 		return models.Match{}, err
 	}
-	m.Broadcast(match)
+	m.heldSeatReleased(match, holder)
 	return match, nil
+}
+
+// ReleaseHeldSeat is the host deciding not to wait for somebody a rematch is
+// holding a seat for. With a bot, the bot sits where they would have sat —
+// the table keeps its shape; without one the seat is simply open again.
+//
+// A seat that is no longer held — taken, declined, or never held — is not an
+// error: the host acted on a lobby that moved on a moment before, and the
+// table they see next is the answer.
+func (m *Manager) ReleaseHeldSeat(ctx context.Context, idOrCode, hostID, playerID string, bot func(models.Match) models.Player) (models.Match, error) {
+	e, err := m.lockMatch(ctx, idOrCode)
+	if err != nil {
+		return models.Match{}, err
+	}
+	match := e.match
+	if match.HostID != hostID {
+		e.mu.Unlock()
+		return models.Match{}, module.Error{Code: "NOT_THE_HOST", Message: hostID}
+	}
+	if match.Status != "lobby" {
+		e.mu.Unlock()
+		return models.Match{}, module.Error{Code: "MATCH_ALREADY_STARTED"}
+	}
+	i := reservationIndex(match.Reserved, playerID)
+	if i < 0 {
+		e.mu.Unlock()
+		return match, nil
+	}
+	holder := match.Reserved[i].Player()
+	next := match
+	next.Reserved = withoutReservation(match.Reserved, i)
+	if bot != nil {
+		b := bot(match)
+		next.Players = append(append([]models.Player(nil), match.Players...), b)
+		next.SeatOrder = append([]string(nil), match.SeatOrder...)
+		for j, id := range next.SeatOrder {
+			if id == playerID {
+				next.SeatOrder[j] = b.ID
+			}
+		}
+		next.Players, next.TurnOrder = inSeatOrder(next.Players, next.SeatOrder)
+	}
+	err = m.saveLocked(ctx, e, next)
+	match = e.match
+	e.mu.Unlock()
+	if err != nil {
+		return models.Match{}, err
+	}
+	m.heldSeatReleased(match, holder)
+	return match, nil
+}
+
+func (m *Manager) heldSeatReleased(match models.Match, holder models.Player) {
+	m.Broadcast(match)
+	if m.rematchObserver != nil {
+		m.rematchObserver.HeldSeatReleased(match.ID.Hex(), holder)
+	}
 }
 
 func reservationIndex(held []models.Reservation, playerID string) int {

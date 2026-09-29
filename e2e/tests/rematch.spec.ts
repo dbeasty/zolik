@@ -107,8 +107,11 @@ test.describe('a rematch with people at the table', () => {
     await expect(annPage).toHaveURL(/\/lobby\/table\?matchId=/);
     await expect(annPage.getByTestId(`held-${bob.userId}`)).toBeVisible();
 
-    // Bob hears about it where he is, by name, without a link being sent.
+    // Bob hears about it where he is, by name, without a link being sent —
+    // on the table's own banner, and only there: the invite that reaches
+    // people who left would say the same thing a second time.
     await expect(bobPage.getByTestId('match-over-rematch-offer')).toHaveText(/wants a rematch/);
+    await expect(bobPage.getByTestId('invite-banner')).toHaveCount(0);
     await bobPage.getByTestId('match-over-join-rematch').click();
     await expect(bobPage).toHaveURL(/\/lobby\/join\?matchId=/);
 
@@ -131,5 +134,47 @@ test.describe('a rematch with people at the table', () => {
     await expect(bobPage.getByTestId('match-over-rematch-offer')).toBeHidden();
     // The host is no longer shown somebody who is not coming.
     await expect(annPage.getByTestId(`held-${bob.userId}`)).toBeHidden({ timeout: 10_000 });
+  });
+
+  test('somebody who already left is invited wherever they are', async ({ browser, request }) => {
+    test.setTimeout(120_000);
+    const { annPage, bobPage, order } = await annFinishesTheGame(browser, request);
+
+    // Bob has gone back to the games list before Ann asks.
+    await bobPage.goto('/lobby/games');
+    await expect(bobPage.getByTestId('games-list')).toBeVisible({ timeout: 30_000 });
+    await annPage.getByTestId('match-over-again').click();
+    await expect(annPage).toHaveURL(/\/lobby\/table\?matchId=/);
+
+    const banner = bobPage.getByTestId('invite-banner');
+    await expect(banner).toBeVisible({ timeout: 15_000 });
+    await expect(bobPage.getByTestId('invite-banner-text')).toContainText('wants a rematch');
+    await expect(bobPage.getByTestId('invite-banner-text')).toContainText('Ann');
+    await bobPage.getByTestId('invite-banner-join').click();
+    await expect(bobPage).toHaveURL(/\/lobby\/join\?matchId=/);
+
+    const nextId = new URL(annPage.url()).searchParams.get('matchId')!;
+    const next = await (await request.get(`${API_BASE}/matches/${nextId}`)).json();
+    expect(next.players.map((p: any) => p.id)).toEqual(order);
+  });
+
+  test('the host can stop waiting and seat a bot where they sat', async ({ browser, request }) => {
+    test.setTimeout(120_000);
+    const { annPage, bob, order } = await annFinishesTheGame(browser, request);
+
+    await annPage.getByTestId('match-over-again').click();
+    await expect(annPage.getByTestId(`held-${bob.userId}`)).toBeVisible();
+    // Dealing now would go on without him, and the button says so.
+    await expect(annPage.getByTestId('table-start')).toContainText('Start without');
+
+    await annPage.getByTestId(`held-fill-${bob.userId}`).click();
+    await expect(annPage.getByTestId(`held-${bob.userId}`)).toBeHidden({ timeout: 10_000 });
+    await expect(annPage.getByTestId('table-start')).toHaveText('Start');
+
+    const nextId = new URL(annPage.url()).searchParams.get('matchId')!;
+    const next = await (await request.get(`${API_BASE}/matches/${nextId}`)).json();
+    const seats = next.players.map((p: any) => p.id);
+    expect(seats).toHaveLength(order.length);
+    expect(seats[order.indexOf(bob.userId)]).toMatch(/^bot:/);
   });
 });
