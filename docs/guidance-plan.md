@@ -7,7 +7,19 @@ Players still get stuck on "what do I do now?". Four asks from play-testing:
 3. Help with the next move.
 4. An AI guide that explains how to play and what the rules are.
 
-Much of the groundwork already exists. The phases below go from cheapest to most expensive. Each phase ships as its own PR.
+Much of the groundwork already exists. The phases below go from cheapest to most expensive.
+
+## Status (2026-09-29, branch `claude/guidance`)
+
+Phases 0–4 are implemented, one commit each. Phase 5 (the AI guide) is deferred until an external model or an in-house AI is chosen.
+
+Where the build differs from the plan below:
+
+- **Hints are a REST call** (`POST /matches/{id}/hint`), not a WebSocket verb. The socket carries raw actions only, and a hint changes nothing. Hints are on by default at every table, human-only ones included, and the host can turn them off. Hint use is not recorded in the round results yet.
+- **Recent moves** are narrated only by Žolíky so far. Canasta, Gin Rummy and Rummy Tiles need their own `NarrateEvent`.
+- **Change markers** do not scroll to an off-screen zone. The owner's panel header carries a "n changed" chip instead, which stays visible when the panel is minimised.
+- **Selection help** in the explanation sheet says what to pick, but does not yet highlight the cards that would fit.
+- **Bot audit:** no bot reads hidden cards. Blackjack, Gin Rummy and Rummy Tiles still have no no-peek test of their own.
 
 ## What already exists
 
