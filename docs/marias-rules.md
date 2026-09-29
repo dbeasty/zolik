@@ -115,11 +115,8 @@ Ids are `marias.rules.<id>`. A 🔧 marks a sentence that changes or disappears 
 7. **Marriages are announced automatically** when a svršek is played while holding its král.
    Playing the král first still forgoes the marriage, as at a real table.
 
-## Open questions
+## Settled questions (2026-09-29)
 
-1. **What a failed announced sto pays.** ČSM's table gives the value of a hundred, not of a
-   failure. Pagat says only that a failure "is penalised". The pinned rule for now: the sto
-   tariff flat (4), times doublings and red (`settle.go` `stoValue`). The other common reading
-   is "doubled for every ten points short of a hundred". Which does your table play?
-2. **Do the defenders' marriages count in hra if the defenders take no trick?** Neither source
-   restricts it, so they count.
+1. **A failed announced sto pays the sto tariff flat** (4), times doublings and red
+   (`settle.go` `stoValue`). It is not scaled by how far short it fell.
+2. **The defenders' marriages count in hra** whether or not the defenders take a trick.

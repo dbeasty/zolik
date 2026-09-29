@@ -278,7 +278,7 @@ test follows `holdem/bot.go:34-36` and `ai/nopeek_test.go`. The sampler and solv
 
 0. **Pin the rules.** Write `rules.go` sections and the option table first. The user signs off on
    them; the tariff and flek names come from here. *Done: [marias-rules.md](marias-rules.md) and
-   `server/internal/marias`, awaiting sign-off on its two open questions.*
+   `server/internal/marias`, signed off 2026-09-29.*
 1. **`internal/tricks`**, with tests. No client change. *Done on `claude/marias-tricks`.*
 2. **Trick area:** `CardView.By` and `Zone.Arrange`, plus the React Native compass and the TUI
    row. Proven first with a throwaway test module in `allmodules_test`.

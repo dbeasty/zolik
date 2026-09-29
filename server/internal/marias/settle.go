@@ -55,9 +55,9 @@ func (t Tariff) hraValue(winnerHundredCount int) int {
 
 // stoValue is what an announced hundred pays. Won, it is worth the sto
 // tariff doubled for every ten past a hundred. Lost, it pays the sto tariff
-// flat: the association's table does not scale a failure, and "how far short"
-// is not a figure any Czech source agrees on (docs/marias-rules.md, open
-// question 1).
+// flat: the association's table does not scale a failure, no Czech source
+// agrees on "how far short", and flat is what was signed off
+// (docs/marias-rules.md, settled question 1).
 func (t Tariff) stoValue(won bool, count int) int {
 	if !won {
 		return t.Sto
