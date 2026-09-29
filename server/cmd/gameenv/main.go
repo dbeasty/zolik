@@ -8,6 +8,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime/debug"
 
 	"zolik/server/internal/learn"
 
@@ -16,6 +17,14 @@ import (
 )
 
 func main() {
+	// The engines are JSON in and JSON out, so a step is mostly garbage, and
+	// at the default the collector ran often enough to cost more than half of
+	// Canasta's throughput. A trainer's process is not a server sharing a box
+	// with anything; trading memory for speed is the right way round here.
+	// GOGC still wins when it is set.
+	if os.Getenv("GOGC") == "" {
+		debug.SetGCPercent(400)
+	}
 	if err := learn.Serve(os.Stdin, os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, "gameenv:", err)
 		os.Exit(1)

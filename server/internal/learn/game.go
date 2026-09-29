@@ -77,8 +77,35 @@ type Game interface {
 
 // Candidate is one legal move and what the network is told about it.
 type Candidate struct {
-	Action   module.Action
+	Action module.Action
+	// Then is the rest of a move that takes more than one action to make,
+	// applied in order straight after Action by the same seat. Empty for
+	// almost every candidate in every game.
+	//
+	// It exists for the moves whose halves are not moves. Canasta's opening
+	// is the case that forced it: the minimum is a property of the whole
+	// turn, so an opening is two or three melds laid back to back, and a
+	// network that chose them one at a time could lay the first and find
+	// the second refused — a turn with nothing legal left in it but taking
+	// the first back. Offered whole, the choice is between openings that
+	// are known to finish, and the half-finished position is never one the
+	// network is asked about.
+	//
+	// The environment applies the whole sequence as one decision. A NetBot
+	// cannot — module.Bot answers one action per call — so it plays Action
+	// and is asked again from the position that leaves. An adapter that
+	// uses Then must therefore answer every position part-way through one
+	// of its sequences with candidates that finish it: re-derived from the
+	// state, which is deterministic and needs no memory in the bot. The
+	// continuation it chooses there need not be the one it first scored;
+	// it only has to be one of the finishing ones.
+	Then     []module.Action
 	Features []float32
+}
+
+// Steps is every action the candidate makes, in order.
+func (c Candidate) Steps() []module.Action {
+	return append([]module.Action{c.Action}, c.Then...)
 }
 
 var (

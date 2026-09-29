@@ -46,6 +46,12 @@ func (b NetBot) usable() bool {
 
 // choose is Act without the fallback, and with the candidate index, so the
 // environment can tell a network move from a heuristic one.
+//
+// A candidate with more than one step (Candidate.Then) is played one step per
+// call: this returns its first action, and the next call — from the position
+// that action left — is answered by the adapter's candidates for finishing it.
+// Nothing is remembered between calls, so two bots sharing a network, or a
+// bench running seeds in parallel, cannot see each other's plans.
 func (b NetBot) choose(s module.State, seat module.BotSeat, offers []module.ActionOffer) (module.Action, int, bool) {
 	if !b.usable() {
 		return module.Action{}, -1, false

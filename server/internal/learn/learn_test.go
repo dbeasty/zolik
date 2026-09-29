@@ -433,3 +433,246 @@ func TestServeSpeaksJSONLines(t *testing.T) {
 		t.Errorf("reset/step: %+v %+v", reps[2], reps[3])
 	}
 }
+
+// --- moves that take more than one action --------------------------------------
+
+// relay is nim with the turn split up: a player takes stones one action at a
+// time, up to three, and then ends the turn with an action of its own. A turn
+// is a sequence, the way a Canasta opening is, which is what Candidate.Then is
+// for. Taking the last stone wins at once.
+type relay struct{}
+
+type relayState struct {
+	Pile    int      `json:"pile"`
+	Players []string `json:"players"`
+	Turn    int      `json:"turn"`
+	Taken   int      `json:"taken"`
+	Winner  string   `json:"winner,omitempty"`
+}
+
+func decodeRelay(s module.State) relayState {
+	var r relayState
+	_ = json.Unmarshal(s, &r)
+	return r
+}
+
+func (relay) Descriptor() module.ModuleDescriptor { return module.ModuleDescriptor{} }
+
+func (relay) NewMatch(_ module.MatchConfig, players []module.PlayerRef, seed int64) (module.State, error) {
+	ids := make([]string, len(players))
+	for i, p := range players {
+		ids[i] = p.ID
+	}
+	return json.Marshal(relayState{Pile: 10 + int(seed%7), Players: ids})
+}
+
+func (relay) Apply(s module.State, playerID string, a module.Action) (module.State, []module.Event, error) {
+	r := decodeRelay(s)
+	if r.Winner != "" || r.Players[r.Turn] != playerID {
+		return nil, nil, fmt.Errorf("not your turn")
+	}
+	switch a.Verb {
+	case "take":
+		if r.Taken >= 3 || r.Pile == 0 {
+			return nil, nil, fmt.Errorf("no more this turn")
+		}
+		r.Pile--
+		r.Taken++
+		if r.Pile == 0 {
+			r.Winner = playerID
+		}
+	case "end":
+		if r.Taken == 0 {
+			return nil, nil, fmt.Errorf("take one first")
+		}
+		r.Turn, r.Taken = (r.Turn+1)%len(r.Players), 0
+	default:
+		return nil, nil, fmt.Errorf("unknown %q", a.Verb)
+	}
+	out, err := json.Marshal(r)
+	return out, nil, err
+}
+
+func (relay) View(s module.State, _ string) (module.ViewModel, error) {
+	r := decodeRelay(s)
+	var vm module.ViewModel
+	for i, id := range r.Players {
+		vm.Seats = append(vm.Seats, module.Seat{PlayerID: id, Active: r.Winner == "" && i == r.Turn})
+	}
+	return vm, nil
+}
+
+func (relay) LegalActions(s module.State, playerID string) ([]module.ActionOffer, error) {
+	r := decodeRelay(s)
+	mine := r.Winner == "" && r.Players[r.Turn] == playerID
+	return []module.ActionOffer{
+		{ID: "take", Verb: "take", Enabled: mine && r.Taken < 3 && r.Pile > 0},
+		{ID: "end", Verb: "end", Enabled: mine && r.Taken > 0},
+	}, nil
+}
+
+func (relay) Finished(s module.State) (bool, []string, error) {
+	r := decodeRelay(s)
+	if r.Winner == "" {
+		return false, nil, nil
+	}
+	return true, []string{r.Winner}, nil
+}
+
+// oneAndDone takes a single stone and ends the turn.
+type oneAndDone struct{}
+
+func (oneAndDone) Act(s module.State, _ module.BotSeat, offers []module.ActionOffer) (module.Action, bool) {
+	if decodeRelay(s).Taken == 0 {
+		return module.ChooseAction(offers, []string{"take"})
+	}
+	return module.ChooseAction(offers, []string{"end"})
+}
+
+type relayGame struct{}
+
+func (relayGame) Name() string                          { return "relay" }
+func (relayGame) Module() module.GameModule             { return relay{} }
+func (relayGame) Config(int, string) module.MatchConfig { return module.MatchConfig{} }
+func (relayGame) Heuristic() module.Bot                 { return oneAndDone{} }
+func (relayGame) StateDim() int                         { return 2 }
+func (relayGame) CandDim() int                          { return 1 }
+
+func (relayGame) Outcome(s module.State, seat string) (float64, error) {
+	if decodeRelay(s).Winner == seat {
+		return 1, nil
+	}
+	return 0, nil
+}
+
+func (relayGame) Encode(s module.State, _ string) ([]float32, error) {
+	r := decodeRelay(s)
+	return []float32{float32(r.Pile) / 16, float32(r.Taken)}, nil
+}
+
+// Candidates are whole turns: take n more stones and end. Part-way through a
+// turn they are the ways of finishing it, which is the contract Then puts on
+// an adapter.
+func (relayGame) Candidates(s module.State, _ string, offers []module.ActionOffer) ([]Candidate, error) {
+	enabled := map[string]bool{}
+	for _, o := range offers {
+		enabled[o.Verb] = o.Enabled
+	}
+	r := decodeRelay(s)
+	var out []Candidate
+	for more := 0; r.Taken+more <= 3; more++ {
+		if r.Taken+more == 0 {
+			continue
+		}
+		var steps []module.Action
+		for i := 0; i < more; i++ {
+			steps = append(steps, module.Action{OfferID: "take", Verb: "take"})
+		}
+		if more < r.Pile {
+			steps = append(steps, module.Action{OfferID: "end", Verb: "end"})
+		} else {
+			steps = steps[:r.Pile] // the last stone wins; there is no turn to end
+		}
+		if len(steps) == 0 || !enabled[steps[0].Verb] {
+			continue
+		}
+		out = append(out, Candidate{Action: steps[0], Then: steps[1:],
+			Features: []float32{float32(r.Taken+more) / 3}})
+	}
+	return out, nil
+}
+
+func (relayGame) Reward(before, after module.State, seat string) (float32, bool, error) {
+	w := decodeRelay(after).Winner
+	if w == "" || decodeRelay(before).Winner != "" {
+		return 0, false, nil
+	}
+	if w == seat {
+		return 1, true, nil
+	}
+	return -1, true, nil
+}
+
+func TestEnvAppliesAWholeSequenceAsOneDecision(t *testing.T) {
+	specs := []TableSpec{{Plan: []string{Learner, "hard"}}, {Plan: []string{Learner, Learner}}}
+	e, err := NewEnv(relayGame{}, "", specs, 1, 1000)
+	if err != nil {
+		t.Fatal(err)
+	}
+	obs, err := e.Observe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rnd := rand.New(rand.NewSource(1))
+	dones := map[int]int{}
+	learners := []int{1, 2}
+	for step := 0; step < 300; step++ {
+		choices := make([]int, len(obs))
+		for i, o := range obs {
+			// Never asked about a turn it is half-way through: the sequence
+			// it chose last time was applied whole.
+			if o.Obs[1] != 0 {
+				t.Fatalf("table %d stopped part-way through a turn (%v)", i, o.Obs)
+			}
+			choices[i] = rnd.Intn(len(o.Cands))
+		}
+		if obs, err = e.Step(choices); err != nil {
+			t.Fatal(err)
+		}
+		for i, o := range obs {
+			if o.Illegal != 0 || o.Stalls != 0 {
+				t.Fatalf("table %d: illegal %d stalls %d (%s)", i, o.Illegal, o.Stalls, o.LastStall)
+			}
+			for _, ev := range o.Events {
+				if ev.Done {
+					dones[i]++
+				}
+			}
+			// One episode per learner per match: the game's Reward closes it,
+			// and the environment does not close it a second time when the
+			// match ends.
+			if dones[i] != o.Matches*learners[i] {
+				t.Fatalf("table %d: %d episodes closed over %d matches", i, dones[i], o.Matches)
+			}
+		}
+	}
+	if dones[0] == 0 || dones[1] == 0 {
+		t.Errorf("episodes closed: %v", dones)
+	}
+}
+
+// A NetBot plays the same sequences a step at a time, re-deriving the rest
+// from the position each step leaves, and never makes a move the engine
+// refuses.
+func TestNetBotFinishesASequenceOneStepAtATime(t *testing.T) {
+	// logit = the candidate's feature: always the longest turn on offer.
+	greedyNet := &Net{
+		Game: "relay", StateDim: 2, CandDim: 1,
+		Trunk:  []Dense{dense(2, 1, make([]float32, 2), []float32{0})},
+		Scorer: []Dense{dense(2, 1, []float32{0, 1}, []float32{0})},
+		Value:  []Dense{dense(1, 1, []float32{1}, []float32{0})},
+	}
+	bot := NetBot{Game: relayGame{}, Net: greedyNet, Fallback: oneAndDone{}}
+	r, err := Bench(relayGame{}, 2, "", Contender{Name: "net", Bot: bot}, Contender{Name: "one", Bot: oneAndDone{}}, 1, 20, 500)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Illegal != 0 || r.Stalls != 0 || r.Seeds != 20 {
+		t.Errorf("net vs one-and-done: %v", r)
+	}
+	// And it did play whole turns: from a fresh turn its first step is a take,
+	// and from part-way through it takes on to three before it ends.
+	s, _ := relay{}.NewMatch(module.MatchConfig{}, Players(2), 6) // pile 16
+	for want := 1; want <= 3; want++ {
+		offers, _ := relay{}.LegalActions(s, "p0")
+		a, ok := bot.Act(s, module.BotSeat{PlayerID: "p0"}, offers)
+		if !ok || a.Verb != "take" {
+			t.Fatalf("step %d: %+v", want, a)
+		}
+		s, _, _ = relay{}.Apply(s, "p0", a)
+	}
+	offers, _ := relay{}.LegalActions(s, "p0")
+	if a, _ := bot.Act(s, module.BotSeat{PlayerID: "p0"}, offers); a.Verb != "end" {
+		t.Errorf("after three takes: %+v, want end", a)
+	}
+}

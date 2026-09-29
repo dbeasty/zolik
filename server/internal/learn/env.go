@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 
 	"zolik/server/internal/module"
 )
@@ -60,6 +62,10 @@ type Observation struct {
 	Matches int         `json:"matches"` // matches finished on this table so far
 	Illegal int         `json:"illegal"`
 	Stalls  int         `json:"stalls"`
+	// LastStall says what stopped the most recent stalled match on this table
+	// and whose turn it was, so a stall can be pinned on the seat that caused
+	// it — a learner's candidates, or a hand-written opponent's own wedge.
+	LastStall string `json:"lastStall,omitempty"`
 }
 
 // Env is a batch of tables.
@@ -85,6 +91,18 @@ type table struct {
 	matches int
 	illegal int
 	stalls  int
+	// open is which learner seats have an episode running: set by any move
+	// the seat is credited for, cleared by the move that closes it. It is what
+	// keeps a match ending from closing an episode twice — once by the game's
+	// own Reward, which ends one at every deal or hand, and again here.
+	open      map[string]bool
+	lastStall string
+	// run is how many actions in a row the seat that last acted has made. A
+	// turn is a handful; a seat going round in circles — taking a move back
+	// and making it again — is thousands, and that is what tells a wedge
+	// apart from a match that was merely long when the budget ran out.
+	runSeat string
+	run     int
 }
 
 // NewEnv deals every table. Table i plays seeds first+i, first+i+len(specs), ...
@@ -94,7 +112,7 @@ func NewEnv(g Game, variation string, specs []TableSpec, first int64, budget int
 		if len(spec.Plan) < 2 {
 			return nil, fmt.Errorf("learn: table %d has %d seats", i, len(spec.Plan))
 		}
-		t := &table{plan: map[string]string{}, players: Players(len(spec.Plan)), seed: first + int64(i)}
+		t := &table{plan: map[string]string{}, open: map[string]bool{}, players: Players(len(spec.Plan)), seed: first + int64(i)}
 		t.cfg = g.Config(len(spec.Plan), variation)
 		for j, p := range t.players {
 			if _, err := e.botFor(spec.Plan[j]); err != nil && spec.Plan[j] != Learner {
@@ -113,23 +131,67 @@ func NewEnv(g Game, variation string, specs []TableSpec, first int64, budget int
 // Observe advances every table to its next learner decision and reports them.
 func (e *Env) Observe() ([]Observation, error) {
 	out := make([]Observation, len(e.tables))
-	for i, t := range e.tables {
+	err := e.eachTable(func(i int, t *table) error {
 		if err := e.advance(t); err != nil {
-			return nil, fmt.Errorf("table %d: %w", i, err)
+			return err
 		}
 		obs, err := e.g.Encode(t.state, t.actor)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		cands := make([][]float32, len(t.pending))
 		for j, c := range t.pending {
 			cands[j] = c.Features
 		}
 		out[i] = Observation{Seat: t.actor, Obs: obs, Cands: cands, Events: t.events,
-			Matches: t.matches, Illegal: t.illegal, Stalls: t.stalls}
+			Matches: t.matches, Illegal: t.illegal, Stalls: t.stalls, LastStall: t.lastStall}
 		t.events = nil
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 	return out, nil
+}
+
+// eachTable runs fn over every table at once, a table per worker.
+//
+// The tables share nothing — each has its own state, seed and counters, and
+// the only thing they have in common is the game and the loaded networks,
+// which are functions of their inputs — so they can be advanced side by side.
+// That is most of this environment's speed: a card game's engine is the whole
+// cost of a step (Canasta asks its engine about every card in a hand to list
+// the offers), and one core running thirty-two tables in turn was leaving the
+// rest idle. Each table's result is the same as it would be alone, because
+// nothing about it depends on the order the tables are visited in.
+func (e *Env) eachTable(fn func(i int, t *table) error) error {
+	errs := make([]error, len(e.tables))
+	jobs := make(chan int)
+	var wg sync.WaitGroup
+	workers := runtime.GOMAXPROCS(0)
+	if workers > len(e.tables) {
+		workers = len(e.tables)
+	}
+	for w := 0; w < workers; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := range jobs {
+				errs[i] = fn(i, e.tables[i])
+			}
+		}()
+	}
+	for i := range e.tables {
+		jobs <- i
+	}
+	close(jobs)
+	wg.Wait()
+	for i, err := range errs {
+		if err != nil {
+			return fmt.Errorf("table %d: %w", i, err)
+		}
+	}
+	return nil
 }
 
 // Step applies one choice per table — an index into that table's last
@@ -139,20 +201,23 @@ func (e *Env) Step(choices []int) ([]Observation, error) {
 		return nil, fmt.Errorf("learn: %d choices for %d tables", len(choices), len(e.tables))
 	}
 	for i, t := range e.tables {
-		c := choices[i]
-		if t.pending == nil || c < 0 || c >= len(t.pending) {
+		if c := choices[i]; t.pending == nil || c < 0 || c >= len(t.pending) {
 			return nil, fmt.Errorf("learn: table %d: choice %d of %d", i, c, len(t.pending))
 		}
-		a := t.pending[c].Action
+	}
+	err := e.eachTable(func(i int, t *table) error {
+		cand := t.pending[choices[i]]
 		t.pending = nil
-		if err := e.apply(t, t.actor, a); err != nil {
+		if err := e.play(t, t.actor, cand); err != nil {
 			// The adapter built a candidate the engine refused. Count it and let
 			// the heuristic make the move, exactly as the bench does.
 			t.illegal++
-			if err := e.heuristicMove(t, t.actor); err != nil {
-				return nil, err
-			}
+			return e.heuristicMove(t, t.actor)
 		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 	return e.Observe()
 }
@@ -165,7 +230,7 @@ func (e *Env) advance(t *table) error {
 			return err
 		} else if done || t.actions >= e.budget {
 			if !done {
-				t.stalls++
+				t.stall("action budget", module.ActiveSeat(e.g.Module(), t.state, t.players[0].ID, t.players))
 			}
 			if err := e.nextMatch(t); err != nil {
 				return err
@@ -174,7 +239,7 @@ func (e *Env) advance(t *table) error {
 		}
 		actor := module.ActiveSeat(e.g.Module(), t.state, t.players[0].ID, t.players)
 		if actor == "" {
-			t.stalls++
+			t.stall("nobody on turn", "")
 			if err := e.nextMatch(t); err != nil {
 				return err
 			}
@@ -201,7 +266,7 @@ func (e *Env) advance(t *table) error {
 				return err
 			}
 		case 1:
-			if err := e.apply(t, actor, cands[0].Action); err != nil {
+			if err := e.play(t, actor, cands[0]); err != nil {
 				t.illegal++
 				if err := e.heuristicMove(t, actor); err != nil {
 					return err
@@ -220,19 +285,52 @@ func (e *Env) deal(t *table) error {
 		return err
 	}
 	t.state, t.actions = s, 0
+	t.runSeat, t.run = "", 0
 	return nil
 }
 
-// nextMatch closes every learner's episode and deals the next seed.
+// nextMatch closes every learner episode still open and deals the next seed.
+//
+// Still open, not every one: a match that finished normally has already had
+// its last episode closed by the game's own Reward, and a second Done with
+// nothing between would be an empty episode to the trainer. What is left open
+// here is the stalled match's, cut off where it stood.
 func (e *Env) nextMatch(t *table) error {
 	for _, p := range t.players {
-		if t.plan[p.ID] == Learner {
+		if t.plan[p.ID] == Learner && t.open[p.ID] {
 			t.events = append(t.events, Event{Seat: p.ID, Done: true})
+			t.open[p.ID] = false
 		}
 	}
 	t.matches++
 	t.seed += e.stride
 	return e.deal(t)
+}
+
+// stall records a match that cannot go on, and whose turn it was.
+func (t *table) stall(why, actor string) {
+	t.stalls++
+	t.lastStall = why
+	if actor != "" {
+		t.lastStall += fmt.Sprintf(" on %s (%s)", actor, t.plan[actor])
+		run := 0
+		if actor == t.runSeat {
+			run = t.run
+		}
+		t.lastStall += fmt.Sprintf(" after %d actions in a row", run)
+	}
+}
+
+// play makes every step of one candidate, in order. A step the engine refuses
+// stops the sequence there, with the steps before it standing; the caller
+// counts it and lets the heuristic take the seat from wherever that left it.
+func (e *Env) play(t *table, actor string, c Candidate) error {
+	for _, a := range c.Steps() {
+		if err := e.apply(t, actor, a); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // apply makes one move and credits every learner seat with what it earned.
@@ -252,9 +350,15 @@ func (e *Env) apply(t *table, actor string, a module.Action) error {
 		if r != 0 || done {
 			t.events = append(t.events, Event{Seat: p.ID, Reward: r, Done: done})
 		}
+		t.open[p.ID] = !done
 	}
 	t.state = next
 	t.actions++
+	if actor == t.runSeat {
+		t.run++
+	} else {
+		t.runSeat, t.run = actor, 1
+	}
 	return nil
 }
 
@@ -272,7 +376,7 @@ func (e *Env) botMove(t *table, actor string, bot module.Bot, skill module.Skill
 		}
 	}
 	// Nobody can move this seat: the match is a stall, and the table moves on.
-	t.stalls++
+	t.stall("no move", actor)
 	return e.nextMatch(t)
 }
 
