@@ -606,6 +606,45 @@ export function offerGroupKey(offer: ActionOffer): string {
 }
 
 /**
+ * A target nothing in the hand goes on: the weakest refusal there is, by the
+ * convention `ActionOffer.WhyNot` documents on the server. See `sharedRefusal`.
+ */
+export const NOTHING_FITS_HERE = 'NOTHING_FITS_HERE';
+
+/**
+ * The one reason to print under a folded control whose members are all
+ * refused, or undefined when none of them gave one.
+ *
+ * The commonest reason wins, because the common case is a rule gating the
+ * verb rather than any one target, and that deserves the sentence a lone
+ * offer would show. Ties keep the group's own order.
+ *
+ * Except "nothing fits here", which only speaks when nothing else does. A
+ * table has one meld a given card matches and several it does not, so counted
+ * like any other reason it outvotes the one refusal that is the real answer —
+ * match 6abc22d3b46a546c9d9bd1e4 showed "a meld needs more cards than that"
+ * under Lay off to a player whose four was refused because their side could
+ * not go out yet.
+ */
+export function sharedRefusal(group: ActionOffer[]): string | undefined {
+  const counts = new Map<string, number>();
+  for (const o of group) {
+    if (o.enabled || !o.whyNot) continue;
+    counts.set(o.whyNot, (counts.get(o.whyNot) ?? 0) + 1);
+  }
+  if (counts.size > 1) counts.delete(NOTHING_FITS_HERE);
+  let shared: string | undefined;
+  let best = 0;
+  for (const [reason, count] of counts) {
+    if (count > best) {
+      best = count;
+      shared = reason;
+    }
+  }
+  return shared;
+}
+
+/**
  * A stopped game, played back frame by frame.
  *
  * Mirrors `server/internal/match/replay.go`'s `ReplayMsg`. Shaped as the

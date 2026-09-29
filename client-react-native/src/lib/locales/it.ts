@@ -43,6 +43,7 @@ export const it: Record<string, string> = {
   'err.DISCARD_CARD_NOT_MELDED': 'La carta raccolta deve finire nella tua combinazione',
   'err.JOKER_DISCARD_FORBIDDEN': 'Un jolly non si può scartare',
   'err.NOTHING_TO_UNDO': "Non c'è nulla da annullare",
+  'err.NOTHING_FITS_HERE': 'Nessuna delle tue carte va qui',
   'err.NO_JOKER_IN_MELD': 'Nessun jolly in questa combinazione',
   'err.JOKER_SWAP_MISMATCH': 'Quella carta non prende il posto del jolly',
   'err.RECLAIMED_JOKER_NOT_MELDED':
@@ -354,11 +355,11 @@ export const it: Record<string, string> = {
   'err.CANNOT_MELD_THREE': 'I tre non si calano mai',
   'err.BLACK_THREE_GO_OUT_ONLY': 'I tre neri si calano solo come la mossa che svuota la tua mano',
   'err.CANNOT_DISCARD_RED_THREE': 'Un tre rosso non si può scartare',
-  'err.MUST_KEEP_A_CARD': 'Tieni almeno una carta — così non puoi svuotare la mano',
+  'err.MUST_KEEP_A_CARD': 'La tua coppia non può ancora chiudere — tieni due carte, una da scartare e una da tenere',
   'err.MUST_MELD_FIRST': "Cala prima l'apertura della tua coppia",
   'err.UNDO_MELDS_FIRST': 'Annulla prima ciò che hai calato dopo la presa dalla pila',
   'err.INITIAL_MELD_NOT_MET': 'Alla tua prima calata mancano ancora punti',
-  'err.CANNOT_GO_OUT_YET': 'Alla tua coppia serve una canasta completa prima di poter chiudere',
+  'err.CANNOT_GO_OUT_YET': 'Alla tua coppia mancano ancora canaste per chiudere',
   'err.NOTHING_TO_CALL': "Non c'è nessuna puntata da vedere",
   'err.CANNOT_CHECK': "Non puoi passare — c'è una puntata a cui rispondere",
   'err.CANNOT_RAISE': 'Non puoi rilanciare: il tuo stack non supera la puntata',
@@ -465,7 +466,6 @@ export const it: Record<string, string> = {
   'canasta.remedy.openFirst': 'Cala la prima combinazione della tua parte prima di aggiungere carte.',
   'canasta.remedy.needCanastas':
     'Alla tua parte servono altre {n} canaste da {size} carte per poter chiudere.',
-  'canasta.remedy.keepACard': 'Tieni da parte una carta per lo scarto.',
   'canasta.remedy.undoMeldsFirst':
     'Annulla prima le combinazioni calate dopo la presa dalla pila — poi potrà tornare anche la pila stessa.',
   'canasta.remedy.layOffInstead': 'Aggiungile alla combinazione che la tua parte ha già.',

@@ -43,6 +43,7 @@ export const nl: Record<string, string> = {
   'err.DISCARD_CARD_NOT_MELDED': 'De kaart die je pakte moet in je combinatie',
   'err.JOKER_DISCARD_FORBIDDEN': 'Een joker mag niet afgelegd worden',
   'err.NOTHING_TO_UNDO': 'Er is niets om ongedaan te maken',
+  'err.NOTHING_FITS_HERE': 'Geen van je kaarten past hier',
   'err.NO_JOKER_IN_MELD': 'Geen joker in deze combinatie',
   'err.JOKER_SWAP_MISMATCH': 'Die kaart neemt de plaats van de joker niet in',
   'err.RECLAIMED_JOKER_NOT_MELDED':
@@ -360,11 +361,11 @@ export const nl: Record<string, string> = {
   'err.BLACK_THREE_GO_OUT_ONLY':
     'Zwarte drieën worden alleen gelegd als de zet die je hand leegmaakt',
   'err.CANNOT_DISCARD_RED_THREE': 'Een rode drie mag niet afgelegd worden',
-  'err.MUST_KEEP_A_CARD': 'Houd minstens één kaart — zo kun je je hand niet legen',
+  'err.MUST_KEEP_A_CARD': 'Jouw partij kan nog niet uitgaan — houd twee kaarten, één om af te leggen en één om te houden',
   'err.MUST_MELD_FIRST': 'Leg eerst de openingsleg van jouw partij',
   'err.UNDO_MELDS_FIRST': 'Maak eerst ongedaan wat je na het nemen van de stapel hebt gelegd',
   'err.INITIAL_MELD_NOT_MET': 'Je eerste leg komt nog punten tekort',
-  'err.CANNOT_GO_OUT_YET': 'Jouw partij heeft een afgemaakte canasta nodig voordat ze kan uitgaan',
+  'err.CANNOT_GO_OUT_YET': 'Jouw partij heeft nog niet genoeg canasta\'s om uit te gaan',
   'err.NOTHING_TO_CALL': 'Er is geen inzet om mee te gaan',
   'err.CANNOT_CHECK': 'Je kunt niet checken — er staat een inzet',
   'err.CANNOT_RAISE': 'Je kunt niet verhogen — je stapel komt niet boven de inzet',
@@ -474,7 +475,6 @@ export const nl: Record<string, string> = {
   'canasta.remedy.openFirst': 'Leg eerst de openingsserie van jouw kant voordat je aanlegt.',
   'canasta.remedy.needCanastas':
     'Jouw kant heeft nog {n} canasta van {size} kaarten nodig om uit te kunnen gaan.',
-  'canasta.remedy.keepACard': 'Houd een kaart over om af te leggen.',
   'canasta.remedy.undoMeldsFirst':
     'Maak eerst de combinaties ongedaan die je na het nemen van de stapel hebt gelegd — daarna kan de stapel zelf terug.',
   'canasta.remedy.layOffInstead': 'Leg ze aan bij de serie die jouw kant al heeft.',

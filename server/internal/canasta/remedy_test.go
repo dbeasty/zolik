@@ -194,3 +194,56 @@ func TestWaitingForYourTurn_GetsTheRuleAndNoFalseRemedy(t *testing.T) {
 		}
 	}
 }
+
+// The position from match 6abc22d3b46a546c9d9bd1e4: two cards in hand, one of
+// which goes on a meld, and a side without the canastas to go out.
+//
+// Laying the four off would leave one card, which could only be discarded by
+// going out. The folded Lay off control said "a meld needs more cards than
+// that", because every meld the four did not match was probed with no cards
+// at all and outvoted the one meld that gave the real reason.
+func TestLayOffThatWouldStrandTheHand_SaysWhyNotThatNothingFits(t *testing.T) {
+	m := New()
+	raw := twoHanded(func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Teams[0].HasMelded = true
+		s.Teams[0].Melds = []Meld{
+			{ID: meldID(0, "Q"), TeamID: 0, Rank: "Q", Cards: []string{"QH", "QD", "QS"}},
+			{ID: meldID(0, "J"), TeamID: 0, Rank: "J", Cards: []string{"JH", "JD", "JS"}},
+			{ID: meldID(0, "4"), TeamID: 0, Rank: "4", Cards: []string{"4S", "4D", "4C"}},
+		}
+		s.Hands["p1"] = []string{"4H", "3C"}
+	})
+
+	offers, err := m.LegalActions(raw, "p1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fours := offerByID(offers, "lay_off:"+meldID(0, "4"))
+	if fours == nil || fours.Enabled {
+		t.Fatalf("laying off the last card but one should be refused: %+v", fours)
+	}
+	if fours.WhyNot != ErrMustKeepACard {
+		t.Fatalf("refused with %q, want %s", fours.WhyNot, ErrMustKeepACard)
+	}
+	if fours.Remedy == nil || fours.Remedy.LabelKey != "canasta.remedy.needCanastas" {
+		t.Fatalf("remedy %+v, want the canastas still owed", fours.Remedy)
+	}
+	if got := fours.Remedy.Params["n"]; got != 1 {
+		t.Errorf("told the side it is %v canastas short, want 1", got)
+	}
+	if len(fours.RuleIDs) == 0 || fours.RuleIDs[0] != "canasta.rules.oneCanastaToGoOut" {
+		t.Errorf("rules %v, want the canasta count first", fours.RuleIDs)
+	}
+
+	for _, rank := range []string{"Q", "J"} {
+		o := offerByID(offers, "lay_off:"+meldID(0, rank))
+		if o == nil || o.Enabled {
+			t.Fatalf("%s: nothing in the hand goes there, yet %+v", rank, o)
+		}
+		if o.WhyNot != ErrNothingFitsHere {
+			t.Errorf("%s: refused with %q, want %s", rank, o.WhyNot, ErrNothingFitsHere)
+		}
+	}
+}
