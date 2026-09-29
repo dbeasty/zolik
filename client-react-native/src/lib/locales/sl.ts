@@ -1555,4 +1555,12 @@ export const sl: Record<string, string> = {
   'zolik.move.discarded': '{player}: odvrgel {card}',
   'zolik.move.undid': '{player}: razveljavil potezo',
   'moves.title': 'Zadnje poteze',
+  'hint.button': 'Namig',
+  'hint.line': 'Predlog: {move} {cards}',
+  'hint.lineNoCards': 'Predlog: {move}',
+  'err.HINTS_OFF': 'Namigi so pri tej mizi izklopljeni',
+  'err.NO_HINT': 'Trenutno ni predloga',
+  'option.hints': 'Namigi',
+  'choice.hints.1': 'Dovoljeni',
+  'choice.hints.0': 'Izklopljeni',
 };

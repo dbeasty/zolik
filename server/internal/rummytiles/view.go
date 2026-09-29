@@ -56,6 +56,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 		Options: []module.OptionSpec{
 			module.PauseOption(),
 			module.BotSkillOption(),
+			module.HintsOption(),
 			{
 				Name: OptTargetScore, Type: module.OptionEnumInt,
 				Label: "Target score", Help: "First player to pass this score wins the match. Off disables it in favor of a round limit.",

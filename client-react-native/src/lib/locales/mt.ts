@@ -1579,4 +1579,12 @@ export const mt: Record<string, string> = {
   'zolik.move.discarded': '{player} rema {card}',
   'zolik.move.undid': '{player} ħassar mossa',
   'moves.title': 'L-aħħar mossi',
+  'hint.button': 'Ħjiel',
+  'hint.line': 'Suġġeriment: {move} {cards}',
+  'hint.lineNoCards': 'Suġġeriment: {move}',
+  'err.HINTS_OFF': "Il-ħjiel huma mitfija f'din il-mejda",
+  'err.NO_HINT': 'L-ebda suġġeriment bħalissa',
+  'option.hints': 'Ħjiel',
+  'choice.hints.1': 'Permessi',
+  'choice.hints.0': 'Mitfija',
 };

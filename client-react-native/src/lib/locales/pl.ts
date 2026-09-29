@@ -1567,4 +1567,12 @@ export const pl: Record<string, string> = {
   'zolik.move.discarded': '{player}: odrzuca {card}',
   'zolik.move.undid': '{player}: cofa ruch',
   'moves.title': 'Ostatnie ruchy',
+  'hint.button': 'Podpowiedź',
+  'hint.line': 'Propozycja: {move} {cards}',
+  'hint.lineNoCards': 'Propozycja: {move}',
+  'err.HINTS_OFF': 'Podpowiedzi są wyłączone przy tym stole',
+  'err.NO_HINT': 'Brak propozycji w tej chwili',
+  'option.hints': 'Podpowiedzi',
+  'choice.hints.1': 'Dozwolone',
+  'choice.hints.0': 'Wyłączone',
 };

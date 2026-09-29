@@ -1570,4 +1570,12 @@ export const ro: Record<string, string> = {
   'zolik.move.discarded': '{player} a aruncat {card}',
   'zolik.move.undid': '{player} a anulat o mutare',
   'moves.title': 'Mutări recente',
+  'hint.button': 'Indiciu',
+  'hint.line': 'Sugestie: {move} {cards}',
+  'hint.lineNoCards': 'Sugestie: {move}',
+  'err.HINTS_OFF': 'Indiciile sunt dezactivate la această masă',
+  'err.NO_HINT': 'Nicio sugestie acum',
+  'option.hints': 'Indicii',
+  'choice.hints.1': 'Permise',
+  'choice.hints.0': 'Dezactivate',
 };

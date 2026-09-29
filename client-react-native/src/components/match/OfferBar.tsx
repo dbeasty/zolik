@@ -124,6 +124,8 @@ type Props = SharedParams & {
    * one control `urgent` would, as a suggestion of where to start.
    */
   nudge?: boolean;
+  /** The offer a hint suggested, ringed until the board moves on. */
+  hintOfferId?: string;
 };
 
 /**
@@ -163,6 +165,7 @@ export function OfferBar({
   onExplain,
   urgent,
   nudge,
+  hintOfferId,
   ...shared
 }: Props) {
   const metrics = useMetrics();
@@ -223,6 +226,7 @@ export function OfferBar({
               onResolve={send}
               onAmbiguous={onAmbiguous}
               onExplain={onExplain}
+              hinted={!!hintOfferId && (groups.get(key) ?? []).some((o) => o.id === hintOfferId)}
               styles={styles}
             />
           );
@@ -253,7 +257,10 @@ export function OfferBar({
               {/* A ring in the air around the one thing the table is waiting
                   for. Drawn inside the control so it needs no wrapper, and on
                   its own layer so it costs the row no room. */}
-              <Attention active={(!!urgent || !!nudge) && offer.id === leadId} radius={8} />
+              <Attention
+                active={hintOfferId ? offer.id === hintOfferId : (!!urgent || !!nudge) && offer.id === leadId}
+                radius={8}
+              />
               {/* The figure the press sends, when the offer declares one —
                   "Raise to 483", following the slider and the quick choices
                   below as they move it, because a button that says only
@@ -485,8 +492,10 @@ function FoldedOffer({
   onResolve,
   onAmbiguous,
   onExplain,
+  hinted,
   styles,
 }: {
+  hinted?: boolean;
   groupKey: string;
   group: ActionOffer[];
   selectedCards: string[];
@@ -539,6 +548,7 @@ function FoldedOffer({
           onPress={press}
           style={[styles.button, disabled && styles.ghost]}
         >
+          <Attention active={!!hinted} radius={8} />
           <Text style={[styles.buttonText, disabled && styles.ghostText]}>
             {label(first.labelKey ?? `verb.${first.verb}`) || first.verb}
           </Text>

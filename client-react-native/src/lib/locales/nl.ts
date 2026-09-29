@@ -1578,4 +1578,12 @@ export const nl: Record<string, string> = {
   'zolik.move.discarded': '{player} legde {card} af',
   'zolik.move.undid': '{player} nam een zet terug',
   'moves.title': 'Recente zetten',
+  'hint.button': 'Tip',
+  'hint.line': 'Suggestie: {move} {cards}',
+  'hint.lineNoCards': 'Suggestie: {move}',
+  'err.HINTS_OFF': 'Tips staan uit aan deze tafel',
+  'err.NO_HINT': 'Nu geen suggestie',
+  'option.hints': 'Tips',
+  'choice.hints.1': 'Toegestaan',
+  'choice.hints.0': 'Uit',
 };

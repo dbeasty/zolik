@@ -1560,4 +1560,12 @@ export const hr: Record<string, string> = {
   'zolik.move.discarded': '{player}: odbacio {card}',
   'zolik.move.undid': '{player}: poništio potez',
   'moves.title': 'Nedavni potezi',
+  'hint.button': 'Savjet',
+  'hint.line': 'Prijedlog: {move} {cards}',
+  'hint.lineNoCards': 'Prijedlog: {move}',
+  'err.HINTS_OFF': 'Savjeti su isključeni za ovim stolom',
+  'err.NO_HINT': 'Trenutačno nema prijedloga',
+  'option.hints': 'Savjeti',
+  'choice.hints.1': 'Dopušteni',
+  'choice.hints.0': 'Isključeni',
 };

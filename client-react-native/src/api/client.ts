@@ -1,6 +1,6 @@
 import { ZOLIK_BASE_URL } from '@/src/config';
 import { HttpTransport, type SocketLike, type Transport } from '@/src/net/transport';
-import type { MatchModule, MatchState, ModuleRules, Replay, StoredTable } from '@/src/api/matchTypes';
+import type { MatchAction, MatchModule, MatchState, ModuleRules, Replay, StoredTable } from '@/src/api/matchTypes';
 import type {
   AccountProfile,
   AuthProvider,
@@ -453,6 +453,15 @@ export class ZolikClient {
 
   async startMatch(idOrCode: string): Promise<void> {
     await this.post(`/matches/${encodeURIComponent(idOrCode)}/start`, null, true);
+  }
+
+  /**
+   * The move this player's seat would make now, suggested and never made.
+   * Refused with HINTS_OFF at a table that turned hints off, and with
+   * NOT_YOUR_TURN when there is nothing to suggest.
+   */
+  async hint(idOrCode: string): Promise<{ action: MatchAction }> {
+    return this.post(`/matches/${encodeURIComponent(idOrCode)}/hint`, null, true);
   }
 
   /**

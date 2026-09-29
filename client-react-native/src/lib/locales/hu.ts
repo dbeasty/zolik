@@ -1578,4 +1578,12 @@ export const hu: Record<string, string> = {
   'zolik.move.discarded': '{player} eldobta: {card}',
   'zolik.move.undid': '{player} visszavont egy lépést',
   'moves.title': 'Legutóbbi lépések',
+  'hint.button': 'Tipp',
+  'hint.line': 'Javaslat: {move} {cards}',
+  'hint.lineNoCards': 'Javaslat: {move}',
+  'err.HINTS_OFF': 'Ennél az asztalnál a tippek ki vannak kapcsolva',
+  'err.NO_HINT': 'Most nincs javaslat',
+  'option.hints': 'Tippek',
+  'choice.hints.1': 'Engedélyezve',
+  'choice.hints.0': 'Kikapcsolva',
 };

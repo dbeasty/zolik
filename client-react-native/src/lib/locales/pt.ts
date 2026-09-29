@@ -1573,4 +1573,12 @@ export const pt: Record<string, string> = {
   'zolik.move.discarded': '{player} descartou {card}',
   'zolik.move.undid': '{player} anulou uma jogada',
   'moves.title': 'Jogadas recentes',
+  'hint.button': 'Dica',
+  'hint.line': 'Sugestão: {move} {cards}',
+  'hint.lineNoCards': 'Sugestão: {move}',
+  'err.HINTS_OFF': 'As dicas estão desligadas nesta mesa',
+  'err.NO_HINT': 'Nenhuma sugestão de momento',
+  'option.hints': 'Dicas',
+  'choice.hints.1': 'Permitidas',
+  'choice.hints.0': 'Desligadas',
 };

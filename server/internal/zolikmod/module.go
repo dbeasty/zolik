@@ -110,6 +110,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 		// read. A table that plays Continental's top-card draw can fold it.
 		module.OpenDiscardPileOption(),
 		module.BotSkillOption(),
+		module.HintsOption(),
 	)
 	for _, o := range d.Options {
 		spec := module.OptionSpec{

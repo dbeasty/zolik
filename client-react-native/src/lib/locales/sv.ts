@@ -1557,4 +1557,12 @@ export const sv: Record<string, string> = {
   'zolik.move.discarded': '{player} kastade {card}',
   'zolik.move.undid': '{player} ångrade ett drag',
   'moves.title': 'Senaste dragen',
+  'hint.button': 'Tips',
+  'hint.line': 'Förslag: {move} {cards}',
+  'hint.lineNoCards': 'Förslag: {move}',
+  'err.HINTS_OFF': 'Tips är avstängda vid det här bordet',
+  'err.NO_HINT': 'Inget förslag just nu',
+  'option.hints': 'Tips',
+  'choice.hints.1': 'Tillåtna',
+  'choice.hints.0': 'Av',
 };

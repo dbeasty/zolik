@@ -1569,4 +1569,12 @@ export const fi: Record<string, string> = {
   'zolik.move.discarded': '{player} poisti kortin {card}',
   'zolik.move.undid': '{player} perui siirron',
   'moves.title': 'Viimeisimmät siirrot',
+  'hint.button': 'Vihje',
+  'hint.line': 'Ehdotus: {move} {cards}',
+  'hint.lineNoCards': 'Ehdotus: {move}',
+  'err.HINTS_OFF': 'Vihjeet on poistettu käytöstä tässä pöydässä',
+  'err.NO_HINT': 'Ei ehdotusta juuri nyt',
+  'option.hints': 'Vihjeet',
+  'choice.hints.1': 'Sallittu',
+  'choice.hints.0': 'Pois',
 };

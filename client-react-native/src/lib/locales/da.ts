@@ -1559,4 +1559,12 @@ export const da: Record<string, string> = {
   'zolik.move.discarded': '{player} kastede {card}',
   'zolik.move.undid': '{player} fortrød et træk',
   'moves.title': 'Seneste træk',
+  'hint.button': 'Tip',
+  'hint.line': 'Forslag: {move} {cards}',
+  'hint.lineNoCards': 'Forslag: {move}',
+  'err.HINTS_OFF': 'Tips er slået fra ved dette bord',
+  'err.NO_HINT': 'Intet forslag lige nu',
+  'option.hints': 'Tips',
+  'choice.hints.1': 'Tilladt',
+  'choice.hints.0': 'Fra',
 };

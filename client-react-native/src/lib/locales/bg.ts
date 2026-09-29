@@ -1573,4 +1573,12 @@ export const bg: Record<string, string> = {
   'zolik.move.discarded': '{player} изхвърли {card}',
   'zolik.move.undid': '{player} върна ход',
   'moves.title': 'Последни ходове',
+  'hint.button': 'Подсказка',
+  'hint.line': 'Предложение: {move} {cards}',
+  'hint.lineNoCards': 'Предложение: {move}',
+  'err.HINTS_OFF': 'Подсказките са изключени на тази маса',
+  'err.NO_HINT': 'Няма предложение в момента',
+  'option.hints': 'Подсказки',
+  'choice.hints.1': 'Разрешени',
+  'choice.hints.0': 'Изключени',
 };

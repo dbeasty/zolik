@@ -1595,4 +1595,12 @@ export const ga: Record<string, string> = {
   'zolik.move.discarded': 'Chaith {player} {card}',
   'zolik.move.undid': 'Chealaigh {player} beart',
   'moves.title': 'Bearta le déanaí',
+  'hint.button': 'Leid',
+  'hint.line': 'Moladh: {move} {cards}',
+  'hint.lineNoCards': 'Moladh: {move}',
+  'err.HINTS_OFF': 'Tá leideanna múchta ag an mbord seo',
+  'err.NO_HINT': 'Níl aon mholadh ann faoi láthair',
+  'option.hints': 'Leideanna',
+  'choice.hints.1': 'Ceadaithe',
+  'choice.hints.0': 'Múchta',
 };

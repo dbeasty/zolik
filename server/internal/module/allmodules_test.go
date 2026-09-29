@@ -1646,3 +1646,45 @@ func cardsNamed(data map[string]any) []string {
 	}
 	return out
 }
+
+// TestEveryModulesHintNamesAControl — a hint is the move a seat's bot would
+// make, shown on the control that makes it. A bot that answers in verbs alone
+// still has to land on an enabled offer, or the player is told to make a move
+// there is no button for.
+func TestEveryModulesHintNamesAControl(t *testing.T) {
+	for _, g := range allModules() {
+		t.Run(g.name, func(t *testing.T) {
+			state, err := g.mod.NewMatch(g.cfg, g.players, 5)
+			if err != nil {
+				t.Fatalf("NewMatch: %v", err)
+			}
+			hinted := 0
+			_, _, err = module.PlayWithOffers(g.mod, state, g.players, module.DriverOptions{
+				MaxActions: 300, Prefer: g.prefer,
+				OnEvents: func(_ string, _ []module.Event, _, after module.State) {
+					for _, p := range g.players {
+						offers, err := g.mod.LegalActions(after, p.ID)
+						if err != nil {
+							t.Fatalf("LegalActions: %v", err)
+						}
+						seat := module.BotSeat{PlayerID: p.ID, Skill: module.SkillHard, Seed: 1}
+						a, ok := module.BotFor(g.mod).Act(after, seat, offers)
+						if !ok {
+							continue
+						}
+						if module.OfferFor(offers, a) == nil {
+							t.Fatalf("%s's hint %+v is on no enabled control:\n%s", p.ID, a, module.DescribeOffers(offers))
+						}
+						hinted++
+					}
+				},
+			})
+			if err != nil {
+				t.Fatalf("%v", err)
+			}
+			if hinted == 0 {
+				t.Fatal("no hint was ever given — the check looked at nothing")
+			}
+		})
+	}
+}

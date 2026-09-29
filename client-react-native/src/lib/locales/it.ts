@@ -1573,4 +1573,12 @@ export const it: Record<string, string> = {
   'zolik.move.discarded': '{player} ha scartato {card}',
   'zolik.move.undid': '{player} ha annullato una mossa',
   'moves.title': 'Mosse recenti',
+  'hint.button': 'Suggerimento',
+  'hint.line': 'Suggerimento: {move} {cards}',
+  'hint.lineNoCards': 'Suggerimento: {move}',
+  'err.HINTS_OFF': 'I suggerimenti sono disattivati a questo tavolo',
+  'err.NO_HINT': 'Nessun suggerimento al momento',
+  'option.hints': 'Suggerimenti',
+  'choice.hints.1': 'Consentiti',
+  'choice.hints.0': 'Disattivati',
 };

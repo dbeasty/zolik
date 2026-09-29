@@ -1561,4 +1561,12 @@ export const lv: Record<string, string> = {
   'zolik.move.discarded': '{player}: izmeta {card}',
   'zolik.move.undid': '{player}: atsauca gājienu',
   'moves.title': 'Pēdējie gājieni',
+  'hint.button': 'Padoms',
+  'hint.line': 'Ieteikums: {move} {cards}',
+  'hint.lineNoCards': 'Ieteikums: {move}',
+  'err.HINTS_OFF': 'Pie šī galda padomi ir izslēgti',
+  'err.NO_HINT': 'Pašlaik nav ieteikuma',
+  'option.hints': 'Padomi',
+  'choice.hints.1': 'Atļauti',
+  'choice.hints.0': 'Izslēgti',
 };

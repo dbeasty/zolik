@@ -1563,4 +1563,12 @@ export const lt: Record<string, string> = {
   'zolik.move.discarded': '{player}: atmetė {card}',
   'zolik.move.undid': '{player}: atšaukė ėjimą',
   'moves.title': 'Paskutiniai ėjimai',
+  'hint.button': 'Patarimas',
+  'hint.line': 'Pasiūlymas: {move} {cards}',
+  'hint.lineNoCards': 'Pasiūlymas: {move}',
+  'err.HINTS_OFF': 'Prie šio stalo patarimai išjungti',
+  'err.NO_HINT': 'Šiuo metu pasiūlymų nėra',
+  'option.hints': 'Patarimai',
+  'choice.hints.1': 'Leidžiami',
+  'choice.hints.0': 'Išjungti',
 };

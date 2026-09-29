@@ -1578,4 +1578,12 @@ export const fr: Record<string, string> = {
   'zolik.move.discarded': '{player} a défaussé {card}',
   'zolik.move.undid': '{player} a annulé un coup',
   'moves.title': 'Derniers coups',
+  'hint.button': 'Indice',
+  'hint.line': 'Suggestion : {move} {cards}',
+  'hint.lineNoCards': 'Suggestion : {move}',
+  'err.HINTS_OFF': 'Les indices sont désactivés à cette table',
+  'err.NO_HINT': 'Aucune suggestion pour le moment',
+  'option.hints': 'Indices',
+  'choice.hints.1': 'Autorisés',
+  'choice.hints.0': 'Désactivés',
 };

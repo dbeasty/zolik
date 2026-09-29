@@ -345,10 +345,22 @@ export function matchStyles(s: Skin) {
   spreads: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 8, marginTop: 10 },
   error: { color: colors.danger, fontSize: 13, marginVertical: 6 },
   muted: { color: colors.muted, fontSize: 12, marginTop: 6 },
-  // What this player can do now, over the controls that do it.
-  step: { color: colors.text, fontSize: 13, fontWeight: '600', marginBottom: 8 },
+  // What this player can do now, over the controls that do it, with the way
+  // to ask for a suggestion beside it.
+  stepRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  step: { color: colors.text, fontSize: 13, fontWeight: '600', flexShrink: 1 },
   // Something started that has to be finished or taken back first.
-  stepObligation: { color: colors.gold, fontSize: 13, fontWeight: '700', marginBottom: 8 },
+  stepObligation: { color: colors.gold, fontSize: 13, fontWeight: '700', flexShrink: 1 },
+  hintButton: {
+    marginLeft: 'auto',
+    borderWidth: 1,
+    borderColor: colors.gold,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  hintButtonText: { color: colors.gold, fontSize: 12, fontWeight: '700' },
+  hintLine: { color: colors.gold, fontSize: 13, marginBottom: 8 },
 
   // The end of a match, built like the rule-violation banner in `shared`: a
   // tinted box with a border of its own, because the thing it has to beat is

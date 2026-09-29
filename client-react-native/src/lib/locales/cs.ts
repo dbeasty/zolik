@@ -1553,4 +1553,12 @@ export const cs: Record<string, string> = {
   'zolik.move.discarded': '{player} odhodil {card}',
   'zolik.move.undid': '{player} vzal tah zpět',
   'moves.title': 'Poslední tahy',
+  'hint.button': 'Nápověda',
+  'hint.line': 'Návrh: {move} {cards}',
+  'hint.lineNoCards': 'Návrh: {move}',
+  'err.HINTS_OFF': 'Nápověda je u tohoto stolu vypnutá',
+  'err.NO_HINT': 'Teď není co navrhnout',
+  'option.hints': 'Nápověda',
+  'choice.hints.1': 'Povolená',
+  'choice.hints.0': 'Vypnutá',
 };
