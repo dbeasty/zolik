@@ -335,6 +335,13 @@ export function ZoneView({
             const groupArmable = armableGroups?.has(g.id) ?? false;
             const groupArmed = armedGroupId === g.id;
             const groupOpen = expandedGroups.has(g.id);
+            // A finished meld folds down to its top card and a count: it is
+            // a score now, not something to read card by card, and a
+            // canasta's column of corners was the tallest thing in the row.
+            // The same tap that spreads any meld open unfolds it.
+            const folded = !!g.complete && !groupOpen && g.cards.length > 1;
+            const drawn = folded ? g.cards.slice(-1) : g.cards;
+            const hiddenBelow = g.cards.length - drawn.length;
             // Only meaningful while this exact group is the one being
             // hovered — `hoveredPosition` is a fact about `hoveredDrop`, not
             // about every group on the board.
@@ -344,7 +351,7 @@ export function ZoneView({
             // someone else between the hover and this render, and a gap drawn
             // past the end of the stack is worse than none.
             const hoveredSlot =
-              hoveredSlice?.slot != null
+              hoveredSlice?.slot != null && !folded
                 ? Math.max(0, Math.min(hoveredSlice.slot, g.cards.length))
                 : null;
             // How far apart consecutive cards in this stack are drawn: the
@@ -357,6 +364,7 @@ export function ZoneView({
                 ref={(n) => registerDrop?.(groupId, n as unknown as Measurable | null)}
                 style={[
                   styles.group,
+                  folded && styles.groupFolded,
                   groupArmed && styles.armed,
                   groupLive && styles.live,
                   groupRefused && styles.refused,
@@ -397,11 +405,13 @@ export function ZoneView({
                   testID={`group-toggle-${g.id}`}
                 >
                   <View style={styles.stackedCards}>
-                    {g.cards.map((c, i) => (
+                    {drawn.map((c, j) => {
+                      const i = hiddenBelow + j;
+                      return (
                       <View
                         key={`${g.id}-${c}-${i}`}
                         style={[
-                          i > 0 && !groupOpen && styles.stackedOverlap,
+                          j > 0 && !groupOpen && styles.stackedOverlap,
                           // Stepping down out of the way, so the gap this card
                           // would be pushed along by is a gap you can see.
                           // Same move the hand makes and for the same reason
@@ -429,7 +439,8 @@ export function ZoneView({
                           <CardView card={c} compact stacked={!groupOpen} />
                         </SettleIn>
                       </View>
-                    ))}
+                      );
+                    })}
                     {/* The hole itself, drawn inside the stack so its place is
                         counted in cards rather than in the group's padding.
                         Absolute, so it adds nothing to the group's measured
@@ -443,6 +454,11 @@ export function ZoneView({
                       />
                     ) : null}
                   </View>
+                  {folded ? (
+                    <Text style={styles.foldedCount} testID={`group-folded-${g.id}`}>
+                      ×{g.cards.length}
+                    </Text>
+                  ) : null}
                 </Pressable>
                 {(g.badgeKeys ?? []).map((b) => (
                   <Text key={b} style={styles.badge}>
@@ -693,6 +709,10 @@ function zoneStyles(m: Metrics, s: Skin) {
       // fine on the group at rest as well as lit up.
       position: 'relative',
     },
+    // A folded meld keeps to its own height rather than the row's, which
+    // stretches every group to the tallest meld beside it — and a canasta
+    // folded to one card but drawn a column tall saves nothing.
+    groupFolded: { alignSelf: 'flex-start' },
     // Only the border colour changes, never its width: a region that grew when
     // it lit up would move every region after it in the middle of the drag,
     // which moves the very measurements the drop is tested against. dropArmed
@@ -721,6 +741,7 @@ function zoneStyles(m: Metrics, s: Skin) {
     // because it was tapped.
     armed: { borderColor: colors.gold, backgroundColor: 'rgba(251, 191, 36, 0.10)' },
     badge: { color: colors.gold, fontSize: 10, marginTop: 2 },
+    foldedCount: { color: colors.muted, fontSize: 10, marginTop: 2 },
     hidden: { color: colors.muted, fontSize: 11, marginTop: 6, fontStyle: 'italic' },
     dropHere: { color: colors.gold, fontSize: 11, marginTop: 6, fontStyle: 'italic' },
     back: {
