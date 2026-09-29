@@ -106,6 +106,80 @@ type Seat struct {
 	// Out is eliminated from the match — no chips, no way back.
 	Out  bool     `json:"out,omitempty"`
 	Hole []string `json:"hole,omitempty"`
+
+	// Reads is what the table has seen this seat do, over the whole match —
+	// the numbers a regular keeps in their head about the player opposite.
+	// Nil until the seat is first dealt in, and absent from every state stored
+	// before it existed, which is why it is a pointer: an old match decodes
+	// with no reads and starts counting from the next action.
+	Reads *SeatReads `json:"reads,omitempty"`
+}
+
+// SeatReads are counters of public behaviour, kept for opponent modelling
+// (internal/learn's encoder reads them; no screen does).
+//
+// Every one is something any player at the table could have counted with a
+// pencil. That is the rule the whole type is built around, and the reason the
+// bluff counters are fed from the showdown alone: a hand thrown away face down
+// was never seen, so it can never count as a bluff or as anything else, and a
+// counter that let it would be telling every seat a card it was not shown.
+//
+// Counts rather than rates, so a reader can weigh a rate by how much evidence
+// is behind it — a player who has raised one hand in one has not shown a
+// hundred-percent raising habit.
+type SeatReads struct {
+	// Hands is how many hands this seat was dealt into.
+	Hands int `json:"hands,omitempty"`
+	// VPIP is hands in which it chose to put money in before the flop — a
+	// call or a raise, not a blind — and PFR those in which it raised there.
+	// Each counts at most once per hand.
+	VPIP int `json:"vpip,omitempty"`
+	PFR  int `json:"pfr,omitempty"`
+	// PostBets and PostCalls are bets or raises, and calls, after the flop —
+	// per action, since aggression is a ratio of the two.
+	PostBets  int `json:"postBets,omitempty"`
+	PostCalls int `json:"postCalls,omitempty"`
+	// FacedBet is decisions after the flop with a bet to answer, and
+	// FoldedToBet the ones answered by folding.
+	FacedBet    int `json:"facedBet,omitempty"`
+	FoldedToBet int `json:"foldedToBet,omitempty"`
+	// BigBetsShown is bets after the flop of at least three quarters of the
+	// pot whose hand was later turned face up, and BluffsShown how many of
+	// those were weak when they were made: worse than a pair of the seat's
+	// own, and not a flush or open-ended straight draw with a card to come.
+	BigBetsShown int `json:"bigBetsShown,omitempty"`
+	BluffsShown  int `json:"bluffsShown,omitempty"`
+}
+
+// PublicAct is one action everyone at the table saw: who, on which street,
+// what, and for how much.
+//
+// Integers only, so the record is exact and a replay rebuilds it byte for byte.
+// A bet's size relative to the pot — the thing a reader actually wants — is
+// derivable from the three figures kept: Pot is the table before the action,
+// Amount what the seat pushed forward, and Raise how far that took the bet
+// past what was there to call.
+type PublicAct struct {
+	Seat   int    `json:"seat"`
+	Street string `json:"street"`
+	Verb   string `json:"verb"`
+	Amount int    `json:"amount,omitempty"`
+	Raise  int    `json:"raise,omitempty"`
+	Pot    int    `json:"pot,omitempty"`
+}
+
+// sizeOfPot is a raise measured the way a table measures it: the part above
+// the call, as a fraction of the pot once the call is in. A pot-sized raise is
+// 1. Zero for anything that is not a raise.
+func (a PublicAct) sizeOfPot() float64 {
+	if a.Raise <= 0 {
+		return 0
+	}
+	base := a.Pot + a.Amount - a.Raise
+	if base <= 0 {
+		return 0
+	}
+	return float64(a.Raise) / float64(base)
 }
 
 // inHand reports a seat still contesting the pot.
@@ -183,6 +257,28 @@ type GameState struct {
 
 	Winners []string `json:"winners,omitempty"`
 	Seed    int64    `json:"seed"`
+
+	// HandLog is this hand's public action, in order: every check, bet, call
+	// and fold anyone at the table saw. Cleared when the next hand is dealt,
+	// so it costs a hand's worth of entries on each write and no more.
+	//
+	// The blinds are not in it — they are forced, not chosen, and blindSeats
+	// already says who posted them.
+	//
+	// It exists for the learning encoder (internal/learn), which needs the
+	// betting sequence a person at the table would remember and which the
+	// hand-written bot has always had to guess at from chip counts (see the
+	// cbet note in bot.go). View does not send it: nothing on a client reads
+	// it, and a client that wanted it would be one more thing to keep in step.
+	HandLog []PublicAct `json:"handLog,omitempty"`
+	// Aggressor is the seat that made the last raise on this street, or -1
+	// when nobody has raised it yet. Reset each street and each hand.
+	//
+	// A state stored before this field existed decodes it as zero — seat 0 —
+	// until the street it was stored on closes. Only the encoder reads it, so
+	// the price of that is one mislabelled feature for one street of a match
+	// already in progress, which is not worth a migration.
+	Aggressor int `json:"aggressor,omitempty"`
 }
 
 // HandResult is how one hand finished, kept so a client can show a showdown

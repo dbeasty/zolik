@@ -647,11 +647,13 @@ func bluffShareOf(p profile, owed, pot int) float64 {
 // the deck out and counting — against opponents holding at least `floor`, the
 // hand the money in front of this seat is claiming.
 //
-// Rollouts rather than a lookup table because the table would be a second
-// implementation of the hand rankings, and this module already has one that
-// the showdown itself uses — so an evaluator bug can never make the bot and
-// the pot disagree about who won. A split counts as its fraction, which is why
-// this returns a float rather than a win count.
+// Rollouts rather than a lookup table of equities, because the table would be
+// a second implementation of poker's odds. The trials are ranked by score7, a
+// fast second implementation of the hand rankings, which is the one exception
+// made and made for speed: it is held to Best's order on every category by
+// TestScoreAgreesWithBest, so the bot and the pot cannot disagree about who
+// won. A split counts as its fraction, which is why this returns a float
+// rather than a win count.
 //
 // Trials that do not meet the floor are dealt and thrown away, so the count
 // this averages over is the number of *relevant* deals rather than the number
@@ -678,10 +680,10 @@ func equity(hole, board []string, opponents, trials, floor int, bluffShare float
 	for _, c := range board {
 		seen[c] = true
 	}
-	deck := make([]string, 0, 52)
+	deck := make([]code, 0, 52)
 	for _, c := range buildDeck() {
 		if !seen[c] {
-			deck = append(deck, c)
+			deck = append(deck, codeOf(c))
 		}
 	}
 
@@ -694,8 +696,17 @@ func equity(hole, board []string, opponents, trials, floor int, bluffShare float
 		return 0.5
 	}
 
-	mine := make([]string, 0, 7)
-	theirs := make([]string, 0, 7)
+	// Ranked by score7 rather than Best: the same order, a hundred times
+	// faster, and the reason a rollout fits inside a decision (score.go).
+	known := make([]code, 0, 7)
+	for _, c := range hole {
+		known = append(known, codeOf(c))
+	}
+	for _, c := range board {
+		known = append(known, codeOf(c))
+	}
+	mine := make([]code, 0, 7)
+	theirs := make([]code, 0, 7)
 	won, counted := 0.0, 0
 	anyhow, dealt := 0.0, 0
 	for attempt := 0; attempt < trials*6 && counted < trials; attempt++ {
@@ -707,21 +718,21 @@ func equity(hole, board []string, opponents, trials, floor int, bluffShare float
 		}
 		run := deck[:runout]
 
-		mine = append(append(append(mine[:0], hole...), board...), run...)
-		best := Best(mine)
+		mine = append(append(mine[:0], known...), run...)
+		best := score7(mine)
 
 		ahead, split, claims := true, 1, floor <= highCard
 		for o := 0; o < opponents; o++ {
 			at := runout + 2*o
-			theirs = append(append(append(theirs[:0], deck[at], deck[at+1]), board...), run...)
-			rank := Best(theirs)
-			if rank.Category >= floor {
+			theirs = append(append(append(theirs[:0], deck[at], deck[at+1]), known[len(hole):]...), run...)
+			rank := score7(theirs)
+			if scoreCategory(rank) >= floor {
 				claims = true
 			}
-			switch best.Compare(rank) {
-			case -1:
+			switch {
+			case best < rank:
 				ahead = false
-			case 0:
+			case best == rank:
 				split++
 			}
 			// Nothing left to learn: this hand is beaten and the bet is
