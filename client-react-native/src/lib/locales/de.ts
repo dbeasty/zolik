@@ -1573,4 +1573,9 @@ export const de: Record<string, string> = {
   'why.unavailable': 'Dieser Zug ist gerade nicht möglich.',
   'why.notYourTurnWho': '{name} ist am Zug — warte, bis der Zug beendet ist.',
   'match.waitingForName': 'Warten auf {name}…',
+  'step.yourTurn': 'Du bist dran: {moves}',
+  'marks.fresh': 'NEU',
+  'marks.added': '+{n}',
+  'marks.reshaped': 'GEÄNDERT',
+  'marks.zone': '{n} geändert',
 };

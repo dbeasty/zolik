@@ -1549,4 +1549,9 @@ export const lt: Record<string, string> = {
   'why.unavailable': 'Šis ėjimas dabar negalimas.',
   'why.notYourTurnWho': 'Dabar eilė {name} — palaukite, kol baigs.',
   'match.waitingForName': 'Laukiama {name}…',
+  'step.yourTurn': 'Jūsų ėjimas: {moves}',
+  'marks.fresh': 'NAUJA',
+  'marks.added': '+{n}',
+  'marks.reshaped': 'PAKEISTA',
+  'marks.zone': 'pakeista: {n}',
 };

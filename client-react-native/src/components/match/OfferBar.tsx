@@ -119,6 +119,11 @@ type Props = SharedParams & {
    * rings whatever that turns out to be.
    */
   urgent?: boolean;
+  /**
+   * The player has had the move for a while without making it. Rings the same
+   * one control `urgent` would, as a suggestion of where to start.
+   */
+  nudge?: boolean;
 };
 
 /**
@@ -157,6 +162,7 @@ export function OfferBar({
   onAmbiguous,
   onExplain,
   urgent,
+  nudge,
   ...shared
 }: Props) {
   const metrics = useMetrics();
@@ -196,7 +202,9 @@ export function OfferBar({
   // decides which that is by the order it lists its offers in. No game
   // knowledge on this side: the shell does not know what leads, only that
   // something does.
-  const leadId = offers.find((o) => o.enabled && isReady(o, selectedCards, params[o.id]))?.id;
+  // Never an undo: taking a move back is always available and never the
+  // thing the table is waiting for.
+  const leadId = offers.find((o) => o.enabled && !o.undo && isReady(o, selectedCards, params[o.id]))?.id;
 
   return (
     <View style={styles.bar} testID="action-bar">
@@ -245,7 +253,7 @@ export function OfferBar({
               {/* A ring in the air around the one thing the table is waiting
                   for. Drawn inside the control so it needs no wrapper, and on
                   its own layer so it costs the row no room. */}
-              <Attention active={!!urgent && offer.id === leadId} radius={8} />
+              <Attention active={(!!urgent || !!nudge) && offer.id === leadId} radius={8} />
               {/* The figure the press sends, when the offer declares one —
                   "Raise to 483", following the slider and the quick choices
                   below as they move it, because a button that says only

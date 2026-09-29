@@ -1565,4 +1565,9 @@ export const mt: Record<string, string> = {
   'why.unavailable': 'Din il-mossa mhix disponibbli issa.',
   'why.notYourTurnWho': 'Imiss lil {name} — stenna sakemm jispiċċa.',
   'match.waitingForName': 'Qed nistennew lil {name}…',
+  'step.yourTurn': 'Imissek: {moves}',
+  'marks.fresh': 'ĠDID',
+  'marks.added': '+{n}',
+  'marks.reshaped': 'MIBDUL',
+  'marks.zone': '{n} mibdula',
 };

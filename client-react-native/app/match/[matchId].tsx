@@ -54,15 +54,20 @@ import {
 } from '@/src/lib/flights';
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
 import { cardsForSelection, slotsForDrag, toggleSelection } from '@/src/lib/hand';
+import { nextMarks, NO_MARKS, type ChangeMarks } from '@/src/lib/changes';
 import { reasonText, t } from '@/src/lib/i18n';
 import { ApiError } from '@/src/api/client';
 import { savePendingDestination } from '@/src/lib/pendingDestination';
 import { WhySheet, type Refusal } from '@/src/components/match/WhySheet';
 import { useRuleIndex } from '@/src/hooks/useRuleIndex';
 import { useSkinControls } from '@/src/hooks/useSkin';
-import { factText, playerName } from '@/src/lib/labels';
+import { factText, label, playerName } from '@/src/lib/labels';
+import { turnStep } from '@/src/lib/turnStep';
 import { dragLayer } from '@/src/theme';
 import { AddToCircle } from '@/src/notify/AddToCircle';
+
+/** How long a player may hold the move before the likeliest control is ringed. */
+const IDLE_NUDGE_MS = 20_000;
 
 /**
  * One screen, every game.
@@ -288,6 +293,31 @@ export default function MatchScreen() {
     if (state) boardRef.current = { zones: state.view?.zones ?? [], seats: state.view?.seats ?? [] };
   }, [state]);
 
+  // Groups somebody else changed since this player last acted, compared board
+  // to board the same way flights are (see `src/lib/changes.ts`). Kept in its
+  // own ref rather than sharing `boardRef`, whose update order the flights
+  // depend on.
+  const [changeMarks, setChangeMarks] = useState<ChangeMarks>(NO_MARKS);
+  const marksBoardRef = useRef<BoardLike | null>(null);
+  useEffect(() => {
+    if (!state) return;
+    const next: BoardLike = { zones: state.view?.zones ?? [], seats: state.view?.seats ?? [] };
+    const prev = marksBoardRef.current;
+    marksBoardRef.current = next;
+    setChangeMarks((was) => nextMarks(was, prev, next, viewerId));
+  }, [state, viewerId]);
+
+  // A player who has had the move for a while without making it gets the
+  // first control on offer ringed: a suggestion of where to start, for the
+  // moment someone is stuck rather than thinking.
+  const [idle, setIdle] = useState(false);
+  useEffect(() => {
+    setIdle(false);
+    if (!state?.legalActions?.some((o) => o.enabled)) return;
+    const timer = setTimeout(() => setIdle(true), IDLE_NUDGE_MS);
+    return () => clearTimeout(timer);
+  }, [state]);
+
   // The flights currently in the air — appended when a plan lands, removed
   // as each one touches down. De-duplicated by the plan's own stable ids,
   // so replanning the same transition can never double a card.
@@ -438,6 +468,7 @@ export default function MatchScreen() {
   const selectedCards = cardsForSelection(heldSlots, selected);
 
   const canAct = state.legalActions.some((o) => o.enabled);
+  const step = turnStep(state.legalActions);
   // Whose turn it is when it is somebody else's: the first thing a player
   // asking "why can't I?" needs, so a not-your-turn refusal names them.
   const turnHolder = state.view?.seats?.find((s) => s.active && s.playerId !== viewerId);
@@ -741,6 +772,7 @@ export default function MatchScreen() {
     armedGroupId: armedMeldIdLive,
     onAimGroup,
     entranceDelays: flightPlan.holds,
+    changedGroups: changeMarks,
   };
 
   // The same table again: same game, same variation, the same numbers the
@@ -923,6 +955,17 @@ export default function MatchScreen() {
         />
       }
     >
+      {/* What to do now, in one line, from the same offers the controls
+          below are drawn from — see `src/lib/turnStep.ts`. */}
+      {step && !paused ? (
+        <Text testID="turn-step" style={step.obligation ? styles.stepObligation : styles.step}>
+          {step.obligation
+            ? factText(step.obligation, state.players)
+            : t('step.yourTurn', {
+                moves: step.moves.map((o) => label(o.labelKey ?? `verb.${o.verb}`) || o.verb).join(' · '),
+              })}
+        </Text>
+      ) : null}
       {/* The engine's own sentence stands in for a code this build has
           no translation for — it is at least a sentence, where the bare
           code reads as a crash. A code we do know still wins, so a
@@ -961,6 +1004,7 @@ export default function MatchScreen() {
         // "the table is waiting on this bar" rather than as any offer's name,
         // so the bar rings whatever the one thing turns out to be.
         urgent={paused}
+        nudge={idle}
         onAmbiguous={(groupKey) => {
           setPendingGroupKey(groupKey);
           // The board is inside a scroll view, so a target's position

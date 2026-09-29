@@ -1546,4 +1546,9 @@ export const sk: Record<string, string> = {
   'why.unavailable': 'Tento ťah teraz nie je možný.',
   'why.notYourTurnWho': 'Na ťahu je {name} — počkaj, kým dohrá.',
   'match.waitingForName': 'Čaká sa na hráča {name}…',
+  'step.yourTurn': 'Si na ťahu: {moves}',
+  'marks.fresh': 'NOVÉ',
+  'marks.added': '+{n}',
+  'marks.reshaped': 'ZMENA',
+  'marks.zone': 'zmeny: {n}',
 };

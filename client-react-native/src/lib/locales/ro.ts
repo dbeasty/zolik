@@ -1556,4 +1556,9 @@ export const ro: Record<string, string> = {
   'why.unavailable': 'Această mutare nu este disponibilă acum.',
   'why.notYourTurnWho': 'Este rândul lui {name} — așteaptă să termine.',
   'match.waitingForName': 'Se așteaptă {name}…',
+  'step.yourTurn': 'Rândul tău: {moves}',
+  'marks.fresh': 'NOU',
+  'marks.added': '+{n}',
+  'marks.reshaped': 'SCHIMBAT',
+  'marks.zone': '{n} schimbate',
 };

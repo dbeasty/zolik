@@ -1555,4 +1555,9 @@ export const fi: Record<string, string> = {
   'why.unavailable': 'Tämä siirto ei ole nyt mahdollinen.',
   'why.notYourTurnWho': 'Vuorossa on {name} — odota, että vuoro päättyy.',
   'match.waitingForName': 'Odotetaan pelaajaa {name}…',
+  'step.yourTurn': 'Sinun vuorosi: {moves}',
+  'marks.fresh': 'UUSI',
+  'marks.added': '+{n}',
+  'marks.reshaped': 'MUUTETTU',
+  'marks.zone': '{n} muuttunut',
 };

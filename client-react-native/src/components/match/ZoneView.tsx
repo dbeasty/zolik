@@ -10,6 +10,7 @@ import { SettleIn } from '@/src/components/match/SettleIn';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
 import { concealedCount } from '@/src/lib/board';
+import { marksIn, type ChangeMarks } from '@/src/lib/changes';
 import { groupElementId, zoneElementId } from '@/src/lib/drops';
 import type { Metrics } from '@/src/lib/layout';
 import { label } from '@/src/lib/labels';
@@ -115,6 +116,13 @@ type Props = {
    * is exactly what happened before flights existed.
    */
   entranceDelays?: ReadonlyMap<string, number>;
+  /**
+   * Groups somebody else changed since the viewer last acted — see
+   * `src/lib/changes.ts`. Outlined, labelled, and the cards added to them
+   * ringed, all drawn over the group rather than in it, so a mark never moves
+   * anything.
+   */
+  changedGroups?: ChangeMarks;
 };
 
 export function ZoneView({
@@ -141,6 +149,7 @@ export function ZoneView({
   armedGroupId,
   onAimGroup,
   entranceDelays,
+  changedGroups,
 }: Props) {
   const metrics = useMetrics();
   const skin = useSkin();
@@ -259,6 +268,10 @@ export function ZoneView({
   // decides the shape, same as it decides the layout above. A stack needs
   // none of this: its count is the whole of what it ever shows, open or not.
   const groups = zone.groups ?? [];
+  // How many of this zone's groups carry a mark — said on the panel's own
+  // header too, which stays in view when the panel is put away or scrolled
+  // past, so a change is never only visible from inside the group.
+  const marked = changedGroups ? marksIn(zone, changedGroups) : 0;
   const summary =
     zone.kind === 'pile' && cards.length
       ? <CardGlance cards={[cards[cards.length - 1].card]} max={1} testID={`zone-summary-${zone.id}`} />
@@ -292,7 +305,11 @@ export function ZoneView({
       countTestID={foldable ? undefined : `zone-count-${zone.id}`}
       summary={summary}
       accessory={
-        foldable ? (
+        marked > 0 && !foldable ? (
+          <View style={styles.markChip} testID={`zone-marks-${zone.id}`}>
+            <Text style={styles.markChipText}>{t('marks.zone', { n: marked })}</Text>
+          </View>
+        ) : foldable ? (
           // A bordered badge with an outline chevron — visually its own
           // thing, not a second copy of the minimize control's solid ▾/▸
           // sitting right next to it. Two adjacent triangles meaning two
@@ -351,12 +368,29 @@ export function ZoneView({
             // corner each one leaves showing while the meld is closed, and a
             // whole card once it has been tapped open.
             const stackStep = groupOpen ? stackedCardBox(metrics) : metrics.stackedCorner;
+            const mark = changedGroups?.get(g.id);
+            // Which of this group's cards to ring: the added ones, matched
+            // from the end, since a card added to a group lands last more
+            // often than not and duplicates (two decks) are otherwise equal.
+            const ringed = new Set<number>();
+            if (mark && !mark.fresh) {
+              const want = new Map<string, number>();
+              for (const c of mark.added) want.set(c, (want.get(c) ?? 0) + 1);
+              for (let i = g.cards.length - 1; i >= 0; i--) {
+                const n = want.get(g.cards[i]) ?? 0;
+                if (n > 0) {
+                  ringed.add(i);
+                  want.set(g.cards[i], n - 1);
+                }
+              }
+            }
             return (
               <View
                 key={g.id}
                 ref={(n) => registerDrop?.(groupId, n as unknown as Measurable | null)}
                 style={[
                   styles.group,
+                  !!mark && styles.changed,
                   groupArmed && styles.armed,
                   groupLive && styles.live,
                   groupRefused && styles.refused,
@@ -428,6 +462,9 @@ export function ZoneView({
                         <SettleIn kind="settle" delay={entranceDelay}>
                           <CardView card={c} compact stacked={!groupOpen} />
                         </SettleIn>
+                        {ringed.has(i) ? (
+                          <View pointerEvents="none" style={styles.cardRing} testID={`card-mark-${g.id}-${i}`} />
+                        ) : null}
                       </View>
                     ))}
                     {/* The hole itself, drawn inside the stack so its place is
@@ -444,6 +481,17 @@ export function ZoneView({
                     ) : null}
                   </View>
                 </Pressable>
+                {mark ? (
+                  <View pointerEvents="none" style={styles.markTag} testID={`group-mark-${g.id}`}>
+                    <Text style={styles.markTagText}>
+                      {mark.fresh
+                        ? t('marks.fresh')
+                        : mark.added.length
+                          ? t('marks.added', { n: mark.added.length })
+                          : t('marks.reshaped')}
+                    </Text>
+                  </View>
+                ) : null}
                 {(g.badgeKeys ?? []).map((b) => (
                   <Text key={b} style={styles.badge}>
                     {label(b)}
@@ -720,6 +768,32 @@ function zoneStyles(m: Metrics, s: Skin) {
     // discipline as `live`/`hovered`: this box must not change size just
     // because it was tapped.
     armed: { borderColor: colors.gold, backgroundColor: 'rgba(251, 191, 36, 0.10)' },
+    // Changed by somebody else since the viewer last acted. Colour only, like
+    // every other state a group can be in; the tag and rings below are
+    // absolutely positioned for the same reason.
+    changed: { borderColor: colors.success },
+    markTag: {
+      position: 'absolute',
+      top: -7,
+      right: -4,
+      backgroundColor: colors.success,
+      borderRadius: 7,
+      paddingHorizontal: 5,
+      paddingVertical: 1,
+    },
+    markTagText: { color: colors.bg, fontSize: 9, fontWeight: '800', letterSpacing: 0.3 },
+    cardRing: {
+      position: 'absolute',
+      top: -1,
+      left: -1,
+      right: -1,
+      bottom: -1,
+      borderRadius: 6,
+      borderWidth: 2,
+      borderColor: colors.success,
+    },
+    markChip: { backgroundColor: colors.success, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 1 },
+    markChipText: { color: colors.bg, fontSize: 10, fontWeight: '800' },
     badge: { color: colors.gold, fontSize: 10, marginTop: 2 },
     hidden: { color: colors.muted, fontSize: 11, marginTop: 6, fontStyle: 'italic' },
     dropHere: { color: colors.gold, fontSize: 11, marginTop: 6, fontStyle: 'italic' },

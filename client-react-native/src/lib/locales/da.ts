@@ -1545,4 +1545,9 @@ export const da: Record<string, string> = {
   'why.unavailable': 'Dette træk er ikke muligt lige nu.',
   'why.notYourTurnWho': 'Det er {name}s tur — vent, til de er færdige.',
   'match.waitingForName': 'Venter på {name}…',
+  'step.yourTurn': 'Din tur: {moves}',
+  'marks.fresh': 'NY',
+  'marks.added': '+{n}',
+  'marks.reshaped': 'ÆNDRET',
+  'marks.zone': '{n} ændret',
 };

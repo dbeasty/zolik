@@ -1561,4 +1561,9 @@ export const es: Record<string, string> = {
   'why.unavailable': 'Este movimiento no está disponible ahora.',
   'why.notYourTurnWho': 'Es el turno de {name}: espera a que termine.',
   'match.waitingForName': 'Esperando a {name}…',
+  'step.yourTurn': 'Tu turno: {moves}',
+  'marks.fresh': 'NUEVO',
+  'marks.added': '+{n}',
+  'marks.reshaped': 'CAMBIO',
+  'marks.zone': '{n} con cambios',
 };

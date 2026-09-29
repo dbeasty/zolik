@@ -1581,4 +1581,9 @@ export const ga: Record<string, string> = {
   'why.unavailable': 'Níl an beart seo ar fáil anois.',
   'why.notYourTurnWho': 'Is é seal {name} é — fan go gcríochnóidh siad.',
   'match.waitingForName': 'Ag fanacht le {name}…',
+  'step.yourTurn': 'Do shealsa: {moves}',
+  'marks.fresh': 'NUA',
+  'marks.added': '+{n}',
+  'marks.reshaped': 'ATHRAITHE',
+  'marks.zone': '{n} athraithe',
 };

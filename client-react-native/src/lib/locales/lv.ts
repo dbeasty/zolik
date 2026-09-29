@@ -1547,4 +1547,9 @@ export const lv: Record<string, string> = {
   'why.unavailable': 'Šis gājiens pašlaik nav pieejams.',
   'why.notYourTurnWho': 'Tagad gājiens ir {name} — pagaidi, līdz tas beigsies.',
   'match.waitingForName': 'Gaidām {name}…',
+  'step.yourTurn': 'Tavs gājiens: {moves}',
+  'marks.fresh': 'JAUNS',
+  'marks.added': '+{n}',
+  'marks.reshaped': 'MAINĪTS',
+  'marks.zone': 'mainīti: {n}',
 };

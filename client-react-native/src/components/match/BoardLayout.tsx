@@ -7,6 +7,7 @@ import { Panel } from '@/src/components/match/Panel';
 import { SeatStrip } from '@/src/components/match/SeatStrip';
 import { ZoneView } from '@/src/components/match/ZoneView';
 import type { Measurable } from '@/src/hooks/useDropRegistry';
+import type { ChangeMarks } from '@/src/lib/changes';
 import { drawableZones, isSpreadRowZone, isTableZone, sitsBeside } from '@/src/lib/board';
 import { t } from '@/src/lib/i18n';
 import { factText, label, playerName } from '@/src/lib/labels';
@@ -45,6 +46,8 @@ type DropProps = {
   armedGroupId?: string | null;
   onAimGroup?: (groupId: string) => void;
   entranceDelays?: ReadonlyMap<string, number>;
+  /** Groups changed by somebody else since the viewer last acted. Not a drop fact, but handed to every zone the same way. */
+  changedGroups?: ChangeMarks;
 };
 
 type PanelProps = { panelId: string; minimized: boolean; onToggleMinimized: () => void };
@@ -336,6 +339,10 @@ export function matchStyles(s: Skin) {
   spreads: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 8, marginTop: 10 },
   error: { color: colors.danger, fontSize: 13, marginVertical: 6 },
   muted: { color: colors.muted, fontSize: 12, marginTop: 6 },
+  // What this player can do now, over the controls that do it.
+  step: { color: colors.text, fontSize: 13, fontWeight: '600', marginBottom: 8 },
+  // Something started that has to be finished or taken back first.
+  stepObligation: { color: colors.gold, fontSize: 13, fontWeight: '700', marginBottom: 8 },
 
   // The end of a match, built like the rule-violation banner in `shared`: a
   // tinted box with a border of its own, because the thing it has to beat is

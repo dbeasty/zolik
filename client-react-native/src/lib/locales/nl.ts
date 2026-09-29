@@ -1564,4 +1564,9 @@ export const nl: Record<string, string> = {
   'why.unavailable': 'Deze zet is nu niet mogelijk.',
   'why.notYourTurnWho': '{name} is aan de beurt — wacht tot die klaar is.',
   'match.waitingForName': 'Wachten op {name}…',
+  'step.yourTurn': 'Jouw beurt: {moves}',
+  'marks.fresh': 'NIEUW',
+  'marks.added': '+{n}',
+  'marks.reshaped': 'GEWIJZIGD',
+  'marks.zone': '{n} gewijzigd',
 };

@@ -1553,4 +1553,9 @@ export const pl: Record<string, string> = {
   'why.unavailable': 'Ten ruch nie jest teraz dostępny.',
   'why.notYourTurnWho': 'Teraz kolej gracza {name} — poczekaj, aż skończy.',
   'match.waitingForName': 'Czekamy na gracza {name}…',
+  'step.yourTurn': 'Twój ruch: {moves}',
+  'marks.fresh': 'NOWE',
+  'marks.added': '+{n}',
+  'marks.reshaped': 'ZMIANA',
+  'marks.zone': 'zmiany: {n}',
 };

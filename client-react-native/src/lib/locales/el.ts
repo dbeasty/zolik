@@ -1579,4 +1579,9 @@ export const el: Record<string, string> = {
   'why.unavailable': 'Αυτή η κίνηση δεν είναι διαθέσιμη τώρα.',
   'why.notYourTurnWho': 'Παίζει ο/η {name} — περιμένετε να τελειώσει.',
   'match.waitingForName': 'Αναμονή για {name}…',
+  'step.yourTurn': 'Σειρά σας: {moves}',
+  'marks.fresh': 'ΝΕΟ',
+  'marks.added': '+{n}',
+  'marks.reshaped': 'ΑΛΛΑΓΗ',
+  'marks.zone': '{n} αλλαγές',
 };

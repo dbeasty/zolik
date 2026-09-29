@@ -1543,4 +1543,9 @@ export const sv: Record<string, string> = {
   'why.unavailable': 'Det här draget går inte just nu.',
   'why.notYourTurnWho': 'Det är {name}s tur — vänta tills den är klar.',
   'match.waitingForName': 'Väntar på {name}…',
+  'step.yourTurn': 'Din tur: {moves}',
+  'marks.fresh': 'NY',
+  'marks.added': '+{n}',
+  'marks.reshaped': 'ÄNDRAD',
+  'marks.zone': '{n} ändrade',
 };

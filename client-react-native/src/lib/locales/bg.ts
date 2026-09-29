@@ -1559,4 +1559,9 @@ export const bg: Record<string, string> = {
   'why.unavailable': 'Този ход не е възможен в момента.',
   'why.notYourTurnWho': 'На ход е {name} — изчакайте да приключи.',
   'match.waitingForName': 'Изчакване на {name}…',
+  'step.yourTurn': 'Ваш ход: {moves}',
+  'marks.fresh': 'НОВО',
+  'marks.added': '+{n}',
+  'marks.reshaped': 'ПРОМЕНЕНО',
+  'marks.zone': '{n} промени',
 };

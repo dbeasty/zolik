@@ -1546,4 +1546,9 @@ export const en: Record<string, string> = {
   'why.unavailable': "This move isn't available right now.",
   'why.notYourTurnWho': "It's {name}'s turn — wait for them to finish.",
   'match.waitingForName': 'Waiting for {name}…',
+  'step.yourTurn': 'Your turn: {moves}',
+  'marks.fresh': 'NEW',
+  'marks.added': '+{n}',
+  'marks.reshaped': 'CHANGED',
+  'marks.zone': '{n} changed',
 };

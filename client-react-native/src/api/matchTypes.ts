@@ -271,6 +271,11 @@ export type ActionOffer = {
    * false for everything a button can send in one tap.
    */
   composite?: boolean;
+  /**
+   * The offer takes a move back rather than making one. Declared by the
+   * module, never guessed from the verb's spelling.
+   */
+  undo?: boolean;
 };
 
 /** One row of a scoreboard, in a shape no game owns. */

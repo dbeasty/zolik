@@ -1564,4 +1564,9 @@ export const hu: Record<string, string> = {
   'why.unavailable': 'Ez a lépés most nem lehetséges.',
   'why.notYourTurnWho': '{name} következik — várd meg, amíg befejezi.',
   'match.waitingForName': 'Várakozás erre: {name}…',
+  'step.yourTurn': 'Te következel: {moves}',
+  'marks.fresh': 'ÚJ',
+  'marks.added': '+{n}',
+  'marks.reshaped': 'VÁLTOZOTT',
+  'marks.zone': '{n} változott',
 };

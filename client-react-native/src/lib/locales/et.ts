@@ -1551,4 +1551,9 @@ export const et: Record<string, string> = {
   'why.unavailable': 'See käik pole praegu võimalik.',
   'why.notYourTurnWho': 'Käik on mängijal {name} — oota, kuni ta lõpetab.',
   'match.waitingForName': 'Ootame mängijat {name}…',
+  'step.yourTurn': 'Sinu käik: {moves}',
+  'marks.fresh': 'UUS',
+  'marks.added': '+{n}',
+  'marks.reshaped': 'MUUDETUD',
+  'marks.zone': '{n} muudetud',
 };

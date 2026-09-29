@@ -1559,4 +1559,9 @@ export const pt: Record<string, string> = {
   'why.unavailable': 'Esta jogada não está disponível agora.',
   'why.notYourTurnWho': 'É a vez de {name} — espere até terminar.',
   'match.waitingForName': 'À espera de {name}…',
+  'step.yourTurn': 'É a sua vez: {moves}',
+  'marks.fresh': 'NOVO',
+  'marks.added': '+{n}',
+  'marks.reshaped': 'ALTERADO',
+  'marks.zone': '{n} alterado(s)',
 };

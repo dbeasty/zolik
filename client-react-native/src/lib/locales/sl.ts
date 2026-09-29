@@ -1541,4 +1541,9 @@ export const sl: Record<string, string> = {
   'why.unavailable': 'Ta poteza trenutno ni mogoča.',
   'why.notYourTurnWho': 'Na potezi je {name} — počakaj, da konča.',
   'match.waitingForName': 'Čakamo na {name}…',
+  'step.yourTurn': 'Na potezi si: {moves}',
+  'marks.fresh': 'NOVO',
+  'marks.added': '+{n}',
+  'marks.reshaped': 'SPREMENJENO',
+  'marks.zone': 'spremenjeno: {n}',
 };

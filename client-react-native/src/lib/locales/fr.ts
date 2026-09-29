@@ -1564,4 +1564,9 @@ export const fr: Record<string, string> = {
   'why.unavailable': "Ce coup n'est pas possible pour le moment.",
   'why.notYourTurnWho': "C'est au tour de {name} — attendez la fin de son tour.",
   'match.waitingForName': 'En attente de {name}…',
+  'step.yourTurn': 'À vous : {moves}',
+  'marks.fresh': 'NOUVEAU',
+  'marks.added': '+{n}',
+  'marks.reshaped': 'MODIFIÉ',
+  'marks.zone': '{n} modifié(s)',
 };

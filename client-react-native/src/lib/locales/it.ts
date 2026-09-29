@@ -1559,4 +1559,9 @@ export const it: Record<string, string> = {
   'why.unavailable': 'Questa mossa non è disponibile ora.',
   'why.notYourTurnWho': 'Tocca a {name}: aspetta che finisca.',
   'match.waitingForName': 'In attesa di {name}…',
+  'step.yourTurn': 'Tocca a te: {moves}',
+  'marks.fresh': 'NUOVO',
+  'marks.added': '+{n}',
+  'marks.reshaped': 'CAMBIATO',
+  'marks.zone': '{n} cambiati',
 };

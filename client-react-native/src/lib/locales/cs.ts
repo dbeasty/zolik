@@ -1539,4 +1539,9 @@ export const cs: Record<string, string> = {
   'why.unavailable': 'Tento tah teď není možný.',
   'why.notYourTurnWho': 'Na tahu je {name} — počkej, až dohraje.',
   'match.waitingForName': 'Čeká se na hráče {name}…',
+  'step.yourTurn': 'Jsi na tahu: {moves}',
+  'marks.fresh': 'NOVÉ',
+  'marks.added': '+{n}',
+  'marks.reshaped': 'ZMĚNA',
+  'marks.zone': 'změny: {n}',
 };

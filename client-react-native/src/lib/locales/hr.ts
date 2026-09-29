@@ -1546,4 +1546,9 @@ export const hr: Record<string, string> = {
   'why.unavailable': 'Ovaj potez trenutačno nije moguć.',
   'why.notYourTurnWho': 'Na potezu je {name} — pričekaj da završi.',
   'match.waitingForName': 'Čeka se {name}…',
+  'step.yourTurn': 'Tvoj potez: {moves}',
+  'marks.fresh': 'NOVO',
+  'marks.added': '+{n}',
+  'marks.reshaped': 'PROMJENA',
+  'marks.zone': 'promjena: {n}',
 };
