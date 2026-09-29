@@ -429,14 +429,27 @@ func (m *Manager) joinLocked(ctx context.Context, e *liveMatch, p models.Player)
 	if mod == nil {
 		return models.Match{}, false, module.Error{Code: "UNKNOWN_MODULE", Message: match.ModuleID}
 	}
+	// A seat held for somebody from the last table is taken by them or by
+	// nobody, so it counts as filled for everyone else.
+	held := len(match.Reserved)
+	reservation := reservationIndex(match.Reserved, p.ID)
+	if reservation >= 0 {
+		held--
+	}
 	// The variation's range, not the module's: a table's size is a property of
 	// the rules it was created under (module.SeatRange).
-	if _, max := mod.Descriptor().SeatRange(match.Variation); len(match.Players) >= max {
+	if _, max := mod.Descriptor().SeatRange(match.Variation); len(match.Players)+held >= max {
 		return models.Match{}, false, module.Error{Code: "MATCH_FULL"}
 	}
 
 	match.Players = append(append([]models.Player(nil), match.Players...), p)
 	match.TurnOrder = append(append([]string(nil), match.TurnOrder...), p.ID)
+	if reservation >= 0 {
+		match.Reserved = withoutReservation(match.Reserved, reservation)
+	}
+	if len(match.SeatOrder) > 0 {
+		match.Players, match.TurnOrder = inSeatOrder(match.Players, match.SeatOrder)
+	}
 	if err := m.saveLocked(ctx, e, match); err != nil {
 		return models.Match{}, false, err
 	}
@@ -494,6 +507,9 @@ func (m *Manager) startLocked(ctx context.Context, e *liveMatch) (models.Match, 
 	now := time.Now().UTC()
 	match.Status = "active"
 	match.StartedAt = &now
+	// Dealt without them: a seat held for somebody who never sat down is not
+	// a seat at this game.
+	match.Reserved = nil
 	e.seq = 0
 	if err := m.snapshotLocked(ctx, e, match, state); err != nil {
 		return models.Match{}, err

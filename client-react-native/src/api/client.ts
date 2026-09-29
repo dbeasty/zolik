@@ -481,6 +481,21 @@ export class ZolikClient {
     await this.post(`/matches/${encodeURIComponent(idOrCode)}/resume`, null, true);
   }
 
+  /**
+   * Play a finished table again with the same people. The first press opens
+   * the rematch and hosts it; any later one, from anybody at the table, sits
+   * down at that same one. The answer says where to go: a lobby while there
+   * are others to wait for, a dealt table when there are none.
+   */
+  async rematch(idOrCode: string): Promise<{ matchId: string; status: string; hostId: string }> {
+    return this.post(`/matches/${encodeURIComponent(idOrCode)}/rematch`, null, true);
+  }
+
+  /** Give back the seat a rematch was holding for this player. */
+  async declineRematch(rematchId: string): Promise<void> {
+    await this.post(`/matches/${encodeURIComponent(rematchId)}/rematch/decline`, null, true);
+  }
+
   /** A viewer's state over plain HTTP; the socket is the live path. */
   async getMatch(idOrCode: string, as?: string): Promise<MatchState> {
     const q = as ? `?as=${encodeURIComponent(as)}` : '';

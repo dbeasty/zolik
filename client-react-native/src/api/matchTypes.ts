@@ -392,6 +392,13 @@ export type MatchState = {
   canResume?: boolean;
   /** Player ids, in seat order; look their names up in `players`. */
   awayPlayers?: string[];
+  /**
+   * The table this finished one is being played again at, and who asked.
+   * Everybody else from here has a seat held at it.
+   */
+  rematch?: { matchId: string; hostId: string };
+  /** Who a rematch lobby is still holding seats for, in seat order. */
+  reserved?: { playerId: string; name: string; avatar?: string }[];
   players: MatchPlayer[];
   /**
    * Who is playing with whom if the table were dealt now, in seat order —

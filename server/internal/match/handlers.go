@@ -71,6 +71,10 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	// Bringing a swept-up table back. Separate from start, which allocates a
 	// module's state: this one only undoes an envelope.
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/resume", h.resumeMatch)
+	// Playing a finished table again, with the same people. The first press
+	// opens it; every later one sits down at it.
+	r.With(auth.AuthMiddleware).Post("/matches/{id}/rematch", h.rematch)
+	r.With(auth.AuthMiddleware).Post("/matches/{id}/rematch/decline", h.declineRematch)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/add-bot", h.addBot)
 	// Seat a specific player out of the waiting room, instead of reading a
 	// join code out to them.
@@ -574,6 +578,46 @@ func (h *Handlers) resumeMatch(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, map[string]any{"matchId": m.ID.Hex(), "status": "active"})
 }
 
+// rematch opens a finished table again, or sits the caller down at the one
+// somebody from it already opened. The table it answers with may be a lobby
+// (waiting for the others) or already dealt (nobody else to wait for), and
+// the client routes on which.
+func (h *Handlers) rematch(w http.ResponseWriter, req *http.Request) {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	// Asked before the write for the same reason as resume: a table with
+	// nobody else to wait for is dealt on the spot.
+	if err := h.admission.AllowMatchStart(); err != nil {
+		admission.WriteBusy(w, err)
+		return
+	}
+	next, err := h.manager.Rematch(req.Context(), chi.URLParam(req, "id"), uc.UserID)
+	if err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	writeJSON(w, map[string]any{"matchId": next.ID.Hex(), "status": next.Status, "hostId": next.HostID})
+}
+
+// declineRematch lets go of the seat a rematch was holding for the caller.
+// The id is the rematch's own, not the finished table's.
+func (h *Handlers) declineRematch(w http.ResponseWriter, req *http.Request) {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	next, err := h.manager.DeclineRematch(req.Context(), chi.URLParam(req, "id"), uc.UserID)
+	if err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	writeJSON(w, map[string]any{"matchId": next.ID.Hex()})
+}
+
 // getMatch returns a viewer's state over plain HTTP.
 //
 // The socket is the live path, but a plain GET makes the runtime testable and
@@ -972,7 +1016,7 @@ func writeModuleError(w http.ResponseWriter, err error) {
 		status = http.StatusForbidden
 	case "NOT_THE_HOST":
 		status = http.StatusForbidden
-	case "NO_LONGER_WAITING", "MATCH_FULL", "MATCH_NOT_ABANDONED", "MATCH_MOVED_ON", "NOTHING_TO_REPLAY":
+	case "NO_LONGER_WAITING", "MATCH_FULL", "MATCH_NOT_ABANDONED", "MATCH_MOVED_ON", "NOTHING_TO_REPLAY", "MATCH_NOT_OVER":
 		// A conflict rather than a bad request: the caller did nothing wrong,
 		// the world moved under them.
 		status = http.StatusConflict
