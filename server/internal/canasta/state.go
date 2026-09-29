@@ -121,6 +121,10 @@ const (
 	// ErrNothingToUndo is shared with Žolíky's own undo (internal/rules):
 	// same fact, same word, no reason for a client to carry two keys for it.
 	ErrNothingToUndo = "NOTHING_TO_UNDO"
+	// ErrNothingFitsHere is a lay-off with no card to lay: nothing the hand
+	// holds goes on that meld. The weakest refusal there is, and shared by
+	// spelling so a client can treat it as such — see ActionOffer.WhyNot.
+	ErrNothingFitsHere = "NOTHING_FITS_HERE"
 	// ErrUndoMeldsFirst is the capture undo asked for out of order: a turn
 	// comes apart in the reverse of the order it was built, so the melds and
 	// lay-offs laid since have to come off before the capture underneath them

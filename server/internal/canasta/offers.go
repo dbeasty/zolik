@@ -113,6 +113,12 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		Zone: module.FromHand, OwnerID: playerID,
 		Cards: discardable, MinCards: 1, MaxCards: 1,
 	}
+	// Shedding the last card is going out, and going out ends the deal for
+	// everyone — said on the control, as Žolíky does, rather than left for the
+	// press to reveal.
+	if len(hand) == 1 && len(discardable) == 1 {
+		discard.LabelKey = "verb.discardToClose"
+	}
 	discard.Target = &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID}
 	offers = append(offers, discard)
 
@@ -259,10 +265,13 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 				Facts: []module.Fact{{LabelKey: "canasta.offer.rank", Value: rankThree}},
 				Source: &module.Selector{
 					Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID),
-					// No latitude here, unlike an ordinary group: this meld is
-					// legal only as the move that empties a hand, so a subset
-					// of it is not a smaller version of the same move.
-					Cards: bt, Submit: bt, MinCards: len(bt), MaxCards: len(bt),
+					// Latitude of one card at most: the meld is legal only as
+					// part of going out, which leaves a hand of nothing or of
+					// the discard. Asked of the engine, like any group's floor —
+					// five threes may go down as four and a discard, and a
+					// fixed len(bt) greyed that out behind "Select 5 card(s)".
+					Cards: bt, Submit: bt, MaxCards: len(bt),
+					MinCards: smallestAcceptedMeld(m, raw, playerID, candidate{Cards: bt}),
 				},
 				Target: &module.Selector{Zone: module.ToTable, ZoneID: meldsZoneID(t.ID)},
 			})
@@ -325,16 +334,24 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 				accepted = append(accepted, c)
 			}
 		}
-		if len(accepted) > 0 {
+		switch {
+		case len(accepted) > 0:
 			o.Enabled = true
-		} else {
+		case len(eligible) > 0:
 			// Say why, using whichever card the player would most plausibly try.
-			var probeCards []string
-			if len(eligible) > 0 {
-				probeCards = eligible[:1]
-			}
 			o.Enabled, o.WhyNot = probe(m, raw, playerID, module.Action{
-				Verb: VerbLayOff, Cards: probeCards, Target: mm.ID,
+				Verb: VerbLayOff, Cards: eligible[:1], Target: mm.ID,
+			})
+		default:
+			// Nothing in the hand goes on this meld, so there is no card to
+			// ask about, and the engine answers an empty lay-off with
+			// NOTHING_FITS_HERE (or WRONG_PHASE, which is about the move, not
+			// the meld). It used to answer MELD_TOO_SMALL, and on a table with
+			// one meld that could take a card and six that could not, that is
+			// what the folded Lay off control showed instead of the one
+			// refusal that mattered (match 6abc22d3b46a546c9d9bd1e4).
+			o.Enabled, o.WhyNot = probe(m, raw, playerID, module.Action{
+				Verb: VerbLayOff, Target: mm.ID,
 			})
 		}
 		o.Source = &module.Selector{

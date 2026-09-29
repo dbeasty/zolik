@@ -173,6 +173,12 @@ type Group struct {
 	// BadgeKeys are message keys for anything worth marking on the group
 	// ("clean run", "trump"). Keys, never rendered text.
 	BadgeKeys []string `json:"badgeKeys,omitempty"`
+	// Complete marks a group that is finished as far as the player is
+	// concerned — a canasta, not a meld still being built — so a client may
+	// fold it down to take less room. Whether it still takes cards is a
+	// separate question the offers answer; this is about how much of the
+	// board it deserves.
+	Complete bool `json:"complete,omitempty"`
 }
 
 // Zone is one area of the board.
@@ -489,6 +495,15 @@ type ActionOffer struct {
 	Verb    string `json:"verb"`
 	Enabled bool   `json:"enabled"`
 	// WhyNot is a stable error code, never a sentence.
+	//
+	// One spelling is a convention across modules: NOTHING_FITS_HERE refuses
+	// an offer aimed at one target — a meld, a pile — that nothing the player
+	// holds would go on. It is the weakest refusal there is. Offers of one
+	// verb are often folded into a single control, and a table with seven
+	// melds has six that take nothing from a given hand; counted like any
+	// other reason, "nothing fits here" outvotes the one meld whose refusal is
+	// the real answer. A client folding offers shows it only when no member
+	// has anything better to say.
 	WhyNot string `json:"whyNot,omitempty"`
 
 	// RuleIDs name the written rules that justify WhyNot at this table — the
@@ -734,6 +749,30 @@ func level(a, b []int) bool {
 		}
 	}
 	return true
+}
+
+// OfferFor is the enabled offer an action would be sent through: the one it
+// names, or, for an action that names none (a bot speaking in verbs), the
+// first enabled offer with its verb and, where it has one, its target. Nil
+// when nothing on the list fits.
+func OfferFor(offers []ActionOffer, a Action) *ActionOffer {
+	if a.OfferID != "" {
+		if o := FindOffer(offers, a.OfferID); o != nil && o.Enabled {
+			return o
+		}
+		return nil
+	}
+	for i := range offers {
+		o := &offers[i]
+		if !o.Enabled || o.Verb != a.Verb {
+			continue
+		}
+		if a.Target != "" && (o.Target == nil || o.Target.MeldID != a.Target) {
+			continue
+		}
+		return o
+	}
+	return nil
 }
 
 // FindOffer returns the offer with this ID, or nil.

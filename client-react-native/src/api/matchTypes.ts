@@ -18,6 +18,14 @@ export type Fact = {
   params?: Record<string, unknown>;
 };
 
+/** One thing a player did, worded by the module — see `RecentMoves`. */
+export type MoveLine = {
+  playerId: string;
+  fact: Fact;
+  /** The group on the board the move touched, if any. */
+  groupId?: string;
+};
+
 /**
  * One card as the board shows it.
  *
@@ -42,6 +50,12 @@ export type Group = {
   cards: string[];
   /** Keys for anything worth marking on the group. Keys, never text. */
   badgeKeys?: string[];
+  /**
+   * Finished, as far as the player is concerned — a canasta rather than a
+   * meld still being built — so it is folded down to take less room. The
+   * module decides; the shell never counts cards to guess.
+   */
+  complete?: boolean;
 };
 
 /**
@@ -271,6 +285,11 @@ export type ActionOffer = {
    * false for everything a button can send in one tap.
    */
   composite?: boolean;
+  /**
+   * The offer takes a move back rather than making one. Declared by the
+   * module, never guessed from the verb's spelling.
+   */
+  undo?: boolean;
 };
 
 /** One row of a scoreboard, in a shape no game owns. */
@@ -392,6 +411,11 @@ export type MatchState = {
   canResume?: boolean;
   /** Player ids, in seat order; look their names up in `players`. */
   awayPlayers?: string[];
+  /**
+   * The last few moves at the table as this viewer may read them, oldest
+   * first. Absent for a game that does not narrate its moves.
+   */
+  recentMoves?: MoveLine[];
   players: MatchPlayer[];
   /**
    * Who is playing with whom if the table were dealt now, in seat order —
@@ -603,6 +627,45 @@ export function isOneTap(offer: ActionOffer): boolean {
  */
 export function offerGroupKey(offer: ActionOffer): string {
   return offer.labelKey ?? `verb.${offer.verb}`;
+}
+
+/**
+ * A target nothing in the hand goes on: the weakest refusal there is, by the
+ * convention `ActionOffer.WhyNot` documents on the server. See `sharedRefusal`.
+ */
+export const NOTHING_FITS_HERE = 'NOTHING_FITS_HERE';
+
+/**
+ * The one reason to print under a folded control whose members are all
+ * refused, or undefined when none of them gave one.
+ *
+ * The commonest reason wins, because the common case is a rule gating the
+ * verb rather than any one target, and that deserves the sentence a lone
+ * offer would show. Ties keep the group's own order.
+ *
+ * Except "nothing fits here", which only speaks when nothing else does. A
+ * table has one meld a given card matches and several it does not, so counted
+ * like any other reason it outvotes the one refusal that is the real answer —
+ * match 6abc22d3b46a546c9d9bd1e4 showed "a meld needs more cards than that"
+ * under Lay off to a player whose four was refused because their side could
+ * not go out yet.
+ */
+export function sharedRefusal(group: ActionOffer[]): string | undefined {
+  const counts = new Map<string, number>();
+  for (const o of group) {
+    if (o.enabled || !o.whyNot) continue;
+    counts.set(o.whyNot, (counts.get(o.whyNot) ?? 0) + 1);
+  }
+  if (counts.size > 1) counts.delete(NOTHING_FITS_HERE);
+  let shared: string | undefined;
+  let best = 0;
+  for (const [reason, count] of counts) {
+    if (count > best) {
+      best = count;
+      shared = reason;
+    }
+  }
+  return shared;
 }
 
 /**

@@ -122,7 +122,7 @@ async function playAFewMoves(page: Page, max: number): Promise<number> {
   /** Ids of the controls that are live right now, read as a snapshot. */
   const liveOffers = () =>
     page
-      .locator('[data-testid^="offer-"]:not([aria-disabled="true"])')
+      .locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])')
       .evaluateAll((els) => els.map((e) => e.getAttribute('data-testid') ?? ''));
 
   /**

@@ -217,7 +217,7 @@ test.describe('a control refuses what it cannot send', () => {
     await expect(page.locator('[data-testid^="card-hand:"][aria-selected="true"]')).toHaveCount(2);
 
     await expect(discard).toHaveAttribute('aria-disabled', 'true');
-    await expect(page.getByTestId('why-discard')).toHaveText('Select just one card');
+    await expect(page.getByTestId('why-discard')).toHaveText(/^Select just one card\b/);
 
     // And it is drawn as the outline of a button rather than a faded one, in a
     // box the same size: the outline is carried by every control at every
@@ -309,7 +309,7 @@ test.describe('a control refuses what it cannot send', () => {
     await expect(page.locator('[data-testid^="card-hand:"][aria-selected="true"]')).toHaveCount(1);
 
     await expect(meld).toHaveAttribute('aria-disabled', 'true');
-    await expect(page.getByTestId('why-lay_meld:3')).toHaveText('Select 6 card(s)');
+    await expect(page.getByTestId('why-lay_meld:3')).toHaveText(/^Select 6 card\(s\)/);
     const refusing = await paint(page, 'offer-lay_meld:3');
     expect(refusing.fill, 'a control that cannot be pressed should not be filled').toBe(
       'rgba(0, 0, 0, 0)',
@@ -321,9 +321,13 @@ test.describe('a control refuses what it cannot send', () => {
     });
 
     // Pressing it anyway is the failure this guards: not a refusal, but a
-    // move that never left the screen. The hand is still whole afterwards.
+    // move that never left the screen. The hand is still whole afterwards,
+    // and the press is answered with why rather than swallowed.
     await meld.click({ force: true });
-    await page.waitForTimeout(250);
+    await expect(page.getByTestId('why-sheet')).toBeVisible();
+    await expect(page.getByTestId('why-reason')).toHaveText('Select 6 card(s)');
+    await page.getByTestId('why-close').click();
+    await expect(page.getByTestId('why-sheet')).toBeHidden();
     expect(await serverHand(request, matchId, host)).toHaveLength(6);
 
     // Picking the rest brings it back, and then it really does go out.

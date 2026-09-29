@@ -95,6 +95,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 			// GameState.Break. An option that decides nothing is worse than
 			// no option: a lobby renders it as a working control.
 			module.BotSkillOption(),
+			module.HintsOption(),
 			{
 				Name:  OptShowdownReveal,
 				Type:  module.OptionEnumInt,

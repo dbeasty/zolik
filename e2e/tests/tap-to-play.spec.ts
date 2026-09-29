@@ -119,7 +119,7 @@ async function playUntilOffered(
   while (Date.now() < deadline) {
     const { offer } = await offerFor(request, matchId, viewer, verb);
     if (offer) return offer;
-    const live = page.locator('[data-testid^="offer-"]:not([aria-disabled="true"])').first();
+    const live = page.locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])').first();
     if (await live.count()) {
       try {
         await live.click({ timeout: 5000 });

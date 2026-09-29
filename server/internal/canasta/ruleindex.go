@@ -140,7 +140,13 @@ func refusalRules(v ruleset, code string) []string {
 			"canasta.rules.goOutKeepsACard",
 		}
 	case ErrMustKeepACard:
-		return []string{"canasta.rules.goOutKeepsACard", "canasta.rules.turnDiscard"}
+		// The canasta count first: it is why the last card cannot go, and the
+		// sentence the player refused in match 6abc22d3b46a546c9d9bd1e4 was
+		// never shown it.
+		return []string{
+			"canasta.rules.oneCanastaToGoOut", "canasta.rules.twoCanastasToGoOut",
+			"canasta.rules.goOutKeepsACard", "canasta.rules.turnDiscard",
+		}
 
 	// --- not about the rules at all ---------------------------------------
 	//
@@ -152,7 +158,8 @@ func refusalRules(v ruleset, code string) []string {
 	// rather than a rule of Canasta, so the order the moves come back off in is
 	// not one either.
 	case ErrCardNotInHand, ErrNoSuchMeld, ErrNothingToUndo, ErrUndoMeldsFirst,
-		ErrGameNotActive, ErrUnknownAction, "WRONG_PLAYER_COUNT":
+		ErrGameNotActive, ErrUnknownAction, "WRONG_PLAYER_COUNT",
+		ErrNothingFitsHere:
 		return nil
 	}
 	return nil

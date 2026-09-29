@@ -48,6 +48,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 			// into it is remembered rather than looked up.
 			module.OpenDiscardPileOption(),
 			module.BotSkillOption(),
+			module.HintsOption(),
 			{
 				Name:  OptHandSize,
 				Type:  module.OptionEnumInt,

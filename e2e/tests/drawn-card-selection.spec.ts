@@ -102,7 +102,7 @@ async function waitForDiscardPickupOffered(
     const body = await board(request, matchId, viewer);
     const offer = (body.legalActions ?? []).find((o: any) => o.id === 'draw:discard');
     if (offer?.enabled) return true;
-    const live = page.locator('[data-testid^="offer-"]:not([aria-disabled="true"])').first();
+    const live = page.locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])').first();
     if (await live.count()) {
       try {
         await live.click({ timeout: 5000 });
