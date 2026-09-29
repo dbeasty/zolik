@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import type { ActionOffer, Zone } from '@/src/api/matchTypes';
+import type { ActionOffer, MatchAction, Zone } from '@/src/api/matchTypes';
 import { POSITION_PARAM, offerGroupKey, submissionFor } from '@/src/api/matchTypes';
 import { Attention } from '@/src/components/match/Attention';
 import { BoardLayout, matchStyles } from '@/src/components/match/BoardLayout';
@@ -53,7 +53,8 @@ import {
   type FlightPlan,
 } from '@/src/lib/flights';
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
-import { cardsForSelection, slotsForDrag, toggleSelection } from '@/src/lib/hand';
+import { cardsForSelection, slotsForCards, slotsForDrag, toggleSelection } from '@/src/lib/hand';
+import { nextMarks, NO_MARKS, type ChangeMarks } from '@/src/lib/changes';
 import { reasonText, t } from '@/src/lib/i18n';
 import { ApiError } from '@/src/api/client';
 import { savePendingDestination } from '@/src/lib/pendingDestination';
@@ -61,9 +62,13 @@ import { routeForMatch } from '@/src/lib/matchRoute';
 import { WhySheet, type Refusal } from '@/src/components/match/WhySheet';
 import { useRuleIndex } from '@/src/hooks/useRuleIndex';
 import { useSkinControls } from '@/src/hooks/useSkin';
-import { factText, playerName } from '@/src/lib/labels';
+import { factText, label, playerName } from '@/src/lib/labels';
+import { turnStep } from '@/src/lib/turnStep';
 import { dragLayer } from '@/src/theme';
 import { AddToCircle } from '@/src/notify/AddToCircle';
+
+/** How long a player may hold the move before the likeliest control is ringed. */
+const IDLE_NUDGE_MS = 20_000;
 
 /**
  * One screen, every game.
@@ -293,6 +298,40 @@ export default function MatchScreen() {
     if (state) boardRef.current = { zones: state.view?.zones ?? [], seats: state.view?.seats ?? [] };
   }, [state]);
 
+  // Groups somebody else changed since this player last acted, compared board
+  // to board the same way flights are (see `src/lib/changes.ts`). Kept in its
+  // own ref rather than sharing `boardRef`, whose update order the flights
+  // depend on.
+  const [changeMarks, setChangeMarks] = useState<ChangeMarks>(NO_MARKS);
+  const marksBoardRef = useRef<BoardLike | null>(null);
+  useEffect(() => {
+    if (!state) return;
+    const next: BoardLike = { zones: state.view?.zones ?? [], seats: state.view?.seats ?? [] };
+    const prev = marksBoardRef.current;
+    marksBoardRef.current = next;
+    setChangeMarks((was) => nextMarks(was, prev, next, viewerId));
+  }, [state, viewerId]);
+
+  // A player who has had the move for a while without making it gets the
+  // first control on offer ringed: a suggestion of where to start, for the
+  // moment someone is stuck rather than thinking.
+  const [idle, setIdle] = useState(false);
+  // The move this seat's own bot would make, when the player asked for one —
+  // and why not, when the server said no. Both belong to the board they were
+  // asked about, so the next board clears them.
+  const [hint, setHint] = useState<MatchAction | null>(null);
+  const [hintRefusal, setHintRefusal] = useState<string | null>(null);
+  useEffect(() => {
+    setHint(null);
+    setHintRefusal(null);
+  }, [state]);
+  useEffect(() => {
+    setIdle(false);
+    if (!state?.legalActions?.some((o) => o.enabled)) return;
+    const timer = setTimeout(() => setIdle(true), IDLE_NUDGE_MS);
+    return () => clearTimeout(timer);
+  }, [state]);
+
   // The flights currently in the air — appended when a plan lands, removed
   // as each one touches down. De-duplicated by the plan's own stable ids,
   // so replanning the same transition can never double a card.
@@ -443,6 +482,42 @@ export default function MatchScreen() {
   const selectedCards = cardsForSelection(heldSlots, selected);
 
   const canAct = state.legalActions.some((o) => o.enabled);
+  const step = turnStep(state.legalActions);
+  // Whose turn it is when it is somebody else's: the first thing a player
+  // asking "why can't I?" needs, so a not-your-turn refusal names them.
+  const turnHolder = state.view?.seats?.find((s) => s.active && s.playerId !== viewerId);
+  const turnHolderName = turnHolder ? playerName(state.players, turnHolder.playerId) : undefined;
+  const hintsAllowed = (state.options?.hints ?? 1) !== 0;
+  // Asks the server what this seat's bot would do, then sets the board up for
+  // it without doing it: the cards picked, the target aimed at, and the
+  // control ringed. The player still presses it — or doesn't.
+  const askHint = async () => {
+    setHintRefusal(null);
+    try {
+      const { action } = await client.hint(String(matchId));
+      setHint(action);
+      const offer = state.legalActions.find((o) => o.id === action.offerId);
+      if (action.cards?.length) {
+        const slots = slotsForCards(heldSlots, action.cards);
+        if (slots.size) {
+          setSelected(slots);
+          setSelectionIsAuto(false);
+        }
+      }
+      const aim = offer?.target?.meldId;
+      if (aim) setArmedMeldId(aim);
+    } catch (e) {
+      setHint(null);
+      setHintRefusal(e instanceof ApiError && e.code ? e.code : 'ERROR');
+    }
+  };
+  const hintOffer = hint ? state.legalActions.find((o) => o.id === hint.offerId) : undefined;
+  const explain = (r: Refusal) =>
+    setExplaining(
+      r.code === 'NOT_YOUR_TURN' && !r.labelKey && turnHolderName
+        ? { ...r, labelKey: 'why.notYourTurnWho', params: { name: turnHolderName } }
+        : r,
+    );
 
   // Everywhere the cards in flight could be let go of. Derived from the offer
   // list on every drag, which is why a game added tomorrow gets drag and drop
@@ -736,6 +811,7 @@ export default function MatchScreen() {
     armedGroupId: armedMeldIdLive,
     onAimGroup,
     entranceDelays: flightPlan.holds,
+    changedGroups: changeMarks,
   };
 
   // The same table again, with the same people: same game, variation and
@@ -923,10 +999,45 @@ export default function MatchScreen() {
             setPendingGroupKey(groupKey);
             drops.measure();
           }}
+          onExplain={explain}
           testID="controls-summary"
         />
       }
     >
+      {/* What to do now, in one line, from the same offers the controls
+          below are drawn from — see `src/lib/turnStep.ts`. */}
+      {step && !paused ? (
+        <View style={styles.stepRow}>
+          <Text testID="turn-step" style={step.obligation ? styles.stepObligation : styles.step}>
+            {step.obligation
+              ? factText(step.obligation, state.players)
+              : t('step.yourTurn', {
+                  moves: step.moves.map((o) => label(o.labelKey ?? `verb.${o.verb}`) || o.verb).join(' · '),
+                })}
+          </Text>
+          {hintsAllowed ? (
+            <Pressable testID="hint-button" accessibilityRole="button" onPress={askHint} style={styles.hintButton}>
+              <Text style={styles.hintButtonText}>{t('hint.button')}</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
+      {hint && hintOffer ? (
+        <Text testID="hint-line" style={styles.hintLine}>
+          {factText(
+            {
+              labelKey: hint.cards?.length ? 'hint.line' : 'hint.lineNoCards',
+              params: { move: hintOffer.labelKey ?? `verb.${hintOffer.verb}`, cards: hint.cards ?? [] },
+            },
+            state.players,
+          )}
+        </Text>
+      ) : null}
+      {hintRefusal ? (
+        <Text testID="hint-refused" style={styles.muted}>
+          {reasonText(hintRefusal, hintRefusal)}
+        </Text>
+      ) : null}
       {/* The engine's own sentence stands in for a code this build has
           no translation for — it is at least a sentence, where the bare
           code reads as a crash. A code we do know still wins, so a
@@ -960,11 +1071,13 @@ export default function MatchScreen() {
         onConsumeSelection={clearSelection}
         params={offerParams}
         onParamsChange={setOfferParams}
-        onExplain={setExplaining}
+        onExplain={explain}
         // Between rounds the module offers one thing: go on. Said here as
         // "the table is waiting on this bar" rather than as any offer's name,
         // so the bar rings whatever the one thing turns out to be.
         urgent={paused}
+        nudge={idle}
+        hintOfferId={hint?.offerId}
         onAmbiguous={(groupKey) => {
           setPendingGroupKey(groupKey);
           // The board is inside a scroll view, so a target's position
@@ -975,7 +1088,7 @@ export default function MatchScreen() {
       />
       {!canAct && state.status === 'active' ? (
         <Text testID="match-waiting" style={styles.muted}>
-          {t('match.waitingForPlayer')}
+          {turnHolderName ? t('match.waitingForName', { name: turnHolderName }) : t('match.waitingForPlayer')}
         </Text>
       ) : null}
     </Panel>

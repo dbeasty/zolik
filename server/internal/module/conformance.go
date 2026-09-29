@@ -49,6 +49,9 @@ type DriverOptions struct {
 	// it is, and the table is swept between deals, so the final state is the
 	// one place most of them cannot be seen.
 	OnState func(s State)
+	// OnEvents, if set, is called with the events of each accepted action and
+	// the states either side of it, for checks on what the runtime publishes.
+	OnEvents func(playerID string, events []Event, before, after State)
 }
 
 // PlayWithOffers drives a match to completion (or to MaxActions) using only
@@ -93,11 +96,14 @@ func PlayWithOffers(m GameModule, state State, players []PlayerRef, opts DriverO
 				step, actor, DescribeOffers(offers))
 		}
 
-		next, _, err := m.Apply(state, actor, a)
+		next, events, err := m.Apply(state, actor, a)
 		if err != nil {
 			return state, res, fmt.Errorf(
 				"step %d: %s was offered %+v but the engine refused it: %v\n%s",
 				step, actor, a, err, DescribeOffers(offers))
+		}
+		if opts.OnEvents != nil {
+			opts.OnEvents(actor, events, state, next)
 		}
 		state = next
 		res.Actions++

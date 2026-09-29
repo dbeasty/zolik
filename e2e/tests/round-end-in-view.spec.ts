@@ -186,7 +186,7 @@ async function playUntil(
     const at = (await board(page)).offset;
     if (at > 0) parked = at;
     const ids = await page
-      .locator('[data-testid^="offer-"]:not([aria-disabled="true"])')
+      .locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])')
       .evaluateAll((els) => els.map((e) => e.getAttribute('data-testid') ?? '').filter(Boolean));
     // Never press the intermission's own control unless asked — that is the
     // moment under test, and agreeing to go on would skip it.

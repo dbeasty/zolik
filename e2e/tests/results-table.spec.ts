@@ -71,7 +71,7 @@ async function playUntilPaused(page: Page, request: Ctx, matchId: string, userId
     const state = await (await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`)).json();
     if (state.rounds?.paused) return state;
     const ids = await page
-      .locator('[data-testid^="offer-"]:not([aria-disabled="true"])')
+      .locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])')
       .evaluateAll((els) => els.map((e) => e.getAttribute('data-testid') ?? '').filter(Boolean));
     const pick = ids.find((id) => !id.includes('continue'));
     if (!pick) {

@@ -179,6 +179,9 @@ func TestViewCarriesTheScoreboard(t *testing.T) {
 			for _, b := range g.BadgeKeys {
 				if b == "badge.naturalCanasta" {
 					badged = true
+					if !g.Complete {
+						t.Error("a canasta should be marked complete, so a client can fold it")
+					}
 				}
 			}
 		}
@@ -318,5 +321,31 @@ func TestSeatsOfOwnSideCarryNoSide(t *testing.T) {
 			t.Errorf("%s has side %q in a game where everybody plays for themselves",
 				seat.PlayerID, seat.Side)
 		}
+	}
+}
+
+// TestViewOrdersMeldsByRankWithCanastasLast pins the order a partnership's
+// melds are drawn in: the ones still being built low rank to high, sequences
+// after sets, and every finished canasta at the end, marked Complete so a
+// client can fold it — none of it the order they were laid in.
+func TestViewOrdersMeldsByRankWithCanastasLast(t *testing.T) {
+	melds := []Meld{
+		{ID: "k", Kind: meldSet, Rank: "K", Cards: []string{"KH", "KS", "KD"}},
+		{ID: "five-canasta", Kind: meldSet, Rank: "5", Cards: []string{"5H", "5S", "5D", "5C", "5H", "5S", "2C"}},
+		{ID: "run", Kind: meldRun, Suit: "D", Cards: []string{"4D", "5D", "6D"}},
+		{ID: "seven", Kind: meldSet, Rank: "7", Cards: []string{"7H", "7S", "7D"}},
+		{ID: "ace", Kind: meldSet, Rank: "A", Cards: []string{"AH", "AS", "AD", "AC"}},
+		{ID: "four-canasta", Kind: meldSet, Rank: "4", Cards: []string{"4H", "4S", "4D", "4C", "4H", "4S", "4D"}},
+	}
+	var got []string
+	for _, m := range meldsInViewOrder(melds) {
+		got = append(got, m.ID)
+	}
+	want := []string{"seven", "k", "ace", "run", "four-canasta", "five-canasta"}
+	if strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Errorf("melds drawn in order %v, want %v", got, want)
+	}
+	if melds[0].ID != "k" {
+		t.Error("ordering the view reordered the stored melds")
 	}
 }

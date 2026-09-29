@@ -59,7 +59,7 @@ async function openMatch(page: Page, host: any, matchId: string) {
 /** What every control that can be pressed right now says. */
 async function liveLabels(page: Page): Promise<string[]> {
   return page
-    .locator('[data-testid^="offer-"]:not([aria-disabled="true"])')
+    .locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])')
     .evaluateAll((els) => els.map((e) => (e.textContent ?? '').replace(/\s+/g, ' ').trim()));
 }
 
@@ -108,7 +108,7 @@ test.describe('telling the controls apart', () => {
         );
         checked++;
       }
-      const live = page.locator('[data-testid^="offer-"]:not([aria-disabled="true"])').first();
+      const live = page.locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])').first();
       if (await live.count()) {
         try {
           await live.click({ timeout: 5000 });

@@ -82,6 +82,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 			// for its own bot (state.Interest) is deliberately not published.
 			module.OpenDiscardPileOption(),
 			module.BotSkillOption(),
+			module.HintsOption(),
 			{
 				Name: OptTargetScore, Type: module.OptionEnumInt,
 				Label: "Target score", Help: "The score a player must pass to win the match.",

@@ -31,6 +31,7 @@
     "DISCARD_TAKEN_CARD_FORBIDDEN",
     "GAME_NOT_ACTIVE",
     "GAME_SUSPENDED",
+    "HINTS_OFF",
     "INCOMPLETE_INITIAL_MELD",
     "INITIAL_MELD_NOT_MET",
     "INITIAL_MELD_ONLY",
@@ -78,6 +79,7 @@
     "NOT_YOUR_MELD",
     "NOT_YOUR_TURN",
     "NO_CARDS_LEFT",
+    "NO_HINT",
     "NO_JOKER_IN_MELD",
     "NO_JOKER_IN_SET",
     "NO_LONGER_WAITING",
@@ -511,6 +513,7 @@
     "status.lastDeal",
     "status.teamScore",
     "status.winner",
+    "verb.discardToClose",
     "verb.drawFromDeck",
     "verb.takeFromDiscard",
     "verb.takePileFromHand",
@@ -521,6 +524,14 @@
     "verb.undoTakePile",
     "zolik.badge.jokerOwed",
     "zolik.badge.owedToMeld",
+    "zolik.move.discarded",
+    "zolik.move.drewStock",
+    "zolik.move.laidOff",
+    "zolik.move.laidOffOwn",
+    "zolik.move.melded",
+    "zolik.move.swappedJoker",
+    "zolik.move.tookDiscard",
+    "zolik.move.undid",
     "zolik.offer.meld",
     "zolik.remedy.discardNotAJoker",
     "zolik.remedy.discardSomethingElse",
@@ -1383,6 +1394,37 @@
       "value",
       "winners"
     ],
+    "zolik.move.discarded": [
+      "card",
+      "player"
+    ],
+    "zolik.move.drewStock": [
+      "player"
+    ],
+    "zolik.move.laidOff": [
+      "cards",
+      "owner",
+      "player"
+    ],
+    "zolik.move.laidOffOwn": [
+      "cards",
+      "player"
+    ],
+    "zolik.move.melded": [
+      "cards",
+      "player"
+    ],
+    "zolik.move.swappedJoker": [
+      "card",
+      "player"
+    ],
+    "zolik.move.tookDiscard": [
+      "card",
+      "player"
+    ],
+    "zolik.move.undid": [
+      "player"
+    ],
     "zolik.offer.meld": [
       "value"
     ],
@@ -1579,6 +1621,14 @@
     "status.lastDeal",
     "status.teamScore",
     "status.winner",
+    "zolik.move.discarded",
+    "zolik.move.drewStock",
+    "zolik.move.laidOff",
+    "zolik.move.laidOffOwn",
+    "zolik.move.melded",
+    "zolik.move.swappedJoker",
+    "zolik.move.tookDiscard",
+    "zolik.move.undid",
     "zolik.offer.meld",
     "zolik.remedy.discardSomethingElse",
     "zolik.remedy.drawFromStock",

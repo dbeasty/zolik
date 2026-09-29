@@ -110,7 +110,7 @@ async function playUntilOffered(
     const body = await board(request, matchId, userId);
     const offer = (body.legalActions ?? []).find((o: any) => o.verb === verb && o.enabled);
     if (offer) return offer;
-    const live = page.locator('[data-testid^="offer-"]:not([aria-disabled="true"])').first();
+    const live = page.locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])').first();
     if (await live.count()) {
       try {
         await live.click({ timeout: 5000 });

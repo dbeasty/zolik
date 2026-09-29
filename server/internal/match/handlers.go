@@ -97,6 +97,10 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	// board the match passed through, which is a great deal more than the one
 	// it is sitting on.
 	r.With(auth.AuthMiddleware).Get("/matches/{id}/replay", h.replayMatch)
+	// The move this caller's seat would make, suggested and never made. POST
+	// because it is asked for rather than looked up: the answer depends on
+	// the live board, and nothing should cache it.
+	r.With(auth.AuthMiddleware).Post("/matches/{id}/hint", h.hint)
 
 	if h.testEndpoints {
 		r.With(auth.AuthMiddleware).Post("/matches/{id}/debug-state", h.debugState)
@@ -1014,7 +1018,7 @@ func writeModuleError(w http.ResponseWriter, err error) {
 		status = http.StatusNotFound
 	case "NOT_AT_THIS_TABLE", "TABLE_HAS_PLAYERS_AWAY":
 		status = http.StatusForbidden
-	case "NOT_THE_HOST":
+	case "NOT_THE_HOST", "HINTS_OFF":
 		status = http.StatusForbidden
 	case "NO_LONGER_WAITING", "MATCH_FULL", "MATCH_NOT_ABANDONED", "MATCH_MOVED_ON", "NOTHING_TO_REPLAY", "MATCH_NOT_OVER":
 		// A conflict rather than a bad request: the caller did nothing wrong,

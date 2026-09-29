@@ -173,6 +173,12 @@ type Group struct {
 	// BadgeKeys are message keys for anything worth marking on the group
 	// ("clean run", "trump"). Keys, never rendered text.
 	BadgeKeys []string `json:"badgeKeys,omitempty"`
+	// Complete marks a group that is finished as far as the player is
+	// concerned — a canasta, not a meld still being built — so a client may
+	// fold it down to take less room. Whether it still takes cards is a
+	// separate question the offers answer; this is about how much of the
+	// board it deserves.
+	Complete bool `json:"complete,omitempty"`
 }
 
 // Zone is one area of the board.
@@ -743,6 +749,30 @@ func level(a, b []int) bool {
 		}
 	}
 	return true
+}
+
+// OfferFor is the enabled offer an action would be sent through: the one it
+// names, or, for an action that names none (a bot speaking in verbs), the
+// first enabled offer with its verb and, where it has one, its target. Nil
+// when nothing on the list fits.
+func OfferFor(offers []ActionOffer, a Action) *ActionOffer {
+	if a.OfferID != "" {
+		if o := FindOffer(offers, a.OfferID); o != nil && o.Enabled {
+			return o
+		}
+		return nil
+	}
+	for i := range offers {
+		o := &offers[i]
+		if !o.Enabled || o.Verb != a.Verb {
+			continue
+		}
+		if a.Target != "" && (o.Target == nil || o.Target.MeldID != a.Target) {
+			continue
+		}
+		return o
+	}
+	return nil
 }
 
 // FindOffer returns the offer with this ID, or nil.
