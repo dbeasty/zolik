@@ -43,6 +43,7 @@ export const mt: Record<string, string> = {
   'err.DISCARD_CARD_NOT_MELDED': 'Il-karta li ġbidt trid tidħol fil-kombinazzjoni tiegħek',
   'err.JOKER_DISCARD_FORBIDDEN': 'Joker ma jistax jintrema',
   'err.NOTHING_TO_UNDO': "M'hemm xejn x'iġġib lura",
+  'err.NOTHING_FITS_HERE': 'L-ebda karta tiegħek ma tmur hawn',
   'err.NO_JOKER_IN_MELD': "M'hemm ebda joker f'din il-kombinazzjoni",
   'err.JOKER_SWAP_MISMATCH': 'Dik il-karta ma tiħux post il-joker',
   'err.RECLAIMED_JOKER_NOT_MELDED':
@@ -358,11 +359,11 @@ export const mt: Record<string, string> = {
   'err.CANNOT_MELD_THREE': 'It-tlietiet qatt ma jitniżżlu',
   'err.BLACK_THREE_GO_OUT_ONLY': 'It-tlietiet suwed jitniżżlu biss bħala l-mossa li tbattal idejk',
   'err.CANNOT_DISCARD_RED_THREE': 'Tlieta ħamra ma tistax tintrema',
-  'err.MUST_KEEP_A_CARD': 'Żomm mill-inqas karta waħda — hekk ma tistax tbattal idek',
+  'err.MUST_KEEP_A_CARD': 'In-naħa tiegħek għadha ma tistax toħroġ — żomm żewġ karti, waħda biex tarmi u waħda biex iżżomm',
   'err.MUST_MELD_FIRST': 'L-ewwel niżżel il-ftuħ tan-naħa tiegħek',
   'err.UNDO_MELDS_FIRST': 'L-ewwel ħassar dak li niżżilt wara li ħadt il-munzell',
   'err.INITIAL_MELD_NOT_MET': 'L-ewwel tniżżil tiegħek għadu nieqes mill-punti',
-  'err.CANNOT_GO_OUT_YET': "In-naħa tiegħek għandha bżonn canasta mlestija qabel ma tkun tista' toħroġ",
+  'err.CANNOT_GO_OUT_YET': 'In-naħa tiegħek għad m\'għandhiex il-canasti li għandha bżonn biex toħroġ',
   'err.NOTHING_TO_CALL': "M'hemm ebda mħatra x'issejjaħ",
   'err.CANNOT_CHECK': "Ma tistax tiċċekkja — hemm imħatra x'twieġeb",
   'err.CANNOT_RAISE': 'Ma tistax tgħolli — il-flus tiegħek ma jaqbżux l-imħatra',
@@ -472,7 +473,6 @@ export const mt: Record<string, string> = {
   'canasta.remedy.openFirst': "Niżżel l-ewwel meld tan-naħa tiegħek qabel ma żżid karti ma' xi ħaġa.",
   'canasta.remedy.needCanastas':
     "In-naħa tiegħek għad għandha bżonn {n} canasta oħra ta' {size} karti qabel ma tista' toħroġ.",
-  'canasta.remedy.keepACard': 'Żomm karta biex tarmi biha.',
   'canasta.remedy.undoMeldsFirst':
     "L-ewwel ħassar il-kombinazzjonijiet li niżżilt wara li ħadt il-munzell — imbagħad jista' jerġa' lura l-munzell innifsu.",
   'canasta.remedy.layOffInstead': 'Żidhom mal-meld li n-naħa tiegħek diġà għandha.',

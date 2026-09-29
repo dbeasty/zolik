@@ -154,7 +154,12 @@ func (m *Module) annotate(s *GameState, playerID string, offers []module.ActionO
 			o.Remedy = &module.Fact{LabelKey: "canasta.remedy.openFirst"}
 			o.RemedyOfferID = firstEnabled(OfferLayMeld)
 
-		case ErrCannotGoOutYet:
+		case ErrCannotGoOutYet, ErrMustKeepACard:
+			// One remedy for both, because MUST_KEEP_A_CARD is the same rule
+			// met a move earlier: the card you cannot part with is the one you
+			// would have to go out on. "Keep a card back" told a player
+			// holding two what they were already doing; the canastas still
+			// owed are what they can act on.
 			if t != nil {
 				short := s.CanastasToGoOut - t.canastas()
 				if short < 1 {
@@ -165,9 +170,6 @@ func (m *Module) annotate(s *GameState, playerID string, offers []module.ActionO
 					Params:   map[string]any{"n": short, "size": canastaSize},
 				}
 			}
-
-		case ErrMustKeepACard:
-			o.Remedy = &module.Fact{LabelKey: "canasta.remedy.keepACard"}
 
 		case ErrRankAlreadyMelded:
 			// Named by the meld it would go onto rather than by the rank

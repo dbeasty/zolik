@@ -43,6 +43,7 @@ export const de: Record<string, string> = {
   'err.DISCARD_CARD_NOT_MELDED': 'Die aufgenommene Karte muss in deine Auslage',
   'err.JOKER_DISCARD_FORBIDDEN': 'Ein Joker kann nicht abgelegt werden',
   'err.NOTHING_TO_UNDO': 'Nichts rückgängig zu machen',
+  'err.NOTHING_FITS_HERE': 'Keine deiner Karten passt hierher',
   'err.NO_JOKER_IN_MELD': 'Kein Joker in dieser Auslage',
   'err.JOKER_SWAP_MISMATCH': 'Diese Karte tritt nicht an die Stelle des Jokers',
   'err.RECLAIMED_JOKER_NOT_MELDED':
@@ -363,11 +364,11 @@ export const de: Record<string, string> = {
   'err.BLACK_THREE_GO_OUT_ONLY':
     'Schwarze Dreien werden nur als der Zug ausgelegt, der deine Hand leert',
   'err.CANNOT_DISCARD_RED_THREE': 'Eine rote Drei kann nicht abgelegt werden',
-  'err.MUST_KEEP_A_CARD': 'Behalte mindestens eine Karte — so kannst du deine Hand nicht leeren',
+  'err.MUST_KEEP_A_CARD': 'Deine Seite kann noch nicht hinausgehen — behalte zwei Karten, eine zum Ablegen und eine zum Halten',
   'err.MUST_MELD_FIRST': 'Leg zuerst die Erstauslage deiner Seite',
   'err.UNDO_MELDS_FIRST': 'Mach zuerst rückgängig, was du nach der Stapelnahme ausgelegt hast',
   'err.INITIAL_MELD_NOT_MET': 'Deiner ersten Auslage fehlen noch Punkte',
-  'err.CANNOT_GO_OUT_YET': 'Deine Seite braucht eine fertige Canasta, bevor sie hinausgehen kann',
+  'err.CANNOT_GO_OUT_YET': 'Deiner Seite fehlen noch Canastas, um hinauszugehen',
   'err.NOTHING_TO_CALL': 'Es gibt keinen Einsatz mitzugehen',
   'err.CANNOT_CHECK': 'Du kannst nicht schieben — es steht ein Einsatz',
   'err.CANNOT_RAISE': 'Du kannst nicht erhöhen — dein Stack kommt nicht über den Einsatz',
@@ -477,7 +478,6 @@ export const de: Record<string, string> = {
   'canasta.remedy.openFirst': 'Leg zuerst die Eröffnungsauslage deiner Seite, bevor du anlegst.',
   'canasta.remedy.needCanastas':
     'Deiner Seite fehlen noch {n} Canastas zu je {size} Karten, um rausgehen zu können.',
-  'canasta.remedy.keepACard': 'Behalte eine Karte zum Ablegen übrig.',
   'canasta.remedy.undoMeldsFirst':
     'Mach zuerst die Auslagen nach der Stapelnahme rückgängig — dann lässt sich auch der Stapel zurücklegen.',
   'canasta.remedy.layOffInstead': 'Leg sie an die Auslage an, die deine Seite schon hat.',

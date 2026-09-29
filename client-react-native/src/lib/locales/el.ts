@@ -43,6 +43,7 @@ export const el: Record<string, string> = {
   'err.DISCARD_CARD_NOT_MELDED': 'Το φύλλο που πήρες πρέπει να μπει στον συνδυασμό σου',
   'err.JOKER_DISCARD_FORBIDDEN': 'Ο μπαλαντέρ δεν πετιέται',
   'err.NOTHING_TO_UNDO': 'Δεν υπάρχει τίποτα να αναιρεθεί',
+  'err.NOTHING_FITS_HERE': 'Κανένα από τα φύλλα σου δεν ταιριάζει εδώ',
   'err.NO_JOKER_IN_MELD': 'Δεν υπάρχει μπαλαντέρ σε αυτόν τον συνδυασμό',
   'err.JOKER_SWAP_MISMATCH': 'Αυτό το φύλλο δεν παίρνει τη θέση του μπαλαντέρ',
   'err.RECLAIMED_JOKER_NOT_MELDED':
@@ -364,11 +365,11 @@ export const el: Record<string, string> = {
   'err.BLACK_THREE_GO_OUT_ONLY':
     'Τα μαύρα τριάρια κατεβαίνουν μόνο ως η κίνηση που αδειάζει το χέρι σου',
   'err.CANNOT_DISCARD_RED_THREE': 'Το κόκκινο τριάρι δεν πετιέται',
-  'err.MUST_KEEP_A_CARD': 'Κράτα τουλάχιστον ένα φύλλο — έτσι δεν μπορείς να αδειάσεις το χέρι σου',
+  'err.MUST_KEEP_A_CARD': 'Η πλευρά σου δεν μπορεί ακόμα να βγει — κράτα δύο φύλλα, ένα για πέταμα και ένα στο χέρι',
   'err.MUST_MELD_FIRST': 'Κατέβασε πρώτα το άνοιγμα της πλευράς σου',
   'err.UNDO_MELDS_FIRST': 'Πρώτα αναίρεσε όσα κατέβασες μετά τη λήψη του σωρού',
   'err.INITIAL_MELD_NOT_MET': 'Στο πρώτο σου κατέβασμα λείπουν ακόμα πόντοι',
-  'err.CANNOT_GO_OUT_YET': 'Η πλευρά σου χρειάζεται ολοκληρωμένη καναστα πριν μπορέσει να βγει',
+  'err.CANNOT_GO_OUT_YET': 'Η πλευρά σου δεν έχει ακόμα τις κανάστες που χρειάζεται για να βγει',
   'err.NOTHING_TO_CALL': 'Δεν υπάρχει στοίχημα για πάσο',
   'err.CANNOT_CHECK': 'Δεν μπορείς να τσεκάρεις — υπάρχει στοίχημα να απαντήσεις',
   'err.CANNOT_RAISE': 'Δεν μπορείς να ανεβάσεις — το στοίβαγμά σου δεν φτάνει πάνω από το ποντάρισμα',
@@ -479,7 +480,6 @@ export const el: Record<string, string> = {
   'canasta.remedy.needMorePoints': 'Στο πρώτο μελντ της πλευράς σου λείπουν {n} πόντοι για τους {floor}.',
   'canasta.remedy.openFirst': 'Κατέβασε πρώτα το πρώτο μελντ της πλευράς σου, μετά προσθέτεις.',
   'canasta.remedy.needCanastas': 'Η πλευρά σου χρειάζεται ακόμη {n} καναστες των {size} φύλλων για να βγει.',
-  'canasta.remedy.keepACard': 'Κράτα ένα φύλλο για να το ρίξεις.',
   'canasta.remedy.undoMeldsFirst':
     'Αναίρεσε πρώτα τους συνδυασμούς που κατέβασες μετά τη λήψη του σωρού — μετά μπορεί να γυρίσει πίσω και ο ίδιος ο σωρός.',
   'canasta.remedy.layOffInstead': 'Πρόσθεσέ τα στο μελντ που έχει ήδη η πλευρά σου.',

@@ -325,16 +325,24 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 				accepted = append(accepted, c)
 			}
 		}
-		if len(accepted) > 0 {
+		switch {
+		case len(accepted) > 0:
 			o.Enabled = true
-		} else {
+		case len(eligible) > 0:
 			// Say why, using whichever card the player would most plausibly try.
-			var probeCards []string
-			if len(eligible) > 0 {
-				probeCards = eligible[:1]
-			}
 			o.Enabled, o.WhyNot = probe(m, raw, playerID, module.Action{
-				Verb: VerbLayOff, Cards: probeCards, Target: mm.ID,
+				Verb: VerbLayOff, Cards: eligible[:1], Target: mm.ID,
+			})
+		default:
+			// Nothing in the hand goes on this meld, so there is no card to
+			// ask about, and the engine answers an empty lay-off with
+			// NOTHING_FITS_HERE (or WRONG_PHASE, which is about the move, not
+			// the meld). It used to answer MELD_TOO_SMALL, and on a table with
+			// one meld that could take a card and six that could not, that is
+			// what the folded Lay off control showed instead of the one
+			// refusal that mattered (match 6abc22d3b46a546c9d9bd1e4).
+			o.Enabled, o.WhyNot = probe(m, raw, playerID, module.Action{
+				Verb: VerbLayOff, Target: mm.ID,
 			})
 		}
 		o.Source = &module.Selector{

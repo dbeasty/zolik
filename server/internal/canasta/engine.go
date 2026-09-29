@@ -906,7 +906,10 @@ func applyLayOff(s *GameState, playerID string, a module.Action) ([]module.Event
 		return nil, errCode(ErrWrongPhase)
 	}
 	if len(a.Cards) == 0 {
-		return nil, errCode(ErrMeldTooSmall)
+		// Not MELD_TOO_SMALL: nothing is being melded, and that sentence is
+		// what a player read under Lay off when the offer list asked about a
+		// meld none of their cards could go on.
+		return nil, errCode(ErrNothingFitsHere)
 	}
 	if !hasCards(s.Hands[playerID], a.Cards) {
 		return nil, errCode(ErrCardNotInHand)

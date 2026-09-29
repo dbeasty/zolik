@@ -43,6 +43,7 @@ export const ga: Record<string, string> = {
   'err.DISCARD_CARD_NOT_MELDED': 'Caithfidh an cárta a phioc tú dul isteach i do chumasc',
   'err.JOKER_DISCARD_FORBIDDEN': 'Ní féidir áilteoir a chaitheamh',
   'err.NOTHING_TO_UNDO': 'Níl aon rud le cealú',
+  'err.NOTHING_FITS_HERE': 'Ní théann aon cheann de do chártaí anseo',
   'err.NO_JOKER_IN_MELD': 'Níl áilteoir sa chumasc seo',
   'err.JOKER_SWAP_MISMATCH': 'Ní ghlacann an cárta sin áit an áilteora',
   'err.RECLAIMED_JOKER_NOT_MELDED':
@@ -367,11 +368,11 @@ export const ga: Record<string, string> = {
   'err.BLACK_THREE_GO_OUT_ONLY':
     'Ní leagtar trínna dubha síos ach mar an mbeart a fholmhaíonn do lámh',
   'err.CANNOT_DISCARD_RED_THREE': 'Ní féidir trí dhearg a chaitheamh',
-  'err.MUST_KEEP_A_CARD': 'Coinnigh cárta amháin ar a laghad — ní féidir leat do lámh a fholmhú mar sin',
+  'err.MUST_KEEP_A_CARD': 'Ní féidir le do thaobh dul amach fós — coinnigh dhá chárta, ceann le caitheamh agus ceann le coinneáil',
   'err.MUST_MELD_FIRST': 'Leag síos céad chumasc do thaobha ar dtús',
   'err.UNDO_MELDS_FIRST': 'Cealaigh ar dtús a bhfuil leagtha agat tar éis an carn a thógáil',
   'err.INITIAL_MELD_NOT_MET': 'Tá do chéad leagan síos gann ar phointí fós',
-  'err.CANNOT_GO_OUT_YET': 'Teastaíonn canasta críochnaithe ó do thaobh sula bhféadfaidh sé dul amach',
+  'err.CANNOT_GO_OUT_YET': 'Níl na canastaí atá ag teastáil ag do thaobh fós chun dul amach',
   'err.NOTHING_TO_CALL': 'Níl aon gheall le glaoch',
   'err.CANNOT_CHECK': 'Ní féidir leat seiceáil — tá geall ann le freagairt',
   'err.CANNOT_RAISE': 'Ní féidir leat ardú — ní rachaidh do charn os cionn an gheill',
@@ -480,7 +481,6 @@ export const ga: Record<string, string> = {
   'canasta.remedy.openFirst': 'Cuir síos céad chumasc do thaoibh sula gcuireann tú le rud ar bith.',
   'canasta.remedy.needCanastas':
     'Teastaíonn {n} chanasta eile de {size} chárta ó do thaobh sula féidir leis dul amach.',
-  'canasta.remedy.keepACard': 'Coinnigh cárta le caitheamh.',
   'canasta.remedy.undoMeldsFirst':
     'Cealaigh ar dtús na cumaisc a leag tú tar éis an carn a thógáil — ansin féadfaidh an carn féin dul ar ais.',
   'canasta.remedy.layOffInstead': 'Cuir leis an gcumasc atá ag do thaobh cheana iad.',

@@ -11,7 +11,14 @@ import {
 } from 'react-native';
 
 import type { ActionOffer, MatchAction, ParamSpec } from '@/src/api/matchTypes';
-import { defaultParam, isOneTap, offerGroupKey, offerHeadline, submissionFor } from '@/src/api/matchTypes';
+import {
+  defaultParam,
+  isOneTap,
+  offerGroupKey,
+  offerHeadline,
+  sharedRefusal,
+  submissionFor,
+} from '@/src/api/matchTypes';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { fits, readyWith, type Fit } from '@/src/lib/drops';
 import { Attention } from '@/src/components/match/Attention';
@@ -491,21 +498,7 @@ function FoldedOffer({
   // yet", and every member disabled for the same reason (the common case: a
   // rule gating the verb, not any one target) deserves exactly the sentence a
   // lone offer of the same shape would show.
-  const reasonCounts = new Map<string, number>();
-  for (const o of group) {
-    if (o.enabled || !o.whyNot) continue;
-    reasonCounts.set(o.whyNot, (reasonCounts.get(o.whyNot) ?? 0) + 1);
-  }
-  let sharedReason: string | undefined;
-  let bestCount = 0;
-  for (const [reason, count] of reasonCounts) {
-    // Ties keep the first reason found, i.e. the group's own order — as good
-    // a tiebreak as any when the targets disagree about why.
-    if (count > bestCount) {
-      bestCount = count;
-      sharedReason = reason;
-    }
-  }
+  const sharedReason = sharedRefusal(group);
 
   const press = () => {
     if (settled.length === 1) {

@@ -489,6 +489,15 @@ type ActionOffer struct {
 	Verb    string `json:"verb"`
 	Enabled bool   `json:"enabled"`
 	// WhyNot is a stable error code, never a sentence.
+	//
+	// One spelling is a convention across modules: NOTHING_FITS_HERE refuses
+	// an offer aimed at one target — a meld, a pile — that nothing the player
+	// holds would go on. It is the weakest refusal there is. Offers of one
+	// verb are often folded into a single control, and a table with seven
+	// melds has six that take nothing from a given hand; counted like any
+	// other reason, "nothing fits here" outvotes the one meld whose refusal is
+	// the real answer. A client folding offers shows it only when no member
+	// has anything better to say.
 	WhyNot string `json:"whyNot,omitempty"`
 
 	// RuleIDs name the written rules that justify WhyNot at this table — the

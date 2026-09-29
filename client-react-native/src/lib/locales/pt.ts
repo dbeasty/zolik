@@ -43,6 +43,7 @@ export const pt: Record<string, string> = {
   'err.DISCARD_CARD_NOT_MELDED': 'A carta que apanhaste tem de entrar na tua combinação',
   'err.JOKER_DISCARD_FORBIDDEN': 'Um joker não pode ser descartado',
   'err.NOTHING_TO_UNDO': 'Não há nada para anular',
+  'err.NOTHING_FITS_HERE': 'Nenhuma das tuas cartas vai aqui',
   'err.NO_JOKER_IN_MELD': 'Não há joker nesta combinação',
   'err.JOKER_SWAP_MISMATCH': 'Essa carta não ocupa o lugar do joker',
   'err.RECLAIMED_JOKER_NOT_MELDED':
@@ -356,11 +357,11 @@ export const pt: Record<string, string> = {
   'err.BLACK_THREE_GO_OUT_ONLY':
     'Os treses pretos só se baixam como a jogada que esvazia a tua mão',
   'err.CANNOT_DISCARD_RED_THREE': 'Um três vermelho não pode ser descartado',
-  'err.MUST_KEEP_A_CARD': 'Fica com pelo menos uma carta — assim não podes esvaziar a mão',
+  'err.MUST_KEEP_A_CARD': 'O teu lado ainda não pode sair — fica com duas cartas, uma para descartar e outra para guardar',
   'err.MUST_MELD_FIRST': 'Baixa primeiro a abertura do teu lado',
   'err.UNDO_MELDS_FIRST': 'Anula primeiro o que baixaste depois de tirar o monte',
   'err.INITIAL_MELD_NOT_MET': 'À tua primeira baixa ainda faltam pontos',
-  'err.CANNOT_GO_OUT_YET': 'O teu lado precisa de uma canastra completa antes de poder sair',
+  'err.CANNOT_GO_OUT_YET': 'O teu lado ainda não tem as canastras de que precisa para sair',
   'err.NOTHING_TO_CALL': 'Não há aposta para igualar',
   'err.CANNOT_CHECK': 'Não podes passar — há uma aposta para responder',
   'err.CANNOT_RAISE': 'Não podes subir — a tua pilha não chega acima da aposta',
@@ -467,7 +468,6 @@ export const pt: Record<string, string> = {
   'canasta.remedy.needMorePoints': 'À primeira combinação do teu lado faltam {n} pontos para os {floor}.',
   'canasta.remedy.openFirst': 'Baixa a primeira combinação do teu lado antes de juntares cartas.',
   'canasta.remedy.needCanastas': 'O teu lado precisa de mais {n} canastra de {size} cartas para poder sair.',
-  'canasta.remedy.keepACard': 'Guarda uma carta para descartar.',
   'canasta.remedy.undoMeldsFirst':
     'Anula primeiro as combinações baixadas depois de tirares o monte — depois o próprio monte pode voltar.',
   'canasta.remedy.layOffInstead': 'Junta-as à combinação que o teu lado já tem.',

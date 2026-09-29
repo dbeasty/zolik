@@ -43,6 +43,7 @@ export const bg: Record<string, string> = {
   'err.DISCARD_CARD_NOT_MELDED': 'Картата, която взе, трябва да влезе в комбинацията ти',
   'err.JOKER_DISCARD_FORBIDDEN': 'Жокер не може да се изхвърля',
   'err.NOTHING_TO_UNDO': 'Няма какво да се връща',
+  'err.NOTHING_FITS_HERE': 'Никоя от картите ти не отива тук',
   'err.NO_JOKER_IN_MELD': 'В тази комбинация няма жокер',
   'err.JOKER_SWAP_MISMATCH': 'Тази карта не заема мястото на жокера',
   'err.RECLAIMED_JOKER_NOT_MELDED': 'Жокерът, взет от масата, трябва да се изиграе в комбинация този ход',
@@ -357,11 +358,11 @@ export const bg: Record<string, string> = {
   'err.BLACK_THREE_GO_OUT_ONLY':
     'Черните тройки се свалят само като ходът, който изпразва ръката ти',
   'err.CANNOT_DISCARD_RED_THREE': 'Червена тройка не може да се изхвърля',
-  'err.MUST_KEEP_A_CARD': 'Задръж поне една карта — така не можеш да изпразниш ръката си',
+  'err.MUST_KEEP_A_CARD': 'Страната ти още не може да излезе — задръж две карти, една за хвърляне и една в ръка',
   'err.MUST_MELD_FIRST': 'Първо свали отварянето на страната си',
   'err.UNDO_MELDS_FIRST': 'Първо върни това, което положи след вземането на купчината',
   'err.INITIAL_MELD_NOT_MET': 'На първото ти сваляне още му липсват точки',
-  'err.CANNOT_GO_OUT_YET': 'Страната ти се нуждае от завършена канаста, преди да може да излезе',
+  'err.CANNOT_GO_OUT_YET': 'Страната ти още няма нужните канасти, за да излезе',
   'err.NOTHING_TO_CALL': 'Няма залог за плащане',
   'err.CANNOT_CHECK': 'Не можеш да чекнеш — има залог, на който да отговориш',
   'err.CANNOT_RAISE': 'Не можеш да вдигнеш — стекът ти не стига над залога',
@@ -470,7 +471,6 @@ export const bg: Record<string, string> = {
   'canasta.remedy.openFirst': 'Сложи първата комбинация на твоята страна, преди да добавяш карти.',
   'canasta.remedy.needCanastas':
     'На твоята страна ѝ трябват още {n} канасти от по {size} карти, преди да излезе.',
-  'canasta.remedy.keepACard': 'Запази една карта, с която да хвърлиш.',
   'canasta.remedy.undoMeldsFirst':
     'Първо върни комбинациите, положени след вземането на купчината — тогава ще може да се върне и самата купчина.',
   'canasta.remedy.layOffInstead': 'Добави ги към комбинацията, която твоята страна вече има.',
