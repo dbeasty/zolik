@@ -173,6 +173,7 @@ func applyPlace(s *GameState, playerID string, a module.Action) ([]module.Event,
 
 	return []module.Event{{Type: "tiles_placed", Data: map[string]any{
 		"playerId": playerID, "setId": id, "count": len(a.Cards),
+		"cards": append([]string(nil), a.Cards...),
 	}}}, nil
 }
 
@@ -203,6 +204,7 @@ func applyAdd(s *GameState, playerID string, a module.Action) ([]module.Event, e
 
 	return []module.Event{{Type: "tiles_added", Data: map[string]any{
 		"playerId": playerID, "setId": a.Target, "count": len(a.Cards),
+		"cards": append([]string(nil), a.Cards...),
 	}}}, nil
 }
 
@@ -236,6 +238,7 @@ func applyTake(s *GameState, playerID string, a module.Action) ([]module.Event, 
 
 	return []module.Event{{Type: "tiles_taken", Data: map[string]any{
 		"playerId": playerID, "setId": a.Target, "count": len(a.Cards),
+		"cards": append([]string(nil), a.Cards...),
 	}}}, nil
 }
 

@@ -227,6 +227,14 @@
     "blackjack.zone.dealer",
     "blackjack.zone.shoe",
     "blackjack.zone.yourBox",
+    "canasta.move.discarded",
+    "canasta.move.drewStock",
+    "canasta.move.laidOff",
+    "canasta.move.melded",
+    "canasta.move.redThrees",
+    "canasta.move.tookPile",
+    "canasta.move.tookTopCard",
+    "canasta.move.undid",
     "canasta.offer.rank",
     "canasta.offer.sequence",
     "canasta.remedy.blackThreesOnTheWayOut",
@@ -297,6 +305,14 @@
     "ginrummy.fact.discardCard",
     "ginrummy.fact.meldCards",
     "ginrummy.header.hand",
+    "ginrummy.move.discarded",
+    "ginrummy.move.drewStock",
+    "ginrummy.move.knocked",
+    "ginrummy.move.laidOff",
+    "ginrummy.move.passedUpcard",
+    "ginrummy.move.tookDiscard",
+    "ginrummy.move.tookUpcard",
+    "ginrummy.move.wentGin",
     "ginrummy.offer.bigGin",
     "ginrummy.offer.discard",
     "ginrummy.offer.drawDiscard",
@@ -461,6 +477,14 @@
     "rummytiles.fact.setCards",
     "rummytiles.header.pool",
     "rummytiles.header.round",
+    "rummytiles.move.added",
+    "rummytiles.move.committed",
+    "rummytiles.move.drew",
+    "rummytiles.move.placed",
+    "rummytiles.move.reset",
+    "rummytiles.move.split",
+    "rummytiles.move.swappedJoker",
+    "rummytiles.move.took",
     "rummytiles.offer.addFromHand",
     "rummytiles.offer.addFromTray",
     "rummytiles.offer.commit",
@@ -975,6 +999,36 @@
       "n",
       "value"
     ],
+    "canasta.move.discarded": [
+      "card",
+      "player"
+    ],
+    "canasta.move.drewStock": [
+      "player"
+    ],
+    "canasta.move.laidOff": [
+      "cards",
+      "player"
+    ],
+    "canasta.move.melded": [
+      "cards",
+      "player"
+    ],
+    "canasta.move.redThrees": [
+      "cards",
+      "player"
+    ],
+    "canasta.move.tookPile": [
+      "card",
+      "player"
+    ],
+    "canasta.move.tookTopCard": [
+      "card",
+      "player"
+    ],
+    "canasta.move.undid": [
+      "player"
+    ],
     "canasta.offer.rank": [
       "value"
     ],
@@ -1103,6 +1157,36 @@
     "ginrummy.header.hand": [
       "n",
       "value"
+    ],
+    "ginrummy.move.discarded": [
+      "card",
+      "player"
+    ],
+    "ginrummy.move.drewStock": [
+      "player"
+    ],
+    "ginrummy.move.knocked": [
+      "deadwood",
+      "player"
+    ],
+    "ginrummy.move.laidOff": [
+      "card",
+      "owner",
+      "player"
+    ],
+    "ginrummy.move.passedUpcard": [
+      "player"
+    ],
+    "ginrummy.move.tookDiscard": [
+      "card",
+      "player"
+    ],
+    "ginrummy.move.tookUpcard": [
+      "card",
+      "player"
+    ],
+    "ginrummy.move.wentGin": [
+      "player"
     ],
     "ginrummy.remedy.getDeadwoodDown": [
       "n"
@@ -1330,6 +1414,34 @@
       "n",
       "value"
     ],
+    "rummytiles.move.added": [
+      "cards",
+      "player"
+    ],
+    "rummytiles.move.committed": [
+      "player"
+    ],
+    "rummytiles.move.drew": [
+      "player"
+    ],
+    "rummytiles.move.placed": [
+      "cards",
+      "player"
+    ],
+    "rummytiles.move.reset": [
+      "player"
+    ],
+    "rummytiles.move.split": [
+      "player"
+    ],
+    "rummytiles.move.swappedJoker": [
+      "card",
+      "player"
+    ],
+    "rummytiles.move.took": [
+      "cards",
+      "player"
+    ],
     "rummytiles.remedy.emptyTheTray": [
       "n"
     ],
@@ -1510,6 +1622,14 @@
     "blackjack.seat.total",
     "blackjack.status.dealerBust",
     "blackjack.status.dealerStands",
+    "canasta.move.discarded",
+    "canasta.move.drewStock",
+    "canasta.move.laidOff",
+    "canasta.move.melded",
+    "canasta.move.redThrees",
+    "canasta.move.tookPile",
+    "canasta.move.tookTopCard",
+    "canasta.move.undid",
     "canasta.offer.rank",
     "canasta.offer.sequence",
     "canasta.remedy.captureFromHand",
@@ -1544,6 +1664,14 @@
     "ginrummy.fact.discardCard",
     "ginrummy.fact.meldCards",
     "ginrummy.header.hand",
+    "ginrummy.move.discarded",
+    "ginrummy.move.drewStock",
+    "ginrummy.move.knocked",
+    "ginrummy.move.laidOff",
+    "ginrummy.move.passedUpcard",
+    "ginrummy.move.tookDiscard",
+    "ginrummy.move.tookUpcard",
+    "ginrummy.move.wentGin",
     "ginrummy.remedy.getDeadwoodDown",
     "ginrummy.round.kind",
     "ginrummy.rules.bigGinBonus",
@@ -1607,6 +1735,14 @@
     "rummytiles.fact.setCards",
     "rummytiles.header.pool",
     "rummytiles.header.round",
+    "rummytiles.move.added",
+    "rummytiles.move.committed",
+    "rummytiles.move.drew",
+    "rummytiles.move.placed",
+    "rummytiles.move.reset",
+    "rummytiles.move.split",
+    "rummytiles.move.swappedJoker",
+    "rummytiles.move.took",
     "rummytiles.remedy.emptyTheTray",
     "rummytiles.remedy.needMorePoints",
     "rummytiles.remedy.ownNewSetsOnly",
