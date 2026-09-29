@@ -13,13 +13,14 @@ import (
 // The turn itself, from seed 1000007 at step 1100.
 //
 // A side on 3035 needs 120 and has nothing down. The pile is a single ten and
-// the hand holds three more tens, three jacks, three kings and a deuce. The
-// capture looks like an opening: 30 for the tens, and 20 + 30 + 30 + 20 in the
-// hand, is 130. But a side that cannot go out has to finish the turn holding
-// two cards — one to discard and one to keep (checkLeavesPlayable) — so only
-// seven of the nine cards left after the capture can go down, and the best
-// seven add 110 to the capture's 30. Ten short, and nothing in the engine's
-// bound (reachableValue) knows about the two cards.
+// the hand holds four more tens, three jacks, three kings and a deuce. The
+// capture looks like an opening: 30 for the tens it melds, and the 100 left in
+// hand after it — two tens, the jacks, the kings, the deuce — makes 130. But a
+// side that cannot go out has to finish the turn holding two cards, one to
+// discard and one to keep (checkLeavesPlayable), so only seven of those nine
+// cards can go down. The best seven are worth 80, and 30 + 80 is 110: ten
+// short, and nothing in the engine's bound (reachableValue) knows about the
+// two cards.
 //
 // The old bot captured, laid off both spare tens, melded the jacks and laid the
 // deuce off: 100, holding three kings it could not lay without emptying the
