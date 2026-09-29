@@ -493,6 +493,21 @@ export class ZolikClient {
   }
 
   /**
+   * Play a finished table again with the same people. The first press opens
+   * the rematch and hosts it; any later one, from anybody at the table, sits
+   * down at that same one. The answer says where to go: a lobby while there
+   * are others to wait for, a dealt table when there are none.
+   */
+  async rematch(idOrCode: string): Promise<{ matchId: string; status: string; hostId: string }> {
+    return this.post(`/matches/${encodeURIComponent(idOrCode)}/rematch`, null, true);
+  }
+
+  /** Give back the seat a rematch was holding for this player. */
+  async declineRematch(rematchId: string): Promise<void> {
+    await this.post(`/matches/${encodeURIComponent(rematchId)}/rematch/decline`, null, true);
+  }
+
+  /**
    * A link that brings one person back to their seat at a started table —
    * for somebody on a new device or a cleared browser. Anybody seated at the
    * table may make one for anybody at it; making another replaces it.
