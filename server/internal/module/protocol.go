@@ -173,6 +173,12 @@ type Group struct {
 	// BadgeKeys are message keys for anything worth marking on the group
 	// ("clean run", "trump"). Keys, never rendered text.
 	BadgeKeys []string `json:"badgeKeys,omitempty"`
+	// Complete marks a group that is finished as far as the player is
+	// concerned — a canasta, not a meld still being built — so a client may
+	// fold it down to take less room. Whether it still takes cards is a
+	// separate question the offers answer; this is about how much of the
+	// board it deserves.
+	Complete bool `json:"complete,omitempty"`
 }
 
 // Zone is one area of the board.
