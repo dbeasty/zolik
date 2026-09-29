@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { API_BASE } from '../helpers/env';
 import { loginAsFreshGuest } from '../helpers/login';
-import { openGameSetup } from '../helpers/lobby';
+import { openGame, openGameSetup } from '../helpers/lobby';
 import { waitForOfferEnabled } from '../helpers/turn';
 
 /**
@@ -30,8 +30,7 @@ test.describe('a stopped game can be stepped through', () => {
       `e2e-replay-${Math.random().toString(36).slice(2, 8)}`,
     );
 
-    await page.goto('/lobby/games');
-    await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 30_000 });
+    await openGame(page, 'prsi');
     await openGameSetup(page, 'prsi');
     await page.getByTestId('play-bots-prsi').click();
     await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 45_000 });
