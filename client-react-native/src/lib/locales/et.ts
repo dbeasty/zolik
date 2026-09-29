@@ -152,7 +152,7 @@ export const et: Record<string, string> = {
   'canasta.rules.sequences': 'Kombinatsioon võib olla ka jada: kolm või rohkem sama masti kaarti järjest, mitte kunagi jokkeriga vahel.',
   'canasta.rules.samba': 'Seitsmest kaardist jada on samba ja annab {n} punkti.',
   'canasta.rules.blackThreesGoOut':
-    'Must kolm blokeerib hunniku ja on väärt {n} punkti. Kolm või neli neist tohib panna välja otse käest, mitte kunagi jokkeriga nende seas, ja ainult käiguna, millega sinu pool välja läheb.',
+    'Must kolm blokeerib hunniku ja on väärt {n} punkti. Kolm või rohkem neist tohib panna välja otse käest, mitte kunagi jokkeriga nende seas, ja ainult välja minnes: pärast seda võid jätta kätte kõige rohkem ühe kaardi, et see ära visata.',
   'canasta.rules.blackThreesNeverMeld':
     'Musta kolme ei panda kunagi välja. Äravisatuna blokeerib see hunniku ja jagamise lõpus kätte jäänuna maksab {n} punkti.',
   'canasta.rules.pileAlwaysFrozen': 'Viskepakk on kogu jagamise vältel külmutatud: saad selle võtta ainult sobitades ülemise kaardi kahe loomuliku kaardiga oma käest.',
@@ -474,7 +474,7 @@ export const et: Record<string, string> = {
     'See kombinatsioon on {n} kaardi juures valmis — alusta uut või pane mujale juurde.',
   'canasta.remedy.discardNotARedThree': 'Viska ära midagi muud kui punane kolmik.',
   'canasta.remedy.blackThreesOnTheWayOut':
-    'Mustad kolmikud lähevad lauale ainult käiguga, mis su käe tühjaks teeb.',
+    'Mustad kolmikud lähevad lauale ainult välja minnes: pärast seda võid jätta kätte kõige rohkem ühe kaardi, et see ära visata.',
   'canasta.remedy.ownMeldsOnly': 'Pane juurde ainult oma poole kombinatsioonidele.',
   'badge.naturalCanasta': 'Puhas kanasta',
   'badge.mixedCanasta': 'Segakanasta',

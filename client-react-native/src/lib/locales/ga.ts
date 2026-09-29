@@ -156,7 +156,7 @@ export const ga: Record<string, string> = {
   'canasta.rules.sequences': 'Is féidir le cumasc a bheith ina sheicheamh freisin: trí chárta nó níos mó den chineál céanna as a chéile, gan áilteoir eatarthu riamh.',
   'canasta.rules.samba': 'Is samba é seicheamh de sheacht gcárta, agus is fiú {n} pointe é.',
   'canasta.rules.blackThreesGoOut':
-    'Dúnann trí dhubh an carn agus is fiú {n} pointe é. Is féidir trí cinn nó ceithre cinn díobh a leagan síos díreach as do láimh, riamh le fiailcharta ina measc, agus mar an mbeart a théann do thaobh amach amháin.',
+    'Dúnann trí dhubh an carn agus is fiú {n} pointe é. Is féidir trí cinn nó níos mó díobh a leagan síos díreach as do láimh, riamh le fiailcharta ina measc, agus agus tú ag dul amach amháin: ina dhiaidh sin ní féidir leat ach cárta amháin ar a mhéad a choinneáil, lena chaitheamh.',
   'canasta.rules.blackThreesNeverMeld':
     'Ní leagtar trí dhubh síos riamh. Dúnann sé an carn nuair a chaitear é, agus má fhanann sé i do láimh ag deireadh na dála cosnaíonn sé {n} pointe ort.',
   'canasta.rules.pileAlwaysFrozen': 'Tá an carn caite reoite ar feadh na dála ar fad: ní féidir leat é a thógáil ach an cárta barr a mheaitseáil le dhá chárta nádúrtha as do lámh.',
@@ -488,7 +488,7 @@ export const ga: Record<string, string> = {
     'Tá an cumasc sin críochnaithe ag {n} chárta — tosaigh ceann eile, nó cuir le rud eile.',
   'canasta.remedy.discardNotARedThree': 'Caith rud éigin seachas trí dearg.',
   'canasta.remedy.blackThreesOnTheWayOut':
-    'Ní chuirtear trínna dubha síos ach mar an imirt a fholmhaíonn do lámh.',
+    'Ní chuirtear trínna dubha síos ach agus tú ag dul amach: ina dhiaidh sin ní féidir leat ach cárta amháin ar a mhéad a choinneáil, lena chaitheamh.',
   'canasta.remedy.ownMeldsOnly': 'Ná cuir le cumasc ach amháin ceann de chuid do thaoibh féin.',
   'badge.naturalCanasta': 'Canasta glan',
   'badge.mixedCanasta': 'Canasta measctha',

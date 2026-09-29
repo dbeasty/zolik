@@ -151,7 +151,7 @@ export const lt: Record<string, string> = {
   'canasta.rules.sequences': 'Derinys gali būti ir seka: trys ar daugiau tos pačios rūšies kortų iš eilės, niekada su džokeriu tarp jų.',
   'canasta.rules.samba': 'Septynių kortų seka yra samba, verta {n} taškų.',
   'canasta.rules.blackThreesGoOut':
-    'Juodas trejetas užblokuoja krūvelę ir vertas {n} taškų. Tris ar keturis iš jų galima išdėti tiesiai iš rankos, niekada su džokeriu tarp jų, ir tik kaip ėjimą, kuriuo tavo pusė išeina.',
+    'Juodas trejetas užblokuoja krūvelę ir vertas {n} taškų. Tris ar daugiau iš jų galima išdėti tiesiai iš rankos, niekada su džokeriu tarp jų, ir tik išeinant: po to gali pasilikti daugiausia vieną kortą, kurią numesi.',
   'canasta.rules.blackThreesNeverMeld':
     'Juodas trejetas niekada neišdedamas. Išmestas jis užblokuoja krūvelę, o likęs rankoje dalybos pabaigoje kainuoja {n} taškų.',
   'canasta.rules.pileAlwaysFrozen': 'Atmetimo krūvelė užšaldyta visą dalijimą: paimti ją gali tik pridėjęs prie viršutinės kortos dvi natūralias kortas iš rankos.',
@@ -468,7 +468,8 @@ export const lt: Record<string, string> = {
   'canasta.remedy.layOffInstead': 'Pridėk jas prie kombinacijos, kurią tavo pusė jau turi.',
   'canasta.remedy.meldClosed': 'Ši kombinacija baigta ties {n} kortomis — pradėk kitą arba papildyk kitur.',
   'canasta.remedy.discardNotARedThree': 'Numesk ką nors kita, ne raudoną trejetą.',
-  'canasta.remedy.blackThreesOnTheWayOut': 'Juodi trejetai dedami tik tuo ėjimu, kuris ištuština tavo ranką.',
+  'canasta.remedy.blackThreesOnTheWayOut':
+    'Juodi trejetai dedami tik išeinant: po to gali pasilikti daugiausia vieną kortą, kurią numesi.',
   'canasta.remedy.ownMeldsOnly': 'Papildyk tik savo pusės kombinacijas.',
   'badge.naturalCanasta': 'Švari kanasta',
   'badge.mixedCanasta': 'Nešvari kanasta',

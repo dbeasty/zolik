@@ -153,7 +153,7 @@ export const mt: Record<string, string> = {
   'canasta.rules.sequences': "Kombinazzjoni tista' tkun ukoll sekwenza: tliet karti jew aktar tal-istess kulur wara xulxin, qatt b'joker fosthom.",
   'canasta.rules.samba': "Sekwenza ta' seba' karti hija samba u tiswa {n} punti.",
   'canasta.rules.blackThreesGoOut':
-    "Tlieta sewda timblokka l-munzell u tiswa {n} punti. Tlieta jew erbgħa minnhom jistgħu jitniżżlu dritt minn idejk, qatt b'karta selvaġġa fosthom, u biss bħala l-mossa li biha toħroġ in-naħa tiegħek.",
+    "Tlieta sewda timblokka l-munzell u tiswa {n} punti. Tlieta jew aktar minnhom jistgħu jitniżżlu dritt minn idejk, qatt b'karta selvaġġa fosthom, u biss meta toħroġ: wara tista' żżomm karta waħda l-aktar, biex tarmiha.",
   'canasta.rules.blackThreesNeverMeld':
     "Tlieta sewda qatt ma titniżżel. Meta tarmiha timblokka l-munzell, u jekk tibqa' f'idejk fl-aħħar tad-daqqa tiswielek {n} punti.",
   'canasta.rules.pileAlwaysFrozen': "Il-munzell tal-iskart huwa ffriżat għad-daqqa kollha: tista' teħdu biss billi tqabbel il-karta ta' fuq ma' żewġ karti naturali minn idejk.",
@@ -478,7 +478,8 @@ export const mt: Record<string, string> = {
   'canasta.remedy.layOffInstead': 'Żidhom mal-meld li n-naħa tiegħek diġà għandha.',
   'canasta.remedy.meldClosed': "Dak il-meld huwa komplut b'{n} karti — ibda ieħor, jew żid x'imkien ieħor.",
   'canasta.remedy.discardNotARedThree': 'Armi xi ħaġa oħra għajr tlieta ħamra.',
-  'canasta.remedy.blackThreesOnTheWayOut': 'It-tlieta suwed jinżlu biss bħala l-mossa li tbattal idek.',
+  'canasta.remedy.blackThreesOnTheWayOut':
+    "It-tlieta suwed jinżlu biss meta toħroġ: wara tista' żżomm karta waħda l-aktar, biex tarmiha.",
   'canasta.remedy.ownMeldsOnly': 'Żid biss mal-melds tan-naħa tiegħek stess.',
   'badge.naturalCanasta': 'Canasta nadifa',
   'badge.mixedCanasta': 'Canasta mħallta',

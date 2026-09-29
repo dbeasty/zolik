@@ -1389,6 +1389,61 @@ func TestBlackThreesOnlyGoDownOnTheWayOut(t *testing.T) {
 	})
 }
 
+// Three black threes and one card to close with is going out the ordinary way:
+// meld, then discard the last card. It was refused, because the black-three
+// meld demanded an empty hand.
+func TestBlackThreesThenTheClosingDiscard(t *testing.T) {
+	canastas := func(ranks ...string) []Meld {
+		var out []Meld
+		for _, r := range ranks {
+			out = append(out, Meld{ID: meldID(0, r), TeamID: 0, Rank: r,
+				Cards: []string{r + "H", r + "D", r + "S", r + "C", r + "H", r + "D", r + "S"}})
+		}
+		return out
+	}
+	tables := map[string]module.State{
+		"classic": twoHanded(func(s *GameState) {
+			s.Phase = phaseMeld
+			s.Teams[0].HasMelded = true
+			s.Teams[0].Melds = canastas("K")
+			s.Hands["p1"] = []string{"3C", "3S", "3C", "8H"}
+		}),
+		"samba": sambaTable(func(s *GameState) {
+			s.Phase = phaseMeld
+			s.Teams[0].HasMelded = true
+			s.Teams[0].Melds = canastas("K", "Q")
+			s.Hands["p1"] = []string{"3C", "3S", "3C", "8H"}
+		}),
+	}
+	for name, raw := range tables {
+		t.Run(name, func(t *testing.T) {
+			offers, err := New().LegalActions(raw, "p1")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if o := offerByID(offers, OfferLayMeld+":"+rankThree); o == nil || !o.Enabled {
+				t.Fatalf("no black-three meld offered:\n%s", module.DescribeOffers(offers))
+			}
+			next, code := apply(t, raw, "p1", module.Action{
+				Verb: VerbLayMeld, Cards: []string{"3C", "3S", "3C"},
+			})
+			if code != "" {
+				t.Fatalf("black threes with one card to discard refused: %s", code)
+			}
+			if s := mustDecode(t, next); s.LastDeal != nil {
+				t.Fatal("the deal ended before the discard")
+			}
+			next, code = apply(t, next, "p1", module.Action{Verb: VerbDiscard, Cards: []string{"8H"}})
+			if code != "" {
+				t.Fatalf("the closing discard refused: %s", code)
+			}
+			if s := mustDecode(t, next); s.LastDeal == nil || s.LastDeal.WentOut != "p1" {
+				t.Errorf("the deal should have ended with p1 out, got %+v", s.LastDeal)
+			}
+		})
+	}
+}
+
 // modernAmericanTable is twoHanded dealt under Modern American's rules, which
 // differ from Classic's here in exactly one thing: a black three has no route
 // to the table at all.

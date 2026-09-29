@@ -157,7 +157,7 @@ export const hu: Record<string, string> = {
   'canasta.rules.sequences': 'Egy kombináció sor is lehet: három vagy több azonos színű lap egymás után, soha nem jokerrel közte.',
   'canasta.rules.samba': 'A hét lapból álló sor egy samba, {n} pontot ér.',
   'canasta.rules.blackThreesGoOut':
-    'A fekete hármas lezárja a paklit és {n} pontot ér. Három vagy négy darabot közvetlenül a kezedből lerakhatsz, soha nem jokerrel együtt, és csak azzal a lépéssel, amellyel az oldalad kiszáll.',
+    'A fekete hármas lezárja a paklit és {n} pontot ér. Három vagy több darabot közvetlenül a kezedből lerakhatsz, soha nem jokerrel együtt, és csak kiszálláskor: utána legfeljebb egy lapot tarthatsz meg, eldobásra.',
   'canasta.rules.blackThreesNeverMeld':
     'A fekete hármast soha nem rakják le. Eldobva lezárja a paklit, és ha az osztás végén a kezedben marad, {n} pontodba kerül.',
   'canasta.rules.pileAlwaysFrozen': 'A dobópakli az egész osztás alatt be van fagyasztva: csak úgy viheted el, ha a felső lapját két természetes lappal párosítod a kezedből.',
@@ -483,7 +483,7 @@ export const hu: Record<string, string> = {
   'canasta.remedy.meldClosed': 'Ez a kombináció {n} lapnál kész — kezdj másikat, vagy tegyél hozzá máshol.',
   'canasta.remedy.discardNotARedThree': 'Dobj el valami mást, ne piros hármast.',
   'canasta.remedy.blackThreesOnTheWayOut':
-    'A fekete hármasok csak azzal a lépéssel kerülnek ki, amely kiüríti a kezed.',
+    'A fekete hármasok csak kiszálláskor kerülnek ki: utána legfeljebb egy lapot tarthatsz meg, eldobásra.',
   'canasta.remedy.ownMeldsOnly': 'Csak a saját csapatod kombinációihoz tegyél hozzá.',
   'badge.naturalCanasta': 'Tiszta kanaszta',
   'badge.mixedCanasta': 'Vegyes kanaszta',

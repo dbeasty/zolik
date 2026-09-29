@@ -157,7 +157,7 @@ export const en: Record<string, string> = {
   'canasta.rules.sequences': 'A meld can also be a sequence: three or more cards of the same suit in a row, never with a wild card among them.',
   'canasta.rules.samba': 'A sequence of seven cards is a samba, worth {n} points.',
   'canasta.rules.blackThreesGoOut':
-    'A black three blocks the discard pile and is worth {n} points. Three or four of them may be melded straight from your hand, never with a wild card among them, and only as the move that takes your side out.',
+    'A black three blocks the discard pile and is worth {n} points. Three or more of them may be melded straight from your hand, never with a wild card among them, and only as part of going out: once they are down you may keep at most one card, to discard.',
   'canasta.rules.blackThreesNeverMeld':
     'A black three is never melded. It blocks the discard pile when discarded, and costs {n} points if it is still in your hand when the deal ends.',
   'canasta.rules.pileAlwaysFrozen': 'The discard pile is frozen all deal: to take it you must match its top card with two natural cards from your hand.',
@@ -466,7 +466,8 @@ export const en: Record<string, string> = {
   'canasta.remedy.layOffInstead': 'Lay them off onto the meld your side already has.',
   'canasta.remedy.meldClosed': 'That meld is complete at {n} — start another, or lay off elsewhere.',
   'canasta.remedy.discardNotARedThree': 'Discard something other than a red three.',
-  'canasta.remedy.blackThreesOnTheWayOut': 'Black threes go down only as the move that empties your hand.',
+  'canasta.remedy.blackThreesOnTheWayOut':
+    'Black threes go down only as part of going out: afterwards you may keep at most one card, to discard.',
   'canasta.remedy.ownMeldsOnly': "Lay off onto one of your own side's melds.",
   'badge.naturalCanasta': 'Natural canasta',
   'badge.mixedCanasta': 'Mixed canasta',

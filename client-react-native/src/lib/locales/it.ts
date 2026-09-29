@@ -153,7 +153,7 @@ export const it: Record<string, string> = {
   'canasta.rules.sequences': 'Una combinazione può anche essere una scala: tre o più carte dello stesso seme in fila, mai con un jolly tra loro.',
   'canasta.rules.samba': 'Una scala di sette carte è una samba e vale {n} punti.',
   'canasta.rules.blackThreesGoOut':
-    'Un tre nero blocca la pila e vale {n} punti. Tre o quattro di essi si possono calare direttamente dalla mano, mai con una matta fra loro, e solo come la mossa con cui la tua coppia chiude.',
+    'Un tre nero blocca la pila e vale {n} punti. Tre o più di essi si possono calare direttamente dalla mano, mai con una matta fra loro, e solo per chiudere: una volta calati puoi tenere al massimo una carta, da scartare.',
   'canasta.rules.blackThreesNeverMeld':
     'Un tre nero non si cala mai. Scartato blocca la pila, e se resta in mano alla fine della smazzata ti costa {n} punti.',
   'canasta.rules.pileAlwaysFrozen': 'La pila degli scarti resta congelata per tutta la mano: per prenderla devi abbinare la carta in cima a due carte naturali della tua mano.',
@@ -472,7 +472,8 @@ export const it: Record<string, string> = {
   'canasta.remedy.meldClosed':
     "Quella combinazione è completa a {n} carte: cominciane un'altra o aggiungi altrove.",
   'canasta.remedy.discardNotARedThree': 'Scarta qualcosa che non sia un tre rosso.',
-  'canasta.remedy.blackThreesOnTheWayOut': 'I tre neri si calano solo con la mossa che ti svuota la mano.',
+  'canasta.remedy.blackThreesOnTheWayOut':
+    'I tre neri si calano solo per chiudere: dopo puoi tenere al massimo una carta, da scartare.',
   'canasta.remedy.ownMeldsOnly': 'Aggiungi solo alle combinazioni della tua parte.',
   'badge.naturalCanasta': 'Canasta pura',
   'badge.mixedCanasta': 'Canasta impura',

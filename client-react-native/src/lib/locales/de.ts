@@ -155,7 +155,7 @@ export const de: Record<string, string> = {
   'canasta.rules.sequences': 'Eine Auslage kann auch eine Sequenz sein: drei oder mehr Karten derselben Farbe in Folge, niemals mit einer wilden Karte darin.',
   'canasta.rules.samba': 'Eine Sequenz aus sieben Karten ist eine Samba und zählt {n} Punkte.',
   'canasta.rules.blackThreesGoOut':
-    'Eine schwarze Drei blockiert den Stapel und zählt {n} Punkte. Drei oder vier davon dürfen direkt aus der Hand ausgelegt werden, nie mit einem Joker darunter, und nur als der Zug, mit dem deine Seite hinausgeht.',
+    'Eine schwarze Drei blockiert den Stapel und zählt {n} Punkte. Drei oder mehr davon dürfen direkt aus der Hand ausgelegt werden, nie mit einem Joker darunter, und nur beim Hinausgehen: danach darfst du höchstens eine Karte behalten, zum Abwerfen.',
   'canasta.rules.blackThreesNeverMeld':
     'Eine schwarze Drei wird nie ausgelegt. Abgeworfen blockiert sie den Stapel, und bleibt sie am Ende des Blattes auf deiner Hand, kostet sie {n} Punkte.',
   'canasta.rules.pileAlwaysFrozen': 'Der Ablagestapel ist die ganze Runde eingefroren: Um ihn zu nehmen, musst du seine oberste Karte mit zwei natürlichen Karten aus deiner Hand belegen.',
@@ -485,7 +485,7 @@ export const de: Record<string, string> = {
     'Diese Auslage ist bei {n} Karten fertig — fang eine neue an oder leg woanders an.',
   'canasta.remedy.discardNotARedThree': 'Leg etwas anderes ab als eine rote Drei.',
   'canasta.remedy.blackThreesOnTheWayOut':
-    'Schwarze Dreien werden nur mit dem Zug ausgelegt, der deine Hand leert.',
+    'Schwarze Dreien werden nur beim Hinausgehen ausgelegt: danach darfst du höchstens eine Karte behalten, zum Abwerfen.',
   'canasta.remedy.ownMeldsOnly': 'Leg nur an Auslagen deiner eigenen Seite an.',
   'badge.naturalCanasta': 'Reine Canasta',
   'badge.mixedCanasta': 'Unreine Canasta',

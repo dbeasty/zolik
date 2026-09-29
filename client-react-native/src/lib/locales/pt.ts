@@ -154,7 +154,7 @@ export const pt: Record<string, string> = {
   'canasta.rules.sequences': 'Uma combinação também pode ser uma sequência: três ou mais cartas do mesmo naipe seguidas, nunca com um joker no meio.',
   'canasta.rules.samba': 'Uma sequência de sete cartas é uma samba e vale {n} pontos.',
   'canasta.rules.blackThreesGoOut':
-    'Um três preto bloqueia o monte e vale {n} pontos. Três ou quatro deles podem ser baixados diretamente da mão, nunca com um curinga entre eles, e só como a jogada com que o teu lado sai.',
+    'Um três preto bloqueia o monte e vale {n} pontos. Três ou mais deles podem ser baixados diretamente da mão, nunca com um curinga entre eles, e só ao sair: depois de baixados, podes ficar com uma carta no máximo, para descartar.',
   'canasta.rules.blackThreesNeverMeld':
     'Um três preto nunca se baixa. Descartado bloqueia o monte, e se ficar na tua mão no fim da mão custa-te {n} pontos.',
   'canasta.rules.pileAlwaysFrozen': 'O monte de descartes está congelado durante toda a mão: para o levares tens de juntar a carta do topo a duas cartas naturais da tua mão.',
@@ -474,7 +474,8 @@ export const pt: Record<string, string> = {
   'canasta.remedy.meldClosed':
     'Essa combinação está completa com {n} cartas — começa outra ou junta noutro sítio.',
   'canasta.remedy.discardNotARedThree': 'Descarta outra coisa que não um três vermelho.',
-  'canasta.remedy.blackThreesOnTheWayOut': 'Os três pretos só descem na jogada que te esvazia a mão.',
+  'canasta.remedy.blackThreesOnTheWayOut':
+    'Os três pretos só descem ao sair: depois podes ficar com uma carta no máximo, para descartar.',
   'canasta.remedy.ownMeldsOnly': 'Junta apenas às combinações do teu próprio lado.',
   'badge.naturalCanasta': 'Canastra limpa',
   'badge.mixedCanasta': 'Canastra suja',

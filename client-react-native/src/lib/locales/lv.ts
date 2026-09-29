@@ -153,7 +153,7 @@ export const lv: Record<string, string> = {
   'canasta.rules.sequences': 'Kombinācija var būt arī secība: trīs vai vairāk vienas masts kārtis pēc kārtas, nekad ar džokeru starp tām.',
   'canasta.rules.samba': 'Secība no septiņām kārtīm ir samba, un tā ir {n} punktu vērta.',
   'canasta.rules.blackThreesGoOut':
-    'Melns trijnieks bloķē kaudzi un ir {n} punktu vērts. Trīs vai četrus no tiem drīkst izlikt tieši no rokas, nekad ar džokeru starp tiem, un tikai kā gājienu, ar kuru tava puse iziet.',
+    'Melns trijnieks bloķē kaudzi un ir {n} punktu vērts. Trīs vai vairāk no tiem drīkst izlikt tieši no rokas, nekad ar džokeru starp tiem, un tikai izejot: pēc tam drīksti paturēt ne vairāk kā vienu kārti, ko nomest.',
   'canasta.rules.blackThreesNeverMeld':
     'Melnu trijnieku nekad neizliek. Izmests tas bloķē kaudzi, bet palicis rokā dalīšanas beigās maksā {n} punktus.',
   'canasta.rules.pileAlwaysFrozen': 'Izmešanas kaudze ir iesaldēta visu dalījumu: to vari paņemt tikai tad, ja augšējai kārtij pievieno divas dabiskās kārtis no rokas.',
@@ -470,7 +470,7 @@ export const lv: Record<string, string> = {
   'canasta.remedy.meldClosed': 'Šī kombinācija ir pabeigta pie {n} kārtīm — sāc citu vai papildini citur.',
   'canasta.remedy.discardNotARedThree': 'Izmet ko citu, nevis sarkano trijnieku.',
   'canasta.remedy.blackThreesOnTheWayOut':
-    'Melnos trijniekus izliek tikai ar to gājienu, kas iztukšo tavu roku.',
+    'Melnos trijniekus izliek tikai izejot: pēc tam drīksti paturēt ne vairāk kā vienu kārti, ko nomest.',
   'canasta.remedy.ownMeldsOnly': 'Papildini tikai savas puses kombinācijas.',
   'badge.naturalCanasta': 'Tīra kanasta',
   'badge.mixedCanasta': 'Netīra kanasta',

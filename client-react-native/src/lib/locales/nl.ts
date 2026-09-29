@@ -153,7 +153,7 @@ export const nl: Record<string, string> = {
   'canasta.rules.sequences': 'Een combinatie kan ook een reeks zijn: drie of meer kaarten van dezelfde kleur op volgorde, nooit met een wilde kaart ertussen.',
   'canasta.rules.samba': 'Een reeks van zeven kaarten is een samba en levert {n} punten op.',
   'canasta.rules.blackThreesGoOut':
-    'Een zwarte drie blokkeert de stapel en is {n} punten waard. Drie of vier ervan mogen rechtstreeks uit de hand worden gelegd, nooit met een joker ertussen, en alleen als de zet waarmee jouw partij uitgaat.',
+    'Een zwarte drie blokkeert de stapel en is {n} punten waard. Drie of meer ervan mogen rechtstreeks uit de hand worden gelegd, nooit met een joker ertussen, en alleen bij het uitgaan: daarna mag je hoogstens één kaart houden, om af te leggen.',
   'canasta.rules.blackThreesNeverMeld':
     'Een zwarte drie wordt nooit gelegd. Afgelegd blokkeert hij de stapel, en blijft hij aan het eind van het spel in je hand, dan kost hij {n} punten.',
   'canasta.rules.pileAlwaysFrozen': 'De aflegstapel is het hele spel bevroren: je kunt hem alleen nemen door de bovenste kaart te combineren met twee natuurlijke kaarten uit je hand.',
@@ -480,7 +480,8 @@ export const nl: Record<string, string> = {
   'canasta.remedy.layOffInstead': 'Leg ze aan bij de serie die jouw kant al heeft.',
   'canasta.remedy.meldClosed': 'Die serie is compleet bij {n} kaarten — begin een nieuwe of leg elders aan.',
   'canasta.remedy.discardNotARedThree': 'Leg iets anders af dan een rode drie.',
-  'canasta.remedy.blackThreesOnTheWayOut': 'Zwarte drieën gaan alleen neer als de zet die je hand leegt.',
+  'canasta.remedy.blackThreesOnTheWayOut':
+    'Zwarte drieën gaan alleen neer bij het uitgaan: daarna mag je hoogstens één kaart houden, om af te leggen.',
   'canasta.remedy.ownMeldsOnly': 'Leg alleen aan bij series van je eigen kant.',
   'badge.naturalCanasta': 'Zuivere canasta',
   'badge.mixedCanasta': 'Onzuivere canasta',
