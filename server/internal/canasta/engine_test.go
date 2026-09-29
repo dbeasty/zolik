@@ -1444,6 +1444,34 @@ func TestBlackThreesThenTheClosingDiscard(t *testing.T) {
 	}
 }
 
+// Five black threes may go down as five, or as four and the last one
+// discarded, and the offer has to say so: it used to demand all five, so a
+// player who picked four met a greyed-out button reading "Select 5 card(s)".
+func TestBlackThreeOfferTakesAllButTheDiscard(t *testing.T) {
+	var melds []Meld
+	for _, r := range []string{"K", "Q"} {
+		melds = append(melds, Meld{ID: meldID(0, r), TeamID: 0, Rank: r,
+			Cards: []string{r + "H", r + "D", r + "S", r + "C", r + "H", r + "D", r + "S"}})
+	}
+	raw := sambaTable(func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Teams[0].HasMelded = true
+		s.Teams[0].Melds = melds
+		s.Hands["p1"] = []string{"3C", "3C", "3C", "3S", "3S"}
+	})
+	offers, err := New().LegalActions(raw, "p1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	o := offerByID(offers, OfferLayMeld+":"+rankThree)
+	if o == nil || !o.Enabled {
+		t.Fatalf("no black-three meld offered:\n%s", module.DescribeOffers(offers))
+	}
+	if o.Source.MinCards != 4 || o.Source.MaxCards != 5 {
+		t.Errorf("offer takes %d..%d cards, want 4..5", o.Source.MinCards, o.Source.MaxCards)
+	}
+}
+
 // modernAmericanTable is twoHanded dealt under Modern American's rules, which
 // differ from Classic's here in exactly one thing: a black three has no route
 // to the table at all.

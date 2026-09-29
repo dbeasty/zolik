@@ -50,6 +50,12 @@ export type Group = {
   cards: string[];
   /** Keys for anything worth marking on the group. Keys, never text. */
   badgeKeys?: string[];
+  /**
+   * Finished, as far as the player is concerned — a canasta rather than a
+   * meld still being built — so it is folded down to take less room. The
+   * module decides; the shell never counts cards to guess.
+   */
+  complete?: boolean;
 };
 
 /**

@@ -259,10 +259,13 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 				Facts: []module.Fact{{LabelKey: "canasta.offer.rank", Value: rankThree}},
 				Source: &module.Selector{
 					Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID),
-					// No latitude here, unlike an ordinary group: this meld is
-					// legal only as the move that empties a hand, so a subset
-					// of it is not a smaller version of the same move.
-					Cards: bt, Submit: bt, MinCards: len(bt), MaxCards: len(bt),
+					// Latitude of one card at most: the meld is legal only as
+					// part of going out, which leaves a hand of nothing or of
+					// the discard. Asked of the engine, like any group's floor —
+					// five threes may go down as four and a discard, and a
+					// fixed len(bt) greyed that out behind "Select 5 card(s)".
+					Cards: bt, Submit: bt, MaxCards: len(bt),
+					MinCards: smallestAcceptedMeld(m, raw, playerID, candidate{Cards: bt}),
 				},
 				Target: &module.Selector{Zone: module.ToTable, ZoneID: meldsZoneID(t.ID)},
 			})
