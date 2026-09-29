@@ -708,12 +708,22 @@ func (m *Manager) publishEvents(match models.Match, events []module.Event) {
 		return
 	}
 	id := match.ID.Hex()
+	mod := m.registry.Get(match.ModuleID)
 	for _, ev := range events {
-		payload := map[string]any{"type": ev.Type}
-		for k, v := range ev.Data {
-			payload[k] = v
-		}
 		for _, p := range match.Players {
+			// Filtered per player, as the board is: an event may name a card
+			// only one seat is allowed to see.
+			seen, ok := ev, true
+			if mod != nil {
+				seen, ok = module.ProjectEvent(mod, ev, p.ID)
+			}
+			if !ok {
+				continue
+			}
+			payload := map[string]any{"type": seen.Type}
+			for k, v := range seen.Data {
+				payload[k] = v
+			}
 			m.hub.WriteDirect(id, p.ID, payload)
 		}
 	}

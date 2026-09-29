@@ -1543,3 +1543,84 @@ func drawsUnderTop(t *testing.T, g hosted, s module.State, top string) bool {
 	}
 	return false
 }
+
+// TestAnEventNeverNamesAHiddenCard — the runtime publishes every Event to every
+// seat, so an event is as much a view as View is. Each card an event names,
+// as projected for a viewer, must be one that viewer's own board shows either
+// side of the action. Žolíky's blind draw from the deck was the case that
+// failed this: the drawn card went to every opponent's socket.
+func TestAnEventNeverNamesAHiddenCard(t *testing.T) {
+	for _, g := range allModules() {
+		t.Run(g.name, func(t *testing.T) {
+			state, err := g.mod.NewMatch(g.cfg, g.players, 5)
+			if err != nil {
+				t.Fatalf("NewMatch: %v", err)
+			}
+			viewJSON := func(s module.State, viewer string) string {
+				vm, err := g.mod.View(s, viewer)
+				if err != nil {
+					t.Fatalf("View: %v", err)
+				}
+				blob, err := json.Marshal(vm)
+				if err != nil {
+					t.Fatalf("marshal: %v", err)
+				}
+				return string(blob)
+			}
+			checked := 0
+			_, _, err = module.PlayWithOffers(g.mod, state, g.players, module.DriverOptions{
+				MaxActions: 800, Prefer: g.prefer,
+				OnEvents: func(actor string, events []module.Event, before, after module.State) {
+					for _, viewer := range g.players {
+						var boards string
+						for _, ev := range events {
+							seen, ok := module.ProjectEvent(g.mod, ev, viewer.ID)
+							if !ok {
+								continue
+							}
+							for _, card := range cardsNamed(seen.Data) {
+								if boards == "" {
+									boards = viewJSON(before, viewer.ID) + viewJSON(after, viewer.ID)
+								}
+								checked++
+								if !strings.Contains(boards, strconv.Quote(card)) {
+									t.Errorf("%s's %s event shows %s the card %s, which their board never does",
+										actor, seen.Type, viewer.ID, card)
+								}
+							}
+						}
+					}
+				},
+			})
+			if err != nil {
+				t.Fatalf("%v", err)
+			}
+			if checked == 0 {
+				t.Logf("no event named a card")
+			}
+		})
+	}
+}
+
+// cardsNamed is every card id an event's data carries, under the field names
+// modules use for cards. Counts under the same names are skipped.
+func cardsNamed(data map[string]any) []string {
+	var out []string
+	for _, key := range []string{"card", "cards", "hole", "top", "upCard"} {
+		switch v := data[key].(type) {
+		case string:
+			if v != "" {
+				out = append(out, v)
+			}
+		case []string:
+			out = append(out, v...)
+		case []any:
+			for _, x := range v {
+				if s, ok := x.(string); ok {
+					out = append(out, s)
+				}
+			}
+		}
+	}
+	return out
+}
