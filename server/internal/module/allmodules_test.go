@@ -1562,7 +1562,8 @@ func drawsUnderTop(t *testing.T, g hosted, s module.State, top string) bool {
 // TestAnEventNeverNamesAHiddenCard — the runtime publishes every Event to every
 // seat, so an event is as much a view as View is. Each card an event names,
 // as projected for a viewer, must be one that viewer's own board shows either
-// side of the action. Žolíky's blind draw from the deck was the case that
+// side of the action. The same goes for the move narrated from it, which the
+// viewer reads in the strip over the table. Žolíky's blind draw from the deck was the case that
 // failed this: the drawn card went to every opponent's socket.
 func TestAnEventNeverNamesAHiddenCard(t *testing.T) {
 	for _, g := range allModules() {
@@ -1593,7 +1594,13 @@ func TestAnEventNeverNamesAHiddenCard(t *testing.T) {
 							if !ok {
 								continue
 							}
-							for _, card := range cardsNamed(seen.Data) {
+							named := cardsNamed(seen.Data)
+							if mv, ok := module.NarrateEvent(g.mod, after, seen); ok {
+								for _, v := range mv.Fact.Params {
+									named = append(named, cardsNamed(map[string]any{"card": v})...)
+								}
+							}
+							for _, card := range named {
 								if boards == "" {
 									boards = viewJSON(before, viewer.ID) + viewJSON(after, viewer.ID)
 								}

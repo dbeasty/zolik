@@ -1570,4 +1570,13 @@ export const mt: Record<string, string> = {
   'marks.added': '+{n}',
   'marks.reshaped': 'MIBDUL',
   'marks.zone': '{n} mibdula',
+  'zolik.move.drewStock': '{player} ġibed mill-mazz',
+  'zolik.move.tookDiscard': '{player} ħa {card} mill-munzell tal-iskart',
+  'zolik.move.melded': '{player} niżżel {cards}',
+  'zolik.move.laidOffOwn': '{player} żied {cards} mal-kombinazzjoni tiegħu',
+  'zolik.move.laidOff': "{player} żied {cards} mal-kombinazzjoni ta' {owner}",
+  'zolik.move.swappedJoker': "{player} biddel joker ma' {card}",
+  'zolik.move.discarded': '{player} rema {card}',
+  'zolik.move.undid': '{player} ħassar mossa',
+  'moves.title': 'L-aħħar mossi',
 };

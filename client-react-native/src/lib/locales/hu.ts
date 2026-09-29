@@ -1569,4 +1569,13 @@ export const hu: Record<string, string> = {
   'marks.added': '+{n}',
   'marks.reshaped': 'VÁLTOZOTT',
   'marks.zone': '{n} változott',
+  'zolik.move.drewStock': '{player} húzott a húzópakliból',
+  'zolik.move.tookDiscard': '{player} elvette a(z) {card} lapot a dobópakliból',
+  'zolik.move.melded': '{player} lerakta: {cards}',
+  'zolik.move.laidOffOwn': '{player} hozzátette a saját kombinációjához: {cards}',
+  'zolik.move.laidOff': '{player} hozzátette {owner} kombinációjához: {cards}',
+  'zolik.move.swappedJoker': '{player} kicserélt egy jokert erre: {card}',
+  'zolik.move.discarded': '{player} eldobta: {card}',
+  'zolik.move.undid': '{player} visszavont egy lépést',
+  'moves.title': 'Legutóbbi lépések',
 };

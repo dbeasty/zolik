@@ -1561,4 +1561,13 @@ export const ro: Record<string, string> = {
   'marks.added': '+{n}',
   'marks.reshaped': 'SCHIMBAT',
   'marks.zone': '{n} schimbate',
+  'zolik.move.drewStock': '{player} a tras din talon',
+  'zolik.move.tookDiscard': '{player} a luat {card} din teancul de aruncate',
+  'zolik.move.melded': '{player} a coborât {cards}',
+  'zolik.move.laidOffOwn': '{player} a adăugat {cards} la propria combinație',
+  'zolik.move.laidOff': '{player} a adăugat {cards} la combinația lui {owner}',
+  'zolik.move.swappedJoker': '{player} a schimbat un joker cu {card}',
+  'zolik.move.discarded': '{player} a aruncat {card}',
+  'zolik.move.undid': '{player} a anulat o mutare',
+  'moves.title': 'Mutări recente',
 };

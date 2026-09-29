@@ -1564,4 +1564,13 @@ export const pt: Record<string, string> = {
   'marks.added': '+{n}',
   'marks.reshaped': 'ALTERADO',
   'marks.zone': '{n} alterado(s)',
+  'zolik.move.drewStock': '{player} comprou do baralho',
+  'zolik.move.tookDiscard': '{player} tirou {card} do monte de descartes',
+  'zolik.move.melded': '{player} baixou {cards}',
+  'zolik.move.laidOffOwn': '{player} juntou {cards} à sua própria combinação',
+  'zolik.move.laidOff': '{player} juntou {cards} à combinação de {owner}',
+  'zolik.move.swappedJoker': '{player} trocou um joker por {card}',
+  'zolik.move.discarded': '{player} descartou {card}',
+  'zolik.move.undid': '{player} anulou uma jogada',
+  'moves.title': 'Jogadas recentes',
 };

@@ -51,6 +51,54 @@ type liveMatch struct {
 	// still be deleted, swept or listed; only a move needs the board, and the
 	// next lock tries again.
 	stateErr error
+
+	// recent is the last few moves at the table, narrated separately for each
+	// seat from that seat's own projection of the events. Kept only in
+	// memory: it is a "what just happened" strip, not a record, and losing it
+	// to an eviction or a restart costs a line of text. Guarded by its own
+	// lock because the state message reads it from outside the entry's.
+	recentMu sync.Mutex
+	recent   map[string][]module.Move
+}
+
+// recentMoves is how many moves each seat's strip remembers: about a round of
+// turns at a full table.
+const recentMoves = 12
+
+// record adds one move's events to every seat's strip.
+func (e *liveMatch) record(mod module.GameModule, next module.State, players []string, events []module.Event) {
+	if mod == nil || len(events) == 0 {
+		return
+	}
+	e.recentMu.Lock()
+	defer e.recentMu.Unlock()
+	if e.recent == nil {
+		e.recent = map[string][]module.Move{}
+	}
+	for _, viewer := range players {
+		for _, ev := range events {
+			seen, ok := module.ProjectEvent(mod, ev, viewer)
+			if !ok {
+				continue
+			}
+			mv, ok := module.NarrateEvent(mod, next, seen)
+			if !ok {
+				continue
+			}
+			list := append(e.recent[viewer], mv)
+			if len(list) > recentMoves {
+				list = list[len(list)-recentMoves:]
+			}
+			e.recent[viewer] = list
+		}
+	}
+}
+
+// recentFor is a copy of one seat's strip, oldest first.
+func (e *liveMatch) recentFor(viewer string) []module.Move {
+	e.recentMu.Lock()
+	defer e.recentMu.Unlock()
+	return append([]module.Move(nil), e.recent[viewer]...)
 }
 
 // liveMatches is the Manager's table of entries.

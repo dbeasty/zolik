@@ -1560,4 +1560,13 @@ export const fi: Record<string, string> = {
   'marks.added': '+{n}',
   'marks.reshaped': 'MUUTETTU',
   'marks.zone': '{n} muuttunut',
+  'zolik.move.drewStock': '{player} nosti nostopakasta',
+  'zolik.move.tookDiscard': '{player} otti poistopinosta kortin {card}',
+  'zolik.move.melded': '{player} laski pöytään {cards}',
+  'zolik.move.laidOffOwn': '{player} lisäsi {cards} omaan yhdistelmäänsä',
+  'zolik.move.laidOff': '{player} lisäsi {cards} pelaajan {owner} yhdistelmään',
+  'zolik.move.swappedJoker': '{player} vaihtoi jokerin korttiin {card}',
+  'zolik.move.discarded': '{player} poisti kortin {card}',
+  'zolik.move.undid': '{player} perui siirron',
+  'moves.title': 'Viimeisimmät siirrot',
 };

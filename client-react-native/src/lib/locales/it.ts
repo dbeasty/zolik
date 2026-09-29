@@ -1564,4 +1564,13 @@ export const it: Record<string, string> = {
   'marks.added': '+{n}',
   'marks.reshaped': 'CAMBIATO',
   'marks.zone': '{n} cambiati',
+  'zolik.move.drewStock': '{player} ha pescato dal tallone',
+  'zolik.move.tookDiscard': '{player} ha preso {card} dalla pila degli scarti',
+  'zolik.move.melded': '{player} ha calato {cards}',
+  'zolik.move.laidOffOwn': '{player} ha aggiunto {cards} alla propria combinazione',
+  'zolik.move.laidOff': '{player} ha aggiunto {cards} alla combinazione di {owner}',
+  'zolik.move.swappedJoker': '{player} ha scambiato un jolly con {card}',
+  'zolik.move.discarded': '{player} ha scartato {card}',
+  'zolik.move.undid': '{player} ha annullato una mossa',
+  'moves.title': 'Mosse recenti',
 };

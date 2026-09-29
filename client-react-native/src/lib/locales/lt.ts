@@ -1554,4 +1554,13 @@ export const lt: Record<string, string> = {
   'marks.added': '+{n}',
   'marks.reshaped': 'PAKEISTA',
   'marks.zone': 'pakeista: {n}',
+  'zolik.move.drewStock': '{player}: traukė iš kaladės',
+  'zolik.move.tookDiscard': '{player}: paėmė {card} iš atmetimo krūvelės',
+  'zolik.move.melded': '{player}: išdėjo {cards}',
+  'zolik.move.laidOffOwn': '{player}: pridėjo {cards} prie savo derinio',
+  'zolik.move.laidOff': '{player}: pridėjo {cards} prie žaidėjo {owner} derinio',
+  'zolik.move.swappedJoker': '{player}: pakeitė džokerį į {card}',
+  'zolik.move.discarded': '{player}: atmetė {card}',
+  'zolik.move.undid': '{player}: atšaukė ėjimą',
+  'moves.title': 'Paskutiniai ėjimai',
 };

@@ -1550,4 +1550,13 @@ export const da: Record<string, string> = {
   'marks.added': '+{n}',
   'marks.reshaped': 'ÆNDRET',
   'marks.zone': '{n} ændret',
+  'zolik.move.drewStock': '{player} trak fra talonen',
+  'zolik.move.tookDiscard': '{player} tog {card} fra kastebunken',
+  'zolik.move.melded': '{player} lagde {cards} ud',
+  'zolik.move.laidOffOwn': '{player} lagde {cards} til sin egen udlægning',
+  'zolik.move.laidOff': '{player} lagde {cards} til {owner}s udlægning',
+  'zolik.move.swappedJoker': '{player} byttede en joker med {card}',
+  'zolik.move.discarded': '{player} kastede {card}',
+  'zolik.move.undid': '{player} fortrød et træk',
+  'moves.title': 'Seneste træk',
 };

@@ -1552,4 +1552,13 @@ export const lv: Record<string, string> = {
   'marks.added': '+{n}',
   'marks.reshaped': 'MAINĪTS',
   'marks.zone': 'mainīti: {n}',
+  'zolik.move.drewStock': '{player}: vilka no kavas',
+  'zolik.move.tookDiscard': '{player}: paņēma {card} no izmešanas kaudzes',
+  'zolik.move.melded': '{player}: izlika {cards}',
+  'zolik.move.laidOffOwn': '{player}: pielika {cards} savai kombinācijai',
+  'zolik.move.laidOff': '{player}: pielika {cards} spēlētāja {owner} kombinācijai',
+  'zolik.move.swappedJoker': '{player}: apmainīja džokeri pret {card}',
+  'zolik.move.discarded': '{player}: izmeta {card}',
+  'zolik.move.undid': '{player}: atsauca gājienu',
+  'moves.title': 'Pēdējie gājieni',
 };

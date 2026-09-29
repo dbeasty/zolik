@@ -138,4 +138,10 @@ test("a meld somebody else changed is marked, and the viewer's turn says what to
   // And it stays up for the viewer's own turn, which is when it is needed.
   await expect(page.getByTestId('turn-step')).toContainText('Your turn', { timeout: 15_000 });
   await expect(page.getByTestId('group-mark-meld_1')).toBeVisible();
+
+  // The strip over the table says who did it. The bot's last move is its
+  // discard; the lay-off is in the list a press opens.
+  await expect(page.getByTestId('recent-moves-latest')).toBeVisible();
+  await page.getByTestId('recent-moves').click();
+  await expect(page.getByTestId('recent-moves-list')).toContainText('to their own meld');
 });

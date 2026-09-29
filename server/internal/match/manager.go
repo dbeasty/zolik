@@ -667,6 +667,11 @@ func (m *Manager) applyLocked(ctx context.Context, e *liveMatch, playerID string
 	}
 	envelope.State = models.JSONDoc(next)
 	e.match, e.seq, e.rounds = envelope, entry.Seq, closed
+	players := make([]string, 0, len(match.Players))
+	for _, p := range match.Players {
+		players = append(players, p.ID)
+	}
+	e.record(mod, next, players, events)
 
 	if !snapshot && now.Sub(e.touched) > touchEvery {
 		// Best effort: the move is stored; a missed touch costs a minute of

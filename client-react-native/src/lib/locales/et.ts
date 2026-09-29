@@ -1556,4 +1556,13 @@ export const et: Record<string, string> = {
   'marks.added': '+{n}',
   'marks.reshaped': 'MUUDETUD',
   'marks.zone': '{n} muudetud',
+  'zolik.move.drewStock': '{player} tõmbas tõmbepakist',
+  'zolik.move.tookDiscard': '{player} võttis viskepakist {card}',
+  'zolik.move.melded': '{player} pani välja {cards}',
+  'zolik.move.laidOffOwn': '{player} lisas {cards} oma kombinatsiooni',
+  'zolik.move.laidOff': '{player} lisas {cards} mängija {owner} kombinatsiooni',
+  'zolik.move.swappedJoker': '{player} vahetas jokkeri kaardi {card} vastu',
+  'zolik.move.discarded': '{player} viskas {card}',
+  'zolik.move.undid': '{player} võttis käigu tagasi',
+  'moves.title': 'Viimased käigud',
 };

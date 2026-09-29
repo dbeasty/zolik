@@ -18,6 +18,14 @@ export type Fact = {
   params?: Record<string, unknown>;
 };
 
+/** One thing a player did, worded by the module — see `RecentMoves`. */
+export type MoveLine = {
+  playerId: string;
+  fact: Fact;
+  /** The group on the board the move touched, if any. */
+  groupId?: string;
+};
+
 /**
  * One card as the board shows it.
  *
@@ -397,6 +405,11 @@ export type MatchState = {
   canResume?: boolean;
   /** Player ids, in seat order; look their names up in `players`. */
   awayPlayers?: string[];
+  /**
+   * The last few moves at the table as this viewer may read them, oldest
+   * first. Absent for a game that does not narrate its moves.
+   */
+  recentMoves?: MoveLine[];
   players: MatchPlayer[];
   /**
    * Who is playing with whom if the table were dealt now, in seat order —

@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import type { MatchState, Zone } from '@/src/api/matchTypes';
 import { Dealer } from '@/src/components/match/Dealer';
 import { Panel } from '@/src/components/match/Panel';
+import { RecentMoves } from '@/src/components/match/RecentMoves';
 import { SeatStrip } from '@/src/components/match/SeatStrip';
 import { ZoneView } from '@/src/components/match/ZoneView';
 import type { Measurable } from '@/src/hooks/useDropRegistry';
@@ -158,6 +159,11 @@ export function BoardLayout({
           {factText(f, state.players)}
         </Text>
       ))}
+
+      {/* Who did what, beside the seats that did it. */}
+      {state.recentMoves?.length ? (
+        <RecentMoves moves={state.recentMoves} players={state.players} viewerId={viewerId} />
+      ) : null}
 
       {/* The piles and stacks everyone draws from and discards to, and the
           cards everyone plays against, directly above the hand and buttons. */}

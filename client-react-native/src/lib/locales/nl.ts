@@ -1569,4 +1569,13 @@ export const nl: Record<string, string> = {
   'marks.added': '+{n}',
   'marks.reshaped': 'GEWIJZIGD',
   'marks.zone': '{n} gewijzigd',
+  'zolik.move.drewStock': '{player} pakte van de trekstapel',
+  'zolik.move.tookDiscard': '{player} pakte {card} van de aflegstapel',
+  'zolik.move.melded': '{player} legde {cards}',
+  'zolik.move.laidOffOwn': '{player} legde {cards} aan bij de eigen combinatie',
+  'zolik.move.laidOff': '{player} legde {cards} aan bij de combinatie van {owner}',
+  'zolik.move.swappedJoker': '{player} ruilde een joker voor {card}',
+  'zolik.move.discarded': '{player} legde {card} af',
+  'zolik.move.undid': '{player} nam een zet terug',
+  'moves.title': 'Recente zetten',
 };

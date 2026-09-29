@@ -1551,4 +1551,13 @@ export const en: Record<string, string> = {
   'marks.added': '+{n}',
   'marks.reshaped': 'CHANGED',
   'marks.zone': '{n} changed',
+  'zolik.move.drewStock': '{player} drew from the stock',
+  'zolik.move.tookDiscard': '{player} took {card} from the discard pile',
+  'zolik.move.melded': '{player} laid down {cards}',
+  'zolik.move.laidOffOwn': '{player} added {cards} to their own meld',
+  'zolik.move.laidOff': "{player} added {cards} to {owner}'s meld",
+  'zolik.move.swappedJoker': '{player} swapped {card} in for a joker',
+  'zolik.move.discarded': '{player} discarded {card}',
+  'zolik.move.undid': '{player} took a move back',
+  'moves.title': 'Recent moves',
 };

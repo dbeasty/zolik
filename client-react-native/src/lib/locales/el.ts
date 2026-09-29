@@ -1584,4 +1584,13 @@ export const el: Record<string, string> = {
   'marks.added': '+{n}',
   'marks.reshaped': 'ΑΛΛΑΓΗ',
   'marks.zone': '{n} αλλαγές',
+  'zolik.move.drewStock': '{player}: τράβηξε από την τράπουλα',
+  'zolik.move.tookDiscard': '{player}: πήρε το {card} από τον σωρό',
+  'zolik.move.melded': '{player}: κατέβασε {cards}',
+  'zolik.move.laidOffOwn': '{player}: πρόσθεσε {cards} στον δικό του συνδυασμό',
+  'zolik.move.laidOff': '{player}: πρόσθεσε {cards} στον συνδυασμό του/της {owner}',
+  'zolik.move.swappedJoker': '{player}: αντάλλαξε έναν τζόκερ με το {card}',
+  'zolik.move.discarded': '{player}: πέταξε το {card}',
+  'zolik.move.undid': '{player}: πήρε πίσω μια κίνηση',
+  'moves.title': 'Πρόσφατες κινήσεις',
 };

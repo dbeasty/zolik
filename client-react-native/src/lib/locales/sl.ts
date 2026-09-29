@@ -1546,4 +1546,13 @@ export const sl: Record<string, string> = {
   'marks.added': '+{n}',
   'marks.reshaped': 'SPREMENJENO',
   'marks.zone': 'spremenjeno: {n}',
+  'zolik.move.drewStock': '{player}: vzel iz talona',
+  'zolik.move.tookDiscard': '{player}: vzel {card} s kupa odvrženih',
+  'zolik.move.melded': '{player}: položil {cards}',
+  'zolik.move.laidOffOwn': '{player}: dodal {cards} k svoji kombinaciji',
+  'zolik.move.laidOff': '{player}: dodal {cards} h kombinaciji igralca {owner}',
+  'zolik.move.swappedJoker': '{player}: zamenjal džokerja za {card}',
+  'zolik.move.discarded': '{player}: odvrgel {card}',
+  'zolik.move.undid': '{player}: razveljavil potezo',
+  'moves.title': 'Zadnje poteze',
 };

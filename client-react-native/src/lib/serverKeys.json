@@ -520,6 +520,14 @@
     "verb.undoTakePile",
     "zolik.badge.jokerOwed",
     "zolik.badge.owedToMeld",
+    "zolik.move.discarded",
+    "zolik.move.drewStock",
+    "zolik.move.laidOff",
+    "zolik.move.laidOffOwn",
+    "zolik.move.melded",
+    "zolik.move.swappedJoker",
+    "zolik.move.tookDiscard",
+    "zolik.move.undid",
     "zolik.offer.meld",
     "zolik.remedy.discardNotAJoker",
     "zolik.remedy.discardSomethingElse",
@@ -1382,6 +1390,37 @@
       "value",
       "winners"
     ],
+    "zolik.move.discarded": [
+      "card",
+      "player"
+    ],
+    "zolik.move.drewStock": [
+      "player"
+    ],
+    "zolik.move.laidOff": [
+      "cards",
+      "owner",
+      "player"
+    ],
+    "zolik.move.laidOffOwn": [
+      "cards",
+      "player"
+    ],
+    "zolik.move.melded": [
+      "cards",
+      "player"
+    ],
+    "zolik.move.swappedJoker": [
+      "card",
+      "player"
+    ],
+    "zolik.move.tookDiscard": [
+      "card",
+      "player"
+    ],
+    "zolik.move.undid": [
+      "player"
+    ],
     "zolik.offer.meld": [
       "value"
     ],
@@ -1578,6 +1617,14 @@
     "status.lastDeal",
     "status.teamScore",
     "status.winner",
+    "zolik.move.discarded",
+    "zolik.move.drewStock",
+    "zolik.move.laidOff",
+    "zolik.move.laidOffOwn",
+    "zolik.move.melded",
+    "zolik.move.swappedJoker",
+    "zolik.move.tookDiscard",
+    "zolik.move.undid",
     "zolik.offer.meld",
     "zolik.remedy.discardSomethingElse",
     "zolik.remedy.drawFromStock",

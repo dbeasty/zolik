@@ -1548,4 +1548,13 @@ export const sv: Record<string, string> = {
   'marks.added': '+{n}',
   'marks.reshaped': 'ÄNDRAD',
   'marks.zone': '{n} ändrade',
+  'zolik.move.drewStock': '{player} drog från talongen',
+  'zolik.move.tookDiscard': '{player} tog {card} från kasthögen',
+  'zolik.move.melded': '{player} lade ut {cards}',
+  'zolik.move.laidOffOwn': '{player} lade {cards} till sin egen kombination',
+  'zolik.move.laidOff': '{player} lade {cards} till {owner}s kombination',
+  'zolik.move.swappedJoker': '{player} bytte en joker mot {card}',
+  'zolik.move.discarded': '{player} kastade {card}',
+  'zolik.move.undid': '{player} ångrade ett drag',
+  'moves.title': 'Senaste dragen',
 };

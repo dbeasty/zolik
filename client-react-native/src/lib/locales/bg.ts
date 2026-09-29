@@ -1564,4 +1564,13 @@ export const bg: Record<string, string> = {
   'marks.added': '+{n}',
   'marks.reshaped': 'ПРОМЕНЕНО',
   'marks.zone': '{n} промени',
+  'zolik.move.drewStock': '{player} изтегли от тестето',
+  'zolik.move.tookDiscard': '{player} взе {card} от купчината',
+  'zolik.move.melded': '{player} свали {cards}',
+  'zolik.move.laidOffOwn': '{player} добави {cards} към своя комбинация',
+  'zolik.move.laidOff': '{player} добави {cards} към комбинация на {owner}',
+  'zolik.move.swappedJoker': '{player} смени жокер с {card}',
+  'zolik.move.discarded': '{player} изхвърли {card}',
+  'zolik.move.undid': '{player} върна ход',
+  'moves.title': 'Последни ходове',
 };

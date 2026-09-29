@@ -1586,4 +1586,13 @@ export const ga: Record<string, string> = {
   'marks.added': '+{n}',
   'marks.reshaped': 'ATHRAITHE',
   'marks.zone': '{n} athraithe',
+  'zolik.move.drewStock': 'Tharraing {player} ón stoc',
+  'zolik.move.tookDiscard': 'Thóg {player} {card} ón gcarn caite',
+  'zolik.move.melded': 'Leag {player} síos {cards}',
+  'zolik.move.laidOffOwn': 'Chuir {player} {cards} lena chumasc féin',
+  'zolik.move.laidOff': 'Chuir {player} {cards} le cumasc {owner}',
+  'zolik.move.swappedJoker': 'Mhalartaigh {player} fear grinn ar {card}',
+  'zolik.move.discarded': 'Chaith {player} {card}',
+  'zolik.move.undid': 'Chealaigh {player} beart',
+  'moves.title': 'Bearta le déanaí',
 };

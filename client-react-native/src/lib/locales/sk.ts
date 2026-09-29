@@ -1551,4 +1551,13 @@ export const sk: Record<string, string> = {
   'marks.added': '+{n}',
   'marks.reshaped': 'ZMENA',
   'marks.zone': 'zmeny: {n}',
+  'zolik.move.drewStock': '{player}: ťahal z balíčka',
+  'zolik.move.tookDiscard': '{player}: vzal {card} z odhadzovacieho balíčka',
+  'zolik.move.melded': '{player}: vyložil {cards}',
+  'zolik.move.laidOffOwn': '{player}: priložil {cards} k svojmu výkladu',
+  'zolik.move.laidOff': '{player}: priložil {cards} k výkladu hráča {owner}',
+  'zolik.move.swappedJoker': '{player}: vymenil žolíka za {card}',
+  'zolik.move.discarded': '{player}: odhodil {card}',
+  'zolik.move.undid': '{player}: vzal ťah späť',
+  'moves.title': 'Posledné ťahy',
 };
