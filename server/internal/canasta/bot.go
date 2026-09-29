@@ -55,8 +55,9 @@ func (b bot) Act(raw module.State, seat module.BotSeat, offers []module.ActionOf
 	// it would ever reach for one is the wedge MeldLaid exists for, and that is
 	// precisely the position it would oscillate in.
 	//
-	// What keeps a bot out of that wedge is opensTheAccount, which only ever
-	// starts an opening it has already found the whole of. This leaves bots
+	// What keeps a bot out of that wedge is opening.go: an unopened side only
+	// captures, melds or lays off once it has found, through the engine, the
+	// whole of an opening that still leaves it a discard. This leaves bots
 	// exactly where they were before the undos existed, which is the point.
 	offers = withoutUndos(offers)
 
@@ -72,11 +73,11 @@ func (b bot) Act(raw module.State, seat module.BotSeat, offers []module.ActionOf
 	tb := b.read(s, seat.PlayerID, p)
 
 	if s.Phase == phaseDraw {
-		if a, ok := b.draw(s, seat.PlayerID, p, mn); ok {
+		if a, ok := b.draw(raw, s, seat.PlayerID, p, mn); ok {
 			return a, true
 		}
 	}
-	if a, ok := b.build(s, seat.PlayerID, p, tb, mn); ok {
+	if a, ok := b.build(raw, s, seat.PlayerID, p, tb, mn); ok {
 		return a, true
 	}
 	if a, ok := b.discard(s, seat.PlayerID, p, tb, mn); ok {
@@ -374,10 +375,11 @@ func (mn menu) byVerb(verb string) []module.ActionOffer {
 // worth two of them. So it is priced in cards, against a floor the profile
 // sets, with one exception that overrides the floor — a side that has not
 // melded yet is buying its initial meld as well as the pile, and that is worth
-// paying for at any size.
-func (b bot) draw(s *GameState, playerID string, p profile, mn menu) (module.Action, bool) {
+// paying for at any size — provided the rest of the opening is there to be
+// laid. See captureOpens.
+func (b bot) draw(raw module.State, s *GameState, playerID string, p profile, mn menu) (module.Action, bool) {
 	if p.takesPile {
-		if o, ok := b.bestCapture(s, playerID, p, mn); ok {
+		if o, ok := b.bestCapture(raw, s, playerID, p, mn); ok {
 			return module.SubmissionFor(o)
 		}
 	}
@@ -393,7 +395,7 @@ func (b bot) draw(s *GameState, playerID string, p profile, mn menu) (module.Act
 }
 
 // bestCapture picks which pile capture to make, if any is worth making.
-func (b bot) bestCapture(s *GameState, playerID string, p profile, mn menu) (module.ActionOffer, bool) {
+func (b bot) bestCapture(raw module.State, s *GameState, playerID string, p profile, mn menu) (module.ActionOffer, bool) {
 	opts := mn.byVerb(VerbTakePile)
 	if len(opts) == 0 {
 		return module.ActionOffer{}, false
@@ -404,7 +406,9 @@ func (b bot) bestCapture(s *GameState, playerID string, p profile, mn menu) (mod
 	}
 	// A side still short of its initial meld is buying two things with one
 	// move, so the pile does not have to be big to be worth it.
-	if t := s.team(playerID); t != nil && !t.HasMelded {
+	t := s.team(playerID)
+	opening := t != nil && !t.HasMelded
+	if opening {
 		floor = 1
 	}
 	if len(s.DiscardPile) < floor {
@@ -414,13 +418,23 @@ func (b bot) bestCapture(s *GameState, playerID string, p profile, mn menu) (mod
 	// the fewest wilds, because a capture paid for with a wild has spent the
 	// most valuable card in the hand on a card that was free to whoever went
 	// before.
-	best, found := module.ActionOffer{}, false
+	opts = append([]module.ActionOffer(nil), opts...)
+	sort.SliceStable(opts, func(i, j int) bool { return cheaperCapture(opts[i], opts[j]) })
 	for _, o := range opts {
-		if !found || cheaperCapture(o, best) {
-			best, found = o, true
+		// The capture is the first lay of an opening, and the engine only
+		// asks whether the floor is reachable in value, not whether reaching
+		// it leaves the two cards a side that cannot go out must end on. So
+		// the rest of the opening is found before the pile is touched, or the
+		// pile is left where it is.
+		if opening {
+			a, ok := module.SubmissionFor(o)
+			if !ok || !captureOpens(raw, playerID, a) {
+				continue
+			}
 		}
+		return o, true
 	}
-	return best, found
+	return module.ActionOffer{}, false
 }
 
 // captureCost is what a take-pile offer spends out of hand: how many cards,
@@ -454,9 +468,19 @@ func cheaperCapture(x, y module.ActionOffer) bool {
 // --- building the table ------------------------------------------------------
 
 // build lays a meld or extends one, and is where wild cards are actually spent.
-func (b bot) build(s *GameState, playerID string, p profile, tb table, mn menu) (module.Action, bool) {
+func (b bot) build(raw module.State, s *GameState, playerID string, p profile, tb table, mn menu) (module.Action, bool) {
 	t := s.team(playerID)
 	held := len(s.Hands[playerID])
+
+	// Never start an opening this turn cannot finish, and never take a step in
+	// one that leaves it unfinishable. See opening.go: every strength is held
+	// to this, lay-offs included, because the position being avoided is not a
+	// weak move but a turn with no legal move in it. That overrides meldsEarly
+	// and the lay-off preference below, which are tastes about *which* good
+	// move to make, and there is no good version of walking into a dead turn.
+	if t != nil && !t.HasMelded {
+		return openingMove(raw, s, playerID, mn)
+	}
 
 	// Lay-offs first. A lay-off grows a meld the side already owns, which is
 	// the only way a canasta ever gets finished, and unlike a new meld it can
@@ -471,20 +495,6 @@ func (b bot) build(s *GameState, playerID string, p profile, tb table, mn menu) 
 	melds := mn.byVerb(VerbLayMeld)
 	if len(melds) == 0 {
 		return module.Action{}, false
-	}
-	// Never start an opening this turn cannot finish. See opensTheAccount:
-	// every strength is held to this, and every strength lays the meld the
-	// plan starts with rather than one of its own choosing, because the
-	// position being avoided is not a weak move but a turn with no legal move
-	// in it. That overrides meldsEarly, whose whole content — a beginner lays
-	// the first meld they see — is a taste about *which* good move to make,
-	// and there is no good version of walking into a dead turn.
-	if t != nil && !t.HasMelded {
-		opener, ok := opensTheAccount(s, playerID, t, melds)
-		if !ok {
-			return module.Action{}, false
-		}
-		return module.SubmissionFor(opener)
 	}
 	if p.meldsEarly {
 		return module.SubmissionFor(melds[0])
@@ -513,130 +523,6 @@ func (b bot) build(s *GameState, playerID string, p profile, tb table, mn menu) 
 // emptiesHand reports that playing this many cards leaves nothing but the card
 // the turn has to end with — which is to say, going out.
 func emptiesHand(held, played int) bool { return held-played <= 1 }
-
-// opensTheAccount reports that the melds available this turn add up to the
-// partnership's initial-meld minimum.
-//
-// This is the guard that stops the bot laying an opening it cannot finish, and
-// the position it exists for is a dead turn rather than a bad one. The minimum
-// is a property of the whole turn, so the engine lets a lay fall short of it
-// and then refuses the discard that would end the turn (applyDiscard's
-// ErrInitialMeldNotMet) on the grounds that more melding is still possible. If
-// it is not possible, nothing is: the meld is refused as too small, the
-// lay-off is refused because the side has not opened, and the discard is
-// refused because it laid. Nineteen of forty bot-vs-bot matches reached that
-// position before this function existed.
-//
-// The engine has its own guard — checkInitialMeld, which refuses a lay that
-// puts the floor out of reach using meld.go's reachableValue — and it is not
-// tight enough to rely on. That is worth fixing on its own terms and is not
-// this bot's business: Žolíky's agent has carried the same discipline since it
-// was written (findInitialMeldPlan only ever *starts* an opening it has
-// already found the whole of), for the same reason, and a player that checks
-// before committing does not need the engine to catch it.
-//
-// Two melds at most, and that cap is what makes the answer trustworthy rather
-// than merely optimistic. checkInitialMeld accepts a lay outright once the
-// turn's total has reached the floor, and only consults reachableValue when it
-// has not — so the *last* meld of a plan is always accepted, and the risk lies
-// entirely in the ones before it, which are accepted only if the engine's own
-// bound agrees there is a way to finish. A three-meld plan therefore depends on
-// that bound agreeing with this function about the third meld, and when it did
-// not the turn wedged anyway: four of the last remaining dead turns were
-// exactly that disagreement. A two-meld plan has no middle to disagree about.
-//
-// Greedy by value over disjoint offers, which can under-count — some
-// combination of smaller melds might reach a floor this misses. Under-counting
-// costs a turn of waiting, which is what a person short of the minimum does
-// anyway; over-counting costs the deal.
-func opensTheAccount(s *GameState, playerID string, t *Team, offers []module.ActionOffer) (module.ActionOffer, bool) {
-	r := s.rules()
-	need := r.meldFloor(t.Score) - s.LaidThisTurn
-
-	all := make([]openingMeld, 0, len(offers))
-	free := make([]openingMeld, 0, len(offers))
-	for _, o := range offers {
-		cards := meldCards(o)
-		if len(cards) == 0 {
-			continue
-		}
-		c := openingMeld{offer: o, cards: cards, value: handValue(cards), wild: spendsWild(o)}
-		all = append(all, c)
-		if !c.wild {
-			free = append(free, c)
-		}
-	}
-
-	// Twice over, and the first pass is the one that keeps the wild card.
-	//
-	// An opening paid for out of naturals costs nothing but cards. The same
-	// opening paid with a joker costs fifty points now and the seventh card of
-	// some canasta later, and the greedy walk below will always reach for it
-	// first, because a joker is the most valuable card in the deck and the
-	// walk is ordered by value. So the naturals get their own attempt before
-	// the wilds are offered at all.
-	//
-	// The second pass is exactly what was here before it, and it is what keeps
-	// this a preference rather than a refusal: a side that can only open by
-	// spending a wild opens by spending a wild. Not opening is far more
-	// expensive than any wild — see worthAWild, which says the same thing
-	// about the same card.
-	if o, ok := openingPlan(s, playerID, t, free, need); ok {
-		return o, true
-	}
-	return openingPlan(s, playerID, t, all, need)
-}
-
-// openingMeld is one meld an opening plan could be built from.
-type openingMeld struct {
-	offer module.ActionOffer
-	cards []string
-	value int
-	wild  bool
-}
-
-// openingPlan is the greedy walk itself: the meld to start with, if these
-// melds between them reach the minimum.
-func openingPlan(s *GameState, playerID string, t *Team, cands []openingMeld, need int) (module.ActionOffer, bool) {
-	cands = append([]openingMeld(nil), cands...)
-	sort.SliceStable(cands, func(i, j int) bool { return cands[i].value > cands[j].value })
-
-	// Walked against a copy of the hand rather than a set of card names: two
-	// decks are in play, so a hand can hold two of the same card and two offers
-	// naming it are not necessarily in conflict.
-	remaining := append([]string(nil), s.Hands[playerID]...)
-	total, laid := 0, 0
-	var opener module.ActionOffer
-	for _, c := range cands {
-		if laid == maxOpeningMelds {
-			break
-		}
-		next, ok := removeCards(remaining, c.cards)
-		if !ok {
-			continue // its cards are already spoken for by a better meld
-		}
-		// A side that cannot go out has to be left holding two cards, one to
-		// discard and one to keep (checkLeavesPlayable). A plan that breaches
-		// that is not a plan the engine will let it finish.
-		if len(next) < 2 && !canGoOut(s, t) {
-			continue
-		}
-		remaining = next
-		total += c.value
-		if laid == 0 {
-			opener = c.offer
-		}
-		laid++
-		if total >= need {
-			return opener, true
-		}
-	}
-	return module.ActionOffer{}, false
-}
-
-// maxOpeningMelds is how many melds an opening this bot will start may take.
-// See opensTheAccount for why it is two.
-const maxOpeningMelds = 2
 
 // meldCards is what an offer would put on the table.
 func meldCards(o module.ActionOffer) []string {

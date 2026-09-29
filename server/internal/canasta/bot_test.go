@@ -574,9 +574,9 @@ func TestBotPlaysWholeDealsLegally(t *testing.T) {
 // arithmetic — reachableValue was erring *low*, refusing openings the hand
 // could actually make — and the two halves of the fix are meld.go's meld-first
 // orders and the undo window that now reaches the start of a turn. What this
-// bot contributes is still opensTheAccount: it declines to begin an opening it
-// cannot finish, which is a better reason not to be in the position than a way
-// out of it.
+// bot contributes is opening.go: it declines to begin an opening it cannot
+// finish, asking the engine rather than estimating, which is a better reason
+// not to be in the position than a way out of it.
 
 // tally is what a played-out match is being watched for: the two things a bot
 // can do with a wild card that read as a bug rather than as weak play.
