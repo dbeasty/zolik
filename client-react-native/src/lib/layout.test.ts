@@ -1,6 +1,10 @@
 import {
   SCREEN_PADDING,
+  cardIndexBox,
+  cardIndexColumn,
   dragPeek,
+  groupShowsIndices,
+  stackedColumn,
   fanOverlaps,
   fanPitch,
   handRowWidth,
@@ -264,5 +268,47 @@ describe('the fan', () => {
   it('measures the row the way the thirteen-card rule does', () => {
     const m = metricsFor(1600);
     expect(handRowWidth(m)).toBe(m.maxWidth - 2 * SCREEN_PADDING - 2 * m.panel.padding);
+  });
+});
+
+describe('card indices for a closed group', () => {
+  const narrowWidths = [320, 375, 414, 480, 600, 767];
+
+  // The whole point: on a phone a closed group is a column of indices, and
+  // only a closed one — the tap that opens it is asking for the cards. Wide
+  // screens keep drawing cards, and a group collapsed to its top card is
+  // already shorter than any column.
+  it('is drawn only on a narrow board, and only closed', () => {
+    const phone = metricsFor(375);
+    expect(groupShowsIndices(phone, false, false)).toBe(true);
+    expect(groupShowsIndices(phone, true, false)).toBe(false);
+    expect(groupShowsIndices(phone, false, true)).toBe(false);
+    for (const w of [768, 1024, 1280, 1600]) {
+      expect(groupShowsIndices(metricsFor(w), false, false)).toBe(false);
+    }
+  });
+
+  // A column of indices is only worth drawing if it is shorter than the
+  // overlapped cards it replaces — for every group length, at every narrow
+  // width, and by a real margin rather than a pixel.
+  it.each(narrowWidths)('is shorter than the overlapped cards at %spx', (w) => {
+    const m = metricsFor(w);
+    for (let n = 1; n <= 13; n++) {
+      expect(cardIndexColumn(m, n)).toBeLessThan(stackedColumn(m, n));
+    }
+    expect(cardIndexColumn(m, 3)).toBeLessThanOrEqual(stackedColumn(m, 3) * 0.7);
+  });
+
+  // Legible: the same ten-point floor every other index keeps, and wide
+  // enough for the widest index — "10" and its mark — without clipping.
+  it.each(narrowWidths)('fits the widest index legibly at %spx', (w) => {
+    const m = metricsFor(w);
+    const box = cardIndexBox(m);
+    expect(box.rankFont).toBeGreaterThanOrEqual(10);
+    expect(box.height).toBeGreaterThan(box.rankFont);
+    expect(box.width).toBeGreaterThanOrEqual(Math.ceil(1.25 * box.rankFont + box.markSize));
+    // Never narrower than the compact card it stands in for, so a group's
+    // box does not change width as it is opened and closed.
+    expect(box.width).toBeGreaterThanOrEqual(m.card.compactWidth);
   });
 });

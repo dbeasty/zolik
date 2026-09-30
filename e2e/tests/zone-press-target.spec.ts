@@ -229,7 +229,9 @@ test.describe('an offer that names the whole spread', () => {
 
     await pressTheSpread(page);
     await expect(page.getByTestId('why-sheet')).toBeVisible();
-    await expect(page.getByTestId('why-reason')).toHaveText('Select 6 card(s)');
+    // Five, not six: the black-three meld's floor is all but the one card
+    // kept back to discard (a83b4c1).
+    await expect(page.getByTestId('why-reason')).toHaveText('Select 5 card(s)');
     expect(await serverHand(request, matchId, host)).toHaveLength(6);
   });
 });
