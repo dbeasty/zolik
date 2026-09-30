@@ -1041,8 +1041,6 @@ export const ga: Record<string, string> = {
   'intro.bulletGuest': 'Ní gá aon suiteáil chun triail a bhaint as — tosaigh mar aoi',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Rummy Ilchríochach · {server}',
-  'home.playingAs': 'Tá tú ag imirt mar {name}',
   'home.signInPrompt': 'Sínigh isteach nó lean ar aghaidh mar aoi chun imirt ar líne.',
   'home.statsAndLeaderboard': 'Staitisticí agus tábla ceannais',
   'home.play': 'Imir',
@@ -1083,7 +1081,7 @@ export const ga: Record<string, string> = {
     'Níl éinne eile ag fanacht fós. Feiceann óstaigh tú mar sin féin agus is féidir leo cuireadh a thabhairt duit.',
   'waiting.server': 'Freastalaí',
   'waiting.none':
-    'Níl éinne ag fanacht faoi láthair. Aon duine a chuireann é féin ar fáil sa phríomhroghchlár, taispeánfar anseo é.',
+    'Níl aon duine ag fanacht faoi láthair. Beidh aon duine a chuireann é féin ar fáil don chluiche seo le feiceáil anseo.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'Tá cód an bhoird ar iarraidh ón nasc sin.',
@@ -1095,11 +1093,7 @@ export const ga: Record<string, string> = {
   'join.takingSeatAt': 'Ag glacadh suíocháin ag {game}…',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': 'Gach rud is féidir leis an bhfreastalaí seo a óstáil',
   'lobby.games.bots': 'Botanna',
-  'lobby.games.setup': 'Socruithe',
-  'lobby.games.playBot': 'Imir in aghaidh bota',
-  'lobby.games.playBots': 'Imir in aghaidh {n} bota',
   'lobby.games.openTable': 'Oscail bord',
   'lobby.games.players': '{n} imreoir',
   'lobby.games.playerRange': '{min}–{max} imreoir',
@@ -1136,7 +1130,6 @@ export const ga: Record<string, string> = {
   'mine.deleteConfirmBody': 'Cuireann sé seo deireadh leis an gcluiche do gach duine eile ag an tábla. Ní féidir é seo a chur ar ceal.',
   'mine.deleteConfirm': 'Scrios',
   'mine.deleteCancel': 'Cealaigh',
-  'mine.viewAll': 'Féach ar chách',
   'mine.status.lobby': 'Ag fanacht le tosú',
   'mine.status.active': 'Ar siúl',
   'mine.status.suspended': 'Ar sos',
@@ -1725,4 +1718,18 @@ export const ga: Record<string, string> = {
   'option.hints': 'Leideanna',
   'choice.hints.1': 'Ceadaithe',
   'choice.hints.0': 'Múchta',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Roghnaigh cluiche',
+  'picker.yourTurn': 'Do sheal',
+  'picker.resume': 'Lean ar aghaidh',
+  'picker.waiting': '{n} ag fanacht',
+  'picker.tablesMany': '{n} cluiche ar siúl',
+  'picker.waitingFor': 'Tá tú ag fanacht le {game} a imirt',
+  'picker.join': 'Glac páirt',
+  'game.startYourOwn': 'Tosaigh do cheann féin',
+  'game.playBots': 'Imir in aghaidh bot',
+  'setup.titleTable': 'Bord nua {game}',
+  'setup.titleBots': '{game} in aghaidh bot',
+  'setup.openTable': 'Oscail bord',
+  'setup.dealMeIn': 'Roinn orm',
 };

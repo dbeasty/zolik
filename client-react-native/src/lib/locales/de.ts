@@ -1036,8 +1036,6 @@ export const de: Record<string, string> = {
   'intro.bulletGuest': 'Keine Installation nötig — einfach als Gast loslegen',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Kontinental-Rommé · {server}',
-  'home.playingAs': 'Du spielst als {name}',
   'home.signInPrompt': 'Melde dich an oder spiel als Gast weiter, um online zu spielen.',
   'home.statsAndLeaderboard': 'Statistik & Rangliste',
   'home.play': 'Spielen',
@@ -1075,7 +1073,8 @@ export const de: Record<string, string> = {
     'Gerade wartet niemand aufs Spielen. Setz dich auf die Liste, dann bist du der Erste, den jemand sieht.',
   'waiting.noOthersYet': 'Sonst wartet noch niemand. Gastgeber sehen dich trotzdem und können dich einladen.',
   'waiting.server': 'Server',
-  'waiting.none': 'Gerade wartet niemand. Wer sich im Hauptmenü bereitstellt, taucht hier auf.',
+  'waiting.none':
+    'Gerade wartet niemand. Wer sich für dieses Spiel bereitstellt, taucht hier auf.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'Diesem Link fehlt der Tischcode.',
@@ -1086,11 +1085,7 @@ export const de: Record<string, string> = {
   'join.takingSeatAt': 'Platz nehmen bei {game} …',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': 'Alles, was dieser Server anbieten kann',
   'lobby.games.bots': 'Bots',
-  'lobby.games.setup': 'Einstellungen',
-  'lobby.games.playBot': 'Gegen einen Bot spielen',
-  'lobby.games.playBots': 'Gegen {n} Bots spielen',
   'lobby.games.openTable': 'Tisch eröffnen',
   'lobby.games.players': '{n} Spieler',
   'lobby.games.playerRange': '{min}–{max} Spieler',
@@ -1127,7 +1122,6 @@ export const de: Record<string, string> = {
   'mine.deleteConfirmBody': 'Das beendet das Spiel für alle anderen am Tisch. Das kann nicht rückgängig gemacht werden.',
   'mine.deleteConfirm': 'Löschen',
   'mine.deleteCancel': 'Abbrechen',
-  'mine.viewAll': 'Alle anzeigen',
   'mine.status.lobby': 'Wartet auf Start',
   'mine.status.active': 'Läuft',
   'mine.status.suspended': 'Pausiert',
@@ -1717,4 +1711,18 @@ export const de: Record<string, string> = {
   'option.hints': 'Tipps',
   'choice.hints.1': 'Erlaubt',
   'choice.hints.0': 'Aus',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Wähle ein Spiel',
+  'picker.yourTurn': 'Du bist dran',
+  'picker.resume': 'Fortsetzen',
+  'picker.waiting': '{n} warten',
+  'picker.tablesMany': '{n} laufende Spiele',
+  'picker.waitingFor': 'Du wartest auf eine Runde {game}',
+  'picker.join': 'Beitreten',
+  'game.startYourOwn': 'Eigenes starten',
+  'game.playBots': 'Gegen Bots spielen',
+  'setup.titleTable': 'Neuer Tisch: {game}',
+  'setup.titleBots': '{game} gegen Bots',
+  'setup.openTable': 'Tisch eröffnen',
+  'setup.dealMeIn': 'Karten her',
 };

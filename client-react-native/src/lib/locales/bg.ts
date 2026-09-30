@@ -1024,8 +1024,6 @@ export const bg: Record<string, string> = {
   'intro.bulletGuest': 'Без инсталация, за да опитате — включете се като гост',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Континентален реми · {server}',
-  'home.playingAs': 'Играеш като {name}',
   'home.signInPrompt': 'Влез или продължи като гост, за да играеш онлайн.',
   'home.statsAndLeaderboard': 'Статистика и класация',
   'home.play': 'Играй',
@@ -1062,7 +1060,8 @@ export const bg: Record<string, string> = {
     'В момента никой не чака да играе. Запиши се в списъка и ще си първият, когото някой вижда.',
   'waiting.noOthersYet': 'Още никой друг не чака. Домакините пак те виждат и могат да те поканят.',
   'waiting.server': 'Сървър',
-  'waiting.none': 'В момента никой не чака. Който се отбележи като готов в главното меню, се появява тук.',
+  'waiting.none':
+    'В момента никой не чака. Който се отбележи като готов за тази игра, се появява тук.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'На тази връзка ѝ липсва кодът на масата.',
@@ -1073,11 +1072,7 @@ export const bg: Record<string, string> = {
   'join.takingSeatAt': 'Заемаме място на {game}…',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': 'Всичко, което този сървър може да предложи',
   'lobby.games.bots': 'Ботове',
-  'lobby.games.setup': 'Настройки',
-  'lobby.games.playBot': 'Играй срещу бот',
-  'lobby.games.playBots': 'Играй срещу {n} бота',
   'lobby.games.openTable': 'Отвори маса',
   'lobby.games.players': 'Играчи: {n}',
   'lobby.games.playerRange': 'Играчи: {min}–{max}',
@@ -1114,7 +1109,6 @@ export const bg: Record<string, string> = {
   'mine.deleteConfirmBody': 'Играта приключва за всички на масата. Това не може да се върне.',
   'mine.deleteConfirm': 'Изтрий',
   'mine.deleteCancel': 'Отказ',
-  'mine.viewAll': 'Виж всички',
   'mine.status.lobby': 'Чака да започне',
   'mine.status.active': 'Играе се',
   'mine.status.suspended': 'На пауза',
@@ -1703,4 +1697,18 @@ export const bg: Record<string, string> = {
   'option.hints': 'Подсказки',
   'choice.hints.1': 'Разрешени',
   'choice.hints.0': 'Изключени',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Изберете игра',
+  'picker.yourTurn': 'Ваш ред',
+  'picker.resume': 'Продължи',
+  'picker.waiting': '{n} чакат',
+  'picker.tablesMany': '{n} игри текат',
+  'picker.waitingFor': 'Чакате да играете {game}',
+  'picker.join': 'Влез',
+  'game.startYourOwn': 'Започнете своя',
+  'game.playBots': 'Играй срещу ботове',
+  'setup.titleTable': 'Нова маса за {game}',
+  'setup.titleBots': '{game} срещу ботове',
+  'setup.openTable': 'Отвори маса',
+  'setup.dealMeIn': 'Раздай ми',
 };

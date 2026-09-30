@@ -1011,8 +1011,6 @@ export const lv: Record<string, string> = {
   'intro.bulletGuest': 'Nekas nav jāinstalē, lai izmēģinātu — sāc kā viesis',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Kontinentālais remijs · {server}',
-  'home.playingAs': 'Tu spēlē kā {name}',
   'home.signInPrompt': 'Pieraksties vai turpini kā viesis, lai spēlētu tiešsaistē.',
   'home.statsAndLeaderboard': 'Statistika un rezultātu tabula',
   'home.play': 'Spēlēt',
@@ -1050,7 +1048,8 @@ export const lv: Record<string, string> = {
     'Pašlaik neviens negaida spēli. Pieraksties sarakstā, un tu būsi pirmais, ko kāds ieraudzīs.',
   'waiting.noOthersYet': 'Neviens cits vēl negaida. Saimnieki tevi tik un tā redz un var uzaicināt.',
   'waiting.server': 'Serveris',
-  'waiting.none': 'Pašlaik neviens negaida. Kas galvenajā izvēlnē padara sevi pieejamu, parādās šeit.',
+  'waiting.none':
+    'Pašlaik neviens negaida. Kas pieteiksies šai spēlei, parādīsies šeit.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'Šai saitei trūkst galda koda.',
@@ -1061,11 +1060,7 @@ export const lv: Record<string, string> = {
   'join.takingSeatAt': 'Ieņemam vietu pie {game}…',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': 'Viss, ko šis serveris spēj piedāvāt',
   'lobby.games.bots': 'Boti',
-  'lobby.games.setup': 'Iestatījumi',
-  'lobby.games.playBot': 'Spēlēt pret botu',
-  'lobby.games.playBots': 'Spēlēt pret {n} botiem',
   'lobby.games.openTable': 'Atvērt galdu',
   'lobby.games.players': 'Spēlētāji: {n}',
   'lobby.games.playerRange': 'Spēlētāji: {min}–{max}',
@@ -1102,7 +1097,6 @@ export const lv: Record<string, string> = {
   'mine.deleteConfirmBody': 'Tas beidz spēli visiem pārējiem pie galda. To nevar atsaukt.',
   'mine.deleteConfirm': 'Dzēst',
   'mine.deleteCancel': 'Atcelt',
-  'mine.viewAll': 'Skatīt visas',
   'mine.status.lobby': 'Gaida sākumu',
   'mine.status.active': 'Notiek',
   'mine.status.suspended': 'Apturēta',
@@ -1691,4 +1685,18 @@ export const lv: Record<string, string> = {
   'option.hints': 'Padomi',
   'choice.hints.1': 'Atļauti',
   'choice.hints.0': 'Izslēgti',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Izvēlies spēli',
+  'picker.yourTurn': 'Tavs gājiens',
+  'picker.resume': 'Turpināt',
+  'picker.waiting': 'Gaida: {n}',
+  'picker.tablesMany': 'Notiekošās spēles: {n}',
+  'picker.waitingFor': 'Tu gaidi spēli {game}',
+  'picker.join': 'Pievienoties',
+  'game.startYourOwn': 'Sāc savu',
+  'game.playBots': 'Spēlēt pret botiem',
+  'setup.titleTable': 'Jauns galds: {game}',
+  'setup.titleBots': '{game} pret botiem',
+  'setup.openTable': 'Atvērt galdu',
+  'setup.dealMeIn': 'Izdali man',
 };

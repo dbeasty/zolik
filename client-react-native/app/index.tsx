@@ -1,24 +1,24 @@
-import { router, type Href } from 'expo-router';
+import { router, useFocusEffect, useIsFocused, type Href } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
 
-import { Avatar } from '@/src/components/avatars/Avatar';
-import { avatarFor } from '@/src/components/avatars/catalogue';
+import type { MatchModule, StoredTable } from '@/src/api/matchTypes';
 import { BuildFooter } from '@/src/components/BuildFooter';
+import { useOrderedModules } from '@/src/components/GameButtons';
 import { Screen } from '@/src/components/Screen';
 import { nearbyAvailable } from '@/modules/zolik-nearby';
-import { ZOLIK_BASE_URL } from '@/src/config';
+import { useAvailability } from '@/src/context/AvailabilityContext';
 import { useSession } from '@/src/context/SessionContext';
-import { useLobbySocket } from '@/src/hooks/useLobbySocket';
+import { useLocale } from '@/src/hooks/useLocale';
 import { useWaitingLobbyStatus } from '@/src/hooks/useWaitingLobbyStatus';
-import type { StoredTable } from '@/src/api/matchTypes';
-import type { PlayerSession, WaitingPlayer } from '@/src/api/types';
-import { moduleName } from '@/src/lib/gameLabels';
-import { reasonText, t } from '@/src/lib/i18n';
+import { moduleLabel, moduleName } from '@/src/lib/gameLabels';
+import { t } from '@/src/lib/i18n';
+import { codeFromInviteInput } from '@/src/lib/inviteLink';
 import { hasSeenIntro } from '@/src/lib/introStore';
 import { routeForMatch } from '@/src/lib/matchRoute';
 import { consumePendingDestination } from '@/src/lib/pendingDestination';
+import { gameRowStatus } from '@/src/lib/picker';
 import { useInvites } from '@/src/notify/InviteProvider';
 import { InviteRow } from '@/src/notify/InviteRow';
 import { colors, shared } from '@/src/theme';
@@ -48,10 +48,24 @@ function MenuButton({
   );
 }
 
+/**
+ * The main menu is the list of games.
+ *
+ * It used to be a status page — who you were playing as, your recent tables,
+ * the waiting room — with "Play" leading to the list of games one screen
+ * further in. Everything on it was about something that belonged somewhere
+ * else, so each piece went where it belongs: your games to the account menu,
+ * the waiting room to each game's own page. What is left is the question a
+ * player opens the app to answer, "what shall I play?", and the two things
+ * worth knowing while answering it, which ride on each game's row: a table of
+ * it waiting for you, and people waiting to play it.
+ */
 export default function MainMenu() {
   const { session, loading, offline } = useSession();
   const introChecked = useIntroGate();
   useFollowPendingDestination(!!session && !loading);
+  // Nothing else here re-renders once the saved language has loaded.
+  useLocale();
 
   if (loading || !introChecked) {
     return (
@@ -62,47 +76,13 @@ export default function MainMenu() {
   }
 
   return (
-    <Screen
-      title="Jokerless"
-      subtitle={
-        offline ? t('offline.subtitle') : t('home.subtitle', { server: ZOLIK_BASE_URL })
-      }
-      scroll
-    >
-      {session ? (
-        <Text style={shared.status}>{t('home.playingAs', { name: session.username })}</Text>
-      ) : (
-        <Text style={shared.status}>{t('home.signInPrompt')}</Text>
-      )}
-
+    <Screen title="Jokerless" subtitle={offline ? t('offline.subtitle') : undefined} scroll>
       <WaitingInvitesCard />
-      {session ? <MyTablesCard /> : null}
-      {/* The waiting room is the online server's, and nobody online can
-          pick up a player at a table on this phone. */}
-      {session && !offline ? <WaitingStatusCard session={session} /> : null}
+      <GameRows />
+
+      {session ? <TableCodeJoin /> : null}
 
       <View style={{ marginTop: 16 }}>
-        <MenuButton
-          label={t('home.play')}
-          onPress={() => {
-            if (!session) {
-              router.push('/auth/guest');
-              return;
-            }
-            router.push('/lobby/games');
-          }}
-        />
-        <MenuButton
-          label={t('nav.join')}
-          secondary
-          onPress={() => {
-            if (!session) {
-              router.push('/auth/guest');
-              return;
-            }
-            router.push('/lobby/join');
-          }}
-        />
         {/* Only where the app carries its own server: iOS and Android, not
             the web build or Expo Go. Offered to everyone, signed in or not,
             because the point is that it needs nothing from the internet. */}
@@ -113,13 +93,15 @@ export default function MainMenu() {
             onPress={() => router.push('/offline')}
           />
         ) : null}
-        {/* Settings, sign-out, the account and the second-tier screens are
-            not here: they are behind the face in the top corner, which is
-            where a player looks for themselves. See `AccountMenu`. What is
-            left is the two things this screen exists to do — and, for
-            somebody with no session yet, the two ways to get one. */}
+        {/* Settings, sign-out, your games and the second-tier screens are
+            behind the face in the top corner, which is where a player looks
+            for themselves. See `AccountMenu`. Somebody with no session yet
+            gets the two ways to get one. */}
         {!session ? (
           <>
+            <Text style={[shared.status, { marginTop: 0, marginBottom: 10 }]}>
+              {t('home.signInPrompt')}
+            </Text>
             <MenuButton label={t('settings.signIn')} onPress={() => router.push('/auth/login')} />
             <MenuButton
               label={t('home.continueAsGuest')}
@@ -130,8 +112,220 @@ export default function MainMenu() {
         ) : null}
       </View>
 
-      <BuildFooter />
+      <BuildFooter onPressVersions={() => router.push('/about')} />
     </Screen>
+  );
+}
+
+/**
+ * One row per game, each carrying what the player needs to know about it
+ * before choosing: a table of it waiting for them (and a way straight back
+ * to it), and how many people are waiting to play it.
+ *
+ * The row opens the game's own page; Resume skips that and goes back to the
+ * table. Without a session both lead to the guest screen, which comes back
+ * here afterwards.
+ */
+function GameRows() {
+  const { client, session, offline } = useSession();
+  const { modules, error } = useOrderedModules();
+  // null until asked: an empty list and "not yet known" must not look the
+  // same, or every row would flash badge-less on each visit.
+  const [tables, setTables] = useState<StoredTable[] | null>(null);
+  // Polled only while the menu is on screen: it stays mounted under every
+  // screen it leads to, a match included.
+  const focused = useIsFocused();
+  const { players: waiting } = useWaitingLobbyStatus(!!session && !offline && focused);
+
+  // Refetched whenever the menu comes back into view: the usual way back here
+  // is from a table, which has just changed whose turn it is.
+  useFocusEffect(
+    useCallback(() => {
+      if (!session) {
+        setTables([]);
+        return undefined;
+      }
+      let cancelled = false;
+      client
+        .listMyTables('unfinished', { turns: true })
+        .then((rows) => {
+          if (!cancelled) setTables(rows);
+        })
+        .catch(() => {
+          // A quiet failure costs nothing real: the rows still open each
+          // game, and the full list is in the account menu.
+          if (!cancelled) setTables([]);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [client, session]),
+  );
+
+  if (error) {
+    return (
+      <Text testID="games-error" style={shared.error}>
+        {error}
+      </Text>
+    );
+  }
+  if (!modules) return <ActivityIndicator color={colors.accent} />;
+
+  return (
+    <View testID="games-list">
+      {session && !offline ? <AvailabilityStrip modules={modules} /> : null}
+      <Text style={styles.heading}>{t('picker.title')}</Text>
+      {modules.map((mod) => (
+        <GameRow
+          key={mod.id}
+          mod={mod}
+          signedIn={!!session}
+          status={gameRowStatus(mod.id, tables ?? [], waiting, session?.userId)}
+        />
+      ))}
+    </View>
+  );
+}
+
+function GameRow({
+  mod,
+  signedIn,
+  status,
+}: {
+  mod: MatchModule;
+  signedIn: boolean;
+  status: ReturnType<typeof gameRowStatus>;
+}) {
+  const open = () => {
+    if (!signedIn) {
+      router.push('/auth/guest');
+      return;
+    }
+    router.push(`/lobby/games?moduleId=${encodeURIComponent(mod.id)}`);
+  };
+  const { resume } = status;
+
+  return (
+    <Pressable
+      testID={`game-${mod.id}`}
+      accessibilityRole="button"
+      onPress={open}
+      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+    >
+      <View style={styles.rowTop}>
+        <Text style={styles.name}>{moduleLabel(mod)}</Text>
+        <Text style={styles.chevron} aria-hidden>
+          ›
+        </Text>
+      </View>
+      {resume || status.waiting > 0 ? (
+        <View style={styles.badges}>
+          {resume ? (
+            <Text
+              testID={`picker-${mod.id}-table`}
+              style={[styles.badge, status.yourTurn ? styles.badgeTurn : styles.badgeQuiet]}
+            >
+              {status.yourTurn
+                ? t('picker.yourTurn')
+                : status.tables > 1
+                  ? t('picker.tablesMany', { n: status.tables })
+                  : t(`mine.status.${resume.status}`, undefined, resume.status)}
+            </Text>
+          ) : null}
+          {status.waiting > 0 ? (
+            <Text testID={`picker-${mod.id}-waiting`} style={[styles.badge, styles.badgeWaiting]}>
+              {t('picker.waiting', { n: status.waiting })}
+            </Text>
+          ) : null}
+          <View style={{ flex: 1 }} />
+          {resume ? (
+            <Pressable
+              testID={`picker-${mod.id}-resume`}
+              accessibilityRole="button"
+              onPress={() => router.push(routeForMatch(resume.status, resume.isHost, resume.matchId))}
+              style={({ pressed }) => [styles.resume, pressed && styles.rowPressed]}
+            >
+              <Text style={styles.resumeText}>{t('picker.resume')}</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
+
+/**
+ * The one reminder the waiting room leaves on the menu: that you are in it.
+ * Being available outlives the game page it was switched on from, so without
+ * this a player could be picked up by a host they had long forgotten asking.
+ */
+function AvailabilityStrip({ modules }: { modules: MatchModule[] }) {
+  const { availableFor, setAvailableFor } = useAvailability();
+  if (!availableFor) return null;
+  const mod = modules.find((m) => m.id === availableFor);
+  return (
+    <View style={[shared.card, styles.strip]} testID="availability-strip">
+      <Pressable
+        style={{ flex: 1 }}
+        onPress={() => router.push(`/lobby/games?moduleId=${encodeURIComponent(availableFor)}`)}
+      >
+        <Text style={{ color: colors.success, fontWeight: '600' }}>
+          {t('picker.waitingFor', { game: mod ? moduleLabel(mod) : moduleName(availableFor) })}
+        </Text>
+      </Pressable>
+      <Pressable testID="availability-strip-stop" onPress={() => setAvailableFor(null)}>
+        <Text style={styles.stripStop}>{t('waiting.stop')}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+/**
+ * A table somebody else opened, by its code — or by the whole link, pasted,
+ * because pasting the thing you were sent is the obvious move. `/join/<code>`
+ * does the rest, exactly as it does for a link that was tapped.
+ */
+function TableCodeJoin() {
+  const [code, setCode] = useState('');
+  const [error, setError] = useState('');
+  const join = () => {
+    const trimmed = codeFromInviteInput(code);
+    if (!trimmed) {
+      setError(t('lobby.join.needCode'));
+      return;
+    }
+    setError('');
+    setCode('');
+    router.push(`/join/${encodeURIComponent(trimmed)}` as Href);
+  };
+  return (
+    <View style={{ marginTop: 16 }}>
+      <View style={styles.codeRow}>
+        <TextInput
+          testID="table-code-input"
+          value={code}
+          onChangeText={(v) => {
+            setCode(v);
+            if (error) setError('');
+          }}
+          onSubmitEditing={join}
+          placeholder={t('lobby.join.placeholder')}
+          placeholderTextColor={colors.muted}
+          autoCapitalize="characters"
+          autoCorrect={false}
+          style={[shared.input, styles.codeInput]}
+        />
+        <Pressable
+          testID="table-code-join"
+          accessibilityRole="button"
+          onPress={join}
+          style={[shared.button, shared.buttonSecondary, styles.codeButton]}
+        >
+          <Text style={[shared.buttonText, shared.buttonTextSecondary]}>{t('picker.join')}</Text>
+        </Pressable>
+      </View>
+      {error ? <Text style={shared.error}>{error}</Text> : null}
+    </View>
   );
 }
 
@@ -175,8 +369,7 @@ function useIntroGate(): boolean {
  * Every account sign-in path — email code, username, OAuth callback, the
  * legacy registration — finishes with `router.replace('/')`, so the menu is
  * where they all come back to and therefore the only place one hook covers
- * them all. (Guest sign-in does its own, because it lands on the game picker
- * instead; see app/auth/guest.tsx.)
+ * them all. (Guest sign-in consumes its own first; see app/auth/guest.tsx.)
  *
  * Consumed, never merely read: the note is deleted before the navigation it
  * causes, so an invite followed once cannot ambush somebody on their next
@@ -205,89 +398,6 @@ function useFollowPendingDestination(ready: boolean) {
       live = false;
     };
   }, [ready]);
-}
-
-/**
- * "The main page would be the waiting room and would give us status of the
- * players available" — this is that status, right on the menu.
- *
- * Two things a person has to be able to tell apart here, which the first cut
- * of this card ran together: *who is waiting* and *whether they themselves
- * are waiting*. So the roster is the body of the card in both states — real
- * faces and names, because "3 players waiting" answers a smaller question
- * than "who?" — and the button underneath does one thing only, which is to
- * put you in that list or take you back out. It is the same MenuButton as the
- * menu below it, deliberately: a control that publishes your availability
- * should not look like a different species of thing from "Play".
- *
- * Being available *is* an active WebSocket connection (useLobbySocket) that
- * makes this device inviteable; browsing the pool beforehand is a read-only
- * poll (useWaitingLobbyStatus) that commits to nothing. Only one of the two is
- * ever enabled at a time, driven by the `available` toggle below — the two
- * hooks themselves are unchanged from how the old dedicated waiting-room
- * screen used them.
- */
-/**
- * A quiet reminder that a game is waiting to be gone back to.
- *
- * Absent, not empty, when there is nothing to show: the menu's whole design
- * is one screen with two buttons for a player who has nowhere to be, and a
- * card of zero rows would contradict that on every visit. Only unfinished
- * tables are fetched — a completed game has nothing left to resume, and its
- * own permanent record lives on the stats screen instead.
- */
-function MyTablesCard() {
-  const { client } = useSession();
-  // Three states, not two: not yet asked, asked and empty, asked and found
-  // some. Collapsing the first two into one "nothing yet" would flash the
-  // card open for a moment on every load where there are, in fact, none.
-  const [tables, setTables] = useState<StoredTable[] | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const rows = await client.listMyTables('unfinished');
-        if (!cancelled) setTables(rows);
-      } catch {
-        // A quiet failure here costs nothing real: the full list is one tap
-        // away on /lobby/mine regardless, and this card is a shortcut to it,
-        // not the only way there.
-        if (!cancelled) setTables([]);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [client]);
-
-  if (!tables || tables.length === 0) return null;
-
-  return (
-    <View style={[shared.card, { marginTop: 12 }]} testID="home-my-tables">
-      <Text style={{ color: colors.text, fontWeight: '600', marginBottom: 8 }}>
-        {t('nav.myGames')}
-      </Text>
-      {tables.slice(0, 3).map((row) => (
-        <Pressable
-          key={row.matchId}
-          testID={`home-my-tables-row-${row.matchId}`}
-          style={{ marginBottom: 6 }}
-          onPress={() => router.push(routeForMatch(row.status, row.isHost, row.matchId))}
-        >
-          <Text style={{ color: colors.text }} numberOfLines={1}>
-            {moduleName(row.moduleId)} · {t(`mine.status.${row.status}`, undefined, row.status)}
-          </Text>
-        </Pressable>
-      ))}
-      <MenuButton
-        label={t('mine.viewAll')}
-        secondary
-        style={cardButton}
-        onPress={() => router.push('/lobby/mine')}
-      />
-    </View>
-  );
 }
 
 /**
@@ -320,197 +430,44 @@ function WaitingInvitesCard() {
   );
 }
 
-function WaitingStatusCard({ session }: { session: PlayerSession }) {
-  const [available, setAvailable] = useState(false);
-
-  const { players: idlePlayers, loaded: idleLoaded } = useWaitingLobbyStatus(!available);
-
-  // The seat is already taken by the time this arrives, so the provider
-  // walks the player to it — the same thing it does with the copy of this
-  // invite that comes over the personal socket, whichever lands first.
-  const { receiveSeated } = useInvites();
-  const onInvited = useCallback(
-    (matchId: string, joinCode: string) => receiveSeated(matchId, joinCode),
-    [receiveSeated],
-  );
-  const { players: livePlayers, status, attempts, retryNow } = useLobbySocket(available, onInvited);
-
-  if (!available) {
-    return (
-      <View style={[shared.card, { marginTop: 12 }]} testID="home-waiting-status">
-        {!idleLoaded ? (
-          <Text style={shared.status}>{t('waiting.checking')}</Text>
-        ) : (
-          <WaitingList
-            players={idlePlayers}
-            heading={
-              idlePlayers.length === 1
-                ? t('waiting.oneWaiting')
-                : t('waiting.manyWaiting', { n: idlePlayers.length })
-            }
-            empty={t('waiting.noneYet')}
-          />
-        )}
-        <MenuButton
-          label={availableLabel()}
-          secondary
-          style={cardButton}
-          onPress={() => setAvailable(true)}
-        />
-      </View>
-    );
-  }
-
-  // Your own row is dropped: the list answers "who might I end up playing
-  // with", and you are not one of them.
-  const others = livePlayers.filter((p) => p.playerId !== session.userId);
-
-  if (status === 'open') {
-    return (
-      <View style={[shared.card, { marginTop: 12 }]} testID="home-waiting-status">
-        <View testID="waiting-status-open">
-          <Text style={{ color: colors.success, fontWeight: '600', marginBottom: 4 }}>
-            {t('waiting.youAreWaiting')}
-          </Text>
-          <Text style={[shared.status, { marginTop: 0, marginBottom: 10 }]}>
-            {t('waiting.pickedUp')}
-          </Text>
-          <WaitingList
-            players={others}
-            heading={
-              others.length === 1
-                ? t('waiting.othersOne')
-                : t('waiting.othersMany', { n: others.length })
-            }
-            empty={t('waiting.noOthersYet')}
-          />
-        </View>
-        <MenuButton
-          label={stopLabel()}
-          secondary
-          style={cardButton}
-          onPress={() => setAvailable(false)}
-        />
-      </View>
-    );
-  }
-
-  if (status === 'busy') {
-    return (
-      <View style={[shared.card, { marginTop: 12 }]} testID="home-waiting-status">
-        <View testID="waiting-status-busy">
-          <Text style={{ color: colors.gold, fontWeight: '600', marginBottom: 4 }}>
-            {reasonText('SERVER_BUSY')}
-          </Text>
-          <Text style={shared.status}>
-            {t('waiting.serverBusyDetail', { n: attempts })}
-          </Text>
-        </View>
-        <MenuButton label={t('waiting.tryAgain')} secondary style={cardButton} onPress={retryNow} />
-        <Pressable style={{ marginTop: 10 }} onPress={() => setAvailable(false)}>
-          <Text style={shared.status}>{stopLabel()}</Text>
-        </Pressable>
-      </View>
-    );
-  }
-
-  if (status === 'reconnecting') {
-    return (
-      <View style={[shared.card, { marginTop: 12 }]} testID="home-waiting-status">
-        <View testID="waiting-status-reconnecting">
-          <Text style={{ color: colors.gold, fontWeight: '600', marginBottom: 4 }}>
-            {t('waiting.reconnecting')}
-          </Text>
-          <Text style={shared.status}>
-            {t('waiting.reconnectingDetail', { n: attempts })}
-          </Text>
-          <Text style={[shared.status, { marginTop: 4 }]}>Server: {ZOLIK_BASE_URL}</Text>
-        </View>
-        <MenuButton label={t('waiting.tryAgain')} secondary style={cardButton} onPress={retryNow} />
-        <Pressable style={{ marginTop: 10 }} onPress={() => setAvailable(false)}>
-          <Text style={shared.status}>{stopLabel()}</Text>
-        </Pressable>
-      </View>
-    );
-  }
-
-  return (
-    <View style={[shared.card, { marginTop: 12 }]} testID="home-waiting-status">
-      <View testID="waiting-status-connecting">
-        <ActivityIndicator color={colors.accent} style={{ marginBottom: 8 }} />
-        <Text style={shared.status}>{t('waiting.adding')}</Text>
-        <Text style={[shared.status, { marginTop: 4, fontSize: 12 }]}>
-          {t('waiting.slowHint')}
-        </Text>
-        <Text style={[shared.status, { marginTop: 4 }]}>Server: {ZOLIK_BASE_URL}</Text>
-      </View>
-      <Pressable style={{ marginTop: 10 }} onPress={() => setAvailable(false)}>
-        <Text style={shared.status}>{stopLabel()}</Text>
-      </Pressable>
-    </View>
-  );
-}
-
-/**
- * The two halves of the toggle, written out once each.
- *
- * "Find players" — what this button used to say — named a screen to go
- * looking at, and there is no such screen: the tap does not search for
- * anybody, it publishes *you*, to everybody. Naming that effect instead
- * settles the one question the old card left a person holding, which was what
- * pressing it was about to do to them.
- */
-const availableLabel = () => t('waiting.makeAvailable');
-const stopLabel = () => t('waiting.stop');
-
-/** A MenuButton sitting last inside a card, where the card supplies the
- *  bottom margin the menu stack normally wants. */
-const cardButton = { marginTop: 12, marginBottom: 0 } as const;
-
-/** How many faces fit before the card costs more room than it earns. */
-const maxNamesShown = 8;
-
-/**
- * The pool as people rather than as a number.
- *
- * Each is drawn under the face they are waiting behind, which is the face
- * they will still be sitting behind a moment later — so spotting a friend in
- * the list is possible at all. The count this replaces could tell you the
- * room was not empty, and nothing else about it.
- */
-function WaitingList({
-  players,
-  heading,
-  empty,
-}: {
-  players: WaitingPlayer[];
-  heading: string;
-  empty: string;
-}) {
-  if (players.length === 0) {
-    return <Text style={[shared.status, { marginTop: 0 }]}>{empty}</Text>;
-  }
-
-  const shown = players.slice(0, maxNamesShown);
-  return (
-    <View testID="home-waiting-list">
-      <Text style={{ color: colors.text, fontWeight: '600', marginBottom: 8 }}>{heading}</Text>
-      {shown.map((p) => (
-        <View
-          key={p.playerId}
-          testID={`home-waiting-player-${p.playerId}`}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}
-        >
-          <Avatar spec={avatarFor(p.playerId, false, p.avatar)} size={24} />
-          <Text style={{ color: colors.text, flexShrink: 1 }} numberOfLines={1}>
-            {p.username}
-            {p.isGuest ? ` ${t('home.guestSuffix')}` : ''}
-          </Text>
-        </View>
-      ))}
-      {players.length > shown.length ? (
-        <Text style={[shared.status, { marginTop: 2 }]}>+{players.length - shown.length} more</Text>
-      ) : null}
-    </View>
-  );
-}
+const styles = StyleSheet.create({
+  heading: { color: colors.muted, fontSize: 13, fontWeight: '600', marginTop: 12, marginBottom: 8 },
+  row: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 8,
+  },
+  rowPressed: { borderColor: colors.accent },
+  rowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  name: { color: colors.text, fontSize: 16, fontWeight: '600' },
+  chevron: { color: colors.muted, fontSize: 18 },
+  badges: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+  badge: {
+    fontSize: 12,
+    fontWeight: '600',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    overflow: 'hidden',
+  },
+  badgeTurn: { color: colors.onAccent, backgroundColor: colors.gold },
+  badgeQuiet: { color: colors.muted, borderWidth: 1, borderColor: colors.border },
+  badgeWaiting: { color: colors.onAccent, backgroundColor: colors.success },
+  resume: {
+    borderWidth: 1,
+    borderColor: colors.accentButton,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+  },
+  resumeText: { color: colors.accentButton, fontWeight: '700', fontSize: 13 },
+  strip: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 4, marginBottom: 4 },
+  stripStop: { color: colors.muted, fontSize: 13, textDecorationLine: 'underline' },
+  codeRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
+  codeInput: { flex: 1, marginBottom: 0 },
+  codeButton: { marginBottom: 0, paddingVertical: 12 },
+});

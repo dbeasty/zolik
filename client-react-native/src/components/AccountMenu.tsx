@@ -4,9 +4,11 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/src/components/avatars/Avatar';
 import { avatarFor } from '@/src/components/avatars/catalogue';
+import { CLIENT_VERSION } from '@/src/config';
 import { useSession } from '@/src/context/SessionContext';
 import { useAvatarId } from '@/src/hooks/useAvatar';
 import { useLocale } from '@/src/hooks/useLocale';
+import { useServerBuild } from '@/src/hooks/useServerBuild';
 import { t } from '@/src/lib/i18n';
 import { useInvites } from '@/src/notify/InviteProvider';
 import { colors } from '@/src/theme';
@@ -92,7 +94,7 @@ export function AccountMenu() {
             <View style={styles.who}>
               <Avatar spec={spec} size={40} />
               <View style={styles.whoText}>
-                <Text style={styles.name} numberOfLines={1}>
+                <Text style={styles.name} numberOfLines={1} testID="account-menu-name">
                   {session ? session.username : t('menu.notSignedIn')}
                 </Text>
                 {session ? (
@@ -105,6 +107,16 @@ export function AccountMenu() {
 
             <View style={styles.rule} />
 
+            {/* First, because it is the list the main menu no longer shows:
+                every game you have going, whichever game it is. A guest's
+                games are kept against their guest id, so they get it too. */}
+            {session ? (
+              <MenuItem
+                label={t('nav.myGames')}
+                testID="account-menu-my-games"
+                onPress={() => go('/lobby/mine')}
+              />
+            ) : null}
             <MenuItem
               label={t('nav.more')}
               testID="account-menu-more"
@@ -125,16 +137,6 @@ export function AccountMenu() {
               testID="account-menu-settings"
               onPress={() => go('/settings')}
             />
-            {/* Above the sign-in items rather than below them, because the
-                items below are about your account and this one is about the
-                app — and because "About" under "Sign out" reads as part of
-                leaving. */}
-            <MenuItem
-              label={t('nav.about')}
-              testID="account-menu-about"
-              onPress={() => go('/about')}
-            />
-
             {/* Both sign-in items say the same two words, because that is what
                 the action is. A guest gets the reason underneath in smaller
                 type — the stats they are already building are the thing they
@@ -173,11 +175,30 @@ export function AccountMenu() {
                 }}
               />
             ) : null}
+
+            {/* Last, and apart from the account items above it: this one is
+                about the app. It carries the build numbers themselves, so
+                "which version is this?" is answered by opening the menu —
+                from any screen — without going any further. */}
+            <View style={styles.rule} />
+            <AboutItem onPress={() => go('/about')} />
           </Pressable>
         </Pressable>
       </Modal>
     </>
   );
+}
+
+/**
+ * "About", with the app's and the server's versions under it. Its own
+ * component so the server is only asked while the menu is open: the menu's
+ * contents are not mounted until then, and the face in the corner is on every
+ * screen.
+ */
+function AboutItem({ onPress }: { onPress: () => void }) {
+  const server = useServerBuild();
+  const versions = `${t('build.app')} ${CLIENT_VERSION} · ${t('build.server')} ${server ? server.version : '…'}`;
+  return <MenuItem label={t('nav.about')} hint={versions} testID="account-menu-about" onPress={onPress} />;
 }
 
 function MenuItem({

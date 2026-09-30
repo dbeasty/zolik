@@ -1016,8 +1016,6 @@ export const et: Record<string, string> = {
   'intro.bulletGuest': 'Proovimiseks pole vaja midagi paigaldada — alusta külalisena',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Kontinentaalne rummi · {server}',
-  'home.playingAs': 'Mängid nimega {name}',
   'home.signInPrompt': 'Logi sisse või jätka külalisena, et võrgus mängida.',
   'home.statsAndLeaderboard': 'Statistika ja edetabel',
   'home.play': 'Mängi',
@@ -1054,7 +1052,8 @@ export const et: Record<string, string> = {
   'waiting.noOthersYet':
     'Keegi teine veel ei oota. Võõrustajad näevad sind sellegipoolest ja võivad sind kutsuda.',
   'waiting.server': 'Server',
-  'waiting.none': 'Praegu ei oota keegi. Kes end peamenüüs kättesaadavaks teeb, ilmub siia.',
+  'waiting.none':
+    'Praegu ei oota keegi. Kes end selle mängu jaoks saadavaks teeb, ilmub siia.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'Sellel lingil puudub laua kood.',
@@ -1065,11 +1064,7 @@ export const et: Record<string, string> = {
   'join.takingSeatAt': 'Võtame koha mängus {game}…',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': 'Kõik, mida see server pakkuda oskab',
   'lobby.games.bots': 'Robotid',
-  'lobby.games.setup': 'Seaded',
-  'lobby.games.playBot': 'Mängi roboti vastu',
-  'lobby.games.playBots': 'Mängi {n} roboti vastu',
   'lobby.games.openTable': 'Ava laud',
   'lobby.games.players': '{n} mängijat',
   'lobby.games.playerRange': '{min}–{max} mängijat',
@@ -1106,7 +1101,6 @@ export const et: Record<string, string> = {
   'mine.deleteConfirmBody': 'See lõpetab mängu kõigi teiste jaoks lauas. Seda ei saa tagasi võtta.',
   'mine.deleteConfirm': 'Kustuta',
   'mine.deleteCancel': 'Loobu',
-  'mine.viewAll': 'Vaata kõiki',
   'mine.status.lobby': 'Ootab algust',
   'mine.status.active': 'Pooleli',
   'mine.status.suspended': 'Peatatud',
@@ -1695,4 +1689,18 @@ export const et: Record<string, string> = {
   'option.hints': 'Vihjed',
   'choice.hints.1': 'Lubatud',
   'choice.hints.0': 'Väljas',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Vali mäng',
+  'picker.yourTurn': 'Sinu käik',
+  'picker.resume': 'Jätka',
+  'picker.waiting': '{n} ootab',
+  'picker.tablesMany': '{n} mängu käib',
+  'picker.waitingFor': 'Ootad mängu {game}',
+  'picker.join': 'Liitu',
+  'game.startYourOwn': 'Alusta oma',
+  'game.playBots': 'Mängi bottide vastu',
+  'setup.titleTable': 'Uus laud: {game}',
+  'setup.titleBots': '{game} bottide vastu',
+  'setup.openTable': 'Ava laud',
+  'setup.dealMeIn': 'Jaga mulle',
 };

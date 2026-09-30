@@ -1024,8 +1024,6 @@ export const es: Record<string, string> = {
   'intro.bulletGuest': 'Sin instalaciones para probarlo — entra como invitado',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Rummy continental · {server}',
-  'home.playingAs': 'Juegas como {name}',
   'home.signInPrompt': 'Inicia sesión o continúa como invitado para jugar en línea.',
   'home.statsAndLeaderboard': 'Estadísticas y clasificación',
   'home.play': 'Jugar',
@@ -1063,7 +1061,8 @@ export const es: Record<string, string> = {
     'Ahora mismo no hay nadie esperando para jugar. Apúntate a la lista y serás el primero que vea cualquiera.',
   'waiting.noOthersYet': 'Todavía no espera nadie más. Los anfitriones te ven igualmente y pueden invitarte.',
   'waiting.server': 'Servidor',
-  'waiting.none': 'Ahora mismo no espera nadie. Quien se ponga disponible en el menú principal aparece aquí.',
+  'waiting.none':
+    'Ahora mismo no espera nadie. Quien se ponga disponible para este juego aparece aquí.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'A ese enlace le falta el código de la mesa.',
@@ -1074,11 +1073,7 @@ export const es: Record<string, string> = {
   'join.takingSeatAt': 'Tomando asiento en {game}…',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': 'Todo lo que este servidor puede alojar',
   'lobby.games.bots': 'Bots',
-  'lobby.games.setup': 'Ajustes',
-  'lobby.games.playBot': 'Jugar contra un bot',
-  'lobby.games.playBots': 'Jugar contra {n} bots',
   'lobby.games.openTable': 'Abrir una mesa',
   'lobby.games.players': '{n} jugadores',
   'lobby.games.playerRange': '{min}–{max} jugadores',
@@ -1115,7 +1110,6 @@ export const es: Record<string, string> = {
   'mine.deleteConfirmBody': 'Esto termina la partida para todos los que siguen sentados. No se puede deshacer.',
   'mine.deleteConfirm': 'Eliminar',
   'mine.deleteCancel': 'Cancelar',
-  'mine.viewAll': 'Ver todas',
   'mine.status.lobby': 'Esperando para empezar',
   'mine.status.active': 'En curso',
   'mine.status.suspended': 'En pausa',
@@ -1705,4 +1699,18 @@ export const es: Record<string, string> = {
   'option.hints': 'Pistas',
   'choice.hints.1': 'Permitidas',
   'choice.hints.0': 'Desactivadas',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Elige un juego',
+  'picker.yourTurn': 'Tu turno',
+  'picker.resume': 'Continuar',
+  'picker.waiting': '{n} esperando',
+  'picker.tablesMany': '{n} partidas en curso',
+  'picker.waitingFor': 'Estás esperando para jugar a {game}',
+  'picker.join': 'Unirse',
+  'game.startYourOwn': 'Empieza la tuya',
+  'game.playBots': 'Jugar contra bots',
+  'setup.titleTable': 'Nueva mesa de {game}',
+  'setup.titleBots': '{game} contra bots',
+  'setup.openTable': 'Abrir mesa',
+  'setup.dealMeIn': 'Repárteme',
 };

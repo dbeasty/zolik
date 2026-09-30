@@ -1027,8 +1027,6 @@ export const nl: Record<string, string> = {
   'intro.bulletGuest': 'Geen installatie nodig om het te proberen — ga aan de slag als gast',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Continentale rummy · {server}',
-  'home.playingAs': 'Je speelt als {name}',
   'home.signInPrompt': 'Meld je aan of ga verder als gast om online te spelen.',
   'home.statsAndLeaderboard': 'Statistieken en ranglijst',
   'home.play': 'Spelen',
@@ -1067,7 +1065,7 @@ export const nl: Record<string, string> = {
   'waiting.noOthersYet': 'Er wacht nog niemand anders. Gastheren zien je toch en kunnen je uitnodigen.',
   'waiting.server': 'Server',
   'waiting.none':
-    'Er wacht op dit moment niemand. Wie zich in het hoofdmenu beschikbaar stelt, verschijnt hier.',
+    'Er wacht nu niemand. Wie zich beschikbaar maakt voor dit spel, verschijnt hier.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'Aan die link ontbreekt de tafelcode.',
@@ -1078,11 +1076,7 @@ export const nl: Record<string, string> = {
   'join.takingSeatAt': 'Plaatsnemen bij {game}…',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': 'Alles wat deze server kan aanbieden',
   'lobby.games.bots': 'Bots',
-  'lobby.games.setup': 'Instellingen',
-  'lobby.games.playBot': 'Tegen een bot spelen',
-  'lobby.games.playBots': 'Tegen {n} bots spelen',
   'lobby.games.openTable': 'Een tafel openen',
   'lobby.games.players': '{n} spelers',
   'lobby.games.playerRange': '{min}–{max} spelers',
@@ -1119,7 +1113,6 @@ export const nl: Record<string, string> = {
   'mine.deleteConfirmBody': 'Dit beëindigt het spel voor iedereen die nog aan tafel zit. Dit kan niet ongedaan worden gemaakt.',
   'mine.deleteConfirm': 'Verwijderen',
   'mine.deleteCancel': 'Annuleren',
-  'mine.viewAll': 'Alles bekijken',
   'mine.status.lobby': 'Wacht op start',
   'mine.status.active': 'Bezig',
   'mine.status.suspended': 'Gepauzeerd',
@@ -1708,4 +1701,18 @@ export const nl: Record<string, string> = {
   'option.hints': 'Tips',
   'choice.hints.1': 'Toegestaan',
   'choice.hints.0': 'Uit',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Kies een spel',
+  'picker.yourTurn': 'Jouw beurt',
+  'picker.resume': 'Hervatten',
+  'picker.waiting': '{n} wachten',
+  'picker.tablesMany': '{n} spellen bezig',
+  'picker.waitingFor': 'Je wacht op een potje {game}',
+  'picker.join': 'Meedoen',
+  'game.startYourOwn': 'Begin je eigen',
+  'game.playBots': 'Tegen bots spelen',
+  'setup.titleTable': 'Nieuwe tafel: {game}',
+  'setup.titleBots': '{game} tegen bots',
+  'setup.openTable': 'Tafel openen',
+  'setup.dealMeIn': 'Deel me in',
 };

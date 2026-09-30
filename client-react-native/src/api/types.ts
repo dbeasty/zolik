@@ -21,6 +21,8 @@ export type WaitingPlayer = {
   joinedAt: string;
   /** The face they are waiting under — the one they keep if picked up. */
   avatar?: string;
+  /** The games they are waiting to play. Absent or empty means any game. */
+  moduleIds?: string[];
 };
 
 /** A push on the /ws/lobby socket. 'lobby_waiting' is the current pool,

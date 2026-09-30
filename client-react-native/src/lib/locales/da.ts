@@ -1009,8 +1009,6 @@ export const da: Record<string, string> = {
   'intro.bulletGuest': 'Ingen installation nødvendig — prøv det som gæst',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Kontinental rommy · {server}',
-  'home.playingAs': 'Du spiller som {name}',
   'home.signInPrompt': 'Log ind eller fortsæt som gæst for at spille online.',
   'home.statsAndLeaderboard': 'Statistik og rangliste',
   'home.play': 'Spil',
@@ -1048,7 +1046,8 @@ export const da: Record<string, string> = {
     'Lige nu venter ingen på at spille. Skriv dig på listen, så er du den første, nogen ser.',
   'waiting.noOthersYet': 'Ingen andre venter endnu. Værter kan se dig alligevel og kan invitere dig.',
   'waiting.server': 'Server',
-  'waiting.none': 'Lige nu venter ingen. Den, der gør sig tilgængelig i hovedmenuen, dukker op her.',
+  'waiting.none':
+    'Lige nu venter ingen. Den, der gør sig tilgængelig til dette spil, dukker op her.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'Det link mangler sin bordkode.',
@@ -1059,11 +1058,7 @@ export const da: Record<string, string> = {
   'join.takingSeatAt': 'Tager plads ved {game}…',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': 'Alt hvad denne server kan byde på',
   'lobby.games.bots': 'Bots',
-  'lobby.games.setup': 'Indstillinger',
-  'lobby.games.playBot': 'Spil mod en bot',
-  'lobby.games.playBots': 'Spil mod {n} bots',
   'lobby.games.openTable': 'Åbn et bord',
   'lobby.games.players': '{n} spillere',
   'lobby.games.playerRange': '{min}–{max} spillere',
@@ -1100,7 +1095,6 @@ export const da: Record<string, string> = {
   'mine.deleteConfirmBody': 'Det afslutter spillet for alle andre ved bordet. Kan ikke fortrydes.',
   'mine.deleteConfirm': 'Slet',
   'mine.deleteCancel': 'Annuller',
-  'mine.viewAll': 'Se alle',
   'mine.status.lobby': 'Venter på start',
   'mine.status.active': 'I gang',
   'mine.status.suspended': 'Sat på pause',
@@ -1689,4 +1683,18 @@ export const da: Record<string, string> = {
   'option.hints': 'Tips',
   'choice.hints.1': 'Tilladt',
   'choice.hints.0': 'Fra',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Vælg et spil',
+  'picker.yourTurn': 'Din tur',
+  'picker.resume': 'Fortsæt',
+  'picker.waiting': '{n} venter',
+  'picker.tablesMany': '{n} spil i gang',
+  'picker.waitingFor': 'Du venter på at spille {game}',
+  'picker.join': 'Deltag',
+  'game.startYourOwn': 'Start dit eget',
+  'game.playBots': 'Spil mod bots',
+  'setup.titleTable': 'Nyt bord: {game}',
+  'setup.titleBots': '{game} mod bots',
+  'setup.openTable': 'Åbn bord',
+  'setup.dealMeIn': 'Giv mig kort',
 };

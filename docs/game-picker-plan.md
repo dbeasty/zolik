@@ -43,7 +43,17 @@ Today there is a single global pool: one Redis hash, `zolik:lobby:waiting`, and 
 - Only active, suspended and abandoned rows are asked, and the list is at most 50 rows (20 by default).
 - Test: `TestMyTablesSaysWhoseTurnItIsWhenAsked` in `match/stored_test.go`.
 
-## Phase 2: client (`client-react-native`)
+## Phase 2: client (`client-react-native`) — done
+
+Built as described below, with these differences found while testing:
+
+- Guest sign-in with no pending link returns to the existing main menu (`router.dismissTo('/')`) rather than pushing a second copy of it on top.
+- A game's page and the main menu stay mounted under the screens they lead to, so both stop polling the waiting room while not focused (`useIsFocused`).
+- The settings screen has its own Rules link (`setup-rules-<id>`), carrying the chosen ruleset and options, as the old setup cards did.
+- Signed-out players still see "Sign in or continue as guest to play online." above the two buttons.
+- Being available is held in memory. A full page reload ends it, just as it did when the card was on the home screen.
+- The table-code box reuses the existing "Join code or invite link" string. Seven strings nothing uses any more were removed from every locale.
+
 
 ### Pick a game — `app/index.tsx`
 
