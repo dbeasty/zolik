@@ -45,7 +45,7 @@ describe('orderModules', () => {
     // Not a hard requirement of orderModules — an unranked module still
     // renders, just at the back — but letting one go unranked by accident
     // would quietly demote it below every game a player has never touched.
-    const registered = ['zolik', 'prsi', 'canasta', 'holdem', 'ginrummy', 'rummytiles', 'blackjack'];
+    const registered = ['zolik', 'prsi', 'canasta', 'holdem', 'ginrummy', 'rummytiles', 'blackjack', 'marias'];
     for (const id of registered) {
       expect(DEFAULT_POPULARITY_ORDER).toContain(id);
     }

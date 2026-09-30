@@ -11,6 +11,7 @@ import (
 	"zolik/server/internal/canasta"
 	"zolik/server/internal/ginrummy"
 	"zolik/server/internal/holdem"
+	"zolik/server/internal/marias"
 	"zolik/server/internal/module"
 	"zolik/server/internal/prsi"
 	"zolik/server/internal/rummytiles"
@@ -121,6 +122,27 @@ func allModules() []hosted {
 			finishes: true,
 		},
 		{
+			name:    "marias",
+			rounds:  true,
+			mod:     marias.New(),
+			players: refs("p1", "p2", "p3"),
+			// A short match keeps the playthroughs fast. Doubling is left out
+			// of the preferences on purpose: with no limit, a driver that
+			// always doubled would double for ever, and pass ends the round.
+			cfg:      module.MatchConfig{Options: module.Options{"deals": 9}},
+			prefer:   []string{"play_card", "discard", "choose_trump", "announce", "good", "pass"},
+			finishes: true,
+		},
+		{
+			name:     "marias-licit",
+			rounds:   true,
+			mod:      marias.New(),
+			players:  refs("p1", "p2", "p3"),
+			cfg:      module.MatchConfig{Variation: "licitovany", Options: module.Options{"deals": 9}},
+			prefer:   []string{"play_card", "discard", "bid", "hold", "announce", "fold", "pass"},
+			finishes: true,
+		},
+		{
 			name:    "rummytiles",
 			rounds:  true,
 			mod:     rummytiles.New(),
@@ -148,10 +170,15 @@ func TestEveryModuleDescribesItself(t *testing.T) {
 			if d.ID == "" || d.Label == "" {
 				t.Fatal("a module must name itself")
 			}
-			if seen[d.ID] {
+			// Keyed by variation too: one module may appear once per
+			// variation it is played in here (Mariáš's volený and
+			// licitovaný), but two rows of the same pair is two modules
+			// claiming one id.
+			key := d.ID + "/" + g.cfg.Variation
+			if seen[key] {
 				t.Fatalf("two modules claim the id %q", d.ID)
 			}
-			seen[d.ID] = true
+			seen[key] = true
 
 			if d.MinPlayers < 2 || d.MaxPlayers < d.MinPlayers {
 				t.Errorf("player range %d..%d makes no sense", d.MinPlayers, d.MaxPlayers)
@@ -598,6 +625,55 @@ func TestEveryModuleNamesItsWinners(t *testing.T) {
 						t.Errorf("%s is still offered %q after the match ended", p.ID, o.ID)
 					}
 				}
+			}
+		})
+	}
+}
+
+// TestAnArrangedZoneNamesItsSeats — a zone laid out around the table puts
+// each card in front of the seat its By names, so a card with no By, or one
+// naming somebody not at the table, is a card the client has nowhere to put.
+// Checked on every position a played-out match passes through, since tricks
+// only exist once play has begun.
+func TestAnArrangedZoneNamesItsSeats(t *testing.T) {
+	for _, g := range allModules() {
+		t.Run(g.name, func(t *testing.T) {
+			state, err := g.mod.NewMatch(g.cfg, g.players, 9)
+			if err != nil {
+				t.Fatalf("NewMatch: %v", err)
+			}
+			seated := map[string]bool{}
+			for _, p := range g.players {
+				seated[p.ID] = true
+			}
+			check := func(s module.State) {
+				for _, viewer := range g.players {
+					vm, err := g.mod.View(s, viewer.ID)
+					if err != nil {
+						t.Fatalf("View: %v", err)
+					}
+					for _, z := range vm.Zones {
+						switch z.Arrange {
+						case "":
+							continue
+						case module.ArrangeBySeat:
+						default:
+							t.Fatalf("zone %q asks for arrangement %q, which no client knows", z.ID, z.Arrange)
+						}
+						for _, c := range z.Cards {
+							if !seated[c.By] {
+								t.Fatalf("zone %q is arranged by seat but card %s names %q", z.ID, c.Card, c.By)
+							}
+						}
+					}
+				}
+			}
+			check(state)
+			_, _, err = module.PlayWithOffers(g.mod, state, g.players, module.DriverOptions{
+				MaxActions: 300, Prefer: g.prefer, OnState: check,
+			})
+			if err != nil {
+				t.Fatalf("%v", err)
 			}
 		})
 	}

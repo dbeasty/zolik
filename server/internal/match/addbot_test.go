@@ -7,6 +7,7 @@ import (
 	"zolik/server/internal/canasta"
 	"zolik/server/internal/ginrummy"
 	"zolik/server/internal/holdem"
+	"zolik/server/internal/marias"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
 	"zolik/server/internal/prsi"
@@ -158,7 +159,7 @@ func TestEveryModuleOffersTheOption(t *testing.T) {
 func TestFillingATableNeverSeatsANameTwice(t *testing.T) {
 	// Every module the product ships, not the test registry: the largest
 	// table (Hold'em, nine seats) is the one that sizes the roster.
-	reg := module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New(), rummytiles.New(), blackjack.New())
+	reg := module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New(), rummytiles.New(), blackjack.New(), marias.New())
 	h := NewHandlers(&Manager{registry: reg}, false)
 	settings := []int{module.BotSkillAuto}
 	for _, s := range module.Skills {
