@@ -2,6 +2,7 @@ import { expect, test, type APIRequestContext, type Page } from '@playwright/tes
 
 import { API_BASE } from '../helpers/env';
 import { openGameSetup } from '../helpers/lobby';
+import { seedIntroSeen } from '../helpers/login';
 
 /**
  * Every key the app can put on screen without wording for it.
@@ -24,6 +25,13 @@ import { openGameSetup } from '../helpers/lobby';
  */
 
 test.describe.configure({ timeout: 90_000 });
+
+// Without this, `/` redirects a fresh device to the first-run intro, so the
+// sweep would read the intro in place of the main menu and never find the
+// account menu's button. The intro is swept by its own path below.
+test.beforeEach(async ({ page }) => {
+  await seedIntroSeen(page);
+});
 
 const MARKER = /_TX_([A-Za-z0-9_.[\]-]+)_/g;
 
@@ -111,6 +119,7 @@ test.describe('no screen can reach a key it has no words for', () => {
 
     for (const path of [
       '/',
+      '/intro',
       '/more',
       '/about',
       '/settings',
