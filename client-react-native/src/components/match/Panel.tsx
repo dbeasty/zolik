@@ -31,6 +31,12 @@ type Props = {
   countTestID?: string;
   /** Rendered in the header, left of the minimize control — e.g. a pile's own show-all toggle. */
   accessory?: ReactNode;
+  /**
+   * Rendered right beside the title, collapsed or not — what just happened
+   * at the table, next to the word "Table". Drops under the title when the
+   * row has no room for it.
+   */
+  aside?: ReactNode;
   minimized?: boolean;
   onToggleMinimized?: () => void;
   /** Held open regardless of `minimized` — a drop target may never be hidden by a preference. */
@@ -70,6 +76,7 @@ export function Panel({
   count,
   countTestID,
   accessory,
+  aside,
   minimized,
   onToggleMinimized,
   forceOpen,
@@ -126,6 +133,7 @@ export function Panel({
               </Text>
             ) : null}
           </View>
+          {aside ? <View style={styles.aside}>{aside}</View> : null}
           {collapsed && summary ? (
             <View style={styles.summary} testID={testID ? `${testID}-summary` : undefined}>
               {summary}
@@ -224,7 +232,10 @@ function panelStyles(m: Metrics, s: Skin) {
     // gives way to the summary sitting next to it — a title that shrinks
     // before its own digest does reads backwards, the label losing out to
     // the thing it's labelling.
-    headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1, minWidth: 0 },
+    // Wraps, so an aside too wide to sit beside the title goes under it
+    // rather than truncating to nothing.
+    headerLeft: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10, flexShrink: 1, minWidth: 0 },
+    aside: { flexShrink: 1, minWidth: 0, maxWidth: '100%' },
     titles: { flexShrink: 0 },
     title: { color: colors.muted, fontSize: m.panel.titleFont, fontWeight: '700' },
     subtitle: { color: colors.muted, fontSize: Math.max(9, m.panel.titleFont - 2), marginTop: 1 },
