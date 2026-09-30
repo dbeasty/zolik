@@ -518,3 +518,29 @@ func tracksOf(match models.Match, moves []models.MatchAction) []ReplayTrack {
 	}
 	return out
 }
+
+// FoldMoves replays a stored match from its beginning, handing visit the state
+// after every step: step 0 is the deal, step i the board after moves[i-1].
+//
+// It is foldActions for readers outside this package — cmd/export-games, which
+// turns every stored decision into a training record — and exists so that
+// there is one fold, not two. A second copy of "start from the stored deal,
+// else rebuild it from the seed, then Apply each move" would drift from this
+// one the first time either learned something, and a training set that folds
+// differently from the replay a player sees is wrong in a way nothing would
+// catch.
+//
+// snapshot may be nil, and the deal is then rebuilt from the seed; given one,
+// the stored deal is preferred, because a module whose dealing has changed
+// since the match was played rebuilds a different game from the same seed.
+// On a refusal part-way it returns the step that could not be produced, and
+// everything visit saw before it is still exactly what happened.
+func FoldMoves(
+	mod module.GameModule,
+	match models.Match,
+	moves []models.MatchAction,
+	snapshot func(seq int) (models.JSONDoc, error),
+	visit func(step int, entry *models.MatchAction, a module.Action, s module.State) (more bool, err error),
+) (stoppedAt int, err error) {
+	return foldActions(mod, match, replayLog{actions: moves, snapshots: match.Snapshots, snapshot: snapshot}, 0, visit)
+}

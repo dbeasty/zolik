@@ -11,6 +11,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -89,6 +90,10 @@ type Repository interface {
 	// FindForPlayer lists the matches a seat id is sitting at, newest activity
 	// first, capped at f.Limit.
 	FindForPlayer(ctx context.Context, playerID string, f PlayerMatchFilter) ([]models.Match, error)
+	// EachFinished hands visit every resolved match of one game that ended
+	// inside f's window, oldest first. Read-only, and for offline tools — see
+	// finished.go.
+	EachFinished(ctx context.Context, f FinishedFilter, visit func(models.Match) error) error
 }
 
 // PlayerMatchFilter narrows FindForPlayer. A zero value lists every
@@ -211,8 +216,25 @@ func (r *mongoRepository) FindRetired(ctx context.Context, now time.Time, w Rete
 	if w.Lobby > 0 {
 		or = append(or, bson.M{"status": "lobby", "createdAt": bson.M{"$lt": now.Add(-w.Lobby)}})
 	}
+	// A game with a window of its own is judged by it, and kept out of the
+	// general clause — including when its own window is zero, which is how
+	// that game says "for ever".
+	named := make([]string, 0, len(w.CompletedByGame))
+	for game := range w.CompletedByGame {
+		named = append(named, game)
+	}
+	sort.Strings(named)
+	for _, game := range named {
+		if d := w.CompletedByGame[game]; d > 0 {
+			or = append(or, bson.M{"status": "completed", "moduleId": game, "endedAt": bson.M{"$lt": now.Add(-d)}})
+		}
+	}
 	if w.Completed > 0 {
-		or = append(or, bson.M{"status": "completed", "endedAt": bson.M{"$lt": now.Add(-w.Completed)}})
+		clause := bson.M{"status": "completed", "endedAt": bson.M{"$lt": now.Add(-w.Completed)}}
+		if len(named) > 0 {
+			clause["moduleId"] = bson.M{"$nin": named}
+		}
+		or = append(or, clause)
 	}
 	if w.Abandoned > 0 {
 		or = append(or, bson.M{

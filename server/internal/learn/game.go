@@ -1,0 +1,173 @@
+// Package learn is the shared machinery for bots that are trained rather than
+// written: the contract a game implements to be learnable, the forward pass a
+// trained network runs in, the bot that plays one, the duplicate bench that
+// decides whether it is any good, and the environment a trainer drives.
+//
+// Nothing here knows a rule of any game. A game's rules stay in its module and
+// its engine stays the only authority on what is legal — exactly as it is for
+// the hand-written bots — and what a game adds to be learnable is three
+// translations: a position into numbers (Encode), the legal moves into
+// numbered candidates (Candidates), and an outcome into a reward (Reward).
+// The trainer (ml/, in Python) never re-implements a game; it only ever sees
+// what those three produce.
+//
+// The policy scores candidates rather than choosing from a fixed output
+// layer, because the games disagree about how many moves there are. Hold'em
+// has a handful at every decision; Canasta has anywhere from one to dozens,
+// and which ones exist depends on the hand. A network that scores "this state
+// with this move" works for both without either pretending to be the other.
+package learn
+
+import (
+	"fmt"
+	"sort"
+	"sync"
+
+	"zolik/server/internal/module"
+)
+
+// Benchable is what a game needs to be measured: enough to deal a table, play
+// it out with any bots, and say how each seat did.
+//
+// Split from Game because a game can be benched long before it can be learned,
+// and the bench is what tells the learning work whether it is going anywhere.
+type Benchable interface {
+	// Name is the registry key, the same as the module id.
+	Name() string
+	Module() module.GameModule
+	// Config is the table a bench or a trainer deals for this many seats.
+	Config(seats int, variation string) module.MatchConfig
+	// Heuristic is the hand-written bot, which a trained one falls back to and
+	// is measured against.
+	Heuristic() module.Bot
+	// Outcome is how one seat finished the match, in the game's own unit —
+	// chips won for Hold'em, the partnership's score for Canasta. The bench
+	// only ever compares outcomes of the same game, so the units need not
+	// agree across games.
+	Outcome(s module.State, seat string) (float64, error)
+}
+
+// Game is a game a network can learn.
+type Game interface {
+	Benchable
+
+	// StateDim and CandDim are the fixed widths of Encode's vector and of
+	// every candidate's feature vector. A network is trained for one pair and
+	// refuses to load against another.
+	StateDim() int
+	CandDim() int
+
+	// Encode is the position as one seat may know it — its own hidden cards
+	// and everything public, never anyone else's. Every adapter carries a test
+	// that two states differing only in cards this seat cannot see encode
+	// identically.
+	Encode(s module.State, seat string) ([]float32, error)
+
+	// Candidates are the concrete moves this seat may make now, each with the
+	// action that performs it. Built only from enabled offers: a candidate is
+	// legal because the engine offered it, never because the adapter decided
+	// so. Empty means the adapter has no opinion, and the caller falls back.
+	Candidates(s module.State, seat string, offers []module.ActionOffer) ([]Candidate, error)
+
+	// Reward is what one applied action earned the seat, and whether an
+	// episode — a hand, a deal — ended with it. Partners share a reward, so a
+	// Canasta seat is rewarded for its partner's meld.
+	Reward(before, after module.State, seat string) (reward float32, episodeDone bool, err error)
+}
+
+// Candidate is one legal move and what the network is told about it.
+type Candidate struct {
+	Action module.Action
+	// Then is the rest of a move that takes more than one action to make,
+	// applied in order straight after Action by the same seat. Empty for
+	// almost every candidate in every game.
+	//
+	// It exists for the moves whose halves are not moves. Canasta's opening
+	// is the case that forced it: the minimum is a property of the whole
+	// turn, so an opening is two or three melds laid back to back, and a
+	// network that chose them one at a time could lay the first and find
+	// the second refused — a turn with nothing legal left in it but taking
+	// the first back. Offered whole, the choice is between openings that
+	// are known to finish, and the half-finished position is never one the
+	// network is asked about.
+	//
+	// The environment applies the whole sequence as one decision. A NetBot
+	// cannot — module.Bot answers one action per call — so it plays Action
+	// and is asked again from the position that leaves. An adapter that
+	// uses Then must therefore answer every position part-way through one
+	// of its sequences with candidates that finish it: re-derived from the
+	// state, which is deterministic and needs no memory in the bot. The
+	// continuation it chooses there need not be the one it first scored;
+	// it only has to be one of the finishing ones.
+	Then     []module.Action
+	Features []float32
+}
+
+// Equivalence is implemented by a game whose candidates each stand for a class
+// of moves that differ in nothing the game distinguishes. Optional.
+//
+// The adapters collapse such classes on purpose — two indices for one move
+// would split its probability between them — and Canasta's are the example:
+// one natural is offered to lay off on a group of sevens, not one per suit,
+// because a seven of hearts there is the same move as a seven of spades. A
+// network never notices. A person does not play the representative, though,
+// and cmd/export-games, matching a stored move to the candidate it was, asks
+// this before deciding that a player's seven of hearts was nothing on offer.
+type Equivalence interface {
+	// SameMove reports that played, made by seat at s, is the move candidate
+	// stands for, though the two actions differ.
+	SameMove(s module.State, seat string, played, candidate module.Action) bool
+}
+
+// Steps is every action the candidate makes, in order.
+func (c Candidate) Steps() []module.Action {
+	return append([]module.Action{c.Action}, c.Then...)
+}
+
+var (
+	regMu    sync.RWMutex
+	registry = map[string]Benchable{}
+)
+
+// Register makes a game available to cmd/gamebench and cmd/gameenv. Adapters
+// call it from init, and the commands import them for that side effect.
+func Register(g Benchable) {
+	regMu.Lock()
+	defer regMu.Unlock()
+	if _, dup := registry[g.Name()]; dup {
+		panic("learn: game registered twice: " + g.Name())
+	}
+	registry[g.Name()] = g
+}
+
+// Lookup finds a registered game.
+func Lookup(name string) (Benchable, error) {
+	regMu.RLock()
+	defer regMu.RUnlock()
+	if g, ok := registry[name]; ok {
+		return g, nil
+	}
+	return nil, fmt.Errorf("learn: no game %q (have %v)", name, names())
+}
+
+// LookupGame finds a registered game that can also be learned.
+func LookupGame(name string) (Game, error) {
+	b, err := Lookup(name)
+	if err != nil {
+		return nil, err
+	}
+	g, ok := b.(Game)
+	if !ok {
+		return nil, fmt.Errorf("learn: %q can be benched but not learned yet", name)
+	}
+	return g, nil
+}
+
+func names() []string {
+	out := make([]string, 0, len(registry))
+	for n := range registry {
+		out = append(out, n)
+	}
+	sort.Strings(out)
+	return out
+}

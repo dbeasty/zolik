@@ -1,0 +1,60 @@
+# Žolíky: 630-wide state, 52-wide candidates, ~6 candidates a decision (max 64).
+# An episode is one deal; its reward is (lowest rival deal penalty - mine) / 100.
+# Continental is left out: the Hard heuristic wedges there (most seventh deals
+# never end), so neither training nor the bench can use it yet.
+game: zolik
+variation: zolik_classic
+
+model:
+  trunk: [512, 256]
+  scorer: [128]
+  value: [128]
+
+env:
+  envs: 8
+  tables: 32
+  procs: 2
+  gogc: 1000
+  budget: 50000
+
+ppo:
+  lr: 3.0e-4
+  gamma: 0.999       # a deal is a few dozen decisions a seat, paid at its end
+  lam: 0.95
+  clip: 0.2
+  vf_coef: 0.5
+  ent_coef: 0.01
+  max_grad_norm: 0.5
+  epochs: 4
+  minibatch: 2048
+  target_kl: 0.03
+  reward_scale: 1.0  # the adapter already divides penalty points by 100
+
+train:
+  rollout: 16384
+  total_updates: 5000
+  snapshot_every: 20
+  reset_every: 20
+
+league:
+  blend: {checkpoint: 0.3, heuristic: 0.5, self: 0.2}
+  seats: {2: 0.6, 3: 0.25, 4: 0.15}
+  # Env processes are split between the rulesets in proportion; every table in
+  # a process plays its variation.
+  variation_mix:
+    zolik_classic: 0.75
+    zolik_classic+floor35: 0.25
+  partnerships: false
+  opponents:
+    hard: 1.0
+    medium: 0.5
+    easy: 0.25
+  checkpoint_temperature: 1.0
+  checkpoint_decay: 0.8
+  pool_size: 20
+
+eval:
+  seats: 2
+  seeds: 300
+  variation: zolik_classic
+  opponents: [hard, medium, easy]

@@ -1,0 +1,97 @@
+"""The ZLNET1 weight file server/internal/learn/mlp.go loads.
+
+    magic   "ZLNET1\\n"
+    uint32  length of the JSON header, little-endian
+    header  {"game","stateDim","candDim","trunk":[[in,out]..],"scorer":..,"value":..}
+    float32 weights, little-endian: trunk, scorer, value; each layer W (out x in,
+            row-major — torch's own Linear layout) then B
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import struct
+import tempfile
+from pathlib import Path
+
+import numpy as np
+import torch
+
+from .model import Policy
+
+MAGIC = b"ZLNET1\n"
+
+
+def _shape(layers) -> list[list[int]]:
+    return [[l.in_features, l.out_features] for l in layers]
+
+
+def to_bytes(model: Policy) -> bytes:
+    header = {
+        "game": model.game,
+        "stateDim": model.state_dim,
+        "candDim": model.cand_dim,
+        "trunk": _shape(model.trunk),
+        "scorer": _shape(model.scorer),
+        "value": _shape(model.value_head),
+    }
+    hb = json.dumps(header, separators=(",", ":")).encode()
+    parts = [MAGIC, struct.pack("<I", len(hb)), hb]
+    with torch.no_grad():
+        for stack in (model.trunk, model.scorer, model.value_head):
+            for layer in stack:
+                parts.append(layer.weight.detach().cpu().numpy().astype("<f4").tobytes(order="C"))
+                parts.append(layer.bias.detach().cpu().numpy().astype("<f4").tobytes(order="C"))
+    return b"".join(parts)
+
+
+def save(model: Policy, path: str | os.PathLike) -> Path:
+    """Write atomically, so an env process loading a checkpoint never sees half a file."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".tmp-", suffix=".bin")
+    with os.fdopen(fd, "wb") as f:
+        f.write(to_bytes(model))
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, path)
+    return path
+
+
+def from_bytes(b: bytes) -> Policy:
+    if not b.startswith(MAGIC):
+        raise ValueError("not a ZLNET1 model")
+    off = len(MAGIC)
+    (hlen,) = struct.unpack_from("<I", b, off)
+    off += 4
+    h = json.loads(b[off : off + hlen])
+    off += hlen
+
+    def outs(shape):
+        return [o for _, o in shape]
+
+    model = Policy(
+        h["stateDim"],
+        h["candDim"],
+        outs(h["trunk"]),
+        outs(h["scorer"])[:-1],
+        outs(h["value"])[:-1],
+        game=h.get("game", ""),
+    )
+    for stack, shape in ((model.trunk, h["trunk"]), (model.scorer, h["scorer"]), (model.value_head, h["value"])):
+        if _shape(stack) != [list(s) for s in shape]:
+            raise ValueError(f"layer shapes do not chain as this model's: {shape}")
+        for layer in stack:
+            for p in (layer.weight, layer.bias):
+                n = p.numel()
+                arr = np.frombuffer(b, dtype="<f4", count=n, offset=off).reshape(p.shape)
+                off += 4 * n
+                with torch.no_grad():
+                    p.copy_(torch.from_numpy(arr.astype(np.float32)))
+    if off != len(b):
+        raise ValueError(f"{len(b) - off} trailing bytes")
+    return model
+
+
+def load(path: str | os.PathLike) -> Policy:
+    return from_bytes(Path(path).read_bytes())
