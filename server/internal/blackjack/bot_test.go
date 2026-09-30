@@ -1,6 +1,7 @@
 package blackjack
 
 import (
+	"reflect"
 	"testing"
 
 	"zolik/server/internal/module"
@@ -276,5 +277,113 @@ func TestBot_TheSkillsAreOrderedByWhatTheyWin(t *testing.T) {
 	if totals["p2"] <= totals["p3"] {
 		t.Errorf("the medium setting finished on %d chips and the easy one on %d",
 			totals["p2"], totals["p3"])
+	}
+}
+
+// TestBotDoesNotPeek.
+//
+// The bot is handed the whole state — the dealer's hole card and the shoe in
+// the order it will deal — because that is what the runtime has. Nothing but
+// this test stops it reading them, and the hint button shows a human whatever
+// the bot would do, so a bot that peeked would leak the hole card to them too.
+//
+// Each position is built with every combination of hole card and shoe order;
+// the decision has to come out the same across all of them, at every skill.
+// The offers are asked for per variant, the way the runtime asks, so a leak
+// through the offer list would fail here as well.
+func TestBotDoesNotPeek(t *testing.T) {
+	// Same length, entirely different cards: a bot that knew the next card was
+	// a ten would stand on anything it could, and hit anything it could on a
+	// run of small ones.
+	shoes := [][]string{
+		stack("TC", "TH", "TS", "KC", "QD", "JD", "KH", "QS"),
+		stack("2C", "3C", "4C", "5D", "2H", "3D", "4S", "AC"),
+	}
+	type position struct {
+		name  string
+		phase string
+		up    string
+		holes []string // hidden cards the dealer might have under the up card
+		hand  []string // p1's only hand; nil outside the play phase
+	}
+	var positions []position
+	for _, hand := range [][]string{
+		{"9H", "7D"}, // hard sixteen
+		{"TS", "2H"}, // hard twelve
+		{"6S", "5H"}, // eleven
+		{"AS", "7H"}, // soft eighteen
+		{"8S", "8H"}, // eights
+	} {
+		// A ten underneath a six is a dealer sixteen, about to bust; a four
+		// is a ten, about to make a hand.
+		positions = append(positions,
+			position{"play against a six", phasePlay, "6S", []string{"TD", "4D"}, hand},
+			position{"play against a ten", phasePlay, "TD", []string{"7C", "4D"}, hand},
+		)
+	}
+	positions = append(positions,
+		// The one decision that is nothing but a bet on the hole card.
+		position{name: "insurance", phase: phaseInsurance, up: "AS", holes: []string{"KD", "4D"}},
+		position{name: "betting", phase: phaseBets},
+	)
+
+	build := func(p position, hole string, shoe []string) module.State {
+		return withTable(t, func(s *GameState) {
+			s.Phase = p.phase
+			s.Shoe = append([]string(nil), shoe...)
+			s.AllowSurrender, s.AllowInsurance = true, true
+			switch p.phase {
+			case phasePlay:
+				s.Seats[0].Hands[0].Cards = p.hand
+				s.Dealer = []string{p.up, hole}
+			case phaseInsurance:
+				s.Peeked = false
+				s.Current, s.CurrentHand = -1, -1
+				s.Dealer = []string{p.up, hole}
+			case phaseBets:
+				s.Current, s.CurrentHand = -1, -1
+				s.Dealer = nil
+				for i := range s.Seats {
+					s.Seats[i].Stack += s.Seats[i].Bet
+					s.Seats[i].Bet, s.Seats[i].Staked, s.Seats[i].Hands = 0, 0, nil
+				}
+			}
+		})
+	}
+	m := New()
+	act := func(raw module.State, skill module.Skill) module.Action {
+		t.Helper()
+		offers, err := m.LegalActions(raw, "p1")
+		if err != nil {
+			t.Fatalf("LegalActions: %v", err)
+		}
+		a, ok := bot{}.Act(raw, module.BotSeat{PlayerID: "p1", Skill: skill, Seed: 7}, offers)
+		if !ok {
+			t.Fatalf("%s had no move", skill)
+		}
+		return a
+	}
+
+	for _, p := range positions {
+		holes := p.holes
+		if holes == nil {
+			holes = []string{""}
+		}
+		for _, skill := range module.Skills {
+			var want module.Action
+			for i, hole := range holes {
+				for j, shoe := range shoes {
+					got := act(build(p, hole, shoe), skill)
+					if i == 0 && j == 0 {
+						want = got
+						continue
+					}
+					if !reflect.DeepEqual(got, want) {
+						t.Errorf("%s, %v, %s: played %+v with hole %q and shoe %d, but %+v with hole %q and shoe 0 — it is reading hidden cards",
+							p.name, p.hand, skill, got, hole, j, want, holes[0])
+					}
+				}
+			}
+		}
 	}
 }

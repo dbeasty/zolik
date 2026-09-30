@@ -54,7 +54,7 @@ export default function TableScreen() {
   const poll = useCallback(async () => {
     if (!id) return;
     try {
-      const m = await client.getMatch(id, session?.userId);
+      const m = await client.getMatch(id);
       setState(m);
       if (m.status !== 'lobby') router.replace(`/match/${id}`);
     } catch (e) {
@@ -100,6 +100,21 @@ export default function TableScreen() {
    * existed. Naming one overrides it for this seat alone — the only way to
    * build a table where the opponents differ from each other.
    */
+  // A bot in the seat a rematch was holding, in that seat — the host has
+  // stopped waiting for this person.
+  async function fillHeldSeat(playerId: string) {
+    setBusy(true);
+    setError('');
+    try {
+      await client.releaseHeldSeat(id, playerId, true);
+      await poll();
+    } catch (e) {
+      setError(formatApiError(e, 'Could not add a bot'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function addBot(skill = '') {
     setBusy(true);
     setError('');
@@ -170,6 +185,9 @@ export default function TableScreen() {
   }
 
   const players = state?.players ?? [];
+  // Seats a rematch is still holding. Dealing plays on without them, so the
+  // Start button names who that is.
+  const held = state?.reserved ?? [];
   // The sides come from the server, which asks the module — a client counting
   // to two would be a second implementation of a rule, and the two would
   // eventually disagree about a six-seat table.
@@ -258,6 +276,32 @@ export default function TableScreen() {
             ) : null}
           </View>
         ))}
+        {/*
+          Seats a rematch is holding for people from the last table who have
+          not sat down yet. Nobody else can take them, and dealing now plays on
+          without them — so the host sees who they would be starting without
+          rather than a table that looks one short for no reason.
+        */}
+        {held.map((r) => (
+          <View
+            key={r.playerId}
+            style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}
+          >
+            <Text testID={`held-${r.playerId}`} style={{ color: colors.muted, flexShrink: 1 }}>
+              {t('lobby.table.heldFor', { name: r.name })}
+            </Text>
+            {isHost ? (
+              <Pressable
+                testID={`held-fill-${r.playerId}`}
+                disabled={busy}
+                onPress={() => fillHeldSeat(r.playerId)}
+                style={{ marginLeft: 'auto', paddingHorizontal: 10, paddingVertical: 2 }}
+              >
+                <Text style={{ color: colors.accent }}>{t('lobby.table.fillWithBot')}</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ))}
 
         {/*
           Shown to everyone, not only the host: knowing who you are playing with
@@ -322,7 +366,11 @@ export default function TableScreen() {
               ))}
             </View>
             <Pressable testID="table-start" style={shared.button} onPress={start} disabled={busy}>
-              <Text style={shared.buttonText}>{t('lobby.table.start')}</Text>
+              <Text style={shared.buttonText}>
+                {held.length
+                  ? t('lobby.table.startWithout', { names: held.map((r) => r.name).join(', ') })
+                  : t('lobby.table.start')}
+              </Text>
             </Pressable>
           </>
         ) : (

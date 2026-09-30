@@ -144,7 +144,7 @@ func containsWild(cards []string) bool {
 func suitParam() module.ParamSpec {
 	choices := make([]module.ParamChoice, 0, len(suits))
 	for _, s := range suits {
-		choices = append(choices, module.ParamChoice{Value: s, LabelKey: "suit." + s})
+		choices = append(choices, module.ParamChoice{Value: s, LabelKey: module.GermanSuitKey(s)})
 	}
 	return module.ParamSpec{Name: "suit", LabelKey: "prompt.chooseSuit", Choices: choices}
 }

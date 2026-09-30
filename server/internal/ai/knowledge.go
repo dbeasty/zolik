@@ -258,7 +258,11 @@ func adjacentRanks(rank int) []int {
 //	               so a pair whose other six copies are all showing is not a
 //	               pair at all — it is twenty penalty points pretending to be
 //	               one.
-func keepValue(hand []string, idx int, inFinished bool, k knowledge, cfg rules.RulesConfig) int {
+//
+// g is what the hand is building toward (see goal): a fragment only counts
+// when it is a fragment of a meld the contract still wants, and — once the
+// player is down — only while the hand has room to finish it.
+func keepValue(hand []string, idx int, inFinished bool, k knowledge, cfg rules.RulesConfig, g goal) int {
 	card := hand[idx]
 	if rules.IsJoker(card) {
 		// A joker is meld material for anything. Never shed one as though it
@@ -283,7 +287,10 @@ func keepValue(hand []string, idx int, inFinished bool, k knowledge, cfg rules.R
 	if k.prof.KeepPartials == KeepFinished {
 		return 0
 	}
-	partners := fragmentPartners(hand, idx, cfg)
+	if g.down && !g.room {
+		return 0
+	}
+	partners := fragmentPartners(hand, idx, cfg, g)
 	if partners == 0 {
 		return 0
 	}
@@ -323,8 +330,9 @@ const (
 )
 
 // fragmentPartners counts the other cards in hand that this one is building
-// with — same rank for a set, same suit and within a run's reach for a run.
-func fragmentPartners(hand []string, idx int, cfg rules.RulesConfig) int {
+// with — same rank for a set, same suit and within a run's reach for a run —
+// counting only the kinds of meld the goal wants.
+func fragmentPartners(hand []string, idx int, cfg rules.RulesConfig, g goal) int {
 	card := hand[idx]
 	if rules.IsJoker(card) {
 		return 0
@@ -336,10 +344,15 @@ func fragmentPartners(hand []string, idx int, cfg rules.RulesConfig) int {
 			continue
 		}
 		if rules.CardRank(other) == rank {
-			n++
+			// The second pack's copy of this very card is not a partner: a
+			// set takes one card of each suit, so J♣ J♣ is two loose jacks
+			// and never two thirds of a set.
+			if g.wants(rules.MeldSet) && rules.CardSuit(other) != suit {
+				n++
+			}
 			continue
 		}
-		if rules.CardSuit(other) == suit && runDistance(rank, rules.CardRank(other)) <= 2 {
+		if g.wants(rules.MeldRun) && rules.CardSuit(other) == suit && runDistance(rank, rules.CardRank(other)) <= 2 {
 			n++
 		}
 	}

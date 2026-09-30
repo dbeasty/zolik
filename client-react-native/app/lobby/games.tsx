@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
@@ -13,10 +13,11 @@ import {
 } from 'react-native';
 
 import type { MatchModule } from '@/src/api/matchTypes';
+import { GameButtons } from '@/src/components/GameButtons';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
+import { useLocale } from '@/src/hooks/useLocale';
 import { formatApiError } from '@/src/lib/apiError';
-import { orderModules } from '@/src/lib/gameOrder';
 import { loadGameSetup, saveGameSetup } from '@/src/lib/gameSetupStore';
 import { factText, label } from '@/src/lib/labels';
 import { colors } from '@/src/theme';
@@ -40,6 +41,31 @@ import { t } from '@/src/lib/i18n';
  * from that range, and a game registered tomorrow gets the right one.
  */
 export default function GamesScreen() {
+  const { moduleId } = useLocalSearchParams<{ moduleId?: string }>();
+  return moduleId ? <GameSetupScreen moduleId={String(moduleId)} /> : <GameListScreen />;
+}
+
+/**
+ * Every game as one button, each opening that game's own setup below. The
+ * setups used to be stacked here as cards, one per game; a player who came to
+ * play one game now sees one game's controls.
+ */
+function GameListScreen() {
+  // Nothing else here re-renders once the saved language has loaded.
+  useLocale();
+  return (
+    <Screen title={t('nav.games')} subtitle={t('lobby.games.subtitle')} scroll>
+      <View testID="games-list">
+        <GameButtons
+          onPick={(mod) => router.push(`/lobby/games?moduleId=${encodeURIComponent(mod.id)}`)}
+        />
+      </View>
+    </Screen>
+  );
+}
+
+/** One game's setup, arrived at open, reached from a `GameButtons` press. */
+function GameSetupScreen({ moduleId }: { moduleId: string }) {
   const { client, session } = useSession();
   const [modules, setModules] = useState<MatchModule[]>([]);
   const [error, setError] = useState('');
@@ -101,25 +127,14 @@ export default function GamesScreen() {
         const fetched = await client.modules();
         if (cancelled) return;
 
-        // Personalize the order by what this player actually plays; a
-        // player with no match history yet has nothing to personalize with,
-        // so `playCounts` stays undefined and orderModules falls back to the
-        // general popularity ranking on its own.
-        let playCounts: Record<string, number> | undefined;
-        try {
-          const stats = await client.getStats();
-          playCounts = {};
-          for (const [id, tally] of Object.entries(stats.byModule ?? {})) {
-            playCounts[id] = tally.matches;
-          }
-        } catch {
-          // Stats are a personalization nicety, not a requirement — the
-          // popularity default below still gives a sensible order.
+        const list = fetched.filter((m) => m.id === moduleId);
+        if (!list.length) {
+          // A stale or mistyped link: the list is the place to pick from.
+          router.replace('/lobby/games');
+          return;
         }
-        if (cancelled) return;
-
-        const list = orderModules(fetched, playCounts);
         setModules(list);
+        setOpenSetup({ [moduleId]: true });
 
         const v: Record<string, string> = {};
         const o: Record<string, Record<string, number>> = {};
@@ -157,7 +172,7 @@ export default function GamesScreen() {
     return () => {
       cancelled = true;
     };
-  }, [client]);
+  }, [client, moduleId]);
 
   const pickVariation = (moduleId: string, mod: MatchModule, id: string) => {
     setVariation((prev) => ({ ...prev, [moduleId]: id }));
@@ -303,7 +318,7 @@ export default function GamesScreen() {
   }
 
   return (
-    <Screen title={t('nav.games')} subtitle={t('lobby.games.subtitle')}>
+    <Screen>
       <ScrollView
         ref={scroller}
         testID="games-list"

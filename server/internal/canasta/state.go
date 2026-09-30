@@ -568,6 +568,56 @@ type TeamResult struct {
 	InHand    int `json:"inHand"`
 	Total     int `json:"total"`
 	Running   int `json:"running"`
+
+	// The rest is how each of those sums was reached, for a player checking
+	// the arithmetic. All of it is omitempty and all of it may be missing: a
+	// deal scored before it was kept reads back with only the sums above, and
+	// is shown that way.
+
+	// Melds is every meld on the table when the deal ended, in the order laid.
+	Melds []MeldTally `json:"melds,omitempty"`
+	// Naturals, Mixed and Sambas count the canastas behind Canastas, and the
+	// bonus each paid is the ruleset's, so it is not stored twice.
+	Naturals int `json:"naturals,omitempty"`
+	Mixed    int `json:"mixed,omitempty"`
+	Sambas   int `json:"sambas,omitempty"`
+	// RedThreeCount is how many red threes RedThrees was paid for; All that
+	// they were every one in the deck, and Short that the side had too few
+	// canastas and they counted against it.
+	RedThreeCount int  `json:"redThreeCount,omitempty"`
+	RedThreesAll  bool `json:"redThreesAll,omitempty"`
+	RedThreeShort bool `json:"redThreeShort,omitempty"`
+	// Hands is what each partner was caught holding, behind InHand.
+	Hands []HandTally `json:"hands,omitempty"`
+}
+
+// MeldTally is one meld as it was scored: what it was and how many cards,
+// never which cards. The account is shown in the round log, which is public
+// and permanent and names no card (see module.TestARoundLogNeverNamesACard);
+// a set's rank and a sequence's suit are all anyone argues about.
+type MeldTally struct {
+	Kind   string `json:"kind"`
+	Rank   string `json:"rank,omitempty"`
+	Suit   string `json:"suit,omitempty"`
+	Cards  int    `json:"cards"`
+	Wilds  int    `json:"wilds,omitempty"`
+	Points int    `json:"points"`
+	// Canasta is the bonus it earned — "natural", "mixed", "samba" — or empty.
+	Canasta string `json:"canasta,omitempty"`
+}
+
+// HandTally is one partner's leftover hand, by the categories that price it.
+//
+// Counts rather than the cards: the deal is over and the hand is dead, but the
+// account is public to the whole table and forever after, and "two black
+// threes and a wild" is the whole of the argument anyone has about it.
+type HandTally struct {
+	PlayerID    string `json:"playerId"`
+	Cards       int    `json:"cards"`
+	Points      int    `json:"points"`
+	BlackThrees int    `json:"blackThrees,omitempty"`
+	Wilds       int    `json:"wilds,omitempty"`
+	WildPoints  int    `json:"wildPoints,omitempty"`
 }
 
 // rules is the ruleset this match is being played under.

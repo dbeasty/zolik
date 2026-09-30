@@ -43,7 +43,7 @@ const REWINDS = /^undo(:|$)|^reset_turn$/;
 
 export type MatchOutcome = 'finished' | 'budget' | 'stalled' | 'lost';
 
-export type Session = { userId: string; username: string };
+export type Session = { userId: string; username: string; accessToken: string };
 
 export class Player {
   readonly stats: ClientStats;
@@ -70,16 +70,35 @@ export class Player {
     this.session = await this.page.evaluate(() => {
       const raw = window.localStorage.getItem('zolik_session');
       const s = raw ? JSON.parse(raw) : {};
-      return { userId: s.userId ?? '', username: s.username ?? '' };
+      return { userId: s.userId ?? '', username: s.username ?? '', accessToken: s.accessToken ?? '' };
     });
     if (!this.session.userId) throw new Error(`${this.name}: signed in but no session was stored`);
   }
 
+  /**
+   * The seat's current access token. The app refreshes it in place over a long
+   * run, so it is re-read from the stored session rather than kept from
+   * sign-in; the cached one stands in while the page is mid-navigation.
+   */
+  private async accessToken(): Promise<string> {
+    try {
+      const fresh = await this.page.evaluate(() => {
+        const raw = window.localStorage.getItem('zolik_session');
+        return raw ? ((JSON.parse(raw).accessToken as string | undefined) ?? '') : '';
+      });
+      if (fresh && this.session) this.session.accessToken = fresh;
+    } catch {
+      // Navigating; the last token read is as good as any.
+    }
+    return this.session?.accessToken ?? '';
+  }
+
   /** The match document, as this seat sees it. */
   async readMatch(matchId: string): Promise<MatchDoc | undefined> {
-    const as = this.session?.userId ?? '';
+    const token = await this.accessToken();
     try {
-      const res = await fetch(`${this.settings.apiBase}/matches/${matchId}?as=${as}`, {
+      const res = await fetch(`${this.settings.apiBase}/matches/${matchId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
         signal: AbortSignal.timeout(10_000),
       });
       if (!res.ok) {

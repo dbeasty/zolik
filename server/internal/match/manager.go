@@ -64,6 +64,9 @@ type Manager struct {
 	// exactly as it did before the pace was configurable.
 	botThinkMin time.Duration
 	botThinkMax time.Duration
+	// botActBudget bounds one call to a module's Bot.Act. Zero means
+	// botActBudgetDefault; see SetBotActBudget.
+	botActBudget time.Duration
 
 	// live holds the state of every match in play; see live.go.
 	live liveMatches
@@ -79,6 +82,9 @@ type Manager struct {
 	// in. Both optional — see SetLobbyObserver and SetPersonalRoom.
 	lobbyObserver LobbyObserver
 	personalRoom  string
+	// rematchObserver hears who a rematch is holding seats for, so they can
+	// be told wherever they are. Optional — see SetRematchObserver.
+	rematchObserver RematchObserver
 }
 
 // LobbyObserver is told when a lobby stops being one somebody could join: it
@@ -128,6 +134,12 @@ type Recorder interface {
 // client decision, so the server has to be able to be told rather than
 // guessing once at compile time.
 func (m *Manager) SetBotPace(min, max time.Duration) { m.botThinkMin, m.botThinkMax = min, max }
+
+// SetBotActBudget bounds how long a module's bot may spend deciding one move
+// before the loop stops waiting and plays from the offer list instead.
+// Optional; zero or less means botActBudgetDefault. Exists so a test can
+// exercise the timeout without sitting through the production budget.
+func (m *Manager) SetBotActBudget(d time.Duration) { m.botActBudget = d }
 
 // SetRecorder attaches statistics recording. Optional.
 func (m *Manager) SetRecorder(r Recorder) { m.recorder = r }
@@ -417,26 +429,44 @@ func (m *Manager) JoinWith(ctx context.Context, idOrCode string, seat func(model
 // locked.
 func (m *Manager) joinLocked(ctx context.Context, e *liveMatch, p models.Player) (models.Match, bool, error) {
 	match := e.match
-	if match.Status != "lobby" {
-		return models.Match{}, false, module.Error{Code: "MATCH_ALREADY_STARTED"}
-	}
+	// Somebody already sitting here is let back in whatever the table is
+	// doing. The join link is the one thing a player is sure to still have,
+	// and asking about the status first answered MATCH_ALREADY_STARTED to the
+	// very people the table was waiting for — a started or swept-up game then
+	// looked closed to its own players.
 	for _, existing := range match.Players {
 		if existing.ID == p.ID {
 			return match, false, nil // idempotent: re-joining is not an error
 		}
 	}
+	if match.Status != "lobby" {
+		return models.Match{}, false, module.Error{Code: "MATCH_ALREADY_STARTED"}
+	}
 	mod := m.registry.Get(match.ModuleID)
 	if mod == nil {
 		return models.Match{}, false, module.Error{Code: "UNKNOWN_MODULE", Message: match.ModuleID}
 	}
+	// A seat held for somebody from the last table is taken by them or by
+	// nobody, so it counts as filled for everyone else.
+	held := len(match.Reserved)
+	reservation := reservationIndex(match.Reserved, p.ID)
+	if reservation >= 0 {
+		held--
+	}
 	// The variation's range, not the module's: a table's size is a property of
 	// the rules it was created under (module.SeatRange).
-	if _, max := mod.Descriptor().SeatRange(match.Variation); len(match.Players) >= max {
+	if _, max := mod.Descriptor().SeatRange(match.Variation); len(match.Players)+held >= max {
 		return models.Match{}, false, module.Error{Code: "MATCH_FULL"}
 	}
 
 	match.Players = append(append([]models.Player(nil), match.Players...), p)
 	match.TurnOrder = append(append([]string(nil), match.TurnOrder...), p.ID)
+	if reservation >= 0 {
+		match.Reserved = withoutReservation(match.Reserved, reservation)
+	}
+	if len(match.SeatOrder) > 0 {
+		match.Players, match.TurnOrder = inSeatOrder(match.Players, match.SeatOrder)
+	}
 	if err := m.saveLocked(ctx, e, match); err != nil {
 		return models.Match{}, false, err
 	}
@@ -494,6 +524,9 @@ func (m *Manager) startLocked(ctx context.Context, e *liveMatch) (models.Match, 
 	now := time.Now().UTC()
 	match.Status = "active"
 	match.StartedAt = &now
+	// Dealt without them: a seat held for somebody who never sat down is not
+	// a seat at this game.
+	match.Reserved = nil
 	e.seq = 0
 	if err := m.snapshotLocked(ctx, e, match, state); err != nil {
 		return models.Match{}, err
@@ -667,6 +700,11 @@ func (m *Manager) applyLocked(ctx context.Context, e *liveMatch, playerID string
 	}
 	envelope.State = models.JSONDoc(next)
 	e.match, e.seq, e.rounds = envelope, entry.Seq, closed
+	players := make([]string, 0, len(match.Players))
+	for _, p := range match.Players {
+		players = append(players, p.ID)
+	}
+	e.record(mod, next, players, events)
 
 	if !snapshot && now.Sub(e.touched) > touchEvery {
 		// Best effort: the move is stored; a missed touch costs a minute of
@@ -708,12 +746,22 @@ func (m *Manager) publishEvents(match models.Match, events []module.Event) {
 		return
 	}
 	id := match.ID.Hex()
+	mod := m.registry.Get(match.ModuleID)
 	for _, ev := range events {
-		payload := map[string]any{"type": ev.Type}
-		for k, v := range ev.Data {
-			payload[k] = v
-		}
 		for _, p := range match.Players {
+			// Filtered per player, as the board is: an event may name a card
+			// only one seat is allowed to see.
+			seen, ok := ev, true
+			if mod != nil {
+				seen, ok = module.ProjectEvent(mod, ev, p.ID)
+			}
+			if !ok {
+				continue
+			}
+			payload := map[string]any{"type": seen.Type}
+			for k, v := range seen.Data {
+				payload[k] = v
+			}
 			m.hub.WriteDirect(id, p.ID, payload)
 		}
 	}

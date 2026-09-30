@@ -1,22 +1,15 @@
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import type { MatchModule } from '@/src/api/matchTypes';
+import { GameButtons } from '@/src/components/GameButtons';
+import { useSession } from '@/src/context/SessionContext';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { markIntroSeen } from '@/src/lib/introStore';
+import { savePendingDestination } from '@/src/lib/pendingDestination';
 import { t } from '@/src/lib/i18n';
 import { colors } from '@/src/theme';
-
-/**
- * The four games this build hosts, as shown on the intro screen.
- *
- * Plain text, not `moduleName()`/`t()` — game names are one of the things
- * `src/lib/gameLabels.ts` deliberately keeps out of the locale files
- * ("Texas Hold'em" reads the same in every language), and this screen has
- * nothing to look them up against anyway: it renders before any session or
- * `/modules` fetch, for a visitor who has neither yet.
- */
-const GAMES = ['Žolíky', 'Prší', 'Canasta', "Hold'em"];
 
 /**
  * Three short reasons to tap Play, each led by a card suit rather than an
@@ -45,6 +38,7 @@ const BULLETS: { mark: string; key: string }[] = [
  */
 export default function IntroScreen() {
   const { narrow } = useMetrics();
+  const { session } = useSession();
 
   const onPlay = () => {
     // Fire-and-forget: a slow or failed write should never hold up the tap
@@ -53,6 +47,22 @@ export default function IntroScreen() {
     void markIntroSeen();
     router.replace('/');
   };
+
+  // A game button goes straight to that game's setup, and "Join a table"
+  // straight to the code entry. Without a session the guest screen comes
+  // first, and the destination is where it lands afterwards — the same
+  // handoff a shared link uses (see `pendingDestination.ts`).
+  const goTo = async (path: string) => {
+    void markIntroSeen();
+    if (!session) {
+      await savePendingDestination(path);
+      router.replace('/auth/guest');
+      return;
+    }
+    router.replace(path as Href);
+  };
+  const onPickGame = (mod: MatchModule) =>
+    goTo(`/lobby/games?moduleId=${encodeURIComponent(mod.id)}`);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom', 'left', 'right']}>
@@ -63,11 +73,17 @@ export default function IntroScreen() {
         </View>
 
         <View style={styles.games}>
-          {GAMES.map((name) => (
-            <View key={name} style={styles.gameChip}>
-              <Text style={styles.gameChipText}>{name}</Text>
-            </View>
-          ))}
+          <GameButtons onPick={(mod) => void onPickGame(mod)} />
+          {/* For a code heard out loud rather than a link followed: without
+              this, the way to the join screen ran through the main menu. */}
+          <Pressable
+            testID="intro-join"
+            accessibilityRole="link"
+            onPress={() => void goTo('/lobby/join')}
+            style={({ pressed }) => [styles.joinLink, pressed && styles.joinLinkPressed]}
+          >
+            <Text style={styles.joinLinkText}>{t('nav.join')} ›</Text>
+          </Pressable>
         </View>
 
         <View style={[styles.bullets, !narrow && styles.bulletsRow]}>
@@ -128,24 +144,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   games: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
     marginTop: 28,
   },
-  gameChip: {
-    flexGrow: 1,
-    flexBasis: '45%',
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: 'center',
+  joinLink: {
+    alignSelf: 'center',
+    marginTop: 14,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
   },
-  gameChipText: {
-    fontSize: 13,
-    color: colors.text,
+  joinLinkPressed: {
+    backgroundColor: colors.surface,
+  },
+  joinLinkText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.accent,
   },
   bullets: {
     marginTop: 28,

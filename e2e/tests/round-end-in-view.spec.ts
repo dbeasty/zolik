@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 
 /**
  * When the table stops, the way on is in front of the player.
@@ -79,10 +79,10 @@ async function signIn(page: Page, host: any) {
  * at. Asked of the server rather than guessed from the DOM, because the screen
  * under test names no game and neither should this.
  */
-async function handZone(request: Ctx, matchId: string, userId: string): Promise<string> {
-  const state = await (await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`)).json();
+async function handZone(request: Ctx, matchId: string, viewer: Viewer): Promise<string> {
+  const state = await (await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer))).json();
   const mine = (state.view?.zones ?? []).find(
-    (z: any) => z.kind === 'hand' && z.ownerId === userId,
+    (z: any) => z.kind === 'hand' && z.ownerId === viewer.userId,
   );
   expect(mine, 'the player should have a hand to look at').toBeTruthy();
   return mine.id;
@@ -149,7 +149,7 @@ async function playUntil(
   page: Page,
   request: Ctx,
   matchId: string,
-  userId: string,
+  viewer: Viewer,
   zoneId: string,
   done: (s: any) => boolean,
   // Whether the table's own way on may be pressed to get where we are going.
@@ -174,7 +174,7 @@ async function playUntil(
   // five-hand table is five stops plus its betting, and a good share of these
   // turns are spent waiting on bots rather than pressing anything.
   for (let i = 0; i < 400; i++) {
-    const state = await (await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`)).json();
+    const state = await (await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer))).json();
     if (done(state)) return { state, parked };
     await parkOnTheHand(page, zoneId);
     // The last reading that found the player down the board, not simply the
@@ -186,7 +186,7 @@ async function playUntil(
     const at = (await board(page)).offset;
     if (at > 0) parked = at;
     const ids = await page
-      .locator('[data-testid^="offer-"]:not([aria-disabled="true"])')
+      .locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])')
       .evaluateAll((els) => els.map((e) => e.getAttribute('data-testid') ?? '').filter(Boolean));
     // Never press the intermission's own control unless asked — that is the
     // moment under test, and agreeing to go on would skip it.
@@ -231,12 +231,12 @@ test.describe('a stopped table brings the way on to the player', () => {
     await page.goto(`/match/${matchId}`);
     await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
 
-    const hand = await handZone(request, matchId, host.userId);
+    const hand = await handZone(request, matchId, host);
     const { state, parked } = await playUntil(
       page,
       request,
       matchId,
-      host.userId,
+      host,
       hand,
       (s) => !!s.rounds?.paused,
     );
@@ -293,7 +293,7 @@ test.describe('a stopped table brings the way on to the player', () => {
     await expect
       .poll(
         async () =>
-          (await (await request.get(`${API_BASE}/matches/${matchId}?as=${host.userId}`)).json())
+          (await (await request.get(`${API_BASE}/matches/${matchId}`, asViewer(host))).json())
             .rounds?.paused ?? false,
         { timeout: 30_000 },
       )
@@ -312,12 +312,12 @@ test.describe('a stopped table brings the way on to the player', () => {
     await page.goto(`/match/${matchId}`);
     await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
 
-    const hand = await handZone(request, matchId, host.userId);
+    const hand = await handZone(request, matchId, host);
     const { state, parked } = await playUntil(
       page,
       request,
       matchId,
-      host.userId,
+      host,
       hand,
       (s) => s.status === 'completed',
       true,

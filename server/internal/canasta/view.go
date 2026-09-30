@@ -1,6 +1,7 @@
 package canasta
 
 import (
+	"slices"
 	"strconv"
 
 	"zolik/server/internal/module"
@@ -102,6 +103,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 			// readable says so.
 			module.OpenDiscardPileOption(),
 			module.BotSkillOption(),
+			module.HintsOption(),
 			{
 				Name:  OptHandSize,
 				Type:  module.OptionEnumInt,
@@ -218,9 +220,11 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 				LabelKey: "zone.opponentMelds", Count: 0,
 			}
 		}
-		for _, mm := range t.Melds {
+		for _, mm := range meldsInViewOrder(t.Melds) {
 			g := module.Group{ID: mm.ID, Kind: mm.kind(), Cards: append([]string(nil), mm.Cards...)}
 			if mm.isCanasta() {
+				g.Complete = true
+				g.Face = foldedFace(mm.Cards)
 				switch {
 				case mm.kind() == meldRun:
 					// Seven in a suit is a samba, and worth saying so: it is the
@@ -434,4 +438,63 @@ func (m *Module) Standings(raw module.State) ([]module.Standing, error) {
 		}
 		return 0
 	}, "canasta.unit.points"), nil
+}
+
+// meldsInViewOrder is a partnership's melds the way a player would lay them out
+// in front of them: the ones still being built first, low rank to high, and
+// the finished canastas after them all.
+//
+// Not the order they were made in, which is the order they are stored in and
+// says nothing a player wants to read: the meld to add a card to is found by
+// its rank, and a canasta is mostly done with — it is a score and a licence to
+// go out, and the client folds it down (see Group.Complete), so it goes where
+// folding it away costs the rest of the row nothing. Sets come before
+// sequences, and sequences go by suit, the order the deck is built in.
+//
+// A view-only order: the stored melds keep theirs, so a replay of the log and
+// every rule that walks t.Melds see what they always saw.
+func meldsInViewOrder(melds []Meld) []Meld {
+	out := slices.Clone(melds)
+	slices.SortStableFunc(out, func(a, b Meld) int {
+		if a.isCanasta() != b.isCanasta() {
+			if a.isCanasta() {
+				return 1
+			}
+			return -1
+		}
+		if a.kind() != b.kind() {
+			if a.kind() == meldRun {
+				return 1
+			}
+			return -1
+		}
+		if a.kind() == meldRun {
+			return slices.Index(suits, a.Suit) - slices.Index(suits, b.Suit)
+		}
+		return meldRankOrder(a.Rank) - meldRankOrder(b.Rank)
+	})
+	return out
+}
+
+// meldRankOrder places a set's rank low to high, with anything that is not a
+// natural rank — a set of wild cards, where a variation allows one — above
+// the aces.
+func meldRankOrder(rank string) int {
+	if i := slices.Index(ranks, rank); i >= 0 {
+		return i
+	}
+	return len(ranks)
+}
+
+// foldedFace picks the card a folded canasta shows: the last natural, so the
+// one card left in view says what the meld is made of rather than showing a
+// wild that could stand for anything. Nil (the last card) when every card is
+// wild.
+func foldedFace(cards []string) *int {
+	for i := len(cards) - 1; i >= 0; i-- {
+		if !isWild(cards[i]) {
+			return &i
+		}
+	}
+	return nil
 }

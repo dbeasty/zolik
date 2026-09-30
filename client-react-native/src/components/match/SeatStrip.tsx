@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { Animated, Easing, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { MatchPlayer, Seat, Standing } from '@/src/api/matchTypes';
 import { Avatar } from '@/src/components/avatars/Avatar';
@@ -58,9 +58,15 @@ type Props = {
    * card in flight leaves from or lands when their hand isn't on screen.
    */
   registerSpot?: (elementId: string, node: Measurable | null) => void;
+  /**
+   * Open the account behind a seat's score. Where it is given, the score on
+   * the tile and on the collapsed rail is a control rather than a label — a
+   * number that jumped by a thousand is the thing a player wants to ask about.
+   */
+  onOpenScore?: (playerId: string) => void;
 };
 
-export function SeatStrip({ seats, players, viewerId, standings, panelId, minimized, onToggleMinimized, registerSpot }: Props) {
+export function SeatStrip({ seats, players, viewerId, standings, panelId, minimized, onToggleMinimized, registerSpot, onOpenScore }: Props) {
   const metrics = useMetrics();
   const skin = useSkin();
   // Asked for stillness, the seat on turn keeps its outline and its shadow
@@ -121,7 +127,19 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
           {player?.isAI ? <Text style={styles.badge}>BOT</Text> : null}
         </View>
 
-        {standing ? (
+        {standing && onOpenScore ? (
+          <Pressable
+            onPress={() => onOpenScore(seat.playerId)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityHint={t('score.open')}
+            testID={`standing-open-${seat.playerId}`}
+          >
+            <Text testID={`standing-${seat.playerId}`} style={[styles.score, styles.scoreLink]}>
+              {shownScore(standing)} {label(standing.labelKey)}
+            </Text>
+          </Pressable>
+        ) : standing ? (
           <Text testID={`standing-${seat.playerId}`} style={styles.score}>
             {shownScore(standing)} {label(standing.labelKey)}
           </Text>
@@ -236,7 +254,21 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
                   {seat.active ? '● ' : ''}
                   {playerName(players, seat.playerId)}
                 </Text>
-                {status ? (
+                {status && standing && onOpenScore ? (
+                  // Only the number, not the pill: the rail itself is how the
+                  // panel is opened out again, and that stays where it was.
+                  <Pressable
+                    onPress={() => onOpenScore(seat.playerId)}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityHint={t('score.open')}
+                    testID={`seat-summary-score-${seat.playerId}`}
+                  >
+                    <Text style={[styles.summaryStatus, styles.scoreLink]} numberOfLines={1}>
+                      {status}
+                    </Text>
+                  </Pressable>
+                ) : status ? (
                   <Text style={styles.summaryStatus} numberOfLines={1}>
                     {status}
                   </Text>
@@ -420,6 +452,9 @@ function seatStyles(m: Metrics, s: Skin) {
       overflow: 'hidden',
     },
     score: { color: colors.gold, fontSize: m.panel.bodyFont - 1, fontWeight: '700', marginTop: 2 },
+    // Says "this opens something" without taking any room: a dotted rule
+    // under the figure, the convention for a term with an explanation.
+    scoreLink: { textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
     badge: {
       color: colors.onAccent,
       backgroundColor: colors.muted,

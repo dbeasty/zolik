@@ -2,6 +2,7 @@ import { expect, test, type APIRequestContext, type Page } from '@playwright/tes
 
 import { API_BASE } from '../helpers/env';
 import { openGameSetup } from '../helpers/lobby';
+import { seedIntroSeen } from '../helpers/login';
 
 /**
  * Every key the app can put on screen without wording for it.
@@ -24,6 +25,13 @@ import { openGameSetup } from '../helpers/lobby';
  */
 
 test.describe.configure({ timeout: 90_000 });
+
+// Without this, `/` redirects a fresh device to the first-run intro, so the
+// sweep would read the intro in place of the main menu and never find the
+// account menu's button. The intro is swept by its own path below.
+test.beforeEach(async ({ page }) => {
+  await seedIntroSeen(page);
+});
 
 const MARKER = /_TX_([A-Za-z0-9_.[\]-]+)_/g;
 
@@ -111,6 +119,7 @@ test.describe('no screen can reach a key it has no words for', () => {
 
     for (const path of [
       '/',
+      '/intro',
       '/more',
       '/about',
       '/settings',
@@ -154,14 +163,17 @@ test.describe('no screen can reach a key it has no words for', () => {
     );
     await openInCzech(page, '/lobby/games');
     await expect(page.getByTestId('games-list')).toBeVisible();
-    // The sweep reads what is on screen, and a closed card keeps its option
-    // and choice labels out of the DOM entirely — the exact strings this test
-    // exists to catch. So open every card first: a picker of seven closed
-    // cards would sweep clean by having nothing in it to sweep.
-    for (const id of ['zolik', 'prsi', 'canasta', 'holdem', 'ginrummy', 'rummytiles', 'blackjack']) {
-      await openGameSetup(page, id);
-    }
     collect(await page.evaluate(() => document.body.innerText), missing);
+    // The sweep reads what is on screen, and a closed setup keeps its option
+    // and choice labels out of the DOM entirely — the exact strings this test
+    // exists to catch. Each game has its own page, so visit every one.
+    for (const id of ['zolik', 'prsi', 'canasta', 'holdem', 'ginrummy', 'rummytiles', 'blackjack']) {
+      await page.getByTestId(`game-${id}`).click();
+      await openGameSetup(page, id);
+      collect(await page.evaluate(() => document.body.innerText), missing);
+      await page.goBack();
+      await expect(page.getByTestId(`game-${id}`)).toBeVisible();
+    }
     expectNothingMissing(missing, 'the game picker');
   });
 

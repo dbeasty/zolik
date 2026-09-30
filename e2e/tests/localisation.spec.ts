@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { loginAsFreshGuest } from '../helpers/login';
+import { loginAsFreshGuest, seedIntroSeen } from '../helpers/login';
 import { en } from '../../client-react-native/src/lib/locales/en';
 import { de } from '../../client-react-native/src/lib/locales/de';
 import { cs } from '../../client-react-native/src/lib/locales/cs';
@@ -96,11 +96,23 @@ async function openInGerman(page: Page, path: string) {
   await expect(page.locator('body')).not.toHaveText('');
 }
 
+// A returning player has already been through the first-run intro, and
+// without this `/` redirects to `/intro` — so the main-menu check would read
+// the intro instead, and anything waiting for the menu's own controls would
+// time out. The intro is checked explicitly, by its own path, below.
+test.beforeEach(async ({ page }) => {
+  await seedIntroSeen(page);
+});
+
 test.describe('the whole app speaks one language at a time', () => {
   // The screens a player can reach before they have signed in — which is
   // where a first impression is formed, and where a leak is most costly.
-  const publicScreens: { path: string; name: string; exclude?: string }[] = [
-    { path: '/', name: 'the main menu' },
+  //
+  // `ready` names a test id that proves the screen itself rendered, for the
+  // routes that can redirect elsewhere before it does.
+  const publicScreens: { path: string; name: string; exclude?: string; ready?: string }[] = [
+    { path: '/', name: 'the main menu', ready: 'account-menu-button' },
+    { path: '/intro', name: 'the first-run intro', ready: 'intro-join' },
     { path: '/settings', name: 'settings' },
     { path: '/auth/login', name: 'the sign-in screen' },
     { path: '/auth/guest', name: 'guest sign-in' },
@@ -129,6 +141,7 @@ test.describe('the whole app speaks one language at a time', () => {
   for (const screen of publicScreens) {
     test(`${screen.name} shows no English when the language is German`, async ({ page }) => {
       await openInGerman(page, screen.path);
+      if (screen.ready) await expect(page.getByTestId(screen.ready)).toBeVisible();
       expectNoEnglish(await screenText(page, screen.exclude), screen.name);
     });
   }
@@ -164,6 +177,7 @@ test.describe('the whole app speaks one language at a time', () => {
 
     // Opening a table is the screen the invite panel lives on, and the invite
     // panel was the last thing in the app still hardcoded in English.
+    await page.getByTestId('game-prsi').click();
     await page.getByTestId('games-list').getByText('Tisch eröffnen').first().click();
     await expect(page.getByTestId('table-screen')).toBeVisible();
     expectNoEnglish(await screenText(page), 'an open table');

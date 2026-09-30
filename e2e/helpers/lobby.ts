@@ -1,6 +1,15 @@
 import { expect, type Page } from '@playwright/test';
 
 /**
+ * Open one game's setup page — what pressing that game's button on the list
+ * (or the intro) leads to. `/lobby/games` itself is only the list of buttons.
+ */
+export async function openGame(page: Page, moduleId: string) {
+  await page.goto(`/lobby/games?moduleId=${encodeURIComponent(moduleId)}`);
+  await expect(page.getByTestId(`module-${moduleId}`)).toBeVisible({ timeout: 30_000 });
+}
+
+/**
  * Open a game card's setup on the picker.
  *
  * Cards on `/lobby/games` arrive closed — a name, the table size and a digest

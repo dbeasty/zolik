@@ -179,6 +179,9 @@ func TestViewCarriesTheScoreboard(t *testing.T) {
 			for _, b := range g.BadgeKeys {
 				if b == "badge.naturalCanasta" {
 					badged = true
+					if !g.Complete {
+						t.Error("a canasta should be marked complete, so a client can fold it")
+					}
 				}
 			}
 		}
@@ -320,3 +323,55 @@ func TestSeatsOfOwnSideCarryNoSide(t *testing.T) {
 		}
 	}
 }
+
+// TestViewOrdersMeldsByRankWithCanastasLast pins the order a partnership's
+// melds are drawn in: the ones still being built low rank to high, sequences
+// after sets, and every finished canasta at the end, marked Complete so a
+// client can fold it — none of it the order they were laid in.
+func TestViewOrdersMeldsByRankWithCanastasLast(t *testing.T) {
+	melds := []Meld{
+		{ID: "k", Kind: meldSet, Rank: "K", Cards: []string{"KH", "KS", "KD"}},
+		{ID: "five-canasta", Kind: meldSet, Rank: "5", Cards: []string{"5H", "5S", "5D", "5C", "5H", "5S", "2C"}},
+		{ID: "run", Kind: meldRun, Suit: "D", Cards: []string{"4D", "5D", "6D"}},
+		{ID: "seven", Kind: meldSet, Rank: "7", Cards: []string{"7H", "7S", "7D"}},
+		{ID: "ace", Kind: meldSet, Rank: "A", Cards: []string{"AH", "AS", "AD", "AC"}},
+		{ID: "four-canasta", Kind: meldSet, Rank: "4", Cards: []string{"4H", "4S", "4D", "4C", "4H", "4S", "4D"}},
+	}
+	var got []string
+	for _, m := range meldsInViewOrder(melds) {
+		got = append(got, m.ID)
+	}
+	want := []string{"seven", "k", "ace", "run", "four-canasta", "five-canasta"}
+	if strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Errorf("melds drawn in order %v, want %v", got, want)
+	}
+	if melds[0].ID != "k" {
+		t.Error("ordering the view reordered the stored melds")
+	}
+}
+
+// TestFoldedCanastaShowsANatural pins the card a folded canasta keeps in view:
+// the last natural, so the one card left says what the meld is made of. A
+// mixed canasta laid with its wild last would otherwise fold to that wild.
+func TestFoldedCanastaShowsANatural(t *testing.T) {
+	cases := []struct {
+		name  string
+		cards []string
+		want  *int
+	}{
+		{"wild last", []string{"5H", "5S", "5D", "5C", "5H", "JOKER1", "2C"}, intp(4)},
+		{"natural last", []string{"5H", "5S", "2C", "5D", "5C", "5H", "5S"}, intp(6)},
+		{"every card wild", []string{"2H", "2S", "2D", "2C", "JOKER1", "JOKER1", "2H"}, nil},
+	}
+	for _, c := range cases {
+		got := foldedFace(c.cards)
+		switch {
+		case c.want == nil && got != nil:
+			t.Errorf("%s: face %d, want none (the last card)", c.name, *got)
+		case c.want != nil && (got == nil || *got != *c.want):
+			t.Errorf("%s: face %v, want %d", c.name, got, *c.want)
+		}
+	}
+}
+
+func intp(i int) *int { return &i }

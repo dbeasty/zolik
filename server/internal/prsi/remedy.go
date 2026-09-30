@@ -46,7 +46,7 @@ func (m *Module) annotate(cfg module.MatchConfig, s *GameState, offers []module.
 			// server uses — the client's labels.ts resolves both shapes.
 			o.Remedy = &module.Fact{
 				LabelKey: "prsi.remedy.matchOrDraw",
-				Params:   map[string]any{"suit": "suit." + s.suitInPlay(), "card": s.top()},
+				Params:   map[string]any{"suit": module.GermanSuitKey(s.suitInPlay()), "card": s.top()},
 			}
 			o.RemedyOfferID = enabled(OfferDraw)
 
@@ -63,7 +63,7 @@ func (m *Module) annotate(cfg module.MatchConfig, s *GameState, offers []module.
 		case ErrNothingToSkip:
 			o.Remedy = &module.Fact{
 				LabelKey: "prsi.remedy.playOrDraw",
-				Params:   map[string]any{"suit": "suit." + s.suitInPlay()},
+				Params:   map[string]any{"suit": module.GermanSuitKey(s.suitInPlay())},
 			}
 			o.RemedyOfferID = enabled(OfferPlay, OfferDraw)
 

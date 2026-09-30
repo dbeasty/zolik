@@ -162,6 +162,14 @@ type CardView struct {
 	// value is already public or already spent — Žolíky's face-down closing
 	// discard lands after the deal it ended has been scored.
 	FaceDown bool `json:"faceDown,omitempty"`
+	// By is the seat (player id) that put this card where it is — in a
+	// trick, who played it. Set only where that is public, which in a trick
+	// it always is: everyone at the table watched the card go down.
+	//
+	// It is what lets a zone arranged ArrangeBySeat put each card in front
+	// of the player it came from. A client that ignores it still shows the
+	// cards; it only loses which is whose.
+	By string `json:"by,omitempty"`
 }
 
 // Group is a run of cards within a zone that belong together — a meld, a
@@ -173,6 +181,17 @@ type Group struct {
 	// BadgeKeys are message keys for anything worth marking on the group
 	// ("clean run", "trump"). Keys, never rendered text.
 	BadgeKeys []string `json:"badgeKeys,omitempty"`
+	// Complete marks a group that is finished as far as the player is
+	// concerned — a canasta, not a meld still being built — so a client may
+	// fold it down to take less room. Whether it still takes cards is a
+	// separate question the offers answer; this is about how much of the
+	// board it deserves.
+	Complete bool `json:"complete,omitempty"`
+	// Face is the index into Cards of the card that stands for the group
+	// when a client folds it down to one card. The module chooses, because
+	// which card says what a group is made of is a rule of the game; nil
+	// means the last card.
+	Face *int `json:"face,omitempty"`
 }
 
 // Zone is one area of the board.
@@ -221,7 +240,21 @@ type Zone struct {
 	// the table without matching on the id "board", which would be the shell
 	// knowing a game's name.
 	Shared bool `json:"shared,omitempty"`
+	// Arrange asks for the zone's cards to be laid out in a particular
+	// shape. The one shape so far is ArrangeBySeat: each card toward the seat
+	// named by its CardView.By, as a trick lies on a real table — the
+	// viewer's card nearest them, the others at the seats they came from.
+	//
+	// Presentational, exactly as Dealer and Shared are: a client that ignores
+	// it draws the zone by its Kind and loses only the placement. It names a
+	// shape, not a game, so every trick-taking game draws its tricks the same
+	// way without the shell learning any of their names.
+	Arrange string `json:"arrange,omitempty"`
 }
+
+// ArrangeBySeat lays a zone's cards out around the table, each toward the
+// seat in its CardView.By. See Zone.Arrange.
+const ArrangeBySeat = "bySeat"
 
 // Fact is a labelled value for a header or scoreboard — pre-resolved by the
 // module, rendered by the client, interpreted by neither.
@@ -743,6 +776,30 @@ func level(a, b []int) bool {
 		}
 	}
 	return true
+}
+
+// OfferFor is the enabled offer an action would be sent through: the one it
+// names, or, for an action that names none (a bot speaking in verbs), the
+// first enabled offer with its verb and, where it has one, its target. Nil
+// when nothing on the list fits.
+func OfferFor(offers []ActionOffer, a Action) *ActionOffer {
+	if a.OfferID != "" {
+		if o := FindOffer(offers, a.OfferID); o != nil && o.Enabled {
+			return o
+		}
+		return nil
+	}
+	for i := range offers {
+		o := &offers[i]
+		if !o.Enabled || o.Verb != a.Verb {
+			continue
+		}
+		if a.Target != "" && (o.Target == nil || o.Target.MeldID != a.Target) {
+			continue
+		}
+		return o
+	}
+	return nil
 }
 
 // FindOffer returns the offer with this ID, or nil.

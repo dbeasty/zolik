@@ -6,7 +6,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ApiError } from '@/src/api/client';
 import type { MatchState, Replay, ReplayFrame, RoundLog } from '@/src/api/matchTypes';
 import { BoardLayout, matchStyles } from '@/src/components/match/BoardLayout';
+import { DeckProvider } from '@/src/lib/deck';
 import { RoundResults } from '@/src/components/match/RoundResults';
+import { ScoreSheet } from '@/src/components/match/ScoreSheet';
 import { TableSurface } from '@/src/components/match/TableSurface';
 import { ZoneView } from '@/src/components/match/ZoneView';
 import { useSession } from '@/src/context/SessionContext';
@@ -55,6 +57,7 @@ export default function ReplayScreen() {
   // before tracks existed, so nothing about the plain case changed.
   const [trackId, setTrackId] = useState('all');
   const [marks, setMarks] = useState<number[]>([]);
+  const [scoreOf, setScoreOf] = useState<{ playerId: string; round?: number } | null>(null);
 
   // Frames by their own index, filled in as pages land. A map rather than an
   // array because pages arrive out of order once the scrubber is dragged, and
@@ -286,7 +289,7 @@ export default function ReplayScreen() {
   // never has to know that Žolíky deals and Hold'em does not.
   const roundName = rounds?.labelKey ? label(rounds.labelKey) : t('replay.round');
 
-  return (
+  const screen = (
     <View style={styles.root}>
       <TableSurface />
       <Stack.Screen
@@ -395,6 +398,7 @@ export default function ReplayScreen() {
               players={replay.players}
               standings={frame?.standings}
               viewerId={viewerId}
+              onOpenScore={(playerId, round) => setScoreOf({ playerId, round })}
             />
           ) : null}
 
@@ -404,8 +408,20 @@ export default function ReplayScreen() {
             styles={styles}
             zonePanelProps={zonePanelProps}
             hand={handPanel}
+            onOpenScore={rounds ? (playerId) => setScoreOf({ playerId }) : undefined}
           />
         </ScrollView>
+
+        <ScoreSheet
+          subjectId={scoreOf?.playerId ?? null}
+          focusRound={scoreOf?.round}
+          log={rounds ?? undefined}
+          seats={state.view?.seats ?? []}
+          players={replay.players}
+          standings={frame?.standings}
+          viewerId={viewerId}
+          onClose={() => setScoreOf(null)}
+        />
 
         {/* The transport, pinned under the board rather than scrolling with
             it: it is the one thing on this screen a reader reaches for over
@@ -463,6 +479,8 @@ export default function ReplayScreen() {
       </SafeAreaView>
     </View>
   );
+  // Which pack the cards are drawn from — see src/lib/deck.ts.
+  return <DeckProvider deck={replay?.deck}>{screen}</DeckProvider>;
 }
 
 /**

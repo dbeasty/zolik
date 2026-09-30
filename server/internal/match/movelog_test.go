@@ -48,7 +48,8 @@ func (h liveHarness) startGame(t *testing.T, g replayable, seed int64) models.Ma
 		// state directly, which Create would refuse.
 		cfg.Options = module.Options{"targetScore": 500}
 	}
-	m, err := h.m.Create(ctx, g.name, cfg, host)
+	// The module's own id: a row's name may also say which variation it plays.
+	m, err := h.m.Create(ctx, g.mod.Descriptor().ID, cfg, host)
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}

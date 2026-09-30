@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 
 /**
  * Bots, for every game (docs/one-architecture-plan.md Phase 6).
@@ -54,8 +54,8 @@ async function humanVersusBot(
   return { matchId, botId, host };
 }
 
-async function stateFor(request: Ctx, matchId: string, viewerId: string) {
-  const res = await request.get(`${API_BASE}/matches/${matchId}?as=${encodeURIComponent(viewerId)}`);
+async function stateFor(request: Ctx, matchId: string, viewer: Viewer) {
+  const res = await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer));
   expect(res.ok(), await res.text()).toBeTruthy();
   return res.json();
 }
@@ -220,7 +220,7 @@ test.describe('bots play every game', () => {
     // measure the same thing, so the shape is what has to be shared.
     for (const game of GAMES) {
       const { matchId, host } = await humanVersusBot(request, game.moduleId, game);
-      const state = await stateFor(request, matchId, host.userId);
+      const state = await stateFor(request, matchId, host);
 
       const standings = state.standings ?? [];
       expect(standings.length, `${game.label} should keep a scoreboard`).toBeGreaterThan(0);
@@ -238,7 +238,7 @@ test.describe('bots play every game', () => {
     // disagreed with its own offers would have its bots playing the wrong seat.
     for (const game of GAMES) {
       const { matchId, host } = await humanVersusBot(request, game.moduleId, game);
-      const state = await stateFor(request, matchId, host.userId);
+      const state = await stateFor(request, matchId, host);
       const seats = state.view?.seats ?? [];
       expect(seats.length, `${game.label} should seat its players`).toBe(2);
 

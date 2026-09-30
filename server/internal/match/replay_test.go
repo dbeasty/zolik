@@ -13,6 +13,7 @@ import (
 	"zolik/server/internal/canasta"
 	"zolik/server/internal/ginrummy"
 	"zolik/server/internal/holdem"
+	"zolik/server/internal/marias"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
 	"zolik/server/internal/prsi"
@@ -75,6 +76,10 @@ func replayables() []replayable {
 			[]string{"bet", "decline_insurance", "stand", "hit"}, nil},
 		{"rummytiles", rummytiles.New(), refs("p1", "p2"), module.MatchConfig{},
 			[]string{"swap_joker", "commit", "reset_turn", "draw"}, nil},
+		{"marias", marias.New(), refs("p1", "p2", "p3"), module.MatchConfig{},
+			[]string{"play_card", "discard", "choose_trump", "announce", "good", "pass"}, nil},
+		{"marias-licit", marias.New(), refs("p1", "p2", "p3"), module.MatchConfig{Variation: "licitovany"},
+			[]string{"play_card", "discard", "bid", "hold", "announce", "fold", "pass"}, nil},
 	}
 }
 
@@ -139,7 +144,7 @@ func playOut(t *testing.T, g replayable, seed int64) (models.Match, module.State
 	started := time.Now().UTC()
 	match := models.Match{
 		ID:        bson.NewObjectID(),
-		ModuleID:  g.name,
+		ModuleID:  g.mod.Descriptor().ID,
 		Variation: g.cfg.Variation,
 		Options:   g.cfg.Options,
 		Status:    "active",
@@ -156,7 +161,7 @@ func playOut(t *testing.T, g replayable, seed int64) (models.Match, module.State
 func replayManager() *Manager {
 	return &Manager{repo: fixtures, registry: module.NewRegistry(
 		zolikmod.New(), prsi.New(), canasta.New(), holdem.New(),
-		ginrummy.New(), blackjack.New(), rummytiles.New(),
+		ginrummy.New(), blackjack.New(), rummytiles.New(), marias.New(),
 	)}
 }
 

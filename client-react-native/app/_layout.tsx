@@ -103,6 +103,9 @@ export default function RootLayout() {
                       outside the app — in chats, in mail — and wants to stay
                       short, stable and typeable. See src/lib/inviteLink.ts. */}
                   <Stack.Screen name="join/[code]" options={{ title: t('nav.joining') }} />
+                  {/* Where a seat link lands: one person back to one seat, on
+                      whatever device they have now. See app/seat. */}
+                  <Stack.Screen name="seat/[matchId]/[secret]" options={{ title: t('seat.title') }} />
                   <Stack.Screen name="rules" options={{ title: t('nav.rules') }} />
 
                   {/* The notices, reachable from the footer, from settings, and
@@ -140,6 +143,8 @@ export default function RootLayout() {
                       same reason join/[code] has one: it is written down
                       outside the app. */}
                   <Stack.Screen name="add/[code]" options={{ title: t('circle.addFriend.title') }} />
+                  {/* A guest link: a guest's identity, carried to another device. */}
+                  <Stack.Screen name="guest/[key]" options={{ title: t('guestLink.title') }} />
                 </Stack>
                 <InviteBanner />
               </InviteProvider>

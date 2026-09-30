@@ -11,6 +11,7 @@ import (
 	"zolik/server/internal/canasta"
 	"zolik/server/internal/ginrummy"
 	"zolik/server/internal/holdem"
+	"zolik/server/internal/marias"
 	"zolik/server/internal/module"
 	"zolik/server/internal/prsi"
 	"zolik/server/internal/rummytiles"
@@ -121,6 +122,27 @@ func allModules() []hosted {
 			finishes: true,
 		},
 		{
+			name:    "marias",
+			rounds:  true,
+			mod:     marias.New(),
+			players: refs("p1", "p2", "p3"),
+			// A short match keeps the playthroughs fast. Doubling is left out
+			// of the preferences on purpose: with no limit, a driver that
+			// always doubled would double for ever, and pass ends the round.
+			cfg:      module.MatchConfig{Options: module.Options{"deals": 9}},
+			prefer:   []string{"play_card", "discard", "choose_trump", "announce", "good", "pass"},
+			finishes: true,
+		},
+		{
+			name:     "marias-licit",
+			rounds:   true,
+			mod:      marias.New(),
+			players:  refs("p1", "p2", "p3"),
+			cfg:      module.MatchConfig{Variation: "licitovany", Options: module.Options{"deals": 9}},
+			prefer:   []string{"play_card", "discard", "bid", "hold", "announce", "fold", "pass"},
+			finishes: true,
+		},
+		{
 			name:    "rummytiles",
 			rounds:  true,
 			mod:     rummytiles.New(),
@@ -148,10 +170,15 @@ func TestEveryModuleDescribesItself(t *testing.T) {
 			if d.ID == "" || d.Label == "" {
 				t.Fatal("a module must name itself")
 			}
-			if seen[d.ID] {
+			// Keyed by variation too: one module may appear once per
+			// variation it is played in here (Mariáš's volený and
+			// licitovaný), but two rows of the same pair is two modules
+			// claiming one id.
+			key := d.ID + "/" + g.cfg.Variation
+			if seen[key] {
 				t.Fatalf("two modules claim the id %q", d.ID)
 			}
-			seen[d.ID] = true
+			seen[key] = true
 
 			if d.MinPlayers < 2 || d.MaxPlayers < d.MinPlayers {
 				t.Errorf("player range %d..%d makes no sense", d.MinPlayers, d.MaxPlayers)
@@ -603,6 +630,55 @@ func TestEveryModuleNamesItsWinners(t *testing.T) {
 	}
 }
 
+// TestAnArrangedZoneNamesItsSeats — a zone laid out around the table puts
+// each card in front of the seat its By names, so a card with no By, or one
+// naming somebody not at the table, is a card the client has nowhere to put.
+// Checked on every position a played-out match passes through, since tricks
+// only exist once play has begun.
+func TestAnArrangedZoneNamesItsSeats(t *testing.T) {
+	for _, g := range allModules() {
+		t.Run(g.name, func(t *testing.T) {
+			state, err := g.mod.NewMatch(g.cfg, g.players, 9)
+			if err != nil {
+				t.Fatalf("NewMatch: %v", err)
+			}
+			seated := map[string]bool{}
+			for _, p := range g.players {
+				seated[p.ID] = true
+			}
+			check := func(s module.State) {
+				for _, viewer := range g.players {
+					vm, err := g.mod.View(s, viewer.ID)
+					if err != nil {
+						t.Fatalf("View: %v", err)
+					}
+					for _, z := range vm.Zones {
+						switch z.Arrange {
+						case "":
+							continue
+						case module.ArrangeBySeat:
+						default:
+							t.Fatalf("zone %q asks for arrangement %q, which no client knows", z.ID, z.Arrange)
+						}
+						for _, c := range z.Cards {
+							if !seated[c.By] {
+								t.Fatalf("zone %q is arranged by seat but card %s names %q", z.ID, c.Card, c.By)
+							}
+						}
+					}
+				}
+			}
+			check(state)
+			_, _, err = module.PlayWithOffers(g.mod, state, g.players, module.DriverOptions{
+				MaxActions: 300, Prefer: g.prefer, OnState: check,
+			})
+			if err != nil {
+				t.Fatalf("%v", err)
+			}
+		})
+	}
+}
+
 // TestEveryModuleStateSurvivesARoundTrip — the runtime persists State as bytes
 // and hands it back later, so a module whose state does not survive JSON is one
 // that works in memory and breaks in Mongo.
@@ -807,6 +883,11 @@ func TestADisabledOfferSaysWhy(t *testing.T) {
 						seen++
 						if len(o.RuleIDs) > 0 || o.Remedy != nil {
 							explained++
+						} else if !selfExplained[o.WhyNot] {
+							// Every disabled control can now be pressed for
+							// its explanation, so one with nothing behind its
+							// reason opens a sheet that only repeats it.
+							t.Errorf("offer %q is disabled for %s with no rule and no remedy behind it", o.ID, o.WhyNot)
 						}
 						// A remedy that names a control puts a working button
 						// under the sentence, so the id has to be a live offer
@@ -834,6 +915,16 @@ func TestADisabledOfferSaysWhy(t *testing.T) {
 			}
 		})
 	}
+}
+
+// selfExplained are the refusals that are states of the table rather than
+// rules of a game — there is nothing to undo, you already said you were
+// ready, the match is not running. The reason is the whole explanation, and
+// a rule written only so a sheet has something to cite would be padding.
+var selfExplained = map[string]bool{
+	"NOTHING_TO_UNDO": true,
+	"ALREADY_READY":   true,
+	"GAME_NOT_ACTIVE": true,
 }
 
 // advanceOnce plays whatever the first player with an enabled offer can play,
@@ -1542,4 +1633,134 @@ func drawsUnderTop(t *testing.T, g hosted, s module.State, top string) bool {
 		}
 	}
 	return false
+}
+
+// TestAnEventNeverNamesAHiddenCard — the runtime publishes every Event to every
+// seat, so an event is as much a view as View is. Each card an event names,
+// as projected for a viewer, must be one that viewer's own board shows either
+// side of the action. The same goes for the move narrated from it, which the
+// viewer reads in the strip over the table. Žolíky's blind draw from the deck was the case that
+// failed this: the drawn card went to every opponent's socket.
+func TestAnEventNeverNamesAHiddenCard(t *testing.T) {
+	for _, g := range allModules() {
+		t.Run(g.name, func(t *testing.T) {
+			state, err := g.mod.NewMatch(g.cfg, g.players, 5)
+			if err != nil {
+				t.Fatalf("NewMatch: %v", err)
+			}
+			viewJSON := func(s module.State, viewer string) string {
+				vm, err := g.mod.View(s, viewer)
+				if err != nil {
+					t.Fatalf("View: %v", err)
+				}
+				blob, err := json.Marshal(vm)
+				if err != nil {
+					t.Fatalf("marshal: %v", err)
+				}
+				return string(blob)
+			}
+			checked := 0
+			_, _, err = module.PlayWithOffers(g.mod, state, g.players, module.DriverOptions{
+				MaxActions: 800, Prefer: g.prefer,
+				OnEvents: func(actor string, events []module.Event, before, after module.State) {
+					for _, viewer := range g.players {
+						var boards string
+						for _, ev := range events {
+							seen, ok := module.ProjectEvent(g.mod, ev, viewer.ID)
+							if !ok {
+								continue
+							}
+							named := cardsNamed(seen.Data)
+							if mv, ok := module.NarrateEvent(g.mod, after, seen); ok {
+								for _, v := range mv.Fact.Params {
+									named = append(named, cardsNamed(map[string]any{"card": v})...)
+								}
+							}
+							for _, card := range named {
+								if boards == "" {
+									boards = viewJSON(before, viewer.ID) + viewJSON(after, viewer.ID)
+								}
+								checked++
+								if !strings.Contains(boards, strconv.Quote(card)) {
+									t.Errorf("%s's %s event shows %s the card %s, which their board never does",
+										actor, seen.Type, viewer.ID, card)
+								}
+							}
+						}
+					}
+				},
+			})
+			if err != nil {
+				t.Fatalf("%v", err)
+			}
+			if checked == 0 {
+				t.Logf("no event named a card")
+			}
+		})
+	}
+}
+
+// cardsNamed is every card id an event's data carries, under the field names
+// modules use for cards. Counts under the same names are skipped.
+func cardsNamed(data map[string]any) []string {
+	var out []string
+	for _, key := range []string{"card", "cards", "hole", "top", "upCard"} {
+		switch v := data[key].(type) {
+		case string:
+			if v != "" {
+				out = append(out, v)
+			}
+		case []string:
+			out = append(out, v...)
+		case []any:
+			for _, x := range v {
+				if s, ok := x.(string); ok {
+					out = append(out, s)
+				}
+			}
+		}
+	}
+	return out
+}
+
+// TestEveryModulesHintNamesAControl — a hint is the move a seat's bot would
+// make, shown on the control that makes it. A bot that answers in verbs alone
+// still has to land on an enabled offer, or the player is told to make a move
+// there is no button for.
+func TestEveryModulesHintNamesAControl(t *testing.T) {
+	for _, g := range allModules() {
+		t.Run(g.name, func(t *testing.T) {
+			state, err := g.mod.NewMatch(g.cfg, g.players, 5)
+			if err != nil {
+				t.Fatalf("NewMatch: %v", err)
+			}
+			hinted := 0
+			_, _, err = module.PlayWithOffers(g.mod, state, g.players, module.DriverOptions{
+				MaxActions: 300, Prefer: g.prefer,
+				OnEvents: func(_ string, _ []module.Event, _, after module.State) {
+					for _, p := range g.players {
+						offers, err := g.mod.LegalActions(after, p.ID)
+						if err != nil {
+							t.Fatalf("LegalActions: %v", err)
+						}
+						seat := module.BotSeat{PlayerID: p.ID, Skill: module.SkillHard, Seed: 1}
+						a, ok := module.BotFor(g.mod).Act(after, seat, offers)
+						if !ok {
+							continue
+						}
+						if module.OfferFor(offers, a) == nil {
+							t.Fatalf("%s's hint %+v is on no enabled control:\n%s", p.ID, a, module.DescribeOffers(offers))
+						}
+						hinted++
+					}
+				},
+			})
+			if err != nil {
+				t.Fatalf("%v", err)
+			}
+			if hinted == 0 {
+				t.Fatal("no hint was ever given — the check looked at nothing")
+			}
+		})
+	}
 }

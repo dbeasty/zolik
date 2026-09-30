@@ -303,10 +303,17 @@ func (h *Handlers) listProviders(w http.ResponseWriter, _ *http.Request) {
 
 type guestReq struct {
 	GuestName string `json:"guestName,omitempty"`
-	// GuestID is the device's existing guest identity, sent back on every
-	// subsequent guest sign-in so the same device keeps one identity and its
-	// play history keeps accumulating in one place. Absent on first run.
-	GuestID string `json:"guestId,omitempty"`
+	// GuestKey is the device's proof of its existing guest identity, sent
+	// back on every later guest sign-in so the same person keeps one identity
+	// and their play history keeps accumulating in one place. Absent on first
+	// run. See guestkey.go.
+	GuestKey string `json:"guestKey,omitempty"`
+	// GuestRefreshToken is the older proof, from a device that was a guest
+	// before guest keys existed. Accepted while it is still live, and
+	// answered with a key so the device need not rely on it again.
+	GuestRefreshToken string `json:"guestRefreshToken,omitempty"`
+	// A bare guestId is deliberately not read. It is public — every table
+	// broadcasts it — so a client that sends only that is a new guest.
 }
 
 func (h *Handlers) guest(w http.ResponseWriter, req *http.Request) {
@@ -314,7 +321,8 @@ func (h *Handlers) guest(w http.ResponseWriter, req *http.Request) {
 	var body guestReq
 	_ = json.NewDecoder(req.Body).Decode(&body)
 
-	tokens, err := h.GuestSessionWithID(ctx, body.GuestName, body.GuestID)
+	guestID := h.guestIDProvenBy(ctx, body.GuestKey, body.GuestRefreshToken)
+	tokens, err := h.GuestSessionWithID(ctx, body.GuestName, guestID)
 	if err != nil {
 		internalError(w, "guest", err)
 		return
@@ -325,6 +333,7 @@ func (h *Handlers) guest(w http.ResponseWriter, req *http.Request) {
 		"refreshToken": tokens.RefreshToken,
 		"guestName":    tokens.Username,
 		"guestId":      tokens.GuestID,
+		"guestKey":     tokens.GuestKey,
 		"userId":       tokens.UserID,
 		"isGuest":      true,
 		// How many finished matches are already recorded against this device,
@@ -534,7 +543,10 @@ type claimGuestReq struct {
 	// game state, so treating it as a claim ticket would let anyone who has
 	// seen one walk off with somebody else's history. Possession of the
 	// session is the thing that actually distinguishes the owner.
-	GuestRefreshToken string `json:"guestRefreshToken"`
+	GuestRefreshToken string `json:"guestRefreshToken,omitempty"`
+	// GuestKey is the same proof in the form that lasts: the refresh token
+	// rotates away within the hour, the key does not. Either one will do.
+	GuestKey string `json:"guestKey,omitempty"`
 }
 
 // claimGuest absorbs a device's guest play history into the signed-in account.
@@ -550,12 +562,12 @@ func (h *Handlers) claimGuest(w http.ResponseWriter, req *http.Request) {
 	}
 
 	var body claimGuestReq
-	if err := json.NewDecoder(req.Body).Decode(&body); err != nil || body.GuestRefreshToken == "" {
-		http.Error(w, "guestRefreshToken required", http.StatusBadRequest)
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil || (body.GuestRefreshToken == "" && body.GuestKey == "") {
+		http.Error(w, "guestKey or guestRefreshToken required", http.StatusBadRequest)
 		return
 	}
-	session, err := h.sessionRepo.FindByToken(ctx, body.GuestRefreshToken)
-	if err != nil || session.GuestID == "" {
+	guestID := h.guestIDProvenBy(ctx, body.GuestKey, body.GuestRefreshToken)
+	if guestID == "" {
 		http.Error(w, "that guest session is not valid", http.StatusUnauthorized)
 		return
 	}
@@ -565,7 +577,7 @@ func (h *Handlers) claimGuest(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "unknown account", http.StatusUnauthorized)
 		return
 	}
-	claimed, err := h.accounts.ClaimGuest(ctx, session.GuestID, u)
+	claimed, err := h.accounts.ClaimGuest(ctx, guestID, u)
 	if err != nil {
 		internalError(w, "claimGuest", err)
 		return
@@ -573,7 +585,9 @@ func (h *Handlers) claimGuest(w http.ResponseWriter, req *http.Request) {
 	// The guest session is retired: its history now belongs to the account,
 	// and leaving it usable would let the device keep playing as a guest whose
 	// results land nowhere.
-	_ = h.sessionRepo.DeleteByToken(ctx, body.GuestRefreshToken)
+	if body.GuestRefreshToken != "" {
+		_ = h.sessionRepo.DeleteByToken(ctx, body.GuestRefreshToken)
+	}
 
 	writeJSON(w, map[string]any{"claimedMatches": claimed})
 }

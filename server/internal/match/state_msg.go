@@ -20,8 +20,13 @@ type MatchStateMsg struct {
 	MatchID   string `json:"matchId"`
 	ModuleID  string `json:"moduleId"`
 	Variation string `json:"variation,omitempty"`
-	Status    string `json:"status"`
-	JoinCode  string `json:"joinCode,omitempty"`
+	// Deck is the module's pack, when it is not the French one — see
+	// module.ModuleDescriptor.Deck. On every frame rather than only in
+	// /modules, so a match screen, a replay and a reconnect all draw the
+	// cards the same way without a second request.
+	Deck     string `json:"deck,omitempty"`
+	Status   string `json:"status"`
+	JoinCode string `json:"joinCode,omitempty"`
 	// InviteURL is the join code as something a host can send to somebody:
 	// a link that opens the client and seats whoever follows it.
 	//
@@ -88,6 +93,17 @@ type MatchStateMsg struct {
 	// AwayPlayers is who still has to come back, in seat order. Ids, not
 	// names: the client already has the names, in Players.
 	AwayPlayers []string `json:"awayPlayers,omitempty"`
+	// Rematch is the table this finished one is being played again at, and
+	// who asked — what turns "Play again" into "Join Bob's rematch" for
+	// everybody else who is still looking at the result.
+	Rematch *models.RematchRef `json:"rematch,omitempty"`
+	// Reserved is who a rematch lobby is still holding seats for.
+	Reserved []models.Reservation `json:"reserved,omitempty"`
+	// RecentMoves is what the last few moves at the table were, as this viewer
+	// may read them, oldest first. It rides on the state message, not on the
+	// events, so it survives a reconnection. Absent for a game whose module
+	// does not narrate its moves.
+	RecentMoves []module.Move `json:"recentMoves,omitempty"`
 }
 
 type PlayerMsg struct {
@@ -121,7 +137,11 @@ func (m *Manager) BuildStateMsg(match models.Match, viewerID string) MatchStateM
 // the module's whole state an extra time for every seat at the table, on every
 // single action.
 func (m *Manager) buildStateMsg(match models.Match, viewerID string, rounds *module.RoundLog) MatchStateMsg {
-	return m.projectStateMsg(match, viewerID, stateMsgOpts{rounds: rounds, withOffers: true})
+	msg := m.projectStateMsg(match, viewerID, stateMsgOpts{rounds: rounds, withOffers: true})
+	if e := m.live.peek(match.ID.Hex()); e != nil {
+		msg.RecentMoves = e.recentFor(viewerID)
+	}
+	return msg
 }
 
 // stateMsgOpts is what varies between the two things a projection is wanted
@@ -157,6 +177,8 @@ func (m *Manager) projectStateMsg(match models.Match, viewerID string, o stateMs
 		WinnerID:        match.WinnerID,
 		Winners:         match.Winners,
 		SuspendedPlayer: match.SuspendedPlayer,
+		Rematch:         match.Rematch,
+		Reserved:        match.Reserved,
 		// Never nil: these round-trip to JSON, and a nil slice serialises to
 		// `null`, which every client then has to guard before indexing.
 		LegalActions: []module.ActionOffer{},
@@ -175,6 +197,9 @@ func (m *Manager) projectStateMsg(match models.Match, viewerID string, o stateMs
 	}
 
 	mod := m.registry.Get(match.ModuleID)
+	if mod != nil {
+		msg.Deck = mod.Descriptor().Deck
+	}
 	// Sides are a lobby fact. Once the match is dealt the board carries the
 	// partnerships itself — per seat, in the ViewModel — and repeating them here
 	// would be a second copy to keep honest.

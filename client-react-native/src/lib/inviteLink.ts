@@ -205,3 +205,27 @@ export function friendUrlFor(
   }
   return '';
 }
+
+/** The client route a guest link points at. */
+export const GUEST_PATH = '/guest/';
+
+/**
+ * A guest's own link: open it on any device and carry on as that guest.
+ *
+ * Built only from the key, which is the proof of the identity — not from the
+ * guest id, which every table shows and which proves nothing. There is no
+ * server-sent form to prefer, so the order is simply this page's origin on
+ * web and the configured base elsewhere; see the top of this file.
+ */
+export function guestUrlFor(guestKey: string | undefined, origin: string = currentOrigin()): string {
+  const key = (guestKey ?? '').trim();
+  if (!key) return '';
+  const base = origin || ZOLIK_BASE_URL;
+  if (!base) return '';
+  return base.replace(/\/$/, '') + GUEST_PATH + encodeURIComponent(key);
+}
+
+/** The guest id a key speaks for — its first half. Not a check of the key. */
+export function guestIdOfKey(guestKey: string): string {
+  return guestKey.split('.')[0] ?? '';
+}

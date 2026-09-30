@@ -53,6 +53,7 @@ export function inviteFromWire(w: TableInvite, now: number): Invite {
     moduleId: w.moduleId,
     moduleLabel: w.moduleLabel,
     variation: w.variation,
+    rematchOf: w.rematchOf,
     target: { kind: 'online', matchId: w.matchId, joinCode: w.joinCode },
     receivedAt: now,
     seenAt: now,

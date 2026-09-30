@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { API_BASE } from '../helpers/env';
-import { openGameSetup } from '../helpers/lobby';
+import { API_BASE, asViewer } from '../helpers/env';
+import { openGame, openGameSetup } from '../helpers/lobby';
 
 /**
  * One screen, every game (docs/one-architecture-plan.md Phase 7).
@@ -71,7 +71,13 @@ async function untilRaiseOffered(page: Page) {
     .poll(
       async () => {
         if (await page.getByTestId('param-amount').isVisible()) return true;
-        const next = page.getByTestId('offer-continue');
+        // A disabled control now answers a press with a sheet saying why, and
+        // the sheet covers the controls this is waiting for. "Start the next
+        // round" stays on screen, disabled, once this player is ready — so
+        // press it only while it is live, and dismiss a sheet if one opened.
+        const why = page.getByTestId('why-close');
+        if (await why.isVisible()) await why.click().catch(() => {});
+        const next = page.locator('[data-testid="offer-continue"]:not([aria-disabled="true"])');
         if (await next.isVisible()) await next.click().catch(() => {});
         return false;
       },
@@ -122,7 +128,7 @@ async function playAFewMoves(page: Page, max: number): Promise<number> {
   /** Ids of the controls that are live right now, read as a snapshot. */
   const liveOffers = () =>
     page
-      .locator('[data-testid^="offer-"]:not([aria-disabled="true"])')
+      .locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])')
       .evaluateAll((els) => els.map((e) => e.getAttribute('data-testid') ?? ''));
 
   /**
@@ -213,13 +219,13 @@ test.describe('one shell, every game', () => {
       // And it plays. Counting clicks would prove nothing — a click on a dead
       // control counts just as well — so the check is that the *server's* view
       // of the match moved, read back through a separate HTTP request.
-      const before = await request.get(`${API_BASE}/matches/${matchId}?as=${host.userId}`);
+      const before = await request.get(`${API_BASE}/matches/${matchId}`, asViewer(host));
       const beforeBoard = JSON.stringify((await before.json()).view);
 
       const moves = await playAFewMoves(page, 12);
       expect(moves, 'the shell should have been able to press something').toBeGreaterThan(0);
 
-      const after = await request.get(`${API_BASE}/matches/${matchId}?as=${host.userId}`);
+      const after = await request.get(`${API_BASE}/matches/${matchId}`, asViewer(host));
       const afterJson = await after.json();
       expect(
         JSON.stringify(afterJson.view) !== beforeBoard || afterJson.status !== 'active',
@@ -264,7 +270,7 @@ test.describe('one shell, every game', () => {
       if ((await playAFewMoves(page, 1)) === 0) break;
     }
 
-    const state = await (await request.get(`${API_BASE}/matches/${matchId}?as=${host.userId}`)).json();
+    const state = await (await request.get(`${API_BASE}/matches/${matchId}`, asViewer(host))).json();
     expect(state.status, 'the shortest table this game offers should have ended').toBe('completed');
 
     // Said, rather than left to be inferred from a control that stopped
@@ -491,20 +497,22 @@ test.describe('one shell, every game', () => {
     await page.goto('/lobby/games');
     await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 30_000 });
 
+    // The list is one button per game, and no game's controls.
     for (const id of ['zolik', 'prsi', 'canasta', 'holdem', 'ginrummy', 'blackjack']) {
-      await expect(page.getByTestId(`module-${id}`)).toBeVisible();
+      await expect(page.getByTestId(`game-${id}`)).toBeVisible();
     }
-
-    // A card arrives closed, saying what it is set to rather than how to set it.
-    await expect(page.getByTestId('setup-digest-holdem')).toBeVisible();
     await expect(page.getByTestId('option-holdem-bigBlind-20')).toHaveCount(0);
 
-    // Options come from the descriptor, so a knob nobody typed into this
-    // client is nonetheless rendered — once the setup is open.
-    await openGameSetup(page, 'holdem');
-    await openGameSetup(page, 'canasta');
-    await expect(page.getByTestId('option-holdem-bigBlind-20')).toBeVisible();
+    // A button leads to that game alone, its setup already open. Options come
+    // from the descriptor, so a knob nobody typed into this client is
+    // nonetheless rendered.
+    await page.getByTestId('game-canasta').click();
+    await expect(page.getByTestId('setup-toggle-canasta')).toHaveAttribute('aria-expanded', 'true');
     await expect(page.getByTestId('option-canasta-targetScore-500')).toBeVisible();
+    await expect(page.getByTestId('module-holdem')).toHaveCount(0);
+
+    await openGame(page, 'holdem');
+    await expect(page.getByTestId('option-holdem-bigBlind-20')).toBeVisible();
     // And a game with two shipped rulesets offers both.
     await expect(page.getByTestId('variation-holdem-freezeout')).toBeVisible();
     await expect(page.getByTestId('variation-holdem-timed')).toBeVisible();
@@ -518,8 +526,7 @@ test.describe('one shell, every game', () => {
     // so on Žolíky, whose seat count is the last of nine rows.
     const host = await guest(request);
     await signIn(page, host);
-    await page.goto('/lobby/games');
-    await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 30_000 });
+    await openGame(page, 'zolik');
 
     // The table size opens the setup at the seat count — in view, not merely
     // in the DOM somewhere below the fold.
@@ -546,6 +553,13 @@ test.describe('one shell, every game', () => {
     // A chip that names something the module does not have is just another way
     // to open the panel: Gin Rummy seats exactly two, so it draws no seat row
     // at all, and its table size must still open the setup rather than nothing.
+    // It arrives open, so put it away first.
+    await openGame(page, 'ginrummy');
+    await page.getByTestId('setup-toggle-ginrummy').click();
+    await expect(page.getByTestId('setup-toggle-ginrummy')).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
     await page.getByTestId('players-ginrummy').click();
     await expect(page.getByTestId('setup-toggle-ginrummy')).toHaveAttribute(
       'aria-expanded',
@@ -559,8 +573,7 @@ test.describe('one shell, every game', () => {
     test.setTimeout(120_000);
     const host = await guest(request);
     await signIn(page, host);
-    await page.goto('/lobby/games');
-    await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 30_000 });
+    await openGame(page, 'canasta');
 
     // Pick the short Canasta target so the lobby is exercising real options.
     await openGameSetup(page, 'canasta');
@@ -580,9 +593,7 @@ test.describe('one shell, every game', () => {
     test.setTimeout(120_000);
     const host = await guest(request);
     await signIn(page, host);
-    await page.goto('/lobby/games');
-    await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 30_000 });
-
+    await openGame(page, 'prsi');
     await openGameSetup(page, 'prsi');
     await expect(page.getByTestId('bots-prsi-5')).toBeVisible();
     await expect(page.getByTestId('bots-prsi-6')).toHaveCount(0);

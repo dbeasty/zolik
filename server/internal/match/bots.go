@@ -1,6 +1,7 @@
 package match
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log"
@@ -40,6 +41,14 @@ const (
 	// that is still playing.
 	botThinkMinDefault = 900 * time.Millisecond
 	botThinkMaxDefault = 1800 * time.Millisecond
+	// botActBudgetDefault bounds one call to a module's Bot.Act (see
+	// Manager.SetBotActBudget). Act takes no context and some bots run a real
+	// search — Žolíky's initial-meld planner is combinatorial — so a slow or
+	// wedged decision used to hold this loop forever: no stall log, no
+	// give-up, and a table nobody could move again, because the seat it waits
+	// on is the one no human may act for. Generous next to any sane decision,
+	// short next to a person staring at a frozen board.
+	botActBudgetDefault = 5 * time.Second
 )
 
 // thinkFor is how long a bot pauses before answering. Purely cosmetic, and the
@@ -50,6 +59,50 @@ func (m *Manager) thinkFor(rnd *rand.Rand) time.Duration {
 		lo, hi = botThinkMinDefault, botThinkMaxDefault
 	}
 	return lo + time.Duration(rnd.Int63n(int64(hi-lo)))
+}
+
+func (m *Manager) actBudget() time.Duration {
+	if m.botActBudget > 0 {
+		return m.botActBudget
+	}
+	return botActBudgetDefault
+}
+
+// botAct asks a module's bot for a move, but stops waiting after budget.
+//
+// A timeout is reported as "no answer" plus timedOut, and the caller carries on
+// down the offer list exactly as it does when a bot declines — the path every
+// module is guaranteed to support. Act cannot be cancelled, so the call is
+// abandoned rather than stopped: its goroutine runs until Act returns (forever,
+// for a bot that truly hangs), and its result goes into a buffered channel
+// nobody reads, so a late answer can neither block that goroutine nor reach
+// the loop.
+//
+// What the abandoned call holds must not be anything the loop goes on using.
+// The state it gets is a private copy, since match.State may be the live board
+// the Manager keeps in memory. The offers it gets are the caller's; on a
+// timeout the caller must stop reading them and fetch its own again, rather
+// than race a call that may still be reading — or, if it misbehaves, writing —
+// the nested slices inside them.
+func botAct(bot module.Bot, state module.State, seat module.BotSeat, offers []module.ActionOffer, budget time.Duration) (action module.Action, ok, timedOut bool) {
+	type answer struct {
+		action module.Action
+		ok     bool
+	}
+	ch := make(chan answer, 1)
+	state = bytes.Clone(state)
+	go func() {
+		a, ok := bot.Act(state, seat, offers)
+		ch <- answer{a, ok}
+	}()
+	timer := time.NewTimer(budget)
+	defer timer.Stop()
+	select {
+	case r := <-ch:
+		return r.action, r.ok, false
+	case <-timer.C:
+		return module.Action{}, false, true
+	}
 }
 
 // RunBotsIfNeeded starts the bot loop for a match, unless it is already
@@ -129,6 +182,28 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 		if err != nil {
 			return
 		}
+		// The module's own bot, bounded — see botAct. Once it has run out of
+		// time in a turn it is not asked again until the turn moves on: a bot
+		// that hung once on a position will likely hang on the next, and
+		// asking would cost the budget and one more stranded goroutine per
+		// action for nothing.
+		var botPick module.Action
+		botOK := false
+		if !turn.botHung {
+			var timedOut bool
+			botPick, botOK, timedOut = botAct(module.BotFor(mod), module.State(match.State),
+				botSeatFor(match, actor), offers, m.actBudget())
+			if timedOut {
+				log.Printf("bot loop: match=%s seat=%s bot gave no move within %s; playing from the offer list",
+					matchID, actor, m.actBudget())
+				turn.botHung = true
+				// The abandoned call still holds those offers. Take a fresh
+				// set so nothing below shares memory with it.
+				if offers, err = mod.LegalActions(module.State(match.State), actor); err != nil {
+					return
+				}
+			}
+		}
 		// Everything this seat could send, best first: the module's own bot if it
 		// has an answer, then every submission the offer list describes.
 		//
@@ -140,8 +215,8 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 		// the difference between a seat that loses one move and a deal that
 		// stops.
 		candidates := botCandidates(offers)
-		if action, ok := module.BotFor(mod).Act(module.State(match.State), botSeatFor(match, actor), offers); ok {
-			candidates = append([]botMove{{action: action, undo: isUndoIn(offers, action)}}, candidates...)
+		if botOK {
+			candidates = append([]botMove{{action: botPick, undo: isUndoIn(offers, botPick)}}, candidates...)
 		}
 		if len(candidates) == 0 {
 			logOfferState(matchID, actor, offers, "has no legal move; stopping")
@@ -248,6 +323,9 @@ type botMove struct {
 type botTurn struct {
 	played    []module.Action
 	unwinding bool
+	// botHung is set once the module's bot has overrun its budget this turn;
+	// the rest of the turn plays from the offer list. See botAct.
+	botHung bool
 }
 
 // skips is whether this candidate is one the turn has already made and taken

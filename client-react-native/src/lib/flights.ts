@@ -1,6 +1,7 @@
 import type { Seat, Zone } from '@/src/api/matchTypes';
 import { zoneElementId } from '@/src/lib/drops';
 import { ms } from '@/src/lib/motion';
+import { isSeatArranged, seatSlotElementId } from '@/src/lib/seatArrangement';
 
 /**
  * Cards seen travelling between zones.
@@ -183,6 +184,25 @@ export function planFlights(
         { fromId: zoneElementId(z.id), toId: placeFor(owner) },
         ownHand ? zoneElementId(ownHand.id) : undefined,
       );
+    }
+
+    // A card played to a trick names who played it, so it flies from them
+    // face up — it is public the moment it leaves the hand — and lands on
+    // their own spot in the trick rather than in the middle of the zone.
+    if (isSeatArranged(z) && d === 1) {
+      const newest = z.cards?.[z.cards.length - 1];
+      if (newest?.by) {
+        add(
+          {
+            fromId: placeFor(newest.by),
+            toId: seatSlotElementId(z.id, newest.by),
+            card: newest.faceDown ? undefined : newest.card,
+            faceDown: newest.faceDown,
+          },
+          zoneElementId(z.id),
+        );
+        continue;
+      }
     }
 
     if (z.kind === 'spread' && d >= 1 && shrank.length === 1 && shrank[0]![1] === -d) {

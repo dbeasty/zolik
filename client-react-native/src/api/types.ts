@@ -44,6 +44,9 @@ export type CapacitySnapshot = {
 };
 
 /** A signed-in player, however they signed in. */
+/** What a device shows the server to be a guest it has been before. */
+export type GuestProof = { guestKey?: string; refreshToken?: string };
+
 export type PlayerSession = {
   accessToken: string;
   refreshToken: string;
@@ -59,6 +62,13 @@ export type PlayerSession = {
    * credential and grants no access to any account.
    */
   guestId?: string;
+  /**
+   * The proof that this device *is* that guest, present on guest sessions.
+   * Unlike the id it is a secret: whoever holds it can sign in as the guest,
+   * which is also what lets a guest carry their identity to another device
+   * as a link. Stored beside the guest id, never shown at a table.
+   */
+  guestKey?: string;
   /**
    * A pass the cloud signed, which seats this account at a table with no
    * internet: a host checks it against the copy of the cloud's keys it
@@ -122,6 +132,22 @@ export type SignInOutcome = {
 export type WSEnvelope = Record<string, unknown> & { type: string };
 
 /**
+ * The durable identity behind a seat: a registered account or a bot persona.
+ *
+ * `name` is a snapshot taken when the match was recorded, not a key — people
+ * rename, so two rows for the same `id` can disagree about it and the newer
+ * one wins. Render `name`; identify by `kind` + `id`.
+ */
+export type StatsSubject = {
+  /** 'user' or 'ai'. Guests never reach a leaderboard — see the server's
+   *  `Subject.Durable`. */
+  kind: string;
+  /** An account's id, or a bot's persona key (`hard:miroslav`). */
+  id: string;
+  name: string;
+};
+
+/**
  * One bucket of a lifetime record, with the figures derived from it.
  *
  * `bestScore` and `worstScore` are null rather than a sentinel until a match
@@ -149,7 +175,16 @@ export type TallyView = {
  * whether the table was pure.
  */
 export type LifetimeStats = {
-  subject?: { kind: string; id: string; name: string };
+  subject?: StatsSubject;
+  /**
+   * The same four figures as `overall`, flattened. The server keeps them for
+   * clients that predate the tally split; nothing here reads them, because
+   * `overall` says the same thing with its derived rates attached.
+   */
+  gamesPlayed?: number;
+  gamesWon?: number;
+  gamesLost?: number;
+  gamesDrawn?: number;
   overall: TallyView;
   vsHumans: TallyView;
   vsAI: TallyView;
@@ -165,6 +200,34 @@ export type LifetimeStats = {
   currentStreak: number;
   longestWinStreak: number;
   longestLossStreak: number;
+};
+
+/** Which record a leaderboard ranks on. */
+export type LeaderboardScope = 'overall' | 'vs_humans' | 'vs_ai';
+
+/** Who is being ranked. Bots are ranked separately from people, never mixed:
+ *  a bot that has played thousands of matches would otherwise sit permanently
+ *  at the top of the human board. */
+export type LeaderboardKind = 'user' | 'ai';
+
+/** One ranked entry, as `/leaderboard` returns it. */
+export type LeaderboardEntry = {
+  rank: number;
+  subject: StatsSubject;
+  tally: TallyView;
+  /** Streaks are always the overall run, whatever the scope — a streak is a
+   *  property of the player, not of a filtered subset of their matches. */
+  currentStreak: number;
+  longestWinStreak: number;
+  /** RFC3339. The server sends Go's zero time (year 1) rather than omitting
+   *  it for a subject whose last match predates the field; nothing reads it yet. */
+  lastMatchAt?: string;
+};
+
+export type Leaderboard = {
+  scope: LeaderboardScope;
+  kind: LeaderboardKind;
+  entries: LeaderboardEntry[];
 };
 
 // --- notifications: the game circle and invites ----------------------------
@@ -239,6 +302,42 @@ export type PushDeviceRegistration = {
 };
 
 /** A table somebody in this player's circle has opened, as the server sends it. */
+/** One seat at a table, as a seat link's preview shows it. */
+export type SeatPreviewPlayer = {
+  id: string;
+  name: string;
+  isAI: boolean;
+  avatar?: string;
+  /** Somebody holds a socket in this seat right now. */
+  present: boolean;
+};
+
+/** Whose seat a seat link opens, and at which table. */
+export type SeatPreview = {
+  matchId: string;
+  moduleId: string;
+  /** The game's own name, for a build with no words for `moduleId`. */
+  moduleLabel?: string;
+  variation?: string;
+  status: string;
+  seat: SeatPreviewPlayer;
+  players: SeatPreviewPlayer[];
+};
+
+/**
+ * What taking a seat link answers: either the caller already is that seat, or
+ * a token that plays it at this table and reaches nothing else.
+ */
+export type SeatClaim = {
+  matchId: string;
+  alreadyYours?: boolean;
+  accessToken?: string;
+  userId?: string;
+  username?: string;
+  /** Seconds the token plays the seat for. */
+  expiresIn?: number;
+};
+
 export type TableInvite = {
   /** Equal to `matchId`: one invite per table, which is what de-duplicates the
    *  socket's copy against the push's. */
@@ -252,6 +351,9 @@ export type TableInvite = {
   variation?: string;
   host: { key: string; name: string; avatar?: string };
   sentAt: string;
+  /** The finished table this one plays again, when it is a rematch holding a
+   *  seat for the reader rather than a table anybody may join. */
+  rematchOf?: string;
 };
 
 /** Everything the personal socket, /ws/me, can say. */

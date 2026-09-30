@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { dragLocatorTo, handCards } from '../helpers/drag';
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 import { cardByCode, selectOnly } from '../helpers/hand';
 
 /**
@@ -122,8 +122,8 @@ async function openMatch(page: Page, host: any, matchId: string) {
 }
 
 /** The bot's run, as the server has it. */
-async function meldOnServer(request: Ctx, matchId: string, userId: string) {
-  const b = await (await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`)).json();
+async function meldOnServer(request: Ctx, matchId: string, viewer: Viewer) {
+  const b = await (await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer))).json();
   for (const z of b.view?.zones ?? []) {
     for (const g of z.groups ?? []) if (g.id === 'meld_1') return g.cards.join(',');
   }
@@ -146,7 +146,7 @@ test.describe('a lay-off whose cards need each other', () => {
 
     // The server is the witness.
     await expect
-      .poll(() => meldOnServer(request, matchId, host.userId), { timeout: 10_000 })
+      .poll(() => meldOnServer(request, matchId, host), { timeout: 10_000 })
       .toBe('5C,6C,7C,8C,9C,TC');
   });
 
@@ -164,7 +164,7 @@ test.describe('a lay-off whose cards need each other', () => {
     await dragLocatorTo(page, cardByCode(page, '5C'), page.getByTestId('group-meld_1'));
 
     await expect
-      .poll(() => meldOnServer(request, matchId, host.userId), { timeout: 5_000 })
+      .poll(() => meldOnServer(request, matchId, host), { timeout: 5_000 })
       .toBe('7C,8C,9C,TC');
   });
 });

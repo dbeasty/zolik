@@ -40,11 +40,18 @@ export async function openGamesScreen(page: Page): Promise<void> {
 
 /** The games this server hosts, read off the picker the way a player reads them. */
 export async function gamesOnOffer(page: Page): Promise<string[]> {
+  await page.locator('[data-testid^="game-"]').first().waitFor({ state: 'visible', timeout: SCREEN_TIMEOUT });
   return page
-    .locator('[data-testid^="play-bots-"]')
+    .locator('[data-testid^="game-"]:not([data-testid="game-buttons"])')
     .evaluateAll((els) =>
-      els.map((e) => (e.getAttribute('data-testid') ?? '').replace('play-bots-', '')).filter(Boolean),
+      els.map((e) => (e.getAttribute('data-testid') ?? '').replace('game-', '')).filter(Boolean),
     );
+}
+
+/** Presses a game's button on the list, which leads to that game's own setup. */
+async function openGame(page: Page, moduleId: string): Promise<void> {
+  await page.getByTestId(`game-${moduleId}`).click();
+  await page.getByTestId(`play-bots-${moduleId}`).waitFor({ state: 'visible', timeout: SCREEN_TIMEOUT });
 }
 
 /**
@@ -55,6 +62,7 @@ export async function gamesOnOffer(page: Page): Promise<string[]> {
  * a real dimension of load and picking one number here would flatten it.
  */
 export async function startAgainstBots(page: Page, moduleId: string, rng: () => number): Promise<void> {
+  await openGame(page, moduleId);
   const pills = await page
     .locator(`[data-testid^="bots-${moduleId}-"]`)
     .evaluateAll((els) => els.map((e) => e.getAttribute('data-testid') ?? ''));
@@ -67,6 +75,7 @@ export async function startAgainstBots(page: Page, moduleId: string, rng: () => 
 
 /** Opens a table for other people and returns its join code. */
 export async function openTable(page: Page, moduleId: string): Promise<string> {
+  await openGame(page, moduleId);
   await page.getByTestId(`play-friends-${moduleId}`).click();
   const code = page.getByTestId('table-join-code');
   await code.waitFor({ state: 'visible', timeout: SCREEN_TIMEOUT });
@@ -152,7 +161,7 @@ export function matchOverBanner(page: Page): Locator {
   return page.getByTestId('match-over');
 }
 
-/** Sets up the same table again — only offered when the opponents were all bots. */
+/** Sets up the same table again. With only bots opposite, that is a dealt table straight away. */
 export async function playAgain(page: Page): Promise<boolean> {
   const again = page.getByTestId('match-over-again');
   if (!(await again.isVisible().catch(() => false))) return false;
@@ -194,7 +203,7 @@ export async function pressOffer(page: Page, offerId: string): Promise<boolean> 
  */
 export async function liveOfferIds(page: Page): Promise<string[]> {
   return page
-    .locator('[data-testid^="offer-"]:not([aria-disabled="true"])')
+    .locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])')
     .evaluateAll((els) =>
       els
         .map((e) => (e.getAttribute('data-testid') ?? '').replace(/^offer-/, ''))

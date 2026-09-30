@@ -31,6 +31,7 @@
     "DISCARD_TAKEN_CARD_FORBIDDEN",
     "GAME_NOT_ACTIVE",
     "GAME_SUSPENDED",
+    "HINTS_OFF",
     "INCOMPLETE_INITIAL_MELD",
     "INITIAL_MELD_NOT_MET",
     "INITIAL_MELD_ONLY",
@@ -40,6 +41,30 @@
     "INVALID_MELD",
     "JOKER_DISCARD_FORBIDDEN",
     "JOKER_SWAP_MISMATCH",
+    "MARIAS_BELOW_THE_BID",
+    "MARIAS_BID_TOO_LOW",
+    "MARIAS_DISCARD_TWO",
+    "MARIAS_DOUBLING_LIMIT",
+    "MARIAS_HELPER_IS_TRUMP",
+    "MARIAS_KEEP_THE_SEVEN",
+    "MARIAS_MUST_BEAT",
+    "MARIAS_MUST_FOLLOW_SUIT",
+    "MARIAS_MUST_OVERTRUMP",
+    "MARIAS_MUST_TRUMP",
+    "MARIAS_NOT_A_HIGHER_GAME",
+    "MARIAS_NOT_NOW",
+    "MARIAS_NOT_YOURS_TO_DOUBLE",
+    "MARIAS_NO_SUCH_PART",
+    "MARIAS_NO_TRUMP_SEVEN",
+    "MARIAS_NO_Z_LIDU",
+    "MARIAS_OMYL_NOT_ALLOWED",
+    "MARIAS_PICK_ONE_CARD",
+    "MARIAS_PROTI_NOT_ALLOWED",
+    "MARIAS_SEVEN_IN_TALON",
+    "MARIAS_SHARP_IN_TALON",
+    "MARIAS_UNKNOWN_SUIT",
+    "MARIAS_YOU_BID",
+    "MARIAS_YOU_HOLD",
     "MATCH_ALREADY_STARTED",
     "MATCH_DELETED",
     "MATCH_FULL",
@@ -47,6 +72,7 @@
     "MATCH_NOT_ABANDONED",
     "MATCH_NOT_ACTIVE",
     "MATCH_NOT_FOUND",
+    "MATCH_NOT_OVER",
     "MELD_BELOW_MINIMUM",
     "MELD_CAPTURE_NOT_ALLOWED",
     "MELD_CLOSED",
@@ -77,6 +103,7 @@
     "NOT_YOUR_MELD",
     "NOT_YOUR_TURN",
     "NO_CARDS_LEFT",
+    "NO_HINT",
     "NO_JOKER_IN_MELD",
     "NO_JOKER_IN_SET",
     "NO_LONGER_WAITING",
@@ -96,6 +123,8 @@
     "ROUND_REQ_NOT_MET",
     "RUN_NOT_CONSECUTIVE",
     "RUN_TOO_LONG",
+    "SEAT_IN_USE",
+    "SEAT_LINK_EXPIRED",
     "SEAT_NOT_IN_HAND",
     "SEQUENCE_NEEDS_ONE_SUIT",
     "SEQUENCE_NO_WILDS",
@@ -222,6 +251,33 @@
     "blackjack.zone.dealer",
     "blackjack.zone.shoe",
     "blackjack.zone.yourBox",
+    "canasta.line.canastas",
+    "canasta.line.goingOut",
+    "canasta.line.goingOutConcealed",
+    "canasta.line.hand",
+    "canasta.line.handBlackThrees",
+    "canasta.line.handOther",
+    "canasta.line.handWilds",
+    "canasta.line.inHand",
+    "canasta.line.meldCards",
+    "canasta.line.meldRun",
+    "canasta.line.meldSet",
+    "canasta.line.meldSetWild",
+    "canasta.line.mixed",
+    "canasta.line.natural",
+    "canasta.line.redThrees",
+    "canasta.line.redThreesAll",
+    "canasta.line.redThreesShort",
+    "canasta.line.redThreesSum",
+    "canasta.line.samba",
+    "canasta.move.discarded",
+    "canasta.move.drewStock",
+    "canasta.move.laidOff",
+    "canasta.move.melded",
+    "canasta.move.redThrees",
+    "canasta.move.tookPile",
+    "canasta.move.tookTopCard",
+    "canasta.move.undid",
     "canasta.offer.rank",
     "canasta.offer.sequence",
     "canasta.remedy.blackThreesOnTheWayOut",
@@ -242,10 +298,15 @@
     "canasta.remedy.takePileInstead",
     "canasta.remedy.topCardUnusable",
     "canasta.remedy.undoMeldsFirst",
+    "canasta.round.canastas",
     "canasta.round.closed",
     "canasta.round.concealed",
     "canasta.round.deal",
     "canasta.round.exhausted",
+    "canasta.round.goingOut",
+    "canasta.round.inHand",
+    "canasta.round.meldCards",
+    "canasta.round.redThrees",
     "canasta.rules.blackThreesGoOut",
     "canasta.rules.blackThreesNeverMeld",
     "canasta.rules.canasta",
@@ -292,6 +353,14 @@
     "ginrummy.fact.discardCard",
     "ginrummy.fact.meldCards",
     "ginrummy.header.hand",
+    "ginrummy.move.discarded",
+    "ginrummy.move.drewStock",
+    "ginrummy.move.knocked",
+    "ginrummy.move.laidOff",
+    "ginrummy.move.passedUpcard",
+    "ginrummy.move.tookDiscard",
+    "ginrummy.move.tookUpcard",
+    "ginrummy.move.wentGin",
     "ginrummy.offer.bigGin",
     "ginrummy.offer.discard",
     "ginrummy.offer.drawDiscard",
@@ -423,6 +492,135 @@
     "holdem.status.potUncontested",
     "holdem.status.shown",
     "holdem.status.shownVoluntary",
+    "marias.badge.trumpCard",
+    "marias.fact.rung",
+    "marias.fact.times",
+    "marias.fact.units",
+    "marias.header.deal",
+    "marias.header.doubled",
+    "marias.header.game",
+    "marias.header.helper",
+    "marias.header.rung",
+    "marias.header.sedma",
+    "marias.header.trumps",
+    "marias.header.withSto",
+    "marias.offer.announce.betl",
+    "marias.offer.announce.durch",
+    "marias.offer.announce.hra",
+    "marias.offer.announce.hraSedma",
+    "marias.offer.announce.sto",
+    "marias.offer.announce.stoSedma",
+    "marias.offer.auctionPass",
+    "marias.offer.bad.betl",
+    "marias.offer.bad.durch",
+    "marias.offer.bid",
+    "marias.offer.flek.game",
+    "marias.offer.flek.protiSedma",
+    "marias.offer.flek.protiSto",
+    "marias.offer.flek.sedma",
+    "marias.offer.flek.sto",
+    "marias.offer.good",
+    "marias.offer.hold",
+    "marias.offer.licit.betl",
+    "marias.offer.licit.durch",
+    "marias.offer.licit.dveSedmy",
+    "marias.offer.licit.dveSedmySto",
+    "marias.offer.licit.sedma",
+    "marias.offer.licit.sto",
+    "marias.offer.licit.stoSedma",
+    "marias.offer.omyl",
+    "marias.offer.pass",
+    "marias.offer.play",
+    "marias.offer.proti.sedma",
+    "marias.offer.proti.sto",
+    "marias.offer.talon",
+    "marias.offer.trump",
+    "marias.offer.zLidu",
+    "marias.param.helper",
+    "marias.param.rung",
+    "marias.param.trump",
+    "marias.prompt.announce",
+    "marias.prompt.announceLicit",
+    "marias.prompt.answer",
+    "marias.prompt.bid",
+    "marias.prompt.bidOpen",
+    "marias.prompt.flek",
+    "marias.prompt.hold",
+    "marias.prompt.keepSeven",
+    "marias.prompt.talon",
+    "marias.prompt.trump",
+    "marias.round.deal",
+    "marias.round.headline",
+    "marias.round.partLost",
+    "marias.round.partWon",
+    "marias.rules.bid.announce",
+    "marias.rules.bid.flek",
+    "marias.rules.bid.flekLimit",
+    "marias.rules.bid.proti",
+    "marias.rules.bid.takeover",
+    "marias.rules.deal.roles",
+    "marias.rules.deal.talon",
+    "marias.rules.deal.trump",
+    "marias.rules.deal.turns",
+    "marias.rules.deal.zLidu",
+    "marias.rules.deck",
+    "marias.rules.end",
+    "marias.rules.game.betl",
+    "marias.rules.game.durch",
+    "marias.rules.game.dveSedmy",
+    "marias.rules.game.hra",
+    "marias.rules.game.sedma",
+    "marias.rules.game.sto",
+    "marias.rules.goal",
+    "marias.rules.licit.auction",
+    "marias.rules.licit.bluff",
+    "marias.rules.licit.contract",
+    "marias.rules.licit.deal",
+    "marias.rules.licit.ladder",
+    "marias.rules.licit.lead",
+    "marias.rules.licit.middle",
+    "marias.rules.licit.noProti",
+    "marias.rules.licit.nobody",
+    "marias.rules.licit.omyl",
+    "marias.rules.order.plain",
+    "marias.rules.order.trump",
+    "marias.rules.play.earlyEnd",
+    "marias.rules.play.follow",
+    "marias.rules.play.lead",
+    "marias.rules.play.marriage",
+    "marias.rules.play.seven",
+    "marias.rules.play.trump",
+    "marias.rules.points",
+    "marias.rules.score.flek",
+    "marias.rules.score.limit",
+    "marias.rules.score.parts",
+    "marias.rules.score.quietSeven",
+    "marias.rules.score.quietSto",
+    "marias.rules.score.red",
+    "marias.rules.score.sto",
+    "marias.rules.score.tariff",
+    "marias.rules.score.tariffLicit",
+    "marias.rules.section.auction",
+    "marias.rules.section.bidding",
+    "marias.rules.section.cards",
+    "marias.rules.section.deal",
+    "marias.rules.section.end",
+    "marias.rules.section.games",
+    "marias.rules.section.goal",
+    "marias.rules.section.play",
+    "marias.rules.section.scoring",
+    "marias.seat.bidder",
+    "marias.seat.chooser",
+    "marias.seat.declarer",
+    "marias.seat.holder",
+    "marias.seat.marriage",
+    "marias.seat.points",
+    "marias.seat.protiSedma",
+    "marias.seat.protiSto",
+    "marias.seat.tricks",
+    "marias.zone.lastTrick",
+    "marias.zone.talon",
+    "marias.zone.trick",
     "prompt.canastasNeeded",
     "prompt.chooseSuit",
     "prompt.initialMeld",
@@ -456,6 +654,14 @@
     "rummytiles.fact.setCards",
     "rummytiles.header.pool",
     "rummytiles.header.round",
+    "rummytiles.move.added",
+    "rummytiles.move.committed",
+    "rummytiles.move.drew",
+    "rummytiles.move.placed",
+    "rummytiles.move.reset",
+    "rummytiles.move.split",
+    "rummytiles.move.swappedJoker",
+    "rummytiles.move.took",
     "rummytiles.offer.addFromHand",
     "rummytiles.offer.addFromTray",
     "rummytiles.offer.commit",
@@ -510,6 +716,7 @@
     "status.lastDeal",
     "status.teamScore",
     "status.winner",
+    "verb.discardToClose",
     "verb.drawFromDeck",
     "verb.takeFromDiscard",
     "verb.takePileFromHand",
@@ -520,6 +727,14 @@
     "verb.undoTakePile",
     "zolik.badge.jokerOwed",
     "zolik.badge.owedToMeld",
+    "zolik.move.discarded",
+    "zolik.move.drewStock",
+    "zolik.move.laidOff",
+    "zolik.move.laidOffOwn",
+    "zolik.move.melded",
+    "zolik.move.swappedJoker",
+    "zolik.move.tookDiscard",
+    "zolik.move.undid",
     "zolik.offer.meld",
     "zolik.remedy.discardNotAJoker",
     "zolik.remedy.discardSomethingElse",
@@ -757,6 +972,62 @@
     "holdem.rules.stack",
     "holdem.rules.stopEveryHand",
     "holdem.rules.streets",
+    "marias.rules.bid.announce",
+    "marias.rules.bid.flek",
+    "marias.rules.bid.flekLimit",
+    "marias.rules.bid.proti",
+    "marias.rules.bid.takeover",
+    "marias.rules.deal.roles",
+    "marias.rules.deal.talon",
+    "marias.rules.deal.trump",
+    "marias.rules.deal.turns",
+    "marias.rules.deal.zLidu",
+    "marias.rules.deck",
+    "marias.rules.end",
+    "marias.rules.game.betl",
+    "marias.rules.game.durch",
+    "marias.rules.game.dveSedmy",
+    "marias.rules.game.hra",
+    "marias.rules.game.sedma",
+    "marias.rules.game.sto",
+    "marias.rules.goal",
+    "marias.rules.licit.auction",
+    "marias.rules.licit.bluff",
+    "marias.rules.licit.contract",
+    "marias.rules.licit.deal",
+    "marias.rules.licit.ladder",
+    "marias.rules.licit.lead",
+    "marias.rules.licit.middle",
+    "marias.rules.licit.noProti",
+    "marias.rules.licit.nobody",
+    "marias.rules.licit.omyl",
+    "marias.rules.order.plain",
+    "marias.rules.order.trump",
+    "marias.rules.play.earlyEnd",
+    "marias.rules.play.follow",
+    "marias.rules.play.lead",
+    "marias.rules.play.marriage",
+    "marias.rules.play.seven",
+    "marias.rules.play.trump",
+    "marias.rules.points",
+    "marias.rules.score.flek",
+    "marias.rules.score.limit",
+    "marias.rules.score.parts",
+    "marias.rules.score.quietSeven",
+    "marias.rules.score.quietSto",
+    "marias.rules.score.red",
+    "marias.rules.score.sto",
+    "marias.rules.score.tariff",
+    "marias.rules.score.tariffLicit",
+    "marias.rules.section.auction",
+    "marias.rules.section.bidding",
+    "marias.rules.section.cards",
+    "marias.rules.section.deal",
+    "marias.rules.section.end",
+    "marias.rules.section.games",
+    "marias.rules.section.goal",
+    "marias.rules.section.play",
+    "marias.rules.section.scoring",
     "prsi.remedy.answerSevenOrTake",
     "prsi.remedy.matchOrDraw",
     "prsi.remedy.nameASuit",
@@ -961,6 +1232,93 @@
       "n",
       "value"
     ],
+    "canasta.line.goingOut": [
+      "player"
+    ],
+    "canasta.line.goingOutConcealed": [
+      "player"
+    ],
+    "canasta.line.hand": [
+      "n",
+      "player"
+    ],
+    "canasta.line.handBlackThrees": [
+      "each",
+      "n"
+    ],
+    "canasta.line.handOther": [
+      "n"
+    ],
+    "canasta.line.handWilds": [
+      "n"
+    ],
+    "canasta.line.meldRun": [
+      "n",
+      "suit"
+    ],
+    "canasta.line.meldSet": [
+      "n",
+      "rank"
+    ],
+    "canasta.line.meldSetWild": [
+      "naturals",
+      "rank",
+      "wilds"
+    ],
+    "canasta.line.mixed": [
+      "each",
+      "n"
+    ],
+    "canasta.line.natural": [
+      "each",
+      "n"
+    ],
+    "canasta.line.redThrees": [
+      "each",
+      "n"
+    ],
+    "canasta.line.redThreesAll": [
+      "n"
+    ],
+    "canasta.line.redThreesShort": [
+      "made",
+      "n",
+      "need"
+    ],
+    "canasta.line.samba": [
+      "each",
+      "n"
+    ],
+    "canasta.move.discarded": [
+      "card",
+      "player"
+    ],
+    "canasta.move.drewStock": [
+      "player"
+    ],
+    "canasta.move.laidOff": [
+      "cards",
+      "player"
+    ],
+    "canasta.move.melded": [
+      "cards",
+      "player"
+    ],
+    "canasta.move.redThrees": [
+      "cards",
+      "player"
+    ],
+    "canasta.move.tookPile": [
+      "card",
+      "player"
+    ],
+    "canasta.move.tookTopCard": [
+      "card",
+      "player"
+    ],
+    "canasta.move.undid": [
+      "player"
+    ],
     "canasta.offer.rank": [
       "value"
     ],
@@ -993,9 +1351,24 @@
     "canasta.remedy.topCardUnusable": [
       "card"
     ],
+    "canasta.round.canastas": [
+      "n"
+    ],
     "canasta.round.closed": [
       "diff",
       "player"
+    ],
+    "canasta.round.goingOut": [
+      "n"
+    ],
+    "canasta.round.inHand": [
+      "n"
+    ],
+    "canasta.round.meldCards": [
+      "n"
+    ],
+    "canasta.round.redThrees": [
+      "n"
     ],
     "canasta.rules.blackThreesGoOut": [
       "n"
@@ -1089,6 +1462,36 @@
     "ginrummy.header.hand": [
       "n",
       "value"
+    ],
+    "ginrummy.move.discarded": [
+      "card",
+      "player"
+    ],
+    "ginrummy.move.drewStock": [
+      "player"
+    ],
+    "ginrummy.move.knocked": [
+      "deadwood",
+      "player"
+    ],
+    "ginrummy.move.laidOff": [
+      "card",
+      "owner",
+      "player"
+    ],
+    "ginrummy.move.passedUpcard": [
+      "player"
+    ],
+    "ginrummy.move.tookDiscard": [
+      "card",
+      "player"
+    ],
+    "ginrummy.move.tookUpcard": [
+      "card",
+      "player"
+    ],
+    "ginrummy.move.wentGin": [
+      "player"
     ],
     "ginrummy.remedy.getDeadwoodDown": [
       "n"
@@ -1274,6 +1677,121 @@
       "hole",
       "playerId"
     ],
+    "marias.fact.rung": [
+      "rung"
+    ],
+    "marias.fact.times": [
+      "n"
+    ],
+    "marias.fact.units": [
+      "n"
+    ],
+    "marias.header.deal": [
+      "n",
+      "of"
+    ],
+    "marias.header.doubled": [
+      "n",
+      "part"
+    ],
+    "marias.header.game": [
+      "game",
+      "player"
+    ],
+    "marias.header.helper": [
+      "suit"
+    ],
+    "marias.header.rung": [
+      "rung"
+    ],
+    "marias.header.trumps": [
+      "suit"
+    ],
+    "marias.prompt.announceLicit": [
+      "rung"
+    ],
+    "marias.prompt.answer": [
+      "game",
+      "player"
+    ],
+    "marias.prompt.bid": [
+      "player",
+      "rung"
+    ],
+    "marias.prompt.hold": [
+      "player",
+      "rung"
+    ],
+    "marias.round.headline": [
+      "game",
+      "player"
+    ],
+    "marias.round.partLost": [
+      "n",
+      "part"
+    ],
+    "marias.round.partWon": [
+      "n",
+      "part"
+    ],
+    "marias.rules.bid.flek": [
+      "names"
+    ],
+    "marias.rules.bid.flekLimit": [
+      "n"
+    ],
+    "marias.rules.deck": [
+      "value"
+    ],
+    "marias.rules.end": [
+      "n"
+    ],
+    "marias.rules.game.sto": [
+      "n"
+    ],
+    "marias.rules.licit.omyl": [
+      "n"
+    ],
+    "marias.rules.play.marriage": [
+      "plain",
+      "trump"
+    ],
+    "marias.rules.points": [
+      "last",
+      "sharp",
+      "total"
+    ],
+    "marias.rules.score.limit": [
+      "n"
+    ],
+    "marias.rules.score.quietSeven": [
+      "n"
+    ],
+    "marias.rules.score.tariff": [
+      "betl",
+      "durch",
+      "hra",
+      "sedma",
+      "sto"
+    ],
+    "marias.rules.score.tariffLicit": [
+      "betl",
+      "durch",
+      "dveSedmy",
+      "hra",
+      "sedma",
+      "sto"
+    ],
+    "marias.seat.marriage": [
+      "n",
+      "suit"
+    ],
+    "marias.seat.points": [
+      "n"
+    ],
+    "marias.seat.tricks": [
+      "n"
+    ],
     "prompt.canastasNeeded": [
       "n"
     ],
@@ -1315,6 +1833,34 @@
     "rummytiles.header.round": [
       "n",
       "value"
+    ],
+    "rummytiles.move.added": [
+      "cards",
+      "player"
+    ],
+    "rummytiles.move.committed": [
+      "player"
+    ],
+    "rummytiles.move.drew": [
+      "player"
+    ],
+    "rummytiles.move.placed": [
+      "cards",
+      "player"
+    ],
+    "rummytiles.move.reset": [
+      "player"
+    ],
+    "rummytiles.move.split": [
+      "player"
+    ],
+    "rummytiles.move.swappedJoker": [
+      "card",
+      "player"
+    ],
+    "rummytiles.move.took": [
+      "cards",
+      "player"
     ],
     "rummytiles.remedy.emptyTheTray": [
       "n"
@@ -1381,6 +1927,37 @@
       "team",
       "value",
       "winners"
+    ],
+    "zolik.move.discarded": [
+      "card",
+      "player"
+    ],
+    "zolik.move.drewStock": [
+      "player"
+    ],
+    "zolik.move.laidOff": [
+      "cards",
+      "owner",
+      "player"
+    ],
+    "zolik.move.laidOffOwn": [
+      "cards",
+      "player"
+    ],
+    "zolik.move.melded": [
+      "cards",
+      "player"
+    ],
+    "zolik.move.swappedJoker": [
+      "card",
+      "player"
+    ],
+    "zolik.move.tookDiscard": [
+      "card",
+      "player"
+    ],
+    "zolik.move.undid": [
+      "player"
     ],
     "zolik.offer.meld": [
       "value"
@@ -1465,6 +2042,29 @@
     "blackjack.seat.total",
     "blackjack.status.dealerBust",
     "blackjack.status.dealerStands",
+    "canasta.line.goingOut",
+    "canasta.line.goingOutConcealed",
+    "canasta.line.hand",
+    "canasta.line.handBlackThrees",
+    "canasta.line.handOther",
+    "canasta.line.handWilds",
+    "canasta.line.meldRun",
+    "canasta.line.meldSet",
+    "canasta.line.meldSetWild",
+    "canasta.line.mixed",
+    "canasta.line.natural",
+    "canasta.line.redThrees",
+    "canasta.line.redThreesAll",
+    "canasta.line.redThreesShort",
+    "canasta.line.samba",
+    "canasta.move.discarded",
+    "canasta.move.drewStock",
+    "canasta.move.laidOff",
+    "canasta.move.melded",
+    "canasta.move.redThrees",
+    "canasta.move.tookPile",
+    "canasta.move.tookTopCard",
+    "canasta.move.undid",
     "canasta.offer.rank",
     "canasta.offer.sequence",
     "canasta.remedy.captureFromHand",
@@ -1474,7 +2074,12 @@
     "canasta.remedy.needTwoMatching",
     "canasta.remedy.pileFrozen",
     "canasta.remedy.topCardUnusable",
+    "canasta.round.canastas",
     "canasta.round.closed",
+    "canasta.round.goingOut",
+    "canasta.round.inHand",
+    "canasta.round.meldCards",
+    "canasta.round.redThrees",
     "canasta.rules.blackThreesGoOut",
     "canasta.rules.blackThreesNeverMeld",
     "canasta.rules.canasta",
@@ -1499,6 +2104,14 @@
     "ginrummy.fact.discardCard",
     "ginrummy.fact.meldCards",
     "ginrummy.header.hand",
+    "ginrummy.move.discarded",
+    "ginrummy.move.drewStock",
+    "ginrummy.move.knocked",
+    "ginrummy.move.laidOff",
+    "ginrummy.move.passedUpcard",
+    "ginrummy.move.tookDiscard",
+    "ginrummy.move.tookUpcard",
+    "ginrummy.move.wentGin",
     "ginrummy.remedy.getDeadwoodDown",
     "ginrummy.round.kind",
     "ginrummy.rules.bigGinBonus",
@@ -1549,6 +2162,37 @@
     "holdem.status.potUncontested",
     "holdem.status.shown",
     "holdem.status.shownVoluntary",
+    "marias.fact.rung",
+    "marias.fact.times",
+    "marias.fact.units",
+    "marias.header.deal",
+    "marias.header.doubled",
+    "marias.header.game",
+    "marias.header.helper",
+    "marias.header.rung",
+    "marias.header.trumps",
+    "marias.prompt.announceLicit",
+    "marias.prompt.answer",
+    "marias.prompt.bid",
+    "marias.prompt.hold",
+    "marias.round.headline",
+    "marias.round.partLost",
+    "marias.round.partWon",
+    "marias.rules.bid.flek",
+    "marias.rules.bid.flekLimit",
+    "marias.rules.deck",
+    "marias.rules.end",
+    "marias.rules.game.sto",
+    "marias.rules.licit.omyl",
+    "marias.rules.play.marriage",
+    "marias.rules.points",
+    "marias.rules.score.limit",
+    "marias.rules.score.quietSeven",
+    "marias.rules.score.tariff",
+    "marias.rules.score.tariffLicit",
+    "marias.seat.marriage",
+    "marias.seat.points",
+    "marias.seat.tricks",
     "prompt.canastasNeeded",
     "prompt.initialMeld",
     "prompt.jokerMustBePlayed",
@@ -1562,6 +2206,14 @@
     "rummytiles.fact.setCards",
     "rummytiles.header.pool",
     "rummytiles.header.round",
+    "rummytiles.move.added",
+    "rummytiles.move.committed",
+    "rummytiles.move.drew",
+    "rummytiles.move.placed",
+    "rummytiles.move.reset",
+    "rummytiles.move.split",
+    "rummytiles.move.swappedJoker",
+    "rummytiles.move.took",
     "rummytiles.remedy.emptyTheTray",
     "rummytiles.remedy.needMorePoints",
     "rummytiles.remedy.ownNewSetsOnly",
@@ -1578,6 +2230,14 @@
     "status.lastDeal",
     "status.teamScore",
     "status.winner",
+    "zolik.move.discarded",
+    "zolik.move.drewStock",
+    "zolik.move.laidOff",
+    "zolik.move.laidOffOwn",
+    "zolik.move.melded",
+    "zolik.move.swappedJoker",
+    "zolik.move.tookDiscard",
+    "zolik.move.undid",
     "zolik.offer.meld",
     "zolik.remedy.discardSomethingElse",
     "zolik.remedy.drawFromStock",
