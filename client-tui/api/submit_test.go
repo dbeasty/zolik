@@ -36,3 +36,19 @@ func TestSubmissionForHonoursANamedCombination(t *testing.T) {
 		t.Errorf("cards=%v, want %v", a.Cards, want)
 	}
 }
+
+// A card an enabled offer turns down by name is found with its reason, so the
+// terminal can say why rather than dropping it from the pick.
+func TestRefusalForNamesTheRefusedCard(t *testing.T) {
+	o := ActionOffer{ID: "discard", Verb: "discard", Enabled: true, Source: &Selector{
+		Zone: "hand", Cards: []string{"4S", "3D"}, MinCards: 1, MaxCards: 1,
+		Refused: []CardRefusal{{Card: "QH", WhyNot: "DISCARD_TAKEN_CARD_FORBIDDEN", RuleIDs: []string{"zolik.rules.pickup.noReturn"}}},
+	}}
+	r, ok := RefusalFor(o, []string{"QH"})
+	if !ok || r.WhyNot != "DISCARD_TAKEN_CARD_FORBIDDEN" || len(r.RuleIDs) != 1 {
+		t.Fatalf("RefusalFor(QH) = %+v, %v", r, ok)
+	}
+	if _, ok := RefusalFor(o, []string{"4S"}); ok {
+		t.Fatal("a listed card reported as refused")
+	}
+}

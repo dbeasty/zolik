@@ -555,6 +555,8 @@ export const pl: Record<string, string> = {
   'zolik.badge.owedToMeld':
     '{card} pochodzi ze stosu odrzuconych — musi trafić do układów, którymi wykładasz się w tej kolejce.',
   'zolik.badge.jokerOwed': '{card} pochodzi ze stołu — musi trafić do układu, zanim zakończysz kolejkę.',
+  'zolik.badge.noReturn':
+    '{card} pochodzi w tej kolejce ze stosu odrzuconych — nie może od razu wrócić. Zagraj ją albo zatrzymaj.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is

@@ -554,6 +554,8 @@ export const fi: Record<string, string> = {
     '{card} tuli poistopinosta — sen on mentävä niihin yhdistelmiin, joilla lasket alas tällä vuorolla.',
   'zolik.badge.jokerOwed':
     '{card} tuli pöydästä — sen on mentävä yhdistelmään ennen kuin voit päättää vuorosi.',
+  'zolik.badge.noReturn':
+    '{card} tuli tällä vuorolla poistopinosta — se ei voi palata heti takaisin. Pelaa se tai pidä se.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is

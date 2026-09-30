@@ -564,6 +564,8 @@ export const hu: Record<string, string> = {
     'A(z) {card} a dobópakliból jött — abba a kombinációba kell kerülnie, amellyel ebben a körben lerakod magad.',
   'zolik.badge.jokerOwed':
     'A(z) {card} az asztalról jött — kombinációba kell kerülnie, mielőtt lezárhatnád a köröd.',
+  'zolik.badge.noReturn':
+    'A(z) {card} ebben a körben a dobópakliból jött — nem mehet rögtön vissza. Játszd ki vagy tartsd meg.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is

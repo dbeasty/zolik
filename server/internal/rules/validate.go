@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -1108,6 +1109,26 @@ func hasOtherDiscardableCard(hand []string, taken string, cfg RulesConfig) bool 
 		return true
 	}
 	return false
+}
+
+// HeldBackTakenCard is the card playerID took off the discard pile this turn
+// if the engine would refuse it as their discard right now *for being that
+// card* — the pickup of a player already down, while something else in hand
+// could go instead. Empty otherwise: when the taken card is the only legal
+// discard, and when something about the turn refuses every card alike (a
+// pickup still owed to the initial meld, a reclaimed joker still owed to a
+// meld), since then the card is not what stands in the way.
+//
+// Asked of the engine rather than restated, like every offer.
+func HeldBackTakenCard(state GameState, playerID string) string {
+	taken := state.DiscardTakenCard
+	if taken == "" || state.CurrentTurn != playerID || !slices.Contains(state.Hands[playerID], taken) {
+		return ""
+	}
+	if _, code := probe(state, playerID, Action{Type: ActionDiscard, Card: taken}); code != ErrDiscardTakenCard {
+		return ""
+	}
+	return taken
 }
 
 // clearIfSpent blanks a single-card marker once that card turns up among

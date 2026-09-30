@@ -562,6 +562,8 @@ export const nl: Record<string, string> = {
     '{card} komt van de aflegstapel — die kaart moet in de combinaties waarmee je deze beurt uitlegt.',
   'zolik.badge.jokerOwed':
     '{card} komt van tafel — die kaart moet in een combinatie voordat je je beurt kunt beëindigen.',
+  'zolik.badge.noReturn':
+    '{card} komt deze beurt van de aflegstapel — die kaart kan niet meteen terug. Speel hem of houd hem.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is

@@ -554,6 +554,8 @@ export const it: Record<string, string> = {
     '{card} viene dalla pila degli scarti — deve finire nelle combinazioni con cui cali in questo turno.',
   'zolik.badge.jokerOwed':
     '{card} viene dal tavolo — deve finire in una combinazione prima che tu possa chiudere il turno.',
+  'zolik.badge.noReturn':
+    '{card} viene dalla pila degli scarti in questo turno — non può tornarci subito. Giocala o tienila.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is

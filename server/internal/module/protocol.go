@@ -429,6 +429,26 @@ type Selector struct {
 
 	MinCards int `json:"minCards,omitempty"`
 	MaxCards int `json:"maxCards,omitempty"`
+
+	// Refused lists cards this offer would otherwise take but turns down, each
+	// with its own reason — on an offer that is itself enabled.
+	//
+	// An offer's WhyNot answers "can I do this at all". It cannot answer "why
+	// not with *this* card" while the verb is available with another one: the
+	// discard is open, but not for the card just taken off the pile. Left out
+	// of Cards and said nowhere, that card is a drop that snaps home in
+	// silence, and a refusal a player can only learn by making it.
+	Refused []CardRefusal `json:"refused,omitempty"`
+}
+
+// CardRefusal is one card an enabled offer turns down: the engine's code, the
+// written rules behind it, and what to do instead — the same three things a
+// disabled offer carries, one level down.
+type CardRefusal struct {
+	Card    string   `json:"card"`
+	WhyNot  string   `json:"whyNot"`
+	RuleIDs []string `json:"ruleIds,omitempty"`
+	Remedy  *Fact    `json:"remedy,omitempty"`
 }
 
 // ParamKind is the shape of a non-card input.

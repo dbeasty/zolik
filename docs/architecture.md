@@ -547,7 +547,7 @@ type ActionOffer struct {
     WhyNot   string      // message key when disabled — the UI shows a real reason
 
     // what the gesture layer needs to bind this to the board
-    Source   Selector    // zone + how many cards + which are eligible
+    Source   Selector    // zone + how many cards + which are eligible, and which are refused and why
     Target   Selector    // zone/group + drop hints ("front"/"end")
     Params   []ParamSpec // for non-card inputs: bid value, trump choice
 }

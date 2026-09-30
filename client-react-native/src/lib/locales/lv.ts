@@ -550,6 +550,8 @@ export const lv: Record<string, string> = {
   'zolik.badge.owedToMeld':
     '{card} nāca no izmešanas kaudzes — tai jānonāk kombinācijās, ar kurām šajā gājienā izliecies.',
   'zolik.badge.jokerOwed': '{card} nāca no galda — tai jānonāk kombinācijā, pirms vari beigt gājienu.',
+  'zolik.badge.noReturn':
+    '{card} šajā gājienā nāca no izmešanas kaudzes — tā nevar uzreiz atgriezties. Izspēlē to vai paturi.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is

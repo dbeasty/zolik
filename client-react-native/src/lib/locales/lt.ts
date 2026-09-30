@@ -549,6 +549,8 @@ export const lt: Record<string, string> = {
   'zolik.badge.owedToMeld':
     '{card} atkeliavo iš atmetimo krūvelės — ji turi patekti į derinius, su kuriais šį ėjimą išsidėstai.',
   'zolik.badge.jokerOwed': '{card} atkeliavo nuo stalo — ji turi patekti į derinį, kad galėtum baigti ėjimą.',
+  'zolik.badge.noReturn':
+    '{card} šį ėjimą paimta iš atmetimo krūvelės — ji negali iškart grįžti atgal. Sužaisk ją arba pasilik.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is
