@@ -63,7 +63,7 @@ func startDeal(s *GameState) {
 
 	s.TrumpCard, s.Trump, s.Helper, s.WithSto = "", "", "", false
 	s.Rung, s.Holder, s.Bidder, s.Waiting = 0, "", "", ""
-	s.PrevTrick, s.Announced = nil, nil
+	s.PrevTrick, s.Announced, s.History = nil, nil, nil
 	if s.licit() {
 		dealLicit(s, deck)
 		return
@@ -523,6 +523,7 @@ func (s *GameState) play(p string, cards []string) ([]module.Event, error) {
 		s.Points[winner] += cardPoints(pl.Card)
 	}
 	s.TricksWon[winner]++
+	s.History = append(s.History, s.Trick)
 	s.PrevTrick, s.LastTrick, s.Trick = s.LastTrick, s.Trick, nil
 	s.Current = winner
 	last := len(s.Hands[winner]) == 0

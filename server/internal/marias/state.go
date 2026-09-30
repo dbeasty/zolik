@@ -81,7 +81,11 @@ type GameState struct {
 	LastTrick []tricks.Play `json:"lastTrick,omitempty"`
 	// PrevTrick is the trick before the last one — dvě sedmy's helper seven
 	// has to take it.
-	PrevTrick []tricks.Play       `json:"prevTrick,omitempty"`
+	PrevTrick []tricks.Play `json:"prevTrick,omitempty"`
+	// History is every trick completed this deal, in order: public, since
+	// every card in it was played face up, and what a sampling bot reads
+	// voids and marriages from.
+	History   [][]tricks.Play     `json:"history,omitempty"`
 	TricksWon map[string]int      `json:"tricksWon,omitempty"`
 	Points    map[string]int      `json:"points,omitempty"`    // card points, last trick included
 	Marriages map[string][]string `json:"marriages,omitempty"` // suits announced, per player

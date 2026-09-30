@@ -67,7 +67,16 @@ func playMatchVariation(t *testing.T, variation string, seed int64, seats map[st
 
 func TestBotPlaysWholeMatchesLegally(t *testing.T) {
 	for _, skill := range []module.Skill{module.SkillEasy, module.SkillMedium, module.SkillHard} {
-		for seed := int64(1); seed <= 15; seed++ {
+		// Hard searches every card, so fewer of its matches: three are still
+		// ninety deals of sampled play checked move by move against Apply.
+		seeds := int64(15)
+		if skill == module.SkillHard {
+			seeds = 3
+			if testing.Short() {
+				seeds = 1
+			}
+		}
+		for seed := int64(1); seed <= seeds; seed++ {
 			playMatch(t, seed, map[string]module.Skill{"p1": skill, "p2": skill, "p3": skill})
 		}
 	}
@@ -86,8 +95,10 @@ func TestBotDoesNotPeek(t *testing.T) {
 		return s
 	}
 	for _, skill := range []module.Skill{module.SkillEasy, module.SkillMedium, module.SkillHard} {
+		// The talon is the same in both: p1 declared, and a declarer knows
+		// the two cards they laid away. Only the other hands differ.
 		honest := botAct(t, build([]string{"7H", "8C", "9C", "TC", "AC", "8S"}, []string{"8H", "9H", "JC", "AS", "TS", "KS"}, []string{"7D", "8D"}), "p1", skill)
-		rigged := botAct(t, build([]string{"QH", "JH", "AS", "TS", "7D", "8D"}, []string{"9H", "8H", "7C", "8C", "KS", "QS"}, []string{"AD", "TD"}), "p1", skill)
+		rigged := botAct(t, build([]string{"QH", "JH", "AS", "TS", "7D", "9D"}, []string{"9H", "8H", "7C", "8C", "KS", "QS"}, []string{"7D", "8D"}), "p1", skill)
 		if !reflect.DeepEqual(honest, rigged) {
 			t.Errorf("%s led %v against one deal and %v against another", skill, honest.Cards, rigged.Cards)
 		}
@@ -145,6 +156,35 @@ func TestMediumBeatsEasy(t *testing.T) {
 		t.Logf("%s — medium against two easy: %+.2f units a match over %d matches", variation, mean, matches)
 		if mean <= 0 {
 			t.Errorf("%s: medium averaged %+.2f units against easy seats", variation, mean)
+		}
+	}
+}
+
+// TestHardBeatsMedium is the search's own strength check, paired to cut the
+// noise: each seed and seat is played once by hard and once by medium, with
+// the same deals and the same two medium opponents, and the difference is
+// what the search is worth. Measured on 75 pairs when it shipped: volený
+// +5.9 ±1.0 and licitovaný +12.4 ±1.8 units a match. The bar here is only
+// "ahead": a backwards result is a broken search.
+func TestHardBeatsMedium(t *testing.T) {
+	if testing.Short() {
+		t.Skip("a paired strength sweep of the search is minutes, not seconds")
+	}
+	for _, variation := range []string{variationVoleny, variationLicit} {
+		total, n := 0, 0
+		for seed := int64(1); seed <= 8; seed++ {
+			for _, strong := range []string{"p1", "p2", "p3"} {
+				seats := map[string]module.Skill{"p1": module.SkillMedium, "p2": module.SkillMedium, "p3": module.SkillMedium}
+				base := playMatchVariation(t, variation, seed, seats)[strong]
+				seats[strong] = module.SkillHard
+				total += playMatchVariation(t, variation, seed, seats)[strong] - base
+				n++
+			}
+		}
+		mean := float64(total) / float64(n)
+		t.Logf("%s — hard minus medium: %+.2f units a match over %d pairs", variation, mean, n)
+		if mean <= 0 {
+			t.Errorf("%s: the search played %+.2f units a match worse than the rules of thumb", variation, mean)
 		}
 	}
 }

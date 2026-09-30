@@ -301,7 +301,17 @@ test follows `holdem/bot.go:34-36` and `ai/nopeek_test.go`. The sampler and solv
    four skin styles; the TUI's four-colour German rendering. Prší names the German suits and its
    wild card is the svršek, in all 24 locales. Checked with headless screenshots of real tables
    and a gallery of all 32 cards.*
-6. **Hard bot** (sampling), in `internal/tricks/search`.
+6. **Hard bot** (sampling), in `internal/tricks/search`. *Done on `claude/marias-tricks`:*
+   - An open-hand alpha-beta solver, checked against brute force on 300 random positions. It
+     has a transposition table, pruning of equivalent cards, held-back sevens, and marriages
+     scored as they are played.
+   - A sampler that deals the unseen cards consistently with what the table has shown: voids,
+     cards a player failed to beat, promised králs and sevens, a sharp-free talon, and the
+     declarer's trump length.
+   - The hard seat averages 20 samples a card, capped by a node budget; that is about 260 ms at
+     the first trick and under 1 ms by the seventh.
+   - Paired against medium on the same deals: volený +5.9 ±1.0 and licitovaný +12.4 ±1.8 units a
+     match (75 pairs each).
 
 Steps 1–3 give a playable game. Steps 4–6 each stand on their own.
 

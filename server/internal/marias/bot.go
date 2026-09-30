@@ -242,7 +242,7 @@ func rankIndex(o tricks.Order, r byte) int {
 }
 
 // doubling decides one doubling-round move, or none.
-func (b bot) doubling(s *GameState, me string, skill module.Skill, enabled func(string) *module.ActionOffer) (string, string) {
+func (b bot) doubling(s *GameState, me string, _ module.Skill, enabled func(string) *module.ActionOffer) (string, string) {
 	if !s.trumpGame() {
 		return "", ""
 	}
@@ -255,9 +255,6 @@ func (b bot) doubling(s *GameState, me string, skill module.Skill, enabled func(
 			return OfferFlekGame, VerbFlek
 		}
 		return "", ""
-	}
-	if skill == module.SkillHard && trumps >= 4 && enabled(OfferProtiSedma) != nil {
-		return OfferProtiSedma, VerbProti
 	}
 	if trumps >= 4 && topTrump && enabled(OfferFlekGame) != nil {
 		return OfferFlekGame, VerbFlek
@@ -274,6 +271,13 @@ func (b bot) playCard(s *GameState, me string, skill module.Skill, legal []strin
 	// An easy seat is a player who does not always see the good card.
 	if skill == module.SkillEasy && r.Float64() < 0.3 {
 		return legal[r.Intn(len(legal))]
+	}
+	// A hard seat searches: sampled deals, solved open-handed (sampling.go).
+	// The rules of thumb below are its fallback if no sample could be.
+	if skill == module.SkillHard {
+		if c, ok := s.searchPlay(me, legal, r); ok {
+			return c
+		}
 	}
 	order, trump := s.order(), s.trump()
 	strength := func(c string) int { return len(order) - rankIndex(order, tricks.Rank(c)) }

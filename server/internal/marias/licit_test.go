@@ -220,7 +220,14 @@ func TestSettlementCountsTheFirstMarriageForSto(t *testing.T) {
 
 func TestLicitMatchesPlayOutLegally(t *testing.T) {
 	for _, skill := range []module.Skill{module.SkillEasy, module.SkillMedium, module.SkillHard} {
-		for seed := int64(1); seed <= 10; seed++ {
+		seeds := int64(10)
+		if skill == module.SkillHard {
+			seeds = 2
+			if testing.Short() {
+				seeds = 1
+			}
+		}
+		for seed := int64(1); seed <= seeds; seed++ {
 			playMatchVariation(t, variationLicit, seed, map[string]module.Skill{"p1": skill, "p2": skill, "p3": skill})
 		}
 	}
