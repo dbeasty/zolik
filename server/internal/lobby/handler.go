@@ -60,8 +60,12 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	r.Get("/ws/lobby", h.handleWS)
 }
 
+// waiting lists the pool. With ?moduleId= it is only the players who would
+// take a seat at that game; without, it is everyone, each row carrying the
+// games they are waiting for, so a screen listing every game can count all of
+// them from one request.
 func (h *Handlers) waiting(w http.ResponseWriter, req *http.Request) {
-	entries := h.store.List(req.Context())
+	entries := ForModule(h.store.List(req.Context()), req.URL.Query().Get("moduleId"))
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]any{"players": entries})
 }
@@ -123,10 +127,11 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 
 	ctx := context.Background()
 	h.store.Join(ctx, Entry{
-		PlayerID: playerID,
-		Username: claims.Username,
-		IsGuest:  claims.IsGuest,
-		Avatar:   models.SanitizeAvatar(req.URL.Query().Get("avatar")),
+		PlayerID:  playerID,
+		Username:  claims.Username,
+		IsGuest:   claims.IsGuest,
+		Avatar:    models.SanitizeAvatar(req.URL.Query().Get("avatar")),
+		ModuleIDs: moduleIDsFrom(req.URL.Query()["moduleId"]),
 	})
 	h.broadcastWaitingList(ctx)
 
@@ -173,8 +178,36 @@ func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// Bounds on what a client may say it is waiting for. The ids are only ever
+// compared, never looked up, so an unknown one is harmless; the bounds are
+// there so a hostile query string cannot make every entry in the pool large.
+const (
+	maxModuleIDs   = 16
+	maxModuleIDLen = 64
+)
+
+// moduleIDsFrom reads the repeated moduleId query parameter, dropping blanks,
+// duplicates and anything oversized. None at all means any game.
+func moduleIDsFrom(raw []string) []string {
+	var out []string
+	seen := map[string]bool{}
+	for _, id := range raw {
+		if id == "" || len(id) > maxModuleIDLen || seen[id] {
+			continue
+		}
+		seen[id] = true
+		out = append(out, id)
+		if len(out) == maxModuleIDs {
+			break
+		}
+	}
+	return out
+}
+
 // broadcastWaitingList pushes the current pool to everyone connected to the
-// room, on every instance. Publish's recipients have to be named
+// room, on every instance. Each player is sent the part of it they could end
+// up at a table with — someone waiting for Hold'em is not shown the players
+// waiting only for Canasta. Publish's recipients have to be named
 // explicitly (see game.Hub.Publish), so the full cross-instance list from
 // Store.List is exactly the recipient set: each instance's local write only
 // lands for the subset it actually holds, and the rest are harmless no-ops
@@ -185,8 +218,14 @@ func (h *Handlers) broadcastWaitingList(ctx context.Context) {
 		return
 	}
 	msgs := make([]ws.PlayerMessage, 0, len(entries))
-	payload := map[string]any{"type": "lobby_waiting", "players": entries}
 	for _, e := range entries {
+		visible := make([]Entry, 0, len(entries))
+		for _, o := range entries {
+			if e.sharesAGameWith(o) {
+				visible = append(visible, o)
+			}
+		}
+		payload := map[string]any{"type": "lobby_waiting", "players": visible}
 		msgs = append(msgs, ws.PlayerMessage{PlayerID: e.PlayerID, Payload: payload})
 	}
 	h.hub.Publish(RoomID, msgs)

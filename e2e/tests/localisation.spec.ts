@@ -171,14 +171,19 @@ test.describe('the whole app speaks one language at a time', () => {
     request,
   }) => {
     await loginAsFreshGuest(page, request, 'LocaleHost');
-    await openInGerman(page, '/lobby/games');
+    await openInGerman(page, '/');
     await expect(page.getByTestId('games-list')).toBeVisible();
     expectNoEnglish(await screenText(page), 'the games list');
 
     // Opening a table is the screen the invite panel lives on, and the invite
     // panel was the last thing in the app still hardcoded in English.
     await page.getByTestId('game-prsi').click();
-    await page.getByTestId('games-list').getByText('Tisch eröffnen').first().click();
+    await expect(page.getByTestId('module-prsi')).toBeVisible();
+    expectNoEnglish(await screenText(page), "a game's page");
+    await page.getByTestId('play-friends-prsi').click();
+    await expect(page.getByTestId('open-table-prsi')).toBeVisible();
+    expectNoEnglish(await screenText(page), "a game's settings");
+    await page.getByTestId('open-table-prsi').click();
     await expect(page.getByTestId('table-screen')).toBeVisible();
     expectNoEnglish(await screenText(page), 'an open table');
   });

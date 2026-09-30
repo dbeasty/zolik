@@ -855,4 +855,7 @@ export type StoredTable = {
   canDelete: boolean;
   /** Whether this table was ever dealt, and so has a game to step through. */
   canReplay: boolean;
+  /** Whether the table is waiting on the caller. Only present when the list
+   *  was asked for it — see `listMyTables`' `turns`. */
+  yourTurn?: boolean;
 };

@@ -1007,8 +1007,6 @@ export const sv: Record<string, string> = {
   'intro.bulletGuest': 'Ingen installation för att prova — kom igång som gäst',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Kontinental rommé · {server}',
-  'home.playingAs': 'Du spelar som {name}',
   'home.signInPrompt': 'Logga in eller fortsätt som gäst för att spela online.',
   'home.statsAndLeaderboard': 'Statistik och topplista',
   'home.play': 'Spela',
@@ -1045,7 +1043,8 @@ export const sv: Record<string, string> = {
   'waiting.noneYet': 'Just nu väntar ingen på att spela. Ställ dig i kön så blir du den första någon ser.',
   'waiting.noOthersYet': 'Ingen annan väntar än. Värdar ser dig ändå och kan bjuda in dig.',
   'waiting.server': 'Server',
-  'waiting.none': 'Just nu väntar ingen. Den som gör sig tillgänglig i huvudmenyn dyker upp här.',
+  'waiting.none':
+    'Just nu väntar ingen. Den som gör sig tillgänglig för det här spelet dyker upp här.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'Den länken saknar sin bordskod.',
@@ -1056,11 +1055,7 @@ export const sv: Record<string, string> = {
   'join.takingSeatAt': 'Tar plats vid {game}…',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': 'Allt den här servern kan erbjuda',
   'lobby.games.bots': 'Bottar',
-  'lobby.games.setup': 'Inställningar',
-  'lobby.games.playBot': 'Spela mot en bott',
-  'lobby.games.playBots': 'Spela mot {n} bottar',
   'lobby.games.openTable': 'Öppna ett bord',
   'lobby.games.players': '{n} spelare',
   'lobby.games.playerRange': '{min}–{max} spelare',
@@ -1097,7 +1092,6 @@ export const sv: Record<string, string> = {
   'mine.deleteConfirmBody': 'Det avslutar spelet för alla andra vid bordet. Det går inte att ångra.',
   'mine.deleteConfirm': 'Ta bort',
   'mine.deleteCancel': 'Avbryt',
-  'mine.viewAll': 'Visa alla',
   'mine.status.lobby': 'Väntar på start',
   'mine.status.active': 'Pågår',
   'mine.status.suspended': 'Pausat',
@@ -1688,6 +1682,20 @@ export const sv: Record<string, string> = {
   'option.hints': 'Tips',
   'choice.hints.1': 'Tillåtna',
   'choice.hints.0': 'Av',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Välj ett spel',
+  'picker.yourTurn': 'Din tur',
+  'picker.resume': 'Fortsätt',
+  'picker.waiting': '{n} väntar',
+  'picker.tablesMany': '{n} spel pågår',
+  'picker.waitingFor': 'Du väntar på att spela {game}',
+  'picker.join': 'Gå med',
+  'game.startYourOwn': 'Starta ditt eget',
+  'game.playBots': 'Spela mot bottar',
+  'setup.titleTable': 'Nytt bord: {game}',
+  'setup.titleBots': '{game} mot bottar',
+  'setup.openTable': 'Öppna bord',
+  'setup.dealMeIn': 'Ge mig kort',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Givar',

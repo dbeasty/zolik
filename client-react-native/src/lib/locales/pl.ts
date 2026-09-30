@@ -1018,8 +1018,6 @@ export const pl: Record<string, string> = {
   'intro.bulletGuest': 'Żadnej instalacji, żeby spróbować — zacznij jako gość',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Remik kontynentalny · {server}',
-  'home.playingAs': 'Grasz jako {name}',
   'home.signInPrompt': 'Zaloguj się albo graj dalej jako gość, żeby grać online.',
   'home.statsAndLeaderboard': 'Statystyki i ranking',
   'home.play': 'Graj',
@@ -1056,7 +1054,8 @@ export const pl: Record<string, string> = {
     'W tej chwili nikt nie czeka na grę. Zapisz się na listę, a będziesz pierwszym, kogo ktokolwiek zobaczy.',
   'waiting.noOthersYet': 'Nikt inny jeszcze nie czeka. Gospodarze i tak cię widzą i mogą cię zaprosić.',
   'waiting.server': 'Serwer',
-  'waiting.none': 'W tej chwili nikt nie czeka. Kto zgłosi się w menu głównym, pojawi się tutaj.',
+  'waiting.none':
+    'W tej chwili nikt nie czeka. Kto zgłosi się do tej gry, pojawi się tutaj.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'Temu linkowi brakuje kodu stołu.',
@@ -1067,11 +1066,7 @@ export const pl: Record<string, string> = {
   'join.takingSeatAt': 'Zajmujemy miejsce przy: {game}…',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': 'Wszystko, co ten serwer potrafi udostępnić',
   'lobby.games.bots': 'Boty',
-  'lobby.games.setup': 'Ustawienia',
-  'lobby.games.playBot': 'Zagraj z botem',
-  'lobby.games.playBots': 'Zagraj z botami: {n}',
   'lobby.games.openTable': 'Otwórz stół',
   'lobby.games.players': 'Graczy: {n}',
   'lobby.games.playerRange': 'Graczy: {min}–{max}',
@@ -1108,7 +1103,6 @@ export const pl: Record<string, string> = {
   'mine.deleteConfirmBody': 'To kończy grę dla wszystkich pozostałych przy stole. Tej operacji nie można cofnąć.',
   'mine.deleteConfirm': 'Usuń',
   'mine.deleteCancel': 'Anuluj',
-  'mine.viewAll': 'Pokaż wszystkie',
   'mine.status.lobby': 'Czeka na start',
   'mine.status.active': 'W trakcie',
   'mine.status.suspended': 'Wstrzymana',
@@ -1697,6 +1691,20 @@ export const pl: Record<string, string> = {
   'option.hints': 'Podpowiedzi',
   'choice.hints.1': 'Dozwolone',
   'choice.hints.0': 'Wyłączone',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Wybierz grę',
+  'picker.yourTurn': 'Twoja kolej',
+  'picker.resume': 'Wznów',
+  'picker.waiting': 'Czeka: {n}',
+  'picker.tablesMany': 'Gry w toku: {n}',
+  'picker.waitingFor': 'Czekasz na grę {game}',
+  'picker.join': 'Dołącz',
+  'game.startYourOwn': 'Załóż własny',
+  'game.playBots': 'Graj z botami',
+  'setup.titleTable': 'Nowy stół – {game}',
+  'setup.titleBots': '{game} z botami',
+  'setup.openTable': 'Otwórz stół',
+  'setup.dealMeIn': 'Rozdaj mi',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Rozdania',

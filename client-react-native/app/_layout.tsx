@@ -13,6 +13,7 @@ import { SkinProvider } from '@/src/hooks/useSkin';
 import { t } from '@/src/lib/i18n';
 import { startPerfMonitor } from '@/src/lib/perfMonitor';
 import { InviteBanner } from '@/src/notify/InviteBanner';
+import { AvailabilityProvider } from '@/src/context/AvailabilityContext';
 import { InviteProvider } from '@/src/notify/InviteProvider';
 import { colors } from '@/src/theme';
 
@@ -57,6 +58,10 @@ export default function RootLayout() {
                   over the Stack rather than inside any one screen. See
                   `src/notify/InviteProvider.tsx`. */}
               <InviteProvider>
+                {/* Whether this player is waiting to be picked up, held above
+                    the screens so leaving a game's page does not end it. See
+                    `src/context/AvailabilityContext.tsx`. */}
+                <AvailabilityProvider>
                 <Stack
                   screenOptions={{
                     headerStyle: { backgroundColor: colors.surface },
@@ -94,6 +99,7 @@ export default function RootLayout() {
                   {/* A table this phone hosts itself, with no internet. */}
                   <Stack.Screen name="offline" options={{ title: t('offline.title') }} />
                   <Stack.Screen name="lobby/games" options={{ title: t('nav.games') }} />
+                  <Stack.Screen name="lobby/setup" options={{ title: t('nav.games') }} />
                   <Stack.Screen name="lobby/table" options={{ title: t('nav.table') }} />
                   <Stack.Screen name="lobby/join" options={{ title: t('nav.join') }} />
                   {/* Stored games: resume one, or delete it. */}
@@ -146,6 +152,7 @@ export default function RootLayout() {
                   {/* A guest link: a guest's identity, carried to another device. */}
                   <Stack.Screen name="guest/[key]" options={{ title: t('guestLink.title') }} />
                 </Stack>
+                </AvailabilityProvider>
                 <InviteBanner />
               </InviteProvider>
             </AvatarProvider>

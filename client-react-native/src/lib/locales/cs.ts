@@ -1005,8 +1005,6 @@ export const cs: Record<string, string> = {
   'intro.bulletGuest': 'Žádná instalace na vyzkoušení — pokračujte jako host',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Kontinentální žolíky · {server}',
-  'home.playingAs': 'Hraješ jako {name}',
   'home.signInPrompt': 'Přihlas se nebo pokračuj jako host, ať můžeš hrát online.',
   'home.statsAndLeaderboard': 'Statistiky a žebříček',
   'home.play': 'Hrát',
@@ -1042,7 +1040,8 @@ export const cs: Record<string, string> = {
   'waiting.noneYet': 'Právě teď nikdo nečeká na hru. Zapiš se na listinu a budeš první, koho kdokoli uvidí.',
   'waiting.noOthersYet': 'Zatím nečeká nikdo další. Hostitelé tě stejně vidí a můžou tě pozvat.',
   'waiting.server': 'Server',
-  'waiting.none': 'Právě teď nikdo nečeká. Kdo se nabídne v hlavní nabídce, objeví se tady.',
+  'waiting.none':
+    'Právě teď nikdo nečeká. Kdo se nabídne pro tuto hru, objeví se tady.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'Tomuhle odkazu chybí kód stolu.',
@@ -1053,11 +1052,7 @@ export const cs: Record<string, string> = {
   'join.takingSeatAt': 'Sedáme si ke stolu {game}…',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': 'Všechno, co tenhle server umí nabídnout',
   'lobby.games.bots': 'Boti',
-  'lobby.games.setup': 'Nastavení',
-  'lobby.games.playBot': 'Hrát proti botovi',
-  'lobby.games.playBots': 'Hrát proti botům: {n}',
   'lobby.games.openTable': 'Otevřít stůl',
   'lobby.games.players': 'Hráčů: {n}',
   'lobby.games.playerRange': 'Hráčů: {min}–{max}',
@@ -1094,7 +1089,6 @@ export const cs: Record<string, string> = {
   'mine.deleteConfirmBody': 'Hra tím skončí i všem ostatním u stolu. Tohle nejde vzít zpět.',
   'mine.deleteConfirm': 'Smazat',
   'mine.deleteCancel': 'Zrušit',
-  'mine.viewAll': 'Zobrazit všechny',
   'mine.status.lobby': 'Čeká na start',
   'mine.status.active': 'Hraje se',
   'mine.status.suspended': 'Přerušeno',
@@ -1683,6 +1677,20 @@ export const cs: Record<string, string> = {
   'option.hints': 'Nápověda',
   'choice.hints.1': 'Povolená',
   'choice.hints.0': 'Vypnutá',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Vyber hru',
+  'picker.yourTurn': 'Jsi na tahu',
+  'picker.resume': 'Pokračovat',
+  'picker.waiting': '{n} čeká',
+  'picker.tablesMany': 'Rozehraných her: {n}',
+  'picker.waitingFor': 'Čekáš na hru {game}',
+  'picker.join': 'Připojit',
+  'game.startYourOwn': 'Založ vlastní',
+  'game.playBots': 'Hrát proti botům',
+  'setup.titleTable': 'Nový stůl – {game}',
+  'setup.titleBots': '{game} proti botům',
+  'setup.openTable': 'Otevřít stůl',
+  'setup.dealMeIn': 'Rozdej mi',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Počet her',

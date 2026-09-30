@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { WEB_BASE } from '../helpers/env';
-import { openGame } from '../helpers/lobby';
+import { openGame, openTableFor } from '../helpers/lobby';
 import { loginAsFreshGuest } from '../helpers/login';
 
 /**
@@ -22,7 +22,7 @@ import { loginAsFreshGuest } from '../helpers/login';
 
 async function openATable(page: Page) {
   await openGame(page, 'prsi');
-  await page.getByTestId('play-friends-prsi').click();
+  await openTableFor(page, 'prsi');
   await expect(page.getByTestId('table-screen')).toBeVisible({ timeout: 20_000 });
 }
 

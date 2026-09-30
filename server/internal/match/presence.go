@@ -123,6 +123,33 @@ func (m *Manager) ResumeIfReturning(ctx context.Context, matchID, playerID strin
 	m.RunBotsIfNeeded(context.WithoutCancel(ctx), matchID)
 }
 
+// Awaits reports whether a match is waiting on playerID to act: their turn,
+// or one of several seats a table stopped between rounds is waiting on.
+//
+// Asked of the board, not the envelope, because a move does not rewrite the
+// envelope — so this loads the match, which is the reason a listing only asks
+// it when told to, and only of unfinished rows. A suspension already names its
+// player, and answers without a load.
+func (m *Manager) Awaits(ctx context.Context, matchID, playerID string) bool {
+	e, err := m.lockMatch(ctx, matchID)
+	if err != nil {
+		return false
+	}
+	defer e.mu.Unlock()
+	match := e.match
+	if match.Status == "suspended" && match.SuspendedPlayer != "" {
+		return match.SuspendedPlayer == playerID
+	}
+	if match.Status == "lobby" || match.Status == "completed" || e.stateErr != nil {
+		return false
+	}
+	mod := m.registry.Get(match.ModuleID)
+	if mod == nil {
+		return false
+	}
+	return awaits(module.AwaitedSeats(mod, module.State(match.State), viewerFor(match), refsOf(match)), playerID)
+}
+
 func awaits(seats []string, playerID string) bool {
 	for _, id := range seats {
 		if id == playerID {

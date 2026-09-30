@@ -421,7 +421,7 @@ export default function MatchScreen() {
               </Text>
               <Pressable
                 testID="match-gone-leave"
-                onPress={() => router.replace('/lobby/games')}
+                onPress={() => router.dismissTo('/')}
                 style={styles.overButtonQuiet}
               >
                 <Text style={styles.overButtonQuietText}>{t('match.backToGames')}</Text>
@@ -1239,7 +1239,7 @@ export default function MatchScreen() {
               testID="match-rules"
               onPress={() =>
                 // One continuous template literal — see the matching comment
-                // in app/lobby/games.tsx for why a `+` chain fails to typecheck
+                // in app/lobby/setup.tsx for why a `+` chain fails to typecheck
                 // against expo-router's typed routes.
                 router.push(
                   `/rules?moduleId=${encodeURIComponent(state.moduleId)}&variation=${encodeURIComponent(state.variation ?? '')}&options=${encodeURIComponent(JSON.stringify(state.options ?? {}))}`,
@@ -1355,7 +1355,7 @@ export default function MatchScreen() {
               ) : null}
               <Pressable
                 testID="match-over-leave"
-                onPress={() => router.replace('/lobby/games')}
+                onPress={() => router.dismissTo('/')}
                 style={styles.overButtonQuiet}
               >
                 <Text style={styles.overButtonQuietText}>{t('match.backToGames')}</Text>

@@ -1038,8 +1038,6 @@ export const el: Record<string, string> = {
   'intro.bulletGuest': 'Καμία εγκατάσταση για δοκιμή — μπείτε ως επισκέπτης',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Κοντινένταλ ρέμι · {server}',
-  'home.playingAs': 'Παίζεις ως {name}',
   'home.signInPrompt': 'Συνδέσου ή συνέχισε ως επισκέπτης για να παίξεις online.',
   'home.statsAndLeaderboard': 'Στατιστικά και κατάταξη',
   'home.play': 'Παίξε',
@@ -1079,7 +1077,7 @@ export const el: Record<string, string> = {
     'Δεν περιμένει κανείς άλλος ακόμα. Οι οικοδεσπότες σε βλέπουν έτσι κι αλλιώς και μπορούν να σε καλέσουν.',
   'waiting.server': 'Διακομιστής',
   'waiting.none':
-    'Αυτή τη στιγμή δεν περιμένει κανείς. Όποιος δηλώσει διαθέσιμος στο κύριο μενού εμφανίζεται εδώ.',
+    'Αυτή τη στιγμή δεν περιμένει κανείς. Όποιος δηλώσει διαθέσιμος για αυτό το παιχνίδι εμφανίζεται εδώ.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'Σε αυτόν τον σύνδεσμο λείπει ο κωδικός του τραπεζιού.',
@@ -1090,11 +1088,7 @@ export const el: Record<string, string> = {
   'join.takingSeatAt': 'Παίρνουμε θέση στο {game}…',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': 'Ό,τι μπορεί να φιλοξενήσει αυτός ο διακομιστής',
   'lobby.games.bots': 'Μποτ',
-  'lobby.games.setup': 'Ρυθμίσεις',
-  'lobby.games.playBot': 'Παίξε εναντίον ενός μποτ',
-  'lobby.games.playBots': 'Παίξε εναντίον {n} μποτ',
   'lobby.games.openTable': 'Άνοιξε τραπέζι',
   'lobby.games.players': '{n} παίκτες',
   'lobby.games.playerRange': '{min}–{max} παίκτες',
@@ -1131,7 +1125,6 @@ export const el: Record<string, string> = {
   'mine.deleteConfirmBody': 'Η παρτίδα τελειώνει για όλους τους υπόλοιπους παίκτες. Δεν αναιρείται.',
   'mine.deleteConfirm': 'Διαγραφή',
   'mine.deleteCancel': 'Άκυρο',
-  'mine.viewAll': 'Δες όλες',
   'mine.status.lobby': 'Περιμένει να ξεκινήσει',
   'mine.status.active': 'Σε εξέλιξη',
   'mine.status.suspended': 'Σε παύση',
@@ -1723,6 +1716,20 @@ export const el: Record<string, string> = {
   'option.hints': 'Βοήθεια',
   'choice.hints.1': 'Επιτρέπεται',
   'choice.hints.0': 'Απενεργοποιημένη',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Διάλεξε παιχνίδι',
+  'picker.yourTurn': 'Σειρά σου',
+  'picker.resume': 'Συνέχεια',
+  'picker.waiting': '{n} περιμένουν',
+  'picker.tablesMany': '{n} παιχνίδια σε εξέλιξη',
+  'picker.waitingFor': 'Περιμένεις να παίξεις {game}',
+  'picker.join': 'Συμμετοχή',
+  'game.startYourOwn': 'Ξεκίνα το δικό σου',
+  'game.playBots': 'Παίξε με bots',
+  'setup.titleTable': 'Νέο τραπέζι {game}',
+  'setup.titleBots': '{game} με bots',
+  'setup.openTable': 'Άνοιξε τραπέζι',
+  'setup.dealMeIn': 'Μοίρασέ μου',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Μοιρασιές',

@@ -47,7 +47,7 @@ test.describe('the game picker rules link', () => {
     await openGame(page, 'zolik');
     await openGameSetup(page, 'zolik');
     await page.getByTestId('option-zolik-initialMeldMinimum-50').click();
-    await page.getByTestId('rules-zolik').click();
+    await page.getByTestId('setup-rules-zolik').click();
     await expect(page.getByTestId('rules-screen')).toBeVisible({ timeout: 20_000 });
     await expect(page.getByTestId('rules-screen')).toContainText('at least 50 natural points');
 
@@ -56,7 +56,7 @@ test.describe('the game picker rules link', () => {
     await openGame(page, 'zolik');
     await openGameSetup(page, 'zolik');
     await page.getByTestId('variation-zolik-continental').click();
-    await page.getByTestId('rules-zolik').click();
+    await page.getByTestId('setup-rules-zolik').click();
     await expect(page.getByTestId('rules-screen')).toBeVisible({ timeout: 20_000 });
     await expect(page.getByTestId('rules-screen')).toContainText('each deal requires its own combination');
   });

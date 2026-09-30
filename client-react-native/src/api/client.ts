@@ -107,18 +107,23 @@ export class ZolikClient {
 
   /** The waiting room's socket: connecting to it *is* "I'm waiting to be
    *  picked up" — the only thing negotiated on open beyond the token is the
-   *  face to be seen waiting under, so a host invites the person they saw. */
-  lobbyWsUrl(): string {
+   *  face to be seen waiting under, so a host invites the person they saw,
+   *  and the game they are waiting to play. No game means any game. */
+  lobbyWsUrl(moduleId?: string): string {
     const token = encodeURIComponent(this.accessToken);
     const face = this.avatarId ? `&avatar=${encodeURIComponent(this.avatarId)}` : '';
-    return this.transport.socketUrl(`/ws/lobby?token=${token}${face}`);
+    const game = moduleId ? `&moduleId=${encodeURIComponent(moduleId)}` : '';
+    return this.transport.socketUrl(`/ws/lobby?token=${token}${face}${game}`);
   }
 
   /** A snapshot of who's currently waiting, for a host browsing whom to
    *  invite. Polled rather than streamed — the host's one socket is
-   *  usually already spent on their own match's room. */
-  async getWaitingLobby(): Promise<WaitingPlayer[]> {
-    const data = await this.get<{ players: WaitingPlayer[] }>('/lobby/waiting', true);
+   *  usually already spent on their own match's room. With a game, only the
+   *  players who would sit down at it; without, everyone, each row naming
+   *  the games they are waiting for. */
+  async getWaitingLobby(moduleId?: string): Promise<WaitingPlayer[]> {
+    const q = moduleId ? `?moduleId=${encodeURIComponent(moduleId)}` : '';
+    const data = await this.get<{ players: WaitingPlayer[] }>(`/lobby/waiting${q}`, true);
     return data.players ?? [];
   }
 
@@ -578,9 +583,19 @@ export class ZolikClient {
    * Every stored game this player is seated at — unfinished by default, or
    * the finished tab. Works for a guest exactly as it does for an account:
    * the server keys the list on the same subject either carries.
+   *
+   * `turns` asks the server whose turn each unfinished table is on, filling
+   * `yourTurn`. It costs the server a board load per row, so only the game
+   * picker asks.
    */
-  async listMyTables(scope: 'unfinished' | 'finished' = 'unfinished'): Promise<StoredTable[]> {
-    const q = scope === 'finished' ? '?status=finished' : '';
+  async listMyTables(
+    scope: 'unfinished' | 'finished' = 'unfinished',
+    opts: { turns?: boolean } = {},
+  ): Promise<StoredTable[]> {
+    const params: string[] = [];
+    if (scope === 'finished') params.push('status=finished');
+    if (opts.turns) params.push('turns=1');
+    const q = params.length ? `?${params.join('&')}` : '';
     const data = await this.get<{ tables: StoredTable[] }>(`/users/me/tables${q}`, true);
     return data.tables;
   }
