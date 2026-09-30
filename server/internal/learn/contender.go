@@ -51,4 +51,3 @@ func ParseContender(g Benchable, spec string) (Contender, error) {
 	}
 	return Contender{}, fmt.Errorf("unknown contender %q", spec)
 }
-
