@@ -26,7 +26,15 @@ type VisibleState struct {
 	// one agent is entitled to. VisibleState is what is *publicly knowable*;
 	// how much of that a given strength actually looks at is the profile's
 	// business, not the adapter's. See DiscardsBy.
+	//
+	// It is the most recent discards rather than every one: the ledger keeps a
+	// bounded history (see maxLedgerDiscards), and DealDiscardCount is the
+	// exact total.
 	DealDiscards []SeenDiscard
+	// DealDiscardCount is how many discards the deal has seen, which is at
+	// least len(DealDiscards). Zero means "not recorded"; read it through
+	// discardCount.
+	DealDiscardCount int
 	// KnownHeld is, per seat, the cards that seat was publicly seen to take
 	// off the discard pile (or reclaim off the table) and has not since put
 	// back down.
@@ -83,6 +91,11 @@ type VisibleState struct {
 	// while any remain, so an agent that ignores this owes a move it will
 	// never make and wedges its own turn.
 	PendingJokers []string
+}
+
+// discardCount is how many discards the deal has seen.
+func (v VisibleState) discardCount() int {
+	return max(v.DealDiscardCount, len(v.DealDiscards))
 }
 
 // SeenDiscard is one card put on the pile, and by whom.

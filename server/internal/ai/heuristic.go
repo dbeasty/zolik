@@ -75,7 +75,7 @@ func (a *HeuristicAgent) rngFor(v VisibleState, hand []string) *rand.Rand {
 	mix = mix*1103515245 + int64(v.GameNumber)
 	mix = mix*1103515245 + int64(v.Round)
 	mix = mix*1103515245 + int64(len(hand))
-	mix = mix*1103515245 + int64(len(v.DealDiscards))
+	mix = mix*1103515245 + int64(v.discardCount())
 	return rand.New(rand.NewSource(mix))
 }
 
@@ -302,6 +302,37 @@ func indexCombinations(n, k int) [][]int {
 	return out
 }
 
+// forEachCombination walks every k-length subset of [0,n) in the same order
+// indexCombinations lists them, handing fn one reused index slice at a time,
+// until fn returns false. The hot paths use it: they validate thousands of
+// subsets a turn and keep a handful, and materialising all of them first was
+// most of what the self-play sweeps spent their time on.
+func forEachCombination(n, k int, fn func(idx []int) bool) {
+	if k <= 0 || k > n {
+		return
+	}
+	idx := make([]int, k)
+	for i := range idx {
+		idx[i] = i
+	}
+	for {
+		if !fn(idx) {
+			return
+		}
+		i := k - 1
+		for i >= 0 && idx[i] == n-k+i {
+			i--
+		}
+		if i < 0 {
+			return
+		}
+		idx[i]++
+		for j := i + 1; j < k; j++ {
+			idx[j] = idx[j-1] + 1
+		}
+	}
+}
+
 // findInitialMeldPlan looks for a full decomposition of the player's hand
 // that completes their remaining round requirement (accounting for any
 // sets/runs they've already laid, e.g. earlier this same turn) with total
@@ -346,9 +377,20 @@ func findInitialMeldPlanRequiring(state rules.GameState, playerID string, hand [
 		return nil, false
 	}
 
-	budget := &searchBudget{remaining: 200000}
 	satisfied := mustInclude == ""
-	combo, ok := searchMeldCombo(hand, cfg, needSets, needRuns, needCleanRun, alreadyValue, minValue, satisfied, mustInclude, budget)
+	combo, ok := searchMeldCombo(hand, cfg, needSets, needRuns, needCleanRun, alreadyValue, minValue, satisfied, mustInclude, &searchBudget{remaining: 200000})
+	if !ok && minValue > alreadyValue {
+		// The first pass lays every meld at its minimum length, which is the
+		// cheapest plan and usually the only one needed — but under a point
+		// floor it errs low. Four sixes and four fours are forty points and
+		// clear a floor of thirty-five; the same hand searched as three and
+		// three is thirty, and the agent sat on a qualifying hand for the
+		// rest of the deal. A second pass, only when the first found nothing,
+		// also tries the longer melds, so every plan the first pass reached
+		// is still reached first.
+		b := &searchBudget{remaining: 200000, longer: true}
+		combo, ok = searchMeldCombo(hand, cfg, needSets, needRuns, needCleanRun, alreadyValue, minValue, satisfied, mustInclude, b)
+	}
 	if !ok {
 		return nil, false
 	}
@@ -365,7 +407,24 @@ func findInitialMeldPlanRequiring(state rules.GameState, playerID string, hand [
 	return combo, true
 }
 
-type searchBudget struct{ remaining int }
+type searchBudget struct {
+	remaining int
+	// longer lets a meld run past its minimum length: sets up to all four
+	// suits, runs up to two cards longer than the minimum.
+	longer bool
+}
+
+// meldLengths is the lengths the search tries for one kind of meld.
+func (b *searchBudget) meldLengths(min, most int) []int {
+	if !b.longer {
+		return []int{min}
+	}
+	var out []int
+	for k := min; k <= most; k++ {
+		out = append(out, k)
+	}
+	return out
+}
 
 // maxNaturalValue is the most natural value any collection of melds built
 // from these cards could be worth: every card's own natural value, with a
@@ -427,7 +486,7 @@ func searchMeldCombo(
 	wantSet := needSets > 0 || canTopUp
 	wantRun := needRuns > 0 || needCleanRun || canTopUp
 	if wantSet && n >= minSet {
-		for _, c := range candidateMelds(hand, minSet, cfg, rules.MeldSet, budget) {
+		for _, c := range candidateMeldsOfLengths(hand, budget.meldLengths(minSet, rules.MaxSetSize), cfg, rules.MeldSet, budget) {
 			rest := removeCardsOnce(hand, c.cards)
 			candSatisfied := satisfied || containsCard(c.cards, mustInclude)
 			nextNeedSets := needSets
@@ -440,7 +499,7 @@ func searchMeldCombo(
 		}
 	}
 	if wantRun && n >= minRun {
-		for _, c := range candidateMelds(hand, minRun, cfg, rules.MeldRun, budget) {
+		for _, c := range candidateMeldsOfLengths(hand, budget.meldLengths(minRun, minRun+2), cfg, rules.MeldRun, budget) {
 			rest := removeCardsOnce(hand, c.cards)
 			candSatisfied := satisfied || containsCard(c.cards, mustInclude)
 			nextNeedRuns := needRuns
@@ -487,24 +546,69 @@ func candidateMelds(hand []string, k int, cfg rules.RulesConfig, want rules.Meld
 		return nil
 	}
 	var out []meldCandidate
-	for _, cand := range combinations(hand, k) {
+	cand := make([]string, k)
+	forEachCombination(len(hand), k, func(idx []int) bool {
 		if budget.remaining <= 0 {
 			// Out of search budget. Returning what has been found so far
 			// rather than nothing keeps the caller's own bail-out working:
 			// the next level down sees an exhausted budget and answers empty
 			// immediately, so the recursion unwinds instead of spinning.
-			break
+			return false
 		}
 		budget.remaining--
+		for i, v := range idx {
+			cand[i] = hand[v]
+		}
 		mv, err := rules.ValidateMeld(cand, cfg)
 		if err != nil || mv.Type != want {
-			continue
+			return true
 		}
 		out = append(out, meldCandidate{
-			cards:        cand,
+			cards:        append([]string(nil), cand...),
 			wilds:        mv.WildCount,
 			naturalValue: mv.NaturalValue,
 		})
+		return true
+	})
+	sort.SliceStable(out, func(i, j int) bool { return cheaperMeld(out[i], out[j]) })
+	return out
+}
+
+// candidateMeldsOfLengths is candidateMelds over several lengths, merged into
+// one cheapest-first order.
+func candidateMeldsOfLengths(hand []string, ks []int, cfg rules.RulesConfig, want rules.MeldType, budget *searchBudget) []meldCandidate {
+	if len(ks) == 1 {
+		return candidateMelds(hand, ks[0], cfg, want, budget)
+	}
+	// Every natural in a set shares its rank and every natural in a run
+	// shares its suit, so the candidates are drawn from one pool per rank or
+	// suit — those cards plus the jokers — rather than from every
+	// combination of the hand. The pools are a handful of cards each; the
+	// hand's five- and six-card combinations run to thousands per call.
+	var jokers []string
+	pools := map[int][]string{}
+	for _, c := range hand {
+		if rules.IsJoker(c) {
+			jokers = append(jokers, c)
+			continue
+		}
+		key := rules.CardRank(c)
+		if want == rules.MeldRun {
+			key = int(rules.CardSuit(c)[0])
+		}
+		pools[key] = append(pools[key], c)
+	}
+	keys := make([]int, 0, len(pools))
+	for key := range pools {
+		keys = append(keys, key)
+	}
+	sort.Ints(keys)
+	var out []meldCandidate
+	for _, key := range keys {
+		pool := append(append([]string(nil), pools[key]...), jokers...)
+		for _, k := range ks {
+			out = append(out, candidateMelds(pool, k, cfg, want, budget)...)
+		}
 	}
 	sort.SliceStable(out, func(i, j int) bool { return cheaperMeld(out[i], out[j]) })
 	return out
@@ -852,6 +956,26 @@ func (a *HeuristicAgent) pickDiscard(hand []string, visible VisibleState, actor 
 	if len(cands) > 1 && a.prof.BlunderRate > 0 && rng.Float64() < a.prof.BlunderRate {
 		return cands[1].card
 	}
+	if staleRelease(visible, actor, hand, rng) {
+		// A deal this long is a table where the cards somebody needs to go
+		// out are sitting in hands that cannot use them: every down seat
+		// keeps its cheapest and its safest card, every seat still building
+		// keeps the half-run it is waiting on, and they are the same cards
+		// every lap. So the seats stop choosing — a down seat always, a seat
+		// still building half the time, so it keeps some of its plan — and any
+		// legal card that leaves the hand playable will do. The cards start
+		// moving round the table again. Nothing this far past a normal deal's
+		// length is a position anybody reaches in play worth protecting.
+		live := cands[:0:0]
+		for _, c := range cands {
+			if !c.strands {
+				live = append(live, c)
+			}
+		}
+		if len(live) > 0 {
+			return live[rng.Intn(len(live))].card
+		}
+	}
 	return cands[0].card
 }
 
@@ -877,7 +1001,63 @@ func (a *HeuristicAgent) discardCandidates(hand []string, visible VisibleState, 
 		return nil
 	}
 	allowJoker := canDiscardJoker || !cfg.JokerDiscardRestricted
-	ownMeld := meldMaterialPositions(hand, cfg)
+	g := goalFor(visible, actor, hand)
+	ownMeld := meldMaterialPositionsFor(hand, cfg, g)
+	if g.down && g.room && visible.Round > staleEndgameRound && k.prof.KeepPartials == KeepFinished {
+		// A down seat in a deal that has stopped, with a hand big enough to
+		// open a new meld and still discard, is the seat that can restart the
+		// table: a new set is a new opening for everybody. It works toward one
+		// at every strength — see staleRelease for the seats that cannot.
+		k.prof.KeepPartials = KeepFragments
+	}
+	keeps := make([]int, len(hand))
+	for i := range hand {
+		keeps[i] = keepValue(hand, i, ownMeld[i], k, cfg, g)
+	}
+	short := g.shortOfFloor(hand, keeps)
+	if g.quota {
+		// Under a per-type contract, material the contract has no slot for
+		// is loose however finished it looks — see contractPlan.
+		plan := bestContractPlan(hand, cfg, g)
+		for i, c := range hand {
+			if !plan.used[i] && !rules.IsJoker(c) {
+				keeps[i] = 0
+			}
+		}
+		short = g.floor > 0 && plan.value < g.floor
+	}
+	// A hand whose protected material cannot reach the point floor is not
+	// working toward going down, it is waiting for nothing. So stop
+	// defending the material that cannot carry its share of the floor, start
+	// holding the loose cards that can, and — among cards that are then
+	// equally kept — shed the cheapest first rather than the dearest.
+	//
+	// The endgame outranks it, for a while: with somebody about to go out,
+	// points in hand are what matter. But "about to" is a prediction, and in
+	// a deal that has run far past any normal length it has plainly failed —
+	// the short-handed seat is waiting on cards that every hand at the table
+	// is hoarding, because every hand at the table is in endgame mode dumping
+	// its high cards and keeping the low ones. A seat that is not down and
+	// cannot get down stops believing the prediction then, and goes back to
+	// building toward the floor; that is what releases the table.
+	endgame := k.endgame
+	if short && endgame && visible.Round > staleEndgameRound {
+		endgame = false
+	}
+	short = short && !endgame
+	if short {
+		for i, c := range hand {
+			if rules.IsJoker(c) {
+				continue
+			}
+			switch {
+			case keeps[i] > keepThinFragment && !g.pullsWeight(c):
+				keeps[i] = keepThinFragment
+			case keeps[i] == 0 && g.pullsWeight(c):
+				keeps[i] = keepThinFragment
+			}
+		}
+	}
 
 	// The engine refuses to take this turn's discard-pile pickup straight
 	// back (rules.ErrDiscardTakenCard) while the hand holds anything else it
@@ -895,14 +1075,14 @@ func (a *HeuristicAgent) discardCandidates(hand []string, visible VisibleState, 
 			if banTaken && visible.DiscardTakenCard != "" && c == visible.DiscardTakenCard {
 				continue
 			}
-			keep := keepValue(hand, i, ownMeld[i], k, cfg)
+			keep := keeps[i]
 			// Somebody is about to go out. Every point still in hand is a
 			// point about to be scored against this seat, and a fragment that
 			// was an investment two turns ago is now just an expensive card
 			// nobody will pay for. So stop protecting anything unfinished —
 			// a complete meld still goes down rather than out, because that
 			// one can still be laid.
-			if k.endgame && keep < keepFinished {
+			if endgame && keep < keepFinished {
 				keep = 0
 			}
 			// And, for a profile that goes that far, stop protecting the
@@ -910,13 +1090,15 @@ func (a *HeuristicAgent) discardCandidates(hand []string, visible VisibleState, 
 			// until the deal is about to end, at which point the ten points
 			// in hand are the certainty and the gift is the hypothetical.
 			danger := a.prof.ReadTableDanger && extendsAnyLiveMeld(c, visible.Melds, cfg)
-			if danger && k.endgame && a.prof.EndgameDumpsUnsafe {
+			if danger && endgame && a.prof.EndgameDumpsUnsafe {
 				danger = false
 			}
 			cands = append(cands, discardCandidate{
-				card: c,
-				pts:  rules.PenaltyPoints(c, false),
-				keep: keep,
+				card:         c,
+				pts:          rules.PenaltyPoints(c, false),
+				keep:         keep,
+				shortOfFloor: short,
+				floorValue:   floorValue(c),
 				// Shedding this card would leave a hand with no legal discard
 				// in it next turn — in practice, the last natural card going
 				// and leaving nothing but jokers. See wildCrunch.
@@ -945,6 +1127,12 @@ type discardCandidate struct {
 	dangerous  bool
 	wanted     bool
 	seenBefore bool
+	// shortOfFloor turns the points order round: the hand cannot reach the
+	// initial-meld floor with what it is protecting, so the card to shed is
+	// the one worth least toward it rather than the one that costs most. The
+	// same for every candidate of one decision.
+	shortOfFloor bool
+	floorValue   int
 }
 
 // smarterDiscardBetter orders candidates, best-to-discard first:
@@ -960,7 +1148,9 @@ type discardCandidate struct {
 //     seen collecting. Below table danger, because a meld on the table is a
 //     certainty and a pickup is an inference.
 //  4. then, same as the plain worst-card heuristic, higher penalty points
-//     win (shed the costliest card first).
+//     win (shed the costliest card first) — unless the hand is short of the
+//     initial-meld floor, when the card worth least toward the floor goes
+//     first instead (see goal.shortOfFloor).
 //  5. an already-passed-on rank only breaks an exact points tie, so the
 //     history signal fine-tunes which equally-costly card to let go of
 //     rather than overriding the basic "get rid of the expensive card" goal.
@@ -982,6 +1172,9 @@ func smarterDiscardBetter(c, best discardCandidate) bool {
 	}
 	if c.wanted != best.wanted {
 		return !c.wanted
+	}
+	if c.shortOfFloor && c.floorValue != best.floorValue {
+		return c.floorValue < best.floorValue
 	}
 	if c.pts != best.pts {
 		return c.pts > best.pts
@@ -1082,6 +1275,13 @@ func discardPickupUseful(card string, hand []string, visible VisibleState) bool 
 // (pairs, two-thirds of a run) would freeze most of the hand and leave the
 // agent nothing safe to discard.
 func meldMaterialPositions(hand []string, cfg rules.RulesConfig) []bool {
+	return meldMaterialPositionsFor(hand, cfg, goal{})
+}
+
+// meldMaterialPositionsFor is meldMaterialPositions counting only the melds
+// the goal wants: under Continental's third-deal contract of two runs, three
+// kings are three loose tens.
+func meldMaterialPositionsFor(hand []string, cfg rules.RulesConfig, g goal) []bool {
 	out := make([]bool, len(hand))
 	minSet, minRun := meldSizes(cfg)
 	sizes := []int{minSet}
@@ -1089,18 +1289,20 @@ func meldMaterialPositions(hand []string, cfg rules.RulesConfig) []bool {
 		sizes = append(sizes, minRun)
 	}
 	for _, k := range sizes {
-		for _, idx := range indexCombinations(len(hand), k) {
-			cand := make([]string, k)
+		cand := make([]string, k)
+		forEachCombination(len(hand), k, func(idx []int) bool {
 			for i, v := range idx {
 				cand[i] = hand[v]
 			}
-			if _, err := rules.ValidateMeld(cand, cfg); err != nil {
-				continue
+			mv, err := rules.ValidateMeld(cand, cfg)
+			if err != nil || !g.wants(mv.Type) {
+				return true
 			}
 			for _, v := range idx {
 				out[v] = true
 			}
-		}
+			return true
+		})
 	}
 	return out
 }

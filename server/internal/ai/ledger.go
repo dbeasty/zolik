@@ -34,8 +34,12 @@ type Ledger struct {
 	// table: the pile is fresh, the melds are gone, and remembering last
 	// deal's discards would be worse than remembering nothing.
 	Deal int `json:"deal,omitempty"`
-	// Discards is every discard of this deal, oldest first.
+	// Discards is the deal's most recent discards, oldest first — every one of
+	// them, up to maxLedgerDiscards.
 	Discards []SeenDiscard `json:"discards,omitempty"`
+	// DiscardCount is how many discards the deal has seen in all, which the
+	// capped list above stops being able to say.
+	DiscardCount int `json:"discardCount,omitempty"`
 	// Held is, per seat, the cards that seat was seen to take and has not
 	// since put back down.
 	Held map[string][]string `json:"held,omitempty"`
@@ -90,7 +94,11 @@ func (l *Ledger) Observe(before Snapshot, after rules.GameState, playerID string
 
 	switch a.Type {
 	case rules.ActionDiscard:
+		l.DiscardCount = max(l.DiscardCount, len(l.Discards)) + 1
 		l.Discards = append(l.Discards, SeenDiscard{Player: playerID, Card: a.Card})
+		if over := len(l.Discards) - maxLedgerDiscards; over > 0 {
+			l.Discards = append(l.Discards[:0:0], l.Discards[over:]...)
+		}
 		l.drop(playerID, []string{a.Card})
 
 	case rules.ActionDrawCard:
@@ -147,10 +155,25 @@ func (l *Ledger) Observe(before Snapshot, after rules.GameState, playerID string
 	}
 }
 
+// maxLedgerDiscards bounds the discard history the ledger keeps.
+//
+// It used to keep every discard of the deal, which is a list the length of the
+// deal — and a deal that had wedged ran for thousands of actions, so a stuck
+// match's state document passed 200 KB of history that nothing would ever
+// read. Only two things read it: the ranks each seat has passed on (a set, and
+// weak evidence even when fresh — every card before the last reshuffle is back
+// in the stock) and how many discards there have been, which DiscardCount now
+// carries exactly. Two hundred is several times the discards of a normal
+// deal, so the cap changes nothing a normal deal can see, and a strength that
+// remembers "the whole deal" remembers the last two hundred cards of a very
+// long one.
+const maxLedgerDiscards = 200
+
 // reset starts a fresh deal.
 func (l *Ledger) reset(deal int) {
 	l.Deal = deal
 	l.Discards = nil
+	l.DiscardCount = 0
 	l.Held = map[string][]string{}
 	l.HeldAtTurnStart = nil
 }
@@ -242,6 +265,7 @@ func VisibleFor(gs rules.GameState, l Ledger, playerID string) VisibleState {
 		CurrentTurn:      gs.CurrentTurn,
 		DiscardPile:      gs.DiscardPile,
 		DealDiscards:     l.discardsFor(gs.GameNumber),
+		DealDiscardCount: l.discardCountFor(gs.GameNumber),
 		KnownHeld:        l.heldFor(gs.GameNumber),
 		HandCounts:       counts,
 		DeckRemaining:    len(gs.DrawPile),
@@ -267,6 +291,15 @@ func (l Ledger) discardsFor(deal int) []SeenDiscard {
 		return nil
 	}
 	return l.Discards
+}
+
+func (l Ledger) discardCountFor(deal int) int {
+	if l.Deal != deal {
+		return 0
+	}
+	// A document written before the count existed has only the list, which
+	// was never capped then.
+	return max(l.DiscardCount, len(l.Discards))
 }
 
 func (l Ledger) heldFor(deal int) map[string][]string {
