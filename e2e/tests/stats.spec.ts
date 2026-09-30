@@ -100,9 +100,9 @@ test.describe('recording a live game', () => {
     await loginAsFreshAccount(page, request, freshEmail('live'));
     await page.goto('/');
 
-    // The menu offers ways to play. The scorepad is not one, and neither is
+    // The menu is the list of games. The scorepad is not one, and neither is
     // the stats screen; both live behind the face in the corner.
-    await expect(page.getByText('Play', { exact: true }).first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 10_000 });
     for (const text of ['Offline score table', 'Record a live game', 'Stats & leaderboard']) {
       await expect(page.getByText(text, { exact: true })).toHaveCount(0);
     }

@@ -30,7 +30,11 @@ const maxRetryDelayMs = 10000;
  * immediately rather than watching a countdown after fixing whatever was
  * wrong (a firewall, a wrong server address).
  */
-export function useLobbySocket(enabled: boolean, onInvited: (matchId: string, joinCode: string) => void) {
+export function useLobbySocket(
+  enabled: boolean,
+  onInvited: (matchId: string, joinCode: string) => void,
+  moduleId?: string,
+) {
   const [players, setPlayers] = useState<WaitingPlayer[]>([]);
   const [status, setStatus] = useState<LobbyConnectionStatus>('connecting');
   const [attempts, setAttempts] = useState(0);
@@ -62,7 +66,7 @@ export function useLobbySocket(enabled: boolean, onInvited: (matchId: string, jo
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
       }
-      const ws = new WebSocket(apiClient.lobbyWsUrl());
+      const ws = new WebSocket(apiClient.lobbyWsUrl(moduleId));
       wsRef.current = ws;
 
       ws.onopen = () => {
@@ -126,7 +130,7 @@ export function useLobbySocket(enabled: boolean, onInvited: (matchId: string, jo
       wsRef.current?.close();
       wsRef.current = null;
     };
-  }, [enabled]);
+  }, [enabled, moduleId]);
 
   const retryNow = useCallback(() => connectRef.current(), []);
 

@@ -12,7 +12,8 @@ import { colors } from '@/src/theme';
 
 /**
  * Every game this server hosts, one button each — the way into a game's own
- * setup. Shared by the first-run intro and `/lobby/games`, so the list a new
+ * setup. Shown by the first-run intro; the main menu lists the same games, in
+ * the same order, through `useOrderedModules`, so the list a new
  * visitor sees and the one a returning player picks from are the same list.
  *
  * Rendered from `/modules`, which needs no session: the intro shows it to a
@@ -21,6 +22,45 @@ import { colors } from '@/src/theme';
  */
 export function GameButtons({ onPick }: { onPick: (mod: MatchModule) => void }) {
   useLocale();
+  const { modules, error } = useOrderedModules();
+
+  if (error) {
+    return (
+      <Text testID="games-error" style={styles.error}>
+        {error}
+      </Text>
+    );
+  }
+  if (!modules) return <ActivityIndicator color={colors.accent} />;
+
+  return (
+    <View style={styles.grid} testID="game-buttons">
+      {modules.map((mod) => (
+        <Pressable
+          key={mod.id}
+          testID={`game-${mod.id}`}
+          accessibilityRole="button"
+          onPress={() => onPick(mod)}
+          style={({ pressed }) => [styles.button, pressed && styles.pressed]}
+        >
+          <Text style={styles.name}>{moduleLabel(mod)}</Text>
+          <Text style={styles.meta}>
+            {mod.minPlayers === mod.maxPlayers
+              ? t('lobby.games.players', { n: mod.minPlayers })
+              : t('lobby.games.playerRange', { min: mod.minPlayers, max: mod.maxPlayers })}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+/**
+ * Every game this server hosts, in the order a picker should list them: the
+ * player's own history when there is one to read, the general popularity
+ * ranking otherwise. Shared by `GameButtons` and the main menu's game list.
+ */
+export function useOrderedModules(): { modules: MatchModule[] | null; error: string } {
   const { client, session } = useSession();
   const [modules, setModules] = useState<MatchModule[] | null>(null);
   const [error, setError] = useState('');
@@ -52,35 +92,7 @@ export function GameButtons({ onPick }: { onPick: (mod: MatchModule) => void }) 
     };
   }, [client, session?.accessToken]);
 
-  if (error) {
-    return (
-      <Text testID="games-error" style={styles.error}>
-        {error}
-      </Text>
-    );
-  }
-  if (!modules) return <ActivityIndicator color={colors.accent} />;
-
-  return (
-    <View style={styles.grid} testID="game-buttons">
-      {modules.map((mod) => (
-        <Pressable
-          key={mod.id}
-          testID={`game-${mod.id}`}
-          accessibilityRole="button"
-          onPress={() => onPick(mod)}
-          style={({ pressed }) => [styles.button, pressed && styles.pressed]}
-        >
-          <Text style={styles.name}>{moduleLabel(mod)}</Text>
-          <Text style={styles.meta}>
-            {mod.minPlayers === mod.maxPlayers
-              ? t('lobby.games.players', { n: mod.minPlayers })
-              : t('lobby.games.playerRange', { min: mod.minPlayers, max: mod.maxPlayers })}
-          </Text>
-        </Pressable>
-      ))}
-    </View>
-  );
+  return { modules, error };
 }
 
 const styles = StyleSheet.create({

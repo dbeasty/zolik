@@ -70,7 +70,7 @@ func TestLocalOnlyStoreTracksPresenceWithNoRedis(t *testing.T) {
 		t.Errorf("IsGuest not preserved: %+v", list)
 	}
 
-	name, isGuest, avatar, ok := s.IsWaiting(ctx, "p1")
+	name, isGuest, avatar, ok := s.IsWaiting(ctx, "p1", "")
 	if !ok || name != "Alice" || !isGuest {
 		t.Errorf("IsWaiting(p1) = (%q, %v, %v), want (Alice, true, true)", name, isGuest, ok)
 	}
@@ -79,12 +79,12 @@ func TestLocalOnlyStoreTracksPresenceWithNoRedis(t *testing.T) {
 	if avatar != "p-violet" {
 		t.Errorf("IsWaiting(p1) avatar = %q, want p-violet", avatar)
 	}
-	if _, _, _, ok := s.IsWaiting(ctx, "nobody"); ok {
+	if _, _, _, ok := s.IsWaiting(ctx, "nobody", ""); ok {
 		t.Error("IsWaiting reported a player who was never joined")
 	}
 
 	s.Leave(ctx, "p1")
-	if _, _, _, ok := s.IsWaiting(ctx, "p1"); ok {
+	if _, _, _, ok := s.IsWaiting(ctx, "p1", ""); ok {
 		t.Error("a player who left is still reported waiting")
 	}
 	if got := s.List(ctx); len(got) != 1 || got[0].PlayerID != "p2" {
@@ -122,7 +122,7 @@ func TestPickupReportsWhetherThePlayerWasActuallyPresent(t *testing.T) {
 	if s.Pickup(ctx, "never-here") {
 		t.Error("Pickup reported true for a player who was never in the pool")
 	}
-	if _, _, _, ok := s.IsWaiting(ctx, "p1"); ok {
+	if _, _, _, ok := s.IsWaiting(ctx, "p1", ""); ok {
 		t.Error("a picked-up player is still reported waiting — they must not be invited twice")
 	}
 }
@@ -154,7 +154,7 @@ func TestRedisMirroringMakesPresenceVisibleAcrossInstances(t *testing.T) {
 
 	// instanceB has no local connection for this player at all — the only
 	// way it can know about them is via Redis.
-	name, _, avatar, ok := instanceB.IsWaiting(ctx, "cross-1")
+	name, _, avatar, ok := instanceB.IsWaiting(ctx, "cross-1", "")
 	if !ok || name != "Alice" {
 		t.Fatalf("instanceB.IsWaiting(cross-1) = (%q, %v), want (Alice, true)", name, ok)
 	}
@@ -181,7 +181,7 @@ func TestRedisMirroringMakesPresenceVisibleAcrossInstances(t *testing.T) {
 	if !instanceB.Pickup(ctx, "cross-1") {
 		t.Error("instanceB.Pickup(cross-1) = false, want true")
 	}
-	if _, _, _, ok := instanceA.IsWaiting(ctx, "cross-1"); ok {
+	if _, _, _, ok := instanceA.IsWaiting(ctx, "cross-1", ""); ok {
 		t.Error("instanceA still reports the player waiting after instanceB picked them up")
 	}
 }
@@ -205,7 +205,7 @@ func TestStaleRedisEntriesAreFilteredOut(t *testing.T) {
 		t.Fatalf("seeding a stale record: %v", err)
 	}
 
-	if _, _, _, ok := s.IsWaiting(ctx, "ghost"); ok {
+	if _, _, _, ok := s.IsWaiting(ctx, "ghost", ""); ok {
 		t.Error("IsWaiting reported a stale entry as present")
 	}
 	for _, e := range s.List(ctx) {

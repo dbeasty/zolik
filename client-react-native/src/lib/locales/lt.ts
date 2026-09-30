@@ -549,6 +549,8 @@ export const lt: Record<string, string> = {
   'zolik.badge.owedToMeld':
     '{card} atkeliavo iš atmetimo krūvelės — ji turi patekti į derinius, su kuriais šį ėjimą išsidėstai.',
   'zolik.badge.jokerOwed': '{card} atkeliavo nuo stalo — ji turi patekti į derinį, kad galėtum baigti ėjimą.',
+  'zolik.badge.noReturn':
+    '{card} šį ėjimą paimta iš atmetimo krūvelės — ji negali iškart grįžti atgal. Sužaisk ją arba pasilik.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is
@@ -1013,8 +1015,6 @@ export const lt: Record<string, string> = {
   'intro.bulletGuest': 'Nereikia nieko diegti, kad išbandytum — prisijunk kaip svečias',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Kontinentinis remis · {server}',
-  'home.playingAs': 'Žaidi kaip {name}',
   'home.signInPrompt': 'Prisijunk arba tęsk kaip svečias, kad žaistum internete.',
   'home.statsAndLeaderboard': 'Statistika ir lentelė',
   'home.play': 'Žaisti',
@@ -1052,7 +1052,7 @@ export const lt: Record<string, string> = {
   'waiting.noOthersYet': 'Daugiau niekas dar nelaukia. Šeimininkai tave vis tiek mato ir gali pakviesti.',
   'waiting.server': 'Serveris',
   'waiting.none':
-    'Šiuo metu niekas nelaukia. Kas pagrindiniame meniu pažymi save kaip pasiruošusį, pasirodo čia.',
+    'Šiuo metu niekas nelaukia. Kas pasiūlys save šiam žaidimui, atsiras čia.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'Šiai nuorodai trūksta stalo kodo.',
@@ -1063,11 +1063,7 @@ export const lt: Record<string, string> = {
   'join.takingSeatAt': 'Užimame vietą prie {game}…',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': 'Viskas, ką šis serveris gali pasiūlyti',
   'lobby.games.bots': 'Botai',
-  'lobby.games.setup': 'Nustatymai',
-  'lobby.games.playBot': 'Žaisti prieš botą',
-  'lobby.games.playBots': 'Žaisti prieš {n} botus',
   'lobby.games.openTable': 'Atverti stalą',
   'lobby.games.players': 'Žaidėjų: {n}',
   'lobby.games.playerRange': 'Žaidėjų: {min}–{max}',
@@ -1104,7 +1100,6 @@ export const lt: Record<string, string> = {
   'mine.deleteConfirmBody': 'Tai baigs žaidimą visiems kitiems prie stalo. Šio veiksmo atšaukti negalima.',
   'mine.deleteConfirm': 'Ištrinti',
   'mine.deleteCancel': 'Atšaukti',
-  'mine.viewAll': 'Žiūrėti visus',
   'mine.status.lobby': 'Laukia pradžios',
   'mine.status.active': 'Vyksta',
   'mine.status.suspended': 'Pristabdyta',
@@ -1120,6 +1115,14 @@ export const lt: Record<string, string> = {
   'invite.share': 'Dalytis nuoroda',
   'invite.copied': 'Nukopijuota!',
   'invite.shared': 'Pasidalyta',
+  'invite.backTitle': 'Pakviesti atgal',
+  'invite.backTableHeading': 'Įrenginyje, kuriame jie žaidė',
+  'invite.backTableExplain': 'Stalo nuoroda bet ką, kas jau čia sėdi, grąžina tiesiai į jo vietą.',
+  'invite.backSeatHeading': 'Naujame įrenginyje',
+  'invite.backSeatExplain': 'Vietos nuoroda grąžina vieną žmogų į jo paties vietą bet kuriame telefone ar naršyklėje. Nauja nuoroda panaikina ankstesnę.',
+  'invite.seatLinkMake': 'Sukurti nuorodą: {name}',
+  'invite.seatLinkShare': '{name}, štai tavo vieta prie mūsų stalo',
+  'invite.seatLinkFailed': 'Nepavyko sukurti nuorodos. Bandyk dar kartą.',
 
   // --- the match screen -----------------------------------------------------
   'match.waitingForTable': 'Laukiame stalo…',
@@ -1134,6 +1137,9 @@ export const lt: Record<string, string> = {
   'match.resume': 'Tęsk ten, kur baigei',
   'match.resuming': 'Atkuriamas stalas…',
   'match.abandonedWaitingFor': 'Laukiama, kol {names} grįš prie stalo.',
+  'match.tableCode': 'Kodas {code}',
+  'match.tableCodeShare': 'Grįžk prie mūsų stalo',
+  'match.abandonedSendCode': 'Nusiųsk jiems nuorodą atgal į jų vietą — ji veikia bet kuriame įrenginyje.',
   'seat.title': 'Jūsų vieta',
   'seat.youAre': 'Jūs esate {name}',
   'seat.atTable': '{game} su: {names}',
@@ -1693,6 +1699,20 @@ export const lt: Record<string, string> = {
   'option.hints': 'Patarimai',
   'choice.hints.1': 'Leidžiami',
   'choice.hints.0': 'Išjungti',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Pasirink žaidimą',
+  'picker.yourTurn': 'Tavo ėjimas',
+  'picker.resume': 'Tęsti',
+  'picker.waiting': 'Laukia: {n}',
+  'picker.tablesMany': 'Vykstančių žaidimų: {n}',
+  'picker.waitingFor': 'Lauki žaidimo {game}',
+  'picker.join': 'Prisijungti',
+  'game.startYourOwn': 'Pradėk savo',
+  'game.playBots': 'Žaisti prieš botus',
+  'setup.titleTable': 'Naujas stalas: {game}',
+  'setup.titleBots': '{game} prieš botus',
+  'setup.openTable': 'Atidaryti stalą',
+  'setup.dealMeIn': 'Dalink man',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Dalijimai',

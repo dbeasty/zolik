@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { API_BASE, asViewer } from '../helpers/env';
 import { openGame, openGameSetup } from '../helpers/lobby';
+import { seedIntroSeen } from '../helpers/login';
 
 /**
  * One screen, every game (docs/one-architecture-plan.md Phase 7).
@@ -96,17 +97,6 @@ async function signIn(page: Page, host: { accessToken: string; refreshToken: str
     username: host.username ?? 'shell',
     isGuest: true,
   });
-}
-
-/**
- * What a setup section is painted with — the mark the panel puts on the
- * control a player asked for. Read as the browser computes it rather than as
- * a class name, because the mark is the thing being claimed.
- */
-const TRANSPARENT = 'rgba(0, 0, 0, 0)';
-
-async function wash(page: Page, testId: string) {
-  return page.getByTestId(testId).evaluate((el) => getComputedStyle(el).backgroundColor);
 }
 
 /** Every offer control currently on screen, enabled or not. */
@@ -489,82 +479,66 @@ test.describe('one shell, every game', () => {
   });
 
   test('the lobby lists every hosted game without naming one', async ({ page, request }) => {
-    // Adding a fifth game is a server-only change: the picker is rendered from
+    // Adding a fifth game is a server-only change: the menu is rendered from
     // /modules, so a module that registers itself appears here with its
     // variations, its options and its player range.
     const host = await guest(request);
     await signIn(page, host);
-    await page.goto('/lobby/games');
+    // The menu sends a device that has never seen the intro there first.
+    await seedIntroSeen(page);
+    await page.goto('/');
     await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 30_000 });
 
-    // The list is one button per game, and no game's controls.
+    // The menu is one row per game, and no game's controls.
     for (const id of ['zolik', 'prsi', 'canasta', 'holdem', 'ginrummy', 'blackjack']) {
       await expect(page.getByTestId(`game-${id}`)).toBeVisible();
     }
     await expect(page.getByTestId('option-holdem-bigBlind-20')).toHaveCount(0);
 
-    // A button leads to that game alone, its setup already open. Options come
-    // from the descriptor, so a knob nobody typed into this client is
+    // A row leads to that game alone: its page, then its settings. Options
+    // come from the descriptor, so a knob nobody typed into this client is
     // nonetheless rendered.
     await page.getByTestId('game-canasta').click();
-    await expect(page.getByTestId('setup-toggle-canasta')).toHaveAttribute('aria-expanded', 'true');
-    await expect(page.getByTestId('option-canasta-targetScore-500')).toBeVisible();
+    await expect(page.getByTestId('module-canasta')).toBeVisible();
     await expect(page.getByTestId('module-holdem')).toHaveCount(0);
+    await openGameSetup(page, 'canasta');
+    await expect(page.getByTestId('option-canasta-targetScore-500')).toBeVisible();
 
     await openGame(page, 'holdem');
+    await openGameSetup(page, 'holdem');
     await expect(page.getByTestId('option-holdem-bigBlind-20')).toBeVisible();
     // And a game with two shipped rulesets offers both.
     await expect(page.getByTestId('variation-holdem-freezeout')).toBeVisible();
     await expect(page.getByTestId('variation-holdem-timed')).toBeVisible();
   });
 
-  test('a way in to the setup arrives at the control it names', async ({ page, request }) => {
-    // A card's header has three ways in, and two of them name something: the
-    // table size and the digest each state a value, so pressing one reads as
-    // "change that". Opening the panel at the top and leaving the player to
-    // find the control they just named answers a different question — the more
-    // so on Žolíky, whose seat count is the last of nine rows.
+  test('the settings arrive open, and only a game against bots asks how many', async ({
+    page,
+    request,
+  }) => {
+    // One game's settings on a screen of their own, reached by choosing to
+    // start one — so nothing is folded away. The seat count belongs to a
+    // game against bots: a table for people is filled from its lobby.
     const host = await guest(request);
     await signIn(page, host);
+
     await openGame(page, 'zolik');
+    await openGameSetup(page, 'zolik', 'bots');
+    await expect(page.getByTestId('setup-section-zolik-bots')).toBeVisible();
+    await expect(page.getByTestId('setup-section-zolik-variation')).toBeVisible();
+    // The start button stays in reach however long the list of options runs.
+    await expect(page.getByTestId('deal-me-in-zolik')).toBeInViewport({ ratio: 1 });
 
-    // The table size opens the setup at the seat count — in view, not merely
-    // in the DOM somewhere below the fold.
-    await page.getByTestId('players-zolik').click();
-    const seats = page.getByTestId('setup-section-zolik-bots');
-    await expect(seats).toBeInViewport({ ratio: 1 });
-    // And marked, because a panel scrolled to roughly the right place still
-    // leaves a player scanning nine rows of controls for the one they named.
-    expect(await wash(page, 'setup-section-zolik-bots')).not.toBe(TRANSPARENT);
+    await openGame(page, 'zolik');
+    await openGameSetup(page, 'zolik', 'table');
+    await expect(page.getByTestId('setup-section-zolik-variation')).toBeVisible();
+    await expect(page.getByTestId('setup-section-zolik-bots')).toHaveCount(0);
+    await expect(page.getByTestId('open-table-zolik')).toBeInViewport({ ratio: 1 });
 
-    // The digest names the ruleset, so it moves to the rulesets — it does not
-    // close the panel the player is reading.
-    await page.getByTestId('setup-digest-press-zolik').click();
-    await expect(page.getByTestId('setup-toggle-zolik')).toHaveAttribute('aria-expanded', 'true');
-    await expect(page.getByTestId('setup-section-zolik-variation')).toBeInViewport({ ratio: 1 });
-    // One mark at a time: the seat count is no longer the answer.
-    expect(await wash(page, 'setup-section-zolik-variation')).not.toBe(TRANSPARENT);
-    expect(await wash(page, 'setup-section-zolik-bots')).toBe(TRANSPARENT);
-
-    // Pressing the way in you are already at is the way back out.
-    await page.getByTestId('setup-digest-press-zolik').click();
-    await expect(page.getByTestId('setup-toggle-zolik')).toHaveAttribute('aria-expanded', 'false');
-
-    // A chip that names something the module does not have is just another way
-    // to open the panel: Gin Rummy seats exactly two, so it draws no seat row
-    // at all, and its table size must still open the setup rather than nothing.
-    // It arrives open, so put it away first.
+    // Gin Rummy seats exactly two, so even against bots there is no count to
+    // choose — and its rulesets are still all there.
     await openGame(page, 'ginrummy');
-    await page.getByTestId('setup-toggle-ginrummy').click();
-    await expect(page.getByTestId('setup-toggle-ginrummy')).toHaveAttribute(
-      'aria-expanded',
-      'false',
-    );
-    await page.getByTestId('players-ginrummy').click();
-    await expect(page.getByTestId('setup-toggle-ginrummy')).toHaveAttribute(
-      'aria-expanded',
-      'true',
-    );
+    await openGameSetup(page, 'ginrummy', 'bots');
     await expect(page.getByTestId('setup-section-ginrummy-bots')).toHaveCount(0);
     await expect(page.getByTestId('variation-ginrummy-oklahoma')).toBeVisible();
   });
@@ -578,7 +552,7 @@ test.describe('one shell, every game', () => {
     // Pick the short Canasta target so the lobby is exercising real options.
     await openGameSetup(page, 'canasta');
     await page.getByTestId('option-canasta-targetScore-500').click();
-    await page.getByTestId('play-bots-canasta').click();
+    await page.getByTestId('deal-me-in-canasta').click();
 
     await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 45_000 });
     await expect(page.getByTestId('match-module')).toHaveText(/canasta/);
@@ -599,7 +573,7 @@ test.describe('one shell, every game', () => {
     await expect(page.getByTestId('bots-prsi-6')).toHaveCount(0);
 
     await page.getByTestId('bots-prsi-3').click();
-    await page.getByTestId('play-bots-prsi').click();
+    await page.getByTestId('deal-me-in-prsi').click();
 
     await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 45_000 });
     const matchId = new URL(page.url()).pathname.split('/').pop();

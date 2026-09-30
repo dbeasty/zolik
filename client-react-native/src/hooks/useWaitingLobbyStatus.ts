@@ -17,7 +17,7 @@ const pollIntervalMs = 5000;
  * to browse whom to invite, so looking at the count costs nothing more than
  * looking at the list would.
  */
-export function useWaitingLobbyStatus(enabled: boolean) {
+export function useWaitingLobbyStatus(enabled: boolean, moduleId?: string) {
   const [players, setPlayers] = useState<WaitingPlayer[]>([]);
   const [loaded, setLoaded] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -32,7 +32,7 @@ export function useWaitingLobbyStatus(enabled: boolean) {
 
     async function poll() {
       try {
-        const list = await apiClient.getWaitingLobby();
+        const list = await apiClient.getWaitingLobby(moduleId);
         if (!cancelled) {
           setPlayers(list);
           setLoaded(true);
@@ -50,7 +50,7 @@ export function useWaitingLobbyStatus(enabled: boolean) {
       cancelled = true;
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [enabled]);
+  }, [enabled, moduleId]);
 
   return { players, loaded };
 }

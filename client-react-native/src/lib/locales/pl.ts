@@ -555,6 +555,8 @@ export const pl: Record<string, string> = {
   'zolik.badge.owedToMeld':
     '{card} pochodzi ze stosu odrzuconych — musi trafić do układów, którymi wykładasz się w tej kolejce.',
   'zolik.badge.jokerOwed': '{card} pochodzi ze stołu — musi trafić do układu, zanim zakończysz kolejkę.',
+  'zolik.badge.noReturn':
+    '{card} pochodzi w tej kolejce ze stosu odrzuconych — nie może od razu wrócić. Zagraj ją albo zatrzymaj.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is
@@ -1018,8 +1020,6 @@ export const pl: Record<string, string> = {
   'intro.bulletGuest': 'Żadnej instalacji, żeby spróbować — zacznij jako gość',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Remik kontynentalny · {server}',
-  'home.playingAs': 'Grasz jako {name}',
   'home.signInPrompt': 'Zaloguj się albo graj dalej jako gość, żeby grać online.',
   'home.statsAndLeaderboard': 'Statystyki i ranking',
   'home.play': 'Graj',
@@ -1056,7 +1056,8 @@ export const pl: Record<string, string> = {
     'W tej chwili nikt nie czeka na grę. Zapisz się na listę, a będziesz pierwszym, kogo ktokolwiek zobaczy.',
   'waiting.noOthersYet': 'Nikt inny jeszcze nie czeka. Gospodarze i tak cię widzą i mogą cię zaprosić.',
   'waiting.server': 'Serwer',
-  'waiting.none': 'W tej chwili nikt nie czeka. Kto zgłosi się w menu głównym, pojawi się tutaj.',
+  'waiting.none':
+    'W tej chwili nikt nie czeka. Kto zgłosi się do tej gry, pojawi się tutaj.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'Temu linkowi brakuje kodu stołu.',
@@ -1067,11 +1068,7 @@ export const pl: Record<string, string> = {
   'join.takingSeatAt': 'Zajmujemy miejsce przy: {game}…',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': 'Wszystko, co ten serwer potrafi udostępnić',
   'lobby.games.bots': 'Boty',
-  'lobby.games.setup': 'Ustawienia',
-  'lobby.games.playBot': 'Zagraj z botem',
-  'lobby.games.playBots': 'Zagraj z botami: {n}',
   'lobby.games.openTable': 'Otwórz stół',
   'lobby.games.players': 'Graczy: {n}',
   'lobby.games.playerRange': 'Graczy: {min}–{max}',
@@ -1108,7 +1105,6 @@ export const pl: Record<string, string> = {
   'mine.deleteConfirmBody': 'To kończy grę dla wszystkich pozostałych przy stole. Tej operacji nie można cofnąć.',
   'mine.deleteConfirm': 'Usuń',
   'mine.deleteCancel': 'Anuluj',
-  'mine.viewAll': 'Pokaż wszystkie',
   'mine.status.lobby': 'Czeka na start',
   'mine.status.active': 'W trakcie',
   'mine.status.suspended': 'Wstrzymana',
@@ -1124,6 +1120,14 @@ export const pl: Record<string, string> = {
   'invite.share': 'Udostępnij link',
   'invite.copied': 'Skopiowano!',
   'invite.shared': 'Udostępniono',
+  'invite.backTitle': 'Zaproś ponownie',
+  'invite.backTableHeading': 'Na urządzeniu, na którym grali',
+  'invite.backTableExplain': 'Link do stołu przenosi każdego, kto już tu siedzi, prosto na jego miejsce.',
+  'invite.backSeatHeading': 'Na nowym urządzeniu',
+  'invite.backSeatExplain': 'Link do miejsca przywraca jedną osobę na jej własne miejsce na dowolnym telefonie lub przeglądarce. Utworzenie nowego unieważnia poprzedni.',
+  'invite.seatLinkMake': 'Utwórz link dla: {name}',
+  'invite.seatLinkShare': '{name}, oto twoje miejsce przy naszym stole',
+  'invite.seatLinkFailed': 'Nie udało się utworzyć linku. Spróbuj ponownie.',
 
   // --- the match screen -----------------------------------------------------
   'match.waitingForTable': 'Czekamy na stół…',
@@ -1138,6 +1142,9 @@ export const pl: Record<string, string> = {
   'match.resume': 'Wróć tam, gdzie skończyłeś',
   'match.resuming': 'Przywracanie stołu…',
   'match.abandonedWaitingFor': 'Czekamy, aż {names} wróci do stołu.',
+  'match.tableCode': 'Kod {code}',
+  'match.tableCodeShare': 'Wróć do naszego stołu',
+  'match.abandonedSendCode': 'Wyślij im link do ich miejsca — działa na każdym urządzeniu.',
   'seat.title': 'Twoje miejsce',
   'seat.youAre': 'Jesteś {name}',
   'seat.atTable': '{game} z: {names}',
@@ -1697,6 +1704,20 @@ export const pl: Record<string, string> = {
   'option.hints': 'Podpowiedzi',
   'choice.hints.1': 'Dozwolone',
   'choice.hints.0': 'Wyłączone',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Wybierz grę',
+  'picker.yourTurn': 'Twoja kolej',
+  'picker.resume': 'Wznów',
+  'picker.waiting': 'Czeka: {n}',
+  'picker.tablesMany': 'Gry w toku: {n}',
+  'picker.waitingFor': 'Czekasz na grę {game}',
+  'picker.join': 'Dołącz',
+  'game.startYourOwn': 'Załóż własny',
+  'game.playBots': 'Graj z botami',
+  'setup.titleTable': 'Nowy stół – {game}',
+  'setup.titleBots': '{game} z botami',
+  'setup.openTable': 'Otwórz stół',
+  'setup.dealMeIn': 'Rozdaj mi',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Rozdania',

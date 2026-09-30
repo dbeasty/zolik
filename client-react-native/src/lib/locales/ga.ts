@@ -569,6 +569,8 @@ export const ga: Record<string, string> = {
     'Tháinig {card} ón gcarn caite — caithfidh sé dul isteach sna cumaisc a chuireann síos thú an seal seo.',
   'zolik.badge.jokerOwed':
     'Tháinig {card} ón mbord — caithfidh sé dul isteach i gcumasc sula bhféadfaidh tú do sheal a chríochnú.',
+  'zolik.badge.noReturn':
+    'Tháinig {card} ón gcarn caite an seal seo — ní féidir leis dul ar ais láithreach. Imir é nó coinnigh é.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is
@@ -1041,8 +1043,6 @@ export const ga: Record<string, string> = {
   'intro.bulletGuest': 'Ní gá aon suiteáil chun triail a bhaint as — tosaigh mar aoi',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Rummy Ilchríochach · {server}',
-  'home.playingAs': 'Tá tú ag imirt mar {name}',
   'home.signInPrompt': 'Sínigh isteach nó lean ar aghaidh mar aoi chun imirt ar líne.',
   'home.statsAndLeaderboard': 'Staitisticí agus tábla ceannais',
   'home.play': 'Imir',
@@ -1083,7 +1083,7 @@ export const ga: Record<string, string> = {
     'Níl éinne eile ag fanacht fós. Feiceann óstaigh tú mar sin féin agus is féidir leo cuireadh a thabhairt duit.',
   'waiting.server': 'Freastalaí',
   'waiting.none':
-    'Níl éinne ag fanacht faoi láthair. Aon duine a chuireann é féin ar fáil sa phríomhroghchlár, taispeánfar anseo é.',
+    'Níl aon duine ag fanacht faoi láthair. Beidh aon duine a chuireann é féin ar fáil don chluiche seo le feiceáil anseo.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'Tá cód an bhoird ar iarraidh ón nasc sin.',
@@ -1095,11 +1095,7 @@ export const ga: Record<string, string> = {
   'join.takingSeatAt': 'Ag glacadh suíocháin ag {game}…',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': 'Gach rud is féidir leis an bhfreastalaí seo a óstáil',
   'lobby.games.bots': 'Botanna',
-  'lobby.games.setup': 'Socruithe',
-  'lobby.games.playBot': 'Imir in aghaidh bota',
-  'lobby.games.playBots': 'Imir in aghaidh {n} bota',
   'lobby.games.openTable': 'Oscail bord',
   'lobby.games.players': '{n} imreoir',
   'lobby.games.playerRange': '{min}–{max} imreoir',
@@ -1136,7 +1132,6 @@ export const ga: Record<string, string> = {
   'mine.deleteConfirmBody': 'Cuireann sé seo deireadh leis an gcluiche do gach duine eile ag an tábla. Ní féidir é seo a chur ar ceal.',
   'mine.deleteConfirm': 'Scrios',
   'mine.deleteCancel': 'Cealaigh',
-  'mine.viewAll': 'Féach ar chách',
   'mine.status.lobby': 'Ag fanacht le tosú',
   'mine.status.active': 'Ar siúl',
   'mine.status.suspended': 'Ar sos',
@@ -1152,6 +1147,14 @@ export const ga: Record<string, string> = {
   'invite.share': 'Roinn an nasc',
   'invite.copied': 'Cóipeáilte!',
   'invite.shared': 'Roinnte',
+  'invite.backTitle': 'Tabhair ar ais',
+  'invite.backTableHeading': 'Ar an ngléas ar imir siad air',
+  'invite.backTableExplain': 'Tugann nasc an bhoird aon duine atá ina shuí anseo cheana díreach ar ais chuig a shuíochán.',
+  'invite.backSeatHeading': 'Ar ghléas nua',
+  'invite.backSeatExplain': 'Tugann nasc suíocháin duine amháin ar ais chuig a shuíochán féin ar aon fhón nó brabhsálaí. Cealaíonn nasc nua an ceann deireanach.',
+  'invite.seatLinkMake': 'Déan nasc do {name}',
+  'invite.seatLinkShare': '{name}, seo do shuíochán ag ár mbord',
+  'invite.seatLinkFailed': 'Níorbh fhéidir an nasc a dhéanamh. Bain triail eile as.',
 
   // --- the match screen -----------------------------------------------------
   'match.waitingForTable': 'Ag fanacht leis an mbord…',
@@ -1166,6 +1169,9 @@ export const ga: Record<string, string> = {
   'match.resume': 'Lean ar aghaidh ón áit ar stop tú',
   'match.resuming': 'An tábla á thabhairt ar ais…',
   'match.abandonedWaitingFor': 'Ag fanacht le {names} filleadh ar an tábla.',
+  'match.tableCode': 'Cód {code}',
+  'match.tableCodeShare': 'Fill ar ár mbord',
+  'match.abandonedSendCode': 'Seol nasc chucu ar ais chuig a suíochán — oibríonn sé ar aon ghléas.',
   'seat.title': 'Do shuíochán',
   'seat.youAre': 'Is tusa {name}',
   'seat.atTable': '{game} le {names}',
@@ -1725,6 +1731,20 @@ export const ga: Record<string, string> = {
   'option.hints': 'Leideanna',
   'choice.hints.1': 'Ceadaithe',
   'choice.hints.0': 'Múchta',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Roghnaigh cluiche',
+  'picker.yourTurn': 'Do sheal',
+  'picker.resume': 'Lean ar aghaidh',
+  'picker.waiting': '{n} ag fanacht',
+  'picker.tablesMany': '{n} cluiche ar siúl',
+  'picker.waitingFor': 'Tá tú ag fanacht le {game} a imirt',
+  'picker.join': 'Glac páirt',
+  'game.startYourOwn': 'Tosaigh do cheann féin',
+  'game.playBots': 'Imir in aghaidh bot',
+  'setup.titleTable': 'Bord nua {game}',
+  'setup.titleBots': '{game} in aghaidh bot',
+  'setup.openTable': 'Oscail bord',
+  'setup.dealMeIn': 'Roinn orm',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Dáiltí',

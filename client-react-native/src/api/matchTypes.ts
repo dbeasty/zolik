@@ -258,6 +258,24 @@ export type Selector = {
   submit?: string[];
   minCards?: number;
   maxCards?: number;
+  /**
+   * Cards this offer would otherwise take but turns down, each with its own
+   * reason — on an offer that is itself enabled. The discard is open, but not
+   * for the card just taken off the pile: without this that card is simply
+   * missing from `cards`, and a drop of it snaps home with nothing to say.
+   */
+  refused?: CardRefusal[];
+};
+
+/**
+ * One card an enabled offer turns down: the engine's code, the written rules
+ * behind it and what to do instead — what a disabled offer carries, per card.
+ */
+export type CardRefusal = {
+  card: string;
+  whyNot: string;
+  ruleIds?: string[];
+  remedy?: Fact;
 };
 
 /**
@@ -855,4 +873,7 @@ export type StoredTable = {
   canDelete: boolean;
   /** Whether this table was ever dealt, and so has a game to step through. */
   canReplay: boolean;
+  /** Whether the table is waiting on the caller. Only present when the list
+   *  was asked for it — see `listMyTables`' `turns`. */
+  yourTurn?: boolean;
 };

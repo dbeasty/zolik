@@ -74,7 +74,14 @@ export default function GuestScreen() {
       // and re-checks on the way out — a route that no longer exists lands on
       // the app's own not-found screen, which is the same thing a stale link
       // pasted into the address bar does.
-      router.replace((going || '/lobby/games') as Href);
+      if (going) {
+        router.replace(going as Href);
+      } else {
+        // Back to the main menu this screen was opened from, rather than a
+        // second copy of it pushed on top — which would offer "back" to the
+        // first.
+        router.dismissTo('/');
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : t('error.login'));
     } finally {

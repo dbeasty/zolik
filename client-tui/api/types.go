@@ -21,6 +21,9 @@ type Fact struct {
 
 type CardView struct {
 	Card string `json:"card"`
+	// BadgeKeys mark this particular card — a pickup owed to a meld, a card
+	// that may not go straight back on the pile.
+	BadgeKeys []string `json:"badgeKeys,omitempty"`
 	// By is who put the card here — in a trick, who played it.
 	By string `json:"by,omitempty"`
 }
@@ -95,6 +98,33 @@ type Selector struct {
 
 	MinCards int `json:"minCards,omitempty"`
 	MaxCards int `json:"maxCards,omitempty"`
+
+	// Refused lists cards an enabled offer turns down by name, each with the
+	// engine's code and the written rules behind it — see
+	// module.Selector.Refused on the server.
+	Refused []CardRefusal `json:"refused,omitempty"`
+}
+
+// CardRefusal is one card an enabled offer turns down.
+type CardRefusal struct {
+	Card    string   `json:"card"`
+	WhyNot  string   `json:"whyNot"`
+	RuleIDs []string `json:"ruleIds,omitempty"`
+}
+
+// RefusalFor is the offer's own refusal of one of these cards, if it has one.
+func RefusalFor(o ActionOffer, cards []string) (CardRefusal, bool) {
+	if o.Source == nil {
+		return CardRefusal{}, false
+	}
+	for _, r := range o.Source.Refused {
+		for _, c := range cards {
+			if c == r.Card {
+				return r, true
+			}
+		}
+	}
+	return CardRefusal{}, false
 }
 
 // ActionOffer is one affordance. The server always sends the full set,

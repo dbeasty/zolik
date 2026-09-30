@@ -556,6 +556,8 @@ export const ro: Record<string, string> = {
     '{card} a venit din teancul de aruncate — trebuie să intre în combinațiile cu care cobori în această tură.',
   'zolik.badge.jokerOwed':
     '{card} a venit de pe masă — trebuie să intre într-o combinație înainte să îți poți încheia tura.',
+  'zolik.badge.noReturn':
+    '{card} a venit din teancul de aruncate în această tură — nu se poate întoarce imediat. Joac-o sau ține-o.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is
@@ -1019,8 +1021,6 @@ export const ro: Record<string, string> = {
   'intro.bulletGuest': 'Nicio instalare pentru a încerca — intră ca invitat',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Remi continental · {server}',
-  'home.playingAs': 'Joci ca {name}',
   'home.signInPrompt': 'Autentifică-te sau continuă ca invitat ca să joci online.',
   'home.statsAndLeaderboard': 'Statistici și clasament',
   'home.play': 'Joacă',
@@ -1058,7 +1058,8 @@ export const ro: Record<string, string> = {
     'Chiar acum nu așteaptă nimeni să joace. Înscrie-te pe listă și vei fi primul pe care îl vede oricine.',
   'waiting.noOthersYet': 'Nimeni altcineva nu așteaptă încă. Gazdele te văd oricum și te pot invita.',
   'waiting.server': 'Server',
-  'waiting.none': 'Chiar acum nu așteaptă nimeni. Cine se face disponibil din meniul principal apare aici.',
+  'waiting.none':
+    'Nimeni nu așteaptă acum. Oricine se face disponibil pentru acest joc apare aici.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'Acelui link îi lipsește codul mesei.',
@@ -1069,11 +1070,7 @@ export const ro: Record<string, string> = {
   'join.takingSeatAt': 'Îți ocupăm un loc la {game}…',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': 'Tot ce poate găzdui acest server',
   'lobby.games.bots': 'Boți',
-  'lobby.games.setup': 'Setări',
-  'lobby.games.playBot': 'Joacă împotriva unui bot',
-  'lobby.games.playBots': 'Joacă împotriva a {n} boți',
   'lobby.games.openTable': 'Deschide o masă',
   'lobby.games.players': '{n} jucători',
   'lobby.games.playerRange': '{min}–{max} jucători',
@@ -1110,7 +1107,6 @@ export const ro: Record<string, string> = {
   'mine.deleteConfirmBody': 'Asta încheie jocul pentru toți ceilalți de la masă. Nu poate fi anulat.',
   'mine.deleteConfirm': 'Șterge',
   'mine.deleteCancel': 'Anulează',
-  'mine.viewAll': 'Vezi toate',
   'mine.status.lobby': 'Așteaptă să înceapă',
   'mine.status.active': 'În desfășurare',
   'mine.status.suspended': 'În pauză',
@@ -1127,6 +1123,14 @@ export const ro: Record<string, string> = {
   'invite.share': 'Distribuie linkul',
   'invite.copied': 'Copiat!',
   'invite.shared': 'Distribuit',
+  'invite.backTitle': 'Invită înapoi',
+  'invite.backTableHeading': 'Pe dispozitivul pe care au jucat',
+  'invite.backTableExplain': 'Linkul mesei îi aduce pe cei care stau deja aici direct înapoi pe locul lor.',
+  'invite.backSeatHeading': 'Pe un dispozitiv nou',
+  'invite.backSeatExplain': 'Un link de loc aduce o persoană înapoi pe propriul loc, pe orice telefon sau browser. Unul nou îl anulează pe cel anterior.',
+  'invite.seatLinkMake': 'Creează linkul pentru {name}',
+  'invite.seatLinkShare': '{name}, iată locul tău la masa noastră',
+  'invite.seatLinkFailed': 'Linkul nu a putut fi creat. Încearcă din nou.',
 
   // --- the match screen -----------------------------------------------------
   'match.waitingForTable': 'Așteptăm masa…',
@@ -1141,6 +1145,9 @@ export const ro: Record<string, string> = {
   'match.resume': 'Continuă de unde ai rămas',
   'match.resuming': 'Se recuperează masa…',
   'match.abandonedWaitingFor': 'Se așteaptă ca {names} să revină la masă.',
+  'match.tableCode': 'Cod {code}',
+  'match.tableCodeShare': 'Întoarce-te la masa noastră',
+  'match.abandonedSendCode': 'Trimite-le un link înapoi la locul lor — funcționează pe orice dispozitiv.',
   'seat.title': 'Locul tău',
   'seat.youAre': 'Tu ești {name}',
   'seat.atTable': '{game} cu {names}',
@@ -1701,6 +1708,20 @@ export const ro: Record<string, string> = {
   'option.hints': 'Indicii',
   'choice.hints.1': 'Permise',
   'choice.hints.0': 'Dezactivate',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Alege un joc',
+  'picker.yourTurn': 'E rândul tău',
+  'picker.resume': 'Reia',
+  'picker.waiting': '{n} așteaptă',
+  'picker.tablesMany': '{n} jocuri în desfășurare',
+  'picker.waitingFor': 'Aștepți să joci {game}',
+  'picker.join': 'Intră',
+  'game.startYourOwn': 'Pornește-ți propria',
+  'game.playBots': 'Joacă cu boți',
+  'setup.titleTable': 'Masă nouă de {game}',
+  'setup.titleBots': '{game} cu boți',
+  'setup.openTable': 'Deschide masa',
+  'setup.dealMeIn': 'Împarte-mi',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Împărțiri',

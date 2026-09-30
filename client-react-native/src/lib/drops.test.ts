@@ -189,6 +189,35 @@ describe('dropSpotsFor', () => {
     expect(refusalAt(dropSpotsFor([discard], ['2C']), 'zone-discard')?.labelKey).toBe('sel.notThese');
   });
 
+  it('says why the server turned a card down by name, with its rule', () => {
+    // The discard is open, but not for the card just taken off the pile. The
+    // server names that card, and the drop that is refused says the server's
+    // own reason and the written rule behind it rather than "not these".
+    const withRefused: ActionOffer = {
+      ...discard,
+      source: {
+        ...discard.source!,
+        refused: [
+          {
+            card: 'QH',
+            whyNot: 'DISCARD_TAKEN_CARD_FORBIDDEN',
+            ruleIds: ['zolik.rules.pickup.noReturn'],
+            remedy: { labelKey: 'zolik.remedy.discardSomethingElse', params: { card: 'QH' } },
+          },
+        ],
+      },
+    };
+    const spots = dropSpotsFor([withRefused], ['QH']);
+    expect(takeableSpots(spots)).toEqual([]);
+    expect(refusalAt(spots, 'zone-discard')).toEqual({
+      code: 'DISCARD_TAKEN_CARD_FORBIDDEN',
+      ruleIds: ['zolik.rules.pickup.noReturn'],
+      remedy: { labelKey: 'zolik.remedy.discardSomethingElse', params: { card: 'QH' } },
+    });
+    // A card the server listed is untouched by it.
+    expect(takeableSpots(dropSpotsFor([withRefused], ['KD']))).toHaveLength(1);
+  });
+
   it('ignores a disabled offer', () => {
     expect(takeableSpots(dropSpotsFor([{ ...discard, enabled: false }], ['KD']))).toEqual([]);
   });

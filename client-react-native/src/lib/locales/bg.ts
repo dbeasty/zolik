@@ -559,6 +559,8 @@ export const bg: Record<string, string> = {
     '{card} дойде от купчината за изхвърляне — трябва да влезе в комбинациите, с които сваляш този ход.',
   'zolik.badge.jokerOwed':
     '{card} дойде от масата — трябва да влезе в комбинация, преди да можеш да завършиш хода си.',
+  'zolik.badge.noReturn':
+    '{card} дойде от купчината за изхвърляне този ход — не може да се върне веднага. Изиграй я или я задръж.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is
@@ -1024,8 +1026,6 @@ export const bg: Record<string, string> = {
   'intro.bulletGuest': 'Без инсталация, за да опитате — включете се като гост',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Континентален реми · {server}',
-  'home.playingAs': 'Играеш като {name}',
   'home.signInPrompt': 'Влез или продължи като гост, за да играеш онлайн.',
   'home.statsAndLeaderboard': 'Статистика и класация',
   'home.play': 'Играй',
@@ -1062,7 +1062,8 @@ export const bg: Record<string, string> = {
     'В момента никой не чака да играе. Запиши се в списъка и ще си първият, когото някой вижда.',
   'waiting.noOthersYet': 'Още никой друг не чака. Домакините пак те виждат и могат да те поканят.',
   'waiting.server': 'Сървър',
-  'waiting.none': 'В момента никой не чака. Който се отбележи като готов в главното меню, се появява тук.',
+  'waiting.none':
+    'В момента никой не чака. Който се отбележи като готов за тази игра, се появява тук.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'На тази връзка ѝ липсва кодът на масата.',
@@ -1073,11 +1074,7 @@ export const bg: Record<string, string> = {
   'join.takingSeatAt': 'Заемаме място на {game}…',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': 'Всичко, което този сървър може да предложи',
   'lobby.games.bots': 'Ботове',
-  'lobby.games.setup': 'Настройки',
-  'lobby.games.playBot': 'Играй срещу бот',
-  'lobby.games.playBots': 'Играй срещу {n} бота',
   'lobby.games.openTable': 'Отвори маса',
   'lobby.games.players': 'Играчи: {n}',
   'lobby.games.playerRange': 'Играчи: {min}–{max}',
@@ -1114,7 +1111,6 @@ export const bg: Record<string, string> = {
   'mine.deleteConfirmBody': 'Играта приключва за всички на масата. Това не може да се върне.',
   'mine.deleteConfirm': 'Изтрий',
   'mine.deleteCancel': 'Отказ',
-  'mine.viewAll': 'Виж всички',
   'mine.status.lobby': 'Чака да започне',
   'mine.status.active': 'Играе се',
   'mine.status.suspended': 'На пауза',
@@ -1130,6 +1126,14 @@ export const bg: Record<string, string> = {
   'invite.share': 'Сподели линка',
   'invite.copied': 'Копирано!',
   'invite.shared': 'Споделено',
+  'invite.backTitle': 'Покани обратно',
+  'invite.backTableHeading': 'На устройството, на което са играли',
+  'invite.backTableExplain': 'Връзката към масата връща всеки, който вече седи тук, направо на мястото му.',
+  'invite.backSeatHeading': 'На ново устройство',
+  'invite.backSeatExplain': 'Връзката към място връща един човек на собственото му място на всеки телефон или браузър. Нова връзка отменя предишната.',
+  'invite.seatLinkMake': 'Създай връзка за {name}',
+  'invite.seatLinkShare': '{name}, ето твоето място на нашата маса',
+  'invite.seatLinkFailed': 'Връзката не можа да бъде създадена. Опитай отново.',
 
   // --- the match screen -----------------------------------------------------
   'match.waitingForTable': 'Чакаме масата…',
@@ -1144,6 +1148,9 @@ export const bg: Record<string, string> = {
   'match.resume': 'Продължи оттам, докъдето стигна',
   'match.resuming': 'Масата се възстановява…',
   'match.abandonedWaitingFor': 'Чака се {names} да се върне на масата.',
+  'match.tableCode': 'Код {code}',
+  'match.tableCodeShare': 'Върни се на нашата маса',
+  'match.abandonedSendCode': 'Изпрати им връзка обратно към мястото им — работи на всяко устройство.',
   'seat.title': 'Вашето място',
   'seat.youAre': 'Вие сте {name}',
   'seat.atTable': '{game} с {names}',
@@ -1703,6 +1710,20 @@ export const bg: Record<string, string> = {
   'option.hints': 'Подсказки',
   'choice.hints.1': 'Разрешени',
   'choice.hints.0': 'Изключени',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Изберете игра',
+  'picker.yourTurn': 'Ваш ред',
+  'picker.resume': 'Продължи',
+  'picker.waiting': '{n} чакат',
+  'picker.tablesMany': '{n} игри текат',
+  'picker.waitingFor': 'Чакате да играете {game}',
+  'picker.join': 'Влез',
+  'game.startYourOwn': 'Започнете своя',
+  'game.playBots': 'Играй срещу ботове',
+  'setup.titleTable': 'Нова маса за {game}',
+  'setup.titleBots': '{game} срещу ботове',
+  'setup.openTable': 'Отвори маса',
+  'setup.dealMeIn': 'Раздай ми',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Раздавания',

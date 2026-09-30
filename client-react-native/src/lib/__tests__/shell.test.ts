@@ -21,6 +21,8 @@ import { humanise, factText } from "@/src/lib/labels";
 const SHELL_FILES = [
   "app/match/[matchId].tsx",
   "app/lobby/games.tsx",
+  "app/lobby/setup.tsx",
+  "app/index.tsx",
   "src/components/match/OfferBar.tsx",
   "src/components/match/SeatStrip.tsx",
   "src/components/match/ZoneView.tsx",

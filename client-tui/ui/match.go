@@ -214,6 +214,16 @@ func (m matchModel) send() (matchModel, tea.Cmd) {
 		return m, nil
 	}
 
+	// A picked card the offer turns down by name is said, with the rule
+	// behind it, rather than dropped from the pick in silence.
+	if r, refused := api.RefusalFor(o, m.selectedCards()); refused {
+		m.status = r.Card + ": " + r.WhyNot
+		if len(r.RuleIDs) > 0 {
+			m.status += " (rule " + strings.Join(r.RuleIDs, ", ") + ")"
+		}
+		return m, nil
+	}
+
 	action, ready := api.SubmissionFor(o)
 	if !ready {
 		// The offer needs a combination this client cannot compose on its own,
@@ -283,6 +293,21 @@ func (m matchModel) myHand() *api.Zone {
 	return nil
 }
 
+// selectedCards is the selection as it stands, unfiltered.
+func (m matchModel) selectedCards() []string {
+	hand := m.myHand()
+	if hand == nil {
+		return nil
+	}
+	var out []string
+	for i, cv := range hand.Cards {
+		if m.selected[i] {
+			out = append(out, cv.Card)
+		}
+	}
+	return out
+}
+
 // pickedCards is the selection, filtered to what the offer says it accepts.
 func (m matchModel) pickedCards(o api.ActionOffer) []string {
 	hand := m.myHand()
@@ -348,6 +373,11 @@ func (m matchModel) view(width, height int) string {
 			sel = append(sel, i)
 		}
 		b.WriteString(render.RenderHandWithNumbers(cards, sel) + "\n")
+		for _, c := range hand.Cards {
+			for _, k := range c.BadgeKeys {
+				b.WriteString(mutedStyle.Render("  "+c.Card+" — "+labelOf(k, "")) + "\n")
+			}
+		}
 	}
 
 	b.WriteString("\n" + m.offerList() + "\n")

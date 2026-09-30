@@ -556,6 +556,8 @@ export const pt: Record<string, string> = {
     '{card} veio do monte de descartes — tem de entrar nas combinações com que baixas nesta jogada.',
   'zolik.badge.jokerOwed':
     '{card} veio da mesa — tem de entrar numa combinação antes de poderes terminar a tua vez.',
+  'zolik.badge.noReturn':
+    '{card} veio do monte de descartes nesta jogada — não pode voltar logo. Joga-a ou fica com ela.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is
@@ -1020,8 +1022,6 @@ export const pt: Record<string, string> = {
   'intro.bulletGuest': 'Sem instalações para experimentar — entra como convidado',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Rummy continental · {server}',
-  'home.playingAs': 'Estás a jogar como {name}',
   'home.signInPrompt': 'Inicia sessão ou continua como convidado para jogar online.',
   'home.statsAndLeaderboard': 'Estatísticas e classificação',
   'home.play': 'Jogar',
@@ -1061,7 +1061,7 @@ export const pt: Record<string, string> = {
     'Ainda não está mais ninguém à espera. Os anfitriões veem-te na mesma e podem convidar-te.',
   'waiting.server': 'Servidor',
   'waiting.none':
-    'Neste momento não está ninguém à espera. Quem se disponibilizar no menu principal aparece aqui.',
+    'Neste momento ninguém está à espera. Quem se puser disponível para este jogo aparece aqui.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'A esse link falta o código da mesa.',
@@ -1072,11 +1072,7 @@ export const pt: Record<string, string> = {
   'join.takingSeatAt': 'A ocupar um lugar em {game}…',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': 'Tudo o que este servidor consegue alojar',
   'lobby.games.bots': 'Bots',
-  'lobby.games.setup': 'Definições',
-  'lobby.games.playBot': 'Jogar contra um bot',
-  'lobby.games.playBots': 'Jogar contra {n} bots',
   'lobby.games.openTable': 'Abrir uma mesa',
   'lobby.games.players': '{n} jogadores',
   'lobby.games.playerRange': '{min}–{max} jogadores',
@@ -1113,7 +1109,6 @@ export const pt: Record<string, string> = {
   'mine.deleteConfirmBody': 'Isto termina o jogo para todos os que ainda estão à mesa. Não pode ser desfeito.',
   'mine.deleteConfirm': 'Eliminar',
   'mine.deleteCancel': 'Cancelar',
-  'mine.viewAll': 'Ver todos',
   'mine.status.lobby': 'À espera de começar',
   'mine.status.active': 'Em curso',
   'mine.status.suspended': 'Em pausa',
@@ -1130,6 +1125,14 @@ export const pt: Record<string, string> = {
   'invite.share': 'Partilhar link',
   'invite.copied': 'Copiado!',
   'invite.shared': 'Partilhado',
+  'invite.backTitle': 'Convidar de volta',
+  'invite.backTableHeading': 'No dispositivo em que jogavam',
+  'invite.backTableExplain': 'O link da mesa leva quem já está sentado aqui diretamente de volta ao seu lugar.',
+  'invite.backSeatHeading': 'Num dispositivo novo',
+  'invite.backSeatExplain': 'Um link de lugar traz uma pessoa de volta ao seu próprio lugar em qualquer telemóvel ou navegador. Criar um novo cancela o anterior.',
+  'invite.seatLinkMake': 'Criar o link de {name}',
+  'invite.seatLinkShare': '{name}, aqui está o teu lugar na nossa mesa',
+  'invite.seatLinkFailed': 'Não foi possível criar o link. Tenta outra vez.',
 
   // --- the match screen -----------------------------------------------------
   'match.waitingForTable': 'À espera da mesa…',
@@ -1144,6 +1147,9 @@ export const pt: Record<string, string> = {
   'match.resume': 'Continuar onde ficaste',
   'match.resuming': 'A recuperar a mesa…',
   'match.abandonedWaitingFor': 'À espera de que {names} volte à mesa.',
+  'match.tableCode': 'Código {code}',
+  'match.tableCodeShare': 'Volta à nossa mesa',
+  'match.abandonedSendCode': 'Envia-lhes um link de volta ao seu lugar — funciona em qualquer dispositivo.',
   'seat.title': 'O seu lugar',
   'seat.youAre': 'É {name}',
   'seat.atTable': '{game} com {names}',
@@ -1704,6 +1710,20 @@ export const pt: Record<string, string> = {
   'option.hints': 'Dicas',
   'choice.hints.1': 'Permitidas',
   'choice.hints.0': 'Desligadas',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Escolhe um jogo',
+  'picker.yourTurn': 'A tua vez',
+  'picker.resume': 'Retomar',
+  'picker.waiting': '{n} à espera',
+  'picker.tablesMany': '{n} jogos a decorrer',
+  'picker.waitingFor': 'Estás à espera para jogar {game}',
+  'picker.join': 'Entrar',
+  'game.startYourOwn': 'Começa a tua',
+  'game.playBots': 'Jogar contra bots',
+  'setup.titleTable': 'Nova mesa de {game}',
+  'setup.titleBots': '{game} contra bots',
+  'setup.openTable': 'Abrir mesa',
+  'setup.dealMeIn': 'Dá-me cartas',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Mãos',

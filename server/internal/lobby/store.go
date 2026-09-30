@@ -58,6 +58,11 @@ type Entry struct {
 	// as it is on a seat; the Redis mirror gets it for free, since a record
 	// is this struct marshalled whole.
 	Avatar string `json:"avatar,omitempty"`
+	// ModuleIDs are the games this player is waiting to play. Empty means any
+	// game — which is also what every client written before the pool was split
+	// by game sends, so an older app still shows up, under every game, rather
+	// than vanishing from the room.
+	ModuleIDs []string `json:"moduleIds,omitempty"`
 	// JoinedAt is when this player most recently started waiting — reset on
 	// reconnect, not carried across a disconnect, so the list reads as "who
 	// has been here how long" rather than accumulating a lifetime figure.
@@ -66,6 +71,50 @@ type Entry struct {
 	// a client, which only ever needs to know someone is still here, not
 	// the mechanism that decided so.
 	lastSeen time.Time
+}
+
+// WaitsFor reports whether this player would take a seat at a game of
+// moduleID. An empty moduleID asks about no game in particular, and every
+// waiting player answers yes to that.
+func (e Entry) WaitsFor(moduleID string) bool {
+	if moduleID == "" || len(e.ModuleIDs) == 0 {
+		return true
+	}
+	for _, id := range e.ModuleIDs {
+		if id == moduleID {
+			return true
+		}
+	}
+	return false
+}
+
+// sharesAGameWith reports whether two waiting players could end up at the same
+// table — whether either would appear in the list the other is shown.
+func (e Entry) sharesAGameWith(o Entry) bool {
+	if len(e.ModuleIDs) == 0 {
+		return true
+	}
+	for _, id := range e.ModuleIDs {
+		if o.WaitsFor(id) {
+			return true
+		}
+	}
+	return false
+}
+
+// ForModule is the part of a List waiting for moduleID, in the same order.
+// An empty moduleID keeps everyone.
+func ForModule(entries []Entry, moduleID string) []Entry {
+	if moduleID == "" {
+		return entries
+	}
+	out := make([]Entry, 0, len(entries))
+	for _, e := range entries {
+		if e.WaitsFor(moduleID) {
+			out = append(out, e)
+		}
+	}
+	return out
 }
 
 // Store tracks who is currently waiting. The Redis-backed implementation is
@@ -82,10 +131,12 @@ type Store interface {
 	// Pickup removes a player exactly as Leave does, but reports whether they
 	// were actually present.
 	Pickup(ctx context.Context, playerID string) bool
-	// IsWaiting reports whether a player is currently in the pool, and if
-	// so, the display details a game seat is built from.
-	IsWaiting(ctx context.Context, playerID string) (name string, isGuest bool, avatar string, ok bool)
-	// List returns everyone currently waiting, oldest first.
+	// IsWaiting reports whether a player is currently in the pool waiting for
+	// a game of moduleID ("" for any), and if so, the display details a game
+	// seat is built from.
+	IsWaiting(ctx context.Context, playerID, moduleID string) (name string, isGuest bool, avatar string, ok bool)
+	// List returns everyone currently waiting, for every game, oldest first.
+	// ForModule narrows it to one game.
 	List(ctx context.Context) []Entry
 	Close() error
 }
@@ -209,9 +260,9 @@ func (s *redisStore) Pickup(ctx context.Context, playerID string) bool {
 	return wasLocal || n > 0
 }
 
-// IsWaiting reports whether a player is currently in the pool, and if so,
-// the display details a game seat is built from.
-func (s *redisStore) IsWaiting(ctx context.Context, playerID string) (name string, isGuest bool, avatar string, ok bool) {
+// IsWaiting reports whether a player is currently in the pool waiting for a
+// game of moduleID, and if so, the display details a game seat is built from.
+func (s *redisStore) IsWaiting(ctx context.Context, playerID, moduleID string) (name string, isGuest bool, avatar string, ok bool) {
 	// When Redis is configured it is the cross-instance source of truth, and
 	// it must be consulted rather than this instance's own local map:
 	// Pickup or Leave called against a *different* instance (the common case
@@ -221,18 +272,18 @@ func (s *redisStore) IsWaiting(ctx context.Context, playerID string) (name strin
 	// Trusting local first here would let a player already picked up
 	// elsewhere still read back as waiting on this instance.
 	if s.redis != nil {
-		return s.isWaitingRedis(ctx, playerID)
+		return s.isWaitingRedis(ctx, playerID, moduleID)
 	}
 	s.mu.RLock()
 	e, found := s.local[playerID]
 	s.mu.RUnlock()
-	if !found {
+	if !found || !e.WaitsFor(moduleID) {
 		return "", false, "", false
 	}
 	return e.Username, e.IsGuest, e.Avatar, true
 }
 
-func (s *redisStore) isWaitingRedis(ctx context.Context, playerID string) (name string, isGuest bool, avatar string, ok bool) {
+func (s *redisStore) isWaitingRedis(ctx context.Context, playerID, moduleID string) (name string, isGuest bool, avatar string, ok bool) {
 	raw, err := s.redis.HGet(ctx, redisKey, playerID).Result()
 	if err != nil {
 		return "", false, "", false
@@ -241,7 +292,7 @@ func (s *redisStore) isWaitingRedis(ctx context.Context, playerID string) (name 
 	if err := json.Unmarshal([]byte(raw), &rec); err != nil {
 		return "", false, "", false
 	}
-	if time.Since(rec.LastSeen) > staleAfter {
+	if time.Since(rec.LastSeen) > staleAfter || !rec.WaitsFor(moduleID) {
 		return "", false, "", false
 	}
 	return rec.Username, rec.IsGuest, rec.Avatar, true

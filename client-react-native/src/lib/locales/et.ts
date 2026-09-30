@@ -555,6 +555,8 @@ export const et: Record<string, string> = {
     '{card} tuli viskepakist — see peab minema kombinatsioonidesse, millega sa sel käigul välja lähed.',
   'zolik.badge.jokerOwed':
     '{card} tuli laualt — see peab minema kombinatsiooni, enne kui saad oma käigu lõpetada.',
+  'zolik.badge.noReturn':
+    '{card} tuli sel käigul viskepakist — see ei saa kohe tagasi minna. Mängi see välja või hoia alles.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is
@@ -1016,8 +1018,6 @@ export const et: Record<string, string> = {
   'intro.bulletGuest': 'Proovimiseks pole vaja midagi paigaldada — alusta külalisena',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Kontinentaalne rummi · {server}',
-  'home.playingAs': 'Mängid nimega {name}',
   'home.signInPrompt': 'Logi sisse või jätka külalisena, et võrgus mängida.',
   'home.statsAndLeaderboard': 'Statistika ja edetabel',
   'home.play': 'Mängi',
@@ -1054,7 +1054,8 @@ export const et: Record<string, string> = {
   'waiting.noOthersYet':
     'Keegi teine veel ei oota. Võõrustajad näevad sind sellegipoolest ja võivad sind kutsuda.',
   'waiting.server': 'Server',
-  'waiting.none': 'Praegu ei oota keegi. Kes end peamenüüs kättesaadavaks teeb, ilmub siia.',
+  'waiting.none':
+    'Praegu ei oota keegi. Kes end selle mängu jaoks saadavaks teeb, ilmub siia.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'Sellel lingil puudub laua kood.',
@@ -1065,11 +1066,7 @@ export const et: Record<string, string> = {
   'join.takingSeatAt': 'Võtame koha mängus {game}…',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': 'Kõik, mida see server pakkuda oskab',
   'lobby.games.bots': 'Robotid',
-  'lobby.games.setup': 'Seaded',
-  'lobby.games.playBot': 'Mängi roboti vastu',
-  'lobby.games.playBots': 'Mängi {n} roboti vastu',
   'lobby.games.openTable': 'Ava laud',
   'lobby.games.players': '{n} mängijat',
   'lobby.games.playerRange': '{min}–{max} mängijat',
@@ -1106,7 +1103,6 @@ export const et: Record<string, string> = {
   'mine.deleteConfirmBody': 'See lõpetab mängu kõigi teiste jaoks lauas. Seda ei saa tagasi võtta.',
   'mine.deleteConfirm': 'Kustuta',
   'mine.deleteCancel': 'Loobu',
-  'mine.viewAll': 'Vaata kõiki',
   'mine.status.lobby': 'Ootab algust',
   'mine.status.active': 'Pooleli',
   'mine.status.suspended': 'Peatatud',
@@ -1122,6 +1118,14 @@ export const et: Record<string, string> = {
   'invite.share': 'Jaga linki',
   'invite.copied': 'Kopeeritud!',
   'invite.shared': 'Jagatud',
+  'invite.backTitle': 'Kutsu tagasi',
+  'invite.backTableHeading': 'Seadmes, millega nad mängisid',
+  'invite.backTableExplain': 'Laua link viib iga siin juba istuja otse tagasi tema kohale.',
+  'invite.backSeatHeading': 'Uues seadmes',
+  'invite.backSeatExplain': 'Koha link toob ühe inimese tagasi tema enda kohale mis tahes telefonis või brauseris. Uus link tühistab eelmise.',
+  'invite.seatLinkMake': 'Loo link: {name}',
+  'invite.seatLinkShare': '{name}, siin on sinu koht meie laua taga',
+  'invite.seatLinkFailed': 'Linki ei õnnestunud luua. Proovi uuesti.',
 
   // --- the match screen -----------------------------------------------------
   'match.waitingForTable': 'Ootame lauda…',
@@ -1136,6 +1140,9 @@ export const et: Record<string, string> = {
   'match.resume': 'Jätka sealt, kus pooleli jäid',
   'match.resuming': 'Taastan lauda…',
   'match.abandonedWaitingFor': 'Oodatakse, et {names} tuleks laua juurde tagasi.',
+  'match.tableCode': 'Kood {code}',
+  'match.tableCodeShare': 'Tule tagasi meie lauda',
+  'match.abandonedSendCode': 'Saada neile link tagasi oma kohale — see töötab igas seadmes.',
   'seat.title': 'Sinu koht',
   'seat.youAre': 'Sina oled {name}',
   'seat.atTable': '{game} koos: {names}',
@@ -1695,6 +1702,20 @@ export const et: Record<string, string> = {
   'option.hints': 'Vihjed',
   'choice.hints.1': 'Lubatud',
   'choice.hints.0': 'Väljas',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Vali mäng',
+  'picker.yourTurn': 'Sinu käik',
+  'picker.resume': 'Jätka',
+  'picker.waiting': '{n} ootab',
+  'picker.tablesMany': '{n} mängu käib',
+  'picker.waitingFor': 'Ootad mängu {game}',
+  'picker.join': 'Liitu',
+  'game.startYourOwn': 'Alusta oma',
+  'game.playBots': 'Mängi bottide vastu',
+  'setup.titleTable': 'Uus laud: {game}',
+  'setup.titleBots': '{game} bottide vastu',
+  'setup.openTable': 'Ava laud',
+  'setup.dealMeIn': 'Jaga mulle',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Jagamisi',

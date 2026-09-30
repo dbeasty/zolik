@@ -546,6 +546,8 @@ export const en: Record<string, string> = {
   // says so while there is still a turn left to act on it.
   'zolik.badge.owedToMeld': '{card} came off the discard pile — it has to go into the melds you go down with this turn.',
   'zolik.badge.jokerOwed': '{card} came off the table — it has to go into a meld before you can end your turn.',
+  'zolik.badge.noReturn':
+    "{card} came off the discard pile this turn — it can't go straight back. Play it or keep it.",
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is
@@ -1005,8 +1007,6 @@ export const en: Record<string, string> = {
   'intro.bulletGuest': 'No installs to try it — jump in as a guest',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Continental Rummy · {server}',
-  'home.playingAs': 'Playing as {name}',
   'home.signInPrompt': 'Sign in or continue as guest to play online.',
   'home.statsAndLeaderboard': 'Stats & leaderboard',
   'home.play': 'Play',
@@ -1044,7 +1044,8 @@ export const en: Record<string, string> = {
     "Nobody is waiting to play right now. Put yourself on the list and you'll be the first anyone sees.",
   'waiting.noOthersYet': 'Nobody else is waiting yet. Hosts can still see you and invite you.',
   'waiting.server': 'Server',
-  'waiting.none': 'No one is waiting right now. Anyone who makes themselves available on the main menu shows up here.',
+  'waiting.none':
+    'No one is waiting right now. Anyone who makes themselves available for this game shows up here.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'That link is missing its table code.',
@@ -1055,11 +1056,7 @@ export const en: Record<string, string> = {
   'join.takingSeatAt': 'Taking a seat at {game}…',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': 'Everything this server can host',
   'lobby.games.bots': 'Bots',
-  'lobby.games.setup': 'Settings',
-  'lobby.games.playBot': 'Play against a bot',
-  'lobby.games.playBots': 'Play against {n} bots',
   'lobby.games.openTable': 'Open a table',
   'lobby.games.players': '{n} players',
   'lobby.games.playerRange': '{min}–{max} players',
@@ -1096,7 +1093,6 @@ export const en: Record<string, string> = {
   'mine.deleteConfirmBody': 'This ends the game for everyone still seated. This cannot be undone.',
   'mine.deleteConfirm': 'Delete',
   'mine.deleteCancel': 'Cancel',
-  'mine.viewAll': 'View all',
   'mine.status.lobby': 'Waiting to start',
   'mine.status.active': 'In progress',
   'mine.status.suspended': 'Paused',
@@ -1112,6 +1108,16 @@ export const en: Record<string, string> = {
   'invite.share': 'Share link',
   'invite.copied': 'Copied!',
   'invite.shared': 'Shared',
+  // The invite-back sheet: the table link for a player's own device, and a
+  // seat link, made per person, for any other one.
+  'invite.backTitle': 'Invite back',
+  'invite.backTableHeading': 'On the device they played on',
+  'invite.backTableExplain': 'The table link takes anyone already seated here straight back to their seat.',
+  'invite.backSeatHeading': 'On a new device',
+  'invite.backSeatExplain': 'A seat link brings one person back to their own seat on any phone or browser. Making a new one cancels the last.',
+  'invite.seatLinkMake': "Make {name}'s link",
+  'invite.seatLinkShare': "{name}, here's your seat at our table",
+  'invite.seatLinkFailed': "Couldn't make the link. Try again.",
 
   // --- the match screen -----------------------------------------------------
   'match.waitingForTable': 'Waiting for the table…',
@@ -1131,6 +1137,11 @@ export const en: Record<string, string> = {
   // sending them the link — rather than leaving a banner whose only button is
   // the way out.
   'match.abandonedWaitingFor': 'Waiting for {names} to come back to the table.',
+  // The join code pinned to the top of a dealt board. Pressing it hands over
+  // the link; a seated player who opens it is taken back to their own seat.
+  'match.tableCode': 'Code {code}',
+  'match.tableCodeShare': 'Come back to our table',
+  'match.abandonedSendCode': 'Send them a link back to their seat — it works on any device.',
   'seat.title': 'Your seat',
   'seat.youAre': "You're {name}",
   'seat.atTable': '{game} with {names}',
@@ -1705,6 +1716,20 @@ export const en: Record<string, string> = {
   'option.hints': 'Hints',
   'choice.hints.1': 'Allowed',
   'choice.hints.0': 'Off',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Pick a game',
+  'picker.yourTurn': 'Your turn',
+  'picker.resume': 'Resume',
+  'picker.waiting': '{n} waiting',
+  'picker.tablesMany': '{n} games going',
+  'picker.waitingFor': "You're waiting to play {game}",
+  'picker.join': 'Join',
+  'game.startYourOwn': 'Start your own',
+  'game.playBots': 'Play against bots',
+  'setup.titleTable': 'New {game} table',
+  'setup.titleBots': '{game} against bots',
+  'setup.openTable': 'Open table',
+  'setup.dealMeIn': 'Deal me in',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Deals',

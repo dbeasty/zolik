@@ -564,6 +564,8 @@ export const hu: Record<string, string> = {
     'A(z) {card} a dobópakliból jött — abba a kombinációba kell kerülnie, amellyel ebben a körben lerakod magad.',
   'zolik.badge.jokerOwed':
     'A(z) {card} az asztalról jött — kombinációba kell kerülnie, mielőtt lezárhatnád a köröd.',
+  'zolik.badge.noReturn':
+    'A(z) {card} ebben a körben a dobópakliból jött — nem mehet rögtön vissza. Játszd ki vagy tartsd meg.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is
@@ -1027,8 +1029,6 @@ export const hu: Record<string, string> = {
   'intro.bulletGuest': 'Nincs szükség telepítésre a kipróbáláshoz — lépj be vendégként',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Kontinentális römi · {server}',
-  'home.playingAs': '{name} néven játszol',
   'home.signInPrompt': 'Lépj be, vagy folytasd vendégként, hogy online játszhass.',
   'home.statsAndLeaderboard': 'Statisztika és ranglista',
   'home.play': 'Játék',
@@ -1066,7 +1066,8 @@ export const hu: Record<string, string> = {
     'Jelenleg senki sem vár játékra. Írd fel magad a listára, és te leszel az első, akit bárki meglát.',
   'waiting.noOthersYet': 'Rajtad kívül még senki sem vár. A házigazdák így is látnak, és meghívhatnak.',
   'waiting.server': 'Kiszolgáló',
-  'waiting.none': 'Jelenleg senki sem vár. Aki a főmenüben elérhetővé teszi magát, itt jelenik meg.',
+  'waiting.none':
+    'Most senki sem vár. Aki elérhetővé teszi magát ehhez a játékhoz, itt jelenik meg.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'Erről a linkről hiányzik az asztal kódja.',
@@ -1077,11 +1078,7 @@ export const hu: Record<string, string> = {
   'join.takingSeatAt': 'Helyet foglalunk itt: {game}…',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': 'Minden, amit ez a kiszolgáló kínálni tud',
   'lobby.games.bots': 'Botok',
-  'lobby.games.setup': 'Beállítások',
-  'lobby.games.playBot': 'Játék bot ellen',
-  'lobby.games.playBots': 'Játék {n} bot ellen',
   'lobby.games.openTable': 'Asztal nyitása',
   'lobby.games.players': '{n} játékos',
   'lobby.games.playerRange': '{min}–{max} játékos',
@@ -1118,7 +1115,6 @@ export const hu: Record<string, string> = {
   'mine.deleteConfirmBody': 'Ez véget vet a játéknak mindenki másnak az asztalnál. Ez nem vonható vissza.',
   'mine.deleteConfirm': 'Törlés',
   'mine.deleteCancel': 'Mégse',
-  'mine.viewAll': 'Összes megtekintése',
   'mine.status.lobby': 'Kezdésre vár',
   'mine.status.active': 'Folyamatban',
   'mine.status.suspended': 'Szüneteltetve',
@@ -1135,6 +1131,14 @@ export const hu: Record<string, string> = {
   'invite.share': 'Link megosztása',
   'invite.copied': 'Másolva!',
   'invite.shared': 'Megosztva',
+  'invite.backTitle': 'Visszahívás',
+  'invite.backTableHeading': 'Azon az eszközön, amelyen játszottak',
+  'invite.backTableExplain': 'Az asztal linkje bárkit, aki már itt ül, egyenesen visszavisz a helyére.',
+  'invite.backSeatHeading': 'Új eszközön',
+  'invite.backSeatExplain': 'A helylink egy embert a saját helyére hoz vissza bármilyen telefonon vagy böngészőben. Új link készítése érvényteleníti az előzőt.',
+  'invite.seatLinkMake': 'Link készítése: {name}',
+  'invite.seatLinkShare': '{name}, itt a helyed az asztalunknál',
+  'invite.seatLinkFailed': 'Nem sikerült elkészíteni a linket. Próbáld újra.',
 
   // --- the match screen -----------------------------------------------------
   'match.waitingForTable': 'Várunk az asztalra…',
@@ -1149,6 +1153,9 @@ export const hu: Record<string, string> = {
   'match.resume': 'Folytasd ott, ahol abbahagytad',
   'match.resuming': 'Asztal visszahozása…',
   'match.abandonedWaitingFor': 'Várunk arra, hogy {names} visszatérjen az asztalhoz.',
+  'match.tableCode': 'Kód: {code}',
+  'match.tableCodeShare': 'Gyere vissza az asztalunkhoz',
+  'match.abandonedSendCode': 'Küldj nekik egy linket vissza a helyükre — bármilyen eszközön működik.',
   'seat.title': 'A helyed',
   'seat.youAre': 'Te vagy {name}',
   'seat.atTable': '{game} – {names}',
@@ -1708,6 +1715,20 @@ export const hu: Record<string, string> = {
   'option.hints': 'Tippek',
   'choice.hints.1': 'Engedélyezve',
   'choice.hints.0': 'Kikapcsolva',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Válassz játékot',
+  'picker.yourTurn': 'Te jössz',
+  'picker.resume': 'Folytatás',
+  'picker.waiting': '{n} vár',
+  'picker.tablesMany': '{n} játék folyamatban',
+  'picker.waitingFor': 'Várod, hogy {game} játékot játssz',
+  'picker.join': 'Csatlakozás',
+  'game.startYourOwn': 'Indíts sajátot',
+  'game.playBots': 'Játék botok ellen',
+  'setup.titleTable': 'Új asztal: {game}',
+  'setup.titleBots': '{game} botok ellen',
+  'setup.openTable': 'Asztal megnyitása',
+  'setup.dealMeIn': 'Ossz nekem',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Leosztások',

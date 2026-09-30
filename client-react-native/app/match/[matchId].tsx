@@ -24,6 +24,8 @@ import { Panel } from '@/src/components/match/Panel';
 import { ResultsFlash } from '@/src/components/match/ResultsFlash';
 import { RoundResults } from '@/src/components/match/RoundResults';
 import { ScoreSheet } from '@/src/components/match/ScoreSheet';
+import { InviteBackSheet } from '@/src/components/match/InviteBackSheet';
+import { TableCode } from '@/src/components/match/TableCode';
 import { TableSurface } from '@/src/components/match/TableSurface';
 import { useSession } from '@/src/context/SessionContext';
 import { useSeatSession } from '@/src/hooks/useSeatSession';
@@ -239,6 +241,7 @@ export default function MatchScreen() {
   // before the `!state` early return below so hook order stays fixed
   // whether or not the socket has delivered a state yet.
   const [statusExplainerOpen, setStatusExplainerOpen] = useState(false);
+  const [inviteBackOpen, setInviteBackOpen] = useState(false);
   // Setting up the same table again, and whatever went wrong trying — declared
   // up here for the same reason: hooks may not be conditional.
   const [startingAgain, setStartingAgain] = useState(false);
@@ -421,7 +424,7 @@ export default function MatchScreen() {
               </Text>
               <Pressable
                 testID="match-gone-leave"
-                onPress={() => router.replace('/lobby/games')}
+                onPress={() => router.dismissTo('/')}
                 style={styles.overButtonQuiet}
               >
                 <Text style={styles.overButtonQuietText}>{t('match.backToGames')}</Text>
@@ -962,6 +965,18 @@ export default function MatchScreen() {
     .map((id) => playerName(state.players, id))
     .filter(Boolean);
 
+  // The join code, kept in view for as long as the table can still be played,
+  // because it is how a seated player who left gets back: the join call lets
+  // an existing seat in whatever the table is doing. Only for a player seated
+  // here, and only where somebody else could need it — a table against bots
+  // has nobody to send it to.
+  const tableCode =
+    seatedHere &&
+    state.status !== 'completed' &&
+    state.players.some((p) => !p.isAI && p.id !== viewerId)
+      ? (state.joinCode ?? '')
+      : '';
+
   // What the status dot means, in the same words the line it replaced used
   // to say. Red is the one case a player needs to notice — everything else
   // (active, completed) is green, since "simple red or green" was the ask,
@@ -1161,7 +1176,7 @@ export default function MatchScreen() {
             // whichever offer this card is about to be refused by —
             // asked for on long-press, rather than the module having
             // to say the same thing twice.
-            ...refusalBehindBadge(state.legalActions),
+            ...refusalBehindBadge(state.legalActions, card),
           })
         }
         {...zonePanelProps(z.id)}
@@ -1190,21 +1205,37 @@ export default function MatchScreen() {
           // this it keeps the app-wide chrome and the felt starts at a seam.
           headerStyle: { backgroundColor: skin.colors.bg },
           headerTintColor: skin.colors.text,
+          // The join code rides in the bar too, for the same reason the
+          // status does: the board scrolls to the hand on arrival, and a code
+          // at the top of the board would be gone before anyone looked for it.
+          // A sibling of the status rather than inside its Pressable, so a
+          // press on the code shares the link instead of toggling the
+          // explainer.
           headerTitle: () => (
-            <Pressable
-              testID="match-status-dot"
-              onPress={() => setStatusExplainerOpen((v) => !v)}
-              hitSlop={8}
-              style={styles.headerTitleGroup}
-            >
-              <Text style={styles.headerTitleText}>{t('nav.match')}</Text>
-              <View
-                style={[styles.statusDot, statusOk ? styles.statusDotOk : styles.statusDotBad]}
-              />
-              <Text testID="match-status" style={styles.status}>
-                {state.status}
-              </Text>
-            </Pressable>
+            <View style={styles.headerTitleGroup}>
+              <Pressable
+                testID="match-status-dot"
+                onPress={() => setStatusExplainerOpen((v) => !v)}
+                hitSlop={8}
+                style={styles.headerTitleGroup}
+              >
+                <Text style={styles.headerTitleText}>{t('nav.match')}</Text>
+                <View
+                  style={[styles.statusDot, statusOk ? styles.statusDotOk : styles.statusDotBad]}
+                />
+                <Text testID="match-status" style={styles.status}>
+                  {state.status}
+                </Text>
+              </Pressable>
+              {tableCode ? (
+                <TableCode
+                  joinCode={tableCode}
+                  onPress={() => setInviteBackOpen(true)}
+                  chipStyle={styles.tableCode}
+                  textStyle={styles.tableCodeText}
+                />
+              ) : null}
+            </View>
           ),
         }}
       />
@@ -1239,7 +1270,7 @@ export default function MatchScreen() {
               testID="match-rules"
               onPress={() =>
                 // One continuous template literal — see the matching comment
-                // in app/lobby/games.tsx for why a `+` chain fails to typecheck
+                // in app/lobby/setup.tsx for why a `+` chain fails to typecheck
                 // against expo-router's typed routes.
                 router.push(
                   `/rules?moduleId=${encodeURIComponent(state.moduleId)}&variation=${encodeURIComponent(state.variation ?? '')}&options=${encodeURIComponent(JSON.stringify(state.options ?? {}))}`,
@@ -1295,6 +1326,22 @@ export default function MatchScreen() {
               <Text testID="match-over-waiting" style={styles.overOutcome}>
                 {t('match.abandonedWaitingFor', { names: awayNames.join(', ') })}
               </Text>
+            ) : null}
+            {/* And how to get them here, on whatever device they have now:
+                the same sheet the code in the bar opens. */}
+            {wasAbandoned && !canResume && awayNames.length && tableCode ? (
+              <>
+                <Text testID="match-over-send-code" style={styles.overOutcome}>
+                  {t('match.abandonedSendCode')}
+                </Text>
+                <Pressable
+                  testID="match-over-invite-back"
+                  onPress={() => setInviteBackOpen(true)}
+                  style={styles.overButton}
+                >
+                  <Text style={styles.overButtonText}>{t('invite.backTitle')}</Text>
+                </Pressable>
+              </>
             ) : null}
             {rematchOffer ? (
               <Text testID="match-over-rematch-offer" style={styles.overOutcome}>
@@ -1355,7 +1402,7 @@ export default function MatchScreen() {
               ) : null}
               <Pressable
                 testID="match-over-leave"
-                onPress={() => router.replace('/lobby/games')}
+                onPress={() => router.dismissTo('/')}
                 style={styles.overButtonQuiet}
               >
                 <Text style={styles.overButtonQuietText}>{t('match.backToGames')}</Text>
@@ -1438,6 +1485,18 @@ export default function MatchScreen() {
         onClose={() => setScoreOf(null)}
       />
 
+      {tableCode ? (
+        <InviteBackSheet
+          open={inviteBackOpen}
+          onClose={() => setInviteBackOpen(false)}
+          client={client}
+          matchId={state.matchId}
+          joinCode={tableCode}
+          inviteUrl={state.inviteUrl}
+          players={state.players.filter((p) => !p.isAI && p.id !== viewerId)}
+        />
+      ) : null}
+
       <WhySheet
         refusal={explaining}
         ruleIndex={ruleIndex}
@@ -1499,7 +1558,16 @@ export default function MatchScreen() {
  * shipping a second copy of them. Nothing found means the mark stands on its
  * own wording, which is still a sentence.
  */
-function refusalBehindBadge(offers: ActionOffer[]): Pick<Refusal, 'ruleIds' | 'remedy' | 'remedyOfferId'> {
+function refusalBehindBadge(
+  offers: ActionOffer[],
+  card: string,
+): Pick<Refusal, 'ruleIds' | 'remedy' | 'remedyOfferId'> {
+  // A card an enabled offer turns down by name — the one just taken off the
+  // pile — is its own refusal, and a closer answer than any greyed-out offer.
+  for (const o of offers) {
+    const own = o.enabled ? o.source?.refused?.find((r) => r.card === card) : undefined;
+    if (own && (own.ruleIds?.length || own.remedy)) return { ruleIds: own.ruleIds, remedy: own.remedy };
+  }
   const refused = offers.find((o) => !o.enabled && (o.ruleIds?.length || o.remedy));
   if (!refused) return {};
   return { ruleIds: refused.ruleIds, remedy: refused.remedy, remedyOfferId: refused.remedyOfferId };

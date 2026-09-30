@@ -549,6 +549,8 @@ export const da: Record<string, string> = {
     '{card} kom fra kastebunken — det skal indgå i de kombinationer, du lægger ud med i denne tur.',
   'zolik.badge.jokerOwed':
     '{card} kom fra bordet — det skal indgå i en kombination, før du kan afslutte din tur.',
+  'zolik.badge.noReturn':
+    '{card} kom fra kastebunken i denne tur — det kan ikke gå lige tilbage. Spil det eller behold det.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is
@@ -1009,8 +1011,6 @@ export const da: Record<string, string> = {
   'intro.bulletGuest': 'Ingen installation nødvendig — prøv det som gæst',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Kontinental rommy · {server}',
-  'home.playingAs': 'Du spiller som {name}',
   'home.signInPrompt': 'Log ind eller fortsæt som gæst for at spille online.',
   'home.statsAndLeaderboard': 'Statistik og rangliste',
   'home.play': 'Spil',
@@ -1048,7 +1048,8 @@ export const da: Record<string, string> = {
     'Lige nu venter ingen på at spille. Skriv dig på listen, så er du den første, nogen ser.',
   'waiting.noOthersYet': 'Ingen andre venter endnu. Værter kan se dig alligevel og kan invitere dig.',
   'waiting.server': 'Server',
-  'waiting.none': 'Lige nu venter ingen. Den, der gør sig tilgængelig i hovedmenuen, dukker op her.',
+  'waiting.none':
+    'Lige nu venter ingen. Den, der gør sig tilgængelig til dette spil, dukker op her.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'Det link mangler sin bordkode.',
@@ -1059,11 +1060,7 @@ export const da: Record<string, string> = {
   'join.takingSeatAt': 'Tager plads ved {game}…',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': 'Alt hvad denne server kan byde på',
   'lobby.games.bots': 'Bots',
-  'lobby.games.setup': 'Indstillinger',
-  'lobby.games.playBot': 'Spil mod en bot',
-  'lobby.games.playBots': 'Spil mod {n} bots',
   'lobby.games.openTable': 'Åbn et bord',
   'lobby.games.players': '{n} spillere',
   'lobby.games.playerRange': '{min}–{max} spillere',
@@ -1100,7 +1097,6 @@ export const da: Record<string, string> = {
   'mine.deleteConfirmBody': 'Det afslutter spillet for alle andre ved bordet. Kan ikke fortrydes.',
   'mine.deleteConfirm': 'Slet',
   'mine.deleteCancel': 'Annuller',
-  'mine.viewAll': 'Se alle',
   'mine.status.lobby': 'Venter på start',
   'mine.status.active': 'I gang',
   'mine.status.suspended': 'Sat på pause',
@@ -1116,6 +1112,14 @@ export const da: Record<string, string> = {
   'invite.share': 'Del link',
   'invite.copied': 'Kopieret!',
   'invite.shared': 'Delt',
+  'invite.backTitle': 'Inviter tilbage',
+  'invite.backTableHeading': 'På den enhed, de spillede på',
+  'invite.backTableExplain': 'Bordlinket bringer alle, der allerede sidder her, direkte tilbage til deres plads.',
+  'invite.backSeatHeading': 'På en ny enhed',
+  'invite.backSeatExplain': 'Et pladslink bringer én person tilbage til sin egen plads på enhver telefon eller browser. Et nyt link annullerer det forrige.',
+  'invite.seatLinkMake': 'Lav link til {name}',
+  'invite.seatLinkShare': '{name}, her er din plads ved vores bord',
+  'invite.seatLinkFailed': 'Linket kunne ikke laves. Prøv igen.',
 
   // --- the match screen -----------------------------------------------------
   'match.waitingForTable': 'Venter på bordet…',
@@ -1130,6 +1134,9 @@ export const da: Record<string, string> = {
   'match.resume': 'Fortsæt hvor du slap',
   'match.resuming': 'Henter bordet tilbage…',
   'match.abandonedWaitingFor': 'Venter på, at {names} kommer tilbage til bordet.',
+  'match.tableCode': 'Kode {code}',
+  'match.tableCodeShare': 'Kom tilbage til vores bord',
+  'match.abandonedSendCode': 'Send dem et link tilbage til deres plads — det virker på enhver enhed.',
   'seat.title': 'Din plads',
   'seat.youAre': 'Du er {name}',
   'seat.atTable': '{game} med {names}',
@@ -1689,6 +1696,20 @@ export const da: Record<string, string> = {
   'option.hints': 'Tips',
   'choice.hints.1': 'Tilladt',
   'choice.hints.0': 'Fra',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Vælg et spil',
+  'picker.yourTurn': 'Din tur',
+  'picker.resume': 'Fortsæt',
+  'picker.waiting': '{n} venter',
+  'picker.tablesMany': '{n} spil i gang',
+  'picker.waitingFor': 'Du venter på at spille {game}',
+  'picker.join': 'Deltag',
+  'game.startYourOwn': 'Start dit eget',
+  'game.playBots': 'Spil mod bots',
+  'setup.titleTable': 'Nyt bord: {game}',
+  'setup.titleBots': '{game} mod bots',
+  'setup.openTable': 'Åbn bord',
+  'setup.dealMeIn': 'Giv mig kort',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Give',

@@ -164,14 +164,16 @@ func (m *Manager) SetReplayEnabled(on bool) { m.replayEnabled = on }
 // socket hub lives in internal/ws; the narrowness is worth keeping on its own
 // merits.)
 type WaitingLookup interface {
-	// IsWaiting reports the display details of a waiting player, so an invite
-	// can build their seat without a second round trip.
+	// IsWaiting reports the display details of a player waiting for a game of
+	// moduleID, so an invite can build their seat without a second round trip.
+	// A player waiting only for other games is not waiting, as far as a table
+	// of this one is concerned.
 	//
 	// A widening tuple rather than a struct, and deliberately so: the whole
 	// point of this interface is that the runtime never learns what a waiting
 	// room is, and returning the pool's own record would mean importing it.
 	// Four values is uglier than a type and is the honest cost of that.
-	IsWaiting(ctx context.Context, playerID string) (name string, isGuest bool, avatar string, ok bool)
+	IsWaiting(ctx context.Context, playerID, moduleID string) (name string, isGuest bool, avatar string, ok bool)
 	// Pickup removes a player from the pool, reporting whether they were
 	// actually present. Called only after they have been seated — a failed
 	// seat attempt must leave them waiting, not silently drop them.
@@ -216,8 +218,10 @@ func (m *Manager) Invite(ctx context.Context, idOrCode, hostID, playerID string)
 	// Re-checked here rather than trusted from whatever snapshot the host's
 	// client last polled: the target may have left, been picked up elsewhere,
 	// or disconnected in the meantime, and this is the only point that gets to
-	// decide whether they are still actually available.
-	name, isGuest, avatar, stillWaiting := m.waiting.IsWaiting(ctx, playerID)
+	// decide whether they are still actually available — for this game: a
+	// player who has since switched to waiting for another one is no longer
+	// waiting for this table, which is what the refusal says.
+	name, isGuest, avatar, stillWaiting := m.waiting.IsWaiting(ctx, playerID, match.ModuleID)
 	if !stillWaiting {
 		return models.Match{}, false, module.Error{Code: "NO_LONGER_WAITING"}
 	}

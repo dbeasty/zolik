@@ -20,7 +20,7 @@ import {
   submissionFor,
 } from '@/src/api/matchTypes';
 import { useMetrics } from '@/src/hooks/useMetrics';
-import { fits, readyWith, type Fit } from '@/src/lib/drops';
+import { fits, readyWith, refusalOfFit, type Fit } from '@/src/lib/drops';
 import { Attention } from '@/src/components/match/Attention';
 import type { Refusal } from '@/src/components/match/WhySheet';
 import type { Metrics } from '@/src/lib/layout';
@@ -960,12 +960,12 @@ export function refusalFor(
     const need = offer.source?.minCards ?? 1;
     if (selected.length > 0) {
       const fit = fits(offer, selected);
-      if (!fit.ok) return { labelKey: fit.labelKey, params: fit.params };
+      if (!fit.ok) return refusalOfFit(fit);
     }
     return { labelKey: 'why.pickAtLeast', params: { n: need } };
   }
   const unready = unreadyReason(offer, selected);
-  if (unready) return { labelKey: unready.labelKey, params: unready.params };
+  if (unready) return refusalOfFit(unready);
   if (isReady(offer, selected, chosen)) return {};
   const need = offer.source?.minCards ?? 0;
   return need > 0 ? { labelKey: 'sel.needMore', params: { n: need } } : { labelKey: 'why.unavailable' };

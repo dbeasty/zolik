@@ -1,4 +1,4 @@
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { LegalLinks } from '@/src/components/LegalLinks';
 import { CLIENT_COMMIT, CLIENT_VERSION } from '@/src/config';
@@ -18,17 +18,36 @@ import { t } from '@/src/lib/i18n';
  * mid-investigation, and making them one navigation further away would be a
  * loss for the only people who read them.
  */
-export function BuildFooter() {
+export function BuildFooter({ onPressVersions }: { onPressVersions?: () => void } = {}) {
   const server = useServerBuild();
 
-  return (
-    <View testID="build-footer" style={{ marginTop: 24 }}>
+  // The two numbers are also the way to About on the main menu, which is the
+  // screen that says the same thing at reading size — the obvious thing to
+  // tap on a line of small grey text you are trying to read.
+  const versions = (
+    <>
       <Text style={shared.status} testID="build-footer-app">
         {t('build.app')} {CLIENT_VERSION} · {CLIENT_COMMIT}
       </Text>
       <Text style={shared.status} testID="build-footer-server">
         {server ? `${t('build.server')} ${server.version} · ${server.commit}` : `${t('build.server')} …`}
       </Text>
+    </>
+  );
+
+  return (
+    <View testID="build-footer" style={{ marginTop: 24 }}>
+      {onPressVersions ? (
+        <Pressable
+          testID="build-footer-about"
+          accessibilityRole="link"
+          onPress={onPressVersions}
+        >
+          {versions}
+        </Pressable>
+      ) : (
+        versions
+      )}
       {/* The footer is already where the app keeps the things that must be
           available and must not distract — which is exactly what the notices
           are. Nothing above had to move to make room. */}

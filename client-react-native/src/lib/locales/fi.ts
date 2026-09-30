@@ -554,6 +554,8 @@ export const fi: Record<string, string> = {
     '{card} tuli poistopinosta — sen on mentävä niihin yhdistelmiin, joilla lasket alas tällä vuorolla.',
   'zolik.badge.jokerOwed':
     '{card} tuli pöydästä — sen on mentävä yhdistelmään ennen kuin voit päättää vuorosi.',
+  'zolik.badge.noReturn':
+    '{card} tuli tällä vuorolla poistopinosta — se ei voi palata heti takaisin. Pelaa se tai pidä se.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is
@@ -1017,8 +1019,6 @@ export const fi: Record<string, string> = {
   'intro.bulletGuest': 'Ei asennusta kokeiluun — aloita vieraana',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Continental-rommi · {server}',
-  'home.playingAs': 'Pelaat nimellä {name}',
   'home.signInPrompt': 'Kirjaudu sisään tai jatka vieraana pelataksesi verkossa.',
   'home.statsAndLeaderboard': 'Tilastot ja tulostaulu',
   'home.play': 'Pelaa',
@@ -1057,7 +1057,8 @@ export const fi: Record<string, string> = {
     'Juuri nyt kukaan ei odota pelaamista. Laita itsesi listalle, niin olet ensimmäinen, jonka kuka tahansa näkee.',
   'waiting.noOthersYet': 'Kukaan muu ei odota vielä. Isännät näkevät sinut silti ja voivat kutsua sinut.',
   'waiting.server': 'Palvelin',
-  'waiting.none': 'Juuri nyt kukaan ei odota. Se, joka ilmoittautuu päävalikossa, ilmestyy tähän.',
+  'waiting.none':
+    'Kukaan ei odota juuri nyt. Kuka tahansa, joka ilmoittautuu tähän peliin, näkyy täällä.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'Tästä linkistä puuttuu pöydän koodi.',
@@ -1068,11 +1069,7 @@ export const fi: Record<string, string> = {
   'join.takingSeatAt': 'Otetaan paikka pelistä {game}…',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': 'Kaikki, mitä tämä palvelin osaa tarjota',
   'lobby.games.bots': 'Botit',
-  'lobby.games.setup': 'Asetukset',
-  'lobby.games.playBot': 'Pelaa bottia vastaan',
-  'lobby.games.playBots': 'Pelaa {n} bottia vastaan',
   'lobby.games.openTable': 'Avaa pöytä',
   'lobby.games.players': '{n} pelaajaa',
   'lobby.games.playerRange': '{min}–{max} pelaajaa',
@@ -1109,7 +1106,6 @@ export const fi: Record<string, string> = {
   'mine.deleteConfirmBody': 'Tämä päättää pelin kaikille pöydässä. Tätä ei voi perua.',
   'mine.deleteConfirm': 'Poista',
   'mine.deleteCancel': 'Peruuta',
-  'mine.viewAll': 'Näytä kaikki',
   'mine.status.lobby': 'Odottaa alkamista',
   'mine.status.active': 'Kesken',
   'mine.status.suspended': 'Keskeytetty',
@@ -1126,6 +1122,14 @@ export const fi: Record<string, string> = {
   'invite.share': 'Jaa linkki',
   'invite.copied': 'Kopioitu!',
   'invite.shared': 'Jaettu',
+  'invite.backTitle': 'Kutsu takaisin',
+  'invite.backTableHeading': 'Laitteella, jolla he pelasivat',
+  'invite.backTableExplain': 'Pöydän linkki vie kenet tahansa täällä jo istuvan suoraan takaisin paikalleen.',
+  'invite.backSeatHeading': 'Uudella laitteella',
+  'invite.backSeatExplain': 'Paikkalinkki tuo yhden pelaajan takaisin omalle paikalleen millä tahansa puhelimella tai selaimella. Uusi linkki mitätöi edellisen.',
+  'invite.seatLinkMake': 'Luo linkki: {name}',
+  'invite.seatLinkShare': '{name}, tässä on paikkasi pöydässämme',
+  'invite.seatLinkFailed': 'Linkkiä ei voitu luoda. Yritä uudelleen.',
 
   // --- the match screen -----------------------------------------------------
   'match.waitingForTable': 'Odotetaan pöytää…',
@@ -1140,6 +1144,9 @@ export const fi: Record<string, string> = {
   'match.resume': 'Jatka siitä, mihin jäit',
   'match.resuming': 'Palautetaan pöytää…',
   'match.abandonedWaitingFor': 'Odotetaan, että {names} palaa pöytään.',
+  'match.tableCode': 'Koodi {code}',
+  'match.tableCodeShare': 'Palaa pöytäämme',
+  'match.abandonedSendCode': 'Lähetä heille linkki takaisin paikalleen — se toimii millä tahansa laitteella.',
   'seat.title': 'Paikkasi',
   'seat.youAre': 'Olet {name}',
   'seat.atTable': '{game}: {names}',
@@ -1699,6 +1706,20 @@ export const fi: Record<string, string> = {
   'option.hints': 'Vihjeet',
   'choice.hints.1': 'Sallittu',
   'choice.hints.0': 'Pois',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Valitse peli',
+  'picker.yourTurn': 'Sinun vuorosi',
+  'picker.resume': 'Jatka',
+  'picker.waiting': '{n} odottaa',
+  'picker.tablesMany': '{n} peliä kesken',
+  'picker.waitingFor': 'Odotat pelaamaan: {game}',
+  'picker.join': 'Liity',
+  'game.startYourOwn': 'Aloita oma',
+  'game.playBots': 'Pelaa botteja vastaan',
+  'setup.titleTable': 'Uusi pöytä: {game}',
+  'setup.titleBots': '{game} botteja vastaan',
+  'setup.openTable': 'Avaa pöytä',
+  'setup.dealMeIn': 'Jaa minulle',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Jakoja',

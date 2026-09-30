@@ -552,6 +552,8 @@ export const hr: Record<string, string> = {
     '{card} je došla s hrpe odbačenih — mora ući u kombinacije kojima se u ovom potezu spuštaš.',
   'zolik.badge.jokerOwed':
     '{card} je došla sa stola — mora ući u kombinaciju prije nego što možeš završiti potez.',
+  'zolik.badge.noReturn':
+    '{card} je ovaj potez došla s hrpe odbačenih — ne može se odmah vratiti. Odigraj je ili je zadrži.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is
@@ -1012,8 +1014,6 @@ export const hr: Record<string, string> = {
   'intro.bulletGuest': 'Bez instalacije za isprobavanje — uđi kao gost',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Kontinentalni remi · {server}',
-  'home.playingAs': 'Igraš kao {name}',
   'home.signInPrompt': 'Prijavi se ili nastavi kao gost da bi igrao na mreži.',
   'home.statsAndLeaderboard': 'Statistika i ljestvica',
   'home.play': 'Igraj',
@@ -1049,7 +1049,8 @@ export const hr: Record<string, string> = {
   'waiting.noneYet': 'Trenutno nitko ne čeka igru. Upiši se na listu i bit ćeš prvi koga itko vidi.',
   'waiting.noOthersYet': 'Nitko drugi još ne čeka. Domaćini te ipak vide i mogu te pozvati.',
   'waiting.server': 'Poslužitelj',
-  'waiting.none': 'Trenutno nitko ne čeka. Tko se učini dostupnim u glavnom izborniku, pojavljuje se ovdje.',
+  'waiting.none':
+    'Trenutačno nitko ne čeka. Tko se ponudi za ovu igru, pojavit će se ovdje.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'Toj poveznici nedostaje kôd stola.',
@@ -1060,11 +1061,7 @@ export const hr: Record<string, string> = {
   'join.takingSeatAt': 'Zauzimamo mjesto za {game}…',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': 'Sve što ovaj poslužitelj može ponuditi',
   'lobby.games.bots': 'Botovi',
-  'lobby.games.setup': 'Postavke',
-  'lobby.games.playBot': 'Igraj protiv bota',
-  'lobby.games.playBots': 'Igraj protiv {n} bota',
   'lobby.games.openTable': 'Otvori stol',
   'lobby.games.players': 'Igrača: {n}',
   'lobby.games.playerRange': 'Igrača: {min}–{max}',
@@ -1101,7 +1098,6 @@ export const hr: Record<string, string> = {
   'mine.deleteConfirmBody': 'Time igra završava svima ostalima za stolom. Ovo se ne može poništiti.',
   'mine.deleteConfirm': 'Izbriši',
   'mine.deleteCancel': 'Odustani',
-  'mine.viewAll': 'Prikaži sve',
   'mine.status.lobby': 'Čeka početak',
   'mine.status.active': 'U tijeku',
   'mine.status.suspended': 'Pauzirano',
@@ -1117,6 +1113,14 @@ export const hr: Record<string, string> = {
   'invite.share': 'Podijeli poveznicu',
   'invite.copied': 'Kopirano!',
   'invite.shared': 'Podijeljeno',
+  'invite.backTitle': 'Pozovi natrag',
+  'invite.backTableHeading': 'Na uređaju na kojem su igrali',
+  'invite.backTableExplain': 'Poveznica stola vraća svakoga tko već sjedi ovdje ravno na njegovo mjesto.',
+  'invite.backSeatHeading': 'Na novom uređaju',
+  'invite.backSeatExplain': 'Poveznica mjesta vraća jednu osobu na njezino mjesto na bilo kojem telefonu ili pregledniku. Nova poveznica poništava prethodnu.',
+  'invite.seatLinkMake': 'Izradi poveznicu za: {name}',
+  'invite.seatLinkShare': '{name}, evo tvog mjesta za našim stolom',
+  'invite.seatLinkFailed': 'Poveznicu nije bilo moguće izraditi. Pokušaj ponovno.',
 
   // --- the match screen -----------------------------------------------------
   'match.waitingForTable': 'Čekamo stol…',
@@ -1131,6 +1135,9 @@ export const hr: Record<string, string> = {
   'match.resume': 'Nastavi gdje si stao',
   'match.resuming': 'Vraćanje stola…',
   'match.abandonedWaitingFor': 'Čeka se da se {names} vrati za stol.',
+  'match.tableCode': 'Kôd {code}',
+  'match.tableCodeShare': 'Vrati se za naš stol',
+  'match.abandonedSendCode': 'Pošalji im poveznicu natrag na njihovo mjesto — radi na bilo kojem uređaju.',
   'seat.title': 'Vaše mjesto',
   'seat.youAre': 'Vi ste {name}',
   'seat.atTable': '{game} s: {names}',
@@ -1690,6 +1697,20 @@ export const hr: Record<string, string> = {
   'option.hints': 'Savjeti',
   'choice.hints.1': 'Dopušteni',
   'choice.hints.0': 'Isključeni',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Odaberi igru',
+  'picker.yourTurn': 'Ti si na redu',
+  'picker.resume': 'Nastavi',
+  'picker.waiting': '{n} čeka',
+  'picker.tablesMany': 'Igara u tijeku: {n}',
+  'picker.waitingFor': 'Čekaš igru {game}',
+  'picker.join': 'Pridruži se',
+  'game.startYourOwn': 'Pokreni svoju',
+  'game.playBots': 'Igraj protiv botova',
+  'setup.titleTable': 'Novi stol – {game}',
+  'setup.titleBots': '{game} protiv botova',
+  'setup.openTable': 'Otvori stol',
+  'setup.dealMeIn': 'Podijeli mi',
   // --- Mariáš ---
   'variation.marias.voleny': 'Volený',
   'option.deals': 'Dijeljenja',

@@ -85,6 +85,10 @@ type Options struct {
 	Seed       int64
 	Seats      []Seat
 	MaxActions int
+	// Observe, when set, sees every position an agent is about to act in,
+	// before it acts — for sweeps asserting something about positions real
+	// play reaches rather than ones a test built by hand.
+	Observe func(st rules.GameState, actor string)
 	// WholeMatch plays until the match is over rather than until the budget
 	// runs out, resuming through any between-deal pause, and raises the
 	// default budget to fit. Every deal of every ruleset is played — which is
@@ -179,6 +183,9 @@ func Play(o Options) Result {
 		agent := agents[actor]
 		if agent == nil {
 			break
+		}
+		if o.Observe != nil {
+			o.Observe(st, actor)
 		}
 		visible := ai.VisibleFor(st, ledger, actor)
 		action := agent.ChooseAction(visible, append([]string(nil), st.Hands[actor]...))
