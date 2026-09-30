@@ -920,7 +920,7 @@ export const en: Record<string, string> = {
   'menu.notSignedIn': 'Not signed in',
   'menu.keepStats': 'to keep your stats',
   'menu.signOut': 'Sign out',
-  'more.scoreTable': 'Offline score table',
+  'more.scoreTable': 'Record a live game',
   'more.stats': 'Stats & leaderboard',
   'more.needsAccount': 'sign in to use',
   'gate.title': 'Sign in to use this',
@@ -1164,9 +1164,13 @@ export const en: Record<string, string> = {
   'match.players': 'Players',
   'match.toPlay': 'to play',
 
-  // --- the offline score table ----------------------------------------------
-  'scoring.namesHint': 'Comma-separated names (4–8 players)',
-  'scoring.newSession': 'New session',
+  // --- the score table, for a game played with real cards ------------------
+  'scoring.namesHint': 'Who is playing? Comma-separated names (2–8)',
+  'scoring.newSession': 'Start scorecard',
+  // Under the score table's title. The second sentence is what keeps a
+  // scorecard from being read as feeding the lifetime record.
+  'scoring.subtitle':
+    "Keep the scorecard for a game you're playing with real cards. Nothing it records counts towards your stats.",
   // A worked example, not a sentence: the names are placeholders a translator
   // may localise, the shape `name:score,` is what the parser needs.
   'scoring.scoresPlaceholder': 'Alice:120,Bob:80,…',
@@ -1186,6 +1190,61 @@ export const en: Record<string, string> = {
   'stats.title': 'Stats & leaderboard',
   'stats.yours': 'Your stats',
   'stats.leaderboard': 'Leaderboard',
+  // The stats screen. An empty bucket is an absence, not a zero: "—" rather
+  // than "0%" before a first match, and unplayed rows are left out entirely.
+  'stats.drawn': 'Drawn',
+  'stats.avgFinish': 'Average finish',
+  'stats.currentStreak': 'Current streak',
+  'stats.bestStreak': 'Best winning streak',
+  'stats.bestStreakValue': '{n} in a row',
+  'stats.bestScore': 'Best score',
+  'stats.streak.winsMany': '{n} wins in a row',
+  'stats.streak.wonLast': 'Won the last one',
+  'stats.streak.lossesMany': '{n} losses in a row',
+  'stats.streak.lostLast': 'Lost the last one',
+  'stats.streak.none': 'No streak',
+  'stats.noneYet': 'No finished matches yet. Play one and your record starts here.',
+  // `{reason}` is the server's or the network's own words, as with stats.unavailable.
+  'stats.recordFailed': 'Could not load your stats: {reason}',
+  'stats.boardFailed': 'Could not load the leaderboard: {reason}',
+  'stats.boardEmptyPlayers': 'Nobody is ranked here yet. Finish a match and this is where it shows up.',
+  'stats.boardEmptyBots': 'No bot has finished a match under these rules yet.',
+  // The leaderboard's two toggles: who is ranked, and on which record.
+  'stats.kind.players': 'Players',
+  'stats.kind.bots': 'Bots',
+  'stats.scope.overall': 'Overall',
+  'stats.scope.vsHumans': 'vs humans',
+  'stats.scope.vsBots': 'vs bots',
+  'stats.scopeNote.overall': 'Every match, whoever was at the table.',
+  'stats.scopeNote.vsHumans': 'Matches with at least one other person in them.',
+  'stats.scopeNote.vsBots': 'Matches with at least one bot in them.',
+  // Headings of the tables that split the record.
+  'stats.split.opponents': 'Who you played',
+  'stats.split.opponentsNote': 'A table with both a person and a bot at it counts in both rows.',
+  'stats.split.games': 'By game',
+  'stats.split.tableSize': 'By table size',
+  'stats.split.bots': 'Against bots',
+  // Column headings, kept short: they sit over narrow numeric columns.
+  // The two count columns get their own, shorter words than the tiles'
+  // record.played / record.won: a heading wider than its 52px column
+  // breaks mid-word, so these may be abbreviated.
+  'stats.col.played': 'Played',
+  'stats.col.won': 'Won',
+  'stats.col.player': 'Player',
+  'stats.col.winPct': 'Win %',
+  'stats.col.finish': 'Finish',
+  'stats.tableSizeOne': '1 player',
+  'stats.tableSizeMany': '{n} players',
+  // Your own row on the leaderboard.
+  'stats.you': '{name} (you)',
+  // A leaderboard row whose name was never recorded.
+  'stats.unknownPlayer': 'Unknown player',
+  // A bot persona with its strength: "Miroslav (hard)".
+  'stats.botPersona': '{name} ({skill})',
+  'stats.skill.easy': 'easy',
+  'stats.skill.medium': 'medium',
+  'stats.skill.hard': 'hard',
+  'stats.skill.expert': 'expert',
 
   // --- a player's lifetime record, shown beside a finished match ------------
   'record.title': 'Your record',
