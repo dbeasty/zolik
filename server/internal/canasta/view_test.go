@@ -349,3 +349,29 @@ func TestViewOrdersMeldsByRankWithCanastasLast(t *testing.T) {
 		t.Error("ordering the view reordered the stored melds")
 	}
 }
+
+// TestFoldedCanastaShowsANatural pins the card a folded canasta keeps in view:
+// the last natural, so the one card left says what the meld is made of. A
+// mixed canasta laid with its wild last would otherwise fold to that wild.
+func TestFoldedCanastaShowsANatural(t *testing.T) {
+	cases := []struct {
+		name  string
+		cards []string
+		want  *int
+	}{
+		{"wild last", []string{"5H", "5S", "5D", "5C", "5H", "JOKER1", "2C"}, intp(4)},
+		{"natural last", []string{"5H", "5S", "2C", "5D", "5C", "5H", "5S"}, intp(6)},
+		{"every card wild", []string{"2H", "2S", "2D", "2C", "JOKER1", "JOKER1", "2H"}, nil},
+	}
+	for _, c := range cases {
+		got := foldedFace(c.cards)
+		switch {
+		case c.want == nil && got != nil:
+			t.Errorf("%s: face %d, want none (the last card)", c.name, *got)
+		case c.want != nil && (got == nil || *got != *c.want):
+			t.Errorf("%s: face %v, want %d", c.name, got, *c.want)
+		}
+	}
+}
+
+func intp(i int) *int { return &i }

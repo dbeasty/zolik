@@ -56,6 +56,12 @@ export type Group = {
    * module decides; the shell never counts cards to guess.
    */
   complete?: boolean;
+  /**
+   * Which card stands for the group when it is folded to one: an index into
+   * `cards`, chosen by the module (a canasta shows a natural, not a wild).
+   * Absent means the last card.
+   */
+  face?: number;
 };
 
 /**

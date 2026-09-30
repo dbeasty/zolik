@@ -17,6 +17,7 @@ import {
   CARD_INDEX_GAP,
   cardIndexBox,
   cardIndexStep,
+  foldedFace,
   groupShowsIndices,
   stackedCardBox,
   type Metrics,
@@ -363,10 +364,11 @@ export function ZoneView({
             // A finished meld folds down to its top card and a count: it is
             // a score now, not something to read card by card, and a
             // canasta's column of corners was the tallest thing in the row.
-            // The same tap that spreads any meld open unfolds it.
+            // The same tap that spreads any meld open unfolds it. Which card
+            // stays in view is the module's call (`face`), so a folded
+            // canasta shows what it is made of rather than a wild.
             const folded = !!g.complete && !groupOpen && g.cards.length > 1;
-            const drawn = folded ? g.cards.slice(-1) : g.cards;
-            const hiddenBelow = g.cards.length - drawn.length;
+            const shownAt = folded ? [foldedFace(g)] : g.cards.map((_, i) => i);
             // On a narrow board a closed group is a column of its cards'
             // indices instead of overlapped cards — every card still there
             // and still in order, at about a third of the height. Only while
@@ -457,8 +459,8 @@ export function ZoneView({
                   testID={`group-toggle-${g.id}`}
                 >
                   <View style={styles.stackedCards}>
-                    {drawn.map((c, j) => {
-                      const i = hiddenBelow + j;
+                    {shownAt.map((i, j) => {
+                      const c = g.cards[i];
                       return (
                       <View
                         key={`${g.id}-${c}-${i}`}

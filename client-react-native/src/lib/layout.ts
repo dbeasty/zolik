@@ -644,3 +644,13 @@ export function stackedColumn(m: Metrics, count: number): number {
 export function groupShowsIndices(m: Metrics, open: boolean, collapsed: boolean): boolean {
   return m.narrow && !open && !collapsed;
 }
+
+/**
+ * The index of the card a folded group keeps in view: the one the module named
+ * (`Group.face`), or the last card when it named none or named one that is not
+ * there.
+ */
+export function foldedFace(g: { cards: string[]; face?: number }): number {
+  const last = g.cards.length - 1;
+  return g.face !== undefined && Number.isInteger(g.face) && g.face >= 0 && g.face <= last ? g.face : last;
+}
