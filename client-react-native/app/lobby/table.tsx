@@ -53,8 +53,12 @@ export default function TableScreen() {
 
   const poll = useCallback(async () => {
     if (!id) return;
+    // The waiting list is this game's: a player waiting only for another one
+    // would not sit down here, and the server would refuse the invite.
+    let moduleId: string | undefined;
     try {
       const m = await client.getMatch(id);
+      moduleId = m.moduleId;
       setState(m);
       if (m.status !== 'lobby') router.replace(`/match/${id}`);
     } catch (e) {
@@ -66,7 +70,7 @@ export default function TableScreen() {
     // online server's.
     if (offline) return;
     try {
-      setWaiting(await client.getWaitingLobby());
+      setWaiting(await client.getWaitingLobby(moduleId));
     } catch {
       /* the waiting room is optional infrastructure */
     }

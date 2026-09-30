@@ -1019,8 +1019,6 @@ export const it: Record<string, string> = {
   'intro.bulletGuest': 'Nessuna installazione per provarlo — entra come ospite',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Ramino continentale · {server}',
-  'home.playingAs': 'Giochi come {name}',
   'home.signInPrompt': 'Accedi o continua da ospite per giocare online.',
   'home.statsAndLeaderboard': 'Statistiche e classifica',
   'home.play': 'Gioca',
@@ -1060,7 +1058,7 @@ export const it: Record<string, string> = {
     'Non sta ancora aspettando nessun altro. Gli organizzatori ti vedono lo stesso e possono invitarti.',
   'waiting.server': 'Server',
   'waiting.none':
-    'Al momento non sta aspettando nessuno. Chi si rende disponibile dal menu principale compare qui.',
+    'Al momento non aspetta nessuno. Chi si rende disponibile per questo gioco compare qui.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'A quel link manca il codice del tavolo.',
@@ -1071,11 +1069,7 @@ export const it: Record<string, string> = {
   'join.takingSeatAt': 'Ti stiamo facendo sedere a {game}…',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': 'Tutto ciò che questo server può ospitare',
   'lobby.games.bots': 'Bot',
-  'lobby.games.setup': 'Impostazioni',
-  'lobby.games.playBot': 'Gioca contro un bot',
-  'lobby.games.playBots': 'Gioca contro {n} bot',
   'lobby.games.openTable': 'Apri un tavolo',
   'lobby.games.players': '{n} giocatori',
   'lobby.games.playerRange': '{min}–{max} giocatori',
@@ -1112,7 +1106,6 @@ export const it: Record<string, string> = {
   'mine.deleteConfirmBody': 'La partita finisce per tutti gli altri al tavolo. Non si può annullare.',
   'mine.deleteConfirm': 'Elimina',
   'mine.deleteCancel': 'Annulla',
-  'mine.viewAll': 'Vedi tutte',
   'mine.status.lobby': 'In attesa di iniziare',
   'mine.status.active': 'In corso',
   'mine.status.suspended': 'In pausa',
@@ -1703,4 +1696,18 @@ export const it: Record<string, string> = {
   'option.hints': 'Suggerimenti',
   'choice.hints.1': 'Consentiti',
   'choice.hints.0': 'Disattivati',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Scegli un gioco',
+  'picker.yourTurn': 'Tocca a te',
+  'picker.resume': 'Riprendi',
+  'picker.waiting': '{n} in attesa',
+  'picker.tablesMany': '{n} partite in corso',
+  'picker.waitingFor': 'Stai aspettando di giocare a {game}',
+  'picker.join': 'Entra',
+  'game.startYourOwn': 'Avvia il tuo',
+  'game.playBots': 'Gioca contro i bot',
+  'setup.titleTable': 'Nuovo tavolo di {game}',
+  'setup.titleBots': '{game} contro i bot',
+  'setup.openTable': 'Apri il tavolo',
+  'setup.dealMeIn': 'Dai le carte',
 };

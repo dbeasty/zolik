@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { openGame } from '../helpers/lobby';
+import { openGame, openTableFor } from '../helpers/lobby';
 import { loginAsFreshGuest } from '../helpers/login';
 
 /**
@@ -21,7 +21,9 @@ import { loginAsFreshGuest } from '../helpers/login';
  */
 
 async function becomeAvailable(page: Page) {
-  await page.goto('/');
+  // For the game the host's table is: a player waiting for another game is
+  // not offered to it.
+  await page.goto('/lobby/games?moduleId=prsi');
   await page.getByText('Make me available to play', { exact: true }).click();
   await expect(page.getByTestId('waiting-status-open')).toBeVisible({ timeout: 15_000 });
 }
@@ -38,7 +40,7 @@ async function becomeAvailable(page: Page) {
  */
 async function openATable(page: Page) {
   await openGame(page, 'prsi');
-  await page.getByTestId('play-friends-prsi').click();
+  await openTableFor(page, 'prsi');
   await expect(page.getByTestId('table-screen')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId('waiting-players-panel')).toBeVisible({ timeout: 15_000 });
 }
@@ -93,7 +95,9 @@ test.describe('the waiting room', () => {
       // asserting the panel is entirely empty, since the pool is shared
       // global state and another spec's waiter may legitimately still be
       // in it under parallel workers.
-      await expect(hostPage.getByText(waiter.username)).toBeVisible({ timeout: 10_000 });
+      await expect(
+        hostPage.getByTestId(/^seated-/).filter({ hasText: waiter.username }),
+      ).toBeVisible({ timeout: 10_000 });
       await expect(hostPage.getByTestId(`waiting-player-${waiter.userId}`)).toBeHidden({
         timeout: 10_000,
       });

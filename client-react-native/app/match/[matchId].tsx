@@ -420,7 +420,7 @@ export default function MatchScreen() {
               </Text>
               <Pressable
                 testID="match-gone-leave"
-                onPress={() => router.replace('/lobby/games')}
+                onPress={() => router.dismissTo('/')}
                 style={styles.overButtonQuiet}
               >
                 <Text style={styles.overButtonQuietText}>{t('match.backToGames')}</Text>
@@ -1354,7 +1354,7 @@ export default function MatchScreen() {
               ) : null}
               <Pressable
                 testID="match-over-leave"
-                onPress={() => router.replace('/lobby/games')}
+                onPress={() => router.dismissTo('/')}
                 style={styles.overButtonQuiet}
               >
                 <Text style={styles.overButtonQuietText}>{t('match.backToGames')}</Text>

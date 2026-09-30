@@ -1012,8 +1012,6 @@ export const hr: Record<string, string> = {
   'intro.bulletGuest': 'Bez instalacije za isprobavanje — uđi kao gost',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Kontinentalni remi · {server}',
-  'home.playingAs': 'Igraš kao {name}',
   'home.signInPrompt': 'Prijavi se ili nastavi kao gost da bi igrao na mreži.',
   'home.statsAndLeaderboard': 'Statistika i ljestvica',
   'home.play': 'Igraj',
@@ -1049,7 +1047,8 @@ export const hr: Record<string, string> = {
   'waiting.noneYet': 'Trenutno nitko ne čeka igru. Upiši se na listu i bit ćeš prvi koga itko vidi.',
   'waiting.noOthersYet': 'Nitko drugi još ne čeka. Domaćini te ipak vide i mogu te pozvati.',
   'waiting.server': 'Poslužitelj',
-  'waiting.none': 'Trenutno nitko ne čeka. Tko se učini dostupnim u glavnom izborniku, pojavljuje se ovdje.',
+  'waiting.none':
+    'Trenutačno nitko ne čeka. Tko se ponudi za ovu igru, pojavit će se ovdje.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'Toj poveznici nedostaje kôd stola.',
@@ -1060,11 +1059,7 @@ export const hr: Record<string, string> = {
   'join.takingSeatAt': 'Zauzimamo mjesto za {game}…',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': 'Sve što ovaj poslužitelj može ponuditi',
   'lobby.games.bots': 'Botovi',
-  'lobby.games.setup': 'Postavke',
-  'lobby.games.playBot': 'Igraj protiv bota',
-  'lobby.games.playBots': 'Igraj protiv {n} bota',
   'lobby.games.openTable': 'Otvori stol',
   'lobby.games.players': 'Igrača: {n}',
   'lobby.games.playerRange': 'Igrača: {min}–{max}',
@@ -1101,7 +1096,6 @@ export const hr: Record<string, string> = {
   'mine.deleteConfirmBody': 'Time igra završava svima ostalima za stolom. Ovo se ne može poništiti.',
   'mine.deleteConfirm': 'Izbriši',
   'mine.deleteCancel': 'Odustani',
-  'mine.viewAll': 'Prikaži sve',
   'mine.status.lobby': 'Čeka početak',
   'mine.status.active': 'U tijeku',
   'mine.status.suspended': 'Pauzirano',
@@ -1690,4 +1684,18 @@ export const hr: Record<string, string> = {
   'option.hints': 'Savjeti',
   'choice.hints.1': 'Dopušteni',
   'choice.hints.0': 'Isključeni',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Odaberi igru',
+  'picker.yourTurn': 'Ti si na redu',
+  'picker.resume': 'Nastavi',
+  'picker.waiting': '{n} čeka',
+  'picker.tablesMany': 'Igara u tijeku: {n}',
+  'picker.waitingFor': 'Čekaš igru {game}',
+  'picker.join': 'Pridruži se',
+  'game.startYourOwn': 'Pokreni svoju',
+  'game.playBots': 'Igraj protiv botova',
+  'setup.titleTable': 'Novi stol – {game}',
+  'setup.titleBots': '{game} protiv botova',
+  'setup.openTable': 'Otvori stol',
+  'setup.dealMeIn': 'Podijeli mi',
 };

@@ -3,14 +3,17 @@ import { expect, test } from '@playwright/test';
 import { loginAsFreshGuest } from '../helpers/login';
 
 /**
- * "The main page would be the waiting room and would give us status of the
- * players available" — the main menu shows a live count on its own, without
- * itself joining the pool (that stays an explicit "Make me available to play"
- * tap, which toggles in place rather than navigating — see WaitingStatusCard's
- * own doc comment in app/index.tsx for why the two data sources are kept
- * apart).
+ * Each game's page is that game's waiting room: who is waiting to play it,
+ * live, without the page itself joining the pool — that stays an explicit
+ * "Make me available to play" tap (see `WaitingCard`). The main menu carries
+ * the count on each game's row.
+ *
+ * Prší throughout, because *some* game has to be named; the split between
+ * games is its own test at the bottom.
  */
-test.describe('the main menu shows waiting-room status', () => {
+const GAME = '/lobby/games?moduleId=prsi';
+
+test.describe("a game's page shows its waiting room", () => {
   test('a new waiter is absent until they connect, then appears live', async ({ browser, request }) => {
     const homeCtx = await browser.newContext();
     const waiterCtx = await browser.newContext();
@@ -31,7 +34,7 @@ test.describe('the main menu shows waiting-room status', () => {
       // waiting" here would be true in isolation but flaky under any
       // concurrency, so every assertion below is scoped to this one waiter
       // by name rather than to the pool's total size.
-      await homePage.goto('/');
+      await homePage.goto(GAME);
       const card = homePage.getByTestId('home-waiting-status');
       await expect(card).not.toContainText(waiter.username, { timeout: 10_000 });
 
@@ -41,13 +44,13 @@ test.describe('the main menu shows waiting-room status', () => {
       await expect(card).not.toContainText(waiter.username, { timeout: 10_000 });
 
       // The other player becomes available for real.
-      await waiterPage.goto('/');
+      await waiterPage.goto(GAME);
       await waiterPage.getByText('Make me available to play', { exact: true }).click();
       await expect(waiterPage.getByTestId('waiting-status-open')).toBeVisible({
         timeout: 15_000,
       });
 
-      // The home page's own poll (every 5s) picks it up without any
+      // The game page's own poll (every 5s) picks it up without any
       // navigation or user action on that page.
       await expect(card).toContainText(waiter.username, { timeout: 10_000 });
     } finally {
@@ -85,7 +88,7 @@ test.describe('the main menu shows waiting-room status', () => {
       );
 
       for (const page of [onePage, twoPage]) {
-        await page.goto('/');
+        await page.goto(GAME);
         await page.getByText('Make me available to play', { exact: true }).click();
         await expect(page.getByTestId('waiting-status-open')).toBeVisible({ timeout: 15_000 });
       }
@@ -107,6 +110,63 @@ test.describe('the main menu shows waiting-room status', () => {
     } finally {
       await oneCtx.close();
       await twoCtx.close();
+    }
+  });
+
+  /**
+   * The pool is split by game: somebody waiting for Canasta is not offered to
+   * a Prší table, and the main menu counts them under Canasta only.
+   */
+  test('a player waiting for one game is listed and counted under that game only', async ({
+    browser,
+    request,
+  }) => {
+    const watchCtx = await browser.newContext();
+    const waiterCtx = await browser.newContext();
+    const watchPage = await watchCtx.newPage();
+    const waiterPage = await waiterCtx.newPage();
+
+    try {
+      await loginAsFreshGuest(watchPage, request, `e2e-watch-${Math.random().toString(36).slice(2, 8)}`);
+      const waiter = await loginAsFreshGuest(
+        waiterPage,
+        request,
+        `e2e-canasta-${Math.random().toString(36).slice(2, 8)}`,
+      );
+
+      // In through the main menu, as a player would, so there is a menu to
+      // go back to below.
+      await waiterPage.goto('/');
+      await waiterPage.getByTestId('game-canasta').click();
+      await waiterPage.getByText('Make me available to play', { exact: true }).click();
+      await expect(waiterPage.getByTestId('waiting-status-open')).toBeVisible({ timeout: 15_000 });
+
+      // Canasta's page lists them; Prší's never does.
+      await watchPage.goto('/lobby/games?moduleId=canasta');
+      await expect(watchPage.getByTestId(`home-waiting-player-${waiter.userId}`)).toBeVisible({
+        timeout: 15_000,
+      });
+      await watchPage.goto(GAME);
+      await expect(watchPage.getByTestId('home-waiting-status')).toBeVisible({ timeout: 15_000 });
+      await expect(watchPage.getByTestId(`home-waiting-player-${waiter.userId}`)).toHaveCount(0);
+
+      // The main menu counts them on Canasta's row.
+      await watchPage.goto('/');
+      await expect(watchPage.getByTestId('picker-canasta-waiting')).toBeVisible({ timeout: 15_000 });
+
+      // Leaving the page does not stop them waiting: the menu says so, and
+      // Stop there takes them out.
+      await waiterPage.getByLabel('Jokerless, back').click();
+      const strip = waiterPage.getByTestId('availability-strip');
+      await expect(strip).toContainText('Canasta', { timeout: 10_000 });
+      await waiterPage.getByTestId('availability-strip-stop').click();
+      await expect(strip).toHaveCount(0);
+      await watchPage.reload();
+      await expect(watchPage.getByTestId('games-list')).toBeVisible({ timeout: 15_000 });
+      await expect(watchPage.getByTestId('picker-canasta-waiting')).toHaveCount(0, { timeout: 15_000 });
+    } finally {
+      await watchCtx.close();
+      await waiterCtx.close();
     }
   });
 });

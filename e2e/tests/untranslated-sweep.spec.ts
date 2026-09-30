@@ -161,16 +161,19 @@ test.describe('no screen can reach a key it has no words for', () => {
         isGuest: true,
       },
     );
-    await openInCzech(page, '/lobby/games');
+    await openInCzech(page, '/');
     await expect(page.getByTestId('games-list')).toBeVisible();
     collect(await page.evaluate(() => document.body.innerText), missing);
-    // The sweep reads what is on screen, and a closed setup keeps its option
-    // and choice labels out of the DOM entirely — the exact strings this test
-    // exists to catch. Each game has its own page, so visit every one.
+    // The sweep reads what is on screen, and the option and choice labels —
+    // the exact strings this test exists to catch — are only on each game's
+    // settings screen. So visit every game's page, and its settings.
     for (const id of ['zolik', 'prsi', 'canasta', 'holdem', 'ginrummy', 'rummytiles', 'blackjack']) {
       await page.getByTestId(`game-${id}`).click();
+      await expect(page.getByTestId(`module-${id}`)).toBeVisible();
+      collect(await page.evaluate(() => document.body.innerText), missing);
       await openGameSetup(page, id);
       collect(await page.evaluate(() => document.body.innerText), missing);
+      await page.goBack();
       await page.goBack();
       await expect(page.getByTestId(`game-${id}`)).toBeVisible();
     }

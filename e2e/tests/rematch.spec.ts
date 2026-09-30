@@ -140,9 +140,9 @@ test.describe('a rematch with people at the table', () => {
     test.setTimeout(120_000);
     const { annPage, bobPage, order } = await annFinishesTheGame(browser, request);
 
-    // Bob has gone back to the games list before Ann asks.
-    await bobPage.goto('/lobby/games');
-    await expect(bobPage.getByTestId('games-list')).toBeVisible({ timeout: 30_000 });
+    // Bob has gone off to another game's page before Ann asks.
+    await bobPage.goto('/lobby/games?moduleId=canasta');
+    await expect(bobPage.getByTestId('module-canasta')).toBeVisible({ timeout: 30_000 });
     await annPage.getByTestId('match-over-again').click();
     await expect(annPage).toHaveURL(/\/lobby\/table\?matchId=/);
 

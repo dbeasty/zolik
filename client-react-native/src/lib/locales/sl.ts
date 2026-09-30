@@ -1007,8 +1007,6 @@ export const sl: Record<string, string> = {
   'intro.bulletGuest': 'Brez namestitve za preizkus — vstopi kot gost',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Kontinentalni remi · {server}',
-  'home.playingAs': 'Igraš kot {name}',
   'home.signInPrompt': 'Prijavi se ali nadaljuj kot gost, da igraš na spletu.',
   'home.statsAndLeaderboard': 'Statistika in lestvica',
   'home.play': 'Igraj',
@@ -1044,7 +1042,8 @@ export const sl: Record<string, string> = {
   'waiting.noneYet': 'Trenutno nihče ne čaka na igro. Vpiši se na seznam in boš prvi, ki ga kdor koli vidi.',
   'waiting.noOthersYet': 'Nihče drug še ne čaka. Gostitelji te vseeno vidijo in te lahko povabijo.',
   'waiting.server': 'Strežnik',
-  'waiting.none': 'Trenutno nihče ne čaka. Kdor se v glavnem meniju naredi na voljo, se pojavi tukaj.',
+  'waiting.none':
+    'Trenutno nihče ne čaka. Kdor se ponudi za to igro, se pojavi tukaj.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'Tej povezavi manjka koda mize.',
@@ -1055,11 +1054,7 @@ export const sl: Record<string, string> = {
   'join.takingSeatAt': 'Zasedamo mesto pri {game}…',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': 'Vse, kar ta strežnik zmore ponuditi',
   'lobby.games.bots': 'Boti',
-  'lobby.games.setup': 'Nastavitve',
-  'lobby.games.playBot': 'Igraj proti botu',
-  'lobby.games.playBots': 'Igraj proti {n} botom',
   'lobby.games.openTable': 'Odpri mizo',
   'lobby.games.players': 'Igralcev: {n}',
   'lobby.games.playerRange': 'Igralcev: {min}–{max}',
@@ -1096,7 +1091,6 @@ export const sl: Record<string, string> = {
   'mine.deleteConfirmBody': 'S tem se igra konča za vse ostale za mizo. Tega ni mogoče razveljaviti.',
   'mine.deleteConfirm': 'Izbriši',
   'mine.deleteCancel': 'Prekliči',
-  'mine.viewAll': 'Prikaži vse',
   'mine.status.lobby': 'Čaka na začetek',
   'mine.status.active': 'V teku',
   'mine.status.suspended': 'Ustavljena',
@@ -1686,4 +1680,18 @@ export const sl: Record<string, string> = {
   'option.hints': 'Namigi',
   'choice.hints.1': 'Dovoljeni',
   'choice.hints.0': 'Izklopljeni',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Izberi igro',
+  'picker.yourTurn': 'Na potezi si',
+  'picker.resume': 'Nadaljuj',
+  'picker.waiting': '{n} čaka',
+  'picker.tablesMany': 'Igre v teku: {n}',
+  'picker.waitingFor': 'Čakaš na igro {game}',
+  'picker.join': 'Pridruži se',
+  'game.startYourOwn': 'Začni svojo',
+  'game.playBots': 'Igraj proti botom',
+  'setup.titleTable': 'Nova miza – {game}',
+  'setup.titleBots': '{game} proti botom',
+  'setup.openTable': 'Odpri mizo',
+  'setup.dealMeIn': 'Razdeli mi',
 };

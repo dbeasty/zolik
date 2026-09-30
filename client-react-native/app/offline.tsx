@@ -89,7 +89,7 @@ function NotSeated() {
     setError('');
     try {
       await action();
-      router.push('/lobby/games');
+      router.dismissTo('/');
     } catch (e) {
       const reason = e instanceof Error ? e.message : String(e);
       if (e instanceof NearbyVersionError) setError(t('offline.versionMismatch'));
@@ -370,7 +370,7 @@ function Hosting() {
       <Text style={shared.status} testID="offline-active">
         {t('offline.active')}
       </Text>
-      <Pressable style={[shared.button, { marginTop: 12 }]} onPress={() => router.push('/lobby/games')}>
+      <Pressable style={[shared.button, { marginTop: 12 }]} onPress={() => router.dismissTo('/')}>
         <Text style={shared.buttonText}>{t('offline.chooseGame')}</Text>
       </Pressable>
 
@@ -561,7 +561,7 @@ function Guesting() {
       </Pressable>
       <Pressable
         style={[shared.button, shared.buttonSecondary]}
-        onPress={() => router.push('/lobby/games')}
+        onPress={() => router.dismissTo('/')}
       >
         <Text style={[shared.buttonText, shared.buttonTextSecondary]}>{t('offline.chooseGame')}</Text>
       </Pressable>

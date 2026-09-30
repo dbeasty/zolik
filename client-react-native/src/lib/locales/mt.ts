@@ -1027,8 +1027,6 @@ export const mt: Record<string, string> = {
   'intro.bulletGuest': 'Ebda installazzjoni biex tipprova — idħol bħala mistieden',
 
   // --- the main menu --------------------------------------------------------
-  'home.subtitle': 'Rummy Kontinentali · {server}',
-  'home.playingAs': 'Qed tilgħab bħala {name}',
   'home.signInPrompt': 'Idħol jew kompli bħala mistieden biex tilgħab online.',
   'home.statsAndLeaderboard': 'Statistika u klassifika',
   'home.play': 'Ilgħab',
@@ -1067,7 +1065,7 @@ export const mt: Record<string, string> = {
   'waiting.noOthersYet': 'Ħadd aktar għadu ma qed jistenna. Il-ħosts jarawk xorta u jistgħu jistiednuk.',
   'waiting.server': 'Server',
   'waiting.none':
-    'Bħalissa ħadd mhu qed jistenna. Min jagħmel lilu nnifsu disponibbli fil-menu prinċipali jidher hawn.',
+    'Bħalissa ħadd mhu qed jistenna. Min jagħmel lilu nnifsu disponibbli għal din il-logħba jidher hawn.',
 
   // --- landing on a shared invite link --------------------------------------
   'join.missingCode': 'Dan il-link nieqes mill-kodiċi tal-mejda.',
@@ -1078,11 +1076,7 @@ export const mt: Record<string, string> = {
   'join.takingSeatAt': 'Qed nieħdu post fi {game}…',
 
   // --- the lobby ------------------------------------------------------------
-  'lobby.games.subtitle': "Dak kollu li dan is-server jista' joffri",
   'lobby.games.bots': 'Bots',
-  'lobby.games.setup': 'Issettjar',
-  'lobby.games.playBot': 'Ilgħab kontra bot',
-  'lobby.games.playBots': 'Ilgħab kontra {n} bots',
   'lobby.games.openTable': 'Iftaħ mejda',
   'lobby.games.players': '{n} plejers',
   'lobby.games.playerRange': '{min}–{max} plejers',
@@ -1119,7 +1113,6 @@ export const mt: Record<string, string> = {
   'mine.deleteConfirmBody': "Dan itemm il-logħba għal kulħadd bilqiegħda. Ma jistax jitreġġa' lura.",
   'mine.deleteConfirm': 'Ħassar',
   'mine.deleteCancel': 'Ikkanċella',
-  'mine.viewAll': 'Ara kollha',
   'mine.status.lobby': 'Tistenna li tibda',
   'mine.status.active': 'Għaddej',
   'mine.status.suspended': 'Sospiża',
@@ -1709,4 +1702,18 @@ export const mt: Record<string, string> = {
   'option.hints': 'Ħjiel',
   'choice.hints.1': 'Permessi',
   'choice.hints.0': 'Mitfija',
+  // --- the game picker, a game's own page, and its settings ---
+  'picker.title': 'Agħżel logħba',
+  'picker.yourTurn': 'Imissek',
+  'picker.resume': 'Kompli',
+  'picker.waiting': '{n} qed jistennew',
+  'picker.tablesMany': '{n} logħbiet għaddejjin',
+  'picker.waitingFor': 'Qed tistenna biex tilgħab {game}',
+  'picker.join': 'Ingħaqad',
+  'game.startYourOwn': 'Ibda tiegħek',
+  'game.playBots': 'Ilgħab kontra l-bots',
+  'setup.titleTable': 'Mejda ġdida ta’ {game}',
+  'setup.titleBots': '{game} kontra l-bots',
+  'setup.openTable': 'Iftaħ mejda',
+  'setup.dealMeIn': 'Qassamli',
 };
