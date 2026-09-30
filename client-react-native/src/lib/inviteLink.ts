@@ -73,6 +73,28 @@ export function inviteUrlFor(
 }
 
 /**
+ * The link for one seat, given what `mintSeatLink` answered.
+ *
+ * The same order as `inviteUrlFor`: on web the page's own origin wins, because
+ * in development the server's public base names a port with no client behind
+ * it. The path always comes from the server, which holds the secret in it.
+ */
+export function seatUrlFor(
+  minted: { path?: string; url?: string },
+  origin: string = currentOrigin(),
+): string {
+  const path = (minted.path ?? '').trim();
+  const fromServer = (minted.url ?? '').trim();
+  if (origin) {
+    if (fromServer) return swapOrigin(fromServer, origin);
+    return path ? origin.replace(/\/$/, '') + path : '';
+  }
+  if (fromServer) return fromServer;
+  if (path && ZOLIK_BASE_URL) return ZOLIK_BASE_URL.replace(/\/$/, '') + path;
+  return '';
+}
+
+/**
  * Replace the scheme+host of an absolute URL, keeping everything after it.
  *
  * Deliberately string surgery over `new URL()`: React Native's URL polyfill is

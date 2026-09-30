@@ -1108,6 +1108,16 @@ export const en: Record<string, string> = {
   'invite.share': 'Share link',
   'invite.copied': 'Copied!',
   'invite.shared': 'Shared',
+  // The invite-back sheet: the table link for a player's own device, and a
+  // seat link, made per person, for any other one.
+  'invite.backTitle': 'Invite back',
+  'invite.backTableHeading': 'On the device they played on',
+  'invite.backTableExplain': 'The table link takes anyone already seated here straight back to their seat.',
+  'invite.backSeatHeading': 'On a new device',
+  'invite.backSeatExplain': 'A seat link brings one person back to their own seat on any phone or browser. Making a new one cancels the last.',
+  'invite.seatLinkMake': "Make {name}'s link",
+  'invite.seatLinkShare': "{name}, here's your seat at our table",
+  'invite.seatLinkFailed': "Couldn't make the link. Try again.",
 
   // --- the match screen -----------------------------------------------------
   'match.waitingForTable': 'Waiting for the table…',
@@ -1127,6 +1137,11 @@ export const en: Record<string, string> = {
   // sending them the link — rather than leaving a banner whose only button is
   // the way out.
   'match.abandonedWaitingFor': 'Waiting for {names} to come back to the table.',
+  // The join code pinned to the top of a dealt board. Pressing it hands over
+  // the link; a seated player who opens it is taken back to their own seat.
+  'match.tableCode': 'Code {code}',
+  'match.tableCodeShare': 'Come back to our table',
+  'match.abandonedSendCode': 'Send them a link back to their seat — it works on any device.',
   'seat.title': 'Your seat',
   'seat.youAre': "You're {name}",
   'seat.atTable': '{game} with {names}',
