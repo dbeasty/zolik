@@ -1697,6 +1697,7 @@ export const ga: Record<string, string> = {
   'zolik.move.laidOff': 'Chuir {player} {cards} le cumasc {owner}',
   'zolik.move.swappedJoker': 'Mhalartaigh {player} fear grinn ar {card}',
   'zolik.move.discarded': 'Chaith {player} {card}',
+  'zolik.move.wentOut': 'Chuaigh {player} amach, ag caitheamh {card}',
   'zolik.move.undid': 'Chealaigh {player} beart',
   'canasta.move.drewStock': 'Tharraing {player} ón stoc',
   'canasta.move.melded': 'Leag {player} síos {cards}',

@@ -1672,6 +1672,7 @@ export const fi: Record<string, string> = {
   'zolik.move.laidOff': '{player} lisäsi {cards} pelaajan {owner} yhdistelmään',
   'zolik.move.swappedJoker': '{player} vaihtoi jokerin korttiin {card}',
   'zolik.move.discarded': '{player} poisti kortin {card}',
+  'zolik.move.wentOut': '{player} meni ulos poistamalla kortin {card}',
   'zolik.move.undid': '{player} perui siirron',
   'canasta.move.drewStock': '{player} nosti nostopakasta',
   'canasta.move.melded': '{player} laski pöytään {cards}',

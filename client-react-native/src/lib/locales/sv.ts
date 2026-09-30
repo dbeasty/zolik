@@ -1661,6 +1661,7 @@ export const sv: Record<string, string> = {
   'zolik.move.laidOff': '{player} lade {cards} till {owner}s kombination',
   'zolik.move.swappedJoker': '{player} bytte en joker mot {card}',
   'zolik.move.discarded': '{player} kastade {card}',
+  'zolik.move.wentOut': '{player} gick ut och kastade {card}',
   'zolik.move.undid': '{player} ångrade ett drag',
   'canasta.move.drewStock': '{player} drog från talongen',
   'canasta.move.melded': '{player} lade ut {cards}',

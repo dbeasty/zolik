@@ -1690,6 +1690,7 @@ export const de: Record<string, string> = {
   'zolik.move.laidOff': '{player} hat {cards} an die Auslage von {owner} angelegt',
   'zolik.move.swappedJoker': '{player} hat einen Joker gegen {card} getauscht',
   'zolik.move.discarded': '{player} hat {card} abgelegt',
+  'zolik.move.wentOut': '{player} ist mit {card} ausgegangen',
   'zolik.move.undid': '{player} hat einen Zug zurückgenommen',
   'canasta.move.drewStock': '{player} hat vom Talon gezogen',
   'canasta.move.melded': '{player} hat {cards} ausgelegt',

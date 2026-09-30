@@ -1656,6 +1656,7 @@ export const cs: Record<string, string> = {
   'zolik.move.laidOff': '{player} přiložil {cards} k výkladu hráče {owner}',
   'zolik.move.swappedJoker': '{player} vyměnil žolíka za {card}',
   'zolik.move.discarded': '{player} odhodil {card}',
+  'zolik.move.wentOut': '{player} zavřel hru odhozením {card}',
   'zolik.move.undid': '{player} vzal tah zpět',
   'canasta.move.drewStock': '{player} si lízl z balíčku',
   'canasta.move.melded': '{player} vyložil {cards}',

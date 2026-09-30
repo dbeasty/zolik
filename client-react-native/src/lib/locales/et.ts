@@ -1668,6 +1668,7 @@ export const et: Record<string, string> = {
   'zolik.move.laidOff': '{player} lisas {cards} mängija {owner} kombinatsiooni',
   'zolik.move.swappedJoker': '{player} vahetas jokkeri kaardi {card} vastu',
   'zolik.move.discarded': '{player} viskas {card}',
+  'zolik.move.wentOut': '{player} läks välja, visates {card}',
   'zolik.move.undid': '{player} võttis käigu tagasi',
   'canasta.move.drewStock': '{player} tõmbas tõmbepakist',
   'canasta.move.melded': '{player} pani välja {cards}',

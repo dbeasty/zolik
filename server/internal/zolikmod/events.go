@@ -57,6 +57,15 @@ func (m *Module) NarrateEvent(raw module.State, ev module.Event) (module.Move, b
 			"player": player, "card": ev.Data["card"],
 		}}
 	case "player_discarded":
+		// The discard that closes the deal is named along with the fact that
+		// it went out. Its card lies face down on the board in the classic
+		// profile, but it is no secret once the deal is over.
+		if out, _ := ev.Data["wentOut"].(bool); out {
+			move.Fact = module.Fact{LabelKey: "zolik.move.wentOut", Params: map[string]any{
+				"player": player, "card": ev.Data["card"],
+			}}
+			break
+		}
 		move.Fact = module.Fact{LabelKey: "zolik.move.discarded", Params: map[string]any{
 			"player": player, "card": ev.Data["card"],
 		}}

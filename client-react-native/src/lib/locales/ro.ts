@@ -1674,6 +1674,7 @@ export const ro: Record<string, string> = {
   'zolik.move.laidOff': '{player} a adăugat {cards} la combinația lui {owner}',
   'zolik.move.swappedJoker': '{player} a schimbat un joker cu {card}',
   'zolik.move.discarded': '{player} a aruncat {card}',
+  'zolik.move.wentOut': '{player} a închis aruncând {card}',
   'zolik.move.undid': '{player} a anulat o mutare',
   'canasta.move.drewStock': '{player} a tras din talon',
   'canasta.move.melded': '{player} a coborât {cards}',

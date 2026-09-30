@@ -1663,6 +1663,7 @@ export const hr: Record<string, string> = {
   'zolik.move.laidOff': '{player}: dodao {cards} kombinaciji igrača {owner}',
   'zolik.move.swappedJoker': '{player}: zamijenio džokera za {card}',
   'zolik.move.discarded': '{player}: odbacio {card}',
+  'zolik.move.wentOut': '{player}: izašao odbacivši {card}',
   'zolik.move.undid': '{player}: poništio potez',
   'canasta.move.drewStock': '{player}: vukao iz špila',
   'canasta.move.melded': '{player}: spustio {cards}',
