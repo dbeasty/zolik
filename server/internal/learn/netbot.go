@@ -1,7 +1,9 @@
 package learn
 
 import (
+	"encoding/binary"
 	"hash/fnv"
+	"math"
 	"math/rand"
 
 	"zolik/server/internal/module"
@@ -81,7 +83,7 @@ func (b NetBot) choose(s module.State, seat module.BotSeat, offers []module.Acti
 	for i, c := range cands {
 		feats[i] = c.Features
 	}
-	i := pick(b.Policy.Logits(obs, feats), b.Temperature, turnSeed(s, seat))
+	i := pick(b.Policy.Logits(obs, feats), b.Temperature, turnSeed(obs, feats, seat))
 	return cands[i].Action, i, true
 }
 
@@ -114,11 +116,28 @@ func pick(logits []float32, temperature float64, seed int64) int {
 	return len(p) - 1
 }
 
-// turnSeed mixes the position into the seat's seed. BotSeat.Seed is fixed for
-// the whole match; the position is what makes this turn's coin differ from the
-// last one's while keeping the same match, seat and position reproducible.
-func turnSeed(s module.State, seat module.BotSeat) int64 {
+// turnSeed mixes what this seat sees into the seat's seed. BotSeat.Seed is
+// fixed for the whole match; the position is what makes this turn's coin
+// differ from the last one's while keeping the same match, seat and position
+// reproducible.
+//
+// It hashes the encoding and the candidates rather than the raw state because
+// a raw state can carry things that are not the position: a Žolíky deal
+// records the wall-clock time it was dealt, and hashing that made the same
+// seed sample differently on every run. What the network is shown is, by
+// construction, only the position as this seat knows it.
+func turnSeed(obs []float32, cands [][]float32, seat module.BotSeat) int64 {
 	h := fnv.New64a()
-	_, _ = h.Write(s)
+	var b [4]byte
+	write := func(xs []float32) {
+		for _, x := range xs {
+			binary.LittleEndian.PutUint32(b[:], math.Float32bits(x))
+			_, _ = h.Write(b[:])
+		}
+	}
+	write(obs)
+	for _, c := range cands {
+		write(c)
+	}
 	return seat.Seed ^ int64(h.Sum64())
 }

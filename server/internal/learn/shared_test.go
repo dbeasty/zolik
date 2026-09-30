@@ -123,14 +123,6 @@ func TestSharedPolicyUnderConcurrency(t *testing.T) {
 			p := learn.NewPolicy(randomNet(g, []int{32, 32}, []int{16}, 3))
 			cold := learn.NetBot{Game: g, Policy: p, Fallback: g.Heuristic()}
 			hot := learn.NetBot{Game: g, Policy: p, Fallback: g.Heuristic(), Temperature: 1}
-			if tc.game == "zolik" {
-				// A sampling NetBot seeds its coin from the state's bytes, and a
-				// Žolíky deal carries the wall-clock time it was dealt at
-				// (rules.GameState.Created): the same seed samples differently
-				// from one run to the next. Not this test's subject — the
-				// forward pass is the same at any temperature.
-				hot.Temperature = 0
-			}
 			// A match's record is every action its bots chose, hashed: the final
 			// state will not do, since Žolíky stamps its deal with the wall clock.
 			play := func(seed int64) string {
