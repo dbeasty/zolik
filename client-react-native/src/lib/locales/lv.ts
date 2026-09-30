@@ -307,6 +307,13 @@ export const lv: Record<string, string> = {
 
   'zolik.round.deal': 'Dalījums',
   'zolik.round.cleanRun': 'Vienai secībai jābūt bez džokera',
+  'zolik.line.wentOut': 'Iziešana',
+  'zolik.line.inHand': 'Rokā atlikušās kārtis: {n}',
+  'zolik.line.handJokers': 'Džokeri × {n} (pa {each})',
+  'zolik.line.handAces': 'Dūži × {n} (pa {each})',
+  'zolik.line.handAcesLow': 'Dūži kā vieninieki × {n} (pa {each})',
+  'zolik.line.handFaces': 'Desmitnieki un bildes × {n} (pa {each})',
+  'zolik.line.handPips': 'Kārtis 2–9 × {n}',
   'canasta.round.deal': 'Dalījums',
   'canasta.round.concealed': 'Izgāja slēpti',
   'canasta.round.exhausted': 'Kavas beidzās',

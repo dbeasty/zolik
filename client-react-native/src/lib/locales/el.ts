@@ -316,6 +316,13 @@ export const el: Record<string, string> = {
 
   'zolik.round.deal': 'Μοιρασιά',
   'zolik.round.cleanRun': 'Μία κέντα πρέπει να είναι χωρίς μπαλαντέρ',
+  'zolik.line.wentOut': 'Κλείσιμο',
+  'zolik.line.inHand': 'Φύλλα που έμειναν στο χέρι: {n}',
+  'zolik.line.handJokers': 'Μπαλαντέρ × {n} ({each} ο καθένας)',
+  'zolik.line.handAces': 'Άσοι × {n} ({each} ο καθένας)',
+  'zolik.line.handAcesLow': 'Άσοι που μετράνε ένα × {n} ({each} ο καθένας)',
+  'zolik.line.handFaces': 'Δεκάρια και φιγούρες × {n} ({each} το καθένα)',
+  'zolik.line.handPips': 'Φύλλα 2–9 × {n}',
   'canasta.round.deal': 'Μοιρασιά',
   'canasta.round.concealed': 'Βγήκε κρυφά',
   'canasta.round.exhausted': 'Η τράπουλα τελείωσε',

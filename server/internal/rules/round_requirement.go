@@ -177,6 +177,58 @@ func HandPenaltyTotalWithMelds(hand []string, tableMelds [][]string, cfg RulesCo
 	return sum
 }
 
+// HandTally is one leftover hand priced by the categories a player disputes:
+// every card in exactly one of them, each with the points it cost.
+//
+// Counts and points are both kept, rather than a count and a price, because
+// the price of an ace is not a constant — it is 1 or 25 depending on the hand
+// and the table it was caught against, which is why the two are separate
+// categories.
+type HandTally struct {
+	Cards  int
+	Points int
+
+	Jokers       int `json:",omitempty"`
+	JokerPoints  int `json:",omitempty"`
+	Aces         int `json:",omitempty"`
+	AcePoints    int `json:",omitempty"`
+	AcesLow      int `json:",omitempty"`
+	AceLowPoints int `json:",omitempty"`
+	// Faces are the tens and the court cards; Pips the two to the nine.
+	Faces      int `json:",omitempty"`
+	FacePoints int `json:",omitempty"`
+	Pips       int `json:",omitempty"`
+	PipPoints  int `json:",omitempty"`
+}
+
+// TallyHand prices a leftover hand card by card with the same function
+// HandPenaltyTotalWithMelds sums, so its Points is that total by construction.
+func TallyHand(hand []string, tableMelds [][]string, cfg RulesConfig) HandTally {
+	t := HandTally{Cards: len(hand)}
+	for _, c := range hand {
+		p := handCardPenalty(c, hand, tableMelds, cfg)
+		t.Points += p
+		switch {
+		case IsJoker(c):
+			t.Jokers++
+			t.JokerPoints += p
+		case IsAce(c) && p == AceRunLowValue:
+			t.AcesLow++
+			t.AceLowPoints += p
+		case IsAce(c):
+			t.Aces++
+			t.AcePoints += p
+		case p == 10:
+			t.Faces++
+			t.FacePoints += p
+		default:
+			t.Pips++
+			t.PipPoints += p
+		}
+	}
+	return t
+}
+
 func handCardPenalty(card string, hand []string, tableMelds [][]string, cfg RulesConfig) int {
 	if IsAce(card) {
 		if aceCountsAsNaturalInHand(card, hand) {

@@ -67,12 +67,15 @@ func ScoreDeal(state GameState, winnerID string) (GameState, bool, error) {
 	cfg := effectiveRules(state)
 	tableMelds := AllTableMelds(state)
 	gameScore := map[string]int{}
+	hands := map[string]HandTally{}
 	for _, pid := range state.TurnOrder {
 		if pid == winnerID {
 			gameScore[pid] = 0
 			continue
 		}
-		gameScore[pid] = HandPenaltyTotalWithMelds(state.Hands[pid], tableMelds, cfg)
+		t := TallyHand(state.Hands[pid], tableMelds, cfg)
+		hands[pid] = t
+		gameScore[pid] = t.Points
 	}
 
 	for _, pid := range state.TurnOrder {
@@ -80,8 +83,18 @@ func ScoreDeal(state GameState, winnerID string) (GameState, bool, error) {
 		state.TotalScores[pid] += gameScore[pid]
 	}
 	// Recorded alongside the scores because it cannot be read back out of
-	// them — see GameState.DealWinners.
+	// them — see GameState.DealWinners and GameState.DealHands.
 	state.DealWinners = append(state.DealWinners, winnerID)
+	// Padded first, so a match that was in flight when the ledger shipped
+	// keeps its hands on the deal they belong to rather than on deal one.
+	// GameScores is the deal count, not DealWinners: that one began empty
+	// part-way through older matches too.
+	if len(state.TurnOrder) > 0 {
+		for len(state.DealHands) < len(state.GameScores[state.TurnOrder[0]])-1 {
+			state.DealHands = append(state.DealHands, nil)
+		}
+		state.DealHands = append(state.DealHands, hands)
+	}
 
 	if matchIsOver(state, cfg) {
 		state.Status = StatusCompleted

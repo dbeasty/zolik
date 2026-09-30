@@ -314,6 +314,13 @@ export const hu: Record<string, string> = {
 
   'zolik.round.deal': 'Leosztás',
   'zolik.round.cleanRun': 'Egy sornak joker nélkülinek kell lennie',
+  'zolik.line.wentOut': 'Kiszállás',
+  'zolik.line.inHand': 'Kézben maradt lap: {n}',
+  'zolik.line.handJokers': 'Jokerek × {n} (darabja {each})',
+  'zolik.line.handAces': 'Ászok × {n} (darabja {each})',
+  'zolik.line.handAcesLow': 'Ászok egyesként × {n} (darabja {each})',
+  'zolik.line.handFaces': 'Tízesek és figurák × {n} (darabja {each})',
+  'zolik.line.handPips': 'Lapok 2–9 × {n}',
   'canasta.round.deal': 'Leosztás',
   'canasta.round.concealed': 'Rejtve szállt ki',
   'canasta.round.exhausted': 'A pakli elfogyott',

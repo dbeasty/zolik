@@ -309,6 +309,13 @@ export const bg: Record<string, string> = {
 
   'zolik.round.deal': 'Раздаване',
   'zolik.round.cleanRun': 'Една поредица трябва да е без жокер',
+  'zolik.line.wentOut': 'Излизане',
+  'zolik.line.inHand': 'Останали карти в ръката: {n}',
+  'zolik.line.handJokers': 'Жокери × {n} (по {each})',
+  'zolik.line.handAces': 'Аса × {n} (по {each})',
+  'zolik.line.handAcesLow': 'Аса, броени за едно × {n} (по {each})',
+  'zolik.line.handFaces': 'Десетки и фигури × {n} (по {each})',
+  'zolik.line.handPips': 'Карти от 2 до 9 × {n}',
   'canasta.round.deal': 'Раздаване',
   'canasta.round.concealed': 'Излезе скрито',
   'canasta.round.exhausted': 'Тестето свърши',

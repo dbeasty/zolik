@@ -311,6 +311,13 @@ export const mt: Record<string, string> = {
 
   'zolik.round.deal': 'Tqassim',
   'zolik.round.cleanRun': 'Sekwenza waħda trid tkun mingħajr joker',
+  'zolik.line.wentOut': 'Ħruġ',
+  'zolik.line.inHand': 'Karti fadal fl-id: {n}',
+  'zolik.line.handJokers': 'Jokers × {n} ({each} kull wieħed)',
+  'zolik.line.handAces': 'Assi × {n} ({each} kull wieħed)',
+  'zolik.line.handAcesLow': 'Assi bħala wieħed × {n} ({each} kull wieħed)',
+  'zolik.line.handFaces': 'Għaxriet u figuri × {n} ({each} kull waħda)',
+  'zolik.line.handPips': 'Karti 2–9 × {n}',
   'canasta.round.deal': 'Tqassim',
   'canasta.round.concealed': 'Ħareġ mistur',
   'canasta.round.exhausted': 'Il-mazz spiċċa',

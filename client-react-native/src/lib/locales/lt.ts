@@ -305,6 +305,13 @@ export const lt: Record<string, string> = {
 
   'zolik.round.deal': 'Dalijimas',
   'zolik.round.cleanRun': 'Viena seka turi būti be džokerio',
+  'zolik.line.wentOut': 'Išėjimas',
+  'zolik.line.inHand': 'Liko kortų rankoje: {n}',
+  'zolik.line.handJokers': 'Džokeriai × {n} (po {each})',
+  'zolik.line.handAces': 'Tūzai × {n} (po {each})',
+  'zolik.line.handAcesLow': 'Tūzai kaip vienetai × {n} (po {each})',
+  'zolik.line.handFaces': 'Dešimtukai ir paveikslėliai × {n} (po {each})',
+  'zolik.line.handPips': 'Kortos 2–9 × {n}',
   'canasta.round.deal': 'Dalijimas',
   'canasta.round.concealed': 'Išėjo slaptai',
   'canasta.round.exhausted': 'Kaladė baigėsi',
