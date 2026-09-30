@@ -2,6 +2,7 @@ package stats
 
 import (
 	"sort"
+	"strconv"
 
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
@@ -55,8 +56,9 @@ type Scoreboard struct {
 	Complete bool   `bson:"complete" json:"complete"`
 
 	Winners []string `bson:"winners,omitempty" json:"winners,omitempty"`
-	// IsDraw is more than one winner — a Canasta partnership is not a draw,
-	// but two seats level on chips at the end of a fixed-length poker match is.
+	// IsDraw is winners on more than one side — a Canasta partnership is not a
+	// draw, but two seats level on chips at the end of a fixed-length poker
+	// match is.
 	IsDraw bool `bson:"isDraw,omitempty" json:"isDraw,omitempty"`
 
 	Standings   []Standing  `bson:"standings" json:"standings"`
@@ -114,7 +116,7 @@ func BuildScoreboard(m models.Match, out module.Outcome) Scoreboard {
 		Complete:  m.Status == "completed",
 		Winners:   append([]string(nil), m.Winners...),
 	}
-	sb.IsDraw = sb.Complete && len(sb.Winners) > 1
+	sb.IsDraw = sb.Complete && sidesAmong(sb.Winners, out.Sides) > 1
 
 	seatOf := map[string]int{}
 	for i, id := range seatOrder(m) {
@@ -144,7 +146,7 @@ func BuildScoreboard(m models.Match, out module.Outcome) Scoreboard {
 			// scoreboard does not model, and a record has to agree with the
 			// match the players actually watched end.
 			Won:  boolOr(sb.Complete, won[s.PlayerID], s.Won),
-			Drew: sb.Complete && len(sb.Winners) > 1 && won[s.PlayerID],
+			Drew: sb.IsDraw && won[s.PlayerID],
 		})
 	}
 
@@ -163,6 +165,26 @@ func BuildScoreboard(m models.Match, out module.Outcome) Scoreboard {
 		sb.RoundLabelKey = out.Rounds.LabelKey
 	}
 	return sb
+}
+
+// sidesAmong counts how many sides the winners came from. A seat no side names
+// is a side of its own, which is every seat in a game without partnerships.
+func sidesAmong(winners []string, sides [][]string) int {
+	sideOf := map[string]int{}
+	for i, side := range sides {
+		for _, id := range side {
+			sideOf[id] = i
+		}
+	}
+	seen := map[string]bool{}
+	for _, w := range winners {
+		key := "seat:" + w
+		if i, ok := sideOf[w]; ok {
+			key = "side:" + strconv.Itoa(i)
+		}
+		seen[key] = true
+	}
+	return len(seen)
 }
 
 // boolOr picks the authoritative answer when there is one.

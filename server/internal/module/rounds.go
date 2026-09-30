@@ -196,6 +196,10 @@ func RoundsFor(m GameModule, s State) *RoundLog {
 type Outcome struct {
 	Standings []Standing
 	Rounds    *RoundLog
+	// Sides is who played with whom, as Seated.Sides answers it, or nil where
+	// everyone played for themselves. It is what tells a partnership's two
+	// winners — who beat the table together — from two seats that tied.
+	Sides [][]string
 }
 
 // OutcomeOf asks a module for everything it will say about a match.

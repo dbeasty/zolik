@@ -48,6 +48,14 @@ type Repository interface {
 	// the single sanctioned exception to the record being append-only, used
 	// when a guest claims an account.
 	ReplaceMatchAttribution(ctx context.Context, m MatchResult) error
+	// EachMatch walks every match record, in no particular order. It exists
+	// for offline repairs, which have to look at records no subject names.
+	EachMatch(ctx context.Context, fn func(MatchResult) error) error
+	// ReplaceMatchDraw rewrites only whether a match was a draw — isDraw and
+	// the participants carrying each seat's Won and Drew. The second
+	// sanctioned exception to the record being append-only, used to repair
+	// partnership wins that were recorded as draws.
+	ReplaceMatchDraw(ctx context.Context, m MatchResult) error
 	// FindPlayerStats returns a subject's lifetime record, or ErrNotFound
 	// when the subject has not finished a match yet.
 	FindPlayerStats(ctx context.Context, key string) (PlayerStats, error)
@@ -178,6 +186,35 @@ func (r *mongoRepository) ReplaceMatchAttribution(ctx context.Context, m MatchRe
 		bson.M{"$set": bson.M{
 			"participants": m.Participants,
 			"subjectKeys":  m.SubjectKeys,
+		}},
+	)
+	return err
+}
+
+func (r *mongoRepository) EachMatch(ctx context.Context, fn func(MatchResult) error) error {
+	cur, err := r.matches.Find(ctx, bson.M{})
+	if err != nil {
+		return err
+	}
+	defer cur.Close(ctx)
+	for cur.Next(ctx) {
+		var m MatchResult
+		if err := cur.Decode(&m); err != nil {
+			return err
+		}
+		if err := fn(m); err != nil {
+			return err
+		}
+	}
+	return cur.Err()
+}
+
+func (r *mongoRepository) ReplaceMatchDraw(ctx context.Context, m MatchResult) error {
+	_, err := r.matches.UpdateOne(ctx,
+		bson.M{"_id": m.ID},
+		bson.M{"$set": bson.M{
+			"isDraw":       m.IsDraw,
+			"participants": m.Participants,
 		}},
 	)
 	return err
