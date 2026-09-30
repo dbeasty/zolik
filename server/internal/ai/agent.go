@@ -46,6 +46,9 @@ type VisibleState struct {
 	// and "that card is in Karel's hand and he wants a nine" — the first is
 	// all the agent had, and it is the reason it could never count outs.
 	KnownHeld map[string][]string
+	// Pickups is how many times each seat has taken from the discard pile
+	// this deal (Ledger.Pickups).
+	Pickups map[string]int
 	// HandCounts is how many cards each seat holds, which every client
 	// already renders (zone.opponentHand, seat.cards). Without it the agent
 	// cannot tell a table that is about to end from one that just started,

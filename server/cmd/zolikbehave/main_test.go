@@ -27,6 +27,11 @@ func TestWatcherCountsEveryDealOnce(t *testing.T) {
 	if w.a.Out+w.b.Out != deals || w.a.Caught+w.b.Caught != 3*deals {
 		t.Errorf("out %d+%d, caught %d+%d over %d deals", w.a.Out, w.b.Out, w.a.Caught, w.b.Caught, deals)
 	}
+	for _, x := range []*tally{w.a, w.b} {
+		if x.Discards < x.SeatDeals || x.TakenByNext > x.Discards || x.FedNext > x.TakenByNext {
+			t.Errorf("discards %d, taken by the next seat %d, fed it %d over %d seat-deals", x.Discards, x.TakenByNext, x.FedNext, x.SeatDeals)
+		}
+	}
 	if len(w.a.Match) != 1 || len(w.b.Match) != 3 {
 		t.Errorf("match totals %v %v", w.a.Match, w.b.Match)
 	}

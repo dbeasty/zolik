@@ -98,6 +98,15 @@ type Profile struct {
 	KeepPartials KeepPolicy
 	// LayOffPolicy decides *which* lay-off to make when several are legal.
 	LayOffPolicy LayOffPolicy
+	// ShedOnceDown plays every deal the seat is down in as an endgame: once
+	// its contract is on the table it protects no unfinished material and
+	// sheds the dearest card it can, the way a player racing to go out does.
+	// With EndgameDumpsUnsafe it stops minding the table too.
+	ShedOnceDown bool
+	// DigPile, under any_from_pile, looks through the whole pile for a card
+	// that takes the seat down this turn, not only at the top one — the
+	// pickup of a player who comes down as early as the pile allows.
+	DigPile bool
 	// Four more knobs stood here and are gone, each removed because the
 	// sweep in internal/ai/sim priced it at nothing or worse. They are
 	// recorded rather than quietly dropped, because every one of them sounds
@@ -215,6 +224,22 @@ var profiles = map[module.Skill]Profile{
 		KeepPartials:   KeepByOuts,
 		LayOffPolicy:   LayOffHighestPoints,
 	},
+}
+
+// CloserProfile is the closer: Hard's reading of the table, but in a hurry.
+// It comes down the first turn any card on the pile lets it (DigPile), and
+// once down sheds its dearest card every turn and goes out as fast as its
+// lay-offs allow (ShedOnceDown, EndgameDumpsUnsafe, LayOffHighestPoints). Not
+// a rung of the ladder: a style, for the learning pool (zolikmod's Styles)
+// and the bench, modelled on the human who beat the network by going down
+// early and getting out before it was down at all.
+func CloserProfile() Profile {
+	p := profiles[module.SkillHard]
+	p.ShedOnceDown = true
+	p.EndgameDumpsUnsafe = true
+	p.DigPile = true
+	p.EndgameAt = 3
+	return p
 }
 
 // ProfileFor is the strength a skill plays at.

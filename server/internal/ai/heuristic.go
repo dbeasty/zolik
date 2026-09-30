@@ -2,6 +2,7 @@ package ai
 
 import (
 	"math/rand"
+	"slices"
 	"sort"
 
 	"zolik/server/internal/module"
@@ -224,6 +225,11 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 			if _, ok := findInitialMeldPlanRequiring(st, actor, candidateHand, topDiscard); ok {
 				return rules.Action{Type: rules.ActionDrawCard, DrawFrom: rules.DrawFromDiscard}
 			}
+			if a.prof.DigPile && visible.Rules.DiscardPickupMode == rules.DiscardPickupAnyFromPile {
+				if card, ok := digPile(st, actor, hand, visible.DiscardPile); ok {
+					return rules.Action{Type: rules.ActionDrawCard, DrawFrom: rules.DrawFromDiscard, Card: card}
+				}
+			}
 		}
 		return rules.Action{Type: rules.ActionDrawCard, DrawFrom: rules.DrawFromDeck}
 	}
@@ -233,6 +239,27 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 		return rules.Action{Type: rules.ActionDiscard, Card: a.pickDiscard(hand, visible, actor, k, rng, canDiscardJoker)}
 	}
 	return rules.Action{Type: rules.ActionDiscard, Card: ""}
+}
+
+// digPile is the card below the top of the pile whose pickup — it and every
+// card above it, the engine taking the deepest copy of a card named twice —
+// leaves a hand that goes down this turn with that card in the opening.
+// Nearest the top first, so it takes no more of the pile than it must.
+func digPile(st rules.GameState, actor string, hand, pile []string) (string, bool) {
+	tried := map[string]bool{}
+	for i := len(pile) - 2; i >= 0; i-- {
+		c := pile[i]
+		if tried[c] {
+			continue
+		}
+		tried[c] = true
+		at := slices.Index(pile, c)
+		cand := append(append([]string(nil), hand...), pile[at:]...)
+		if _, ok := findInitialMeldPlanRequiring(st, actor, cand, c); ok {
+			return c, true
+		}
+	}
+	return "", false
 }
 
 // missed rolls the profile's chance of not noticing an available lay-off.
@@ -1040,7 +1067,7 @@ func (a *HeuristicAgent) discardCandidates(hand []string, visible VisibleState, 
 	// its high cards and keeping the low ones. A seat that is not down and
 	// cannot get down stops believing the prediction then, and goes back to
 	// building toward the floor; that is what releases the table.
-	endgame := k.endgame
+	endgame := k.endgame || (a.prof.ShedOnceDown && g.down)
 	if short && endgame && visible.Round > staleEndgameRound {
 		endgame = false
 	}

@@ -48,6 +48,10 @@ type tally struct {
 	// Draw decisions the adapter gave one candidate, with the pile open and
 	// with it locked, and turns that took from the pile.
 	Draws, DrawsOne, OpenDraws, OpenDrawsOne, PileTakes int
+	// Discards that ended a turn, and of those the ones the next seat took
+	// straight off the pile, and of those the ones it put on the table that
+	// same turn — laid in a meld or laid off (or went out with).
+	Discards, TakenByNext, FedNext int
 }
 
 func (t *tally) add(o *tally) {
@@ -71,6 +75,9 @@ func (t *tally) add(o *tally) {
 	t.OpenDraws += o.OpenDraws
 	t.OpenDrawsOne += o.OpenDrawsOne
 	t.PileTakes += o.PileTakes
+	t.Discards += o.Discards
+	t.TakenByNext += o.TakenByNext
+	t.FedNext += o.FedNext
 }
 
 // cleanRun reports whether the hand holds minRun naturals of one suit in
@@ -142,6 +149,43 @@ type watcher struct {
 	took       bool
 	finalised  map[int]bool
 	finalCheck bool
+	// feed is the discard that ended the last turn, followed through the
+	// next seat's turn.
+	feed *feed
+}
+
+type feed struct {
+	by, to, card string
+	onTable      int // copies of card on the table when the discard was made
+	taken        bool
+}
+
+func tableCopies(gs rules.GameState, card string) int {
+	n := 0
+	for _, melds := range gs.Melds {
+		for _, m := range melds {
+			for _, c := range m {
+				if c == card {
+					n++
+				}
+			}
+		}
+	}
+	return n
+}
+
+// settleFeed closes the followed discard: fed when the seat that took it has
+// more copies of it on the table than there were (or went out).
+func (w *watcher) settleFeed(gs rules.GameState, wentOut bool) {
+	f := w.feed
+	w.feed = nil
+	if f == nil || !f.taken {
+		return
+	}
+	w.of(f.by).TakenByNext++
+	if wentOut || tableCopies(gs, f.card) > f.onTable {
+		w.of(f.by).FedNext++
+	}
 }
 
 func (w *watcher) of(seat string) *tally {
@@ -158,9 +202,22 @@ func (w *watcher) see(raw module.State) {
 	}
 	gs := s.Rules
 	if gs.GameNumber != w.deal {
-		w.deal, w.turns, w.downAt, w.lastTurn = gs.GameNumber, map[string]int{}, map[string]int{}, ""
+		w.deal, w.turns, w.downAt, w.lastTurn, w.feed = gs.GameNumber, map[string]int{}, map[string]int{}, "", nil
+	}
+	if gs.Phase == rules.PhaseIntermission && w.feed != nil && len(gs.DealWinners) >= gs.GameNumber {
+		w.settleFeed(gs, gs.DealWinners[gs.GameNumber-1] == w.feed.to)
+	}
+	if w.feed != nil && gs.CurrentTurn == w.feed.to && gs.DiscardTakenCard == w.feed.card {
+		w.feed.taken = true
 	}
 	if gs.Phase != rules.PhaseIntermission && gs.CurrentTurn != "" && gs.CurrentTurn != w.lastTurn {
+		if w.lastTurn != "" {
+			w.settleFeed(gs, false)
+			if n := len(gs.DiscardPile); n > 0 {
+				w.of(w.lastTurn).Discards++
+				w.feed = &feed{by: w.lastTurn, to: gs.CurrentTurn, card: gs.DiscardPile[n-1], onTable: tableCopies(gs, gs.DiscardPile[n-1])}
+			}
+		}
 		w.turns[gs.CurrentTurn]++
 		w.of(gs.CurrentTurn).Turns++
 		w.lastTurn, w.took = gs.CurrentTurn, false
@@ -364,15 +421,16 @@ func main() {
 			ms(t.TurnsToDown), median(t.TurnsToDown), ms(t.Penalty), ms(t.PenaltyUp), ms(t.PenaltyDown),
 			ms(t.JokersHeld), pct(withJ, len(t.JokersHeld)), ms(t.Match), float64(t.Turns)/math.Max(1, float64(t.SeatDeals)))
 	}
-	fmt.Printf("%-3s %8s %11s %13s %8s %9s %11s %10s\n", "", "never%", "noClean%nv", "noClean+set%", "draws", "1-cand%", "open1-cand%", "pileTake%")
+	fmt.Printf("%-3s %8s %11s %13s %8s %9s %11s %10s %9s %9s %9s\n", "", "never%", "noClean%nv", "noClean+set%", "draws", "1-cand%", "open1-cand%", "pileTake%", "takes/d", "nextTook%", "fedNext%")
 	for _, row := range []struct {
 		name string
 		t    *tally
 	}{{"A", &ta}, {"B", &tb}} {
 		t := row.t
-		fmt.Printf("%-3s %8.1f %11.1f %13.1f %8d %9.1f %11.1f %10.1f\n", row.name,
+		fmt.Printf("%-3s %8.1f %11.1f %13.1f %8d %9.1f %11.1f %10.1f %9.2f %9.2f %9.2f\n", row.name,
 			pct(t.NeverDown, t.SeatDeals), pct(t.NoCleanRun, t.NeverDown), pct(t.NoCleanRunWithSets, t.NeverDown),
-			t.Draws, pct(t.DrawsOne, t.Draws), pct(t.OpenDrawsOne, t.OpenDraws), pct(t.PileTakes, t.Turns))
+			t.Draws, pct(t.DrawsOne, t.Draws), pct(t.OpenDrawsOne, t.OpenDraws), pct(t.PileTakes, t.Turns),
+			float64(t.PileTakes)/math.Max(1, float64(t.SeatDeals)), pct(t.TakenByNext, t.Discards), pct(t.FedNext, t.Discards))
 	}
 	if illegal+stalls > 0 {
 		os.Exit(1)

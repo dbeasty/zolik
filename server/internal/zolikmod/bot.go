@@ -2,6 +2,7 @@ package zolikmod
 
 import (
 	"zolik/server/internal/ai"
+	"zolik/server/internal/learn"
 	"zolik/server/internal/module"
 	"zolik/server/internal/rules"
 )
@@ -22,19 +23,19 @@ func (m *Module) Bot() module.Bot { return heuristicBot{} }
 type heuristicBot struct{}
 
 func (b heuristicBot) Act(raw module.State, seat module.BotSeat, _ []module.ActionOffer) (module.Action, bool) {
-	s, err := decode(raw)
-	if err != nil {
-		return module.Action{}, false
-	}
-	if s.Rules.CurrentTurn != seat.PlayerID {
-		return module.Action{}, false
-	}
-
 	// The seat's own strength, not one hardcoded here. It used to be the
 	// literal "medium" — which meant the easy and hard settings the rest of
 	// the system already had names, statistics buckets and a discard heuristic
 	// for could not be reached at all.
-	agent := ai.NewAgent(seat.Skill, seat.Seed)
+	return playAgent(raw, seat, ai.NewAgent(seat.Skill, seat.Seed))
+}
+
+// playAgent asks one heuristic agent for the seat's move.
+func playAgent(raw module.State, seat module.BotSeat, agent *ai.HeuristicAgent) (module.Action, bool) {
+	s, err := decode(raw)
+	if err != nil || s.Rules.CurrentTurn != seat.PlayerID {
+		return module.Action{}, false
+	}
 	visible := ai.VisibleFor(s.Rules, s.Ledger, seat.PlayerID)
 	chosen := agent.ChooseAction(visible, append([]string(nil), s.Rules.Hands[seat.PlayerID]...))
 	return toModuleAction(chosen)
@@ -84,4 +85,22 @@ func toModuleAction(a rules.Action) (module.Action, bool) {
 		return module.Action{}, false
 	}
 	return out, true
+}
+
+// Styles are the opponents this module adds to the learning pool
+// (learn.Styled) and the bench, beyond the skill ladder.
+//
+//	closer  comes down as early as the pile allows and then races to go out,
+//	        shedding its dearest card every turn (ai.CloserProfile): the
+//	        player who beat the network by being out before it was down.
+func (learnGame) Styles() map[string]module.Bot {
+	return map[string]module.Bot{"closer": closerBot{}}
+}
+
+var _ learn.Styled = learnGame{}
+
+type closerBot struct{}
+
+func (closerBot) Act(raw module.State, seat module.BotSeat, _ []module.ActionOffer) (module.Action, bool) {
+	return playAgent(raw, seat, ai.NewAgentWithProfile(ai.CloserProfile(), seat.Seed))
 }
