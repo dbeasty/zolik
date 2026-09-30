@@ -4,13 +4,15 @@
 //
 //	go run ./cmd/gamebench -game holdem -a hard -b medium
 //	go run ./cmd/gamebench -game canasta -seats 4 -a hard -b hard
+//	go run ./cmd/gamebench -game zolik -variation continental -a hard -b easy
 //	go run ./cmd/gamebench -game holdem -a net:models/ckpt.bin -b hard -seeds 500
 //
 // A contender is a skill (easy, medium, hard), a style the game supplies, or
 // net:<path>[@temperature] for a trained model. The result is A's advantage
 // per match in the game's outcome unit — big blinds for Hold'em, points for
-// Canasta — with its standard error. It exits 1 on any illegal move or stall,
-// which is a bug at every strength.
+// Canasta, penalty points kept out of hand for Žolíky — with its standard
+// error. It exits 1 on any illegal move or stall, which is a bug at every
+// strength.
 package main
 
 import (
@@ -26,6 +28,7 @@ import (
 
 	_ "zolik/server/internal/canasta"
 	_ "zolik/server/internal/holdem"
+	_ "zolik/server/internal/zolikmod"
 )
 
 func main() {
