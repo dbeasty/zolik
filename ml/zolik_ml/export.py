@@ -95,3 +95,20 @@ def from_bytes(b: bytes) -> Policy:
 
 def load(path: str | os.PathLike) -> Policy:
     return from_bytes(Path(path).read_bytes())
+
+
+def load_into(model: Policy, path: str | os.PathLike) -> Policy:
+    """Copy a ZLNET1 file's weights into ``model``, which must be the same network.
+
+    Fine-tuning starts a run from a shipped model: the file's game, input
+    widths and every layer size have to match the model the config builds, or
+    the weights would mean something else (or not fit), so any difference is an
+    error naming both shapes rather than a partial load.
+    """
+    src = load(path)
+    want, got = model.config(), src.config()
+    if want != got:
+        diff = {k: (got.get(k), want.get(k)) for k in want if got.get(k) != want.get(k)}
+        raise ValueError(f"{path} is not this model: file vs config {diff}")
+    model.load_state_dict(src.state_dict())
+    return model

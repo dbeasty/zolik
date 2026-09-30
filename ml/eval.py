@@ -30,7 +30,9 @@ LINE = re.compile(
 )
 
 
-def bench(game: str, model: Path, opp: str, seeds: int, seats: int, temp: float, variation: str = "", first: int = HELD_OUT_SEED) -> dict:
+def bench(
+    game: str, model: Path, opp: str, seeds: int, seats: int, temp: float, variation: str = "", first: int = HELD_OUT_SEED, a_seats: int = 0
+) -> dict:
     cmd = [
         str(binary("gamebench")),
         "-game", game,
@@ -42,6 +44,8 @@ def bench(game: str, model: Path, opp: str, seeds: int, seats: int, temp: float,
     ]
     if variation:
         cmd += ["-variation", variation]
+    if a_seats:
+        cmd += ["-a-seats", str(a_seats)]
     t = time.time()
     p = subprocess.run(cmd, cwd=SERVER_DIR, capture_output=True, text=True)
     m = LINE.search(p.stdout)
@@ -69,6 +73,7 @@ def main(argv=None) -> None:
     ap.add_argument("--seats", type=int)
     ap.add_argument("--variation", help="defaults to the config's eval.variation, else the game's default")
     ap.add_argument("--temp", type=float, default=0.0)
+    ap.add_argument("--a-seats", type=int, default=0, help="seats the model plays, the opponent the rest (0: alternate)")
     ap.add_argument("--config", type=Path)
     args = ap.parse_args(argv)
 
@@ -79,11 +84,11 @@ def main(argv=None) -> None:
     variation = args.variation if args.variation is not None else cfg.get("variation", "")
     unit = {"holdem": "BB/match", "zolik": "penalty/match"}.get(args.game, "points/match")
 
-    print(f"{args.model} at temperature {args.temp:g}, {seats} seats{', ' + variation if variation else ''}, {seeds} held-out seeds from {HELD_OUT_SEED} (x2 seatings)")
+    print(f"{args.model} at temperature {args.temp:g}, {seats} seats{f' (model in {args.a_seats})' if args.a_seats else ''}{', ' + variation if variation else ''}, {seeds} held-out seeds from {HELD_OUT_SEED} (x2 seatings)")
     print(f"{'opponent':<14} {unit:>14} {'± se':>8}  {'verdict':<10} {'illegal':>7} {'stalls':>6} {'secs':>6}")
     bad = False
     for opp in opps:
-        r = bench(args.game, args.model, opp, seeds, seats, args.temp, variation)
+        r = bench(args.game, args.model, opp, seeds, seats, args.temp, variation, a_seats=args.a_seats)
         verdict = ("ahead" if r["mean"] > 0 else "behind") if r["significant"] else "even"
         print(f"{opp:<14} {r['mean']:>+14.2f} {r['se']:>8.2f}  {verdict:<10} {r['illegal']:>7} {r['stalls']:>6} {r['seconds']:>6}", flush=True)
         bad |= r["illegal"] + r["stalls"] > 0

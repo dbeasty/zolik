@@ -61,6 +61,23 @@ func (r BenchResult) String() string {
 // each seed flips every seat. Bots must be safe to call from several
 // goroutines, which every bot here is: they are functions of the position.
 func Bench(g Benchable, seats int, variation string, a, b Contender, first int64, n, budget int) (BenchResult, error) {
+	return BenchSeated(g, seats, 0, variation, a, b, first, n, budget)
+}
+
+// BenchSeated is Bench with A in aSeats of the seats and B in the rest: one
+// model against three hard bots, or three copies of it against one. Every seed
+// is then played once per rotation of the table, so each seat is A's as often
+// as any other and the cards still come out of the answer; a sample is A's
+// mean outcome minus B's, averaged over the rotations. aSeats 0 is Bench's
+// alternating seating. A game with partnerships only takes 0: an uneven split
+// would put the contenders in one partnership.
+func BenchSeated(g Benchable, seats, aSeats int, variation string, a, b Contender, first int64, n, budget int) (BenchResult, error) {
+	if aSeats < 0 || aSeats >= seats {
+		return BenchResult{}, fmt.Errorf("learn: A in %d of %d seats leaves B none", aSeats, seats)
+	}
+	if aSeats > 0 && len(module.SidesOf(g.Module(), g.Config(seats, variation), Players(seats))) > 0 {
+		return BenchResult{}, fmt.Errorf("learn: %s seats partnerships; only the alternating seating is fair", g.Name())
+	}
 	type outcome struct {
 		sample  float64
 		stalled bool
@@ -77,7 +94,7 @@ func Bench(g Benchable, seats int, variation string, a, b Contender, first int64
 			defer wg.Done()
 			for i := range jobs {
 				o := &results[i]
-				o.sample, o.illegal, o.why, o.err = benchSeed(g, seats, variation, a, b, first+int64(i), budget)
+				o.sample, o.illegal, o.why, o.err = benchSeed(g, seats, aSeats, variation, a, b, first+int64(i), budget)
 				o.stalled = len(o.why) > 0
 			}
 		}()
@@ -110,19 +127,41 @@ func Bench(g Benchable, seats int, variation string, a, b Contender, first int64
 	return res, nil
 }
 
-// benchSeed plays one seed in both seatings and returns A's advantage, or the
+// seatings are the ways one seed is played: which seats are A's in each.
+// Alternating (aSeats 0) is two seatings, every seat flipped between them;
+// A in aSeats seats is one seating per rotation of the table.
+func seatings(players []module.PlayerRef, sideOf map[string]int, aSeats int) []map[string]bool {
+	var out []map[string]bool
+	if aSeats == 0 {
+		for _, flip := range []bool{false, true} {
+			isA := map[string]bool{}
+			for _, p := range players {
+				isA[p.ID] = (sideOf[p.ID]%2 == 0) != flip
+			}
+			out = append(out, isA)
+		}
+		return out
+	}
+	n := len(players)
+	for r := 0; r < n; r++ {
+		isA := map[string]bool{}
+		for j := 0; j < aSeats; j++ {
+			isA[players[(r+j)%n].ID] = true
+		}
+		out = append(out, isA)
+	}
+	return out
+}
+
+// benchSeed plays one seed in every seating and returns A's advantage, or the
 // reasons it stalled.
-func benchSeed(g Benchable, seats int, variation string, a, b Contender, seed int64, budget int) (float64, int, []string, error) {
+func benchSeed(g Benchable, seats, aSeats int, variation string, a, b Contender, seed int64, budget int) (float64, int, []string, error) {
 	sample, illegal := 0.0, 0
 	var why []string
-	for _, flip := range []bool{false, true} {
-		players := Players(seats)
-		cfg := g.Config(seats, variation)
-		sideOf := sidesOf(g.Module(), cfg, players)
-		isA := map[string]bool{}
-		for _, p := range players {
-			isA[p.ID] = (sideOf[p.ID]%2 == 0) != flip
-		}
+	players := Players(seats)
+	cfg := g.Config(seats, variation)
+	all := seatings(players, sidesOf(g.Module(), cfg, players), aSeats)
+	for _, isA := range all {
 		final, st, err := PlayOut(g.Module(), cfg, players, seed, budget, func(id string) (module.Bot, module.Skill) {
 			if isA[id] {
 				return a.Bot, a.Skill
@@ -151,7 +190,7 @@ func benchSeed(g Benchable, seats int, variation string, a, b Contender, seed in
 			}
 		}
 		if nA > 0 && nB > 0 {
-			sample += (sumA/float64(nA) - sumB/float64(nB)) / 2
+			sample += (sumA/float64(nA) - sumB/float64(nB)) / float64(len(all))
 		}
 	}
 	return sample, illegal, why, nil

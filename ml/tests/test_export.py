@@ -58,3 +58,31 @@ def test_committed_parity_fixture_reproduces():
             logits, value = m(torch.tensor([c["obs"]]), torch.tensor([c["cands"]]))
         np.testing.assert_allclose(logits[0].numpy(), c["logits"], atol=1e-6)
         assert abs(float(value[0]) - c["value"]) < 1e-6
+
+
+def test_load_into_copies_a_matching_model(tmp_path):
+    torch.manual_seed(1)
+    src = Policy(11, 5, [8, 6], [7], [4], game="toy")
+    path = export.save(src, tmp_path / "src.bin")
+    dst = Policy(11, 5, [8, 6], [7], [4], game="toy")
+    export.load_into(dst, path)
+    for (n1, p1), (n2, p2) in zip(src.state_dict().items(), dst.state_dict().items()):
+        assert n1 == n2 and torch.equal(p1, p2)
+
+
+@pytest.mark.parametrize(
+    "other",
+    [
+        dict(state_dim=11, cand_dim=5, trunk=[8, 5], scorer=[7], value=[4], game="toy"),  # a trunk size
+        dict(state_dim=12, cand_dim=5, trunk=[8, 6], scorer=[7], value=[4], game="toy"),  # the encoder
+        dict(state_dim=11, cand_dim=5, trunk=[8, 6], scorer=[7], value=[4], game="other"),  # the game
+    ],
+)
+def test_load_into_refuses_another_architecture(tmp_path, other):
+    path = export.save(Policy(**other), tmp_path / "other.bin")
+    dst = Policy(11, 5, [8, 6], [7], [4], game="toy")
+    before = {k: v.clone() for k, v in dst.state_dict().items()}
+    with pytest.raises(ValueError, match="is not this model"):
+        export.load_into(dst, path)
+    assert all(torch.equal(before[k], v) for k, v in dst.state_dict().items())
+

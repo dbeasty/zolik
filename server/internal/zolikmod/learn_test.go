@@ -601,3 +601,36 @@ func BenchmarkLearnEnvRandom32(b *testing.B) {
 		})
 	}
 }
+
+// TestLearnFloor35IsTheLobbyTable pins zolik_classic+floor35 to a lobby table
+// someone actually plays: Classic with a 35-point first meld, the pile locked
+// until the third lap, and every other option at the value the lobby sends.
+// Trained on the adapter's name, a model has to be playing that lobby's rules
+// exactly, not a neighbour of them.
+func TestLearnFloor35IsTheLobbyTable(t *testing.T) {
+	lobby := module.MatchConfig{Variation: "zolik_classic", Options: module.Options{
+		rules.OptInitialMeldMinimum:   35,
+		rules.OptRequireCleanRun:      rules.OptOn,
+		rules.OptDiscardDrawMinRound:  3,
+		module.OptOpenDiscardPile:     module.OptOn,
+		rules.OptJokerReclaimMustPlay: rules.OptOn,
+		module.OptPauseBetweenRounds:  module.OptOn,
+		rules.OptDealStarter:          rules.DealStarterOpt(rules.DealStarterRotate),
+	}}
+	want := resolveConfig(lobby)
+	for _, seats := range []int{2, 3, 4} {
+		got := resolveConfig(learnGame{}.Config(seats, varFloor35))
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("%d seats: floor35 resolves to\n%+v\nthe lobby table to\n%+v", seats, got, want)
+		}
+	}
+	if !want.ContractFor(1).RequireCleanRun || want.DiscardDrawMinRound != 3 || want.InitialMeldMinimum != 35 ||
+		want.DiscardPileTopOnly || !want.JokerReclaimMustPlay || !want.PauseBetweenDeals || want.DealStarter != rules.DealStarterRotate {
+		t.Errorf("the lobby table is not the one described: %+v", want)
+	}
+	for round, locked := range map[int]bool{1: true, 2: true, 3: false, 4: false} {
+		if rules.IsDiscardLocked(round, want.DiscardDrawMinRound) != locked {
+			t.Errorf("round %d: locked %v, want %v", round, !locked, locked)
+		}
+	}
+}
