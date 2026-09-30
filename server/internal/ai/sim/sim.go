@@ -48,6 +48,25 @@ type Result struct {
 	Scores map[string]int
 	// Out is the seat that went out last, if any.
 	Out string
+
+	// MatchOver reports that the match itself finished — every deal of a
+	// fixed-length ruleset, or somebody across a target score — rather than
+	// the run stopping on its budget.
+	MatchOver bool
+	// DealActions is how many actions each finished deal took, in order, and
+	// DealRounds how many laps of the table.
+	DealActions []int
+	DealRounds  []int
+	// StalledDeal is the deal that ran past Options.DealBudget without anybody
+	// going out, or zero. A deal that long is not slow, it is a table that has
+	// stopped converging: the hands have settled into shapes nobody can go
+	// down or out from, and the stock keeps being recycled under them.
+	StalledDeal int
+	// Wedge describes the table as it stood when StalledDeal was declared —
+	// every hand, the contract and who is down — which is the first thing
+	// anybody debugging a stall needs and the one thing the numbers above
+	// cannot say.
+	Wedge string
 }
 
 // Seat is one player in a simulated deal: who they are and how well they play.
@@ -66,9 +85,25 @@ type Options struct {
 	Seed       int64
 	Seats      []Seat
 	MaxActions int
+	// WholeMatch plays until the match is over rather than until the budget
+	// runs out, resuming through any between-deal pause, and raises the
+	// default budget to fit. Every deal of every ruleset is played — which is
+	// the only way a contract that first appears in deal seven gets tested.
+	WholeMatch bool
+	// DealBudget is how many actions one deal may take before it counts as
+	// stalled and the run stops. Zero means no per-deal limit.
+	DealBudget int
 }
 
-// Play runs a deal to completion, or until the action budget runs out.
+// Play runs a match from its first deal until the match ends, the action
+// budget runs out, or — with DealBudget — one deal stalls.
+//
+// It always carried on past deal one when the budget allowed; what it did not
+// do was say anything about the deals after it. The self-play gates ask only
+// that *a* deal finished, so a Continental match that finished deal one and
+// then wedged in deal seven spent the rest of its budget cycling the stock and
+// passed. WholeMatch, DealBudget and MatchOver are how a caller asks the
+// question that catches that.
 //
 // Every agent is driven through the same three steps the server drives it
 // through — build the visible state, ask for an action, apply it — including
@@ -107,11 +142,33 @@ func Play(o Options) Result {
 	budget := o.MaxActions
 	if budget <= 0 {
 		budget = 4000
+		if o.WholeMatch {
+			budget = 40000
+		}
 	}
+	dealStart := 0
 
 	for i := 0; i < budget; i++ {
 		if st.Status != rules.StatusActive {
 			res.Ended = true
+			res.MatchOver = st.Status == rules.StatusCompleted
+			break
+		}
+		if st.Phase == rules.PhaseIntermission {
+			if !o.WholeMatch {
+				break
+			}
+			// The table's own "next deal" is a runtime concern, not a move
+			// any seat makes; the sim stands in for it.
+			if st, err = rules.ResumeAfterIntermission(st); err != nil {
+				res.LastErr = err
+				res.Stalled = true
+				break
+			}
+		}
+		if o.DealBudget > 0 && i-dealStart >= o.DealBudget {
+			res.StalledDeal = st.GameNumber
+			res.Wedge = describeTable(st)
 			break
 		}
 		actor := st.CurrentTurn
@@ -186,6 +243,9 @@ func Play(o Options) Result {
 			delete(laidWhileShort, actor)
 		}
 		if dealEnded {
+			res.DealActions = append(res.DealActions, i+1-dealStart)
+			res.DealRounds = append(res.DealRounds, st.Round)
+			dealStart = i + 1
 			res.Deals++
 			res.Out = actor
 			laidWhileShort = map[string]bool{}
@@ -199,6 +259,20 @@ func Play(o Options) Result {
 		res.Scores[p] = st.TotalScores[p]
 	}
 	return res
+}
+
+// describeTable renders every hand, the contract and the melds on the table,
+// for a stall report.
+func describeTable(st rules.GameState) string {
+	cfg := rules.ResolveConfig(st.Rules)
+	req := cfg.ContractFor(st.GameNumber)
+	out := fmt.Sprintf("deal %d, contract %d set(s) %d run(s) clean=%v floor %d, stock %d, pile %d",
+		st.GameNumber, req.Sets, req.Runs, req.RequireCleanRun, cfg.InitialMeldMinimum,
+		len(st.DrawPile), len(st.DiscardPile))
+	for _, p := range st.TurnOrder {
+		out += fmt.Sprintf("\n  %s down=%v hand=%v melds=%v", p, st.RoundReqMet[p], st.Hands[p], st.Melds[p])
+	}
+	return out
 }
 
 // Tally is a running head-to-head record for one skill.

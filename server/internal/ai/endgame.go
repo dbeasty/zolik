@@ -21,18 +21,120 @@ import (
 // LayOffFirstFit is the original behaviour, kept verbatim rather than
 // re-derived, so that Medium plays exactly as it always did and is a fixed
 // reference for everything measured against it.
+//
+// Neither policy will fill the table's last open meld unless that is how the
+// turn goes out; see closesTable.
 func (a *HeuristicAgent) chooseLayOff(v VisibleState, hand []string, k knowledge) (meldID, card string, ok bool) {
+	crunch := wildCrunch(hand, v.Rules)
 	if a.prof.LayOffPolicy == LayOffFirstFit {
-		return findLayOff(v.MeldMeta, v.Melds, hand, v.Rules, v.GameNumber)
+		meldID, card, ok = findLayOff(v.MeldMeta, v.Melds, hand, v.Rules, v.GameNumber)
+		if !ok || !closesTable(v, hand, meldID, card) {
+			return meldID, card, ok
+		}
 	}
-	opts := layOffOptions(v, hand)
+	var opts []layOffOption
+	for _, o := range layOffOptions(v, hand) {
+		if !closesTable(v, hand, o.meldID, o.card) {
+			opts = append(opts, o)
+		}
+	}
 	if len(opts) == 0 {
 		return "", "", false
 	}
-	crunch := wildCrunch(hand, v.Rules)
+	if a.prof.LayOffPolicy == LayOffFirstFit {
+		// Only reached when the first fit was refused. The order is still
+		// first-fit's own: naturals before wilds, reversed in a crunch.
+		sort.SliceStable(opts, func(i, j int) bool {
+			if opts[i].wild != opts[j].wild {
+				return opts[i].wild == crunch
+			}
+			return false
+		})
+		return opts[0].meldID, opts[0].card, true
+	}
 	sort.SliceStable(opts, func(i, j int) bool { return betterLayOff(opts[i], opts[j], a.prof, k, crunch) })
 	return opts[0].meldID, opts[0].card, true
 }
+
+// closesTable reports that laying one card onto this meld would leave nothing
+// open anywhere on the table — every meld a full four-suit set — while the
+// player still has cards to get rid of.
+//
+// That position has no exit. A down player sheds cards only by laying them
+// off or by laying a new meld, and a new meld needs a hand big enough to leave
+// a card over for the discard; once every seat is down to one or two cards and
+// every set is full, nobody at the table has a legal way to get any smaller,
+// and the deal cycles the stock forever. Continental's first deal, two sets
+// and nothing else, reached it in roughly one match in twelve: each seat laid
+// off its fourth suits as fast as it could and the last lay-off shut the table
+// on everybody, the player who made it included.
+//
+// So the last opening is kept for going out on. A lay-off that fills it is
+// fine when it is the turn's second-last card, because the discard then ends
+// the deal; otherwise the card stays in hand, where it is the go-out card for
+// the turn the hand gets down to it, and the opening stays there for every
+// other seat to go out on too.
+//
+// "Open" means some card that is not already on the table would fit. A set of
+// three aces is closed if both packs' fourth aces and every joker are already
+// laid somewhere; counting it open would let the last real opening be filled.
+func closesTable(v VisibleState, hand []string, meldID string, card string) bool {
+	if len(hand) <= 2 {
+		return false // the lay-off and a discard empty the hand
+	}
+	packs := v.DeckCount
+	if packs <= 0 {
+		packs = defaultPacks
+	}
+	laid := map[string]int{card: 1}
+	for _, melds := range v.Melds {
+		for _, m := range melds {
+			for _, c := range m {
+				laid[c]++
+			}
+		}
+	}
+	for _, owner := range sortedOwners(v.MeldMeta) {
+		for i, mi := range v.MeldMeta[owner] {
+			if i >= len(v.Melds[owner]) {
+				continue
+			}
+			meld := v.Melds[owner][i]
+			if mi.MeldID == meldID {
+				meld = append(append([]string(nil), meld...), card)
+			}
+			if meldFillable(meld, laid, packs, v.Rules) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// meldFillable reports whether any card with a copy still off the table would
+// extend this meld.
+func meldFillable(meld []string, laid map[string]int, packs int, cfg rules.RulesConfig) bool {
+	for _, c := range everyCard {
+		if laid[c] >= packs {
+			continue
+		}
+		if _, err := rules.ValidateMeld(append(append([]string(nil), meld...), c), cfg); err == nil {
+			return true
+		}
+	}
+	return false
+}
+
+// everyCard is one copy of each distinct card in a pack.
+var everyCard = func() []string {
+	out := []string{"JOKER1", "JOKER2"}
+	for i := range len(rules.RankOrder) {
+		for _, s := range suits {
+			out = append(out, cardOf(i, s))
+		}
+	}
+	return out
+}()
 
 // layOffOption is one legal lay-off, with what it is worth and what it costs.
 type layOffOption struct {
