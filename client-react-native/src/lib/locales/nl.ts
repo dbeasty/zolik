@@ -1288,6 +1288,9 @@ export const nl: Record<string, string> = {
   'zone.dropHere': 'Hier neerleggen',
   'offer.pickCards': 'kies kaarten voor de plek die je aantikte',
   'offer.ambiguous': 'dit kan op meer dan één plek — kies op het bord',
+  'offer.whichOne': 'welke?',
+  'seats.scrollLeft': 'Vorige plaatsen',
+  'seats.scrollRight': 'Meer plaatsen',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'app',

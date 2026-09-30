@@ -1282,6 +1282,9 @@ export const ro: Record<string, string> = {
   'zone.dropHere': 'Lasă aici',
   'offer.pickCards': 'alege cărți pentru locul pe care l-ai atins',
   'offer.ambiguous': 'asta poate merge în mai multe locuri — alege pe masă',
+  'offer.whichOne': 'care?',
+  'seats.scrollLeft': 'Locurile anterioare',
+  'seats.scrollRight': 'Mai multe locuri',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'aplicație',

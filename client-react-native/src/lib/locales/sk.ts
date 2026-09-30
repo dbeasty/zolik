@@ -1272,6 +1272,9 @@ export const sk: Record<string, string> = {
   'zone.dropHere': 'Polož sem',
   'offer.pickCards': 'vyber karty pre miesto, na ktoré si klepol',
   'offer.ambiguous': 'toto patrí na viac miest — vyber na stole',
+  'offer.whichOne': 'ktorú?',
+  'seats.scrollLeft': 'Predchádzajúci hráči',
+  'seats.scrollRight': 'Ďalší hráči',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'aplikácia',

@@ -1270,6 +1270,9 @@ export const da: Record<string, string> = {
   'zone.dropHere': 'Slip her',
   'offer.pickCards': 'vælg kort til det sted, du trykkede på',
   'offer.ambiguous': 'det her kan komme flere steder hen — vælg på bordet',
+  'offer.whichOne': 'hvilken?',
+  'seats.scrollLeft': 'Forrige pladser',
+  'seats.scrollRight': 'Flere pladser',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'app',

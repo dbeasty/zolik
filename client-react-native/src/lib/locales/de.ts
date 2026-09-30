@@ -1298,6 +1298,9 @@ export const de: Record<string, string> = {
   'zone.dropHere': 'Hier ablegen',
   'offer.pickCards': 'wähl Karten für die Stelle, die du angetippt hast',
   'offer.ambiguous': 'das passt an mehrere Stellen — wähl auf dem Board',
+  'offer.whichOne': 'welche?',
+  'seats.scrollLeft': 'Vorherige Plätze',
+  'seats.scrollRight': 'Weitere Plätze',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'App',

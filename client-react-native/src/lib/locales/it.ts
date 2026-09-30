@@ -1283,6 +1283,9 @@ export const it: Record<string, string> = {
   'zone.dropHere': 'Lascia qui',
   'offer.pickCards': 'scegli le carte per il posto che hai toccato',
   'offer.ambiguous': 'può andare in più di un posto — scegli sul tavolo',
+  'offer.whichOne': 'quale?',
+  'seats.scrollLeft': 'Posti precedenti',
+  'seats.scrollRight': 'Altri posti',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'app',

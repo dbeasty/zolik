@@ -1269,6 +1269,9 @@ export const sv: Record<string, string> = {
   'zone.dropHere': 'Släpp här',
   'offer.pickCards': 'välj kort till platsen du tryckte på',
   'offer.ambiguous': 'det här kan hamna på flera ställen — välj på bordet',
+  'offer.whichOne': 'vilken?',
+  'seats.scrollLeft': 'Tidigare platser',
+  'seats.scrollRight': 'Fler platser',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'app',

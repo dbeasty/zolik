@@ -1289,6 +1289,9 @@ export const mt: Record<string, string> = {
   'zone.dropHere': "Itfa' hawn",
   'offer.pickCards': 'agħżel karti għall-post li messejt',
   'offer.ambiguous': "dan jista' jmur f'aktar minn post wieħed — agħżel fuq il-mejda",
+  'offer.whichOne': 'liema?',
+  'seats.scrollLeft': 'Postijiet ta’ qabel',
+  'seats.scrollRight': 'Aktar postijiet',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'app',
