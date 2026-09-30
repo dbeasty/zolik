@@ -44,12 +44,40 @@ type RetentionWindows struct {
 	// window has to be long enough that resuming stays a real offer rather
 	// than a promise the sweeper quietly breaks.
 	Abandoned time.Duration
+	// CompletedByGame replaces Completed for the games it names, by module id.
+	// A zero entry keeps that game's completed matches for ever; a game it
+	// does not name gets Completed. Empty — the default — changes nothing.
+	//
+	// It exists for the games whose stored moves are training data: the
+	// learning bots are trained on what people actually played
+	// (cmd/export-games), and a finished match's move log is the only record
+	// of that. Deleting it after the general window is right for the board a
+	// game finished on and wrong for the decisions that got it there, until
+	// they have been exported. Keeping every game's matches longer would buy
+	// that for Hold'em and Canasta at the price of everything else.
+	CompletedByGame map[string]time.Duration
 }
 
 // Any reports whether any class is actually being retired, so a deployment that
 // has switched the whole thing off does not run a sweeper that can never act.
 func (w RetentionWindows) Any() bool {
-	return w.Lobby > 0 || w.Completed > 0 || w.Abandoned > 0
+	if w.Lobby > 0 || w.Completed > 0 || w.Abandoned > 0 {
+		return true
+	}
+	for _, d := range w.CompletedByGame {
+		if d > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// completedFor is how long a completed match of this game is kept.
+func (w RetentionWindows) completedFor(moduleID string) time.Duration {
+	if d, ok := w.CompletedByGame[moduleID]; ok {
+		return d
+	}
+	return w.Completed
 }
 
 // RetentionInterval is how often the sweeper looks for rows to delete.
@@ -73,7 +101,8 @@ func (m *Manager) StartRetention(ctx context.Context, w RetentionWindows) {
 		return
 	}
 	slog.Info("match retention: on",
-		"lobby", w.Lobby, "completed", w.Completed, "abandoned", w.Abandoned)
+		"lobby", w.Lobby, "completed", w.Completed, "abandoned", w.Abandoned,
+		"completedByGame", w.CompletedByGame)
 	go func() {
 		t := time.NewTicker(RetentionInterval)
 		defer t.Stop()
@@ -137,7 +166,8 @@ func retired(m models.Match, now time.Time, w RetentionWindows) bool {
 		// started, so it never ended.
 		return w.Lobby > 0 && now.Sub(m.CreatedAt) > w.Lobby
 	case "completed":
-		return w.Completed > 0 && endedBefore(m, now.Add(-w.Completed))
+		window := w.completedFor(m.ModuleID)
+		return window > 0 && endedBefore(m, now.Add(-window))
 	case string(rules.StatusAbandoned):
 		return w.Abandoned > 0 && endedBefore(m, now.Add(-w.Abandoned))
 	default:
