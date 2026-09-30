@@ -46,15 +46,35 @@ describe('nextMarks', () => {
     expect(marks.get('m1')).toEqual({ fresh: true, added: ['7H', '8H', '9H', 'TH'], reshaped: false });
   });
 
-  it("keeps the marks through the viewer's own turn, and never marks their own moves", () => {
+  it("keeps the marks when the viewer's turn comes round, until they move", () => {
     const marked = nextMarks(NO_MARKS, board('eva', {}), board('me', { m1: ['7H', '8H', '9H'] }), 'me');
-    const after = nextMarks(marked, board('me', { m1: ['7H', '8H', '9H'] }), board('me', { m1: ['7H', '8H', '9H', 'TH'] }), 'me');
-    expect(after.get('m1')?.added).toEqual(['7H', '8H', '9H']);
+    expect(marked.get('m1')?.added).toEqual(['7H', '8H', '9H']);
+    // A board on the viewer's turn with nothing moved is not their move.
+    const same = nextMarks(marked, board('me', { m1: ['7H', '8H', '9H'] }), board('me', { m1: ['7H', '8H', '9H'] }), 'me');
+    expect(same).toBe(marked);
   });
 
-  it("clears once the viewer's turn is over", () => {
+  it("clears on the viewer's first move, and never marks their own moves", () => {
     const marked = nextMarks(NO_MARKS, board('eva', {}), board('me', { m1: ['7H', '8H', '9H'] }), 'me');
-    expect(nextMarks(marked, board('me', { m1: ['7H', '8H', '9H'] }), board('eva', { m1: ['7H', '8H', '9H'] }), 'me').size).toBe(0);
+    const after = nextMarks(marked, board('me', { m1: ['7H', '8H', '9H'] }), board('me', { m1: ['7H', '8H', '9H', 'TH'] }), 'me');
+    expect(after.size).toBe(0);
+    const later = nextMarks(after, board('me', { m1: ['7H', '8H', '9H', 'TH'] }), board('eva', { m1: ['7H', '8H', '9H', 'TH'], m2: ['2S', '2C', '2D'] }), 'me');
+    expect(later.size).toBe(0);
+  });
+
+  it("marks a partner's changes as well as an opponent's", () => {
+    const table = (active: string, groups: Record<string, string[]>) => ({
+      zones: [spread('pat', groups)],
+      seats: [
+        { playerId: 'me', side: 'a', active: active === 'me' },
+        { playerId: 'eva', side: 'b', active: active === 'eva' },
+        { playerId: 'pat', side: 'a', active: active === 'pat' },
+      ],
+    });
+    const byPartner = nextMarks(NO_MARKS, table('pat', {}), table('eva', { m1: ['7H', '8H', '9H'] }), 'me');
+    expect([...byPartner.keys()]).toEqual(['m1']);
+    const byOpponent = nextMarks(byPartner, table('eva', { m1: ['7H', '8H', '9H'] }), table('pat', { m1: ['7H', '8H', '9H'], m2: ['KS', 'KC', 'KD'] }), 'me');
+    expect([...byOpponent.keys()]).toEqual(['m1', 'm2']);
   });
 
   it('forgets a group that left the board', () => {

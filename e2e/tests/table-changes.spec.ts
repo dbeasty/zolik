@@ -3,6 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { handCards } from '../helpers/drag';
 import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 import { selectOnly } from '../helpers/hand';
+import { waitForOfferEnabled } from '../helpers/turn';
 
 /**
  * What changed on the table while you were not looking, and what to do now.
@@ -135,7 +136,8 @@ test("a meld somebody else changed is marked, and the viewer's turn says what to
   await expect(page.locator('[data-testid^="card-mark-meld_1-"]').first()).toBeVisible();
   await expect(page.locator('[data-testid^="zone-marks-"]').first()).toBeVisible();
 
-  // And it stays up for the viewer's own turn, which is when it is needed.
+  // And it is still up when the viewer's turn comes round, which is when it
+  // is needed.
   await expect(page.getByTestId('turn-step')).toContainText('Your turn', { timeout: 15_000 });
   await expect(page.getByTestId('group-mark-meld_1')).toBeVisible();
 
@@ -144,4 +146,12 @@ test("a meld somebody else changed is marked, and the viewer's turn says what to
   await expect(page.getByTestId('recent-moves-latest')).toBeVisible();
   await page.getByTestId('recent-moves').click();
   await expect(page.getByTestId('recent-moves-list')).toContainText('to their own meld');
+
+  // The viewer's first move of the turn clears every mark: they have seen what
+  // changed, and from here the board is clean.
+  await waitForOfferEnabled(page, 'offer-draw:deck');
+  await page.getByTestId('offer-draw:deck').click();
+  await expect(page.locator('[data-testid^="group-mark-"]')).toHaveCount(0, { timeout: 15_000 });
+  await expect(page.locator('[data-testid^="card-mark-"]')).toHaveCount(0);
+  await expect(page.locator('[data-testid^="zone-marks-"]')).toHaveCount(0);
 });
