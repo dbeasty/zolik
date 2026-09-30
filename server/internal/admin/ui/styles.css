@@ -434,3 +434,19 @@ th {
    and visibly not the row to read — showing them back should not undo the
    reason they were hidden. */
 tbody tr.quiet td { color: var(--muted); }
+
+/* --- bots card -----------------------------------------------------------
+   One row per game that ships a trained model. The model column wraps: its
+   benchmark and provenance lines are prose, not numbers. */
+table.bots td { text-align: left; white-space: normal; vertical-align: top; }
+table.bots th { text-align: left; }
+table.bots td.bot-model { min-width: 260px; }
+table.bots td.bot-switch { white-space: nowrap; }
+.bot-state {
+  display: inline-block;
+  min-width: 110px;
+  margin-right: 8px;
+  color: var(--muted);
+}
+.bot-state[data-on="1"] { color: var(--ok); font-weight: 600; }
+.bot-warn { font-size: 13px; color: var(--danger); margin-top: 4px; }

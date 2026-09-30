@@ -3,7 +3,6 @@ package learn
 import (
 	"log/slog"
 	"os"
-	"strings"
 	"sync"
 
 	"zolik/server/internal/module"
@@ -21,7 +20,7 @@ import (
 // was trained for another encoder, is logged and ignored rather than crashing
 // the server, and play falls back to the heuristic exactly as HardBot does.
 func LocalHard(game Game, heuristic module.Bot) module.Bot {
-	path := os.Getenv("ZOLIK_LEARNED_MODEL_" + strings.ToUpper(game.Name()))
+	path := localModelPath(game.Name())
 	if path == "" {
 		return heuristic
 	}
@@ -54,6 +53,12 @@ func resolveLocal(game Game, path string, heuristic module.Bot) module.Bot {
 
 // bySkill plays Hard seats with one bot and every other seat with another.
 type bySkill struct{ hard, other module.Bot }
+
+// Heuristic is the hand-written bot behind the model. Player hints ask for it
+// (match.Manager.Hint): a hint is a suggestion a person reads and learns
+// from, and the heuristic's is the one this game's hints have always given,
+// whichever bot sits in the Hard seats today.
+func (b bySkill) Heuristic() module.Bot { return b.other }
 
 func (b bySkill) Act(s module.State, seat module.BotSeat, offers []module.ActionOffer) (module.Action, bool) {
 	if seat.Skill == module.SkillHard {

@@ -155,10 +155,10 @@ func LoadEmbedded(name string, b []byte) (*Policy, error) {
 	return e.p, e.err
 }
 
-// HardBot is the seam a module's Bot() will use once a trained model has
-// earned it: a NetBot on the shared policy for these bytes, or the fallback
+// HardBot is a NetBot on the shared policy for these bytes, or the fallback
 // when there is no model, it does not load, or it was trained for another
-// game or encoder. Wiring it in is gated on evaluation; nothing calls it yet.
+// game or encoder. Modules reach it through HardModel, which decides whether
+// a Hard seat should be playing a model at all.
 func HardBot(game Game, modelBytes []byte, fallback module.Bot) module.Bot {
 	if game == nil || len(modelBytes) == 0 {
 		return fallback

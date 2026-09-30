@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"strconv"
 
+	"zolik/server/internal/learn"
 	"zolik/server/internal/module"
 )
 
@@ -38,7 +39,11 @@ import (
 // the range that offer declares, and degrades to the next-best legal verb when
 // what it wanted is not on the menu. The engine remains the only authority on
 // the rules, exactly as it is for a human.
-func (m *Module) Bot() module.Bot { return bot{} }
+//
+// Hard seats play the shipped trained model instead when an operator has
+// switched it on (learn.HardModel); this bot stays the fallback and plays
+// every Easy and Medium seat.
+func (m *Module) Bot() module.Bot { return learn.HardModel(learnGame{}, bot{}) }
 
 type bot struct {
 	// tuning overrides the strength ladder for every seat this bot plays.

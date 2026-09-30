@@ -4,6 +4,7 @@ import (
 	"slices"
 	"strconv"
 
+	"zolik/server/internal/learn"
 	"zolik/server/internal/module"
 )
 
@@ -423,7 +424,11 @@ func topOnly(s *GameState) []string {
 // solve — which is true of melding, and says nothing about the two decisions a
 // turn also contains: whether to take the pile, and which card to end with. An
 // offer-preference bot answers both by sort order. See bot.go.
-func (m *Module) Bot() module.Bot { return bot{} }
+//
+// Hard seats play the shipped trained model instead when an operator has
+// switched it on (learn.HardModel); this heuristic stays the fallback and
+// plays every Easy and Medium seat.
+func (m *Module) Bot() module.Bot { return learn.HardModel(learnGame{}, bot{}) }
 
 // Standings ranks by partnership score, so both members of a side share a rank
 // — which is the case that made module.Standing allow ties in the first place.

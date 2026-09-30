@@ -19,10 +19,11 @@ import (
 // module that has something better should be able to say so, and a module that
 // has nothing should not have to.
 //
-// A trained model can sit in the Hard seats for local play — see
-// learn.LocalHard. Unless ZOLIK_LEARNED_MODEL_ZOLIK names one, this is the
+// A trained model can sit in the Hard seats: the one this binary ships, when
+// an operator switches it on in the admin console, or a local file named by
+// ZOLIK_LEARNED_MODEL_ZOLIK — see learn.HardModel. With neither, this is the
 // heuristic, exactly as before.
-func (m *Module) Bot() module.Bot { return learn.LocalHard(learnGame{}, heuristicBot{}) }
+func (m *Module) Bot() module.Bot { return learn.HardModel(learnGame{}, heuristicBot{}) }
 
 type heuristicBot struct{}
 
