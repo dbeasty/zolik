@@ -25,6 +25,16 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 				},
 				Defaults: variationDefaults,
 			},
+			{
+				ID:    variationLicit,
+				Label: "Licitovaný",
+				Summary: []module.Fact{
+					{LabelKey: "marias.rules.licit.auction"},
+					{LabelKey: "marias.rules.licit.ladder"},
+					{LabelKey: "marias.rules.game.dveSedmy"},
+				},
+				Defaults: licitDefaults,
+			},
 		},
 		Options: []module.OptionSpec{
 			{
@@ -108,10 +118,27 @@ var variationDefaults = map[string]int{
 	module.OptPauseBetweenRounds: module.OptOn,
 }
 
+// licitDefaults are licitovaný's: the association's four doublings, and no
+// z lidu, since nobody names trumps by a card.
+var licitDefaults = func() map[string]int {
+	out := map[string]int{}
+	for k, v := range variationDefaults {
+		out[k] = v
+	}
+	out[OptFlekLimit] = 4
+	out[OptZLidu] = module.OptOff
+	return out
+}()
+
 // resolve reads a lobby's config against the variation's defaults.
 func resolve(cfg module.MatchConfig) config {
-	opt := func(name string) int { return cfg.Opt(name, variationDefaults[name]) }
+	defaults, variation := variationDefaults, ""
+	if cfg.Variation == variationLicit {
+		defaults, variation = licitDefaults, variationLicit
+	}
+	opt := func(name string) int { return cfg.Opt(name, defaults[name]) }
 	return config{
+		variation:      variation,
 		deals:          opt(OptDeals),
 		tariff:         tariffFor(opt(OptTariff)),
 		redDoubles:     opt(OptRedDoubles) == module.OptOn,

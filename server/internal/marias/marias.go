@@ -69,6 +69,7 @@ const (
 // config is a match config resolved against the variation's defaults, so the
 // rules, the deal and the settlement read one answer each.
 type config struct {
+	variation      string
 	deals          int
 	tariff         Tariff
 	redDoubles     bool

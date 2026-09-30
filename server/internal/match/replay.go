@@ -24,14 +24,14 @@ import (
 // The sibling of MatchStateMsg, and shaped the same way: everything invariant
 // across the match lives here once, everything that changes lives in a frame.
 type ReplayMsg struct {
-	Type      string         `json:"type"` // "match_replay"
-	MatchID   string         `json:"matchId"`
-	ModuleID  string         `json:"moduleId"`
-	Variation string         `json:"variation,omitempty"`
+	Type      string `json:"type"` // "match_replay"
+	MatchID   string `json:"matchId"`
+	ModuleID  string `json:"moduleId"`
+	Variation string `json:"variation,omitempty"`
 	// Deck is the module's pack, as on MatchStateMsg.
 	Deck    string         `json:"deck,omitempty"`
 	Options map[string]int `json:"options,omitempty"`
-	Players   []PlayerMsg    `json:"players"`
+	Players []PlayerMsg    `json:"players"`
 	// ViewerID is the seat these frames were projected for.
 	ViewerID string `json:"viewerId,omitempty"`
 	// Open says every hand is face up — granted only to a finished game, where

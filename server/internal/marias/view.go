@@ -123,6 +123,10 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 		}
 		if playing {
 			switch {
+			case s.Phase == phaseAuction && p == s.Holder:
+				seat.LabelKeys = append(seat.LabelKeys, "marias.seat.holder")
+			case s.Phase == phaseAuction && p == s.Bidder:
+				seat.LabelKeys = append(seat.LabelKeys, "marias.seat.bidder")
 			case s.Phase == phaseTrump && p == s.Declarer:
 				seat.LabelKeys = append(seat.LabelKeys, "marias.seat.chooser")
 			case p == s.Declarer:
@@ -159,6 +163,12 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 		LabelKey: "marias.header.deal",
 		Params:   map[string]any{"n": min(s.Deal+1, s.Deals), "of": s.Deals},
 	}}
+	if playing && s.licit() && s.Rung > 0 && (s.Phase == phaseAuction || s.Phase == phaseAnnounce) {
+		vm.Header = append(vm.Header, module.Fact{
+			LabelKey: "marias.header.rung",
+			Params:   map[string]any{"rung": rungKey(s.Rung)},
+		})
+	}
 	if playing && s.Game != "" && (s.Phase != phaseAnnounce) {
 		vm.Header = append(vm.Header, module.Fact{
 			LabelKey: "marias.header.game",
@@ -167,6 +177,23 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 		if s.Sedma {
 			vm.Header = append(vm.Header, module.Fact{LabelKey: "marias.header.sedma"})
 		}
+		if s.WithSto {
+			vm.Header = append(vm.Header, module.Fact{LabelKey: "marias.header.withSto"})
+		}
+		if s.Helper != "" {
+			vm.Header = append(vm.Header, module.Fact{
+				LabelKey: "marias.header.helper",
+				Params:   map[string]any{"suit": suitKey(s.Helper)},
+			})
+		}
+	}
+	// Licitovaný's trumps are named aloud with the contract, so everyone
+	// sees them from then on.
+	if playing && s.licit() && s.Trump != "" && s.trumpGame() {
+		vm.Header = append(vm.Header, module.Fact{
+			LabelKey: "marias.header.trumps",
+			Params:   map[string]any{"suit": suitKey(s.Trump)},
+		})
 	}
 	if playing && s.TrumpCard != "" && (trumpsPublic || viewerID == s.chooser()) && (s.Game == "" || s.trumpGame()) {
 		vm.Header = append(vm.Header, module.Fact{
@@ -188,9 +215,31 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 	// What the seat being waited on is being asked.
 	if playing && viewerID == s.Current {
 		switch s.Phase {
+		case phaseAuction:
+			switch {
+			case viewerID == s.Holder:
+				vm.Prompts = append(vm.Prompts, module.Fact{
+					LabelKey: "marias.prompt.hold",
+					Params:   map[string]any{"rung": rungKey(s.Rung), "player": s.Bidder},
+				})
+			case s.Rung == 0:
+				vm.Prompts = append(vm.Prompts, module.Fact{LabelKey: "marias.prompt.bidOpen"})
+			default:
+				vm.Prompts = append(vm.Prompts, module.Fact{
+					LabelKey: "marias.prompt.bid",
+					Params:   map[string]any{"rung": rungKey(s.Rung), "player": s.Holder},
+				})
+			}
 		case phaseTrump:
 			vm.Prompts = append(vm.Prompts, module.Fact{LabelKey: "marias.prompt.trump"})
 		case phaseAnnounce:
+			if s.licit() {
+				vm.Prompts = append(vm.Prompts, module.Fact{
+					LabelKey: "marias.prompt.announceLicit",
+					Params:   map[string]any{"rung": rungKey(s.Rung)},
+				})
+				break
+			}
 			vm.Prompts = append(vm.Prompts, module.Fact{LabelKey: "marias.prompt.announce"})
 		case phaseTalon:
 			vm.Prompts = append(vm.Prompts, module.Fact{LabelKey: "marias.prompt.talon"})
@@ -222,6 +271,10 @@ func gameKey(game string) string {
 		return "marias.game.betl"
 	case gameDurch:
 		return "marias.game.durch"
+	case gameDveSedmy:
+		return "marias.game.dveSedmy"
+	case gameOmyl:
+		return "marias.game.omyl"
 	}
 	return "marias.game.hra"
 }
@@ -236,6 +289,10 @@ func partKey(part string) string {
 		return "marias.part.protiSto"
 	case partQuietSeven:
 		return "marias.part.quietSeven"
+	case partSto:
+		return "marias.part.sto"
+	case partOmyl:
+		return "marias.part.omyl"
 	}
 	return "marias.part.game"
 }

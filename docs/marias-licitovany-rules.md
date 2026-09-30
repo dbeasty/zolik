@@ -5,7 +5,7 @@ written down before any code. It is a variation of the `marias` module, sharing 
 play, the doubling round and the settlement machinery with Volený
 ([marias-rules.md](marias-rules.md)). This document covers only what differs.
 
-**Status:** draft, not yet built. There are seven questions for you at the end (§8).
+**Status:** signed off on 2026-09-29, with every recommendation in §8 taken ("we will refine later"). Built on `claude/marias-tricks`.
 
 ## Sources
 
@@ -142,7 +142,7 @@ The tariff in units (ČSM-L I, on its 0,20 base):
   past 100. Every marriage counts toward it.
 - **Limit:** no deal pays more than 500 units to or from any one player (ČSM-O V/9).
 
-## 8. Questions for you
+## 8. Questions, and what was decided (2026-09-29)
 
 1. **How sto scales, in both variations.** The association's general rules scale sto
    **linearly**:
@@ -177,3 +177,18 @@ The tariff in units (ČSM-L I, on its 0,20 base):
 | `redDoubles` | on, fixed | part of the ladder here, so not offered as an option |
 | `zLidu` | n/a | there is no trump card to choose from |
 | `showCardPoints`, `botSkill`, pause | as Volený | |
+
+**Decided:** all seven as recommended.
+1. Sto scales linearly in both variations; Volený was changed to match.
+2. The first marriage announced counts toward an announced sto, in both variations.
+3. Dvě sedmy has no hra part.
+4. If nobody bids, the forhont plays sedma.
+5. Bluffing above plain sedma is allowed.
+6. The 500-unit limit applies to both variations. It is from the general rules, which govern
+   all mariáš.
+7. The tournament bookkeeping is left out.
+
+Also built, beyond the draft:
+- The bot's sto test was tightened. It now needs the trump marriage, the trump ace, six trumps
+  and five aces and tens. Under the linear failure rule the old, looser test lost about 6 units
+  a sto.

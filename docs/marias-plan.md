@@ -291,8 +291,10 @@ test follows `holdem/bot.go:34-36` and `ai/nopeek_test.go`. The sampler and solv
    view, the scoreboard and round log, the bot (medium averages +5.6 units a match against two
    easy seats), the shared contract suite, `e2e/tests/marias.spec.ts`, and all 24 locales. It
    was played through the real UI against two bots in the browser.*
-4. **Licitovaný:** the association's auction game, pinned first like step 0. *Rules drafted in
-   [marias-licitovany-rules.md](marias-licitovany-rules.md), awaiting sign-off on §8.*
+4. **Licitovaný:** the association's auction game, pinned first like step 0. *Done on `claude/marias-tricks`
+   to [marias-licitovany-rules.md](marias-licitovany-rules.md), signed off 2026-09-29: the auction,
+   the 12-rung ladder, dvě sedmy, omyl and the forhont's lead, a second row in the contract suite,
+   and the bot's bidding. It also moved Volený's sto to the association's linear scoring.*
 5. **German faces** (§3.4), and Prší opting in. *Done on `claude/marias-tricks`: `Deck`
    on the descriptor and on every state and replay message; `src/lib/deck.ts` (context, plus
    German names for a card in a sentence); `GermanSuit`, `GermanCourt` and `GermanFace` in all

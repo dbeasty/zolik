@@ -285,9 +285,10 @@ func TestSettlement(t *testing.T) {
 	if p := part(t, s, partGame); p.ForDeclarer || p.Units != 1 {
 		t.Errorf("hra 50 against 40+40: %+v", p)
 	}
-	// A quiet hundred and twenty doubles the game three times over.
+	// A quiet hundred and twenty: the doubled game, and the doubled game
+	// again for each of the two tens past a hundred (ČSM general V/7).
 	s = ended(t, "C", map[string]int{"p1": 80, "p2": 10}, map[string][]string{"p1": {"C"}})
-	if p := part(t, s, partGame); !p.ForDeclarer || p.Units != 8 {
+	if p := part(t, s, partGame); !p.ForDeclarer || p.Units != 6 {
 		t.Errorf("hra with a quiet 120: %+v", p)
 	}
 	// Hearts double; a flek doubles again.

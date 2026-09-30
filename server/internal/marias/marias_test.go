@@ -8,7 +8,7 @@ import (
 
 // The association's table (ČSM, bodovaný volený mariáš, 8.5.2007), section A.
 func TestTariffMatchesTheAssociationTable(t *testing.T) {
-	want := Tariff{Hra: 1, Sedma: 2, Sto: 4, Betl: 15, Durch: 30}
+	want := Tariff{Hra: 1, Sedma: 2, Sto: 4, Betl: 15, Durch: 30, DveSedmy: 40, Omyl: 6}
 	if got := tariffFor(TariffCSM); got != want {
 		t.Errorf("ČSM tariff = %+v, want %+v", got, want)
 	}
@@ -21,7 +21,10 @@ func TestTariffMatchesTheAssociationTable(t *testing.T) {
 	}
 }
 
-func TestHundredsDoublePerTenPoints(t *testing.T) {
+// ČSM general rules V/6-7: a hundred scales linearly — the tariff again for
+// every ten points past it, and a failed sto pays for every ten short and
+// for every ten of the other side's marriages.
+func TestHundredsScaleLinearly(t *testing.T) {
 	tr := tariffFor(TariffCSM)
 	cases := []struct {
 		name string
@@ -31,11 +34,13 @@ func TestHundredsDoublePerTenPoints(t *testing.T) {
 		{"hra, no hundred", tr.hraValue(90), 1},
 		{"hra with a quiet hundred", tr.hraValue(100), 2},
 		{"quiet hundred and ten", tr.hraValue(110), 4},
-		{"quiet hundred and twenty", tr.hraValue(120), 8},
-		{"announced sto made", tr.stoValue(true, 100), 4},
-		{"announced sto at 110", tr.stoValue(true, 110), 8},
-		{"announced sto at 130", tr.stoValue(true, 130), 32},
-		{"announced sto lost", tr.stoValue(false, 80), 4},
+		{"quiet hundred and twenty", tr.hraValue(120), 6},
+		{"announced sto made", tr.stoValue(true, 100, 0), 4},
+		{"announced sto at 110", tr.stoValue(true, 110, 0), 8},
+		{"announced sto at 130", tr.stoValue(true, 130, 0), 16},
+		{"sto ten short", tr.stoValue(false, 90, 0), 4},
+		{"sto thirty short", tr.stoValue(false, 70, 0), 12},
+		{"sto short, against a marriage", tr.stoValue(false, 90, 20), 12},
 	}
 	for _, c := range cases {
 		if c.got != c.want {

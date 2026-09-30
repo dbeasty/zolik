@@ -134,6 +134,15 @@ func allModules() []hosted {
 			finishes: true,
 		},
 		{
+			name:     "marias-licit",
+			rounds:   true,
+			mod:      marias.New(),
+			players:  refs("p1", "p2", "p3"),
+			cfg:      module.MatchConfig{Variation: "licitovany", Options: module.Options{"deals": 9}},
+			prefer:   []string{"play_card", "discard", "bid", "hold", "announce", "fold", "pass"},
+			finishes: true,
+		},
+		{
 			name:    "rummytiles",
 			rounds:  true,
 			mod:     rummytiles.New(),
@@ -161,10 +170,15 @@ func TestEveryModuleDescribesItself(t *testing.T) {
 			if d.ID == "" || d.Label == "" {
 				t.Fatal("a module must name itself")
 			}
-			if seen[d.ID] {
+			// Keyed by variation too: one module may appear once per
+			// variation it is played in here (Mariáš's volený and
+			// licitovaný), but two rows of the same pair is two modules
+			// claiming one id.
+			key := d.ID + "/" + g.cfg.Variation
+			if seen[key] {
 				t.Fatalf("two modules claim the id %q", d.ID)
 			}
-			seen[d.ID] = true
+			seen[key] = true
 
 			if d.MinPlayers < 2 || d.MaxPlayers < d.MinPlayers {
 				t.Errorf("player range %d..%d makes no sense", d.MinPlayers, d.MaxPlayers)

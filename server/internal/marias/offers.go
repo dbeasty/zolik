@@ -1,6 +1,8 @@
 package marias
 
 import (
+	"strconv"
+
 	"zolik/server/internal/module"
 )
 
@@ -37,6 +39,27 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	}
 
 	switch s.Phase {
+	case phaseAuction:
+		// A bid names any rung above the one standing; the lowest is first,
+		// so a press with nothing chosen is the smallest raise.
+		var rungs []module.ParamChoice
+		for r := s.Rung + 1; r <= topRung; r++ {
+			rungs = append(rungs, module.ParamChoice{Value: strconv.Itoa(r), LabelKey: rungKey(r)})
+		}
+		bid := module.ActionOffer{ID: OfferBid, Verb: VerbBid, LabelKey: "marias.offer.bid"}
+		probeBid := module.Action{}
+		if len(rungs) > 0 {
+			bid.Params = []module.ParamSpec{{Name: "rung", Kind: module.ParamKindChoice, LabelKey: "marias.param.rung", Choices: rungs}}
+			probeBid.Params = map[string]string{"rung": rungs[0].Value}
+		}
+		add(bid, probeBid)
+		hold := module.ActionOffer{ID: OfferHold, Verb: VerbHold, LabelKey: "marias.offer.hold"}
+		if s.Rung > 0 {
+			hold.Facts = []module.Fact{{LabelKey: "marias.fact.rung", Params: map[string]any{"rung": rungKey(s.Rung)}}}
+		}
+		add(hold, module.Action{})
+		add(module.ActionOffer{ID: OfferAuctionPass, Verb: VerbPass, LabelKey: "marias.offer.auctionPass"}, module.Action{})
+
 	case phaseTrump:
 		o := module.ActionOffer{ID: OfferTrump, Verb: VerbChooseTrump, LabelKey: "marias.offer.trump"}
 		o.Source = handSel(hand, 1)
@@ -46,6 +69,10 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		}
 
 	case phaseAnnounce:
+		if s.licit() {
+			m.licitAnnounceOffers(raw, s, playerID, add)
+			break
+		}
 		for _, o := range []module.ActionOffer{
 			{ID: OfferHra, Verb: VerbAnnounce, LabelKey: "marias.offer.announce.hra"},
 			{ID: OfferHraSedma, Verb: VerbAnnounce, LabelKey: "marias.offer.announce.hraSedma"},
@@ -86,6 +113,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 			partSedma:      {ID: OfferFlekSedma, Verb: VerbFlek, LabelKey: "marias.offer.flek.sedma"},
 			partProtiSedma: {ID: OfferFlekPSedma, Verb: VerbFlek, LabelKey: "marias.offer.flek.protiSedma"},
 			partProtiSto:   {ID: OfferFlekPSto, Verb: VerbFlek, LabelKey: "marias.offer.flek.protiSto"},
+			partSto:        {ID: OfferFlekSto, Verb: VerbFlek, LabelKey: "marias.offer.flek.sto"},
 		}
 		for _, part := range s.parts() {
 			o := flekOffers[part]
@@ -94,7 +122,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 			o.Facts = []module.Fact{{LabelKey: "marias.fact.times", Params: map[string]any{"n": 1 << (s.Fleks[part] + 1)}}}
 			add(o, module.Action{})
 		}
-		if s.trumpGame() {
+		if s.trumpGame() && !s.licit() {
 			add(module.ActionOffer{ID: OfferProtiSedma, Verb: VerbProti, LabelKey: "marias.offer.proti.sedma"}, module.Action{})
 			if s.Game == gameHra {
 				add(module.ActionOffer{ID: OfferProtiSto, Verb: VerbProti, LabelKey: "marias.offer.proti.sto"}, module.Action{})
@@ -160,4 +188,62 @@ func (s *GameState) config() module.MatchConfig {
 		OptZLidu:          module.BoolOpt(s.ZLidu),
 		OptShowCardPoints: module.BoolOpt(s.ShowCardPoints),
 	}}
+}
+
+// licitAnnounceOffers are licitovaný's contract buttons: one per kind of
+// contract, each carrying the trumps (and for dvě sedmy the helper suit)
+// that would put it at or above the rung won. A kind no suit can lift that
+// high is offered disabled, with the engine's reason.
+func (m *Module) licitAnnounceOffers(raw module.State, s *GameState, playerID string, add func(module.ActionOffer, module.Action)) {
+	hand := s.Hands[playerID]
+	for _, o := range []module.ActionOffer{
+		{ID: OfferLSedma, Verb: VerbAnnounce, LabelKey: "marias.offer.licit.sedma"},
+		{ID: OfferLSto, Verb: VerbAnnounce, LabelKey: "marias.offer.licit.sto"},
+		{ID: OfferLStoSedma, Verb: VerbAnnounce, LabelKey: "marias.offer.licit.stoSedma"},
+		{ID: OfferLBetl, Verb: VerbAnnounce, LabelKey: "marias.offer.licit.betl"},
+		{ID: OfferLDurch, Verb: VerbAnnounce, LabelKey: "marias.offer.licit.durch"},
+		{ID: OfferLDveSedmy, Verb: VerbAnnounce, LabelKey: "marias.offer.licit.dveSedmy"},
+		{ID: OfferLDveSedmySto, Verb: VerbAnnounce, LabelKey: "marias.offer.licit.dveSedmySto"},
+	} {
+		kind := kindOfOffer(o.ID)
+		probeA := module.Action{}
+		if trumpKind(kind) {
+			var suits []module.ParamChoice
+			candidates := []string{"H", "D", "C", "S"}
+			if kind == kindSedma {
+				candidates = suitsHolding(hand)
+			}
+			for _, suit := range candidates {
+				if contractRung(kind, suit == string(suitRed)) >= s.Rung {
+					suits = append(suits, module.ParamChoice{Value: suit, LabelKey: module.GermanSuitKey(suit)})
+				}
+			}
+			// With no suit to offer, hearts is probed for the reason: the
+			// highest a kind can reach, so it reads "below the bid" when
+			// that is why, and "no trump seven" when plain sedma lacks one.
+			probeTrump := "H"
+			if len(suits) > 0 {
+				probeTrump = suits[0].Value
+				o.Params = []module.ParamSpec{{Name: "trump", Kind: module.ParamKindChoice, LabelKey: "marias.param.trump", Choices: suits}}
+			}
+			probeA.Params = map[string]string{"trump": probeTrump}
+			if (kind == kindDveSedmy || kind == kindDveSedmySto) && len(suits) > 0 {
+				// The helper suit's list starts away from the first trump,
+				// so a press with nothing chosen is a legal pair.
+				var helpers []module.ParamChoice
+				for _, suit := range []string{"D", "C", "S", "H"} {
+					helpers = append(helpers, module.ParamChoice{Value: suit, LabelKey: module.GermanSuitKey(suit)})
+				}
+				if helpers[0].Value == probeTrump {
+					helpers = append(helpers[1:], helpers[0])
+				}
+				o.Params = append(o.Params, module.ParamSpec{Name: "helper", Kind: module.ParamKindChoice, LabelKey: "marias.param.helper", Choices: helpers})
+				probeA.Params["helper"] = helpers[0].Value
+			}
+		}
+		add(o, probeA)
+	}
+	omyl := module.ActionOffer{ID: OfferOmyl, Verb: VerbFold, LabelKey: "marias.offer.omyl"}
+	omyl.Facts = []module.Fact{{LabelKey: "marias.fact.units", Params: map[string]any{"n": s.Tariff.Omyl}}}
+	add(omyl, module.Action{})
 }

@@ -30,8 +30,13 @@ func botAct(t *testing.T, s *GameState, who string, skill module.Skill) module.A
 // runtime's recovery path. It returns the final units.
 func playMatch(t *testing.T, seed int64, seats map[string]module.Skill) map[string]int {
 	t.Helper()
+	return playMatchVariation(t, variationVoleny, seed, seats)
+}
+
+func playMatchVariation(t *testing.T, variation string, seed int64, seats map[string]module.Skill) map[string]int {
+	t.Helper()
 	m := New()
-	cfg := module.MatchConfig{Options: module.Options{OptDeals: 9, module.OptPauseBetweenRounds: module.OptOff}}
+	cfg := module.MatchConfig{Variation: variation, Options: module.Options{OptDeals: 9, module.OptPauseBetweenRounds: module.OptOff}}
 	state, err := m.NewMatch(cfg, players, seed)
 	if err != nil {
 		t.Fatal(err)
@@ -126,18 +131,20 @@ func TestMediumBeatsEasy(t *testing.T) {
 	if testing.Short() {
 		t.Skip("a strength sweep is not a fast test")
 	}
-	total, matches := 0, 0
-	for seed := int64(1); seed <= 40; seed++ {
-		for _, strong := range []string{"p1", "p2", "p3"} {
-			seats := map[string]module.Skill{"p1": module.SkillEasy, "p2": module.SkillEasy, "p3": module.SkillEasy}
-			seats[strong] = module.SkillMedium
-			total += playMatch(t, seed, seats)[strong]
-			matches++
+	for _, variation := range []string{variationVoleny, variationLicit} {
+		total, matches := 0, 0
+		for seed := int64(1); seed <= 40; seed++ {
+			for _, strong := range []string{"p1", "p2", "p3"} {
+				seats := map[string]module.Skill{"p1": module.SkillEasy, "p2": module.SkillEasy, "p3": module.SkillEasy}
+				seats[strong] = module.SkillMedium
+				total += playMatchVariation(t, variation, seed, seats)[strong]
+				matches++
+			}
 		}
-	}
-	mean := float64(total) / float64(matches)
-	t.Logf("medium against two easy: %+.2f units a match over %d matches", mean, matches)
-	if mean <= 0 {
-		t.Errorf("medium averaged %+.2f units against easy seats", mean)
+		mean := float64(total) / float64(matches)
+		t.Logf("%s — medium against two easy: %+.2f units a match over %d matches", variation, mean, matches)
+		if mean <= 0 {
+			t.Errorf("%s: medium averaged %+.2f units against easy seats", variation, mean)
+		}
 	}
 }

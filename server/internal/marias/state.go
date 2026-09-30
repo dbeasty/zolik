@@ -15,9 +15,12 @@ func New() *Module { return &Module{} }
 // GameState is the whole match. Opaque to the runtime — only this package
 // reads it.
 type GameState struct {
-	Status  string   `json:"status"`  // "active" | "completed"
-	Players []string `json:"players"` // seats, clockwise
-	Seed    int64    `json:"seed"`
+	Status string `json:"status"` // "active" | "completed"
+	// Variation is volený or licitovaný; empty reads as volený, which is
+	// what every match dealt before licitovaný existed was.
+	Variation string   `json:"variation,omitempty"`
+	Players   []string `json:"players"` // seats, clockwise
+	Seed      int64    `json:"seed"`
 
 	// The table's options, resolved once at NewMatch so a match plays to the
 	// rules it was created with.
@@ -50,6 +53,21 @@ type GameState struct {
 	Declarer string `json:"declarer,omitempty"`
 	Game     string `json:"game,omitempty"`
 	Sedma    bool   `json:"sedma,omitempty"`
+	// WithSto is the "a sto" of licitovaný's dvě sedmy a sto; Helper is the
+	// helper suit whose seven takes the second-to-last trick in dvě sedmy.
+	WithSto bool   `json:"withSto,omitempty"`
+	Helper  string `json:"helper,omitempty"`
+	// Trump is the trump suit a licitovaný declarer names with the contract;
+	// volený names it by TrumpCard instead.
+	Trump string `json:"trump,omitempty"`
+
+	// The licitovaný auction: the rung standing, who holds it, who is
+	// bidding against them, and who has yet to come in. Rung is 0 before
+	// anybody has bid.
+	Rung    int    `json:"rung,omitempty"`
+	Holder  string `json:"holder,omitempty"`
+	Bidder  string `json:"bidder,omitempty"`
+	Waiting string `json:"waiting,omitempty"`
 	// ProtiSedma and ProtiSto are the defender who announced each, if any.
 	ProtiSedma string `json:"protiSedma,omitempty"`
 	ProtiSto   string `json:"protiSto,omitempty"`
@@ -59,11 +77,17 @@ type GameState struct {
 	// them closes it.
 	Quiet int `json:"quiet,omitempty"`
 
-	Trick     []tricks.Play       `json:"trick,omitempty"`
-	LastTrick []tricks.Play       `json:"lastTrick,omitempty"`
+	Trick     []tricks.Play `json:"trick,omitempty"`
+	LastTrick []tricks.Play `json:"lastTrick,omitempty"`
+	// PrevTrick is the trick before the last one — dvě sedmy's helper seven
+	// has to take it.
+	PrevTrick []tricks.Play       `json:"prevTrick,omitempty"`
 	TricksWon map[string]int      `json:"tricksWon,omitempty"`
 	Points    map[string]int      `json:"points,omitempty"`    // card points, last trick included
 	Marriages map[string][]string `json:"marriages,omitempty"` // suits announced, per player
+	// Announced is every marriage in the order it was announced, because an
+	// announced sto counts only its side's first one (ČSM).
+	Announced []Marriage `json:"announced,omitempty"`
 
 	Scores       map[string]int      `json:"scores"`
 	Rounds       []DealRecord        `json:"rounds,omitempty"`
@@ -82,6 +106,12 @@ type DealRecord struct {
 	Totals   map[string]int `json:"totals"`
 }
 
+// Marriage is one announced marriage.
+type Marriage struct {
+	Player string `json:"player"`
+	Suit   string `json:"suit"`
+}
+
 // PartResult is one part of a contract, settled.
 type PartResult struct {
 	Part string `json:"part"`
@@ -93,6 +123,7 @@ type PartResult struct {
 
 // Phases of a deal, in the order they happen.
 const (
+	phaseAuction  = "auction"  // licitovaný: bid for the right to declare
 	phaseTrump    = "trump"    // the chooser names trumps from their first seven
 	phaseAnnounce = "announce" // the declarer names the game
 	phaseTalon    = "talon"    // the declarer discards two
@@ -107,7 +138,12 @@ const (
 	gameSto   = "sto"
 	gameBetl  = "betl"
 	gameDurch = "durch"
+	// Licitovaný only.
+	gameDveSedmy = "dveSedmy"
+	gameOmyl     = "omyl" // folded: the declarer pays and nobody plays
 )
+
+const variationLicit = "licitovany"
 
 // The parts a contract settles separately.
 const (
@@ -116,6 +152,8 @@ const (
 	partProtiSedma = "protiSedma"
 	partProtiSto   = "protiSto"
 	partQuietSeven = "quietSeven"
+	partSto        = "sto" // the "a sto" of dvě sedmy a sto
+	partOmyl       = "omyl"
 )
 
 // Verbs this module accepts. VerbContinue belongs to module.Intermission.
@@ -129,6 +167,9 @@ const (
 	VerbProti       = "announce_proti"
 	VerbPass        = "pass"
 	VerbPlay        = "play_card"
+	VerbBid         = "bid"
+	VerbHold        = "hold"
+	VerbFold        = "fold"
 )
 
 // Offer ids. The ones that share a verb are told apart by id: the engine
@@ -154,6 +195,20 @@ const (
 	OfferProtiSto   = "proti.sto"
 	OfferPass       = "pass"
 	OfferPlay       = "play"
+
+	// Licitovaný.
+	OfferBid          = "bid"
+	OfferHold         = "hold"
+	OfferAuctionPass  = "auction.pass"
+	OfferLSedma       = "licit.sedma"
+	OfferLSto         = "licit.sto"
+	OfferLStoSedma    = "licit.stoSedma"
+	OfferLBetl        = "licit.betl"
+	OfferLDurch       = "licit.durch"
+	OfferLDveSedmy    = "licit.dveSedmy"
+	OfferLDveSedmySto = "licit.dveSedmySto"
+	OfferOmyl         = "omyl"
+	OfferFlekSto      = "flek.sto"
 )
 
 // Error codes. Stable keys, worded by the client's locale bundles.
@@ -180,6 +235,16 @@ const (
 	ErrMustTrump      = "MARIAS_MUST_TRUMP"
 	ErrMustOvertrump  = "MARIAS_MUST_OVERTRUMP"
 	ErrKeepSeven      = "MARIAS_KEEP_THE_SEVEN"
+	ErrBidTooLow      = "MARIAS_BID_TOO_LOW"
+	ErrBelowTheBid    = "MARIAS_BELOW_THE_BID"
+	ErrHelperIsTrump  = "MARIAS_HELPER_IS_TRUMP"
+	ErrNoOmyl         = "MARIAS_OMYL_NOT_ALLOWED"
+	ErrUnknownSuit    = "MARIAS_UNKNOWN_SUIT"
+	// The auction's two roles: the holder answers a bid, the bidder makes
+	// one. Pressing the other role's control is not "not your turn" — it
+	// is, and the player needs to hear which of their own two moves it is.
+	ErrYouHold = "MARIAS_YOU_HOLD"
+	ErrYouBid  = "MARIAS_YOU_BID"
 )
 
 func decode(raw module.State) (*GameState, error) {
@@ -236,15 +301,39 @@ func (s *GameState) chooser() string {
 	return s.Players[(s.FirstChooser+s.Deal)%len(s.Players)]
 }
 
+func (s *GameState) licit() bool { return s.Variation == variationLicit }
+
 // trumpGame is whether the game has trumps at all.
-func (s *GameState) trumpGame() bool { return s.Game == gameHra || s.Game == gameSto }
+func (s *GameState) trumpGame() bool {
+	return s.Game == gameHra || s.Game == gameSto || s.Game == gameDveSedmy
+}
+
+// trumpSuit is the suit trumps are, or will be: named by a card in volený,
+// with the contract in licitovaný.
+func (s *GameState) trumpSuit() string {
+	if s.Trump != "" {
+		return s.Trump
+	}
+	if s.TrumpCard != "" {
+		return string(tricks.Suit(s.TrumpCard))
+	}
+	return ""
+}
 
 // trump is the trump suit in force, or tricks.NoTrump.
 func (s *GameState) trump() byte {
-	if !s.trumpGame() || s.TrumpCard == "" {
+	if !s.trumpGame() || s.trumpSuit() == "" {
 		return tricks.NoTrump
 	}
-	return tricks.Suit(s.TrumpCard)
+	return s.trumpSuit()[0]
+}
+
+// helperSeven is dvě sedmy's second announced seven, or "".
+func (s *GameState) helperSeven() string {
+	if s.Game != gameDveSedmy || s.Helper == "" {
+		return ""
+	}
+	return "7" + s.Helper
 }
 
 // order is the rank order in force.
@@ -267,7 +356,7 @@ func (s *GameState) trumpSeven() string {
 // last trick; "" if nobody did.
 func (s *GameState) sevenHolder() string {
 	switch {
-	case s.Sedma:
+	case s.Sedma, s.Game == gameDveSedmy:
 		return s.Declarer
 	case s.ProtiSedma != "":
 		return s.ProtiSedma
@@ -280,6 +369,9 @@ func (s *GameState) defender(id string) bool { return id != s.Declarer && s.seat
 // gameRank orders games for a take-over: betl beats any trump game, durch
 // beats everything.
 func gameRank(g string) int {
+	if g == gameDveSedmy {
+		return 3
+	}
 	switch g {
 	case gameBetl:
 		return 1

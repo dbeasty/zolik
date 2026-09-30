@@ -30,6 +30,7 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 	c := resolve(cfg)
 	s := &GameState{
 		Status:         "active",
+		Variation:      c.variation,
 		Seed:           seed,
 		Deals:          c.deals,
 		Tariff:         c.tariff,
@@ -60,6 +61,14 @@ func startDeal(s *GameState) {
 	r := rand.New(rand.NewSource(s.Seed + int64(s.Deal)*7919))
 	r.Shuffle(len(deck), func(i, j int) { deck[i], deck[j] = deck[j], deck[i] })
 
+	s.TrumpCard, s.Trump, s.Helper, s.WithSto = "", "", "", false
+	s.Rung, s.Holder, s.Bidder, s.Waiting = 0, "", "", ""
+	s.PrevTrick, s.Announced = nil, nil
+	if s.licit() {
+		dealLicit(s, deck)
+		return
+	}
+
 	chooser := s.chooser()
 	s.Hands = map[string][]string{chooser: append([]string(nil), deck[:7]...)}
 	s.Unseen = append([]string(nil), deck[7:12]...)
@@ -72,7 +81,7 @@ func startDeal(s *GameState) {
 	sortHand(s.Hands[chooser])
 
 	s.Phase, s.Current = phaseTrump, chooser
-	s.TrumpCard, s.Talon = "", nil
+	s.Talon = nil
 	s.Declarer, s.Game, s.Sedma = chooser, "", false
 	s.ProtiSedma, s.ProtiSto = "", ""
 	s.Fleks, s.Quiet = map[string]int{}, 0
@@ -118,7 +127,11 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 	case VerbChooseTrump:
 		err = s.chooseTrump(playerID, a)
 	case VerbAnnounce:
-		err = s.announce(a)
+		if s.licit() {
+			err = s.announceLicit(a)
+		} else {
+			err = s.announce(a)
+		}
 	case VerbDiscard:
 		err = s.discard(playerID, a.Cards)
 	case VerbGood:
@@ -130,7 +143,19 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 	case VerbProti:
 		err = s.proti(playerID, a.OfferID)
 	case VerbPass:
-		err = s.pass()
+		if s.Phase == phaseAuction {
+			err = s.auctionPass(playerID)
+		} else {
+			err = s.pass()
+		}
+	case VerbBid:
+		err = s.bid(playerID, a)
+	case VerbHold:
+		err = s.hold(playerID)
+	case VerbFold:
+		var ev []module.Event
+		ev, err = s.omyl()
+		events = ev
 	case VerbPlay:
 		events, err = s.play(playerID, a.Cards)
 	default:
@@ -223,8 +248,9 @@ func (s *GameState) discard(p string, cards []string) error {
 	}
 	s.Hands[p] = removeCards(s.Hands[p], cards...)
 	s.Talon = append([]string(nil), cards...)
-	if s.Game == gameDurch {
-		// Nothing goes over durch (ČSM B/14), so there is nobody to ask.
+	if s.Game == gameDurch || s.licit() {
+		// Nothing goes over durch (ČSM B/14), so there is nobody to ask —
+		// and in licitovaný the auction already settled who plays.
 		s.openDoubling()
 		return nil
 	}
@@ -240,7 +266,7 @@ func (s *GameState) talonRefusal(p, c string) error {
 	if s.trumpGame() && cardPoints(c) > 0 {
 		return errCode(ErrSharpInTalon) // ČSM C/13
 	}
-	if s.Sedma && c == s.trumpSeven() {
+	if (s.Sedma || s.Game == gameDveSedmy) && c == s.trumpSeven() || c == s.helperSeven() {
 		return errCode(ErrSevenInTalon)
 	}
 	return nil
@@ -296,6 +322,9 @@ func (s *GameState) parts() []string {
 	if s.Sedma {
 		out = append(out, partSedma)
 	}
+	if s.WithSto {
+		out = append(out, partSto)
+	}
 	if s.ProtiSedma != "" {
 		out = append(out, partProtiSedma)
 	}
@@ -315,7 +344,9 @@ func (s *GameState) hasPart(part string) bool {
 }
 
 // declarerOwns is whether a part is the declarer's to win.
-func declarerOwns(part string) bool { return part == partGame || part == partSedma }
+func declarerOwns(part string) bool {
+	return part == partGame || part == partSedma || part == partSto
+}
 
 func partOfOffer(offerID string) string {
 	switch offerID {
@@ -327,6 +358,8 @@ func partOfOffer(offerID string) string {
 		return partProtiSedma
 	case OfferFlekPSto:
 		return partProtiSto
+	case OfferFlekSto:
+		return partSto
 	}
 	return ""
 }
@@ -367,7 +400,8 @@ func (s *GameState) proti(p, offerID string) error {
 	if err := s.inPhase(phaseFlek); err != nil {
 		return err
 	}
-	if !s.defender(p) || !s.trumpGame() {
+	if !s.defender(p) || !s.trumpGame() || s.licit() {
+		// Licitovaný has no proti (ČSM licitovaný II/23).
 		return errCode(ErrProtiNotNow)
 	}
 	switch offerID {
@@ -399,7 +433,7 @@ func (s *GameState) pass() error {
 	}
 	s.Quiet++
 	if s.Quiet >= len(s.Players) {
-		s.Phase, s.Current = phasePlay, s.Declarer
+		s.Phase, s.Current = phasePlay, s.firstLeader()
 		return nil
 	}
 	s.Current = s.next(s.Current)
@@ -412,8 +446,14 @@ func (s *GameState) pass() error {
 func (s *GameState) legal(p string) []string {
 	hand := s.Hands[p]
 	out := tricks.Legal(hand, tricks.Trick{Plays: s.Trick}, s.trump(), s.order(), tricks.FollowBeatTrump)
+	// An announced seven is kept for its trick while anything else is
+	// legal: the trump seven for the last, dvě sedmy's helper seven for the
+	// one before it (ČSM general IV/11).
 	if p == s.sevenHolder() && len(out) > 1 {
 		out = removeCards(out, s.trumpSeven())
+	}
+	if p == s.Declarer && s.Game == gameDveSedmy && len(hand) > 2 && len(out) > 1 {
+		out = removeCards(out, s.helperSeven())
 	}
 	return out
 }
@@ -466,6 +506,7 @@ func (s *GameState) play(p string, cards []string) ([]module.Event, error) {
 	// counted as said (docs/marias-rules.md, deviation 7).
 	if s.trumpGame() && tricks.Rank(card) == 'Q' && hasCard(s.Hands[p], "K"+string(tricks.Suit(card))) {
 		s.Marriages[p] = append(s.Marriages[p], string(tricks.Suit(card)))
+		s.Announced = append(s.Announced, Marriage{Player: p, Suit: string(tricks.Suit(card))})
 	}
 	s.Hands[p] = removeCards(s.Hands[p], card)
 	s.Trick = append(s.Trick, tricks.Play{Seat: s.seat(p), Card: card})
@@ -482,7 +523,7 @@ func (s *GameState) play(p string, cards []string) ([]module.Event, error) {
 		s.Points[winner] += cardPoints(pl.Card)
 	}
 	s.TricksWon[winner]++
-	s.LastTrick, s.Trick = s.Trick, nil
+	s.PrevTrick, s.LastTrick, s.Trick = s.LastTrick, s.Trick, nil
 	s.Current = winner
 	last := len(s.Hands[winner]) == 0
 	if last {

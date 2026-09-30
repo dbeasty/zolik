@@ -50,7 +50,7 @@ Ids are `marias.rules.<id>`. A 🔧 marks a sentence that changes or disappears 
 |---|---|---|
 | `game.hra` | **Hra:** take more points than both defenders together, counting marriages. A tie is a loss. | Pagat |
 | `game.sedma` | **Sedma:** win the last trick with the 7 of trumps. Announced with hra or sto, and settled separately from it. | ČSM A, B/13 |
-| `game.sto` | **Sto:** reach {n} with card points and **one** marriage. It replaces hra, and may be announced with sedma (*sto a sedm*). | ČSM A, Pagat |
+| `game.sto` | **Sto:** reach {n} with card points and **the first marriage announced**. It replaces hra, and may be announced with sedma (*sto a sedm*). | ČSM A, ČSM general VII/1 |
 | `game.betl` | **Betl:** take no trick. No trumps. | ČSM A, Pagat |
 | `game.durch` | **Durch:** take every trick. No trumps. | ČSM A, Pagat |
 
@@ -81,10 +81,12 @@ Ids are `marias.rules.<id>`. A 🔧 marks a sentence that changes or disappears 
 |---|---|---|
 | `score.parts` | The game and each sedma are settled separately, between the declarer and each defender. | ČSM, Pagat |
 | `score.tariff` 🔧 | Hra {hra}, sedma {sedma}, sto {sto}, betl {betl}, durch {durch} units. | ČSM A / pub |
-| `score.quietSto` | A side that reaches a hundred in hra without announcing it (*tiché sto*) doubles the game, and doubles it again for every ten points past. An announced sto doubles for every ten points past as well. | ČSM A, Pagat |
+| `score.sto` | An announced sto made pays the sto tariff, and the tariff again for every ten points past a hundred. Failed, it pays the tariff for every ten points short and for every ten points of the other side's marriages. | ČSM general V/6 |
+| `score.quietSto` | A side that reaches a hundred in hra without announcing it (*tiché sto*), counting every marriage, doubles the game, and is paid the doubled game again for every ten points past. | ČSM A, ČSM general V/7 |
 | `score.quietSeven` | An unannounced 7 of trumps that wins the last trick (*tichá sedma*) is worth {n}. So is one beaten in the last trick (*zabitá*), which is paid to the other side. | ČSM A, Pagat |
 | `score.flek` | Each doubling doubles that part. | ČSM, Pagat |
 | `score.red` 🔧 | With hearts as trumps, every payment is doubled. | ČSM A |
+| `score.limit` | No deal pays more than {n} between the declarer and any one defender. | ČSM general V/9 |
 | `end` 🔧 | The match is {n} deals. | option |
 
 ## Options
@@ -116,8 +118,19 @@ Ids are `marias.rules.<id>`. A 🔧 marks a sentence that changes or disappears 
 7. **Marriages are announced automatically** when a svršek is played while holding its král.
    Playing the král first still forgoes the marriage, as at a real table.
 
-## Settled questions (2026-09-29)
+## Settled questions
 
-1. **A failed announced sto pays the sto tariff flat** (4), times doublings and red
-   (`settle.go` `stoValue`). It is not scaled by how far short it fell.
+1. **What a failed announced sto pays.** First settled (2026-09-29) as the sto tariff flat. The
+   same day this was **superseded** by the association's general rules (*Obecná pravidla*,
+   V/6-7), found while drafting Licitovaný. Sto now scales linearly:
+   - Made: the tariff, plus the tariff again for every 10 points past 100.
+   - Failed: the tariff for every 10 points short, plus the tariff for every 10 points of the
+     other side's marriages.
+
+   A quiet hundred doubles hra and adds the doubled hra for every 10 points past. See
+   [marias-licitovany-rules.md](marias-licitovany-rules.md) §8.
 2. **The defenders' marriages count in hra** whether or not the defenders take a trick.
+3. **An announced sto counts the first marriage its side announced**, not the best one (ČSM).
+   Every marriage counts toward a quiet hundred.
+4. **No deal pays more than 500 units** between the declarer and any one defender (ČSM general
+   V/9).

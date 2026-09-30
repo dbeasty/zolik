@@ -3,6 +3,7 @@ package marias
 import (
 	"math/rand"
 	"sort"
+	"strconv"
 
 	"zolik/server/internal/module"
 	"zolik/server/internal/tricks"
@@ -48,12 +49,25 @@ func (b bot) Act(raw module.State, seat module.BotSeat, offers []module.ActionOf
 	hand := s.Hands[me]
 
 	switch s.Phase {
+	case phaseAuction:
+		limit := biddingLimit(hand, skill)
+		switch {
+		case me == s.Holder && s.Rung <= limit && enabled(OfferHold) != nil:
+			return send(OfferHold, VerbHold)
+		case me == s.Bidder && s.Rung+1 <= limit && enabled(OfferBid) != nil:
+			return module.Action{OfferID: OfferBid, Verb: VerbBid, Params: map[string]string{"rung": strconv.Itoa(s.Rung + 1)}}, true
+		}
+		return send(OfferAuctionPass, VerbPass)
+
 	case phaseTrump:
 		if o := enabled(OfferTrump); o != nil {
 			return send(OfferTrump, VerbChooseTrump, trumpCard(o.Source.Cards))
 		}
 
 	case phaseAnnounce:
+		if s.licit() {
+			return licitContract(hand, skill, offers)
+		}
 		id := announcement(hand, tricks.Suit(s.TrumpCard), skill)
 		if enabled(id) == nil {
 			id = OfferHra
@@ -153,13 +167,11 @@ func announcement(hand []string, trump byte, skill module.Skill) string {
 		return OfferBetl
 	}
 	trumps := count(hand, func(c string) bool { return tricks.Suit(c) == trump })
-	sharps := count(hand, func(c string) bool { return cardPoints(c) > 0 })
-	marriage := hasCard(hand, "K"+string(trump)) && hasCard(hand, "Q"+string(trump))
 	seven := hasCard(hand, "7"+string(trump))
 	switch {
-	case marriage && trumps >= 5 && sharps >= 4 && seven && trumps >= 6:
+	case stoHand(hand, trump) && seven:
 		return OfferStoSedma
-	case marriage && trumps >= 5 && sharps >= 4:
+	case stoHand(hand, trump):
 		return OfferSto
 	case seven && trumps >= 5:
 		return OfferHraSedma
@@ -394,4 +406,117 @@ func (b bot) winning(s *GameState, me string, cards []string) []string {
 func (b bot) losing(s *GameState, me string, cards []string) []string {
 	wins := b.winning(s, me, cards)
 	return removeCards(append([]string(nil), cards...), wins...)
+}
+
+// --- licitovaný -----------------------------------------------------------------
+
+// biddingLimit is the highest rung a seat will bid or hold on its ten cards,
+// before it has seen the talon: sedma where it holds a seven in a long suit,
+// sto with a trump marriage behind it, betl on a hand of low cards. Zero is
+// "pass".
+func biddingLimit(hand []string, skill module.Skill) int {
+	limit := 0
+	for _, suit := range []byte("HDCS") {
+		trumps := count(hand, func(c string) bool { return tricks.Suit(c) == suit })
+		red := suit == suitRed
+		if hasCard(hand, "7"+string(suit)) && trumps >= 4 {
+			limit = max(limit, contractRung(kindSedma, red))
+		}
+		if skill == module.SkillEasy {
+			continue
+		}
+		if stoHand(hand, suit) {
+			limit = max(limit, contractRung(kindSto, red))
+		}
+	}
+	if skill != module.SkillEasy && betlHand(hand) {
+		limit = max(limit, contractRung(kindBetl, false))
+	}
+	return limit
+}
+
+// licitContract picks what to announce with the talon in hand: betl on a
+// betl hand, sto or sedma in the strongest suit the offers allow, omyl when
+// held to plain sedma without a seven to play it — and otherwise the lowest
+// contract the offers allow, in the first suit they list.
+func licitContract(hand []string, skill module.Skill, offers []module.ActionOffer) (module.Action, bool) {
+	find := func(id string) *module.ActionOffer {
+		for i := range offers {
+			if offers[i].ID == id && offers[i].Enabled {
+				return &offers[i]
+			}
+		}
+		return nil
+	}
+	choices := func(o *module.ActionOffer, name string) []string {
+		var out []string
+		for _, p := range o.Params {
+			if p.Name == name {
+				for _, c := range p.Choices {
+					out = append(out, c.Value)
+				}
+			}
+		}
+		return out
+	}
+	// The offered suit this hand would rather have as trumps.
+	bestSuit := func(suits []string) string {
+		best, bestScore := "", -1
+		for _, suit := range suits {
+			if sc := suitScore(hand, suit[0]); sc > bestScore {
+				best, bestScore = suit, sc
+			}
+		}
+		return best
+	}
+	withTrump := func(o *module.ActionOffer) (module.Action, bool) {
+		a := module.Action{OfferID: o.ID, Verb: o.Verb, Params: map[string]string{}}
+		if trumps := choices(o, "trump"); len(trumps) > 0 {
+			a.Params["trump"] = bestSuit(trumps)
+		}
+		if helpers := choices(o, "helper"); len(helpers) > 0 {
+			for _, h := range helpers {
+				if h != a.Params["trump"] {
+					a.Params["helper"] = h
+					break
+				}
+			}
+		}
+		return a, true
+	}
+
+	if o := find(OfferLBetl); o != nil && skill != module.SkillEasy && betlHand(hand) {
+		return withTrump(o)
+	}
+	if o := find(OfferLSto); o != nil && skill != module.SkillEasy {
+		if suit := bestSuit(choices(o, "trump")); suit != "" && stoHand(hand, suit[0]) {
+			return withTrump(o)
+		}
+	}
+	if o := find(OfferLSedma); o != nil {
+		return withTrump(o)
+	}
+	if o := find(OfferOmyl); o != nil {
+		return module.Action{OfferID: OfferOmyl, Verb: VerbFold}, true
+	}
+	for _, id := range []string{OfferLSto, OfferLStoSedma, OfferLBetl, OfferLDurch, OfferLDveSedmy, OfferLDveSedmySto} {
+		if o := find(id); o != nil {
+			return withTrump(o)
+		}
+	}
+	return module.ChooseAction(offers, nil)
+}
+
+// stoHand is a hand that can count to a hundred with trump as trumps: the
+// trump marriage (40 of it), the trump ace to hold the suit, six trumps, and
+// five aces and tens between them for the other sixty. A failed sto pays for
+// every ten points short, so this errs on the side of not announcing one.
+func stoHand(hand []string, trump byte) bool {
+	t := string(trump)
+	if !hasCard(hand, "K"+t) || !hasCard(hand, "Q"+t) || !hasCard(hand, "A"+t) {
+		return false
+	}
+	trumps := count(hand, func(c string) bool { return tricks.Suit(c) == trump })
+	sharps := count(hand, func(c string) bool { return cardPoints(c) > 0 })
+	return trumps >= 6 && sharps >= 5
 }

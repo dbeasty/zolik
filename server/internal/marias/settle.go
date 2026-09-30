@@ -16,11 +16,14 @@ type Tariff struct {
 	Sto   int `json:"sto"`
 	Betl  int `json:"betl"`
 	Durch int `json:"durch"`
+	// DveSedmy and Omyl exist only at a licitovaný table.
+	DveSedmy int `json:"dveSedmy,omitempty"`
+	Omyl     int `json:"omyl,omitempty"`
 }
 
 var tariffs = map[int]Tariff{
-	TariffCSM: {Hra: 1, Sedma: 2, Sto: 4, Betl: 15, Durch: 30},
-	TariffPub: {Hra: 1, Sedma: 2, Sto: 4, Betl: 5, Durch: 10},
+	TariffCSM: {Hra: 1, Sedma: 2, Sto: 4, Betl: 15, Durch: 30, DveSedmy: 40, Omyl: 6},
+	TariffPub: {Hra: 1, Sedma: 2, Sto: 4, Betl: 5, Durch: 10, DveSedmy: 40, Omyl: 6},
 }
 
 func tariffFor(v int) Tariff {
@@ -30,40 +33,54 @@ func tariffFor(v int) Tariff {
 	return tariffs[TariffCSM]
 }
 
-// overHundred doubles base once for every ten points past a hundred:
-// base at 100, 2×base at 110, 4×base at 120. points below a hundred count as
-// a hundred.
-func overHundred(base, points int) int {
-	for p := hundred; p+10 <= points; p += 10 {
-		base *= 2
+// tensPast and tensShort count whole tens beyond, or short of, a hundred.
+// Counts are always multiples of ten (card points and marriages both are);
+// rounding up on the short side is only a guard.
+func tensPast(count int) int {
+	if count <= hundred {
+		return 0
 	}
-	return base
+	return (count - hundred) / 10
+}
+
+func tensShort(count int) int {
+	if count >= hundred {
+		return 0
+	}
+	return (hundred - count + 9) / 10
 }
 
 // hraValue is what a plain game (hra) pays, win or lose, given the winning
-// side's count — card points plus one marriage, the same count sto uses.
+// side's total — card points and every marriage it announced.
 //
-// A side that reaches a hundred without having announced it has made a quiet
-// hundred (tiché sto): it doubles the game, and doubles again for every ten
-// past (2, 4, 8 … units at 100, 110, 120 …).
-func (t Tariff) hraValue(winnerHundredCount int) int {
-	if winnerHundredCount < hundred {
+// A side that reaches a hundred without announcing it (tiché sto) doubles
+// the game, and is paid that doubled game again for every ten points past
+// the hundred: 2, 4, 6 … units at 100, 110, 120 (ČSM general rules V/7).
+// Linear, not doubling — see docs/marias-licitovany-rules.md §8, question 1.
+func (t Tariff) hraValue(winnerTotal int) int {
+	if winnerTotal < hundred {
 		return t.Hra
 	}
-	return overHundred(2*t.Hra, winnerHundredCount)
+	return 2 * t.Hra * (1 + tensPast(winnerTotal))
 }
 
-// stoValue is what an announced hundred pays. Won, it is worth the sto
-// tariff doubled for every ten past a hundred. Lost, it pays the sto tariff
-// flat: the association's table does not scale a failure, no Czech source
-// agrees on "how far short", and flat is what was signed off
-// (docs/marias-rules.md, settled question 1).
-func (t Tariff) stoValue(won bool, count int) int {
-	if !won {
-		return t.Sto
+// stoValue is what an announced hundred pays (ČSM general rules V/6). Made,
+// it is worth the sto tariff and the tariff again for every ten points past
+// the hundred. Failed, it pays the tariff for every ten points short of the
+// hundred and for every ten points of marriages the other side announced.
+//
+// count is the announcing side's card points and the first marriage it
+// announced; opponentsMarriages is everything the other side announced.
+func (t Tariff) stoValue(won bool, count, opponentsMarriages int) int {
+	if won {
+		return t.Sto * (1 + tensPast(count))
 	}
-	return overHundred(t.Sto, count)
+	return t.Sto * (tensShort(count) + opponentsMarriages/10)
 }
+
+// payLimit is the most a single deal pays between the declarer and any one
+// defender (ČSM general rules V/9: 500 times the base).
+const payLimit = 500
 
 // quietSeven is the unannounced seven: won, or killed in the last trick.
 // Half an announced one.
