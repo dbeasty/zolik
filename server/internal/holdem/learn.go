@@ -31,8 +31,9 @@ import (
 type learnGame struct{}
 
 var (
-	_ learn.Game   = learnGame{}
-	_ learn.Styled = learnGame{}
+	_ learn.Game       = learnGame{}
+	_ learn.Styled     = learnGame{}
+	_ learn.Positional = learnGame{}
 )
 
 func init() { learn.Register(learnGame{}) }
@@ -152,9 +153,60 @@ func (learnGame) CandDim() int  { return candDim }
 // at 200 the standard error is about three and a half points.
 const encodeTrials = 200
 
+// --- one decode, any seat ---------------------------------------------------
+
+// position is a state decoded for learn.Positional: the whole GameState when
+// a seat's encoding or candidates are asked for, and only the hand tally when
+// a reward is — each at most once, however many seats ask.
+type position struct {
+	raw   module.State
+	full  learn.Memo[*GameState]
+	tally learn.Memo[*handTally]
+}
+
+func (learnGame) Position(raw module.State) (learn.Position, error) {
+	return &position{raw: raw}, nil
+}
+
+func positionOf(p learn.Position) (*position, error) {
+	if pos, ok := p.(*position); ok && pos != nil {
+		return pos, nil
+	}
+	return nil, fmt.Errorf("holdem: %T is not a Hold'em position", p)
+}
+
+// state is the decoded GameState, shared by every reader: read it, never
+// write it.
+func (p *position) state() (*GameState, error) {
+	return p.full.Get(func() (*GameState, error) { return decode(p.raw) })
+}
+
+func (p *position) hands() (*handTally, error) {
+	return p.tally.Get(func() (*handTally, error) {
+		var t handTally
+		if err := json.Unmarshal(p.raw, &t); err != nil {
+			return nil, fmt.Errorf("holdem: decode state: %w", err)
+		}
+		return &t, nil
+	})
+}
+
 // Encode is the decision as this seat sees it. See the layout above.
-func (learnGame) Encode(raw module.State, playerID string) ([]float32, error) {
-	s, err := decode(raw)
+func (g learnGame) Encode(raw module.State, playerID string) ([]float32, error) {
+	p, err := g.Position(raw)
+	if err != nil {
+		return nil, err
+	}
+	return g.EncodeFor(p, playerID)
+}
+
+// EncodeFor is Encode from a decoded position.
+func (learnGame) EncodeFor(p learn.Position, playerID string) ([]float32, error) {
+	pos, err := positionOf(p)
+	if err != nil {
+		return nil, err
+	}
+	s, err := pos.state()
 	if err != nil {
 		return nil, err
 	}
@@ -469,8 +521,21 @@ func b2f(b bool) float32 {
 // answer is the one move the heuristic would make, so the environment plays it
 // without asking: go on rather than show, the same preference and for the same
 // reason as the bot.
-func (learnGame) Candidates(raw module.State, playerID string, offers []module.ActionOffer) ([]learn.Candidate, error) {
-	s, err := decode(raw)
+func (g learnGame) Candidates(raw module.State, playerID string, offers []module.ActionOffer) ([]learn.Candidate, error) {
+	p, err := g.Position(raw)
+	if err != nil {
+		return nil, err
+	}
+	return g.CandidatesFor(p, playerID, offers)
+}
+
+// CandidatesFor is Candidates from a decoded position.
+func (learnGame) CandidatesFor(p learn.Position, playerID string, offers []module.ActionOffer) ([]learn.Candidate, error) {
+	pos, err := positionOf(p)
+	if err != nil {
+		return nil, err
+	}
+	s, err := pos.state()
 	if err != nil {
 		return nil, err
 	}
@@ -564,13 +629,35 @@ func candFeatures(s *GameState, seat *Seat, kind int, a module.Action) []float32
 //
 // The episode closes for every seat dealt into the hand, and for nobody who
 // was already out of the match.
-func (learnGame) Reward(beforeRaw, afterRaw module.State, playerID string) (float32, bool, error) {
-	var before, after handTally
-	if err := json.Unmarshal(beforeRaw, &before); err != nil {
-		return 0, false, fmt.Errorf("holdem: decode state: %w", err)
+func (g learnGame) Reward(beforeRaw, afterRaw module.State, playerID string) (float32, bool, error) {
+	before, err := g.Position(beforeRaw)
+	if err != nil {
+		return 0, false, err
 	}
-	if err := json.Unmarshal(afterRaw, &after); err != nil {
-		return 0, false, fmt.Errorf("holdem: decode state: %w", err)
+	after, err := g.Position(afterRaw)
+	if err != nil {
+		return 0, false, err
+	}
+	return g.RewardFor(before, after, playerID)
+}
+
+// RewardFor is Reward between two decoded positions.
+func (learnGame) RewardFor(beforePos, afterPos learn.Position, playerID string) (float32, bool, error) {
+	bp, err := positionOf(beforePos)
+	if err != nil {
+		return 0, false, err
+	}
+	ap, err := positionOf(afterPos)
+	if err != nil {
+		return 0, false, err
+	}
+	before, err := bp.hands()
+	if err != nil {
+		return 0, false, err
+	}
+	after, err := ap.hands()
+	if err != nil {
+		return 0, false, err
 	}
 	if len(after.Hands) <= len(before.Hands) {
 		return 0, false, nil

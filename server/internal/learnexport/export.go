@@ -286,8 +286,12 @@ func Export(g learn.Game, m models.Match, moves []models.MatchAction,
 	}
 
 	var (
-		recs     []Record
-		prev     module.State
+		recs []Record
+		prev module.State
+		// prevPos is prev decoded once (learn.Positional), for the decision
+		// made from it and for every seat's reward out of it.
+		prevPos  learn.Position
+		view     = learn.Positions(g)
 		open     = map[string][]int{} // seat -> records whose episode is still running
 		episodes = map[string]int{}
 		plan     struct {
@@ -297,8 +301,12 @@ func Export(g learn.Game, m models.Match, moves []models.MatchAction,
 	)
 	_, foldErr := match.FoldMoves(mod, m, moves, snapshot,
 		func(step int, entry *models.MatchAction, a module.Action, s module.State) (bool, error) {
+			pos, err := view.Position(s)
+			if err != nil {
+				return false, fmt.Errorf("decode seq %d: %w", step, err)
+			}
 			if step == 0 || entry == nil {
-				prev = s
+				prev, prevPos = s, pos
 				return true, nil
 			}
 			actor := entry.PlayerID
@@ -331,7 +339,7 @@ func Export(g learn.Game, m models.Match, moves []models.MatchAction,
 				}
 				plan.seat = actor
 				next := lookahead(moves, actions, decoded, step-1, actor)
-				rest, reason := decide(g, mod, prev, actor, a, next, &rec)
+				rest, reason := decide(g, view, mod, prev, prevPos, actor, a, next, &rec)
 				switch {
 				case reason != "":
 					st.dropped(reason, 1)
@@ -367,7 +375,7 @@ func Export(g learn.Game, m models.Match, moves []models.MatchAction,
 			// open, so the episode count stays right for a seat that sat a
 			// hand out.
 			for seat := range exported {
-				r, done, err := g.Reward(prev, s, seat)
+				r, done, err := view.RewardFor(prevPos, pos, seat)
 				if err != nil {
 					return false, fmt.Errorf("reward for seq %d: %w", entry.Seq, err)
 				}
@@ -382,7 +390,7 @@ func Export(g learn.Game, m models.Match, moves []models.MatchAction,
 					episodes[seat]++
 				}
 			}
-			prev = s
+			prev, prevPos = s, pos
 			return true, nil
 		})
 	if foldErr != nil {
@@ -433,9 +441,9 @@ func lookahead(moves []models.MatchAction, actions []module.Action, decoded []bo
 // decide fills in the record for one decision: the observation, the
 // candidates, and which of them the seat chose. It returns the rest of the
 // chosen candidate's plan, and a reason when no record can be made at all.
-func decide(g learn.Game, mod module.GameModule, s module.State, seat string, a module.Action,
-	next []module.Action, rec *Record) (rest []module.Action, drop string) {
-	obs, err := g.Encode(s, seat)
+func decide(g learn.Game, view learn.Positional, mod module.GameModule, s module.State, pos learn.Position,
+	seat string, a module.Action, next []module.Action, rec *Record) (rest []module.Action, drop string) {
+	obs, err := view.EncodeFor(pos, seat)
 	if err != nil {
 		return nil, "encode_error"
 	}
@@ -451,7 +459,7 @@ func decide(g learn.Game, mod module.GameModule, s module.State, seat string, a 
 		rec.Unmatched = "offers_error"
 		return nil, ""
 	}
-	cands, err := g.Candidates(s, seat, offers)
+	cands, err := view.CandidatesFor(pos, seat, offers)
 	if err != nil {
 		rec.Unmatched = "candidates_error"
 		return nil, ""

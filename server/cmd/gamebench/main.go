@@ -103,7 +103,7 @@ func contender(g learn.Benchable, spec string) (learn.Contender, error) {
 		if n.StateDim != lg.StateDim() || n.CandDim != lg.CandDim() {
 			return learn.Contender{}, fmt.Errorf("%s was trained for another encoder", path)
 		}
-		return learn.Contender{Name: spec, Bot: learn.NetBot{Game: lg, Net: n, Fallback: g.Heuristic(), Temperature: temp}, Skill: module.SkillHard}, nil
+		return learn.Contender{Name: spec, Bot: learn.NetBot{Game: lg, Policy: learn.NewPolicy(n), Fallback: g.Heuristic(), Temperature: temp}, Skill: module.SkillHard}, nil
 	}
 	return learn.Contender{}, fmt.Errorf("unknown contender %q", spec)
 }

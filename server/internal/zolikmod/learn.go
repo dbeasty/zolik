@@ -38,7 +38,48 @@ type learnGame struct{}
 
 func init() { learn.Register(learnGame{}) }
 
-var _ learn.Game = learnGame{}
+var (
+	_ learn.Game       = learnGame{}
+	_ learn.Positional = learnGame{}
+)
+
+// position is a state decoded for learn.Positional: the whole matchState when
+// a seat's encoding or candidates are asked for, and only the score sheet when
+// a reward is — each at most once, however many seats ask. The candidate
+// search branches through rules.ApplyAction, which clones the state it is
+// handed, so the decoded state here is never written.
+type position struct {
+	raw    module.State
+	full   learn.Memo[*matchState]
+	scores learn.Memo[*scoresOnly]
+}
+
+func (learnGame) Position(raw module.State) (learn.Position, error) {
+	return &position{raw: raw}, nil
+}
+
+func positionOf(at learn.Position) (*position, error) {
+	if pos, ok := at.(*position); ok && pos != nil {
+		return pos, nil
+	}
+	return nil, fmt.Errorf("zolik: %T is not a Žolíky position", at)
+}
+
+// state is the decoded matchState, shared by every reader: read it, never
+// write it.
+func (p *position) state() (*matchState, error) {
+	return p.full.Get(func() (*matchState, error) { return decode(p.raw) })
+}
+
+func (p *position) scoreSheet() (*scoresOnly, error) {
+	return p.scores.Get(func() (*scoresOnly, error) {
+		var sc scoresOnly
+		if err := json.Unmarshal(p.raw, &sc); err != nil {
+			return nil, fmt.Errorf("zolik: decode state: %w", err)
+		}
+		return &sc, nil
+	})
+}
 
 // Name is the module id, which is also what gamebench and gameenv call it.
 func (learnGame) Name() string              { return rules.Descriptor().ID }
@@ -195,8 +236,21 @@ const (
 
 func (learnGame) StateDim() int { return learnState }
 
-func (learnGame) Encode(raw module.State, seat string) ([]float32, error) {
-	s, err := decode(raw)
+func (g learnGame) Encode(raw module.State, seat string) ([]float32, error) {
+	at, err := g.Position(raw)
+	if err != nil {
+		return nil, err
+	}
+	return g.EncodeFor(at, seat)
+}
+
+// EncodeFor is Encode from a decoded position.
+func (learnGame) EncodeFor(at learn.Position, seat string) ([]float32, error) {
+	pos, err := positionOf(at)
+	if err != nil {
+		return nil, err
+	}
+	s, err := pos.state()
 	if err != nil {
 		return nil, err
 	}
@@ -627,8 +681,21 @@ const (
 // asked again part-way; from there the only candidates that finish are the
 // ways of finishing, because nothing that leaves the turn unfinishable is ever
 // a candidate.
-func (learnGame) Candidates(raw module.State, seat string, offers []module.ActionOffer) ([]learn.Candidate, error) {
-	s, err := decode(raw)
+func (g learnGame) Candidates(raw module.State, seat string, offers []module.ActionOffer) ([]learn.Candidate, error) {
+	at, err := g.Position(raw)
+	if err != nil {
+		return nil, err
+	}
+	return g.CandidatesFor(at, seat, offers)
+}
+
+// CandidatesFor is Candidates from a decoded position.
+func (learnGame) CandidatesFor(at learn.Position, seat string, offers []module.ActionOffer) ([]learn.Candidate, error) {
+	pos, err := positionOf(at)
+	if err != nil {
+		return nil, err
+	}
+	s, err := pos.state()
 	if err != nil {
 		return nil, err
 	}
@@ -1647,13 +1714,35 @@ const rewardScale = 100
 // Every deal closes an episode, for every seat, exactly once: the action that
 // scores the deal (a go-out discard, or a meld-out on a final deal) appends one
 // row to every seat's GameScores, and nothing else does.
-func (learnGame) Reward(before, after module.State, seat string) (float32, bool, error) {
-	var b, a scoresOnly
-	if err := json.Unmarshal(before, &b); err != nil {
-		return 0, false, fmt.Errorf("zolik: decode state: %w", err)
+func (g learnGame) Reward(before, after module.State, seat string) (float32, bool, error) {
+	bp, err := g.Position(before)
+	if err != nil {
+		return 0, false, err
 	}
-	if err := json.Unmarshal(after, &a); err != nil {
-		return 0, false, fmt.Errorf("zolik: decode state: %w", err)
+	ap, err := g.Position(after)
+	if err != nil {
+		return 0, false, err
+	}
+	return g.RewardFor(bp, ap, seat)
+}
+
+// RewardFor is Reward between two decoded positions.
+func (learnGame) RewardFor(before, after learn.Position, seat string) (float32, bool, error) {
+	bp, err := positionOf(before)
+	if err != nil {
+		return 0, false, err
+	}
+	ap, err := positionOf(after)
+	if err != nil {
+		return 0, false, err
+	}
+	b, err := bp.scoreSheet()
+	if err != nil {
+		return 0, false, err
+	}
+	a, err := ap.scoreSheet()
+	if err != nil {
+		return 0, false, err
 	}
 	mine := a.Rules.GameScores[seat]
 	if len(mine) <= len(b.Rules.GameScores[seat]) {

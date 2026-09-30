@@ -253,7 +253,7 @@ func TestLoadNetRefusesBrokenModels(t *testing.T) {
 func TestNetBotPlaysItsFavourite(t *testing.T) {
 	s, _ := nim{}.NewMatch(module.MatchConfig{}, Players(2), 3) // pile 13
 	offers, _ := nim{}.LegalActions(s, "p0")
-	bot := NetBot{Game: nimGame{}, Net: preferThird(), Fallback: perfect{}}
+	bot := NetBot{Game: nimGame{}, Policy: NewPolicy(preferThird()), Fallback: perfect{}}
 	a, ok := bot.Act(s, module.BotSeat{PlayerID: "p0"}, offers)
 	if !ok || a.OfferID != "take3" {
 		t.Errorf("got %+v, want take3", a)
@@ -266,7 +266,7 @@ func TestNetBotFallsBackWithoutAUsableModel(t *testing.T) {
 	wrong := preferThird()
 	wrong.CandDim = 4
 	for name, n := range map[string]*Net{"nil": nil, "other encoder": wrong} {
-		a, _ := NetBot{Game: nimGame{}, Net: n, Fallback: perfect{}}.Act(s, module.BotSeat{PlayerID: "p0"}, offers)
+		a, _ := NetBot{Game: nimGame{}, Policy: NewPolicy(n), Fallback: perfect{}}.Act(s, module.BotSeat{PlayerID: "p0"}, offers)
 		if a.OfferID != "take1" {
 			t.Errorf("%s: got %s, want the heuristic's take1", name, a.OfferID)
 		}
@@ -276,7 +276,7 @@ func TestNetBotFallsBackWithoutAUsableModel(t *testing.T) {
 func TestNetBotSamplingIsReproducible(t *testing.T) {
 	s, _ := nim{}.NewMatch(module.MatchConfig{}, Players(2), 3)
 	offers, _ := nim{}.LegalActions(s, "p0")
-	bot := NetBot{Game: nimGame{}, Net: preferThird(), Temperature: 5}
+	bot := NetBot{Game: nimGame{}, Policy: NewPolicy(preferThird()), Temperature: 5}
 	seen := map[string]bool{}
 	for seed := int64(0); seed < 60; seed++ {
 		seat := module.BotSeat{PlayerID: "p0", Seed: seed}
@@ -652,7 +652,7 @@ func TestNetBotFinishesASequenceOneStepAtATime(t *testing.T) {
 		Scorer: []Dense{dense(2, 1, []float32{0, 1}, []float32{0})},
 		Value:  []Dense{dense(1, 1, []float32{1}, []float32{0})},
 	}
-	bot := NetBot{Game: relayGame{}, Net: greedyNet, Fallback: oneAndDone{}}
+	bot := NetBot{Game: relayGame{}, Policy: NewPolicy(greedyNet), Fallback: oneAndDone{}}
 	r, err := Bench(relayGame{}, 2, "", Contender{Name: "net", Bot: bot}, Contender{Name: "one", Bot: oneAndDone{}}, 1, 20, 500)
 	if err != nil {
 		t.Fatal(err)

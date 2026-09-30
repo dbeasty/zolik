@@ -115,7 +115,9 @@ its first layer, because the server feeds `Encode`'s vector straight in.
 A trained model is one small file (`final.bin`, 0.8–0.9 MB at the default sizes).
 To ship one, evaluate it on held-out seeds, then copy it into the game's
 package — Phase 3 embeds it at `server/internal/<game>/models/hard.bin` and
-plays it through `learn.NetBot` with the heuristic as fallback. The server
+plays it through `learn.HardBot(game, bytes, heuristic)`: one `learn.Policy`
+per model per process, shared by every seat at every table, with the heuristic
+as fallback. The server
 refuses a model whose `stateDim`/`candDim` differ from the adapter's, so any
 change to an encoder means retraining.
 

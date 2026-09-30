@@ -71,11 +71,14 @@ type Observation struct {
 // Env is a batch of tables.
 type Env struct {
 	g         Game
+	view      Positional
 	variation string
 	budget    int
 	stride    int64
-	nets      map[string]*Net
-	tables    []*table
+	// policies are the frozen checkpoints seated at any table, one per file:
+	// every seat that names the same checkpoint plays through the same one.
+	policies map[string]*Policy
+	tables   []*table
 }
 
 type table struct {
@@ -84,6 +87,9 @@ type table struct {
 	cfg     module.MatchConfig
 	seed    int64
 	state   module.State
+	// pos is state decoded (Positional), made once per state and read for the
+	// learner's candidates and encoding and as the next action's "before".
+	pos     Position
 	actions int
 	pending []Candidate
 	actor   string
@@ -110,7 +116,7 @@ type table struct {
 
 // NewEnv deals every table. Table i plays seeds first+i, first+i+len(specs), ...
 func NewEnv(g Game, variation string, specs []TableSpec, first int64, budget int) (*Env, error) {
-	e := &Env{g: g, variation: variation, budget: budget, stride: int64(len(specs)), nets: map[string]*Net{}}
+	e := &Env{g: g, view: Positions(g), variation: variation, budget: budget, stride: int64(len(specs)), policies: map[string]*Policy{}}
 	for i, spec := range specs {
 		if len(spec.Plan) < 2 {
 			return nil, fmt.Errorf("learn: table %d has %d seats", i, len(spec.Plan))
@@ -138,7 +144,7 @@ func (e *Env) Observe() ([]Observation, error) {
 		if err := e.advance(t); err != nil {
 			return err
 		}
-		obs, err := e.g.Encode(t.state, t.actor)
+		obs, err := e.view.EncodeFor(t.pos, t.actor)
 		if err != nil {
 			return err
 		}
@@ -259,7 +265,7 @@ func (e *Env) advance(t *table) error {
 			}
 			continue
 		}
-		cands, err := e.g.Candidates(t.state, actor, offers)
+		cands, err := e.view.CandidatesFor(t.pos, actor, offers)
 		if err != nil {
 			return err
 		}
@@ -285,6 +291,9 @@ func (e *Env) advance(t *table) error {
 func (e *Env) deal(t *table) error {
 	s, err := e.g.Module().NewMatch(t.cfg, t.players, t.seed)
 	if err != nil {
+		return err
+	}
+	if t.pos, err = e.view.Position(s); err != nil {
 		return err
 	}
 	t.state, t.actions = s, 0
@@ -338,8 +347,15 @@ func (e *Env) play(t *table, actor string, c Candidate) error {
 }
 
 // apply makes one move and credits every learner seat with what it earned.
+//
+// The new state is decoded once, whatever the number of learner seats, and
+// that decode is the next action's "before": no state is decoded twice.
 func (e *Env) apply(t *table, actor string, a module.Action) error {
 	next, _, err := e.g.Module().Apply(t.state, actor, a)
+	if err != nil {
+		return err
+	}
+	nextPos, err := e.view.Position(next)
 	if err != nil {
 		return err
 	}
@@ -347,7 +363,7 @@ func (e *Env) apply(t *table, actor string, a module.Action) error {
 		if t.plan[p.ID] != Learner {
 			continue
 		}
-		r, done, err := e.g.Reward(t.state, next, p.ID)
+		r, done, err := e.view.RewardFor(t.pos, nextPos, p.ID)
 		if err != nil {
 			return err
 		}
@@ -356,7 +372,7 @@ func (e *Env) apply(t *table, actor string, a module.Action) error {
 		}
 		t.open[p.ID] = !done
 	}
-	t.state = next
+	t.state, t.pos = next, nextPos
 	t.actions++
 	t.guard.begin(actor)
 	if actor == t.runSeat {
@@ -408,18 +424,20 @@ func (e *Env) botFor(spec string) (module.Bot, error) {
 			}
 			path, temp = path[:i], t
 		}
-		n, ok := e.nets[path]
+		p, ok := e.policies[path]
 		if !ok {
 			b, err := os.ReadFile(path)
 			if err != nil {
 				return nil, err
 			}
-			if n, err = LoadNet(b); err != nil {
+			n, err := LoadNet(b)
+			if err != nil {
 				return nil, fmt.Errorf("learn: %s: %w", path, err)
 			}
-			e.nets[path] = n
+			p = NewPolicy(n)
+			e.policies[path] = p
 		}
-		nb := NetBot{Game: e.g, Net: n, Fallback: e.g.Heuristic(), Temperature: temp}
+		nb := NetBot{Game: e.g, Policy: p, Fallback: e.g.Heuristic(), Temperature: temp}
 		if !nb.usable() {
 			return nil, fmt.Errorf("learn: %s was trained for another encoder", path)
 		}

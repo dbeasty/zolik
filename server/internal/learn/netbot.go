@@ -15,13 +15,18 @@ import (
 // more than the seat may: what reaches the network is Encode's output, which
 // each adapter's no-peek test pins.
 //
+// It is a small value around a shared Policy, and one NetBot plays every seat
+// it is handed: the seat, the position and the offers are Act's arguments,
+// and nothing about any of them is kept between calls. A table of four bots
+// on one model is one Policy asked four times, not four agents.
+//
 // Anything it cannot do, the heuristic does: no model, a model for another
 // encoder, an adapter with nothing to offer, an encoding error. A trained bot
 // that cannot play falls back to the bot that already could, rather than to
 // the first offer in the list.
 type NetBot struct {
 	Game     Game
-	Net      *Net
+	Policy   *Policy
 	Fallback module.Bot
 	// Temperature is how far from its favourite move it will stray. Zero is
 	// always the favourite — the strongest play and the most predictable one.
@@ -39,13 +44,13 @@ func (b NetBot) Act(s module.State, seat module.BotSeat, offers []module.ActionO
 }
 
 // usable reports whether the network can play this game at all.
-func (b NetBot) usable() bool {
-	return b.Net != nil && b.Game != nil &&
-		b.Net.StateDim == b.Game.StateDim() && b.Net.CandDim == b.Game.CandDim()
-}
+func (b NetBot) usable() bool { return b.Policy.Fits(b.Game) }
 
 // choose is Act without the fallback, and with the candidate index, so the
 // environment can tell a network move from a heuristic one.
+//
+// The state is decoded once (Positional) and both the candidates and the
+// encoding are read off that one decode.
 //
 // A candidate with more than one step (Candidate.Then) is played one step per
 // call: this returns its first action, and the next call — from the position
@@ -56,14 +61,19 @@ func (b NetBot) choose(s module.State, seat module.BotSeat, offers []module.Acti
 	if !b.usable() {
 		return module.Action{}, -1, false
 	}
-	cands, err := b.Game.Candidates(s, seat.PlayerID, offers)
+	view := Positions(b.Game)
+	pos, err := view.Position(s)
+	if err != nil {
+		return module.Action{}, -1, false
+	}
+	cands, err := view.CandidatesFor(pos, seat.PlayerID, offers)
 	if err != nil || len(cands) == 0 {
 		return module.Action{}, -1, false
 	}
 	if len(cands) == 1 {
 		return cands[0].Action, 0, true
 	}
-	obs, err := b.Game.Encode(s, seat.PlayerID)
+	obs, err := view.EncodeFor(pos, seat.PlayerID)
 	if err != nil {
 		return module.Action{}, -1, false
 	}
@@ -71,8 +81,7 @@ func (b NetBot) choose(s module.State, seat module.BotSeat, offers []module.Acti
 	for i, c := range cands {
 		feats[i] = c.Features
 	}
-	logits := b.Net.Logits(b.Net.Embed(obs), feats)
-	i := pick(logits, b.Temperature, turnSeed(s, seat))
+	i := pick(b.Policy.Logits(obs, feats), b.Temperature, turnSeed(s, seat))
 	return cands[i].Action, i, true
 }
 

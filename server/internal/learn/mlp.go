@@ -36,6 +36,7 @@ func (d *Dense) forward(x, out []float32, relu bool) {
 	for o := 0; o < d.Out; o++ {
 		sum := d.B[o]
 		row := d.W[o*d.In : (o+1)*d.In]
+		x := x[:len(row)] // one bounds check here rather than one per weight
 		for i, w := range row {
 			sum += w * x[i]
 		}

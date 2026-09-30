@@ -33,7 +33,46 @@ func init() { learn.Register(learnGame{}) }
 var (
 	_ learn.Game        = learnGame{}
 	_ learn.Equivalence = learnGame{}
+	_ learn.Positional  = learnGame{}
 )
+
+// position is a state decoded for learn.Positional: the whole GameState when
+// a seat's encoding or candidates are asked for, and only the deal results
+// when a reward is — each at most once, however many seats ask. The raw
+// document stays alongside, because the candidate search plays moves through
+// the engine, which takes a document, and never through the decoded state.
+type position struct {
+	raw   module.State
+	full  learn.Memo[*GameState]
+	deals learn.Memo[*dealsOnly]
+}
+
+func (learnGame) Position(raw module.State) (learn.Position, error) {
+	return &position{raw: raw}, nil
+}
+
+func positionOf(p learn.Position) (*position, error) {
+	if pos, ok := p.(*position); ok && pos != nil {
+		return pos, nil
+	}
+	return nil, fmt.Errorf("canasta: %T is not a Canasta position", p)
+}
+
+// state is the decoded GameState, shared by every reader: read it, never
+// write it.
+func (p *position) state() (*GameState, error) {
+	return p.full.Get(func() (*GameState, error) { return decode(p.raw) })
+}
+
+func (p *position) dealResults() (*dealsOnly, error) {
+	return p.deals.Get(func() (*dealsOnly, error) {
+		var d dealsOnly
+		if err := json.Unmarshal(p.raw, &d); err != nil {
+			return nil, fmt.Errorf("canasta: decode state: %w", err)
+		}
+		return &d, nil
+	})
+}
 
 func (learnGame) Name() string              { return "canasta" }
 func (learnGame) Module() module.GameModule { return New() }
@@ -164,8 +203,21 @@ const (
 
 func (learnGame) StateDim() int { return learnStateDim }
 
-func (learnGame) Encode(raw module.State, seat string) ([]float32, error) {
-	s, err := decode(raw)
+func (g learnGame) Encode(raw module.State, seat string) ([]float32, error) {
+	p, err := g.Position(raw)
+	if err != nil {
+		return nil, err
+	}
+	return g.EncodeFor(p, seat)
+}
+
+// EncodeFor is Encode from a decoded position.
+func (learnGame) EncodeFor(at learn.Position, seat string) ([]float32, error) {
+	pos, err := positionOf(at)
+	if err != nil {
+		return nil, err
+	}
+	s, err := pos.state()
 	if err != nil {
 		return nil, err
 	}
@@ -480,11 +532,25 @@ const maxLayOffs = 40
 // each found by putting it to the engine before it was offered. A pile capture
 // before opening is the same: offered only with an opening that finishes from
 // the hand it leaves.
-func (learnGame) Candidates(raw module.State, seat string, offers []module.ActionOffer) ([]learn.Candidate, error) {
-	s, err := decode(raw)
+func (g learnGame) Candidates(raw module.State, seat string, offers []module.ActionOffer) ([]learn.Candidate, error) {
+	p, err := g.Position(raw)
 	if err != nil {
 		return nil, err
 	}
+	return g.CandidatesFor(p, seat, offers)
+}
+
+// CandidatesFor is Candidates from a decoded position.
+func (learnGame) CandidatesFor(p learn.Position, seat string, offers []module.ActionOffer) ([]learn.Candidate, error) {
+	pos, err := positionOf(p)
+	if err != nil {
+		return nil, err
+	}
+	s, err := pos.state()
+	if err != nil {
+		return nil, err
+	}
+	raw := pos.raw
 	offers = withoutUndos(offers)
 
 	// Between deals, or on somebody else's turn, there is at most one thing to
@@ -1153,13 +1219,35 @@ type dealsOnly struct {
 // Every deal closes an episode. A match to 5000 is a dozen deals, and the deal
 // is the unit whose outcome the moves in it decide. Partners read the same
 // result off the same row, so they are paid the same.
-func (learnGame) Reward(before, after module.State, seat string) (float32, bool, error) {
-	var b, a dealsOnly
-	if err := json.Unmarshal(before, &b); err != nil {
-		return 0, false, fmt.Errorf("canasta: decode state: %w", err)
+func (g learnGame) Reward(before, after module.State, seat string) (float32, bool, error) {
+	bp, err := g.Position(before)
+	if err != nil {
+		return 0, false, err
 	}
-	if err := json.Unmarshal(after, &a); err != nil {
-		return 0, false, fmt.Errorf("canasta: decode state: %w", err)
+	ap, err := g.Position(after)
+	if err != nil {
+		return 0, false, err
+	}
+	return g.RewardFor(bp, ap, seat)
+}
+
+// RewardFor is Reward between two decoded positions.
+func (learnGame) RewardFor(before, after learn.Position, seat string) (float32, bool, error) {
+	bp, err := positionOf(before)
+	if err != nil {
+		return 0, false, err
+	}
+	ap, err := positionOf(after)
+	if err != nil {
+		return 0, false, err
+	}
+	b, err := bp.dealResults()
+	if err != nil {
+		return 0, false, err
+	}
+	a, err := ap.dealResults()
+	if err != nil {
+		return 0, false, err
 	}
 	if len(a.Deals) <= len(b.Deals) {
 		return 0, false, nil
