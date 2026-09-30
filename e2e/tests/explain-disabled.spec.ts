@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 import { waitForOfferEnabled } from '../helpers/turn';
 
 /**
@@ -51,11 +51,11 @@ async function openMatch(page: Page, host: any, matchId: string) {
   await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
 }
 
-async function handSize(request: Ctx, matchId: string, userId: string): Promise<number> {
-  const res = await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`);
+async function handSize(request: Ctx, matchId: string, viewer: Viewer): Promise<number> {
+  const res = await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer));
   expect(res.ok(), await res.text()).toBeTruthy();
   const body = await res.json();
-  const zone = (body.view?.zones ?? []).find((z: any) => z.kind === 'hand' && z.ownerId === userId);
+  const zone = (body.view?.zones ?? []).find((z: any) => z.kind === 'hand' && z.ownerId === viewer.userId);
   return (zone?.cards ?? []).length;
 }
 
@@ -68,7 +68,7 @@ test('pressing a disabled control explains it, and its remedy works', async ({ p
   await waitForOfferEnabled(page, 'offer-draw:deck');
   const meld = page.getByTestId('offer-lay_meld');
   await expect(meld).toHaveAttribute('aria-disabled', 'true');
-  const before = await handSize(request, matchId, host.userId);
+  const before = await handSize(request, matchId, host);
 
   // `force`, because the point is to press a control that is marked off.
   await meld.click({ force: true });
@@ -80,7 +80,7 @@ test('pressing a disabled control explains it, and its remedy works', async ({ p
   // The way out is a working control, not advice.
   await page.getByTestId('why-remedy-action').click();
   await expect(sheet).toBeHidden();
-  await expect.poll(() => handSize(request, matchId, host.userId)).toBe(before + 1);
+  await expect.poll(() => handSize(request, matchId, host)).toBe(before + 1);
 });
 
 test('pressing a control the selection does not fit says what to pick', async ({ page, request }) => {

@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { handCards } from '../helpers/drag';
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 import { selectedCodes } from '../helpers/hand';
 import { waitForOfferEnabled } from '../helpers/turn';
 
@@ -47,9 +47,9 @@ async function openMatch(page: Page, host: any, matchId: string) {
   await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
 }
 
-async function handSize(request: Ctx, matchId: string, userId: string): Promise<number> {
-  const body = await (await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`)).json();
-  const zone = (body.view?.zones ?? []).find((z: any) => z.kind === 'hand' && z.ownerId === userId);
+async function handSize(request: Ctx, matchId: string, viewer: Viewer): Promise<number> {
+  const body = await (await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer))).json();
+  const zone = (body.view?.zones ?? []).find((z: any) => z.kind === 'hand' && z.ownerId === viewer.userId);
   return (zone?.cards ?? []).length;
 }
 
@@ -62,7 +62,7 @@ test('a hint sets up a move without making it', async ({ page, request }) => {
   // Once drawn, the hint is a move made with cards from the hand.
   await waitForOfferEnabled(page, 'offer-draw:deck');
   await page.getByTestId('offer-draw:deck').click();
-  await expect.poll(() => handSize(request, matchId, host.userId)).toBe(14);
+  await expect.poll(() => handSize(request, matchId, host)).toBe(14);
 
   await page.getByTestId('hint-button').click();
   await expect(page.getByTestId('hint-line')).toBeVisible();
@@ -70,7 +70,7 @@ test('a hint sets up a move without making it', async ({ page, request }) => {
   expect((await selectedCodes(page)).length).toBeGreaterThan(0);
 
   // Nothing was played.
-  expect(await handSize(request, matchId, host.userId)).toBe(14);
+  expect(await handSize(request, matchId, host)).toBe(14);
 });
 
 test('a table without hints shows no hint button', async ({ page, request }) => {

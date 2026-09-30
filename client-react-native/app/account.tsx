@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, Text, View } from 'react-native';
 
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { claimPrompt, claimedMessage, orderProviders, providerButtonLabel } from '@/src/lib/auth';
+import { guestUrlFor, shareInviteLink } from '@/src/lib/inviteLink';
 import { colors, shared } from '@/src/theme';
 import { t } from '@/src/lib/i18n';
 
@@ -27,8 +28,10 @@ export default function AccountScreen() {
     unlinkProvider,
     claimGuestHistory,
     refreshAccount,
+    guestKey,
   } = useSession();
   const [busy, setBusy] = useState<string | null>(null);
+  const [guestLinkShared, setGuestLinkShared] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
@@ -41,17 +44,52 @@ export default function AccountScreen() {
   }
 
   if (!session || session.isGuest) {
+    const guestUrl = session?.isGuest ? guestUrlFor(guestKey ?? undefined) : '';
     return (
-      <Screen title={t('nav.account')}>
+      <Screen title={t('nav.account')} scroll>
         <Text style={shared.status}>{t('account.signInPrompt')}</Text>
         <Pressable style={shared.button} onPress={() => router.push('/auth/login')}>
           <Text style={shared.buttonText}>{t('settings.signIn')}</Text>
         </Pressable>
         {/* A guest has no account to manage but does have a face and a look,
             and this is where they came looking for them. */}
-        <Pressable style={shared.buttonSecondary} onPress={() => router.push('/settings')}>
+        <Pressable style={[shared.button, shared.buttonSecondary]} onPress={() => router.push('/settings')}>
           <Text style={shared.buttonTextSecondary}>{t('settings.title')}</Text>
         </Pressable>
+        {/* The guest's own identity, as something they can take with them.
+            The link holds the key, not the id: it is a secret, and says so. */}
+        {guestUrl ? (
+          <View testID="account-guest-link" style={[shared.card, { marginTop: 16 }]}>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>{t('account.guestLink.title')}</Text>
+            <Text style={shared.status}>{t('account.guestLink.body')}</Text>
+            <Text
+              selectable
+              style={{
+                color: colors.accent,
+                fontSize: 14,
+                marginVertical: 8,
+                fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+              }}
+            >
+              {guestUrl}
+            </Text>
+            <Pressable
+              testID="account-guest-link-share"
+              style={[shared.button, { marginTop: 4, marginBottom: 0 }]}
+              onPress={async () => setGuestLinkShared(await shareInviteLink(guestUrl))}
+            >
+              <Text style={shared.buttonText}>
+                {guestLinkShared
+                  ? Platform.OS === 'web'
+                    ? t('invite.copied')
+                    : t('invite.shared')
+                  : Platform.OS === 'web'
+                    ? t('invite.copy')
+                    : t('invite.share')}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
       </Screen>
     );
   }
@@ -135,7 +173,7 @@ export default function AccountScreen() {
           {linkable.map((p) => (
             <Pressable
               key={p.id}
-              style={shared.buttonSecondary}
+              style={[shared.button, shared.buttonSecondary]}
               onPress={() => run(`link:${p.id}`, () => linkProvider(p.id))}
               disabled={busy !== null}
             >
@@ -154,7 +192,7 @@ export default function AccountScreen() {
       {/* The face and the felt. Not an account matter, but this is the screen
           people open when they are looking for anything about themselves. */}
       <Pressable
-        style={[shared.buttonSecondary, { marginTop: 16 }]}
+        style={[shared.button, shared.buttonSecondary, { marginTop: 16 }]}
         onPress={() => router.push('/settings')}
       >
         <Text style={shared.buttonTextSecondary}>{t('account.faceAndTable')}</Text>

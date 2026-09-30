@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { handCards } from '../helpers/drag';
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 import { selectOnly } from '../helpers/hand';
 
 /**
@@ -102,8 +102,8 @@ async function openMatch(page: Page, host: any, matchId: string) {
   await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
 }
 
-async function meldOnServer(request: Ctx, matchId: string, userId: string) {
-  const b = await (await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`)).json();
+async function meldOnServer(request: Ctx, matchId: string, viewer: Viewer) {
+  const b = await (await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer))).json();
   for (const z of b.view?.zones ?? []) {
     for (const g of z.groups ?? []) if (g.id === 'meld_1') return g.cards as string[];
   }
@@ -129,7 +129,7 @@ test("a meld somebody else changed is marked, and the viewer's turn says what to
   // The bot's turn: it extends its run. The viewer sees it marked when their
   // turn comes round.
   await expect
-    .poll(async () => (await meldOnServer(request, matchId, host.userId)).length, { timeout: 30_000 })
+    .poll(async () => (await meldOnServer(request, matchId, host)).length, { timeout: 30_000 })
     .toBeGreaterThan(4);
   await expect(page.getByTestId('group-mark-meld_1')).toBeVisible({ timeout: 15_000 });
   await expect(page.locator('[data-testid^="card-mark-meld_1-"]').first()).toBeVisible();

@@ -68,6 +68,7 @@ export async function loginAsFreshGuest(
     username: guest.guestName ?? guestName,
     isGuest: true,
     guestId: guest.guestId,
+    guestKey: guest.guestKey,
     claimableMatches: guest.claimableMatches ?? 0,
   };
   await page.addInitScript((s) => {

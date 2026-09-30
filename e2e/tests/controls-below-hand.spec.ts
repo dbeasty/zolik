@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 
 /**
  * Where the controls sit, in every game and at every width.
@@ -80,12 +80,12 @@ async function openMatch(page: Page, host: any, matchId: string) {
  * in a different costume. `kind === 'hand'` is the field every module
  * declares and the shell itself keys off, so it is what this keys off too.
  */
-async function myHandZoneId(request: Ctx, matchId: string, userId: string): Promise<string> {
-  const res = await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`);
+async function myHandZoneId(request: Ctx, matchId: string, viewer: Viewer): Promise<string> {
+  const res = await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer));
   expect(res.ok(), await res.text()).toBeTruthy();
   const body = await res.json();
   const zone = (body.view?.zones ?? []).find(
-    (z: any) => z.kind === 'hand' && z.ownerId === userId,
+    (z: any) => z.kind === 'hand' && z.ownerId === viewer.userId,
   );
   expect(zone, `the viewer has a hand zone in ${matchId}`).toBeTruthy();
   return zone.id as string;
@@ -117,7 +117,7 @@ for (const moduleId of MODULES) {
   test.describe(`${moduleId}: the controls are below the hand`, () => {
     test('on a desktop screen', async ({ page, request }) => {
       const { matchId, host } = await tableWithBots(request, moduleId);
-      const zoneId = await myHandZoneId(request, matchId, host.userId);
+      const zoneId = await myHandZoneId(request, matchId, host);
       await openMatch(page, host, matchId);
       await waitForHand(page, zoneId);
 
@@ -135,7 +135,7 @@ for (const moduleId of MODULES) {
       await page.setViewportSize({ width: 375, height: 812 });
 
       const { matchId, host } = await tableWithBots(request, moduleId);
-      const zoneId = await myHandZoneId(request, matchId, host.userId);
+      const zoneId = await myHandZoneId(request, matchId, host);
       await openMatch(page, host, matchId);
       await waitForHand(page, zoneId);
 
@@ -157,7 +157,7 @@ test.describe('and the piles are still above it all', () => {
     // The full running order, in one assertion, so that "controls moved down"
     // cannot quietly become "controls moved down and so did the draw pile".
     const { matchId, host } = await tableWithBots(request, 'zolik');
-    const zoneId = await myHandZoneId(request, matchId, host.userId);
+    const zoneId = await myHandZoneId(request, matchId, host);
     await openMatch(page, host, matchId);
     await waitForHand(page, zoneId);
 

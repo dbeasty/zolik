@@ -44,6 +44,9 @@ export type CapacitySnapshot = {
 };
 
 /** A signed-in player, however they signed in. */
+/** What a device shows the server to be a guest it has been before. */
+export type GuestProof = { guestKey?: string; refreshToken?: string };
+
 export type PlayerSession = {
   accessToken: string;
   refreshToken: string;
@@ -59,6 +62,13 @@ export type PlayerSession = {
    * credential and grants no access to any account.
    */
   guestId?: string;
+  /**
+   * The proof that this device *is* that guest, present on guest sessions.
+   * Unlike the id it is a secret: whoever holds it can sign in as the guest,
+   * which is also what lets a guest carry their identity to another device
+   * as a link. Stored beside the guest id, never shown at a table.
+   */
+  guestKey?: string;
   /**
    * A pass the cloud signed, which seats this account at a table with no
    * internet: a host checks it against the copy of the cloud's keys it

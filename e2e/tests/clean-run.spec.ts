@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { dragLocatorTo, handCards } from '../helpers/drag';
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer } from '../helpers/env';
 
 /**
  * Žolík Classic's house rule: you are not "down" — and so may not lay off on
@@ -177,7 +177,7 @@ test.describe("Žolík Classic's clean-run rule", () => {
     await expect
       .poll(
         async () => {
-          const b = await (await request.get(`${API_BASE}/matches/${matchId}?as=${host.userId}`)).json();
+          const b = await (await request.get(`${API_BASE}/matches/${matchId}`, asViewer(host))).json();
           for (const z of b.view?.zones ?? []) {
             for (const g of z.groups ?? []) if (g.id === 'meld_2') return g.cards.join(',');
           }

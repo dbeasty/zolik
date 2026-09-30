@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { grabPoint, handCards } from '../helpers/drag';
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 
 /**
  * Where a card is about to land, shown before it lands.
@@ -124,8 +124,8 @@ async function openMatch(page: Page, host: any, matchId: string) {
 }
 
 /** The bot's run, as the server has it — the only witness to where a card landed. */
-async function runOnServer(request: Ctx, matchId: string, userId: string) {
-  const b = await (await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`)).json();
+async function runOnServer(request: Ctx, matchId: string, viewer: Viewer) {
+  const b = await (await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer))).json();
   for (const z of b.view?.zones ?? []) {
     for (const g of z.groups ?? []) if (g.id === 'meld_1') return g.cards.join(',');
   }
@@ -228,7 +228,7 @@ test.describe('the place a card is about to go', () => {
 
     // The gap told the truth: the 6 is now the front of the run.
     await expect
-      .poll(() => runOnServer(request, matchId, host.userId), { timeout: 10_000 })
+      .poll(() => runOnServer(request, matchId, host), { timeout: 10_000 })
       .toBe('6C,7C,8C,9C,TC');
   });
 
@@ -267,7 +267,7 @@ test.describe('the place a card is about to go', () => {
     }
 
     await expect
-      .poll(() => runOnServer(request, matchId, host.userId), { timeout: 10_000 })
+      .poll(() => runOnServer(request, matchId, host), { timeout: 10_000 })
       .toBe('7C,8C,9C,TC,JC');
   });
 });

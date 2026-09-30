@@ -42,7 +42,7 @@ async function aTableOneCardFromTheEnd(request: Ctx) {
   expect((await request.post(`${API_BASE}/matches/${matchId}/add-bot`, { headers: asAnn, data: {} })).ok()).toBeTruthy();
   expect((await request.post(`${API_BASE}/matches/${matchId}/start`, { headers: asAnn })).ok()).toBeTruthy();
 
-  const table = await (await request.get(`${API_BASE}/matches/${matchId}?as=${ann.userId}`)).json();
+  const table = await (await request.get(`${API_BASE}/matches/${matchId}`, { headers: asAnn })).json();
   const order: string[] = table.players.map((p: any) => p.id);
   const bot = order.find((id) => id !== ann.userId && id !== bob.userId)!;
   const seeded = await request.post(`${API_BASE}/matches/${matchId}/debug-state`, {

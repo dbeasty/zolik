@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { carryLocatorOver, dragLocatorTo, handCards, release } from '../helpers/drag';
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 
 /**
  * Playing a card by dragging it onto the board.
@@ -69,16 +69,16 @@ async function openMatch(page: Page, host: any, matchId: string) {
   await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
 }
 
-async function board(request: Ctx, matchId: string, userId: string) {
-  const res = await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`);
+async function board(request: Ctx, matchId: string, viewer: Viewer) {
+  const res = await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer));
   expect(res.ok(), await res.text()).toBeTruthy();
   return res.json();
 }
 
-async function serverHand(request: Ctx, matchId: string, userId: string): Promise<string[]> {
-  const body = await board(request, matchId, userId);
+async function serverHand(request: Ctx, matchId: string, viewer: Viewer): Promise<string[]> {
+  const body = await board(request, matchId, viewer);
   const zone = (body.view?.zones ?? []).find(
-    (z: any) => z.kind === 'hand' && z.ownerId === userId,
+    (z: any) => z.kind === 'hand' && z.ownerId === viewer.userId,
   );
   return (zone?.cards ?? []).map((c: any) => c.card);
 }
@@ -87,9 +87,9 @@ async function serverHand(request: Ctx, matchId: string, userId: string): Promis
 async function meldGroups(
   request: Ctx,
   matchId: string,
-  userId: string,
+  viewer: Viewer,
 ): Promise<Record<string, string[]>> {
-  const body = await board(request, matchId, userId);
+  const body = await board(request, matchId, viewer);
   const out: Record<string, string[]> = {};
   for (const z of body.view?.zones ?? []) {
     for (const g of z.groups ?? []) out[g.id] = g.cards ?? [];
@@ -105,8 +105,8 @@ async function meldGroups(
  * source, so "an enabled offer with a target meld" finds two different moves —
  * and this test is about the one that puts a card from your hand onto a meld.
  */
-async function layOffOffer(request: Ctx, matchId: string, userId: string) {
-  const body = await board(request, matchId, userId);
+async function layOffOffer(request: Ctx, matchId: string, viewer: Viewer) {
+  const body = await board(request, matchId, viewer);
   return (
     (body.legalActions ?? []).find(
       (o: any) =>
@@ -116,8 +116,8 @@ async function layOffOffer(request: Ctx, matchId: string, userId: string) {
 }
 
 /** The enabled offer for a verb, and the cards it says it will take. */
-async function offerFor(request: Ctx, matchId: string, userId: string, verb: string) {
-  const body = await board(request, matchId, userId);
+async function offerFor(request: Ctx, matchId: string, viewer: Viewer, verb: string) {
+  const body = await board(request, matchId, viewer);
   const offer = (body.legalActions ?? []).find((o: any) => o.verb === verb && o.enabled);
   return { offer, cards: (offer?.source?.cards ?? []) as string[] };
 }
@@ -148,13 +148,13 @@ async function playUntilOffered(
   page: Page,
   request: Ctx,
   matchId: string,
-  userId: string,
+  viewer: Viewer,
   verb: string,
   budgetMs = 30_000,
 ) {
   const deadline = Date.now() + budgetMs;
   while (Date.now() < deadline) {
-    const { offer } = await offerFor(request, matchId, userId, verb);
+    const { offer } = await offerFor(request, matchId, viewer, verb);
     if (offer) return offer;
     const live = page.locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])').first();
     if (await live.count()) {
@@ -178,11 +178,11 @@ test.describe('dropping a card on the board', () => {
     await openMatch(page, host, matchId);
     await handCards(page);
 
-    const offer = await playUntilOffered(page, request, matchId, host.userId, 'play_card');
+    const offer = await playUntilOffered(page, request, matchId, host, 'play_card');
     test.skip(!offer, 'never reached a turn where a card could be played');
 
-    const { cards: playable } = await offerFor(request, matchId, host.userId, 'play_card');
-    const before = await serverHand(request, matchId, host.userId);
+    const { cards: playable } = await offerFor(request, matchId, host, 'play_card');
+    const before = await serverHand(request, matchId, host);
     const index = before.findIndex((c) => playable.includes(c));
     expect(index).toBeGreaterThanOrEqual(0);
 
@@ -192,7 +192,7 @@ test.describe('dropping a card on the board', () => {
     // The server is the witness, and specifically that *this* card left — a
     // hand that merely got shorter could have got shorter for another reason.
     await expect
-      .poll(async () => (await serverHand(request, matchId, host.userId)).join(','), {
+      .poll(async () => (await serverHand(request, matchId, host)).join(','), {
         timeout: 10_000,
       })
       .toBe(withoutOne(before, dragged).join(','));
@@ -209,11 +209,11 @@ test.describe('dropping a card on the board', () => {
     // Rummy makes you draw before you may discard. This test does not know
     // that — it presses whatever control is live until the engine offers
     // discarding, which is the same way it would find out in any other game.
-    const offer = await playUntilOffered(page, request, matchId, host.userId, 'discard');
+    const offer = await playUntilOffered(page, request, matchId, host, 'discard');
     test.skip(!offer, 'never reached a position where discarding was legal');
 
-    const { cards: discardable } = await offerFor(request, matchId, host.userId, 'discard');
-    const before = await serverHand(request, matchId, host.userId);
+    const { cards: discardable } = await offerFor(request, matchId, host, 'discard');
+    const before = await serverHand(request, matchId, host);
     const index = before.findIndex((c) => discardable.includes(c));
     expect(index).toBeGreaterThanOrEqual(0);
 
@@ -221,7 +221,7 @@ test.describe('dropping a card on the board', () => {
     await dragLocatorTo(page, card(page, index), page.getByTestId('zone-discard'));
 
     await expect
-      .poll(async () => (await serverHand(request, matchId, host.userId)).join(','), {
+      .poll(async () => (await serverHand(request, matchId, host)).join(','), {
         timeout: 10_000,
       })
       .toBe(withoutOne(before, dragged).join(','));
@@ -254,7 +254,7 @@ test.describe('dropping a card on the board', () => {
     let offer: any = null;
     const deadline = Date.now() + 90_000;
     while (Date.now() < deadline && !offer) {
-      offer = await layOffOffer(request, matchId, host.userId);
+      offer = await layOffOffer(request, matchId, host);
       if (offer) break;
       const live = page.locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])').first();
       if (await live.count()) {
@@ -270,8 +270,8 @@ test.describe('dropping a card on the board', () => {
 
     const meldId = offer.target.meldId as string;
     const eligible = (offer.source?.cards ?? []) as string[];
-    const before = await serverHand(request, matchId, host.userId);
-    const meldsBefore = await meldGroups(request, matchId, host.userId);
+    const before = await serverHand(request, matchId, host);
+    const meldsBefore = await meldGroups(request, matchId, host);
     const index = before.findIndex((c) => eligible.includes(c));
     expect(index).toBeGreaterThanOrEqual(0);
     const dragged = before[index];
@@ -294,12 +294,12 @@ test.describe('dropping a card on the board', () => {
     // what is checked: this meld now holds the dragged card, and still holds
     // everything it held before.
     await expect
-      .poll(async () => (await meldGroups(request, matchId, host.userId))[meldId] ?? [], {
+      .poll(async () => (await meldGroups(request, matchId, host))[meldId] ?? [], {
         timeout: 10_000,
       })
       .toContain(dragged);
 
-    const after = await meldGroups(request, matchId, host.userId);
+    const after = await meldGroups(request, matchId, host);
     for (const c of meldsBefore[meldId] ?? []) {
       expect(after[meldId]).toContain(c);
     }
@@ -372,14 +372,14 @@ test.describe('dropping a card on the board', () => {
     // Rummy refuses every discard until you have drawn, so on this first turn
     // nothing in hand has a home. This is the half of the feature that is
     // about *not* acting, and the half a happy-path test would miss.
-    const { offer } = await offerFor(request, matchId, host.userId, 'discard');
+    const { offer } = await offerFor(request, matchId, host, 'discard');
     test.skip(!!offer, 'this deal allowed an immediate discard');
 
-    const before = await serverHand(request, matchId, host.userId);
+    const before = await serverHand(request, matchId, host);
     await dragLocatorTo(page, card(page, 0), page.getByTestId('zone-discard'));
     await page.waitForTimeout(800);
 
-    expect(await serverHand(request, matchId, host.userId)).toEqual(before);
+    expect(await serverHand(request, matchId, host)).toEqual(before);
     // And it is back in its own place, not quietly rearranged as a
     // consolation prize for a drop that was refused.
     expect(await handCards(page)).toEqual(shown);

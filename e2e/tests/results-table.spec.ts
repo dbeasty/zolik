@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 
 /**
  * The results table, read as a reader reads it.
@@ -66,9 +66,9 @@ async function signIn(page: Page, host: any) {
 }
 
 /** Presses whatever the table offers, short of agreeing to start the next round. */
-async function playUntilPaused(page: Page, request: Ctx, matchId: string, userId: string) {
+async function playUntilPaused(page: Page, request: Ctx, matchId: string, viewer: Viewer) {
   for (let i = 0; i < 160; i++) {
-    const state = await (await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`)).json();
+    const state = await (await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer))).json();
     if (state.rounds?.paused) return state;
     const ids = await page
       .locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])')
@@ -97,7 +97,7 @@ test('the results table names the reader and lines its columns up', async ({ pag
   await page.goto(`/match/${matchId}`);
   await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
 
-  const state = await playUntilPaused(page, request, matchId, host.userId);
+  const state = await playUntilPaused(page, request, matchId, host);
   expect(state, 'a table with the pause switched on should have stopped between rounds').toBeTruthy();
   await expect(page.getByTestId('round-results')).toBeVisible({ timeout: 30_000 });
 

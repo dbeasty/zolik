@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 
 /**
  * End-to-end for the Rummy Tiles module (docs/rummy-games-plan.md, Phase B).
@@ -90,8 +90,8 @@ async function startMatch(request: Ctx, seats: number, opts: { options?: Record<
   return { matchId, users, auth };
 }
 
-async function stateFor(request: Ctx, matchId: string, viewerId: string): Promise<MatchState> {
-  const res = await request.get(`${API_BASE}/matches/${matchId}?as=${encodeURIComponent(viewerId)}`);
+async function stateFor(request: Ctx, matchId: string, viewer: Viewer): Promise<MatchState> {
+  const res = await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer));
   expect(res.ok(), await res.text()).toBeTruthy();
   return res.json();
 }
@@ -123,7 +123,7 @@ test.describe('rummytiles', () => {
   test('a Rummy Tiles match persists through Mongo and comes back playable, at three seats', async ({ request }) => {
     const { matchId, users } = await startMatch(request, 3);
 
-    const state = await stateFor(request, matchId, users[0].userId);
+    const state = await stateFor(request, matchId, users[0]);
     expect(state.moduleId).toBe('rummytiles');
     expect(state.status).toBe('active');
     expect(state.legalActions.length).toBeGreaterThan(0);
@@ -135,7 +135,7 @@ test.describe('rummytiles', () => {
 
     const withOffers = [];
     for (const u of users) {
-      const s = await stateFor(request, matchId, u.userId);
+      const s = await stateFor(request, matchId, u);
       if (s.legalActions.some((o) => o.enabled)) withOffers.push(u.userId);
     }
     expect(withOffers).toHaveLength(1);
@@ -145,7 +145,7 @@ test.describe('rummytiles', () => {
     const { matchId, users } = await startMatch(request, 4);
 
     for (const viewer of users) {
-      const state = await stateFor(request, matchId, viewer.userId);
+      const state = await stateFor(request, matchId, viewer);
       const others = users.filter((u) => u.userId !== viewer.userId);
       for (const other of others) {
         const theirs = state.view.zones.find((z) => z.kind === 'hand' && z.ownerId === other.userId);
@@ -312,7 +312,7 @@ test.describe('rummytiles', () => {
 
     // The database agrees, and the placed set is visible to the *other*
     // player too — the workspace is public the moment it exists (view.go).
-    const persisted = await stateFor(request, matchId, users[1].userId);
+    const persisted = await stateFor(request, matchId, users[1]);
     const table = persisted.view.zones.find((z) => z.id === 'table');
     expect(table?.groups?.some((g) => g.id === result.placedSetId)).toBeTruthy();
   });
@@ -332,7 +332,7 @@ test.describe('rummytiles', () => {
       const started = await request.post(`${API_BASE}/matches/${matchId}/start`, { headers: auth });
       expect(started.ok(), await started.text()).toBeTruthy();
 
-      const state = await stateFor(request, matchId, host.userId);
+      const state = await stateFor(request, matchId, host);
       expect(state.moduleId).toBe(moduleId);
       expect(state.status).toBe('active');
       expect(state.legalActions.length).toBeGreaterThan(0);
