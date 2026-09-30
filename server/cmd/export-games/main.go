@@ -51,6 +51,7 @@ import (
 
 	_ "zolik/server/internal/canasta"
 	_ "zolik/server/internal/holdem"
+	_ "zolik/server/internal/zolikmod"
 )
 
 func main() {
