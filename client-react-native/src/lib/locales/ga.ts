@@ -319,6 +319,13 @@ export const ga: Record<string, string> = {
 
   'zolik.round.deal': 'Dáileadh',
   'zolik.round.cleanRun': 'Caithfidh sraith amháin a bheith gan áilteoir',
+  'zolik.line.wentOut': 'Dul amach',
+  'zolik.line.inHand': 'Cártaí fágtha sa lámh: {n}',
+  'zolik.line.handJokers': 'Áilteoirí × {n} ({each} an ceann)',
+  'zolik.line.handAces': 'Aonáin × {n} ({each} an ceann)',
+  'zolik.line.handAcesLow': 'Aonáin ar luach a haon × {n} ({each} an ceann)',
+  'zolik.line.handFaces': 'Deichní agus cártaí pictiúr × {n} ({each} an ceann)',
+  'zolik.line.handPips': 'Cártaí 2–9 × {n}',
   'canasta.round.deal': 'Dáileadh',
   'canasta.round.concealed': 'Chuaigh amach faoi cheilt',
   'canasta.round.exhausted': 'Chríochnaigh an paca',

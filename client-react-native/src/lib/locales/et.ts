@@ -306,6 +306,13 @@ export const et: Record<string, string> = {
 
   'zolik.round.deal': 'Jagamine',
   'zolik.round.cleanRun': 'Üks jada peab olema jokkerita',
+  'zolik.line.wentOut': 'Väljaminek',
+  'zolik.line.inHand': 'Kaarte jäi kätte: {n}',
+  'zolik.line.handJokers': 'Jokkerid × {n} ({each} tk)',
+  'zolik.line.handAces': 'Ässad × {n} ({each} tk)',
+  'zolik.line.handAcesLow': 'Ässad ühena × {n} ({each} tk)',
+  'zolik.line.handFaces': 'Kümned ja pildikaardid × {n} ({each} tk)',
+  'zolik.line.handPips': 'Kaardid 2–9 × {n}',
   'canasta.round.deal': 'Jagamine',
   'canasta.round.concealed': 'Läks välja varjatult',
   'canasta.round.exhausted': 'Pakk sai otsa',

@@ -302,6 +302,13 @@ export const da: Record<string, string> = {
 
   'zolik.round.deal': 'Giv',
   'zolik.round.cleanRun': 'Én række skal være jokerfri',
+  'zolik.line.wentOut': 'Gå ud',
+  'zolik.line.inHand': 'Kort tilbage på hånden: {n}',
+  'zolik.line.handJokers': 'Jokere × {n} ({each} pr. stk.)',
+  'zolik.line.handAces': 'Esser × {n} ({each} pr. stk.)',
+  'zolik.line.handAcesLow': 'Esser talt som én × {n} ({each} pr. stk.)',
+  'zolik.line.handFaces': 'Tiere og billedkort × {n} ({each} pr. stk.)',
+  'zolik.line.handPips': 'Kort 2–9 × {n}',
   'canasta.round.deal': 'Giv',
   'canasta.round.concealed': 'Gik ud skjult',
   'canasta.round.exhausted': 'Kortene slap op',

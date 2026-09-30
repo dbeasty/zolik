@@ -311,6 +311,13 @@ export const es: Record<string, string> = {
 
   'zolik.round.deal': 'Reparto',
   'zolik.round.cleanRun': 'Una escalera debe ir sin comodines',
+  'zolik.line.wentOut': 'Cierre',
+  'zolik.line.inHand': 'Cartas en mano: {n}',
+  'zolik.line.handJokers': 'Comodines × {n} ({each} cada uno)',
+  'zolik.line.handAces': 'Ases × {n} ({each} cada uno)',
+  'zolik.line.handAcesLow': 'Ases que cuentan uno × {n} ({each} cada uno)',
+  'zolik.line.handFaces': 'Dieces y figuras × {n} ({each} cada una)',
+  'zolik.line.handPips': 'Cartas del 2 al 9 × {n}',
   'canasta.round.deal': 'Reparto',
   'canasta.round.concealed': 'Se fue en mano cerrada',
   'canasta.round.exhausted': 'Se acabó la baraja',

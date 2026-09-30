@@ -314,6 +314,13 @@ export const de: Record<string, string> = {
 
   'zolik.round.deal': 'Gabe',
   'zolik.round.cleanRun': 'Eine Folge muss jokerfrei sein',
+  'zolik.line.wentOut': 'Ausmachen',
+  'zolik.line.inHand': 'Karten auf der Hand: {n}',
+  'zolik.line.handJokers': 'Joker × {n} (je {each})',
+  'zolik.line.handAces': 'Asse × {n} (je {each})',
+  'zolik.line.handAcesLow': 'Asse als Eins × {n} (je {each})',
+  'zolik.line.handFaces': 'Zehner und Bildkarten × {n} (je {each})',
+  'zolik.line.handPips': 'Karten 2–9 × {n}',
   'canasta.round.deal': 'Gabe',
   'canasta.round.concealed': 'Verdeckt hinausgegangen',
   'canasta.round.exhausted': 'Das Blatt ging aus',

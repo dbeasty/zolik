@@ -306,6 +306,13 @@ export const sk: Record<string, string> = {
 
   'zolik.round.deal': 'Rozdanie',
   'zolik.round.cleanRun': 'Jedna postupka musí byť bez žolíka',
+  'zolik.line.wentOut': 'Ukončenie hry',
+  'zolik.line.inHand': 'Zostalo v ruke: kariet {n}',
+  'zolik.line.handJokers': 'Žolíky × {n} (po {each})',
+  'zolik.line.handAces': 'Esá × {n} (po {each})',
+  'zolik.line.handAcesLow': 'Esá za jednotku × {n} (po {each})',
+  'zolik.line.handFaces': 'Desiatky a figúry × {n} (po {each})',
+  'zolik.line.handPips': 'Karty 2–9 × {n}',
   'canasta.round.deal': 'Rozdanie',
   'canasta.round.concealed': 'Vyšiel zakrytý',
   'canasta.round.exhausted': 'Balíček sa minul',

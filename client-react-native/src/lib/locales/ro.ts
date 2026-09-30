@@ -308,6 +308,13 @@ export const ro: Record<string, string> = {
 
   'zolik.round.deal': 'Mână',
   'zolik.round.cleanRun': 'O scară trebuie să fie fără joker',
+  'zolik.line.wentOut': 'Ieșire',
+  'zolik.line.inHand': 'Cărți rămase în mână: {n}',
+  'zolik.line.handJokers': 'Jokeri × {n} (câte {each})',
+  'zolik.line.handAces': 'Ași × {n} (câte {each})',
+  'zolik.line.handAcesLow': 'Ași ca unu × {n} (câte {each})',
+  'zolik.line.handFaces': 'Zeciuri și figuri × {n} (câte {each})',
+  'zolik.line.handPips': 'Cărți de la 2 la 9 × {n}',
   'canasta.round.deal': 'Mână',
   'canasta.round.concealed': 'A ieșit ascuns',
   'canasta.round.exhausted': 'Pachetul s-a terminat',

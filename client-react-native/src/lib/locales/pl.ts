@@ -310,6 +310,13 @@ export const pl: Record<string, string> = {
 
   'zolik.round.deal': 'Rozdanie',
   'zolik.round.cleanRun': 'Jeden sekwens musi być bez jokera',
+  'zolik.line.wentOut': 'Wyjście',
+  'zolik.line.inHand': 'Zostało w ręce: kart {n}',
+  'zolik.line.handJokers': 'Jokery × {n} (po {each})',
+  'zolik.line.handAces': 'Asy × {n} (po {each})',
+  'zolik.line.handAcesLow': 'Asy jako jedynki × {n} (po {each})',
+  'zolik.line.handFaces': 'Dziesiątki i figury × {n} (po {each})',
+  'zolik.line.handPips': 'Karty 2–9 × {n}',
   'canasta.round.deal': 'Rozdanie',
   'canasta.round.concealed': 'Wyjście z zakrytą ręką',
   'canasta.round.exhausted': 'Talia się skończyła',

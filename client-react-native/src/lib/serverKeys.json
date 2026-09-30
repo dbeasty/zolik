@@ -728,6 +728,13 @@
     "zolik.badge.jokerOwed",
     "zolik.badge.noReturn",
     "zolik.badge.owedToMeld",
+    "zolik.line.handAces",
+    "zolik.line.handAcesLow",
+    "zolik.line.handFaces",
+    "zolik.line.handJokers",
+    "zolik.line.handPips",
+    "zolik.line.inHand",
+    "zolik.line.wentOut",
     "zolik.move.discarded",
     "zolik.move.drewStock",
     "zolik.move.laidOff",
@@ -1930,6 +1937,28 @@
       "value",
       "winners"
     ],
+    "zolik.line.handAces": [
+      "each",
+      "n"
+    ],
+    "zolik.line.handAcesLow": [
+      "each",
+      "n"
+    ],
+    "zolik.line.handFaces": [
+      "each",
+      "n"
+    ],
+    "zolik.line.handJokers": [
+      "each",
+      "n"
+    ],
+    "zolik.line.handPips": [
+      "n"
+    ],
+    "zolik.line.inHand": [
+      "n"
+    ],
     "zolik.move.discarded": [
       "card",
       "player"
@@ -2236,6 +2265,12 @@
     "status.lastDeal",
     "status.teamScore",
     "status.winner",
+    "zolik.line.handAces",
+    "zolik.line.handAcesLow",
+    "zolik.line.handFaces",
+    "zolik.line.handJokers",
+    "zolik.line.handPips",
+    "zolik.line.inHand",
     "zolik.move.discarded",
     "zolik.move.drewStock",
     "zolik.move.laidOff",

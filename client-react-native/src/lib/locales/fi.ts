@@ -307,6 +307,13 @@ export const fi: Record<string, string> = {
 
   'zolik.round.deal': 'Jako',
   'zolik.round.cleanRun': 'Yhden suoran on oltava jokeriton',
+  'zolik.line.wentOut': 'Pois meno',
+  'zolik.line.inHand': 'Kortteja jäi käteen: {n}',
+  'zolik.line.handJokers': 'Jokerit × {n} ({each} kpl)',
+  'zolik.line.handAces': 'Ässät × {n} ({each} kpl)',
+  'zolik.line.handAcesLow': 'Ässät ykkösinä × {n} ({each} kpl)',
+  'zolik.line.handFaces': 'Kympit ja kuvakortit × {n} ({each} kpl)',
+  'zolik.line.handPips': 'Kortit 2–9 × {n}',
   'canasta.round.deal': 'Jako',
   'canasta.round.concealed': 'Pääsi ulos piilossa',
   'canasta.round.exhausted': 'Pakka loppui',

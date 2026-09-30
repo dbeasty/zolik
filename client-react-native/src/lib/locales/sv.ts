@@ -300,6 +300,13 @@ export const sv: Record<string, string> = {
 
   'zolik.round.deal': 'Giv',
   'zolik.round.cleanRun': 'En svit måste vara jokerfri',
+  'zolik.line.wentOut': 'Gå ut',
+  'zolik.line.inHand': 'Kort kvar på handen: {n}',
+  'zolik.line.handJokers': 'Jokrar × {n} ({each} st)',
+  'zolik.line.handAces': 'Ess × {n} ({each} st)',
+  'zolik.line.handAcesLow': 'Ess som ettor × {n} ({each} st)',
+  'zolik.line.handFaces': 'Tior och klädda kort × {n} ({each} st)',
+  'zolik.line.handPips': 'Kort 2–9 × {n}',
   'canasta.round.deal': 'Giv',
   'canasta.round.concealed': 'Gick ut dolt',
   'canasta.round.exhausted': 'Leken tog slut',

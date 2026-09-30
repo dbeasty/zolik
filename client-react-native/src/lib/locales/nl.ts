@@ -311,6 +311,13 @@ export const nl: Record<string, string> = {
 
   'zolik.round.deal': 'Ronde',
   'zolik.round.cleanRun': 'Eén reeks moet jokervrij zijn',
+  'zolik.line.wentOut': 'Uitgaan',
+  'zolik.line.inHand': 'Kaarten over in de hand: {n}',
+  'zolik.line.handJokers': 'Jokers × {n} ({each} per stuk)',
+  'zolik.line.handAces': 'Azen × {n} ({each} per stuk)',
+  'zolik.line.handAcesLow': 'Azen als één × {n} ({each} per stuk)',
+  'zolik.line.handFaces': 'Tienen en plaatjes × {n} ({each} per stuk)',
+  'zolik.line.handPips': 'Kaarten 2–9 × {n}',
   'canasta.round.deal': 'Ronde',
   'canasta.round.concealed': 'Verdekt uitgegaan',
   'canasta.round.exhausted': 'Het spel raakte op',

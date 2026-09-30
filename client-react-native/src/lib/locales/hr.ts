@@ -307,6 +307,13 @@ export const hr: Record<string, string> = {
 
   'zolik.round.deal': 'Dijeljenje',
   'zolik.round.cleanRun': 'Jedan niz mora biti bez džokera',
+  'zolik.line.wentOut': 'Izlazak',
+  'zolik.line.inHand': 'Preostalo karata u ruci: {n}',
+  'zolik.line.handJokers': 'Džokeri × {n} (po {each})',
+  'zolik.line.handAces': 'Asovi × {n} (po {each})',
+  'zolik.line.handAcesLow': 'Asovi kao jedinica × {n} (po {each})',
+  'zolik.line.handFaces': 'Desetke i slike × {n} (po {each})',
+  'zolik.line.handPips': 'Karte od 2 do 9 × {n}',
   'canasta.round.deal': 'Dijeljenje',
   'canasta.round.concealed': 'Izašao skriveno',
   'canasta.round.exhausted': 'Špil je potrošen',

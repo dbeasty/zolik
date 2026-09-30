@@ -75,11 +75,84 @@ func (m *Module) Rounds(raw module.State) (module.RoundLog, error) {
 				Total:      -total,
 				Shown:      &delta,
 				ShownTotal: &total,
+				Lines:      dealLines(gs, n, pid, penalty),
 			})
 		}
 		log.Rounds = append(log.Rounds, r)
 	}
 	return log, nil
+}
+
+// dealLines is one seat's deal as an account: the cards it was left holding,
+// by the categories a player argues about — jokers, aces at full price, aces
+// that counted low because a run in hand or on the table would take them,
+// tens and court cards, and the rest — each with what it cost.
+//
+// Counts rather than cards, the same as Canasta's: the round log is public and
+// permanent, and a losing hand is never turned face up at this table.
+//
+// Every key is a literal of its own, params and all, because the manifest is
+// built by reading this source and a key passed through a variable is a key it
+// never sees.
+func dealLines(gs rules.GameState, n int, pid string, penalty int) []module.ScoreLine {
+	if n < len(gs.DealWinners) && gs.DealWinners[n] == pid {
+		return []module.ScoreLine{{LabelKey: "zolik.line.wentOut"}}
+	}
+	if n >= len(gs.DealHands) {
+		return nil
+	}
+	h, ok := gs.DealHands[n][pid]
+	// A tally that does not match the recorded penalty is not published: an
+	// account that does not add up is worse than the total on its own.
+	if !ok || h.Cards == 0 || h.Points != penalty {
+		return nil
+	}
+
+	line := module.ScoreLine{
+		LabelKey: "zolik.line.inHand",
+		Params:   map[string]any{"n": h.Cards},
+		Points:   h.Points,
+	}
+	if h.Jokers > 0 {
+		line.Sub = append(line.Sub, module.ScoreLine{
+			LabelKey: "zolik.line.handJokers",
+			Params:   map[string]any{"n": h.Jokers, "each": h.JokerPoints / h.Jokers},
+			Points:   h.JokerPoints,
+		})
+	}
+	if h.Aces > 0 {
+		line.Sub = append(line.Sub, module.ScoreLine{
+			LabelKey: "zolik.line.handAces",
+			Params:   map[string]any{"n": h.Aces, "each": h.AcePoints / h.Aces},
+			Points:   h.AcePoints,
+		})
+	}
+	if h.AcesLow > 0 {
+		line.Sub = append(line.Sub, module.ScoreLine{
+			LabelKey: "zolik.line.handAcesLow",
+			Params:   map[string]any{"n": h.AcesLow, "each": h.AceLowPoints / h.AcesLow},
+			Points:   h.AceLowPoints,
+		})
+	}
+	if h.Faces > 0 {
+		line.Sub = append(line.Sub, module.ScoreLine{
+			LabelKey: "zolik.line.handFaces",
+			Params:   map[string]any{"n": h.Faces, "each": h.FacePoints / h.Faces},
+			Points:   h.FacePoints,
+		})
+	}
+	if h.Pips > 0 {
+		line.Sub = append(line.Sub, module.ScoreLine{
+			LabelKey: "zolik.line.handPips",
+			Params:   map[string]any{"n": h.Pips},
+			Points:   h.PipPoints,
+		})
+	}
+	// One category is the hand itself said twice.
+	if len(line.Sub) == 1 {
+		line.Sub = nil
+	}
+	return []module.ScoreLine{line}
 }
 
 // contractFacts names what a deal required, and says nothing when it required
