@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { handCards, tapCard } from '../helpers/drag';
 import { API_BASE, asViewer, type Viewer } from '../helpers/env';
-import { selectedCodes } from '../helpers/hand';
+import { cardByCode, handCodes, selectedCodes, selectOnly } from '../helpers/hand';
 import { waitForOfferEnabled } from '../helpers/turn';
 
 /**
@@ -18,6 +18,8 @@ import { waitForOfferEnabled } from '../helpers/turn';
  */
 
 type Ctx = import('@playwright/test').APIRequestContext;
+
+const isJoker = (code: string) => code.startsWith('JOKER');
 
 async function tableWithBots(request: Ctx, moduleId: string, seats = 2) {
   const res = await request.post(`${API_BASE}/auth/guest`, {
@@ -197,24 +199,43 @@ test.describe('a control refuses what it cannot send', () => {
     await handCards(page);
 
     // A turn starts with a draw; the drawn card lands selected on its own —
-    // exactly one, which is what discard takes.
+    // exactly one, which is what discard takes. Unless the deck dealt a
+    // joker, which Žolík never lets go as a discard: then the control is
+    // refusing for that reason instead, and says so. Either is correct, and
+    // which one happens is the shuffle's choice (about one draw in eight).
     await waitForOfferEnabled(page, 'offer-draw:deck');
     await page.getByTestId('offer-draw:deck').click();
     const discard = page.getByTestId('offer-discard');
+    await expect.poll(async () => (await selectedCodes(page)).length).toBe(1);
+    const [drawn] = await selectedCodes(page);
+    if (isJoker(drawn)) {
+      await expect(discard).toHaveAttribute('aria-disabled', 'true');
+      await expect(page.getByTestId('why-discard')).toHaveText(/^A joker can't be discarded\b/);
+    } else {
+      await expect(discard).not.toHaveAttribute('aria-disabled', 'true');
+      await expect(page.getByTestId('why-discard')).toHaveCount(0);
+    }
+
+    // The rest works on two cards chosen by code, so no joker can refuse the
+    // discard for its own reason and hide the one under test. Each is the
+    // only copy of its code in the hand, so tapping it by code is tapping
+    // that very card and never its twin from the other deck.
+    const codes = await handCodes(page);
+    const [keep, extra] = codes.filter(
+      (c) => !isJoker(c) && codes.indexOf(c) === codes.lastIndexOf(c),
+    );
+    expect(extra, `two single natural cards in ${codes.join(' ')}`).toBeTruthy();
+
+    await selectOnly(page, [keep]);
     await expect(discard).not.toHaveAttribute('aria-disabled', 'true');
     await expect(page.getByTestId('why-discard')).toHaveCount(0);
     const pressable = await paint(page, 'offer-discard');
     const handSize = (await serverHand(request, matchId, host)).length;
 
-    // The drawn card is picked *for* the player, not *by* them — touching a
-    // different card replaces it rather than joining it, so the drawn card
-    // they actually mean to keep has to be chosen first before a second one
-    // can be added to it.
-    const unselected = page.locator('[data-testid^="card-hand:"]:not([aria-selected="true"])');
-    await tapCard(page, unselected.first());
-    await expect(page.locator('[data-testid^="card-hand:"][aria-selected="true"]')).toHaveCount(1);
-    await tapCard(page, unselected.first());
-    await expect(page.locator('[data-testid^="card-hand:"][aria-selected="true"]')).toHaveCount(2);
+    await tapCard(page, cardByCode(page, extra));
+    await expect
+      .poll(async () => (await selectedCodes(page)).slice().sort())
+      .toEqual([keep, extra].sort());
 
     await expect(discard).toHaveAttribute('aria-disabled', 'true');
     await expect(page.getByTestId('why-discard')).toHaveText(/^Select just one card\b/);
@@ -247,7 +268,8 @@ test.describe('a control refuses what it cannot send', () => {
     expect(untouched.length).toBe(handSize);
 
     // Deselecting one brings it back.
-    await tapCard(page, page.locator('[data-testid^="card-hand:"][aria-selected="true"]').first());
+    await tapCard(page, cardByCode(page, extra));
+    await expect.poll(() => selectedCodes(page)).toEqual([keep]);
     await expect(discard).not.toHaveAttribute('aria-disabled', 'true');
     await expect(page.getByTestId('why-discard')).toHaveCount(0);
     expect((await paint(page, 'offer-discard')).fill, 'and it fills back in').toBe(pressable.fill);
@@ -255,7 +277,7 @@ test.describe('a control refuses what it cannot send', () => {
     // And it sends exactly the one card that stayed selected — never a
     // different, guessed one.
     const before = await serverHand(request, matchId, host);
-    const [stillSelected] = await selectedCodes(page);
+    const stillSelected = keep;
     await discard.click();
 
     await expect.poll(async () => (await serverHand(request, matchId, host)).length).toBe(
