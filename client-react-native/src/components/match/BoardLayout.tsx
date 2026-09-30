@@ -337,6 +337,18 @@ export function matchStyles(s: Skin) {
     paddingVertical: 3,
   },
   skinToggleText: { color: colors.muted, fontSize: 11, fontWeight: '700' },
+  // The table's join code in the navigation bar, for bringing people back to
+  // a dealt table. Drawn like the skin toggle, in the accent because it is a
+  // thing to press rather than a setting.
+  tableCode: {
+    marginLeft: 4,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  tableCodeText: { color: colors.accent, fontSize: 11, fontWeight: '700' },
   body: { paddingBottom: 40, gap: 4 },
   // The settlement and its record, grouped so the block a stopped table has to
   // put in front of the player can be measured as one. Spaced like the body,

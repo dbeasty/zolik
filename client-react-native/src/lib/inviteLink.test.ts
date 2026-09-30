@@ -5,6 +5,7 @@ import {
   guestUrlFor,
   INVITE_PATH,
   inviteUrlFor,
+  seatUrlFor,
 } from '@/src/lib/inviteLink';
 
 /**
@@ -152,5 +153,24 @@ describe('guestUrlFor', () => {
 
   it('reads the guest id back off the key', () => {
     expect(guestIdOfKey(KEY)).toBe('0123456789abcdef0123456789abcdef');
+  });
+});
+
+describe('seatUrlFor', () => {
+  const PATH = '/seat/6abc/s3cret';
+
+  it('puts the server\'s path on the page\'s own origin', () => {
+    expect(seatUrlFor({ path: PATH, url: `http://localhost:8090${PATH}` }, 'http://localhost:8114')).toBe(
+      `http://localhost:8114${PATH}`,
+    );
+    expect(seatUrlFor({ path: PATH, url: '' }, 'https://jokerless.com/')).toBe(`https://jokerless.com${PATH}`);
+  });
+
+  it('uses the server\'s link where there is no origin', () => {
+    expect(seatUrlFor({ path: PATH, url: `https://jokerless.com${PATH}` }, '')).toBe(`https://jokerless.com${PATH}`);
+  });
+
+  it('offers nothing without a path — the secret is in it', () => {
+    expect(seatUrlFor({ path: '', url: '' }, 'https://jokerless.com')).toBe('');
   });
 });
