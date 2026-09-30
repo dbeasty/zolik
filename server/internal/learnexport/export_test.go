@@ -531,7 +531,7 @@ func TestExportDoesNotPeek(t *testing.T) {
 			}
 			t.Fatalf("no seat %s", seat)
 		}},
-		{"canasta", 4, "classic", seedsFor(2, 6), func(t *testing.T, st map[string]any, seat string) {
+		{"canasta", 4, "classic", seedsFor(6, 12), func(t *testing.T, st map[string]any, seat string) {
 			stock := st["drawPile"].([]any)
 			hand := st["hands"].(map[string]any)[seat].([]any)
 			for i := 0; i < 3; i++ {

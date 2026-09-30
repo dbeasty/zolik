@@ -19,7 +19,7 @@ import (
 //	            TestEncodeDoesNotPeek pins it.
 //	Candidates  the moves on offer, built only from enabled offers, and never
 //	            one that can strand the seat. That second rule is what most of
-//	            this file is about — see openingSearch.
+//	            this file is about — see candidateOpenings.
 //	Reward      a deal's result, once, at the end of the deal.
 //
 // The layouts below are a contract with the trainer (ml/), which slices the
@@ -1022,7 +1022,7 @@ func (c candidateBuilder) openings(raw module.State, s *GameState, prefix []modu
 // openingsAfter are complete openings from a position, each prefixed with the
 // steps that reached it — a pile capture, or nothing.
 func (c candidateBuilder) openingsAfter(raw module.State, s *GameState, prefix []module.Action, kind, budget, max int) []learn.Candidate {
-	search := openingSearch{m: c.m, seat: c.seat, origin: c.s, budget: budget, max: max, seen: map[string]bool{}}
+	search := candidateOpenings{m: c.m, seat: c.seat, origin: c.s, budget: budget, max: max, seen: map[string]bool{}}
 	search.walk(raw, s, prefix, nil, 0)
 	out := make([]learn.Candidate, 0, len(search.plans))
 	for _, p := range search.plans {
@@ -1031,22 +1031,22 @@ func (c candidateBuilder) openingsAfter(raw module.State, s *GameState, prefix [
 	return out
 }
 
-// openingSearch finds whole openings by laying them.
+// candidateOpenings finds whole openings by laying them.
 //
-// This is opensTheAccount's discipline — never start an opening you have not
-// found the whole of — held more strictly than the heuristic can afford to.
-// opensTheAccount plans greedily, two melds at most, against the offer list,
-// and then trusts checkInitialMeld to accept the plan's first meld on the
-// strength of reachableValue's bound; that trust is where the wedge it guards
-// against gets back in. Here every step of a plan is put to the engine in
-// order, from the position the step before it left, and a plan counts only once
-// the engine has marked the side opened and a discard (or the deal's end) is
-// still to be had after it. The engine is the only judge of every step, and
-// the bound is never relied on for anything the search did not then go on to
-// do.
+// The same discipline as the heuristic's own opening search (opening.go) —
+// never start an opening you have not found the whole of, and let the engine,
+// not reachableValue's bound, judge every step. Every step of a plan is put to
+// the engine in order, from the position the step before it left, and a plan
+// counts only once the engine has marked the side opened and a discard (or the
+// deal's end) is still to be had after it.
 //
-// Depth-first, naturals before wilds and valuable before cheap — the order
-// opensTheAccount walks, for its reason: an opening that keeps the joker is the
+// It is kept separate from opening.go because the two answer different
+// questions. The bot needs one plan, and its first move; a network needs a
+// handful of plans at once, each offered as a whole candidate it can compare
+// with the others, so this one enumerates several and returns them all.
+//
+// Depth-first, naturals before wilds and valuable before cheap, for the
+// heuristic's reason: an opening that keeps the joker is the
 // better one. Orders that reach the same melds are walked once (seen), which is
 // what keeps three melds from costing six searches, and an order the engine
 // refuses part-way leaves the others to be tried — checkInitialMeld can accept
@@ -1056,7 +1056,7 @@ func (c candidateBuilder) openingsAfter(raw module.State, s *GameState, prefix [
 // can finish from, which is what a NetBot playing the plan a step at a time
 // relies on (learn.Candidate.Then): the rest of the plan is a smaller search
 // over the same steps. TestEveryCandidateApplies checks it at every step.
-type openingSearch struct {
+type candidateOpenings struct {
 	m      *Module
 	seat   string
 	origin *GameState
@@ -1078,7 +1078,7 @@ type openingStep struct {
 	wilds int
 }
 
-func (o *openingSearch) walk(raw module.State, s *GameState, path []module.Action, keys []string, depth int) {
+func (o *candidateOpenings) walk(raw module.State, s *GameState, path []module.Action, keys []string, depth int) {
 	for _, st := range openingSteps(s, o.seat) {
 		if o.budget <= 0 || len(o.plans) >= o.max {
 			return
