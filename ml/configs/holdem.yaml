@@ -30,6 +30,7 @@ ppo:
 train:
   rollout: 16384     # decisions per update
   total_updates: 2000  # the learning-rate schedule's horizon when --minutes is not given
+  lr_floor: 0.01       # the learning rate anneals linearly to this fraction of ppo.lr
   snapshot_every: 10   # updates between checkpoints joining the pool
   reset_every: 10      # updates between re-dealing table plans
 

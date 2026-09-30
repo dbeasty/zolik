@@ -121,6 +121,7 @@ class Trainer:
         total_updates = int(args.updates or tc["total_updates"])
         snapshot_every = int(tc["snapshot_every"])
         reset_every = int(tc["reset_every"])
+        lr_floor = float(tc.get("lr_floor", 0.01))
         deadline = time.time() + args.minutes * 60 if args.minutes else None
         start = time.time()
 
@@ -163,11 +164,13 @@ class Trainer:
             collect_s = time.time() - t0
             total_decisions += decisions
 
-            # Learning-rate annealing on whichever horizon comes first.
+            # Learning-rate annealing on whichever horizon comes first, down to
+            # train.lr_floor of the starting rate (a long run that anneals to
+            # nothing stops learning well before it stops).
             progress = update / total_updates
             if deadline:
                 progress = max(progress, (time.time() - start) / (args.minutes * 60))
-            lr = self.ppo.set_lr_fraction(1.0 - min(progress, 0.99))
+            lr = self.ppo.set_lr_fraction(max(1.0 - progress, lr_floor))
 
             t1 = time.time()
             batch = build_batch(self.tracker.harvest(), self.ppo.cfg.gamma, self.ppo.cfg.lam, self.ppo.cfg.reward_scale)
