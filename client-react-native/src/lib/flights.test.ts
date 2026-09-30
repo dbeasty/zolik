@@ -125,6 +125,30 @@ describe('planFlights', () => {
     expect(plan.flights[0]).toMatchObject({ fromId: seatElementId('b'), toId: 'zone-table:b', card: '8H' });
   });
 
+  it('flies a card played to a trick face up, from its player to their spot', () => {
+    const trick = (cards: { card: string; by: string }[]): Zone => ({
+      id: 'trick',
+      kind: 'spread',
+      shared: true,
+      arrange: 'bySeat',
+      count: cards.length,
+      cards,
+    });
+    const prev = board([trick([{ card: 'KH', by: 'b' }]), hand('hand:c', 'c', 10), hand('hand:me', ME, 10)]);
+    const next = board([
+      trick([
+        { card: 'KH', by: 'b' },
+        { card: 'AH', by: 'c' },
+      ]),
+      hand('hand:c', 'c', 9),
+      hand('hand:me', ME, 10),
+    ]);
+    const plan = planFlights(prev, next, ME);
+    expect(plan.flights).toHaveLength(1);
+    expect(plan.flights[0]).toMatchObject({ fromId: seatElementId('c'), toId: 'zone-trick-by-c', card: 'AH' });
+    expect(plan.holds.get('zone-trick')).toBe(FLIGHT_HOLD_MS);
+  });
+
   it('plans nothing across a fresh deal', () => {
     const prev = board([stack('supply', 3), hand('hand:me', ME, 0), hand('hand:b', 'b', 0)]);
     const next = board([stack('supply', 78), hand('hand:me', ME, 13), hand('hand:b', 'b', 13)]);

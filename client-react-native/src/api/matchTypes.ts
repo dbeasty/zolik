@@ -41,7 +41,17 @@ export type MoveLine = {
  * Hiding is still done the one way it always was, by not sending the card at
  * all; a module sets this only where the value is already public or spent.
  */
-export type CardView = { card: string; badgeKeys?: string[]; faceDown?: boolean };
+export type CardView = {
+  card: string;
+  badgeKeys?: string[];
+  faceDown?: boolean;
+  /**
+   * The seat (player id) that put this card here — in a trick, who played
+   * it. What a zone arranged `bySeat` places each card by; see
+   * {@link Zone.arrange}.
+   */
+  by?: string;
+};
 
 /** Cards within a zone that belong together — a meld, a trick, a board. */
 export type Group = {
@@ -111,7 +121,17 @@ export type Zone = {
    * in the row of players' spreads. Laid out by `kind` either way.
    */
   shared?: boolean;
+  /**
+   * A shape to lay the cards out in. `bySeat` puts each card toward the seat
+   * its `by` names, as a trick lies on a real table: the viewer's card
+   * nearest them, the rest at the seats they came from. Names a shape, never
+   * a game — see `TrickArea`. Unknown values are ignored and the zone is
+   * drawn by its kind.
+   */
+  arrange?: ZoneArrange;
 };
+
+export type ZoneArrange = 'bySeat';
 
 /** One player as the board shows them: whose turn, and their own numbers. */
 export type Seat = {
@@ -402,11 +422,22 @@ export type MatchPlayer = {
   avatar?: string;
 };
 
+/**
+ * The pack a game is dealt from, when it is not the French one: `german` is
+ * the German-suited 32 (mariášky) — hearts, bells, acorns and leaves, with a
+ * spodek and a svršek where the French pack has a jack and a queen. The card
+ * codes are the same; only how they are drawn and named changes. See
+ * `src/lib/deck.ts`.
+ */
+export type CardDeck = 'german';
+
 export type MatchState = {
   type: 'match_state';
   matchId: string;
   moduleId: string;
   variation?: string;
+  /** The module's pack, absent for the French one. */
+  deck?: CardDeck;
   status: 'lobby' | 'active' | 'completed' | 'suspended' | string;
   /** What the lobby chose, echoed back — enough to set the same table again. */
   options?: Record<string, number>;
@@ -717,6 +748,8 @@ export type Replay = {
   matchId: string;
   moduleId: string;
   variation?: string;
+  /** The module's pack, as on `MatchState`. */
+  deck?: CardDeck;
   options?: Record<string, number>;
   players: MatchPlayer[];
   viewerId?: string;

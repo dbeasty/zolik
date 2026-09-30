@@ -20,8 +20,13 @@ type MatchStateMsg struct {
 	MatchID   string `json:"matchId"`
 	ModuleID  string `json:"moduleId"`
 	Variation string `json:"variation,omitempty"`
-	Status    string `json:"status"`
-	JoinCode  string `json:"joinCode,omitempty"`
+	// Deck is the module's pack, when it is not the French one — see
+	// module.ModuleDescriptor.Deck. On every frame rather than only in
+	// /modules, so a match screen, a replay and a reconnect all draw the
+	// cards the same way without a second request.
+	Deck     string `json:"deck,omitempty"`
+	Status   string `json:"status"`
+	JoinCode string `json:"joinCode,omitempty"`
 	// InviteURL is the join code as something a host can send to somebody:
 	// a link that opens the client and seats whoever follows it.
 	//
@@ -192,6 +197,9 @@ func (m *Manager) projectStateMsg(match models.Match, viewerID string, o stateMs
 	}
 
 	mod := m.registry.Get(match.ModuleID)
+	if mod != nil {
+		msg.Deck = mod.Descriptor().Deck
+	}
 	// Sides are a lobby fact. Once the match is dealt the board carries the
 	// partnerships itself — per seat, in the ViewModel — and repeating them here
 	// would be a second copy to keep honest.

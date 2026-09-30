@@ -4,12 +4,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { CardBack } from '@/src/components/CardBack';
 import { DeluxeFace } from '@/src/components/cards/DeluxeFace';
+import { GermanFace } from '@/src/components/cards/GermanFace';
+import { GermanSuit, germanInk } from '@/src/components/cards/GermanSuit';
 import { Suit } from '@/src/components/cards/Suit';
 import { VectorFace } from '@/src/components/cards/VectorFace';
 import { PRINTED } from '@/src/cards/vector/faces';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
 import { parseCard } from '@/src/lib/cards';
+import { germanIndex, useDeck } from '@/src/lib/deck';
 import { isCourt } from '@/src/lib/pips';
 import { CARD_BORDER, INDEX_PADDING, type CardMetrics } from '@/src/lib/layout';
 import type { Skin } from '@/src/skins/types';
@@ -306,6 +309,7 @@ export function CardView({
 }: Props) {
   const metrics = useMetrics();
   const skin = useSkin();
+  const deck = useDeck();
   const d = parseCard(card);
   // Recomputed only when the card's own size or the skin changes — every
   // other render of a card reuses the same style objects.
@@ -359,10 +363,53 @@ export function CardView({
   // The gradient wash is the resting face only: a selected or joker card
   // shows its own solid fill, and painting the wash over it would hide the
   // one thing those fills are for.
+  /**
+   * A German-suited table (`src/lib/deck.ts`) draws the same codes from the
+   * German pack. Every skin's face style has a German counterpart: the plain
+   * index for `plain`, the full printed face for the other three, and the
+   * corner for a stacked card — so a skin still chooses *how much* of a card
+   * is drawn, and the deck chooses *which* card that is.
+   */
+  const german = deck === 'german' && !d.isJoker;
+  const germanFull = german && !stacked && !plain;
   const washed =
-    (rich || deluxe || vector) && !!skin.card.faceGradient && !selected && !d.isJoker;
+    (rich || deluxe || vector || germanFull) && !!skin.card.faceGradient && !selected && !d.isJoker;
+  const germanLabel = german ? germanIndex(d.rank) : '';
+  const germanColor = german ? germanInk(d.suit, skin.card.red) : '';
 
-  const face = vector ? (
+  const face = german ? (
+    stacked ? (
+      <View style={styles.corner}>
+        <Text style={[styles.rank, { color: germanColor }]}>{germanLabel}</Text>
+        <GermanSuit suit={d.suit} size={metrics.card.suitInlineFont} red={skin.card.red} />
+      </View>
+    ) : plain ? (
+      <View style={styles.plainIndex}>
+        <Text
+          style={[
+            styles.indexRank,
+            { color: germanColor },
+            // "Sv" is two letters where the index is sized for one; "10" is
+            // what it was sized for, so it keeps the full size.
+            germanLabel.length > 1 &&
+              d.rank !== '10' && { fontSize: Math.round(metrics.card.indexFont * 0.78) },
+          ]}
+        >
+          {germanLabel}
+        </Text>
+        <GermanSuit suit={d.suit} size={metrics.card.indexSuitFont} red={skin.card.red} />
+      </View>
+    ) : (
+      <GermanFace
+        card={d}
+        width={(compact ? metrics.card.compactWidth : metrics.card.width) - 2 * BORDER}
+        height={(compact ? metrics.card.compactHeight : metrics.card.height) - 2 * BORDER}
+        ink={skin.card.ink}
+        red={skin.card.red}
+        stock={selected ? skin.card.selectedFace : skin.colors.cardBg}
+      />
+    )
+  ) : vector ? (
     <VectorFace
       card={d}
       width={(compact ? metrics.card.compactWidth : metrics.card.width) - 2 * BORDER}
@@ -492,7 +539,7 @@ export function CardView({
       <View
         style={[
           styles.card,
-          (rich || deluxe) && styles.cardRich,
+          (rich || deluxe || germanFull) && styles.cardRich,
           plain && styles.cardPlain,
           skin.card.shadow && styles.cardShadow,
           // Not on a selected card: its solid selection border must win, and

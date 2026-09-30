@@ -6,11 +6,13 @@ import { Dealer } from '@/src/components/match/Dealer';
 import { Panel } from '@/src/components/match/Panel';
 import { RecentMoves } from '@/src/components/match/RecentMoves';
 import { SeatStrip } from '@/src/components/match/SeatStrip';
+import { SeatArrangedZone } from '@/src/components/match/SeatArrangedZone';
 import { ZoneView } from '@/src/components/match/ZoneView';
 import type { Measurable } from '@/src/hooks/useDropRegistry';
 import type { ChangeMarks } from '@/src/lib/changes';
 import { drawableZones, isSpreadRowZone, isTableZone, sitsBeside } from '@/src/lib/board';
 import { t } from '@/src/lib/i18n';
+import { isSeatArranged } from '@/src/lib/seatArrangement';
 import { factText, label, playerName } from '@/src/lib/labels';
 import type { Skin } from '@/src/skins/types';
 
@@ -120,7 +122,13 @@ export function BoardLayout({
   // melds because it is nobody's: the row below answers "what has each player
   // laid down?", and the community cards are not an answer to that question,
   // they are half of every player's hand.
-  const tableZones = visible.filter(isTableZone);
+  const onTable = visible.filter(isTableZone);
+  // A trick is drawn as the table it lies on, not as a row of cards: see
+  // `SeatArrangedZone`. Picked out by the shape the module asked for, never by what
+  // the zone is called.
+  const arranged = onTable.filter(isSeatArranged);
+  const tableZones = onTable.filter((z) => !isSeatArranged(z));
+  const seatIds = (view.seats ?? []).map((s) => s.playerId);
   // Whatever is left: an opponent zone that is not a spread — a hand revealed
   // at a showdown, or every hand at once in an open replay — or a kind this
   // shell has never seen. The fallback that keeps a game it was not written
@@ -171,8 +179,20 @@ export function BoardLayout({
 
       {/* The piles and stacks everyone draws from and discards to, and the
           cards everyone plays against, directly above the hand and buttons. */}
-      {tableZones.length > 0 ? (
+      {tableZones.length > 0 || arranged.length > 0 ? (
         <View {...tableAnchor}>
+          {arranged.map((z) => (
+            <SeatArrangedZone
+              key={z.id}
+              zone={z}
+              seatIds={seatIds}
+              players={state.players}
+              viewerId={viewerId}
+              registerDrop={drops.registerDrop}
+              entranceDelays={drops.entranceDelays}
+              {...zonePanelProps(z.id)}
+            />
+          ))}
           <Section
             title={t('match.table')}
             zones={tableZones}
