@@ -1217,6 +1217,8 @@ export const sk: Record<string, string> = {
   'stats.split.games': 'Podľa hry',
   'stats.split.tableSize': 'Podľa veľkosti stola',
   'stats.split.bots': 'Proti botom',
+  'stats.col.played': 'Hry',
+  'stats.col.won': 'Výhry',
   'stats.col.player': 'Hráč',
   'stats.col.winPct': '% výh.',
   'stats.col.finish': 'Miesto',

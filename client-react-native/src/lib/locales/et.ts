@@ -1221,6 +1221,8 @@ export const et: Record<string, string> = {
   'stats.split.games': 'Mängude kaupa',
   'stats.split.tableSize': 'Laua suuruse järgi',
   'stats.split.bots': 'Robotite vastu',
+  'stats.col.played': 'Mäng.',
+  'stats.col.won': 'Võidud',
   'stats.col.player': 'Mängija',
   'stats.col.winPct': 'Võit %',
   'stats.col.finish': 'Koht',

@@ -1225,6 +1225,11 @@ export const en: Record<string, string> = {
   'stats.split.tableSize': 'By table size',
   'stats.split.bots': 'Against bots',
   // Column headings, kept short: they sit over narrow numeric columns.
+  // The two count columns get their own, shorter words than the tiles'
+  // record.played / record.won: a heading wider than its 52px column
+  // breaks mid-word, so these may be abbreviated.
+  'stats.col.played': 'Played',
+  'stats.col.won': 'Won',
   'stats.col.player': 'Player',
   'stats.col.winPct': 'Win %',
   'stats.col.finish': 'Finish',

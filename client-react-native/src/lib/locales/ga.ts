@@ -1251,6 +1251,8 @@ export const ga: Record<string, string> = {
   'stats.split.games': 'De réir cluiche',
   'stats.split.tableSize': 'De réir méid boird',
   'stats.split.bots': 'In aghaidh botanna',
+  'stats.col.played': 'Cluichí',
+  'stats.col.won': 'Buaite',
   'stats.col.player': 'Imreoir',
   'stats.col.winPct': 'Bua %',
   'stats.col.finish': 'Áit',

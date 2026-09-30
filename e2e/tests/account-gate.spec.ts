@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { loginAsFreshGuest } from '../helpers/login';
+import { loginAsFreshGuest, seedIntroSeen } from '../helpers/login';
 
 /**
  * The score table and the stats screen are kept against an account, so they
@@ -46,6 +46,8 @@ test.describe('the score table and stats need an account', () => {
 
   test('a registered account is let through to both', async ({ page }) => {
     const username = `e2e-gateok-${suffix()}`;
+    // Registering lands on the menu, which sends a first visit to the intro.
+    await seedIntroSeen(page);
 
     // Registered through the UI rather than seeded, because the thing under
     // test is exactly the `isGuest` flag the real sign-in path produces.

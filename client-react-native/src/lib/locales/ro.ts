@@ -1227,6 +1227,8 @@ export const ro: Record<string, string> = {
   'stats.split.games': 'După joc',
   'stats.split.tableSize': 'După mărimea mesei',
   'stats.split.bots': 'Împotriva boților',
+  'stats.col.played': 'Jocuri',
+  'stats.col.won': 'Câșt.',
   'stats.col.player': 'Jucător',
   'stats.col.winPct': '% vic.',
   'stats.col.finish': 'Loc',

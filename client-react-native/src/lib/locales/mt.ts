@@ -1235,6 +1235,8 @@ export const mt: Record<string, string> = {
   'stats.split.games': 'Skont il-logħba',
   'stats.split.tableSize': 'Skont id-daqs tat-tavla',
   'stats.split.bots': 'Kontra bots',
+  'stats.col.played': 'Logħob',
+  'stats.col.won': 'Rebħin',
   'stats.col.player': 'Plejer',
   'stats.col.winPct': 'Rebħ %',
   'stats.col.finish': 'Pożiz.',

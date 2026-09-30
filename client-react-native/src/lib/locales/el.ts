@@ -1248,6 +1248,8 @@ export const el: Record<string, string> = {
   'stats.split.games': 'Ανά παιχνίδι',
   'stats.split.tableSize': 'Ανά μέγεθος τραπεζιού',
   'stats.split.bots': 'Κατά bots',
+  'stats.col.played': 'Αγών.',
+  'stats.col.won': 'Νίκες',
   'stats.col.player': 'Παίκτης',
   'stats.col.winPct': 'Νίκες %',
   'stats.col.finish': 'Θέση',

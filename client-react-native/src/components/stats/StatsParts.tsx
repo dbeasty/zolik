@@ -116,10 +116,10 @@ export function SplitTable({
         {/* The label column has no heading of its own — what the rows are is
             said by the section title above the table. */}
         <View style={styles.cellLabel} />
-        <Text style={[styles.cellNum, styles.headText]}>{t('record.played')}</Text>
-        <Text style={[styles.cellNum, styles.headText]}>{t('record.won')}</Text>
-        <Text style={[styles.cellNum, styles.headText]}>{t('stats.col.winPct')}</Text>
-        <Text style={[styles.cellNum, styles.headText]}>{t('stats.col.finish')}</Text>
+        <Text style={[styles.cellNum, styles.headText]} numberOfLines={1}>{t('stats.col.played')}</Text>
+        <Text style={[styles.cellNum, styles.headText]} numberOfLines={1}>{t('stats.col.won')}</Text>
+        <Text style={[styles.cellNum, styles.headText]} numberOfLines={1}>{t('stats.col.winPct')}</Text>
+        <Text style={[styles.cellNum, styles.headText]} numberOfLines={1}>{t('stats.col.finish')}</Text>
       </View>
       {rows.map((r) => (
         <View key={r.key} style={styles.row} testID={`split-row-${r.key}`}>

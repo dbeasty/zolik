@@ -1219,6 +1219,8 @@ export const lt: Record<string, string> = {
   'stats.split.games': 'Pagal žaidimą',
   'stats.split.tableSize': 'Pagal stalo dydį',
   'stats.split.bots': 'Prieš botus',
+  'stats.col.played': 'Part.',
+  'stats.col.won': 'Laim.',
   'stats.col.player': 'Žaidėjas',
   'stats.col.winPct': 'Perg. %',
   'stats.col.finish': 'Vieta',

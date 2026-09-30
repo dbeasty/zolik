@@ -1212,6 +1212,8 @@ export const sl: Record<string, string> = {
   'stats.split.games': 'Po igri',
   'stats.split.tableSize': 'Po velikosti mize',
   'stats.split.bots': 'Proti botom',
+  'stats.col.played': 'Igre',
+  'stats.col.won': 'Zmage',
   'stats.col.player': 'Igralec',
   'stats.col.winPct': '% zmag',
   'stats.col.finish': 'Mesto',

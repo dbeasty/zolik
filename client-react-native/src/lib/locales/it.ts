@@ -1228,6 +1228,8 @@ export const it: Record<string, string> = {
   'stats.split.games': 'Per gioco',
   'stats.split.tableSize': 'Per dimensione del tavolo',
   'stats.split.bots': 'Contro i bot',
+  'stats.col.played': 'Giocate',
+  'stats.col.won': 'Vinte',
   'stats.col.player': 'Giocatore',
   'stats.col.winPct': 'Vitt. %',
   'stats.col.finish': 'Piazz.',

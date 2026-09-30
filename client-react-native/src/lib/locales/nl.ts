@@ -1234,6 +1234,8 @@ export const nl: Record<string, string> = {
   'stats.split.games': 'Per spel',
   'stats.split.tableSize': 'Per tafelgrootte',
   'stats.split.bots': 'Tegen bots',
+  'stats.col.played': 'Gesp.',
+  'stats.col.won': 'Gew.',
   'stats.col.player': 'Speler',
   'stats.col.winPct': 'Winst %',
   'stats.col.finish': 'Plek',

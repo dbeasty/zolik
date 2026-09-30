@@ -24,9 +24,9 @@ export function LeaderboardTable({
       <View style={styles.row}>
         <Text style={[styles.rank, styles.head]}>#</Text>
         <Text style={[styles.name, styles.head]}>{t('stats.col.player')}</Text>
-        <Text style={[styles.num, styles.head]}>{t('record.played')}</Text>
-        <Text style={[styles.num, styles.head]}>{t('record.won')}</Text>
-        <Text style={[styles.num, styles.head]}>{t('stats.col.winPct')}</Text>
+        <Text style={[styles.num, styles.head]} numberOfLines={1}>{t('stats.col.played')}</Text>
+        <Text style={[styles.num, styles.head]} numberOfLines={1}>{t('stats.col.won')}</Text>
+        <Text style={[styles.num, styles.head]} numberOfLines={1}>{t('stats.col.winPct')}</Text>
       </View>
       {entries.map((e) => {
         const you = !!youId && e.subject.kind === 'user' && e.subject.id === youId;

@@ -1214,6 +1214,8 @@ export const sv: Record<string, string> = {
   'stats.split.games': 'Per spel',
   'stats.split.tableSize': 'Per bordsstorlek',
   'stats.split.bots': 'Mot botar',
+  'stats.col.played': 'Spelade',
+  'stats.col.won': 'Vunna',
   'stats.col.player': 'Spelare',
   'stats.col.winPct': 'Vinst %',
   'stats.col.finish': 'Plac.',

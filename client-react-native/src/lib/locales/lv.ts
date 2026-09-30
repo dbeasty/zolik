@@ -1217,6 +1217,8 @@ export const lv: Record<string, string> = {
   'stats.split.games': 'Pēc spēles',
   'stats.split.tableSize': 'Pēc galda izmēra',
   'stats.split.bots': 'Pret botiem',
+  'stats.col.played': 'Spēles',
+  'stats.col.won': 'Uzv.',
   'stats.col.player': 'Spēlētājs',
   'stats.col.winPct': 'Uzv. %',
   'stats.col.finish': 'Vieta',

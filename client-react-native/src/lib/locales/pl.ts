@@ -1223,6 +1223,8 @@ export const pl: Record<string, string> = {
   'stats.split.games': 'Wg gry',
   'stats.split.tableSize': 'Wg wielkości stołu',
   'stats.split.bots': 'Przeciwko botom',
+  'stats.col.played': 'Gry',
+  'stats.col.won': 'Wygr.',
   'stats.col.player': 'Gracz',
   'stats.col.winPct': 'Wygr. %',
   'stats.col.finish': 'Miejsce',
