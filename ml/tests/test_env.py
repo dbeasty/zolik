@@ -10,18 +10,22 @@ from zolik_ml.ppo import Step, Tracker
 
 pytestmark = pytest.mark.skipif(shutil.which("go") is None, reason="needs go")
 
-DIMS = {"holdem": (295, 14), "canasta": (383, 40)}
+DIMS = {"holdem": (295, 14), "canasta": (383, 40), "zolik": (630, 52)}
 PLANS = {
     "holdem": [["learner", "station"], ["learner", "learner", "maniac"], ["learner"] * 6, ["hard", "learner", "rock", "riverbluffer"]],
     "canasta": [["learner", "hard"], ["learner", "medium", "learner", "easy"], ["learner", "hard", "hard", "hard"]],
+    "zolik": [["learner", "hard"], ["learner", "medium", "learner"], ["easy", "learner", "hard", "learner"]],
 }
 
 
-@pytest.mark.parametrize("game", ["holdem", "canasta"])
-def test_reset_and_50_steps(game):
+@pytest.mark.parametrize(
+    "game,variation",
+    [("holdem", ""), ("canasta", ""), ("zolik", "zolik_classic"), ("zolik", "zolik_classic+floor35")],
+)
+def test_reset_and_50_steps(game, variation):
     rng = np.random.default_rng(0)
     tracker = Tracker()
-    with VecEnv(2, game, budget=50_000) as venv:
+    with VecEnv(2, game, variation, budget=50_000) as venv:
         assert venv.envs[0].info() == DIMS[game]
         plans = PLANS[game]
         obs = venv.reset([plans, plans], [11, 500])

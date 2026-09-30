@@ -2,6 +2,7 @@
 
     uv run python train.py --game holdem --run holdem-1 --minutes 60
     uv run python train.py --game canasta --run canasta-1 --minutes 600 --set env.envs=12
+    uv run python train.py --game zolik --run zolik-1 --minutes 30
 
 Writes runs/<name>/: TensorBoard logs (tb/), metrics.jsonl (one line per
 update), ckpt/<update>.bin snapshots (also the league's checkpoint pool),
@@ -27,7 +28,7 @@ import yaml
 
 from zolik_ml import export
 from zolik_ml.env import HELD_OUT_SEED, GameEnv, binary
-from zolik_ml.league import League
+from zolik_ml.league import League, assign_variations
 from zolik_ml.model import from_config
 from zolik_ml.ppo import PPO, PPOConfig, Step, Tracker, build_batch
 
@@ -66,10 +67,7 @@ class Trainer:
         self.n_envs = int(ec["envs"])
         self.n_tables = int(ec["tables"])
         exe = binary("gameenv")
-        lg = cfg["league"]
-        self.variations = [
-            "samba" if lg.get("samba") and i % 2 == 1 else cfg.get("variation", "") for i in range(self.n_envs)
-        ]
+        self.variations = assign_variations(cfg, self.n_envs)
         self.envs = [
             GameEnv(self.game, v, int(ec.get("budget", 50_000)), exe, ec.get("procs"), ec.get("gogc")) for v in self.variations
         ]
@@ -287,7 +285,7 @@ class Trainer:
 
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--game", required=True, choices=["holdem", "canasta"])
+    ap.add_argument("--game", required=True, choices=["holdem", "canasta", "zolik"])
     ap.add_argument("--config", type=Path, help="defaults to configs/<game>.yaml")
     ap.add_argument("--run", required=True, help="run name; output goes to runs/<name>/")
     ap.add_argument("--minutes", type=float, help="stop after this much wall time")

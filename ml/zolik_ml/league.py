@@ -22,6 +22,12 @@ play with a partner it does not control.
 A variation can have its own seat counts (``variations: {samba: {2: .., 6: ..}}``),
 which is how Canasta keeps Samba behind a flag: train.py gives some env
 processes the Samba variation only when ``league.samba`` is set.
+
+A game whose rulesets are all worth training on names them in
+``league.variation_mix`` ({variation: weight}); ``assign_variations`` then
+splits the env processes between them in proportion (Žolíky: mostly
+``zolik_classic``, some ``zolik_classic+floor35``). Every table in one process
+plays that process's variation.
 """
 
 from __future__ import annotations
@@ -31,6 +37,39 @@ from dataclasses import dataclass
 from pathlib import Path
 
 LEARNER = "learner"
+
+
+def assign_variations(cfg: dict, n_envs: int) -> list[str]:
+    """The variation each env process plays.
+
+    ``league.variation_mix`` splits the processes in proportion to its weights
+    (largest remainder, every named variation with weight > 0 gets at least one
+    process when there are enough). Without it, every process plays the config's
+    ``variation``, except that ``league.samba`` gives every other one Samba.
+    """
+    lg = cfg.get("league", {})
+    mix = {k: float(v) for k, v in (lg.get("variation_mix") or {}).items() if float(v) > 0}
+    if not mix:
+        return ["samba" if lg.get("samba") and i % 2 == 1 else cfg.get("variation", "") for i in range(n_envs)]
+    total = sum(mix.values())
+    exact = {k: n_envs * w / total for k, w in mix.items()}
+    counts = {k: int(x) for k, x in exact.items()}
+    if n_envs >= len(mix):
+        for k in counts:
+            if counts[k] == 0:
+                counts[k] = 1
+    while sum(counts.values()) > n_envs:
+        k = max(counts, key=lambda k: counts[k] - exact[k])
+        counts[k] -= 1
+    while sum(counts.values()) < n_envs:
+        k = max(counts, key=lambda k: exact[k] - counts[k])
+        counts[k] += 1
+    out: list[str] = []
+    for k, n in counts.items():
+        out += [k] * n
+    # Interleave so a prefix of the processes still sees every variation.
+    order = sorted(range(n_envs), key=lambda i: (out[:i].count(out[i]) / max(counts[out[i]], 1), i))
+    return [out[i] for i in order]
 
 
 @dataclass

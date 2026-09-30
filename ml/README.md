@@ -11,7 +11,7 @@ that `server/internal/learn/mlp.go` loads.
 ml/
   train.py            PPO training loop (TensorBoard, checkpoints, final.bin)
   eval.py             held-out duplicate bench against the hand-written bots
-  configs/            holdem.yaml, canasta.yaml — network sizes, env, PPO, league
+  configs/            holdem.yaml, canasta.yaml, zolik.yaml — network sizes, env, PPO, league
   zolik_ml/env.py     gameenv client: JSON lines, candidate padding, VecEnv
   zolik_ml/model.py   the policy, layer for layer what mlp.go runs
   zolik_ml/export.py  ZLNET1 writer and loader
@@ -39,6 +39,7 @@ The first `train.py`/`eval.py`/test run builds `gameenv` and `gamebench` into
 ```sh
 uv run python train.py --game holdem  --run holdem-1  --minutes 60
 uv run python train.py --game canasta --run canasta-1 --minutes 600
+uv run python train.py --game zolik   --run zolik-1   --minutes 30
 uv run tensorboard --logdir runs
 ```
 
@@ -76,7 +77,10 @@ How it works, briefly:
   `league.blend`, with seat counts from `league.seats`. Canasta at four seats
   partners the learner with another learner seat or with `league.partner_bot`.
   Samba is off unless `league.samba: true` (every other process then plays
-  Samba with `league.variations.samba` seat counts). Table plans are re-dealt
+  Samba with `league.variations.samba` seat counts). Žolíky names its
+  rulesets in `league.variation_mix` instead, and the env processes are split
+  between them in proportion (default 6 classic : 2 floor35 of 8; Continental
+  is left out while the Hard heuristic wedges there). Table plans are re-dealt
   every `train.reset_every` updates, staggered across processes.
 - Training seeds are always below 1,000,000; evaluation starts there.
 
@@ -85,6 +89,7 @@ How it works, briefly:
 ```sh
 uv run python eval.py --game holdem --model runs/holdem-1/final.bin --opponents station,maniac,hard --seeds 500
 uv run python eval.py --game canasta --model runs/canasta-1/final.bin --opponents hard --seeds 100 --seats 2
+uv run python eval.py --game zolik --model runs/zolik-1/final.bin --opponents hard --seeds 300 --variation zolik_classic+floor35
 ```
 
 This is `server/cmd/gamebench -a net:<model>@<temp> -b <opp> -first 1000000`:
@@ -92,7 +97,8 @@ the duplicate bench, every seed played twice with the seats swapped, on seeds
 training never dealt. Temperature defaults to 0 (always the favourite move).
 "ahead"/"behind" means more than two standard errors either way; any illegal
 move or stall exits non-zero. Units are the game's own — big blinds per match
-for Hold'em (15-hand matches, 50 BB stacks), points per match for Canasta.
+for Hold'em (15-hand matches, 50 BB stacks), points per match for Canasta,
+penalty points per match for Žolíky (positive: the model took fewer).
 
 ## Parity with the server
 

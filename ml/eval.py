@@ -6,8 +6,9 @@ Wraps server/cmd/gamebench (the duplicate bench: every seed played twice with
 the seats swapped) with ``-a net:<model>@<temp> -first 1000000``. Training
 only ever deals seeds below 1,000,000, so these are hands the model has not
 seen. The unit is the game's own: big blinds per match for Hold'em, points per
-match for Canasta. Temperature 0 plays the model's favourite move, as the
-server's hard bot would.
+match for Canasta, and for Žolíky penalty points per match (positive: the
+model took fewer than its opponent). Temperature 0 plays the model's favourite
+move, as the server's hard bot would.
 """
 
 from __future__ import annotations
@@ -61,12 +62,12 @@ def bench(game: str, model: Path, opp: str, seeds: int, seats: int, temp: float,
 
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--game", required=True, choices=["holdem", "canasta"])
+    ap.add_argument("--game", required=True, choices=["holdem", "canasta", "zolik"])
     ap.add_argument("--model", required=True, type=Path)
     ap.add_argument("--opponents", help="comma-separated; defaults to the config's eval.opponents")
     ap.add_argument("--seeds", type=int)
     ap.add_argument("--seats", type=int)
-    ap.add_argument("--variation", default="")
+    ap.add_argument("--variation", help="defaults to the config's eval.variation, else the game's default")
     ap.add_argument("--temp", type=float, default=0.0)
     ap.add_argument("--config", type=Path)
     args = ap.parse_args(argv)
@@ -75,13 +76,14 @@ def main(argv=None) -> None:
     opps = args.opponents.split(",") if args.opponents else cfg.get("opponents", ["hard"])
     seeds = args.seeds or cfg.get("seeds", 200)
     seats = args.seats or cfg.get("seats", 2)
-    unit = "BB/match" if args.game == "holdem" else "points/match"
+    variation = args.variation if args.variation is not None else cfg.get("variation", "")
+    unit = {"holdem": "BB/match", "zolik": "penalty/match"}.get(args.game, "points/match")
 
-    print(f"{args.model} at temperature {args.temp:g}, {seats} seats, {seeds} held-out seeds from {HELD_OUT_SEED} (x2 seatings)")
+    print(f"{args.model} at temperature {args.temp:g}, {seats} seats{', ' + variation if variation else ''}, {seeds} held-out seeds from {HELD_OUT_SEED} (x2 seatings)")
     print(f"{'opponent':<14} {unit:>14} {'± se':>8}  {'verdict':<10} {'illegal':>7} {'stalls':>6} {'secs':>6}")
     bad = False
     for opp in opps:
-        r = bench(args.game, args.model, opp, seeds, seats, args.temp, args.variation)
+        r = bench(args.game, args.model, opp, seeds, seats, args.temp, variation)
         verdict = ("ahead" if r["mean"] > 0 else "behind") if r["significant"] else "even"
         print(f"{opp:<14} {r['mean']:>+14.2f} {r['se']:>8.2f}  {verdict:<10} {r['illegal']:>7} {r['stalls']:>6} {r['seconds']:>6}", flush=True)
         bad |= r["illegal"] + r["stalls"] > 0
