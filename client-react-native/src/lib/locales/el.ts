@@ -316,6 +316,13 @@ export const el: Record<string, string> = {
 
   'zolik.round.deal': 'Μοιρασιά',
   'zolik.round.cleanRun': 'Μία κέντα πρέπει να είναι χωρίς μπαλαντέρ',
+  'zolik.line.wentOut': 'Κλείσιμο',
+  'zolik.line.inHand': 'Φύλλα που έμειναν στο χέρι: {n}',
+  'zolik.line.handJokers': 'Μπαλαντέρ × {n} ({each} ο καθένας)',
+  'zolik.line.handAces': 'Άσοι × {n} ({each} ο καθένας)',
+  'zolik.line.handAcesLow': 'Άσοι που μετράνε ένα × {n} ({each} ο καθένας)',
+  'zolik.line.handFaces': 'Δεκάρια και φιγούρες × {n} ({each} το καθένα)',
+  'zolik.line.handPips': 'Φύλλα 2–9 × {n}',
   'canasta.round.deal': 'Μοιρασιά',
   'canasta.round.concealed': 'Βγήκε κρυφά',
   'canasta.round.exhausted': 'Η τράπουλα τελείωσε',
@@ -1303,6 +1310,9 @@ export const el: Record<string, string> = {
   'zone.dropHere': 'Άφησέ το εδώ',
   'offer.pickCards': 'διάλεξε φύλλα για το σημείο που άγγιξες',
   'offer.ambiguous': 'αυτό μπορεί να πάει σε περισσότερα από ένα σημεία — διάλεξε στο τραπέζι',
+  'offer.whichOne': 'ποια;',
+  'seats.scrollLeft': 'Προηγούμενες θέσεις',
+  'seats.scrollRight': 'Περισσότερες θέσεις',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'εφαρμογή',
@@ -1695,6 +1705,7 @@ export const el: Record<string, string> = {
   'zolik.move.laidOff': '{player}: πρόσθεσε {cards} στον συνδυασμό του/της {owner}',
   'zolik.move.swappedJoker': '{player}: αντάλλαξε έναν τζόκερ με το {card}',
   'zolik.move.discarded': '{player}: πέταξε το {card}',
+  'zolik.move.wentOut': '{player}: βγήκε πετώντας το {card}',
   'zolik.move.undid': '{player}: πήρε πίσω μια κίνηση',
   'canasta.move.drewStock': '{player}: τράβηξε από την τράπουλα',
   'canasta.move.melded': '{player}: κατέβασε {cards}',

@@ -308,6 +308,13 @@ export const pt: Record<string, string> = {
 
   'zolik.round.deal': 'Ronda',
   'zolik.round.cleanRun': 'Uma sequência tem de ser sem joker',
+  'zolik.line.wentOut': 'Batida',
+  'zolik.line.inHand': 'Cartas que ficaram na mão: {n}',
+  'zolik.line.handJokers': 'Jokers × {n} ({each} cada)',
+  'zolik.line.handAces': 'Ases × {n} ({each} cada)',
+  'zolik.line.handAcesLow': 'Ases que contam um × {n} ({each} cada)',
+  'zolik.line.handFaces': 'Dezes e figuras × {n} ({each} cada)',
+  'zolik.line.handPips': 'Cartas do 2 ao 9 × {n}',
   'canasta.round.deal': 'Ronda',
   'canasta.round.concealed': 'Saiu de mão fechada',
   'canasta.round.exhausted': 'O baralho acabou',
@@ -1284,6 +1291,9 @@ export const pt: Record<string, string> = {
   'zone.dropHere': 'Larga aqui',
   'offer.pickCards': 'escolhe cartas para o sítio que tocaste',
   'offer.ambiguous': 'isto pode ir para mais do que um sítio — escolhe na mesa',
+  'offer.whichOne': 'qual?',
+  'seats.scrollLeft': 'Lugares anteriores',
+  'seats.scrollRight': 'Mais lugares',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'app',
@@ -1676,6 +1686,7 @@ export const pt: Record<string, string> = {
   'zolik.move.laidOff': '{player} juntou {cards} à combinação de {owner}',
   'zolik.move.swappedJoker': '{player} trocou um joker por {card}',
   'zolik.move.discarded': '{player} descartou {card}',
+  'zolik.move.wentOut': '{player} bateu descartando {card}',
   'zolik.move.undid': '{player} anulou uma jogada',
   'canasta.move.drewStock': '{player} comprou do baralho',
   'canasta.move.melded': '{player} baixou {cards}',

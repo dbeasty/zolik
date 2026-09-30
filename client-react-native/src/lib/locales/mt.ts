@@ -311,6 +311,13 @@ export const mt: Record<string, string> = {
 
   'zolik.round.deal': 'Tqassim',
   'zolik.round.cleanRun': 'Sekwenza waħda trid tkun mingħajr joker',
+  'zolik.line.wentOut': 'Ħruġ',
+  'zolik.line.inHand': 'Karti fadal fl-id: {n}',
+  'zolik.line.handJokers': 'Jokers × {n} ({each} kull wieħed)',
+  'zolik.line.handAces': 'Assi × {n} ({each} kull wieħed)',
+  'zolik.line.handAcesLow': 'Assi bħala wieħed × {n} ({each} kull wieħed)',
+  'zolik.line.handFaces': 'Għaxriet u figuri × {n} ({each} kull waħda)',
+  'zolik.line.handPips': 'Karti 2–9 × {n}',
   'canasta.round.deal': 'Tqassim',
   'canasta.round.concealed': 'Ħareġ mistur',
   'canasta.round.exhausted': 'Il-mazz spiċċa',
@@ -1289,6 +1296,9 @@ export const mt: Record<string, string> = {
   'zone.dropHere': "Itfa' hawn",
   'offer.pickCards': 'agħżel karti għall-post li messejt',
   'offer.ambiguous': "dan jista' jmur f'aktar minn post wieħed — agħżel fuq il-mejda",
+  'offer.whichOne': 'liema?',
+  'seats.scrollLeft': 'Postijiet ta’ qabel',
+  'seats.scrollRight': 'Aktar postijiet',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'app',
@@ -1681,6 +1691,7 @@ export const mt: Record<string, string> = {
   'zolik.move.laidOff': "{player} żied {cards} mal-kombinazzjoni ta' {owner}",
   'zolik.move.swappedJoker': "{player} biddel joker ma' {card}",
   'zolik.move.discarded': '{player} rema {card}',
+  'zolik.move.wentOut': '{player} spiċċa, rema {card}',
   'zolik.move.undid': '{player} ħassar mossa',
   'canasta.move.drewStock': '{player} ġibed mill-mazz',
   'canasta.move.melded': '{player} niżżel {cards}',

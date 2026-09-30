@@ -306,6 +306,13 @@ export const et: Record<string, string> = {
 
   'zolik.round.deal': 'Jagamine',
   'zolik.round.cleanRun': 'Üks jada peab olema jokkerita',
+  'zolik.line.wentOut': 'Väljaminek',
+  'zolik.line.inHand': 'Kaarte jäi kätte: {n}',
+  'zolik.line.handJokers': 'Jokkerid × {n} ({each} tk)',
+  'zolik.line.handAces': 'Ässad × {n} ({each} tk)',
+  'zolik.line.handAcesLow': 'Ässad ühena × {n} ({each} tk)',
+  'zolik.line.handFaces': 'Kümned ja pildikaardid × {n} ({each} tk)',
+  'zolik.line.handPips': 'Kaardid 2–9 × {n}',
   'canasta.round.deal': 'Jagamine',
   'canasta.round.concealed': 'Läks välja varjatult',
   'canasta.round.exhausted': 'Pakk sai otsa',
@@ -1276,6 +1283,9 @@ export const et: Record<string, string> = {
   'zone.dropHere': 'Kukuta siia',
   'offer.pickCards': 'vali kaardid kohale, mida puudutasid',
   'offer.ambiguous': 'see sobib mitmesse kohta — vali laual',
+  'offer.whichOne': 'milline?',
+  'seats.scrollLeft': 'Eelmised kohad',
+  'seats.scrollRight': 'Veel kohti',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'rakendus',
@@ -1668,6 +1678,7 @@ export const et: Record<string, string> = {
   'zolik.move.laidOff': '{player} lisas {cards} mängija {owner} kombinatsiooni',
   'zolik.move.swappedJoker': '{player} vahetas jokkeri kaardi {card} vastu',
   'zolik.move.discarded': '{player} viskas {card}',
+  'zolik.move.wentOut': '{player} läks välja, visates {card}',
   'zolik.move.undid': '{player} võttis käigu tagasi',
   'canasta.move.drewStock': '{player} tõmbas tõmbepakist',
   'canasta.move.melded': '{player} pani välja {cards}',

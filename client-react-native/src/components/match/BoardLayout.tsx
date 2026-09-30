@@ -135,6 +135,13 @@ export function BoardLayout({
   // against from losing content silently.
   const otherZones = visible.filter((z) => z.ownerId && z.ownerId !== viewerId && z.kind !== 'spread');
 
+  // Who did what: beside the Table title, just above the cards it happened
+  // to. A board with no table panel keeps it on a line of its own.
+  const movesBesideTable = tableZones.length > 0;
+  const recentMoves = state.recentMoves?.length ? (
+    <RecentMoves moves={state.recentMoves} players={state.players} viewerId={viewerId} inHeader={movesBesideTable} />
+  ) : null;
+
   // Every spread on the board, whoever's it is, sharing a wrapping row
   // instead of each claiming a full-width line — named by its owner where the
   // server sent one, so two or more players' melds read as whose they are at
@@ -172,10 +179,7 @@ export function BoardLayout({
         </Text>
       ))}
 
-      {/* Who did what, beside the seats that did it. */}
-      {state.recentMoves?.length ? (
-        <RecentMoves moves={state.recentMoves} players={state.players} viewerId={viewerId} />
-      ) : null}
+      {movesBesideTable ? null : recentMoves}
 
       {/* The piles and stacks everyone draws from and discards to, and the
           cards everyone plays against, directly above the hand and buttons. */}
@@ -195,6 +199,7 @@ export function BoardLayout({
           ))}
           <Section
             title={t('match.table')}
+            aside={movesBesideTable ? recentMoves : null}
             zones={tableZones}
             compact
             styles={styles}
@@ -233,6 +238,7 @@ export function BoardLayout({
 
 export function Section({
   title,
+  aside,
   zones,
   compact,
   styles,
@@ -243,6 +249,8 @@ export function Section({
   ...drops
 }: {
   title: string;
+  /** Beside the title — see `Panel`'s `aside`. */
+  aside?: ReactNode;
   zones: Zone[];
   compact?: boolean;
   /** The screen's own skinned styles — this helper lives outside the component that builds them. */
@@ -276,6 +284,7 @@ export function Section({
     <Panel
       panelId={panelId}
       title={title}
+      aside={aside}
       minimized={minimized}
       onToggleMinimized={onToggleMinimized}
       testID={`section-${title.toLowerCase()}`}

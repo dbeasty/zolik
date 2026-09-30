@@ -307,6 +307,13 @@ export const lv: Record<string, string> = {
 
   'zolik.round.deal': 'Dalījums',
   'zolik.round.cleanRun': 'Vienai secībai jābūt bez džokera',
+  'zolik.line.wentOut': 'Iziešana',
+  'zolik.line.inHand': 'Rokā atlikušās kārtis: {n}',
+  'zolik.line.handJokers': 'Džokeri × {n} (pa {each})',
+  'zolik.line.handAces': 'Dūži × {n} (pa {each})',
+  'zolik.line.handAcesLow': 'Dūži kā vieninieki × {n} (pa {each})',
+  'zolik.line.handFaces': 'Desmitnieki un bildes × {n} (pa {each})',
+  'zolik.line.handPips': 'Kārtis 2–9 × {n}',
   'canasta.round.deal': 'Dalījums',
   'canasta.round.concealed': 'Izgāja slēpti',
   'canasta.round.exhausted': 'Kavas beidzās',
@@ -1272,6 +1279,9 @@ export const lv: Record<string, string> = {
   'zone.dropHere': 'Nomet šeit',
   'offer.pickCards': 'izvēlies kārtis vietai, kurai pieskāries',
   'offer.ambiguous': 'tas der vairāk nekā vienā vietā — izvēlies uz galda',
+  'offer.whichOne': 'kuru?',
+  'seats.scrollLeft': 'Iepriekšējās vietas',
+  'seats.scrollRight': 'Vairāk vietu',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'lietotne',
@@ -1664,6 +1674,7 @@ export const lv: Record<string, string> = {
   'zolik.move.laidOff': '{player}: pielika {cards} spēlētāja {owner} kombinācijai',
   'zolik.move.swappedJoker': '{player}: apmainīja džokeri pret {card}',
   'zolik.move.discarded': '{player}: izmeta {card}',
+  'zolik.move.wentOut': '{player}: izgāja, izmetot {card}',
   'zolik.move.undid': '{player}: atsauca gājienu',
   'canasta.move.drewStock': '{player}: vilka no kavas',
   'canasta.move.melded': '{player}: izlika {cards}',

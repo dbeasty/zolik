@@ -234,9 +234,12 @@ func ApplyAction(state GameState, playerID string, action Action) (ApplyOutcome,
 		if err != nil {
 			return ApplyOutcome{State: state}, err
 		}
+		// wentOut marks the discard that closed the deal, so the move strip
+		// can say so and not just name the card.
 		events = append(events, ev("player_discarded", map[string]interface{}{
 			"playerId": playerID,
 			"card":     action.Card,
+			"wentOut":  goOut,
 		}))
 		if goOut {
 			outcome, err := endGameWithEvents(ns, playerID)

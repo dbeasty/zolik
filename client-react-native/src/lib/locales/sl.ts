@@ -305,6 +305,13 @@ export const sl: Record<string, string> = {
 
   'zolik.round.deal': 'Deljenje',
   'zolik.round.cleanRun': 'En niz mora biti brez jokerja',
+  'zolik.line.wentOut': 'Izhod',
+  'zolik.line.inHand': 'Preostale karte v roki: {n}',
+  'zolik.line.handJokers': 'Jokerji × {n} (po {each})',
+  'zolik.line.handAces': 'Asi × {n} (po {each})',
+  'zolik.line.handAcesLow': 'Asi kot enica × {n} (po {each})',
+  'zolik.line.handFaces': 'Desetice in slike × {n} (po {each})',
+  'zolik.line.handPips': 'Karte od 2 do 9 × {n}',
   'canasta.round.deal': 'Deljenje',
   'canasta.round.concealed': 'Izšel skrito',
   'canasta.round.exhausted': 'Karte so pošle',
@@ -1267,6 +1274,9 @@ export const sl: Record<string, string> = {
   'zone.dropHere': 'Spusti sem',
   'offer.pickCards': 'izberi karte za mesto, ki si se ga dotaknil',
   'offer.ambiguous': 'to lahko gre na več mest — izberi na mizi',
+  'offer.whichOne': 'katero?',
+  'seats.scrollLeft': 'Prejšnja mesta',
+  'seats.scrollRight': 'Več mest',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'aplikacija',
@@ -1659,6 +1669,7 @@ export const sl: Record<string, string> = {
   'zolik.move.laidOff': '{player}: dodal {cards} h kombinaciji igralca {owner}',
   'zolik.move.swappedJoker': '{player}: zamenjal džokerja za {card}',
   'zolik.move.discarded': '{player}: odvrgel {card}',
+  'zolik.move.wentOut': '{player}: končal z odvrženo {card}',
   'zolik.move.undid': '{player}: razveljavil potezo',
   'canasta.move.drewStock': '{player}: vzel iz talona',
   'canasta.move.melded': '{player}: položil {cards}',

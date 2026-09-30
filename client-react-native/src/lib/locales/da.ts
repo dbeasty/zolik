@@ -302,6 +302,13 @@ export const da: Record<string, string> = {
 
   'zolik.round.deal': 'Giv',
   'zolik.round.cleanRun': 'Én række skal være jokerfri',
+  'zolik.line.wentOut': 'Gå ud',
+  'zolik.line.inHand': 'Kort tilbage på hånden: {n}',
+  'zolik.line.handJokers': 'Jokere × {n} ({each} pr. stk.)',
+  'zolik.line.handAces': 'Esser × {n} ({each} pr. stk.)',
+  'zolik.line.handAcesLow': 'Esser talt som én × {n} ({each} pr. stk.)',
+  'zolik.line.handFaces': 'Tiere og billedkort × {n} ({each} pr. stk.)',
+  'zolik.line.handPips': 'Kort 2–9 × {n}',
   'canasta.round.deal': 'Giv',
   'canasta.round.concealed': 'Gik ud skjult',
   'canasta.round.exhausted': 'Kortene slap op',
@@ -1270,6 +1277,9 @@ export const da: Record<string, string> = {
   'zone.dropHere': 'Slip her',
   'offer.pickCards': 'vælg kort til det sted, du trykkede på',
   'offer.ambiguous': 'det her kan komme flere steder hen — vælg på bordet',
+  'offer.whichOne': 'hvilken?',
+  'seats.scrollLeft': 'Forrige pladser',
+  'seats.scrollRight': 'Flere pladser',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'app',
@@ -1662,6 +1672,7 @@ export const da: Record<string, string> = {
   'zolik.move.laidOff': '{player} lagde {cards} til {owner}s udlægning',
   'zolik.move.swappedJoker': '{player} byttede en joker med {card}',
   'zolik.move.discarded': '{player} kastede {card}',
+  'zolik.move.wentOut': '{player} gik ud og kastede {card}',
   'zolik.move.undid': '{player} fortrød et træk',
   'canasta.move.drewStock': '{player} trak fra talonen',
   'canasta.move.melded': '{player} lagde {cards} ud',

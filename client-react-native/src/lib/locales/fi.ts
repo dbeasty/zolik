@@ -307,6 +307,13 @@ export const fi: Record<string, string> = {
 
   'zolik.round.deal': 'Jako',
   'zolik.round.cleanRun': 'Yhden suoran on oltava jokeriton',
+  'zolik.line.wentOut': 'Pois meno',
+  'zolik.line.inHand': 'Kortteja jäi käteen: {n}',
+  'zolik.line.handJokers': 'Jokerit × {n} ({each} kpl)',
+  'zolik.line.handAces': 'Ässät × {n} ({each} kpl)',
+  'zolik.line.handAcesLow': 'Ässät ykkösinä × {n} ({each} kpl)',
+  'zolik.line.handFaces': 'Kympit ja kuvakortit × {n} ({each} kpl)',
+  'zolik.line.handPips': 'Kortit 2–9 × {n}',
   'canasta.round.deal': 'Jako',
   'canasta.round.concealed': 'Pääsi ulos piilossa',
   'canasta.round.exhausted': 'Pakka loppui',
@@ -1280,6 +1287,9 @@ export const fi: Record<string, string> = {
   'zone.dropHere': 'Pudota tähän',
   'offer.pickCards': 'valitse kortit koskettamallesi paikalle',
   'offer.ambiguous': 'tämä sopii useampaan paikkaan — valitse pöydältä',
+  'offer.whichOne': 'mikä?',
+  'seats.scrollLeft': 'Edelliset paikat',
+  'seats.scrollRight': 'Lisää paikkoja',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'sovellus',
@@ -1672,6 +1682,7 @@ export const fi: Record<string, string> = {
   'zolik.move.laidOff': '{player} lisäsi {cards} pelaajan {owner} yhdistelmään',
   'zolik.move.swappedJoker': '{player} vaihtoi jokerin korttiin {card}',
   'zolik.move.discarded': '{player} poisti kortin {card}',
+  'zolik.move.wentOut': '{player} meni ulos poistamalla kortin {card}',
   'zolik.move.undid': '{player} perui siirron',
   'canasta.move.drewStock': '{player} nosti nostopakasta',
   'canasta.move.melded': '{player} laski pöytään {cards}',

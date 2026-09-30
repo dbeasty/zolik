@@ -319,6 +319,13 @@ export const ga: Record<string, string> = {
 
   'zolik.round.deal': 'Dáileadh',
   'zolik.round.cleanRun': 'Caithfidh sraith amháin a bheith gan áilteoir',
+  'zolik.line.wentOut': 'Dul amach',
+  'zolik.line.inHand': 'Cártaí fágtha sa lámh: {n}',
+  'zolik.line.handJokers': 'Áilteoirí × {n} ({each} an ceann)',
+  'zolik.line.handAces': 'Aonáin × {n} ({each} an ceann)',
+  'zolik.line.handAcesLow': 'Aonáin ar luach a haon × {n} ({each} an ceann)',
+  'zolik.line.handFaces': 'Deichní agus cártaí pictiúr × {n} ({each} an ceann)',
+  'zolik.line.handPips': 'Cártaí 2–9 × {n}',
   'canasta.round.deal': 'Dáileadh',
   'canasta.round.concealed': 'Chuaigh amach faoi cheilt',
   'canasta.round.exhausted': 'Chríochnaigh an paca',
@@ -1305,6 +1312,9 @@ export const ga: Record<string, string> = {
   'zone.dropHere': 'Lig anseo é',
   'offer.pickCards': 'pioc cártaí don áit ar bhain tú léi',
   'offer.ambiguous': 'is féidir leis seo dul in níos mó ná áit amháin — pioc ar an mbord',
+  'offer.whichOne': 'cé acu?',
+  'seats.scrollLeft': 'Suíocháin roimhe',
+  'seats.scrollRight': 'Tuilleadh suíochán',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'aip',
@@ -1697,6 +1707,7 @@ export const ga: Record<string, string> = {
   'zolik.move.laidOff': 'Chuir {player} {cards} le cumasc {owner}',
   'zolik.move.swappedJoker': 'Mhalartaigh {player} fear grinn ar {card}',
   'zolik.move.discarded': 'Chaith {player} {card}',
+  'zolik.move.wentOut': 'Chuaigh {player} amach, ag caitheamh {card}',
   'zolik.move.undid': 'Chealaigh {player} beart',
   'canasta.move.drewStock': 'Tharraing {player} ón stoc',
   'canasta.move.melded': 'Leag {player} síos {cards}',

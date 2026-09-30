@@ -304,6 +304,13 @@ export const cs: Record<string, string> = {
 
   'zolik.round.deal': 'Rozdání',
   'zolik.round.cleanRun': 'Jedna postupka bez žolíka',
+  'zolik.line.wentOut': 'Zavření hry',
+  'zolik.line.inHand': 'Zbylo v ruce: karet {n}',
+  'zolik.line.handJokers': 'Žolíci × {n} (po {each})',
+  'zolik.line.handAces': 'Esa × {n} (po {each})',
+  'zolik.line.handAcesLow': 'Esa za jedničku × {n} (po {each})',
+  'zolik.line.handFaces': 'Desítky a figury × {n} (po {each})',
+  'zolik.line.handPips': 'Karty 2–9 × {n}',
   'canasta.round.deal': 'Rozdání',
   'canasta.round.concealed': 'Vyložení naráz',
   'canasta.round.exhausted': 'Došel balíček',
@@ -1264,6 +1271,9 @@ export const cs: Record<string, string> = {
   'zone.dropHere': 'Polož sem',
   'offer.pickCards': 'vyber karty pro místo, na které jsi klepl',
   'offer.ambiguous': 'tohle patří na víc míst — vyber na stole',
+  'offer.whichOne': 'kterou?',
+  'seats.scrollLeft': 'Předchozí hráči',
+  'seats.scrollRight': 'Další hráči',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'aplikace',
@@ -1656,6 +1666,7 @@ export const cs: Record<string, string> = {
   'zolik.move.laidOff': '{player} přiložil {cards} k výkladu hráče {owner}',
   'zolik.move.swappedJoker': '{player} vyměnil žolíka za {card}',
   'zolik.move.discarded': '{player} odhodil {card}',
+  'zolik.move.wentOut': '{player} zavřel hru odhozením {card}',
   'zolik.move.undid': '{player} vzal tah zpět',
   'canasta.move.drewStock': '{player} si lízl z balíčku',
   'canasta.move.melded': '{player} vyložil {cards}',

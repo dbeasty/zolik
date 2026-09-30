@@ -23,10 +23,13 @@ export function RecentMoves({
   moves,
   players,
   viewerId,
+  inHeader,
 }: {
   moves: MoveLine[];
   players: MatchPlayer[];
   viewerId: string;
+  /** Drawn in the Table panel's header, beside its title, rather than on a line of its own. */
+  inHeader?: boolean;
 }) {
   const skin = useSkin();
   const styles = useMemo(() => recentStyles(skin), [skin]);
@@ -41,7 +44,7 @@ export function RecentMoves({
       accessibilityRole="button"
       accessibilityState={{ expanded: open }}
       accessibilityLabel={t('moves.title')}
-      style={styles.strip}
+      style={[styles.strip, inHeader && styles.inHeader]}
       testID="recent-moves"
     >
       {open ? (
@@ -78,7 +81,8 @@ function recentStyles(s: Skin) {
       paddingVertical: 6,
       marginBottom: 8,
     },
-    latest: { color: colors.text, fontSize: 13 },
+    inHeader: { marginBottom: 0 },
+    latest: { color: colors.text, fontSize: 16 },
     more: { color: colors.accent, fontWeight: '700' },
     list: { gap: 3 },
     title: {
@@ -89,7 +93,7 @@ function recentStyles(s: Skin) {
       fontWeight: '600',
       marginBottom: 2,
     },
-    line: { color: colors.text, fontSize: 13 },
+    line: { color: colors.text, fontSize: 15 },
     mine: { color: colors.muted },
   });
 }

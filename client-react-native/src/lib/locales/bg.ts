@@ -309,6 +309,13 @@ export const bg: Record<string, string> = {
 
   'zolik.round.deal': 'Раздаване',
   'zolik.round.cleanRun': 'Една поредица трябва да е без жокер',
+  'zolik.line.wentOut': 'Излизане',
+  'zolik.line.inHand': 'Останали карти в ръката: {n}',
+  'zolik.line.handJokers': 'Жокери × {n} (по {each})',
+  'zolik.line.handAces': 'Аса × {n} (по {each})',
+  'zolik.line.handAcesLow': 'Аса, броени за едно × {n} (по {each})',
+  'zolik.line.handFaces': 'Десетки и фигури × {n} (по {each})',
+  'zolik.line.handPips': 'Карти от 2 до 9 × {n}',
   'canasta.round.deal': 'Раздаване',
   'canasta.round.concealed': 'Излезе скрито',
   'canasta.round.exhausted': 'Тестето свърши',
@@ -1284,6 +1291,9 @@ export const bg: Record<string, string> = {
   'zone.dropHere': 'Пусни тук',
   'offer.pickCards': 'избери карти за мястото, което докосна',
   'offer.ambiguous': 'това може да отиде на повече от едно място — избери на масата',
+  'offer.whichOne': 'коя?',
+  'seats.scrollLeft': 'Предишни места',
+  'seats.scrollRight': 'Още места',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'приложение',
@@ -1676,6 +1686,7 @@ export const bg: Record<string, string> = {
   'zolik.move.laidOff': '{player} добави {cards} към комбинация на {owner}',
   'zolik.move.swappedJoker': '{player} смени жокер с {card}',
   'zolik.move.discarded': '{player} изхвърли {card}',
+  'zolik.move.wentOut': '{player} излезе, като изхвърли {card}',
   'zolik.move.undid': '{player} върна ход',
   'canasta.move.drewStock': '{player} изтегли от тестето',
   'canasta.move.melded': '{player} свали {cards}',

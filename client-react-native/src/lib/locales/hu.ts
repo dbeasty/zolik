@@ -314,6 +314,13 @@ export const hu: Record<string, string> = {
 
   'zolik.round.deal': 'Leosztás',
   'zolik.round.cleanRun': 'Egy sornak joker nélkülinek kell lennie',
+  'zolik.line.wentOut': 'Kiszállás',
+  'zolik.line.inHand': 'Kézben maradt lap: {n}',
+  'zolik.line.handJokers': 'Jokerek × {n} (darabja {each})',
+  'zolik.line.handAces': 'Ászok × {n} (darabja {each})',
+  'zolik.line.handAcesLow': 'Ászok egyesként × {n} (darabja {each})',
+  'zolik.line.handFaces': 'Tízesek és figurák × {n} (darabja {each})',
+  'zolik.line.handPips': 'Lapok 2–9 × {n}',
   'canasta.round.deal': 'Leosztás',
   'canasta.round.concealed': 'Rejtve szállt ki',
   'canasta.round.exhausted': 'A pakli elfogyott',
@@ -1289,6 +1296,9 @@ export const hu: Record<string, string> = {
   'zone.dropHere': 'Ide ejtsd',
   'offer.pickCards': 'válassz lapokat a megérintett helyhez',
   'offer.ambiguous': 'ez több helyre is mehet — válassz az asztalon',
+  'offer.whichOne': 'melyiket?',
+  'seats.scrollLeft': 'Előző helyek',
+  'seats.scrollRight': 'További helyek',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'alkalmazás',
@@ -1681,6 +1691,7 @@ export const hu: Record<string, string> = {
   'zolik.move.laidOff': '{player} hozzátette {owner} kombinációjához: {cards}',
   'zolik.move.swappedJoker': '{player} kicserélt egy jokert erre: {card}',
   'zolik.move.discarded': '{player} eldobta: {card}',
+  'zolik.move.wentOut': '{player} kiment, eldobta: {card}',
   'zolik.move.undid': '{player} visszavont egy lépést',
   'canasta.move.drewStock': '{player} húzott a húzópakliból',
   'canasta.move.melded': '{player} lerakta: {cards}',

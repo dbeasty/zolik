@@ -308,6 +308,13 @@ export const ro: Record<string, string> = {
 
   'zolik.round.deal': 'Mână',
   'zolik.round.cleanRun': 'O scară trebuie să fie fără joker',
+  'zolik.line.wentOut': 'Ieșire',
+  'zolik.line.inHand': 'Cărți rămase în mână: {n}',
+  'zolik.line.handJokers': 'Jokeri × {n} (câte {each})',
+  'zolik.line.handAces': 'Ași × {n} (câte {each})',
+  'zolik.line.handAcesLow': 'Ași ca unu × {n} (câte {each})',
+  'zolik.line.handFaces': 'Zeciuri și figuri × {n} (câte {each})',
+  'zolik.line.handPips': 'Cărți de la 2 la 9 × {n}',
   'canasta.round.deal': 'Mână',
   'canasta.round.concealed': 'A ieșit ascuns',
   'canasta.round.exhausted': 'Pachetul s-a terminat',
@@ -1282,6 +1289,9 @@ export const ro: Record<string, string> = {
   'zone.dropHere': 'Lasă aici',
   'offer.pickCards': 'alege cărți pentru locul pe care l-ai atins',
   'offer.ambiguous': 'asta poate merge în mai multe locuri — alege pe masă',
+  'offer.whichOne': 'care?',
+  'seats.scrollLeft': 'Locurile anterioare',
+  'seats.scrollRight': 'Mai multe locuri',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'aplicație',
@@ -1674,6 +1684,7 @@ export const ro: Record<string, string> = {
   'zolik.move.laidOff': '{player} a adăugat {cards} la combinația lui {owner}',
   'zolik.move.swappedJoker': '{player} a schimbat un joker cu {card}',
   'zolik.move.discarded': '{player} a aruncat {card}',
+  'zolik.move.wentOut': '{player} a închis aruncând {card}',
   'zolik.move.undid': '{player} a anulat o mutare',
   'canasta.move.drewStock': '{player} a tras din talon',
   'canasta.move.melded': '{player} a coborât {cards}',

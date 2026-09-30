@@ -327,6 +327,16 @@ type GameState struct {
 	// named — and so is a deal played before this field existed, which is why
 	// a reader must treat the two the same.
 	DealWinners []string
+	// DealHands is what each seat was left holding when a deal was scored,
+	// oldest first and parallel to DealWinners: the account behind every
+	// non-zero entry in GameScores.
+	//
+	// Recorded rather than recovered for the same reason the winner is: the
+	// next deal wipes the hands and the table melds an ace was priced against,
+	// so "why was that 64" has no answer once the cards are dealt again. The
+	// deal's winner has no entry. A deal scored before this existed has no
+	// map at all, and is shown as its total alone.
+	DealHands []map[string]HandTally `json:",omitempty"`
 	// PendingDealStarter is who leads the deal the table is paused before.
 	//
 	// Remembered rather than worked out again on resume: who leads the next

@@ -34,5 +34,9 @@ func cloneState(s GameState) GameState {
 	for k, v := range s.TotalScores {
 		out.TotalScores[k] = v
 	}
+	// The maps are never written once recorded, but the slice is appended to,
+	// and a clone sharing its backing array would append into the original's.
+	out.DealWinners = append([]string(nil), s.DealWinners...)
+	out.DealHands = append([]map[string]HandTally(nil), s.DealHands...)
 	return out
 }

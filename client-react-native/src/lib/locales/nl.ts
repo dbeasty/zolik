@@ -311,6 +311,13 @@ export const nl: Record<string, string> = {
 
   'zolik.round.deal': 'Ronde',
   'zolik.round.cleanRun': 'Eén reeks moet jokervrij zijn',
+  'zolik.line.wentOut': 'Uitgaan',
+  'zolik.line.inHand': 'Kaarten over in de hand: {n}',
+  'zolik.line.handJokers': 'Jokers × {n} ({each} per stuk)',
+  'zolik.line.handAces': 'Azen × {n} ({each} per stuk)',
+  'zolik.line.handAcesLow': 'Azen als één × {n} ({each} per stuk)',
+  'zolik.line.handFaces': 'Tienen en plaatjes × {n} ({each} per stuk)',
+  'zolik.line.handPips': 'Kaarten 2–9 × {n}',
   'canasta.round.deal': 'Ronde',
   'canasta.round.concealed': 'Verdekt uitgegaan',
   'canasta.round.exhausted': 'Het spel raakte op',
@@ -1288,6 +1295,9 @@ export const nl: Record<string, string> = {
   'zone.dropHere': 'Hier neerleggen',
   'offer.pickCards': 'kies kaarten voor de plek die je aantikte',
   'offer.ambiguous': 'dit kan op meer dan één plek — kies op het bord',
+  'offer.whichOne': 'welke?',
+  'seats.scrollLeft': 'Vorige plaatsen',
+  'seats.scrollRight': 'Meer plaatsen',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'app',
@@ -1680,6 +1690,7 @@ export const nl: Record<string, string> = {
   'zolik.move.laidOff': '{player} legde {cards} aan bij de combinatie van {owner}',
   'zolik.move.swappedJoker': '{player} ruilde een joker voor {card}',
   'zolik.move.discarded': '{player} legde {card} af',
+  'zolik.move.wentOut': '{player} ging uit door {card} af te leggen',
   'zolik.move.undid': '{player} nam een zet terug',
   'canasta.move.drewStock': '{player} pakte van de trekstapel',
   'canasta.move.melded': '{player} legde {cards}',

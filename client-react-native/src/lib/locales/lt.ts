@@ -305,6 +305,13 @@ export const lt: Record<string, string> = {
 
   'zolik.round.deal': 'Dalijimas',
   'zolik.round.cleanRun': 'Viena seka turi būti be džokerio',
+  'zolik.line.wentOut': 'Išėjimas',
+  'zolik.line.inHand': 'Liko kortų rankoje: {n}',
+  'zolik.line.handJokers': 'Džokeriai × {n} (po {each})',
+  'zolik.line.handAces': 'Tūzai × {n} (po {each})',
+  'zolik.line.handAcesLow': 'Tūzai kaip vienetai × {n} (po {each})',
+  'zolik.line.handFaces': 'Dešimtukai ir paveikslėliai × {n} (po {each})',
+  'zolik.line.handPips': 'Kortos 2–9 × {n}',
   'canasta.round.deal': 'Dalijimas',
   'canasta.round.concealed': 'Išėjo slaptai',
   'canasta.round.exhausted': 'Kaladė baigėsi',
@@ -1273,6 +1280,9 @@ export const lt: Record<string, string> = {
   'zone.dropHere': 'Padėk čia',
   'offer.pickCards': 'pasirink kortas vietai, kurią palietei',
   'offer.ambiguous': 'tai tinka daugiau nei vienoje vietoje — pasirink ant stalo',
+  'offer.whichOne': 'kurią?',
+  'seats.scrollLeft': 'Ankstesnės vietos',
+  'seats.scrollRight': 'Daugiau vietų',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'programa',
@@ -1665,6 +1675,7 @@ export const lt: Record<string, string> = {
   'zolik.move.laidOff': '{player}: pridėjo {cards} prie žaidėjo {owner} derinio',
   'zolik.move.swappedJoker': '{player}: pakeitė džokerį į {card}',
   'zolik.move.discarded': '{player}: atmetė {card}',
+  'zolik.move.wentOut': '{player}: išėjo atmesdamas {card}',
   'zolik.move.undid': '{player}: atšaukė ėjimą',
   'canasta.move.drewStock': '{player}: traukė iš kaladės',
   'canasta.move.melded': '{player}: išdėjo {cards}',

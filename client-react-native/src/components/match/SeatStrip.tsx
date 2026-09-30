@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { MatchPlayer, Seat, Standing } from '@/src/api/matchTypes';
@@ -34,6 +34,13 @@ import { t } from '@/src/lib/i18n';
  * horizontal scroller with no scrollbar hint was hiding the fourth seat off
  * the right edge of a phone, on the one screen where knowing who's at the
  * table is the point.
+ *
+ * On a wide one the tiles share the row rather than each taking the width its
+ * longest line asks for, and past four seats each tile stacks its name under
+ * its avatar to need less of it — a six-seat Samba table put two players off
+ * the right edge of an 800-pixel window with the same missing hint. Where six
+ * still do not fit, the row scrolls with its bar showing and an arrow at
+ * whichever end has more seats beyond it (`SeatScroller`).
  *
  * Where the game has sides, each tile says whose side that seat is on. The
  * lobby has always shown the partnerships it was arranging and then the board
@@ -74,6 +81,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
   // that were never movement.
   const stillness = useReducedMotion();
   const styles = useMemo(() => seatStyles(metrics, skin), [metrics, skin]);
+  const [stripWidth, setStripWidth] = useState(0);
 
   if (!seats.length) return null;
 
@@ -82,6 +90,15 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
   // at a Prší table as a team of one.
   const myPartners = partnersOf(seats, viewerId);
   const ourSide = new Set(myPartners.length ? [viewerId, ...myPartners] : []);
+  const crowded = !metrics.narrow && seats.length > 4;
+  // An equal share of the strip, set outright rather than left to flex: in a
+  // horizontal scroller a tile is otherwise as wide as its longest line, and
+  // "Team: Bartholomew" never wraps. Floored so a name is still a name; below
+  // the floor the row scrolls instead (`SeatScroller`).
+  const share =
+    !metrics.narrow && stripWidth > 0
+      ? Math.max(crowded ? SEAT_MIN_CROWDED : SEAT_MIN, Math.floor((stripWidth - SEAT_GAP * (seats.length - 1)) / seats.length))
+      : undefined;
 
   const tiles = seats.map((seat) => {
     const isMe = seat.playerId === viewerId;
@@ -93,6 +110,15 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
     const player = players.find((p) => p.id === seat.playerId);
     const standing = standings?.find((s) => s.playerId === seat.playerId);
     const name = playerName(players, seat.playerId);
+    const avatar = skin.seats.avatars ? (
+      <Avatar
+        spec={avatarFor(seat.playerId, !!player?.isAI, player?.avatar)}
+        size={metrics.seat.avatar}
+        ringColor={seat.active ? skin.colors.gold : undefined}
+      />
+    ) : null;
+    const rank = standing ? <Text style={styles.rank}>{standing.rank}</Text> : null;
+    const bot = player?.isAI ? <Text style={styles.badge}>BOT</Text> : null;
     return (
       <View
         key={seat.playerId}
@@ -100,7 +126,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
         testID={`seat-${seat.playerId}`}
         style={[
           styles.seat,
-          metrics.narrow && styles.seatNarrow,
+          metrics.narrow ? styles.seatNarrow : share ? { width: share, minWidth: 0 } : styles.seatShared,
           seat.active && styles.active,
           isPartner && styles.teammate,
           isMe && styles.mine,
@@ -112,20 +138,29 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
         ]}
       >
         <View style={seat.active && !stillness ? styles.lifted : undefined}>
-        <View style={styles.nameRow}>
-          {skin.seats.avatars ? (
-            <Avatar
-              spec={avatarFor(seat.playerId, !!player?.isAI, player?.avatar)}
-              size={metrics.seat.avatar}
-              ringColor={seat.active ? skin.colors.gold : undefined}
-            />
-          ) : null}
-          {standing ? <Text style={styles.rank}>{standing.rank}</Text> : null}
-          <Text style={styles.name} numberOfLines={1}>
-            {name}
-          </Text>
-          {player?.isAI ? <Text style={styles.badge}>BOT</Text> : null}
-        </View>
+        {crowded ? (
+          // Past four seats: the name on a line of its own under the avatar,
+          // so the tile is as wide as its longest line rather than both.
+          <>
+            <View style={styles.nameRow}>
+              {avatar}
+              {rank}
+              {bot}
+            </View>
+            <Text style={[styles.name, styles.nameCrowded]} numberOfLines={1}>
+              {name}
+            </Text>
+          </>
+        ) : (
+          <View style={styles.nameRow}>
+            {avatar}
+            {rank}
+            <Text style={styles.name} numberOfLines={1}>
+              {name}
+            </Text>
+            {bot}
+          </View>
+        )}
 
         {standing && onOpenScore ? (
           <Pressable
@@ -284,18 +319,90 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
           {tiles}
         </View>
       ) : (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.row}
-          testID="seat-strip"
-        >
+        <SeatScroller styles={styles} onWidth={setStripWidth}>
           {tiles}
-        </ScrollView>
+        </SeatScroller>
       )}
     </Panel>
   );
 }
+
+/**
+ * The wide strip's row. Scrolls only once the tiles, at their narrowest, no
+ * longer fit — and then says so: the bar is shown, and an arrow sits at each
+ * end that has seats past it, because a mouse wheel scrolls vertically and a
+ * row that only moves sideways under a trackpad gesture is, for most people
+ * at a desk, a row that does not move.
+ */
+function SeatScroller({
+  styles,
+  onWidth,
+  children,
+}: {
+  styles: SeatStyles;
+  onWidth: (width: number) => void;
+  children: ReactNode;
+}) {
+  const scroller = useRef<ScrollView>(null);
+  const [view, setView] = useState(0);
+  const [content, setContent] = useState(0);
+  const [x, setX] = useState(0);
+  const before = x > 1;
+  const after = x + view < content - 1;
+  // Most of a viewport at a time, so the seat cut off at the edge is still in
+  // sight after the step and a reader keeps their place.
+  const step = (dir: 1 | -1) =>
+    scroller.current?.scrollTo({ x: Math.max(0, Math.min(content - view, x + dir * view * 0.8)), animated: true });
+
+  return (
+    <View style={styles.scroller}>
+      <ScrollView
+        ref={scroller}
+        horizontal
+        showsHorizontalScrollIndicator={content > view + 1}
+        contentContainerStyle={styles.row}
+        onLayout={(e) => {
+          setView(e.nativeEvent.layout.width);
+          onWidth(e.nativeEvent.layout.width);
+        }}
+        onContentSizeChange={(w) => setContent(w)}
+        onScroll={(e) => setX(e.nativeEvent.contentOffset.x)}
+        scrollEventThrottle={32}
+        testID="seat-strip"
+      >
+        {children}
+      </ScrollView>
+      {before ? (
+        <Pressable
+          testID="seat-strip-left"
+          accessibilityRole="button"
+          accessibilityLabel={t('seats.scrollLeft')}
+          onPress={() => step(-1)}
+          style={[styles.arrow, styles.arrowLeft]}
+        >
+          <Text style={styles.arrowText}>‹</Text>
+        </Pressable>
+      ) : null}
+      {after ? (
+        <Pressable
+          testID="seat-strip-right"
+          accessibilityRole="button"
+          accessibilityLabel={t('seats.scrollRight')}
+          onPress={() => step(1)}
+          style={[styles.arrow, styles.arrowRight]}
+        >
+          <Text style={styles.arrowText}>›</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+type SeatStyles = ReturnType<typeof seatStyles>;
+
+const SEAT_GAP = 8;
+const SEAT_MIN = 116;
+const SEAT_MIN_CROWDED = 104;
 
 /**
  * The dot beside "to play", breathing. The one looping animation on the
@@ -386,7 +493,31 @@ function DealerButton({ size, skin }: { size: number; skin: Skin }) {
 function seatStyles(m: Metrics, s: Skin) {
   const colors = s.colors;
   return StyleSheet.create({
-    row: { gap: 8, paddingVertical: 4 },
+    // flexGrow: the row is at least as wide as the strip, so `seatShared`
+    // tiles spread across it rather than bunching at the left.
+    row: { gap: SEAT_GAP, paddingVertical: 4, flexGrow: 1 },
+    scroller: { position: 'relative' },
+    arrow: {
+      position: 'absolute',
+      top: '50%',
+      marginTop: -18,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.accent,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.4,
+      shadowRadius: 6,
+      elevation: 6,
+    },
+    arrowLeft: { left: 2 },
+    arrowRight: { right: 2 },
+    arrowText: { color: colors.text, fontSize: 24, lineHeight: 26, fontWeight: '700' },
     summary: { flexDirection: 'row', flexShrink: 1, minWidth: 0, gap: 6, overflow: 'hidden' },
     summaryPill: {
       flexDirection: 'row',
@@ -407,7 +538,7 @@ function seatStyles(m: Metrics, s: Skin) {
     // facts) would otherwise stretch every seat sharing its row to match it.
     wrap: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 8, paddingVertical: 4 },
     seat: {
-      minWidth: 116,
+      minWidth: SEAT_MIN,
       backgroundColor: colors.surface,
       borderRadius: 10,
       borderWidth: 1,
@@ -417,6 +548,9 @@ function seatStyles(m: Metrics, s: Skin) {
     // Two to a row rather than each claiming the full width — a phone still
     // gets every seat on screen without scrolling one of them off it.
     seatNarrow: { flexGrow: 1, flexBasis: '47%', minWidth: 0 },
+    // Equal shares of the row, none narrower than `seat.minWidth`; past that
+    // the row scrolls instead of squeezing a name down to its first letter.
+    seatShared: { flexGrow: 1, flexBasis: 0 },
     // The seat on turn is outlined rather than filled: a filled highlight on a
     // small tile competes with the cards, which are what a player is looking at.
     active: { borderColor: colors.accent, borderWidth: 2 },
@@ -437,6 +571,7 @@ function seatStyles(m: Metrics, s: Skin) {
     // never in doubt.
     teammate: { backgroundColor: s.seats.avatars ? 'rgba(240, 199, 94, 0.13)' : '#1e2a3d' },
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    nameCrowded: { marginTop: 4 },
     turnRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
     name: { color: colors.text, fontWeight: '700', fontSize: m.panel.bodyFont + 1, flexShrink: 1 },
     rank: {

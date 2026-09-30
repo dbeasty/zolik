@@ -300,6 +300,13 @@ export const sv: Record<string, string> = {
 
   'zolik.round.deal': 'Giv',
   'zolik.round.cleanRun': 'En svit måste vara jokerfri',
+  'zolik.line.wentOut': 'Gå ut',
+  'zolik.line.inHand': 'Kort kvar på handen: {n}',
+  'zolik.line.handJokers': 'Jokrar × {n} ({each} st)',
+  'zolik.line.handAces': 'Ess × {n} ({each} st)',
+  'zolik.line.handAcesLow': 'Ess som ettor × {n} ({each} st)',
+  'zolik.line.handFaces': 'Tior och klädda kort × {n} ({each} st)',
+  'zolik.line.handPips': 'Kort 2–9 × {n}',
   'canasta.round.deal': 'Giv',
   'canasta.round.concealed': 'Gick ut dolt',
   'canasta.round.exhausted': 'Leken tog slut',
@@ -1269,6 +1276,9 @@ export const sv: Record<string, string> = {
   'zone.dropHere': 'Släpp här',
   'offer.pickCards': 'välj kort till platsen du tryckte på',
   'offer.ambiguous': 'det här kan hamna på flera ställen — välj på bordet',
+  'offer.whichOne': 'vilken?',
+  'seats.scrollLeft': 'Tidigare platser',
+  'seats.scrollRight': 'Fler platser',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'app',
@@ -1661,6 +1671,7 @@ export const sv: Record<string, string> = {
   'zolik.move.laidOff': '{player} lade {cards} till {owner}s kombination',
   'zolik.move.swappedJoker': '{player} bytte en joker mot {card}',
   'zolik.move.discarded': '{player} kastade {card}',
+  'zolik.move.wentOut': '{player} gick ut och kastade {card}',
   'zolik.move.undid': '{player} ångrade ett drag',
   'canasta.move.drewStock': '{player} drog från talongen',
   'canasta.move.melded': '{player} lade ut {cards}',
