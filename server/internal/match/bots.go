@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"time"
 
+	"zolik/server/internal/botstats"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
 )
@@ -84,14 +85,21 @@ func (m *Manager) actBudget() time.Duration {
 // timeout the caller must stop reading them and fetch its own again, rather
 // than race a call that may still be reading — or, if it misbehaves, writing —
 // the nested slices inside them.
-func botAct(bot module.Bot, state module.State, seat module.BotSeat, offers []module.ActionOffer, budget time.Duration) (action module.Action, ok, timedOut bool) {
+func botAct(bot module.Bot, state module.State, seat module.BotSeat, offers []module.ActionOffer, budget time.Duration, rec *botstats.Recorder, key botstats.Key) (action module.Action, ok, timedOut bool) {
 	type answer struct {
 		action module.Action
 		ok     bool
 	}
 	ch := make(chan answer, 1)
+	// Closed when Act returns, however long after the timeout that is, so
+	// the time it really took is what gets recorded — and an abandoned call
+	// is counted as burning a core for as long as it actually does.
+	done := make(chan struct{})
 	state = bytes.Clone(state)
+	end := rec.Begin(key)
 	go func() {
+		defer close(done)
+		defer end()
 		a, ok := bot.Act(state, seat, offers)
 		ch <- answer{a, ok}
 	}()
@@ -101,6 +109,8 @@ func botAct(bot module.Bot, state module.State, seat module.BotSeat, offers []mo
 	case r := <-ch:
 		return r.action, r.ok, false
 	case <-timer.C:
+		finished := rec.Abandoned()
+		go func() { <-done; finished() }()
 		return module.Action{}, false, true
 	}
 }
@@ -119,11 +129,13 @@ func (m *Manager) RunBotsIfNeeded(ctx context.Context, matchID string) {
 	m.botRunning[matchID] = true
 	m.botMu.Unlock()
 
+	m.botStats.LoopStarted()
 	go m.botLoop(ctx, matchID)
 }
 
 func (m *Manager) botLoop(ctx context.Context, matchID string) {
 	defer func() {
+		m.botStats.LoopEnded()
 		m.botMu.Lock()
 		delete(m.botRunning, matchID)
 		m.botMu.Unlock()
@@ -191,8 +203,10 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 		botOK := false
 		if !turn.botHung {
 			var timedOut bool
+			seat := botSeatFor(match, actor)
 			botPick, botOK, timedOut = botAct(module.BotFor(mod), module.State(match.State),
-				botSeatFor(match, actor), offers, m.actBudget())
+				seat, offers, m.actBudget(), m.botStats,
+				botstats.Key{Module: match.ModuleID, Skill: skillLabel(seat.Skill), Source: botstats.SourceLoop})
 			if timedOut {
 				log.Printf("bot loop: match=%s seat=%s bot gave no move within %s; playing from the offer list",
 					matchID, actor, m.actBudget())
@@ -405,6 +419,15 @@ func botSeatFor(match models.Match, actor string) module.BotSeat {
 		}
 	}
 	return seat
+}
+
+// skillLabel names a seat's skill for the cost series. A seat seated before
+// skills existed plays its module's own default, which is not any one level.
+func skillLabel(s module.Skill) string {
+	if s == "" {
+		return "default"
+	}
+	return string(s)
 }
 
 // firstBot picks the first awaited seat that nobody is sitting at.
