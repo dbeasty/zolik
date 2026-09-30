@@ -117,20 +117,28 @@ func TestBotAnswersAPendingDrawWithASeven(t *testing.T) {
 //
 // The bot is handed the whole state — every seat's hand — because that is what
 // the runtime has, and it reads the next player's hand *size* to time an
-// attack card. Nothing but this test stops it reading the cards in it.
+// attack card. Nothing but this test stops it reading the cards in it, or the
+// draw pile's.
 func TestBotDoesNotPeek(t *testing.T) {
-	build := func(theirs []string) module.State {
+	build := func(theirs, pile []string) module.State {
 		return withState(t, func(s *GameState) {
 			s.DiscardPile = []string{"9S"}
+			s.DrawPile = pile
 			s.Hands["p1"] = []string{"7S", "9D", "9C", "TC", "KC"}
 			s.Hands["p2"] = theirs
 		})
 	}
-	honest := botAct(t, build([]string{"8H", "8C", "TD"}), "p1", module.SkillHard)
-	rigged := botAct(t, build([]string{"QH", "QS", "7D"}), "p1", module.SkillHard)
-	if honest.Verb != rigged.Verb || honest.Cards[0] != rigged.Cards[0] ||
-		honest.Params["suit"] != rigged.Params["suit"] {
-		t.Fatalf("played %v against one hand and %v against another of the same size", honest, rigged)
+	// Same sizes, different cards: the opponent's hand, and the draw pile the
+	// bot's next card will come off.
+	quiet, sevens := []string{"8H", "8C", "TD"}, []string{"QH", "QS", "7D"}
+	pile, stacked := []string{"8D", "9H", "TH"}, []string{"7H", "7C", "AS"}
+	honest := botAct(t, build(quiet, pile), "p1", module.SkillHard)
+	for _, rigged := range []module.State{build(sevens, pile), build(quiet, stacked), build(sevens, stacked)} {
+		got := botAct(t, rigged, "p1", module.SkillHard)
+		if honest.Verb != got.Verb || honest.Cards[0] != got.Cards[0] ||
+			honest.Params["suit"] != got.Params["suit"] {
+			t.Fatalf("played %v against one hand and pile and %v against another of the same size", honest, got)
+		}
 	}
 }
 

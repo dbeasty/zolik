@@ -1,6 +1,7 @@
 package canasta
 
 import (
+	"reflect"
 	"testing"
 
 	"zolik/server/internal/module"
@@ -472,28 +473,85 @@ func TestHardShedsTheExpensiveCardWhenTheDealIsEnding(t *testing.T) {
 // that quietly did would be undetectable from the outside and would ruin the
 // game.
 func TestBotDoesNotPeek(t *testing.T) {
-	build := func(theirs []string) module.State {
-		return twoHanded(func(s *GameState) {
-			s.Phase = phaseMeld
-			s.Teams[0].HasMelded = true
-			s.Teams[0].Melds = []Meld{{
-				ID: meldID(0, "K"), TeamID: 0, Rank: "K", Cards: []string{"KH", "KC", "KD"},
-			}}
-			s.Hands["p1"] = []string{"AS", "4C", "5H", "6D", "2C"}
-			s.Hands["p2"] = theirs
-			s.DiscardPile = []string{"3H"}
-		})
+	// Two draw piles of the same size, entirely different cards — one of them
+	// wild from top to bottom, which a bot that could see it would plan
+	// around.
+	piles := [][]string{filler(30), nil}
+	for i := 0; i < 30; i++ {
+		piles[1] = append(piles[1], []string{"JOKER1", "2H", "AH", "KD", "QC"}[i%5])
 	}
-	honest := botAct(t, build([]string{"8H", "8C", "8D", "8S", "7H"}), "p1", module.SkillHard)
 	// Same number of cards, entirely different cards — including the ones that
 	// would change every decision if the bot could see them.
-	rigged := botAct(t, build([]string{"AH", "AC", "AD", "JOKER1", "JOKER2"}), "p1", module.SkillHard)
-	if honest.Verb != rigged.Verb || len(honest.Cards) != len(rigged.Cards) {
-		t.Fatalf("played %v against one hand and %v against another of the same size", honest, rigged)
+	quiet := []string{"8H", "8C", "8D", "8S", "7H"}
+	loaded := []string{"AH", "AC", "AD", "JOKER1", "JOKER2"}
+
+	table := func(s *GameState) {
+		s.Teams[0].HasMelded = true
+		s.Teams[0].Melds = []Meld{{
+			ID: meldID(0, "K"), TeamID: 0, Rank: "K", Cards: []string{"KH", "KC", "KD"},
+		}}
+		s.Hands["p1"] = []string{"AS", "4C", "5H", "6D", "2C"}
 	}
-	for i := range honest.Cards {
-		if honest.Cards[i] != rigged.Cards[i] {
-			t.Fatalf("played %v against one hand and %v against another of the same size", honest, rigged)
+	for _, tc := range []struct {
+		name  string
+		build func(hidden map[string][]string, pile []string, phase string) module.State
+		// Each entry is every hidden hand at once, so the partner and both
+		// opponents change together as well as apart.
+		hidden []map[string][]string
+	}{
+		{
+			name: "two-handed",
+			build: func(hidden map[string][]string, pile []string, phase string) module.State {
+				return twoHanded(func(s *GameState) {
+					table(s)
+					s.Phase = phase
+					s.Hands["p2"] = hidden["p2"]
+					s.DrawPile = pile
+					s.DiscardPile = []string{"3H"}
+				})
+			},
+			hidden: []map[string][]string{{"p2": quiet}, {"p2": loaded}},
+		},
+		{
+			// The partner is the hand a bot is likeliest to be tempted by: the
+			// runtime holds it, it is on the same side, and reading it would
+			// make every "may I go out" and every lay-off smarter.
+			name: "partnership",
+			build: func(hidden map[string][]string, pile []string, phase string) module.State {
+				return fourHanded(func(s *GameState) {
+					table(s)
+					s.Phase = phase
+					for id, hand := range hidden {
+						s.Hands[id] = hand
+					}
+					s.DrawPile = pile
+					s.DiscardPile = []string{"3H"}
+				})
+			},
+			hidden: []map[string][]string{
+				{"p2": quiet, "p3": loaded, "p4": quiet},
+				{"p2": quiet, "p3": quiet, "p4": quiet},
+				{"p2": loaded, "p3": quiet, "p4": loaded},
+			},
+		},
+	} {
+		for _, phase := range []string{phaseDraw, phaseMeld} {
+			for _, skill := range []module.Skill{module.SkillEasy, module.SkillMedium, module.SkillHard} {
+				var want module.Action
+				for i, hidden := range tc.hidden {
+					for j, pile := range piles {
+						got := botAct(t, tc.build(hidden, pile, phase), "p1", skill)
+						if i == 0 && j == 0 {
+							want = got
+							continue
+						}
+						if !reflect.DeepEqual(got, want) {
+							t.Errorf("%s, %s, %s: played %+v against hands %d and pile %d, but %+v against hands 0 and pile 0 — it is reading hidden cards",
+								tc.name, phase, skill, got, i, j, want)
+						}
+					}
+				}
+			}
 		}
 	}
 }
@@ -574,9 +632,9 @@ func TestBotPlaysWholeDealsLegally(t *testing.T) {
 // arithmetic — reachableValue was erring *low*, refusing openings the hand
 // could actually make — and the two halves of the fix are meld.go's meld-first
 // orders and the undo window that now reaches the start of a turn. What this
-// bot contributes is still opensTheAccount: it declines to begin an opening it
-// cannot finish, which is a better reason not to be in the position than a way
-// out of it.
+// bot contributes is opening.go: it declines to begin an opening it cannot
+// finish, asking the engine rather than estimating, which is a better reason
+// not to be in the position than a way out of it.
 
 // tally is what a played-out match is being watched for: the two things a bot
 // can do with a wild card that read as a bug rather than as weak play.

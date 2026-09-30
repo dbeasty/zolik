@@ -40,6 +40,10 @@ type Player struct {
 	// existed, which simply makes those matches unclaimable, exactly as they
 	// were before.
 	GuestID string `bson:"guestId,omitempty" json:"-"`
+	// SeatKeyHash is the SHA-256 of this seat's link secret, when somebody at
+	// the table has minted one (see match.SeatLink). Only the hash is kept,
+	// and never sent anywhere: the link is the secret.
+	SeatKeyHash string `bson:"seatKeyHash,omitempty" json:"-"`
 }
 
 type User struct {

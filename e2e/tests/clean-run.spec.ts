@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { dragLocatorTo, handCards } from '../helpers/drag';
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer } from '../helpers/env';
 
 /**
  * Žolík Classic's house rule: you are not "down" — and so may not lay off on
@@ -137,9 +137,18 @@ async function openMatch(page: Page, host: any, matchId: string) {
 
 /** The reason text the shell prints under a disabled control. */
 async function reasonUnder(page: Page, label: string) {
-  const control = page.locator('[data-testid^="offer-"]', { hasText: label }).first();
+  // The control itself, not its title text, which carries the same label.
+  const control = page
+    .locator('[data-testid^="offer-"]:not([data-testid$="-title"])', { hasText: label })
+    .first();
   await expect(control).toBeVisible();
-  return (await control.locator('xpath=..').innerText()).replace(/\s+/g, ' ');
+  // Read the reason line by its own id. It used to be the control's sibling,
+  // but the control is now wrapped (a press on a disabled one explains why),
+  // so "the parent's text" no longer reaches it.
+  const id = ((await control.getAttribute('data-testid')) ?? '').replace(/^offer-/, '');
+  const why = page.getByTestId(`why-${id}`);
+  await expect(why).toBeVisible();
+  return (await why.innerText()).replace(/\s+/g, ' ');
 }
 
 test.describe("Žolík Classic's clean-run rule", () => {
@@ -177,7 +186,7 @@ test.describe("Žolík Classic's clean-run rule", () => {
     await expect
       .poll(
         async () => {
-          const b = await (await request.get(`${API_BASE}/matches/${matchId}?as=${host.userId}`)).json();
+          const b = await (await request.get(`${API_BASE}/matches/${matchId}`, asViewer(host))).json();
           for (const z of b.view?.zones ?? []) {
             for (const g of z.groups ?? []) if (g.id === 'meld_2') return g.cards.join(',');
           }

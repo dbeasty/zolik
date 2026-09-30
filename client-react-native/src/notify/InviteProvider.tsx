@@ -172,6 +172,9 @@ export function InviteProvider({ children }: { children: React.ReactNode }) {
         case 'table_invite':
           // Not about the table on screen: the player is already there.
           if (msg.invite?.matchId && pathRef.current.includes(msg.invite.matchId)) return;
+          // Nor about a rematch of the table on screen: its own banner is
+          // already offering the seat, and a second offer on top says nothing new.
+          if (msg.invite?.rematchOf && pathRef.current.includes(msg.invite.rematchOf)) return;
           if (msg.invite?.matchId) setQueue((q) => receive(q, inviteFromWire(msg.invite, now), now));
           return;
         case 'invite_revoked':

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 
 /**
  * When a deal begins, the game is in front of the player.
@@ -68,10 +68,10 @@ async function signIn(page: Page, host: any) {
 }
 
 /** The viewer's own hand, and a pile the whole table draws from, by the server's own names. */
-async function pieces(request: Ctx, matchId: string, userId: string) {
-  const state = await (await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`)).json();
+async function pieces(request: Ctx, matchId: string, viewer: Viewer) {
+  const state = await (await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer))).json();
   const zones = state.view?.zones ?? [];
-  const hand = zones.find((z: any) => z.kind === 'hand' && z.ownerId === userId);
+  const hand = zones.find((z: any) => z.kind === 'hand' && z.ownerId === viewer.userId);
   const pile = zones.find((z: any) => !z.ownerId && (z.kind === 'stack' || z.kind === 'pile'));
   expect(hand, 'the player should have been dealt a hand').toBeTruthy();
   expect(pile, "the table should have a pile of its own").toBeTruthy();
@@ -141,7 +141,7 @@ test.describe('a dealt table brings the game to the player', () => {
     await signIn(page, host);
     await page.goto(`/match/${matchId}`);
     await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
-    const { hand, pile } = await pieces(request, matchId, host.userId);
+    const { hand, pile } = await pieces(request, matchId, host);
     await expect(page.getByTestId(hand)).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId('controls-panel')).toBeVisible({ timeout: 30_000 });
 
@@ -189,18 +189,18 @@ test.describe('a dealt table brings the game to the player', () => {
     await signIn(page, host);
     await page.goto(`/match/${matchId}`);
     await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
-    const { hand } = await pieces(request, matchId, host.userId);
+    const { hand } = await pieces(request, matchId, host);
     await expect(page.getByTestId(hand)).toBeVisible({ timeout: 30_000 });
 
     // Play the hand out — whatever is offered, except the way on itself, which
     // is the moment this test starts from.
     for (let i = 0; i < 200; i++) {
       const state = await (
-        await request.get(`${API_BASE}/matches/${matchId}?as=${host.userId}`)
+        await request.get(`${API_BASE}/matches/${matchId}`, asViewer(host))
       ).json();
       if (state.rounds?.paused) break;
       const ids = await page
-        .locator('[data-testid^="offer-"]:not([aria-disabled="true"])')
+        .locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])')
         .evaluateAll((els) => els.map((e) => e.getAttribute('data-testid') ?? '').filter(Boolean));
       const pick = ids.find((id) => id !== 'offer-show' && !id.includes('continue'));
       if (!pick) {
@@ -228,7 +228,7 @@ test.describe('a dealt table brings the game to the player', () => {
     await expect
       .poll(
         async () =>
-          (await (await request.get(`${API_BASE}/matches/${matchId}?as=${host.userId}`)).json())
+          (await (await request.get(`${API_BASE}/matches/${matchId}`, asViewer(host))).json())
             .rounds?.paused ?? false,
         { timeout: 30_000 },
       )

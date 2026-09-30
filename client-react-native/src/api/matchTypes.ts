@@ -18,6 +18,14 @@ export type Fact = {
   params?: Record<string, unknown>;
 };
 
+/** One thing a player did, worded by the module — see `RecentMoves`. */
+export type MoveLine = {
+  playerId: string;
+  fact: Fact;
+  /** The group on the board the move touched, if any. */
+  groupId?: string;
+};
+
 /**
  * One card as the board shows it.
  *
@@ -52,6 +60,18 @@ export type Group = {
   cards: string[];
   /** Keys for anything worth marking on the group. Keys, never text. */
   badgeKeys?: string[];
+  /**
+   * Finished, as far as the player is concerned — a canasta rather than a
+   * meld still being built — so it is folded down to take less room. The
+   * module decides; the shell never counts cards to guess.
+   */
+  complete?: boolean;
+  /**
+   * Which card stands for the group when it is folded to one: an index into
+   * `cards`, chosen by the module (a canasta shows a natural, not a wild).
+   * Absent means the last card.
+   */
+  face?: number;
 };
 
 /**
@@ -291,6 +311,11 @@ export type ActionOffer = {
    * false for everything a button can send in one tap.
    */
   composite?: boolean;
+  /**
+   * The offer takes a move back rather than making one. Declared by the
+   * module, never guessed from the verb's spelling.
+   */
+  undo?: boolean;
 };
 
 /** One row of a scoreboard, in a shape no game owns. */
@@ -328,6 +353,25 @@ export type RoundScore = {
   shown?: number;
   shownTotal?: number;
   facts?: Fact[];
+  /**
+   * The same breakdown as an account: every part with its points, and the
+   * parts of those parts. They sum to the printed delta — the server tests
+   * that, so this side only prints them. Absent for a game or a round that
+   * has not written one; `facts` is the fallback.
+   */
+  lines?: ScoreLine[];
+};
+
+/**
+ * One row of a round's account. `points` is signed the way the row's printed
+ * delta is; `sub` breaks it down and sums to it. A line with no points and no
+ * sub explains rather than scores.
+ */
+export type ScoreLine = {
+  labelKey: string;
+  params?: Record<string, unknown>;
+  points: number;
+  sub?: ScoreLine[];
 };
 
 /** One completed round of a match. */
@@ -423,6 +467,18 @@ export type MatchState = {
   canResume?: boolean;
   /** Player ids, in seat order; look their names up in `players`. */
   awayPlayers?: string[];
+  /**
+   * The table this finished one is being played again at, and who asked.
+   * Everybody else from here has a seat held at it.
+   */
+  rematch?: { matchId: string; hostId: string };
+  /** Who a rematch lobby is still holding seats for, in seat order. */
+  reserved?: { playerId: string; name: string; avatar?: string }[];
+  /**
+   * The last few moves at the table as this viewer may read them, oldest
+   * first. Absent for a game that does not narrate its moves.
+   */
+  recentMoves?: MoveLine[];
   players: MatchPlayer[];
   /**
    * Who is playing with whom if the table were dealt now, in seat order —

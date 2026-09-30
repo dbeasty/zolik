@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { loginAsFreshGuest } from '../helpers/login';
+import { loginAsFreshGuest, seedIntroSeen } from '../helpers/login';
 
 /**
  * The score table and the stats screen are kept against an account, so they
@@ -17,6 +17,13 @@ import { loginAsFreshGuest } from '../helpers/login';
  */
 
 const suffix = () => Math.random().toString(36).slice(2, 8);
+
+// Registering through the UI lands on `/`, which sends a device that has
+// never seen the first-run intro to `/intro` instead — so the registered
+// account would never be seen arriving where it should.
+test.beforeEach(async ({ page }) => {
+  await seedIntroSeen(page);
+});
 
 test.describe('the score table and stats need an account', () => {
   test('a guest is shown them disabled, and cannot reach them by address either', async ({
@@ -46,6 +53,8 @@ test.describe('the score table and stats need an account', () => {
 
   test('a registered account is let through to both', async ({ page }) => {
     const username = `e2e-gateok-${suffix()}`;
+    // Registering lands on the menu, which sends a first visit to the intro.
+    await seedIntroSeen(page);
 
     // Registered through the UI rather than seeded, because the thing under
     // test is exactly the `isGuest` flag the real sign-in path produces.
@@ -64,10 +73,10 @@ test.describe('the score table and stats need an account', () => {
     await expect(page).toHaveURL(/\/stats/, { timeout: 10_000 });
     await expect(page.getByTestId('sign-in-required')).toHaveCount(0);
     // The screen's own content, not just the absence of the gate.
-    await expect(page.getByText('Your stats', { exact: true })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('Your record', { exact: true })).toBeVisible({ timeout: 10_000 });
 
     await page.goto('/scoring');
     await expect(page.getByTestId('sign-in-required')).toHaveCount(0);
-    await expect(page.getByText('New session', { exact: true })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('Start scorecard', { exact: true })).toBeVisible({ timeout: 10_000 });
   });
 });

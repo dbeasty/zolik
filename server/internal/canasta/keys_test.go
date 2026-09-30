@@ -63,6 +63,33 @@ func TestEveryEmittedKeyIsInTheManifest(t *testing.T) {
 			// only appears while the meld that earns it is on the table, and
 			// the table is swept between deals.
 			step := func(s module.State) {
+				// The round log as well as the board: it is where the account
+				// lives, and it was the one place this test did not look —
+				// which is how the summary keys went unworded.
+				if log, err := m.Rounds(s); err == nil {
+					note(log.LabelKey)
+					var lines func([]module.ScoreLine)
+					lines = func(ls []module.ScoreLine) {
+						for _, l := range ls {
+							note(l.LabelKey)
+							lines(l.Sub)
+						}
+					}
+					for _, r := range log.Rounds {
+						if r.Headline != nil {
+							note(r.Headline.LabelKey)
+						}
+						for _, f := range r.Facts {
+							note(f.LabelKey)
+						}
+						for _, rs := range r.Scores {
+							for _, f := range rs.Facts {
+								note(f.LabelKey)
+							}
+							lines(rs.Lines)
+						}
+					}
+				}
 				for _, p := range players {
 					vm, err := m.View(s, p.ID)
 					if err != nil {

@@ -180,7 +180,11 @@ func (s *GameState) config() module.MatchConfig {
 	if s.Tariff == tariffs[TariffPub] {
 		tariff = TariffPub
 	}
-	return module.MatchConfig{Variation: variationVoleny, Options: module.Options{
+	variation := variationVoleny
+	if s.licit() {
+		variation = variationLicit
+	}
+	return module.MatchConfig{Variation: variation, Options: module.Options{
 		OptDeals:          s.Deals,
 		OptTariff:         tariff,
 		OptRedDoubles:     module.BoolOpt(s.RedDoubles),
@@ -227,6 +231,11 @@ func (m *Module) licitAnnounceOffers(raw module.State, s *GameState, playerID st
 				o.Params = []module.ParamSpec{{Name: "trump", Kind: module.ParamKindChoice, LabelKey: "marias.param.trump", Choices: suits}}
 			}
 			probeA.Params = map[string]string{"trump": probeTrump}
+			if kind == kindDveSedmy || kind == kindDveSedmySto {
+				// A helper suit too, so a kind that cannot reach the rung
+				// is refused for that and not for a missing suit.
+				probeA.Params["helper"] = "D"
+			}
 			if (kind == kindDveSedmy || kind == kindDveSedmySto) && len(suits) > 0 {
 				// The helper suit's list starts away from the first trump,
 				// so a press with nothing chosen is a legal pair.

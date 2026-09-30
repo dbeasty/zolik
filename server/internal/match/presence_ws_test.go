@@ -100,11 +100,11 @@ func playerIsAwaited(res apiResponse, playerID string) bool {
 // disconnect only suspends when the table is waiting on that seat, so closing
 // a socket while a bot still has the turn would leave the match active and
 // make the assertion below flaky.
-func (h *inviteHarness) waitForPlayerAwaited(t *testing.T, matchID, playerID string) {
+func (h *inviteHarness) waitForPlayerAwaited(t *testing.T, matchID, playerID, playerToken string) {
 	t.Helper()
 	deadline := time.Now().Add(15 * time.Second)
 	for time.Now().Before(deadline) {
-		res := h.do(http.MethodGet, "/matches/"+matchID+"?as="+playerID, "", nil)
+		res := h.do(http.MethodGet, "/matches/"+matchID, playerToken, nil)
 		if res.status == http.StatusOK && playerIsAwaited(res, playerID) {
 			return
 		}
@@ -153,7 +153,7 @@ func TestTheLastSocketClosingStillSuspendsAndReturningResumes(t *testing.T) {
 	matchID := startedMatch(t, h, hostToken)
 
 	only := dialMatch(t, h, matchID, hostToken)
-	h.waitForPlayerAwaited(t, matchID, hostID)
+	h.waitForPlayerAwaited(t, matchID, hostID, hostToken)
 	_ = only.Close()
 	h.waitForStatus(t, matchID, "suspended")
 

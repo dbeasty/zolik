@@ -57,13 +57,31 @@ func (uc UserContext) PlayerGuestID() string {
 // alternative would leave someone whose token has quietly expired unable to
 // sign in again, which is precisely when they need to most.
 func OptionalAuthMiddleware(next http.Handler) http.Handler {
+	return optionalAuth(nil, next)
+}
+
+// OptionalMatchAuthMiddleware is OptionalAuthMiddleware for a route that
+// serves one match, named by matchIDOf: a token scoped to exactly that match —
+// a seat link's — identifies its holder here too, rather than reading as no
+// token at all. A token scoped to any other match still does.
+func OptionalMatchAuthMiddleware(matchIDOf func(*http.Request) string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler { return optionalAuth(matchIDOf, next) }
+}
+
+func optionalAuth(matchIDOf func(*http.Request) string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		parts := strings.Fields(strings.TrimSpace(r.Header.Get("Authorization")))
 		if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
 			next.ServeHTTP(w, r)
 			return
 		}
-		claims, err := ParseAccessClaims(parts[1])
+		var claims *AccessClaims
+		var err error
+		if matchIDOf != nil {
+			claims, err = ParseAccessClaimsForMatch(parts[1], matchIDOf(r))
+		} else {
+			claims, err = ParseAccessClaims(parts[1])
+		}
 		if err != nil {
 			next.ServeHTTP(w, r)
 			return
@@ -79,6 +97,23 @@ func OptionalAuthMiddleware(next http.Handler) http.Handler {
 }
 
 func AuthMiddleware(next http.Handler) http.Handler {
+	return authMiddleware(nil)(next)
+}
+
+// MatchAuthMiddleware is AuthMiddleware for a route that serves one match,
+// named by matchIDOf: it also lets in a token scoped to exactly that match,
+// which is how the person who opened a seat link acts at their table.
+func MatchAuthMiddleware(matchIDOf func(*http.Request) string) func(http.Handler) http.Handler {
+	return authMiddleware(matchIDOf)
+}
+
+func authMiddleware(matchIDOf func(*http.Request) string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return authHandler(matchIDOf, next)
+	}
+}
+
+func authHandler(matchIDOf func(*http.Request) string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authz := strings.TrimSpace(r.Header.Get("Authorization"))
 		if authz == "" {
@@ -92,7 +127,13 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		}
 		token := parts[1]
 
-		claims, err := ParseAccessClaims(token)
+		var claims *AccessClaims
+		var err error
+		if matchIDOf != nil {
+			claims, err = ParseAccessClaimsForMatch(token, matchIDOf(r))
+		} else {
+			claims, err = ParseAccessClaims(token)
+		}
 		if err != nil {
 			http.Error(w, "invalid token", http.StatusUnauthorized)
 			return

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 
 /**
  * End-to-end for the Canasta module (docs/canasta-plan.md).
@@ -94,8 +94,8 @@ async function startMatch(
   return { matchId, users, auth };
 }
 
-async function stateFor(request: Ctx, matchId: string, viewerId: string): Promise<MatchState> {
-  const res = await request.get(`${API_BASE}/matches/${matchId}?as=${encodeURIComponent(viewerId)}`);
+async function stateFor(request: Ctx, matchId: string, viewer: Viewer): Promise<MatchState> {
+  const res = await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer));
   expect(res.ok(), await res.text()).toBeTruthy();
   return res.json();
 }
@@ -307,7 +307,7 @@ test.describe('canasta', () => {
 
     // Read it back cold through a fresh HTTP request: nothing is cached in the
     // process, so this is the round trip through the database.
-    const state = await stateFor(request, matchId, users[0].userId);
+    const state = await stateFor(request, matchId, users[0]);
     expect(state.moduleId).toBe('canasta');
     expect(state.status).toBe('active');
     expect(state.legalActions.length).toBeGreaterThan(0);
@@ -324,7 +324,7 @@ test.describe('canasta', () => {
     // out whose turn it is without a turn field to read.
     const withOffers = [];
     for (const u of users) {
-      const s = await stateFor(request, matchId, u.userId);
+      const s = await stateFor(request, matchId, u);
       if (s.legalActions.some((o) => o.enabled)) withOffers.push(u.userId);
     }
     expect(withOffers).toHaveLength(1);
@@ -336,7 +336,7 @@ test.describe('canasta', () => {
     const { matchId, users } = await startMatch(request, 4, { options: { targetScore: 500 } });
 
     for (const viewer of users) {
-      const state = await stateFor(request, matchId, viewer.userId);
+      const state = await stateFor(request, matchId, viewer);
       const others = users.filter((u) => u.userId !== viewer.userId);
 
       for (const other of others) {
@@ -364,7 +364,7 @@ test.describe('canasta', () => {
     // profile of the rummy engine, and they have to survive the wire: a
     // four-handed table shows two shared meld spreads, not four private ones.
     const { matchId, users } = await startMatch(request, 4, { options: { targetScore: 500 } });
-    const state = await stateFor(request, matchId, users[0].userId);
+    const state = await stateFor(request, matchId, users[0]);
 
     const spreads = state.view.zones.filter((z) => z.kind === 'spread' && z.id.startsWith('melds:'));
     expect(spreads, 'four players make two partnerships').toHaveLength(2);
@@ -548,7 +548,7 @@ test.describe('canasta', () => {
       const started = await request.post(`${API_BASE}/matches/${matchId}/start`, { headers: auth });
       expect(started.ok(), await started.text()).toBeTruthy();
 
-      const state = await stateFor(request, matchId, host.userId);
+      const state = await stateFor(request, matchId, host);
       expect(state.moduleId).toBe(moduleId);
       expect(state.status).toBe('active');
       expect(state.legalActions.length).toBeGreaterThan(0);

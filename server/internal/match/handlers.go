@@ -59,18 +59,35 @@ func NewHandlers(m *Manager, testEndpoints bool) *Handlers {
 	}
 }
 
+// matchAuth admits the caller's ordinary token, or one scoped to this match
+// alone — what a seat link hands out. Only the routes a seated player needs
+// at their own table take it; every other route refuses such a token.
+var matchAuth = auth.MatchAuthMiddleware(func(r *http.Request) string { return chi.URLParam(r, "id") })
+
+// optionalMatchAuth is matchAuth's counterpart for the one read that answers
+// without a token too: a seat link's token shows its holder their own hand.
+var optionalMatchAuth = auth.OptionalMatchAuthMiddleware(func(r *http.Request) string { return chi.URLParam(r, "id") })
+
 func (h *Handlers) RegisterRoutes(r chi.Router) {
 	// Every game this server can host, and what each one lets a lobby set. A
 	// client renders its whole game-picker and new-match form from this.
 	r.Get("/modules", h.listModules)
 	r.Get("/modules/{id}/rules", h.moduleRules)
-	r.Get("/matches/{id}", h.getMatch)
+	// Optional auth: the token decides whose hand the answer shows, and
+	// without one it is the spectator view.
+	r.With(optionalMatchAuth).Get("/matches/{id}", h.getMatch)
 	r.With(auth.AuthMiddleware).Post("/matches", h.createMatch)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/join", h.joinMatch)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/start", h.startMatch)
 	// Bringing a swept-up table back. Separate from start, which allocates a
 	// module's state: this one only undoes an envelope.
-	r.With(auth.AuthMiddleware).Post("/matches/{id}/resume", h.resumeMatch)
+	r.With(matchAuth).Post("/matches/{id}/resume", h.resumeMatch)
+	// Playing a finished table again, with the same people. The first press
+	// opens it; every later one sits down at it.
+	r.With(auth.AuthMiddleware).Post("/matches/{id}/rematch", h.rematch)
+	r.With(auth.AuthMiddleware).Post("/matches/{id}/rematch/decline", h.declineRematch)
+	// The host not waiting for somebody a rematch is holding a seat for.
+	r.With(auth.AuthMiddleware).Post("/matches/{id}/rematch/release", h.releaseHeldSeat)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/add-bot", h.addBot)
 	// Seat a specific player out of the waiting room, instead of reading a
 	// join code out to them.
@@ -92,7 +109,19 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	// seated-only, unlike the spectator GET above: this answers with every
 	// board the match passed through, which is a great deal more than the one
 	// it is sitting on.
-	r.With(auth.AuthMiddleware).Get("/matches/{id}/replay", h.replayMatch)
+	r.With(matchAuth).Get("/matches/{id}/replay", h.replayMatch)
+
+	// Seat links: a link that brings one person back to one seat, for a
+	// player on a new device or a cleared browser (see seatlink.go). Minted
+	// by anybody at the table; opened and taken by whoever was sent it, who
+	// need not be signed in as anyone.
+	r.With(matchAuth).Post("/matches/{id}/seats/{playerId}/link", h.mintSeatLink)
+	r.Get("/seats/{id}/{secret}", h.seatPreview)
+	r.With(auth.OptionalAuthMiddleware).Post("/seats/{id}/{secret}/claim", h.claimSeat)
+	// The move this caller's seat would make, suggested and never made. POST
+	// because it is asked for rather than looked up: the answer depends on
+	// the live board, and nothing should cache it.
+	r.With(matchAuth).Post("/matches/{id}/hint", h.hint)
 
 	if h.testEndpoints {
 		r.With(auth.AuthMiddleware).Post("/matches/{id}/debug-state", h.debugState)
@@ -373,19 +402,9 @@ func (h *Handlers) addBot(w http.ResponseWriter, req *http.Request) {
 	var body addBotReq
 	_ = json.NewDecoder(req.Body).Decode(&body)
 
-	id := "bot:" + randomJoinCode(8)
 	// Who sits down is decided under the table's lock, from the table as it
 	// is then, so two add-bots racing each other cannot seat the same persona.
-	_, bot, err := h.manager.JoinWith(ctx, m.ID.Hex(), func(m models.Match) models.Player {
-		persona := h.personaFor(m, body.Skill)
-		return models.Player{
-			ID:           id,
-			IsAI:         true,
-			Name:         persona.Name,
-			AIDifficulty: string(persona.Skill),
-			AIPersona:    persona.Key(),
-		}
-	})
+	_, bot, err := h.manager.JoinWith(ctx, m.ID.Hex(), h.newBot(body.Skill))
 	if err != nil {
 		writeModuleError(w, err)
 		return
@@ -396,6 +415,22 @@ func (h *Handlers) addBot(w http.ResponseWriter, req *http.Request) {
 		"skill":     bot.AIDifficulty,
 		"aiPersona": bot.AIPersona,
 	})
+}
+
+// newBot builds the bot that sits down at a table, from the table as it is
+// under its lock — see addBot for what is decided and why.
+func (h *Handlers) newBot(skill string) func(models.Match) models.Player {
+	id := "bot:" + randomJoinCode(8)
+	return func(m models.Match) models.Player {
+		persona := h.personaFor(m, skill)
+		return models.Player{
+			ID:           id,
+			IsAI:         true,
+			Name:         persona.Name,
+			AIDifficulty: string(persona.Skill),
+			AIPersona:    persona.Key(),
+		}
+	}
 }
 
 // personaFor decides which opponent sits down at this table.
@@ -574,19 +609,195 @@ func (h *Handlers) resumeMatch(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, map[string]any{"matchId": m.ID.Hex(), "status": "active"})
 }
 
+// rematch opens a finished table again, or sits the caller down at the one
+// somebody from it already opened. The table it answers with may be a lobby
+// (waiting for the others) or already dealt (nobody else to wait for), and
+// the client routes on which.
+func (h *Handlers) rematch(w http.ResponseWriter, req *http.Request) {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	// Asked before the write for the same reason as resume: a table with
+	// nobody else to wait for is dealt on the spot.
+	if err := h.admission.AllowMatchStart(); err != nil {
+		admission.WriteBusy(w, err)
+		return
+	}
+	next, err := h.manager.Rematch(req.Context(), chi.URLParam(req, "id"), uc.UserID)
+	if err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	writeJSON(w, map[string]any{"matchId": next.ID.Hex(), "status": next.Status, "hostId": next.HostID})
+}
+
+// declineRematch lets go of the seat a rematch was holding for the caller.
+// The id is the rematch's own, not the finished table's.
+func (h *Handlers) declineRematch(w http.ResponseWriter, req *http.Request) {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	next, err := h.manager.DeclineRematch(req.Context(), chi.URLParam(req, "id"), uc.UserID)
+	if err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	writeJSON(w, map[string]any{"matchId": next.ID.Hex()})
+}
+
+type releaseHeldSeatReq struct {
+	PlayerID string `json:"playerId"`
+	// Bot seats a bot in the seat instead of leaving it open.
+	Bot bool `json:"bot,omitempty"`
+}
+
+// releaseHeldSeat lets go of a seat a rematch was holding, at the host's
+// request, optionally seating a bot at the table's own skill in it.
+func (h *Handlers) releaseHeldSeat(w http.ResponseWriter, req *http.Request) {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	var body releaseHeldSeatReq
+	if err := json.NewDecoder(req.Body).Decode(&body); err != nil || body.PlayerID == "" {
+		http.Error(w, "playerId is required", http.StatusBadRequest)
+		return
+	}
+	var bot func(models.Match) models.Player
+	if body.Bot {
+		bot = h.newBot("")
+	}
+	next, err := h.manager.ReleaseHeldSeat(req.Context(), chi.URLParam(req, "id"), uc.UserID, body.PlayerID, bot)
+	if err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	writeJSON(w, map[string]any{"matchId": next.ID.Hex()})
+}
+
+// seatTokenTTL is how long a seat link's token plays its seat. Long enough
+// for an evening; the link can be opened again for another.
+const seatTokenTTL = 12 * time.Hour
+
+// mintSeatLink makes a link that brings one person back to their seat.
+func (h *Handlers) mintSeatLink(w http.ResponseWriter, req *http.Request) {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	matchID := chi.URLParam(req, "id")
+	if _, err := bson.ObjectIDFromHex(matchID); err != nil {
+		http.Error(w, "invalid match id", http.StatusBadRequest)
+		return
+	}
+	secret, err := h.manager.MintSeatLink(req.Context(), matchID, uc.UserID, chi.URLParam(req, "playerId"))
+	if err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	writeJSON(w, map[string]any{
+		"path": SeatPath + matchID + "/" + secret,
+		"url":  h.manager.SeatURL(matchID, secret),
+	})
+}
+
+type seatPreviewPlayer struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	IsAI    bool   `json:"isAI"`
+	Avatar  string `json:"avatar,omitempty"`
+	Present bool   `json:"present"`
+}
+
+// seatPreview says whose seat a link opens, and at which table, before
+// anything is taken — so the person holding it can tell it is theirs. Names
+// and faces only: nothing about the cards.
+func (h *Handlers) seatPreview(w http.ResponseWriter, req *http.Request) {
+	matchID := chi.URLParam(req, "id")
+	m, seat, err := h.manager.SeatByLink(req.Context(), matchID, chi.URLParam(req, "secret"))
+	if err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	players := make([]seatPreviewPlayer, 0, len(m.Players))
+	for _, p := range m.Players {
+		players = append(players, seatPreviewPlayer{
+			ID: p.ID, Name: p.Name, IsAI: p.IsAI, Avatar: p.Avatar,
+			Present: !p.IsAI && h.manager.SeatPresent(matchID, p.ID),
+		})
+	}
+	label := m.ModuleID
+	if mod := h.manager.Registry().Get(m.ModuleID); mod != nil {
+		label = mod.Descriptor().Label
+	}
+	writeJSON(w, map[string]any{
+		"matchId":     matchID,
+		"moduleId":    m.ModuleID,
+		"moduleLabel": label,
+		"variation":   m.Variation,
+		"status":      m.Status,
+		"seat":        seatPreviewPlayer{ID: seat.ID, Name: seat.Name, Avatar: seat.Avatar, Present: h.manager.SeatPresent(matchID, seat.ID)},
+		"players":     players,
+	})
+}
+
+// claimSeat takes the seat a link opens. A caller who already is that seat
+// is simply sent to the table. Anybody else gets a token that plays this seat
+// at this match and nothing more — not the identity behind it — unless the
+// seat is being played right now, which a link never takes over.
+func (h *Handlers) claimSeat(w http.ResponseWriter, req *http.Request) {
+	matchID := chi.URLParam(req, "id")
+	m, seat, err := h.manager.SeatByLink(req.Context(), matchID, chi.URLParam(req, "secret"))
+	if err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	if uc, ok := auth.GetUserContext(req); ok && uc.UserID == seat.ID {
+		writeJSON(w, map[string]any{"matchId": m.ID.Hex(), "alreadyYours": true})
+		return
+	}
+	if h.manager.SeatPresent(matchID, seat.ID) {
+		writeModuleError(w, module.Error{Code: "SEAT_IN_USE", Message: seat.Name})
+		return
+	}
+	token, err := auth.CreateMatchScopedToken(seat.ID, seat.Name, seat.GuestID != "", matchID, seatTokenTTL)
+	if err != nil {
+		http.Error(w, "could not issue a token", http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, map[string]any{
+		"matchId":     m.ID.Hex(),
+		"accessToken": token,
+		"userId":      seat.ID,
+		"username":    seat.Name,
+		"expiresIn":   int(seatTokenTTL.Seconds()),
+	})
+}
+
 // getMatch returns a viewer's state over plain HTTP.
 //
 // The socket is the live path, but a plain GET makes the runtime testable and
-// debuggable without opening one — and, unauthenticated, it deliberately
-// returns the *spectator* view, which is the same projection with nobody's
-// hand in it.
+// debuggable without opening one. The viewer is whoever the bearer token says
+// the caller is, and nobody else: this route once took ?as=<playerId>, which
+// handed anyone who could read a players[] list that player's hand and legal
+// actions. Unauthenticated, it returns the *spectator* view — the same
+// projection with nobody's hand in it. A stray ?as= is ignored, not honoured.
 func (h *Handlers) getMatch(w http.ResponseWriter, req *http.Request) {
 	m, err := h.manager.Current(req.Context(), chi.URLParam(req, "id"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	viewer := req.URL.Query().Get("as")
+	viewer := ""
+	if uc, ok := auth.GetUserContext(req); ok {
+		viewer = uc.UserID
+	}
 	writeJSON(w, h.manager.BuildStateMsg(m, viewer))
 }
 
@@ -705,10 +916,9 @@ func (h *Handlers) myTables(w http.ResponseWriter, req *http.Request) {
 // boards, and nothing on this server compresses a response. Paging costs one
 // extra fold per page and buys a first frame that arrives immediately.
 //
-// The viewer is always the caller's own seat. There is deliberately no
-// ?as=<somebody else> here, unlike getMatch: that route is unauthenticated and
-// spectator-ish by intent, whereas this one would hand a seated player every
-// board their opponent ever held.
+// The viewer is always the caller's own seat, the same rule getMatch follows.
+// There is deliberately no ?as=<somebody else>: here it would hand a seated
+// player every board their opponent ever held.
 func (h *Handlers) replayMatch(w http.ResponseWriter, req *http.Request) {
 	uc, ok := auth.GetUserContext(req)
 	if !ok {
@@ -778,7 +988,7 @@ func (h *Handlers) deleteMatch(w http.ResponseWriter, req *http.Request) {
 // socket long was rummy.
 func (h *Handlers) handleWS(w http.ResponseWriter, req *http.Request) {
 	matchID := chi.URLParam(req, "id")
-	playerID, err := auth.SubjectFromToken(req.URL.Query().Get("token"))
+	playerID, err := auth.SubjectForMatch(req.URL.Query().Get("token"), matchID)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -966,13 +1176,13 @@ func writeModuleError(w http.ResponseWriter, err error) {
 	code := module.CodeOf(err)
 	status := http.StatusBadRequest
 	switch code {
-	case "UNKNOWN_MODULE", "UNKNOWN_VARIATION", "NO_RULES", "MATCH_NOT_FOUND":
+	case "UNKNOWN_MODULE", "UNKNOWN_VARIATION", "NO_RULES", "MATCH_NOT_FOUND", "SEAT_LINK_EXPIRED":
 		status = http.StatusNotFound
 	case "NOT_AT_THIS_TABLE", "TABLE_HAS_PLAYERS_AWAY":
 		status = http.StatusForbidden
-	case "NOT_THE_HOST":
+	case "NOT_THE_HOST", "HINTS_OFF":
 		status = http.StatusForbidden
-	case "NO_LONGER_WAITING", "MATCH_FULL", "MATCH_NOT_ABANDONED", "MATCH_MOVED_ON", "NOTHING_TO_REPLAY":
+	case "NO_LONGER_WAITING", "MATCH_FULL", "MATCH_NOT_ABANDONED", "MATCH_MOVED_ON", "NOTHING_TO_REPLAY", "SEAT_IN_USE", "MATCH_NOT_OVER":
 		// A conflict rather than a bad request: the caller did nothing wrong,
 		// the world moved under them.
 		status = http.StatusConflict

@@ -244,33 +244,48 @@ func TestBotBetsWhenCheckedTo(t *testing.T) {
 
 // TestBotDoesNotPeek.
 //
-// The bot is handed the whole state — every seat's hole cards — because that is
-// what the runtime has. Nothing but this test stops it reading them, and a bot
+// The bot is handed the whole state — every seat's hole cards and the deck in
+// the order it will deal — because that is what the runtime has. Nothing but this test stops it reading them, and a bot
 // that quietly did would be undetectable from the outside and would ruin the
 // game.
 func TestBotDoesNotPeek(t *testing.T) {
 	hole := []string{"AC", "AD"}
 	board := []string{"7H", "8D", "2C", "KS", "3H"}
+	build := func(theirs, deck []string) module.State {
+		return table(2, func(s *GameState) {
+			s.Street = streetRiver
+			s.Board = board
+			s.Current = 0
+			s.Pot = 200
+			s.Seats[0].Hole = hole
+			s.Seats[0].Committed, s.Seats[0].Stack = 100, 900
+			s.Seats[1].Hole = theirs
+			s.Seats[1].Committed, s.Seats[1].Stack = 200, 800
+			s.Seats[1].Bet, s.Seats[1].Acted = 100, true
+			s.CurrentBet, s.MinRaise = 100, s.BigBlind
+			s.Deck = deck
+		})
+	}
+	// The deck in two orders: nothing is left to deal on the river, but a bot
+	// reading the deck would read it on every street.
+	deck := buildDeck()
+	reversed := make([]string, len(deck))
+	for i, c := range deck {
+		reversed[len(deck)-1-i] = c
+	}
 
-	honest := facing(hole, board, 100)
-	rigged := table(2, func(s *GameState) {
-		s.Street = streetRiver
-		s.Board = board
-		s.Current = 0
-		s.Pot = 200
-		s.Seats[0].Hole = hole
-		s.Seats[0].Committed, s.Seats[0].Stack = 100, 900
-		// The one difference: the opponent now holds a straight rather than a
-		// small pair. A bot reading it would fold; ours cannot see it.
-		s.Seats[1].Hole = []string{"9C", "TD"}
-		s.Seats[1].Committed, s.Seats[1].Stack = 200, 800
-		s.Seats[1].Bet, s.Seats[1].Acted = 100, true
-		s.CurrentBet, s.MinRaise = 100, s.BigBlind
-	})
-
-	a, b := botAct(t, honest, "p1"), botAct(t, rigged, "p1")
-	if a.Verb != b.Verb || a.Params[ParamAmount] != b.Params[ParamAmount] {
-		t.Errorf("bot played %v against a pair and %v against a straight: it is reading hole cards", a, b)
+	// The opponent holds a small pair, then a straight. A bot reading it
+	// would fold to the second; ours cannot see it.
+	a := botAct(t, build([]string{"5C", "5D"}, deck), "p1")
+	for _, rigged := range []module.State{
+		build([]string{"9C", "TD"}, deck),
+		build([]string{"5C", "5D"}, reversed),
+		build([]string{"9C", "TD"}, reversed),
+	} {
+		b := botAct(t, rigged, "p1")
+		if a.Verb != b.Verb || a.Params[ParamAmount] != b.Params[ParamAmount] {
+			t.Errorf("bot played %v against a pair and %v when the hole cards or the deck changed: it is reading hidden cards", a, b)
+		}
 	}
 }
 

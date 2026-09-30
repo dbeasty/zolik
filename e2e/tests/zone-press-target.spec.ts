@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { tapCard } from '../helpers/drag';
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 
 /**
  * An offer that names a whole zone has to be reachable on the board.
@@ -132,11 +132,11 @@ async function openMatch(page: Page, host: any, matchId: string) {
   await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
 }
 
-async function serverHand(request: Ctx, matchId: string, userId: string): Promise<string[]> {
-  const res = await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`);
+async function serverHand(request: Ctx, matchId: string, viewer: Viewer): Promise<string[]> {
+  const res = await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer));
   expect(res.ok(), await res.text()).toBeTruthy();
   const body = await res.json();
-  const zone = (body.view?.zones ?? []).find((z: any) => z.kind === 'hand' && z.ownerId === userId);
+  const zone = (body.view?.zones ?? []).find((z: any) => z.kind === 'hand' && z.ownerId === viewer.userId);
   return (zone?.cards ?? []).map((c: any) => c.card);
 }
 
@@ -212,7 +212,7 @@ test.describe('an offer that names the whole spread', () => {
     );
 
     await pressTheSpread(page);
-    await expect.poll(async () => (await serverHand(request, matchId, host.userId)).length).toBe(0);
+    await expect.poll(async () => (await serverHand(request, matchId, host)).length).toBe(0);
   });
 
   test('says what is missing when the pick is not a whole submission yet', async ({ page, request }) => {
@@ -229,7 +229,9 @@ test.describe('an offer that names the whole spread', () => {
 
     await pressTheSpread(page);
     await expect(page.getByTestId('why-sheet')).toBeVisible();
-    await expect(page.getByTestId('why-reason')).toHaveText('Select 6 card(s)');
-    expect(await serverHand(request, matchId, host.userId)).toHaveLength(6);
+    // Five, not six: the black-three meld's floor is all but the one card
+    // kept back to discard (a83b4c1).
+    await expect(page.getByTestId('why-reason')).toHaveText('Select 5 card(s)');
+    expect(await serverHand(request, matchId, host)).toHaveLength(6);
   });
 });

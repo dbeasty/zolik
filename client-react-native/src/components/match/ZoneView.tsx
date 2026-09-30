@@ -4,14 +4,24 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Zone } from '@/src/api/matchTypes';
 import { CardBack } from '@/src/components/CardBack';
 import { CardGlance } from '@/src/components/match/CardGlance';
+import { CardIndex } from '@/src/components/cards/CardIndex';
 import { CardView } from '@/src/components/CardView';
 import { Panel, type Measurable } from '@/src/components/match/Panel';
 import { SettleIn } from '@/src/components/match/SettleIn';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
 import { concealedCount } from '@/src/lib/board';
+import { marksIn, type ChangeMarks } from '@/src/lib/changes';
 import { groupElementId, zoneElementId } from '@/src/lib/drops';
-import type { Metrics } from '@/src/lib/layout';
+import {
+  CARD_INDEX_GAP,
+  cardIndexBox,
+  cardIndexStep,
+  foldedFace,
+  groupShowsIndices,
+  stackedCardBox,
+  type Metrics,
+} from '@/src/lib/layout';
 import { label } from '@/src/lib/labels';
 import type { Skin } from '@/src/skins/types';
 import { t } from '@/src/lib/i18n';
@@ -115,6 +125,13 @@ type Props = {
    * is exactly what happened before flights existed.
    */
   entranceDelays?: ReadonlyMap<string, number>;
+  /**
+   * Groups somebody else changed since the viewer last acted — see
+   * `src/lib/changes.ts`. Outlined, labelled, and the cards added to them
+   * ringed, all drawn over the group rather than in it, so a mark never moves
+   * anything.
+   */
+  changedGroups?: ChangeMarks;
 };
 
 export function ZoneView({
@@ -141,6 +158,7 @@ export function ZoneView({
   armedGroupId,
   onAimGroup,
   entranceDelays,
+  changedGroups,
 }: Props) {
   const metrics = useMetrics();
   const skin = useSkin();
@@ -259,6 +277,10 @@ export function ZoneView({
   // decides the shape, same as it decides the layout above. A stack needs
   // none of this: its count is the whole of what it ever shows, open or not.
   const groups = zone.groups ?? [];
+  // How many of this zone's groups carry a mark — said on the panel's own
+  // header too, which stays in view when the panel is put away or scrolled
+  // past, so a change is never only visible from inside the group.
+  const marked = changedGroups ? marksIn(zone, changedGroups) : 0;
   const summary =
     zone.kind === 'pile' && cards.length
       ? <CardGlance cards={[cards[cards.length - 1].card]} max={1} testID={`zone-summary-${zone.id}`} />
@@ -292,7 +314,11 @@ export function ZoneView({
       countTestID={foldable ? undefined : `zone-count-${zone.id}`}
       summary={summary}
       accessory={
-        foldable ? (
+        marked > 0 && !foldable ? (
+          <View style={styles.markChip} testID={`zone-marks-${zone.id}`}>
+            <Text style={styles.markChipText}>{t('marks.zone', { n: marked })}</Text>
+          </View>
+        ) : foldable ? (
           // A bordered badge with an outline chevron — visually its own
           // thing, not a second copy of the minimize control's solid ▾/▸
           // sitting right next to it. Two adjacent triangles meaning two
@@ -335,6 +361,20 @@ export function ZoneView({
             const groupArmable = armableGroups?.has(g.id) ?? false;
             const groupArmed = armedGroupId === g.id;
             const groupOpen = expandedGroups.has(g.id);
+            // A finished meld folds down to its top card and a count: it is
+            // a score now, not something to read card by card, and a
+            // canasta's column of corners was the tallest thing in the row.
+            // The same tap that spreads any meld open unfolds it. Which card
+            // stays in view is the module's call (`face`), so a folded
+            // canasta shows what it is made of rather than a wild.
+            const folded = !!g.complete && !groupOpen && g.cards.length > 1;
+            const shownAt = folded ? [foldedFace(g)] : g.cards.map((_, i) => i);
+            // On a narrow board a closed group is a column of its cards'
+            // indices instead of overlapped cards — every card still there
+            // and still in order, at about a third of the height. Only while
+            // it is closed: opening a group is asking to see the cards, and
+            // the tap that opens it is the one it already had.
+            const indices = groupShowsIndices(metrics, groupOpen, folded);
             // Only meaningful while this exact group is the one being
             // hovered — `hoveredPosition` is a fact about `hoveredDrop`, not
             // about every group on the board.
@@ -344,19 +384,41 @@ export function ZoneView({
             // someone else between the hover and this render, and a gap drawn
             // past the end of the stack is worse than none.
             const hoveredSlot =
-              hoveredSlice?.slot != null
+              hoveredSlice?.slot != null && !folded
                 ? Math.max(0, Math.min(hoveredSlice.slot, g.cards.length))
                 : null;
             // How far apart consecutive cards in this stack are drawn: the
-            // corner each one leaves showing while the meld is closed, and a
-            // whole card once it has been tapped open.
-            const stackStep = groupOpen ? stackedCardBox(metrics) : metrics.stackedCorner;
+            // corner each one leaves showing while the meld is closed, an
+            // index and its gap while it is a column of indices, and a whole
+            // card once it has been tapped open.
+            const stackStep = indices
+              ? cardIndexStep(metrics)
+              : groupOpen
+                ? stackedCardBox(metrics)
+                : metrics.stackedCorner;
+            const mark = changedGroups?.get(g.id);
+            // Which of this group's cards to ring: the added ones, matched
+            // from the end, since a card added to a group lands last more
+            // often than not and duplicates (two decks) are otherwise equal.
+            const ringed = new Set<number>();
+            if (mark && !mark.fresh) {
+              const want = new Map<string, number>();
+              for (const c of mark.added) want.set(c, (want.get(c) ?? 0) + 1);
+              for (let i = g.cards.length - 1; i >= 0; i--) {
+                const n = want.get(g.cards[i]) ?? 0;
+                if (n > 0) {
+                  ringed.add(i);
+                  want.set(g.cards[i], n - 1);
+                }
+              }
+            }
             return (
               <View
                 key={g.id}
                 ref={(n) => registerDrop?.(groupId, n as unknown as Measurable | null)}
                 style={[
                   styles.group,
+                  !!mark && styles.changed,
                   groupArmed && styles.armed,
                   groupLive && styles.live,
                   groupRefused && styles.refused,
@@ -397,18 +459,22 @@ export function ZoneView({
                   testID={`group-toggle-${g.id}`}
                 >
                   <View style={styles.stackedCards}>
-                    {g.cards.map((c, i) => (
+                    {shownAt.map((i, j) => {
+                      const c = g.cards[i];
+                      return (
                       <View
                         key={`${g.id}-${c}-${i}`}
                         style={[
-                          i > 0 && !groupOpen && styles.stackedOverlap,
+                          j > 0 && !groupOpen && (indices ? styles.indexGap : styles.stackedOverlap),
                           // Stepping down out of the way, so the gap this card
                           // would be pushed along by is a gap you can see.
                           // Same move the hand makes and for the same reason
                           // (see `HandZone`'s `splitFor`): a transform, so the
                           // group's own box — which is what the drop is
                           // hit-tested against — does not stir.
-                          hoveredSlot !== null && i >= hoveredSlot && styles.steppedAside,
+                          hoveredSlot !== null &&
+                            i >= hoveredSlot &&
+                            (indices ? styles.indexSteppedAside : styles.steppedAside),
                         ]}
                         // The card this box holds, said out loud. A meld's
                         // cards had no label of their own: a screen reader
@@ -426,10 +492,18 @@ export function ZoneView({
                             mounting right now, which is exactly the one a
                             flight is bringing. */}
                         <SettleIn kind="settle" delay={entranceDelay}>
-                          <CardView card={c} compact stacked={!groupOpen} />
+                          {indices ? (
+                            <CardIndex card={c} testID={`index-${g.id}-${i}`} />
+                          ) : (
+                            <CardView card={c} compact stacked={!groupOpen} />
+                          )}
                         </SettleIn>
+                        {ringed.has(i) ? (
+                          <View pointerEvents="none" style={styles.cardRing} testID={`card-mark-${g.id}-${i}`} />
+                        ) : null}
                       </View>
-                    ))}
+                      );
+                    })}
                     {/* The hole itself, drawn inside the stack so its place is
                         counted in cards rather than in the group's padding.
                         Absolute, so it adds nothing to the group's measured
@@ -439,11 +513,27 @@ export function ZoneView({
                       <View
                         pointerEvents="none"
                         testID={`group-slice-${g.id}`}
-                        style={[styles.hole, { top: hoveredSlot * stackStep }]}
+                        style={[styles.hole, indices && styles.indexHole, { top: hoveredSlot * stackStep }]}
                       />
                     ) : null}
                   </View>
+                  {folded ? (
+                    <Text style={styles.foldedCount} testID={`group-folded-${g.id}`}>
+                      ×{g.cards.length}
+                    </Text>
+                  ) : null}
                 </Pressable>
+                {mark ? (
+                  <View pointerEvents="none" style={styles.markTag} testID={`group-mark-${g.id}`}>
+                    <Text style={styles.markTagText}>
+                      {mark.fresh
+                        ? t('marks.fresh')
+                        : mark.added.length
+                          ? t('marks.added', { n: mark.added.length })
+                          : t('marks.reshaped')}
+                    </Text>
+                  </View>
+                ) : null}
                 {(g.badgeKeys ?? []).map((b) => (
                   <Text key={b} style={styles.badge}>
                     {label(b)}
@@ -611,18 +701,6 @@ function StackBack({ count, compact, metrics }: { count: number; compact?: boole
   );
 }
 
-/**
- * How tall one card in a meld's stack stands, ring and all.
- *
- * The overlap that closes a stack, the step a card takes aside to show a drop
- * spot, and the hole that opens where it stepped from are all this same
- * number, so it is written once. Two of them disagreeing by a pixel is a gap
- * that does not line up with the cards either side of it.
- */
-function stackedCardBox(m: Metrics): number {
-  return m.card.compactHeight + 2 * (m.card.ringPadding + m.card.ringBorder);
-}
-
 function zoneStyles(m: Metrics, s: Skin) {
   const colors = s.colors;
   const dropArmed = s.dropArmed;
@@ -667,6 +745,11 @@ function zoneStyles(m: Metrics, s: Skin) {
     // hit-tested against, must not move — same rule as `live` and `hovered`
     // below, kept by drawing elsewhere rather than by not moving at all.
     steppedAside: { transform: [{ translateY: stackedCardBox(m) }] },
+    // The same three for a column of card indices (see `CardIndex`): no
+    // overlap, just the gap; a step of one index; a hole one index tall.
+    indexGap: { marginTop: CARD_INDEX_GAP },
+    indexSteppedAside: { transform: [{ translateY: cardIndexStep(m) }] },
+    indexHole: { height: cardIndexBox(m).height },
     // The space itself. Outlined in the skin's drop colour, the same dashed
     // card-shaped hole the hand opens, and absolutely positioned inside the
     // stack so it adds nothing to what anything measures.
@@ -682,7 +765,11 @@ function zoneStyles(m: Metrics, s: Skin) {
     // Row + wrap rather than one meld per line: stackedCards narrows each
     // group to about one card's width, so several now fit across before
     // wrapping instead of each claiming a full-width row on its own.
-    groups: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
+    // alignItems: flex-start so each group is the height of its own cards
+    // rather than of the tallest one beside it — the row's default stretch
+    // gave a group of three the height of a group of seven and left the
+    // difference as empty box.
+    groups: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 6, marginTop: 4 },
     group: {
       borderWidth: 1,
       borderColor: colors.border,
@@ -720,7 +807,34 @@ function zoneStyles(m: Metrics, s: Skin) {
     // discipline as `live`/`hovered`: this box must not change size just
     // because it was tapped.
     armed: { borderColor: colors.gold, backgroundColor: 'rgba(251, 191, 36, 0.10)' },
+    // Changed by somebody else since the viewer last acted. Colour only, like
+    // every other state a group can be in; the tag and rings below are
+    // absolutely positioned for the same reason.
+    changed: { borderColor: colors.success },
+    markTag: {
+      position: 'absolute',
+      top: -7,
+      right: -4,
+      backgroundColor: colors.success,
+      borderRadius: 7,
+      paddingHorizontal: 5,
+      paddingVertical: 1,
+    },
+    markTagText: { color: colors.bg, fontSize: 9, fontWeight: '800', letterSpacing: 0.3 },
+    cardRing: {
+      position: 'absolute',
+      top: -1,
+      left: -1,
+      right: -1,
+      bottom: -1,
+      borderRadius: 6,
+      borderWidth: 2,
+      borderColor: colors.success,
+    },
+    markChip: { backgroundColor: colors.success, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 1 },
+    markChipText: { color: colors.bg, fontSize: 10, fontWeight: '800' },
     badge: { color: colors.gold, fontSize: 10, marginTop: 2 },
+    foldedCount: { color: colors.muted, fontSize: 10, marginTop: 2 },
     hidden: { color: colors.muted, fontSize: 11, marginTop: 6, fontStyle: 'italic' },
     dropHere: { color: colors.gold, fontSize: 11, marginTop: 6, fontStyle: 'italic' },
     back: {

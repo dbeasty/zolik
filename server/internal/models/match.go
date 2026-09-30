@@ -83,6 +83,20 @@ type Match struct {
 	AbandonAt       *time.Time `bson:"abandonAt,omitempty" json:"abandonAt,omitempty"`
 	SuspendedPlayer string     `bson:"suspendedPlayer,omitempty" json:"suspendedPlayer,omitempty"`
 
+	// Rematch is the table this one is being played again at, once a seated
+	// player asked for it. Set once, so everybody who presses "play again"
+	// afterwards is sent to the same table rather than each opening their own.
+	Rematch *RematchRef `bson:"rematch,omitempty" json:"rematch,omitempty"`
+	// RematchOf is the finished table this lobby was opened from.
+	RematchOf string `bson:"rematchOf,omitempty" json:"rematchOf,omitempty"`
+	// Reserved are the people from that table who have not sat down yet. Each
+	// holds a seat nobody else can take — a stranger with the join code meets
+	// MATCH_FULL — until they sit, say no thanks, or the table is dealt.
+	Reserved []Reservation `bson:"reserved,omitempty" json:"reserved,omitempty"`
+	// SeatOrder is the finished table's order, which a rematch keeps: whoever
+	// sits down late is put back where they sat, not at the end.
+	SeatOrder []string `bson:"seatOrder,omitempty" json:"-"`
+
 	// Version drives the same optimistic-concurrency scheme Game uses: a
 	// filtered replace that fails if someone else wrote first.
 	Version int64 `bson:"version" json:"-"`
@@ -92,6 +106,30 @@ type Match struct {
 	// already carrying it — and leaves a trail back to the original if a
 	// migrated match ever looks wrong.
 	MigratedFrom bson.ObjectID `bson:"migratedFrom,omitempty" json:"-"`
+}
+
+// RematchRef points a finished table at the one it is being played again at.
+type RematchRef struct {
+	MatchID string `bson:"matchId" json:"matchId"`
+	// HostID is who asked, so the others can be told whose table it is.
+	HostID string `bson:"hostId" json:"hostId"`
+}
+
+// Reservation is a seat held at a rematch for somebody from the last table.
+type Reservation struct {
+	PlayerID string `bson:"playerId" json:"playerId"`
+	Name     string `bson:"name" json:"name"`
+	Avatar   string `bson:"avatar,omitempty" json:"avatar,omitempty"`
+	// UserID and GuestID are who holds it, as on Player, so the person can
+	// be reached before they have sat down — and told when it is let go.
+	UserID  string `bson:"userId,omitempty" json:"-"`
+	GuestID string `bson:"guestId,omitempty" json:"-"`
+}
+
+// Player is the seat this reservation is for, as far as it is known before
+// its holder sits down.
+func (r Reservation) Player() Player {
+	return Player{ID: r.PlayerID, Name: r.Name, Avatar: r.Avatar, UserID: r.UserID, GuestID: r.GuestID}
 }
 
 // MatchAction is one accepted move, stored verbatim and never rewritten.

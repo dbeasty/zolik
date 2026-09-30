@@ -572,3 +572,21 @@ export function toggleSelection(
   else next.add(slotId);
   return next;
 }
+
+/**
+ * The slots holding these cards, matched card for card — two decks can put the
+ * same card in a hand twice, and asking for it twice means both copies.
+ */
+export function slotsForCards(slots: Slot[], cards: string[]): Set<string> {
+  const want = new Map<string, number>();
+  for (const c of cards) want.set(c, (want.get(c) ?? 0) + 1);
+  const out = new Set<string>();
+  for (const s of slots) {
+    const n = want.get(s.card) ?? 0;
+    if (n > 0) {
+      out.add(s.id);
+      want.set(s.card, n - 1);
+    }
+  }
+  return out;
+}

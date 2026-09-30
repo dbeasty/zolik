@@ -1,6 +1,6 @@
 import { ZOLIK_BASE_URL } from '@/src/config';
 import { HttpTransport, type SocketLike, type Transport } from '@/src/net/transport';
-import type { MatchModule, MatchState, ModuleRules, Replay, StoredTable } from '@/src/api/matchTypes';
+import type { MatchAction, MatchModule, MatchState, ModuleRules, Replay, StoredTable } from '@/src/api/matchTypes';
 import type {
   AccountProfile,
   AuthProvider,
@@ -10,7 +10,11 @@ import type {
   CircleLists,
   CircleSuggestion,
   FriendPreview,
+  GuestProof,
   InvitePreference,
+  Leaderboard,
+  LeaderboardKind,
+  LeaderboardScope,
   LifetimeStats,
   LinkedIdentity,
   NodeEnrolment,
@@ -18,6 +22,8 @@ import type {
   NotifyProfile,
   PlayerSession,
   PushDeviceRegistration,
+  SeatClaim,
+  SeatPreview,
   SignInOutcome,
   WaitingPlayer,
 } from '@/src/api/types';
@@ -124,26 +130,37 @@ export class ZolikClient {
   }
 
   /**
-   * Starts a guest session, reusing this device's guest identity when it has
-   * one.
+   * Starts a guest session, resuming this device's guest identity when it can
+   * prove it holds one.
    *
-   * Passing the existing id back is what keeps a guest's play attributable to
-   * one device across sessions, and therefore what makes it claimable when
-   * they eventually sign in. Without it every launch would look like a new
-   * person and the history would be unreachable.
+   * Passing the proof back is what keeps a guest's play attributable to one
+   * person across sessions, and therefore what makes it claimable when they
+   * eventually sign in. The proof is the guest *key*, not the guest id: the id
+   * is shown to everyone at every table, so the server treats a bare id as
+   * nothing and mints a new guest. A refresh token from before keys existed
+   * still works while it is live, which is how an older install gets its key.
    */
-  async guestLogin(name: string, guestId?: string): Promise<PlayerSession> {
+  async guestLogin(name: string, proof: GuestProof = {}): Promise<PlayerSession> {
     const data = await this.post<{
       accessToken: string;
       refreshToken: string;
       guestName: string;
       guestId: string;
+      guestKey?: string;
       userId: string;
       claimableMatches?: number;
       // A name is sent only when there is one. An empty field means "you
       // pick", and the server picks from the device's guest id — see
       // src/lib/guestName.ts for why neither side answers "Player".
-    }>('/auth/guest', { guestName: name || undefined, guestId: guestId || undefined }, false);
+    }>(
+      '/auth/guest',
+      {
+        guestName: name || undefined,
+        guestKey: proof.guestKey || undefined,
+        guestRefreshToken: proof.refreshToken || undefined,
+      },
+      false,
+    );
     this.accessToken = data.accessToken;
     this.refreshToken = data.refreshToken;
     this.userId = data.userId || data.guestId;
@@ -156,6 +173,7 @@ export class ZolikClient {
       username: data.guestName || name,
       isGuest: true,
       guestId: data.guestId,
+      guestKey: data.guestKey,
       claimableMatches: data.claimableMatches ?? 0,
     };
   }
@@ -232,10 +250,10 @@ export class ZolikClient {
    * travels in game state and match records — possession of the session is
    * what actually distinguishes the owner of that history.
    */
-  async claimGuestHistory(guestRefreshToken: string): Promise<number> {
+  async claimGuestHistory(proof: GuestProof): Promise<number> {
     const data = await this.post<{ claimedMatches: number }>(
       '/auth/claim-guest',
-      { guestRefreshToken },
+      { guestKey: proof.guestKey || undefined, guestRefreshToken: proof.refreshToken || undefined },
       true,
     );
     return data.claimedMatches ?? 0;
@@ -456,6 +474,15 @@ export class ZolikClient {
   }
 
   /**
+   * The move this player's seat would make now, suggested and never made.
+   * Refused with HINTS_OFF at a table that turned hints off, and with
+   * NOT_YOUR_TURN when there is nothing to suggest.
+   */
+  async hint(idOrCode: string): Promise<{ action: MatchAction }> {
+    return this.post(`/matches/${encodeURIComponent(idOrCode)}/hint`, null, true);
+  }
+
+  /**
    * Put the table in a given seat order, before it is dealt. Host only.
    *
    * This is how partnerships are chosen. In a game with sides the turn
@@ -481,10 +508,70 @@ export class ZolikClient {
     await this.post(`/matches/${encodeURIComponent(idOrCode)}/resume`, null, true);
   }
 
-  /** A viewer's state over plain HTTP; the socket is the live path. */
-  async getMatch(idOrCode: string, as?: string): Promise<MatchState> {
-    const q = as ? `?as=${encodeURIComponent(as)}` : '';
-    return this.get(`/matches/${encodeURIComponent(idOrCode)}${q}`, false);
+  /**
+   * Play a finished table again with the same people. The first press opens
+   * the rematch and hosts it; any later one, from anybody at the table, sits
+   * down at that same one. The answer says where to go: a lobby while there
+   * are others to wait for, a dealt table when there are none.
+   */
+  async rematch(idOrCode: string): Promise<{ matchId: string; status: string; hostId: string }> {
+    return this.post(`/matches/${encodeURIComponent(idOrCode)}/rematch`, null, true);
+  }
+
+  /**
+   * The host not waiting for somebody a rematch is holding a seat for. With
+   * `bot`, a bot at the table's own skill sits where they would have sat.
+   */
+  async releaseHeldSeat(rematchId: string, playerId: string, bot: boolean): Promise<void> {
+    await this.post(
+      `/matches/${encodeURIComponent(rematchId)}/rematch/release`,
+      { playerId, bot },
+      true,
+    );
+  }
+
+  /** Give back the seat a rematch was holding for this player. */
+  async declineRematch(rematchId: string): Promise<void> {
+    await this.post(`/matches/${encodeURIComponent(rematchId)}/rematch/decline`, null, true);
+  }
+
+  /**
+   * A link that brings one person back to their seat at a started table —
+   * for somebody on a new device or a cleared browser. Anybody seated at the
+   * table may make one for anybody at it; making another replaces it.
+   * `url` is empty when the server has no public base: build it from `path`.
+   */
+  async mintSeatLink(matchId: string, playerId: string): Promise<{ path: string; url: string }> {
+    return this.post(
+      `/matches/${encodeURIComponent(matchId)}/seats/${encodeURIComponent(playerId)}/link`,
+      null,
+      true,
+    );
+  }
+
+  /** Whose seat a link opens, and at which table. Names and faces only. */
+  async seatPreview(matchId: string, secret: string): Promise<SeatPreview> {
+    return this.get(`/seats/${encodeURIComponent(matchId)}/${encodeURIComponent(secret)}`, false);
+  }
+
+  /**
+   * Takes the seat a link opens. Sent with this device's own token when it
+   * has one, so somebody who already is that seat is simply sent back to it
+   * (`alreadyYours`); anybody else gets a token that plays that seat at that
+   * table and nothing more.
+   */
+  async claimSeat(matchId: string, secret: string): Promise<SeatClaim> {
+    return this.post(`/seats/${encodeURIComponent(matchId)}/${encodeURIComponent(secret)}/claim`, null, true);
+  }
+
+  /**
+   * A viewer's state over plain HTTP; the socket is the live path.
+   *
+   * The viewer is whoever this session's token says it is. Without one the
+   * server answers with the spectator view: every public fact, no hands.
+   */
+  async getMatch(idOrCode: string): Promise<MatchState> {
+    return this.get(`/matches/${encodeURIComponent(idOrCode)}`, true);
   }
 
   /**
@@ -578,11 +665,25 @@ export class ZolikClient {
   }
 
   /** `scope` picks which record ranks: 'overall' | 'vs_humans' | 'vs_ai'.
-   *  `kind` defaults to human players; pass 'ai' for the bot standings. */
+   *  `kind` defaults to human players; pass 'ai' for the bot standings.
+   *
+   *  Unauthenticated on purpose: a signed-out visitor and a guest both get to
+   *  see who is winning, which is most of the reason the board exists. */
   async getLeaderboard(
-    opts: { scope?: string; kind?: string; minMatches?: number; limit?: number } = {},
-  ): Promise<unknown> {
-    return this.get(`/leaderboard${queryString(opts)}`, false);
+    opts: {
+      scope?: LeaderboardScope;
+      kind?: LeaderboardKind;
+      minMatches?: number;
+      limit?: number;
+    } = {},
+  ): Promise<Leaderboard> {
+    const body = await this.get<Leaderboard>(`/leaderboard${queryString(opts)}`, false);
+    // The server always sends `entries`, empty array included (rankLeaderboard
+    // returns an initialised slice on every path). This default is only so that
+    // an unexpected body renders the screen's empty state rather than throwing
+    // inside a `.map` — the type says the key is there, and a runtime that
+    // disagrees should still show a page.
+    return { ...body, entries: body.entries ?? [] };
   }
 
 

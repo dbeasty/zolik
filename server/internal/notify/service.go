@@ -98,6 +98,10 @@ type announcement struct {
 	invite Invite
 	told   map[string]bool
 	at     time.Time
+	// circle is whether the host has announced it to their circle. A
+	// rematch's own invites are remembered here too, so dealing withdraws
+	// them, without that counting as the circle having been told.
+	circle bool
 }
 
 // Invite is the wire shape of one table somebody was told about.
@@ -112,6 +116,9 @@ type Invite struct {
 	Variation   string     `json:"variation,omitempty"`
 	Host        InviteHost `json:"host"`
 	SentAt      time.Time  `json:"sentAt"`
+	// RematchOf is the finished table this one plays again, when it does:
+	// the invite is then to a seat held for the reader, not to any seat.
+	RematchOf string `json:"rematchOf,omitempty"`
 }
 
 type InviteHost struct {
@@ -631,11 +638,15 @@ func (s *Service) Announce(ctx context.Context, uc auth.UserContext, matchID str
 	s.mu.Lock()
 	s.expireLocked(now)
 	a, known := s.announced[m.ID.Hex()]
+	known = known && a.circle
 	if !known {
 		if len(s.hostLog[me]) >= hostTablesPerHour {
 			s.mu.Unlock()
 			return 0, false, module.Error{Code: "RATE_LIMITED"}
 		}
+		s.hostLog[me] = append(s.hostLog[me], now)
+	}
+	if a == nil {
 		a = &announcement{
 			host: me,
 			invite: Invite{
@@ -648,8 +659,8 @@ func (s *Service) Announce(ctx context.Context, uc auth.UserContext, matchID str
 			at:   now,
 		}
 		s.announced[m.ID.Hex()] = a
-		s.hostLog[me] = append(s.hostLog[me], now)
 	}
+	a.circle = true
 	var recipients []string
 	for _, k := range candidates {
 		if a.told[k] {
@@ -701,6 +712,85 @@ func (s *Service) expireLocked(now time.Time) {
 	}
 }
 
+// RematchOpened tells everybody a rematch is holding a seat for, wherever
+// they are — the finished table's own banner reaches only the ones still
+// looking at it. Satisfies match.RematchObserver.
+//
+// Not the circle's rules: they have just played together, so no circle edge
+// is needed and none of the announcing limits apply — a rematch is one table
+// per finished one, which is its own limit. What the reader asked for still
+// holds: invites switched off, or this host muted, and they are not told.
+//
+// Remembered like an announcement, so dealing the table withdraws it.
+func (s *Service) RematchOpened(next models.Match, host models.Player, held []models.Player) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	hostKey := KeyForPlayer(host)
+	muted := map[string]bool{}
+	if edges, err := s.repo.EdgesByOwner(ctx, hostKey); err == nil {
+		for _, e := range edges {
+			if e.Muted {
+				muted[e.MemberKey] = true
+			}
+		}
+	}
+	var recipients []string
+	for _, p := range held {
+		k := KeyForPlayer(p)
+		if k == "" || muted[k] {
+			continue
+		}
+		if prof, err := s.repo.GetProfile(ctx, k); err == nil && prof.Invites == InvitesOff {
+			continue
+		}
+		recipients = append(recipients, k)
+	}
+	if len(recipients) == 0 {
+		return
+	}
+
+	now := s.now()
+	invite := Invite{
+		ID: next.ID.Hex(), MatchID: next.ID.Hex(), JoinCode: next.JoinCode,
+		ModuleID: next.ModuleID, ModuleLabel: s.gameName("en", next.ModuleID), Variation: next.Variation,
+		Host:      InviteHost{Key: hostKey, Name: host.Name, Avatar: host.Avatar},
+		SentAt:    now,
+		RematchOf: next.RematchOf,
+	}
+	told := make(map[string]bool, len(recipients))
+	for _, k := range recipients {
+		told[k] = true
+	}
+	s.mu.Lock()
+	s.expireLocked(now)
+	s.announced[next.ID.Hex()] = &announcement{host: hostKey, invite: invite, told: told, at: now}
+	s.mu.Unlock()
+
+	for _, k := range recipients {
+		s.publish(k, map[string]any{"type": "table_invite", "invite": invite})
+	}
+	go s.pushRematch(recipients, invite)
+}
+
+// HeldSeatReleased withdraws a rematch invite from the one person whose seat
+// was let go — they said no, or the host stopped waiting. Everybody else's
+// stands. Satisfies match.RematchObserver.
+func (s *Service) HeldSeatReleased(matchID string, holder models.Player) {
+	k := KeyForPlayer(holder)
+	s.mu.Lock()
+	a, ok := s.announced[matchID]
+	told := ok && a.told[k]
+	if told {
+		delete(a.told, k)
+	}
+	s.mu.Unlock()
+	if !told {
+		return
+	}
+	s.publish(k, map[string]any{"type": "invite_revoked", "id": matchID})
+	go s.pushRevoke([]string{k}, matchID)
+}
+
 // LobbyClosed withdraws every invite to a table that has started, filled or
 // gone. Satisfies match.LobbyObserver.
 func (s *Service) LobbyClosed(matchID string) {
@@ -741,6 +831,23 @@ func (s *Service) pushInvite(keys []string, inv Invite) {
 			return &Push{
 				Title: text(d.Locale, "notify.push.inviteTitle", params),
 				Body:  text(d.Locale, "notify.push.inviteBody", params),
+				URL:   s.inviteURL(inv.JoinCode),
+				Tag:   "invite:" + inv.MatchID,
+				Data:  map[string]any{"type": "table_invite", "invite": inv, "url": "/join/" + inv.JoinCode},
+			}
+		})
+	}
+}
+
+func (s *Service) pushRematch(keys []string, inv Invite) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	for _, k := range keys {
+		s.pushTo(ctx, k, func(d Device) *Push {
+			params := map[string]string{"host": inv.Host.Name, "game": s.gameName(d.Locale, inv.ModuleID)}
+			return &Push{
+				Title: text(d.Locale, "notify.push.rematchTitle", params),
+				Body:  text(d.Locale, "notify.push.rematchBody", params),
 				URL:   s.inviteURL(inv.JoinCode),
 				Tag:   "invite:" + inv.MatchID,
 				Data:  map[string]any{"type": "table_invite", "invite": inv, "url": "/join/" + inv.JoinCode},

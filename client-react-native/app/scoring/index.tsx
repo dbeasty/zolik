@@ -79,7 +79,7 @@ export default function ScoringScreen() {
   if (!signedIn) return <SignInRequired title={t('more.scoreTable')} />;
 
   return (
-    <Screen title={t('more.scoreTable')} scroll>
+    <Screen title={t('more.scoreTable')} subtitle={t('scoring.subtitle')} scroll>
       {!sessionId ? (
         <>
           <Text style={shared.status}>{t('scoring.namesHint')}</Text>
