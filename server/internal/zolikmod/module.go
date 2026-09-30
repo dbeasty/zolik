@@ -368,6 +368,9 @@ func toSelector(s *rules.Selector, playerID string) *module.Selector {
 		ZoneID: zoneIDFor(s, playerID),
 		Cards:  s.Cards, MinCards: s.MinCards, MaxCards: s.MaxCards,
 	}
+	for _, r := range s.Refused {
+		out.Refused = append(out.Refused, module.CardRefusal{Card: r.Card, WhyNot: string(r.WhyNot)})
+	}
 	for _, p := range s.Placements {
 		out.Placements = append(out.Placements, module.Placement{
 			Card: p.Card, Positions: p.Positions, Slots: p.Slots,
@@ -441,6 +444,9 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 	// prompt — see badgedCardViews.
 	owedPickup := ""
 	var owedJokers []string
+	// And the card taken off the pile by a player already down: owed to
+	// nothing, but not to be handed straight back while anything else could go.
+	heldBack := rules.HeldBackTakenCard(gs, viewerID)
 	if gs.CurrentTurn == viewerID {
 		owedPickup = gs.DiscardDrawnCardPendingMeld
 		if cfg.JokerReclaimMustPlay {
@@ -452,7 +458,7 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 	if viewerID != "" {
 		vm.Zones = append(vm.Zones, module.Zone{
 			ID: handZoneID(viewerID), Kind: module.ZoneHand, OwnerID: viewerID,
-			LabelKey: "zone.yourHand", Cards: badgedCardViews(own, owedPickup, owedJokers), Count: len(own),
+			LabelKey: "zone.yourHand", Cards: badgedCardViews(own, owedPickup, owedJokers, heldBack), Count: len(own),
 		})
 	}
 	for _, p := range gs.TurnOrder {
@@ -597,27 +603,29 @@ func shownPile(gs rules.GameState, cfg rules.RulesConfig) []string {
 }
 
 func cardViews(cards []string) []module.CardView {
-	return badgedCardViews(cards, "", nil)
+	return badgedCardViews(cards, "", nil, "")
 }
 
 // badgedCardViews marks the cards the player owes the table: `owedPickup` is
 // the card a discard-pile pickup obliges them to lay down this turn, and
 // `owedJokers` are the jokers taken off the table that must be played again
 // before the turn ends — each debt with its own badge, since "came off the
-// pile" and "came off the table" are different instructions.
+// pile" and "came off the table" are different instructions. `heldBack` is not
+// a debt but a ban: the pickup of a player already down, which may not go
+// straight back on the pile this turn (rules.HeldBackTakenCard).
 //
 // Marked rather than only refused later. The rules are enforced at the
 // discard, which is the last possible moment to hear about them — by then the
 // player has already decided what their turn was for. On the card, it is an
 // instruction while there is still a turn left to act on it.
-func badgedCardViews(cards []string, owedPickup string, owedJokers []string) []module.CardView {
+func badgedCardViews(cards []string, owedPickup string, owedJokers []string, heldBack string) []module.CardView {
 	// Counted, not set-membership: two decks put a second copy of every card
 	// in play, and only as many copies are owed as the debts name.
 	owingJoker := map[string]int{}
 	for _, j := range owedJokers {
 		owingJoker[j]++
 	}
-	pickupMarked := false
+	pickupMarked, heldMarked := false, false
 	out := make([]module.CardView, 0, len(cards))
 	for _, c := range cards {
 		cv := module.CardView{Card: c}
@@ -628,6 +636,9 @@ func badgedCardViews(cards []string, owedPickup string, owedJokers []string) []m
 		case owingJoker[c] > 0:
 			cv.BadgeKeys = []string{"zolik.badge.jokerOwed"}
 			owingJoker[c]--
+		case heldBack != "" && c == heldBack && !heldMarked:
+			cv.BadgeKeys = []string{"zolik.badge.noReturn"}
+			heldMarked = true
 		}
 		out = append(out, cv)
 	}

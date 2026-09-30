@@ -549,6 +549,8 @@ export const da: Record<string, string> = {
     '{card} kom fra kastebunken — det skal indgå i de kombinationer, du lægger ud med i denne tur.',
   'zolik.badge.jokerOwed':
     '{card} kom fra bordet — det skal indgå i en kombination, før du kan afslutte din tur.',
+  'zolik.badge.noReturn':
+    '{card} kom fra kastebunken i denne tur — det kan ikke gå lige tilbage. Spil det eller behold det.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is

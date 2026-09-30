@@ -149,6 +149,19 @@ type Selector struct {
 	// every legal card combination is not feasible.
 	MinCards int `json:"minCards,omitempty"`
 	MaxCards int `json:"maxCards,omitempty"`
+
+	// Refused lists the cards in Zone this offer would otherwise take but the
+	// engine refuses, each with its own reason. An enabled offer can still
+	// turn down a particular card — the joker ban, or the card just taken off
+	// the discard pile — and a card that is merely absent from Cards is a
+	// refusal with nothing to say for itself.
+	Refused []CardRefusal `json:"refused,omitempty"`
+}
+
+// CardRefusal is one card an offer turns down, and the engine's code for why.
+type CardRefusal struct {
+	Card   string         `json:"card"`
+	WhyNot RulesErrorCode `json:"whyNot"`
 }
 
 // ActionOffer is one affordance the interface may present. The full set is
@@ -218,24 +231,7 @@ func LegalActions(state GameState, playerID string) []ActionOffer {
 	// lay-off control below: the two ends of an ordinary turn — take a card,
 	// get rid of one — belong next to each other on screen, not separated by
 	// a run of controls most turns never touch.
-	discard := ActionOffer{ID: OfferDiscard, Verb: VerbDiscard}
-	// Probed with a real card so the joker restriction and the
-	// incomplete-initial-meld/pending-pickup obligations are all exercised;
-	// falls back to a phase-only probe for an empty hand.
-	discard.Enabled, discard.WhyNot = probeDiscard(state, playerID, hand)
-	dsrc := &Selector{Zone: ZoneHand, OwnerID: playerID, MinCards: 1, MaxCards: 1}
-	if active {
-		dsrc.Cards = discardableCards(state, playerID, hand)
-	}
-	// The last card in hand is not an ordinary discard: laying it closes the
-	// deal for everyone. Said on the control, because "Discard" over a press
-	// that ends the deal is a surprise the player only learns by making it.
-	if len(hand) == 1 && len(dsrc.Cards) == 1 {
-		discard.LabelKey = "verb.discardToClose"
-	}
-	discard.Source = dsrc
-	discard.Target = &Selector{Zone: ZoneDiscardPile}
-	offers = append(offers, discard)
+	offers = append(offers, DiscardOffer(state, playerID))
 
 	discardDraw := ActionOffer{ID: OfferDrawDiscard, Verb: VerbDraw, LabelKey: "verb.takeFromDiscard"}
 	discardDraw.Enabled, discardDraw.WhyNot = probe(state, playerID, Action{
@@ -297,6 +293,33 @@ func LegalActions(state GameState, playerID string) []ActionOffer {
 	return offers
 }
 
+// DiscardOffer is the discard entry of LegalActions on its own, for a caller
+// that only needs to know whether and what the player may discard.
+func DiscardOffer(state GameState, playerID string) ActionOffer {
+	hand := state.Hands[playerID]
+	discard := ActionOffer{ID: OfferDiscard, Verb: VerbDiscard}
+	// Probed with a real card so the joker restriction and the
+	// incomplete-initial-meld/pending-pickup obligations are all exercised;
+	// falls back to a phase-only probe for an empty hand.
+	discard.Enabled, discard.WhyNot = probeDiscard(state, playerID, hand)
+	dsrc := &Selector{Zone: ZoneHand, OwnerID: playerID, MinCards: 1, MaxCards: 1}
+	active := state.CurrentTurn == playerID &&
+		state.Status == StatusActive &&
+		state.Phase != PhaseSuspended
+	if active {
+		dsrc.Cards, dsrc.Refused = discardableCards(state, playerID, hand)
+	}
+	// The last card in hand is not an ordinary discard: laying it closes the
+	// deal for everyone. Said on the control, because "Discard" over a press
+	// that ends the deal is a surprise the player only learns by making it.
+	if len(hand) == 1 && len(dsrc.Cards) == 1 {
+		discard.LabelKey = "verb.discardToClose"
+	}
+	discard.Source = dsrc
+	discard.Target = &Selector{Zone: ZoneDiscardPile}
+	return discard
+}
+
 // FindOffer returns the offer with this ID, or nil.
 func FindOffer(offers []ActionOffer, id string) *ActionOffer {
 	for i := range offers {
@@ -338,9 +361,16 @@ func probeMeldPhase(state GameState, playerID string) (bool, RulesErrorCode) {
 
 // probeDiscard gates the discard verb using a card actually in hand, so the
 // joker restriction and the two initial-meld obligations are all exercised.
-// A card-specific rejection (CARD_NOT_IN_HAND, JOKER_DISCARD_FORBIDDEN) is
-// about *that* card, not about the verb — the verb stays available as long
-// as some card in hand is discardable, which discardableCards then lists.
+// A card-specific rejection (CARD_NOT_IN_HAND, JOKER_DISCARD_FORBIDDEN,
+// DISCARD_TAKEN_CARD_FORBIDDEN) is about *that* card, not about the verb —
+// the verb stays available as long as some card in hand is discardable, which
+// discardableCards then lists.
+//
+// Getting this wrong is a dead position from the player's side. The card
+// taken off the pile is refused only while something else in hand could go
+// instead, so treating that refusal as a verdict on the verb disabled the
+// discard exactly when a legal one existed — whenever the taken card happened
+// to be the first one probed.
 func probeDiscard(state GameState, playerID string, hand []string) (bool, RulesErrorCode) {
 	if len(hand) == 0 {
 		return probe(state, playerID, Action{Type: ActionDiscard})
@@ -365,25 +395,37 @@ func probeDiscard(state GameState, playerID string, hand []string) (bool, RulesE
 }
 
 func isCardSpecific(code RulesErrorCode) bool {
-	return code == ErrJokerDiscard || code == ErrCardNotInHand
+	switch code {
+	case ErrJokerDiscard, ErrCardNotInHand, ErrDiscardTakenCard:
+		return true
+	}
+	return false
 }
 
 // discardableCards lists which cards in hand would actually be accepted as
 // this turn's discard — again by probing, so the joker rule and its
-// end-of-hand exception need no second implementation.
-func discardableCards(state GameState, playerID string, hand []string) []string {
+// end-of-hand exception need no second implementation — and, separately, the
+// cards turned down for a reason of their own. A refusal that is not about
+// the card (not down yet, a pickup still owed) refuses every card alike and
+// belongs to the offer, not to any one card, so it is not repeated here.
+func discardableCards(state GameState, playerID string, hand []string) ([]string, []CardRefusal) {
 	seen := map[string]bool{}
 	out := make([]string, 0, len(hand))
+	var refused []CardRefusal
 	for _, c := range hand {
 		if seen[c] {
 			continue
 		}
 		seen[c] = true
-		if ok, _ := probe(state, playerID, Action{Type: ActionDiscard, Card: c}); ok {
+		ok, code := probe(state, playerID, Action{Type: ActionDiscard, Card: c})
+		switch {
+		case ok:
 			out = append(out, c)
+		case isCardSpecific(code):
+			refused = append(refused, CardRefusal{Card: c, WhyNot: code})
 		}
 	}
-	return out
+	return out, refused
 }
 
 // drawablePileCards lists which discard-pile cards this ruleset allows the

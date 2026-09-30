@@ -556,6 +556,8 @@ export const pt: Record<string, string> = {
     '{card} veio do monte de descartes — tem de entrar nas combinações com que baixas nesta jogada.',
   'zolik.badge.jokerOwed':
     '{card} veio da mesa — tem de entrar numa combinação antes de poderes terminar a tua vez.',
+  'zolik.badge.noReturn':
+    '{card} veio do monte de descartes nesta jogada — não pode voltar logo. Joga-a ou fica com ela.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is

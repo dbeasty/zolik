@@ -558,6 +558,8 @@ export const es: Record<string, string> = {
     '{card} vino del montón de descarte — tiene que entrar en las combinaciones con las que te bajas este turno.',
   'zolik.badge.jokerOwed':
     '{card} vino de la mesa — tiene que entrar en una combinación antes de que puedas terminar tu turno.',
+  'zolik.badge.noReturn':
+    '{card} vino del montón de descarte este turno — no puede volver enseguida. Júgala o quédatela.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is

@@ -569,6 +569,8 @@ export const ga: Record<string, string> = {
     'Tháinig {card} ón gcarn caite — caithfidh sé dul isteach sna cumaisc a chuireann síos thú an seal seo.',
   'zolik.badge.jokerOwed':
     'Tháinig {card} ón mbord — caithfidh sé dul isteach i gcumasc sula bhféadfaidh tú do sheal a chríochnú.',
+  'zolik.badge.noReturn':
+    'Tháinig {card} ón gcarn caite an seal seo — ní féidir leis dul ar ais láithreach. Imir é nó coinnigh é.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is

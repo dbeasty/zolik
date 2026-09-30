@@ -556,6 +556,8 @@ export const ro: Record<string, string> = {
     '{card} a venit din teancul de aruncate — trebuie să intre în combinațiile cu care cobori în această tură.',
   'zolik.badge.jokerOwed':
     '{card} a venit de pe masă — trebuie să intre într-o combinație înainte să îți poți încheia tura.',
+  'zolik.badge.noReturn':
+    '{card} a venit din teancul de aruncate în această tură — nu se poate întoarce imediat. Joac-o sau ține-o.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is

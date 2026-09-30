@@ -556,6 +556,8 @@ export const fr: Record<string, string> = {
     '{card} vient de la défausse — cette carte doit entrer dans les combinaisons avec lesquelles tu te poses ce tour-ci.',
   'zolik.badge.jokerOwed':
     '{card} vient de la table — cette carte doit entrer dans une combinaison avant que tu puisses finir ton tour.',
+  'zolik.badge.noReturn':
+    '{card} vient de la défausse ce tour-ci — cette carte ne peut pas y retourner tout de suite. Joue-la ou garde-la.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is

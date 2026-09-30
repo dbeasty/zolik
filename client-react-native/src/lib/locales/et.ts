@@ -555,6 +555,8 @@ export const et: Record<string, string> = {
     '{card} tuli viskepakist — see peab minema kombinatsioonidesse, millega sa sel käigul välja lähed.',
   'zolik.badge.jokerOwed':
     '{card} tuli laualt — see peab minema kombinatsiooni, enne kui saad oma käigu lõpetada.',
+  'zolik.badge.noReturn':
+    '{card} tuli sel käigul viskepakist — see ei saa kohe tagasi minna. Mängi see välja või hoia alles.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is

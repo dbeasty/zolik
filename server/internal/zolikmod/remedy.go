@@ -40,6 +40,20 @@ func annotate(gs rules.GameState, playerID string, offers []module.ActionOffer) 
 
 	for i := range offers {
 		o := &offers[i]
+		// A card an enabled offer turns down is explained the same way the
+		// offer would be, with the card named where the remedy needs it.
+		if o.Source != nil {
+			for j := range o.Source.Refused {
+				r := &o.Source.Refused[j]
+				r.RuleIDs = explainRefusal(cfg, r.WhyNot)
+				if rules.RulesErrorCode(r.WhyNot) == rules.ErrDiscardTakenCard {
+					r.Remedy = &module.Fact{
+						LabelKey: "zolik.remedy.discardSomethingElse",
+						Params:   map[string]any{"card": r.Card},
+					}
+				}
+			}
+		}
 		if o.Enabled || o.WhyNot == "" {
 			continue
 		}

@@ -88,7 +88,29 @@ function coveredBy(wanted: string[], available: string[]): boolean {
 /** Why a set of cards is not ones this offer could ever send. */
 export type Fit =
   | { ok: true }
-  | { ok: false; labelKey: string; params?: Record<string, string | number> };
+  | {
+      ok: false;
+      labelKey: string;
+      params?: Record<string, string | number>;
+      /**
+       * Set when the server itself refused one of these cards — see
+       * `Selector.refused`. `labelKey` is then the code's own wording, and
+       * these carry the rules and the way out for the sheet.
+       */
+      code?: string;
+      ruleIds?: string[];
+      remedy?: Fact;
+    };
+
+/**
+ * A fit that failed, as the sheet's refusal: the server's code and rules when
+ * the server refused the card, this side's own wording otherwise.
+ */
+export function refusalOfFit(fit: Extract<Fit, { ok: false }>): NonNullable<DropSpot['refusal']> {
+  return fit.code
+    ? { code: fit.code, ruleIds: fit.ruleIds, remedy: fit.remedy }
+    : { labelKey: fit.labelKey, params: fit.params };
+}
 
 /**
  * Whether these particular cards are ones this offer could ever be sent
@@ -117,6 +139,19 @@ export function fits(offer: ActionOffer, cards: string[]): Fit {
   // No list at all means the offer bounds a shape rather than listing
   // combinations — a rummy meld — and any card in hand may go into it.
   if (enumerated && enumerated.length > 0 && !coveredBy(cards, enumerated)) {
+    // A card the server turned down by name says why, and which rule: the
+    // card taken off the pile this turn, a joker that may not be discarded.
+    // Only what is left over is this side's generic "not these".
+    const refused = offer.source?.refused?.find((r) => cards.includes(r.card));
+    if (refused) {
+      return {
+        ok: false,
+        labelKey: `err.${refused.whyNot}`,
+        code: refused.whyNot,
+        ruleIds: refused.ruleIds,
+        remedy: refused.remedy,
+      };
+    }
     return { ok: false, labelKey: 'sel.notThese' };
   }
   // Some cards are only legal with company, and the offer says which company:
@@ -196,7 +231,7 @@ export function dropSpotsFor(offers: ActionOffer[], cards: string[]): DropSpot[]
         offerId: offer.id,
         elementId,
         ready: false,
-        refusal: { labelKey: fit.labelKey, params: fit.params },
+        refusal: refusalOfFit(fit),
       });
       continue;
     }

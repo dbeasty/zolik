@@ -551,6 +551,8 @@ export const sk: Record<string, string> = {
   'zolik.badge.owedToMeld':
     '{card} prišla z odhadzovacieho balíčka — musí ísť do kombinácií, ktorými sa v tomto ťahu vykladáš.',
   'zolik.badge.jokerOwed': '{card} prišla zo stola — musí ísť do kombinácie, než budeš môcť ukončiť ťah.',
+  'zolik.badge.noReturn':
+    '{card} prišla v tomto ťahu z odhadzovacieho balíčka — nemôže sa hneď vrátiť. Zahraj ju alebo si ju nechaj.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is

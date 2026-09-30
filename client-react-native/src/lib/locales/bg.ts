@@ -559,6 +559,8 @@ export const bg: Record<string, string> = {
     '{card} дойде от купчината за изхвърляне — трябва да влезе в комбинациите, с които сваляш този ход.',
   'zolik.badge.jokerOwed':
     '{card} дойде от масата — трябва да влезе в комбинация, преди да можеш да завършиш хода си.',
+  'zolik.badge.noReturn':
+    '{card} дойде от купчината за изхвърляне този ход — не може да се върне веднага. Изиграй я или я задръж.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is

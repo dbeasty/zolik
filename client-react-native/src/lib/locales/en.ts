@@ -546,6 +546,8 @@ export const en: Record<string, string> = {
   // says so while there is still a turn left to act on it.
   'zolik.badge.owedToMeld': '{card} came off the discard pile — it has to go into the melds you go down with this turn.',
   'zolik.badge.jokerOwed': '{card} came off the table — it has to go into a meld before you can end your turn.',
+  'zolik.badge.noReturn':
+    "{card} came off the discard pile this turn — it can't go straight back. Play it or keep it.",
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is

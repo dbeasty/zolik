@@ -560,6 +560,8 @@ export const mt: Record<string, string> = {
     "{card} ġie mill-munzell tal-iskart — irid jidħol fil-kombinazzjonijiet li bihom tniżżel f'din id-dawra.",
   'zolik.badge.jokerOwed':
     "{card} ġie minn fuq il-mejda — irid jidħol f'kombinazzjoni qabel ma tkun tista' ttemm id-dawra tiegħek.",
+  'zolik.badge.noReturn':
+    "{card} ġie mill-munzell tal-iskart f'din id-dawra — ma jistax jerġa' lura mill-ewwel. Ilgħabha jew żommha.",
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is

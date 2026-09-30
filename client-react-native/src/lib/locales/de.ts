@@ -566,6 +566,8 @@ export const de: Record<string, string> = {
     '{card} kam vom Ablagestapel — die Karte muss in die Auslage, mit der du in diesem Zug herauskommst.',
   'zolik.badge.jokerOwed':
     '{card} kam vom Tisch — die Karte muss in eine Auslage, bevor du deinen Zug beenden kannst.',
+  'zolik.badge.noReturn':
+    '{card} kam in diesem Zug vom Ablagestapel — die Karte darf nicht gleich zurück. Spiel sie aus oder behalte sie.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is

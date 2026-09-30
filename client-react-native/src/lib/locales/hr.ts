@@ -552,6 +552,8 @@ export const hr: Record<string, string> = {
     '{card} je došla s hrpe odbačenih — mora ući u kombinacije kojima se u ovom potezu spuštaš.',
   'zolik.badge.jokerOwed':
     '{card} je došla sa stola — mora ući u kombinaciju prije nego što možeš završiti potez.',
+  'zolik.badge.noReturn':
+    '{card} je ovaj potez došla s hrpe odbačenih — ne može se odmah vratiti. Odigraj je ili je zadrži.',
 
   // --- the legal notices ----------------------------------------------------
   // Only the furniture. The documents themselves are in `src/legal`, which is

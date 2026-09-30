@@ -1161,7 +1161,7 @@ export default function MatchScreen() {
             // whichever offer this card is about to be refused by —
             // asked for on long-press, rather than the module having
             // to say the same thing twice.
-            ...refusalBehindBadge(state.legalActions),
+            ...refusalBehindBadge(state.legalActions, card),
           })
         }
         {...zonePanelProps(z.id)}
@@ -1499,7 +1499,16 @@ export default function MatchScreen() {
  * shipping a second copy of them. Nothing found means the mark stands on its
  * own wording, which is still a sentence.
  */
-function refusalBehindBadge(offers: ActionOffer[]): Pick<Refusal, 'ruleIds' | 'remedy' | 'remedyOfferId'> {
+function refusalBehindBadge(
+  offers: ActionOffer[],
+  card: string,
+): Pick<Refusal, 'ruleIds' | 'remedy' | 'remedyOfferId'> {
+  // A card an enabled offer turns down by name — the one just taken off the
+  // pile — is its own refusal, and a closer answer than any greyed-out offer.
+  for (const o of offers) {
+    const own = o.enabled ? o.source?.refused?.find((r) => r.card === card) : undefined;
+    if (own && (own.ruleIds?.length || own.remedy)) return { ruleIds: own.ruleIds, remedy: own.remedy };
+  }
   const refused = offers.find((o) => !o.enabled && (o.ruleIds?.length || o.remedy));
   if (!refused) return {};
   return { ruleIds: refused.ruleIds, remedy: refused.remedy, remedyOfferId: refused.remedyOfferId };
