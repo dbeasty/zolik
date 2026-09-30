@@ -1,0 +1,439 @@
+# Bot compute gating — plan
+
+> **Status: proposed.** Nothing here is built yet.
+
+Deep AI agents are a limited resource. The server works out how many it can run comfortably
+("5 deep agents on this box"), hands out that many **leases**, and plays every other bot seat
+with the rule-based engine. When resources tighten, a resource monitor publishes a
+notification, and deep seats **downgrade to the rule engine** at their next turn boundary.
+When resources recover, waiting seats **upgrade** back.
+
+- **Baseline:** `origin/main` @ `7a61924`
+- **Phase 0:** instrumentation and `cmd/botcost` on `claude/bot-compute-phase0`; results in §5.
+- **Deliverable:**
+  - A capacity model that turns CPU and memory into a count of deep agents.
+  - A lease pool.
+  - A resource monitor that emits up and down events.
+  - Engine switching at turn boundaries.
+  - A lobby that offers deep bots only when a lease is free.
+  - Metrics that show all of it working.
+
+---
+
+## 1. What is actually there today
+
+| Piece | State |
+|---|---|
+| Bots | Every shipped bot is a **rule/heuristic engine**: Žolíky's `ai.HeuristicAgent`, Hold'em's formula + bounded Monte Carlo, and rule bots for Canasta, Gin, Prší, Tiles and Blackjack. Easy, Medium and Hard are all rule-engine profiles (`module/skill.go`). |
+| Deep agents | Trained nets (`learn.NetBot`, `ZLNET1` MLPs) exist on `learn-core` and are **not wired into the server**. The trainer README plans to embed `models/hard.bin`. No search agent exists; there is only a `Searchable` sketch in `architecture.md`. |
+| Bot loop | One goroutine per match with bots (`match/bots.go`). No cap, pool or semaphore. The 0.9–1.8 s think time is a `time.Sleep` that uses no CPU. |
+| Hint | `POST /matches/{id}/hint` runs a Hard `Act` synchronously in the request, with no rate limit. |
+| Resource awareness | `admission` reads cgroup memory, PSI `cpu.pressure` and GOMEMLIMIT, and refuses **new matches** under pressure. It only answers when asked; nothing is notified when pressure changes. Nothing reads `cpu.max` or sets `GOMAXPROCS`. |
+| Deployment | One container, `mem_limit: 2g`, **no CPU limit**, with KDB embedded in the same process. |
+| Skill offer | `botSkill` enum served statically via `GET /modules`. The table screen hard-codes `BOT_SKILLS` (`client-react-native/app/lobby/table.tsx:35`). |
+
+The downgrade target already exists and is proven: the rule engines are today's product.
+This plan adds a second tier above them and a way to move seats between the two tiers safely.
+
+## 2. Principles
+
+- **Two engines, one fallback.** A bot seat plays either **deep** or **rule**. Rule is always
+  available and never needs a lease, so it is the floor. Moves are never scaled partway.
+  Either an agent has its full resources, or the seat plays the rule engine.
+- **Capacity is a count, not a feeling.** The operator can read "deep agents: 3 / 5" on
+  `/debug/memory`, a metrics gauge or the admin console, and can pin the count with an env
+  var.
+- **Downgrade at a turn boundary, upgrade at a round boundary.** A seat never changes engine
+  in the middle of a multi-action turn (draw → meld → meld → discard), so the rule engine never
+  inherits half a plan it doesn't understand. A downgrade is forced, so it happens at the next
+  turn. An upgrade waits for the next round or deal, so an opponent never gets stronger in the
+  middle of a hand. *(Decided 2026-09-29.)*
+- **Degrade the bot, never the table.** A downgrade must still produce a legal move on every
+  turn (see "never end a turn in a dead position"). Nothing about a downgrade pauses, stalls or
+  evicts a table.
+- **Gate growth at the offer; degrade in place.** This follows admission's existing split.
+  New deep seats are only offered while a lease is free. Seats already running lose their
+  lease only on a pressure event.
+- **Compute inside the think window.** Start computing when the turn arrives, then sleep for
+  whatever part of `thinkFor` is left. Deep moves then add no visible latency, and the pace is
+  unchanged for e2e tests (`BOT_THINK_MIN_MS` keeps its defaults for Playwright).
+- **Off / observe / enforce.** The monitor ships in observe mode first. It emits events and
+  counts the leases it *would* grant or revoke, so the thresholds can be tuned before it
+  changes any seat.
+
+## 3. Design
+
+### 3.1 Engines: rule is always there, deep is optional
+
+Add an optional interface next to `Botted` in `module/bot.go`:
+
+```go
+// DeepBotted is implemented by a module that has an agent stronger than its
+// rule bot. The rule bot (Botted / OfferBot) stays the fallback.
+type DeepBotted interface {
+    DeepBot() DeepBot
+}
+
+type DeepBot interface {
+    Bot
+    // Kind names the agent for capacity accounting ("holdem-net", "canasta-net",
+    // "zolik-search"). Agents of different kinds have different costs.
+    Kind() string
+    // Warm loads whatever the agent needs resident (model weights) before its
+    // first move. Idempotent; shared across seats of the same kind.
+    Warm() error
+}
+```
+
+Extend `BotSeat` with the engine the seat is playing this turn. **The zero value is `rule`**,
+so every existing bot and test is unchanged:
+
+```go
+type Engine uint8
+const (
+    EngineRule Engine = iota // today's bots; no lease
+    EngineDeep               // requires a lease
+)
+
+type BotSeat struct {
+    PlayerID string
+    Skill    Skill
+    Seed     int64
+    Engine   Engine
+}
+```
+
+Skill keeps its current meaning inside each engine. A seat that asked for a deep agent falls
+back to the rule engine **at Hard**, the strongest play that needs no lease.
+
+### 3.2 Capacity model: how many deep agents fit comfortably
+
+This lives in a new package, `internal/capacity`, reusing admission's cgroup readers.
+
+**Available resources**
+- CPU quota from `cpu.max` (cgroup v2) or `cfs_quota/period` (v1). The fallback is
+  `runtime.NumCPU()`.
+- Set `GOMAXPROCS` from the quota at startup, unless it is set in the environment. This
+  follows the GOMEMLIMIT pattern in `app/app.go:458`.
+- Memory limit from the existing `admission.MemoryLimit()`.
+
+**Cost per agent kind.** This is a table in code, filled in from Phase 0 measurements and
+overridable by env:
+
+| Field | Meaning | Example (net, to be measured) |
+|---|---|---|
+| `CPUPerMove` | CPU time for one decision, p95 | 4 ms |
+| `MovesPerSec` | Peak decision rate of one seat in active play | 1 (think time bounds it) |
+| `MemResident` | Shared once per kind: model weights | 0.5 MB |
+| `MemPerSeat` | Per seat: belief state, search tree, scratch | 2 MB |
+
+**Slot count**
+
+```
+cpuCores   = quota × BOT_CPU_SHARE (default 0.5 — the rest stays with KDB, sockets, HTTP)
+cpuSlots   = floor(cpuCores / Σ(CPUPerMove × MovesPerSec) per seat) × comfort
+memSlots   = floor((limit × BOT_MEM_SHARE − Σ MemResident) / MemPerSeat) × comfort
+deepSlots  = min(cpuSlots, memSlots, BOT_DEEP_MAX)
+```
+
+- `comfort` defaults to 0.7. "Comfortable" means sized for bursts, such as every deep seat
+  hitting a river at once, and not just for the average load.
+- `BOT_DEEP_MAX` lets the operator set the number directly, for example `BOT_DEEP_MAX=5`.
+  `0` disables deep agents entirely, which acts as a kill switch.
+- **Weighted leases.** Kinds cost different amounts, so each lease has a weight of
+  `ceil(cost(kind) / cost(cheapest kind))`. Capacity is counted in weight units: "5 units"
+  might be 5 net seats, or 2 search seats plus 1 net seat. The operator-facing number is still
+  "N deep agents" in cheapest-kind units.
+
+The count is recomputed at startup and on every monitor event (§3.4). It is **not** measured
+live on each move, because live CPU is too noisy to size from. Live readings decide whether
+the static count currently holds (the monitor), not what that count is.
+
+### 3.3 Leases: who holds a deep agent
+
+`capacity.Pool` is a weighted pool of deep-agent leases.
+
+- **Held per seat for the life of the match**, not per move. A deep agent's per-seat memory
+  (belief state, opponent model) stays resident between moves, and per-move leasing would
+  swap engines mid-game.
+- **Acquire:**
+  - at `addBot` / match start for a seat that asked for deep;
+  - on an upgrade event for a seat that was waiting.
+- **Release:**
+  - when the match finishes;
+  - when the match is evicted idle (`match/live.go`);
+  - on handover to another node;
+  - when the seat is removed;
+  - on a revoke.
+- **Leak guard:** a lease records its match and seat. A sweep every minute releases any lease
+  whose match is no longer live. This is the same shape of bug as "bot loop never restarts on
+  an active table", so it gets a test.
+- **State on the seat:** `models.Player` gains `AIEngineWanted` (what the host asked for) and
+  the runtime tracks `engineActual`. `botSeatFor` hands the bot `engineActual`.
+
+### 3.4 Resource monitor: the notifications
+
+`internal/capacity.Monitor` samples resources every 2 s and **publishes events** to
+subscribers. It replaces "ask admission when something happens" with "be told when the
+answer changes".
+
+**Signals**
+- PSI `cpu.pressure some avg10`.
+- Think-time overrun: p95 of deep `Act` time as a fraction of the think window.
+- Memory fraction of the limit.
+- KDB zone.
+
+On macOS and devices, where PSI is unavailable, the think-time overrun alone drives the
+monitor.
+
+**Levels, with hysteresis.** Steps down fast; steps up only after the lower threshold has held
+for 30 s.
+
+| Level | Enters when | Effective deep capacity |
+|---|---|---|
+| **Green** | all below Amber thresholds for 30 s | `deepSlots` |
+| **Amber** | PSI ≥ 0.10, **or** deep p95 ≥ 50% of think window, **or** mem ≥ 0.75 | `floor(deepSlots / 2)` |
+| **Red** | PSI ≥ 0.20, **or** deep p95 ≥ 100% of think window, **or** mem ≥ KDB high zone | `0` |
+
+Admission refuses new matches at CPU 0.25 and memory 0.85, so these thresholds sit **below**
+admission on purpose. The ladder reads: downgrade deep agents first, stop offering them next,
+and refuse new tables last.
+
+**Events**
+
+```go
+type Event struct {
+    Level     Level      // Green / Amber / Red
+    Capacity  int        // effective deep slots (weight units) at this level
+    InUse     int
+    Reason    string     // "cpu_pressure", "memory", "overrun", "recovered"
+}
+```
+
+- Delivery is a fan-out over buffered channels. Subscribers never block the monitor; a slow
+  subscriber gets the latest state, not a backlog.
+- **Subscribers:**
+  - the lease pool, which revokes or grants;
+  - the lobby hub, which pushes `botCapacity` to connected lobby sockets;
+  - metrics;
+  - the log (one line per level change, not per sample).
+
+**What the pool does on an event**
+- **Capacity drops below InUse → revoke.** It revokes leases, newest first (LIFO). Long-running
+  games keep their agent, and the seat that has had the deep agent for the least time loses
+  it. Tables with no human seated are revoked before any table with a human: bot-only soak and
+  demo tables go first.
+- **Capacity rises above InUse → grant.** It grants to waiting seats first come, first served
+  (FIFO), one per event tick. This keeps a burst of upgrades from pushing the level straight
+  back to Amber.
+- A revoke or grant only **marks** the seat. The bot loop applies it at the next turn
+  boundary (§3.5) and only then releases or starts using the lease. A revoked seat's memory is
+  therefore freed after its current turn, never in the middle of it.
+
+### 3.5 Bot loop integration
+
+In `botLoop`, at the point where the actor changes (`actor != lastActor`, which is already
+where `turn` resets):
+
+```
+if seat.engineWanted == Deep:
+    switch pool.State(match, seat):
+    case revoked:  engineActual = Rule; pool.Release(...);  emit seat-engine change
+```
+
+At a round boundary (the round counter in the view moves on, or the awaited seats become
+"ready" prompts):
+
+```
+    case granted:  if dp.Warm() ok { engineActual = Deep }; emit seat-engine change
+```
+
+A grant that arrives mid-round waits, and its lease stays reserved for the seat. The pool's
+leak sweep treats a reserved-but-unused lease as held.
+
+Then the move itself:
+
+```
+deadline := now + thinkFor
+bot := ruleBot
+if engineActual == Deep { bot = deepBot }
+action := bot.Act(state, seat{Engine: engineActual}, offers)
+    // backstop: deep Act past deadline+2s → count, log, use the rule bot's answer for this move
+sleep(until deadline)
+```
+
+- The rule bot is always resolved alongside the deep one. The backstop is simply "ask the rule
+  bot", which plays a legal move in microseconds.
+- `Warm` failing (model missing, or memory refused) leaves the seat on the rule engine and
+  releases its lease.
+- **The backstop already exists.** `botAct` (`match/bots.go`) bounds every `Act` at 5 s
+  (`botActBudgetDefault`) and falls back to the offer list. A timed-out `Act` keeps running on
+  its abandoned goroutine, though, so it **still burns CPU**. Phase 0 counts these orphans. A
+  deep agent must honour a cancel signal, because an orphaned deep search is exactly the load
+  this plan exists to prevent.
+- Every move records which engine played it (`engine` on the move log entry). Replay then
+  reproduces the move, and stats can separate results against deep agents from results against
+  rule engines.
+
+### 3.6 What the players see
+
+- **Lobby/table:**
+  - The skill picker gains a deep tier, for example **"Expert (AI)"**, rendered from live
+    capacity, not from the hard-coded `BOT_SKILLS`.
+  - When no lease is free, the tier shows disabled with an explanation on press ("All expert
+    AI seats are busy right now"), using `ExplainOnPress` and keeping `disabled` on the
+    Pressable.
+  - The lobby socket pushes `botCapacity {free, total, level}`, so the picker enables itself
+    when a lease frees up without the player refreshing.
+- **`addBot` with deep and no free lease:** the server seats the bot on the rule engine at
+  Hard, marks it waiting for a lease, and replies `BOT_ENGINE_QUEUED`. The client shows "Seated
+  as Hard. It will switch to Expert when capacity frees up." New message keys go in
+  `serverKeys.json` and must be passed as static literals.
+- **In match:** a seat-engine change is broadcast as a small match event. The seat badge
+  changes (for example, a subtle "AI" marker comes and goes). Players are not interrupted and
+  nothing pops up in the middle of a hand.
+
+### 3.7 Hint endpoint
+
+Hints always use the **rule engine** at Hard, unless a lease is free **and** the level is
+Green. A hint borrows a lease for the duration of the request and returns it immediately. Add
+a per-user token bucket (`internal/ratelimit`): 1 hint per 2 s, burst 3. This closes today's
+unbounded synchronous-Act path whatever else ships.
+
+### 3.8 On-device (offline / mobile build)
+
+`app/mobile.go` runs the same loop on the phone. On the phone:
+- `deepSlots` comes from a startup micro-benchmark (one net forward pass × N, 50 ms, cached
+  per install) and device memory.
+- The monitor runs on think-time overrun plus the OS thermal state and low-power mode, which
+  are exposed from the native side.
+- A hot phone emits Red, and the offline table quietly drops to rule engines, following the
+  same turn-boundary rules as the server.
+
+## 4. Phases
+
+### Phase 0 — measure
+
+Nothing here changes behaviour.
+
+- **Metrics:**
+  - `bot_act_seconds{module,engine,kind}` and allocations per `Act`;
+  - gauges for bot loops and hint rate.
+- **`cmd/aibench`:** report CPU-ms per decision and per-seat resident memory for each deep
+  agent kind on `learn-core`. That fills in the cost table in §3.2.
+- **Soak:** run `dev-stack.sh soak` at `cpus: 1` and `cpus: 2` with K deep seats, increasing K
+  until WebSocket broadcast p95 degrades. The K where it bends, times `comfort`, has to agree
+  with the formula. That checks the capacity model against reality.
+
+### Phase 1 — capacity + monitor, observe mode
+
+- Quota reader + `GOMAXPROCS`, cost table, `deepSlots` shown in `/debug/memory` and as a
+  gauge.
+- Monitor with levels and events. Subscribers log and count
+  (`bot_deep_would_revoke_total`, `bot_deep_would_grant_total`).
+- Hint rate limit (independent of the rest; ship it early).
+- `BOT_DEEP=off|observe|enforce`, default `off` until a deep agent exists.
+
+### Phase 2 — engines, leases, switching
+
+Lands with the first deep agent from learn-core.
+
+- `DeepBotted`, `BotSeat.Engine`, the lease pool with leak sweep, turn-boundary switching,
+  the engine on the move log.
+- **Tests:**
+  - **Pool unit tests:** weights, LIFO revoke, humans-last priority, FIFO grant, one grant per
+    tick.
+  - **Monitor unit tests:** hysteresis, with no flapping on a signal oscillating around a
+    threshold.
+  - **Bot loop test with a scripted monitor** (Green → Red → Green mid-match): every seat
+    completes the match with legal moves, switches happen only between turns, and leases
+    return to zero at the end. Run across all modules with a deep agent, five seeds each.
+  - **Soak at `cpus: 1` with a CPU hog alongside:** the level goes Red, deep seats drop to
+    rule, broadcast p95 recovers, the hog is removed, and seats upgrade back one per tick. No
+    table stalls.
+- Add `cpus:` to production compose in the same PR that turns on enforce.
+
+### Phase 3 — offer and UI
+
+- Lobby push of `botCapacity`, the deep tier in the picker, the queued-seat response, the
+  in-match badge, and message keys with a `serverKeys.json` regen.
+- **Verify in the browser:** pin the monitor with a debug env var (`BOT_DEEP_FORCE_LEVEL=red`),
+  then check that Expert shows disabled with its explanation. Flip it to green, and check that
+  the picker enables without a reload and that a queued seat's badge changes at the next turn.
+  Assert what the user sees.
+
+### Phase 4 — on-device
+
+- Micro-benchmark sizing, thermal and low-power signals, and the same switching rules offline.
+
+## 5. Phase 0 results (2026-09-29)
+
+These come from `go run ./cmd/botcost -matches 5 -decisions 1500` on one core (`-procs 1`),
+on an Apple-silicon laptop. Every game, variation, smallest and largest table, and skill was
+measured: about 280 000 decisions in total. Trained nets were measured with the same driver in
+a scratch checkout of `claude/learn-core`, using `ml/runs/holdem-20m` and
+`ml/runs/canasta-12m`. The live server now records the same numbers per decision
+(`/debug/bots`, plus a ten-minute log line).
+
+### Cost per decision, worst configuration of each engine
+
+| Engine | mean | p95 | p99 | allocated per decision |
+|---|---|---|---|---|
+| **Hold'em rule** (post-flop Monte Carlo), heads-up | 6–15 ms | 31–49 ms | 36–73 ms | **1.8–3.8 MB** |
+| **Hold'em rule**, 9 seats | 5.8–7.8 ms | 27–34 ms | 36–56 ms | 1.6–2.0 MB |
+| Žolíky rule, continental | 0.9–1.1 ms | 2.7–3.4 ms | 4.9–6.8 ms | 510–680 KB |
+| Canasta rule, samba 6 seats | 0.9–1.2 ms | 3.3–4.4 ms | 9–17 ms | 77–86 KB |
+| Canasta rule, other variations | 0.2–0.4 ms | 0.4–1.2 ms | 1.3–6 ms | 25–40 KB |
+| Gin, Tiles, Blackjack, Prší rule | < 0.2 ms | < 0.4 ms | < 1 ms | 3–47 KB |
+| **Hold'em net** (holdem-20m) | 0.35–0.64 ms | 0.5–1.3 ms | 0.7–2.9 ms | 31–60 KB |
+| **Canasta net** (canasta-12m) | 0.30–0.53 ms | 0.75–1.5 ms | 1.7–4.1 ms | 25–58 KB |
+
+- Maximums reach 50–180 ms in several games. The single outliers line up with GC cycles on
+  one core, and they are the reason a comfort factor exists.
+- The model files are 0.8–0.9 MB. `NetBot` keeps no per-seat state, so one resident copy per
+  kind serves every table.
+
+### What the numbers change
+
+1. **The expensive engine today is a rule engine.** Hold'em's Monte Carlo costs 10–25 times
+   what the Hold'em net does, and it churns about 2–4 MB of garbage per decision. At one
+   decision per 1.35 s think window, 100 Hold'em bot seats allocate roughly 200 MB/s. That is
+   the biggest CPU and GC load bots put on the server, and it comes from a bot that is not
+   deep.
+2. **"Downgrade to rule" is backwards for Hold'em once a net ships.** Moving a Hold'em net seat
+   to the rule engine under pressure would multiply its CPU by more than 10. The fallback has to
+   be the *cheapest adequate* engine for each game, and cost classes have to come from this
+   table, not from whether an engine is deep. For Canasta, rule is still cheaper, by about 2x,
+   and both engines are small.
+3. **The trained nets as they stand need almost no gating.** At about 1 ms p95 and at most one
+   decision per think window, half of one core carries hundreds of net seats before the
+   comfort factor. The lease pool matters for:
+   - Hold'em rule seats (about 30 per core under §3.2's formula);
+   - future search agents (the `Searchable`/MCTS sketch);
+   - hints (Hard, synchronous, and running under the match lock; see below).
+4. **The hint path holds the match lock while it thinks.** `Manager.Hint` runs `Act` inside
+   `lockMatch`. On Hold'em that is up to 70 ms at p99 during which the table cannot take a move.
+   Phase 1 should move the `Act` outside the lock, the way the bot loop already does, as well as
+   rate-limiting it.
+
+### Still open in Phase 0
+
+- **Soak at `cpus: 1` and `cpus: 2`.** Increase the number of concurrent Hold'em bot tables,
+  the expensive engine that exists today, until WebSocket broadcast p95 bends. That checks the
+  §3.2 formula against a real container. The recorder is in place, so the soak only has to read
+  `/debug/bots`.
+- **Production baseline.** Once deployed, the ten-minute `bot decisions` log line gives real
+  traffic's mix and `botCpuShare`.
+
+## 6. Open questions
+
+1. **Revoke order.** The plan uses LIFO with humans last. The alternative is to revoke tables
+   furthest from finishing first, which saves more compute per revoke but interrupts games
+   people are invested in. Recommendation: LIFO, because it is predictable and easy to test.
+2. ~~When does a queued seat upgrade?~~ **Decided:** at the next round or deal boundary.
+   Downgrades stay at turn boundaries.
+3. **Is `BOT_CPU_SHARE` = 0.5 the right share?** The Phase 0 soak will show how much CPU KDB
+   commits actually take under load.
+4. **Multi-node (`FEATURE_FLAG_SYNC`):** capacity and leases are per node. A lobby should only
+   offer Expert for a table that will be hosted on a node with a free lease. This is deferred
+   until tables are placed across nodes.
