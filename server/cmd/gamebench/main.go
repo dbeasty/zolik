@@ -24,12 +24,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strconv"
-	"strings"
 	"time"
 
 	"zolik/server/internal/learn"
-	"zolik/server/internal/module"
 
 	_ "zolik/server/internal/canasta"
 	_ "zolik/server/internal/holdem"
@@ -52,11 +49,11 @@ func main() {
 	if err != nil {
 		fail(err)
 	}
-	ca, err := contender(g, *a)
+	ca, err := learn.ParseContender(g, *a)
 	if err != nil {
 		fail(err)
 	}
-	cb, err := contender(g, *b)
+	cb, err := learn.ParseContender(g, *b)
 	if err != nil {
 		fail(err)
 	}
@@ -76,46 +73,6 @@ func main() {
 	if r.Illegal+r.Stalls > 0 {
 		os.Exit(1)
 	}
-}
-
-func contender(g learn.Benchable, spec string) (learn.Contender, error) {
-	for _, s := range module.Skills {
-		if string(s) == spec {
-			return learn.Contender{Name: spec, Bot: g.Heuristic(), Skill: s}, nil
-		}
-	}
-	if st, ok := g.(learn.Styled); ok {
-		if bot, ok := st.Styles()[spec]; ok {
-			return learn.Contender{Name: spec, Bot: bot}, nil
-		}
-	}
-	if path, ok := strings.CutPrefix(spec, "net:"); ok {
-		lg, ok := g.(learn.Game)
-		if !ok {
-			return learn.Contender{}, fmt.Errorf("%s cannot be played by a network yet", g.Name())
-		}
-		temp := 0.0
-		if i := strings.LastIndex(path, "@"); i >= 0 {
-			t, err := strconv.ParseFloat(path[i+1:], 64)
-			if err != nil {
-				return learn.Contender{}, err
-			}
-			path, temp = path[:i], t
-		}
-		raw, err := os.ReadFile(path)
-		if err != nil {
-			return learn.Contender{}, err
-		}
-		n, err := learn.LoadNet(raw)
-		if err != nil {
-			return learn.Contender{}, err
-		}
-		if n.StateDim != lg.StateDim() || n.CandDim != lg.CandDim() {
-			return learn.Contender{}, fmt.Errorf("%s was trained for another encoder", path)
-		}
-		return learn.Contender{Name: spec, Bot: learn.NetBot{Game: lg, Policy: learn.NewPolicy(n), Fallback: g.Heuristic(), Temperature: temp}, Skill: module.SkillHard}, nil
-	}
-	return learn.Contender{}, fmt.Errorf("unknown contender %q", spec)
 }
 
 func fail(err error) {
