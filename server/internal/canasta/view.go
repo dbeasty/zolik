@@ -224,6 +224,7 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 			g := module.Group{ID: mm.ID, Kind: mm.kind(), Cards: append([]string(nil), mm.Cards...)}
 			if mm.isCanasta() {
 				g.Complete = true
+				g.Face = foldedFace(mm.Cards)
 				switch {
 				case mm.kind() == meldRun:
 					// Seven in a suit is a samba, and worth saying so: it is the
@@ -483,4 +484,17 @@ func meldRankOrder(rank string) int {
 		return i
 	}
 	return len(ranks)
+}
+
+// foldedFace picks the card a folded canasta shows: the last natural, so the
+// one card left in view says what the meld is made of rather than showing a
+// wild that could stand for anything. Nil (the last card) when every card is
+// wild.
+func foldedFace(cards []string) *int {
+	for i := len(cards) - 1; i >= 0; i-- {
+		if !isWild(cards[i]) {
+			return &i
+		}
+	}
+	return nil
 }

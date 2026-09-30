@@ -179,6 +179,11 @@ type Group struct {
 	// separate question the offers answer; this is about how much of the
 	// board it deserves.
 	Complete bool `json:"complete,omitempty"`
+	// Face is the index into Cards of the card that stands for the group
+	// when a client folds it down to one card. The module chooses, because
+	// which card says what a group is made of is a rule of the game; nil
+	// means the last card.
+	Face *int `json:"face,omitempty"`
 }
 
 // Zone is one area of the board.

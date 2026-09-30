@@ -3,6 +3,7 @@ import {
   cardIndexBox,
   cardIndexColumn,
   dragPeek,
+  foldedFace,
   groupShowsIndices,
   stackedColumn,
   fanOverlaps,
@@ -310,5 +311,18 @@ describe('card indices for a closed group', () => {
     // Never narrower than the compact card it stands in for, so a group's
     // box does not change width as it is opened and closed.
     expect(box.width).toBeGreaterThanOrEqual(m.card.compactWidth);
+  });
+});
+
+describe('foldedFace', () => {
+  it('keeps the card the module named in view', () => {
+    expect(foldedFace({ cards: ['5H', '5S', '5D', 'JOKER1'], face: 2 })).toBe(2);
+    expect(foldedFace({ cards: ['5H', '5S', '5D', 'JOKER1'], face: 0 })).toBe(0);
+  });
+
+  it('falls back to the last card when none is named, or the one named is not there', () => {
+    expect(foldedFace({ cards: ['5H', '5S', '5D'] })).toBe(2);
+    expect(foldedFace({ cards: ['5H', '5S', '5D'], face: 7 })).toBe(2);
+    expect(foldedFace({ cards: ['5H', '5S', '5D'], face: -1 })).toBe(2);
   });
 });
