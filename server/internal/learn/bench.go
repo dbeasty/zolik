@@ -208,6 +208,7 @@ func PlayOut(m module.GameModule, cfg module.MatchConfig, players []module.Playe
 	if err != nil {
 		return nil, st, fmt.Errorf("learn: NewMatch: %w", err)
 	}
+	var guard turnGuard
 	for ; st.Actions < budget; st.Actions++ {
 		if done, _, err := m.Finished(state); err != nil {
 			return nil, st, err
@@ -225,7 +226,8 @@ func PlayOut(m module.GameModule, cfg module.MatchConfig, players []module.Playe
 		}
 		bot, skill := seatBot(actor)
 		seat := module.BotSeat{PlayerID: actor, Skill: skill, Seed: module.SeatSeed(seed, actor, "bot")}
-		next, ok := step(m, state, actor, bot, seat, offers, &st)
+		guard.begin(actor)
+		next, ok := step(m, state, actor, bot, seat, offers, &guard, &st)
 		if !ok {
 			st.Stalled, st.Why = true, "no move for "+actor
 			return state, st, nil
@@ -236,19 +238,18 @@ func PlayOut(m module.GameModule, cfg module.MatchConfig, players []module.Playe
 	return state, st, nil
 }
 
-// step applies one bot move, falling back to the offer list once if the engine
-// refuses it.
+// step applies one bot move, falling back to the offer list if the bot
+// declines or the engine refuses its pick, and never replaying a move the
+// turn has already taken back (unwind.go).
 func step(m module.GameModule, s module.State, actor string, bot module.Bot, seat module.BotSeat,
-	offers []module.ActionOffer, st *PlayStats) (module.State, bool) {
-	if a, ok := bot.Act(s, seat, offers); ok {
-		if next, _, err := m.Apply(s, actor, a); err == nil {
+	offers []module.ActionOffer, guard *turnGuard, st *PlayStats) (module.State, bool) {
+	for _, c := range guard.candidates(s, bot, seat, offers) {
+		if next, _, err := m.Apply(s, actor, c.action); err == nil {
+			guard.note(c)
 			return next, true
 		}
-		st.Illegal++
-	}
-	for _, a := range module.ChooseActions(offers, nil) {
-		if next, _, err := m.Apply(s, actor, a); err == nil {
-			return next, true
+		if c.bot {
+			st.Illegal++
 		}
 	}
 	return nil, false

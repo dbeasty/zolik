@@ -103,6 +103,9 @@ type table struct {
 	// apart from a match that was merely long when the budget ran out.
 	runSeat string
 	run     int
+	// guard keeps a hand-written seat from replaying a move its turn has
+	// already taken back (unwind.go).
+	guard turnGuard
 }
 
 // NewEnv deals every table. Table i plays seeds first+i, first+i+len(specs), ...
@@ -286,6 +289,7 @@ func (e *Env) deal(t *table) error {
 	}
 	t.state, t.actions = s, 0
 	t.runSeat, t.run = "", 0
+	t.guard = turnGuard{}
 	return nil
 }
 
@@ -354,6 +358,7 @@ func (e *Env) apply(t *table, actor string, a module.Action) error {
 	}
 	t.state = next
 	t.actions++
+	t.guard.begin(actor)
 	if actor == t.runSeat {
 		t.run++
 	} else {
@@ -364,15 +369,14 @@ func (e *Env) apply(t *table, actor string, a module.Action) error {
 
 func (e *Env) botMove(t *table, actor string, bot module.Bot, skill module.Skill, offers []module.ActionOffer) error {
 	seat := module.BotSeat{PlayerID: actor, Skill: skill, Seed: module.SeatSeed(t.seed, actor, "bot")}
-	if a, ok := bot.Act(t.state, seat, offers); ok {
-		if err := e.apply(t, actor, a); err == nil {
+	t.guard.begin(actor)
+	for _, c := range t.guard.candidates(t.state, bot, seat, offers) {
+		if err := e.apply(t, actor, c.action); err == nil {
+			t.guard.note(c)
 			return nil
 		}
-		t.illegal++
-	}
-	for _, a := range module.ChooseActions(offers, nil) {
-		if err := e.apply(t, actor, a); err == nil {
-			return nil
+		if c.bot {
+			t.illegal++
 		}
 	}
 	// Nobody can move this seat: the match is a stall, and the table moves on.
