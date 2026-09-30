@@ -1273,6 +1273,9 @@ export const lt: Record<string, string> = {
   'zone.dropHere': 'Padėk čia',
   'offer.pickCards': 'pasirink kortas vietai, kurią palietei',
   'offer.ambiguous': 'tai tinka daugiau nei vienoje vietoje — pasirink ant stalo',
+  'offer.whichOne': 'kurią?',
+  'seats.scrollLeft': 'Ankstesnės vietos',
+  'seats.scrollRight': 'Daugiau vietų',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'programa',

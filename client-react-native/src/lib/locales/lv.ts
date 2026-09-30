@@ -1272,6 +1272,9 @@ export const lv: Record<string, string> = {
   'zone.dropHere': 'Nomet šeit',
   'offer.pickCards': 'izvēlies kārtis vietai, kurai pieskāries',
   'offer.ambiguous': 'tas der vairāk nekā vienā vietā — izvēlies uz galda',
+  'offer.whichOne': 'kuru?',
+  'seats.scrollLeft': 'Iepriekšējās vietas',
+  'seats.scrollRight': 'Vairāk vietu',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'lietotne',

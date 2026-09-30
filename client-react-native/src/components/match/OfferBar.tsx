@@ -129,20 +129,22 @@ type Props = SharedParams & {
 };
 
 /**
- * Only offers that name an existing target of their own (`target.meldId`) are
- * folded — that field is what makes several offers of the same shape distinct
- * targets on the board rather than distinct kinds of move, and it is the one
- * thing this file already reads off `target` nowhere else, so folding
- * introduces no new assumption about what the field means. A group of one is
- * rendered exactly like an ordinary offer; only a group of more than one is
- * ever folded into a shared control. Shared between `OfferBar` and
- * `OfferGlance` so the collapsed rail folds offers exactly the same way the
- * full bar does.
+ * Two kinds of offer are folded. One names an existing target of its own
+ * (`target.meldId`) — that field is what makes several offers of the same
+ * shape distinct targets on the board rather than distinct kinds of move. The
+ * other names its own cards (`source.submit`) and no target: Canasta's new
+ * melds, one per meldable rank, which used to stand side by side as "Meld ·
+ * 8", "Meld · J", "Meld · 5♥-8♥" and read as three different moves when they
+ * are one move with three possible hands. See `isChoiceGroup` for how the two
+ * resolve differently. A group of one is rendered exactly like an ordinary
+ * offer; only a group of more than one is ever folded into a shared control.
+ * Shared between `OfferBar` and `OfferGlance` so the collapsed rail folds
+ * offers exactly the same way the full bar does.
  */
 function foldOffers(offers: ActionOffer[]): { groups: Map<string, ActionOffer[]>; foldedIds: Set<string> } {
   const groups = new Map<string, ActionOffer[]>();
   for (const offer of offers) {
-    if (!offer.target?.meldId) continue;
+    if (!offer.target?.meldId && !namesOwnCards(offer)) continue;
     const key = offerGroupKey(offer);
     const list = groups.get(key) ?? [];
     list.push(offer);
@@ -423,11 +425,15 @@ export function OfferGlance({
     // through when the selection already settles which target was meant,
     // otherwise hand the choice to whoever can point at the board's own
     // targets.
-    const settled = settledOffers(groups.get(groupKey) ?? [], selectedCards, armedGroupId);
+    const group = groups.get(groupKey) ?? [];
+    const settled = settledOffers(group, selectedCards, armedGroupId);
     if (settled.length === 1) {
       fire(settled[0]);
       return;
     }
+    // A choice group has no board targets to point at; the pill is ghosted
+    // below until the selection settles it, and the full bar lists the rest.
+    if (isChoiceGroup(group)) return;
     onAmbiguous?.(groupKey);
   };
 
@@ -438,7 +444,15 @@ export function OfferGlance({
         // A folded pill can always be pressed — it either resolves outright
         // or opens up the board's targets — but a lone offer still waiting on
         // a card combination or a parameter isn't ready for a bare tap yet.
-        const ready = foldedIds.has(o.id) || isReady(o, selectedCards, params[o.id]);
+        //
+        // Except a choice group: with no targets to open, a pill it cannot
+        // settle has nowhere to go, so it waits for cards that make exactly
+        // one of its melds. Before this fold, the pill fired whichever meld the
+        // server happened to list first.
+        const group = groups.get(groupKey) ?? [];
+        const ready = foldedIds.has(o.id)
+          ? !isChoiceGroup(group) || settledOffers(group, selectedCards, armedGroupId).length === 1
+          : isReady(o, selectedCards, params[o.id]);
         // The same title the full bar gives it — "Raise to 483", from the
         // shared value — so the pill says what it sends.
         const headline = offerHeadline(o, params[o.id]);
@@ -483,6 +497,11 @@ export function OfferGlance({
  * group's targets was meant, the same way a lone offer of the same shape
  * would settle it — or, when it does not, hands the choice to `onAmbiguous`
  * rather than guessing at a target this file has no way to show.
+ *
+ * A choice group (`isChoiceGroup`) has no targets to show, so an unsettled
+ * press opens a row of its candidates under the control instead, and a
+ * selection that makes none of them greys the control out with the nearest
+ * miss as its reason, exactly as a lone offer would.
  */
 function FoldedOffer({
   groupKey,
@@ -522,17 +541,35 @@ function FoldedOffer({
   // lone offer of the same shape would show.
   const sharedReason = sharedRefusal(group);
 
+  const choice = isChoiceGroup(group);
+  const unready = choice && !disabled ? choiceUnready(group, selectedCards) : undefined;
+  const ghost = disabled || !!unready;
+
   // The member this reason actually came from, so its rules and its remedy
   // travel with it rather than the first member's, which may have been
   // refused for something else.
   const explain = () => {
+    if (unready) {
+      onExplain?.(refusalOfFit(unready));
+      return;
+    }
     const source = group.find((o) => !o.enabled && o.whyNot === sharedReason) ?? group.find((o) => !o.enabled);
     if (source) onExplain?.(refusalFor(source, selectedCards, undefined));
   };
 
+  // Open only until the hand or the offers move on: a list of candidates for
+  // a selection that has since changed would offer melds it no longer makes.
+  const [choosing, setChoosing] = useState(false);
+  const shape = `${selectedCards.join(',')}|${group.map((o) => o.id).join(',')}`;
+  useEffect(() => setChoosing(false), [shape]);
+
   const press = () => {
     if (settled.length === 1) {
       onResolve(settled[0]);
+      return;
+    }
+    if (choice) {
+      setChoosing((open) => !open);
       return;
     }
     onAmbiguous?.(groupKey);
@@ -543,17 +580,47 @@ function FoldedOffer({
       <ExplainOnPress testID={`explain-group:${groupKey}`} onExplain={onExplain ? explain : undefined}>
         <Pressable
           testID={`offer-group:${groupKey}`}
-          accessibilityState={{ disabled }}
-          disabled={disabled}
+          accessibilityState={{ disabled: ghost }}
+          disabled={ghost}
           onPress={press}
-          style={[styles.button, disabled && styles.ghost]}
+          style={[styles.button, ghost && styles.ghost]}
         >
           <Attention active={!!hinted} radius={8} />
-          <Text style={[styles.buttonText, disabled && styles.ghostText]}>
+          <Text style={[styles.buttonText, ghost && styles.ghostText]}>
             {label(first.labelKey ?? `verb.${first.verb}`) || first.verb}
           </Text>
         </Pressable>
       </ExplainOnPress>
+
+      {choice && unready ? (
+        <ReasonLine
+          testID={`why-group:${groupKey}`}
+          text={label(unready.labelKey, unready.params)}
+          styles={styles}
+          onPress={onExplain ? explain : undefined}
+        />
+      ) : null}
+
+      {choice && choosing && settled.length > 1 ? (
+        <>
+          <Text testID={`needs-group:${groupKey}`} style={styles.hint}>
+            {t('offer.whichOne')}
+          </Text>
+          <View style={styles.choices}>
+            {settled.map((o) => (
+              <Pressable
+                key={o.id}
+                testID={`offer-choice-${o.id}`}
+                accessibilityRole="button"
+                onPress={() => onResolve(o)}
+                style={styles.choice}
+              >
+                <Text style={styles.choiceText}>{(o.facts ?? []).map((f) => factText(f)).join(' ') || o.id}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </>
+      ) : null}
 
       {disabled && sharedReason ? (
         <ReasonLine
@@ -564,7 +631,7 @@ function FoldedOffer({
         />
       ) : null}
 
-      {!disabled && settled.length !== 1 ? (
+      {!disabled && !choice && settled.length !== 1 ? (
         <Text testID={`needs-group:${groupKey}`} style={styles.hint}>
           {aimed ? t('offer.pickCards') : t('offer.ambiguous')}
         </Text>
@@ -892,6 +959,40 @@ function settledOffers(group: ActionOffer[], selected: string[], armedGroupId?: 
   const aimed = armedGroupId ? group.find((o) => o.target?.meldId === armedGroupId) : undefined;
   if (!aimed) return group.filter((o) => offerSettles(o, selected));
   return offerSettles(aimed, selected) ? [aimed] : [];
+}
+
+/** An offer that carries its own submission and aims at no existing target. */
+function namesOwnCards(offer: ActionOffer): boolean {
+  return !offer.target?.meldId && (offer.source?.submit ?? []).length > 0;
+}
+
+/**
+ * A folded group whose members differ by *what* they lay rather than *where*:
+ * nothing on the board tells them apart, so an unsettled press cannot hand
+ * the choice to the board's targets the way a lay-off does. The control asks
+ * itself, listing the candidates the current selection still allows.
+ */
+function isChoiceGroup(group: ActionOffer[]): boolean {
+  return group.length > 0 && group.every(namesOwnCards);
+}
+
+/**
+ * Why a choice group's control is not ready for the current selection, or
+ * undefined when some member is. Nearest miss first: cards that would make a
+ * meld with more of them beat cards that make none at all.
+ */
+function choiceUnready(group: ActionOffer[], selected: string[]): Extract<Fit, { ok: false }> | undefined {
+  if (selected.length === 0) return undefined;
+  let short: Extract<Fit, { ok: false }> | undefined;
+  for (const o of group) {
+    if (!o.enabled) continue;
+    const fit = readyWith(o, selected);
+    if (fit.ok) return undefined;
+    if (fit.labelKey !== 'sel.needMore') continue;
+    const n = Number(fit.params?.n ?? Infinity);
+    if (!short || n < Number(short.params?.n ?? Infinity)) short = fit;
+  }
+  return short ?? { ok: false, labelKey: 'sel.notThese' };
 }
 
 /** Whether an offer has everything it needs to be sent right now. */

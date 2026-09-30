@@ -1284,6 +1284,9 @@ export const bg: Record<string, string> = {
   'zone.dropHere': 'Пусни тук',
   'offer.pickCards': 'избери карти за мястото, което докосна',
   'offer.ambiguous': 'това може да отиде на повече от едно място — избери на масата',
+  'offer.whichOne': 'коя?',
+  'seats.scrollLeft': 'Предишни места',
+  'seats.scrollRight': 'Още места',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'приложение',

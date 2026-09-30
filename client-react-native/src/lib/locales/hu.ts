@@ -1289,6 +1289,9 @@ export const hu: Record<string, string> = {
   'zone.dropHere': 'Ide ejtsd',
   'offer.pickCards': 'válassz lapokat a megérintett helyhez',
   'offer.ambiguous': 'ez több helyre is mehet — válassz az asztalon',
+  'offer.whichOne': 'melyiket?',
+  'seats.scrollLeft': 'Előző helyek',
+  'seats.scrollRight': 'További helyek',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'alkalmazás',

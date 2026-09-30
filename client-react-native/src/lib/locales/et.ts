@@ -1276,6 +1276,9 @@ export const et: Record<string, string> = {
   'zone.dropHere': 'Kukuta siia',
   'offer.pickCards': 'vali kaardid kohale, mida puudutasid',
   'offer.ambiguous': 'see sobib mitmesse kohta — vali laual',
+  'offer.whichOne': 'milline?',
+  'seats.scrollLeft': 'Eelmised kohad',
+  'seats.scrollRight': 'Veel kohti',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'rakendus',

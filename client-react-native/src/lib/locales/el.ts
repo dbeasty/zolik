@@ -1303,6 +1303,9 @@ export const el: Record<string, string> = {
   'zone.dropHere': 'Άφησέ το εδώ',
   'offer.pickCards': 'διάλεξε φύλλα για το σημείο που άγγιξες',
   'offer.ambiguous': 'αυτό μπορεί να πάει σε περισσότερα από ένα σημεία — διάλεξε στο τραπέζι',
+  'offer.whichOne': 'ποια;',
+  'seats.scrollLeft': 'Προηγούμενες θέσεις',
+  'seats.scrollRight': 'Περισσότερες θέσεις',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'εφαρμογή',

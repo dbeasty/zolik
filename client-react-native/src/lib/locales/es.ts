@@ -1286,6 +1286,9 @@ export const es: Record<string, string> = {
   'zone.dropHere': 'Suelta aquí',
   'offer.pickCards': 'elige cartas para el sitio que has tocado',
   'offer.ambiguous': 'esto puede ir en más de un sitio — elige en la mesa',
+  'offer.whichOne': '¿cuál?',
+  'seats.scrollLeft': 'Asientos anteriores',
+  'seats.scrollRight': 'Más asientos',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'app',

@@ -1305,6 +1305,9 @@ export const ga: Record<string, string> = {
   'zone.dropHere': 'Lig anseo é',
   'offer.pickCards': 'pioc cártaí don áit ar bhain tú léi',
   'offer.ambiguous': 'is féidir leis seo dul in níos mó ná áit amháin — pioc ar an mbord',
+  'offer.whichOne': 'cé acu?',
+  'seats.scrollLeft': 'Suíocháin roimhe',
+  'seats.scrollRight': 'Tuilleadh suíochán',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'aip',

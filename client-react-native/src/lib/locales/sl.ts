@@ -1267,6 +1267,9 @@ export const sl: Record<string, string> = {
   'zone.dropHere': 'Spusti sem',
   'offer.pickCards': 'izberi karte za mesto, ki si se ga dotaknil',
   'offer.ambiguous': 'to lahko gre na več mest — izberi na mizi',
+  'offer.whichOne': 'katero?',
+  'seats.scrollLeft': 'Prejšnja mesta',
+  'seats.scrollRight': 'Več mest',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'aplikacija',

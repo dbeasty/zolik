@@ -1280,6 +1280,9 @@ export const fi: Record<string, string> = {
   'zone.dropHere': 'Pudota tähän',
   'offer.pickCards': 'valitse kortit koskettamallesi paikalle',
   'offer.ambiguous': 'tämä sopii useampaan paikkaan — valitse pöydältä',
+  'offer.whichOne': 'mikä?',
+  'seats.scrollLeft': 'Edelliset paikat',
+  'seats.scrollRight': 'Lisää paikkoja',
 
   // --- the build footer -----------------------------------------------------
   'build.app': 'sovellus',
