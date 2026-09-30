@@ -22,9 +22,7 @@ func rulesets() []ruleset {
 	return []ruleset{
 		{"zolik_classic", rules.ProfileZolikClassic, true},
 		{"zolik_classic+floor35", floored, true},
-		// Continental is measured but not policed — see the note on
-		// ladderIsPoliced.
-		{"continental", rules.ProfileContinental, false},
+		{"continental", rules.ProfileContinental, true},
 	}
 }
 
@@ -34,24 +32,28 @@ type ruleset struct {
 	// ladderIsPoliced says whether the strength gate asserts an ordering on
 	// this ruleset, as opposed to merely reporting one.
 	//
-	// It is false for exactly one ruleset, and the reason is a finding rather
-	// than a convenience. Continental is not Žolíky with different numbers:
-	// its contract rotates per deal and asks for a quota of meld *types*, so
-	// the thing Hard is good at — protecting unfinished material and pricing
-	// it by what is still live — competes with a contract that wants specific
-	// shapes rather than any shapes. Across repeated 150–200 deal sweeps Hard
-	// beat Medium and Easy comfortably on penalty points (227 against 255 and
-	// 245 in one) and not at all on wins (45 against 37 and 50), and the two
-	// runs disagreed with each other by more than either gap. That is a table
-	// too noisy to assert an ordering on and too interesting to drop, so it is
-	// run, logged, and held to the legality invariants — which are absolute
-	// everywhere — while the ordering is asserted where the signal is
-	// unambiguous.
+	// It is true everywhere now, and the history is worth keeping because it
+	// is a lesson about measurement rather than about rummy. Continental was
+	// exempt, on the evidence that repeated sweeps put Hard comfortably ahead
+	// of Medium on penalty points and not at all ahead on wins, and disagreed
+	// with each other by more than either gap — read at the time as a table
+	// too noisy to assert anything about, and blamed on the ruleset's rotating
+	// per-deal contract competing with what Hard is good at.
 	//
-	// The honest summary is that these strengths are tuned for Žolíky and
-	// currently mean less at a Continental table. Fixing that means making
-	// keepValue contract-aware, which is a piece of work with its own
-	// measurement, not a constant to nudge.
+	// The noise was the harness. Duel alternated seats by seed *parity* and
+	// Table rotated them with the seed, and a seed fixes the deal — so each
+	// contender was being dealt a different half (or third) of the cards
+	// rather than the same cards from a different chair. Running the same
+	// pairing in the other order was therefore a different experiment, which
+	// is exactly why the two runs disagreed. On Continental it was enough to
+	// invert the whole table: cmd/aibench reported Easy beating Hard 56% of
+	// the time.
+	//
+	// Both now play every seating of each seed, and Continental's ladder is
+	// ordered on both metrics in every pairing — Hard 54% and 163.8 points
+	// against Easy's 187.6, 51% and 165.6 against Medium's 181.1. Nothing
+	// about the agent changed to achieve that; the instrument was corrected
+	// and the ordering was already there. See Duel.
 	ladderIsPoliced bool
 }
 

@@ -7,17 +7,22 @@ import { loginAsFreshAccount, loginAsFreshGuest } from '../helpers/login';
  *
  * The defect this file is written against is specific and worth naming: the
  * screen used to render `JSON.stringify(response, null, 2)` for both halves,
- * so a signed-out visitor was shown a literal `{"entries": [], "kind": "user"}`
- * and a player with a record was shown the raw shape of it. Every test here
+ * so a player with a record was shown the raw shape of it. Every test here
  * therefore asserts on *rendered* content — a heading, a table row, a named
- * empty state — and the first one asserts that no JSON punctuation survives
- * anywhere on the page. A suite that only checked the fetch succeeded would
- * have stayed green through the entire bug.
+ * empty state — and asserts that no JSON punctuation survives anywhere on the
+ * page. A suite that only checked the fetch succeeded would have stayed green
+ * through the entire bug.
+ *
+ * The screen needs an account (see account-gate.spec.ts, which owns the gate
+ * itself), so every test that looks at its content signs one in first.
  *
  * Locators use `exact: true` for the same reason sign-in.spec.ts does: React
  * Native Web renders these as plain text nodes and a substring match collides
  * with the prose around them.
  */
+
+const suffix = () => Math.random().toString(36).slice(2, 8);
+const freshEmail = (tag: string) => `e2e-${tag}-${suffix()}@example.com`;
 
 /** Nothing on this screen may ever be a serialised payload again. */
 async function expectNoRawJson(page: import('@playwright/test').Page) {
@@ -31,49 +36,21 @@ async function expectNoRawJson(page: import('@playwright/test').Page) {
 }
 
 test.describe('stats & leaderboard', () => {
-  test('a signed-out visitor gets a rendered board and an invitation, never a payload', async ({
-    page,
-  }) => {
+  test('without an account the screen is the gate, never a payload', async ({ page, request }) => {
     await page.goto('/stats');
+    await expect(page.getByTestId('sign-in-required')).toBeVisible({ timeout: 10_000 });
 
-    await expect(page.getByText('Your record', { exact: true })).toBeVisible({ timeout: 10_000 });
-    // No account, so no lifetime record — with the way to get one attached.
-    await expect(page.getByTestId('stats-signin-prompt')).toBeVisible();
-    await expect(page.getByTestId('stats-signin-prompt').getByText('Sign in', { exact: true })).toBeVisible();
-
-    // The public half still loads: either somebody is ranked, or the named
-    // empty state says so in words.
-    await expect(page.getByTestId('leaderboard-section')).toBeVisible();
-    await expect(
-      page.getByTestId('leaderboard-table').or(page.getByTestId('leaderboard-empty')),
-    ).toBeVisible({ timeout: 10_000 });
-
-    await expectNoRawJson(page);
-  });
-
-  test('a guest is told why they have no record, and how to get one', async ({ page, request }) => {
-    await loginAsFreshGuest(page, request, `e2e-stats-guest-${Math.random().toString(36).slice(2, 8)}`);
+    await loginAsFreshGuest(page, request, `e2e-stats-guest-${suffix()}`);
     await page.goto('/stats');
-
-    const prompt = page.getByTestId('stats-signin-prompt');
-    await expect(prompt).toBeVisible({ timeout: 10_000 });
-    // The reason, not a bare refusal: the guest's already-played games are the
-    // thing signing in preserves, and that is the whole argument for doing it.
-    await expect(prompt).toContainText('per-device');
-    await expect(prompt).toContainText('come with you');
-
-    await expectNoRawJson(page);
+    await expect(page.getByTestId('sign-in-required')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId('your-record')).toHaveCount(0);
   });
 
   test('a fresh account sees an empty record in words, not a wall of zeroes', async ({
     page,
     request,
   }) => {
-    await loginAsFreshAccount(
-      page,
-      request,
-      `e2e-stats-${Math.random().toString(36).slice(2, 8)}@example.com`,
-    );
+    await loginAsFreshAccount(page, request, freshEmail('stats'));
     await page.goto('/stats');
 
     // A brand-new account has played nothing. That is an absence, and the
@@ -81,12 +58,19 @@ test.describe('stats & leaderboard', () => {
     // note at the top of src/lib/stats.ts about what a flat zero claims.
     await expect(page.getByTestId('stats-none-yet')).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId('stats-none-yet')).toContainText('No finished matches yet');
-    await expect(page.getByTestId('stats-signin-prompt')).toHaveCount(0);
+    await expect(page.getByTestId('sign-in-required')).toHaveCount(0);
+
+    // The board beside it loads on its own: either somebody is ranked, or the
+    // named empty state says so in words.
+    await expect(
+      page.getByTestId('leaderboard-table').or(page.getByTestId('leaderboard-empty')),
+    ).toBeVisible({ timeout: 10_000 });
 
     await expectNoRawJson(page);
   });
 
-  test('the leaderboard toggles re-query and stay rendered', async ({ page }) => {
+  test('the leaderboard toggles re-query and stay rendered', async ({ page, request }) => {
+    await loginAsFreshAccount(page, request, freshEmail('stats-board'));
     await page.goto('/stats');
     const section = page.getByTestId('leaderboard-section');
     await expect(section).toBeVisible({ timeout: 10_000 });
@@ -112,36 +96,30 @@ test.describe('stats & leaderboard', () => {
 });
 
 test.describe('recording a live game', () => {
-  test('the menu reaches it through stats, in one link, not as a way to play', async ({
-    page,
-    request,
-  }) => {
-    await loginAsFreshGuest(page, request, `e2e-live-${Math.random().toString(36).slice(2, 8)}`);
+  test('is a scorepad behind "More", not a way to play on the menu', async ({ page, request }) => {
+    await loginAsFreshAccount(page, request, freshEmail('live'));
     await page.goto('/');
 
-    // The menu offers ways to play and one link to everything else. The
-    // scorepad is not a way to play and no longer sits among them.
-    await expect(page.getByText('Offline score table', { exact: true })).toHaveCount(0);
-    await expect(page.getByTestId('menu-record-live-game')).toHaveCount(0);
-    await page.getByText('Stats & leaderboard', { exact: true }).click();
-    await expect(page).toHaveURL(/\/stats/, { timeout: 10_000 });
+    // The menu offers ways to play. The scorepad is not one, and neither is
+    // the stats screen; both live behind the face in the corner.
+    await expect(page.getByText('Play', { exact: true }).first()).toBeVisible({ timeout: 10_000 });
+    for (const text of ['Offline score table', 'Record a live game', 'Stats & leaderboard']) {
+      await expect(page.getByText(text, { exact: true })).toHaveCount(0);
+    }
 
-    // …and the hub carries it, below the record it does not feed.
-    const link = page.getByTestId('stats-record-live-game');
-    await expect(link).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByTestId('live-game-section')).toContainText(
-      'nothing it records counts towards the record above',
-    );
-
-    await link.click();
+    await page.goto('/more');
+    const entry = page.getByTestId('more-score-table');
+    await expect(entry).toHaveText('Record a live game', { timeout: 10_000 });
+    await entry.click();
     await expect(page).toHaveURL(/\/scoring/, { timeout: 10_000 });
-    // The menu stays mounted behind the pushed screen, so its own link still
-    // matches this text while being hidden — hence the visible-only filter
-    // rather than `.first()`, which picks the one underneath.
-    await expect(
-      page.getByText('Record a live game', { exact: true }).locator('visible=true'),
-    ).toBeVisible();
+
+    // Says what it is, and that it does not feed the record on the stats
+    // screen — the natural reading of a scorecard filed next to a win rate.
     await expect(page.getByText(/playing with real cards/).locator('visible=true')).toBeVisible();
+    await expect(
+      page.getByText(/Nothing it records counts towards your stats/).locator('visible=true'),
+    ).toBeVisible();
+    await expect(page.getByText('Start scorecard', { exact: true }).locator('visible=true')).toBeVisible();
   });
 });
 

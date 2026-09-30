@@ -6,6 +6,7 @@ import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { authErrorMessage, claimedMessage } from '@/src/lib/auth';
 import { shared, colors } from '@/src/theme';
+import { t } from '@/src/lib/i18n';
 
 /**
  * Where the browser lands if the OAuth redirect actually navigates the app,
@@ -47,17 +48,17 @@ export default function AuthCallbackScreen() {
       .then(async (outcome) => {
         await setSession(outcome.session);
         const claimed = claimedMessage(outcome.claimedMatches);
-        setMessage(claimed ?? 'Signed in.');
+        setMessage(claimed ?? t('auth.callback.signedIn'));
         router.replace('/');
       })
       .catch((e) => {
-        setMessage(e instanceof Error ? e.message : 'Sign-in failed');
+        setMessage(e instanceof Error ? e.message : t('error.signIn'));
         setTimeout(() => router.replace('/auth/login'), 1500);
       });
   }, [params.code, params.error, client, setSession]);
 
   return (
-    <Screen title="Signing in">
+    <Screen title={t('nav.signingIn')}>
       <ActivityIndicator color={colors.accent} style={{ marginBottom: 16 }} />
       <Text style={shared.status}>{message}</Text>
     </Screen>

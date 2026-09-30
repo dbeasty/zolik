@@ -92,37 +92,6 @@ func TestRules_EveryHouseRuleIsStatedEitherWayRoundOnEveryTable(t *testing.T) {
 	}
 }
 
-// TestExplainRefusal_OnlyEverPointsAtASentenceThatExists, across every table
-// this module can be set to. A refusal explaining itself with a dangling id
-// opens an empty page, and only a sweep finds the one option value where that
-// happens.
-func TestExplainRefusal_OnlyEverPointsAtASentenceThatExists(t *testing.T) {
-	m := New()
-	codes := []string{
-		ErrBetTooSmall, ErrAlreadyBet, ErrCannotDouble, ErrCannotSplit,
-		ErrCannotSurrender, ErrInsuranceClosed, ErrNotYourTurn, ErrWrongPhase,
-	}
-	explained := 0
-	for _, cfg := range configs() {
-		sections, err := m.Rules(cfg)
-		if err != nil {
-			t.Fatalf("Rules: %v", err)
-		}
-		stated := module.RuleIDsIn(sections)
-		for _, code := range codes {
-			for _, id := range m.ExplainRefusal(cfg, code) {
-				if !stated[id] {
-					t.Errorf("config %+v: code %s points at %q, which its rules do not state", cfg, code, id)
-				}
-				explained++
-			}
-		}
-	}
-	if explained == 0 {
-		t.Error("no refusal was explained by anything at all")
-	}
-}
-
 // TestExplainRefusal_SaysNothingAboutAMoveTheTableDoesNotHave — pointing a
 // player at "you may not split that" when the table never splits anything is
 // an explanation of the wrong thing.

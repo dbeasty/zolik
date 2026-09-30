@@ -14,6 +14,7 @@ const (
 	OfferCheck = "check"
 	OfferCall  = "call"
 	OfferRaise = "raise"
+	OfferShow  = "show"
 )
 
 // LegalActions answers "what may this player do right now?".
@@ -34,9 +35,27 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		return nil, err
 	}
 
-	// Between hands the only thing anybody may do is agree to go on.
+	// At a showdown there are two things to do: agree to go on, and turn your
+	// hand over before you do.
+	//
+	// Going on comes first in the list, and the order is load-bearing rather
+	// than cosmetic. A bot with no preference takes the first enabled offer it
+	// is given — `module.ChooseAction(offers, nil)` — and so does the
+	// runtime's retry path after a refusal. Put `show` first and every bot in
+	// the game would turn its bluffs face up, every hand, for free.
 	if s.Break.Open {
-		return s.Break.Offers(order(s), playerID), nil
+		on := s.Break.Offers(order(s), playerID)
+		// The last showdown's control ends the match rather than starting a
+		// hand, so it says so. Same offer, same verb, different sentence —
+		// a client renders whichever label the module names.
+		if s.Closing {
+			for i := range on {
+				if on[i].ID == module.OfferContinue {
+					on[i].LabelKey = "holdem.offer.finish"
+				}
+			}
+		}
+		return append(on, showOffer(s, playerID)), nil
 	}
 
 	if s.Status != "active" || s.Current < 0 || s.Seats[s.Current].PlayerID != playerID {
@@ -44,12 +63,17 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		if s.Status != "active" {
 			why = ErrGameNotActive
 		}
-		return []module.ActionOffer{
+		waiting := []module.ActionOffer{
 			{ID: OfferFold, Verb: VerbFold, WhyNot: why},
 			{ID: OfferCheck, Verb: VerbCheck, WhyNot: why},
 			{ID: OfferCall, Verb: VerbCall, WhyNot: why},
 			{ID: OfferRaise, Verb: VerbRaise, WhyNot: why},
-		}, nil
+		}
+		// No seat to read a figure off, so these get the rule and no remedy —
+		// which is right: there is nothing to press while somebody else is
+		// deciding.
+		m.annotate(configOf(s), s, s.seat(playerID), waiting)
+		return waiting, nil
 	}
 
 	seat := &s.Seats[s.Current]
@@ -91,13 +115,23 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 			Max:      maxTo,
 			Step:     1,
 			Default:  minTo,
+			Headline: true,
+			Choices:  raiseQuickChoices(s, minTo, maxTo),
 		}}
+		// The pot as it stands once this seat's call is in — the base every
+		// pot-sized raise is measured from — and worded as exactly that, "pot
+		// after call". Under a title reading "Raise to 483" a bare "in the pot"
+		// read as the pot this raise would make, which it is not.
 		raise.Facts = []module.Fact{{
 			LabelKey: "holdem.cost.pot", Value: strconv.Itoa(s.potIfCalled()),
 		}}
 	}
 	offers = append(offers, raise)
 
+	// Why each disabled offer is disabled, in terms a player can act on: the
+	// written rule behind the refusal, and the figure that makes it
+	// actionable — see remedy.go.
+	m.annotate(configOf(s), s, seat, offers)
 	return offers, nil
 }
 
@@ -117,6 +151,83 @@ func raiseRange(s *GameState, seat *Seat) (int, int) {
 		minTo = 1
 	}
 	return minTo, maxTo
+}
+
+// raiseQuickChoices names the raise-to totals a no-limit player actually
+// reasons about — half the pot, the whole pot, and the top of the range —
+// alongside the bare range `ParamKindInt` already carries, so a player is not
+// left doing pot arithmetic in their head to reach a normal-sized bet.
+//
+// Each is clamped into [minTo, maxTo], the same bounds the stepper obeys, and
+// the engine still validates whatever comes back — a quick choice is a
+// shortcut to a value, not a second way in.
+//
+// Built to keep "all in" always present and to write every `LabelKey` as a
+// literal string in its own `module.ParamChoice{...}` — never assigned from a
+// variable — because `dump-keys` finds label keys by reading the source, not
+// by running it, and a key that only exists behind a local struct field is
+// invisible to that scan. Insertion order decides the tie: all in goes in
+// first, so a pot or half-pot amount that happens to coincide with it is
+// dropped from the list rather than duplicating the button under another name.
+func raiseQuickChoices(s *GameState, minTo, maxTo int) []module.ParamChoice {
+	potAfterCall := s.potIfCalled()
+	clamp := func(n int) int {
+		if n < minTo {
+			return minTo
+		}
+		if n > maxTo {
+			return maxTo
+		}
+		return n
+	}
+
+	allIn := maxTo
+	pot := clamp(s.CurrentBet + potAfterCall)
+	halfPot := clamp(s.CurrentBet + potAfterCall/2)
+
+	seen := map[int]bool{allIn: true}
+	choices := []module.ParamChoice{{Value: strconv.Itoa(allIn), LabelKey: "holdem.quick.allIn"}}
+	if !seen[pot] {
+		seen[pot] = true
+		choices = append([]module.ParamChoice{{Value: strconv.Itoa(pot), LabelKey: "holdem.quick.pot"}}, choices...)
+	}
+	if !seen[halfPot] {
+		choices = append([]module.ParamChoice{{Value: strconv.Itoa(halfPot), LabelKey: "holdem.quick.halfPot"}}, choices...)
+	}
+	return choices
+}
+
+// showOffer is the control for turning your own hand face up.
+//
+// Built by hand rather than through `probe`, which is the one place in this
+// file that departs from "ask the engine". probe runs a whole `Apply`, and
+// `Apply` decodes and re-encodes the entire GameState — deck, hand history and
+// all — once per viewer per broadcast. Every other offer here pays that
+// because its legality is a betting rule with real arithmetic behind it. This
+// one's is a four-term predicate with no arithmetic at all, and `applyShow`
+// enforces exactly the same four terms in the same order, so there is nothing
+// for the two to disagree about.
+func showOffer(s *GameState, playerID string) module.ActionOffer {
+	o := module.ActionOffer{ID: OfferShow, Verb: VerbShow, LabelKey: "holdem.offer.show"}
+	seat := s.seat(playerID)
+	// Same four terms as applyShow, in the same order, so the greyed-out
+	// reason a player reads is the refusal they would have been given.
+	switch {
+	case s.LastHand == nil || !s.Break.Open:
+		o.WhyNot = module.ErrNotPaused
+	case seat == nil:
+		o.WhyNot = module.ErrNotSeated
+	case s.Break.Ready[playerID]:
+		// Having said "go on" is having let the hand go.
+		o.WhyNot = module.ErrAlreadyReady
+	case s.LastHand.shows(playerID):
+		o.WhyNot = ErrAlreadyShown
+	case len(seat.Hole) == 0:
+		o.WhyNot = ErrNothingToShow
+	default:
+		o.Enabled = true
+	}
+	return o
 }
 
 // potIfCalled is what the pot would be if the current bet were called all

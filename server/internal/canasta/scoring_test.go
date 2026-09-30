@@ -10,7 +10,9 @@ func TestCardValues(t *testing.T) {
 		"AH": 20, "AS": 20,
 		"KH": 10, "QD": 10, "JC": 10, "TS": 10, "9H": 10, "8D": 10,
 		"7C": 5, "6S": 5, "5H": 5, "4D": 5,
-		"3C": 5, "3S": 5, // black threes are worth five like any low card
+		// Black threes are not priced like the low cards they look like: 100
+		// melded, 100 against a hand that still holds one. See blackThreeValue.
+		"3C": blackThreeValue, "3S": blackThreeValue,
 		"3H": redThreeValue, "3D": redThreeValue,
 	}
 	for card, want := range cases {
@@ -56,7 +58,7 @@ func TestCardPredicates(t *testing.T) {
 }
 
 func TestDeckIsTwoDecksAndFourJokers(t *testing.T) {
-	deck := buildDeck()
+	deck := buildDeck(classicRules())
 	if len(deck) != 108 {
 		t.Fatalf("deck has %d cards, want 108", len(deck))
 	}
@@ -105,8 +107,8 @@ func TestCanastaBonuses(t *testing.T) {
 	}
 
 	tm := &Team{Melds: []Meld{natural, mixed, short}}
-	want := naturalCanastaBonus + mixedCanastaBonus
-	if got := canastaScore(tm); got != want {
+	want := classicRules().NaturalCanastaBonus + classicRules().MixedCanastaBonus
+	if got := canastaScore(classicRules(), tm); got != want {
 		t.Errorf("canastaScore = %d, want %d", got, want)
 	}
 	if got := tm.canastas(); got != 2 {
@@ -151,7 +153,7 @@ func TestScoreDeal(t *testing.T) {
 
 	// Team 0: 70 + 15 melded, 500 canasta, 100 red three, 100 going out, none
 	// left in hand.
-	want0 := 85 + naturalCanastaBonus + redThreeValue + goingOutBonus
+	want0 := 85 + classicRules().NaturalCanastaBonus + redThreeValue + classicRules().GoingOutBonus
 	if res.Teams[0].Total != want0 {
 		t.Errorf("team 0 scored %d, want %d (%+v)", res.Teams[0].Total, want0, res.Teams[0])
 	}
@@ -166,6 +168,47 @@ func TestScoreDeal(t *testing.T) {
 	}
 	if res.Teams[0].Running != want0 {
 		t.Errorf("the result should carry the running total, got %d", res.Teams[0].Running)
+	}
+}
+
+// A black three is worth the same 100 whichever side of the hand it ends on:
+// on the table for the side that went out on it, against the side still
+// holding one. The two halves are one number and are asserted together, because
+// pricing the meld without pricing the penalty is what makes going out on black
+// threes free rather than a gamble.
+func TestBlackThreesScoreAHundredEachWay(t *testing.T) {
+	s := &GameState{
+		Players:   []string{"p1", "p2"},
+		TurnOrder: []string{"p1", "p2"},
+		TeamOf:    map[string]int{"p1": 0, "p2": 1},
+		Teams: []Team{
+			{
+				ID:      0,
+				Players: []string{"p1"},
+				Melds: []Meld{
+					{Rank: "K", Cards: []string{"KH", "KD", "KS", "KC", "KH", "KD", "KS"}},
+					// The going-out meld: three black threes, 300 in cards and
+					// no canasta bonus — a group of threes is never a canasta.
+					{Rank: "3", Cards: []string{"3C", "3S", "3C"}},
+				},
+			},
+			{ID: 1, Players: []string{"p2"}},
+		},
+		Hands: map[string][]string{
+			"p1": {},
+			"p2": {"3S", "3C", "4D"}, // 100 + 100 + 5 stranded
+		},
+	}
+
+	res := scoreDeal(s, "p1", false, false)
+
+	want0 := 70 + 3*blackThreeValue + classicRules().NaturalCanastaBonus + classicRules().GoingOutBonus
+	if res.Teams[0].Total != want0 {
+		t.Errorf("the side that went out on black threes scored %d, want %d (%+v)",
+			res.Teams[0].Total, want0, res.Teams[0])
+	}
+	if want := 2*blackThreeValue + 5; res.Teams[1].InHand != want {
+		t.Errorf("two stranded black threes counted %d, want %d", res.Teams[1].InHand, want)
 	}
 }
 
@@ -260,7 +303,7 @@ func TestReachableValueIsAchievable(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := reachableValue(tc.hand, &Team{}); got != tc.want {
+			if got := reachableValue(classicRules(), tc.hand, &Team{}); got != tc.want {
 				t.Errorf("reachableValue(%v) = %d, want %d", tc.hand, got, tc.want)
 			}
 		})

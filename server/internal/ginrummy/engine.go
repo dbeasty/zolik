@@ -36,6 +36,9 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 	s.BigGin = cfg.Opt(OptBigGin, module.BoolOpt(v.bigGin)) == module.OptOn
 	s.LineBonuses = cfg.Opt(OptLineBonuses, module.BoolOpt(v.lineBonuses)) == module.OptOn
 	s.Pause = cfg.PauseBetweenRounds(true)
+	// Off by default: which cards have gone through the pile is what a Gin
+	// Rummy player is meant to be holding in their head.
+	s.OpenDiscard = cfg.OpenDiscardPile(false)
 
 	s.Dealer = s.Players[module.StartingSeat(seed, len(s.Players))]
 	dealHand(s)
@@ -168,9 +171,15 @@ func applyDraw(s *GameState, playerID string, a module.Action) ([]module.Event, 
 			s.ForcedStockDraw = false
 		}
 		s.Phase = phaseDiscard
-		return []module.Event{{Type: "card_drawn", Data: map[string]any{
+		ev := module.Event{Type: "card_drawn", Data: map[string]any{
 			"playerId": playerID, "fromDiscard": fromDiscard,
-		}}}, nil
+		}}
+		// The discard pile's top card was face up, so naming it tells nobody
+		// anything; a card from the stock is never named.
+		if fromDiscard {
+			ev.Data["card"] = s.Hands[playerID][len(s.Hands[playerID])-1]
+		}
+		return []module.Event{ev}, nil
 	default:
 		return nil, errCode(ErrWrongPhase)
 	}

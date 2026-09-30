@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 
 /**
  * When the table stops, the way on is in front of the player.
@@ -79,10 +79,10 @@ async function signIn(page: Page, host: any) {
  * at. Asked of the server rather than guessed from the DOM, because the screen
  * under test names no game and neither should this.
  */
-async function handZone(request: Ctx, matchId: string, userId: string): Promise<string> {
-  const state = await (await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`)).json();
+async function handZone(request: Ctx, matchId: string, viewer: Viewer): Promise<string> {
+  const state = await (await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer))).json();
   const mine = (state.view?.zones ?? []).find(
-    (z: any) => z.kind === 'hand' && z.ownerId === userId,
+    (z: any) => z.kind === 'hand' && z.ownerId === viewer.userId,
   );
   expect(mine, 'the player should have a hand to look at').toBeTruthy();
   return mine.id;
@@ -149,9 +149,16 @@ async function playUntil(
   page: Page,
   request: Ctx,
   matchId: string,
-  userId: string,
+  viewer: Viewer,
   zoneId: string,
   done: (s: any) => boolean,
+  // Whether the table's own way on may be pressed to get where we are going.
+  //
+  // Off for the tests whose subject *is* a stop: pressing it there would skip
+  // the moment being measured. On for the one that has to reach the end of a
+  // match, because Hold'em stops at the showdown after every hand — including
+  // the last — and a driver that refuses to go on never leaves hand one.
+  goOn = false,
 ) {
   // The board arrives over the socket a moment after the screen does, and a
   // hand that is not on screen yet cannot be looked at: parking on it before it
@@ -163,17 +170,32 @@ async function playUntil(
   // Read here rather than after the table stops, because by then the screen may
   // already have done the thing under test.
   let parked = 0;
-  for (let i = 0; i < 120; i++) {
-    const state = await (await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`)).json();
+  // Generous, because Hold'em now stops at the showdown after every hand: a
+  // five-hand table is five stops plus its betting, and a good share of these
+  // turns are spent waiting on bots rather than pressing anything.
+  for (let i = 0; i < 400; i++) {
+    const state = await (await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer))).json();
     if (done(state)) return { state, parked };
     await parkOnTheHand(page, zoneId);
-    parked = (await board(page)).offset;
+    // The last reading that found the player down the board, not simply the
+    // last reading. The stop can land between the server read above and this
+    // one, and then the screen has already fetched the player back up to the
+    // settlement — the behaviour under test — and reads 0. That erased the
+    // evidence of where they had been, and failed the precondition below about
+    // half the time on a run where everything it guards had worked.
+    const at = (await board(page)).offset;
+    if (at > 0) parked = at;
     const ids = await page
-      .locator('[data-testid^="offer-"]:not([aria-disabled="true"])')
+      .locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])')
       .evaluateAll((els) => els.map((e) => e.getAttribute('data-testid') ?? '').filter(Boolean));
-    // Never press the intermission's own control here — that is the moment
-    // under test, and agreeing to go on would skip it.
-    const pick = ids.find((id) => !id.includes('continue'));
+    // Never press the intermission's own control unless asked — that is the
+    // moment under test, and agreeing to go on would skip it.
+    //
+    // And never press "show my hand": it is legal at every showdown, changes
+    // no turn and comes back disabled, so a driver that took the first enabled
+    // offer would spend a hand on it and then have nothing left to press.
+    const usable = ids.filter((id) => id !== 'offer-show');
+    const pick = goOn ? usable[0] : usable.find((id) => !id.includes('continue'));
     if (!pick) {
       await page.waitForTimeout(400);
       continue;
@@ -188,6 +210,8 @@ async function playUntil(
   return { state: null, parked };
 }
 
+const SMALL_PHONE = { width: 375, height: 667 };
+
 test.describe('a stopped table brings the way on to the player', () => {
   test('the control to start the next round is in view without scrolling to it', async ({
     page,
@@ -195,20 +219,24 @@ test.describe('a stopped table brings the way on to the player', () => {
   }) => {
     test.setTimeout(180_000);
     // A phone, because a phone is where the board is taller than the window and
-    // a settlement at the top of it is a settlement nobody receives.
-    await page.setViewportSize({ width: 390, height: 844 });
+    // a settlement at the top of it is a settlement nobody receives. A small
+    // one: since the board was dealt onto the table (a355a8d), a Hold'em board
+    // mid-hand can fit a 390×844 window outright, which leaves the player
+    // nowhere to have scrolled from, and the checks below fail on a deal that
+    // simply cannot show the bug. At 667 tall it never fits.
+    await page.setViewportSize(SMALL_PHONE);
 
-    const { matchId, host } = await table(request, { handLimit: 5, pauseBetweenRounds: 1 });
+    const { matchId, host } = await table(request, { handLimit: 5 });
     await signIn(page, host);
     await page.goto(`/match/${matchId}`);
     await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
 
-    const hand = await handZone(request, matchId, host.userId);
+    const hand = await handZone(request, matchId, host);
     const { state, parked } = await playUntil(
       page,
       request,
       matchId,
-      host.userId,
+      host,
       hand,
       (s) => !!s.rounds?.paused,
     );
@@ -265,7 +293,7 @@ test.describe('a stopped table brings the way on to the player', () => {
     await expect
       .poll(
         async () =>
-          (await (await request.get(`${API_BASE}/matches/${matchId}?as=${host.userId}`)).json())
+          (await (await request.get(`${API_BASE}/matches/${matchId}`, asViewer(host))).json())
             .rounds?.paused ?? false,
         { timeout: 30_000 },
       )
@@ -274,23 +302,25 @@ test.describe('a stopped table brings the way on to the player', () => {
 
   test('the offer to play again is in view when the match ends', async ({ page, request }) => {
     test.setTimeout(180_000);
-    await page.setViewportSize({ width: 390, height: 844 });
+    await page.setViewportSize(SMALL_PHONE);
 
-    // No pause between rounds: the table runs its hands straight through and
-    // stops for good, which is the only stop under test here.
+    // The stop under test is the last one. Hold'em stops at every showdown,
+    // so playUntil presses through each of them and this waits for the one
+    // the table does not come back from.
     const { matchId, host } = await table(request, { handLimit: 5 });
     await signIn(page, host);
     await page.goto(`/match/${matchId}`);
     await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
 
-    const hand = await handZone(request, matchId, host.userId);
+    const hand = await handZone(request, matchId, host);
     const { state, parked } = await playUntil(
       page,
       request,
       matchId,
-      host.userId,
+      host,
       hand,
       (s) => s.status === 'completed',
+      true,
     );
     expect(state, 'the shortest table this game offers should have ended').toBeTruthy();
 

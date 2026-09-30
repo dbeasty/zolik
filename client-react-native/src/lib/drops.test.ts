@@ -1,11 +1,13 @@
-import { isOneTap, type ActionOffer } from '@/src/api/matchTypes';
+import { isOneTap, submissionFor, type ActionOffer, type Zone } from '@/src/api/matchTypes';
 
 import {
   dropSpotsFor,
   fits,
+  readyWith,
   positionAt,
   refusalAt,
   someOfferReady,
+  sourceSpotsFor,
   spotAt,
   takeableSpots,
 } from './drops';
@@ -78,6 +80,32 @@ const layOffChain: ActionOffer = {
   target: { zone: 'meld', ownerId: 'me', meldId: 'meld_1', zoneId: 'melds:me' },
 };
 
+/**
+ * The same shape when the gap can be bridged two ways. A run of 5-6-7-8, and a
+ * hand holding the joker, the 10 and the 9: the 10 reaches the run with the 9,
+ * or with the joker standing in the 9's place. Copied from what the server
+ * emits for that board.
+ */
+const layOffJokerOrNatural: ActionOffer = {
+  id: 'lay_off:meld_3',
+  verb: 'lay_off',
+  enabled: true,
+  source: {
+    zone: 'hand',
+    ownerId: 'me',
+    zoneId: 'hand:me',
+    cards: ['JOKER', '9C'],
+    placements: [
+      { card: 'JOKER', positions: ['front', 'end'] },
+      { card: '9C', positions: ['end'] },
+      { card: 'TC', positions: ['end'], requires: ['9C'], alternatives: [['JOKER']] },
+    ],
+    minCards: 1,
+    maxCards: 4,
+  },
+  target: { zone: 'meld', ownerId: 'karel', meldId: 'meld_3', zoneId: 'melds:karel' },
+};
+
 /** Three deep, so a selection can skip a link in the middle of the chain. */
 const layOffDeepChain: ActionOffer = {
   id: 'lay_off:meld_2',
@@ -106,6 +134,34 @@ const layMeld: ActionOffer = {
   enabled: true,
   composite: true,
   source: { zone: 'hand', ownerId: 'me', zoneId: 'hand:me', minCards: 3, maxCards: 13 },
+  target: { zone: 'table', zoneId: 'melds:me' },
+};
+
+/**
+ * A Canasta group offer in Samba: three jacks on the table if you press it,
+ * and a wild in hand you may pick instead.
+ *
+ * `cards` and `submit` say two different things here, and the difference is
+ * the bug this fixture exists for. `submit` is the meld a press sends — the
+ * jacks, spending no wild they do not need. `cards` is everything a person may
+ * reach for, the two included, and `maxCards` is how far the engine said that
+ * selection may grow. While the offer named only its submission, picking the
+ * two was refused with `sel.notThese` by this file, for a meld the server had
+ * no objection to at all.
+ */
+const canastaGroup: ActionOffer = {
+  id: 'lay_meld:J',
+  verb: 'lay_meld',
+  enabled: true,
+  source: {
+    zone: 'hand',
+    ownerId: 'me',
+    zoneId: 'hand:me',
+    cards: ['2C', 'JD', 'JH', 'JS'],
+    submit: ['JD', 'JH', 'JS'],
+    minCards: 3,
+    maxCards: 4,
+  },
   target: { zone: 'table', zoneId: 'melds:me' },
 };
 
@@ -194,6 +250,22 @@ describe('dropSpotsFor', () => {
     expect(takeableSpots(dropSpotsFor([oneSeven], ['7H', '7H']))).toEqual([]);
   });
 
+  it('takes both copies when the offer lists both', () => {
+    // The other half of counting duplicates, and the half a Canasta lay-off
+    // after a pile take depends on: a hand holding two 7H may lay off two 7H,
+    // so the offer names the card twice and this side has to honour that
+    // rather than stopping at the first match.
+    const twoSevens: ActionOffer = {
+      ...layOff,
+      source: { ...layOff.source!, cards: ['7H', '7H'], placements: undefined, minCards: 1, maxCards: 4 },
+    };
+
+    expect(takeableSpots(dropSpotsFor([twoSevens], ['7H', '7H']))).toHaveLength(1);
+    expect(someOfferReady([twoSevens], ['7H', '7H'])).toBe(true);
+    // Still counted, not merely matched: a third copy is one more than offered.
+    expect(takeableSpots(dropSpotsFor([twoSevens], ['7H', '7H', '7H']))).toEqual([]);
+  });
+
   it('offers every place one card may go at once', () => {
     // A 6D that both extends a run and could be discarded gets two lit
     // targets, and the player picks by where they let go.
@@ -260,6 +332,37 @@ describe('fits', () => {
     // not enough of them yet" — a drag stages that; a button asks the min
     // question itself, separately.
     expect(fits(layMeld, ['2C'])).toEqual({ ok: true });
+  });
+});
+
+describe('a Canasta group with a wild to spare', () => {
+  it('takes the wild the submission did not spend', () => {
+    expect(fits(canastaGroup, ['JS', 'JD', '2C'])).toEqual({ ok: true });
+  });
+
+  it('takes every natural and the wild together, up to the offer\'s maximum', () => {
+    expect(fits(canastaGroup, ['JS', 'JD', 'JH', '2C'])).toEqual({ ok: true });
+  });
+
+  it('still refuses a card the offer never named', () => {
+    expect(fits(canastaGroup, ['JS', 'JD', '9H'])).toEqual({
+      ok: false,
+      labelKey: 'sel.notThese',
+    });
+  });
+
+  it('is ready to send as soon as three of them are picked', () => {
+    expect(someOfferReady([canastaGroup], ['JS', 'JD', '2C'])).toBe(true);
+  });
+
+  it('is still one tap, because it names its own submission', () => {
+    expect(isOneTap(canastaGroup)).toBe(true);
+  });
+
+  it('lets the wild be dropped on the table with the jacks', () => {
+    expect(dropSpotsFor([canastaGroup], ['JS', 'JD', '2C'])).toEqual([
+      { offerId: 'lay_meld:J', elementId: 'zone-melds:me', ready: true },
+    ]);
   });
 });
 
@@ -370,6 +473,47 @@ describe('a lay-off whose cards need each other', () => {
     expect(spotAt(spots, 'group-meld_2')).toMatchObject({ ready: true });
   });
 
+  // The bug: the 10 needs company, and the player chose the joker for it
+  // rather than the 9 the offer happens to name first. Before `alternatives`
+  // this pair was refused and the player laid the two cards one at a time.
+  it('takes the card with the joker the player chose to spend', () => {
+    const spots = takeableSpots(dropSpotsFor([layOffJokerOrNatural], ['JOKER', 'TC']));
+    expect(spotAt(spots, 'group-meld_3')).toMatchObject({ ready: true });
+  });
+
+  it('still takes the natural card the offer names first', () => {
+    const spots = takeableSpots(dropSpotsFor([layOffJokerOrNatural], ['9C', 'TC']));
+    expect(spotAt(spots, 'group-meld_3')).toMatchObject({ ready: true });
+  });
+
+  it('still refuses the card with neither companion', () => {
+    const spots = dropSpotsFor([layOffJokerOrNatural], ['TC']);
+    expect(refusalAt(spots, 'group-meld_3')?.labelKey).toBe('sel.needsCompany');
+    expect(takeableSpots(spots)).toEqual([]);
+  });
+
+  // An alternative is a set, not a loose pool of acceptable cards: holding
+  // some other card alongside the 10 is not company just because a joker
+  // exists somewhere in the offer.
+  it('is not satisfied by a card no companion set names', () => {
+    const spots = dropSpotsFor([layOffJokerOrNatural], ['TC', '2H']);
+    expect(takeableSpots(spots)).toEqual([]);
+  });
+
+  // The run-end hint survives the choice. Both companions reach across the
+  // same gap, so the submission grows the same end either way — the server
+  // sweeps that invariant, and this side reuses the one hint.
+  it('names the same end whichever companion is spent', () => {
+    expect(dropSpotsFor([layOffJokerOrNatural], ['9C', 'TC'])[0].positions).toEqual(['end']);
+    expect(dropSpotsFor([layOffJokerOrNatural], ['JOKER', 'TC'])[0].positions).toEqual(['end']);
+  });
+
+  // The card still needs company, so a control that sends one card unprompted
+  // must not reach for it — having two ways in is not having no requirement.
+  it('keeps a card with alternatives out of the one-tap list', () => {
+    expect(layOffJokerOrNatural.source?.cards).not.toContain('TC');
+  });
+
   // Constraint on the other side of the same fact: `source.cards` stays the
   // cards that may be sent with nobody choosing, so a chain does not turn a
   // one-tap control into one that silently sends a card needing company.
@@ -387,5 +531,189 @@ describe('a lay-off whose cards need each other', () => {
   // something composed out of both cards' hints.
   it('names the end the whole submission grows', () => {
     expect(dropSpotsFor([layOffChain], ['5C', '6C'])[0].positions).toEqual(['front']);
+  });
+});
+
+/**
+ * Taking *from* a pile, which is the one move with no cards to drag.
+ *
+ * The board below is the one every rummy here draws: a face-down stock, a
+ * face-up discard pile, the viewer's hand and an opponent's.
+ */
+describe('sourceSpotsFor', () => {
+  const zones: Zone[] = [
+    { id: 'draw', kind: 'stack', count: 40 },
+    { id: 'discard', kind: 'pile', count: 3, cards: [{ card: '9S' }] },
+    { id: 'hand:me', kind: 'hand', ownerId: 'me', count: 13 },
+    { id: 'hand:you', kind: 'hand', ownerId: 'you', count: 13 },
+    { id: 'melds:me', kind: 'spread', ownerId: 'me', count: 0 },
+  ];
+
+  /** Žolíky's two draws, as the server really sends them. */
+  const drawDeck: ActionOffer = {
+    id: 'draw:deck',
+    verb: 'draw',
+    enabled: true,
+    labelKey: 'verb.drawFromDeck',
+    source: { zone: 'deck', zoneId: 'draw' },
+    target: { zone: 'hand', ownerId: 'me', zoneId: 'hand:me' },
+  };
+  const drawDiscard: ActionOffer = {
+    id: 'draw:discard',
+    verb: 'draw',
+    enabled: true,
+    labelKey: 'verb.takeFromDiscard',
+    source: { zone: 'discard_pile', zoneId: 'discard', cards: ['9S'] },
+    target: { zone: 'hand', ownerId: 'me', zoneId: 'hand:me' },
+  };
+
+  it('puts each draw on the pile it comes from', () => {
+    expect(sourceSpotsFor([drawDeck, drawDiscard, discard], zones, 'me')).toEqual([
+      { offerId: 'draw:deck', elementId: 'zone-draw', ready: true },
+      { offerId: 'draw:discard', elementId: 'zone-discard', ready: true },
+    ]);
+  });
+
+  it('leaves a disabled draw off — a pile you may not take from is not a control', () => {
+    const spots = sourceSpotsFor([{ ...drawDeck, enabled: false }, drawDiscard], zones, 'me');
+    expect(spots.map((s) => s.elementId)).toEqual(['zone-discard']);
+  });
+
+  // The other half of the same rule: an offer with cards to pick is a target,
+  // and `dropSpotsFor` above is what answers for it.
+  it('ignores an offer that takes cards from a hand', () => {
+    expect(sourceSpotsFor([discard, layOff], zones, 'me')).toEqual([]);
+  });
+
+  // Canasta's undo of a capture names the discard pile as its source too, and
+  // a player tapping the pile does not mean "put it all back".
+  it('ignores a card-less offer that does not land in your own hand', () => {
+    const undoTakePile: ActionOffer = {
+      id: 'undo:take_pile',
+      verb: 'undo_take_pile',
+      enabled: true,
+      source: { zone: 'discard_pile', zoneId: 'discard' },
+    };
+    const toTheirHand: ActionOffer = { ...drawDeck, id: 'deal', target: { zone: 'hand', ownerId: 'you', zoneId: 'hand:you' } };
+    expect(sourceSpotsFor([undoTakePile, toTheirHand], zones, 'me')).toEqual([]);
+  });
+
+  // A press means one thing. Two moves from one pile is a choice, and a
+  // choice belongs on named controls, not on a guess.
+  it('offers neither of two draws that name the same pile', () => {
+    const alsoFromDiscard: ActionOffer = { ...drawDiscard, id: 'draw:discard:all' };
+    const spots = sourceSpotsFor([drawDeck, drawDiscard, alsoFromDiscard], zones, 'me');
+    expect(spots.map((s) => s.elementId)).toEqual(['zone-draw']);
+  });
+
+  it('ignores an offer that still needs a form filled in', () => {
+    const withParam: ActionOffer = {
+      ...drawDeck,
+      params: [{ name: 'amount', kind: 'int', labelKey: 'x', min: 1, max: 9 }],
+    };
+    expect(sourceSpotsFor([withParam], zones, 'me')).toEqual([]);
+  });
+
+  // Kind is the one thing the shell reads: a pile and a stack are things a
+  // person can point at, and a spread of melds is not what "take one" means.
+  it('ignores a source zone that is not a pile or a stack', () => {
+    const fromSpread: ActionOffer = { ...drawDeck, source: { zone: 'meld', zoneId: 'melds:me' } };
+    expect(sourceSpotsFor([fromSpread], zones, 'me')).toEqual([]);
+  });
+
+  it('ignores a source zone this board is not drawing at all', () => {
+    const fromNowhere: ActionOffer = { ...drawDeck, source: { zone: 'deck', zoneId: 'shoe' } };
+    expect(sourceSpotsFor([fromNowhere], zones, 'me')).toEqual([]);
+  });
+});
+
+/**
+ * The offer that found the bug `readyWith` exists for: a Canasta go-out on
+ * black threes, which is legal only as the move that empties a hand and so
+ * takes every one of them or none. Six of them, because Samba's third deck
+ * holds six — the widest gap between "these cards are fine" and "these cards
+ * are enough" any offer in the four games produces.
+ */
+const allOrNothing: ActionOffer = {
+  id: 'lay_meld:3',
+  verb: 'lay_meld',
+  enabled: true,
+  source: {
+    zone: 'hand',
+    ownerId: 'me',
+    zoneId: 'hand:me',
+    cards: ['3C', '3C', '3C', '3S', '3S', '3S'],
+    submit: ['3C', '3C', '3C', '3S', '3S', '3S'],
+    minCards: 6,
+    maxCards: 6,
+  },
+  target: { zone: 'table', zoneId: 'melds:me' },
+};
+
+describe('readyWith', () => {
+  it('asks the question fits leaves out: are there enough of them yet', () => {
+    expect(fits(allOrNothing, ['3C'])).toEqual({ ok: true });
+    expect(readyWith(allOrNothing, ['3C'])).toEqual({
+      ok: false,
+      labelKey: 'sel.needMore',
+      params: { n: 6 },
+    });
+  });
+
+  it('is ready once the whole submission is picked', () => {
+    expect(readyWith(allOrNothing, ['3C', '3C', '3C', '3S', '3S', '3S'])).toEqual({ ok: true });
+  });
+
+  it('keeps every reason fits already gives', () => {
+    expect(readyWith(allOrNothing, ['2C', '3C', '3C', '3S', '3S', '3S'])).toEqual({
+      ok: false,
+      labelKey: 'sel.notThese',
+    });
+    expect(readyWith(discard, ['KD', '7H'])).toEqual({ ok: false, labelKey: 'sel.tooMany.1' });
+  });
+
+  it('has no opinion on an offer that takes no cards at all', () => {
+    expect(readyWith(draw, ['KD', '7H', '9S'])).toEqual({ ok: true });
+  });
+
+  it('lets a partial pick of a wider offer through as soon as it reaches the floor', () => {
+    expect(readyWith(canastaGroup, ['JS', 'JD', '2C'])).toEqual({ ok: true });
+    expect(readyWith(canastaGroup, ['JS', 'JD'])).toEqual({
+      ok: false,
+      labelKey: 'sel.needMore',
+      params: { n: 3 },
+    });
+  });
+
+  /**
+   * The invariant the bug broke. A control is lit by this side's own reading
+   * of the selection and sent by `submissionFor`, and the two disagreed: a
+   * press that looked live produced `null` and died where nothing on screen
+   * could say so. Whatever this calls ready has to be something that side
+   * will actually send.
+   */
+  it('never calls ready a selection the submission would refuse', () => {
+    const offers = [allOrNothing, canastaGroup, discard, layOff, playCard];
+    const picks = [
+      [],
+      ['3C'],
+      ['3C', '3C'],
+      ['3C', '3C', '3C', '3S', '3S'],
+      ['3C', '3C', '3C', '3S', '3S', '3S'],
+      ['JS'],
+      ['JS', 'JD'],
+      ['JS', 'JD', '2C'],
+      ['JS', 'JD', 'JH', '2C'],
+      ['KD'],
+      ['KD', '7H'],
+      ['6D'],
+      ['6D', 'TD'],
+    ];
+    for (const offer of offers) {
+      for (const cards of picks) {
+        if (cards.length === 0 || !readyWith(offer, cards).ok) continue;
+        expect([offer.id, cards, submissionFor(offer, { cards })]).not.toEqual([offer.id, cards, null]);
+      }
+    }
   });
 });

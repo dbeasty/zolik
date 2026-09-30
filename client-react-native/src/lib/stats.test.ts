@@ -1,5 +1,6 @@
 import type { MatchModule } from '@/src/api/matchTypes';
 import type { TallyView } from '@/src/api/types';
+import { setLocale } from '@/src/lib/i18n';
 import {
   aiLabel,
   avgRankText,
@@ -180,5 +181,18 @@ describe('playerCountSplits', () => {
     });
     expect(got.map((s) => s.key)).toEqual(['2', '4', '10']);
     expect(got[0].label).toBe('2 players');
+  });
+});
+
+describe('in another language', () => {
+  afterEach(() => setLocale('en'));
+
+  it('words streaks, table sizes and bot strengths in the chosen one', () => {
+    // These used to be English built by string concatenation, which no locale
+    // file could reach. Each is a whole phrase per case now.
+    setLocale('de');
+    expect(streakText(3)).toBe('3 Siege in Folge');
+    expect(playerCountLabel('4')).toBe('4 Spieler');
+    expect(aiLabel('hard:miroslav')).toBe('Miroslav (schwer)');
   });
 });

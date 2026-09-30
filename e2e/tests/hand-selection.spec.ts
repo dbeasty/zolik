@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { handCards } from '../helpers/drag';
-import { API_BASE } from '../helpers/env';
+import { handCards, tapCard } from '../helpers/drag';
+import { API_BASE, asViewer } from '../helpers/env';
 
 /**
  * Picking a particular card, when two of them look identical.
@@ -47,7 +47,7 @@ async function newTable(request: Ctx): Promise<Table> {
 }
 
 async function handOf(request: Ctx, t: Table): Promise<string[]> {
-  const res = await request.get(`${API_BASE}/matches/${t.matchId}?as=${t.host.userId}`);
+  const res = await request.get(`${API_BASE}/matches/${t.matchId}`, asViewer(t.host));
   expect(res.ok(), await res.text()).toBeTruthy();
   const body = await res.json();
   const zone = (body.view?.zones ?? []).find(
@@ -110,7 +110,7 @@ test.describe('choosing cards out of a hand', () => {
     expect(twin).toBeGreaterThanOrEqual(0);
     expect(twin).not.toBe(first);
 
-    await card(page, first).click();
+    await tapCard(page, card(page, first));
 
     expect(await isSelected(page, first)).toBe(true);
     // The assertion the old code could not satisfy: the other copy of the same
@@ -129,15 +129,15 @@ test.describe('choosing cards out of a hand', () => {
     const first = shown.findIndex((c, i) => shown.indexOf(c) !== i);
     const twin = shown.indexOf(shown[first]);
 
-    await card(page, first).click();
-    await card(page, twin).click();
+    await tapCard(page, card(page, first));
+    await tapCard(page, card(page, twin));
 
     // A pair in one meld — a submission the string-keyed selection could not
     // express at all, because the second tap was read as undoing the first.
     expect(await isSelected(page, first)).toBe(true);
     expect(await isSelected(page, twin)).toBe(true);
 
-    await card(page, first).click();
+    await tapCard(page, card(page, first));
 
     // And releasing one releases exactly one. The old `filter(c => c !== card)`
     // dropped every copy at once.
@@ -154,9 +154,9 @@ test.describe('choosing cards out of a hand', () => {
     await handCards(page);
 
     expect(await isSelected(page, 0)).toBe(false);
-    await card(page, 0).click();
+    await tapCard(page, card(page, 0));
     expect(await isSelected(page, 0)).toBe(true);
-    await card(page, 0).click();
+    await tapCard(page, card(page, 0));
     expect(await isSelected(page, 0)).toBe(false);
   });
 });

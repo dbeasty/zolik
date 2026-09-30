@@ -560,6 +560,9 @@ What each client then implements, once, forever:
   if that offer's `Target` matches. Highlighting, hover feedback and the "wrong end of the run"
   affordance all fall out of matching, not out of rules.
 - On drop, send `{offerId, cards, target}`. On tap of a listed offer, send it.
+- A zone that an enabled, card-less offer names as its `Source` — and whose `Target` is the
+  viewer's own hand — is a press target in its own right: that is what makes the deck draw a
+  card when it is tapped, with no button involved. Same matching, read from the other end.
 - Render `WhyNot` when the player pokes a disabled offer.
 
 What disappears: `canLayOff`, `discardLocked`, the three `canUndo*` flags,

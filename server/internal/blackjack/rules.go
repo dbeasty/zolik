@@ -19,6 +19,13 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 
 	play := []module.RuleItem{
 		module.Rule("blackjack.rules.goal", nil),
+		// The shape of a round, written down because it is what every
+		// WRONG_PHASE in this game is about: a stake put up after the cards
+		// are out, a hit taken while insurance is still open, a bet raised
+		// twice. See ruleindex.go.
+		module.Rule("blackjack.rules.roundOrder", nil),
+		module.Rule("blackjack.rules.oneStakePerRound", nil),
+		module.Rule("blackjack.rules.stakeFromStack", nil),
 		module.Rule("blackjack.rules.hitStand", nil),
 		module.Rule("blackjack.rules.aces", nil),
 		module.Rule("blackjack.rules.blackjack", nil),
@@ -95,11 +102,7 @@ func payoutRule(t *GameState) module.RuleItem {
 // the answer against the rules this config actually states — so an id can
 // never point at a sentence a player cannot go and read.
 func (m *Module) ExplainRefusal(cfg module.MatchConfig, code string) []string {
-	sections, err := m.Rules(cfg)
-	if err != nil {
-		return nil
-	}
-	stated := module.RuleIDsIn(sections)
+	stated := module.StatedRuleIDs(m, cfg)
 	var out []string
 	for _, id := range ruleIDsFor(tableOf(cfg), code) {
 		if stated[id] {

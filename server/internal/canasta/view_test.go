@@ -179,6 +179,9 @@ func TestViewCarriesTheScoreboard(t *testing.T) {
 			for _, b := range g.BadgeKeys {
 				if b == "badge.naturalCanasta" {
 					badged = true
+					if !g.Complete {
+						t.Error("a canasta should be marked complete, so a client can fold it")
+					}
 				}
 			}
 		}
@@ -196,6 +199,47 @@ func TestViewCarriesTheScoreboard(t *testing.T) {
 	}
 	if !sawRedThrees {
 		t.Error("the red three should be visible on the table")
+	}
+}
+
+// TestMeldZoneLabelsAreFromTheViewersSide catches a label bug that looks
+// nothing like a data leak but has the same effect on a player: every meld
+// zone was rendered as "your side's melds" regardless of which team it
+// actually belonged to, so a player could not tell an opponent's meld from
+// their own and tried to lay off onto a meld that was never theirs.
+func TestMeldZoneLabelsAreFromTheViewersSide(t *testing.T) {
+	raw := fourHanded(func(s *GameState) {
+		s.Teams[0].Melds = []Meld{{ID: meldID(0, "A"), TeamID: 0, Rank: "A",
+			Cards: []string{"AH", "AS", "AD"}}}
+		s.Teams[1].Melds = []Meld{{ID: meldID(1, "K"), TeamID: 1, Rank: "K",
+			Cards: []string{"KH", "KD", "KS"}}}
+	})
+
+	labelOf := func(viewer string, teamID int) string {
+		vm, err := New().View(raw, viewer)
+		if err != nil {
+			t.Fatalf("View: %v", err)
+		}
+		for _, z := range vm.Zones {
+			if z.ID == meldsZoneID(teamID) {
+				return z.LabelKey
+			}
+		}
+		t.Fatalf("no meld zone for team %d in %s's view", teamID, viewer)
+		return ""
+	}
+
+	if got := labelOf("p1", 0); got != "zone.teamMelds" {
+		t.Errorf("p1 viewing their own team's melds: got %q, want zone.teamMelds", got)
+	}
+	if got := labelOf("p1", 1); got != "zone.opponentMelds" {
+		t.Errorf("p1 viewing the other team's melds: got %q, want zone.opponentMelds", got)
+	}
+	if got := labelOf("p2", 1); got != "zone.teamMelds" {
+		t.Errorf("p2 viewing their own team's melds: got %q, want zone.teamMelds", got)
+	}
+	if got := labelOf("p2", 0); got != "zone.opponentMelds" {
+		t.Errorf("p2 viewing the other team's melds: got %q, want zone.opponentMelds", got)
 	}
 }
 
@@ -228,5 +272,80 @@ func TestPromptsExplainWhatIsMissing(t *testing.T) {
 	}
 	if needCanastas != 1 {
 		t.Errorf("canastas-needed prompt says %v, want 1", needCanastas)
+	}
+}
+
+// TestSeatsCarryTheirSide is the in-match half of Seated.Sides: a lobby is told
+// who will be partners before the deal, and after it the board has to keep
+// saying so. Without this a player who joined a table they did not seat has no
+// way to find their partner except by watching whose melds land in their spread.
+//
+// The value itself is deliberately unexamined beyond "partners match, opponents
+// differ" — it is an id a client groups by, not a name it prints.
+func TestSeatsCarryTheirSide(t *testing.T) {
+	vm, err := New().View(fourHanded(nil), "p1")
+	if err != nil {
+		t.Fatalf("View: %v", err)
+	}
+	side := func(playerID string) string {
+		seat := vm.SeatOf(playerID)
+		if seat == nil {
+			t.Fatalf("no seat for %s", playerID)
+		}
+		return seat.Side
+	}
+	if side("p1") == "" {
+		t.Fatal("a seat in a partnership game carries no side")
+	}
+	if side("p1") != side("p3") {
+		t.Errorf("partners are on different sides: p1 %q, p3 %q", side("p1"), side("p3"))
+	}
+	if side("p2") != side("p4") {
+		t.Errorf("partners are on different sides: p2 %q, p4 %q", side("p2"), side("p4"))
+	}
+	if side("p1") == side("p2") {
+		t.Errorf("opponents share a side: both %q", side("p1"))
+	}
+}
+
+// TestSeatsOfOwnSideCarryNoSide is the same rule the lobby applies: at two,
+// three or five seats every player is their own side, and a partnership badge
+// on every seat is noise rather than information.
+func TestSeatsOfOwnSideCarryNoSide(t *testing.T) {
+	vm, err := New().View(twoHanded(nil), "p1")
+	if err != nil {
+		t.Fatalf("View: %v", err)
+	}
+	for _, seat := range vm.Seats {
+		if seat.Side != "" {
+			t.Errorf("%s has side %q in a game where everybody plays for themselves",
+				seat.PlayerID, seat.Side)
+		}
+	}
+}
+
+// TestViewOrdersMeldsByRankWithCanastasLast pins the order a partnership's
+// melds are drawn in: the ones still being built low rank to high, sequences
+// after sets, and every finished canasta at the end, marked Complete so a
+// client can fold it — none of it the order they were laid in.
+func TestViewOrdersMeldsByRankWithCanastasLast(t *testing.T) {
+	melds := []Meld{
+		{ID: "k", Kind: meldSet, Rank: "K", Cards: []string{"KH", "KS", "KD"}},
+		{ID: "five-canasta", Kind: meldSet, Rank: "5", Cards: []string{"5H", "5S", "5D", "5C", "5H", "5S", "2C"}},
+		{ID: "run", Kind: meldRun, Suit: "D", Cards: []string{"4D", "5D", "6D"}},
+		{ID: "seven", Kind: meldSet, Rank: "7", Cards: []string{"7H", "7S", "7D"}},
+		{ID: "ace", Kind: meldSet, Rank: "A", Cards: []string{"AH", "AS", "AD", "AC"}},
+		{ID: "four-canasta", Kind: meldSet, Rank: "4", Cards: []string{"4H", "4S", "4D", "4C", "4H", "4S", "4D"}},
+	}
+	var got []string
+	for _, m := range meldsInViewOrder(melds) {
+		got = append(got, m.ID)
+	}
+	want := []string{"seven", "k", "ace", "run", "four-canasta", "five-canasta"}
+	if strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Errorf("melds drawn in order %v, want %v", got, want)
+	}
+	if melds[0].ID != "k" {
+		t.Error("ordering the view reordered the stored melds")
 	}
 }

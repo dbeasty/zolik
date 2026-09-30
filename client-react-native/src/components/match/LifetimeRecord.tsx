@@ -10,6 +10,7 @@ import { useSkin } from '@/src/hooks/useSkin';
 import type { Skin } from '@/src/skins/types';
 
 import { Panel } from './Panel';
+import { t } from '@/src/lib/i18n';
 
 /**
  * The player's own record, beside the match that just changed it.
@@ -75,17 +76,16 @@ export function LifetimeRecord({ moduleId }: Props) {
 
   if (isGuest) {
     return (
-      <Panel title="Your record" forceOpen testID="lifetime-record">
+      <Panel title={t('record.title')} forceOpen testID="lifetime-record">
         <Text style={styles.invite} testID="lifetime-guest-invite">
-          You are playing as a guest, so no record is being kept. Sign in and the games you have
-          already played on this device — including this one — are kept with your account.
+          {t('record.guest')}
         </Text>
         <Pressable
           testID="lifetime-sign-in"
           onPress={() => router.push('/auth/login')}
           style={styles.button}
         >
-          <Text style={styles.buttonText}>Sign in and keep these</Text>
+          <Text style={styles.buttonText}>{t('record.signInToKeep')}</Text>
         </Pressable>
       </Panel>
     );
@@ -93,9 +93,9 @@ export function LifetimeRecord({ moduleId }: Props) {
 
   if (failed) {
     return (
-      <Panel title="Your record" forceOpen testID="lifetime-record">
+      <Panel title={t('record.title')} forceOpen testID="lifetime-record">
         <Text style={styles.quiet} testID="lifetime-unavailable">
-          Your record could not be loaded just now. The match is safely recorded.
+          {t('record.failed')}
         </Text>
       </Panel>
     );
@@ -103,8 +103,8 @@ export function LifetimeRecord({ moduleId }: Props) {
 
   if (!stats) {
     return (
-      <Panel title="Your record" forceOpen testID="lifetime-record">
-        <Text style={styles.quiet}>Loading…</Text>
+      <Panel title={t('record.title')} forceOpen testID="lifetime-record">
+        <Text style={styles.quiet}>{t('record.loading')}</Text>
       </Panel>
     );
   }
@@ -112,17 +112,17 @@ export function LifetimeRecord({ moduleId }: Props) {
   const perGame = moduleId ? stats.byModule?.[moduleId] : undefined;
 
   return (
-    <Panel title="Your record" forceOpen testID="lifetime-record">
+    <Panel title={t('record.title')} forceOpen testID="lifetime-record">
       <View style={styles.grid}>
-        <Figure label="Played" value={String(stats.overall.matches)} styles={styles} />
-        <Figure label="Won" value={String(stats.overall.wins)} styles={styles} />
+        <Figure label={t('record.played')} value={String(stats.overall.matches)} styles={styles} />
+        <Figure label={t('record.won')} value={String(stats.overall.wins)} styles={styles} />
         <Figure
-          label="Win rate"
+          label={t('record.winRate')}
           value={percent(stats.overall.winRate)}
           styles={styles}
           testID="lifetime-win-rate"
         />
-        <Figure label="Streak" value={streakText(stats.currentStreak)} styles={styles} />
+        <Figure label={t('record.streak')} value={streakText(stats.currentStreak)} styles={styles} />
       </View>
 
       {/* Kept separate from the overall figures on purpose: a rummy penalty
@@ -130,12 +130,12 @@ export function LifetimeRecord({ moduleId }: Props) {
           across both would be noise. */}
       {perGame ? (
         <View style={styles.perGame} testID="lifetime-this-game">
-          <Text style={styles.perGameTitle}>At this game</Text>
+          <Text style={styles.perGameTitle}>{t('record.atThisGame')}</Text>
           <View style={styles.grid}>
-            <Figure label="Played" value={String(perGame.matches)} styles={styles} />
-            <Figure label="Won" value={String(perGame.wins)} styles={styles} />
-            <Figure label="Win rate" value={percent(perGame.winRate)} styles={styles} />
-            <Figure label="Lost" value={String(perGame.losses)} styles={styles} />
+            <Figure label={t('record.played')} value={String(perGame.matches)} styles={styles} />
+            <Figure label={t('record.won')} value={String(perGame.wins)} styles={styles} />
+            <Figure label={t('record.winRate')} value={percent(perGame.winRate)} styles={styles} />
+            <Figure label={t('record.lost')} value={String(perGame.losses)} styles={styles} />
           </View>
         </View>
       ) : null}
@@ -170,10 +170,10 @@ function percent(rate: number): string {
 
 /** A signed streak, said in words — "3 wins" reads better than "+3". */
 function streakText(streak: number): string {
-  if (streak === 0) return '—';
+  if (streak === 0) return t('record.streakNone');
   const n = Math.abs(streak);
-  const what = streak > 0 ? 'win' : 'loss';
-  return `${n} ${what}${n === 1 ? '' : streak > 0 ? 's' : 'es'}`;
+  if (streak > 0) return n === 1 ? t('record.streakWinOne') : t('record.streakWinMany', { n });
+  return n === 1 ? t('record.streakLossOne') : t('record.streakLossMany', { n });
 }
 
 /*

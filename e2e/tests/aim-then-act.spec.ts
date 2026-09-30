@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { handCards } from '../helpers/drag';
-import { API_BASE } from '../helpers/env';
+import { handCards, tapCard } from '../helpers/drag';
+import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 import { clearHandSelection, selectOnly } from '../helpers/hand';
 
 /**
@@ -65,14 +65,14 @@ async function openMatch(page: Page, host: any, matchId: string) {
   await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
 }
 
-async function board(request: Ctx, matchId: string, userId: string) {
-  const res = await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`);
+async function board(request: Ctx, matchId: string, viewer: Viewer) {
+  const res = await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer));
   expect(res.ok(), await res.text()).toBeTruthy();
   return res.json();
 }
 
-async function meldGroups(request: Ctx, matchId: string, userId: string): Promise<Record<string, string[]>> {
-  const body = await board(request, matchId, userId);
+async function meldGroups(request: Ctx, matchId: string, viewer: Viewer): Promise<Record<string, string[]>> {
+  const body = await board(request, matchId, viewer);
   const out: Record<string, string[]> = {};
   for (const z of body.view?.zones ?? []) {
     for (const g of z.groups ?? []) out[g.id] = g.cards ?? [];
@@ -80,15 +80,15 @@ async function meldGroups(request: Ctx, matchId: string, userId: string): Promis
   return out;
 }
 
-async function serverHand(request: Ctx, matchId: string, userId: string): Promise<string[]> {
-  const body = await board(request, matchId, userId);
-  const zone = (body.view?.zones ?? []).find((z: any) => z.kind === 'hand' && z.ownerId === userId);
+async function serverHand(request: Ctx, matchId: string, viewer: Viewer): Promise<string[]> {
+  const body = await board(request, matchId, viewer);
+  const zone = (body.view?.zones ?? []).find((z: any) => z.kind === 'hand' && z.ownerId === viewer.userId);
   return (zone?.cards ?? []).map((c: any) => c.card);
 }
 
 /** A live lay-off: one that names a meld and lists cards it would take — see `drag-and-drop.spec.ts`'s own `layOffOffer` for why the verb is checked rather than just the shape. */
-async function layOffOffer(request: Ctx, matchId: string, userId: string) {
-  const body = await board(request, matchId, userId);
+async function layOffOffer(request: Ctx, matchId: string, viewer: Viewer) {
+  const body = await board(request, matchId, viewer);
   return (
     (body.legalActions ?? []).find(
       (o: any) => o.enabled && o.verb === 'lay_off' && o.target?.meldId && (o.source?.cards ?? []).length > 0,
@@ -101,16 +101,16 @@ async function playUntilOffered(
   page: Page,
   request: Ctx,
   matchId: string,
-  userId: string,
+  viewer: Viewer,
   verb: string,
   budgetMs = 90_000,
 ) {
   const deadline = Date.now() + budgetMs;
   while (Date.now() < deadline) {
-    const body = await board(request, matchId, userId);
+    const body = await board(request, matchId, viewer);
     const offer = (body.legalActions ?? []).find((o: any) => o.verb === verb && o.enabled);
     if (offer) return offer;
-    const live = page.locator('[data-testid^="offer-"]:not([aria-disabled="true"])').first();
+    const live = page.locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])').first();
     if (await live.count()) {
       try {
         await live.click({ timeout: 5000 });
@@ -144,8 +144,8 @@ function controlFor(page: Page, offer: any) {
 async function resetPending(page: Page) {
   await clearHandSelection(page);
   const first = page.locator('[data-testid^="card-hand:"]').first();
-  await first.click();
-  await first.click();
+  await tapCard(page, first);
+  await tapCard(page, first);
   await expect(page.locator('[data-testid^="card-hand:"][aria-selected="true"]')).toHaveCount(0);
 }
 
@@ -156,12 +156,12 @@ test.describe('aiming at a target before choosing the cards', () => {
     await openMatch(page, host, matchId);
     await handCards(page);
 
-    const offer = await playUntilOffered(page, request, matchId, host.userId, 'lay_off');
+    const offer = await playUntilOffered(page, request, matchId, host, 'lay_off');
     test.skip(!offer, 'no lay-off came up before the deal moved on');
 
     const meldId = offer.target.meldId as string;
-    const before = await meldGroups(request, matchId, host.userId);
-    const handBefore = await serverHand(request, matchId, host.userId);
+    const before = await meldGroups(request, matchId, host);
+    const handBefore = await serverHand(request, matchId, host);
 
     await resetPending(page);
 
@@ -171,8 +171,8 @@ test.describe('aiming at a target before choosing the cards', () => {
 
     // Nothing was sent: the board and the hand are exactly as they were.
     await page.waitForTimeout(500);
-    expect(await meldGroups(request, matchId, host.userId)).toEqual(before);
-    expect(await serverHand(request, matchId, host.userId)).toEqual(handBefore);
+    expect(await meldGroups(request, matchId, host)).toEqual(before);
+    expect(await serverHand(request, matchId, host)).toEqual(handBefore);
   });
 
   test('arm the meld, pick the cards, press the control — it lands only there', async ({ page, request }) => {
@@ -181,13 +181,13 @@ test.describe('aiming at a target before choosing the cards', () => {
     await openMatch(page, host, matchId);
     await handCards(page);
 
-    const offer = await playUntilOffered(page, request, matchId, host.userId, 'lay_off');
+    const offer = await playUntilOffered(page, request, matchId, host, 'lay_off');
     test.skip(!offer, 'no lay-off came up before the deal moved on');
 
     const meldId = offer.target.meldId as string;
     const eligible = (offer.source?.cards ?? []) as string[];
-    const before = await serverHand(request, matchId, host.userId);
-    const meldsBefore = await meldGroups(request, matchId, host.userId);
+    const before = await serverHand(request, matchId, host);
+    const meldsBefore = await meldGroups(request, matchId, host);
     const chosen = before.find((c) => eligible.includes(c));
     expect(chosen, 'the hand holds a card this lay-off accepts').toBeTruthy();
 
@@ -202,12 +202,12 @@ test.describe('aiming at a target before choosing the cards', () => {
     await control.click();
 
     await expect
-      .poll(async () => (await meldGroups(request, matchId, host.userId))[meldId]?.length ?? 0, {
+      .poll(async () => (await meldGroups(request, matchId, host))[meldId]?.length ?? 0, {
         timeout: 10_000,
       })
       .toBe((meldsBefore[meldId]?.length ?? 0) + 1);
 
-    const after = await meldGroups(request, matchId, host.userId);
+    const after = await meldGroups(request, matchId, host);
     expect(after[meldId]).toContain(chosen);
     // Every other meld on the table — including any other one the same
     // control could have meant — is untouched.
@@ -223,13 +223,13 @@ test.describe('aiming at a target before choosing the cards', () => {
     await openMatch(page, host, matchId);
     await handCards(page);
 
-    const offer = await playUntilOffered(page, request, matchId, host.userId, 'lay_off');
+    const offer = await playUntilOffered(page, request, matchId, host, 'lay_off');
     test.skip(!offer, 'no lay-off came up before the deal moved on');
 
     const meldId = offer.target.meldId as string;
     const eligible = (offer.source?.cards ?? []) as string[];
-    const meldsBefore = await meldGroups(request, matchId, host.userId);
-    const before = await serverHand(request, matchId, host.userId);
+    const meldsBefore = await meldGroups(request, matchId, host);
+    const before = await serverHand(request, matchId, host);
     const chosen = before.find((c) => eligible.includes(c));
     expect(chosen).toBeTruthy();
 
@@ -237,7 +237,7 @@ test.describe('aiming at a target before choosing the cards', () => {
     await page.getByTestId(`group-press-${meldId}`).click();
 
     await expect
-      .poll(async () => (await meldGroups(request, matchId, host.userId))[meldId]?.length ?? 0, {
+      .poll(async () => (await meldGroups(request, matchId, host))[meldId]?.length ?? 0, {
         timeout: 10_000,
       })
       .toBe((meldsBefore[meldId]?.length ?? 0) + 1);

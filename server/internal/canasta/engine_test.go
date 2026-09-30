@@ -1,6 +1,7 @@
 package canasta
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -264,7 +265,7 @@ func TestTakingThePileMovesEveryCard(t *testing.T) {
 	if s.Frozen {
 		t.Error("taking the pile should thaw it")
 	}
-	m := s.Teams[0].meld("A")
+	m := s.Teams[0].openGroup(classicRules(), "A")
 	if m == nil || len(m.Cards) != 3 {
 		t.Fatalf("expected a three-card ace meld, got %+v", m)
 	}
@@ -281,6 +282,635 @@ func TestTakingThePileMovesEveryCard(t *testing.T) {
 	if s.Phase != phaseMeld {
 		t.Errorf("phase is %q, want %q", s.Phase, phaseMeld)
 	}
+}
+
+// TestUndoTakePileRestoresExactly is the narrow escape hatch PileTaken exists
+// for: reachableValue's own reachability check (meld.go) is only a lower
+// bound, so a partnership can take the pile believing the opening minimum is
+// still reachable and then find their actual hand will not cooperate. Taking
+// the pile back apart should leave the table indistinguishable from having
+// never taken it at all — not approximately, exactly.
+func TestUndoTakePileRestoresExactly(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		s.Teams[0].HasMelded = true
+		s.Frozen = true
+		s.DiscardPile = []string{"4C", "5D", "9S", "AS"}
+		s.Hands["p1"] = []string{"AH", "AD", "8C"}
+	})
+	next, code := apply(t, raw, "p1", module.Action{Verb: VerbTakePile, Cards: []string{"AH", "AD"}})
+	if code != "" {
+		t.Fatalf("take refused: %s", code)
+	}
+	undone, code := apply(t, next, "p1", module.Action{Verb: VerbUndoTakePile})
+	if code != "" {
+		t.Fatalf("undo refused: %s", code)
+	}
+	before, after := mustDecode(t, raw), mustDecode(t, undone)
+	if !reflect.DeepEqual(before, after) {
+		t.Errorf("undo did not restore the exact prior state:\nbefore: %+v\nafter:  %+v", before, after)
+	}
+}
+
+// TestUndoTakePileReopensTheTable covers the take that itself crosses the
+// opening minimum — the exact situation a player who cannot actually complete
+// it needs undone, since HasMelded flipping true is not just a card move.
+func TestUndoTakePileReopensTheTable(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		// Sixty in aces, clearing the fifty-point floor outright.
+		s.DiscardPile = []string{"4C", "AS"}
+		s.Hands["p1"] = []string{"AH", "AD", "8C", "9C"}
+	})
+	next, code := apply(t, raw, "p1", module.Action{Verb: VerbTakePile, Cards: []string{"AH", "AD"}})
+	if code != "" {
+		t.Fatalf("take refused: %s", code)
+	}
+	if s := mustDecode(t, next); !s.Teams[0].HasMelded {
+		t.Fatalf("sixty in aces should have opened the table")
+	}
+
+	undone, code := apply(t, next, "p1", module.Action{Verb: VerbUndoTakePile})
+	if code != "" {
+		t.Fatalf("undo refused: %s", code)
+	}
+	s := mustDecode(t, undone)
+	if s.Teams[0].HasMelded {
+		t.Error("undo should have closed the table back up")
+	}
+	if s.Phase != phaseDraw {
+		t.Errorf("phase = %q, want %q", s.Phase, phaseDraw)
+	}
+	if !reflect.DeepEqual(s, mustDecode(t, raw)) {
+		t.Error("undo did not restore the exact prior state")
+	}
+}
+
+// TestUndoTakePileOntoExistingMeld covers the other capture shape: the top
+// card extending a meld the partnership already has down, rather than
+// forming a new one.
+func TestUndoTakePileOntoExistingMeld(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		s.Teams[0].HasMelded = true
+		s.Teams[0].Melds = []Meld{{ID: meldID(0, "A"), TeamID: 0, Rank: "A", Cards: []string{"AC", "AH", "AD"}}}
+		s.DiscardPile = []string{"4C", "AS"}
+		s.Hands["p1"] = []string{"8C", "9C"}
+	})
+	next, code := apply(t, raw, "p1", module.Action{Verb: VerbTakePile, Target: meldID(0, "A")})
+	if code != "" {
+		t.Fatalf("take refused: %s", code)
+	}
+	undone, code := apply(t, next, "p1", module.Action{Verb: VerbUndoTakePile})
+	if code != "" {
+		t.Fatalf("undo refused: %s", code)
+	}
+	if before, after := mustDecode(t, raw), mustDecode(t, undone); !reflect.DeepEqual(before, after) {
+		t.Errorf("undo did not restore the exact prior state:\nbefore: %+v\nafter:  %+v", before, after)
+	}
+}
+
+// TestUndoTakePileUnavailableOnceSomethingElseHappened is the guard that
+// keeps the undo exact rather than merely best-effort: once any other move
+// has touched the table, the cards this capture placed may no longer be where
+// it left them, so undo has to refuse rather than guess.
+func TestUndoTakePileUnavailableOnceSomethingElseHappened(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		s.Teams[0].HasMelded = true
+		s.DiscardPile = []string{"4C", "5D", "9S", "AS"}
+		s.Hands["p1"] = []string{"AH", "AD", "8C"}
+	})
+	next, code := apply(t, raw, "p1", module.Action{Verb: VerbTakePile, Cards: []string{"AH", "AD"}})
+	if code != "" {
+		t.Fatalf("take refused: %s", code)
+	}
+	next, code = apply(t, next, "p1", module.Action{Verb: VerbDiscard, Cards: []string{"9S"}})
+	if code != "" {
+		t.Fatalf("discard refused: %s", code)
+	}
+	if _, code := apply(t, next, "p2", module.Action{Verb: VerbUndoTakePile}); code != ErrNothingToUndo {
+		t.Errorf("undo after a discard = %q, want %q", code, ErrNothingToUndo)
+	}
+
+	offers, err := New().LegalActions(next, "p2")
+	if err != nil {
+		t.Fatalf("LegalActions: %v", err)
+	}
+	if o := module.FindOffer(offers, OfferUndoTakePile); o != nil {
+		t.Errorf("the undo offer should be gone once another move has happened, got %+v", o)
+	}
+}
+
+// --- undoing a lay-off ------------------------------------------------------
+
+// laidOffTable is a side already on the table with a king group and a heart
+// run, which between them are every lay-off shape there is: a group that takes
+// its rank and wilds, and a sequence that takes neither.
+func laidOffTable(mutate func(s *GameState)) module.State {
+	return twoHanded(func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Teams[0].HasMelded = true
+		s.Teams[0].Melds = []Meld{{
+			ID: meldID(0, "K"), TeamID: 0, Kind: meldSet, Rank: "K",
+			Cards: []string{"KH", "KD", "KS"},
+		}}
+		s.Hands["p1"] = []string{"KC", "2S", "8C", "9C"}
+		if mutate != nil {
+			mutate(s)
+		}
+	})
+}
+
+// TestUndoLayOffRestoresExactly is the whole promise: a card put on the wrong
+// meld comes back, and leaves the table indistinguishable from one it never
+// reached — not approximately, exactly.
+func TestUndoLayOffRestoresExactly(t *testing.T) {
+	raw := laidOffTable(nil)
+	next, code := apply(t, raw, "p1", module.Action{
+		Verb: VerbLayOff, Target: meldID(0, "K"), Cards: []string{"KC"},
+	})
+	if code != "" {
+		t.Fatalf("lay-off refused: %s", code)
+	}
+	undone, code := apply(t, next, "p1", module.Action{Verb: VerbUndoLayOff})
+	if code != "" {
+		t.Fatalf("undo refused: %s", code)
+	}
+	if before, after := mustDecode(t, raw), mustDecode(t, undone); !reflect.DeepEqual(before, after) {
+		t.Errorf("undo did not restore the exact prior state:\nbefore: %+v\nafter:  %+v", before, after)
+	}
+}
+
+// TestUndoLayOffUnwindsLastFirst is why LaidOff is a stack rather than the
+// single snapshot PileTaken keeps: a turn holds any number of lay-offs, and a
+// player who spots the mistake two cards later should still get it back.
+func TestUndoLayOffUnwindsLastFirst(t *testing.T) {
+	raw := laidOffTable(nil)
+	next := raw
+	for _, card := range []string{"KC", "2S"} {
+		var code string
+		next, code = apply(t, next, "p1", module.Action{
+			Verb: VerbLayOff, Target: meldID(0, "K"), Cards: []string{card},
+		})
+		if code != "" {
+			t.Fatalf("lay-off of %s refused: %s", card, code)
+		}
+	}
+	if got := mustDecode(t, next).Teams[0].Melds[0].Cards; len(got) != 5 {
+		t.Fatalf("meld holds %v, want five cards", got)
+	}
+
+	// One undo takes back the wild and leaves the king where it was.
+	next, code := apply(t, next, "p1", module.Action{Verb: VerbUndoLayOff})
+	if code != "" {
+		t.Fatalf("first undo refused: %s", code)
+	}
+	s := mustDecode(t, next)
+	if want := []string{"KH", "KD", "KS", "KC"}; !reflect.DeepEqual(s.Teams[0].Melds[0].Cards, want) {
+		t.Errorf("meld = %v, want %v", s.Teams[0].Melds[0].Cards, want)
+	}
+
+	// The second takes back the king, and the turn is where it started.
+	next, code = apply(t, next, "p1", module.Action{Verb: VerbUndoLayOff})
+	if code != "" {
+		t.Fatalf("second undo refused: %s", code)
+	}
+	if before, after := mustDecode(t, raw), mustDecode(t, next); !reflect.DeepEqual(before, after) {
+		t.Errorf("unwinding every lay-off did not restore the prior state:\nbefore: %+v\nafter:  %+v", before, after)
+	}
+	if _, code := apply(t, next, "p1", module.Action{Verb: VerbUndoLayOff}); code != ErrNothingToUndo {
+		t.Errorf("a third undo = %q, want %q", code, ErrNothingToUndo)
+	}
+}
+
+// TestUndoLayOffClosesTheTableBackUp covers the lay-off that is not only a card
+// move: one that carries this turn's total over the opening minimum promotes
+// the whole partnership, and taking it back has to demote them again.
+func TestUndoLayOffClosesTheTableBackUp(t *testing.T) {
+	raw := laidOffTable(func(s *GameState) {
+		// Thirty in kings, laid this turn and still short of the fifty-point
+		// floor — so the side has a table to aim at but is not yet on it.
+		s.Teams[0].HasMelded = false
+		s.LaidThisTurn = 30
+		s.Hands["p1"] = []string{"KC", "2S", "8C", "9C"}
+	})
+	// A king and a wild is another thirty, which clears the floor outright.
+	next, code := apply(t, raw, "p1", module.Action{
+		Verb: VerbLayOff, Target: meldID(0, "K"), Cards: []string{"KC", "2S"},
+	})
+	if code != "" {
+		t.Fatalf("lay-off refused: %s", code)
+	}
+	if s := mustDecode(t, next); !s.Teams[0].HasMelded {
+		t.Fatalf("sixty laid should have opened the table")
+	}
+
+	undone, code := apply(t, next, "p1", module.Action{Verb: VerbUndoLayOff})
+	if code != "" {
+		t.Fatalf("undo refused: %s", code)
+	}
+	s := mustDecode(t, undone)
+	if s.Teams[0].HasMelded {
+		t.Error("undo should have closed the table back up")
+	}
+	if s.LaidThisTurn != 30 {
+		t.Errorf("laid this turn = %d, want 30", s.LaidThisTurn)
+	}
+	if !reflect.DeepEqual(s, mustDecode(t, raw)) {
+		t.Error("undo did not restore the exact prior state")
+	}
+}
+
+// TestUndoLayOffSurvivesAMeld is the window in Apply, stated from the outside.
+//
+// Melding used to close the lay-off's undo window, on the general ground that
+// after anything else "the cards may no longer be where the lay-off left them".
+// That is true of a discard and of the turn passing. It is not true of a meld:
+// a meld is built out of the hand and lands beside the meld the lay-off
+// reached, never on it. The cost of the blanket rule was real and silent — a
+// side melding its way towards the opening minimum lost the ability to take
+// back a card it had just put on the wrong pile, and was told nothing.
+//
+// So the four table-building verbs leave both stacks standing, and what keeps
+// the undo exact is not the ordering but applyUndoLayOff's own shape check: a
+// meld that is not the size the entry left it is refused.
+func TestUndoLayOffSurvivesAMeld(t *testing.T) {
+	raw := laidOffTable(func(s *GameState) {
+		s.Hands["p1"] = []string{"KC", "9H", "9D", "9S", "8C", "7D"}
+	})
+	next, code := apply(t, raw, "p1", module.Action{
+		Verb: VerbLayOff, Target: meldID(0, "K"), Cards: []string{"KC"},
+	})
+	if code != "" {
+		t.Fatalf("lay-off refused: %s", code)
+	}
+	melded, code := apply(t, next, "p1", module.Action{
+		Verb: VerbLayMeld, Cards: []string{"9H", "9D", "9S"},
+	})
+	if code != "" {
+		t.Fatalf("meld refused: %s", code)
+	}
+
+	undone, code := apply(t, melded, "p1", module.Action{Verb: VerbUndoLayOff})
+	if code != "" {
+		t.Fatalf("undo after a meld refused: %s", code)
+	}
+	s := mustDecode(t, undone)
+	if m := s.Teams[0].meldByID(meldID(0, "K")); len(m.Cards) != 3 {
+		t.Errorf("the king came back off = %d cards, want 3", len(m.Cards))
+	}
+	if !hasCards(s.Hands["p1"], []string{"KC"}) {
+		t.Errorf("KC should be back in hand, got %v", s.Hands["p1"])
+	}
+	if len(s.Teams[0].Melds) != 2 {
+		t.Errorf("the meld laid in between should still be down, got %d melds", len(s.Teams[0].Melds))
+	}
+
+	offers, err := New().LegalActions(melded, "p1")
+	if err != nil {
+		t.Fatalf("LegalActions: %v", err)
+	}
+	if o := module.FindOffer(offers, OfferUndoLayOff); o == nil {
+		t.Error("the lay-off undo should still be offered after a meld")
+	}
+	if o := module.FindOffer(offers, OfferUndoLayMeld); o == nil {
+		t.Error("the meld laid in between should be undoable too")
+	}
+}
+
+// --- taking back a meld -----------------------------------------------------
+
+// TestUndoLayMeldRestoresExactly is the same promise TestUndoLayOffRestoresExactly
+// makes, for the move that puts a whole new meld down: the table is left
+// indistinguishable from one the meld never reached.
+func TestUndoLayMeldRestoresExactly(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Hands["p1"] = []string{"AH", "AD", "AS", "8C", "9C"}
+	})
+	next, code := apply(t, raw, "p1", module.Action{Verb: VerbLayMeld, Cards: []string{"AH", "AD", "AS"}})
+	if code != "" {
+		t.Fatalf("meld refused: %s", code)
+	}
+	if s := mustDecode(t, next); !s.Teams[0].HasMelded {
+		t.Fatalf("sixty in aces should have opened the table")
+	}
+	undone, code := apply(t, next, "p1", module.Action{Verb: VerbUndoLayMeld})
+	if code != "" {
+		t.Fatalf("undo refused: %s", code)
+	}
+	if before, after := mustDecode(t, raw), mustDecode(t, undone); !reflect.DeepEqual(before, after) {
+		t.Errorf("undo did not restore the exact prior state:\nbefore: %+v\nafter:  %+v", before, after)
+	}
+}
+
+// TestUndoLayMeldUnwindsLastFirst is why MeldsLaid is a stack. The wedge it
+// exists for is normally reached across two or three melds — the opening
+// minimum is a property of a turn — so handing back only the last one would
+// leave the turn exactly as stuck as before.
+func TestUndoLayMeldUnwindsLastFirst(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Hands["p1"] = []string{"AH", "AD", "AS", "KH", "KD", "KS", "8C", "9C"}
+	})
+	next := raw
+	for _, cards := range [][]string{{"AH", "AD", "AS"}, {"KH", "KD", "KS"}} {
+		var code string
+		if next, code = apply(t, next, "p1", module.Action{Verb: VerbLayMeld, Cards: cards}); code != "" {
+			t.Fatalf("meld %v refused: %s", cards, code)
+		}
+	}
+	if s := mustDecode(t, next); len(s.Teams[0].Melds) != 2 || s.LaidThisTurn != 90 {
+		t.Fatalf("two melds = %d down, %d laid; want 2 and 90", len(s.Teams[0].Melds), s.LaidThisTurn)
+	}
+
+	next, code := apply(t, next, "p1", module.Action{Verb: VerbUndoLayMeld})
+	if code != "" {
+		t.Fatalf("first undo refused: %s", code)
+	}
+	if s := mustDecode(t, next); len(s.Teams[0].Melds) != 1 || s.Teams[0].Melds[0].Rank != "A" {
+		t.Errorf("the kings should have come back off, leaving the aces; got %+v", s.Teams[0].Melds)
+	}
+	next, code = apply(t, next, "p1", module.Action{Verb: VerbUndoLayMeld})
+	if code != "" {
+		t.Fatalf("second undo refused: %s", code)
+	}
+	if before, after := mustDecode(t, raw), mustDecode(t, next); !reflect.DeepEqual(before, after) {
+		t.Error("unwinding both melds did not restore the turn")
+	}
+	if _, code := apply(t, next, "p1", module.Action{Verb: VerbUndoLayMeld}); code != ErrNothingToUndo {
+		t.Errorf("a third undo = %q, want %q", code, ErrNothingToUndo)
+	}
+}
+
+// TestUndoLayMeldReopensAnOpeningInProgress is the bind this was written for,
+// and the one a player actually hits.
+//
+// The opening minimum is a turn's, so a lay that falls short of it goes down
+// and the turn cannot then end: applyDiscard refuses a turn that laid and did
+// not reach the floor. Until there was an undo that was a one-way door — having
+// started an opening you were committed to finishing it this turn, whatever
+// finishing it cost, because the only other move was one the engine refused.
+func TestUndoLayMeldReopensAnOpeningInProgress(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		s.Phase = phaseMeld
+		// Fifteen in fours against a floor of fifty. Allowed, because the aces
+		// can still reach it — which is exactly what commits the player.
+		s.Hands["p1"] = []string{"4H", "4D", "4S", "AH", "AD", "AS", "8C", "9C"}
+	})
+	next, code := apply(t, raw, "p1", module.Action{Verb: VerbLayMeld, Cards: []string{"4H", "4D", "4S"}})
+	if code != "" {
+		t.Fatalf("meld refused: %s", code)
+	}
+	if _, code := apply(t, next, "p1", module.Action{Verb: VerbDiscard, Cards: []string{"8C"}}); code != ErrInitialMeldNotMet {
+		t.Fatalf("discard after a short lay = %q, want %q", code, ErrInitialMeldNotMet)
+	}
+
+	undone, code := apply(t, next, "p1", module.Action{Verb: VerbUndoLayMeld})
+	if code != "" {
+		t.Fatalf("undo refused: %s", code)
+	}
+	if s := mustDecode(t, undone); s.LaidThisTurn != 0 || s.Teams[0].HasMelded {
+		t.Errorf("taking the opening back left laid=%d hasMelded=%v, want 0 and false",
+			s.LaidThisTurn, s.Teams[0].HasMelded)
+	}
+	// The whole point: the turn can now end the ordinary way.
+	if _, code := apply(t, undone, "p1", module.Action{Verb: VerbDiscard, Cards: []string{"8C"}}); code != "" {
+		t.Errorf("discard after taking the opening back refused: %s", code)
+	}
+}
+
+// TestUndoLayMeldRefusedOnceSomethingWasLaidOffOnIt keeps the undo exact rather
+// than best-effort, the way applyUndoLayOff's own size check does. Both stacks
+// now survive each other (see TestUndoLayOffSurvivesAMeld), so the guard, not
+// the ordering, is what stops a meld coming off the table with somebody else's
+// card still in it.
+func TestUndoLayMeldRefusedOnceSomethingWasLaidOffOnIt(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Teams[0].HasMelded = true
+		s.Hands["p1"] = []string{"AH", "AD", "AS", "AC", "8C", "9C"}
+	})
+	next, code := apply(t, raw, "p1", module.Action{Verb: VerbLayMeld, Cards: []string{"AH", "AD", "AS"}})
+	if code != "" {
+		t.Fatalf("meld refused: %s", code)
+	}
+	next, code = apply(t, next, "p1", module.Action{
+		Verb: VerbLayOff, Target: meldID(0, "A"), Cards: []string{"AC"},
+	})
+	if code != "" {
+		t.Fatalf("lay-off refused: %s", code)
+	}
+	if _, code := apply(t, next, "p1", module.Action{Verb: VerbUndoLayMeld}); code != ErrNothingToUndo {
+		t.Errorf("undoing a meld somebody laid off onto = %q, want %q", code, ErrNothingToUndo)
+	}
+	// And the way through is the other undo, in the order the cards arrived.
+	next, code = apply(t, next, "p1", module.Action{Verb: VerbUndoLayOff})
+	if code != "" {
+		t.Fatalf("undo lay-off refused: %s", code)
+	}
+	if _, code := apply(t, next, "p1", module.Action{Verb: VerbUndoLayMeld}); code != "" {
+		t.Errorf("undoing the meld once the lay-off came back = %q, want it allowed", code)
+	}
+}
+
+// TestUndoLayMeldIsOfferedWhileItStands pairs the offer list with the engine,
+// as TestUndoLayOffIsOfferedWhileItStands does: the control appears only in the
+// window the engine will honour, it names the meld that comes back off, and it
+// is last in the list so a bot reading in order reaches every real move first.
+func TestUndoLayMeldIsOfferedWhileItStands(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Hands["p1"] = []string{"AH", "AD", "AS", "8C", "9C"}
+	})
+	if o := offerFor(t, raw, "p1", OfferUndoLayMeld); o != nil {
+		t.Fatalf("nothing laid yet, but the undo was offered: %+v", o)
+	}
+	next, code := apply(t, raw, "p1", module.Action{Verb: VerbLayMeld, Cards: []string{"AH", "AD", "AS"}})
+	if code != "" {
+		t.Fatalf("meld refused: %s", code)
+	}
+	o := offerFor(t, next, "p1", OfferUndoLayMeld)
+	if o == nil {
+		t.Fatal("the undo should be offered while the meld still stands")
+	}
+	if !o.Enabled {
+		t.Errorf("the undo should be enabled, got whyNot=%q", o.WhyNot)
+	}
+	if o.LabelKey != "verb.undoMeld" {
+		t.Errorf("label key = %q, want verb.undoMeld", o.LabelKey)
+	}
+	if len(o.Facts) == 0 {
+		t.Error("the offer should name which meld comes back off")
+	}
+	offers, err := New().LegalActions(next, "p1")
+	if err != nil {
+		t.Fatalf("LegalActions: %v", err)
+	}
+	if last := offers[len(offers)-1]; last.ID != OfferUndoLayMeld {
+		t.Errorf("the undo should be last so a bot reaches every real move first, got %q", last.ID)
+	}
+}
+
+// TestWedgedOpeningIsToldTheWayBack is the refusal a player actually meets: a
+// greyed-out discard, and the "why" behind it.
+//
+// The state is built rather than played, because the engine tries hard not to
+// let a turn reach it — checkInitialMeld refuses a lay that puts the floor out
+// of reach, using meld.go's reachableValue. That bound errs low by design but
+// not always enough, which bot.go:471 has said in writing since it was written,
+// counting four dead turns against exactly this disagreement. When it does
+// happen, the discard must point at the way out rather than at more melding.
+func TestWedgedOpeningIsToldTheWayBack(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		s.Variation = "samba"
+		s.Phase = phaseMeld
+		// The position from the match that prompted this: a side well past
+		// seven thousand, so the floor is 150, holding 100 on the table and a
+		// hand with nothing left to add.
+		s.Teams[0].Score = 8065
+		s.Teams[0].Melds = []Meld{{
+			ID: meldID(0, "Q"), TeamID: 0, Kind: meldSet, Rank: "Q",
+			Cards: []string{"QD", "QH", "QS", "QC"},
+		}}
+		s.Teams[0].HasMelded = false
+		s.LaidThisTurn = 100
+		s.Hands["p1"] = []string{"5C", "7D", "8H", "KS"}
+		s.MeldsLaid = []MeldLaid{{
+			MeldID:            meldID(0, "Q"),
+			Cards:             []string{"QD", "QH", "QS", "QC"},
+			PriorHand:         []string{"QD", "QH", "QS", "QC", "5C", "7D", "8H", "KS"},
+			PriorLaidThisTurn: 60,
+			PriorHasMelded:    false,
+		}}
+	})
+
+	discard := offerFor(t, raw, "p1", OfferDiscard)
+	if discard == nil {
+		t.Fatal("no discard offer at all")
+	}
+	if discard.Enabled || discard.WhyNot != ErrInitialMeldNotMet {
+		t.Fatalf("discard = enabled:%v whyNot:%q, want disabled with %q",
+			discard.Enabled, discard.WhyNot, ErrInitialMeldNotMet)
+	}
+	// The gap and the floor both, so "50 points short" cannot be read as a rule
+	// that says 50.
+	if discard.Remedy == nil {
+		t.Fatal("no remedy on the refused discard")
+	}
+	if got := discard.Remedy.Params["n"]; got != 50 {
+		t.Errorf("remedy gap = %v, want 50", got)
+	}
+	if got := discard.Remedy.Params["floor"]; got != 150 {
+		t.Errorf("remedy floor = %v, want 150", got)
+	}
+	// Nothing left to meld, so the only move is back.
+	if discard.RemedyOfferID != OfferUndoLayMeld {
+		t.Errorf("remedy offer = %q, want %q", discard.RemedyOfferID, OfferUndoLayMeld)
+	}
+	undone, code := apply(t, raw, "p1", module.Action{Verb: VerbUndoLayMeld})
+	if code != "" {
+		t.Fatalf("undo refused: %s", code)
+	}
+	if s := mustDecode(t, undone); len(s.Teams[0].Melds) != 0 || s.LaidThisTurn != 60 {
+		t.Errorf("after the undo: %d melds and %d laid; want 0 and 60",
+			len(s.Teams[0].Melds), s.LaidThisTurn)
+	}
+}
+
+// TestUndoWindowClosesWhenTheTurnEnds is the other half: the window is a turn's,
+// and a discard is the move that ends one. Nothing a turn put on the table stays
+// takeable into somebody else's.
+func TestUndoWindowClosesWhenTheTurnEnds(t *testing.T) {
+	raw := laidOffTable(func(s *GameState) {
+		s.Hands["p1"] = []string{"KC", "9H", "9D", "9S", "8C", "7D"}
+	})
+	next, code := apply(t, raw, "p1", module.Action{
+		Verb: VerbLayOff, Target: meldID(0, "K"), Cards: []string{"KC"},
+	})
+	if code != "" {
+		t.Fatalf("lay-off refused: %s", code)
+	}
+	next, code = apply(t, next, "p1", module.Action{
+		Verb: VerbLayMeld, Cards: []string{"9H", "9D", "9S"},
+	})
+	if code != "" {
+		t.Fatalf("meld refused: %s", code)
+	}
+	next, code = apply(t, next, "p1", module.Action{Verb: VerbDiscard, Cards: []string{"7D"}})
+	if code != "" {
+		t.Fatalf("discard refused: %s", code)
+	}
+	if s := mustDecode(t, next); len(s.LaidOff) != 0 || len(s.MeldsLaid) != 0 {
+		t.Errorf("both windows should be shut once the turn ended, got %d lay-offs and %d melds",
+			len(s.LaidOff), len(s.MeldsLaid))
+	}
+}
+
+// TestUndoLayOffIsOfferedWhileItStands pairs the offer list with the engine:
+// the control appears only in the window the engine will actually honour, and
+// it names the meld the cards come back off — a side can have several down.
+func TestUndoLayOffIsOfferedWhileItStands(t *testing.T) {
+	raw := laidOffTable(nil)
+	if o := offerFor(t, raw, "p1", OfferUndoLayOff); o != nil {
+		t.Fatalf("nothing has been laid off yet, but the undo is on offer: %+v", o)
+	}
+
+	next, code := apply(t, raw, "p1", module.Action{
+		Verb: VerbLayOff, Target: meldID(0, "K"), Cards: []string{"KC"},
+	})
+	if code != "" {
+		t.Fatalf("lay-off refused: %s", code)
+	}
+	o := offerFor(t, next, "p1", OfferUndoLayOff)
+	if o == nil {
+		t.Fatal("the undo is not on offer straight after a lay-off")
+	}
+	if !o.Enabled {
+		t.Errorf("the undo is on offer but disabled: %s", o.WhyNot)
+	}
+	if o.Source == nil || o.Source.MeldID != meldID(0, "K") {
+		t.Errorf("the undo does not name the meld it takes cards back off: %+v", o.Source)
+	}
+	if len(o.Facts) != 1 || o.Facts[0].Value != "K" {
+		t.Errorf("facts = %+v, want the king group named", o.Facts)
+	}
+
+	// And a partner, who is not on turn, is offered nothing of the sort.
+	if o := offerFor(t, next, "p2", OfferUndoLayOff); o != nil {
+		t.Errorf("the undo is on offer to a player who is not on turn: %+v", o)
+	}
+}
+
+// TestUndoLayOffGoneOnceTheDealIsSettled covers the lay-off that empties a hand
+// and ends the deal there and then: the scores are in, so there is nothing left
+// to undo your way back into.
+func TestUndoLayOffGoneOnceTheDealIsSettled(t *testing.T) {
+	raw := laidOffTable(func(s *GameState) {
+		// A canasta but for one card, and that card is the whole hand.
+		s.Teams[0].Melds[0].Cards = []string{"KH", "KD", "KS", "KC", "KH", "KD"}
+		s.Hands["p1"] = []string{"KS"}
+	})
+	next, code := apply(t, raw, "p1", module.Action{
+		Verb: VerbLayOff, Target: meldID(0, "K"), Cards: []string{"KS"},
+	})
+	if code != "" {
+		t.Fatalf("lay-off refused: %s", code)
+	}
+	s := mustDecode(t, next)
+	if s.LastDeal == nil {
+		t.Fatal("going out on a lay-off should have settled the deal")
+	}
+	if len(s.LaidOff) != 0 {
+		t.Errorf("the settled deal still carries %d undoable lay-offs", len(s.LaidOff))
+	}
+}
+
+// offerFor finds one offer by id in what this player is being shown, or nil.
+func offerFor(t *testing.T, raw module.State, playerID, offerID string) *module.ActionOffer {
+	t.Helper()
+	offers, err := New().LegalActions(raw, playerID)
+	if err != nil {
+		t.Fatalf("LegalActions: %v", err)
+	}
+	return module.FindOffer(offers, offerID)
 }
 
 // --- meld shape -------------------------------------------------------------
@@ -306,7 +936,7 @@ func TestMeldShape(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := validateMeld(tc.cards)
+			err := validateMeld(classicRules(), tc.cards)
 			got := ""
 			if err != nil {
 				got = module.CodeOf(err)
@@ -333,8 +963,8 @@ func TestInitialMeldMinimum(t *testing.T) {
 		{score: 3000, want: 120}, {score: 9000, want: 120},
 	}
 	for _, tc := range cases {
-		if got := initialMeldMinimum(tc.score); got != tc.want {
-			t.Errorf("initialMeldMinimum(%d) = %d, want %d", tc.score, got, tc.want)
+		if got := classicRules().meldFloor(tc.score); got != tc.want {
+			t.Errorf("meldFloor(%d) = %d, want %d", tc.score, got, tc.want)
 		}
 	}
 }
@@ -447,6 +1077,47 @@ func TestOpeningAcrossTwoMelds(t *testing.T) {
 	}
 }
 
+// TestMeldOffersDoNotHideARankBehindASharedWild is the offer-list half of the
+// wild-allocation story: newMeldCandidates spends the hand's wilds once,
+// greedily, across every rank, because that is what makes reachableValue's
+// estimate of a turn's reach conservative rather than merely hopeful. But a
+// player choosing *one* meld to lay right now is not constrained by what a
+// different, unchosen rank would have wanted — two ranks can each want the
+// same physical joker, and both are still real, independently legal moves.
+// Offering only the one the greedy allocator happened to favour left a player
+// unable to lay a meld `Apply` would have accepted outright.
+func TestMeldOffersDoNotHideARankBehindASharedWild(t *testing.T) {
+	raw := twoHanded(func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Teams[0].HasMelded = true
+		s.Hands["p1"] = []string{"8C", "8D", "JC", "JH", "JOKER1"}
+	})
+
+	offers, err := New().LegalActions(raw, "p1")
+	if err != nil {
+		t.Fatalf("LegalActions: %v", err)
+	}
+	ranks := map[string]bool{}
+	for _, o := range offers {
+		if o.Verb == VerbLayMeld && o.Enabled {
+			ranks[o.ID] = true
+		}
+	}
+	for _, want := range []string{OfferLayMeld + ":8", OfferLayMeld + ":J"} {
+		if !ranks[want] {
+			t.Errorf("offers = %v, want %q among them", ranks, want)
+		}
+	}
+
+	// And the one the offer list would have hidden really is legal: `Apply`
+	// takes it outright.
+	if _, code := apply(t, raw, "p1", module.Action{
+		Verb: VerbLayMeld, Cards: []string{"JC", "JH", "JOKER1"},
+	}); code != "" {
+		t.Errorf("laying J, J, joker: %s", code)
+	}
+}
+
 // --- lay-offs and partnerships ----------------------------------------------
 
 // TestPartnersShareMelds is the single fact that made this a module rather than
@@ -468,7 +1139,7 @@ func TestPartnersShareMelds(t *testing.T) {
 	if code != "" {
 		t.Fatalf("a partner should be able to lay off, got %s", code)
 	}
-	if m := mustDecode(t, next).Teams[0].meld("K"); len(m.Cards) != 4 {
+	if m := mustDecode(t, next).Teams[0].openGroup(classicRules(), "K"); len(m.Cards) != 4 {
 		t.Errorf("meld has %d cards, want 4", len(m.Cards))
 	}
 
@@ -644,22 +1315,22 @@ func TestRedThreesLayThemselves(t *testing.T) {
 
 	t.Run("they count against a partnership with no canasta", func(t *testing.T) {
 		bare := &Team{RedThrees: []string{"3H", "3D"}}
-		if got := redThreeScore(bare); got != -200 {
+		if got := redThreeScore(classicRules(), bare); got != -200 {
 			t.Errorf("two red threes and no canasta = %d, want -200", got)
 		}
 		withCanasta := &Team{
 			RedThrees: []string{"3H", "3D"},
 			Melds:     []Meld{{Rank: "K", Cards: []string{"KH", "KD", "KS", "KC", "KH", "KD", "KS"}}},
 		}
-		if got := redThreeScore(withCanasta); got != 200 {
+		if got := redThreeScore(classicRules(), withCanasta); got != 200 {
 			t.Errorf("two red threes with a canasta = %d, want 200", got)
 		}
 		all := &Team{
 			RedThrees: []string{"3H", "3D", "3H", "3D"},
 			Melds:     withCanasta.Melds,
 		}
-		if got := redThreeScore(all); got != allRedThreesBonus {
-			t.Errorf("all four red threes = %d, want %d", got, allRedThreesBonus)
+		if got := redThreeScore(classicRules(), all); got != classicRules().redThreeAllBonus() {
+			t.Errorf("all four red threes = %d, want %d", got, classicRules().redThreeAllBonus())
 		}
 	})
 }
@@ -675,10 +1346,26 @@ func TestBlackThreesOnlyGoDownOnTheWayOut(t *testing.T) {
 				Cards: []string{"KH", "KD", "KS", "KC", "KH", "KD", "KS"}}}
 			s.Hands["p1"] = []string{"3C", "3S", "3C", "8C", "9C"}
 		})
+		// The narrow refusal, not the blanket one: at a Classic table this move
+		// exists and is being offered, so "threes are never melded" would be
+		// contradicted by the player's own screen.
 		if _, code := apply(t, raw, "p1", module.Action{
 			Verb: VerbLayMeld, Cards: []string{"3C", "3S", "3C"},
-		}); code != ErrCannotMeldThree {
-			t.Errorf("got %q, want %q", code, ErrCannotMeldThree)
+		}); code != ErrBlackThreeGoOutOnly {
+			t.Errorf("got %q, want %q", code, ErrBlackThreeGoOutOnly)
+		}
+	})
+
+	t.Run("nor before the side has the canastas to go out", func(t *testing.T) {
+		raw := twoHanded(func(s *GameState) {
+			s.Phase = phaseMeld
+			s.Teams[0].HasMelded = true
+			s.Hands["p1"] = []string{"3C", "3S", "3C"}
+		})
+		if _, code := apply(t, raw, "p1", module.Action{
+			Verb: VerbLayMeld, Cards: []string{"3C", "3S", "3C"},
+		}); code != ErrCannotGoOutYet {
+			t.Errorf("got %q, want %q", code, ErrCannotGoOutYet)
 		}
 	})
 
@@ -698,6 +1385,163 @@ func TestBlackThreesOnlyGoDownOnTheWayOut(t *testing.T) {
 		}
 		if s := mustDecode(t, next); s.LastDeal == nil || s.LastDeal.WentOut != "p1" {
 			t.Errorf("the deal should have ended with p1 out, got %+v", s.LastDeal)
+		}
+	})
+}
+
+// Three black threes and one card to close with is going out the ordinary way:
+// meld, then discard the last card. It was refused, because the black-three
+// meld demanded an empty hand.
+func TestBlackThreesThenTheClosingDiscard(t *testing.T) {
+	canastas := func(ranks ...string) []Meld {
+		var out []Meld
+		for _, r := range ranks {
+			out = append(out, Meld{ID: meldID(0, r), TeamID: 0, Rank: r,
+				Cards: []string{r + "H", r + "D", r + "S", r + "C", r + "H", r + "D", r + "S"}})
+		}
+		return out
+	}
+	tables := map[string]module.State{
+		"classic": twoHanded(func(s *GameState) {
+			s.Phase = phaseMeld
+			s.Teams[0].HasMelded = true
+			s.Teams[0].Melds = canastas("K")
+			s.Hands["p1"] = []string{"3C", "3S", "3C", "8H"}
+		}),
+		"samba": sambaTable(func(s *GameState) {
+			s.Phase = phaseMeld
+			s.Teams[0].HasMelded = true
+			s.Teams[0].Melds = canastas("K", "Q")
+			s.Hands["p1"] = []string{"3C", "3S", "3C", "8H"}
+		}),
+	}
+	for name, raw := range tables {
+		t.Run(name, func(t *testing.T) {
+			offers, err := New().LegalActions(raw, "p1")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if o := offerByID(offers, OfferLayMeld+":"+rankThree); o == nil || !o.Enabled {
+				t.Fatalf("no black-three meld offered:\n%s", module.DescribeOffers(offers))
+			}
+			next, code := apply(t, raw, "p1", module.Action{
+				Verb: VerbLayMeld, Cards: []string{"3C", "3S", "3C"},
+			})
+			if code != "" {
+				t.Fatalf("black threes with one card to discard refused: %s", code)
+			}
+			if s := mustDecode(t, next); s.LastDeal != nil {
+				t.Fatal("the deal ended before the discard")
+			}
+			next, code = apply(t, next, "p1", module.Action{Verb: VerbDiscard, Cards: []string{"8H"}})
+			if code != "" {
+				t.Fatalf("the closing discard refused: %s", code)
+			}
+			if s := mustDecode(t, next); s.LastDeal == nil || s.LastDeal.WentOut != "p1" {
+				t.Errorf("the deal should have ended with p1 out, got %+v", s.LastDeal)
+			}
+		})
+	}
+}
+
+// Five black threes may go down as five, or as four and the last one
+// discarded, and the offer has to say so: it used to demand all five, so a
+// player who picked four met a greyed-out button reading "Select 5 card(s)".
+func TestBlackThreeOfferTakesAllButTheDiscard(t *testing.T) {
+	var melds []Meld
+	for _, r := range []string{"K", "Q"} {
+		melds = append(melds, Meld{ID: meldID(0, r), TeamID: 0, Rank: r,
+			Cards: []string{r + "H", r + "D", r + "S", r + "C", r + "H", r + "D", r + "S"}})
+	}
+	raw := sambaTable(func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Teams[0].HasMelded = true
+		s.Teams[0].Melds = melds
+		s.Hands["p1"] = []string{"3C", "3C", "3C", "3S", "3S"}
+	})
+	offers, err := New().LegalActions(raw, "p1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	o := offerByID(offers, OfferLayMeld+":"+rankThree)
+	if o == nil || !o.Enabled {
+		t.Fatalf("no black-three meld offered:\n%s", module.DescribeOffers(offers))
+	}
+	if o.Source.MinCards != 4 || o.Source.MaxCards != 5 {
+		t.Errorf("offer takes %d..%d cards, want 4..5", o.Source.MinCards, o.Source.MaxCards)
+	}
+}
+
+// modernAmericanTable is twoHanded dealt under Modern American's rules, which
+// differ from Classic's here in exactly one thing: a black three has no route
+// to the table at all.
+func modernAmericanTable(mutate func(s *GameState)) module.State {
+	return twoHanded(func(s *GameState) {
+		r := variations["modern_american"]
+		s.Variation = "modern_american"
+		s.Rules = &r
+		s.HandSize = r.HandSize
+		s.TargetScore = r.TargetScore
+		s.CanastasToGoOut = r.CanastasToGoOut
+		if mutate != nil {
+			mutate(s)
+		}
+	})
+}
+
+// The same hand that goes out on black threes at a Classic table cannot even
+// try at a Modern American one, and is not offered the move to try.
+func TestModernAmericanNeverMeldsBlackThrees(t *testing.T) {
+	goingOut := func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Teams[0].HasMelded = true
+		s.Teams[0].Melds = []Meld{
+			{ID: meldID(0, "K"), TeamID: 0, Rank: "K",
+				Cards: []string{"KH", "KD", "KS", "KC", "KH", "KD", "KS"}},
+			{ID: meldID(0, "Q"), TeamID: 0, Rank: "Q",
+				Cards: []string{"QH", "QD", "QS", "QC", "QH", "QD", "QS"}},
+		}
+		s.Hands["p1"] = []string{"3C", "3S", "3C"}
+	}
+
+	t.Run("the meld is refused outright", func(t *testing.T) {
+		if _, code := apply(t, modernAmericanTable(goingOut), "p1", module.Action{
+			Verb: VerbLayMeld, Cards: []string{"3C", "3S", "3C"},
+		}); code != ErrCannotMeldThree {
+			t.Errorf("got %q, want %q", code, ErrCannotMeldThree)
+		}
+	})
+
+	// The refusal alone is not enough. An offer nobody can ever take is a rule
+	// the player only finds out about by being told no, which is the failure
+	// this half guards against.
+	t.Run("and never offered", func(t *testing.T) {
+		offers, err := New().LegalActions(modernAmericanTable(goingOut), "p1")
+		if err != nil {
+			t.Fatalf("LegalActions: %v", err)
+		}
+		for _, o := range offers {
+			if o.ID == OfferLayMeld+":"+rankThree {
+				t.Fatalf("Modern American offered the black-three meld: %+v", o)
+			}
+		}
+	})
+
+	// Classic is the control: without it, a bug that stopped offering the meld
+	// everywhere would pass the test above.
+	t.Run("but Classic still offers it", func(t *testing.T) {
+		offers, err := New().LegalActions(twoHanded(goingOut), "p1")
+		if err != nil {
+			t.Fatalf("LegalActions: %v", err)
+		}
+		var found bool
+		for _, o := range offers {
+			if o.ID == OfferLayMeld+":"+rankThree {
+				found = o.Enabled
+			}
+		}
+		if !found {
+			t.Error("Classic no longer offers the black-three go-out")
 		}
 	})
 }
@@ -739,8 +1583,8 @@ func TestGoingOutNeedsACanasta(t *testing.T) {
 		if s.LastDeal == nil || s.LastDeal.WentOut != "p1" {
 			t.Fatalf("deal should have ended with p1 out, got %+v", s.LastDeal)
 		}
-		if s.LastDeal.Teams[0].GoingOut != goingOutBonus {
-			t.Errorf("going-out bonus was %d, want %d", s.LastDeal.Teams[0].GoingOut, goingOutBonus)
+		if s.LastDeal.Teams[0].GoingOut != classicRules().GoingOutBonus {
+			t.Errorf("going-out bonus was %d, want %d", s.LastDeal.Teams[0].GoingOut, classicRules().GoingOutBonus)
 		}
 	})
 
@@ -756,6 +1600,48 @@ func TestGoingOutNeedsACanasta(t *testing.T) {
 			t.Errorf("got %q, want %q", code, ErrCannotGoOutYet)
 		}
 	})
+}
+
+// TestClosingDiscardSaysItEndsTheDeal: the discard control reads "End deal"
+// only when the press would go out — never for a last card the partnership
+// cannot go out with, and never on another seat's view.
+func TestClosingDiscardSaysItEndsTheDeal(t *testing.T) {
+	discardOffer := func(raw module.State, viewer string) *module.ActionOffer {
+		t.Helper()
+		offers, err := New().LegalActions(raw, viewer)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return offerByID(offers, OfferDiscard)
+	}
+	lastCard := func(canasta bool) module.State {
+		return twoHanded(func(s *GameState) {
+			s.Phase = phaseMeld
+			s.Teams[0].HasMelded = true
+			s.Teams[0].Melds = []Meld{{ID: meldID(0, "Q"), TeamID: 0, Rank: "Q", Cards: []string{"QH", "QD", "QS"}}}
+			if canasta {
+				s.Teams[0].Melds[0].Cards = []string{"QH", "QD", "QS", "QC", "QH", "QD", "QS"}
+			}
+			s.Hands["p1"] = []string{"8C"}
+		})
+	}
+
+	if o := discardOffer(lastCard(true), "p1"); !o.Enabled || o.LabelKey != "verb.discardToClose" {
+		t.Errorf("going-out discard: enabled=%v label=%q", o.Enabled, o.LabelKey)
+	}
+	if o := discardOffer(lastCard(false), "p1"); o.LabelKey != "" {
+		t.Errorf("a last card that cannot go out should not say it ends the deal, got %q", o.LabelKey)
+	}
+	if o := discardOffer(lastCard(true), "p2"); o.LabelKey != "" {
+		t.Errorf("another seat's view should not carry the closing label, got %q", o.LabelKey)
+	}
+	ordinary := twoHanded(func(s *GameState) {
+		s.Phase = phaseMeld
+		s.Hands["p1"] = []string{"8C", "9D"}
+	})
+	if o := discardOffer(ordinary, "p1"); o.LabelKey != "" {
+		t.Errorf("ordinary discard should be labelled by its verb, got %q", o.LabelKey)
+	}
 }
 
 // TestMeldingCannotStrandAPlayer is the rule that keeps every turn finishable:
@@ -795,8 +1681,8 @@ func TestConcealedGoOut(t *testing.T) {
 	if s.LastDeal == nil || !s.LastDeal.Concealed {
 		t.Fatalf("expected a concealed go-out, got %+v", s.LastDeal)
 	}
-	if s.LastDeal.Teams[0].GoingOut != concealedBonus {
-		t.Errorf("bonus was %d, want %d", s.LastDeal.Teams[0].GoingOut, concealedBonus)
+	if s.LastDeal.Teams[0].GoingOut != classicRules().ConcealedBonus {
+		t.Errorf("bonus was %d, want %d", s.LastDeal.Teams[0].GoingOut, classicRules().ConcealedBonus)
 	}
 }
 

@@ -15,6 +15,7 @@ import (
 	"zolik/server/internal/db"
 	"zolik/server/internal/lobby"
 	"zolik/server/internal/match"
+	"zolik/server/internal/metrics"
 	"zolik/server/internal/scoring"
 	"zolik/server/internal/stats"
 	userrepo "zolik/server/internal/user"
@@ -246,5 +247,11 @@ func offlineApp(t *testing.T) *App {
 		authStore:   auth.NewStore(m),
 		matchRepo:   match.NewRepository(m),
 		scoringRepo: scoring.NewRepository(m),
+		// A sink that discards and a reporter over the same offline store.
+		// Present rather than nil because the route table now includes
+		// handlers that hold them, and a nil would fail on mount with
+		// something less readable than a test assertion.
+		metrics:  metrics.Nop(),
+		reporter: metrics.NewReporter(metrics.NewMongoStore(m)),
 	}
 }

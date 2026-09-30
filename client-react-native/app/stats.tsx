@@ -1,6 +1,5 @@
-import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
 
 import type { MatchModule } from '@/src/api/matchTypes';
 import type {
@@ -11,6 +10,7 @@ import type {
   TallyView,
 } from '@/src/api/types';
 import { Screen } from '@/src/components/Screen';
+import { SignInRequired } from '@/src/components/SignInRequired';
 import { LeaderboardTable } from '@/src/components/stats/LeaderboardTable';
 import {
   Empty,
@@ -21,6 +21,8 @@ import {
   Toggle,
 } from '@/src/components/stats/StatsParts';
 import { useSession } from '@/src/context/SessionContext';
+import { useLocale } from '@/src/hooks/useLocale';
+import { t } from '@/src/lib/i18n';
 import {
   SCOPES,
   avgRankText,
@@ -33,26 +35,19 @@ import {
   streakText,
   winPercentText,
 } from '@/src/lib/stats';
-import { colors, shared } from '@/src/theme';
+import { colors } from '@/src/theme';
 
 /**
- * Everything about your games: the lifetime record, the board it puts you on,
- * the way in to an account, and the scorepad for a game played away from the
- * app. One link on the menu reaches all of it.
+ * A player's lifetime record, and the board it puts them on.
  *
- * Gathering them is the point rather than a convenience. Each was previously
- * its own menu entry competing with "Play", and none of them is a way to play:
- * they are what you look at before and after, or instead. The scorepad in
- * particular kept being read as an offline *mode* of the app while it sat
- * among the game buttons, which is why it is here, below the record it
- * deliberately does not contribute to.
+ * Reached from the "More" screen behind the face in the corner, and — like the
+ * score table beside it there — only with an account: what is shown here is
+ * kept *with* an account, and a guest has nowhere for it to be kept. The gate
+ * is `SignInRequired`, the same one the score table uses, so the two cannot
+ * come to disagree about who is allowed in.
  *
- * The two data-backed halves load independently and fail independently, which
- * is the rest of the shape. The leaderboard is public and the personal record
- * needs an account, so a signed-out visitor sees a full board and an
- * invitation, a guest sees a board and an explanation of why they have no
- * record of their own, and a server that is down for one does not blank the
- * other.
+ * The two data-backed halves load independently and fail independently, so a
+ * server that is down for one does not blank the other.
  *
  * Everything a figure *means* — whether a bucket is worth a row, what an
  * unplayed one reads as, how a bot persona is named — is decided in
@@ -60,12 +55,13 @@ import { colors, shared } from '@/src/theme';
  */
 export default function StatsScreen() {
   const { client, session } = useSession();
+  useLocale();
 
-  const registered = !!session && !session.isGuest;
+  const signedIn = !!session && !session.isGuest;
 
   const [stats, setStats] = useState<LifetimeStats | null>(null);
   const [statsError, setStatsError] = useState('');
-  const [statsLoading, setStatsLoading] = useState(registered);
+  const [statsLoading, setStatsLoading] = useState(signedIn);
 
   const [kind, setKind] = useState<LeaderboardKind>('user');
   const [scope, setScope] = useState<LeaderboardScope>('overall');
@@ -78,6 +74,7 @@ export default function StatsScreen() {
   // table renders either way.
   const [modules, setModules] = useState<MatchModule[]>([]);
   useEffect(() => {
+    if (!signedIn) return;
     let cancelled = false;
     client
       .modules()
@@ -88,10 +85,12 @@ export default function StatsScreen() {
     return () => {
       cancelled = true;
     };
-  }, [client]);
+  }, [client, signedIn]);
 
   useEffect(() => {
-    if (!registered) {
+    // No guest branch: without an account the screen renders the gate below
+    // instead, and there is nothing to fetch for it.
+    if (!signedIn) {
       setStats(null);
       setStatsLoading(false);
       return;
@@ -105,7 +104,7 @@ export default function StatsScreen() {
         if (!cancelled) setStats(s);
       })
       .catch((e) => {
-        if (!cancelled) setStatsError(e instanceof Error ? e.message : 'Could not load your stats');
+        if (!cancelled) setStatsError(e instanceof Error ? e.message : t('error.generic'));
       })
       .finally(() => {
         if (!cancelled) setStatsLoading(false);
@@ -113,9 +112,10 @@ export default function StatsScreen() {
     return () => {
       cancelled = true;
     };
-  }, [client, registered, session?.userId]);
+  }, [client, signedIn, session?.userId]);
 
   useEffect(() => {
+    if (!signedIn) return;
     let cancelled = false;
     setBoardLoading(true);
     setBoardError('');
@@ -125,9 +125,7 @@ export default function StatsScreen() {
         if (!cancelled) setBoard(b);
       })
       .catch((e) => {
-        if (!cancelled) {
-          setBoardError(e instanceof Error ? e.message : 'Could not load the leaderboard');
-        }
+        if (!cancelled) setBoardError(e instanceof Error ? e.message : t('error.generic'));
       })
       .finally(() => {
         if (!cancelled) setBoardLoading(false);
@@ -135,97 +133,51 @@ export default function StatsScreen() {
     return () => {
       cancelled = true;
     };
-  }, [client, kind, scope]);
+  }, [client, kind, scope, signedIn]);
+
+  if (!signedIn) return <SignInRequired title={t('more.stats')} />;
 
   return (
-    <Screen title="Stats & leaderboard" scroll>
-      <Section title="Your record" testID="your-record">
+    <Screen title={t('more.stats')} scroll>
+      <Section title={t('record.title')} testID="your-record">
         {statsLoading ? (
           <ActivityIndicator color={colors.accent} />
-        ) : !session ? (
-          <SignInPrompt reason="Sign in to keep a lifetime record of the games you play." />
-        ) : session.isGuest ? (
-          <SignInPrompt
-            reason={
-              // Not a limitation to apologise for — it is why the guest option
-              // is safe to offer. Said plainly, with the fix attached.
-              'Guest games are recorded, but a guest name is per-device and two people can hold the same one — so there is no lifetime record until you sign in. Sign in and the games this device has already played come with you.'
-            }
-          />
         ) : statsError ? (
-          <Empty testID="stats-error">Could not load your stats: {statsError}</Empty>
+          <Empty testID="stats-error">{t('stats.recordFailed', { reason: statsError })}</Empty>
         ) : stats ? (
           <YourRecord stats={stats} modules={modules} />
         ) : null}
       </Section>
 
-      <Section
-        title="Leaderboard"
-        note={scopeBlurb(scope)}
-        testID="leaderboard-section"
-      >
+      <Section title={t('stats.leaderboard')} note={scopeBlurb(scope)} testID="leaderboard-section">
         <Toggle
           testID="leaderboard-kind"
           value={kind}
           onChange={setKind}
           options={[
-            { id: 'user', label: 'Players' },
-            { id: 'ai', label: 'Bots' },
+            { id: 'user', label: t('stats.kind.players') },
+            { id: 'ai', label: t('stats.kind.bots') },
           ]}
         />
         <Toggle
           testID="leaderboard-scope"
           value={scope}
           onChange={setScope}
-          options={SCOPES.map((s) => ({ id: s.id, label: s.label }))}
+          options={SCOPES.map((s) => ({ id: s.id, label: t(s.labelKey) }))}
         />
         {boardLoading ? (
           <ActivityIndicator color={colors.accent} style={{ marginTop: 12 }} />
         ) : boardError ? (
-          <Empty testID="leaderboard-error">Could not load the leaderboard: {boardError}</Empty>
+          <Empty testID="leaderboard-error">{t('stats.boardFailed', { reason: boardError })}</Empty>
         ) : board && board.entries.length > 0 ? (
-          <LeaderboardTable
-            entries={board.entries}
-            youId={registered ? session?.userId : undefined}
-          />
+          <LeaderboardTable entries={board.entries} youId={session?.userId} />
         ) : (
           <Empty testID="leaderboard-empty">
-            {kind === 'ai'
-              ? 'No bot has finished a match under these rules yet.'
-              : 'Nobody is ranked here yet. Finish a match and this is where it shows up.'}
+            {kind === 'ai' ? t('stats.boardEmptyBots') : t('stats.boardEmptyPlayers')}
           </Empty>
         )}
       </Section>
-
-      <Section title="Away from the app" testID="live-game-section">
-        <View style={[shared.card, { marginBottom: 0 }]}>
-          <Text style={[shared.status, { marginTop: 0, marginBottom: 12 }]}>
-            Playing with real cards at a real table? Keep the scorecard here. It is a
-            scorepad, not a game — nothing it records counts towards the record above.
-          </Text>
-          <Pressable
-            style={[shared.button, shared.buttonSecondary, { marginBottom: 0 }]}
-            onPress={() => router.push('/scoring')}
-            testID="stats-record-live-game"
-          >
-            <Text style={[shared.buttonText, shared.buttonTextSecondary]}>
-              Record a live game
-            </Text>
-          </Pressable>
-        </View>
-      </Section>
     </Screen>
-  );
-}
-
-function SignInPrompt({ reason }: { reason: string }) {
-  return (
-    <View style={[shared.card, { marginBottom: 0 }]} testID="stats-signin-prompt">
-      <Text style={[shared.status, { marginTop: 0, marginBottom: 12 }]}>{reason}</Text>
-      <Pressable style={[shared.button, { marginBottom: 0 }]} onPress={() => router.push('/auth/login')}>
-        <Text style={shared.buttonText}>Sign in</Text>
-      </Pressable>
-    </View>
   );
 }
 
@@ -238,16 +190,12 @@ function SignInPrompt({ reason }: { reason: string }) {
  */
 function YourRecord({ stats, modules }: { stats: LifetimeStats; modules: MatchModule[] }) {
   if (!played(stats.overall)) {
-    return (
-      <Empty testID="stats-none-yet">
-        No finished matches yet. Play one and your record starts here.
-      </Empty>
-    );
+    return <Empty testID="stats-none-yet">{t('stats.noneYet')}</Empty>;
   }
 
   const opponents = splits(
     { vsHumans: stats.vsHumans, vsAI: stats.vsAI },
-    (k) => (k === 'vsHumans' ? 'vs humans' : 'vs bots'),
+    (k) => (k === 'vsHumans' ? t('stats.scope.vsHumans') : t('stats.scope.vsBots')),
     // Declared order, not alphabetical: humans first because that is the
     // half most people came to look at.
     (a, b) => (a === 'vsHumans' ? -1 : b === 'vsHumans' ? 1 : 0),
@@ -261,32 +209,26 @@ function YourRecord({ stats, modules }: { stats: LifetimeStats; modules: MatchMo
       <Headline tally={stats.overall} />
 
       <View style={{ marginTop: 12 }}>
-        <Line label="Win rate" value={winPercentText(stats.overall)} testID="stats-winrate" />
+        <Line label={t('record.winRate')} value={winPercentText(stats.overall)} testID="stats-winrate" />
+        <Line label={t('stats.avgFinish')} value={avgRankText(stats.overall)} testID="stats-avgrank" />
         <Line
-          label="Average finish"
-          value={avgRankText(stats.overall)}
-          testID="stats-avgrank"
-        />
-        <Line
-          label="Current streak"
+          label={t('stats.currentStreak')}
           value={streakText(stats.currentStreak)}
-          tone={
-            stats.currentStreak > 0
-              ? colors.success
-              : stats.currentStreak < 0
-                ? colors.danger
-                : undefined
-          }
+          tone={streakTone(stats.currentStreak)}
           testID="stats-streak"
         />
         <Line
-          label="Best winning streak"
-          value={stats.longestWinStreak > 0 ? `${stats.longestWinStreak} in a row` : '—'}
+          label={t('stats.bestStreak')}
+          value={
+            stats.longestWinStreak > 0
+              ? t('stats.bestStreakValue', { n: stats.longestWinStreak })
+              : '—'
+          }
           testID="stats-beststreak"
         />
         {stats.overall.bestScore !== null ? (
           <Line
-            label="Best score"
+            label={t('stats.bestScore')}
             value={String(stats.overall.bestScore)}
             testID="stats-bestscore"
           />
@@ -295,25 +237,32 @@ function YourRecord({ stats, modules }: { stats: LifetimeStats; modules: MatchMo
 
       {opponents.length > 0 ? (
         <SubTable
-          title="Who you played"
+          title={t('stats.split.opponents')}
           // The overlap surprises people whose two rows add up to more than
           // their overall record, so it is stated where they see it.
-          note="A table with both a person and a bot at it counts in both rows."
+          note={t('stats.split.opponentsNote')}
           rows={opponents}
           testID="split-opponents"
         />
       ) : null}
       {games.length > 1 ? (
-        <SubTable title="By game" rows={games} testID="split-games" />
+        <SubTable title={t('stats.split.games')} rows={games} testID="split-games" />
       ) : null}
       {sizes.length > 1 ? (
-        <SubTable title="By table size" rows={sizes} testID="split-sizes" />
+        <SubTable title={t('stats.split.tableSize')} rows={sizes} testID="split-sizes" />
       ) : null}
       {bots.length > 0 ? (
-        <SubTable title="Against bots" rows={bots} testID="split-bots" />
+        <SubTable title={t('stats.split.bots')} rows={bots} testID="split-bots" />
       ) : null}
     </View>
   );
+}
+
+/** Green for a winning run, red for a losing one, plain after a draw. */
+function streakTone(streak: number): string | undefined {
+  if (streak > 0) return colors.success;
+  if (streak < 0) return colors.danger;
+  return undefined;
 }
 
 function SubTable({

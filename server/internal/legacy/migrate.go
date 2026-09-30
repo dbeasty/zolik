@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 
+	"zolik/server/internal/match"
 	"zolik/server/internal/models"
 	"zolik/server/internal/rules"
 	"zolik/server/internal/zolikmod"
@@ -37,7 +38,10 @@ func MatchFromGame(g Game) (models.Match, error) {
 		TurnOrder: g.TurnOrder,
 		HostID:    g.HostID,
 		JoinCode:  g.JoinCode,
-		State:     state,
+		State:     models.JSONDoc(state),
+		// The converted board is this match's first snapshot: nothing before
+		// it is a move the module could replay.
+		Snapshots: []int{0},
 		Seed:      g.DeckSeed,
 		WinnerID:  g.WinnerID,
 		CreatedAt: g.CreatedAt,
@@ -73,6 +77,7 @@ func playerRefsOf(g Game) []models.Player { return g.Players }
 func MigrateGames(ctx context.Context, db *mongo.Database) (migrated, skipped int, err error) {
 	games := db.Collection("games")
 	matches := db.Collection("matches")
+	matchLog := db.Collection("match_log")
 
 	cur, err := games.Find(ctx, bson.M{})
 	if err != nil {
@@ -105,8 +110,13 @@ func MigrateGames(ctx context.Context, db *mongo.Database) (migrated, skipped in
 			continue
 		}
 		m.CreatedAt = orNow(m.CreatedAt)
-		if _, err := matches.InsertOne(ctx, m); err != nil {
+		res, err := matches.InsertOne(ctx, m)
+		if err != nil {
 			return migrated, skipped, fmt.Errorf("insert match for %s: %w", g.ID.Hex(), err)
+		}
+		id, _ := res.InsertedID.(bson.ObjectID)
+		if _, err := matchLog.InsertOne(ctx, match.SnapshotDocument(id, 0, m.State)); err != nil {
+			return migrated, skipped, fmt.Errorf("insert state for %s: %w", g.ID.Hex(), err)
 		}
 		migrated++
 	}

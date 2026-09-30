@@ -1,5 +1,7 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
+import { tapCard } from './drag';
+
 /**
  * Naming and picking the viewer's own cards.
  *
@@ -21,6 +23,13 @@ import { expect, type Locator, type Page } from '@playwright/test';
  * The fix for both is to work in the server's own vocabulary — the card code,
  * which the app publishes as each slot's accessibility label — and to say
  * explicitly when a clean selection is wanted.
+ *
+ * **A card cannot be clicked in the middle.** The hand is held closed, so all
+ * of a card but the strip down its left edge is under the cards drawn over it.
+ * `locator.click()` aims at the middle and waits for it to stop being covered,
+ * which it never does, so a tap timed out after thirty seconds with "subtree
+ * intercepts pointer events". Every tap here goes through `tapCard`, which
+ * presses the part of the card a person can actually see.
  */
 
 /** Every hand card on screen, by card code, in the order they are drawn. */
@@ -67,7 +76,7 @@ export async function clearHandSelection(page: Page) {
   // the fan, so a list of handles captured up front goes stale.
   for (let guard = 0; guard < 20; guard++) {
     if ((await selected.count()) === 0) return;
-    await selected.first().click();
+    await tapCard(page, selected.first());
   }
   await expect(selected).toHaveCount(0);
 }
@@ -75,7 +84,7 @@ export async function clearHandSelection(page: Page) {
 /** Selects exactly `codes`, and nothing else. */
 export async function selectOnly(page: Page, codes: string[]) {
   await clearHandSelection(page);
-  for (const code of codes) await cardByCode(page, code).click();
+  for (const code of codes) await tapCard(page, cardByCode(page, code));
   await expect
     .poll(async () => (await selectedCodes(page)).slice().sort())
     .toEqual(codes.slice().sort());

@@ -4,21 +4,30 @@
   "version": "1.0.0",
   "license": "AGPL-3.0-only",
   "dependencies": {
+    "@noble/ciphers": "^2.4.0",
+    "@noble/curves": "^2.4.0",
+    "@noble/hashes": "^2.4.0",
     "expo": "~56.0.5",
     "expo-constants": "~56.0.16",
+    "expo-dev-client": "~56.0.27",
     "expo-font": "~56.0.5",
+    "expo-keep-awake": "~56.0.3",
     "expo-linear-gradient": "~56.0.4",
     "expo-linking": "~56.0.12",
+    "expo-notifications": "~56.0.25",
     "expo-router": "~56.2.7",
     "expo-secure-store": "^56.0.4",
     "expo-splash-screen": "~56.0.10",
     "expo-status-bar": "~56.0.4",
     "expo-symbols": "~56.0.5",
+    "expo-system-ui": "~56.0.5",
     "expo-web-browser": "~56.0.5",
+    "fflate": "^0.8.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.85.3",
     "react-native-gesture-handler": "~2.31.1",
+    "react-native-qrcode-svg": "^6.3.24",
     "react-native-reanimated": "4.3.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "4.25.2",
@@ -37,14 +46,21 @@
     "preset": "jest-expo",
     "testMatch": [
       "**/src/**/*.test.ts"
+    ],
+    "transformIgnorePatterns": [
+      "/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@sentry/react-native|native-base|@noble|fflate))",
+      "/node_modules/react-native-reanimated/plugin/",
+      "/node_modules/@react-native/babel-preset/"
     ]
   },
   "scripts": {
     "start": "sh ../scripts/version.sh --exec expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "sh ../scripts/version.sh --exec expo start --web",
-    "test": "jest"
+    "test": "jest",
+    "i18n": "node ../scripts/check-locales.js && node ../scripts/find-untranslated.js",
+    "i18n:labels": "node ../scripts/check-server-labels.js"
   },
   "private": true
 }

@@ -27,6 +27,16 @@ export default defineConfig({
     // a person who asked for it: elements are born already in their final
     // position, so a test's first measurement can never race an entrance.
     contextOptions: { reducedMotion: 'reduce' },
+    // Slow the whole run down so a person can watch it, which is the only way
+    // to check the half of a drag no assertion describes — where the card is
+    // relative to the hand carrying it, frame by frame.
+    //
+    //   ZOLIK_E2E_SLOWMO=250 npx playwright test tests/hand-order.spec.ts --headed
+    //
+    // Nothing in the suite depends on it: the waits that make a drag work
+    // (see helpers/drag.ts) are fixed and already generous, and this only adds
+    // to them. Unset, it is exactly the run CI does.
+    launchOptions: { slowMo: Number(process.env.ZOLIK_E2E_SLOWMO ?? 0) || undefined },
   },
   projects: [
     {

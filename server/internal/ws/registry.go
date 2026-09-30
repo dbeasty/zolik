@@ -12,7 +12,18 @@ type WSConn interface {
 	WriteJSON(v interface{}) error
 	Close() error
 	Ping() error
+	// CloseWithCode closes the connection after writing a WS close control
+	// frame carrying code and reason, so the peer's onclose handler can tell
+	// why the socket ended instead of seeing an ordinary TCP close, which
+	// reads identically to a dropped network.
+	CloseWithCode(code int, reason string) error
 }
+
+// CloseCodeDisplaced is the close code sent to a player's older connection
+// when a newer one (another tab, most often) has taken their seat — as
+// opposed to an ordinary network drop. It is in the 4000-4999 private-use
+// range reserved for applications by RFC 6455.
+const CloseCodeDisplaced = 4001
 
 // syncConn serializes all writes to one underlying connection. gorilla's
 // websocket.Conn allows only one concurrent writer — without this, a
@@ -35,6 +46,12 @@ func (c *syncConn) WriteJSON(v interface{}) error {
 
 func (c *syncConn) Close() error {
 	return c.conn.Close()
+}
+
+func (c *syncConn) CloseWithCode(code int, reason string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.conn.CloseWithCode(code, reason)
 }
 
 func (c *syncConn) Ping() error {
@@ -148,4 +165,41 @@ type PingableConn struct {
 
 func (c PingableConn) Ping() error {
 	return c.WriteControl(websocket.PingMessage, nil, time.Now().Add(10*time.Second))
+}
+
+func (c PingableConn) CloseWithCode(code int, reason string) error {
+	_ = c.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(code, reason), time.Now().Add(2*time.Second))
+	return c.Close()
+}
+
+// Totals reports how many rooms currently hold at least one connection, and
+// how many connections there are across all of them.
+//
+// Rooms, not games: the lobby's waiting room rides this registry under a
+// reserved id of its own (see lobby.RoomID), so a caller that wants a count of
+// *matches* has to subtract it — CountRoom is what that is for.
+//
+// This is per-process: it counts sockets held by *this* instance, not by the
+// fleet. With more than one instance behind a load balancer the figure is a
+// share of the whole, which is why the console labels it as this instance's
+// rather than as the total.
+func (r *ConnRegistry) Totals() (rooms, conns int) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	for _, players := range r.conns {
+		if len(players) == 0 {
+			continue
+		}
+		rooms++
+		conns += len(players)
+	}
+	return rooms, conns
+}
+
+// CountRoom reports how many connections one room holds.
+func (r *ConnRegistry) CountRoom(roomID string) int {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return len(r.conns[roomID])
 }

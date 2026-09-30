@@ -2,11 +2,10 @@ package match
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"math/rand"
 	"time"
-
-	"go.mongodb.org/mongo-driver/v2/bson"
 
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
@@ -79,13 +78,16 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	lastActor, stall := "", 0
+	var turn botTurn
 
 	for step := 0; step < botMaxSteps; step++ {
-		oid, err := bson.ObjectIDFromHex(matchID)
-		if err != nil {
+		// The turn boundary is where this match can change hands: nothing is
+		// half-applied here, and the node taking it over rebuilds from what is
+		// stored. See Manager.Release.
+		if m.botsStopping(matchID) {
 			return
 		}
-		match, err := m.repo.FindByID(ctx, oid)
+		match, err := m.current(ctx, matchID)
 		if err != nil || match.Status != "active" {
 			return
 		}
@@ -104,7 +106,7 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 		// human's click to do work that has nothing to do with them, and
 		// leaving a window where this loop unwinds just as that click lands and
 		// nothing restarts it.
-		actor := firstBot(module.AwaitedSeats(mod, match.State, viewerFor(match), refsOf(match)), match.Players)
+		actor := firstBot(module.AwaitedSeats(mod, module.State(match.State), viewerFor(match), refsOf(match)), match.Players)
 		if actor == "" {
 			return // nobody awaited, or nobody awaited is a bot
 		}
@@ -118,44 +120,186 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 			}
 		} else {
 			lastActor, stall = actor, 0
+			turn = botTurn{}
 		}
 
 		time.Sleep(m.thinkFor(rnd))
 
-		offers, err := mod.LegalActions(match.State, actor)
+		offers, err := mod.LegalActions(module.State(match.State), actor)
 		if err != nil {
 			return
 		}
-		action, ok := module.BotFor(mod).Act(match.State, botSeatFor(match, actor), offers)
-		if !ok {
-			// The module's own bot had no answer. Fall back to the offer list,
-			// which is the one thing every module is guaranteed to produce.
-			action, ok = module.ChooseAction(offers, nil)
-			if !ok {
-				log.Printf("bot loop: match=%s seat=%s has no legal move; stopping", matchID, actor)
-				return
-			}
+		// Everything this seat could send, best first: the module's own bot if it
+		// has an answer, then every submission the offer list describes.
+		//
+		// A refusal is not the end of the turn. An offer is built by probing the
+		// validator, so a refused one means the state moved under the probe or
+		// the module's translation is wrong about that verb — neither of which
+		// says anything about the *next* offer. Trying them in turn is what a
+		// person does when a control they expected to work does not, and it is
+		// the difference between a seat that loses one move and a deal that
+		// stops.
+		candidates := botCandidates(offers)
+		if action, ok := module.BotFor(mod).Act(module.State(match.State), botSeatFor(match, actor), offers); ok {
+			candidates = append([]botMove{{action: action, undo: isUndoIn(offers, action)}}, candidates...)
+		}
+		if len(candidates) == 0 {
+			logOfferState(matchID, actor, offers, "has no legal move; stopping")
+			return
 		}
 
-		if err := m.HandleAction(ctx, matchID, actor, action); err != nil {
-			// A bot proposing something illegal must not be retried verbatim —
-			// it would choose the same losing move again and burn the whole
-			// step budget without ever ending its turn. Recovering through the
-			// offer list is the generic version of the rummy runtime's
-			// "fall back to discarding the worst card", and it works for a game
-			// with no discards.
-			fallback, ok := module.ChooseAction(offers, nil)
-			if !ok || sameAction(fallback, action) {
-				log.Printf("bot loop: match=%s seat=%s move refused (%v) and no fallback; stopping",
-					matchID, actor, err)
-				return
+		played, skipped := false, 0
+		for i, c := range candidates {
+			// Only the prepended bot pick is deduplicated, and only against the
+			// list's first choice, which is the one case where the two sources
+			// routinely agree. Nothing further down is compared: sameAction
+			// reads verb, target and cards but not OfferID, and the four undo
+			// offers are identical under it — skipping "duplicates" would drop
+			// undo:lay_meld and undo:turn, which are the candidates most likely
+			// to get a wedged turn moving again.
+			if i == 1 && sameAction(c.action, candidates[0].action) {
+				continue
 			}
-			if err := m.HandleAction(ctx, matchID, actor, fallback); err != nil {
-				log.Printf("bot loop: match=%s seat=%s fallback refused too: %v", matchID, actor, err)
-				return
+			if turn.skips(c) {
+				skipped++
+				continue
 			}
+			err := m.HandleAction(ctx, matchID, actor, c.action)
+			if err == nil {
+				if i > 0 {
+					log.Printf("bot loop: match=%s seat=%s recovered on candidate %d/%d (%s)",
+						matchID, actor, i+1, len(candidates), c.action.Verb)
+				}
+				turn.note(c)
+				played = true
+				break
+			}
+			log.Printf("bot loop: match=%s seat=%s candidate %d/%d (%s) refused: %v",
+				matchID, actor, i+1, len(candidates), c.action.Verb, err)
+		}
+		if !played {
+			// Skipped and refused counted apart, because they mean opposite
+			// things to whoever reads this. Refused is the engine saying no;
+			// skipped is this loop declining to make a move it has already
+			// taken back, and a line that is mostly skips is a turn that
+			// unwound and found nothing else to do rather than one the rules
+			// shut out.
+			logOfferState(matchID, actor, offers,
+				fmt.Sprintf("all %d candidate moves exhausted (%d refused, %d already tried this turn); stopping",
+					len(candidates), len(candidates)-skipped, skipped))
+			return
 		}
 	}
+}
+
+// logOfferState logs the state of all available offers, which ones are enabled,
+// and which error codes disabled the rest. This helps diagnose game state wedges.
+func logOfferState(matchID, actor string, offers []module.ActionOffer, reason string) {
+	var enabled, disabled int
+	disabledByCode := make(map[string][]string)
+
+	for _, o := range offers {
+		if o.Enabled {
+			enabled++
+		} else {
+			disabled++
+			disabledByCode[o.WhyNot] = append(disabledByCode[o.WhyNot], o.ID)
+		}
+	}
+
+	log.Printf("bot loop: match=%s seat=%s %s [enabled=%d disabled=%d]",
+		matchID, actor, reason, enabled, disabled)
+
+	for code, verbs := range disabledByCode {
+		log.Printf("  disabled by %q: %v", code, verbs)
+	}
+}
+
+// botMove is one thing this seat could send, and whether sending it would take
+// a move back rather than make one. The offer list already says which — see
+// module.ActionOffer.Undo — and the loop's replay guard needs to know.
+type botMove struct {
+	action module.Action
+	undo   bool
+}
+
+// botTurn is what the loop remembers inside one seat's turn: the moves that
+// seat has made, and whether it has started taking any of them back. Cleared
+// the moment the turn moves on, because none of it means anything about the
+// next one.
+//
+// It exists for one shape of stuck turn. An undo is the only candidate that
+// can succeed and leave the seat facing exactly the decision it just made, and
+// a module's bot is a pure function of the position — TestBotNeverTakesAMoveBack
+// is what stops it oscillating on its own account — so handed back a position
+// it has already answered, it answers the same way. The loop then played
+// take_pile, undo_take_pile, take_pile for thirty actions and gave up, on a
+// table that was frozen for everybody from then on. That is what happened to
+// game 6aaa157d0079d0b3a6624b3a; canasta's own fix for the position that led
+// there is in meld.go, and this is the guard that means the next such position
+// costs a seat one bad move rather than the whole table its deal.
+//
+// So unwinding is one-way: once a move has been taken back, what this turn has
+// already tried is off the list and the loop works down to something it has not
+// done — drawing, in the case above, which is exactly what a person does after
+// putting the pile back. It arms only once an undo has actually been played, so
+// ordinary play, where the same submission twice is a coincidence of card codes
+// rather than a loop, is untouched.
+type botTurn struct {
+	played    []module.Action
+	unwinding bool
+}
+
+// skips is whether this candidate is one the turn has already made and taken
+// back. Undos are never skipped: they are how the unwinding gets anywhere, and
+// there are only ever as many of them as there are moves to take back.
+func (t *botTurn) skips(c botMove) bool {
+	if !t.unwinding || c.undo {
+		return false
+	}
+	for _, p := range t.played {
+		if sameAction(p, c.action) {
+			return true
+		}
+	}
+	return false
+}
+
+// note records a candidate the loop has just played.
+func (t *botTurn) note(c botMove) {
+	if c.undo {
+		t.unwinding = true
+		return
+	}
+	t.played = append(t.played, c.action)
+}
+
+// botCandidates is every submission the offer list describes, in the order it
+// describes them. module.ChooseActions with no preference, carrying the one
+// property of the offer the loop cannot re-derive from the submission alone.
+func botCandidates(offers []module.ActionOffer) []botMove {
+	out := make([]botMove, 0, len(offers))
+	for i := range offers {
+		if a, ok := module.SubmissionFor(offers[i]); ok {
+			out = append(out, botMove{action: a, undo: offers[i].Undo})
+		}
+	}
+	return out
+}
+
+// isUndoIn is whether the module's own bot has picked an undo, read off the
+// offer it must have come from. The shipped bots decline to, but the loop is
+// not the place to assume that of a module it has never seen.
+func isUndoIn(offers []module.ActionOffer, a module.Action) bool {
+	for i := range offers {
+		if !offers[i].Undo {
+			continue
+		}
+		if b, ok := module.SubmissionFor(offers[i]); ok && sameAction(a, b) {
+			return true
+		}
+	}
+	return false
 }
 
 // botSeatFor is who this seat is and how well it plays.

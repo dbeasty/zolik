@@ -41,20 +41,29 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		if s.Status != "active" {
 			why = ErrGameNotActive
 		}
-		return placeholderOffers(why), nil
+		return m.explained(s, placeholderOffers(why)), nil
 	}
 
 	switch s.Phase {
 	case phaseUpcardNonDealer, phaseUpcardDealer:
-		return m.upcardOffers(raw, s, playerID), nil
+		return m.explained(s, m.upcardOffers(raw, s, playerID)), nil
 	case phaseDraw:
-		return m.drawOffers(raw, s, playerID), nil
+		return m.explained(s, m.drawOffers(raw, s, playerID)), nil
 	case phaseDiscard:
-		return m.discardPhaseOffers(raw, s, playerID), nil
+		return m.explained(s, m.discardPhaseOffers(raw, s, playerID)), nil
 	case phaseLayoff:
-		return m.layoffOffers(raw, s, playerID), nil
+		return m.explained(s, m.layoffOffers(raw, s, playerID)), nil
 	}
-	return placeholderOffers(ErrGameNotActive), nil
+	return m.explained(s, placeholderOffers(ErrGameNotActive)), nil
+}
+
+// explained puts the reason, the rule and the way out on every disabled offer
+// before it leaves this package — see remedy.go. Wrapped around each branch
+// rather than applied at one exit because every branch is its own return, and
+// a phase added later that forgot the call would ship bare codes silently.
+func (m *Module) explained(s *GameState, offers []module.ActionOffer) []module.ActionOffer {
+	m.annotate(s, offers)
+	return offers
 }
 
 func placeholderOffers(why string) []module.ActionOffer {
@@ -77,7 +86,15 @@ func (m *Module) probe(raw module.State, playerID string, a module.Action) (bool
 func (m *Module) upcardOffers(raw module.State, s *GameState, playerID string) []module.ActionOffer {
 	take := module.ActionOffer{
 		ID: OfferDrawDiscard, Verb: VerbDraw, LabelKey: "ginrummy.offer.takeUpcard",
-		Source: &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID, Cards: append([]string(nil), s.DiscardPile...)},
+		// Only ever the top card: this draw takes the upcard, never anything
+		// under it. Naming the whole pile here said otherwise, and said it to
+		// every client — an offer is published to the player it is offered to,
+		// so a selector that over-lists is a leak as well as a wrong answer.
+		Source: &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID, Cards: topOnly(s.DiscardPile)},
+		// Where it lands, so the pile it comes from can carry the move: a draw
+		// has nothing to pick and nowhere to aim, and the upcard itself is the
+		// only thing on screen that says what taking it means.
+		Target: &module.Selector{Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID)},
 	}
 	take.Enabled, take.WhyNot = m.probe(raw, playerID, module.Action{OfferID: take.ID, Verb: VerbDraw})
 
@@ -91,12 +108,15 @@ func (m *Module) drawOffers(raw module.State, s *GameState, playerID string) []m
 	stock := module.ActionOffer{
 		ID: OfferDrawStock, Verb: VerbDraw, LabelKey: "ginrummy.offer.drawStock",
 		Source: &module.Selector{Zone: module.FromDeck, ZoneID: stockZoneID},
+		Target: &module.Selector{Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID)},
 	}
 	stock.Enabled, stock.WhyNot = m.probe(raw, playerID, module.Action{OfferID: stock.ID, Verb: VerbDraw})
 
 	discard := module.ActionOffer{
 		ID: OfferDrawDiscard, Verb: VerbDraw, LabelKey: "ginrummy.offer.drawDiscard",
-		Source: &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID, Cards: append([]string(nil), s.DiscardPile...)},
+		// The top card alone, for the reason above.
+		Source: &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID, Cards: topOnly(s.DiscardPile)},
+		Target: &module.Selector{Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID)},
 	}
 	discard.Enabled, discard.WhyNot = m.probe(raw, playerID, module.Action{OfferID: discard.ID, Verb: VerbDraw})
 
@@ -111,6 +131,12 @@ func (m *Module) discardPhaseOffers(raw module.State, s *GameState, playerID str
 		ID: OfferDiscard, Verb: VerbDiscard, LabelKey: "ginrummy.offer.discard",
 		Source: &module.Selector{Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID),
 			Cards: append([]string(nil), hand...), MinCards: 1},
+		// Where the card lands, which is what makes the pile itself the
+		// control: a card is picked and the discard pile takes it, by drag or
+		// by tap, without a button in between. Knocking deliberately keeps no
+		// target — it also spends a card onto this pile, and two moves
+		// answering to one gesture is a guess about which was meant.
+		Target: &module.Selector{Zone: module.FromDiscardPile, ZoneID: discardZoneID},
 	}
 	if len(hand) > 0 {
 		discard.Enabled, discard.WhyNot = m.probe(raw, playerID, module.Action{

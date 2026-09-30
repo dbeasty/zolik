@@ -173,6 +173,7 @@ func applyPlace(s *GameState, playerID string, a module.Action) ([]module.Event,
 
 	return []module.Event{{Type: "tiles_placed", Data: map[string]any{
 		"playerId": playerID, "setId": id, "count": len(a.Cards),
+		"cards": append([]string(nil), a.Cards...),
 	}}}, nil
 }
 
@@ -203,6 +204,7 @@ func applyAdd(s *GameState, playerID string, a module.Action) ([]module.Event, e
 
 	return []module.Event{{Type: "tiles_added", Data: map[string]any{
 		"playerId": playerID, "setId": a.Target, "count": len(a.Cards),
+		"cards": append([]string(nil), a.Cards...),
 	}}}, nil
 }
 
@@ -236,6 +238,7 @@ func applyTake(s *GameState, playerID string, a module.Action) ([]module.Event, 
 
 	return []module.Event{{Type: "tiles_taken", Data: map[string]any{
 		"playerId": playerID, "setId": a.Target, "count": len(a.Cards),
+		"cards": append([]string(nil), a.Cards...),
 	}}}, nil
 }
 
@@ -261,7 +264,7 @@ func applySplit(s *GameState, playerID string, a module.Action) ([]module.Event,
 		return nil, errCode(ErrBadSplitPosition)
 	}
 	left, right := canonical[:pos], canonical[pos:]
-	if len(left) < 3 || len(right) < 3 {
+	if len(left) < minSetSize || len(right) < minSetSize {
 		return nil, errCode(ErrBadSplitPosition)
 	}
 
@@ -408,7 +411,7 @@ func applyCommit(s *GameState, playerID string) ([]module.Event, error) {
 		}
 	}
 	if !s.InitialMeld[playerID] {
-		if newSetsValue < 30 {
+		if newSetsValue < initialMeldFloor {
 			return nil, errCode(ErrInitialMeldLow)
 		}
 		s.InitialMeld[playerID] = true

@@ -44,6 +44,8 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 		Status: "active",
 		Hands:  map[string][]string{},
 		Seed:   seed,
+		// Off by default: a pub pile is a stack nobody leafs through.
+		OpenDiscard: cfg.OpenDiscardPile(false),
 	}
 	for _, p := range players {
 		s.Players = append(s.Players, p.ID)
@@ -209,7 +211,7 @@ func (m *Module) applyDraw(s *GameState, playerID string) (module.State, []modul
 // pending — otherwise passing would be a way to stall forever.
 func (m *Module) applyPass(s *GameState, playerID string) (module.State, []module.Event, error) {
 	if !s.SkipPending {
-		return nil, nil, module.Error{Code: ErrCardDoesNotFit, Message: "nothing to pass on"}
+		return nil, nil, module.Error{Code: ErrNothingToSkip, Message: "nothing to pass on"}
 	}
 	s.SkipPending = false
 	s.Current = s.nextPlayer(playerID)

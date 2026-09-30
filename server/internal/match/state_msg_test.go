@@ -38,7 +38,7 @@ func dealt(t *testing.T, moduleID string, playerIDs ...string) (*Manager, models
 		t.Fatalf("NewMatch: %v", err)
 	}
 	return &Manager{registry: reg}, models.Match{
-		ModuleID: moduleID, Status: "active", Players: players, State: state,
+		ModuleID: moduleID, Status: "active", Players: players, State: models.JSONDoc(state),
 	}
 }
 
@@ -177,7 +177,7 @@ func TestBuildStateMsg_UnknownModuleDegradesRatherThanPanics(t *testing.T) {
 	msg := m.BuildStateMsg(models.Match{
 		ModuleID: "marias", Status: "active",
 		Players: []models.Player{{ID: "p1"}},
-		State:   json.RawMessage(`{"anything":1}`),
+		State:   models.JSONDoc(`{"anything":1}`),
 	}, "p1")
 
 	if len(msg.View.Zones) != 0 || len(msg.LegalActions) != 0 {

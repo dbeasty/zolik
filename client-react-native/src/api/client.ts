@@ -1,15 +1,29 @@
 import { ZOLIK_BASE_URL } from '@/src/config';
-import type { MatchModule, MatchState, ModuleRules } from '@/src/api/matchTypes';
+import { HttpTransport, type SocketLike, type Transport } from '@/src/net/transport';
+import type { MatchAction, MatchModule, MatchState, ModuleRules, Replay, StoredTable } from '@/src/api/matchTypes';
 import type {
   AccountProfile,
   AuthProvider,
   CapacitySnapshot,
+  CircleEntry,
+  ClaimedSeat,
+  CircleLists,
+  CircleSuggestion,
+  FriendPreview,
+  GuestProof,
+  InvitePreference,
   Leaderboard,
   LeaderboardKind,
   LeaderboardScope,
   LifetimeStats,
   LinkedIdentity,
+  NodeEnrolment,
+  NotifyConfig,
+  NotifyProfile,
   PlayerSession,
+  PushDeviceRegistration,
+  SeatClaim,
+  SeatPreview,
   SignInOutcome,
   WaitingPlayer,
 } from '@/src/api/types';
@@ -29,7 +43,7 @@ export class ApiError extends Error {
 type TokenHolder = {
   accessToken: string;
   refreshToken: string;
-  onTokensUpdated?: (access: string, refresh: string) => void;
+  onTokensUpdated?: (access: string, refresh: string, offlinePass?: string) => void;
 };
 
 /** The shape every sign-in endpoint answers with, whichever door was used. */
@@ -40,6 +54,8 @@ type SignInResponse = {
   username: string;
   created?: boolean;
   claimedMatches?: number;
+  /** The pass that seats this account at a table with no internet. */
+  offlinePass?: string;
 };
 
 export class ZolikClient {
@@ -59,16 +75,27 @@ export class ZolikClient {
    * nothing and every client derives the same face from the player id.
    */
   avatarId = '';
-  private onTokensUpdated?: (access: string, refresh: string) => void;
+  private onTokensUpdated?: (access: string, refresh: string, offlinePass?: string) => void;
   private onSessionExpired?: () => void;
+  /** The refresh every 401 is waiting on, while one is out. */
+  private refreshInFlight?: Promise<void>;
 
-  constructor(baseUrl: string = ZOLIK_BASE_URL) {
+  /** How requests and sockets reach the server. See src/net/transport.ts. */
+  readonly transport: Transport;
+
+  constructor(baseUrl: string = ZOLIK_BASE_URL, transport?: Transport) {
     this.baseUrl = baseUrl.replace(/\/$/, '');
+    this.transport = transport ?? new HttpTransport(this.baseUrl);
+  }
+
+  /** Opens a socket at an address this client's `*SocketUrl` produced. */
+  openSocket(url: string): SocketLike {
+    return this.transport.openSocket(url);
   }
 
   bindSession(
     session: PlayerSession,
-    onUpdate?: (access: string, refresh: string) => void,
+    onUpdate?: (access: string, refresh: string, offlinePass?: string) => void,
     onExpired?: () => void,
   ) {
     this.accessToken = session.accessToken;
@@ -82,11 +109,9 @@ export class ZolikClient {
    *  picked up" — the only thing negotiated on open beyond the token is the
    *  face to be seen waiting under, so a host invites the person they saw. */
   lobbyWsUrl(): string {
-    const u = new URL(this.baseUrl);
-    const scheme = u.protocol === 'https:' ? 'wss' : 'ws';
     const token = encodeURIComponent(this.accessToken);
     const face = this.avatarId ? `&avatar=${encodeURIComponent(this.avatarId)}` : '';
-    return `${scheme}://${u.host}/ws/lobby?token=${token}${face}`;
+    return this.transport.socketUrl(`/ws/lobby?token=${token}${face}`);
   }
 
   /** A snapshot of who's currently waiting, for a host browsing whom to
@@ -105,23 +130,37 @@ export class ZolikClient {
   }
 
   /**
-   * Starts a guest session, reusing this device's guest identity when it has
-   * one.
+   * Starts a guest session, resuming this device's guest identity when it can
+   * prove it holds one.
    *
-   * Passing the existing id back is what keeps a guest's play attributable to
-   * one device across sessions, and therefore what makes it claimable when
-   * they eventually sign in. Without it every launch would look like a new
-   * person and the history would be unreachable.
+   * Passing the proof back is what keeps a guest's play attributable to one
+   * person across sessions, and therefore what makes it claimable when they
+   * eventually sign in. The proof is the guest *key*, not the guest id: the id
+   * is shown to everyone at every table, so the server treats a bare id as
+   * nothing and mints a new guest. A refresh token from before keys existed
+   * still works while it is live, which is how an older install gets its key.
    */
-  async guestLogin(name: string, guestId?: string): Promise<PlayerSession> {
+  async guestLogin(name: string, proof: GuestProof = {}): Promise<PlayerSession> {
     const data = await this.post<{
       accessToken: string;
       refreshToken: string;
       guestName: string;
       guestId: string;
+      guestKey?: string;
       userId: string;
       claimableMatches?: number;
-    }>('/auth/guest', { guestName: name || 'Player', guestId: guestId || undefined }, false);
+      // A name is sent only when there is one. An empty field means "you
+      // pick", and the server picks from the device's guest id — see
+      // src/lib/guestName.ts for why neither side answers "Player".
+    }>(
+      '/auth/guest',
+      {
+        guestName: name || undefined,
+        guestKey: proof.guestKey || undefined,
+        guestRefreshToken: proof.refreshToken || undefined,
+      },
+      false,
+    );
     this.accessToken = data.accessToken;
     this.refreshToken = data.refreshToken;
     this.userId = data.userId || data.guestId;
@@ -129,9 +168,12 @@ export class ZolikClient {
       accessToken: data.accessToken,
       refreshToken: data.refreshToken,
       userId: this.userId,
-      username: data.guestName || name || 'Guest',
+      // The server's answer is the one that counts: when no name was sent it
+      // is the name it invented, and that is what the table will show.
+      username: data.guestName || name,
       isGuest: true,
       guestId: data.guestId,
+      guestKey: data.guestKey,
       claimableMatches: data.claimableMatches ?? 0,
     };
   }
@@ -208,13 +250,48 @@ export class ZolikClient {
    * travels in game state and match records — possession of the session is
    * what actually distinguishes the owner of that history.
    */
-  async claimGuestHistory(guestRefreshToken: string): Promise<number> {
+  async claimGuestHistory(proof: GuestProof): Promise<number> {
     const data = await this.post<{ claimedMatches: number }>(
       '/auth/claim-guest',
-      { guestRefreshToken },
+      { guestKey: proof.guestKey || undefined, guestRefreshToken: proof.refreshToken || undefined },
       true,
     );
     return data.claimedMatches ?? 0;
+  }
+
+  /**
+   * Sits at a table hosted with no internet, as the account signed in on this
+   * device rather than as a guest of that table.
+   *
+   * The pass was signed by the cloud; the host checks it against the keys it
+   * cached while it last had a connection. A host that has never been online,
+   * or a pass that has expired, refuses it - and the caller falls back to
+   * sitting as a guest, which is what happened before any of this existed.
+   */
+  async offlinePassLogin(offlinePass: string): Promise<PlayerSession> {
+    return this.post<PlayerSession>('/auth/offline-pass', { offlinePass }, false);
+  }
+
+  /**
+   * Enrols this device as a node of the database, so it may hold this
+   * account's own data and hand up matches played with no internet.
+   *
+   * The cloud is given the public half of a key the device made and never
+   * sends: what comes back is a credential naming this device as this
+   * person's.
+   */
+  async enrollNode(pubkey: string, kind: string, instanceId?: string): Promise<NodeEnrolment> {
+    return this.post<NodeEnrolment>('/nodes/enroll', { pubkey, kind, instanceId }, true);
+  }
+
+  /**
+   * Claims the seats this person took at tables with no internet, proved by
+   * the receipts those tables' hosts signed. Matches from those seats are
+   * credited to them whenever they arrive, which may be weeks later.
+   */
+  async claimOfflineSeats(receipts: string[]): Promise<ClaimedSeat[]> {
+    const data = await this.post<{ seats: ClaimedSeat[] }>('/auth/claim-offline', { receipts }, true);
+    return data.seats ?? [];
   }
 
   /** What this guest session stands to keep by signing in. */
@@ -232,27 +309,27 @@ export class ZolikClient {
   }
 
   async register(username: string, password: string, email?: string): Promise<PlayerSession> {
-    const data = await this.post<{ accessToken: string; refreshToken: string }>(
-      '/auth/register',
-      { username, password, email: email || undefined },
-      false,
-    );
+    const data = await this.post<{
+      accessToken: string;
+      refreshToken: string;
+      offlinePass?: string;
+    }>('/auth/register', { username, password, email: email || undefined }, false);
     this.accessToken = data.accessToken;
     this.refreshToken = data.refreshToken;
     await this.loadUserId();
-    return this.toSession(username, false);
+    return this.toSession(username, false, data.offlinePass);
   }
 
   async login(username: string, password: string): Promise<PlayerSession> {
-    const data = await this.post<{ accessToken: string; refreshToken: string }>(
-      '/auth/login',
-      { username, password },
-      false,
-    );
+    const data = await this.post<{
+      accessToken: string;
+      refreshToken: string;
+      offlinePass?: string;
+    }>('/auth/login', { username, password }, false);
     this.accessToken = data.accessToken;
     this.refreshToken = data.refreshToken;
     await this.loadUserId();
-    return this.toSession(username, false);
+    return this.toSession(username, false, data.offlinePass);
   }
 
   async logout(): Promise<void> {
@@ -268,18 +345,38 @@ export class ZolikClient {
     this.userId = '';
   }
 
-  async refreshTokens(): Promise<void> {
-    if (!this.refreshToken) {
-      throw new ApiError('no refresh token');
+  /**
+   * Trades the refresh token for a new pair. Every caller shares one request:
+   * the server retires a refresh token the moment it is used, so two requests
+   * that came back 401 together and each refreshed on its own would spend the
+   * same token twice — the first succeeds, the second is refused, and that
+   * refusal used to sign the player out mid-game.
+   */
+  refreshTokens(): Promise<void> {
+    if (!this.refreshInFlight) {
+      this.refreshInFlight = this.exchangeRefreshToken().finally(() => {
+        this.refreshInFlight = undefined;
+      });
     }
-    const data = await this.post<{ accessToken: string; refreshToken: string }>(
-      '/auth/refresh',
-      { refreshToken: this.refreshToken },
-      false,
-    );
+    return this.refreshInFlight;
+  }
+
+  private async exchangeRefreshToken(): Promise<void> {
+    const spent = this.refreshToken;
+    if (!spent) {
+      throw new ApiError('no refresh token', 401);
+    }
+    const data = await this.post<{
+      accessToken: string;
+      refreshToken: string;
+      offlinePass?: string;
+    }>('/auth/refresh', { refreshToken: spent }, false);
+    // Signed out or signed in as someone else while this was in the air: the
+    // answer belongs to a session that is no longer bound.
+    if (this.refreshToken !== spent) return;
     this.accessToken = data.accessToken;
     this.refreshToken = data.refreshToken;
-    this.onTokensUpdated?.(data.accessToken, data.refreshToken);
+    this.onTokensUpdated?.(data.accessToken, data.refreshToken, data.offlinePass);
   }
 
   // --- matches -------------------------------------------------------------
@@ -376,19 +473,148 @@ export class ZolikClient {
     await this.post(`/matches/${encodeURIComponent(idOrCode)}/start`, null, true);
   }
 
-  /** A viewer's state over plain HTTP; the socket is the live path. */
-  async getMatch(idOrCode: string, as?: string): Promise<MatchState> {
-    const q = as ? `?as=${encodeURIComponent(as)}` : '';
-    return this.get(`/matches/${encodeURIComponent(idOrCode)}${q}`, false);
+  /**
+   * The move this player's seat would make now, suggested and never made.
+   * Refused with HINTS_OFF at a table that turned hints off, and with
+   * NOT_YOUR_TURN when there is nothing to suggest.
+   */
+  async hint(idOrCode: string): Promise<{ action: MatchAction }> {
+    return this.post(`/matches/${encodeURIComponent(idOrCode)}/hint`, null, true);
+  }
+
+  /**
+   * Put the table in a given seat order, before it is dealt. Host only.
+   *
+   * This is how partnerships are chosen. In a game with sides the turn
+   * alternates between them, so a side is a position in the seating — which
+   * means there is nothing to send but the order, and no separate idea of a
+   * "team" on the wire at all.
+   */
+  async seatTable(
+    idOrCode: string,
+    order: string[],
+  ): Promise<{ order: string[]; sides?: string[][] }> {
+    return this.post(`/matches/${encodeURIComponent(idOrCode)}/seats`, { order }, true);
+  }
+
+  /**
+   * Bring back a table the server swept up after nobody came back to it.
+   *
+   * Only ever offered for a table whose other seats are all bots — the server
+   * enforces that rather than trusting the screen, and answers
+   * TABLE_HAS_OTHER_PLAYERS if the screen asks anyway.
+   */
+  async resumeMatch(idOrCode: string): Promise<void> {
+    await this.post(`/matches/${encodeURIComponent(idOrCode)}/resume`, null, true);
+  }
+
+  /**
+   * Play a finished table again with the same people. The first press opens
+   * the rematch and hosts it; any later one, from anybody at the table, sits
+   * down at that same one. The answer says where to go: a lobby while there
+   * are others to wait for, a dealt table when there are none.
+   */
+  async rematch(idOrCode: string): Promise<{ matchId: string; status: string; hostId: string }> {
+    return this.post(`/matches/${encodeURIComponent(idOrCode)}/rematch`, null, true);
+  }
+
+  /**
+   * The host not waiting for somebody a rematch is holding a seat for. With
+   * `bot`, a bot at the table's own skill sits where they would have sat.
+   */
+  async releaseHeldSeat(rematchId: string, playerId: string, bot: boolean): Promise<void> {
+    await this.post(
+      `/matches/${encodeURIComponent(rematchId)}/rematch/release`,
+      { playerId, bot },
+      true,
+    );
+  }
+
+  /** Give back the seat a rematch was holding for this player. */
+  async declineRematch(rematchId: string): Promise<void> {
+    await this.post(`/matches/${encodeURIComponent(rematchId)}/rematch/decline`, null, true);
+  }
+
+  /**
+   * A link that brings one person back to their seat at a started table —
+   * for somebody on a new device or a cleared browser. Anybody seated at the
+   * table may make one for anybody at it; making another replaces it.
+   * `url` is empty when the server has no public base: build it from `path`.
+   */
+  async mintSeatLink(matchId: string, playerId: string): Promise<{ path: string; url: string }> {
+    return this.post(
+      `/matches/${encodeURIComponent(matchId)}/seats/${encodeURIComponent(playerId)}/link`,
+      null,
+      true,
+    );
+  }
+
+  /** Whose seat a link opens, and at which table. Names and faces only. */
+  async seatPreview(matchId: string, secret: string): Promise<SeatPreview> {
+    return this.get(`/seats/${encodeURIComponent(matchId)}/${encodeURIComponent(secret)}`, false);
+  }
+
+  /**
+   * Takes the seat a link opens. Sent with this device's own token when it
+   * has one, so somebody who already is that seat is simply sent back to it
+   * (`alreadyYours`); anybody else gets a token that plays that seat at that
+   * table and nothing more.
+   */
+  async claimSeat(matchId: string, secret: string): Promise<SeatClaim> {
+    return this.post(`/seats/${encodeURIComponent(matchId)}/${encodeURIComponent(secret)}/claim`, null, true);
+  }
+
+  /**
+   * A viewer's state over plain HTTP; the socket is the live path.
+   *
+   * The viewer is whoever this session's token says it is. Without one the
+   * server answers with the spectator view: every public fact, no hands.
+   */
+  async getMatch(idOrCode: string): Promise<MatchState> {
+    return this.get(`/matches/${encodeURIComponent(idOrCode)}`, true);
+  }
+
+  /**
+   * Every stored game this player is seated at — unfinished by default, or
+   * the finished tab. Works for a guest exactly as it does for an account:
+   * the server keys the list on the same subject either carries.
+   */
+  async listMyTables(scope: 'unfinished' | 'finished' = 'unfinished'): Promise<StoredTable[]> {
+    const q = scope === 'finished' ? '?status=finished' : '';
+    const data = await this.get<{ tables: StoredTable[] }>(`/users/me/tables${q}`, true);
+    return data.tables;
+  }
+
+  /**
+   * A stopped game, played back frame by frame.
+   *
+   * Seated players only, and always from the caller's own seat — there is no
+   * way to ask for somebody else's view of it. A finished game comes back
+   * with every hand face up; anything still resumable does not.
+   *
+   * Paged: `from` and `limit` window the frames, and `total` says how long
+   * the match actually is, so a scrub bar is drawable from the first page.
+   */
+  async getReplay(idOrCode: string, from = 0, limit = 100): Promise<Replay> {
+    const q = `?from=${from}&limit=${limit}`;
+    return this.get<Replay>(`/matches/${encodeURIComponent(idOrCode)}/replay${q}`, true);
+  }
+
+  /**
+   * Ends a table outright — host only, in any status, for every seat. See
+   * `server/internal/match/presence.go`'s `DeleteAsHost` for the rule this
+   * enforces; the client offers the button only where `canDelete` said so,
+   * but the server is the one that actually holds the line.
+   */
+  async deleteMatch(idOrCode: string): Promise<void> {
+    await this.del(`/matches/${encodeURIComponent(idOrCode)}`, true);
   }
 
   /** The socket that carries actions in and per-viewer state out. */
   matchSocketUrl(matchId: string): string {
-    const u = new URL(this.baseUrl);
-    const scheme = u.protocol === 'https:' ? 'wss' : 'ws';
-    return `${scheme}://${u.host}/ws/matches/${encodeURIComponent(matchId)}?token=${encodeURIComponent(
-      this.accessToken,
-    )}`;
+    return this.transport.socketUrl(
+      `/ws/matches/${encodeURIComponent(matchId)}?token=${encodeURIComponent(this.accessToken)}`,
+    );
   }
 
   async getMe(): Promise<AccountProfile> {
@@ -462,6 +688,103 @@ export class ZolikClient {
 
 
 
+  // --- notifications: the game circle and invites ------------------------
+  //
+  // One method per route in docs/notifications-plan.md. Every one of them
+  // speaks to the online server, never to a table on a phone in the room:
+  // callers use `apiClient`, not the session's client, for exactly that
+  // reason.
+
+  /** The personal socket that carries invites to whichever screen is open. */
+  meWsUrl(): string {
+    return this.transport.socketUrl(`/ws/me?token=${encodeURIComponent(this.accessToken)}`);
+  }
+
+  async getNotifyProfile(): Promise<NotifyProfile> {
+    return this.get('/notify/me', true);
+  }
+
+  async updateNotifyProfile(patch: { invites?: InvitePreference; nearby?: boolean }): Promise<NotifyProfile> {
+    return this.request('PATCH', '/notify/me', patch, true);
+  }
+
+  async getCircle(): Promise<CircleLists> {
+    const data = await this.get<Partial<CircleLists>>('/notify/circle', true);
+    return {
+      members: data.members ?? [],
+      requests: data.requests ?? [],
+      notifiers: data.notifiers ?? [],
+    };
+  }
+
+  async getCircleSuggestions(): Promise<CircleSuggestion[]> {
+    const data = await this.get<{ players?: CircleSuggestion[] }>('/notify/circle/suggestions', true);
+    return data.players ?? [];
+  }
+
+  /**
+   * Adds somebody to this player's circle: by key for a past opponent, which
+   * takes effect at once, or by username, which sends a request the other
+   * side has to accept.
+   */
+  async addToCircle(who: { key: string } | { username: string }): Promise<CircleEntry> {
+    const data = await this.post<{ entry: CircleEntry }>('/notify/circle', who, true);
+    return data.entry;
+  }
+
+  async removeFromCircle(key: string): Promise<void> {
+    await this.del(`/notify/circle/${encodeURIComponent(key)}`, true);
+  }
+
+  async muteNotifier(key: string, muted: boolean): Promise<void> {
+    await this.post(`/notify/circle/${encodeURIComponent(key)}/mute`, { muted }, true);
+  }
+
+  async acceptCircleRequest(key: string): Promise<CircleEntry> {
+    const data = await this.post<{ entry: CircleEntry }>(
+      `/notify/circle/requests/${encodeURIComponent(key)}/accept`,
+      null,
+      true,
+    );
+    return data.entry;
+  }
+
+  async declineCircleRequest(key: string): Promise<void> {
+    await this.post(`/notify/circle/requests/${encodeURIComponent(key)}/decline`, null, true);
+  }
+
+  /** Whose friend link this is. Public, so a signed-out visitor sees it too. */
+  async previewFriendLink(code: string): Promise<FriendPreview> {
+    return this.get(`/notify/friend/${encodeURIComponent(code)}`, false);
+  }
+
+  async acceptFriendLink(code: string): Promise<CircleEntry> {
+    const data = await this.post<{ entry: CircleEntry }>(
+      `/notify/friend/${encodeURIComponent(code)}`,
+      null,
+      true,
+    );
+    return data.entry;
+  }
+
+  /** Tells the host's circle about a table. Repeat calls reach only the
+   *  people not told yet, so calling it again is safe. */
+  async announceTable(matchId: string, keys?: string[]): Promise<{ notified: number; already?: boolean }> {
+    return this.post('/notify/announce', keys ? { matchId, keys } : { matchId }, true);
+  }
+
+  async getNotifyConfig(): Promise<NotifyConfig> {
+    return this.get('/notify/config', false);
+  }
+
+  async registerPushDevice(device: PushDeviceRegistration): Promise<{ id: string }> {
+    return this.post('/notify/devices', device, true);
+  }
+
+  async unregisterPushDevice(id: string): Promise<void> {
+    await this.del(`/notify/devices/${encodeURIComponent(id)}`, true);
+  }
+
   async createScoringSession(players: string[]): Promise<string> {
     const data = await this.post<{ id: string }>(
       '/scoring-sessions',
@@ -484,8 +807,9 @@ export class ZolikClient {
   }
 
   async exportScoringSession(id: string): Promise<string> {
-    const res = await fetch(
-      `${this.baseUrl}/scoring-sessions/${encodeURIComponent(id)}/export`,
+    const res = await this.transport.fetch(
+      `/scoring-sessions/${encodeURIComponent(id)}/export`,
+      { method: 'GET' },
     );
     const text = await res.text();
     if (!res.ok) {
@@ -507,19 +831,28 @@ export class ZolikClient {
         userId: data.userId,
         username: data.username,
         isGuest: false,
+        // Carried through with the rest of the session. Dropping it here is
+        // invisible until somebody sits down at a table with no internet and
+        // finds themselves seated as a stranger.
+        offlinePass: data.offlinePass,
       },
       claimedMatches: data.claimedMatches ?? 0,
       created: data.created ?? false,
     };
   }
 
-  private toSession(username: string, isGuest: boolean): PlayerSession {
+  // offlinePass travels with the session for the same reason the tokens do:
+  // it is what seats this account at a table with no internet, and a sign-in
+  // that drops it leaves the person to play as a stranger the next time they
+  // are offline.
+  private toSession(username: string, isGuest: boolean, offlinePass?: string): PlayerSession {
     return {
       accessToken: this.accessToken,
       refreshToken: this.refreshToken,
       userId: this.userId,
       username,
       isGuest,
+      offlinePass,
     };
   }
 
@@ -548,6 +881,10 @@ export class ZolikClient {
     await this.request('PATCH', path, body, false);
   }
 
+  private async del(path: string, auth: boolean): Promise<void> {
+    await this.request('DELETE', path, undefined, auth);
+  }
+
   private async request<T>(
     method: string,
     path: string,
@@ -558,18 +895,29 @@ export class ZolikClient {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
-    if (auth && this.accessToken) {
-      headers.Authorization = `Bearer ${this.accessToken}`;
+    const sentWith = this.accessToken;
+    if (auth && sentWith) {
+      headers.Authorization = `Bearer ${sentWith}`;
     }
-    const res = await fetch(`${this.baseUrl}${path}`, {
+    const res = await this.transport.fetch(path, {
       method,
       headers,
       body: body != null ? JSON.stringify(body) : undefined,
     });
     if (res.status === 401 && auth && this.refreshToken && !retried) {
+      // Someone else refreshed while this request was out: its token is
+      // already stale, and the new one has not been tried yet.
+      if (this.accessToken && this.accessToken !== sentWith) {
+        return this.request<T>(method, path, body, auth, true);
+      }
       try {
         await this.refreshTokens();
-      } catch {
+      } catch (e) {
+        // Only the server refusing the refresh token means the session is
+        // over. A dropped connection, a restart's 502 or a 503 says nothing
+        // about the credentials, and signing the player out for one of those
+        // throws away a perfectly good session in the middle of a game.
+        if (!(e instanceof ApiError) || e.status !== 401) throw e;
         // The stored refresh token is gone for good: expired and reaped by the
         // sessions TTL index, rotated away, or issued by a database we are no
         // longer talking to. Letting it sit in storage wedges the app forever,
@@ -635,3 +983,6 @@ export function apiErrorFromResponse(
   }
   return new ApiError(message, status, code, parseRetryAfterMs(headers.get('Retry-After')));
 }
+
+
+export { socketBase } from '@/src/net/transport';

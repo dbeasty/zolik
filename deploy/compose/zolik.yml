@@ -33,7 +33,7 @@ services:
     restart: unless-stopped
     # Sized for a 1–2 GB host: one Go binary with the web client embedded in
     # it, an embedded KDB, no Mongo and no Redis.
-    mem_limit: 1g
+    mem_limit: 2g
     env_file:
       - .env
     # These override .env, so the container's shape is stated here rather than
@@ -44,7 +44,45 @@ services:
     environment:
       FEATURE_FLAG_DB_ENGINE: kdb
       KDB_PATH: /data/kdb
+      # KDB 0.4.0's history retention modes: the feature is on, and no mode is
+      # named. Those are two different statements. An unset KDB_HISTORY_MODE
+      # reads as "whatever this namespace already is", and every namespace on
+      # this host predates the modes, so they keep every commit exactly as
+      # they always have. Nothing here changes what is on disk.
+      #
+      # The empty mode is a literal for the reason the hatches above are: it
+      # overrides .env, so what this host's namespaces keep cannot be decided
+      # by a variable that turns up in an environment.
+      #
+      # Naming a mode IS a procedure, not an edit. A namespace refuses to open
+      # under a mode it was not built with, so "none" here without first
+      # dealing with what is in zolik_kdb_data switches nothing: the container
+      # exits on open and Docker restarts it forever, which reads as a bad
+      # build rather than a configuration change. The volume has to be
+      # converted offline (kdb-inspect migrate-history) or wiped, accepting
+      # the loss of every account, match and stat.
+      #
+      # Written down in docs/kdb-history-none-cutover.md. The mode line below
+      # is the last step of it, not the first.
+      FEATURE_FLAG_KDB_HISTORY_RETENTION: "true"
+      KDB_HISTORY_MODE: ""
       PORT: "8090"
+      # Stepping back through a game that has stopped. On as of 1.1.10, and
+      # this line is that decision — a new way for a player to read every
+      # board a match passed through is not something a deployment should
+      # acquire by being upgraded, so it is turned on here, in review, rather
+      # than anywhere a host's .env could reach.
+      #
+      # It is not the only gate: the server also requires a store that keeps
+      # every version of a document and is still keeping it, which is the
+      # engine above running history=full. Turning this on where that is not
+      # true changes nothing, by design.
+      #
+      # Matches that finished before this went on carry no checkpoints — the
+      # write path stored none while it was off. They still replay, because
+      # the boards come out of the store's own history rather than out of the
+      # checkpoints, but with no chapters to jump to and a fold from the deal.
+      FEATURE_FLAG_MATCH_REPLAY: "true"
       # Off, and said out loud. Removing the SSH_* variables does not turn the
       # terminal client off — SSH_ENABLED defaults *on* whenever APP_ENV is
       # local, and its default host key path is one the image's nonroot user
@@ -65,14 +103,54 @@ services:
       # one can be asked to stop the world, and it reports the shape of the
       # process to anyone who can reach the port.
       ENABLE_DEBUG_ENDPOINTS: "false"
+      # The operator console's port inside the container. It is a *second*
+      # listener, and the ports: block below is what keeps it off the
+      # internet — see the note there. ADMIN_USERNAME and ADMIN_PASSWORD_HASH
+      # come from .env; without them the listener does not start at all.
+      ADMIN_PORT: "8091"
+      # 0.0.0.0 *inside the container*, which is not the loosening it looks
+      # like. The ports: line below is what decides who can reach this, and it
+      # publishes to the host's loopback only.
+      #
+      # The server defaults this to 127.0.0.1, which is right on a bare host
+      # and silently fatal here: Docker forwards a published port to the
+      # container's bridge address, so a console bound to the container's
+      # loopback is reachable from nothing at all — the tunnel connects, gets
+      # an empty reply, and the log still says the console is up. Two loopback
+      # binds in series are not twice the boundary; they are a wall.
+      ADMIN_BIND: "0.0.0.0"
+      # Structured JSON to stdout, which is what `docker logs | jq` wants.
+      LOG_LEVEL: info
     volumes:
       # /data is created nonroot-owned in the image, so the engine can write
       # under the distroless nonroot user.
       - kdb_data:/data
-    # Loopback only — nginx on the host is the public entry point, and it
-    # proxies everything here now that the server serves the web client too.
     ports:
+      # The game. Loopback only — nginx on the host is the public entry point,
+      # and it proxies everything here now that the server serves the web
+      # client too.
       - "127.0.0.1:8090:8090"
+      # The operator console, and the line that keeps it private.
+      #
+      # nginx does not proxy this port and has no vhost for it, so it is not
+      # reachable from the internet at all — not guarded, not 403, absent. That
+      # is deliberate: the public vhost is a single catch-all `location /`, so
+      # anything the game's router registers is public by construction, and a
+      # console mounted there would be one guard bug away from the world. The
+      # server therefore registers the console on a different router entirely
+      # (see internal/app/admin.go), and this maps it to the *host's* loopback
+      # only.
+      #
+      # An operator reaches it by tunnelling, with the key that already
+      # deploys this:
+      #
+      #   ssh -N -L 8091:127.0.0.1:8091 davja@192.168.13.13
+      #   open http://127.0.0.1:8091/admin
+      #
+      # Do not change this to "8091:8091". That binds every interface on the
+      # host, which publishes the console to the LAN and, through the WAN NAT
+      # that already forwards to this box, potentially further.
+      - "127.0.0.1:8091:8091"
 
 volumes:
   kdb_data:

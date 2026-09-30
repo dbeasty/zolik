@@ -159,10 +159,14 @@ func (c MatchConfig) BotSkill(dflt Skill) (Skill, bool) {
 // match — which keeps a table reproducible (the same match seeded the same way
 // seats the same opponents) without making every table identical.
 func ResolveSkill(want Skill, auto bool, seed int64) Skill {
+	return drawSkill(want, auto, Skills, seed)
+}
+
+func drawSkill(want Skill, auto bool, from []Skill, seed int64) Skill {
 	if !auto && want.Valid() {
 		return want
 	}
-	return Skills[rand.New(rand.NewSource(seed)).Intn(len(Skills))]
+	return from[rand.New(rand.NewSource(seed)).Intn(len(from))]
 }
 
 // Persona is a named opponent.
@@ -196,7 +200,12 @@ type Persona struct {
 // intact as the id.
 func (p Persona) Key() string { return string(p.Skill) + ":" + p.Slug }
 
-// personas is the whole roster, four to a skill.
+// personas is the whole roster, eight to a skill.
+//
+// Eight because the largest table seats nine (Hold'em) and the host is one of
+// them: a table set to one strength can then be filled with bots without two
+// of them sharing a name and a lifetime record. TestRosterFillsTheLargestTable
+// holds the roster to that.
 //
 // The names came from internal/ai, where they had sat unused since they were
 // written: nothing ever read them, so every bot was called "Bot 4F". They are
@@ -208,16 +217,28 @@ var personas = []Persona{
 	{Slug: "lukas", Name: "Lucky Lukáš", Skill: SkillEasy},
 	{Slug: "wanda", Name: "Wobbly Wanda", Skill: SkillEasy},
 	{Slug: "stefan", Name: "Slow Štefan", Skill: SkillEasy},
+	{Slug: "hana", Name: "Hopeful Hana", Skill: SkillEasy},
+	{Slug: "milan", Name: "Muddled Milan", Skill: SkillEasy},
+	{Slug: "pavel", Name: "Puzzled Pavel", Skill: SkillEasy},
+	{Slug: "jana", Name: "Jittery Jana", Skill: SkillEasy},
 
 	{Slug: "karel", Name: "Clever Karel", Skill: SkillMedium},
 	{Slug: "sarka", Name: "Sharp Šárka", Skill: SkillMedium},
 	{Slug: "stanislav", Name: "Steady Stanislav", Skill: SkillMedium},
 	{Slug: "klara", Name: "Crafty Klára", Skill: SkillMedium},
+	{Slug: "tomas", Name: "Tidy Tomáš", Skill: SkillMedium},
+	{Slug: "petra", Name: "Plucky Petra", Skill: SkillMedium},
+	{Slug: "barbora", Name: "Brisk Barbora", Skill: SkillMedium},
+	{Slug: "honza", Name: "Handy Honza", Skill: SkillMedium},
 
 	{Slug: "miroslav", Name: "Master Miroslav", Skill: SkillHard},
 	{Slug: "sona", Name: "Shark Soňa", Skill: SkillHard},
 	{Slug: "ivan", Name: "Iron Ivan", Skill: SkillHard},
 	{Slug: "radka", Name: "Relentless Radka", Skill: SkillHard},
+	{Slug: "dusan", Name: "Deadly Dušan", Skill: SkillHard},
+	{Slug: "vera", Name: "Vicious Věra", Skill: SkillHard},
+	{Slug: "gustav", Name: "Grim Gustav", Skill: SkillHard},
+	{Slug: "tereza", Name: "Tigress Tereza", Skill: SkillHard},
 }
 
 // PersonasFor lists the roster for one skill, in a fixed order.
@@ -241,29 +262,54 @@ func PersonaByKey(key string) (Persona, bool) {
 	return Persona{}, false
 }
 
-// PickPersona chooses who sits down.
+// SeatPersona decides who sits down at a table: the strength, then the
+// persona.
+//
+// Under Mixed the strength is drawn only from the strengths that still have
+// someone free. Drawing it blind and the persona second is what seated two
+// Master Miroslavs at one table: seven Mixed bots put five in one strength
+// about one table in seven, and a strength's roster ran out while the other
+// two still had names to spare. taken is the keys already seated.
+func SeatPersona(want Skill, auto bool, taken map[string]bool, seed int64) Persona {
+	var open []Skill
+	for _, s := range Skills {
+		if len(freePersonas(s, taken)) > 0 {
+			open = append(open, s)
+		}
+	}
+	if len(open) == 0 {
+		open = Skills
+	}
+	return PickPersona(drawSkill(want, auto, open, seed), taken, seed)
+}
+
+// PickPersona chooses who sits down, at a strength already decided.
 //
 // taken is the keys already at this table: two Master Miroslavs would be two
 // seats sharing one lifetime record and one name, so the roster is drawn from
-// without replacement. When a skill's roster is exhausted — more bots than
-// names, which needs a five-seat table of one strength — it falls back to
-// reusing one, because a repeated name is a cosmetic problem and refusing to
-// seat the bot is a real one.
+// without replacement. The roster is sized so that it cannot run out at any
+// table; should it ever, it falls back to reusing one, because a repeated name
+// is a cosmetic problem and refusing to seat the bot is a real one.
 func PickPersona(s Skill, taken map[string]bool, seed int64) Persona {
 	roster := PersonasFor(s)
 	if len(roster) == 0 {
 		return Persona{Slug: "bot", Name: "Bot", Skill: s}
 	}
-	var free []Persona
-	for _, p := range roster {
-		if !taken[p.Key()] {
-			free = append(free, p)
-		}
-	}
+	free := freePersonas(s, taken)
 	if len(free) == 0 {
 		free = roster
 	}
 	return free[rand.New(rand.NewSource(seed)).Intn(len(free))]
+}
+
+func freePersonas(s Skill, taken map[string]bool) []Persona {
+	var free []Persona
+	for _, p := range PersonasFor(s) {
+		if !taken[p.Key()] {
+			free = append(free, p)
+		}
+	}
+	return free
 }
 
 // TakenPersonas is the set of persona keys already seated, for PickPersona.

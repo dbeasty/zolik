@@ -3,10 +3,12 @@ package auth
 import (
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
 
+	"zolik/server/internal/metrics"
 	"zolik/server/internal/models"
 )
 
@@ -28,11 +30,44 @@ type SessionTokens struct {
 	// must persist *this* across sign-outs and app restarts, and must not
 	// persist a user id it may not keep.
 	GuestID string
+	// GuestKey is what the device keeps to be this guest again — the proof,
+	// where GuestID is only the name. Set only on guest sessions.
+	GuestKey string
+	// OfflinePass is the cloud-signed pass this account takes to a host with
+	// no internet, empty for a guest and on any deployment that has no
+	// asymmetric signing key. See offlinepass.go.
+	OfflinePass string
+	// SeatReceipt is what an offline host hands a guest so that the seat can
+	// be reconciled with an account later. Empty everywhere else, and empty
+	// on a host with no node key of its own.
+	SeatReceipt string
 }
 
-// GuestSession starts (or resumes) a guest session with no prior identity.
+// GuestSession starts a guest session with no prior identity.
 func (h *Handlers) GuestSession(ctx context.Context, guestName string) (SessionTokens, error) {
 	return h.GuestSessionWithID(ctx, guestName, "")
+}
+
+// guestIDProvenBy is the guest identity a caller has proven they hold, or ""
+// when they have proven none — in which case they are a new guest.
+//
+// The guest key is the proof (see guestkey.go). A live guest refresh token is
+// accepted too, because it is equally unforgeable and because devices that
+// predate guest keys hold nothing else: this is how they get one. A bare guest
+// id proves nothing — it is broadcast to every table the guest sits at — and
+// is not an input here at all.
+func (h *Handlers) guestIDProvenBy(ctx context.Context, guestKey, refreshToken string) string {
+	if id := GuestIDFromKey(guestKey); id != "" {
+		return id
+	}
+	if refreshToken == "" {
+		return ""
+	}
+	s, err := h.sessionRepo.FindByToken(ctx, refreshToken)
+	if err != nil || s.UserID != "" || s.ReplacedBy != "" || time.Now().After(s.ExpiresAt) {
+		return ""
+	}
+	return sanitizeGuestID(s.GuestID)
 }
 
 // GuestSessionWithID starts a guest session, reusing the device's existing
@@ -45,20 +80,25 @@ func (h *Handlers) GuestSession(ctx context.Context, guestName string) (SessionT
 // one place from the very first game — which is what makes "sign in and keep
 // your statistics" a real offer rather than a hopeful one.
 //
-// An id supplied by the client is trusted on the same terms a bearer token is:
-// it identifies a device's play history and nothing else. It grants no access
-// to any account, cannot be used to sign in, and stops being claimable the
-// moment somebody claims it (the identities collection's unique index).
+// guestID must already be proven — by a guest key or a live guest session,
+// see guestIDProvenBy. It is never taken from a request as-is: the id is
+// public, so trusting it would let anyone who has shared a table with a guest
+// become them.
 func (h *Handlers) GuestSessionWithID(ctx context.Context, guestName, guestID string) (SessionTokens, error) {
-	if guestName == "" {
-		guestName = "Guest"
-	}
 	guestID = sanitizeGuestID(guestID)
-	if guestID == "" {
+	newDevice := guestID == ""
+	if newDevice {
 		var err error
 		if guestID, err = NewRandomToken(16); err != nil {
 			return SessionTokens{}, err
 		}
+	}
+	// Named after the id rather than after the moment, so a caller that keeps
+	// no name of its own — the SSH host, a returning device whose stored
+	// session has lapsed — is greeted as the same player every time instead of
+	// as a new one. See GuestNameFor.
+	if guestName == "" {
+		guestName = GuestNameFor(guestID)
 	}
 
 	refreshToken, err := CreateRefreshToken()
@@ -77,9 +117,25 @@ func (h *Handlers) GuestSessionWithID(ctx context.Context, guestName, guestID st
 		return SessionTokens{}, err
 	}
 
+	// Counted only when an id had to be minted. A returning device sends the
+	// id it already has, and counting every guest *session* would report the
+	// same person again every time they opened the tab — which is a measure
+	// of how often people reload, not of how many arrived.
+	if newDevice {
+		h.metrics.Add(metrics.SessionsGuest, 1)
+	}
+
 	accessToken, err := CreateAccessToken(guestID, guestName, true, guestAccessTokenTTL)
 	if err != nil {
 		return SessionTokens{}, err
+	}
+	// The receipt is issued here, with the seat, because this is the moment
+	// the node can honestly attest to: it is the node that seated this guest,
+	// and it says so with its own key. A node with no key issues none, and
+	// the guest is exactly as well off as they were before receipts existed.
+	receipt, err := CreateSeatReceipt(guestID)
+	if err != nil && !errors.Is(err, ErrNoNodeKey) {
+		log.Printf("auth: seat receipt for %s: %v", guestID, err)
 	}
 	return SessionTokens{
 		AccessToken:  accessToken,
@@ -88,6 +144,8 @@ func (h *Handlers) GuestSessionWithID(ctx context.Context, guestName, guestID st
 		Username:     guestName,
 		IsGuest:      true,
 		GuestID:      guestID,
+		GuestKey:     GuestKeyFor(guestID),
+		SeatReceipt:  receipt,
 	}, nil
 }
 
@@ -118,7 +176,41 @@ func (h *Handlers) issueUserSession(ctx context.Context, u models.User) (Session
 		UserID:       u.ID.Hex(),
 		Username:     u.Username,
 		IsGuest:      false,
+		OfflinePass:  h.offlinePassFor(ctx, u.ID.Hex(), u.Username),
 	}, nil
+}
+
+// offlinePassFor mints the pass that travels with a session, or returns
+// nothing at all.
+//
+// Nothing at all is the right answer in more cases than it looks. A
+// deployment with no Ed25519 key signs no passes, and a client that receives
+// none simply cannot be seated offline, which is exactly where everyone was
+// before passes existed. A credential version this server cannot read is the
+// more interesting case: a pass stating the wrong version would go on being
+// honoured by an offline host after a revocation this server already knows
+// about, so the pass is withheld rather than guessed at.
+func (h *Handlers) offlinePassFor(ctx context.Context, userID, username string) string {
+	if !isObjectIDHex(userID) {
+		return ""
+	}
+	version := 1
+	if h.credentials != nil {
+		v, err := h.credentials.CredentialVersion(ctx, userID)
+		if err != nil {
+			log.Printf("auth: credential version for %s: %v", userID, err)
+			return ""
+		}
+		version = v
+	}
+	pass, err := CreateOfflinePass(userID, username, version, OfflinePassTTL)
+	if err != nil {
+		if !errors.Is(err, ErrNoSigningKey) {
+			log.Printf("auth: offline pass for %s: %v", userID, err)
+		}
+		return ""
+	}
+	return pass
 }
 
 // LoginSession authenticates a legacy username/password account. It stays for

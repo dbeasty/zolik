@@ -42,7 +42,7 @@ Classic (American) Canasta, the ruleset in Hoyle and on pagat.com.
 server (`AS`, `TD`, `2C`, `JOKER1`…`JOKER4`), with duplicates disambiguated the way the
 existing 2-deck rummy deck already does.
 
-**Card values.** Joker 50 · 2 20 · A 20 · K Q J T 9 8 10 · 7 6 5 4 5 · black 3 5 · red 3 100.
+**Card values.** Joker 50 · 2 20 · A 20 · K Q J T 9 8 10 · 7 6 5 4 5 · black 3 100 · red 3 100.
 
 **Wilds.** Jokers and 2s. A meld may hold at most 3 wilds and must hold at least 2 naturals.
 
@@ -54,8 +54,14 @@ a **canasta** — *natural* (no wilds, 500) or *mixed* (300) — and is closed t
 the partnership's red-three row and the player draws a replacement. 100 each, 800 for all
 four, and **negative** if the partnership finished the deal with no canasta.
 
-**Black threes.** Discarding one blocks the pile for the next player only. They may be melded
-only as part of going out, and never with a wild.
+**Black threes.** Discarding one blocks the pile for the next player only. A group of three or
+four may be melded straight from the hand, never with a wild among them, and only as the move
+that goes out — the partnership's canasta quota still has to be met first. 100 each on the
+table, 100 each against a hand still holding one when the deal ends.
+
+Whether that meld exists at all is the variation's: `classic` and `samba` allow it,
+`modern_american` forbids it outright, where a black three is only ever a stop card or a
+penalty. See `ruleset.BlackThreeMeld`.
 
 **The discard pile.** A player may take the entire pile instead of drawing, if they can use the
 top card immediately:
@@ -93,6 +99,11 @@ partner's permission to go out (a social convention with no state), the "seven c
 Samba / Bolivia" variant families, and the special-hands variants. Each is additive and none
 changes a type.
 
+> **Since revised.** Samba shipped as a third variation — see
+> [`samba-plan.md`](./samba-plan.md). "Additive" turned out to be half right: the numbers were,
+> but a Samba meld can be a *sequence*, and three assumptions this module was built on had to
+> move behind a ruleset before it could be one. The rest of the sentence still stands.
+
 ## 3. Design
 
 ### 3.1 Partnerships behind a player-shaped interface
@@ -116,6 +127,12 @@ worth writing down rather than papering over: a `winners []string` would be the 
 | `lay_meld:<rank>` | `lay_meld` | the exact cards of a candidate meld |
 | `lay_off:<meldId>` | `lay_off` | eligible cards from hand |
 | `discard` | `discard` | the legally discardable cards |
+| `undo_take_pile` | `undo_take_pile` | — (this turn's capture, while nothing has been built on it) |
+| `undo_lay_off` | `undo_lay_off` | — (the last lay-off still standing) |
+
+The two undos are the only moves in this module that take a card back off the
+table, and both are offered only inside the turn that made them: `PileTaken`
+and `LaidOff` in `state.go` say how narrowly, and why each one exists.
 
 Every enabled/disabled decision is produced by **probing the real engine** against the state,
 exactly as `prsi/offers.go` does — the offer list is `Apply`'s own answer asked in advance, so

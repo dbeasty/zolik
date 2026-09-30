@@ -382,6 +382,12 @@ func (m matchModel) seatLine() string {
 			tag = "*"
 		}
 		bits := []string{}
+		// Who this seat plays with, where the game has sides. One line is all
+		// the strip has, so it is the shortest thing that answers the
+		// question: the partners' names, with your own replaced by "you".
+		if with := m.partnersOf(s.PlayerID); with != "" {
+			bits = append(bits, "with "+with)
+		}
 		for _, f := range s.Facts {
 			bits = append(bits, factText(f))
 		}
@@ -395,6 +401,34 @@ func (m matchModel) seatLine() string {
 		parts = append(parts, entry)
 	}
 	return mutedStyle.Render(strings.Join(parts, "   "))
+}
+
+// partnersOf names everyone sharing a seat's side, that seat excluded, or ""
+// where the game has no sides — the server leaves Side unset rather than
+// giving every player a side of their own, so there is nothing to test for
+// beyond the field being empty.
+func (m matchModel) partnersOf(playerID string) string {
+	var side string
+	for _, s := range m.state.View.Seats {
+		if s.PlayerID == playerID {
+			side = s.Side
+		}
+	}
+	if side == "" {
+		return ""
+	}
+	var names []string
+	for _, s := range m.state.View.Seats {
+		if s.Side != side || s.PlayerID == playerID {
+			continue
+		}
+		if s.PlayerID == m.root.session.UserID {
+			names = append(names, "you")
+			continue
+		}
+		names = append(names, api.PlayerName(m.state.Players, s.PlayerID))
+	}
+	return strings.Join(names, ", ")
 }
 
 func (m matchModel) zoneLine(z api.Zone) string {

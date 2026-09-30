@@ -1,7 +1,6 @@
 package models
 
 import (
-	"encoding/json"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -36,14 +35,28 @@ type Match struct {
 	HostID    string   `bson:"hostId" json:"hostId"`
 	JoinCode  string   `bson:"joinCode" json:"joinCode"`
 
-	// State is the module's own game state, opaque here. Stored as raw bytes
-	// rather than a decoded document so Mongo never imposes a schema on it and
-	// the runtime is structurally unable to read it.
-	State json.RawMessage `bson:"state,omitempty" json:"-"`
+	// State is the module's own game state, opaque here — held in memory and
+	// never stored on the match. What is stored is each move, once, and the
+	// state at a snapshot now and then (see Snapshots); the runtime rebuilds
+	// State from the newest snapshot and the moves after it. So a match loaded
+	// straight from a repository has none: ask the Manager, which keeps the
+	// state of every match in play.
+	//
+	// It used to be stored here and rewritten, whole, on every move — along
+	// with the log — and a store that keeps every version turned that into the
+	// square of a match's length.
+	State JSONDoc `bson:"-" json:"-"`
 
-	// ActionLog is append-only history, in the module's own vocabulary. Versioned
-	// by ModuleID so an old replay stays readable by the module that wrote it.
-	ActionLog []MatchAction `bson:"actionLog,omitempty" json:"-"`
+	// Snapshots are the move counts a stored state exists for, oldest first:
+	// 0 is the deal, and the last is where a rebuild starts.
+	Snapshots []int `bson:"snapshots,omitempty" json:"-"`
+
+	// UpdatedAt is when the match was last written, and — kept within a minute
+	// while moves are being made, without a write per move — when it was last
+	// played. Activity listings sort by it and the stranded-match sweep reads
+	// it. A match written before it existed sorts as never touched, which for
+	// a row that old is the right answer.
+	UpdatedAt time.Time `bson:"updatedAt,omitempty" json:"updatedAt,omitempty"`
 
 	Seed int64 `bson:"seed" json:"-"`
 	// Winners is every player who won. More than one is a real outcome — a
@@ -70,6 +83,20 @@ type Match struct {
 	AbandonAt       *time.Time `bson:"abandonAt,omitempty" json:"abandonAt,omitempty"`
 	SuspendedPlayer string     `bson:"suspendedPlayer,omitempty" json:"suspendedPlayer,omitempty"`
 
+	// Rematch is the table this one is being played again at, once a seated
+	// player asked for it. Set once, so everybody who presses "play again"
+	// afterwards is sent to the same table rather than each opening their own.
+	Rematch *RematchRef `bson:"rematch,omitempty" json:"rematch,omitempty"`
+	// RematchOf is the finished table this lobby was opened from.
+	RematchOf string `bson:"rematchOf,omitempty" json:"rematchOf,omitempty"`
+	// Reserved are the people from that table who have not sat down yet. Each
+	// holds a seat nobody else can take — a stranger with the join code meets
+	// MATCH_FULL — until they sit, say no thanks, or the table is dealt.
+	Reserved []Reservation `bson:"reserved,omitempty" json:"reserved,omitempty"`
+	// SeatOrder is the finished table's order, which a rematch keeps: whoever
+	// sits down late is put back where they sat, not at the end.
+	SeatOrder []string `bson:"seatOrder,omitempty" json:"-"`
+
 	// Version drives the same optimistic-concurrency scheme Game uses: a
 	// filtered replace that fails if someone else wrote first.
 	Version int64 `bson:"version" json:"-"`
@@ -81,13 +108,44 @@ type Match struct {
 	MigratedFrom bson.ObjectID `bson:"migratedFrom,omitempty" json:"-"`
 }
 
-// MatchAction is one accepted move, stored verbatim.
+// RematchRef points a finished table at the one it is being played again at.
+type RematchRef struct {
+	MatchID string `bson:"matchId" json:"matchId"`
+	// HostID is who asked, so the others can be told whose table it is.
+	HostID string `bson:"hostId" json:"hostId"`
+}
+
+// Reservation is a seat held at a rematch for somebody from the last table.
+type Reservation struct {
+	PlayerID string `bson:"playerId" json:"playerId"`
+	Name     string `bson:"name" json:"name"`
+	Avatar   string `bson:"avatar,omitempty" json:"avatar,omitempty"`
+	// UserID and GuestID are who holds it, as on Player, so the person can
+	// be reached before they have sat down — and told when it is let go.
+	UserID  string `bson:"userId,omitempty" json:"-"`
+	GuestID string `bson:"guestId,omitempty" json:"-"`
+}
+
+// Player is the seat this reservation is for, as far as it is known before
+// its holder sits down.
+func (r Reservation) Player() Player {
+	return Player{ID: r.PlayerID, Name: r.Name, Avatar: r.Avatar, UserID: r.UserID, GuestID: r.GuestID}
+}
+
+// MatchAction is one accepted move, stored verbatim and never rewritten.
 //
 // The runtime records what it routed without interpreting it, which is what
 // makes the log replayable by the module and meaningless to anything else.
+// Together with the snapshot before it, it is also how the current state is
+// rebuilt: the modules' Apply is deterministic, so the moves since a snapshot
+// reproduce the board exactly.
 type MatchAction struct {
-	Seq      int             `bson:"seq" json:"seq"`
-	PlayerID string          `bson:"playerId" json:"playerId"`
-	Action   json.RawMessage `bson:"action" json:"action"`
-	At       time.Time       `bson:"at" json:"at"`
+	Seq      int       `bson:"seq" json:"seq"`
+	PlayerID string    `bson:"playerId" json:"playerId"`
+	Action   JSONDoc   `bson:"action" json:"action"`
+	At       time.Time `bson:"at" json:"at"`
+	// Rounds is how many rounds were complete after this move, set only on a
+	// move that closed one — "the end of deal 3". A replay's chapters are read
+	// off these marks, so they cost a move nothing but a number.
+	Rounds int `bson:"rounds,omitempty" json:"rounds,omitempty"`
 }

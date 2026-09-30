@@ -95,6 +95,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 				rules.OptDealStarter:          rules.DealStarterOpt(cfg.DealStarter),
 				rules.OptJokerReclaimMustPlay: rules.BoolOpt(cfg.JokerReclaimMustPlay),
 				module.OptPauseBetweenRounds:  module.OptOn,
+				module.OptOpenDiscardPile:     module.BoolOpt(!cfg.DiscardPileTopOnly),
 				module.OptBotSkill:            module.SkillOpt(module.SkillMedium),
 			},
 		})
@@ -102,7 +103,15 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 	// Declared here rather than in the rummy descriptor: pausing between deals
 	// is a property of how a match is presented, which the runtime owns, and
 	// the engine's own option list stays about rules.
-	out.Options = append(out.Options, module.PauseOption(), module.BotSkillOption())
+	out.Options = append(out.Options,
+		module.PauseOption(),
+		// On by default, which is what this game has always published: a pile
+		// you may pick a buried card out of is a pile you have to be able to
+		// read. A table that plays Continental's top-card draw can fold it.
+		module.OpenDiscardPileOption(),
+		module.BotSkillOption(),
+		module.HintsOption(),
+	)
 	for _, o := range d.Options {
 		spec := module.OptionSpec{
 			Name: o.Name, Type: module.OptionType(o.Type), Label: o.Label, Help: o.Help,
@@ -136,6 +145,10 @@ func resolveConfig(mc module.MatchConfig) rules.RulesConfig {
 		rules.OptJokerReclaimMustPlay, rules.BoolOpt(cfg.JokerReclaimMustPlay),
 	) == rules.OptOn
 	cfg.PauseBetweenDeals = mc.PauseBetweenRounds(true)
+	// Stored inverted (see RulesConfig.DiscardPileTopOnly): open is the
+	// default, so the persisted zero value is the behaviour every match dealt
+	// before this option existed already had.
+	cfg.DiscardPileTopOnly = !mc.OpenDiscardPile(!cfg.DiscardPileTopOnly)
 	return cfg
 }
 
@@ -307,6 +320,10 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 			// the offer explosion extensibility-plan.md §1.1 refuses. Saying so
 			// explicitly is new: a client used to have to infer it.
 			Composite: o.Verb == rules.VerbLayMeld,
+			// All four of this engine's undos share one verb, so the mapping
+			// is the verb itself. See module.ActionOffer.Undo for what the
+			// runtime does with it.
+			Undo: o.Verb == rules.VerbUndo,
 		})
 	}
 	// Why each disabled offer is disabled, in terms a player can act on: the
@@ -353,7 +370,8 @@ func toSelector(s *rules.Selector, playerID string) *module.Selector {
 	}
 	for _, p := range s.Placements {
 		out.Placements = append(out.Placements, module.Placement{
-			Card: p.Card, Positions: p.Positions, Requires: p.Requires,
+			Card: p.Card, Positions: p.Positions, Slots: p.Slots,
+			Requires: p.Requires, Alternatives: p.Alternatives,
 		})
 	}
 	return out
@@ -397,6 +415,16 @@ func zoneIDFor(s *rules.Selector, playerID string) string {
 // hidden-information filtering is a property of the game, so the game decides
 // it. The runtime never learns that a hand is secret and a meld is not.
 func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, error) {
+	return m.view(raw, viewerID, false)
+}
+
+// OpenView renders the board with every hand face up, for replaying a game
+// that is over. The runtime only ever asks for it once a match is finished.
+func (m *Module) OpenView(raw module.State) (module.ViewModel, error) {
+	return m.view(raw, "", true)
+}
+
+func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.ViewModel, error) {
 	s, err := decode(raw)
 	if err != nil {
 		return module.ViewModel{}, err
@@ -419,25 +447,36 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 			owedJokers = gs.JokersReclaimedPendingMeld
 		}
 	}
-	vm.Zones = append(vm.Zones, module.Zone{
-		ID: handZoneID(viewerID), Kind: module.ZoneHand, OwnerID: viewerID,
-		LabelKey: "zone.yourHand", Cards: badgedCardViews(own, owedPickup, owedJokers), Count: len(own),
-	})
+	// Skipped when there is no viewer, which is what an open view is: nobody
+	// is sitting at this board, so no hand is "yours".
+	if viewerID != "" {
+		vm.Zones = append(vm.Zones, module.Zone{
+			ID: handZoneID(viewerID), Kind: module.ZoneHand, OwnerID: viewerID,
+			LabelKey: "zone.yourHand", Cards: badgedCardViews(own, owedPickup, owedJokers), Count: len(own),
+		})
+	}
 	for _, p := range gs.TurnOrder {
 		if p == viewerID {
 			continue
 		}
-		vm.Zones = append(vm.Zones, module.Zone{
+		z := module.Zone{
 			ID: handZoneID(p), Kind: module.ZoneHand, OwnerID: p,
 			LabelKey: "zone.opponentHand", Count: len(gs.Hands[p]),
-		})
+		}
+		if reveal {
+			// Plain card views, not badged: a badge says what this player
+			// still owes the table, which is a live obligation and means
+			// nothing in a game that has finished.
+			z.Cards = cardViews(gs.Hands[p])
+		}
+		vm.Zones = append(vm.Zones, z)
 	}
 
 	// The closing gesture: where the profile plays it that way, the discard
 	// that ended the deal lies face down until the next deal wipes the pile.
 	// Ceremonial rather than secret — the deal is scored by the time anyone
 	// sees this, so the value still travels (see module.CardView.FaceDown).
-	discardCards := cardViews(gs.DiscardPile)
+	discardCards := cardViews(shownPile(gs, cfg))
 	if gs.WentOutByDiscard && cfg.GoOutDiscardFaceDown && len(discardCards) > 0 {
 		discardCards[len(discardCards)-1].FaceDown = true
 	}
@@ -537,6 +576,24 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 		})
 	}
 	return vm, nil
+}
+
+// shownPile is how much of the discard pile this table publishes: the whole
+// pile, or the top card alone where the table asked for the folded one.
+//
+// The fold is refused under DiscardPickupAnyFromPile, and deliberately: that
+// draw offers every card in the pile as a target (rules.drawablePileCards), so
+// folding it would hide cards the same view is inviting the player to take.
+// The option is presentation, and presentation does not get to contradict an
+// offer.
+func shownPile(gs rules.GameState, cfg rules.RulesConfig) []string {
+	if !cfg.DiscardPileTopOnly || cfg.DiscardPickupMode == rules.DiscardPickupAnyFromPile {
+		return gs.DiscardPile
+	}
+	if len(gs.DiscardPile) == 0 {
+		return nil
+	}
+	return gs.DiscardPile[len(gs.DiscardPile)-1:]
 }
 
 func cardViews(cards []string) []module.CardView {

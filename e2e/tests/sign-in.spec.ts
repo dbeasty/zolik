@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { API_BASE } from '../helpers/env';
+import { seedIntroSeen } from '../helpers/login';
 
 /**
  * The sign-in flows, driven through the real UI rather than seeded via the
@@ -24,12 +25,30 @@ import { API_BASE } from '../helpers/env';
  * resolves to two elements and fails in strict mode.
  */
 
+/**
+ * Signing out, and the account link, moved behind the face in the top corner
+ * — see `src/components/AccountMenu.tsx`. Opening it is now the first tap of
+ * reaching either, so it is a step here rather than a detail of each test.
+ */
+async function openAccountMenu(page: import('@playwright/test').Page) {
+  await page.getByTestId('account-menu-button').click();
+  await expect(page.getByTestId('account-menu')).toBeVisible({ timeout: 10_000 });
+}
+
 async function lastEmailCode(request: import('@playwright/test').APIRequestContext, email: string): Promise<string> {
   const res = await request.get(`${API_BASE}/auth/dev/last-code?email=${encodeURIComponent(email)}`);
   if (!res.ok()) throw new Error(`no code available for ${email}: ${res.status()} ${await res.text()}`);
   const body = await res.json();
   return body.code as string;
 }
+
+// This file drives sign-in through the real UI with no session seeded, so
+// unlike every other spec it would actually land on the first-run intro
+// screen instead of the sign-in UI it means to test. Seeded here rather than
+// per-test, since every test in this file visits `/` before it has a session.
+test.beforeEach(async ({ page }) => {
+  await seedIntroSeen(page);
+});
 
 test.describe('guest sign-in', () => {
   test('continuing as a guest signs in and lands in the game picker', async ({ page }) => {
@@ -114,7 +133,8 @@ test.describe('passwordless email sign-in', () => {
     await signInWithFreshCode();
     const firstUsername = await page.getByText(/^Playing as /).textContent();
 
-    await page.getByText('Sign out', { exact: true }).click();
+    await openAccountMenu(page);
+    await page.getByTestId('account-menu-signout').click();
     await expect(page.getByText('Sign in or continue as guest to play online.')).toBeVisible({
       timeout: 10_000,
     });
@@ -145,13 +165,16 @@ test.describe('legacy username/password', () => {
     await expect(page).toHaveURL('/', { timeout: 10_000 });
     await expect(page.getByText(`Playing as ${username}`)).toBeVisible({ timeout: 10_000 });
 
-    await page.getByText('Account', { exact: true }).click();
+    await openAccountMenu(page);
+    await page.getByTestId('account-menu-account').click();
     await expect(page.getByText('Username and password')).toBeVisible({ timeout: 10_000 });
 
-    // The account screen has no sign-out action of its own — that stays on
-    // the main menu.
+    // The account screen has no sign-out action of its own, and the menu
+    // that carries one is the home screen's header — so going back is part
+    // of signing out from here.
     await page.goto('/');
-    await page.getByText('Sign out', { exact: true }).click();
+    await openAccountMenu(page);
+    await page.getByTestId('account-menu-signout').click();
     await expect(page.getByText('Sign in or continue as guest to play online.')).toBeVisible({
       timeout: 10_000,
     });
@@ -174,7 +197,8 @@ test.describe('legacy username/password', () => {
     await page.getByText('Register', { exact: true }).click();
     await expect(page).toHaveURL('/', { timeout: 10_000 });
 
-    await page.getByText('Sign out', { exact: true }).click();
+    await openAccountMenu(page);
+    await page.getByTestId('account-menu-signout').click();
     await page.goto('/auth/username-login');
     await page.getByPlaceholder('Username').fill(username);
     await page.getByPlaceholder('Password').fill('the-wrong-password');
@@ -211,6 +235,7 @@ test.describe('guest-to-account claiming, through the UI', () => {
     // The session is no longer the guest's — isGuest flipped to false, which
     // is what unlocks the "Account" entry point instead of "Sign in to keep
     // your stats".
-    await expect(page.getByText('Account', { exact: true })).toBeVisible({ timeout: 10_000 });
+    await openAccountMenu(page);
+    await expect(page.getByTestId('account-menu-account')).toBeVisible({ timeout: 10_000 });
   });
 });

@@ -1,6 +1,7 @@
 package ginrummy
 
 import (
+	"fmt"
 	"reflect"
 	"sort"
 	"testing"
@@ -161,4 +162,47 @@ func TestInsertIntoMeld_RunStaysSortedFromEitherEnd(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("insertIntoMeld(high) = %v, want %v", got, want)
 	}
+}
+
+// TestDeadwoodIsDeterministic pins the one property the rest of the runtime
+// quietly depends on: the same hand always melds the same way, under the same
+// names.
+//
+// It did not, and the way it failed was subtle. candidateMelds walked byRank
+// and bySuit — Go maps — so candidate order changed between calls. When a hand
+// had two covers of equal value, which one won varied; and even when the same
+// melds won, the order they came back in varied, so m1 and m2 traded places.
+// A lay_off offer names a meld by that label, which made the label mean
+// something different by the time the action arrived. Replaying a match from
+// its action log is where it finally showed: the same log, folded twice, laid
+// a card onto a different meld the second time and was refused.
+func TestDeadwoodIsDeterministic(t *testing.T) {
+	hands := [][]string{
+		// Two covers worth zero deadwood: the 9s as a set, and 7C-TC as a
+		// run, either of which can be found first.
+		{"9D", "9H", "9S", "7C", "8C", "9C", "TC", "2D", "3D", "4D"},
+		{"AS", "2S", "3S", "4S", "5S", "5H", "5D", "5C", "KH", "QH"},
+		{"2C", "3C", "4C", "5C", "2D", "2H", "2S", "KD", "QS", "JH"},
+	}
+	for _, hand := range hands {
+		wantValue, wantMelds := Deadwood(hand)
+		want := describeMelds(wantMelds)
+		for i := 0; i < 200; i++ {
+			gotValue, gotMelds := Deadwood(hand)
+			if gotValue != wantValue {
+				t.Fatalf("%v: deadwood %d on call %d, %d on the first", hand, gotValue, i, wantValue)
+			}
+			if got := describeMelds(gotMelds); got != want {
+				t.Fatalf("%v: melds differ between calls\n got: %s\nwant: %s", hand, got, want)
+			}
+		}
+	}
+}
+
+func describeMelds(melds []Meld) string {
+	out := ""
+	for _, m := range melds {
+		out += fmt.Sprintf("%s=%s:%v ", m.ID, m.Kind, m.Cards)
+	}
+	return out
 }

@@ -56,6 +56,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 		Options: []module.OptionSpec{
 			module.PauseOption(),
 			module.BotSkillOption(),
+			module.HintsOption(),
 			{
 				Name: OptTargetScore, Type: module.OptionEnumInt,
 				Label: "Target score", Help: "First player to pass this score wins the match. Off disables it in favor of a round limit.",
@@ -92,6 +93,16 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 // to hide about a manipulation that has not been committed yet, only about
 // what remains in a hand.
 func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, error) {
+	return m.view(raw, viewerID, false)
+}
+
+// OpenView renders the board with every rack face up, for replaying a game
+// that is over. The runtime only ever asks for it once a match is finished.
+func (m *Module) OpenView(raw module.State) (module.ViewModel, error) {
+	return m.view(raw, "", true)
+}
+
+func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.ViewModel, error) {
 	s, err := decode(raw)
 	if err != nil {
 		return module.ViewModel{}, err
@@ -107,10 +118,14 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 			})
 			continue
 		}
-		vm.Zones = append(vm.Zones, module.Zone{
+		z := module.Zone{
 			ID: handZoneID(p), Kind: module.ZoneHand, OwnerID: p,
 			LabelKey: "zone.opponentHand", Count: len(hand),
-		})
+		}
+		if reveal {
+			z.Cards = cardViews(hand)
+		}
+		vm.Zones = append(vm.Zones, z)
 	}
 
 	vm.Zones = append(vm.Zones,

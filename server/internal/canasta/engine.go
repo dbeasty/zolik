@@ -1,6 +1,8 @@
 package canasta
 
 import (
+	"fmt"
+
 	"zolik/server/internal/module"
 )
 
@@ -14,8 +16,12 @@ var _ module.GameModule = (*Module)(nil)
 
 // NewMatch deals the first deal of a fresh match.
 func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, seed int64) (module.State, error) {
-	if len(players) < 2 || len(players) > 4 {
-		return nil, module.Error{Code: "WRONG_PLAYER_COUNT", Message: "canasta seats two to four"}
+	r := resolveVariation(cfg.Variation)
+	if len(players) < 2 || len(players) > r.MaxSeats {
+		return nil, module.Error{
+			Code:    "WRONG_PLAYER_COUNT",
+			Message: fmt.Sprintf("this canasta seats two to %d", r.MaxSeats),
+		}
 	}
 
 	s := &GameState{
@@ -29,6 +35,9 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 		// table the moment the next deal starts — so not stopping is what makes
 		// the score unreadable rather than merely brisk.
 		Pause: cfg.PauseBetweenRounds(true),
+		// Off by default: taking the pile is the swing in this game, and
+		// remembering what is in it is part of earning it.
+		OpenDiscard: cfg.OpenDiscardPile(false),
 	}
 	for _, p := range players {
 		s.Players = append(s.Players, p.ID)
@@ -36,13 +45,13 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 	}
 
 	// Partnerships are seat parity, computed once and stored, so nothing else
-	// in the package re-derives who is on whose side. At two or three players
-	// everyone is their own partnership, which needs no special case anywhere
-	// else — a team simply has one member.
-	teams := 2
-	if len(players) == 3 {
-		teams = 3
-	}
+	// in the package re-derives who is on whose side. Where the seats cannot be
+	// split evenly — three players, five — everyone is their own partnership,
+	// which needs no special case anywhere else: a team simply has one member.
+	//
+	// Heads-up is two sides of one rather than one side of two, which is why the
+	// evenness test is not enough on its own.
+	teams := seatsToTeams(len(players))
 	for i := 0; i < teams; i++ {
 		s.Teams = append(s.Teams, Team{ID: i})
 	}
@@ -52,10 +61,17 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 		s.Teams[team].Players = append(s.Teams[team].Players, p)
 	}
 
-	v := resolveVariation(cfg)
-	s.HandSize = cfg.Opt(OptHandSize, v.handSize)
-	s.TargetScore = cfg.Opt(OptTargetScore, v.targetScore)
-	s.CanastasToGoOut = cfg.Opt(OptCanastasToGoOut, v.canastasToGoOut)
+	// The ruleset is stored, not just read: a deal is played under the rules the
+	// match was created with, so shipping a change to a variation cannot alter a
+	// match already in flight. The three scalars stay on the state beside it
+	// because they were there first and a client reads them.
+	r.HandSize = cfg.Opt(OptHandSize, r.handSizeFor(len(players)))
+	r.TargetScore = cfg.Opt(OptTargetScore, r.TargetScore)
+	r.CanastasToGoOut = cfg.Opt(OptCanastasToGoOut, r.CanastasToGoOut)
+	s.Rules = &r
+	s.HandSize = r.HandSize
+	s.TargetScore = r.TargetScore
+	s.CanastasToGoOut = r.CanastasToGoOut
 
 	// dealNew leads from Dealer+1, so the dealer is seeded one seat behind a
 	// random opening seat rather than always seat 0 (opening seat 1).
@@ -68,13 +84,50 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 	return encode(s)
 }
 
+var _ module.Seated = (*Module)(nil)
+
+// Sides is who plays with whom, answered for a table that has not been dealt.
+//
+// It is the lobby's question — "if we start now, who is my partner?" — and it
+// is answered here, from seatsToTeams and the same seat arithmetic NewMatch
+// uses, rather than by a client counting to two. A rule with two
+// implementations is a rule that will eventually have two answers.
+//
+// Nil where nobody has a partner: at two, three or five seats every player is
+// their own side, and a lobby showing five "teams" of one would be noise.
+func (m *Module) Sides(cfg module.MatchConfig, players []module.PlayerRef) [][]string {
+	teams := seatsToTeams(len(players))
+	if teams == len(players) {
+		return nil
+	}
+	out := make([][]string, teams)
+	for i, p := range players {
+		out[i%teams] = append(out[i%teams], p.ID)
+	}
+	return out
+}
+
+// seatsToTeams is how a table of this size divides into sides.
+//
+// Even and four or more: partnerships, half as many sides as seats, partner i
+// and i+teams — so four seats are 0+2 against 1+3 and six are 0+3, 1+4, 2+5,
+// which puts partners opposite each other at both. Anything else — heads-up,
+// three, five — is every seat for itself.
+func seatsToTeams(seats int) int {
+	if seats >= 4 && seats%2 == 0 {
+		return seats / 2
+	}
+	return seats
+}
+
 // dealNew shuffles and deals one deal, leaving the first player to move.
 //
 // The seed is varied per deal so a match is reproducible from its match seed
 // yet does not deal the same cards every deal — the same trick prsi uses for
 // its reshuffles, and for the same reason.
 func dealNew(s *GameState) error {
-	deck := shuffle(buildDeck(), s.Seed+int64(s.DealNumber)*7919+1)
+	r := s.rules()
+	deck := shuffle(buildDeck(r), s.Seed+int64(s.DealNumber)*7919+1)
 
 	for i := range s.Teams {
 		s.Teams[i].Melds = nil
@@ -179,18 +232,56 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 		return raw, nil, errCode(ErrNotYourTurn)
 	}
 
+	// The window in which this turn can be taken apart again, and it is one
+	// window rather than three: the capture, the melds and the lay-offs all
+	// survive exactly the verbs that build the table, and every other verb
+	// drops all of them. Safe because a refusal below returns the caller's own
+	// `raw` untouched (see Apply's own doc comment): this clear only survives
+	// when the action it guarded actually went through.
+	//
+	// Both stacks together, not one each. Melding used to close the lay-off
+	// window, which meant laying a second meld quietly threw away the undo for
+	// a card you had just put on the wrong pile; and a meld laid after a
+	// lay-off has to stay undoable or the dead end MeldLaid exists for survives
+	// being two moves deep. Ordering is not what keeps this honest — the shape
+	// checks in the three undo handlers are, and they refuse anything built on
+	// since.
+	//
+	// The capture used to be narrower than the other two: any lay at all closed
+	// it. That is what wedged game 6aaa157d0079d0b3a6624b3a. A side that has
+	// not opened cannot discard (applyDiscard), so a turn that took the pile
+	// and then melded its way to just under the floor could only get out by
+	// putting everything back — and the one thing it could not put back was the
+	// capture that started it. Undoing has to reach the beginning of the turn
+	// or it does not reach anywhere: see applyUndoTakePile, which now refuses
+	// while anything laid since is still standing, so the restore is still the
+	// exact one PileTaken snapshotted.
+	if !buildsTheTable(a.Verb) {
+		s.PileTaken = nil
+		s.LaidOff = nil
+		s.MeldsLaid = nil
+	}
+
 	var events []module.Event
 	switch a.Verb {
 	case VerbDraw:
 		events, err = applyDraw(s, playerID)
 	case VerbTakePile:
 		events, err = applyTakePile(s, playerID, a)
+	case VerbTakeTop:
+		events, err = applyTakeTop(s, playerID, a)
 	case VerbLayMeld:
 		events, err = applyLayMeld(s, playerID, a)
 	case VerbLayOff:
 		events, err = applyLayOff(s, playerID, a)
 	case VerbDiscard:
 		events, err = applyDiscard(s, playerID, a)
+	case VerbUndoTakePile:
+		events, err = applyUndoTakePile(s, playerID)
+	case VerbUndoLayOff:
+		events, err = applyUndoLayOff(s, playerID)
+	case VerbUndoLayMeld:
+		events, err = applyUndoLayMeld(s, playerID)
 	default:
 		err = module.Error{Code: ErrUnknownAction, Message: a.Verb}
 	}
@@ -211,12 +302,16 @@ func applyDraw(s *GameState, playerID string) ([]module.Event, error) {
 		return nil, errCode(ErrNothingToDraw)
 	}
 
+	// How many is the variation's: Canasta takes one, Samba two. A red three
+	// drawn is laid down and replaced rather than counted, so the loop is over
+	// cards that reached the hand, not over cards off the stock.
 	var drawn []string
 	var reds []string
-	for {
+	for len(drawn) < s.rules().DrawCount {
 		if len(s.DrawPile) == 0 {
-			// The stock ran out mid-replacement. The deal simply ends, which
-			// is the same answer as running out at the top of a turn.
+			// The stock ran out mid-draw. The deal simply ends, which is the
+			// same answer as running out at the top of a turn — and the cards
+			// already drawn stay in the hand to be counted against it.
 			return endDeal(s, "", false, true), nil
 		}
 		card := s.DrawPile[len(s.DrawPile)-1]
@@ -228,7 +323,6 @@ func applyDraw(s *GameState, playerID string) ([]module.Event, error) {
 		}
 		s.Hands[playerID] = append(s.Hands[playerID], card)
 		drawn = append(drawn, card)
-		break
 	}
 
 	s.Phase = phaseMeld
@@ -263,6 +357,7 @@ type pileOption struct {
 // offer list, and by the stock-exhaustion check — so those three cannot come
 // to different conclusions about whether a pile is takeable.
 func pileTakeOptions(s *GameState, playerID string) []pileOption {
+	r := s.rules()
 	top := s.top()
 	if top == "" {
 		return nil
@@ -283,7 +378,10 @@ func pileTakeOptions(s *GameState, playerID string) []pileOption {
 
 	// A partnership that has not opened is frozen out of the easy captures
 	// even when the pile itself is not frozen — the "personal freeze".
-	frozen := s.Frozen || !t.HasMelded
+	// Samba's pile is frozen against everyone for the whole deal, so a capture
+	// there always costs two naturals from hand: the same rule the buried wild
+	// imposes here, made permanent rather than made separately.
+	frozen := s.Frozen || !t.HasMelded || r.PileAlwaysFrozen
 
 	naturals := make([]string, 0, len(hand))
 	var wilds []string
@@ -299,9 +397,14 @@ func pileTakeOptions(s *GameState, playerID string) []pileOption {
 	var out []pileOption
 
 	// Capture by laying the top card off onto a meld the partnership already
-	// has. Only available while the pile is unfrozen.
-	if !frozen {
-		if m := t.meld(rank); m != nil && !m.closed() {
+	// has: the cheapest way in, since it spends nothing from hand. It needs an
+	// unfrozen pile *and* a variation that allows the move at all — Modern
+	// American removed it outright, so there the pile always costs two cards
+	// out of a hand no matter how the table looks. `openGroup` is what makes
+	// the meld have to be incomplete: a closed canasta is not an open group,
+	// so it cannot reach up and take anything.
+	if !frozen && r.PileMeldCapture {
+		if m := t.openGroup(r, rank); m != nil {
 			out = append(out, pileOption{MeldID: m.ID})
 		}
 	}
@@ -328,18 +431,20 @@ func pileTakeOptions(s *GameState, playerID string) []pileOption {
 // that the resulting meld is legal, and that a partnership still opening can
 // actually reach its minimum from the top card and its hand.
 func capturePlayable(s *GameState, playerID string, fromHand []string) bool {
+	r := s.rules()
 	t := s.team(playerID)
 	top := s.top()
 	rank := rankOf(top)
 
 	combined := append([]string{top}, fromHand...)
-	if existing := t.meld(rank); existing != nil {
-		if existing.closed() {
-			return false
-		}
+	existing := t.openGroup(r, rank)
+	if existing == nil && t.rankIsFull(r, rank) {
+		return false // the only group of this rank is a closed canasta
+	}
+	if existing != nil {
 		combined = append(append([]string(nil), existing.Cards...), combined...)
 	}
-	if validateMeld(combined) != nil {
+	if validateMeld(r, combined) != nil {
 		return false
 	}
 	if t.HasMelded {
@@ -352,10 +457,11 @@ func capturePlayable(s *GameState, playerID string, fromHand []string) bool {
 		return false
 	}
 	laid := s.LaidThisTurn + handValue(append([]string{top}, fromHand...))
-	return laid+reachableValue(rest, t) >= initialMeldMinimum(t.Score)
+	return laid+reachableValue(r, rest, t) >= r.meldFloor(t.Score)
 }
 
 func applyTakePile(s *GameState, playerID string, a module.Action) ([]module.Event, error) {
+	r := s.rules()
 	if s.Phase != phaseDraw {
 		return nil, errCode(ErrWrongPhase)
 	}
@@ -372,15 +478,26 @@ func applyTakePile(s *GameState, playerID string, a module.Action) ([]module.Eve
 
 	t := s.team(playerID)
 	rank := rankOf(top)
-	frozen := s.Frozen || !t.HasMelded
+	// Samba's pile is frozen against everyone for the whole deal, so a capture
+	// there always costs two naturals from hand: the same rule the buried wild
+	// imposes here, made permanent rather than made separately.
+	frozen := s.Frozen || !t.HasMelded || r.PileAlwaysFrozen
 
 	// Resolve which of the two captures this is, and refuse with the reason
 	// that actually applies rather than a generic one.
 	var fromHand []string
 	target := a.Target
 	if target != "" {
+		// Frozen first, then whether the variation has this capture at all.
+		// The order is what keeps Samba answering `PILE_FROZEN` — the rule its
+		// players were actually told, and the one its rules screen prints —
+		// while Modern American, whose pile is not frozen and refuses anyway,
+		// gets the reason that is true there.
 		if frozen {
 			return nil, errCode(ErrPileFrozen)
+		}
+		if !r.PileMeldCapture {
+			return nil, errCode(ErrMeldCaptureNotAllowed)
 		}
 		owner, m := s.findMeld(target)
 		if m == nil {
@@ -392,13 +509,13 @@ func applyTakePile(s *GameState, playerID string, a module.Action) ([]module.Eve
 		if m.Rank != rank {
 			return nil, errCode(ErrWrongRank)
 		}
-		if m.closed() {
+		if m.closed(r) {
 			return nil, errCode(ErrMeldClosed)
 		}
 	} else {
 		fromHand = a.Cards
 		if len(fromHand) < 2 {
-			return nil, errCode(ErrMeldTooSmall)
+			return nil, errCode(ErrCaptureNeedsTwo)
 		}
 		if !hasCards(s.Hands[playerID], fromHand) {
 			return nil, errCode(ErrCardNotInHand)
@@ -411,22 +528,46 @@ func applyTakePile(s *GameState, playerID string, a module.Action) ([]module.Eve
 			}
 		}
 		combined := append([]string{top}, fromHand...)
-		if existing := t.meld(rank); existing != nil {
-			if existing.closed() {
-				return nil, errCode(ErrMeldClosed)
-			}
+		existing := t.openGroup(r, rank)
+		if existing == nil && t.rankIsFull(r, rank) {
+			return nil, errCode(ErrMeldClosed)
+		}
+		if existing != nil {
 			combined = append(append([]string(nil), existing.Cards...), combined...)
 		}
-		if err := validateMeld(combined); err != nil {
+		if err := validateMeld(r, combined); err != nil {
 			return nil, err
 		}
 		if !t.HasMelded {
 			rest, _ := removeCards(s.Hands[playerID], fromHand)
 			laid := s.LaidThisTurn + handValue(append([]string{top}, fromHand...))
-			if laid+reachableValue(rest, t) < initialMeldMinimum(t.Score) {
+			if laid+reachableValue(r, rest, t) < r.meldFloor(t.Score) {
 				return nil, errCode(ErrInitialMeldNotMet)
 			}
 		}
+	}
+
+	// Snapshotted before anything moves, so an undo — see PileTaken — can put
+	// it all back exactly rather than reconstructing it from what the table
+	// looks like afterward.
+	pileSnapshot := append([]string(nil), s.DiscardPile...)
+	priorHand := append([]string(nil), s.Hands[playerID]...)
+	priorFrozen := s.Frozen
+	priorHasMelded := t.HasMelded
+	priorLaidThisTurn := s.LaidThisTurn
+	var meldIDForUndo string
+	var meldWasNew bool
+	var priorMeldCards []string
+	if target != "" {
+		_, m := s.findMeld(target)
+		meldIDForUndo, priorMeldCards = m.ID, append([]string(nil), m.Cards...)
+	} else if existing := t.openGroup(r, rank); existing != nil {
+		meldIDForUndo, priorMeldCards = existing.ID, append([]string(nil), existing.Cards...)
+	} else {
+		// The id is read back from the meld once it exists rather than predicted
+		// here: a side's *second* group of a rank is not `t0-K` (see newMeldID),
+		// so guessing it would leave the undo pointing at the wrong meld.
+		meldWasNew = true
 	}
 
 	// Committed from here. Melded cards leave the hand, the top card joins
@@ -441,14 +582,17 @@ func applyTakePile(s *GameState, playerID string, a module.Action) ([]module.Eve
 	if target != "" {
 		_, m := s.findMeld(target)
 		m.Cards = append(m.Cards, top)
-	} else if existing := t.meld(rank); existing != nil {
+	} else if existing := t.openGroup(r, rank); existing != nil {
 		existing.Cards = append(existing.Cards, meldCards...)
 	} else {
 		t.Melds = append(t.Melds, Meld{
-			ID: meldID(t.ID, rank), TeamID: t.ID, Rank: rank, Cards: meldCards,
+			ID: t.newMeldID(meldSet, rank), TeamID: t.ID,
+			Kind: meldSet, Rank: rank, Cards: meldCards,
 		})
+		meldIDForUndo = t.Melds[len(t.Melds)-1].ID
 	}
 
+	var redThreesGained []string
 	rest := s.DiscardPile[:len(s.DiscardPile)-1]
 	for _, c := range rest {
 		// The only red three that can be buried here is the deal's opening
@@ -456,6 +600,7 @@ func applyTakePile(s *GameState, playerID string, a module.Action) ([]module.Eve
 		// there is no draw to replace.
 		if isRedThree(c) {
 			t.RedThrees = append(t.RedThrees, c)
+			redThreesGained = append(redThreesGained, c)
 			continue
 		}
 		s.Hands[playerID] = append(s.Hands[playerID], c)
@@ -468,14 +613,188 @@ func applyTakePile(s *GameState, playerID string, a module.Action) ([]module.Eve
 	s.LaidThisTurn += laidValue
 	noteInitialMeld(s, t)
 
+	s.PileTaken = &PileTaken{
+		Pile:              pileSnapshot,
+		PriorHand:         priorHand,
+		MeldID:            meldIDForUndo,
+		MeldWasNew:        meldWasNew,
+		PriorCards:        priorMeldCards,
+		RedThreesGained:   redThreesGained,
+		PriorHasMelded:    priorHasMelded,
+		PriorLaidThisTurn: priorLaidThisTurn,
+		PriorFrozen:       priorFrozen,
+	}
+
 	return []module.Event{{Type: "pile_taken", Data: map[string]any{
 		"playerId": playerID, "cards": len(rest) + 1, "top": top,
+	}}}, nil
+}
+
+// --- taking the top card onto a sequence ------------------------------------
+
+// topCardRuns lists the sequences on this side's table that the top card of the
+// discard pile would continue.
+//
+// Samba's second way into the pile, and a genuinely different move from taking
+// it: one card comes off, the pile stays where it is, and it replaces the draw
+// rather than following it. Only where the variation has sequences at all.
+func topCardRuns(s *GameState, playerID string) []string {
+	r := s.rules()
+	if !r.Sequences {
+		return nil
+	}
+	top := s.top()
+	if top == "" || isWild(top) {
+		return nil
+	}
+	// A black three on top blocks the pile, and neither three nor wild can be
+	// in a sequence anyway — the index lookup is what says so.
+	idx, ok := runIndexOf(top)
+	if !ok {
+		return nil
+	}
+	t := s.team(playerID)
+	if t == nil {
+		return nil
+	}
+
+	var out []string
+	for i := range t.Melds {
+		m := &t.Melds[i]
+		if m.kind() != meldRun || m.Suit != suitOf(top) || m.closed(r) {
+			continue
+		}
+		low, high := runSpan(m.Cards)
+		if idx == low-1 || idx == high+1 {
+			out = append(out, m.ID)
+		}
+	}
+	return out
+}
+
+func applyTakeTop(s *GameState, playerID string, a module.Action) ([]module.Event, error) {
+	r := s.rules()
+	if !r.Sequences {
+		return nil, module.Error{Code: ErrUnknownAction, Message: VerbTakeTop}
+	}
+	if s.Phase != phaseDraw {
+		return nil, errCode(ErrWrongPhase)
+	}
+	if len(s.DiscardPile) == 0 {
+		return nil, errCode(ErrPileEmpty)
+	}
+
+	t := s.team(playerID)
+	owner, m := s.findMeld(a.Target)
+	if m == nil {
+		return nil, errCode(ErrNoSuchMeld)
+	}
+	if owner.ID != t.ID {
+		return nil, errCode(ErrNotYourMeld)
+	}
+	if m.kind() != meldRun {
+		return nil, errCode(ErrWrongRank)
+	}
+	if m.closed(r) {
+		return nil, errCode(ErrMeldClosed)
+	}
+
+	top := s.top()
+	grown := sortRun(append(append([]string(nil), m.Cards...), top))
+	if err := validateRun(r, grown); err != nil {
+		return nil, err
+	}
+
+	// This is the one move that takes a card without putting one in the hand —
+	// it replaces the draw rather than following it. So a player holding a
+	// single card could take it and then have no way to end the turn: the
+	// discard would be their last card, which is going out, which their side
+	// may not be able to do. Refused here rather than discovered at the discard,
+	// because by then there is no way back.
+	if err := checkLeavesPlayable(s, t, s.Hands[playerID]); err != nil {
+		return nil, err
+	}
+
+	// No initial-meld check: this takes nothing out of the hand and only adds
+	// to what is on the table, so it cannot make a floor unreachable — which is
+	// the dead end checkInitialMeld exists to prevent.
+	s.DiscardPile = s.DiscardPile[:len(s.DiscardPile)-1]
+	m.Cards = grown
+	s.Phase = phaseMeld
+	s.LaidThisTurn += cardValue(top)
+	noteInitialMeld(s, t)
+
+	return []module.Event{{Type: "top_card_taken", Data: map[string]any{
+		"playerId": playerID, "card": top, "meldId": m.ID,
+	}}}, nil
+}
+
+// buildsTheTable is the five verbs that put cards on the table this turn or
+// take them off again, and so leave the turn's undo window standing. Every
+// other verb — drawing, capturing, discarding, readying between deals — closes
+// it, because after one of those there is no longer a turn to take apart.
+func buildsTheTable(verb string) bool {
+	switch verb {
+	case VerbLayMeld, VerbUndoLayMeld, VerbLayOff, VerbUndoLayOff, VerbUndoTakePile:
+		return true
+	}
+	return false
+}
+
+// applyUndoTakePile reverses the current turn's pile capture — see PileTaken
+// for why it is undoable at all, and how narrowly it is scoped.
+//
+// Last out, first in: the capture is the first thing a turn does, so taking it
+// back is the last step of unwinding one. Everything laid since has to come off
+// first, which is what the two stacks below check. That is not a convenience —
+// PileTaken restores the hand it snapshotted verbatim, so a meld still standing
+// from after the capture would have its cards dealt back into the hand as well
+// as left on the table.
+func applyUndoTakePile(s *GameState, playerID string) ([]module.Event, error) {
+	pt := s.PileTaken
+	if pt == nil {
+		return nil, errCode(ErrNothingToUndo)
+	}
+	if len(s.MeldsLaid) > 0 || len(s.LaidOff) > 0 {
+		return nil, errCode(ErrUndoMeldsFirst)
+	}
+	t := s.team(playerID)
+	m := t.meldByID(pt.MeldID)
+	if m == nil {
+		return nil, errCode(ErrNothingToUndo)
+	}
+	if !pt.MeldWasNew && len(m.Cards) <= len(pt.PriorCards) {
+		return nil, errCode(ErrNothingToUndo)
+	}
+
+	if pt.MeldWasNew {
+		t.Melds = t.Melds[:len(t.Melds)-1] // appended last by applyTakePile; nothing since has touched it
+	} else {
+		m.Cards = append([]string(nil), pt.PriorCards...)
+	}
+
+	s.Hands[playerID] = append([]string(nil), pt.PriorHand...)
+	if len(pt.RedThreesGained) > 0 {
+		t.RedThrees, _ = removeCards(t.RedThrees, pt.RedThreesGained)
+	}
+
+	s.DiscardPile = append([]string(nil), pt.Pile...)
+	s.Frozen = pt.PriorFrozen
+	s.TookPileThisTurn = false
+	s.Phase = phaseDraw
+	s.LaidThisTurn = pt.PriorLaidThisTurn
+	t.HasMelded = pt.PriorHasMelded
+	s.PileTaken = nil
+
+	return []module.Event{{Type: "take_pile_undone", Data: map[string]any{
+		"playerId": playerID,
 	}}}, nil
 }
 
 // --- melding ---------------------------------------------------------------
 
 func applyLayMeld(s *GameState, playerID string, a module.Action) ([]module.Event, error) {
+	r := s.rules()
 	if s.Phase != phaseMeld {
 		return nil, errCode(ErrWrongPhase)
 	}
@@ -484,25 +803,49 @@ func applyLayMeld(s *GameState, playerID string, a module.Action) ([]module.Even
 	}
 	t := s.team(playerID)
 
-	// Black threes are the one meld that is not about points: they may only
-	// go down as the move that empties a hand.
+	// Black threes are the one meld that is not about points: where a variation
+	// allows them at all they may only go down as part of going out — the move
+	// that empties a hand, or the one that leaves just the card to discard.
 	blackThrees := len(a.Cards) > 0 && isBlackThree(a.Cards[0])
 	if blackThrees {
-		if err := validateBlackThreeMeld(a.Cards); err != nil {
+		// Modern American never lets one reach the table, so the refusal is the
+		// blanket one an ordinary three already gets rather than the narrower
+		// "not like this" below.
+		if !r.BlackThreeMeld {
+			return nil, errCode(ErrCannotMeldThree)
+		}
+		if err := validateBlackThreeMeld(r, a.Cards); err != nil {
 			return nil, err
 		}
 		rest, _ := removeCards(s.Hands[playerID], a.Cards)
-		if len(rest) > 0 || !canGoOut(s, t) {
-			return nil, errCode(ErrCannotMeldThree)
+		// Two different refusals, because they send the player two different
+		// places: a hand with cards to spare is the wrong *move*, while a side
+		// short of its canastas is the wrong *time*, and the second is the one
+		// the going-out rule already has words for.
+		if !canGoOut(s, t) {
+			return nil, errCode(ErrCannotGoOutYet)
+		}
+		// One card left is still going out: it is the discard that ends the
+		// deal, and the side already has its canastas, so nothing can stop it.
+		// Demanding an empty hand refused "three black threes and a card to
+		// close with", the commonest shape of this move.
+		if len(rest) > 1 {
+			return nil, errCode(ErrBlackThreeGoOutOnly)
 		}
 	} else {
-		if err := validateMeld(a.Cards); err != nil {
+		if err := validateMeld(r, a.Cards); err != nil {
 			return nil, err
 		}
 	}
 
 	rank, _ := meldRank(a.Cards)
-	if t.meld(rank) != nil {
+	kind := meldSet
+	if !blackThrees {
+		kind = meldKindOf(r, a.Cards)
+	}
+	// A cap on groups of a rank is Canasta's; Samba keeps them separate instead.
+	// Sequences have no such cap in either — two runs in one suit are two melds.
+	if kind == meldSet && t.rankIsFull(r, rank) {
 		return nil, errCode(ErrRankAlreadyMelded)
 	}
 
@@ -515,23 +858,41 @@ func applyLayMeld(s *GameState, playerID string, a module.Action) ([]module.Even
 		}
 	}
 
+	laid := Meld{
+		ID: t.newMeldID(kind, rank), TeamID: t.ID, Kind: kind, Rank: rank,
+		Cards: append([]string(nil), a.Cards...),
+	}
+	if kind == meldRun {
+		laid.Rank = ""
+		laid.Suit = suitOf(a.Cards[0])
+		laid.Cards = sortRun(laid.Cards)
+	}
 	// Provisionally place it, so "can this partnership go out now" is asked of
 	// the table as it will actually be — a meld that completes a canasta is
 	// what licenses going out on the same action.
-	t.Melds = append(t.Melds, Meld{
-		ID: meldID(t.ID, rank), TeamID: t.ID, Rank: rank, Cards: append([]string(nil), a.Cards...),
-	})
+	t.Melds = append(t.Melds, laid)
 	if err := checkLeavesPlayable(s, t, rest); err != nil {
 		t.Melds = t.Melds[:len(t.Melds)-1]
 		return nil, err
 	}
 
+	// Snapshot before the state moves, so the entry describes the table this
+	// meld arrived at rather than the one it made.
+	undo := MeldLaid{
+		MeldID:            laid.ID,
+		Cards:             append([]string(nil), laid.Cards...),
+		PriorHand:         append([]string(nil), s.Hands[playerID]...),
+		PriorLaidThisTurn: s.LaidThisTurn,
+		PriorHasMelded:    t.HasMelded,
+	}
+
 	s.Hands[playerID] = rest
 	s.LaidThisTurn += value
 	noteInitialMeld(s, t)
+	s.MeldsLaid = append(s.MeldsLaid, undo)
 
 	events := []module.Event{{Type: "meld_laid", Data: map[string]any{
-		"playerId": playerID, "meldId": meldID(t.ID, rank), "cards": a.Cards,
+		"playerId": playerID, "meldId": laid.ID, "cards": a.Cards,
 	}}}
 	if len(rest) == 0 {
 		return append(events, endDeal(s, playerID, wasConcealed(s), false)...), nil
@@ -540,11 +901,15 @@ func applyLayMeld(s *GameState, playerID string, a module.Action) ([]module.Even
 }
 
 func applyLayOff(s *GameState, playerID string, a module.Action) ([]module.Event, error) {
+	r := s.rules()
 	if s.Phase != phaseMeld {
 		return nil, errCode(ErrWrongPhase)
 	}
 	if len(a.Cards) == 0 {
-		return nil, errCode(ErrMeldTooSmall)
+		// Not MELD_TOO_SMALL: nothing is being melded, and that sentence is
+		// what a player read under Lay off when the offer list asked about a
+		// meld none of their cards could go on.
+		return nil, errCode(ErrNothingFitsHere)
 	}
 	if !hasCards(s.Hands[playerID], a.Cards) {
 		return nil, errCode(ErrCardNotInHand)
@@ -566,16 +931,36 @@ func applyLayOff(s *GameState, playerID string, a module.Action) ([]module.Event
 	if owner.ID != t.ID {
 		return nil, errCode(ErrNotYourMeld)
 	}
-	if m.closed() {
+	if m.closed(r) {
 		return nil, errCode(ErrMeldClosed)
 	}
-	for _, c := range a.Cards {
-		if !isWild(c) && rankOf(c) != m.Rank {
-			return nil, errCode(ErrWrongRank)
+	// What "fits" means depends on the kind. A group takes its own rank and
+	// wilds; a sequence takes the cards that continue it, in its suit, and no
+	// wild ever. Saying WRONG_RANK to somebody offering the nine of hearts to a
+	// heart run would send them to fix a rank that is not the problem.
+	if m.kind() == meldRun {
+		for _, c := range a.Cards {
+			if isWild(c) {
+				return nil, errCode(ErrSequenceNoWilds)
+			}
+			if suitOf(c) != m.Suit {
+				return nil, errCode(ErrSequenceNeedsOneSuit)
+			}
+		}
+	} else {
+		for _, c := range a.Cards {
+			if !isWild(c) && rankOf(c) != m.Rank {
+				return nil, errCode(ErrWrongRank)
+			}
 		}
 	}
 	grown := append(append([]string(nil), m.Cards...), a.Cards...)
-	if err := validateMeld(grown); err != nil {
+	if m.kind() == meldRun {
+		grown = sortRun(grown)
+		if err := validateRun(r, grown); err != nil {
+			return nil, err
+		}
+	} else if err := validateMeld(r, grown); err != nil {
 		return nil, err
 	}
 
@@ -592,6 +977,17 @@ func applyLayOff(s *GameState, playerID string, a module.Action) ([]module.Event
 		return nil, err
 	}
 
+	// Pushed before the hand moves, so what it holds is the table as it stood
+	// rather than as it is about to be — see LaidOff.
+	s.LaidOff = append(s.LaidOff, LaidOff{
+		MeldID:            m.ID,
+		PriorCards:        append([]string(nil), before...),
+		Cards:             append([]string(nil), a.Cards...),
+		PriorHand:         append([]string(nil), s.Hands[playerID]...),
+		PriorLaidThisTurn: s.LaidThisTurn,
+		PriorHasMelded:    t.HasMelded,
+	})
+
 	s.Hands[playerID] = rest
 	s.LaidThisTurn += value
 	noteInitialMeld(s, t)
@@ -605,6 +1001,90 @@ func applyLayOff(s *GameState, playerID string, a module.Action) ([]module.Event
 	return events, nil
 }
 
+// applyUndoLayOff takes back the most recent lay-off still standing — see
+// LaidOff for why the window is exactly this narrow, and why it is a stack.
+//
+// Nothing here can strand anybody: an undo only ever puts cards back into a
+// hand, so the hand grows and checkLeavesPlayable's "keep one to discard" can
+// only become easier to satisfy. What it does take away is a canasta the
+// lay-off completed — and that matters only at the discard, which asks
+// canGoOut for itself.
+func applyUndoLayOff(s *GameState, playerID string) ([]module.Event, error) {
+	if len(s.LaidOff) == 0 {
+		return nil, errCode(ErrNothingToUndo)
+	}
+	lo := s.LaidOff[len(s.LaidOff)-1]
+
+	t := s.team(playerID)
+	m := t.meldByID(lo.MeldID)
+	if m == nil {
+		return nil, errCode(ErrNothingToUndo)
+	}
+	// The stack is unwound last-first, so this entry's cards are still the top
+	// of the meld and nothing has been laid on them. A meld that is not the
+	// size this entry left it is one somebody built on, and putting it back
+	// would throw their cards away — refuse instead, and let the turn stand.
+	if len(m.Cards) != len(lo.PriorCards)+len(lo.Cards) {
+		return nil, errCode(ErrNothingToUndo)
+	}
+
+	m.Cards = append([]string(nil), lo.PriorCards...)
+	s.Hands[playerID] = append([]string(nil), lo.PriorHand...)
+	s.LaidThisTurn = lo.PriorLaidThisTurn
+	t.HasMelded = lo.PriorHasMelded
+	s.LaidOff = s.LaidOff[:len(s.LaidOff)-1]
+
+	return []module.Event{{Type: "lay_off_undone", Data: map[string]any{
+		"playerId": playerID, "meldId": lo.MeldID, "cards": lo.Cards,
+	}}}, nil
+}
+
+// applyUndoLayMeld takes back the most recent meld laid this turn — see
+// MeldLaid for why this module needs it at all, and why the window is exactly
+// this narrow.
+//
+// Nothing here can strand anybody, for applyUndoLayOff's reason: an undo only
+// ever puts cards back into a hand, so checkLeavesPlayable's "keep one to
+// discard" can only get easier to satisfy. What it does take away is a canasta
+// this meld completed, and an opening it paid for — HasMelded comes back off
+// with it, which is the point. Both matter only at the discard, which asks
+// canGoOut and checkInitialMeld for itself.
+func applyUndoLayMeld(s *GameState, playerID string) ([]module.Event, error) {
+	if len(s.MeldsLaid) == 0 {
+		return nil, errCode(ErrNothingToUndo)
+	}
+	ml := s.MeldsLaid[len(s.MeldsLaid)-1]
+
+	t := s.team(playerID)
+	m := t.meldByID(ml.MeldID)
+	if m == nil {
+		return nil, errCode(ErrNothingToUndo)
+	}
+	// A meld that is not the size this entry left it is one somebody laid off
+	// onto, and taking it off the table would throw their card away. Refuse,
+	// and let them undo the lay-off first — that offer is standing too, and the
+	// stacks unwind in the order the cards arrived.
+	if len(m.Cards) != len(ml.Cards) {
+		return nil, errCode(ErrNothingToUndo)
+	}
+	// Removed by truncation, so it has to still be the last meld the side has:
+	// the stack is unwound newest-first, and applyTakePile is the only other
+	// thing that appends to Melds — it drops this stack when it runs.
+	if t.Melds[len(t.Melds)-1].ID != ml.MeldID {
+		return nil, errCode(ErrNothingToUndo)
+	}
+
+	t.Melds = t.Melds[:len(t.Melds)-1]
+	s.Hands[playerID] = append([]string(nil), ml.PriorHand...)
+	s.LaidThisTurn = ml.PriorLaidThisTurn
+	t.HasMelded = ml.PriorHasMelded
+	s.MeldsLaid = s.MeldsLaid[:len(s.MeldsLaid)-1]
+
+	return []module.Event{{Type: "meld_undone", Data: map[string]any{
+		"playerId": playerID, "meldId": ml.MeldID, "cards": ml.Cards,
+	}}}, nil
+}
+
 // checkInitialMeld enforces the opening minimum without creating a dead end.
 //
 // The minimum is a property of a whole turn, so a partnership may reach it with
@@ -612,14 +1092,15 @@ func applyLayOff(s *GameState, playerID string, a module.Action) ([]module.Event
 // allowed is a lay that puts the minimum out of reach, because there is no way
 // to take cards back off the table. See meld.go's reachableValue.
 func checkInitialMeld(s *GameState, t *Team, value int, rest []string) error {
+	r := s.rules()
 	if t.HasMelded {
 		return nil
 	}
 	laid := s.LaidThisTurn + value
-	if laid >= initialMeldMinimum(t.Score) {
+	if laid >= r.meldFloor(t.Score) {
 		return nil
 	}
-	if laid+reachableValue(rest, t) < initialMeldMinimum(t.Score) {
+	if laid+reachableValue(r, rest, t) < r.meldFloor(t.Score) {
 		return errCode(ErrInitialMeldNotMet)
 	}
 	return nil
@@ -628,7 +1109,8 @@ func checkInitialMeld(s *GameState, t *Team, value int, rest []string) error {
 // noteInitialMeld promotes a partnership the moment this turn's total clears
 // the floor.
 func noteInitialMeld(s *GameState, t *Team) {
-	if !t.HasMelded && s.LaidThisTurn >= initialMeldMinimum(t.Score) {
+	r := s.rules()
+	if !t.HasMelded && s.LaidThisTurn >= r.meldFloor(t.Score) {
 		t.HasMelded = true
 	}
 }
@@ -721,7 +1203,9 @@ func advanceTurn(s *GameState) []module.Event {
 	s.TookPileThisTurn = false
 	s.MeldsAtTurnStart = len(s.team(next).Melds) > 0
 
-	if len(s.DrawPile) == 0 && len(pileTakeOptions(s, next)) == 0 {
+	// Taking the top card onto a sequence is also a move, so a stock of nothing
+	// is only a dead deal when that is unavailable too.
+	if len(s.DrawPile) == 0 && len(pileTakeOptions(s, next)) == 0 && len(topCardRuns(s, next)) == 0 {
 		return endDeal(s, "", false, true)
 	}
 	return nil
@@ -731,6 +1215,15 @@ func advanceTurn(s *GameState) []module.Event {
 
 // endDeal scores the deal and either deals the next one or ends the match.
 func endDeal(s *GameState, wentOut string, concealed bool, exhausted bool) []module.Event {
+	// A deal ends in the middle of somebody's turn — going out is a lay-off or
+	// a meld, not a discard — so the turn's take-backs are closed here rather
+	// than left for the next action to clear. A settled deal is not a thing to
+	// undo your way back into, and during a pause between deals there is nobody
+	// on turn to be offered it.
+	s.LaidOff = nil
+	s.PileTaken = nil
+	s.MeldsLaid = nil
+
 	res := scoreDeal(s, wentOut, concealed, exhausted)
 	s.LastDeal = &res
 	s.Deals = append(s.Deals, res)

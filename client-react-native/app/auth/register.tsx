@@ -5,6 +5,7 @@ import { Pressable, Text, TextInput } from 'react-native';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { shared } from '@/src/theme';
+import { t } from '@/src/lib/i18n';
 
 export default function RegisterScreen() {
   const { register } = useSession();
@@ -21,17 +22,17 @@ export default function RegisterScreen() {
       await register(username.trim(), password, email.trim() || undefined);
       router.replace('/');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Registration failed');
+      setError(e instanceof Error ? e.message : t('error.register'));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <Screen title="Create account" scroll>
+    <Screen title={t('auth.register.title')} scroll>
       <TextInput
         style={shared.input}
-        placeholder="Username"
+        placeholder={t('auth.register.username')}
         placeholderTextColor="#8b9cb3"
         autoCapitalize="none"
         value={username}
@@ -39,7 +40,7 @@ export default function RegisterScreen() {
       />
       <TextInput
         style={shared.input}
-        placeholder="Email (optional)"
+        placeholder={t('auth.register.email')}
         placeholderTextColor="#8b9cb3"
         autoCapitalize="none"
         keyboardType="email-address"
@@ -48,7 +49,7 @@ export default function RegisterScreen() {
       />
       <TextInput
         style={shared.input}
-        placeholder="Password"
+        placeholder={t('auth.register.password')}
         placeholderTextColor="#8b9cb3"
         secureTextEntry
         value={password}

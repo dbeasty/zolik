@@ -10,6 +10,7 @@ import { useAvatarControls } from '@/src/hooks/useAvatar';
 import { useLocale } from '@/src/hooks/useLocale';
 import { useSkinControls } from '@/src/hooks/useSkin';
 import { t } from '@/src/lib/i18n';
+import { NotificationSettings } from '@/src/notify/NotificationSettings';
 import { colors, shared } from '@/src/theme';
 
 /**
@@ -42,6 +43,14 @@ export default function SettingsScreen() {
 
   return (
     <Screen title={t('settings.title')} subtitle={t('settings.subtitle')} scroll>
+      <Text style={shared.status}>
+        {!session
+          ? t('settings.notSignedIn')
+          : signedIn
+            ? t('settings.signedInAs', { username: session.username })
+            : t('settings.playingAsGuest', { username: session.username })}
+      </Text>
+
       <View style={shared.card}>
         <Text style={styles.heading}>{t('settings.face.heading')}</Text>
         <Text style={shared.status}>
@@ -88,6 +97,9 @@ export default function SettingsScreen() {
         <Text style={shared.status}>{t('settings.language.status')}</Text>
         <LanguagePicker />
       </View>
+
+      {/* Who may tell this player about a table, and how. */}
+      <NotificationSettings />
 
       {/* Where a player goes looking for the notices once the sign-in screen
           that first showed them is behind them. */}

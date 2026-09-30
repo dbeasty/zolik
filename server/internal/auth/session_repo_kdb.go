@@ -66,6 +66,19 @@ func (r *kdbSessionRepository) FindByToken(ctx context.Context, token string) (m
 }
 
 func (r *kdbSessionRepository) SetGuestID(ctx context.Context, token, guestID string) error {
+	return r.update(token, func(s *models.Session) { s.GuestID = guestID })
+}
+
+func (r *kdbSessionRepository) Retire(ctx context.Context, token, replacedBy string, until time.Time) error {
+	return r.update(token, func(s *models.Session) {
+		s.ReplacedBy = replacedBy
+		s.ExpiresAt = until
+	})
+}
+
+// update rewrites one session in place; a missing session is not an error,
+// matching Mongo's UpdateOne.
+func (r *kdbSessionRepository) update(token string, change func(*models.Session)) error {
 	return r.k.Update(db.NSSessions, func(tx *db.Tx) error {
 		doc, err := tx.Get(token)
 		if err != nil {
@@ -80,7 +93,7 @@ func (r *kdbSessionRepository) SetGuestID(ctx context.Context, token, guestID st
 		if err := db.UnmarshalDoc(doc, &s); err != nil {
 			return err
 		}
-		s.GuestID = guestID
+		change(&s)
 		next, err := db.MarshalDoc(s)
 		if err != nil {
 			return err

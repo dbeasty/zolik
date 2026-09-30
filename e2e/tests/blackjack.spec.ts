@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 
 /**
  * End-to-end for the Blackjack module.
@@ -98,8 +98,8 @@ async function startMatch(
   return { matchId, users, auth };
 }
 
-async function stateFor(request: Ctx, matchId: string, viewerId: string): Promise<MatchState> {
-  const res = await request.get(`${API_BASE}/matches/${matchId}?as=${encodeURIComponent(viewerId)}`);
+async function stateFor(request: Ctx, matchId: string, viewer: Viewer): Promise<MatchState> {
+  const res = await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer));
   expect(res.ok(), await res.text()).toBeTruthy();
   return res.json();
 }
@@ -143,7 +143,7 @@ test.describe('blackjack', () => {
     // The property that is new to the runtime: more than one seat awaited, and
     // the board saying so rather than a client working it out.
     for (const u of users) {
-      const state = await stateFor(request, matchId, u.userId);
+      const state = await stateFor(request, matchId, u);
       expect(state.moduleId).toBe('blackjack');
       expect(state.status).toBe('active');
       expect(state.legalActions.some((o) => o.enabled)).toBeTruthy();
@@ -153,7 +153,7 @@ test.describe('blackjack', () => {
     }
 
     // And the stake is a declared range, not a list of amounts.
-    const state = await stateFor(request, matchId, users[0].userId);
+    const state = await stateFor(request, matchId, users[0]);
     const bet = state.legalActions.find((o) => o.enabled && (o.params ?? []).length > 0);
     expect(bet, 'the opening offer should carry a numeric parameter').toBeTruthy();
     const spec = bet!.params![0];
@@ -171,15 +171,30 @@ test.describe('blackjack', () => {
     await placeBets(page, wsBase, matchId, users.map((u) => u.accessToken));
 
     for (const viewer of users) {
-      const state = await stateFor(request, matchId, viewer.userId);
+      const state = await stateFor(request, matchId, viewer);
 
       const dealer = state.view.zones.find((z) => z.id === 'dealer')!;
       expect(dealer, 'the dealer should be a zone nobody owns').toBeTruthy();
       expect(dealer.ownerId).toBeFalsy();
       // Two cards dealt, one of them shown: the count says there is another,
       // and the card itself is simply not sent.
+      //
+      // Unless the dealer was dealt a natural. Then the hand is over before
+      // anyone acts and both cards are turned up, as at a real table — a few
+      // percent of shuffles. That is the one reason the hole card may be seen,
+      // so it is the one reason accepted here: two cards shown must be an ace
+      // and a ten-value card.
       expect(dealer.count).toBe(2);
-      expect(dealer.cards ?? []).toHaveLength(1);
+      const shown = (dealer.cards ?? []).map((c) => c.card);
+      if (shown.length === 2) {
+        const ranks = shown.map((c) => c[0]).sort().join('');
+        expect(
+          ['AT', 'AJ', 'AQ', 'AK'],
+          `the hole card was sent (${shown.join(', ')}) without a dealer natural to reveal it`,
+        ).toContain(ranks);
+      } else {
+        expect(shown).toHaveLength(1);
+      }
 
       // Player cards are face up in this game, so every box shows its own.
       for (const u of users) {
@@ -339,7 +354,7 @@ test.describe('blackjack', () => {
 
     // The round table survived the trip through Mongo, and its arithmetic
     // still holds: every seat's running total is its deltas added up.
-    const persisted = await stateFor(request, matchId, users[0].userId);
+    const persisted = await stateFor(request, matchId, users[0]);
     expect(persisted.status).toBe('completed');
     const rounds = persisted.rounds?.rounds ?? [];
     expect(rounds.length).toBeGreaterThan(0);

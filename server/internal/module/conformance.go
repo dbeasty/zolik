@@ -42,6 +42,16 @@ type DriverOptions struct {
 	Prefer []string
 	// OnAction, if set, is called after each accepted action.
 	OnAction func(playerID string, a Action)
+	// OnState, if set, is called with the state after each accepted action.
+	//
+	// For the checks that are about what a match passes *through* rather than
+	// where it ends up: a badge is only on the board while the meld that earns
+	// it is, and the table is swept between deals, so the final state is the
+	// one place most of them cannot be seen.
+	OnState func(s State)
+	// OnEvents, if set, is called with the events of each accepted action and
+	// the states either side of it, for checks on what the runtime publishes.
+	OnEvents func(playerID string, events []Event, before, after State)
 }
 
 // PlayWithOffers drives a match to completion (or to MaxActions) using only
@@ -86,17 +96,23 @@ func PlayWithOffers(m GameModule, state State, players []PlayerRef, opts DriverO
 				step, actor, DescribeOffers(offers))
 		}
 
-		next, _, err := m.Apply(state, actor, a)
+		next, events, err := m.Apply(state, actor, a)
 		if err != nil {
 			return state, res, fmt.Errorf(
 				"step %d: %s was offered %+v but the engine refused it: %v\n%s",
 				step, actor, a, err, DescribeOffers(offers))
+		}
+		if opts.OnEvents != nil {
+			opts.OnEvents(actor, events, state, next)
 		}
 		state = next
 		res.Actions++
 		res.Verbs[a.Verb]++
 		if opts.OnAction != nil {
 			opts.OnAction(actor, a)
+		}
+		if opts.OnState != nil {
+			opts.OnState(state)
 		}
 	}
 
@@ -169,22 +185,47 @@ func viewerOf(players []PlayerRef) string {
 // with it, which is how a module gets a playable opponent the day it is
 // registered, with no AI of its own.
 func ChooseAction(offers []ActionOffer, prefer []string) (Action, bool) {
+	all := ChooseActions(offers, prefer)
+	if len(all) == 0 {
+		return Action{}, false
+	}
+	return all[0], true
+}
+
+// ChooseActions is every submission the offer list describes, in the order
+// ChooseAction would have picked them: preferred verbs first, then the rest in
+// offer order.
+//
+// The plural exists because a refusal is not always the offer list's fault. An
+// offer is built by probing the validator, so an enabled one is a move the
+// engine accepted a moment ago — but "a moment ago" is the whole gap: the probe
+// ran against a clone, and between the probe and the submission another seat's
+// action can land. A driver handed one answer has to give up on the first
+// refusal; a driver handed the list can try the next one, which is what a person
+// looking at the same greyed-out control would do.
+func ChooseActions(offers []ActionOffer, prefer []string) []Action {
+	out := make([]Action, 0, len(offers))
+	seen := make(map[int]bool, len(offers))
+	take := func(i int) {
+		if seen[i] {
+			return
+		}
+		seen[i] = true
+		if a, ok := SubmissionFor(offers[i]); ok {
+			out = append(out, a)
+		}
+	}
 	for _, verb := range prefer {
 		for i := range offers {
-			if offers[i].Verb != verb {
-				continue
-			}
-			if a, ok := SubmissionFor(offers[i]); ok {
-				return a, true
+			if offers[i].Verb == verb {
+				take(i)
 			}
 		}
 	}
 	for i := range offers {
-		if a, ok := SubmissionFor(offers[i]); ok {
-			return a, true
-		}
+		take(i)
 	}
-	return Action{}, false
+	return out
 }
 
 // SubmissionFor builds the concrete action an offer describes, using only what
@@ -209,16 +250,22 @@ func SubmissionFor(o ActionOffer) (Action, bool) {
 	}
 	a := Action{OfferID: o.ID, Verb: o.Verb}
 
-	// If the offer wants cards, take as many as it says it needs, from the
-	// front of the list it says it will accept.
+	// An offer that names its combination outright is sent as named — see
+	// Selector.Submit. That is the module's own answer to "which of the legal
+	// submissions", and it exists because the minimum is not always the best
+	// one: Canasta lays all four queens, while a player may lay three.
 	//
-	// As many, not one: an offer that ships a concrete combination — Canasta's
-	// melds, where a candidate is n cards of a single rank — declares MinCards
-	// equal to that combination's size and orders the list so the prefix is the
+	// Otherwise, take as many cards as the offer says it needs, from the front
+	// of the list it says it will accept. As many, not one: an offer that ships
+	// a concrete combination and does not name it declares MinCards equal to
+	// that combination's size and orders the list so the prefix is the
 	// combination. Sending only the first card would submit an illegal fragment
 	// of a legal move. Modules whose offers take a single card set MinCards to
 	// 1 and are unaffected.
-	if o.Source != nil && o.Source.MinCards > 0 {
+	switch {
+	case o.Source != nil && len(o.Source.Submit) > 0:
+		a.Cards = append([]string(nil), o.Source.Submit...)
+	case o.Source != nil && o.Source.MinCards > 0:
 		if len(o.Source.Cards) < o.Source.MinCards {
 			return Action{}, false
 		}

@@ -1,4 +1,5 @@
-import type { ActionOffer, Fact, Placement } from '@/src/api/matchTypes';
+import type { ActionOffer, Fact, Placement, Zone } from '@/src/api/matchTypes';
+import { isOneTap } from '@/src/api/matchTypes';
 
 /**
  * Where the cards in your hand may be dropped, worked out from the offers.
@@ -36,6 +37,11 @@ export type DropSpot = {
   ready: boolean;
   /** Legal placement positions for the dragged card, in rendered order. */
   positions?: string[];
+  /**
+   * Where each of `positions` sits among the target group's cards — see
+   * `Placement.slots`. Same length and order, and absent together with it.
+   */
+  slots?: number[];
   /**
    * Why letting go here would be refused. Undefined when it would be taken.
    *
@@ -118,12 +124,20 @@ export function fits(offer: ActionOffer, cards: string[]): Fit {
   // the list off is not deriving a rule — this side still has no idea why
   // those two cards belong together, only that the module said they do.
   //
-  // Membership, not a multiset: `requires` names a rank and a suit, and either
-  // copy of a duplicate in a two-deck game satisfies it.
+  // A card may have more than one company that works, and then the offer says
+  // so too: `alternatives` holds the other sets, and any one of them held in
+  // full is enough. That is what lets a player spend a joker on a gap their
+  // hand could also fill naturally — before it, `requires` named the natural
+  // card and the joker-and-card pair the player dragged was refused, leaving
+  // them to lay the two cards one at a time.
+  //
+  // Membership, not a multiset: a companion names a rank and a suit, and
+  // either copy of a duplicate in a two-deck game satisfies it.
   const picked = new Set(cards);
   for (const p of placements) {
     if (!picked.has(p.card) || !p.requires?.length) continue;
-    if (!p.requires.every((r) => picked.has(r))) {
+    const ways = [p.requires, ...(p.alternatives ?? [])];
+    if (!ways.some((way) => way.every((r) => picked.has(r)))) {
       return { ok: false, labelKey: 'sel.needsCompany' };
     }
   }
@@ -189,20 +203,30 @@ export function dropSpotsFor(offers: ActionOffer[], cards: string[]): DropSpot[]
 
     const placements = placementsOf(offer);
     const spot: DropSpot = { offerId: offer.id, elementId, ready: cards.length >= need };
-    const positions = positionsForSelection(placements, cards);
-    if (positions.length) spot.positions = positions;
+    const placed = placementForSelection(placements, cards);
+    if (placed?.positions?.length) {
+      spot.positions = placed.positions;
+      // Only when the module gave one per position. A half-filled list would
+      // be worse than none: the board would draw the gap in the wrong place
+      // for the positions it did not cover.
+      if (placed.slots?.length === placed.positions.length) spot.slots = placed.slots;
+    }
     spots.push(spot);
   }
   return spots;
 }
 
 /**
- * Which ends of the target this exact selection may be let go on.
+ * The placement this exact selection *is* — which is what says which ends of
+ * the target it may be let go on, and whereabouts in it each end sits.
  *
  * A placement's `positions` describe *its own* submission: for an ordinary
  * card that is the card by itself, and for one with `requires` it is that card
- * together with the cards it names. So the hint for a selection is the hint of
- * the placement whose submission the selection *is* — nothing else composes.
+ * together with the cards it names — or with any of its `alternatives`, which
+ * reach across the same gap and so grow the same end (the server sweeps that,
+ * in TestLayOffPlacements_EveryCompanionGrowsTheSameEnd). So the hint for a
+ * selection is the hint of the placement whose submission the selection *is* —
+ * nothing else composes.
  *
  * Two cards that each separately could extend either end do not between them
  * make a submission that extends either end, which is why intersecting the
@@ -210,16 +234,18 @@ export function dropSpotsFor(offers: ActionOffer[], cards: string[]): DropSpot[]
  * Saying nothing is what the module already does when a submission grows a run
  * at both ends, and the server treats an absent position as "no constraint".
  */
-function positionsForSelection(placements: Placement[], cards: string[]): string[] {
+function placementForSelection(placements: Placement[], cards: string[]): Placement | undefined {
   const picked = new Set(cards);
-  if (picked.size !== cards.length) return []; // a duplicate names no one card
+  if (picked.size !== cards.length) return undefined; // a duplicate names no one card
   for (const p of placements) {
     if (!picked.has(p.card) || !p.positions?.length) continue;
-    const submission = new Set([p.card, ...(p.requires ?? [])]);
-    if (submission.size !== picked.size) continue;
-    if ([...picked].every((c) => submission.has(c))) return p.positions;
+    for (const way of [p.requires ?? [], ...(p.alternatives ?? [])]) {
+      const submission = new Set([p.card, ...way]);
+      if (submission.size !== picked.size) continue;
+      if ([...picked].every((c) => submission.has(c))) return p;
+    }
   }
-  return [];
+  return undefined;
 }
 
 /**
@@ -273,6 +299,27 @@ export function positionAt(
 }
 
 /**
+ * Whether these cards are a submission this offer could be sent with *right
+ * now* — `fits` plus the count `fits` deliberately leaves out.
+ *
+ * The two were always meant to be asked together wherever a press is about to
+ * happen (see `fits`), and for a long time only the drag path asked the second
+ * one. A control that asked `fits` alone stayed lit over a selection still
+ * short of `minCards`, and the press then died in silence: `submissionFor`
+ * refuses a submission under the offer's own floor, so nothing was sent,
+ * nothing was refused, and nothing on screen said why. The way that was found
+ * is the worst case of it — an offer whose floor is six cards, where picking
+ * any one of them left a button that looked ready and did nothing at all.
+ */
+export function readyWith(offer: ActionOffer, cards: string[]): Fit {
+  const fit = fits(offer, cards);
+  if (!fit.ok) return fit;
+  const need = offer.source?.minCards ?? 0;
+  if (cards.length < need) return { ok: false, labelKey: 'sel.needMore', params: { n: need } };
+  return { ok: true };
+}
+
+/**
  * Whether some enabled offer that actually takes cards is ready to send
  * these right now — not merely compatible with them eventually, which a
  * fresh meld-in-progress always is (`fits` has no opinion on a selection
@@ -288,8 +335,60 @@ export function positionAt(
  * the first pick around).
  */
 export function someOfferReady(offers: ActionOffer[], cards: string[]): boolean {
-  return offers.some((o) => {
-    const need = o.source?.minCards ?? 0;
-    return o.enabled && need > 0 && cards.length >= need && fits(o, cards).ok;
-  });
+  return offers.some((o) => o.enabled && (o.source?.minCards ?? 0) > 0 && readyWith(o, cards).ok);
+}
+
+/**
+ * The piles a press acts *from* — the other half of "a card in hand is a card
+ * looking for somewhere to go".
+ *
+ * Everything else in this file answers "where may these cards be let go of",
+ * which is a question about an offer's *target*. A draw has no cards to let go
+ * of and nothing to choose: its whole move is "take from there", and the only
+ * thing on screen that says so is the pile it names as its source. Until this
+ * existed the deck was scenery — the one way to draw was a button in the
+ * control bar, several rows from the cards it deals into, and tapping the deck
+ * itself did nothing at all.
+ *
+ * Still no rule is derived here. An offer qualifies when the server has said
+ * all four of these things about it:
+ *
+ *   - it is enabled, and one tap sends it (nothing to compose, no form);
+ *   - it takes no cards from a hand, so there is nothing to have picked first;
+ *   - it names a rendered zone it comes *from*, drawn as a pile or a stack —
+ *     the two kinds a person can point at and mean "that one";
+ *   - it lands in the viewer's own hand, which is what makes it a draw rather
+ *     than some other card-less move that happens to mention a pile (Canasta's
+ *     undo of a capture names the discard pile too, and undoing is not what a
+ *     player tapping the pile means).
+ *
+ * Where two such offers name the same pile, neither is offered: a press has
+ * exactly one meaning, and guessing which of two moves was meant is the
+ * mistake this whole protocol exists to avoid. The control bar still lists
+ * both, named, which is the right place for a choice.
+ */
+export function sourceSpotsFor(offers: ActionOffer[], zones: Zone[], viewerId: string): DropSpot[] {
+  const byId = new Map(zones.map((z) => [z.id, z]));
+
+  const claims = new Map<string, DropSpot[]>();
+  for (const offer of offers) {
+    if (!offer.enabled) continue;
+    // Cards to pick first: that is a selection, and the target end of this
+    // file already handles it.
+    if ((offer.source?.minCards ?? 0) > 0) continue;
+    // A combination to compose or a number to fill in — not a press.
+    if (!isOneTap(offer)) continue;
+
+    const fromId = offer.source?.zoneId;
+    const from = fromId ? byId.get(fromId) : undefined;
+    if (!from || (from.kind !== 'pile' && from.kind !== 'stack')) continue;
+
+    const to = offer.target?.zoneId ? byId.get(offer.target.zoneId) : undefined;
+    if (!to || to.kind !== 'hand' || to.ownerId !== viewerId) continue;
+
+    const spot: DropSpot = { offerId: offer.id, elementId: zoneElementId(from.id), ready: true };
+    claims.set(from.id, [...(claims.get(from.id) ?? []), spot]);
+  }
+
+  return [...claims.values()].filter((s) => s.length === 1).map((s) => s[0]!);
 }

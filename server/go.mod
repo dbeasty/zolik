@@ -17,6 +17,8 @@ require (
 	github.com/redis/go-redis/v9 v9.19.0
 	go.mongodb.org/mongo-driver/v2 v2.3.0
 	golang.org/x/crypto v0.55.0
+	golang.org/x/mobile v0.0.0-20260908204917-8b95e45f8d3e
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -38,7 +40,12 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.36.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.42.1 // indirect
 	github.com/aws/smithy-go v1.25.1 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
+	github.com/dlclark/regexp2/v2 v2.5.2 // indirect
+	github.com/dop251/goja v0.0.0-20260917113740-793a2a65c13b // indirect
+	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
+	github.com/google/pprof v0.0.0-20230207041349-798e818bf904 // indirect
+	golang.org/x/mod v0.41.0 // indirect
+	golang.org/x/tools v0.50.0 // indirect
 )
 
 require (
@@ -79,8 +86,8 @@ require (
 	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
-	golang.org/x/sync v0.22.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/sync v0.23.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/text v0.41.0 // indirect
 )
 

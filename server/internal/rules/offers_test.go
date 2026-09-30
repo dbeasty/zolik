@@ -293,6 +293,34 @@ func TestLegalActions_DiscardExcludesAnUnplayableJoker(t *testing.T) {
 	}
 }
 
+func TestLegalActions_ClosingDiscardSaysItEndsTheDeal(t *testing.T) {
+	// An ordinary discard is just "Discard".
+	o := FindOffer(LegalActions(offerFixture(nil), "p1"), OfferDiscard)
+	if o.LabelKey != "" {
+		t.Errorf("ordinary discard should be labelled by its verb, got %q", o.LabelKey)
+	}
+
+	// The last card, with the requirement met, closes the deal.
+	closing := offerFixture(func(s *GameState) { s.Hands["p1"] = []string{"4H"} })
+	o = FindOffer(LegalActions(closing, "p1"), OfferDiscard)
+	if !o.Enabled || o.LabelKey != "verb.discardToClose" {
+		t.Errorf("closing discard: enabled=%v label=%q", o.Enabled, o.LabelKey)
+	}
+
+	// The last card with the requirement unmet cannot close anything, and
+	// another player's view never says it will.
+	unmet := offerFixture(func(s *GameState) {
+		s.Hands["p1"] = []string{"4H"}
+		s.RoundReqMet = map[string]bool{}
+	})
+	if o := FindOffer(LegalActions(unmet, "p1"), OfferDiscard); o.LabelKey != "" {
+		t.Errorf("a discard that cannot close should not say it does, got %q", o.LabelKey)
+	}
+	if o := FindOffer(LegalActions(closing, "p2"), OfferDiscard); o.LabelKey != "" {
+		t.Errorf("another seat's view should not carry the closing label, got %q", o.LabelKey)
+	}
+}
+
 func TestLegalActions_SwapJokerOnlyWhereAJokerSits(t *testing.T) {
 	s := offerFixture(func(s *GameState) {
 		s.Melds["p2"] = [][]string{
@@ -394,6 +422,92 @@ func TestLegalActions_LayMeldShapeFollowsTheProfile(t *testing.T) {
 		o := FindOffer(LegalActions(s, "p1"), OfferLayMeld)
 		if o.Source.MaxCards != 4 {
 			t.Errorf("maxCards = %d, want 4 on the final deal", o.Source.MaxCards)
+		}
+	})
+}
+
+// The whole undo row, as a player sees it at the two moments they reach for
+// it. Reported as "undo is enabled but nothing happens": undo:turn was lit up
+// from the moment of the draw, because a snapshot existed, and pressing it
+// returned a state identical in every visible field.
+func TestUndoTurnIsOnlyOfferedOnceThereIsSomethingToTakeBack(t *testing.T) {
+	base := GameState{
+		Status:      StatusActive,
+		Rules:       ProfileZolikClassic,
+		Phase:       PhaseDraw,
+		GameNumber:  1,
+		Round:       1,
+		CurrentTurn: "p1",
+		TurnOrder:   []string{"p1", "p2"},
+		DrawPile:    []string{"8H", "9H"},
+		DiscardPile: []string{"KC", "4C"},
+		Hands:       map[string][]string{"p1": {"5H", "6H", "7H", "2S", "2D", "2C", "3S"}, "p2": {"KS"}},
+		Melds:       map[string][][]string{},
+		MeldMeta:    map[string][]MeldInfo{},
+		RoundReqMet: map[string]bool{"p1": false, "p2": false},
+	}
+
+	undoState := func(t *testing.T, s GameState, id string) ActionOffer {
+		t.Helper()
+		o := FindOffer(LegalActions(s, "p1"), id)
+		if o == nil {
+			t.Fatalf("no %s offer at all", id)
+		}
+		return *o
+	}
+
+	t.Run("straight after a draw off the stock, no undo is on offer", func(t *testing.T) {
+		// The reported case. The card is in hand and cannot be put back —
+		// undo:draw_discard reaches back over a pile draw only — so the
+		// honest state of the row is that every undo is greyed out, each
+		// saying the same thing.
+		afterDraw, _, _, err := ValidateDraw(base, "p1", DrawFromDeck, "")
+		if err != nil {
+			t.Fatalf("draw: %v", err)
+		}
+		for _, id := range []string{OfferUndoDrawDiscard, OfferUndoLayOff, OfferUndoLayMeld, OfferUndoTurn} {
+			if o := undoState(t, afterDraw, id); o.Enabled {
+				t.Errorf("%s offered with nothing done since the draw", id)
+			} else if o.WhyNot != ErrNothingToUndo {
+				t.Errorf("%s whyNot = %s, want %s", id, o.WhyNot, ErrNothingToUndo)
+			}
+		}
+	})
+
+	t.Run("a pile draw is undone by undo:draw, not by undo:turn", func(t *testing.T) {
+		// Both used to be enabled here, and only one of them did anything.
+		s := base
+		s.RoundReqMet = map[string]bool{"p1": true, "p2": true}
+		afterDraw, _, _, err := ValidateDraw(s, "p1", DrawFromDiscard, "4C")
+		if err != nil {
+			t.Fatalf("pile draw: %v", err)
+		}
+		if o := undoState(t, afterDraw, OfferUndoDrawDiscard); !o.Enabled {
+			t.Errorf("undo:draw not offered after a pile draw (whyNot=%s)", o.WhyNot)
+		}
+		if o := undoState(t, afterDraw, OfferUndoTurn); o.Enabled {
+			t.Error("undo:turn offered after a pile draw with nothing melded since")
+		}
+	})
+
+	t.Run("melding turns it on, and undoing back turns it off again", func(t *testing.T) {
+		afterDraw, _, _, err := ValidateDraw(base, "p1", DrawFromDeck, "")
+		if err != nil {
+			t.Fatalf("draw: %v", err)
+		}
+		melded, _, _, err := ValidateMeldAction(afterDraw, "p1", []string{"2S", "2D", "2C"})
+		if err != nil {
+			t.Fatalf("lay_meld: %v", err)
+		}
+		if o := undoState(t, melded, OfferUndoTurn); !o.Enabled {
+			t.Errorf("undo:turn not offered after a meld (whyNot=%s)", o.WhyNot)
+		}
+		undone, err := ValidateUndoTurn(melded, "p1")
+		if err != nil {
+			t.Fatalf("undo_turn: %v", err)
+		}
+		if o := undoState(t, undone, OfferUndoTurn); o.Enabled {
+			t.Error("undo:turn still offered once the turn is back at the draw")
 		}
 	})
 }

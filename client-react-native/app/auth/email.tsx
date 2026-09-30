@@ -6,6 +6,7 @@ import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { claimedMessage } from '@/src/lib/auth';
 import { shared } from '@/src/theme';
+import { t } from '@/src/lib/i18n';
 
 /**
  * Passwordless email sign-in: an address, a mailed six-digit code, done.
@@ -32,7 +33,7 @@ export default function EmailSignInScreen() {
       await startEmailSignIn(email.trim());
       setStep('code');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not send a code');
+      setError(e instanceof Error ? e.message : t('error.sendCode'));
     } finally {
       setBusy(false);
     }
@@ -47,7 +48,7 @@ export default function EmailSignInScreen() {
       if (claimed) setNotice(claimed);
       router.replace('/');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'That code did not work');
+      setError(e instanceof Error ? e.message : t('error.badCode'));
     } finally {
       setBusy(false);
     }
@@ -55,10 +56,10 @@ export default function EmailSignInScreen() {
 
   if (step === 'email') {
     return (
-      <Screen title="Sign in with email" subtitle="We'll email you a one-time code" scroll>
+      <Screen title={t('auth.email.title')} subtitle={t('auth.email.subtitle')} scroll>
         <TextInput
           style={shared.input}
-          placeholder="Email address"
+          placeholder={t('auth.email.address')}
           placeholderTextColor="#8b9cb3"
           autoCapitalize="none"
           keyboardType="email-address"
@@ -72,17 +73,17 @@ export default function EmailSignInScreen() {
           onPress={requestCode}
           disabled={busy || !email.trim()}
         >
-          <Text style={shared.buttonText}>{busy ? '…' : 'Send code'}</Text>
+          <Text style={shared.buttonText}>{busy ? '…' : t('auth.email.send')}</Text>
         </Pressable>
       </Screen>
     );
   }
 
   return (
-    <Screen title="Enter the code" subtitle={`Sent to ${email.trim()}`} scroll>
+    <Screen title={t('auth.email.codeTitle')} subtitle={t('auth.email.sentTo', { email: email.trim() })} scroll>
       <TextInput
         style={shared.input}
-        placeholder="6-digit code"
+        placeholder={t('auth.email.codePlaceholder')}
         placeholderTextColor="#8b9cb3"
         keyboardType="number-pad"
         maxLength={6}
@@ -92,7 +93,7 @@ export default function EmailSignInScreen() {
       {error ? <Text style={shared.error}>{error}</Text> : null}
       {notice ? <Text style={shared.status}>{notice}</Text> : null}
       <Pressable style={shared.button} onPress={submitCode} disabled={busy || code.trim().length < 6}>
-        <Text style={shared.buttonText}>{busy ? '…' : 'Continue'}</Text>
+        <Text style={shared.buttonText}>{busy ? '…' : t('auth.email.continue')}</Text>
       </Pressable>
       <Pressable
         onPress={() => {
@@ -101,7 +102,7 @@ export default function EmailSignInScreen() {
           setError('');
         }}
       >
-        <Text style={shared.status}>Use a different address</Text>
+        <Text style={shared.status}>{t('auth.email.differentAddress')}</Text>
       </Pressable>
     </Screen>
   );

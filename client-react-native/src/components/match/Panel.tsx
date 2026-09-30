@@ -174,6 +174,21 @@ function panelStyles(m: Metrics, s: Skin) {
       borderColor: s.panel.border,
       padding: m.panel.padding,
       marginBottom: m.panel.gap,
+      // A panel is never wider than what it sits in.
+      //
+      // Sounds like it should go without saying, and it did — right up until
+      // a player got eight melds on a phone. A panel in a *row* (the spreads
+      // row, where two players' melds sit side by side on a wide screen) is a
+      // flex item with nothing constraining it, so it takes its max-content
+      // width: 464px of melds inside a 343px board, with the last two off the
+      // right-hand edge of the screen and no way to scroll to them. The row
+      // wraps panels, not the cards inside one, so nothing caught it.
+      //
+      // The wrapping those melds needed was already written (`ZoneView`'s
+      // `groups` row is `flexWrap: 'wrap'`); it simply never fired, because a
+      // row only wraps against a width it has been given, and its parent had
+      // handed it max-content. This is that width.
+      maxWidth: '100%',
       // Shadow only, never size: a panel that grew when it lifted off the
       // felt would move every drop measurement below it.
       ...(s.panel.shadow

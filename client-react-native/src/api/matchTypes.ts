@@ -18,6 +18,14 @@ export type Fact = {
   params?: Record<string, unknown>;
 };
 
+/** One thing a player did, worded by the module — see `RecentMoves`. */
+export type MoveLine = {
+  playerId: string;
+  fact: Fact;
+  /** The group on the board the move touched, if any. */
+  groupId?: string;
+};
+
 /**
  * One card as the board shows it.
  *
@@ -42,6 +50,12 @@ export type Group = {
   cards: string[];
   /** Keys for anything worth marking on the group. Keys, never text. */
   badgeKeys?: string[];
+  /**
+   * Finished, as far as the player is concerned — a canasta rather than a
+   * meld still being built — so it is folded down to take less room. The
+   * module decides; the shell never counts cards to guess.
+   */
+  complete?: boolean;
 };
 
 /**
@@ -68,6 +82,29 @@ export type Zone = {
   cards?: CardView[];
   count: number;
   groups?: Group[];
+  /**
+   * The house's own zone — the cards the game itself plays, held by nobody at
+   * the table. Blackjack's dealer is the one that sends it.
+   *
+   * A hint about *where to draw it*, never about how to play: the board is
+   * still laid out by `kind`, and a dealer zone is still a spread. Without
+   * this the only way to tell the house's hand from a player's melds was to
+   * match on the zone's id, which is the shell knowing a game's name — the
+   * one thing this whole protocol is arranged not to need.
+   */
+  dealer?: boolean;
+  /**
+   * A spread the *table* holds — cards in play for everybody at once,
+   * belonging to no player and to no side. Poker's board is the one that
+   * sends it.
+   *
+   * A missing `ownerId` does not say this on its own: a Canasta partnership's
+   * melds name no owner either, and they are still somebody's cards. So this
+   * is what separates the two, and all it decides is where the zone is drawn
+   * — up on the table beside the piles everyone draws from, instead of down
+   * in the row of players' spreads. Laid out by `kind` either way.
+   */
+  shared?: boolean;
 };
 
 /** One player as the board shows them: whose turn, and their own numbers. */
@@ -76,6 +113,13 @@ export type Seat = {
   active?: boolean;
   labelKeys?: string[];
   facts?: Fact[];
+  /**
+   * Which partnership this seat plays for — an id shared by partners and by
+   * nobody else, absent where a seat is its own side. Opaque: the client
+   * groups seats by it and never prints it, because who is partnered is the
+   * module's rule and what that partnership is called is the client's choice.
+   */
+  side?: string;
 };
 
 export type ViewModel = {
@@ -98,6 +142,12 @@ export type ParamSpec = {
   max?: number;
   step?: number;
   default?: number;
+  /**
+   * This value is what pressing the offer sends, so the offer's own control
+   * names it — "Raise to 483" — and follows it as the slider, stepper, typed
+   * field or a quick choice moves it. See {@link offerHeadline}.
+   */
+  headline?: boolean;
 };
 
 /**
@@ -114,8 +164,31 @@ export type ParamSpec = {
  * set is transitive and closed, so checking it is a membership test, never a
  * question about which ranks sit next to which. `source.cards` deliberately
  * omits these cards: see {@link Selector}.
+ *
+ * `alternatives` names the other companion sets that would do instead of
+ * `requires` — any one of them, in full, and the card is legal. A 10 reaching
+ * a run of 5-6-7-8 needs the 9, or a joker standing in the 9's place, and the
+ * player picks which one to spend. Without this the card was refused unless
+ * the selection matched `requires` exactly, so the pair a player actually
+ * dragged was rejected and they laid the two cards one at a time.
  */
-export type Placement = { card: string; positions?: string[]; requires?: string[] };
+export type Placement = {
+  card: string;
+  positions?: string[];
+  /**
+   * Where each of `positions` lands, as an index into the group's rendered
+   * cards: 0 before the first, `cards.length` after the last. Same length and
+   * order as `positions`.
+   *
+   * This is how the board can draw the place a card is about to go without
+   * knowing what "front" means — the module says the number. The ordinal on
+   * its own will not do it: a run that takes a card at one end offers one
+   * position, and "the first of one" names no end.
+   */
+  slots?: number[];
+  requires?: string[];
+  alternatives?: string[][];
+};
 
 /** The parameter a chosen {@link Placement} position travels back under. */
 export const POSITION_PARAM = 'position';
@@ -139,11 +212,24 @@ export type Selector = {
    * `requires`. Deliberately narrower than `placements`, which also lists
    * cards legal only in company, because this is what gets sent without
    * anyone choosing: {@link isOneTap} turns a one-entry list into a
-   * pressable button, and the terminal client submits `cards[:minCards]`
-   * sight unseen.
+   * pressable button, and a client with nobody choosing submits `submit`, or
+   * `cards[:minCards]` when the offer names no combination.
    */
   cards?: string[];
   placements?: Placement[];
+  /**
+   * The one combination to send when nobody is choosing — a press of this
+   * offer's own control, rather than a selection someone built.
+   *
+   * `cards` says which cards may go and `minCards`/`maxCards` bound how many,
+   * which together describe a family of legal submissions; this is the
+   * module's answer to *which*. A Canasta hand with four queens may lay three
+   * of them or all four, and the module says: all four.
+   *
+   * Absent means what it always meant — the submission is `cards` when the
+   * list is exactly `minCards` long.
+   */
+  submit?: string[];
   minCards?: number;
   maxCards?: number;
 };
@@ -199,6 +285,11 @@ export type ActionOffer = {
    * false for everything a button can send in one tap.
    */
   composite?: boolean;
+  /**
+   * The offer takes a move back rather than making one. Declared by the
+   * module, never guessed from the verb's spelling.
+   */
+  undo?: boolean;
 };
 
 /** One row of a scoreboard, in a shape no game owns. */
@@ -236,6 +327,25 @@ export type RoundScore = {
   shown?: number;
   shownTotal?: number;
   facts?: Fact[];
+  /**
+   * The same breakdown as an account: every part with its points, and the
+   * parts of those parts. They sum to the printed delta — the server tests
+   * that, so this side only prints them. Absent for a game or a round that
+   * has not written one; `facts` is the fallback.
+   */
+  lines?: ScoreLine[];
+};
+
+/**
+ * One row of a round's account. `points` is signed the way the row's printed
+ * delta is; `sub` breaks it down and sums to it. A line with no points and no
+ * sub explains rather than scores.
+ */
+export type ScoreLine = {
+  labelKey: string;
+  params?: Record<string, unknown>;
+  points: number;
+  sub?: ScoreLine[];
 };
 
 /** One completed round of a match. */
@@ -247,6 +357,12 @@ export type RoundResult = {
   scores: RoundScore[];
   /** True of the round rather than of any one seat. */
   facts?: Fact[];
+  /**
+   * The module's own sentence for how the round ended, said in place of "X took
+   * it" — Canasta's "Šárka closed with a +120 point differential", where the
+   * side that closed is not necessarily the side that took the deal.
+   */
+  headline?: Fact;
 };
 
 /**
@@ -300,7 +416,39 @@ export type MatchState = {
   winnerId?: string;
   winners?: string[];
   suspendedPlayer?: string;
+  /**
+   * Whether this viewer may bring a swept-up table back, and who is still
+   * missing when they may not — both answered by the server, on an abandoned
+   * table only.
+   *
+   * Not derivable here, and the screen used to try: its stand-in rule was
+   * "every other seat is a bot", which is what left two friends looking at
+   * their own intact game with nothing on the banner but "Back to games".
+   * Whether a resume is allowed turns on who is holding a socket in the
+   * table's room right now, which is a fact only the server has.
+   */
+  canResume?: boolean;
+  /** Player ids, in seat order; look their names up in `players`. */
+  awayPlayers?: string[];
+  /**
+   * The table this finished one is being played again at, and who asked.
+   * Everybody else from here has a seat held at it.
+   */
+  rematch?: { matchId: string; hostId: string };
+  /** Who a rematch lobby is still holding seats for, in seat order. */
+  reserved?: { playerId: string; name: string; avatar?: string }[];
+  /**
+   * The last few moves at the table as this viewer may read them, oldest
+   * first. Absent for a game that does not narrate its moves.
+   */
+  recentMoves?: MoveLine[];
   players: MatchPlayer[];
+  /**
+   * Who is playing with whom if the table were dealt now, in seat order —
+   * present only while the table is still a lobby, and only for a game that
+   * has sides at all. Once dealt, the board carries the partnerships itself.
+   */
+  sides?: string[][];
   view: ViewModel;
   legalActions: ActionOffer[];
   standings?: Standing[];
@@ -401,20 +549,45 @@ export function submissionFor(
       if (chosen.cards.length < need || chosen.cards.length > max) return null;
       action.cards = chosen.cards;
     } else {
-      const listed = offer.source?.cards ?? [];
-      if (listed.length !== need) return null;
-      action.cards = listed;
+      // Nobody chose, so the offer has to have named its own combination —
+      // either outright in `submit`, or by listing exactly as many cards as it
+      // needs, which is how every offer said it before `submit` existed.
+      const named = offer.source?.submit ?? [];
+      if (named.length > 0) {
+        action.cards = named;
+      } else {
+        const listed = offer.source?.cards ?? [];
+        if (listed.length !== need) return null;
+        action.cards = listed;
+      }
     }
   }
   if (offer.target?.meldId) action.target = offer.target.meldId;
 
   for (const p of offer.params ?? []) {
-    const supplied = chosen?.params?.[p.name];
-    const value = supplied ?? defaultParam(p);
+    const value = paramValue(p, chosen?.params?.[p.name]);
     if (value === undefined) return null;
     action.params = { ...(action.params ?? {}), [p.name]: value };
   }
   return action;
+}
+
+/**
+ * The value a parameter would be sent with: what the player chose, else the
+ * server's default — and for a number, clamped into the range the offer
+ * declares *now*. A figure chosen against last street's range and left
+ * unsent is still sitting in the in-progress state when the next offer
+ * arrives with a smaller stack behind it; the control shows it clamped, so
+ * the press has to send it clamped too, or the button says one figure and
+ * sends another.
+ */
+export function paramValue(p: ParamSpec, supplied?: string): string | undefined {
+  if (supplied === undefined || supplied === '') return defaultParam(p);
+  if (p.kind !== 'int') return supplied;
+  const min = p.min ?? 0;
+  const max = p.max ?? min;
+  const n = Number(supplied);
+  return String(Number.isFinite(n) ? Math.min(Math.max(n, min), max) : min);
 }
 
 /** A legal starting value for a parameter: the server's own default. */
@@ -426,6 +599,26 @@ export function defaultParam(p: ParamSpec): string | undefined {
     return String(Math.min(Math.max(d, min), max));
   }
   return p.choices?.[0]?.value;
+}
+
+/**
+ * What an offer's control should be titled with in place of its verb, when a
+ * parameter declares itself the headline: that parameter's prompt and the
+ * value the press would send right now — the one in progress if the player
+ * has moved it, the server's default if not — `paramValue`, the same
+ * function `submissionFor` sends through, so the title cannot name a figure
+ * the press would not send.
+ *
+ * Undefined for everything else, which keeps its verb.
+ */
+export function offerHeadline(
+  offer: ActionOffer,
+  inProgress?: Record<string, string>,
+): { labelKey: string; value: string } | undefined {
+  const spec = (offer.params ?? []).find((p) => p.headline);
+  if (!spec) return undefined;
+  const value = paramValue(spec, inProgress?.[spec.name]);
+  return value === undefined ? undefined : { labelKey: spec.labelKey, value };
 }
 
 /**
@@ -442,6 +635,11 @@ export function defaultParam(p: ParamSpec): string | undefined {
 export function isOneTap(offer: ActionOffer): boolean {
   if (offer.composite) return false;
   if ((offer.params ?? []).length > 0) return false;
+  // An offer that names its combination is a button by saying so, which is
+  // what lets a Canasta meld stay one tap while still letting a player lay
+  // fewer cards than the candidate holds — the two facts stopped being the
+  // same fact when `submit` arrived.
+  if ((offer.source?.submit ?? []).length > 0) return true;
   const need = offer.source?.minCards ?? 0;
   if (need === 0) return true;
   return (offer.source?.cards ?? []).length === need;
@@ -456,3 +654,166 @@ export function isOneTap(offer: ActionOffer): boolean {
 export function offerGroupKey(offer: ActionOffer): string {
   return offer.labelKey ?? `verb.${offer.verb}`;
 }
+
+/**
+ * A target nothing in the hand goes on: the weakest refusal there is, by the
+ * convention `ActionOffer.WhyNot` documents on the server. See `sharedRefusal`.
+ */
+export const NOTHING_FITS_HERE = 'NOTHING_FITS_HERE';
+
+/**
+ * The one reason to print under a folded control whose members are all
+ * refused, or undefined when none of them gave one.
+ *
+ * The commonest reason wins, because the common case is a rule gating the
+ * verb rather than any one target, and that deserves the sentence a lone
+ * offer would show. Ties keep the group's own order.
+ *
+ * Except "nothing fits here", which only speaks when nothing else does. A
+ * table has one meld a given card matches and several it does not, so counted
+ * like any other reason it outvotes the one refusal that is the real answer —
+ * match 6abc22d3b46a546c9d9bd1e4 showed "a meld needs more cards than that"
+ * under Lay off to a player whose four was refused because their side could
+ * not go out yet.
+ */
+export function sharedRefusal(group: ActionOffer[]): string | undefined {
+  const counts = new Map<string, number>();
+  for (const o of group) {
+    if (o.enabled || !o.whyNot) continue;
+    counts.set(o.whyNot, (counts.get(o.whyNot) ?? 0) + 1);
+  }
+  if (counts.size > 1) counts.delete(NOTHING_FITS_HERE);
+  let shared: string | undefined;
+  let best = 0;
+  for (const [reason, count] of counts) {
+    if (count > best) {
+      best = count;
+      shared = reason;
+    }
+  }
+  return shared;
+}
+
+/**
+ * A stopped game, played back frame by frame.
+ *
+ * Mirrors `server/internal/match/replay.go`'s `ReplayMsg`. Shaped as the
+ * sibling of `MatchState`: everything invariant across the match is here
+ * once, everything that changes is in a frame — so a frame plus this
+ * envelope is a `MatchState` in all but name, which is why the replay screen
+ * can hand it straight to the same board the live table draws.
+ *
+ * Paged, because a long game is more boards than one response should carry.
+ * `total` is the whole match, so a scrub bar can be drawn from the first page.
+ */
+export type Replay = {
+  type: 'match_replay';
+  matchId: string;
+  moduleId: string;
+  variation?: string;
+  options?: Record<string, number>;
+  players: MatchPlayer[];
+  viewerId?: string;
+  /** Every hand is face up. The server grants this only for a finished game. */
+  open?: boolean;
+  total: number;
+  from: number;
+  frames: ReplayFrame[];
+  /**
+   * The rounds this match was played in, as somewhere to jump to.
+   *
+   * Read off the server's stored round marks rather than folded, so the whole
+   * list arrives with the first page however deep into the match that page
+   * is. Absent for a game that keeps no rounds.
+   */
+  chapters?: ReplayChapter[];
+  /**
+   * The threads through the match a reader can follow — one per seat that
+   * moved, plus the round boundaries where the game keeps them. Frame
+   * indices only, and present on every page like `chapters`.
+   */
+  tracks?: ReplayTrack[];
+  /**
+   * The fold stopped early: the module refused a move it once accepted,
+   * because its rules have moved since this game was played. Everything up
+   * to `truncatedAt` is still exactly what happened.
+   */
+  truncated?: boolean;
+  truncatedAt?: number;
+  truncatedCode?: string;
+};
+
+/** One thread through a match, as the frames that belong to it. */
+export type ReplayTrack = {
+  /** `seat:<playerId>` or `rounds`. */
+  id: string;
+  playerId?: string;
+  /** Frame indices on this track, ascending. */
+  frames: number[];
+};
+
+/**
+ * One round of the match, as a place to jump to. The word for it — deal,
+ * hand, leg — comes from the round log the frames already carry.
+ */
+export type ReplayChapter = {
+  round: number;
+  /** First frame of this round; `to` is the frame that closed it. */
+  from: number;
+  to?: number;
+};
+
+/** The board after one step. Frame 0 is the deal, and carries no move. */
+export type ReplayFrame = {
+  index: number;
+  seq?: number;
+  playerId?: string;
+  verb?: string;
+  offerId?: string;
+  cards?: string[];
+  at?: string;
+  round?: number;
+  roundEnded?: boolean;
+  status: string;
+  winners?: string[];
+  view: ViewModel;
+  standings?: Standing[];
+  /**
+   * Present only on the deal and on frames that ended a round — the log is
+   * monotonic, so the server sends it at the boundaries and a reader carries
+   * the last one forward.
+   */
+  rounds?: RoundLog;
+};
+
+/**
+ * One row of "my games" — a stored table this player is seated at, as the
+ * server's own decision of what is safe to list: it never carries the
+ * module's state or action log, because a list row needs neither.
+ *
+ * Mirrors `server/internal/match/handlers.go`'s `storedTable`. `canResume`
+ * and `canDelete` are read off this rather than re-derived: the resume rule
+ * in particular (abandoned, and every other seat a bot) is enforced
+ * server-side, so a button built from this flag is never one the server then
+ * refuses.
+ */
+export type StoredTable = {
+  matchId: string;
+  moduleId: string;
+  variation?: string;
+  status: 'lobby' | 'active' | 'completed' | 'suspended' | 'abandoned' | string;
+  joinCode?: string;
+  isHost: boolean;
+  players: MatchPlayer[];
+  humanCount: number;
+  botCount: number;
+  createdAt: string;
+  startedAt?: string;
+  endedAt?: string;
+  suspendedAt?: string;
+  updatedAt?: string;
+  canResume: boolean;
+  canDelete: boolean;
+  /** Whether this table was ever dealt, and so has a game to step through. */
+  canReplay: boolean;
+};

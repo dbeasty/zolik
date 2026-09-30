@@ -37,26 +37,35 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		return s.Break.Offers(order(s), playerID), nil
 	}
 	if s.Status != "active" {
-		return placeholders(s, ErrGameNotActive), nil
+		return m.explained(s, nil, placeholders(s, ErrGameNotActive)), nil
 	}
 
 	seat := s.seat(playerID)
 	if seat == nil {
-		return placeholders(s, module.ErrNotSeated), nil
+		return m.explained(s, nil, placeholders(s, module.ErrNotSeated)), nil
 	}
 
 	switch s.Phase {
 	case phaseBets:
-		return m.bettingOffers(raw, s, seat), nil
+		return m.explained(s, seat, m.bettingOffers(raw, s, seat)), nil
 	case phaseInsurance:
-		return m.insuranceOffers(raw, s, seat), nil
+		return m.explained(s, seat, m.insuranceOffers(raw, s, seat)), nil
 	case phasePlay:
 		if s.Current < 0 || s.Seats[s.Current].PlayerID != playerID {
-			return placeholders(s, ErrNotYourTurn), nil
+			return m.explained(s, seat, placeholders(s, ErrNotYourTurn)), nil
 		}
-		return m.playOffers(raw, s, seat), nil
+		return m.explained(s, seat, m.playOffers(raw, s, seat)), nil
 	}
-	return placeholders(s, ErrGameNotActive), nil
+	return m.explained(s, seat, placeholders(s, ErrGameNotActive)), nil
+}
+
+// explained puts the rule and the way out on every disabled offer before it
+// leaves this package — see remedy.go. Wrapped around each branch rather than
+// applied at one exit because every branch is its own return, and a phase
+// added later that forgot the call would ship bare codes silently.
+func (m *Module) explained(s *GameState, seat *Seat, offers []module.ActionOffer) []module.ActionOffer {
+	m.annotate(s, seat, offers)
+	return offers
 }
 
 // placeholders is the whole control set, off, with the one reason that
@@ -112,6 +121,8 @@ func (m *Module) bettingOffers(raw module.State, s *GameState, seat *Seat) []mod
 			Max:      seat.Stack,
 			Step:     1,
 			Default:  s.MinBet,
+			Headline: true,
+			Choices:  betQuickChoices(s.MinBet, seat.Stack),
 		}}
 		bet.Facts = []module.Fact{{
 			LabelKey: "blackjack.fact.tableMinimum", Value: strconv.Itoa(s.MinBet),
@@ -127,6 +138,37 @@ func (m *Module) bettingOffers(raw module.State, s *GameState, seat *Seat) []mod
 		}
 	}
 	return offers
+}
+
+// betQuickChoices names a couple of stakes a player reasons about without
+// doing the multiplication themselves — twice the table minimum, and the
+// whole stack — alongside the bare range `ParamKindInt` already carries.
+//
+// Built the same way holdem's raiseQuickChoices is: every LabelKey a literal
+// string in its own module.ParamChoice{...}, since dump-keys finds label
+// keys by reading the source rather than by running it, and "all in" always
+// present — inserted first, so a double-the-minimum stake that happens to
+// equal the whole stack (a short one) is dropped in its favour rather than
+// showing two buttons for the same figure.
+func betQuickChoices(minBet, stack int) []module.ParamChoice {
+	clamp := func(n int) int {
+		if n < minBet {
+			return minBet
+		}
+		if n > stack {
+			return stack
+		}
+		return n
+	}
+
+	allIn := stack
+	doubleMin := clamp(minBet * 2)
+
+	choices := []module.ParamChoice{{Value: strconv.Itoa(allIn), LabelKey: "blackjack.quick.allIn"}}
+	if doubleMin != allIn {
+		choices = append([]module.ParamChoice{{Value: strconv.Itoa(doubleMin), LabelKey: "blackjack.quick.doubleMin"}}, choices...)
+	}
+	return choices
 }
 
 // insuranceOffers is a decision with two answers, both of which are offered,
@@ -218,8 +260,22 @@ func (m *Module) playOffers(raw module.State, s *GameState, seat *Seat) []module
 // option combination and checks each id resolves.
 func ruleIDsFor(s *GameState, code string) []string {
 	switch code {
-	case ErrBetTooSmall, ErrAlreadyBet:
+	// Where in a round you are, which is what WRONG_PHASE is always about and
+	// what a code on its own can never say: the stake window has closed, or
+	// the cards are not out yet, or the dealer is still asking about
+	// insurance.
+	case ErrNotYourTurn, ErrWrongPhase:
+		return []string{"blackjack.rules.roundOrder"}
+	case ErrNotInRound:
+		return []string{"blackjack.rules.roundOrder", "blackjack.rules.bustedOut"}
+	case ErrBetTooSmall:
 		return []string{"blackjack.rules.minBet"}
+	case ErrAlreadyBet:
+		return []string{"blackjack.rules.oneStakePerRound"}
+	case ErrNotEnoughChips:
+		return []string{"blackjack.rules.stakeFromStack"}
+	case ErrAmountRequired:
+		return []string{"blackjack.rules.minBet", "blackjack.rules.stakeFromStack"}
 	case ErrCannotDouble:
 		if s.DoubleAfterSplit {
 			return []string{"blackjack.rules.double", "blackjack.rules.doubleAfterSplit"}

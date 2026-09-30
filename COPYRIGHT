@@ -18,3 +18,15 @@ SPDX-License-Identifier: AGPL-3.0-only
 The Zolik server links github.com/limidus/kdb, which is licensed under the
 GNU Affero General Public License v3.0; the combined work is distributed
 under the same terms.
+
+The React Native client draws its card faces with Vectorized Playing Cards
+3.0, by Chris Aguilar, which is licensed under the GNU Lesser General Public
+License v3.0. The artwork and the file generated from it live under
+client-react-native/src/cards/vector/, together with that licence and the
+attribution its author asks for; they remain under the LGPL rather than this
+program's AGPL, and the combined work is distributed under the AGPL as above.
+
+    Vector Playing Cards 3.0
+    https://totalnonsense.com/open-source-vector-playing-cards/
+    Copyright 2011,2019 - Chris Aguilar - conjurenation@gmail.com
+    Licensed under: LGPL 3.0 - https://www.gnu.org/licenses/lgpl-3.0.html

@@ -123,8 +123,12 @@ func sessionForSSH(s ssh.Session, deps Deps) ui.PlayerSession {
 
 	user := s.User()
 	name := user
+	// An anonymous connection sends no name rather than "Guest", which every
+	// anonymous connection shared — three of them at a table were three seats
+	// reading Guest. The server invents one instead, and it comes back on the
+	// session below; see auth.GuestNameFor.
 	if user == "guest" || user == "" {
-		name = "Guest"
+		name = ""
 		if user == "" {
 			user = "guest"
 		}
@@ -132,6 +136,11 @@ func sessionForSSH(s ssh.Session, deps Deps) ui.PlayerSession {
 	ctx := s.Context()
 	tok, err := deps.Auth.Guest(ctx, name)
 	if err != nil {
+		// No session, so no invented name either: this is a placeholder for a
+		// player who is not signed in to anything.
+		if name == "" {
+			name = "Guest"
+		}
 		return ui.PlayerSession{Username: name, IsGuest: true}
 	}
 	return ui.PlayerSession{

@@ -33,10 +33,48 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 			module.Fact{LabelKey: "holdem.rules.stack", Params: map[string]any{"n": stack}},
 			module.Fact{LabelKey: "holdem.rules.blinds", Params: map[string]any{"sb": bigBlind / 2, "bb": bigBlind}},
 		),
+		// The mechanics of a betting round, and not only its shape.
+		//
+		// Written out because this is where every refusal in the game comes
+		// from: "you can't check", "a raise has to be at least the last one",
+		// "you don't have that many chips" are all one rule each, and none of
+		// them was stated anywhere a player could read it before being told
+		// no. See ruleindex.go, which points each of those codes here.
 		module.Section("holdem.rules.section.betting",
 			module.Fact{LabelKey: "holdem.rules.streets"},
+			module.Fact{LabelKey: "holdem.rules.checkOrCall"},
+			module.Fact{LabelKey: "holdem.rules.minRaise"},
+			module.Fact{LabelKey: "holdem.rules.allIn"},
+			module.Fact{LabelKey: "holdem.rules.foldedOut"},
 			module.Fact{LabelKey: "holdem.rules.showdown"},
+		),
+		// What happens after the chips are pushed, which is a section this
+		// game did not have because it used to be over by then.
+		//
+		// The reveal setting is stated here as a sentence per value rather
+		// than one sentence with the value in it, because the two describe
+		// genuinely different tables. The right to show your own hand is
+		// stated unconditionally: it is true at both settings, and a rule that
+		// only existed at one of them could not be pointed at by a refusal
+		// that can happen at either.
+		module.Section("holdem.rules.section.showdown",
+			revealRule(cfg, v),
+			module.Fact{LabelKey: "holdem.rules.showYourOwn"},
+			module.Fact{LabelKey: "holdem.rules.showOnce"},
+			module.Fact{LabelKey: "holdem.rules.stopEveryHand"},
 		),
 		module.Section("holdem.rules.section.end", end...),
 	}, nil
+}
+
+// revealRule is the sentence for the reveal setting this table is playing.
+//
+// Two literal Facts rather than one built from a variable: `module.CollectKeys`
+// reads this file rather than running it, and a key that only exists behind a
+// local has no line in the manifest and therefore no line in any locale.
+func revealRule(cfg module.MatchConfig, v variationDefaults) module.Fact {
+	if cfg.Opt(OptShowdownReveal, RevealEveryone) == RevealWinners {
+		return module.Fact{LabelKey: "holdem.rules.revealWinners"}
+	}
+	return module.Fact{LabelKey: "holdem.rules.revealEveryone"}
 }

@@ -11,6 +11,8 @@ import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { formatApiError } from '@/src/lib/apiError';
 import { colors, shared } from '@/src/theme';
+import { t } from '@/src/lib/i18n';
+import { NotifyCircleCard } from '@/src/notify/NotifyCircleCard';
 
 /**
  * The host's table before it starts: who is seated, who can be pulled in, and
@@ -37,7 +39,7 @@ const BOT_SKILLS = [
 ];
 
 export default function TableScreen() {
-  const { client, session } = useSession();
+  const { client, session, offline } = useSession();
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
 
   const [state, setState] = useState<MatchState | null>(null);
@@ -52,7 +54,7 @@ export default function TableScreen() {
   const poll = useCallback(async () => {
     if (!id) return;
     try {
-      const m = await client.getMatch(id, session?.userId);
+      const m = await client.getMatch(id);
       setState(m);
       if (m.status !== 'lobby') router.replace(`/match/${id}`);
     } catch (e) {
@@ -60,13 +62,15 @@ export default function TableScreen() {
     }
     // Best-effort: a host who cannot currently see the waiting room should
     // still be able to run their table. Its absence is not an error worth
-    // showing.
+    // showing. An offline table has none to ask: the waiting room is the
+    // online server's.
+    if (offline) return;
     try {
       setWaiting(await client.getWaitingLobby());
     } catch {
       /* the waiting room is optional infrastructure */
     }
-  }, [client, id, session?.userId]);
+  }, [client, id, session?.userId, offline]);
 
   useEffect(() => {
     if (!id) return;
@@ -96,6 +100,21 @@ export default function TableScreen() {
    * existed. Naming one overrides it for this seat alone — the only way to
    * build a table where the opponents differ from each other.
    */
+  // A bot in the seat a rematch was holding, in that seat — the host has
+  // stopped waiting for this person.
+  async function fillHeldSeat(playerId: string) {
+    setBusy(true);
+    setError('');
+    try {
+      await client.releaseHeldSeat(id, playerId, true);
+      await poll();
+    } catch (e) {
+      setError(formatApiError(e, 'Could not add a bot'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function addBot(skill = '') {
     setBusy(true);
     setError('');
@@ -107,6 +126,50 @@ export default function TableScreen() {
     } finally {
       setBusy(false);
     }
+  }
+
+  /**
+   * Send a new seat order and show the server's answer.
+   *
+   * The order is sent whole rather than as "move this one": the server refuses
+   * anything that is not a permutation of the table, and a whole order is the
+   * only request that can be checked that way. It also makes the two controls
+   * here — a nudge and a shuffle — the same call.
+   */
+  async function reseat(order: string[]) {
+    if (!id) return;
+    setBusy(true);
+    setError('');
+    try {
+      await client.seatTable(id, order);
+      await poll();
+    } catch (e) {
+      setError(formatApiError(e, 'Could not rearrange the table'));
+      // Re-read rather than keep the order we hoped for: a refusal means the
+      // server's seating is the true one and ours was a guess.
+      await poll();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function moveSeat(from: number, to: number) {
+    const order = players.map((p) => p.id);
+    if (to < 0 || to >= order.length) return;
+    const [moved] = order.splice(from, 1);
+    order.splice(to, 0, moved!);
+    void reseat(order);
+  }
+
+  function shuffleSeats() {
+    // Fisher-Yates, so every seating is equally likely — this is cutting for
+    // partners, and a shuffle that favoured an order would be a loaded cut.
+    const order = players.map((p) => p.id);
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [order[i], order[j]] = [order[j]!, order[i]!];
+    }
+    void reseat(order);
   }
 
   async function start() {
@@ -122,11 +185,25 @@ export default function TableScreen() {
   }
 
   const players = state?.players ?? [];
+  // Seats a rematch is still holding. Dealing plays on without them, so the
+  // Start button names who that is.
+  const held = state?.reserved ?? [];
+  // The sides come from the server, which asks the module — a client counting
+  // to two would be a second implementation of a rule, and the two would
+  // eventually disagree about a six-seat table.
+  const sides = state?.sides ?? [];
+  const nameOf = (playerId: string) =>
+    players.find((p) => p.id === playerId)?.name ?? playerId;
+  const sideName = (i: number) => t('lobby.table.side', { n: i + 1 });
+  const sideOf = (playerId: string) => {
+    const i = sides.findIndex((side) => side.includes(playerId));
+    return i === -1 ? '' : sideName(i);
+  };
   const seatedIds = players.map((p) => p.id);
   const available = waiting.filter((p) => !seatedIds.includes(p.playerId));
 
   return (
-    <Screen title="Your table" scroll>
+    <Screen title={t('nav.table')} scroll>
       <ScrollView testID="table-screen">
         <Text testID="table-module" style={shared.status}>
           {state?.moduleId ?? '…'}
@@ -145,31 +222,127 @@ export default function TableScreen() {
           <InvitePanel joinCode={state.joinCode} inviteUrl={state.inviteUrl} />
         ) : null}
 
+        {/* The host's circle hears about the table the moment it opens —
+            host-only, because announcing is the host's call on the server,
+            and online-only, because nobody online can reach a table on this
+            phone. */}
+        {isHost && !offline && state?.status === 'lobby' ? (
+          <NotifyCircleCard matchId={state.matchId || id} />
+        ) : null}
+
         <Text style={[shared.status, { marginTop: 12 }]}>Players ({players.length})</Text>
         {players.map((p, i) => (
-          <Text key={p.id} testID={`seated-${p.id}`} style={{ color: colors.text, marginBottom: 4 }}>
-            {i + 1}. {p.name}
-            {p.isAI ? ' 🤖' : ''}
-            {p.id === state?.hostId ? ' ★' : ''}
-          </Text>
+          <View
+            key={p.id}
+            style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}
+          >
+            <Text testID={`seated-${p.id}`} style={{ color: colors.text, flexShrink: 1 }}>
+              {i + 1}. {p.name}
+              {p.isAI ? ' 🤖' : ''}
+              {p.id === state?.hostId ? ' ★' : ''}
+              {sideOf(p.id) ? ` · ${sideOf(p.id)}` : ''}
+            </Text>
+            {/*
+              Move a seat rather than name a team. In a game with sides the turn
+              alternates between them, so where somebody sits *is* who they play
+              with — one control, and no second idea of a team to keep in step.
+              Only offered to the host, and only while the table is a lobby.
+            */}
+            {isHost && players.length > 1 ? (
+              <View style={{ flexDirection: 'row', marginLeft: 'auto' }}>
+                <Pressable
+                  testID={`seat-up-${p.id}`}
+                  accessibilityLabel={t('lobby.table.moveSeatUp', { name: p.name })}
+                  disabled={busy || i === 0}
+                  onPress={() => moveSeat(i, i - 1)}
+                  style={{ paddingHorizontal: 10, paddingVertical: 2, opacity: i === 0 ? 0.3 : 1 }}
+                >
+                  <Text style={{ color: colors.text }}>▲</Text>
+                </Pressable>
+                <Pressable
+                  testID={`seat-down-${p.id}`}
+                  accessibilityLabel={t('lobby.table.moveSeatDown', { name: p.name })}
+                  disabled={busy || i === players.length - 1}
+                  onPress={() => moveSeat(i, i + 1)}
+                  style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 2,
+                    opacity: i === players.length - 1 ? 0.3 : 1,
+                  }}
+                >
+                  <Text style={{ color: colors.text }}>▼</Text>
+                </Pressable>
+              </View>
+            ) : null}
+          </View>
         ))}
+        {/*
+          Seats a rematch is holding for people from the last table who have
+          not sat down yet. Nobody else can take them, and dealing now plays on
+          without them — so the host sees who they would be starting without
+          rather than a table that looks one short for no reason.
+        */}
+        {held.map((r) => (
+          <View
+            key={r.playerId}
+            style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}
+          >
+            <Text testID={`held-${r.playerId}`} style={{ color: colors.muted, flexShrink: 1 }}>
+              {t('lobby.table.heldFor', { name: r.name })}
+            </Text>
+            {isHost ? (
+              <Pressable
+                testID={`held-fill-${r.playerId}`}
+                disabled={busy}
+                onPress={() => fillHeldSeat(r.playerId)}
+                style={{ marginLeft: 'auto', paddingHorizontal: 10, paddingVertical: 2 }}
+              >
+                <Text style={{ color: colors.accent }}>{t('lobby.table.fillWithBot')}</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ))}
+
+        {/*
+          Shown to everyone, not only the host: knowing who you are playing with
+          is not a host's private business, and a player who cannot rearrange
+          the table still needs to see what they are about to be dealt into.
+        */}
+        {sides.length > 1 ? (
+          <Text testID="table-sides" style={[shared.status, { marginTop: 8 }]}>
+            {sides.map((side, i) => `${sideName(i)}: ${side.map(nameOf).join(' + ')}`).join('   ')}
+          </Text>
+        ) : null}
+
+        {isHost && players.length > 2 ? (
+          <Pressable
+            testID="table-shuffle-seats"
+            style={[shared.button, { marginTop: 8 }]}
+            disabled={busy}
+            onPress={shuffleSeats}
+          >
+            <Text style={shared.buttonText}>{t('lobby.table.shuffleSeats')}</Text>
+          </Pressable>
+        ) : null}
 
         {error ? <Text style={shared.error}>{error}</Text> : null}
 
         {isHost ? (
           <>
-            <WaitingPlayersPanel
-              available={available}
-              invitingId={invitingId}
-              onInvite={invite}
-            />
+            {offline ? null : (
+              <WaitingPlayersPanel
+                available={available}
+                invitingId={invitingId}
+                onInvite={invite}
+              />
+            )}
             <Pressable
               testID="table-add-bot"
               style={shared.button}
               onPress={() => addBot()}
               disabled={busy}
             >
-              <Text style={shared.buttonText}>Add a bot</Text>
+              <Text style={shared.buttonText}>{t('lobby.table.addBot')}</Text>
             </Pressable>
             {/*
               One seat at a time, at a named strength. The row underneath the
@@ -193,11 +366,15 @@ export default function TableScreen() {
               ))}
             </View>
             <Pressable testID="table-start" style={shared.button} onPress={start} disabled={busy}>
-              <Text style={shared.buttonText}>Start</Text>
+              <Text style={shared.buttonText}>
+                {held.length
+                  ? t('lobby.table.startWithout', { names: held.map((r) => r.name).join(', ') })
+                  : t('lobby.table.start')}
+              </Text>
             </Pressable>
           </>
         ) : (
-          <Text style={shared.status}>Waiting for the host to start…</Text>
+          <Text style={shared.status}>{t('lobby.table.waitingForHost')}</Text>
         )}
       </ScrollView>
     </Screen>
@@ -230,8 +407,7 @@ function WaitingPlayersPanel({
         // now" from "this is broken" at a glance, especially when comparing
         // notes with someone on a second device who insists they are waiting.
         <Text style={shared.status}>
-          No one is waiting right now. Anyone who makes themselves available on the
-          main menu shows up here.
+          {t('waiting.none')}
         </Text>
       ) : (
         available.map((p) => (
@@ -252,7 +428,7 @@ function WaitingPlayersPanel({
               <Avatar spec={avatarFor(p.playerId, false, p.avatar)} size={28} />
               <Text style={{ color: colors.text }} numberOfLines={1}>
                 {p.username}
-                {p.isGuest ? ' (guest)' : ''}
+                {p.isGuest ? ` ${t('home.guestSuffix')}` : ''}
               </Text>
             </View>
             <Pressable

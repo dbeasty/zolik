@@ -379,7 +379,7 @@ func TestGuestSessionMintsADurableIDAndReuseAccumulatesItsHistory(t *testing.T) 
 	h.seedGuestMatch(guestID)
 
 	second := h.do(http.MethodPost, "/auth/guest", "", map[string]any{
-		"guestName": "Alice", "guestId": guestID,
+		"guestName": "Alice", "guestKey": first.str("guestKey"),
 	})
 	if second.status != http.StatusOK {
 		t.Fatalf("second guest login: status %d body %s", second.status, second.raw)
@@ -390,6 +390,55 @@ func TestGuestSessionMintsADurableIDAndReuseAccumulatesItsHistory(t *testing.T) 
 	}
 	if second.num("claimableMatches") != 1 {
 		t.Errorf("claimableMatches = %v after one finished match, want 1", second.body["claimableMatches"])
+	}
+}
+
+// A guest who sends no name is named by the server, and named *something*.
+//
+// The old answer was "Guest" for everybody, which at a table of three was
+// three seats reading Guest and no way to follow a hand but to count seats.
+func TestGuestSessionNamesANamelessGuest(t *testing.T) {
+	h := newTestHarness(t)
+
+	first := h.do(http.MethodPost, "/auth/guest", "", map[string]any{})
+	if first.status != http.StatusOK {
+		t.Fatalf("nameless guest login: status %d body %s", first.status, first.raw)
+	}
+	name := first.str("guestName")
+	if name == "" || name == "Guest" || name == "Player" {
+		t.Fatalf("guestName = %q, want an invented name", name)
+	}
+	if !strings.Contains(name, " ") {
+		t.Errorf("guestName = %q, want the two-word shape the roster makes", name)
+	}
+
+	// The same device, coming back with the key it kept and still no name of
+	// its own, is the same player rather than a new one.
+	second := h.do(http.MethodPost, "/auth/guest", "", map[string]any{"guestKey": first.str("guestKey")})
+	if got := second.str("guestName"); got != name {
+		t.Errorf("guestName = %q on the device's second visit, was %q", got, name)
+	}
+
+	// And a different device is somebody else. One name in common is possible
+	// — the roster is finite — so this asserts across enough devices that all
+	// of them agreeing means the name is not being derived at all.
+	same := 0
+	for i := 0; i < 20; i++ {
+		if h.do(http.MethodPost, "/auth/guest", "", map[string]any{}).str("guestName") == name {
+			same++
+		}
+	}
+	if same > 3 {
+		t.Errorf("%d of 20 fresh devices were also called %q", same, name)
+	}
+}
+
+// A name the caller did send is the name they get, invented names notwithstanding.
+func TestGuestSessionKeepsTheNameItWasGiven(t *testing.T) {
+	h := newTestHarness(t)
+	res := h.do(http.MethodPost, "/auth/guest", "", map[string]any{"guestName": "Alice"})
+	if got := res.str("guestName"); got != "Alice" {
+		t.Errorf("guestName = %q, want %q", got, "Alice")
 	}
 }
 
@@ -409,6 +458,85 @@ func TestGuestSessionRejectsAForeignSuppliedID(t *testing.T) {
 	}
 	if len(res.str("guestId")) != 32 {
 		t.Errorf("guestId = %q, want a freshly minted 32-character id", res.str("guestId"))
+	}
+}
+
+// A guest id is public — every table broadcasts it in players[].id — so
+// knowing one must not make you that guest. Only the key it was issued with,
+// or a live session of its own, does.
+func TestGuestSessionNeedsProofToResumeAnIdentity(t *testing.T) {
+	h := newTestHarness(t)
+	victim := h.do(http.MethodPost, "/auth/guest", "", map[string]any{"guestName": "Victim"})
+	victimID, victimKey := victim.str("guestId"), victim.str("guestKey")
+	if victimKey == "" || !strings.HasPrefix(victimKey, victimID+".") {
+		t.Fatalf("guestKey = %q, want the id plus a MAC", victimKey)
+	}
+
+	forged := map[string]map[string]any{
+		"the bare id":             {"guestId": victimID},
+		"the id as a key":         {"guestKey": victimID},
+		"a key with a forged MAC": {"guestKey": victimID + ".AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
+		"another guest's MAC":     {"guestKey": victimID + "." + strings.SplitN(h.do(http.MethodPost, "/auth/guest", "", map[string]any{}).str("guestKey"), ".", 2)[1]},
+		"a made-up refresh token": {"guestRefreshToken": "not-a-session"},
+	}
+	for name, body := range forged {
+		t.Run(name, func(t *testing.T) {
+			res := h.do(http.MethodPost, "/auth/guest", "", body)
+			if res.status != http.StatusOK {
+				t.Fatalf("status %d body %s", res.status, res.raw)
+			}
+			if res.str("guestId") == victimID {
+				t.Fatalf("%s was enough to become the guest", name)
+			}
+			if len(res.str("guestId")) != 32 {
+				t.Errorf("guestId = %q, want a freshly minted id", res.str("guestId"))
+			}
+		})
+	}
+
+	// The key outlives the session it came with: signing out deletes the
+	// refresh token, not the identity.
+	h.do(http.MethodPost, "/auth/logout", "", map[string]any{"refreshToken": victim.str("refreshToken")})
+	if got := h.do(http.MethodPost, "/auth/guest", "", map[string]any{"guestKey": victimKey}).str("guestId"); got != victimID {
+		t.Errorf("the guest key after sign-out resumed %q, want %q", got, victimID)
+	}
+}
+
+// A device from before guest keys holds only its refresh token. While that is
+// live it proves the guest and is answered with a key; once rotated away or
+// signed out it proves nothing.
+func TestGuestSessionAcceptsALiveGuestRefreshTokenOnly(t *testing.T) {
+	h := newTestHarness(t)
+	old := h.do(http.MethodPost, "/auth/guest", "", map[string]any{"guestName": "Legacy"})
+	id := old.str("guestId")
+
+	live := h.do(http.MethodPost, "/auth/guest", "", map[string]any{"guestRefreshToken": old.str("refreshToken")})
+	if live.str("guestId") != id {
+		t.Fatalf("a live refresh token resumed %q, want %q", live.str("guestId"), id)
+	}
+	if auth.GuestIDFromKey(live.str("guestKey")) != id {
+		t.Errorf("the resumed session came back without a key for %q: %q", id, live.str("guestKey"))
+	}
+
+	rotated := h.do(http.MethodPost, "/auth/refresh", "", map[string]any{"refreshToken": old.str("refreshToken")})
+	if rotated.status != http.StatusOK {
+		t.Fatalf("refresh: status %d body %s", rotated.status, rotated.raw)
+	}
+	if got := h.do(http.MethodPost, "/auth/guest", "", map[string]any{"guestRefreshToken": old.str("refreshToken")}).str("guestId"); got == id {
+		t.Error("a refresh token already exchanged still proved the guest")
+	}
+
+	h.do(http.MethodPost, "/auth/logout", "", map[string]any{"refreshToken": rotated.str("refreshToken")})
+	if got := h.do(http.MethodPost, "/auth/guest", "", map[string]any{"guestRefreshToken": rotated.str("refreshToken")}).str("guestId"); got == id {
+		t.Error("a signed-out refresh token still proved the guest")
+	}
+
+	// An account's refresh token is not a guest's, whatever it names.
+	user := h.do(http.MethodPost, "/auth/register", "", map[string]any{"username": "legacyacct", "password": "correct-horse-battery"})
+	if user.status == http.StatusOK {
+		if got := h.do(http.MethodPost, "/auth/guest", "", map[string]any{"guestRefreshToken": user.str("refreshToken")}).str("guestId"); got == user.str("userId") {
+			t.Error("an account's refresh token resumed the account as a guest")
+		}
 	}
 }
 
@@ -867,6 +995,34 @@ func TestExplicitClaimGuestEndpointMovesHistoryAndRetiresTheGuestSession(t *test
 	}
 }
 
+// The refresh token a device kept from its first guest session has rotated
+// away by the time the player signs in; the guest key has not, and is enough.
+// The bare id, which every opponent has seen, is not.
+func TestClaimGuestAcceptsTheGuestKeyButNotTheID(t *testing.T) {
+	h := newTestHarness(t)
+	guest := h.do(http.MethodPost, "/auth/guest", "", map[string]any{"guestName": "Erin"})
+	guestID := guest.str("guestId")
+	h.seedGuestMatch(guestID)
+	h.do(http.MethodPost, "/auth/refresh", "", map[string]any{"refreshToken": guest.str("refreshToken")})
+
+	account := h.do(http.MethodPost, "/auth/oauth/fake/token", "", map[string]any{
+		"idToken": h.oidc.sign(t, jwt.MapClaims{"sub": "erin-account", "email": "erin@example.com"}),
+	})
+	bearer := account.str("accessToken")
+
+	if res := h.do(http.MethodPost, "/auth/claim-guest", bearer, map[string]any{"guestKey": guestID}); res.status != http.StatusUnauthorized {
+		t.Fatalf("claiming with the bare id: status %d, want 401", res.status)
+	}
+	if res := h.do(http.MethodPost, "/auth/claim-guest", bearer,
+		map[string]any{"guestRefreshToken": guest.str("refreshToken")}); res.status == http.StatusOK && res.num("claimedMatches") > 0 {
+		t.Fatal("a rotated-away refresh token still claimed the history")
+	}
+	claim := h.do(http.MethodPost, "/auth/claim-guest", bearer, map[string]any{"guestKey": guest.str("guestKey")})
+	if claim.status != http.StatusOK || claim.num("claimedMatches") != 1 {
+		t.Fatalf("claiming with the key: status %d body %s, want 1 match", claim.status, claim.raw)
+	}
+}
+
 func TestClaimGuestRequiresASignedInAccount(t *testing.T) {
 	h := newTestHarness(t)
 	guest := h.do(http.MethodPost, "/auth/guest", "", map[string]any{"guestName": "Dana"})
@@ -1075,9 +1231,74 @@ func TestRefreshRotatesTheTokenAndRetiresTheOldOne(t *testing.T) {
 		t.Error("the refresh token did not rotate")
 	}
 
+	// Once the successor has itself been exchanged, the first token is dead
+	// even inside its grace period: it can only ever lead to one live session.
+	again := h.do(http.MethodPost, "/auth/refresh", "", map[string]any{"refreshToken": rotated.str("refreshToken")})
+	if again.status != http.StatusOK {
+		t.Fatalf("second refresh: status %d body %s", again.status, again.raw)
+	}
 	reuse := h.do(http.MethodPost, "/auth/refresh", "", map[string]any{"refreshToken": oldRefresh})
 	if reuse.status != http.StatusUnauthorized {
-		t.Errorf("reusing a rotated-away refresh token: status = %d, want 401", reuse.status)
+		t.Errorf("reusing a token two rotations back: status = %d, want 401", reuse.status)
+	}
+}
+
+func TestRefreshReusedInsideTheGracePeriodGetsTheSameSuccessor(t *testing.T) {
+	// Two requests from one client come back 401 together and both refresh
+	// with the same token. The second must not be refused — that refusal
+	// signed a guest out in the middle of a match — and must not fork a
+	// second session either.
+	h := newTestHarness(t)
+	guest := h.do(http.MethodPost, "/auth/guest", "", map[string]any{"guestName": "Twice"})
+	oldRefresh := guest.str("refreshToken")
+
+	first := h.do(http.MethodPost, "/auth/refresh", "", map[string]any{"refreshToken": oldRefresh})
+	second := h.do(http.MethodPost, "/auth/refresh", "", map[string]any{"refreshToken": oldRefresh})
+	if first.status != http.StatusOK || second.status != http.StatusOK {
+		t.Fatalf("refresh statuses = %d, %d; want 200, 200 (%s)", first.status, second.status, second.raw)
+	}
+	if second.str("refreshToken") != first.str("refreshToken") {
+		t.Errorf("second refresh issued %q, want the first's successor %q",
+			second.str("refreshToken"), first.str("refreshToken"))
+	}
+	if second.str("userId") != first.str("userId") || second.str("accessToken") == "" {
+		t.Errorf("second refresh answered as %q with access token %q, want %q with one",
+			second.str("userId"), second.str("accessToken"), first.str("userId"))
+	}
+}
+
+func TestRefreshReusedAfterTheGracePeriodIsRefused(t *testing.T) {
+	h := newTestHarness(t)
+	guest := h.do(http.MethodPost, "/auth/guest", "", map[string]any{"guestName": "Late"})
+	oldRefresh := guest.str("refreshToken")
+
+	rotated := h.do(http.MethodPost, "/auth/refresh", "", map[string]any{"refreshToken": oldRefresh})
+	if rotated.status != http.StatusOK {
+		t.Fatalf("refresh: status %d body %s", rotated.status, rotated.raw)
+	}
+	// Age the retirement past its grace period, as the clock would.
+	past := time.Now().UTC().Add(-time.Second)
+	if err := h.sessions.Retire(context.Background(), oldRefresh, rotated.str("refreshToken"), past); err != nil {
+		t.Fatalf("ageing the retired session: %v", err)
+	}
+	late := h.do(http.MethodPost, "/auth/refresh", "", map[string]any{"refreshToken": oldRefresh})
+	if late.status != http.StatusUnauthorized {
+		t.Errorf("reusing a rotated token after the grace period: status = %d, want 401", late.status)
+	}
+}
+
+func TestRefreshReusedAfterTheSuccessorLoggedOutIsRefused(t *testing.T) {
+	h := newTestHarness(t)
+	guest := h.do(http.MethodPost, "/auth/guest", "", map[string]any{"guestName": "Gone"})
+	oldRefresh := guest.str("refreshToken")
+
+	rotated := h.do(http.MethodPost, "/auth/refresh", "", map[string]any{"refreshToken": oldRefresh})
+	if res := h.do(http.MethodPost, "/auth/logout", "", map[string]any{"refreshToken": rotated.str("refreshToken")}); res.status != http.StatusOK {
+		t.Fatalf("logout: status %d body %s", res.status, res.raw)
+	}
+	reuse := h.do(http.MethodPost, "/auth/refresh", "", map[string]any{"refreshToken": oldRefresh})
+	if reuse.status != http.StatusUnauthorized {
+		t.Errorf("reusing a rotated token after logout: status = %d, want 401", reuse.status)
 	}
 }
 

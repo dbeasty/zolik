@@ -36,13 +36,19 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					{LabelKey: "prsi.rules.queens"},
 				},
 				Defaults: map[string]int{
-					OptHandSize:        defaultHandSize,
-					module.OptBotSkill: module.SkillOpt(module.SkillMedium),
+					OptHandSize:               defaultHandSize,
+					module.OptOpenDiscardPile: module.OptOff,
+					module.OptBotSkill:        module.SkillOpt(module.SkillMedium),
 				},
 			},
 		},
 		Options: []module.OptionSpec{
+			// Off by default, which is the pub table this game is played on:
+			// the pile is a stack of cards nobody turns over, and what went
+			// into it is remembered rather than looked up.
+			module.OpenDiscardPileOption(),
 			module.BotSkillOption(),
+			module.HintsOption(),
 			{
 				Name:  OptHandSize,
 				Type:  module.OptionEnumInt,
@@ -65,6 +71,16 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 // draw pile is face down, and that the discard pile shows only its top card.
 // The runtime never has to be told any of it.
 func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, error) {
+	return m.view(raw, viewerID, false)
+}
+
+// OpenView renders the board with every hand face up, for replaying a game
+// that is over. The runtime only ever asks for it once a match is finished.
+func (m *Module) OpenView(raw module.State) (module.ViewModel, error) {
+	return m.view(raw, "", true)
+}
+
+func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.ViewModel, error) {
 	s, err := decode(raw)
 	if err != nil {
 		return module.ViewModel{}, err
@@ -77,11 +93,15 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 	// (Zone ids come from the helpers below rather than being written out, so
 	// the offers can point at the same strings — an offer naming a zone id no
 	// zone has is a drop target nobody can hit.)
-	own := s.Hands[viewerID]
-	vm.Zones = append(vm.Zones, module.Zone{
-		ID: handZoneID(viewerID), Kind: module.ZoneHand, OwnerID: viewerID,
-		LabelKey: "zone.yourHand", Cards: cardViews(own), Count: len(own),
-	})
+	// Skipped entirely when there is no viewer, which is what an open view is:
+	// nobody is sitting at this board, so no hand is "yours".
+	if viewerID != "" {
+		own := s.Hands[viewerID]
+		vm.Zones = append(vm.Zones, module.Zone{
+			ID: handZoneID(viewerID), Kind: module.ZoneHand, OwnerID: viewerID,
+			LabelKey: "zone.yourHand", Cards: cardViews(own), Count: len(own),
+		})
+	}
 
 	// Everyone else: a count only. This is the whole anti-cheat surface for
 	// this game, and it is four lines rather than a 40-line projection.
@@ -89,10 +109,14 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 		if p == viewerID {
 			continue
 		}
-		vm.Zones = append(vm.Zones, module.Zone{
+		z := module.Zone{
 			ID: handZoneID(p), Kind: module.ZoneHand, OwnerID: p,
 			LabelKey: "zone.opponentHand", Count: len(s.Hands[p]),
-		})
+		}
+		if reveal {
+			z.Cards = cardViews(s.Hands[p])
+		}
+		vm.Zones = append(vm.Zones, z)
 	}
 
 	vm.Zones = append(vm.Zones,
@@ -102,7 +126,7 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 		},
 		module.Zone{
 			ID: discardZoneID, Kind: module.ZonePile, LabelKey: "zone.discardPile",
-			Cards: cardViews(topOnly(s)), Count: len(s.DiscardPile),
+			Cards: cardViews(shownPile(s)), Count: len(s.DiscardPile),
 		},
 	)
 
@@ -163,6 +187,18 @@ func cardViews(cards []string) []module.CardView {
 // topOnly is what the discard pile shows: its top card. What is buried under
 // it is not secret exactly, but it is not in play either, and sending it would
 // invite a client to reason about it.
+// shownPile is how much of the discard pile this table publishes — all of it
+// where the option is on, the top card alone otherwise. Both are public
+// either way: every card in the pile was played face up, and the pile is
+// shuffled when it is recycled, so an open pile says nothing about the order
+// of the draw pile it becomes.
+func shownPile(s *GameState) []string {
+	if s.OpenDiscard {
+		return s.DiscardPile
+	}
+	return topOnly(s)
+}
+
 func topOnly(s *GameState) []string {
 	if t := s.top(); t != "" {
 		return []string{t}
@@ -170,12 +206,11 @@ func topOnly(s *GameState) []string {
 	return nil
 }
 
-// Bot is how Prší wants a vacant seat played: try to shed a card, take a skip
-// if one is owed, and draw only when there is nothing else. That preference is
-// a taste, not a rule — the offers decide what is legal.
-func (m *Module) Bot() module.Bot {
-	return module.OfferBot(VerbPlay, VerbPass, VerbDraw)
-}
+// Bot is how Prší wants a vacant seat played: shed a card, take a skip if one
+// is owed, and draw only when there is nothing else — and choose *which* card,
+// which is the part module.OfferBot could not do and the part this game is. See
+// bot.go.
+func (m *Module) Bot() module.Bot { return bot{} }
 
 // Standings ranks by cards left, fewest first — which is both the state of the
 // race mid-deal and the result at the end of it, since the winner is whoever
@@ -188,6 +223,19 @@ func (m *Module) Standings(raw module.State) ([]module.Standing, error) {
 	// Negated, because RankByScore ranks highest-first and here fewer is
 	// better. Doing it this way rather than adding a direction flag keeps one
 	// ranking implementation with one tie rule.
-	return module.RankByScore(s.TurnOrder,
-		func(id string) int { return -len(s.Hands[id]) }, "prsi.unit.cardsLeft"), nil
+	out := module.RankByScore(s.TurnOrder,
+		func(id string) int { return -len(s.Hands[id]) }, "prsi.unit.cardsLeft")
+	for i := range out {
+		// Score stays negated so the runtime can rank and record it without a
+		// sense of direction; Shown is the count as a player would say it.
+		//
+		// Without this the negation showed through onto every Prší board in
+		// production: the seat strip read "-4 cards left" under both players,
+		// on a live game, for as long as the module has existed. Žolíky has
+		// carried the same two lines since its own penalties printed
+		// backwards — see zolikmod.Module.Standings.
+		shown := len(s.Hands[out[i].PlayerID])
+		out[i].Shown = &shown
+	}
+	return out, nil
 }

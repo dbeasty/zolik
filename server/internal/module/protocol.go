@@ -173,6 +173,12 @@ type Group struct {
 	// BadgeKeys are message keys for anything worth marking on the group
 	// ("clean run", "trump"). Keys, never rendered text.
 	BadgeKeys []string `json:"badgeKeys,omitempty"`
+	// Complete marks a group that is finished as far as the player is
+	// concerned — a canasta, not a meld still being built — so a client may
+	// fold it down to take less room. Whether it still takes cards is a
+	// separate question the offers answer; this is about how much of the
+	// board it deserves.
+	Complete bool `json:"complete,omitempty"`
 }
 
 // Zone is one area of the board.
@@ -188,6 +194,39 @@ type Zone struct {
 	Cards    []CardView `json:"cards,omitempty"`
 	Count    int        `json:"count"`
 	Groups   []Group    `json:"groups,omitempty"`
+	// Dealer marks the house's own zone: cards the game itself plays, held by
+	// nobody at the table. Blackjack's dealer is the one so far.
+	//
+	// Presentational, and deliberately so. The claim the protocol makes — and
+	// that blackjack's conformance test exists to falsify — is that a client
+	// never *has* to know the dealer exists as anything but a zone with cards
+	// in it, and that still holds: a client that ignores this field draws the
+	// zone exactly as it drew it before and plays the game exactly as well.
+	// What the field buys is a client that doesn't have to *pretend* the
+	// house is a player, filing the dealer's cards in among the seats' melds
+	// because the alternative was matching on a zone id.
+	//
+	// It is a flag rather than a "who" because the house is not a who. There
+	// is no seat, no stack and no standing behind it; OwnerID stays empty,
+	// which is the fact this field is stating out loud.
+	Dealer bool `json:"dealer,omitempty"`
+	// Shared marks a spread the *table* holds: cards in play for everybody at
+	// once, belonging to no player and to no side. Poker's board is the one
+	// so far.
+	//
+	// It exists because an empty OwnerID does not answer the question. A
+	// Canasta partnership's melds name no owner either — they are a side's,
+	// not a player's — and they are still somebody's cards, laid out among
+	// the other players' spreads. Poker's five are nobody's and everybody's,
+	// and belong up on the felt beside the deck they were dealt from, which
+	// is where a player looks for them.
+	//
+	// Presentational, exactly as Dealer is: a client that ignores this draws
+	// the zone as a spread wherever it draws spreads, and plays the game no
+	// worse for it. What the field buys is a client that can put the board on
+	// the table without matching on the id "board", which would be the shell
+	// knowing a game's name.
+	Shared bool `json:"shared,omitempty"`
 }
 
 // Fact is a labelled value for a header or scoreboard — pre-resolved by the
@@ -222,6 +261,16 @@ type Seat struct {
 	// canastas. Pre-resolved by the module, rendered by the client,
 	// interpreted by neither.
 	Facts []Fact `json:"facts,omitempty"`
+	// Side is which partnership this seat plays for: an id shared by partners
+	// and by nobody else. Opaque — a client groups seats by it and does not
+	// otherwise read it, because a side's *name* is a rendering decision and
+	// its *membership* is a rule.
+	//
+	// Empty where a seat is its own side, which is every seat in a game
+	// without partnerships. That is the same answer Seated.Sides gives a
+	// lobby, for the same reason: six sides of one is not a fact worth
+	// showing, it is noise with a label on it.
+	Side string `json:"side,omitempty"`
 }
 
 // ViewModel is the whole board as one viewer sees it.
@@ -283,6 +332,18 @@ type Placement struct {
 	Card      string   `json:"card"`
 	Positions []string `json:"positions,omitempty"`
 
+	// Slots says where each of Positions lands, as an index into the
+	// group's rendered cards: 0 is before the first card, len(cards) is
+	// after the last. Same length and order as Positions, or empty.
+	//
+	// It exists so a client can draw the place a card would go without
+	// knowing what "front" means. The ordinal alone is not enough: a run
+	// that will only take a card at one end offers exactly one position,
+	// and nothing in "position 1 of 1" says which end it is. Guessing is
+	// worse than saying nothing, so the side that knows the rule says the
+	// number and the side that draws stays ignorant of the rule.
+	Slots []int `json:"slots,omitempty"`
+
 	// Requires names the other cards that must be submitted in the same
 	// action for this one to be legal — a rummy run's 5 needs the 6 when
 	// the run starts at the 7. Empty means "may go on its own", which is
@@ -293,6 +354,16 @@ type Placement struct {
 	// these cards: a control that sends one card unprompted must never
 	// reach for one that needs company.
 	Requires []string `json:"requires,omitempty"`
+
+	// Alternatives are the other companion sets that would do instead of
+	// Requires — any one of them, in full, and the card is legal. A rummy
+	// 10 that needs the 9 to reach a run of 5-6-7-8 needs it no less for
+	// the joker in the same hand also being able to stand in the 9's
+	// place; both are company, and the player picks.
+	//
+	// Empty when there is only one way in. A card with alternatives still
+	// needs company, so Selector.Cards omits it just the same.
+	Alternatives [][]string `json:"alternatives,omitempty"`
 }
 
 // PositionParam is the parameter a chosen Placement position is submitted
@@ -328,6 +399,28 @@ type Selector struct {
 	// list — see Placement.Requires.
 	Cards      []string    `json:"cards,omitempty"`
 	Placements []Placement `json:"placements,omitempty"`
+
+	// Submit is the one combination to send when nobody is choosing: a bot
+	// taking this offer, or a client putting it under a single button.
+	//
+	// Cards says which cards *may* go and MinCards/MaxCards bound how many of
+	// them, which between them describe a whole family of legal submissions.
+	// That is the right answer for an interface and no answer at all for a bot:
+	// a Canasta hand with four queens may lay any three of them or all four,
+	// every one of those is legal, and the module's own opinion — lay all
+	// four — was not expressible.
+	//
+	// It used to be read off MinCards, which meant the minimum had to lie
+	// whenever the best submission was not the smallest one. Canasta's meld
+	// offers did lie, and the cost was a hand of four queens that could not lay
+	// three: the offer demanded exactly four and every shorter selection sat
+	// there unready. Saying the two things separately is the same fix Composite
+	// already made for "is this a button", and for the same reason — see its
+	// note on inference.
+	//
+	// Empty means the old reading still applies: the first MinCards cards of
+	// the list, which is what every single-card offer in every module means.
+	Submit []string `json:"submit,omitempty"`
 
 	MinCards int `json:"minCards,omitempty"`
 	MaxCards int `json:"maxCards,omitempty"`
@@ -378,6 +471,12 @@ type ParamSpec struct {
 	// Default is the value a control should start on — the minimum legal
 	// raise, say, rather than an arbitrary end of the range.
 	Default int `json:"default,omitempty"`
+	// Headline says this parameter's current value is what pressing the offer
+	// sends, and belongs on the offer's own control: the prompt and the figure
+	// as it moves — "Raise to 483", not "Raise" above a slider the button never
+	// echoes. Opt-in, because an int that only positions something (a tile's
+	// place in a run) is no answer to "what does this button do".
+	Headline bool `json:"headline,omitempty"`
 }
 
 // ParamChoice is one selectable value of a ParamKindChoice.
@@ -396,6 +495,15 @@ type ActionOffer struct {
 	Verb    string `json:"verb"`
 	Enabled bool   `json:"enabled"`
 	// WhyNot is a stable error code, never a sentence.
+	//
+	// One spelling is a convention across modules: NOTHING_FITS_HERE refuses
+	// an offer aimed at one target — a meld, a pile — that nothing the player
+	// holds would go on. It is the weakest refusal there is. Offers of one
+	// verb are often folded into a single control, and a table with seven
+	// melds has six that take nothing from a given hand; counted like any
+	// other reason, "nothing fits here" outvotes the one meld whose refusal is
+	// the real answer. A client folding offers shows it only when no member
+	// has anything better to say.
 	WhyNot string `json:"whyNot,omitempty"`
 
 	// RuleIDs name the written rules that justify WhyNot at this table — the
@@ -449,6 +557,21 @@ type ActionOffer struct {
 	// the highest bet minus its own would be deriving a rule again — the one
 	// thing this protocol exists to stop.
 	Facts []Fact `json:"facts,omitempty"`
+
+	// Undo marks an offer that takes a move back rather than making one.
+	//
+	// The runtime needs it, and needs it declared rather than guessed at from
+	// the verb's spelling. A driver recovering a stuck turn tries the offers in
+	// front of it, and an undo is the one kind of offer that can succeed and
+	// still leave the seat facing the decision it just made — take the discard
+	// pile, find the turn goes nowhere, put it back, and a bot that is a pure
+	// function of the position takes it again. That is the loop that froze game
+	// 6aaa157d0079d0b3a6624b3a; see match.botLoop, which unwinds on these and
+	// then declines to replay what it unwound.
+	//
+	// Not a hint about rendering: a client is free to show an undo like any
+	// other control, and both modules that have one do.
+	Undo bool `json:"undo,omitempty"`
 
 	// Composite marks an offer whose concrete submission this list does not
 	// enumerate: a *combination* a person has to compose, from a set of cards
@@ -514,6 +637,33 @@ func StandingsFor(m GameModule, s State) []Standing {
 		return nil
 	}
 	return out
+}
+
+// OpenViewer is implemented by a module that can show a board with nothing
+// hidden: a finished game, where there is no longer anything to protect.
+//
+// Optional, in the same way and for the same reason as Ranked — a module that
+// cannot honestly reveal everything should decline rather than half-reveal.
+// A module that declines is replayed through its ordinary per-viewer View,
+// which is always safe, just less interesting.
+//
+// Takes no viewer, by construction: "every hand face up" is one board, the
+// same for everyone looking at it.
+type OpenViewer interface {
+	OpenView(s State) (ViewModel, error)
+}
+
+// OpenViewFor returns a module's nothing-hidden board, and whether it had one.
+func OpenViewFor(m GameModule, s State) (ViewModel, bool) {
+	o, ok := m.(OpenViewer)
+	if !ok {
+		return ViewModel{}, false
+	}
+	out, err := o.OpenView(s)
+	if err != nil {
+		return ViewModel{}, false
+	}
+	return out, true
 }
 
 // RankByScore turns per-player scores into standings, highest first.
@@ -599,6 +749,30 @@ func level(a, b []int) bool {
 		}
 	}
 	return true
+}
+
+// OfferFor is the enabled offer an action would be sent through: the one it
+// names, or, for an action that names none (a bot speaking in verbs), the
+// first enabled offer with its verb and, where it has one, its target. Nil
+// when nothing on the list fits.
+func OfferFor(offers []ActionOffer, a Action) *ActionOffer {
+	if a.OfferID != "" {
+		if o := FindOffer(offers, a.OfferID); o != nil && o.Enabled {
+			return o
+		}
+		return nil
+	}
+	for i := range offers {
+		o := &offers[i]
+		if !o.Enabled || o.Verb != a.Verb {
+			continue
+		}
+		if a.Target != "" && (o.Target == nil || o.Target.MeldID != a.Target) {
+			continue
+		}
+		return o
+	}
+	return nil
 }
 
 // FindOffer returns the offer with this ID, or nil.

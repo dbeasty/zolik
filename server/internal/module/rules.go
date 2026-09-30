@@ -1,5 +1,13 @@
 package module
 
+import (
+	"fmt"
+	"reflect"
+	"sort"
+	"strings"
+	"sync"
+)
+
 // RuleSection is one titled group of a game's written rules ("Setup",
 // "Melding", "How a match ends").
 type RuleSection struct {
@@ -114,4 +122,78 @@ func RuleIDsIn(sections []RuleSection) map[string]bool {
 		}
 	}
 	return out
+}
+
+// StatedRuleIDs is RuleIDsIn(Rules(cfg)), remembered.
+//
+// The offer list needs this set on every build, to keep a refusal from
+// pointing at a sentence the table does not state. Deriving it means building
+// the module's whole rules listing — every section, every Fact, every params
+// map — which is cheap once and not cheap on every broadcast of every table,
+// and ruinous inside the bot simulator, where offer lists are built by the
+// million.
+//
+// Safe to remember because a listing is a pure function of the config: same
+// variation and options, same sentences, for the life of the process. The
+// option space a lobby can produce is small and enumerable, so the map is
+// bounded by it rather than by traffic.
+//
+// The returned map is shared between callers and MUST NOT be mutated.
+func StatedRuleIDs(p RulesProvider, cfg MatchConfig) map[string]bool {
+	key := statedKey(p, cfg)
+	statedMu.RLock()
+	cached, ok := stated[key]
+	statedMu.RUnlock()
+	if ok {
+		return cached
+	}
+
+	sections, err := p.Rules(cfg)
+	if err != nil {
+		// Not cached: a module that failed once may be handed a config it can
+		// answer next time, and remembering the empty answer would silently
+		// strip every rule reference from that table for the whole process.
+		return nil
+	}
+	ids := RuleIDsIn(sections)
+
+	statedMu.Lock()
+	stated[key] = ids
+	statedMu.Unlock()
+	return ids
+}
+
+var (
+	statedMu sync.RWMutex
+	stated   = map[string]map[string]bool{}
+)
+
+// statedKey identifies one module's one table. The module's *type* names the
+// game, because two games can state the same variation name — several of them
+// call one "standard".
+//
+// Its type and not its address, which is what this was first written with and
+// is quietly wrong: a module whose struct holds no fields is zero-sized, and
+// Go is free to give every pointer to a zero-sized value the same address.
+// Gin Rummy, Blackjack and Rummy Tiles are all `struct{}` underneath, so all
+// three collided on one cache entry and two of them read back the third's
+// rules — which, since the ids are filtered against that set, silently
+// stripped every rule reference from their refusals. Caught by
+// TestEveryModuleExplainsItsRefusals, and not by anything a player would ever
+// report.
+func statedKey(p RulesProvider, cfg MatchConfig) string {
+	names := make([]string, 0, len(cfg.Options))
+	for name := range cfg.Options {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	var b strings.Builder
+	b.WriteString(reflect.TypeOf(p).String())
+	b.WriteByte('|')
+	b.WriteString(cfg.Variation)
+	for _, name := range names {
+		fmt.Fprintf(&b, "|%s=%d", name, cfg.Options[name])
+	}
+	return b.String()
 }

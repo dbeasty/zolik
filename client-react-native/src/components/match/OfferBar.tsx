@@ -1,10 +1,26 @@
-import { useMemo, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { type Dispatch, type ReactNode, type SetStateAction, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type GestureResponderEvent,
+  PanResponder,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
 import type { ActionOffer, MatchAction, ParamSpec } from '@/src/api/matchTypes';
-import { defaultParam, isOneTap, offerGroupKey, submissionFor } from '@/src/api/matchTypes';
+import {
+  defaultParam,
+  isOneTap,
+  offerGroupKey,
+  offerHeadline,
+  sharedRefusal,
+  submissionFor,
+} from '@/src/api/matchTypes';
 import { useMetrics } from '@/src/hooks/useMetrics';
-import { fits, type Fit } from '@/src/lib/drops';
+import { fits, readyWith, type Fit } from '@/src/lib/drops';
 import { Attention } from '@/src/components/match/Attention';
 import type { Refusal } from '@/src/components/match/WhySheet';
 import type { Metrics } from '@/src/lib/layout';
@@ -38,7 +54,32 @@ import type { Skin } from '@/src/skins/types';
  * file mentions no rank, suit, meld, blind or pot.
  */
 
-type Props = {
+/**
+ * Parameter values in progress, keyed by offer id then parameter name. Only an
+ * offer the player is actively configuring has an entry.
+ */
+export type OfferParams = Record<string, Record<string, string>>;
+
+/**
+ * The in-progress values, held by whoever renders both `OfferBar` and
+ * `OfferGlance`. Collapsing the controls panel unmounts the bar, so a value it
+ * kept to itself was forgotten on collapse, and the glance pill — which never
+ * saw it — sent the server's default: a raise dialled to 483 went in at the
+ * minimum from the pill. One store, read by both, is what makes the pill's
+ * "Raise to 483" true. Optional so a bar rendered on its own still works.
+ */
+type SharedParams = {
+  params?: OfferParams;
+  onParamsChange?: Dispatch<SetStateAction<OfferParams>>;
+};
+
+/** The shared store when a caller supplies one, a local one otherwise. */
+function useOfferParams(shared: SharedParams): [OfferParams, Dispatch<SetStateAction<OfferParams>>] {
+  const [local, setLocal] = useState<OfferParams>({});
+  return shared.params && shared.onParamsChange ? [shared.params, shared.onParamsChange] : [local, setLocal];
+}
+
+type Props = SharedParams & {
   offers: ActionOffer[];
   /** Cards the player has selected in their own zone, for composite offers. */
   selectedCards: string[];
@@ -78,6 +119,13 @@ type Props = {
    * rings whatever that turns out to be.
    */
   urgent?: boolean;
+  /**
+   * The player has had the move for a while without making it. Rings the same
+   * one control `urgent` would, as a suggestion of where to start.
+   */
+  nudge?: boolean;
+  /** The offer a hint suggested, ringed until the board moves on. */
+  hintOfferId?: string;
 };
 
 /**
@@ -116,14 +164,15 @@ export function OfferBar({
   onAmbiguous,
   onExplain,
   urgent,
+  nudge,
+  hintOfferId,
+  ...shared
 }: Props) {
   const metrics = useMetrics();
   const skin = useSkin();
   const styles = useMemo(() => offerBarStyles(metrics, skin), [metrics, skin]);
 
-  // Parameter values in progress, keyed by offer id then parameter name. Only
-  // an offer the player is actively configuring has an entry.
-  const [params, setParams] = useState<Record<string, Record<string, string>>>({});
+  const [params, setParams] = useOfferParams(shared);
 
   const setParam = (offerId: string, name: string, value: string) =>
     setParams((prev) => ({ ...prev, [offerId]: { ...(prev[offerId] ?? {}), [name]: value } }));
@@ -143,6 +192,23 @@ export function OfferBar({
   const { groups, foldedIds } = useMemo(() => foldOffers(offers), [offers]);
   const renderedGroups = new Set<string>();
 
+  // The one control the ring is for.
+  //
+  // `urgent` is a fact about the bar — the table is waiting on this player —
+  // and the ring used to be drawn around every control that could be pressed.
+  // That was exact while the only urgent bar in the app was an intermission,
+  // which offered exactly one thing. Hold'em's showdown offers two (go on, and
+  // show your hand first), and a ring around both says "look here" twice,
+  // which is the same as not saying it.
+  //
+  // So it marks the first control that could be pressed, and the module
+  // decides which that is by the order it lists its offers in. No game
+  // knowledge on this side: the shell does not know what leads, only that
+  // something does.
+  // Never an undo: taking a move back is always available and never the
+  // thing the table is waiting for.
+  const leadId = offers.find((o) => o.enabled && !o.undo && isReady(o, selectedCards, params[o.id]))?.id;
+
   return (
     <View style={styles.bar} testID="action-bar">
       {offers.map((offer) => {
@@ -160,6 +226,7 @@ export function OfferBar({
               onResolve={send}
               onAmbiguous={onAmbiguous}
               onExplain={onExplain}
+              hinted={!!hintOfferId && (groups.get(key) ?? []).some((o) => o.id === hintOfferId)}
               styles={styles}
             />
           );
@@ -172,38 +239,56 @@ export function OfferBar({
         // this takes one" reads as the same kind of thing as one greyed out
         // for "not your turn" rather than as broken.
         const unready = offer.enabled && !ready && !offer.composite ? unreadyReason(offer, selectedCards) : undefined;
+        const headline = offerHeadline(offer, params[offer.id]);
+        const live = offer.enabled && ready;
+        const explain = onExplain
+          ? () => onExplain(refusalFor(offer, selectedCards, params[offer.id]))
+          : undefined;
         return (
           <View key={offer.id} style={styles.slot}>
+            <ExplainOnPress testID={`explain-${offer.id}`} onExplain={explain}>
             <Pressable
               testID={`offer-${offer.id}`}
-              accessibilityState={{ disabled: !offer.enabled || !ready }}
-              disabled={!offer.enabled || !ready}
+              accessibilityState={{ disabled: !live }}
+              disabled={!live}
               onPress={() => send(offer)}
-              style={[styles.button, (!offer.enabled || !ready) && styles.ghost]}
+              style={[styles.button, !live && styles.ghost]}
             >
               {/* A ring in the air around the one thing the table is waiting
                   for. Drawn inside the control so it needs no wrapper, and on
                   its own layer so it costs the row no room. */}
-              <Attention active={!!urgent && offer.enabled && ready} radius={8} />
-              {/* The offer's own label if it has one, because a verb cannot
-                  always tell two controls apart; otherwise the verb, which
-                  covers most offers. */}
+              <Attention
+                active={hintOfferId ? offer.id === hintOfferId : (!!urgent || !!nudge) && offer.id === leadId}
+                radius={8}
+              />
+              {/* The figure the press sends, when the offer declares one —
+                  "Raise to 483", following the slider and the quick choices
+                  below as they move it, because a button that says only
+                  "Raise" over a value it never echoes leaves the player to
+                  trust it read the right one. Otherwise the offer's own label
+                  if it has one, because a verb cannot always tell two
+                  controls apart; otherwise the verb, which covers most
+                  offers. */}
               <Text
-                style={[styles.buttonText, (!offer.enabled || !ready) && styles.ghostText]}
+                testID={`offer-${offer.id}-title`}
+                style={[styles.buttonText, !live && styles.ghostText]}
               >
-                {label(offer.labelKey ?? `verb.${offer.verb}`) || offer.verb}
+                {headline
+                  ? `${label(headline.labelKey)} ${headline.value}`
+                  : label(offer.labelKey ?? `verb.${offer.verb}`) || offer.verb}
               </Text>
               {/* What the move costs, pushed by the server rather than worked
                   out here — "Call 40" is a button whose meaning is its number. */}
               {(offer.facts ?? []).map((f, i) => (
                 <Text
                   key={i}
-                  style={[styles.buttonFact, (!offer.enabled || !ready) && styles.ghostText]}
+                  style={[styles.buttonFact, !live && styles.ghostText]}
                 >
                   {factText(f)}
                 </Text>
               ))}
             </Pressable>
+            </ExplainOnPress>
 
             {/* The reason stays inline and always visible; pressing it opens
                 the rule behind it. A refusal a player has to tap to see at
@@ -214,23 +299,14 @@ export function OfferBar({
                 testID={`why-${offer.id}`}
                 text={reasonText(offer.whyNot, offer.whyNot)}
                 styles={styles}
-                onPress={
-                  onExplain
-                    ? () =>
-                        onExplain({
-                          code: offer.whyNot,
-                          ruleIds: offer.ruleIds,
-                          remedy: offer.remedy,
-                          remedyOfferId: offer.remedyOfferId,
-                        })
-                    : undefined
-                }
+                onPress={explain}
               />
             ) : unready ? (
               <ReasonLine
                 testID={`why-${offer.id}`}
                 text={label(unready.labelKey, unready.params)}
                 styles={styles}
+                onPress={explain}
               />
             ) : null}
 
@@ -271,7 +347,9 @@ export function OfferBar({
  * combination or dialling in a parameter — so a pill for an offer that still
  * needs one of those stays visible (it *is* available) but dimmed until the
  * player's own selection settles it, exactly the condition `OfferBar` uses to
- * decide an offer isn't ready yet. A folded pill resolves the same way its
+ * decide an offer isn't ready yet. A parameter dialled in on the full bar is
+ * read from the same shared store (see `SharedParams`), so the pill is titled
+ * with it and sends it. A folded pill resolves the same way its
  * `FoldedOffer` counterpart does: the selection settles it, or the press is
  * handed to `onAmbiguous` to point at targets on the board.
  */
@@ -282,15 +360,19 @@ export function OfferGlance({
   onSend,
   onConsumeSelection,
   onAmbiguous,
+  onExplain,
   max = 4,
   testID = 'offer-glance',
-}: {
+  ...shared
+}: SharedParams & {
   offers: ActionOffer[];
   selectedCards?: string[];
   armedGroupId?: string | null;
   onSend?: (action: MatchAction) => void;
   onConsumeSelection?: () => void;
   onAmbiguous?: (groupKey: string) => void;
+  /** A pill not ready for a bare tap was pressed anyway; see `OfferBar`. */
+  onExplain?: (refusal: Refusal) => void;
   max?: number;
   testID?: string;
 }) {
@@ -298,16 +380,26 @@ export function OfferGlance({
   const skin = useSkin();
   const styles = useMemo(() => offerBarStyles(metrics, skin), [metrics, skin]);
   const { groups, foldedIds } = useMemo(() => foldOffers(offers), [offers]);
+  const [params, setParams] = useOfferParams(shared);
 
-  const seen = new Set<string>();
-  const distinct: ActionOffer[] = [];
+  // One pill per label — but several unfolded offers can share a label (every
+  // `lay_meld:<rank>` reads "Kombinace" alike), and picking whichever came
+  // first in `offers` regardless of the current selection left the pill
+  // ghosted on a hand that in fact settles a same-labelled sibling further
+  // down the list. Prefer whichever candidate the selection actually settles,
+  // so the pill tracks what's in hand rather than an arbitrary array order.
+  const byKey = new Map<string, ActionOffer>();
   for (const o of offers) {
     if (!o.enabled) continue;
     const key = offerGroupKey(o);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    distinct.push(o);
+    const current = byKey.get(key);
+    if (!current) {
+      byKey.set(key, o);
+    } else if (!offerSettles(current, selectedCards) && offerSettles(o, selectedCards)) {
+      byKey.set(key, o);
+    }
   }
+  const distinct = [...byKey.values()];
   if (!distinct.length) return null;
 
   const shown = distinct.slice(0, max);
@@ -315,10 +407,11 @@ export function OfferGlance({
 
   const fire = (offer: ActionOffer) => {
     const cards = offer.composite || (offer.source?.minCards ?? 0) > 0 ? pickCards(offer, selectedCards) : undefined;
-    const action = submissionFor(offer, { cards });
+    const action = submissionFor(offer, { cards, params: params[offer.id] });
     if (!action) return;
     onSend?.(action);
     if (cards?.length) onConsumeSelection?.();
+    setParams((prev) => ({ ...prev, [offer.id]: {} }));
   };
 
   const press = (offer: ActionOffer, groupKey: string) => {
@@ -345,10 +438,17 @@ export function OfferGlance({
         // A folded pill can always be pressed — it either resolves outright
         // or opens up the board's targets — but a lone offer still waiting on
         // a card combination or a parameter isn't ready for a bare tap yet.
-        const ready = foldedIds.has(o.id) || isReady(o, selectedCards, undefined);
+        const ready = foldedIds.has(o.id) || isReady(o, selectedCards, params[o.id]);
+        // The same title the full bar gives it — "Raise to 483", from the
+        // shared value — so the pill says what it sends.
+        const headline = offerHeadline(o, params[o.id]);
         return (
-          <Pressable
+          <ExplainOnPress
             key={o.id}
+            testID={`explain-glance-${o.id}`}
+            onExplain={onExplain ? () => onExplain(refusalFor(o, selectedCards, params[o.id])) : undefined}
+          >
+          <Pressable
             testID={`offer-glance-${o.id}`}
             accessibilityRole="button"
             accessibilityState={{ disabled: !ready }}
@@ -356,10 +456,17 @@ export function OfferGlance({
             onPress={() => press(o, groupKey)}
             style={[styles.glancePill, !ready && styles.ghost]}
           >
-            <Text style={[styles.glancePillText, !ready && styles.ghostText]} numberOfLines={1}>
-              {label(o.labelKey ?? `verb.${o.verb}`) || o.verb}
+            <Text
+              testID={`offer-glance-${o.id}-title`}
+              style={[styles.glancePillText, !ready && styles.ghostText]}
+              numberOfLines={1}
+            >
+              {headline
+                ? `${label(headline.labelKey)} ${headline.value}`
+                : label(o.labelKey ?? `verb.${o.verb}`) || o.verb}
             </Text>
           </Pressable>
+          </ExplainOnPress>
         );
       })}
       {rest > 0 ? <Text style={styles.glanceTail}>+{rest}</Text> : null}
@@ -385,8 +492,10 @@ function FoldedOffer({
   onResolve,
   onAmbiguous,
   onExplain,
+  hinted,
   styles,
 }: {
+  hinted?: boolean;
   groupKey: string;
   group: ActionOffer[];
   selectedCards: string[];
@@ -411,21 +520,15 @@ function FoldedOffer({
   // yet", and every member disabled for the same reason (the common case: a
   // rule gating the verb, not any one target) deserves exactly the sentence a
   // lone offer of the same shape would show.
-  const reasonCounts = new Map<string, number>();
-  for (const o of group) {
-    if (o.enabled || !o.whyNot) continue;
-    reasonCounts.set(o.whyNot, (reasonCounts.get(o.whyNot) ?? 0) + 1);
-  }
-  let sharedReason: string | undefined;
-  let bestCount = 0;
-  for (const [reason, count] of reasonCounts) {
-    // Ties keep the first reason found, i.e. the group's own order — as good
-    // a tiebreak as any when the targets disagree about why.
-    if (count > bestCount) {
-      bestCount = count;
-      sharedReason = reason;
-    }
-  }
+  const sharedReason = sharedRefusal(group);
+
+  // The member this reason actually came from, so its rules and its remedy
+  // travel with it rather than the first member's, which may have been
+  // refused for something else.
+  const explain = () => {
+    const source = group.find((o) => !o.enabled && o.whyNot === sharedReason) ?? group.find((o) => !o.enabled);
+    if (source) onExplain?.(refusalFor(source, selectedCards, undefined));
+  };
 
   const press = () => {
     if (settled.length === 1) {
@@ -437,45 +540,33 @@ function FoldedOffer({
 
   return (
     <View style={styles.slot}>
-      <Pressable
-        testID={`offer-group:${groupKey}`}
-        accessibilityState={{ disabled }}
-        disabled={disabled}
-        onPress={press}
-        style={[styles.button, disabled && styles.ghost]}
-      >
-        <Text style={[styles.buttonText, disabled && styles.ghostText]}>
-          {label(first.labelKey ?? `verb.${first.verb}`) || first.verb}
-        </Text>
-      </Pressable>
+      <ExplainOnPress testID={`explain-group:${groupKey}`} onExplain={onExplain ? explain : undefined}>
+        <Pressable
+          testID={`offer-group:${groupKey}`}
+          accessibilityState={{ disabled }}
+          disabled={disabled}
+          onPress={press}
+          style={[styles.button, disabled && styles.ghost]}
+        >
+          <Attention active={!!hinted} radius={8} />
+          <Text style={[styles.buttonText, disabled && styles.ghostText]}>
+            {label(first.labelKey ?? `verb.${first.verb}`) || first.verb}
+          </Text>
+        </Pressable>
+      </ExplainOnPress>
 
       {disabled && sharedReason ? (
         <ReasonLine
           testID={`why-group:${groupKey}`}
           text={reasonText(sharedReason, sharedReason)}
           styles={styles}
-          onPress={
-            onExplain
-              ? () => {
-                  // The member this reason actually came from, so its rules
-                  // and its remedy travel with it rather than the first
-                  // member's, which may have been refused for something else.
-                  const source = group.find((o) => !o.enabled && o.whyNot === sharedReason);
-                  onExplain({
-                    code: sharedReason,
-                    ruleIds: source?.ruleIds,
-                    remedy: source?.remedy,
-                    remedyOfferId: source?.remedyOfferId,
-                  });
-                }
-              : undefined
-          }
+          onPress={onExplain ? explain : undefined}
         />
       ) : null}
 
       {!disabled && settled.length !== 1 ? (
         <Text testID={`needs-group:${groupKey}`} style={styles.hint}>
-          {aimed ? 'pick cards for the place you tapped' : 'more than one place this could go — pick on the board'}
+          {aimed ? t('offer.pickCards') : t('offer.ambiguous')}
         </Text>
       ) : null}
     </View>
@@ -508,25 +599,47 @@ function ParamControl({
     const max = spec.max ?? min;
     const step = spec.step && spec.step > 0 ? spec.step : 1;
     const current = Number(value) || min;
-    const clamp = (n: number) => String(Math.min(Math.max(n, min), max));
+    const clamp = (n: number) => Math.min(Math.max(n, min), max);
+    const commit = (n: number) => onChange(String(clamp(n)));
 
     return (
       <View style={styles.param} testID={`param-${spec.name}`}>
         <Text style={styles.paramLabel}>{label(spec.labelKey)}</Text>
+
+        {/* Drag to any figure in the range — the fine-grained way in, next to
+            the stepper's one-unit nudge and the keyboard's exact one. */}
+        <AmountSlider
+          testID={`param-${spec.name}-slider`}
+          min={min}
+          max={max}
+          step={step}
+          value={current}
+          onChange={commit}
+          styles={styles}
+        />
+
         <View style={styles.stepper}>
           <Pressable
             testID={`param-${spec.name}-down`}
-            onPress={() => onChange(clamp(current - step))}
+            onPress={() => commit(current - step)}
             style={styles.stepButton}
           >
             <Text style={styles.stepText}>−</Text>
           </Pressable>
-          <Text testID={`param-${spec.name}-value`} style={styles.paramValue}>
-            {value}
-          </Text>
+          {/* The value is also where it's typed — a player who knows the
+              exact figure they want should not have to nudge or drag their
+              way to it. */}
+          <AmountInput
+            testID={`param-${spec.name}-value`}
+            value={current}
+            min={min}
+            max={max}
+            onCommit={commit}
+            styles={styles}
+          />
           <Pressable
             testID={`param-${spec.name}-up`}
-            onPress={() => onChange(clamp(current + step))}
+            onPress={() => commit(current + step)}
             style={styles.stepButton}
           >
             <Text style={styles.stepText}>+</Text>
@@ -535,12 +648,32 @@ function ParamControl({
               control says "max", not "all in": it does not know. */}
           <Pressable
             testID={`param-${spec.name}-max`}
-            onPress={() => onChange(String(max))}
+            onPress={() => commit(max)}
             style={styles.stepButton}
           >
             <Text style={styles.stepText}>max</Text>
           </Pressable>
         </View>
+
+        {/* Named shortcuts to figures worth naming — a pot-sized raise, an
+            all-in — computed by the engine and handed over as `choices` the
+            same way a `ParamKindChoice` carries its own. This file still
+            reads no rule off them: each is just a value to jump the control
+            to. */}
+        {(spec.choices ?? []).length > 0 ? (
+          <View style={styles.choices}>
+            {(spec.choices ?? []).map((c) => (
+              <Pressable
+                key={c.value}
+                testID={`param-${spec.name}-${c.value}`}
+                onPress={() => commit(Number(c.value))}
+                style={[styles.choice, current === Number(c.value) && styles.choiceOn]}
+              >
+                <Text style={styles.choiceText}>{label(c.labelKey) || c.value}</Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
       </View>
     );
   }
@@ -564,6 +697,164 @@ function ParamControl({
   );
 }
 
+/**
+ * The typed half of a `ParamKindInt` control: the same figure the stepper and
+ * slider move, editable as text.
+ *
+ * Kept as its own local `text` while the field has focus, because a value
+ * clamped and *echoed back into this field* on every keystroke fights the
+ * very thing a player is trying to type — "15" reads as "1" then jumps to
+ * "20" before the second digit lands. What the field shows is only corrected
+ * on commit: blurring or submitting parses what's there, and only then does
+ * the range have the last word over the text itself.
+ *
+ * The slider and the quick chips are not the text field, though, and a
+ * player watching the thumb while they type expects it to move as they go —
+ * so every keystroke that parses to a number also pushes it out to them via
+ * `onCommit`, unclamped-into-the-field but still clamped-into-range at the
+ * shared value, the same clamp the stepper and the slider already obey.
+ */
+function AmountInput({
+  value,
+  min,
+  max,
+  onCommit,
+  styles,
+  testID,
+}: {
+  value: number;
+  min: number;
+  max: number;
+  onCommit: (n: number) => void;
+  styles: OfferBarStyles;
+  testID: string;
+}) {
+  const [text, setText] = useState(String(value));
+  const [editing, setEditing] = useState(false);
+
+  useEffect(() => {
+    if (!editing) setText(String(value));
+  }, [value, editing]);
+
+  const change = (t: string) => {
+    setText(t);
+    const n = Number(t);
+    if (t.trim() !== '' && Number.isFinite(n)) onCommit(n);
+  };
+
+  const commit = () => {
+    setEditing(false);
+    const n = Number(text);
+    if (text.trim() !== '' && Number.isFinite(n)) {
+      onCommit(n);
+    } else {
+      setText(String(value));
+    }
+  };
+
+  return (
+    <TextInput
+      testID={testID}
+      value={text}
+      onFocus={() => setEditing(true)}
+      onChangeText={change}
+      onBlur={commit}
+      onSubmitEditing={commit}
+      keyboardType="number-pad"
+      selectTextOnFocus
+      style={styles.paramValueInput}
+      accessibilityLabel={`${min}–${max}`}
+    />
+  );
+}
+
+// The slider thumb's size in both the geometry below and its own style —
+// one constant, so the two can never drift apart and misalign the thumb
+// with the track it draws over.
+const THUMB_SIZE = 18;
+const THUMB_RADIUS = THUMB_SIZE / 2;
+
+/**
+ * The drag half of a `ParamKindInt` control: any figure in the range under a
+ * thumb, next to the stepper's one-unit nudge and the input's exact one.
+ *
+ * Plain `PanResponder` rather than a slider library — this range is a plain
+ * line between two numbers the engine already computed, which a dozen lines
+ * of touch handling covers without a native module to keep in step with
+ * Expo's own upgrades. Values the handlers need live in a ref rather than a
+ * render-time closure: `PanResponder.create` is built once, on the first
+ * render, and a handler built then would otherwise keep reading that
+ * render's `min`/`max`/`onChange` forever.
+ */
+function AmountSlider({
+  min,
+  max,
+  step,
+  value,
+  onChange,
+  styles,
+  testID,
+}: {
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  onChange: (n: number) => void;
+  styles: OfferBarStyles;
+  testID: string;
+}) {
+  const [width, setWidth] = useState(0);
+  const live = useRef({ min, max, step, width, onChange });
+  live.current = { min, max, step, width, onChange };
+
+  // The thumb is a circle of its own width, not a point, so its *centre*
+  // ranges over [radius, width − radius] rather than [0, width] — a thumb
+  // whose centre could reach 0 would hang half off the left edge of the
+  // track, landing to the left of the "−" button beneath it instead of flush
+  // with it. Every position below is in that same centre-of-thumb space, in
+  // and out, so the touched point and the drawn thumb never disagree.
+  const centreFor = (ratio: number, width: number): number => {
+    const usable = Math.max(width - THUMB_SIZE, 0);
+    return THUMB_RADIUS + Math.min(Math.max(ratio, 0), 1) * usable;
+  };
+
+  const valueAtOffset = (x: number): number => {
+    const { min, max, step, width } = live.current;
+    const range = max - min;
+    const usable = Math.max(width - THUMB_SIZE, 0);
+    if (width <= 0 || range <= 0 || usable <= 0) return min;
+    const ratio = Math.min(Math.max((x - THUMB_RADIUS) / usable, 0), 1);
+    const snapped = Math.round((min + ratio * range) / step) * step;
+    return Math.min(Math.max(snapped, min), max);
+  };
+
+  const responder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (e: GestureResponderEvent) => live.current.onChange(valueAtOffset(e.nativeEvent.locationX)),
+      onPanResponderMove: (e: GestureResponderEvent) => live.current.onChange(valueAtOffset(e.nativeEvent.locationX)),
+    }),
+  ).current;
+
+  const range = Math.max(max - min, 1);
+  const ratio = Math.min(Math.max((value - min) / range, 0), 1);
+  const centre = centreFor(ratio, width);
+
+  return (
+    <View
+      testID={testID}
+      style={styles.sliderTrack}
+      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+      {...responder.panHandlers}
+    >
+      <View style={styles.sliderRail} />
+      <View style={[styles.sliderFill, { width: centre }]} />
+      <View style={[styles.sliderThumb, { left: centre - THUMB_RADIUS }]} />
+    </View>
+  );
+}
+
 /** Which cards to send: the whole selection, once it is one this offer takes. */
 function pickCards(offer: ActionOffer, selected: string[]): string[] | undefined {
   if (!selected.length) return undefined;
@@ -578,7 +869,12 @@ function pickCards(offer: ActionOffer, selected: string[]): string[] | undefined
 function offerSettles(offer: ActionOffer, selected: string[]): boolean {
   if (!offer.enabled) return false;
   if (selected.length === 0) return isOneTap(offer);
-  return fits(offer, selected).ok;
+  // `readyWith` rather than `fits`, and the difference is the whole of it: a
+  // selection the offer would accept eventually is not one it would accept
+  // now. A control settled on `fits` alone went out lit over a half-built
+  // submission and then sent nothing when pressed, because the submission it
+  // would have made is one the offer's own floor forbids.
+  return readyWith(offer, selected).ok;
 }
 
 /**
@@ -628,7 +924,7 @@ function unreadyReason(offer: ActionOffer, selected: string[]): Extract<Fit, { o
   if (selected.length === 0) {
     return isOneTap(offer) ? undefined : { ok: false, labelKey: 'sel.needMore', params: { n: need } };
   }
-  const fit = fits(offer, selected);
+  const fit = readyWith(offer, selected);
   return fit.ok ? undefined : fit;
 }
 
@@ -639,7 +935,40 @@ function compositeHint(offer: ActionOffer, selected: string[]): string {
     const fit = fits(offer, selected);
     if (!fit.ok) return label(fit.labelKey, fit.params);
   }
-  return `pick ${min}+ cards`;
+  return t('offer.pickAtLeast', { n: min });
+}
+
+/**
+ * Why pressing this control would do nothing right now, for the sheet a press
+ * on it opens. The engine's refusal when it refused the offer — its code, its
+ * rules, its remedy — and otherwise this side's own reason the current
+ * selection or amount will not go, in the same shape. Never empty for a
+ * control that is off: a sheet with nothing in it is the silent press this
+ * replaces.
+ */
+export function refusalFor(
+  offer: ActionOffer,
+  selected: string[],
+  chosen: Record<string, string> | undefined,
+): Refusal {
+  if (!offer.enabled) {
+    return offer.whyNot
+      ? { code: offer.whyNot, ruleIds: offer.ruleIds, remedy: offer.remedy, remedyOfferId: offer.remedyOfferId }
+      : { labelKey: 'why.unavailable' };
+  }
+  if (offer.composite) {
+    const need = offer.source?.minCards ?? 1;
+    if (selected.length > 0) {
+      const fit = fits(offer, selected);
+      if (!fit.ok) return { labelKey: fit.labelKey, params: fit.params };
+    }
+    return { labelKey: 'why.pickAtLeast', params: { n: need } };
+  }
+  const unready = unreadyReason(offer, selected);
+  if (unready) return { labelKey: unready.labelKey, params: unready.params };
+  if (isReady(offer, selected, chosen)) return {};
+  const need = offer.source?.minCards ?? 0;
+  return need > 0 ? { labelKey: 'sel.needMore', params: { n: need } } : { labelKey: 'why.unavailable' };
 }
 
 /**
@@ -706,12 +1035,35 @@ function offerBarStyles(m: Metrics, s: Skin) {
       paddingVertical: 4,
     },
     stepText: { color: colors.text, fontSize: m.panel.bodyFont, fontWeight: '700' },
-    paramValue: {
+    paramValueInput: {
       color: colors.text,
       fontSize: m.panel.bodyFont + 1,
       fontWeight: '700',
-      minWidth: 44,
+      minWidth: 52,
       textAlign: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 6,
+      backgroundColor: colors.surface,
+      paddingHorizontal: 6,
+      paddingVertical: 4,
+    },
+    // A plain line under a thumb: `sliderTrack` carries the touch handlers
+    // and the height a finger needs, `sliderRail` is the full-width line
+    // beneath everything, `sliderFill` the same line redrawn up to the
+    // current value, and `sliderThumb` the handle — three layers so the fill
+    // never has to repaint the rail's ends.
+    sliderTrack: { height: 28, justifyContent: 'center', marginTop: 6 },
+    sliderRail: { height: 4, borderRadius: 2, backgroundColor: colors.border },
+    sliderFill: { position: 'absolute', height: 4, borderRadius: 2, backgroundColor: colors.accent },
+    sliderThumb: {
+      position: 'absolute',
+      width: THUMB_SIZE,
+      height: THUMB_SIZE,
+      borderRadius: THUMB_RADIUS,
+      backgroundColor: colors.accent,
+      borderWidth: 2,
+      borderColor: colors.onAccent,
     },
     choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 2 },
     choice: {
@@ -741,6 +1093,32 @@ function offerBarStyles(m: Metrics, s: Skin) {
 }
 
 type OfferBarStyles = ReturnType<typeof offerBarStyles>;
+
+/**
+ * A press on a control that is off, answered with why.
+ *
+ * A disabled `Pressable` swallows the press, which leaves a player pressing it
+ * again and wondering whether the app is broken. The control itself stays
+ * `disabled` — that is what marks it off for assistive tech and for the web's
+ * `aria-disabled` — and this wraps it: a disabled pressable never claims the
+ * touch, so the press falls through to here, and a live one always claims it
+ * first, so this never fires over a working control.
+ */
+function ExplainOnPress({
+  onExplain,
+  testID,
+  children,
+}: {
+  onExplain?: () => void;
+  testID: string;
+  children: ReactNode;
+}) {
+  return (
+    <Pressable testID={testID} onPress={onExplain} tabIndex={-1} accessible={false}>
+      {children}
+    </Pressable>
+  );
+}
 
 /**
  * The reason under a control: always readable at a glance, and pressable when

@@ -139,3 +139,33 @@ func TestDeckIsOneFullDeck(t *testing.T) {
 		seen[c] = true
 	}
 }
+
+// TestBestReadsInOrder is the order the five cards are written out in when a
+// sentence names them: the made part of the hand before its kickers, high to
+// low, and the wheel's ace at the bottom where it plays.
+func TestBestReadsInOrder(t *testing.T) {
+	cases := []struct {
+		name  string
+		cards []string
+		want  string
+	}{
+		{"two pair", []string{"7H", "AS", "7C", "KS", "KH", "2D", "3C"}, "KK77A"},
+		{"full house", []string{"KH", "9H", "9C", "2S", "KC", "9D", "3D"}, "999KK"},
+		{"quads", []string{"2C", "JH", "JD", "JS", "JC", "4D", "8H"}, "JJJJ8"},
+		{"pair", []string{"3D", "AS", "KH", "QD", "2C", "7H", "AC"}, "AAKQ7"},
+		{"straight", []string{"6D", "9S", "5H", "8C", "7H", "2D", "KC"}, "98765"},
+		{"wheel", []string{"AS", "3C", "2D", "5S", "4H", "9D", "JC"}, "5432A"},
+		{"flush", []string{"2H", "7C", "5H", "9H", "JH", "KH", "3S"}, "KJ952"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := ""
+			for _, c := range Best(tc.cards).Cards {
+				got += rankOf(c)
+			}
+			if got != tc.want {
+				t.Errorf("reads %s (%v), want %s", got, Best(tc.cards).Cards, tc.want)
+			}
+		})
+	}
+}

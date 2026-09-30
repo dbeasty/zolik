@@ -11,6 +11,7 @@ import (
 	"zolik/server/internal/module"
 
 	kdbserver "github.com/limidus/kdb/go/kdb/server"
+	"github.com/limidus/kdb/go/kdb/storage"
 )
 
 // openTestKDB opens an on-disk engine in the test's temp dir — the same code
@@ -324,6 +325,23 @@ func TestKDBHotTierPoolBytesSizesTheSharedPool(t *testing.T) {
 	}
 }
 
+// TestKDBCachesFitUnderTheWriteRejectLine: kdb's caches may fill to more than
+// the pool (their shares sum past 1), and the collector lets the heap reach
+// twice what is live. Both multipliers applied to a full pool must still land
+// below the line where kdb starts refusing writes, or history alone can close
+// the server to new matches.
+func TestKDBCachesFitUnderTheWriteRejectLine(t *testing.T) {
+	const gcHeadroom = 2
+	shares := storage.DefaultDocumentCacheFraction + storage.DefaultCommitOpsFraction +
+		storage.DefaultMemtableFraction + storage.DefaultHistoryTreeFraction
+	peak := kdbHotTierFraction * shares * gcHeadroom
+	if peak >= kdbMemoryRejectFraction {
+		t.Fatalf("full caches peak at %.0f%% of the budget (pool %.0f%% x shares %.2f x GC %d), "+
+			"at or past the %.0f%% write-reject line",
+			peak*100, kdbHotTierFraction*100, shares, gcHeadroom, kdbMemoryRejectFraction*100)
+	}
+}
+
 func TestKDBStorageFromEnv(t *testing.T) {
 	t.Setenv("KDB_DURABILITY", "async")
 	t.Setenv("KDB_SYNC_MODE", "full")
@@ -351,6 +369,88 @@ func TestKDBStorageFromEnv(t *testing.T) {
 	t.Setenv("KDB_ASYNC_SYNC_INTERVAL_MS", "soon")
 	if _, err := KDBStorageFromEnv(); err == nil {
 		t.Fatal("KDB_ASYNC_SYNC_INTERVAL_MS=soon: want error")
+	}
+}
+
+// TestHistoryRetentionDefaultsOnAndChangesNothing is the pair of facts that
+// make "on by default" safe to ship. The flag decides whether a named mode is
+// listened to; it does not name one. With no KDB_HISTORY_MODE — every
+// deployment until one says otherwise — the engine must be asked for exactly
+// what it was asked for before the modes existed.
+func TestHistoryRetentionDefaultsOnAndChangesNothing(t *testing.T) {
+	t.Setenv("FEATURE_FLAG_KDB_HISTORY_RETENTION", "")
+	t.Setenv("KDB_HISTORY_MODE", "")
+
+	sc, err := KDBStorageFromEnv()
+	if err != nil {
+		t.Fatalf("from env: %v", err)
+	}
+	if !sc.HistoryRetention {
+		t.Error("FEATURE_FLAG_KDB_HISTORY_RETENTION unset: want on by default")
+	}
+	opts, err := sc.engineOptions()
+	if err != nil {
+		t.Fatalf("options: %v", err)
+	}
+	if opts.Storage.HistoryMode != storage.HistoryModeUnset {
+		t.Errorf("no mode named, but the engine was asked for %q. Unset is the only value that "+
+			"leaves an existing namespace alone and builds a new one full", opts.Storage.HistoryMode)
+	}
+}
+
+// TestHistoryRetentionIsGated is the flag earning its keep. The history mode
+// is a property a namespace is *built* with — it refuses to open under any
+// other — so a stray KDB_HISTORY_MODE reaching a server that was not meant to
+// have one is not a setting that gets ignored, it is a database that will not
+// open on the next restart. Off must therefore mean discarded, not merely
+// defaulted.
+func TestHistoryRetentionIsGated(t *testing.T) {
+	t.Setenv("KDB_HISTORY_MODE", "none")
+
+	t.Setenv("FEATURE_FLAG_KDB_HISTORY_RETENTION", "false")
+	sc, err := KDBStorageFromEnv()
+	if err != nil {
+		t.Fatalf("flag off: %v", err)
+	}
+	opts, err := sc.engineOptions()
+	if err != nil {
+		t.Fatalf("flag off, options: %v", err)
+	}
+	if opts.Storage.HistoryMode != storage.HistoryModeUnset {
+		t.Errorf("flag off: history mode reached the engine as %q; KDB_HISTORY_MODE must be "+
+			"discarded, or an environment nobody audited decides what a namespace keeps",
+			opts.Storage.HistoryMode)
+	}
+	if !opts.Storage.Retain.IsZero() {
+		t.Errorf("flag off: retention window %v reached the engine, want the zero window",
+			opts.Storage.Retain)
+	}
+
+	t.Setenv("FEATURE_FLAG_KDB_HISTORY_RETENTION", "true")
+	sc, err = KDBStorageFromEnv()
+	if err != nil {
+		t.Fatalf("flag on: %v", err)
+	}
+	opts, err = sc.engineOptions()
+	if err != nil {
+		t.Fatalf("flag on, options: %v", err)
+	}
+	if opts.Storage.HistoryMode != storage.HistoryModeNone {
+		t.Errorf("flag on: history mode is %q, want none — the flag is on and the variable says so",
+			opts.Storage.HistoryMode)
+	}
+
+	// A typo with the flag on refuses to start rather than quietly keeping
+	// every commit forever, which is a disk filling up with no log line.
+	t.Setenv("KDB_HISTORY_MODE", "nope")
+	if _, err := KDBStorageFromEnv(); err == nil {
+		t.Fatal("KDB_HISTORY_MODE=nope with the flag on: want error")
+	}
+
+	// The same typo with the flag off is not an error: nothing is reading it.
+	t.Setenv("FEATURE_FLAG_KDB_HISTORY_RETENTION", "false")
+	if _, err := KDBStorageFromEnv(); err != nil {
+		t.Fatalf("KDB_HISTORY_MODE=nope with the flag off: want no error, got %v", err)
 	}
 }
 
@@ -383,6 +483,42 @@ func TestKDBExpirySweep(t *testing.T) {
 	k.sweepNamespace(k.nss[NSSessions])
 	if _, err := k.Get(NSSessions, "dead"); !IsNotFound(err) {
 		t.Fatalf("expired session survived the sweep: %v", err)
+	}
+}
+
+// The bug this closes destroyed games. abandonAt was treated as an expiry
+// field and matches as a swept namespace, so a suspended table was physically
+// deleted at its abandon deadline — racing match.StartReaper, whose whole job
+// is to reach that table first and mark it abandoned. When the sweeper won,
+// the match was simply gone: nothing for the statistics, and a player
+// following their own link got "no such table" for a game that had been on
+// screen minutes earlier.
+func TestKDBSweepKeepsASuspendedMatch(t *testing.T) {
+	k := openTestKDB(t)
+	due, err := MarshalDoc(struct {
+		Status    string    `bson:"status"`
+		AbandonAt time.Time `bson:"abandonAt"`
+	}{Status: "suspended", AbandonAt: time.Now().UTC().Add(-time.Hour)})
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	if err := k.Put(NSMatches, "m", due); err != nil {
+		t.Fatalf("put: %v", err)
+	}
+
+	// Swept explicitly, so this fails if matches are ever put back on the
+	// sweep list rather than only if the list happens to be consulted.
+	k.sweepNamespace(k.nss[NSMatches])
+	if _, err := k.Get(NSMatches, "m"); err != nil {
+		t.Fatalf("a suspended match past its abandon deadline was deleted: %v", err)
+	}
+
+	// And the namespace is not on the sweeper's own list, which is what the
+	// background ticker actually walks.
+	for _, ns := range sweptNamespaces {
+		if ns == NSMatches {
+			t.Fatal("matches are on the sweep list; the reaper resolves them, deletion loses them")
+		}
 	}
 }
 
@@ -525,3 +661,84 @@ func TestKDBReadDuringCloseIsSafe(t *testing.T) {
 }
 
 var _ = errors.Is // keep errors imported if assertions above change shape
+
+// TestKDBUpdateRetriesWhenADocumentChangesUnderIt stands in for the one thing
+// the namespace lock cannot serialize: a peer's merge landing between an
+// Update's read and its write. The "peer" here is a write that goes straight
+// at the runtime, which is exactly what peer ingest does — it does not take
+// n.mu, because a replicating peer never could.
+func TestKDBUpdateRetriesWhenADocumentChangesUnderIt(t *testing.T) {
+	k := openTestKDB(t)
+	if err := k.Put(NSUsers, "u1", []byte(`{"username":"ada","rev":1}`)); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	attempts := 0
+	err := k.Update(NSUsers, func(tx *Tx) error {
+		attempts++
+		doc, err := tx.Get("u1")
+		if err != nil {
+			return err
+		}
+		var cur struct {
+			Username string `bson:"username"`
+			Rev      int    `bson:"rev"`
+		}
+		if err := UnmarshalDoc(doc, &cur); err != nil {
+			return err
+		}
+		if attempts == 1 {
+			// The peer writes while this critical section is deciding.
+			n := k.ns(NSUsers)
+			if err := n.put("u1", []byte(`{"username":"ada","rev":2}`), nil); err != nil {
+				t.Fatalf("peer write: %v", err)
+			}
+		}
+		cur.Rev++
+		body, err := MarshalDoc(cur)
+		if err != nil {
+			return err
+		}
+		return tx.Put("u1", body)
+	})
+	if err != nil {
+		t.Fatalf("update: %v", err)
+	}
+	if attempts != 2 {
+		t.Fatalf("attempts = %d, want 2: the first must be refused and re-run", attempts)
+	}
+
+	doc, err := k.Get(NSUsers, "u1")
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	var got struct {
+		Rev int `bson:"rev"`
+	}
+	if err := UnmarshalDoc(doc, &got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	// 3, not 2: the retry read the peer's rev 2 and incremented that. A lost
+	// update would have written 2, overwriting the peer.
+	if got.Rev != 3 {
+		t.Fatalf("rev = %d, want 3 (the peer's write must survive)", got.Rev)
+	}
+}
+
+// TestKDBInsertRefusesAKeyAPeerCreated is the unique-constraint half: the
+// existence check passed because the key really was absent, and the write is
+// still refused because it stopped being absent before it landed.
+func TestKDBInsertRefusesAKeyAPeerCreated(t *testing.T) {
+	k := openTestKDB(t)
+	n := k.ns(NSIdentities)
+	if err := n.put("google\x00sub", []byte(`{"provider":"google"}`), nil); err != nil {
+		t.Fatalf("peer write: %v", err)
+	}
+	// Insert's own read-check is bypassed here the way a racing peer bypasses
+	// it: put the precondition in by hand, since the check and the write are
+	// not separable from the outside.
+	err := n.put("google\x00sub", []byte(`{"provider":"google"}`), &kdbserver.Expect{Absent: true})
+	if !IsDuplicateKey(duplicateIfPrecondition(n.id, "google\x00sub", err)) {
+		t.Fatalf("got %v, want a duplicate-key error", err)
+	}
+}

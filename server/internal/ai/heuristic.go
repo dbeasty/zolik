@@ -163,7 +163,11 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 			// hand goes on the run at the far end of the table. Skipping the
 			// lay-off costs a turn; it never costs legality, because the
 			// discard below is always available.
-			if !a.missed(rng) {
+			// The miss is suspended in a wild crunch. A beginner fails to
+			// notice that the seven in hand goes on the run at the far end of
+			// the table; nobody fails to notice the only move they have, and
+			// this one is the difference between a turn and a wedged deal.
+			if !a.missed(rng) || wildCrunch(hand, visible.Rules) {
 				if meldID, card, ok := a.chooseLayOff(visible, hand, k); ok {
 					return rules.Action{Type: rules.ActionLayOff, MeldID: meldID, Card: card}
 				}
@@ -423,49 +427,96 @@ func searchMeldCombo(
 	wantSet := needSets > 0 || canTopUp
 	wantRun := needRuns > 0 || needCleanRun || canTopUp
 	if wantSet && n >= minSet {
-		for _, cand := range combinations(hand, minSet) {
-			if budget.remaining <= 0 {
-				return nil, false
-			}
-			budget.remaining--
-			mv, err := rules.ValidateMeld(cand, cfg)
-			if err != nil || mv.Type != rules.MeldSet {
-				continue
-			}
-			rest := removeCardsOnce(hand, cand)
-			candSatisfied := satisfied || containsCard(cand, mustInclude)
+		for _, c := range candidateMelds(hand, minSet, cfg, rules.MeldSet, budget) {
+			rest := removeCardsOnce(hand, c.cards)
+			candSatisfied := satisfied || containsCard(c.cards, mustInclude)
 			nextNeedSets := needSets
 			if nextNeedSets > 0 {
 				nextNeedSets--
 			}
-			if combo, ok := searchMeldCombo(rest, cfg, nextNeedSets, needRuns, needCleanRun, valueSoFar+mv.NaturalValue, minValue, candSatisfied, mustInclude, budget); ok {
-				return append([][]string{cand}, combo...), true
+			if combo, ok := searchMeldCombo(rest, cfg, nextNeedSets, needRuns, needCleanRun, valueSoFar+c.naturalValue, minValue, candSatisfied, mustInclude, budget); ok {
+				return append([][]string{c.cards}, combo...), true
 			}
 		}
 	}
 	if wantRun && n >= minRun {
-		for _, cand := range combinations(hand, minRun) {
-			if budget.remaining <= 0 {
-				return nil, false
-			}
-			budget.remaining--
-			mv, err := rules.ValidateMeld(cand, cfg)
-			if err != nil || mv.Type != rules.MeldRun {
-				continue
-			}
-			rest := removeCardsOnce(hand, cand)
-			candSatisfied := satisfied || containsCard(cand, mustInclude)
+		for _, c := range candidateMelds(hand, minRun, cfg, rules.MeldRun, budget) {
+			rest := removeCardsOnce(hand, c.cards)
+			candSatisfied := satisfied || containsCard(c.cards, mustInclude)
 			nextNeedRuns := needRuns
 			if nextNeedRuns > 0 {
 				nextNeedRuns--
 			}
-			nextNeedCleanRun := needCleanRun && mv.WildCount > 0 // still need one if this run wasn't clean
-			if combo, ok := searchMeldCombo(rest, cfg, needSets, nextNeedRuns, nextNeedCleanRun, valueSoFar+mv.NaturalValue, minValue, candSatisfied, mustInclude, budget); ok {
-				return append([][]string{cand}, combo...), true
+			nextNeedCleanRun := needCleanRun && c.wilds > 0 // still need one if this run wasn't clean
+			if combo, ok := searchMeldCombo(rest, cfg, needSets, nextNeedRuns, nextNeedCleanRun, valueSoFar+c.naturalValue, minValue, candSatisfied, mustInclude, budget); ok {
+				return append([][]string{c.cards}, combo...), true
 			}
 		}
 	}
 	return nil, false
+}
+
+// meldCandidate is one combination of cards that validates as a meld, with the
+// two numbers the search orders them on.
+type meldCandidate struct {
+	cards        []string
+	wilds        int
+	naturalValue int
+}
+
+// candidateMelds is every k-card combination of the hand that validates as the
+// wanted kind of meld, cheapest first.
+//
+// "Cheapest" is wild cards spent, and that ordering is the whole reason this
+// function exists. The search it feeds returns the first complete plan it
+// finds, so whatever order the candidates arrive in is the agent's preference
+// whether anybody chose it or not — and the order used to be whatever
+// combinations() produced out of hand order. A joker validates nearly any
+// three or four cards you put it beside, so it turned up in the first plan the
+// search stumbled over, was laid, and was gone; the hand then spent the rest
+// of the deal failing to finish the run it had been holding four cards of.
+//
+// Ordering by wild count first turns that around without changing what counts
+// as a legal plan: every arrangement the old search could reach is still
+// reachable, the wild-free ones are simply reached first. Natural value breaks
+// the tie, because under a point floor (Continental's 35) the search is also
+// racing to clear one, and the meld that clears more of it leaves fewer melds
+// left to find.
+func candidateMelds(hand []string, k int, cfg rules.RulesConfig, want rules.MeldType, budget *searchBudget) []meldCandidate {
+	if k <= 0 || len(hand) < k {
+		return nil
+	}
+	var out []meldCandidate
+	for _, cand := range combinations(hand, k) {
+		if budget.remaining <= 0 {
+			// Out of search budget. Returning what has been found so far
+			// rather than nothing keeps the caller's own bail-out working:
+			// the next level down sees an exhausted budget and answers empty
+			// immediately, so the recursion unwinds instead of spinning.
+			break
+		}
+		budget.remaining--
+		mv, err := rules.ValidateMeld(cand, cfg)
+		if err != nil || mv.Type != want {
+			continue
+		}
+		out = append(out, meldCandidate{
+			cards:        cand,
+			wilds:        mv.WildCount,
+			naturalValue: mv.NaturalValue,
+		})
+	}
+	sort.SliceStable(out, func(i, j int) bool { return cheaperMeld(out[i], out[j]) })
+	return out
+}
+
+// cheaperMeld orders two melds by what laying them costs the hand: wild cards
+// spent first, then the natural value they put toward a point floor.
+func cheaperMeld(x, y meldCandidate) bool {
+	if x.wilds != y.wilds {
+		return x.wilds < y.wilds
+	}
+	return x.naturalValue > y.naturalValue
 }
 
 // removeCardsOnce removes exactly one occurrence of each card in remove from
@@ -511,44 +562,76 @@ func findLayOffAmong(meldMeta map[string][]rules.MeldInfo, melds map[string][][]
 	if !cfg.IsFinalDeal(gameNumber) && len(hand) == 1 {
 		return "", "", false
 	}
-	// Owners are visited in a fixed order: ranging a map directly made which
-	// meld the agent extended depend on Go's randomised map iteration, so the
-	// same position could produce different play on different runs.
-	for _, owner := range sortedOwners(meldMeta) {
-		metas := meldMeta[owner]
-		ownerMelds := melds[owner]
-		for i, mi := range metas {
-			if i >= len(ownerMelds) {
-				continue
-			}
-			existing := ownerMelds[i]
-			for _, c := range candidates {
-				cand := append(append([]string(nil), existing...), c)
-				if _, err := rules.ValidateMeld(cand, cfg); err != nil {
+	// Two passes, naturals first.
+	//
+	// The first-fit policy takes whichever legal lay-off the walk reaches
+	// first, and the walk is in hand order, so a joker sitting early in the
+	// hand was spent on whatever meld happened to be on the table — the same
+	// "the AI throws its jokers away" report that betterLayOff answers for the
+	// profile that ranks its options. Ranking is not available here; that is
+	// what makes this policy first-*fit*. So the preference is expressed as
+	// the order of the search instead: everything natural is considered before
+	// anything wild, and a joker is laid off only when it is the only card
+	// that fits anywhere.
+	//
+	// Unless the hand is in a wild crunch, when the order reverses — see
+	// wildCrunch. A joker held past the last natural card is not an investment
+	// any more, it is a turn with no legal move in it.
+	//
+	// The second pass is not optional either way. ChooseAction's pending-joker
+	// branch calls this with candidates that are *all* jokers — the debt owed
+	// to the table under JokerReclaimMustPlay — and a wild-free search would
+	// answer "no lay-off" and wedge the turn it was called to finish.
+	order := [2]int{passNaturals, passWilds}
+	if wildCrunch(hand, cfg) {
+		order = [2]int{passWilds, passNaturals}
+	}
+	for _, only := range order {
+		// Owners are visited in a fixed order: ranging a map directly made
+		// which meld the agent extended depend on Go's randomised map
+		// iteration, so the same position could produce different play on
+		// different runs.
+		for _, owner := range sortedOwners(meldMeta) {
+			metas := meldMeta[owner]
+			ownerMelds := melds[owner]
+			for i, mi := range metas {
+				if i >= len(ownerMelds) {
 					continue
 				}
-				// Never shed the last card the player could legally discard.
-				// ValidateLayOff refuses a lay-off from a player who is not
-				// down (ROUND_REQ_NOT_MET), so reaching here means they are.
-				if !handCanStillDiscard(removeCardsOnce(hand, []string{c}), cfg, true) {
-					continue
-				}
-				// The engine treats a single natural dropped into a joker's
-				// exact place as buying the joker back (swap-before-lay-off,
-				// see rules.ApplyAction), and under JokerReclaimMustPlay
-				// that joker must be played again before the turn can end.
-				// Only take it when a place for it demonstrably exists —
-				// otherwise this "lay-off" walks the agent into a discard
-				// the engine will refuse, with no undo in its vocabulary.
-				if cfg.JokerReclaimMustPlay {
-					if joker, replaced, would := layOffWouldReclaim(existing, mi, c, cfg); would {
-						postHand := append(removeCardsOnce(hand, []string{c}), joker)
-						if !reclaimedJokerPlayable(meldMeta, melds, owner, i, replaced, postHand, joker, cfg, gameNumber) {
-							continue
+				existing := ownerMelds[i]
+				for _, c := range candidates {
+					if rules.IsJoker(c) != (only == passWilds) {
+						continue
+					}
+					cand := append(append([]string(nil), existing...), c)
+					if _, err := rules.ValidateMeld(cand, cfg); err != nil {
+						continue
+					}
+					// Never shed the last card the player could legally
+					// discard. ValidateLayOff refuses a lay-off from a player
+					// who is not down (ROUND_REQ_NOT_MET), so reaching here
+					// means they are.
+					if !handCanStillDiscard(removeCardsOnce(hand, []string{c}), cfg, true) {
+						continue
+					}
+					// The engine treats a single natural dropped into a
+					// joker's exact place as buying the joker back
+					// (swap-before-lay-off, see rules.ApplyAction), and under
+					// JokerReclaimMustPlay that joker must be played again
+					// before the turn can end. Only take it when a place for
+					// it demonstrably exists — otherwise this "lay-off" walks
+					// the agent into a discard the engine will refuse, with no
+					// undo in its vocabulary.
+					if cfg.JokerReclaimMustPlay {
+						if joker, replaced, would := layOffWouldReclaim(existing, mi, c, cfg); would {
+							postHand := append(removeCardsOnce(hand, []string{c}), joker)
+							if !reclaimedJokerPlayable(meldMeta, melds, owner, i, replaced, postHand, joker, cfg, gameNumber) {
+								continue
+							}
 						}
 					}
+					return mi.MeldID, c, true
 				}
-				return mi.MeldID, c, true
 			}
 		}
 	}
@@ -638,24 +721,95 @@ func presentIn(hand []string, want []string) []string {
 	return out
 }
 
+// findAnyValidMeld is the fallback for a table whose contract asks for
+// nothing: the smallest meld this hand can put down, spending as little wild
+// material as it can.
+//
+// It used to return the first combination that validated, which is to say the
+// first one hand order happened to produce — and a joker validates almost
+// anything, so a hand holding one laid it into a set of fours while three
+// natural kings sat beside it. The cheapest meld and the first meld are not
+// the same meld, and only one of them leaves the joker for the run that still
+// needs it.
 func findAnyValidMeld(hand []string, cfg rules.RulesConfig) ([]string, bool) {
 	minSet, minRun := meldSizes(cfg)
-	n := len(hand)
-	if n >= minSet {
-		for _, cand := range combinations(hand, minSet) {
-			if _, err := rules.ValidateMeld(cand, cfg); err == nil {
-				return cand, true
+	// Two passes, naturals first — the same shape as findLayOffAmong, for the
+	// same reason and with the same guarantee: the second pass considers
+	// exactly what the single pass used to, so nothing that was layable has
+	// stopped being layable. A wild-free meld is simply found first when one
+	// exists, and the joker stays in the hand for the meld that has no other
+	// way to be finished.
+	//
+	// Expressed as a search order rather than as a ranking because this is the
+	// hot path — it runs on most turns of most deals once a player is down —
+	// and the wild prefilter is a string test where ranking would mean
+	// validating every combination in the hand before choosing.
+	for _, allowWild := range [2]bool{false, true} {
+		for _, k := range [2]int{minSet, minRun} {
+			if len(hand) < k {
+				continue
 			}
-		}
-	}
-	if n >= minRun {
-		for _, cand := range combinations(hand, minRun) {
-			if _, err := rules.ValidateMeld(cand, cfg); err == nil {
-				return cand, true
+			for _, cand := range combinations(hand, k) {
+				if !allowWild && containsWild(cand) {
+					continue
+				}
+				if _, err := rules.ValidateMeld(cand, cfg); err == nil {
+					return cand, true
+				}
 			}
 		}
 	}
 	return nil, false
+}
+
+// containsWild reports whether any of these cards is a joker.
+func containsWild(cards []string) bool {
+	for _, c := range cards {
+		if rules.IsJoker(c) {
+			return true
+		}
+	}
+	return false
+}
+
+// Which cards a sweep of the table's melds is allowed to consider. See
+// findLayOffAmong.
+const (
+	passNaturals = iota
+	passWilds
+)
+
+// wildCrunch reports that this hand is one card away from having no legal move
+// in it at all, and that the card in the way is a joker.
+//
+// Under JokerDiscardRestricted a joker may be discarded only as the card that
+// empties an already-down player's hand, so a hand of two jokers cannot meld,
+// cannot lay off unless the table happens to take one, and cannot discard: the
+// turn is over with nothing legal in it, and the deal wedges for everybody at
+// the table. handCanStillDiscard already refuses to *play* a hand into that
+// shape. What it cannot stop is arriving there by drawing — hold one joker
+// alongside one natural card, discard the natural, draw a second joker, and
+// the position builds itself.
+//
+// Which is a shape the agent reaches more often now that it keeps its wilds,
+// and that is the honest cost of the rest of this change: a joker held is a
+// joker that can still be in hand when the hand runs out of everything else.
+// So the wild-last rule has an end. Down to the last natural card, a joker
+// stops being the card that finishes a meld later and becomes the card that
+// ends the deal now, and it goes onto the table at the first opportunity.
+func wildCrunch(hand []string, cfg rules.RulesConfig) bool {
+	if !cfg.JokerDiscardRestricted {
+		return false
+	}
+	naturals, wilds := 0, 0
+	for _, c := range hand {
+		if rules.IsJoker(c) {
+			wilds++
+		} else {
+			naturals++
+		}
+	}
+	return wilds > 0 && naturals <= 1
 }
 
 // pickDiscard is pickWorstDiscard made table-aware, hand-aware and fallible.
@@ -760,9 +914,13 @@ func (a *HeuristicAgent) discardCandidates(hand []string, visible VisibleState, 
 				danger = false
 			}
 			cands = append(cands, discardCandidate{
-				card:       c,
-				pts:        rules.PenaltyPoints(c, false),
-				keep:       keep,
+				card: c,
+				pts:  rules.PenaltyPoints(c, false),
+				keep: keep,
+				// Shedding this card would leave a hand with no legal discard
+				// in it next turn — in practice, the last natural card going
+				// and leaving nothing but jokers. See wildCrunch.
+				strands:    !handCanStillDiscard(removeCardsOnce(hand, []string{c}), cfg, visible.RoundReqMet[actor]),
 				dangerous:  danger,
 				wanted:     a.prof.ReadPickups && k.dangerousToOpponents(c),
 				seenBefore: a.prof.Recall > 0 && k.rankPassed(c),
@@ -779,7 +937,11 @@ type discardCandidate struct {
 	card string
 	pts  int
 	// keep is how badly the agent wants to hold this card; see keepValue.
-	keep       int
+	keep int
+	// strands is a discard that leaves a hand the engine has no legal move
+	// for. It outranks every other signal here, because every other signal is
+	// about playing the deal well and this one is about the deal continuing.
+	strands    bool
 	dangerous  bool
 	wanted     bool
 	seenBefore bool
@@ -803,6 +965,15 @@ type discardCandidate struct {
 //     history signal fine-tunes which equally-costly card to let go of
 //     rather than overriding the basic "get rid of the expensive card" goal.
 func smarterDiscardBetter(c, best discardCandidate) bool {
+	// Ahead of everything, including keep-value: a discard that strands the
+	// hand is not a worse move than another one, it is the last move of a deal
+	// that then cannot continue. Nothing about playing well outranks the deal
+	// still being playable. Added as a rank rather than as a filter so it
+	// still names a card when every candidate strands — which is a position
+	// the agent can be dealt into and has no way out of.
+	if c.strands != best.strands {
+		return !c.strands
+	}
 	if c.keep != best.keep {
 		return c.keep < best.keep
 	}

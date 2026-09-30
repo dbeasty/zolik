@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -46,14 +47,65 @@ func (m *Mongo) Close(ctx context.Context) error {
 	return m.Client.Disconnect(ctx)
 }
 
+// isMissingIndex reports whether an index drop failed only because there was
+// nothing there — a fresh database, or one already migrated.
+func isMissingIndex(err error) bool {
+	var ce mongo.CommandError
+	if errors.As(err, &ce) {
+		// 26 NamespaceNotFound, 27 IndexNotFound.
+		return ce.Code == 26 || ce.Code == 27
+	}
+	return false
+}
+
 func (m *Mongo) EnsureIndexes(ctx context.Context) error {
 	c := m.Collections()
 
 	// games
+	//
+	// abandonAt deliberately carries no TTL index. It used to, and the index
+	// destroyed games: abandonAt is not "delete me at", it is "decide about me
+	// at", and match.StartReaper is what decides — it marks the table
+	// abandoned, clears abandonAt, and leaves the row. A TTL index on the same
+	// field made that a race between Mongo's expiry monitor and the reaper,
+	// and when Mongo won the whole match was gone: no abandoned row for the
+	// statistics, and a player following their own link got a table that had
+	// never existed rather than one that had ended.
 	if _, err := c.Games.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{Keys: bson.D{{Key: "status", Value: 1}}},
 		{Keys: bson.D{{Key: "players.userId", Value: 1}}},
-		{Keys: bson.D{{Key: "abandonAt", Value: 1}}, Options: options.Index().SetExpireAfterSeconds(0)},
+	}); err != nil {
+		return err
+	}
+	// Dropped rather than merely not created: an index lives in the database,
+	// not in this file, so a deployment that ever ran the old build keeps
+	// expiring matches until something removes it. Named by its field, which
+	// is how CreateMany named it. A NamespaceNotFound or IndexNotFound simply
+	// means there is nothing to undo.
+	if err := c.Games.Indexes().DropOne(ctx, "abandonAt_1"); err != nil && !isMissingIndex(err) {
+		return err
+	}
+
+	// matches — same abandonAt-carries-no-TTL rule as games above, though
+	// nothing here uses that field as a delete trigger yet; the other two back
+	// reads that previously had no index at all. players.id backs
+	// FindForPlayer (a "my games" list, keyed on the seat id) and joinCode
+	// backs FindByJoinCode, which until now scanned the whole collection on
+	// every join-by-code.
+	if _, err := c.Matches.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{Keys: bson.D{{Key: "players.id", Value: 1}, {Key: "updatedAt", Value: -1}}},
+		{Keys: bson.D{{Key: "joinCode", Value: 1}}},
+		{Keys: bson.D{{Key: "status", Value: 1}}},
+	}); err != nil {
+		return err
+	}
+
+	// match_log: one record per move and per snapshot. Unique on (match,
+	// kind, seq) because that is the concurrency check — move N is written
+	// once, and a second writer is refused rather than stored beside it.
+	if _, err := c.MatchLog.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "m", Value: 1}, {Key: "k", Value: 1}, {Key: "s", Value: 1}},
+		Options: options.Index().SetUnique(true),
 	}); err != nil {
 		return err
 	}
@@ -128,6 +180,26 @@ func (m *Mongo) EnsureIndexes(ctx context.Context) error {
 		{Keys: bson.D{{Key: "state", Value: 1}}, Options: options.Index().SetUnique(true)},
 		{Keys: bson.D{{Key: "exchangeCode", Value: 1}}, Options: options.Index().SetSparse(true)},
 		{Keys: bson.D{{Key: "expiresAt", Value: 1}}, Options: options.Index().SetExpireAfterSeconds(0)},
+	}); err != nil {
+		return err
+	}
+
+	// notify_* — a friend code is looked up when somebody follows a friend
+	// link, and must name one person, so it is unique. The circle is read in
+	// both directions: whom I tell, and who tells me.
+	if _, err := c.NotifyProfiles.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{Keys: bson.D{{Key: "friendCode", Value: 1}}, Options: options.Index().SetUnique(true)},
+	}); err != nil {
+		return err
+	}
+	if _, err := c.NotifyCircle.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{Keys: bson.D{{Key: "ownerKey", Value: 1}}},
+		{Keys: bson.D{{Key: "memberKey", Value: 1}}},
+	}); err != nil {
+		return err
+	}
+	if _, err := c.NotifyDevices.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{Keys: bson.D{{Key: "subjectKey", Value: 1}}},
 	}); err != nil {
 		return err
 	}

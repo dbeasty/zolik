@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -51,11 +52,35 @@ const (
 	NSIdentities   = "identities"
 	NSLoginCodes   = "login_codes"
 	NSOAuthFlows   = "oauth_flows"
+	NSDailyMetrics = "daily_metrics"
+	NSBoots        = "boots"
+	// NSMatchLog holds each match's moves and board snapshots, kept out of
+	// NSMatches so the scans over matches never read them.
+	NSMatchLog = "match_log"
+
+	// NSReservations holds one document per claimed unique value - a username,
+	// an email address, a friend code - keyed by the value itself. See
+	// kdbreservations.go for why a scan cannot do this job once a namespace
+	// replicates.
+	NSReservations = "reservations"
+
+	// NSNodes holds one document per enrolled replica: which install it is,
+	// whose it is, and the key it signs with. NSGuestClaims holds one per
+	// guest id a person has claimed, so a match played before they signed in
+	// is credited to them however long afterwards it arrives.
+	NSNodes       = "nodes"
+	NSGuestClaims = "guest_claims"
+
+	NSNotifyProfiles = "notify_profiles"
+	NSNotifyCircle   = "notify_circle"
+	NSNotifyDevices  = "notify_devices"
 )
 
 var kdbNamespaceNames = []string{
 	NSMatches, NSUsers, NSSessions, NSScoring, NSMatchResults,
 	NSPlayerStats, NSIdentities, NSLoginCodes, NSOAuthFlows,
+	NSDailyMetrics, NSBoots, NSMatchLog, NSReservations, NSNodes, NSGuestClaims,
+	NSNotifyProfiles, NSNotifyCircle, NSNotifyDevices,
 }
 
 const kdbCatalog = "zolik"
@@ -89,8 +114,25 @@ type KDB struct {
 	// tears down every namespace's storage and releases the lock. Nil for
 	// in-memory KDBs, which have no lock or shim to share and stay one
 	// runtime per namespace.
-	host      *embed.Host
-	nss       map[string]*kdbNamespace
+	host *embed.Host
+	// path is the data root, empty for an in-memory database. Kept so a
+	// namespace can be asked for by name without creating it: a read must not
+	// bring a namespace into existence.
+	path string
+	// mu guards nss, which grows at runtime: a namespace per user and per
+	// match cannot be declared up front the way the fixed collections are.
+	mu  sync.RWMutex
+	nss map[string]*kdbNamespace
+	// primary is the runtime every namespace opened later shares governance
+	// with, so one memory budget covers the whole process however many
+	// namespaces it ends up holding.
+	primary *kdbserver.KdbServerRuntime
+	// prepare, when set, is what internal/sync hooks a newly opened namespace
+	// into: commit notification, the retention floor peers impose, and the
+	// replicated definitions. Nil until this process is a sync node.
+	prepare func(*kdbserver.KdbServerRuntime)
+	// set commits transactions that span namespaces; see UpdateMulti.
+	set       *kdbserver.NamespaceSet
 	stop      chan struct{}
 	done      chan struct{}
 	closeOnce sync.Once
@@ -156,6 +198,30 @@ type KDBStorage struct {
 	// rather than each of the nine namespace runtimes independently
 	// defaulting to 128 MiB.
 	MemoryBudgetBytes uint64
+	// HistoryRetention opens up KDB 0.4.0's history retention modes
+	// (KDB_HISTORY_MODE, KDB_RETAIN_*). On by default: the modes are a
+	// property of the engine now, and the flag exists to be *turned off* —
+	// with it false the engine's env-derived history settings are discarded,
+	// so a KDB_HISTORY_MODE that finds its way into an environment cannot
+	// change what a namespace keeps.
+	//
+	// On is safe because it is not itself a choice of mode. An unset
+	// KDB_HISTORY_MODE reads as "whatever this namespace already is", so
+	// every deployment that names no mode keeps behaving exactly as it did.
+	//
+	// Deliberately transitional. Today the mode is a property a namespace is
+	// *built* with — it refuses to open under any other, and changing one
+	// means an offline conversion or a wiped volume. A later KDB changes the
+	// mode on a running namespace; when that lands this flag comes out and
+	// the setting becomes an ordinary one.
+	//
+	// See docs/kdb-history-none-cutover.md.
+	HistoryRetention bool
+	// HistoryMode is "none" (keep the live dataset plus a window, reclaim the
+	// rest) or "full" (keep every commit forever). Empty means unset, which
+	// the engine reads as "whatever this namespace already is" — and for a
+	// new one, full. Ignored entirely unless HistoryRetention is on.
+	HistoryMode string
 }
 
 // kdbMemoryRejectFraction is the fraction of MemoryBudgetBytes at which
@@ -212,7 +278,15 @@ func kdbRescueReserveBytes() int64 {
 // shared across every namespace — fine for a dev machine, but a process
 // that knows its real cgroup limit should size the pool from it instead of
 // inheriting a default sized for a single namespace running alone.
-const kdbHotTierFraction = 0.5
+//
+// It is a quarter, not a half, because the pool is not a ceiling. kdb splits
+// it into four caches whose shares sum to 125% of it (document versions 0.5,
+// memtable, commit operations and historical trees 0.25 each), and those
+// caches fill with match history nobody is reading. The garbage collector then
+// lets the heap reach twice what is live before collecting. At a half, the
+// history of a few days' play alone (485 MiB live of 568) put the process past
+// kdbMemoryRejectFraction, and every new match was refused.
+const kdbHotTierFraction = 0.25
 
 // kdbHotTierPoolBytes derives the host's shared hot-tier cache pool — see
 // embed.Host.MemoryArbiter — from the same cgroup-derived total
@@ -228,6 +302,12 @@ func kdbHotTierPoolBytes(totalBudgetBytes uint64) int64 {
 		return 0
 	}
 	return int64(float64(totalBudgetBytes) * kdbHotTierFraction)
+}
+
+// KDBMemoryLines is where kdb starts refusing writes and how large its cache
+// pool is, for a process whose memory budget is totalBudgetBytes.
+func KDBMemoryLines(totalBudgetBytes uint64) (writeShedding, hotTierPool int64) {
+	return int64(float64(totalBudgetBytes) * kdbMemoryRejectFraction), kdbHotTierPoolBytes(totalBudgetBytes)
 }
 
 // busyIfShed translates the engine's admission refusals into SERVER_BUSY, the
@@ -257,6 +337,24 @@ func busyIfShed(err error) error {
 	return err
 }
 
+// isPrecondition reports whether err is a write refused because the document
+// had changed since the caller read it — a peer's merge landing mid-critical
+// section, since local writers are serialized by the namespace lock.
+func isPrecondition(err error) bool {
+	var pre *kdbserver.PreconditionFailedError
+	return errors.As(err, &pre)
+}
+
+// duplicateIfPrecondition turns "the document was supposed to be absent" into
+// the duplicate-key error every unique constraint in this package speaks, so
+// a key a peer created reads the same to callers as one this process created.
+func duplicateIfPrecondition(nsID, key string, err error) error {
+	if isPrecondition(err) {
+		return fmt.Errorf("kdb: %s %q: %w", nsID, key, ErrDuplicateKey)
+	}
+	return err
+}
+
 // KDBStorageFromEnv reads KDB_DURABILITY, KDB_SYNC_MODE and
 // KDB_ASYNC_SYNC_INTERVAL_MS. Unset means the defaults; an unrecognised
 // value is an error rather than a silent fallback, because it would silently
@@ -265,6 +363,18 @@ func KDBStorageFromEnv() (KDBStorage, error) {
 	sc := KDBStorage{
 		Durability: strings.ToLower(strings.TrimSpace(os.Getenv("KDB_DURABILITY"))),
 		SyncMode:   strings.ToLower(strings.TrimSpace(os.Getenv("KDB_SYNC_MODE"))),
+		// Spelled like the engine switch it sits next to
+		// (FEATURE_FLAG_DB_ENGINE, internal/app/config.go), but read here
+		// rather than there: it gates a storage option, and the benchmarks
+		// and tests that call OpenKDB directly have to see the same gate the
+		// server does.
+		//
+		// On by default. That is not the same as choosing a mode: with
+		// KDB_HISTORY_MODE unset — which is every deployment until one says
+		// otherwise — the engine keeps doing what it has always done, and
+		// this only decides whether a mode, once named, is listened to.
+		HistoryRetention: kdbEnvBool("FEATURE_FLAG_KDB_HISTORY_RETENTION", true),
+		HistoryMode:      strings.ToLower(strings.TrimSpace(os.Getenv("KDB_HISTORY_MODE"))),
 	}
 	if raw := strings.TrimSpace(os.Getenv("KDB_ASYNC_SYNC_INTERVAL_MS")); raw != "" {
 		ms, err := strconv.ParseInt(raw, 10, 64)
@@ -279,11 +389,44 @@ func KDBStorageFromEnv() (KDBStorage, error) {
 	return sc, nil
 }
 
+// kdbEnvBool reads a boolean feature flag. Same spellings the app config
+// accepts, so FEATURE_FLAG_* means one thing across the server; an
+// unrecognised value is the fallback rather than an error, matching envBool
+// there.
+func kdbEnvBool(key string, fallback bool) bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(key))) {
+	case "1", "true", "yes", "on":
+		return true
+	case "0", "false", "no", "off":
+		return false
+	default:
+		return fallback
+	}
+}
+
 // engineOptions maps the string-spelled config onto the engine's option
 // struct, starting from the engine's own env-derived options so KDB_S3_*
 // replication keeps working exactly as it did under OpenFileRuntime.
 func (sc KDBStorage) engineOptions() (embed.FileRuntimeOptions, error) {
 	opts := embed.FileRuntimeOptionsFromEnv()
+	// FileRuntimeOptionsFromEnv has already read KDB_HISTORY_MODE and the
+	// retention window. Behind the flag, put them back to unset — which the
+	// engine reads as "whatever this namespace already is", so an existing
+	// namespace opens exactly as it always did and a new one is built full.
+	if !sc.HistoryRetention {
+		opts.Storage.HistoryMode = storage.HistoryModeUnset
+		opts.Storage.Retain = storage.RetentionWindow{}
+	} else {
+		// The engine ignores a KDB_HISTORY_MODE it cannot parse. Here it is a
+		// refusal to start, for the reason KDB_DURABILITY is: a typo that
+		// silently keeps every commit forever is a disk filling up in a
+		// month's time, with nothing in the log that points at it.
+		mode, err := storage.ParseHistoryMode(sc.HistoryMode)
+		if err != nil {
+			return opts, fmt.Errorf("kdb: KDB_HISTORY_MODE=%q: want \"none\" or \"full\"", sc.HistoryMode)
+		}
+		opts.Storage.HistoryMode = mode
+	}
 	switch sc.Durability {
 	case "", "sync":
 		opts.Storage.Durability = storage.DurabilitySync
@@ -348,6 +491,7 @@ func OpenKDBWithStorage(path string, sc KDBStorage) (*KDB, error) {
 			return nil, fmt.Errorf("kdb: opening host at %s: %w", path, err)
 		}
 		k.host = host
+		k.path = path
 	}
 
 	for _, name := range kdbNamespaceNames {
@@ -367,7 +511,7 @@ func OpenKDBWithStorage(path string, sc KDBStorage) (*KDB, error) {
 		if sc.MemoryBudgetBytes > 0 {
 			// SetMemoryBudget rather than SetMemoryLimit: the narrow form
 			// takes the engine's default rescue reserve, and this process
-			// opens nine of these. See kdbRescueReserveBytes.
+			// opens one of these per namespace. See kdbRescueReserveBytes.
 			srv.SetMemoryBudget(
 				sc.MemoryBudgetBytes,
 				kdbMemoryRejectFraction,
@@ -377,6 +521,31 @@ func OpenKDBWithStorage(path string, sc KDBStorage) (*KDB, error) {
 		}
 		k.nss[name] = &kdbNamespace{id: nsID, rt: rt, srv: srv}
 	}
+
+	// Transactions across namespaces commit through the host's coordinator,
+	// whose decision log is what replay consults to keep or drop each part.
+	// The set holds the same server runtimes every single-namespace write
+	// uses, so each namespace still has exactly one write gate.
+	var coord *embed.TxnCoordinator
+	if host != nil {
+		coord = host.Transactions()
+	}
+	k.set = kdbserver.NewNamespaceSet(coord)
+	for _, name := range kdbNamespaceNames {
+		if err := k.set.Add(k.nss[name].srv); err != nil {
+			k.closeRuntimes()
+			return nil, fmt.Errorf("kdb: namespace %s: %w", name, err)
+		}
+	}
+	// A namespace named by the engine rather than by this binary - a peer
+	// pulling one, a cross-namespace commit reaching one - opens through the
+	// same path every other namespace does, so there is still exactly one
+	// runtime and one write gate per namespace.
+	k.set.SetOpener(k.openForEngine)
+	// Users is as good a primary as any: what the choice actually decides is
+	// which runtime carries this node's identity and its auth engine, and
+	// which one the others share a memory guard with.
+	k.primary = k.nss[NSUsers].srv
 	go k.sweep()
 	return k, nil
 }
@@ -398,6 +567,8 @@ func (k *KDB) Close(ctx context.Context) error {
 }
 
 func (k *KDB) closeRuntimes() {
+	k.mu.Lock()
+	defer k.mu.Unlock()
 	for _, n := range k.nss {
 		n.mu.Lock()
 		n.rt.Close()
@@ -411,15 +582,132 @@ func (k *KDB) closeRuntimes() {
 	}
 }
 
+// openForEngine is what the engine calls for a namespace this process has not
+// opened. create is false for a read, which must not bring a namespace into
+// existence: a typo'd name would otherwise leave a directory behind that
+// nothing ever reads again.
+func (k *KDB) openForEngine(id string, create bool) (*kdbserver.KdbServerRuntime, error) {
+	name := Unqualified(id)
+	// A read must not bring a namespace into existence, but it must be able
+	// to reach one that already exists on disk - including a declared one
+	// this process closed for idleness and has to open again.
+	if !create && k.path != "" && !embed.NamespaceExists(k.path, id) {
+		return nil, fmt.Errorf("%w: %s", kdbserver.ErrUnknownNamespace, id)
+	}
+	n, err := k.Namespace(name)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", kdbserver.ErrUnknownNamespace, id)
+	}
+	return n.srv, nil
+}
+
 func (k *KDB) ns(name string) *kdbNamespace {
-	n, ok := k.nss[name]
-	if !ok {
-		// A namespace this binary never declared is a programming error, not
-		// a runtime condition — same class as asking Mongo for a collection
-		// handle with a typo'd name, except caught loudly.
-		panic("kdb: unknown namespace " + name)
+	n, err := k.Namespace(name)
+	if err != nil {
+		// A namespace this binary never declared, or one whose name cannot be
+		// a namespace at all, is a programming error rather than a runtime
+		// condition — the same class as asking Mongo for a collection handle
+		// with a typo'd name, except caught loudly.
+		panic("kdb: " + err.Error())
 	}
 	return n
+}
+
+// Namespace returns the handle for a namespace, opening it if this process has
+// not held it before.
+//
+// The fixed collections are all opened at startup and are only ever looked up
+// here. The ones that are not fixed — a namespace per user, per match, per
+// node outbox — cannot be: their names are data. Opening on demand is what
+// makes those possible, and it is also how a peer's sync reaches a namespace
+// this process has never written to itself.
+//
+// An in-memory database can only open what it declared: without a host there
+// is no data root to open a namespace under.
+func (k *KDB) Namespace(name string) (*kdbNamespace, error) {
+	k.mu.RLock()
+	n, ok := k.nss[name]
+	k.mu.RUnlock()
+	if ok {
+		return n, nil
+	}
+	if !IsDynamicNamespace(name) && !isDeclaredNamespace(name) && !k.HoldsNamespace(name) {
+		return nil, fmt.Errorf("unknown namespace %q", name)
+	}
+	if k.host == nil {
+		return nil, fmt.Errorf("namespace %q needs a file-backed database", name)
+	}
+
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	// Another goroutine may have opened it while this one waited.
+	if n, ok := k.nss[name]; ok {
+		return n, nil
+	}
+	nsID := kdbCatalog + "/" + name
+	if err := embed.ValidateNamespaceID(nsID); err != nil {
+		return nil, err
+	}
+	// The set may still be serving this namespace even though this package
+	// let go of it: a handle forgotten without the engine closing it, or a
+	// namespace a peer's sync opened through the set's own opener. Two
+	// runtimes over one namespace would be two uncoordinated writers, so the
+	// one the set holds wins.
+	if existing, ok := k.set.Get(nsID); ok {
+		n := &kdbNamespace{id: nsID, rt: existing.Runtime, srv: existing}
+		k.nss[name] = n
+		return n, nil
+	}
+	rt, err := k.host.Namespace(kdbCatalog, nsID, schema.None())
+	if err != nil {
+		return nil, fmt.Errorf("opening namespace %s: %w", nsID, err)
+	}
+	srv := kdbserver.NewKdbServerRuntime(rt)
+	if k.primary != nil {
+		// One budget for the process, not one per namespace: a server holding
+		// a namespace per match would otherwise grant itself the whole budget
+		// again with every table that opens.
+		srv.ShareGovernanceWith(k.primary)
+		srv.AuthEngine = k.primary.AuthEngine
+		srv.WriteTimeout = k.primary.WriteTimeout
+	}
+	if k.prepare != nil {
+		k.prepare(srv)
+	}
+	if err := k.set.Add(srv); err != nil {
+		rt.Close()
+		return nil, fmt.Errorf("namespace %s: %w", nsID, err)
+	}
+	n = &kdbNamespace{id: nsID, rt: rt, srv: srv}
+	k.nss[name] = n
+	return n, nil
+}
+
+// isDeclaredNamespace reports whether a name is one of the fixed collections
+// this binary declares. They are opened at startup, but can be closed again
+// for idleness and have to be reopenable by name.
+func isDeclaredNamespace(name string) bool {
+	for _, declared := range kdbNamespaceNames {
+		if declared == name {
+			return true
+		}
+	}
+	return false
+}
+
+// ForgetNamespace drops a namespace this process is no longer holding open.
+//
+// The engine closes namespaces nobody has used for a while, which is what
+// makes a namespace per person and per match affordable. What it cannot do is
+// know that this package kept a handle to the runtime it closed: a write
+// through that handle reaches a runtime that has been drained and is refused
+// as "server is shutting down", which is true and unhelpful. Forgetting it
+// here means the next use opens the namespace again.
+func (k *KDB) ForgetNamespace(namespaceID string) {
+	name := Unqualified(namespaceID)
+	k.mu.Lock()
+	defer k.mu.Unlock()
+	delete(k.nss, name)
 }
 
 // uuidForKey maps a natural key — an ObjectID hex, a session token, a
@@ -442,6 +730,78 @@ func (k *KDB) Get(ns, key string) ([]byte, error) {
 }
 
 // Scan streams every document in the namespace, in no particular order.
+// DocumentVersions lists the commits that wrote a key, oldest first.
+//
+// The commit DAG has held every one of them all along — under history=full
+// nothing on that path is reclaimed — and embed.DocumentVersions is what
+// finally makes them askable for a single document rather than for a whole
+// namespace. Honestly O(the namespace's commit log): see that function's own
+// note on why, and on the answer only ever growing at its end.
+//
+// KDB only, by construction. A caller wanting to work on both engines asks a
+// repository, which declines on Mongo — see match.BoardSource.
+func (k *KDB) DocumentVersions(ns, key string) ([]string, error) {
+	n := k.ns(ns)
+	if n == nil {
+		return nil, fmt.Errorf("kdb: no namespace %q", ns)
+	}
+	versions, err := embed.DocumentVersions(n.rt, uuidForKey(key))
+	if err != nil {
+		return nil, err
+	}
+	out := make([]string, 0, len(versions))
+	for _, v := range versions {
+		if v.Deleted {
+			continue
+		}
+		out = append(out, v.Commit.Hex())
+	}
+	return out, nil
+}
+
+// RetainsHistory reports whether this namespace still keeps the past, and
+// says why not when it does not.
+//
+// DocumentVersions and GetAt answer perfectly well under history=none — right
+// up until the retention window passes and the commits they were walking stop
+// being producible. So this is not a question about whether the call compiles;
+// it is a question about whether the answer will still be there tomorrow. A
+// caller that means to *offer* history to a player asks this first.
+//
+// feature is named in the error, so it reads as a sentence and carries the
+// engine's own migrate-history remedy with it.
+func (k *KDB) RetainsHistory(ns, feature string) error {
+	n := k.ns(ns)
+	if n == nil {
+		return fmt.Errorf("kdb: no namespace %q", ns)
+	}
+	return n.rt.AssertRetainsHistory(n.id, feature)
+}
+
+// GetAt reads a key as it stood at one of those commits.
+//
+// Returns db.ErrNotFound when the key did not exist yet at that commit, which
+// is an ordinary answer rather than a failure: a commit is a point in the
+// whole namespace's history, not in this document's.
+func (k *KDB) GetAt(ns, key, commitHex string) ([]byte, error) {
+	n := k.ns(ns)
+	if n == nil {
+		return nil, fmt.Errorf("kdb: no namespace %q", ns)
+	}
+	at, err := codec.HashFromHex(commitHex)
+	if err != nil {
+		return nil, fmt.Errorf("kdb: %q is not a commit: %w", commitHex, err)
+	}
+	body, ok, err := embed.DocumentAt(n.rt, n.id, uuidForKey(key), at)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, ErrNotFound
+	}
+	return []byte(body), nil
+}
+
 func (k *KDB) Scan(ns string, fn func(doc []byte) error) error {
 	return k.ns(ns).scan(func(_ codec.UUID, doc []byte) error { return fn(doc) })
 }
@@ -451,11 +811,16 @@ func (k *KDB) Put(ns, key string, doc []byte) error {
 	n := k.ns(ns)
 	n.mu.Lock()
 	defer n.mu.Unlock()
-	return n.put(key, doc)
+	return n.put(key, doc, nil)
 }
 
 // Insert creates the document at key, failing with ErrDuplicateKey if one is
 // already there — the engine-level half of every unique constraint.
+//
+// The check and the write are one operation as far as any other writer is
+// concerned: n.mu keeps this process's writers out, and Expect{Absent} keeps
+// out a peer's merge that created the same key between the two, which no
+// local lock can.
 func (k *KDB) Insert(ns, key string, doc []byte) error {
 	n := k.ns(ns)
 	n.mu.Lock()
@@ -463,7 +828,10 @@ func (k *KDB) Insert(ns, key string, doc []byte) error {
 	if _, err := n.get(key); err == nil {
 		return fmt.Errorf("kdb: %s %q: %w", ns, key, ErrDuplicateKey)
 	}
-	return n.put(key, doc)
+	if err := n.put(key, doc, &kdbserver.Expect{Absent: true}); err != nil {
+		return duplicateIfPrecondition(n.id, key, err)
+	}
+	return nil
 }
 
 // Delete removes the document at key, reporting whether it existed.
@@ -481,21 +849,55 @@ func (k *KDB) Delete(ns, key string) (bool, error) {
 // other writer in this (single) process.
 type Tx struct {
 	n *kdbNamespace
+	// read remembers the content hash of every key this critical section has
+	// read, so the write that follows can say what it decided on. Empty means
+	// "was not there when I looked".
+	read map[string]string
 }
 
+// kdbUpdateAttempts is how many times Update re-runs fn when a peer's merge
+// landed between its read and its write. Contention like that is between this
+// node and a replicating peer, not between local writers (n.mu covers those),
+// so it is rare and does not compound: each retry reads the merged value.
+const kdbUpdateAttempts = 5
+
 // Update runs fn holding the namespace's write lock.
+//
+// When a write inside fn is refused because the document changed under it —
+// which, with the lock held, only a peer's merge can do — fn runs again on
+// what is there now. A read-check-write is therefore atomic against peers as
+// well as against this process, which is what a replicated namespace needs
+// and what the lock alone cannot give.
 func (k *KDB) Update(ns string, fn func(tx *Tx) error) error {
 	n := k.ns(ns)
 	n.mu.Lock()
 	defer n.mu.Unlock()
-	return fn(&Tx{n: n})
+	var err error
+	for attempt := 0; attempt < kdbUpdateAttempts; attempt++ {
+		err = fn(&Tx{n: n, read: map[string]string{}})
+		if !isPrecondition(err) {
+			return err
+		}
+	}
+	return err
 }
 
-// Get returns the document at key, or ErrNotFound.
-func (t *Tx) Get(key string) ([]byte, error) { return t.n.get(key) }
+// Get returns the document at key, or ErrNotFound. What it read is what a
+// later Put or Insert on the same key requires to still be true.
+func (t *Tx) Get(key string) ([]byte, error) {
+	doc, hash, found, err := t.n.readForUpdate(key)
+	if err != nil {
+		return nil, err
+	}
+	t.read[key] = hash
+	if !found {
+		return nil, fmt.Errorf("kdb: %s %q: %w", t.n.id, key, ErrNotFound)
+	}
+	return doc, nil
+}
 
 // Put creates or wholly replaces the document at key.
-func (t *Tx) Put(key string, doc []byte) error { return t.n.put(key, doc) }
+func (t *Tx) Put(key string, doc []byte) error { return t.n.put(key, doc, t.expect(key)) }
 
 // Insert creates the document at key, failing with ErrDuplicateKey if
 // present.
@@ -503,7 +905,24 @@ func (t *Tx) Insert(key string, doc []byte) error {
 	if _, err := t.n.get(key); err == nil {
 		return fmt.Errorf("kdb: %s %q: %w", t.n.id, key, ErrDuplicateKey)
 	}
-	return t.n.put(key, doc)
+	if err := t.n.put(key, doc, &kdbserver.Expect{Absent: true}); err != nil {
+		return duplicateIfPrecondition(t.n.id, key, err)
+	}
+	return nil
+}
+
+// expect is the precondition for writing key: what this critical section read,
+// or nothing when it is writing a key it never looked at (a blind overwrite,
+// which is what it asked for).
+func (t *Tx) expect(key string) *kdbserver.Expect {
+	hash, ok := t.read[key]
+	if !ok {
+		return nil
+	}
+	if hash == "" {
+		return &kdbserver.Expect{Absent: true}
+	}
+	return &kdbserver.Expect{ContentHash: hash}
 }
 
 // Delete removes the document at key, reporting whether it existed.
@@ -512,6 +931,220 @@ func (t *Tx) Delete(key string) (bool, error) { return t.n.deleteByUUID(uuidForK
 // Scan streams every document in the namespace.
 func (t *Tx) Scan(fn func(doc []byte) error) error {
 	return t.n.scan(func(_ codec.UUID, doc []byte) error { return fn(doc) })
+}
+
+// MultiTx is a transaction over several namespaces: reads see its own writes,
+// and nothing it writes is applied unless the function returns nil.
+type MultiTx struct {
+	k   *KDB
+	nss map[string]*kdbNamespace
+	ops []multiOp
+	// read is the content hash of everything this transaction has read, keyed
+	// ns\x00key; empty means it was not there. Its writes assert it, so a
+	// peer's merge landing between the read and the commit refuses the
+	// transaction instead of silently overwriting the merged value.
+	read map[string]string
+}
+
+type multiOp struct {
+	ns, key string
+	doc     []byte // nil for a delete
+}
+
+// UpdateMulti runs fn holding the write lock of every namespace in nss —
+// taken in sorted order, so two of them can never deadlock — and commits its
+// writes when fn returns nil: one kdb commit when they touch one namespace,
+// one cross-namespace transaction when they touch more. Either way they land
+// together or not at all, including across a crash.
+func (k *KDB) UpdateMulti(nss []string, fn func(tx *MultiTx) error) error {
+	names := append([]string(nil), nss...)
+	sort.Strings(names)
+	held := make(map[string]*kdbNamespace, len(names))
+	for _, name := range names {
+		if _, dup := held[name]; dup {
+			continue
+		}
+		n := k.ns(name)
+		n.mu.Lock()
+		defer n.mu.Unlock()
+		held[name] = n
+	}
+	// Re-run on a precondition failure for the same reason Update does: with
+	// every lock held, the only thing that can have moved a document under
+	// this transaction is a peer's merge, and the answer is to decide again on
+	// what the merge left.
+	var err error
+	for attempt := 0; attempt < kdbUpdateAttempts; attempt++ {
+		tx := &MultiTx{k: k, nss: held, read: map[string]string{}}
+		if err = fn(tx); err != nil {
+			return err
+		}
+		if err = tx.commit(); !isPrecondition(err) {
+			return err
+		}
+	}
+	return err
+}
+
+// commit turns the buffered writes into one transaction per namespace.
+//
+// A put is a delete followed by a write of the whole body. A write onto an
+// existing document is a shallow merge, which would keep a field the model
+// has since dropped; the engine applies a transaction's operations in order,
+// so deleting first makes the write a replacement — the same whole-document
+// semantics put gets from PutJSONDocument.
+func (t *MultiTx) commit() error {
+	type final struct {
+		key string
+		doc []byte
+	}
+	byNS := map[string][]final{}
+	seen := map[string]int{}
+	for _, op := range t.ops {
+		id := op.ns + "\x00" + op.key
+		if i, ok := seen[id]; ok {
+			byNS[op.ns][i].doc = op.doc
+			continue
+		}
+		seen[id] = len(byNS[op.ns])
+		byNS[op.ns] = append(byNS[op.ns], final{key: op.key, doc: op.doc})
+	}
+
+	var parts []kdbserver.NamespaceTransaction
+	for _, name := range sortedKeys(byNS) {
+		n := t.nss[name]
+		var ops []document.Op
+		var pres []document.Precondition
+		for _, f := range byNS[name] {
+			id := uuidForKey(f.key)
+			_, _, exists, err := n.srv.GetDocument(n.id, id)
+			if err != nil {
+				return err
+			}
+			// The first operation on a document is the one that carries what
+			// the caller read: a delete when there is something to replace,
+			// otherwise the write itself.
+			pre, err := t.precondition(name, f.key)
+			if err != nil {
+				return err
+			}
+			if pre != nil {
+				pre.OpIndex = len(ops)
+				pres = append(pres, *pre)
+			}
+			if exists {
+				ops = append(ops, document.DeleteOp{DocID: id})
+			}
+			if f.doc == nil {
+				continue
+			}
+			body, err := injectDocID(f.doc, id)
+			if err != nil {
+				return err
+			}
+			ops = append(ops, document.WriteOp{DocID: id, Patch: string(body)})
+		}
+		if len(ops) > 0 {
+			parts = append(parts, kdbserver.NamespaceTransaction{
+				Namespace: n.id,
+				Tx:        document.Transaction{Operations: ops, Preconditions: pres},
+			})
+		}
+	}
+
+	switch len(parts) {
+	case 0:
+		return nil
+	case 1:
+		n := t.nss[strings.TrimPrefix(parts[0].Namespace, kdbCatalog+"/")]
+		head, err := n.rt.DAG.Head()
+		if err != nil {
+			return err
+		}
+		txID, err := codec.RandomUUID()
+		if err != nil {
+			return err
+		}
+		tx := parts[0].Tx
+		tx.ID, tx.BaseVersion, tx.Timestamp = txID, head, codec.TimestampNow()
+		_, err = n.srv.Commit(n.id, tx, "", kdbauth.Principal{})
+		return busyIfShed(err)
+	default:
+		_, err := t.k.set.CommitAcross(parts, kdbauth.Principal{})
+		return busyIfShed(err)
+	}
+}
+
+// precondition is what this transaction read for ns/key, as an assertion for
+// the commit to make. Nil when the key was never read: a blind write, which is
+// what the caller asked for.
+func (t *MultiTx) precondition(ns, key string) (*document.Precondition, error) {
+	hash, ok := t.read[ns+"\x00"+key]
+	if !ok {
+		return nil, nil
+	}
+	if hash == "" {
+		return &document.Precondition{Kind: document.ExpectAbsent}, nil
+	}
+	h, err := codec.HashFromHex(hash)
+	if err != nil {
+		return nil, err
+	}
+	return &document.Precondition{Kind: document.ExpectContentHash, ContentHash: h}, nil
+}
+
+func sortedKeys[V any](m map[string]V) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
+}
+
+func (t *MultiTx) held(ns string) *kdbNamespace {
+	n, ok := t.nss[ns]
+	if !ok {
+		panic(fmt.Sprintf("kdb: namespace %q is not part of this transaction", ns))
+	}
+	return n
+}
+
+// Get returns the document at key as this transaction would leave it, and
+// remembers what was stored so the commit can assert it is still there.
+func (t *MultiTx) Get(ns, key string) ([]byte, error) {
+	n := t.held(ns)
+	for i := len(t.ops) - 1; i >= 0; i-- {
+		if op := t.ops[i]; op.ns == ns && op.key == key {
+			if op.doc == nil {
+				return nil, fmt.Errorf("kdb: %s %q: %w", n.id, key, ErrNotFound)
+			}
+			return op.doc, nil
+		}
+	}
+	doc, hash, found, err := n.readForUpdate(key)
+	if err != nil {
+		return nil, err
+	}
+	t.read[ns+"\x00"+key] = hash
+	if !found {
+		return nil, fmt.Errorf("kdb: %s %q: %w", n.id, key, ErrNotFound)
+	}
+	return doc, nil
+}
+
+// Put creates or wholly replaces the document at key when the transaction
+// applies.
+func (t *MultiTx) Put(ns, key string, doc []byte) {
+	t.held(ns)
+	t.ops = append(t.ops, multiOp{ns: ns, key: key, doc: append([]byte(nil), doc...)})
+}
+
+// Delete removes the document at key, if there is one, when the transaction
+// applies.
+func (t *MultiTx) Delete(ns, key string) {
+	t.held(ns)
+	t.ops = append(t.ops, multiOp{ns: ns, key: key})
 }
 
 // --- namespace primitives ---
@@ -528,38 +1161,44 @@ func (n *kdbNamespace) get(key string) ([]byte, error) {
 }
 
 // put stores doc at key, create-or-full-replace. It goes through
-// embed.PutJSONDocument rather than the runtime's Upsert: Upsert routes the
-// body through a WriteOp, and a WriteOp onto an existing document is a
+// KdbServerRuntime.PutJSON rather than the runtime's Upsert: Upsert routes
+// the body through a WriteOp, and a WriteOp onto an existing document is a
 // shallow *merge* — a field the model dropped (a cleared suspension, an
-// emptied option) would silently survive. PutJSONDocument swaps the whole
-// body, which is what ReplaceOne semantics require. Callers hold n.mu, which
-// is what stands in for the write serialization Upsert would have provided.
-func (n *kdbNamespace) put(key string, doc []byte) error {
-	withID, err := injectDocID(doc, uuidForKey(key))
+// emptied option) would silently survive. PutJSON swaps the whole body,
+// which is what ReplaceOne semantics require.
+//
+// PutJSON — rather than embed.PutJSONDocument, which this used to call —
+// takes the engine's write gate, so a local write is serialized against peer
+// ingest as well as against every other local writer. That matters the
+// moment a namespace replicates: a merge landing from a peer and a put from
+// here would otherwise race for the branch head, and the loser used to come
+// back as "branch main moved". It also goes through the engine's own memory
+// admission, so the manual Acquire this function used to do is gone with it.
+//
+// expect, when non-nil, is the value the caller read and decided on: the
+// write fails with *kdbserver.PreconditionFailedError if the document has
+// changed since. Callers holding n.mu need it only against peers — see
+// Update, which retries on it.
+func (n *kdbNamespace) put(key string, doc []byte, expect *kdbserver.Expect) error {
+	id := uuidForKey(key)
+	withID, err := injectDocID(doc, id)
 	if err != nil {
 		return err
 	}
-	// PutJSONDocument appends to the DAG through the embedded runtime, so it
-	// bypasses the memory admission srv.Commit goes through (nothing in
-	// package embed consults Admission at all) — and it is the path behind
-	// every Put, Insert and Tx.Put, which is essentially all of this server's
-	// write volume. Reserving here is therefore what actually holds the line:
-	// without it the budget set at open time would govern only deletes and
-	// reads, while the writes that grow the commit DAG forever stayed
-	// unmetered. Mirrors what KdbServerRuntime.commitWith does around its own
-	// commits, bounded wait included. Acquire on a nil Admission (no budget
-	// configured) returns an empty grant and no error, so this is a no-op
-	// wherever governance is off.
-	ctx, cancel := context.WithTimeout(context.Background(), n.srv.WriteTimeout)
-	defer cancel()
-	grant, err := n.srv.Admission().Acquire(ctx, kdbserver.ClassWrite, len(withID))
-	if err != nil {
+	if _, err := n.srv.PutJSON(n.id, id, string(withID), expect, kdbauth.Principal{}); err != nil {
 		return busyIfShed(err)
 	}
-	defer grant.Release()
+	return nil
+}
 
-	_, err = embed.PutJSONDocument(n.rt, n.id, string(withID))
-	return err
+// readForUpdate returns the document at key together with the content hash to
+// hand back as a precondition, and whether it is there at all.
+func (n *kdbNamespace) readForUpdate(key string) (doc []byte, hash string, found bool, err error) {
+	body, h, found, err := n.srv.ReadForUpdate(n.id, uuidForKey(key))
+	if err != nil || !found {
+		return nil, "", false, err
+	}
+	return []byte(body), h, true, nil
 }
 
 func (n *kdbNamespace) deleteByUUID(id codec.UUID) (bool, error) {
@@ -624,8 +1263,31 @@ func injectDocID(doc []byte, id codec.UUID) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	// The engine's document id is written as "id", so a model that stored a
+	// field of its own under that name would have it silently replaced by a
+	// UUID it never chose, and would read back wrong long afterwards. Every
+	// model here keys its own id as "_id".
+	//
+	// A document that already carries a UUID there is one being written
+	// again, or moved to another key by a migration, and its id is simply
+	// replaced. Anything else is a model naming a field "id", which is worth
+	// failing on loudly.
+	if existing, ok := root["id"]; ok && string(existing) != string(idJSON) && !isDocumentID(existing) {
+		return nil, fmt.Errorf("kdb: document carries its own \"id\" field (%s), which the engine's document id would replace: store it under another name", existing)
+	}
 	root["id"] = idJSON
 	return json.Marshal(root)
+}
+
+// isDocumentID reports whether a JSON value is an engine document id, which is
+// what tells a document being re-keyed from a model that named a field "id".
+func isDocumentID(raw json.RawMessage) bool {
+	var s string
+	if err := json.Unmarshal(raw, &s); err != nil {
+		return false
+	}
+	_, err := codec.UUIDFromString(s)
+	return err == nil
 }
 
 // --- expiry sweep ---
@@ -635,13 +1297,27 @@ func injectDocID(doc []byte, id codec.UUID) ([]byte, error) {
 // reads filter on the same fields (correctness) and this sweep reclaims the
 // space (parity).
 type expiryProbe struct {
-	ExpiresAt time.Time  `bson:"expiresAt"`
-	AbandonAt *time.Time `bson:"abandonAt"`
+	ExpiresAt time.Time `bson:"expiresAt"`
 }
 
 // sweptNamespaces mirrors mongo.go's TTL indexes: sessions, login codes and
-// OAuth flows die at expiresAt; a suspended match dies at abandonAt.
-var sweptNamespaces = []string{NSSessions, NSLoginCodes, NSOAuthFlows, NSMatches}
+// OAuth flows die at expiresAt.
+//
+// Matches are deliberately not here, and abandonAt is deliberately not an
+// expiry field. It used to be both, and the pair destroyed games: abandonAt is
+// not "delete me at", it is "decide about me at", and match.StartReaper is
+// what decides — it marks the table abandoned, clears abandonAt, and leaves
+// the row. Sweeping the same field turned that into a race between two
+// timers, and when this one won there was no abandoned match to report, no
+// row for the statistics, and nothing left of the game: a player following
+// their own link got a table that had never existed rather than one that had
+// ended. The reaper's 30s tick beat this one's minute often enough that the
+// losses looked random.
+//
+// A resolved match is history and stays, exactly like a completed one. What
+// bounds the collection is that suspended tables stop being suspended within
+// AbandonWindow, not that they are eventually deleted.
+var sweptNamespaces = []string{NSSessions, NSLoginCodes, NSOAuthFlows}
 
 func (k *KDB) sweep() {
 	defer close(k.done)
@@ -652,8 +1328,15 @@ func (k *KDB) sweep() {
 		case <-k.stop:
 			return
 		case <-ticker.C:
+			// Only node-local namespaces are swept. Every one of these holds
+			// something this node issued and this node alone consumes — a
+			// refresh token, a login code, an OAuth flow — so none of them
+			// replicates, and no peer can be reading what is being deleted.
+			// A swept replicated namespace would have every node deleting
+			// every other node's expired rows, which is a great deal of
+			// commit traffic to say the same thing many times.
 			for _, name := range sweptNamespaces {
-				k.sweepNamespace(k.nss[name])
+				k.sweepNamespace(k.ns(name))
 			}
 		}
 	}
@@ -673,9 +1356,9 @@ func (k *KDB) sweepNamespace(n *kdbNamespace) {
 	}
 	for _, id := range dead {
 		n.mu.Lock()
-		// Re-check under the lock: a suspended match can be resumed — its
-		// abandonAt cleared — between the scan above and this delete, and
-		// deleting it then would kill a live table.
+		// Re-check under the lock: a document can be rewritten with a later
+		// expiry between the scan above and this delete, and deleting it then
+		// would drop a session that had just been extended.
 		if doc, _, found, err := n.srv.GetDocument(n.id, id); err == nil && found && expired([]byte(doc), now) {
 			_, _ = n.deleteByUUID(id)
 		}
@@ -689,8 +1372,5 @@ func expired(doc []byte, now time.Time) bool {
 	if err := UnmarshalDoc(doc, &p); err != nil {
 		return false
 	}
-	if !p.ExpiresAt.IsZero() && p.ExpiresAt.Before(now) {
-		return true
-	}
-	return p.AbandonAt != nil && !p.AbandonAt.IsZero() && p.AbandonAt.Before(now)
+	return !p.ExpiresAt.IsZero() && p.ExpiresAt.Before(now)
 }

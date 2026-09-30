@@ -9,10 +9,13 @@ import { Panel, type Measurable } from '@/src/components/match/Panel';
 import { SettleIn } from '@/src/components/match/SettleIn';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useSkin } from '@/src/hooks/useSkin';
+import { concealedCount } from '@/src/lib/board';
+import { marksIn, type ChangeMarks } from '@/src/lib/changes';
 import { groupElementId, zoneElementId } from '@/src/lib/drops';
 import type { Metrics } from '@/src/lib/layout';
 import { label } from '@/src/lib/labels';
 import type { Skin } from '@/src/skins/types';
+import { t } from '@/src/lib/i18n';
 
 /**
  * One area of the board, laid out by its *kind* rather than its meaning.
@@ -63,6 +66,14 @@ type Props = {
   /** Element ids that would accept the card currently being dragged. */
   activeDrops?: ReadonlySet<string>;
   /**
+   * Of those, the ones lit because a press takes *from* them — a deck, a
+   * discard pile in a draw phase — rather than because something may be put
+   * there. Same highlight either way; the difference is what the zone says
+   * about itself, since "Drop here" on a pile you are being invited to draw
+   * from is an instruction to do the one thing you cannot.
+   */
+  sourceDrops?: ReadonlySet<string>;
+  /**
    * Places the cards in flight would be refused. Drawn as refusing, which is
    * not the same as unlit: an unlit target and a forbidden one looked
    * identical, and which of the two it is is the whole question a player is
@@ -79,7 +90,7 @@ type Props = {
    * this file draws the slice, it does not need to know what either end of
    * it is called.
    */
-  hoveredPosition?: { index: number; count: number } | null;
+  hoveredPosition?: { index: number; count: number; slot: number | null } | null;
   /**
    * Element ids that may be resolved with a press rather than a drag —
    * standing in for a drag when what to send has already been chosen and only
@@ -105,6 +116,13 @@ type Props = {
    * is exactly what happened before flights existed.
    */
   entranceDelays?: ReadonlyMap<string, number>;
+  /**
+   * Groups somebody else changed since the viewer last acted — see
+   * `src/lib/changes.ts`. Outlined, labelled, and the cards added to them
+   * ringed, all drawn over the group rather than in it, so a mark never moves
+   * anything.
+   */
+  changedGroups?: ChangeMarks;
 };
 
 export function ZoneView({
@@ -121,6 +139,7 @@ export function ZoneView({
   onToggleMinimized,
   registerDrop,
   activeDrops,
+  sourceDrops,
   refusedDrops,
   hoveredDrop,
   hoveredPosition,
@@ -130,6 +149,7 @@ export function ZoneView({
   armedGroupId,
   onAimGroup,
   entranceDelays,
+  changedGroups,
 }: Props) {
   const metrics = useMetrics();
   const skin = useSkin();
@@ -141,10 +161,46 @@ export function ZoneView({
 
   const zoneId = zoneElementId(zone.id);
   const zoneLive = activeDrops?.has(zoneId) ?? false;
+  const zoneIsSource = sourceDrops?.has(zoneId) ?? false;
   const zoneRefused = refusedDrops?.has(zoneId) ?? false;
   const entranceDelay = entranceDelays?.get(zoneId) ?? 0;
 
   const cards = zone.cards ?? [];
+  /**
+   * Cards this zone holds and is not showing — a blackjack dealer's hole
+   * card, an opponent's hand. Drawn face down rather than described in
+   * words: a card lying face down on the table is what the player is
+   * looking at in every real game, and "1 hidden" in italics is a caption
+   * where a card should be.
+   */
+  const concealed = concealedCount(zone);
+  /**
+   * The backs themselves. Built once and placed twice: beside the cards a
+   * zone *is* showing, where a dealer's hole card belongs next to its
+   * upcard rather than on a row of its own, and on its own line where there
+   * are no loose cards to sit beside.
+   */
+  const backs =
+    concealed > 0 ? (
+      <>
+        {Array.from({ length: Math.min(concealed, MAX_BACKS) }).map((_, i) => (
+          // No card to name: that is the point of a face-down card, and
+          // `CardView`'s own faceDown branch never looks at the value.
+          <CardView
+            key={`concealed-${i}`}
+            card=""
+            faceDown
+            compact={compact}
+            testID={`card-${zone.id}-concealed-${i}`}
+          />
+        ))}
+        {concealed > MAX_BACKS ? (
+          <Text style={styles.hidden} testID={`zone-count-hidden-${zone.id}`}>
+            {concealed}
+          </Text>
+        ) : null}
+      </>
+    ) : null;
   /**
    * A pile is about its top card; the rest is history.
    *
@@ -181,15 +237,41 @@ export function ZoneView({
   // it goes is still open — the same thing a group's own press overlay does,
   // but for an offer that names the whole zone rather than one group inside
   // it (composing a brand-new meld on an empty spread; discarding onto a
-  // pile). Rendered first among the zone's real content, so a group's own
-  // overlay — painted after, and so on top — still wins a tap inside it: the
-  // zone-wide target only ever catches what no group claimed.
+  // pile). It is also the whole of a press that takes *from* a pile, where
+  // there was never anything to choose: drawing is a tap on the deck.
   const zonePressable = pressableDrops?.has(zoneId) ?? false;
+  // Whether anything *inside* this zone claims a press of its own. That is the
+  // only thing the zone-wide overlay has to lose a tap to, and the whole
+  // reason it is drawn under the spread: a group's own overlay is painted
+  // later and so wins the taps that land inside it.
+  //
+  // When no group claims one, drawing it under the spread means it catches
+  // nothing at all. The groups painted over it are inert, so a tap aimed at
+  // the spread lands on a meld that does nothing and dies there — exactly the
+  // way a tap aimed at a pile once died on its top card (see the card row
+  // below). An offer that names the whole zone rather than a group in it had
+  // no reachable target at all on a board that already had melds on it, which
+  // is every board by the time Canasta's going-out meld of black threes comes
+  // up.
+  const groupTargets = (zone.groups ?? []).some((g) => pressableDrops?.has(groupElementId(g.id)));
+  // Built once and placed in one of two positions below, because where it
+  // belongs in the paint order depends on what else the zone is drawing.
+  const pressOverlay = zonePressable ? (
+    <Pressable
+      testID={`zone-press-${zone.id}`}
+      style={StyleSheet.absoluteFill}
+      onPress={(e) => onPressDrop?.(zoneId, e.nativeEvent.pageY)}
+    />
+  ) : null;
 
   // What a put-away panel says about itself on its collapsed header — kind
   // decides the shape, same as it decides the layout above. A stack needs
   // none of this: its count is the whole of what it ever shows, open or not.
   const groups = zone.groups ?? [];
+  // How many of this zone's groups carry a mark — said on the panel's own
+  // header too, which stays in view when the panel is put away or scrolled
+  // past, so a change is never only visible from inside the group.
+  const marked = changedGroups ? marksIn(zone, changedGroups) : 0;
   const summary =
     zone.kind === 'pile' && cards.length
       ? <CardGlance cards={[cards[cards.length - 1].card]} max={1} testID={`zone-summary-${zone.id}`} />
@@ -223,7 +305,11 @@ export function ZoneView({
       countTestID={foldable ? undefined : `zone-count-${zone.id}`}
       summary={summary}
       accessory={
-        foldable ? (
+        marked > 0 && !foldable ? (
+          <View style={styles.markChip} testID={`zone-marks-${zone.id}`}>
+            <Text style={styles.markChipText}>{t('marks.zone', { n: marked })}</Text>
+          </View>
+        ) : foldable ? (
           // A bordered badge with an outline chevron — visually its own
           // thing, not a second copy of the minimize control's solid ▾/▸
           // sitting right next to it. Two adjacent triangles meaning two
@@ -244,19 +330,19 @@ export function ZoneView({
       }
     >
       <View style={styles.content}>
-        {zonePressable ? (
-          <Pressable
-            testID={`zone-press-${zone.id}`}
-            style={StyleSheet.absoluteFill}
-            onPress={(e) => onPressDrop?.(zoneId, e.nativeEvent.pageY)}
-          />
-        ) : null}
+        {/* Where a zone drawing groups puts its own press target: first, so a
+            group's overlay — painted after, and so on top — still wins a tap
+            inside it, and the zone-wide one only ever catches what no group
+            claimed. A zone drawing loose cards puts it last instead; see the
+            end of the card row for why. */}
+        {groups.length > 0 && groupTargets ? pressOverlay : null}
 
         {zone.kind === 'stack' ? <StackBack count={zone.count} compact={compact} metrics={metrics} /> : null}
 
         {/* Groups first: a spread's cards belong to its groups, and rendering
           both would show every card twice. */}
         {(zone.groups ?? []).length > 0 ? (
+        <>
         <View style={styles.groups}>
           {(zone.groups ?? []).map((g) => {
             const groupId = groupElementId(g.id);
@@ -266,16 +352,53 @@ export function ZoneView({
             const groupArmable = armableGroups?.has(g.id) ?? false;
             const groupArmed = armedGroupId === g.id;
             const groupOpen = expandedGroups.has(g.id);
+            // A finished meld folds down to its top card and a count: it is
+            // a score now, not something to read card by card, and a
+            // canasta's column of corners was the tallest thing in the row.
+            // The same tap that spreads any meld open unfolds it.
+            const folded = !!g.complete && !groupOpen && g.cards.length > 1;
+            const drawn = folded ? g.cards.slice(-1) : g.cards;
+            const hiddenBelow = g.cards.length - drawn.length;
             // Only meaningful while this exact group is the one being
             // hovered — `hoveredPosition` is a fact about `hoveredDrop`, not
             // about every group on the board.
             const hoveredSlice = hoveredDrop === groupId ? hoveredPosition : null;
+            // Where among this group's cards the one in flight would land, if
+            // the module said. Clamped, because a meld can gain a card from
+            // someone else between the hover and this render, and a gap drawn
+            // past the end of the stack is worse than none.
+            const hoveredSlot =
+              hoveredSlice?.slot != null && !folded
+                ? Math.max(0, Math.min(hoveredSlice.slot, g.cards.length))
+                : null;
+            // How far apart consecutive cards in this stack are drawn: the
+            // corner each one leaves showing while the meld is closed, and a
+            // whole card once it has been tapped open.
+            const stackStep = groupOpen ? stackedCardBox(metrics) : metrics.stackedCorner;
+            const mark = changedGroups?.get(g.id);
+            // Which of this group's cards to ring: the added ones, matched
+            // from the end, since a card added to a group lands last more
+            // often than not and duplicates (two decks) are otherwise equal.
+            const ringed = new Set<number>();
+            if (mark && !mark.fresh) {
+              const want = new Map<string, number>();
+              for (const c of mark.added) want.set(c, (want.get(c) ?? 0) + 1);
+              for (let i = g.cards.length - 1; i >= 0; i--) {
+                const n = want.get(g.cards[i]) ?? 0;
+                if (n > 0) {
+                  ringed.add(i);
+                  want.set(g.cards[i], n - 1);
+                }
+              }
+            }
             return (
               <View
                 key={g.id}
                 ref={(n) => registerDrop?.(groupId, n as unknown as Measurable | null)}
                 style={[
                   styles.group,
+                  folded && styles.groupFolded,
+                  !!mark && styles.changed,
                   groupArmed && styles.armed,
                   groupLive && styles.live,
                   groupRefused && styles.refused,
@@ -312,14 +435,34 @@ export function ZoneView({
                   // `accessibilityState.selected` on the web build silently,
                   // where the flat aria spelling reaches the DOM.
                   aria-selected={groupArmed}
-                  accessibilityLabel={groupOpen ? 'Collapse this group' : 'Show all cards in this group'}
+                  accessibilityLabel={groupOpen ? t('zone.collapseGroup') : t('zone.expandGroup')}
                   testID={`group-toggle-${g.id}`}
                 >
                   <View style={styles.stackedCards}>
-                    {g.cards.map((c, i) => (
+                    {drawn.map((c, j) => {
+                      const i = hiddenBelow + j;
+                      return (
                       <View
                         key={`${g.id}-${c}-${i}`}
-                        style={i > 0 && !groupOpen && styles.stackedOverlap}
+                        style={[
+                          j > 0 && !groupOpen && styles.stackedOverlap,
+                          // Stepping down out of the way, so the gap this card
+                          // would be pushed along by is a gap you can see.
+                          // Same move the hand makes and for the same reason
+                          // (see `HandZone`'s `splitFor`): a transform, so the
+                          // group's own box — which is what the drop is
+                          // hit-tested against — does not stir.
+                          hoveredSlot !== null && i >= hoveredSlot && styles.steppedAside,
+                        ]}
+                        // The card this box holds, said out loud. A meld's
+                        // cards had no label of their own: a screen reader
+                        // reached a run and was told only that it was a
+                        // group, and nothing outside the app could name the
+                        // cards in it either. Same spelling the hand uses —
+                        // the card code — so one vocabulary describes the
+                        // whole board.
+                        accessible
+                        accessibilityLabel={c}
                       >
                         {/* Keyed by card and position, so a card laid off
                             onto this group mounts fresh — and the mount is
@@ -329,10 +472,42 @@ export function ZoneView({
                         <SettleIn kind="settle" delay={entranceDelay}>
                           <CardView card={c} compact stacked={!groupOpen} />
                         </SettleIn>
+                        {ringed.has(i) ? (
+                          <View pointerEvents="none" style={styles.cardRing} testID={`card-mark-${g.id}-${i}`} />
+                        ) : null}
                       </View>
-                    ))}
+                      );
+                    })}
+                    {/* The hole itself, drawn inside the stack so its place is
+                        counted in cards rather than in the group's padding.
+                        Absolute, so it adds nothing to the group's measured
+                        size — the same discipline every other drop-state style
+                        here keeps. */}
+                    {hoveredSlot !== null ? (
+                      <View
+                        pointerEvents="none"
+                        testID={`group-slice-${g.id}`}
+                        style={[styles.hole, { top: hoveredSlot * stackStep }]}
+                      />
+                    ) : null}
                   </View>
+                  {folded ? (
+                    <Text style={styles.foldedCount} testID={`group-folded-${g.id}`}>
+                      ×{g.cards.length}
+                    </Text>
+                  ) : null}
                 </Pressable>
+                {mark ? (
+                  <View pointerEvents="none" style={styles.markTag} testID={`group-mark-${g.id}`}>
+                    <Text style={styles.markTagText}>
+                      {mark.fresh
+                        ? t('marks.fresh')
+                        : mark.added.length
+                          ? t('marks.added', { n: mark.added.length })
+                          : t('marks.reshaped')}
+                    </Text>
+                  </View>
+                ) : null}
                 {(g.badgeKeys ?? []).map((b) => (
                   <Text key={b} style={styles.badge}>
                     {label(b)}
@@ -348,13 +523,18 @@ export function ZoneView({
                     onPress={(e) => onPressDrop?.(groupId, e.nativeEvent.pageY)}
                   />
                 ) : null}
-                {/* Which of more than one place a card in flight would land
-                    if let go right now — a slice of the group's own height,
-                    since the group is drawn as a stack running top to bottom
-                    (see the comment above). Purely a highlight: it changes
-                    which slice is tinted, never the group's own size, the
-                    same discipline `styles.live`/`hovered` already keep. */}
-                {hoveredSlice ? (
+                {/* The place a card in flight would land if let go right now.
+
+                    Drawn as a card-shaped hole in the stack, in the gap the
+                    cards below it have just stepped out of — the same answer
+                    the hand gives, in the same shape, so "this is where it
+                    goes" looks the same wherever a card is being put down.
+
+                    Where the module said nothing about the place (a set has
+                    no ends; an older server sends no `slots`) it falls back to
+                    tinting the band of the group's height that this position
+                    stands for, which is all the ordinal can honestly say. */}
+                {hoveredSlot !== null ? null : hoveredSlice && hoveredSlice.count > 1 ? (
                   <View
                     pointerEvents="none"
                     testID={`group-slice-${g.id}`}
@@ -371,50 +551,84 @@ export function ZoneView({
             );
           })}
         </View>
+        {/* And where it goes when nothing inside the spread claims a tap:
+            last, over the groups, for the same reason the card row below puts
+            it last. There is no group overlay left to lose the race to. */}
+        {groupTargets ? null : pressOverlay}
+        </>
       ) : (
-        <View style={styles.cards}>
-          {/* Indices are into the whole pile, not into what is on screen, so a
-              card keeps the same name whether the pile is open or folded. */}
-          {shown.map((c, i) => (
-            // The key is the card and its place, so a new top card is a new
-            // element — and a new element's mount is its entrance: the top of
-            // a pile flips over as if peeled off a deck, anything else
-            // settles into place.
-            <SettleIn
-              key={`${zone.id}-${c.card}-${buried + i}`}
-              kind={zone.kind === 'pile' && buried + i === cards.length - 1 ? 'flip' : 'settle'}
-              delay={buried + i === cards.length - 1 ? entranceDelay : 0}
-            >
-              <CardView
-                card={c.card}
-                faceDown={c.faceDown}
-                compact={compact}
-                selected={selected?.includes(c.card)}
-                onPress={onPressCard && !c.faceDown ? () => onPressCard(c.card, buried + i) : undefined}
-                testID={`card-${zone.id}-${buried + i}`}
-              />
-            </SettleIn>
-          ))}
-        </View>
+        <>
+          <View style={styles.cards}>
+            {/* Indices are into the whole pile, not into what is on screen, so a
+                card keeps the same name whether the pile is open or folded. */}
+            {shown.map((c, i) => (
+              // The key is the card and its place, so a new top card is a new
+              // element — and a new element's mount is its entrance: the top of
+              // a pile flips over as if peeled off a deck, anything else
+              // settles into place.
+              <SettleIn
+                key={`${zone.id}-${c.card}-${buried + i}`}
+                kind={zone.kind === 'pile' && buried + i === cards.length - 1 ? 'flip' : 'settle'}
+                delay={buried + i === cards.length - 1 ? entranceDelay : 0}
+              >
+                <CardView
+                  card={c.card}
+                  faceDown={c.faceDown}
+                  compact={compact}
+                  selected={selected?.includes(c.card)}
+                  onPress={onPressCard && !c.faceDown ? () => onPressCard(c.card, buried + i) : undefined}
+                  testID={`card-${zone.id}-${buried + i}`}
+                />
+              </SettleIn>
+            ))}
+            {/* The zone's own face-down cards, in the same row as the ones it
+                is showing — a hole card lies beside the upcard, not under it. */}
+            {backs}
+          </View>
+          {/* After the cards, not before them. A pile is one card wide and
+              that card sits over the middle of the zone, which is exactly
+              where anyone aiming at the pile presses — so drawn first, the
+              overlay lay *under* the top card and a tap meant to discard onto
+              the pile landed on a card that does nothing and died there. A
+              loose card on a pile or a stack is not a target of its own, so
+              covering it costs nothing. */}
+          {pressOverlay}
+        </>
       )}
 
-      {/* A zone with a count and nothing to show is somebody else's hand, or a
-          pile whose contents are not in play. Saying so beats an empty box. */}
-      {zone.count > 0 && !(zone.cards ?? []).length && !(zone.groups ?? []).length && zone.kind !== 'stack' ? (
-        <Text style={styles.hidden}>{zone.count} hidden</Text>
+      {/* The same backs, on a line of their own, for a zone whose shown cards
+          live in groups (or which is showing nothing at all) and so has no
+          card row for them to join. Past a handful it stops drawing one per
+          card and says how many instead — a fan of thirteen backs for an
+          opponent's hand is a wall of pattern that says nothing "13" does
+          not, and costs a row of the board to say it. */}
+      {backs && (zone.groups ?? []).length > 0 ? (
+        <View style={styles.cards} testID={`zone-concealed-${zone.id}`}>
+          {backs}
+        </View>
       ) : null}
 
       {/* An empty spread that can be dropped on says so, because otherwise the
-          first meld of the game has an invisible target. */}
-        {zoneLive && !(zone.cards ?? []).length && !(zone.groups ?? []).length ? (
-          <Text style={styles.dropHere} testID={`drop-here-${zone.id}`}>
-            Drop here
+          first meld of the game has an invisible target. It says where to let
+          go and never catches the letting go itself: a caption that takes a
+          press is a caption that eats one. */}
+        {zoneLive && !zoneIsSource && !(zone.cards ?? []).length && !(zone.groups ?? []).length ? (
+          <Text pointerEvents="none" style={styles.dropHere} testID={`drop-here-${zone.id}`}>
+            {t('zone.dropHere')}
           </Text>
         ) : null}
       </View>
     </Panel>
   );
 }
+
+/**
+ * How many face-down cards a zone draws before it gives up and says a number
+ * instead. Four is a dealer's hand, a split box, a couple of hole cards —
+ * every case where *which cards are down* is part of the position — and
+ * short of an opponent's whole hand, where it is not.
+ */
+const MAX_BACKS = 4;
 
 /**
  * A face-down pile: the count is the only thing that matters about it.
@@ -461,6 +675,18 @@ function StackBack({ count, compact, metrics }: { count: number; compact?: boole
   );
 }
 
+/**
+ * How tall one card in a meld's stack stands, ring and all.
+ *
+ * The overlap that closes a stack, the step a card takes aside to show a drop
+ * spot, and the hole that opens where it stepped from are all this same
+ * number, so it is written once. Two of them disagreeing by a pixel is a gap
+ * that does not line up with the cards either side of it.
+ */
+function stackedCardBox(m: Metrics): number {
+  return m.card.compactHeight + 2 * (m.card.ringPadding + m.card.ringBorder);
+}
+
 function zoneStyles(m: Metrics, s: Skin) {
   const colors = s.colors;
   const dropArmed = s.dropArmed;
@@ -498,7 +724,25 @@ function zoneStyles(m: Metrics, s: Skin) {
     stackedCards: { flexDirection: 'column', alignItems: 'flex-start', marginTop: 6 },
     // Pulls every card but the first up into the one above it, leaving just
     // its top corner (rank + suit) showing.
-    stackedOverlap: { marginTop: -(m.card.compactHeight + ringOuterHeight - m.stackedCorner) },
+    stackedOverlap: { marginTop: -(stackedCardBox(m) - m.stackedCorner) },
+    // A card standing out of the way of the drop spot, by exactly the card's
+    // own height, so what opens behind it is a card-shaped space and not a
+    // slit. A transform: the group's measured box, which the drop is
+    // hit-tested against, must not move — same rule as `live` and `hovered`
+    // below, kept by drawing elsewhere rather than by not moving at all.
+    steppedAside: { transform: [{ translateY: stackedCardBox(m) }] },
+    // The space itself. Outlined in the skin's drop colour, the same dashed
+    // card-shaped hole the hand opens, and absolutely positioned inside the
+    // stack so it adds nothing to what anything measures.
+    hole: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      height: stackedCardBox(m),
+      borderRadius: 6,
+      borderWidth: 2,
+      ...dropArmed,
+    },
     // Row + wrap rather than one meld per line: stackedCards narrows each
     // group to about one card's width, so several now fit across before
     // wrapping instead of each claiming a full-width row on its own.
@@ -513,6 +757,10 @@ function zoneStyles(m: Metrics, s: Skin) {
       // fine on the group at rest as well as lit up.
       position: 'relative',
     },
+    // A folded meld keeps to its own height rather than the row's, which
+    // stretches every group to the tallest meld beside it — and a canasta
+    // folded to one card but drawn a column tall saves nothing.
+    groupFolded: { alignSelf: 'flex-start' },
     // Only the border colour changes, never its width: a region that grew when
     // it lit up would move every region after it in the middle of the drag,
     // which moves the very measurements the drop is tested against. dropArmed
@@ -540,7 +788,34 @@ function zoneStyles(m: Metrics, s: Skin) {
     // discipline as `live`/`hovered`: this box must not change size just
     // because it was tapped.
     armed: { borderColor: colors.gold, backgroundColor: 'rgba(251, 191, 36, 0.10)' },
+    // Changed by somebody else since the viewer last acted. Colour only, like
+    // every other state a group can be in; the tag and rings below are
+    // absolutely positioned for the same reason.
+    changed: { borderColor: colors.success },
+    markTag: {
+      position: 'absolute',
+      top: -7,
+      right: -4,
+      backgroundColor: colors.success,
+      borderRadius: 7,
+      paddingHorizontal: 5,
+      paddingVertical: 1,
+    },
+    markTagText: { color: colors.bg, fontSize: 9, fontWeight: '800', letterSpacing: 0.3 },
+    cardRing: {
+      position: 'absolute',
+      top: -1,
+      left: -1,
+      right: -1,
+      bottom: -1,
+      borderRadius: 6,
+      borderWidth: 2,
+      borderColor: colors.success,
+    },
+    markChip: { backgroundColor: colors.success, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 1 },
+    markChipText: { color: colors.bg, fontSize: 10, fontWeight: '800' },
     badge: { color: colors.gold, fontSize: 10, marginTop: 2 },
+    foldedCount: { color: colors.muted, fontSize: 10, marginTop: 2 },
     hidden: { color: colors.muted, fontSize: 11, marginTop: 6, fontStyle: 'italic' },
     dropHere: { color: colors.gold, fontSize: 11, marginTop: 6, fontStyle: 'italic' },
     back: {

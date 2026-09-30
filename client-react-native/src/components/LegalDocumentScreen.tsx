@@ -19,13 +19,18 @@ import { colors, shared } from '@/src/theme';
  * match the casino felt is a disclaimer that reads as decoration.
  */
 export function LegalDocumentScreen({ id }: { id: LegalDocId }) {
+  // The heading comes from the bundle rather than from `doc.title`: for a
+  // locale the notices were never translated into, `doc` is the English
+  // fallback, and taking its title would put an English heading above a German
+  // banner explaining that the English is below. The document's own title is
+  // the last-resort fallback, so a document added without a key still has one.
   const locale = useLocale();
   const doc = legalDocument(id, locale);
   const draft = !operatorIsNamed();
   const untranslated = !legalIsTranslated(locale);
 
   return (
-    <Screen title={doc.title} scroll>
+    <Screen title={t(`legal.${id}.title`, undefined, doc.title)} scroll>
       <ScrollView testID={`legal-${id}`}>
         {/* Shown until `OPERATOR` is filled in. A document that names
             "[OPERATOR NAME]" and says nothing about it invites the reader to

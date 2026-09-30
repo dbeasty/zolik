@@ -1,4 +1,11 @@
-import { codeFromInviteInput, INVITE_PATH, inviteUrlFor } from '@/src/lib/inviteLink';
+import {
+  codeFromInviteInput,
+  friendUrlFor,
+  guestIdOfKey,
+  guestUrlFor,
+  INVITE_PATH,
+  inviteUrlFor,
+} from '@/src/lib/inviteLink';
 
 /**
  * The link is the feature, so these are the tests that matter most: a wrong
@@ -106,5 +113,44 @@ describe('codeFromInviteInput', () => {
 
   it('gives back nothing for an empty box', () => {
     expect(codeFromInviteInput('   ')).toBe('');
+  });
+});
+
+describe('friendUrlFor', () => {
+  it('keeps the server path but the page origin on web', () => {
+    expect(
+      friendUrlFor({ friendCode: 'ABCD2345', friendUrl: 'https://jokerless.com/add/ABCD2345' }, 'http://localhost:8114'),
+    ).toBe('http://localhost:8114/add/ABCD2345');
+  });
+
+  it('builds one from the code when the server sent no link', () => {
+    expect(friendUrlFor({ friendCode: 'ABCD2345' }, 'https://jokerless.org')).toBe('https://jokerless.org/add/ABCD2345');
+  });
+
+  it('uses the server link as is on a phone', () => {
+    expect(friendUrlFor({ friendCode: 'X', friendUrl: 'https://jokerless.com/add/X' }, '')).toBe(
+      'https://jokerless.com/add/X',
+    );
+  });
+
+  it('gives nothing without a code or a link', () => {
+    expect(friendUrlFor({}, 'https://jokerless.com')).toBe('');
+  });
+});
+
+describe('guestUrlFor', () => {
+  const KEY = '0123456789abcdef0123456789abcdef.MAC-_x';
+
+  it('carries the key, which is the proof, on this page\'s origin', () => {
+    expect(guestUrlFor(KEY, 'https://jokerless.com/')).toBe(`https://jokerless.com/guest/${KEY}`);
+  });
+
+  it('offers no link without a key — a bare guest id proves nothing', () => {
+    expect(guestUrlFor(undefined, 'https://jokerless.com')).toBe('');
+    expect(guestUrlFor('  ', 'https://jokerless.com')).toBe('');
+  });
+
+  it('reads the guest id back off the key', () => {
+    expect(guestIdOfKey(KEY)).toBe('0123456789abcdef0123456789abcdef');
   });
 });

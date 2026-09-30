@@ -48,7 +48,12 @@ ARG ZOLIK_OPERATOR_COUNTRY=
 ARG ZOLIK_OPERATOR_CONTACT=
 ARG ZOLIK_SOURCE_URL=https://github.com/dbeasty/zolik
 
+# EXPO_PUBLIC_ZOLIK_API_SAME_ORIGIN: this image serves the bundle itself, so in
+# a browser the API is whichever domain served the page. One deployment answers
+# on several names, and ZOLIK_PUBLIC_URL can only name one of them; it remains
+# the prerendered fallback and the address shown before hydration.
 RUN EXPO_PUBLIC_ZOLIK_BASE_URL="${ZOLIK_PUBLIC_URL}" \
+    EXPO_PUBLIC_ZOLIK_API_SAME_ORIGIN=1 \
     EXPO_PUBLIC_ZOLIK_VERSION="${ZOLIK_VERSION}" \
     EXPO_PUBLIC_ZOLIK_COMMIT="${ZOLIK_COMMIT}" \
     EXPO_PUBLIC_ZOLIK_OPERATOR="${ZOLIK_OPERATOR}" \
@@ -131,5 +136,12 @@ WORKDIR /
 COPY --from=build /out/server /server
 COPY --from=build --chown=nonroot:nonroot /out/data /data
 EXPOSE 8090 8092 2222
+# Transparent huge pages off for the Go heap. On a THP=always host, memory the
+# runtime hands back from inside a huge page stays charged to the cgroup until
+# the kernel is under real pressure, and both the admission gate and kdb's
+# write shedding read the cgroup. On the dev stack that was ~700 MiB above the
+# process's resident size: enough to hold kdb in its high zone and refuse every
+# new match. Go reads this setting only from the environment.
+ENV GODEBUG=disablethp=1
 USER nonroot:nonroot
 ENTRYPOINT ["/server"]

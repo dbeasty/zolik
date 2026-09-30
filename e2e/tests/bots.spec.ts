@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 
 /**
  * Bots, for every game (docs/one-architecture-plan.md Phase 6).
@@ -54,8 +54,8 @@ async function humanVersusBot(
   return { matchId, botId, host };
 }
 
-async function stateFor(request: Ctx, matchId: string, viewerId: string) {
-  const res = await request.get(`${API_BASE}/matches/${matchId}?as=${encodeURIComponent(viewerId)}`);
+async function stateFor(request: Ctx, matchId: string, viewer: Viewer) {
+  const res = await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer));
   expect(res.ok(), await res.text()).toBeTruthy();
   return res.json();
 }
@@ -120,8 +120,14 @@ test.describe('bots play every game', () => {
           const submissionFor = (o: any) => {
             if (o.composite) return null; // a shape only a person can compose
             const action: any = { offerId: o.id, verb: o.verb };
+            // `submit` is what a press sends; `cards` is the pool a person may pick
+            // from, and can lead with wilds the move does not need. Only an offer
+            // without one means the first `minCards` of the pool (module.Selector).
+            const submit = o.source?.submit ?? [];
             const need = o.source?.minCards ?? 0;
-            if (need > 0) {
+            if (submit.length > 0) {
+              action.cards = submit;
+            } else if (need > 0) {
               const cards = o.source?.cards ?? [];
               if (cards.length < need) return null;
               action.cards = cards.slice(0, need);
@@ -214,7 +220,7 @@ test.describe('bots play every game', () => {
     // measure the same thing, so the shape is what has to be shared.
     for (const game of GAMES) {
       const { matchId, host } = await humanVersusBot(request, game.moduleId, game);
-      const state = await stateFor(request, matchId, host.userId);
+      const state = await stateFor(request, matchId, host);
 
       const standings = state.standings ?? [];
       expect(standings.length, `${game.label} should keep a scoreboard`).toBeGreaterThan(0);
@@ -232,7 +238,7 @@ test.describe('bots play every game', () => {
     // disagreed with its own offers would have its bots playing the wrong seat.
     for (const game of GAMES) {
       const { matchId, host } = await humanVersusBot(request, game.moduleId, game);
-      const state = await stateFor(request, matchId, host.userId);
+      const state = await stateFor(request, matchId, host);
       const seats = state.view?.seats ?? [];
       expect(seats.length, `${game.label} should seat its players`).toBe(2);
 

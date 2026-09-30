@@ -160,6 +160,22 @@ func TestEveryModuleDescribesItself(t *testing.T) {
 				if v.ID == "" || v.Label == "" {
 					t.Errorf("variation %+v is not renderable", v)
 				}
+				// A variation may narrow the module's seat range and must never
+				// widen it: the module's is what the lobby list and every screen
+				// that has not yet asked about a variation still read, so a
+				// variation seating more than its module would be advertised at
+				// one size and enforced at another.
+				min, max := d.SeatRange(v.ID)
+				if max > d.MaxPlayers {
+					t.Errorf("variation %q seats %d, more than the module's %d — a variation narrows, never widens",
+						v.ID, max, d.MaxPlayers)
+				}
+				if min < d.MinPlayers {
+					t.Errorf("variation %q opens at %d, below the module's %d", v.ID, min, d.MinPlayers)
+				}
+				if max < min {
+					t.Errorf("variation %q seats %d..%d, which is nobody", v.ID, min, max)
+				}
 				for opt, val := range v.Defaults {
 					spec := d.Option(opt)
 					if spec == nil {
@@ -723,6 +739,146 @@ func TestEveryModuleWritesItsRules(t *testing.T) {
 	}
 }
 
+// TestEveryModuleExplainsItsRefusals is the other half of writing the rules
+// down: a game that states them and then refuses a player with a bare code has
+// an index nobody can follow.
+//
+// The per-module suites check the mapping in depth — every code the engine can
+// emit points at a sentence that table states (module.RuleIndexCheck). This
+// checks the thing none of them can: that a *new* game arriving tomorrow
+// cannot ship without one, which is how five of these went out returning
+// WRONG_PHASE with nothing behind it.
+func TestEveryModuleExplainsItsRefusals(t *testing.T) {
+	for _, g := range allModules() {
+		t.Run(g.name, func(t *testing.T) {
+			p, ok := g.mod.(module.RuleIndexProvider)
+			if !ok {
+				t.Fatalf("%s does not implement module.RuleIndexProvider — "+
+					"its refusals reach a player as bare codes", g.name)
+			}
+			// Every game has a turn and every game can be asked out of it, so
+			// this is the one code all seven are known to emit. A module that
+			// explains nothing at all fails here rather than at the far end of
+			// somebody's play-through.
+			if len(p.ExplainRefusal(g.cfg, "NOT_YOUR_TURN")) == 0 {
+				t.Error("nothing explains NOT_YOUR_TURN, which every game can return")
+			}
+			if len(p.ExplainRefusal(g.cfg, "NO_SUCH_CODE_AT_ALL")) != 0 {
+				t.Error("a code this engine cannot emit was explained anyway")
+			}
+		})
+	}
+}
+
+// TestADisabledOfferSaysWhy is the promise the offer protocol makes and the one
+// a player actually feels: a greyed-out control carries the engine's own
+// reason, and — where the module has written one — the rule behind it or the
+// move to make instead.
+//
+// Checked over a real play-through rather than a built state, because the
+// interesting refusals are the ones a game reaches on its own.
+func TestADisabledOfferSaysWhy(t *testing.T) {
+	for _, g := range allModules() {
+		t.Run(g.name, func(t *testing.T) {
+			state, err := g.mod.NewMatch(g.cfg, g.players, 7)
+			if err != nil {
+				t.Fatalf("NewMatch: %v", err)
+			}
+			seen, explained := 0, 0
+			for step := 0; step < 40; step++ {
+				for _, ref := range g.players {
+					offers, err := g.mod.LegalActions(state, ref.ID)
+					if err != nil {
+						t.Fatalf("LegalActions: %v", err)
+					}
+					live := map[string]bool{}
+					for _, o := range offers {
+						if o.Enabled {
+							live[o.ID] = true
+						}
+					}
+					for _, o := range offers {
+						if o.Enabled {
+							continue
+						}
+						if o.WhyNot == "" {
+							t.Fatalf("offer %q is disabled and says nothing about why", o.ID)
+						}
+						seen++
+						if len(o.RuleIDs) > 0 || o.Remedy != nil {
+							explained++
+						} else if !selfExplained[o.WhyNot] {
+							// Every disabled control can now be pressed for
+							// its explanation, so one with nothing behind its
+							// reason opens a sheet that only repeats it.
+							t.Errorf("offer %q is disabled for %s with no rule and no remedy behind it", o.ID, o.WhyNot)
+						}
+						// A remedy that names a control puts a working button
+						// under the sentence, so the id has to be a live offer
+						// on this very list. Naming a dead one is worse than
+						// naming none: the sheet either shows nothing where a
+						// button was promised, or offers a move the engine
+						// would refuse.
+						if o.RemedyOfferID != "" && !live[o.RemedyOfferID] {
+							t.Errorf("offer %q points its remedy at %q, which is not an enabled offer here",
+								o.ID, o.RemedyOfferID)
+						}
+					}
+				}
+				next, done := advanceOnce(g, state)
+				if done {
+					break
+				}
+				state = next
+			}
+			if seen == 0 {
+				t.Fatal("no disabled offer was reached at all — the check looked at nothing")
+			}
+			if explained == 0 {
+				t.Errorf("%d disabled offers, and not one carried a rule or a remedy", seen)
+			}
+		})
+	}
+}
+
+// selfExplained are the refusals that are states of the table rather than
+// rules of a game — there is nothing to undo, you already said you were
+// ready, the match is not running. The reason is the whole explanation, and
+// a rule written only so a sheet has something to cite would be padding.
+var selfExplained = map[string]bool{
+	"NOTHING_TO_UNDO": true,
+	"ALREADY_READY":   true,
+	"GAME_NOT_ACTIVE": true,
+}
+
+// advanceOnce plays whatever the first player with an enabled offer can play,
+// so the loop above walks through real states rather than one.
+func advanceOnce(g hosted, state module.State) (module.State, bool) {
+	if done, _, err := g.mod.Finished(state); err != nil || done {
+		return state, true
+	}
+	for _, ref := range g.players {
+		offers, err := g.mod.LegalActions(state, ref.ID)
+		if err != nil {
+			continue
+		}
+		for _, o := range offers {
+			if !o.Enabled {
+				continue
+			}
+			a, ok := module.SubmissionFor(o)
+			if !ok {
+				continue
+			}
+			next, _, err := g.mod.Apply(state, ref.ID, a)
+			if err == nil {
+				return next, false
+			}
+		}
+	}
+	return state, true
+}
+
 // TestTiesShareARank is the property Canasta and poker both need: a partnership
 // and a split pot are two players who genuinely came first.
 func TestTiesShareARank(t *testing.T) {
@@ -1095,8 +1251,12 @@ func TestAPausingGameStillPlaysItselfOut(t *testing.T) {
 				cfg.Options = module.Options{}
 			}
 			// Ask for the pause explicitly rather than relying on this game's
-			// default, so the test says what it is testing.
-			cfg.Options[module.OptPauseBetweenRounds] = module.OptOn
+			// default, so the test says what it is testing — where the game
+			// offers the choice at all. Hold'em does not: its showdown stop is
+			// unconditional, and an undeclared option is refused outright.
+			if g.mod.Descriptor().Option(module.OptPauseBetweenRounds) != nil {
+				cfg.Options[module.OptPauseBetweenRounds] = module.OptOn
+			}
 
 			state, err := g.mod.NewMatch(cfg, g.players, 5)
 			if err != nil {
@@ -1137,7 +1297,9 @@ func TestAPausedTableSaysSo(t *testing.T) {
 			if cfg.Options == nil {
 				cfg.Options = module.Options{}
 			}
-			cfg.Options[module.OptPauseBetweenRounds] = module.OptOn
+			if g.mod.Descriptor().Option(module.OptPauseBetweenRounds) != nil {
+				cfg.Options[module.OptPauseBetweenRounds] = module.OptOn
+			}
 
 			state, err := g.mod.NewMatch(cfg, g.players, 5)
 			if err != nil {
@@ -1155,24 +1317,37 @@ func TestAPausedTableSaysSo(t *testing.T) {
 						t.Fatalf("step %d: the table is paused and waiting for nobody", step)
 					}
 					// Everyone it is waiting on is offered the way to go on,
-					// and nobody else is offered anything at all.
+					// and nobody else is offered it.
+					//
+					// This used to read "and nobody else is offered anything
+					// at all", checked by refusing any enabled verb that was
+					// not `continue`. That was exact while an intermission had
+					// exactly one control, and it turned out to be exactness
+					// about the wrong thing: Hold'em's showdown offers `show`
+					// beside `continue`, because turning your hand over is a
+					// thing you may only do while the hand is still on the
+					// table. The guarantee worth keeping is not that a paused
+					// table is silent — it is that the way on is offered to
+					// exactly the seats being waited on, so `WaitingFor` and
+					// the controls can never disagree about whom the table is
+					// stuck on. Anything else a module offers is its own
+					// business, and it is still bound by every other rule
+					// here: it must be declared, it must say why when it is
+					// off, and it must be distinguishable on screen.
 					for _, p := range g.players {
 						offers, err := g.mod.LegalActions(state, p.ID)
 						if err != nil {
 							t.Fatalf("LegalActions: %v", err)
 						}
-						enabled := false
+						onward := false
 						for _, o := range offers {
-							if o.Enabled {
-								enabled = true
-								if o.Verb != module.VerbContinue {
-									t.Errorf("a paused table offers %q", o.Verb)
-								}
+							if o.Enabled && o.Verb == module.VerbContinue {
+								onward = true
 							}
 						}
-						if want := contains(log.WaitingFor, p.ID); enabled != want {
-							t.Errorf("step %d: %s enabled=%v, waitingFor says %v",
-								step, p.ID, enabled, want)
+						if want := contains(log.WaitingFor, p.ID); onward != want {
+							t.Errorf("step %d: %s offered the way on=%v, waitingFor says %v",
+								step, p.ID, onward, want)
 						}
 					}
 				}
@@ -1201,9 +1376,315 @@ func TestAPausedTableSaysSo(t *testing.T) {
 	}
 }
 
-// pauses reports a module offering the pause as a table setting at all. A game
-// that does not declare the option is not expected to honour it — asking it to
-// would be asserting a setting it never advertised.
+// pauses reports a module whose table ever stops between rounds.
+//
+// Asked as a question about behaviour rather than about the descriptor. It
+// used to be "does this module declare OptPauseBetweenRounds", and that was
+// the same question right up until Hold'em stopped declaring it — its
+// showdown is unconditional, so the setting became a control that decided
+// nothing and was removed. Under the old reading the one game that *always*
+// pauses silently dropped out of every test about pausing, which is the
+// failure mode a gate written against a declaration always has: it tests the
+// games that admit to the feature.
+//
+// So this plays a match and watches. A module is held to the pause rules if
+// a pause is ever observed, whether it offered the choice or made it.
 func pauses(m module.GameModule) bool {
-	return m.Descriptor().Option(module.OptPauseBetweenRounds) != nil
+	for _, g := range allModules() {
+		if g.mod != m {
+			continue
+		}
+		return everPauses(g)
+	}
+	return false
+}
+
+// everPauses drives a match through its own offers and reports whether the
+// round log ever said the table was sitting between rounds.
+func everPauses(g hosted) bool {
+	cfg := g.cfg
+	if cfg.Options == nil {
+		cfg.Options = module.Options{}
+	}
+	if g.mod.Descriptor().Option(module.OptPauseBetweenRounds) != nil {
+		cfg.Options[module.OptPauseBetweenRounds] = module.OptOn
+	}
+	state, err := g.mod.NewMatch(cfg, g.players, 5)
+	if err != nil {
+		return false
+	}
+	for step := 0; step < 2000; step++ {
+		if log := module.RoundsFor(g.mod, state); log != nil && log.Paused {
+			return true
+		}
+		if done, _, err := g.mod.Finished(state); err != nil || done {
+			return false
+		}
+		actor := module.ActiveSeat(g.mod, state, g.players[0].ID, g.players)
+		if actor == "" {
+			return false
+		}
+		offers, err := g.mod.LegalActions(state, actor)
+		if err != nil {
+			return false
+		}
+		a, ok := module.ChooseAction(offers, g.prefer)
+		if !ok {
+			return false
+		}
+		next, _, err := g.mod.Apply(state, actor, a)
+		if err != nil {
+			return false
+		}
+		state = next
+	}
+	return false
+}
+
+// TestADiscardPileShowsWhatTheTableAskedFor — the open-pile option, checked
+// against every game that declares it rather than four times in four packages.
+//
+// The term is narrow and worth stating exactly: with the option on, a pile
+// publishes every card it holds; with it off, its top card and nothing else.
+// Neither setting changes what anybody may *do* — the option decides what a
+// viewer is sent, and a module that enforced it in its offers instead would
+// have turned a house rule into a rule.
+//
+// The one exemption is the interesting half. A game whose draw can reach under
+// the top card (Žolíky's free pickup) offers those buried cards by name, and a
+// view that folded them away would be hiding cards it is at the same time
+// inviting the player to take. Presentation does not get to contradict an
+// offer, so such a game keeps its pile open and the test says so rather than
+// excusing it per module.
+//
+// The run has to actually build a pile for any of this to mean anything, which
+// is why a game whose pile never grows past one card fails rather than passes
+// quietly.
+func TestADiscardPileShowsWhatTheTableAskedFor(t *testing.T) {
+	for _, g := range allModules() {
+		if g.mod.Descriptor().Option(module.OptOpenDiscardPile) == nil {
+			continue
+		}
+		t.Run(g.name, func(t *testing.T) {
+			for _, open := range []bool{false, true} {
+				name, want := "folded", module.OptOff
+				if open {
+					name, want = "open", module.OptOn
+				}
+				t.Run(name, func(t *testing.T) {
+					cfg := g.cfg
+					opts := module.Options{}
+					for k, v := range cfg.Options {
+						opts[k] = v
+					}
+					opts[module.OptOpenDiscardPile] = want
+					cfg.Options = opts
+
+					state, err := g.mod.NewMatch(cfg, g.players, 5)
+					if err != nil {
+						t.Fatalf("NewMatch: %v", err)
+					}
+
+					deepest := 0
+					reachesUnderTop := false
+					var folds []string
+					check := func(s module.State) {
+						for _, p := range g.players {
+							vm, err := g.mod.View(s, p.ID)
+							if err != nil {
+								t.Fatalf("View: %v", err)
+							}
+							for _, z := range vm.Zones {
+								if z.Kind != module.ZonePile {
+									continue
+								}
+								if z.Count > deepest {
+									deepest = z.Count
+								}
+								if open && len(z.Cards) != z.Count {
+									t.Fatalf("an open pile of %d showed %d cards", z.Count, len(z.Cards))
+								}
+								if !open && len(z.Cards) > 1 {
+									folds = append(folds, fmt.Sprintf("a folded pile of %d showed %v", z.Count, z.Cards))
+								}
+								if len(z.Cards) > 0 && drawsUnderTop(t, g, s, z.Cards[len(z.Cards)-1].Card) {
+									reachesUnderTop = true
+								}
+							}
+						}
+					}
+
+					check(state)
+					if _, _, err := module.PlayWithOffers(g.mod, state, g.players, module.DriverOptions{
+						MaxActions: 400, Prefer: g.prefer, OnState: check,
+					}); err != nil {
+						t.Fatalf("%v", err)
+					}
+					if deepest < 2 {
+						t.Fatalf("the pile never grew past %d cards, so this proves nothing", deepest)
+					}
+					if len(folds) > 0 && !reachesUnderTop {
+						t.Fatalf("%s (and no draw in this game ever reaches under the top card)", folds[0])
+					}
+					if !open && reachesUnderTop && len(folds) == 0 {
+						t.Errorf("this game's draw reaches under the top card, yet the pile was folded to it all match")
+					}
+				})
+			}
+		})
+	}
+}
+
+// drawsUnderTop reports whether anybody at this table is offered a discard-pile
+// card that is not the top one — the property that makes folding the pile away
+// a contradiction rather than a preference.
+func drawsUnderTop(t *testing.T, g hosted, s module.State, top string) bool {
+	t.Helper()
+	for _, p := range g.players {
+		offers, err := g.mod.LegalActions(s, p.ID)
+		if err != nil {
+			t.Fatalf("LegalActions: %v", err)
+		}
+		for _, o := range offers {
+			if o.Source == nil || o.Source.Zone != module.FromDiscardPile {
+				continue
+			}
+			for _, c := range o.Source.Cards {
+				if c != top {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// TestAnEventNeverNamesAHiddenCard — the runtime publishes every Event to every
+// seat, so an event is as much a view as View is. Each card an event names,
+// as projected for a viewer, must be one that viewer's own board shows either
+// side of the action. The same goes for the move narrated from it, which the
+// viewer reads in the strip over the table. Žolíky's blind draw from the deck was the case that
+// failed this: the drawn card went to every opponent's socket.
+func TestAnEventNeverNamesAHiddenCard(t *testing.T) {
+	for _, g := range allModules() {
+		t.Run(g.name, func(t *testing.T) {
+			state, err := g.mod.NewMatch(g.cfg, g.players, 5)
+			if err != nil {
+				t.Fatalf("NewMatch: %v", err)
+			}
+			viewJSON := func(s module.State, viewer string) string {
+				vm, err := g.mod.View(s, viewer)
+				if err != nil {
+					t.Fatalf("View: %v", err)
+				}
+				blob, err := json.Marshal(vm)
+				if err != nil {
+					t.Fatalf("marshal: %v", err)
+				}
+				return string(blob)
+			}
+			checked := 0
+			_, _, err = module.PlayWithOffers(g.mod, state, g.players, module.DriverOptions{
+				MaxActions: 800, Prefer: g.prefer,
+				OnEvents: func(actor string, events []module.Event, before, after module.State) {
+					for _, viewer := range g.players {
+						var boards string
+						for _, ev := range events {
+							seen, ok := module.ProjectEvent(g.mod, ev, viewer.ID)
+							if !ok {
+								continue
+							}
+							named := cardsNamed(seen.Data)
+							if mv, ok := module.NarrateEvent(g.mod, after, seen); ok {
+								for _, v := range mv.Fact.Params {
+									named = append(named, cardsNamed(map[string]any{"card": v})...)
+								}
+							}
+							for _, card := range named {
+								if boards == "" {
+									boards = viewJSON(before, viewer.ID) + viewJSON(after, viewer.ID)
+								}
+								checked++
+								if !strings.Contains(boards, strconv.Quote(card)) {
+									t.Errorf("%s's %s event shows %s the card %s, which their board never does",
+										actor, seen.Type, viewer.ID, card)
+								}
+							}
+						}
+					}
+				},
+			})
+			if err != nil {
+				t.Fatalf("%v", err)
+			}
+			if checked == 0 {
+				t.Logf("no event named a card")
+			}
+		})
+	}
+}
+
+// cardsNamed is every card id an event's data carries, under the field names
+// modules use for cards. Counts under the same names are skipped.
+func cardsNamed(data map[string]any) []string {
+	var out []string
+	for _, key := range []string{"card", "cards", "hole", "top", "upCard"} {
+		switch v := data[key].(type) {
+		case string:
+			if v != "" {
+				out = append(out, v)
+			}
+		case []string:
+			out = append(out, v...)
+		case []any:
+			for _, x := range v {
+				if s, ok := x.(string); ok {
+					out = append(out, s)
+				}
+			}
+		}
+	}
+	return out
+}
+
+// TestEveryModulesHintNamesAControl — a hint is the move a seat's bot would
+// make, shown on the control that makes it. A bot that answers in verbs alone
+// still has to land on an enabled offer, or the player is told to make a move
+// there is no button for.
+func TestEveryModulesHintNamesAControl(t *testing.T) {
+	for _, g := range allModules() {
+		t.Run(g.name, func(t *testing.T) {
+			state, err := g.mod.NewMatch(g.cfg, g.players, 5)
+			if err != nil {
+				t.Fatalf("NewMatch: %v", err)
+			}
+			hinted := 0
+			_, _, err = module.PlayWithOffers(g.mod, state, g.players, module.DriverOptions{
+				MaxActions: 300, Prefer: g.prefer,
+				OnEvents: func(_ string, _ []module.Event, _, after module.State) {
+					for _, p := range g.players {
+						offers, err := g.mod.LegalActions(after, p.ID)
+						if err != nil {
+							t.Fatalf("LegalActions: %v", err)
+						}
+						seat := module.BotSeat{PlayerID: p.ID, Skill: module.SkillHard, Seed: 1}
+						a, ok := module.BotFor(g.mod).Act(after, seat, offers)
+						if !ok {
+							continue
+						}
+						if module.OfferFor(offers, a) == nil {
+							t.Fatalf("%s's hint %+v is on no enabled control:\n%s", p.ID, a, module.DescribeOffers(offers))
+						}
+						hinted++
+					}
+				},
+			})
+			if err != nil {
+				t.Fatalf("%v", err)
+			}
+			if hinted == 0 {
+				t.Fatal("no hint was ever given — the check looked at nothing")
+			}
+		})
+	}
 }

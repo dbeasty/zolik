@@ -7,6 +7,7 @@ import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { claimPrompt, orderProviders, providerButtonLabel } from '@/src/lib/auth';
 import { shared, colors } from '@/src/theme';
+import { t } from '@/src/lib/i18n';
 
 /**
  * The sign-in screen.
@@ -29,7 +30,7 @@ export default function LoginScreen() {
       if (outcome) router.replace('/');
       // null means the person closed the browser — stay on this screen.
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Sign-in failed');
+      setError(e instanceof Error ? e.message : t('error.signIn'));
     } finally {
       setBusyProvider(null);
     }
@@ -39,7 +40,7 @@ export default function LoginScreen() {
   const hint = claimPrompt(claimableMatches);
 
   return (
-    <Screen title="Sign in" subtitle="Keep your statistics across devices" scroll>
+    <Screen title={t('settings.signIn')} subtitle={t('auth.login.subtitle')} scroll>
       {hint ? <Text style={[shared.status, { marginBottom: 16 }]}>{hint}</Text> : null}
 
       {/* Before the buttons, as on the guest screen: the notice is about what
@@ -68,14 +69,14 @@ export default function LoginScreen() {
         onPress={() => router.push('/auth/email')}
         disabled={busyProvider !== null}
       >
-        <Text style={shared.buttonTextSecondary}>Continue with email</Text>
+        <Text style={shared.buttonTextSecondary}>{t('auth.login.continueWithEmail')}</Text>
       </Pressable>
 
       {error ? <Text style={shared.error}>{error}</Text> : null}
 
       <View style={{ marginTop: 24 }}>
         <Pressable onPress={() => router.push('/auth/username-login')}>
-          <Text style={shared.status}>Sign in with a username instead</Text>
+          <Text style={shared.status}>{t('auth.login.usernameInstead')}</Text>
         </Pressable>
       </View>
     </Screen>

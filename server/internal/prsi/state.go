@@ -74,6 +74,12 @@ type GameState struct {
 	// their turn unless they answer with an Ace of their own.
 	SkipPending bool `json:"skipPending,omitempty"`
 
+	// OpenDiscard is whether this table publishes the whole discard pile
+	// rather than its top card (view.go's shownPile). Resolved once at
+	// NewMatch, and false — the folded pile this game has always shown — for
+	// a match dealt before the option existed.
+	OpenDiscard bool `json:"openDiscard,omitempty"`
+
 	WinnerID string `json:"winnerId,omitempty"`
 	Seed     int64  `json:"seed"`
 	// Reshuffles counts how many times the pile has been recycled, which also
@@ -89,6 +95,14 @@ const (
 	ErrGameNotActive  = "GAME_NOT_ACTIVE"
 	ErrCardNotInHand  = "CARD_NOT_IN_HAND"
 	ErrCardDoesNotFit = "CARD_DOES_NOT_FIT"
+	// ErrNothingToSkip is a pass with no skip owed to you.
+	//
+	// It used to be ErrCardDoesNotFit, which words as "that card doesn't match
+	// the suit or the rank" — a sentence about a card, printed under a button
+	// that plays none. A code shared between two unrelated refusals cannot be
+	// worded for both, and the player reading it was told about a move they
+	// had not made.
+	ErrNothingToSkip  = "NOTHING_TO_SKIP"
 	ErrMustAnswerDraw = "MUST_ANSWER_DRAW_OR_TAKE"
 	ErrSuitRequired   = "SUIT_REQUIRED"
 	ErrUnknownSuit    = "UNKNOWN_SUIT"

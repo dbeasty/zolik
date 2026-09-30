@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { TallyView } from '@/src/api/types';
+import { t } from '@/src/lib/i18n';
 import { avgRankText, winPercentText } from '@/src/lib/stats';
 import { colors, shared } from '@/src/theme';
 
@@ -45,10 +46,10 @@ export function Section({
 export function Headline({ tally }: { tally: TallyView }) {
   return (
     <View style={styles.headlineRow} testID="stats-headline">
-      <Tile label="Played" value={String(tally.matches)} testID="stats-played" />
-      <Tile label="Won" value={String(tally.wins)} tone={colors.success} testID="stats-won" />
-      <Tile label="Lost" value={String(tally.losses)} testID="stats-lost" />
-      <Tile label="Drawn" value={String(tally.draws)} testID="stats-drawn" />
+      <Tile label={t('record.played')} value={String(tally.matches)} testID="stats-played" />
+      <Tile label={t('record.won')} value={String(tally.wins)} tone={colors.success} testID="stats-won" />
+      <Tile label={t('record.lost')} value={String(tally.losses)} testID="stats-lost" />
+      <Tile label={t('stats.drawn')} value={String(tally.draws)} testID="stats-drawn" />
     </View>
   );
 }
@@ -115,10 +116,10 @@ export function SplitTable({
         {/* The label column has no heading of its own — what the rows are is
             said by the section title above the table. */}
         <View style={styles.cellLabel} />
-        <Text style={[styles.cellNum, styles.headText]}>Played</Text>
-        <Text style={[styles.cellNum, styles.headText]}>Won</Text>
-        <Text style={[styles.cellNum, styles.headText]}>Win %</Text>
-        <Text style={[styles.cellNum, styles.headText]}>Finish</Text>
+        <Text style={[styles.cellNum, styles.headText]}>{t('record.played')}</Text>
+        <Text style={[styles.cellNum, styles.headText]}>{t('record.won')}</Text>
+        <Text style={[styles.cellNum, styles.headText]}>{t('stats.col.winPct')}</Text>
+        <Text style={[styles.cellNum, styles.headText]}>{t('stats.col.finish')}</Text>
       </View>
       {rows.map((r) => (
         <View key={r.key} style={styles.row} testID={`split-row-${r.key}`}>

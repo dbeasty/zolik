@@ -58,3 +58,55 @@ it('leaves the operator empty rather than inventing one', () => {
   expect(config.OPERATOR_COUNTRY).toBe('');
   expect(config.OPERATOR_CONTACT).toBe('');
 });
+
+describe('ZOLIK_BASE_URL', () => {
+  // The production image serves the web bundle from the API server itself, on
+  // several domains at once, so a browser must call whichever one served it.
+  function loadAs(os: string, origin: string | undefined) {
+    jest.resetModules();
+    jest.doMock('react-native', () => ({ Platform: { OS: os } }));
+    jest.doMock('expo-constants', () => ({ __esModule: true, default: {} }));
+    const g = globalThis as { window?: unknown };
+    const had = 'window' in g;
+    const saved = g.window;
+    g.window = origin === undefined ? undefined : { location: { origin } };
+    try {
+      return require('./config').ZOLIK_BASE_URL as string;
+    } finally {
+      if (had) g.window = saved;
+      else delete g.window;
+      jest.dontMock('react-native');
+      jest.dontMock('expo-constants');
+    }
+  }
+
+  it('is the serving origin on web when the build says the API is same-origin', () => {
+    process.env.EXPO_PUBLIC_ZOLIK_BASE_URL = 'https://jokerless.com';
+    process.env.EXPO_PUBLIC_ZOLIK_API_SAME_ORIGIN = '1';
+
+    expect(loadAs('web', 'https://jokerless.org')).toBe('https://jokerless.org');
+    expect(loadAs('web', 'https://play.limidus.com')).toBe('https://play.limidus.com');
+  });
+
+  it('keeps the baked-in URL during the static prerender, where there is no window', () => {
+    process.env.EXPO_PUBLIC_ZOLIK_BASE_URL = 'https://jokerless.com/';
+    process.env.EXPO_PUBLIC_ZOLIK_API_SAME_ORIGIN = '1';
+
+    expect(loadAs('web', undefined)).toBe('https://jokerless.com');
+  });
+
+  it('keeps the baked-in URL on native, whatever the flag says', () => {
+    process.env.EXPO_PUBLIC_ZOLIK_BASE_URL = 'https://jokerless.com';
+    process.env.EXPO_PUBLIC_ZOLIK_API_SAME_ORIGIN = '1';
+
+    expect(loadAs('ios', 'https://jokerless.org')).toBe('https://jokerless.com');
+  });
+
+  it('keeps the baked-in URL on web without the flag, as under the Expo dev server', () => {
+    // The client is on :8114 there and the API on :8090 — different origins.
+    process.env.EXPO_PUBLIC_ZOLIK_BASE_URL = 'http://127.0.0.1:8090';
+    delete process.env.EXPO_PUBLIC_ZOLIK_API_SAME_ORIGIN;
+
+    expect(loadAs('web', 'http://127.0.0.1:8114')).toBe('http://127.0.0.1:8090');
+  });
+});

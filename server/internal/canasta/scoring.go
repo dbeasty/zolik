@@ -2,67 +2,65 @@ package canasta
 
 import "zolik/server/internal/module"
 
-// Bonuses, all of them. The numbers live here and nowhere else.
-const (
-	redThreeValue       = 100
-	allRedThreesBonus   = 800 // all four, instead of 4×100
-	naturalCanastaBonus = 500
-	mixedCanastaBonus   = 300
-	goingOutBonus       = 100
-	concealedBonus      = 200
-)
+// redThreeValue is the one bonus that is the same in every variation. The rest
+// belong to the ruleset, because Samba disagrees with Canasta about all of them.
+const redThreeValue = 100
+
+// blackThreeValue is what a black three is worth: 100 on the table, 100 against
+// you in a hand.
+//
+// Not a face value, and not five. A black three is never an ordinary meld — it
+// cannot be laid off onto, cannot be part of a canasta, and in the variations
+// that let it down at all it goes down only as the move that empties a hand.
+// Pricing it at 100 is what makes that move worth making and what makes holding
+// one late a real risk, which is the whole of its role in the game. Like
+// redThreeValue it is the same in every variation, including the one where the
+// only way it is ever scored is against you (modern_american).
+const blackThreeValue = 100
 
 func errCode(code string) error { return module.Error{Code: code} }
-
-// initialMeldMinimum is the value a partnership must lay in one turn to get on
-// the table, and it rises with that partnership's own accumulated score — so a
-// team that is ahead has to work harder to open, which is the mechanism that
-// keeps a match from running away.
-func initialMeldMinimum(score int) int {
-	switch {
-	case score < 0:
-		return 15
-	case score < 1500:
-		return 50
-	case score < 3000:
-		return 90
-	default:
-		return 120
-	}
-}
 
 // redThreeScore is the partnership's red threes, signed.
 //
 // The sign is the whole point: red threes are a gift that turns into a
-// liability if the partnership never completes a canasta, which is what stops
-// them being free points for doing nothing.
-func redThreeScore(t *Team) int {
+// liability if the partnership never got where it needed to, which is what stops
+// them being free points for doing nothing. What "where it needed to" means is
+// the variation's, and so is whether the all-of-them bonus is charged back in
+// full when it goes the other way.
+func redThreeScore(r ruleset, t *Team) int {
 	n := len(t.RedThrees)
 	if n == 0 {
 		return 0
 	}
 	value := n * redThreeValue
-	if n == 4 {
-		value = allRedThreesBonus
+	if n >= r.redThrees() {
+		value = r.redThreeAllBonus()
 	}
-	if t.canastas() == 0 {
+	if t.canastas() < r.RedThreesNeed {
+		if r.RedThreePenaltyFlat {
+			return -(n * redThreeValue)
+		}
 		return -value
 	}
 	return value
 }
 
-// canastaScore is the bonus for completed canastas — 500 for one with no
-// wilds in it, 300 for one built with them.
-func canastaScore(t *Team) int {
+// canastaScore is the bonus for everything the side has completed — 500 for a
+// canasta with no wilds in it, 300 for one built with them, and in Samba 1500
+// for a seven-card sequence.
+func canastaScore(r ruleset, t *Team) int {
 	total := 0
 	for _, m := range t.Melds {
 		if !m.isCanasta() {
 			continue
 		}
-		if m.isNatural() {
-			total += naturalCanastaBonus
-		} else {
-			total += mixedCanastaBonus
+		switch {
+		case m.kind() == meldRun:
+			total += r.SambaBonus
+		case m.isNatural():
+			total += r.NaturalCanastaBonus
+		default:
+			total += r.MixedCanastaBonus
 		}
 	}
 	return total
@@ -85,6 +83,7 @@ func meldCardScore(t *Team) int {
 // and nobody did.
 func scoreDeal(s *GameState, wentOut string, concealed bool, exhausted bool) DealResult {
 	res := DealResult{DealNumber: s.DealNumber, WentOut: wentOut, Concealed: concealed, Exhausted: exhausted}
+	r := s.rules()
 
 	outTeam := -1
 	if wentOut != "" {
@@ -98,19 +97,24 @@ func scoreDeal(s *GameState, wentOut string, concealed bool, exhausted bool) Dea
 		tr := TeamResult{
 			TeamID:    t.ID,
 			MeldCards: meldCardScore(t),
-			Canastas:  canastaScore(t),
-			RedThrees: redThreeScore(t),
+			Canastas:  canastaScore(r, t),
+			RedThrees: redThreeScore(r, t),
 		}
+		tallyTable(r, t, &tr)
 		if t.ID == outTeam {
-			tr.GoingOut = goingOutBonus
-			if concealed {
-				tr.GoingOut = concealedBonus
+			tr.GoingOut = r.GoingOutBonus
+			// A variation with no concealed bonus — Samba — pays the ordinary
+			// one for a hand melded in a single turn, rather than nothing.
+			if concealed && r.ConcealedBonus > 0 {
+				tr.GoingOut = r.ConcealedBonus
 			}
 		}
 		// Everything still in either partner's hand counts against them —
 		// including the hand of the partner of whoever went out.
 		for _, p := range t.Players {
-			tr.InHand += handValue(s.Hands[p])
+			h := tallyHand(p, s.Hands[p])
+			tr.InHand += h.Points
+			tr.Hands = append(tr.Hands, h)
 		}
 		tr.Total = tr.MeldCards + tr.Canastas + tr.RedThrees + tr.GoingOut - tr.InHand
 		t.Score += tr.Total
@@ -143,4 +147,60 @@ func matchWinner(s *GameState) int {
 		return -1
 	}
 	return bestID
+}
+
+// canastaKind is the bonus a meld earns, named: "natural", "mixed", "samba", or
+// empty for a meld that is not a canasta. The same three cases canastaScore
+// adds up, so the tally and the sum cannot disagree about which is which.
+func canastaKind(m Meld) string {
+	switch {
+	case !m.isCanasta():
+		return ""
+	case m.kind() == meldRun:
+		return "samba"
+	case m.isNatural():
+		return "natural"
+	default:
+		return "mixed"
+	}
+}
+
+// tallyTable records how a side's table was scored: each meld, and the
+// canastas and red threes behind their sums.
+func tallyTable(r ruleset, t *Team, tr *TeamResult) {
+	for _, m := range t.Melds {
+		kind := canastaKind(m)
+		tr.Melds = append(tr.Melds, MeldTally{
+			Kind: m.kind(), Rank: m.Rank, Suit: m.Suit,
+			Cards: len(m.Cards), Wilds: m.wilds(), Points: handValue(m.Cards), Canasta: kind,
+		})
+		switch kind {
+		case "natural":
+			tr.Naturals++
+		case "mixed":
+			tr.Mixed++
+		case "samba":
+			tr.Sambas++
+		}
+	}
+	if n := len(t.RedThrees); n > 0 {
+		tr.RedThreeCount = n
+		tr.RedThreesAll = n >= r.redThrees()
+		tr.RedThreeShort = t.canastas() < r.RedThreesNeed
+	}
+}
+
+// tallyHand prices one leftover hand by the categories a player disputes.
+func tallyHand(pid string, hand []string) HandTally {
+	h := HandTally{PlayerID: pid, Cards: len(hand), Points: handValue(hand)}
+	for _, c := range hand {
+		switch {
+		case isBlackThree(c):
+			h.BlackThrees++
+		case isWild(c):
+			h.Wilds++
+			h.WildPoints += cardValue(c)
+		}
+	}
+	return h
 }

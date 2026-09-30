@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { LeaderboardEntry } from '@/src/api/types';
+import { t } from '@/src/lib/i18n';
 import { subjectName, winPercentText } from '@/src/lib/stats';
 import { colors } from '@/src/theme';
 
@@ -22,10 +23,10 @@ export function LeaderboardTable({
     <View style={styles.table} testID="leaderboard-table">
       <View style={styles.row}>
         <Text style={[styles.rank, styles.head]}>#</Text>
-        <Text style={[styles.name, styles.head]}>Player</Text>
-        <Text style={[styles.num, styles.head]}>Played</Text>
-        <Text style={[styles.num, styles.head]}>Won</Text>
-        <Text style={[styles.num, styles.head]}>Win %</Text>
+        <Text style={[styles.name, styles.head]}>{t('stats.col.player')}</Text>
+        <Text style={[styles.num, styles.head]}>{t('record.played')}</Text>
+        <Text style={[styles.num, styles.head]}>{t('record.won')}</Text>
+        <Text style={[styles.num, styles.head]}>{t('stats.col.winPct')}</Text>
       </View>
       {entries.map((e) => {
         const you = !!youId && e.subject.kind === 'user' && e.subject.id === youId;
@@ -37,8 +38,9 @@ export function LeaderboardTable({
           >
             <Text style={[styles.rank, you && styles.youText]}>{e.rank}</Text>
             <Text style={[styles.name, you && styles.youText]} numberOfLines={1}>
-              {subjectName(e.subject)}
-              {you ? ' (you)' : ''}
+              {you
+                ? t('stats.you', { name: subjectName(e.subject) })
+                : subjectName(e.subject)}
             </Text>
             <Text style={[styles.num, you && styles.youText]}>{e.tally.matches}</Text>
             <Text style={[styles.num, you && styles.youText]}>{e.tally.wins}</Text>

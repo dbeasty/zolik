@@ -3,8 +3,15 @@ package match
 import (
 	"testing"
 
+	"zolik/server/internal/blackjack"
+	"zolik/server/internal/canasta"
+	"zolik/server/internal/ginrummy"
+	"zolik/server/internal/holdem"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
+	"zolik/server/internal/prsi"
+	"zolik/server/internal/rummytiles"
+	"zolik/server/internal/zolikmod"
 )
 
 // Seating a bot is where the host's choice becomes an opponent, and it is the
@@ -138,6 +145,46 @@ func TestEveryModuleOffersTheOption(t *testing.T) {
 		for _, s := range module.Skills {
 			if !spec.Allows(module.SkillOpt(s)) {
 				t.Errorf("%s does not offer %s", d.ID, s)
+			}
+		}
+	}
+}
+
+// Filling a table with bots must never seat one name twice: two Master
+// Miroslavs are two seats sharing one lifetime record. It used to happen by
+// construction under Mixed — the strength was drawn blind per seat, and seven
+// bots put five in one strength's four-name roster about one table in seven —
+// so this sweeps many seeds rather than trusting one.
+func TestFillingATableNeverSeatsANameTwice(t *testing.T) {
+	// Every module the product ships, not the test registry: the largest
+	// table (Hold'em, nine seats) is the one that sizes the roster.
+	reg := module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New(), rummytiles.New(), blackjack.New())
+	h := NewHandlers(&Manager{registry: reg}, false)
+	settings := []int{module.BotSkillAuto}
+	for _, s := range module.Skills {
+		settings = append(settings, module.SkillOpt(s))
+	}
+	for _, d := range reg.Descriptors() {
+		_, max := d.SeatRange("")
+		for _, v := range d.Variations {
+			if _, vmax := d.SeatRange(v.ID); vmax > max {
+				max = vmax
+			}
+		}
+		for _, setting := range settings {
+			for seed := int64(0); seed < 500; seed++ {
+				m := models.Match{ModuleID: d.ID, Seed: seed, Options: map[string]int{module.OptBotSkill: setting}}
+				m.Players = []models.Player{{ID: "host"}}
+				names := map[string]bool{}
+				for len(m.Players) < max {
+					p := h.personaFor(m, "")
+					if names[p.Name] {
+						t.Fatalf("%s, botSkill %d, seed %d: %s seated twice among %d bots",
+							d.ID, setting, seed, p.Name, len(m.Players))
+					}
+					names[p.Name] = true
+					m.Players = append(m.Players, models.Player{IsAI: true, AIPersona: p.Key()})
+				}
 			}
 		}
 	}

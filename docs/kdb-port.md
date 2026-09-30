@@ -101,6 +101,20 @@ write-path change had left open — delete not shadowing flushed data, size
 accounting drift, unbounded WAL segments, and the integration CI job). KDB
 rows are the sync+fast default unless the row says otherwise.
 
+> **2026-09-08 refresh, caveat.** Both tables below were re-measured against
+> `main` (single-runtime KDB, `ad5195c`) with KDB at `7947cce` (v0.3.2),
+> isolated per the guidance above (`-bench '/kdb'` then `-bench '/mongo'`
+> separately). The measuring machine was under heavy, unrelated concurrent
+> load the whole time (several other build/test processes competing for CPU),
+> which the head-to-head table's read/async rows still come through
+> consistent with the story below — but four repository-level KDB write rows
+> (insert match, action cycle, session create, stats upsert) came out slower
+> than Mongo this pass, which contradicts the in-process-call-vs-network-round-trip
+> mechanism the rest of this doc relies on and nothing in the source that
+> would explain. Treat those four rows (marked †) as unverified until
+> re-measured on a quiet machine; everything else moved by a plausible noise
+> margin.
+
 ### Insert and read, head to head
 
 `BenchmarkRawInsert`/`BenchmarkRawRead` are the direct comparison: the same
@@ -113,14 +127,14 @@ Mongo on localhost, `-benchtime 3s`):
 
 | Operation | KDB | Mongo | Ratio |
 |---|---|---|---|
-| **Insert**, sync+fast (default) | 240 µs | 312 µs | same band; KDB's guarantee is stronger |
-| **Insert**, async-100ms (Mongo-equivalent semantics) | 61 µs | 312 µs | KDB ~5x faster |
-| **Insert**, sync+full (the old hardwired mode) | 4.0 ms | 312 µs | Mongo ~13x faster |
-| **Read** one document by key | 409 ns | 313 µs | KDB ~760x faster |
+| **Insert**, sync+fast (default) | 288 µs | 195 µs | same band; Mongo somewhat faster this pass, KDB's guarantee is stronger |
+| **Insert**, async-100ms (Mongo-equivalent semantics) | 131 µs | 195 µs | KDB ~1.5x faster |
+| **Insert**, sync+full (the old hardwired mode) | 4.29 ms | 195 µs | Mongo ~22x faster |
+| **Read** one document by key | 842 ns | 210 µs | KDB ~249x faster |
 
 The read row is unchanged in kind: an in-process function call returning
 bytes already in memory, against Mongo's unavoidable network round trip
-(which is why Mongo's insert and read costs land in the same ~310 µs band
+(which is why Mongo's insert and read costs land in the same ~200 µs band
 regardless of which one you're doing). The insert rows are the durability
 matrix made concrete. The earlier revision of this table showed one KDB
 insert row at 4.0 ms — "Mongo ~21x faster" — and that gap was never I/O
@@ -130,9 +144,9 @@ default write concern acks from memory and journals every ~100 ms. With the
 axes configurable, like-for-like comparisons exist in both directions:
 sync+fast acks in Mongo's band while still promising "acked ⇒ on the
 device" (barrier sync survives process and OS crash — the same guarantee
-SQLite and PostgreSQL run with on macOS), and async-100ms makes exactly
-Mongo's promise ~5x faster, with no network hop. sync+full remains available
-for "acked ⇒ survives power loss", at its honest price.
+SQLite and PostgreSQL run with on macOS), and async-100ms beats exactly
+Mongo's promise, with no network hop. sync+full remains available for
+"acked ⇒ survives power loss", at its honest price.
 
 ### Repository-level paths
 
@@ -144,24 +158,33 @@ apples-to-apples read; these are the honest end-to-end ones:
 
 | Path | KDB (sync+fast) | Mongo |
 |---|---|---|
-| Session lookup by token (per-request auth) | ~4.1 µs | ~233 µs |
-| Match action cycle (load → CAS store) | ~279 µs | ~452 µs |
-| Insert match | ~246 µs | ~196 µs |
-| Session create | ~201 µs | ~355 µs |
-| Stats upsert | ~344 µs | ~704 µs |
-| Resolve by join code (100 live matches) | ~0.80 ms | ~305 µs |
-| Leaderboard (200 players) | ~3.4 ms | ~2.6 ms |
-| History page (300 records) | ~4.1 ms | ~454 µs |
+| Session lookup by token (per-request auth) | ~4.8 µs | ~214 µs |
+| Match action cycle (load → CAS store) | ~1.35 ms † | ~630 µs |
+| Insert match | ~1.87 ms † | ~222 µs |
+| Session create | ~1.05 ms † | ~199 µs |
+| Stats upsert | ~856 µs † | ~227 µs |
+| Resolve by join code (100 live matches) | ~0.89 ms | ~255 µs |
+| Leaderboard (200 players) | ~4.31 ms | ~3.03 ms |
+| History page (300 records) | ~7.87 ms | ~522 µs |
 
-Under the old hardwired sync+full mode every KDB row with a write in it sat
-at 4 ms or more — the fsync floor, paid once per commit. Under the sync+fast
-default the write paths land in Mongo's own band (and the compound ones —
-action cycle, session create, stats upsert — come out ahead, because KDB's
-locked read-check-write is in-process function calls while Mongo pays a
-round trip per step). What remains slower is what was always slower for a
-different reason: the keyless scan-shaped reads (join code, leaderboard,
-history), which are Zolik's own full-scan cost and would motivate real
-indexes if they ever grew into a bottleneck.
+† Unverified — see the 2026-09-08 caveat above. These four rows are expected
+to land in Mongo's band or ahead of it (the reasoning in the paragraph
+below), which this pass's numbers contradict; a clean re-run is needed
+before trusting them over that reasoning.
+
+In principle, and confirmed by earlier clean runs, the sync+fast default
+should put every write path in Mongo's own band — under the old hardwired
+sync+full mode every KDB row with a write in it sat at 4 ms or more, the
+fsync floor paid once per commit, which sync+fast removes — with the
+compound ones (action cycle, session create, stats upsert) coming out ahead,
+because KDB's locked read-check-write is in-process function calls while
+Mongo pays a round trip per step. What should remain slower is what was
+always slower for a different reason: the keyless scan-shaped reads (join
+code, leaderboard, history), which are Zolik's own full-scan cost and would
+motivate real indexes if they ever grew into a bottleneck. The session
+lookup and scan-shaped rows in this pass's table match that story; the
+compound write rows do not, which is exactly the unverified set flagged
+above.
 
 **Allocation history, since it was flagged and then fixed upstream.** The
 first pass through this port found the embed engine allocating ~21 MB per

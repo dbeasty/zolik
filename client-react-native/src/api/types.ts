@@ -44,6 +44,9 @@ export type CapacitySnapshot = {
 };
 
 /** A signed-in player, however they signed in. */
+/** What a device shows the server to be a guest it has been before. */
+export type GuestProof = { guestKey?: string; refreshToken?: string };
+
 export type PlayerSession = {
   accessToken: string;
   refreshToken: string;
@@ -59,6 +62,24 @@ export type PlayerSession = {
    * credential and grants no access to any account.
    */
   guestId?: string;
+  /**
+   * The proof that this device *is* that guest, present on guest sessions.
+   * Unlike the id it is a secret: whoever holds it can sign in as the guest,
+   * which is also what lets a guest carry their identity to another device
+   * as a link. Stored beside the guest id, never shown at a table.
+   */
+  guestKey?: string;
+  /**
+   * A pass the cloud signed, which seats this account at a table with no
+   * internet: a host checks it against the copy of the cloud's keys it
+   * cached while it last had a connection, and seats the holder as
+   * themselves rather than as a stranger.
+   *
+   * Kept with the session because that is its lifetime - it is issued at
+   * sign-in and renewed on refresh, and it is worth nothing to anybody who
+   * is not signed in.
+   */
+  offlinePass?: string;
   /** Matches recorded against this device's guest id that an account could
    *  still absorb. Drives the "sign in to keep your N games" prompt. */
   claimableMatches?: number;
@@ -198,7 +219,8 @@ export type LeaderboardEntry = {
    *  property of the player, not of a filtered subset of their matches. */
   currentStreak: number;
   longestWinStreak: number;
-  /** RFC3339. Absent for a subject whose last match predates the field. */
+  /** RFC3339. The server sends Go's zero time (year 1) rather than omitting
+   *  it for a subject whose last match predates the field; nothing reads it yet. */
   lastMatchAt?: string;
 };
 
@@ -206,4 +228,153 @@ export type Leaderboard = {
   scope: LeaderboardScope;
   kind: LeaderboardKind;
   entries: LeaderboardEntry[];
+};
+
+// --- notifications: the game circle and invites ----------------------------
+//
+// Transcribed from docs/notifications-plan.md, which is the wire contract the
+// server's internal/notify package implements. Everyone is addressed by a
+// subject key, `user:<hex>` or `guest:<id>` — the same keys the match records
+// carry — so a guest can be in a circle as fully as an account can.
+
+/** Who may reach a player: everyone in their circle, or nobody. */
+export type InvitePreference = 'circle' | 'off';
+
+/** A player's own notification settings, from GET/PATCH /notify/me. */
+export type NotifyProfile = {
+  key: string;
+  /** The code behind this player's friend link, `/add/<code>`. */
+  friendCode: string;
+  /** The whole link, when the server knows its public address. */
+  friendUrl?: string;
+  invites: InvitePreference;
+  nearby: boolean;
+};
+
+/** One person on the circle screen, in whichever of its lists. */
+export type CircleEntry = {
+  key: string;
+  name: string;
+  avatar?: string;
+  /** 'pending' is a username request the other side has not accepted yet. */
+  status: 'active' | 'pending';
+  /** ISO time the relationship began. */
+  since: string;
+  /** Notifiers only: this player has silenced them. */
+  muted?: boolean;
+};
+
+/**
+ * GET /notify/circle.
+ *
+ * `members` are the people this player tells about their tables; `notifiers`
+ * are the people who tell this player about theirs; `requests` are notifiers
+ * asking to become one, by username, and waiting for an answer.
+ */
+export type CircleLists = {
+  members: CircleEntry[];
+  requests: CircleEntry[];
+  notifiers: CircleEntry[];
+};
+
+/** Somebody this player has shared a table with, not yet in their circle. */
+export type CircleSuggestion = {
+  key: string;
+  name: string;
+  avatar?: string;
+  lastPlayedAt: string;
+  matches: number;
+};
+
+/** The public face of a friend link, shown before anything is added. */
+export type FriendPreview = { name: string; avatar?: string };
+
+/** What the server says about push on this deployment. */
+export type NotifyConfig = { vapidPublicKey: string | null; expo: boolean };
+
+/** A device registration for OS push. */
+export type PushDeviceRegistration = {
+  kind: 'expo' | 'webpush';
+  token?: string;
+  subscription?: unknown;
+  platform: string;
+  locale: string;
+};
+
+/** A table somebody in this player's circle has opened, as the server sends it. */
+/** One seat at a table, as a seat link's preview shows it. */
+export type SeatPreviewPlayer = {
+  id: string;
+  name: string;
+  isAI: boolean;
+  avatar?: string;
+  /** Somebody holds a socket in this seat right now. */
+  present: boolean;
+};
+
+/** Whose seat a seat link opens, and at which table. */
+export type SeatPreview = {
+  matchId: string;
+  moduleId: string;
+  /** The game's own name, for a build with no words for `moduleId`. */
+  moduleLabel?: string;
+  variation?: string;
+  status: string;
+  seat: SeatPreviewPlayer;
+  players: SeatPreviewPlayer[];
+};
+
+/**
+ * What taking a seat link answers: either the caller already is that seat, or
+ * a token that plays it at this table and reaches nothing else.
+ */
+export type SeatClaim = {
+  matchId: string;
+  alreadyYours?: boolean;
+  accessToken?: string;
+  userId?: string;
+  username?: string;
+  /** Seconds the token plays the seat for. */
+  expiresIn?: number;
+};
+
+export type TableInvite = {
+  /** Equal to `matchId`: one invite per table, which is what de-duplicates the
+   *  socket's copy against the push's. */
+  id: string;
+  matchId: string;
+  joinCode: string;
+  moduleId: string;
+  /** The game's own name for itself, for when this build has no words for
+   *  `moduleId` — game names are mostly left unkeyed (see gameLabels.ts). */
+  moduleLabel?: string;
+  variation?: string;
+  host: { key: string; name: string; avatar?: string };
+  sentAt: string;
+  /** The finished table this one plays again, when it is a rematch holding a
+   *  seat for the reader rather than a table anybody may join. */
+  rematchOf?: string;
+};
+
+/** Everything the personal socket, /ws/me, can say. */
+export type MeWSMessage =
+  | { type: 'table_invite'; invite: TableInvite }
+  | { type: 'invite_revoked'; id: string }
+  | { type: 'lobby_invited'; matchId: string; joinCode: string }
+  | { type: 'circle_changed' };
+
+/** What the cloud answers when a device enrols as a node of the database. */
+export type NodeEnrolment = {
+  nodeId: string;
+  /** How this device authenticates its database sync from now on. */
+  credential: string;
+};
+
+/** One offline seat a person claimed, as the cloud recorded it. */
+export type ClaimedSeat = {
+  guestId: string;
+  nodeId: string;
+  claimed: boolean;
+  /** Why not, when it was not: the seat belongs to somebody else. */
+  reason?: string;
 };

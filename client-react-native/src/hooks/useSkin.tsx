@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Dimensions } from 'react-native';
 
-import { DEFAULT_SKIN, SKINS, loadSkinId, saveSkinId, skinById } from '@/src/skins';
+import { DEFAULT_SKIN, SKINS, defaultSkinFor, loadSkinId, saveSkinId, skinById } from '@/src/skins';
 import type { Skin } from '@/src/skins/types';
 
 /**
@@ -23,7 +24,12 @@ type SkinState = {
 const SkinContext = createContext<SkinState | null>(null);
 
 export function SkinProvider({ children }: { children: ReactNode }) {
-  const [skin, setSkin] = useState<Skin>(DEFAULT_SKIN);
+  // Read once, in the initialiser, rather than from `useWindowDimensions`:
+  // which skin somebody starts on is a decision taken at startup, and a board
+  // that restyled itself when the window crossed 768 would be a look changing
+  // under their hands mid-deal. Resizing is free to change every *size*; that
+  // is `useMetrics`'s job and it does follow the window.
+  const [skin, setSkin] = useState<Skin>(() => defaultSkinFor(Dimensions.get('window').width));
 
   // The saved choice arrives a tick after first render, which means one frame
   // of the default skin for someone who picked the other one. Cheaper than

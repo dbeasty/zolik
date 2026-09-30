@@ -139,6 +139,21 @@ type RulesConfig struct {
 	PauseBetweenDeals bool
 	// TargetScore is used when MatchEndMode == MatchEndAtScore.
 	TargetScore int
+
+	// DiscardPileTopOnly folds the discard pile down to its top card in the
+	// view, instead of publishing the whole pile for anyone to look through.
+	//
+	// Named for the *restriction* rather than for the openness, and so false
+	// in every shipped profile, because a resolved RulesConfig is persisted
+	// with every in-flight game: an "open" flag would have every stored match
+	// come back with the zero value and quietly fold a pile that has been
+	// open all along — the same trap StaticContract avoids (ContractFor).
+	//
+	// Presentational only, and honoured only where the pile is drawn from the
+	// top: under DiscardPickupAnyFromPile the draw itself offers every card in
+	// the pile, and a card you may take is a card you may see (see the module
+	// view).
+	DiscardPileTopOnly bool
 }
 
 // ContractFor returns the required combination for the given deal number.

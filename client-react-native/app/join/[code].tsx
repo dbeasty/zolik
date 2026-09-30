@@ -6,8 +6,10 @@ import type { MatchState } from '@/src/api/matchTypes';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { formatApiError } from '@/src/lib/apiError';
-import { clearPendingInvite, savePendingInvite } from '@/src/lib/pendingInvite';
+import { routeForMatch } from '@/src/lib/matchRoute';
+import { clearPendingDestination, savePendingDestination } from '@/src/lib/pendingDestination';
 import { shared } from '@/src/theme';
+import { t } from '@/src/lib/i18n';
 
 /**
  * Where a shared link lands: `/join/ABC123`.
@@ -21,7 +23,7 @@ import { shared } from '@/src/theme';
  *
  *  1. **No session yet.** Overwhelmingly the common case, because an invite
  *     arrives in a chat on a device that has never played. The code is put
- *     aside (`pendingInvite`) and the guest screen takes over — a display name
+ *     aside (`pendingDestination`) and the guest screen takes over — a display name
  *     and a face, which is the same thing Zoom asks for and no more.
  *  2. **A session.** Take the seat and go where a seated player belongs: the
  *     table screen for the host, the waiting-for-the-host screen for everyone
@@ -48,7 +50,7 @@ export default function JoinByLinkScreen() {
 
   const follow = useCallback(async () => {
     if (!joinCode) {
-      setError('That link is missing its table code.');
+      setError(t('join.missingCode'));
       return;
     }
 
@@ -57,7 +59,7 @@ export default function JoinByLinkScreen() {
       // navigate to fixed destinations, and threading a code through every one
       // of them — including the OAuth round trip, which leaves the app
       // entirely — is how it gets dropped.
-      await savePendingInvite(joinCode);
+      await savePendingDestination(`/join/${encodeURIComponent(joinCode)}`);
       router.replace('/auth/guest');
       return;
     }
@@ -75,22 +77,14 @@ export default function JoinByLinkScreen() {
       const matchId = await client.joinMatch(joinCode);
       // The note has done its job. Cleared before navigating, so a table that
       // refuses the next visitor does not follow them around.
-      await clearPendingInvite();
+      await clearPendingDestination();
 
-      const seated = await client.getMatch(matchId, session.userId);
-      if (seated.status !== 'lobby') {
-        router.replace(`/match/${matchId}`);
-        return;
-      }
+      const seated = await client.getMatch(matchId);
       // A host following their own link is sent to their own table, not to a
       // screen telling them to wait for themselves.
-      router.replace(
-        seated.hostId === session.userId
-          ? `/lobby/table?matchId=${encodeURIComponent(matchId)}`
-          : `/lobby/join?matchId=${encodeURIComponent(matchId)}`,
-      );
+      router.replace(routeForMatch(seated.status, seated.hostId === session.userId, matchId));
     } catch (e) {
-      await clearPendingInvite();
+      await clearPendingDestination();
       setError(formatApiError(e, 'That table could not be joined'));
     }
   }, [client, joinCode, session]);
@@ -105,32 +99,32 @@ export default function JoinByLinkScreen() {
 
   if (error) {
     return (
-      <Screen title="Join a table" scroll>
+      <Screen title={t('nav.join')} scroll>
         <Text testID="invite-error" style={shared.error}>
           {error}
         </Text>
         <Text style={shared.status}>
-          Ask whoever invited you for a fresh link, or join with the code instead.
+          {t('join.staleLink')}
         </Text>
         <Pressable
           testID="invite-error-join"
           style={shared.button}
           onPress={() => router.replace('/lobby/join')}
         >
-          <Text style={shared.buttonText}>Enter a code</Text>
+          <Text style={shared.buttonText}>{t('join.enterCode')}</Text>
         </Pressable>
         <Pressable testID="invite-error-home" onPress={() => router.replace('/')}>
-          <Text style={shared.status}>Back to the menu</Text>
+          <Text style={shared.status}>{t('join.backToMenu')}</Text>
         </Pressable>
       </Screen>
     );
   }
 
   return (
-    <Screen title="Joining" scroll>
+    <Screen title={t('nav.joining')} scroll>
       <ActivityIndicator testID="invite-joining" />
       <Text style={[shared.status, { marginTop: 12 }]}>
-        {table?.moduleId ? `Taking a seat at ${table.moduleId}…` : 'Taking a seat…'}
+        {table?.moduleId ? t('join.takingSeatAt', { game: table.moduleId }) : t('join.takingSeat')}
       </Text>
     </Screen>
   );

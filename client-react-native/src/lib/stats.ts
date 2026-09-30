@@ -1,5 +1,6 @@
 import type { MatchModule } from '@/src/api/matchTypes';
 import type { LeaderboardScope, StatsSubject, TallyView } from '@/src/api/types';
+import { t } from '@/src/lib/i18n';
 import { humanise } from '@/src/lib/labels';
 
 /**
@@ -47,11 +48,11 @@ export function winPercentText(tally: TallyView | undefined): string {
  * was a draw (or there has not been one).
  */
 export function streakText(streak: number): string {
-  if (streak > 1) return `${streak} wins in a row`;
-  if (streak === 1) return 'Won the last one';
-  if (streak < -1) return `${Math.abs(streak)} losses in a row`;
-  if (streak === -1) return 'Lost the last one';
-  return 'No streak';
+  if (streak > 1) return t('stats.streak.winsMany', { n: streak });
+  if (streak === 1) return t('stats.streak.wonLast');
+  if (streak < -1) return t('stats.streak.lossesMany', { n: Math.abs(streak) });
+  if (streak === -1) return t('stats.streak.lostLast');
+  return t('stats.streak.none');
 }
 
 /**
@@ -66,7 +67,10 @@ export function avgRankText(tally: TallyView | undefined): string {
   return tally.avgRank.toFixed(1);
 }
 
-/** A count with its noun, so callers stop writing `n === 1 ? …` inline. */
+/** A count with its noun, so callers stop writing `n === 1 ? …` inline.
+ *  English only — a translated count is a whole phrase per count (see
+ *  `playerCountLabel`), since most of the other languages do not pluralise
+ *  by appending a letter. */
 export function plural(n: number, one: string, many = `${one}s`): string {
   return `${n} ${n === 1 ? one : many}`;
 }
@@ -81,13 +85,17 @@ export function plural(n: number, one: string, many = `${one}s`): string {
  * whole bucket being dropped for want of a label.
  */
 export function moduleLabel(id: string, modules: MatchModule[]): string {
-  return modules.find((m) => m.id === id)?.label ?? humanise(id);
+  // Worded the way the lobby words it (see gameLabels.ts): the player's
+  // language first, then the server's own label, then the humanised id.
+  const fallback = modules.find((m) => m.id === id)?.label ?? humanise(id);
+  return t(`module.${id}`, undefined, fallback);
 }
 
 /** `4` → `4 players`. The key is a count held as a string. */
 export function playerCountLabel(key: string): string {
   const n = Number(key);
-  return Number.isFinite(n) && n > 0 ? plural(n, 'player') : humanise(key);
+  if (!Number.isFinite(n) || n <= 0) return humanise(key);
+  return n === 1 ? t('stats.tableSizeOne') : t('stats.tableSizeMany', { n });
 }
 
 const SKILL_ORDER = ['easy', 'medium', 'hard', 'expert'];
@@ -102,8 +110,17 @@ const SKILL_ORDER = ['easy', 'medium', 'hard', 'expert'];
  */
 export function aiLabel(id: string): string {
   const [skill, slug] = id.split(':');
-  if (!slug) return humanise(skill || id);
-  return `${humanise(slug)} (${skill})`;
+  if (!slug) {
+    const bare = skillWord(skill);
+    return bare ? bare.charAt(0).toUpperCase() + bare.slice(1) : humanise(skill || id);
+  }
+  return t('stats.botPersona', { name: humanise(slug), skill: skillWord(skill) ?? skill });
+}
+
+/** A difficulty in the player's language, or null for one this build has no
+ *  word for — which then shows as the server spelled it. */
+function skillWord(skill: string): string | null {
+  return SKILL_ORDER.includes(skill) ? t(`stats.skill.${skill}`) : null;
 }
 
 /** Weakest first, unknown strengths last — the order a difficulty table reads
@@ -123,10 +140,10 @@ export function skillRank(id: string): number {
  * name is gone.
  */
 export function subjectName(subject: StatsSubject | undefined): string {
-  if (!subject) return 'Unknown player';
+  if (!subject) return t('stats.unknownPlayer');
   if (subject.name) return subject.name;
   if (subject.kind === 'ai') return aiLabel(subject.id);
-  return 'Unknown player';
+  return t('stats.unknownPlayer');
 }
 
 /** One labelled bucket, ready to render. */
@@ -159,10 +176,12 @@ export function playerCountSplits(buckets: Record<string, TallyView> | undefined
   return splits(buckets, playerCountLabel, (a, b) => Number(a) - Number(b));
 }
 
-export const SCOPES: { id: LeaderboardScope; label: string; blurb: string }[] = [
-  { id: 'overall', label: 'Overall', blurb: 'Every match, whoever was at the table.' },
-  { id: 'vs_humans', label: 'vs humans', blurb: 'Matches with at least one other person in them.' },
-  { id: 'vs_ai', label: 'vs bots', blurb: 'Matches with at least one bot in them.' },
+/** The leaderboard's scopes, in toggle order. Words are looked up at render
+ *  time rather than held here, so a change of language repaints them. */
+export const SCOPES: { id: LeaderboardScope; labelKey: string; blurbKey: string }[] = [
+  { id: 'overall', labelKey: 'stats.scope.overall', blurbKey: 'stats.scopeNote.overall' },
+  { id: 'vs_humans', labelKey: 'stats.scope.vsHumans', blurbKey: 'stats.scopeNote.vsHumans' },
+  { id: 'vs_ai', labelKey: 'stats.scope.vsBots', blurbKey: 'stats.scopeNote.vsBots' },
 ];
 
 /**
@@ -171,5 +190,6 @@ export const SCOPES: { id: LeaderboardScope; label: string; blurb: string }[] = 
  * whose numbers do not add up to the overall one. Said once, under the toggle.
  */
 export function scopeBlurb(scope: LeaderboardScope): string {
-  return SCOPES.find((s) => s.id === scope)?.blurb ?? '';
+  const found = SCOPES.find((s) => s.id === scope);
+  return found ? t(found.blurbKey) : '';
 }

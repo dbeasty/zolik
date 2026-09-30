@@ -100,6 +100,19 @@ type VariationSpec struct {
 	Label    string         `json:"label"`
 	Summary  []Fact         `json:"summary,omitempty"`
 	Defaults map[string]int `json:"defaults,omitempty"`
+
+	// MinPlayers and MaxPlayers narrow the module's own range for this
+	// variation. Zero means "whatever the module says", which is what every
+	// variation meant before these existed.
+	//
+	// They exist because a variation can be a different game at the table as
+	// well as on paper: Samba seats six on 162 cards where Classic Canasta
+	// seats four on 108, and one number on the module would have to be wrong
+	// for one of them. Widening it lets a fifth player be turned away at the
+	// lobby rather than at the deal, which is the difference between a full
+	// table and a stuck one.
+	MinPlayers int `json:"minPlayers,omitempty"`
+	MaxPlayers int `json:"maxPlayers,omitempty"`
 }
 
 // ModuleDescriptor is a game's whole self-description.
@@ -120,6 +133,56 @@ func (d ModuleDescriptor) Option(name string) *OptionSpec {
 		}
 	}
 	return nil
+}
+
+// Seated is implemented by a module whose seats are not all on their own side.
+//
+// Optional, and only two kinds of game need it. A partnership game has to be
+// able to say who is playing with whom *before* the match exists, because that
+// is precisely what a lobby is for deciding — and the answer cannot be worked
+// out by a client without reimplementing the rule. So the module answers it,
+// from the same function the deal itself will use.
+//
+// The seats are given in the order they will be dealt, and the answer is in
+// terms of that order: sides are a property of where people sit, not of who
+// they are. That is what lets a lobby offer "form teams" by doing nothing more
+// than reordering the seats.
+type Seated interface {
+	// Sides groups the seats into partnerships. One group per side, each
+	// listing its player ids. A game where everyone plays for themselves
+	// returns nil rather than a group per seat — nil means "no sides to show".
+	Sides(cfg MatchConfig, players []PlayerRef) [][]string
+}
+
+// SidesOf is what a lobby shows for a table that has not been dealt yet, or nil
+// where the game has no sides.
+func SidesOf(m GameModule, cfg MatchConfig, players []PlayerRef) [][]string {
+	s, ok := m.(Seated)
+	if !ok {
+		return nil
+	}
+	return s.Sides(cfg, players)
+}
+
+// SeatRange is the player range in force for a match of this variation.
+//
+// The one place the question is answered, so a lobby that lets somebody join and
+// an engine that refuses to deal cannot hold different opinions about how many
+// seats there are. A variation that names neither bound is the module's range,
+// unchanged.
+func (d ModuleDescriptor) SeatRange(variation string) (min, max int) {
+	min, max = d.MinPlayers, d.MaxPlayers
+	v := d.Variation(variation)
+	if v == nil {
+		return min, max
+	}
+	if v.MinPlayers > 0 {
+		min = v.MinPlayers
+	}
+	if v.MaxPlayers > 0 {
+		max = v.MaxPlayers
+	}
+	return min, max
 }
 
 // Variation returns the named variation's spec, or nil.

@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { seedIntroSeen } from '../helpers/login';
+
 /**
  * The notices are only worth anything if a player can actually reach them, so
  * every assertion here is about what is on the screen after a real click —
@@ -7,6 +9,12 @@ import { expect, test } from '@playwright/test';
  * would satisfy a routing test and fail the only reader who ever follows it.
  */
 test.describe('the legal notices are reachable and readable', () => {
+  // No session is seeded in this file, so `/` would otherwise show the
+  // first-run intro screen instead of the menu these links are read from.
+  test.beforeEach(async ({ page }) => {
+    await seedIntroSeen(page);
+  });
+
   test('the footer reaches the terms, and the terms say the game is free of charge and of warranty', async ({
     page,
   }) => {
@@ -62,7 +70,12 @@ test.describe('the legal notices are reachable and readable', () => {
 
   test('a guest is told what they are agreeing to before they can agree to it', async ({ page }) => {
     await page.goto('/');
-    await page.getByText('Continue as guest').click();
+    // `exact`, because the home screen's own "Sign in or continue as guest to
+    // play online." contains this label as a substring and getByText matches
+    // case-insensitive substrings by default — without it the locator
+    // resolves to two elements and fails strict mode. Same trap, and the same
+    // fix, as every locator in sign-in.spec.ts.
+    await page.getByText('Continue as guest', { exact: true }).click();
 
     const notice = page.getByTestId('legal-notice');
     await expect(notice).toBeVisible();

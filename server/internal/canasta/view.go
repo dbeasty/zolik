@@ -1,38 +1,18 @@
 package canasta
 
 import (
+	"slices"
 	"strconv"
 
 	"zolik/server/internal/module"
 )
 
-// Option names and the values each variation starts from.
+// Option names. The values each variation starts from live in ruleset.go.
 const (
 	OptHandSize        = "handSize"
 	OptTargetScore     = "targetScore"
 	OptCanastasToGoOut = "canastasToGoOut"
 )
-
-type variationDefaults struct {
-	handSize        int
-	targetScore     int
-	canastasToGoOut int
-}
-
-var variations = map[string]variationDefaults{
-	// Classic: eleven cards, one canasta buys the right to go out, 5000 wins.
-	"classic": {handSize: 11, targetScore: 5000, canastasToGoOut: 1},
-	// Modern American: thirteen cards and two canastas to go out, which makes
-	// deals longer and the discard pile far more valuable.
-	"modern_american": {handSize: 13, targetScore: 5000, canastasToGoOut: 2},
-}
-
-func resolveVariation(cfg module.MatchConfig) variationDefaults {
-	if v, ok := variations[cfg.Variation]; ok {
-		return v
-	}
-	return variations["classic"]
-}
 
 // Descriptor is Canasta's self-description.
 //
@@ -45,46 +25,85 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 		ID:         "canasta",
 		Label:      "Canasta",
 		MinPlayers: 2,
-		MaxPlayers: 4,
+		MaxPlayers: 6,
 		Variations: []module.VariationSpec{
 			{
-				ID:    "classic",
-				Label: "Classic",
+				ID:         "classic",
+				MaxPlayers: variations["classic"].MaxSeats,
+				Label:      "Classic",
 				Summary: []module.Fact{
-					{LabelKey: "canasta.rules.deck", Value: "108"},
+					{LabelKey: "canasta.rules.deck", Value: "108", Params: map[string]any{"decks": variations["classic"].Decks}},
 					{LabelKey: "canasta.rules.canasta", Params: map[string]any{"n": canastaSize}},
 					{LabelKey: "canasta.rules.redThrees"},
 					{LabelKey: "canasta.rules.oneCanastaToGoOut"},
 				},
 				Defaults: map[string]int{
-					OptHandSize:                  variations["classic"].handSize,
-					OptTargetScore:               variations["classic"].targetScore,
-					OptCanastasToGoOut:           variations["classic"].canastasToGoOut,
+					OptHandSize:                  variations["classic"].HandSize,
+					OptTargetScore:               variations["classic"].TargetScore,
+					OptCanastasToGoOut:           variations["classic"].CanastasToGoOut,
 					module.OptPauseBetweenRounds: module.OptOn,
+					module.OptOpenDiscardPile:    module.OptOff,
 					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
 				},
 			},
 			{
-				ID:    "modern_american",
-				Label: "Modern American",
+				ID:         "modern_american",
+				MaxPlayers: variations["modern_american"].MaxSeats,
+				Label:      "Modern American",
 				Summary: []module.Fact{
-					{LabelKey: "canasta.rules.deck", Value: "108"},
+					{LabelKey: "canasta.rules.deck", Value: "108", Params: map[string]any{"decks": variations["modern_american"].Decks}},
 					{LabelKey: "canasta.rules.canasta", Params: map[string]any{"n": canastaSize}},
 					{LabelKey: "canasta.rules.redThrees"},
 					{LabelKey: "canasta.rules.twoCanastasToGoOut"},
+					// The one rule that tells this variation from Classic at a
+					// glance. Two canastas to go out is a number Classic could
+					// be set to; a black three that can never be melded is not,
+					// and it is the reason the pile matters as much as it does
+					// here — so it belongs in the pitch, not only in the rules.
+					{LabelKey: "canasta.rules.blackThreesNeverMeld", Params: map[string]any{"n": blackThreeValue}},
 				},
 				Defaults: map[string]int{
-					OptHandSize:                  variations["modern_american"].handSize,
-					OptTargetScore:               variations["modern_american"].targetScore,
-					OptCanastasToGoOut:           variations["modern_american"].canastasToGoOut,
+					OptHandSize:                  variations["modern_american"].HandSize,
+					OptTargetScore:               variations["modern_american"].TargetScore,
+					OptCanastasToGoOut:           variations["modern_american"].CanastasToGoOut,
 					module.OptPauseBetweenRounds: module.OptOn,
+					module.OptOpenDiscardPile:    module.OptOff,
+					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
+				},
+			},
+			{
+				ID:    "samba",
+				Label: "Samba",
+				// Three decks, sequences and a pile nobody takes cheaply. The
+				// seat range is the variation's own: six on 162 cards, where
+				// the other two seat four on 108.
+				MaxPlayers: variations["samba"].MaxSeats,
+				Summary: []module.Fact{
+					{LabelKey: "canasta.rules.deck", Value: "162", Params: map[string]any{"decks": variations["samba"].Decks}},
+					{LabelKey: "canasta.rules.sequences"},
+					{LabelKey: "canasta.rules.samba", Params: map[string]any{"n": variations["samba"].SambaBonus}},
+					{LabelKey: "canasta.rules.pileAlwaysFrozen"},
+					{LabelKey: "canasta.rules.twoCanastasToGoOut"},
+				},
+				Defaults: map[string]int{
+					OptHandSize:                  variations["samba"].HandSize,
+					OptTargetScore:               variations["samba"].TargetScore,
+					OptCanastasToGoOut:           variations["samba"].CanastasToGoOut,
+					module.OptPauseBetweenRounds: module.OptOn,
+					module.OptOpenDiscardPile:    module.OptOff,
 					module.OptBotSkill:           module.SkillOpt(module.SkillMedium),
 				},
 			},
 		},
 		Options: []module.OptionSpec{
 			module.PauseOption(),
+			// Off by default, which is how this game has always dealt: the pile
+			// is what a capture wins whole, so what lies under the top card is
+			// the thing the deal is played over, and a table that wants it
+			// readable says so.
+			module.OpenDiscardPileOption(),
 			module.BotSkillOption(),
+			module.HintsOption(),
 			{
 				Name:  OptHandSize,
 				Type:  module.OptionEnumInt,
@@ -106,6 +125,7 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 					{Value: 1000, Label: "1000"},
 					{Value: 3000, Label: "3000"},
 					{Value: 5000, Label: "5000"},
+					{Value: 10000, Label: "10000"},
 				},
 			},
 			{
@@ -130,26 +150,45 @@ func (m *Module) Descriptor() module.ModuleDescriptor {
 // public to *both* partnerships, and the discard pile shows only its top card
 // even though everyone at a real table has watched it being built.
 func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, error) {
+	return m.view(raw, viewerID, false)
+}
+
+// OpenView renders the board with every hand face up, for replaying a game
+// that is over. The runtime only ever asks for it once a match is finished.
+func (m *Module) OpenView(raw module.State) (module.ViewModel, error) {
+	return m.view(raw, "", true)
+}
+
+func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.ViewModel, error) {
 	s, err := decode(raw)
 	if err != nil {
 		return module.ViewModel{}, err
 	}
 
 	vm := module.ViewModel{}
+	r := s.rules()
 
-	own := s.Hands[viewerID]
-	vm.Zones = append(vm.Zones, module.Zone{
-		ID: handZoneID(viewerID), Kind: module.ZoneHand, OwnerID: viewerID,
-		LabelKey: "zone.yourHand", Cards: cardViews(own), Count: len(own),
-	})
+	// Skipped when there is no viewer, which is what an open view is: nobody
+	// is sitting at this board, so no hand is "yours".
+	if viewerID != "" {
+		own := s.Hands[viewerID]
+		vm.Zones = append(vm.Zones, module.Zone{
+			ID: handZoneID(viewerID), Kind: module.ZoneHand, OwnerID: viewerID,
+			LabelKey: "zone.yourHand", Cards: cardViews(own), Count: len(own),
+		})
+	}
 	for _, p := range s.TurnOrder {
 		if p == viewerID {
 			continue
 		}
-		vm.Zones = append(vm.Zones, module.Zone{
+		z := module.Zone{
 			ID: handZoneID(p), Kind: module.ZoneHand, OwnerID: p,
 			LabelKey: "zone.opponentHand", Count: len(s.Hands[p]),
-		})
+		}
+		if reveal {
+			z.Cards = cardViews(s.Hands[p])
+		}
+		vm.Zones = append(vm.Zones, z)
 	}
 
 	vm.Zones = append(vm.Zones,
@@ -159,25 +198,40 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 		},
 		module.Zone{
 			ID: discardZoneID, Kind: module.ZonePile, LabelKey: "zone.discardPile",
-			Cards: cardViews(topOnly(s)), Count: len(s.DiscardPile),
+			Cards: cardViews(shownPile(s)), Count: len(s.DiscardPile),
 		},
 	)
 
 	// One spread per partnership. Melds are groups inside it, badged with what
 	// they have become — a client renders "canasta" without knowing that seven
 	// is the number.
+	viewerTeam := s.team(viewerID)
 	for i := range s.Teams {
 		t := &s.Teams[i]
-		z := module.Zone{
-			ID: meldsZoneID(t.ID), Kind: module.ZoneSpread,
-			LabelKey: "zone.teamMelds", Count: 0,
+		var z module.Zone
+		if viewerTeam != nil && t.ID == viewerTeam.ID {
+			z = module.Zone{
+				ID: meldsZoneID(t.ID), Kind: module.ZoneSpread,
+				LabelKey: "zone.teamMelds", Count: 0,
+			}
+		} else {
+			z = module.Zone{
+				ID: meldsZoneID(t.ID), Kind: module.ZoneSpread,
+				LabelKey: "zone.opponentMelds", Count: 0,
+			}
 		}
-		for _, mm := range t.Melds {
-			g := module.Group{ID: mm.ID, Kind: "set", Cards: append([]string(nil), mm.Cards...)}
+		for _, mm := range meldsInViewOrder(t.Melds) {
+			g := module.Group{ID: mm.ID, Kind: mm.kind(), Cards: append([]string(nil), mm.Cards...)}
 			if mm.isCanasta() {
-				if mm.isNatural() {
+				g.Complete = true
+				switch {
+				case mm.kind() == meldRun:
+					// Seven in a suit is a samba, and worth saying so: it is the
+					// biggest single number on a Samba scoresheet.
+					g.BadgeKeys = append(g.BadgeKeys, "badge.samba")
+				case mm.isNatural():
 					g.BadgeKeys = append(g.BadgeKeys, "badge.naturalCanasta")
-				} else {
+				default:
 					g.BadgeKeys = append(g.BadgeKeys, "badge.mixedCanasta")
 				}
 			}
@@ -199,6 +253,12 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 	// player, so each seat carries its side's score and canasta count — which
 	// is exactly the sort of thing that had nowhere to go before Seats existed
 	// and had to be smuggled through Status facts.
+	//
+	// Sides are set only where sides exist. `s.Teams` is already the answer
+	// seatsToTeams gave when the match was dealt, so a side per seat means
+	// every player is their own side — heads-up, three, five — and saying so
+	// would put a partnership badge on a game that has no partners.
+	sided := len(s.Teams) < len(s.TurnOrder)
 	for _, p := range s.TurnOrder {
 		t := s.team(p)
 		seat := module.Seat{
@@ -210,6 +270,9 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 			},
 		}
 		if t != nil {
+			if sided {
+				seat.Side = strconv.Itoa(t.ID)
+			}
 			seat.Facts = append(seat.Facts,
 				module.Fact{LabelKey: "canasta.seat.teamScore", Value: strconv.Itoa(t.Score),
 					Params: map[string]any{"team": t.ID, "score": t.Score}},
@@ -258,7 +321,7 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 		if !vt.HasMelded {
 			vm.Prompts = append(vm.Prompts, module.Fact{
 				LabelKey: "prompt.initialMeld",
-				Params:   map[string]any{"n": initialMeldMinimum(vt.Score)},
+				Params:   map[string]any{"n": r.meldFloor(vt.Score)},
 			})
 		}
 		if !canGoOut(s, vt) {
@@ -269,11 +332,15 @@ func (m *Module) View(raw module.State, viewerID string) (module.ViewModel, erro
 		}
 	}
 	if s.Current == viewerID {
-		key := "prompt.yourTurnDraw"
+		// Both spelled out rather than assigned to one variable: a key that
+		// reaches Fact through a variable is invisible to cmd/dump-keys, so it
+		// never reaches the manifest and no locale is ever checked for it.
+		// These two were exactly that until the sweep in keys_test.go found them.
 		if s.Phase == phaseMeld {
-			key = "prompt.yourTurnMeld"
+			vm.Prompts = append(vm.Prompts, module.Fact{LabelKey: "prompt.yourTurnMeld"})
+		} else {
+			vm.Prompts = append(vm.Prompts, module.Fact{LabelKey: "prompt.yourTurnDraw"})
 		}
-		vm.Prompts = append(vm.Prompts, module.Fact{LabelKey: key})
 	}
 
 	if s.LastDeal != nil {
@@ -325,6 +392,20 @@ func cardViews(cards []string) []module.CardView {
 // topOnly is what the discard pile shows. What is buried under it is not in
 // play until somebody takes the whole thing, and sending it would invite a
 // client to reason about cards its player cannot legally see.
+// shownPile is how much of the discard pile this table publishes: the whole
+// thing where the option is on, and otherwise the top card alone.
+//
+// Nothing secret is being kept either way — every card in it was discarded
+// face up in front of everybody. What the folded pile protects is the memory
+// it takes to play Canasta well, which is why it is the default and why it is
+// a table's own choice rather than the module's.
+func shownPile(s *GameState) []string {
+	if s.OpenDiscard {
+		return s.DiscardPile
+	}
+	return topOnly(s)
+}
+
 func topOnly(s *GameState) []string {
 	if t := s.top(); t != "" {
 		return []string{t}
@@ -333,14 +414,15 @@ func topOnly(s *GameState) []string {
 }
 
 // Bot is how Canasta wants a vacant seat played: build the table first, take
-// the pile when it is offered, and discard only because a turn has to end.
+// the pile when it is worth taking, and discard the card that is least use to
+// whoever gets it.
 //
-// module.OfferBot is enough here where it would not be for Žolíky, because a
-// Canasta meld ships as exact cards rather than a shape to solve — the same
-// property that lets the conformance driver play this game to a winner.
-func (m *Module) Bot() module.Bot {
-	return module.OfferBot(VerbLayMeld, VerbLayOff, VerbTakePile, VerbDraw, VerbDiscard)
-}
+// It was module.OfferBot with that list of verbs as a preference, on the
+// grounds that a Canasta meld ships as exact cards rather than as a shape to
+// solve — which is true of melding, and says nothing about the two decisions a
+// turn also contains: whether to take the pile, and which card to end with. An
+// offer-preference bot answers both by sort order. See bot.go.
+func (m *Module) Bot() module.Bot { return bot{} }
 
 // Standings ranks by partnership score, so both members of a side share a rank
 // — which is the case that made module.Standing allow ties in the first place.
@@ -355,4 +437,50 @@ func (m *Module) Standings(raw module.State) ([]module.Standing, error) {
 		}
 		return 0
 	}, "canasta.unit.points"), nil
+}
+
+// meldsInViewOrder is a partnership's melds the way a player would lay them out
+// in front of them: the ones still being built first, low rank to high, and
+// the finished canastas after them all.
+//
+// Not the order they were made in, which is the order they are stored in and
+// says nothing a player wants to read: the meld to add a card to is found by
+// its rank, and a canasta is mostly done with — it is a score and a licence to
+// go out, and the client folds it down (see Group.Complete), so it goes where
+// folding it away costs the rest of the row nothing. Sets come before
+// sequences, and sequences go by suit, the order the deck is built in.
+//
+// A view-only order: the stored melds keep theirs, so a replay of the log and
+// every rule that walks t.Melds see what they always saw.
+func meldsInViewOrder(melds []Meld) []Meld {
+	out := slices.Clone(melds)
+	slices.SortStableFunc(out, func(a, b Meld) int {
+		if a.isCanasta() != b.isCanasta() {
+			if a.isCanasta() {
+				return 1
+			}
+			return -1
+		}
+		if a.kind() != b.kind() {
+			if a.kind() == meldRun {
+				return 1
+			}
+			return -1
+		}
+		if a.kind() == meldRun {
+			return slices.Index(suits, a.Suit) - slices.Index(suits, b.Suit)
+		}
+		return meldRankOrder(a.Rank) - meldRankOrder(b.Rank)
+	})
+	return out
+}
+
+// meldRankOrder places a set's rank low to high, with anything that is not a
+// natural rank — a set of wild cards, where a variation allows one — above
+// the aces.
+func meldRankOrder(rank string) int {
+	if i := slices.Index(ranks, rank); i >= 0 {
+		return i
+	}
+	return len(ranks)
 }

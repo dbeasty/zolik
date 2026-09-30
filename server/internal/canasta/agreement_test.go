@@ -101,18 +101,22 @@ func pickVarying(offers []module.ActionOffer, step int) (module.Action, bool) {
 
 // actionFromOffer builds the concrete submission an offer describes, using only
 // what the offer itself declares — the same discipline a UI shell is held to.
+//
+// It is module.SubmissionFor and nothing else, deliberately. This used to be a
+// local copy of that reading, written before Selector.Submit existed, and so it
+// took the first MinCards cards of Selector.Cards and never looked at Submit.
+// That is the protocol's *fallback*, for an offer that names no combination —
+// and while a Canasta meld offer listed only the cards it would send, the two
+// readings happened to agree. They stopped agreeing the moment a group's offer
+// began listing wilds a player *may* pick alongside the naturals it *would*
+// send: the front of that list is "2C 2S JD", which is not a meld.
+//
+// So the duplicate was the drift, not the change that exposed it. The driver,
+// the shell (matchTypes.ts's actionFor) and the bots now all read an offer the
+// one way, which is the only arrangement in which this test proves anything
+// about any of them.
 func actionFromOffer(o module.ActionOffer) (module.Action, bool) {
-	a := module.Action{OfferID: o.ID, Verb: o.Verb}
-	if o.Source != nil && o.Source.MinCards > 0 {
-		if len(o.Source.Cards) < o.Source.MinCards {
-			return a, false
-		}
-		a.Cards = append([]string(nil), o.Source.Cards[:o.Source.MinCards]...)
-	}
-	if o.Target != nil && o.Target.MeldID != "" {
-		a.Target = o.Target.MeldID
-	}
-	return a, true
+	return module.SubmissionFor(o)
 }
 
 // TestOffersAgreeWithApply is the test that makes drift impossible rather than
@@ -131,6 +135,15 @@ func TestOffersAgreeWithApply(t *testing.T) {
 	}{
 		{"two players", refs("p1", "p2"), module.MatchConfig{Options: module.Options{OptTargetScore: 500}}},
 		{"four players", refs("p1", "p2", "p3", "p4"), module.MatchConfig{Options: module.Options{OptTargetScore: 500}}},
+		// Samba, where the offer list has the most to get wrong: sequences, a
+		// second group of a rank, a pile that only ever yields to two naturals
+		// and a verb that takes one card without giving one back.
+		{"four players, samba", refs("p1", "p2", "p3", "p4"), module.MatchConfig{
+			Variation: "samba", Options: module.Options{OptTargetScore: 1000},
+		}},
+		{"six players, samba", refs("p1", "p2", "p3", "p4", "p5", "p6"), module.MatchConfig{
+			Variation: "samba", Options: module.Options{OptTargetScore: 1000},
+		}},
 	}
 
 	for _, tab := range tables {
@@ -191,6 +204,12 @@ func TestPerCardOffersAgreeWithApply(t *testing.T) {
 	m := New()
 	players := refs("p1", "p2", "p3", "p4")
 	states := collectStates(t, module.MatchConfig{Options: module.Options{OptTargetScore: 500}}, players, 6, 800)
+	// Samba states too: a lay-off onto a sequence is the one per-card list whose
+	// eligibility is about where a card sits in a run rather than what rank it
+	// is, so it is the one most able to name a card the engine then refuses.
+	states = append(states, collectStates(t, module.MatchConfig{
+		Variation: "samba", Options: module.Options{OptTargetScore: 1000},
+	}, players, 6, 800)...)
 
 	discardChecks, layOffChecks := 0, 0
 	for _, state := range states {

@@ -11,10 +11,35 @@ function defaultBaseUrl(): string {
   return 'http://127.0.0.1:8090';
 }
 
-export const ZOLIK_BASE_URL = (envUrl || defaultBaseUrl()).replace(/\/$/, '');
+/**
+ * The origin this page was served from, when the build says the API lives
+ * there too.
+ *
+ * The production image compiles the web export into the server binary, so the
+ * API is by construction whoever served the page — and one deployment answers
+ * on several domains (jokerless.com, jokerless.org, play.limidus.com). A base
+ * URL baked in at build time names only one of them, and a page loaded from
+ * any other would call it cross-origin, which the server does not allow. The
+ * Dockerfile sets EXPO_PUBLIC_ZOLIK_API_SAME_ORIGIN=1; a plain Expo dev
+ * server, where the client and API are on different ports, does not.
+ *
+ * Empty during the static prerender (no `window`) and on native, where the
+ * baked-in URL below is the answer.
+ */
+function sameOriginBaseUrl(): string {
+  if (process.env.EXPO_PUBLIC_ZOLIK_API_SAME_ORIGIN !== '1') return '';
+  if (Platform.OS !== 'web') return '';
+  if (typeof window === 'undefined' || !window.location?.origin) return '';
+  return window.location.origin;
+}
+
+export const ZOLIK_BASE_URL = (sameOriginBaseUrl() || envUrl || defaultBaseUrl()).replace(
+  /\/$/,
+  '',
+);
 
 export const APP_NAME =
-  (Constants.expoConfig?.name as string | undefined) ?? 'Žolíky';
+  (Constants.expoConfig?.name as string | undefined) ?? 'Jokerless';
 
 /**
  * The build this bundle was made from — set by scripts/version.sh via the
@@ -30,8 +55,23 @@ export const APP_NAME =
  * footer means "Expo was started without the version script", not "you're on
  * version zero".
  */
-export const CLIENT_VERSION = process.env.EXPO_PUBLIC_ZOLIK_VERSION || '0.0.0-dev';
-export const CLIENT_COMMIT = process.env.EXPO_PUBLIC_ZOLIK_COMMIT || 'unknown';
+export const CLIENT_VERSION =
+  process.env.EXPO_PUBLIC_ZOLIK_VERSION || nativeBuildInfo('zolikVersion') || '0.0.0-dev';
+export const CLIENT_COMMIT =
+  process.env.EXPO_PUBLIC_ZOLIK_COMMIT || nativeBuildInfo('zolikCommit') || 'unknown';
+
+/**
+ * The second source, for iOS and Android store builds only: an EAS worker
+ * bundles without scripts/version.sh or a .git, so app.config.ts stamps the
+ * version into the embedded manifest instead. It is fixed there, with none of
+ * the web caching trouble above. The web build always has the EXPO_PUBLIC_*
+ * values, so it never gets this far.
+ */
+function nativeBuildInfo(key: 'zolikVersion' | 'zolikCommit'): string {
+  if (Platform.OS === 'web') return '';
+  const v = (Constants.expoConfig?.extra as Record<string, unknown> | undefined)?.[key];
+  return typeof v === 'string' ? v : '';
+}
 
 /**
  * Who the legal notices name as the operator, set at build time by
@@ -58,7 +98,7 @@ export const OPERATOR_CONTACT = process.env.EXPO_PUBLIC_ZOLIK_OPERATOR_CONTACT |
  * GPL one: a network user who never receives a binary must still be offered
  * the Corresponding Source. So the offer has to live in the app, not only in
  * the repository — a LICENSE file rsynced to a server nobody logs into offers
- * nothing to the person playing at play.limidus.com.
+ * nothing to the person playing at jokerless.com.
  *
  * Overridable at build time, and that is the point rather than a convenience:
  * whoever deploys a modified zolik owes their readers *their* source, not

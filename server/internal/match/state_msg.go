@@ -6,6 +6,7 @@ import (
 
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
+	"zolik/server/internal/rules"
 )
 
 // MatchStateMsg is what a client renders a hosted match from.
@@ -44,6 +45,11 @@ type MatchStateMsg struct {
 	Winners  []string `json:"winners,omitempty"`
 
 	Players []PlayerMsg `json:"players"`
+	// Sides is who is playing with whom, in seat order, for a table that has
+	// not been dealt yet — the lobby's answer to "who is my partner if we start
+	// now". Absent once the match is active, where the board carries the
+	// partnerships itself, and absent entirely for a game with no sides.
+	Sides [][]string `json:"sides,omitempty"`
 	// View is the board as this viewer may see it — the only place hidden
 	// information is filtered, decided by the module.
 	View module.ViewModel `json:"view"`
@@ -64,6 +70,35 @@ type MatchStateMsg struct {
 	Rounds *module.RoundLog `json:"rounds,omitempty"`
 	// SuspendedPlayer names the seat a paused match is waiting for.
 	SuspendedPlayer string `json:"suspendedPlayer,omitempty"`
+	// CanResume says whether this viewer may bring a swept-up table back,
+	// and AwayPlayers names who is missing when they may not.
+	//
+	// Both are answered by the server rather than worked out on the board,
+	// because the answer depends on who currently holds a socket in this
+	// match's room — which no client can see. Deriving it was how a screen
+	// came to offer a resume the server would refuse, and, worse, how a
+	// resumable table came to offer nothing at all: the client's stand-in
+	// rule was "every other seat is a bot", so two friends looking at their
+	// own intact game were shown a banner with one button on it, "Back to
+	// games".
+	//
+	// Only meaningful on an abandoned table; false everywhere else, where the
+	// question does not arise.
+	CanResume bool `json:"canResume,omitempty"`
+	// AwayPlayers is who still has to come back, in seat order. Ids, not
+	// names: the client already has the names, in Players.
+	AwayPlayers []string `json:"awayPlayers,omitempty"`
+	// Rematch is the table this finished one is being played again at, and
+	// who asked — what turns "Play again" into "Join Bob's rematch" for
+	// everybody else who is still looking at the result.
+	Rematch *models.RematchRef `json:"rematch,omitempty"`
+	// Reserved is who a rematch lobby is still holding seats for.
+	Reserved []models.Reservation `json:"reserved,omitempty"`
+	// RecentMoves is what the last few moves at the table were, as this viewer
+	// may read them, oldest first. It rides on the state message, not on the
+	// events, so it survives a reconnection. Absent for a game whose module
+	// does not narrate its moves.
+	RecentMoves []module.Move `json:"recentMoves,omitempty"`
 }
 
 type PlayerMsg struct {
@@ -86,7 +121,7 @@ type PlayerMsg struct {
 // itself a small demonstration that the runtime can describe a match before
 // the game owning it has done anything.
 func (m *Manager) BuildStateMsg(match models.Match, viewerID string) MatchStateMsg {
-	return m.buildStateMsg(match, viewerID, module.RoundsFor(m.registry.Get(match.ModuleID), match.State))
+	return m.buildStateMsg(match, viewerID, module.RoundsFor(m.registry.Get(match.ModuleID), module.State(match.State)))
 }
 
 // buildStateMsg is BuildStateMsg with the round log handed in.
@@ -97,6 +132,33 @@ func (m *Manager) BuildStateMsg(match models.Match, viewerID string) MatchStateM
 // the module's whole state an extra time for every seat at the table, on every
 // single action.
 func (m *Manager) buildStateMsg(match models.Match, viewerID string, rounds *module.RoundLog) MatchStateMsg {
+	msg := m.projectStateMsg(match, viewerID, stateMsgOpts{rounds: rounds, withOffers: true})
+	if e := m.live.peek(match.ID.Hex()); e != nil {
+		msg.RecentMoves = e.recentFor(viewerID)
+	}
+	return msg
+}
+
+// stateMsgOpts is what varies between the two things a projection is wanted
+// for: a live board, and one frame of a replay.
+type stateMsgOpts struct {
+	rounds *module.RoundLog
+	// withOffers asks the module what this viewer may do. A replay frame says
+	// no: nobody is playing it, and offer enumeration is both the most
+	// expensive and by far the most verbose thing this function does.
+	withOffers bool
+	// openView asks for the board with every hand face up, for replaying a
+	// finished game. Whether that is allowed is decided long before here, by
+	// BuildReplay; a module that cannot do it is projected per viewer as usual.
+	openView bool
+}
+
+// projectStateMsg renders one viewer's state.
+//
+// The only place hidden information is filtered — by mod.View, below — which is
+// why a replay frame is built through here rather than through a second builder
+// that would have to be kept honest separately.
+func (m *Manager) projectStateMsg(match models.Match, viewerID string, o stateMsgOpts) MatchStateMsg {
 	msg := MatchStateMsg{
 		Type:            "match_state",
 		MatchID:         match.ID.Hex(),
@@ -110,6 +172,8 @@ func (m *Manager) buildStateMsg(match models.Match, viewerID string, rounds *mod
 		WinnerID:        match.WinnerID,
 		Winners:         match.Winners,
 		SuspendedPlayer: match.SuspendedPlayer,
+		Rematch:         match.Rematch,
+		Reserved:        match.Reserved,
 		// Never nil: these round-trip to JSON, and a nil slice serialises to
 		// `null`, which every client then has to guard before indexing.
 		LegalActions: []module.ActionOffer{},
@@ -117,19 +181,44 @@ func (m *Manager) buildStateMsg(match models.Match, viewerID string, rounds *mod
 	for _, p := range match.Players {
 		msg.Players = append(msg.Players, PlayerMsg{ID: p.ID, Name: p.Name, IsAI: p.IsAI, Avatar: p.Avatar})
 	}
+	// Asked only where it can be true. A spectator (no viewer id) gets the
+	// same false every other status gets, since bringing a table back is not
+	// something a passer-by does.
+	if match.Status == string(rules.StatusAbandoned) && viewerID != "" {
+		msg.CanResume = m.resumableBy(match, viewerID)
+		if !msg.CanResume {
+			msg.AwayPlayers = m.playersAway(match, viewerID)
+		}
+	}
 
 	mod := m.registry.Get(match.ModuleID)
+	// Sides are a lobby fact. Once the match is dealt the board carries the
+	// partnerships itself — per seat, in the ViewModel — and repeating them here
+	// would be a second copy to keep honest.
+	if mod != nil && match.Status == "lobby" {
+		msg.Sides = module.SidesOf(mod,
+			module.MatchConfig{Variation: match.Variation, Options: match.Options},
+			playerRefs(match.Players))
+	}
 	if mod == nil || len(match.State) == 0 {
 		return msg
 	}
-	if vm, err := mod.View(match.State, viewerID); err == nil {
+	if o.openView {
+		if vm, ok := module.OpenViewFor(mod, module.State(match.State)); ok {
+			msg.View = vm
+		} else if vm, err := mod.View(module.State(match.State), viewerID); err == nil {
+			msg.View = vm
+		}
+	} else if vm, err := mod.View(module.State(match.State), viewerID); err == nil {
 		msg.View = vm
 	}
-	if offers, err := mod.LegalActions(match.State, viewerID); err == nil && offers != nil {
-		msg.LegalActions = offers
+	if o.withOffers {
+		if offers, err := mod.LegalActions(module.State(match.State), viewerID); err == nil && offers != nil {
+			msg.LegalActions = offers
+		}
 	}
-	msg.Standings = module.StandingsFor(mod, match.State)
-	msg.Rounds = rounds
+	msg.Standings = module.StandingsFor(mod, module.State(match.State))
+	msg.Rounds = o.rounds
 	return msg
 }
 

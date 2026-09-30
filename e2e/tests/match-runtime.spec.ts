@@ -72,9 +72,12 @@ async function startMatch(
 async function stateFor(
   request: import('@playwright/test').APIRequestContext,
   matchId: string,
-  viewerId: string,
+  // The viewer's access token; without one the server answers as to a spectator.
+  token: string | undefined,
 ): Promise<MatchState> {
-  const res = await request.get(`${API_BASE}/matches/${matchId}?as=${encodeURIComponent(viewerId)}`);
+  const res = await request.get(`${API_BASE}/matches/${matchId}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
   expect(res.ok()).toBeTruthy();
   return res.json();
 }
@@ -98,11 +101,11 @@ test.describe('module runtime', () => {
   });
 
   test('a Prsi match persists through Mongo and comes back playable', async ({ request }) => {
-    const { matchId, userId } = await startMatch(request, 'prsi');
+    const { matchId, token } = await startMatch(request, 'prsi');
 
     // Read it back cold, through a fresh HTTP request: nothing is cached in
     // the process, so this is the round trip through the database.
-    const state = await stateFor(request, matchId, userId);
+    const state = await stateFor(request, matchId, token);
     expect(state.moduleId).toBe('prsi');
     expect(state.status).toBe('active');
     expect(state.legalActions.length).toBeGreaterThan(0);
@@ -118,11 +121,13 @@ test.describe('module runtime', () => {
   test('a viewer never receives another player cards', async ({ request }) => {
     // The one contract term with a security consequence, checked through the
     // real serialisation rather than in memory.
-    const { matchId, botId, userId } = await startMatch(request, 'prsi');
+    const { matchId, botId, userId, token } = await startMatch(request, 'prsi');
 
+    // The bot has no token to read as, so the other side of the table is
+    // checked as a spectator, who must not see the host's cards either.
     for (const [viewer, other] of [
-      [userId, botId],
-      [botId, userId],
+      [token, botId],
+      [undefined, userId],
     ]) {
       const state = await stateFor(request, matchId, viewer);
       const theirs = state.view.zones.find((z) => z.kind === 'hand' && z.ownerId === other);
@@ -296,8 +301,8 @@ test.describe('module runtime', () => {
     // Authority still sits with the module: the runtime routes, it does not
     // adjudicate. A verb no module defines must be refused rather than
     // silently ignored.
-    const { matchId, userId } = await startMatch(request, 'prsi');
-    const state = await stateFor(request, matchId, userId);
+    const { matchId, token } = await startMatch(request, 'prsi');
+    const state = await stateFor(request, matchId, token);
     expect(state.status).toBe('active');
 
     // A rummy verb sent at a Prsi match — the clearest possible "wrong game".
@@ -330,8 +335,8 @@ test.describe('module runtime', () => {
     // The runtime is not a Prsi runtime that happens to also compile. The
     // rummy engine, unchanged, runs behind the same envelope and the same
     // socket.
-    const { matchId, userId } = await startMatch(request, 'zolik');
-    const state = await stateFor(request, matchId, userId);
+    const { matchId, userId, token } = await startMatch(request, 'zolik');
+    const state = await stateFor(request, matchId, token);
 
     expect(state.moduleId).toBe('zolik');
     expect(state.status).toBe('active');

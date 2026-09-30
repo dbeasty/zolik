@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { handCards } from '../helpers/drag';
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 
 /**
  * How the board is laid out, which the shell decides from a zone's *kind* and
@@ -17,7 +17,12 @@ import { API_BASE } from '../helpers/env';
 
 type Ctx = import('@playwright/test').APIRequestContext;
 
-async function tableWithBots(request: Ctx, moduleId: string, seats = 2) {
+async function tableWithBots(
+  request: Ctx,
+  moduleId: string,
+  seats = 2,
+  options: Record<string, number> = {},
+) {
   const res = await request.post(`${API_BASE}/auth/guest`, {
     data: { guestName: `layout-${Math.random().toString(36).slice(2, 10)}` },
   });
@@ -27,7 +32,7 @@ async function tableWithBots(request: Ctx, moduleId: string, seats = 2) {
 
   const created = await request.post(`${API_BASE}/matches`, {
     headers: auth,
-    data: { moduleId, options: {} },
+    data: { moduleId, options },
   });
   expect(created.ok(), await created.text()).toBeTruthy();
   const { matchId } = await created.json();
@@ -54,8 +59,8 @@ async function openMatch(page: Page, host: any, matchId: string) {
 }
 
 /** How many cards the server says a zone holds, and how many it sent. */
-async function zoneCards(request: Ctx, matchId: string, userId: string, zoneId: string) {
-  const res = await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`);
+async function zoneCards(request: Ctx, matchId: string, viewer: Viewer, zoneId: string) {
+  const res = await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer));
   expect(res.ok(), await res.text()).toBeTruthy();
   const body = await res.json();
   const zone = (body.view?.zones ?? []).find((z: any) => z.id === zoneId);
@@ -99,12 +104,15 @@ test.describe('the shape of the board', () => {
     // A deal starts with one card face up, so play on until something is
     // buried under it. Which control does that is the engine's business; this
     // presses whatever is live, as any player would.
+    // The test's own limit has to outlast this deadline, or a slow deal times
+    // out mid-loop instead of reaching the skip below.
+    test.setTimeout(90_000);
     const deadline = Date.now() + 40_000;
     let sent = 0;
     while (Date.now() < deadline) {
-      ({ sent } = await zoneCards(request, matchId, host.userId, 'discard'));
+      ({ sent } = await zoneCards(request, matchId, host, 'discard'));
       if (sent > 1) break;
-      const live = page.locator('[data-testid^="offer-"]:not([aria-disabled="true"])').first();
+      const live = page.locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])').first();
       if (await live.count()) {
         try {
           await live.click({ timeout: 5000 });
@@ -129,16 +137,55 @@ test.describe('the shape of the board', () => {
   });
 
   test('a pile of one card has nothing to open', async ({ page, request }) => {
-    // Prší and Canasta send only the top card, because what is under it is not
-    // public in those games — so there is nothing to unfold and no control
-    // offering to. The shell works that out from what it was sent rather than
-    // from which game it is.
+    // Prší and Canasta send only the top card by default, because keeping the
+    // pile in your head is part of those games — so there is nothing to unfold
+    // and no control offering to. The shell works that out from what it was
+    // sent rather than from which game it is.
     const { matchId, host } = await tableWithBots(request, 'prsi');
     await openMatch(page, host, matchId);
     await handCards(page);
 
-    const { sent } = await zoneCards(request, matchId, host.userId, 'discard');
+    const { sent } = await zoneCards(request, matchId, host, 'discard');
     expect(sent).toBeLessThanOrEqual(1);
     await expect(page.getByTestId('zone-toggle-discard')).toHaveCount(0);
+  });
+
+  test('a table that opened its pile can look under the top card', async ({ page, request }) => {
+    // The same game, the same screen, one setting different: `openDiscardPile`
+    // is what decides whether the pile arrives whole, and nothing in the shell
+    // knows the option exists. A control to open the pile appearing here and
+    // not in the test above is the whole of the feature, seen from a seat.
+    const { matchId, host } = await tableWithBots(request, 'prsi', 2, { openDiscardPile: 1 });
+    await openMatch(page, host, matchId);
+    await handCards(page);
+
+    // Prší buries a card every time anybody plays one, so this only has to
+    // press whatever is live until the pile is more than its top card.
+    // The test's own limit has to outlast this deadline, or a slow deal times
+    // out mid-loop instead of reaching the skip below.
+    test.setTimeout(90_000);
+    const deadline = Date.now() + 40_000;
+    let sent = 0;
+    while (Date.now() < deadline) {
+      ({ sent } = await zoneCards(request, matchId, host, 'discard'));
+      if (sent > 1) break;
+      const live = page.locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])').first();
+      if (await live.count()) {
+        try {
+          await live.click({ timeout: 5000 });
+        } catch {
+          /* the board moved under us; the next pass re-reads it */
+        }
+      }
+      await page.waitForTimeout(500);
+    }
+    test.skip(sent <= 1, 'never got a second card onto the pile');
+
+    await expect(drawnIn(page, 'discard')).toHaveCount(1);
+    const toggle = page.getByTestId('zone-toggle-discard');
+    await expect(toggle).toBeVisible();
+
+    await toggle.click();
+    await expect(drawnIn(page, 'discard')).toHaveCount(sent);
   });
 });

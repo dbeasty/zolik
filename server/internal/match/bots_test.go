@@ -281,8 +281,18 @@ func TestBotsReadyUpThroughAnIntermission(t *testing.T) {
 	mod := reg.Get("canasta")
 
 	players := []module.PlayerRef{{ID: "b1", Name: "b1", IsAI: true}, {ID: "b2", Name: "b2", IsAI: true}}
+	// The target has to be out of reach of a single deal, or there is no
+	// intermission to ready up through and this test passes by accident.
+	//
+	// It was five hundred, which was two or three deals for the bot Canasta had
+	// when this was written — module.OfferBot, which never took the discard
+	// pile on purpose and discarded its wild cards. Canasta's own bot reaches
+	// five hundred in one deal, and the test failed with "never actually
+	// paused": not a regression in the runtime, a setup that had quietly
+	// become a one-deal match. Three thousand is several deals with room to
+	// spare, and four hundred-odd steps of the eight thousand below.
 	cfg := module.MatchConfig{Options: module.Options{
-		"targetScore":                500,
+		"targetScore":                3000,
 		module.OptPauseBetweenRounds: module.OptOn,
 	}}
 	state, err := mod.NewMatch(cfg, players, 4)

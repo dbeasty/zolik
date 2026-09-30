@@ -201,7 +201,38 @@ export function getLocale(): Locale {
  * untranslated string degrades to a readable one rather than to nothing.
  */
 export function t(key: string, params?: Params, fallback?: string): string {
-  return interpolate(messageTemplate(key) ?? fallback ?? key, params);
+  const own = BUNDLES[currentLocale]?.[key];
+  if (own !== undefined) return interpolate(own, params);
+  // Nothing in this language. Every fallback below renders *English* at a
+  // player who asked for something else, and each one does it silently — the
+  // English bundle, the caller's fallback, `humanise` turning
+  // `zolik.offer.layMeld` into "Lay meld". That silence is what let four
+  // buttons sit in English on an otherwise Czech board.
+  if (markMissing) return `_TX_${key}_`;
+  return interpolate(BUNDLES.en[key] ?? fallback ?? key, params);
+}
+
+/**
+ * Renders every unworded key as `_TX_<key>_` instead of falling back.
+ *
+ * A leak is invisible precisely because the fallbacks work: the screen reads
+ * as English rather than as broken, so nobody files it and no assertion
+ * catches it. Turned on, the same screen names the key that is missing, which
+ * turns "some of this is still English" into a list a person can act on.
+ *
+ * Off by default and never on in a shipped build — see `useLocaleBootstrap`,
+ * which arms it only from an explicit local flag. It is a lamp for finding
+ * things, not a behaviour.
+ */
+let markMissing = false;
+
+export function setMissingKeyMarker(on: boolean) {
+  markMissing = on;
+  for (const listener of listeners) listener();
+}
+
+export function missingKeyMarkerOn(): boolean {
+  return markMissing;
 }
 
 /**

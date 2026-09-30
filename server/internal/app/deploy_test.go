@@ -28,6 +28,7 @@ type composeFile struct {
 		Image       string         `yaml:"image"`
 		Build       any            `yaml:"build"`
 		Environment map[string]any `yaml:"environment"`
+		Ports       []string       `yaml:"ports"`
 	} `yaml:"services"`
 	Volumes map[string]struct {
 		Name string `yaml:"name"`
@@ -189,5 +190,52 @@ func toString(v any) string {
 			return ""
 		}
 		return strings.TrimSpace(string(out))
+	}
+}
+
+// TestAdminConsoleIsPublishedWhereItListens ties together the two halves of
+// the console's isolation, which are stated in different files and were once
+// both loopback — an arrangement that reads like defence in depth and is
+// actually a wall. Docker forwards a published port to the container's bridge
+// address; a console bound to the container's loopback is not listening
+// there, so every tunnelled request is accepted and then dropped. The symptom
+// is an empty reply while the startup log cheerfully reports the console up,
+// which is about as far from a useful error as a running process gets.
+//
+// So: the published port must stay on the host's loopback, because that is
+// the binding Docker enforces and the only thing keeping the console off the
+// LAN — and ADMIN_BIND must not be a loopback address, because that one keeps
+// it away from everybody.
+func TestAdminConsoleIsPublishedWhereItListens(t *testing.T) {
+	app := readCompose(t, prodCompose).Services["app"]
+
+	var published string
+	for _, p := range app.Ports {
+		if strings.HasSuffix(p, ":8091") || strings.Contains(p, ":8091:") {
+			published = p
+			break
+		}
+	}
+	if published == "" {
+		// Nothing to keep honest: no admin port is published at all.
+		return
+	}
+
+	if !strings.HasPrefix(published, "127.0.0.1:") {
+		t.Errorf("the console is published as %q. Anything but a 127.0.0.1: prefix binds every "+
+			"interface on the host, which puts the console on the LAN and, through the WAN NAT "+
+			"that forwards to that box, potentially further", published)
+	}
+
+	bind := strings.TrimSpace(toString(app.Environment["ADMIN_BIND"]))
+	if bind == "" {
+		t.Fatalf("the console is published as %q but ADMIN_BIND is unset, so the server falls back "+
+			"to its 127.0.0.1 default — inside the container, where Docker cannot reach it. The "+
+			"console would start, log that it is up, and answer nobody", published)
+	}
+	if bind == "127.0.0.1" || bind == "localhost" || bind == "::1" {
+		t.Errorf("ADMIN_BIND = %q binds the *container's* loopback, which the published port %q "+
+			"cannot reach. Use 0.0.0.0 and let the 127.0.0.1: prefix above be the boundary",
+			bind, published)
 	}
 }

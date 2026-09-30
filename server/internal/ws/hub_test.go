@@ -70,6 +70,8 @@ func (f *fakeConn) Close() error { return nil }
 
 func (f *fakeConn) Ping() error { return nil }
 
+func (f *fakeConn) CloseWithCode(int, string) error { return nil }
+
 func TestHub_BroadcastGameState_PublishesWithoutLocalConnections(t *testing.T) {
 	mr, err := miniredis.Run()
 	if err != nil {

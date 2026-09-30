@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { API_BASE } from '../helpers/env';
+import { API_BASE, asViewer } from '../helpers/env';
+import { openGame, openGameSetup } from '../helpers/lobby';
 
 /**
  * One screen, every game (docs/one-architecture-plan.md Phase 7).
@@ -56,6 +57,35 @@ async function tableWithBots(
 }
 
 /** Puts a session in localStorage so the shell opens already signed in. */
+/**
+ * Waits until this player has a raise to make, dealing on if a hand ends first.
+ *
+ * Whether the player gets a turn at all depends on the shuffle. If both bots
+ * fold before the player acts, the hand is over, and the only thing offered is
+ * the intermission's "Start the next round". A plain wait for the stepper then
+ * times out even though nothing is wrong, so this presses that control and
+ * keeps waiting.
+ */
+async function untilRaiseOffered(page: Page) {
+  await expect
+    .poll(
+      async () => {
+        if (await page.getByTestId('param-amount').isVisible()) return true;
+        // A disabled control now answers a press with a sheet saying why, and
+        // the sheet covers the controls this is waiting for. "Start the next
+        // round" stays on screen, disabled, once this player is ready — so
+        // press it only while it is live, and dismiss a sheet if one opened.
+        const why = page.getByTestId('why-close');
+        if (await why.isVisible()) await why.click().catch(() => {});
+        const next = page.locator('[data-testid="offer-continue"]:not([aria-disabled="true"])');
+        if (await next.isVisible()) await next.click().catch(() => {});
+        return false;
+      },
+      { timeout: 120_000, intervals: [500], message: 'a raise should come round to this player' },
+    )
+    .toBe(true);
+}
+
 async function signIn(page: Page, host: { accessToken: string; refreshToken: string; userId: string; username?: string }) {
   await page.addInitScript((s) => {
     window.localStorage.setItem('zolik_session', JSON.stringify(s));
@@ -66,6 +96,17 @@ async function signIn(page: Page, host: { accessToken: string; refreshToken: str
     username: host.username ?? 'shell',
     isGuest: true,
   });
+}
+
+/**
+ * What a setup section is painted with — the mark the panel puts on the
+ * control a player asked for. Read as the browser computes it rather than as
+ * a class name, because the mark is the thing being claimed.
+ */
+const TRANSPARENT = 'rgba(0, 0, 0, 0)';
+
+async function wash(page: Page, testId: string) {
+  return page.getByTestId(testId).evaluate((el) => getComputedStyle(el).backgroundColor);
 }
 
 /** Every offer control currently on screen, enabled or not. */
@@ -87,7 +128,7 @@ async function playAFewMoves(page: Page, max: number): Promise<number> {
   /** Ids of the controls that are live right now, read as a snapshot. */
   const liveOffers = () =>
     page
-      .locator('[data-testid^="offer-"]:not([aria-disabled="true"])')
+      .locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])')
       .evaluateAll((els) => els.map((e) => e.getAttribute('data-testid') ?? ''));
 
   /**
@@ -178,13 +219,13 @@ test.describe('one shell, every game', () => {
       // And it plays. Counting clicks would prove nothing — a click on a dead
       // control counts just as well — so the check is that the *server's* view
       // of the match moved, read back through a separate HTTP request.
-      const before = await request.get(`${API_BASE}/matches/${matchId}?as=${host.userId}`);
+      const before = await request.get(`${API_BASE}/matches/${matchId}`, asViewer(host));
       const beforeBoard = JSON.stringify((await before.json()).view);
 
       const moves = await playAFewMoves(page, 12);
       expect(moves, 'the shell should have been able to press something').toBeGreaterThan(0);
 
-      const after = await request.get(`${API_BASE}/matches/${matchId}?as=${host.userId}`);
+      const after = await request.get(`${API_BASE}/matches/${matchId}`, asViewer(host));
       const afterJson = await after.json();
       expect(
         JSON.stringify(afterJson.view) !== beforeBoard || afterJson.status !== 'active',
@@ -229,7 +270,7 @@ test.describe('one shell, every game', () => {
       if ((await playAFewMoves(page, 1)) === 0) break;
     }
 
-    const state = await (await request.get(`${API_BASE}/matches/${matchId}?as=${host.userId}`)).json();
+    const state = await (await request.get(`${API_BASE}/matches/${matchId}`, asViewer(host))).json();
     expect(state.status, 'the shortest table this game offers should have ended').toBe('completed');
 
     // Said, rather than left to be inferred from a control that stopped
@@ -306,20 +347,145 @@ test.describe('one shell, every game', () => {
     await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
 
     // Wait for our turn, then look for the stepper on the raise control.
-    const stepper = page.getByTestId('param-amount');
-    await expect(stepper).toBeVisible({ timeout: 40_000 });
+    await untilRaiseOffered(page);
 
+    // The value sits in a typed field now, not a label — a player who knows
+    // the figure they want can enter it directly instead of nudging a stepper.
+    //
+    // Every read below retries. The field re-syncs its text from the shared
+    // value one render after a press, so a one-shot inputValue() straight
+    // after a click can see the previous figure — which is how this test once
+    // took a stale 41 for "max" and then called the correct clamp to 1000 an
+    // overshoot. The range comes from the field's own label ("min–max"), the
+    // same bounds the engine handed the control.
     const value = page.getByTestId('param-amount-value');
-    const before = Number((await value.textContent()) ?? '0');
+    const [min, max] = ((await value.getAttribute('aria-label')) ?? '').split('–').map(Number);
+    expect(Number.isFinite(min) && Number.isFinite(max) && min <= max, 'the field names its range').toBe(
+      true,
+    );
+    const amount = async () => Number((await value.inputValue()) || '0');
+
+    // The raise button names the figure it sends, and follows every way of
+    // setting it. It used to read "Raise" over a slider set to 483 — the
+    // player had to trust the press read the right number. Checked against
+    // the title's own text, the thing on screen, not the field beside it.
+    const title = page.getByTestId('offer-raise-title');
+    const namesAmount = async (n: number, how: string) =>
+      expect(title, `the raise button should name ${n} after ${how}`).toHaveText(
+        new RegExp(`\\b${n}$`),
+      );
+    const before = await amount();
+    await namesAmount(before, 'dealing');
+
+    // The figure under it is the pot once the call is in, and says so. A bare
+    // "in the pot" under "Raise to 483" read as the pot this raise would make.
+    await expect(page.getByTestId('offer-raise')).toContainText(/pot after call \d+/);
+
     await page.getByTestId('param-amount-up').click();
-    const after = Number((await value.textContent()) ?? '0');
-    expect(after, 'the stepper should move within the engine range').toBeGreaterThanOrEqual(before);
+    await expect
+      .poll(amount, { message: 'the stepper should move within the engine range' })
+      .toBe(Math.min(before + 1, max));
+    await namesAmount(Math.min(before + 1, max), 'the stepper');
+
+    // A quick choice ("½ Pot", "Pot") moves the button too. Their test ids
+    // end in the value they jump to, so a numeric suffix picks them out from
+    // the stepper's own controls.
+    const quick = (
+      await page
+        .getByTestId('param-amount')
+        .locator('[data-testid^="param-amount-"]')
+        .evaluateAll((els) => els.map((e) => e.getAttribute('data-testid') ?? ''))
+    )
+      .map((id) => Number(id.slice('param-amount-'.length)))
+      .filter((n) => Number.isInteger(n));
+    expect(quick.length, 'the raise should offer quick choices').toBeGreaterThan(0);
+    await page.getByTestId(`param-amount-${quick[0]}`).click();
+    await expect(value).toHaveValue(String(quick[0]));
+    await namesAmount(quick[0], 'a quick choice');
 
     // And the top of the range is reachable in one press, because a player who
     // wants everything in should not have to hold a button down.
     await page.getByTestId('param-amount-max').click();
-    const maxed = Number((await value.textContent()) ?? '0');
-    expect(maxed).toBeGreaterThanOrEqual(after);
+    await expect(value).toHaveValue(String(max));
+    await namesAmount(max, 'max');
+
+    // Dragging the slider to its left end lands on the minimum, and the button
+    // says so — the case in the report: slider moved, button unchanged.
+    const slider = page.getByTestId('param-amount-slider');
+    const box = await slider.boundingBox();
+    if (!box) throw new Error('slider has no box');
+    await page.mouse.move(box.x + box.width - 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 1, box.y + box.height / 2, { steps: 8 });
+    await page.mouse.up();
+    await expect(value).toHaveValue(String(min));
+    await namesAmount(min, 'dragging the slider');
+
+    // Typing an exact figure works too, and the engine still gets the last
+    // word: the field clamps to the range it was given on commit.
+    await value.fill(String(max + 1000));
+    await value.press('Enter');
+    await expect(value, 'typing past the range should clamp to it, not overshoot').toHaveValue(
+      String(max),
+    );
+    await namesAmount(max, 'typing past the range');
+  });
+
+  test('the collapsed controls pill names and sends the amount dialled in the bar', async ({
+    page,
+    request,
+  }) => {
+    // Collapsing the controls panel unmounts the bar. The amount used to live
+    // inside it, so collapsing forgot it, and the rail's "Raise" pill — which
+    // never saw it — sent the engine's default. A player who dialled 483 and
+    // raised from the pill went in at the minimum.
+    test.setTimeout(180_000);
+    const sent: string[] = [];
+    page.on('websocket', (ws) => ws.on('framesent', (f) => sent.push(String(f.payload))));
+
+    const poker = await tableWithBots(request, 'holdem', 3, { variation: 'timed' });
+    await signIn(page, poker.host);
+    await page.goto(`/match/${poker.matchId}`);
+    await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 30_000 });
+    await untilRaiseOffered(page);
+
+    // A figure that is neither the default nor a quick choice, so only the
+    // player's own input can explain it turning up on the pill and the wire.
+    const value = page.getByTestId('param-amount-value');
+    const [min, max] = ((await value.getAttribute('aria-label')) ?? '').split('–').map(Number);
+    const target = Math.min(min + 7, max);
+    await value.fill(String(target));
+    await value.press('Enter');
+    await expect(page.getByTestId('offer-raise-title')).toHaveText(new RegExp(`\\b${target}$`));
+
+    const toggle = page.getByTestId('panel-toggle-zone:controls');
+    await toggle.click();
+    await expect(page.getByTestId('action-bar')).toHaveCount(0);
+    const pill = page.getByTestId('offer-glance-raise-title');
+    await expect(pill, 'the pill should name the amount set in the bar').toHaveText(
+      new RegExp(`\\b${target}$`),
+    );
+
+    // Opening the panel again finds the amount where it was left.
+    await toggle.click();
+    await expect(value, 'collapsing should not forget the amount').toHaveValue(String(target));
+    await toggle.click();
+
+    await page.getByTestId('offer-glance-raise').click();
+    await expect
+      .poll(
+        () =>
+          sent.some((raw) => {
+            try {
+              const a = JSON.parse(raw);
+              return a.verb === 'raise' && a.params?.amount === String(target);
+            } catch {
+              return false;
+            }
+          }),
+        { message: `the pill should send a raise to ${target}` },
+      )
+      .toBe(true);
   });
 
   test('the lobby lists every hosted game without naming one', async ({ page, request }) => {
@@ -331,27 +497,86 @@ test.describe('one shell, every game', () => {
     await page.goto('/lobby/games');
     await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 30_000 });
 
+    // The list is one button per game, and no game's controls.
     for (const id of ['zolik', 'prsi', 'canasta', 'holdem', 'ginrummy', 'blackjack']) {
-      await expect(page.getByTestId(`module-${id}`)).toBeVisible();
+      await expect(page.getByTestId(`game-${id}`)).toBeVisible();
     }
+    await expect(page.getByTestId('option-holdem-bigBlind-20')).toHaveCount(0);
 
-    // Options come from the descriptor, so a knob nobody typed into this
-    // client is nonetheless rendered.
-    await expect(page.getByTestId('option-holdem-bigBlind-20')).toBeVisible();
+    // A button leads to that game alone, its setup already open. Options come
+    // from the descriptor, so a knob nobody typed into this client is
+    // nonetheless rendered.
+    await page.getByTestId('game-canasta').click();
+    await expect(page.getByTestId('setup-toggle-canasta')).toHaveAttribute('aria-expanded', 'true');
     await expect(page.getByTestId('option-canasta-targetScore-500')).toBeVisible();
+    await expect(page.getByTestId('module-holdem')).toHaveCount(0);
+
+    await openGame(page, 'holdem');
+    await expect(page.getByTestId('option-holdem-bigBlind-20')).toBeVisible();
     // And a game with two shipped rulesets offers both.
     await expect(page.getByTestId('variation-holdem-freezeout')).toBeVisible();
     await expect(page.getByTestId('variation-holdem-timed')).toBeVisible();
+  });
+
+  test('a way in to the setup arrives at the control it names', async ({ page, request }) => {
+    // A card's header has three ways in, and two of them name something: the
+    // table size and the digest each state a value, so pressing one reads as
+    // "change that". Opening the panel at the top and leaving the player to
+    // find the control they just named answers a different question — the more
+    // so on Žolíky, whose seat count is the last of nine rows.
+    const host = await guest(request);
+    await signIn(page, host);
+    await openGame(page, 'zolik');
+
+    // The table size opens the setup at the seat count — in view, not merely
+    // in the DOM somewhere below the fold.
+    await page.getByTestId('players-zolik').click();
+    const seats = page.getByTestId('setup-section-zolik-bots');
+    await expect(seats).toBeInViewport({ ratio: 1 });
+    // And marked, because a panel scrolled to roughly the right place still
+    // leaves a player scanning nine rows of controls for the one they named.
+    expect(await wash(page, 'setup-section-zolik-bots')).not.toBe(TRANSPARENT);
+
+    // The digest names the ruleset, so it moves to the rulesets — it does not
+    // close the panel the player is reading.
+    await page.getByTestId('setup-digest-press-zolik').click();
+    await expect(page.getByTestId('setup-toggle-zolik')).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByTestId('setup-section-zolik-variation')).toBeInViewport({ ratio: 1 });
+    // One mark at a time: the seat count is no longer the answer.
+    expect(await wash(page, 'setup-section-zolik-variation')).not.toBe(TRANSPARENT);
+    expect(await wash(page, 'setup-section-zolik-bots')).toBe(TRANSPARENT);
+
+    // Pressing the way in you are already at is the way back out.
+    await page.getByTestId('setup-digest-press-zolik').click();
+    await expect(page.getByTestId('setup-toggle-zolik')).toHaveAttribute('aria-expanded', 'false');
+
+    // A chip that names something the module does not have is just another way
+    // to open the panel: Gin Rummy seats exactly two, so it draws no seat row
+    // at all, and its table size must still open the setup rather than nothing.
+    // It arrives open, so put it away first.
+    await openGame(page, 'ginrummy');
+    await page.getByTestId('setup-toggle-ginrummy').click();
+    await expect(page.getByTestId('setup-toggle-ginrummy')).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+    await page.getByTestId('players-ginrummy').click();
+    await expect(page.getByTestId('setup-toggle-ginrummy')).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    await expect(page.getByTestId('setup-section-ginrummy-bots')).toHaveCount(0);
+    await expect(page.getByTestId('variation-ginrummy-oklahoma')).toBeVisible();
   });
 
   test('the lobby starts a game and hands it to the shell', async ({ page, request }) => {
     test.setTimeout(120_000);
     const host = await guest(request);
     await signIn(page, host);
-    await page.goto('/lobby/games');
-    await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 30_000 });
+    await openGame(page, 'canasta');
 
     // Pick the short Canasta target so the lobby is exercising real options.
+    await openGameSetup(page, 'canasta');
     await page.getByTestId('option-canasta-targetScore-500').click();
     await page.getByTestId('play-bots-canasta').click();
 
@@ -368,9 +593,8 @@ test.describe('one shell, every game', () => {
     test.setTimeout(120_000);
     const host = await guest(request);
     await signIn(page, host);
-    await page.goto('/lobby/games');
-    await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 30_000 });
-
+    await openGame(page, 'prsi');
+    await openGameSetup(page, 'prsi');
     await expect(page.getByTestId('bots-prsi-5')).toBeVisible();
     await expect(page.getByTestId('bots-prsi-6')).toHaveCount(0);
 
@@ -432,7 +656,6 @@ test.describe('the legacy path is gone', () => {
     for (const [method, path, why] of [
       ['POST', '/games', 'creating a rummy game'],
       ['GET', '/games/abc123', 'reading one'],
-      ['GET', '/rules', 'the rummy ruleset endpoint'],
       ['GET', '/module', 'the single-module descriptor, replaced by /modules'],
     ] as const) {
       const res =
@@ -441,6 +664,26 @@ test.describe('the legacy path is gone', () => {
           : await request.get(`${API_BASE}${path}`);
       expect(res.status(), `${method} ${path} (${why}) should be gone`).toBe(404);
     }
+
+    // /rules was the rummy ruleset endpoint, and that is gone too — but the
+    // URL is not free. The client has a rules screen at /rules
+    // (client-react-native/app/rules.tsx), and since the server began shipping
+    // the web client from the same origin (92543d8), the exported rules.html
+    // answers that path with a 200 whatever the request asks for. So the check
+    // is not "404" but "nothing here speaks the old API": the web page when a
+    // bundle is embedded, a plain 404 when the server runs from source without
+    // one. Rules are served per module now, at /modules/{id}/rules.
+    const rules = await request.get(`${API_BASE}/rules`, {
+      headers: { Accept: 'application/json' },
+    });
+    const rulesType = rules.headers()['content-type'] ?? '';
+    expect(rulesType, 'GET /rules must not answer with a ruleset').not.toContain('json');
+    if (rules.status() !== 404) {
+      expect(rules.status(), 'GET /rules is either gone or the rules screen').toBe(200);
+      expect(rulesType, 'GET /rules is the client rules screen').toContain('text/html');
+    }
+    const perModule = await request.get(`${API_BASE}/modules/zolik/rules`);
+    expect(perModule.ok(), 'the per-module rules endpoint replaced it').toBeTruthy();
 
     // And what replaced them answers, for four games.
     const modules = await request.get(`${API_BASE}/modules`);
@@ -506,7 +749,10 @@ test.describe('the legacy path is gone', () => {
 
           const o = st.legalActions.filter((x: any) => x.enabled)[0];
           const action: any = { offerId: o.id, verb: o.verb };
-          if (o.source?.minCards && (o.source?.cards ?? []).length >= o.source.minCards) {
+          // `submit` first: `cards` is the pool to pick from, not the move.
+          if (o.source?.submit?.length) {
+            action.cards = o.source.submit;
+          } else if (o.source?.minCards && (o.source?.cards ?? []).length >= o.source.minCards) {
             action.cards = o.source.cards.slice(0, o.source.minCards);
           }
           for (const p of o.params ?? []) {

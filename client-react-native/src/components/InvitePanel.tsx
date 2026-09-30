@@ -3,6 +3,8 @@ import { Platform, Pressable, Text, View } from 'react-native';
 
 import { inviteUrlFor, shareInviteLink } from '@/src/lib/inviteLink';
 import { colors, shared } from '@/src/theme';
+import { t } from '@/src/lib/i18n';
+import { useSession } from '@/src/context/SessionContext';
 
 /**
  * The host's "invite people" control: one link, one button.
@@ -30,7 +32,13 @@ export function InvitePanel({
   joinCode?: string;
   inviteUrl?: string;
 }) {
-  const url = inviteUrlFor({ joinCode, inviteUrl });
+  // At a table on a phone in the room, a link would name the online server,
+  // where this table does not exist. The code is the whole invitation there:
+  // the other players are already at this phone's table, one tap from "Join
+  // a table". Read here rather than passed in, so that no screen showing the
+  // panel can forget.
+  const offline = !!useSession().offline;
+  const url = offline ? '' : inviteUrlFor({ joinCode, inviteUrl });
   const [done, setDone] = useState(false);
 
   // The confirmation is a moment, not a state. Left up permanently it stops
@@ -44,19 +52,19 @@ export function InvitePanel({
   // On a phone the button opens the system share sheet, which is where the
   // recipient actually is; on web it copies, because that is what sharing a
   // URL means in a browser.
-  const actionLabel = Platform.OS === 'web' ? 'Copy link' : 'Share link';
-  const doneLabel = Platform.OS === 'web' ? 'Copied!' : 'Shared';
+  const actionLabel = Platform.OS === 'web' ? t('invite.copy') : t('invite.share');
+  const doneLabel = Platform.OS === 'web' ? t('invite.copied') : t('invite.shared');
 
   return (
     <View style={[shared.card, { marginTop: 12 }]} testID="invite-panel">
       <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14 }}>
-        Invite players
+        {t('invite.heading')}
       </Text>
       <Text style={shared.status}>
-        Send this link. Whoever opens it lands at this table — no account needed.
+        {offline ? t('invite.offlineExplain', { menu: t('nav.join') }) : t('invite.explain')}
       </Text>
 
-      {url ? (
+      {offline ? null : url ? (
         <>
           {/*
             Selectable, and wrapping rather than truncated. A host reading the
@@ -94,13 +102,13 @@ export function InvitePanel({
         // configured. Said plainly rather than shown as a dead button — the
         // code below still works, and that is the useful thing to point at.
         <Text testID="invite-url-unavailable" style={shared.status}>
-          This server has no shareable address configured, so use the code below.
+          {t('invite.noAddress')}
         </Text>
       )}
 
       {joinCode ? (
         <Text style={{ color: colors.muted, fontSize: 13, marginTop: 12 }}>
-          Or read out the code:{' '}
+          {offline ? t('invite.offlineCode') : t('invite.readOutCode')}{' '}
           <Text testID="table-join-code" style={{ color: colors.text, fontWeight: '700', fontSize: 16 }}>
             {joinCode}
           </Text>

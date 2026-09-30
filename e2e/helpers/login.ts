@@ -3,6 +3,21 @@ import { APIRequestContext, Page } from '@playwright/test';
 import { API_BASE } from './env';
 import type { SeededGame } from './seed';
 
+/**
+ * Marks this device as having already seen the first-run intro screen (see
+ * client-react-native's `src/lib/introStore.ts` — key 'zolik_seen_intro'),
+ * so a test that navigates to `/` lands on the main menu instead of the
+ * one-time intro. Called by `loginAs`/`loginAsFreshGuest` below, and by any
+ * spec that visits `/` without going through either — see
+ * `openInGerman`-style seeding in `localisation.spec.ts` for the same idea
+ * applied to locale.
+ */
+export async function seedIntroSeen(page: Page) {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('zolik_seen_intro', '1');
+  });
+}
+
 // Seeds the web app's localStorage session (see client-react-native's
 // SessionContext — key 'zolik_session', shape matches PlayerSession) before
 // any page script runs, so SessionProvider's bootstrap effect finds an
@@ -19,6 +34,7 @@ export async function loginAs(page: Page, game: SeededGame) {
   await page.addInitScript((s) => {
     window.localStorage.setItem('zolik_session', JSON.stringify(s));
   }, session);
+  await seedIntroSeen(page);
 }
 
 export type GuestIdentity = {
@@ -52,11 +68,13 @@ export async function loginAsFreshGuest(
     username: guest.guestName ?? guestName,
     isGuest: true,
     guestId: guest.guestId,
+    guestKey: guest.guestKey,
     claimableMatches: guest.claimableMatches ?? 0,
   };
   await page.addInitScript((s) => {
     window.localStorage.setItem('zolik_session', JSON.stringify(s));
   }, session);
+  await seedIntroSeen(page);
 
   return {
     userId: guest.userId,
@@ -109,6 +127,7 @@ export async function loginAsFreshAccount(
   await page.addInitScript((v) => {
     window.localStorage.setItem('zolik_session', JSON.stringify(v));
   }, session);
+  await seedIntroSeen(page);
 
   return {
     userId: session.userId,

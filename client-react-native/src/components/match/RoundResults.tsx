@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react';
-import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useArrival } from '@/src/hooks/useArrival';
 import { useMetrics } from '@/src/hooks/useMetrics';
@@ -10,6 +10,7 @@ import { useSkin } from '@/src/hooks/useSkin';
 import type { Skin } from '@/src/skins/types';
 
 import { Panel } from './Panel';
+import { t } from '@/src/lib/i18n';
 
 /**
  * What the match did, round by round.
@@ -31,6 +32,8 @@ type Props = {
   players: MatchPlayer[];
   standings?: Standing[];
   viewerId: string;
+  /** Open the account behind one cell: that player, that round. */
+  onOpenScore?: (playerId: string, round: number) => void;
 };
 
 export const RoundResults = memo(function RoundResults({
@@ -38,6 +41,7 @@ export const RoundResults = memo(function RoundResults({
   players,
   standings,
   viewerId,
+  onOpenScore,
 }: Props) {
   const metrics = useMetrics();
   const skin = useSkin();
@@ -70,7 +74,7 @@ export const RoundResults = memo(function RoundResults({
   return (
     <Animated.View style={arrival}>
       <Panel
-        title="Results"
+        title={t('match.results')}
         subtitle={shared.length ? shared.map((f) => factText(f, players)).join(' · ') : undefined}
         forceOpen
         testID="round-results"
@@ -86,13 +90,20 @@ export const RoundResults = memo(function RoundResults({
                 {label(log.labelKey)}
               </Text>
               {columns.map((id) => (
-                <Text
-                  key={id}
-                  numberOfLines={1}
-                  style={[styles.cell, styles.head, id === viewerId && styles.mine]}
-                >
-                  {playerName(players, id)}
-                </Text>
+                <View key={id} style={styles.cell} testID={`round-head-${id}`}>
+                  <Text
+                    numberOfLines={1}
+                    style={[styles.name, styles.head, id === viewerId && styles.mine]}
+                  >
+                    {playerName(players, id)}
+                  </Text>
+                  {/* Set under the name rather than after it: a column is
+                      narrow, and a marker appended inline is the half that
+                      gets truncated away on the one column that needs it. */}
+                  {id === viewerId ? (
+                    <Text style={[styles.name, styles.youTag]}>{label('results.you')}</Text>
+                  ) : null}
+                </View>
               ))}
             </View>
 
@@ -110,6 +121,11 @@ export const RoundResults = memo(function RoundResults({
                 >
                   <View style={[styles.cell, styles.labelCell]}>
                     <Text style={styles.roundNumber}>{r.number}</Text>
+                    {r.headline ? (
+                      <Text style={styles.roundFact} testID={`round-${r.number}-headline`}>
+                        {factText(r.headline, players)}
+                      </Text>
+                    ) : null}
                     {(perRound.get(r.number) ?? []).map((f, i) => (
                       <Text key={`${f.labelKey}-${i}`} style={styles.roundFact}>
                         {factText(f, players)}
@@ -118,8 +134,8 @@ export const RoundResults = memo(function RoundResults({
                   </View>
                   {columns.map((id) => {
                     const s = scores.get(id);
-                    return (
-                      <View key={id} style={styles.cell}>
+                    const content = (
+                      <>
                         <Text
                           testID={`round-${r.number}-${id}`}
                           style={[styles.delta, took.has(id) && styles.tookIt]}
@@ -127,6 +143,22 @@ export const RoundResults = memo(function RoundResults({
                           {s ? formatDelta(s) : '—'}
                         </Text>
                         {s ? <Text style={styles.total}>{runningTotal(s)}</Text> : null}
+                      </>
+                    );
+                    return s && onOpenScore ? (
+                      <Pressable
+                        key={id}
+                        style={styles.cell}
+                        onPress={() => onOpenScore(id, r.number)}
+                        accessibilityRole="button"
+                        accessibilityHint={t('score.open')}
+                        testID={`round-${r.number}-${id}-open`}
+                      >
+                        {content}
+                      </Pressable>
+                    ) : (
+                      <View key={id} style={styles.cell}>
+                        {content}
                       </View>
                     );
                   })}
@@ -142,9 +174,11 @@ export const RoundResults = memo(function RoundResults({
                 {columns.map((id) => {
                   const s = byId.get(id);
                   return (
-                    <Text key={id} testID={`round-total-${id}`} style={[styles.cell, styles.grand]}>
-                      {s ? shownScore(s) : '—'}
-                    </Text>
+                    <View key={id} style={styles.cell}>
+                      <Text testID={`round-total-${id}`} style={styles.grand}>
+                        {s ? shownScore(s) : '—'}
+                      </Text>
+                    </View>
                   );
                 })}
               </View>
@@ -226,17 +260,26 @@ function roundStyles(m: Metrics, s: Skin) {
     row: { flexDirection: 'row', alignItems: 'flex-start' },
     headRow: { borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: 4 },
     totalRow: { borderTopWidth: 1, borderTopColor: colors.border, marginTop: 4, paddingTop: 6 },
+    // Fixed, not minimum. A column that grows to its widest content grows by
+    // a different amount in the head row (a name) than in the rows below it
+    // (a number), and every column after the widest name is then a few pixels
+    // out of line with its own heading — which is the one thing a table has
+    // to get right. Content too wide for the width truncates instead.
     cell: {
-      minWidth: m.narrow ? 68 : 88,
+      width: m.narrow ? 72 : 92,
       paddingVertical: 4,
       paddingHorizontal: 6,
-      alignItems: 'flex-start',
+      alignItems: 'flex-end',
     },
     // The left-hand column is wider: it carries the round's own number and
     // whatever the module said was true of it.
-    labelCell: { minWidth: m.narrow ? 92 : 132 },
+    labelCell: { width: m.narrow ? 92 : 132, alignItems: 'flex-start' },
+    // Numbers read down the column, so they end on the same edge; names sit
+    // over the numbers they belong to and end on it too.
+    name: { alignSelf: 'stretch', textAlign: 'right' },
     head: { color: colors.muted, fontSize: m.panel.bodyFont, fontWeight: '600' },
     mine: { color: colors.text },
+    youTag: { color: colors.accent, fontSize: Math.max(10, m.panel.bodyFont - 3), fontWeight: '600' },
     roundNumber: { color: colors.text, fontSize: m.panel.bodyFont, fontWeight: '600' },
     roundFact: { color: colors.muted, fontSize: Math.max(10, m.panel.bodyFont - 3) },
     delta: { color: colors.text, fontSize: m.panel.bodyFont },

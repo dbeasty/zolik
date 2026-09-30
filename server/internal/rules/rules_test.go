@@ -1045,11 +1045,27 @@ func TestValidateUndoTurn_RevertsEverySinceDrawEvenAfterMultipleActions(t *testi
 		t.Fatalf("expected MeldsLaidThisTurn to revert to 0, got %d", undone.MeldsLaidThisTurn)
 	}
 
-	// The undo window itself stays open (it's not a one-shot like the
-	// single-action undos) — the player can keep melding and undo_turn
-	// again, any number of times, up until they discard.
-	if _, err := ValidateUndoTurn(undone, "p1"); err != nil {
-		t.Fatalf("expected undo_turn to remain available, got %v", err)
+	// Back at the start of the meld phase there is nothing left to take
+	// back, so a second undo_turn is refused rather than accepted as a move
+	// that changes nothing — the same answer the other three undos give when
+	// their own snapshot is empty, and what greys the button out instead of
+	// leaving it lit and inert.
+	if _, err := ValidateUndoTurn(undone, "p1"); err == nil {
+		t.Fatalf("expected a second undo_turn to be refused, got nil")
+	} else if re, ok := err.(RulesError); !ok || re.Code != ErrNothingToUndo {
+		t.Fatalf("expected %s, got %#v", ErrNothingToUndo, err)
+	}
+
+	// The window itself is still open, though — it is not a one-shot like the
+	// single-action undos. Melding again puts something back inside it, and
+	// undo_turn can take that back too, any number of times up until the
+	// discard.
+	again, _, _, err := ValidateMeldAction(undone, "p1", []string{"2S", "2D", "2C"})
+	if err != nil {
+		t.Fatalf("meld after undo_turn failed: %v", err)
+	}
+	if _, err := ValidateUndoTurn(again, "p1"); err != nil {
+		t.Fatalf("expected undo_turn to be available again after melding, got %v", err)
 	}
 }
 

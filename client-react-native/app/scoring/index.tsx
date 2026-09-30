@@ -2,11 +2,14 @@ import { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { Screen } from '@/src/components/Screen';
+import { SignInRequired } from '@/src/components/SignInRequired';
 import { useSession } from '@/src/context/SessionContext';
 import { colors, shared } from '@/src/theme';
+import { t } from '@/src/lib/i18n';
 
 export default function ScoringScreen() {
-  const { client } = useSession();
+  const { client, session } = useSession();
+  const signedIn = !!session && !session.isGuest;
   const [namesInput, setNamesInput] = useState('Alice,Bob,Carol,Dave');
   const [sessionId, setSessionId] = useState('');
   const [players, setPlayers] = useState<string[]>([]);
@@ -22,7 +25,7 @@ export default function ScoringScreen() {
       .map((n) => n.trim())
       .filter(Boolean);
     if (names.length < 2 || names.length > 8) {
-      setError('Enter 2–8 comma-separated player names');
+      setError(t('scoring.nameCountError'));
       return;
     }
     try {
@@ -31,7 +34,7 @@ export default function ScoringScreen() {
       setPlayers(names);
       setExportText('');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Create failed');
+      setError(e instanceof Error ? e.message : t('error.createFailed'));
     }
   }
 
@@ -46,7 +49,7 @@ export default function ScoringScreen() {
       }
     }
     if (Object.keys(scores).length === 0) {
-      setError('Scores format: Name:100,Name2:50');
+      setError(t('scoring.formatHint'));
       return;
     }
     try {
@@ -56,7 +59,7 @@ export default function ScoringScreen() {
       const data = await client.getScoringSession(sessionId);
       setExportText(JSON.stringify(data, null, 2));
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Save failed');
+      setError(e instanceof Error ? e.message : t('error.saveFailed'));
     }
   }
 
@@ -67,19 +70,19 @@ export default function ScoringScreen() {
       const text = await client.exportScoringSession(sessionId);
       setExportText(text);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Export failed');
+      setError(e instanceof Error ? e.message : t('error.exportFailed'));
     }
   }
 
+  // Kept against an account server-side, so there has to be one — a guest
+  // has nowhere for a score table to be kept.
+  if (!signedIn) return <SignInRequired title={t('more.scoreTable')} />;
+
   return (
-    <Screen
-      title="Record a live game"
-      subtitle="Keep the scorecard for a game you're playing with real cards."
-      scroll
-    >
+    <Screen title={t('more.scoreTable')} subtitle={t('scoring.subtitle')} scroll>
       {!sessionId ? (
         <>
-          <Text style={shared.status}>Who is playing? Comma-separated names (2–8)</Text>
+          <Text style={shared.status}>{t('scoring.namesHint')}</Text>
           <TextInput
             style={shared.input}
             value={namesInput}
@@ -88,26 +91,26 @@ export default function ScoringScreen() {
             placeholderTextColor="#8b9cb3"
           />
           <Pressable style={shared.button} onPress={createSession}>
-            <Text style={shared.buttonText}>Start scorecard</Text>
+            <Text style={shared.buttonText}>{t('scoring.newSession')}</Text>
           </Pressable>
         </>
       ) : (
         <View>
-          <Text style={{ color: colors.text }}>Session: {sessionId}</Text>
-          <Text style={shared.status}>Players: {players.join(', ')}</Text>
-          <Text style={[shared.status, { marginTop: 12 }]}>Round {round} scores</Text>
+          <Text style={{ color: colors.text }}>{t('scoring.session', { id: sessionId })}</Text>
+          <Text style={shared.status}>{t('scoring.players', { names: players.join(', ') })}</Text>
+          <Text style={[shared.status, { marginTop: 12 }]}>{t('scoring.roundScores', { n: round })}</Text>
           <TextInput
             style={shared.input}
             value={scoresInput}
             onChangeText={setScoresInput}
-            placeholder="Alice:120,Bob:80,…"
+            placeholder={t('scoring.scoresPlaceholder')}
             placeholderTextColor="#8b9cb3"
           />
           <Pressable style={shared.button} onPress={saveRound}>
-            <Text style={shared.buttonText}>Save round</Text>
+            <Text style={shared.buttonText}>{t('scoring.saveRound')}</Text>
           </Pressable>
           <Pressable style={[shared.button, shared.buttonSecondary]} onPress={doExport}>
-            <Text style={shared.buttonTextSecondary}>Export scorecard</Text>
+            <Text style={shared.buttonTextSecondary}>{t('scoring.export')}</Text>
           </Pressable>
         </View>
       )}

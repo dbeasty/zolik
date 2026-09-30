@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { API_BASE } from '../helpers/env';
+import { openGame, openGameSetup } from '../helpers/lobby';
 
 /**
  * Written rules, reflecting the table actually being looked at.
@@ -34,8 +35,7 @@ async function signIn(page: Page, host: { accessToken: string; refreshToken: str
 
 test.describe('the game picker rules link', () => {
   test('reflects the meld-floor option and the selected variation', async ({ page }) => {
-    await page.goto('/lobby/games');
-    await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 20_000 });
+    await openGame(page, 'zolik');
 
     // Default: zolik_classic, meld floor off.
     await page.getByTestId('rules-zolik').click();
@@ -44,8 +44,8 @@ test.describe('the game picker rules link', () => {
 
     // Back to the picker, turn the meld floor on, and check the sentence
     // that appears is the *option's* sentence, not the descriptor's default.
-    await page.goto('/lobby/games');
-    await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 20_000 });
+    await openGame(page, 'zolik');
+    await openGameSetup(page, 'zolik');
     await page.getByTestId('option-zolik-initialMeldMinimum-50').click();
     await page.getByTestId('rules-zolik').click();
     await expect(page.getByTestId('rules-screen')).toBeVisible({ timeout: 20_000 });
@@ -53,8 +53,8 @@ test.describe('the game picker rules link', () => {
 
     // Back to the picker, switch variation, and check the rotating-contract
     // sentence that only Continental has.
-    await page.goto('/lobby/games');
-    await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 20_000 });
+    await openGame(page, 'zolik');
+    await openGameSetup(page, 'zolik');
     await page.getByTestId('variation-zolik-continental').click();
     await page.getByTestId('rules-zolik').click();
     await expect(page.getByTestId('rules-screen')).toBeVisible({ timeout: 20_000 });

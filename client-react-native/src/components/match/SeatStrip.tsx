@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { Animated, Easing, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { MatchPlayer, Seat, Standing } from '@/src/api/matchTypes';
 import { Avatar } from '@/src/components/avatars/Avatar';
@@ -11,8 +11,10 @@ import { useMetrics } from '@/src/hooks/useMetrics';
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
 import { useSkin } from '@/src/hooks/useSkin';
 import type { Metrics } from '@/src/lib/layout';
-import { factText, label, playerName, shownScore } from '@/src/lib/labels';
+import { factText, isDealerLabel, label, playerName, shownScore } from '@/src/lib/labels';
+import { partnerText, partnersOf } from '@/src/lib/sides';
 import type { Skin } from '@/src/skins/types';
+import { t } from '@/src/lib/i18n';
 
 /**
  * The table: who is playing, whose turn it is, and their own numbers.
@@ -32,6 +34,14 @@ import type { Skin } from '@/src/skins/types';
  * horizontal scroller with no scrollbar hint was hiding the fourth seat off
  * the right edge of a phone, on the one screen where knowing who's at the
  * table is the point.
+ *
+ * Where the game has sides, each tile says whose side that seat is on. The
+ * lobby has always shown the partnerships it was arranging and then the board
+ * dropped the subject entirely, which left anyone who did not do the seating
+ * to work their partner out from whose melds landed in their spread. Said
+ * twice, deliberately: the line names the partners, and your own side wears a
+ * colour — the words answer "who", the colour answers "which of these four"
+ * without being read at all, which is what a glance at a board is.
  */
 
 type Props = {
@@ -48,9 +58,15 @@ type Props = {
    * card in flight leaves from or lands when their hand isn't on screen.
    */
   registerSpot?: (elementId: string, node: Measurable | null) => void;
+  /**
+   * Open the account behind a seat's score. Where it is given, the score on
+   * the tile and on the collapsed rail is a control rather than a label — a
+   * number that jumped by a thousand is the thing a player wants to ask about.
+   */
+  onOpenScore?: (playerId: string) => void;
 };
 
-export function SeatStrip({ seats, players, viewerId, standings, panelId, minimized, onToggleMinimized, registerSpot }: Props) {
+export function SeatStrip({ seats, players, viewerId, standings, panelId, minimized, onToggleMinimized, registerSpot, onOpenScore }: Props) {
   const metrics = useMetrics();
   const skin = useSkin();
   // Asked for stillness, the seat on turn keeps its outline and its shadow
@@ -61,8 +77,19 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
 
   if (!seats.length) return null;
 
+  // The viewer's own side, which is empty in a game without partnerships —
+  // and has to be, because tinting a lone seat "ours" would mark every seat
+  // at a Prší table as a team of one.
+  const myPartners = partnersOf(seats, viewerId);
+  const ourSide = new Set(myPartners.length ? [viewerId, ...myPartners] : []);
+
   const tiles = seats.map((seat) => {
     const isMe = seat.playerId === viewerId;
+    // Partners of the viewer, not of each other: an opponent pair is still
+    // worth naming on their own tiles, but it is not *my* team and must not
+    // wear the colour that says so.
+    const isPartner = ourSide.has(seat.playerId) && !isMe;
+    const partners = partnerText(seats, players, seat.playerId, viewerId);
     const player = players.find((p) => p.id === seat.playerId);
     const standing = standings?.find((s) => s.playerId === seat.playerId);
     const name = playerName(players, seat.playerId);
@@ -75,6 +102,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
           styles.seat,
           metrics.narrow && styles.seatNarrow,
           seat.active && styles.active,
+          isPartner && styles.teammate,
           isMe && styles.mine,
           // Shadow only, and only on the measured node — the *lift* goes on
           // the wrapper inside, because a transform here would move the rect
@@ -99,7 +127,19 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
           {player?.isAI ? <Text style={styles.badge}>BOT</Text> : null}
         </View>
 
-        {standing ? (
+        {standing && onOpenScore ? (
+          <Pressable
+            onPress={() => onOpenScore(seat.playerId)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityHint={t('score.open')}
+            testID={`standing-open-${seat.playerId}`}
+          >
+            <Text testID={`standing-${seat.playerId}`} style={[styles.score, styles.scoreLink]}>
+              {shownScore(standing)} {label(standing.labelKey)}
+            </Text>
+          </Pressable>
+        ) : standing ? (
           <Text testID={`standing-${seat.playerId}`} style={styles.score}>
             {shownScore(standing)} {label(standing.labelKey)}
           </Text>
@@ -118,16 +158,39 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
           <View style={styles.turnRow}>
             <TurnPulse color={skin.colors.accent} />
             <Text testID={`seat-active-${seat.playerId}`} style={styles.turn}>
-              to play
+              {t('match.toPlay')}
             </Text>
           </View>
         ) : null}
 
-        {(seat.labelKeys ?? []).map((key) => (
-          <Text key={key} style={styles.tag}>
-            {label(key)}
+        {/* Who this seat plays with. On the viewer's partner it is the
+            shorter, plainer sentence — "Your team" says the one thing that
+            tile is there to say, where "Team: you" makes a reader translate
+            it. Drawn at all only where the module gave the seat a side. */}
+        {partners ? (
+          <Text testID={`seat-team-${seat.playerId}`} style={[styles.team, isPartner && styles.teamMine]}>
+            {isPartner ? t('match.yourTeam') : t('match.teammates', { names: partners })}
           </Text>
-        ))}
+        ) : null}
+
+        {/* The seat's marks. The dealer's is drawn as the button itself
+            rather than spelled out — at a real table the button is an object
+            that sits in front of somebody, and it is read by *where it is*
+            rather than by reading a word off it. The word is still there, and
+            still translated, for a screen reader and for anyone who has never
+            seen one. */}
+        {(seat.labelKeys ?? []).map((key) =>
+          isDealerLabel(key) ? (
+            <View key={key} style={styles.dealerRow} testID={`seat-dealer-${seat.playerId}`}>
+              <DealerButton size={metrics.seat.avatarCompact} skin={skin} />
+              <Text style={styles.tag}>{label(key)}</Text>
+            </View>
+          ) : (
+            <Text key={key} style={styles.tag}>
+              {label(key)}
+            </Text>
+          ),
+        )}
 
         {(seat.facts ?? []).map((f, i) => (
           <Text key={`${f.labelKey}-${i}`} style={styles.fact}>
@@ -142,7 +205,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
   return (
     <Panel
       panelId={panelId}
-      title="Players"
+      title={t('match.players')}
       minimized={minimized}
       onToggleMinimized={onToggleMinimized}
       testID="match-standings"
@@ -165,7 +228,13 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
               <View
                 key={seat.playerId}
                 testID={`seat-summary-${seat.playerId}`}
-                style={[styles.summaryPill, seat.active && styles.summaryPillActive]}
+                style={[
+                  styles.summaryPill,
+                  // The collapsed rail keeps the one cue that survives having
+                  // no room for words: your side is tinted, theirs is not.
+                  ourSide.has(seat.playerId) && styles.summaryPillOurs,
+                  seat.active && styles.summaryPillActive,
+                ]}
               >
                 {/* The same face, small. Four names in a row is a list to be
                     read; four faces is a table to be glanced at. */}
@@ -175,11 +244,31 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
                     size={metrics.seat.avatarCompact}
                   />
                 ) : null}
+                {/* The one mark worth the width on a collapsed rail: whose
+                    deal it is survives being folded away, where "folded" and
+                    "all in" are already said by the numbers beside them. */}
+                {(seat.labelKeys ?? []).some(isDealerLabel) ? (
+                  <DealerButton size={Math.round(metrics.seat.avatarCompact * 0.8)} skin={skin} />
+                ) : null}
                 <Text style={styles.summaryName} numberOfLines={1}>
                   {seat.active ? '● ' : ''}
                   {playerName(players, seat.playerId)}
                 </Text>
-                {status ? (
+                {status && standing && onOpenScore ? (
+                  // Only the number, not the pill: the rail itself is how the
+                  // panel is opened out again, and that stays where it was.
+                  <Pressable
+                    onPress={() => onOpenScore(seat.playerId)}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityHint={t('score.open')}
+                    testID={`seat-summary-score-${seat.playerId}`}
+                  >
+                    <Text style={[styles.summaryStatus, styles.scoreLink]} numberOfLines={1}>
+                      {status}
+                    </Text>
+                  </Pressable>
+                ) : status ? (
                   <Text style={styles.summaryStatus} numberOfLines={1}>
                     {status}
                   </Text>
@@ -256,6 +345,44 @@ function TurnPulse({ color }: { color: string }) {
   );
 }
 
+/**
+ * The dealer button: the little disc that sits in front of whoever deals, and
+ * moves round the table a seat at a time.
+ *
+ * An object rather than a word, because that is what it is — the whole point
+ * of a button at a real table is that it is read from across one without
+ * being read. Sized from the metrics like every other size here (a skin may
+ * repaint it and may not resize it), and drawn in the skin's own gold on the
+ * card's own stock, so it reads as a chip lying on the felt.
+ */
+function DealerButton({ size, skin }: { size: number; skin: Skin }) {
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: skin.colors.cardBg,
+        borderWidth: 1.5,
+        borderColor: skin.colors.gold,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Text
+        style={{
+          color: skin.card.ink,
+          fontWeight: '700',
+          fontSize: Math.max(8, Math.round(size * 0.6)),
+          lineHeight: Math.max(9, Math.round(size * 0.7)),
+        }}
+      >
+        D
+      </Text>
+    </View>
+  );
+}
+
 function seatStyles(m: Metrics, s: Skin) {
   const colors = s.colors;
   return StyleSheet.create({
@@ -273,6 +400,7 @@ function seatStyles(m: Metrics, s: Skin) {
       flexShrink: 0,
     },
     summaryPillActive: { borderColor: colors.accent },
+    summaryPillOurs: { backgroundColor: s.seats.avatars ? 'rgba(240, 199, 94, 0.22)' : '#22304a' },
     summaryName: { color: colors.text, fontSize: m.panel.bodyFont, fontWeight: '700' },
     summaryStatus: { color: colors.gold, fontSize: m.panel.bodyFont - 1, fontWeight: '700' },
     // alignItems: flex-start — a seat with more to show (standings, tags,
@@ -303,7 +431,11 @@ function seatStyles(m: Metrics, s: Skin) {
       elevation: 8,
     },
     lifted: { transform: [{ translateY: -3 }] },
-    mine: { backgroundColor: s.seats.avatars ? 'rgba(240, 199, 94, 0.10)' : '#22304a' },
+    mine: { backgroundColor: s.seats.avatars ? 'rgba(240, 199, 94, 0.22)' : '#22304a' },
+    // Your partner, in the same colour as your own seat and weaker: the pair
+    // reads as one block at a glance, and which of the two is you is still
+    // never in doubt.
+    teammate: { backgroundColor: s.seats.avatars ? 'rgba(240, 199, 94, 0.13)' : '#1e2a3d' },
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     turnRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
     name: { color: colors.text, fontWeight: '700', fontSize: m.panel.bodyFont + 1, flexShrink: 1 },
@@ -320,6 +452,9 @@ function seatStyles(m: Metrics, s: Skin) {
       overflow: 'hidden',
     },
     score: { color: colors.gold, fontSize: m.panel.bodyFont - 1, fontWeight: '700', marginTop: 2 },
+    // Says "this opens something" without taking any room: a dotted rule
+    // under the figure, the convention for a term with an explanation.
+    scoreLink: { textDecorationLine: 'underline', textDecorationStyle: 'dotted' },
     badge: {
       color: colors.onAccent,
       backgroundColor: colors.muted,
@@ -332,6 +467,15 @@ function seatStyles(m: Metrics, s: Skin) {
     },
     turn: { color: colors.accent, fontSize: m.panel.bodyFont - 1, fontWeight: '700' },
     tag: { color: colors.gold, fontSize: m.panel.bodyFont - 1, marginTop: 2 },
+    dealerRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+    // Louder than a fact, quieter than a tag: who you are playing with is not
+    // a number and not a warning.
+    team: { color: colors.text, fontSize: m.panel.bodyFont - 1, fontWeight: '600', marginTop: 2 },
+    // Your partner's line is gold, which is what does the work the tint alone
+    // could not: a background at a twentieth opacity is the right *weight* for
+    // a secondary cue and, measured against the felt, very nearly invisible.
+    // Same size, so this stays a colour change and not a layout one.
+    teamMine: { color: colors.gold, fontWeight: '700' },
     fact: { color: colors.muted, fontSize: m.panel.bodyFont - 1, marginTop: 1 },
   });
 }

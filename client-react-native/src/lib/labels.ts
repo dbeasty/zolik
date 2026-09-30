@@ -1,6 +1,6 @@
-import type { Fact } from '@/src/api/matchTypes';
-import { cardText, isCardCode } from '@/src/lib/cards';
-import { messageTemplate, t } from '@/src/lib/i18n';
+import type { Fact } from "@/src/api/matchTypes";
+import { cardText, isCardCode, isTileCode, tileText } from "@/src/lib/cards";
+import { messageTemplate, t } from "@/src/lib/i18n";
 
 /**
  * Rendering the server's message keys, including ones this build has never
@@ -21,19 +21,46 @@ import { messageTemplate, t } from '@/src/lib/i18n';
 
 /** `holdem.seat.stack` → `Stack`; `zone.drawPile` → `Draw pile`. */
 export function humanise(key: string): string {
-  const last = key.split('.').pop() ?? key;
+  const last = key.split(".").pop() ?? key;
   const spaced = last
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/[_-]+/g, ' ')
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
     .trim();
   if (!spaced) return key;
   return spaced.charAt(0).toUpperCase() + spaced.slice(1).toLowerCase();
 }
 
+/**
+ * Whether a seat label key marks the dealer — `holdem.seat.dealer`,
+ * `ginrummy.seat.dealer`, and whatever the next game with a button calls its
+ * own.
+ *
+ * Read off the key's last segment, the same way `humanise` above reads one,
+ * and for the same reason: `seat.dealer` is a *documented* label key (see the
+ * protocol's `Seat.LabelKeys`, which names it as the example), so matching it
+ * is honouring a convention rather than guessing at one. A game that ships
+ * tomorrow with a dealer button gets the button drawn without this client
+ * knowing the game exists — which is the whole arrangement.
+ *
+ * Deliberately the *last* segment and not a substring: a future
+ * `blackjack.seat.beatTheDealer` is a sentence about the dealer, not a mark
+ * saying this seat is one.
+ */
+export function isDealerLabel(key: string): boolean {
+  return key.split(".").pop() === "dealer";
+}
+
 /** A message key rendered for display, falling back to its own shape. */
-export function label(key: string | undefined, params?: Record<string, unknown>): string {
-  if (!key) return '';
-  return t(key, params as Record<string, string | number> | undefined, humanise(key));
+export function label(
+  key: string | undefined,
+  params?: Record<string, unknown>,
+): string {
+  if (!key) return "";
+  return t(
+    key,
+    params as Record<string, string | number> | undefined,
+    humanise(key),
+  );
 }
 
 /** Anyone the server may have named by id rather than by name. */
@@ -62,8 +89,20 @@ const PLACES_ITS_OWN = /\{\w+\}/;
  * list of either becomes a list of names.
  */
 function tokenText(value: unknown, players: Named[]): string {
-  if (Array.isArray(value)) return value.map((v) => tokenText(v, players)).join(', ');
-  if (typeof value !== 'string') return String(value);
+  if (Array.isArray(value)) {
+    // A run of cards reads as a hand — "K♠ K♥ 7♦ 7♣ A♠" — the way it would be
+    // written down at a table; commas are for lists of names.
+    const hand =
+      value.length > 0 &&
+      value.every(
+        (v) =>
+          typeof v === "string" &&
+          (isCardCode(v) || isTileCode(v)) &&
+          !players.some((p) => p.id === v),
+      );
+    return value.map((v) => tokenText(v, players)).join(hand ? " " : ", ");
+  }
+  if (typeof value !== "string") return String(value);
   const player = players.find((p) => p.id === value);
   if (player) return player.name;
   if (KEY_SHAPED.test(value)) return label(value);
@@ -71,8 +110,9 @@ function tokenText(value: unknown, players: Named[]): string {
   // and a sentence with "JS" in it is a sentence about a card nobody at the
   // table can see — the rest of the screen draws that card as J♠. Checked
   // after the player list, so a player who calls themselves 7H keeps their
-  // name.
-  return isCardCode(value) ? cardText(value) : value;
+  // name. A tile is the same token in another notation.
+  if (isCardCode(value)) return cardText(value);
+  return isTileCode(value) ? tileText(value) : value;
 }
 
 function resolveParams(
@@ -105,8 +145,13 @@ function resolveParams(
 export function factText(f: Fact, players: Named[] = []): string {
   const params = resolveParams(f.params, players);
   const value =
-    f.value === undefined || f.value === '' ? undefined : tokenText(f.value, players);
-  const name = label(f.labelKey, value === undefined ? params : { ...params, value });
+    f.value === undefined || f.value === ""
+      ? undefined
+      : tokenText(f.value, players);
+  const name = label(
+    f.labelKey,
+    value === undefined ? params : { ...params, value },
+  );
   const wording = f.labelKey ? messageTemplate(f.labelKey) : undefined;
   if (wording && PLACES_ITS_OWN.test(wording)) return name;
   return value === undefined ? name : `${name} ${value}`;
@@ -118,7 +163,10 @@ export function factText(f: Fact, players: Named[] = []): string {
  * Falls back to the id, which is ugly but unambiguous — better than an empty
  * seat where a name should be.
  */
-export function playerName(players: { id: string; name: string }[], id: string): string {
+export function playerName(
+  players: { id: string; name: string }[],
+  id: string,
+): string {
   return players.find((p) => p.id === id)?.name || id;
 }
 

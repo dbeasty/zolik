@@ -147,6 +147,38 @@ func TestLayOffPlacements_ChainedCardHintsTheEndItsSubmissionGrows(t *testing.T)
 	if len(five.Positions) != 1 || five.Positions[0] != "front" {
 		t.Fatalf("the 5 and 6 grow the front of the run, got positions=%v", five.Positions)
 	}
+	// And the same answer as a place rather than a word, because the client
+	// that draws the gap the card drops into may not know what "front" is.
+	// One position is exactly the case an ordinal cannot describe: nothing in
+	// "position 1 of 1" says which end of the run it is.
+	if len(five.Slots) != 1 || five.Slots[0] != 0 {
+		t.Fatalf("the front of a run is the place before its first card, got slots=%v", five.Slots)
+	}
+}
+
+// Both ends, named and placed: the run is 7-8-9-10 and a 6 or a jack extends
+// it, so the two positions have to come back in rendered order with the slots
+// that match — before the first card, and after the last.
+func TestLayOffPlacements_SlotsFollowTheEndsTheyName(t *testing.T) {
+	st := chainState([]string{"6C", "JC", "2H"})
+
+	six := layOffPlacementFor(t, st, "m1", "6C")
+	if six == nil {
+		t.Fatal("the 6 must be offered")
+	}
+	if len(six.Positions) != 1 || six.Positions[0] != "front" || len(six.Slots) != 1 || six.Slots[0] != 0 {
+		t.Fatalf("the 6 goes on the front, before card 0: positions=%v slots=%v", six.Positions, six.Slots)
+	}
+
+	jack := layOffPlacementFor(t, st, "m1", "JC")
+	if jack == nil {
+		t.Fatal("the jack must be offered")
+	}
+	// Four cards on the table, so "after the last" is slot 4 — a count, not
+	// an index, which is what makes "past the end" expressible at all.
+	if len(jack.Positions) != 1 || jack.Positions[0] != "end" || len(jack.Slots) != 1 || jack.Slots[0] != 4 {
+		t.Fatalf("the jack goes on the end, after card 3: positions=%v slots=%v", jack.Positions, jack.Slots)
+	}
 }
 
 // A set cannot chain: one card per suit, four in total, so a set on the table

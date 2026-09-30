@@ -30,7 +30,12 @@ func TestSkillLadderIsMonotonic(t *testing.T) {
 	if testing.Short() {
 		t.Skip("a strength sweep is not a fast test")
 	}
-	const seeds = 200
+	// Seventy seeds, not the two hundred this used to run: Table now plays
+	// every seating rotation of each seed rather than one rotation per seed,
+	// so seventy seeds is two hundred and ten matches — the same work as
+	// before, with every strength holding every hand of every deal instead of
+	// a different third of them. See Table.
+	const seeds = 70
 	for _, p := range rulesets() {
 		p, cfg := p, p.cfg
 		t.Run(p.name, func(t *testing.T) {
@@ -86,10 +91,11 @@ func TestSkillLadderIsMonotonic(t *testing.T) {
 // winNoise is how far behind an adjacent level may come out on wins alone
 // before it counts as evidence rather than variance.
 //
-// A three-seat sweep of 200 deals gives each level somewhere near sixty wins,
-// with a standard deviation around seven; two of those is the allowance. The
-// mean-points assertion above is the one that actually polices the ordering,
-// and it has no allowance at all.
+// A three-seat sweep of 210 matches gives each level somewhere near seventy
+// wins, with a standard deviation around seven; two of those is the allowance.
+// The mean-points assertion above is the one that actually polices the
+// ordering, and it has no allowance at all — which it can afford now that
+// every strength plays every hand of every deal rather than a third of them.
 const winNoise = 14
 
 // assertClean pins the properties that hold at *every* strength. A weak bot

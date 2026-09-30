@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { handCards } from '../helpers/drag';
-import { API_BASE } from '../helpers/env';
+import { handCards, tapCard } from '../helpers/drag';
+import { API_BASE, asViewer, type Viewer } from '../helpers/env';
 import { waitForOfferEnabled } from '../helpers/turn';
 import { cardByCode, clearHandSelection, handCodes, selectedCodes } from '../helpers/hand';
 
@@ -77,15 +77,15 @@ async function drawOne(page: Page): Promise<string> {
   return (await selectedCodes(page))[0];
 }
 
-async function board(request: Ctx, matchId: string, userId: string) {
-  const res = await request.get(`${API_BASE}/matches/${matchId}?as=${userId}`);
+async function board(request: Ctx, matchId: string, viewer: Viewer) {
+  const res = await request.get(`${API_BASE}/matches/${matchId}`, asViewer(viewer));
   expect(res.ok(), await res.text()).toBeTruthy();
   return res.json();
 }
 
 /**
  * Plays whatever is live until a pickup off the discard pile is offered to
- * `userId`, or gives up after `budgetMs`. A fresh deal has nothing on the
+ * `viewer`, or gives up after `budgetMs`. A fresh deal has nothing on the
  * pile yet, so this needs at least one discard to have happened first —
  * usually the host's own, on whichever turn the loop first finds something
  * pressable.
@@ -94,15 +94,15 @@ async function waitForDiscardPickupOffered(
   page: Page,
   request: Ctx,
   matchId: string,
-  userId: string,
+  viewer: Viewer,
   budgetMs = 30_000,
 ): Promise<boolean> {
   const deadline = Date.now() + budgetMs;
   while (Date.now() < deadline) {
-    const body = await board(request, matchId, userId);
+    const body = await board(request, matchId, viewer);
     const offer = (body.legalActions ?? []).find((o: any) => o.id === 'draw:discard');
     if (offer?.enabled) return true;
-    const live = page.locator('[data-testid^="offer-"]:not([aria-disabled="true"])').first();
+    const live = page.locator('[data-testid^="offer-"]:not([data-testid$="-title"]):not([aria-disabled="true"])').first();
     if (await live.count()) {
       try {
         await live.click({ timeout: 5000 });
@@ -145,7 +145,7 @@ test.describe('the card you just drew', () => {
     )).find((c) => c !== drawn);
     expect(other, 'the hand holds a card other than the drawn one').toBeTruthy();
 
-    await cardByCode(page, other!).click();
+    await tapCard(page, cardByCode(page, other!));
 
     // Exactly one card picked, and it is the one just tapped. Before the fix
     // this was two, and every one-card offer went dark.
@@ -158,7 +158,7 @@ test.describe('the card you just drew', () => {
     await handCards(page);
 
     await drawOne(page);
-    await page.locator('[data-testid^="card-hand:"][aria-selected="true"]').click();
+    await tapCard(page, page.locator('[data-testid^="card-hand:"][aria-selected="true"]'));
 
     // "Not that one" means what it says.
     await expect.poll(async () => await selectedCodes(page)).toEqual([]);
@@ -184,8 +184,8 @@ test.describe('the card you just drew', () => {
     const distinct = [...new Set(codes)].slice(0, 2);
     test.skip(distinct.length < 2, 'hand has no two distinct cards');
 
-    await cardByCode(page, distinct[0]).click();
-    await cardByCode(page, distinct[1]).click();
+    await tapCard(page, cardByCode(page, distinct[0]));
+    await tapCard(page, cardByCode(page, distinct[1]));
 
     await expect
       .poll(async () => (await selectedCodes(page)).slice().sort())
@@ -202,7 +202,7 @@ test.describe('a card picked up off the discard pile', () => {
     await openMatch(page, host, matchId);
     await handCards(page);
 
-    const offered = await waitForDiscardPickupOffered(page, request, matchId, host.userId);
+    const offered = await waitForDiscardPickupOffered(page, request, matchId, host);
     test.skip(!offered, 'never reached a position where a discard pickup was offered');
 
     const before = await handCodes(page);
@@ -219,7 +219,7 @@ test.describe('a card picked up off the discard pile', () => {
     const other = (await handCodes(page)).find((c) => rankPart(c) !== rankPart(drawn));
     test.skip(!other, 'hand holds no card of a different rank to tap');
 
-    await cardByCode(page, other!).click();
+    await tapCard(page, cardByCode(page, other!));
 
     // Unlike stepping aside for a plain draw, the pickup is one the module
     // itself marked as owed to a meld this turn — see `zolik.badge.owedToMeld`

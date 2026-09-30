@@ -11,8 +11,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"zolik/server/internal/admission"
 	"zolik/server/internal/identity"
 	"zolik/server/internal/models"
+	"zolik/server/internal/module"
 )
 
 // The browser sign-in flow, in the shape that keeps credentials out of URLs.
@@ -211,6 +213,7 @@ func (h *Handlers) oauthCallback(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 		out.AccessToken, out.RefreshToken = tokens.AccessToken, tokens.RefreshToken
+		out.OfflinePass = tokens.OfflinePass
 	}
 
 	exchangeCode, err := NewRandomToken(32)
@@ -245,7 +248,7 @@ func (h *Handlers) oauthExchange(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	r := flow.Result
-	writeJSON(w, map[string]any{
+	out := map[string]any{
 		"accessToken":    r.AccessToken,
 		"refreshToken":   r.RefreshToken,
 		"userId":         r.UserID,
@@ -254,7 +257,11 @@ func (h *Handlers) oauthExchange(w http.ResponseWriter, req *http.Request) {
 		"linked":         r.Linked,
 		"provider":       flow.Provider,
 		"claimedMatches": r.ClaimedMatches,
-	})
+	}
+	if r.OfflinePass != "" {
+		out["offlinePass"] = r.OfflinePass
+	}
+	writeJSON(w, out)
 }
 
 type oauthTokenReq struct {
@@ -348,6 +355,9 @@ func (h *Handlers) completeSignIn(w http.ResponseWriter, req *http.Request, clai
 	}
 	out["accessToken"] = tokens.AccessToken
 	out["refreshToken"] = tokens.RefreshToken
+	if tokens.OfflinePass != "" {
+		out["offlinePass"] = tokens.OfflinePass
+	}
 	writeJSON(w, out)
 }
 
@@ -386,11 +396,34 @@ func (h *Handlers) resolveReturnTo(candidate string) (string, error) {
 		return h.allowedReturnURLs[0], nil
 	}
 	for _, allowed := range h.allowedReturnURLs {
-		if strings.HasPrefix(candidate, allowed) {
+		if returnURLAllowedBy(candidate, allowed) {
 			return candidate, nil
 		}
 	}
 	return "", errors.New("returnTo is not an allowed address for this deployment")
+}
+
+// returnURLAllowedBy reports whether candidate falls under the declared
+// prefix allowed.
+//
+// A bare string prefix is not enough once an entry is an origin. The entry
+// "https://jokerless.com" is a prefix of "https://jokerless.com.evil.example"
+// too, and that host would receive the sign-in code. So an entry that does
+// not itself end on a boundary ("/", as in "clientreactnative://" or
+// "https://host/app/") only matches when the candidate continues with one:
+// the end of the string, a path, a query or a fragment.
+func returnURLAllowedBy(candidate, allowed string) bool {
+	if allowed == "" || !strings.HasPrefix(candidate, allowed) {
+		return false
+	}
+	if strings.HasSuffix(allowed, "/") || len(candidate) == len(allowed) {
+		return true
+	}
+	switch candidate[len(allowed)] {
+	case '/', '?', '#':
+		return true
+	}
+	return false
 }
 
 func (h *Handlers) redirectURI(providerID string) string {
@@ -427,7 +460,16 @@ func writeJSON(w http.ResponseWriter, v any) {
 // exactly the kind of detail (stack-adjacent, implementation-specific) that
 // should never reach a caller anyway. Every "something went wrong on our
 // end" response in this package should go through here.
+//
+// A write the database shed under memory pressure is the exception: the
+// request was fine and a retry will pass, so it is answered as SERVER_BUSY,
+// which the client explains, rather than as a 500 it cannot.
 func internalError(w http.ResponseWriter, route string, err error) {
 	log.Printf("auth: %s: %v", route, err)
+	var me module.Error
+	if errors.As(err, &me) && me.Code == "SERVER_BUSY" {
+		admission.WriteBusy(w, err)
+		return
+	}
 	http.Error(w, "internal server error", http.StatusInternalServerError)
 }

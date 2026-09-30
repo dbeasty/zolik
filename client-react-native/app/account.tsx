@@ -1,11 +1,13 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, Text, View } from 'react-native';
 
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
 import { claimPrompt, claimedMessage, orderProviders, providerButtonLabel } from '@/src/lib/auth';
+import { guestUrlFor, shareInviteLink } from '@/src/lib/inviteLink';
 import { colors, shared } from '@/src/theme';
+import { t } from '@/src/lib/i18n';
 
 /**
  * The account screen: which sign-in methods are attached, and the chance to
@@ -26,31 +28,68 @@ export default function AccountScreen() {
     unlinkProvider,
     claimGuestHistory,
     refreshAccount,
+    guestKey,
   } = useSession();
   const [busy, setBusy] = useState<string | null>(null);
+  const [guestLinkShared, setGuestLinkShared] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
   if (loading) {
     return (
-      <Screen title="Account">
+      <Screen title={t('nav.account')}>
         <ActivityIndicator color={colors.accent} />
       </Screen>
     );
   }
 
   if (!session || session.isGuest) {
+    const guestUrl = session?.isGuest ? guestUrlFor(guestKey ?? undefined) : '';
     return (
-      <Screen title="Account">
-        <Text style={shared.status}>Sign in to manage your account.</Text>
+      <Screen title={t('nav.account')} scroll>
+        <Text style={shared.status}>{t('account.signInPrompt')}</Text>
         <Pressable style={shared.button} onPress={() => router.push('/auth/login')}>
-          <Text style={shared.buttonText}>Sign in</Text>
+          <Text style={shared.buttonText}>{t('settings.signIn')}</Text>
         </Pressable>
         {/* A guest has no account to manage but does have a face and a look,
             and this is where they came looking for them. */}
-        <Pressable style={shared.buttonSecondary} onPress={() => router.push('/settings')}>
-          <Text style={shared.buttonTextSecondary}>Settings</Text>
+        <Pressable style={[shared.button, shared.buttonSecondary]} onPress={() => router.push('/settings')}>
+          <Text style={shared.buttonTextSecondary}>{t('settings.title')}</Text>
         </Pressable>
+        {/* The guest's own identity, as something they can take with them.
+            The link holds the key, not the id: it is a secret, and says so. */}
+        {guestUrl ? (
+          <View testID="account-guest-link" style={[shared.card, { marginTop: 16 }]}>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>{t('account.guestLink.title')}</Text>
+            <Text style={shared.status}>{t('account.guestLink.body')}</Text>
+            <Text
+              selectable
+              style={{
+                color: colors.accent,
+                fontSize: 14,
+                marginVertical: 8,
+                fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+              }}
+            >
+              {guestUrl}
+            </Text>
+            <Pressable
+              testID="account-guest-link-share"
+              style={[shared.button, { marginTop: 4, marginBottom: 0 }]}
+              onPress={async () => setGuestLinkShared(await shareInviteLink(guestUrl))}
+            >
+              <Text style={shared.buttonText}>
+                {guestLinkShared
+                  ? Platform.OS === 'web'
+                    ? t('invite.copied')
+                    : t('invite.shared')
+                  : Platform.OS === 'web'
+                    ? t('invite.copy')
+                    : t('invite.share')}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
       </Screen>
     );
   }
@@ -67,14 +106,14 @@ export default function AccountScreen() {
     try {
       await action();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'That did not work');
+      setError(e instanceof Error ? e.message : t('error.generic'));
     } finally {
       setBusy(null);
     }
   }
 
   return (
-    <Screen title="Account" subtitle={account?.username} scroll>
+    <Screen title={t('nav.account')} subtitle={account?.username} scroll>
       {hint ? (
         <View style={shared.card}>
           <Text style={shared.status}>{hint}</Text>
@@ -91,7 +130,7 @@ export default function AccountScreen() {
             {busy === 'claim' ? (
               <ActivityIndicator color={colors.text} />
             ) : (
-              <Text style={shared.buttonText}>Keep these games</Text>
+              <Text style={shared.buttonText}>{t('account.keepGames')}</Text>
             )}
           </Pressable>
         </View>
@@ -99,7 +138,7 @@ export default function AccountScreen() {
       {notice ? <Text style={shared.status}>{notice}</Text> : null}
 
       <Text style={[shared.status, { fontWeight: '600', color: colors.text, marginTop: 8 }]}>
-        Signed in with
+        {t('account.signedInWith')}
       </Text>
       {(account?.identities ?? []).map((id) => (
         <View key={id.provider} style={shared.card}>
@@ -114,7 +153,7 @@ export default function AccountScreen() {
               disabled={busy !== null}
             >
               <Text style={shared.error}>
-                {busy === `unlink:${id.provider}` ? '…' : 'Remove'}
+                {busy === `unlink:${id.provider}` ? '…' : t('account.remove')}
               </Text>
             </Pressable>
           ) : null}
@@ -122,19 +161,19 @@ export default function AccountScreen() {
       ))}
       {account?.hasPassword ? (
         <View style={shared.card}>
-          <Text style={shared.status}>Username and password</Text>
+          <Text style={shared.status}>{t('account.usernameAndPassword')}</Text>
         </View>
       ) : null}
 
       {linkable.length > 0 ? (
         <>
           <Text style={[shared.status, { fontWeight: '600', color: colors.text, marginTop: 8 }]}>
-            Add a sign-in method
+            {t('account.addMethod')}
           </Text>
           {linkable.map((p) => (
             <Pressable
               key={p.id}
-              style={shared.buttonSecondary}
+              style={[shared.button, shared.buttonSecondary]}
               onPress={() => run(`link:${p.id}`, () => linkProvider(p.id))}
               disabled={busy !== null}
             >
@@ -153,14 +192,14 @@ export default function AccountScreen() {
       {/* The face and the felt. Not an account matter, but this is the screen
           people open when they are looking for anything about themselves. */}
       <Pressable
-        style={[shared.buttonSecondary, { marginTop: 16 }]}
+        style={[shared.button, shared.buttonSecondary, { marginTop: 16 }]}
         onPress={() => router.push('/settings')}
       >
-        <Text style={shared.buttonTextSecondary}>Face and table look</Text>
+        <Text style={shared.buttonTextSecondary}>{t('account.faceAndTable')}</Text>
       </Pressable>
 
       <Pressable style={{ marginTop: 16 }} onPress={() => refreshAccount()}>
-        <Text style={shared.status}>Refresh</Text>
+        <Text style={shared.status}>{t('account.refresh')}</Text>
       </Pressable>
     </Screen>
   );

@@ -29,7 +29,8 @@ func (a *HeuristicAgent) chooseLayOff(v VisibleState, hand []string, k knowledge
 	if len(opts) == 0 {
 		return "", "", false
 	}
-	sort.SliceStable(opts, func(i, j int) bool { return betterLayOff(opts[i], opts[j], a.prof, k) })
+	crunch := wildCrunch(hand, v.Rules)
+	sort.SliceStable(opts, func(i, j int) bool { return betterLayOff(opts[i], opts[j], a.prof, k, crunch) })
 	return opts[0].meldID, opts[0].card, true
 }
 
@@ -40,6 +41,9 @@ type layOffOption struct {
 	// pts is the penalty this sheds — the whole point of a lay-off once the
 	// race to go out is not yet decided.
 	pts int
+	// wild is a joker, which is the one card whose penalty points say the
+	// opposite of what it is worth. See betterLayOff.
+	wild bool
 }
 
 // layOffOptions is every legal lay-off, found the same way findLayOffAmong
@@ -85,6 +89,7 @@ func layOffOptions(v VisibleState, hand []string) []layOffOption {
 					meldID: mi.MeldID,
 					card:   c,
 					pts:    rules.PenaltyPoints(c, false),
+					wild:   rules.IsJoker(c),
 				})
 			}
 		}
@@ -97,10 +102,35 @@ func layOffOptions(v VisibleState, hand []string) []layOffOption {
 // Points, then the card itself. A lay-off is the only way to shed a card
 // without giving it to anybody, so the expensive card goes.
 //
+// Except a wild one, and that exception is the whole reason this function was
+// revisited. A joker is fifty penalty points, the most of any card in the
+// deck, so "shed the expensive card first" named a joker every single time one
+// would fit — and a joker fits nearly everywhere, which is what a joker is
+// for. LayOffHighestPoints therefore spent the hand's wild card on a one-card
+// shed at the first opportunity it got, on a set of fours if that was what the
+// table happened to offer, and then had nothing left to finish the run it was
+// building with. It is the "the AI throws its jokers away" report, arriving by
+// the lay-off rather than by the discard.
+//
+// So a wild goes last, right up until the endgame flips the sign on it: once
+// somebody is about to go out, the fifty points are about to be scored and the
+// meld the joker was being saved for is never going to be laid. Then it is the
+// first card off, for exactly the reason it was the last one before.
+//
 // A third rule stood here and was measured out: preferring not to extend a run
 // that the next seat could go out on. It sounds like the sharper play and
 // priced at nothing, twice — see the note in profile.go.
-func betterLayOff(x, y layOffOption, p Profile, k knowledge) bool {
+func betterLayOff(x, y layOffOption, p Profile, k knowledge, crunch bool) bool {
+	if x.wild != y.wild {
+		// Two ways round. The endgame is the deal ending under this agent, and
+		// a crunch is the hand running out of anything it is legally allowed
+		// to discard — see wildCrunch. Both mean the same thing about a joker:
+		// there is no later left to save it for.
+		if k.endgame || crunch {
+			return x.wild
+		}
+		return !x.wild
+	}
 	if x.pts != y.pts {
 		return x.pts > y.pts
 	}

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
+import { openGame } from '../helpers/lobby';
 import { loginAsFreshGuest } from '../helpers/login';
 
 /**
@@ -36,8 +37,7 @@ async function becomeAvailable(page: Page) {
  * which, and the waiting room does not know a game exists.
  */
 async function openATable(page: Page) {
-  await page.goto('/lobby/games');
-  await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 20_000 });
+  await openGame(page, 'prsi');
   await page.getByTestId('play-friends-prsi').click();
   await expect(page.getByTestId('table-screen')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId('waiting-players-panel')).toBeVisible({ timeout: 15_000 });

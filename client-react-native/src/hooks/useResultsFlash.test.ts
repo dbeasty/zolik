@@ -2,7 +2,13 @@ import React from 'react';
 import { act, create } from 'react-test-renderer';
 
 import { compose } from '@/src/components/match/ResultsFlash';
-import { FLASH_HOLD_MS, momentOf, useResultsFlash, type Ending } from '@/src/hooks/useResultsFlash';
+import {
+  FLASH_HOLD_MATCH_MS,
+  FLASH_HOLD_MS,
+  momentOf,
+  useResultsFlash,
+  type Ending,
+} from '@/src/hooks/useResultsFlash';
 import type { MatchState, RoundLog } from '@/src/api/matchTypes';
 
 /**
@@ -176,7 +182,7 @@ describe('useResultsFlash', () => {
     // Sticky through the exit: a takeover that turned back into a round card
     // half way through its own fade out is what this is for.
     act(() => {
-      jest.advanceTimersByTime(FLASH_HOLD_MS);
+      jest.advanceTimersByTime(FLASH_HOLD_MATCH_MS);
     });
     expect(seen[seen.length - 1]).toBe(false);
     expect(kinds[kinds.length - 1]).toBe('match');
@@ -201,6 +207,19 @@ describe('compose', () => {
     drawn.rounds[0]!.winners = [];
     expect(compose({ kind: 'round', log: drawn, players, viewerId: 'p1' }).headline).toBe(
       'Nobody took it',
+    );
+  });
+
+  // Canasta: the side that closes is not necessarily the side that takes the
+  // deal, so the module's own sentence replaces "X took it".
+  it("says the module's own headline in place of who took the round", () => {
+    const closed = log();
+    closed.rounds[0]!.headline = {
+      labelKey: 'canasta.round.closed',
+      params: { player: 'p2', diff: '-240' },
+    };
+    expect(compose({ kind: 'round', log: closed, players, viewerId: 'p1' }).headline).toBe(
+      'Anna closed with a -240 point differential',
     );
   });
 
@@ -241,6 +260,29 @@ describe('compose', () => {
     expect(lines.eyebrow).toBe('Match over');
     expect(lines.headline).toBe('Anna won');
     expect(lines.sub).toBe('Anna 106  ·  You 78');
+  });
+
+  // Canasta: the score belongs to a side, and `Standings` hands back one row
+  // per player sharing their side's rank and score. Printed one player at a
+  // time that repeated the same number for both teammates.
+  it('pairs teammates who share a rank instead of repeating their score', () => {
+    const lines = compose({
+      kind: 'match',
+      players: [
+        ...players,
+        { id: 'p3', name: 'Bo', isAI: false },
+        { id: 'p4', name: 'Cy', isAI: false },
+      ],
+      viewerId: 'p1',
+      winners: ['p2', 'p4'],
+      standings: [
+        { playerId: 'p2', rank: 1, score: 5230 },
+        { playerId: 'p4', rank: 1, score: 5230 },
+        { playerId: 'p1', rank: 3, score: 3120 },
+        { playerId: 'p3', rank: 3, score: 3120 },
+      ],
+    });
+    expect(lines.sub).toBe('Anna & Cy 5230  ·  You & Bo 3120');
   });
 
   it('congratulates the winner by name only when it is not the reader', () => {

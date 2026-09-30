@@ -24,9 +24,11 @@ func TestSuggestUsername(t *testing.T) {
 			want:   "ada.lovelace",
 		},
 		{
-			name:   "an Apple private-relay user with nothing at all still gets a name",
+			// Not "Player": naming is uniqueUsername's job, because the name it
+			// invents is drawn rather than derived and this function is pure.
+			name:   "an Apple private-relay user with nothing at all suggests nothing",
 			claims: identity.Claims{},
-			want:   "Player",
+			want:   "",
 		},
 		{
 			name:   "control characters and punctuation are stripped",

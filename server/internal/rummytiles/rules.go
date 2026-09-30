@@ -24,7 +24,7 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 			module.Fact{LabelKey: "rummytiles.rules.joker"},
 		),
 		module.Section("rummytiles.rules.initialMeld",
-			module.Fact{LabelKey: "rummytiles.rules.initialMeldDescription", Params: map[string]any{"n": 30}},
+			module.Fact{LabelKey: "rummytiles.rules.initialMeldDescription", Params: map[string]any{"n": initialMeldFloor}},
 		),
 		module.Section("rummytiles.rules.turn",
 			module.Fact{LabelKey: "rummytiles.rules.turnDescription"},

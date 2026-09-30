@@ -281,6 +281,84 @@ func TestBettingRules(t *testing.T) {
 	}
 }
 
+// TestRaiseOfferQuickChoices pins the shortcut amounts a no-limit raise
+// carries alongside its bare range — half the pot, the whole pot, and the top
+// of the range — so a player is not left doing the pot arithmetic themselves
+// to reach a normal-sized bet, and pins that "all in" survives every
+// collision with the others rather than losing the tie to whichever
+// candidate happened to be computed first.
+func TestRaiseOfferQuickChoices(t *testing.T) {
+	quickAmounts := func(t *testing.T, raw module.State, player string) map[string]int {
+		t.Helper()
+		offers, err := New().LegalActions(raw, player)
+		if err != nil {
+			t.Fatalf("LegalActions: %v", err)
+		}
+		for _, o := range offers {
+			if o.ID != OfferRaise {
+				continue
+			}
+			if !o.Enabled {
+				t.Fatalf("raise offer disabled: %s", o.WhyNot)
+			}
+			// The amount is what pressing the raise sends, so the control has
+			// to name it — a button reading "Raise" over a slider set to
+			// 483 sends 483 without ever saying so.
+			if !o.Params[0].Headline {
+				t.Errorf("raise amount should be the control's headline")
+			}
+			got := map[string]int{}
+			for _, c := range o.Params[0].Choices {
+				n, err := strconv.Atoi(c.Value)
+				if err != nil {
+					t.Fatalf("choice %q is not a number: %v", c.Value, err)
+				}
+				got[c.LabelKey] = n
+			}
+			return got
+		}
+		t.Fatalf("no raise offer for %s", player)
+		return nil
+	}
+
+	t.Run("half pot, pot and all in, distinct and in range", func(t *testing.T) {
+		raw := table(3, func(s *GameState) {
+			s.Pot = 100
+			s.CurrentBet, s.MinRaise = 40, 20
+			s.Seats[1].Bet, s.Seats[2].Bet = 40, 40
+			s.Seats[0].Stack = 5000
+		})
+		got := quickAmounts(t, raw, "p1")
+		// potAfterCall: the 100 already collected, plus each of the three seats'
+		// 40 on the current street — p1's own included, since potIfCalled prices
+		// in the call this offer is about to make.
+		potAfterCall := 100 + 40 + 40 + 40
+		if want := 40 + potAfterCall; got["holdem.quick.pot"] != want {
+			t.Errorf("pot choice = %d, want %d", got["holdem.quick.pot"], want)
+		}
+		if want := 40 + potAfterCall/2; got["holdem.quick.halfPot"] != want {
+			t.Errorf("half-pot choice = %d, want %d", got["holdem.quick.halfPot"], want)
+		}
+		if got["holdem.quick.allIn"] != 5000 {
+			t.Errorf("all-in choice = %d, want 5000", got["holdem.quick.allIn"])
+		}
+	})
+
+	t.Run("all in wins the tie when a short stack collapses every preset into it", func(t *testing.T) {
+		raw := table(3, func(s *GameState) {
+			s.CurrentBet, s.MinRaise = 40, 20
+			s.Seats[0].Stack = 50 // enough to call and raise a little, not a full raise
+		})
+		got := quickAmounts(t, raw, "p1")
+		if len(got) != 1 {
+			t.Fatalf("choices = %v, want exactly one (all in)", got)
+		}
+		if got["holdem.quick.allIn"] != 50 {
+			t.Errorf("all-in choice = %d, want 50", got["holdem.quick.allIn"])
+		}
+	})
+}
+
 // TestAFullRaiseReopensTheBetting, and an all-in for less does not. This is the
 // rule that decides whether a player who has already acted gets another turn,
 // and it is the one most often skipped.
@@ -550,6 +628,19 @@ func TestLastHandFoldEndsTheMatchAndTheViewSaysWho(t *testing.T) {
 		t.Fatalf("fold refused: %v", err)
 	}
 
+	// The last hand stops at its showdown like every other one, so the match
+	// is not over until the table has agreed to leave it. That stop is the
+	// whole point — it is the only moment the deciding hand is on the table.
+	if done, _, err := m.Finished(next); err != nil || done {
+		t.Fatalf("Finished = %v, %v — the last showdown should still be up", done, err)
+	}
+	for _, id := range []string{"p1", "p2"} {
+		next, _, err = m.Apply(next, id, module.Action{Verb: module.VerbContinue})
+		if err != nil {
+			t.Fatalf("%s could not go on: %v", id, err)
+		}
+	}
+
 	done, winners, err := m.Finished(next)
 	if err != nil || !done {
 		t.Fatalf("Finished = %v, %v — a fold on the last hand ends the match", done, err)
@@ -587,9 +678,16 @@ func TestLastHandFoldEndsTheMatchAndTheViewSaysWho(t *testing.T) {
 // keeps the key whose wording names the winning hand.
 func TestShowdownPotNamesTheHand(t *testing.T) {
 	raw := table(2, func(s *GameState) {
+		// At the showdown, which is where a finished hand is spoken about —
+		// see showdownOpen. Once the next hand is dealt the sentences go with
+		// the board they described.
+		s.Break.Begin(2)
 		s.LastHand = &HandResult{
 			HandNumber: 1,
-			Pots:       []PotResult{{Amount: 40, Winners: []string{"p1"}, LabelKey: "holdem.hand.twoPair"}},
+			Pots: []PotResult{{
+				Amount: 40, Winners: []string{"p1"}, LabelKey: "holdem.hand.twoPair",
+				Cards: []string{"KS", "KH", "7D", "7C", "AS"},
+			}},
 		}
 	})
 	vm, err := New().View(raw, "p1")

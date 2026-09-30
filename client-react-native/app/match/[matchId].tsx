@@ -1,36 +1,48 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import {
+  Animated,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import type { ActionOffer, Zone } from '@/src/api/matchTypes';
+import type { ActionOffer, MatchAction, Zone } from '@/src/api/matchTypes';
 import { POSITION_PARAM, offerGroupKey, submissionFor } from '@/src/api/matchTypes';
 import { Attention } from '@/src/components/match/Attention';
+import { BoardLayout, matchStyles } from '@/src/components/match/BoardLayout';
 import { FlightLayer, type QueuedFlight } from '@/src/components/match/FlightLayer';
 import { HandZone } from '@/src/components/match/HandZone';
 import { LifetimeRecord } from '@/src/components/match/LifetimeRecord';
-import { OfferBar, OfferGlance } from '@/src/components/match/OfferBar';
+import { OfferBar, OfferGlance, type OfferParams } from '@/src/components/match/OfferBar';
 import { Panel } from '@/src/components/match/Panel';
 import { ResultsFlash } from '@/src/components/match/ResultsFlash';
 import { RoundResults } from '@/src/components/match/RoundResults';
-import { SeatStrip } from '@/src/components/match/SeatStrip';
+import { ScoreSheet } from '@/src/components/match/ScoreSheet';
 import { TableSurface } from '@/src/components/match/TableSurface';
-import { ZoneView } from '@/src/components/match/ZoneView';
 import { useSession } from '@/src/context/SessionContext';
+import { useSeatSession } from '@/src/hooks/useSeatSession';
+import { useMetrics } from '@/src/hooks/useMetrics';
 import { useDropRegistry, type Measurable } from '@/src/hooks/useDropRegistry';
 import { useArrival } from '@/src/hooks/useArrival';
 import { useHandOrder } from '@/src/hooks/useHandOrder';
 import { useMatchSocket } from '@/src/hooks/useMatchSocket';
 import { usePanelState } from '@/src/hooks/usePanelState';
 import { useEndingScroll } from '@/src/hooks/useEndingScroll';
+import { useOpeningScroll } from '@/src/hooks/useOpeningScroll';
 import { useResultsFlash } from '@/src/hooks/useResultsFlash';
-import { drawableZones } from '@/src/lib/board';
 import {
   dropSpotsFor,
   groupElementId,
   positionAt,
+  readyWith,
   refusalAt,
   someOfferReady,
+  sourceSpotsFor,
   takeableSpots,
   zoneElementId,
   type DropSpot,
@@ -43,14 +55,22 @@ import {
   type FlightPlan,
 } from '@/src/lib/flights';
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
-import { cardsForSelection, slotsForDrag, toggleSelection } from '@/src/lib/hand';
-import { reasonText } from '@/src/lib/i18n';
+import { cardsForSelection, slotsForCards, slotsForDrag, toggleSelection } from '@/src/lib/hand';
+import { nextMarks, NO_MARKS, type ChangeMarks } from '@/src/lib/changes';
+import { reasonText, t } from '@/src/lib/i18n';
+import { ApiError } from '@/src/api/client';
+import { savePendingDestination } from '@/src/lib/pendingDestination';
+import { routeForMatch } from '@/src/lib/matchRoute';
 import { WhySheet, type Refusal } from '@/src/components/match/WhySheet';
 import { useRuleIndex } from '@/src/hooks/useRuleIndex';
 import { useSkinControls } from '@/src/hooks/useSkin';
 import { factText, label, playerName } from '@/src/lib/labels';
-import type { Skin } from '@/src/skins/types';
+import { turnStep } from '@/src/lib/turnStep';
 import { dragLayer } from '@/src/theme';
+import { AddToCircle } from '@/src/notify/AddToCircle';
+
+/** How long a player may hold the move before the likeliest control is ringed. */
+const IDLE_NUDGE_MS = 20_000;
 
 /**
  * One screen, every game.
@@ -80,7 +100,14 @@ import { dragLayer } from '@/src/theme';
  */
 export default function MatchScreen() {
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
-  const { session, client } = useSession();
+  const own = useSession();
+  // A seat taken through a seat link plays this table — and only this one —
+  // as that seat, on a device that may be somebody else entirely, or nobody.
+  const seatLink = useSeatSession(matchId ? String(matchId) : undefined, own.session);
+  const session = seatLink.seat ?? own.session;
+  const client = seatLink.client ?? own.client;
+  const loading = own.loading || !seatLink.loaded;
+  const { offline } = own;
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
   // Whether what is currently selected was picked by the *app* rather than by
   // the player — see the auto-select effect below and `toggleSlot`.
@@ -92,7 +119,31 @@ export default function MatchScreen() {
     return client.matchSocketUrl(String(matchId));
   }, [client, matchId, session?.accessToken]);
 
-  const { state, error, connected, send, clearError } = useMatchSocket(url);
+  // A link to a table almost never arrives at a signed-in app: it comes out of
+  // a chat, on a device that may never have been used to play. Without this the
+  // screen rendered "Connecting…" for ever and meant it — the socket URL needs
+  // a token, `useMatchSocket` is handed null without one, and null is the one
+  // input it neither opens nor fails on. So the screen sat there with no
+  // socket, no error and no timeout, looking exactly like a server that was
+  // not answering. `/join/[code]` has always handed sign-in a note saying where
+  // to come back to; the table's own link, which is the one a player follows to
+  // their own game, never learned to.
+  //
+  // Waits for `loading`, because the session is read from storage
+  // asynchronously and acting before it settles would send a returning player
+  // through guest sign-in they did not need.
+  useEffect(() => {
+    if (loading || session || !matchId) return;
+    let live = true;
+    void savePendingDestination(`/match/${encodeURIComponent(String(matchId))}`).then(() => {
+      if (live) router.replace('/auth/guest');
+    });
+    return () => {
+      live = false;
+    };
+  }, [loading, session, matchId]);
+
+  const { state, error, connected, send, clearError } = useMatchSocket(url, client);
   // The table's own written rules, by id — what a refusal's `ruleIds` point
   // into. Fetched once per table and cached; empty until it lands, which
   // only means a sheet shows its reason and remedy with no rule behind it.
@@ -148,14 +199,28 @@ export default function MatchScreen() {
   // an answer to a question a player just asked, and the last one asked is
   // the one they meant.
   const [explaining, setExplaining] = useState<Refusal | null>(null);
-  // Which of `hoveredDrop`'s ordered positions the drag is currently over,
-  // for a target with a choice of more than one — a card carried over a run
-  // says up front which end it would extend, rather than only after it is
-  // let go of. An index into the offer's own `positions` list, not the
-  // position's name, so the shell that renders it (`ZoneView`) never has to
-  // know what "front" or "end" means — only which of N ordered slices this
-  // is, the same "first is drawn first" contract `positions` already keeps.
-  const [hoveredPosition, setHoveredPosition] = useState<{ index: number; count: number } | null>(null);
+  // Whose score is being explained, and from which round's cell if any.
+  const [scoreOf, setScoreOf] = useState<{ playerId: string; round?: number } | null>(null);
+  // Amounts dialled into the controls and not yet sent. Held here, not in the
+  // bar, because the bar unmounts when its panel collapses and the collapsed
+  // rail's pills send the same offers — both read this one store.
+  const [offerParams, setOfferParams] = useState<OfferParams>({});
+  // Which of `hoveredDrop`'s ordered positions the drag is currently over — a
+  // card carried over a run says up front which end it would extend, rather
+  // than only after it is let go of.
+  //
+  // An index into the offer's own `positions` list, not the position's name,
+  // so the shell that renders it (`ZoneView`) never has to know what "front"
+  // or "end" means. `slot` is the same answer as a place rather than an
+  // ordinal — where among the group's cards this one would land — which is
+  // what lets the meld come apart to show the gap, the way the hand does.
+  // The module supplies it (see `Placement.slots`); null when it did not, and
+  // then the position is only shaded, never opened.
+  const [hoveredPosition, setHoveredPosition] = useState<{
+    index: number;
+    count: number;
+    slot: number | null;
+  } | null>(null);
   // A folded control in the offer bar was pressed but the current selection
   // does not say which of its targets was meant. Rather than guess, the
   // targets it could still mean light up the same way a drag lights them up,
@@ -177,6 +242,15 @@ export default function MatchScreen() {
   // up here for the same reason: hooks may not be conditional.
   const [startingAgain, setStartingAgain] = useState(false);
   const [againError, setAgainError] = useState('');
+  // "No thanks" to somebody else's rematch: the banner goes back to its own
+  // offers. Held here rather than on the server's answer, because the
+  // reservation it gives up belongs to the other table, not to this state.
+  const [declinedRematch, setDeclinedRematch] = useState(false);
+  // Bringing a swept-up table back, and whatever went wrong trying. Separate
+  // from the pair above because they are separate offers on the same banner:
+  // one continues this game, the other starts a new one like it.
+  const [resuming, setResuming] = useState(false);
+  const [resumeError, setResumeError] = useState('');
   // The end of a match arrives the same way the end of a round does, because it
   // is the same kind of thing happening: the table stopped, and here is why.
   //
@@ -195,6 +269,9 @@ export default function MatchScreen() {
   // once — and repaints only: no size a drag is measured against changes.
   const { skin, skins, setSkinId } = useSkinControls();
   const styles = useMemo(() => matchStyles(skin), [skin]);
+  // Only for how wide the board is allowed to get — every other size on this
+  // screen is decided by the component that draws it, from the same metrics.
+  const metrics = useMetrics();
   const cycleSkin = () => {
     const at = skins.findIndex((s) => s.id === skin.id);
     setSkinId(skins[(at + 1) % skins.length]!.id);
@@ -232,6 +309,40 @@ export default function MatchScreen() {
     if (state) boardRef.current = { zones: state.view?.zones ?? [], seats: state.view?.seats ?? [] };
   }, [state]);
 
+  // Groups somebody else changed since this player last acted, compared board
+  // to board the same way flights are (see `src/lib/changes.ts`). Kept in its
+  // own ref rather than sharing `boardRef`, whose update order the flights
+  // depend on.
+  const [changeMarks, setChangeMarks] = useState<ChangeMarks>(NO_MARKS);
+  const marksBoardRef = useRef<BoardLike | null>(null);
+  useEffect(() => {
+    if (!state) return;
+    const next: BoardLike = { zones: state.view?.zones ?? [], seats: state.view?.seats ?? [] };
+    const prev = marksBoardRef.current;
+    marksBoardRef.current = next;
+    setChangeMarks((was) => nextMarks(was, prev, next, viewerId));
+  }, [state, viewerId]);
+
+  // A player who has had the move for a while without making it gets the
+  // first control on offer ringed: a suggestion of where to start, for the
+  // moment someone is stuck rather than thinking.
+  const [idle, setIdle] = useState(false);
+  // The move this seat's own bot would make, when the player asked for one —
+  // and why not, when the server said no. Both belong to the board they were
+  // asked about, so the next board clears them.
+  const [hint, setHint] = useState<MatchAction | null>(null);
+  const [hintRefusal, setHintRefusal] = useState<string | null>(null);
+  useEffect(() => {
+    setHint(null);
+    setHintRefusal(null);
+  }, [state]);
+  useEffect(() => {
+    setIdle(false);
+    if (!state?.legalActions?.some((o) => o.enabled)) return;
+    const timer = setTimeout(() => setIdle(true), IDLE_NUDGE_MS);
+    return () => clearTimeout(timer);
+  }, [state]);
+
   // The flights currently in the air — appended when a plan lands, removed
   // as each one touches down. De-duplicated by the plan's own stable ids,
   // so replanning the same transition can never double a card.
@@ -266,15 +377,60 @@ export default function MatchScreen() {
     [stillness],
   );
   const ending = useEndingScroll(state, goTo);
+  // And where the player is when one begins, which is the top of a board whose
+  // game is halfway down it. The other half of the same idea as `ending`, and
+  // the two can never both want the scroller: a deal is on or the table has
+  // stopped, never both. The scroller is handed over as something measurable
+  // rather than as a ScrollView, because measuring is all this wants of it —
+  // `measureInWindow` is on the instance both platforms hand back, and on
+  // neither one is it on the published type.
+  const opening = useOpeningScroll(
+    state,
+    goTo,
+    scrollRef as unknown as RefObject<Measurable | null>,
+  );
+  // One scroller, two hooks that watch it. Each only wants to know where the
+  // board is now, so neither minds the other having been told first.
+  const onScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      ending.scrollProps.onScroll(e);
+      opening.scrollProps.onScroll(e);
+    },
+    [ending.scrollProps, opening.scrollProps],
+  );
 
   if (!state) {
     return (
       <View style={styles.root}>
         <TableSurface />
         <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-          <Text testID="match-connecting" style={styles.muted}>
-            {connected ? 'Waiting for the table…' : 'Connecting…'}
-          </Text>
+          {/* A refusal that arrives before any board has to be drawn here,
+              because the one place this screen renders `error` is inside the
+              controls panel — which does not exist until there is a state to
+              build it from. So "that table no longer exists" was being set,
+              and shown nowhere: the screen went on saying "Waiting for the
+              table…" about a table the server had just said was gone. A
+              player who followed an old link had no way to tell that from a
+              server that had stopped answering, and no way out but the back
+              button. */}
+          {error ? (
+            <>
+              <Text testID="match-gone" style={styles.error}>
+                {reasonText(error.code, error.message || error.code)}
+              </Text>
+              <Pressable
+                testID="match-gone-leave"
+                onPress={() => router.replace('/lobby/games')}
+                style={styles.overButtonQuiet}
+              >
+                <Text style={styles.overButtonQuietText}>{t('match.backToGames')}</Text>
+              </Pressable>
+            </>
+          ) : (
+            <Text testID="match-connecting" style={styles.muted}>
+              {connected ? t('match.waitingForTable') : t('match.connecting')}
+            </Text>
+          )}
         </SafeAreaView>
       </View>
     );
@@ -337,6 +493,42 @@ export default function MatchScreen() {
   const selectedCards = cardsForSelection(heldSlots, selected);
 
   const canAct = state.legalActions.some((o) => o.enabled);
+  const step = turnStep(state.legalActions);
+  // Whose turn it is when it is somebody else's: the first thing a player
+  // asking "why can't I?" needs, so a not-your-turn refusal names them.
+  const turnHolder = state.view?.seats?.find((s) => s.active && s.playerId !== viewerId);
+  const turnHolderName = turnHolder ? playerName(state.players, turnHolder.playerId) : undefined;
+  const hintsAllowed = (state.options?.hints ?? 1) !== 0;
+  // Asks the server what this seat's bot would do, then sets the board up for
+  // it without doing it: the cards picked, the target aimed at, and the
+  // control ringed. The player still presses it — or doesn't.
+  const askHint = async () => {
+    setHintRefusal(null);
+    try {
+      const { action } = await client.hint(String(matchId));
+      setHint(action);
+      const offer = state.legalActions.find((o) => o.id === action.offerId);
+      if (action.cards?.length) {
+        const slots = slotsForCards(heldSlots, action.cards);
+        if (slots.size) {
+          setSelected(slots);
+          setSelectionIsAuto(false);
+        }
+      }
+      const aim = offer?.target?.meldId;
+      if (aim) setArmedMeldId(aim);
+    } catch (e) {
+      setHint(null);
+      setHintRefusal(e instanceof ApiError && e.code ? e.code : 'ERROR');
+    }
+  };
+  const hintOffer = hint ? state.legalActions.find((o) => o.id === hint.offerId) : undefined;
+  const explain = (r: Refusal) =>
+    setExplaining(
+      r.code === 'NOT_YOUR_TURN' && !r.labelKey && turnHolderName
+        ? { ...r, labelKey: 'why.notYourTurnWho', params: { name: turnHolderName } }
+        : r,
+    );
 
   // Everywhere the cards in flight could be let go of. Derived from the offer
   // list on every drag, which is why a game added tomorrow gets drag and drop
@@ -398,14 +590,31 @@ export default function MatchScreen() {
         : [];
 
   const pendingTakeable = takeableSpots(pendingSpots);
-  const activeDrops = new Set([...liveTakeable, ...pendingTakeable].map((s) => s.elementId));
+
+  // The piles you may take *from* right now — the deck, and the discard pile
+  // in a game whose draw phase offers both. The mirror image of everything
+  // above: those are places the cards in hand may go, this is a move with no
+  // cards to it at all, and the only thing on screen that names it is the pile
+  // itself. `sourceSpotsFor` decides which, from the offers and nothing else.
+  //
+  // Only while nothing is picked and nothing is in flight. A pile with cards
+  // chosen means "put these here" — the discard pile is both, one phase apart
+  // — and a press has to mean one thing. What is picked is what says which.
+  const sourceSpots =
+    !drag && selectedCards.length === 0 && !pendingGroupKey
+      ? sourceSpotsFor(state.legalActions, zones, viewerId)
+      : [];
+
+  const activeDrops = new Set(
+    [...liveTakeable, ...pendingTakeable, ...sourceSpots].map((s) => s.elementId),
+  );
   // Where letting go would be refused, drawn as refusing rather than merely
   // left unlit — an unlit target and a forbidden one look identical, and the
   // difference is the whole question a player is asking mid-drag.
   const refusedDrops = new Set(
     liveSpots.filter((s) => s.refusal && !activeDrops.has(s.elementId)).map((s) => s.elementId),
   );
-  const pressableDrops = new Set(pendingTakeable.map((s) => s.elementId));
+  const pressableDrops = new Set([...pendingTakeable, ...sourceSpots].map((s) => s.elementId));
 
   // Which melds could be *aimed at* right now — pointed at before any card is
   // picked, the other order from the usual "select cards, then a target
@@ -419,25 +628,6 @@ export default function MatchScreen() {
     setArmedMeldId((prev) => (prev === meldId ? null : meldId));
   };
 
-  // What's worth putting on screen at all — a hidden zone with a count and no
-  // cards says nothing the seat strip hasn't already said, unless it's the
-  // viewer's own, or a target the card in flight could land on right now.
-  const visible = drawableZones(zones, viewerId, activeDrops);
-
-  // Every spread, whoever's it is, in one row — a rummy meld, a canasta
-  // partnership's melds, a poker board. Kept apart from the piles and stacks
-  // below only by `kind`, never by whose it is or which game sent it.
-  const spreadZones = visible.filter((z) => z.kind === 'spread');
-  const mySpreads = spreadZones.filter((z) => z.ownerId === viewerId);
-  const otherSpreads = spreadZones.filter((z) => z.ownerId !== viewerId);
-  const orderedSpreads = [...mySpreads, ...otherSpreads];
-
-  const tableZones = visible.filter((z) => !z.ownerId && z.kind !== 'spread');
-  // Whatever is left: an opponent zone that isn't a spread — a hand revealed
-  // at a showdown, say — or a kind this shell has never seen. The fallback
-  // that keeps a game this screen wasn't written against from losing content
-  // silently.
-  const otherZones = visible.filter((z) => z.ownerId && z.ownerId !== viewerId && z.kind !== 'spread');
 
   const beginDrag = (zoneId: string, index: number) => {
     const slots = slotsFor(zoneId);
@@ -480,16 +670,28 @@ export default function MatchScreen() {
 
     // Which of the target's ordered positions this hover currently means,
     // shown live so a player can see where a card will land before letting
-    // go of it, rather than finding out only after. `null` for a target with
-    // no choice to preview (one legal position, or none), or nothing hovered.
+    // go of it, rather than finding out only after. `null` when nothing is
+    // hovered, or the target has no positions at all.
+    //
+    // A single position counts. It used to be dropped — with one answer there
+    // was nothing to *choose* between, and a shaded band covering the whole
+    // meld said no more than the meld's own highlight already did. That stops
+    // being true once the group can come apart to show the gap: one legal
+    // place is still a place, and "the 6 goes on the front of this run" is
+    // exactly what a player wants to see before they let go.
     const spot = over ? spots.find((s) => s.elementId === over) : undefined;
     const rect = over ? drops.rectFor(over) : undefined;
     const positions = spot?.positions;
     const resolved = spot && rect ? positionAt(positions, y, rect) : undefined;
     const index = resolved && positions ? positions.indexOf(resolved) : -1;
-    const next = positions && positions.length > 1 && index >= 0 ? { index, count: positions.length } : null;
+    const next =
+      positions?.length && index >= 0
+        ? { index, count: positions.length, slot: spot?.slots?.[index] ?? null }
+        : null;
     setHoveredPosition((prev) =>
-      prev?.index === next?.index && prev?.count === next?.count ? prev : next,
+      prev?.index === next?.index && prev?.count === next?.count && prev?.slot === next?.slot
+        ? prev
+        : next,
     );
   };
 
@@ -555,10 +757,29 @@ export default function MatchScreen() {
   // would not — so a target with a choice of two positions reads a press on
   // its top half the same way it would read a drop there.
   const pressDrop = (elementId: string, pageY: number) => {
-    const spot = pendingSpots.find((s) => s.elementId === elementId);
+    // A target chosen by what is picked wins over a pile that would be taken
+    // from, for the same reason `sourceSpots` is empty while anything is
+    // picked: with cards in hand a pile is somewhere to put them.
+    const spot =
+      pendingSpots.find((s) => s.elementId === elementId) ??
+      sourceSpots.find((s) => s.elementId === elementId);
     if (!spot) return;
     const offer = state.legalActions.find((o) => o.id === spot.offerId);
     if (!offer) return;
+
+    // A target lit for a selection that is not a whole submission yet. A drag
+    // gathers into one of these — `endDrag` keeps the cards and waits for the
+    // next — but a press has nothing left to gather: the cards are already
+    // picked, so the same branch here would do literally nothing, which is
+    // what it did. The board would light up, invite the tap, and swallow it,
+    // with `submissionFor` refusing the short submission two lines later and
+    // the press dying on `if (!action) return`. Say what the control beside it
+    // says instead, in the same words.
+    if (!spot.ready) {
+      const fit = readyWith(offer, selectedCards);
+      if (!fit.ok) setExplaining({ labelKey: fit.labelKey, params: fit.params });
+      return;
+    }
 
     // An empty selection has to travel as `undefined`, not `[]` — an offer
     // built with no cards named falls back to its own one-tap default, the
@@ -591,6 +812,7 @@ export default function MatchScreen() {
   const dropProps = {
     registerDrop: (id: string, node: Measurable | null) => drops.register(id, node),
     activeDrops,
+    sourceDrops: new Set(sourceSpots.map((s) => s.elementId)),
     refusedDrops,
     hoveredDrop,
     hoveredPosition,
@@ -600,29 +822,61 @@ export default function MatchScreen() {
     armedGroupId: armedMeldIdLive,
     onAimGroup,
     entranceDelays: flightPlan.holds,
+    changedGroups: changeMarks,
   };
 
-  // The same table again: same game, same variation, the same numbers the
-  // lobby chose, and a bot for every bot that was in this one. The options
-  // come back from the server on the state message, so "again" means the table
-  // that was actually played rather than whatever the defaults happen to be.
+  // The same table again, with the same people: same game, variation and
+  // options, the same bots down to their names, and a seat held for everybody
+  // else who played. The server decides all of it — including that a second
+  // press, from anyone at this table, sits down at the first one's rematch
+  // rather than opening another. It answers with where to go: a lobby when
+  // there are people to wait for, a dealt table when there are none.
   const playAgain = async () => {
     setStartingAgain(true);
     setAgainError('');
     try {
-      const { matchId: next } = await client.createMatch(
-        state.moduleId,
-        state.variation,
-        state.options ?? {},
-      );
-      for (const p of state.players) {
-        if (p.isAI) await client.addBot(next);
-      }
-      await client.startMatch(next);
-      router.replace(`/match/${next}`);
+      const next = await client.rematch(String(matchId));
+      router.replace(routeForMatch(next.status, next.hostId === viewerId, next.matchId));
     } catch (e) {
-      setAgainError(String(e));
+      const code = e instanceof ApiError ? e.code : undefined;
+      setAgainError(reasonText(code, e instanceof Error ? e.message : String(e)));
       setStartingAgain(false);
+    }
+  };
+
+  // Giving the held seat back, so the host is not left waiting. Best-effort:
+  // if it does not reach the server the seat is let go anyway once the host
+  // deals, and there is nothing this player could do about it from here.
+  const declineRematch = () => {
+    setDeclinedRematch(true);
+    if (state.rematch) client.declineRematch(state.rematch.matchId).catch(() => {});
+  };
+
+  // This same table, carrying on from where it stopped.
+  //
+  // Nothing is rebuilt: the sweeper only wrote a status and an end time, so the
+  // hands, the melds, the pile and the score are all still on the server and
+  // the position comes back exactly as it was. There is deliberately no
+  // navigation afterwards — this socket is still open and still in the table's
+  // room, so the revived board arrives as an ordinary state message and the
+  // banner goes away by itself.
+  const resume = async () => {
+    setResuming(true);
+    setResumeError('');
+    try {
+      await client.resumeMatch(String(matchId));
+    } catch (e) {
+      // Rendered from the same locale bundle as every other refusal rather
+      // than as whatever the exception stringifies to: "Everyone has to be
+      // back at the table before this game can be picked up" is an answer,
+      // where `ApiError: TABLE_HAS_PLAYERS_AWAY` is a stack trace shown to a
+      // player. Reachable even with the button gated on the server's own
+      // answer, because somebody can leave between the state message that
+      // offered it and the press.
+      const code = e instanceof ApiError ? e.code : undefined;
+      setResumeError(reasonText(code, e instanceof Error ? e.message : String(e)));
+    } finally {
+      setResuming(false);
     }
   };
 
@@ -652,15 +906,15 @@ export default function MatchScreen() {
   // reading rather than about what was played.
   const winners = state.winners ?? (state.winnerId ? [state.winnerId] : []);
   const iWon = winners.includes(viewerId);
-  const winnerNames = winners.map((id) => (id === viewerId ? 'you' : playerName(state.players, id)));
+  const winnerNames = winners.map((id) => (id === viewerId ? t('match.you') : playerName(state.players, id)));
   const outcome =
     winners.length === 0
-      ? 'Nobody won.'
+      ? t('match.nobodyWon')
       : winners.length === 1
         ? iWon
-          ? 'You won.'
-          : `${winnerNames[0]} won.`
-        : `Won by ${winnerNames.join(', ')}.`;
+          ? t('match.youWon')
+          : t('match.someoneWon', { name: winnerNames[0] })
+        : t('match.wonBy', { names: winnerNames.join(', ') });
 
   // Offering the same table again only where this screen can actually set one
   // up: every other seat was a bot, so the same match is one create-and-start
@@ -670,26 +924,63 @@ export default function MatchScreen() {
   // end of a match, and there is nothing to put in one before the first round
   // has finished.
   const showResults =
-    !!state.rounds?.rounds.length && (state.status === 'completed' || !!state.rounds.paused);
+    !!state.rounds?.rounds.length &&
+    (state.status === 'completed' || state.status === 'abandoned' || !!state.rounds.paused);
 
   // The table is sitting between rounds. The module's own answer, never worked
   // out here from the controls that happen to be live.
   const paused = !!state.rounds?.paused;
 
-  const againstBotsAlone =
-    state.players.length > 1 && state.players.every((p) => p.isAI || p.id === viewerId);
+  // Only somebody who played here can ask to play it again; a spectator gets
+  // the way out and nothing else.
+  const seatedHere = state.players.some((p) => p.id === viewerId && !p.isAI);
+  // Somebody else from this table has asked for a rematch and is holding this
+  // viewer a seat at it — the one offer worth more than starting another.
+  const rematchOffer =
+    seatedHere && state.rematch && state.rematch.hostId !== viewerId && !declinedRematch
+      ? state.rematch
+      : undefined;
+
+  // The table was set aside by the sweeper rather than played to the end. A
+  // different ending, and it needs different words and a different offer — it
+  // is the one ending that can be undone.
+  const wasAbandoned = state.status === 'abandoned';
+
+  // Whether this table can be picked up, as the server answers it — never
+  // worked out here.
+  //
+  // This screen used to decide for itself, using "every other seat is a bot"
+  // as a stand-in for the old server rule. The two then diverged in the worst
+  // direction: a game between two people who were both back and both looking
+  // at the board was offered nothing at all, on a banner that told them the
+  // cards were exactly where they had left them. Now the button appears when
+  // the server would honour it, and when it would not, the line below says
+  // who everyone is waiting for instead of leaving them to guess.
+  const canResume = wasAbandoned && !!state.canResume;
+  const awayNames = (state.awayPlayers ?? [])
+    .map((id) => playerName(state.players, id))
+    .filter(Boolean);
 
   // What the status dot means, in the same words the line it replaced used
   // to say. Red is the one case a player needs to notice — everything else
   // (active, completed) is green, since "simple red or green" was the ask,
   // not a status per state value.
-  const statusOk = state.status !== 'suspended';
+  //
+  // `abandoned` is red for the same reason `suspended` is, and adding it here
+  // is half of a real bug: the dot fell through to green and the explainer
+  // read "everything is connected and moving normally" on a table the sweeper
+  // had resolved hours earlier, whose every control the engine was refusing.
+  // That is the exact failure the comment above `winners` describes being
+  // fixed once for finished matches, reappearing for swept-up ones.
+  const statusOk = state.status !== 'suspended' && state.status !== 'abandoned';
   const statusExplainer =
     state.status === 'suspended'
-      ? `Paused — waiting for ${playerName(state.players, state.suspendedPlayer ?? '')} to reconnect.`
-      : state.status === 'completed'
-        ? 'This match has finished.'
-        : 'Match in progress — everything is connected and moving normally.';
+      ? t('match.pausedFor', { name: playerName(state.players, state.suspendedPlayer ?? '') })
+      : state.status === 'abandoned'
+        ? t('match.abandoned')
+        : state.status === 'completed'
+          ? t('match.finished')
+          : t('match.inProgress');
 
   // The controls, built once and rendered in one of two places.
   //
@@ -704,7 +995,7 @@ export default function MatchScreen() {
   const controlsPanel = (
     <Panel
       {...zonePanelProps('controls')}
-      title="Controls"
+      title={t('match.controls')}
       testID="controls-panel"
       summary={
         <OfferGlance
@@ -713,14 +1004,51 @@ export default function MatchScreen() {
           armedGroupId={armedMeldIdLive}
           onSend={send}
           onConsumeSelection={clearSelection}
+          params={offerParams}
+          onParamsChange={setOfferParams}
           onAmbiguous={(groupKey) => {
             setPendingGroupKey(groupKey);
             drops.measure();
           }}
+          onExplain={explain}
           testID="controls-summary"
         />
       }
     >
+      {/* What to do now, in one line, from the same offers the controls
+          below are drawn from — see `src/lib/turnStep.ts`. */}
+      {step && !paused ? (
+        <View style={styles.stepRow}>
+          <Text testID="turn-step" style={step.obligation ? styles.stepObligation : styles.step}>
+            {step.obligation
+              ? factText(step.obligation, state.players)
+              : t('step.yourTurn', {
+                  moves: step.moves.map((o) => label(o.labelKey ?? `verb.${o.verb}`) || o.verb).join(' · '),
+                })}
+          </Text>
+          {hintsAllowed ? (
+            <Pressable testID="hint-button" accessibilityRole="button" onPress={askHint} style={styles.hintButton}>
+              <Text style={styles.hintButtonText}>{t('hint.button')}</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
+      {hint && hintOffer ? (
+        <Text testID="hint-line" style={styles.hintLine}>
+          {factText(
+            {
+              labelKey: hint.cards?.length ? 'hint.line' : 'hint.lineNoCards',
+              params: { move: hintOffer.labelKey ?? `verb.${hintOffer.verb}`, cards: hint.cards ?? [] },
+            },
+            state.players,
+          )}
+        </Text>
+      ) : null}
+      {hintRefusal ? (
+        <Text testID="hint-refused" style={styles.muted}>
+          {reasonText(hintRefusal, hintRefusal)}
+        </Text>
+      ) : null}
       {/* The engine's own sentence stands in for a code this build has
           no translation for — it is at least a sentence, where the bare
           code reads as a crash. A code we do know still wins, so a
@@ -752,11 +1080,15 @@ export default function MatchScreen() {
         armedGroupId={armedMeldIdLive}
         onSend={send}
         onConsumeSelection={clearSelection}
-        onExplain={setExplaining}
+        params={offerParams}
+        onParamsChange={setOfferParams}
+        onExplain={explain}
         // Between rounds the module offers one thing: go on. Said here as
         // "the table is waiting on this bar" rather than as any offer's name,
         // so the bar rings whatever the one thing turns out to be.
         urgent={paused}
+        nudge={idle}
+        hintOfferId={hint?.offerId}
         onAmbiguous={(groupKey) => {
           setPendingGroupKey(groupKey);
           // The board is inside a scroll view, so a target's position
@@ -767,10 +1099,74 @@ export default function MatchScreen() {
       />
       {!canAct && state.status === 'active' ? (
         <Text testID="match-waiting" style={styles.muted}>
-          Waiting for another player…
+          {turnHolderName ? t('match.waitingForName', { name: turnHolderName }) : t('match.waitingForPlayer')}
         </Text>
       ) : null}
     </Panel>
+  );
+
+  // Your own cards, and everything you can do to them by touch: pick, carry,
+  // rearrange. The one part of the board the two screens genuinely disagree
+  // about, which is why BoardLayout takes it as a slot rather than drawing it
+  // — a replay has the same cards and none of the verbs.
+  // Raised onto the drag layer for as long as a card is in flight, so the card
+  // being carried is drawn over the melds and the opponents below it rather
+  // than sliced in half by the first panel edge it crosses. The hand keeps
+  // hold of the card it is carrying (moving its node would lose the gesture),
+  // so lifting the card means lifting the hand — see `dragLayer`.
+  const handPanel = (
+  <View style={[styles.mine, !!drag && dragLayer]} {...opening.anchor('hand')}>
+    {myHands.map((z) => (
+      <HandZone
+        key={z.id}
+        zone={z}
+        slots={slotsFor(z.id)}
+        selected={selected}
+        onToggle={toggleSlot}
+        onMove={(from, to) => {
+          // Moving a card along the fan drops it from the selection.
+          //
+          // Tidying your hand and choosing what to play are different
+          // intentions, and the tap that selected a card is also the
+          // start of the drag that rearranges it — so a card shuffled
+          // into place stayed lit, and the next card tapped joined a
+          // selection the player had stopped thinking about. A card you
+          // have just put somewhere is one you are organising, not one
+          // you are about to spend.
+          const moved = slotsFor(z.id)[from];
+          if (moved) {
+            setSelected((prev) => {
+              if (!prev.has(moved.id)) return prev;
+              const next = new Set(prev);
+              next.delete(moved.id);
+              return next;
+            });
+          }
+          move(z.id, from, to);
+        }}
+        onAutoArrange={() => arrange(z.id)}
+        onDragStart={(index) => beginDrag(z.id, index)}
+        onDragMove={moveDrag}
+        onDragEnd={endDrag}
+        externalTarget={hoveredDrop}
+        registerSpot={dropProps.registerDrop}
+        entranceDelay={flightPlan.holds.get(zoneElementId(z.id)) ?? 0}
+        badges={badgesFor(z)}
+        onPressBadge={(card, badgeKeys) =>
+          setExplaining({
+            labelKey: badgeKeys[0],
+            params: { card },
+            // The rules and the way out behind the mark come from
+            // whichever offer this card is about to be refused by —
+            // asked for on long-press, rather than the module having
+            // to say the same thing twice.
+            ...refusalBehindBadge(state.legalActions),
+          })
+        }
+        {...zonePanelProps(z.id)}
+      />
+    ))}
+  </View>
   );
 
   return (
@@ -800,7 +1196,7 @@ export default function MatchScreen() {
               hitSlop={8}
               style={styles.headerTitleGroup}
             >
-              <Text style={styles.headerTitleText}>Match</Text>
+              <Text style={styles.headerTitleText}>{t('nav.match')}</Text>
               <View
                 style={[styles.statusDot, statusOk ? styles.statusDotOk : styles.statusDotBad]}
               />
@@ -821,9 +1217,16 @@ export default function MatchScreen() {
       ) : null}
       <ScrollView
         ref={scrollRef}
-        contentContainerStyle={styles.body}
+        // Wide enough for the table and no wider. On a large monitor the felt
+        // runs to both edges (it is drawn behind everything) while the board
+        // itself stops at a table's width — without this, a player's hand and
+        // the draw pile end up at opposite ends of a metre of glass.
+        contentContainerStyle={[styles.body, { maxWidth: metrics.maxWidth, width: '100%', alignSelf: 'center' }]}
         testID="match-screen"
         {...ending.scrollProps}
+        // Last, and deliberately: the spread above carries an `onScroll` of
+        // the ending's own, and this one replaces it and tells them both.
+        onScroll={onScroll}
       >
         <View style={styles.headerRow}>
           <View style={styles.moduleGroup}>
@@ -843,7 +1246,7 @@ export default function MatchScreen() {
               }
               hitSlop={8}
             >
-              <Text style={styles.rulesLink}>Rules</Text>
+              <Text style={styles.rulesLink}>{t('nav.rules')}</Text>
             </Pressable>
           </View>
           {/* Which look the board wears, cycled in place. A preference about
@@ -868,33 +1271,85 @@ export default function MatchScreen() {
             above the board rather than under it, because the board below is
             the position that ended and a player arrives at this banner from
             the move they just made. */}
-        {state.status === 'completed' ? (
+        {state.status === 'completed' || state.status === 'abandoned' ? (
           <Animated.View
-            style={[styles.over, iWon && styles.overWon, overArrival]}
+            style={[styles.over, iWon && !wasAbandoned && styles.overWon, overArrival]}
             testID="match-over"
             {...ending.anchor('over')}
           >
             <Text testID="match-over-title" style={styles.overTitle}>
-              Match over
+              {wasAbandoned ? t('match.abandonedTitle') : t('match.over')}
             </Text>
+            {/* A swept-up table has no outcome to report — it did not end, it
+                stopped — so this says what happened to it instead, and that
+                nothing was lost. The winner of a deal played half an hour ago
+                is not the news. */}
             <Text testID="match-over-outcome" style={styles.overOutcome}>
-              {outcome}
+              {wasAbandoned ? t('match.abandoned') : outcome}
             </Text>
+            {/* Why there is no resume above. Only on a swept-up table, and
+                only when somebody is actually missing — a table nobody is
+                waiting for has no one to name. */}
+            {wasAbandoned && !canResume && awayNames.length ? (
+              <Text testID="match-over-waiting" style={styles.overOutcome}>
+                {t('match.abandonedWaitingFor', { names: awayNames.join(', ') })}
+              </Text>
+            ) : null}
+            {rematchOffer ? (
+              <Text testID="match-over-rematch-offer" style={styles.overOutcome}>
+                {t('match.rematchOffer', { name: playerName(state.players, rematchOffer.hostId) })}
+              </Text>
+            ) : null}
             <View style={styles.overActions}>
-              {againstBotsAlone ? (
+              {/* Carrying on beats starting over, so it goes first and takes
+                  the ring. Offered exactly where the server will honour it —
+                  which on a table with other people at it means once they are
+                  all back, since reviving it while somebody is away would
+                  restart a game they had counted as over. */}
+              {canResume ? (
                 <Pressable
-                  testID="match-over-again"
+                  testID="match-over-resume"
+                  accessibilityState={{ disabled: resuming }}
+                  disabled={resuming}
+                  onPress={resume}
+                  style={[styles.overButton, resuming && styles.overButtonBusy]}
+                >
+                  <Attention active={!resuming} radius={8} />
+                  <Text style={styles.overButtonText}>
+                    {resuming ? t('match.resuming') : t('match.resume')}
+                  </Text>
+                </Pressable>
+              ) : null}
+              {seatedHere ? (
+                <Pressable
+                  testID={rematchOffer ? 'match-over-join-rematch' : 'match-over-again'}
                   accessibilityState={{ disabled: startingAgain }}
                   disabled={startingAgain}
                   onPress={playAgain}
                   style={[styles.overButton, startingAgain && styles.overButtonBusy]}
                 >
                   {/* The same ring the way on gets between rounds: a finished
-                      match leaves one thing to do too. */}
-                  <Attention active={!startingAgain} radius={8} />
+                      match leaves one thing to do too. Not on a swept-up
+                      table, where resuming is the offer being pointed at and a
+                      second ring would point at nothing — unless somebody is
+                      holding this player a seat, which is the news. */}
+                  <Attention active={!startingAgain && (!wasAbandoned || !!rematchOffer)} radius={8} />
                   <Text style={styles.overButtonText}>
-                    {startingAgain ? 'Setting up…' : 'Play again'}
+                    {startingAgain
+                      ? t('match.settingUp')
+                      : rematchOffer
+                        ? t('match.joinRematch')
+                        : t('match.playAgain')}
                   </Text>
+                </Pressable>
+              ) : null}
+              {rematchOffer ? (
+                <Pressable
+                  testID="match-over-decline-rematch"
+                  onPress={declineRematch}
+                  style={styles.overButtonQuiet}
+                >
+                  <Text style={styles.overButtonQuietText}>{t('match.declineRematch')}</Text>
                 </Pressable>
               ) : null}
               <Pressable
@@ -902,13 +1357,20 @@ export default function MatchScreen() {
                 onPress={() => router.replace('/lobby/games')}
                 style={styles.overButtonQuiet}
               >
-                <Text style={styles.overButtonQuietText}>Back to games</Text>
+                <Text style={styles.overButtonQuietText}>{t('match.backToGames')}</Text>
               </Pressable>
             </View>
-            {againError ? (
+            {againError || resumeError ? (
               <Text testID="match-over-error" style={styles.overError}>
-                {againError}
+                {againError || resumeError}
               </Text>
+            ) : null}
+            {/* Somebody worth playing again: offered their place in the
+                circle while the game is still warm. Online tables only —
+                the players at a table on a phone in the room are that
+                phone's guests, not accounts the online circle knows. */}
+            {state.status === 'completed' && !offline ? (
+              <AddToCircle players={state.players} viewerId={viewerId} palette={skin.colors} />
             ) : null}
           </Animated.View>
         ) : null}
@@ -931,6 +1393,7 @@ export default function MatchScreen() {
               players={state.players}
               standings={state.standings}
               viewerId={viewerId}
+              onOpenScore={(playerId, round) => setScoreOf({ playerId, round })}
             />
             {state.status === 'completed' ? <LifetimeRecord moduleId={state.moduleId} /> : null}
           </View>
@@ -941,139 +1404,39 @@ export default function MatchScreen() {
             that cannot be played. See `controlsPanel`. */}
         {paused ? <View {...ending.anchor('wayOn')}>{controlsPanel}</View> : null}
 
-        <SeatStrip
-          seats={view.seats ?? []}
-          players={state.players}
+        <BoardLayout
+          state={state}
           viewerId={viewerId}
-          standings={state.standings}
-          registerSpot={dropProps.registerDrop}
-          {...zonePanelProps('seats')}
-        />
-
-        {(view.prompts ?? []).map((f, i) => (
-          <Text key={`prompt-${i}`} testID={`prompt-${i}`} style={styles.prompt}>
-            {factText(f, state.players)}
-          </Text>
-        ))}
-
-        {/* The piles and stacks everyone draws from and discards to. A
-            full-width row of its own now that the controls have moved down
-            under the hand — the zones inside it are a couple of cards wide
-            and sit side by side in there, so it costs far less height than
-            a full-width row suggests. */}
-        <Section
-          title="Table"
-          zones={tableZones}
-          compact
           styles={styles}
-          {...zonePanelProps('section:table')}
-          panelPropsFor={zonePanelProps}
-          {...dropProps}
+          zonePanelProps={zonePanelProps}
+          dropProps={dropProps}
+          hand={handPanel}
+          controls={
+            paused ? null : <View {...opening.anchor('controls')}>{controlsPanel}</View>
+          }
+          tableAnchor={opening.anchor('table')}
+          // Only where the game keeps rounds: a score with no account behind
+          // it — Prší's, which is a card count — has nothing to open.
+          onOpenScore={state.rounds ? (playerId) => setScoreOf({ playerId }) : undefined}
         />
 
-        {/* Your hand, then the controls that act on it, as one pair — it's
-            what your thumb is on every turn, and choosing a card and
-            spending it should not be at two ends of the screen. Everyone's
-            melds (yours and the opponents') go below the pair rather than
-            above it, so reaching your cards never means scrolling past a
-            wall of board state first. */}
-        {/* Raised onto the drag layer for as long as a card is in flight, so
-            the card being carried is drawn over the melds and the opponents
-            below it rather than sliced in half by the first panel edge it
-            crosses. The hand keeps hold of the card it is carrying (moving
-            its node would lose the gesture), so lifting the card means
-            lifting the hand — see `dragLayer`. */}
-        <View style={[styles.mine, !!drag && dragLayer]}>
-          {myHands.map((z) => (
-            <HandZone
-              key={z.id}
-              zone={z}
-              slots={slotsFor(z.id)}
-              selected={selected}
-              onToggle={toggleSlot}
-              onMove={(from, to) => move(z.id, from, to)}
-              onAutoArrange={() => arrange(z.id)}
-              onDragStart={(index) => beginDrag(z.id, index)}
-              onDragMove={moveDrag}
-              onDragEnd={endDrag}
-              externalTarget={hoveredDrop}
-              registerSpot={dropProps.registerDrop}
-              entranceDelay={flightPlan.holds.get(zoneElementId(z.id)) ?? 0}
-              badges={badgesFor(z)}
-              onPressBadge={(card, badgeKeys) =>
-                setExplaining({
-                  labelKey: badgeKeys[0],
-                  params: { card },
-                  // The rules and the way out behind the mark come from
-                  // whichever offer this card is about to be refused by —
-                  // asked for on long-press, rather than the module having
-                  // to say the same thing twice.
-                  ...refusalBehindBadge(state.legalActions),
-                })
-              }
-              {...zonePanelProps(z.id)}
-            />
-          ))}
-        </View>
-
-        {/* Directly under your hand, at every screen width, for as long as
-            there is a hand to play. Every control here acts on the cards
-            picked just above it, and a bar up beside the piles meant looking
-            in one place to choose and another to act — with the whole hand in
-            between, which on a phone is most of the screen. Under the hand
-            rather than over it because that is the edge a thumb is already
-            resting on.
-
-            The cost is that the piles no longer have a neighbour to share
-            their band with on a wide screen. Worth paying: that band was
-            shared at the price of putting every button a full hand away
-            from the cards it spends.
-
-            The one exception is a table between rounds, where the premise
-            fails in both halves — there are no cards to pick and only one
-            control — and the panel is drawn up with the results instead. */}
-        {paused ? null : controlsPanel}
-
-        {/* Every spread on the board, whoever's it is, sharing a wrapping
-            row instead of each claiming a full-width line — named by its
-            owner where the server sent one, so two or more players' melds
-            read as whose they are at a glance rather than an anonymous
-            stack of "Melds". */}
-        {orderedSpreads.length > 0 ? (
-          <View style={styles.spreads} testID="section-spreads">
-            {orderedSpreads.map((z) => (
-              <ZoneView
-                key={z.id}
-                zone={z}
-                title={z.ownerId ? playerName(state.players, z.ownerId) + (z.ownerId === viewerId ? ' (you)' : '') : undefined}
-                {...zonePanelProps(z.id)}
-                {...dropProps}
-              />
-            ))}
-          </View>
-        ) : null}
-
-        <Section
-          title="Opponents"
-          zones={otherZones}
-          compact
-          styles={styles}
-          {...zonePanelProps('section:opponents')}
-          panelPropsFor={zonePanelProps}
-          {...dropProps}
-        />
-
-        {(view.status ?? []).map((f, i) => (
-          <Text key={`status-${i}`} testID={`status-${i}`} style={styles.muted}>
-            {factText(f, state.players)}
-          </Text>
-        ))}
       </ScrollView>
 
       {/* Why a move was refused: the reason, the rule behind it, and the move
           to make instead. Opened from a greyed-out control's reason line, a
           refused drop, or a submission the server turned down — one component
           for all three, because they are one question. */}
+      <ScoreSheet
+        subjectId={scoreOf?.playerId ?? null}
+        focusRound={scoreOf?.round}
+        log={state.rounds}
+        seats={view.seats ?? []}
+        players={state.players}
+        standings={state.standings}
+        viewerId={viewerId}
+        onClose={() => setScoreOf(null)}
+      />
+
       <WhySheet
         refusal={explaining}
         ruleIndex={ruleIndex}
@@ -1138,168 +1501,3 @@ function refusalBehindBadge(offers: ActionOffer[]): Pick<Refusal, 'ruleIds' | 'r
   if (!refused) return {};
   return { ruleIds: refused.ruleIds, remedy: refused.remedy, remedyOfferId: refused.remedyOfferId };
 }
-
-function Section({
-  title,
-  zones,
-  compact,
-  styles,
-  panelId,
-  minimized,
-  onToggleMinimized,
-  panelPropsFor,
-  ...drops
-}: {
-  title: string;
-  zones: Zone[];
-  compact?: boolean;
-  /** The screen's own skinned styles — this helper lives outside the component that builds them. */
-  styles: MatchStyles;
-  panelId: string;
-  minimized: boolean;
-  onToggleMinimized: () => void;
-  panelPropsFor: (zoneId: string) => { panelId: string; minimized: boolean; onToggleMinimized: () => void };
-  registerDrop?: (id: string, node: Measurable | null) => void;
-  activeDrops?: ReadonlySet<string>;
-  refusedDrops?: ReadonlySet<string>;
-  hoveredDrop?: string | null;
-  hoveredPosition?: { index: number; count: number } | null;
-  pressableDrops?: ReadonlySet<string>;
-  onPressDrop?: (elementId: string, pageY: number) => void;
-  armableGroups?: ReadonlySet<string>;
-  armedGroupId?: string | null;
-  onAimGroup?: (groupId: string) => void;
-}) {
-  if (!zones.length) return null;
-
-  // Side by side if a zone is small, on its own line if it is wide — decided
-  // by kind, which is the one thing the shell is allowed to know. A stack and
-  // a pile are a couple of cards across and look absurd each occupying a full
-  // row; a hand or a spread of melds needs the width. No game is named, so a
-  // game added tomorrow is laid out by the same rule.
-  const beside = zones.filter((z) => z.kind === 'stack' || z.kind === 'pile');
-  const stacked = zones.filter((z) => z.kind !== 'stack' && z.kind !== 'pile');
-
-  return (
-    <Panel
-      panelId={panelId}
-      title={title}
-      minimized={minimized}
-      onToggleMinimized={onToggleMinimized}
-      testID={`section-${title.toLowerCase()}`}
-      style={styles.section}
-      summary={
-        <View style={styles.sectionSummary}>
-          {zones.map((z, i) => (
-            <Text key={z.id} style={styles.sectionSummaryText} numberOfLines={1}>
-              {label(z.labelKey) || z.id} {z.count}
-              {i < zones.length - 1 ? ' · ' : ''}
-            </Text>
-          ))}
-        </View>
-      }
-    >
-      {beside.length > 0 ? (
-        <View style={styles.beside} testID={`section-beside-${title.toLowerCase()}`}>
-          {beside.map((z) => (
-            <ZoneView key={z.id} zone={z} compact={compact} inline nested {...panelPropsFor(z.id)} {...drops} />
-          ))}
-        </View>
-      ) : null}
-      {stacked.map((z) => (
-        <ZoneView key={z.id} zone={z} compact={compact} nested {...panelPropsFor(z.id)} {...drops} />
-      ))}
-    </Panel>
-  );
-}
-
-function matchStyles(s: Skin) {
-  const colors = s.colors;
-  return StyleSheet.create({
-  // The screen behind the felt, and the safe-area box the board lives in —
-  // the felt is drawn edge to edge, the content keeps the old padding.
-  root: { flex: 1, backgroundColor: colors.bg },
-  safe: { flex: 1, padding: 16 },
-  skinToggle: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  skinToggleText: { color: colors.muted, fontSize: 11, fontWeight: '700' },
-  body: { paddingBottom: 40, gap: 4 },
-  // The settlement and its record, grouped so the block a stopped table has to
-  // put in front of the player can be measured as one. Spaced like the body,
-  // which is what was between them before they were grouped.
-  ending: { gap: 4 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerTitleGroup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  headerTitleText: { color: colors.text, fontWeight: '700', fontSize: 17 },
-  moduleGroup: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  module: { color: colors.text, fontWeight: '700', fontSize: 16 },
-  rulesLink: { color: colors.accent, fontSize: 12, fontWeight: '700' },
-  status: { color: colors.muted, fontSize: 12 },
-  facts: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 2 },
-  fact: { color: colors.muted, fontSize: 12 },
-  statusDot: { width: 10, height: 10, borderRadius: 5, marginTop: 1 },
-  statusDotOk: { backgroundColor: colors.success },
-  statusDotBad: { backgroundColor: colors.danger },
-  statusExplainer: { color: colors.muted, fontSize: 12, marginTop: 4 },
-  prompt: { color: colors.gold, fontSize: 13, marginTop: 6 },
-  section: { marginTop: 10 },
-  sectionSummary: { flexDirection: 'row', flexShrink: 1, minWidth: 0 },
-  sectionSummaryText: { color: colors.muted, fontSize: 12 },
-  beside: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 8, marginBottom: 8 },
-  mine: { marginTop: 10 },
-  // Two or more to a row rather than each claiming a full-width line — see
-  // the comment above where this is used. alignItems: flex-start keeps each
-  // panel sized to its own content instead of the row's default stretch,
-  // which would size every panel in a row to match its tallest neighbour —
-  // and make a minimized panel look exactly as tall as an open one beside it.
-  spreads: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 8, marginTop: 10 },
-  error: { color: colors.danger, fontSize: 13, marginVertical: 6 },
-  muted: { color: colors.muted, fontSize: 12, marginTop: 6 },
-
-  // The end of a match, built like the rule-violation banner in `shared`: a
-  // tinted box with a border of its own, because the thing it has to beat is
-  // being mistaken for nothing having happened. Green only when the reader
-  // won — a coloured congratulation on a loss is worse than a plain box.
-  over: {
-    backgroundColor: 'rgba(61, 139, 253, 0.10)',
-    borderWidth: 1,
-    borderColor: colors.accent,
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 8,
-    gap: 6,
-  },
-  overWon: {
-    backgroundColor: 'rgba(74, 222, 128, 0.12)',
-    borderColor: colors.success,
-  },
-  overTitle: { color: colors.text, fontSize: 15, fontWeight: '700' },
-  overOutcome: { color: colors.text, fontSize: 14 },
-  overActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
-  overButton: {
-    backgroundColor: colors.accentButton,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  overButtonBusy: { opacity: 0.4 },
-  overButtonText: { color: colors.onAccent, fontSize: 14, fontWeight: '600' },
-  overButtonQuiet: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  overButtonQuietText: { color: colors.text, fontSize: 14, fontWeight: '600' },
-  overError: { color: colors.danger, fontSize: 12 },
-  });
-}
-
-type MatchStyles = ReturnType<typeof matchStyles>;

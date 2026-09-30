@@ -3,11 +3,15 @@
     "ACE_BRIDGE",
     "ALREADY_BET",
     "ALREADY_READY",
+    "ALREADY_SHOWN",
     "AMOUNT_NOT_A_NUMBER",
     "AMOUNT_REQUIRED",
     "BAD_OPTION",
+    "BAD_SEATING",
     "BAD_SPLIT_POSITION",
     "BET_BELOW_MINIMUM",
+    "BLACK_THREE_GO_OUT_ONLY",
+    "CANNOT_ADD_SELF",
     "CANNOT_CHECK",
     "CANNOT_DISCARD_RED_THREE",
     "CANNOT_DOUBLE",
@@ -16,6 +20,7 @@
     "CANNOT_RAISE",
     "CANNOT_SPLIT",
     "CANNOT_SURRENDER",
+    "CAPTURE_NEEDS_TWO_CARDS",
     "CARD_DOES_NOT_EXTEND_MELD",
     "CARD_DOES_NOT_FIT",
     "CARD_NOT_IN_HAND",
@@ -26,18 +31,26 @@
     "DISCARD_TAKEN_CARD_FORBIDDEN",
     "GAME_NOT_ACTIVE",
     "GAME_SUSPENDED",
+    "HINTS_OFF",
     "INCOMPLETE_INITIAL_MELD",
     "INITIAL_MELD_NOT_MET",
     "INITIAL_MELD_ONLY",
     "INITIAL_MELD_TOO_LOW",
     "INSURANCE_CLOSED",
+    "INVALID_MATCH_ID",
     "INVALID_MELD",
     "JOKER_DISCARD_FORBIDDEN",
     "JOKER_SWAP_MISMATCH",
     "MATCH_ALREADY_STARTED",
+    "MATCH_DELETED",
     "MATCH_FULL",
+    "MATCH_MOVED_ON",
+    "MATCH_NOT_ABANDONED",
     "MATCH_NOT_ACTIVE",
+    "MATCH_NOT_FOUND",
+    "MATCH_NOT_OVER",
     "MELD_BELOW_MINIMUM",
+    "MELD_CAPTURE_NOT_ALLOWED",
     "MELD_CLOSED",
     "MELD_MIXED_RANKS",
     "MELD_NO_CONTRIBUTION",
@@ -48,19 +61,25 @@
     "MUST_KEEP_A_CARD",
     "MUST_MELD_FIRST",
     "NEED_CLEAN_RUN",
+    "NOTHING_FITS_HERE",
     "NOTHING_PLAYED",
     "NOTHING_TO_CALL",
     "NOTHING_TO_DRAW",
+    "NOTHING_TO_REPLAY",
+    "NOTHING_TO_SHOW",
+    "NOTHING_TO_SKIP",
     "NOTHING_TO_UNDO",
     "NOT_AT_THIS_TABLE",
     "NOT_A_RUN",
     "NOT_BETWEEN_ROUNDS",
     "NOT_ENOUGH_CHIPS",
     "NOT_ENOUGH_NATURALS",
+    "NOT_PLAYED_TOGETHER",
     "NOT_THE_HOST",
     "NOT_YOUR_MELD",
     "NOT_YOUR_TURN",
     "NO_CARDS_LEFT",
+    "NO_HINT",
     "NO_JOKER_IN_MELD",
     "NO_JOKER_IN_SET",
     "NO_LONGER_WAITING",
@@ -71,15 +90,24 @@
     "PILE_BLOCKED",
     "PILE_EMPTY",
     "PILE_FROZEN",
+    "PUSH_UNAVAILABLE",
     "RAISE_TOO_SMALL",
     "RANK_ALREADY_MELDED",
+    "RATE_LIMITED",
     "RECLAIMED_JOKER_NOT_MELDED",
+    "REPLAY_UNAVAILABLE",
     "ROUND_REQ_NOT_MET",
+    "RUN_NOT_CONSECUTIVE",
     "RUN_TOO_LONG",
+    "SEAT_IN_USE",
+    "SEAT_LINK_EXPIRED",
     "SEAT_NOT_IN_HAND",
+    "SEQUENCE_NEEDS_ONE_SUIT",
+    "SEQUENCE_NO_WILDS",
     "SERVER_BUSY",
     "SET_TOO_LARGE",
     "SUIT_REQUIRED",
+    "TABLE_HAS_PLAYERS_AWAY",
     "TABLE_NOT_VALID",
     "TILE_DOES_NOT_FIT",
     "TILE_JOKER_SWAP_MISMATCH",
@@ -88,9 +116,12 @@
     "TOO_MANY_WILDS",
     "TOP_CARD_UNUSABLE",
     "TRAY_NOT_EMPTY",
+    "UNDO_MELDS_FIRST",
     "UNKNOWN_ACTION",
+    "UNKNOWN_FRIEND_CODE",
     "UNKNOWN_MODULE",
     "UNKNOWN_OPTION",
+    "UNKNOWN_PLAYER",
     "UNKNOWN_SUIT",
     "UNKNOWN_VARIATION",
     "UPCARD_DECLINED",
@@ -101,6 +132,10 @@
     "WRONG_RUN_END"
   ],
   "labelKeys": [
+    "badge.cleanRun",
+    "badge.mixedCanasta",
+    "badge.naturalCanasta",
+    "badge.samba",
     "blackjack.fact.extraStake",
     "blackjack.fact.insuranceCost",
     "blackjack.fact.surrenderReturn",
@@ -123,6 +158,17 @@
     "blackjack.prompt.placeBet",
     "blackjack.prompt.waitingFor",
     "blackjack.prompt.yourMove",
+    "blackjack.quick.allIn",
+    "blackjack.quick.doubleMin",
+    "blackjack.remedy.answerInsurance",
+    "blackjack.remedy.hitOrStand",
+    "blackjack.remedy.playThisHand",
+    "blackjack.remedy.putAStakeUp",
+    "blackjack.remedy.sayHowMuch",
+    "blackjack.remedy.stakeAtLeast",
+    "blackjack.remedy.stakeAtMost",
+    "blackjack.remedy.stakeIsUp",
+    "blackjack.remedy.waitForNextRound",
     "blackjack.round.dealerBlackjack",
     "blackjack.round.dealerBust",
     "blackjack.round.dealerTotal",
@@ -152,9 +198,11 @@
     "blackjack.rules.noInsurance",
     "blackjack.rules.noSplit",
     "blackjack.rules.noSurrender",
+    "blackjack.rules.oneStakePerRound",
     "blackjack.rules.pays3to2",
     "blackjack.rules.pays6to5",
     "blackjack.rules.paysEven",
+    "blackjack.rules.roundOrder",
     "blackjack.rules.rounds",
     "blackjack.rules.section.dealer",
     "blackjack.rules.section.end",
@@ -163,10 +211,12 @@
     "blackjack.rules.split",
     "blackjack.rules.splitAces",
     "blackjack.rules.stack",
+    "blackjack.rules.stakeFromStack",
     "blackjack.rules.standsSoft17",
     "blackjack.rules.surrender",
     "blackjack.seat.bet",
     "blackjack.seat.insurance",
+    "blackjack.seat.out",
     "blackjack.seat.softTotal",
     "blackjack.seat.stack",
     "blackjack.seat.total",
@@ -177,29 +227,116 @@
     "blackjack.zone.dealer",
     "blackjack.zone.shoe",
     "blackjack.zone.yourBox",
+    "canasta.line.canastas",
+    "canasta.line.goingOut",
+    "canasta.line.goingOutConcealed",
+    "canasta.line.hand",
+    "canasta.line.handBlackThrees",
+    "canasta.line.handOther",
+    "canasta.line.handWilds",
+    "canasta.line.inHand",
+    "canasta.line.meldCards",
+    "canasta.line.meldRun",
+    "canasta.line.meldSet",
+    "canasta.line.meldSetWild",
+    "canasta.line.mixed",
+    "canasta.line.natural",
+    "canasta.line.redThrees",
+    "canasta.line.redThreesAll",
+    "canasta.line.redThreesShort",
+    "canasta.line.redThreesSum",
+    "canasta.line.samba",
+    "canasta.move.discarded",
+    "canasta.move.drewStock",
+    "canasta.move.laidOff",
+    "canasta.move.melded",
+    "canasta.move.redThrees",
+    "canasta.move.tookPile",
+    "canasta.move.tookTopCard",
+    "canasta.move.undid",
     "canasta.offer.rank",
+    "canasta.offer.sequence",
+    "canasta.remedy.blackThreesOnTheWayOut",
+    "canasta.remedy.captureFromHand",
+    "canasta.remedy.discardNotARedThree",
+    "canasta.remedy.drawFromStock",
+    "canasta.remedy.drawOrTakePile",
+    "canasta.remedy.layOffInstead",
+    "canasta.remedy.meldClosed",
+    "canasta.remedy.meldOrDiscard",
+    "canasta.remedy.needCanastas",
+    "canasta.remedy.needMorePoints",
+    "canasta.remedy.needTwoMatching",
+    "canasta.remedy.openFirst",
+    "canasta.remedy.ownMeldsOnly",
+    "canasta.remedy.pileBlocked",
+    "canasta.remedy.pileFrozen",
+    "canasta.remedy.takePileInstead",
+    "canasta.remedy.topCardUnusable",
+    "canasta.remedy.undoMeldsFirst",
+    "canasta.round.canastas",
+    "canasta.round.closed",
     "canasta.round.concealed",
     "canasta.round.deal",
     "canasta.round.exhausted",
+    "canasta.round.goingOut",
+    "canasta.round.inHand",
+    "canasta.round.meldCards",
+    "canasta.round.redThrees",
+    "canasta.rules.blackThreesGoOut",
+    "canasta.rules.blackThreesNeverMeld",
     "canasta.rules.canasta",
+    "canasta.rules.canastaCloses",
     "canasta.rules.deal",
     "canasta.rules.deck",
+    "canasta.rules.drawCount",
     "canasta.rules.end",
+    "canasta.rules.goOutKeepsACard",
     "canasta.rules.goal",
+    "canasta.rules.goingOutBonus",
+    "canasta.rules.goingOutBonusFlat",
+    "canasta.rules.layOffAfterOpening",
     "canasta.rules.meldFloorBands",
+    "canasta.rules.meldFloorBandsFive",
+    "canasta.rules.meldShape",
+    "canasta.rules.meldsAreShared",
+    "canasta.rules.meldsPerRankUnlimited",
     "canasta.rules.oneCanastaToGoOut",
+    "canasta.rules.oneMeldPerRank",
+    "canasta.rules.pileAlwaysFrozen",
+    "canasta.rules.pileBlocked",
+    "canasta.rules.pileFrozenByWild",
+    "canasta.rules.pileNoMeldCapture",
+    "canasta.rules.pileOntoMeld",
+    "canasta.rules.pileTopCard",
     "canasta.rules.redThrees",
+    "canasta.rules.samba",
     "canasta.rules.section.end",
     "canasta.rules.section.goal",
     "canasta.rules.section.melding",
     "canasta.rules.section.setup",
+    "canasta.rules.section.turn",
+    "canasta.rules.sequences",
+    "canasta.rules.turn",
+    "canasta.rules.turnDiscard",
     "canasta.rules.twoCanastasToGoOut",
+    "canasta.rules.wildLimit",
+    "canasta.rules.wildRatio",
     "canasta.seat.canastas",
+    "canasta.seat.notOpened",
     "canasta.seat.teamScore",
     "ginrummy.fact.deadwood",
     "ginrummy.fact.discardCard",
     "ginrummy.fact.meldCards",
     "ginrummy.header.hand",
+    "ginrummy.move.discarded",
+    "ginrummy.move.drewStock",
+    "ginrummy.move.knocked",
+    "ginrummy.move.laidOff",
+    "ginrummy.move.passedUpcard",
+    "ginrummy.move.tookDiscard",
+    "ginrummy.move.tookUpcard",
+    "ginrummy.move.wentGin",
     "ginrummy.offer.bigGin",
     "ginrummy.offer.discard",
     "ginrummy.offer.drawDiscard",
@@ -214,6 +351,13 @@
     "ginrummy.prompt.upcardDecision",
     "ginrummy.prompt.yourTurnDiscard",
     "ginrummy.prompt.yourTurnDraw",
+    "ginrummy.remedy.discardToEndTurn",
+    "ginrummy.remedy.drawElsewhere",
+    "ginrummy.remedy.drawFirst",
+    "ginrummy.remedy.finishLayoff",
+    "ginrummy.remedy.getDeadwoodDown",
+    "ginrummy.remedy.stockDrawForced",
+    "ginrummy.remedy.takeOrPassUpcard",
     "ginrummy.round.hand",
     "ginrummy.round.kind",
     "ginrummy.rules.aceLow",
@@ -229,6 +373,7 @@
     "ginrummy.rules.gin",
     "ginrummy.rules.ginBonus",
     "ginrummy.rules.knockLimit",
+    "ginrummy.rules.knockOnDiscard",
     "ginrummy.rules.knocking",
     "ginrummy.rules.layoff",
     "ginrummy.rules.layoffDescription",
@@ -244,6 +389,8 @@
     "ginrummy.rules.turn",
     "ginrummy.rules.undercut",
     "ginrummy.rules.upcard",
+    "ginrummy.rules.upcardDance",
+    "ginrummy.seat.dealer",
     "ginrummy.seat.score",
     "ginrummy.status.gin",
     "ginrummy.status.knocked",
@@ -265,28 +412,62 @@
     "holdem.header.handLimit",
     "holdem.header.pot",
     "holdem.header.street",
+    "holdem.offer.finish",
+    "holdem.offer.show",
     "holdem.prompt.raiseTo",
     "holdem.prompt.waitingFor",
     "holdem.prompt.yourAction",
+    "holdem.quick.allIn",
+    "holdem.quick.halfPot",
+    "holdem.quick.pot",
+    "holdem.remedy.callAllInOrFold",
+    "holdem.remedy.callOrFold",
+    "holdem.remedy.checkOrRaise",
+    "holdem.remedy.nameAnAmount",
+    "holdem.remedy.nothingToShow",
+    "holdem.remedy.raiseAtLeast",
+    "holdem.remedy.raiseAtMost",
+    "holdem.remedy.waitForNextHand",
     "holdem.round.hand",
     "holdem.round.pot",
     "holdem.round.uncontested",
+    "holdem.rules.allIn",
     "holdem.rules.blinds",
+    "holdem.rules.checkOrCall",
+    "holdem.rules.foldedOut",
     "holdem.rules.goal",
     "holdem.rules.handLimit",
     "holdem.rules.lastPlayerStanding",
+    "holdem.rules.minRaise",
     "holdem.rules.mostChipsWins",
     "holdem.rules.noLimit",
+    "holdem.rules.revealEveryone",
+    "holdem.rules.revealWinners",
     "holdem.rules.section.betting",
     "holdem.rules.section.end",
     "holdem.rules.section.goal",
     "holdem.rules.section.setup",
+    "holdem.rules.section.showdown",
+    "holdem.rules.showOnce",
+    "holdem.rules.showYourOwn",
     "holdem.rules.showdown",
     "holdem.rules.stack",
+    "holdem.rules.stopEveryHand",
     "holdem.rules.streets",
+    "holdem.seat.allIn",
     "holdem.seat.bet",
+    "holdem.seat.dealer",
+    "holdem.seat.folded",
+    "holdem.seat.mucked",
+    "holdem.seat.out",
     "holdem.seat.stack",
+    "holdem.seat.won",
+    "holdem.status.mucked",
+    "holdem.status.pot",
+    "holdem.status.potSplit",
+    "holdem.status.potUncontested",
     "holdem.status.shown",
+    "holdem.status.shownVoluntary",
     "prompt.canastasNeeded",
     "prompt.chooseSuit",
     "prompt.initialMeld",
@@ -294,6 +475,13 @@
     "prompt.mustDrawOrAnswerSeven",
     "prompt.pickupMustBeMelded",
     "prompt.skipPending",
+    "prompt.yourTurnDraw",
+    "prompt.yourTurnMeld",
+    "prsi.remedy.answerSevenOrTake",
+    "prsi.remedy.matchOrDraw",
+    "prsi.remedy.nameASuit",
+    "prsi.remedy.nothingLeftToDraw",
+    "prsi.remedy.playOrDraw",
     "prsi.rules.aces",
     "prsi.rules.deal",
     "prsi.rules.deck",
@@ -313,6 +501,14 @@
     "rummytiles.fact.setCards",
     "rummytiles.header.pool",
     "rummytiles.header.round",
+    "rummytiles.move.added",
+    "rummytiles.move.committed",
+    "rummytiles.move.drew",
+    "rummytiles.move.placed",
+    "rummytiles.move.reset",
+    "rummytiles.move.split",
+    "rummytiles.move.swappedJoker",
+    "rummytiles.move.took",
     "rummytiles.offer.addFromHand",
     "rummytiles.offer.addFromTray",
     "rummytiles.offer.commit",
@@ -323,6 +519,14 @@
     "rummytiles.offer.swapJoker",
     "rummytiles.offer.take",
     "rummytiles.param.position",
+    "rummytiles.remedy.emptyTheTray",
+    "rummytiles.remedy.fixOrReset",
+    "rummytiles.remedy.matchTheJoker",
+    "rummytiles.remedy.needMorePoints",
+    "rummytiles.remedy.ownNewSetsOnly",
+    "rummytiles.remedy.playFromHandOrDraw",
+    "rummytiles.remedy.splitLeavesThree",
+    "rummytiles.remedy.startANewSet",
     "rummytiles.round.kind",
     "rummytiles.round.round",
     "rummytiles.rules.dealCount",
@@ -348,21 +552,36 @@
     "rummytiles.rules.tiles",
     "rummytiles.rules.turn",
     "rummytiles.rules.turnDescription",
+    "rummytiles.seat.notOpened",
     "rummytiles.seat.score",
     "rummytiles.status.lastRound",
     "rummytiles.zone.pool",
     "rummytiles.zone.table",
     "rummytiles.zone.tray",
     "seat.cards",
+    "seat.ready",
     "status.lastDeal",
     "status.teamScore",
     "status.winner",
+    "verb.discardToClose",
     "verb.drawFromDeck",
     "verb.takeFromDiscard",
     "verb.takePileFromHand",
     "verb.takePileOntoMeld",
+    "verb.takeTopForSequence",
+    "verb.undoLayOff",
+    "verb.undoMeld",
+    "verb.undoTakePile",
     "zolik.badge.jokerOwed",
     "zolik.badge.owedToMeld",
+    "zolik.move.discarded",
+    "zolik.move.drewStock",
+    "zolik.move.laidOff",
+    "zolik.move.laidOffOwn",
+    "zolik.move.melded",
+    "zolik.move.swappedJoker",
+    "zolik.move.tookDiscard",
+    "zolik.move.undid",
     "zolik.offer.meld",
     "zolik.remedy.discardNotAJoker",
     "zolik.remedy.discardSomethingElse",
@@ -416,6 +635,7 @@
     "zolik.rules.turn.discard",
     "zolik.rules.turn.draw",
     "zolik.rules.wilds.setLimit",
+    "zolik.seat.contractMet",
     "zolik.standing.dealsWon",
     "zolik.standing.inHand",
     "zone.board",
@@ -423,11 +643,22 @@
     "zone.drawPile",
     "zone.melds",
     "zone.opponentHand",
+    "zone.opponentMelds",
     "zone.redThrees",
+    "zone.shownHand",
     "zone.teamMelds",
     "zone.yourHand"
   ],
   "sentenceKeys": [
+    "blackjack.remedy.answerInsurance",
+    "blackjack.remedy.hitOrStand",
+    "blackjack.remedy.playThisHand",
+    "blackjack.remedy.putAStakeUp",
+    "blackjack.remedy.sayHowMuch",
+    "blackjack.remedy.stakeAtLeast",
+    "blackjack.remedy.stakeAtMost",
+    "blackjack.remedy.stakeIsUp",
+    "blackjack.remedy.waitForNextRound",
     "blackjack.rules.aces",
     "blackjack.rules.blackjack",
     "blackjack.rules.bustedOut",
@@ -447,9 +678,11 @@
     "blackjack.rules.noInsurance",
     "blackjack.rules.noSplit",
     "blackjack.rules.noSurrender",
+    "blackjack.rules.oneStakePerRound",
     "blackjack.rules.pays3to2",
     "blackjack.rules.pays6to5",
     "blackjack.rules.paysEven",
+    "blackjack.rules.roundOrder",
     "blackjack.rules.rounds",
     "blackjack.rules.section.dealer",
     "blackjack.rules.section.end",
@@ -458,21 +691,73 @@
     "blackjack.rules.split",
     "blackjack.rules.splitAces",
     "blackjack.rules.stack",
+    "blackjack.rules.stakeFromStack",
     "blackjack.rules.standsSoft17",
     "blackjack.rules.surrender",
+    "canasta.remedy.blackThreesOnTheWayOut",
+    "canasta.remedy.captureFromHand",
+    "canasta.remedy.discardNotARedThree",
+    "canasta.remedy.drawFromStock",
+    "canasta.remedy.drawOrTakePile",
+    "canasta.remedy.layOffInstead",
+    "canasta.remedy.meldClosed",
+    "canasta.remedy.meldOrDiscard",
+    "canasta.remedy.needCanastas",
+    "canasta.remedy.needMorePoints",
+    "canasta.remedy.needTwoMatching",
+    "canasta.remedy.openFirst",
+    "canasta.remedy.ownMeldsOnly",
+    "canasta.remedy.pileBlocked",
+    "canasta.remedy.pileFrozen",
+    "canasta.remedy.takePileInstead",
+    "canasta.remedy.topCardUnusable",
+    "canasta.remedy.undoMeldsFirst",
+    "canasta.rules.blackThreesGoOut",
+    "canasta.rules.blackThreesNeverMeld",
     "canasta.rules.canasta",
+    "canasta.rules.canastaCloses",
     "canasta.rules.deal",
     "canasta.rules.deck",
+    "canasta.rules.drawCount",
     "canasta.rules.end",
+    "canasta.rules.goOutKeepsACard",
     "canasta.rules.goal",
+    "canasta.rules.goingOutBonus",
+    "canasta.rules.goingOutBonusFlat",
+    "canasta.rules.layOffAfterOpening",
     "canasta.rules.meldFloorBands",
+    "canasta.rules.meldFloorBandsFive",
+    "canasta.rules.meldShape",
+    "canasta.rules.meldsAreShared",
+    "canasta.rules.meldsPerRankUnlimited",
     "canasta.rules.oneCanastaToGoOut",
+    "canasta.rules.oneMeldPerRank",
+    "canasta.rules.pileAlwaysFrozen",
+    "canasta.rules.pileBlocked",
+    "canasta.rules.pileFrozenByWild",
+    "canasta.rules.pileNoMeldCapture",
+    "canasta.rules.pileOntoMeld",
+    "canasta.rules.pileTopCard",
     "canasta.rules.redThrees",
+    "canasta.rules.samba",
     "canasta.rules.section.end",
     "canasta.rules.section.goal",
     "canasta.rules.section.melding",
     "canasta.rules.section.setup",
+    "canasta.rules.section.turn",
+    "canasta.rules.sequences",
+    "canasta.rules.turn",
+    "canasta.rules.turnDiscard",
     "canasta.rules.twoCanastasToGoOut",
+    "canasta.rules.wildLimit",
+    "canasta.rules.wildRatio",
+    "ginrummy.remedy.discardToEndTurn",
+    "ginrummy.remedy.drawElsewhere",
+    "ginrummy.remedy.drawFirst",
+    "ginrummy.remedy.finishLayoff",
+    "ginrummy.remedy.getDeadwoodDown",
+    "ginrummy.remedy.stockDrawForced",
+    "ginrummy.remedy.takeOrPassUpcard",
     "ginrummy.rules.aceLow",
     "ginrummy.rules.bigGin",
     "ginrummy.rules.bigGinBonus",
@@ -486,6 +771,7 @@
     "ginrummy.rules.gin",
     "ginrummy.rules.ginBonus",
     "ginrummy.rules.knockLimit",
+    "ginrummy.rules.knockOnDiscard",
     "ginrummy.rules.knocking",
     "ginrummy.rules.layoff",
     "ginrummy.rules.layoffDescription",
@@ -501,19 +787,43 @@
     "ginrummy.rules.turn",
     "ginrummy.rules.undercut",
     "ginrummy.rules.upcard",
+    "ginrummy.rules.upcardDance",
+    "holdem.remedy.callAllInOrFold",
+    "holdem.remedy.callOrFold",
+    "holdem.remedy.checkOrRaise",
+    "holdem.remedy.nameAnAmount",
+    "holdem.remedy.nothingToShow",
+    "holdem.remedy.raiseAtLeast",
+    "holdem.remedy.raiseAtMost",
+    "holdem.remedy.waitForNextHand",
+    "holdem.rules.allIn",
     "holdem.rules.blinds",
+    "holdem.rules.checkOrCall",
+    "holdem.rules.foldedOut",
     "holdem.rules.goal",
     "holdem.rules.handLimit",
     "holdem.rules.lastPlayerStanding",
+    "holdem.rules.minRaise",
     "holdem.rules.mostChipsWins",
     "holdem.rules.noLimit",
+    "holdem.rules.revealEveryone",
+    "holdem.rules.revealWinners",
     "holdem.rules.section.betting",
     "holdem.rules.section.end",
     "holdem.rules.section.goal",
     "holdem.rules.section.setup",
+    "holdem.rules.section.showdown",
+    "holdem.rules.showOnce",
+    "holdem.rules.showYourOwn",
     "holdem.rules.showdown",
     "holdem.rules.stack",
+    "holdem.rules.stopEveryHand",
     "holdem.rules.streets",
+    "prsi.remedy.answerSevenOrTake",
+    "prsi.remedy.matchOrDraw",
+    "prsi.remedy.nameASuit",
+    "prsi.remedy.nothingLeftToDraw",
+    "prsi.remedy.playOrDraw",
     "prsi.rules.aces",
     "prsi.rules.deal",
     "prsi.rules.deck",
@@ -528,6 +838,14 @@
     "prsi.rules.sevens",
     "prsi.rules.turn.draw",
     "prsi.rules.turn.match",
+    "rummytiles.remedy.emptyTheTray",
+    "rummytiles.remedy.fixOrReset",
+    "rummytiles.remedy.matchTheJoker",
+    "rummytiles.remedy.needMorePoints",
+    "rummytiles.remedy.ownNewSetsOnly",
+    "rummytiles.remedy.playFromHandOrDraw",
+    "rummytiles.remedy.splitLeavesThree",
+    "rummytiles.remedy.startANewSet",
     "rummytiles.rules.dealCount",
     "rummytiles.rules.ending",
     "rummytiles.rules.goingOut",
@@ -638,6 +956,24 @@
     "blackjack.prompt.waitingFor": [
       "playerId"
     ],
+    "blackjack.quick.allIn": [
+      "value"
+    ],
+    "blackjack.quick.doubleMin": [
+      "value"
+    ],
+    "blackjack.remedy.putAStakeUp": [
+      "n"
+    ],
+    "blackjack.remedy.sayHowMuch": [
+      "n"
+    ],
+    "blackjack.remedy.stakeAtLeast": [
+      "n"
+    ],
+    "blackjack.remedy.stakeAtMost": [
+      "n"
+    ],
     "blackjack.round.dealerBust": [
       "n"
     ],
@@ -687,17 +1023,165 @@
       "n",
       "value"
     ],
+    "canasta.line.goingOut": [
+      "player"
+    ],
+    "canasta.line.goingOutConcealed": [
+      "player"
+    ],
+    "canasta.line.hand": [
+      "n",
+      "player"
+    ],
+    "canasta.line.handBlackThrees": [
+      "each",
+      "n"
+    ],
+    "canasta.line.handOther": [
+      "n"
+    ],
+    "canasta.line.handWilds": [
+      "n"
+    ],
+    "canasta.line.meldRun": [
+      "n",
+      "suit"
+    ],
+    "canasta.line.meldSet": [
+      "n",
+      "rank"
+    ],
+    "canasta.line.meldSetWild": [
+      "naturals",
+      "rank",
+      "wilds"
+    ],
+    "canasta.line.mixed": [
+      "each",
+      "n"
+    ],
+    "canasta.line.natural": [
+      "each",
+      "n"
+    ],
+    "canasta.line.redThrees": [
+      "each",
+      "n"
+    ],
+    "canasta.line.redThreesAll": [
+      "n"
+    ],
+    "canasta.line.redThreesShort": [
+      "made",
+      "n",
+      "need"
+    ],
+    "canasta.line.samba": [
+      "each",
+      "n"
+    ],
+    "canasta.move.discarded": [
+      "card",
+      "player"
+    ],
+    "canasta.move.drewStock": [
+      "player"
+    ],
+    "canasta.move.laidOff": [
+      "cards",
+      "player"
+    ],
+    "canasta.move.melded": [
+      "cards",
+      "player"
+    ],
+    "canasta.move.redThrees": [
+      "cards",
+      "player"
+    ],
+    "canasta.move.tookPile": [
+      "card",
+      "player"
+    ],
+    "canasta.move.tookTopCard": [
+      "card",
+      "player"
+    ],
+    "canasta.move.undid": [
+      "player"
+    ],
     "canasta.offer.rank": [
       "value"
     ],
+    "canasta.offer.sequence": [
+      "from",
+      "suit",
+      "to",
+      "value"
+    ],
+    "canasta.remedy.captureFromHand": [
+      "card"
+    ],
+    "canasta.remedy.meldClosed": [
+      "n"
+    ],
+    "canasta.remedy.needCanastas": [
+      "n",
+      "size"
+    ],
+    "canasta.remedy.needMorePoints": [
+      "floor",
+      "n"
+    ],
+    "canasta.remedy.needTwoMatching": [
+      "card"
+    ],
+    "canasta.remedy.pileFrozen": [
+      "card"
+    ],
+    "canasta.remedy.topCardUnusable": [
+      "card"
+    ],
+    "canasta.round.canastas": [
+      "n"
+    ],
+    "canasta.round.closed": [
+      "diff",
+      "player"
+    ],
+    "canasta.round.goingOut": [
+      "n"
+    ],
+    "canasta.round.inHand": [
+      "n"
+    ],
+    "canasta.round.meldCards": [
+      "n"
+    ],
+    "canasta.round.redThrees": [
+      "n"
+    ],
+    "canasta.rules.blackThreesGoOut": [
+      "n"
+    ],
+    "canasta.rules.blackThreesNeverMeld": [
+      "n"
+    ],
     "canasta.rules.canasta": [
+      "n"
+    ],
+    "canasta.rules.canastaCloses": [
       "n"
     ],
     "canasta.rules.deal": [
       "n"
     ],
     "canasta.rules.deck": [
+      "decks",
       "value"
+    ],
+    "canasta.rules.drawCount": [
+      "n"
     ],
     "canasta.rules.end": [
       "n"
@@ -705,11 +1189,47 @@
     "canasta.rules.goal": [
       "n"
     ],
+    "canasta.rules.goingOutBonus": [
+      "concealed",
+      "n"
+    ],
+    "canasta.rules.goingOutBonusFlat": [
+      "n"
+    ],
     "canasta.rules.meldFloorBands": [
       "high",
       "low",
+      "lowUpTo",
       "mid",
+      "midUpTo",
       "negative"
+    ],
+    "canasta.rules.meldFloorBandsFive": [
+      "high",
+      "highUpTo",
+      "low",
+      "lowUpTo",
+      "mid",
+      "midUpTo",
+      "negative",
+      "top"
+    ],
+    "canasta.rules.meldShape": [
+      "n"
+    ],
+    "canasta.rules.pileBlocked": [
+      "n"
+    ],
+    "canasta.rules.samba": [
+      "n"
+    ],
+    "canasta.rules.wildLimit": [
+      "naturals",
+      "wilds"
+    ],
+    "canasta.rules.wildRatio": [
+      "n",
+      "wilds"
     ],
     "canasta.seat.canastas": [
       "n",
@@ -733,6 +1253,39 @@
     "ginrummy.header.hand": [
       "n",
       "value"
+    ],
+    "ginrummy.move.discarded": [
+      "card",
+      "player"
+    ],
+    "ginrummy.move.drewStock": [
+      "player"
+    ],
+    "ginrummy.move.knocked": [
+      "deadwood",
+      "player"
+    ],
+    "ginrummy.move.laidOff": [
+      "card",
+      "owner",
+      "player"
+    ],
+    "ginrummy.move.passedUpcard": [
+      "player"
+    ],
+    "ginrummy.move.tookDiscard": [
+      "card",
+      "player"
+    ],
+    "ginrummy.move.tookUpcard": [
+      "card",
+      "player"
+    ],
+    "ginrummy.move.wentGin": [
+      "player"
+    ],
+    "ginrummy.remedy.getDeadwoodDown": [
+      "n"
     ],
     "ginrummy.round.kind": [
       "value"
@@ -836,6 +1389,31 @@
     "holdem.prompt.waitingFor": [
       "playerId"
     ],
+    "holdem.quick.allIn": [
+      "value"
+    ],
+    "holdem.quick.halfPot": [
+      "value"
+    ],
+    "holdem.quick.pot": [
+      "value"
+    ],
+    "holdem.remedy.callAllInOrFold": [
+      "n"
+    ],
+    "holdem.remedy.callOrFold": [
+      "n"
+    ],
+    "holdem.remedy.nameAnAmount": [
+      "max",
+      "min"
+    ],
+    "holdem.remedy.raiseAtLeast": [
+      "n"
+    ],
+    "holdem.remedy.raiseAtMost": [
+      "n"
+    ],
     "holdem.round.pot": [
       "n"
     ],
@@ -857,11 +1435,38 @@
       "chips",
       "value"
     ],
+    "holdem.status.mucked": [
+      "playerId"
+    ],
+    "holdem.status.pot": [
+      "amount",
+      "cards",
+      "hand",
+      "value",
+      "winners"
+    ],
+    "holdem.status.potSplit": [
+      "amount",
+      "hand",
+      "value",
+      "winners"
+    ],
+    "holdem.status.potUncontested": [
+      "amount",
+      "hand",
+      "value",
+      "winners"
+    ],
     "holdem.status.shown": [
       "best",
       "hole",
       "playerId",
       "value"
+    ],
+    "holdem.status.shownVoluntary": [
+      "best",
+      "hole",
+      "playerId"
     ],
     "prompt.canastasNeeded": [
       "n"
@@ -877,6 +1482,16 @@
     ],
     "prompt.pickupMustBeMelded": [
       "value"
+    ],
+    "prsi.remedy.answerSevenOrTake": [
+      "n"
+    ],
+    "prsi.remedy.matchOrDraw": [
+      "card",
+      "suit"
+    ],
+    "prsi.remedy.playOrDraw": [
+      "suit"
     ],
     "prsi.rules.deal": [
       "n"
@@ -894,6 +1509,47 @@
     "rummytiles.header.round": [
       "n",
       "value"
+    ],
+    "rummytiles.move.added": [
+      "cards",
+      "player"
+    ],
+    "rummytiles.move.committed": [
+      "player"
+    ],
+    "rummytiles.move.drew": [
+      "player"
+    ],
+    "rummytiles.move.placed": [
+      "cards",
+      "player"
+    ],
+    "rummytiles.move.reset": [
+      "player"
+    ],
+    "rummytiles.move.split": [
+      "player"
+    ],
+    "rummytiles.move.swappedJoker": [
+      "card",
+      "player"
+    ],
+    "rummytiles.move.took": [
+      "cards",
+      "player"
+    ],
+    "rummytiles.remedy.emptyTheTray": [
+      "n"
+    ],
+    "rummytiles.remedy.needMorePoints": [
+      "floor",
+      "n"
+    ],
+    "rummytiles.remedy.ownNewSetsOnly": [
+      "n"
+    ],
+    "rummytiles.remedy.splitLeavesThree": [
+      "n"
     ],
     "rummytiles.round.kind": [
       "value"
@@ -947,6 +1603,37 @@
       "team",
       "value",
       "winners"
+    ],
+    "zolik.move.discarded": [
+      "card",
+      "player"
+    ],
+    "zolik.move.drewStock": [
+      "player"
+    ],
+    "zolik.move.laidOff": [
+      "cards",
+      "owner",
+      "player"
+    ],
+    "zolik.move.laidOffOwn": [
+      "cards",
+      "player"
+    ],
+    "zolik.move.melded": [
+      "cards",
+      "player"
+    ],
+    "zolik.move.swappedJoker": [
+      "card",
+      "player"
+    ],
+    "zolik.move.tookDiscard": [
+      "card",
+      "player"
+    ],
+    "zolik.move.undid": [
+      "player"
     ],
     "zolik.offer.meld": [
       "value"
@@ -1011,6 +1698,12 @@
     "blackjack.header.minBet",
     "blackjack.header.round",
     "blackjack.prompt.waitingFor",
+    "blackjack.quick.allIn",
+    "blackjack.quick.doubleMin",
+    "blackjack.remedy.putAStakeUp",
+    "blackjack.remedy.sayHowMuch",
+    "blackjack.remedy.stakeAtLeast",
+    "blackjack.remedy.stakeAtMost",
     "blackjack.round.dealerBust",
     "blackjack.round.dealerTotal",
     "blackjack.rules.bustedOut",
@@ -1025,19 +1718,77 @@
     "blackjack.seat.total",
     "blackjack.status.dealerBust",
     "blackjack.status.dealerStands",
+    "canasta.line.goingOut",
+    "canasta.line.goingOutConcealed",
+    "canasta.line.hand",
+    "canasta.line.handBlackThrees",
+    "canasta.line.handOther",
+    "canasta.line.handWilds",
+    "canasta.line.meldRun",
+    "canasta.line.meldSet",
+    "canasta.line.meldSetWild",
+    "canasta.line.mixed",
+    "canasta.line.natural",
+    "canasta.line.redThrees",
+    "canasta.line.redThreesAll",
+    "canasta.line.redThreesShort",
+    "canasta.line.samba",
+    "canasta.move.discarded",
+    "canasta.move.drewStock",
+    "canasta.move.laidOff",
+    "canasta.move.melded",
+    "canasta.move.redThrees",
+    "canasta.move.tookPile",
+    "canasta.move.tookTopCard",
+    "canasta.move.undid",
     "canasta.offer.rank",
+    "canasta.offer.sequence",
+    "canasta.remedy.captureFromHand",
+    "canasta.remedy.meldClosed",
+    "canasta.remedy.needCanastas",
+    "canasta.remedy.needMorePoints",
+    "canasta.remedy.needTwoMatching",
+    "canasta.remedy.pileFrozen",
+    "canasta.remedy.topCardUnusable",
+    "canasta.round.canastas",
+    "canasta.round.closed",
+    "canasta.round.goingOut",
+    "canasta.round.inHand",
+    "canasta.round.meldCards",
+    "canasta.round.redThrees",
+    "canasta.rules.blackThreesGoOut",
+    "canasta.rules.blackThreesNeverMeld",
     "canasta.rules.canasta",
+    "canasta.rules.canastaCloses",
     "canasta.rules.deal",
     "canasta.rules.deck",
+    "canasta.rules.drawCount",
     "canasta.rules.end",
     "canasta.rules.goal",
+    "canasta.rules.goingOutBonus",
+    "canasta.rules.goingOutBonusFlat",
     "canasta.rules.meldFloorBands",
+    "canasta.rules.meldFloorBandsFive",
+    "canasta.rules.meldShape",
+    "canasta.rules.pileBlocked",
+    "canasta.rules.samba",
+    "canasta.rules.wildLimit",
+    "canasta.rules.wildRatio",
     "canasta.seat.canastas",
     "canasta.seat.teamScore",
     "ginrummy.fact.deadwood",
     "ginrummy.fact.discardCard",
     "ginrummy.fact.meldCards",
     "ginrummy.header.hand",
+    "ginrummy.move.discarded",
+    "ginrummy.move.drewStock",
+    "ginrummy.move.knocked",
+    "ginrummy.move.laidOff",
+    "ginrummy.move.passedUpcard",
+    "ginrummy.move.tookDiscard",
+    "ginrummy.move.tookUpcard",
+    "ginrummy.move.wentGin",
+    "ginrummy.remedy.getDeadwoodDown",
     "ginrummy.round.kind",
     "ginrummy.rules.bigGinBonus",
     "ginrummy.rules.box",
@@ -1067,23 +1818,51 @@
     "holdem.header.pot",
     "holdem.header.street",
     "holdem.prompt.waitingFor",
+    "holdem.quick.allIn",
+    "holdem.quick.halfPot",
+    "holdem.quick.pot",
+    "holdem.remedy.callAllInOrFold",
+    "holdem.remedy.callOrFold",
+    "holdem.remedy.nameAnAmount",
+    "holdem.remedy.raiseAtLeast",
+    "holdem.remedy.raiseAtMost",
     "holdem.round.pot",
     "holdem.rules.blinds",
     "holdem.rules.handLimit",
     "holdem.rules.stack",
     "holdem.seat.bet",
     "holdem.seat.stack",
+    "holdem.status.mucked",
+    "holdem.status.pot",
+    "holdem.status.potSplit",
+    "holdem.status.potUncontested",
     "holdem.status.shown",
+    "holdem.status.shownVoluntary",
     "prompt.canastasNeeded",
     "prompt.initialMeld",
     "prompt.jokerMustBePlayed",
     "prompt.mustDrawOrAnswerSeven",
     "prompt.pickupMustBeMelded",
+    "prsi.remedy.answerSevenOrTake",
+    "prsi.remedy.matchOrDraw",
+    "prsi.remedy.playOrDraw",
     "prsi.rules.deal",
     "prsi.rules.deck",
     "rummytiles.fact.setCards",
     "rummytiles.header.pool",
     "rummytiles.header.round",
+    "rummytiles.move.added",
+    "rummytiles.move.committed",
+    "rummytiles.move.drew",
+    "rummytiles.move.placed",
+    "rummytiles.move.reset",
+    "rummytiles.move.split",
+    "rummytiles.move.swappedJoker",
+    "rummytiles.move.took",
+    "rummytiles.remedy.emptyTheTray",
+    "rummytiles.remedy.needMorePoints",
+    "rummytiles.remedy.ownNewSetsOnly",
+    "rummytiles.remedy.splitLeavesThree",
     "rummytiles.round.kind",
     "rummytiles.rules.dealCount",
     "rummytiles.rules.initialMeldDescription",
@@ -1096,6 +1875,14 @@
     "status.lastDeal",
     "status.teamScore",
     "status.winner",
+    "zolik.move.discarded",
+    "zolik.move.drewStock",
+    "zolik.move.laidOff",
+    "zolik.move.laidOffOwn",
+    "zolik.move.melded",
+    "zolik.move.swappedJoker",
+    "zolik.move.tookDiscard",
+    "zolik.move.undid",
     "zolik.offer.meld",
     "zolik.remedy.discardSomethingElse",
     "zolik.remedy.drawFromStock",

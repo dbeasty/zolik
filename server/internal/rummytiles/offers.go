@@ -37,9 +37,16 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		if s.Status != "active" {
 			why = ErrGameNotActive
 		}
-		return placeholderOffers(why), nil
+		return m.explained(s, placeholderOffers(why)), nil
 	}
-	return m.turnOffers(raw, s, playerID), nil
+	return m.explained(s, m.turnOffers(raw, s, playerID)), nil
+}
+
+// explained puts the reason, the rule and the way out on every disabled offer
+// before it leaves this package — see remedy.go.
+func (m *Module) explained(s *GameState, offers []module.ActionOffer) []module.ActionOffer {
+	m.annotate(s, offers)
+	return offers
 }
 
 func placeholderOffers(why string) []module.ActionOffer {
@@ -99,6 +106,11 @@ func (m *Module) turnOffers(raw module.State, s *GameState, playerID string) []m
 
 	draw := module.ActionOffer{ID: OfferDraw, Verb: VerbDraw, LabelKey: "rummytiles.offer.draw"}
 	draw.Enabled, draw.WhyNot = m.probe(raw, playerID, module.Action{OfferID: draw.ID, Verb: VerbDraw})
+	// Both ends named, so the pool can carry the move itself: a draw has no
+	// tiles to pick and nowhere to aim, and the pool is the only thing on
+	// screen that says what it does.
+	draw.Source = &module.Selector{Zone: module.FromDeck, ZoneID: poolZoneID}
+	draw.Target = &module.Selector{Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID)}
 	offers = append(offers, draw)
 
 	return offers

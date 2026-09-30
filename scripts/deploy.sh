@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #
-# Deploy zolik to play.limidus.com on limi-mini (192.168.13.13).
+# Deploy zolik to limi-mini (192.168.13.13), which serves it as jokerless.com,
+# jokerless.org and play.limidus.com.
 #
 #   ./scripts/deploy.sh
 #
@@ -13,13 +14,15 @@
 #   --init-env     overwrite server .env from deploy/env.production.example
 #                  (generates fresh JWT secrets)
 #   --snapshot     tar the database volume on the host before switching images
-#   --skip-nginx   skip nginx vhost install (docker only)
+#   --skip-nginx   skip nginx vhosts and TLS certificates (docker only)
 #
 # Environment:
 #   ZOLIK_DEPLOY_HOST   default 192.168.13.13
 #   ZOLIK_DEPLOY_SSH    default davja@192.168.13.13  (sudo/nginx steps)
 #   ZOLIK_DEPLOY_USER   default zolik                 (runtime owner)
-#   ZOLIK_PUBLIC_URL    default https://play.limidus.com
+#   ZOLIK_PUBLIC_URL    default https://jokerless.com     (canonical: OAuth callback, invite links)
+#   ZOLIK_EXTRA_URLS    default https://jokerless.org,https://play.limidus.com
+#                       (also served; added to AUTH_ALLOWED_RETURN_URLS and verified)
 #   ZOLIK_SERVICE_IP    default 192.168.13.13         (nginx listen address)
 #   ZOLIK_KEEP_IMAGES   default 3                     (release tags kept on the host)
 #
@@ -44,7 +47,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEPLOY_HOST="${ZOLIK_DEPLOY_HOST:-192.168.13.13}"
 DEPLOY_SSH="${ZOLIK_DEPLOY_SSH:-davja@${DEPLOY_HOST}}"
 DEPLOY_USER="${ZOLIK_DEPLOY_USER:-zolik}"
-PUBLIC_URL="${ZOLIK_PUBLIC_URL:-https://play.limidus.com}"
+PUBLIC_URL="${ZOLIK_PUBLIC_URL:-https://jokerless.com}"
+EXTRA_URLS="${ZOLIK_EXTRA_URLS:-https://jokerless.org,https://play.limidus.com}"
 SERVICE_IP="${ZOLIK_SERVICE_IP:-192.168.13.13}"
 KEEP_IMAGES="${ZOLIK_KEEP_IMAGES:-3}"
 
@@ -89,7 +93,7 @@ while [[ $# -gt 0 ]]; do
     --snapshot)   SNAPSHOT=true; shift ;;
     --skip-nginx) SKIP_NGINX=true; shift ;;
     -h|--help)
-      sed -n '2,36p' "$0"
+      sed -n '2,39p' "$0"
       exit 0
       ;;
     *) printf 'Unknown option: %s\n' "$1" >&2; exit 1 ;;
@@ -197,6 +201,29 @@ chown ${DEPLOY_USER}:${DEPLOY_USER} ${ENV_REMOTE}
 chmod 600 ${ENV_REMOTE}
 EOF
 
+# Every domain this deployment answers on must be a place a browser sign-in
+# may return to, or OAuth works on one of them and bounces on the rest.
+# Merged rather than overwritten: an entry someone added on the host by hand
+# stays, and the native app's scheme is kept whatever else happens.
+say "AUTH_ALLOWED_RETURN_URLS covers ${PUBLIC_URL},${EXTRA_URLS}"
+ssh_admin "sudo bash -s" <<EOF
+set -euo pipefail
+current="\$(sed -n 's/^AUTH_ALLOWED_RETURN_URLS=//p' ${ENV_REMOTE} | tail -1)"
+merged=""
+for u in ${PUBLIC_URL} \$(echo "${EXTRA_URLS}" | tr ',' ' ') \$(echo "\$current" | tr ',' ' ') clientreactnative://; do
+  # An origin is stored without its trailing slash; a bare scheme keeps "//".
+  [[ "\$u" == *:// ]] || u="\${u%/}"
+  [[ -z "\$u" ]] && continue
+  case ",\$merged," in *",\$u,"*) ;; *) merged="\${merged:+\$merged,}\$u" ;; esac
+done
+if grep -q '^AUTH_ALLOWED_RETURN_URLS=' ${ENV_REMOTE}; then
+  sed -i "s|^AUTH_ALLOWED_RETURN_URLS=.*|AUTH_ALLOWED_RETURN_URLS=\$merged|" ${ENV_REMOTE}
+else
+  echo "AUTH_ALLOWED_RETURN_URLS=\$merged" >> ${ENV_REMOTE}
+fi
+echo "  \$merged"
+EOF
+
 # ------------------------------------------------------- will it even boot?
 #
 # APP_ENV decides four defaults on the server, and three of them get safer
@@ -213,6 +240,19 @@ say "checking the server env will boot"
 read_env() { ssh_admin "sudo sed -n 's/^$1=//p' ${ENV_REMOTE} | tail -1" 2>/dev/null || true; }
 env_app="$(read_env APP_ENV)"
 env_smtp="$(read_env SMTP_HOST)"
+env_jwt="$(read_env JWT_ACCESS_SECRET)"
+
+# Checked whatever APP_ENV says. The server refuses a missing or placeholder
+# key outside APP_ENV=local (auth.CheckAccessSecret), but at local it falls
+# back to a key that is in the repository, and anyone holding that key can
+# sign in as any player. A public host must never run on it.
+case "$env_jwt" in
+  ""|REPLACE_ON_FIRST_DEPLOY|dev_access_secret_change_me)
+    die "JWT_ACCESS_SECRET in ${ENV_REMOTE} is unset or a published placeholder.
+  Anyone could sign tokens as any player. Set it to a private random value
+  (openssl rand -hex 32) and deploy again."
+    ;;
+esac
 
 case "$env_app" in
   ""|local)
@@ -228,6 +268,92 @@ case "$env_app" in
     say "APP_ENV=${env_app}, SMTP_HOST set — hatches and SSH off by default"
     ;;
 esac
+
+# The OAuth callback is built from PUBLIC_BASE_URL, and each provider only
+# redirects to URIs registered in its own console. Moving the canonical domain
+# therefore breaks every configured provider until someone adds the new URI
+# there — which this script cannot do, so it says which ones.
+for provider in GOOGLE APPLE MICROSOFT; do
+  if [[ -n "$(read_env "OAUTH_${provider}_CLIENT_ID")" ]]; then
+    id="$(printf '%s' "$provider" | tr '[:upper:]' '[:lower:]')"
+    warn "OAuth ${provider} is configured: its console must allow ${PUBLIC_URL}/auth/oauth/${id}/callback"
+  fi
+done
+
+# ------------------------------------------------------------ nginx + TLS
+#
+# Before the build, not after the switch: nothing here depends on the new
+# image (every vhost proxies to the same 127.0.0.1:8090), and a certificate
+# that cannot be issued should stop the deploy while the old release is still
+# the one running, rather than after it has been replaced by one nobody can
+# reach on its canonical name.
+#
+# Order matters. The TLS vhost for a domain cannot pass `nginx -t` before its
+# certificate exists, and the certificate is issued over that domain's plain
+# HTTP vhost. So: the shared snippet and the HTTP vhosts first, then certbot
+# for a certificate that is missing, then the TLS vhosts.
+JOKERLESS_NAMES=(jokerless.com www.jokerless.com jokerless.org www.jokerless.org)
+
+if [[ "$SKIP_NGINX" == false ]]; then
+  say "nginx vhosts and TLS for play.limidus.com ${JOKERLESS_NAMES[*]}"
+
+  tmp_nginx="$(mktemp -d)"
+  for f in zolik-proxy play-limidus jokerless-http jokerless; do
+    # Substitute service IP if overridden (templates ship with 192.168.13.13).
+    sed "s/192\\.168\\.13\\.13/${SERVICE_IP}/g" \
+      "${ROOT}/deploy/nginx/${f}.conf" > "${tmp_nginx}/zolik-${f}.conf"
+  done
+  scp -q "${tmp_nginx}"/*.conf "${DEPLOY_SSH}:/tmp/"
+  rm -rf "$tmp_nginx"
+
+  ssh_admin "sudo bash -s" <<'EOF'
+set -euo pipefail
+mkdir -p /etc/nginx/snippets /var/www/letsencrypt
+install -m 0644 /tmp/zolik-zolik-proxy.conf    /etc/nginx/snippets/zolik-proxy.conf
+install -m 0644 /tmp/zolik-play-limidus.conf   /etc/nginx/sites-available/play-limidus
+install -m 0644 /tmp/zolik-jokerless-http.conf /etc/nginx/sites-available/jokerless-http
+ln -sfn /etc/nginx/sites-available/play-limidus   /etc/nginx/sites-enabled/play-limidus
+ln -sfn /etc/nginx/sites-available/jokerless-http /etc/nginx/sites-enabled/jokerless-http
+nginx -t
+systemctl reload nginx
+EOF
+
+  if ! ssh_admin "sudo test -f /etc/letsencrypt/live/jokerless/fullchain.pem"; then
+    say "issuing the jokerless certificate (HTTP-01 over the vhost just installed)"
+    # Every name must resolve before this can work. Checked here first because
+    # certbot's own failure for a missing A record is a long paragraph about a
+    # timeout.
+    #
+    # Queried at a public resolver (Cloudflare's own, fittingly — this domain's
+    # nameservers) rather than through whatever this machine's default resolver
+    # is. A record just added minutes ago is exactly what a resolver along that
+    # path is likely to still be holding a negative answer for, and that stale
+    # cache says nothing about whether the record exists.
+    for name in "${JOKERLESS_NAMES[@]}"; do
+      if [[ -z "$(dig +short A "$name" @1.1.1.1 +time=3 +tries=2 2>/dev/null | tail -1)" ]]; then
+        die "${name} has no A record yet (checked at 1.1.1.1, bypassing any local resolver cache).
+  In Cloudflare add A records (DNS only, grey cloud) for ${JOKERLESS_NAMES[*]}
+  pointing at this host's WAN address, then re-run."
+      fi
+    done
+    domains=""
+    for name in "${JOKERLESS_NAMES[@]}"; do domains+=" -d ${name}"; done
+    ssh_admin "sudo certbot certonly --non-interactive --webroot -w /var/www/letsencrypt \
+      --cert-name jokerless${domains} --deploy-hook 'systemctl reload nginx'" \
+      || die "certbot could not issue the jokerless certificate — see its output above"
+  fi
+
+  ssh_admin "sudo bash -s" <<'EOF'
+set -euo pipefail
+install -m 0644 /tmp/zolik-jokerless.conf /etc/nginx/sites-available/jokerless
+ln -sfn /etc/nginx/sites-available/jokerless /etc/nginx/sites-enabled/jokerless
+rm -f /tmp/zolik-zolik-proxy.conf /tmp/zolik-play-limidus.conf /tmp/zolik-jokerless-http.conf /tmp/zolik-jokerless.conf
+nginx -t
+systemctl reload nginx
+EOF
+else
+  warn "skipping nginx and TLS (--skip-nginx)"
+fi
 
 # ------------------------------------------------------------- build image
 say "building ${IMAGE} (server + web client, one image)"
@@ -354,29 +480,6 @@ docker image ls zolik --format '{{.Repository}}:{{.Tag}}' \
 docker image ls zolik --format '  {{.Tag}}  {{.Size}}'
 EOF
 
-# -------------------------------------------------------------- nginx
-if [[ "$SKIP_NGINX" == false ]]; then
-  say "installing nginx vhost for play.limidus.com"
-
-  # Substitute service IP if overridden (template ships with 192.168.13.13).
-  tmp_nginx="$(mktemp)"
-  sed "s/192\\.168\\.13\\.13/${SERVICE_IP}/g" \
-    "${ROOT}/deploy/nginx/play-limidus.conf" > "$tmp_nginx"
-  scp -q "$tmp_nginx" "${DEPLOY_SSH}:/tmp/play-limidus.conf"
-  rm -f "$tmp_nginx"
-
-  ssh_admin "sudo bash -s" <<'EOF'
-set -euo pipefail
-install -m 0644 /tmp/play-limidus.conf /etc/nginx/sites-available/play-limidus
-ln -sfn /etc/nginx/sites-available/play-limidus /etc/nginx/sites-enabled/play-limidus
-rm -f /tmp/play-limidus.conf
-nginx -t
-systemctl reload nginx
-EOF
-else
-  warn "skipping nginx (--skip-nginx)"
-fi
-
 # ---------------------------------------------------------------- verify
 say "verification"
 
@@ -420,6 +523,18 @@ fi
 if [[ "$api_code" != "401" ]]; then
   warn "GET ${PUBLIC_URL}/users/me returned ${api_code}; expected the API's 401"
 fi
+
+# The other names are the same upstream behind a different certificate and
+# server block, so what can break for them alone is DNS, TLS and routing. A
+# version that matches the canonical one proves all three.
+for url in $(echo "${EXTRA_URLS}" | tr ',' ' '); do
+  other="$(curl -fsS -m 10 "${url%/}/version" 2>/dev/null || echo FAIL)"
+  if [[ "$other" == "$version" ]]; then
+    printf '  %-28s ok\n' "${url}"
+  else
+    warn "${url}/version answered ${other}; expected ${version}"
+  fi
+done
 
 echo
 say "deployed ${RELEASE} to ${PUBLIC_URL}"

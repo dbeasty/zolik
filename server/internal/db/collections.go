@@ -8,7 +8,10 @@ type Collections struct {
 	// Games rather than a migration of it: the Žolíky documents already in
 	// there have a rummy-shaped schema, and moving them is a one-shot script
 	// worth running only once the module path is the live one.
-	Matches  *mongo.Collection
+	Matches *mongo.Collection
+	// MatchLog holds each match's moves, one immutable record apiece, and
+	// the state snapshots a match is rebuilt from.
+	MatchLog *mongo.Collection
 	Users    *mongo.Collection
 	Sessions *mongo.Collection
 	Scoring  *mongo.Collection
@@ -28,12 +31,25 @@ type Collections struct {
 	// short-lived and TTL-swept.
 	LoginCodes *mongo.Collection
 	OAuthFlows *mongo.Collection
+	// DailyMetrics holds one counter document per UTC day and Boots one row
+	// per process lifetime. Both are operational rather than game data: they
+	// are what the console reads to say how much was played and how often
+	// this process died, and nothing in the game path reads either.
+	DailyMetrics *mongo.Collection
+	Boots        *mongo.Collection
+	// NotifyProfiles, NotifyCircle and NotifyDevices are internal/notify's:
+	// who wants to hear about tables, whose tables they hear about, and where
+	// a push reaches them when no app is open.
+	NotifyProfiles *mongo.Collection
+	NotifyCircle   *mongo.Collection
+	NotifyDevices  *mongo.Collection
 }
 
 func (m *Mongo) Collections() Collections {
 	return Collections{
 		Games:        m.DB.Collection("games"),
 		Matches:      m.DB.Collection("matches"),
+		MatchLog:     m.DB.Collection("match_log"),
 		Users:        m.DB.Collection("users"),
 		Sessions:     m.DB.Collection("sessions"),
 		Scoring:      m.DB.Collection("scoring_sessions"),
@@ -42,5 +58,11 @@ func (m *Mongo) Collections() Collections {
 		Identities:   m.DB.Collection("identities"),
 		LoginCodes:   m.DB.Collection("login_codes"),
 		OAuthFlows:   m.DB.Collection("oauth_flows"),
+		DailyMetrics: m.DB.Collection("daily_metrics"),
+		Boots:        m.DB.Collection("boots"),
+
+		NotifyProfiles: m.DB.Collection("notify_profiles"),
+		NotifyCircle:   m.DB.Collection("notify_circle"),
+		NotifyDevices:  m.DB.Collection("notify_devices"),
 	}
 }

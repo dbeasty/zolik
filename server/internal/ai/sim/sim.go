@@ -257,33 +257,56 @@ func (c Contender) label() module.Skill {
 
 // Duel plays two contenders against each other over a seed sweep.
 //
-// Seats alternate who is dealt first across seeds, because Žolíky's dealer
-// advantage is real and a sweep that always seated the same contender first
-// would measure the seat as much as the strength.
+// Every seed is played twice, once from each side of the table, so both
+// contenders hold both hands of every deal.
+//
+// It used to alternate by seed *parity* — contender a at p1 on odd seeds, at
+// p2 on even ones — on the reasoning that Žolíky's dealer advantage is real
+// and a sweep that always seated the same contender first would measure the
+// seat as much as the strength. That reasoning is right and the implementation
+// of it was not, in a way that quietly invalidated every comparison this
+// function has ever been asked for.
+//
+// A seed fixes the deal: for a given seed, p1's hand and p2's hand are decided
+// before anybody plays. Alternating by parity therefore does not mirror a
+// sweep, it *splits* one — a plays p1's hands on the odd seeds and p2's on the
+// even ones. So Duel(hard, medium) and Duel(medium, hard) are not the same
+// experiment run twice, they are two different halves of the deals, and they
+// can disagree. On Continental they did, flatly: hard came out at 57% one way
+// round and 41% the other, on identical rules and an identical seed count.
+// That is the disagreement recorded in selfplay_test.go as a reason not to
+// police the Continental ladder, attributed there to the ruleset being noisy.
+// It was the harness.
+//
+// Playing both seatings of each seed makes the cards a constant and leaves the
+// strength as the only variable, which is the whole point of a controlled
+// comparison and is worth exactly twice the runtime it costs. `seeds` still
+// means seeds; the number of matches is now twice that.
 func Duel(cfg rules.RulesConfig, a, b Contender, seeds int, maxActions int) (Tally, Tally) {
 	ta, tb := Tally{Skill: a.label()}, Tally{Skill: b.label()}
 	for seed := int64(1); seed <= int64(seeds); seed++ {
-		first, second := a, b
-		ids := []string{"p1", "p2"}
-		flipped := seed%2 == 0
-		if flipped {
-			first, second = b, a
+		for _, flipped := range [2]bool{false, true} {
+			first, second := a, b
+			ids := []string{"p1", "p2"}
+			if flipped {
+				first, second = b, a
+			}
+			r := Play(Options{
+				Rules:      cfg,
+				Seed:       seed,
+				MaxActions: maxActions,
+				Seats: []Seat{
+					{ID: ids[0], Skill: first.Skill, Profile: first.Profile},
+					{ID: ids[1], Skill: second.Skill, Profile: second.Profile},
+				},
+			})
+			seatA, seatB := ids[0], ids[1]
+			if flipped {
+				seatA, seatB = ids[1], ids[0]
+			}
+			record(&ta, r, seatA)
+			record(&tb, r, seatB)
 		}
-		r := Play(Options{
-			Rules:      cfg,
-			Seed:       seed,
-			MaxActions: maxActions,
-			Seats: []Seat{
-				{ID: ids[0], Skill: first.Skill, Profile: first.Profile},
-				{ID: ids[1], Skill: second.Skill, Profile: second.Profile},
-			},
-		})
-		seatA, seatB := ids[0], ids[1]
-		if flipped {
-			seatA, seatB = ids[1], ids[0]
-		}
-		record(&ta, r, seatA)
-		record(&tb, r, seatB)
 	}
 	return ta, tb
 }
@@ -297,7 +320,19 @@ func Duel(cfg rules.RulesConfig, a, b Contender, seeds int, maxActions int) (Tal
 // feed — do not exist at all with one opponent. A knob that measures dead
 // head-to-head can still be worth its code here.
 //
-// Seats rotate by seed so that no contender keeps the dealer's advantage.
+// Every seed is played once per seating rotation, so each contender holds each
+// of the deal's hands exactly once — `seeds` is seeds, and the match count is
+// seeds times the number of contenders.
+//
+// The rotation used to advance with the seed instead, which is the same
+// mistake Duel made and is corrected there for the same reason: a seed fixes
+// the deal, so rotating with it hands each contender a different set of cards
+// rather than the same cards from a different chair. The dealer's advantage
+// came out even and the *hands* did not, which is variance a controlled
+// comparison does not have to carry. Playing the rotations within the seed
+// costs a factor of len(cs) in matches and buys back more than that in noise,
+// so a sweep of a third the seeds is a sharper instrument than the old one at
+// full length.
 func Table(cfg rules.RulesConfig, cs []Contender, seeds, maxActions int) []Tally {
 	tallies := make([]Tally, len(cs))
 	for i, c := range cs {
@@ -308,18 +343,19 @@ func Table(cfg rules.RulesConfig, cs []Contender, seeds, maxActions int) []Tally
 		ids[i] = fmt.Sprintf("p%d", i+1)
 	}
 	for seed := int64(1); seed <= int64(seeds); seed++ {
-		shift := int(seed) % len(cs)
-		seats := make([]Seat, len(cs))
-		// seatOf[i] is where contender i is sitting this deal.
-		seatOf := make([]string, len(cs))
-		for i, c := range cs {
-			pos := (i + shift) % len(cs)
-			seats[pos] = Seat{ID: ids[pos], Skill: c.Skill, Profile: c.Profile}
-			seatOf[i] = ids[pos]
-		}
-		r := Play(Options{Rules: cfg, Seed: seed, MaxActions: maxActions, Seats: seats})
-		for i := range cs {
-			record(&tallies[i], r, seatOf[i])
+		for shift := 0; shift < len(cs); shift++ {
+			seats := make([]Seat, len(cs))
+			// seatOf[i] is where contender i is sitting this deal.
+			seatOf := make([]string, len(cs))
+			for i, c := range cs {
+				pos := (i + shift) % len(cs)
+				seats[pos] = Seat{ID: ids[pos], Skill: c.Skill, Profile: c.Profile}
+				seatOf[i] = ids[pos]
+			}
+			r := Play(Options{Rules: cfg, Seed: seed, MaxActions: maxActions, Seats: seats})
+			for i := range cs {
+				record(&tallies[i], r, seatOf[i])
+			}
 		}
 	}
 	return tallies

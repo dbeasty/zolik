@@ -1,0 +1,9 @@
+{
+  "name": "zolik-nearby",
+  "version": "0.1.0",
+  "description": "The embedded Zolik game server, for tables with no internet",
+  "license": "AGPL-3.0-only",
+  "author": "Zolik",
+  "homepage": "https://github.com/dbeasty/zolik",
+  "main": "index.ts"
+}

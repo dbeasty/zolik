@@ -66,3 +66,22 @@ func TestLoadConfigAdmissionMaxConnectionsNegativeOne(t *testing.T) {
 		t.Fatalf("AdmissionMaxConnections = %d, want -1", cfg.AdmissionMaxConnections)
 	}
 }
+
+// Replay is off unless somebody says otherwise, and running KDB does not say
+// it: storing every version of a document is not the same decision as showing
+// players every board their game passed through.
+func TestLoadConfigReplayIsOffByDefault(t *testing.T) {
+	t.Setenv("FEATURE_FLAG_MATCH_REPLAY", "")
+	t.Setenv("FEATURE_FLAG_DB_ENGINE", "kdb")
+
+	cfg := LoadConfig()
+	if cfg.ReplayEnabled {
+		t.Error("ReplayEnabled came on by itself on a KDB deployment")
+	}
+	for _, on := range []string{"true", "1", "yes", "on"} {
+		t.Setenv("FEATURE_FLAG_MATCH_REPLAY", on)
+		if !LoadConfig().ReplayEnabled {
+			t.Errorf("FEATURE_FLAG_MATCH_REPLAY=%s did not turn replay on", on)
+		}
+	}
+}

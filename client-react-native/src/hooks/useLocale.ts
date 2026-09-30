@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 
-import { getLocale, setLocale, subscribeToLocale, type Locale } from '@/src/lib/i18n';
+import {
+  getLocale,
+  setLocale,
+  setMissingKeyMarker,
+  subscribeToLocale,
+  type Locale,
+} from '@/src/lib/i18n';
 import { detectLocale } from '@/src/lib/localeDetect';
 import { loadLocaleOverride, saveLocaleOverride } from '@/src/lib/localeStore';
 
@@ -44,6 +50,20 @@ type LocaleState = {
  */
 export function useLocaleBootstrap(): boolean {
   const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    // Armed only by an explicit local flag, and read once at launch. This is
+    // how `_TX_<key>_` gets switched on for a diagnostic pass — see
+    // `setMissingKeyMarker` — without the marker ever being reachable from
+    // anything a player can press.
+    try {
+      if (typeof localStorage !== 'undefined') {
+        setMissingKeyMarker(localStorage.getItem('zolik_i18n_debug') === '1');
+      }
+    } catch {
+      /* no storage here; the marker simply stays off, which is the default */
+    }
+  }, []);
 
   useEffect(() => {
     let live = true;
