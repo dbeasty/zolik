@@ -18,6 +18,13 @@ import { loginAsFreshGuest, seedIntroSeen } from '../helpers/login';
 
 const suffix = () => Math.random().toString(36).slice(2, 8);
 
+// Registering through the UI lands on `/`, which sends a device that has
+// never seen the first-run intro to `/intro` instead — so the registered
+// account would never be seen arriving where it should.
+test.beforeEach(async ({ page }) => {
+  await seedIntroSeen(page);
+});
+
 test.describe('the score table and stats need an account', () => {
   test('a guest is shown them disabled, and cannot reach them by address either', async ({
     page,
