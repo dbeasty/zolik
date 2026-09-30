@@ -137,9 +137,18 @@ async function openMatch(page: Page, host: any, matchId: string) {
 
 /** The reason text the shell prints under a disabled control. */
 async function reasonUnder(page: Page, label: string) {
-  const control = page.locator('[data-testid^="offer-"]', { hasText: label }).first();
+  // The control itself, not its title text, which carries the same label.
+  const control = page
+    .locator('[data-testid^="offer-"]:not([data-testid$="-title"])', { hasText: label })
+    .first();
   await expect(control).toBeVisible();
-  return (await control.locator('xpath=..').innerText()).replace(/\s+/g, ' ');
+  // Read the reason line by its own id. It used to be the control's sibling,
+  // but the control is now wrapped (a press on a disabled one explains why),
+  // so "the parent's text" no longer reaches it.
+  const id = ((await control.getAttribute('data-testid')) ?? '').replace(/^offer-/, '');
+  const why = page.getByTestId(`why-${id}`);
+  await expect(why).toBeVisible();
+  return (await why.innerText()).replace(/\s+/g, ' ');
 }
 
 test.describe("Žolík Classic's clean-run rule", () => {
