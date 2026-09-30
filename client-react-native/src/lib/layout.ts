@@ -557,3 +557,90 @@ export function fanOverlaps(
 ): boolean {
   return fanPitch(m, count, measuredWidth, spread) < m.card.slotPitch;
 }
+
+/**
+ * How tall one card in a closed group's column stands, ring and all.
+ *
+ * The overlap that closes a column, the step a card takes aside to show a
+ * drop spot, and the hole that opens where it stepped from are all this same
+ * number, so it is written once. Two of them disagreeing by a pixel is a gap
+ * that does not line up with the cards either side of it. Here rather than in
+ * `ZoneView` so the index column below can be held to being shorter than it.
+ */
+export function stackedCardBox(m: Metrics): number {
+  return m.card.compactHeight + 2 * (m.card.ringPadding + m.card.ringBorder);
+}
+
+/** The space between two card indices in a column. */
+export const CARD_INDEX_GAP = 2;
+
+/** The hairline a card index is outlined in — a sliver of card, edge and all. */
+export const CARD_INDEX_BORDER = 1;
+
+/** What a card index's box and type measure — see `cardIndexBox`. */
+export type CardIndexBox = {
+  width: number;
+  height: number;
+  /** The rank's type size. */
+  rankFont: number;
+  /** The drawn mark beside the rank, square. */
+  markSize: number;
+};
+
+/**
+ * The box a card is drawn in when it is drawn as nothing but its index — the
+ * rank and the mark printed in its corner, side by side, on a sliver of stock
+ * (see `CardIndex`). What a closed group on a narrow board draws each of its
+ * cards as.
+ *
+ * About a third of a compact card's height, and it has to stay well under
+ * `stackedCorner`: a column of indices is only worth drawing if it is shorter
+ * than the overlapped cards it replaces, and `layout.test.ts` holds it to
+ * that at every narrow width. Ten points is the floor on the type, the same
+ * floor every other index on the board keeps. The width grows past a compact
+ * card's only if the widest index ("10" and its mark) would not otherwise
+ * fit, so an index is never clipped and never wider than it must be.
+ *
+ * Every number here comes from the metrics, none from a skin: type is layout.
+ */
+export function cardIndexBox(m: Metrics): CardIndexBox {
+  const height = Math.max(14, Math.round(m.card.compactHeight * 0.3));
+  const rankFont = Math.max(10, Math.round((height - 2 * CARD_INDEX_BORDER) * 0.8));
+  const markSize = Math.max(8, Math.round(rankFont * 0.85));
+  // The widest rank, the gap to its mark, the mark, a little air either side
+  // and the hairline around it all.
+  const needed = Math.ceil(WIDEST_RANK * rankFont + 2 + markSize + 2 * 2 + 2 * CARD_INDEX_BORDER);
+  return { width: Math.max(m.card.compactWidth, needed), height, rankFont, markSize };
+}
+
+/** How far one index in a column sits below the one before it. */
+export function cardIndexStep(m: Metrics): number {
+  return cardIndexBox(m).height + CARD_INDEX_GAP;
+}
+
+/** How tall a column of `count` card indices stands. */
+export function cardIndexColumn(m: Metrics, count: number): number {
+  return count <= 0 ? 0 : count * cardIndexStep(m) - CARD_INDEX_GAP;
+}
+
+/** How tall a closed column of `count` overlapped compact cards stands. */
+export function stackedColumn(m: Metrics, count: number): number {
+  return count <= 0 ? 0 : stackedCardBox(m) + (count - 1) * m.stackedCorner;
+}
+
+/**
+ * Whether a group on the board is drawn as a column of its cards' indices
+ * rather than as overlapped compact cards.
+ *
+ * Only on a narrow board, where eight groups of overlapped cards came to most
+ * of the screen's height; only while the group is closed, because opening a
+ * group is asking to see the cards themselves; and not while it is collapsed
+ * to its top card, which is already shorter than any column. Lossless on
+ * purpose: every card is still there, in order. A summary — one rank for a
+ * group that repeats it, the two ends for a sequence — would be shorter
+ * still, and would mean the shell knew what the groups of some game *are*,
+ * which it may not (`shell.test.ts`). An index knows only what a card is.
+ */
+export function groupShowsIndices(m: Metrics, open: boolean, collapsed: boolean): boolean {
+  return m.narrow && !open && !collapsed;
+}
