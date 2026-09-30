@@ -10,10 +10,12 @@ import type { Zone } from '@/src/api/matchTypes';
  * next state just differs — so, like `flights.ts`, this compares boards. It
  * knows groups and cards and nothing about any game.
  *
- * Marks pile up across everyone else's turns and are cleared when the viewer's
- * own turn ends. That way a player who looked away for three turns still sees
- * all three changes when they look back, and they stay up while the player
- * plans the move that answers them.
+ * Everyone's changes are marked but the viewer's own, partners' included: the
+ * viewer knows what they did, and nobody else's move. Marks pile up across the
+ * other players' turns and are cleared by the viewer's first move of their own
+ * turn. A player
+ * who looked away for three turns still sees all three changes when their turn
+ * comes round, and the board is clean again once they start playing.
  */
 
 export type GroupChange = {
@@ -71,20 +73,28 @@ function isActive(board: Board, playerId: string): boolean {
   return (board.seats ?? []).some((s) => s.playerId === playerId && s.active);
 }
 
+/** Whether anything on the table moved between two boards. */
+function boardMoved(prev: Board, next: Board): boolean {
+  return JSON.stringify(prev.zones) !== JSON.stringify(next.zones);
+}
+
 /**
  * The marks after one more board arrives.
  *
- * - The viewer's own moves are never marked; they know what they did.
- * - Once the viewer's turn is over, every mark is cleared. The marks were
- *   there to help plan that turn, and the next set starts building from here.
- * - Anyone else's changes are added to what is already marked.
+ * - The viewer's first move of their own turn clears every mark. The marks
+ *   were there to show what happened while they waited; once they are
+ *   playing, the board should be clean. A board that arrives on their turn
+ *   with nothing moved (a presence update, say) is not a move and clears
+ *   nothing.
+ * - So the viewer's own moves are never marked; they know what they did.
+ * - Anyone else's changes, a partner's too, are added to what is already
+ *   marked.
  * - A group that has left the board (a new deal, a taken-back lay-down) loses
  *   its mark.
  */
 export function nextMarks(marks: ChangeMarks, prev: Board | null, next: Board, viewerId: string): ChangeMarks {
   if (!prev) return NO_MARKS;
-  const wasMine = isActive(prev, viewerId);
-  if (wasMine) return isActive(next, viewerId) ? marks : NO_MARKS;
+  if (isActive(prev, viewerId) && boardMoved(prev, next)) return NO_MARKS;
 
   const diff = diffGroups(prev, next);
   const present = groupsOf(next);
