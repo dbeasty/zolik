@@ -74,6 +74,7 @@ func run(ctx context.Context, args []string, summary io.Writer) error {
 	salt := fl.String("salt", "", "salt for the match and seat hashes (required; keep it with the data, never in it)")
 	includeBots := fl.Bool("include-bots", false, "export bot decisions too, marked bot:true")
 	includeAbandoned := fl.Bool("include-abandoned", false, "export abandoned matches as well as completed ones")
+	includeActive := fl.Bool("include-active", false, "export matches still in progress as well (their moves so far); for reviewing a game being played, not for training")
 
 	engine := fl.String("engine", os.Getenv("FEATURE_FLAG_DB_ENGINE"), "mongo or kdb (default $FEATURE_FLAG_DB_ENGINE; else whichever of -kdb/-mongo-uri is set)")
 	mongoURI := fl.String("mongo-uri", os.Getenv("MONGO_URI"), "Mongo URI (default $MONGO_URI)")
@@ -95,8 +96,16 @@ func run(ctx context.Context, args []string, summary io.Writer) error {
 		return errors.New("-out is required")
 	}
 	filter := match.FinishedFilter{ModuleID: g.Name(), Limit: *limit}
-	if *includeAbandoned {
-		filter.Statuses = []string{"completed", string(rules.StatusAbandoned)}
+	if *includeAbandoned || *includeActive {
+		filter.Statuses = []string{"completed"}
+		if *includeAbandoned {
+			filter.Statuses = append(filter.Statuses, string(rules.StatusAbandoned))
+		}
+		if *includeActive {
+			// Suspended is still in progress: somebody's socket closed and the
+			// reaper has not yet called it abandoned.
+			filter.Statuses = append(filter.Statuses, "active", "suspended")
+		}
 	}
 	if filter.EndedFrom, err = day(*since, 0); err != nil {
 		return fmt.Errorf("-since: %w", err)
