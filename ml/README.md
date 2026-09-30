@@ -64,6 +64,20 @@ uv run python train.py --game zolik --config configs/zolik-4p35.yaml --run zolik
   --minutes 120 --init runs/zolik-long/final.bin
 ```
 
+When the encoder has only grown — features appended to the state or the
+candidates, every layer size the same — add `--widen`: the file's weights keep
+their inputs and the new ones start at weight zero, so the run begins as the
+old model and learns to use the new features (the widened start, saved as
+`ckpt/0.bin`, is the league's first opponent instead of the file).
+`configs/zolik-v2.yaml` is Žolíky's encoder v2 (900/62, from 630/52) trained
+that way, 70% on the four-seat 35-point table and 30% on two-seat Classic,
+with the `closer` style in the league:
+
+```sh
+uv run python train.py --game zolik --config configs/zolik-v2.yaml --run zolik-v2 \
+  --minutes 150 --init runs/zolik-4p35/final.bin --widen
+```
+
 A run writes `runs/<name>/`:
 
 | file | what |

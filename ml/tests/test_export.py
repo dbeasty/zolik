@@ -86,3 +86,39 @@ def test_load_into_refuses_another_architecture(tmp_path, other):
         export.load_into(dst, path)
     assert all(torch.equal(before[k], v) for k, v in dst.state_dict().items())
 
+
+
+def test_widen_into_scores_as_the_narrower_model(tmp_path):
+    torch.manual_seed(2)
+    src = Policy(11, 5, [8, 6], [7], [4], game="toy")
+    path = export.save(src, tmp_path / "src.bin")
+    dst = Policy(15, 9, [8, 6], [7], [4], game="toy")
+    export.widen_into(dst, path)
+    obs, cands = torch.randn(3, 11), torch.randn(3, 4, 5)
+    wide_obs = torch.cat([obs, torch.randn(3, 4)], -1)
+    wide_cands = torch.cat([cands, torch.randn(3, 4, 4)], -1)
+    with torch.no_grad():
+        l1, v1 = src(obs, cands)
+        l2, v2 = dst(wide_obs, wide_cands)
+    torch.testing.assert_close(l1, l2)
+    torch.testing.assert_close(v1, v2)
+    # and the new inputs still learn: their weights take gradient
+    dst.zero_grad()
+    logits, value = dst(wide_obs, wide_cands)
+    (logits.sum() + value.sum()).backward()
+    assert dst.trunk[0].weight.grad[:, 11:].abs().sum() > 0
+    assert dst.scorer[0].weight.grad[:, 6 + 5 :].abs().sum() > 0
+
+
+@pytest.mark.parametrize(
+    "other",
+    [
+        dict(state_dim=11, cand_dim=5, trunk=[8, 5], scorer=[7], value=[4], game="toy"),  # a trunk size
+        dict(state_dim=16, cand_dim=5, trunk=[8, 6], scorer=[7], value=[4], game="toy"),  # wider than the model
+        dict(state_dim=11, cand_dim=5, trunk=[8, 6], scorer=[7], value=[4], game="other"),  # the game
+    ],
+)
+def test_widen_into_refuses_another_network(tmp_path, other):
+    path = export.save(Policy(**other), tmp_path / "other.bin")
+    with pytest.raises(ValueError):
+        export.widen_into(Policy(15, 9, [8, 6], [7], [4], game="toy"), path)

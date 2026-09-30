@@ -1,0 +1,72 @@
+# Žolíky, encoder v2 (900-wide state, 62-wide candidates), for the owner's
+# table: about 70% of tables are the four-seat 35-point lobby table
+# (zolik_classic+floor35: clean run, 35-point first meld, pile from lap 3) and
+# about 30% two-seat Classic with no floor. Started from a v1 model with
+# --init <model.bin> --widen: the old weights keep their inputs, the new
+# features start at weight zero.
+#
+# The league adds the closer (ai.CloserProfile: down as early as the pile
+# allows, then racing out), weighted above hard: it is the human-like threat
+# the v1 models lost to.
+game: zolik
+variation: zolik_classic+floor35
+
+model:
+  trunk: [512, 256]
+  scorer: [128]
+  value: [128]
+
+env:
+  envs: 7
+  tables: 32
+  procs: 1
+  gogc: 1000
+  budget: 50000
+
+ppo:
+  lr: 4.0e-4
+  gamma: 0.999
+  lam: 0.95
+  clip: 0.2
+  vf_coef: 0.5
+  ent_coef: 0.01
+  max_grad_norm: 0.5
+  epochs: 4
+  minibatch: 2048
+  target_kl: 0.03
+  reward_scale: 1.0
+
+train:
+  rollout: 16384
+  total_updates: 5000
+  snapshot_every: 20
+  reset_every: 20
+  lr_floor: 0.2
+
+league:
+  blend: {checkpoint: 0.25, heuristic: 0.55, self: 0.2}
+  seats: {4: 1.0}
+  # Seven env processes: five play the lobby table at four seats, two play
+  # Classic at two.
+  variation_mix:
+    zolik_classic+floor35: 0.7
+    zolik_classic: 0.3
+  variations:
+    zolik_classic+floor35: {4: 1.0}
+    zolik_classic: {2: 1.0}
+  learners: {1: 0.55, 2: 0.15, 3: 0.3}
+  partnerships: false
+  opponents:
+    closer: 1.5
+    hard: 1.0
+    medium: 0.5
+    easy: 0.2
+  checkpoint_temperature: 1.0
+  checkpoint_decay: 0.8
+  pool_size: 20
+
+eval:
+  seats: 4
+  seeds: 300
+  variation: zolik_classic+floor35
+  opponents: [hard, medium, closer]

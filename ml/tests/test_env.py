@@ -10,11 +10,11 @@ from zolik_ml.ppo import Step, Tracker
 
 pytestmark = pytest.mark.skipif(shutil.which("go") is None, reason="needs go")
 
-DIMS = {"holdem": (295, 14), "canasta": (383, 40), "zolik": (630, 52)}
+DIMS = {"holdem": (295, 14), "canasta": (383, 40), "zolik": (900, 62)}
 PLANS = {
     "holdem": [["learner", "station"], ["learner", "learner", "maniac"], ["learner"] * 6, ["hard", "learner", "rock", "riverbluffer"]],
     "canasta": [["learner", "hard"], ["learner", "medium", "learner", "easy"], ["learner", "hard", "hard", "hard"]],
-    "zolik": [["learner", "hard"], ["learner", "medium", "learner"], ["easy", "learner", "hard", "learner"]],
+    "zolik": [["learner", "hard"], ["learner", "medium", "learner"], ["easy", "learner", "hard", "learner"], ["closer", "learner", "closer", "closer"]],
 }
 
 
