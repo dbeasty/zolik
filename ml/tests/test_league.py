@@ -73,3 +73,34 @@ def test_variation_mix():
     assert assign_variations(canasta, 4) == ["classic"] * 4
     canasta["league"]["samba"] = True
     assert assign_variations(canasta, 4) == ["classic", "samba", "classic", "samba"]
+
+
+def test_learner_seats():
+    cfg = yaml.safe_load((CONFIGS / "zolik.yaml").read_text())
+    cfg["league"]["seats"] = {4: 1.0}
+    cfg["league"]["blend"] = {"heuristic": 1.0}
+    cfg["league"]["learners"] = {1: 0.5, 2: 0.2, 3: 0.3}
+    lg = League(cfg, seed=5)
+    by_k = {}
+    for _ in range(600):
+        t = lg.sample()
+        k = t.plan.count("learner")
+        assert len(t.plan) == 4 and 1 <= k <= 3
+        assert t.label.endswith(f"/{k}L") == (k > 1)
+        by_k[k] = by_k.get(k, 0) + 1
+    assert by_k[1] > by_k[3] > by_k[2] > 50
+
+
+def test_learner_seats_default_to_one():
+    lg = league("zolik")
+    lg.blend = {"heuristic": 1.0}
+    assert all(lg.sample().plan.count("learner") == 1 for _ in range(200))
+
+
+def test_learner_seats_leave_an_opponent():
+    cfg = yaml.safe_load((CONFIGS / "zolik.yaml").read_text())
+    cfg["league"]["seats"] = {2: 1.0}
+    cfg["league"]["blend"] = {"heuristic": 1.0}
+    cfg["league"]["learners"] = {3: 1.0}
+    lg = League(cfg, seed=5)
+    assert all(lg.sample().plan.count("learner") == 1 for _ in range(50))

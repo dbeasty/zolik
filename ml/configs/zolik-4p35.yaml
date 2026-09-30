@@ -1,0 +1,64 @@
+# Žolíky at the four-seat table people play with bots: Classic with a 35-point
+# first meld and the pile locked until lap 3 (zolik_classic+floor35 is that
+# lobby's rules exactly — see TestLearnFloor35IsTheLobbyTable), three bots and
+# one human. A fine-tune config: start it from a trained model with --init.
+#
+# Every table is four seats. A checkpoint or heuristic table seats one learner
+# (the model among three others) about half the time, and two or three learners
+# the rest: three copies of the model with one other player is the table it
+# ships to. Self-play tables are four learners.
+game: zolik
+variation: zolik_classic+floor35
+
+model:
+  trunk: [512, 256]
+  scorer: [128]
+  value: [128]
+
+env:
+  envs: 7
+  tables: 32
+  procs: 1
+  gogc: 1000
+  budget: 50000
+
+ppo:
+  lr: 4.0e-4         # the smoke run moved the policy by a KL of 5e-4 an update at 2.5e-4
+  gamma: 0.999
+  lam: 0.95
+  clip: 0.2
+  vf_coef: 0.5
+  ent_coef: 0.01
+  max_grad_norm: 0.5
+  epochs: 4
+  minibatch: 2048
+  target_kl: 0.03
+  reward_scale: 1.0
+
+train:
+  rollout: 16384
+  total_updates: 5000
+  snapshot_every: 20
+  reset_every: 20
+  lr_floor: 0.2
+
+league:
+  blend: {checkpoint: 0.3, heuristic: 0.5, self: 0.2}
+  seats: {4: 1.0}
+  learners: {1: 0.55, 2: 0.15, 3: 0.3}
+  variation_mix:
+    zolik_classic+floor35: 1.0
+  partnerships: false
+  opponents:
+    hard: 1.0
+    medium: 0.5
+    easy: 0.2
+  checkpoint_temperature: 1.0
+  checkpoint_decay: 0.8
+  pool_size: 20
+
+eval:
+  seats: 4
+  seeds: 300
+  variation: zolik_classic+floor35
+  opponents: [hard, medium, easy]
