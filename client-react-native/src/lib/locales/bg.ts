@@ -1679,6 +1679,7 @@ export const bg: Record<string, string> = {
   'zolik.move.laidOff': '{player} добави {cards} към комбинация на {owner}',
   'zolik.move.swappedJoker': '{player} смени жокер с {card}',
   'zolik.move.discarded': '{player} изхвърли {card}',
+  'zolik.move.wentOut': '{player} излезе, като изхвърли {card}',
   'zolik.move.undid': '{player} върна ход',
   'canasta.move.drewStock': '{player} изтегли от тестето',
   'canasta.move.melded': '{player} свали {cards}',

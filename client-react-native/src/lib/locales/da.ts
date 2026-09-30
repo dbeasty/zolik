@@ -1665,6 +1665,7 @@ export const da: Record<string, string> = {
   'zolik.move.laidOff': '{player} lagde {cards} til {owner}s udlægning',
   'zolik.move.swappedJoker': '{player} byttede en joker med {card}',
   'zolik.move.discarded': '{player} kastede {card}',
+  'zolik.move.wentOut': '{player} gik ud og kastede {card}',
   'zolik.move.undid': '{player} fortrød et træk',
   'canasta.move.drewStock': '{player} trak fra talonen',
   'canasta.move.melded': '{player} lagde {cards} ud',

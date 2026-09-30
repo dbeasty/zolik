@@ -1684,6 +1684,7 @@ export const hu: Record<string, string> = {
   'zolik.move.laidOff': '{player} hozzátette {owner} kombinációjához: {cards}',
   'zolik.move.swappedJoker': '{player} kicserélt egy jokert erre: {card}',
   'zolik.move.discarded': '{player} eldobta: {card}',
+  'zolik.move.wentOut': '{player} kiment, eldobta: {card}',
   'zolik.move.undid': '{player} visszavont egy lépést',
   'canasta.move.drewStock': '{player} húzott a húzópakliból',
   'canasta.move.melded': '{player} lerakta: {cards}',

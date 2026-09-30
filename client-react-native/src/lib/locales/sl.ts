@@ -1662,6 +1662,7 @@ export const sl: Record<string, string> = {
   'zolik.move.laidOff': '{player}: dodal {cards} h kombinaciji igralca {owner}',
   'zolik.move.swappedJoker': '{player}: zamenjal džokerja za {card}',
   'zolik.move.discarded': '{player}: odvrgel {card}',
+  'zolik.move.wentOut': '{player}: končal z odvrženo {card}',
   'zolik.move.undid': '{player}: razveljavil potezo',
   'canasta.move.drewStock': '{player}: vzel iz talona',
   'canasta.move.melded': '{player}: položil {cards}',

@@ -736,6 +736,7 @@
     "zolik.move.swappedJoker",
     "zolik.move.tookDiscard",
     "zolik.move.undid",
+    "zolik.move.wentOut",
     "zolik.offer.meld",
     "zolik.remedy.discardNotAJoker",
     "zolik.remedy.discardSomethingElse",
@@ -1960,6 +1961,10 @@
     "zolik.move.undid": [
       "player"
     ],
+    "zolik.move.wentOut": [
+      "card",
+      "player"
+    ],
     "zolik.offer.meld": [
       "value"
     ],
@@ -2239,6 +2244,7 @@
     "zolik.move.swappedJoker",
     "zolik.move.tookDiscard",
     "zolik.move.undid",
+    "zolik.move.wentOut",
     "zolik.offer.meld",
     "zolik.remedy.discardSomethingElse",
     "zolik.remedy.drawFromStock",

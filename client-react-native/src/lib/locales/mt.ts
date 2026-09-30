@@ -1684,6 +1684,7 @@ export const mt: Record<string, string> = {
   'zolik.move.laidOff': "{player} żied {cards} mal-kombinazzjoni ta' {owner}",
   'zolik.move.swappedJoker': "{player} biddel joker ma' {card}",
   'zolik.move.discarded': '{player} rema {card}',
+  'zolik.move.wentOut': '{player} spiċċa, rema {card}',
   'zolik.move.undid': '{player} ħassar mossa',
   'canasta.move.drewStock': '{player} ġibed mill-mazz',
   'canasta.move.melded': '{player} niżżel {cards}',

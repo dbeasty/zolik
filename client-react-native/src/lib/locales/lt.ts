@@ -1668,6 +1668,7 @@ export const lt: Record<string, string> = {
   'zolik.move.laidOff': '{player}: pridėjo {cards} prie žaidėjo {owner} derinio',
   'zolik.move.swappedJoker': '{player}: pakeitė džokerį į {card}',
   'zolik.move.discarded': '{player}: atmetė {card}',
+  'zolik.move.wentOut': '{player}: išėjo atmesdamas {card}',
   'zolik.move.undid': '{player}: atšaukė ėjimą',
   'canasta.move.drewStock': '{player}: traukė iš kaladės',
   'canasta.move.melded': '{player}: išdėjo {cards}',
