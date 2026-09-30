@@ -1,6 +1,8 @@
 package stats
 
 import (
+	"time"
+
 	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -102,8 +104,7 @@ func TestWinnerComesFromTheEngineNotTheRanking(t *testing.T) {
 }
 
 // TestMoreThanOneWinnerIsADraw — level on chips at the end of a fixed-length
-// poker match. A Canasta partnership is two winners too, and is deliberately
-// also recorded as a draw here: both members share first place.
+// poker match: two winners on two sides.
 func TestMoreThanOneWinnerIsADraw(t *testing.T) {
 	m, standings := testMatch(t, []string{"user:a", "user:b"}, []int{20, 20}, "completed", "p0", "p1")
 	sb := BuildScoreboard(m, module.Outcome{Standings: standings})
@@ -118,6 +119,46 @@ func TestMoreThanOneWinnerIsADraw(t *testing.T) {
 		if s.Rank != 1 {
 			t.Errorf("%s has rank %d, want 1", s.PlayerID, s.Rank)
 		}
+	}
+}
+
+// TestPartnershipWinIsAWin — a Canasta partnership is two winners on one side.
+// They beat the table together, and each of them won; recording it as a draw
+// left a player who had won every match with a record of none.
+func TestPartnershipWinIsAWin(t *testing.T) {
+	m, standings := testMatch(t,
+		[]string{"user:a", "ai:hard", "ai:hard", "user:b", "ai:hard", "ai:hard"},
+		[]int{30, 20, 10, 30, 20, 10}, "completed", "p0", "p3")
+	sides := [][]string{{"p0", "p3"}, {"p1", "p4"}, {"p2", "p5"}}
+	sb := BuildScoreboard(m, module.Outcome{Standings: standings, Sides: sides})
+
+	if sb.IsDraw {
+		t.Error("one partnership winning is not a draw")
+	}
+	for _, s := range sb.Standings {
+		want := s.PlayerID == "p0" || s.PlayerID == "p3"
+		if s.Won != want || s.Drew {
+			t.Errorf("%s: won=%v drew=%v, want won=%v drew=false", s.PlayerID, s.Won, s.Drew, want)
+		}
+	}
+
+	res := BuildMatchResult(sb, m.ID, time.Time{}, time.Time{}, time.Time{})
+	ps := ApplyMatch(ZeroStats(sb.Standings[0].Subject), res, sb.Standings[0], time.Time{})
+	if ps.Overall.Wins != 1 || ps.Overall.Draws != 0 {
+		t.Errorf("lifetime record: %d wins, %d draws, want 1 and 0", ps.Overall.Wins, ps.Overall.Draws)
+	}
+}
+
+// TestWinnersOnTwoSidesIsStillADraw — sides only merge winners who are
+// partners; two sides sharing first place is a tie like any other.
+func TestWinnersOnTwoSidesIsStillADraw(t *testing.T) {
+	m, standings := testMatch(t, []string{"user:a", "user:b", "user:c", "user:d"},
+		[]int{20, 20, 20, 20}, "completed", "p0", "p1", "p2", "p3")
+	sides := [][]string{{"p0", "p2"}, {"p1", "p3"}}
+	sb := BuildScoreboard(m, module.Outcome{Standings: standings, Sides: sides})
+
+	if !sb.IsDraw {
+		t.Error("winners on both sides should read as a draw")
 	}
 }
 

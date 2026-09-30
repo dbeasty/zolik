@@ -594,7 +594,7 @@ func (m *Manager) HandleAction(ctx context.Context, idOrCode, playerID string, a
 	// without waiting on bookkeeping, and a bookkeeping failure must never
 	// fail the move that won.
 	if match.Status == "completed" && m.recorder != nil {
-		m.recorder.RecordMatchAsync(match, module.OutcomeOf(mod, module.State(match.State)))
+		m.recorder.RecordMatchAsync(match, outcomeOf(mod, match, module.State(match.State)))
 	}
 
 	// Whoever is on turn now might be a bot. The loop is a no-op when it is
@@ -777,6 +777,17 @@ func logEntry(seq int, playerID string, a module.Action) models.MatchAction {
 		raw = []byte("{}")
 	}
 	return models.MatchAction{Seq: seq, PlayerID: playerID, Action: models.JSONDoc(raw), At: time.Now().UTC()}
+}
+
+// outcomeOf is the module's account of a finished match, with the sides it was
+// played in. The players are in the order they were dealt, which is the order
+// Seated.Sides answers in.
+func outcomeOf(mod module.GameModule, match models.Match, state module.State) module.Outcome {
+	out := module.OutcomeOf(mod, state)
+	out.Sides = module.SidesOf(mod,
+		module.MatchConfig{Variation: match.Variation, Options: match.Options},
+		playerRefs(match.Players))
+	return out
 }
 
 func playerRefs(players []models.Player) []module.PlayerRef {

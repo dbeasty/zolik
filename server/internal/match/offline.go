@@ -208,7 +208,7 @@ func (i *Importer) ImportBundle(ctx context.Context, b zsync.Bundle) error {
 		}
 		state = next
 	}
-	outcome := module.OutcomeOf(mod, state)
+	outcome := outcomeOf(mod, envelope, state)
 	if len(outcome.Standings) == 0 {
 		return fmt.Errorf("match %s: replaying its moves does not finish the game", b.Match)
 	}
