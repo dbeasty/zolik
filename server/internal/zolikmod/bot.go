@@ -18,7 +18,11 @@ import (
 // That is the whole reason Botted is an interface and not a fixed policy: a
 // module that has something better should be able to say so, and a module that
 // has nothing should not have to.
-func (m *Module) Bot() module.Bot { return heuristicBot{} }
+//
+// A trained model can sit in the Hard seats for local play — see
+// learn.LocalHard. Unless ZOLIK_LEARNED_MODEL_ZOLIK names one, this is the
+// heuristic, exactly as before.
+func (m *Module) Bot() module.Bot { return learn.LocalHard(learnGame{}, heuristicBot{}) }
 
 type heuristicBot struct{}
 

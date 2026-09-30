@@ -728,3 +728,30 @@ func TestBenchSeatedOfABotAgainstItselfIsZero(t *testing.T) {
 		t.Error("A in every seat was accepted")
 	}
 }
+
+func TestLocalHardSeatsTheModelOnlyAtHard(t *testing.T) {
+	s, _ := nim{}.NewMatch(module.MatchConfig{}, Players(2), 3) // pile 13: perfect takes 1, the net takes 3
+	offers, _ := nim{}.LegalActions(s, "p0")
+	b, _ := preferThird().Marshal()
+	path := t.TempDir() + "/nim.bin"
+	if err := os.WriteFile(path, b, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Setenv("ZOLIK_LEARNED_MODEL_NIM", "")
+	if _, ok := LocalHard(nimGame{}, perfect{}).(perfect); !ok {
+		t.Error("with no model named, LocalHard changed the bot")
+	}
+
+	t.Setenv("ZOLIK_LEARNED_MODEL_NIM", path)
+	bot := LocalHard(nimGame{}, perfect{})
+	for skill, want := range map[module.Skill]string{module.SkillHard: "take3", module.SkillMedium: "take1", module.SkillEasy: "take1"} {
+		a, _ := bot.Act(s, module.BotSeat{PlayerID: "p0", Skill: skill}, offers)
+		if a.OfferID != want {
+			t.Errorf("%s seat played %s, want %s", skill, a.OfferID, want)
+		}
+	}
+	if again := LocalHard(nimGame{}, perfect{}); again != bot {
+		t.Error("a second call resolved the model again instead of reusing it")
+	}
+}
