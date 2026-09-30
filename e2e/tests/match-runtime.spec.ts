@@ -325,7 +325,8 @@ test.describe('module runtime', () => {
     const host = await guest(request);
     const res = await request.post(`${API_BASE}/matches`, {
       headers: { Authorization: `Bearer ${host.accessToken}` },
-      data: { moduleId: 'marias' },
+      // Not a real game's name: 'marias' served here until Mariáš shipped.
+      data: { moduleId: 'no-such-game' },
     });
     expect(res.status()).toBe(404);
     expect((await res.json()).code).toBe('UNKNOWN_MODULE');
