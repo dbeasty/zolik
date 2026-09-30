@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { API_BASE } from '../helpers/env';
+import { seedIntroSeen } from '../helpers/login';
 
 /**
  * What a table looks like after the sweeper has set it aside, and the way back.
@@ -148,6 +149,9 @@ async function openMatch(page: Page, host: any, matchId: string) {
       isGuest: true,
     },
   );
+  // A returning player: leaving the table goes to the main menu, not the
+  // one-time intro a first visit to / shows.
+  await seedIntroSeen(page);
   await page.goto(`/match/${matchId}`);
 }
 
@@ -298,7 +302,9 @@ test.describe('a table the sweeper set aside', () => {
     await expect(page.getByTestId('match-connecting')).toBeHidden();
 
     await page.getByTestId('match-gone-leave').click();
-    await expect(page).toHaveURL(/\/lobby\/games/, { timeout: 30_000 });
+    // The main menu (/) is the list of games since dba9074.
+    await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 30_000 });
+    expect(new URL(page.url()).pathname).toBe('/');
   });
 
   // The other half of the report: a link opened without a session used to sit
