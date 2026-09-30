@@ -64,6 +64,9 @@ type Manager struct {
 	// exactly as it did before the pace was configurable.
 	botThinkMin time.Duration
 	botThinkMax time.Duration
+	// botActBudget bounds one call to a module's Bot.Act. Zero means
+	// botActBudgetDefault; see SetBotActBudget.
+	botActBudget time.Duration
 
 	// live holds the state of every match in play; see live.go.
 	live liveMatches
@@ -131,6 +134,12 @@ type Recorder interface {
 // client decision, so the server has to be able to be told rather than
 // guessing once at compile time.
 func (m *Manager) SetBotPace(min, max time.Duration) { m.botThinkMin, m.botThinkMax = min, max }
+
+// SetBotActBudget bounds how long a module's bot may spend deciding one move
+// before the loop stops waiting and plays from the offer list instead.
+// Optional; zero or less means botActBudgetDefault. Exists so a test can
+// exercise the timeout without sitting through the production budget.
+func (m *Manager) SetBotActBudget(d time.Duration) { m.botActBudget = d }
 
 // SetRecorder attaches statistics recording. Optional.
 func (m *Manager) SetRecorder(r Recorder) { m.recorder = r }
