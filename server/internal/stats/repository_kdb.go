@@ -287,6 +287,57 @@ func (r *kdbRepository) ReplaceMatchAttribution(ctx context.Context, m MatchResu
 	})
 }
 
+func (r *kdbRepository) EachMatch(ctx context.Context, fn func(MatchResult) error) error {
+	// Read first, call back after: a callback is free to write, and writing
+	// the namespace being scanned is not something to do from inside the scan.
+	var rows []MatchResult
+	err := r.k.Scan(db.NSMatchResults, func(doc []byte) error {
+		var m MatchResult
+		if err := db.UnmarshalDoc(doc, &m); err != nil {
+			return err
+		}
+		rows = append(rows, m)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	for _, m := range rows {
+		if err := fn(m); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *kdbRepository) ReplaceMatchDraw(ctx context.Context, m MatchResult) error {
+	return r.k.Update(db.NSMatchResults, func(tx *db.Tx) error {
+		key := resultKey(m.MatchID)
+		doc, err := tx.Get(key)
+		if db.IsNotFound(err) {
+			key = m.ID.Hex()
+			doc, err = tx.Get(key)
+		}
+		if err != nil {
+			if db.IsNotFound(err) {
+				return nil
+			}
+			return err
+		}
+		var cur MatchResult
+		if err := db.UnmarshalDoc(doc, &cur); err != nil {
+			return err
+		}
+		cur.IsDraw = m.IsDraw
+		cur.Participants = m.Participants
+		next, err := db.MarshalDoc(cur)
+		if err != nil {
+			return err
+		}
+		return tx.Put(key, next)
+	})
+}
+
 func (r *kdbRepository) FindPlayerStats(ctx context.Context, key string) (PlayerStats, error) {
 	doc, err := r.k.Get(db.NSPlayerStats, key)
 	if err != nil {
