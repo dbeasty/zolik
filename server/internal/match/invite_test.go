@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -103,6 +104,8 @@ type waitingEntry struct {
 	name    string
 	isGuest bool
 	avatar  string
+	// modules are the games they are waiting for; none means any.
+	modules []string
 }
 
 func newFakeWaitingRoom() *fakeWaitingRoom {
@@ -116,13 +119,23 @@ func (f *fakeWaitingRoom) add(playerID, name string, isGuest bool) {
 func (f *fakeWaitingRoom) addWithAvatar(playerID, name string, isGuest bool, avatar string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.waiting[playerID] = waitingEntry{name, isGuest, avatar}
+	f.waiting[playerID] = waitingEntry{name: name, isGuest: isGuest, avatar: avatar}
 }
 
-func (f *fakeWaitingRoom) IsWaiting(_ context.Context, playerID string) (string, bool, string, bool) {
+// addForGames puts somebody in the pool waiting only for the named games.
+func (f *fakeWaitingRoom) addForGames(playerID, name string, modules ...string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.waiting[playerID] = waitingEntry{name: name, modules: modules}
+}
+
+func (f *fakeWaitingRoom) IsWaiting(_ context.Context, playerID, moduleID string) (string, bool, string, bool) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	e, ok := f.waiting[playerID]
+	if ok && moduleID != "" && len(e.modules) > 0 && !slices.Contains(e.modules, moduleID) {
+		return "", false, "", false
+	}
 	return e.name, e.isGuest, e.avatar, ok
 }
 
@@ -385,6 +398,36 @@ func TestInviteIsRefusedWhenTheTargetHasStoppedWaiting(t *testing.T) {
 	}
 }
 
+func TestInviteIsRefusedForAPlayerWaitingOnlyForAnotherGame(t *testing.T) {
+	// The host's list is filtered to their game, so this only happens when the
+	// player switched games after the host's last poll — and then they are no
+	// longer waiting for this table.
+	h := newInviteHarness(t)
+	hostToken := token(t, "host-1", "Host", false)
+	matchID := h.createMatch(t, hostToken)
+	h.waiting.addForGames("waiter-1", "Waiter", "canasta")
+
+	res := h.do(http.MethodPost, "/matches/"+matchID+"/invite", hostToken, map[string]any{"playerId": "waiter-1"})
+	if res.status != http.StatusConflict {
+		t.Fatalf("status = %d, want 409 for a player waiting only for canasta at a prsi table", res.status)
+	}
+	if _, _, _, ok := h.waiting.IsWaiting(context.Background(), "waiter-1", ""); !ok {
+		t.Error("a refused invite took the player out of the pool")
+	}
+}
+
+func TestInviteSeatsAPlayerWaitingForThisGame(t *testing.T) {
+	h := newInviteHarness(t)
+	hostToken := token(t, "host-1", "Host", false)
+	matchID := h.createMatch(t, hostToken)
+	h.waiting.addForGames("waiter-1", "Waiter", "canasta", "prsi")
+
+	res := h.do(http.MethodPost, "/matches/"+matchID+"/invite", hostToken, map[string]any{"playerId": "waiter-1"})
+	if res.status != http.StatusOK {
+		t.Fatalf("status = %d, want 200 for a player waiting for prsi, among others", res.status)
+	}
+}
+
 func TestInvitingAnAlreadySeatedPlayerIsIdempotent(t *testing.T) {
 	h := newInviteHarness(t)
 	hostToken := token(t, "host-1", "Host", false)
@@ -457,7 +500,7 @@ func TestInviteRespectsLobbyCapacity(t *testing.T) {
 	}
 	// And the player is still waiting: a refused seat must not quietly drop
 	// them out of the pool.
-	if _, _, _, ok := h.waiting.IsWaiting(context.Background(), "waiter-1"); !ok {
+	if _, _, _, ok := h.waiting.IsWaiting(context.Background(), "waiter-1", ""); !ok {
 		t.Error("a refused invite removed the player from the waiting room")
 	}
 }

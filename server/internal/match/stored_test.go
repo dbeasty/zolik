@@ -238,3 +238,45 @@ func TestMyTablesDeleteIsHostOnly(t *testing.T) {
 		t.Fatalf("match still resolvable after delete: status %d", res.status)
 	}
 }
+
+// yourTurn is only answered when asked for, and then names exactly the seat
+// the table is waiting on.
+func TestMyTablesSaysWhoseTurnItIsWhenAsked(t *testing.T) {
+	h := newStoredHarness(t)
+	annTok := token(t, "ann", "Ann", false)
+	bobTok := token(t, "bob", "Bob", true)
+	matchID := h.createMatch(t, annTok)
+	if res := h.do(http.MethodPost, "/matches/"+matchID+"/join", bobTok, nil); res.status != http.StatusOK {
+		t.Fatalf("bob joining: status %d body %s", res.status, res.raw)
+	}
+
+	lobby := h.tables(t, annTok, "?turns=1")
+	if len(lobby) != 1 || lobby[0]["yourTurn"] != false {
+		t.Fatalf("a table still in its lobby: %+v, want yourTurn false", lobby)
+	}
+
+	if res := h.do(http.MethodPost, "/matches/"+matchID+"/start", annTok, nil); res.status != http.StatusOK {
+		t.Fatalf("starting: status %d body %s", res.status, res.raw)
+	}
+
+	if rows := h.tables(t, annTok, ""); len(rows) != 1 {
+		t.Fatalf("ann's list = %+v, want one row", rows)
+	} else if _, ok := rows[0]["yourTurn"]; ok {
+		t.Errorf("yourTurn present without ?turns=1: %+v", rows[0])
+	}
+
+	turn := func(tok string) any {
+		rows := h.tables(t, tok, "?turns=1")
+		for _, r := range rows {
+			if r["matchId"] == matchID {
+				return r["yourTurn"]
+			}
+		}
+		t.Fatalf("match %s missing from the list", matchID)
+		return nil
+	}
+	ann, bob := turn(annTok), turn(bobTok)
+	if (ann == true) == (bob == true) {
+		t.Errorf("yourTurn: ann = %v, bob = %v — want exactly one of them", ann, bob)
+	}
+}

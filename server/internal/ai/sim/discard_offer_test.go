@@ -67,7 +67,9 @@ func sweepDiscardOffer(t *testing.T, rs ruleset, seats int, seed int64, heldBack
 	}
 	failed := false
 	r := Play(Options{
-		Rules: rs.cfg, Seed: seed, Seats: ss, MaxActions: 4000,
+		// Past the first deal, on the same 4 000-action budget the sweep has
+		// always had: later deals reach positions the first one does not.
+		Rules: rs.cfg, Seed: seed, Seats: ss, MaxActions: 4000, WholeMatch: true,
 		Observe: func(st rules.GameState, actor string) {
 			if failed || st.Phase == rules.PhaseDraw {
 				return

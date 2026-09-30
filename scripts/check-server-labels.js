@@ -40,7 +40,7 @@ const UNIVERSAL = /^[\s\d:+\-–—/.,()%]*$/;
  */
 const PROPER = new Set([
   // Games.
-  'Žolíky', 'Prší', 'Canasta', 'Blackjack', 'Gin Rummy', 'Rummy Tiles',
+  'Žolíky', 'Prší', 'Mariáš', 'Canasta', 'Blackjack', 'Gin Rummy', 'Rummy Tiles',
   'Texas Hold’em', "Texas Hold'em",
   // Variations, which are named after places or after the game itself.
   'Žolík Classic', 'Continental', 'Oklahoma', 'Atlantic City', 'Vegas Strip',

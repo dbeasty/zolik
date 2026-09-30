@@ -34,6 +34,10 @@ test.describe('the build footer shows what it is actually running', () => {
     const serverLine = page.getByTestId('build-footer-server');
     await expect(serverLine).toContainText(version, { timeout: 10_000 });
     await expect(serverLine).toContainText(commit);
+
+    // The footer's numbers are also the way in to About.
+    await page.getByTestId('build-footer-about').click();
+    await expect(page.getByTestId('about-server')).toContainText(version, { timeout: 10_000 });
   });
 
   /**
@@ -55,7 +59,11 @@ test.describe('the build footer shows what it is actually running', () => {
     await expect(page.getByTestId('build-footer')).toHaveCount(0);
 
     await page.getByTestId('account-menu-button').click();
-    await page.getByTestId('account-menu-about').click();
+    // The menu item carries the numbers itself, so opening the menu is
+    // already enough to answer "which version is this?".
+    const about = page.getByTestId('account-menu-about');
+    await expect(about).toContainText(version, { timeout: 10_000 });
+    await about.click();
 
     const appLine = page.getByTestId('about-app');
     await expect(appLine).toHaveText(/\d+\.\d+\.\d+\.\d+/);

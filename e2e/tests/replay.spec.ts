@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { API_BASE } from '../helpers/env';
 import { loginAsFreshGuest } from '../helpers/login';
-import { openGame, openGameSetup } from '../helpers/lobby';
+import { openGame, playAgainstBots } from '../helpers/lobby';
 import { waitForOfferEnabled } from '../helpers/turn';
 
 /**
@@ -31,8 +31,7 @@ test.describe('a stopped game can be stepped through', () => {
     );
 
     await openGame(page, 'prsi');
-    await openGameSetup(page, 'prsi');
-    await page.getByTestId('play-bots-prsi').click();
+    await playAgainstBots(page, 'prsi');
     await expect(page.getByTestId('match-screen')).toBeVisible({ timeout: 45_000 });
 
     const matchId = new URL(page.url()).pathname.split('/').pop()!;

@@ -23,7 +23,7 @@ export async function signInAsGuest(page: Page, name: string): Promise<void> {
   // client, and it means `/auth/guest`, the session bootstrap and the redirect
   // into the lobby are all on the soaked path instead of being stepped over.
   await page.goto('/');
-  await page.getByText('Play', { exact: true }).click();
+  await page.getByText('Continue as guest', { exact: true }).click();
 
   const field = page.getByPlaceholder('Display name');
   await field.waitFor({ state: 'visible', timeout: SCREEN_TIMEOUT });
@@ -34,7 +34,7 @@ export async function signInAsGuest(page: Page, name: string): Promise<void> {
 }
 
 export async function openGamesScreen(page: Page): Promise<void> {
-  await page.goto('/lobby/games');
+  await page.goto('/');
   await page.getByTestId('games-list').waitFor({ state: 'visible', timeout: SCREEN_TIMEOUT });
 }
 
@@ -48,7 +48,7 @@ export async function gamesOnOffer(page: Page): Promise<string[]> {
     );
 }
 
-/** Presses a game's button on the list, which leads to that game's own setup. */
+/** Presses a game's row on the main menu, which leads to that game's own page. */
 async function openGame(page: Page, moduleId: string): Promise<void> {
   await page.getByTestId(`game-${moduleId}`).click();
   await page.getByTestId(`play-bots-${moduleId}`).waitFor({ state: 'visible', timeout: SCREEN_TIMEOUT });
@@ -63,13 +63,15 @@ async function openGame(page: Page, moduleId: string): Promise<void> {
  */
 export async function startAgainstBots(page: Page, moduleId: string, rng: () => number): Promise<void> {
   await openGame(page, moduleId);
+  await page.getByTestId(`play-bots-${moduleId}`).click();
+  await page.getByTestId(`deal-me-in-${moduleId}`).waitFor({ state: 'visible', timeout: SCREEN_TIMEOUT });
   const pills = await page
     .locator(`[data-testid^="bots-${moduleId}-"]`)
     .evaluateAll((els) => els.map((e) => e.getAttribute('data-testid') ?? ''));
   if (pills.length) {
     await page.getByTestId(pills[Math.floor(rng() * pills.length)]).click();
   }
-  await page.getByTestId(`play-bots-${moduleId}`).click();
+  await page.getByTestId(`deal-me-in-${moduleId}`).click();
   await page.getByTestId('match-screen').waitFor({ state: 'visible', timeout: SCREEN_TIMEOUT });
 }
 
@@ -77,6 +79,7 @@ export async function startAgainstBots(page: Page, moduleId: string, rng: () => 
 export async function openTable(page: Page, moduleId: string): Promise<string> {
   await openGame(page, moduleId);
   await page.getByTestId(`play-friends-${moduleId}`).click();
+  await page.getByTestId(`open-table-${moduleId}`).click();
   const code = page.getByTestId('table-join-code');
   await code.waitFor({ state: 'visible', timeout: SCREEN_TIMEOUT });
   return ((await code.textContent()) ?? '').trim();
@@ -175,7 +178,7 @@ export async function leaveMatch(page: Page): Promise<void> {
   if (await leave.isVisible().catch(() => false)) {
     await leave.click();
   } else {
-    await page.goto('/lobby/games');
+    await page.goto('/');
   }
   await page.getByTestId('games-list').waitFor({ state: 'visible', timeout: SCREEN_TIMEOUT });
 }

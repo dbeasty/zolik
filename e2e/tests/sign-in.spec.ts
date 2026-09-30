@@ -1,7 +1,24 @@
 import { expect, test } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
 import { API_BASE } from '../helpers/env';
 import { seedIntroSeen } from '../helpers/login';
+
+/**
+ * Who the app says is signed in, read where it says so: the account menu
+ * behind the face in the corner. Waits for a session rather than reading the
+ * "not signed in" placeholder, then closes the menu again.
+ */
+async function signedInName(page: Page): Promise<string> {
+  await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 10_000 });
+  await page.locator('[data-testid="account-menu-button"]:visible').first().click();
+  const name = page.getByTestId('account-menu-name');
+  await expect(page.getByTestId('account-menu-status')).toBeVisible({ timeout: 10_000 });
+  const text = ((await name.textContent()) ?? '').trim();
+  await page.keyboard.press('Escape');
+  await page.getByTestId('account-menu-backdrop').click({ position: { x: 5, y: 5 } }).catch(() => {});
+  return text;
+}
 
 /**
  * The sign-in flows, driven through the real UI rather than seeded via the
@@ -59,13 +76,14 @@ test.describe('guest sign-in', () => {
     await page.getByPlaceholder('Display name').fill(name);
     await page.getByText('Continue', { exact: true }).click();
 
-    // guest.tsx routes straight into the picker on success. It used to route
-    // into a freshly created Žolíky lobby, because there was one game and
-    // nothing to choose; now there are four and choosing is the first step.
-    await expect(page).toHaveURL(/\/lobby\/games/, { timeout: 10_000 });
+    // guest.tsx routes straight to the main menu, which is the list of games,
+    // on success. It used to route into a freshly created Žolíky lobby,
+    // because there was one game and nothing to choose; now choosing is the
+    // first step.
+    await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 10_000 });
 
     await page.goto('/');
-    await expect(page.getByText(`Playing as ${name}`)).toBeVisible({ timeout: 10_000 });
+    expect(await signedInName(page)).toBe(name);
   });
 });
 
@@ -86,7 +104,7 @@ test.describe('passwordless email sign-in', () => {
     // suggestUsername (server side) derives a name from the address's local
     // part when no display name is offered — this is what proves an actual
     // account, not just a token, came back.
-    await expect(page.getByText(/^Playing as /)).toBeVisible({ timeout: 10_000 });
+    expect(await signedInName(page)).not.toBe('');
   });
 
   test('a wrong code is rejected with a visible error, and the right one still works after', async ({
@@ -131,7 +149,7 @@ test.describe('passwordless email sign-in', () => {
     }
 
     await signInWithFreshCode();
-    const firstUsername = await page.getByText(/^Playing as /).textContent();
+    const firstUsername = await signedInName(page);
 
     await openAccountMenu(page);
     await page.getByTestId('account-menu-signout').click();
@@ -140,7 +158,7 @@ test.describe('passwordless email sign-in', () => {
     });
 
     await signInWithFreshCode();
-    const secondUsername = await page.getByText(/^Playing as /).textContent();
+    const secondUsername = await signedInName(page);
 
     expect(secondUsername).toBe(firstUsername);
   });
@@ -163,7 +181,7 @@ test.describe('legacy username/password', () => {
     await page.getByText('Register', { exact: true }).click();
 
     await expect(page).toHaveURL('/', { timeout: 10_000 });
-    await expect(page.getByText(`Playing as ${username}`)).toBeVisible({ timeout: 10_000 });
+    expect(await signedInName(page)).toBe(username);
 
     await openAccountMenu(page);
     await page.getByTestId('account-menu-account').click();
@@ -185,7 +203,7 @@ test.describe('legacy username/password', () => {
     await page.getByText('Sign in', { exact: true }).click();
 
     await expect(page).toHaveURL('/', { timeout: 10_000 });
-    await expect(page.getByText(`Playing as ${username}`)).toBeVisible({ timeout: 10_000 });
+    expect(await signedInName(page)).toBe(username);
   });
 
   test('a wrong password is rejected with a visible error', async ({ page }) => {
@@ -215,7 +233,7 @@ test.describe('guest-to-account claiming, through the UI', () => {
     const guestName = 'e2e-claimguest-' + Math.random().toString(36).slice(2, 8);
     await page.getByPlaceholder('Display name').fill(guestName);
     await page.getByText('Continue', { exact: true }).click();
-    await expect(page).toHaveURL(/\/lobby\/games/, { timeout: 10_000 });
+    await expect(page.getByTestId('games-list')).toBeVisible({ timeout: 10_000 });
 
     // No finished match exists yet for this guest, so the claim on sign-in
     // is expected to move zero matches — what this test actually proves is

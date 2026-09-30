@@ -29,9 +29,9 @@ test.describe('the first-run intro', () => {
     await page.getByText('Continue', { exact: true }).click();
 
     await expect(page).toHaveURL(/\/lobby\/games\?moduleId=canasta/, { timeout: 15_000 });
-    await expect(page.getByTestId('setup-toggle-canasta')).toHaveAttribute('aria-expanded', 'true');
-    await expect(page.getByTestId('option-canasta-targetScore-500')).toBeVisible();
-    // One game, not the picker: no other game's card is on the page.
+    await expect(page.getByTestId('module-canasta')).toBeVisible();
+    await expect(page.getByTestId('play-bots-canasta')).toBeVisible();
+    // One game, not the picker: no other game's page is showing.
     await expect(page.getByTestId('module-holdem')).toHaveCount(0);
   });
 

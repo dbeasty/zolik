@@ -24,6 +24,8 @@ type CardView struct {
 	// BadgeKeys mark this particular card — a pickup owed to a meld, a card
 	// that may not go straight back on the pile.
 	BadgeKeys []string `json:"badgeKeys,omitempty"`
+	// By is who put the card here — in a trick, who played it.
+	By string `json:"by,omitempty"`
 }
 
 // Group is cards within a zone that belong together.
@@ -43,6 +45,9 @@ type Zone struct {
 	Cards    []CardView `json:"cards,omitempty"`
 	Count    int        `json:"count"`
 	Groups   []Group    `json:"groups,omitempty"`
+	// Arrange is a layout the module asked for; "bySeat" means each card
+	// belongs to the player its By names.
+	Arrange string `json:"arrange,omitempty"`
 }
 
 // Seat is one player as the board shows them: whose turn, and their numbers.
@@ -164,8 +169,10 @@ type MatchState struct {
 	MatchID   string `json:"matchId"`
 	ModuleID  string `json:"moduleId"`
 	Variation string `json:"variation,omitempty"`
-	Status    string `json:"status"`
-	JoinCode  string `json:"joinCode,omitempty"`
+	// Deck is the pack, when it is not the French one ("german").
+	Deck     string `json:"deck,omitempty"`
+	Status   string `json:"status"`
+	JoinCode string `json:"joinCode,omitempty"`
 	// InviteURL is the join code as a link the host can send somebody. Minted
 	// by the server, which is the only party that knows how the outside world
 	// reaches it — a terminal client has no origin of its own to guess from,

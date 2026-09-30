@@ -21,6 +21,8 @@ import { humanise, factText } from "@/src/lib/labels";
 const SHELL_FILES = [
   "app/match/[matchId].tsx",
   "app/lobby/games.tsx",
+  "app/lobby/setup.tsx",
+  "app/index.tsx",
   "src/components/match/OfferBar.tsx",
   "src/components/match/SeatStrip.tsx",
   "src/components/match/ZoneView.tsx",
@@ -36,6 +38,8 @@ const SHELL_FILES = [
   "src/hooks/useArrival.ts",
   "src/lib/flights.ts",
   "src/components/match/FlightLayer.tsx",
+  "src/lib/seatArrangement.ts",
+  "src/components/match/SeatArrangedZone.tsx",
 ];
 
 // Nouns and verbs that belong to one game. If any of these appears in the

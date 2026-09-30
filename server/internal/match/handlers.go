@@ -832,6 +832,10 @@ type storedTable struct {
 	// dealt match always has at least the deal to show, which is exactly where
 	// BuildReplay draws the same line.
 	CanReplay bool `json:"canReplay"`
+	// YourTurn is whether the table is waiting on the caller. Absent unless
+	// the list was asked for it with ?turns=1: answering means loading each
+	// board, which a plain listing should not pay for.
+	YourTurn *bool `json:"yourTurn,omitempty"`
 }
 
 func (h *Handlers) storedTableOf(m models.Match, viewerID string, replayable bool) storedTable {
@@ -903,9 +907,20 @@ func (h *Handlers) myTables(w http.ResponseWriter, req *http.Request) {
 	// Asked once for the whole list. A row may not offer a replay this
 	// deployment's endpoint would then refuse — see Manager.ReplayAvailable.
 	replayable := h.manager.ReplayAvailable(req.Context()) == nil
+	turns := req.URL.Query().Get("turns") == "1"
 	out := make([]storedTable, 0, len(rows))
 	for _, m := range rows {
-		out = append(out, h.storedTableOf(m, uc.UserID, replayable))
+		row := h.storedTableOf(m, uc.UserID, replayable)
+		if turns {
+			// Only a dealt, unfinished game has a turn to be waiting on.
+			yours := false
+			switch m.Status {
+			case "active", "suspended", "abandoned":
+				yours = h.manager.Awaits(req.Context(), m.ID.Hex(), uc.UserID)
+			}
+			row.YourTurn = &yours
+		}
+		out = append(out, row)
 	}
 	writeJSON(w, map[string]any{"tables": out})
 }

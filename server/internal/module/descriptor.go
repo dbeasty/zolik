@@ -123,6 +123,33 @@ type ModuleDescriptor struct {
 	MaxPlayers int             `json:"maxPlayers"`
 	Variations []VariationSpec `json:"variations,omitempty"`
 	Options    []OptionSpec    `json:"options,omitempty"`
+	// Deck names the pack the game is played with, where it is not the
+	// French one every game so far has used: DeckGerman for the German-suited
+	// 32 (mariášky). The card codes do not change — "QS" is still the fourth
+	// rank of the fourth suit — only how a client draws and names them.
+	//
+	// Presentational, like Zone.Dealer: a client that ignores it draws French
+	// faces and plays the game exactly as well.
+	Deck string `json:"deck,omitempty"`
+}
+
+// DeckGerman is the German-suited pack: hearts, bells, acorns and leaves,
+// with the spodek and svršek (Unter and Ober) where the French pack has the
+// jack and the queen. Suits map H→hearts, D→bells, C→acorns, S→leaves.
+const DeckGerman = "german"
+
+// GermanSuitKey is the message key naming a German suit, for a module that
+// puts one in a sentence or on a button.
+func GermanSuitKey(suit string) string {
+	switch suit {
+	case "H":
+		return "suit.german.H"
+	case "D":
+		return "suit.german.D"
+	case "C":
+		return "suit.german.C"
+	}
+	return "suit.german.S"
 }
 
 // Option returns the named option's spec, or nil.
