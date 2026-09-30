@@ -64,3 +64,13 @@ client-defold/wasm-web/
 # to carry an explicit rsync exclusion for them after 945 MB went out with a
 # release. Untracked, they also made every build report itself "-dirty".
 .claude/
+
+# Trainer (ml/): the virtualenv, the env/bench binaries it builds, and run
+# output (TensorBoard logs, checkpoints). A model that ships is copied into the
+# server tree deliberately, never committed from here.
+ml/.venv/
+ml/.bin/
+ml/runs/
+ml/*.log
+__pycache__/
+.pytest_cache/

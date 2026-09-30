@@ -1,0 +1,54 @@
+# Hold'em: 295-wide state, 14-wide candidates, up to 7 candidates a decision.
+game: holdem
+variation: ""
+
+model:
+  trunk: [256, 256]
+  scorer: [128]
+  value: [128]
+
+env:
+  envs: 8            # gameenv processes
+  tables: 32         # tables per process
+  procs: 2           # GOMAXPROCS per process
+  gogc: 1000         # GOGC per process: memory for speed (see env.py)
+  budget: 20000
+
+ppo:
+  lr: 3.0e-4
+  gamma: 1.0         # an episode is one hand; no discounting inside it
+  lam: 0.95
+  clip: 0.2
+  vf_coef: 0.5
+  ent_coef: 0.01
+  max_grad_norm: 0.5
+  epochs: 4
+  minibatch: 2048
+  target_kl: 0.03
+  reward_scale: 0.1  # a hand's reward is in big blinds; 10 BB -> 1
+
+train:
+  rollout: 16384     # decisions per update
+  total_updates: 2000  # the learning-rate schedule's horizon when --minutes is not given
+  snapshot_every: 10   # updates between checkpoints joining the pool
+  reset_every: 10      # updates between re-dealing table plans
+
+league:
+  blend: {checkpoint: 0.4, heuristic: 0.4, self: 0.2}
+  seats: {2: 0.4, 3: 0.15, 4: 0.15, 5: 0.15, 6: 0.15}
+  opponents:
+    hard: 1.0
+    medium: 0.5
+    easy: 0.25
+    maniac: 1.0
+    rock: 0.5
+    station: 1.0
+    riverbluffer: 0.5
+  checkpoint_temperature: 1.0
+  checkpoint_decay: 0.8
+  pool_size: 20
+
+eval:
+  seats: 2
+  seeds: 500
+  opponents: [station, maniac, rock, riverbluffer, hard]

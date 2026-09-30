@@ -1,0 +1,58 @@
+# Canasta: 383-wide state, 40-wide candidates, ~9 candidates a decision (max ~60).
+game: canasta
+variation: classic
+
+model:
+  trunk: [256, 256]
+  scorer: [128]
+  value: [128]
+
+env:
+  envs: 8
+  tables: 32
+  procs: 2
+  gogc: 1000
+  budget: 50000
+
+ppo:
+  lr: 3.0e-4
+  gamma: 0.999       # a deal runs to dozens of decisions a seat
+  lam: 0.95
+  clip: 0.2
+  vf_coef: 0.5
+  ent_coef: 0.01
+  max_grad_norm: 0.5
+  epochs: 4
+  minibatch: 2048
+  target_kl: 0.03
+  reward_scale: 1.0  # a deal's reward is (own - best other) / 1000 already
+
+train:
+  rollout: 16384
+  total_updates: 5000
+  snapshot_every: 20
+  reset_every: 20
+
+league:
+  blend: {checkpoint: 0.4, heuristic: 0.4, self: 0.2}
+  # Classic seats two and four. Samba (two to six) is optional: samba: true
+  # gives every other env process the Samba variation, dealt with its own seats.
+  seats: {2: 0.5, 4: 0.5}
+  samba: false
+  variations:
+    samba: {2: 0.3, 4: 0.4, 6: 0.3}
+  partnerships: true
+  partner_learner: 0.5   # at four seats, how often the partner is also a learner
+  partner_bot: hard
+  opponents:
+    hard: 1.0
+    medium: 0.5
+    easy: 0.25
+  checkpoint_temperature: 1.0
+  checkpoint_decay: 0.8
+  pool_size: 20
+
+eval:
+  seats: 2
+  seeds: 100
+  opponents: [hard, medium]
