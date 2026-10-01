@@ -34,7 +34,19 @@ var (
 	_ learn.Game        = learnGame{}
 	_ learn.Equivalence = learnGame{}
 	_ learn.Positional  = learnGame{}
+	_ learn.Styled      = learnGame{}
 )
+
+// Styles are the opponents this module adds to the learning pool and the
+// bench, beyond the skill ladder.
+//
+//	closer  opens as soon as it can, races for the canastas its side needs
+//	        to go out, and then goes out the first turn it can
+//	        (closerProfile): the player the ladder lacks, who ends a deal
+//	        before a slow builder has banked what it is holding.
+func (learnGame) Styles() map[string]module.Bot {
+	return map[string]module.Bot{"closer": bot{style: &closerProfile}}
+}
 
 // position is a state decoded for learn.Positional: the whole GameState when
 // a seat's encoding or candidates are asked for, and only the deal results
