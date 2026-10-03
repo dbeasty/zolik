@@ -202,10 +202,18 @@ type Estimate struct {
 	// Hold is each seat's expected copies of each card; a row sums to the
 	// seat's hand size.
 	Hold [MaxSeats][NumSlots]float64
+	// Known is the part of Hold that is certain: cards the seat was seen to
+	// take and still holds.
+	Known [MaxSeats][NumSlots]float64
 	// Want is, per seat and card, how likely the card is to help that seat:
 	// it lays off, or completes a set or a run window with what the seat
 	// probably holds. 0..1.
 	Want [MaxSeats][NumSlots]float64
+	// Base is, per seat, the Want of a card drawn at random from the unseen
+	// pool: what any card is worth to that seat before the evidence about
+	// this one. A bot pricing a discard cares about the excess over it (see
+	// Excess) — every card helps a random hand a little.
+	Base [MaxSeats]float64
 }
 
 // The evidence weights. Multipliers on the prior (the unseen pool), per seat
@@ -350,11 +358,33 @@ func Infer(o *Observation, e *Estimate) {
 	for i := 0; i < n; i++ {
 		for k := 0; k < NumSlots; k++ {
 			e.Hold[i][k] = known[i][k] + m[i][k]
+			e.Known[i][k] = known[i][k]
 		}
 	}
 	for i := 0; i < n; i++ {
 		wants(&sp, &o.Seats[i], &e.Hold[i], &e.Want[i])
+		if pool > 0 {
+			b := 0.0
+			for k := 0; k < NumSlots; k++ {
+				b += left[k] * e.Want[i][k]
+			}
+			e.Base[i] = b / pool
+		}
 	}
+}
+
+// Excess is how much more seat i wants card k than a random unseen card,
+// rescaled to 0..1: zero for a card no better than the pool, one for a card
+// it certainly wants.
+func (e *Estimate) Excess(i, k int) float64 {
+	if i < 0 || i >= e.N || k < 0 || k >= NumSlots {
+		return 0
+	}
+	b := e.Base[i]
+	if b >= 1 {
+		return 0
+	}
+	return max(0, e.Want[i][k]-b) / (1 - b)
 }
 
 // seatWeights is one seat's likelihood weights over the card slots.
@@ -597,15 +627,16 @@ func windowChance(sp *Spec, su, lo, self int, present *[NumSlots]float64, pw flo
 	return min(1, all+oneGap*pw), true
 }
 
-// Feed is how likely discarding slot k helps the seat after the observer
-// (seat 0) and any opponent at all.
+// Feed is how much discarding slot k helps the seat after the observer (seat
+// 0) and the opponent it helps most, as Excess: the part of the want that is
+// about this card rather than about any card.
 func (e *Estimate) Feed(k int) (next, anyone float64) {
 	if k < 0 || k >= NumSlots || e.N == 0 {
 		return 0, 0
 	}
-	next = e.Want[0][k]
+	next = e.Excess(0, k)
 	for i := 0; i < e.N; i++ {
-		anyone = math.Max(anyone, e.Want[i][k])
+		anyone = math.Max(anyone, e.Excess(i, k))
 	}
 	return next, anyone
 }

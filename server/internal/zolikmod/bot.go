@@ -97,14 +97,22 @@ func toModuleAction(a rules.Action) (module.Action, bool) {
 //	closer  comes down as early as the pile allows and then races to go out,
 //	        shedding its dearest card every turn (ai.CloserProfile): the
 //	        player who beat the network by being out before it was down.
+//	hard-classic
+//	        Hard as it played before the card inference
+//	        (ai.HardClassicProfile): the reference the inference is measured
+//	        against on the bench. Not in any training config.
 func (learnGame) Styles() map[string]module.Bot {
-	return map[string]module.Bot{"closer": closerBot{}}
+	return map[string]module.Bot{
+		"closer":       profileBot{ai.CloserProfile()},
+		"hard-classic": profileBot{ai.HardClassicProfile()},
+	}
 }
 
 var _ learn.Styled = learnGame{}
 
-type closerBot struct{}
+// profileBot plays one fixed profile whatever skill its seat was given.
+type profileBot struct{ p ai.Profile }
 
-func (closerBot) Act(raw module.State, seat module.BotSeat, _ []module.ActionOffer) (module.Action, bool) {
-	return playAgent(raw, seat, ai.NewAgentWithProfile(ai.CloserProfile(), seat.Seed))
+func (b profileBot) Act(raw module.State, seat module.BotSeat, _ []module.ActionOffer) (module.Action, bool) {
+	return playAgent(raw, seat, ai.NewAgentWithProfile(b.p, seat.Seed))
 }

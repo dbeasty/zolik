@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"zolik/server/internal/ai"
+	"zolik/server/internal/cardinfer"
 	"zolik/server/internal/learn"
 	"zolik/server/internal/module"
 	"zolik/server/internal/rules"
@@ -227,6 +228,16 @@ func slotCard(i int) string {
 //	            completes a pair it took, 0.5 next to (or the rank of) a
 //	            single card it took
 //
+//	[900,1161)  three inference blocks of inferDim (87), the order they play
+//	            after me — what each probably holds and wants
+//	            (internal/cardinfer via ai.Infer, public information only):
+//	            expected copies held per rank 2..A (/2) and per suit H C D S
+//	            (/8), expected jokers (/2); how much more than a random card
+//	            it wants each rank (the most over the suits) and each suit
+//	            (the most over the ranks), and what it wants of a random card;
+//	            its three most wanted unseen cards, each a rank one-hot (13)
+//	            and a suit one-hot (4)
+//
 // A seat block (seatDim = 15):
 //
 //	present, is me, hand size (/15), is down, melds (/6), sets (/4), runs (/4),
@@ -253,7 +264,10 @@ const (
 	distDim     = 9
 	offRivals   = offDist + distDim
 	rivalDim    = 2*(numSuits+numRanks) + numCardSlot
-	learnState  = offRivals + (maxSeats-1)*rivalDim
+	offInfer    = offRivals + (maxSeats-1)*rivalDim
+	inferTop    = 3
+	inferDim    = 2*(numRanks+numSuits) + 2 + inferTop*(numRanks+numSuits)
+	learnState  = offInfer + (maxSeats-1)*inferDim
 )
 
 func (learnGame) StateDim() int { return learnState }
@@ -451,7 +465,38 @@ func (learnGame) EncodeFor(at learn.Position, seat string) ([]float32, error) {
 		}
 		copy(b[2*(numSuits+numRanks):], r.wants[:])
 	}
+	var est cardinfer.Estimate
+	ai.Infer(vis, hand, seat, &est)
+	for i := 0; i < est.N && i < maxSeats-1; i++ {
+		encodeInference(v[offInfer+i*inferDim:offInfer+(i+1)*inferDim], &est, i)
+	}
 	return v, nil
+}
+
+// encodeInference writes one seat's inference block (see the layout above).
+func encodeInference(b []float32, est *cardinfer.Estimate, i int) {
+	hold := &est.Hold[i]
+	for k := 0; k < jokerSlot; k++ {
+		r, su := k/numSuits, k%numSuits
+		b[r] += float32(hold[k]) / 2
+		b[numRanks+su] += float32(hold[k]) / 8
+		x := float32(est.Excess(i, k))
+		o := numRanks + numSuits + 1
+		b[o+r] = max(b[o+r], x)
+		b[o+numRanks+su] = max(b[o+numRanks+su], x)
+	}
+	b[numRanks+numSuits] = float32(hold[jokerSlot]) / 2
+	b[2*(numRanks+numSuits)+1] = float32(est.Base[i])
+	var top [inferTop]int
+	n := est.TopWanted(i, top[:])
+	for j := 0; j < n; j++ {
+		if top[j] == jokerSlot {
+			continue // a joker is wanted by everybody; it says nothing
+		}
+		o := 2*(numRanks+numSuits) + 2 + j*(numRanks+numSuits)
+		b[o+top[j]/numSuits] = 1
+		b[o+numRanks+top[j]%numSuits] = 1
+	}
 }
 
 func encodeDistance(b []float32, d distance, req rules.ContractRequirement) {
@@ -539,50 +584,9 @@ func unseenCounts(vis ai.VisibleState, hand []string, seat string) [numCardSlot]
 }
 
 // extenders marks every card that would lay off onto some meld on the table
-// as it stands. Asked of the validator, and only for the cards that could
-// possibly answer yes — a set's missing suits, a run's two ends, a joker —
-// which is a handful of questions a meld rather than fifty-three.
+// as it stands (ai.TableExtenders: the card slots are the same layout).
 func extenders(melds map[string][][]string, cfg rules.RulesConfig) [numCardSlot]bool {
-	var out [numCardSlot]bool
-	for _, owner := range sortedKeys(melds) {
-		for _, m := range melds[owner] {
-			mv, err := rules.ValidateMeld(m, cfg)
-			if err != nil {
-				continue
-			}
-			var try []string
-			if mv.Type == rules.MeldSet {
-				rank := byte(0)
-				for _, c := range m {
-					if !rules.IsJoker(c) {
-						rank = c[0]
-						break
-					}
-				}
-				for _, s := range learnSuits {
-					try = append(try, string(rank)+s)
-				}
-			} else if len(mv.ResolvedRun) > 0 {
-				lo, hi := mv.ResolvedRun[0], mv.ResolvedRun[len(mv.ResolvedRun)-1]
-				for _, r := range []int{lo - 1, hi + 1} {
-					if c := runRankCard(r, mv.ResolvedSuit); c != "" {
-						try = append(try, c)
-					}
-				}
-			}
-			try = append(try, "JOKER1")
-			for _, c := range try {
-				k := cardSlot(c)
-				if k < 0 || out[k] {
-					continue
-				}
-				if _, err := rules.ValidateMeld(append(append([]string(nil), m...), c), cfg); err == nil {
-					out[k] = true
-				}
-			}
-		}
-	}
-	return out
+	return ai.TableExtenders(melds, cfg)
 }
 
 // runRankCard is the card at a run position: 1 and 14 are the ace, 2..13 the
@@ -672,6 +676,9 @@ func b2f(b bool) float32 {
 //	         making a meld now
 //	61       every part of going down the hand still wants afterwards, in
 //	         cards (/8; zero once down or out)
+//	62-63    the card the move is about, by the card inference
+//	         (cardinfer.Estimate.Feed): how much more than a random card the
+//	         next seat wants it, and the most any opponent does
 //
 // Every kind but forced also carries the penalty left in hand afterwards
 // (40): the deck draw its hand as it stands, the unknown card aside.
@@ -723,7 +730,9 @@ const (
 	fDShort     = fDSets + 1
 	fBuilds     = fDShort + 1
 	fDistAfter  = fBuilds + 1
-	learnCand   = fDistAfter + 1
+	fInferNext  = fDistAfter + 1
+	fInferAny   = fInferNext + 1
+	learnCand   = fInferAny + 1
 	maxCands    = 64
 	maxLayMelds = 16
 	// maxLoosePickups bounds a down seat's loose pickups in a deal: see
@@ -839,6 +848,8 @@ type builder struct {
 	rivals []*rival
 	// pickups is how many times I have taken from the pile this deal.
 	pickups int
+	// est is the card inference for every other seat, in rivals' order.
+	est cardinfer.Estimate
 	// seenAfter dedupes plans by the position they leave: a lay-off that
 	// happens to buy a joker back and an explicit swap of the same card are
 	// one move.
@@ -862,6 +873,7 @@ func newBuilder(s *matchState, seat string) *builder {
 	for _, id := range seatsFrom(gs.TurnOrder, seat)[1:] {
 		b.rivals = append(b.rivals, rivalOf(vis, id, cfg))
 	}
+	ai.Infer(vis, b.hand, seat, &b.est)
 	for id, cards := range vis.KnownHeld {
 		if id == seat {
 			continue
@@ -1422,6 +1434,8 @@ func (b *builder) markCard(f []float32, card string) {
 			}
 			f[fFeedsAny] = max(f[fFeedsAny], r.wants[k])
 		}
+		next, anyone := b.est.Feed(k)
+		f[fInferNext], f[fInferAny] = float32(next), float32(anyone)
 	}
 }
 

@@ -531,7 +531,7 @@ func TestLearnRegistered(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if g.StateDim() != 900 || g.CandDim() != 62 {
+	if g.StateDim() != 1161 || g.CandDim() != 64 {
 		t.Fatalf("dims %d/%d: a changed layout is a new encoder — update ml/ and this pin together", g.StateDim(), g.CandDim())
 	}
 	for _, v := range learnVariations {

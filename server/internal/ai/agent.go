@@ -35,6 +35,12 @@ type VisibleState struct {
 	// least len(DealDiscards). Zero means "not recorded"; read it through
 	// discardCount.
 	DealDiscardCount int
+	// DealPasses is the top discards seats declined this deal, oldest first
+	// (Ledger.Passes): public, and read only by the card inference.
+	DealPasses []SeenDiscard
+	// TurnOrder is the seats in the order they play — which every client
+	// shows, and which says whose turn a discard is offered to.
+	TurnOrder []string
 	// KnownHeld is, per seat, the cards that seat was publicly seen to take
 	// off the discard pile (or reclaim off the table) and has not since put
 	// back down.

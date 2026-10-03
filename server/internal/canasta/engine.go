@@ -262,6 +262,7 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 		s.MeldsLaid = nil
 	}
 
+	seen := beforeSeen(s, playerID)
 	var events []module.Event
 	switch a.Verb {
 	case VerbDraw:
@@ -288,6 +289,7 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 	if err != nil {
 		return raw, nil, err
 	}
+	s.observe(seen, playerID, a)
 	out, err := encode(s)
 	return out, events, err
 }

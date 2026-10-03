@@ -48,11 +48,15 @@ type seatTally struct {
 	// OpenTurn and QuotaTurn are the own turn on which this seat first saw
 	// its side opened, and holding the canastas it needs to go out: at the
 	// end of that turn, as the next position it acted in showed it.
-	OpenTurn    []int
-	QuotaTurn   []int
-	PileTakes   int
-	WildsMelded int // wild cards this seat put on the table (melds, lay-offs, captures)
-	WildsLeft   []int
+	OpenTurn  []int
+	QuotaTurn []int
+	PileTakes int
+	// Discards that ended a turn, and of those the ones the next seat (on
+	// another side) captured the pile with straight away, and the cards
+	// those captures handed over.
+	Discards, PilesGiven, CardsGiven int
+	WildsMelded                      int // wild cards this seat put on the table (melds, lay-offs, captures)
+	WildsLeft                        []int
 	// Caught is a deal somebody else went out of; its cards and points are
 	// what this seat still held.
 	Caught       int
@@ -72,6 +76,9 @@ func (t *seatTally) add(o *seatTally) {
 	t.OpenTurn = append(t.OpenTurn, o.OpenTurn...)
 	t.QuotaTurn = append(t.QuotaTurn, o.QuotaTurn...)
 	t.PileTakes += o.PileTakes
+	t.Discards += o.Discards
+	t.PilesGiven += o.PilesGiven
+	t.CardsGiven += o.CardsGiven
 	t.WildsMelded += o.WildsMelded
 	t.WildsLeft = append(t.WildsLeft, o.WildsLeft...)
 	t.Caught += o.Caught
@@ -189,9 +196,14 @@ type dealWatch struct {
 	tableTurns int
 	last       string
 	pileTakes  map[string]int
-	wilds      map[string]int
-	opened     map[string]int // own turn the seat's side was first seen opened
-	quota      map[string]int // ... and first seen with its canastas
+	discards   map[string]int
+	given      map[string]int
+	givenCards map[string]int
+	// lastDiscard is the seat whose discard is on top, until somebody draws.
+	lastDiscard string
+	wilds       map[string]int
+	opened      map[string]int // own turn the seat's side was first seen opened
+	quota       map[string]int // ... and first seen with its canastas
 }
 
 // watcher follows one match through the positions its bots are asked about
@@ -210,6 +222,7 @@ func (w *watcher) deal(n int) *dealWatch {
 	d := w.deals[n]
 	if d == nil {
 		d = &dealWatch{turns: map[string]int{}, pileTakes: map[string]int{}, wilds: map[string]int{},
+			discards: map[string]int{}, given: map[string]int{}, givenCards: map[string]int{},
 			opened: map[string]int{}, quota: map[string]int{}}
 		w.deals[n] = d
 	}
@@ -242,6 +255,17 @@ func (w *watcher) see(raw module.State, seat string, a module.Action, ok bool) {
 	}
 	if !ok {
 		return
+	}
+	switch a.Verb {
+	case canasta.VerbDiscard:
+		d.discards[seat]++
+		d.lastDiscard = seat
+	case canasta.VerbTakePile, canasta.VerbDraw, canasta.VerbTakeTop:
+		if by := d.lastDiscard; a.Verb == canasta.VerbTakePile && by != "" && w.side[by] != w.side[seat] {
+			d.given[by]++
+			d.givenCards[by] += len(s.DiscardPile)
+		}
+		d.lastDiscard = ""
 	}
 	switch a.Verb {
 	case canasta.VerbTakePile:
@@ -375,6 +399,9 @@ func (w *watcher) finish(raw module.State) (*report, error) {
 			t.SeatDeals++
 			t.Turns += d.turns[p]
 			t.PileTakes += d.pileTakes[p]
+			t.Discards += d.discards[p]
+			t.PilesGiven += d.given[p]
+			t.CardsGiven += d.givenCards[p]
 			t.WildsMelded += d.wilds[p]
 			t.WildsLeft = append(t.WildsLeft, h.Wilds)
 			if at, ok := d.opened[p]; ok {
@@ -601,6 +628,17 @@ func printReport(w io.Writer, rep *report, samples []float64, names map[string]s
 			l, s.SeatDeals, msInt(s.OpenTurn), msInt(s.QuotaTurn), pct(s.Out, s.SeatDeals), msInt(s.OutTurn), float64(s.Turns)/d, float64(s.PileTakes)/d,
 			float64(s.WildsMelded)/d, msInt(s.WildsLeft), pct(s.Caught, s.SeatDeals), msInt(s.CaughtCards), meanStr(s.CaughtPoints),
 			msInt(s.ExhaustedCards), msInt(s.ExhaustedPoints))
+	}
+
+	fmt.Fprintln(w, "\ndiscards: piles the next seat captured with them straight away, and the cards handed over")
+	fmt.Fprintf(w, "%-3s %9s %10s %12s %14s\n", "", "discards", "pileGiven%", "cardsGiven/d", "cards/capture")
+	for _, l := range []string{labelA, labelP, labelB} {
+		s := rep.Seat[l]
+		if s.SeatDeals == 0 {
+			continue
+		}
+		fmt.Fprintf(w, "%-3s %9d %10.2f %12.2f %14.1f\n", l, s.Discards, pct(s.PilesGiven, s.Discards),
+			float64(s.CardsGiven)/float64(s.SeatDeals), float64(s.CardsGiven)/math.Max(1, float64(s.PilesGiven)))
 	}
 
 	fmt.Fprintln(w, "\nper side and deal (score breakdown)")

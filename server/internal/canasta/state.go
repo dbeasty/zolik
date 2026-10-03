@@ -543,6 +543,11 @@ type GameState struct {
 	// shown — for a match that was dealt before the option existed.
 	OpenDiscard bool `json:"openDiscard,omitempty"`
 
+	// Seen is the deal's public history — captures, discards, passes — for
+	// the card inference (seen.go). Nil for a match dealt before it existed,
+	// which reads as a deal nobody remembers anything of.
+	Seen *Seen `json:"seen,omitempty"`
+
 	WinnerTeam int    `json:"winnerTeam"`
 	WinnerID   string `json:"winnerId,omitempty"`
 	Seed       int64  `json:"seed"`

@@ -138,6 +138,11 @@ type profile struct {
 	// endgameAt is how few cards an opponent must hold for that switch. Zero
 	// means the default.
 	endgameAt int
+	// infers prices each discard by the chance the next seat captures the
+	// pile with it, read off what that seat probably holds (infer.go: its
+	// captures, discards and passes this deal), times the cards the pile
+	// would hand it. Below feeding a melded rank, above the card's own value.
+	infers bool
 	// closer races for the side's canasta quota and then out: see
 	// closerProfile. It changes where wilds go, when the pile is worth taking
 	// and which card is shed, never what is legal.
@@ -172,6 +177,7 @@ var profiles = map[module.Skill]profile{
 		hoardsWilds:     true,
 		banksPoints:     true,
 		readsHandCounts: true,
+		infers:          true,
 		// A card earlier than the default. A seat holding three cards goes out
 		// next turn on a lay-off and a discard; by the time it holds two the
 		// expensive cards this side is carrying are already lost.
@@ -841,8 +847,17 @@ func (b bot) discard(s *GameState, playerID string, p profile, tb table, mn menu
 		}
 	}
 
+	var inf *inference
+	if p.infers {
+		inf = infer(s, playerID)
+	}
 	cands := make([]discardCandidate, 0, len(o.Source.Cards))
 	for _, c := range o.Source.Cards {
+		gives, givesMany := 0, 0
+		if inf != nil {
+			cards := inf.captureRisk(s, c) * float64(len(s.DiscardPile)+1)
+			gives, givesMany = giveawayBucket(cards), int(cards/giveawayMany)
+		}
 		cands = append(cands, discardCandidate{
 			card: c,
 			wild: isWild(c),
@@ -852,11 +867,13 @@ func (b bot) discard(s *GameState, playerID string, p profile, tb table, mn menu
 			// A black three cannot be captured with and blocks the pile for
 			// the next player, so it is the safest card in the deck to throw
 			// and its five points are worth spending to keep a fat pile shut.
-			blocks:  isBlackThree(c),
-			feeds:   danger[rankOf(c)],
-			dead:    dead[rankOf(c)],
-			value:   cardValue(c),
-			ordinal: c,
+			blocks:    isBlackThree(c),
+			feeds:     danger[rankOf(c)],
+			dead:      dead[rankOf(c)],
+			gives:     gives,
+			givesMany: givesMany,
+			value:     cardValue(c),
+			ordinal:   c,
 		})
 	}
 	better := func(i, j int) bool { return betterDiscard(cands[i], cands[j], s, tb) }
@@ -874,9 +891,27 @@ type discardCandidate struct {
 	blocks   bool
 	feeds    bool
 	dead     bool
-	value    int
-	ordinal  string
+	// gives is the expected cards handed to the next seat by a capture this
+	// discard makes possible, in buckets of giveawayCards; zero without the
+	// inference.
+	gives int
+	// givesMany is the same in buckets of giveawayMany, and outranks keeping
+	// a pair: a pile of that size is worth more than the meld a pair might
+	// become.
+	givesMany int
+	value     int
+	ordinal   string
 }
+
+// giveawayCards is how many expected cards of pile one bucket of risk is: a
+// discard is only judged riskier than another when it hands over at least
+// that many more cards on average.
+const giveawayCards = 1.5
+
+// giveawayMany is the expected cards of pile that outweigh breaking a pair.
+const giveawayMany = 4.0
+
+func giveawayBucket(cards float64) int { return int(cards / giveawayCards) }
 
 func betterDiscard(x, y discardCandidate, s *GameState, tb table) bool {
 	// The rule this file was written for. A wild is never the card a turn ends
@@ -890,6 +925,9 @@ func betterDiscard(x, y discardCandidate, s *GameState, tb table) bool {
 	if x.blocks != y.blocks && len(s.DiscardPile) >= 5 {
 		return x.blocks
 	}
+	if x.givesMany != y.givesMany {
+		return x.givesMany < y.givesMany
+	}
 	// Material worth keeping — until somebody is about to end the deal, at
 	// which point a pair that was an investment two turns ago is two cards
 	// about to be counted against this side.
@@ -898,6 +936,9 @@ func betterDiscard(x, y discardCandidate, s *GameState, tb table) bool {
 	}
 	if x.feeds != y.feeds {
 		return !x.feeds
+	}
+	if x.gives != y.gives {
+		return x.gives < y.gives
 	}
 	if x.value != y.value {
 		// Ordinarily the cheap card goes and the aces stay for melding. Under
