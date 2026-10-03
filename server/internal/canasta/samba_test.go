@@ -615,3 +615,88 @@ func sevenOf(rank string) Meld {
 	}
 	return m
 }
+
+// Cards that go on a meld only together are offered together. Probed one card
+// at a time, the nine of hearts onto a run ending at the seven was refused for
+// want of the eight, and a player holding both could only lay them one per
+// lay-off.
+func TestSambaLayOffOffersCardsThatNeedCompany(t *testing.T) {
+	type want struct {
+		alone    []string
+		requires map[string][]string
+	}
+	cases := []struct {
+		name string
+		meld Meld
+		hand []string
+		want want
+	}{
+		{
+			name: "a run takes the cards beyond the next one",
+			meld: Meld{ID: "m1", Kind: meldRun, Suit: "H", Cards: []string{"5H", "6H", "7H"}},
+			hand: []string{"8H", "9H", "TH", "4H", "3C", "KC"},
+			want: want{
+				alone:    []string{"4H", "8H"},
+				requires: map[string][]string{"9H": {"8H"}, "TH": {"8H", "9H"}},
+			},
+		},
+		{
+			name: "a wild past the ratio takes the naturals that keep it",
+			meld: Meld{ID: "m1", Kind: meldSet, Rank: "K", Cards: []string{"KH", "KD", "JOKER1"}},
+			hand: []string{"KS", "KC", "2H", "4C", "5C"},
+			want: want{
+				alone:    []string{"KC", "KS"},
+				requires: map[string][]string{"2H": {"KC", "KS"}},
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			table := sambaTable(func(s *GameState) {
+				s.Phase = phaseMeld
+				s.Hands["p1"] = append([]string(nil), tc.hand...)
+				m := tc.meld
+				m.TeamID = s.Teams[0].ID
+				s.Teams[0].Melds = []Meld{m}
+				s.Teams[0].HasMelded = true
+			})
+			offers, err := New().LegalActions(table, "p1")
+			if err != nil {
+				t.Fatalf("offers: %v", err)
+			}
+			var o *module.ActionOffer
+			for i := range offers {
+				if offers[i].ID == "lay_off:m1" {
+					o = &offers[i]
+				}
+			}
+			if o == nil || !o.Enabled || o.Source == nil {
+				t.Fatalf("no enabled lay-off among %s", module.DescribeOffers(offers))
+			}
+			if got := sortedCards(o.Source.Cards); !sameCards(got, tc.want.alone) {
+				t.Errorf("cards alone = %v, want %v", got, tc.want.alone)
+			}
+			got := map[string][]string{}
+			for _, p := range o.Source.Placements {
+				if len(p.Requires) > 0 {
+					got[p.Card] = sortedCards(p.Requires)
+				}
+			}
+			for c, req := range tc.want.requires {
+				if !sameCards(got[c], req) {
+					t.Errorf("%s requires %v, want %v", c, got[c], req)
+				}
+				// And the engine takes what the offer says it takes.
+				cards := append(append([]string(nil), req...), c)
+				if _, code := apply(t, table, "p1", module.Action{
+					Verb: VerbLayOff, Cards: cards, Target: "m1",
+				}); code != "" {
+					t.Errorf("laying %v was refused: %s", cards, code)
+				}
+			}
+			if len(got) != len(tc.want.requires) {
+				t.Errorf("cards needing company = %v, want %v", got, tc.want.requires)
+			}
+		})
+	}
+}
