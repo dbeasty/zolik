@@ -510,6 +510,7 @@ export const sl: Record<string, string> = {
   'badge.cleanRun': 'Čisto zaporedje',
   'canasta.seat.teamScore': 'Točke ekipe',
   'canasta.seat.canastas': 'Canaste',
+  'canasta.seat.toOpen': 'Za odprtje',
   'holdem.header.pot': 'Pot',
   'holdem.header.street': 'Ulica',
   'holdem.header.hand': 'Deljenje',

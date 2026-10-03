@@ -277,12 +277,23 @@ func (m *Module) view(raw module.State, viewerID string, reveal bool) (module.Vi
 			seat.Facts = append(seat.Facts,
 				module.Fact{LabelKey: "canasta.seat.teamScore", Value: strconv.Itoa(t.Score),
 					Params: map[string]any{"team": t.ID, "score": t.Score}},
-				module.Fact{LabelKey: "canasta.seat.canastas", Value: strconv.Itoa(t.canastas()),
-					Params: map[string]any{"n": t.canastas()}},
 			)
 			if !t.HasMelded {
 				seat.LabelKeys = append(seat.LabelKeys, "canasta.seat.notOpened")
+				// Every side's minimum, not only the viewer's. It is measured
+				// against that side's own score, so the leader needs more than
+				// the side behind it — and with only your own number on screen
+				// (prompt.initialMeld), an opponent opening for 50 while you
+				// need 150 reads as the bot breaking the rule.
+				floor := r.meldFloor(t.Score)
+				seat.Facts = append(seat.Facts,
+					module.Fact{LabelKey: "canasta.seat.toOpen", Value: strconv.Itoa(floor),
+						Params: map[string]any{"n": floor}})
 			}
+			seat.Facts = append(seat.Facts,
+				module.Fact{LabelKey: "canasta.seat.canastas", Value: strconv.Itoa(t.canastas()),
+					Params: map[string]any{"n": t.canastas()}},
+			)
 		}
 		vm.Seats = append(vm.Seats, seat)
 	}

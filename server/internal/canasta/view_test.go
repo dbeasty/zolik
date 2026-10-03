@@ -324,6 +324,45 @@ func TestSeatsOfOwnSideCarryNoSide(t *testing.T) {
 	}
 }
 
+// TestEverySeatShowsItsOwnMinimum is the report this fact was added for: the
+// opening minimum is measured against each side's own score, and with only the
+// viewer's on screen an opponent opening for 50 while you need 150 looked like
+// a bot ignoring the rule. Each unopened side shows its own number; a side that
+// has opened shows none, because it no longer has one.
+func TestEverySeatShowsItsOwnMinimum(t *testing.T) {
+	raw := sambaTable(func(s *GameState) {
+		s.Teams[0].Score = 7200 // the viewer, past Samba's last band
+		s.Teams[1].Score = 1000
+	})
+	vm, err := New().View(raw, "p1")
+	if err != nil {
+		t.Fatalf("View: %v", err)
+	}
+	toOpen := func(vm module.ViewModel, playerID string) string {
+		for _, f := range vm.SeatOf(playerID).Facts {
+			if f.LabelKey == "canasta.seat.toOpen" {
+				return f.Value
+			}
+		}
+		return ""
+	}
+	if got := toOpen(vm, "p1"); got != "150" {
+		t.Errorf("viewer on 7200 shows %q to open, want 150", got)
+	}
+	if got := toOpen(vm, "p2"); got != "50" {
+		t.Errorf("opponent on 1000 shows %q to open, want 50", got)
+	}
+
+	opened := sambaTable(func(s *GameState) { s.Teams[1].HasMelded = true })
+	vm, err = New().View(opened, "p1")
+	if err != nil {
+		t.Fatalf("View: %v", err)
+	}
+	if got := toOpen(vm, "p2"); got != "" {
+		t.Errorf("a side that has opened still shows %q to open", got)
+	}
+}
+
 // TestViewOrdersMeldsByRankWithCanastasLast pins the order a partnership's
 // melds are drawn in: the ones still being built low rank to high, sequences
 // after sets, and every finished canasta at the end, marked Complete so a

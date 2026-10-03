@@ -509,6 +509,7 @@ export const cs: Record<string, string> = {
   'badge.cleanRun': 'Čistá postupka',
   'canasta.seat.teamScore': 'Skóre týmu',
   'canasta.seat.canastas': 'Canasty',
+  'canasta.seat.toOpen': 'K vyložení',
   'holdem.header.pot': 'Bank',
   'holdem.header.street': 'Fáze',
   'holdem.header.hand': 'Rozdání',

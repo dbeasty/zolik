@@ -512,6 +512,7 @@ export const lv: Record<string, string> = {
   'badge.cleanRun': 'Tīra secība',
   'canasta.seat.teamScore': 'Komandas punkti',
   'canasta.seat.canastas': 'Kanastas',
+  'canasta.seat.toOpen': 'Atklāšanai',
   'holdem.header.pot': 'Banka',
   'holdem.header.street': 'Kārta',
   'holdem.header.hand': 'Roka',

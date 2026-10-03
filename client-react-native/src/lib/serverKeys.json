@@ -349,6 +349,7 @@
     "canasta.seat.canastas",
     "canasta.seat.notOpened",
     "canasta.seat.teamScore",
+    "canasta.seat.toOpen",
     "ginrummy.fact.deadwood",
     "ginrummy.fact.discardCard",
     "ginrummy.fact.meldCards",
@@ -1458,6 +1459,10 @@
       "team",
       "value"
     ],
+    "canasta.seat.toOpen": [
+      "n",
+      "value"
+    ],
     "ginrummy.fact.deadwood": [
       "n",
       "value"
@@ -2135,6 +2140,7 @@
     "canasta.rules.wildRatio",
     "canasta.seat.canastas",
     "canasta.seat.teamScore",
+    "canasta.seat.toOpen",
     "ginrummy.fact.deadwood",
     "ginrummy.fact.discardCard",
     "ginrummy.fact.meldCards",

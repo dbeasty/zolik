@@ -525,6 +525,7 @@ export const hu: Record<string, string> = {
   'badge.cleanRun': 'Tiszta sor',
   'canasta.seat.teamScore': 'Csapatpontszám',
   'canasta.seat.canastas': 'Canasták',
+  'canasta.seat.toOpen': 'Nyitáshoz',
   'holdem.header.pot': 'Pot',
   'holdem.header.street': 'Kör',
   'holdem.header.hand': 'Leosztás',

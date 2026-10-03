@@ -511,6 +511,7 @@ export const lt: Record<string, string> = {
   'badge.cleanRun': 'Švari seka',
   'canasta.seat.teamScore': 'Komandos taškai',
   'canasta.seat.canastas': 'Kanastos',
+  'canasta.seat.toOpen': 'Atidarymui',
   'holdem.header.pot': 'Bankas',
   'holdem.header.street': 'Ratas',
   'holdem.header.hand': 'Ranka',

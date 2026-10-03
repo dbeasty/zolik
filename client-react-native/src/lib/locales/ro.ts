@@ -517,6 +517,7 @@ export const ro: Record<string, string> = {
   'badge.cleanRun': 'Secvență curată',
   'canasta.seat.teamScore': 'Scorul echipei',
   'canasta.seat.canastas': 'Canaste',
+  'canasta.seat.toOpen': 'Pentru deschidere',
   'holdem.header.pot': 'Pot',
   'holdem.header.street': 'Stradă',
   'holdem.header.hand': 'Mână',
