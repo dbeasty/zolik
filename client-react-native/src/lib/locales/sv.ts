@@ -508,6 +508,7 @@ export const sv: Record<string, string> = {
   'badge.cleanRun': 'Ren sekvens',
   'canasta.seat.teamScore': 'Lagets poäng',
   'canasta.seat.canastas': 'Canastor',
+  'canasta.seat.toOpen': 'För att öppna',
   'holdem.header.pot': 'Pott',
   'holdem.header.street': 'Gata',
   'holdem.header.hand': 'Giv',

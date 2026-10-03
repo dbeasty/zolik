@@ -528,6 +528,7 @@ export const el: Record<string, string> = {
   'badge.cleanRun': 'Καθαρή σειρά',
   'canasta.seat.teamScore': 'Σκορ ομάδας',
   'canasta.seat.canastas': 'Καναστες',
+  'canasta.seat.toOpen': 'Για άνοιγμα',
   'holdem.header.pot': 'Πότ',
   'holdem.header.street': 'Γύρος',
   'holdem.header.hand': 'Μοιρασιά',

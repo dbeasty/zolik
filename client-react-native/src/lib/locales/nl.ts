@@ -523,6 +523,7 @@ export const nl: Record<string, string> = {
   'badge.cleanRun': 'Zuivere reeks',
   'canasta.seat.teamScore': 'Teamstand',
   'canasta.seat.canastas': "Canasta's",
+  'canasta.seat.toOpen': 'Om te openen',
   'holdem.header.pot': 'Pot',
   'holdem.header.street': 'Street',
   'holdem.header.hand': 'Hand',

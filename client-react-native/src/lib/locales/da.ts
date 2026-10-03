@@ -510,6 +510,7 @@ export const da: Record<string, string> = {
   'badge.cleanRun': 'Ren sekvens',
   'canasta.seat.teamScore': 'Holdets point',
   'canasta.seat.canastas': 'Canastaer',
+  'canasta.seat.toOpen': 'For at åbne',
   'holdem.header.pot': 'Pulje',
   'holdem.header.street': 'Gade',
   'holdem.header.hand': 'Hånd',

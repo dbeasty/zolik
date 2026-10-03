@@ -530,6 +530,7 @@ export const ga: Record<string, string> = {
   'badge.cleanRun': 'Rith glan',
   'canasta.seat.teamScore': 'Scór na foirne',
   'canasta.seat.canastas': 'Canastaí',
+  'canasta.seat.toOpen': 'Le hoscailt',
   'holdem.header.pot': 'Pota',
   'holdem.header.street': 'Babhta',
   'holdem.header.hand': 'Lámh',

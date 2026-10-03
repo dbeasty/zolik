@@ -509,6 +509,7 @@ export const en: Record<string, string> = {
   'badge.cleanRun': 'Clean run',
   'canasta.seat.teamScore': 'Team score',
   'canasta.seat.canastas': 'Canastas',
+  'canasta.seat.toOpen': 'To open',
   'holdem.header.pot': 'Pot',
   'holdem.header.street': 'Street',
   'holdem.header.hand': 'Hand',

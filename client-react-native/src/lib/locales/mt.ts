@@ -521,6 +521,7 @@ export const mt: Record<string, string> = {
   'badge.cleanRun': 'Sekwenza nadifa',
   'canasta.seat.teamScore': 'Skor tat-tim',
   'canasta.seat.canastas': 'Canastas',
+  'canasta.seat.toOpen': 'Biex tiftaħ',
   'holdem.header.pot': 'Pot',
   'holdem.header.street': 'Rawnd',
   'holdem.header.hand': 'Id',

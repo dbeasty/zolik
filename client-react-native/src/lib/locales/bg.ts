@@ -520,6 +520,7 @@ export const bg: Record<string, string> = {
   'badge.cleanRun': 'Чиста последователност',
   'canasta.seat.teamScore': 'Точки на отбора',
   'canasta.seat.canastas': 'Канасти',
+  'canasta.seat.toOpen': 'За отваряне',
   'holdem.header.pot': 'Пот',
   'holdem.header.street': 'Улица',
   'holdem.header.hand': 'Раздаване',

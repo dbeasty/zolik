@@ -516,6 +516,7 @@ export const et: Record<string, string> = {
   'badge.cleanRun': 'Puhas jada',
   'canasta.seat.teamScore': 'Meeskonna punktid',
   'canasta.seat.canastas': 'Canastad',
+  'canasta.seat.toOpen': 'Avamiseks',
   'holdem.header.pot': 'Pank',
   'holdem.header.street': 'Ring',
   'holdem.header.hand': 'Käsi',
