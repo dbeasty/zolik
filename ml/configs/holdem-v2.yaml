@@ -27,7 +27,10 @@ env:
   budget: 20000
 
 ppo:
-  lr: 3.0e-4
+  # A third of holdem-long's starting rate: it ended annealed at 3e-5, and a
+  # first try at 3e-4 with a fresh optimiser lost half its edge over hard by
+  # update 100 (entropy 0.66 -> 0.80) before the new opponent was learned.
+  lr: 1.0e-4
   gamma: 1.0
   lam: 0.95
   clip: 0.2
