@@ -488,6 +488,7 @@ func (b bot) build(raw module.State, s *GameState, playerID string, p profile, t
 	// three cards.
 	if o, cards, ok := b.bestLayOff(s, t, p, tb, mn); ok {
 		if tb.closing || !emptiesHand(held, len(cards)) {
+			cards = layOffTogether(raw, s, playerID, t, o, cards, held, tb.closing)
 			return module.Action{OfferID: o.ID, Verb: VerbLayOff, Target: o.Target.MeldID, Cards: cards}, true
 		}
 	}
@@ -638,6 +639,63 @@ func (b bot) bestLayOff(s *GameState, t *Team, p profile, tb table, mn menu) (mo
 		return module.ActionOffer{}, nil, false
 	}
 	return best.offer, []string{best.card}, true
+}
+
+// layOffTogether turns a natural lay-off onto a group into one lay-off of every
+// natural of that rank the offer accepts for the same meld.
+//
+// One card per action was a stall, not a style. The runtime gives up on a seat
+// that takes more than botMaxStall (30) actions in a row without the turn
+// moving on (match/bots.go), and a Samba hand that has just captured a big pile
+// can owe thirty cards to its own melds: Hard self-play at six seats, seed 823,
+// took the pile and then laid off twenty-six cards one at a time — the run was
+// thirty-two actions long, and a live table would have frozen on it. The turn
+// lays the same cards either way (bestLayOff comes back to each of them in
+// turn), so sending them together changes how many actions the turn takes and
+// nothing about what is laid.
+//
+// Naturals onto a group only. A wild is a decision of its own (wildMayJoin)
+// and stays one card at a time; a Samba sequence takes cards that continue it,
+// which same-rank copies do not. Short of closing, the batch leaves the hand
+// the two cards the single lay-off was already required to leave it
+// (emptiesHand). The engine has the last word: a batch it refuses is the
+// single card the caller chose.
+func layOffTogether(raw module.State, s *GameState, playerID string, t *Team, o module.ActionOffer, cards []string, held int, closing bool) []string {
+	if len(cards) != 1 || isWild(cards[0]) || o.Source == nil || o.Target == nil || t == nil {
+		return cards
+	}
+	var target *Meld
+	for i := range t.Melds {
+		if t.Melds[i].ID == o.Target.MeldID {
+			target = &t.Melds[i]
+		}
+	}
+	if target == nil || target.kind() == meldRun {
+		return cards
+	}
+	batch := []string{cards[0]}
+	skipped := false
+	for _, c := range o.Source.Cards {
+		if c == cards[0] && !skipped {
+			skipped = true // the copy already in the batch
+			continue
+		}
+		if !isWild(c) && rankOf(c) == rankOf(cards[0]) {
+			batch = append(batch, c)
+		}
+	}
+	if !closing && len(batch) > held-2 {
+		batch = batch[:max(held-2, 1)]
+	}
+	if len(batch) < 2 || !hasCards(s.Hands[playerID], batch) {
+		return cards
+	}
+	if ok, _ := probe(New(), raw, playerID, module.Action{
+		OfferID: o.ID, Verb: VerbLayOff, Target: o.Target.MeldID, Cards: batch,
+	}); !ok {
+		return cards
+	}
+	return batch
 }
 
 // layOffReach orders melds by what one more card does for them: 1 means the
