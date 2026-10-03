@@ -334,6 +334,12 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 				accepted = append(accepted, c)
 			}
 		}
+		// A card refused on its own may still be legal in company: the nine
+		// of hearts onto a run ending at the seven needs the eight, and a
+		// Samba joker needs naturals beside it to keep the ratio. Probed one
+		// card at a time, those were left off the list, and the player could
+		// only build a sequence one card per lay-off.
+		placements := layOffPlacements(m, raw, playerID, mm, eligible, accepted, verdict)
 		switch {
 		case len(accepted) > 0:
 			o.Enabled = true
@@ -356,7 +362,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 		}
 		o.Source = &module.Selector{
 			Zone: module.FromHand, OwnerID: playerID, ZoneID: handZoneID(playerID),
-			Cards: accepted, MinCards: 1, MaxCards: mm.room(r),
+			Cards: accepted, Placements: placements, MinCards: 1, MaxCards: mm.room(r),
 		}
 		o.Target = &module.Selector{Zone: module.ToMeld, MeldID: mm.ID, ZoneID: meldsZoneID(t.ID)}
 		offers = append(offers, o)
@@ -606,6 +612,106 @@ func blackThreeCandidate(r ruleset, hand []string) []string {
 	}
 	if max := r.blackThrees(); len(out) > max {
 		out = out[:max]
+	}
+	return out
+}
+
+// layOffPlacements lists the cards a meld takes only in company, with the
+// company each needs — see module.Placement.Requires. Nil when every eligible
+// card goes on alone, which keeps the offer as it always was.
+//
+// The company is a guess the engine then checks: for a sequence, the cards
+// between the run's end and this one; for a wild on a group, the naturals that
+// go on alone, as few as the engine will take. A guess the engine refuses
+// leaves the card off, so nothing here can offer a move Apply would not make.
+//
+// When it does list anything, it lists everything: a client reads Placements
+// in place of Cards, so the cards that go on alone are there too, with no
+// company, one entry per copy as Cards has them.
+func layOffPlacements(m *Module, raw module.State, playerID string, mm Meld, eligible, accepted []string, verdict map[string]bool) []module.Placement {
+	var needy []module.Placement
+	needs := map[string][]string{}
+	for _, c := range eligible {
+		if verdict[c] {
+			continue
+		}
+		if with, asked := needs[c]; asked {
+			// Another copy of a card already answered: the engine cannot
+			// tell the two apart, so it takes the same company.
+			if with != nil {
+				needy = append(needy, module.Placement{Card: c, Requires: append([]string(nil), with...)})
+			}
+			continue
+		}
+		needs[c] = nil
+		var company [][]string
+		if mm.kind() == meldRun {
+			if chain := runCompany(eligible, mm, c); len(chain) > 0 {
+				company = [][]string{chain}
+			}
+		} else if isWild(c) {
+			// The fewest naturals first: requiring more than the rule asks
+			// would refuse a selection the engine takes.
+			var naturals []string
+			for _, a := range accepted {
+				if !isWild(a) {
+					naturals = append(naturals, a)
+				}
+			}
+			for n := 1; n <= len(naturals); n++ {
+				company = append(company, naturals[:n])
+			}
+		}
+		for _, with := range company {
+			cards := append(append([]string(nil), with...), c)
+			if ok, _ := probe(m, raw, playerID, module.Action{
+				Verb: VerbLayOff, Cards: cards, Target: mm.ID,
+			}); ok {
+				needs[c] = with
+				needy = append(needy, module.Placement{
+					Card: c, Requires: append([]string(nil), with...),
+				})
+				break
+			}
+		}
+	}
+	if len(needy) == 0 {
+		return nil
+	}
+	out := make([]module.Placement, 0, len(accepted)+len(needy))
+	for _, c := range accepted {
+		out = append(out, module.Placement{Card: c})
+	}
+	return append(out, needy...)
+}
+
+// runCompany is the cards that must go on with c for it to continue the run:
+// every position between the run's nearer end and c's own, taken from the
+// eligible list. Nil when c is next to the run already, or the gap cannot be
+// filled from what is eligible.
+func runCompany(eligible []string, mm Meld, c string) []string {
+	i, ok := runIndexOf(c)
+	if !ok {
+		return nil
+	}
+	byIndex := map[int]string{}
+	for _, e := range eligible {
+		if j, ok := runIndexOf(e); ok && suitOf(e) == suitOf(c) {
+			byIndex[j] = e
+		}
+	}
+	low, high := runSpan(mm.Cards)
+	from, to := high+1, i-1
+	if i < low {
+		from, to = i+1, low-1
+	}
+	var out []string
+	for j := from; j <= to; j++ {
+		e, ok := byIndex[j]
+		if !ok {
+			return nil
+		}
+		out = append(out, e)
 	}
 	return out
 }
