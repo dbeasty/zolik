@@ -131,6 +131,11 @@ type profile struct {
 	// endgameAt is how few cards an opponent must hold for that switch. Zero
 	// means the default.
 	endgameAt int
+	// racesForPartners changes two things at a partnership table, and
+	// nothing heads-up: banksPoints is set aside, so the side goes out the
+	// first turn it may, and hoardsWilds is relaxed, so a wild goes where it
+	// gets the side to its canastas and then out. See partnered.
+	racesForPartners bool
 }
 
 var profiles = map[module.Skill]profile{
@@ -161,6 +166,9 @@ var profiles = map[module.Skill]profile{
 		hoardsWilds:     true,
 		banksPoints:     true,
 		readsHandCounts: true,
+		// Banking and hoarding are heads-up judgements. At a partnership
+		// table they lose to every profile that simply races — see partnered.
+		racesForPartners: true,
 		// A card earlier than the default. A seat holding three cards goes out
 		// next turn on a lay-off and a discard; by the time it holds two the
 		// expensive cards this side is carrying are already lost.
@@ -204,6 +212,11 @@ type table struct {
 	// are left is not a way of playing badly, it is a way of not looking at
 	// the table.
 	ending bool
+	// racing is a partnership table, at a profile that races there: see
+	// partnered. quota is, at such a table, that the side already has the
+	// canastas it needs to go out.
+	racing bool
+	quota  bool
 }
 
 // read builds that judgement.
@@ -215,6 +228,11 @@ type table struct {
 // TestBotDoesNotPeek pins it.
 func (b bot) read(s *GameState, playerID string, p profile) table {
 	out := table{ending: len(s.DrawPile) <= lastTurnsStock(s)}
+	if p.racesForPartners && partnered(s, playerID) {
+		out.racing = true
+		t := s.team(playerID)
+		out.quota = t != nil && canGoOut(s, t)
+	}
 	if !p.readsHandCounts {
 		return out
 	}
@@ -234,8 +252,28 @@ func (b bot) read(s *GameState, playerID string, p profile) table {
 	}
 	out.pressed = shortest <= at || len(s.DrawPile) <= 2
 	out.ending = out.ending || out.pressed
-	out.closing = out.pressed || !p.banksPoints || worthGoingOut(s, playerID)
+	out.closing = out.pressed || !p.banksPoints || out.racing || worthGoingOut(s, playerID)
 	return out
+}
+
+// partnered reports that this seat plays with a partner, which is where
+// worthGoingOut's bargain and the wild hoard both stop paying.
+//
+// Holding back to build is a wager that the side will be the one to end the
+// deal later, and at a partnership table it is a worse wager twice over: there
+// are two opposing hands each a few turns from going out instead of one, and
+// when one of them does, the partner's whole hand is counted against this side
+// as well as this seat's. A wild held for a natural canasta is the dearest card
+// in that hand, and the hoard was what mostly kept Hard from going out: in
+// nearly every deal it was offered the chance and let it pass, each way out
+// needed a wild the hoard would not spend. Measured over 300 seeds, Hard at
+// four seats lost to Medium by 448 a match and to the closer style by 475
+// while beating both heads-up; racing turns those into wins of 308 and 486.
+// So both judgements stay for one-on-one play and are relaxed here — see
+// wildMayJoin and worthAWild for where the wilds now go.
+func partnered(s *GameState, playerID string) bool {
+	t := s.team(playerID)
+	return t != nil && len(t.Players) >= 2
 }
 
 // lastTurnsStock is the stock a table this size draws in two more turns each.
@@ -561,6 +599,10 @@ func worthAWild(t *Team, tb table, o module.ActionOffer) bool {
 	if t != nil && !t.HasMelded {
 		return true
 	}
+	// Racing with the canastas made, every meld is a step out of the hand.
+	if tb.racing && tb.quota {
+		return true
+	}
 	if len(meldCards(o)) < canastaSize {
 		return false
 	}
@@ -683,12 +725,22 @@ func layOffReach(size int) int {
 //	                    weaker one spends it on four cards of a rank. That is
 //	                    ordinary beginner play rather than a bug, and whether
 //	                    this seat is a beginner is the profile's business.
+//
+//	racing              At a partnership table (see partnered) the hoard is
+//	                    relaxed: a wild may join a meld of four or more, a
+//	                    step to the canasta the side needs rather than a card
+//	                    out of play; and once the side has its canastas,
+//	                    any meld short of one, natural six included — going
+//	                    out is worth more than the two hundred.
 func wildMayJoin(m Meld, p profile, tb table) bool {
 	if m.isCanasta() {
 		return false
 	}
 	if len(m.Cards) == canastaSize-1 {
-		return m.wilds() > 0 || tb.ending
+		return m.wilds() > 0 || tb.ending || tb.quota
+	}
+	if tb.racing && (tb.quota || len(m.Cards) >= canastaSize-3) {
+		return true
 	}
 	return !p.hoardsWilds
 }
