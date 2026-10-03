@@ -149,6 +149,19 @@ type profile struct {
 	// is what this is for.
 	overbetDoubt float64
 
+	// madeClaim reads a bet the way a solid player reads one: as a claim to
+	// a pair the bettor holds *now* — a pocket pair, or a hole card paired on
+	// the board — and never as more than that, however big the bet.
+	//
+	// The ladder reads a bet as a claim about the hand at the river, and a big
+	// one as a claim to two pair (claimedBy), which is right against honest
+	// bettors and is exactly what an overbet exploits: almost no one-pair hand
+	// beats a two-pair range, so top pair folds to every shove. Read as "has a
+	// pair now", a shove is called by the hands that beat what shoves light,
+	// top pair with a kicker and better, and folded by the hands that do not.
+	// False on every skill; the solid style (styles.go) is what sets it.
+	madeClaim bool
+
 	// --- aggression ---
 
 	// A cbet knob stood here — the chance of betting the flop as the seat that
@@ -420,8 +433,12 @@ func postflop(s *GameState, seat *Seat, mn menu, p profile, rnd *rand.Rand) choi
 	}
 
 	owed := s.toCall(seat)
+	claim := claimedBy(owed, potNow(s))
+	if p.madeClaim && claim >= pair {
+		claim = pairNow
+	}
 	eq := equity(seat.Hole, s.Board, opponents, rollouts(opponents),
-		claimedBy(owed, potNow(s)), bluffShareOf(p, owed, potNow(s)), rnd)
+		claim, bluffShareOf(p, owed, potNow(s)), rnd)
 	// A hand that is behind now but will not be behind for long. equity
 	// already counts the times the draw comes in; what it cannot count is the
 	// pot won without getting there, because the bet folded a better hand.
@@ -595,6 +612,12 @@ func drawOuts(hole, board []string) int {
 // other calculation here uses. Measured against the pot *before* the bet the
 // brackets read as: under a third of it claims nothing, up to three times it
 // claims a pair, and more than that claims two.
+// pairNow is a claim floor outside the hand categories: a pair the opponent
+// holds on the board as it is now, made with a hole card (see
+// profile.madeClaim). equity tests for it on the hole cards it deals rather
+// than on the finished seven.
+const pairNow = -1
+
 func claimedBy(owed, pot int) int {
 	if owed <= 0 || pot <= 0 {
 		return highCard
@@ -705,6 +728,12 @@ func equity(hole, board []string, opponents, trials, floor int, bluffShare float
 	for _, c := range board {
 		known = append(known, codeOf(c))
 	}
+	// For a pairNow claim: the ranks on the board as it stands, which an
+	// opponent's hole card has to match (or the other hole card) to hold one.
+	var boardRanks [13]bool
+	for _, c := range known[len(hole):] {
+		boardRanks[c/4] = true
+	}
 	mine := make([]code, 0, 7)
 	theirs := make([]code, 0, 7)
 	won, counted := 0.0, 0
@@ -721,12 +750,17 @@ func equity(hole, board []string, opponents, trials, floor int, bluffShare float
 		mine = append(append(mine[:0], known...), run...)
 		best := score7(mine)
 
-		ahead, split, claims := true, 1, floor <= highCard
+		ahead, split, claims := true, 1, floor != pairNow && floor <= highCard
 		for o := 0; o < opponents; o++ {
 			at := runout + 2*o
 			theirs = append(append(append(theirs[:0], deck[at], deck[at+1]), known[len(hole):]...), run...)
 			rank := score7(theirs)
-			if scoreCategory(rank) >= floor {
+			if floor == pairNow {
+				a, b := deck[at]/4, deck[at+1]/4
+				if a == b || boardRanks[a] || boardRanks[b] {
+					claims = true
+				}
+			} else if scoreCategory(rank) >= floor {
 				claims = true
 			}
 			switch {
