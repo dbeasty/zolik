@@ -426,6 +426,102 @@ func TestHardClosesWhenItIsAhead(t *testing.T) {
 	}
 }
 
+// behindAtPartnership is behindOnPoints at a four-handed table: p1 may go out
+// on a lay-off and a discard, the other side has more on the table, and every
+// other hand is long enough that nobody is about to end the deal.
+func behindAtPartnership() module.State {
+	return fourHanded(func(s *GameState) {
+		s.Teams[0].HasMelded = true
+		s.Teams[0].Melds = []Meld{
+			{ID: meldID(0, "K"), TeamID: 0, Rank: "K",
+				Cards: []string{"KH", "KC", "KD", "KS", "KH", "KC", "KD"}},
+			{ID: meldID(0, "9"), TeamID: 0, Rank: "9",
+				Cards: []string{"9H", "9C", "9S"}},
+		}
+		s.Teams[1].HasMelded = true
+		s.Teams[1].Melds = []Meld{
+			{ID: meldID(1, "A"), TeamID: 1, Rank: "A",
+				Cards: []string{"AH", "AC", "AD", "AS", "AH", "AC", "AD"}},
+			{ID: meldID(1, "Q"), TeamID: 1, Rank: "Q",
+				Cards: []string{"QH", "QC", "QD", "QS", "QH", "QC", "QD"}},
+		}
+		s.Hands["p1"] = []string{"9D", "5C"}
+		s.Hands["p2"] = []string{"8H", "8C", "8D", "8S", "7H", "7C", "7D", "7S"}
+		s.Hands["p3"] = []string{"JH", "JC", "JD", "6S", "6H", "6C", "4D", "4S"}
+		s.Hands["p4"] = []string{"TH", "TC", "TD", "TS", "5H", "5D", "5S", "4C"}
+		s.DiscardPile = []string{"4H"}
+	})
+}
+
+// TestHardGoesOutAtAPartnershipTable is TestHardDoesNotCloseWhileItIsBehind
+// with partners, where the answer flips.
+//
+// Banking is a heads-up judgement. With two opposing hands each a few turns
+// from going out, and the partner's whole hand counted against the side when
+// one does, holding back to build lost to Medium and to the closer style by
+// several hundred points a match. So at a partnership table Hard goes out the
+// turn it may, behind on the table or not.
+func TestHardGoesOutAtAPartnershipTable(t *testing.T) {
+	raw := behindAtPartnership()
+	if got := botAct(t, raw, "p1", module.SkillHard); got.Verb != VerbLayOff {
+		t.Errorf("%s while able to go out at a partnership table, want the lay-off that ends the deal", got.Verb)
+	}
+
+	// And it is the partnership rule that does it: the same position read by
+	// the banking judgement alone still declines, as it did before.
+	s, err := decode(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	banker := profileFor(module.SkillHard)
+	banker.racesForPartners = false
+	if (bot{}).read(s, "p1", banker).closing {
+		t.Fatal("the position is not one the banking judgement declines; the test is asking nothing")
+	}
+}
+
+// TestHardSpendsAWildToGoOutAtAPartnershipTable is the other half of racing,
+// and the half that mattered most: a hand down to a wild and one other card,
+// whose only way out is the wild.
+//
+// Heads-up, the hoard keeps the wild out of a three-card meld and the turn
+// ends on the five. With partners the wild goes onto the nines and the five
+// ends the deal, because a side holding its canasta has nothing left to save a
+// wild for, and the wild still in hand when an opponent goes out is fifty
+// points against the side, with the partner's whole hand beside it.
+func TestHardSpendsAWildToGoOutAtAPartnershipTable(t *testing.T) {
+	withWild := func(s *GameState) {
+		s.Hands["p1"] = []string{"JOKER1", "5C"}
+		// Nobody else is close: this is not the endgame read doing the work.
+		s.Teams[1].Melds = []Meld{{ID: meldID(1, "Q"), TeamID: 1, Rank: "Q",
+			Cards: []string{"QH", "QC", "QD"}}}
+	}
+	four := fourHanded(func(s *GameState) {
+		s.Teams[0].HasMelded = true
+		s.Teams[0].Melds = []Meld{
+			{ID: meldID(0, "K"), TeamID: 0, Rank: "K",
+				Cards: []string{"KH", "KC", "KD", "KS", "KH", "KC", "KD"}},
+			{ID: meldID(0, "9"), TeamID: 0, Rank: "9",
+				Cards: []string{"9H", "9C", "9S"}},
+		}
+		s.Teams[1].HasMelded = true
+		s.Hands["p2"] = []string{"8H", "8C", "8D", "8S", "7H", "7C", "7D", "7S"}
+		s.Hands["p3"] = []string{"JH", "JC", "JD", "6S", "6H", "6C", "4D", "4S"}
+		s.Hands["p4"] = []string{"TH", "TC", "TD", "TS", "5H", "5D", "5S", "4C"}
+		s.DiscardPile = []string{"4H"}
+		withWild(s)
+	})
+	got := botAct(t, four, "p1", module.SkillHard)
+	if got.Verb != VerbLayOff || !reflect.DeepEqual(got.Cards, []string{"JOKER1"}) {
+		t.Errorf("%s %v, want the joker laid off to go out", got.Verb, got.Cards)
+	}
+
+	two := behindOnPoints(func(s *GameState) { withWild(s) })
+	if got := botAct(t, two, "p1", module.SkillHard); got.Verb == VerbLayOff {
+		t.Errorf("heads-up laid off %v; the hoard should keep the wild out of a three-card meld", got.Cards)
+	}
+}
+
 // TestHardShedsTheExpensiveCardWhenTheDealIsEnding.
 //
 // Ordinarily the cheap card goes and the ace is kept to be melded. Once an
