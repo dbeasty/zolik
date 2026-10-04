@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"zolik/server/internal/auth"
+	"zolik/server/internal/botstats"
 	"zolik/server/internal/db"
 	"zolik/server/internal/module"
 )
@@ -77,7 +78,9 @@ func (m *Manager) Hint(ctx context.Context, idOrCode, playerID string) (module.A
 	if layered, ok := bot.(interface{ Heuristic() module.Bot }); ok {
 		bot = layered.Heuristic()
 	}
+	end := m.botStats.Begin(botstats.Key{Module: match.ModuleID, Skill: skillLabel(seat.Skill), Source: botstats.SourceHint})
 	a, ok := bot.Act(state, seat, offers)
+	end()
 	if !ok {
 		return module.Action{}, module.Error{Code: "NO_HINT"}
 	}

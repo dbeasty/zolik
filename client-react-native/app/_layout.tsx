@@ -108,6 +108,7 @@ export default function RootLayout() {
                       parameter on lobby/join because this URL is written down
                       outside the app — in chats, in mail — and wants to stay
                       short, stable and typeable. See src/lib/inviteLink.ts. */}
+                  <Stack.Screen name="oauth/consent" options={{ title: t('agent.heading') }} />
                   <Stack.Screen name="join/[code]" options={{ title: t('nav.joining') }} />
                   {/* Where a seat link lands: one person back to one seat, on
                       whatever device they have now. See app/seat. */}

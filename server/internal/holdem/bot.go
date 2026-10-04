@@ -93,7 +93,8 @@ func (b bot) Act(raw module.State, botSeat module.BotSeat, offers []module.Actio
 	}
 
 	p := b.profileOf(botSeat.Skill)
-	rnd := rand.New(rand.NewSource(seedFor(s, seat)))
+	rnd := seededRand(seedFor(s, seat))
+	defer releaseRand(rnd)
 	if s.Street == streetPreflop {
 		return mn.action(preflop(s, seat, mn, p, rnd))
 	}
@@ -827,17 +828,21 @@ func equityBoth(hole, board []string, opponents, trials int, cl claim, bluffShar
 	if len(hole) < 2 || opponents < 1 {
 		return 1, 1
 	}
-	seen := make(map[string]bool, len(hole)+len(board))
-	for _, c := range hole {
-		seen[c] = true
+	// The unseen cards, in buildDeck's order: the shuffle below permutes this
+	// slice in place, so its starting order is part of what the seed means.
+	var seen uint64
+	for _, cs := range [2][]string{hole, board} {
+		for _, c := range cs {
+			if r, su, ok := cardIndex(c); ok {
+				seen |= 1 << (r*4 + su)
+			}
+		}
 	}
-	for _, c := range board {
-		seen[c] = true
-	}
-	deck := make([]code, 0, 52)
-	for _, c := range buildDeck() {
-		if !seen[c] {
-			deck = append(deck, codeOf(c))
+	var deckBuf [52]code
+	deck := deckBuf[:0]
+	for _, c := range deckCodes {
+		if seen&(1<<c) == 0 {
+			deck = append(deck, c)
 		}
 	}
 
@@ -851,20 +856,19 @@ func equityBoth(hole, board []string, opponents, trials int, cl claim, bluffShar
 	}
 
 	// Ranked by score7 rather than Best: the same order, a hundred times
-	// faster, and the reason a rollout fits inside a decision (score.go).
-	known := make([]code, 0, 7)
+	// faster, and the reason a rollout fits inside a decision (score.go). The
+	// board is tallied once; each trial adds its runout to that, and each
+	// player's two cards to a copy of the result.
+	var mineHole, onBoard hand
+	var boardRanks [13]bool
 	for _, c := range hole {
-		known = append(known, codeOf(c))
+		mineHole.add(codeOf(c))
 	}
 	for _, c := range board {
-		known = append(known, codeOf(c))
-	}
-	var boardRanks [13]bool
-	for _, k := range known[len(hole):] {
+		k := codeOf(c)
+		onBoard.add(k)
 		boardRanks[k/4] = true
 	}
-	mine := make([]code, 0, 7)
-	theirs := make([]code, 0, 7)
 	won, counted := 0.0, 0
 	anyhow, dealt := 0.0, 0
 	for attempt := 0; attempt < trials*6 && counted < trials; attempt++ {
@@ -874,16 +878,24 @@ func equityBoth(hole, board []string, opponents, trials int, cl claim, bluffShar
 			k := j + rnd.Intn(len(deck)-j)
 			deck[j], deck[k] = deck[k], deck[j]
 		}
-		run := deck[:runout]
+		shared := onBoard
+		for _, c := range deck[:runout] {
+			shared.add(c)
+		}
 
-		mine = append(append(mine[:0], known...), run...)
-		best := score7(mine)
+		mine := shared
+		for s := range mine.suits {
+			mine.suits[s] |= mineHole.suits[s]
+		}
+		best := mine.score()
 
 		ahead, split, claims := true, 1, floor <= highCard && !cl.now
 		for o := 0; o < opponents; o++ {
 			at := runout + 2*o
-			theirs = append(append(append(theirs[:0], deck[at], deck[at+1]), known[len(hole):]...), run...)
-			rank := score7(theirs)
+			theirs := shared
+			theirs.add(deck[at])
+			theirs.add(deck[at+1])
+			rank := theirs.score()
 			if scoreCategory(rank) >= floor && (!cl.now || pairedNow(deck[at], deck[at+1], &boardRanks)) {
 				claims = true
 			}
