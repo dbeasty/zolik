@@ -98,6 +98,9 @@ type memoryReport struct {
 // registerDebugRoutes hangs the memory report and pprof off the router.
 func (a *App) registerDebugRoutes(r chi.Router) {
 	r.Get("/debug/memory", a.memoryReport)
+	// What bot decisions cost: per game and skill, in-flight and abandoned
+	// calls, and the share of the process's CPU they add up to.
+	r.Get("/debug/bots", a.botReport)
 
 	// The standard profiles, on the same flag. `/debug/pprof/heap?gc=1` is
 	// the one that names names: it attributes live bytes to the call site
@@ -229,4 +232,11 @@ func readStat(path string) map[string]uint64 {
 		}
 	}
 	return out
+}
+
+func (a *App) botReport(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+	_ = enc.Encode(a.matchManager().BotStats().Snapshot())
 }
