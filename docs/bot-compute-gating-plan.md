@@ -370,7 +370,7 @@ or `ZOLIK_TEST_DB_ENGINE=kdb` is set. Run them with the variable set.
 - **Fallback is the next class down:** a model falls back to the rule bot at the same skill,
   and a rule bot to one skill lower. A seat without a lease walks down to the first class that
   needs none: Mariáš Hard → Medium, and a Žolíky AI seat (the model) → Žolíky rule Hard.
-- **Capacity:** cores (`GOMAXPROCS`) × 0.5 share × 0.7 comfort, halved at amber and zero at
+- **Capacity:** cores (`capacity.CPUQuota()`: the cgroup limit, not `GOMAXPROCS`, which is never below 2; §5.7) × 0.5 share × 0.7 comfort, halved at amber and zero at
   red. A lease weighs its cost per think window (mean CPU ÷ 1.35 s).
 - **Speed:** every cost is scaled by `Calibrate()`, a few-millisecond integer workload timed
   against the machine that measured the table. A phone three times slower leases three times
@@ -672,14 +672,67 @@ Mariáš Hard's p95 is now about 0.1 of the think window, so it no longer threat
 monitor's amber line on its own. **The one remaining tail is Žolíky's model at eight-seat
 classic tables** (p99 265 ms, 9 MB per decision); everything else is bounded and small.
 
-### 5.7 Still open in Phase 0
+### 5.7 Soak against a CPU-limited container, 2026-10-04
 
-- **Soak at `cpus: 1` and `cpus: 2`.** Increase the number of concurrent Hold'em bot tables,
-  the expensive engine that exists today, until WebSocket broadcast p95 bends. That checks the
-  §3.2 formula against a real container. The recorder is in place, so the soak only has to read
-  `/debug/bots`.
+`cmd/botsoak` loads a running server with bot tables. Each table is a guest host plus bots at
+one skill. The host plays over the WebSocket like a person: it waits 0.6 s, then sends a
+legal move from its offers. Every human move is timed until the next state frame arrives,
+which is what a player's tap waits on. The tool also samples `/debug/bots` and
+`/debug/capacity`.
+
+**Setup:**
+- This branch's server, built static for linux/arm64, in a `FROM scratch` container with
+  `--cpus=N --memory=2g`, so cgroup quota, PSI and memory are real.
+- Mariáš, host plus two **Hard** bots per table: the dearest leased class (15 ms).
+- 90 s per step. Zero client errors across all runs.
+
+`--cpus=1`:
+
+| Tables (Hard seats) | Governor | Human move p95 / p99 | Bot p95 | Monitor | Leased / reduced |
+|---|---|---|---|---|---|
+| 5 (10) | observe | 5 / 7 ms | 131 ms | green | 10 / 0 |
+| 10 (20) | observe | 5 / 11 ms | 131 ms | green | 20 / 0 |
+| 20 (40) | observe | 6 / 20 ms | 131 ms | green | 31 / (9) |
+| **40 (80)** | **observe** | **75 / 168 ms** (worst 30 s: 102 / 203) | **524–992 ms** | **amber → red** (overrun; PSI 0.17) | — / (80) |
+| 20 (40) | enforce | 6 / 41 ms | 131 ms | green | 31 / 9 |
+| **40 (80)** | **enforce** | **6 / 31 ms** | 131 ms | **green** | 31 / 49 |
+
+`--cpus=2`:
+
+| Tables (Hard seats) | Governor | Human move p95 / p99 | Monitor | Leased / reduced |
+|---|---|---|---|---|
+| 40 (80) | observe | 13 / 33 ms | green | 62 / (18) |
+| 80 (160) | observe | 31 / 64 ms | green | 63 / (97) |
+| 80 (160) | enforce | 11 / 25 ms | green | 63 / 97 |
+
+What it showed:
+- **The formula holds and errs safe.** It leases 31 Hard Mariáš seats per core. 40 per core
+  played cleanly, and 80 per core did not. Capacity scales linearly with the quota (31 at one
+  core, 63 at two).
+- **Enforcing protects the people at the table.** At one core and 80 Hard seats, the human
+  move's p99 went from 168 ms to 31 ms, p95 from 75 ms to 6 ms, and the server stayed green
+  instead of going red.
+- **The monitor's overrun signal fires before PSI.** At one core, the step to amber came from
+  bot p95 crossing half the think window, while PSI read 0.07. At two cores and 160 seats the
+  human p99 doubled with no level change. That is below the overrun line, and a reason to
+  enforce rather than wait for amber.
+- **Bug found and fixed: `GOMAXPROCS` is not the quota.** Go sizes `GOMAXPROCS` from the CPU
+  limit but never below 2, so at `--cpus=1` the governor believed it had two cores and would
+  have leased twice what the box has. `capacity.CPUQuota()` now reads `cpu.max` (cgroup v2) or
+  the cfs files (v1), falls back to `GOMAXPROCS`, and is what the governor sizes from and what
+  `/debug/capacity` reports.
+
+**Recommendation:** set `BOT_GOVERNOR=enforce` in production. Under normal load it changes
+nothing (every seat gets its lease); it only acts past the formula's line, which is where
+this soak shows players start to feel it. Production also has no `cpus:` limit in
+`deploy/compose/zolik.yml`, so the quota is the host's cores. Adding one makes the governor
+size to what the app may actually use.
+
+### 5.8 Still open
+
 - **Production baseline.** Once deployed, the ten-minute `bot decisions` log line gives real
-  traffic's mix and `botCpuShare`.
+  traffic's mix and `botCpuShare`, and `/debug/capacity` (when enabled) shows the governor's
+  counts.
 
 ## 6. Open questions
 
