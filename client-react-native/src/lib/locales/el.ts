@@ -1758,6 +1758,7 @@ export const el: Record<string, string> = {
   'hint.lineNoCards': 'Πρόταση: {move}',
   'err.HINTS_OFF': 'Η βοήθεια είναι απενεργοποιημένη σε αυτό το τραπέζι',
   'err.NO_HINT': 'Καμία πρόταση αυτή τη στιγμή',
+  'err.HINT_TOO_SOON': 'Πάρα πολλές υποδείξεις μαζί — περιμένετε λίγα δευτερόλεπτα',
   'option.hints': 'Βοήθεια',
   'choice.hints.1': 'Επιτρέπεται',
   'choice.hints.0': 'Απενεργοποιημένη',

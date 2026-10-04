@@ -1743,6 +1743,7 @@ export const fr: Record<string, string> = {
   'hint.lineNoCards': 'Suggestion : {move}',
   'err.HINTS_OFF': 'Les indices sont désactivés à cette table',
   'err.NO_HINT': 'Aucune suggestion pour le moment',
+  'err.HINT_TOO_SOON': 'Trop d’indices d’un coup — attendez quelques secondes',
   'option.hints': 'Indices',
   'choice.hints.1': 'Autorisés',
   'choice.hints.0': 'Désactivés',

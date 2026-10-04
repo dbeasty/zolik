@@ -1722,6 +1722,7 @@ export const sl: Record<string, string> = {
   'hint.lineNoCards': 'Predlog: {move}',
   'err.HINTS_OFF': 'Namigi so pri tej mizi izklopljeni',
   'err.NO_HINT': 'Trenutno ni predloga',
+  'err.HINT_TOO_SOON': 'Preveč namigov naenkrat — počakajte nekaj sekund',
   'option.hints': 'Namigi',
   'choice.hints.1': 'Dovoljeni',
   'choice.hints.0': 'Izklopljeni',

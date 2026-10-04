@@ -1745,6 +1745,7 @@ export const en: Record<string, string> = {
   'hint.lineNoCards': 'Suggested: {move}',
   'err.HINTS_OFF': 'Hints are turned off at this table',
   'err.NO_HINT': 'No suggestion right now',
+  'err.HINT_TOO_SOON': 'Too many hints at once — wait a few seconds',
   'option.hints': 'Hints',
   'choice.hints.1': 'Allowed',
   'choice.hints.0': 'Off',

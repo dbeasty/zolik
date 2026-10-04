@@ -1744,6 +1744,7 @@ export const mt: Record<string, string> = {
   'hint.lineNoCards': 'Suġġeriment: {move}',
   'err.HINTS_OFF': "Il-ħjiel huma mitfija f'din il-mejda",
   'err.NO_HINT': 'L-ebda suġġeriment bħalissa',
+  'err.HINT_TOO_SOON': "Wisq ħjiel f'daqqa — stenna ftit sekondi",
   'option.hints': 'Ħjiel',
   'choice.hints.1': 'Permessi',
   'choice.hints.0': 'Mitfija',

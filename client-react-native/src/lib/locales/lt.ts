@@ -1728,6 +1728,7 @@ export const lt: Record<string, string> = {
   'hint.lineNoCards': 'Pasiūlymas: {move}',
   'err.HINTS_OFF': 'Prie šio stalo patarimai išjungti',
   'err.NO_HINT': 'Šiuo metu pasiūlymų nėra',
+  'err.HINT_TOO_SOON': 'Per daug patarimų iš karto — palaukite kelias sekundes',
   'option.hints': 'Patarimai',
   'choice.hints.1': 'Leidžiami',
   'choice.hints.0': 'Išjungti',

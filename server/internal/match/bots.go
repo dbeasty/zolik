@@ -210,9 +210,16 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 				bot = module.OfferBot(verbs...)
 			}
 			seat := botSeatFor(match, actor)
+			label := skillLabel(seat.Skill)
+			if passive {
+				// Recorded apart: a sat-out seat costs an offer scan, and
+				// counting it as the seat's skill would make that skill
+				// look cheaper than it is.
+				label = "sitout"
+			}
 			botPick, botOK, timedOut = botAct(bot, module.State(match.State),
 				seat, offers, m.actBudget(), m.botStats,
-				botstats.Key{Module: match.ModuleID, Skill: skillLabel(seat.Skill), Source: botstats.SourceLoop})
+				botstats.Key{Module: match.ModuleID, Skill: label, Source: botstats.SourceLoop})
 			if timedOut {
 				log.Printf("bot loop: match=%s seat=%s bot gave no move within %s; playing from the offer list",
 					matchID, actor, m.actBudget())

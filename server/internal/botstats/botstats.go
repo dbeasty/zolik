@@ -282,3 +282,25 @@ func (r *Recorder) LogEvery(ctx context.Context, interval time.Duration) {
 		}
 	}()
 }
+
+// RecentQuantile is the q-th quantile of every recent decision from one
+// source, across games and skills, and how many decisions it was taken over.
+// It is what a resource monitor reads: one number for "how long are bots
+// taking right now", not a table.
+func (r *Recorder) RecentQuantile(src Source, q float64) (time.Duration, int64) {
+	if r == nil {
+		return 0, 0
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.rotateLocked()
+	var acc hist
+	for _, m := range []map[Key]*hist{r.prev, r.cur} {
+		for k, h := range m {
+			if k.Source == src {
+				acc.merge(h)
+			}
+		}
+	}
+	return acc.quantile(q), acc.count
+}

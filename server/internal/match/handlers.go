@@ -1203,6 +1203,8 @@ func writeModuleError(w http.ResponseWriter, err error) {
 		status = http.StatusConflict
 	case "WAITING_ROOM_UNAVAILABLE", "SERVER_BUSY":
 		status = http.StatusServiceUnavailable
+	case "HINT_TOO_SOON":
+		status = http.StatusTooManyRequests
 	case "REPLAY_UNAVAILABLE":
 		// Not implemented rather than not found: the route exists, the caller
 		// asked for it correctly, and this deployment does not have the

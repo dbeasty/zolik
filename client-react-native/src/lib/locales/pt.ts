@@ -1739,6 +1739,7 @@ export const pt: Record<string, string> = {
   'hint.lineNoCards': 'Sugestão: {move}',
   'err.HINTS_OFF': 'As dicas estão desligadas nesta mesa',
   'err.NO_HINT': 'Nenhuma sugestão de momento',
+  'err.HINT_TOO_SOON': 'Demasiadas dicas seguidas — aguarde alguns segundos',
   'option.hints': 'Dicas',
   'choice.hints.1': 'Permitidas',
   'choice.hints.0': 'Desligadas',

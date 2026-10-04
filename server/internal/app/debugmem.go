@@ -101,6 +101,8 @@ func (a *App) registerDebugRoutes(r chi.Router) {
 	// What bot decisions cost: per game and skill, in-flight and abandoned
 	// calls, and the share of the process's CPU they add up to.
 	r.Get("/debug/bots", a.botReport)
+	// The resource monitor's level, its last reading and its thresholds.
+	r.Get("/debug/capacity", a.capacityReport)
 
 	// The standard profiles, on the same flag. `/debug/pprof/heap?gc=1` is
 	// the one that names names: it attributes live bytes to the call site

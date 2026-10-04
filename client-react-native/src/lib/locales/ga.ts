@@ -1760,6 +1760,7 @@ export const ga: Record<string, string> = {
   'hint.lineNoCards': 'Moladh: {move}',
   'err.HINTS_OFF': 'Tá leideanna múchta ag an mbord seo',
   'err.NO_HINT': 'Níl aon mholadh ann faoi láthair',
+  'err.HINT_TOO_SOON': 'An iomarca leideanna in éineacht — fan cúpla soicind',
   'option.hints': 'Leideanna',
   'choice.hints.1': 'Ceadaithe',
   'choice.hints.0': 'Múchta',

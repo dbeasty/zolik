@@ -1735,6 +1735,7 @@ export const fi: Record<string, string> = {
   'hint.lineNoCards': 'Ehdotus: {move}',
   'err.HINTS_OFF': 'Vihjeet on poistettu käytöstä tässä pöydässä',
   'err.NO_HINT': 'Ei ehdotusta juuri nyt',
+  'err.HINT_TOO_SOON': 'Liian monta vihjettä kerralla – odota muutama sekunti',
   'option.hints': 'Vihjeet',
   'choice.hints.1': 'Sallittu',
   'choice.hints.0': 'Pois',

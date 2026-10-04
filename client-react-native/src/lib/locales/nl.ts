@@ -1743,6 +1743,7 @@ export const nl: Record<string, string> = {
   'hint.lineNoCards': 'Suggestie: {move}',
   'err.HINTS_OFF': 'Tips staan uit aan deze tafel',
   'err.NO_HINT': 'Nu geen suggestie',
+  'err.HINT_TOO_SOON': 'Te veel hints achter elkaar — wacht een paar seconden',
   'option.hints': 'Tips',
   'choice.hints.1': 'Toegestaan',
   'choice.hints.0': 'Uit',

@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
+	"runtime"
 	"runtime/debug"
 	"sync"
 	"time"
@@ -22,6 +24,7 @@ import (
 	"zolik/server/internal/botstats"
 	"zolik/server/internal/buildinfo"
 	"zolik/server/internal/canasta"
+	"zolik/server/internal/capacity"
 	"zolik/server/internal/db"
 	"zolik/server/internal/ginrummy"
 	"zolik/server/internal/holdem"
@@ -73,6 +76,9 @@ type App struct {
 	// matchMgr is the game runtime, built once — see matchManager.
 	matchOnce sync.Once
 	matchMgr  *match.Manager
+	// monitor is the resource monitor, built once — see capacityMonitor.
+	monitorOnce sync.Once
+	monitor     *capacity.Monitor
 	// sync is this process as a node of the distributed database, or nil when
 	// it replicates with nobody — which is every deployment until
 	// FEATURE_FLAG_SYNC says otherwise. See internal/sync.
@@ -440,6 +446,13 @@ func (a *App) Start(ctx context.Context) {
 	// And a summary of what bot decisions cost, every ten minutes that had
 	// any — the production half of /debug/bots, which is off there.
 	a.matchManager().BotStats().LogEvery(ctx, 10*time.Minute)
+	// And the resource monitor, in observe mode: it logs each level change
+	// and nothing acts on one yet. See docs/bot-compute-gating-plan.md §3.4.
+	if mon := a.capacityMonitor(); mon != nil {
+		mon.Run(ctx, 2*time.Second)
+		go logCapacity(ctx, mon.Subscribe())
+		slog.Info("capacity monitor: observing", "gomaxprocs", runtime.GOMAXPROCS(0), "numCPU", runtime.NumCPU())
+	}
 	// And the sweeper that reclaims the ones it resolved, long afterwards.
 	// Separate from the reaper on purpose: that one decides what a table
 	// *became* and runs in seconds, this one decides when the row stops being

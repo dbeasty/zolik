@@ -171,6 +171,12 @@ type Config struct {
 	// it to nothing rather than sleeping through it.
 	BotThinkMinMS int
 	BotThinkMaxMS int
+
+	// BotMonitorEnabled runs the resource monitor (internal/capacity) that
+	// folds CPU pressure, memory and bot decision time into a green, amber or
+	// red level and logs each change. Observe only for now: nothing acts on
+	// the level yet. On by default; it reads two files every two seconds.
+	BotMonitorEnabled bool
 }
 
 // IsLocal reports whether this process is running on a developer's machine,
@@ -298,6 +304,8 @@ func LoadConfig() Config {
 		// A floor below that had bots answering over their own last move.
 		BotThinkMinMS: envInt("BOT_THINK_MIN_MS", 900),
 		BotThinkMaxMS: envInt("BOT_THINK_MAX_MS", 1800),
+
+		BotMonitorEnabled: envBool("BOT_MONITOR", true),
 	}
 }
 

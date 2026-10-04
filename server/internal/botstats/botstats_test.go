@@ -103,3 +103,24 @@ func TestANilRecorderIsInert(t *testing.T) {
 		t.Fatalf("%+v", s)
 	}
 }
+
+func TestRecentQuantileIsPerSource(t *testing.T) {
+	c := &fakeClock{now: time.Unix(0, 0)}
+	r := newAt(c.Now)
+	for i, d := range []time.Duration{time.Millisecond, 2 * time.Millisecond, 100 * time.Millisecond} {
+		src := SourceLoop
+		if i == 2 {
+			src = SourceHint
+		}
+		end := r.Begin(Key{Module: "m", Skill: "hard", Source: src})
+		c.Advance(d)
+		end()
+	}
+	p, n := r.RecentQuantile(SourceLoop, 0.95)
+	if n != 2 || p != 2*time.Millisecond {
+		t.Fatalf("loop p95 = %s over %d, want 2ms over 2", p, n)
+	}
+	if _, n := (*Recorder)(nil).RecentQuantile(SourceLoop, 0.95); n != 0 {
+		t.Fatal("nil recorder")
+	}
+}

@@ -1724,6 +1724,7 @@ export const sv: Record<string, string> = {
   'hint.lineNoCards': 'Förslag: {move}',
   'err.HINTS_OFF': 'Tips är avstängda vid det här bordet',
   'err.NO_HINT': 'Inget förslag just nu',
+  'err.HINT_TOO_SOON': 'För många tips på en gång – vänta några sekunder',
   'option.hints': 'Tips',
   'choice.hints.1': 'Tillåtna',
   'choice.hints.0': 'Av',

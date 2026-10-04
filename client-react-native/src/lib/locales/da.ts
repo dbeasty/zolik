@@ -1725,6 +1725,7 @@ export const da: Record<string, string> = {
   'hint.lineNoCards': 'Forslag: {move}',
   'err.HINTS_OFF': 'Tips er slået fra ved dette bord',
   'err.NO_HINT': 'Intet forslag lige nu',
+  'err.HINT_TOO_SOON': 'For mange tip på én gang – vent et par sekunder',
   'option.hints': 'Tips',
   'choice.hints.1': 'Tilladt',
   'choice.hints.0': 'Fra',

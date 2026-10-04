@@ -1,6 +1,7 @@
 # Bot compute gating — plan
 
-> **Status: proposed; Phase 0 (measurement) built.** Rechecked 2026-10-03 against main @
+> **Status: Phase 0 (measurement) and Phase 1 (monitor in observe mode, hints off the lock)
+> built; Phase 2 waits for a trained net in live play.** Rechecked 2026-10-03 against main @
 > `9e21df8`. See §5.3: the 2026-09-29 conclusions have been **superseded**. Rule engines are
 > now the cheaper engine in every game, so "downgrade to rule" is right as originally framed.
 
@@ -327,14 +328,35 @@ Nothing here changes behaviour.
   until WebSocket broadcast p95 degrades. The K where it bends, times `comfort`, has to agree
   with the formula. That checks the capacity model against reality.
 
-### Phase 1 — capacity + monitor, observe mode
+### Phase 1 — monitor in observe mode, hints off the lock *(built 2026-10-04)*
 
-- Quota reader + `GOMAXPROCS`, cost table, `deepSlots` shown in `/debug/memory` and as a
-  gauge.
-- Monitor with levels and events. Subscribers log and count
-  (`bot_deep_would_revoke_total`, `bot_deep_would_grant_total`).
-- Hint rate limit (independent of the rest; ship it early).
-- `BOT_DEEP=off|observe|enforce`, default `off` until a deep agent exists.
+What was built, against §5.3's reduced scope:
+- **Hints off the match lock.** `Manager.Hint` validates and copies the position under the
+  lock, then releases it before `Act`. `TestASlowHintDoesNotHoldTheTable` fails on the old
+  code ("a move waited on a hint") and passes on the new.
+- **Hint rate limit.** Five worked-out hints per player per ten seconds
+  (`internal/ratelimit`). Refusals that run no bot (`NOT_YOUR_TURN`, `HINTS_OFF`) don't
+  count. Over the limit: `429 HINT_TOO_SOON` with `Retry-After: 10`, worded in all 24 locales.
+- **`GOMAXPROCS`: nothing to build.** The server is on Go 1.26. Since Go 1.25 the runtime sizes
+  `GOMAXPROCS` from the container's CPU limit and follows changes. The monitor reports it
+  (`/debug/capacity`, plus a startup log line), so the quota reader planned in §3.2 can read
+  `runtime.GOMAXPROCS(0)`.
+- **Resource monitor** (`internal/capacity`):
+  - Samples every 2 s: admission's CPU stall and memory fraction, and the recent bot-decision
+    p95 relative to the think window.
+  - Green/amber/red with §3.4's hysteresis: worse applies at once; better needs 30 s of calm
+    and steps one level at a time.
+  - Subscribers get coalesced events.
+  - Observe mode: the app logs each level change, and `/debug/capacity` shows the level, the
+    last reading, the thresholds and `GOMAXPROCS`. `BOT_MONITOR=false` turns it off.
+- **Sat-out seats** (drop-in tables, PR #242) are recorded as skill `sitout` in `/debug/bots`,
+  so passive play doesn't make a real skill look cheaper.
+
+Deferred to Phase 2, because they need something to act on: the cost table and `deepSlots`;
+the `would_revoke` / `would_grant` counters; and `BOT_DEEP=off|observe|enforce`.
+
+**Test trap:** `internal/match` tests that need a store **skip silently** unless Mongo is up
+or `ZOLIK_TEST_DB_ENGINE=kdb` is set. Run them with the variable set.
 
 ### Phase 2 — engines, leases, switching
 

@@ -1727,6 +1727,7 @@ export const lv: Record<string, string> = {
   'hint.lineNoCards': 'Ieteikums: {move}',
   'err.HINTS_OFF': 'Pie šī galda padomi ir izslēgti',
   'err.NO_HINT': 'Pašlaik nav ieteikuma',
+  'err.HINT_TOO_SOON': 'Pārāk daudz padomu uzreiz — pagaidiet dažas sekundes',
   'option.hints': 'Padomi',
   'choice.hints.1': 'Atļauti',
   'choice.hints.0': 'Izslēgti',

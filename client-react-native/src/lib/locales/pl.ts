@@ -1733,6 +1733,7 @@ export const pl: Record<string, string> = {
   'hint.lineNoCards': 'Propozycja: {move}',
   'err.HINTS_OFF': 'Podpowiedzi są wyłączone przy tym stole',
   'err.NO_HINT': 'Brak propozycji w tej chwili',
+  'err.HINT_TOO_SOON': 'Za dużo podpowiedzi naraz — odczekaj kilka sekund',
   'option.hints': 'Podpowiedzi',
   'choice.hints.1': 'Dozwolone',
   'choice.hints.0': 'Wyłączone',

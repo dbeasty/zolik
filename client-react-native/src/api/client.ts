@@ -514,8 +514,9 @@ export class ZolikClient {
 
   /**
    * The move this player's seat would make now, suggested and never made.
-   * Refused with HINTS_OFF at a table that turned hints off, and with
-   * NOT_YOUR_TURN when there is nothing to suggest.
+   * Refused with HINTS_OFF at a table that turned hints off, with
+   * NOT_YOUR_TURN when there is nothing to suggest, and with HINT_TOO_SOON
+   * (429) after five worked-out hints in ten seconds.
    */
   async hint(idOrCode: string): Promise<{ action: MatchAction }> {
     return this.post(`/matches/${encodeURIComponent(idOrCode)}/hint`, null, true);
