@@ -112,6 +112,36 @@ How it works, briefly:
   every `train.reset_every` updates, staggered across processes.
 - Training seeds are always below 1,000,000; evaluation starts there.
 
+### Training-only options: a perfect-information critic and a match reward
+
+Both are off unless the config sets them, and neither changes what a trained
+model is: the exported file is the same layers either way, and the server
+loads and plays it as before.
+
+- `model.priv: [sizes]` (survey E3, PerfectDou). The env is reset with
+  `"privileged": true` and every observation carries `priv`, the game's
+  `learn.Privileged` vector of what the seat cannot see (Canasta: every other
+  hand by card category, the stock's size and composition, its next two
+  cards; 121 wide). The critic reads `[embedding ++ MLP(priv)]` and is the
+  value GAE uses. The policy (trunk and scorer) never reads `priv` —
+  `tests/test_critic.py` checks no gradient path and byte-identical exports.
+  The plain value head is still trained on the same returns from a detached
+  embedding, and is the head exported; Go's `ValueOf` reads it, and nothing
+  in the server uses it. A run started with `--init` starts the critic as
+  that file's value head with its privileged inputs at weight zero. The log
+  prints `ev=critic/plain`.
+- `reward.match: {alpha, k, model}` (survey E4, Suphx global reward). Each
+  deal's reward becomes `alpha * deal reward + (1 - alpha) * k * (P(win)
+  after - P(win) before)` (`learn.MatchReward`), with P the result itself once
+  the match is over, so over a match the second term sums to the result less
+  P at 0-0. The deal-only reward prices points the same whatever the score;
+  a side ahead wins the match by ending deals, and only the match term sees
+  that. P is a small MLP over `learn.WinFeatures`, fitted by
+  `winmodel.py` on `server/cmd/matchstates` output (whole matches between
+  bots), which also prints a `k` that matches the two terms' spreads. The
+  event's `base` is the deal reward, logged beside the mixed one
+  (`reward/base/win` per opponent; `win` is a deal won on points).
+
 ## Evaluate
 
 ```sh

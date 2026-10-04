@@ -12,6 +12,17 @@ the end — the file the server loads.
 --init <model.bin> fine-tunes from a ZLNET1 file (a shipped model or another
 run's final.bin) with a fresh optimiser; the config's model sizes must be the
 file's.
+
+Two training-only options, both off unless the config sets them:
+
+  model.priv: [sizes]   a perfect-information critic (model.py): the env sends
+                        each decision's privileged observation, the critic
+                        reads it, and GAE uses the critic's value. The policy
+                        and the exported file are as without it.
+  reward.match:         {alpha, k, model: <winmodel.json>}: each deal's reward
+                        becomes alpha * (deal reward) + (1 - alpha) * k *
+                        (change in P(win the match)) (learn.MatchReward;
+                        fit the model with winmodel.py). alpha 1 is off.
 """
 
 from __future__ import annotations
@@ -37,6 +48,18 @@ from zolik_ml.model import from_config
 from zolik_ml.ppo import PPO, PPOConfig, Step, Tracker, build_batch
 
 ML_DIR = Path(__file__).resolve().parent
+
+
+def load_match_reward(cfg: dict) -> dict | None:
+    """reward.match as the env takes it ({alpha, k, model}), the model read
+    from its JSON file; None when it is absent or alpha is 1."""
+    m = (cfg.get("reward") or {}).get("match")
+    if not m or float(m.get("alpha", 1.0)) >= 1.0:
+        return None
+    path = Path(m["model"])
+    if not path.is_absolute():
+        path = ML_DIR / path
+    return {"alpha": float(m["alpha"]), "k": float(m["k"]), "model": json.loads(path.read_text())}
 
 
 def load_config(path: Path, overrides: list[str]) -> dict:
@@ -72,15 +95,24 @@ class Trainer:
         self.n_tables = int(ec["tables"])
         exe = binary("gameenv")
         self.variations = assign_variations(cfg, self.n_envs)
+        privileged = bool(cfg["model"].get("priv"))
+        match_reward = load_match_reward(cfg)
         self.envs = [
-            GameEnv(self.game, v, int(ec.get("budget", 50_000)), exe, ec.get("procs"), ec.get("gogc")) for v in self.variations
+            GameEnv(
+                self.game, v, int(ec.get("budget", 50_000)), exe, ec.get("procs"), ec.get("gogc"),
+                privileged=privileged, match_reward=match_reward,
+            )
+            for v in self.variations
         ]
-        state_dim, cand_dim = self.envs[0].info()
+        info = self.envs[0].info_full()
+        state_dim, cand_dim, priv_dim = info["stateDim"], info["candDim"], info["privDim"]
+        if privileged and not priv_dim:
+            sys.exit(f"model.priv is set but {self.game} has no privileged observation")
         self.selector = selectors.DefaultSelector()
         for i, env in enumerate(self.envs):
             self.selector.register(env.proc.stdout, selectors.EVENT_READ, i)
 
-        self.model = from_config(cfg, state_dim, cand_dim, self.game)
+        self.model = from_config(cfg, state_dim, cand_dim, self.game, priv_dim)
         if args.resume:
             st = torch.load(args.resume, map_location="cpu")
             self.model.load_state_dict(st["model"])
@@ -90,6 +122,9 @@ class Trainer:
         elif args.init:
             export.load_into(self.model, args.init)
             print(f"initialised from {args.init}", flush=True)
+        if args.init and not args.resume and self.model.has_critic:
+            self.model.init_critic_from_value()
+            print("critic initialised from the plain value head (privileged inputs at zero)", flush=True)
         self.ppo = PPO(self.model, PPOConfig.from_dict(cfg["ppo"]))
         if args.resume and "opt" in st:
             self.ppo.opt.load_state_dict(st["opt"])
@@ -152,7 +187,7 @@ class Trainer:
         total_decisions = 0
         while not stop["now"]:
             t0 = time.time()
-            ep = defaultdict(list)  # label -> returns
+            ep = defaultdict(list)  # label -> (return, the game's own return)
             counts = defaultdict(int)
             stall_why: dict[str, int] = defaultdict(int)
             decisions = 0
@@ -172,10 +207,16 @@ class Trainer:
                     if self.reset_due[i]:
                         self.send_reset(i)
                         continue
-                    actions, logp, values = self.ppo.act([o.obs for o in obs], [o.cands for o in obs])
+                    privs = [o.priv for o in obs] if self.model.has_critic else None
+                    actions, logp, values, plains = self.ppo.act([o.obs for o in obs], [o.cands for o in obs], priv=privs)
                     for t, o in enumerate(obs):
                         self.tracker.decision(
-                            (i, t, o.seat), Step(o.obs, o.cands, int(actions[t]), float(logp[t]), float(values[t]))
+                            (i, t, o.seat),
+                            Step(
+                                o.obs, o.cands, int(actions[t]), float(logp[t]), float(values[t]),
+                                priv=o.priv if privs is not None else None,
+                                value_plain=float(plains[t]),
+                            ),
                         )
                     env.send_step(actions)
             collect_s = time.time() - t0
@@ -217,9 +258,9 @@ class Trainer:
         for t, o in enumerate(obs):
             label = self.labels[i][t] if t < len(self.labels[i]) else "?"
             for e in o.events:
-                s = self.tracker.event((i, t, e.seat), e.reward, e.done)
+                s = self.tracker.event((i, t, e.seat), e.reward, e.done, e.base)
                 if s is not None:
-                    ep[label].append(s.ret)
+                    ep[label].append((s.ret, s.base))
             prev = self.prev_counts.get((i, t), (0, 0, 0))
             d_ill, d_stall, d_match = o.illegal - prev[0], o.stalls - prev[1], o.matches - prev[2]
             counts["illegal"] += d_ill
@@ -235,7 +276,8 @@ class Trainer:
     def _log(self, update, total_decisions, decisions, collect_s, update_s, env_wait, n, lr, st, ep, counts, stall_why, start):
         tb = self.tb
         dps = decisions / max(collect_s, 1e-9)
-        all_ret = [r for rs in ep.values() for r in rs]
+        all_ret = [r for rs in ep.values() for r, _ in rs]
+        all_base = [b for rs in ep.values() for _, b in rs]
         rec = {
             "update": update,
             "elapsed": round(time.time() - start, 1),
@@ -251,9 +293,12 @@ class Trainer:
             "kl": st.approx_kl,
             "clip_frac": st.clip_frac,
             "explained_var": st.explained_var,
+            "explained_var_plain": st.explained_var_plain,
+            "value_loss_plain": st.value_loss_plain,
             "grad_norm": st.grad_norm,
             "episodes": len(all_ret),
             "ep_reward": float(np.mean(all_ret)) if all_ret else None,
+            "ep_base": float(np.mean(all_base)) if all_base else None,
             "illegal": counts["illegal"],
             "stalls": counts["stalls"],
             "matches": counts["matches"],
@@ -270,6 +315,7 @@ class Trainer:
         tb.add_scalar("loss/approx_kl", st.approx_kl, update)
         tb.add_scalar("loss/clip_frac", st.clip_frac, update)
         tb.add_scalar("loss/explained_var", st.explained_var, update)
+        tb.add_scalar("loss/explained_var_plain", st.explained_var_plain, update)
         tb.add_scalar("loss/grad_norm", st.grad_norm, update)
         tb.add_scalar("train/lr", lr, update)
         tb.add_scalar("env/illegal", counts["illegal"], update)
@@ -277,20 +323,24 @@ class Trainer:
         tb.add_scalar("env/matches", counts["matches"], update)
         if all_ret:
             tb.add_scalar("reward/episode", float(np.mean(all_ret)), update)
-        for label, rs in sorted(ep.items()):
+        for label, pairs in sorted(ep.items()):
+            rs = [r for r, _ in pairs]
+            bs = [b for _, b in pairs]
             m = float(np.mean(rs))
-            w = float(np.mean([r > 0 for r in rs]))
-            rec["by_opponent"][label] = {"n": len(rs), "reward": round(m, 4), "win": round(w, 3)}
+            # "win" is a deal won on the game's own reward, whatever the training reward.
+            w = float(np.mean([b > 0 for b in bs]))
+            rec["by_opponent"][label] = {"n": len(rs), "reward": round(m, 4), "base": round(float(np.mean(bs)), 4), "win": round(w, 3)}
             tb.add_scalar(f"reward_vs/{label}", m, update)
             tb.add_scalar(f"win_vs/{label}", w, update)
         self.metrics.write(json.dumps(rec) + "\n")
         self.metrics.flush()
-        opp = " ".join(f"{k}={v['reward']:+.3f}/{v['win']:.2f}" for k, v in sorted(rec["by_opponent"].items()))
+        opp = " ".join(f"{k}={v['reward']:+.3f}/{v['base']:+.3f}/{v['win']:.2f}" for k, v in sorted(rec["by_opponent"].items()))
         print(
             f"[{update:4d} {rec['elapsed']:6.0f}s] dps={dps:6.0f} batch={n} "
-            f"ep={rec['ep_reward'] if rec['ep_reward'] is None else round(rec['ep_reward'], 3)} "
+            f"ep={rec['ep_reward'] if rec['ep_reward'] is None else round(rec['ep_reward'], 3)}"
+            f"/{rec['ep_base'] if rec['ep_base'] is None else round(rec['ep_base'], 3)} "
             f"pl={st.policy_loss:+.4f} vl={st.value_loss:.4f} ent={st.entropy:.3f} kl={st.approx_kl:.4f} "
-            f"ev={st.explained_var:.2f} gn={st.grad_norm:.2f} ill={counts['illegal']} stalls={counts['stalls']} | {opp}",
+            f"ev={st.explained_var:.2f}/{st.explained_var_plain:.2f} gn={st.grad_norm:.2f} ill={counts['illegal']} stalls={counts['stalls']} | {opp}",
             flush=True,
         )
         for why, k in stall_why.items():

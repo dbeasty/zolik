@@ -17,6 +17,11 @@ Trajectories outlive a rollout. At update time every closed trajectory is
 used whole, and every open one gives up all but its last decision,
 bootstrapped from that decision's value (truncated GAE); the last decision
 stays behind to collect its reward and successor.
+
+With a perfect-information critic (model.py) each step also carries the
+privileged observation. The critic's value is the one GAE and the bootstrap
+use; the plain head is regressed on the same returns and reported beside it
+(``explained_var_plain``), since it is the head the exported model keeps.
 """
 
 from __future__ import annotations
@@ -42,6 +47,8 @@ class Step:
     value: float
     reward: float = 0.0
     done: bool = False
+    priv: np.ndarray | None = None
+    value_plain: float | None = None  # the plain head's, when value is the critic's
 
 
 @dataclass
@@ -55,6 +62,7 @@ class EpisodeStat:
     key: Key
     ret: float  # every reward the seat was credited in the episode
     decisions: int
+    base: float = 0.0  # the game's own reward over the episode (= ret without a match reward)
 
 
 class Tracker:
@@ -65,15 +73,18 @@ class Tracker:
         self.ready: list[Segment] = []
         # Episode accounting, independent of whether the seat had decisions.
         self._ep_ret: dict[Key, float] = {}
+        self._ep_base: dict[Key, float] = {}
         self._ep_dec: dict[Key, int] = {}
         self._ep_live: set[Key] = set()
         self.orphan_reward = 0.0  # reward that reached no decision
         self.orphan_events = 0
 
-    def event(self, key: Key, reward: float, done: bool) -> EpisodeStat | None:
-        if reward != 0.0:
+    def event(self, key: Key, reward: float, done: bool, base: float | None = None) -> EpisodeStat | None:
+        b = reward if base is None else base
+        if reward != 0.0 or b != 0.0:
             self._ep_live.add(key)
             self._ep_ret[key] = self._ep_ret.get(key, 0.0) + reward
+            self._ep_base[key] = self._ep_base.get(key, 0.0) + b
         traj = self.open.get(key)
         if traj:
             traj[-1].reward += reward
@@ -90,7 +101,8 @@ class Tracker:
 
     def _close_episode(self, key: Key) -> EpisodeStat | None:
         live = key in self._ep_live
-        stat = EpisodeStat(key, self._ep_ret.pop(key, 0.0), self._ep_dec.pop(key, 0)) if live else None
+        stat = EpisodeStat(key, self._ep_ret.pop(key, 0.0), self._ep_dec.pop(key, 0), self._ep_base.pop(key, 0.0)) if live else None
+        self._ep_base.pop(key, None)
         self._ep_live.discard(key)
         return stat
 
@@ -120,6 +132,7 @@ class Tracker:
             if len(traj) >= 2:
                 self.ready.append(Segment(traj[:-1], traj[-1].value))
             self._ep_ret.pop(key, None)
+            self._ep_base.pop(key, None)
             self._ep_dec.pop(key, None)
             self._ep_live.discard(key)
 
@@ -151,6 +164,8 @@ class Batch:
     values: np.ndarray
     adv: np.ndarray
     returns: np.ndarray
+    priv: list[np.ndarray] | None = None
+    values_plain: np.ndarray | None = None
 
     def __len__(self) -> int:
         return len(self.actions)
@@ -158,6 +173,7 @@ class Batch:
 
 def build_batch(segments: list[Segment], gamma: float, lam: float, reward_scale: float) -> Batch:
     obs, cands, actions, logp, values, advs, rets = [], [], [], [], [], [], []
+    privs, plains = [], []
     for seg in segments:
         r = [s.reward * reward_scale for s in seg.steps]
         v = [s.value for s in seg.steps]
@@ -171,6 +187,9 @@ def build_batch(segments: list[Segment], gamma: float, lam: float, reward_scale:
             actions.append(s.action)
             logp.append(s.logp)
             values.append(s.value)
+            privs.append(s.priv)
+            plains.append(s.value if s.value_plain is None else s.value_plain)
+    has_priv = bool(privs) and all(p is not None for p in privs)
     return Batch(
         obs,
         cands,
@@ -179,6 +198,8 @@ def build_batch(segments: list[Segment], gamma: float, lam: float, reward_scale:
         np.asarray(values, dtype=np.float32),
         np.concatenate(advs) if advs else np.zeros(0, np.float32),
         np.concatenate(rets) if rets else np.zeros(0, np.float32),
+        privs if has_priv else None,
+        np.asarray(plains, dtype=np.float32),
     )
 
 
@@ -210,6 +231,8 @@ class UpdateStats:
     approx_kl: float = 0.0
     clip_frac: float = 0.0
     explained_var: float = 0.0
+    explained_var_plain: float = 0.0  # the exported head's; = explained_var without a critic
+    value_loss_plain: float = 0.0
     grad_norm: float = 0.0  # before clipping
     minibatches: int = 0
     stopped_early: bool = False
@@ -229,18 +252,29 @@ class PPO:
             g["lr"] = lr
         return lr
 
+    def _priv(self, priv) -> torch.Tensor | None:
+        if priv is None or not self.model.has_critic:
+            return None
+        return torch.from_numpy(np.stack(priv).astype(np.float32, copy=False)).to(self.device)
+
     @torch.no_grad()
-    def act(self, obs: list[np.ndarray], cands: list[np.ndarray], greedy: bool = False):
-        """Sample one candidate per row; returns (actions, logp, values)."""
+    def act(self, obs: list[np.ndarray], cands: list[np.ndarray], greedy: bool = False, priv: list[np.ndarray] | None = None):
+        """Sample one candidate per row; returns (actions, logp, values, plain values).
+
+        values is the critic's when there is one and priv is given, else the
+        plain head's (and then the two are the same).
+        """
         o, c, m = pad_batch(obs, cands, self.model.cand_dim)
         o, c, m = (torch.from_numpy(x).to(self.device) for x in (o, c, m))
-        logits, value = self.model(o, c, m)
+        emb = self.model.embed(o)
+        logits = self.model.logits(emb, c, m)
+        value, plain = self.model.values(emb, self._priv(priv))
         if greedy:
             a = logits.argmax(-1)
         else:
             a = torch.distributions.Categorical(logits=logits).sample()
         logp = torch.log_softmax(logits, -1).gather(1, a.unsqueeze(1)).squeeze(1)
-        return a.cpu().numpy(), logp.cpu().numpy(), value.cpu().numpy()
+        return a.cpu().numpy(), logp.cpu().numpy(), value.cpu().numpy(), plain.cpu().numpy()
 
     def update(self, batch: Batch) -> UpdateStats:
         cfg = self.cfg
@@ -265,13 +299,21 @@ class PPO:
                 adv = torch.from_numpy(adv_all[idx]).to(self.device)
                 ret = torch.from_numpy(batch.returns[idx]).to(self.device)
 
-                logits, value = self.model(o, c, m)
+                pv = self._priv([batch.priv[i] for i in idx]) if batch.priv is not None else None
+                emb = self.model.embed(o)
+                logits = self.model.logits(emb, c, m)
+                value, plain = self.model.values(emb, pv)
                 logp_all = masked_log_softmax(logits, m)
                 logp = logp_all.gather(1, act.unsqueeze(1)).squeeze(1)
                 log_ratio = logp - old_logp
                 ratio = log_ratio.exp()
                 pg = -torch.min(ratio * adv, ratio.clamp(1 - cfg.clip, 1 + cfg.clip) * adv).mean()
                 vloss = 0.5 * (value - ret).pow(2).mean()
+                vloss_plain = 0.5 * (plain - ret).pow(2).mean()
+                if pv is not None:
+                    # The plain head learns from a detached embedding: its
+                    # loss moves only its own weights.
+                    vloss = vloss + vloss_plain
                 ent = entropy(logits, m).mean()
                 loss = pg + cfg.vf_coef * vloss - cfg.ent_coef * ent
 
@@ -285,6 +327,7 @@ class PPO:
                     st.clip_frac += ((ratio - 1).abs() > cfg.clip).float().mean().item()
                 st.policy_loss += pg.item()
                 st.value_loss += vloss.item()
+                st.value_loss_plain += vloss_plain.item()
                 st.entropy += ent.item()
                 epoch_kl.append(kl)
                 st.minibatches += 1
@@ -295,10 +338,13 @@ class PPO:
         k = max(st.minibatches, 1)
         st.policy_loss /= k
         st.value_loss /= k
+        st.value_loss_plain /= k
         st.entropy /= k
         st.clip_frac /= k
         st.grad_norm /= k
         st.approx_kl = float(np.mean(kls)) if kls else 0.0
         var = batch.returns.var()
         st.explained_var = float(1 - (batch.returns - batch.values).var() / var) if var > 0 else 0.0
+        plain = batch.values if batch.values_plain is None else batch.values_plain
+        st.explained_var_plain = float(1 - (batch.returns - plain).var() / var) if var > 0 else 0.0
         return st

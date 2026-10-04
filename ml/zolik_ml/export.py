@@ -5,6 +5,10 @@
     header  {"game","stateDim","candDim","trunk":[[in,out]..],"scorer":..,"value":..}
     float32 weights, little-endian: trunk, scorer, value; each layer W (out x in,
             row-major — torch's own Linear layout) then B
+
+Only what Go runs is written. A model trained with a perfect-information
+critic (model.py) exports its policy and its *plain* value head; the critic
+and its privileged MLP are training state (state.pt) and never leave Python.
 """
 
 from __future__ import annotations
@@ -110,8 +114,16 @@ def load_into(model: Policy, path: str | os.PathLike) -> Policy:
     if want != got:
         diff = {k: (got.get(k), want.get(k)) for k in want if got.get(k) != want.get(k)}
         raise ValueError(f"{path} is not this model: file vs config {diff}")
-    model.load_state_dict(src.state_dict())
+    _load_policy_weights(model, src)
     return model
+
+
+def _load_policy_weights(model: Policy, src: Policy) -> None:
+    """src's weights into model, which may also have a critic the file never
+    carries (model.py); the critic is left as it is."""
+    missing, unexpected = model.load_state_dict(src.state_dict(), strict=False)
+    if unexpected or any(not k.startswith(("critic.", "priv_net.")) for k in missing):
+        raise ValueError(f"weights do not fit: missing {missing}, unexpected {unexpected}")
 
 
 def widen_into(model: Policy, path: str | os.PathLike) -> Policy:

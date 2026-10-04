@@ -44,10 +44,13 @@ func ParseContender(g Benchable, spec string) (Contender, error) {
 		if err != nil {
 			return Contender{}, err
 		}
-		if n.StateDim != lg.StateDim() || n.CandDim != lg.CandDim() {
-			return Contender{}, fmt.Errorf("%s was trained for another encoder", path)
+		// A model for an earlier encoder the game only appended to plays on
+		// the prefix it was trained on (Narrowed).
+		ng, err := Narrowed(lg, n.StateDim, n.CandDim)
+		if err != nil {
+			return Contender{}, fmt.Errorf("%s was trained for another encoder: %w", path, err)
 		}
-		return Contender{Name: spec, Bot: NetBot{Game: lg, Policy: NewPolicy(n), Fallback: g.Heuristic(), Temperature: temp}, Skill: module.SkillHard}, nil
+		return Contender{Name: spec, Bot: NetBot{Game: ng, Policy: NewPolicy(n), Fallback: g.Heuristic(), Temperature: temp}, Skill: module.SkillHard}, nil
 	}
 	return Contender{}, fmt.Errorf("unknown contender %q", spec)
 }

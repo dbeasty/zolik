@@ -64,6 +64,7 @@ type position struct {
 	raw   module.State
 	full  learn.Memo[*GameState]
 	deals learn.Memo[*dealsOnly]
+	match learn.Memo[*matchOnly] // learn_train.go
 }
 
 func (learnGame) Position(raw module.State) (learn.Position, error) {
