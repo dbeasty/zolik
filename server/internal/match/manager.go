@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"zolik/server/internal/botgov"
 	"zolik/server/internal/botstats"
 	"zolik/server/internal/db"
 	"zolik/server/internal/metrics"
@@ -72,6 +73,11 @@ type Manager struct {
 	// botStats records what bot decisions cost. Nil records nothing; see
 	// SetBotStats.
 	botStats *botstats.Recorder
+	// governor decides which engine plays each bot seat; nil plays what
+	// each seat asked for. turns keeps that choice still for a turn. See
+	// governor.go.
+	governor *botgov.Governor
+	turns    turnTracker
 	// hints throttles how often one player may ask for a hint; built on
 	// first use, see hintLimiter.
 	hints     *ratelimit.Limiter
@@ -609,6 +615,10 @@ func (m *Manager) HandleAction(ctx context.Context, idOrCode, playerID string, a
 	e.mu.Unlock()
 	if err != nil {
 		return err
+	}
+	m.noteMove(match.ID.Hex(), playerID)
+	if match.Status != "active" {
+		m.matchStopped(match.ID.Hex())
 	}
 	mod := m.registry.Get(match.ModuleID)
 

@@ -18,17 +18,28 @@ import (
 // and its announcements, and — as the declarer — its own talon. Everything
 // else it deals itself. TestBotDoesNotPeek holds it to that.
 
-const (
-	samplesPerMove = 20
-	// nodeBudget bounds the search for one decision across all its samples,
-	// so a bot's think time has a ceiling whatever the position. Counted in
-	// nodes rather than milliseconds, so a match replays the same moves on
-	// any machine.
-	nodeBudget = 2_000_000
-	// sampleNodeLimit abandons one sample's solve if it runs long; a
-	// half-searched sample is dropped rather than counted.
-	sampleNodeLimit = 400_000
-)
+const samplesPerMove = 20
+
+// searchLimits bound the search for one decision. Counted in nodes rather
+// than milliseconds, so a match replays the same moves on any machine.
+type searchLimits struct {
+	// total bounds the nodes of one decision across all its samples, so a
+	// bot's think time has a ceiling whatever the position. A sample is
+	// only started under it; the last one started may run past it, to
+	// perSample, unless capped.
+	total int
+	// perSample abandons one sample's solve if it runs long; a half-searched
+	// sample is dropped rather than counted.
+	perSample int
+	// capped cuts the last sample off where it would cross total. It makes
+	// total a hard ceiling, but measured weaker (docs/bot-compute-gating-plan.md
+	// §5.5), so only the bench's lower-budget styles set it.
+	capped bool
+}
+
+// defaultLimits is what a hard seat searches with: at most 2.4 million
+// nodes, about 0.1 s of CPU.
+var defaultLimits = searchLimits{total: 2_000_000, perSample: 400_000}
 
 // knowledge is what the table has shown about the cards a seat has not.
 type knowledge struct {
@@ -249,10 +260,11 @@ func (s *GameState) sample(me string, k knowledge, r *rand.Rand) (map[string][]s
 }
 
 // searchPlay is the hard bot's card: the legal card with the best average
-// over sampled deals, or ok false if no sample could be solved.
-func (s *GameState) searchPlay(me string, legal []string, r *rand.Rand) (string, bool) {
+// over sampled deals, or ok false if no sample could be solved. nodes is the
+// search it took.
+func (s *GameState) searchPlay(me string, legal []string, r *rand.Rand, lim searchLimits) (card string, nodes int, ok bool) {
 	if len(legal) == 1 {
-		return legal[0], true
+		return legal[0], 0, true
 	}
 	k := s.infer()
 	decl := s.seat(s.Declarer)
@@ -279,11 +291,15 @@ func (s *GameState) searchPlay(me string, legal []string, r *rand.Rand) (string,
 	}
 
 	totals := map[string]int{}
-	counted, nodes := 0, 0
-	for i := 0; i < samplesPerMove && nodes < nodeBudget; i++ {
+	counted := 0
+	for i := 0; i < samplesPerMove && nodes < lim.total; i++ {
 		deal, ok := s.sampleLikely(me, k, r)
 		if !ok {
 			break
+		}
+		limit := lim.perSample
+		if lim.capped {
+			limit = min(limit, lim.total-nodes)
 		}
 		hands := make([][]string, len(s.Players))
 		for seat, p := range s.Players {
@@ -305,7 +321,7 @@ func (s *GameState) searchPlay(me string, legal []string, r *rand.Rand) (string,
 			Pairs:      marriages,
 			TrickValue: s.trickValue(),
 			CardClass:  s.cardClass(),
-			NodeLimit:  sampleNodeLimit,
+			NodeLimit:  limit,
 		})
 		nodes += res.Nodes
 		if res.Exhausted {
@@ -317,7 +333,7 @@ func (s *GameState) searchPlay(me string, legal []string, r *rand.Rand) (string,
 		counted++
 	}
 	if counted == 0 {
-		return "", false
+		return "", nodes, false
 	}
 
 	// The declarer raises the value; a defender lowers it. Ties go to the
@@ -336,7 +352,7 @@ func (s *GameState) searchPlay(me string, legal []string, r *rand.Rand) (string,
 			best, bestV = c, v
 		}
 	}
-	return best, best != ""
+	return best, nodes, best != ""
 }
 
 // trickValue is what a trick is worth to the declarer's side, for the

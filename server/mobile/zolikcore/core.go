@@ -469,3 +469,16 @@ func randomHex(n int) string {
 	}
 	return hex.EncodeToString(b)
 }
+
+// SetThermalPressure tells the host how hot the device is, as its OS reports
+// it: 0 nominal or fair, 1 serious, 2 critical. The native module calls it
+// when the state changes (iOS ProcessInfo.thermalState, Android
+// PowerManager thermal status), and on low-power mode as 1. A hot device
+// moves the bot governor to amber or red, so the dearest bot decisions — a
+// model, Mariáš Hard — fall back to cheaper ones until it cools.
+func (h *Host) SetThermalPressure(level int) {
+	if h == nil || h.app == nil {
+		return
+	}
+	h.app.SetThermalPressure(level)
+}

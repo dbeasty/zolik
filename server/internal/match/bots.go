@@ -154,6 +154,9 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 		}
 		match, err := m.current(ctx, matchID)
 		if err != nil || match.Status != "active" {
+			if err == nil {
+				m.matchStopped(matchID)
+			}
 			return
 		}
 		mod := m.registry.Get(match.ModuleID)
@@ -203,26 +206,22 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 		botOK := false
 		if !turn.botHung {
 			var timedOut bool
-			bot := module.BotFor(mod)
+			var bot module.Bot
+			var seat module.BotSeat
+			var label, engine string
 			if passive {
 				// A sat-out seat is not played to win. See module.DropIn.
+				// Recorded apart: it costs an offer scan, and counting it as
+				// the seat's skill would make that skill look cheaper.
 				verbs, _ := module.SitOutVerbs(mod)
-				bot = module.OfferBot(verbs...)
-			}
-			seat := botSeatFor(match, actor)
-			label := skillLabel(seat.Skill)
-			engine := engineOf(bot, seat)
-			if _, layered := bot.(interface{ Heuristic() module.Bot }); !layered && seat.Skill == module.SkillAI {
-				// No network behind this game (or the operator has it off):
-				// the seat plays the strongest hand-written bot, and the
-				// bots themselves know only Easy, Medium and Hard.
-				seat.Skill = module.SkillHard
-			}
-			if passive {
-				// Recorded apart: a sat-out seat costs an offer scan, and
-				// counting it as the seat's skill would make that skill
-				// look cheaper than it is.
-				label = "sitout"
+				bot, seat = module.OfferBot(verbs...), botSeatFor(match, actor)
+				label, engine = "sitout", botstats.EngineRule
+			} else {
+				// Chosen at the start of the seat's turn and held for the
+				// rest of it — see governor.go.
+				tb := m.seatBot(match, mod, actor)
+				bot, seat, engine = tb.bot, tb.seat, tb.engine
+				label = skillLabel(seat.Skill)
 			}
 			botPick, botOK, timedOut = botAct(bot, module.State(match.State),
 				seat, offers, m.actBudget(), m.botStats,
@@ -448,6 +447,16 @@ func skillLabel(s module.Skill) string {
 		return "default"
 	}
 	return string(s)
+}
+
+// playableSeat is the seat as the bot behind it can read it. A bot that is not
+// layered over a network (the game ships none, or the operator has it off)
+// knows only Easy, Medium and Hard, so an AI seat plays the strongest of those.
+func playableSeat(bot module.Bot, seat module.BotSeat) module.BotSeat {
+	if _, layered := bot.(interface{ Heuristic() module.Bot }); !layered && seat.Skill == module.SkillAI {
+		seat.Skill = module.SkillHard
+	}
+	return seat
 }
 
 // engineOf names what will decide this seat's move. A module whose Hard seats

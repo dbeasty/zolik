@@ -137,3 +137,32 @@ func TestASlowSubscriberGetsTheLatest(t *testing.T) {
 	default:
 	}
 }
+
+func TestTheDevicesOwnHeatMovesTheLevel(t *testing.T) {
+	m, s := newScripted()
+	s.r = Reading{Thermal: 1}
+	m.Step(t0)
+	if m.Level() != Amber {
+		t.Fatalf("serious thermal state: %s, want amber", m.Level())
+	}
+	s.r.Thermal = 2
+	m.Step(t0.Add(time.Second))
+	if m.Level() != Red {
+		t.Fatalf("critical thermal state: %s, want red", m.Level())
+	}
+}
+
+func TestAPinnedLevelHoldsWhateverTheReadings(t *testing.T) {
+	m, s := newScripted()
+	m.Pin(Red)
+	m.Step(t0)
+	if m.Level() != Red {
+		t.Fatalf("pinned red read %s", m.Level())
+	}
+	s.r = Reading{CPUOK: true, CPUStall: 0.5}
+	m.Pin(Green)
+	m.Step(t0.Add(time.Second))
+	if m.Level() != Green {
+		t.Fatalf("pinned green read %s", m.Level())
+	}
+}

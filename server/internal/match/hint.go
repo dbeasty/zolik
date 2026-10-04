@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"zolik/server/internal/auth"
+	"zolik/server/internal/botgov"
 	"zolik/server/internal/botstats"
 	"zolik/server/internal/db"
 	"zolik/server/internal/module"
@@ -139,6 +140,10 @@ func (m *Manager) hintInput(ctx context.Context, idOrCode, playerID string) (hin
 	if layered, ok := bot.(interface{ Heuristic() module.Bot }); ok {
 		bot = layered.Heuristic()
 	}
+	// And on a busy server, the cheapest class at or below Hard: a hint is
+	// one decision for a person waiting on it, and Mariáš Hard can take
+	// hundreds of milliseconds. See botgov.Governor.ForHint.
+	skill := m.governor.ForHint(botgov.Class{Module: match.ModuleID, Skill: string(module.SkillHard), Engine: botgov.EngineRule}).Skill
 
 	return hintRequest{
 		moduleID: match.ModuleID,
@@ -146,7 +151,7 @@ func (m *Manager) hintInput(ctx context.Context, idOrCode, playerID string) (hin
 		state:    state,
 		seat: module.BotSeat{
 			PlayerID: playerID,
-			Skill:    module.SkillHard,
+			Skill:    module.Skill(skill),
 			Seed:     module.SeatSeed(match.Seed, playerID, "hint"),
 		},
 		offers: offers,

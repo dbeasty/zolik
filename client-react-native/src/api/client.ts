@@ -4,6 +4,7 @@ import type { MatchAction, MatchModule, MatchState, ModuleRules, Replay, StoredT
 import type {
   AccountProfile,
   AuthProvider,
+  BotCapacity,
   CapacitySnapshot,
   CircleEntry,
   ClaimedSeat,
@@ -427,6 +428,12 @@ export class ZolikClient {
    *  WebSocket handshake, since React Native cannot read the HTTP status. */
   async getCapacity(): Promise<CapacitySnapshot> {
     return this.get('/healthz/capacity', false);
+  }
+
+  /** Whether bots are playing at full strength right now, so the table can
+   *  say when a bot seated now might play simpler moves. */
+  async getBotCapacity(): Promise<BotCapacity> {
+    return this.get('/bots/capacity', false);
   }
 
   /**

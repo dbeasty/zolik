@@ -85,6 +85,28 @@ export default function TableScreen() {
     return () => clearInterval(t);
   }, [id, poll]);
 
+  // Whether the server is short enough of room that a bot seated now might
+  // play simpler moves than its skill (server/internal/botgov). Asked once
+  // and then slowly: it changes over minutes, not seconds.
+  const [botsSimplifying, setBotsSimplifying] = useState(false);
+  useEffect(() => {
+    let live = true;
+    const ask = async () => {
+      try {
+        const c = await client.getBotCapacity();
+        if (live) setBotsSimplifying(c.simplifying);
+      } catch {
+        /* an older server has no answer; say nothing */
+      }
+    };
+    ask();
+    const timer = setInterval(ask, 30000);
+    return () => {
+      live = false;
+      clearInterval(timer);
+    };
+  }, [client]);
+
   async function invite(playerId: string) {
     setInvitingId(playerId);
     setError('');
@@ -371,6 +393,11 @@ export default function TableScreen() {
                 </Pressable>
               ))}
             </View>
+            {botsSimplifying ? (
+              <Text testID="table-bots-simplifying" style={shared.status}>
+                {t('lobby.table.botsSimplifying')}
+              </Text>
+            ) : null}
             {offline ? null : <AgentConnectPanel matchId={id} />}
             <Pressable testID="table-start" style={shared.button} onPress={start} disabled={busy}>
               <Text style={shared.buttonText}>
