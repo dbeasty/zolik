@@ -1299,6 +1299,7 @@ export const ga: Record<string, string> = {
   'stats.skill.medium': 'measartha',
   'stats.skill.hard': 'deacair',
   'stats.skill.expert': 'saineolaí',
+  'stats.skill.ai': 'AI',
 
   // --- a player's lifetime record, shown beside a finished match ------------
   'record.title': 'Do thaifead',

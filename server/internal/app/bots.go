@@ -11,7 +11,7 @@ import (
 	"zolik/server/internal/learn"
 )
 
-// Whether Hard seats play the trained models this binary ships.
+// Whether AI seats play the trained models this binary ships.
 //
 // The switch itself is learn's, in process: an atomic flag per game, read on
 // every bot move. This file is the rest — loading the operator's stored
@@ -29,7 +29,7 @@ func loadHardModels(ctx context.Context, store botsettings.Store) {
 	}
 	stored, err := store.HardModels(ctx)
 	if err != nil {
-		slog.Warn("bots: could not read the Hard model settings; every Hard seat plays the heuristic", "error", err)
+		slog.Warn("bots: could not read the Hard model settings; every AI seat plays the Hard heuristic", "error", err)
 		return
 	}
 	for game, s := range stored {
@@ -39,11 +39,11 @@ func loadHardModels(ctx context.Context, store botsettings.Store) {
 		if _, err := learn.SetHardModel(game, true); err != nil {
 			// A rollback to a build whose model no longer fits, or which
 			// ships none for this game, lands here.
-			slog.Warn("bots: stored setting not applied; Hard seats play the heuristic",
+			slog.Warn("bots: stored setting not applied; AI seats play the Hard heuristic",
 				"game", game, "error", err)
 			continue
 		}
-		slog.Info("bots: Hard seats play the shipped model", "game", game,
+		slog.Info("bots: AI seats play the shipped model", "game", game,
 			"since", s.UpdatedAt, "by", s.UpdatedBy)
 	}
 }

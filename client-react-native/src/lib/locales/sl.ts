@@ -1261,6 +1261,7 @@ export const sl: Record<string, string> = {
   'stats.skill.medium': 'srednji',
   'stats.skill.hard': 'težek',
   'stats.skill.expert': 'strokovnjak',
+  'stats.skill.ai': 'AI',
 
   // --- a player's lifetime record, shown beside a finished match ------------
   'record.title': 'Tvoj izkupiček',

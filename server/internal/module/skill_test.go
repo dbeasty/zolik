@@ -107,3 +107,30 @@ func TestPersonaSlugsAreUnique(t *testing.T) {
 		seen[p.Key()] = true
 	}
 }
+
+// AI is a seat's choice, never a Mixed table's: it costs several times a rule
+// bot per move, and Hard stays the hand-written bot beneath it.
+func TestAISkillIsChosenAndNeverDrawn(t *testing.T) {
+	if s, auto := ParseSkill("ai"); auto || s != SkillAI {
+		t.Fatalf("ParseSkill(ai) = %q, auto=%v", s, auto)
+	}
+	if s, auto := ParseSkillOpt(SkillOpt(SkillAI)); auto || s != SkillAI {
+		t.Fatalf("option round trip gave %q, auto=%v", s, auto)
+	}
+	if SkillOpt(SkillHard) != BotSkillEasy+2 {
+		t.Errorf("Hard's option value moved to %d", SkillOpt(SkillHard))
+	}
+	for seed := int64(0); seed < 500; seed++ {
+		if p := SeatPersona(SkillAI, true, nil, seed); p.Skill == SkillAI {
+			t.Fatalf("Mixed seated an AI persona at seed %d", seed)
+		}
+	}
+	taken := map[string]bool{}
+	for i := 0; i < len(PersonasFor(SkillAI)); i++ {
+		p := SeatPersona(SkillAI, false, taken, int64(i))
+		if p.Skill != SkillAI || taken[p.Key()] {
+			t.Fatalf("seat %d: %+v (taken %v)", i, p, taken)
+		}
+		taken[p.Key()] = true
+	}
+}

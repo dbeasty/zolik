@@ -212,6 +212,12 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 			seat := botSeatFor(match, actor)
 			label := skillLabel(seat.Skill)
 			engine := engineOf(bot, seat)
+			if _, layered := bot.(interface{ Heuristic() module.Bot }); !layered && seat.Skill == module.SkillAI {
+				// No network behind this game (or the operator has it off):
+				// the seat plays the strongest hand-written bot, and the
+				// bots themselves know only Easy, Medium and Hard.
+				seat.Skill = module.SkillHard
+			}
 			if passive {
 				// Recorded apart: a sat-out seat costs an offer scan, and
 				// counting it as the seat's skill would make that skill
@@ -446,10 +452,10 @@ func skillLabel(s module.Skill) string {
 
 // engineOf names what will decide this seat's move. A module whose Hard seats
 // have been switched onto its trained model hands out a bot that layers the
-// model over the heuristic (learn.HardModel); only a Hard seat reaches the
+// model over the heuristic (learn.HardModel); only an AI seat reaches the
 // model, and everything else is the hand-written bot.
 func engineOf(bot module.Bot, seat module.BotSeat) string {
-	if _, layered := bot.(interface{ Heuristic() module.Bot }); layered && seat.Skill == module.SkillHard {
+	if _, layered := bot.(interface{ Heuristic() module.Bot }); layered && seat.Skill == module.SkillAI {
 		return botstats.EngineNet
 	}
 	return botstats.EngineRule

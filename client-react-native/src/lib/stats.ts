@@ -98,7 +98,7 @@ export function playerCountLabel(key: string): string {
   return n === 1 ? t('stats.tableSizeOne') : t('stats.tableSizeMany', { n });
 }
 
-const SKILL_ORDER = ['easy', 'medium', 'hard', 'expert'];
+const SKILL_ORDER = ['easy', 'medium', 'hard', 'ai', 'expert'];
 
 /**
  * A bot subject id as a person would say it.

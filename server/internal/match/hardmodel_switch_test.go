@@ -50,10 +50,19 @@ type watchedBot struct {
 	torn     bool
 }
 
+// Heuristic marks this as a layered bot, which is what lets the runtime hand it
+// an AI seat as it is rather than as the Hard seat it would pass a plain bot.
+func (b watchedBot) Heuristic() module.Bot { return b.w.heuristic }
+
 func (b watchedBot) Act(s module.State, seat module.BotSeat, offers []module.ActionOffer) (module.Action, bool) {
 	played, ok := b.inner.Act(s, seat, offers)
-	heur, _ := b.w.heuristic.Act(s, seat, offers)
-	byModel, _ := b.w.net.Act(s, seat, offers)
+	// The hand-written bot and the network both know Hard as their top level.
+	hardSeat := seat
+	if hardSeat.Skill == module.SkillAI {
+		hardSeat.Skill = module.SkillHard
+	}
+	heur, _ := b.w.heuristic.Act(s, hardSeat, offers)
+	byModel, _ := b.w.net.Act(s, hardSeat, offers)
 	b.w.mu.Lock()
 	b.w.seen = append(b.w.seen, decision{skill: seat.Skill, switchOn: b.switchOn, torn: b.torn, played: played, heur: heur, byModel: byModel})
 	b.w.mu.Unlock()
@@ -113,7 +122,7 @@ func TestHardSeatFollowsTheModelSwitchMidMatch(t *testing.T) {
 	seeded, err := repo.Insert(context.Background(), models.Match{
 		ModuleID: "zolik", Status: "active", HostID: "bot:H",
 		Players: []models.Player{
-			{ID: "bot:H", Name: "H", IsAI: true, AIDifficulty: "hard"},
+			{ID: "bot:H", Name: "H", IsAI: true, AIDifficulty: "ai"},
 			{ID: "bot:M", Name: "M", IsAI: true, AIDifficulty: "medium"},
 		},
 		TurnOrder: []string{"bot:H", "bot:M"},
@@ -138,7 +147,7 @@ func TestHardSeatFollowsTheModelSwitchMidMatch(t *testing.T) {
 		defer mod.mu.Unlock()
 		n := 0
 		for _, d := range mod.seen {
-			if d.skill == module.SkillHard && !d.torn && d.switchOn == on && !reflect.DeepEqual(d.heur, d.byModel) {
+			if d.skill == module.SkillAI && !d.torn && d.switchOn == on && !reflect.DeepEqual(d.heur, d.byModel) {
 				n++
 			}
 		}
@@ -168,7 +177,7 @@ func TestHardSeatFollowsTheModelSwitchMidMatch(t *testing.T) {
 	var hardOn, hardOff, medium int
 	for i, d := range mod.seen {
 		switch {
-		case d.skill != module.SkillHard:
+		case d.skill != module.SkillAI:
 			medium++
 			if !reflect.DeepEqual(d.played, d.heur) {
 				t.Errorf("decision %d: a %s seat did not play the heuristic", i, d.skill)

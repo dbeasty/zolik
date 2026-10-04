@@ -1266,6 +1266,7 @@ export const lv: Record<string, string> = {
   'stats.skill.medium': 'vidējs',
   'stats.skill.hard': 'grūts',
   'stats.skill.expert': 'eksperts',
+  'stats.skill.ai': 'AI',
 
   // --- a player's lifetime record, shown beside a finished match ------------
   'record.title': 'Tavs bilance',

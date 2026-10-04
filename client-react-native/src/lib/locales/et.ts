@@ -1270,6 +1270,7 @@ export const et: Record<string, string> = {
   'stats.skill.medium': 'keskmine',
   'stats.skill.hard': 'raske',
   'stats.skill.expert': 'ekspert',
+  'stats.skill.ai': 'AI',
 
   // --- a player's lifetime record, shown beside a finished match ------------
   'record.title': 'Sinu saldo',

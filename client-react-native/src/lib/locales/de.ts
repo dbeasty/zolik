@@ -1291,6 +1291,7 @@ export const de: Record<string, string> = {
   'stats.skill.medium': 'mittel',
   'stats.skill.hard': 'schwer',
   'stats.skill.expert': 'Experte',
+  'stats.skill.ai': 'AI',
 
   // --- a player's lifetime record, shown beside a finished match ------------
   'record.title': 'Deine Bilanz',
