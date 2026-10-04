@@ -3,6 +3,7 @@ package holdem
 import (
 	"math/rand"
 	"sort"
+	"sync"
 )
 
 // Card notation matches the rest of the server: rank letter plus suit letter
@@ -30,6 +31,30 @@ func buildDeck() []string {
 	}
 	return out
 }
+
+// deckCodes is buildDeck as codes, in the same order.
+var deckCodes = func() (out [52]code) {
+	for i, c := range buildDeck() {
+		out[i] = codeOf(c)
+	}
+	return out
+}()
+
+// rands keeps generators between decisions. A math/rand source is five
+// kilobytes of state, and a bot builds one per decision only to seed it.
+var rands = sync.Pool{New: func() any { return rand.New(rand.NewSource(0)) }}
+
+// seededRand is rand.New(rand.NewSource(seed)) without the allocation: Seed
+// puts a pooled generator into exactly the state a fresh one starts in, so the
+// numbers drawn are the same numbers. Hand it back with releaseRand once
+// nothing holds it.
+func seededRand(seed int64) *rand.Rand {
+	r := rands.Get().(*rand.Rand)
+	r.Seed(seed)
+	return r
+}
+
+func releaseRand(r *rand.Rand) { rands.Put(r) }
 
 func shuffle(cards []string, seed int64) []string {
 	out := append([]string(nil), cards...)

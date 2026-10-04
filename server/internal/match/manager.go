@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"zolik/server/internal/botstats"
 	"zolik/server/internal/db"
 	"zolik/server/internal/metrics"
 	"zolik/server/internal/models"
@@ -67,6 +68,9 @@ type Manager struct {
 	// botActBudget bounds one call to a module's Bot.Act. Zero means
 	// botActBudgetDefault; see SetBotActBudget.
 	botActBudget time.Duration
+	// botStats records what bot decisions cost. Nil records nothing; see
+	// SetBotStats.
+	botStats *botstats.Recorder
 
 	// agentPresence, sitOutGrace, awaySince and agentTables are agents.go's:
 	// who counts as here without a socket, how long a drop-in seat may be
@@ -150,6 +154,13 @@ func (m *Manager) SetBotPace(min, max time.Duration) { m.botThinkMin, m.botThink
 // Optional; zero or less means botActBudgetDefault. Exists so a test can
 // exercise the timeout without sitting through the production budget.
 func (m *Manager) SetBotActBudget(d time.Duration) { m.botActBudget = d }
+
+// SetBotStats attaches the recorder that times every bot decision, the bot
+// loop's and the hint's alike. Optional.
+func (m *Manager) SetBotStats(r *botstats.Recorder) { m.botStats = r }
+
+// BotStats is the recorder SetBotStats attached, or nil.
+func (m *Manager) BotStats() *botstats.Recorder { return m.botStats }
 
 // SetRecorder attaches statistics recording. Optional.
 func (m *Manager) SetRecorder(r Recorder) { m.recorder = r }

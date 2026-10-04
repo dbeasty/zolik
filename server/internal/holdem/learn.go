@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"hash/fnv"
 	"math"
-	"math/rand"
 	"strconv"
 
 	"zolik/server/internal/learn"
@@ -252,8 +251,9 @@ func (learnGame) EncodeFor(p learn.Position, playerID string) ([]float32, error)
 	opponents := opponentsOf(s)
 	out[encStrength] = float32((chen(hole) + 1.5) / 21.5)
 	if len(hole) == 2 {
-		rnd := rand.New(rand.NewSource(publicSeed(s, me)))
+		rnd := seededRand(publicSeed(s, me))
 		out[encStrength+1] = float32(equity(hole, s.Board, opponents, encodeTrials, highCard, 0, rnd))
+		releaseRand(rnd)
 	}
 	out[encStrength+2] = float32(drawOuts(hole, s.Board)) / 17
 

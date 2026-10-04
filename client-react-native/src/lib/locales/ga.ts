@@ -182,6 +182,8 @@ export const ga: Record<string, string> = {
     'Cuireann trí dubh ar barr bac ar an gcarn — ní féidir le duine ar bith é a thógáil go dtí go mbíonn an trí curtha faoi — agus cosnaíonn ceann atá fágtha i do lámh {n}.',
   'canasta.rules.pileFrozenByWild':
     'Reonn cárta fiáin atá curtha faoin gcarn é in aghaidh cách: cosnaíonn sé ansin dhá chárta nádúrtha de chéimíocht an chárta is airde, as do lámh féin.',
+  'canasta.rules.stockOut':
+    'Nuair a bhíonn an stoc folamh, leanann an cluiche ar aghaidh fad is féidir leis an imreoir atá ag imirt an carn caite a thógáil agus an seal a chríochnú fós — nuair nach féidir, críochnaíonn an déileáil.',
   'canasta.rules.meldShape': 'Is éard is cumasc ann ná {n} chárta nó níos mó den chéimíocht chéanna.',
   'canasta.rules.wildLimit':
     'Féadfaidh {wilds} chárta fhiáine ar a mhéad a bheith i gcumasc, agus ní lú riamh ná {naturals} chárta nádúrtha.',
@@ -386,6 +388,7 @@ export const ga: Record<string, string> = {
   'err.PILE_FROZEN': 'Tá an carn reoite — teastaíonn dhá chárta nádúrtha de luach an chárta uachtaraigh uait',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'Sa chluiche seo ní féidir le cumasc ar an mbord an carn a thógáil — teastaíonn dhá chárta as do lámh uait',
   'err.CAPTURE_NEEDS_TWO_CARDS': 'Cosnaíonn tógáil an charn dhá chárta as do lámh',
+  'err.CAPTURE_LEAVES_NO_DISCARD': 'Dá dtógfá an carn mar seo ní bheadh aon bhealach agat do sheal a chríochnú',
   'err.TOP_CARD_UNUSABLE': 'Ní féidir le do thaobh an cárta is airde a úsáid',
   'err.MELD_CLOSED': 'Tá an cumasc sin iomlán agus dúnta',
   'err.MELD_TOO_SMALL': 'Teastaíonn níos mó cártaí ná sin ó chumasc',

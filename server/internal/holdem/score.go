@@ -32,107 +32,127 @@ func codeOf(card string) code {
 // scoreCategory reads the category back out of a score.
 func scoreCategory(score uint32) int { return int(score >> 20) }
 
+// hand is a set of cards as four rank masks, one per suit: everything score7
+// needs, in eight bytes. It is a value on purpose — equity tallies the board
+// once per trial and copies it for each player's hole cards, rather than
+// counting the same five cards again for every seat.
+//
+// A set, not a multiset: the same card added twice counts once. Every caller
+// ranks distinct cards, as a deck deals them.
+type hand struct {
+	suits [4]uint16
+}
+
+func (h *hand) add(c code) { h.suits[c&3] |= 1 << (c >> 2) }
+
 // score7 ranks five to seven cards: the category in the top bits, then up to
 // five tiebreak ranks, four bits each, in the order Best compares them. Two
 // scores compare the way the two HandRanks would.
 func score7(cards []code) uint32 {
-	var counts [13]uint8
-	var suitMask [4]uint16
-	var rankMask uint16
+	var h hand
 	for _, c := range cards {
-		r, s := c>>2, c&3
-		counts[r]++
-		suitMask[s] |= 1 << r
-		rankMask |= 1 << r
+		h.add(c)
 	}
+	return h.score()
+}
 
+// score is score7 for the cards already in h.
+func (h *hand) score() uint32 {
 	for s := 0; s < 4; s++ {
-		if bits.OnesCount16(suitMask[s]) >= 5 {
-			if hi, ok := straightIn(suitMask[s]); ok {
+		if bits.OnesCount16(h.suits[s]) >= 5 {
+			if hi, ok := straightIn(h.suits[s]); ok {
 				return pack(straightFlush, hi)
 			}
 			// Otherwise a flush, unless a full house or quads beats it; those
 			// are found below and returned first, so hold this until then.
-			return bestOf(counts, rankMask, suitMask[s])
+			return h.bestOf(h.suits[s])
 		}
 	}
-	return bestOf(counts, rankMask, 0)
+	return h.bestOf(0)
 }
 
 // bestOf ranks everything but a straight flush. flushMask, when set, is the
 // ranks of a flush suit.
-func bestOf(counts [13]uint8, rankMask, flushMask uint16) uint32 {
-	// Ranks by how many of each, highest rank first.
-	var fours, threes, twos, ones []int
-	for r := 12; r >= 0; r-- {
-		switch counts[r] {
-		case 4:
-			fours = append(fours, r)
-		case 3:
-			threes = append(threes, r)
-		case 2:
-			twos = append(twos, r)
-		case 1:
-			ones = append(ones, r)
-		}
-	}
-	// kicker is the highest rank not already used.
-	kicker := func(used ...int) int {
-		for r := 12; r >= 0; r-- {
-			if counts[r] == 0 {
-				continue
-			}
-			taken := false
-			for _, u := range used {
-				if u == r {
-					taken = true
-				}
-			}
-			if !taken {
-				return r
-			}
-		}
-		return 0
-	}
+//
+// Every count it needs is a mask, read off the four suit masks with bit
+// arithmetic: a rank held at least twice is one present in two suits, and so
+// on. Highest rank first is the highest set bit, so nothing is sorted or
+// collected and nothing is allocated.
+func (h *hand) bestOf(flushMask uint16) uint32 {
+	a, b, c, d := h.suits[0], h.suits[1], h.suits[2], h.suits[3]
+	all := a | b | c | d
+	fours := a & b & c & d
+	atLeast3 := a&b&(c|d) | c&d&(a|b)
+	atLeast2 := a&(b|c|d) | b&(c|d) | c&d
+	threes := atLeast3 &^ fours
+	twos := atLeast2 &^ atLeast3
 
 	switch {
-	case len(fours) > 0:
-		return pack(quads, fours[0], kicker(fours[0]))
-	case len(threes) > 0 && (len(threes) > 1 || len(twos) > 0):
+	case fours != 0:
+		q := top(fours)
+		return pack(quads, q, kicker(all&^bit(q)))
+	case threes != 0 && (threes&(threes-1) != 0 || twos != 0):
 		// The best pair to go with the trips may be a second set of trips.
+		t := top(threes)
 		pr := -1
-		if len(threes) > 1 {
-			pr = threes[1]
+		if rest := threes &^ bit(t); rest != 0 {
+			pr = top(rest)
 		}
-		if len(twos) > 0 && twos[0] > pr {
-			pr = twos[0]
+		if twos != 0 && top(twos) > pr {
+			pr = top(twos)
 		}
-		return pack(fullHouse, threes[0], pr)
+		return pack(fullHouse, t, pr)
 	case flushMask != 0:
-		top := make([]int, 0, 5)
-		for r := 12; r >= 0 && len(top) < 5; r-- {
-			if flushMask&(1<<r) != 0 {
-				top = append(top, r)
-			}
-		}
-		return pack(flush, top...)
+		return packTop(flush, flushMask)
 	}
-	if hi, ok := straightIn(rankMask); ok {
+	if hi, ok := straightIn(all); ok {
 		return pack(straight, hi)
 	}
 	switch {
-	case len(threes) > 0:
-		k1 := kicker(threes[0])
-		return pack(trips, threes[0], k1, kicker(threes[0], k1))
-	case len(twos) >= 2:
-		return pack(twoPair, twos[0], twos[1], kicker(twos[0], twos[1]))
-	case len(twos) == 1:
-		k1 := kicker(twos[0])
-		k2 := kicker(twos[0], k1)
-		return pack(pair, twos[0], k1, k2, kicker(twos[0], k1, k2))
+	case threes != 0:
+		t := top(threes)
+		rest := all &^ bit(t)
+		k1 := kicker(rest)
+		return pack(trips, t, k1, kicker(rest&^bit(k1)))
+	case twos&(twos-1) != 0:
+		p1 := top(twos)
+		p2 := top(twos &^ bit(p1))
+		return pack(twoPair, p1, p2, kicker(all&^bit(p1)&^bit(p2)))
+	case twos != 0:
+		p := top(twos)
+		rest := all &^ bit(p)
+		k1 := kicker(rest)
+		rest &^= bit(k1)
+		k2 := kicker(rest)
+		return pack(pair, p, k1, k2, kicker(rest&^bit(k2)))
 	default:
-		return pack(highCard, ones[:min(5, len(ones))]...)
+		return packTop(highCard, all)
 	}
+}
+
+func bit(r int) uint16 { return 1 << r }
+
+// top is the highest rank in a mask that is not empty.
+func top(mask uint16) int { return bits.Len16(mask) - 1 }
+
+// kicker is the highest rank left in a mask, or the deuce when none is.
+func kicker(mask uint16) int {
+	if mask == 0 {
+		return 0
+	}
+	return top(mask)
+}
+
+// packTop is pack with the highest five ranks of a mask, or all of them when
+// there are fewer.
+func packTop(category int, mask uint16) uint32 {
+	s := uint32(category) << 20
+	for i := 0; i < 5 && mask != 0; i++ {
+		r := top(mask)
+		s |= uint32(r+1) << (16 - 4*i)
+		mask &^= bit(r)
+	}
+	return s
 }
 
 // straightIn finds the highest straight in a set of ranks, reporting its top

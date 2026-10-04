@@ -177,6 +177,8 @@ export const et: Record<string, string> = {
     'Must kolmik pealmisena blokeerib paki — keegi ei tohi seda võtta, kuni kolmik on maetud — ja kätte jäänud must kolmik maksab {n}.',
   'canasta.rules.pileFrozenByWild':
     'Pakki maetud jokker külmutab selle kõigi vastu: siis maksab paki võtmine kaks sinu enda käes olevat naturaalset kaarti pealmise kaardi väärtuses.',
+  'canasta.rules.stockOut':
+    'Kui kaardipakk on tühi, jätkub mäng ainult seni, kuni käigul olev mängija saab võtta äraviskepaki ja ikkagi oma käigu lõpetada — kui ei saa, jagamine lõpeb.',
   'canasta.rules.meldShape': 'Kombinatsioon on {n} või rohkem sama väärtusega kaarti.',
   'canasta.rules.wildLimit':
     'Kombinatsioonis võib olla kuni {wilds} jokkerit ja mitte kunagi vähem kui {naturals} naturaalset kaarti.',
@@ -373,6 +375,7 @@ export const et: Record<string, string> = {
   'err.PILE_FROZEN': 'Hunnik on külmutatud — vaja on kaht loomulikku pealmise kaardi väärtusega kaarti',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'Selles mängus ei saa laual olev kombinatsioon pakki võtta — vaja on kaht kaarti käest',
   'err.CAPTURE_NEEDS_TWO_CARDS': 'Paki võtmine maksab kaks kaarti sinu käest',
+  'err.CAPTURE_LEAVES_NO_DISCARD': 'Pakki nii võttes ei saaks sa oma käiku lõpetada',
   'err.TOP_CARD_UNUSABLE': 'Sinu pool ei saa pealmist kaarti kasutada',
   'err.MELD_CLOSED': 'See kombinatsioon on täielik ja suletud',
   'err.MELD_TOO_SMALL': 'Kombinatsioon vajab rohkem kaarte kui see',

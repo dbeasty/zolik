@@ -178,6 +178,8 @@ export const sk: Record<string, string> = {
     'Čierna trojka navrchu zablokuje balík — nikto ho nesmie vziať, kým nie je zasypaná — a tá, čo ti ostane v ruke, stojí {n}.',
   'canasta.rules.pileFrozenByWild':
     'Zakopaná divoká karta zmrazí balík pre všetkých: vziať ho potom stojí dve prirodzené karty v hodnote vrchnej karty z tvojej ruky.',
+  'canasta.rules.stockOut':
+    'Keď dôjde talón, hrá sa ďalej len dovtedy, kým hráč na ťahu môže vziať odhadzovací balíček a napriek tomu dokončiť ťah — keď nemôže, rozdanie končí.',
   'canasta.rules.meldShape': 'Kombinácia sú {n} alebo viac kariet rovnakej hodnoty.',
   'canasta.rules.wildLimit':
     'Kombinácia smie mať najviac {wilds} divokých kariet a nikdy menej než {naturals} prirodzené.',
@@ -373,6 +375,7 @@ export const sk: Record<string, string> = {
   'err.PILE_FROZEN': 'Kôpka je zamrznutá — potrebuješ dve prirodzené karty v hodnote vrchnej karty',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'V tejto hre si kombinácia na stole kôpku vziať nemôže — potrebuješ dve karty z ruky',
   'err.CAPTURE_NEEDS_TWO_CARDS': 'Vzatie odhadzovacieho balíka stojí dve karty z ruky',
+  'err.CAPTURE_LEAVES_NO_DISCARD': 'Takto vziať balíček by ti nenechalo žiadny spôsob, ako dokončiť ťah',
   'err.TOP_CARD_UNUSABLE': 'Tvoja strana vrchnú kartu použiť nemôže',
   'err.MELD_CLOSED': 'Táto kombinácia je úplná a uzavretá',
   'err.MELD_TOO_SMALL': 'Kombinácia potrebuje viac kariet',

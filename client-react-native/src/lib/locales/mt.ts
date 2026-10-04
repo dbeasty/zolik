@@ -179,6 +179,8 @@ export const mt: Record<string, string> = {
     "Tlieta sewda fuq nett timblokka l-gozz — ħadd ma jista' jeħdu qabel ma t-tlieta tiġi midfuna — u waħda li tibqagħlek f'idek tiswa {n}.",
   'canasta.rules.pileFrozenByWild':
     "Karta salvaġġa midfuna fil-gozz tiffriżah għal kulħadd: biex teħdu jkollok tħallas b'żewġ karti naturali tal-istess grad tal-karta ta' fuq, minn idek.",
+  'canasta.rules.stockOut':
+    'Meta l-mazz jispiċċa, il-logħba tkompli biss sakemm il-plejer li għandu d-dawra jista’ jieħu l-munzell tal-armi u xorta jlesti d-dawra — meta ma jistax, id-distribuzzjoni tispiċċa.',
   'canasta.rules.meldShape': 'Meld huwa {n} karti jew aktar tal-istess grad.',
   'canasta.rules.wildLimit':
     "Meld jista' jkollu mhux aktar minn {wilds} karti salvaġġi, u qatt inqas minn {naturals} naturali.",
@@ -378,6 +380,7 @@ export const mt: Record<string, string> = {
     "Il-munzell huwa ffriżat — għandek bżonn żewġ karti naturali tal-valur tal-karta ta' fuq",
   'err.MELD_CAPTURE_NOT_ALLOWED': "F'din il-logħba kombinazzjoni fuq il-mejda ma tistax tieħu l-munzell — għandek bżonn żewġ karti minn idejk",
   'err.CAPTURE_NEEDS_TWO_CARDS': 'Li tieħu l-gozz jiswa żewġ karti minn idek',
+  'err.CAPTURE_LEAVES_NO_DISCARD': 'Jekk tieħu l-munzell b’dan il-mod ma jkollokx kif tlesti d-dawra tiegħek',
   'err.TOP_CARD_UNUSABLE': "In-naħa tiegħek ma tistax tuża l-karta ta' fuq",
   'err.MELD_CLOSED': 'Dik il-kombinazzjoni hija sħiħa u magħluqa',
   'err.MELD_TOO_SMALL': 'Kombinazzjoni għandha bżonn aktar karti minn hekk',

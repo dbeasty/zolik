@@ -182,6 +182,8 @@ export const en: Record<string, string> = {
     'A black three on top blocks the pile — nobody may take it until the three is buried — and one left in your hand costs {n}.',
   'canasta.rules.pileFrozenByWild':
     "A wild card buried in the pile freezes it against everyone: taking it then costs two natural cards of the top card's rank, out of your own hand.",
+  'canasta.rules.stockOut':
+    'Once the stock is empty, play goes on only while the player on turn can take the discard pile and still finish the turn — when they cannot, the deal ends.',
   'canasta.rules.meldShape': 'A meld is {n} or more cards of the same rank.',
   'canasta.rules.wildLimit':
     'A meld may hold at most {wilds} wild cards, and never fewer than {naturals} natural ones.',
@@ -381,6 +383,7 @@ export const en: Record<string, string> = {
   'err.PILE_FROZEN': 'The pile is frozen — you need two natural cards of the top card\'s rank',
   'err.MELD_CAPTURE_NOT_ALLOWED': "A meld on the table can't take the pile in this game — you need two cards from your hand",
   'err.CAPTURE_NEEDS_TWO_CARDS': 'Taking the pile costs two cards from your hand',
+  'err.CAPTURE_LEAVES_NO_DISCARD': 'Taking the pile this way would leave you no way to finish your turn',
   'err.TOP_CARD_UNUSABLE': "Your side can't use the top card",
   'err.MELD_CLOSED': 'That meld is complete and closed',
   'err.MELD_TOO_SMALL': 'A meld needs more cards than that',

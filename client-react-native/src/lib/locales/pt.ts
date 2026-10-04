@@ -180,6 +180,8 @@ export const pt: Record<string, string> = {
     'Um três preto no topo bloqueia o monte — ninguém o pode levar até o três ficar enterrado — e um que te fique na mão custa {n}.',
   'canasta.rules.pileFrozenByWild':
     'Um curinga enterrado no monte congela-o para todos: levá-lo custa então duas cartas naturais do valor da carta de topo, saídas da tua mão.',
+  'canasta.rules.stockOut':
+    'Quando o monte de compra acaba, o jogo só continua enquanto o jogador da vez puder pegar o lixo e ainda terminar a vez — quando não puder, a mão termina.',
   'canasta.rules.meldShape': 'Uma combinação são {n} ou mais cartas do mesmo valor.',
   'canasta.rules.wildLimit':
     'Uma combinação pode ter no máximo {wilds} curingas e nunca menos de {naturals} cartas naturais.',
@@ -375,6 +377,7 @@ export const pt: Record<string, string> = {
   'err.PILE_FROZEN': 'O monte está congelado — precisas de duas cartas naturais do valor da carta do topo',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'Neste jogo uma combinação na mesa não pode levar o monte — precisas de duas cartas da mão',
   'err.CAPTURE_NEEDS_TWO_CARDS': 'Levar o monte custa duas cartas da tua mão',
+  'err.CAPTURE_LEAVES_NO_DISCARD': 'Pegar o monte assim deixaria você sem forma de terminar a sua vez',
   'err.TOP_CARD_UNUSABLE': 'O teu lado não pode usar a carta de topo',
   'err.MELD_CLOSED': 'Essa combinação está completa e fechada',
   'err.MELD_TOO_SMALL': 'Uma combinação precisa de mais cartas do que isso',

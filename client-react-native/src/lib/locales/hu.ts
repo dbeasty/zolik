@@ -182,6 +182,8 @@ export const hu: Record<string, string> = {
     'A tetején lévő fekete hármas zárja a paklit — senki sem veheti el, amíg el nem temetődik —, a kézben maradt fekete hármas pedig {n} pontba kerül.',
   'canasta.rules.pileFrozenByWild':
     'A paklibaeltemetett zsoker mindenki elől befagyasztja: elvétele ekkor két természetes, a felső lappal azonos értékű lapba kerül a saját kezedből.',
+  'canasta.rules.stockOut':
+    'Ha elfogy a húzópakli, a játék csak addig folytatódik, amíg a soron következő játékos fel tudja venni a dobópaklit, és mégis be tudja fejezni a körét — ha nem, az osztás véget ér.',
   'canasta.rules.meldShape': 'A kombináció {n} vagy több azonos értékű lap.',
   'canasta.rules.wildLimit':
     'Egy kombinációban legfeljebb {wilds} zsoker lehet, és sosem kevesebb, mint {naturals} természetes lap.',
@@ -380,6 +382,7 @@ export const hu: Record<string, string> = {
   'err.PILE_FROZEN': 'A pakli be van fagyasztva — két természetes lap kell a felső lap értékéből',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'Ebben a játékban az asztalon lévő kombináció nem viheti el a paklit — két lap kell a kezedből',
   'err.CAPTURE_NEEDS_TWO_CARDS': 'A dobópakli elvétele két lapba kerül a kezedből',
+  'err.CAPTURE_LEAVES_NO_DISCARD': 'Ha így veszed fel a paklit, nem tudnád befejezni a köröd',
   'err.TOP_CARD_UNUSABLE': 'A csapatod nem tudja használni a felső lapot',
   'err.MELD_CLOSED': 'Ez a kombináció teljes és lezárt',
   'err.MELD_TOO_SMALL': 'Egy kombinációhoz ennél több lap kell',

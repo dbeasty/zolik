@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"zolik/server/internal/auth"
+	"zolik/server/internal/botstats"
 	"zolik/server/internal/db"
 	"zolik/server/internal/module"
 )
@@ -69,7 +70,9 @@ func (m *Manager) Hint(ctx context.Context, idOrCode, playerID string) (module.A
 		Skill:    module.SkillHard,
 		Seed:     module.SeatSeed(match.Seed, playerID, "hint"),
 	}
+	end := m.botStats.Begin(botstats.Key{Module: match.ModuleID, Skill: skillLabel(seat.Skill), Source: botstats.SourceHint})
 	a, ok := module.BotFor(mod).Act(state, seat, offers)
+	end()
 	if !ok {
 		return module.Action{}, module.Error{Code: "NO_HINT"}
 	}

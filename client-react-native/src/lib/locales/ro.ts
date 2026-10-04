@@ -179,6 +179,8 @@ export const ro: Record<string, string> = {
     'Un trei negru deasupra blochează mormanul — nimeni nu îl poate lua până când treiul nu e îngropat — iar unul rămas în mână costă {n}.',
   'canasta.rules.pileFrozenByWild':
     'O carte wild îngropată în morman îl îngheață pentru toți: luarea lui costă atunci două cărți naturale de valoarea cărții de deasupra, din mâna ta.',
+  'canasta.rules.stockOut':
+    'Când pachetul se termină, jocul continuă doar cât timp jucătorul la rând poate lua teancul de cărți aruncate și tot să-și termine tura — când nu poate, împărțirea se încheie.',
   'canasta.rules.meldShape': 'O combinație înseamnă {n} sau mai multe cărți de aceeași valoare.',
   'canasta.rules.wildLimit':
     'O combinație poate avea cel mult {wilds} cărți wild și niciodată mai puțin de {naturals} naturale.',
@@ -375,6 +377,7 @@ export const ro: Record<string, string> = {
     'Teancul este înghețat — ai nevoie de două cărți naturale de valoarea cărții de deasupra',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'În acest joc o combinație de pe masă nu poate lua teancul — ai nevoie de două cărți din mână',
   'err.CAPTURE_NEEDS_TWO_CARDS': 'Luarea mormanului costă două cărți din mâna ta',
+  'err.CAPTURE_LEAVES_NO_DISCARD': 'Dacă iei teancul așa, nu ai mai putea să-ți termini tura',
   'err.TOP_CARD_UNUSABLE': 'Echipa ta nu poate folosi cartea de deasupra',
   'err.MELD_CLOSED': 'Acea combinație este completă și închisă',
   'err.MELD_TOO_SMALL': 'O combinație are nevoie de mai multe cărți decât atât',

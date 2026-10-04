@@ -177,6 +177,8 @@ export const sl: Record<string, string> = {
     'Črna trojka na vrhu zapre kup — nihče ga ne sme prevzeti, dokler trojka ni pokopana — tista, ki ti ostane v roki, pa stane {n}.',
   'canasta.rules.pileFrozenByWild':
     'Zakopana divja karta zamrzne kup za vse: takrat te njegov prevzem stane dve naravni karti v vrednosti vrhnje karte iz tvoje roke.',
+  'canasta.rules.stockOut':
+    'Ko kupček za vlečenje zmanjka, se igra nadaljuje le, dokler igralec na potezi lahko vzame odvrženi kup in vseeno konča potezo — ko ne more, se deljenje konča.',
   'canasta.rules.meldShape': 'Kombinacija je {n} ali več kart iste vrednosti.',
   'canasta.rules.wildLimit':
     'Kombinacija sme imeti največ {wilds} divjih kart in nikoli manj kot {naturals} naravne.',
@@ -372,6 +374,7 @@ export const sl: Record<string, string> = {
   'err.PILE_FROZEN': 'Kup je zamrznjen — potrebuješ dve naravni karti vrednosti zgornje karte',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'V tej igri kombinacija na mizi kupa ne more vzeti — potrebuješ dve karti iz roke',
   'err.CAPTURE_NEEDS_TWO_CARDS': 'Prevzem kupa stane dve karti iz tvoje roke',
+  'err.CAPTURE_LEAVES_NO_DISCARD': 'Če kup vzameš tako, poteze ne bo več mogoče končati',
   'err.TOP_CARD_UNUSABLE': 'Tvoja stran ne more uporabiti vrhnje karte',
   'err.MELD_CLOSED': 'Ta kombinacija je popolna in zaprta',
   'err.MELD_TOO_SMALL': 'Kombinacija potrebuje več kart od tega',

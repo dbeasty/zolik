@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"zolik/server/internal/botstats"
 	"zolik/server/internal/module"
 )
 
@@ -38,7 +39,7 @@ func TestBotActGivesUpOnAHungBotWithinTheBudget(t *testing.T) {
 	const budget = 50 * time.Millisecond
 
 	start := time.Now()
-	_, ok, timedOut := botAct(bot, module.State(`{}`), module.BotSeat{PlayerID: "p1"}, nil, budget)
+	_, ok, timedOut := botAct(bot, module.State(`{}`), module.BotSeat{PlayerID: "p1"}, nil, budget, nil, botstats.Key{})
 	took := time.Since(start)
 
 	if !timedOut || ok {
@@ -59,7 +60,7 @@ func TestBotActGivesUpOnAHungBotWithinTheBudget(t *testing.T) {
 
 // A bot that answers in time is not second-guessed.
 func TestBotActPassesThroughAPromptAnswer(t *testing.T) {
-	a, ok, timedOut := botAct(quickBot{}, module.State(`{}`), module.BotSeat{PlayerID: "p1"}, nil, time.Second)
+	a, ok, timedOut := botAct(quickBot{}, module.State(`{}`), module.BotSeat{PlayerID: "p1"}, nil, time.Second, nil, botstats.Key{})
 	if timedOut || !ok || a.Verb != "draw" {
 		t.Fatalf("botAct = %+v, ok %v, timedOut %v; want the bot's draw", a, ok, timedOut)
 	}
@@ -73,7 +74,7 @@ func TestBotActHandsTheBotItsOwnCopyOfTheState(t *testing.T) {
 		s[0] = 'X'
 		return module.Action{}, false
 	})
-	botAct(scribbler, state, module.BotSeat{}, nil, time.Second)
+	botAct(scribbler, state, module.BotSeat{}, nil, time.Second, nil, botstats.Key{})
 	if string(state) != `{"x":1}` {
 		t.Errorf("the bot wrote through to the caller's state: %s", state)
 	}
@@ -83,4 +84,52 @@ type botFunc func(module.State, module.BotSeat, []module.ActionOffer) (module.Ac
 
 func (f botFunc) Act(s module.State, seat module.BotSeat, o []module.ActionOffer) (module.Action, bool) {
 	return f(s, seat, o)
+}
+
+// An abandoned decision is still costing a core, so it is counted as an orphan
+// until it returns — and then recorded at the time it really took, not at the
+// budget the runtime waited.
+func TestBotActCountsAnAbandonedDecisionUntilItReturns(t *testing.T) {
+	rec := botstats.New()
+	key := botstats.Key{Module: "holdem", Skill: "hard", Source: botstats.SourceLoop}
+	bot := newHungBot()
+	const budget = 20 * time.Millisecond
+
+	if _, _, timedOut := botAct(bot, module.State(`{}`), module.BotSeat{PlayerID: "p1"}, nil, budget, rec, key); !timedOut {
+		t.Fatal("expected a timeout")
+	}
+	if s := rec.Snapshot(); s.Orphans != 1 || s.InFlight != 1 || s.Timeouts != 1 || len(s.Total) != 0 {
+		t.Fatalf("while abandoned: %+v", s)
+	}
+
+	time.Sleep(3 * budget)
+	close(bot.release)
+	<-bot.finished
+	deadline := time.Now().Add(time.Second)
+	for rec.Snapshot().Orphans != 0 && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	s := rec.Snapshot()
+	if s.Orphans != 0 || s.InFlight != 0 || s.Timeouts != 1 {
+		t.Fatalf("after return: %+v", s)
+	}
+	if len(s.Total) != 1 || s.Total[0].Count != 1 || s.Total[0].MaxM < float64(4*budget/time.Millisecond) {
+		t.Fatalf("the decision should be recorded at its real length (≥ %s): %+v", 4*budget, s.Total)
+	}
+}
+
+func TestBotActRecordsAPromptDecision(t *testing.T) {
+	rec := botstats.New()
+	key := botstats.Key{Module: "prsi", Skill: "easy", Source: botstats.SourceLoop}
+	if _, ok, _ := botAct(quickBot{}, module.State(`{}`), module.BotSeat{PlayerID: "p1"}, nil, time.Second, rec, key); !ok {
+		t.Fatal("no answer")
+	}
+	deadline := time.Now().Add(time.Second)
+	for rec.Snapshot().InFlight != 0 && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	s := rec.Snapshot()
+	if s.Timeouts != 0 || len(s.Total) != 1 || s.Total[0].Key != key {
+		t.Fatalf("%+v", s)
+	}
 }

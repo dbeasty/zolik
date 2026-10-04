@@ -181,6 +181,8 @@ export const de: Record<string, string> = {
     'Eine schwarze Drei obenauf sperrt den Stapel — niemand darf ihn nehmen, bis sie zugedeckt ist — und auf der Hand kostet sie {n}.',
   'canasta.rules.pileFrozenByWild':
     'Eine vergrabene wilde Karte friert den Stapel für alle ein: ihn zu nehmen kostet dann zwei natürliche Karten aus deiner Hand im Wert der obersten Karte.',
+  'canasta.rules.stockOut':
+    'Ist der Talon leer, geht das Spiel nur weiter, solange der Spieler am Zug den Ablagestapel nehmen und seinen Zug trotzdem beenden kann — kann er das nicht, endet das Spiel.',
   'canasta.rules.meldShape': 'Eine Auslage sind {n} oder mehr Karten desselben Werts.',
   'canasta.rules.wildLimit':
     'Eine Auslage darf höchstens {wilds} wilde Karten enthalten und nie weniger als {naturals} natürliche.',
@@ -382,6 +384,7 @@ export const de: Record<string, string> = {
     'Der Stapel ist eingefroren — du brauchst zwei natürliche Karten im Wert der obersten Karte',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'In diesem Spiel kann eine Auslage auf dem Tisch den Stapel nicht nehmen — du brauchst zwei Karten von der Hand',
   'err.CAPTURE_NEEDS_TWO_CARDS': 'Den Ablagestapel zu nehmen kostet zwei Karten aus deiner Hand',
+  'err.CAPTURE_LEAVES_NO_DISCARD': 'Den Stapel so zu nehmen ließe dir keine Möglichkeit, deinen Zug zu beenden',
   'err.TOP_CARD_UNUSABLE': 'Deine Seite kann die oberste Karte nicht verwenden',
   'err.MELD_CLOSED': 'Diese Auslage ist vollständig und geschlossen',
   'err.MELD_TOO_SMALL': 'Eine Auslage braucht mehr Karten als das',

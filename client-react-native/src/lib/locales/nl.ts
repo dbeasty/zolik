@@ -179,6 +179,8 @@ export const nl: Record<string, string> = {
     'Een zwarte drie bovenop blokkeert de stapel — niemand mag hem pakken tot de drie bedekt is — en een drie in je hand kost {n}.',
   'canasta.rules.pileFrozenByWild':
     'Een begraven joker bevriest de stapel voor iedereen: hem pakken kost dan twee natuurlijke kaarten van de waarde van de bovenste kaart, uit je eigen hand.',
+  'canasta.rules.stockOut':
+    'Is de pot leeg, dan gaat het spel alleen door zolang de speler aan de beurt de aflegstapel kan pakken en zijn beurt toch kan afmaken — kan dat niet, dan eindigt het spel.',
   'canasta.rules.meldShape': 'Een serie bestaat uit {n} of meer kaarten van dezelfde waarde.',
   'canasta.rules.wildLimit':
     'Een serie mag hoogstens {wilds} jokers bevatten en nooit minder dan {naturals} natuurlijke kaarten.',
@@ -379,6 +381,7 @@ export const nl: Record<string, string> = {
     'De stapel is bevroren — je hebt twee natuurlijke kaarten van de waarde van de bovenste kaart nodig',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'In dit spel kan een combinatie op tafel de stapel niet nemen — je hebt twee kaarten uit je hand nodig',
   'err.CAPTURE_NEEDS_TWO_CARDS': 'De aflegstapel pakken kost twee kaarten uit je hand',
+  'err.CAPTURE_LEAVES_NO_DISCARD': 'Als je de stapel zo pakt, kun je je beurt niet meer afmaken',
   'err.TOP_CARD_UNUSABLE': 'Jouw kant kan de bovenste kaart niet gebruiken',
   'err.MELD_CLOSED': 'Die combinatie is compleet en gesloten',
   'err.MELD_TOO_SMALL': 'Een combinatie heeft meer kaarten nodig dan dat',

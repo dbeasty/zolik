@@ -119,6 +119,14 @@ func (m *Module) annotate(s *GameState, playerID string, offers []module.ActionO
 			}
 			o.RemedyOfferID = firstEnabled(OfferTakePile, OfferDraw)
 
+		case ErrCaptureLeavesNoDiscard:
+			// Draw instead. With the stock empty there is no draw, but then
+			// there is no capture on offer either and the deal has ended
+			// (advanceTurn), so a player only reads this with a stock to
+			// draw from.
+			o.Remedy = &module.Fact{LabelKey: "canasta.remedy.drawFromStock"}
+			o.RemedyOfferID = firstEnabled(OfferDraw)
+
 		case ErrInitialMeldNotMet:
 			// The gap first, because it is what the player acts on: a side that
 			// has laid 30 against a floor of 50 is twenty points away, and

@@ -176,6 +176,8 @@ export const cs: Record<string, string> = {
     'Černá trojka navrchu zablokuje balíček — nikdo ho nesmí vzít, dokud není zasypaná — a zůstat s ní v ruce stojí {n}.',
   'canasta.rules.pileFrozenByWild':
     'Zakopaná žolíková karta zmrazí balíček proti všem: vzít ho pak stojí dvě přirozené karty z tvé ruky v hodnotě vrchní karty.',
+  'canasta.rules.stockOut':
+    'Když dojde talon, hraje se dál jen tak dlouho, dokud hráč na tahu může vzít odhazovací balíček a přesto dokončit tah — jakmile nemůže, rozdání končí.',
   'canasta.rules.meldShape': 'Kombinace jsou {n} nebo víc karet stejné hodnoty.',
   'canasta.rules.wildLimit':
     'Kombinace smí mít nejvýš {wilds} žolíkových karet a nikdy míň než {naturals} přirozené.',
@@ -371,6 +373,7 @@ export const cs: Record<string, string> = {
   'err.PILE_FROZEN': 'Balíček je zmrazený — potřebuješ dvě přirozené karty hodnoty vrchní karty',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'V této hře si kombinace na stole balíček vzít nemůže — potřebuješ dvě karty z ruky',
   'err.CAPTURE_NEEDS_TWO_CARDS': 'Vzetí odhazovacího balíčku stojí dvě karty z ruky',
+  'err.CAPTURE_LEAVES_NO_DISCARD': 'Takhle vzít balíček by ti nenechalo žádný způsob, jak dokončit tah',
   'err.TOP_CARD_UNUSABLE': 'Tvoje strana vrchní kartu použít nemůže',
   'err.MELD_CLOSED': 'Tato kombinace je hotová a uzavřená',
   'err.MELD_TOO_SMALL': 'Kombinace potřebuje víc karet',

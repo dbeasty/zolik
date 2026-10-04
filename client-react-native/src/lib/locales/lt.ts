@@ -176,6 +176,8 @@ export const lt: Record<string, string> = {
     'Juodas trejetas viršuje užblokuoja krūvą — niekas jos negali imti, kol trejetas nepalaidotas — o rankoje likęs kainuoja {n}.',
   'canasta.rules.pileFrozenByWild':
     'Krūvoje palaidota laukinė korta užšaldo ją visiems: tada jos paėmimas kainuoja dvi natūralias viršutinės kortos vertės kortas iš tavo rankos.',
+  'canasta.rules.stockOut':
+    'Kai kaladė baigiasi, žaidimas tęsiasi tik tol, kol ėjimą darantis žaidėjas gali paimti išmestų kortų krūvą ir vis tiek užbaigti ėjimą — kai negali, dalijimas baigiasi.',
   'canasta.rules.meldShape': 'Kombinacija — {n} ar daugiau tos pačios vertės kortų.',
   'canasta.rules.wildLimit':
     'Kombinacijoje gali būti daugiausia {wilds} laukinės kortos ir niekada mažiau nei {naturals} natūralios.',
@@ -371,6 +373,7 @@ export const lt: Record<string, string> = {
   'err.PILE_FROZEN': 'Krūvelė užšaldyta — tau reikia dviejų natūralių viršutinės kortos vertės kortų',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'Šiame žaidime derinys ant stalo krūvelės paimti negali — reikia dviejų kortų iš rankos',
   'err.CAPTURE_NEEDS_TWO_CARDS': 'Krūvos paėmimas kainuoja dvi kortas iš tavo rankos',
+  'err.CAPTURE_LEAVES_NO_DISCARD': 'Paėmus krūvą taip, negalėtum užbaigti savo ėjimo',
   'err.TOP_CARD_UNUSABLE': 'Tavo pusė negali panaudoti viršutinės kortos',
   'err.MELD_CLOSED': 'Šis derinys pilnas ir uždarytas',
   'err.MELD_TOO_SMALL': 'Deriniui reikia daugiau kortų nei tiek',
