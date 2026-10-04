@@ -191,6 +191,4 @@ func (learnGame) MatchHistory(final module.State, seat string) ([]learn.MatchSco
 	return out, nil
 }
 
-// EncoderPrefixes are the earlier encoders this one appended to: 900/62, the
-// v2 encoder before the card-inference blocks (the zolik-v2 model).
-func (learnGame) EncoderPrefixes() [][2]int { return [][2]int{{offInfer, fInferNext}} }
+// EncoderPrefixes lives in learn.go: the 900/62 v2 prefix the shipped model reads.
