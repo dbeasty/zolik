@@ -101,6 +101,7 @@ class Trainer:
             GameEnv(
                 self.game, v, int(ec.get("budget", 50_000)), exe, ec.get("procs"), ec.get("gogc"),
                 privileged=privileged, match_reward=match_reward,
+                short_stacks=float(ec.get("short_stacks", 0.0)),
             )
             for v in self.variations
         ]

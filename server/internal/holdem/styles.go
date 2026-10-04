@@ -32,6 +32,7 @@ func (learnGame) Styles() map[string]module.Bot {
 		"station":      station{},
 		"riverbluffer": riverBluffer{},
 		"solid":        solid,
+		"pusher":       pusher,
 	}
 }
 
@@ -71,6 +72,24 @@ var solidProfile = profile{
 	bluff:     0.1,
 	steal:     0.3,
 }
+
+// pusher is Hard that always plays the short-stack chart: at fifteen big
+// blinds or less it jams or folds by pushfold.go's table, whatever the other
+// seat has shown, and deeper it is Hard.
+//
+// Hard gives the chart up heads-up against a seat that has not folded to a
+// raise (profile.nonFolder), which is right against a station and means a
+// learner that calls every jam rarely meets one. This player never gives it
+// up, so a learner that calls a jam with a hand outside the chart's calling
+// range pays for it every time the stacks are short.
+var pusher = bot{tuning: &pusherProfile}
+
+var pusherProfile = func() profile {
+	p := profiles[module.SkillHard]
+	p.pushFoldBB = 15
+	p.nonFolder = 0
+	return p
+}()
 
 // betting reports whether this is the seat's own betting decision, and if so
 // the decoded state and the menu. Anything else — a showdown, somebody else's

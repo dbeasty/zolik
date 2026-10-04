@@ -107,3 +107,61 @@ func TestSolidCallsAShoveWithTopPairAndFoldsNothing(t *testing.T) {
 		}
 	}
 }
+
+// TestPusherPlaysShortStackedMatches: the pusher at the short-stacked
+// training table, at every size the pool deals, every move applied as given;
+// and heads-up against a station, where Hard gives the chart up because the
+// station never folds, the pusher keeps jamming.
+func TestPusherPlaysShortStackedMatches(t *testing.T) {
+	g := learnGame{}
+	b := g.Styles()["pusher"]
+	for n := 2; n <= 6; n++ {
+		players := learn.Players(n)
+		seats := botSeats(players, bot{})
+		seats[players[0].ID] = b
+		seats[players[n-1].ID] = b
+		state, err := New().NewMatch(g.ShortConfig(n, "", 0), players, int64(300+n))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if final := playBots(t, state, players, seats, 20000); final.Status != "completed" {
+			t.Errorf("%d seats: %s", n, final.Status)
+		}
+	}
+	pfr := func(x module.Bot) (int, int) {
+		raises, hands := 0, 0
+		players := refs("x", "y")
+		for seed := int64(1); seed <= 6; seed++ {
+			seats := map[string]module.Bot{"x": x, "y": station{}}
+			state, _ := New().NewMatch(g.ShortConfig(2, "", 0), players, seed)
+			r := playBots(t, state, players, seats, 20000).seat("x").Reads
+			raises += r.PFR
+			hands += r.Hands
+		}
+		return raises, hands
+	}
+	pr, ph := pfr(b)
+	hardProfile := profiles[module.SkillHard]
+	hr, hh := pfr(bot{tuning: &hardProfile})
+	t.Logf("raises before the flop vs a station at 15 bb: pusher %d/%d, hard %d/%d", pr, ph, hr, hh)
+	if float64(pr)/float64(ph) <= float64(hr)/float64(hh) {
+		t.Errorf("the pusher raised no more often than Hard against a station")
+	}
+}
+
+// TestShortConfigIsFifteenToTwentyFiveBigBlinds pins the training depth.
+func TestShortConfigIsFifteenToTwentyFiveBigBlinds(t *testing.T) {
+	g := learnGame{}
+	for _, c := range []struct {
+		roll float64
+		bb   int
+	}{{0, 15}, {0.5, 20}, {0.999, 25}} {
+		o := g.ShortConfig(2, "", c.roll).Options
+		if got := o[OptStartingStack] / o[OptBigBlind]; got != c.bb {
+			t.Errorf("roll %.3f: %d bb, want %d", c.roll, got, c.bb)
+		}
+	}
+	if o := g.Config(2, "").Options; o[OptStartingStack] != 1000 {
+		t.Errorf("ShortConfig changed the usual table: %v", o)
+	}
+}
