@@ -141,6 +141,19 @@ loads and plays it as before.
   bots), which also prints a `k` that matches the two terms' spreads. The
   event's `base` is the deal reward, logged beside the mixed one
   (`reward/base/win` per opponent; `win` is a deal won on points).
+  Žolíky's rows are penalty totals (`MatchScore.Top`, the highest total at
+  the table, is what ends its match): fit with `--deal-scale 100`
+  (`configs/zolik-winmodel.json`).
+- `model.aux: {dim, hidden}` (survey E2). A head on the trunk embedding
+  predicts whether the privileged vector's first `dim` entries are non-zero
+  (Žolíky: the next player's hand, 53 card slots), binary cross-entropy
+  weighted by `ppo.aux_coef`. It asks for the privileged observation like the
+  critic, shapes the trunk, and is not exported. `probe.py` is the linear
+  probe that says whether a model's trunk already knows that hand.
+- `reward.shape: {index, weight}` (survey E8). Potential-based shaping with
+  `Phi(obs) = -weight * obs[index]` (Žolíky: 637, the cards the contract
+  still wants / 8), credited between a seat's decisions in `ppo.Tracker`;
+  episode statistics stay the game's reward.
 
 ## Evaluate
 

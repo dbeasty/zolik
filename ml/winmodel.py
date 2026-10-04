@@ -2,6 +2,12 @@
 
     go run ./cmd/matchstates -game canasta -seats 4 -a hard -b closer -seeds 200 > ms/4-hard-closer.jsonl
     uv run python winmodel.py ms/*.jsonl --out configs/canasta-winmodel.json
+    uv run python winmodel.py zms/*.jsonl --deal-scale 100 --out configs/zolik-winmodel.json
+
+Žolíky's rows are penalty totals (lower is better; learn.MatchScore.Top, the
+highest total at the table, is what ends the match and is the fourth
+feature); its deal reward is the points difference over 100, hence
+--deal-scale 100.
 
 Each input line is one side's score state before a deal of a finished match
 (learn.WinFeatures: own and best-opponent score over the target, the lead,
@@ -17,7 +23,8 @@ quickly (closing), while a side behind needs points. The deal-only reward
 cannot see that; the change in P(win) can.
 
 It also prints k, the scale that brings that change to the deal reward's:
-std(deal points difference / 1000) / std(ΔP) over consecutive deals.
+std(deal points difference / deal-scale) / std(ΔP) over consecutive deals of
+two-sided matches (where the points difference is exactly the deal reward's).
 """
 
 from __future__ import annotations
@@ -98,6 +105,7 @@ def main(argv=None) -> None:
     ap.add_argument("--hidden", type=int, default=16)
     ap.add_argument("--epochs", type=int, default=1500)
     ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--deal-scale", type=float, default=1000, help="points per unit of the game's deal reward (Canasta 1000, Žolíky 100)")
     args = ap.parse_args(argv)
 
     x, y, g, seqs = read(args.inputs)
@@ -132,15 +140,16 @@ def main(argv=None) -> None:
         for a, b, pa, pb in zip(seq, seq[1:], ps, ps[1:]):
             if a["s"]["sides"] != 2:
                 continue
-            diffs.append(((b["s"]["own"] - a["s"]["own"]) - (b["s"]["best"] - a["s"]["best"])) / 1000)
+            diffs.append(((b["s"]["own"] - a["s"]["own"]) - (b["s"]["best"] - a["s"]["best"])) / args.deal_scale)
             dps.append(pb - pa)
         dps_last = seq[-1]["won"] - ps[-1]
         dps.append(dps_last)
     diffs, dps = np.asarray(diffs), np.asarray(dps)
     k = float(diffs.std() / dps.std())
     print(f"deal reward sd {diffs.std():.3f}, ΔP sd {dps.std():.3f} (last deals included), k = {k:.2f}")
-    p00 = predict(net, [[0, 0, 0, 0, 0, 0, 1]])[0]
-    print(f"P(win) at 0-0, four seats: {p00:.3f}")
+    p4 = predict(net, [[0, 0, 0, 0, 0, 1, 1]])[0]
+    p2 = predict(net, [[0, 0, 0, 0, 0, 0, 0]])[0]
+    print(f"P(win) at 0-0: four seats, four sides {p4:.3f}; two seats {p2:.3f}")
 
     model["k"] = round(k, 3)  # informational; reward.match.k is what is used
     args.out.write_text(json.dumps(model, indent=1))

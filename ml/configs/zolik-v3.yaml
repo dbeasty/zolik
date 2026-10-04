@@ -1,0 +1,82 @@
+# Žolíky v3: zolik-v2 (900/62) widened to the card-inference encoder
+# (1161/64: an inference block per opponent, and two candidate features —
+# how likely the next player, and anyone, wants the card discarded), trained
+# for the owner's table: 70% of env processes the four-seat lobby table
+# (zolik_classic+floor35: clean run, 35-point first meld, pile from lap 3),
+# 30% two-seat Classic.
+#
+# League: the closer weighted highest, then hard; most tables one learner
+# against three bots, as the owner's table is three bots and one human.
+#
+# Training-only options (train.py), all off here unless set; the A/B below
+# chose which to keep:
+#   model.priv     perfect-information critic
+#   model.aux      hidden-card head: the next player's hand from the trunk
+#   reward.match   alpha * deal reward + (1 - alpha) * k * ΔP(win the match)
+#   reward.shape   potential-based shaping on the distance to going down
+#                  (obs[637] = offDist + 7: cards the contract still wants / 8)
+#
+#   uv run python train.py --game zolik --config configs/zolik-v3.yaml \
+#     --run zolik-v3 --minutes 150 \
+#     --init <zolik-v2 final.bin> --widen
+game: zolik
+variation: zolik_classic+floor35
+
+model:
+  trunk: [512, 256]
+  scorer: [128]
+  value: [128]
+
+env:
+  envs: 10
+  tables: 32
+  procs: 1
+  gogc: 1000
+  budget: 50000
+
+ppo:
+  lr: 4.0e-4
+  gamma: 0.999
+  lam: 0.95
+  clip: 0.2
+  vf_coef: 0.5
+  ent_coef: 0.01
+  max_grad_norm: 0.5
+  epochs: 4
+  minibatch: 2048
+  target_kl: 0.03
+  reward_scale: 1.0
+  aux_coef: 0.1
+
+train:
+  rollout: 16384
+  total_updates: 5000
+  snapshot_every: 20
+  reset_every: 20
+  lr_floor: 0.2
+
+league:
+  blend: {checkpoint: 0.25, heuristic: 0.55, self: 0.2}
+  seats: {4: 1.0}
+  variation_mix:
+    zolik_classic+floor35: 0.7
+    zolik_classic: 0.3
+  variations:
+    zolik_classic+floor35: {4: 1.0}
+    zolik_classic: {2: 1.0}
+  learners: {1: 0.7, 2: 0.1, 3: 0.2}
+  partnerships: false
+  opponents:
+    closer: 1.5
+    hard: 1.0
+    medium: 0.5
+    easy: 0.2
+  checkpoint_temperature: 1.0
+  checkpoint_decay: 0.8
+  pool_size: 20
+
+eval:
+  seats: 4
+  seeds: 300
+  variation: zolik_classic+floor35
+  opponents: [hard, closer, medium]

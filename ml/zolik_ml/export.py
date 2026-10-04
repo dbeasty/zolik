@@ -122,7 +122,7 @@ def _load_policy_weights(model: Policy, src: Policy) -> None:
     """src's weights into model, which may also have a critic the file never
     carries (model.py); the critic is left as it is."""
     missing, unexpected = model.load_state_dict(src.state_dict(), strict=False)
-    if unexpected or any(not k.startswith(("critic.", "priv_net.")) for k in missing):
+    if unexpected or any(not k.startswith(("critic.", "priv_net.", "aux_head.")) for k in missing):
         raise ValueError(f"weights do not fit: missing {missing}, unexpected {unexpected}")
 
 
