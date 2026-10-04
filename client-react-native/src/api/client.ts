@@ -498,6 +498,16 @@ export class ZolikClient {
     return this.post('/agents/invite', { matchId, name }, true);
   }
 
+  /** What an OAuth connection request is for, so the person can judge it. */
+  async oauthRequestInfo(req: string): Promise<{ clientName: string; redirectHost: string }> {
+    return this.get(`/oauth/request?req=${encodeURIComponent(req)}`, false);
+  }
+
+  /** The person's answer to a connection request; returns where to send them. */
+  async oauthApprove(req: string, approve: boolean): Promise<{ redirectUrl: string }> {
+    return this.post('/oauth/approve', { req, approve }, true);
+  }
+
   async startMatch(idOrCode: string): Promise<void> {
     await this.post(`/matches/${encodeURIComponent(idOrCode)}/start`, null, true);
   }

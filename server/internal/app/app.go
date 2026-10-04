@@ -713,6 +713,7 @@ func (a *App) routeGroups() []routeGroup {
 			}
 			mh := mcp.NewHandlers(matchMgr, a.agents)
 			mh.SetBaseURL(a.cfg.PublicBaseURL)
+			mh.SetConsentBase(os.Getenv("OAUTH_CONSENT_BASE_URL"))
 			mh.RegisterRoutes(r)
 		}},
 		{"stats", stats.NewHandlers(a.statsRepo).RegisterRoutes},

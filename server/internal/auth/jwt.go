@@ -1,7 +1,9 @@
 package auth
 
 import (
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -313,4 +315,16 @@ func signEdDSA(k *signingKey, claims jwt.Claims) (string, error) {
 func CreateRefreshToken() (string, error) {
 	// 32 bytes -> 64 hex chars.
 	return NewRandomToken(32)
+}
+
+// DeriveKey is a signing key for one purpose, derived from the access secret.
+//
+// For tokens that must never be mistaken for an access token — an OAuth
+// authorization code, a refresh token — and so cannot be signed with the access
+// key itself: a different key means a different signature, whatever claims
+// they carry. Stateless, so any instance can verify what another issued.
+func DeriveKey(purpose string) []byte {
+	mac := hmac.New(sha256.New, []byte(accessSecret()))
+	mac.Write([]byte("zolik/derive/" + purpose))
+	return mac.Sum(nil)
 }

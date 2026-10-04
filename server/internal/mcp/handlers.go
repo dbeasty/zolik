@@ -31,6 +31,9 @@ type Handlers struct {
 	// baseURL is how the outside world reaches this server; empty means work
 	// it out from the request.
 	baseURL string
+	// consentBase is where the person approves a connection; see SetConsentBase.
+	consentBase string
+	used        usedCodes
 }
 
 // SetBaseURL fixes the public origin invites point at. Optional.
@@ -42,7 +45,8 @@ func NewHandlers(m *match.Manager, r *Registry) *Handlers {
 }
 
 func (h *Handlers) RegisterRoutes(r chi.Router) {
-	r.With(auth.AgentAuthMiddleware).Post("/mcp", h.serve)
+	h.registerOAuth(r)
+	r.With(h.pointToOAuth, auth.AgentAuthMiddleware).Post("/mcp", h.serve)
 	// Streamable HTTP lets a client open a GET stream for server-initiated
 	// messages. There are none here, which the spec allows us to say with 405.
 	r.Get("/mcp", func(w http.ResponseWriter, _ *http.Request) {
@@ -489,4 +493,32 @@ func (h *Handlers) origin(req *http.Request) string {
 		host = req.Host
 	}
 	return scheme + "://" + host
+}
+
+// pointToOAuth makes a 401 from /mcp say where to sign in. A client that was
+// given only the URL reads this, fetches the metadata and runs the OAuth flow
+// itself — which is what lets someone paste a bare URL into claude.ai.
+func (h *Handlers) pointToOAuth(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		next.ServeHTTP(&challengeWriter{ResponseWriter: w, meta: h.origin(req) + "/.well-known/oauth-protected-resource"}, req)
+	})
+}
+
+type challengeWriter struct {
+	http.ResponseWriter
+	meta string
+}
+
+func (c *challengeWriter) WriteHeader(status int) {
+	if status == http.StatusUnauthorized {
+		c.Header().Set("WWW-Authenticate", `Bearer resource_metadata="`+c.meta+`"`)
+	}
+	c.ResponseWriter.WriteHeader(status)
+}
+
+func (c *challengeWriter) Write(b []byte) (int, error) {
+	// Header() writes before the first Write imply a 200, never a 401, so the
+	// explicit WriteHeader above is the only place a challenge is needed; but
+	// http.Error calls WriteHeader first, which is the path that matters.
+	return c.ResponseWriter.Write(b)
 }
