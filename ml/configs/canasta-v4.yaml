@@ -20,7 +20,16 @@
 # partner another learner or Hard half and half.
 #
 #   uv run python train.py --game canasta --config configs/canasta-v4.yaml \
-#     --run canasta-v4 --minutes 150 --init <canasta-v3 final.bin> --widen
+#     --run canasta-v4 --minutes 150 --init <canasta-v3 final.bin> --widen \
+#     --set env.envs=12
+#
+# Result (2026-10-03, 685 updates, 11.2M decisions at ~1,330/s; 300 held-out
+# seeds, temperature 0, against main's Hard): vs closer at four seats +2,474
+# ± 65 (v3 +1,867), with a Hard partner +1,601 ± 68 (v3 +1,300), vs Hard at
+# four seats +2,257 ± 70 (v3 +1,136), head to head with v3 +1,128 ± 87 (4
+# seats) and +1,520 ± 160 (2). Still net -291 on deals the closer ends by its
+# turn 10 (v3 -326). The critic bought little: explained variance 0.80 vs
+# 0.78 for the plain head.
 game: canasta
 variation: classic
 
