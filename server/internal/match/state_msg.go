@@ -110,6 +110,12 @@ type PlayerMsg struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	IsAI bool   `json:"isAI"`
+	// IsAgent is an AI client playing over MCP; AgentLabel is its client or
+	// model. SatOut is a seat the table is playing on without — its player
+	// has been away past the grace period at a drop-in game.
+	IsAgent    bool   `json:"isAgent,omitempty"`
+	AgentLabel string `json:"agentLabel,omitempty"`
+	SatOut     bool   `json:"satOut,omitempty"`
 	// Avatar is the face this seat wears — cosmetic, opaque, and omitted when
 	// the seat never named one, which every client reads as "derive it".
 	//
@@ -126,7 +132,20 @@ type PlayerMsg struct {
 // itself a small demonstration that the runtime can describe a match before
 // the game owning it has done anything.
 func (m *Manager) BuildStateMsg(match models.Match, viewerID string) MatchStateMsg {
-	return m.buildStateMsg(match, viewerID, module.RoundsFor(m.registry.Get(match.ModuleID), module.State(match.State)))
+	msg := m.buildStateMsg(match, viewerID, module.RoundsFor(m.registry.Get(match.ModuleID), module.State(match.State)))
+	return m.withSatOut(match, msg)
+}
+
+// withSatOut marks who the table is playing past. A fact about the room right
+// now, so only a live state carries it — a replay frame is a past position and
+// must not ask.
+func (m *Manager) withSatOut(match models.Match, msg MatchStateMsg) MatchStateMsg {
+	for i, p := range match.Players {
+		if i < len(msg.Players) {
+			msg.Players[i].SatOut = m.satOut(match, p)
+		}
+	}
+	return msg
 }
 
 // buildStateMsg is BuildStateMsg with the round log handed in.
@@ -184,7 +203,7 @@ func (m *Manager) projectStateMsg(match models.Match, viewerID string, o stateMs
 		LegalActions: []module.ActionOffer{},
 	}
 	for _, p := range match.Players {
-		msg.Players = append(msg.Players, PlayerMsg{ID: p.ID, Name: p.Name, IsAI: p.IsAI, Avatar: p.Avatar})
+		msg.Players = append(msg.Players, playerMsg(p))
 	}
 	// Asked only where it can be true. A spectator (no viewer id) gets the
 	// same false every other status gets, since bringing a table back is not

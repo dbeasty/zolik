@@ -27,6 +27,7 @@ import (
 	"zolik/server/internal/lobby"
 	"zolik/server/internal/marias"
 	"zolik/server/internal/match"
+	"zolik/server/internal/mcp"
 	"zolik/server/internal/metrics"
 	"zolik/server/internal/module"
 	"zolik/server/internal/notify"
@@ -98,6 +99,8 @@ type App struct {
 	// the API does not claim. Absent in every development build and every
 	// test, which is why nothing here may assume it is there.
 	web *webui.Handler
+	// agents is who is registered as an AI client over MCP; see internal/mcp.
+	agents *mcp.Registry
 	// notify tells players about tables — their circle's, over the personal
 	// socket and push. Built in New because the guest claim below needs it.
 	notify *notify.Service
@@ -420,6 +423,8 @@ func (a *App) Start(ctx context.Context) {
 	// one. Started here rather than in routeGroups so there is exactly one of
 	// it — see matchManager.
 	a.matchManager().StartReaper(ctx)
+	// And the watch on AI clients that have gone quiet.
+	a.matchManager().StartAgentSweep(ctx, 15*time.Second)
 	// And the sweeper that reclaims the ones it resolved, long afterwards.
 	// Separate from the reaper on purpose: that one decides what a table
 	// *became* and runs in seconds, this one decides when the row stops being
@@ -700,6 +705,13 @@ func (a *App) routeGroups() []routeGroup {
 			h := match.NewHandlers(matchMgr, a.cfg.TestEndpointsEnabled)
 			h.SetAdmission(a.admission)
 			h.RegisterRoutes(r)
+		}},
+		// AI clients playing over MCP, and the hosts who seat them.
+		{"mcp", func(r chi.Router) {
+			if a.agents == nil {
+				a.agents = mcp.NewRegistry()
+			}
+			mcp.NewHandlers(matchMgr, a.agents).RegisterRoutes(r)
 		}},
 		{"stats", stats.NewHandlers(a.statsRepo).RegisterRoutes},
 		{"notify", func(r chi.Router) {

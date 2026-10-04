@@ -159,7 +159,7 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 		// human's click to do work that has nothing to do with them, and
 		// leaving a window where this loop unwinds just as that click lands and
 		// nothing restarts it.
-		actor := firstBot(module.AwaitedSeats(mod, module.State(match.State), viewerFor(match), refsOf(match)), match.Players)
+		actor, passive := m.drivenSeat(match, mod, module.AwaitedSeats(mod, module.State(match.State), viewerFor(match), refsOf(match)))
 		if actor == "" {
 			return // nobody awaited, or nobody awaited is a bot
 		}
@@ -191,7 +191,13 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 		botOK := false
 		if !turn.botHung {
 			var timedOut bool
-			botPick, botOK, timedOut = botAct(module.BotFor(mod), module.State(match.State),
+			bot := module.BotFor(mod)
+			if passive {
+				// A sat-out seat is not played to win. See module.DropIn.
+				verbs, _ := module.SitOutVerbs(mod)
+				bot = module.OfferBot(verbs...)
+			}
+			botPick, botOK, timedOut = botAct(bot, module.State(match.State),
 				botSeatFor(match, actor), offers, m.actBudget())
 			if timedOut {
 				log.Printf("bot loop: match=%s seat=%s bot gave no move within %s; playing from the offer list",

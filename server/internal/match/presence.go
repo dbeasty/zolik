@@ -65,6 +65,11 @@ func (m *Manager) suspendLocked(ctx context.Context, e *liveMatch, playerID stri
 	if p := playerByID(match.Players, playerID); p == nil || p.IsAI {
 		return models.Match{}, false
 	}
+	// A drop-in table plays on without the seat: see agents.go.
+	if _, dropIn := module.SitOutVerbs(mod); dropIn {
+		m.scheduleSitOut(match.ID.Hex())
+		return models.Match{}, false
+	}
 	// Suspended when the table is waiting on this player — which between rounds
 	// can be several people at once. Comparing against a single "active" seat
 	// meant that a player who dropped while the table waited on them, but who
@@ -95,6 +100,7 @@ func (m *Manager) suspendLocked(ctx context.Context, e *liveMatch, playerID stri
 // Only that player: a match suspended for one seat is not resumed by a
 // different one reconnecting, or by a spectator arriving.
 func (m *Manager) ResumeIfReturning(ctx context.Context, matchID, playerID string) {
+	m.returned(ctx, matchID, playerID)
 	e, err := m.lockMatch(ctx, matchID)
 	if err != nil {
 		return
@@ -192,7 +198,7 @@ func (m *Manager) resumableBy(match models.Match, playerID string) bool {
 		if p.ID == playerID || p.IsAI {
 			continue
 		}
-		if !m.hub.Registry().Has(room, p.ID) {
+		if !m.seatHere(room, p.ID) {
 			return false
 		}
 	}
@@ -209,7 +215,7 @@ func (m *Manager) playersAway(match models.Match, playerID string) []string {
 		if p.ID == playerID || p.IsAI {
 			continue
 		}
-		if !m.hub.Registry().Has(room, p.ID) {
+		if !m.seatHere(room, p.ID) {
 			away = append(away, p.ID)
 		}
 	}
@@ -227,7 +233,7 @@ func (m *Manager) attended(match models.Match) bool {
 		if p.IsAI {
 			continue
 		}
-		if m.hub.Registry().Has(room, p.ID) {
+		if m.seatHere(room, p.ID) {
 			return true
 		}
 	}
