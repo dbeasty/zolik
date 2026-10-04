@@ -36,6 +36,12 @@ type MatchScore struct {
 	Seats  int `json:"seats"`
 	Sides  int `json:"sides"`
 	Deal   int `json:"deal"` // deals already scored
+	// Top is the highest running score at the table, for a game whose match
+	// ends when any one seat reaches the target and whose best side is not
+	// the one that gets there (Žolíky: penalty points, lowest wins). Zero
+	// leaves the closeness to the end as max(Own, Best), which is what it is
+	// when the best side is the one racing to the target (Canasta).
+	Top int `json:"top,omitempty"`
 	// Over is a finished match, and Won its result for this side: 1 a win,
 	// 0 a loss.
 	Over bool    `json:"over,omitempty"`
@@ -64,6 +70,10 @@ func WinFeatures(m MatchScore) []float64 {
 	}
 	clip := func(x float64) float64 { return math.Max(-1, math.Min(1.5, x)) }
 	own, best := clip(float64(m.Own)/t), clip(float64(m.Best)/t)
+	end := math.Max(own, best)
+	if m.Top != 0 {
+		end = math.Max(end, clip(float64(m.Top)/t))
+	}
 	sides3, four := 0.0, 0.0
 	if m.Sides >= 3 {
 		sides3 = 1
@@ -71,7 +81,7 @@ func WinFeatures(m MatchScore) []float64 {
 	if m.Seats >= 4 {
 		four = 1
 	}
-	return []float64{own, best, own - best, math.Max(own, best), float64(m.Deal) / 10, sides3, four}
+	return []float64{own, best, own - best, end, float64(m.Deal) / 10, sides3, four}
 }
 
 // WinModel is a small fitted MLP: P(this side wins the match | MatchScore).

@@ -24,6 +24,7 @@ import (
 	"zolik/server/internal/module"
 
 	_ "zolik/server/internal/canasta"
+	_ "zolik/server/internal/zolikmod"
 )
 
 type row struct {
