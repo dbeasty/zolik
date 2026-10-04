@@ -131,6 +131,16 @@ type profile struct {
 	// endgameAt is how few cards an opponent must hold for that switch. Zero
 	// means the default.
 	endgameAt int
+	// racesForPartners changes two things at a partnership table, and
+	// nothing heads-up: banksPoints is set aside, so the side goes out the
+	// first turn it may, and hoardsWilds is relaxed, so a wild goes where it
+	// gets the side to its canastas and then out. See partnered.
+	racesForPartners bool
+	// infers prices each discard by the chance the next seat captures the
+	// pile with it, read off what that seat probably holds (infer.go: its
+	// captures, discards and passes this deal), times the cards the pile
+	// would hand it. Below feeding a melded rank, above the card's own value.
+	infers bool
 }
 
 var profiles = map[module.Skill]profile{
@@ -161,6 +171,10 @@ var profiles = map[module.Skill]profile{
 		hoardsWilds:     true,
 		banksPoints:     true,
 		readsHandCounts: true,
+		// Banking and hoarding are heads-up judgements. At a partnership
+		// table they lose to every profile that simply races — see partnered.
+		racesForPartners: true,
+		infers:           true,
 		// A card earlier than the default. A seat holding three cards goes out
 		// next turn on a lay-off and a discard; by the time it holds two the
 		// expensive cards this side is carrying are already lost.
@@ -204,6 +218,11 @@ type table struct {
 	// are left is not a way of playing badly, it is a way of not looking at
 	// the table.
 	ending bool
+	// racing is a partnership table, at a profile that races there: see
+	// partnered. quota is, at such a table, that the side already has the
+	// canastas it needs to go out.
+	racing bool
+	quota  bool
 }
 
 // read builds that judgement.
@@ -215,6 +234,11 @@ type table struct {
 // TestBotDoesNotPeek pins it.
 func (b bot) read(s *GameState, playerID string, p profile) table {
 	out := table{ending: len(s.DrawPile) <= lastTurnsStock(s)}
+	if p.racesForPartners && partnered(s, playerID) {
+		out.racing = true
+		t := s.team(playerID)
+		out.quota = t != nil && canGoOut(s, t)
+	}
 	if !p.readsHandCounts {
 		return out
 	}
@@ -234,8 +258,28 @@ func (b bot) read(s *GameState, playerID string, p profile) table {
 	}
 	out.pressed = shortest <= at || len(s.DrawPile) <= 2
 	out.ending = out.ending || out.pressed
-	out.closing = out.pressed || !p.banksPoints || worthGoingOut(s, playerID)
+	out.closing = out.pressed || !p.banksPoints || out.racing || worthGoingOut(s, playerID)
 	return out
+}
+
+// partnered reports that this seat plays with a partner, which is where
+// worthGoingOut's bargain and the wild hoard both stop paying.
+//
+// Holding back to build is a wager that the side will be the one to end the
+// deal later, and at a partnership table it is a worse wager twice over: there
+// are two opposing hands each a few turns from going out instead of one, and
+// when one of them does, the partner's whole hand is counted against this side
+// as well as this seat's. A wild held for a natural canasta is the dearest card
+// in that hand, and the hoard was what mostly kept Hard from going out: in
+// nearly every deal it was offered the chance and let it pass, each way out
+// needed a wild the hoard would not spend. Measured over 300 seeds, Hard at
+// four seats lost to Medium by 448 a match and to the closer style by 475
+// while beating both heads-up; racing turns those into wins of 308 and 486.
+// So both judgements stay for one-on-one play and are relaxed here — see
+// wildMayJoin and worthAWild for where the wilds now go.
+func partnered(s *GameState, playerID string) bool {
+	t := s.team(playerID)
+	return t != nil && len(t.Players) >= 2
 }
 
 // lastTurnsStock is the stock a table this size draws in two more turns each.
@@ -562,6 +606,10 @@ func worthAWild(t *Team, tb table, o module.ActionOffer) bool {
 	if t != nil && !t.HasMelded {
 		return true
 	}
+	// Racing with the canastas made, every meld is a step out of the hand.
+	if tb.racing && tb.quota {
+		return true
+	}
 	if len(meldCards(o)) < canastaSize {
 		return false
 	}
@@ -741,12 +789,22 @@ func layOffReach(size int) int {
 //	                    weaker one spends it on four cards of a rank. That is
 //	                    ordinary beginner play rather than a bug, and whether
 //	                    this seat is a beginner is the profile's business.
+//
+//	racing              At a partnership table (see partnered) the hoard is
+//	                    relaxed: a wild may join a meld of four or more, a
+//	                    step to the canasta the side needs rather than a card
+//	                    out of play; and once the side has its canastas,
+//	                    any meld short of one, natural six included — going
+//	                    out is worth more than the two hundred.
 func wildMayJoin(m Meld, p profile, tb table) bool {
 	if m.isCanasta() {
 		return false
 	}
 	if len(m.Cards) == canastaSize-1 {
-		return m.wilds() > 0 || tb.ending
+		return m.wilds() > 0 || tb.ending || tb.quota
+	}
+	if tb.racing && (tb.quota || len(m.Cards) >= canastaSize-3) {
+		return true
 	}
 	return !p.hoardsWilds
 }
@@ -799,8 +857,17 @@ func (b bot) discard(s *GameState, playerID string, p profile, tb table, mn menu
 		}
 	}
 
+	var inf *inference
+	if p.infers {
+		inf = infer(s, playerID)
+	}
 	cands := make([]discardCandidate, 0, len(o.Source.Cards))
 	for _, c := range o.Source.Cards {
+		gives, givesMany := 0, 0
+		if inf != nil {
+			cards := inf.captureRisk(s, c) * float64(len(s.DiscardPile)+1)
+			gives, givesMany = giveawayBucket(cards), int(cards/giveawayMany)
+		}
 		cands = append(cands, discardCandidate{
 			card: c,
 			wild: isWild(c),
@@ -810,10 +877,12 @@ func (b bot) discard(s *GameState, playerID string, p profile, tb table, mn menu
 			// A black three cannot be captured with and blocks the pile for
 			// the next player, so it is the safest card in the deck to throw
 			// and its five points are worth spending to keep a fat pile shut.
-			blocks:  isBlackThree(c),
-			feeds:   danger[rankOf(c)],
-			value:   cardValue(c),
-			ordinal: c,
+			blocks:    isBlackThree(c),
+			feeds:     danger[rankOf(c)],
+			gives:     gives,
+			givesMany: givesMany,
+			value:     cardValue(c),
+			ordinal:   c,
 		})
 	}
 	sort.SliceStable(cands, func(i, j int) bool { return betterDiscard(cands[i], cands[j], s, tb) })
@@ -826,9 +895,27 @@ type discardCandidate struct {
 	building bool
 	blocks   bool
 	feeds    bool
-	value    int
-	ordinal  string
+	// gives is the expected cards handed to the next seat by a capture this
+	// discard makes possible, in buckets of giveawayCards; zero without the
+	// inference.
+	gives int
+	// givesMany is the same in buckets of giveawayMany, and outranks keeping
+	// a pair: a pile of that size is worth more than the meld a pair might
+	// become.
+	givesMany int
+	value     int
+	ordinal   string
 }
+
+// giveawayCards is how many expected cards of pile one bucket of risk is: a
+// discard is only judged riskier than another when it hands over at least
+// that many more cards on average.
+const giveawayCards = 1.5
+
+// giveawayMany is the expected cards of pile that outweigh breaking a pair.
+const giveawayMany = 4.0
+
+func giveawayBucket(cards float64) int { return int(cards / giveawayCards) }
 
 func betterDiscard(x, y discardCandidate, s *GameState, tb table) bool {
 	// The rule this file was written for. A wild is never the card a turn ends
@@ -842,6 +929,9 @@ func betterDiscard(x, y discardCandidate, s *GameState, tb table) bool {
 	if x.blocks != y.blocks && len(s.DiscardPile) >= 5 {
 		return x.blocks
 	}
+	if x.givesMany != y.givesMany {
+		return x.givesMany < y.givesMany
+	}
 	// Material worth keeping — until somebody is about to end the deal, at
 	// which point a pair that was an investment two turns ago is two cards
 	// about to be counted against this side.
@@ -850,6 +940,9 @@ func betterDiscard(x, y discardCandidate, s *GameState, tb table) bool {
 	}
 	if x.feeds != y.feeds {
 		return !x.feeds
+	}
+	if x.gives != y.gives {
+		return x.gives < y.gives
 	}
 	if x.value != y.value {
 		// Ordinarily the cheap card goes and the aces stay for melding. Under

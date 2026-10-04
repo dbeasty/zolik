@@ -356,3 +356,91 @@ func TestUnknownSkillPlaysMedium(t *testing.T) {
 		}
 	}
 }
+
+// allInOnTheFlop seats two on a flop with two hundred in the pot and the
+// opponent all in for `shove` more, seat p1 to answer with nine hundred behind.
+func allInOnTheFlop(hole, board []string, shove int) module.State {
+	return table(2, func(s *GameState) {
+		s.Street = streetFlop
+		s.Board = board
+		s.Current = 0
+		s.Pot = 200
+		s.Seats[0].Hole = hole
+		s.Seats[0].Committed, s.Seats[0].Stack = 100, 900
+		s.Seats[1].Hole = []string{"5C", "5D"}
+		s.Seats[1].Committed, s.Seats[1].Stack = 100+shove, 0
+		s.Seats[1].Bet, s.Seats[1].Acted, s.Seats[1].AllIn = shove, true, true
+		s.CurrentBet, s.MinRaise = shove, s.BigBlind
+	})
+}
+
+// TestHardReadsAShoveAsAHandHeldNow is heldClaim, pinned on the spot it was
+// found on: a pot-sized shove into a dry K-7-2 flop. Read as "a pair by the
+// river", a claim nearly every hand dealt makes good, Hard called it with
+// queen high seven times in twenty. Read as a pair the shover holds now, the
+// hands with nothing fold every time and the hands that beat a pair range
+// call every time. Facing an all-in the engine still offers a raise, and it
+// puts the chips in the same as a call, so either counts as one.
+func TestHardReadsAShoveAsAHandHeldNow(t *testing.T) {
+	board := []string{"KH", "7D", "2C"}
+	cases := []struct {
+		name string
+		hole []string
+		call bool
+	}{
+		{"queen high", []string{"QS", "9D"}, false},
+		{"ten high", []string{"TH", "8S"}, false},
+		{"top pair, queen kicker", []string{"KS", "QD"}, true},
+		{"top pair, ace kicker", []string{"AS", "KD"}, true},
+		{"overpair", []string{"AH", "AD"}, true},
+		{"set", []string{"7S", "7H"}, true},
+	}
+	const seeds = 20
+	for _, c := range cases {
+		calls := 0
+		for seed := int64(1); seed <= seeds; seed++ {
+			raw := atSeed(t, allInOnTheFlop(c.hole, board, 200), seed)
+			if v := actAs(t, raw, "p1", module.SkillHard).Verb; v == VerbCall || v == VerbRaise {
+				calls++
+			}
+		}
+		want := 0
+		if c.call {
+			want = seeds
+		}
+		if calls != want {
+			t.Errorf("hard with %s facing a pot-sized shove on %v: called %d of %d, want %d",
+				c.name, board, calls, seeds, want)
+		}
+	}
+}
+
+// TestHardReadsAWildRaiserTheOldWay pins heldClaim's guard: a bettor who has
+// raised before the flop in most of four or more hands is betting its whole
+// range, and its pot-sized shove is read as a claim about the river only, so
+// second pair is not folded to it. One raise in six hands, or too few hands to
+// say, keeps the claim held now.
+func TestHardReadsAWildRaiserTheOldWay(t *testing.T) {
+	board := []string{"KH", "7D", "2C"}
+	hard := profileFor(module.SkillHard)
+	for _, c := range []struct {
+		name  string
+		reads SeatReads
+		wild  bool
+	}{
+		{"raised five of six", SeatReads{Hands: 6, PFR: 5}, true},
+		{"raised one of six", SeatReads{Hands: 6, PFR: 1}, false},
+		{"raised three of three", SeatReads{Hands: 3, PFR: 3}, false},
+	} {
+		s, err := decode(allInOnTheFlop([]string{"7S", "9D"}, board, 200))
+		if err != nil {
+			t.Fatal(err)
+		}
+		s.Seats[1].Reads = &c.reads
+		seat := &s.Seats[0]
+		got := claimOf(hard, s.toCall(seat), potNow(s), raisesWild(s, seat, hard.wildRaiser))
+		if got.now == c.wild {
+			t.Errorf("%s: claim held now = %v, want %v", c.name, got.now, !c.wild)
+		}
+	}
+}
