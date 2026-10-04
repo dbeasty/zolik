@@ -1,6 +1,8 @@
 # Bot compute gating — plan
 
-> **Status: proposed.** Nothing here is built yet.
+> **Status: proposed; Phase 0 (measurement) built.** Rechecked 2026-10-03 against main @
+> `9e21df8`. See §5.3: the 2026-09-29 conclusions have been **superseded**. Rule engines are
+> now the cheaper engine in every game, so "downgrade to rule" is right as originally framed.
 
 Deep AI agents are a limited resource. The server works out how many it can run comfortably
 ("5 deep agents on this box"), hands out that many **leases**, and plays every other bot seat
@@ -25,7 +27,7 @@ When resources recover, waiting seats **upgrade** back.
 | Piece | State |
 |---|---|
 | Bots | Every shipped bot is a **rule/heuristic engine**: Žolíky's `ai.HeuristicAgent`, Hold'em's formula + bounded Monte Carlo, and rule bots for Canasta, Gin, Prší, Tiles and Blackjack. Easy, Medium and Hard are all rule-engine profiles (`module/skill.go`). |
-| Deep agents | Trained nets (`learn.NetBot`, `ZLNET1` MLPs) exist on `learn-core` and are **not wired into the server**. The trainer README plans to embed `models/hard.bin`. No search agent exists; there is only a `Searchable` sketch in `architecture.md`. |
+| Deep agents | Trained nets (`learn.NetBot`, `ZLNET1` MLPs). The library merged to main in PR #221, but **no model is embedded and nothing in live play uses a net** (as of 2026-10-03). The trainer README plans to embed `models/hard.bin`. No search agent exists; there is only a `Searchable` sketch in `architecture.md`. |
 | Bot loop | One goroutine per match with bots (`match/bots.go`). No cap, pool or semaphore. The 0.9–1.8 s think time is a `time.Sleep` that uses no CPU. |
 | Hint | `POST /matches/{id}/hint` runs a Hard `Act` synchronously in the request, with no rate limit. |
 | Resource awareness | `admission` reads cgroup memory, PSI `cpu.pressure` and GOMEMLIMIT, and refuses **new matches** under pressure. It only answers when asked; nothing is notified when pressure changes. Nothing reads `cpu.max` or sets `GOMAXPROCS`. |
@@ -375,7 +377,7 @@ a scratch checkout of `claude/learn-core`, using `ml/runs/holdem-20m` and
 `ml/runs/canasta-12m`. The live server now records the same numbers per decision
 (`/debug/bots`, plus a ten-minute log line).
 
-### Cost per decision, worst configuration of each engine
+### 5.1 Cost per decision, 2026-09-29 (main @ `20bbc20`, wall time)
 
 | Engine | mean | p95 | p99 | allocated per decision |
 |---|---|---|---|---|
@@ -393,7 +395,7 @@ a scratch checkout of `claude/learn-core`, using `ml/runs/holdem-20m` and
 - The model files are 0.8–0.9 MB. `NetBot` keeps no per-seat state, so one resident copy per
   kind serves every table.
 
-### What the numbers change
+### 5.2 What the numbers changed (2026-09-29, superseded by §5.3)
 
 1. **The expensive engine today is a rule engine.** Hold'em's Monte Carlo costs 10–25 times
    what the Hold'em net does, and it churns about 2–4 MB of garbage per decision. At one
@@ -416,7 +418,61 @@ a scratch checkout of `claude/learn-core`, using `ml/runs/holdem-20m` and
    Phase 1 should move the `Act` outside the lock, the way the bot loop already does, as well as
    rate-limiting it.
 
-### Still open in Phase 0
+### 5.3 Recheck, 2026-10-03 (main @ `9e21df8`)
+
+**What changed on main since 2026-09-29:**
+- learn-core merged (PR #221). It brought `holdem/score.go`, a seven-card ranker about 100x
+  faster than `Best`, which equity rollouts now use. `TestEquityIsUnchanged` pins identical
+  answers.
+- Hard got smarter in Hold'em (#236, #238: claim reading, a jam-or-fold chart, river bluff
+  pricing) and in Canasta (#234, #235, #237).
+- The trained Hard agent is still not in live play.
+
+`cmd/botcost` now records **CPU time** per decision alongside wall time. The first rerun ran
+while the machine sat at a load average of 78 on 16 cores (other sessions' benches). That
+showed a false 5x regression in Canasta Samba Hard, and nets apparently 3–5x slower. Under
+contention wall time inflates and CPU time does not, so compare runs by the CPU columns. The
+numbers below are CPU time from a run with load around 7.
+
+| Engine (worst configuration) | CPU mean | CPU p95 | CPU p99 | KB/decision | vs 2026-09-29 |
+|---|---|---|---|---|---|
+| Hold'em rule, Hard | 0.08–0.28 ms | 0.23–0.55 ms | 0.39–0.75 ms | 22–77 | **30–75x cheaper** |
+| Canasta rule (Samba 6, the worst) | 0.13–0.34 ms | 0.22–0.88 ms | 0.6–3.4 ms | 34–97 | unchanged; the Hard changes cost nothing |
+| Žolíky rule (continental, the worst) | 0.2–0.73 ms | 0.37–1.6 ms | 0.65–2.3 ms | 117–407 | slightly cheaper |
+| Gin, Tiles, Blackjack, Prší rule | < 0.3 ms | < 0.4 ms | < 3.4 ms | 3–47 | unchanged |
+| **Hold'em net** (holdem-long) | 0.24–0.41 ms | 0.32–0.69 ms | 0.38–0.86 ms | 36–79 | about the same |
+| **Canasta net** (canasta-long) | 0.40–1.04 ms | 0.9–5.0 ms | 2.5–11 ms | 62–247 | 2x, mostly Samba |
+| **Žolíky net** (zolik-long, new) | 0.68–1.08 ms | 1.9–4.2 ms | 3.6–6.9 ms | 314–913 | new |
+
+Model files: Hold'em 0.8 MB, Canasta 0.9 MB, Žolíky 2.0 MB. Each is resident once and shared
+by every table.
+
+**What this does to §5.2's conclusions:**
+1. ~~The expensive engine is a rule engine.~~ **Reversed.** Every rule engine now averages
+   under 0.75 ms. The nets are the most expensive engines, at 1.5–5x their game's rule bot.
+2. ~~"Downgrade to rule" is backwards for Hold'em.~~ **Reversed.** Rule is now cheaper in every
+   game, so the plan's original design stands: a deep seat falls back to the rule engine at
+   Hard. The open question about the fallback is closed by measurement. Keep the guard,
+   though: the cost table comes from `botcost`, and it gets rerun whenever an engine changes,
+   since this table moved 75x in four days.
+3. **The nets still need little gating, and the lease count is large.** By §3.2's formula
+   (1.35 s think window ÷ CPU mean × 0.5 share × 0.7 comfort), one core carries about 440 seats
+   on the worst net (Žolíky, 8 seats, 1.08 ms) and about 1 700 on Hold'em rule. The production
+   box has no CPU limit, so the count is effectively unbounded until `cpus:` is set. For now,
+   the operator cap (`BOT_DEEP_MAX`) and memory churn (Žolíky net, about 0.9 MB per decision
+   at 8 seats) bind before CPU does. Revisit if a search agent (MCTS) is ever built; that is
+   the class of engine this plan really protects against.
+4. **Hints still compute under the match lock** (`match/hint.go`: `lockMatch` … `Act`). The
+   cost is now sub-millisecond for rule Hard, but it rises with a net. Moving `Act` outside the
+   lock and adding a rate limit remain the first Phase 1 items.
+
+**Revised order of work:**
+- Phase 1 is only: hint off-lock + rate limit; `GOMAXPROCS` from the quota; and the
+  monitor/levels in observe mode.
+- Leases and engine switching (Phase 2) start when a net is wired into live play.
+- The scheduled task `redo-bot-cost-when-hard-agent-lands` reruns this table on that day.
+
+### 5.4 Still open in Phase 0
 
 - **Soak at `cpus: 1` and `cpus: 2`.** Increase the number of concurrent Hold'em bot tables,
   the expensive engine that exists today, until WebSocket broadcast p95 bends. That checks the
