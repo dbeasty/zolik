@@ -6,6 +6,7 @@ import type { MatchState } from '@/src/api/matchTypes';
 import type { WaitingPlayer } from '@/src/api/types';
 import { Avatar } from '@/src/components/avatars/Avatar';
 import { avatarFor } from '@/src/components/avatars/catalogue';
+import { AgentConnectPanel } from '@/src/components/AgentConnectPanel';
 import { InvitePanel } from '@/src/components/InvitePanel';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
@@ -36,6 +37,7 @@ const BOT_SKILLS = [
   { id: 'easy', label: 'Easy' },
   { id: 'medium', label: 'Medium' },
   { id: 'hard', label: 'Hard' },
+  { id: 'ai', label: 'AI' },
 ];
 
 export default function TableScreen() {
@@ -82,6 +84,28 @@ export default function TableScreen() {
     const t = setInterval(poll, 2000);
     return () => clearInterval(t);
   }, [id, poll]);
+
+  // Whether the server is short enough of room that a bot seated now might
+  // play simpler moves than its skill (server/internal/botgov). Asked once
+  // and then slowly: it changes over minutes, not seconds.
+  const [botsSimplifying, setBotsSimplifying] = useState(false);
+  useEffect(() => {
+    let live = true;
+    const ask = async () => {
+      try {
+        const c = await client.getBotCapacity();
+        if (live) setBotsSimplifying(c.simplifying);
+      } catch {
+        /* an older server has no answer; say nothing */
+      }
+    };
+    ask();
+    const timer = setInterval(ask, 30000);
+    return () => {
+      live = false;
+      clearInterval(timer);
+    };
+  }, [client]);
 
   async function invite(playerId: string) {
     setInvitingId(playerId);
@@ -369,6 +393,12 @@ export default function TableScreen() {
                 </Pressable>
               ))}
             </View>
+            {botsSimplifying ? (
+              <Text testID="table-bots-simplifying" style={shared.status}>
+                {t('lobby.table.botsSimplifying')}
+              </Text>
+            ) : null}
+            {offline ? null : <AgentConnectPanel matchId={id} />}
             <Pressable testID="table-start" style={shared.button} onPress={start} disabled={busy}>
               <Text style={shared.buttonText}>
                 {held.length

@@ -7,10 +7,13 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
+	"runtime"
 	"runtime/debug"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -18,8 +21,11 @@ import (
 	"zolik/server/internal/admission"
 	"zolik/server/internal/auth"
 	"zolik/server/internal/blackjack"
+	"zolik/server/internal/botsettings"
+	"zolik/server/internal/botstats"
 	"zolik/server/internal/buildinfo"
 	"zolik/server/internal/canasta"
+	"zolik/server/internal/capacity"
 	"zolik/server/internal/db"
 	"zolik/server/internal/ginrummy"
 	"zolik/server/internal/holdem"
@@ -27,6 +33,7 @@ import (
 	"zolik/server/internal/lobby"
 	"zolik/server/internal/marias"
 	"zolik/server/internal/match"
+	"zolik/server/internal/mcp"
 	"zolik/server/internal/metrics"
 	"zolik/server/internal/module"
 	"zolik/server/internal/notify"
@@ -70,6 +77,12 @@ type App struct {
 	// matchMgr is the game runtime, built once — see matchManager.
 	matchOnce sync.Once
 	matchMgr  *match.Manager
+	// monitor is the resource monitor, built once — see capacityMonitor.
+	monitorOnce sync.Once
+	monitor     *capacity.Monitor
+	// thermal is the device's heat as its OS reports it (mobile only); see
+	// SetThermalPressure.
+	thermal atomic.Int32
 	// sync is this process as a node of the distributed database, or nil when
 	// it replicates with nobody — which is every deployment until
 	// FEATURE_FLAG_SYNC says otherwise. See internal/sync.
@@ -98,9 +111,14 @@ type App struct {
 	// the API does not claim. Absent in every development build and every
 	// test, which is why nothing here may assume it is there.
 	web *webui.Handler
+	// agents is who is registered as an AI client over MCP; see internal/mcp.
+	agents *mcp.Registry
 	// notify tells players about tables — their circle's, over the personal
 	// socket and push. Built in New because the guest claim below needs it.
 	notify *notify.Service
+	// botSettings persists the admin console's Hard-model switches; loaded
+	// into learn's in-process switch in New. See bots.go.
+	botSettings botsettings.Store
 }
 
 // repos is every repository the app wires, built in one place so the two
@@ -119,6 +137,9 @@ type repos struct {
 	// column-for-column comparable.
 	metrics metrics.Store
 	notify  notify.Repository
+	// bots is the operator's stored choice of which games' Hard seats play
+	// a trained model. See bots.go.
+	bots botsettings.Store
 	// kdb is the embedded engine itself, set only by kdbRepos. Replication
 	// needs the database rather than a repository over it, since a namespace
 	// is not something a repository has a name for.
@@ -149,6 +170,7 @@ func mongoRepos(ctx context.Context, cfg Config) (repos, error) {
 		scoring:  scoring.NewRepository(m),
 		metrics:  metrics.NewMongoStore(m),
 		notify:   notify.NewRepository(m),
+		bots:     botsettings.NewMongoStore(m),
 		close:    m.Close,
 	}, nil
 }
@@ -201,6 +223,7 @@ func kdbRepos(cfg Config) (repos, error) {
 		scoring:  scoring.NewKDBRepository(k),
 		metrics:  metrics.NewKDBStore(k),
 		notify:   notify.NewKDBRepository(k),
+		bots:     botsettings.NewKDBStore(k),
 		close:    k.Close,
 	}, nil
 }
@@ -353,7 +376,9 @@ func New(cfg Config) (*App, error) {
 		boots:       metrics.NewBootRecorder(r.metrics, recorder),
 		web:         webui.NewHandler(webui.Embedded()),
 		notify:      notifySvc,
+		botSettings: r.bots,
 	}
+	loadHardModels(ctx, r.bots)
 
 	// Opened here rather than in Start so that every namespace this process
 	// opens afterwards is hooked into the node from the first one: a
@@ -420,6 +445,24 @@ func (a *App) Start(ctx context.Context) {
 	// one. Started here rather than in routeGroups so there is exactly one of
 	// it — see matchManager.
 	a.matchManager().StartReaper(ctx)
+	// And the watch on AI clients that have gone quiet.
+	a.matchManager().StartAgentSweep(ctx, 15*time.Second)
+	// And a summary of what bot decisions cost, every ten minutes that had
+	// any — the production half of /debug/bots, which is off there.
+	a.matchManager().BotStats().LogEvery(ctx, 10*time.Minute)
+	// And the resource monitor, in observe mode: it logs each level change
+	// and nothing acts on one yet. See docs/bot-compute-gating-plan.md §3.4.
+	if mon := a.capacityMonitor(); mon != nil {
+		mon.Run(ctx, 2*time.Second)
+		go logCapacity(ctx, mon.Subscribe())
+		if gov := a.matchManager().Governor(); gov != nil {
+			go followLevels(ctx, gov, mon.Subscribe())
+		}
+		slog.Info("capacity monitor: running", "gomaxprocs", runtime.GOMAXPROCS(0), "numCPU", runtime.NumCPU())
+	}
+	// And the sweep that gives back leases held by seats nobody plays any
+	// more. Cheap; runs whether or not the governor is on.
+	a.matchManager().StartGovernorSweep(ctx, 30*time.Second)
 	// And the sweeper that reclaims the ones it resolved, long afterwards.
 	// Separate from the reaper on purpose: that one decides what a table
 	// *became* and runs in seconds, this one decides when the row stops being
@@ -626,6 +669,16 @@ func (a *App) configureManager(matchMgr *match.Manager) *match.Manager {
 		time.Duration(a.cfg.BotThinkMinMS)*time.Millisecond,
 		time.Duration(a.cfg.BotThinkMaxMS)*time.Millisecond,
 	)
+	// And what every bot decision costs, so the deep-agent capacity plan
+	// sizes itself from measurements rather than from reading the code —
+	// see docs/bot-compute-gating-plan.md. Always on: a timing per decision
+	// is two clock reads and a mutex, next to a decision that sleeps a
+	// second first. Read at /debug/bots.
+	matchMgr.SetBotStats(botstats.New())
+	// And the governor that decides which engine plays each bot seat, so
+	// bots never take more CPU than this box can spare. See
+	// docs/bot-compute-gating-plan.md and internal/botgov.
+	matchMgr.SetGovernor(newGovernor(a.cfg))
 	// And whether a stopped game can be stepped through. The operator's half
 	// of that question; the store answers the other half itself.
 	matchMgr.SetReplayEnabled(a.cfg.ReplayEnabled)
@@ -668,6 +721,11 @@ func (a *App) routeGroups() []routeGroup {
 				w.Header().Set("Content-Type", "application/json")
 				_ = json.NewEncoder(w).Encode(a.admission.Snapshot())
 			})
+			// Whether bots are playing at full strength right now, so a
+			// table can say when a bot is playing simplified moves. Here
+			// rather than under /debug because the clients read it, the
+			// offline one included.
+			r.Get("/bots/capacity", a.botCapacity)
 			// Both clients render this beside their own build, so a bug
 			// report says which server the reporter was actually talking to.
 			r.Get("/version", func(w http.ResponseWriter, _ *http.Request) {
@@ -700,6 +758,16 @@ func (a *App) routeGroups() []routeGroup {
 			h := match.NewHandlers(matchMgr, a.cfg.TestEndpointsEnabled)
 			h.SetAdmission(a.admission)
 			h.RegisterRoutes(r)
+		}},
+		// AI clients playing over MCP, and the hosts who seat them.
+		{"mcp", func(r chi.Router) {
+			if a.agents == nil {
+				a.agents = mcp.NewRegistry()
+			}
+			mh := mcp.NewHandlers(matchMgr, a.agents)
+			mh.SetBaseURL(a.cfg.PublicBaseURL)
+			mh.SetConsentBase(os.Getenv("OAUTH_CONSENT_BASE_URL"))
+			mh.RegisterRoutes(r)
 		}},
 		{"stats", stats.NewHandlers(a.statsRepo).RegisterRoutes},
 		{"notify", func(r chi.Router) {

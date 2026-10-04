@@ -426,7 +426,46 @@ func pileTakeOptions(s *GameState, playerID string) []pileOption {
 			out = append(out, pileOption{Cards: cards})
 		}
 	}
-	return out
+
+	// And only a capture the turn can be finished after — applyTakePile's own
+	// check, asked here too so that the offers and the empty-stock ending in
+	// advanceTurn see the same captures the engine accepts.
+	kept := out[:0]
+	for _, opt := range out {
+		if captureFinishes(s, playerID, opt) {
+			kept = append(kept, opt)
+		}
+	}
+	return kept
+}
+
+// captureFinishes reports that applyTakePile would accept this capture.
+//
+// An open side left holding two cards or more after it can always discard one
+// and keep one, so that common case is answered from the counts. Anything
+// else is the capture played on a copy.
+func captureFinishes(s *GameState, playerID string, opt pileOption) bool {
+	if s.team(playerID).HasMelded && len(s.DiscardPile) > 0 {
+		left := len(s.Hands[playerID]) - len(opt.Cards)
+		for _, c := range s.DiscardPile[:len(s.DiscardPile)-1] {
+			if !isRedThree(c) {
+				left++
+			}
+		}
+		if left >= 2 {
+			return true
+		}
+	}
+	raw, err := encode(s)
+	if err != nil {
+		return false
+	}
+	c, err := decode(raw)
+	if err != nil {
+		return false
+	}
+	_, err = applyTakePile(c, playerID, module.Action{Verb: VerbTakePile, Target: opt.MeldID, Cards: opt.Cards})
+	return err == nil
 }
 
 // capturePlayable checks the parts of a capture that are not about the pile:
@@ -462,7 +501,33 @@ func capturePlayable(s *GameState, playerID string, fromHand []string) bool {
 	return laid+reachableValue(r, rest, t) >= r.meldFloor(t.Score)
 }
 
+// applyTakePile captures the pile, and refuses a capture after which the turn
+// could not be finished.
+//
+// That second half is what takePile alone used to lack. A capture moves cards
+// both ways — the top card and the cards it is melded with leave the hand, the
+// rest of the pile joins it — and nothing checked where that left the hand. A
+// side already open that captured onto its own meld holding one card could not
+// discard it (that is going out, and it had no canasta), could not lay it, and
+// had nothing left but taking the capture back; with the stock empty there was
+// nothing behind that either, and the table froze. An unopened side could
+// capture into an opening that reachableValue said was there and that the two
+// cards it has to keep put out of reach. turnCanFinish asks the question
+// exactly instead: from the table the capture leaves, is there a sequence of
+// lays that ends with a discard the engine accepts, or with the side out?
 func applyTakePile(s *GameState, playerID string, a module.Action) ([]module.Event, error) {
+	events, err := takePile(s, playerID, a)
+	if err != nil {
+		return nil, err
+	}
+	if !turnCanFinish(s, playerID) {
+		return nil, errCode(ErrCaptureLeavesNoDiscard)
+	}
+	return events, nil
+}
+
+// takePile is the capture itself: every rule about the pile, and the move.
+func takePile(s *GameState, playerID string, a module.Action) ([]module.Event, error) {
 	r := s.rules()
 	if s.Phase != phaseDraw {
 		return nil, errCode(ErrWrongPhase)
@@ -659,6 +724,11 @@ func topCardRuns(s *GameState, playerID string) []string {
 	if t == nil {
 		return nil
 	}
+	// The card goes onto the table, not into the hand, so the hand has to
+	// finish the turn as it stands — applyTakeTop's own check.
+	if checkLeavesPlayable(s, t, s.Hands[playerID]) != nil {
+		return nil
+	}
 
 	var out []string
 	for i := range t.Melds {
@@ -796,12 +866,30 @@ func applyUndoTakePile(s *GameState, playerID string) ([]module.Event, error) {
 // --- melding ---------------------------------------------------------------
 
 func applyLayMeld(s *GameState, playerID string, a module.Action) ([]module.Event, error) {
+	events, rest, err := layMeld(s, playerID, a)
+	if err != nil {
+		return nil, err
+	}
+	if len(rest) == 0 {
+		return append(events, endDeal(s, playerID, wasConcealed(s), false)...), nil
+	}
+	if err := checkTurnFinishes(s, playerID); err != nil {
+		return nil, err
+	}
+	return events, nil
+}
+
+// layMeld is applyLayMeld without its two endings: the deal it closes when the
+// hand empties, and the check that the turn can still be finished. Split off
+// for turnCanFinish, which walks lays on copies of the table and must neither
+// deal a new hand nor ask its own question again at every step.
+func layMeld(s *GameState, playerID string, a module.Action) ([]module.Event, []string, error) {
 	r := s.rules()
 	if s.Phase != phaseMeld {
-		return nil, errCode(ErrWrongPhase)
+		return nil, nil, errCode(ErrWrongPhase)
 	}
 	if !hasCards(s.Hands[playerID], a.Cards) {
-		return nil, errCode(ErrCardNotInHand)
+		return nil, nil, errCode(ErrCardNotInHand)
 	}
 	t := s.team(playerID)
 
@@ -814,10 +902,10 @@ func applyLayMeld(s *GameState, playerID string, a module.Action) ([]module.Even
 		// blanket one an ordinary three already gets rather than the narrower
 		// "not like this" below.
 		if !r.BlackThreeMeld {
-			return nil, errCode(ErrCannotMeldThree)
+			return nil, nil, errCode(ErrCannotMeldThree)
 		}
 		if err := validateBlackThreeMeld(r, a.Cards); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		rest, _ := removeCards(s.Hands[playerID], a.Cards)
 		// Two different refusals, because they send the player two different
@@ -825,18 +913,18 @@ func applyLayMeld(s *GameState, playerID string, a module.Action) ([]module.Even
 		// short of its canastas is the wrong *time*, and the second is the one
 		// the going-out rule already has words for.
 		if !canGoOut(s, t) {
-			return nil, errCode(ErrCannotGoOutYet)
+			return nil, nil, errCode(ErrCannotGoOutYet)
 		}
 		// One card left is still going out: it is the discard that ends the
 		// deal, and the side already has its canastas, so nothing can stop it.
 		// Demanding an empty hand refused "three black threes and a card to
 		// close with", the commonest shape of this move.
 		if len(rest) > 1 {
-			return nil, errCode(ErrBlackThreeGoOutOnly)
+			return nil, nil, errCode(ErrBlackThreeGoOutOnly)
 		}
 	} else {
 		if err := validateMeld(r, a.Cards); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
@@ -848,7 +936,7 @@ func applyLayMeld(s *GameState, playerID string, a module.Action) ([]module.Even
 	// A cap on groups of a rank is Canasta's; Samba keeps them separate instead.
 	// Sequences have no such cap in either — two runs in one suit are two melds.
 	if kind == meldSet && t.rankIsFull(r, rank) {
-		return nil, errCode(ErrRankAlreadyMelded)
+		return nil, nil, errCode(ErrRankAlreadyMelded)
 	}
 
 	rest, _ := removeCards(s.Hands[playerID], a.Cards)
@@ -856,7 +944,7 @@ func applyLayMeld(s *GameState, playerID string, a module.Action) ([]module.Even
 
 	if !blackThrees {
 		if err := checkInitialMeld(s, t, value, rest); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
@@ -875,7 +963,7 @@ func applyLayMeld(s *GameState, playerID string, a module.Action) ([]module.Even
 	t.Melds = append(t.Melds, laid)
 	if err := checkLeavesPlayable(s, t, rest); err != nil {
 		t.Melds = t.Melds[:len(t.Melds)-1]
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Snapshot before the state moves, so the entry describes the table this
@@ -896,25 +984,37 @@ func applyLayMeld(s *GameState, playerID string, a module.Action) ([]module.Even
 	events := []module.Event{{Type: "meld_laid", Data: map[string]any{
 		"playerId": playerID, "meldId": laid.ID, "cards": a.Cards,
 	}}}
+	return events, rest, nil
+}
+
+func applyLayOff(s *GameState, playerID string, a module.Action) ([]module.Event, error) {
+	events, rest, err := layOff(s, playerID, a)
+	if err != nil {
+		return nil, err
+	}
 	if len(rest) == 0 {
 		return append(events, endDeal(s, playerID, wasConcealed(s), false)...), nil
+	}
+	if err := checkTurnFinishes(s, playerID); err != nil {
+		return nil, err
 	}
 	return events, nil
 }
 
-func applyLayOff(s *GameState, playerID string, a module.Action) ([]module.Event, error) {
+// layOff is applyLayOff without its two endings, for layMeld's reason.
+func layOff(s *GameState, playerID string, a module.Action) ([]module.Event, []string, error) {
 	r := s.rules()
 	if s.Phase != phaseMeld {
-		return nil, errCode(ErrWrongPhase)
+		return nil, nil, errCode(ErrWrongPhase)
 	}
 	if len(a.Cards) == 0 {
 		// Not MELD_TOO_SMALL: nothing is being melded, and that sentence is
 		// what a player read under Lay off when the offer list asked about a
 		// meld none of their cards could go on.
-		return nil, errCode(ErrNothingFitsHere)
+		return nil, nil, errCode(ErrNothingFitsHere)
 	}
 	if !hasCards(s.Hands[playerID], a.Cards) {
-		return nil, errCode(ErrCardNotInHand)
+		return nil, nil, errCode(ErrCardNotInHand)
 	}
 	t := s.team(playerID)
 
@@ -926,15 +1026,15 @@ func applyLayOff(s *GameState, playerID string, a module.Action) ([]module.Event
 	owner, m := s.findMeld(a.Target)
 	if m == nil {
 		if len(t.Melds) == 0 {
-			return nil, errCode(ErrMustMeldFirst)
+			return nil, nil, errCode(ErrMustMeldFirst)
 		}
-		return nil, errCode(ErrNoSuchMeld)
+		return nil, nil, errCode(ErrNoSuchMeld)
 	}
 	if owner.ID != t.ID {
-		return nil, errCode(ErrNotYourMeld)
+		return nil, nil, errCode(ErrNotYourMeld)
 	}
 	if m.closed(r) {
-		return nil, errCode(ErrMeldClosed)
+		return nil, nil, errCode(ErrMeldClosed)
 	}
 	// What "fits" means depends on the kind. A group takes its own rank and
 	// wilds; a sequence takes the cards that continue it, in its suit, and no
@@ -943,16 +1043,16 @@ func applyLayOff(s *GameState, playerID string, a module.Action) ([]module.Event
 	if m.kind() == meldRun {
 		for _, c := range a.Cards {
 			if isWild(c) {
-				return nil, errCode(ErrSequenceNoWilds)
+				return nil, nil, errCode(ErrSequenceNoWilds)
 			}
 			if suitOf(c) != m.Suit {
-				return nil, errCode(ErrSequenceNeedsOneSuit)
+				return nil, nil, errCode(ErrSequenceNeedsOneSuit)
 			}
 		}
 	} else {
 		for _, c := range a.Cards {
 			if !isWild(c) && rankOf(c) != m.Rank {
-				return nil, errCode(ErrWrongRank)
+				return nil, nil, errCode(ErrWrongRank)
 			}
 		}
 	}
@@ -960,23 +1060,23 @@ func applyLayOff(s *GameState, playerID string, a module.Action) ([]module.Event
 	if m.kind() == meldRun {
 		grown = sortRun(grown)
 		if err := validateRun(r, grown); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	} else if err := validateMeld(r, grown); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	rest, _ := removeCards(s.Hands[playerID], a.Cards)
 	value := handValue(a.Cards)
 	if err := checkInitialMeld(s, t, value, rest); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	before := m.Cards
 	m.Cards = grown
 	if err := checkLeavesPlayable(s, t, rest); err != nil {
 		m.Cards = before
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Pushed before the hand moves, so what it holds is the table as it stood
@@ -997,10 +1097,7 @@ func applyLayOff(s *GameState, playerID string, a module.Action) ([]module.Event
 	events := []module.Event{{Type: "cards_laid_off", Data: map[string]any{
 		"playerId": playerID, "meldId": m.ID, "cards": a.Cards,
 	}}}
-	if len(rest) == 0 {
-		return append(events, endDeal(s, playerID, wasConcealed(s), false)...), nil
-	}
-	return events, nil
+	return events, rest, nil
 }
 
 // applyUndoLayOff takes back the most recent lay-off still standing — see
@@ -1093,6 +1190,10 @@ func applyUndoLayMeld(s *GameState, playerID string) ([]module.Event, error) {
 // two melds — which means a lay that falls short has to be allowed. What is not
 // allowed is a lay that puts the minimum out of reach, because there is no way
 // to take cards back off the table. See meld.go's reachableValue.
+//
+// reachableValue is the cheap first answer and not the last one: it does not
+// know that a side which cannot go out must finish holding two cards, so a lay
+// it passes is asked again, exactly, by checkTurnFinishes once it is down.
 func checkInitialMeld(s *GameState, t *Team, value int, rest []string) error {
 	r := s.rules()
 	if t.HasMelded {
@@ -1206,7 +1307,10 @@ func advanceTurn(s *GameState) []module.Event {
 	s.MeldsAtTurnStart = len(s.team(next).Melds) > 0
 
 	// Taking the top card onto a sequence is also a move, so a stock of nothing
-	// is only a dead deal when that is unavailable too.
+	// is only a dead deal when that is unavailable too. Both lists hold only
+	// moves the turn can be finished after (turnCanFinish), so a pile on offer
+	// here is one the player can take and still discard: a capture that would
+	// leave nothing but taking it back does not keep the deal alive.
 	if len(s.DrawPile) == 0 && len(pileTakeOptions(s, next)) == 0 && len(topCardRuns(s, next)) == 0 {
 		return endDeal(s, "", false, true)
 	}

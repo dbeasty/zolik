@@ -45,6 +45,14 @@ export type CapacitySnapshot = {
   startingMatches: boolean;
 };
 
+/** Whether bots are playing at full strength right now (GET /bots/capacity). */
+export type BotCapacity = {
+  level: 'green' | 'amber' | 'red';
+  /** A bot seated now might play simpler moves than its skill until the server has room. */
+  simplifying: boolean;
+  reducedSeats: number;
+};
+
 /** A signed-in player, however they signed in. */
 /** What a device shows the server to be a guest it has been before. */
 export type GuestProof = { guestKey?: string; refreshToken?: string };

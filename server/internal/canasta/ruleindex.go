@@ -67,7 +67,9 @@ func refusalRules(v ruleset, code string) []string {
 	// drawn" at the same table, ten seconds apart.
 	case ErrNotYourTurn, ErrWrongPhase:
 		return []string{"canasta.rules.turn", "canasta.rules.turnDiscard"}
-	case ErrNothingToDraw, ErrPileEmpty:
+	case ErrNothingToDraw:
+		return []string{"canasta.rules.turn", "canasta.rules.stockOut"}
+	case ErrPileEmpty:
 		return []string{"canasta.rules.turn"}
 
 	// --- getting into the discard pile ------------------------------------
@@ -81,6 +83,16 @@ func refusalRules(v ruleset, code string) []string {
 		return []string{"canasta.rules.pileAlwaysFrozen", "canasta.rules.pileFrozenByWild"}
 	case ErrMeldCaptureNotAllowed:
 		return []string{"canasta.rules.pileNoMeldCapture"}
+	case ErrCaptureLeavesNoDiscard:
+		// The capture is fine; the hand it leaves cannot end the turn. So the
+		// sentences are the ones about ending a turn — the discard it needs,
+		// the canastas that going out needs instead, and, for a side still
+		// opening, the minimum it would have to reach with cards to spare.
+		return []string{
+			"canasta.rules.turnDiscard", "canasta.rules.goOutKeepsACard",
+			"canasta.rules.oneCanastaToGoOut", "canasta.rules.twoCanastasToGoOut",
+			"canasta.rules.meldFloorBands", "canasta.rules.meldFloorBandsFive",
+		}
 	case ErrCaptureNeedsTwo:
 		// What the capture costs, in whichever of the three sentences this
 		// variation states it.

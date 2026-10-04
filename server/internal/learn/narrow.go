@@ -8,12 +8,13 @@ import (
 
 // Appending is implemented by a game whose encoder has only ever grown by
 // appending: an older network's state and candidate vectors are prefixes of
-// today's. Optional, and for the bench only — the server seats a model for
-// today's encoder or none (Policy.Fits).
+// today's. Optional.
 //
 // It is what lets a model trained before a feature was added be measured
-// against one trained after, in one binary: Narrowed hands the older model
-// the prefix it was trained on, which is the encoding it was trained on.
+// against one trained after, in one binary, and keep playing after the
+// encoder grows: Narrowed hands the older model the prefix it was trained on,
+// which is the encoding it was trained on. HardBot (and so the admin switch
+// and LocalHard) seats such a model through Policy.GameFor.
 type Appending interface {
 	// EncoderPrefixes lists the (state, candidate) widths of the earlier
 	// encoders that today's extends.
@@ -35,6 +36,25 @@ func Narrowed(g Game, stateDim, candDim int) (Game, error) {
 		}
 	}
 	return nil, fmt.Errorf("learn: %s has no %d/%d encoder (today's is %d/%d)", g.Name(), stateDim, candDim, g.StateDim(), g.CandDim())
+}
+
+// GameFor is g as this policy's network sees it: g itself when the network
+// was trained for g's encoder, or g narrowed to the earlier encoder it was
+// trained for (Narrowed), which is only offered by a game whose encoder has
+// grown by appending. False for a network trained for another game, or for
+// an encoder g did not grow from.
+func (p *Policy) GameFor(g Game) (Game, bool) {
+	if p == nil || p.net == nil || g == nil {
+		return nil, false
+	}
+	if p.net.Game != "" && p.net.Game != g.Name() {
+		return nil, false
+	}
+	ng, err := Narrowed(g, p.net.StateDim, p.net.CandDim)
+	if err != nil {
+		return nil, false
+	}
+	return ng, true
 }
 
 type narrowed struct {

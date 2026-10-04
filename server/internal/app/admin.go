@@ -1,6 +1,8 @@
 package app
 
 import (
+	"context"
+
 	"github.com/go-chi/chi/v5"
 
 	"zolik/server/internal/admin"
@@ -58,6 +60,12 @@ func (a *App) RegisterAdminRoutes(r chi.Router) {
 		// capacity gates.
 		Capacity: func() any { return a.admission.Snapshot() },
 		Version:  version,
+		HardModels: func(ctx context.Context) ([]admin.HardModelRow, error) {
+			return hardModelRows(ctx, a.botSettings)
+		},
+		SetHardModel: func(ctx context.Context, c admin.HardModelChange) (bool, error) {
+			return setHardModel(ctx, a.botSettings, c)
+		},
 	}).RegisterRoutes(r)
 }
 

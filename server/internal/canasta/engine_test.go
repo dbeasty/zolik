@@ -994,9 +994,22 @@ func TestOpeningTheTable(t *testing.T) {
 		{
 			name: "three fours are fine when a second meld can still reach fifty",
 			setup: func(s *GameState) {
+				s.Hands["p1"] = []string{"4H", "4D", "4S", "KH", "KD", "KS", "KC", "8C", "9C"}
+			},
+			cards: []string{"4H", "4D", "4S"},
+		},
+		{
+			// The case above with one card fewer, which this table used to
+			// call fine: fifty-five is in reach, but only by laying all four
+			// kings, and that leaves the eight alone — a discard that would be
+			// going out without a canasta. The side cannot keep a card and
+			// open, so laying the fours starts a turn that cannot end.
+			name: "but not when reaching fifty would leave no card to keep",
+			setup: func(s *GameState) {
 				s.Hands["p1"] = []string{"4H", "4D", "4S", "KH", "KD", "KS", "KC", "8C"}
 			},
 			cards: []string{"4H", "4D", "4S"},
+			want:  ErrInitialMeldNotMet,
 		},
 		{
 			name: "a partnership in the hole only needs fifteen",

@@ -868,7 +868,7 @@ func (h *Handlers) storedTableOf(m models.Match, viewerID string, replayable boo
 	// the engine to get.
 	out.CanReplay = replayable && m.StartedAt != nil
 	for _, p := range m.Players {
-		out.Players = append(out.Players, PlayerMsg{ID: p.ID, Name: p.Name, IsAI: p.IsAI, Avatar: p.Avatar})
+		out.Players = append(out.Players, playerMsg(p))
 		if p.IsAI {
 			out.BotCount++
 		} else {
@@ -1203,6 +1203,8 @@ func writeModuleError(w http.ResponseWriter, err error) {
 		status = http.StatusConflict
 	case "WAITING_ROOM_UNAVAILABLE", "SERVER_BUSY":
 		status = http.StatusServiceUnavailable
+	case "HINT_TOO_SOON":
+		status = http.StatusTooManyRequests
 	case "REPLAY_UNAVAILABLE":
 		// Not implemented rather than not found: the route exists, the caller
 		// asked for it correctly, and this deployment does not have the

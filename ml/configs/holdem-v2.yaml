@@ -1,0 +1,71 @@
+# Hold'em v2: a fine-tune of holdem-long (encoder unchanged, 295/14) against
+# a player that calls big bets with the hands that should.
+#
+# holdem-long's league folded too much to big bets (rock, and hard to most
+# overbets) or called everything (station), so an overbet was nearly always
+# right and the model learned to shove hands worse than a solid calling range.
+# The league adds the solid style (holdem styles.go: tight-aggressive, reads a
+# bet as a pair held now, calls a shove with top pair and a kicker or better
+# and folds air), weighted above hard, and leans more on checkpoints and
+# self-play so the model meets its own overbets from the other side.
+#
+#   uv run python train.py --game holdem --config configs/holdem-v2.yaml \
+#     --run holdem-v2 --minutes 120 --init runs/holdem-long-final.bin
+game: holdem
+variation: ""
+
+model:
+  trunk: [256, 256]
+  scorer: [128]
+  value: [128]
+
+env:
+  envs: 6
+  tables: 32
+  procs: 1
+  gogc: 1000
+  budget: 20000
+
+ppo:
+  # A third of holdem-long's starting rate: it ended annealed at 3e-5, and a
+  # first try at 3e-4 with a fresh optimiser lost half its edge over hard by
+  # update 100 (entropy 0.66 -> 0.80) before the new opponent was learned.
+  lr: 1.0e-4
+  gamma: 1.0
+  lam: 0.95
+  clip: 0.2
+  vf_coef: 0.5
+  ent_coef: 0.01
+  max_grad_norm: 0.5
+  epochs: 4
+  minibatch: 2048
+  target_kl: 0.03
+  reward_scale: 0.1
+
+train:
+  rollout: 16384
+  total_updates: 1000
+  lr_floor: 0.2
+  snapshot_every: 10
+  reset_every: 10
+
+league:
+  blend: {heuristic: 0.5, checkpoint: 0.3, self: 0.2}
+  seats: {2: 0.5, 3: 0.125, 4: 0.125, 5: 0.125, 6: 0.125}
+  opponents:
+    solid: 1.5
+    hard: 1.0
+    station: 0.7
+    maniac: 0.7
+    rock: 0.5
+    riverbluffer: 0.5
+    medium: 0.5
+    easy: 0.2
+  checkpoint_temperature: 1.0
+  checkpoint_decay: 0.9
+  pool_size: 30
+
+eval:
+  seats: 2
+  seeds: 500
+  opponents: [solid, hard, station, maniac, rock, riverbluffer]

@@ -149,6 +149,11 @@ type SeatReads struct {
 	// own, and not a flush or open-ended straight draw with a card to come.
 	BigBetsShown int `json:"bigBetsShown,omitempty"`
 	BluffsShown  int `json:"bluffsShown,omitempty"`
+	// FacedRaise is decisions before the flop with a raise (anything above
+	// the big blind) to answer, and FoldedToRaise the ones answered by
+	// folding: whether a jam from a short stack has any fold equity at all.
+	FacedRaise    int `json:"facedRaise,omitempty"`
+	FoldedToRaise int `json:"foldedToRaise,omitempty"`
 }
 
 // PublicAct is one action everyone at the table saw: who, on which street,

@@ -430,6 +430,17 @@ export type MatchPlayer = {
   id: string;
   name: string;
   isAI: boolean;
+  /** An AI client playing over MCP, and what it calls itself. */
+  isAgent?: boolean;
+  agentLabel?: string;
+  /** The table is playing on without this seat — its player is away at a drop-in game. */
+  satOut?: boolean;
+  /**
+   * A bot the server is playing with a cheaper engine than it was seated
+   * with, because the server is short of CPU (server/internal/botgov). It
+   * goes back to full strength by itself, at a round boundary.
+   */
+  simplified?: boolean;
   /**
    * The face this seat wears, as a slug. Absent when the seat never named
    * one, which is not a gap to fill in from somewhere else: every client

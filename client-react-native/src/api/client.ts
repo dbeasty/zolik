@@ -4,6 +4,7 @@ import type { MatchAction, MatchModule, MatchState, ModuleRules, Replay, StoredT
 import type {
   AccountProfile,
   AuthProvider,
+  BotCapacity,
   CapacitySnapshot,
   CircleEntry,
   ClaimedSeat,
@@ -27,6 +28,20 @@ import type {
   SignInOutcome,
   WaitingPlayer,
 } from '@/src/api/types';
+
+export type AgentInvite = {
+  url: string;
+  token: string;
+  name: string;
+  matchId?: string;
+  joinCode?: string;
+  /** `claude mcp add …`, ready to paste. */
+  claudeCode: string;
+  /** An `mcpServers` block for clients configured by file. */
+  configJson: string;
+  /** What to say to the agent once it is connected. */
+  prompt: string;
+};
 
 export class ApiError extends Error {
   constructor(
@@ -415,6 +430,12 @@ export class ZolikClient {
     return this.get('/healthz/capacity', false);
   }
 
+  /** Whether bots are playing at full strength right now, so the table can
+   *  say when a bot seated now might play simpler moves. */
+  async getBotCapacity(): Promise<BotCapacity> {
+    return this.get('/bots/capacity', false);
+  }
+
   /**
    * One module's written rules, resolved against a variation and option
    * overrides — the same choices a lobby's picker holds, so the sentences
@@ -474,14 +495,35 @@ export class ZolikClient {
     );
   }
 
+  /**
+   * Mint what an AI client needs to play: the MCP endpoint, a key that can do
+   * nothing but play, and the commands that install them. With a match id the
+   * key is bound to that table, and the agent is seated there when it
+   * registers.
+   */
+  async agentInvite(matchId?: string, name?: string): Promise<AgentInvite> {
+    return this.post('/agents/invite', { matchId, name }, true);
+  }
+
+  /** What an OAuth connection request is for, so the person can judge it. */
+  async oauthRequestInfo(req: string): Promise<{ clientName: string; redirectHost: string }> {
+    return this.get(`/oauth/request?req=${encodeURIComponent(req)}`, false);
+  }
+
+  /** The person's answer to a connection request; returns where to send them. */
+  async oauthApprove(req: string, approve: boolean): Promise<{ redirectUrl: string }> {
+    return this.post('/oauth/approve', { req, approve }, true);
+  }
+
   async startMatch(idOrCode: string): Promise<void> {
     await this.post(`/matches/${encodeURIComponent(idOrCode)}/start`, null, true);
   }
 
   /**
    * The move this player's seat would make now, suggested and never made.
-   * Refused with HINTS_OFF at a table that turned hints off, and with
-   * NOT_YOUR_TURN when there is nothing to suggest.
+   * Refused with HINTS_OFF at a table that turned hints off, with
+   * NOT_YOUR_TURN when there is nothing to suggest, and with HINT_TOO_SOON
+   * (429) after five worked-out hints in ten seconds.
    */
   async hint(idOrCode: string): Promise<{ action: MatchAction }> {
     return this.post(`/matches/${encodeURIComponent(idOrCode)}/hint`, null, true);

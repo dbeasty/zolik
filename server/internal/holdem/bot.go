@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"strconv"
 
+	"zolik/server/internal/learn"
 	"zolik/server/internal/module"
 )
 
@@ -38,7 +39,11 @@ import (
 // the range that offer declares, and degrades to the next-best legal verb when
 // what it wanted is not on the menu. The engine remains the only authority on
 // the rules, exactly as it is for a human.
-func (m *Module) Bot() module.Bot { return bot{} }
+//
+// Hard seats play the shipped trained model instead when an operator has
+// switched it on (learn.HardModel); this bot stays the fallback and plays
+// every Easy and Medium seat.
+func (m *Module) Bot() module.Bot { return learn.HardModel(learnGame{}, bot{}) }
 
 type bot struct {
 	// tuning overrides the strength ladder for every seat this bot plays.
@@ -88,7 +93,8 @@ func (b bot) Act(raw module.State, botSeat module.BotSeat, offers []module.Actio
 	}
 
 	p := b.profileOf(botSeat.Skill)
-	rnd := rand.New(rand.NewSource(seedFor(s, seat)))
+	rnd := seededRand(seedFor(s, seat))
+	defer releaseRand(rnd)
 	if s.Street == streetPreflop {
 		return mn.action(preflop(s, seat, mn, p, rnd))
 	}
@@ -170,6 +176,19 @@ type profile struct {
 	// it heldClaim folds second pair to a maniac's pot-sized bet, which cost
 	// four big blinds a match against one; zero leaves heldClaim unguarded.
 	wildRaiser float64
+	// madeClaim reads a bet the way a solid player reads one: as a claim to
+	// a pair the bettor holds *now* — a pocket pair, or a hole card paired on
+	// the board — and never as more than that, however big the bet.
+	//
+	// The ladder reads a big bet as a claim to two pair by the river
+	// (claimedBy), which is right against honest bettors and is exactly what
+	// an overbet exploits: almost no one-pair hand beats a two-pair range, so
+	// top pair folds to every shove. Read as "has a pair now", a shove is
+	// called by the hands that beat what shoves light, top pair with a kicker
+	// and better, and folded by the hands that do not. False on every skill;
+	// the solid style (styles.go) is what sets it, and it takes the place of
+	// heldClaim and wildRaiser for that style.
+	madeClaim bool
 
 	// --- aggression ---
 
@@ -211,6 +230,38 @@ type profile struct {
 	// than modelled as randomness: it is not that a novice picks bad hands at
 	// random, it is that their bar is lower than it should be.
 	loose float64
+
+	// --- equilibrium facts (pushfold.go, and the river below) ---
+
+	// pushFoldBB is the effective stack, in big blinds, at or below which the
+	// seat plays jam-or-fold before the flop from the heads-up equilibrium
+	// chart instead of by Chen score. Zero never does.
+	pushFoldBB float64
+	// sizedBluffs replaces the flat bluff chance on a heads-up river with the
+	// share a bet of that size can carry: bluffs B/(P+2B) of the betting range,
+	// the share that leaves a bluff-catcher nothing to gain by calling or
+	// folding (riverBluffChance).
+	sizedBluffs bool
+	// defendMDF stops a heads-up river from being folded into: facing a bet B
+	// into P from a bettor not raising wild, the top P/(P+B) of hands continue
+	// whatever the claim-read says (defends).
+	defendMDF bool
+	// nonFolder is the guard on both of the above, and both equilibria share
+	// it because both assume an opponent who folds when folding is right.
+	// Heads-up, Hard bluffs the river only at an opponent that has folded to
+	// a bet after the flop at least once, and opens a jam from the chart only
+	// at one that has folded to a raise before it at least once; once there
+	// are foldReadsAfter answers to judge by, the share folded must also reach
+	// this. Until then it plays as it did before either existed. Against a
+	// player who never folds a bluff is only chips given away, and a jam
+	// throws away the edge of playing a flop against the worst player at the
+	// table: measured at fifteen big blinds, the chart without this guard lost
+	// ten big blinds a match to the station that the previous Hard won, and
+	// the bluffs lost two at fifty. Zero applies neither guard.
+	nonFolder float64
+	// mdfShown is the guard on defendMDF: defend only against a bettor that
+	// has shown a big bet made with a weak hand (SeatReads.BluffsShown).
+	mdfShown bool
 }
 
 // profiles is the whole ladder, one row per skill.
@@ -262,6 +313,15 @@ var profiles = map[module.Skill]profile{
 		// worth taking, and a seat that only raises hands it likes is a seat
 		// the rest of the table can read.
 		steal: 0.35,
+		// At or below fifteen big blinds the chart is the game: the top of the
+		// ten-to-fifteen range the jam-or-fold literature puts near equilibrium
+		// (pushfold.go), and the best of 10, 12 and 15 against the previous
+		// Hard both at 50 big blinds and at 15.
+		pushFoldBB:  15,
+		sizedBluffs: true,
+		nonFolder:   0.1,
+		defendMDF:   true,
+		mdfShown:    true,
 	},
 }
 
@@ -296,6 +356,9 @@ type choice struct {
 // was willing to put money in with*, and that is what a hand-strength score
 // approximates.
 func preflop(s *GameState, seat *Seat, mn menu, p profile, rnd *rand.Rand) choice {
+	if c, ok := pushFold(s, seat, mn, p); ok {
+		return c
+	}
 	score := chen(seat.Hole)
 	owed := s.toCall(seat)
 
@@ -444,8 +507,9 @@ func postflop(s *GameState, seat *Seat, mn menu, p profile, rnd *rand.Rand) choi
 	}
 
 	owed := s.toCall(seat)
-	eq := equityAgainst(seat.Hole, s.Board, opponents, rollouts(opponents),
-		claimOf(p, owed, potNow(s), raisesWild(s, seat, p.wildRaiser)), bluffShareOf(p, owed, potNow(s)), rnd)
+	wild := raisesWild(s, seat, p.wildRaiser)
+	eq, anyHand := equityBoth(seat.Hole, s.Board, opponents, rollouts(opponents),
+		claimOf(p, owed, potNow(s), wild), bluffShareOf(p, owed, potNow(s)), rnd)
 	// A hand that is behind now but will not be behind for long. equity
 	// already counts the times the draw comes in; what it cannot count is the
 	// pot won without getting there, because the bet folded a better hand.
@@ -454,6 +518,11 @@ func postflop(s *GameState, seat *Seat, mn menu, p profile, rnd *rand.Rand) choi
 	drawing := len(s.Board) < 5 && drawOuts(seat.Hole, s.Board) >= 8
 
 	if owed == 0 {
+		if p.sizedBluffs && s.Street == streetRiver && opponents == 1 && mn.can(VerbRaise) {
+			if c, ok := polarRiver(s, seat, mn, eq, bluffsFold(s, seat, p.nonFolder), rnd); ok {
+				return c
+			}
+		}
 		switch {
 		case eq >= 0.72 && mn.can(VerbRaise):
 			// Strong enough to be called by worse: bet, and bet enough to be
@@ -498,6 +567,11 @@ func postflop(s *GameState, seat *Seat, mn menu, p profile, rnd *rand.Rand) choi
 		// margin later, so it has to be right on its own.
 		return choice{verb: VerbCall}
 	case !allIn && eq >= required:
+		return choice{verb: VerbCall}
+	case p.defendMDF && s.Street == streetRiver && opponents == 1 && !wild &&
+		(!p.mdfShown || shownBluffing(s, seat)) && defends(anyHand, owed, potNow(s)):
+		// Not sure enough to call on the read alone, but folding this hand
+		// would fold more than a bet of this size can be allowed to win.
 		return choice{verb: VerbCall}
 	case p.bluffRaise > 0 && !allIn && opponents == 1 && s.Street != streetFlop &&
 		mn.can(VerbRaise) && eq < required && float64(owed) <= 0.6*float64(potNow(s)) &&
@@ -647,6 +721,9 @@ func claimOf(p profile, owed, pot int, wild bool) claim {
 	if c.floor < pair {
 		return c
 	}
+	if p.madeClaim {
+		return claim{floor: pair, now: true}
+	}
 	c.now = p.heldClaim && !wild
 	return c
 }
@@ -739,21 +816,33 @@ func equity(hole, board []string, opponents, trials, floor int, bluffShare float
 // board as it stands, a pocket pair or a card matching one there, besides
 // reaching claim.floor by the river.
 func equityAgainst(hole, board []string, opponents, trials int, cl claim, bluffShare float64, rnd *rand.Rand) float64 {
+	eq, _ := equityBoth(hole, board, opponents, trials, cl, bluffShare, rnd)
+	return eq
+}
+
+// equityBoth is equityAgainst, and beside it the equity against any hands at
+// all — the same trials before the claim filters them, so asking for both
+// costs nothing and draws the same cards.
+func equityBoth(hole, board []string, opponents, trials int, cl claim, bluffShare float64, rnd *rand.Rand) (float64, float64) {
 	floor := cl.floor
 	if len(hole) < 2 || opponents < 1 {
-		return 1
+		return 1, 1
 	}
-	seen := make(map[string]bool, len(hole)+len(board))
-	for _, c := range hole {
-		seen[c] = true
+	// The unseen cards, in buildDeck's order: the shuffle below permutes this
+	// slice in place, so its starting order is part of what the seed means.
+	var seen uint64
+	for _, cs := range [2][]string{hole, board} {
+		for _, c := range cs {
+			if r, su, ok := cardIndex(c); ok {
+				seen |= 1 << (r*4 + su)
+			}
+		}
 	}
-	for _, c := range board {
-		seen[c] = true
-	}
-	deck := make([]code, 0, 52)
-	for _, c := range buildDeck() {
-		if !seen[c] {
-			deck = append(deck, codeOf(c))
+	var deckBuf [52]code
+	deck := deckBuf[:0]
+	for _, c := range deckCodes {
+		if seen&(1<<c) == 0 {
+			deck = append(deck, c)
 		}
 	}
 
@@ -763,24 +852,23 @@ func equityAgainst(hole, board []string, opponents, trials int, cl claim, bluffS
 	}
 	needed := runout + 2*opponents
 	if needed > len(deck) {
-		return 0.5
+		return 0.5, 0.5
 	}
 
 	// Ranked by score7 rather than Best: the same order, a hundred times
-	// faster, and the reason a rollout fits inside a decision (score.go).
-	known := make([]code, 0, 7)
+	// faster, and the reason a rollout fits inside a decision (score.go). The
+	// board is tallied once; each trial adds its runout to that, and each
+	// player's two cards to a copy of the result.
+	var mineHole, onBoard hand
+	var boardRanks [13]bool
 	for _, c := range hole {
-		known = append(known, codeOf(c))
+		mineHole.add(codeOf(c))
 	}
 	for _, c := range board {
-		known = append(known, codeOf(c))
-	}
-	var boardRanks [13]bool
-	for _, k := range known[len(hole):] {
+		k := codeOf(c)
+		onBoard.add(k)
 		boardRanks[k/4] = true
 	}
-	mine := make([]code, 0, 7)
-	theirs := make([]code, 0, 7)
 	won, counted := 0.0, 0
 	anyhow, dealt := 0.0, 0
 	for attempt := 0; attempt < trials*6 && counted < trials; attempt++ {
@@ -790,16 +878,24 @@ func equityAgainst(hole, board []string, opponents, trials int, cl claim, bluffS
 			k := j + rnd.Intn(len(deck)-j)
 			deck[j], deck[k] = deck[k], deck[j]
 		}
-		run := deck[:runout]
+		shared := onBoard
+		for _, c := range deck[:runout] {
+			shared.add(c)
+		}
 
-		mine = append(append(mine[:0], known...), run...)
-		best := score7(mine)
+		mine := shared
+		for s := range mine.suits {
+			mine.suits[s] |= mineHole.suits[s]
+		}
+		best := mine.score()
 
 		ahead, split, claims := true, 1, floor <= highCard && !cl.now
 		for o := 0; o < opponents; o++ {
 			at := runout + 2*o
-			theirs = append(append(append(theirs[:0], deck[at], deck[at+1]), known[len(hole):]...), run...)
-			rank := score7(theirs)
+			theirs := shared
+			theirs.add(deck[at])
+			theirs.add(deck[at+1])
+			rank := theirs.score()
 			if scoreCategory(rank) >= floor && (!cl.now || pairedNow(deck[at], deck[at+1], &boardRanks)) {
 				claims = true
 			}
@@ -826,22 +922,22 @@ func equityAgainst(hole, board []string, opponents, trials int, cl claim, bluffS
 		}
 	}
 	if dealt == 0 {
-		return 0.5
+		return 0.5, 0.5
 	}
 	unfiltered := anyhow / float64(dealt)
 	if counted == 0 {
 		// No trial ever produced a hand that could have made this bet, so
 		// there is no value range to blend with.
-		return unfiltered
+		return unfiltered, unfiltered
 	}
 	filtered := won / float64(counted)
 	if bluffShare <= 0 {
-		return filtered
+		return filtered, unfiltered
 	}
 	if bluffShare >= 1 {
-		return unfiltered
+		return unfiltered, unfiltered
 	}
-	return (1-bluffShare)*filtered + bluffShare*unfiltered
+	return (1-bluffShare)*filtered + bluffShare*unfiltered, unfiltered
 }
 
 // pairedNow reports whether two hole cards hold a pair on a board with these

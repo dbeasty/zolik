@@ -237,26 +237,40 @@ var profiles = map[module.Skill]Profile{
 		ReadPickups:    true,
 		KeepPartials:   KeepByOuts,
 		LayOffPolicy:   LayOffHighestPoints,
-		InferDiscards:  true,
-		InferWeight:    hardInferWeight,
-		InferDanger:    hardInferDanger,
+		// The card inference (InferDiscards) is not on here: on the bench
+		// it measured within noise of this profile (HardInferProfile), so
+		// Hard plays as it did before the inference existed until a
+		// measurement says otherwise.
 	},
 }
 
-// hardInferWeight is Hard's price of a discard's risk, in penalty points per
-// unit (see Profile.InferDiscards).
+// hardInferWeight is the inference's price of a discard's risk, in penalty
+// points per unit (see Profile.InferDiscards).
 const hardInferWeight = 12
 
-// hardInferDanger is the risk at which Hard treats a discard as feeding the
-// table outright. Swept on the bench against 0.4 and off (and the weight
-// against 6 and 25): every setting measured within noise of the others,
-// 0.6 at the top of both table sizes.
+// hardInferDanger is the risk at which the inference treats a discard as
+// feeding the table outright. Swept on the bench against 0.4 and off (and the
+// weight against 6 and 25): every setting measured within noise of the
+// others, 0.6 at the top of both table sizes.
 const hardInferDanger = 0.6
 
-// HardClassicProfile is Hard as it played before the card inference: the
-// pickups read yes/no, every discard otherwise priced on its points. Kept
-// for the bench (zolikmod's "hard-classic" style), so the inference is
-// always measured against the bot it replaced.
+// HardInferProfile is Hard with the card inference pricing every discard
+// (InferDiscards): what each seat probably holds, from its pickups, discards,
+// passes and melds, instead of ReadPickups' yes/no. Kept for the bench
+// (zolikmod's "hard-infer" style) rather than at Hard, where against Hard it
+// measured +5.4 ± 3.3 a match at two seats (300 seeds) and +2.5 ± 3.4 at four
+// (150): within noise, and so not worth changing a shipped bot for.
+func HardInferProfile() Profile {
+	p := profiles[module.SkillHard]
+	p.InferDiscards = true
+	p.InferWeight = hardInferWeight
+	p.InferDanger = hardInferDanger
+	return p
+}
+
+// HardClassicProfile is Hard without the card inference: the pickups read
+// yes/no, every discard otherwise priced on its points. That is Hard today;
+// the closer is built on it, and stays so whatever Hard becomes.
 func HardClassicProfile() Profile {
 	p := profiles[module.SkillHard]
 	p.InferDiscards = false

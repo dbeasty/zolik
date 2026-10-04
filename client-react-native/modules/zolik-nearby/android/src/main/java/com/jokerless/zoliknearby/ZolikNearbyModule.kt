@@ -29,6 +29,13 @@ class ZolikNearbyModule : Module() {
   private var nearby: NearbyNsd? = null
   private var bleHost: NearbyBleHost? = null
   private var bleGuest: NearbyBleGuest? = null
+  private var thermal: NearbyThermal? = null
+
+  /** Watches the phone's heat for the host's bot governor; see NearbyThermal. */
+  private fun watchThermal() {
+    val t = thermal ?: NearbyThermal(context()).also { thermal = it }
+    t.start()
+  }
 
   private fun context(): android.content.Context =
     appContext.reactContext ?: throw HostException("no application context")
@@ -135,6 +142,7 @@ class ZolikNearbyModule : Module() {
       } catch (e: Exception) {
         throw HostException(e.message ?: "the host did not start")
       }
+      watchThermal()
       describe(host)
     }
 
@@ -149,6 +157,7 @@ class ZolikNearbyModule : Module() {
       } catch (e: Exception) {
         throw HostException(e.message ?: "the host did not start")
       }
+      watchThermal()
       describe(host)
     }
 
@@ -224,6 +233,7 @@ class ZolikNearbyModule : Module() {
       nearby?.stopBrowsing()
       bleHost?.stop()
       bleGuest?.stopScan()
+      thermal?.stop()
     }
   }
 

@@ -171,6 +171,25 @@ type Config struct {
 	// it to nothing rather than sleeping through it.
 	BotThinkMinMS int
 	BotThinkMaxMS int
+
+	// BotMonitorEnabled runs the resource monitor (internal/capacity) that
+	// folds CPU pressure, memory and bot decision time into a green, amber or
+	// red level and logs each change. Observe only for now: nothing acts on
+	// the level yet. On by default; it reads two files every two seconds.
+	BotMonitorEnabled bool
+
+	// BotGovernor is how much the bot governor (internal/botgov) may do:
+	// "off", "observe" (decide, count and log; change no move) or "enforce"
+	// (a seat without a lease plays the next cheaper class — the rule bot
+	// instead of a model, Medium instead of Mariáš Hard). Observe by default
+	// on a server, so its decisions can be read against real load before it
+	// changes anybody's opponent.
+	BotGovernor string
+
+	// BotMonitorPin holds the resource monitor at "green", "amber" or "red",
+	// for testing what bots and tables do under pressure. Honoured only where
+	// debug endpoints are on; empty means read the machine.
+	BotMonitorPin string
 }
 
 // IsLocal reports whether this process is running on a developer's machine,
@@ -298,6 +317,10 @@ func LoadConfig() Config {
 		// A floor below that had bots answering over their own last move.
 		BotThinkMinMS: envInt("BOT_THINK_MIN_MS", 900),
 		BotThinkMaxMS: envInt("BOT_THINK_MAX_MS", 1800),
+
+		BotMonitorEnabled: envBool("BOT_MONITOR", true),
+		BotGovernor:       envOr("BOT_GOVERNOR", "observe"),
+		BotMonitorPin:     envOr("BOT_MONITOR_PIN", ""),
 	}
 }
 

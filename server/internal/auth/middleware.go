@@ -11,6 +11,8 @@ type UserContext struct {
 	Username string
 	IsGuest  bool
 	Token    string
+	// AgentTable is the match an agent token was minted for, if it was.
+	AgentTable string
 }
 
 type ctxKey struct{}
@@ -113,7 +115,24 @@ func authMiddleware(matchIDOf func(*http.Request) string) func(http.Handler) htt
 	}
 }
 
+// AgentAuthMiddleware is AuthMiddleware for the MCP endpoint, which also lets
+// in a token minted for an agent (see CreateAgentToken).
+func AgentAuthMiddleware(next http.Handler) http.Handler {
+	return authHandlerWith(func(_ *http.Request, token string) (*AccessClaims, error) {
+		return ParseAccessClaimsForAgent(token)
+	}, next)
+}
+
 func authHandler(matchIDOf func(*http.Request) string, next http.Handler) http.Handler {
+	return authHandlerWith(func(r *http.Request, token string) (*AccessClaims, error) {
+		if matchIDOf != nil {
+			return ParseAccessClaimsForMatch(token, matchIDOf(r))
+		}
+		return ParseAccessClaims(token)
+	}, next)
+}
+
+func authHandlerWith(parse func(*http.Request, string) (*AccessClaims, error), next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authz := strings.TrimSpace(r.Header.Get("Authorization"))
 		if authz == "" {
@@ -127,23 +146,18 @@ func authHandler(matchIDOf func(*http.Request) string, next http.Handler) http.H
 		}
 		token := parts[1]
 
-		var claims *AccessClaims
-		var err error
-		if matchIDOf != nil {
-			claims, err = ParseAccessClaimsForMatch(token, matchIDOf(r))
-		} else {
-			claims, err = ParseAccessClaims(token)
-		}
+		claims, err := parse(r, token)
 		if err != nil {
 			http.Error(w, "invalid token", http.StatusUnauthorized)
 			return
 		}
 
 		uc := UserContext{
-			UserID:   claims.Subject,
-			Username: claims.Username,
-			IsGuest:  claims.IsGuest,
-			Token:    token,
+			UserID:     claims.Subject,
+			Username:   claims.Username,
+			IsGuest:    claims.IsGuest,
+			Token:      token,
+			AgentTable: claims.AgentTable,
 		}
 		ctx := context.WithValue(r.Context(), ctxKey{}, uc)
 		next.ServeHTTP(w, r.WithContext(ctx))

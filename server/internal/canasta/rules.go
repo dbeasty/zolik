@@ -54,6 +54,10 @@ func (m *Module) Rules(cfg module.MatchConfig) ([]module.RuleSection, error) {
 		{LabelKey: "canasta.rules.turnDiscard"},
 		{LabelKey: "canasta.rules.pileTopCard"},
 		{LabelKey: "canasta.rules.pileBlocked", Params: map[string]any{"n": blackThreeValue}},
+		// How a deal ends when nobody goes out. Stated because the engine
+		// decides it (advanceTurn), and a deal that stops with cards still in
+		// every hand is otherwise a surprise nobody can look up.
+		{LabelKey: "canasta.rules.stockOut"},
 	}
 	// A pile frozen by a buried wild is a rule of every variation except the
 	// one whose pile is frozen all deal anyway — there, the sentence above in

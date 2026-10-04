@@ -7,6 +7,7 @@
 //	go run ./cmd/gamebench -game zolik -variation continental -a hard -b easy
 //	go run ./cmd/gamebench -game holdem -a net:models/ckpt.bin -b hard -seeds 500
 //	go run ./cmd/gamebench -game zolik -seats 4 -a-seats 3 -a net:final.bin -b hard
+//	go run ./cmd/gamebench -game marias -seats 3 -a hard-1000k -b hard
 //
 // A contender is a skill (easy, medium, hard), a style the game supplies, or
 // net:<path>[@temperature] for a trained model. The result is A's advantage
@@ -30,6 +31,7 @@ import (
 
 	_ "zolik/server/internal/canasta"
 	_ "zolik/server/internal/holdem"
+	_ "zolik/server/internal/marias"
 	_ "zolik/server/internal/zolikmod"
 )
 

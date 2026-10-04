@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -31,7 +31,11 @@ type Scope = 'unfinished' | 'finished';
  */
 export default function MyGamesScreen() {
   const { client } = useSession();
-  const [scope, setScope] = useState<Scope>('unfinished');
+  // Arriving from a game's page narrows the list to that game and opens on
+  // its finished tab; from the account menu it is every game, in progress.
+  const params = useLocalSearchParams<{ moduleId?: string; scope?: string }>();
+  const moduleId = params.moduleId;
+  const [scope, setScope] = useState<Scope>(params.scope === 'finished' ? 'finished' : 'unfinished');
   const [tables, setTables] = useState<StoredTable[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -43,14 +47,15 @@ export default function MyGamesScreen() {
       setLoading(true);
       setError('');
       try {
-        setTables(await client.listMyTables(s));
+        const rows = await client.listMyTables(s);
+        setTables(moduleId ? rows.filter((r) => r.moduleId === moduleId) : rows);
       } catch (e) {
         setError(formatApiError(e, 'Could not load your games'));
       } finally {
         setLoading(false);
       }
     },
-    [client],
+    [client, moduleId],
   );
 
   useEffect(() => {

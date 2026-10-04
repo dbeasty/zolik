@@ -44,9 +44,11 @@ func main() {
 	// CSRF risk here and keeps every client origin (web, LAN devices, etc.)
 	// working without per-deployment configuration.
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"*"},
-		AllowedMethods:   []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		AllowedOrigins: []string{"*"},
+		AllowedMethods: []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
+		AllowedHeaders: []string{"Content-Type", "Authorization", "Accept", "Mcp-Protocol-Version", "Mcp-Session-Id"},
+		// A browser-based MCP client reads the discovery pointer off the 401.
+		ExposedHeaders:   []string{"WWW-Authenticate"},
 		AllowCredentials: false,
 		MaxAge:           300,
 	}))
