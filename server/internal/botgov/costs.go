@@ -5,8 +5,8 @@ import (
 )
 
 // DefaultCosts are the mean CPU per decision of every class that measured
-// above the floor, from `cmd/botcost` (docs/bot-compute-gating-plan.md §5.4,
-// 2026-10-04, one Apple-silicon core). Each is the worst configuration of the
+// above the floor, from `cmd/botcost -learned` (docs/bot-compute-gating-plan.md
+// §5.4 and §5.6, 2026-10-04, one Apple-silicon core, CPU columns). Each is the worst configuration of the
 // class — the largest table, the dearest variation — because a lease has to
 // cover the seat wherever it sits.
 //
@@ -15,16 +15,18 @@ import (
 // seats. Classes not listed are cheap (under 1 ms) and never need a lease.
 func DefaultCosts() map[Class]time.Duration {
 	return map[Class]time.Duration{
-		// Mariáš Hard is a rule bot, and the dearest decision in the product:
-		// a median of 0.2 ms with a minority of positions in the hundreds.
-		{"marias", "hard", EngineRule}: 54 * time.Millisecond,
-		// Žolíky's AI seat (the network) at an eight-seat classic table.
-		{"zolik", "ai", EngineNet}: 10 * time.Millisecond,
+		// Mariáš Hard is a rule bot, and still the dearest class at most
+		// tables: the allocation-free trick search (#247) took it from 54 ms
+		// to 15 ms, with p95 near 100 ms.
+		{"marias", "hard", EngineRule}: 15 * time.Millisecond,
+		// Žolíky's AI seat (the network) at an eight-seat classic table, the
+		// one configuration whose tail runs to a quarter of a second.
+		{"zolik", "ai", EngineNet}: 12 * time.Millisecond,
 		// Below the floor today, listed so a slower machine (Speed) or a
 		// lower floor brings them in without a code change.
-		{"canasta", "ai", EngineNet}:    1150 * time.Microsecond,
-		{"holdem", "ai", EngineNet}:     410 * time.Microsecond,
-		{"zolik", "hard", EngineRule}:   780 * time.Microsecond,
+		{"canasta", "ai", EngineNet}:    1340 * time.Microsecond,
+		{"holdem", "ai", EngineNet}:     480 * time.Microsecond,
+		{"zolik", "hard", EngineRule}:   890 * time.Microsecond,
 		{"zolik", "medium", EngineRule}: 750 * time.Microsecond,
 		{"zolik", "easy", EngineRule}:   700 * time.Microsecond,
 	}

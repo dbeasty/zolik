@@ -51,19 +51,22 @@ func (b taggedBot) Act(s module.State, seat module.BotSeat, offers []module.Acti
 }
 
 // layered is what learn.HardModel hands out when a game's model is switched
-// on: one bot for Hard seats over the heuristic for the rest.
+// on: the network for AI seats over the heuristic for the rest.
 type layered struct{ net, rule module.Bot }
 
 func (l layered) Heuristic() module.Bot { return l.rule }
 
 func (l layered) Act(s module.State, seat module.BotSeat, offers []module.ActionOffer) (module.Action, bool) {
-	if seat.Skill == module.SkillHard {
+	if seat.Skill == module.SkillAI {
+		// As learn's bySkill does: the network's own fallback is the
+		// heuristic, which knows Hard and not AI.
+		seat.Skill = module.SkillHard
 		return l.net.Act(s, seat, offers)
 	}
 	return l.rule.Act(s, seat, offers)
 }
 
-// modelCanasta is Canasta with its Hard seats "on a model": the model is the
+// modelCanasta is Canasta with its AI seats "on a model": the model is the
 // real heuristic in disguise, so the game plays normally and the log can say
 // which engine the runtime chose.
 type modelCanasta struct {

@@ -365,11 +365,11 @@ or `ZOLIK_TEST_DB_ENGINE=kdb` is set. Run them with the variable set.
 
 `internal/botgov` replaces §3.1–3.3's deep-vs-rule design with what §5.4 measured:
 - **Cost classes are (game, skill, engine).** `DefaultCosts` holds the measured mean CPU per
-  decision. Only classes above a 2 ms floor need a lease: today Mariáš Hard (rule, 54 ms) and
+  decision. Only classes above a 2 ms floor need a lease: today Mariáš Hard (rule, 15 ms since #247) and
   Žolíky's model (10 ms). Everything else plays freely.
 - **Fallback is the next class down:** a model falls back to the rule bot at the same skill,
   and a rule bot to one skill lower. A seat without a lease walks down to the first class that
-  needs none: Mariáš Hard → Medium, Žolíky net → Žolíky rule Hard.
+  needs none: Mariáš Hard → Medium, and a Žolíky AI seat (the model) → Žolíky rule Hard.
 - **Capacity:** cores (`GOMAXPROCS`) × 0.5 share × 0.7 comfort, halved at amber and zero at
   red. A lease weighs its cost per think window (mean CPU ÷ 1.35 s).
 - **Speed:** every cost is scaled by `Calibrate()`, a few-millisecond integer workload timed
@@ -641,7 +641,38 @@ So Hard ships with the old budget semantics, and its moves are unchanged at ever
 The bench styles `hard-capped` and `hard-<n>k` stay, to re-measure if a cheaper Hard is
 ever wanted.
 
-### 5.6 Still open in Phase 0
+### 5.6 Recheck with the AI skill, 2026-10-04 (main @ `95bf1da`)
+
+#246 made the trained model its own seat strength, **AI**, above Hard, which stays the rule
+bot. The governor's classes, fallbacks and cost keys moved with it (`zolik/ai/net` falls
+back to `zolik/hard/rule`).
+- **Test fix:** the integration test's fake model still served Hard seats, so it failed on
+  main ("the model never played at green"). It serves AI seats now; production code was
+  already right.
+- **`botcost -learned`** adds an AI row (`ai/net`) for each game that ships a model, instead
+  of relabelling Hard.
+
+Full sweep, CPU columns, load 18–30:
+
+| Class | CPU mean | CPU p95 | CPU p99 | KB/decision | seats/core |
+|---|---|---|---|---|---|
+| Mariáš Hard (rule) | 12.0–14.7 ms | 95–98 ms | 107–109 ms | 173–225 | ≈ 32 |
+| Žolíky AI, classic 8 seats | 11.7 ms | 59 ms | 265 ms | 9 000 | ≈ 40 |
+| Žolíky AI, other configurations | 1.4–1.8 ms | 3.4–4.1 ms | 5.9–10.4 ms | 600–800 | ≈ 260–340 |
+| Canasta AI | 0.53–1.34 ms | 1.4–5.0 ms | 2.7–10.8 ms | 77–322 | ≈ 350+ |
+| Hold'em AI | 0.33–0.48 ms | 0.52–0.84 ms | 0.58–1.02 ms | 17–53 | ≈ 980+ |
+| Every rule bot except Mariáš Hard | < 0.9 ms | < 2 ms | < 3.8 ms | < 415 | > 520 |
+
+The Mariáš numbers match §5.5's. `DefaultCosts` now holds:
+- Mariáš Hard 15 ms (was 54 ms);
+- Žolíky AI 12 ms;
+- the below-floor entries refreshed.
+
+Mariáš Hard's p95 is now about 0.1 of the think window, so it no longer threatens the
+monitor's amber line on its own. **The one remaining tail is Žolíky's model at eight-seat
+classic tables** (p99 265 ms, 9 MB per decision); everything else is bounded and small.
+
+### 5.7 Still open in Phase 0
 
 - **Soak at `cpus: 1` and `cpus: 2`.** Increase the number of concurrent Hold'em bot tables,
   the expensive engine that exists today, until WebSocket broadcast p95 bends. That checks the
