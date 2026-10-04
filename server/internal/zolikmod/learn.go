@@ -744,6 +744,14 @@ const (
 
 func (learnGame) CandDim() int { return learnCand }
 
+var _ learn.Appending = learnGame{}
+
+// EncoderPrefixes are the earlier encoders this one appended to: 900/62,
+// before the card inference blocks (offInfer) and the two inference
+// candidate features (fInferNext, fInferAny) — the zolik-v2 model's encoder.
+// TestNarrowedV2ChoosesAsOnItsOwnEncoder holds the claim to recorded play.
+func (learnGame) EncoderPrefixes() [][2]int { return [][2]int{{offInfer, fInferNext}} }
+
 // How hard the opening search looks, in engine applications — an opening is
 // found by laying it, not by reasoning about whether it could be laid.
 const (

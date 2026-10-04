@@ -178,12 +178,12 @@ func (m *hardModel) fits() (bool, string) {
 	if err != nil {
 		return false, err.Error()
 	}
-	if !p.Fits(g) {
-		return false, fmt.Sprintf("model is %d/%d, encoder is %d/%d",
-			p.net.StateDim, p.net.CandDim, g.StateDim(), g.CandDim())
-	}
 	if p.net.Game != "" && p.net.Game != g.Name() {
 		return false, fmt.Sprintf("model was trained for %q", p.net.Game)
+	}
+	if _, ok := p.GameFor(g); !ok {
+		return false, fmt.Sprintf("model is %d/%d, encoder is %d/%d and did not grow from it",
+			p.net.StateDim, p.net.CandDim, g.StateDim(), g.CandDim())
 	}
 	return true, ""
 }

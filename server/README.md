@@ -244,7 +244,11 @@ tunnel above.
   release carries its models and a rollback restores the previous ones. The
   card shows each model's source run, training date, headline benchmark, size
   and hash. A model that does not fit its game's current encoder cannot be
-  turned on.
+  turned on. One trained for an earlier encoder that today's only appended to
+  fits: it plays on the prefix it was trained on (`learn.Narrowed`), which is
+  how the Žolíky v2 model (900/62) plays on today's 1161/64 encoder — proven
+  move for move against its own build by
+  `TestNarrowedV2ChoosesAsOnItsOwnEncoder`.
 - `ZOLIK_LEARNED_MODEL_<GAME>` (a model file, for local testing) wins over the
   switch; the card says so when it is set.
 - Every change is logged: `admin changed hard bot game=… from=… to=… user=…

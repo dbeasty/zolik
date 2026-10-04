@@ -157,15 +157,21 @@ func LoadEmbedded(name string, b []byte) (*Policy, error) {
 
 // HardBot is a NetBot on the shared policy for these bytes, or the fallback
 // when there is no model, it does not load, or it was trained for another
-// game or encoder. Modules reach it through HardModel, which decides whether
-// a Hard seat should be playing a model at all.
+// game or for an encoder this game did not grow from. A model trained for an
+// earlier encoder that today's only appended to plays on the prefix it was
+// trained on (Policy.GameFor). Modules reach it through HardModel, which
+// decides whether a Hard seat should be playing a model at all.
 func HardBot(game Game, modelBytes []byte, fallback module.Bot) module.Bot {
 	if game == nil || len(modelBytes) == 0 {
 		return fallback
 	}
 	p, err := LoadEmbedded(game.Name(), modelBytes)
-	if err != nil || !p.Fits(game) || (p.net.Game != "" && p.net.Game != game.Name()) {
+	if err != nil {
 		return fallback
 	}
-	return NetBot{Game: game, Policy: p, Fallback: fallback}
+	g, ok := p.GameFor(game)
+	if !ok {
+		return fallback
+	}
+	return NetBot{Game: g, Policy: p, Fallback: fallback}
 }

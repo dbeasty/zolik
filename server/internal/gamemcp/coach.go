@@ -83,12 +83,12 @@ func (svc *Service) Coach(in CoachIn) (CoachOut, error) {
 	case path == "":
 		out.Note = "no model: pass model, or set " + modelEnv(t.Game) + "; only the heuristic's pick is shown."
 	default:
-		p, err := svc.policy(t.g, path)
+		p, lg, err := svc.policy(t.g, path)
 		if err != nil {
 			return CoachOut{}, err
 		}
 		out.Model = path
-		if err := scoreMoves(t, p, s.Player, moves, &out); err != nil {
+		if err := scoreMoves(t, p, lg, s.Player, moves, &out); err != nil {
 			return CoachOut{}, err
 		}
 	}
@@ -110,11 +110,14 @@ func (svc *Service) Coach(in CoachIn) (CoachOut, error) {
 	return out, nil
 }
 
-func scoreMoves(t *Table, p *learn.Policy, player string, moves []Move, out *CoachOut) error {
+// scoreMoves scores the moves with the network as it sees the game (lg: the
+// encoder it was trained on, which for an older model is a prefix of the one
+// that built the moves' features).
+func scoreMoves(t *Table, p *learn.Policy, lg learn.Game, player string, moves []Move, out *CoachOut) error {
 	if len(moves) == 0 {
 		return nil
 	}
-	view := learn.Positions(t.g.g)
+	view := learn.Positions(lg)
 	pos, err := view.Position(t.State)
 	if err != nil {
 		return err
@@ -129,7 +132,7 @@ func scoreMoves(t *Table, p *learn.Policy, player string, moves []Move, out *Coa
 			out.Note = "these moves come from the offer list, not the learn adapter, so the model cannot score them"
 			return nil
 		}
-		feats[i] = m.features
+		feats[i] = m.features[:lg.CandDim()]
 	}
 	logits := p.Logits(obs, feats)
 	probs := softmax(logits)

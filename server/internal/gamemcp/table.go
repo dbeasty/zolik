@@ -167,39 +167,43 @@ func (svc *Service) botFor(g *game, spec string) (module.Bot, module.Skill, erro
 			}
 			path, temp = path[:i], t
 		}
-		p, err := svc.policy(g, path)
+		p, lg, err := svc.policy(g, path)
 		if err != nil {
 			return nil, "", err
 		}
-		return learn.NetBot{Game: g.g, Policy: p, Fallback: g.heuristic(), Temperature: temp}, module.SkillHard, nil
+		return learn.NetBot{Game: lg, Policy: p, Fallback: g.heuristic(), Temperature: temp}, module.SkillHard, nil
 	}
 	return nil, "", fmt.Errorf("unknown opponent %q: use easy, medium, hard, a style (%v) or net:<path>[@temperature]", spec, keys(g.styles()))
 }
 
 // policy loads a model once per path, and checks it was trained for this
-// game's encoder.
-func (svc *Service) policy(g *game, path string) (*learn.Policy, error) {
+// game's encoder or an earlier one it only appended to. The game it returns
+// is the game as the network sees it (learn.Policy.GameFor): the encoder it
+// was trained on, which is a prefix of today's for an older model.
+func (svc *Service) policy(g *game, path string) (*learn.Policy, learn.Game, error) {
 	if p, ok := svc.policies[path]; ok {
-		if !p.Fits(g.g) {
-			return nil, fmt.Errorf("%s was trained for another game or encoder", path)
+		lg, ok := p.GameFor(g.g)
+		if !ok {
+			return nil, nil, fmt.Errorf("%s was trained for another game or encoder", path)
 		}
-		return p, nil
+		return p, lg, nil
 	}
 	raw, err := os.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	n, err := learn.LoadNet(raw)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", path, err)
+		return nil, nil, fmt.Errorf("%s: %w", path, err)
 	}
 	p := learn.NewPolicy(n)
-	if !p.Fits(g.g) || (n.Game != "" && n.Game != g.g.Name()) {
-		return nil, fmt.Errorf("%s was trained for %q (%d/%d), not this %s encoder (%d/%d)",
+	lg, ok := p.GameFor(g.g)
+	if !ok {
+		return nil, nil, fmt.Errorf("%s was trained for %q (%d/%d), not this %s encoder (%d/%d) or one it grew from",
 			path, n.Game, n.StateDim, n.CandDim, g.g.Name(), g.g.StateDim(), g.g.CandDim())
 	}
 	svc.policies[path] = p
-	return p, nil
+	return p, lg, nil
 }
 
 func keys[V any](m map[string]V) []string {
@@ -711,7 +715,7 @@ func refusal(err error) error {
 
 // audit scores a network's own decision, for replay_log's reveal.
 func (t *Table) audit(nb learn.NetBot, player string, offers []module.ActionOffer) *Audit {
-	view := learn.Positions(t.g.g)
+	view := learn.Positions(nb.Game)
 	pos, err := view.Position(t.State)
 	if err != nil {
 		return nil

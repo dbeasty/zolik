@@ -21,8 +21,10 @@ func TestShippedHardModelFits(t *testing.T) {
 		t.Fatalf("loading the shipped model: %v", err)
 	}
 	g := learnGame{}
-	if !p.Fits(g) {
-		t.Fatalf("shipped model is %dx%d; this encoder is %dx%d",
+	// The zolik-v2 model was trained before the card inference was appended
+	// to the encoder, and plays on the prefix it was trained on.
+	if _, ok := p.GameFor(g); !ok {
+		t.Fatalf("shipped model is %dx%d; this encoder is %dx%d and did not grow from it",
 			p.Net().StateDim, p.Net().CandDim, g.StateDim(), g.CandDim())
 	}
 	if name := p.Net().Game; name != "" && name != g.Name() {
