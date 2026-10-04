@@ -149,6 +149,28 @@ type profile struct {
 	// is what this is for.
 	overbetDoubt float64
 
+	// heldClaim reads a bet as a claim to a hand the bettor holds *now* as
+	// well as one it reaches by the river: a pair-sized bet claims a pair made
+	// with a hole card on the board as it stands, and a bet big enough to
+	// claim two pair claims that pair now and two pair by the river.
+	//
+	// Without it a claim is judged on the finished seven, and on the flop
+	// "will have a pair by the river" is true of most hands dealt, so a
+	// pair-sized bet filtered almost nothing: Hard called a pot-sized shove on
+	// K-7-2 with queen high seven times in twenty, and called Medium's all-ins
+	// with no pair 72% of the time and with less than top pair 96%, losing
+	// about 13 to 23 big blinds each time. Held now, the same claim folds the
+	// hands that are only hoping to pair and calls with the ones that already
+	// beat a pair. overbetDoubt still applies on top, so a bet past the pot is
+	// doubted in proportion to its size exactly as before.
+	heldClaim bool
+	// wildRaiser is where heldClaim stops: a bettor who has raised before the
+	// flop in at least this share of its hands (four or more of them) is not
+	// betting a pair, it is betting, and its bets are read the old way. Without
+	// it heldClaim folds second pair to a maniac's pot-sized bet, which cost
+	// four big blinds a match against one; zero leaves heldClaim unguarded.
+	wildRaiser float64
+
 	// --- aggression ---
 
 	// A cbet knob stood here — the chance of betting the flop as the seat that
@@ -230,6 +252,8 @@ var profiles = map[module.Skill]profile{
 		// is left is a profile that beats Medium rather than one that bluffs
 		// more at it.
 		overbetDoubt: 0.85,
+		heldClaim:    true,
+		wildRaiser:   0.5,
 		semiBluff:    0.25,
 		bluff:        0.18,
 		bluffRaise:   0.08,
@@ -420,8 +444,8 @@ func postflop(s *GameState, seat *Seat, mn menu, p profile, rnd *rand.Rand) choi
 	}
 
 	owed := s.toCall(seat)
-	eq := equity(seat.Hole, s.Board, opponents, rollouts(opponents),
-		claimedBy(owed, potNow(s)), bluffShareOf(p, owed, potNow(s)), rnd)
+	eq := equityAgainst(seat.Hole, s.Board, opponents, rollouts(opponents),
+		claimOf(p, owed, potNow(s), raisesWild(s, seat, p.wildRaiser)), bluffShareOf(p, owed, potNow(s)), rnd)
 	// A hand that is behind now but will not be behind for long. equity
 	// already counts the times the draw comes in; what it cannot count is the
 	// pot won without getting there, because the bet folded a better hand.
@@ -609,6 +633,43 @@ func claimedBy(owed, pot int) int {
 	}
 }
 
+// claim is what a bet says its maker holds: at least floor by the river, and,
+// when now is set, a pair made with a hole card on the board as it stands.
+type claim struct {
+	floor int
+	now   bool
+}
+
+// claimOf is how this profile reads a bet of this size (see heldClaim), from a bettor that is or is not raising most of its hands (see
+// wildRaiser). A bet too small to claim anything claims nothing either way.
+func claimOf(p profile, owed, pot int, wild bool) claim {
+	c := claim{floor: claimedBy(owed, pot)}
+	if c.floor < pair {
+		return c
+	}
+	c.now = p.heldClaim && !wild
+	return c
+}
+
+// raisesWild reports whether the bet this seat faces was made by a player
+// who has raised before the flop in at least `share` of four or more hands —
+// read off the public counters (history.go), which any seat could keep.
+func raisesWild(s *GameState, seat *Seat, share float64) bool {
+	if share <= 0 {
+		return false
+	}
+	for i := range s.Seats {
+		o := &s.Seats[i]
+		if o == seat || !o.inHand() || o.Bet != s.CurrentBet || o.Reads == nil {
+			continue
+		}
+		if r := o.Reads; r.Hands >= 4 && float64(r.PFR) >= share*float64(r.Hands) {
+			return true
+		}
+	}
+	return false
+}
+
 // bluffShareOf is how much of *this* bet to disbelieve.
 //
 // claimedBy reads a bigger bet as a bigger claim, and stops there, which gets
@@ -670,6 +731,15 @@ func bluffShareOf(p profile, owed, pot int) float64 {
 // bluffShare of the unfiltered one, because sometimes it is not. At zero the
 // arithmetic is exactly what it was before the parameter existed.
 func equity(hole, board []string, opponents, trials, floor int, bluffShare float64, rnd *rand.Rand) float64 {
+	return equityAgainst(hole, board, opponents, trials, claim{floor: floor}, bluffShare, rnd)
+}
+
+// equityAgainst is equity against a claim that may also be about the hand the
+// opponent holds now (claim.now): its hole cards have to make a pair on the
+// board as it stands, a pocket pair or a card matching one there, besides
+// reaching claim.floor by the river.
+func equityAgainst(hole, board []string, opponents, trials int, cl claim, bluffShare float64, rnd *rand.Rand) float64 {
+	floor := cl.floor
 	if len(hole) < 2 || opponents < 1 {
 		return 1
 	}
@@ -705,6 +775,10 @@ func equity(hole, board []string, opponents, trials, floor int, bluffShare float
 	for _, c := range board {
 		known = append(known, codeOf(c))
 	}
+	var boardRanks [13]bool
+	for _, k := range known[len(hole):] {
+		boardRanks[k/4] = true
+	}
 	mine := make([]code, 0, 7)
 	theirs := make([]code, 0, 7)
 	won, counted := 0.0, 0
@@ -721,12 +795,12 @@ func equity(hole, board []string, opponents, trials, floor int, bluffShare float
 		mine = append(append(mine[:0], known...), run...)
 		best := score7(mine)
 
-		ahead, split, claims := true, 1, floor <= highCard
+		ahead, split, claims := true, 1, floor <= highCard && !cl.now
 		for o := 0; o < opponents; o++ {
 			at := runout + 2*o
 			theirs = append(append(append(theirs[:0], deck[at], deck[at+1]), known[len(hole):]...), run...)
 			rank := score7(theirs)
-			if scoreCategory(rank) >= floor {
+			if scoreCategory(rank) >= floor && (!cl.now || pairedNow(deck[at], deck[at+1], &boardRanks)) {
 				claims = true
 			}
 			switch {
@@ -768,6 +842,12 @@ func equity(hole, board []string, opponents, trials, floor int, bluffShare float
 		return unfiltered
 	}
 	return (1-bluffShare)*filtered + bluffShare*unfiltered
+}
+
+// pairedNow reports whether two hole cards hold a pair on a board with these
+// ranks: a pocket pair, or either card matching one on the board.
+func pairedNow(a, b code, boardRanks *[13]bool) bool {
+	return a/4 == b/4 || boardRanks[a/4] || boardRanks[b/4]
 }
 
 // rollouts trades accuracy for time as the table fills.
