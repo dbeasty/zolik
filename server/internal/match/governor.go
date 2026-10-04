@@ -132,7 +132,7 @@ func (m *Manager) seatBot(match models.Match, mod module.GameModule, actor strin
 	}
 
 	bot := module.BotFor(mod)
-	seat := botSeatFor(match, actor)
+	seat := playableSeat(bot, botSeatFor(match, actor))
 	engine := engineOf(bot, seat)
 	want := botgov.Class{Module: match.ModuleID, Skill: string(seat.Skill), Engine: engine}
 	if d, ok := m.decide(match, mod, actor, want, now); ok && d.Reduced {

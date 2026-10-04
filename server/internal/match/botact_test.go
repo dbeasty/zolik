@@ -150,7 +150,8 @@ func TestEngineOfNamesTheModelOnlyForHardSeats(t *testing.T) {
 		want  string
 	}{
 		{quickBot{}, module.SkillHard, botstats.EngineRule},
-		{layeredBot{}, module.SkillHard, botstats.EngineNet},
+		{layeredBot{}, module.SkillAI, botstats.EngineNet},
+		{layeredBot{}, module.SkillHard, botstats.EngineRule},
 		{layeredBot{}, module.SkillMedium, botstats.EngineRule},
 		{layeredBot{}, "", botstats.EngineRule},
 	} {

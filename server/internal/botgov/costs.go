@@ -18,12 +18,12 @@ func DefaultCosts() map[Class]time.Duration {
 		// Mariáš Hard is a rule bot, and the dearest decision in the product:
 		// a median of 0.2 ms with a minority of positions in the hundreds.
 		{"marias", "hard", EngineRule}: 54 * time.Millisecond,
-		// Žolíky's model at an eight-seat classic table.
-		{"zolik", "hard", EngineNet}: 10 * time.Millisecond,
+		// Žolíky's AI seat (the network) at an eight-seat classic table.
+		{"zolik", "ai", EngineNet}: 10 * time.Millisecond,
 		// Below the floor today, listed so a slower machine (Speed) or a
 		// lower floor brings them in without a code change.
-		{"canasta", "hard", EngineNet}:  1150 * time.Microsecond,
-		{"holdem", "hard", EngineNet}:   410 * time.Microsecond,
+		{"canasta", "ai", EngineNet}:    1150 * time.Microsecond,
+		{"holdem", "ai", EngineNet}:     410 * time.Microsecond,
 		{"zolik", "hard", EngineRule}:   780 * time.Microsecond,
 		{"zolik", "medium", EngineRule}: 750 * time.Microsecond,
 		{"zolik", "easy", EngineRule}:   700 * time.Microsecond,

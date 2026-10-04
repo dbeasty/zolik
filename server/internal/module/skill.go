@@ -31,6 +31,12 @@ const (
 	SkillEasy   Skill = "easy"
 	SkillMedium Skill = "medium"
 	SkillHard   Skill = "hard"
+	// SkillAI is the trained network, where the game ships one. It sits above
+	// Hard on the picker but is not part of Skills: Hard stays the hand-written
+	// bot at its own strength, and AI is a separate engine, so the ladder the
+	// monotonicity gate and Mixed work from does not move. Where a game has no
+	// network, or the operator has not switched it on, an AI seat plays Hard.
+	SkillAI Skill = "ai"
 )
 
 // There is no Expert here, and there was.
@@ -54,19 +60,25 @@ const (
 // monotonicity gate in internal/ai asserts win rates increase along.
 var Skills = []Skill{SkillEasy, SkillMedium, SkillHard}
 
+// AllSkills is every skill a seat can be given: the heuristic ladder, then AI.
+// Mixed deliberately draws from Skills alone — the network costs several times
+// a rule bot per move, so it is something a host asks for, not something a
+// table lands on by chance.
+var AllSkills = append(append([]Skill{}, Skills...), SkillAI)
+
 // Rank orders a skill, weakest first, for sorting and for the strength gate.
 // An unknown skill ranks past every known one rather than aliasing to easy.
 func (s Skill) Rank() int {
-	for i, k := range Skills {
+	for i, k := range AllSkills {
 		if k == s {
 			return i
 		}
 	}
-	return len(Skills)
+	return len(AllSkills)
 }
 
 // Valid reports whether s is a skill this build knows how to play at.
-func (s Skill) Valid() bool { return s.Rank() < len(Skills) }
+func (s Skill) Valid() bool { return s.Rank() < len(AllSkills) }
 
 // OptBotSkill is how good the opponents at this table are.
 //
@@ -103,10 +115,10 @@ func SkillOpt(s Skill) int {
 // per seat, which only the seating code can honour.
 func ParseSkillOpt(v int) (skill Skill, auto bool) {
 	i := v - BotSkillEasy
-	if i < 0 || i >= len(Skills) {
+	if i < 0 || i >= len(AllSkills) {
 		return "", true
 	}
-	return Skills[i], false
+	return AllSkills[i], false
 }
 
 // ParseSkill reads a skill written as a string — an API request, or the
@@ -114,7 +126,7 @@ func ParseSkillOpt(v int) (skill Skill, auto bool) {
 // stale client cannot seat a bot that plays at a strength this build has never
 // heard of.
 func ParseSkill(s string) (Skill, bool) {
-	for _, k := range Skills {
+	for _, k := range AllSkills {
 		if string(k) == s {
 			return k, false
 		}
@@ -132,7 +144,7 @@ func BotSkillOption() OptionSpec {
 			"Mixed deals each seat its own strength.",
 		Choices: []OptionChoice{{Value: BotSkillAuto, Label: "Mixed"}},
 	}
-	for _, s := range Skills {
+	for _, s := range AllSkills {
 		spec.Choices = append(spec.Choices, OptionChoice{Value: SkillOpt(s), Label: skillLabels[s]})
 	}
 	return spec
@@ -142,6 +154,7 @@ var skillLabels = map[Skill]string{
 	SkillEasy:   "Easy",
 	SkillMedium: "Medium",
 	SkillHard:   "Hard",
+	SkillAI:     "AI",
 }
 
 // BotSkill reads the lobby's choice, against the module's own default. The
@@ -239,6 +252,15 @@ var personas = []Persona{
 	{Slug: "vera", Name: "Vicious Věra", Skill: SkillHard},
 	{Slug: "gustav", Name: "Grim Gustav", Skill: SkillHard},
 	{Slug: "tereza", Name: "Tigress Tereza", Skill: SkillHard},
+
+	{Slug: "anna", Name: "Analytic Anna", Skill: SkillAI},
+	{Slug: "boris", Name: "Binary Boris", Skill: SkillAI},
+	{Slug: "cyril", Name: "Cipher Cyril", Skill: SkillAI},
+	{Slug: "dana", Name: "Delta Dana", Skill: SkillAI},
+	{Slug: "emil", Name: "Echo Emil", Skill: SkillAI},
+	{Slug: "filip", Name: "Fractal Filip", Skill: SkillAI},
+	{Slug: "gita", Name: "Gradient Gita", Skill: SkillAI},
+	{Slug: "hugo", Name: "Helix Hugo", Skill: SkillAI},
 }
 
 // PersonasFor lists the roster for one skill, in a fixed order.

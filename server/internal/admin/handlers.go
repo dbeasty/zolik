@@ -54,7 +54,7 @@ type Deps struct {
 	// admission.Controller.Snapshot without this package importing admission.
 	// Optional — nil shows no capacity panel rather than an empty one.
 	Capacity func() any
-	// HardModels lists, per game, whether Hard seats play the shipped trained
+	// HardModels lists, per game, whether AI seats play the shipped trained
 	// model, and SetHardModel changes it — persisting first, then moving the
 	// in-process switch — and reports what the switch was before. Closures so
 	// this package imports neither learn nor a store. Optional: nil hides the
@@ -98,7 +98,7 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 				r.Get("/session", h.session)
 				r.Get("/report", h.report)
 				r.Get("/status", h.status)
-				// Hard seats' trained model, per game. The only writes the
+				// AI seats' trained model, per game. The only writes the
 				// console has besides signing in; both audited in bots.go.
 				r.Get("/bots", h.bots)
 				r.Put("/bots/{game}", h.setBot)

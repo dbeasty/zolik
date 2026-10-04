@@ -79,11 +79,13 @@ type Class struct {
 func (c Class) String() string { return c.Module + "/" + c.Skill + "/" + c.Engine }
 
 // Fallback is the class a seat plays when it may not play this one: the rule
-// bot at the same skill for a model, one skill down for a rule bot. The
+// bot (Hard) for a model, one skill down for a rule bot. The
 // second is false when there is nowhere lower to go.
 func (c Class) Fallback() (Class, bool) {
 	if c.Engine == EngineNet {
-		return Class{c.Module, c.Skill, EngineRule}, true
+		// The network is the AI seat; the rule bot that stands in for it is
+		// the strongest hand-written one, Hard.
+		return Class{c.Module, "hard", EngineRule}, true
 	}
 	switch c.Skill {
 	case "hard":

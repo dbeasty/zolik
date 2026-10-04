@@ -1277,6 +1277,7 @@ export const fi: Record<string, string> = {
   'stats.skill.medium': 'keskitaso',
   'stats.skill.hard': 'vaikea',
   'stats.skill.expert': 'huippu',
+  'stats.skill.ai': 'AI',
 
   // --- a player's lifetime record, shown beside a finished match ------------
   'record.title': 'Sinun saldosi',

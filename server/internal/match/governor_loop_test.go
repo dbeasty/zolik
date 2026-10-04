@@ -97,7 +97,7 @@ func TestTheGovernorDowngradesModelSeatsAtTurnBoundaries(t *testing.T) {
 		Cores: 16,
 		// Canasta's model made dear enough to need a lease, so the
 		// governor has something to take away.
-		Costs: map[botgov.Class]time.Duration{{Module: "canasta", Skill: "hard", Engine: botgov.EngineNet}: 50 * time.Millisecond},
+		Costs: map[botgov.Class]time.Duration{{Module: "canasta", Skill: "ai", Engine: botgov.EngineNet}: 50 * time.Millisecond},
 	})
 	manager := match.NewManager(repo, module.NewRegistry(mod), hub)
 	manager.SetBotPace(time.Millisecond, 2*time.Millisecond)
@@ -111,8 +111,8 @@ func TestTheGovernorDowngradesModelSeatsAtTurnBoundaries(t *testing.T) {
 	seeded, err := repo.Insert(context.Background(), models.Match{
 		ModuleID: "canasta", Status: "active", HostID: "bot:A",
 		Players: []models.Player{
-			{ID: "bot:A", Name: "A", IsAI: true, AIDifficulty: "hard"},
-			{ID: "bot:B", Name: "B", IsAI: true, AIDifficulty: "hard"},
+			{ID: "bot:A", Name: "A", IsAI: true, AIDifficulty: "ai"},
+			{ID: "bot:B", Name: "B", IsAI: true, AIDifficulty: "ai"},
 		},
 		TurnOrder: []string{"bot:A", "bot:B"},
 		Seed:      11, JoinCode: "GOVTST", Snapshots: []int{0},

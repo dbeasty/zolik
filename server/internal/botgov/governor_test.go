@@ -12,7 +12,7 @@ var (
 	t0         = time.Unix(1_000_000, 0)
 	mariasHard = Class{"marias", "hard", EngineRule}
 	mariasMed  = Class{"marias", "medium", EngineRule}
-	zolikNet   = Class{"zolik", "hard", EngineNet}
+	zolikNet   = Class{"zolik", "ai", EngineNet}
 	zolikHard  = Class{"zolik", "hard", EngineRule}
 	prsiHard   = Class{"prsi", "hard", EngineRule}
 )
@@ -186,10 +186,10 @@ func TestIdleSeatsAndFinishedMatchesGiveBackTheirLeases(t *testing.T) {
 func TestSpeedScalesCosts(t *testing.T) {
 	fast := New(Config{Mode: Enforce, Cores: 1})
 	slow := New(Config{Mode: Enforce, Cores: 1, Speed: 4})
-	if fast.weight(Class{"canasta", "hard", EngineNet}) != 0 {
+	if fast.weight(Class{"canasta", "ai", EngineNet}) != 0 {
 		t.Fatal("canasta's model needs a lease at speed 1")
 	}
-	if slow.weight(Class{"canasta", "hard", EngineNet}) == 0 {
+	if slow.weight(Class{"canasta", "ai", EngineNet}) == 0 {
 		t.Fatal("canasta's model is still free on a machine four times slower")
 	}
 }

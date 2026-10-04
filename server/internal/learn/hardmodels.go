@@ -16,18 +16,18 @@ import (
 
 // HardModel is what a learnable module's Bot() returns: its heuristic, or —
 // when an operator has switched the game's shipped model on — a bot that plays
-// Hard seats with that model and every other seat with the heuristic.
+// AI seats with that model and every other seat with the heuristic.
 //
 // The switch is read on every call, and module.BotFor calls Bot() on every
 // bot move, so a change in the admin console takes effect at the next move of
-// every table with no restart. Easy and Medium seats never change.
+// every table with no restart. Easy, Medium and Hard seats never change.
 //
 // Precedence, highest first:
 //
 //  1. ZOLIK_LEARNED_MODEL_<GAME> names a model file (LocalHard). That is a
 //     person testing a model on their own machine, and it wins whatever the
 //     switch says; the console shows that the environment overrides it.
-//  2. The switch is on and the shipped model fits this game's encoder: Hard
+//  2. The switch is on and the shipped model fits this game's encoder: AI
 //     seats play the model.
 //  3. Otherwise, the heuristic, exactly as before this existed.
 //
@@ -55,7 +55,7 @@ var ErrUnknownGame = errors.New("learn: no shipped model for that game")
 // it does not load, or it was trained for another encoder.
 var ErrModelDoesNotFit = errors.New("learn: the shipped model does not fit this game's encoder")
 
-// SetHardModel turns a game's shipped model on or off for Hard seats, and
+// SetHardModel turns a game's shipped model on or off for AI seats, and
 // reports what the switch was before. Turning on a model that does not fit is
 // refused and leaves the switch off: HardModel would fall back to the
 // heuristic anyway, but a console that says "on" for a bot that is not playing
@@ -88,7 +88,7 @@ type HardModelStatus struct {
 	// Problem says why a model does not fit, when it does not.
 	Problem string `json:"problem,omitempty"`
 	// EnvOverride is the model file ZOLIK_LEARNED_MODEL_<GAME> names, which
-	// Hard seats play whatever the switch says.
+	// AI seats play whatever the switch says.
 	EnvOverride string      `json:"envOverride,omitempty"`
 	Model       models.Info `json:"model"`
 }
@@ -159,7 +159,7 @@ func (m *hardModel) bot(game Game, heuristic module.Bot) module.Bot {
 func (m *hardModel) resolve(game Game, heuristic module.Bot) module.Bot {
 	hard := HardBot(game, m.bytes, heuristic)
 	if _, ok := hard.(NetBot); !ok {
-		warnOnce("hard:"+game.Name(), "learn: shipped model does not fit this game; Hard seats play the heuristic", "game", game.Name())
+		warnOnce("hard:"+game.Name(), "learn: shipped model does not fit this game; AI seats play the heuristic", "game", game.Name())
 		return heuristic
 	}
 	return bySkill{hard: hard, other: heuristic}

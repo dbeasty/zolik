@@ -449,12 +449,22 @@ func skillLabel(s module.Skill) string {
 	return string(s)
 }
 
+// playableSeat is the seat as the bot behind it can read it. A bot that is not
+// layered over a network (the game ships none, or the operator has it off)
+// knows only Easy, Medium and Hard, so an AI seat plays the strongest of those.
+func playableSeat(bot module.Bot, seat module.BotSeat) module.BotSeat {
+	if _, layered := bot.(interface{ Heuristic() module.Bot }); !layered && seat.Skill == module.SkillAI {
+		seat.Skill = module.SkillHard
+	}
+	return seat
+}
+
 // engineOf names what will decide this seat's move. A module whose Hard seats
 // have been switched onto its trained model hands out a bot that layers the
-// model over the heuristic (learn.HardModel); only a Hard seat reaches the
+// model over the heuristic (learn.HardModel); only an AI seat reaches the
 // model, and everything else is the hand-written bot.
 func engineOf(bot module.Bot, seat module.BotSeat) string {
-	if _, layered := bot.(interface{ Heuristic() module.Bot }); layered && seat.Skill == module.SkillHard {
+	if _, layered := bot.(interface{ Heuristic() module.Bot }); layered && seat.Skill == module.SkillAI {
 		return botstats.EngineNet
 	}
 	return botstats.EngineRule

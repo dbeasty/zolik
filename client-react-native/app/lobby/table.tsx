@@ -37,6 +37,7 @@ const BOT_SKILLS = [
   { id: 'easy', label: 'Easy' },
   { id: 'medium', label: 'Medium' },
   { id: 'hard', label: 'Hard' },
+  { id: 'ai', label: 'AI' },
 ];
 
 export default function TableScreen() {

@@ -1281,6 +1281,7 @@ export const pt: Record<string, string> = {
   'stats.skill.medium': 'médio',
   'stats.skill.hard': 'difícil',
   'stats.skill.expert': 'especialista',
+  'stats.skill.ai': 'AI',
 
   // --- a player's lifetime record, shown beside a finished match ------------
   'record.title': 'O teu registo',

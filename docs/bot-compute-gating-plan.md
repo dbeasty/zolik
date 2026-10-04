@@ -548,7 +548,7 @@ by every table.
 
 PR #243 shipped three models, embedded in `internal/learn/models/` (Hold'em 0.84 MB, Canasta
 1.1 MB, Žolíky 2.7 MB). An admin switch per game (`learn.SetHardModel`, the console's Bots
-card, persisted in `botsettings`) puts **Hard seats** on the model. It is **off by default**,
+card, persisted in `botsettings`) puts **AI seats** (a new skill above Hard; Hard stays the rule bot) on the model. It is **off by default**,
 it is read on every bot move, and Easy, Medium and hints always stay on the rule bot.
 
 `/debug/bots` now keys every decision by **engine** (`rule` or `net`), so a game with its

@@ -35,7 +35,7 @@ func nimMoves(t *testing.T, bot module.Bot) map[module.Skill]string {
 	s, _ := nim{}.NewMatch(module.MatchConfig{}, Players(2), 3)
 	offers, _ := nim{}.LegalActions(s, "p0")
 	out := map[module.Skill]string{}
-	for _, skill := range []module.Skill{module.SkillEasy, module.SkillMedium, module.SkillHard} {
+	for _, skill := range []module.Skill{module.SkillEasy, module.SkillMedium, module.SkillHard, module.SkillAI} {
 		a, _ := bot.Act(s, module.BotSeat{PlayerID: "p0", Skill: skill}, offers)
 		out[skill] = a.OfferID
 	}
@@ -56,7 +56,7 @@ func TestHardModelSwitch(t *testing.T) {
 		t.Fatalf("enabling: was=%v err=%v", was, err)
 	}
 	got := nimMoves(t, HardModel(nimGame{}, perfect{}))
-	want := map[module.Skill]string{module.SkillEasy: "take1", module.SkillMedium: "take1", module.SkillHard: "take3"}
+	want := map[module.Skill]string{module.SkillEasy: "take1", module.SkillMedium: "take1", module.SkillHard: "take1", module.SkillAI: "take3"}
 	for skill := range want {
 		if got[skill] != want[skill] {
 			t.Errorf("on: %s seat played %s, want %s", skill, got[skill], want[skill])
@@ -97,8 +97,8 @@ func TestHardModelEnvironmentWins(t *testing.T) {
 
 	// Switch off, environment names a model: the environment's model plays.
 	t.Setenv("ZOLIK_LEARNED_MODEL_NIM", fits)
-	if got := nimMoves(t, HardModel(nimGame{}, perfect{})); got[module.SkillHard] != "take3" {
-		t.Errorf("with the environment naming a model and the switch off, Hard played %s", got[module.SkillHard])
+	if got := nimMoves(t, HardModel(nimGame{}, perfect{})); got[module.SkillAI] != "take3" {
+		t.Errorf("with the environment naming a model and the switch off, AI played %s", got[module.SkillAI])
 	}
 	if s := statusOf(t, "nim"); s.EnvOverride != fits {
 		t.Errorf("status envOverride = %q, want %q", s.EnvOverride, fits)
@@ -111,8 +111,8 @@ func TestHardModelEnvironmentWins(t *testing.T) {
 	}
 	t.Cleanup(func() { _, _ = SetHardModel("nim", false) })
 	t.Setenv("ZOLIK_LEARNED_MODEL_NIM", t.TempDir()+"/missing.bin")
-	if got := nimMoves(t, HardModel(nimGame{}, perfect{})); got[module.SkillHard] != "take1" {
-		t.Errorf("the switch overrode the environment: Hard played %s", got[module.SkillHard])
+	if got := nimMoves(t, HardModel(nimGame{}, perfect{})); got[module.SkillAI] != "take1" {
+		t.Errorf("the switch overrode the environment: AI played %s", got[module.SkillAI])
 	}
 }
 

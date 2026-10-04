@@ -1380,6 +1380,7 @@
  "stats.scopeNote.overall": "Every match, whoever was at the table.",
  "stats.scopeNote.vsBots": "Matches with at least one bot in them.",
  "stats.scopeNote.vsHumans": "Matches with at least one other person in them.",
+ "stats.skill.ai": "AI",
  "stats.skill.easy": "easy",
  "stats.skill.expert": "expert",
  "stats.skill.hard": "hard",

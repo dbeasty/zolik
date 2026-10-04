@@ -1286,6 +1286,7 @@ export const hu: Record<string, string> = {
   'stats.skill.medium': 'közepes',
   'stats.skill.hard': 'nehéz',
   'stats.skill.expert': 'szakértő',
+  'stats.skill.ai': 'AI',
 
   // --- a player's lifetime record, shown beside a finished match ------------
   'record.title': 'A mérlegek',

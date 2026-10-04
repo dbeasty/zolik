@@ -11,7 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// The Bots card: whether each game's Hard seats play the trained model this
+// The Bots card: whether each game's AI seats play the trained model this
 // binary ships. A change reaches every live table at its next bot move, so it
 // is audited here — who, what, from, to — and persisted by the closure the app
 // supplies before the switch moves, so a restart comes back to it.
@@ -34,7 +34,7 @@ type HardModelRow struct {
 	Fits     bool   `json:"fits"`
 	Problem  string `json:"problem,omitempty"`
 	// EnvOverride is the model file the server's environment names for this
-	// game. Hard seats play it whatever the switch says.
+	// game. AI seats play it whatever the switch says.
 	EnvOverride string `json:"envOverride,omitempty"`
 	// Model is the shipped model's metadata: source run, training date,
 	// headline benchmark, size and hash.

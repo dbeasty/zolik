@@ -745,7 +745,7 @@ func TestLocalHardSeatsTheModelOnlyAtHard(t *testing.T) {
 
 	t.Setenv("ZOLIK_LEARNED_MODEL_NIM", path)
 	bot := LocalHard(nimGame{}, perfect{})
-	for skill, want := range map[module.Skill]string{module.SkillHard: "take3", module.SkillMedium: "take1", module.SkillEasy: "take1"} {
+	for skill, want := range map[module.Skill]string{module.SkillAI: "take3", module.SkillHard: "take1", module.SkillMedium: "take1", module.SkillEasy: "take1"} {
 		a, _ := bot.Act(s, module.BotSeat{PlayerID: "p0", Skill: skill}, offers)
 		if a.OfferID != want {
 			t.Errorf("%s seat played %s, want %s", skill, a.OfferID, want)
