@@ -103,6 +103,9 @@ func (a *App) registerDebugRoutes(r chi.Router) {
 	r.Get("/debug/bots", a.botReport)
 	// The resource monitor's level, its last reading and its thresholds.
 	r.Get("/debug/capacity", a.capacityReport)
+	// Hold the monitor at a level (?level=green|amber|red), to watch what
+	// bots and tables do under pressure. Debug endpoints only.
+	r.Post("/debug/capacity/pin", a.pinCapacity)
 
 	// The standard profiles, on the same flag. `/debug/pprof/heap?gc=1` is
 	// the one that names names: it attributes live bytes to the call site

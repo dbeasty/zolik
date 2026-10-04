@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"runtime/debug"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -79,6 +80,9 @@ type App struct {
 	// monitor is the resource monitor, built once — see capacityMonitor.
 	monitorOnce sync.Once
 	monitor     *capacity.Monitor
+	// thermal is the device's heat as its OS reports it (mobile only); see
+	// SetThermalPressure.
+	thermal atomic.Int32
 	// sync is this process as a node of the distributed database, or nil when
 	// it replicates with nobody — which is every deployment until
 	// FEATURE_FLAG_SYNC says otherwise. See internal/sync.
@@ -451,8 +455,14 @@ func (a *App) Start(ctx context.Context) {
 	if mon := a.capacityMonitor(); mon != nil {
 		mon.Run(ctx, 2*time.Second)
 		go logCapacity(ctx, mon.Subscribe())
-		slog.Info("capacity monitor: observing", "gomaxprocs", runtime.GOMAXPROCS(0), "numCPU", runtime.NumCPU())
+		if gov := a.matchManager().Governor(); gov != nil {
+			go followLevels(ctx, gov, mon.Subscribe())
+		}
+		slog.Info("capacity monitor: running", "gomaxprocs", runtime.GOMAXPROCS(0), "numCPU", runtime.NumCPU())
 	}
+	// And the sweep that gives back leases held by seats nobody plays any
+	// more. Cheap; runs whether or not the governor is on.
+	a.matchManager().StartGovernorSweep(ctx, 30*time.Second)
 	// And the sweeper that reclaims the ones it resolved, long afterwards.
 	// Separate from the reaper on purpose: that one decides what a table
 	// *became* and runs in seconds, this one decides when the row stops being
@@ -665,6 +675,10 @@ func (a *App) configureManager(matchMgr *match.Manager) *match.Manager {
 	// is two clock reads and a mutex, next to a decision that sleeps a
 	// second first. Read at /debug/bots.
 	matchMgr.SetBotStats(botstats.New())
+	// And the governor that decides which engine plays each bot seat, so
+	// bots never take more CPU than this box can spare. See
+	// docs/bot-compute-gating-plan.md and internal/botgov.
+	matchMgr.SetGovernor(newGovernor(a.cfg))
 	// And whether a stopped game can be stepped through. The operator's half
 	// of that question; the store answers the other half itself.
 	matchMgr.SetReplayEnabled(a.cfg.ReplayEnabled)
@@ -707,6 +721,11 @@ func (a *App) routeGroups() []routeGroup {
 				w.Header().Set("Content-Type", "application/json")
 				_ = json.NewEncoder(w).Encode(a.admission.Snapshot())
 			})
+			// Whether bots are playing at full strength right now, so a
+			// table can say when a bot is playing simplified moves. Here
+			// rather than under /debug because the clients read it, the
+			// offline one included.
+			r.Get("/bots/capacity", a.botCapacity)
 			// Both clients render this beside their own build, so a bug
 			// report says which server the reporter was actually talking to.
 			r.Get("/version", func(w http.ResponseWriter, _ *http.Request) {
