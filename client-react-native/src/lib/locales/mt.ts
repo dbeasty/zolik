@@ -1762,6 +1762,7 @@ export const mt: Record<string, string> = {
   'picker.join': 'Ingħaqad',
   'game.startYourOwn': 'Ibda tiegħek',
   'game.playBots': 'Ilgħab kontra l-bots',
+  'game.previousGames': 'Logħbiet preċedenti',
   'setup.titleTable': 'Mejda ġdida ta’ {game}',
   'setup.titleBots': '{game} kontra l-bots',
   'setup.openTable': 'Iftaħ mejda',

@@ -1745,6 +1745,7 @@ export const lv: Record<string, string> = {
   'picker.join': 'Pievienoties',
   'game.startYourOwn': 'Sāc savu',
   'game.playBots': 'Spēlēt pret botiem',
+  'game.previousGames': 'Iepriekšējās spēles',
   'setup.titleTable': 'Jauns galds: {game}',
   'setup.titleBots': '{game} pret botiem',
   'setup.openTable': 'Atvērt galdu',

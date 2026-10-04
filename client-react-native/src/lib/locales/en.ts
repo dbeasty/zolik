@@ -1763,6 +1763,7 @@ export const en: Record<string, string> = {
   'picker.join': 'Join',
   'game.startYourOwn': 'Start your own',
   'game.playBots': 'Play against bots',
+  'game.previousGames': 'Previous games',
   'setup.titleTable': 'New {game} table',
   'setup.titleBots': '{game} against bots',
   'setup.openTable': 'Open table',

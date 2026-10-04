@@ -1757,6 +1757,7 @@ export const bg: Record<string, string> = {
   'picker.join': 'Влез',
   'game.startYourOwn': 'Започнете своя',
   'game.playBots': 'Играй срещу ботове',
+  'game.previousGames': 'Предишни игри',
   'setup.titleTable': 'Нова маса за {game}',
   'setup.titleBots': '{game} срещу ботове',
   'setup.openTable': 'Отвори маса',

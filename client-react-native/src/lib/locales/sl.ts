@@ -1740,6 +1740,7 @@ export const sl: Record<string, string> = {
   'picker.join': 'Pridruži se',
   'game.startYourOwn': 'Začni svojo',
   'game.playBots': 'Igraj proti botom',
+  'game.previousGames': 'Prejšnje igre',
   'setup.titleTable': 'Nova miza – {game}',
   'setup.titleBots': '{game} proti botom',
   'setup.openTable': 'Odpri mizo',

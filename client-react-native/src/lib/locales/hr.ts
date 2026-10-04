@@ -1744,6 +1744,7 @@ export const hr: Record<string, string> = {
   'picker.join': 'Pridruži se',
   'game.startYourOwn': 'Pokreni svoju',
   'game.playBots': 'Igraj protiv botova',
+  'game.previousGames': 'Prethodne igre',
   'setup.titleTable': 'Novi stol – {game}',
   'setup.titleBots': '{game} protiv botova',
   'setup.openTable': 'Otvori stol',

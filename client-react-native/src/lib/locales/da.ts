@@ -1743,6 +1743,7 @@ export const da: Record<string, string> = {
   'picker.join': 'Deltag',
   'game.startYourOwn': 'Start dit eget',
   'game.playBots': 'Spil mod bots',
+  'game.previousGames': 'Tidligere spil',
   'setup.titleTable': 'Nyt bord: {game}',
   'setup.titleBots': '{game} mod bots',
   'setup.openTable': 'Åbn bord',

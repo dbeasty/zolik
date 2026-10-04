@@ -1753,6 +1753,7 @@ export const fi: Record<string, string> = {
   'picker.join': 'Liity',
   'game.startYourOwn': 'Aloita oma',
   'game.playBots': 'Pelaa botteja vastaan',
+  'game.previousGames': 'Aiemmat pelit',
   'setup.titleTable': 'Uusi pöytä: {game}',
   'setup.titleBots': '{game} botteja vastaan',
   'setup.openTable': 'Avaa pöytä',

@@ -1745,6 +1745,7 @@ export const sk: Record<string, string> = {
   'picker.join': 'Pripojiť sa',
   'game.startYourOwn': 'Založ vlastný',
   'game.playBots': 'Hrať proti botom',
+  'game.previousGames': 'Predchádzajúce hry',
   'setup.titleTable': 'Nový stôl – {game}',
   'setup.titleBots': '{game} proti botom',
   'setup.openTable': 'Otvoriť stôl',
