@@ -211,6 +211,7 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 			}
 			seat := botSeatFor(match, actor)
 			label := skillLabel(seat.Skill)
+			engine := engineOf(bot, seat)
 			if passive {
 				// Recorded apart: a sat-out seat costs an offer scan, and
 				// counting it as the seat's skill would make that skill
@@ -219,7 +220,7 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 			}
 			botPick, botOK, timedOut = botAct(bot, module.State(match.State),
 				seat, offers, m.actBudget(), m.botStats,
-				botstats.Key{Module: match.ModuleID, Skill: label, Source: botstats.SourceLoop})
+				botstats.Key{Module: match.ModuleID, Skill: label, Source: botstats.SourceLoop, Engine: engine})
 			if timedOut {
 				log.Printf("bot loop: match=%s seat=%s bot gave no move within %s; playing from the offer list",
 					matchID, actor, m.actBudget())
@@ -441,6 +442,17 @@ func skillLabel(s module.Skill) string {
 		return "default"
 	}
 	return string(s)
+}
+
+// engineOf names what will decide this seat's move. A module whose Hard seats
+// have been switched onto its trained model hands out a bot that layers the
+// model over the heuristic (learn.HardModel); only a Hard seat reaches the
+// model, and everything else is the hand-written bot.
+func engineOf(bot module.Bot, seat module.BotSeat) string {
+	if _, layered := bot.(interface{ Heuristic() module.Bot }); layered && seat.Skill == module.SkillHard {
+		return botstats.EngineNet
+	}
+	return botstats.EngineRule
 }
 
 // firstBot picks the first awaited seat that nobody is sitting at.

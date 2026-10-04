@@ -43,7 +43,7 @@ func (m *Manager) Hint(ctx context.Context, idOrCode, playerID string) (module.A
 	// If the table moves on meanwhile the hint is about a position that has
 	// passed, which is what the player's press would find out anyway: it goes
 	// through the same validation as any move.
-	end := m.botStats.Begin(botstats.Key{Module: in.moduleID, Skill: skillLabel(in.seat.Skill), Source: botstats.SourceHint})
+	end := m.botStats.Begin(botstats.Key{Module: in.moduleID, Skill: skillLabel(in.seat.Skill), Source: botstats.SourceHint, Engine: botstats.EngineRule})
 	a, ok := in.bot.Act(in.state, in.seat, in.offers)
 	end()
 	if !ok {

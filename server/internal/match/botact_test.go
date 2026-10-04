@@ -133,3 +133,29 @@ func TestBotActRecordsAPromptDecision(t *testing.T) {
 		t.Fatalf("%+v", s)
 	}
 }
+
+// layeredBot stands in for learn.HardModel's switched-on bot: a model for Hard
+// seats over the heuristic for the rest.
+type layeredBot struct{ quickBot }
+
+func (layeredBot) Heuristic() module.Bot { return quickBot{} }
+
+// The cost series name the engine that decided, so a game whose Hard seats
+// were switched onto a model does not blend model and heuristic timings into
+// one "hard" line.
+func TestEngineOfNamesTheModelOnlyForHardSeats(t *testing.T) {
+	for _, tc := range []struct {
+		bot   module.Bot
+		skill module.Skill
+		want  string
+	}{
+		{quickBot{}, module.SkillHard, botstats.EngineRule},
+		{layeredBot{}, module.SkillHard, botstats.EngineNet},
+		{layeredBot{}, module.SkillMedium, botstats.EngineRule},
+		{layeredBot{}, "", botstats.EngineRule},
+	} {
+		if got := engineOf(tc.bot, module.BotSeat{Skill: tc.skill}); got != tc.want {
+			t.Errorf("engineOf(%T, %q) = %s, want %s", tc.bot, tc.skill, got, tc.want)
+		}
+	}
+}

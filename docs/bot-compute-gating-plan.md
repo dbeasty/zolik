@@ -1,7 +1,7 @@
 # Bot compute gating — plan
 
 > **Status: Phase 0 (measurement) and Phase 1 (monitor in observe mode, hints off the lock)
-> built; Phase 2 waits for a trained net in live play.** Rechecked 2026-10-03 against main @
+> built. The trained models are live behind an admin switch (§5.4), so Phase 2 can start.** Rechecked 2026-10-03 against main @
 > `9e21df8`. See §5.3: the 2026-09-29 conclusions have been **superseded**. Rule engines are
 > now the cheaper engine in every game, so "downgrade to rule" is right as originally framed.
 
@@ -494,7 +494,60 @@ by every table.
 - Leases and engine switching (Phase 2) start when a net is wired into live play.
 - The scheduled task `redo-bot-cost-when-hard-agent-lands` reruns this table on that day.
 
-### 5.4 Still open in Phase 0
+### 5.4 The trained models are live, 2026-10-04 (main @ `4b908f6`)
+
+PR #243 shipped three models, embedded in `internal/learn/models/` (Hold'em 0.84 MB, Canasta
+1.1 MB, Žolíky 2.7 MB). An admin switch per game (`learn.SetHardModel`, the console's Bots
+card, persisted in `botsettings`) puts **Hard seats** on the model. It is **off by default**,
+it is read on every bot move, and Easy, Medium and hints always stay on the rule bot.
+
+`/debug/bots` now keys every decision by **engine** (`rule` or `net`), so a game with its
+switch on doesn't blend the two into one "hard" series. `cmd/botcost -learned` throws the
+same switch and labels those rows `hard/net`. Mariáš (new since Phase 0) is now in the sweep.
+
+CPU time per decision, 5 matches × up to 1 500 decisions per configuration (load average
+13–21 on 16 cores, so read CPU, not wall):
+
+| Engine | CPU mean | CPU p95 | CPU p99 | KB/decision | seats/core* |
+|---|---|---|---|---|---|
+| **Mariáš Hard (rule)** | **42–54 ms** | **336–361 ms** | **377–421 ms** | **26 000–33 000** | **≈ 9** |
+| Mariáš Easy/Medium | 0.07–0.08 ms | 0.14–0.16 ms | 0.2 ms | 15 | > 5 000 |
+| Žolíky net, classic 8 seats (reproduced exactly on a rerun) | 9.9–10.2 ms | 51 ms | 219–230 ms | 9 000 | ≈ 46 |
+| Žolíky net, other configurations | 1.1–1.6 ms | 2.9–3.5 ms | 5–9.6 ms | 600–800 | ≈ 290–430 |
+| Canasta net | 0.40–1.15 ms | 1.2–4.6 ms | 2.3–9.6 ms | 77–322 | ≈ 410–1 180 |
+| Hold'em net | 0.27–0.41 ms | 0.44–0.69 ms | 0.48–0.87 ms | 17–53 | ≈ 1 150–1 750 |
+| Žolíky rule Hard | 0.38–0.78 ms | 0.77–1.7 ms | 1.3–2.2 ms | 139–415 | ≈ 610–1 240 |
+| Every other rule bot | < 0.37 ms | < 0.8 ms | < 3.5 ms | < 93 | > 1 290 |
+
+\* (1.35 s think window ÷ CPU mean) × 0.5 CPU share × 0.7 comfort, per core.
+
+Both outliers are **bimodal**. Mariáš Hard's median decision is 0.1–0.2 ms, and the Žolíky
+net's at 8 seats is 0.9 ms. A minority of positions costs hundreds of times the median, and
+Mariáš's worst (1.37 s wall) outlasts the 0.9 s think window.
+
+**What this means for the plan:**
+1. **The expensive engine is Mariáš Hard, which is a rule bot.** The deep-vs-rule framing
+   misses it. The fallback has to be the *next-cheaper engine for that game and skill*:
+   - for a model seat, the rule bot at Hard;
+   - for Mariáš Hard, Mariáš Medium (about 700x cheaper).
+
+   Phase 2 should key cost classes by (game, skill, engine) from this table, not by "deep".
+2. **The models cost 1–5x their rule bot,** except Žolíky's 8-seat tail. At these numbers the
+   models alone need no gating below hundreds of seats per core.
+3. **Mariáš Hard is what would trip the monitor.** Its p95 is already 0.4 of the think window,
+   against amber at 0.5. On the one-vCPU box admission was measured on, a handful of Mariáš
+   tables would put the server at amber. Bounding its search (a node or time budget, as
+   Žolíky's meld search has) is cheaper than gating around it.
+4. **Phase 2 can now start.** There is something to switch: the per-game model flag, and
+   Mariáš's skill. The smallest useful Phase 2 is the monitor driving the existing switch:
+   - at **red**, the model flag goes off for every game and Mariáš Hard plays as Medium;
+   - both come back after green has held.
+
+   One catch: the model flag is read per move, not per turn. Žolíky's net plays a meld plan
+   one step per call, so a flip mid-turn hands the heuristic half a plan. The switch has to be
+   applied at the turn boundary (§3.5) before the monitor may drive it.
+
+### 5.5 Still open in Phase 0
 
 - **Soak at `cpus: 1` and `cpus: 2`.** Increase the number of concurrent Hold'em bot tables,
   the expensive engine that exists today, until WebSocket broadcast p95 bends. That checks the
