@@ -23,6 +23,12 @@ Two training-only options, both off unless the config sets them:
                         becomes alpha * (deal reward) + (1 - alpha) * k *
                         (change in P(win the match)) (learn.MatchReward;
                         fit the model with winmodel.py). alpha 1 is off.
+  model.aux:            {dim, hidden}: an auxiliary head predicting the first
+                        dim entries of the privileged observation (> 0) from
+                        the trunk embedding, weighted by ppo.aux_coef; not
+                        exported.
+  reward.shape:         {index, weight}: potential-based shaping with
+                        Phi(obs) = -weight * obs[index] (ppo.Tracker).
 """
 
 from __future__ import annotations
@@ -95,7 +101,7 @@ class Trainer:
         self.n_tables = int(ec["tables"])
         exe = binary("gameenv")
         self.variations = assign_variations(cfg, self.n_envs)
-        privileged = bool(cfg["model"].get("priv"))
+        privileged = bool(cfg["model"].get("priv")) or bool(cfg["model"].get("aux"))
         match_reward = load_match_reward(cfg)
         self.envs = [
             GameEnv(
@@ -107,7 +113,7 @@ class Trainer:
         info = self.envs[0].info_full()
         state_dim, cand_dim, priv_dim = info["stateDim"], info["candDim"], info["privDim"]
         if privileged and not priv_dim:
-            sys.exit(f"model.priv is set but {self.game} has no privileged observation")
+            sys.exit(f"model.priv or model.aux is set but {self.game} has no privileged observation")
         self.selector = selectors.DefaultSelector()
         for i, env in enumerate(self.envs):
             self.selector.register(env.proc.stdout, selectors.EVENT_READ, i)
@@ -138,7 +144,10 @@ class Trainer:
                 self.league.add(start)
         for p in sorted(self.ckpt_dir.glob("*.bin"), key=lambda p: int(p.stem)):
             self.league.add(p)  # a resumed run keeps its pool
-        self.tracker = Tracker()
+        shape = (cfg.get("reward") or {}).get("shape")
+        if shape and float(shape.get("weight", 0)) == 0:
+            shape = None
+        self.tracker = Tracker(shape, float(cfg["ppo"].get("gamma", 1.0)))
 
         from torch.utils.tensorboard import SummaryWriter
 
@@ -207,7 +216,7 @@ class Trainer:
                     if self.reset_due[i]:
                         self.send_reset(i)
                         continue
-                    privs = [o.priv for o in obs] if self.model.has_critic else None
+                    privs = [o.priv for o in obs] if self.model.wants_priv else None
                     actions, logp, values, plains = self.ppo.act([o.obs for o in obs], [o.cands for o in obs], priv=privs)
                     for t, o in enumerate(obs):
                         self.tracker.decision(
@@ -296,6 +305,8 @@ class Trainer:
             "explained_var_plain": st.explained_var_plain,
             "value_loss_plain": st.value_loss_plain,
             "grad_norm": st.grad_norm,
+            "aux_loss": st.aux_loss,
+            "shaped": round(self.tracker.shaped, 3),
             "episodes": len(all_ret),
             "ep_reward": float(np.mean(all_ret)) if all_ret else None,
             "ep_base": float(np.mean(all_base)) if all_base else None,
@@ -340,7 +351,7 @@ class Trainer:
             f"ep={rec['ep_reward'] if rec['ep_reward'] is None else round(rec['ep_reward'], 3)}"
             f"/{rec['ep_base'] if rec['ep_base'] is None else round(rec['ep_base'], 3)} "
             f"pl={st.policy_loss:+.4f} vl={st.value_loss:.4f} ent={st.entropy:.3f} kl={st.approx_kl:.4f} "
-            f"ev={st.explained_var:.2f}/{st.explained_var_plain:.2f} gn={st.grad_norm:.2f} ill={counts['illegal']} stalls={counts['stalls']} | {opp}",
+            f"ev={st.explained_var:.2f}/{st.explained_var_plain:.2f} aux={st.aux_loss:.4f} gn={st.grad_norm:.2f} ill={counts['illegal']} stalls={counts['stalls']} | {opp}",
             flush=True,
         )
         for why, k in stall_why.items():

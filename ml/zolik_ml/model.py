@@ -20,6 +20,16 @@ the exported ZLNET1 file carries trunk, scorer and the plain value head only
 as one without. The plain head is still trained, by regression on the same
 returns from a detached embedding (so it never shapes the trunk), and is what
 Go's ValueOf reads; nothing in the server uses it.
+
+With ``aux_dim`` > 0 the model also has an auxiliary hidden-card head, for
+training only (research survey E2):
+
+    aux     embedding -> aux_dim logits: does the next player hold card k
+
+trained by binary cross-entropy on the first ``aux_dim`` entries of the
+privileged observation (the game puts the next seat's hand there) with a small
+weight, so the trunk is pushed to keep what the public record says about that
+hand. It is not exported either: the server never sees it.
 """
 
 from __future__ import annotations
@@ -44,6 +54,8 @@ class Policy(nn.Module):
         game: str = "",
         priv_dim: int = 0,
         priv: list[int] | None = None,
+        aux_dim: int = 0,
+        aux: list[int] | None = None,
     ):
         super().__init__()
         if not trunk:
@@ -62,10 +74,30 @@ class Policy(nn.Module):
             priv = list(priv or [128])
             self.priv_net = _stack([priv_dim, *priv])
             self.critic = _stack([self.emb_dim + priv[-1], *value, 1])
+        self.aux_dim = aux_dim
+        self.aux_head = _stack([self.emb_dim, *(aux or []), aux_dim]) if aux_dim else None
 
     @property
     def has_critic(self) -> bool:
         return self.critic is not None
+
+    @property
+    def has_aux(self) -> bool:
+        return self.aux_head is not None
+
+    @property
+    def wants_priv(self) -> bool:
+        """Whether training needs the privileged observation at all."""
+        return self.has_critic or self.has_aux
+
+    def aux_logits(self, emb: torch.Tensor) -> torch.Tensor:
+        """The auxiliary head: one logit per hidden card it predicts."""
+        x = emb
+        for i, layer in enumerate(self.aux_head):
+            if i:
+                x = F.relu(x)
+            x = layer(x)
+        return x
 
     def config(self) -> dict:
         return {
@@ -162,9 +194,11 @@ def entropy(logits: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
 
 def from_config(cfg: dict, state_dim: int, cand_dim: int, game: str, priv_dim: int = 0) -> Policy:
     """The config's network; with priv_dim and ``model.priv`` (the privileged
-    MLP's sizes) set, with a perfect-information critic."""
+    MLP's sizes) set, with a perfect-information critic; with ``model.aux``
+    ({dim, hidden}) an auxiliary hidden-card head."""
     m = cfg["model"]
     priv = m.get("priv")
+    aux = m.get("aux") or {}
     return Policy(
         state_dim,
         cand_dim,
@@ -174,4 +208,6 @@ def from_config(cfg: dict, state_dim: int, cand_dim: int, game: str, priv_dim: i
         game=game,
         priv_dim=priv_dim if priv else 0,
         priv=list(priv) if priv else None,
+        aux_dim=int(aux.get("dim", 0)) if priv_dim else 0,
+        aux=list(aux.get("hidden", [])),
     )
