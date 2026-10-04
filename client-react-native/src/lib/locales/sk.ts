@@ -1727,6 +1727,7 @@ export const sk: Record<string, string> = {
   'hint.lineNoCards': 'Návrh: {move}',
   'err.HINTS_OFF': 'Nápoveda je pri tomto stole vypnutá',
   'err.NO_HINT': 'Teraz nie je čo navrhnúť',
+  'err.HINT_TOO_SOON': 'Príliš veľa nápovied naraz — počkajte pár sekúnd',
   'option.hints': 'Nápoveda',
   'choice.hints.1': 'Povolená',
   'choice.hints.0': 'Vypnutá',

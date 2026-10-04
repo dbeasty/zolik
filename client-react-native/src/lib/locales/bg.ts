@@ -1739,6 +1739,7 @@ export const bg: Record<string, string> = {
   'hint.lineNoCards': 'Предложение: {move}',
   'err.HINTS_OFF': 'Подсказките са изключени на тази маса',
   'err.NO_HINT': 'Няма предложение в момента',
+  'err.HINT_TOO_SOON': 'Твърде много подсказки наведнъж — изчакайте няколко секунди',
   'option.hints': 'Подсказки',
   'choice.hints.1': 'Разрешени',
   'choice.hints.0': 'Изключени',

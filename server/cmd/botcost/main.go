@@ -20,6 +20,12 @@
 //	go run ./cmd/botcost                      # every game, variation, seat count and skill
 //	go run ./cmd/botcost -game holdem -matches 20
 //	go run ./cmd/botcost -csv > costs.csv
+//	go run ./cmd/botcost -learned            # Hard seats play the shipped models
+//
+// -learned throws the same switch the admin console's Bots card does
+// (learn.SetHardModel) for every game that ships a model, so a Hard row then
+// measures the trained model exactly as live play would run it, and its
+// skill column reads "hard/net".
 package main
 
 import (
@@ -38,6 +44,8 @@ import (
 	"zolik/server/internal/canasta"
 	"zolik/server/internal/ginrummy"
 	"zolik/server/internal/holdem"
+	"zolik/server/internal/learn"
+	"zolik/server/internal/marias"
 	"zolik/server/internal/module"
 	"zolik/server/internal/prsi"
 	"zolik/server/internal/rummytiles"
@@ -51,10 +59,20 @@ func main() {
 	procs := flag.Int("procs", 1, "GOMAXPROCS for the run")
 	seed := flag.Int64("seed", 1, "first seed")
 	asCSV := flag.Bool("csv", false, "print CSV instead of a table")
+	learned := flag.Bool("learned", false, "switch every shipped model on, so Hard seats play it")
 	flag.Parse()
 
 	runtime.GOMAXPROCS(*procs)
-	reg := module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New(), rummytiles.New(), blackjack.New())
+	if *learned {
+		for _, st := range learn.HardModels() {
+			if _, err := learn.SetHardModel(st.Game, true); err != nil {
+				fmt.Fprintf(os.Stderr, "%s: model not switched on: %v\n", st.Game, err)
+				continue
+			}
+			fmt.Fprintf(os.Stderr, "%s: Hard seats play %s\n", st.Game, st.Model.Title)
+		}
+	}
+	reg := module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New(), rummytiles.New(), blackjack.New(), marias.New())
 
 	var rows []row
 	failed := false
@@ -66,6 +84,11 @@ func main() {
 		for _, c := range configs(mod.Descriptor()) {
 			for _, skill := range module.Skills {
 				r := row{module: id, variation: c.variation, seats: c.seats, skill: string(skill)}
+				if _, layered := mod.(module.Botted); layered && skill == module.SkillHard {
+					if _, net := module.BotFor(mod).(interface{ Heuristic() module.Bot }); net {
+						r.skill += "/net"
+					}
+				}
 				for i := 0; i < *matches; i++ {
 					if err := play(mod, c, skill, *seed+int64(i), *decisions, &r); err != nil {
 						fmt.Fprintf(os.Stderr, "%s/%s/%d/%s seed %d: %v\n", id, c.variation, c.seats, skill, *seed+int64(i), err)

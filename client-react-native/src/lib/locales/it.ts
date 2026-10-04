@@ -1738,6 +1738,7 @@ export const it: Record<string, string> = {
   'hint.lineNoCards': 'Suggerimento: {move}',
   'err.HINTS_OFF': 'I suggerimenti sono disattivati a questo tavolo',
   'err.NO_HINT': 'Nessun suggerimento al momento',
+  'err.HINT_TOO_SOON': 'Troppi suggerimenti di fila: aspetta qualche secondo',
   'option.hints': 'Suggerimenti',
   'choice.hints.1': 'Consentiti',
   'choice.hints.0': 'Disattivati',

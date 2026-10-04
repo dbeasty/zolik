@@ -1737,6 +1737,7 @@ export const ro: Record<string, string> = {
   'hint.lineNoCards': 'Sugestie: {move}',
   'err.HINTS_OFF': 'Indiciile sunt dezactivate la această masă',
   'err.NO_HINT': 'Nicio sugestie acum',
+  'err.HINT_TOO_SOON': 'Prea multe indicii deodată — așteptați câteva secunde',
   'option.hints': 'Indicii',
   'choice.hints.1': 'Permise',
   'choice.hints.0': 'Dezactivate',

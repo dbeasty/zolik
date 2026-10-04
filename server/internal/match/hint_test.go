@@ -73,3 +73,37 @@ func TestAHintIsForPlayersAtTheTable(t *testing.T) {
 		t.Fatalf("hint for a stranger: status %d body %s", got.status, got.raw)
 	}
 }
+
+// Each hint is a Hard decision on this server's CPU, so one player cannot ask
+// for them in a loop. A person reading the board never meets the limit.
+func TestHintsAreRateLimitedPerPlayer(t *testing.T) {
+	h := newInviteHarness(t)
+	hostToken := token(t, "host-1", "Host", false)
+	matchID := startedMatch(t, h, hostToken)
+
+	deadline := time.Now().Add(10 * time.Second)
+	served := 0
+	for served == 0 {
+		res := h.do(http.MethodPost, "/matches/"+matchID+"/hint", hostToken, nil)
+		if res.status == http.StatusOK {
+			served++
+			break
+		}
+		if res.str("code") != "NOT_YOUR_TURN" {
+			t.Fatalf("hint: status %d body %s", res.status, res.raw)
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the host's turn never came round")
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	for ; served < 5; served++ {
+		if res := h.do(http.MethodPost, "/matches/"+matchID+"/hint", hostToken, nil); res.status != http.StatusOK {
+			t.Fatalf("hint %d of 5: status %d body %s", served+1, res.status, res.raw)
+		}
+	}
+	res := h.do(http.MethodPost, "/matches/"+matchID+"/hint", hostToken, nil)
+	if res.status != http.StatusTooManyRequests || res.str("code") != "HINT_TOO_SOON" {
+		t.Fatalf("sixth hint in the window: status %d body %s", res.status, res.raw)
+	}
+}

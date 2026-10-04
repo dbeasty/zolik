@@ -14,6 +14,7 @@ import (
 	"zolik/server/internal/metrics"
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
+	"zolik/server/internal/ratelimit"
 	"zolik/server/internal/ws"
 )
 
@@ -71,6 +72,10 @@ type Manager struct {
 	// botStats records what bot decisions cost. Nil records nothing; see
 	// SetBotStats.
 	botStats *botstats.Recorder
+	// hints throttles how often one player may ask for a hint; built on
+	// first use, see hintLimiter.
+	hints     *ratelimit.Limiter
+	hintsOnce sync.Once
 
 	// agentPresence, sitOutGrace, awaySince and agentTables are agents.go's:
 	// who counts as here without a socket, how long a drop-in seat may be

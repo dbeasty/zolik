@@ -1726,6 +1726,7 @@ export const hr: Record<string, string> = {
   'hint.lineNoCards': 'Prijedlog: {move}',
   'err.HINTS_OFF': 'Savjeti su isključeni za ovim stolom',
   'err.NO_HINT': 'Trenutačno nema prijedloga',
+  'err.HINT_TOO_SOON': 'Previše savjeta odjednom — pričekajte nekoliko sekundi',
   'option.hints': 'Savjeti',
   'choice.hints.1': 'Dopušteni',
   'choice.hints.0': 'Isključeni',

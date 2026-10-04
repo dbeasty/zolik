@@ -44,7 +44,18 @@ type Key struct {
 	Module string `json:"module"`
 	Skill  string `json:"skill"`
 	Source Source `json:"source"`
+	// Engine is what actually decided: EngineRule (a module's hand-written
+	// bot) or EngineNet (a trained model, which plays Hard seats when the
+	// operator has switched its game on). The same skill costs very
+	// different amounts in each, so they are never one series.
+	Engine string `json:"engine,omitempty"`
 }
+
+// Engines a decision can be made by.
+const (
+	EngineRule = "rule"
+	EngineNet  = "net"
+)
 
 // window is how far back Recent looks. Two generations of this length are
 // kept, so the recent view always covers between one and two windows.
@@ -238,7 +249,10 @@ func summarise(m map[Key]*hist) []Series {
 		if a.Source != b.Source {
 			return a.Source < b.Source
 		}
-		return a.Skill < b.Skill
+		if a.Skill != b.Skill {
+			return a.Skill < b.Skill
+		}
+		return a.Engine < b.Engine
 	})
 	return out
 }
@@ -268,7 +282,11 @@ func (r *Recorder) LogEvery(ctx context.Context, interval time.Duration) {
 					if x.Count == last[x.Key] {
 						continue
 					}
-					parts = append(parts, x.Module+"/"+string(x.Source)+"/"+x.Skill,
+					name := x.Module + "/" + string(x.Source) + "/" + x.Skill
+					if x.Engine != "" {
+						name += "/" + x.Engine
+					}
+					parts = append(parts, name,
 						fmt.Sprintf("n=%d p95=%.1fms p99=%.1fms max=%.1fms", x.Count-last[x.Key], x.P95M, x.P99M, x.MaxM))
 				}
 				last = now
@@ -281,4 +299,26 @@ func (r *Recorder) LogEvery(ctx context.Context, interval time.Duration) {
 			}
 		}
 	}()
+}
+
+// RecentQuantile is the q-th quantile of every recent decision from one
+// source, across games and skills, and how many decisions it was taken over.
+// It is what a resource monitor reads: one number for "how long are bots
+// taking right now", not a table.
+func (r *Recorder) RecentQuantile(src Source, q float64) (time.Duration, int64) {
+	if r == nil {
+		return 0, 0
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.rotateLocked()
+	var acc hist
+	for _, m := range []map[Key]*hist{r.prev, r.cur} {
+		for k, h := range m {
+			if k.Source == src {
+				acc.merge(h)
+			}
+		}
+	}
+	return acc.quantile(q), acc.count
 }

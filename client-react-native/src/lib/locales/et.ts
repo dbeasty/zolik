@@ -1731,6 +1731,7 @@ export const et: Record<string, string> = {
   'hint.lineNoCards': 'Soovitus: {move}',
   'err.HINTS_OFF': 'Vihjed on selles lauas välja lülitatud',
   'err.NO_HINT': 'Praegu soovitust pole',
+  'err.HINT_TOO_SOON': 'Liiga palju vihjeid korraga — oota mõni sekund',
   'option.hints': 'Vihjed',
   'choice.hints.1': 'Lubatud',
   'choice.hints.0': 'Väljas',

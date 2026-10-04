@@ -1744,6 +1744,7 @@ export const hu: Record<string, string> = {
   'hint.lineNoCards': 'Javaslat: {move}',
   'err.HINTS_OFF': 'Ennél az asztalnál a tippek ki vannak kapcsolva',
   'err.NO_HINT': 'Most nincs javaslat',
+  'err.HINT_TOO_SOON': 'Túl sok tipp egyszerre — várj néhány másodpercet',
   'option.hints': 'Tippek',
   'choice.hints.1': 'Engedélyezve',
   'choice.hints.0': 'Kikapcsolva',
