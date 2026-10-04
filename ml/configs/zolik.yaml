@@ -1,4 +1,4 @@
-# Žolíky: 630-wide state, 52-wide candidates, ~6 candidates a decision (max 64).
+# Žolíky: 900-wide state, 62-wide candidates (encoder v2), ~8 candidates a decision (max 64).
 # An episode is one deal; its reward is (lowest rival deal penalty - mine) / 100.
 # Continental is left out: the Hard heuristic wedges there (most seventh deals
 # never end), so neither training nor the bench can use it yet.

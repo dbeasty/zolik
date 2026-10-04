@@ -2,8 +2,10 @@ package ai
 
 import (
 	"math/rand"
+	"slices"
 	"sort"
 
+	"zolik/server/internal/cardinfer"
 	"zolik/server/internal/module"
 	"zolik/server/internal/rules"
 )
@@ -224,6 +226,11 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 			if _, ok := findInitialMeldPlanRequiring(st, actor, candidateHand, topDiscard); ok {
 				return rules.Action{Type: rules.ActionDrawCard, DrawFrom: rules.DrawFromDiscard}
 			}
+			if a.prof.DigPile && visible.Rules.DiscardPickupMode == rules.DiscardPickupAnyFromPile {
+				if card, ok := digPile(st, actor, hand, visible.DiscardPile); ok {
+					return rules.Action{Type: rules.ActionDrawCard, DrawFrom: rules.DrawFromDiscard, Card: card}
+				}
+			}
 		}
 		return rules.Action{Type: rules.ActionDrawCard, DrawFrom: rules.DrawFromDeck}
 	}
@@ -233,6 +240,27 @@ func (a *HeuristicAgent) ChooseAction(visible VisibleState, hand []string) rules
 		return rules.Action{Type: rules.ActionDiscard, Card: a.pickDiscard(hand, visible, actor, k, rng, canDiscardJoker)}
 	}
 	return rules.Action{Type: rules.ActionDiscard, Card: ""}
+}
+
+// digPile is the card below the top of the pile whose pickup — it and every
+// card above it, the engine taking the deepest copy of a card named twice —
+// leaves a hand that goes down this turn with that card in the opening.
+// Nearest the top first, so it takes no more of the pile than it must.
+func digPile(st rules.GameState, actor string, hand, pile []string) (string, bool) {
+	tried := map[string]bool{}
+	for i := len(pile) - 2; i >= 0; i-- {
+		c := pile[i]
+		if tried[c] {
+			continue
+		}
+		tried[c] = true
+		at := slices.Index(pile, c)
+		cand := append(append([]string(nil), hand...), pile[at:]...)
+		if _, ok := findInitialMeldPlanRequiring(st, actor, cand, c); ok {
+			return c, true
+		}
+	}
+	return "", false
 }
 
 // missed rolls the profile's chance of not noticing an available lay-off.
@@ -1040,7 +1068,7 @@ func (a *HeuristicAgent) discardCandidates(hand []string, visible VisibleState, 
 	// its high cards and keeping the low ones. A seat that is not down and
 	// cannot get down stops believing the prediction then, and goes back to
 	// building toward the floor; that is what releases the table.
-	endgame := k.endgame
+	endgame := k.endgame || (a.prof.ShedOnceDown && g.down)
 	if short && endgame && visible.Round > staleEndgameRound {
 		endgame = false
 	}
@@ -1066,6 +1094,13 @@ func (a *HeuristicAgent) discardCandidates(hand []string, visible VisibleState, 
 	// candidates exist, then stop skipping it if that leaves nothing, so the
 	// agent still names the move the engine would actually accept instead of
 	// stalling on a rejection it can't diagnose.
+	// The card inference, once per decision: how likely each card is to
+	// help the next seat or anybody (see Profile.InferDiscards).
+	var est *cardinfer.Estimate
+	if a.prof.InferDiscards && a.prof.InferWeight > 0 {
+		est = new(cardinfer.Estimate)
+		Infer(visible, hand, actor, est)
+	}
 	var cands []discardCandidate
 	for _, banTaken := range [2]bool{true, false} {
 		for i, c := range hand {
@@ -1093,8 +1128,22 @@ func (a *HeuristicAgent) discardCandidates(hand []string, visible VisibleState, 
 			if danger && endgame && a.prof.EndgameDumpsUnsafe {
 				danger = false
 			}
+			risk := 0.0
+			if est != nil {
+				risk = discardRisk(est, c, cfg)
+				// A card the next seat almost certainly wants is as much a
+				// gift as one that lays off on the table.
+				if a.prof.InferDanger > 0 && risk >= a.prof.InferDanger {
+					danger = true
+				}
+				if endgame && a.prof.EndgameDumpsUnsafe {
+					risk = 0
+				}
+			}
 			cands = append(cands, discardCandidate{
 				card:         c,
+				risk:         risk,
+				riskWeight:   a.prof.InferWeight,
 				pts:          rules.PenaltyPoints(c, false),
 				keep:         keep,
 				shortOfFloor: short,
@@ -1104,7 +1153,7 @@ func (a *HeuristicAgent) discardCandidates(hand []string, visible VisibleState, 
 				// and leaving nothing but jokers. See wildCrunch.
 				strands:    !handCanStillDiscard(removeCardsOnce(hand, []string{c}), cfg, visible.RoundReqMet[actor]),
 				dangerous:  danger,
-				wanted:     a.prof.ReadPickups && k.dangerousToOpponents(c),
+				wanted:     est == nil && a.prof.ReadPickups && k.dangerousToOpponents(c),
 				seenBefore: a.prof.Recall > 0 && k.rankPassed(c),
 			})
 		}
@@ -1133,6 +1182,26 @@ type discardCandidate struct {
 	// same for every candidate of one decision.
 	shortOfFloor bool
 	floorValue   int
+	// risk is how likely the card helps the next seat (or, discounted, any
+	// opponent) — see discardRisk — and riskWeight its price in penalty
+	// points per unit. Zero for a profile that does not infer.
+	risk       float64
+	riskWeight float64
+}
+
+// discardRisk is how likely a discard is to help an opponent: the seat that
+// plays next, who can take it straight off the pile, in full, and anybody
+// else discounted — by half where only the top card can be taken (they get
+// it only if it is still on top when their turn comes, which is never under
+// top-only pickup unless the next seat leaves it), by less where any card in
+// the pile can be dug out later.
+func discardRisk(est *cardinfer.Estimate, card string, cfg rules.RulesConfig) float64 {
+	next, anyone := est.Feed(cardinfer.Slot(card))
+	other := 0.3
+	if cfg.DiscardPickupMode == rules.DiscardPickupAnyFromPile {
+		other = 0.7
+	}
+	return max(next, other*anyone)
 }
 
 // smarterDiscardBetter orders candidates, best-to-discard first:
@@ -1172,6 +1241,21 @@ func smarterDiscardBetter(c, best discardCandidate) bool {
 	}
 	if c.wanted != best.wanted {
 		return !c.wanted
+	}
+	if c.riskWeight > 0 {
+		// The inference prices the risk against what the card is worth to
+		// shed: its penalty points, or — short of the floor — what it is
+		// worth toward the floor, which is the thing being kept.
+		cv, bv := float64(c.pts), float64(best.pts)
+		if c.shortOfFloor {
+			cv, bv = -float64(c.floorValue), -float64(best.floorValue)
+		}
+		cv -= c.riskWeight * c.risk
+		bv -= best.riskWeight * best.risk
+		if d := cv - bv; d > 1e-9 || d < -1e-9 {
+			return d > 0
+		}
+		return c.seenBefore && !best.seenBefore
 	}
 	if c.shortOfFloor && c.floorValue != best.floorValue {
 		return c.floorValue < best.floorValue

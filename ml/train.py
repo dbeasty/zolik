@@ -8,6 +8,10 @@ Writes runs/<name>/: TensorBoard logs (tb/), metrics.jsonl (one line per
 update), ckpt/<update>.bin snapshots (also the league's checkpoint pool),
 state.pt (model and optimiser, for resuming with --resume) and final.bin at
 the end — the file the server loads.
+
+--init <model.bin> fine-tunes from a ZLNET1 file (a shipped model or another
+run's final.bin) with a fresh optimiser; the config's model sizes must be the
+file's.
 """
 
 from __future__ import annotations
@@ -80,10 +84,23 @@ class Trainer:
         if args.resume:
             st = torch.load(args.resume, map_location="cpu")
             self.model.load_state_dict(st["model"])
+        elif args.init and args.widen:
+            export.widen_into(self.model, args.init)
+            print(f"initialised from {args.init}, widened to {state_dim}/{cand_dim}", flush=True)
+        elif args.init:
+            export.load_into(self.model, args.init)
+            print(f"initialised from {args.init}", flush=True)
         self.ppo = PPO(self.model, PPOConfig.from_dict(cfg["ppo"]))
         if args.resume and "opt" in st:
             self.ppo.opt.load_state_dict(st["opt"])
         self.league = League(cfg, seed)
+        if args.init and not args.resume:
+            # The model it starts from is its first opponent — as this
+            # encoder's network when widened, since the file itself cannot be
+            # seated at a table whose encoder it was not trained for.
+            start = export.save(self.model, self.ckpt_dir / "0.bin") if args.widen else args.init
+            if not args.widen:
+                self.league.add(start)
         for p in sorted(self.ckpt_dir.glob("*.bin"), key=lambda p: int(p.stem)):
             self.league.add(p)  # a resumed run keeps its pool
         self.tracker = Tracker()
@@ -296,10 +313,23 @@ def main(argv=None) -> None:
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--threads", type=int, default=4, help="torch CPU threads")
     ap.add_argument("--resume", type=Path, help="state.pt to start from")
+    ap.add_argument("--init", type=Path, help="ZLNET1 model.bin to fine-tune from (fresh optimiser)")
+    ap.add_argument(
+        "--widen",
+        action="store_true",
+        help="with --init: the file was trained for a narrower encoder that this one only appends to; new inputs start at weight zero",
+    )
     ap.add_argument("--set", action="append", default=[], metavar="KEY=VALUE", help="override a config value, e.g. env.envs=4")
     args = ap.parse_args(argv)
 
+    if args.widen and not args.init:
+        sys.exit("--widen widens the --init model; give one")
+    if args.resume and args.init:
+        sys.exit("--resume and --init both say where to start; give one")
     cfg = load_config(args.config or ML_DIR / "configs" / f"{args.game}.yaml", args.set)
+    if args.init:
+        cfg["init"] = str(args.init.resolve())  # recorded in the run's config.yaml
+        cfg["widen"] = bool(args.widen)
     if cfg["game"] != args.game:
         sys.exit(f"config is for {cfg['game']}, not {args.game}")
     torch.set_num_threads(args.threads)

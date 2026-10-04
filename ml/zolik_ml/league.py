@@ -11,6 +11,13 @@ Every table is one of three kinds, drawn with the config's blend:
 * ``heuristic``  — the learner against one hand-written opponent type;
 * ``self``       — several learner seats at one table.
 
+A checkpoint or heuristic table seats one learner unless ``league.learners``
+({learner seats: weight}) says otherwise: ``{1: .5, 2: .2, 3: .3}`` at four
+seats also deals two learners with two opponents and three with one — how a
+table of several copies of the model and one human looks. It is capped at one
+seat short of the table, and a table with more than one learner is labelled
+``<opponent>/<k>L``.
+
 Each table carries a label naming its opponent (``station``, ``hard``,
 ``ckpt``, ``self``...) so the trainer can report how it does against each.
 
@@ -98,6 +105,7 @@ class League:
         self.ckpt_decay = float(lg.get("checkpoint_decay", 0.8))
         self.pool_size = int(lg.get("pool_size", 20))
         self.partnerships = bool(lg.get("partnerships", False))
+        self.learners: dict = {int(k): v for k, v in (lg.get("learners") or {1: 1.0}).items()}
         self.pool: list[Path] = []
         self.rng = random.Random(seed)
 
@@ -135,6 +143,13 @@ class League:
         me = rng.randrange(n)
         plan[me] = LEARNER
         label = opp_label
+        k = 1
+        if self.learners != {1: 1.0} and not self.partnerships:  # the default draws nothing: old runs replay
+            k = min(_weighted(rng, self.learners), n - 1)
+        if k > 1:
+            for seat in rng.sample([i for i in range(n) if i != me], k - 1):
+                plan[seat] = LEARNER
+            label += f"/{k}L"
         if self.partnerships and n >= 4 and n % 2 == 0:
             partner = (me + n // 2) % n
             if rng.random() < self.partner_learner:

@@ -95,3 +95,55 @@ def from_bytes(b: bytes) -> Policy:
 
 def load(path: str | os.PathLike) -> Policy:
     return from_bytes(Path(path).read_bytes())
+
+
+def load_into(model: Policy, path: str | os.PathLike) -> Policy:
+    """Copy a ZLNET1 file's weights into ``model``, which must be the same network.
+
+    Fine-tuning starts a run from a shipped model: the file's game, input
+    widths and every layer size have to match the model the config builds, or
+    the weights would mean something else (or not fit), so any difference is an
+    error naming both shapes rather than a partial load.
+    """
+    src = load(path)
+    want, got = model.config(), src.config()
+    if want != got:
+        diff = {k: (got.get(k), want.get(k)) for k in want if got.get(k) != want.get(k)}
+        raise ValueError(f"{path} is not this model: file vs config {diff}")
+    model.load_state_dict(src.state_dict())
+    return model
+
+
+def widen_into(model: Policy, path: str | os.PathLike) -> Policy:
+    """Load a ZLNET1 file trained for a narrower encoder into ``model``.
+
+    For an encoder that only appended features: the file's state and candidate
+    vectors are prefixes of the model's, and every layer size is the same. The
+    old weights go where their inputs still are and the new inputs get weight
+    zero, so the widened model scores every position and candidate exactly as
+    the file did until training moves the new weights. Anything else (a
+    different game, layer sizes, or a narrower model) is an error.
+    """
+    src = load(path)
+    want, got = model.config(), src.config()
+    same = {k: v for k, v in want.items() if k not in ("state_dim", "cand_dim")}
+    if same != {k: v for k, v in got.items() if k not in ("state_dim", "cand_dim")}:
+        raise ValueError(f"{path} is not this network: file {got}, config {want}")
+    if src.state_dim > model.state_dim or src.cand_dim > model.cand_dim:
+        raise ValueError(f"{path} is wider than this model ({src.state_dim}/{src.cand_dim} > {model.state_dim}/{model.cand_dim})")
+    with torch.no_grad():
+        for dst, old in zip(
+            [*model.trunk, *model.scorer, *model.value_head], [*src.trunk, *src.scorer, *src.value_head]
+        ):
+            if dst.weight.shape == old.weight.shape:
+                dst.weight.copy_(old.weight)
+            else:
+                dst.weight.zero_()
+            dst.bias.copy_(old.bias)
+        # The two layers that read the encoder: the trunk's first reads the
+        # state; the scorer's first reads [embedding ; candidate].
+        model.trunk[0].weight[:, : src.state_dim] = src.trunk[0].weight
+        e = model.emb_dim
+        model.scorer[0].weight[:, :e] = src.scorer[0].weight[:, :e]
+        model.scorer[0].weight[:, e : e + src.cand_dim] = src.scorer[0].weight[:, e:]
+    return model

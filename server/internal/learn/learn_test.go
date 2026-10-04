@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/rand"
 	"os"
 	"strings"
@@ -674,5 +675,83 @@ func TestNetBotFinishesASequenceOneStepAtATime(t *testing.T) {
 	offers, _ := relay{}.LegalActions(s, "p0")
 	if a, _ := bot.Act(s, module.BotSeat{PlayerID: "p0"}, offers); a.Verb != "end" {
 		t.Errorf("after three takes: %+v, want end", a)
+	}
+}
+
+func TestBenchSeatedRotatesEverySeat(t *testing.T) {
+	players := Players(4)
+	sides := sidesOf(nim{}, module.MatchConfig{}, players)
+	for aSeats := 1; aSeats < 4; aSeats++ {
+		all := seatings(players, sides, aSeats)
+		if len(all) != 4 {
+			t.Fatalf("A in %d: %d seatings, want one per rotation", aSeats, len(all))
+		}
+		timesA := map[string]int{}
+		for _, isA := range all {
+			n := 0
+			for _, p := range players {
+				if isA[p.ID] {
+					n++
+					timesA[p.ID]++
+				}
+			}
+			if n != aSeats {
+				t.Errorf("A in %d: a seating gives A %d seats", aSeats, n)
+			}
+		}
+		for _, p := range players {
+			if timesA[p.ID] != aSeats {
+				t.Errorf("A in %d: %s is A's %d times, want %d", aSeats, p.ID, timesA[p.ID], aSeats)
+			}
+		}
+	}
+	if all := seatings(players, sides, 0); len(all) != 2 {
+		t.Errorf("alternating: %d seatings, want the two flips", len(all))
+	}
+}
+
+func TestBenchSeatedOfABotAgainstItselfIsZero(t *testing.T) {
+	// Three seats, so the winner's seat is A's in one rotation and B's in two:
+	// only a fair rotation cancels.
+	r, err := BenchSeated(nimGame{}, 3, 1, "", Contender{Bot: greedy{}}, Contender{Bot: greedy{}}, 1, 30, 200)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if math.Abs(r.Mean) > 1e-12 || r.Seeds != 30 {
+		t.Errorf("greedy vs greedy, A in one seat of three: %v", r)
+	}
+	r, err = BenchSeated(nimGame{}, 3, 1, "", Contender{Bot: perfect{}}, Contender{Bot: greedy{}}, 1, 30, 200)
+	if err != nil || r.Mean <= 0 {
+		t.Errorf("perfect alone against two greedy: %v %v", r, err)
+	}
+	if _, err := BenchSeated(nimGame{}, 3, 3, "", Contender{Bot: greedy{}}, Contender{Bot: greedy{}}, 1, 1, 200); err == nil {
+		t.Error("A in every seat was accepted")
+	}
+}
+
+func TestLocalHardSeatsTheModelOnlyAtHard(t *testing.T) {
+	s, _ := nim{}.NewMatch(module.MatchConfig{}, Players(2), 3) // pile 13: perfect takes 1, the net takes 3
+	offers, _ := nim{}.LegalActions(s, "p0")
+	b, _ := preferThird().Marshal()
+	path := t.TempDir() + "/nim.bin"
+	if err := os.WriteFile(path, b, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Setenv("ZOLIK_LEARNED_MODEL_NIM", "")
+	if _, ok := LocalHard(nimGame{}, perfect{}).(perfect); !ok {
+		t.Error("with no model named, LocalHard changed the bot")
+	}
+
+	t.Setenv("ZOLIK_LEARNED_MODEL_NIM", path)
+	bot := LocalHard(nimGame{}, perfect{})
+	for skill, want := range map[module.Skill]string{module.SkillHard: "take3", module.SkillMedium: "take1", module.SkillEasy: "take1"} {
+		a, _ := bot.Act(s, module.BotSeat{PlayerID: "p0", Skill: skill}, offers)
+		if a.OfferID != want {
+			t.Errorf("%s seat played %s, want %s", skill, a.OfferID, want)
+		}
+	}
+	if again := LocalHard(nimGame{}, perfect{}); again != bot {
+		t.Error("a second call resolved the model again instead of reusing it")
 	}
 }

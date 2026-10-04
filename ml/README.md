@@ -53,6 +53,31 @@ uv run python train.py --game holdem --run exploit --minutes 20 \
   --set "league.opponents={station: 1.0, maniac: 1.0, hard: 0.5, rock: 0.25, riverbluffer: 0.25, medium: 0.25}"
 ```
 
+To fine-tune from a trained model instead of from scratch, give it with
+`--init` (a ZLNET1 file; the config's model sizes must match it, or it refuses).
+The optimiser starts fresh and the model is also the league's first opponent.
+`configs/zolik-4p35.yaml` is such a fine-tune for the four-seat table with a
+35-point first meld (`zolik_classic+floor35`, the lobby's rules exactly):
+
+```sh
+uv run python train.py --game zolik --config configs/zolik-4p35.yaml --run zolik-4p35 \
+  --minutes 120 --init runs/zolik-long/final.bin
+```
+
+When the encoder has only grown — features appended to the state or the
+candidates, every layer size the same — add `--widen`: the file's weights keep
+their inputs and the new ones start at weight zero, so the run begins as the
+old model and learns to use the new features (the widened start, saved as
+`ckpt/0.bin`, is the league's first opponent instead of the file).
+`configs/zolik-v2.yaml` is Žolíky's encoder v2 (900/62, from 630/52) trained
+that way, 70% on the four-seat 35-point table and 30% on two-seat Classic,
+with the `closer` style in the league:
+
+```sh
+uv run python train.py --game zolik --config configs/zolik-v2.yaml --run zolik-v2 \
+  --minutes 150 --init runs/zolik-4p35/final.bin --widen
+```
+
 A run writes `runs/<name>/`:
 
 | file | what |
@@ -77,7 +102,10 @@ How it works, briefly:
   `league.blend`, with seat counts from `league.seats`. Canasta at four seats
   partners the learner with another learner seat or with `league.partner_bot`.
   Samba is off unless `league.samba: true` (every other process then plays
-  Samba with `league.variations.samba` seat counts). Žolíky names its
+  Samba with `league.variations.samba` seat counts). `league.learners`
+  ({learner seats: weight}) seats more than one learner at a checkpoint or
+  heuristic table (labelled `<opp>/<k>L`), for the table where several copies
+  of the model sit with one other player. Žolíky names its
   rulesets in `league.variation_mix` instead, and the env processes are split
   between them in proportion (default 6 classic : 2 floor35 of 8; Continental
   is left out while the Hard heuristic wedges there). Table plans are re-dealt
@@ -95,6 +123,9 @@ uv run python eval.py --game zolik --model runs/zolik-1/final.bin --opponents ha
 This is `server/cmd/gamebench -a net:<model>@<temp> -b <opp> -first 1000000`:
 the duplicate bench, every seed played twice with the seats swapped, on seeds
 training never dealt. Temperature defaults to 0 (always the favourite move).
+`--a-seats k` (gamebench `-a-seats`) seats the model in k seats and the
+opponent in the rest, each seed played once per rotation of the table — one
+model with three hard bots, or three copies of it with one.
 "ahead"/"behind" means more than two standard errors either way; any illegal
 move or stall exits non-zero. Units are the game's own — big blinds per match
 for Hold'em (15-hand matches, 50 BB stacks), points per match for Canasta,
