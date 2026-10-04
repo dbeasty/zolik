@@ -180,6 +180,8 @@ export const fr: Record<string, string> = {
     "Un trois noir au sommet bloque la défausse — personne ne peut la prendre tant qu'il n'est pas enterré — et un trois noir resté en main coûte {n}.",
   'canasta.rules.pileFrozenByWild':
     'Une carte joker enterrée dans la défausse la gèle pour tout le monde : la prendre coûte alors deux cartes naturelles du rang de la carte du dessus, prises dans ta main.',
+  'canasta.rules.stockOut':
+    'Une fois la pioche vide, le jeu ne continue que tant que le joueur dont c’est le tour peut prendre la défausse et finir quand même son tour — sinon, la donne se termine.',
   'canasta.rules.meldShape': 'Une combinaison, ce sont {n} cartes ou plus du même rang.',
   'canasta.rules.wildLimit':
     'Une combinaison peut contenir au plus {wilds} jokers, et jamais moins de {naturals} cartes naturelles.',
@@ -376,6 +378,7 @@ export const fr: Record<string, string> = {
   'err.PILE_FROZEN': 'La pile est gelée — il te faut deux cartes naturelles du rang de la carte du dessus',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'Dans ce jeu, une combinaison posée ne peut pas prendre la pile — il te faut deux cartes en main',
   'err.CAPTURE_NEEDS_TWO_CARDS': 'Prendre la défausse coûte deux cartes de ta main',
+  'err.CAPTURE_LEAVES_NO_DISCARD': 'Prendre la pile ainsi ne te laisserait aucun moyen de finir ton tour',
   'err.TOP_CARD_UNUSABLE': 'Ton camp ne peut pas utiliser la carte du dessus',
   'err.MELD_CLOSED': 'Cette combinaison est complète et fermée',
   'err.MELD_TOO_SMALL': 'Une combinaison exige plus de cartes que cela',

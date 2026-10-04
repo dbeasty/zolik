@@ -179,6 +179,8 @@ export const it: Record<string, string> = {
     'Un tre nero in cima blocca il pozzo — nessuno può prenderlo finché il tre non è sepolto — e uno rimasto in mano costa {n}.',
   'canasta.rules.pileFrozenByWild':
     'Una matta sepolta nel pozzo lo congela per tutti: prenderlo costa allora due carte naturali del valore della carta in cima, dalla tua mano.',
+  'canasta.rules.stockOut':
+    'Quando il mazzo è finito, il gioco continua solo finché il giocatore di turno può prendere il pozzo e comunque finire il turno — quando non può, la smazzata finisce.',
   'canasta.rules.meldShape': 'Una combinazione sono {n} o più carte dello stesso valore.',
   'canasta.rules.wildLimit':
     'Una combinazione può contenere al massimo {wilds} matte e mai meno di {naturals} carte naturali.',
@@ -374,6 +376,7 @@ export const it: Record<string, string> = {
   'err.PILE_FROZEN': 'La pila è congelata — ti servono due carte naturali del valore della carta in cima',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'In questo gioco una combinazione in tavola non può prendere la pila — ti servono due carte in mano',
   'err.CAPTURE_NEEDS_TWO_CARDS': 'Prendere il pozzo costa due carte dalla tua mano',
+  'err.CAPTURE_LEAVES_NO_DISCARD': 'Prendere il pozzo così non ti lascerebbe modo di finire il turno',
   'err.TOP_CARD_UNUSABLE': 'La tua parte non può usare la carta in cima',
   'err.MELD_CLOSED': 'Quella combinazione è completa e chiusa',
   'err.MELD_TOO_SMALL': 'Una combinazione richiede più carte di così',

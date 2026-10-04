@@ -178,6 +178,8 @@ export const hr: Record<string, string> = {
     'Crna trojka na vrhu blokira hrpu — nitko je ne smije uzeti dok trojka nije zatrpana — a ona koja ti ostane u ruci stoji {n}.',
   'canasta.rules.pileFrozenByWild':
     'Zakopana džoker karta zamrzava hrpu za sve: uzeti je tada stoji dvije prirodne karte iste vrijednosti kao gornja, iz tvoje ruke.',
+  'canasta.rules.stockOut':
+    'Kad se špil isprazni, igra se nastavlja samo dok igrač na potezu može uzeti odbačenu hrpu i ipak završiti potez — kad ne može, dijeljenje završava.',
   'canasta.rules.meldShape': 'Kombinacija je {n} ili više karata iste vrijednosti.',
   'canasta.rules.wildLimit':
     'Kombinacija smije imati najviše {wilds} džoker karata i nikad manje od {naturals} prirodne.',
@@ -374,6 +376,7 @@ export const hr: Record<string, string> = {
   'err.PILE_FROZEN': 'Hrpa je zamrznuta — trebaju ti dvije prirodne karte vrijednosti gornje karte',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'U ovoj igri kombinacija na stolu ne može uzeti hrpu — trebaju ti dvije karte iz ruke',
   'err.CAPTURE_NEEDS_TWO_CARDS': 'Uzimanje hrpe stoji dvije karte iz tvoje ruke',
+  'err.CAPTURE_LEAVES_NO_DISCARD': 'Ovako uzeti hrpu ostavilo bi te bez načina da završiš potez',
   'err.TOP_CARD_UNUSABLE': 'Tvoja strana ne može iskoristiti gornju kartu',
   'err.MELD_CLOSED': 'Ta kombinacija je potpuna i zatvorena',
   'err.MELD_TOO_SMALL': 'Kombinaciji treba više karata od toga',

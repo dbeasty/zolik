@@ -172,6 +172,8 @@ export const sv: Record<string, string> = {
     'En svart trea överst spärrar högen — ingen får ta den förrän trean är begravd — och en som blir kvar på handen kostar {n}.',
   'canasta.rules.pileFrozenByWild':
     'Ett vildkort begravt i högen fryser den för alla: att ta den kostar då två naturliga kort av det översta kortets valör, ur din egen hand.',
+  'canasta.rules.stockOut':
+    'När talongen är tom fortsätter spelet bara så länge spelaren i tur kan ta slänghögen och ändå avsluta sitt drag — när den inte kan, är given slut.',
   'canasta.rules.meldShape': 'En läggning är {n} eller fler kort av samma valör.',
   'canasta.rules.wildLimit':
     'En läggning får ha högst {wilds} vildkort och aldrig färre än {naturals} naturliga.',
@@ -366,6 +368,7 @@ export const sv: Record<string, string> = {
   'err.PILE_FROZEN': 'Högen är frusen — du behöver två naturliga kort av det översta kortets valör',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'I det här spelet kan en kombination på bordet inte ta högen — du behöver två kort från handen',
   'err.CAPTURE_NEEDS_TWO_CARDS': 'Att ta kasthögen kostar två kort ur din hand',
+  'err.CAPTURE_LEAVES_NO_DISCARD': 'Tar du högen så här kan du inte avsluta ditt drag',
   'err.TOP_CARD_UNUSABLE': 'Din sida kan inte använda det översta kortet',
   'err.MELD_CLOSED': 'Den kombinationen är fullständig och stängd',
   'err.MELD_TOO_SMALL': 'En kombination behöver fler kort än så',

@@ -181,6 +181,8 @@ export const es: Record<string, string> = {
     'Un tres negro arriba bloquea el descarte —nadie puede llevárselo hasta que quede enterrado— y uno que te quede en la mano cuesta {n}.',
   'canasta.rules.pileFrozenByWild':
     'Un comodín enterrado en el descarte lo congela para todos: llevárselo cuesta entonces dos cartas naturales del valor de la carta superior, de tu propia mano.',
+  'canasta.rules.stockOut':
+    'Cuando se acaba el mazo, el juego sigue solo mientras el jugador en turno pueda tomar el pozo y aun así terminar su turno; cuando no puede, la mano termina.',
   'canasta.rules.meldShape': 'Una combinación son {n} o más cartas del mismo valor.',
   'canasta.rules.wildLimit':
     'Una combinación puede llevar como mucho {wilds} comodines, y nunca menos de {naturals} cartas naturales.',
@@ -378,6 +380,7 @@ export const es: Record<string, string> = {
     'El montón está congelado — necesitas dos cartas naturales del valor de la carta superior',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'En este juego una combinación de la mesa no puede llevarse el montón — necesitas dos cartas de la mano',
   'err.CAPTURE_NEEDS_TWO_CARDS': 'Llevarse el descarte cuesta dos cartas de tu mano',
+  'err.CAPTURE_LEAVES_NO_DISCARD': 'Tomar el pozo así te dejaría sin forma de terminar tu turno',
   'err.TOP_CARD_UNUSABLE': 'Tu bando no puede usar la carta superior',
   'err.MELD_CLOSED': 'Esa combinación está completa y cerrada',
   'err.MELD_TOO_SMALL': 'Una combinación necesita más cartas que eso',

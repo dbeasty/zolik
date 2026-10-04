@@ -178,6 +178,8 @@ export const fi: Record<string, string> = {
     'Päällimmäinen musta kolmonen sulkee pakan — kukaan ei saa ottaa sitä ennen kuin kolmonen on hautautunut — ja käteen jäänyt maksaa {n}.',
   'canasta.rules.pileFrozenByWild':
     'Pakkaan hautautunut jokeri jäädyttää sen kaikilta: sen ottaminen maksaa silloin kaksi omasta kädestäsi tulevaa luonnollista korttia päällimmäisen kortin arvoa.',
+  'canasta.rules.stockOut':
+    'Kun nostopakka on tyhjä, peli jatkuu vain niin kauan kuin vuorossa oleva pelaaja voi ottaa poistopakan ja silti lopettaa vuoronsa — kun ei voi, jako päättyy.',
   'canasta.rules.meldShape': 'Sarja on {n} tai useampi saman arvoinen kortti.',
   'canasta.rules.wildLimit':
     'Sarjassa saa olla enintään {wilds} jokeria eikä koskaan alle {naturals} luonnollista korttia.',
@@ -373,6 +375,7 @@ export const fi: Record<string, string> = {
   'err.PILE_FROZEN': 'Pino on jäädytetty — tarvitset kaksi luonnollista korttia päällimmäisen kortin arvosta',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'Tässä pelissä pöydän yhdistelmä ei voi ottaa pinoa — tarvitset kaksi korttia kädestä',
   'err.CAPTURE_NEEDS_TWO_CARDS': 'Pakan ottaminen maksaa kaksi korttia kädestäsi',
+  'err.CAPTURE_LEAVES_NO_DISCARD': 'Jos otat pakan näin, et voi lopettaa vuoroasi',
   'err.TOP_CARD_UNUSABLE': 'Puolesi ei voi käyttää päällimmäistä korttia',
   'err.MELD_CLOSED': 'Tuo yhdistelmä on täysi ja suljettu',
   'err.MELD_TOO_SMALL': 'Yhdistelmä vaatii enemmän kortteja',

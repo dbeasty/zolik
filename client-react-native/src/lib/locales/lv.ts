@@ -178,6 +178,8 @@ export const lv: Record<string, string> = {
     'Melns trijnieks virspusē bloķē kaudzi — neviens to nedrīkst ņemt, kamēr trijnieks nav aprakts — un rokā palicis maksā {n}.',
   'canasta.rules.pileFrozenByWild':
     'Kaudzē apraktais džokers to iesaldē pret visiem: tad tās paņemšana maksā divas dabiskas augšējās kārts vērtības kārtis no tavas rokas.',
+  'canasta.rules.stockOut':
+    'Kad kava ir tukša, spēle turpinās tikai tik ilgi, kamēr spēlētājs, kura gājiens, var paņemt nomesto kāršu kaudzi un tomēr pabeigt gājienu — kad nevar, dalījums beidzas.',
   'canasta.rules.meldShape': 'Kombinācija ir {n} vai vairāk vienas vērtības kāršu.',
   'canasta.rules.wildLimit':
     'Kombinācijā drīkst būt ne vairāk kā {wilds} džokeri un nekad mazāk par {naturals} dabiskām kārtīm.',
@@ -373,6 +375,7 @@ export const lv: Record<string, string> = {
   'err.PILE_FROZEN': 'Kaudze ir iesaldēta — tev vajadzīgas divas dabiskas augšējās kārts vērtības kārtis',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'Šajā spēlē kombinācija uz galda kaudzi paņemt nevar — vajadzīgas divas kārtis no rokas',
   'err.CAPTURE_NEEDS_TWO_CARDS': 'Kaudzes paņemšana maksā divas kārtis no tavas rokas',
+  'err.CAPTURE_LEAVES_NO_DISCARD': 'Paņemot kaudzi šādi, tu nevarētu pabeigt savu gājienu',
   'err.TOP_CARD_UNUSABLE': 'Tava puse nevar izmantot augšējo kārti',
   'err.MELD_CLOSED': 'Šī kombinācija ir pilna un slēgta',
   'err.MELD_TOO_SMALL': 'Kombinācijai vajag vairāk kāršu nekā tik',

@@ -180,6 +180,8 @@ export const pl: Record<string, string> = {
     'Czarna trójka na wierzchu blokuje stos — nikt go nie weźmie, dopóki nie zostanie przykryta — a zostawiona w ręce kosztuje {n}.',
   'canasta.rules.pileFrozenByWild':
     'Zakopany joker zamraża stos dla wszystkich: wzięcie go kosztuje wtedy dwie naturalne karty w wysokości wierzchniej karty, z twojej ręki.',
+  'canasta.rules.stockOut':
+    'Gdy talia się skończy, gra toczy się dalej tylko dopóki gracz na ruchu może wziąć stos odrzuconych kart i mimo to dokończyć turę — gdy nie może, rozdanie się kończy.',
   'canasta.rules.meldShape': 'Układ to {n} lub więcej kart tej samej wysokości.',
   'canasta.rules.wildLimit':
     'Układ może mieć najwyżej {wilds} jokery i nigdy mniej niż {naturals} karty naturalne.',
@@ -377,6 +379,7 @@ export const pl: Record<string, string> = {
   'err.PILE_FROZEN': 'Stos jest zamrożony — potrzebujesz dwóch naturalnych kart o wartości wierzchniej karty',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'W tej grze układ na stole nie może wziąć stosu — potrzebujesz dwóch kart z ręki',
   'err.CAPTURE_NEEDS_TWO_CARDS': 'Wzięcie stosu kosztuje dwie karty z ręki',
+  'err.CAPTURE_LEAVES_NO_DISCARD': 'Wzięcie stosu w ten sposób nie pozwoliłoby ci dokończyć tury',
   'err.TOP_CARD_UNUSABLE': 'Twoja strona nie może użyć wierzchniej karty',
   'err.MELD_CLOSED': 'Ten układ jest kompletny i zamknięty',
   'err.MELD_TOO_SMALL': 'Układ potrzebuje więcej kart',
