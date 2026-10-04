@@ -60,6 +60,12 @@ func record(s *GameState, verb string, d decisionAt) {
 		if verb == VerbRaise && !s.didPreflop(d.seat, VerbRaise) {
 			r.PFR++
 		}
+		if d.owed > 0 && d.bet > s.BigBlind {
+			r.FacedRaise++
+			if verb == VerbFold {
+				r.FoldedToRaise++
+			}
+		}
 	} else {
 		// Facing a bet after the flop, which is the situation "folds too
 		// much" is about. Before the flop every hand faces the big blind, and
