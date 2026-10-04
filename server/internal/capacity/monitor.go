@@ -56,6 +56,11 @@ type Reading struct {
 	// how many decisions it was taken over.
 	ActP95   time.Duration `json:"actP95"`
 	ActCount int64         `json:"actCount"`
+	// Thermal is the device's own report of heat, where it has one: 0
+	// nominal, 1 serious (amber), 2 critical (red). Phones only — a server
+	// leaves it zero. The OS throttles a hot phone whatever this says; the
+	// point is to stop asking a throttled core for the dearest decisions.
+	Thermal int `json:"thermal,omitempty"`
 }
 
 // Thresholds are where each level begins. A level is entered when any one
@@ -104,6 +109,7 @@ type Monitor struct {
 	recover time.Duration
 
 	mu          sync.Mutex
+	pinned      *Level
 	level       Level
 	since       time.Time
 	calmSince   time.Time
@@ -125,20 +131,52 @@ func New(sample func() Reading, th Thresholds, think time.Duration) *Monitor {
 	return &Monitor{sample: sample, th: th, think: think, recover: RecoverAfter}
 }
 
+// Pin holds the monitor at a level whatever it reads, for testing what the
+// rest of the server does at amber or red without having to heat a machine
+// up. The app only pins where debug endpoints are on (BOT_MONITOR_PIN).
+func (m *Monitor) Pin(l Level) {
+	m.mu.Lock()
+	m.pinned = &l
+	m.mu.Unlock()
+}
+
+// ParseLevel reads "green", "amber" or "red".
+func ParseLevel(s string) (Level, bool) {
+	switch s {
+	case "green":
+		return Green, true
+	case "amber":
+		return Amber, true
+	case "red":
+		return Red, true
+	}
+	return Green, false
+}
+
 // classify is the level a reading alone calls for, and the signal that called
 // for it.
 func (m *Monitor) classify(r Reading) (Level, string) {
+	m.mu.Lock()
+	pinned := m.pinned
+	m.mu.Unlock()
+	if pinned != nil {
+		return *pinned, "pinned"
+	}
 	overrun := 0.0
 	if m.think > 0 && r.ActCount >= m.th.MinActs {
 		overrun = float64(r.ActP95) / float64(m.think)
 	}
 	switch {
+	case r.Thermal >= 2:
+		return Red, "thermal"
 	case r.CPUOK && r.CPUStall >= m.th.RedCPU:
 		return Red, "cpu_pressure"
 	case r.MemOK && r.MemFrac >= m.th.RedMem:
 		return Red, "memory"
 	case overrun >= m.th.RedOverrun && m.th.RedOverrun > 0:
 		return Red, "overrun"
+	case r.Thermal == 1:
+		return Amber, "thermal"
 	case r.CPUOK && r.CPUStall >= m.th.AmberCPU:
 		return Amber, "cpu_pressure"
 	case r.MemOK && r.MemFrac >= m.th.AmberMem:
@@ -164,6 +202,8 @@ func (m *Monitor) Step(now time.Time) {
 	var ev *Event
 	switch {
 	case target > m.level:
+		ev = m.moveLocked(target, reason, now, r)
+	case target < m.level && reason == "pinned":
 		ev = m.moveLocked(target, reason, now, r)
 	case target < m.level:
 		if m.calmSince.IsZero() {

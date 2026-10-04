@@ -1,15 +1,18 @@
 # Bot compute gating — plan
 
-> **Status: Phase 0 (measurement) and Phase 1 (monitor in observe mode, hints off the lock)
-> built. The trained models are live behind an admin switch (§5.4), so Phase 2 can start.** Rechecked 2026-10-03 against main @
-> `9e21df8`. See §5.3: the 2026-09-29 conclusions have been **superseded**. Rule engines are
-> now the cheaper engine in every game, so "downgrade to rule" is right as originally framed.
+> **Status: Phases 0–4 built.** The governor ships in `observe` on servers (flip with
+> `BOT_GOVERNOR=enforce` once its counts look right) and enforces on phones. §4 records what
+> each phase built and how it was tested; §5 holds the measurements it rests on.
 
 Deep AI agents are a limited resource. The server works out how many it can run comfortably
 ("5 deep agents on this box"), hands out that many **leases**, and plays every other bot seat
 with the rule-based engine. When resources tighten, a resource monitor publishes a
 notification, and deep seats **downgrade to the rule engine** at their next turn boundary.
 When resources recover, waiting seats **upgrade** back.
+
+*As built*, the leases cover measured cost classes rather than "deep agents". The most
+expensive bot turned out to be a rule bot (Mariáš Hard), so a class is (game, skill, engine),
+and the fallback is the next class down. See §4, Phase 2.
 
 - **Baseline:** `origin/main` @ `7a61924`
 - **Phase 0:** instrumentation and `cmd/botcost` on `claude/bot-compute-phase0`; results in §5.
@@ -358,37 +361,84 @@ the `would_revoke` / `would_grant` counters; and `BOT_DEEP=off|observe|enforce`.
 **Test trap:** `internal/match` tests that need a store **skip silently** unless Mongo is up
 or `ZOLIK_TEST_DB_ENGINE=kdb` is set. Run them with the variable set.
 
-### Phase 2 — engines, leases, switching
+### Phase 2 — the governor: leases and switching *(built 2026-10-04)*
 
-Lands with the first deep agent from learn-core.
+`internal/botgov` replaces §3.1–3.3's deep-vs-rule design with what §5.4 measured:
+- **Cost classes are (game, skill, engine).** `DefaultCosts` holds the measured mean CPU per
+  decision. Only classes above a 2 ms floor need a lease: today Mariáš Hard (rule, 54 ms) and
+  Žolíky's model (10 ms). Everything else plays freely.
+- **Fallback is the next class down:** a model falls back to the rule bot at the same skill,
+  and a rule bot to one skill lower. A seat without a lease walks down to the first class that
+  needs none: Mariáš Hard → Medium, Žolíky net → Žolíky rule Hard.
+- **Capacity:** cores (`GOMAXPROCS`) × 0.5 share × 0.7 comfort, halved at amber and zero at
+  red. A lease weighs its cost per think window (mean CPU ÷ 1.35 s).
+- **Speed:** every cost is scaled by `Calibrate()`, a few-millisecond integer workload timed
+  against the machine that measured the table. A phone three times slower leases three times
+  the CPU per seat.
+- **When a seat changes:**
+  - Decisions are made at a seat's turn start, judged by who made the match's last move, so it
+    survives bot-loop restarts.
+  - A revoked lease is given back at the next turn; an upgrade waits for the next round.
+  - Revocation takes bot-only tables first, then the newest leases.
+  - The bot chosen at turn start (including the operator's model switch) is held for the
+    whole turn, so neither the governor nor the admin switch can hand half a plan to another
+    engine.
+- **Leases are returned** when a match stops, when a seat asks for a different class, and by
+  a 30 s sweep for seats unseen for 2 minutes.
+- **Hints** use `ForHint`: the asked-for class at green, the cheapest at amber or red.
+- **Modes:** `BOT_GOVERNOR=off|observe|enforce`. The server defaults to `observe`: it decides
+  and counts (`/debug/capacity`'s `reducedSeats`, `reducedTurnsTotal`) but changes no move.
+  The mobile build enforces.
+- **Testing aids:** `BOT_MONITOR_PIN=green|amber|red` and `POST /debug/capacity/pin?level=…`
+  hold the monitor at a level. Both are debug-endpoint only.
 
-- `DeepBotted`, `BotSeat.Engine`, the lease pool with leak sweep, turn-boundary switching,
-  the engine on the move log.
-- **Tests:**
-  - **Pool unit tests:** weights, LIFO revoke, humans-last priority, FIFO grant, one grant per
-    tick.
-  - **Monitor unit tests:** hysteresis, with no flapping on a signal oscillating around a
-    threshold.
-  - **Bot loop test with a scripted monitor** (Green → Red → Green mid-match): every seat
-    completes the match with legal moves, switches happen only between turns, and leases
-    return to zero at the end. Run across all modules with a deep agent, five seeds each.
-  - **Soak at `cpus: 1` with a CPU hog alongside:** the level goes Red, deep seats drop to
-    rule, broadcast p95 recovers, the hog is removed, and seats upgrade back one per tick. No
-    table stalls.
-- Add `cpus:` to production compose in the same PR that turns on enforce.
+Tests:
+- `botgov` unit tests: lease limits, fallbacks, mid-turn safety, round-gated upgrades,
+  revocation order, observe/off, lease return on a changed request, sweep, speed scaling,
+  hints.
+- `TestTheGovernorDowngradesModelSeatsAtTurnBoundaries`: a real Canasta engine whose Hard
+  seats are a recording model-over-heuristic bot; red is set mid-match. It asserts the model
+  played before, the rule bot after, and that no turn ever mixed engines. It fails when turn
+  tracking is disabled.
+- Live, on a local server: a Mariáš table with two Hard bots at red played Medium (20
+  decisions), with seats marked simplified. Re-pinned green, both returned to Hard after a
+  round boundary (36 Hard decisions), and the marks cleared.
 
-### Phase 3 — offer and UI
+### Phase 3 — what the players see *(built 2026-10-04)*
 
-- Lobby push of `botCapacity`, the deep tier in the picker, the queued-seat response, the
-  in-match badge, and message keys with a `serverKeys.json` regen.
-- **Verify in the browser:** pin the monitor with a debug env var (`BOT_DEEP_FORCE_LEVEL=red`),
-  then check that Expert shows disabled with its explanation. Flip it to green, and check that
-  the picker enables without a reload and that a queued seat's badge changes at the next turn.
-  Assert what the user sees.
+- **Seat badge.** `PlayerMsg.simplified` marks a bot playing below what it was seated with
+  (enforce only), and `SeatStrip` shows a localized **SIMPLER** badge next to BOT. Its
+  accessibility label says why. Badges no longer shrink in narrow tiles; the name truncates
+  instead (checked at 390 px).
+- **Table notice.** `GET /bots/capacity` (public, also on the offline host) returns
+  `{level, simplifying, reducedSeats}`. The table screen asks every 30 s and, while
+  simplifying, says under the bot buttons that bots may play simpler moves until the server
+  has room.
+- The skill buttons stay Easy/Medium/Hard. With downgrade-in-place there is nothing to
+  disable: a Hard seat added under pressure plays the cheaper class and comes back by itself.
+  The §3.6 "Expert (AI)" tier and the `BOT_ENGINE_QUEUED` response were dropped; the
+  operator's model switch decides whether Hard means the model.
+- Wording is in all 24 locales.
+- Verified in the browser against a pinned-red server: the notice on the table screen, and
+  **BOT · SIMPLER** on both Hard Mariáš seats, at desktop width and at 390 px.
 
-### Phase 4 — on-device
+### Phase 4 — on-device *(built 2026-10-04)*
 
-- Micro-benchmark sizing, thermal and low-power signals, and the same switching rules offline.
+- The mobile config runs the monitor and **enforces** the governor.
+- `Calibrate()` scales costs to the phone's speed.
+- Heat:
+  - `Host.SetThermalPressure(0|1|2)` (gomobile) feeds a `Thermal` signal: 1 makes the level
+    amber, 2 makes it red.
+  - iOS (`NearbyThermal.swift`) maps `ProcessInfo.thermalState` (serious → 1, critical → 2)
+    and Low Power Mode → 1.
+  - Android (`NearbyThermal.kt`) maps `PowerManager` thermal status (severe → 1, critical and
+    above → 2, API 29+) and Battery Saver → 1.
+  - Both report when the host starts and on every change.
+- Verified:
+  - The Swift type-checks against a freshly built `Zolikcore.xcframework` (iOS simulator
+    slice).
+  - The Kotlin compiles against `android.jar` (API 36) with a stub of the gomobile binding.
+  - **Not run on a device or simulator.**
 
 ## 5. Phase 0 results (2026-09-29)
 

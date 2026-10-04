@@ -12,6 +12,7 @@ public class ZolikNearbyModule: Module {
   private let bonjour = NearbyBonjour()
   private let bleHost = NearbyBleHost()
   private let bleGuest = NearbyBleGuest()
+  private let thermal = NearbyThermal()
 
   public func definition() -> ModuleDefinition {
     Name("ZolikNearby")
@@ -101,6 +102,7 @@ public class ZolikNearbyModule: Module {
       guard let host = ZolikcoreStart(try Self.dataDir(), &error) else {
         throw HostException(error?.localizedDescription ?? "the host did not start")
       }
+      self.thermal.start()
       return Self.describe(host)
     }
 
@@ -112,6 +114,7 @@ public class ZolikNearbyModule: Module {
       guard let host = ZolikcoreStartNode(try Self.dataDir(), credential, userHex, cloudBaseUrl, &error) else {
         throw HostException(error?.localizedDescription ?? "the host did not start")
       }
+      self.thermal.start()
       return Self.describe(host)
     }
 

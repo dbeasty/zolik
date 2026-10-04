@@ -132,6 +132,17 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
       <Text style={styles.badge} testID={`paused-badge-${seat.playerId}`}>
         PAUSED
       </Text>
+    ) : player?.simplified ? (
+      // A bot the server is playing more simply while it is short of room
+      // (server/internal/botgov). Said, not hidden: the player is facing a
+      // weaker opponent than the one they seated, and should know why.
+      <Text
+        style={styles.badge}
+        testID={`simplified-badge-${seat.playerId}`}
+        accessibilityLabel={t('seat.simplifiedHint')}
+      >
+        {t('seat.simplifiedBadge')}
+      </Text>
     ) : null;
     return (
       <View
@@ -615,6 +626,9 @@ function seatStyles(m: Metrics, s: Skin) {
       paddingVertical: 1,
       borderRadius: 4,
       overflow: 'hidden',
+      // A badge is a word, never half of one: in a narrow tile the name
+      // gives way (it truncates), the badge keeps its width.
+      flexShrink: 0,
     },
     turn: { color: colors.accent, fontSize: m.panel.bodyFont - 1, fontWeight: '700' },
     tag: { color: colors.gold, fontSize: m.panel.bodyFont - 1, marginTop: 2 },

@@ -116,6 +116,10 @@ type PlayerMsg struct {
 	IsAgent    bool   `json:"isAgent,omitempty"`
 	AgentLabel string `json:"agentLabel,omitempty"`
 	SatOut     bool   `json:"satOut,omitempty"`
+	// Simplified is a bot seat the server is playing with a cheaper engine
+	// than it was seated with, because CPU is short (internal/botgov). It
+	// goes back to full strength by itself, at a round boundary.
+	Simplified bool `json:"simplified,omitempty"`
 	// Avatar is the face this seat wears — cosmetic, opaque, and omitted when
 	// the seat never named one, which every client reads as "derive it".
 	//
@@ -143,6 +147,9 @@ func (m *Manager) withSatOut(match models.Match, msg MatchStateMsg) MatchStateMs
 	for i, p := range match.Players {
 		if i < len(msg.Players) {
 			msg.Players[i].SatOut = m.satOut(match, p)
+			if p.IsAI {
+				msg.Players[i].Simplified = m.governor.Reduced(match.ID.Hex(), p.ID)
+			}
 		}
 	}
 	return msg

@@ -154,6 +154,9 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 		}
 		match, err := m.current(ctx, matchID)
 		if err != nil || match.Status != "active" {
+			if err == nil {
+				m.matchStopped(matchID)
+			}
 			return
 		}
 		mod := m.registry.Get(match.ModuleID)
@@ -203,20 +206,22 @@ func (m *Manager) botLoop(ctx context.Context, matchID string) {
 		botOK := false
 		if !turn.botHung {
 			var timedOut bool
-			bot := module.BotFor(mod)
+			var bot module.Bot
+			var seat module.BotSeat
+			var label, engine string
 			if passive {
 				// A sat-out seat is not played to win. See module.DropIn.
+				// Recorded apart: it costs an offer scan, and counting it as
+				// the seat's skill would make that skill look cheaper.
 				verbs, _ := module.SitOutVerbs(mod)
-				bot = module.OfferBot(verbs...)
-			}
-			seat := botSeatFor(match, actor)
-			label := skillLabel(seat.Skill)
-			engine := engineOf(bot, seat)
-			if passive {
-				// Recorded apart: a sat-out seat costs an offer scan, and
-				// counting it as the seat's skill would make that skill
-				// look cheaper than it is.
-				label = "sitout"
+				bot, seat = module.OfferBot(verbs...), botSeatFor(match, actor)
+				label, engine = "sitout", botstats.EngineRule
+			} else {
+				// Chosen at the start of the seat's turn and held for the
+				// rest of it — see governor.go.
+				tb := m.seatBot(match, mod, actor)
+				bot, seat, engine = tb.bot, tb.seat, tb.engine
+				label = skillLabel(seat.Skill)
 			}
 			botPick, botOK, timedOut = botAct(bot, module.State(match.State),
 				seat, offers, m.actBudget(), m.botStats,

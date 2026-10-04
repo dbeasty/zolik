@@ -56,6 +56,13 @@ func MobileConfig(dataDir string) Config {
 
 		BotThinkMinMS: 900,
 		BotThinkMaxMS: 1800,
+
+		// A phone is the one host where bots are bound to run short: no
+		// operator reads its logs, its cores are slow, and it heats up. So
+		// the governor enforces here, reading the monitor's bot timings and
+		// the OS's thermal state (Host.SetThermalPressure).
+		BotMonitorEnabled: true,
+		BotGovernor:       "enforce",
 	}
 }
 
