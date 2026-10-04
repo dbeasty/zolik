@@ -127,14 +127,15 @@ func toModuleAction(a rules.Action) (module.Action, bool) {
 //	closer  comes down as early as the pile allows and then races to go out,
 //	        shedding its dearest card every turn (ai.CloserProfile): the
 //	        player who beat the network by being out before it was down.
-//	hard-classic
-//	        Hard as it played before the card inference
-//	        (ai.HardClassicProfile): the reference the inference is measured
-//	        against on the bench. Not in any training config.
+//	hard-infer
+//	        Hard with the card inference pricing its discards
+//	        (ai.HardInferProfile): measured against Hard on the bench, and
+//	        not at Hard until it beats it beyond noise. Not in any training
+//	        config.
 func (learnGame) Styles() map[string]module.Bot {
 	return map[string]module.Bot{
-		"closer":       profileBot{ai.CloserProfile()},
-		"hard-classic": profileBot{ai.HardClassicProfile()},
+		"closer":     profileBot{ai.CloserProfile()},
+		"hard-infer": profileBot{ai.HardInferProfile()},
 	}
 }
 

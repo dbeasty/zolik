@@ -147,7 +147,8 @@ func TestLedgerRecordsPasses(t *testing.T) {
 
 // TestHardKeepsTheCardTheNextSeatWants is the bug the inference was built
 // for: the next seat took the 9♦ and the 10♦ off the pile, so the 8♦ is the
-// card it wants. Hard keeps it, although it is the dearest loose card.
+// card it wants. Hard with the inference (HardInferProfile) keeps it,
+// although it is the dearest loose card.
 func TestHardKeepsTheCardTheNextSeatWants(t *testing.T) {
 	hand := []string{"8D", "7H", "4S", "4H", "4C"}
 	v := VisibleState{
@@ -163,7 +164,7 @@ func TestHardKeepsTheCardTheNextSeatWants(t *testing.T) {
 		TotalScores: map[string]int{},
 		Rules:       rules.ResolveConfig(rules.ProfileZolikClassic),
 	}
-	hard := NewAgent("hard", 1)
+	hard := NewAgentWithProfile(HardInferProfile(), 1)
 	k := newKnowledge(v, hand, "me", hard.prof)
 	got := hard.pickDiscard(hand, v, "me", k, rand.New(rand.NewSource(1)), false)
 	if got == "8D" {
@@ -171,5 +172,5 @@ func TestHardKeepsTheCardTheNextSeatWants(t *testing.T) {
 	}
 	classic := NewAgentWithProfile(HardClassicProfile(), 1)
 	k = newKnowledge(v, hand, "me", classic.prof)
-	t.Logf("hard sheds %s; hard-classic sheds %s", got, classic.pickDiscard(hand, v, "me", k, rand.New(rand.NewSource(1)), false))
+	t.Logf("hard-infer sheds %s; hard sheds %s", got, classic.pickDiscard(hand, v, "me", k, rand.New(rand.NewSource(1)), false))
 }
