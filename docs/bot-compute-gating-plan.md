@@ -537,7 +537,9 @@ Mariáš's worst (1.37 s wall) outlasts the 0.9 s think window.
 3. **Mariáš Hard is what would trip the monitor.** Its p95 is already 0.4 of the think window,
    against amber at 0.5. On the one-vCPU box admission was measured on, a handful of Mariáš
    tables would put the server at amber. Bounding its search (a node or time budget, as
-   Žolíky's meld search has) is cheaper than gating around it.
+   Žolíky's meld search has) is cheaper than gating around it. **Done differently (§5.5):**
+   the search already had a node budget, and lowering it measured weaker. Making each node
+   allocation-free cut CPU about 4x and p95 to about 0.1 of the window, with moves unchanged.
 4. **Phase 2 can now start.** There is something to switch: the per-game model flag, and
    Mariáš's skill. The smallest useful Phase 2 is the monitor driving the existing switch:
    - at **red**, the model flag goes off for every game and Mariáš Hard plays as Medium;
@@ -547,7 +549,49 @@ Mariáš's worst (1.37 s wall) outlasts the 0.9 s think window.
    one step per call, so a flip mid-turn hands the heuristic half a plan. The switch has to be
    applied at the turn boundary (§3.5) before the monitor may drive it.
 
-### 5.5 Still open in Phase 0
+### 5.5 Mariáš Hard made cheap, 2026-10-04
+
+Mariáš Hard plays its cards by sampling the unseen hands about 20 times and solving each deal
+open-handed (`marias/sampling.go` on `tricks/search`). It was by far the most expensive bot
+decision. Its cost is bimodal, and the bimodality is the node budget: across a sweep of 1 345
+card-play positions (`marias/testdata/search_golden.txt`), the median decision searches 67 k
+nodes, but **20% of them hit the 2 M-node budget** (p90 2.1 M, max 2.4 M: the last sample may
+run 400 k past it). These are the early tricks of a deal. Bidding, talon and doubling are rules
+of thumb and cost nothing.
+
+The solver allocated on every node: a sorted move list (`sort.Slice`), the trick slice, a
+`defer` closure, and a Go map as transposition table. Garbage collection was most of the cost.
+It now lists moves into stack arrays in a precomputed order, keeps the trick in fixed arrays,
+and reuses an open-addressed table across solves. It is **the same search, node for node**:
+`tricks/search/reference_test.go` keeps the old solver and checks values, node counts and
+exhaustion against it, and the golden sweep matches unmodified main at every position. About
+40 ns per node, down from 180.
+
+`botcost -game marias -matches 5`, both binaries run side by side at load ~110 on 16 cores
+(CPU columns; before / after):
+
+| Hard | CPU mean | CPU p95 | CPU p99 | allocs/decision | KB/decision |
+|---|---|---|---|---|---|
+| volený | 73.4 → **15.7 ms** | 500 → **104 ms** | 562 → **119 ms** | 1 293 583 → 5 405 | 32 907 → **225** |
+| licitovaný | 56.3 → **13.1 ms** | 457 → **101 ms** | 511 → **117 ms** | 1 028 078 → 3 739 | 26 160 → **173** |
+
+At lower load the old binary measured 52 / 47 ms CPU mean. It suffers more from contention
+because its collector does. The worst decision is now bounded at about 2.4 M nodes, roughly
+0.1–0.15 s of CPU, which is well inside the 0.9 s think window. By §3.2's formula one core now carries
+about 30 Mariáš Hard seats, up from about 9.
+
+**The budget was not lowered, because that measured weaker.** On `gamebench -game marias`,
+600 seeds of duplicate play:
+- Hard beats Medium by +12.5 ± 0.9 units a match (100 seeds).
+- A 1 M-node budget against the shipped 2 M loses −0.90 ± 0.22 (volený).
+- Even making 2 M a hard ceiling (cutting the last sample off instead of letting it overrun) lost
+  −0.35 ± 0.15 in licitovaný, against −0.04 ± 0.09 in volený.
+
+So Hard ships with the old budget semantics, and its moves are unchanged at every position.
+The bench styles `hard-capped` and `hard-<n>k` stay, to re-measure if a cheaper Hard is
+ever wanted.
+
+### 5.6 Still open in Phase 0
 
 - **Soak at `cpus: 1` and `cpus: 2`.** Increase the number of concurrent Hold'em bot tables,
   the expensive engine that exists today, until WebSocket broadcast p95 bends. That checks the
