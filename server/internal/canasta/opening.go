@@ -35,6 +35,13 @@ import (
 // out). It makes the first move of such a sequence and nothing else. Every
 // later move re-asks, and the rest of the sequence it found is still there to
 // be found, so a turn that starts an opening always has a way to finish it.
+//
+// The engine has since closed the same hole for everybody (finish.go's
+// turnCanFinish): it refuses a capture or an opening lay after which the turn
+// cannot end, so no move the bot is offered strands it. This search is still
+// how the bot chooses — it is asked first without spending a wild, which the
+// engine's question does not care about — and its walk is the engine's own
+// (turnLays, turnValueBound, discardEndsTurn).
 
 // openingSearchNodes bounds how many positions one question may visit. A plan
 // that exists is usually found in a handful — the search walks the richest
@@ -178,81 +185,20 @@ func (os *openingSearch) completes(raw module.State) bool {
 	return false
 }
 
-// valueBound is the most this turn could have laid by the end of it: what is
-// down already, plus every card in hand the search may spend, less the
-// cheapest of them when the side cannot go out — it has to finish holding a
-// discard and a card to keep (checkLeavesPlayable), and a wild the search is
-// not spending is already one of the two. An overestimate by construction,
-// which is what lets it prune: a branch below it cannot open whatever it lays.
+// valueBound is turnValueBound for the cards this search may spend.
 func (os *openingSearch) valueBound(s *GameState, t *Team) int {
-	var values []int
-	kept := 0
-	for _, c := range s.Hands[os.playerID] {
-		if isRedThree(c) || (!os.wilds && isWild(c)) {
-			kept++
-			continue
-		}
-		values = append(values, cardValue(c))
-	}
-	sort.Ints(values)
-	if !canGoOut(s, t) && kept < 2 {
-		values = values[min(2-kept, len(values)):]
-	}
-	total := s.LaidThisTurn
-	for _, v := range values {
-		total += v
-	}
-	return total
+	return turnValueBound(s, t, os.playerID, os.wilds)
 }
 
 // canDiscard reports that the engine would accept some card as the discard
 // that ends this turn.
-func (os *openingSearch) canDiscard(raw module.State, s *GameState) bool {
-	seen := map[string]bool{}
-	for _, c := range s.Hands[os.playerID] {
-		if seen[c] {
-			continue
-		}
-		seen[c] = true
-		if ok, _ := probe(os.m, raw, os.playerID, module.Action{Verb: VerbDiscard, Cards: []string{c}}); ok {
-			return true
-		}
-	}
-	return false
+func (os *openingSearch) canDiscard(_ module.State, s *GameState) bool {
+	return discardEndsTurn(s, os.playerID)
 }
 
-// lays is every meld and lay-off worth trying from a position, built the way
-// the offer list builds them and left to Apply to accept or refuse.
-func (os *openingSearch) lays(s *GameState, t *Team) []module.Action {
-	r := s.rules()
-	hand := s.Hands[os.playerID]
-	var out []module.Action
-	add := func(a module.Action) {
-		if os.wilds || !containsWild(a.Cards) {
-			out = append(out, a)
-		}
-	}
-	cands := allMeldCandidates(r, hand, t)
-	cands = append(cands, runCandidates(r, hand, t)...)
-	for _, c := range cands {
-		add(module.Action{Verb: VerbLayMeld, Cards: c.Cards})
-	}
-	if bt := blackThreeCandidate(r, hand); bt != nil {
-		add(module.Action{Verb: VerbLayMeld, Cards: bt})
-	}
-	for i := range t.Melds {
-		mm := &t.Melds[i]
-		seen := map[string]bool{}
-		for _, c := range layOffCards(r, hand, mm) {
-			if seen[c] {
-				continue
-			}
-			seen[c] = true
-			add(module.Action{Verb: VerbLayOff, Target: mm.ID, Cards: []string{c}})
-		}
-	}
-	orderLays(out)
-	return out
+// lays is turnLays for the cards this search may spend.
+func (os *openingSearch) lays(s *GameState, _ *Team) []module.Action {
+	return turnLays(s, os.playerID, os.wilds)
 }
 
 // orderLays puts the lays a person would reach for first: the most value on

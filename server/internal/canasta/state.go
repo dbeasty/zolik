@@ -150,6 +150,15 @@ const (
 	// that it does not, and a player told to wait for a thaw that is never
 	// coming has been told the wrong thing.
 	ErrMeldCaptureNotAllowed = "MELD_CAPTURE_NOT_ALLOWED"
+
+	// ErrCaptureLeavesNoDiscard is a capture after which the turn could not be
+	// finished: no discard the engine would accept, and no way out by laying,
+	// however the hand it leaves were played. See applyTakePile.
+	//
+	// Its own code because every other refusal on the pile is about the pile —
+	// frozen, blocked, the wrong cards — and this one is about the hand: the
+	// same capture would be fine holding one more card.
+	ErrCaptureLeavesNoDiscard = "CAPTURE_LEAVES_NO_DISCARD"
 )
 
 // Meld is one partnership's set of a single rank.

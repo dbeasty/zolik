@@ -174,6 +174,8 @@ export const da: Record<string, string> = {
     'En sort tre øverst spærrer bunken — ingen må tage den, før den er dækket — og en sort tre på hånden koster {n}.',
   'canasta.rules.pileFrozenByWild':
     'Et begravet jokerkort fryser bunken for alle: at tage den koster så to naturlige kort fra din hånd i det øverste korts værdi.',
+  'canasta.rules.stockOut':
+    'Når bunken er tom, fortsætter spillet kun, så længe spilleren i tur kan tage kastebunken og stadig afslutte sin tur — kan de ikke det, slutter given.',
   'canasta.rules.meldShape': 'En melding er {n} eller flere kort af samme værdi.',
   'canasta.rules.wildLimit':
     'En melding må have højst {wilds} jokerkort og aldrig færre end {naturals} naturlige.',
@@ -368,6 +370,7 @@ export const da: Record<string, string> = {
   'err.PILE_FROZEN': 'Bunken er frosset — du skal bruge to naturlige kort af det øverste korts værdi',
   'err.MELD_CAPTURE_NOT_ALLOWED': 'I dette spil kan en kombination på bordet ikke tage bunken — du skal bruge to kort fra hånden',
   'err.CAPTURE_NEEDS_TWO_CARDS': 'At tage kastebunken koster to kort fra din hånd',
+  'err.CAPTURE_LEAVES_NO_DISCARD': 'Tager du bunken sådan, kan du ikke afslutte din tur',
   'err.TOP_CARD_UNUSABLE': 'Din side kan ikke bruge det øverste kort',
   'err.MELD_CLOSED': 'Den kombination er komplet og lukket',
   'err.MELD_TOO_SMALL': 'En kombination kræver flere kort end det',
