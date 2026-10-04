@@ -1,0 +1,68 @@
+# Canasta v3: continues canasta-v2 (same encoder 383/40, same league) where
+# it stopped. v2 ended with reward still rising and KL near 0.001: the policy
+# was barely moving. v3 raises the learning rate and its floor so it keeps
+# moving, and leans further on the four-seat partnership table, where v2 fell
+# short against the closer (+1,754 vs a +2,500 target; −356 net on deals the
+# closer ends by its own turn 10).
+#
+# Trained against the current rule-based Hard (no partnership go-out fix).
+#
+#   uv run python train.py --game canasta --config configs/canasta-v3.yaml \
+#     --run canasta-v3 --minutes 120 --init runs/canasta-v2-final.bin
+game: canasta
+variation: classic
+
+model:
+  trunk: [256, 256]
+  scorer: [128]
+  value: [128]
+
+env:
+  envs: 8
+  tables: 32
+  procs: 1
+  gogc: 1000
+  budget: 50000
+
+ppo:
+  lr: 4.0e-4
+  gamma: 0.999
+  lam: 0.95
+  clip: 0.2
+  vf_coef: 0.5
+  ent_coef: 0.012
+  max_grad_norm: 0.5
+  epochs: 4
+  minibatch: 2048
+  target_kl: 0.03
+  reward_scale: 1.0
+
+train:
+  rollout: 16384
+  total_updates: 5000
+  snapshot_every: 20
+  reset_every: 20
+  lr_floor: 0.25
+
+league:
+  blend: {checkpoint: 0.25, heuristic: 0.55, self: 0.2}
+  seats: {4: 0.8, 2: 0.2}
+  samba: false
+  variations:
+    samba: {2: 0.3, 4: 0.4, 6: 0.3}
+  partnerships: true
+  partner_learner: 0.5
+  partner_bot: hard
+  opponents:
+    closer: 1.5
+    hard: 1.0
+    medium: 0.5
+    easy: 0.2
+  checkpoint_temperature: 1.0
+  checkpoint_decay: 0.8
+  pool_size: 20
+
+eval:
+  seats: 4
+  seeds: 300
+  opponents: [closer, hard, medium]

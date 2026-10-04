@@ -24,6 +24,7 @@ type harness struct {
 	users   *fakeUsers
 	live    *fakeLive
 	reports *fakeReports
+	bots    *fakeBots
 	counts  *countingSink
 	admin   models.User
 	other   models.User
@@ -73,6 +74,7 @@ func newHarnessWith(t *testing.T, passwordLogin PasswordLogin, adminEmails ...st
 
 	live := &fakeLive{}
 	reports := &fakeReports{}
+	bots := newFakeBots()
 
 	r := chi.NewRouter()
 	NewHandlers(Deps{
@@ -81,10 +83,12 @@ func newHarnessWith(t *testing.T, passwordLogin PasswordLogin, adminEmails ...st
 		Live:          live,
 		WaitingRoomID: "waiting",
 		Version:       "test",
+		HardModels:    bots.rows,
+		SetHardModel:  bots.set,
 	}).RegisterRoutes(r)
 
 	return &harness{
-		router: r, users: users, live: live, reports: reports,
+		router: r, users: users, live: live, reports: reports, bots: bots,
 		counts: counts, admin: adminUser, other: other,
 	}
 }

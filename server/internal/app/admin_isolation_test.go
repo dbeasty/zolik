@@ -36,12 +36,14 @@ func TestPublicRouterHasNoAdminRoutes(t *testing.T) {
 		"/admin/api/report",
 		"/admin/api/status",
 		"/admin/api/session",
+		"/admin/api/bots",
+		"/admin/api/bots/zolik",
 		"/admin/app.js",
 		"/admin/styles.css",
 	}
 
 	for _, path := range paths {
-		for _, method := range []string{http.MethodGet, http.MethodPost} {
+		for _, method := range []string{http.MethodGet, http.MethodPost, http.MethodPut} {
 			req := httptest.NewRequest(method, path, nil)
 			rec := httptest.NewRecorder()
 			public.ServeHTTP(rec, req)
@@ -70,14 +72,20 @@ func TestAdminRouterHasTheConsole(t *testing.T) {
 	adminRouter := chi.NewRouter()
 	a.RegisterAdminRoutes(adminRouter)
 
-	req := httptest.NewRequest(http.MethodGet, "/admin/api/report", nil)
-	rec := httptest.NewRecorder()
-	adminRouter.ServeHTTP(rec, req)
+	for _, route := range [][2]string{
+		{http.MethodGet, "/admin/api/report"},
+		{http.MethodGet, "/admin/api/bots"},
+		{http.MethodPut, "/admin/api/bots/zolik"},
+	} {
+		req := httptest.NewRequest(route[0], route[1], nil)
+		rec := httptest.NewRecorder()
+		adminRouter.ServeHTTP(rec, req)
 
-	// 401, because no token was sent. That is the console answering, which is
-	// exactly what must not happen on the public router.
-	if rec.Code != http.StatusUnauthorized {
-		t.Errorf("got %d, want 401 — the admin router should carry a guarded report route", rec.Code)
+		// 401, because no token was sent. That is the console answering, which is
+		// exactly what must not happen on the public router.
+		if rec.Code != http.StatusUnauthorized {
+			t.Errorf("%s %s: got %d, want 401 — the admin router should carry it, guarded", route[0], route[1], rec.Code)
+		}
 	}
 }
 

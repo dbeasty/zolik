@@ -1,0 +1,96 @@
+# Canasta v4: canasta-v3 widened to the card-inference encoder (383/40 ->
+# 539/44: the opponent-inference blocks and the capture-risk discard
+# features), trained against the rule-based Hard as it is on main now (races
+# to go out at partnership tables, discards by opponent inference, lays off a
+# rank's naturals together), with the research survey's two leading ideas:
+#
+#   model.priv     a perfect-information critic (E3, PerfectDou): the value
+#                  GAE uses also reads every other hand and the stock. The
+#                  policy never does, and the exported file is the policy plus
+#                  the plain value head, so the server is unchanged.
+#   reward.match   global reward prediction (E4, Suphx): each deal pays
+#                  alpha * (points difference / 1000) + (1 - alpha) * k *
+#                  (change in P(win the match)), P fitted by winmodel.py on
+#                  whole matches between the heuristics and canasta-v3. The
+#                  deal-only reward prices 300 points the same at 4,800-1,000
+#                  as at 1,000-4,800; a side ahead wins the match by ending
+#                  deals, which the closer does and v3 did not learn to.
+#
+# League as v3: four seats 0.8, the closer weighted highest, the learner's
+# partner another learner or Hard half and half.
+#
+#   uv run python train.py --game canasta --config configs/canasta-v4.yaml \
+#     --run canasta-v4 --minutes 150 --init <canasta-v3 final.bin> --widen \
+#     --set env.envs=12
+#
+# Result (2026-10-03, 685 updates, 11.2M decisions at ~1,330/s; 300 held-out
+# seeds, temperature 0, against main's Hard): vs closer at four seats +2,474
+# ± 65 (v3 +1,867), with a Hard partner +1,601 ± 68 (v3 +1,300), vs Hard at
+# four seats +2,257 ± 70 (v3 +1,136), head to head with v3 +1,128 ± 87 (4
+# seats) and +1,520 ± 160 (2). Still net -291 on deals the closer ends by its
+# turn 10 (v3 -326). The critic bought little: explained variance 0.80 vs
+# 0.78 for the plain head.
+game: canasta
+variation: classic
+
+model:
+  trunk: [256, 256]
+  scorer: [128]
+  value: [128]
+  priv: [128]
+
+reward:
+  match:
+    alpha: 0.5
+    k: 5.0  # winmodel.py: sd(deal reward) 1.12 / sd(ΔP) 0.216 = 5.16
+    model: configs/canasta-winmodel.json
+
+env:
+  envs: 8
+  tables: 32
+  procs: 1
+  gogc: 1000
+  budget: 50000
+
+ppo:
+  lr: 4.0e-4
+  gamma: 0.999
+  lam: 0.95
+  clip: 0.2
+  vf_coef: 0.5
+  ent_coef: 0.012
+  max_grad_norm: 0.5
+  epochs: 4
+  minibatch: 2048
+  target_kl: 0.03
+  reward_scale: 1.0
+
+train:
+  rollout: 16384
+  total_updates: 5000
+  snapshot_every: 20
+  reset_every: 20
+  lr_floor: 0.25
+
+league:
+  blend: {checkpoint: 0.25, heuristic: 0.55, self: 0.2}
+  seats: {4: 0.8, 2: 0.2}
+  samba: false
+  variations:
+    samba: {2: 0.3, 4: 0.4, 6: 0.3}
+  partnerships: true
+  partner_learner: 0.5
+  partner_bot: hard
+  opponents:
+    closer: 1.5
+    hard: 1.0
+    medium: 0.5
+    easy: 0.2
+  checkpoint_temperature: 1.0
+  checkpoint_decay: 0.8
+  pool_size: 20
+
+eval:
+  seats: 4
+  seeds: 300
+  opponents: [closer, hard, medium]

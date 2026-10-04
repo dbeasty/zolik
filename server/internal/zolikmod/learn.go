@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"zolik/server/internal/ai"
+	"zolik/server/internal/cardinfer"
 	"zolik/server/internal/learn"
 	"zolik/server/internal/module"
 	"zolik/server/internal/rules"
@@ -208,6 +209,34 @@ func slotCard(i int) string {
 //	            continental), any card from the pile, pile lock lap (/3),
 //	            target (/200), fixed deals (/7), reclaimed joker must be played,
 //	            joker discard restricted, seats one-hot (2..4), min run (/4)
+//	[630,639)   how far my hand is from going down (distanceOf; all zero once
+//	            I am down): natural cards missing from the nearest clean run
+//	            window whose missing cards are all still unseen (/4, 1 when
+//	            none is), whether any clean run is completable at all, the
+//	            unseen copies of that window's missing cards (/8), cards the
+//	            contract's runs still want (/6), cards its sets still want
+//	            (/6), natural value of the melds the hand holds now (/70),
+//	            points the floor still wants beyond that (/70), all of it
+//	            together in cards (/8, the floor at ten a card), the clean
+//	            run already in hand
+//	[639,900)   three opponent blocks of rivalDim (87), the order they play
+//	            after me — what each has shown it is collecting (rivalOf):
+//	            cards seen taken off the pile and still held, per suit H C D
+//	            S (/4) and per rank 2..A (/4); cards on the table in its
+//	            melds, per suit (/8) and per rank (/4); and its wants, per
+//	            card slot: 1 where the card lays off onto its own melds or
+//	            completes a pair it took, 0.5 next to (or the rank of) a
+//	            single card it took
+//
+//	[900,1161)  three inference blocks of inferDim (87), the order they play
+//	            after me — what each probably holds and wants
+//	            (internal/cardinfer via ai.Infer, public information only):
+//	            expected copies held per rank 2..A (/2) and per suit H C D S
+//	            (/8), expected jokers (/2); how much more than a random card
+//	            it wants each rank (the most over the suits) and each suit
+//	            (the most over the ranks), and what it wants of a random card;
+//	            its three most wanted unseen cards, each a rank one-hot (13)
+//	            and a suit one-hot (4)
 //
 // A seat block (seatDim = 15):
 //
@@ -231,7 +260,14 @@ const (
 	offTurn     = offSeats + maxSeats*seatDim
 	offReq      = offTurn + 13
 	offRules    = offReq + 9
-	learnState  = offRules + 3 + 6 + 3 + 1
+	offDist     = offRules + 3 + 6 + 3 + 1
+	distDim     = 9
+	offRivals   = offDist + distDim
+	rivalDim    = 2*(numSuits+numRanks) + numCardSlot
+	offInfer    = offRivals + (maxSeats-1)*rivalDim
+	inferTop    = 3
+	inferDim    = 2*(numRanks+numSuits) + 2 + inferTop*(numRanks+numSuits)
+	learnState  = offInfer + (maxSeats-1)*inferDim
 )
 
 func (learnGame) StateDim() int { return learnState }
@@ -412,7 +448,67 @@ func (learnGame) EncodeFor(at learn.Position, seat string) ([]float32, error) {
 		o[n-2] = 1
 	}
 	o[3] = float32(cfg.MinRunSize) / 4
+
+	if !gs.RoundReqMet[seat] {
+		encodeDistance(v[offDist:offDist+distDim], distanceOf(hand, cfg, req, &unseen), req)
+	}
+	for i, id := range order[1:] {
+		r := rivalOf(vis, id, cfg)
+		b := v[offRivals+i*rivalDim : offRivals+(i+1)*rivalDim]
+		for k := 0; k < numSuits; k++ {
+			b[k] = float32(r.takenSuit[k]) / 4
+			b[numSuits+numRanks+k] = float32(r.meldSuit[k]) / 8
+		}
+		for k := 0; k < numRanks; k++ {
+			b[numSuits+k] = float32(r.takenRank[k]) / 4
+			b[2*numSuits+numRanks+k] = float32(r.meldRank[k]) / 4
+		}
+		copy(b[2*(numSuits+numRanks):], r.wants[:])
+	}
+	var est cardinfer.Estimate
+	ai.Infer(vis, hand, seat, &est)
+	for i := 0; i < est.N && i < maxSeats-1; i++ {
+		encodeInference(v[offInfer+i*inferDim:offInfer+(i+1)*inferDim], &est, i)
+	}
 	return v, nil
+}
+
+// encodeInference writes one seat's inference block (see the layout above).
+func encodeInference(b []float32, est *cardinfer.Estimate, i int) {
+	hold := &est.Hold[i]
+	for k := 0; k < jokerSlot; k++ {
+		r, su := k/numSuits, k%numSuits
+		b[r] += float32(hold[k]) / 2
+		b[numRanks+su] += float32(hold[k]) / 8
+		x := float32(est.Excess(i, k))
+		o := numRanks + numSuits + 1
+		b[o+r] = max(b[o+r], x)
+		b[o+numRanks+su] = max(b[o+numRanks+su], x)
+	}
+	b[numRanks+numSuits] = float32(hold[jokerSlot]) / 2
+	b[2*(numRanks+numSuits)+1] = float32(est.Base[i])
+	var top [inferTop]int
+	n := est.TopWanted(i, top[:])
+	for j := 0; j < n; j++ {
+		if top[j] == jokerSlot {
+			continue // a joker is wanted by everybody; it says nothing
+		}
+		o := 2*(numRanks+numSuits) + 2 + j*(numRanks+numSuits)
+		b[o+top[j]/numSuits] = 1
+		b[o+numRanks+top[j]%numSuits] = 1
+	}
+}
+
+func encodeDistance(b []float32, d distance, req rules.ContractRequirement) {
+	b[0] = float32(min(d.clean, 4)) / 4
+	b[1] = b2f(d.cleanLive)
+	b[2] = float32(min(d.cleanOuts, 16)) / 8
+	b[3] = float32(min(d.runs, 12)) / 6
+	b[4] = float32(min(d.sets, 12)) / 6
+	b[5] = float32(min(d.value, 140)) / 70
+	b[6] = float32(d.short) / 70
+	b[7] = float32(min(d.total(req), 16)) / 8
+	b[8] = b2f(d.clean == 0)
 }
 
 // variationIndex reads which of learnVariations a table plays off its resolved
@@ -488,50 +584,9 @@ func unseenCounts(vis ai.VisibleState, hand []string, seat string) [numCardSlot]
 }
 
 // extenders marks every card that would lay off onto some meld on the table
-// as it stands. Asked of the validator, and only for the cards that could
-// possibly answer yes — a set's missing suits, a run's two ends, a joker —
-// which is a handful of questions a meld rather than fifty-three.
+// as it stands (ai.TableExtenders: the card slots are the same layout).
 func extenders(melds map[string][][]string, cfg rules.RulesConfig) [numCardSlot]bool {
-	var out [numCardSlot]bool
-	for _, owner := range sortedKeys(melds) {
-		for _, m := range melds[owner] {
-			mv, err := rules.ValidateMeld(m, cfg)
-			if err != nil {
-				continue
-			}
-			var try []string
-			if mv.Type == rules.MeldSet {
-				rank := byte(0)
-				for _, c := range m {
-					if !rules.IsJoker(c) {
-						rank = c[0]
-						break
-					}
-				}
-				for _, s := range learnSuits {
-					try = append(try, string(rank)+s)
-				}
-			} else if len(mv.ResolvedRun) > 0 {
-				lo, hi := mv.ResolvedRun[0], mv.ResolvedRun[len(mv.ResolvedRun)-1]
-				for _, r := range []int{lo - 1, hi + 1} {
-					if c := runRankCard(r, mv.ResolvedSuit); c != "" {
-						try = append(try, c)
-					}
-				}
-			}
-			try = append(try, "JOKER1")
-			for _, c := range try {
-				k := cardSlot(c)
-				if k < 0 || out[k] {
-					continue
-				}
-				if _, err := rules.ValidateMeld(append(append([]string(nil), m...), c), cfg); err == nil {
-					out[k] = true
-				}
-			}
-		}
-	}
-	return out
+	return ai.TableExtenders(melds, cfg)
 }
 
 // runRankCard is the card at a run position: 1 and 14 are the ace, 2..13 the
@@ -608,6 +663,25 @@ func b2f(b bool) float32 {
 //	         neighbours in hand within two ranks (/4), it is part of a meld the
 //	         hand could lay now, another seat discarded its rank this deal
 //	51       pile takes only: the card makes a meld with the hand
+//	52-55    discards (and pile takes, of the card taken): how clearly the next
+//	         seat wants the card (its rivalOf wants, 0..1), the most any
+//	         opponent wants it, the cards of its suit within two ranks the
+//	         next seat was seen to take (/2), and of its rank (/2)
+//	56-59    pile takes and discards, before going down: how much the move
+//	         brings me closer to going down, per contract part — cards
+//	         missing from the clean run, the runs and the sets (/4 each), and
+//	         points the floor still wants (/70); negative is further away
+//	60       pile takes only: a building card — it brings a part closer (or,
+//	         once down, joins a card of its rank or suit in hand) without
+//	         making a meld now
+//	61       every part of going down the hand still wants afterwards, in
+//	         cards (/8; zero once down or out)
+//	62-63    the card the move is about, by the card inference
+//	         (cardinfer.Estimate.Feed): how much more than a random card the
+//	         next seat wants it, and the most any opponent does
+//
+// Every kind but forced also carries the penalty left in hand afterwards
+// (40): the deck draw its hand as it stands, the unknown card aside.
 const (
 	kindDrawDeck = iota
 	kindTakePile
@@ -646,15 +720,37 @@ const (
 	fInMeld     = fSuitNear + 1
 	fPassed     = fInMeld + 1
 	fMakesMeld  = fPassed + 1
-	learnCand   = fMakesMeld + 1
+	fFeedsNext  = fMakesMeld + 1
+	fFeedsAny   = fFeedsNext + 1
+	fNextSuit   = fFeedsAny + 1
+	fNextRank   = fNextSuit + 1
+	fDClean     = fNextRank + 1
+	fDRuns      = fDClean + 1
+	fDSets      = fDRuns + 1
+	fDShort     = fDSets + 1
+	fBuilds     = fDShort + 1
+	fDistAfter  = fBuilds + 1
+	fInferNext  = fDistAfter + 1
+	fInferAny   = fInferNext + 1
+	learnCand   = fInferAny + 1
 	maxCands    = 64
-	maxPileTake = 8
 	maxLayMelds = 16
-	maxLayOffs  = 24
-	maxReclaims = 8
+	// maxLoosePickups bounds a down seat's loose pickups in a deal: see
+	// pileTakes.
+	maxLoosePickups = 3
+	maxLayOffs      = 24
+	maxReclaims     = 8
 )
 
 func (learnGame) CandDim() int { return learnCand }
+
+var _ learn.Appending = learnGame{}
+
+// EncoderPrefixes are the earlier encoders this one appended to: 900/62,
+// before the card inference blocks (offInfer) and the two inference
+// candidate features (fInferNext, fInferAny) — the zolik-v2 model's encoder.
+// TestNarrowedV2ChoosesAsOnItsOwnEncoder holds the claim to recorded play.
+func (learnGame) EncoderPrefixes() [][2]int { return [][2]int{{offInfer, fInferNext}} }
 
 // How hard the opening search looks, in engine applications — an opening is
 // found by laying it, not by reasoning about whether it could be laid.
@@ -750,6 +846,18 @@ type builder struct {
 	wanted map[string]bool
 	passed map[int]bool
 	inMeld map[string]bool
+	// req is this deal's contract and down whether I have met it; dist is my
+	// hand's distance from it (unset once down). rivals are the other seats
+	// in the order they play after me, the first of them the one my discard
+	// is offered to.
+	req    rules.ContractRequirement
+	down   bool
+	dist   distance
+	rivals []*rival
+	// pickups is how many times I have taken from the pile this deal.
+	pickups int
+	// est is the card inference for every other seat, in rivals' order.
+	est cardinfer.Estimate
 	// seenAfter dedupes plans by the position they leave: a lay-off that
 	// happens to buy a joker back and an explicit swap of the same card are
 	// one move.
@@ -764,6 +872,16 @@ func newBuilder(s *matchState, seat string) *builder {
 		ext: extenders(gs.Melds, cfg), unseen: unseenCounts(vis, gs.Hands[seat], seat),
 		wanted: map[string]bool{}, passed: map[int]bool{}, inMeld: map[string]bool{},
 		seenAfter: map[string]bool{}}
+	b.req = cfg.ContractFor(gs.GameNumber)
+	b.down = gs.RoundReqMet[seat]
+	b.pickups = vis.Pickups[seat]
+	if !b.down {
+		b.dist = distanceOf(b.hand, cfg, b.req, &b.unseen)
+	}
+	for _, id := range seatsFrom(gs.TurnOrder, seat)[1:] {
+		b.rivals = append(b.rivals, rivalOf(vis, id, cfg))
+	}
+	ai.Infer(vis, b.hand, seat, &b.est)
 	for id, cards := range vis.KnownHeld {
 		if id == seat {
 			continue
@@ -910,11 +1028,13 @@ func candidateOf(steps []rules.Action, f []float32) learn.Candidate {
 
 // --- the draw ------------------------------------------------------------------
 
-// draws are the ways to start a turn: the stock, and each card the engine lets
-// this seat take off the pile. Before going down a pickup is an obligation —
-// the card has to go into the opening this turn — so it is offered only
-// together with an opening that spends it, found from the position the pickup
-// actually produces.
+// draws are the ways to start a turn: the stock, and every pickup the engine
+// allows this seat. Before going down a pickup is an obligation — the card has
+// to go into the opening this turn (rules.ErrDiscardCardNotMelded) — so it is
+// offered only together with an opening that spends it, found from the
+// position the pickup actually produces. Once down a pickup carries no
+// obligation, and every one is offered: whether a card that lands nowhere yet
+// is worth a turn is the policy's to learn, not this file's to decide.
 func (b *builder) draws(offers []module.ActionOffer) []learn.Candidate {
 	var out []learn.Candidate
 	for _, o := range offers {
@@ -927,12 +1047,35 @@ func (b *builder) draws(offers []module.ActionOffer) []learn.Candidate {
 			f[fSteps] = 0.2
 			f[fHandAfter] = float32(len(b.hand)+1) / 15
 			f[fPenAfter] = float32(rules.HandPenaltyTotal(b.hand, b.cfg)) / 150
+			if !b.down {
+				f[fDistAfter] = float32(min(b.dist.total(b.req), 16)) / 8
+			}
 			out = append(out, learn.Candidate{Action: toModule(rules.Action{Type: rules.ActionDrawCard, DrawFrom: rules.DrawFromDeck}), Features: f})
 		case rules.OfferDrawDiscard:
 			if o.Source != nil {
 				out = append(out, b.pileTakes(o.Source.Cards)...)
 			}
 		}
+	}
+	if len(out) > maxCands {
+		// More pickups than the network is shown: keep the stock, and cut the
+		// pickups that say least — deepest first among those that neither
+		// make a meld, lay off, nor build. Stable, so the pile's own order
+		// (nearest the top first) decides the rest.
+		rank := func(c learn.Candidate) int {
+			f := c.Features
+			switch {
+			case f[kindDrawDeck] == 1:
+				return 3
+			case f[fMakesMeld] == 1 || f[fExtends] == 1 || f[kindTakeOpen] == 1:
+				return 2
+			case f[fBuilds] == 1:
+				return 1
+			}
+			return 0
+		}
+		sort.SliceStable(out, func(i, j int) bool { return rank(out[i]) > rank(out[j]) })
+		out = out[:maxCands]
 	}
 	return out
 }
@@ -967,10 +1110,6 @@ func (b *builder) pileTakes(drawable []string) []learn.Candidate {
 		takes = append(takes, take{c, at})
 	}
 	sort.SliceStable(takes, func(i, j int) bool { return takes[i].at > takes[j].at })
-	if len(takes) > maxPileTake {
-		takes = takes[:maxPileTake]
-	}
-	down := b.gs.RoundReqMet[b.seat]
 	var out []learn.Candidate
 	for _, t := range takes {
 		a := rules.Action{Type: rules.ActionDrawCard, DrawFrom: rules.DrawFromDiscard}
@@ -986,17 +1125,19 @@ func (b *builder) pileTakes(drawable []string) []learn.Candidate {
 				break
 			}
 		}
-		// A pickup is offered only when the card it names has somewhere to
-		// go this turn: into a meld with the hand, or (once down) onto the
-		// table. Before going down that is the rule's own demand — the
-		// opening has to spend it. After, it is the heuristic's lesson
-		// (discardPickupUseful): a card with nowhere to go cannot be thrown
-		// straight back (DISCARD_TAKEN_CARD_FORBIDDEN), so it is dead weight
-		// bought with a turn, and under any_from_pile it comes with every card
-		// above it. A policy offered a dozen of those against one stock draw
-		// swells its hand until the deal never ends — measured: random play
-		// with them ran single deals past twenty thousand actions.
-		if !makes && (!down || !b.ext[cardSlot(t.card)]) {
+		// Before going down the rule is that the card taken goes into this
+		// turn's opening, so a card that makes no meld with the hand has no
+		// opening to find: the engine would refuse every discard after it.
+		if !b.down && !makes {
+			continue
+		}
+		// Once down any pickup is legal, and every one is offered — but a
+		// loose one (a card that neither makes a meld with the hand nor lays
+		// off) only while this deal's pickups are few. Not a judgement of the
+		// card: a bound on the deal. With every loose pickup open, a table of
+		// down seats can trade the pile round for ever without a card leaving
+		// the stock; random self-play did, for tens of thousands of actions.
+		if loose := !makes && !b.ext[cardSlot(t.card)]; loose && b.pickups >= maxLoosePickups {
 			continue
 		}
 		ns, ok := b.apply(b.gs, a)
@@ -1009,8 +1150,14 @@ func (b *builder) pileTakes(drawable []string) []learn.Candidate {
 			f[fTakenPen] = float32(rules.HandPenaltyTotal(taken, b.cfg)) / 100
 			f[fMakesMeld] = b2f(makes)
 			f[fExtends] = b2f(b.ext[cardSlot(t.card)])
+			closer := b.distanceChange(f, combined)
+			if f[fGoesDown] == 1 {
+				f[fDistAfter] = 0
+			}
+			joins := b.down && (f[fSameRank] > 0 || f[fSuitNear] > 0)
+			f[fBuilds] = b2f(!makes && (closer || joins))
 		}
-		if down || dealEnded(b.gs, ns) || ns.RoundReqMet[b.seat] {
+		if b.down || dealEnded(b.gs, ns) || ns.RoundReqMet[b.seat] {
 			if !b.finishable(ns) {
 				continue
 			}
@@ -1019,7 +1166,7 @@ func (b *builder) pileTakes(drawable []string) []learn.Candidate {
 			out = append(out, candidateOf([]rules.Action{a}, f))
 			continue
 		}
-		for _, p := range b.openings(ns, []rules.Action{a}, takeOpenBudget, maxTakeOpens, false) {
+		for _, p := range b.openings(ns, []rules.Action{a}, takeOpenBudget, maxTakeOpens, true) {
 			f := b.describe(kindTakeOpen, p.steps, p.after)
 			describe(f)
 			out = append(out, candidateOf(p.steps, f))
@@ -1229,6 +1376,9 @@ func (b *builder) discards(offers []module.ActionOffer) []learn.Candidate {
 			f[fPenAfter] = float32(rules.HandPenaltyTotal(rest, b.cfg)) / 150
 			f[fPenShed] = float32(rules.PenaltyPoints(card, false)) / 100
 			f[fExtends] = b2f(b.ext[cardSlot(card)])
+			if len(rest) > 0 {
+				b.distanceChange(f, rest)
+			}
 			out = append(out, learn.Candidate{
 				Action:   toModule(rules.Action{Type: rules.ActionDiscard, Card: card}),
 				Features: f,
@@ -1282,6 +1432,35 @@ func (b *builder) markCard(f []float32, card string) {
 	f[fSameRank] = float32(same) / 4
 	f[fSuitNear] = float32(near) / 4
 	f[fInMeld] = b2f(b.inMeld[card])
+	if k := cardSlot(card); k >= 0 {
+		for i, r := range b.rivals {
+			if i == 0 {
+				f[fFeedsNext] = r.wants[k]
+				sn, sr := r.nearTaken(card)
+				f[fNextSuit] = float32(min(sn, 4)) / 2
+				f[fNextRank] = float32(min(sr, 4)) / 2
+			}
+			f[fFeedsAny] = max(f[fFeedsAny], r.wants[k])
+		}
+		next, anyone := b.est.Feed(k)
+		f[fInferNext], f[fInferAny] = float32(next), float32(anyone)
+	}
+}
+
+// distanceChange describes a hand change before going down: how much nearer
+// each contract part is with the new hand than with mine now (negative is
+// further), and how far it all still is. Nothing once down.
+func (b *builder) distanceChange(f []float32, after []string) (closer bool) {
+	if b.down {
+		return false
+	}
+	d := distanceOf(after, b.cfg, b.req, &b.unseen)
+	f[fDClean] = float32(b.dist.clean-d.clean) / 4
+	f[fDRuns] = float32(b.dist.runs-d.runs) / 4
+	f[fDSets] = float32(b.dist.sets-d.sets) / 4
+	f[fDShort] = float32(b.dist.short-d.short) / 70
+	f[fDistAfter] = float32(min(d.total(b.req), 16)) / 8
+	return d.clean < b.dist.clean || d.runs < b.dist.runs || d.sets < b.dist.sets || d.short < b.dist.short
 }
 
 // describe is what a plan did, read off the table before it and after it —

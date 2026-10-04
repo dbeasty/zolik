@@ -154,3 +154,26 @@ func TestRecallReachesBackInLaps(t *testing.T) {
 		t.Errorf("perfect recall = %v, want the whole deal", all)
 	}
 }
+
+// Pickups counts a seat's takes from the pile this deal — after the cards
+// taken have been played, which Held forgets — gives one back on an undo, and
+// starts again with the deal.
+func TestLedgerCountsPickups(t *testing.T) {
+	var l Ledger
+	l.reset(1)
+	take := rules.Action{Type: rules.ActionDrawCard, DrawFrom: rules.DrawFromDiscard}
+	before := rules.GameState{GameNumber: 1, DiscardPile: []string{"2C", "9H"}}
+	after := rules.GameState{GameNumber: 1, DiscardPile: []string{"2C"}}
+	l.Observe(Before(before), after, "karel", take)
+	l.Observe(Before(after), after, "karel", rules.Action{Type: rules.ActionLayMeld, Cards: []string{"9H", "9S", "9D"}})
+	l.Observe(Before(before), after, "karel", take)
+	l.Observe(Before(after), before, "karel", rules.Action{Type: rules.ActionUndoDrawDiscard})
+	l.Observe(Before(before), after, "karel", take)
+	if got := VisibleFor(rules.GameState{GameNumber: 1}, l, "rita").Pickups["karel"]; got != 2 {
+		t.Fatalf("pickups = %d, want 2", got)
+	}
+	l.Observe(Before(after), rules.GameState{GameNumber: 2}, "karel", rules.Action{Type: rules.ActionDiscard, Card: "2C"})
+	if got := VisibleFor(rules.GameState{GameNumber: 2}, l, "rita").Pickups["karel"]; got != 0 {
+		t.Fatalf("pickups = %d in a new deal, want 0", got)
+	}
+}

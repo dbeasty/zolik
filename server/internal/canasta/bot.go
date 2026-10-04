@@ -41,7 +41,11 @@ import (
 //	              and the pile still to be taken is worth whatever is in it.
 //	              See worthGoingOut, which is the judgement Samba needs most
 //	              and the one an offer list can never carry.
-type bot struct{}
+type bot struct {
+	// style, when set, is the profile this bot plays whatever skill its seat
+	// was given — a style from Styles rather than a rung of the ladder.
+	style *profile
+}
 
 var _ module.Bot = bot{}
 
@@ -69,6 +73,9 @@ func (b bot) Act(raw module.State, seat module.BotSeat, offers []module.ActionOf
 		return module.ChooseAction(offers, nil)
 	}
 	p := profileFor(seat.Skill)
+	if b.style != nil {
+		p = *b.style
+	}
 	mn := menuOf(offers)
 	tb := b.read(s, seat.PlayerID, p)
 
@@ -141,6 +148,10 @@ type profile struct {
 	// captures, discards and passes this deal), times the cards the pile
 	// would hand it. Below feeding a melded rank, above the card's own value.
 	infers bool
+	// closer races for the side's canasta quota and then out: see
+	// closerProfile. It changes where wilds go, when the pile is worth taking
+	// and which card is shed, never what is legal.
+	closer bool
 }
 
 var profiles = map[module.Skill]profile{
@@ -182,6 +193,42 @@ var profiles = map[module.Skill]profile{
 	},
 }
 
+// closerProfile is the closer: a style, not a rung of the ladder, for the
+// learning pool and the bench (learnGame.Styles). It is the player who ends
+// deals early — modelled on Žolíky's ai.CloserProfile — and it exists because
+// the ladder does not have one: Hard banks points (worthGoingOut) and hoards
+// its wilds for natural canastas, so a deal against it runs long and nobody
+// ever punishes a big hand left over at the end.
+//
+// It reads the table as Hard does. What it changes:
+//
+//	the pile     taken at any size while the side is short of its canastas,
+//	             because a capture is the fastest way to seven of a rank;
+//	             once the quota is met, only when the capture does not leave
+//	             the hand bigger than it was.
+//	the wilds    spent to finish the quota canasta — laid off onto any meld
+//	             of four or more, or in a new meld of seven — and, once the
+//	             quota is met, onto anything that takes them. A mixed canasta
+//	             now beats a natural one later.
+//	the close    always worth it (no banksPoints): once the side may go out,
+//	             every lay-off and meld that empties the hand is made.
+//	the discard  once the quota is met, the dead cards go first — a rank the
+//	             side can no longer meld, then singles before pairs — and the
+//	             dearest of them, since the hand is about to be counted.
+var closerProfile = profile{
+	skill:           module.SkillHard,
+	takesPile:       true,
+	pileWorthTaking: 1,
+	readsDanger:     true,
+	hoardsWilds:     true,
+	readsHandCounts: true,
+	endgameAt:       3,
+	closer:          true,
+}
+
+// hasQuota reports that this side already has the canastas it needs to go out.
+func hasQuota(s *GameState, t *Team) bool { return t != nil && canGoOut(s, t) }
+
 // endgameHandSize is the default for profile.endgameAt.
 const endgameHandSize = 2
 
@@ -219,8 +266,9 @@ type table struct {
 	// the table.
 	ending bool
 	// racing is a partnership table, at a profile that races there: see
-	// partnered. quota is, at such a table, that the side already has the
-	// canastas it needs to go out.
+	// partnered. quota is that the side already has the canastas it needs to
+	// go out; it is read at such a table and by the closer, and false
+	// otherwise, so a heads-up Hard plays as it did without it.
 	racing bool
 	quota  bool
 }
@@ -259,6 +307,9 @@ func (b bot) read(s *GameState, playerID string, p profile) table {
 	out.pressed = shortest <= at || len(s.DrawPile) <= 2
 	out.ending = out.ending || out.pressed
 	out.closing = out.pressed || !p.banksPoints || out.racing || worthGoingOut(s, playerID)
+	if p.closer {
+		out.quota = hasQuota(s, s.team(playerID))
+	}
 	return out
 }
 
@@ -458,6 +509,7 @@ func (b bot) bestCapture(raw module.State, s *GameState, playerID string, p prof
 	if len(s.DiscardPile) < floor {
 		return module.ActionOffer{}, false
 	}
+	quota := p.closer && hasQuota(s, t)
 	// Cheapest capture first: the fewest cards out of hand, and among equals
 	// the fewest wilds, because a capture paid for with a wild has spent the
 	// most valuable card in the hand on a card that was free to whoever went
@@ -473,6 +525,14 @@ func (b bot) bestCapture(raw module.State, s *GameState, playerID string, p prof
 		if opening {
 			a, ok := module.SubmissionFor(o)
 			if !ok || !captureOpens(raw, playerID, a) {
+				continue
+			}
+		}
+		// The closer with its canastas made wants a smaller hand, not a
+		// bigger table: the pile is worth it only if the hand does not grow.
+		// The top card goes onto the meld; the rest come into the hand.
+		if quota {
+			if spent, _ := captureCost(o); len(s.DiscardPile)-1 > spent {
 				continue
 			}
 		}
@@ -546,7 +606,7 @@ func (b bot) build(raw module.State, s *GameState, playerID string, p profile, t
 	}
 	best, found := module.ActionOffer{}, false
 	for _, o := range melds {
-		if p.hoardsWilds && spendsWild(o) && !worthAWild(t, tb, o) {
+		if p.hoardsWilds && spendsWild(o) && !worthAWildFor(t, p, tb, o) {
 			continue
 		}
 		// The move that ends the deal, declined. See worthGoingOut: a side
@@ -616,6 +676,19 @@ func worthAWild(t *Team, tb table, o module.ActionOffer) bool {
 	return tb.ending
 }
 
+// worthAWildFor is worthAWild with the closer's answer: a wild in a new meld
+// is worth it once the quota is met (it empties the hand) or when the meld is
+// itself a canasta, whatever the stock says.
+func worthAWildFor(t *Team, p profile, tb table, o module.ActionOffer) bool {
+	if !p.closer {
+		return worthAWild(t, tb, o)
+	}
+	if t != nil && !t.HasMelded {
+		return true
+	}
+	return tb.quota || len(meldCards(o)) >= canastaSize
+}
+
 // betterMeld orders the melds a hand could lay: the biggest first, and among
 // equals the one that spends no wild.
 //
@@ -673,7 +746,7 @@ func (b bot) bestLayOff(s *GameState, t *Team, p profile, tb table, mn menu) (mo
 			// Where a wild may go, and it is not many places. An offer whose
 			// meld this side does not own is not one either: a wild that
 			// cannot be priced is a wild that stays in the hand.
-			if wild && (target == nil || !wildMayJoin(*target, p, tb)) {
+			if wild && (target == nil || !wildMayJoinFor(*target, p, tb)) {
 				continue
 			}
 			cand := option{offer: o, card: c, reach: layOffReach(size), wild: wild}
@@ -809,6 +882,20 @@ func wildMayJoin(m Meld, p profile, tb table) bool {
 	return !p.hoardsWilds
 }
 
+// wildMayJoinFor is wildMayJoin with the closer's answer: never onto a
+// finished canasta, onto anything once the quota is met, and before then onto
+// a meld of four or more, where the wild is a step towards the canasta the
+// quota needs rather than a card taken out of play.
+func wildMayJoinFor(m Meld, p profile, tb table) bool {
+	if !p.closer {
+		return wildMayJoin(m, p, tb)
+	}
+	if m.isCanasta() {
+		return false
+	}
+	return tb.quota || len(m.Cards) >= canastaSize-3
+}
+
 func betterLayOff(xWild bool, xReach int, xCard string, yWild bool, yReach int, yCard string) bool {
 	if xWild != yWild {
 		return !xWild
@@ -841,6 +928,19 @@ func (b bot) discard(s *GameState, playerID string, p profile, tb table, mn menu
 	counts := map[string]int{}
 	for _, c := range hand {
 		counts[rankOf(c)]++
+	}
+	shedding := p.closer && tb.quota
+	// dead is a rank this side can no longer put on the table: its meld of
+	// that rank is closed and no second one may be started. Such a card can
+	// only ever leave the hand as a discard.
+	dead := map[string]bool{}
+	if t := s.team(playerID); shedding && t != nil {
+		r := s.rules()
+		for _, m := range t.Melds {
+			if m.kind() == meldSet && m.closed(r) && t.rankIsFull(r, m.Rank) && t.openGroup(r, m.Rank) == nil {
+				dead[m.Rank] = true
+			}
+		}
 	}
 	danger := map[string]bool{}
 	if p.readsDanger {
@@ -879,13 +979,18 @@ func (b bot) discard(s *GameState, playerID string, p profile, tb table, mn menu
 			// and its five points are worth spending to keep a fat pile shut.
 			blocks:    isBlackThree(c),
 			feeds:     danger[rankOf(c)],
+			dead:      dead[rankOf(c)],
 			gives:     gives,
 			givesMany: givesMany,
 			value:     cardValue(c),
 			ordinal:   c,
 		})
 	}
-	sort.SliceStable(cands, func(i, j int) bool { return betterDiscard(cands[i], cands[j], s, tb) })
+	better := func(i, j int) bool { return betterDiscard(cands[i], cands[j], s, tb) }
+	if shedding {
+		better = func(i, j int) bool { return betterShed(cands[i], cands[j]) }
+	}
+	sort.SliceStable(cands, better)
 	return module.Action{OfferID: o.ID, Verb: VerbDiscard, Cards: []string{cands[0].card}}, true
 }
 
@@ -895,6 +1000,7 @@ type discardCandidate struct {
 	building bool
 	blocks   bool
 	feeds    bool
+	dead     bool
 	// gives is the expected cards handed to the next seat by a capture this
 	// discard makes possible, in buckets of giveawayCards; zero without the
 	// inference.
@@ -953,6 +1059,31 @@ func betterDiscard(x, y discardCandidate, s *GameState, tb table) bool {
 			return x.value > y.value
 		}
 		return x.value < y.value
+	}
+	return x.ordinal < y.ordinal
+}
+
+// betterShed is the closer's discard once its side may go out. The hand is now
+// a bill, not an investment, and the question is only which card gets it
+// closer to empty: never a wild (it finishes or extends a meld); then a card
+// no meld can take; then a single before a pair, since a pair is one card
+// from a meld; then, among what is left, not the rank the other side is
+// collecting; and the dearest first.
+func betterShed(x, y discardCandidate) bool {
+	if x.wild != y.wild {
+		return !x.wild
+	}
+	if x.dead != y.dead {
+		return x.dead
+	}
+	if x.building != y.building {
+		return !x.building
+	}
+	if x.feeds != y.feeds {
+		return !x.feeds
+	}
+	if x.value != y.value {
+		return x.value > y.value
 	}
 	return x.ordinal < y.ordinal
 }

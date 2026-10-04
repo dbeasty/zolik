@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"strconv"
 
+	"zolik/server/internal/learn"
 	"zolik/server/internal/module"
 )
 
@@ -38,7 +39,11 @@ import (
 // the range that offer declares, and degrades to the next-best legal verb when
 // what it wanted is not on the menu. The engine remains the only authority on
 // the rules, exactly as it is for a human.
-func (m *Module) Bot() module.Bot { return bot{} }
+//
+// Hard seats play the shipped trained model instead when an operator has
+// switched it on (learn.HardModel); this bot stays the fallback and plays
+// every Easy and Medium seat.
+func (m *Module) Bot() module.Bot { return learn.HardModel(learnGame{}, bot{}) }
 
 type bot struct {
 	// tuning overrides the strength ladder for every seat this bot plays.
@@ -171,6 +176,19 @@ type profile struct {
 	// it heldClaim folds second pair to a maniac's pot-sized bet, which cost
 	// four big blinds a match against one; zero leaves heldClaim unguarded.
 	wildRaiser float64
+	// madeClaim reads a bet the way a solid player reads one: as a claim to
+	// a pair the bettor holds *now* — a pocket pair, or a hole card paired on
+	// the board — and never as more than that, however big the bet.
+	//
+	// The ladder reads a big bet as a claim to two pair by the river
+	// (claimedBy), which is right against honest bettors and is exactly what
+	// an overbet exploits: almost no one-pair hand beats a two-pair range, so
+	// top pair folds to every shove. Read as "has a pair now", a shove is
+	// called by the hands that beat what shoves light, top pair with a kicker
+	// and better, and folded by the hands that do not. False on every skill;
+	// the solid style (styles.go) is what sets it, and it takes the place of
+	// heldClaim and wildRaiser for that style.
+	madeClaim bool
 
 	// --- aggression ---
 
@@ -702,6 +720,9 @@ func claimOf(p profile, owed, pot int, wild bool) claim {
 	c := claim{floor: claimedBy(owed, pot)}
 	if c.floor < pair {
 		return c
+	}
+	if p.madeClaim {
+		return claim{floor: pair, now: true}
 	}
 	c.now = p.heldClaim && !wild
 	return c

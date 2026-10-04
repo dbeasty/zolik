@@ -30,6 +30,7 @@
     options = options || {};
     var headers = options.headers || {};
     if (token) headers['Authorization'] = 'Bearer ' + token;
+    if (options.body) headers['Content-Type'] = 'application/json';
     return fetch('/admin/api' + path, {
       method: options.method || 'GET',
       headers: headers,
@@ -362,6 +363,127 @@
     note.appendChild(btn);
   }
 
+  /* ----------------------------------------------------------------- bots */
+
+  /* One row per game that ships a trained model. The switch reaches live
+   * tables at their next bot move, so every change asks first, and the card
+   * is redrawn from what the server answers rather than from what was asked
+   * for. */
+  function when(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    return isNaN(d) ? iso : d.toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
+  }
+
+  function cell(tr, className) {
+    var td = document.createElement('td');
+    if (className) td.className = className;
+    tr.appendChild(td);
+    return td;
+  }
+
+  function line(parent, text, className) {
+    var el = document.createElement('div');
+    if (className) el.className = className;
+    el.textContent = text;
+    parent.appendChild(el);
+    return el;
+  }
+
+  function renderBots(body) {
+    var table = $('bots');
+    clear(table);
+    var thead = document.createElement('thead');
+    var hr = document.createElement('tr');
+    ['game', 'model', 'hard seats play', 'last changed'].forEach(function (h) {
+      var th = document.createElement('th');
+      th.textContent = h;
+      hr.appendChild(th);
+    });
+    thead.appendChild(hr);
+    table.appendChild(thead);
+
+    var tbody = document.createElement('tbody');
+    (body.games || []).forEach(function (g) {
+      var m = g.model || {};
+      var tr = document.createElement('tr');
+
+      var name = cell(tr);
+      line(name, g.title || g.game, 'name');
+      line(name, g.game, 'sub');
+
+      var model = cell(tr, 'bot-model');
+      if (!g.embedded) {
+        line(model, 'No model in this build.', 'sub');
+      } else {
+        line(model, m.benchmark || '');
+        line(model, 'trained ' + (m.trained || '?') + ' · ' + (m.sourceRun || ''), 'sub');
+        line(model, (m.encoder || '') + ' · ' +
+          Math.round((m.bytes || 0) / 1024).toLocaleString() + ' KiB · sha256 ' +
+          (m.sha256 || '').slice(0, 12), 'sub');
+      }
+      if (!g.fits) {
+        line(model, 'Cannot be turned on: ' + (g.problem || 'the model does not fit this game.'), 'bot-warn');
+      }
+      if (g.envOverride) {
+        line(model, 'Overridden: this server\'s environment names ' + g.envOverride +
+          ', which Hard seats play whatever this switch says.', 'bot-warn');
+      }
+
+      var state = cell(tr, 'bot-switch');
+      var label = document.createElement('span');
+      label.className = 'bot-state';
+      label.setAttribute('data-on', g.enabled ? '1' : '0');
+      label.textContent = g.enabled ? 'Trained model' : 'Heuristic';
+      state.appendChild(label);
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.setAttribute('aria-pressed', g.enabled ? 'true' : 'false');
+      btn.className = g.enabled ? 'danger' : '';
+      btn.textContent = g.enabled ? 'Turn off' : 'Turn on';
+      btn.disabled = !g.enabled && !g.fits;
+      btn.addEventListener('click', function () { toggleBot(g, btn); });
+      state.appendChild(btn);
+
+      var changed = cell(tr);
+      if (g.updatedAt) {
+        line(changed, when(g.updatedAt));
+        line(changed, 'by ' + (g.updatedBy || 'unknown'), 'sub');
+      } else {
+        line(changed, 'never — off by default', 'sub');
+      }
+
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+  }
+
+  function toggleBot(g, btn) {
+    var to = !g.enabled;
+    var title = g.title || g.game;
+    var question = to
+      ? 'Put the trained model in every ' + title + ' Hard seat?\n\n' +
+        'Live tables switch at their next bot move. Easy and Medium seats are unchanged.'
+      : 'Put the heuristic back in every ' + title + ' Hard seat?\n\n' +
+        'Live tables switch at their next bot move.';
+    if (!window.confirm(question)) return;
+    btn.disabled = true;
+    fail($('bots-error'), '');
+    api('/bots/' + encodeURIComponent(g.game), {
+      method: 'PUT',
+      body: JSON.stringify({ enabled: to })
+    }).then(renderBots).catch(function (err) {
+      fail($('bots-error'), err.message);
+      loadBots();
+    });
+  }
+
+  function loadBots() {
+    api('/bots').then(renderBots).catch(function (err) {
+      fail($('bots-error'), err.message);
+    });
+  }
+
   /* ----------------------------------------------------------------- load */
 
   function query() {
@@ -379,6 +501,7 @@
     api('/report' + query()).then(renderReport).catch(function (err) {
       fail($('error'), err.message);
     });
+    loadBots();
   }
 
   $('refresh').addEventListener('click', load);

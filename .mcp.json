@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "zolik-games": {
+      "type": "stdio",
+      "command": "go",
+      "args": ["run", "-C", "server", "./cmd/game-mcp"],
+      "env": {
+        "ZOLIK_LEARNED_MODEL_ZOLIK": "${ZOLIK_LEARNED_MODEL_ZOLIK:-}",
+        "ZOLIK_LEARNED_MODEL_CANASTA": "${ZOLIK_LEARNED_MODEL_CANASTA:-}",
+        "ZOLIK_LEARNED_MODEL_HOLDEM": "${ZOLIK_LEARNED_MODEL_HOLDEM:-}"
+      }
+    }
+  }
+}

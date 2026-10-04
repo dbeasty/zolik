@@ -87,6 +87,7 @@ class Event:
     seat: str
     reward: float
     done: bool
+    base: float | None = None  # the game's own reward, when a match reward replaced it
 
 
 @dataclass
@@ -99,18 +100,26 @@ class TableObs:
     illegal: int = 0
     stalls: int = 0
     last_stall: str = ""
+    # The privileged observation (what the seat cannot see), only when the
+    # env was asked for it: the critic's input, never the policy's.
+    priv: np.ndarray | None = None
 
 
 def _parse_table(t: dict) -> TableObs:
+    priv = t.get("priv")
     return TableObs(
         seat=t["seat"],
         obs=np.asarray(t["obs"], dtype=np.float32),
         cands=np.asarray(t["cands"], dtype=np.float32),
-        events=[Event(e["seat"], float(e.get("reward", 0.0)), bool(e.get("done", False))) for e in t.get("events") or []],
+        events=[
+            Event(e["seat"], float(e.get("reward", 0.0)), bool(e.get("done", False)), e.get("base"))
+            for e in t.get("events") or []
+        ],
         matches=t.get("matches", 0),
         illegal=t.get("illegal", 0),
         stalls=t.get("stalls", 0),
         last_stall=t.get("lastStall", ""),
+        priv=np.asarray(priv, dtype=np.float32) if priv is not None else None,
     )
 
 
@@ -129,10 +138,18 @@ class GameEnv:
         exe: Path | None = None,
         procs: int | None = None,
         gogc: int | None = None,
+        privileged: bool = False,
+        match_reward: dict | None = None,
     ):
+        """privileged asks for every decision's privileged observation (the
+        critic's input); match_reward ({alpha, k, model}) mixes each deal's
+        reward with the change in the modelled chance of winning the match.
+        Both are training-only and off by default (learn.EnvOptions)."""
         self.game = game
         self.variation = variation
         self.budget = budget
+        self.privileged = privileged
+        self.match_reward = match_reward
         exe = exe or binary("gameenv")
         self.proc = subprocess.Popen(
             [str(exe)],
@@ -166,22 +183,31 @@ class GameEnv:
         return rep
 
     def info(self) -> tuple[int, int]:
+        rep = self.info_full()
+        return rep["stateDim"], rep["candDim"]
+
+    def info_full(self) -> dict:
+        """stateDim, candDim and privDim (0 for a game without one)."""
         self._send({"op": "info", "game": self.game})
         rep = self._recv_raw()
-        return rep["stateDim"], rep["candDim"]
+        rep.setdefault("privDim", 0)
+        return rep
 
     def send_reset(self, plans: list[list[str]], seed: int) -> None:
         self.n_tables = len(plans)
-        self._send(
-            {
-                "op": "reset",
-                "game": self.game,
-                "variation": self.variation,
-                "seed": int(seed),
-                "budget": self.budget,
-                "tables": [{"plan": p} for p in plans],
-            }
-        )
+        req = {
+            "op": "reset",
+            "game": self.game,
+            "variation": self.variation,
+            "seed": int(seed),
+            "budget": self.budget,
+            "tables": [{"plan": p} for p in plans],
+        }
+        if self.privileged:
+            req["privileged"] = True
+        if self.match_reward:
+            req["matchReward"] = self.match_reward
+        self._send(req)
 
     def send_step(self, choices) -> None:
         self._send({"op": "step", "choices": [int(c) for c in choices]})
