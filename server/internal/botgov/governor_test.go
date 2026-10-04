@@ -20,7 +20,7 @@ var (
 // A governor with room for exactly n Mariáš Hard seats at green.
 func roomFor(n int, mode Mode) *Governor {
 	think := 1350 * time.Millisecond
-	w := float64(54*time.Millisecond) / float64(think)
+	w := float64(DefaultCosts()[mariasHard]) / float64(think)
 	return New(Config{Mode: mode, Cores: float64(n) * w / (0.5 * 0.7), Think: think})
 }
 

@@ -20,12 +20,13 @@
 //	go run ./cmd/botcost                      # every game, variation, seat count and skill
 //	go run ./cmd/botcost -game holdem -matches 20
 //	go run ./cmd/botcost -csv > costs.csv
-//	go run ./cmd/botcost -learned            # Hard seats play the shipped models
+//	go run ./cmd/botcost -learned            # add AI rows: the shipped models
 //
 // -learned throws the same switch the admin console's Bots card does
-// (learn.SetHardModel) for every game that ships a model, so a Hard row then
-// measures the trained model exactly as live play would run it, and its
-// skill column reads "hard/net".
+// (learn.SetHardModel) for every game that ships a model, and adds an AI row
+// for each such game, which measures the trained model exactly as live play
+// runs it (skill column "ai/net"). A game with no model has no AI row: there
+// an AI seat plays Hard, which already has one.
 package main
 
 import (
@@ -61,7 +62,7 @@ func main() {
 	seed := flag.Int64("seed", 1, "first seed")
 	asCSV := flag.Bool("csv", false, "print CSV instead of a table")
 	cpuProfile := flag.String("cpuprofile", "", "write a CPU profile of the whole run to this file")
-	learned := flag.Bool("learned", false, "switch every shipped model on, so Hard seats play it")
+	learned := flag.Bool("learned", false, "switch every shipped model on and add AI rows for the games that ship one")
 	flag.Parse()
 	if *cpuProfile != "" {
 		f, err := os.Create(*cpuProfile)
@@ -83,7 +84,7 @@ func main() {
 				fmt.Fprintf(os.Stderr, "%s: model not switched on: %v\n", st.Game, err)
 				continue
 			}
-			fmt.Fprintf(os.Stderr, "%s: Hard seats play %s\n", st.Game, st.Model.Title)
+			fmt.Fprintf(os.Stderr, "%s: AI seats play %s\n", st.Game, st.Model.Title)
 		}
 	}
 	reg := module.NewRegistry(zolikmod.New(), prsi.New(), canasta.New(), holdem.New(), ginrummy.New(), rummytiles.New(), blackjack.New(), marias.New())
@@ -96,12 +97,15 @@ func main() {
 		}
 		mod := reg.Get(id)
 		for _, c := range configs(mod.Descriptor()) {
-			for _, skill := range module.Skills {
+			_, hasNet := module.BotFor(mod).(interface{ Heuristic() module.Bot })
+			skills := module.Skills
+			if hasNet {
+				skills = module.AllSkills
+			}
+			for _, skill := range skills {
 				r := row{module: id, variation: c.variation, seats: c.seats, skill: string(skill)}
-				if _, layered := mod.(module.Botted); layered && skill == module.SkillHard {
-					if _, net := module.BotFor(mod).(interface{ Heuristic() module.Bot }); net {
-						r.skill += "/net"
-					}
+				if skill == module.SkillAI {
+					r.skill += "/net"
 				}
 				for i := 0; i < *matches; i++ {
 					if err := play(mod, c, skill, *seed+int64(i), *decisions, &r); err != nil {
