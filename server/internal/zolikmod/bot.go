@@ -21,7 +21,36 @@ func (m *Module) Bot() module.Bot { return heuristicBot{} }
 
 type heuristicBot struct{}
 
-func (b heuristicBot) Act(raw module.State, seat module.BotSeat, _ []module.ActionOffer) (module.Action, bool) {
+// Act is the agent's move when the engine takes it, and otherwise the first
+// forward move the offer list describes that the engine takes.
+//
+// The second half is a last resort, not a strategy. The agent answers only the
+// seat on turn and only in rummy verbs, so between deals — where the move is
+// "continue" — it has nothing to say, and a pick the engine refuses (the
+// agent's own rules drifting from the engine's) would otherwise leave the
+// runtime to work down the raw offer list, undos included. A seat with a legal
+// move that is not a take-back is never handed back empty.
+func (b heuristicBot) Act(raw module.State, seat module.BotSeat, offers []module.ActionOffer) (module.Action, bool) {
+	m := New()
+	if a, ok := b.choose(raw, seat); ok {
+		if _, _, err := m.Apply(raw, seat.PlayerID, a); err == nil {
+			return a, true
+		}
+	}
+	for _, o := range offers {
+		if o.Undo {
+			continue
+		}
+		if a, ok := module.SubmissionFor(o); ok {
+			if _, _, err := m.Apply(raw, seat.PlayerID, a); err == nil {
+				return a, true
+			}
+		}
+	}
+	return module.Action{}, false
+}
+
+func (b heuristicBot) choose(raw module.State, seat module.BotSeat) (module.Action, bool) {
 	s, err := decode(raw)
 	if err != nil {
 		return module.Action{}, false

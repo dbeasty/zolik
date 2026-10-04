@@ -601,6 +601,13 @@ func (learnGame) CandidatesFor(p learn.Position, seat string, offers []module.Ac
 				layOffs++
 				out = append(out, c.single(a, kindLayOff))
 			}
+			// The bots lay a rank's naturals onto a group in one action
+			// (layOffTogether), so a recorded game has those moves in it; a
+			// candidate list without them could not say which one was made.
+			if a, ok := c.layOffRank(o); ok && layOffs < maxLayOffs {
+				layOffs++
+				out = append(out, c.single(a, kindLayOff))
+			}
 		}
 	}
 	return append(out, c.discards(offers)...), nil
@@ -642,6 +649,33 @@ func layOffActions(t *Team, o module.ActionOffer) []module.Action {
 		out = append(out, module.Action{OfferID: o.ID, Verb: VerbLayOff, Target: target.ID, Cards: []string{card}})
 	}
 	return out
+}
+
+// layOffRank is every natural of a group's rank laid off in one action, when
+// the hand holds two or more of them and the engine would take them together.
+// Groups only: a sequence's cards each go to a different place.
+func (c candidateBuilder) layOffRank(o module.ActionOffer) (module.Action, bool) {
+	if o.Source == nil || o.Target == nil || c.t == nil {
+		return module.Action{}, false
+	}
+	target := c.t.meldByID(o.Target.MeldID)
+	if target == nil || target.kind() == meldRun {
+		return module.Action{}, false
+	}
+	var batch []string
+	for _, card := range sortedCards(o.Source.Cards) {
+		if !isWild(card) {
+			batch = append(batch, card)
+		}
+	}
+	if len(batch) < 2 {
+		return module.Action{}, false
+	}
+	a := module.Action{OfferID: o.ID, Verb: VerbLayOff, Target: target.ID, Cards: batch}
+	if ok, _ := probe(c.m, c.raw, c.seat, a); !ok {
+		return module.Action{}, false
+	}
+	return a, true
 }
 
 type candidateBuilder struct {
