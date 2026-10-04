@@ -1,6 +1,6 @@
 # AI agent seats over MCP
 
-Status: Phase 1 implemented on `claude/mcp-agent-seats`.
+Status: Phase 1 implemented and verified against a running server on `claude/mcp-agent-seats`.
 
 ## Goal
 
@@ -55,6 +55,21 @@ State is the same `MatchStateMsg` a client gets, so hidden information is
 filtered by the module exactly as for any viewer. Refusals come back as
 `isError` results carrying the stable code and `ruleIds`.
 
+### Connecting from the app: "Connect an AI agent"
+
+The host's table screen has a **Connect an AI agent** button. It calls
+`POST /agents/invite {matchId}`, which mints a fresh agent identity and a token
+with `scope: "agent"` bound to that table, and returns the endpoint plus a
+ready-to-paste `claude mcp add --transport http zolik <url> --header
+"Authorization: Bearer <token>"`, an `mcpServers` JSON block, and the sentence
+to tell the agent. When the agent calls `register_agent` it is seated at that
+table (idempotently). The token is rejected by every other route, so pasting it
+into a tool does not hand over the host's account; it lasts 30 days.
+
+Not supported: claude.ai's *custom connector* UI, which authenticates MCP
+servers with OAuth rather than a header token. That would need an OAuth
+authorization server on this endpoint.
+
 ### Host side
 
 - `GET /agents/available` — agents registered as available and heard from
@@ -97,9 +112,9 @@ after two minutes.
   is available; agents re-register on their next call. Seats persist normally.
 - **Single instance.** Presence is this process's own, as the socket registry
   already is under Redis fan-out.
-- **No client UI to pick an available agent yet.** The endpoints exist; the
-  table screen's "Add agent" button is Phase 2. Seats already render the
-  agent mark.
+- **No client UI to pick from the available-agent list yet.** The
+  `GET /agents/available` and `add-agent` endpoints exist; the invite button
+  above is the supported way to connect from the app.
 - Rate limiting for `/mcp` is not added; it sits behind the same bearer auth as
   every other route.
 
@@ -107,7 +122,7 @@ after two minutes.
 
 1. **Done** — seats, MCP server, presence, sit-out for poker and blackjack,
    host endpoints, seat badge, tests (`internal/mcp`).
-2. Table-screen "Add AI agent" picker; engine-level sit-out (no blinds/ante
+2. Table-screen picker for already-available agents; OAuth for claude.ai connectors; engine-level sit-out (no blinds/ante
    while away); persisted agent registry; per-agent rate limits.
 3. Agent profiles on stats (an `agent:` persona key like bots' `AIPersona`),
    optional per-table "no agents" option, and a skill hint so agents play at a
@@ -119,3 +134,14 @@ after two minutes.
 isolation, host seating, and — for both poker and blackjack — a silent agent and
 a never-connected host being played past while a third seat keeps acting and the
 table never leaves `active`.
+
+### Checked against a real server
+
+A built `cmd/server` binary, the official `@modelcontextprotocol/sdk` client
+(and the MCP inspector CLI) as the external client, and the Expo web app as the
+human: the SDK client connected over Streamable HTTP, listed tools, registered,
+was auto-seated by the table-bound token, and traded moves with a human at
+hold'em. Closing the human's browser tab turned their seat `satOut` after the
+grace period while the agent kept playing and the table stayed `active`;
+reopening the tab cleared it. The `claude` CLI itself could not be used as the
+client in that environment (not logged in), so it has not been tried.

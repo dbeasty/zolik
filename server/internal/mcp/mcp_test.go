@@ -294,3 +294,77 @@ func TestHostSeatsAnAvailableAgent(t *testing.T) {
 		t.Fatalf("the seated agent sees %d tables, want 1", len(tables))
 	}
 }
+
+// The button on the table screen: a host mints an invite, and the token in it
+// seats an agent at that table — and can do nothing else.
+func TestInviteSeatsAnAgentAtTheHostsTable(t *testing.T) {
+	r := newRig(t)
+	ctx := context.Background()
+	created, _ := r.m.Create(ctx, "holdem", module.MatchConfig{}, models.Player{ID: "h1", Name: "Host", UserID: "h1"})
+	id := created.ID.Hex()
+
+	invite := func(as string, body map[string]string) (int, map[string]any) {
+		b, _ := json.Marshal(body)
+		req, _ := http.NewRequest("POST", r.srv.URL+"/agents/invite", bytes.NewReader(b))
+		req.Header.Set("Authorization", "Bearer "+token(t, as))
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		var out map[string]any
+		_ = json.NewDecoder(resp.Body).Decode(&out)
+		return resp.StatusCode, out
+	}
+
+	if code, _ := invite("stranger", map[string]string{"matchId": id}); code != http.StatusForbidden {
+		t.Fatalf("invite for a table you are not at = %d, want 403", code)
+	}
+	code, inv := invite("h1", map[string]string{"matchId": id, "name": "Claude"})
+	if code != http.StatusOK {
+		t.Fatalf("invite = %d", code)
+	}
+	tok := inv["token"].(string)
+	if cmd, _ := inv["claudeCode"].(string); !bytes.Contains([]byte(cmd), []byte("claude mcp add")) || !bytes.Contains([]byte(cmd), []byte(tok)) {
+		t.Fatalf("claudeCode = %q", cmd)
+	}
+
+	// The token plays, and is turned away everywhere an ordinary one is needed.
+	if _, err := auth.ParseAccessClaims(tok); err == nil {
+		t.Fatal("an agent token was accepted as an ordinary access token")
+	}
+	body, _ := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+		"params": map[string]any{"name": "register_agent", "arguments": map[string]any{}}})
+	req, _ := http.NewRequest("POST", r.srv.URL+"/mcp", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+tok)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var out map[string]any
+	_ = json.NewDecoder(resp.Body).Decode(&out)
+	if resp.StatusCode != http.StatusOK || out["error"] != nil {
+		t.Fatalf("register with an agent token: %d %v", resp.StatusCode, out)
+	}
+
+	seatedNow, _ := r.m.Current(ctx, id)
+	var agent *models.Player
+	for i := range seatedNow.Players {
+		if seatedNow.Players[i].IsAgent {
+			agent = &seatedNow.Players[i]
+		}
+	}
+	if agent == nil || agent.Name != "Claude" {
+		t.Fatalf("the invite did not seat an agent named Claude: %+v", seatedNow.Players)
+	}
+	// Registering again is a reconnect, not a second seat.
+	req2, _ := http.NewRequest("POST", r.srv.URL+"/mcp", bytes.NewReader(body))
+	req2.Header.Set("Authorization", "Bearer "+tok)
+	if resp2, err := http.DefaultClient.Do(req2); err == nil {
+		resp2.Body.Close()
+	}
+	if again, _ := r.m.Current(ctx, id); len(again.Players) != 2 {
+		t.Fatalf("re-registering seated %d players, want 2", len(again.Players))
+	}
+}

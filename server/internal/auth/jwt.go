@@ -22,11 +22,20 @@ type AccessClaims struct {
 	// play that seat and nothing else — not their profile, not their circle,
 	// not any other table. Empty on every ordinary token.
 	Scope string `json:"scope,omitempty"`
+	// AgentTable, on an agent token, is the table its host minted it for: the
+	// agent is seated there when it registers. Empty for a general invite.
+	AgentTable string `json:"agentTable,omitempty"`
 	jwt.RegisteredClaims
 }
 
 // MatchScope is the Scope a token limited to matchID carries.
 func MatchScope(matchID string) string { return "match:" + matchID }
+
+// AgentScope is the Scope of a token minted for an AI client. Like a seat
+// link's, parseAccess turns it away from every route that does not ask for it,
+// so handing one to an agent hands over a seat at a table and nothing of the
+// account that minted it.
+const AgentScope = "agent"
 
 // errScopedToken is a match-scoped token offered anywhere but its match.
 var errScopedToken = errors.New("token is limited to one match")
@@ -169,6 +178,25 @@ func ParseAccessClaimsForMatch(token, matchID string) (*AccessClaims, error) {
 	return claims, nil
 }
 
+// ParseAccessClaimsForAgent reads a token offered to the MCP endpoint: an
+// ordinary token, or one minted for an agent.
+func ParseAccessClaimsForAgent(token string) (*AccessClaims, error) {
+	claims, err := parseAnyAccess(token)
+	if err != nil {
+		return nil, err
+	}
+	if claims.Scope != "" && claims.Scope != AgentScope {
+		return nil, errScopedToken
+	}
+	return claims, nil
+}
+
+// CreateAgentToken is an access token for an AI client with its own identity.
+// table, when set, names the match it is to be seated at.
+func CreateAgentToken(subject, username, table string, ttl time.Duration) (string, error) {
+	return createAccessFor(AccessClaims{Username: username, IsGuest: true, Scope: AgentScope, AgentTable: table}, subject, ttl)
+}
+
 // SubjectForMatch is SubjectFromToken for a match's own socket, which is the
 // one place a seat link's token is for.
 func SubjectForMatch(token, matchID string) (string, error) {
@@ -250,16 +278,15 @@ func CreateMatchScopedToken(subject, username string, isGuest bool, matchID stri
 }
 
 func createAccess(subject, username string, isGuest bool, scope string, ttl time.Duration) (string, error) {
+	return createAccessFor(AccessClaims{Username: username, IsGuest: isGuest, Scope: scope}, subject, ttl)
+}
+
+func createAccessFor(claims AccessClaims, subject string, ttl time.Duration) (string, error) {
 	now := time.Now().UTC()
-	claims := AccessClaims{
-		Username: username,
-		IsGuest:  isGuest,
-		Scope:    scope,
-		RegisteredClaims: jwt.RegisteredClaims{
-			Subject:   subject,
-			IssuedAt:  jwt.NewNumericDate(now),
-			ExpiresAt: jwt.NewNumericDate(now.Add(ttl)),
-		},
+	claims.RegisteredClaims = jwt.RegisteredClaims{
+		Subject:   subject,
+		IssuedAt:  jwt.NewNumericDate(now),
+		ExpiresAt: jwt.NewNumericDate(now.Add(ttl)),
 	}
 	// The asymmetric key wins wherever there is one. Only then does the token
 	// gain an issuer and an audience: a node verifying it offline has no way

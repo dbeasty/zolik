@@ -711,7 +711,9 @@ func (a *App) routeGroups() []routeGroup {
 			if a.agents == nil {
 				a.agents = mcp.NewRegistry()
 			}
-			mcp.NewHandlers(matchMgr, a.agents).RegisterRoutes(r)
+			mh := mcp.NewHandlers(matchMgr, a.agents)
+			mh.SetBaseURL(a.cfg.PublicBaseURL)
+			mh.RegisterRoutes(r)
 		}},
 		{"stats", stats.NewHandlers(a.statsRepo).RegisterRoutes},
 		{"notify", func(r chi.Router) {

@@ -24,8 +24,8 @@ func boolean(desc string) map[string]any {
 var tools = []tool{
 	{"register_agent",
 		"Register this client as an AI agent. Call first. Set available=true to be offered to hosts who want an AI agent at their table; leave false to join tables yourself with join_table.",
-		obj([]string{"name"}, map[string]any{
-			"name":      str("The name shown on your seat."),
+		obj(nil, map[string]any{
+			"name":      str("The name shown on your seat. Defaults to the name on your invite."),
 			"label":     str("Your client or model, shown beside the name."),
 			"available": boolean("Offer yourself to hosts. Default false."),
 		})},

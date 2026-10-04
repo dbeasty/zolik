@@ -28,6 +28,20 @@ import type {
   WaitingPlayer,
 } from '@/src/api/types';
 
+export type AgentInvite = {
+  url: string;
+  token: string;
+  name: string;
+  matchId?: string;
+  joinCode?: string;
+  /** `claude mcp add …`, ready to paste. */
+  claudeCode: string;
+  /** An `mcpServers` block for clients configured by file. */
+  configJson: string;
+  /** What to say to the agent once it is connected. */
+  prompt: string;
+};
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -472,6 +486,16 @@ export class ZolikClient {
       skill ? { skill } : null,
       true,
     );
+  }
+
+  /**
+   * Mint what an AI client needs to play: the MCP endpoint, a key that can do
+   * nothing but play, and the commands that install them. With a match id the
+   * key is bound to that table, and the agent is seated there when it
+   * registers.
+   */
+  async agentInvite(matchId?: string, name?: string): Promise<AgentInvite> {
+    return this.post('/agents/invite', { matchId, name }, true);
   }
 
   async startMatch(idOrCode: string): Promise<void> {

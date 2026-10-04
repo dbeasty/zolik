@@ -28,7 +28,13 @@ const instructions = `You can play card games at Zolik tables. Authenticate with
 type Handlers struct {
 	manager  *match.Manager
 	registry *Registry
+	// baseURL is how the outside world reaches this server; empty means work
+	// it out from the request.
+	baseURL string
 }
+
+// SetBaseURL fixes the public origin invites point at. Optional.
+func (h *Handlers) SetBaseURL(u string) { h.baseURL = strings.TrimRight(u, "/") }
 
 func NewHandlers(m *match.Manager, r *Registry) *Handlers {
 	m.SetAgentPresence(r)
@@ -36,7 +42,7 @@ func NewHandlers(m *match.Manager, r *Registry) *Handlers {
 }
 
 func (h *Handlers) RegisterRoutes(r chi.Router) {
-	r.With(auth.AuthMiddleware).Post("/mcp", h.serve)
+	r.With(auth.AgentAuthMiddleware).Post("/mcp", h.serve)
 	// Streamable HTTP lets a client open a GET stream for server-initiated
 	// messages. There are none here, which the spec allows us to say with 405.
 	r.Get("/mcp", func(w http.ResponseWriter, _ *http.Request) {
@@ -47,6 +53,10 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	// chi keys a segment by position, so a different name would silently
 	// replace the match group's own route.
 	r.With(auth.AuthMiddleware).Get("/agents/available", h.listAvailable)
+	// Everything a person needs to point Claude (or any MCP client) at this
+	// server: the endpoint, a token that is only good for playing, and the
+	// commands that install them.
+	r.With(auth.AuthMiddleware).Post("/agents/invite", h.invite)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/add-agent", h.addAgent)
 }
 
@@ -140,7 +150,7 @@ func fail(code, msg string, extra map[string]any) toolResult {
 
 func (h *Handlers) call(ctx context.Context, uc auth.UserContext, name string, args json.RawMessage) toolResult {
 	if name == "register_agent" {
-		return h.register(uc, args)
+		return h.register(ctx, uc, args)
 	}
 	if _, known := h.registry.Get(uc.UserID); !known {
 		return fail("NOT_REGISTERED", "call register_agent first", nil)
@@ -169,17 +179,32 @@ func (h *Handlers) call(ctx context.Context, uc auth.UserContext, name string, a
 	return fail("UNKNOWN_TOOL", "no tool named "+name, nil)
 }
 
-func (h *Handlers) register(uc auth.UserContext, args json.RawMessage) toolResult {
+func (h *Handlers) register(ctx context.Context, uc auth.UserContext, args json.RawMessage) toolResult {
 	var a struct {
 		Name      string `json:"name"`
 		Label     string `json:"label"`
 		Available bool   `json:"available"`
 	}
-	if err := json.Unmarshal(args, &a); err != nil || strings.TrimSpace(a.Name) == "" {
-		return fail("BAD_ARGUMENTS", "register_agent needs a name", nil)
+	_ = json.Unmarshal(args, &a)
+	if strings.TrimSpace(a.Name) == "" {
+		a.Name = uc.Username
 	}
 	ag := h.registry.Register(uc.UserID, a.Name, a.Label, a.Available, uc.IsGuest)
-	return ok(map[string]any{"agentId": ag.ID, "name": ag.Name, "available": ag.Available})
+	out := map[string]any{"agentId": ag.ID, "name": ag.Name, "available": ag.Available}
+	// A token minted for one table seats its agent there. Idempotent: an agent
+	// that registers again after a reconnect is already seated.
+	if uc.AgentTable != "" {
+		if m, err := h.manager.Current(ctx, uc.AgentTable); err == nil && !seated(m, ag.ID) {
+			if _, _, err := h.manager.JoinWith(ctx, uc.AgentTable, agentSeat(ag)); err != nil {
+				out["joinError"] = module.CodeOf(err)
+			}
+		}
+		if m, err := h.manager.Current(ctx, uc.AgentTable); err == nil && seated(m, ag.ID) {
+			h.manager.TrackAgent(m.ID.Hex(), ag.ID)
+			out["matchId"], out["moduleId"], out["status"] = m.ID.Hex(), m.ModuleID, m.Status
+		}
+	}
+	return ok(out)
 }
 
 // agentSeat is the player an agent sits as.
@@ -379,4 +404,89 @@ func jsonError(w http.ResponseWriter, status int, code string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_, _ = fmt.Fprintf(w, `{"code":%q}`, code)
+}
+
+// agentTokenTTL is how long an invite's token lasts. Long, because it is
+// pasted into a client once; narrow, because it can only play.
+const agentTokenTTL = 30 * 24 * time.Hour
+
+// invite mints an identity for an AI client and the text that connects it.
+func (h *Handlers) invite(w http.ResponseWriter, req *http.Request) {
+	uc, okc := auth.GetUserContext(req)
+	if !okc {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	var body struct {
+		MatchID string `json:"matchId"`
+		Name    string `json:"name"`
+	}
+	_ = json.NewDecoder(req.Body).Decode(&body)
+	name := strings.TrimSpace(body.Name)
+	if name == "" {
+		name = "Claude"
+	}
+	table, joinCode := "", ""
+	if body.MatchID != "" {
+		m, err := h.manager.Current(req.Context(), body.MatchID)
+		if err != nil {
+			jsonError(w, http.StatusNotFound, "MATCH_NOT_FOUND")
+			return
+		}
+		if !seated(m, uc.UserID) {
+			jsonError(w, http.StatusForbidden, "NOT_AT_THIS_TABLE")
+			return
+		}
+		if m.Status != "lobby" {
+			jsonError(w, http.StatusConflict, "MATCH_ALREADY_STARTED")
+			return
+		}
+		table, joinCode = m.ID.Hex(), m.JoinCode
+	}
+	suffix, err := auth.NewRandomToken(8)
+	if err != nil {
+		jsonError(w, http.StatusInternalServerError, "ERROR")
+		return
+	}
+	id := "agent:" + suffix
+	tok, err := auth.CreateAgentToken(id, name, table, agentTokenTTL)
+	if err != nil {
+		jsonError(w, http.StatusInternalServerError, "ERROR")
+		return
+	}
+	url := h.origin(req) + "/mcp"
+	cfg, _ := json.Marshal(map[string]any{"mcpServers": map[string]any{"zolik": map[string]any{
+		"type": "http", "url": url, "headers": map[string]string{"Authorization": "Bearer " + tok},
+	}}})
+	prompt := "Use the zolik MCP server to play cards. Call register_agent, then list_tables, and play with wait_for_turn, get_state and act."
+	if table != "" {
+		prompt = "Use the zolik MCP server to take the seat waiting for you: call register_agent, then play the table with wait_for_turn, get_state and act."
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"url":        url,
+		"token":      tok,
+		"name":       name,
+		"matchId":    table,
+		"joinCode":   joinCode,
+		"expiresIn":  int(agentTokenTTL.Seconds()),
+		"claudeCode": fmt.Sprintf("claude mcp add --transport http zolik %s --header %q", url, "Authorization: Bearer "+tok),
+		"configJson": string(cfg),
+		"prompt":     prompt,
+	})
+}
+
+func (h *Handlers) origin(req *http.Request) string {
+	if h.baseURL != "" {
+		return h.baseURL
+	}
+	scheme := "http"
+	if req.TLS != nil || req.Header.Get("X-Forwarded-Proto") == "https" {
+		scheme = "https"
+	}
+	host := req.Header.Get("X-Forwarded-Host")
+	if host == "" {
+		host = req.Host
+	}
+	return scheme + "://" + host
 }
