@@ -48,6 +48,16 @@ type Ledger struct {
 	// to the draw — rewinds this too. Undo cannot reach past the draw
 	// (rules.ValidateUndoTurn), so one snapshot is exactly deep enough.
 	HeldAtTurnStart map[string][]string `json:"heldAtTurnStart,omitempty"`
+	// Pickups is, per seat, how many times this deal it took from the pile —
+	// in front of everybody, so as public as Held, and kept because Held
+	// forgets a pickup the moment its cards are played.
+	Pickups map[string]int `json:"pickups,omitempty"`
+	// Passes is the deal's most recent declined discards, oldest first: the
+	// top card each time a seat drew from the stock while the pile was open
+	// to it. As public as a discard — everybody watched the card stay where
+	// it was — and read by the card inference (internal/cardinfer) as weak
+	// evidence that the seat had nothing that card would have made.
+	Passes []SeenDiscard `json:"passes,omitempty"`
 }
 
 // Snapshot is the little of a state an observation needs from *before* the
@@ -102,6 +112,13 @@ func (l *Ledger) Observe(before Snapshot, after rules.GameState, playerID string
 		l.drop(playerID, []string{a.Card})
 
 	case rules.ActionDrawCard:
+		if a.DrawFrom != rules.DrawFromDiscard && len(before.DiscardPile) > 0 &&
+			!rules.IsDiscardLocked(after.Round, rules.ResolveConfig(after.Rules).DiscardDrawMinRound) {
+			l.Passes = append(l.Passes, SeenDiscard{Player: playerID, Card: before.DiscardPile[len(before.DiscardPile)-1]})
+			if over := len(l.Passes) - maxLedgerDiscards; over > 0 {
+				l.Passes = append(l.Passes[:0:0], l.Passes[over:]...)
+			}
+		}
 		if a.DrawFrom == rules.DrawFromDiscard {
 			// How many cards came off the pile is the engine's decision, not
 			// this file's: under DiscardPickupAnyFromPile taking one card takes
@@ -110,6 +127,10 @@ func (l *Ledger) Observe(before Snapshot, after rules.GameState, playerID string
 			// piles says it exactly.
 			if n := len(before.DiscardPile) - len(after.DiscardPile); n > 0 {
 				l.take(playerID, before.DiscardPile[len(after.DiscardPile):])
+				if l.Pickups == nil {
+					l.Pickups = map[string]int{}
+				}
+				l.Pickups[playerID]++
 			}
 		}
 		// The rewind point goes here, *after* the pickup is recorded rather
@@ -145,6 +166,9 @@ func (l *Ledger) Observe(before Snapshot, after rules.GameState, playerID string
 		// exactly what returned.
 		if n := len(after.DiscardPile) - len(before.DiscardPile); n > 0 {
 			l.drop(playerID, after.DiscardPile[len(before.DiscardPile):])
+			if l.Pickups[playerID] > 0 {
+				l.Pickups[playerID]--
+			}
 		}
 
 	case rules.ActionUndoTurn, rules.ActionUndoLayOff, rules.ActionUndoLayMeld:
@@ -176,6 +200,8 @@ func (l *Ledger) reset(deal int) {
 	l.DiscardCount = 0
 	l.Held = map[string][]string{}
 	l.HeldAtTurnStart = nil
+	l.Pickups = nil
+	l.Passes = nil
 }
 
 func (l *Ledger) snapshotTurn() {
@@ -266,7 +292,10 @@ func VisibleFor(gs rules.GameState, l Ledger, playerID string) VisibleState {
 		DiscardPile:      gs.DiscardPile,
 		DealDiscards:     l.discardsFor(gs.GameNumber),
 		DealDiscardCount: l.discardCountFor(gs.GameNumber),
+		DealPasses:       l.passesFor(gs.GameNumber),
+		TurnOrder:        gs.TurnOrder,
 		KnownHeld:        l.heldFor(gs.GameNumber),
+		Pickups:          l.pickupsFor(gs.GameNumber),
 		HandCounts:       counts,
 		DeckRemaining:    len(gs.DrawPile),
 		DeckCount:        rules.DeckCountForPlayers(len(gs.TurnOrder)),
@@ -293,6 +322,13 @@ func (l Ledger) discardsFor(deal int) []SeenDiscard {
 	return l.Discards
 }
 
+func (l Ledger) passesFor(deal int) []SeenDiscard {
+	if l.Deal != deal {
+		return nil
+	}
+	return l.Passes
+}
+
 func (l Ledger) discardCountFor(deal int) int {
 	if l.Deal != deal {
 		return 0
@@ -300,6 +336,13 @@ func (l Ledger) discardCountFor(deal int) int {
 	// A document written before the count existed has only the list, which
 	// was never capped then.
 	return max(l.DiscardCount, len(l.Discards))
+}
+
+func (l Ledger) pickupsFor(deal int) map[string]int {
+	if l.Deal != deal {
+		return nil
+	}
+	return l.Pickups
 }
 
 func (l Ledger) heldFor(deal int) map[string][]string {

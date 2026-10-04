@@ -2,6 +2,7 @@ package zolikmod
 
 import (
 	"zolik/server/internal/ai"
+	"zolik/server/internal/learn"
 	"zolik/server/internal/module"
 	"zolik/server/internal/rules"
 )
@@ -17,7 +18,11 @@ import (
 // That is the whole reason Botted is an interface and not a fixed policy: a
 // module that has something better should be able to say so, and a module that
 // has nothing should not have to.
-func (m *Module) Bot() module.Bot { return heuristicBot{} }
+//
+// A trained model can sit in the Hard seats for local play — see
+// learn.LocalHard. Unless ZOLIK_LEARNED_MODEL_ZOLIK names one, this is the
+// heuristic, exactly as before.
+func (m *Module) Bot() module.Bot { return learn.LocalHard(learnGame{}, heuristicBot{}) }
 
 type heuristicBot struct{}
 
@@ -51,19 +56,19 @@ func (b heuristicBot) Act(raw module.State, seat module.BotSeat, offers []module
 }
 
 func (b heuristicBot) choose(raw module.State, seat module.BotSeat) (module.Action, bool) {
-	s, err := decode(raw)
-	if err != nil {
-		return module.Action{}, false
-	}
-	if s.Rules.CurrentTurn != seat.PlayerID {
-		return module.Action{}, false
-	}
-
 	// The seat's own strength, not one hardcoded here. It used to be the
 	// literal "medium" — which meant the easy and hard settings the rest of
 	// the system already had names, statistics buckets and a discard heuristic
 	// for could not be reached at all.
-	agent := ai.NewAgent(seat.Skill, seat.Seed)
+	return playAgent(raw, seat, ai.NewAgent(seat.Skill, seat.Seed))
+}
+
+// playAgent asks one heuristic agent for the seat's move.
+func playAgent(raw module.State, seat module.BotSeat, agent *ai.HeuristicAgent) (module.Action, bool) {
+	s, err := decode(raw)
+	if err != nil || s.Rules.CurrentTurn != seat.PlayerID {
+		return module.Action{}, false
+	}
 	visible := ai.VisibleFor(s.Rules, s.Ledger, seat.PlayerID)
 	chosen := agent.ChooseAction(visible, append([]string(nil), s.Rules.Hands[seat.PlayerID]...))
 	return toModuleAction(chosen)
@@ -113,4 +118,30 @@ func toModuleAction(a rules.Action) (module.Action, bool) {
 		return module.Action{}, false
 	}
 	return out, true
+}
+
+// Styles are the opponents this module adds to the learning pool
+// (learn.Styled) and the bench, beyond the skill ladder.
+//
+//	closer  comes down as early as the pile allows and then races to go out,
+//	        shedding its dearest card every turn (ai.CloserProfile): the
+//	        player who beat the network by being out before it was down.
+//	hard-classic
+//	        Hard as it played before the card inference
+//	        (ai.HardClassicProfile): the reference the inference is measured
+//	        against on the bench. Not in any training config.
+func (learnGame) Styles() map[string]module.Bot {
+	return map[string]module.Bot{
+		"closer":       profileBot{ai.CloserProfile()},
+		"hard-classic": profileBot{ai.HardClassicProfile()},
+	}
+}
+
+var _ learn.Styled = learnGame{}
+
+// profileBot plays one fixed profile whatever skill its seat was given.
+type profileBot struct{ p ai.Profile }
+
+func (b profileBot) Act(raw module.State, seat module.BotSeat, _ []module.ActionOffer) (module.Action, bool) {
+	return playAgent(raw, seat, ai.NewAgentWithProfile(b.p, seat.Seed))
 }

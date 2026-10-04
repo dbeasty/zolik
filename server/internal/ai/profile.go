@@ -72,6 +72,20 @@ type Profile struct {
 	// ReadPickups tracks which cards an opponent took off the discard pile
 	// and therefore demonstrably wants. Needs Recall > 0 to mean anything.
 	ReadPickups bool
+	// InferDiscards prices every discard by how likely it is to help the
+	// seat that plays next, or any opponent (internal/cardinfer: what each
+	// seat probably holds, from its pickups, discards, passes and melds),
+	// instead of ReadPickups' yes/no "somebody took a card near it". The
+	// price is InferWeight penalty points per unit of risk, set against the
+	// card's own points: a ten-point card the next seat almost certainly
+	// wants is kept over a five it almost certainly does not. Zero weight is
+	// off.
+	InferDiscards bool
+	InferWeight   float64
+	// InferDanger is the risk at which a discard counts as table danger
+	// (ReadTableDanger's "it lays straight off"), ranking it below every safe
+	// card of the same keep-value rather than only pricing it. Zero is off.
+	InferDanger float64
 
 	// --- Planning ---
 
@@ -98,6 +112,15 @@ type Profile struct {
 	KeepPartials KeepPolicy
 	// LayOffPolicy decides *which* lay-off to make when several are legal.
 	LayOffPolicy LayOffPolicy
+	// ShedOnceDown plays every deal the seat is down in as an endgame: once
+	// its contract is on the table it protects no unfinished material and
+	// sheds the dearest card it can, the way a player racing to go out does.
+	// With EndgameDumpsUnsafe it stops minding the table too.
+	ShedOnceDown bool
+	// DigPile, under any_from_pile, looks through the whole pile for a card
+	// that takes the seat down this turn, not only at the top one — the
+	// pickup of a player who comes down as early as the pile allows.
+	DigPile bool
 	// Four more knobs stood here and are gone, each removed because the
 	// sweep in internal/ai/sim priced it at nothing or worse. They are
 	// recorded rather than quietly dropped, because every one of them sounds
@@ -214,7 +237,48 @@ var profiles = map[module.Skill]Profile{
 		ReadPickups:    true,
 		KeepPartials:   KeepByOuts,
 		LayOffPolicy:   LayOffHighestPoints,
+		InferDiscards:  true,
+		InferWeight:    hardInferWeight,
+		InferDanger:    hardInferDanger,
 	},
+}
+
+// hardInferWeight is Hard's price of a discard's risk, in penalty points per
+// unit (see Profile.InferDiscards).
+const hardInferWeight = 12
+
+// hardInferDanger is the risk at which Hard treats a discard as feeding the
+// table outright. Swept on the bench against 0.4 and off (and the weight
+// against 6 and 25): every setting measured within noise of the others,
+// 0.6 at the top of both table sizes.
+const hardInferDanger = 0.6
+
+// HardClassicProfile is Hard as it played before the card inference: the
+// pickups read yes/no, every discard otherwise priced on its points. Kept
+// for the bench (zolikmod's "hard-classic" style), so the inference is
+// always measured against the bot it replaced.
+func HardClassicProfile() Profile {
+	p := profiles[module.SkillHard]
+	p.InferDiscards = false
+	p.InferWeight = 0
+	p.InferDanger = 0
+	return p
+}
+
+// CloserProfile is the closer: Hard's reading of the table, but in a hurry.
+// It comes down the first turn any card on the pile lets it (DigPile), and
+// once down sheds its dearest card every turn and goes out as fast as its
+// lay-offs allow (ShedOnceDown, EndgameDumpsUnsafe, LayOffHighestPoints). Not
+// a rung of the ladder: a style, for the learning pool (zolikmod's Styles)
+// and the bench, modelled on the human who beat the network by going down
+// early and getting out before it was down at all.
+func CloserProfile() Profile {
+	p := HardClassicProfile()
+	p.ShedOnceDown = true
+	p.EndgameDumpsUnsafe = true
+	p.DigPile = true
+	p.EndgameAt = 3
+	return p
 }
 
 // ProfileFor is the strength a skill plays at.

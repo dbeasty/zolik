@@ -1,0 +1,70 @@
+# Canasta v2: a fine-tune of canasta-long (encoder unchanged, 383/40) for
+# tables with fast-closing opponents. canasta-long was trained only against
+# heuristics that rarely go out; it learned to win long deals by building
+# canastas and was caught holding a dozen cards whenever someone raced out.
+#
+# The league adds the closer (canasta closerProfile: wilds into the quota
+# canastas, then racing out), weighted above hard. Four seats (Classic
+# partnerships) are the main table; two seats the rest. At four seats the
+# learner's partner is another learner half the time and the hard heuristic
+# the other half, since in production the partner may be a bot or a human.
+#
+#   uv run python train.py --game canasta --config configs/canasta-v2.yaml \
+#     --run canasta-v2 --minutes 120 --init runs/canasta-long/final.bin
+game: canasta
+variation: classic
+
+model:
+  trunk: [256, 256]
+  scorer: [128]
+  value: [128]
+
+env:
+  envs: 8
+  tables: 32
+  procs: 1
+  gogc: 1000
+  budget: 50000
+
+ppo:
+  lr: 3.0e-4
+  gamma: 0.999
+  lam: 0.95
+  clip: 0.2
+  vf_coef: 0.5
+  ent_coef: 0.012
+  max_grad_norm: 0.5
+  epochs: 4
+  minibatch: 2048
+  target_kl: 0.03
+  reward_scale: 1.0
+
+train:
+  rollout: 16384
+  total_updates: 5000
+  snapshot_every: 20
+  reset_every: 20
+  lr_floor: 0.2
+
+league:
+  blend: {checkpoint: 0.25, heuristic: 0.55, self: 0.2}
+  seats: {4: 0.65, 2: 0.35}
+  samba: false
+  variations:
+    samba: {2: 0.3, 4: 0.4, 6: 0.3}
+  partnerships: true
+  partner_learner: 0.5
+  partner_bot: hard
+  opponents:
+    closer: 1.5
+    hard: 1.0
+    medium: 0.5
+    easy: 0.2
+  checkpoint_temperature: 1.0
+  checkpoint_decay: 0.8
+  pool_size: 20
+
+eval:
+  seats: 4
+  seeds: 300
+  opponents: [closer, hard, medium]

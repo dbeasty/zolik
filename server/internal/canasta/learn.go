@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"zolik/server/internal/cardinfer"
 	"zolik/server/internal/learn"
 	"zolik/server/internal/module"
 )
@@ -34,7 +35,25 @@ var (
 	_ learn.Game        = learnGame{}
 	_ learn.Equivalence = learnGame{}
 	_ learn.Positional  = learnGame{}
+	_ learn.Styled      = learnGame{}
 )
+
+// Styles are the opponents this module adds to the learning pool and the
+// bench, beyond the skill ladder.
+//
+//	closer  opens as soon as it can, races for the canastas its side needs
+//	        to go out, and then goes out the first turn it can
+//	        (closerProfile): the player the ladder lacks, who ends a deal
+//	        before a slow builder has banked what it is holding.
+//	hard-classic
+//	        Hard as it played before the card inference (no infers): the
+//	        reference the inference is measured against on the bench. Not in
+//	        any training config.
+func (learnGame) Styles() map[string]module.Bot {
+	classic := profiles[module.SkillHard]
+	classic.infers = false
+	return map[string]module.Bot{"closer": bot{style: &closerProfile}, "hard-classic": bot{style: &classic}}
+}
 
 // position is a state decoded for learn.Positional: the whole GameState when
 // a seat's encoding or candidates are asked for, and only the deal results
@@ -45,6 +64,7 @@ type position struct {
 	raw   module.State
 	full  learn.Memo[*GameState]
 	deals learn.Memo[*dealsOnly]
+	match learn.Memo[*matchOnly] // learn_train.go
 }
 
 func (learnGame) Position(raw module.State) (learn.Position, error) {
@@ -171,6 +191,16 @@ var learnVariations = []string{"classic", "modern_american", "samba"}
 //	[373,383) variation one-hot (classic, modern_american, samba), seats
 //	          one-hot (2..6), canastas to go out (/2), target (/10000)
 //
+//	[383,528) five inference blocks of inferDim (29), the other seats in the
+//	          order they play after me (infer.go, internal/cardinfer: public
+//	          information only): expected naturals held per rank 4..A (/4)
+//	          and per suit H C D S (/8), expected wilds (/4) and black threes
+//	          (/2), cards known held — captured off the pile and not shown
+//	          since (/10) — and how much more than a random card it wants
+//	          each rank 4..A (the most over the suits)
+//	[528,539) the next seat's chance of capturing the pile were I to discard
+//	          each rank 4..A now (captureRisk)
+//
 // A team block (teamDim = 85, offsets within it):
 //
 //	[0,55)    per group rank 4..A, five each: size (/7), wilds (/3), is a
@@ -198,7 +228,10 @@ const (
 	offOthers     = offPile + 1 + (numCats + 1) + 2 + numCats
 	offTurn       = offOthers + maxOthers*3
 	offRules      = offTurn + 8
-	learnStateDim = offRules + 3 + 5 + 2
+	offInfer      = offRules + 3 + 5 + 2
+	inferDim      = 11 + 4 + 2 + 1 + 11
+	offCapture    = offInfer + maxOthers*inferDim
+	learnStateDim = offCapture + 11
 )
 
 func (learnGame) StateDim() int { return learnStateDim }
@@ -309,7 +342,42 @@ func (learnGame) EncodeFor(at learn.Position, seat string) ([]float32, error) {
 	o += 5
 	v[o] = float32(s.CanastasToGoOut) / 2
 	v[o+1] = float32(s.TargetScore) / 10000
+
+	if s.Status == "active" && !s.Break.Open {
+		inf := infer(s, seat)
+		for i := 0; i < len(inf.seats) && i < maxOthers; i++ {
+			encodeInference(v[offInfer+i*inferDim:offInfer+(i+1)*inferDim], &inf.est, i)
+		}
+		for i, rank := range runRanks {
+			v[offCapture+i] = float32(inf.captureRisk(s, rank+"S"))
+		}
+	}
 	return v, nil
+}
+
+// encodeInference writes one seat's inference block (see the layout above).
+func encodeInference(b []float32, est *cardinfer.Estimate, i int) {
+	hold := &est.Hold[i]
+	known := 0.0
+	for k := 0; k < cardinfer.NumSlots; k++ {
+		known += est.Known[i][k]
+		c := cardinfer.SlotCard(k)
+		switch {
+		case isWild(c):
+			b[15] += float32(hold[k]) / 4
+		case isBlackThree(c):
+			b[16] += float32(hold[k]) / 2
+		default:
+			r, ok := runRankIndex[rankOf(c)]
+			if !ok {
+				continue
+			}
+			b[r] += float32(hold[k]) / 4
+			b[11+cardinfer.SuitOf(k)] += float32(hold[k]) / 8
+			b[18+r] = max(b[18+r], float32(est.Excess(i, k)))
+		}
+	}
+	b[17] = float32(known) / 10
 }
 
 func encodeTeam(v []float32, s *GameState, r ruleset, t *Team, mine bool) {
@@ -480,6 +548,11 @@ func b2f(b bool) float32 {
 //	         the next player's side has a group of, freezes the pile
 //	38       cards left in my hand afterwards (/15)
 //	39       discards only: cards of the same rank still in hand after it (/4)
+//	40-43    discards only, by the card inference (infer.go): the chance the
+//	         next seat captures the pile with it, the cards that would hand
+//	         over (that chance times the pile, /20), how much more than a
+//	         random card the next seat wants it, and the most any opponent
+//	         does
 const (
 	kindDraw = iota
 	kindTakePile
@@ -509,7 +582,11 @@ const (
 	fDiscardFreez = fDiscardFeeds + 1
 	fHandAfter    = fDiscardFreez + 1
 	fSameRank     = fHandAfter + 1
-	learnCandDim  = fSameRank + 1
+	fCapture      = fSameRank + 1
+	fGiveaway     = fCapture + 1
+	fWantNext     = fGiveaway + 1
+	fWantAny      = fWantNext + 1
+	learnCandDim  = fWantAny + 1
 )
 
 func (learnGame) CandDim() int { return learnCandDim }
@@ -773,6 +850,7 @@ func (c candidateBuilder) discards(offers []module.ActionOffer) []learn.Candidat
 	var out []learn.Candidate
 	hand := c.s.Hands[c.seat]
 	next := c.s.team(c.s.nextPlayer(c.seat))
+	inf := infer(c.s, c.seat)
 	for _, o := range offers {
 		if !o.Enabled || o.Verb != VerbDiscard || o.Source == nil {
 			continue
@@ -797,6 +875,21 @@ func (c candidateBuilder) discards(offers []module.ActionOffer) []learn.Candidat
 				}
 			}
 			f[fSameRank] = float32(same) / 4
+			risk := inf.captureRisk(c.s, card)
+			f[fCapture] = float32(risk)
+			f[fGiveaway] = float32(risk*float64(len(c.s.DiscardPile)+1)) / 20
+			if k := cardinfer.Slot(card); k >= 0 {
+				for i, id := range inf.seats {
+					if c.s.TeamOf[id] == c.t.ID {
+						continue
+					}
+					x := float32(inf.est.Excess(i, k))
+					if i == 0 {
+						f[fWantNext] = x
+					}
+					f[fWantAny] = max(f[fWantAny], x)
+				}
+			}
 			out = append(out, learn.Candidate{
 				Action:   module.Action{OfferID: o.ID, Verb: VerbDiscard, Cards: []string{card}},
 				Features: f,

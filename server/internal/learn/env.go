@@ -50,6 +50,9 @@ type Event struct {
 	Seat   string  `json:"seat"`
 	Reward float32 `json:"reward"`
 	Done   bool    `json:"done,omitempty"`
+	// Base is the game's own episode reward when MatchReward replaced it in
+	// Reward, so a trainer can report the two apart. Absent otherwise.
+	Base *float32 `json:"base,omitempty"`
 }
 
 // Observation is one table's pending decision and what happened since the
@@ -66,6 +69,22 @@ type Observation struct {
 	// and whose turn it was, so a stall can be pinned on the seat that caused
 	// it — a learner's candidates, or a hand-written opponent's own wedge.
 	LastStall string `json:"lastStall,omitempty"`
+	// Priv is the privileged observation (Privileged) of the seat deciding,
+	// present only when the trainer asked for it at reset. For the critic:
+	// never an input to the policy.
+	Priv []float32 `json:"priv,omitempty"`
+}
+
+// EnvOptions are the training-only extras a trainer may ask for at reset.
+// The zero value is the environment as it always was.
+type EnvOptions struct {
+	// Privileged adds every decision's privileged observation. The game must
+	// implement Privileged.
+	Privileged bool `json:"privileged,omitempty"`
+	// MatchReward replaces each episode's reward with its mix with the change
+	// in the chance of winning the match. The game must implement
+	// MatchScored.
+	MatchReward *MatchReward `json:"matchReward,omitempty"`
 }
 
 // Env is a batch of tables.
@@ -79,6 +98,9 @@ type Env struct {
 	// every seat that names the same checkpoint plays through the same one.
 	policies map[string]*Policy
 	tables   []*table
+	priv     Privileged   // nil unless asked for
+	match    *MatchReward // nil unless asked for
+	scored   MatchScored
 }
 
 type table struct {
@@ -116,7 +138,29 @@ type table struct {
 
 // NewEnv deals every table. Table i plays seeds first+i, first+i+len(specs), ...
 func NewEnv(g Game, variation string, specs []TableSpec, first int64, budget int) (*Env, error) {
+	return NewEnvWith(g, variation, specs, first, budget, EnvOptions{})
+}
+
+// NewEnvWith is NewEnv with the training-only extras in opts.
+func NewEnvWith(g Game, variation string, specs []TableSpec, first int64, budget int, opts EnvOptions) (*Env, error) {
 	e := &Env{g: g, view: Positions(g), variation: variation, budget: budget, stride: int64(len(specs)), policies: map[string]*Policy{}}
+	if opts.Privileged {
+		p, ok := g.(Privileged)
+		if !ok {
+			return nil, fmt.Errorf("learn: %s has no privileged observation", g.Name())
+		}
+		e.priv = p
+	}
+	if opts.MatchReward != nil {
+		ms, ok := g.(MatchScored)
+		if !ok {
+			return nil, fmt.Errorf("learn: %s has no match score", g.Name())
+		}
+		if err := opts.MatchReward.validate(); err != nil {
+			return nil, err
+		}
+		e.match, e.scored = opts.MatchReward, ms
+	}
 	for i, spec := range specs {
 		if len(spec.Plan) < 2 {
 			return nil, fmt.Errorf("learn: table %d has %d seats", i, len(spec.Plan))
@@ -154,6 +198,11 @@ func (e *Env) Observe() ([]Observation, error) {
 		}
 		out[i] = Observation{Seat: t.actor, Obs: obs, Cands: cands, Events: t.events,
 			Matches: t.matches, Illegal: t.illegal, Stalls: t.stalls, LastStall: t.lastStall}
+		if e.priv != nil {
+			if out[i].Priv, err = e.priv.PrivilegedFor(t.pos, t.actor); err != nil {
+				return err
+			}
+		}
 		t.events = nil
 		return nil
 	})
@@ -367,8 +416,16 @@ func (e *Env) apply(t *table, actor string, a module.Action) error {
 		if err != nil {
 			return err
 		}
+		var base *float32
+		if done && e.match != nil {
+			deal := r
+			base = &deal
+			if r, err = e.match.mix(e.scored, t.pos, nextPos, p.ID, r); err != nil {
+				return err
+			}
+		}
 		if r != 0 || done {
-			t.events = append(t.events, Event{Seat: p.ID, Reward: r, Done: done})
+			t.events = append(t.events, Event{Seat: p.ID, Reward: r, Done: done, Base: base})
 		}
 		t.open[p.ID] = !done
 	}
@@ -466,7 +523,11 @@ func skillOf(spec string) module.Skill {
 //
 //	{"op":"reset","game":"holdem","variation":"","seed":1,"budget":20000,"tables":[{"plan":["learner","hard"]}]}
 //	{"op":"step","choices":[2]}
-//	{"op":"info"}                  -> {"stateDim":..,"candDim":..}
+//	{"op":"info"}                  -> {"stateDim":..,"candDim":..,"privDim":..}
+//
+// A reset may also carry "privileged":true (every observation then has a
+// "priv" vector) and "matchReward":{alpha,k,model} (EnvOptions). Both are
+// absent from an older trainer's requests, and off for it.
 //
 // Every reply to reset and step is {"tables":[Observation...]}; a failure is
 // {"error":"..."}. A failed reset keeps the previous environment; a failed step
@@ -480,12 +541,17 @@ type request struct {
 	Budget    int         `json:"budget"`
 	Tables    []TableSpec `json:"tables"`
 	Choices   []int       `json:"choices"`
+	// The training-only extras (EnvOptions), absent from an older trainer's
+	// requests and so off for it.
+	Privileged  bool         `json:"privileged,omitempty"`
+	MatchReward *MatchReward `json:"matchReward,omitempty"`
 }
 
 type reply struct {
 	Tables   []Observation `json:"tables,omitempty"`
 	StateDim int           `json:"stateDim,omitempty"`
 	CandDim  int           `json:"candDim,omitempty"`
+	PrivDim  int           `json:"privDim,omitempty"` // zero for a game without one
 	Error    string        `json:"error,omitempty"`
 }
 
@@ -512,7 +578,8 @@ func Serve(r io.Reader, w io.Writer) error {
 						budget = 20000
 					}
 					var e *Env
-					if e, err = NewEnv(g, req.Variation, req.Tables, req.Seed, budget); err == nil {
+					opts := EnvOptions{Privileged: req.Privileged, MatchReward: req.MatchReward}
+					if e, err = NewEnvWith(g, req.Variation, req.Tables, req.Seed, budget, opts); err == nil {
 						if rep.Tables, err = e.Observe(); err == nil {
 							env, game = e, g
 						}
@@ -538,6 +605,9 @@ func Serve(r io.Reader, w io.Writer) error {
 					rep.Error = err.Error()
 				} else {
 					rep.StateDim, rep.CandDim = g.StateDim(), g.CandDim()
+					if p, ok := g.(Privileged); ok {
+						rep.PrivDim = p.PrivDim()
+					}
 				}
 			default:
 				rep.Error = fmt.Sprintf("unknown op %q", req.Op)
