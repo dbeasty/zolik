@@ -453,3 +453,7 @@ func (m *Module) Standings(raw module.State) ([]module.Standing, error) {
 	}
 	return module.RankByScore(order, func(id string) int { return stacks[id] }, "holdem.unit.chips"), nil
 }
+
+// SitOut is how an absent seat plays: it never puts chips in it was not
+// already committed to. Free to check, check; otherwise fold.
+func (m *Module) SitOut() []string { return []string{VerbCheck, VerbFold} }

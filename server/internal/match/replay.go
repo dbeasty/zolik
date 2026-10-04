@@ -211,7 +211,7 @@ func (m *Manager) BuildReplay(ctx context.Context, match models.Match, viewerID 
 	}
 	msg.Deck = mod.Descriptor().Deck
 	for _, p := range match.Players {
-		msg.Players = append(msg.Players, PlayerMsg{ID: p.ID, Name: p.Name, IsAI: p.IsAI, Avatar: p.Avatar})
+		msg.Players = append(msg.Players, playerMsg(p))
 	}
 
 	prevRounds := -1

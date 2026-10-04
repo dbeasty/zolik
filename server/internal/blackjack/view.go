@@ -503,3 +503,9 @@ func (m *Module) Standings(raw module.State) ([]module.Standing, error) {
 	}
 	return module.RankByScore(order(s), func(id string) int { return stacks[id] }, "blackjack.unit.chips"), nil
 }
+
+// SitOut is how an absent seat plays: the table's minimum to stay in the
+// shoe, no insurance, and never draw.
+func (m *Module) SitOut() []string {
+	return []string{VerbDecline, VerbStand, VerbBet}
+}

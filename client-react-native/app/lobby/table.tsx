@@ -6,6 +6,7 @@ import type { MatchState } from '@/src/api/matchTypes';
 import type { WaitingPlayer } from '@/src/api/types';
 import { Avatar } from '@/src/components/avatars/Avatar';
 import { avatarFor } from '@/src/components/avatars/catalogue';
+import { AgentConnectPanel } from '@/src/components/AgentConnectPanel';
 import { InvitePanel } from '@/src/components/InvitePanel';
 import { Screen } from '@/src/components/Screen';
 import { useSession } from '@/src/context/SessionContext';
@@ -369,6 +370,7 @@ export default function TableScreen() {
                 </Pressable>
               ))}
             </View>
+            {offline ? null : <AgentConnectPanel matchId={id} />}
             <Pressable testID="table-start" style={shared.button} onPress={start} disabled={busy}>
               <Text style={shared.buttonText}>
                 {held.length

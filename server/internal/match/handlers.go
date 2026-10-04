@@ -868,7 +868,7 @@ func (h *Handlers) storedTableOf(m models.Match, viewerID string, replayable boo
 	// the engine to get.
 	out.CanReplay = replayable && m.StartedAt != nil
 	for _, p := range m.Players {
-		out.Players = append(out.Players, PlayerMsg{ID: p.ID, Name: p.Name, IsAI: p.IsAI, Avatar: p.Avatar})
+		out.Players = append(out.Players, playerMsg(p))
 		if p.IsAI {
 			out.BotCount++
 		} else {

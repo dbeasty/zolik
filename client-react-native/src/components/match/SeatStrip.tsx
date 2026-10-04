@@ -112,13 +112,27 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
     const name = playerName(players, seat.playerId);
     const avatar = skin.seats.avatars ? (
       <Avatar
-        spec={avatarFor(seat.playerId, !!player?.isAI, player?.avatar)}
+        spec={avatarFor(seat.playerId, !!(player?.isAI || player?.isAgent), player?.avatar)}
         size={metrics.seat.avatar}
         ringColor={seat.active ? skin.colors.gold : undefined}
       />
     ) : null;
     const rank = standing ? <Text style={styles.rank}>{standing.rank}</Text> : null;
-    const bot = player?.isAI ? <Text style={styles.badge}>BOT</Text> : null;
+    // An AI client playing over MCP wears its own mark, and a seat the table
+    // is playing on without says so — it checks or folds until its player is
+    // back (see module.DropIn on the server).
+    const bot = player?.isAI ? (
+      <Text style={styles.badge}>BOT</Text>
+    ) : player?.isAgent ? (
+      <Text style={styles.badge} testID={`agent-badge-${seat.playerId}`} accessibilityLabel={player.agentLabel ?? 'AI agent'}>
+        {'\u2726 AGENT'}
+      </Text>
+    ) : null;
+    const away = player?.satOut ? (
+      <Text style={styles.badge} testID={`paused-badge-${seat.playerId}`}>
+        PAUSED
+      </Text>
+    ) : null;
     return (
       <View
         key={seat.playerId}
@@ -146,6 +160,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
               {avatar}
               {rank}
               {bot}
+              {away}
             </View>
             <Text style={[styles.name, styles.nameCrowded]} numberOfLines={1}>
               {name}
@@ -159,6 +174,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
               {name}
             </Text>
             {bot}
+            {away}
           </View>
         )}
 
@@ -275,7 +291,7 @@ export function SeatStrip({ seats, players, viewerId, standings, panelId, minimi
                     read; four faces is a table to be glanced at. */}
                 {skin.seats.avatars ? (
                   <Avatar
-                    spec={avatarFor(seat.playerId, !!player?.isAI, player?.avatar)}
+                    spec={avatarFor(seat.playerId, !!(player?.isAI || player?.isAgent), player?.avatar)}
                     size={metrics.seat.avatarCompact}
                   />
                 ) : null}

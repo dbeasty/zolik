@@ -22,7 +22,16 @@ type Player struct {
 	// no answer. A persona is stable across matches *and* specific, so it can
 	// carry a record the way an account does. Empty on bots seated before
 	// personas existed, which aggregate by difficulty exactly as they used to.
-	AIPersona    string `bson:"aiPersona,omitempty" json:"aiPersona,omitempty"`
+	AIPersona string `bson:"aiPersona,omitempty" json:"aiPersona,omitempty"`
+	// IsAgent marks a seat held by an AI client that connected over MCP (see
+	// internal/mcp). Distinct from IsAI, which means "the server drives this
+	// seat": an agent plays for itself, from outside, and can drop out and
+	// return exactly as a person can, so every presence rule that applies to a
+	// human applies to it. Clients wear it with its own icon.
+	IsAgent bool `bson:"isAgent,omitempty" json:"isAgent,omitempty"`
+	// AgentLabel is what the agent calls itself — its client or model — shown
+	// beside its name.
+	AgentLabel   string `bson:"agentLabel,omitempty" json:"agentLabel,omitempty"`
 	ConnectionID string `bson:"connectionId" json:"connectionId,omitempty"`
 	UserID       string `bson:"userId" json:"userId,omitempty"`
 	// Avatar is the face this seat wears, as a slug the clients agree on.

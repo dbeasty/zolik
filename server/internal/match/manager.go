@@ -72,6 +72,16 @@ type Manager struct {
 	// SetBotStats.
 	botStats *botstats.Recorder
 
+	// agentPresence, sitOutGrace, awaySince and agentTables are agents.go's:
+	// who counts as here without a socket, how long a drop-in seat may be
+	// away, since when each absent seat has been, and which agents to watch.
+	agentPresence AgentPresence
+	sitOutGrace   time.Duration
+	awayMu        sync.Mutex
+	awaySince     map[string]time.Time
+	agentTables   map[string]map[string]bool
+	sitOutTimers  map[string]bool
+
 	// live holds the state of every match in play; see live.go.
 	live liveMatches
 
@@ -752,7 +762,7 @@ func (m *Manager) broadcastWith(match models.Match, rounds *module.RoundLog) {
 	}
 	id := match.ID.Hex()
 	m.hub.BroadcastGameState(id, recipients, func(playerID string) interface{} {
-		return m.buildStateMsg(match, playerID, rounds)
+		return m.withSatOut(match, m.buildStateMsg(match, playerID, rounds))
 	})
 }
 
