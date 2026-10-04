@@ -110,3 +110,33 @@ func sameAction(a, b module.Action) bool {
 	}
 	return true
 }
+
+// Stepper is the same one-way unwinding for a driver outside this package —
+// cmd/game-mcp, whose tables mix bot seats with seats a person or a model
+// plays. One Stepper per table, kept for the table's life.
+type Stepper struct{ guard turnGuard }
+
+// Step makes one move for seat with bot: the bot's own pick first, then each
+// offer's submission in order, less anything this turn has already made and
+// taken back. apply is the caller's Apply, called for each attempt until one
+// is accepted. It returns the action that was accepted, whether it was the
+// bot's own pick, and how many of the bot's own picks the engine refused
+// (a bug at any strength). ok is false when nothing could be played.
+func (st *Stepper) Step(s module.State, bot module.Bot, seat module.BotSeat, offers []module.ActionOffer,
+	apply func(module.Action) error) (played module.Action, own bool, refused int, ok bool) {
+	st.guard.begin(seat.PlayerID)
+	for _, c := range st.guard.candidates(s, bot, seat, offers) {
+		if err := apply(c.action); err == nil {
+			st.guard.note(c)
+			return c.action, c.bot, refused, true
+		}
+		if c.bot {
+			refused++
+		}
+	}
+	return module.Action{}, false, refused, false
+}
+
+// Played tells the Stepper that actor made a move it did not choose, so a
+// turn that moves on to another seat is forgotten as it would be after Step.
+func (st *Stepper) Played(actor string) { st.guard.begin(actor) }
