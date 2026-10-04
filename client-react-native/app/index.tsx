@@ -218,7 +218,7 @@ function GameRow({
           ›
         </Text>
       </View>
-      {resume || status.waiting > 0 ? (
+      {resume || status.waiting > 0 || signedIn ? (
         <View style={styles.badges}>
           {resume ? (
             <Text
@@ -238,6 +238,18 @@ function GameRow({
             </Text>
           ) : null}
           <View style={{ flex: 1 }} />
+          {signedIn ? (
+            <Pressable
+              testID={`picker-${mod.id}-previous`}
+              accessibilityRole="button"
+              onPress={() =>
+                router.push(`/lobby/mine?moduleId=${encodeURIComponent(mod.id)}&scope=finished` as Href)
+              }
+              style={({ pressed }) => [styles.resume, pressed && styles.rowPressed]}
+            >
+              <Text style={styles.resumeText}>{t('game.previousGames')}</Text>
+            </Pressable>
+          ) : null}
           {resume ? (
             <Pressable
               testID={`picker-${mod.id}-resume`}
