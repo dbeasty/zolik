@@ -61,6 +61,23 @@
 
     <div class="card">
       <div class="section-head">
+        <h2>Bots</h2>
+        <span class="muted">Which bot plays the Hard seats</span>
+      </div>
+      <p class="muted">
+        Turning a game's model on puts the trained model this build ships in
+        every Hard bot seat, at every table, from its next move. Easy and
+        Medium seats and player hints keep the hand-written bot. Off by
+        default; the setting survives restarts.
+      </p>
+      <p class="error" id="bots-error" hidden></p>
+      <div class="scroller">
+        <table id="bots" class="bots"></table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-head">
         <h2>Report</h2>
         <div class="filters">
           <label><span class="muted">From</span> <input type="date" id="from"></label>

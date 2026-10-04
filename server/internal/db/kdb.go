@@ -74,6 +74,10 @@ const (
 	NSNotifyProfiles = "notify_profiles"
 	NSNotifyCircle   = "notify_circle"
 	NSNotifyDevices  = "notify_devices"
+
+	// NSSettings holds the operator's runtime switches, one small document
+	// per concern — see internal/botsettings.
+	NSSettings = "settings"
 )
 
 var kdbNamespaceNames = []string{
@@ -81,6 +85,7 @@ var kdbNamespaceNames = []string{
 	NSPlayerStats, NSIdentities, NSLoginCodes, NSOAuthFlows,
 	NSDailyMetrics, NSBoots, NSMatchLog, NSReservations, NSNodes, NSGuestClaims,
 	NSNotifyProfiles, NSNotifyCircle, NSNotifyDevices,
+	NSSettings,
 }
 
 const kdbCatalog = "zolik"

@@ -69,7 +69,15 @@ func (m *Manager) Hint(ctx context.Context, idOrCode, playerID string) (module.A
 		Skill:    module.SkillHard,
 		Seed:     module.SeatSeed(match.Seed, playerID, "hint"),
 	}
-	a, ok := module.BotFor(mod).Act(state, seat, offers)
+	bot := module.BotFor(mod)
+	// A Hard seat may be playing a trained model (learn.HardModel), and a
+	// hint asks as a Hard seat. Hints stay with the hand-written heuristic
+	// regardless: the model switch is about who the opponents are, not about
+	// what the game suggests to a person, and it can flip mid-match.
+	if layered, ok := bot.(interface{ Heuristic() module.Bot }); ok {
+		bot = layered.Heuristic()
+	}
+	a, ok := bot.Act(state, seat, offers)
 	if !ok {
 		return module.Action{}, module.Error{Code: "NO_HINT"}
 	}

@@ -43,6 +43,10 @@ type Collections struct {
 	NotifyProfiles *mongo.Collection
 	NotifyCircle   *mongo.Collection
 	NotifyDevices  *mongo.Collection
+	// Settings holds the handful of switches an operator changes at runtime
+	// from the admin console — which Hard seats play a trained model, today —
+	// one small document per concern. See internal/botsettings.
+	Settings *mongo.Collection
 }
 
 func (m *Mongo) Collections() Collections {
@@ -64,5 +68,7 @@ func (m *Mongo) Collections() Collections {
 		NotifyProfiles: m.DB.Collection("notify_profiles"),
 		NotifyCircle:   m.DB.Collection("notify_circle"),
 		NotifyDevices:  m.DB.Collection("notify_devices"),
+
+		Settings: m.DB.Collection("settings"),
 	}
 }

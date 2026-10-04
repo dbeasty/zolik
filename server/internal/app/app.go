@@ -18,6 +18,7 @@ import (
 	"zolik/server/internal/admission"
 	"zolik/server/internal/auth"
 	"zolik/server/internal/blackjack"
+	"zolik/server/internal/botsettings"
 	"zolik/server/internal/buildinfo"
 	"zolik/server/internal/canasta"
 	"zolik/server/internal/db"
@@ -101,6 +102,9 @@ type App struct {
 	// notify tells players about tables — their circle's, over the personal
 	// socket and push. Built in New because the guest claim below needs it.
 	notify *notify.Service
+	// botSettings persists the admin console's Hard-model switches; loaded
+	// into learn's in-process switch in New. See bots.go.
+	botSettings botsettings.Store
 }
 
 // repos is every repository the app wires, built in one place so the two
@@ -119,6 +123,9 @@ type repos struct {
 	// column-for-column comparable.
 	metrics metrics.Store
 	notify  notify.Repository
+	// bots is the operator's stored choice of which games' Hard seats play
+	// a trained model. See bots.go.
+	bots botsettings.Store
 	// kdb is the embedded engine itself, set only by kdbRepos. Replication
 	// needs the database rather than a repository over it, since a namespace
 	// is not something a repository has a name for.
@@ -149,6 +156,7 @@ func mongoRepos(ctx context.Context, cfg Config) (repos, error) {
 		scoring:  scoring.NewRepository(m),
 		metrics:  metrics.NewMongoStore(m),
 		notify:   notify.NewRepository(m),
+		bots:     botsettings.NewMongoStore(m),
 		close:    m.Close,
 	}, nil
 }
@@ -201,6 +209,7 @@ func kdbRepos(cfg Config) (repos, error) {
 		scoring:  scoring.NewKDBRepository(k),
 		metrics:  metrics.NewKDBStore(k),
 		notify:   notify.NewKDBRepository(k),
+		bots:     botsettings.NewKDBStore(k),
 		close:    k.Close,
 	}, nil
 }
@@ -353,7 +362,9 @@ func New(cfg Config) (*App, error) {
 		boots:       metrics.NewBootRecorder(r.metrics, recorder),
 		web:         webui.NewHandler(webui.Embedded()),
 		notify:      notifySvc,
+		botSettings: r.bots,
 	}
+	loadHardModels(ctx, r.bots)
 
 	// Opened here rather than in Start so that every namespace this process
 	// opens afterwards is hooked into the node from the first one: a

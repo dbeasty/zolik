@@ -225,6 +225,35 @@ That distinguishes the three things an operator conflates as "it went down": a
 deploy (clean exit, immediately followed by a start at a new version), a crash
 or OOM kill, and a host reboot.
 
+### Bots
+
+The **Bots** card switches, per game (Žolíky, Canasta, Hold'em), whether the
+Hard bot seats play the trained model this build ships or the hand-written
+heuristic. Reach it the same way as the rest of the console, over the SSH
+tunnel above.
+
+- **Off by default** for every game, so deploying a build changes nothing
+  until somebody turns a game on.
+- A change reaches every live table at its **next bot move**, with no restart.
+  Easy and Medium seats, and player hints, always play the heuristic.
+- It is **persisted** (`settings` collection / KDB namespace, document `bots`)
+  and loaded at boot, so a restart comes back to the last choice. A stored "on"
+  for a model that no longer fits (say, after a rollback) is logged and left
+  off.
+- The models are compiled into the binary (`internal/learn/models`), so a
+  release carries its models and a rollback restores the previous ones. The
+  card shows each model's source run, training date, headline benchmark, size
+  and hash. A model that does not fit its game's current encoder cannot be
+  turned on.
+- `ZOLIK_LEARNED_MODEL_<GAME>` (a model file, for local testing) wins over the
+  switch; the card says so when it is set.
+- Every change is logged: `admin changed hard bot game=… from=… to=… user=…
+  email=… remote=…`, and the stored setting records who and when.
+
+`GET /admin/api/bots` lists the games; `PUT /admin/api/bots/{game}` with
+`{"enabled": true|false}` changes one (404 for a game that ships no model,
+409 for a model that does not fit). Both need a console token.
+
 ## Terminal client (SSH)
 
 When `SSH_ENABLED=true` (default in local), the server embeds **[client-tui](../client-tui/)** on port **2222**:
