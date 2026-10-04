@@ -1776,6 +1776,7 @@ export const el: Record<string, string> = {
   'picker.join': 'Συμμετοχή',
   'game.startYourOwn': 'Ξεκίνα το δικό σου',
   'game.playBots': 'Παίξε με bots',
+  'game.previousGames': 'Προηγούμενα παιχνίδια',
   'setup.titleTable': 'Νέο τραπέζι {game}',
   'setup.titleBots': '{game} με bots',
   'setup.openTable': 'Άνοιξε τραπέζι',

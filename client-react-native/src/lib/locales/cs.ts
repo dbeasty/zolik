@@ -1737,6 +1737,7 @@ export const cs: Record<string, string> = {
   'picker.join': 'Připojit',
   'game.startYourOwn': 'Založ vlastní',
   'game.playBots': 'Hrát proti botům',
+  'game.previousGames': 'Předchozí hry',
   'setup.titleTable': 'Nový stůl – {game}',
   'setup.titleBots': '{game} proti botům',
   'setup.openTable': 'Otevřít stůl',

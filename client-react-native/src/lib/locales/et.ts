@@ -1749,6 +1749,7 @@ export const et: Record<string, string> = {
   'picker.join': 'Liitu',
   'game.startYourOwn': 'Alusta oma',
   'game.playBots': 'Mängi bottide vastu',
+  'game.previousGames': 'Varasemad mängud',
   'setup.titleTable': 'Uus laud: {game}',
   'setup.titleBots': '{game} bottide vastu',
   'setup.openTable': 'Ava laud',

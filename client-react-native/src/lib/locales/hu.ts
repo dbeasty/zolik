@@ -1762,6 +1762,7 @@ export const hu: Record<string, string> = {
   'picker.join': 'Csatlakozás',
   'game.startYourOwn': 'Indíts sajátot',
   'game.playBots': 'Játék botok ellen',
+  'game.previousGames': 'Korábbi játékok',
   'setup.titleTable': 'Új asztal: {game}',
   'setup.titleBots': '{game} botok ellen',
   'setup.openTable': 'Asztal megnyitása',

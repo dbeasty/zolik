@@ -1755,6 +1755,7 @@ export const ro: Record<string, string> = {
   'picker.join': 'Intră',
   'game.startYourOwn': 'Pornește-ți propria',
   'game.playBots': 'Joacă cu boți',
+  'game.previousGames': 'Jocuri anterioare',
   'setup.titleTable': 'Masă nouă de {game}',
   'setup.titleBots': '{game} cu boți',
   'setup.openTable': 'Deschide masa',

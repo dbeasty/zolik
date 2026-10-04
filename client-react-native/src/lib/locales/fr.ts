@@ -1761,6 +1761,7 @@ export const fr: Record<string, string> = {
   'picker.join': 'Rejoindre',
   'game.startYourOwn': 'Lance la tienne',
   'game.playBots': 'Jouer contre des bots',
+  'game.previousGames': 'Parties précédentes',
   'setup.titleTable': 'Nouvelle table de {game}',
   'setup.titleBots': '{game} contre des bots',
   'setup.openTable': 'Ouvrir la table',

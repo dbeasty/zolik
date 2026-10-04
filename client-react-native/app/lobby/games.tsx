@@ -119,6 +119,20 @@ function GamePageFor({ moduleId }: { moduleId: string }) {
       >
         <Text style={[shared.buttonText, shared.buttonTextSecondary]}>{t('game.playBots')}</Text>
       </Pressable>
+      {/* Every finished game of this one, not just the latest: the menu row
+          resumes a single table, so the rest are reached from here. */}
+      {session ? (
+        <Pressable
+          testID={`previous-games-${mod.id}`}
+          accessibilityRole="button"
+          style={[shared.button, shared.buttonSecondary]}
+          onPress={() =>
+            router.push(`/lobby/mine?moduleId=${encodeURIComponent(mod.id)}&scope=finished`)
+          }
+        >
+          <Text style={[shared.buttonText, shared.buttonTextSecondary]}>{t('game.previousGames')}</Text>
+        </Pressable>
+      ) : null}
     </Screen>
   );
 }

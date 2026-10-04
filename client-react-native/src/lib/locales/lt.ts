@@ -1746,6 +1746,7 @@ export const lt: Record<string, string> = {
   'picker.join': 'Prisijungti',
   'game.startYourOwn': 'Pradėk savo',
   'game.playBots': 'Žaisti prieš botus',
+  'game.previousGames': 'Ankstesni žaidimai',
   'setup.titleTable': 'Naujas stalas: {game}',
   'setup.titleBots': '{game} prieš botus',
   'setup.openTable': 'Atidaryti stalą',

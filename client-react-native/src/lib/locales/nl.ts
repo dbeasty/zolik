@@ -1761,6 +1761,7 @@ export const nl: Record<string, string> = {
   'picker.join': 'Meedoen',
   'game.startYourOwn': 'Begin je eigen',
   'game.playBots': 'Tegen bots spelen',
+  'game.previousGames': 'Eerdere spellen',
   'setup.titleTable': 'Nieuwe tafel: {game}',
   'setup.titleBots': '{game} tegen bots',
   'setup.openTable': 'Tafel openen',

@@ -1742,6 +1742,7 @@ export const sv: Record<string, string> = {
   'picker.join': 'Gå med',
   'game.startYourOwn': 'Starta ditt eget',
   'game.playBots': 'Spela mot bottar',
+  'game.previousGames': 'Tidigare spel',
   'setup.titleTable': 'Nytt bord: {game}',
   'setup.titleBots': '{game} mot bottar',
   'setup.openTable': 'Öppna bord',

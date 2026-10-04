@@ -1778,6 +1778,7 @@ export const ga: Record<string, string> = {
   'picker.join': 'Glac páirt',
   'game.startYourOwn': 'Tosaigh do cheann féin',
   'game.playBots': 'Imir in aghaidh bot',
+  'game.previousGames': 'Cluichí roimhe seo',
   'setup.titleTable': 'Bord nua {game}',
   'setup.titleBots': '{game} in aghaidh bot',
   'setup.openTable': 'Oscail bord',
