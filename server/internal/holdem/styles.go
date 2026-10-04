@@ -31,7 +31,45 @@ func (learnGame) Styles() map[string]module.Bot {
 		"rock":         rock{},
 		"station":      station{},
 		"riverbluffer": riverBluffer{},
+		"solid":        solid,
 	}
+}
+
+// solid is a tight-aggressive regular: it plays fewer hands than Hard, bets
+// and raises the ones it plays, and — the reason it exists — calls a big bet
+// or a shove with any strong made hand, top pair with a good kicker or better,
+// and with a strong draw when the price is right.
+//
+// Every other opponent in the pool rewards an overbet. The rock and Hard fold
+// most made hands to one, because claimedBy reads a bet past three quarters of
+// the pot as a claim to two pair and almost nothing one pair holds beats that;
+// the station calls it with anything, which pays the hand that has it and
+// punishes nothing in particular. A learner trained against them shoves top
+// pair weak kicker and middle pair into a pot half the size of the shove,
+// because the shove nearly always takes it down. This player gives a big bet
+// the credit of a pair it holds now and no more (madeClaim), so a hand that is shoving worse
+// than a solid calling range is called by that range and loses.
+//
+// It is the heuristic with a stricter profile rather than a new decision
+// procedure, so every move is still built from an enabled offer and clamped
+// to the offer's range (bot.go), and there is no overbetDoubt: that is an
+// exploit of bluffers, and a solid player's call of a shove is the hand's own
+// equity against a value range, not a read.
+var solid = bot{tuning: &solidProfile}
+
+var solidProfile = profile{
+	skill: module.SkillHard,
+	// A bet claims a pair held now, never more, and a tenth of the time
+	// nothing at all.
+	madeClaim:  true,
+	bluffShare: 0.1,
+	// Tighter than the ladder before the flop: a point of Chen above its bar.
+	loose: -1.0,
+	// Aggressive with its draws, honest otherwise: a little bluffing so its
+	// bets are not free to fold against, none of it on a raise.
+	semiBluff: 0.35,
+	bluff:     0.1,
+	steal:     0.3,
 }
 
 // betting reports whether this is the seat's own betting decision, and if so
