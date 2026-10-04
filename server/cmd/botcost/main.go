@@ -34,6 +34,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"runtime/pprof"
 	"sort"
 	"strings"
 	"text/tabwriter"
@@ -59,8 +60,21 @@ func main() {
 	procs := flag.Int("procs", 1, "GOMAXPROCS for the run")
 	seed := flag.Int64("seed", 1, "first seed")
 	asCSV := flag.Bool("csv", false, "print CSV instead of a table")
+	cpuProfile := flag.String("cpuprofile", "", "write a CPU profile of the whole run to this file")
 	learned := flag.Bool("learned", false, "switch every shipped model on, so Hard seats play it")
 	flag.Parse()
+	if *cpuProfile != "" {
+		f, err := os.Create(*cpuProfile)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "botcost:", err)
+			os.Exit(2)
+		}
+		if err := pprof.StartCPUProfile(f); err != nil {
+			fmt.Fprintln(os.Stderr, "botcost:", err)
+			os.Exit(2)
+		}
+		defer pprof.StopCPUProfile()
+	}
 
 	runtime.GOMAXPROCS(*procs)
 	if *learned {
@@ -106,6 +120,7 @@ func main() {
 		printTable(rows)
 	}
 	if failed {
+		pprof.StopCPUProfile()
 		os.Exit(1)
 	}
 }

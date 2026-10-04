@@ -20,7 +20,13 @@ import (
 // Legality is never its business. It picks among the cards the offer list
 // already says are legal, so a bad judgement is a weak move and never a
 // refused one.
-type bot struct{}
+type bot struct {
+	// skill, if set, overrides the seat's: a bench style is always the
+	// skill it was built as.
+	skill module.Skill
+	// limits bound a hard seat's search; zero is defaultLimits.
+	limits searchLimits
+}
 
 var _ module.Bot = bot{}
 
@@ -31,6 +37,9 @@ func (b bot) Act(raw module.State, seat module.BotSeat, offers []module.ActionOf
 	}
 	me := seat.PlayerID
 	skill := seat.Skill
+	if b.skill != "" {
+		skill = b.skill
+	}
 	if skill == "" {
 		skill = module.SkillMedium
 	}
@@ -275,7 +284,11 @@ func (b bot) playCard(s *GameState, me string, skill module.Skill, legal []strin
 	// A hard seat searches: sampled deals, solved open-handed (sampling.go).
 	// The rules of thumb below are its fallback if no sample could be.
 	if skill == module.SkillHard {
-		if c, ok := s.searchPlay(me, legal, r); ok {
+		lim := b.limits
+		if lim == (searchLimits{}) {
+			lim = defaultLimits
+		}
+		if c, _, ok := s.searchPlay(me, legal, r, lim); ok {
 			return c
 		}
 	}
