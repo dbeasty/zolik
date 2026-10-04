@@ -15,10 +15,13 @@ import (
 type fakeBots struct {
 	enabled map[string]bool
 	stored  []HardModelChange
+	// mode and modes are the governor's: what it is, and every change asked.
+	mode  string
+	modes []GovernorChange
 }
 
 func newFakeBots() *fakeBots {
-	return &fakeBots{enabled: map[string]bool{"zolik": false, "canasta": false, "misfit": false}}
+	return &fakeBots{enabled: map[string]bool{"zolik": false, "canasta": false, "misfit": false}, mode: "observe"}
 }
 
 func (f *fakeBots) rows(context.Context) ([]HardModelRow, error) {
@@ -174,5 +177,89 @@ func TestSetBotRefusals(t *testing.T) {
 		if on {
 			t.Errorf("%s was switched on by a refused request", g)
 		}
+	}
+}
+
+func (f *fakeBots) governor(context.Context) (GovernorView, error) {
+	v := GovernorView{Mode: f.mode, Source: "environment", EnvDefault: "observe",
+		Governor: map[string]any{"leases": 3}, Monitor: map[string]any{"level": "green"}}
+	if n := len(f.modes); n > 0 {
+		at := f.modes[n-1].At
+		v.Source, v.UpdatedBy, v.UpdatedAt = "console", f.modes[n-1].By, &at
+	}
+	return v, nil
+}
+
+func (f *fakeBots) setGovernor(_ context.Context, c GovernorChange) (string, error) {
+	was := f.mode
+	f.mode = c.Mode
+	f.modes = append(f.modes, c)
+	return was, nil
+}
+
+func TestGovernorIsOnTheBotsCard(t *testing.T) {
+	h, login := newHarness(t)
+	rec := h.withToken(t, signedIn(t, h, login), "GET", "/admin/api/bots", "")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("got %d: %s", rec.Code, rec.Body.String())
+	}
+	g, _ := decode(t, rec)["governor"].(map[string]any)
+	if g["mode"] != "observe" || g["source"] != "environment" || g["envDefault"] != "observe" || g["governor"] == nil || g["monitor"] == nil {
+		t.Fatalf("governor panel = %v", g)
+	}
+}
+
+func TestSetGovernorPersistsAndAudits(t *testing.T) {
+	h, login := newHarness(t)
+	logs := captureLog(t)
+	token := signedIn(t, h, login)
+
+	rec := h.withToken(t, token, "PUT", "/admin/api/governor", `{"mode":"enforce"}`)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("got %d: %s", rec.Code, rec.Body.String())
+	}
+	if h.bots.mode != "enforce" || len(h.bots.modes) != 1 || h.bots.modes[0].By != "operator" {
+		t.Fatalf("change = %+v, mode %s", h.bots.modes, h.bots.mode)
+	}
+	// The response is the whole card, governor included, as it now stands.
+	body := decode(t, rec)
+	g, _ := body["governor"].(map[string]any)
+	if g["mode"] != "enforce" || g["source"] != "console" || g["updatedBy"] != "operator" {
+		t.Errorf("response panel = %v", g)
+	}
+	if games, _ := body["games"].([]any); len(games) != 3 {
+		t.Errorf("response lost the games: %v", body["games"])
+	}
+	line := logs.String()
+	for _, want := range []string{`msg="admin changed bot governor"`, "from=observe", "to=enforce", "user=operator", "remote="} {
+		if !strings.Contains(line, want) {
+			t.Errorf("audit line lacks %q: %s", want, line)
+		}
+	}
+}
+
+func TestSetGovernorRefusesWhatIsNotAMode(t *testing.T) {
+	h, login := newHarness(t)
+	token := signedIn(t, h, login)
+	for _, body := range []string{`{"mode":"on"}`, `{"mode":""}`, `{}`, `{"mode":"enforce","extra":1}`, `not json`} {
+		if rec := h.withToken(t, token, "PUT", "/admin/api/governor", body); rec.Code != http.StatusBadRequest {
+			t.Errorf("%s: got %d, want 400", body, rec.Code)
+		}
+	}
+	if len(h.bots.modes) != 0 {
+		t.Fatalf("a refused request changed the mode: %+v", h.bots.modes)
+	}
+}
+
+func TestGovernorRouteRequiresAnAdministrator(t *testing.T) {
+	h, _ := newHarness(t)
+	if rec := h.withToken(t, "", "PUT", "/admin/api/governor", `{"mode":"enforce"}`); rec.Code != http.StatusUnauthorized {
+		t.Errorf("without a token: got %d, want 401", rec.Code)
+	}
+	if rec := h.as(t, h.other, "PUT", "/admin/api/governor", `{"mode":"enforce"}`); rec.Code != http.StatusForbidden {
+		t.Errorf("a non-admin player: got %d, want 403", rec.Code)
+	}
+	if len(h.bots.modes) != 0 {
+		t.Fatal("an unauthorised request changed the mode")
 	}
 }

@@ -679,6 +679,8 @@ func (a *App) configureManager(matchMgr *match.Manager) *match.Manager {
 	// bots never take more CPU than this box can spare. See
 	// docs/bot-compute-gating-plan.md and internal/botgov.
 	matchMgr.SetGovernor(newGovernor(a.cfg))
+	// What the operator last chose in the console outranks the environment.
+	loadGovernorMode(context.Background(), a.botSettings, matchMgr.Governor())
 	// And whether a stopped game can be stepped through. The operator's half
 	// of that question; the store answers the other half itself.
 	matchMgr.SetReplayEnabled(a.cfg.ReplayEnabled)

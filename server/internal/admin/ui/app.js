@@ -390,12 +390,81 @@
     return el;
   }
 
+  /* The governor panel: the mode as three pressed-or-not buttons, where the
+   * mode came from, and what the governor and the monitor are doing now. */
+  var MODES = [
+    { id: 'off', label: 'Off' },
+    { id: 'observe', label: 'Observe' },
+    { id: 'enforce', label: 'Enforce' }
+  ];
+
+  function renderGovernor(g) {
+    var panel = $('governor');
+    show(panel, !!g);
+    if (!g) return;
+
+    var modes = $('governor-modes');
+    clear(modes);
+    MODES.forEach(function (m) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = m.label;
+      b.setAttribute('data-mode', m.id);
+      b.setAttribute('aria-pressed', g.mode === m.id ? 'true' : 'false');
+      b.addEventListener('click', function () { setGovernor(g, m.id, modes); });
+      modes.appendChild(b);
+    });
+
+    var src = $('governor-source');
+    src.textContent = g.source === 'console'
+      ? 'Set here by ' + (g.updatedBy || 'unknown') + ', ' + when(g.updatedAt) +
+        '. The server\'s BOT_GOVERNOR (' + g.envDefault + ') no longer applies.'
+      : 'From the server\'s BOT_GOVERNOR setting (' + g.envDefault + '); never changed here.';
+
+    var stats = $('governor-stats');
+    clear(stats);
+    var mon = g.monitor || {};
+    var gov = g.governor || {};
+    var level = document.createElement('span');
+    level.className = 'chip level-' + (mon.level || 'green');
+    level.textContent = 'level · ' + (mon.level || 'green') +
+      (mon.reason && mon.level !== 'green' ? ' (' + mon.reason.replace('_', ' ') + ')' : '');
+    stats.appendChild(level);
+    chip(stats, 'CPU quota', (mon.cpuQuota || 0).toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' cores');
+    chip(stats, 'leased', (gov.leasedCores || 0).toFixed(2) + ' of ' + (gov.capacityCores || 0).toFixed(2) + ' cores');
+    chip(stats, 'bot seats tracked', num(gov.seats));
+    chip(stats, g.mode === 'observe' ? 'would simplify' : 'simplified', num(gov.reducedSeats));
+    if (gov.revocationsTotal) chip(stats, 'downgrades since start', num(gov.revocationsTotal));
+  }
+
+  function setGovernor(g, to, group) {
+    if (to === g.mode) return;
+    var question = {
+      off: 'Turn the bot governor off?\n\nBots play at their seated strength whatever the load.',
+      observe: 'Set the bot governor to observe?\n\nIt keeps counting what it would do, and changes no move. ' +
+        'Simplified seats go back to full strength at their next turn.',
+      enforce: 'Let the bot governor enforce?\n\nWhen this server is short of CPU, the dearest bot seats ' +
+        'play a cheaper version from their next turn, and go back up at the next round when there is room.'
+    }[to];
+    if (!window.confirm(question)) return;
+    Array.prototype.forEach.call(group.querySelectorAll('button'), function (b) { b.disabled = true; });
+    fail($('bots-error'), '');
+    api('/governor', {
+      method: 'PUT',
+      body: JSON.stringify({ mode: to })
+    }).then(renderBots).catch(function (err) {
+      fail($('bots-error'), err.message);
+      loadBots();
+    });
+  }
+
   function renderBots(body) {
+    renderGovernor(body.governor);
     var table = $('bots');
     clear(table);
     var thead = document.createElement('thead');
     var hr = document.createElement('tr');
-    ['game', 'model', 'hard seats play', 'last changed'].forEach(function (h) {
+    ['game', 'model', 'AI seats play', 'last changed'].forEach(function (h) {
       var th = document.createElement('th');
       th.textContent = h;
       hr.appendChild(th);
@@ -427,7 +496,7 @@
       }
       if (g.envOverride) {
         line(model, 'Overridden: this server\'s environment names ' + g.envOverride +
-          ', which Hard seats play whatever this switch says.', 'bot-warn');
+          ', which AI seats play whatever this switch says.', 'bot-warn');
       }
 
       var state = cell(tr, 'bot-switch');
@@ -462,10 +531,10 @@
     var to = !g.enabled;
     var title = g.title || g.game;
     var question = to
-      ? 'Put the trained model in every ' + title + ' Hard seat?\n\n' +
-        'Live tables switch at their next bot move. Easy and Medium seats are unchanged.'
-      : 'Put the heuristic back in every ' + title + ' Hard seat?\n\n' +
-        'Live tables switch at their next bot move.';
+      ? 'Put the trained model in every ' + title + ' AI seat?\n\n' +
+        'Live tables switch at each seat\'s next turn. Easy, Medium and Hard seats are unchanged.'
+      : 'Put the heuristic back in every ' + title + ' AI seat?\n\n' +
+        'Live tables switch at each seat\'s next turn.';
     if (!window.confirm(question)) return;
     btn.disabled = true;
     fail($('bots-error'), '');

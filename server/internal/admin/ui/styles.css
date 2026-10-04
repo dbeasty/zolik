@@ -450,3 +450,12 @@ table.bots td.bot-switch { white-space: nowrap; }
 }
 .bot-state[data-on="1"] { color: var(--ok); font-weight: 600; }
 .bot-warn { font-size: 13px; color: var(--danger); margin-top: 4px; }
+
+/* The governor panel on the Bots card. */
+.governor { margin: 4px 0 18px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.governor h3, .card h3 { font-size: 15px; margin: 10px 0 4px; }
+.governor-source { margin: 8px 0; font-size: 13px; }
+.governor-stats .chip { white-space: nowrap; }
+.chip.level-amber { border-color: #c98a12; color: #c98a12; font-weight: 600; }
+.chip.level-red { border-color: var(--danger); color: var(--danger); font-weight: 600; }
+.chip.level-green { color: var(--ok); }
