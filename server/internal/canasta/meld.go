@@ -636,7 +636,9 @@ func reachableValue(r ruleset, hand []string, t *Team) int {
 // including any laid earlier this turn, as one candidate per meld — the shape
 // reachableValue's passes all take.
 func layOffCandidates(r ruleset, hand []string, t *Team) []candidate {
-	if t == nil {
+	// Nothing is laid off before the initial meld, so an unopened side has no
+	// lay-offs to count towards the minimum (layOff refuses them).
+	if t == nil || !t.HasMelded {
 		return nil
 	}
 	remaining := append([]string(nil), hand...)
