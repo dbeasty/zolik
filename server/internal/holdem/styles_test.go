@@ -165,3 +165,67 @@ func TestShortConfigIsFifteenToTwentyFiveBigBlinds(t *testing.T) {
 		t.Errorf("ShortConfig changed the usual table: %v", o)
 	}
 }
+
+// TestJamCallerPlaysWholeLegalMatches: the jam caller beside Hard and the
+// pusher at every table size, at the usual depth and short, every move
+// applied as given.
+func TestJamCallerPlaysWholeLegalMatches(t *testing.T) {
+	g := learnGame{}
+	b := g.Styles()["jamcaller"]
+	for n := 2; n <= 6; n++ {
+		for _, short := range []bool{false, true} {
+			players := learn.Players(n)
+			seats := botSeats(players, bot{})
+			seats[players[0].ID] = b
+			seats[players[n-1].ID] = g.Styles()["pusher"]
+			cfg := g.Config(n, "")
+			if short {
+				cfg = g.ShortConfig(n, "", 0.5)
+			}
+			state, err := New().NewMatch(cfg, players, int64(400+n))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if final := playBots(t, state, players, seats, 20000); final.Status != "completed" {
+				t.Errorf("%d seats, short %v: %s", n, short, final.Status)
+			}
+		}
+	}
+}
+
+// TestJamCallerCallsADeepJamWithASoundRange: a 50 bb jam before the flop is
+// called by AQo and folded by 72o, every seed.
+func TestJamCallerCallsADeepJamWithASoundRange(t *testing.T) {
+	jam := func(hole []string) module.State {
+		return table(2, func(s *GameState) {
+			s.Current = 0
+			s.Seats[0].Hole = hole
+			s.Seats[0].Bet, s.Seats[0].Committed, s.Seats[0].Stack = 20, 20, 980
+			s.Seats[1].Bet, s.Seats[1].Committed, s.Seats[1].Stack = 1000, 1000, 0
+			s.Seats[1].Acted, s.Seats[1].AllIn = true, true
+			s.Pot = 1020
+			s.CurrentBet, s.MinRaise = 1000, 980
+		})
+	}
+	b := learnGame{}.Styles()["jamcaller"]
+	for _, c := range []struct {
+		hole []string
+		call bool
+	}{{[]string{"AS", "QD"}, true}, {[]string{"7C", "2D"}, false}} {
+		for seed := int64(1); seed <= 20; seed++ {
+			raw := atSeed(t, jam(c.hole), seed)
+			offers, err := New().LegalActions(raw, "p1")
+			if err != nil {
+				t.Fatal(err)
+			}
+			a, ok := b.Act(raw, module.BotSeat{PlayerID: "p1"}, offers)
+			if !ok {
+				t.Fatal("no move")
+			}
+			called := a.Verb == VerbCall || a.Verb == VerbRaise
+			if called != c.call {
+				t.Fatalf("%v facing a 50 bb jam, seed %d: %s", c.hole, seed, a.Verb)
+			}
+		}
+	}
+}
