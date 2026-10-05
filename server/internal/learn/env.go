@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 	"runtime"
 	"strconv"
@@ -33,6 +34,14 @@ import (
 // ladder — a maniac, a rock — for the training pool.
 type Styled interface {
 	Styles() map[string]module.Bot
+}
+
+// ShortStacked is implemented by a game with a short-stacked table worth
+// training on beside its usual one (EnvOptions.ShortStacks): Hold'em at a
+// depth where jam-or-fold is the game. roll is uniform in [0, 1) and fixed by
+// the seed, so a seed always deals the same table.
+type ShortStacked interface {
+	ShortConfig(seats int, variation string, roll float64) module.MatchConfig
 }
 
 // Learner is the seat spec for a seat the trainer plays.
@@ -89,6 +98,9 @@ type EnvOptions struct {
 	// another side does to each episode's reward. The game must implement
 	// GoOutScored.
 	GoOut *GoOutShaping `json:"goOut,omitempty"`
+	// ShortStacks is the share of deals played at the game's short-stacked
+	// table instead of its usual one. The game must implement ShortStacked.
+	ShortStacks float64 `json:"shortStacks,omitempty"`
 }
 
 // Env is a batch of tables.
@@ -107,6 +119,8 @@ type Env struct {
 	scored   MatchScored
 	goOut    *GoOutShaping // nil unless asked for
 	outs     GoOutScored
+	short    ShortStacked // nil unless asked for
+	shortP   float64
 }
 
 type table struct {
@@ -176,6 +190,13 @@ func NewEnvWith(g Game, variation string, specs []TableSpec, first int64, budget
 			return nil, err
 		}
 		e.goOut, e.outs = opts.GoOut, gs
+	}
+	if opts.ShortStacks > 0 {
+		ss, ok := g.(ShortStacked)
+		if !ok {
+			return nil, fmt.Errorf("learn: %s has no short-stacked table", g.Name())
+		}
+		e.short, e.shortP = ss, opts.ShortStacks
 	}
 	for i, spec := range specs {
 		if len(spec.Plan) < 2 {
@@ -354,7 +375,15 @@ func (e *Env) advance(t *table) error {
 }
 
 func (e *Env) deal(t *table) error {
-	s, err := e.g.Module().NewMatch(t.cfg, t.players, t.seed)
+	cfg := t.cfg
+	if e.short != nil {
+		// Two independent draws from the seed: whether, and how short.
+		r := rand.New(rand.NewSource(t.seed ^ 0x5157ac))
+		if r.Float64() < e.shortP {
+			cfg = e.short.ShortConfig(len(t.players), e.variation, r.Float64())
+		}
+	}
+	s, err := e.g.Module().NewMatch(cfg, t.players, t.seed)
 	if err != nil {
 		return err
 	}
@@ -551,7 +580,7 @@ func skillOf(spec string) module.Skill {
 //	{"op":"info"}                  -> {"stateDim":..,"candDim":..,"privDim":..}
 //
 // A reset may also carry "privileged":true (every observation then has a
-// "priv" vector) and "matchReward":{alpha,k,model} (EnvOptions). Both are
+// "priv" vector) and "matchReward":{alpha,k,model} and "shortStacks" (EnvOptions). All are
 // absent from an older trainer's requests, and off for it.
 //
 // Every reply to reset and step is {"tables":[Observation...]}; a failure is
@@ -571,6 +600,7 @@ type request struct {
 	Privileged  bool          `json:"privileged,omitempty"`
 	MatchReward *MatchReward  `json:"matchReward,omitempty"`
 	GoOut       *GoOutShaping `json:"goOut,omitempty"`
+	ShortStacks float64       `json:"shortStacks,omitempty"`
 }
 
 type reply struct {
@@ -604,7 +634,7 @@ func Serve(r io.Reader, w io.Writer) error {
 						budget = 20000
 					}
 					var e *Env
-					opts := EnvOptions{Privileged: req.Privileged, MatchReward: req.MatchReward, GoOut: req.GoOut}
+					opts := EnvOptions{Privileged: req.Privileged, MatchReward: req.MatchReward, GoOut: req.GoOut, ShortStacks: req.ShortStacks}
 					if e, err = NewEnvWith(g, req.Variation, req.Tables, req.Seed, budget, opts); err == nil {
 						if rep.Tables, err = e.Observe(); err == nil {
 							env, game = e, g

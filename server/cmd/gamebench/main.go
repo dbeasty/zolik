@@ -25,9 +25,12 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"zolik/server/internal/learn"
+	"zolik/server/internal/module"
 
 	_ "zolik/server/internal/canasta"
 	_ "zolik/server/internal/holdem"
@@ -45,6 +48,7 @@ func main() {
 	first := flag.Int64("first", 1_000_000, "first seed; keep held-out seeds away from training ones")
 	seeds := flag.Int("seeds", 100, "seeds to play, each in both seatings")
 	budget := flag.Int("actions", 50_000, "action budget per match")
+	opts := flag.String("opts", "", "table options over the game's own, e.g. startingStack=300,bigBlind=20")
 	flag.Parse()
 
 	g, err := learn.Lookup(*game)
@@ -59,14 +63,25 @@ func main() {
 	if err != nil {
 		fail(err)
 	}
+	bench := g
+	if *opts != "" {
+		over, err := parseOpts(*opts)
+		if err != nil {
+			fail(err)
+		}
+		bench = withOptions{g, over}
+	}
 	start := time.Now()
-	r, err := learn.BenchSeated(g, *seats, *aSeats, *variation, ca, cb, *first, *seeds, *budget)
+	r, err := learn.BenchSeated(bench, *seats, *aSeats, *variation, ca, cb, *first, *seeds, *budget)
 	if err != nil {
 		fail(err)
 	}
 	seating := ""
 	if *aSeats > 0 {
 		seating = fmt.Sprintf(" (A in %d)", *aSeats)
+	}
+	if *opts != "" {
+		seating += " [" + *opts + "]"
 	}
 	fmt.Printf("%s %d seats%s %s: %s vs %s: %v  [%s]\n", *game, *seats, seating, *variation, *a, *b, r, time.Since(start).Round(time.Millisecond))
 	if r.Significant() {
@@ -80,4 +95,36 @@ func main() {
 func fail(err error) {
 	fmt.Fprintln(os.Stderr, "gamebench:", err)
 	os.Exit(2)
+}
+
+// withOptions benches a game at its own table with some options replaced.
+type withOptions struct {
+	learn.Benchable
+	over module.Options
+}
+
+func (w withOptions) Config(seats int, variation string) module.MatchConfig {
+	cfg := w.Benchable.Config(seats, variation)
+	opts := module.Options{}
+	for k, v := range cfg.Options {
+		opts[k] = v
+	}
+	for k, v := range w.over {
+		opts[k] = v
+	}
+	cfg.Options = opts
+	return cfg
+}
+
+func parseOpts(spec string) (module.Options, error) {
+	out := module.Options{}
+	for _, kv := range strings.Split(spec, ",") {
+		k, v, ok := strings.Cut(kv, "=")
+		n, err := strconv.Atoi(v)
+		if !ok || err != nil {
+			return nil, fmt.Errorf("bad option %q: want name=integer", kv)
+		}
+		out[k] = n
+	}
+	return out, nil
 }

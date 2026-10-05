@@ -587,7 +587,8 @@ func TestEnvRunsHoldem(t *testing.T) {
 		{Plan: []string{learn.Learner, learn.Learner}},
 		{Plan: []string{learn.Learner, "hard", "maniac", "rock", "riverbluffer", learn.Learner}},
 	}
-	env, err := learn.NewEnv(learnGame{}, "", specs, 1, 20000)
+	// Half the deals short-stacked, so the push/fold table is in the run.
+	env, err := learn.NewEnvWith(learnGame{}, "", specs, 1, 20000, learn.EnvOptions{ShortStacks: 0.5})
 	if err != nil {
 		t.Fatal(err)
 	}

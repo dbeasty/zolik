@@ -32,6 +32,8 @@ func (learnGame) Styles() map[string]module.Bot {
 		"station":      station{},
 		"riverbluffer": riverBluffer{},
 		"solid":        solid,
+		"pusher":       pusher,
+		"jamcaller":    jamCaller{},
 	}
 }
 
@@ -70,6 +72,71 @@ var solidProfile = profile{
 	semiBluff: 0.35,
 	bluff:     0.1,
 	steal:     0.3,
+}
+
+// pusher is Hard that always plays the short-stack chart: at fifteen big
+// blinds or less it jams or folds by pushfold.go's table, whatever the other
+// seat has shown, and deeper it is Hard.
+//
+// Hard gives the chart up heads-up against a seat that has not folded to a
+// raise (profile.nonFolder), which is right against a station and means a
+// learner that calls every jam rarely meets one. This player never gives it
+// up, so a learner that calls a jam with a hand outside the chart's calling
+// range pays for it every time the stacks are short.
+var pusher = bot{tuning: &pusherProfile}
+
+var pusherProfile = func() profile {
+	p := profiles[module.SkillHard]
+	p.pushFoldBB = 15
+	p.nonFolder = 0
+	return p
+}()
+
+// jamCaller is Hard, except that at depth, facing a jam or a big re-raise
+// before the flop, it calls with a sound range and folds the rest.
+//
+// Hard, solid and the pusher all fold most hands to a deep preflop jam, so a
+// learner trained against them finds that jamming fifty big blinds takes the
+// blinds nearly every time, and jams far too often. Real beginners call those
+// jams, and so do Easy and Medium, and the jam loses to them. This player
+// calls a jam of thirty big blinds or more with the top sixth of hands — a
+// Chen score of seven or better: 77+, AJ+, KQ, ATs+, KJs, QJs and the good
+// suited connectors — so the over-jam pays for itself only when it should.
+//
+// Every move is Hard's or built from an enabled offer: a hand in range keeps
+// Hard's answer unless Hard folds, and then calls; a hand outside it folds.
+type jamCaller struct{}
+
+const (
+	// jamCallBar is the Chen score the jam caller calls with.
+	jamCallBar = 7
+	// jamCallDepth is how deep, in big blinds, the stacks must start the
+	// hand; shorter, Hard's push/fold chart decides.
+	jamCallDepth = 30
+	// jamCallBet is the bet, in big blinds, that counts as a big re-raise.
+	jamCallBet = 8
+)
+
+func (jamCaller) Act(raw module.State, seat module.BotSeat, offers []module.ActionOffer) (module.Action, bool) {
+	seat.Skill = module.SkillHard
+	s, mn, ok := betting(raw, seat.PlayerID, offers)
+	if !ok || s.Street != streetPreflop || s.BigBlind <= 0 {
+		return bot{}.Act(raw, seat, offers)
+	}
+	st := &s.Seats[s.Current]
+	owed := s.CurrentBet - st.Bet
+	if owed <= 0 || s.CurrentBet < jamCallBet*s.BigBlind ||
+		st.Stack+st.Committed < jamCallDepth*s.BigBlind {
+		return bot{}.Act(raw, seat, offers)
+	}
+	if chen(st.Hole) < jamCallBar {
+		return mn.action(choice{verb: VerbFold})
+	}
+	a, ok := bot{}.Act(raw, seat, offers)
+	if ok && a.Verb != VerbFold {
+		return a, true
+	}
+	return mn.action(choice{verb: VerbCall})
 }
 
 // betting reports whether this is the seat's own betting decision, and if so

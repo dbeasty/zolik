@@ -1,0 +1,74 @@
+# Hold'em v3: a fine-tune of holdem-long (encoder unchanged, 295/14) against
+# the improved Hard on main: it reads a big bet as a claim to a hand held now
+# (#236), and at fifteen big blinds or less plays the jam-or-fold chart, prices
+# river bluffs by bet size and keeps a station from being jammed into (#238).
+#
+# holdem-long's edge over Hard fell from +21 to +7 bb a match with those, and
+# its weakness is still the over-shove into a solid calling range. So Hard
+# leads the league with solid beside it, and the pusher (styles.go: Hard that
+# never gives the chart up) punishes loose calls of a jam. A third of the
+# deals start at 15-25 bb (env.short_stacks, learn.ShortStacked) so push/fold
+# spots come up at all; at the usual 50 bb they almost never do.
+#
+# Rates are the ones that were stable for Zolik v3. Match reward stays off:
+# a Hold'em episode is a hand and its reward is the hand's chips.
+#
+#   uv run python train.py --game holdem --config configs/holdem-v3.yaml \
+#     --run holdem-v3 --minutes 150 --init <holdem-long final.bin>
+game: holdem
+variation: ""
+
+model:
+  trunk: [256, 256]
+  scorer: [128]
+  value: [128]
+
+env:
+  envs: 10
+  tables: 32
+  procs: 1
+  gogc: 1000
+  budget: 20000
+  short_stacks: 0.33
+
+ppo:
+  lr: 1.5e-4
+  gamma: 1.0
+  lam: 0.95
+  clip: 0.2
+  vf_coef: 0.5
+  ent_coef: 0.005
+  max_grad_norm: 0.5
+  epochs: 4
+  minibatch: 2048
+  target_kl: 0.03
+  reward_scale: 0.1
+
+train:
+  rollout: 16384
+  total_updates: 4000
+  lr_floor: 0.3
+  snapshot_every: 10
+  reset_every: 10
+
+league:
+  blend: {heuristic: 0.5, checkpoint: 0.3, self: 0.2}
+  seats: {2: 0.5, 3: 0.125, 4: 0.125, 5: 0.125, 6: 0.125}
+  opponents:
+    hard: 1.5
+    solid: 1.2
+    pusher: 0.8
+    station: 0.6
+    maniac: 0.6
+    rock: 0.4
+    riverbluffer: 0.4
+    medium: 0.4
+    easy: 0.1
+  checkpoint_temperature: 1.0
+  checkpoint_decay: 0.9
+  pool_size: 30
+
+eval:
+  seats: 2
+  seeds: 500
+  opponents: [hard, solid, pusher, station, maniac, rock, riverbluffer]
