@@ -1024,6 +1024,12 @@ func layOff(s *GameState, playerID string, a module.Action) ([]module.Event, []s
 	// thing. A target that exists nowhere is reported as the missing initial
 	// meld only when the partnership genuinely has no table to aim at.
 	owner, m := s.findMeld(a.Target)
+	if m != nil && owner.ID == t.ID && !t.HasMelded {
+		// Nothing is laid off until the initial meld is made, as the rules
+		// screen says. A lay-off used to count towards the minimum, so a wild
+		// added to a fresh meld stood in for points the melds did not hold.
+		return nil, nil, errCode(ErrMustMeldFirst)
+	}
 	if m == nil {
 		if len(t.Melds) == 0 {
 			return nil, nil, errCode(ErrMustMeldFirst)

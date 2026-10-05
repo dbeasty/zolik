@@ -136,7 +136,8 @@ func TestCaptureOntoAMeldWithOneCardInHandIsRefused(t *testing.T) {
 // bot already declined it; the engine now refuses it to anyone, and with
 // nothing to draw instead the deal is over.
 func TestCaptureIntoAnUnfinishableOpeningIsRefused(t *testing.T) {
-	hand := []string{"KS", "KC", "JH", "TC", "JC", "TH", "TD", "TC", "KD", "2D", "JS"}
+	hand := []string{"TC", "TH", "KS", "KC", "KD", "JH", "JC", "JS", "QS", "QC", "QD"}
+	openingHand := hand
 	m := New()
 	draw := twoHanded(func(s *GameState) {
 		s.Teams[0].Score, s.Teams[1].Score = 3035, 3955
@@ -172,14 +173,17 @@ func TestCaptureIntoAnUnfinishableOpeningIsRefused(t *testing.T) {
 		t.Errorf("the deal went on: %v", events)
 	}
 
-	// And the hand with one more card in it is an opening that is all there:
+	// And the hand with two more cards in it is an opening that is all there:
 	// the capture stands, and so does the deal.
 	withNine := twoHanded(func(s *GameState) {
 		s.Teams[0].Score, s.Teams[1].Score = 3035, 3955
-		s.Hands["p1"] = append(append([]string(nil), hand...), "9C")
+		s.Hands["p1"] = append(append([]string(nil), openingHand...), "9C", "5S")
 		s.DiscardPile = []string{"TD"}
 		s.DrawPile = nil
 	})
+	// A side that has not opened may not lay off, so the opening is the capture
+	// (30) and three melds of 30 — kings, jacks, queens — with two cards left
+	// to discard one of and keep one.
 	if _, code := apply(t, withNine, "p1", module.Action{Verb: VerbTakePile, Cards: []string{"TC", "TH"}}); code != "" {
 		t.Errorf("a finishable opening capture was refused: %s", code)
 	}

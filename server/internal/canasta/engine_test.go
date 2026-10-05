@@ -480,10 +480,11 @@ func TestUndoLayOffUnwindsLastFirst(t *testing.T) {
 	}
 }
 
-// TestUndoLayOffClosesTheTableBackUp covers the lay-off that is not only a card
-// move: one that carries this turn's total over the opening minimum promotes
-// the whole partnership, and taking it back has to demote them again.
-func TestUndoLayOffClosesTheTableBackUp(t *testing.T) {
+// TestNoLayOffBeforeTheInitialMeld is the rule the rules screen prints: until a
+// side has opened it may not lay off onto anything — not even onto a meld it
+// laid this turn. A lay-off used to count towards the minimum, so a wild added
+// to a fresh set could open a side whose melds held less than the floor.
+func TestNoLayOffBeforeTheInitialMeld(t *testing.T) {
 	raw := laidOffTable(func(s *GameState) {
 		// Thirty in kings, laid this turn and still short of the fifty-point
 		// floor — so the side has a table to aim at but is not yet on it.
@@ -491,30 +492,10 @@ func TestUndoLayOffClosesTheTableBackUp(t *testing.T) {
 		s.LaidThisTurn = 30
 		s.Hands["p1"] = []string{"KC", "2S", "8C", "9C"}
 	})
-	// A king and a wild is another thirty, which clears the floor outright.
-	next, code := apply(t, raw, "p1", module.Action{
+	if _, code := apply(t, raw, "p1", module.Action{
 		Verb: VerbLayOff, Target: meldID(0, "K"), Cards: []string{"KC", "2S"},
-	})
-	if code != "" {
-		t.Fatalf("lay-off refused: %s", code)
-	}
-	if s := mustDecode(t, next); !s.Teams[0].HasMelded {
-		t.Fatalf("sixty laid should have opened the table")
-	}
-
-	undone, code := apply(t, next, "p1", module.Action{Verb: VerbUndoLayOff})
-	if code != "" {
-		t.Fatalf("undo refused: %s", code)
-	}
-	s := mustDecode(t, undone)
-	if s.Teams[0].HasMelded {
-		t.Error("undo should have closed the table back up")
-	}
-	if s.LaidThisTurn != 30 {
-		t.Errorf("laid this turn = %d, want 30", s.LaidThisTurn)
-	}
-	if !reflect.DeepEqual(s, mustDecode(t, raw)) {
-		t.Error("undo did not restore the exact prior state")
+	}); code != ErrMustMeldFirst {
+		t.Fatalf("lay-off before opening = %q, want %s", code, ErrMustMeldFirst)
 	}
 }
 
