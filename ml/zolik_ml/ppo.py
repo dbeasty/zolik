@@ -22,6 +22,18 @@ With a perfect-information critic (model.py) each step also carries the
 privileged observation. The critic's value is the one GAE and the bootstrap
 use; the plain head is regressed on the same returns and reported beside it
 (``explained_var_plain``), since it is the head the exported model keeps.
+
+With an auxiliary hidden-card head (model.py) the update adds
+``aux_coef`` × its cross-entropy against the privileged observation's first
+``aux_dim`` entries.
+
+Optional potential-based shaping (``Tracker(shape=...)``, research survey E8):
+each decision's reward gains gamma·Φ(next decision's obs) − Φ(this obs), and
+the decision that ends an episode gains −Φ(its obs), so Φ at the end is 0 and
+the shaping sums over an episode to −Φ(first obs): it moves credit earlier
+without changing which policy is best. Φ(obs) = −weight · obs[index]: a
+distance feature the encoder already carries. It never touches the episode
+statistics, which stay the game's reward.
 """
 
 from __future__ import annotations
@@ -68,7 +80,12 @@ class EpisodeStat:
 class Tracker:
     """Per-seat trajectory bookkeeping with delayed rewards."""
 
-    def __init__(self):
+    def __init__(self, shape: dict | None = None, gamma: float = 1.0):
+        # Potential-based shaping (module docstring): {index, weight}.
+        self.shape_index = int(shape["index"]) if shape else -1
+        self.shape_weight = float(shape["weight"]) if shape else 0.0
+        self.gamma = gamma
+        self.shaped = 0.0  # shaping paid so far, for the log
         self.open: dict[Key, list[Step]] = {}
         self.ready: list[Segment] = []
         # Episode accounting, independent of whether the seat had decisions.
@@ -89,6 +106,7 @@ class Tracker:
         if traj:
             traj[-1].reward += reward
             if done:
+                traj[-1].reward -= self._phi(traj[-1].obs)
                 traj[-1].done = True
                 self.ready.append(Segment(traj, 0.0))
                 del self.open[key]
@@ -106,7 +124,17 @@ class Tracker:
         self._ep_live.discard(key)
         return stat
 
+    def _phi(self, obs: np.ndarray) -> float:
+        if self.shape_index < 0:
+            return 0.0
+        return -self.shape_weight * float(obs[self.shape_index])
+
     def decision(self, key: Key, step: Step) -> None:
+        traj = self.open.get(key)
+        if traj and self.shape_index >= 0:
+            f = self.gamma * self._phi(step.obs) - self._phi(traj[-1].obs)
+            traj[-1].reward += f
+            self.shaped += f
         self.open.setdefault(key, []).append(step)
         self._ep_live.add(key)
         self._ep_dec[key] = self._ep_dec.get(key, 0) + 1
@@ -216,6 +244,7 @@ class PPOConfig:
     minibatch: int = 2048
     target_kl: float | None = 0.03
     reward_scale: float = 1.0
+    aux_coef: float = 0.1
 
     @classmethod
     def from_dict(cls, d: dict) -> "PPOConfig":
@@ -234,6 +263,7 @@ class UpdateStats:
     explained_var_plain: float = 0.0  # the exported head's; = explained_var without a critic
     value_loss_plain: float = 0.0
     grad_norm: float = 0.0  # before clipping
+    aux_loss: float = 0.0  # the hidden-card head's cross-entropy, when there is one
     minibatches: int = 0
     stopped_early: bool = False
     extra: dict = field(default_factory=dict)
@@ -253,7 +283,7 @@ class PPO:
         return lr
 
     def _priv(self, priv) -> torch.Tensor | None:
-        if priv is None or not self.model.has_critic:
+        if priv is None or not self.model.wants_priv:
             return None
         return torch.from_numpy(np.stack(priv).astype(np.float32, copy=False)).to(self.device)
 
@@ -316,6 +346,11 @@ class PPO:
                     vloss = vloss + vloss_plain
                 ent = entropy(logits, m).mean()
                 loss = pg + cfg.vf_coef * vloss - cfg.ent_coef * ent
+                if self.model.has_aux and pv is not None:
+                    target = (pv[:, : self.model.aux_dim] > 0).float()
+                    aux = nn.functional.binary_cross_entropy_with_logits(self.model.aux_logits(emb), target)
+                    loss = loss + cfg.aux_coef * aux
+                    st.aux_loss += aux.item()
 
                 self.opt.zero_grad()
                 loss.backward()
@@ -342,6 +377,7 @@ class PPO:
         st.entropy /= k
         st.clip_frac /= k
         st.grad_norm /= k
+        st.aux_loss /= k
         st.approx_kl = float(np.mean(kls)) if kls else 0.0
         var = batch.returns.var()
         st.explained_var = float(1 - (batch.returns - batch.values).var() / var) if var > 0 else 0.0

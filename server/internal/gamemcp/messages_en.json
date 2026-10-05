@@ -530,6 +530,7 @@
  "flash.roundWon": "{winners} took it",
  "flash.roundWonYou": "You took it",
  "game.playBots": "Play against bots",
+ "game.previousGames": "Previous games",
  "game.startYourOwn": "Start your own",
  "gate.body": "Score tables and stats are kept with your account, so they follow you to another device. A guest has nowhere for them to be kept.",
  "gate.title": "Sign in to use this",

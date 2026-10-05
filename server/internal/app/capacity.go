@@ -87,14 +87,15 @@ func newGovernor(cfg Config) *botgov.Governor {
 	}
 	speed := botgov.Calibrate()
 	think := time.Duration(cfg.BotThinkMinMS+cfg.BotThinkMaxMS) * time.Millisecond / 2
+	cores := capacity.CPUQuota()
 	g := botgov.New(botgov.Config{
 		Mode:  mode,
-		Cores: float64(runtime.GOMAXPROCS(0)),
+		Cores: cores,
 		Think: think,
 		Speed: speed,
 	})
 	st := g.Status()
-	slog.Info("bot governor", "mode", mode.String(), "cores", runtime.GOMAXPROCS(0),
+	slog.Info("bot governor", "mode", mode.String(), "cores", cores, "gomaxprocs", runtime.GOMAXPROCS(0),
 		"speed", speed, "capacityCores", st.CapacityCores, "leasedClasses", len(st.Classes))
 	return g
 }

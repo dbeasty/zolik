@@ -302,11 +302,14 @@ type Status struct {
 	// so this is the quota as the scheduler sees it.
 	GOMAXPROCS int `json:"gomaxprocs"`
 	NumCPU     int `json:"numCPU"`
+	// CPUQuota is the container's CPU limit in cores, or GOMAXPROCS where
+	// there is none — GOMAXPROCS alone is never below 2. See CPUQuota.
+	CPUQuota float64 `json:"cpuQuota"`
 }
 
 // Status reports the monitor.
 func (m *Monitor) Status() Status {
-	s := Status{GOMAXPROCS: runtime.GOMAXPROCS(0), NumCPU: runtime.NumCPU()}
+	s := Status{GOMAXPROCS: runtime.GOMAXPROCS(0), NumCPU: runtime.NumCPU(), CPUQuota: CPUQuota()}
 	if m == nil {
 		return s
 	}

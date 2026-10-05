@@ -1,0 +1,101 @@
+# Žolíky v3: zolik-v2 (900/62) widened to the card-inference encoder
+# (1161/64: an inference block per opponent, and two candidate features —
+# how likely the next player, and anyone, wants the card discarded), trained
+# for the owner's table: 70% of env processes the four-seat lobby table
+# (zolik_classic+floor35: clean run, 35-point first meld, pile from lap 3),
+# 30% two-seat Classic.
+#
+# League: the closer weighted highest, then hard; most tables one learner
+# against three bots, as the owner's table is three bots and one human.
+#
+# Training-only options (train.py). The A/B (70 updates each from v2
+# widened, same seeds; 150 held-out seeds each) told them apart from nothing:
+# head to head with v2 at the lobby table base -3.3 ± 3.6, + critic and match
+# reward +0.1 ± 3.5, + aux head -4.0 ± 3.3, + distance shaping +1.3 ± 3.4;
+# 1 v 3 closer 107.7 / 104.5 / 103.0 / 105.5 (± 2.2-2.5). The critic's
+# explained variance was 0.365 against the plain head's 0.362, and the aux
+# head left a linear probe of the trunk where it was (AUC 0.712 vs 0.708).
+# Kept: the match reward alone, for what it did for Canasta v4 and because
+# the owner plays matches. Off: model.priv, model.aux, reward.shape.
+#
+# lr 1.5e-4 and ent_coef 0.005: a first run at v2's 4e-4 / 0.01 lost deal
+# reward against every bot for 160 updates (entropy 0.52 -> 0.61) and was
+# stopped.
+#
+#   uv run python train.py --game zolik --config configs/zolik-v3.yaml \
+#     --run zolik-v3 --minutes 150 \
+#     --init <zolik-v2 final.bin> --widen
+#
+# Result (2026-10-04, 1,027 updates, 16.8M decisions; 300 held-out seeds,
+# temperature 0): level with v2. Head to head at the lobby table -0.8 ± 2.6
+# (2 v 2) and +4.5 ± 1.9 (one v3 with three v2s), two-seat +2.0 ± 4.1. vs
+# Hard 2v2/1v3/3v1 +118/+111/+133 (v2 +120/+111/+134), vs closer 1v3/3v1
+# +108/+78 (v2 +104/+78); two-seat vs hard/medium/closer +163/+190/+178 (v2
+# +161/+186/+173). Behaviour within noise of v2's; fewer pile pickups.
+game: zolik
+variation: zolik_classic+floor35
+
+model:
+  trunk: [512, 256]
+  scorer: [128]
+  value: [128]
+
+env:
+  envs: 10
+  tables: 32
+  procs: 1
+  gogc: 1000
+  budget: 50000
+
+reward:
+  match:
+    alpha: 0.5
+    k: 1.7  # winmodel.py: sd(deal reward) 0.216 / sd(ΔP) 0.127
+    model: configs/zolik-winmodel.json
+
+ppo:
+  lr: 1.5e-4
+  gamma: 0.999
+  lam: 0.95
+  clip: 0.2
+  vf_coef: 0.5
+  ent_coef: 0.005
+  max_grad_norm: 0.5
+  epochs: 4
+  minibatch: 2048
+  target_kl: 0.03
+  reward_scale: 1.0
+  aux_coef: 0.1
+
+train:
+  rollout: 16384
+  total_updates: 5000
+  snapshot_every: 20
+  reset_every: 20
+  lr_floor: 0.3
+
+league:
+  blend: {checkpoint: 0.25, heuristic: 0.55, self: 0.2}
+  seats: {4: 1.0}
+  variation_mix:
+    zolik_classic+floor35: 0.7
+    zolik_classic: 0.3
+  variations:
+    zolik_classic+floor35: {4: 1.0}
+    zolik_classic: {2: 1.0}
+  learners: {1: 0.7, 2: 0.1, 3: 0.2}
+  partnerships: false
+  opponents:
+    closer: 1.5
+    hard: 1.0
+    medium: 0.5
+    easy: 0.2
+  checkpoint_temperature: 1.0
+  checkpoint_decay: 0.8
+  pool_size: 20
+
+eval:
+  seats: 4
+  seeds: 300
+  variation: zolik_classic+floor35
+  opponents: [hard, closer, medium]
