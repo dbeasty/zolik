@@ -134,3 +134,24 @@ def test_env_match_reward_alpha_one_is_the_deal_reward():
     assert bases == r1  # the deal reward still reported beside the mixed one
     assert len(r3) == len(r1) and r3 != r1
     assert all(abs(r) <= 2.0 + 1e-6 for r in r3)  # k * ΔP, |ΔP| <= 1
+
+
+@needs_go
+def test_env_go_out_shaping_reaches_the_env():
+    plans = [["learner", "hard"]]
+
+    def episodes(env):
+        obs, out = env.reset(plans, 5), []
+        for _ in range(400):
+            out += [(e.reward, e.base) for e in obs[0].events if e.done and e.seat == "p0"]
+            obs = env.step([0])
+        return out
+
+    with GameEnv("canasta", "classic") as plain, GameEnv("canasta", "classic", go_out={"out": 0.1, "held": 1.0, "cap": 0.3}) as shaped:
+        a, b = episodes(plain), episodes(shaped)
+    assert a and len(a) == len(b)
+    assert [r for r, _ in a] == [base for _, base in b]  # the game's own reward still reported
+    for r, base in b:
+        d = r - base
+        assert abs(d - 0.1) < 1e-5 or -0.3 - 1e-5 <= d <= 1e-6
+    assert any(abs(r - base) > 1e-6 for r, base in b)

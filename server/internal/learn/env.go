@@ -85,6 +85,10 @@ type EnvOptions struct {
 	// in the chance of winning the match. The game must implement
 	// MatchScored.
 	MatchReward *MatchReward `json:"matchReward,omitempty"`
+	// GoOut adds a bonus for going out and a penalty for points held when
+	// another side does to each episode's reward. The game must implement
+	// GoOutScored.
+	GoOut *GoOutShaping `json:"goOut,omitempty"`
 }
 
 // Env is a batch of tables.
@@ -101,6 +105,8 @@ type Env struct {
 	priv     Privileged   // nil unless asked for
 	match    *MatchReward // nil unless asked for
 	scored   MatchScored
+	goOut    *GoOutShaping // nil unless asked for
+	outs     GoOutScored
 }
 
 type table struct {
@@ -160,6 +166,16 @@ func NewEnvWith(g Game, variation string, specs []TableSpec, first int64, budget
 			return nil, err
 		}
 		e.match, e.scored = opts.MatchReward, ms
+	}
+	if opts.GoOut != nil {
+		gs, ok := g.(GoOutScored)
+		if !ok {
+			return nil, fmt.Errorf("learn: %s has no going out to shape", g.Name())
+		}
+		if err := opts.GoOut.validate(); err != nil {
+			return nil, err
+		}
+		e.goOut, e.outs = opts.GoOut, gs
 	}
 	for i, spec := range specs {
 		if len(spec.Plan) < 2 {
@@ -417,12 +433,21 @@ func (e *Env) apply(t *table, actor string, a module.Action) error {
 			return err
 		}
 		var base *float32
-		if done && e.match != nil {
+		if done && (e.match != nil || e.goOut != nil) {
 			deal := r
 			base = &deal
+		}
+		if done && e.match != nil {
 			if r, err = e.match.mix(e.scored, t.pos, nextPos, p.ID, r); err != nil {
 				return err
 			}
+		}
+		if done && e.goOut != nil {
+			g, err := e.outs.GoOutFor(nextPos, p.ID)
+			if err != nil {
+				return err
+			}
+			r += e.goOut.bonus(g)
 		}
 		if r != 0 || done {
 			t.events = append(t.events, Event{Seat: p.ID, Reward: r, Done: done, Base: base})
@@ -543,8 +568,9 @@ type request struct {
 	Choices   []int       `json:"choices"`
 	// The training-only extras (EnvOptions), absent from an older trainer's
 	// requests and so off for it.
-	Privileged  bool         `json:"privileged,omitempty"`
-	MatchReward *MatchReward `json:"matchReward,omitempty"`
+	Privileged  bool          `json:"privileged,omitempty"`
+	MatchReward *MatchReward  `json:"matchReward,omitempty"`
+	GoOut       *GoOutShaping `json:"goOut,omitempty"`
 }
 
 type reply struct {
@@ -578,7 +604,7 @@ func Serve(r io.Reader, w io.Writer) error {
 						budget = 20000
 					}
 					var e *Env
-					opts := EnvOptions{Privileged: req.Privileged, MatchReward: req.MatchReward}
+					opts := EnvOptions{Privileged: req.Privileged, MatchReward: req.MatchReward, GoOut: req.GoOut}
 					if e, err = NewEnvWith(g, req.Variation, req.Tables, req.Seed, budget, opts); err == nil {
 						if rep.Tables, err = e.Observe(); err == nil {
 							env, game = e, g

@@ -15,6 +15,7 @@ import (
 var (
 	_ learn.Privileged  = learnGame{}
 	_ learn.MatchScored = learnGame{}
+	_ learn.GoOutScored = learnGame{}
 )
 
 // The privileged vector: what the seat cannot see.
@@ -155,3 +156,37 @@ var _ learn.Appending = learnGame{}
 // EncoderPrefixes are the earlier encoders this one appended to: 383/40,
 // before the card inference blocks (the canasta-v2 and -v3 models).
 func (learnGame) EncoderPrefixes() [][2]int { return [][2]int{{offInfer, fCapture}} }
+
+// GoOutFor reads the deal last scored at p for seat's side: which side went
+// out (none when the stock ran dry) and the points seat's side held.
+func (learnGame) GoOutFor(at learn.Position, seat string) (learn.GoOut, error) {
+	p, err := positionOf(at)
+	if err != nil {
+		return learn.GoOut{}, err
+	}
+	d, err := p.dealResults()
+	if err != nil {
+		return learn.GoOut{}, err
+	}
+	if len(d.Deals) == 0 {
+		return learn.GoOut{}, nil
+	}
+	mine, ok := d.TeamOf[seat]
+	if !ok {
+		return learn.GoOut{}, fmt.Errorf("canasta: no team for %q", seat)
+	}
+	res := d.Deals[len(d.Deals)-1]
+	var out learn.GoOut
+	for _, tr := range res.Teams {
+		if tr.TeamID == mine {
+			out.Held = tr.InHand
+		}
+	}
+	if res.WentOut != "" {
+		if team, ok := d.TeamOf[res.WentOut]; ok {
+			out.Out = team == mine
+			out.Caught = team != mine
+		}
+	}
+	return out, nil
+}
