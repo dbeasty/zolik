@@ -6,6 +6,8 @@ import type { StyleProp, ViewStyle } from 'react-native';
 import type { MatchModule, StoredTable } from '@/src/api/matchTypes';
 import { BuildFooter } from '@/src/components/BuildFooter';
 import { useOrderedModules } from '@/src/components/GameButtons';
+import { StartHero } from '@/src/components/fun/StartHero';
+import { SettleIn } from '@/src/components/match/SettleIn';
 import { Screen } from '@/src/components/Screen';
 import { nearbyAvailable } from '@/modules/zolik-nearby';
 import { useAvailability } from '@/src/context/AvailabilityContext';
@@ -77,6 +79,7 @@ export default function MainMenu() {
 
   return (
     <Screen title="Jokerless" subtitle={offline ? t('offline.subtitle') : undefined} scroll>
+      <StartHero />
       <WaitingInvitesCard />
       <GameRows />
 
@@ -175,13 +178,15 @@ function GameRows() {
     <View testID="games-list">
       {session && !offline ? <AvailabilityStrip modules={modules} /> : null}
       <Text style={styles.heading}>{t('picker.title')}</Text>
-      {modules.map((mod) => (
-        <GameRow
-          key={mod.id}
-          mod={mod}
-          signedIn={!!session}
-          status={gameRowStatus(mod.id, tables ?? [], waiting, session?.userId)}
-        />
+      {modules.map((mod, i) => (
+        // Dealt onto the page one after another, like cards to a table.
+        <SettleIn key={mod.id} kind="deal" delay={Math.min(i, 8) * 70}>
+          <GameRow
+            mod={mod}
+            signedIn={!!session}
+            status={gameRowStatus(mod.id, tables ?? [], waiting, session?.userId)}
+          />
+        </SettleIn>
       ))}
     </View>
   );
