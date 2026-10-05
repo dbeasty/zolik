@@ -1,0 +1,77 @@
+# Hold'em v3.1: v3 (configs/holdem-v3.yaml) warm-started and fine-tuned
+# against opponents that call a deep jam.
+#
+# v3 beat holdem-long head to head and against Hard, but jammed about one
+# hand in eight before the flop at 50 bb, which pays only against bots that
+# rarely call deep jams (hard, solid, pusher), and lost ground against Easy
+# and Medium, which call them. The jamcaller (styles.go: Hard that calls a
+# deep preflop jam or big re-raise with the top sixth of hands) and more
+# weight on easy and medium make the over-jam cost what it costs at a real
+# table. Short stacks, the blend and the rates are v3's.
+#
+# Result (120 min, 2654 updates; heads-up, 1000 seeds from 1000000): it
+# beats holdem-long by +9.2 and Hard by +19.0 (v3 +15.2, long +9.4), and
+# halves preflop jams against solid (7.3 per 100 hands, v3 12.4), but against
+# Easy it is +22.9 to long's +33.3, so it did not ship. The gap to Easy is not
+# in called jams (those break even); long wins it postflop.
+#
+#   uv run python train.py --game holdem --config configs/holdem-v3_1.yaml \
+#     --run holdem-v3_1 --minutes 120 --init runs/holdem-v3/final.bin
+game: holdem
+variation: ""
+
+model:
+  trunk: [256, 256]
+  scorer: [128]
+  value: [128]
+
+env:
+  envs: 10
+  tables: 32
+  procs: 1
+  gogc: 1000
+  budget: 20000
+  short_stacks: 0.33
+
+ppo:
+  lr: 1.5e-4
+  gamma: 1.0
+  lam: 0.95
+  clip: 0.2
+  vf_coef: 0.5
+  ent_coef: 0.005
+  max_grad_norm: 0.5
+  epochs: 4
+  minibatch: 2048
+  target_kl: 0.03
+  reward_scale: 0.1
+
+train:
+  rollout: 16384
+  total_updates: 4000
+  lr_floor: 0.3
+  snapshot_every: 10
+  reset_every: 10
+
+league:
+  blend: {heuristic: 0.5, checkpoint: 0.3, self: 0.2}
+  seats: {2: 0.5, 3: 0.125, 4: 0.125, 5: 0.125, 6: 0.125}
+  opponents:
+    hard: 1.2
+    solid: 1.0
+    jamcaller: 1.0
+    easy: 0.6
+    medium: 0.6
+    station: 0.6
+    pusher: 0.5
+    maniac: 0.5
+    rock: 0.3
+    riverbluffer: 0.3
+  checkpoint_temperature: 1.0
+  checkpoint_decay: 0.9
+  pool_size: 30
+
+eval:
+  seats: 2
+  seeds: 500
+  opponents: [hard, solid, jamcaller, easy, medium, pusher, station, maniac, rock, riverbluffer]

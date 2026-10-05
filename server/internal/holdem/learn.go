@@ -55,6 +55,22 @@ func (learnGame) Config(_ int, variation string) module.MatchConfig {
 	}
 }
 
+// ShortConfig is Config at fifteen to twenty-five big blinds deep, a step of
+// one big blind picked by roll: the depths where the jam-or-fold chart starts
+// to be the game (pushfold.go), for training only (learn.EnvOptions).
+func (g learnGame) ShortConfig(seats int, variation string, roll float64) module.MatchConfig {
+	cfg := g.Config(seats, variation)
+	bb := cfg.Options[OptBigBlind]
+	depth := 15 + int(roll*11)
+	opts := module.Options{}
+	for k, v := range cfg.Options {
+		opts[k] = v
+	}
+	opts[OptStartingStack] = min(depth, 25) * bb
+	cfg.Options = opts
+	return cfg
+}
+
 // Outcome is chips won or lost, in big blinds.
 func (learnGame) Outcome(raw module.State, seat string) (float64, error) {
 	s, err := decode(raw)

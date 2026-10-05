@@ -107,3 +107,125 @@ func TestSolidCallsAShoveWithTopPairAndFoldsNothing(t *testing.T) {
 		}
 	}
 }
+
+// TestPusherPlaysShortStackedMatches: the pusher at the short-stacked
+// training table, at every size the pool deals, every move applied as given;
+// and heads-up against a station, where Hard gives the chart up because the
+// station never folds, the pusher keeps jamming.
+func TestPusherPlaysShortStackedMatches(t *testing.T) {
+	g := learnGame{}
+	b := g.Styles()["pusher"]
+	for n := 2; n <= 6; n++ {
+		players := learn.Players(n)
+		seats := botSeats(players, bot{})
+		seats[players[0].ID] = b
+		seats[players[n-1].ID] = b
+		state, err := New().NewMatch(g.ShortConfig(n, "", 0), players, int64(300+n))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if final := playBots(t, state, players, seats, 20000); final.Status != "completed" {
+			t.Errorf("%d seats: %s", n, final.Status)
+		}
+	}
+	pfr := func(x module.Bot) (int, int) {
+		raises, hands := 0, 0
+		players := refs("x", "y")
+		for seed := int64(1); seed <= 6; seed++ {
+			seats := map[string]module.Bot{"x": x, "y": station{}}
+			state, _ := New().NewMatch(g.ShortConfig(2, "", 0), players, seed)
+			r := playBots(t, state, players, seats, 20000).seat("x").Reads
+			raises += r.PFR
+			hands += r.Hands
+		}
+		return raises, hands
+	}
+	pr, ph := pfr(b)
+	hardProfile := profiles[module.SkillHard]
+	hr, hh := pfr(bot{tuning: &hardProfile})
+	t.Logf("raises before the flop vs a station at 15 bb: pusher %d/%d, hard %d/%d", pr, ph, hr, hh)
+	if float64(pr)/float64(ph) <= float64(hr)/float64(hh) {
+		t.Errorf("the pusher raised no more often than Hard against a station")
+	}
+}
+
+// TestShortConfigIsFifteenToTwentyFiveBigBlinds pins the training depth.
+func TestShortConfigIsFifteenToTwentyFiveBigBlinds(t *testing.T) {
+	g := learnGame{}
+	for _, c := range []struct {
+		roll float64
+		bb   int
+	}{{0, 15}, {0.5, 20}, {0.999, 25}} {
+		o := g.ShortConfig(2, "", c.roll).Options
+		if got := o[OptStartingStack] / o[OptBigBlind]; got != c.bb {
+			t.Errorf("roll %.3f: %d bb, want %d", c.roll, got, c.bb)
+		}
+	}
+	if o := g.Config(2, "").Options; o[OptStartingStack] != 1000 {
+		t.Errorf("ShortConfig changed the usual table: %v", o)
+	}
+}
+
+// TestJamCallerPlaysWholeLegalMatches: the jam caller beside Hard and the
+// pusher at every table size, at the usual depth and short, every move
+// applied as given.
+func TestJamCallerPlaysWholeLegalMatches(t *testing.T) {
+	g := learnGame{}
+	b := g.Styles()["jamcaller"]
+	for n := 2; n <= 6; n++ {
+		for _, short := range []bool{false, true} {
+			players := learn.Players(n)
+			seats := botSeats(players, bot{})
+			seats[players[0].ID] = b
+			seats[players[n-1].ID] = g.Styles()["pusher"]
+			cfg := g.Config(n, "")
+			if short {
+				cfg = g.ShortConfig(n, "", 0.5)
+			}
+			state, err := New().NewMatch(cfg, players, int64(400+n))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if final := playBots(t, state, players, seats, 20000); final.Status != "completed" {
+				t.Errorf("%d seats, short %v: %s", n, short, final.Status)
+			}
+		}
+	}
+}
+
+// TestJamCallerCallsADeepJamWithASoundRange: a 50 bb jam before the flop is
+// called by AQo and folded by 72o, every seed.
+func TestJamCallerCallsADeepJamWithASoundRange(t *testing.T) {
+	jam := func(hole []string) module.State {
+		return table(2, func(s *GameState) {
+			s.Current = 0
+			s.Seats[0].Hole = hole
+			s.Seats[0].Bet, s.Seats[0].Committed, s.Seats[0].Stack = 20, 20, 980
+			s.Seats[1].Bet, s.Seats[1].Committed, s.Seats[1].Stack = 1000, 1000, 0
+			s.Seats[1].Acted, s.Seats[1].AllIn = true, true
+			s.Pot = 1020
+			s.CurrentBet, s.MinRaise = 1000, 980
+		})
+	}
+	b := learnGame{}.Styles()["jamcaller"]
+	for _, c := range []struct {
+		hole []string
+		call bool
+	}{{[]string{"AS", "QD"}, true}, {[]string{"7C", "2D"}, false}} {
+		for seed := int64(1); seed <= 20; seed++ {
+			raw := atSeed(t, jam(c.hole), seed)
+			offers, err := New().LegalActions(raw, "p1")
+			if err != nil {
+				t.Fatal(err)
+			}
+			a, ok := b.Act(raw, module.BotSeat{PlayerID: "p1"}, offers)
+			if !ok {
+				t.Fatal("no move")
+			}
+			called := a.Verb == VerbCall || a.Verb == VerbRaise
+			if called != c.call {
+				t.Fatalf("%v facing a 50 bb jam, seed %d: %s", c.hole, seed, a.Verb)
+			}
+		}
+	}
+}
