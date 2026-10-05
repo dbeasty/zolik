@@ -110,6 +110,16 @@ describe('planFlights', () => {
     expect(plan.flights[0]!.card).toBeUndefined();
   });
 
+  it('sends a stream of cards when a whole pile is taken, capped at three', () => {
+    const cards = ['2D', '9S', 'KH', '4C', 'QD'].map((card) => ({ card }));
+    const prev = board([pile('laid', cards), hand('hand:me', ME, 5)]);
+    const next = board([pile('laid', cards.slice(0, 1)), hand('hand:me', ME, 9)]);
+    const plan = planFlights(prev, next, ME);
+    expect(plan.flights).toHaveLength(3);
+    expect(plan.flights.every((f) => f.fromId === 'zone-laid' && f.toId === 'zone-hand:me')).toBe(true);
+    expect(new Set(plan.flights.map((f) => f.id)).size).toBe(3);
+  });
+
   it('flies the newest card of a grown group to its spread', () => {
     const prev = board([
       { id: 'table:b', kind: 'spread', ownerId: 'b', count: 3, groups: [{ id: 'g1', cards: ['5H', '6H', '7H'] }] },
