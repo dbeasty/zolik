@@ -27,6 +27,10 @@ Two training-only options, both off unless the config sets them:
                         dim entries of the privileged observation (> 0) from
                         the trunk embedding, weighted by ppo.aux_coef; not
                         exported.
+  reward.goout:         {out, held, cap}: each deal's reward gains +out for
+                        the side that went out and loses min(cap, held *
+                        points held / 1000) for a side caught when another
+                        went out (learn.GoOutShaping). Absent or all zero is off.
   reward.shape:         {index, weight}: potential-based shaping with
                         Phi(obs) = -weight * obs[index] (ppo.Tracker).
 """
@@ -54,6 +58,17 @@ from zolik_ml.model import from_config
 from zolik_ml.ppo import PPO, PPOConfig, Step, Tracker, build_batch
 
 ML_DIR = Path(__file__).resolve().parent
+
+
+def load_go_out(cfg: dict) -> dict | None:
+    """reward.goout as the env takes it ({out, held, cap}), or None when off."""
+    g = (cfg.get("reward") or {}).get("goout")
+    if not g:
+        return None
+    out = {k: float(g.get(k, 0)) for k in ("out", "held", "cap")}
+    if any(v < 0 for v in out.values()):
+        sys.exit(f"reward.goout {out}: none may be negative")
+    return out if out["out"] or out["held"] else None
 
 
 def load_match_reward(cfg: dict) -> dict | None:
@@ -103,10 +118,11 @@ class Trainer:
         self.variations = assign_variations(cfg, self.n_envs)
         privileged = bool(cfg["model"].get("priv")) or bool(cfg["model"].get("aux"))
         match_reward = load_match_reward(cfg)
+        go_out = load_go_out(cfg)
         self.envs = [
             GameEnv(
                 self.game, v, int(ec.get("budget", 50_000)), exe, ec.get("procs"), ec.get("gogc"),
-                privileged=privileged, match_reward=match_reward,
+                privileged=privileged, match_reward=match_reward, go_out=go_out,
                 short_stacks=float(ec.get("short_stacks", 0.0)),
             )
             for v in self.variations

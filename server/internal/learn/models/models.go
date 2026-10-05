@@ -66,10 +66,10 @@ var hard = map[string]shipped{
 	}},
 	"canasta": {canasta, Info{
 		Title:     "Canasta",
-		SourceRun: "zolik-canasta-v4/ml/runs/canasta-v4",
-		Trained:   "2026-10-03",
+		SourceRun: "zolik-canasta-v5/ml/runs/canasta-v5",
+		Trained:   "2026-10-04",
 		Encoder:   "Canasta encoder with card inference (539 state / 44 candidate)",
-		Benchmark: "+2,257 ± 70 vs Hard at 4 seats; +6,575 at 2 seats; +2,474 ± 65 vs the closer at 4 seats; +1,601 ± 68 with a Hard partner vs a closer pair",
+		Benchmark: "+2,196 ± 73 vs Hard at 4 seats; +6,530 at 2 seats; +2,580 ± 71 vs the closer at 4 seats; +1,746 ± 70 with a Hard partner vs a closer pair; +241 ± 111 head to head with canasta-v4 at 4 seats",
 	}},
 	"holdem": {holdem, Info{
 		Title:     "Hold'em",

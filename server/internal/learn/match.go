@@ -197,3 +197,59 @@ func LoadWinModel(b []byte) (*WinModel, error) {
 	}
 	return &w, nil
 }
+
+// GoOutScored is implemented by a game whose episodes end with one side going
+// out and the others caught holding cards. Optional; GoOutShaping needs it.
+type GoOutScored interface {
+	// GoOutFor reads the episode that ended at p for seat's side: whether
+	// that side went out, whether another side did (seat's side caught), and
+	// the points seat's side was left holding.
+	GoOutFor(p Position, seat string) (GoOut, error)
+}
+
+// GoOut is how an episode ended for one side (GoOutScored).
+type GoOut struct {
+	Out    bool `json:"out"`    // this side went out
+	Caught bool `json:"caught"` // another side went out
+	Held   int  `json:"held"`   // points left in this side's hands
+}
+
+// GoOutShaping adds to each episode's reward a bonus for the side that went
+// out and a penalty, in proportion to the points held, for a side caught when
+// another went out:
+//
+//	+Out                                  this side went out
+//	-min(Cap, Held * points held / 1000)  another side went out
+//
+// Both are on the scale of the deal reward (points / 1000), so Out 0.1 is a
+// hundred points' worth; Cap bounds the penalty so a big hand cannot outweigh
+// the deal itself. It is shaping, not the game's score: it changes what the
+// learner is paid for, and Event.Base still reports the game's own reward.
+type GoOutShaping struct {
+	Out  float64 `json:"out"`
+	Held float64 `json:"held"`
+	Cap  float64 `json:"cap"`
+}
+
+func (s *GoOutShaping) validate() error {
+	if s.Out < 0 || s.Held < 0 || s.Cap < 0 {
+		return fmt.Errorf("learn: go-out shaping out %g held %g cap %g: none may be negative", s.Out, s.Held, s.Cap)
+	}
+	return nil
+}
+
+// bonus is the shaping for an episode that ended as g says.
+func (s *GoOutShaping) bonus(g GoOut) float32 {
+	b := 0.0
+	if g.Out {
+		b += s.Out
+	}
+	if g.Caught {
+		pen := s.Held * float64(g.Held) / 1000
+		if s.Cap > 0 && pen > s.Cap {
+			pen = s.Cap
+		}
+		b -= pen
+	}
+	return float32(b)
+}

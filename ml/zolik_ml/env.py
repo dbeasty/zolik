@@ -140,11 +140,14 @@ class GameEnv:
         gogc: int | None = None,
         privileged: bool = False,
         match_reward: dict | None = None,
+        go_out: dict | None = None,
         short_stacks: float = 0.0,
     ):
         """privileged asks for every decision's privileged observation (the
         critic's input); match_reward ({alpha, k, model}) mixes each deal's
         reward with the change in the modelled chance of winning the match.
+        go_out ({out, held, cap}) adds a bonus for the side going out and a
+        capped penalty per point held when another side does.
         short_stacks is the share of deals at the game's short-stacked table
         (learn.ShortStacked). All are training-only and off by default
         (learn.EnvOptions)."""
@@ -153,6 +156,7 @@ class GameEnv:
         self.budget = budget
         self.privileged = privileged
         self.match_reward = match_reward
+        self.go_out = go_out
         self.short_stacks = float(short_stacks)
         exe = exe or binary("gameenv")
         self.proc = subprocess.Popen(
@@ -211,6 +215,8 @@ class GameEnv:
             req["privileged"] = True
         if self.match_reward:
             req["matchReward"] = self.match_reward
+        if self.go_out:
+            req["goOut"] = self.go_out
         if self.short_stacks > 0:
             req["shortStacks"] = self.short_stacks
         self._send(req)

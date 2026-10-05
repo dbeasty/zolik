@@ -235,3 +235,49 @@ func TestNarrowedToTheEarlierEncoder(t *testing.T) {
 		}
 	}
 }
+
+// Go-out shaping moves each deal's reward off the game's own (Base) by the
+// bonus for going out or the capped penalty for being caught, and by nothing
+// else; a deal the stock ends moves by nothing.
+func TestGoOutShapingOffsetsTheDealReward(t *testing.T) {
+	sh := &learn.GoOutShaping{Out: 0.1, Held: 1, Cap: 0.3}
+	specs := []learn.TableSpec{{Plan: []string{learn.Learner, "hard", learn.Learner, "hard"}}}
+	env, err := learn.NewEnvWith(learnGame{}, "classic", specs, 41, 50000, learn.EnvOptions{GoOut: sh})
+	if err != nil {
+		t.Fatal(err)
+	}
+	obs, err := env.Observe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var outs, caught int
+	for steps := 0; obs[0].Matches < 1 && steps < 40000; steps++ {
+		for _, ev := range obs[0].Events {
+			if !ev.Done {
+				continue
+			}
+			if ev.Base == nil {
+				t.Fatal("a shaped episode without its base reward")
+			}
+			d := float64(ev.Reward - *ev.Base)
+			switch {
+			case math.Abs(d-sh.Out) < 1e-5:
+				outs++
+			case d < 0 && d >= -sh.Cap-1e-5:
+				caught++
+			case math.Abs(d) < 1e-6:
+			default:
+				t.Fatalf("shaping moved a deal by %v", d)
+			}
+		}
+		if obs, err = env.Step([]int{0}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if outs+caught == 0 {
+		t.Fatal("no deal was shaped")
+	}
+	if _, err := learn.NewEnvWith(learnGame{}, "classic", specs, 41, 50000, learn.EnvOptions{GoOut: &learn.GoOutShaping{Out: -1}}); err == nil {
+		t.Fatal("a negative bonus was taken")
+	}
+}
