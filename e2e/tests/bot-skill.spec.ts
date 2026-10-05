@@ -61,7 +61,7 @@ test('the lobby offers a strength for the opponents', async ({ request }) => {
     const labels = opt.choices.map((c: { label: string }) => c.label);
     // Mixed first, then the ladder weakest-first: the order the control is
     // rendered in is the order the server declares.
-    expect(labels).toEqual(['Mixed', 'Easy', 'Medium', 'Hard']);
+    expect(labels).toEqual(['Mixed', 'Easy', 'Medium', 'Hard', 'AI']);
   }
 });
 

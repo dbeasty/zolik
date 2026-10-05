@@ -2,6 +2,7 @@ package app
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -11,6 +12,7 @@ import (
 
 	"zolik/server/internal/auth"
 	"zolik/server/internal/db"
+	"zolik/server/internal/learn"
 	"zolik/server/internal/match"
 	"zolik/server/internal/replica"
 	zsync "zolik/server/internal/sync"
@@ -190,7 +192,26 @@ func NewMobile(dataDir string, id MobileIdentity) (*App, *auth.JWKSCache, error)
 	}
 	a.Auth().SetOfflineKeys(keys)
 	a.replicaUser = strings.TrimSpace(id.UserHex)
+	enableShippedModels()
 	return a, keys, nil
+}
+
+// enableShippedModels puts every trained model this binary ships behind its
+// game's AI seats. Online an operator makes that choice in the console and
+// loadHardModels applies it at boot; a phone has no console and an empty
+// settings store, so left alone the switch stays off and "AI" would quietly be
+// the Hard heuristic under another name. A model that does not fit its game's
+// encoder is refused by SetHardModel and that game keeps the heuristic.
+func enableShippedModels() {
+	for _, m := range learn.HardModels() {
+		if !m.Embedded || !m.Fits {
+			continue
+		}
+		if _, err := learn.SetHardModel(m.Game, true); err != nil {
+			slog.Warn("mobile: shipped model not applied; AI seats play the Hard heuristic",
+				"game", m.Game, "error", err)
+		}
+	}
 }
 
 // cloudSyncURL turns the cloud's base URL into its peer-sync endpoint. The

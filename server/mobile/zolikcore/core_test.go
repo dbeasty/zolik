@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+
+	"zolik/server/internal/learn"
 )
 
 // A phone alone with bots: a guest seat, a table, a bot, a started game and
@@ -329,5 +331,29 @@ func TestAHostWithNobodySignedInSyncsNothing(t *testing.T) {
 	}
 	if h.ReplicaReady() {
 		t.Fatal("a host with nobody signed in reported holding an account's data")
+	}
+}
+
+// An AI seat on a phone has to be the trained network. Nothing on a phone can
+// flip the operator's switch, so the host has to: with it off, "AI" is the
+// Hard heuristic under another name, and the screen looks exactly the same.
+func TestTheEmbeddedHostSeatsTheTrainedModelsForAI(t *testing.T) {
+	h, err := Start(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer h.Stop()
+	shipped := 0
+	for _, m := range learn.HardModels() {
+		if !m.Embedded {
+			continue
+		}
+		shipped++
+		if !m.Fits || !m.Enabled {
+			t.Errorf("%s: model embedded but not seated for AI (fits=%v enabled=%v %s)", m.Game, m.Fits, m.Enabled, m.Problem)
+		}
+	}
+	if shipped == 0 {
+		t.Fatal("the build ships no trained model, so there is nothing for AI seats to play")
 	}
 }
