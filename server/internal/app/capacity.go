@@ -80,11 +80,11 @@ func (a *App) capacityReport(w http.ResponseWriter, _ *http.Request) {
 // newGovernor builds the bot governor from config: the cores Go schedules
 // onto (sized from the container's CPU limit since Go 1.25), the average bot
 // pause, and this machine's speed against the one the costs were measured on.
+//
+// Built whatever BOT_GOVERNOR says, off included: the admin console can turn
+// it on at run time, and an off governor costs one atomic load per bot move.
 func newGovernor(cfg Config) *botgov.Governor {
 	mode := botgov.ParseMode(cfg.BotGovernor)
-	if mode == botgov.Off {
-		return nil
-	}
 	speed := botgov.Calibrate()
 	think := time.Duration(cfg.BotThinkMinMS+cfg.BotThinkMaxMS) * time.Millisecond / 2
 	cores := capacity.CPUQuota()

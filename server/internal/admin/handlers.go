@@ -61,6 +61,12 @@ type Deps struct {
 	// Bots card's data behind a 503.
 	HardModels   func(ctx context.Context) ([]HardModelRow, error)
 	SetHardModel func(ctx context.Context, c HardModelChange) (from bool, err error)
+	// Governor reports the bot governor — its mode, where that mode came
+	// from, and what it and the resource monitor are doing — and SetGovernor
+	// changes the mode, persisting first, and reports the mode it had.
+	// Optional: nil leaves the governor panel out of the Bots card.
+	Governor    func(ctx context.Context) (GovernorView, error)
+	SetGovernor func(ctx context.Context, c GovernorChange) (from string, err error)
 	// Version is what this build calls itself, shown in the console footer so
 	// an operator can tell which release the numbers came from.
 	Version string
@@ -102,6 +108,9 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 				// console has besides signing in; both audited in bots.go.
 				r.Get("/bots", h.bots)
 				r.Put("/bots/{game}", h.setBot)
+				// The bot governor's mode: off, observe or enforce. Audited
+				// in governor.go.
+				r.Put("/governor", h.setGovernor)
 			})
 		})
 		r.Handle("/*", ui)

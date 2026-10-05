@@ -66,6 +66,8 @@ func (a *App) RegisterAdminRoutes(r chi.Router) {
 		SetHardModel: func(ctx context.Context, c admin.HardModelChange) (bool, error) {
 			return setHardModel(ctx, a.botSettings, c)
 		},
+		Governor:    a.governorView,
+		SetGovernor: a.setGovernorMode,
 	}).RegisterRoutes(r)
 }
 

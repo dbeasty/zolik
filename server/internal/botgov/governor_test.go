@@ -219,3 +219,36 @@ func TestHintsAreCheapUnderPressure(t *testing.T) {
 		t.Fatalf("observe changed a hint: %v", got)
 	}
 }
+
+// The console changes the mode at run time. A change lets every lease go and
+// starts each seat afresh, so nothing decided under the old mode lingers.
+func TestSetModeAtRunTime(t *testing.T) {
+	g := roomFor(1, Observe)
+	g.SetLevel(capacity.Red)
+	if d := g.Decide("m", "b", mariasHard, 0, false, t0); d.Reduced {
+		t.Fatal("observe reduced")
+	}
+	if was := g.SetMode(Enforce); was != Observe {
+		t.Fatalf("SetMode returned %v, want observe", was)
+	}
+	if d := g.Decide("m", "b", mariasHard, 0, false, t0); !d.Reduced || d.Class != mariasMed {
+		t.Fatalf("enforce at red: %v", d)
+	}
+	if !g.Reduced("m", "b") {
+		t.Fatal("not reported reduced under enforce")
+	}
+	g.SetMode(Off)
+	if d := g.Decide("m", "b", mariasHard, 0, false, t0); d.Reduced {
+		t.Fatal("off reduced")
+	}
+	if st := g.Status(); st.Seats != 0 || st.Leases != 0 || st.LeasedCores != 0 {
+		t.Fatalf("state survived the switch to off: %+v", st)
+	}
+	// And a governor built off can be turned on.
+	off := roomFor(1, Off)
+	off.SetLevel(capacity.Red)
+	off.SetMode(Enforce)
+	if d := off.Decide("m", "b", mariasHard, 0, false, t0); !d.Reduced {
+		t.Fatal("a governor built off did not enforce once switched on")
+	}
+}

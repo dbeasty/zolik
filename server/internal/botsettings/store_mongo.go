@@ -42,3 +42,23 @@ func (s *mongoStore) SetHardModel(ctx context.Context, game string, v HardModel)
 		options.UpdateOne().SetUpsert(true))
 	return err
 }
+
+func (s *mongoStore) Governor(ctx context.Context) (Governor, error) {
+	var d Doc
+	err := s.c.FindOne(ctx, bson.M{"_id": DocID}).Decode(&d)
+	if db.IsNotFound(err) {
+		return Governor{}, nil
+	}
+	if err != nil {
+		return Governor{}, err
+	}
+	return d.Governor, nil
+}
+
+func (s *mongoStore) SetGovernor(ctx context.Context, g Governor) error {
+	_, err := s.c.UpdateOne(ctx,
+		bson.M{"_id": DocID},
+		bson.M{"$set": bson.M{"governor": g}},
+		options.UpdateOne().SetUpsert(true))
+	return err
+}

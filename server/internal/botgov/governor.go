@@ -22,6 +22,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"zolik/server/internal/capacity"
@@ -183,6 +184,9 @@ type seat struct {
 type Governor struct {
 	cfg Config
 
+	// mode is the current Mode, changeable at run time (SetMode).
+	mode atomic.Int32
+
 	mu    sync.Mutex
 	level capacity.Level
 	used  float64
@@ -199,7 +203,9 @@ type Governor struct {
 
 // New builds a governor.
 func New(cfg Config) *Governor {
-	return &Governor{cfg: cfg.withDefaults(), seats: map[seatKey]*seat{}, moved: map[string]string{}}
+	g := &Governor{cfg: cfg.withDefaults(), seats: map[seatKey]*seat{}, moved: map[string]string{}}
+	g.mode.Store(int32(g.cfg.Mode))
+	return g
 }
 
 // Mode is the governor's mode; a nil governor is Off.
@@ -207,7 +213,27 @@ func (g *Governor) Mode() Mode {
 	if g == nil {
 		return Off
 	}
-	return g.cfg.Mode
+	return Mode(g.mode.Load())
+}
+
+// SetMode changes what the governor may do, from the next decision on, and
+// reports what it was. The admin console calls it (internal/admin).
+//
+// A change starts every seat afresh: leases are let go of and each seat is
+// decided again at the start of its next turn. A turn already under way is
+// finished by the bot that began it — the runtime holds that per turn
+// (match.seatBot) — so no change, this one included, lands mid-turn.
+func (g *Governor) SetMode(m Mode) Mode {
+	if g == nil {
+		return Off
+	}
+	was := Mode(g.mode.Swap(int32(m)))
+	if was != m {
+		g.mu.Lock()
+		g.seats, g.moved, g.used = map[seatKey]*seat{}, map[string]string{}, 0
+		g.mu.Unlock()
+	}
+	return was
 }
 
 // cost is a class's mean CPU per decision on this machine, and whether the
@@ -255,7 +281,7 @@ func (g *Governor) cheapest(c Class) Class {
 // Moved notes who made a match's latest move. The runtime calls it for every
 // accepted action, a person's or a bot's.
 func (g *Governor) Moved(matchID, playerID string) {
-	if g == nil || g.cfg.Mode == Off {
+	if g == nil || g.Mode() == Off {
 		return
 	}
 	g.mu.Lock()
@@ -270,7 +296,7 @@ func (g *Governor) Moved(matchID, playerID string) {
 // at the table, which spares it from revocation until the bot-only tables
 // have given theirs up.
 func (g *Governor) Decide(matchID, seatID string, want Class, round int, humans bool, now time.Time) Decision {
-	if g == nil || g.cfg.Mode == Off {
+	if g == nil || g.Mode() == Off {
 		return Decision{Class: want}
 	}
 	g.mu.Lock()
@@ -297,7 +323,7 @@ func (g *Governor) Decide(matchID, seatID string, want Class, round int, humans 
 		g.turnStartLocked(s, round, now)
 	}
 
-	if g.cfg.Mode == Observe {
+	if g.Mode() == Observe {
 		return Decision{Class: want}
 	}
 	return Decision{Class: s.plays, Reduced: s.plays != want}
@@ -332,7 +358,7 @@ func (g *Governor) turnStartLocked(s *seat, round int, now time.Time) {
 	reduced := s.plays != s.want
 	if reduced {
 		g.reduced++
-		if g.cfg.Mode == Observe {
+		if g.Mode() == Observe {
 			g.wouldReduce++
 		}
 	}
@@ -401,7 +427,7 @@ func (g *Governor) revokeOverLocked() {
 // a person asking for advice on a busy server gets a quick answer, not the
 // dearest one. Unchanged outside Enforce.
 func (g *Governor) ForHint(want Class) Class {
-	if g == nil || g.cfg.Mode != Enforce {
+	if g == nil || g.Mode() != Enforce {
 		return want
 	}
 	g.mu.Lock()
@@ -415,7 +441,7 @@ func (g *Governor) ForHint(want Class) Class {
 // Reduced reports whether a seat is currently playing below what it asked
 // for. Always false outside Enforce, since nothing was changed.
 func (g *Governor) Reduced(matchID, seatID string) bool {
-	if g == nil || g.cfg.Mode != Enforce {
+	if g == nil || g.Mode() != Enforce {
 		return false
 	}
 	g.mu.Lock()
@@ -504,7 +530,7 @@ func (g *Governor) Status() Status {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	st := Status{
-		Mode: g.cfg.Mode, Level: g.level, CapacityCores: g.capacityLocked(), LeasedCores: g.used,
+		Mode: g.Mode(), Level: g.level, CapacityCores: g.capacityLocked(), LeasedCores: g.used,
 		Seats: len(g.seats), Speed: g.cfg.Speed,
 		Grants: g.grants, Revocations: g.revocations, ReducedTurns: g.reduced,
 	}

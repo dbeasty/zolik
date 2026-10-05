@@ -111,6 +111,7 @@ type Monitor struct {
 	mu          sync.Mutex
 	pinned      *Level
 	level       Level
+	reason      string
 	since       time.Time
 	calmSince   time.Time
 	last        Reading
@@ -230,7 +231,7 @@ func (m *Monitor) Step(now time.Time) {
 
 func (m *Monitor) moveLocked(to Level, reason string, now time.Time, r Reading) *Event {
 	ev := &Event{Level: to, Previous: m.level, Reason: reason, At: now, Reading: r}
-	m.level, m.since, m.calmSince = to, now, time.Time{}
+	m.level, m.since, m.calmSince, m.reason = to, now, time.Time{}, reason
 	m.transitions++
 	return ev
 }
@@ -290,7 +291,10 @@ func (m *Monitor) Run(ctx context.Context, interval time.Duration) {
 
 // Status is the monitor at one moment, for /debug/capacity.
 type Status struct {
-	Level       Level      `json:"level"`
+	Level Level `json:"level"`
+	// Reason is the signal behind the last change of level: cpu_pressure,
+	// memory, overrun, thermal, pinned, or recovered. Empty before any.
+	Reason      string     `json:"reason,omitempty"`
 	Since       time.Time  `json:"since"`
 	Transitions int64      `json:"transitions"`
 	Last        Reading    `json:"last"`
@@ -315,7 +319,7 @@ func (m *Monitor) Status() Status {
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	s.Level, s.Since, s.Transitions = m.level, m.since, m.transitions
+	s.Level, s.Since, s.Transitions, s.Reason = m.level, m.since, m.transitions, m.reason
 	s.Last, s.LastAt, s.Thresholds = m.last, m.lastAt, m.th
 	s.ThinkWindow = m.think.String()
 	return s

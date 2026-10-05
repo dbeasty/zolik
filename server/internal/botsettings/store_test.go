@@ -136,3 +136,36 @@ func TestKDBSettingSurvivesReopen(t *testing.T) {
 		t.Errorf("after reopen: %+v", got)
 	}
 }
+
+// The governor's mode is stored beside the games and neither write loses the
+// other.
+func TestGovernorRoundTripsBesideTheGames(t *testing.T) {
+	for name, open := range engines(t) {
+		t.Run(name, func(t *testing.T) {
+			s := open(t)
+			ctx := context.Background()
+			g, err := s.Governor(ctx)
+			if err != nil || g.Mode != "" {
+				t.Fatalf("never set: %+v, %v", g, err)
+			}
+			at := time.Now().UTC().Truncate(time.Millisecond)
+			if err := s.SetHardModel(ctx, "zolik", botsettings.HardModel{Enabled: true, UpdatedBy: "a", UpdatedAt: at}); err != nil {
+				t.Fatal(err)
+			}
+			if err := s.SetGovernor(ctx, botsettings.Governor{Mode: "enforce", UpdatedBy: "ops", UpdatedAt: at}); err != nil {
+				t.Fatal(err)
+			}
+			if err := s.SetHardModel(ctx, "canasta", botsettings.HardModel{Enabled: true}); err != nil {
+				t.Fatal(err)
+			}
+			g, err = s.Governor(ctx)
+			if err != nil || g.Mode != "enforce" || g.UpdatedBy != "ops" || !g.UpdatedAt.Equal(at) {
+				t.Fatalf("governor after a later game write: %+v, %v", g, err)
+			}
+			games, err := s.HardModels(ctx)
+			if err != nil || !games["zolik"].Enabled || !games["canasta"].Enabled {
+				t.Fatalf("games after a governor write: %+v, %v", games, err)
+			}
+		})
+	}
+}
