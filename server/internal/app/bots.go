@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"zolik/server/internal/admin"
+	"zolik/server/internal/botgov"
 	"zolik/server/internal/botsettings"
 	"zolik/server/internal/learn"
 )
@@ -114,4 +115,75 @@ func setHardModel(ctx context.Context, store botsettings.Store, c admin.HardMode
 		return was, errors.Join(admin.ErrModelDoesNotFit, err)
 	}
 	return was, err
+}
+
+// --- the governor ------------------------------------------------------------
+
+// loadGovernorMode applies the operator's stored governor mode, if they ever
+// set one; otherwise BOT_GOVERNOR stands. Anything it cannot read is logged
+// and left as configured: a boot must never fail over this.
+func loadGovernorMode(ctx context.Context, store botsettings.Store, gov *botgov.Governor) {
+	if store == nil || gov == nil {
+		return
+	}
+	stored, err := store.Governor(ctx)
+	if err != nil {
+		slog.Warn("bots: could not read the stored governor mode; BOT_GOVERNOR stands", "error", err)
+		return
+	}
+	if stored.Mode == "" {
+		return
+	}
+	mode := botgov.ParseMode(stored.Mode)
+	was := gov.SetMode(mode)
+	slog.Info("bots: governor mode from the console", "mode", mode.String(), "environment", was.String(),
+		"since", stored.UpdatedAt, "by", stored.UpdatedBy)
+}
+
+// governorView is the console's governor panel: the mode and where it came
+// from, and what the governor and the monitor are doing right now.
+func (a *App) governorView(ctx context.Context) (admin.GovernorView, error) {
+	gov := a.matchManager().Governor()
+	v := admin.GovernorView{
+		Mode:       gov.Mode().String(),
+		EnvDefault: botgov.ParseMode(a.cfg.BotGovernor).String(),
+		Source:     "environment",
+		Governor:   gov.Status(),
+		Monitor:    a.capacityMonitor().Status(),
+	}
+	if a.botSettings != nil {
+		stored, err := a.botSettings.Governor(ctx)
+		if err != nil {
+			return v, err
+		}
+		if stored.Mode != "" {
+			v.Source, v.UpdatedBy = "console", stored.UpdatedBy
+			if !stored.UpdatedAt.IsZero() {
+				at := stored.UpdatedAt
+				v.UpdatedAt = &at
+			}
+		}
+	}
+	return v, nil
+}
+
+// setGovernorMode persists a change and then moves the governor, reporting
+// the mode it had.
+func (a *App) setGovernorMode(ctx context.Context, c admin.GovernorChange) (string, error) {
+	return changeGovernorMode(ctx, a.botSettings, a.matchManager().Governor(), c)
+}
+
+func changeGovernorMode(ctx context.Context, store botsettings.Store, gov *botgov.Governor, c admin.GovernorChange) (string, error) {
+	if gov == nil {
+		return "", errors.New("the bot governor is not running")
+	}
+	mode := botgov.ParseMode(c.Mode)
+	if store != nil {
+		if err := store.SetGovernor(ctx, botsettings.Governor{
+			Mode: mode.String(), UpdatedBy: c.By, UpdatedAt: c.At.UTC().Truncate(time.Millisecond),
+		}); err != nil {
+			return gov.Mode().String(), err
+		}
+	}
+	return gov.SetMode(mode).String(), nil
 }

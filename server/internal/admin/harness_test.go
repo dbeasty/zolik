@@ -85,6 +85,8 @@ func newHarnessWith(t *testing.T, passwordLogin PasswordLogin, adminEmails ...st
 		Version:       "test",
 		HardModels:    bots.rows,
 		SetHardModel:  bots.set,
+		Governor:      bots.governor,
+		SetGovernor:   bots.setGovernor,
 	}).RegisterRoutes(r)
 
 	return &harness{

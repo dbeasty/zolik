@@ -1,6 +1,6 @@
 // Package botsettings persists the operator's runtime switches for bots:
-// today, whether each game's Hard seats play the trained model the binary
-// ships (learn.HardModels).
+// whether each game's AI seats play the trained model the binary ships
+// (learn.HardModels), and how much the bot governor may do (internal/botgov).
 //
 // One document, "bots", in the settings collection (a namespace under KDB),
 // holding a map keyed by game. The app reads it once at boot into the
@@ -26,10 +26,20 @@ type HardModel struct {
 	UpdatedAt time.Time `bson:"updatedAt,omitempty" json:"updatedAt,omitempty"`
 }
 
+// Governor is the bot governor's mode as the operator last set it — "off",
+// "observe" or "enforce" — and who set it. A zero Mode has never been set,
+// and the server's BOT_GOVERNOR setting stands.
+type Governor struct {
+	Mode      string    `bson:"mode,omitempty" json:"mode,omitempty"`
+	UpdatedBy string    `bson:"updatedBy,omitempty" json:"updatedBy,omitempty"`
+	UpdatedAt time.Time `bson:"updatedAt,omitempty" json:"updatedAt,omitempty"`
+}
+
 // Doc is the stored document.
 type Doc struct {
 	ID        string               `bson:"_id" json:"_id"`
 	HardModel map[string]HardModel `bson:"hardModel" json:"hardModel"`
+	Governor  Governor             `bson:"governor,omitempty" json:"governor,omitempty"`
 }
 
 // Store is the persistence behind the switch, on either engine.
@@ -39,6 +49,10 @@ type Store interface {
 	HardModels(ctx context.Context) (map[string]HardModel, error)
 	// SetHardModel records one game's setting, leaving the others as they are.
 	SetHardModel(ctx context.Context, game string, s HardModel) error
+	// Governor returns the stored governor mode; a zero Mode was never set.
+	Governor(ctx context.Context) (Governor, error)
+	// SetGovernor records the governor mode, leaving the games as they are.
+	SetGovernor(ctx context.Context, g Governor) error
 }
 
 // checkGame refuses a key that would not survive as a Mongo field name. The

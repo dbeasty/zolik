@@ -12,7 +12,7 @@ import (
 )
 
 // The Bots card: whether each game's AI seats play the trained model this
-// binary ships. A change reaches every live table at its next bot move, so it
+// binary ships, and (governor.go) how much the bot governor may do. A change reaches every live table at its next bot move, so it
 // is audited here — who, what, from, to — and persisted by the closure the app
 // supplies before the switch moves, so a restart comes back to it.
 
@@ -65,7 +65,7 @@ func (h *Handlers) bots(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not read the bot settings", http.StatusInternalServerError)
 		return
 	}
-	writeJSON(w, map[string]any{"games": rows})
+	writeJSON(w, h.withGovernor(r.Context(), map[string]any{"games": rows}))
 }
 
 func (h *Handlers) setBot(w http.ResponseWriter, r *http.Request) {
@@ -125,10 +125,14 @@ func (h *Handlers) setBot(w http.ResponseWriter, r *http.Request) {
 // botsAfterChange answers a change with the whole card, so the console
 // redraws from what the server now holds rather than from what it asked for.
 func (h *Handlers) botsAfterChange(w http.ResponseWriter, ctx context.Context) {
-	rows, err := h.deps.HardModels(ctx)
-	if err != nil {
-		writeJSON(w, map[string]any{"games": nil})
+	if h.deps.HardModels == nil {
+		writeJSON(w, h.withGovernor(ctx, map[string]any{"games": nil}))
 		return
 	}
-	writeJSON(w, map[string]any{"games": rows})
+	rows, err := h.deps.HardModels(ctx)
+	if err != nil {
+		writeJSON(w, h.withGovernor(ctx, map[string]any{"games": nil}))
+		return
+	}
+	writeJSON(w, h.withGovernor(ctx, map[string]any{"games": rows}))
 }
