@@ -170,10 +170,15 @@ export function planFlights(
         // every draw reads the same regardless of where the card came from.
         const owner = grew[0]![0];
         const ownHand = owner === viewerId ? handZoneOf(next, owner) : undefined;
-        add(
-          { fromId: zoneElementId(z.id), toId: placeFor(owner) },
-          ownHand ? zoneElementId(ownHand.id) : undefined,
-        );
+        // A whole pile scooped up is a bigger event than one card drawn, so it
+        // sends a small stream of cards rather than a single one — up to the
+        // most a transition may fly, each leaving a beat after the last.
+        for (let n = 0; n < Math.min(-d, MAX_FLIGHTS); n++) {
+          add(
+            { fromId: zoneElementId(z.id), toId: placeFor(owner) },
+            n === 0 && ownHand ? zoneElementId(ownHand.id) : undefined,
+          );
+        }
       }
     }
 

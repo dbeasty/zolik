@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { MatchModule } from '@/src/api/matchTypes';
-import { Rise } from '@/src/components/Rise';
+import { SettleIn } from '@/src/components/match/SettleIn';
 import { Screen } from '@/src/components/Screen';
 import { TableRow } from '@/src/components/TableRow';
 import { WaitingCard } from '@/src/components/WaitingCard';
@@ -96,7 +96,7 @@ function GamePageFor({ moduleId }: { moduleId: string }) {
     <>
       <Text style={styles.heading}>{t('game.startYourOwn')}</Text>
       <View style={styles.buttons}>
-        <Rise index={0} style={styles.cell}>
+        <SettleIn kind="deal" delay={0} style={styles.cell}>
           <Pressable
             testID={`play-friends-${mod.id}`}
             accessibilityRole="button"
@@ -105,8 +105,8 @@ function GamePageFor({ moduleId }: { moduleId: string }) {
           >
             <Text style={shared.buttonText}>{t('lobby.games.openTable')}</Text>
           </Pressable>
-        </Rise>
-        <Rise index={1} style={styles.cell}>
+        </SettleIn>
+        <SettleIn kind="deal" delay={70} style={styles.cell}>
           <Pressable
             testID={`play-bots-${mod.id}`}
             accessibilityRole="button"
@@ -117,13 +117,13 @@ function GamePageFor({ moduleId }: { moduleId: string }) {
               {t('game.playBots')}
             </Text>
           </Pressable>
-        </Rise>
+        </SettleIn>
       </View>
       {session ? (
         <View style={[styles.buttons, { marginTop: 8 }]}>
           {/* Every finished game of this one, not just the latest: the menu
               tile resumes a single table, so the rest are reached from here. */}
-          <Rise index={2} style={styles.cell}>
+          <SettleIn kind="deal" delay={140} style={styles.cell}>
             <Pressable
               testID={`previous-games-${mod.id}`}
               accessibilityRole="button"
@@ -136,11 +136,11 @@ function GamePageFor({ moduleId }: { moduleId: string }) {
                 {t('game.previousGames')}
               </Text>
             </Pressable>
-          </Rise>
+          </SettleIn>
           {/* Only with a table to go back to. Without one the cell is left
               empty rather than filled with something else, so the grid keeps
               its shape. */}
-          <Rise index={3} style={styles.cell}>
+          <SettleIn kind="deal" delay={210} style={styles.cell}>
             {resume ? (
               <Pressable
                 testID={`game-resume-${mod.id}`}
@@ -155,14 +155,14 @@ function GamePageFor({ moduleId }: { moduleId: string }) {
                 </Text>
               </Pressable>
             ) : null}
-          </Rise>
+          </SettleIn>
         </View>
       ) : null}
     </>
   );
 
   const header = (
-    <Rise>
+    <SettleIn kind="deal">
       <View style={styles.header} testID={`module-${mod.id}`}>
         <View style={{ flexShrink: 1 }}>
           <Text style={shared.title}>{moduleLabel(mod)}</Text>
@@ -181,7 +181,7 @@ function GamePageFor({ moduleId }: { moduleId: string }) {
           <Text style={styles.rulesLinkText}>{t('nav.rules')} ›</Text>
         </Pressable>
       </View>
-    </Rise>
+    </SettleIn>
   );
 
   // The waiting room is the online server's, and nobody online can pick
@@ -208,17 +208,17 @@ function GamePageFor({ moduleId }: { moduleId: string }) {
         </View>
         <View style={styles.wideRight} testID={`game-side-${mod.id}`}>
           {mine.length > 0 ? (
-            <Rise index={2}>
+            <SettleIn kind="deal" delay={140}>
               <Text style={[styles.heading, { marginTop: 0 }]}>{t('mine.tabUnfinished')}</Text>
               <View style={styles.panelCard}>
                 {mine.map((row) => (
                   <TableRow key={row.matchId} row={row} selfId={session?.userId} />
                 ))}
               </View>
-            </Rise>
+            </SettleIn>
           ) : null}
           {recent.length > 0 ? (
-            <Rise index={3}>
+            <SettleIn kind="deal" delay={210}>
               <View style={styles.recentHead}>
                 <Text style={[styles.heading, { marginTop: 16, marginBottom: 0 }]}>
                   {t('mine.tabFinished')}
@@ -236,7 +236,7 @@ function GamePageFor({ moduleId }: { moduleId: string }) {
                   <TableRow key={row.matchId} row={row} selfId={session?.userId} />
                 ))}
               </View>
-            </Rise>
+            </SettleIn>
           ) : null}
         </View>
       </View>

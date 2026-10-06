@@ -39,13 +39,13 @@ func TestBotDoesNotCaptureIntoAnOpeningItCannotFinish(t *testing.T) {
 	}
 }
 
-// And the same hand with one more card in it, which is the difference between
-// no opening and an exact one: ten cards after the capture, eight of them
-// down — 30 + 10 + 30 + 30 + 20 — and a nine and a ten left to discard one of.
-// The guard is not "never capture before opening"; it is "never capture into
-// an opening that is not all there", and this one is.
+// And an opening that is all there: the capture is 30, and kings, jacks and
+// queens are 90 more, which leaves two cards to discard one of. A side that has
+// not opened may not lay off, so the melds alone have to carry it. The guard is
+// not "never capture before opening"; it is "never capture into an opening that
+// is not all there", and this one is.
 func TestBotCapturesIntoAnOpeningItCanFinish(t *testing.T) {
-	hand := []string{"KS", "KC", "JH", "TC", "JC", "TH", "TD", "TC", "KD", "2D", "JS", "9C"}
+	hand := []string{"TC", "TH", "KS", "KC", "KD", "JH", "JC", "JS", "QS", "QC", "QD", "9C", "5S"}
 	played, s := playOpeningTurn(t, hand)
 	if played[0].Verb != VerbTakePile {
 		t.Errorf("passed up a pile that opens the account: %v", played)

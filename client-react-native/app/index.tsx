@@ -6,9 +6,9 @@ import type { StyleProp, ViewStyle } from 'react-native';
 
 import type { MatchModule, StoredTable } from '@/src/api/matchTypes';
 import { BuildFooter } from '@/src/components/BuildFooter';
-import { CardFan } from '@/src/components/CardFan';
 import { useOrderedModules } from '@/src/components/GameButtons';
-import { Rise } from '@/src/components/Rise';
+import { StartHero } from '@/src/components/fun/StartHero';
+import { SettleIn } from '@/src/components/match/SettleIn';
 import { Screen } from '@/src/components/Screen';
 import { TableRow } from '@/src/components/TableRow';
 import { nearbyAvailable } from '@/modules/zolik-nearby';
@@ -120,12 +120,10 @@ export default function MainMenu() {
 
   return (
     <Screen title="Jokerless" subtitle={offline ? t('offline.subtitle') : undefined} scroll wide={wide}>
+      <StartHero />
       {wide ? (
         <View style={styles.wideCols}>
           <View style={styles.wideMain}>
-            <View style={styles.fan}>
-              <CardFan />
-            </View>
             <GameRows tables={tables} columns={3} />
             {below}
           </View>
@@ -235,13 +233,19 @@ function GameRows({ tables, columns }: { tables: StoredTable[] | null; columns: 
           every engine. */}
       <View style={styles.grid}>
         {modules.map((mod, i) => (
-          <Rise key={mod.id} index={i} style={{ width: `${100 / columns}%`, padding: 4 }}>
+          // Dealt onto the page one after another, like cards to a table.
+          <SettleIn
+            key={mod.id}
+            kind="deal"
+            delay={Math.min(i, 8) * 70}
+            style={{ width: `${100 / columns}%`, padding: 4 }}
+          >
             <GameRow
               mod={mod}
               signedIn={!!session}
               status={gameRowStatus(mod.id, tables ?? [], waiting, session?.userId)}
             />
-          </Rise>
+          </SettleIn>
         ))}
       </View>
     </View>
@@ -502,7 +506,6 @@ const styles = StyleSheet.create({
   wideCols: { flexDirection: 'row', gap: 24, alignItems: 'flex-start' },
   wideMain: { flex: 7, minWidth: 0 },
   wideSide: { flex: 4, minWidth: 0 },
-  fan: { alignItems: 'flex-end', marginBottom: -12 },
   panelCard: {
     backgroundColor: colors.surface,
     borderWidth: 1,

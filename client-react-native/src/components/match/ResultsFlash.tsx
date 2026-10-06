@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, StyleSheet, Text, View } from 'react-native';
 
+import { CardCharacter, type Suit } from '@/src/components/fun/CardCharacter';
+import { CardRain } from '@/src/components/fun/CardRain';
 import type { Fact, MatchPlayer, RoundLog, Standing } from '@/src/api/matchTypes';
 import { useMetrics } from '@/src/hooks/useMetrics';
 import { useReducedMotion } from '@/src/hooks/useReducedMotion';
@@ -113,6 +115,10 @@ export function ResultsFlash({
   if (!rendered || !lines.headline) return null;
 
   const final = kind === 'match';
+  // Whether the viewer is the one being celebrated: the match winner, or the
+  // winner of the round just settled.
+  const lastRound = log?.rounds[log.rounds.length - 1];
+  const won = final ? !!winners?.includes(viewerId) : !!lastRound?.winners?.includes(viewerId);
 
   return (
     <Animated.View
@@ -126,7 +132,18 @@ export function ResultsFlash({
           not. A hand ending is a pause in play and the table should stay
           legible behind it — a match ending has nothing left to look at. */}
       <View style={[StyleSheet.absoluteFill, final ? styles.takeover : styles.veil]} />
+      {final && won ? <CardRain /> : null}
       <View style={final ? styles.centreFinal : styles.card} testID="results-flash-card">
+        {/* The cards dance at the end of a match for everyone at the table, and
+            one hops for a round you took. Nobody dances for a loss they
+            weren't part of — the round card stays plain then. */}
+        {final || won ? (
+          <View style={styles.dancers} testID="results-flash-dancers">
+            {(final ? DANCERS : DANCERS.slice(0, 1)).map((s, i) => (
+              <CardCharacter key={s} suit={s} mode="dance" size={final ? 38 : 28} delay={i * 110} />
+            ))}
+          </View>
+        ) : null}
         <Text style={[styles.eyebrow, final && styles.eyebrowFinal]} testID="results-flash-eyebrow">
           {lines.eyebrow}
         </Text>
@@ -148,6 +165,8 @@ export function ResultsFlash({
     </Animated.View>
   );
 }
+
+const DANCERS: Suit[] = ['S', 'H', 'C', 'D'];
 
 type Lines = {
   eyebrow: string;
@@ -275,6 +294,7 @@ function flashStyles(m: Metrics, s: Skin) {
       borderColor: colors.accent,
       backgroundColor: colors.surface,
     },
+    dancers: { flexDirection: 'row', gap: 10, marginBottom: 6 },
     centreFinal: { alignItems: 'center', gap: 7, maxWidth: 460 },
     eyebrow: {
       color: colors.accent,
