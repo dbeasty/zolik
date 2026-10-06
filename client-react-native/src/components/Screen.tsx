@@ -9,9 +9,11 @@ type Props = {
   subtitle?: string;
   children: ReactNode;
   scroll?: boolean;
+  /** Lets a wide window use its width, up to a readable maximum, centred. */
+  wide?: boolean;
 };
 
-export function Screen({ title, subtitle, children, scroll }: Props) {
+export function Screen({ title, subtitle, children, scroll, wide }: Props) {
   const body = (
     <>
       {title ? <Text style={shared.title}>{title}</Text> : null}
@@ -19,12 +21,17 @@ export function Screen({ title, subtitle, children, scroll }: Props) {
       {children}
     </>
   );
+  const content = wide ? (
+    <View style={{ width: '100%', maxWidth: 1240, alignSelf: 'center' }}>{body}</View>
+  ) : (
+    body
+  );
   return (
     <SafeAreaView style={shared.screen} edges={['top', 'left', 'right']}>
       {scroll ? (
-        <ScrollView keyboardShouldPersistTaps="handled">{body}</ScrollView>
+        <ScrollView keyboardShouldPersistTaps="handled">{content}</ScrollView>
       ) : (
-        <View style={{ flex: 1 }}>{body}</View>
+        <View style={{ flex: 1 }}>{content}</View>
       )}
     </SafeAreaView>
   );
