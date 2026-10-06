@@ -1,6 +1,7 @@
-import { router, useFocusEffect, useIsFocused, type Href } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { router, useIsFocused, type Href } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import type { PressableStateCallbackType } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
 
 import type { MatchModule, StoredTable } from '@/src/api/matchTypes';
@@ -9,10 +10,13 @@ import { useOrderedModules } from '@/src/components/GameButtons';
 import { StartHero } from '@/src/components/fun/StartHero';
 import { SettleIn } from '@/src/components/match/SettleIn';
 import { Screen } from '@/src/components/Screen';
+import { TableRow } from '@/src/components/TableRow';
 import { nearbyAvailable } from '@/modules/zolik-nearby';
 import { useAvailability } from '@/src/context/AvailabilityContext';
 import { useSession } from '@/src/context/SessionContext';
 import { useLocale } from '@/src/hooks/useLocale';
+import { useMyTables } from '@/src/hooks/useMyTables';
+import { useWide } from '@/src/hooks/useWide';
 import { useWaitingLobbyStatus } from '@/src/hooks/useWaitingLobbyStatus';
 import { moduleLabel, moduleName } from '@/src/lib/gameLabels';
 import { t } from '@/src/lib/i18n';
@@ -68,6 +72,11 @@ export default function MainMenu() {
   useFollowPendingDestination(!!session && !loading);
   // Nothing else here re-renders once the saved language has loaded.
   useLocale();
+  const wide = useWide();
+  // Read here rather than in the rows so the side panel and the tiles agree
+  // about what a player has going without asking twice.
+  const tables = useMyTables('unfinished', true, { turns: true });
+  const finished = useMyTables('finished', wide && !!session && !offline);
 
   if (loading || !introChecked) {
     return (
@@ -77,46 +86,115 @@ export default function MainMenu() {
     );
   }
 
-  return (
-    <Screen title="Jokerless" subtitle={offline ? t('offline.subtitle') : undefined} scroll>
-      <StartHero />
-      <WaitingInvitesCard />
-      <GameRows />
-
-      {session ? <TableCodeJoin /> : null}
-
-      <View style={{ marginTop: 16 }}>
-        {/* Only where the app carries its own server: iOS and Android, not
-            the web build or Expo Go. Offered to everyone, signed in or not,
-            because the point is that it needs nothing from the internet. */}
-        {nearbyAvailable ? (
+  const below = (
+    <View style={{ marginTop: 16 }}>
+      {/* Only where the app carries its own server: iOS and Android, not
+          the web build or Expo Go. Offered to everyone, signed in or not,
+          because the point is that it needs nothing from the internet. */}
+      {nearbyAvailable ? (
+        <MenuButton
+          label={offline ? t('offline.title') : t('home.playOffline')}
+          secondary
+          onPress={() => router.push('/offline')}
+        />
+      ) : null}
+      {/* Settings, sign-out, your games and the second-tier screens are
+          behind the face in the top corner, which is where a player looks
+          for themselves. See `AccountMenu`. Somebody with no session yet
+          gets the two ways to get one. */}
+      {!session ? (
+        <>
+          <Text style={[shared.status, { marginTop: 0, marginBottom: 10 }]}>
+            {t('home.signInPrompt')}
+          </Text>
+          <MenuButton label={t('settings.signIn')} onPress={() => router.push('/auth/login')} />
           <MenuButton
-            label={offline ? t('offline.title') : t('home.playOffline')}
+            label={t('home.continueAsGuest')}
             secondary
-            onPress={() => router.push('/offline')}
+            onPress={() => router.push('/auth/guest')}
           />
-        ) : null}
-        {/* Settings, sign-out, your games and the second-tier screens are
-            behind the face in the top corner, which is where a player looks
-            for themselves. See `AccountMenu`. Somebody with no session yet
-            gets the two ways to get one. */}
-        {!session ? (
-          <>
-            <Text style={[shared.status, { marginTop: 0, marginBottom: 10 }]}>
-              {t('home.signInPrompt')}
-            </Text>
-            <MenuButton label={t('settings.signIn')} onPress={() => router.push('/auth/login')} />
-            <MenuButton
-              label={t('home.continueAsGuest')}
-              secondary
-              onPress={() => router.push('/auth/guest')}
-            />
-          </>
-        ) : null}
-      </View>
+        </>
+      ) : null}
+    </View>
+  );
+
+  return (
+    <Screen title="Jokerless" subtitle={offline ? t('offline.subtitle') : undefined} scroll wide={wide}>
+      <StartHero />
+      {wide ? (
+        <View style={styles.wideCols}>
+          <View style={styles.wideMain}>
+            <GameRows tables={tables} columns={3} />
+            {below}
+          </View>
+          <View style={styles.wideSide}>
+            <SidePanel tables={tables} finished={finished} />
+          </View>
+        </View>
+      ) : (
+        <>
+          <WaitingInvitesCard />
+          <GameRows tables={tables} columns={2} />
+          {session ? <TableCodeJoin /> : null}
+          {below}
+        </>
+      )}
 
       <BuildFooter onPressVersions={() => router.push('/about')} />
     </Screen>
+  );
+}
+
+/**
+ * What a wide window has room for beside the games: invites that are waiting,
+ * the tables that need you, how the last few ended, and the code box. All of it
+ * is a copy of something the narrow layout reaches by a tap — the account menu
+ * or a game's own page — never information that exists only here.
+ */
+function SidePanel({
+  tables,
+  finished,
+}: {
+  tables: StoredTable[] | null;
+  finished: StoredTable[] | null;
+}) {
+  const { session } = useSession();
+  const { modules } = useOrderedModules();
+  if (!session) return null;
+  const labelOf = (row: StoredTable) => {
+    const mod = modules?.find((m) => m.id === row.moduleId);
+    return mod ? moduleLabel(mod) : moduleName(row.moduleId);
+  };
+  const going = [...(tables ?? [])]
+    .filter((row) => row.status === 'active' || row.status === 'suspended' || row.status === 'lobby')
+    .sort((a, b) => Number(!!b.yourTurn) - Number(!!a.yourTurn))
+    .slice(0, 5);
+  const recent = (finished ?? []).slice(0, 4);
+  return (
+    <View testID="home-side-panel">
+      <WaitingInvitesCard />
+      {going.length > 0 ? (
+        <>
+          <Text style={styles.heading}>{t('mine.tabUnfinished')}</Text>
+          <View style={styles.panelCard}>
+            {going.map((row) => (
+              <TableRow key={row.matchId} row={row} gameLabel={labelOf(row)} selfId={session.userId} />
+            ))}
+          </View>
+        </>
+      ) : null}
+      {recent.length > 0 ? (
+        <>
+          <Text style={styles.heading}>{t('mine.tabFinished')}</Text>
+          <View style={styles.panelCard}>
+            {recent.map((row) => (
+              <TableRow key={row.matchId} row={row} gameLabel={labelOf(row)} selfId={session.userId} />
+            ))}
+          </View>
+        </>
+      ) : null}
+      <TableCodeJoin />
+    </View>
   );
 }
 
@@ -129,41 +207,13 @@ export default function MainMenu() {
  * table. Without a session both lead to the guest screen, which comes back
  * here afterwards.
  */
-function GameRows() {
-  const { client, session, offline } = useSession();
+function GameRows({ tables, columns }: { tables: StoredTable[] | null; columns: number }) {
+  const { session, offline } = useSession();
   const { modules, error } = useOrderedModules();
-  // null until asked: an empty list and "not yet known" must not look the
-  // same, or every row would flash badge-less on each visit.
-  const [tables, setTables] = useState<StoredTable[] | null>(null);
   // Polled only while the menu is on screen: it stays mounted under every
   // screen it leads to, a match included.
   const focused = useIsFocused();
   const { players: waiting } = useWaitingLobbyStatus(!!session && !offline && focused);
-
-  // Refetched whenever the menu comes back into view: the usual way back here
-  // is from a table, which has just changed whose turn it is.
-  useFocusEffect(
-    useCallback(() => {
-      if (!session) {
-        setTables([]);
-        return undefined;
-      }
-      let cancelled = false;
-      client
-        .listMyTables('unfinished', { turns: true })
-        .then((rows) => {
-          if (!cancelled) setTables(rows);
-        })
-        .catch(() => {
-          // A quiet failure costs nothing real: the rows still open each
-          // game, and the full list is in the account menu.
-          if (!cancelled) setTables([]);
-        });
-      return () => {
-        cancelled = true;
-      };
-    }, [client, session]),
-  );
 
   if (error) {
     return (
@@ -178,16 +228,26 @@ function GameRows() {
     <View testID="games-list">
       {session && !offline ? <AvailabilityStrip modules={modules} /> : null}
       <Text style={styles.heading}>{t('picker.title')}</Text>
-      {modules.map((mod, i) => (
-        // Dealt onto the page one after another, like cards to a table.
-        <SettleIn key={mod.id} kind="deal" delay={Math.min(i, 8) * 70}>
-          <GameRow
-            mod={mod}
-            signedIn={!!session}
-            status={gameRowStatus(mod.id, tables ?? [], waiting, session?.userId)}
-          />
-        </SettleIn>
-      ))}
+      {/* A grid of equal tiles. Each cell carries its own padding rather than
+          the grid a `gap`, so the last row's width matches the others on
+          every engine. */}
+      <View style={styles.grid}>
+        {modules.map((mod, i) => (
+          // Dealt onto the page one after another, like cards to a table.
+          <SettleIn
+            key={mod.id}
+            kind="deal"
+            delay={Math.min(i, 8) * 70}
+            style={{ width: `${100 / columns}%`, padding: 4 }}
+          >
+            <GameRow
+              mod={mod}
+              signedIn={!!session}
+              status={gameRowStatus(mod.id, tables ?? [], waiting, session?.userId)}
+            />
+          </SettleIn>
+        ))}
+      </View>
     </View>
   );
 }
@@ -211,20 +271,24 @@ function GameRow({
   const { resume } = status;
 
   return (
-    <Pressable
-      testID={`game-${mod.id}`}
-      accessibilityRole="button"
-      onPress={open}
-      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-    >
-      <View style={styles.rowTop}>
-        <Text style={styles.name}>{moduleLabel(mod)}</Text>
-        <Text style={styles.chevron} aria-hidden>
-          ›
+    <View style={styles.tile}>
+      <Pressable
+        testID={`game-${mod.id}`}
+        accessibilityRole="button"
+        onPress={open}
+        style={(state: PressableStateCallbackType & { hovered?: boolean }) => [
+          styles.row,
+          (state.pressed || state.hovered) && styles.rowPressed,
+          state.hovered && { transform: [{ translateY: -2 }] },
+        ]}
+      >
+        <Text style={styles.name} numberOfLines={1}>
+          {moduleLabel(mod)}
         </Text>
-      </View>
-      {resume || status.waiting > 0 ? (
-        <View style={styles.badges}>
+        {/* Always drawn, even empty, so every tile in the grid is the same
+            height whether or not it has anything to report. The right-hand end
+            is left clear for Resume, which sits over it. */}
+        <View style={[styles.badges, resume && styles.badgesClearOfResume]}>
           {resume ? (
             <Text
               testID={`picker-${mod.id}-table`}
@@ -242,20 +306,21 @@ function GameRow({
               {t('picker.waiting', { n: status.waiting })}
             </Text>
           ) : null}
-          <View style={{ flex: 1 }} />
-          {resume ? (
-            <Pressable
-              testID={`picker-${mod.id}-resume`}
-              accessibilityRole="button"
-              onPress={() => router.push(routeForMatch(resume.status, resume.isHost, resume.matchId))}
-              style={({ pressed }) => [styles.resume, pressed && styles.rowPressed]}
-            >
-              <Text style={styles.resumeText}>{t('picker.resume')}</Text>
-            </Pressable>
-          ) : null}
         </View>
+      </Pressable>
+      {/* A sibling of the tile's button, not a child: a button inside a button
+          is invalid HTML and the browser rearranges it. */}
+      {resume ? (
+        <Pressable
+          testID={`picker-${mod.id}-resume`}
+          accessibilityRole="button"
+          onPress={() => router.push(routeForMatch(resume.status, resume.isHost, resume.matchId))}
+          style={({ pressed }) => [styles.resume, styles.resumeCorner, pressed && styles.rowPressed]}
+        >
+          <Text style={styles.resumeText}>{t('picker.resume')}</Text>
+        </Pressable>
       ) : null}
-    </Pressable>
+    </View>
   );
 }
 
@@ -437,20 +502,33 @@ function WaitingInvitesCard() {
 
 const styles = StyleSheet.create({
   heading: { color: colors.muted, fontSize: 13, fontWeight: '600', marginTop: 12, marginBottom: 8 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 },
+  wideCols: { flexDirection: 'row', gap: 24, alignItems: 'flex-start' },
+  wideMain: { flex: 7, minWidth: 0 },
+  wideSide: { flex: 4, minWidth: 0 },
+  panelCard: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+  },
   row: {
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 10,
     paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginBottom: 8,
+    paddingHorizontal: 12,
+    minHeight: 68,
+    justifyContent: 'space-between',
   },
   rowPressed: { borderColor: colors.accent },
-  rowTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  tile: { position: 'relative' },
+  resumeCorner: { position: 'absolute', right: 10, bottom: 10, backgroundColor: colors.surface },
+  badgesClearOfResume: { paddingRight: 76 },
   name: { color: colors.text, fontSize: 16, fontWeight: '600' },
-  chevron: { color: colors.muted, fontSize: 18 },
-  badges: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+  badges: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 6, minHeight: 24 },
   badge: {
     fontSize: 12,
     fontWeight: '600',
