@@ -85,6 +85,7 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	// Playing a finished table again, with the same people. The first press
 	// opens it; every later one sits down at it.
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/rematch", h.rematch)
+	r.With(auth.AuthMiddleware).Post("/matches/{id}/deal-again", h.dealAgain)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/rematch/decline", h.declineRematch)
 	// The host not waiting for somebody a rematch is holding a seat for.
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/rematch/release", h.releaseHeldSeat)
@@ -626,6 +627,26 @@ func (h *Handlers) rematch(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	next, err := h.manager.Rematch(req.Context(), chi.URLParam(req, "id"), uc.UserID)
+	if err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	writeJSON(w, map[string]any{"matchId": next.ID.Hex(), "status": next.Status, "hostId": next.HostID})
+}
+
+// dealAgain deals a finished one-seat game again, card for card, at a new
+// table for the caller. It answers with that table, already dealt.
+func (h *Handlers) dealAgain(w http.ResponseWriter, req *http.Request) {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	if err := h.admission.AllowMatchStart(); err != nil {
+		admission.WriteBusy(w, err)
+		return
+	}
+	next, err := h.manager.DealAgain(req.Context(), chi.URLParam(req, "id"), uc.UserID)
 	if err != nil {
 		writeModuleError(w, err)
 		return

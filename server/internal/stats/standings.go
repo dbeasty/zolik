@@ -67,6 +67,10 @@ type Scoreboard struct {
 	// Rounds is the module's round history, reduced to arithmetic.
 	Rounds        []RoundRecord `bson:"rounds,omitempty" json:"rounds,omitempty"`
 	RoundLabelKey string        `bson:"roundLabelKey,omitempty" json:"roundLabelKey,omitempty"`
+
+	// DealFrom is the match whose deal this one was dealt again from — see
+	// models.Match.DealFrom.
+	DealFrom string `bson:"dealFrom,omitempty" json:"dealFrom,omitempty"`
 }
 
 // roundRecords reduces a module's round log to what a permanent row keeps: the
@@ -115,6 +119,7 @@ func BuildScoreboard(m models.Match, out module.Outcome) Scoreboard {
 		Status:    m.Status,
 		Complete:  m.Status == "completed",
 		Winners:   append([]string(nil), m.Winners...),
+		DealFrom:  m.DealFrom,
 	}
 	sb.IsDraw = sb.Complete && sidesAmong(sb.Winners, out.Sides) > 1
 

@@ -2,7 +2,9 @@ package match
 
 import (
 	"crypto/rand"
+	"encoding/binary"
 	"math/big"
+	"time"
 
 	"zolik/server/internal/models"
 	"zolik/server/internal/module"
@@ -97,6 +99,13 @@ type MatchStateMsg struct {
 	// who asked — what turns "Play again" into "Join Bob's rematch" for
 	// everybody else who is still looking at the result.
 	Rematch *models.RematchRef `json:"rematch,omitempty"`
+	// CanDealAgain says this finished game may be dealt again, card for card,
+	// at a new table — see Manager.DealAgain. The server decides, so a client
+	// never has to know which games are played alone.
+	CanDealAgain bool `json:"canDealAgain,omitempty"`
+	// DealFrom is the match this one's deal was first dealt at, when it was
+	// dealt again — so a player can be told this is a deal they have seen.
+	DealFrom string `json:"dealFrom,omitempty"`
 	// Reserved is who a rematch lobby is still holding seats for.
 	Reserved []models.Reservation `json:"reserved,omitempty"`
 	// RecentMoves is what the last few moves at the table were, as this viewer
@@ -204,6 +213,8 @@ func (m *Manager) projectStateMsg(match models.Match, viewerID string, o stateMs
 		Winners:         match.Winners,
 		SuspendedPlayer: match.SuspendedPlayer,
 		Rematch:         match.Rematch,
+		CanDealAgain:    match.Status == "completed" && m.savedGame(match),
+		DealFrom:        match.DealFrom,
 		Reserved:        match.Reserved,
 		// Never nil: these round-trip to JSON, and a nil slice serialises to
 		// `null`, which every client then has to guard before indexing.
@@ -254,6 +265,21 @@ func (m *Manager) projectStateMsg(match models.Match, viewerID string, o stateMs
 	msg.Standings = module.StandingsFor(mod, module.State(match.State))
 	msg.Rounds = o.rounds
 	return msg
+}
+
+// newSeed is a fresh shuffle seed from the system's secure source.
+//
+// It used to be the creation time in nanoseconds, which is guessable to within
+// a window small enough to search: the creation time is roughly known and the
+// first face-up cards are a checksum. Solitaire, played against the deck alone,
+// is what made that matter (docs/solitaire-plan.md §4a); no game's shuffle has
+// any business being predictable.
+func newSeed() int64 {
+	var b [8]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return time.Now().UnixNano()
+	}
+	return int64(binary.LittleEndian.Uint64(b[:]) &^ (1 << 63))
 }
 
 func randInt(n int) int {

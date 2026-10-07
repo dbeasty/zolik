@@ -43,6 +43,7 @@ func BuildMatchResult(sb Scoreboard, matchID bson.ObjectID, startedAt, completed
 		IsDraw:          sb.IsDraw,
 		Rounds:          sb.Rounds,
 		RoundLabelKey:   sb.RoundLabelKey,
+		DealFrom:        sb.DealFrom,
 		RecordedAt:      now,
 	}
 }
@@ -67,7 +68,15 @@ func ApplyMatch(ps PlayerStats, m MatchResult, seat Standing, now time.Time) Pla
 
 	opponents := opponentsOf(m, seat)
 
-	ps.Overall.Add(seat, m.IsDraw)
+	// A game played alone against the deck is nobody's victory over anybody.
+	// It is counted under its own game and in the history, but it is kept out
+	// of Overall, which the leaderboard ranks on — or a hundred games of
+	// solitaire would outrank a season of rummy, and every average rank would
+	// drift towards first.
+	solo := m.Composition.Players == 1
+	if !solo {
+		ps.Overall.Add(seat, m.IsDraw)
+	}
 
 	if anyHuman(opponents) {
 		ps.VsHumans.Add(seat, m.IsDraw)
@@ -111,6 +120,7 @@ func ApplyMatch(ps PlayerStats, m MatchResult, seat Standing, now time.Time) Pla
 		Outcome:       outcomeOf(seat, m.IsDraw),
 		AgainstAI:     anyAI(opponents),
 		AgainstHumans: anyHuman(opponents),
+		Repeat:        m.DealFrom != "",
 	})
 
 	ps.UpdatedAt = now

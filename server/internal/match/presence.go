@@ -33,6 +33,33 @@ import (
 // match may be abandoned.
 const AbandonWindow = 2 * time.Minute
 
+// SavedGameWindow is how long a one-seat game waits for its player.
+//
+// A solitaire table left behind is not a game somebody walked out of: there is
+// nobody waiting on the other side of it. It is a saved game, kept until its
+// player comes back, and only cleared away once it is old enough that they
+// plainly are not going to.
+const SavedGameWindow = 30 * 24 * time.Hour
+
+// savedGame reports whether match is a one-seat game: one its player may leave
+// and come back to without anybody else being kept waiting.
+func (m *Manager) savedGame(match models.Match) bool {
+	mod := m.registry.Get(match.ModuleID)
+	if mod == nil {
+		return false
+	}
+	_, max := mod.Descriptor().SeatRange(match.Variation)
+	return max == 1
+}
+
+// abandonWindow is how long a suspended match waits for its player.
+func (m *Manager) abandonWindow(match models.Match) time.Duration {
+	if m.savedGame(match) {
+		return SavedGameWindow
+	}
+	return AbandonWindow
+}
+
 // SuspendOnDisconnect pauses a match when the player it is waiting on drops.
 //
 // Only when it is waiting on them: a spectator or an idle opponent losing a
@@ -81,7 +108,7 @@ func (m *Manager) suspendLocked(ctx context.Context, e *liveMatch, playerID stri
 	}
 
 	now := time.Now().UTC()
-	abandon := now.Add(AbandonWindow)
+	abandon := now.Add(m.abandonWindow(match))
 	match.Status = "suspended"
 	match.SuspendedAt = &now
 	match.AbandonAt = &abandon

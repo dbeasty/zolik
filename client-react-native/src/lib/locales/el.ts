@@ -907,6 +907,113 @@ export const el: Record<string, string> = {
 
   'blackjack.unit.chips': 'μάρκες',
 
+  // --- Solitaire (Klondike) -------------------------------------------------
+  'module.klondike': 'Πασιέντζα',
+  'variation.klondike.classic': 'Κλασική',
+  'variation.klondike.draw3': 'Ανά τρία',
+  'variation.klondike.vegas': 'Vegas',
+  'option.klondike.draw': 'Φύλλα που ανοίγουν',
+  'choice.klondike.draw.1': 'Ένα',
+  'choice.klondike.draw.3': 'Τρία',
+  'option.klondike.redeals': 'Γύρισμα των ανοιγμένων',
+  'choice.klondike.redeals.99': 'Απεριόριστα',
+  'choice.klondike.redeals.2': 'Δύο φορές',
+  'choice.klondike.redeals.0': 'Ποτέ',
+  'option.klondike.scoring': 'Βαθμολογία',
+  'choice.klondike.scoring.0': 'Κανονική',
+  'choice.klondike.scoring.1': 'Vegas',
+  'choice.klondike.scoring.2': 'Καμία',
+  'option.klondike.foundationTakeBack': 'Φύλλα πίσω από τις βάσεις',
+  'choice.klondike.foundationTakeBack.1': 'Επιτρέπεται',
+  'choice.klondike.foundationTakeBack.0': 'Δεν επιτρέπεται',
+  'option.klondike.autoFinish': 'Τελείωσέ το για μένα',
+  'choice.klondike.autoFinish.1': 'Προσφέρεται',
+  'choice.klondike.autoFinish.0': 'Δεν προσφέρεται',
+
+  'err.NO_SUCH_CARD': 'Αυτό το φύλλο δεν μπορεί να σηκωθεί',
+  'err.NOT_WHOLE_RUN': 'Μετακίνησε όλη τη σειρά, από εκείνο το φύλλο ως κάτω',
+  'err.NOT_A_SOLO_GAME': 'Μόνο παιχνίδι για έναν μπορεί να ξαναμοιραστεί',
+  'err.BAD_TARGET': 'Δεν μπαίνουν φύλλα εκεί',
+  'err.DOES_NOT_BUILD': 'Πρέπει να είναι κατά ένα μικρότερο, κόκκινο σε μαύρο ή μαύρο σε κόκκινο',
+  'err.KING_ONLY': 'Μόνο ρήγας μπορεί να γεμίσει μια άδεια στήλη',
+  'err.FOUNDATION_ORDER': 'Οι βάσεις χτίζονται ανά χρώμα, από τον άσο',
+  'err.TAKE_BACK_OFF': 'Σε αυτό το τραπέζι τα φύλλα μένουν στις βάσεις',
+  'err.STOCK_EMPTY': 'Η τράπουλα είναι άδεια',
+  'err.STOCK_NOT_EMPTY': 'Υπάρχουν ακόμα φύλλα στην τράπουλα',
+  'err.WASTE_EMPTY': 'Δεν υπάρχει τίποτα στα ανοιγμένα για να γυρίσει',
+  'err.NO_REDEALS': 'Τα ανοιγμένα δεν μπορούν να ξαναγυρίσουν',
+  'err.NOT_FINISHABLE': 'Δεν είναι ακόμα όλα τα φύλλα ανοιχτά',
+
+  'klondike.offer.draw': 'Τράβα',
+  'klondike.offer.recycle': 'Γύρνα τα ανοιγμένα',
+  'klondike.offer.move': 'Μετακίνησε',
+  'klondike.offer.autoFinish': 'Τελείωσε',
+  'klondike.offer.undo': 'Αναίρεση',
+  'klondike.offer.giveUp': 'Παραίτηση',
+  'klondike.fact.card': 'φύλλο',
+  'klondike.fact.toColumn': 'στη στήλη',
+  'klondike.fact.toFoundation': 'στις βάσεις',
+  'klondike.fact.count': 'απομένουν',
+  'klondike.fact.redealsLeft': 'Γυρίσματα που απομένουν',
+  'klondike.fact.score': 'Βαθμοί',
+  'klondike.fact.moves': 'Κινήσεις',
+  'klondike.zone.stock': 'Τράπουλα',
+  'klondike.zone.waste': 'Ανοιγμένα',
+  'klondike.zone.foundations': 'Βάσεις',
+  'klondike.zone.tableau': 'Στήλες',
+  'klondike.status.won': 'Λύθηκε!',
+  'klondike.status.lost': 'Δεν υπάρχουν άλλες κινήσεις',
+  'klondike.unit.cards': 'φύλλα στις βάσεις',
+  'klondike.remedy.turnWasteOver': 'Γύρνα τα ανοιγμένα για να ξανατραβήξεις.',
+  'klondike.remedy.drawFirst': 'Τράβηξε πρώτα από την τράπουλα.',
+  'klondike.remedy.playTheTable': 'Παίξε τα φύλλα στο τραπέζι.',
+  'klondike.remedy.turnEverythingUp':
+    'Άνοιξε πρώτα όλα τα φύλλα· μετά τα υπόλοιπα παίζονται μόνα τους.',
+
+  'klondike.rules.section.table': 'Το μοίρασμα',
+  'klondike.rules.section.play': 'Το παιχνίδι',
+  'klondike.rules.section.scoring': 'Η βαθμολογία',
+  'klondike.rules.section.end': 'Πώς τελειώνει η παρτίδα',
+  'klondike.rules.solo':
+    'Ένας παίκτης απέναντι στην τράπουλα. Κανείς άλλος δεν παίζει σε αυτό το τραπέζι.',
+  'klondike.rules.deal':
+    'Μοιράζονται επτά στήλες από ένα έως επτά φύλλα, με ανοιχτό μόνο το πάνω φύλλο της καθεμιάς. Τα άλλα 24 φύλλα αποτελούν την τράπουλα.',
+  'klondike.rules.draw1': 'Η τράπουλα ανοίγει ένα φύλλο τη φορά στα ανοιγμένα.',
+  'klondike.rules.draw3':
+    'Η τράπουλα ανοίγει τρία φύλλα τη φορά στα ανοιγμένα· μόνο το πάνω μπορεί να παιχτεί.',
+  'klondike.rules.stock':
+    'Όταν η τράπουλα αδειάσει, τα ανοιγμένα μπορούν να γυρίσουν ανάποδα για να γίνουν νέα τράπουλα.',
+  'klondike.rules.redealsUnlimited': 'Τα ανοιγμένα μπορούν να γυρίσουν όσες φορές θέλεις.',
+  'klondike.rules.redealsLimited': 'Τα ανοιγμένα μπορούν να γυρίσουν {n} φορές.',
+  'klondike.rules.redealsNone':
+    'Τα ανοιγμένα δεν γυρίζουν ποτέ: ένα μόνο πέρασμα από την τράπουλα.',
+  'klondike.rules.build':
+    'Οι στήλες χτίζονται προς τα κάτω, εναλλάξ κόκκινο και μαύρο: ένα κόκκινο εξάρι πάνω σε μαύρο εφτάρι.',
+  'klondike.rules.runs':
+    'Κάθε ανοιχτή σειρά μετακινείται ολόκληρη, από το φύλλο που σηκώνεις ως το τέλος της στήλης.',
+  'klondike.rules.kingOnly':
+    'Μόνο ένας ρήγας, ή μια σειρά που ξεκινά από ρήγα, μπορεί να γεμίσει μια άδεια στήλη.',
+  'klondike.rules.autoFlip':
+    'Ένα κλειστό φύλλο που μένει στην κορυφή μιας στήλης ανοίγει μόνο του.',
+  'klondike.rules.foundation': 'Οι τέσσερις βάσεις χτίζονται ανά χρώμα, από τον άσο ως τον ρήγα.',
+  'klondike.rules.takeBack': 'Ένα φύλλο μπορεί να κατέβει από μια βάση πάλι σε στήλη.',
+  'klondike.rules.noTakeBack': 'Ένα φύλλο σε βάση μένει εκεί.',
+  'klondike.rules.autoFinish':
+    'Μόλις όλα τα φύλλα είναι ανοιχτά, το Τελείωσε παίζει τα υπόλοιπα για σένα.',
+  'klondike.rules.noAutoFinish': 'Κάθε φύλλο παίζεται με το χέρι, ως το τελευταίο.',
+  'klondike.rules.undo':
+    'Η Αναίρεση παίρνει πίσω μια κίνηση, αλλά ποτέ ένα φύλλο που άνοιξε ή τραβήχτηκε.',
+  'klondike.rules.scoreStandard':
+    'Από τα ανοιγμένα σε στήλη 5, οποιοδήποτε φύλλο σε βάση 10, άνοιγμα φύλλου 5, φύλλο πίσω από βάση −15.',
+  'klondike.rules.scoreRecycle1': 'Το γύρισμα των ανοιγμένων κοστίζει 100.',
+  'klondike.rules.scoreRecycle3': 'Το γύρισμα των ανοιγμένων κοστίζει 20.',
+  'klondike.rules.scoreVegas': 'Ξεκινάς από −52 και κάθε φύλλο σε βάση αξίζει 5.',
+  'klondike.rules.scoreNone': 'Η παρτίδα δεν βαθμολογείται.',
+  'klondike.rules.won': 'Κερδίζεις όταν και τα 52 φύλλα είναι στις βάσεις.',
+  'klondike.rules.lost': 'Μπορείς να παραιτηθείς οποιαδήποτε στιγμή· η παρτίδα μετράει ως χαμένη.',
+  'klondike.rules.stuck':
+    'Η παρτίδα τελειώνει μόνη της όταν δεν μένει τίποτα που να μπορεί να την αλλάξει, ή μετά από {n} συνεχόμενες κινήσεις που δεν οδήγησαν πουθενά.',
+
   // --- the settings screen --------------------------------------------------
   //
   // Hardcoded English until now, which was survivable while the only other
@@ -1104,6 +1211,7 @@ export const el: Record<string, string> = {
   'lobby.games.bots': 'Μποτ',
   'lobby.games.openTable': 'Άνοιξε τραπέζι',
   'lobby.games.players': '{n} παίκτες',
+  'lobby.games.onePlayer': '1 παίκτης',
   'lobby.games.playerRange': '{min}–{max} παίκτες',
   'lobby.join.placeholder': 'Κωδικός ή σύνδεσμος πρόσκλησης',
   'lobby.join.needCode': 'Δώσε κωδικό, σύνδεσμο ή ταυτότητα αγώνα',
@@ -1212,6 +1320,8 @@ export const el: Record<string, string> = {
   'match.over': 'Ο αγώνας τελείωσε',
   'match.settingUp': 'Ετοιμάζουμε…',
   'match.playAgain': 'Παίξε ξανά',
+  'match.dealAgain': 'Παίξε ξανά το ίδιο μοίρασμα',
+  'match.repeatDeal': 'Έχεις ξαναπαίξει αυτό το μοίρασμα',
   'match.rematchOffer': '{name} θέλει ρεβάνς',
   'match.joinRematch': 'Μπες στη ρεβάνς',
   'match.declineRematch': 'Όχι, ευχαριστώ',

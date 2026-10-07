@@ -72,6 +72,12 @@ export type Group = {
    * Absent means the last card.
    */
   face?: number;
+  /**
+   * How many cards lie face-down *beneath* `cards`, never sent — a Klondike
+   * column's unturned cards under its face-up run. The group's own
+   * counterpart of `Zone.count`: a secret stays secret by not being sent.
+   */
+  hidden?: number;
 };
 
 /**
@@ -129,6 +135,12 @@ export type Zone = {
    * drawn by its kind.
    */
   arrange?: ZoneArrange;
+  /**
+   * On a `pile`: how many of the top cards to show overlapped rather than
+   * folded down to one — a waste turned three at a time. Presentational; a
+   * client that ignores it shows the top card and loses nothing it needs.
+   */
+  fan?: number;
 };
 
 export type ZoneArrange = 'bySeat';
@@ -501,6 +513,13 @@ export type MatchState = {
    * Everybody else from here has a seat held at it.
    */
   rematch?: { matchId: string; hostId: string };
+  /**
+   * This finished game may be dealt again, card for card, at a new table — a
+   * one-seat game the server decides is replayable. See `client.dealAgain`.
+   */
+  canDealAgain?: boolean;
+  /** The match this one's deal was first dealt at, when it is a deal played again. */
+  dealFrom?: string;
   /** Who a rematch lobby is still holding seats for, in seat order. */
   reserved?: { playerId: string; name: string; avatar?: string }[];
   /**

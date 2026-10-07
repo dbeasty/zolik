@@ -566,6 +566,15 @@ export class ZolikClient {
   }
 
   /**
+   * Deal a finished one-seat game again, card for card, at a new table. The
+   * server copies the deal itself — nobody is ever told what it was — and
+   * answers with the new table, already dealt.
+   */
+  async dealAgain(idOrCode: string): Promise<{ matchId: string; status: string; hostId: string }> {
+    return this.post(`/matches/${encodeURIComponent(idOrCode)}/deal-again`, null, true);
+  }
+
+  /**
    * The host not waiting for somebody a rematch is holding a seat for. With
    * `bot`, a bot at the table's own skill sits where they would have sat.
    */
