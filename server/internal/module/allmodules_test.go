@@ -80,10 +80,10 @@ func allModules() []hosted {
 		},
 		{
 			name:     "lastcard",
-			rounds:   false,
+			rounds:   true,
 			mod:      lastcard.New(),
 			players:  refs("p1", "p2", "p3"),
-			prefer:   []string{"play_card", "pass", "draw"},
+			prefer:   []string{"continue", "accept", "catch", "call", "play_card", "pass", "draw"},
 			finishes: true,
 		},
 		{

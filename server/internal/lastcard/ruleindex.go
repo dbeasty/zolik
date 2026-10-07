@@ -31,9 +31,14 @@ func refusalRules(code string) []string {
 		return []string{"lastcard.rules.wildDrawFour"}
 	case ErrColourRequired, ErrUnknownColour:
 		return []string{"lastcard.rules.wild"}
+	case ErrAnswerDrawFour, ErrNoDrawFour:
+		return []string{"lastcard.rules.challenge"}
+	case ErrNothingToCatch, ErrCallNotNow, ErrAlreadyCalled:
+		return []string{"lastcard.rules.call", "lastcard.rules.catch"}
 
 	// --- not about the rules at all ---------------------------------------
-	case ErrCardNotInHand, ErrGameNotActive, ErrUnknownAction, ErrTooFewPlayers:
+	case ErrCardNotInHand, ErrGameNotActive, ErrUnknownAction, ErrTooFewPlayers,
+		module.ErrNotPaused, module.ErrAlreadyReady, module.ErrNotSeated:
 		return nil
 	}
 	return nil

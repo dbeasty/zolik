@@ -61,9 +61,29 @@ func (m *Module) annotate(cfg module.MatchConfig, s *GameState, offers []module.
 			o.Remedy = &module.Fact{LabelKey: "lastcard.remedy.playOrDraw"}
 			o.RemedyOfferID = enabled(OfferPlay, OfferDraw)
 
+		case ErrAnswerDrawFour:
+			// A Wild Draw Four is waiting on this player, and the only
+			// moves are to take it or dispute it.
+			o.Remedy = &module.Fact{
+				LabelKey: "lastcard.remedy.answerDrawFour",
+				Params:   map[string]any{"player": drawFourPlayer(s)},
+			}
+			o.RemedyOfferID = enabled(OfferAccept, OfferChallenge)
+
+		case ErrAlreadyCalled:
+			o.Remedy = &module.Fact{LabelKey: "lastcard.remedy.nowPlay"}
+			o.RemedyOfferID = enabled(OfferPlay, OfferDraw)
+
 		case ErrColourRequired, ErrUnknownColour:
 			o.Remedy = &module.Fact{LabelKey: "lastcard.remedy.nameAColour"}
 			o.RemedyOfferID = enabled(OfferPlay)
 		}
 	}
+}
+
+func drawFourPlayer(s *GameState) string {
+	if s.DrawFour == nil {
+		return ""
+	}
+	return s.DrawFour.Player
 }

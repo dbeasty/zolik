@@ -103,6 +103,16 @@ cards, so §3 is part of v1 and not an optional extra.
 
 ### 2.2 Calling "Last card!" and the Draw Four challenge (v2)
 
+**As built:** the call is its own verb (`call`), offered on your turn while
+you hold two cards; it does not end the turn. A silent last card can be
+caught by whoever moves next, on their own turn, before any other move — a
+turn-based reading of "anyone may catch you", which needs no out-of-turn
+actions in the runtime. Hard and Medium bots call and catch; Easy forgets
+one time in three (fixed by the state, so replays agree). With the challenge
+on, a Wild Draw Four may be bluffed; the victim gets `challenge` / `accept`,
+and the challenger sees the hand it came from either way. Hard bluffs only
+when the next player is nearly out and challenges a hand of eight or more.
+
 Both of these interrupt the strict turn order, so they arrive after the core
 game is stable.
 

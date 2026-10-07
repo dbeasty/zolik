@@ -80,7 +80,7 @@ func replayables() []replayable {
 		{"marias", marias.New(), refs("p1", "p2", "p3"), module.MatchConfig{},
 			[]string{"play_card", "discard", "choose_trump", "announce", "good", "pass"}, nil},
 		{"lastcard", lastcard.New(), refs("p1", "p2", "p3"), module.MatchConfig{},
-			[]string{"play_card", "pass", "draw"}, nil},
+			[]string{"continue", "accept", "catch", "call", "play_card", "pass", "draw"}, nil},
 		{"marias-licit", marias.New(), refs("p1", "p2", "p3"), module.MatchConfig{Variation: "licitovany"},
 			[]string{"play_card", "discard", "bid", "hold", "announce", "fold", "pass"}, nil},
 	}

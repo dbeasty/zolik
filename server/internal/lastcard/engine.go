@@ -42,25 +42,47 @@ func shuffle(cards []string, seed int64) []string {
 	return out
 }
 
-// NewMatch deals a fresh game.
+// NewMatch seats the table, resolves its options and deals the first hand.
 func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, seed int64) (module.State, error) {
 	if len(players) < 2 {
 		return nil, module.Error{Code: ErrTooFewPlayers, Message: "last card needs at least two players"}
 	}
-	handSize := cfg.Opt(OptHandSize, defaultHandSize)
-
-	deck := shuffle(buildDeck(), seed)
 	s := &GameState{
 		Status:      "active",
-		Direction:   1,
-		Hands:       map[string][]string{},
 		Seed:        seed,
 		OpenDiscard: cfg.OpenDiscardPile(false),
+		HandSize:    cfg.Opt(OptHandSize, defaultHandSize),
+		TargetScore: cfg.Opt(OptTargetScore, defaultTargetScore),
+		CallOn:      cfg.Opt(OptLastCardCall, module.OptOn) == module.OptOn,
+		ChallengeOn: cfg.Opt(OptDrawFourChallenge, module.OptOn) == module.OptOn,
+		Pause:       cfg.PauseBetweenRounds(true),
+		Scores:      map[string]int{},
 	}
 	for _, p := range players {
 		s.Players = append(s.Players, p.ID)
 		s.TurnOrder = append(s.TurnOrder, p.ID)
+		s.Scores[p.ID] = 0
 	}
+	s.deal()
+	return encode(s)
+}
+
+// deal shuffles and deals the next hand, turns the first card and seats the
+// first player. The first player moves one seat round with each deal.
+func (s *GameState) deal() {
+	handSize := s.HandSize
+	if handSize <= 0 {
+		handSize = defaultHandSize
+	}
+	dealSeed := s.Seed + int64(s.DealNumber)*104729
+	deck := shuffle(buildDeck(), dealSeed)
+
+	s.Hands = map[string][]string{}
+	s.Direction = 1
+	s.DeclaredColour, s.DrawnCard, s.Called, s.Unannounced = "", "", "", ""
+	s.DrawFour, s.Reveal = nil, nil
+	s.BlankDraws, s.Reshuffles = 0, 0
+
 	for i := 0; i < handSize; i++ {
 		for _, p := range s.TurnOrder {
 			s.Hands[p] = append(s.Hands[p], deck[0])
@@ -75,7 +97,8 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 	}
 	s.DiscardPile = []string{deck[0]}
 	s.DrawPile = deck[1:]
-	starter := s.TurnOrder[module.StartingSeat(seed, len(s.TurnOrder))]
+	n := len(s.TurnOrder)
+	starter := s.TurnOrder[(module.StartingSeat(s.Seed, n)+s.DealNumber)%n]
 	s.Current = starter
 
 	// An opening action card takes effect as if the dealer — the player
@@ -87,7 +110,7 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 		s.drawInto(starter, 2)
 		s.Current = s.nextPlayer(starter)
 	case faceReverse:
-		if len(s.TurnOrder) == 2 {
+		if n == 2 {
 			s.Current = s.nextPlayer(starter)
 		} else {
 			// Play turns back round, so the dealer, who played it, is first.
@@ -95,10 +118,10 @@ func (m *Module) NewMatch(cfg module.MatchConfig, players []module.PlayerRef, se
 			s.Current = s.nextPlayer(starter)
 		}
 	}
-	return encode(s)
 }
 
-// Apply validates and applies one move.
+// Apply validates and applies one move. The state is decoded fresh on every
+// call, so a refused move leaves the caller's state untouched.
 func (m *Module) Apply(raw module.State, playerID string, a module.Action) (module.State, []module.Event, error) {
 	s, err := decode(raw)
 	if err != nil {
@@ -107,54 +130,116 @@ func (m *Module) Apply(raw module.State, playerID string, a module.Action) (modu
 	if s.Status != "active" {
 		return raw, nil, module.Error{Code: ErrGameNotActive}
 	}
+
+	if s.Intermission.Open {
+		if a.Verb != module.VerbContinue {
+			return raw, nil, module.Error{Code: module.ErrNotPaused}
+		}
+		if err := s.Intermission.Mark(s.TurnOrder, playerID); err != nil {
+			return raw, nil, err
+		}
+		var events []module.Event
+		if s.Intermission.Settled(s.TurnOrder) {
+			s.Intermission.Close()
+			s.deal()
+			events = []module.Event{{Type: "deal_started", Data: map[string]any{"deal": s.DealNumber + 1}}}
+		}
+		out, err := encode(s)
+		return out, events, err
+	}
+	if a.Verb == module.VerbContinue {
+		return raw, nil, module.Error{Code: module.ErrNotPaused}
+	}
 	if s.Current != playerID {
 		return raw, nil, module.Error{Code: ErrNotYourTurn}
 	}
+
+	// A hand shown to a challenger stays on their screen until they move.
+	if s.Reveal != nil && s.Reveal.Viewer == playerID {
+		s.Reveal = nil
+	}
+
+	var events []module.Event
 	switch a.Verb {
-	case VerbPlay:
-		return m.applyPlay(s, playerID, a)
-	case VerbDraw:
-		return m.applyDraw(s, playerID)
-	case VerbPass:
-		return m.applyPass(s, playerID)
+	case VerbCatch:
+		events, err = s.applyCatch(playerID)
+	case VerbCall:
+		events, err = s.applyCall(playerID)
+	case VerbChallenge:
+		s.Unannounced = ""
+		events, err = s.applyChallenge(playerID)
+	case VerbAccept:
+		s.Unannounced = ""
+		events, err = s.applyAccept(playerID)
+	case VerbPlay, VerbDraw, VerbPass:
+		if s.DrawFour != nil {
+			return nil, nil, module.Error{Code: ErrAnswerDrawFour}
+		}
+		// Anything but a catch closes the window on a player who went to one
+		// card in silence: the moment has passed.
+		s.Unannounced = ""
+		switch a.Verb {
+		case VerbPlay:
+			events, err = s.applyPlay(playerID, a)
+		case VerbDraw:
+			events, err = s.applyDraw(playerID)
+		default:
+			events, err = s.applyPass(playerID)
+		}
 	default:
 		return raw, nil, module.Error{Code: ErrUnknownAction, Message: a.Verb}
 	}
+	if err != nil {
+		return nil, nil, err
+	}
+	out, err := encode(s)
+	return out, events, err
 }
 
-func (m *Module) applyPlay(s *GameState, playerID string, a module.Action) (module.State, []module.Event, error) {
+// passTurn hands the turn on, clearing what belonged to the turn just ended.
+func (s *GameState) passTurn(to string) {
+	s.Current = to
+	s.Called = ""
+	s.DrawnCard = ""
+}
+
+func (s *GameState) applyPlay(playerID string, a module.Action) ([]module.Event, error) {
 	if len(a.Cards) != 1 {
-		return nil, nil, module.Error{Code: ErrCardDoesNotMatch, Message: "play exactly one card"}
+		return nil, module.Error{Code: ErrCardDoesNotMatch, Message: "play exactly one card"}
 	}
 	card := a.Cards[0]
 	hand := s.Hands[playerID]
 	if !hasCard(hand, card) {
-		return nil, nil, module.Error{Code: ErrCardNotInHand}
+		return nil, module.Error{Code: ErrCardNotInHand}
 	}
 	// Having drawn, the only card left to play this turn is the one drawn.
 	if s.DrawnCard != "" && card != s.DrawnCard {
-		return nil, nil, module.Error{Code: ErrOnlyDrawnCard}
+		return nil, module.Error{Code: ErrOnlyDrawnCard}
 	}
 	if !s.matches(card) {
-		return nil, nil, module.Error{Code: ErrCardDoesNotMatch}
+		return nil, module.Error{Code: ErrCardDoesNotMatch}
 	}
-	if card == cardWildDrawFour && s.holdsColour(hand) {
-		return nil, nil, module.Error{Code: ErrDrawFourHeld}
+	// Without the challenge, holding the colour simply forbids the card.
+	// With it, the card may go down anyway — and that is the bluff a
+	// challenge exists to test.
+	bluff := card == cardWildDrawFour && s.holdsColour(hand)
+	if bluff && !s.ChallengeOn {
+		return nil, module.Error{Code: ErrDrawFourHeld}
 	}
 
-	// A wild must name the colour that follows. Validated before anything is
-	// mutated, so a missing or nonsense colour leaves the game untouched.
 	declared := ""
 	if isWild(card) {
 		declared = a.Params["colour"]
 		if declared == "" {
-			return nil, nil, module.Error{Code: ErrColourRequired}
+			return nil, module.Error{Code: ErrColourRequired}
 		}
 		if !isColour(declared) {
-			return nil, nil, module.Error{Code: ErrUnknownColour, Message: declared}
+			return nil, module.Error{Code: ErrUnknownColour, Message: declared}
 		}
 	}
 
+	// The hand as it was when the card went down, for a challenger to see.
+	before := append([]string(nil), hand...)
 	s.Hands[playerID] = removeCard(hand, card)
 	s.DiscardPile = append(s.DiscardPile, card)
 	s.DeclaredColour = declared
@@ -165,56 +250,71 @@ func (m *Module) applyPlay(s *GameState, playerID string, a module.Action) (modu
 		"playerId": playerID, "card": card, "declaredColour": declared,
 	}}}
 
-	if len(s.Hands[playerID]) == 0 {
-		// The last card still does what it says: a Draw Two that goes out
-		// makes the next player draw. Nothing hangs on it in a single deal,
-		// but it is what the cards say, and a points game will count it.
-		if victim := s.nextPlayer(playerID); faceOf(card) == faceDrawTwo || card == cardWildDrawFour {
-			n := 2
-			if card == cardWildDrawFour {
-				n = 4
-			}
-			if got := s.drawInto(victim, n); got > 0 {
-				events = append(events, drawnEvent(victim, got))
-			}
+	left := len(s.Hands[playerID])
+	if left == 1 && s.CallOn {
+		if s.Called == playerID {
+			events = append(events, module.Event{Type: "last_card", Data: map[string]any{"playerId": playerID}})
+		} else {
+			s.Unannounced = playerID
 		}
-		s.Status = "completed"
-		s.WinnerID = playerID
-		s.Current = ""
-		events = append(events, module.Event{Type: "game_ended", Data: map[string]any{"winnerId": playerID}})
-		out, err := encode(s)
-		return out, events, err
 	}
+	s.Called = ""
 
 	next := s.nextPlayer(playerID)
+	if left == 0 {
+		// The last card still does what it says: a Draw card that goes out
+		// makes the next player draw, which a points game counts.
+		if n := drawCount(card); n > 0 {
+			if got := s.drawInto(next, n); got > 0 {
+				events = append(events, drawnEvent(next, got))
+			}
+		}
+		return append(events, s.endDeal(playerID)...), nil
+	}
+
 	switch {
 	case faceOf(card) == faceSkip:
 		events = append(events, skippedEvent(next))
-		next = s.nextPlayer(next)
+		s.passTurn(s.nextPlayer(next))
 	case faceOf(card) == faceReverse:
 		if len(s.TurnOrder) == 2 {
 			// Between two players a Reverse brings it straight back.
 			events = append(events, skippedEvent(next))
-			next = playerID
+			s.passTurn(playerID)
 		} else {
-			s.Direction = -s.Direction
-			if s.Direction == 0 {
-				s.Direction = -1
-			}
-			next = s.nextPlayer(playerID)
+			s.Direction = -s.direction()
+			s.passTurn(s.nextPlayer(playerID))
 		}
+	case card == cardWildDrawFour && s.ChallengeOn:
+		// The victim answers before anything is drawn.
+		s.DrawFour = &DrawFourPending{Player: playerID, Victim: next, Bluff: bluff}
+		s.Reveal = &Reveal{Owner: playerID, Cards: before, Bluff: bluff}
+		s.passTurn(next)
 	case faceOf(card) == faceDrawTwo || card == cardWildDrawFour:
-		n := 2
-		if card == cardWildDrawFour {
-			n = 4
-		}
-		got := s.drawInto(next, n)
+		got := s.drawInto(next, drawCount(card))
 		events = append(events, drawnEvent(next, got), skippedEvent(next))
-		next = s.nextPlayer(next)
+		s.passTurn(s.nextPlayer(next))
+	default:
+		s.passTurn(next)
 	}
-	s.Current = next
-	out, err := encode(s)
-	return out, events, err
+	return events, nil
+}
+
+func drawCount(card string) int {
+	switch {
+	case card == cardWildDrawFour:
+		return 4
+	case faceOf(card) == faceDrawTwo:
+		return 2
+	}
+	return 0
+}
+
+func (s *GameState) direction() int {
+	if s.Direction == 0 {
+		return 1
+	}
+	return s.Direction
 }
 
 // applyDraw takes one card from the pile.
@@ -224,46 +324,181 @@ func (m *Module) applyPlay(s *GameState, playerID string, a module.Action) (modu
 // draw — the whole pack is in hands — the turn passes, and once every player
 // in turn has drawn nothing the deal ends: nobody can move, and waiting would
 // strand the table.
-func (m *Module) applyDraw(s *GameState, playerID string) (module.State, []module.Event, error) {
+func (s *GameState) applyDraw(playerID string) ([]module.Event, error) {
 	if s.DrawnCard != "" {
-		return nil, nil, module.Error{Code: ErrAlreadyDrew}
+		return nil, module.Error{Code: ErrAlreadyDrew}
 	}
 	card, ok := s.drawOne()
 	if !ok {
 		s.BlankDraws++
 		events := []module.Event{drawnEvent(playerID, 0)}
 		if s.BlankDraws >= len(s.TurnOrder) {
-			s.finishOnFewest()
-			events = append(events, module.Event{Type: "game_ended", Data: map[string]any{"winnerId": s.WinnerID}})
-		} else {
-			s.Current = s.nextPlayer(playerID)
+			return append(events, s.endDeal(s.fewestCards())...), nil
 		}
-		out, err := encode(s)
-		return out, events, err
+		s.passTurn(s.nextPlayer(playerID))
+		return events, nil
 	}
 	s.BlankDraws = 0
 	s.Hands[playerID] = append(s.Hands[playerID], card)
-	playable := s.matches(card) && (card != cardWildDrawFour || !s.holdsColour(s.Hands[playerID]))
-	if playable {
+	if s.playableDrawn(playerID, card) {
 		s.DrawnCard = card
 	} else {
-		s.Current = s.nextPlayer(playerID)
+		s.passTurn(s.nextPlayer(playerID))
 	}
-	out, err := encode(s)
-	return out, []module.Event{drawnEvent(playerID, 1)}, err
+	return []module.Event{drawnEvent(playerID, 1)}, nil
+}
+
+// playableDrawn is whether a card just drawn may be played this turn: it
+// matches, and if it is a Wild Draw Four the table either allows a bluff or
+// the hand holds nothing of the colour.
+func (s *GameState) playableDrawn(playerID, card string) bool {
+	if !s.matches(card) {
+		return false
+	}
+	return card != cardWildDrawFour || s.ChallengeOn || !s.holdsColour(s.Hands[playerID])
 }
 
 // applyPass keeps the card just drawn and ends the turn. Only legal after a
 // draw turned up something playable — otherwise passing would be a way to
 // stall forever.
-func (m *Module) applyPass(s *GameState, playerID string) (module.State, []module.Event, error) {
+func (s *GameState) applyPass(playerID string) ([]module.Event, error) {
 	if s.DrawnCard == "" {
-		return nil, nil, module.Error{Code: ErrNothingToKeep}
+		return nil, module.Error{Code: ErrNothingToKeep}
 	}
-	s.DrawnCard = ""
-	s.Current = s.nextPlayer(playerID)
-	out, err := encode(s)
-	return out, []module.Event{{Type: "card_kept", Data: map[string]any{"playerId": playerID}}}, err
+	s.passTurn(s.nextPlayer(playerID))
+	return []module.Event{{Type: "card_kept", Data: map[string]any{"playerId": playerID}}}, nil
+}
+
+// applyCall says "Last card!" — on your turn, holding two cards, before the
+// play that leaves you one. It does not end the turn.
+func (s *GameState) applyCall(playerID string) ([]module.Event, error) {
+	if !s.CallOn || s.DrawFour != nil || len(s.Hands[playerID]) != 2 {
+		return nil, module.Error{Code: ErrCallNotNow}
+	}
+	if s.Called == playerID {
+		return nil, module.Error{Code: ErrAlreadyCalled}
+	}
+	s.Called = playerID
+	return []module.Event{{Type: "last_card_called", Data: map[string]any{"playerId": playerID}}}, nil
+}
+
+// applyCatch catches a player who went down to one card without calling:
+// they draw two. The catcher's own turn carries on.
+func (s *GameState) applyCatch(playerID string) ([]module.Event, error) {
+	target := s.Unannounced
+	if !s.CallOn || target == "" || target == playerID {
+		return nil, module.Error{Code: ErrNothingToCatch}
+	}
+	got := s.drawInto(target, 2)
+	s.Unannounced = ""
+	return []module.Event{
+		{Type: "caught", Data: map[string]any{"playerId": target, "by": playerID}},
+		drawnEvent(target, got),
+	}, nil
+}
+
+// applyChallenge disputes a Wild Draw Four. If the player who played it held
+// a card of the colour in play, they draw the four instead and the
+// challenger plays on; if not, the challenger draws six and loses the turn.
+// Either way the challenger sees the hand it was played from.
+func (s *GameState) applyChallenge(playerID string) ([]module.Event, error) {
+	d := s.DrawFour
+	if d == nil || d.Victim != playerID {
+		return nil, module.Error{Code: ErrNoDrawFour}
+	}
+	s.DrawFour = nil
+	if s.Reveal != nil {
+		s.Reveal.Viewer = playerID
+	}
+	if d.Bluff {
+		got := s.drawInto(d.Player, 4)
+		return []module.Event{
+			{Type: "challenge_won", Data: map[string]any{"playerId": playerID, "against": d.Player}},
+			drawnEvent(d.Player, got),
+		}, nil
+	}
+	got := s.drawInto(playerID, 6)
+	s.passTurn(s.nextPlayer(playerID))
+	return []module.Event{
+		{Type: "challenge_lost", Data: map[string]any{"playerId": playerID, "against": d.Player}},
+		drawnEvent(playerID, got),
+		skippedEvent(playerID),
+	}, nil
+}
+
+// applyAccept takes a Wild Draw Four as played: four cards, and the turn.
+func (s *GameState) applyAccept(playerID string) ([]module.Event, error) {
+	d := s.DrawFour
+	if d == nil || d.Victim != playerID {
+		return nil, module.Error{Code: ErrNoDrawFour}
+	}
+	s.DrawFour = nil
+	s.Reveal = nil
+	got := s.drawInto(playerID, 4)
+	s.passTurn(s.nextPlayer(playerID))
+	return []module.Event{drawnEvent(playerID, got), skippedEvent(playerID)}, nil
+}
+
+// endDeal scores the deal just won and either ends the match, pauses for the
+// table to read the score, or deals the next hand.
+func (s *GameState) endDeal(winner string) []module.Event {
+	res := DealResult{Number: s.DealNumber + 1, Winner: winner}
+	for _, p := range s.TurnOrder {
+		if p == winner {
+			continue
+		}
+		for _, c := range s.Hands[p] {
+			switch {
+			case isWild(c):
+				res.Wilds += cardPoints(c)
+			case cardPoints(c) == pointsAction:
+				res.Actions += cardPoints(c)
+			default:
+				res.Numbers += cardPoints(c)
+			}
+		}
+	}
+	res.Points = res.Numbers + res.Actions + res.Wilds
+	if s.Scores == nil {
+		s.Scores = map[string]int{}
+	}
+	s.Scores[winner] += res.Points
+	res.Totals = map[string]int{}
+	for _, p := range s.TurnOrder {
+		res.Totals[p] = s.Scores[p]
+	}
+	s.Deals = append(s.Deals, res)
+	s.DrawFour, s.Unannounced, s.Called, s.DrawnCard = nil, "", "", ""
+
+	events := []module.Event{{Type: "deal_ended", Data: map[string]any{
+		"deal": res.Number, "winnerId": winner, "points": res.Points,
+	}}}
+	if s.TargetScore <= 0 || s.Scores[winner] >= s.TargetScore {
+		s.Status = "completed"
+		s.WinnerID = winner
+		s.Current = ""
+		return append(events, module.Event{Type: "game_ended", Data: map[string]any{"winnerId": winner}})
+	}
+	s.DealNumber++
+	if s.Pause {
+		s.Intermission.Begin(s.DealNumber)
+		s.Current = ""
+		return events
+	}
+	s.deal()
+	return append(events, module.Event{Type: "deal_started", Data: map[string]any{"deal": s.DealNumber + 1}})
+}
+
+// fewestCards is who wins a deal nobody can move in: the fewest cards, the
+// earliest seat taking a tie.
+func (s *GameState) fewestCards() string {
+	best := ""
+	for _, p := range s.TurnOrder {
+		if best == "" || len(s.Hands[p]) < len(s.Hands[best]) {
+			best = p
+		}
+	}
+	return best
 }
 
 // drawInto deals up to n cards into a player's hand and says how many it
@@ -291,7 +526,7 @@ func (s *GameState) drawOne() (string, bool) {
 		top := s.top()
 		rest := s.DiscardPile[:len(s.DiscardPile)-1]
 		s.Reshuffles++
-		s.DrawPile = shuffle(rest, s.Seed+int64(s.Reshuffles)*7919)
+		s.DrawPile = shuffle(rest, s.Seed+int64(s.DealNumber)*104729+int64(s.Reshuffles)*7919)
 		s.DiscardPile = []string{top}
 	}
 	if len(s.DrawPile) == 0 {
@@ -300,21 +535,6 @@ func (s *GameState) drawOne() (string, bool) {
 	card := s.DrawPile[len(s.DrawPile)-1]
 	s.DrawPile = s.DrawPile[:len(s.DrawPile)-1]
 	return card, true
-}
-
-// finishOnFewest ends a deal nobody can move in: the fewest cards wins, the
-// earliest seat taking a tie.
-func (s *GameState) finishOnFewest() {
-	best := ""
-	for _, p := range s.TurnOrder {
-		if best == "" || len(s.Hands[p]) < len(s.Hands[best]) {
-			best = p
-		}
-	}
-	s.Status = "completed"
-	s.WinnerID = best
-	s.Current = ""
-	s.DrawnCard = ""
 }
 
 func drawnEvent(playerID string, n int) module.Event {

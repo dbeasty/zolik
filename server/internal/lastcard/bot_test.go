@@ -144,7 +144,9 @@ func playOut(t *testing.T, seed int64, seats map[string]module.Skill) string {
 	t.Helper()
 	m := New()
 	ps := []module.PlayerRef{{ID: "p1"}, {ID: "p2"}}
-	state, err := m.NewMatch(module.MatchConfig{}, ps, seed)
+	// One deal per game, with the call and the challenge in play: the ladder
+	// is about who goes out first, and the score sheet would only add noise.
+	state, err := m.NewMatch(module.MatchConfig{Options: module.Options{OptTargetScore: 0}}, ps, seed)
 	if err != nil {
 		t.Fatalf("NewMatch: %v", err)
 	}
@@ -179,5 +181,50 @@ func TestUnknownSkillPlaysMedium(t *testing.T) {
 		if got := profileFor(sk); got.skill != module.SkillMedium {
 			t.Errorf("profileFor(%q) = %q, want medium", sk, got.skill)
 		}
+	}
+}
+
+// Bots alone play a whole match to its target through every new turn of the
+// game — the pause between deals, the call, the catch, the challenge — and
+// the hard seats never propose a move the engine refuses.
+func TestBotsPlayAWholeMatch(t *testing.T) {
+	m := New()
+	ps := players("p1", "p2", "p3", "p4")
+	skills := map[string]module.Skill{"p1": module.SkillEasy, "p2": module.SkillMedium, "p3": module.SkillHard, "p4": module.SkillHard}
+	for seed := int64(1); seed <= 5; seed++ {
+		state, err := m.NewMatch(module.MatchConfig{}, ps, seed)
+		if err != nil {
+			t.Fatal(err)
+		}
+		seen := map[string]int{}
+		for step := 0; ; step++ {
+			if step > 40000 {
+				t.Fatalf("seed %d: no finish", seed)
+			}
+			if done, _, _ := m.Finished(state); done {
+				break
+			}
+			s, _ := decode(state)
+			actor := s.Current
+			if s.Intermission.Open {
+				actor = s.Intermission.Waiting(s.TurnOrder)[0]
+			}
+			offers, _ := m.LegalActions(state, actor)
+			a, ok := m.Bot().Act(state, module.BotSeat{PlayerID: actor, Skill: skills[actor]}, offers)
+			if !ok {
+				t.Fatalf("seed %d: %s had no move", seed, actor)
+			}
+			next, _, err := m.Apply(state, actor, a)
+			if err != nil {
+				t.Fatalf("seed %d: %s proposed %v: %v", seed, actor, a, err)
+			}
+			seen[a.Verb]++
+			state = next
+		}
+		s, _ := decode(state)
+		if s.Scores[s.WinnerID] < defaultTargetScore || len(s.Deals) < 2 {
+			t.Errorf("seed %d: won on %d after %d deals", seed, s.Scores[s.WinnerID], len(s.Deals))
+		}
+		t.Logf("seed %d: %d deals, verbs %v", seed, len(s.Deals), seen)
 	}
 }

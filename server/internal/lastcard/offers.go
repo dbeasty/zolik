@@ -8,9 +8,13 @@ import (
 
 // Offer IDs.
 const (
-	OfferPlay = "play_card"
-	OfferDraw = "draw"
-	OfferPass = "pass"
+	OfferPlay      = "play_card"
+	OfferDraw      = "draw"
+	OfferPass      = "pass"
+	OfferCall      = "call"
+	OfferCatch     = "catch"
+	OfferChallenge = "challenge"
+	OfferAccept    = "accept"
 )
 
 // LegalActions answers "what may this player do right now?", built the way
@@ -21,7 +25,37 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	if err != nil {
 		return nil, err
 	}
-	offers := make([]module.ActionOffer, 0, 3)
+	if s.Intermission.Open {
+		return s.Intermission.Offers(s.TurnOrder, playerID), nil
+	}
+	offers := make([]module.ActionOffer, 0, 5)
+
+	// --- answering a Wild Draw Four ----------------------------------------
+	// First, because while one is waiting nothing else may happen.
+	if s.DrawFour != nil && s.DrawFour.Victim == playerID {
+		challenge := module.ActionOffer{ID: OfferChallenge, Verb: VerbChallenge, LabelKey: "lastcard.offer.challenge"}
+		challenge.Enabled, challenge.WhyNot = probe(m, raw, playerID, module.Action{Verb: VerbChallenge})
+		accept := module.ActionOffer{ID: OfferAccept, Verb: VerbAccept, LabelKey: "lastcard.offer.accept"}
+		accept.Enabled, accept.WhyNot = probe(m, raw, playerID, module.Action{Verb: VerbAccept})
+		offers = append(offers, challenge, accept)
+	}
+
+	// --- catching a silent last card -----------------------------------------
+	// Offered only while there is somebody to catch: a control that is
+	// disabled on every other turn of the game would be noise.
+	if s.CallOn && s.Unannounced != "" && s.Unannounced != playerID && s.Current == playerID {
+		catch := module.ActionOffer{ID: OfferCatch, Verb: VerbCatch, LabelKey: "lastcard.offer.catch"}
+		catch.Enabled, catch.WhyNot = probe(m, raw, playerID, module.Action{Verb: VerbCatch})
+		offers = append(offers, catch)
+	}
+
+	// --- "Last card!" ----------------------------------------------------------
+	// Offered while it means something: your turn, two cards in hand.
+	if s.CallOn && s.Current == playerID && s.DrawFour == nil && len(s.Hands[playerID]) == 2 {
+		call := module.ActionOffer{ID: OfferCall, Verb: VerbCall, LabelKey: "lastcard.offer.call"}
+		call.Enabled, call.WhyNot = probe(m, raw, playerID, module.Action{Verb: VerbCall})
+		offers = append(offers, call)
+	}
 
 	// --- play a card ---------------------------------------------------------
 	play := module.ActionOffer{ID: OfferPlay, Verb: VerbPlay}
@@ -54,7 +88,7 @@ func (m *Module) LegalActions(raw module.State, playerID string) ([]module.Actio
 	pass.Enabled, pass.WhyNot = probe(m, raw, playerID, module.Action{Verb: VerbPass})
 	offers = append(offers, pass)
 
-	m.annotate(module.MatchConfig{}, s, offers)
+	m.annotate(configOf(s), s, offers)
 	return offers, nil
 }
 

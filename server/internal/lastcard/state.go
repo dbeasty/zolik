@@ -84,11 +84,82 @@ type GameState struct {
 	// rather than its top card. Resolved once at NewMatch.
 	OpenDiscard bool `json:"openDiscard,omitempty"`
 
+	// --- the call -----------------------------------------------------------
+
+	// CallOn is whether this table plays the "Last card!" call. Resolved
+	// once at NewMatch.
+	CallOn bool `json:"callOn,omitempty"`
+	// Called is the player on turn who has said "Last card!" this turn,
+	// ahead of the play that leaves them one card. Cleared when the turn
+	// passes.
+	Called string `json:"called,omitempty"`
+	// Unannounced is a player who went down to one card without calling.
+	// Whoever moves next may catch them, until that player does anything
+	// else.
+	Unannounced string `json:"unannounced,omitempty"`
+
+	// --- the Wild Draw Four challenge --------------------------------------
+
+	// ChallengeOn is whether a Wild Draw Four may be challenged — and so
+	// played as a bluff. Resolved once at NewMatch.
+	ChallengeOn bool `json:"challengeOn,omitempty"`
+	// DrawFour is a Wild Draw Four waiting on its victim's answer.
+	DrawFour *DrawFourPending `json:"drawFour,omitempty"`
+	// Reveal is a hand shown to a challenger, kept until that player next
+	// acts.
+	Reveal *Reveal `json:"reveal,omitempty"`
+
+	// --- the match across deals ----------------------------------------------
+
+	// TargetScore ends the match when a player's total reaches it. Zero is
+	// a single deal.
+	TargetScore int `json:"targetScore,omitempty"`
+	// HandSize is how many cards each deal gives each player.
+	HandSize int `json:"handSize,omitempty"`
+	// DealNumber counts deals from zero.
+	DealNumber int            `json:"dealNumber,omitempty"`
+	Scores     map[string]int `json:"scores,omitempty"`
+	Deals      []DealResult   `json:"deals,omitempty"`
+	// Pause stops between deals until every seat says go on.
+	Pause        bool                `json:"pause,omitempty"`
+	Intermission module.Intermission `json:"intermission,omitempty"`
+
 	WinnerID string `json:"winnerId,omitempty"`
 	Seed     int64  `json:"seed"`
 	// Reshuffles counts how many times the pile has been recycled, which also
 	// varies the reshuffle seed.
 	Reshuffles int `json:"reshuffles"`
+}
+
+// DrawFourPending is a Wild Draw Four played and not yet answered.
+type DrawFourPending struct {
+	Player string `json:"player"`
+	Victim string `json:"victim"`
+	// Bluff records whether the player held a card of the colour in play
+	// when they played it — what a challenge tests. Never shown to anyone.
+	Bluff bool `json:"bluff,omitempty"`
+}
+
+// Reveal is a hand shown to one player: the hand a Wild Draw Four was
+// challenged on, as it was when the card went down.
+type Reveal struct {
+	Viewer string   `json:"viewer"`
+	Owner  string   `json:"owner"`
+	Cards  []string `json:"cards"`
+	Bluff  bool     `json:"bluff,omitempty"`
+}
+
+// DealResult is one deal, as the score sheet shows it.
+type DealResult struct {
+	Number int            `json:"number"`
+	Winner string         `json:"winner"`
+	Points int            `json:"points"`
+	Totals map[string]int `json:"totals"`
+	// What the points were made of: number cards, action cards and wilds
+	// left in the other hands.
+	Numbers int `json:"numbers,omitempty"`
+	Actions int `json:"actions,omitempty"`
+	Wilds   int `json:"wilds,omitempty"`
 }
 
 // Error codes. Stable keys, rendered by the client's locale bundle.
@@ -103,6 +174,11 @@ const (
 	ErrNothingToKeep    = "LASTCARD_NOTHING_TO_KEEP"
 	ErrColourRequired   = "LASTCARD_COLOUR_REQUIRED"
 	ErrUnknownColour    = "LASTCARD_UNKNOWN_COLOUR"
+	ErrAnswerDrawFour   = "LASTCARD_ANSWER_DRAW_FOUR"
+	ErrNoDrawFour       = "LASTCARD_NO_DRAW_FOUR"
+	ErrNothingToCatch   = "LASTCARD_NOTHING_TO_CATCH"
+	ErrCallNotNow       = "LASTCARD_CALL_NOT_NOW"
+	ErrAlreadyCalled    = "LASTCARD_ALREADY_CALLED"
 	ErrUnknownAction    = "UNKNOWN_ACTION"
 	ErrTooFewPlayers    = "TOO_FEW_PLAYERS"
 )
@@ -112,7 +188,31 @@ const (
 	VerbPlay = "play_card"
 	VerbDraw = "draw"
 	VerbPass = "pass" // keep the card just drawn and end the turn
+
+	VerbCall      = "call"      // "Last card!", before the play that leaves one
+	VerbCatch     = "catch"     // catch a player who went to one card silently
+	VerbChallenge = "challenge" // dispute a Wild Draw Four
+	VerbAccept    = "accept"    // take a Wild Draw Four's four cards
 )
+
+// Card values at the end of a deal: what the winner scores for each card
+// left in another hand.
+const (
+	pointsAction = 20
+	pointsWild   = 50
+)
+
+// cardPoints is what one card left in hand is worth to the deal's winner.
+func cardPoints(card string) int {
+	if isWild(card) {
+		return pointsWild
+	}
+	f := faceOf(card)
+	if len(f) == 1 && f[0] >= '0' && f[0] <= '9' {
+		return int(f[0] - '0')
+	}
+	return pointsAction
+}
 
 // colourOf is a card's colour, or "" for a wild.
 func colourOf(card string) string {

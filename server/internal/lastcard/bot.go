@@ -19,21 +19,75 @@ var _ module.Bot = bot{}
 
 func (b bot) Act(raw module.State, seat module.BotSeat, offers []module.ActionOffer) (module.Action, bool) {
 	s, err := decode(raw)
-	if err != nil || s.Status != "active" || s.Current != seat.PlayerID {
+	if err != nil || s.Status != "active" {
+		return module.ChooseAction(offers, nil)
+	}
+	if s.Intermission.Open {
+		return module.ChooseAction(offers, []string{module.VerbContinue})
+	}
+	if s.Current != seat.PlayerID {
 		return module.ChooseAction(offers, nil)
 	}
 	p := profileFor(seat.Skill)
-	play := findOffer(offers, OfferPlay)
-	if play != nil && play.Enabled && play.Source != nil && len(play.Source.Cards) > 0 {
-		card := b.choose(s, seat.PlayerID, p, play.Source.Cards)
-		a := module.Action{OfferID: play.ID, Verb: VerbPlay, Cards: []string{card}}
-		if isWild(card) {
-			a.Params = map[string]string{"colour": b.declare(s, seat.PlayerID, card)}
+
+	// A Wild Draw Four waiting on this seat comes before anything else.
+	if o := findOffer(offers, OfferChallenge); o != nil && o.Enabled {
+		if p.challenges(s) {
+			return module.Action{OfferID: o.ID, Verb: VerbChallenge}, true
 		}
-		return a, true
+		if a := findOffer(offers, OfferAccept); a != nil && a.Enabled {
+			return module.Action{OfferID: a.ID, Verb: VerbAccept}, true
+		}
 	}
-	// Nothing playable: draw, or keep what was drawn.
+	if o := findOffer(offers, OfferCatch); o != nil && o.Enabled && p.catches {
+		return module.Action{OfferID: o.ID, Verb: VerbCatch}, true
+	}
+	if o := findOffer(offers, OfferCall); o != nil && o.Enabled && !p.forgets(s) {
+		return module.Action{OfferID: o.ID, Verb: VerbCall}, true
+	}
+
+	play := findOffer(offers, OfferPlay)
+	if play != nil && play.Enabled && play.Source != nil {
+		if cards := b.honest(s, seat.PlayerID, p, play.Source.Cards); len(cards) > 0 {
+			card := b.choose(s, seat.PlayerID, p, cards)
+			a := module.Action{OfferID: play.ID, Verb: VerbPlay, Cards: []string{card}}
+			if isWild(card) {
+				a.Params = map[string]string{"colour": b.declare(s, seat.PlayerID, card)}
+			}
+			return a, true
+		}
+	}
+	// Nothing worth playing: draw, or keep what was drawn.
 	return module.ChooseAction(offers, []string{VerbDraw, VerbPass})
+}
+
+// honest takes the bluffs out of the legal plays: a Wild Draw Four played
+// while holding the colour in play, which a table with the challenge allows.
+// Only a profile that bluffs keeps one, and only when the next player is
+// close enough to out that four cards is worth the risk of a challenge.
+func (b bot) honest(s *GameState, playerID string, p profile, playable []string) []string {
+	if !s.holdsColour(s.Hands[playerID]) {
+		return playable
+	}
+	if p.bluffs && nextHandSize(s, playerID) <= 2 {
+		return playable
+	}
+	out := make([]string, 0, len(playable))
+	for _, c := range playable {
+		if c != cardWildDrawFour {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+// nextHandSize is how many cards the next player in the direction of play is
+// holding — their hand's size, never its contents.
+func nextHandSize(s *GameState, playerID string) int {
+	if len(s.TurnOrder) < 2 {
+		return 1 << 30
+	}
+	return len(s.Hands[s.nextPlayer(playerID)])
 }
 
 // profile is what a skill setting changes.
@@ -67,21 +121,62 @@ type profile struct {
 	keepsTheWild bool
 	// attackFirst plays a Skip, Reverse or Draw Two ahead of a plain card.
 	attackFirst bool
+
+	// sometimesForgets leaves "Last card!" unsaid one time in three — a
+	// beginner's slip, and a chance for the table to catch them.
+	sometimesForgets bool
+	// catches catches a player who went to one card in silence.
+	catches bool
+	// bluffs plays a Wild Draw Four while holding the colour, when the next
+	// player is nearly out.
+	bluffs bool
+	// challengeAt challenges a Wild Draw Four played from a hand that had at
+	// least this many cards left — the more cards, the likelier one was the
+	// colour. Zero never challenges.
+	challengeAt int
+}
+
+// forgets is whether this turn's "Last card!" goes unsaid. Fixed by the state
+// rather than drawn at random, so a replayed match makes the same slip.
+func (p profile) forgets(s *GameState) bool {
+	return p.sometimesForgets && (s.Seed+int64(s.DealNumber)*31+int64(len(s.DiscardPile)))%3 == 0
+}
+
+// challenges decides on a Wild Draw Four from what the table can see: how
+// many cards its player still holds.
+func (p profile) challenges(s *GameState) bool {
+	if p.challengeAt <= 0 || s.DrawFour == nil {
+		return false
+	}
+	return len(s.Hands[s.DrawFour.Player]) >= p.challengeAt
 }
 
 var profiles = map[module.Skill]profile{
 	module.SkillEasy: {
-		skill:      module.SkillEasy,
-		wildsFirst: true,
+		skill:            module.SkillEasy,
+		wildsFirst:       true,
+		sometimesForgets: true,
 	},
 	module.SkillMedium: {
 		skill:        module.SkillMedium,
 		keepsTheWild: true,
+		catches:      true,
 	},
 	module.SkillHard: {
 		skill:        module.SkillHard,
 		keepsTheWild: true,
 		attackFirst:  true,
+		catches:      true,
+		// Neither of these two measures against the bots below it — they
+		// never bluff, so a challenge can only lose (4 000 games: 56.2% with
+		// both, 56.5% without the challenge, 55.4% challenging from four
+		// cards). They are here for the human across the table: a bot that
+		// never challenges lets a player bluff for free, and one that never
+		// bluffs is a bot whose Wild Draw Four is always honest. So the
+		// challenge waits for a hand big enough that holding the colour was
+		// near certain.
+		bluffs:      true,
+		challengeAt: 8,
 	},
 }
 
