@@ -64,6 +64,8 @@ import { nextMarks, NO_MARKS, type ChangeMarks } from '@/src/lib/changes';
 import { reasonText, t } from '@/src/lib/i18n';
 import { ApiError } from '@/src/api/client';
 import { savePendingDestination } from '@/src/lib/pendingDestination';
+import { dealUrlFor, shareInviteLink } from '@/src/lib/inviteLink';
+import { moduleName } from '@/src/lib/gameLabels';
 import { routeForMatch } from '@/src/lib/matchRoute';
 import { WhySheet, type Refusal } from '@/src/components/match/WhySheet';
 import { useRuleIndex } from '@/src/hooks/useRuleIndex';
@@ -250,6 +252,10 @@ export default function MatchScreen() {
   // Setting up the same table again, and whatever went wrong trying — declared
   // up here for the same reason: hooks may not be conditional.
   const [startingAgain, setStartingAgain] = useState(false);
+  // A finished game's deal, sent on: the link, and whether it got as far as a
+  // share sheet or the clipboard. When it did not, the link is shown to copy.
+  const [sentDeal, setSentDeal] = useState<{ url: string; handedOver: boolean } | null>(null);
+  const [sendingDeal, setSendingDeal] = useState(false);
   const [againError, setAgainError] = useState('');
   // "No thanks" to somebody else's rematch: the banner goes back to its own
   // offers. Held here rather than on the server's answer, because the
@@ -933,6 +939,27 @@ export default function MatchScreen() {
     }
   };
 
+  // The same cards for somebody else. The server mints the link and seals the
+  // game it came from inside it, so nothing here — or in the link — says
+  // which game that was.
+  const sendDeal = async () => {
+    setSendingDeal(true);
+    setAgainError('');
+    try {
+      const { token } = await client.dealLink(String(matchId));
+      const url = dealUrlFor(token);
+      const handedOver = url
+        ? await shareInviteLink(url, t('match.sendDealMessage', { game: moduleName(state.moduleId) }))
+        : false;
+      setSentDeal({ url, handedOver });
+    } catch (e) {
+      const code = e instanceof ApiError ? e.code : undefined;
+      setAgainError(reasonText(code, e instanceof Error ? e.message : String(e)));
+    } finally {
+      setSendingDeal(false);
+    }
+  };
+
   // Giving the held seat back, so the host is not left waiting. Best-effort:
   // if it does not reach the server the seat is let go anyway once the host
   // deals, and there is nothing this player could do about it from here.
@@ -1430,7 +1457,7 @@ export default function MatchScreen() {
             ) : null}
             {/* A deal played again says so: a score made on cards already
                 seen is not a first attempt. */}
-            {state.dealFrom && !wasAbandoned ? (
+            {state.repeatDeal && !wasAbandoned ? (
               <Text testID="match-over-repeat" style={styles.overOutcome}>
                 {t('match.repeatDeal')}
               </Text>
@@ -1494,6 +1521,17 @@ export default function MatchScreen() {
                   <Text style={styles.overButtonText}>{t('match.dealAgain')}</Text>
                 </Pressable>
               ) : null}
+              {seatedHere && state.canDealAgain ? (
+                <Pressable
+                  testID="match-over-send-deal"
+                  accessibilityState={{ disabled: sendingDeal }}
+                  disabled={sendingDeal}
+                  onPress={sendDeal}
+                  style={[styles.overButton, sendingDeal && styles.overButtonBusy]}
+                >
+                  <Text style={styles.overButtonText}>{t('match.sendDeal')}</Text>
+                </Pressable>
+              ) : null}
               {rematchOffer ? (
                 <Pressable
                   testID="match-over-decline-rematch"
@@ -1511,6 +1549,21 @@ export default function MatchScreen() {
                 <Text style={styles.overButtonQuietText}>{t('match.backToGames')}</Text>
               </Pressable>
             </View>
+            {/* What became of the link — handed to a share sheet or copied,
+                or neither — and the link itself, either way: "copied" is
+                invisible, and people like to see what they are about to paste. */}
+            {sentDeal ? (
+              <View testID="match-over-deal-link">
+                <Text style={styles.overOutcome}>
+                  {sentDeal.handedOver ? t('match.sendDealDone') : t('match.sendDealCopy')}
+                </Text>
+                {sentDeal.url ? (
+                  <Text selectable testID="match-over-deal-url" style={styles.overOutcome}>
+                    {sentDeal.url}
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
             {againError || resumeError ? (
               <Text testID="match-over-error" style={styles.overError}>
                 {againError || resumeError}

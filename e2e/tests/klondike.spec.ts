@@ -3,7 +3,7 @@ import { expect, test, type APIRequestContext, type Page } from '@playwright/tes
 import { dragLocatorTo } from '../helpers/drag';
 import { API_BASE, asViewer } from '../helpers/env';
 import { openGame } from '../helpers/lobby';
-import { loginAsFreshGuest, type GuestIdentity } from '../helpers/login';
+import { loginAsFreshGuest, seedIntroSeen, type GuestIdentity } from '../helpers/login';
 
 /**
  * End-to-end for Solitaire (Klondike).
@@ -152,6 +152,67 @@ test.describe('solitaire', () => {
 
     await page.getByTestId('offer-giveup').click();
     await expect(page.getByTestId('match-over-repeat')).toBeVisible({ timeout: 15_000 });
+  });
+
+  test('a finished deal can be sent to somebody else, who learns nothing of where it came from', async ({
+    page,
+    request,
+    browser,
+  }) => {
+    const { me, matchId } = await dealSolitaire(page, request);
+    const tableau = (s: MatchState) => JSON.stringify(s.view.zones.find((z) => z.id === 'tableau'));
+    const opening = tableau(await stateOf(request, matchId, me));
+
+    await page.getByTestId('offer-giveup').click();
+    await expect(page.getByTestId('match-over')).toBeVisible({ timeout: 15_000 });
+    await page.getByTestId('match-over-send-deal').click();
+    const url = (await page.getByTestId('match-over-deal-url').textContent())!.trim();
+    expect(url).toContain('/deal/');
+    // The link names no match: not its id, not its join code.
+    expect(url).not.toContain(matchId);
+
+    // Somebody else, on a device of their own.
+    const theirs = await browser.newContext({ reducedMotion: 'reduce' });
+    const friendPage = await theirs.newPage();
+    const friend = await loginAsFreshGuest(friendPage, request, `friend-${Math.random().toString(36).slice(2, 8)}`);
+    // Opened on a device with nobody signed in, it says what it is, and
+    // playing it goes through guest sign-in first.
+    const stranger = await browser.newContext({ reducedMotion: 'reduce' });
+    const strangerPage = await stranger.newPage();
+    await seedIntroSeen(strangerPage);
+    await strangerPage.goto(url);
+    await expect(strangerPage.getByTestId('deal-game')).toBeVisible({ timeout: 30_000 });
+    await strangerPage.screenshot({ path: 'test-results/klondike-deal-link.png' });
+    await strangerPage.getByTestId('deal-play').click();
+    await strangerPage.waitForURL(/\/auth\/guest/, { timeout: 30_000 });
+    await stranger.close();
+
+    await friendPage.goto(url);
+    await expect(friendPage.getByTestId('deal-game')).toBeVisible({ timeout: 30_000 });
+    await friendPage.getByTestId('deal-play').click();
+    await friendPage.waitForURL(/\/match\//, { timeout: 30_000 });
+    const friendMatch = friendPage.url().split('/match/')[1]!.split(/[?#]/)[0]!;
+    expect(friendMatch).not.toBe(matchId);
+    await expect(friendPage.getByTestId('group-t7')).toBeVisible({ timeout: 30_000 });
+
+    // The same cards...
+    const seen = await request.get(`${API_BASE}/matches/${friendMatch}`, asViewer(friend));
+    const raw = await seen.text();
+    expect(tableau(JSON.parse(raw).state ?? JSON.parse(raw))).toBe(opening);
+    // ...and nothing on their board that leads back to the sender's game.
+    expect(raw).not.toContain(matchId);
+
+    // Finished, it is a first attempt for them, not a repeat.
+    await friendPage.getByTestId('offer-giveup').click();
+    await expect(friendPage.getByTestId('match-over')).toBeVisible({ timeout: 15_000 });
+    await expect(friendPage.getByTestId('match-over-repeat')).toHaveCount(0);
+    await theirs.close();
+  });
+
+  test('a link that is not one says so', async ({ page, request }) => {
+    await loginAsFreshGuest(page, request, `stale-${Math.random().toString(36).slice(2, 8)}`);
+    await page.goto('/deal/not-a-real-deal');
+    await expect(page.getByTestId('deal-error')).toBeVisible({ timeout: 30_000 });
   });
 
   test('seven columns fit a phone without scrolling sideways', async ({ page, request }) => {

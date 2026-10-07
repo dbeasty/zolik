@@ -48,6 +48,8 @@ type MatchResult struct {
 	// DealFrom is the match whose deal this one was dealt again from, when it
 	// was (models.Match.DealFrom).
 	DealFrom string `bson:"dealFrom,omitempty" json:"dealFrom,omitempty"`
+	// Repeat is whether the player had seen the deal before playing it.
+	Repeat bool `bson:"repeat,omitempty" json:"repeat,omitempty"`
 
 	// Rounds is how the match got to that result, round by round, when the
 	// module kept a history. Nil for a game with no rounds, and nil on every

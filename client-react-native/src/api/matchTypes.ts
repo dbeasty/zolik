@@ -518,8 +518,12 @@ export type MatchState = {
    * one-seat game the server decides is replayable. See `client.dealAgain`.
    */
   canDealAgain?: boolean;
-  /** The match this one's deal was first dealt at, when it is a deal played again. */
-  dealFrom?: string;
+  /**
+   * The player at this table had seen this deal before — dealt it again, or
+   * were sent one they had played — so a score here is not a first attempt.
+   * A flag, never the game it came from: that game's board would show the deal.
+   */
+  repeatDeal?: boolean;
   /** Who a rematch lobby is still holding seats for, in seat order. */
   reserved?: { playerId: string; name: string; avatar?: string }[];
   /**

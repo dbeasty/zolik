@@ -575,6 +575,24 @@ export class ZolikClient {
   }
 
   /**
+   * A link that sends this finished game's deal to somebody else. The token
+   * says nothing about the game it came from — see `dealUrlFor`.
+   */
+  async dealLink(idOrCode: string): Promise<{ token: string }> {
+    return this.post(`/matches/${encodeURIComponent(idOrCode)}/deal-link`, null, true);
+  }
+
+  /** What a deal link offers: which game, which settings. Needs no session. */
+  async sentDeal(token: string): Promise<{ moduleId: string; variation?: string; options?: Record<string, number> }> {
+    return this.get(`/deals/${encodeURIComponent(token)}`, false);
+  }
+
+  /** Deal a sent game to this player, at a table of their own, already dealt. */
+  async playSentDeal(token: string): Promise<{ matchId: string; status: string; hostId: string }> {
+    return this.post(`/deals/${encodeURIComponent(token)}/play`, { avatar: this.avatarId }, true);
+  }
+
+  /**
    * The host not waiting for somebody a rematch is holding a seat for. With
    * `bot`, a bot at the table's own skill sits where they would have sat.
    */

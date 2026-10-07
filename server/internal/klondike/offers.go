@@ -174,7 +174,7 @@ func moveOffer(s *GameState, mv move) module.ActionOffer {
 		LabelKey: "klondike.offer.move",
 		Source:   src,
 		Target:   &module.Selector{Zone: module.ToMeld, MeldID: mv.to, ZoneID: zone},
-		Facts: []module.Fact{{LabelKey: "klondike.fact.card", Value: mv.cards[0]}, destinationFact(mv.to)},
+		Facts:    []module.Fact{{LabelKey: "klondike.fact.card", Value: mv.cards[0]}, destinationFact(mv.to)},
 	}
 }
 

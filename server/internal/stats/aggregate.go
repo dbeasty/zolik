@@ -44,6 +44,7 @@ func BuildMatchResult(sb Scoreboard, matchID bson.ObjectID, startedAt, completed
 		Rounds:          sb.Rounds,
 		RoundLabelKey:   sb.RoundLabelKey,
 		DealFrom:        sb.DealFrom,
+		Repeat:          sb.Repeat,
 		RecordedAt:      now,
 	}
 }
@@ -120,7 +121,7 @@ func ApplyMatch(ps PlayerStats, m MatchResult, seat Standing, now time.Time) Pla
 		Outcome:       outcomeOf(seat, m.IsDraw),
 		AgainstAI:     anyAI(opponents),
 		AgainstHumans: anyHuman(opponents),
-		Repeat:        m.DealFrom != "",
+		Repeat:        m.Repeat,
 	})
 
 	ps.UpdatedAt = now

@@ -69,8 +69,9 @@ type Scoreboard struct {
 	RoundLabelKey string        `bson:"roundLabelKey,omitempty" json:"roundLabelKey,omitempty"`
 
 	// DealFrom is the match whose deal this one was dealt again from — see
-	// models.Match.DealFrom.
+	// models.Match.DealFrom — and Repeat whether its player had seen it.
 	DealFrom string `bson:"dealFrom,omitempty" json:"dealFrom,omitempty"`
+	Repeat   bool   `bson:"repeat,omitempty" json:"repeat,omitempty"`
 }
 
 // roundRecords reduces a module's round log to what a permanent row keeps: the
@@ -120,6 +121,7 @@ func BuildScoreboard(m models.Match, out module.Outcome) Scoreboard {
 		Complete:  m.Status == "completed",
 		Winners:   append([]string(nil), m.Winners...),
 		DealFrom:  m.DealFrom,
+		Repeat:    m.DealRepeat,
 	}
 	sb.IsDraw = sb.Complete && sidesAmong(sb.Winners, out.Sides) > 1
 

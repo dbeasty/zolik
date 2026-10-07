@@ -466,12 +466,27 @@ func TestADealPlayedAgainIsMarkedAsARepeat(t *testing.T) {
 	now := time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC)
 	seat := Standing{PlayerID: "p1", Rank: 1, Score: 52, Won: true}
 	m := MatchResult{
-		ModuleID: "klondike", CompletedAt: now, DealFrom: "6ac6aa5b429c8d4653a4bf78",
+		ModuleID: "klondike", CompletedAt: now, DealFrom: "6ac6aa5b429c8d4653a4bf78", Repeat: true,
 		Composition:  Composition{Players: 1, Users: 1},
 		Participants: []Standing{seat},
 	}
 	ps := ApplyMatch(PlayerStats{}, m, seat, now)
 	if !ps.RecentMatches[0].Repeat {
 		t.Fatal("a deal played again is shown as a first attempt")
+	}
+}
+
+// A deal somebody was sent is a first attempt for them, though it was dealt
+// from somebody else's game.
+func TestASentDealIsAFirstAttempt(t *testing.T) {
+	now := time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC)
+	seat := Standing{PlayerID: "p2", Rank: 1, Score: 52, Won: true}
+	m := MatchResult{
+		ModuleID: "klondike", CompletedAt: now, DealFrom: "6ac6aa5b429c8d4653a4bf78",
+		Composition:  Composition{Players: 1, Users: 1},
+		Participants: []Standing{seat},
+	}
+	if ApplyMatch(PlayerStats{}, m, seat, now).RecentMatches[0].Repeat {
+		t.Fatal("a sent deal is marked as a repeat")
 	}
 }

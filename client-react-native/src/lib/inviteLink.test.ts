@@ -1,5 +1,6 @@
 import {
   codeFromInviteInput,
+  dealUrlFor,
   friendUrlFor,
   guestIdOfKey,
   guestUrlFor,
@@ -172,5 +173,16 @@ describe('seatUrlFor', () => {
 
   it('offers nothing without a path — the secret is in it', () => {
     expect(seatUrlFor({ path: '', url: '' }, 'https://jokerless.com')).toBe('');
+  });
+});
+
+describe('dealUrlFor', () => {
+  it('puts the token under /deal/ on the page’s own origin', () => {
+    expect(dealUrlFor('abc_DEF-123', 'https://jokerless.com')).toBe('https://jokerless.com/deal/abc_DEF-123');
+    expect(dealUrlFor('abc', 'https://jokerless.com/')).toBe('https://jokerless.com/deal/abc');
+  });
+
+  it('is nothing without a token', () => {
+    expect(dealUrlFor('', 'https://jokerless.com')).toBe('');
   });
 });

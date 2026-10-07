@@ -200,3 +200,74 @@ func tableauOf(t *testing.T, m *match.Manager, matchID string) string {
 	blob, _ := json.Marshal(vm.Zones)
 	return string(blob)
 }
+
+// "Send this deal": a link the player who played a game may hand to anybody,
+// which deals them the same cards and tells them nothing about where from.
+func TestASentDealIsTheSameDealAndNamesNoMatch(t *testing.T) {
+	m, repo, _ := soloManager(t)
+	ctx := context.Background()
+	sender := models.Player{ID: "p1", Name: "Sender", UserID: soloUser}
+	first, err := m.Create(ctx, "klondike", module.MatchConfig{}, sender)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.Start(ctx, first.ID.Hex()); err != nil {
+		t.Fatal(err)
+	}
+	opening := tableauOf(t, m, first.ID.Hex())
+
+	// Not while it is being played, and not by somebody who did not play it.
+	if _, err := m.DealLink(ctx, first.ID.Hex(), "p1"); module.CodeOf(err) != "MATCH_NOT_OVER" {
+		t.Fatalf("a link to a game in play: %v", err)
+	}
+	if err := m.HandleAction(ctx, first.ID.Hex(), "p1", module.Action{Verb: "giveup"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.DealLink(ctx, first.ID.Hex(), "stranger"); module.CodeOf(err) != "NOT_AT_THIS_TABLE" {
+		t.Fatalf("a stranger sent somebody else's deal: %v", err)
+	}
+
+	token, err := m.DealLink(ctx, first.ID.Hex(), "p1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(token, first.ID.Hex()) || strings.Contains(token, first.JoinCode) {
+		t.Fatal("the link names the match it came from")
+	}
+	cfg, moduleID, err := m.SentDeal(ctx, token)
+	if err != nil || moduleID != "klondike" || cfg.Variation != first.Variation {
+		t.Fatalf("the link offers %q %+v: %v", moduleID, cfg, err)
+	}
+
+	friend := models.Player{ID: "p2", Name: "Friend", UserID: "fedcba9876543210fedcba98"}
+	theirs, err := m.PlaySentDeal(ctx, token, friend)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := tableauOf(t, m, theirs.ID.Hex()); got != opening {
+		t.Fatalf("the friend was dealt differently:\n%s\n%s", got, opening)
+	}
+	stored, _ := repo.FindByID(ctx, theirs.ID)
+	if stored.DealRepeat || stored.DealFrom != first.ID.Hex() {
+		t.Fatalf("repeat %v, dealFrom %q", stored.DealRepeat, stored.DealFrom)
+	}
+	// Nothing the friend is sent carries the match it came from.
+	blob, _ := json.Marshal(m.BuildStateMsg(stored, "p2"))
+	if strings.Contains(string(blob), first.ID.Hex()) {
+		t.Fatal("the friend's board names the match the deal came from")
+	}
+
+	// The sender playing their own link has seen it.
+	mine, err := m.PlaySentDeal(ctx, token, models.Player{ID: "p1", Name: "Sender", UserID: soloUser})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again, _ := repo.FindByID(ctx, mine.ID); !again.DealRepeat {
+		t.Fatal("the sender's own deal is counted a first attempt")
+	}
+
+	// A forged or mangled link opens nothing.
+	if _, err := m.PlaySentDeal(ctx, token[:len(token)-2]+"xx", friend); module.CodeOf(err) != "DEAL_LINK_INVALID" {
+		t.Fatalf("a mangled link: %v", err)
+	}
+}

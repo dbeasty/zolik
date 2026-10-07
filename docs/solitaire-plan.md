@@ -349,6 +349,20 @@ else in it bent.
 - **Stats:** a solo result updates `ByModule`, the streak and the history, but not `Overall`.
   The solitaire-specific facts (best score, fewest moves) are not recorded yet.
 
+**Send this deal.** `POST /matches/{id}/deal-link` returns a token, and the link is
+`/deal/<token>`. `GET /deals/{token}` names the game and its settings, and
+`POST /deals/{token}/play` deals it at a table of the recipient's own. The token is the
+source match id sealed with AES-GCM under a key derived from the access secret
+(`auth.SealDealLink`), so it is opaque, unforgeable and needs no storage.
+
+The plan had overlooked something here. A finished match's board is readable by anyone who
+has its id, and it shows every card its player turned up. So a recipient who learned which
+match a deal came from could look at it before playing. Neither the link nor anything the
+recipient is sent carries that id: `models.Match.DealFrom` is now `json:"-"`, and the state
+message carries a `repeatDeal` flag in its place. "Repeat" is per player
+(`models.Match.DealRepeat`): set for "Play this deal again", and for a sent deal only when the
+recipient had played the source game themselves.
+
 **Client.** A table card is liftable when an enabled offer's `source.submit` starts with it.
 A press sends the move when there is one destination and lights the targets when there are
 several. A drag carries the run through the screen's existing `moveDrag` and `endDrag`. A
@@ -357,8 +371,7 @@ card indices on a phone. Measured at 375 px in `e2e/tests/klondike.spec.ts`.
 
 **Not done yet:**
 - Replay chapters at each recycle.
-- "Send this deal" to somebody else, and comparing results on the same deal. `dealFrom` is
-  stored on matches and results, ready for both.
+- Comparing results on the same deal. `dealFrom` is stored on matches and results, ready for it.
 - Recording solitaire stats facts.
 - A refused drop explaining itself. Klondike sends no disabled move offers, so a card let go
   on a wrong column just snaps back.

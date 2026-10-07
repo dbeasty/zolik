@@ -86,6 +86,9 @@ func (h *Handlers) RegisterRoutes(r chi.Router) {
 	// opens it; every later one sits down at it.
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/rematch", h.rematch)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/deal-again", h.dealAgain)
+	r.With(auth.AuthMiddleware).Post("/matches/{id}/deal-link", h.dealLink)
+	r.Get("/deals/{token}", h.sentDeal)
+	r.With(auth.AuthMiddleware).Post("/deals/{token}/play", h.playSentDeal)
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/rematch/decline", h.declineRematch)
 	// The host not waiting for somebody a rematch is holding a seat for.
 	r.With(auth.AuthMiddleware).Post("/matches/{id}/rematch/release", h.releaseHeldSeat)
@@ -647,6 +650,65 @@ func (h *Handlers) dealAgain(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	next, err := h.manager.DealAgain(req.Context(), chi.URLParam(req, "id"), uc.UserID)
+	if err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	writeJSON(w, map[string]any{"matchId": next.ID.Hex(), "status": next.Status, "hostId": next.HostID})
+}
+
+// dealLink mints a link that sends a finished one-seat game's deal to
+// somebody else. The token reveals nothing; see auth.SealDealLink.
+func (h *Handlers) dealLink(w http.ResponseWriter, req *http.Request) {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	token, err := h.manager.DealLink(req.Context(), chi.URLParam(req, "id"), uc.UserID)
+	if err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	writeJSON(w, map[string]any{"token": token})
+}
+
+// sentDeal says what a deal link offers — which game, which settings — so a
+// screen can name it before anybody signs in. Never which match it came from.
+func (h *Handlers) sentDeal(w http.ResponseWriter, req *http.Request) {
+	cfg, moduleID, err := h.manager.SentDeal(req.Context(), chi.URLParam(req, "token"))
+	if err != nil {
+		writeModuleError(w, err)
+		return
+	}
+	writeJSON(w, map[string]any{"moduleId": moduleID, "variation": cfg.Variation, "options": cfg.Options})
+}
+
+type playSentDealReq struct {
+	Avatar string `json:"avatar,omitempty"`
+}
+
+// playSentDeal deals a sent game to the caller, at a table of their own.
+func (h *Handlers) playSentDeal(w http.ResponseWriter, req *http.Request) {
+	uc, ok := auth.GetUserContext(req)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	var body playSentDealReq
+	_ = json.NewDecoder(req.Body).Decode(&body)
+	if err := h.admission.AllowMatchStart(); err != nil {
+		admission.WriteBusy(w, err)
+		return
+	}
+	host := models.Player{
+		ID:      uc.UserID,
+		Name:    uc.Username,
+		Avatar:  models.SanitizeAvatar(body.Avatar),
+		UserID:  uc.PlayerUserID(),
+		GuestID: uc.PlayerGuestID(),
+	}
+	next, err := h.manager.PlaySentDeal(req.Context(), chi.URLParam(req, "token"), host)
 	if err != nil {
 		writeModuleError(w, err)
 		return

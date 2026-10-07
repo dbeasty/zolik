@@ -103,9 +103,10 @@ type MatchStateMsg struct {
 	// at a new table — see Manager.DealAgain. The server decides, so a client
 	// never has to know which games are played alone.
 	CanDealAgain bool `json:"canDealAgain,omitempty"`
-	// DealFrom is the match this one's deal was first dealt at, when it was
-	// dealt again — so a player can be told this is a deal they have seen.
-	DealFrom string `json:"dealFrom,omitempty"`
+	// RepeatDeal says the player at this table had seen this deal before, so
+	// the finished banner can say a score was not a first attempt. A flag and
+	// not the match it came from: see models.Match.DealFrom.
+	RepeatDeal bool `json:"repeatDeal,omitempty"`
 	// Reserved is who a rematch lobby is still holding seats for.
 	Reserved []models.Reservation `json:"reserved,omitempty"`
 	// RecentMoves is what the last few moves at the table were, as this viewer
@@ -214,7 +215,7 @@ func (m *Manager) projectStateMsg(match models.Match, viewerID string, o stateMs
 		SuspendedPlayer: match.SuspendedPlayer,
 		Rematch:         match.Rematch,
 		CanDealAgain:    match.Status == "completed" && m.savedGame(match),
-		DealFrom:        match.DealFrom,
+		RepeatDeal:      match.DealRepeat,
 		Reserved:        match.Reserved,
 		// Never nil: these round-trip to JSON, and a nil slice serialises to
 		// `null`, which every client then has to guard before indexing.
