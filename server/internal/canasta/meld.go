@@ -636,11 +636,12 @@ func reachableValue(r ruleset, hand []string, t *Team) int {
 // including any laid earlier this turn, as one candidate per meld — the shape
 // reachableValue's passes all take.
 func layOffCandidates(r ruleset, hand []string, t *Team) []candidate {
-	// Nothing is laid off before the initial meld, so an unopened side has no
-	// lay-offs to count towards the minimum (layOff refuses them).
-	if t == nil || !t.HasMelded {
+	if t == nil {
 		return nil
 	}
+	// Before the initial meld only naturals may be laid off, onto the melds
+	// laid so far this turn (layOff refuses a wild).
+	opened := t.HasMelded
 	remaining := append([]string(nil), hand...)
 	var out []candidate
 	for i := range t.Melds {
@@ -650,7 +651,7 @@ func layOffCandidates(r ruleset, hand []string, t *Team) []candidate {
 			if m.closed(r) {
 				break
 			}
-			if isWild(c) && m.wilds() >= r.MaxWilds {
+			if isWild(c) && (!opened || m.wilds() >= r.MaxWilds) {
 				continue
 			}
 			m.Cards = append(m.Cards, c)

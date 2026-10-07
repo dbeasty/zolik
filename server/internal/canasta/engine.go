@@ -1024,10 +1024,14 @@ func layOff(s *GameState, playerID string, a module.Action) ([]module.Event, []s
 	// thing. A target that exists nowhere is reported as the missing initial
 	// meld only when the partnership genuinely has no table to aim at.
 	owner, m := s.findMeld(a.Target)
-	if m != nil && owner.ID == t.ID && !t.HasMelded {
-		// Nothing is laid off until the initial meld is made, as the rules
-		// screen says. A lay-off used to count towards the minimum, so a wild
-		// added to a fresh meld stood in for points the melds did not hold.
+	if m != nil && owner.ID == t.ID && !t.HasMelded && containsWild(a.Cards) {
+		// Only natural cards go onto a meld laid earlier this turn, and they
+		// count towards the minimum like the meld they join. A wild does not:
+		// a lay-off used to count in full, so a wild added to a fresh meld stood
+		// in for points the melds did not hold. Naturals carry no such trick,
+		// and refusing them left a side that had captured a pile with a rank
+		// still in hand unable to add it to the meld just laid — only to start
+		// a second group of the same rank, where Samba allows one.
 		return nil, nil, errCode(ErrMustMeldFirst)
 	}
 	if m == nil {

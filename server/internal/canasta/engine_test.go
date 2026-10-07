@@ -1925,3 +1925,28 @@ func TestNewMatch_DealerVariesBySeed(t *testing.T) {
 		t.Fatalf("40 seeds only ever opened on %v — the opening seat is not varying", seen)
 	}
 }
+
+// A natural card goes onto a meld laid earlier this turn even before the side
+// has opened, and counts toward the minimum like the meld it joins. Without it
+// a pile capture that left a rank in hand could only start a second group of
+// that rank.
+func TestNaturalLayOffBeforeTheInitialMeldCounts(t *testing.T) {
+	raw := laidOffTable(func(s *GameState) {
+		s.Teams[0].HasMelded = false
+		s.LaidThisTurn = 30
+		s.Hands["p1"] = []string{"KC", "KD", "8C", "9C"}
+	})
+	next, code := apply(t, raw, "p1", module.Action{
+		Verb: VerbLayOff, Target: meldID(0, "K"), Cards: []string{"KC", "KD"},
+	})
+	if code != "" {
+		t.Fatalf("natural lay-off before opening refused: %s", code)
+	}
+	s := mustDecode(t, next)
+	if s.LaidThisTurn != 50 {
+		t.Errorf("LaidThisTurn = %d, want 50", s.LaidThisTurn)
+	}
+	if !s.Teams[0].HasMelded {
+		t.Errorf("fifty laid should have opened the side")
+	}
+}
